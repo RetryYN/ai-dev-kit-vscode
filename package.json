@@ -27,7 +27,6 @@
   "files": [
     "bin/",
     "skills/",
-    "templates/",
     "index.js"
   ],
   "engines": {
