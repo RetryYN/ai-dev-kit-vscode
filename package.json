@@ -1,0 +1,36 @@
+{
+  "name": "@ai-dev-kit/vscode",
+  "version": "1.0.0",
+  "description": "VSCode用 AI開発環境セットアップキット（Claude Code / Codex対応）",
+  "main": "index.js",
+  "bin": {
+    "ai-dev-kit": "./bin/cli.js",
+    "adk": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "node bin/cli.js --help"
+  },
+  "keywords": [
+    "claude-code",
+    "codex",
+    "vscode",
+    "ai-coding",
+    "skills",
+    "agent-skills"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RetryYN/ai-dev-kit"
+  },
+  "files": [
+    "bin/",
+    "skills/",
+    "templates/",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
