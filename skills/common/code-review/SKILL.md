@@ -1,6 +1,18 @@
 ---
 name: code-review
 description: code-review関連タスク時に使用
+metadata:
+  helix_layer: L5
+  triggers:
+    - コードレビュー実施時
+    - PRテンプレート作成時
+    - レビュー文化構築時
+  verification:
+    - レビューチェックリスト完了
+    - 指摘事項対応完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # コードレビュースキル

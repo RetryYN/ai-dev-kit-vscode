@@ -1,6 +1,19 @@
 ---
 name: security
 description: security関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - 認証・認可実装時
+    - 機密情報の扱い時
+    - 本番環境デプロイ時
+    - セキュリティレビュー時
+  verification:
+    - セキュリティチェックリスト完了
+    - 脆弱性スキャン通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # セキュリティスキル

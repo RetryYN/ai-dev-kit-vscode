@@ -1,6 +1,18 @@
 ---
 name: i18n
 description: i18n関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - 多言語対応時
+    - ローカライゼーション時
+    - 翻訳管理時
+  verification:
+    - 翻訳キー網羅
+    - 言語切替動作確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 多言語対応（i18n）スキル

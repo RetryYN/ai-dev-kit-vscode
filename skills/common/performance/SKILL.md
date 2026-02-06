@@ -1,6 +1,18 @@
 ---
 name: performance
 description: performance関連タスク時に使用
+metadata:
+  helix_layer: L5
+  triggers:
+    - パフォーマンス改善時
+    - ボトルネック調査時
+    - 負荷テスト時
+  verification:
+    - パフォーマンス目標達成
+    - 回帰テスト通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # パフォーマンススキル

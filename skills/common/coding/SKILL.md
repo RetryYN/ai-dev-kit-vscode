@@ -1,6 +1,18 @@
 ---
 name: coding
 description: コード品質改善、命名規則確認、リファクタリング時に使用。単純な実装時は不要。
+metadata:
+  helix_layer: L2
+  triggers:
+    - コード品質改善時
+    - 命名規則確認時
+    - リファクタリング時
+  verification:
+    - lint通過
+    - 型チェック通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # コーディング規約

@@ -1,6 +1,16 @@
 ---
 name: vscode-plugins
 description: vscode-plugins関連タスク時に使用
+metadata:
+  helix_layer: L6
+  triggers:
+    - VSCode拡張選定時
+    - プラグイン設定時
+  verification:
+    - プラグイン動作確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # VSCodeプラグインスキル

@@ -1,6 +1,18 @@
 ---
 name: incident
 description: incident関連タスク時に使用
+metadata:
+  helix_layer: L6
+  triggers:
+    - 障害発生時
+    - インシデント対応時
+    - ポストモーテム時
+  verification:
+    - 障害復旧完了
+    - 再発防止策策定
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 障害対応スキル

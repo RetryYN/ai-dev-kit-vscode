@@ -1,6 +1,18 @@
 ---
 name: infrastructure
 description: infrastructure関連タスク時に使用
+metadata:
+  helix_layer: L6
+  triggers:
+    - インフラ構築時
+    - デプロイ設定時
+    - CI/CD構築時
+  verification:
+    - インフラ構成確認
+    - デプロイ成功
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # インフラスキル

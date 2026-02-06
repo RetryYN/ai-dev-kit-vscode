@@ -1,6 +1,18 @@
 ---
 name: api
 description: api関連タスク時に使用
+metadata:
+  helix_layer: L3
+  triggers:
+    - APIエンドポイント作成時
+    - API修正時
+    - フロントエンド連携時
+  verification:
+    - OpenAPI仕様更新
+    - APIテスト通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # API設計スキル

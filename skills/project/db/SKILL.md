@@ -1,6 +1,18 @@
 ---
 name: db
 description: db関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - テーブル設計時
+    - マイグレーション作成時
+    - クエリ最適化時
+  verification:
+    - マイグレーション成功
+    - インデックス設計確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # DB設計スキル

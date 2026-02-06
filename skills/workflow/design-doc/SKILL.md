@@ -1,6 +1,18 @@
 ---
 name: design-doc
 description: design-doc関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - 新規プロジェクト開始時
+    - 企画書から設計書を作成する時
+    - 設計レビュー時
+  verification:
+    - 設計書完成
+    - レビュー完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 設計書スキル

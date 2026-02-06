@@ -1,6 +1,18 @@
 ---
 name: estimation
 description: estimation関連タスク時に使用
+metadata:
+  helix_layer: L1
+  triggers:
+    - 見積もり依頼時
+    - スプリント計画時
+    - リソース計画時
+  verification:
+    - 見積もり完了
+    - バッファ考慮済み
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 見積もりスキル

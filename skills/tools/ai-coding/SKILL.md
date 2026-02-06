@@ -1,6 +1,16 @@
 ---
 name: ai-coding
 description: ai-coding関連タスク時に使用
+metadata:
+  helix_layer: all
+  triggers:
+    - AIコーディング支援時
+    - プロンプト最適化時
+  verification:
+    - AI出力品質確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # AIコーディングスキル
@@ -182,9 +192,9 @@ src/
 ### 階層構成
 
 ```
-Opus（PM役）
-├── 判断・設計・統合のみ
-├── 実装は絶対にしない
+Opus 4.6（PM役 / 詰めの実装・仕上げ）
+├── 判断・設計・統合
+├── Sonnet実装後の仕上げ（エッジケース、型厳密化等）
 └── 結果のサマリーだけ受け取る
     │
     ├── Sonnet（PL/実装者）
@@ -218,12 +228,13 @@ Opus（PM役）
 ```
 Before: Opusが全部やる → 1タスクでコンテキスト限界
 
-After:
-- Opus: 設計・判断のみ（10%のトークン）
-- Sonnet: 実装（70%のトークン）
+After（Opus 4.6対応）:
+- Opus 4.6: 設計・判断＋詰めの実装（仕上げ・品質向上）
+- Sonnet: メイン実装（70%のトークン）
 - Haiku: 軽作業（20%のトークン）
 
 効果:
+- Sonnetが骨組み → Opusが仕上げ、の分業で品質向上
 - 同じ予算で3-4倍のタスク実行可能
 - コンテキスト分離で精度向上
 ```

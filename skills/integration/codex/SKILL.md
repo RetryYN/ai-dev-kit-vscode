@@ -1,6 +1,18 @@
 ---
 name: codex
 description: Codex CLIでコード分析・レビュー・大規模リファクタリング実行。PRレビュー、マイグレーション時に使用。Codex未インストールの場合は使用しない。
+metadata:
+  helix_layer: all
+  triggers:
+    - PRレビュー時
+    - 大規模リファクタリング時
+    - コード分析時
+  verification:
+    - Codex実行成功
+    - レビュー結果確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # Codex Integration
@@ -63,7 +75,7 @@ codex resume --last
 
 | モデル | 用途 |
 |--------|------|
-| `gpt-5-codex` | 標準（推奨） |
+| `gpt-5-codex` | 標準（推奨）※ Codex 5.3 |
 | `gpt-5` | 汎用タスク |
 
 | 推論レベル | 用途 |

@@ -1,6 +1,18 @@
 ---
 name: external-api
 description: external-api関連タスク時に使用
+metadata:
+  helix_layer: L3
+  triggers:
+    - 外部API連携時
+    - OAuth実装時
+    - Webhook実装時
+  verification:
+    - API連携動作確認
+    - エラーハンドリング確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 外部API連携スキル

@@ -1,6 +1,18 @@
 ---
 name: testing
 description: testing関連タスク時に使用
+metadata:
+  helix_layer: L5
+  triggers:
+    - テスト作成時
+    - 機能実装完了時
+    - バグ修正時
+  verification:
+    - テスト通過
+    - カバレッジ目標達成
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # テストスキル

@@ -1,6 +1,18 @@
 ---
 name: architecture
 description: architecture関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - 新機能設計時
+    - 構造変更時
+    - サービス追加時
+  verification:
+    - レイヤー依存関係チェック
+    - ADR記録完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # アーキテクチャスキル

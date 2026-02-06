@@ -1,6 +1,18 @@
 ---
 name: design
 description: design関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - 基本設計時
+    - システム構成設計時
+    - 画面設計時
+  verification:
+    - 設計書完成
+    - レビュー完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # デザインスキル

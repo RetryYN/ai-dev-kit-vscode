@@ -1,6 +1,18 @@
 ---
 name: dev-setup
 description: dev-setup関連タスク時に使用
+metadata:
+  helix_layer: L6
+  triggers:
+    - プロジェクト初期化時
+    - 開発環境構築時
+    - 新メンバー参加時
+  verification:
+    - 環境構築完了
+    - 動作確認完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 開発環境構築スキル

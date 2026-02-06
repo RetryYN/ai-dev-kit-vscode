@@ -1,6 +1,18 @@
 ---
 name: tech-selection
 description: tech-selection関連タスク時に使用
+metadata:
+  helix_layer: L1
+  triggers:
+    - 技術選定時
+    - ライブラリ選定時
+    - アーキテクチャ決定時
+  verification:
+    - 選定理由文書化
+    - ADR記録完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 技術選定スキル

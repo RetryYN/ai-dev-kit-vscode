@@ -1,6 +1,18 @@
 ---
 name: orchestrator
 description: 複数AIエージェント（Claude Code, Codex, Gemini）を協調実行。大規模プロジェクト、多角的分析、パイプライン処理時に使用。
+metadata:
+  helix_layer: all
+  triggers:
+    - 複数AI協調時
+    - 大規模プロジェクト時
+    - パイプライン処理時
+  verification:
+    - エージェント連携成功
+    - 結果統合完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # Multi-Agent Orchestration

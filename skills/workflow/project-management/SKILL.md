@@ -1,6 +1,18 @@
 ---
 name: project-management
 description: project-management関連タスク時に使用
+metadata:
+  helix_layer: L1
+  triggers:
+    - プロジェクト計画時
+    - 進捗管理時
+    - リソース調整時
+  verification:
+    - 計画策定完了
+    - 進捗確認完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # プロジェクト管理スキル

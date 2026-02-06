@@ -1,6 +1,19 @@
 ---
 name: refactoring
 description: refactoring関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - コード改善時
+    - 技術的負債の解消時
+    - パフォーマンス最適化時
+    - 可読性向上時
+  verification:
+    - テスト通過（挙動変更なし）
+    - lint通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # リファクタリングスキル

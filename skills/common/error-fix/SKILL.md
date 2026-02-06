@@ -1,6 +1,18 @@
 ---
 name: error-fix
 description: error-fix関連タスク時に使用
+metadata:
+  helix_layer: L5
+  triggers:
+    - エラー発生時
+    - バグ修正時
+    - デバッグ時
+  verification:
+    - エラー解消確認
+    - 回帰テスト通過
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # エラー修正スキル

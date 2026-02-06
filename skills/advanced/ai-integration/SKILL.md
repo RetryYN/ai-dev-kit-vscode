@@ -1,6 +1,18 @@
 ---
 name: ai-integration
 description: ai-integration関連タスク時に使用
+metadata:
+  helix_layer: L3
+  triggers:
+    - LLM組み込み時
+    - AIエージェント統合時
+    - プロンプト設計時
+  verification:
+    - AI機能動作確認
+    - レスポンス品質確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # AI統合スキル（LLM/エージェント組み込み）
@@ -55,7 +67,7 @@ class ModelRouter:
     MODEL_MAP = {
         Difficulty.LOW: "claude-haiku-4-5-20251001",
         Difficulty.MEDIUM: "claude-sonnet-4-5-20250929",
-        Difficulty.HIGH: "claude-opus-4-5-20251101",
+        Difficulty.HIGH: "claude-opus-4-6-20260203",
     }
     
     def __init__(self):
@@ -351,7 +363,7 @@ class HybridSearch:
 
 | モデル | 入力上限 | 出力上限 | 推奨使用量 |
 |--------|---------|---------|-----------|
-| Claude Opus 4.5 | 200K | 32K | 〜150K |
+| Claude Opus 4.6 | 200K | 32K | 〜150K |
 | Claude Sonnet 4.5 | 200K | 64K | 〜150K |
 | Claude Haiku 4.5 | 200K | 64K | 〜150K |
 | GPT-4o | 128K | 16K | 〜100K |

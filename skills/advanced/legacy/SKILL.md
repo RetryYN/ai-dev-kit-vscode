@@ -1,6 +1,18 @@
 ---
 name: legacy
 description: legacy関連タスク時に使用
+metadata:
+  helix_layer: L4
+  triggers:
+    - レガシーコード改修時
+    - 技術的負債対応時
+    - モダナイゼーション時
+  verification:
+    - 既存機能維持確認
+    - テスト追加完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # レガシーコード対応スキル

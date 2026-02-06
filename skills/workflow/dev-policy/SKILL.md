@@ -1,6 +1,18 @@
 ---
 name: dev-policy
 description: dev-policy関連タスク時に使用
+metadata:
+  helix_layer: L1
+  triggers:
+    - 開発方針策定時
+    - コーディング規約策定時
+    - チームルール整備時
+  verification:
+    - 方針文書化完了
+    - チーム合意完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 開発方針スキル

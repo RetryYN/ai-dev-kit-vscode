@@ -1,6 +1,18 @@
 ---
 name: ui
 description: ui関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - UI設計時
+    - コンポーネント作成時
+    - デザインシステム構築時
+  verification:
+    - UI仕様一致
+    - アクセシビリティ確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # UI設計スキル

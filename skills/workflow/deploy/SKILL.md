@@ -1,6 +1,18 @@
 ---
 name: deploy
 description: deploy関連タスク時に使用
+metadata:
+  helix_layer: L6
+  triggers:
+    - デプロイ実行時
+    - リリース準備時
+    - ロールバック時
+  verification:
+    - デプロイ成功
+    - 動作確認完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # デプロイ・リリーススキル

@@ -1,6 +1,18 @@
 ---
 name: migration
 description: migration関連タスク時に使用
+metadata:
+  helix_layer: L4
+  triggers:
+    - システム移行時
+    - データ移行時
+    - フレームワーク更新時
+  verification:
+    - 移行完了確認
+    - データ整合性確認
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # 移行スキル

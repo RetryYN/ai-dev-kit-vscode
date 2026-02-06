@@ -183,9 +183,9 @@ class TokenTracker:
             "total_cost": 0.0
         }
     
-    # 料金表（2026年1月時点）
+    # 料金表（2026年2月時点）
     PRICING = {
-        "claude-opus-4-5-20251101": {"input": 15.0, "output": 75.0},
+        "claude-opus-4-6-20260203": {"input": 15.0, "output": 75.0},
         "claude-sonnet-4-5-20250929": {"input": 3.0, "output": 15.0},
         "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.0},
         "gpt-4o": {"input": 2.5, "output": 10.0},
@@ -271,13 +271,13 @@ class UsageDashboard:
 
 ---
 
-## 8. API料金早見表（2026年1月）
+## 8. API料金早見表（2026年2月）
 
 ### Anthropic Claude
 
 | モデル | 入力 ($/1M) | 出力 ($/1M) | コンテキスト |
 |--------|------------|------------|-------------|
-| Claude Opus 4.5 | $15.00 | $75.00 | 200K |
+| Claude Opus 4.6 | $15.00 | $75.00 | 200K |
 | Claude Sonnet 4.5 | $3.00 | $15.00 | 200K |
 | Claude Haiku 4.5 | $0.80 | $4.00 | 200K |
 

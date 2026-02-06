@@ -1,6 +1,18 @@
 ---
 name: git
 description: git関連タスク時に使用
+metadata:
+  helix_layer: all
+  triggers:
+    - コミット時
+    - ブランチ操作時
+    - PR作成時
+  verification:
+    - コミットメッセージ形式
+    - ブランチ命名規則
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # Git運用スキル

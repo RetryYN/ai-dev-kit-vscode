@@ -1,6 +1,18 @@
 ---
 name: documentation
 description: documentation関連タスク時に使用
+metadata:
+  helix_layer: L2
+  triggers:
+    - README作成時
+    - API仕様書作成時
+    - 技術文書作成時
+  verification:
+    - ドキュメント完成
+    - レビュー完了
+compatibility:
+  claude: true
+  codex: true
 ---
 
 # ドキュメント作成スキル
