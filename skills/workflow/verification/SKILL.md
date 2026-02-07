@@ -222,7 +222,7 @@ l1_verification:
 verification_report:
   project: "project-name"
   version: "1.0.0"
-  timestamp: "2025-01-01T00:00:00Z"
+  timestamp: "ISO8601"
 
   layers:
     L1:

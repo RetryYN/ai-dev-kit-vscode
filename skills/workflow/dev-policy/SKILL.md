@@ -1,6 +1,6 @@
 ---
 name: dev-policy
-description: dev-policy関連タスク時に使用
+description: 開発方針策定・品質基準設定時に使用。完成の定義とチームルールを提供。
 metadata:
   helix_layer: L1
   triggers:

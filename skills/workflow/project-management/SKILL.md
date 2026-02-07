@@ -1,6 +1,6 @@
 ---
 name: project-management
-description: project-management関連タスク時に使用
+description: プロジェクト計画・進捗管理・報告作成時に使用。ダッシュボードとKanbanテンプレートを提供。
 metadata:
   helix_layer: L1
   triggers:
@@ -167,45 +167,6 @@ compatibility:
 
 *リスク*
 なし
-```
-
-### 報告エージェント仕様
-
-```yaml
-# 報告エージェント設定
-name: daily-report-agent
-schedule: "0 18 * * 1-5"  # 平日18時
-
-sources:
-  - github:
-      repo: org/project
-      metrics: [commits, prs, reviews]
-  - linear:  # または Jira, Notion
-      project: PROJECT-001
-      metrics: [completed, in_progress, blocked]
-
-output:
-  slack:
-    channel: "#project-updates"
-    format: markdown
-  
-template: |
-  📊 *日次レポート: {{date}}*
-  
-  *進捗*
-  • 完了: {{completed_count}}タスク
-  • 進行中: {{in_progress_count}}タスク
-  • ブロック: {{blocked_count}}
-  
-  *コミット*
-  {{#commits}}
-  • {{message}} (@{{author}})
-  {{/commits}}
-  
-  *PR*
-  {{#prs}}
-  • #{{number}}: {{title}} ({{status}})
-  {{/prs}}
 ```
 
 ---

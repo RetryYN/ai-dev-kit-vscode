@@ -1,6 +1,6 @@
 ---
 name: design
-description: design関連タスク時に使用
+description: UI/UXデザイン・コンポーネント設計時に使用。デザイン心理学と日本市場向けUI指針を提供。
 metadata:
   helix_layer: L2
   triggers:

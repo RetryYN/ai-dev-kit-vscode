@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: i18n関連タスク時に使用
+description: 多言語対応・ローカライゼーション時に使用。Next.js/FastAPIの実装パターンとIntl APIを提供。
 metadata:
   helix_layer: L2
   triggers:
@@ -343,15 +343,9 @@ new Intl.NumberFormat('de-DE', {
 
 ---
 
+## 6. 翻訳管理
 
----
-
-## 詳細ガイド
-
-以下は references/management.md を参照:
-- 翻訳管理（翻訳キー命名、翻訳ワークフロー）
-- 実装チェックリスト
-- 注意点（RTL対応、テスト等）
+→ 詳細は `references/management.md` を参照（翻訳キー命名・ワークフロー・RTL対応）
 
 ---
 

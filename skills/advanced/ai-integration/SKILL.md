@@ -1,6 +1,6 @@
 ---
 name: ai-integration
-description: ai-integration関連タスク時に使用
+description: LLM組み込み・RAG・エージェント設計時に使用。ルーティング・ベクトル検索・コンテキスト管理を提供。
 metadata:
   helix_layer: L3
   triggers:
@@ -452,16 +452,9 @@ def select_relevant_context(query: str, available_contexts: list[dict], max_toke
 
 ---
 
+## 5. 応用パターン
 
----
-
-## 応用パターン
-
-以下は references/advanced.md を参照:
-- キャッシュ戦略
-- 並列処理
-- トークントラッカー
-- API料金早見表
+→ 詳細は `references/advanced.md` を参照（キャッシュ戦略・並列処理・トークントラッカー・API料金早見表）
 
 ---
 

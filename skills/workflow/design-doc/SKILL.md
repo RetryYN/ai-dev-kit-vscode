@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: design-doc関連タスク時に使用
+description: 設計書作成・レビュー時に使用。基本設計・詳細設計のテンプレートとレビュー基準を提供。
 metadata:
   helix_layer: L2
   triggers:

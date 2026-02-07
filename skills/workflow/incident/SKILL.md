@@ -1,6 +1,6 @@
 ---
 name: incident
-description: incident関連タスク時に使用
+description: 障害対応・インシデント管理時に使用。重要度判定・対応手順・コミュニケーションテンプレートを提供。
 metadata:
   helix_layer: L6
   triggers:

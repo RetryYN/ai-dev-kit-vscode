@@ -1,6 +1,6 @@
 ---
 name: dev-setup
-description: dev-setup関連タスク時に使用
+description: 開発環境構築・新メンバーオンボーディング時に使用。OS別セットアップとVSCode設定を提供。
 metadata:
   helix_layer: L6
   triggers:
@@ -99,7 +99,7 @@ cat ~/.ssh/id_ed25519.pub  # GitHubに登録
 ## 2. VSCode プラグイン
 
 ```
-⚠️ 詳細は /skills/tools/vscode-plugins.md を参照
+⚠️ 詳細は skills/tools/ide-tools/SKILL.md を参照
 ```
 
 ### 最低限インストール
@@ -122,7 +122,7 @@ code --install-extension dbaeumer.vscode-eslint
 code --install-extension anthropic.claude-code
 ```
 
-詳細なプラグイン一覧、設定例は `/skills/tools/vscode-plugins.md` を参照。
+詳細なプラグイン一覧は `skills/tools/ide-tools/references/vscode-plugins.md` を参照。
 
 ---
 
@@ -308,46 +308,6 @@ pip install -r requirements.txt
 docker-compose down -v
 docker system prune -a
 docker-compose up -d --build
-```
-
----
-
-## 6. 初心者向けTips
-
-### ターミナル基本コマンド
-
-```bash
-cd folder      # フォルダ移動
-cd ..          # 上の階層へ
-ls             # ファイル一覧（Mac/Linux）
-dir            # ファイル一覧（Windows）
-pwd            # 現在のパス
-mkdir name     # フォルダ作成
-touch file     # ファイル作成（Mac/Linux）
-rm file        # ファイル削除
-rm -rf folder  # フォルダ削除
-```
-
-### Git基本コマンド
-
-```bash
-git clone URL          # リポジトリ取得
-git pull               # 最新取得
-git status             # 状態確認
-git add .              # 全変更をステージ
-git commit -m "msg"    # コミット
-git push               # プッシュ
-git checkout -b name   # ブランチ作成＆切り替え
-git switch main        # mainに切り替え
-```
-
-### 困ったときは
-
-```
-1. エラーメッセージを読む（最初の行が重要）
-2. エラーメッセージでググる
-3. ChatGPT/Claudeに聞く
-4. チームメンバーに聞く
 ```
 
 ---

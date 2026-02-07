@@ -14,14 +14,13 @@ HELIXフレームワーク用スキルの一覧と分類。
 | estimation | workflow/estimation | 見積もり |
 | tech-selection | advanced/tech-selection | 技術選定 |
 | requirements-handover | workflow/requirements-handover | 要件未定義・引継ぎ |
-| compliance | workflow/compliance | コンプライアンス・規制対応 **[NEW-P2]** |
+| compliance | workflow/compliance | コンプライアンス・規制対応 |
 
 ### L2: 設計検証レイヤー
 | スキル | パス | 説明 |
 |--------|------|------|
 | design-doc | workflow/design-doc | 設計書作成 |
-| architecture | project/architecture | アーキテクチャ設計 |
-| design | common/design | 基本設計 |
+| design | common/design | UI/UXデザイン |
 | ui | project/ui | UI設計 |
 | db | project/db | DB設計 |
 | coding | common/coding | コーディング規約 |
@@ -34,14 +33,14 @@ HELIXフレームワーク用スキルの一覧と分類。
 | スキル | パス | 説明 |
 |--------|------|------|
 | api | project/api | API設計 |
-| api-contract | workflow/api-contract | APIコントラクト検証 **[NEW]** |
+| api-contract | workflow/api-contract | APIコントラクト検証 |
 | external-api | advanced/external-api | 外部API連携 |
 | ai-integration | advanced/ai-integration | AI統合 |
 
 ### L4: 依存関係レイヤー
 | スキル | パス | 説明 |
 |--------|------|------|
-| dependency-map | workflow/dependency-map | 依存関係検証 **[NEW]** |
+| dependency-map | workflow/dependency-map | 依存関係検証 |
 | migration | advanced/migration | システム移行 |
 | legacy | advanced/legacy | レガシーコード対応 |
 
@@ -49,7 +48,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | スキル | パス | 説明 |
 |--------|------|------|
 | testing | common/testing | テスト作成 |
-| quality-lv5 | workflow/quality-lv5 | テスト品質検証 **[NEW]** |
+| quality-lv5 | workflow/quality-lv5 | テスト品質検証 |
 | error-fix | common/error-fix | エラー修正 |
 | performance | common/performance | パフォーマンス |
 | code-review | common/code-review | コードレビュー |
@@ -61,10 +60,9 @@ HELIXフレームワーク用スキルの一覧と分類。
 | deploy | workflow/deploy | デプロイ・リリース |
 | dev-setup | workflow/dev-setup | 開発環境構築 |
 | incident | workflow/incident | 障害対応 |
-| observability-sre | workflow/observability-sre | 監視・可観測性・SRE **[NEW-P2]** |
-| postmortem | workflow/postmortem | インシデント振り返り **[NEW-P2]** |
-| ide-tools | tools/ide-tools | IDE/AIツール |
-| vscode-plugins | tools/vscode-plugins | VSCodeプラグイン |
+| observability-sre | workflow/observability-sre | 監視・可観測性・SRE |
+| postmortem | workflow/postmortem | インシデント振り返り |
+| ide-tools | tools/ide-tools | IDE/AIツール・MCP |
 
 ### All Layers（横断）
 | スキル | パス | 説明 |
@@ -72,9 +70,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | git | common/git | Git運用 |
 | verification | workflow/verification | L1-L6検証 |
 | adversarial-review | workflow/adversarial-review | AI対立的レビュー |
-| context-memory | workflow/context-memory | AIコンテキスト・メモリ管理 **[NEW-P2]** |
-| orchestrator | integration/orchestrator | マルチエージェント |
-| codex | integration/codex | Codex 5.3連携 |
+| context-memory | workflow/context-memory | AIコンテキスト・メモリ管理 |
 | ai-coding | tools/ai-coding | AIコーディング |
 
 ## カテゴリ別スキル数
@@ -82,27 +78,11 @@ HELIXフレームワーク用スキルの一覧と分類。
 | カテゴリ | スキル数 |
 |---------|---------|
 | common | 11 |
-| workflow | 18 |
-| project | 4 |
+| workflow | 17 |
+| project | 3 |
 | advanced | 6 |
-| integration | 2 |
-| tools | 3 |
-| **合計** | **44** |
-
-## 新規追加スキル（P1）
-
-1. **api-contract** - APIコントラクト検証（L3）
-2. **verification** - L1-L6検証レイヤー（all）
-3. **requirements-handover** - 要件未定義・引継ぎ（L1）
-4. **dependency-map** - 依存関係検証（L4）
-5. **quality-lv5** - テスト品質検証（L5）
-
-## 新規追加スキル（P2）
-
-1. **observability-sre** - 監視・可観測性・SRE（L6）
-2. **compliance** - コンプライアンス・規制対応（L1）
-3. **context-memory** - AIコンテキスト・メモリ管理（all）
-4. **postmortem** - インシデント振り返り（L6）
+| tools | 2 |
+| **合計** | **39** |
 
 ## 補完関係のスキルペア
 
@@ -111,15 +91,19 @@ HELIXフレームワーク用スキルの一覧と分類。
 | testing / quality-lv5 | テスト作成 / テスト品質測定 |
 | api / api-contract | API設計 / APIコントラクト検証 |
 | design-doc / documentation | 設計書作成 / 一般ドキュメント |
-| ide-tools / vscode-plugins | AIツール比較 / VSCode拡張設定 |
 | design / ui | システム設計 / UI特化設計 |
 | incident / postmortem | 障害対応 / 振り返り・再発防止 |
 | observability-sre / infrastructure | 監視設計 / インフラ構築 |
 | security / compliance | セキュリティ実装 / 規制対応 |
 
-## 廃止検討スキル
+## 廃止済みスキル
 
-現時点で廃止推奨のスキルはなし。tools/* カテゴリは開発環境構築時に有用であり維持。
+| スキル | 理由 |
+|--------|------|
+| architecture | 40%プレースホルダー → design-doc/designで代替 |
+| orchestrator | 投機的CLI参照 → ide-tools/ai-codingで代替 |
+| codex | 投機的+重複大 → ide-tools/ai-codingで代替 |
+| vscode-plugins | ide-tools/references/ に統合 |
 
 ## メンテナンス指針
 
@@ -127,3 +111,4 @@ HELIXフレームワーク用スキルの一覧と分類。
 2. **500行ルール**: 超える場合は references/ に分割
 3. **重複防止**: 追加前に既存スキルとの重複を確認
 4. **HELIXフォーマット**: metadata.helix_layer を必ず設定
+5. **description品質**: 「〇〇関連タスク時に使用」は禁止。具体的な用途と提供内容を記載

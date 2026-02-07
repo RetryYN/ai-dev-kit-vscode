@@ -1,6 +1,6 @@
 ---
 name: external-api
-description: external-api関連タスク時に使用
+description: 外部API連携時に使用。アダプターパターン・リトライ・サーキットブレーカーを提供。
 metadata:
   helix_layer: L3
   triggers:
@@ -260,19 +260,13 @@ class CircuitBreaker:
 
 ---
 
+## 4. OAuth/Webhook実装
+
+→ 詳細は `references/oauth-webhook.md` を参照
 
 ---
 
-## 詳細実装
-
-以下は references/oauth-webhook.md を参照:
-- OAuth 2.0 実装
-- Webhook実装
-- エラーハンドリング
-
----
-
-## 7. レート制限対応
+## 5. レート制限対応
 
 ### レート制限実装
 

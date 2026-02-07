@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: deploy関連タスク時に使用
+description: デプロイ・リリース・ロールバック時に使用。Blue/Green戦略とチェックリストを提供。
 metadata:
   helix_layer: L6
   triggers:

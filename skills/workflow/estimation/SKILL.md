@@ -1,6 +1,6 @@
 ---
 name: estimation
-description: estimation関連タスク時に使用
+description: 見積もり・スプリント計画・リソース配分時に使用。三点見積もりとリスク係数を提供。
 metadata:
   helix_layer: L1
   triggers:

@@ -180,37 +180,26 @@ vulnerability_report:
 
 ## 4. ライセンス検証
 
-### 許可ライセンス
+→ 互換性マトリクス・リスクレベルの詳細は `skills/workflow/compliance/SKILL.md` セクション1を参照
+
+### クイックリファレンス
 
 ```
-✅ MIT
-✅ Apache-2.0
-✅ BSD-2-Clause
-✅ BSD-3-Clause
-✅ ISC
+✅ 安全: MIT, Apache-2.0, BSD, ISC
+⚠️ 注意: LGPL, MPL-2.0
+❌ 禁止: GPL, AGPL, SSPL
 ```
 
-### 要注意ライセンス
-
-```
-⚠️ LGPL-2.1 / LGPL-3.0  → 動的リンクのみ許可
-⚠️ MPL-2.0             → ファイル単位でのソース公開
-```
-
-### 禁止ライセンス（商用利用時）
-
-```
-❌ GPL-2.0 / GPL-3.0    → 派生物のソース公開義務
-❌ AGPL-3.0            → ネットワーク経由でも公開義務
-❌ SSPL                → 商用利用制限
-```
-
-### ライセンスチェック
+### ライセンスチェックコマンド
 
 ```bash
 # npm
 npx license-checker --summary
 npx license-checker --failOn "GPL;AGPL"
+
+# Python
+pip-licenses --format=table
+pip-licenses --fail-on="GPL-3.0"
 
 # 詳細レポート
 npx license-checker --json > licenses.json

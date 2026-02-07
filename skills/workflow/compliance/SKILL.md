@@ -60,34 +60,9 @@ compatibility:
    SSPL, BSL → 商用利用制限あり
 ```
 
-### 自動ライセンスチェック
+### 自動チェック・CI/CD統合
 
-```bash
-# Node.js プロジェクト
-npx license-checker --summary
-npx license-checker --failOn "GPL-3.0;AGPL-3.0"
-
-# Python プロジェクト
-pip-licenses --format=table
-pip-licenses --fail-on="GPL-3.0"
-
-# CI/CD 統合
-# .github/workflows/license-check.yml
-```
-
-```yaml
-# GitHub Actions
-name: License Check
-on: [pull_request]
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check licenses
-        run: |
-          npx license-checker --failOn "GPL-3.0;AGPL-3.0;SSPL-1.0"
-```
+→ ツールコマンド・CI設定は `skills/workflow/dependency-map/SKILL.md` セクション4を参照
 
 ---
 
@@ -221,31 +196,17 @@ class AuditLogger:
 
 ## 4. セキュリティコンプライアンス
 
-### OWASP Top 10 チェック
+→ 実装詳細は `skills/common/security/SKILL.md` を参照
+→ 依存関係の脆弱性管理は `skills/workflow/dependency-map/SKILL.md` を参照
 
-| # | リスク | 対策 |
-|---|--------|------|
-| A01 | アクセス制御 | RBAC/ABAC実装、最小権限の原則 |
-| A02 | 暗号化の不備 | TLS必須、AES-256、bcrypt |
-| A03 | インジェクション | パラメータ化クエリ、入力検証 |
-| A04 | 安全でない設計 | 脅威モデリング、セキュリティ設計 |
-| A05 | セキュリティ設定ミス | ハードニング、デフォルト変更 |
-| A06 | 脆弱なコンポーネント | 依存関係スキャン、自動更新 |
-| A07 | 認証の不備 | MFA、セッション管理、パスワードポリシー |
-| A08 | データ整合性の不備 | 署名検証、CI/CDセキュリティ |
-| A09 | ログ・監視の不足 | 監査ログ、異常検知、アラート |
-| A10 | SSRF | URL検証、内部ネットワーク制限 |
+### コンプライアンス観点のチェック
 
-### 依存関係セキュリティ
-
-```bash
-# 脆弱性スキャン
-npm audit
-pip audit
-snyk test
-
-# CI/CD統合
-# Dependabot, Renovate, Snyk
+```
+□ OWASP Top 10 への対応状況を文書化
+□ 脆弱性スキャンの定期実行体制（npm audit / snyk）
+□ セキュリティインシデント対応手順の整備
+□ ペネトレーションテストの実施計画
+□ セキュリティポリシーの年次レビュー
 ```
 
 ---

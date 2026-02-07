@@ -1,6 +1,6 @@
 ---
 name: infrastructure
-description: infrastructure関連タスク時に使用
+description: Docker・PostgreSQL・Redis・Nginx構築時に使用。本番向け設定とセキュリティベストプラクティスを提供。
 metadata:
   helix_layer: L6
   triggers:
@@ -407,15 +407,9 @@ http {
 
 ---
 
+## 5. 詳細ガイド
 
----
-
-## 詳細ガイド
-
-以下は references/advanced.md を参照:
-- OS設定（Linux）
-- モニタリング
-- デプロイ
+→ 詳細は `references/advanced.md` を参照（OS設定・モニタリング・デプロイ）
 
 ---
 
