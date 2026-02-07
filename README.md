@@ -1,157 +1,238 @@
-# @ai-dev-kit/vscode
+# ai-dev-kit-vscode
 
-> **エディタ × 企画書 → 開発環境完成**
+Claude Code / Codex CLI 向けの HELIX スキルフレームワーク。
+`~/.claude/CLAUDE.md` に 1 行追加するだけで、40 のスキルが全プロジェクトで使えるようになる。
 
-VSCode用 AI開発環境セットアップキット。Claude Code / Codex 対応。
-
-## ★ 差別化ポイント: 企画書から自動生成
-
-**競合ツールとの違い:**
-
-| ツール | アプローチ |
-|--------|-----------|
-| superpowers (27.9k stars) | スキルコレクション + /plan コマンド |
-| claude-flow (11.4k stars) | マルチエージェントオーケストレーション |
-| skill-codex | Codex CLI 連携 |
-| SkillsMP | 71,000+ スキルマーケットプレイス |
-| **ai-dev-kit** | **企画書 → 開発環境 自動生成** ★ |
-
-他のツールは「スキルを提供する」か「エージェントを連携する」。
-**ai-dev-kit は企画書（ビジネス要件）から逆算して開発環境をセットアップする。**
-
----
-
-## インストール
+## セットアップ
 
 ```bash
-npx @ai-dev-kit/vscode init --spec docs/spec.md
-```
+# 1. クローン
+git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
 
-## 使い方
+# 2. グローバル CLAUDE.md を作成
+mkdir -p ~/.claude
+cat > ~/.claude/CLAUDE.md << 'EOF'
+# Global Settings
 
-### 1. 企画書から自動生成（推奨）
+@~/ai-dev-kit-vscode/skills/SKILL_MAP.md
 
-```bash
-# 企画書を用意
-cat > docs/spec.md << 'EOF'
-# 機能企画書: TaskFlow
+## HELIX スキル利用ルール
 
-## 技術仕様
-Next.js 14 + FastAPI + PostgreSQL
-
-### API設計
-| Method | Endpoint | 説明 |
-| GET | /api/tasks | タスク一覧 |
-| POST | /api/tasks | タスク作成 |
-
-### 機能要件
-1. ユーザー認証（JWT）
-2. タスクCRUD
+- スキルは `~/ai-dev-kit-vscode/skills/` に配置
+- SKILL_MAP.md（上記 @import）でスキル一覧を把握する
+- タスクに該当するスキルがあれば、そのスキルの SKILL.md を Read してから作業する
+- スキルの triggers に該当する作業を検出したら、自発的にスキルを読み込む
+- 全スキルを一度に読み込まない（コンテキスト節約）
 EOF
-
-# 自動生成
-npx @ai-dev-kit/vscode init --spec docs/spec.md
 ```
 
-**生成されるAGENTS.md:**
-- 技術スタック自動検出（Next.js, FastAPI, PostgreSQL等）
-- API設計の抽出
-- 機能要件の抽出
-- ディレクトリ構成の推定
-- 適切なコマンドの提案
+これで次回の Claude Code セッションから有効になる。
 
-### 2. クイックセットアップ
+## しくみ
+
+```
+~/.claude/CLAUDE.md          ← 全プロジェクト共通（User レベル）
+  └── @import SKILL_MAP.md   ← 40 スキルの一覧（常時読み込み、~120行）
+        └── 各 SKILL.md      ← タスクに応じてオンデマンド Read
+```
+
+- `~/.claude/CLAUDE.md` は Claude Code が**毎セッション自動で読み込む**
+- `@import` で SKILL_MAP.md を取り込み、Claude にスキル一覧を認識させる
+- 個々のスキルは triggers に該当したとき Claude が自発的に Read する
+- 全スキル一括読み込みはしない（コンテキストウィンドウ節約）
+
+## プロジェクトでの使い方
+
+### 1. セッション開始時（毎回自動）
+
+Claude Code がセッション開始時に以下の軽量チェックを**必ず実行**する（スキップ不可）：
+
+```
+✅ ./CLAUDE.md または ./.claude/CLAUDE.md の存在確認
+✅ .gitignore に CLAUDE.local.md / .claude/settings.local.json が含まれているか
+→ 問題なければ「OK: 初期化チェック完了」で終了
+```
+
+### 2. CLAUDE.md がない場合 → 新規作成
+
+```
+context-memory スキルの §1.3 テンプレートで新規作成を提案する。
+既存コードがある場合（引継ぎ等）は、コードベースを分析して内容を補完する。
+作成はユーザー承認後に実行。
+```
+
+### 3. CLAUDE.md がある場合（初回 or 更新時）→ テンプレート照合
+
+```
+§1.3 テンプレートの全項目と照合し、過不足を一覧で報告する。
+（毎セッションではなく、初回アクセス時または CLAUDE.md 更新検出時のみ）
+修正はユーザー承認後に実行。
+```
+
+### 4. 開発中
+
+- スキルは triggers に該当すると Claude が自発的に読み込む（手動不要）
+- デバッグ知見や設計判断は auto memory（`~/.claude/projects/` 配下）に自動蓄積される
+- 個人設定は `CLAUDE.local.md` に分離する（git に含めない）
+
+### 5. プロジェクト終了・クリーンアップ
+
+```
+残すもの（git管理）:
+  CLAUDE.md              ← プロジェクト知識（次の人が使う）
+  .claude/settings.json  ← チーム共有パーミッション
+  .claude/rules/*.md     ← チームルール
+
+消してよいもの（個人）:
+  CLAUDE.local.md              ← 個人設定
+  .claude/settings.local.json  ← 個人パーミッション
+```
+
+グローバル設定（`~/.claude/CLAUDE.md`、`~/ai-dev-kit-vscode/`）はプロジェクトを消しても残る。
+
+## スキル一覧（40 スキル）
+
+### L1: 要件検証
+
+| スキル | 説明 |
+|--------|------|
+| project-management | プロジェクト計画・進捗管理 |
+| dev-policy | 開発方針策定 |
+| estimation | 見積もり |
+| tech-selection | 技術選定 |
+| requirements-handover | 要件未定義・引継ぎ |
+| compliance | コンプライアンス・規制対応 |
+
+### L2: 設計検証
+
+| スキル | 説明 |
+|--------|------|
+| design-doc | 設計書作成 |
+| design | UI/UXデザイン |
+| ui | UI設計 |
+| db | DB設計 |
+| coding | コーディング規約 |
+| refactoring | リファクタリング |
+| documentation | ドキュメント作成 |
+| security | セキュリティ |
+| i18n | 多言語対応 |
+
+### L2.5: API整合性
+
+| スキル | 説明 |
+|--------|------|
+| api-contract | APIコントラクト検証 |
+
+### L3: APIコントラクト
+
+| スキル | 説明 |
+|--------|------|
+| api | API設計 |
+| external-api | 外部API連携 |
+| ai-integration | AI統合 |
+
+### L4: 依存関係
+
+| スキル | 説明 |
+|--------|------|
+| dependency-map | 依存関係検証 |
+| migration | システム移行 |
+| legacy | レガシーコード対応 |
+
+### L5: テスト検証
+
+| スキル | 説明 |
+|--------|------|
+| testing | テスト作成 |
+| quality-lv5 | テスト品質検証 |
+| error-fix | エラー修正 |
+| performance | パフォーマンス |
+| code-review | コードレビュー |
+
+### L6: 運用検証
+
+| スキル | 説明 |
+|--------|------|
+| infrastructure | インフラ構築 |
+| deploy | デプロイ・リリース |
+| dev-setup | 開発環境構築 |
+| incident | 障害対応 |
+| observability-sre | 監視・可観測性・SRE |
+| postmortem | インシデント振り返り |
+| ide-tools | IDE/AIツール・MCP |
+
+### 横断
+
+| スキル | 説明 |
+|--------|------|
+| git | Git運用 |
+| verification | L1-L6検証 |
+| adversarial-review | AI対立的レビュー |
+| context-memory | AIコンテキスト・メモリ管理 |
+| ai-coding | AIコーディング |
+| agent-teams | Agent Teams 協調設計・レビュー |
+
+## ディレクトリ構造
+
+```
+skills/
+├── SKILL_MAP.md              ← エントリポイント（@import 対象）
+├── common/                   ← 汎用スキル（11）
+│   ├── coding/SKILL.md
+│   ├── testing/SKILL.md
+│   └── ...
+├── workflow/                  ← ワークフロースキル（17）
+│   ├── verification/SKILL.md
+│   ├── context-memory/SKILL.md
+│   └── ...
+├── project/                   ← プロジェクト固有スキル（3）
+├── advanced/                  ← 高度なスキル（6）
+├── tools/                     ← ツール連携スキル（2）
+└── integration/               ← マルチエージェント連携（1）
+```
+
+## カスタマイズ
+
+`~/.claude/CLAUDE.md` に個人設定を追加できる：
+
+```markdown
+# Global Settings
+
+@~/ai-dev-kit-vscode/skills/SKILL_MAP.md
+
+## HELIX スキル利用ルール
+（省略）
+
+## 言語
+- 日本語で応答する
+
+## 禁止事項
+- any型の使用
+- console.log残し
+```
+
+プロジェクト固有の設定は各プロジェクトの `CLAUDE.md` または `CLAUDE.local.md` に書く。
+
+## Codex CLI 対応
+
+各スキルは `compatibility: codex: true` を持つ。Codex CLI で使うには：
 
 ```bash
-npx @ai-dev-kit/vscode init --quick
+# CLAUDE.md → AGENTS.md の symlink を作成
+ln -s CLAUDE.md AGENTS.md
 ```
 
-### 3. 対話式セットアップ
+詳細は `skills/workflow/context-memory/SKILL.md` の §1.4 を参照。
+
+## Remote SSH / 複数マシン
+
+`~/.claude/CLAUDE.md` 内のパスは `~` ベースなので、各マシンで同じ手順を実行すれば動く：
 
 ```bash
-npx @ai-dev-kit/vscode init
+git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
+# ~/.claude/CLAUDE.md をコピー or dotfiles で同期
 ```
-
-## 生成される構造
-
-```
-my-project/
-├── .agent/
-│   └── skills/           # 33スキル（Progressive Disclosure対応）
-├── .claude/
-│   └── skills -> ../.agent/skills
-├── .codex/
-│   └── skills -> ../.agent/skills
-├── .vscode/
-│   └── settings.json
-├── AGENTS.md             # 企画書から自動生成 or テンプレート
-├── CLAUDE.md -> AGENTS.md
-└── docs/
-    ├── spec.md           # 元の企画書（--spec使用時）
-    └── spec-template.md
-```
-
-## 技術スタック自動検出
-
-企画書内で検出されるキーワード:
-
-| カテゴリ | 検出パターン |
-|----------|-------------|
-| Frontend | Next.js, React, Vue.js, Svelte, Angular, TypeScript |
-| Backend | FastAPI, Django, Flask, Express, NestJS, Go, Rust |
-| Database | PostgreSQL, MySQL, MongoDB, Redis, SQLite, Supabase |
-| Infra | Docker, Kubernetes, AWS, GCP, Azure, Vercel |
-| Auth | JWT, OAuth, Clerk, Auth0, NextAuth |
-
-## 33 Skills（Progressive Disclosure対応）
-
-全スキル500行以下。必要な時だけロード。
-
-| カテゴリ | スキル |
-|----------|--------|
-| **common** | coding, testing, git, error-fix, design, refactoring, security, infrastructure, performance, documentation, code-review |
-| **workflow** | design-doc, dev-setup, project-management, dev-policy, estimation, deploy, incident |
-| **tools** | ide-tools, vscode-plugins, ai-coding |
-| **advanced** | ai-integration, tech-selection, external-api, migration, legacy, i18n |
-| **project** | architecture, api, db, ui |
-| **integration** | codex, orchestrator |
-
-## コマンド
-
-```bash
-npx @ai-dev-kit/vscode init              # 対話式セットアップ
-npx @ai-dev-kit/vscode init --quick      # クイックセットアップ
-npx @ai-dev-kit/vscode init --spec <file> # 企画書から自動生成 ★
-npx @ai-dev-kit/vscode sync-agents       # CLAUDE.md → AGENTS.md 同期
-npx @ai-dev-kit/vscode list              # スキル一覧
-npx @ai-dev-kit/vscode --help            # ヘルプ
-```
-
-## Codex 連携
-
-AGENTS.md / CLAUDE.md 内で:
-
-```
-Use codex to review this PR
-```
-
-→ 自動的に codex スキルが発動し、Codex CLI でレビュー実行
-
-## AGENTS.md のベストプラクティス
-
-生成される AGENTS.md は以下を含む:
-
-- **WHY**: プロジェクトの目的・概要
-- **WHAT**: 技術スタック、ディレクトリ構成
-- **HOW**: コマンド、ワークフロー
-- **Gotchas**: プロジェクト固有の注意点
-- **Progressive Disclosure**: Skills/docs への参照
 
 ## ライセンス
 
 MIT
-
-## 関連パッケージ（予定）
-
-- `@ai-dev-kit/antigravity` - Antigravity (Gemini) 対応
-- `@ai-dev-kit/cursor` - Cursor マルチエージェント対応

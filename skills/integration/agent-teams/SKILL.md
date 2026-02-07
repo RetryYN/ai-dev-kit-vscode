@@ -259,6 +259,42 @@ Sub-agents or adversarial-review で十分な場面:
 
 ---
 
+## 7. 合意形成の責任主体（Helix Policy）
+
+> 出典: v-model-reference-cycle-v2.md §運用ポリシー8。マルチエージェント運用での決定権限と責任分担。
+
+### 決定権限レベル
+
+```
+L1: 人間 (project-owner)
+    → stop, direction_change の最終権限
+    → override不可
+
+L2: 監査エージェント (helix-auditor)
+    → compliance, security, consistency
+    → 人間によるoverride可
+
+L3: タスク担当エージェント (task-owner)
+    → 実装判断、技術的決定
+    → 暫定決定として扱う（dev-policy §8 暫定決定TTL参照）
+    → 監査エージェント・人間によるoverride可
+```
+
+### 紛争解決ルール
+
+```
+エージェント間の対立 → 監査エージェントが裁定
+  → 監査が不確定 → 人間にエスカレーション
+
+人間 vs エージェント → 人間が常に優先
+  → human_override としてログ記録
+
+人間が無応答 → エージェントは暫定決定で進行
+  条件: 可逆であること / 本番データに影響しないこと / 全決定をログに記録
+```
+
+---
+
 ## チェックリスト
 
 ### 使用前

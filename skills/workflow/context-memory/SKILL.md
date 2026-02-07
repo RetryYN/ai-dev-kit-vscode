@@ -9,8 +9,9 @@ metadata:
     - コンテキスト最適化時
     - プロジェクト知識管理時
   verification:
-    - "コンテキストファイル: ls .claude/memory/ 1件以上（exit code 0）"
-    - "セッション再開時に前回コンテキスト参照可能"
+    - "CLAUDE.md存在: CLAUDE.md or .claude/CLAUDE.md いずれかが存在する"
+    - "CLAUDE.local.md: .gitignore に記載済み"
+    - "セッション再開（初回免除）: MEMORY.md に前回の知見 1件以上 記載済み"
 compatibility:
   claude: true
   codex: true
@@ -30,13 +31,108 @@ compatibility:
 
 ## 1. CLAUDE.md設計
 
-### 構造テンプレート
+### 1.1 設定の読み込み階層
+
+#### settings 優先度（高→低）
+
+| # | 種別 | パス | 用途 |
+|---|------|------|------|
+| 1 | Managed | `/etc/claude-code/managed-settings.json` | 組織ポリシー強制（IT管理者） |
+| 2 | CLI引数 | `claude --flag` | セッション限りの一時上書き |
+| 3 | Local | `.claude/settings.local.json` | 個人のマシン固有設定（gitignore） |
+| 4 | Project | `.claude/settings.json` | チーム共有のプロジェクト設定 |
+| 5 | User | `~/.claude/settings.json` | 個人の全プロジェクト共通設定 |
+
+原則: **より限定的なスコープが優先**。Project で `deny` なら User の `allow` は無効。
+
+#### CLAUDE.md の6種類
+
+| # | 種別 | パス | 共有 | 読み込み |
+|---|------|------|------|----------|
+| 1 | Managed | `/etc/claude-code/CLAUDE.md` | 組織全体 | 常時（override不可） |
+| 2 | Project | `./CLAUDE.md` or `./.claude/CLAUDE.md` | チーム（git管理） | 常時 |
+| 3 | Rules | `./.claude/rules/*.md` | チーム（git管理） | 常時（モジュラー） |
+| 4 | User | `~/.claude/CLAUDE.md` | 個人 | 常時 |
+| 5 | Local | `./CLAUDE.local.md` | 個人（gitignore） | 常時 |
+| 6 | Auto | `~/.claude/projects/<id>/memory/` | 個人 | MEMORY.md先頭200行のみ |
+
+#### 探索ルール
+
+```
+■ 上方向再帰探索
+  cwd → 親ディレクトリ → ... → ルート
+  見つかった全ての CLAUDE.md / CLAUDE.local.md を読み込む
+  例: foo/bar/ で起動 → foo/bar/CLAUDE.md と foo/CLAUDE.md 両方
+
+■ 子ディレクトリ遅延読み込み
+  cwd より下のCLAUDE.md は起動時に読み込まない
+  AIがそのディレクトリのファイルにアクセスした時点で読み込み
+
+■ @import 構文
+  @path/to/file.md で外部ファイルを取り込み可能
+  最大5ホップまで再帰（循環参照防止）
+  相対パス（インポート元基準）/ 絶対パス / ~ パス 対応
+
+■ モジュラールール (.claude/rules/)
+  トピック別にファイル分割 → 全て自動読み込み
+  paths フロントマターで適用範囲を glob 指定可能
+```
+
+### 1.2 設計指針
+
+#### 階層ごとの役割分担
+
+```
+Managed policy    → セキュリティ・コンプライアンス（組織強制）
+User CLAUDE.md    → 個人の好み（言語、回答スタイル、ショートカット）
+Project CLAUDE.md → 技術スタック、チーム規約、ビルドコマンド
+rules/*.md        → トピック別ルール（testing.md, security.md 等）
+CLAUDE.local.md   → 個人のプロジェクト固有設定（gitignore対象）
+Auto memory       → セッション中の学習（AIが自動管理）
+```
+
+#### 効果的な分割パターン
+
+```
+■ ディレクトリ階層
+  CLAUDE.md（ルート）
+  ├── 全体方針、技術スタック
+  └── ディレクトリごとのCLAUDE.md
+      ├── src/api/CLAUDE.md（API固有ルール）
+      ├── src/components/CLAUDE.md（UI固有ルール）
+      └── tests/CLAUDE.md（テスト規約）
+
+■ rules/ 活用
+  .claude/rules/
+  ├── coding-style.md    ← 命名・フォーマット
+  ├── testing.md         ← テスト規約
+  ├── security.md        ← セキュリティルール
+  └── review.md          ← レビュー基準
+
+■ 更新タイミング
+  - 新規ライブラリ導入時
+  - アーキテクチャ変更時
+  - 頻繁なAIミスの発見時（禁止事項に追加）
+  - チーム規約変更時
+```
+
+#### アンチパターン
+
+```
+❌ 個人設定をProject CLAUDE.mdに記述 → CLAUDE.local.md へ
+❌ 全階層で同じ内容を重複記述 → 上位階層で一度だけ定義
+❌ 500行超えの巨大CLAUDE.md → references/ や @import で分割
+❌ @import 4段以上のネスト → 構造を見直し
+❌ 曖昧な指示（"Format properly"） → 具体的に（"2-space indent"）
+```
+
+### 1.3 構造テンプレート
 
 ```markdown
 # プロジェクト名
 
 ## 概要
-一文でプロジェクトを説明
+一文でプロジェクトを説明（例: "Next.js + Stripe のECアプリ"）
 
 ## 技術スタック
 - Frontend: ...
@@ -67,22 +163,27 @@ src/
 - 未使用import
 ```
 
-### 効果的なCLAUDE.md運用
+### 1.4 Codex CLI（AGENTS.md）差分
 
 ```
-■ 階層構造
-  CLAUDE.md（ルート）
-  ├── 全体方針、技術スタック
-  └── ディレクトリごとのCLAUDE.md
-      ├── src/api/CLAUDE.md（API固有ルール）
-      ├── src/components/CLAUDE.md（UI固有ルール）
-      └── tests/CLAUDE.md（テスト規約）
+このリポジトリでは CLAUDE.md -> AGENTS.md の symlink + sync-agents で同期。
+基本は同一内容で運用し、以下の差分だけ意識する。
+```
 
-■ 更新タイミング
-  - 新規ライブラリ導入時
-  - アーキテクチャ変更時
-  - 頻繁なAIミスの発見時（禁止事項に追加）
-  - チーム規約変更時
+| 項目 | Claude Code | Codex CLI |
+|------|-------------|-----------|
+| 指示ファイル | `CLAUDE.md` | `AGENTS.md` |
+| 個人上書き | `CLAUDE.local.md` | `AGENTS.override.md` |
+| モジュラールール | `.claude/rules/*.md` | なし |
+| 設定ファイル | `settings.json`（JSON） | `config.toml`（TOML） |
+| サイズ制限 | トークン制限（実質） | `project_doc_max_bytes`（32KiB） |
+
+```
+実務ルール:
+- "指示内容" は AGENTS.md（= CLAUDE.md と同文）に寄せる
+- "実行ポリシー"（サンドボックス、承認、出力形式）は config.toml に寄せる
+- 個人差分は AGENTS.override.md（gitignore推奨）
+- Codex には rules/ や @import がないため、500行超えは references/ で対処
 ```
 
 ---
@@ -178,6 +279,17 @@ src/
 ## デバッグ知見
 - prisma: `prisma generate` 忘れで型エラー
 - next.js: App Router の Server Component では useState 使えない
+```
+
+### MEMORY.md 制限事項
+
+```
+制限:
+- MEMORY.md は先頭200行のみがシステムプロンプトに読み込まれる
+  （200行を超えた分は切り捨て）
+- 簡潔に記述し、行数を節約する
+- 詳細な記録はトピック別ファイル（debugging.md 等）に分離
+- トピックファイルはAIが必要時にオンデマンドで読む
 ```
 
 ---
@@ -303,4 +415,27 @@ skills/
 □ セッション間で知識が引き継がれているか
 □ 古い/誤った情報が更新されているか
 □ 引き継ぎテンプレートを使用しているか
+```
+
+### CLAUDE.md 階層設計時
+
+```
+□ 個人設定は CLAUDE.local.md に分離しているか
+□ .claude/rules/*.md でトピック別に分割しているか
+□ @import のネスト深度は5以内か
+□ 各 CLAUDE.md は 500行以内か
+□ MEMORY.md は 200行以内か
+□ .gitignore に CLAUDE.local.md と settings.local.json が含まれているか
+□ 子ディレクトリの CLAUDE.md は遅延読み込みを前提としているか
+```
+
+### セッション引継ぎ時
+
+```
+□ 完了事項を記録しているか（実装したもの・テスト結果）
+□ 未完了事項を記録しているか（残タスク・既知の問題）
+□ 判断事項を記録しているか（選択した方針と理由・保留中の判断）
+□ 変更ファイル一覧を記録しているか
+□ 決定事項との整合性を確認したか（既存の決定に反する変更がないか）
+□ 却下済みアプローチを再提案していないか
 ```
