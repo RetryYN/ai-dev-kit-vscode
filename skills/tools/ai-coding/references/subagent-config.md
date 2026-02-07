@@ -1,6 +1,6 @@
 # サブエージェント構成設定
 
-> 出典: v-model-reference-cycle-v2.md §サブエージェント構成設定
+> 出典: docs/archive/v-model-reference-cycle-v2.md §サブエージェント構成設定
 
 ## スキル付与テーブル
 

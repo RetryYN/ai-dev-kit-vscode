@@ -197,7 +197,7 @@ Level 4: デバッグ（オンコール向け）
 
 ## 7. 劣化レベルとSLO対応表（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §運用ポリシー5。品質劣化の段階別定義と対応アクション。
+> 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー5。品質劣化の段階別定義と対応アクション。
 
 ### SLOメトリクス
 

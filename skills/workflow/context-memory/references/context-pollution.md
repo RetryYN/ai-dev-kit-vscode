@@ -1,6 +1,6 @@
 # コンテキスト汚染検知・回復
 
-> 出典: v-model-reference-cycle-v2.md §コンテキスト汚染と記憶喪失対策
+> 出典: docs/archive/v-model-reference-cycle-v2.md §コンテキスト汚染と記憶喪失対策
 
 ## 記憶喪失の兆候パターン
 

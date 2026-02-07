@@ -317,7 +317,7 @@ Won't:  多言語対応、モバイルアプリ
 
 ## 8. HELIX工程表テンプレート（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §工程表のオーケストレーション記載
+> 出典: docs/archive/v-model-reference-cycle-v2.md §工程表のオーケストレーション記載
 
 ### 工程表の列定義
 
@@ -343,7 +343,7 @@ Won't:  多言語対応、モバイルアプリ
 
 ## 9. タスク難易度スコア（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §タスク難易度判定アルゴリズム
+> 出典: docs/archive/v-model-reference-cycle-v2.md §タスク難易度判定アルゴリズム
 
 ### 難易度スコア算出（最大14点）
 
@@ -371,7 +371,7 @@ Won't:  多言語対応、モバイルアプリ
 
 ## 10. リスク評価・優先度マトリクス（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §リスク評価・優先度決定ルール
+> 出典: docs/archive/v-model-reference-cycle-v2.md §リスク評価・優先度決定ルール
 
 ### リスクスコア算出（最大13点）
 

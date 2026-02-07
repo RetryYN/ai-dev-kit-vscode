@@ -340,7 +340,7 @@ verify:
 
 ## 12. 監査の責任者・対応SLA（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §運用ポリシー4
+> 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー4
 
 ### RACI定義
 
@@ -373,7 +373,7 @@ verify:
 
 ## 13. 人間エスカレーション条件（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §人間エスカレーション条件
+> 出典: docs/archive/v-model-reference-cycle-v2.md §人間エスカレーション条件
 
 以下の条件に該当する場合、エージェントは**必ず**人間にエスカレーションする。
 

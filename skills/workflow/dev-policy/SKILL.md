@@ -285,7 +285,7 @@ MVP優先:
 
 ## 8. 運用ポリシー（Helix Policy 抜粋）
 
-> 出典: v-model-reference-cycle-v2.md §運用ポリシー。即実装対象の2件を抜粋。
+> 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー。即実装対象の2件を抜粋。
 
 ### 粒度不足の判定基準
 

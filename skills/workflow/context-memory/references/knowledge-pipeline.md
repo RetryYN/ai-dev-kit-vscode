@@ -1,6 +1,6 @@
 # ナレッジ蓄積パイプライン
 
-> 出典: v-model-reference-cycle-v2.md §ナレッジ蓄積フロー
+> 出典: docs/archive/v-model-reference-cycle-v2.md §ナレッジ蓄積フロー
 
 ## 収集タイミング
 

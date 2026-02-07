@@ -261,7 +261,7 @@ Sub-agents or adversarial-review で十分な場面:
 
 ## 7. 合意形成の責任主体（Helix Policy）
 
-> 出典: v-model-reference-cycle-v2.md §運用ポリシー8。マルチエージェント運用での決定権限と責任分担。
+> 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー8。マルチエージェント運用での決定権限と責任分担。
 
 ### 決定権限レベル
 
