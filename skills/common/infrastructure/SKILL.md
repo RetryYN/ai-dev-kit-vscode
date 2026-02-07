@@ -1,6 +1,6 @@
 ---
 name: infrastructure
-description: Docker・PostgreSQL・Redis・Nginx構築時に使用。本番向け設定とセキュリティベストプラクティスを提供。
+description: Docker・PostgreSQL・Redis・Nginxの本番構成と安全設定の指針を提供
 metadata:
   helix_layer: L6
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - デプロイ設定時
     - CI/CD構築時
   verification:
-    - インフラ構成確認
-    - デプロイ成功
+    - "docker compose up --build 正常起動（exit code 0）"
+    - "docker compose ps: 全コンテナ running"
+    - "ヘルスチェックエンドポイント HTTP 200"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: ide-tools
-description: IDE・AIツール選定・MCP設定時に使用。Claude Code/Cursor/Copilot比較とMCPセットアップを提供。
+description: IDE・AIツール選定とMCP設定の比較検討手順とセットアップ手順を提供
 metadata:
   helix_layer: L6
   triggers:
@@ -8,7 +8,8 @@ metadata:
     - 開発ツール選定時
     - 生産性向上時
   verification:
-    - ツール動作確認
+    - "code --list-extensions に必須プラグイン含む"
+    - "settings.json: formatOnSave / codeActionsOnSave 設定済み"
 compatibility:
   claude: true
   codex: true

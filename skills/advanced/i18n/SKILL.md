@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: 多言語対応・ローカライゼーション時に使用。Next.js/FastAPIの実装パターンとIntl APIを提供。
+description: 多言語対応で、Next.js/FastAPIのi18n実装パターンとIntl APIの適用方法を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - ローカライゼーション時
     - 翻訳管理時
   verification:
-    - 翻訳キー網羅
-    - 言語切替動作確認
+    - "翻訳キー: ソースコード内キーと翻訳ファイルの差分 0件"
+    - "言語切替: 対応全言語で画面表示崩れ 0件"
+    - "日付・数値フォーマット: ロケール別テスト通過"
 compatibility:
   claude: true
   codex: true

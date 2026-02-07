@@ -1,6 +1,6 @@
 ---
 name: context-memory
-description: AIコンテキスト管理・セッション記憶。CLAUDE.md運用、メモリ戦略、知識永続化時に使用
+description: CLAUDE.md運用を含むAIコンテキスト管理・知識永続化の運用手順を提供
 metadata:
   helix_layer: all
   triggers:
@@ -9,9 +9,8 @@ metadata:
     - コンテキスト最適化時
     - プロジェクト知識管理時
   verification:
-    - コンテキスト効率確認
-    - メモリ永続化動作確認
-    - 知識の正確性検証
+    - "コンテキストファイル: ls .claude/memory/ 1件以上（exit code 0）"
+    - "セッション再開時に前回コンテキスト参照可能"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: testing
-description: testing関連タスク時に使用
+description: テスト戦略策定でユニット/統合/E2Eテストのテンプレートとカバレッジ目標の検証手順を提供
 metadata:
   helix_layer: L5
   triggers:
@@ -8,8 +8,10 @@ metadata:
     - 機能実装完了時
     - バグ修正時
   verification:
-    - テスト通過
-    - カバレッジ目標達成
+    - "npm run test 0 errors"
+    - "Unit カバレッジ ≥80%"
+    - "Integration: 主要フロー網羅"
+    - "E2E: クリティカルパス網羅"
 compatibility:
   claude: true
   codex: true

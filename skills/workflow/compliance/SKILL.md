@@ -1,6 +1,6 @@
 ---
 name: compliance
-description: コンプライアンス・規制対応。ライセンス検証、データ保護、監査対応時に使用
+description: ライセンス検証・データ保護・監査対応を含むコンプライアンス実施手順を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -9,9 +9,9 @@ metadata:
     - 監査準備時
     - 規制要件確認時
   verification:
-    - ライセンス互換性確認
-    - データ保護要件充足
-    - 監査証跡の完全性
+    - "npx license-checker --failOn 'GPL;AGPL' 通過"
+    - "個人情報取扱: 暗号化・アクセス制御・保持期間 設定済み"
+    - "監査ログ: 全CRUD操作のログ出力 設定済み"
 compatibility:
   claude: true
   codex: true

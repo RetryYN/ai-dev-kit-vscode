@@ -1,6 +1,6 @@
 ---
 name: legacy
-description: legacy関連タスク時に使用
+description: レガシーコード改修で特性テスト・Strangler Figパターン・段階的リファクタリング手順を提供
 metadata:
   helix_layer: L4
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - 技術的負債対応時
     - モダナイゼーション時
   verification:
-    - 既存機能維持確認
-    - テスト追加完了
+    - "既存テスト全通過（リグレッション 0件）"
+    - "特性テスト（Characterization Test）追加済み"
+    - "変更対象のカバレッジ ≥80%"
 compatibility:
   claude: true
   codex: true

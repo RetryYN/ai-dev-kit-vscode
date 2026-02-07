@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: code-review関連タスク時に使用
+description: コードレビューでセキュリティ・パフォーマンス・設計の観点チェックリストと建設的フィードバック例を提供
 metadata:
   helix_layer: L5
   triggers:
@@ -8,8 +8,10 @@ metadata:
     - PRテンプレート作成時
     - レビュー文化構築時
   verification:
-    - レビューチェックリスト完了
-    - 指摘事項対応完了
+    - "Critical/High指摘 0件（全て解消済み）"
+    - "セキュリティ: OWASP Top10チェックリスト 未対応 0件"
+    - "FIXME/TODO 0件（rg 'FIXME|TODO' 対象ファイル）"
+    - "CI通過（lint + test + build）"
 compatibility:
   claude: true
   codex: true

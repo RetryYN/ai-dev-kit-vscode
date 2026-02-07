@@ -1,6 +1,6 @@
 ---
 name: error-fix
-description: error-fix関連タスク時に使用
+description: エラー修正で原因特定フロー・デバッグ手順・再現テストと修正パターンを提供
 metadata:
   helix_layer: L5
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - バグ修正時
     - デバッグ時
   verification:
-    - エラー解消確認
-    - 回帰テスト通過
+    - "対象エラー: 再現テスト実行 exit code 0（エラー未発生）"
+    - "既存テスト全通過(npm test / pytest exit code 0)"
+    - "修正箇所の回帰テスト追加済み"
 compatibility:
   claude: true
   codex: true

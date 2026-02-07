@@ -1,6 +1,6 @@
 ---
 name: incident
-description: 障害対応・インシデント管理時に使用。重要度判定・対応手順・コミュニケーションテンプレートを提供。
+description: 障害対応での重要度判定・対応手順・連絡テンプレートを提供
 metadata:
   helix_layer: L6
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - インシデント対応時
     - ポストモーテム時
   verification:
-    - 障害復旧完了
-    - 再発防止策策定
+    - "サービス復旧: ヘルスチェック HTTP 200 + SLO達成率 ≥99.9%"
+    - "タイムライン: 発生〜検知〜復旧の時系列 記載済み"
+    - "再発防止: アクションアイテム 1件以上(担当・期限付き)"
 compatibility:
   claude: true
   codex: true

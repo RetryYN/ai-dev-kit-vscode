@@ -1,6 +1,6 @@
 ---
 name: performance
-description: performance関連タスク時に使用
+description: パフォーマンス最適化でCore Web Vitals目標値・ボトルネック診断フローチャート・計測手順とチェックリストを提供
 metadata:
   helix_layer: L5
   triggers:
@@ -8,8 +8,11 @@ metadata:
     - ボトルネック調査時
     - 負荷テスト時
   verification:
-    - パフォーマンス目標達成
-    - 回帰テスト通過
+    - "LCP ≤2.5s, INP ≤200ms, CLS ≤0.1 (Core Web Vitals)"
+    - "API p95 <200ms, p99 <500ms"
+    - "バンドルサイズ: 初期JS <100KB (gzip)"
+    - "N+1クエリ 0件 (EXPLAIN ANALYZE確認)"
+    - "負荷テスト通過（目標スループット達成）"
 compatibility:
   claude: true
   codex: true

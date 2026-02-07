@@ -1,6 +1,6 @@
 ---
 name: migration
-description: migration関連タスク時に使用
+description: システム移行でETLスクリプト・データ検証手順・Strangler Figパターンの実装手順を提供
 metadata:
   helix_layer: L4
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - データ移行時
     - フレームワーク更新時
   verification:
-    - 移行完了確認
-    - データ整合性確認
+    - "移行スクリプト: up/rollback 双方向テスト通過"
+    - "データ整合性: 移行前後のレコード件数一致・チェックサム一致"
+    - "機能テスト: 移行後の全クリティカルパス通過"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: ui
-description: ui関連タスク時に使用
+description: UIコンポーネント設計でAtomic Designテンプレート・状態管理パターン・アクセシビリティ検証リストを提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - コンポーネント作成時
     - デザインシステム構築時
   verification:
-    - UI仕様一致
-    - アクセシビリティ確認
+    - "デザインカンプとの差異 0件(主要画面)"
+    - "axe-core / Lighthouse Accessibility スコア ≥90"
+    - "レスポンシブ: 主要ブレークポイント(sm/md/lg)表示崩れ 0件"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: ai-integration
-description: LLM組み込み・RAG・エージェント設計時に使用。ルーティング・ベクトル検索・コンテキスト管理を提供。
+description: LLM組み込み・RAG・エージェント設計で、ルーティング・ベクトル検索・コンテキスト管理の実装指針を提供
 metadata:
   helix_layer: L3
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - AIエージェント統合時
     - プロンプト設計時
   verification:
-    - AI機能動作確認
-    - レスポンス品質確認
+    - "AI API呼び出し: レスポンス正常（HTTP 200 + 期待スキーマ一致）"
+    - "フォールバック: API障害時の代替動作テスト通過"
+    - "コスト: トークン使用量のログ出力・上限設定済み"
 compatibility:
   claude: true
   codex: true

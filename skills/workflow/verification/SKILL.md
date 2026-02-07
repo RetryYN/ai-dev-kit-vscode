@@ -1,6 +1,6 @@
 ---
 name: verification
-description: L1-L6検証レイヤー実行時に使用
+description: L1〜L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供
 metadata:
   helix_layer: all
   triggers:
@@ -9,8 +9,14 @@ metadata:
     - デプロイ前
     - 品質ゲート通過時
   verification:
-    - 各レイヤーのチェックリスト完了
-    - 検証結果の記録
+    - "L1-L6の全レイヤー status: pass"
+    - "L1: 要件カバレッジ 100% (functional/non-functional)"
+    - "L2: 画面-API-DBマッピング 未対応 0件"
+    - "L2.5: 型一致率 100% (FE-BE-DB)"
+    - "L3: API仕様カバレッジ ≥95%"
+    - "L4: 脆弱性 0件 (critical/high)"
+    - "L5: カバレッジ ≥70% (unit), クリティカルパス 100%"
+    - "L6: SLO定義 3種以上, アラートルール ≥1件"
 compatibility:
   claude: true
   codex: true
@@ -30,12 +36,13 @@ compatibility:
 ## 1. 検証レイヤー概要
 
 ```
-L1: 要件検証      ← 企画書・要件定義
-L2: 設計検証      ← 基本設計・詳細設計
-L3: コントラクト  ← API・インターフェース
-L4: 依存関係      ← パッケージ・外部サービス
-L5: テスト検証    ← 単体・結合・E2E
-L6: 運用検証      ← 監視・アラート・SRE
+L1:   要件検証      ← 企画書・要件定義
+L2:   設計検証      ← 基本設計・詳細設計
+L2.5: API整合性    ← Frontend/Backend/DB間の型・スキーマ一致（★Helix中核）
+L3:   コントラクト  ← API仕様・インターフェース定義
+L4:   依存関係      ← パッケージ・外部サービス
+L5:   テスト検証    ← 単体・結合・E2E
+L6:   運用検証      ← 監視・アラート・SRE
 ```
 
 ---
@@ -96,7 +103,7 @@ l1_verification:
   - 技術的リスクの評価
 ```
 
-### L2.5: 設計深掘り検証
+### L2 補足: 設計深掘り検証
 
 ```
 □ エッジケースの考慮
@@ -112,22 +119,56 @@ l1_verification:
 
 ---
 
-## 4. L3: コントラクト検証
+## 4. L2.5: API整合性検証 ★
+
+→ 詳細は `skills/workflow/api-contract/SKILL.md` を参照（Helix L2.5相当）
+
+### 検証項目
+
+```
+□ Frontend/Backend/DB間の型一致
+  - リクエスト/レスポンスの型定義がFE/BE間で一致
+  - DBスキーマとバックエンド型の整合
+  - 列挙型・定数値の同期
+
+□ スキーマ整合性
+  - OpenAPI仕様と実装の一致
+  - 契約テスト（Consumer-Driven Contract）の通過
+
+□ 自動検証
+  - Codex による型一致率の数値判定
+  - 不合格時はL2.5内でループ（契約再定義 or 各層の実装修正）
+```
+
+### 出力
+
+```yaml
+l2_5_verification:
+  status: pass/fail
+  type_match_rate: "100%"  # Frontend ↔ Backend ↔ DB
+  schema_coverage: "100%"
+  issues: []
+  timestamp: "ISO8601"
+```
+
+---
+
+## 5. L3: コントラクト検証
 
 → 詳細は `skills/workflow/api-contract/SKILL.md` を参照
 
 ### 検証項目
 
 ```
-□ スキーマ整合性
+□ API仕様定義の完全性
 □ エラーコード網羅
 □ 後方互換性
-□ 契約テスト
+□ バージョニング戦略
 ```
 
 ---
 
-## 5. L4: 依存関係検証
+## 6. L4: 依存関係検証
 
 → 詳細は `skills/workflow/dependency-map/SKILL.md` を参照
 
@@ -142,7 +183,7 @@ l1_verification:
 
 ---
 
-## 6. L5: テスト検証
+## 7. L5: テスト検証
 
 → 詳細は `skills/workflow/quality-lv5/SKILL.md` を参照
 
@@ -157,7 +198,7 @@ l1_verification:
 
 ---
 
-## 7. L6: 運用検証
+## 8. L6: 運用検証
 
 ### 検証項目
 
@@ -180,32 +221,36 @@ l1_verification:
 
 ---
 
-## 8. 検証実行フロー
+## 9. 検証実行フロー
 
 ```
 開始
   │
-  ├─→ L1検証 ─→ fail → 要件修正 → 再検証
+  ├─→ L1検証 ──→ fail → 要件修正 → 再検証
   │     │
   │     pass
   │     ↓
-  ├─→ L2検証 ─→ fail → 設計修正 → 再検証
+  ├─→ L2検証 ──→ fail → 設計修正 → 再検証
   │     │
   │     pass
   │     ↓
-  ├─→ L3検証 ─→ fail → API修正 → 再検証
+  ├─→ L2.5検証 → fail → 型/スキーマ修正 → 再検証 ★API整合性
   │     │
   │     pass
   │     ↓
-  ├─→ L4検証 ─→ fail → 依存修正 → 再検証
+  ├─→ L3検証 ──→ fail → API仕様修正 → 再検証
   │     │
   │     pass
   │     ↓
-  ├─→ L5検証 ─→ fail → テスト追加 → 再検証
+  ├─→ L4検証 ──→ fail → 依存修正 → 再検証
   │     │
   │     pass
   │     ↓
-  └─→ L6検証 ─→ fail → 運用設定修正 → 再検証
+  ├─→ L5検証 ──→ fail → テスト追加 → 再検証
+  │     │
+  │     pass
+  │     ↓
+  └─→ L6検証 ──→ fail → 運用設定修正 → 再検証
         │
         pass
         ↓
@@ -214,7 +259,7 @@ l1_verification:
 
 ---
 
-## 9. 検証結果の記録
+## 10. 検証結果の記録
 
 ### 検証レポートテンプレート
 
@@ -232,6 +277,11 @@ verification_report:
     L2:
       status: "pass"
       coverage: "100%"
+      issues: []
+    L2.5:
+      status: "pass"
+      type_match_rate: "100%"
+      schema_coverage: "100%"
       issues: []
     L3:
       status: "pass"
@@ -260,7 +310,7 @@ verification_report:
 
 ---
 
-## 10. 自動化ツール
+## 11. 自動化ツール
 
 ### CI/CDパイプライン統合
 
@@ -272,6 +322,8 @@ verify:
       # 要件追跡ツール連携
     l2-design:
       # 設計ドキュメント検証
+    l2_5-api-integrity:
+      # Frontend/Backend/DB型一致検証（Codex）
     l3-contract:
       # OpenAPI検証
     l4-dependencies:

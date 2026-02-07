@@ -1,6 +1,6 @@
 ---
 name: external-api
-description: 外部API連携時に使用。アダプターパターン・リトライ・サーキットブレーカーを提供。
+description: 外部API連携で、アダプターパターン・リトライ・サーキットブレーカーによる堅牢化設計を提供
 metadata:
   helix_layer: L3
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - OAuth実装時
     - Webhook実装時
   verification:
-    - API連携動作確認
-    - エラーハンドリング確認
+    - "外部API呼び出し: 正常レスポンス（HTTP 200 + スキーマ一致）"
+    - "リトライ・サーキットブレーカー: 障害時テスト通過"
+    - "タイムアウト設定: 全外部呼び出しに設定済み（≤5s）"
 compatibility:
   claude: true
   codex: true

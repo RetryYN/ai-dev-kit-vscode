@@ -29,11 +29,15 @@ HELIXフレームワーク用スキルの一覧と分類。
 | security | common/security | セキュリティ |
 | i18n | advanced/i18n | 多言語対応 |
 
+### L2.5: API整合性レイヤー ★
+| スキル | パス | 説明 |
+|--------|------|------|
+| api-contract | workflow/api-contract | APIコントラクト検証（L2.5作業スキル） |
+
 ### L3: APIコントラクトレイヤー
 | スキル | パス | 説明 |
 |--------|------|------|
 | api | project/api | API設計 |
-| api-contract | workflow/api-contract | APIコントラクト検証 |
 | external-api | advanced/external-api | 外部API連携 |
 | ai-integration | advanced/ai-integration | AI統合 |
 
@@ -72,6 +76,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | adversarial-review | workflow/adversarial-review | AI対立的レビュー |
 | context-memory | workflow/context-memory | AIコンテキスト・メモリ管理 |
 | ai-coding | tools/ai-coding | AIコーディング |
+| agent-teams | integration/agent-teams | Agent Teams 協調設計・レビュー |
 
 ## カテゴリ別スキル数
 
@@ -82,7 +87,8 @@ HELIXフレームワーク用スキルの一覧と分類。
 | project | 3 |
 | advanced | 6 |
 | tools | 2 |
-| **合計** | **39** |
+| integration | 1 |
+| **合計** | **40** |
 
 ## 補完関係のスキルペア
 
@@ -95,13 +101,15 @@ HELIXフレームワーク用スキルの一覧と分類。
 | incident / postmortem | 障害対応 / 振り返り・再発防止 |
 | observability-sre / infrastructure | 監視設計 / インフラ構築 |
 | security / compliance | セキュリティ実装 / 規制対応 |
+| agent-teams / adversarial-review | マルチエージェント検証 / 単一エージェント対立レビュー |
+| agent-teams / ai-coding §4 | Agent Teams 協調 / Sub-agents 階層 |
 
 ## 廃止済みスキル
 
 | スキル | 理由 |
 |--------|------|
 | architecture | 40%プレースホルダー → design-doc/designで代替 |
-| orchestrator | 投機的CLI参照 → ide-tools/ai-codingで代替 |
+| orchestrator | 投機的CLI参照 → integration/agent-teams + tools/ai-codingで代替 |
 | codex | 投機的+重複大 → ide-tools/ai-codingで代替 |
 | vscode-plugins | ide-tools/references/ に統合 |
 
@@ -112,3 +120,4 @@ HELIXフレームワーク用スキルの一覧と分類。
 3. **重複防止**: 追加前に既存スキルとの重複を確認
 4. **HELIXフォーマット**: metadata.helix_layer を必ず設定
 5. **description品質**: 「〇〇関連タスク時に使用」は禁止。具体的な用途と提供内容を記載
+6. **廃止スキル検出**: 追加・変更時に `rg -wn "orchestrator|architecture|codex|vscode-plugins" skills/` で廃止スキル名への参照残存を確認

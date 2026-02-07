@@ -1,6 +1,6 @@
 ---
 name: project-management
-description: プロジェクト計画・進捗管理・報告作成時に使用。ダッシュボードとKanbanテンプレートを提供。
+description: ダッシュボードとカンバンテンプレートを用いた計画・進捗・報告の運用手順を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - 進捗管理時
     - リソース調整時
   verification:
-    - 計画策定完了
-    - 進捗確認完了
+    - "WBS: 全タスクに担当・見積もり・期限 設定済み"
+    - "リスク一覧: 各リスクに対策・担当 付与済み"
+    - "進捗: マイルストーン達成率 トラッキング中"
 compatibility:
   claude: true
   codex: true

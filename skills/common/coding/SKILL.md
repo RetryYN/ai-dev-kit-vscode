@@ -1,6 +1,6 @@
 ---
 name: coding
-description: コード品質改善、命名規則確認、リファクタリング時に使用。単純な実装時は不要。
+description: コード品質改善(命名・構造・型安全性)のチェック観点と改善手順を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,10 @@ metadata:
     - 命名規則確認時
     - リファクタリング時
   verification:
-    - lint通過
-    - 型チェック通過
+    - "eslint/ruff 0 errors"
+    - "tsc/mypy 0 type errors"
+    - "any型使用率 0%"
+    - "関数引数 ≤3個 or オブジェクト化"
 compatibility:
   claude: true
   codex: true

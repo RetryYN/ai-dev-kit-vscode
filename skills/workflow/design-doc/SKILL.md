@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: 設計書作成・レビュー時に使用。基本設計・詳細設計のテンプレートとレビュー基準を提供。
+description: 基本設計・詳細設計の設計書テンプレートとレビュー基準を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - 企画書から設計書を作成する時
     - 設計レビュー時
   verification:
-    - 設計書完成
-    - レビュー完了
+    - "設計書: 必須セクション（目的・スコープ・技術選定・API設計）記載済み"
+    - "ADR: 決定事項・理由・代替案 記載済み"
+    - "レビュー承認 1名以上"
 compatibility:
   claude: true
   codex: true

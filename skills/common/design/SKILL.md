@@ -1,6 +1,6 @@
 ---
 name: design
-description: UI/UXデザイン・コンポーネント設計時に使用。デザイン心理学と日本市場向けUI指針を提供。
+description: UI/UXとコンポーネント設計で、日本市場向けのデザイン原則とUI指針を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - システム構成設計時
     - 画面設計時
   verification:
-    - 設計書完成
-    - レビュー完了
+    - "設計書: 責務分離・依存方向・命名規則 記載済み"
+    - "デザインパターン: 選定理由 記載済み"
+    - "レビュー承認 1名以上"
 compatibility:
   claude: true
   codex: true

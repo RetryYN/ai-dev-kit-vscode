@@ -1,6 +1,6 @@
 ---
 name: estimation
-description: 見積もり・スプリント計画・リソース配分時に使用。三点見積もりとリスク係数を提供。
+description: 三点見積もりとリスク係数を用いた工数・スプリント計画の見積もり手順を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - スプリント計画時
     - リソース計画時
   verification:
-    - 見積もり完了
-    - バッファ考慮済み
+    - "見積もり: 全タスクに工数(時間 or ポイント)付与済み"
+    - "バッファ: 不確実性に応じた係数(×1.2〜2.0)適用済み"
+    - "リスク: 見積もり前提条件・リスク要因 記載済み"
 compatibility:
   claude: true
   codex: true

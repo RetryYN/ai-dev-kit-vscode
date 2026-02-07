@@ -1,6 +1,6 @@
 ---
 name: requirements-handover
-description: 要件未定義時・引継ぎ時に使用
+description: 要件曖昧時や引継ぎ時の確認質問・仮定管理・引継ぎチェックリストを提供
 metadata:
   helix_layer: L1
   triggers:
@@ -9,8 +9,9 @@ metadata:
     - ステークホルダー変更時
     - 要件変更発生時
   verification:
-    - 要件の明確化
-    - 引継ぎ完了確認
+    - "要件一覧: 全項目にID・優先度・受け入れ条件 記載済み"
+    - "引継ぎチェックリスト: 全項目完了（未完了 0件）"
+    - "不明点・未決事項リスト: 担当・期限 付与済み"
 compatibility:
   claude: true
   codex: true

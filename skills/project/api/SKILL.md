@@ -1,6 +1,6 @@
 ---
 name: api
-description: api関連タスク時に使用
+description: RESTful/GraphQL API設計でエンドポイント規約・レスポンス形式テンプレート・認証認可パターンを提供
 metadata:
   helix_layer: L3
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - API修正時
     - フロントエンド連携時
   verification:
-    - OpenAPI仕様更新
-    - APIテスト通過
+    - "OpenAPI定義: 全エンドポイント記載（実装との差分 0件）"
+    - "APIテスト: npm test / pytest exit code 0（正常系 + 主要エラー系）"
+    - "レスポンス例: 全エンドポイントにサンプル記載"
 compatibility:
   claude: true
   codex: true

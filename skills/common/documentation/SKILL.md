@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: documentation関連タスク時に使用
+description: 技術ドキュメント作成でREADME/API仕様書/ADRのテンプレートと品質確認チェックリストを提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,10 @@ metadata:
     - API仕様書作成時
     - 技術文書作成時
   verification:
-    - ドキュメント完成
-    - レビュー完了
+    - "TODO/FIXME残存 0件（rg 'TODO|FIXME' docs/）"
+    - "内部リンク切れ 0件"
+    - "API仕様: OpenAPI定義との乖離 0件"
+    - "レビュー承認済み（1名以上）"
 compatibility:
   claude: true
   codex: true

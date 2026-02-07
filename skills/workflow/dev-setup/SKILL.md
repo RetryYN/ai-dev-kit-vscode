@@ -1,6 +1,6 @@
 ---
 name: dev-setup
-description: 開発環境構築・新メンバーオンボーディング時に使用。OS別セットアップとVSCode設定を提供。
+description: OS別セットアップとVSCode設定の手順を含む開発環境構築ガイドを提供
 metadata:
   helix_layer: L6
   triggers:
@@ -8,8 +8,10 @@ metadata:
     - 開発環境構築時
     - 新メンバー参加時
   verification:
-    - 環境構築完了
-    - 動作確認完了
+    - "node -v / python --version exit code 0"
+    - "git --version / docker --version exit code 0"
+    - "npm run dev (or docker compose up) 起動後 localhost HTTP 200"
+    - "code --list-extensions に必須プラグイン含む"
 compatibility:
   claude: true
   codex: true
@@ -122,7 +124,7 @@ code --install-extension dbaeumer.vscode-eslint
 code --install-extension anthropic.claude-code
 ```
 
-詳細なプラグイン一覧は `skills/tools/ide-tools/references/vscode-plugins.md` を参照。
+詳細なプラグイン一覧は `skills/tools/ide-tools/SKILL.md` の references セクションを参照。
 
 ---
 

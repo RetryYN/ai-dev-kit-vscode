@@ -1,6 +1,6 @@
 ---
 name: observability-sre
-description: 監視・可観測性・SRE実践。SLO/SLI設計、アラート戦略、ダッシュボード構築時に使用
+description: SLO/SLI設計・アラート戦略・ダッシュボード構築の可観測性指針を提供
 metadata:
   helix_layer: L6
   triggers:
@@ -9,9 +9,11 @@ metadata:
     - アラート設計時
     - ダッシュボード構築時
   verification:
-    - SLO定義の妥当性
-    - アラート閾値の適切性
-    - 可観測性の三本柱カバレッジ
+    - "SLO定義: availability/latency/correctness 3種 定義済み（欠落 0件）"
+    - "エラーバジェット計算済み（SLO 99.9% = 月43.2分許容）"
+    - "アラートルール設定（P1: SLO違反, P2: バジェット50%超）"
+    - "可観測性の三本柱実装（Metrics/Logs/Traces）"
+    - "ダッシュボード構築（L1-L4の4レイヤー）"
 compatibility:
   claude: true
   codex: true

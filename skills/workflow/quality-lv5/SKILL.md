@@ -1,6 +1,6 @@
 ---
 name: quality-lv5
-description: テスト品質検証・L5検証時に使用
+description: テスト品質をLv1-5で評価し、テストピラミッド比率とカバレッジ目標の検証手順を提供
 metadata:
   helix_layer: L5
   triggers:
@@ -8,9 +8,10 @@ metadata:
     - 品質ゲート通過時
     - リリース前検証時
   verification:
-    - カバレッジ目標達成
-    - テストピラミッド比率
-    - クリティカルパス網羅
+    - "カバレッジ ≥70% (statement), ≥60% (branch)"
+    - "テストピラミッド比率: Unit ≥60%, Integration 15-30%, E2E ≤15%"
+    - "クリティカルパスカバレッジ 100% (優先度1必須)"
+    - "Flaky率 <5%, テストパス率 >95%"
 compatibility:
   claude: true
   codex: true

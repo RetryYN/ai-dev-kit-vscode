@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: 複数AIによる設計判断レビュー時に使用
+description: 複数AIで設計判断の反証レビューを行うための観点・手順・出力フォーマットを提供
 metadata:
   helix_layer: all
   triggers:
@@ -8,9 +8,9 @@ metadata:
     - 本番環境への影響がある変更時
     - 外部への説明責任がある決定時
   verification:
-    - 三者分離アーキテクチャ適用
-    - 決定書作成完了
-    - 監査ログ保管
+    - "三者分離: 提案者・反論者・判定者 の役割割当済み"
+    - "決定書: 結論・根拠・反論要約・判定理由 記載済み"
+    - "監査ログ: 全発言・判定結果の記録 保存済み"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: git
-description: git関連タスク時に使用
+description: Git運用でブランチ命名規則・コミットメッセージフォーマット・PRテンプレートを提供
 metadata:
   helix_layer: all
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - ブランチ操作時
     - PR作成時
   verification:
-    - コミットメッセージ形式
-    - ブランチ命名規則
+    - "コミットメッセージ: Conventional Commits準拠（type: subject）"
+    - "ブランチ名: feature/*/fix/*/hotfix/* パターン一致"
+    - "機密情報なし（git diff --cached | grep -E 'password|secret|api_key' 0件）"
 compatibility:
   claude: true
   codex: true

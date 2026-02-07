@@ -1,6 +1,6 @@
 ---
 name: dev-policy
-description: 開発方針策定・品質基準設定時に使用。完成の定義とチームルールを提供。
+description: 開発方針と品質基準を決めるための完成の定義とチームルールの雛形を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -8,8 +8,8 @@ metadata:
     - コーディング規約策定時
     - チームルール整備時
   verification:
-    - 方針文書化完了
-    - チーム合意完了
+    - "方針文書: コーディング規約・ブランチ戦略・レビュー基準 記載済み"
+    - "チーム合意: 承認記録 ≥1件（PR Approved or 議事録署名）"
 compatibility:
   claude: true
   codex: true

@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: デプロイ・リリース・ロールバック時に使用。Blue/Green戦略とチェックリストを提供。
+description: デプロイ・リリース・ロールバックのBlue/Green戦略と実行チェックリストを提供
 metadata:
   helix_layer: L6
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - リリース準備時
     - ロールバック時
   verification:
-    - デプロイ成功
-    - 動作確認完了
+    - "デプロイ: exit code 0 + ヘルスチェック HTTP 200"
+    - "スモークテスト: 主要エンドポイント HTTP 200"
+    - "ロールバック手順: 文書化済み + テスト通過"
 compatibility:
   claude: true
   codex: true

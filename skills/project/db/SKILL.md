@@ -1,6 +1,6 @@
 ---
 name: db
-description: db関連タスク時に使用
+description: データベース設計でスキーマテンプレート・インデックス設計ルール・マイグレーション安全手順を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - マイグレーション作成時
     - クエリ最適化時
   verification:
-    - マイグレーション成功
-    - インデックス設計確認
+    - "マイグレーション: up/down 双方向 exit code 0"
+    - "EXPLAIN ANALYZE: フルスキャン 0件（主要クエリ）"
+    - "外部キー制約: 全リレーション定義済み"
 compatibility:
   claude: true
   codex: true

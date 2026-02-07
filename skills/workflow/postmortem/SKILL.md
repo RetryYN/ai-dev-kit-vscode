@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: インシデント振り返り・ポストモーテム。障害分析、再発防止、改善アクション策定時に使用
+description: 障害分析と再発防止アクションをまとめるポストモーテムテンプレートを提供
 metadata:
   helix_layer: L6
   triggers:
@@ -9,9 +9,9 @@ metadata:
     - 改善施策策定時
     - スプリント振り返り時
   verification:
-    - 根本原因の特定
-    - 再発防止策の具体性
-    - アクションアイテムの追跡可能性
+    - "根本原因: 5 Whys分析 原因チェーン ≥5段 記載済み"
+    - "再発防止策: 具体的アクションアイテム 1件以上（担当・期限付き）"
+    - "タイムライン: 発生〜検知〜復旧の時系列 記載済み"
 compatibility:
   claude: true
   codex: true

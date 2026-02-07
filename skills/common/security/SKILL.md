@@ -1,6 +1,6 @@
 ---
 name: security
-description: security関連タスク時に使用
+description: セキュリティ対策で環境別設定ガイド・認証認可実装パターン・脆弱性対策チェックリストとOWASP検証手順を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -9,8 +9,11 @@ metadata:
     - 本番環境デプロイ時
     - セキュリティレビュー時
   verification:
-    - セキュリティチェックリスト完了
-    - 脆弱性スキャン通過
+    - "npm audit / pip-audit 0 critical/high"
+    - ".env/.env.* が .gitignore 登録済み"
+    - "HTTPS強制 + セキュリティヘッダー設定（本番）"
+    - "認証: JWT有効期限 ≤1h, bcrypt cost ≥12"
+    - "レート制限設定（一般API: 100req/15min, ログイン: 5req/1h）"
 compatibility:
   claude: true
   codex: true

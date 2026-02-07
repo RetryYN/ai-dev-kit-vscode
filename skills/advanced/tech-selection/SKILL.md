@@ -1,6 +1,6 @@
 ---
 name: tech-selection
-description: tech-selection関連タスク時に使用
+description: 技術選定で評価マトリクス・SWOT分析フレームワーク・ADRテンプレートと選定プロセス手順を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -8,8 +8,9 @@ metadata:
     - ライブラリ選定時
     - アーキテクチャ決定時
   verification:
-    - 選定理由文書化
-    - ADR記録完了
+    - "ADR記録: 選定理由・代替案・トレードオフ 記載済み"
+    - "評価マトリクス: 候補×評価軸 のスコア表 作成済み"
+    - "PoC結果: 主要リスク項目 未検証 0件"
 compatibility:
   claude: true
   codex: true

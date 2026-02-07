@@ -1,6 +1,6 @@
 ---
 name: refactoring
-description: refactoring関連タスク時に使用
+description: コード構造改善で責務分離パターン・共通化判断基準・デグレ対策手順を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -9,8 +9,9 @@ metadata:
     - パフォーマンス最適化時
     - 可読性向上時
   verification:
-    - テスト通過（挙動変更なし）
-    - lint通過
+    - "既存テスト全通過（npm test / pytest exit code 0）"
+    - "lint 0 errors（eslint / ruff）"
+    - "カバレッジ: リファクタ前後で低下なし"
 compatibility:
   claude: true
   codex: true

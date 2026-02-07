@@ -1,16 +1,17 @@
 ---
 name: api-contract
-description: APIコントラクト検証・L3検証時に使用
+description: APIコントラクト定義とスキーマ・レスポンス・エラー整合の検証チェックリストを提供
 metadata:
-  helix_layer: L3
+  helix_layer: L2.5
   triggers:
     - APIエンドポイント追加時
     - フロントエンド・バックエンド連携時
     - 外部API統合時
   verification:
-    - スキーマ一致
-    - レスポンス形式整合
-    - エラーコード網羅
+    - "openapi-diff 破壊的変更 0件"
+    - "型生成差分 0件（openapi-typescript → 実装型）"
+    - "契約テスト全通過（Consumer-Driven Contract）"
+    - "エラーコード: 全エンドポイント×想定エラー 定義済み"
 compatibility:
   claude: true
   codex: true
@@ -24,7 +25,7 @@ compatibility:
 - APIエンドポイント作成・修正時
 - フロントエンド・バックエンド間の連携確認時
 - 外部APIとの統合時
-- L3検証（APIコントラクト）実行時
+- L2.5検証（API整合性）実行時
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: dependency-map
-description: 依存関係検証・L4検証時に使用
+description: 依存関係マップの作成と脆弱性・ライセンス・循環依存の検証観点を提供
 metadata:
   helix_layer: L4
   triggers:
@@ -9,9 +9,11 @@ metadata:
     - セキュリティ監査時
     - アップグレード計画時
   verification:
-    - 脆弱性ゼロ（Critical/High）
-    - ライセンス互換性
-    - 循環依存なし
+    - "npm audit / pip-audit 0 critical/high"
+    - "npx license-checker --failOn 'GPL;AGPL' 通過"
+    - "npx madge --circular 0件"
+    - "依存関係マップ作成済み（内部/外部/サービス依存）"
+    - "外部サービス障害: 影響評価シナリオ 未評価 0件"
 compatibility:
   claude: true
   codex: true
