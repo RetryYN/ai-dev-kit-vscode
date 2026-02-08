@@ -162,7 +162,7 @@ src/
 - console.log残し
 - 未使用import
 
-## ワークフロー（HELIX利用時のみ）
+## ワークフロー
 - タスクサイジング: SKILL_MAP.md §タスクサイジング 参照
 - フェーズスキップ: SKILL_MAP.md §フェーズスキップ決定木 参照
 - ディスパッチ: ai-coding/references/orchestration-workflow.md 参照
