@@ -302,6 +302,28 @@ Agent Teams = 対等関係。設計の多角検証に最適。
 
 → 詳細は `references/subagent-config.md` を参照
 
+### オーケストレーション・ディスパッチ
+
+Opus はオーケストレーターとして工程表を読み、タスクをサブエージェントに配送する。
+
+```
+ディスパッチフロー:
+  1. 工程表の現在行を読み取る
+  2. 前提工程の完了を確認（未完了→スキップ or ブロッカー報告）
+  3. タスク種別からサブエージェントを選定（上記 subagent-config 参照）
+  4. 入力を整形して Task tool で配送
+  5. 出力を検証（status: completed/failed/blocked）
+  6. 次タスクの入力に変換して継続
+
+Opus の自作業禁止（CLAUDE.md 参照）:
+  - 15行超のコード実装 → Sonnet/Codex
+  - テスト・ドキュメント → Sonnet
+  - 3ファイル超の一括編集 → Sonnet
+  - 3クエリ超の調査 → Haiku
+```
+
+→ 詳細は `references/orchestration-workflow.md` を参照
+
 ---
 
 ## 5. AIの出力レビュー
