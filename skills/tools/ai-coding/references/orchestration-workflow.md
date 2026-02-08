@@ -85,10 +85,10 @@ blocker:
 
 | 作業 | 委譲先 |
 |------|--------|
-| コード実装 | Sonnet (Task tool) / Codex (codex exec) |
+| コード実装 | Codex 5.3 / Codex 5.2 (codex exec) |
 | テスト作成 | Sonnet (Task tool) |
 | ドキュメント作成 | Sonnet (Task tool) |
-| ファイル編集 | Sonnet (Task tool) |
+| ファイル編集 | Codex 5.2 (codex exec) |
 | 調査・検索 | Haiku (Task tool) |
 | コードレビュー | Codex 5.3 (codex review) |
 

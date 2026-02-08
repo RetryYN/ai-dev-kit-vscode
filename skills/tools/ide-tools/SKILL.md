@@ -99,11 +99,12 @@ claude --chrome
 ```
 マルチエージェント構成:
 - Opus 4.6: 判断・統合＋詰めの実装（仕上げ役）
-- Sonnet: 中〜大規模実装
-- Haiku: 小規模タスク
+- Codex 5.3: 中〜大規模実装
+- Codex 5.2: 小規模実装・軽微修正
+- Haiku: 調査
 
 指示例:
-「このタスクはSonnetで実装して」
+「このタスクはCodex 5.3で実装して」
 「Haikuでlint修正だけして」
 ```
 
@@ -345,8 +346,8 @@ function validateUser(email: string, password: string): User | null {
 Claude Max ($200/月):
 - メイン開発にはClaude Code
 - Opus 4.6: 判断＋詰めの実装
-- Sonnet: 中規模実装
-- Haiku: 軽微な修正
+- Codex 5.3: 中〜大規模実装
+- Codex 5.2: 軽微な修正
 
 追加コスト回避:
 - Cursorは無料枠で補完のみ
@@ -363,7 +364,7 @@ Claude Max ($200/月):
 | モデル | 得意 | 苦手 | コスト |
 |--------|------|------|--------|
 | Claude Opus 4.6 | 複雑な判断、設計、詰めの実装 | 単純作業 | 高 |
-| Claude Sonnet 4.5 | バランス、実装 | 非常に複雑な判断 | 中 |
+| Claude Sonnet 4.5 | テスト、ドキュメント | 複雑な実装 | 中 |
 | Claude Haiku 4.5 | 速度、単純タスク | 複雑な判断 | 低 |
 | GPT-4o | 汎用、安定 | 長いコンテキスト | 中 |
 | Gemini 2.0 | マルチモーダル | コード特化度 | 中 |

@@ -363,9 +363,9 @@ Won't:  多言語対応、モバイルアプリ
 | 難易度 | 担当モデル | 思考トークン |
 |--------|-----------|-------------|
 | 0-3点 | Haiku | なし |
-| 4-7点 | Sonnet | low |
-| 8-10点 | Sonnet + Codex補助 | medium |
-| 11-14点 | Sonnet（Opus初期設計） | high |
+| 4-7点 | Codex 5.2 | low |
+| 8-10点 | Codex 5.3 | medium |
+| 11-14点 | Codex 5.3（Opus初期設計） | high |
 
 ---
 
