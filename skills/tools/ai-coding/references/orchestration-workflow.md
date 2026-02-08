@@ -83,14 +83,16 @@ blocker:
 
 ## Opus の自作業禁止ルール
 
-| 作業 | 閾値 | 委譲先 |
-|------|------|--------|
-| コード実装 | 15行超 | Sonnet (Task tool) / Codex (codex exec) |
-| テスト作成 | 常時 | Sonnet (Task tool) |
-| ドキュメント作成 | 常時 | Sonnet (Task tool) |
-| ファイル一括編集 | 3ファイル超 | Sonnet (Task tool) |
-| 調査・検索 | 3クエリ超 | Haiku (Task tool) |
-| コードレビュー | 常時 | Codex 5.3 (codex review) |
+| 作業 | 委譲先 |
+|------|--------|
+| コード実装 | Sonnet (Task tool) / Codex (codex exec) |
+| テスト作成 | Sonnet (Task tool) |
+| ドキュメント作成 | Sonnet (Task tool) |
+| ファイル編集 | Sonnet (Task tool) |
+| 調査・検索 | Haiku (Task tool) |
+| コードレビュー | Codex 5.3 (codex review) |
+
+**常時すべて委譲**。唯一の例外: MCP検証などツール動作確認のみ自分で実行可。
 
 Opus が自分で行うこと:
 

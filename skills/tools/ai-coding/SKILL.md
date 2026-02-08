@@ -316,10 +316,11 @@ Opus はオーケストレーターとして工程表を読み、タスクをサ
   6. 次タスクの入力に変換して継続
 
 Opus の自作業禁止（CLAUDE.md 参照）:
-  - 15行超のコード実装 → Sonnet/Codex
-  - テスト・ドキュメント → Sonnet
-  - 3ファイル超の一括編集 → Sonnet
-  - 3クエリ超の調査 → Haiku
+  - コード実装 → Sonnet/Codex（常時委譲）
+  - テスト・ドキュメント → Sonnet（常時委譲）
+  - ファイル編集 → Sonnet（常時委譲）
+  - 調査・検索 → Haiku（常時委譲）
+  - 唯一の例外: MCP検証などツール動作確認のみ自分で実行可
 ```
 
 → 詳細は `references/orchestration-workflow.md` を参照
