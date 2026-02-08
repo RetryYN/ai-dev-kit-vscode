@@ -4,6 +4,44 @@
 
 HELIXフレームワーク用スキルの一覧と分類。
 
+## オーケストレーションフロー
+
+全タスクはこのフローに沿って実行する。各フェーズで `→` の右に示すスキルを Read してから作業する。
+
+```
+【企画】人間が要件提示
+  ↓ → requirements-handover, estimation
+【L1 要件定義】Opus: 要件を構造化、Haiku: 引継書に転記
+  ↓ → design-doc, api, db, security
+【L2 設計】Codex 5.3: 設計書作成（FE/BE/DB）
+  ↓ → api-contract
+【L2.5 API契約】Codex 5.3: OpenAPI仕様生成、型↔API↔DB整合性検証
+  ↓ → dependency-map
+【L3 依存関係】Codex 5.3: 依存マップ生成 → 実装順序決定
+  ↓ → estimation §8-10
+【L4 工程表】Codex 5.3: 工程表作成（難易度スコア・モデル割当・オーケストレーション込み）
+  ↓ → ai-coding §4
+【実装】Opus: 工程表に従いディスパッチ（自分で実装しない）
+  │ Codex 5.3 → 設計→実装（一気通貫）
+  │ Sonnet   → テスト作成・実行
+  │ Codex 5.2 → 軽微修正
+  │ Haiku    → 調査
+  ↓ → verification, testing, quality-lv5
+【検証】並列: L2/L2.5/L3/L4 検証（各レイヤー最大5ループ）
+  ↓ → deploy, infrastructure, observability-sre
+【L5 デプロイ】セキュリティスキャン + パフォーマンステスト
+  ↓ → verification §14
+【受入】要件引継書 ↔ 最終成果物の突合
+  ↓
+【人間】成果物確認 → 本番リリース承認
+```
+
+**フェーズ間ルール:**
+- 各フェーズ完了前に次フェーズに進まない
+- 検証不合格 → レイヤー内ループ（5回）→ 上位層エスカレ → 人間
+- Opus は自分で実装しない（CLAUDE.md 外注ルール参照）
+- 小〜中規模タスクは全フェーズを踏む必要はない（該当フェーズのみ実行）
+
 ## レイヤー別スキル配置
 
 ### L1: 要件検証レイヤー
