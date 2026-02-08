@@ -127,3 +127,150 @@ Task B へ配送
   同一タスク 5リトライ以上 → 人間に状況報告と支援要請
   1タスク 2時間以上 → ブロッカー報告
 ```
+
+---
+
+## フェーズ I/O 詳細仕様
+
+Opus はフェーズ完了時にこの仕様で出力を検証し、次フェーズの入力に整形する。
+サマリーは `SKILL_MAP.md §フェーズ別 I/O サマリー` を参照。
+
+### L1: 要件定義
+
+```yaml
+入力:
+  user_request: "ユーザーの要求文（自然言語）"
+  project_context: "CLAUDE.md / 既存設計書"
+
+出力:
+  requirements:
+    - id: "REQ-001"
+      description: "要件の説明"
+      priority: must | should | could
+      acceptance_criteria: "受入基準"
+  assumptions:
+    - id: "A-001"
+      content: "仮定の内容"
+      status: verified | unverified
+  scope:
+    in: ["スコープ内"]
+    out: ["スコープ外"]
+  sizing:
+    size: S | M | L
+    skip_phases: ["スキップするフェーズ"]
+
+完了条件: 全 REQ に priority + acceptance_criteria 付与済み
+```
+
+### L2: 設計
+
+```yaml
+入力:
+  requirements: "L1 出力"
+  scope: "L1 出力"
+
+出力:
+  design:
+    frontend: "設計書パス or インライン"
+    backend: "設計書パス or インライン"
+    database: "スキーマ定義パス or インライン"
+  decisions:
+    - choice: "選択内容"
+      reason: "理由"
+      rejected: "却下した選択肢"
+  risks:
+    - description: "リスク内容"
+      mitigation: "対策"
+
+完了条件: 全 REQ が設計に反映されている
+```
+
+### L2.5: API契約
+
+```yaml
+入力:
+  design: "L2 出力"
+
+出力:
+  api_contract:
+    openapi_spec: "パス"
+    type_definitions:
+      frontend: "パス"
+      backend: "パス"
+    db_schema: "パス"
+  consistency:
+    fe_be_match: "100%"
+    be_db_match: "100%"
+
+完了条件: FE↔BE↔DB の型一致率 100%
+```
+
+### L3: 依存関係
+
+```yaml
+入力:
+  design: "L2 出力"
+  api_contract: "L2.5 出力"
+
+出力:
+  dependency_map:
+    modules:
+      - name: "モジュール名"
+        depends_on: ["依存先"]
+    execution_order: ["実装順序"]
+    parallel_groups:
+      - group: 1
+        tasks: ["並列可能なタスク"]
+
+完了条件: 循環依存なし + 実装順序決定済み
+```
+
+### L4: 工程表
+
+```yaml
+入力:
+  dependency_map: "L3 出力"
+  difficulty_scores: "estimation §9 で算出"
+
+出力:
+  schedule:
+    - task_id: "T-001"
+      task: "タスク内容"
+      difficulty: 0-14
+      model: "Haiku | Sonnet | Codex 5.3"
+      skills: ["読み込むスキル"]
+      tools_allowed: ["許可ツール"]
+      prerequisites: ["前提タスクID"]
+      reference_docs: ["参照ドキュメント"]
+      verification_layer: "L2 | L2.5 | L3 | L5"
+
+完了条件: 全タスクに difficulty + model + skills + reference_docs 付与済み
+```
+
+### 実装フェーズ
+
+```
+入力: L4 出力（schedule）+ 設計書群
+出力: 上記「サブエージェント I/O 仕様」に従う（既存）
+完了条件: 全タスクの status が completed
+```
+
+### 検証フェーズ
+
+```
+入力: 実装コード + 設計書群
+出力: verification SKILL.md §10 の検証レポートテンプレートに従う
+完了条件: 全検証レイヤーで合格（不合格 → レイヤー内5ループ → エスカレ）
+```
+
+### 受入フェーズ
+
+```
+入力: L1 要件リスト + 最終成果物
+出力:
+  acceptance:
+    - req_id: "REQ-001"
+      status: pass | fail
+      evidence: "根拠"
+完了条件: 全 REQ が pass
+```

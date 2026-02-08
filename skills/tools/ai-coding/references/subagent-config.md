@@ -49,4 +49,49 @@
 | 検証, verify, validation | verification |
 | エラー, error, 例外 | error-fix |
 
-推論精度が低い場合（キーワード一致のみ）、設計書の該当セクションから追加推論を行う。
+推論精度が低い場合(キーワード一致のみ)、設計書の該当セクションから追加推論を行う。
+
+---
+
+## タスク種別の判定
+
+タスクを受領したら、以下の種別に分類する。SKILL_MAP.md のサイジング(S/M/L)と組み合わせて、読み込むスキルを決定する。
+
+| 種別 | 判定条件 | 例 |
+|------|---------|-----|
+| feature | 新機能追加 | ユーザー登録、ダッシュボード |
+| bugfix | 既存機能の修正 | ログインエラー修正 |
+| refactor | 構造改善(動作変更なし) | モジュール分割、命名変更 |
+| infra | インフラ・環境変更 | CI/CD、環境変数 |
+| docs | ドキュメント変更 | README更新、API仕様書 |
+| security | セキュリティ関連 | 認証変更、脆弱性対応 |
+
+## 種別×フェーズのスキルマトリクス
+
+各フェーズで読み込むスキルを種別ごとに定義。`-` はそのフェーズをスキップ。
+
+| 種別 | L1 | L2 | L2.5 | 実装 | 検証 |
+|------|----|----|------|------|------|
+| feature | requirements-handover, estimation | design-doc, api, db | api-contract | coding + ドメインスキル | verification, testing |
+| bugfix | - | error-fix | - | error-fix, coding | testing |
+| refactor | - | refactoring, design-doc | - | refactoring, coding | testing, code-review |
+| infra | - | infrastructure | - | infrastructure, dev-setup | deploy |
+| docs | - | documentation | - | documentation | - |
+| security | requirements-handover | security, api | api-contract | security, coding | verification, testing |
+
+## ドメインスキル解決
+
+feature 種別の「ドメインスキル」を、タスク記述のキーワードから特定する。
+上記 §スキル自動推論ルール のキーワードに加え、以下を適用。
+
+| キーワード | 追加スキル |
+|-----------|-----------|
+| 画面, UI, フォーム, コンポーネント | ui, design |
+| 外部連携, webhook, OAuth, SSO | external-api |
+| 多言語, i18n, ローカライズ | i18n |
+| 移行, migration, データ移行 | migration |
+| レガシー, 古いコード, 技術的負債 | legacy |
+| AI, LLM, プロンプト, 生成AI | ai-integration |
+| 監視, メトリクス, ログ, アラート | observability-sre |
+| デプロイ, CI/CD, リリース | deploy |
+| パフォーマンス, 高速化, N+1 | performance |
