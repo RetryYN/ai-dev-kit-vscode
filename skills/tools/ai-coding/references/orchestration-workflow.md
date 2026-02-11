@@ -27,6 +27,7 @@ Opus (Orchestrator)
   │     - status: completed → 次タスクへ
   │     - status: failed → リトライ（最大3回）→ 人間にエスカレ
   │     - status: blocked → ブロッカーを記録、代替タスクに着手
+  │     - status: partial → artifacts を取り込み、残作業をタスク分割して工程表に追記→再配送
   │
   └─ 6. 次タスクの入力に変換
         - 前タスクの artifacts を次タスクの context に注入
@@ -58,7 +59,7 @@ expected_output:
 
 ```yaml
 task_id: "T-001"
-status: "completed"                 # completed | failed | blocked | partial
+status: "completed"                 # completed | failed | blocked | partial（成果物有効・残作業は分割再配送）
 quality_achieved: "Lv4.5"
 artifacts:
   - "src/auth/login.ts"
@@ -81,6 +82,26 @@ blocker:
   suggested_action: "T-005完了後に再開"
 ```
 
+### 途中完了報告（status: partial の場合）
+
+```yaml
+task_id: "T-002"
+status: "partial"
+artifacts:
+  - "src/auth/login.ts"            # 完了分の成果物
+remaining_tasks:
+  - "リフレッシュトークン実装"
+  - "ログアウトエンドポイント追加"
+changes_summary: "ログイン認証を実装（リフレッシュ・ログアウトは未着手）"
+decisions:
+  - "JWT方式を採用"
+```
+
+**運用ルール:**
+- partial は一時状態。Opus は remaining_tasks をタスク分割して工程表に追記し、元タスクを completed に更新する
+- 前提条件判定: partial の artifacts は後続タスクから参照可能（completed 相当として扱う）
+- 同一タスクが2回以上 partial → タスク粒度の見直し、または人間にエスカレーション
+
 ## Opus の自作業禁止ルール
 
 | 作業 | 委譲先 |
@@ -89,7 +110,7 @@ blocker:
 | テスト作成 | Sonnet (Task tool) |
 | ドキュメント作成 | Sonnet (Task tool) |
 | ファイル編集 | Codex 5.2 (codex exec) |
-| 調査・検索 | Haiku (Task tool) |
+| 調査・検索 | Haiku 4.5 (Task tool) |
 | コードレビュー | Codex 5.3 (codex review) |
 
 **常時すべて委譲**。唯一の例外: MCP検証などツール動作確認のみ自分で実行可。
@@ -239,12 +260,12 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
     - task_id: "T-001"
       task: "タスク内容"
       difficulty: 0-14
-      model: "Haiku | Sonnet | Codex 5.3"
+      model: "Haiku 4.5 | Codex 5.2 | Codex 5.3 | Sonnet"
       skills: ["読み込むスキル"]
       tools_allowed: ["許可ツール"]
       prerequisites: ["前提タスクID"]
       reference_docs: ["参照ドキュメント"]
-      verification_layer: "L2 | L2.5 | L3 | L5"
+      verification_layer: "L2 | L2.5 | L3 | L4 | L5"
 
 完了条件: 全タスクに difficulty + model + skills + reference_docs 付与済み
 ```
@@ -256,6 +277,8 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 出力: 上記「サブエージェント I/O 仕様」に従う（既存）
 完了条件: 全タスクの status が completed
 ```
+
+※ 実装フェーズ内部の段階ゲート（実装.1〜.5）は `implementation-gate.md` に分離して定義する。
 
 ### 検証フェーズ
 

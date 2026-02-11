@@ -11,7 +11,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 ```
 【企画】人間が要件提示
   ↓ → requirements-handover, estimation
-【L1 要件定義】Opus: 要件を構造化、Haiku: 引継書に転記
+【L1 要件定義】Opus: 要件を構造化、Haiku 4.5: 引継書に転記
   ↓ → design-doc, api, db, security
 【L2 設計】Codex 5.3: 設計書作成（FE/BE/DB）
   ↓ → api-contract
@@ -21,17 +21,17 @@ HELIXフレームワーク用スキルの一覧と分類。
   ↓ → estimation §8-10
 【L4 工程表】Codex 5.3: 工程表作成（難易度スコア・モデル割当・オーケストレーション込み）
   ↓ → ai-coding §4
-【実装】Opus: 工程表に従いディスパッチ（自分で実装しない）
+【L4.5 実装】Opus: 工程表に従いディスパッチ（自分で実装しない）
   │ Codex 5.3 → 設計→実装（一気通貫）
-  │ Sonnet   → テスト・ドキュメント
+  │ Sonnet → テスト・ドキュメント（実装禁止）
   │ Codex 5.2 → 軽微修正
-  │ Haiku    → 調査
+  │ Haiku 4.5 → 調査
   ↓ → verification, testing, quality-lv5
-【検証】並列: L2/L2.5/L3/L4 検証（各レイヤー最大5ループ）
+【検証】並列: L2/L2.5/L3/L4.5 検証（各レイヤー最大5ループ）
   ↓ → deploy, infrastructure, observability-sre
 【L5 デプロイ】セキュリティスキャン + パフォーマンステスト
   ↓ → verification §14
-【受入】要件引継書 ↔ 最終成果物の突合
+【L6 受入】要件引継書 ↔ 最終成果物の突合
   ↓
 【人間】成果物確認 → 本番リリース承認
 ```
@@ -39,8 +39,8 @@ HELIXフレームワーク用スキルの一覧と分類。
 **フェーズ間ルール:**
 - 各フェーズ完了前に次フェーズに進まない
 - 検証不合格 → レイヤー内ループ（5回）→ 上位層エスカレ → 人間
-- Opus は自分で実装しない（CLAUDE.md 外注ルール参照）
-- L2-L4 フェーズは Codex 5.3 固定。実装フェーズのみ難易度スコアで 5.2/5.3 を分ける（CLAUDE.md §モデル割当）
+- Opus は自分で実装しない。全タスクをモデル割当表に従って委譲する（設計・実装はCodex 5.3/5.2、テスト・ドキュメントはSonnet）
+- L2-L4 フェーズは Codex 5.3 固定。実装フェーズのみ難易度スコアで Codex 5.3/5.2 を分ける（下記「モデル割当」参照）
 - 小〜中規模タスクは全フェーズを踏む必要はない（下記の決定木に従う）
 
 ## タスクサイジング
@@ -59,17 +59,17 @@ HELIXフレームワーク用スキルの一覧と分類。
 タスク受領 → サイジング（上記）
 │
 ├─ S（小規模）
-│   ├─ バグ修正 / リファクタリング → 【実装】のみ
-│   ├─ 新規小機能（単一画面・単一API等）→ 【L2 設計】→【実装】→【検証】
-│   └─ ドキュメント / 設定変更 → 【実装】のみ
+│   ├─ バグ修正 / リファクタリング → 【L4.5 実装】のみ
+│   ├─ 新規小機能（単一画面・単一API等）→ 【L2 設計】→【L4.5 実装】→【検証】
+│   └─ ドキュメント / 設定変更 → 【L4.5 実装】のみ
 │
 ├─ M（中規模）
-│   ├─ API変更なし → 【L2 設計】→【実装】→【検証】
-│   ├─ API変更あり → 【L2 設計】→【L2.5 API契約】→【実装】→【検証】
-│   └─ 新規モジュール → 【L1 要件】→【L2 設計】→【L2.5】→【実装】→【検証】
+│   ├─ API変更なし → 【L2 設計】→【L4.5 実装】→【検証】
+│   ├─ API変更あり → 【L2 設計】→【L2.5 API契約】→【L4.5 実装】→【検証】
+│   └─ 新規モジュール → 【L1 要件】→【L2 設計】→【L2.5】→【L4.5 実装】→【検証】
 │
 └─ L（大規模）
-    └─ フルフロー: 【L1】→【L2】→【L2.5】→【L3】→【L4】→【実装】→【検証】→【L5】→【受入】
+    └─ フルフロー: 【L1】→【L2】→【L2.5】→【L3】→【L4】→【L4.5 実装】→【検証】→【L5 デプロイ】→【L6 受入】
 ```
 
 **スキップ不可条件**（サイズに関わらずフルフロー強制）:
@@ -82,6 +82,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 ## フェーズ別 I/O サマリー
 
 各フェーズの入出力と読み込むスキル。詳細は `ai-coding/references/orchestration-workflow.md` を参照。
+階層間の遷移条件・ゲート判定・差し戻しルールは `ai-coding/references/layer-interface.md` を参照。
 
 | フェーズ | 入力 | 出力 | スキル |
 |---------|------|------|--------|
@@ -90,14 +91,14 @@ HELIXフレームワーク用スキルの一覧と分類。
 | L2.5 API契約 | 設計書 | OpenAPI仕様 + 型定義 | api-contract |
 | L3 依存関係 | 設計書 + API仕様 | 依存マップ + 実装順序 | dependency-map |
 | L4 工程表 | 依存マップ | 工程表（ID/タスク/難易度/担当/スキル） | estimation §8-10 |
-| 実装 | 工程表 + 設計書 | 実装コード + テスト | ai-coding §4 |
-| 検証 | 実装コード | 検証レポート（L2-L5各層） | verification, testing, quality-lv5 |
-| L5 デプロイ | 検証済みコード | デプロイ結果 | deploy, infrastructure |
-| 受入 | 要件リスト + 最終成果物 | 受入判定 | verification §14 |
+| L4.5 実装 | 工程表 + 設計書 | 実装コード + テスト | ai-coding §4 |
+| 検証 | 実装コード | 検証レポート（L2-L4.5各層） | verification, testing, quality-lv5 |
+| L5 デプロイ | 検証済みコード | デプロイ結果 | deploy, infrastructure, observability-sre |
+| L6 受入 | 要件リスト + 最終成果物 | 受入判定 | verification §14 |
 
-## レイヤー別スキル配置
+## スキル群配置
 
-### L1: 要件検証レイヤー
+### 要件検証スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | project-management | workflow/project-management | プロジェクト計画・進捗管理 |
@@ -107,7 +108,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | requirements-handover | workflow/requirements-handover | 要件未定義・引継ぎ |
 | compliance | workflow/compliance | コンプライアンス・規制対応 |
 
-### L2: 設計検証レイヤー
+### 設計検証スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | design-doc | workflow/design-doc | 設計書作成 |
@@ -120,26 +121,26 @@ HELIXフレームワーク用スキルの一覧と分類。
 | security | common/security | セキュリティ |
 | i18n | advanced/i18n | 多言語対応 |
 
-### L2.5: API整合性レイヤー ★
+### API整合性スキル群 ★
 | スキル | パス | 説明 |
 |--------|------|------|
 | api-contract | workflow/api-contract | APIコントラクト検証（L2.5作業スキル） |
 
-### L3: APIコントラクトレイヤー
+### APIコントラクトスキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | api | project/api | API設計 |
 | external-api | advanced/external-api | 外部API連携 |
 | ai-integration | advanced/ai-integration | AI統合 |
 
-### L4: 依存関係レイヤー
+### 依存関係スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | dependency-map | workflow/dependency-map | 依存関係検証 |
 | migration | advanced/migration | システム移行 |
 | legacy | advanced/legacy | レガシーコード対応 |
 
-### L5: テスト検証レイヤー
+### テスト検証スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | testing | common/testing | テスト作成 |
@@ -148,7 +149,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | performance | common/performance | パフォーマンス |
 | code-review | common/code-review | コードレビュー |
 
-### L6: 運用検証レイヤー
+### 運用検証スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | infrastructure | common/infrastructure | インフラ構築 |
@@ -159,7 +160,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | postmortem | workflow/postmortem | インシデント振り返り |
 | ide-tools | tools/ide-tools | IDE/AIツール・MCP |
 
-### All Layers（横断）
+### 横断スキル群
 | スキル | パス | 説明 |
 |--------|------|------|
 | git | common/git | Git運用 |
