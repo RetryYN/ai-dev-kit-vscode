@@ -1,5 +1,15 @@
 # Helix: AI-Driven Development Framework
 
+> **注意**: このドキュメントはアーカイブ資料です。参考・設計思想の理解用としてご利用ください。
+>
+> **現行の運用仕様**:
+> - レイヤー定義・フロー: `skills/SKILL_MAP.md`
+> - モデル割り当て・運用ルール: `~/.claude/CLAUDE.md`
+> - スキル定義: `skills/**/SKILL.md`
+>
+> 最終更新: 2026-02-11
+> 現行実装: Codex 5.3/5.2 + Opus + Sonnet + Haiku 4.5
+
 **"DNA of AI-driven development" - 設計書を上回る開発を実現する多層検証フレームワーク**
 
 ---
