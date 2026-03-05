@@ -16,6 +16,14 @@ Opus (Orchestrator)
   │     - 参照ドキュメントが存在するか
   │     ⚠️ 参照先が未指定の工程は実行不可（スキップ）
   │
+  ├─ 2.5. 事前調査ゲート（L1→L2 / L4→L4.5 遷移時）
+  │     - ai-coding §8 の強制条件に該当するか PM が判定
+  │     - 該当 → Haiku 4.5 に調査タスク配送
+  │       └─ 調査レポートを reference_docs に追加
+  │     - 非該当 → 「事前調査: スキップ（理由: ...）」を明示
+  │     - 検索不可 → status: blocked（オフライン/API制限等）
+  │     ⚠️ 機密情報（社内固有名・APIキー・顧客データ）を検索クエリに含めない
+  │
   ├─ 3. サブエージェントを選定
   │     - subagent-config.md のタスク種別→モデル対応表を参照
   │     - スキル付与、ツール制限、思考トークンを設定
@@ -25,9 +33,12 @@ Opus (Orchestrator)
   │
   ├─ 5. 出力を検証
   │     - status: completed → 次タスクへ
-  │     - status: failed → リトライ（最大3回）→ 人間にエスカレ
+  │     - status: failed → タスクリトライ（最大3回）→ 人間にエスカレ（ゲート内リトライは別カウント）
   │     - status: blocked → ブロッカーを記録、代替タスクに着手
   │     - status: partial → artifacts を取り込み、残作業をタスク分割して工程表に追記→再配送
+  │     ⚠️ フェーズ遷移時は Codex レビュー必須（使い分け）:
+  │       - コード差分 → `codex review --uncommitted`
+  │       - 設計書・仕様書 → `codex exec "レビュー"`
   │
   └─ 6. 次タスクの入力に変換
         - 前タスクの artifacts を次タスクの context に注入
@@ -59,7 +70,7 @@ expected_output:
 
 ```yaml
 task_id: "T-001"
-status: "completed"                 # completed | failed | blocked | partial（成果物有効・残作業は分割再配送）
+status: "completed"                 # completed | failed | blocked | partial | interrupted（IIP発動: 前提崩壊/範囲再定義）
 quality_achieved: "Lv4.5"
 artifacts:
   - "src/auth/login.ts"
@@ -100,7 +111,10 @@ decisions:
 **運用ルール:**
 - partial は一時状態。Opus は remaining_tasks をタスク分割して工程表に追記し、元タスクを completed に更新する
 - 前提条件判定: partial の artifacts は後続タスクから参照可能（completed 相当として扱う）
-- 同一タスクが2回以上 partial → タスク粒度の見直し、または人間にエスカレーション
+  - ただし参照した後続タスクには **partial-dependent** フラグを付与する
+  - 参照元の remaining_tasks が全完了した時点で、partial-dependent タスクの再検証を工程表に挿入する
+- 同一起点からの partial 分割は**通算3回上限**。超過時は PM が人間にエスカレーション
+- 同一タスクが2回以上 partial → まずタスク粒度を見直し（分割）。分割後も partial 継続なら通算カウントで判定
 
 ## Opus の自作業禁止ルール
 
@@ -111,7 +125,8 @@ decisions:
 | ドキュメント作成 | Sonnet (Task tool) |
 | ファイル編集 | Codex 5.2 (codex exec) |
 | 調査・検索 | Haiku 4.5 (Task tool) |
-| コードレビュー | Codex 5.3 (codex review) |
+| コードレビュー | Codex 5.3 (codex review --uncommitted) |
+| 設計・仕様レビュー | Codex 5.3 (codex exec "レビュー") |
 
 **常時すべて委譲**。唯一の例外: MCP検証などツール動作確認のみ自分で実行可。
 
@@ -140,15 +155,28 @@ Task B へ配送
 
 ## リトライ・エスカレーション
 
+### リトライ階層（2層 + Progress Alert）
+
+| 層 | 定義 | 上限 | 超過時 |
+|---|---|---|---|
+| **ゲート内リトライ** | 同一ゲート内の修正＋再判定（例: 実装.2 の codex review 3回） | 3回 | status: failed でゲートを出る → タスクリトライへ |
+| **タスクリトライ** | status: failed のタスク再配送（Opus がプロンプト調整） | 3回 | 人間にエスカレーション |
+| **Progress Alert** | 同一タスクの合計試行回数（ゲート内＋タスク通算） | 5回 | 人間に状況報告（verification §13 参照） |
+
 ```
-サブエージェント失敗時:
+タスクリトライ（status: failed）:
   1回目失敗 → プロンプトを調整してリトライ
   2回目失敗 → エラー内容を追加してリトライ
   3回目失敗 → 人間にエスカレーション
 
+IIP 発動時（status: interrupted）:
+  ★ リトライカウントに含めない（前提崩壊は実装ミスではない）
+  → 影響度分類（P0〜P3）に従い差し戻し先を決定
+  → 詳細は implementation-gate.md の IIP セクション参照
+
 進捗停滞時:
-  同一タスク 5リトライ以上 → 人間に状況報告と支援要請
-  1タスク 2時間以上 → ブロッカー報告
+  合計試行回数 5回以上 → 人間に状況報告と支援要請（Progress Alert）
+  3回連続 failed または blocked → ブロッカー報告
 ```
 
 ---
@@ -164,6 +192,7 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 入力:
   user_request: "ユーザーの要求文（自然言語）"
   project_context: "CLAUDE.md / 既存設計書"
+  research_reports: []  # 事前調査レポート（該当時）
 
 出力:
   requirements:
@@ -191,6 +220,7 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 入力:
   requirements: "L1 出力"
   scope: "L1 出力"
+  research_reports: "事前調査レポート（該当時）"
 
 出力:
   design:

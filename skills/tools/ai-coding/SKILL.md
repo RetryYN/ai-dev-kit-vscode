@@ -215,9 +215,14 @@ Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
 
 ```
 【設計】Opus が言語化 → Codex 5.3 がエンジニア視点でレビュー → 合意
-            ↓
+            ↓ ← codex exec（設計レビュー）: L2→L2.5
+            ↓ ← codex exec（API契約レビュー）: L2.5→L3
 【実装】Codex 5.3 が設計から実装まで一気通貫で実行
-            ↓
+            │ ← codex review（軽量: Critical/High のみ）: 実装.2
+            │ ← codex review（フル品質）: 実装.5
+            ↓ ← codex review --uncommitted: L4.5→L4.7
+【ビジュアル】visual-design に基づくデザイン適用・調整
+            ↓ ← codex review --uncommitted: L4.7→検証
 【修正】エラー少 → Codex 5.2 / エラー多 → Codex 5.3
             ↓
 【テスト】Sonnet がテストコード作成・実行
@@ -238,7 +243,7 @@ Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
 #### 5階層概要（実装.1〜.5）
 | ゲート | 目的（要約） | 詳細 |
 |---|---|---|
-| 実装.1 | 変更計画：何をどの順で変えるか固定 | `references/implementation-gate.md` |
+| 実装.1 | コード調査（.1a）+ 変更計画（.1b）：既存コードを読んでから計画を固定 | `references/implementation-gate.md` |
 | 実装.2 | 最小実装（動作を通すための骨格を先に作る） | `references/implementation-gate.md` |
 | 実装.3 | 安全性・互換性（破壊変更や回帰を潰す） | `references/implementation-gate.md` |
 | 実装.4 | テスト・検証（テストで仕様を固定） | `references/implementation-gate.md` |
@@ -246,9 +251,10 @@ Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
 
 #### 強制フロー（ゲートは順番固定）
 - 実装作業は **実装.1 → .2 → .3 → .4 → .5** の順に進める（**スキップ不可 / 先送り不可**）。
-- 各ゲート完了時は、`passed | failed | blocked` を明示して状態を返す（フォーマット詳細は `references/implementation-gate.md`）。
-- `passed | failed | blocked` は **ゲート判定の status** であり、工程表タスクの status（オーケストレーター管理）と混同しない。
+- 各ゲート完了時は、`passed | failed | blocked | interrupted` を明示して状態を返す（フォーマット詳細は `references/implementation-gate.md`）。
+- `passed | failed | blocked | interrupted` は **ゲート判定の status** であり、工程表タスクの status（オーケストレーター管理）と混同しない。
 - `failed` は原則「同一ゲート内で修正して再判定」。`blocked` は「前提不足/仕様不明」として停止し、オーケストレーターへ報告する（配送・ステータス運用は `references/orchestration-workflow.md`）。
+- `interrupted` は「前提崩壊/範囲再定義（IIP発動）」。**リトライカウントに含めない**。影響度分類（P0〜P3）は `references/implementation-gate.md` の IIP セクションに従う。
 - 実装中に上位層（例: L2/L2.5）へ戻す必要が出た場合の **判断トリガー（いつ戻すか）** は `references/layer-interface.md` に従う（本節では規定しない）。
 - 上位層へ差し戻す場合の **手順（何を添えて誰に返すか）** は `references/layer-interface.md` に従う（本節では規定しない）。
 
@@ -259,7 +265,7 @@ Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
 - ユーザー/運用制約で TodoWrite（チェックリスト先出し）が禁止・拒否された場合は **実装開始せず status: blocked** として理由を返す（強制フロー崩壊防止）。
 - チェックリストは **ゲート進捗（☑=passed）** にのみ使い、`failed/blocked` 等の status をチェック項目名に混ぜない（ゲート/タスクstatus混同防止）。
 
-- [ ] 実装.1: 変更計画（作業の粒度と順序を固定）
+- [ ] 実装.1: コード調査（.1a）+ 変更計画（.1b）
 - [ ] 実装.2: 最小実装（骨格を通し、残件を列挙）
 - [ ] 実装.3: 安全性・互換性（回帰/破壊変更/リスク潰し）
 - [ ] 実装.4: テスト・検証（テスト or 手順で仕様固定）
@@ -289,8 +295,10 @@ Task(model: "haiku", prompt: "Search for ... and summarize")
 ```
 タスクの種類は？
 ├── 設計を詰める → Opus（言語化）+ Codex 5.3（エンジニアレビュー）
+├── 設計書・仕様書をレビューする → Codex 5.3（codex exec "レビュー"）
 ├── コードを実装する → Codex 5.3（codex exec）
-├── コードをレビューする → Codex 5.3（codex review）
+├── コードをレビューする → Codex 5.3（codex review --uncommitted）
+├── プラン・方針を壁打ちする → Codex 5.3（codex exec "TL壁打ち"）
 ├── 軽微なエラー修正 → Codex 5.2（codex exec）
 │   └── エラー多数 → Codex 5.3 にエスカレーション
 ├── テストを書く → Sonnet（Task tool）
@@ -481,31 +489,72 @@ Cmd + K → 選択範囲
 
 ---
 
-## 8. 検索ルール
+## 8. 事前調査・検索ルール（強制）
 
-### 最新情報が必要な場合
+### 事前調査の強制条件
+
+以下に該当する場合、設計（L2）・実装（L4.5）前に**必ず事前調査を実施**する。
+詳細なゲート定義は `references/layer-interface.md §事前調査ゲート` を参照。
+
+| 条件 | レベル |
+|------|--------|
+| 外部API連携（新規/変更） | **MUST** |
+| 認証・認可ロジック | **MUST** |
+| 新規ライブラリ/フレームワーク導入 | **MUST** |
+| 技術選定（ADR対象） | **MUST** |
+| メジャーアップグレード | **MUST** |
+| 公開API/DB契約変更 | **MUST** |
+| 決済・PII・法令影響 | **MUST** |
+| 高負荷/並行性/移行（migration） | SHOULD |
+| 純粋な内部リファクタリング/バグ修正 | 不要 |
+
+### 検索の優先ソース（権威順）
+
+| 優先度 | ソース | 信頼性 | ツール |
+|--------|--------|--------|--------|
+| 1 | 公式ドキュメント / RFC | 最高 | **Context7 MCP 優先** |
+| 2 | GitHub Issues/Discussions（公式リポジトリ） | 高 | WebSearch / gh CLI |
+| 3 | 技術ブログ（Qiita, Zenn, dev.to） | 中（要クロスチェック） | WebSearch |
+| 4 | Stack Overflow | 中（回答の鮮度を確認） | WebSearch |
+
+### 調査レポートフォーマット
+
+```yaml
+research_report:
+  topic: "調査対象"
+  date: "YYYY-MM-DD"
+  sources:
+    - url: "URL"
+      summary: "1行要約"
+      relevance: high/medium/low
+  conclusion: "設計/実装への影響"
+  adoption: "採用/不採用の理由"
+  risks: ["発見したリスク"]
+```
+
+**通過条件**: 「検索した」ではなく「調査メモが存在する」こと
+**記録先**: `docs/research/YYYY-MM-DD-{topic}.md`
+
+### 制約
+
+- **機密情報の外部検索持ち出し禁止**: 検索クエリに社内固有名・APIキー・顧客データを含めない
+- **オフライン/検索不可時**: status: blocked として PM に報告（人間判断で代替手段を決定）
+
+### 検索不要なケース
 
 ```
-以下の場合は必ずWeb検索（2026年で検索）:
-
-✅ 検索すべき
-- 認証系の実装方法（OAuth、JWT）
-- 最新のライブラリ使用法
-- クラウドサービスの設定
-- セキュリティベストプラクティス
-- API仕様（外部サービス）
-
 ❌ 検索不要
 - 基本的な構文
 - 安定したライブラリの基本使用法
 - プロジェクト内のコード
+- 純粋な内部リファクタリング/バグ修正
 ```
 
 ### 検索指示の出し方
 
 ```
 「〇〇について、2026年の最新情報を検索して実装して」
-「〇〇の公式ドキュメントを確認して」
+「〇〇の公式ドキュメントを確認して」（→ Context7 MCP を優先使用）
 「〇〇のセキュリティベストプラクティスを検索して適用して」
 ```
 

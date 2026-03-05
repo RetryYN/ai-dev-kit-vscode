@@ -414,7 +414,7 @@ skills/
 開発中に得た知見を構造化して蓄積し、後続タスク・プロジェクトで再利用する。
 
 ```
-収集タイミング: エラー解決後 / 手戻り時 / 検証パス時 / 人間指摘時 / 新ライブラリ時
+収集タイミング: エラー解決後 / 手戻り時 / 検証パス時 / 人間指摘時 / 新ライブラリ時 / ミニレトロ完了時
 分類: error_patterns / solution_patterns / architecture_decisions / domain_knowledge / tooling
 記録基準: 類似ケース未存在 AND 解決3ターン以上（人間指摘は即記録）
 スキル化: 同一カテゴリ3件以上 + cross_project + proven → スキル候補提案

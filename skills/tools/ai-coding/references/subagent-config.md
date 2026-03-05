@@ -11,9 +11,11 @@
 | 認証・セキュリティ | security, api | セキュリティベストプラクティス |
 | API実装 | api, error-fix | RESTful設計、エラーハンドリング |
 | UI実装 | ui, design | UI設計パターン |
+| ビジュアルデザイン適用 | visual-design, ui, design | 配色・余白・タイポグラフィ・構図の適用（L4.7） |
 | DB操作 | db, performance | スキーマ設計、クエリ最適化 |
 | テスト | testing, quality-lv5 | テスト設計 |
 | 検証 | verification, code-review | 検証ロジック、レビュー観点 |
+| 事前調査 | ai-coding §8 | 設計・実装前の先行事例調査（Haiku 4.5 固定） |
 
 ## ツール制限テーブル
 
@@ -44,12 +46,24 @@
 | 認証, auth, login, JWT, OAuth | security |
 | API, endpoint, REST, GraphQL | api |
 | UI, コンポーネント, component | ui, design |
+| デザイン, 配色, 余白, フォント, 構図, SNS画像 | visual-design |
 | DB, データベース, SQL, クエリ | db |
 | テスト, test, spec | testing |
 | 検証, verify, validation | verification |
 | エラー, error, 例外 | error-fix |
+| 調査, research, 事前調査, 先行事例 | ai-coding §8 |
 
 推論精度が低い場合(キーワード一致のみ)、設計書の該当セクションから追加推論を行う。
+
+### 事前調査タスクの自動付与条件
+
+以下に該当する場合、L1→L2 遷移時 / 実装.1 ゲート時に「事前調査」タスクを自動付与する:
+
+| 条件 | 付与 |
+|------|------|
+| 外部API連携（新規/変更）、認証・認可、新規ライブラリ/FW導入、技術選定（ADR対象）、メジャーアップグレード、公開API/DB契約変更、決済・PII・法令影響 | **自動付与**（Haiku 4.5） |
+| 高負荷/並行性/移行（migration） | PM 判断で付与 |
+| 純粋な内部リファクタリング/バグ修正 | 不要 |
 
 ---
 
@@ -65,19 +79,21 @@
 | infra | インフラ・環境変更 | CI/CD、環境変数 |
 | docs | ドキュメント変更 | README更新、API仕様書 |
 | security | セキュリティ関連 | 認証変更、脆弱性対応 |
+| research | 事前調査（ai-coding §8 の強制条件該当時に自動付与） | 外部API調査、ライブラリ選定調査 |
 
 ## 種別×フェーズのスキルマトリクス
 
 各フェーズで読み込むスキルを種別ごとに定義。`-` はそのフェーズをスキップ。
 
-| 種別 | L1 | L2 | L2.5 | 実装 | 検証 |
-|------|----|----|------|------|------|
-| feature | requirements-handover, estimation | design-doc, api, db | api-contract | coding + ドメインスキル | verification, testing |
-| bugfix | - | error-fix | - | error-fix, coding | testing |
-| refactor | - | refactoring, design-doc | - | refactoring, coding | testing, code-review |
-| infra | - | infrastructure | - | infrastructure, dev-setup | deploy |
-| docs | - | documentation | - | documentation | - |
-| security | requirements-handover | security, api | api-contract | security, coding | verification, testing |
+| 種別 | L1 | L2 | L2.5 | 実装 | L4.7 | 検証 |
+|------|----|----|------|------|------|------|
+| feature | requirements-handover, estimation | design-doc, api, db, visual-design（方針） | api-contract | coding + ドメインスキル | visual-design（UI変更時） | verification, testing |
+| bugfix | - | error-fix | - | error-fix, coding | -（UI変更時のみ） | testing |
+| refactor | - | refactoring, design-doc | - | refactoring, coding | - | testing, code-review |
+| infra | - | infrastructure | - | infrastructure, dev-setup | - | deploy |
+| docs | - | documentation | - | documentation | - | - |
+| security | requirements-handover | security, api | api-contract | security, coding | - | verification, testing |
+| research | - | - | - | - | - | - |
 
 ## ドメインスキル解決
 
