@@ -2,7 +2,7 @@
 name: observability-sre
 description: SLO/SLI設計・アラート戦略・ダッシュボード構築の可観測性指針を提供
 metadata:
-  helix_layer: L6
+  helix_layer: L5
   triggers:
     - 監視設計時
     - SLO/SLI定義時
@@ -198,6 +198,10 @@ Level 4: デバッグ（オンコール向け）
 ## 7. 劣化レベルとSLO対応表（Helix Policy）
 
 > 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー5。品質劣化の段階別定義と対応アクション。
+>
+> **L5 デプロイフェーズでの参照**: L5.3（本番安定性ゲート）はこの劣化レベル表を**唯一の合否基準**として使用する。
+> 15分の観測ウィンドウ（Canary は30分）で劣化レベル `none` を維持すれば L5.3 pass。
+> 詳細は `ai-coding/references/layer-interface.md §L5.3` を参照。
 
 ### SLOメトリクス
 

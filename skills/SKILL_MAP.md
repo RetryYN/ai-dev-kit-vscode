@@ -50,7 +50,10 @@ HELIXフレームワーク用スキルの一覧と分類。
   ↓ → verification, testing, quality-lv5   ← codex review --uncommitted
 【検証】並列: L2/L2.5/L3/L4.5/L4.7 検証（各レイヤー最大5ループ）
   ↓ → deploy, infrastructure, observability-sre
-【L5 デプロイ】セキュリティスキャン + パフォーマンステスト
+【L5 デプロイ】L5.1 準備（セキュリティスキャン + 環境構成 + 条件付き人間承認）
+  │ L5.2 実行（ステージング確認 → 本番デプロイ → ヘルスチェック）
+  │ L5.3 安定性（SLO基準 → observability-sre §7 劣化レベル表で判定）
+  │ ★ 人間承認: 初回デプロイ / 認証・決済・PII / 破壊的DBマイグレ / 外部API変更 / エラーバジェット75%超 / インフラ構成変更
   ↓ → verification §14
 【L6 受入】要件引継書 ↔ 最終成果物の突合
   ↓ ★ミニレトロ（終端: プロジェクト全体振り返り）
@@ -85,6 +88,13 @@ HELIXフレームワーク用スキルの一覧と分類。
   - `interrupted` ステータスで `failed`（既知前提内ミス）と分離。リトライカウント外
   - 影響度: P0（ゲート内修正）/ P1（実装.1差戻し）/ P2（逆流ループ移送）/ P3（人間エスカレ直行）
   - 詳細: `ai-coding/references/implementation-gate.md §IIP` / `ai-coding/references/layer-interface.md §IIP`
+- **L5 ゲート構造**: L5.1（準備）→ L5.2（実行）→ L5.3（安定性）の3段階ゲート
+  - L5.1: セキュリティスキャン合格（critical 0件絶対 + high 新規追加0件）+ 環境構成確認 + 条件付き人間承認
+  - L5.2: ステージング確認 → 本番デプロイ → ヘルスチェック
+  - L5.3: SLO 基準での本番安定性確認（observability-sre §7 劣化レベル表が唯一の権威源）
+  - 失敗時: IIP パターン踏襲（P0 ゲート内 / P1 検証差戻し / P2 L4.5差戻し / P3 人間エスカレ）
+  - 詳細: `ai-coding/references/layer-interface.md §L5 内部ゲート`
+- **L5 と V-L6 の責務境界**: L5 = デプロイ結果の SLO 達成確認、V-L6 = 運用体制の充足性検証。V-L6 は検証フェーズで実施済みであり、L5 の開始前提として参照する
 
 ## タスクサイジング
 
@@ -154,7 +164,7 @@ HELIXフレームワーク用スキルの一覧と分類。
 | L4.5 実装 | 工程表 + 設計書 | 実装コード + テスト | ai-coding §4 |
 | L4.7 Visual Refinement | 実装コード + L2ビジュアル方針 | デザイン適用済みコード | visual-design |
 | 検証 | デザイン適用済みコード | 検証レポート（L2-L4.7各層） | verification, testing, quality-lv5 |
-| L5 デプロイ | 検証済みコード | デプロイ結果 | deploy, infrastructure, observability-sre |
+| L5 デプロイ | 検証済みコード + 検証レポート（V-L5/V-L6 pass） | デプロイ結果 + 本番安定性レポート | deploy, infrastructure, observability-sre |
 | L6 受入 | 要件リスト + 最終成果物 | 受入判定 | verification §14 |
 
 ## スキル群配置

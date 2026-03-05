@@ -318,6 +318,46 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 完了条件: 全検証レイヤーで合格（不合格 → レイヤー内5ループ → エスカレ）
 ```
 
+### L5: デプロイ
+
+```yaml
+入力:
+  verified_code: "検証済みコード"
+  verification_report: "検証レポート（V-L5 テスト検証 pass, V-L6 運用検証 pass）"
+  deploy_strategy: "L2 設計書で決定した戦略（Blue/Green / Canary / Rolling）"
+  rollback_plan: "deploy/SKILL.md §4 に基づくロールバック手順"
+
+出力:
+  deployment_result:
+    environment: "staging | production"
+    strategy: "blue-green | canary | rolling | recreate"
+    version: "v1.x.x"
+    status: "success | rolled-back"
+    gates:
+      l5_1_preparation:
+        security_scan: "pass | fail"
+        environment_config: "pass | fail"
+        human_approval: "approved | not-required | rejected"
+      l5_2_execution:
+        staging_verification: "pass | fail"
+        production_deploy: "pass | fail"
+        health_check: "pass | fail"
+      l5_3_stability:
+        slo_compliance: "pass | fail | conditional-pass"
+        degradation_level: "none | low | medium | high | critical"
+        observation_window: "15min | 30min(canary)"
+  rollback_events: []  # ロールバック発生時の記録
+  performance_report:
+    availability: "99.9%"
+    p95_latency_ms: 150
+    error_rate_percent: 0.1
+    observation_period: "15min"
+
+完了条件: L5.1〜L5.3 全ゲート pass + 劣化レベル none（low は条件付き pass）
+```
+
+※ L5 内部ゲート（L5.1〜L5.3）の詳細は `layer-interface.md §L5 内部ゲート` を参照。
+
 ### 受入フェーズ
 
 ```
