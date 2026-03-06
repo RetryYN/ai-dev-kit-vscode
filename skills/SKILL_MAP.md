@@ -25,20 +25,23 @@ HELIXフレームワーク用スキルの一覧と分類。
   ↓ ★事前調査ゲート（MUST条件該当時: Haiku 4.5 が調査→調査メモ作成）
   ↓ → design-doc, api, db, security, visual-design（方針のみ）
 【L2 設計】Codex 5.3: 設計書作成（FE/BE/DB）+ ビジュアル方針決定
+  ↓ ★adversarial-review（セキュリティゲート条件該当時 or ADR作成時 → 自動発火）
   ↓ ★ミニレトロ（設計凍結後: 設計判断の妥当性振り返り）
-  ↓ → api-contract                         ← codex exec（設計レビュー）
+  ↓ → api-contract                         ← codex exec -m gpt-5.4（設計レビュー）
 【L2.5 API契約】Codex 5.3: OpenAPI仕様生成、型↔API↔DB整合性検証
-  ↓ → dependency-map                       ← codex exec（API契約レビュー）
+  ↓ → dependency-map                       ← codex exec -m gpt-5.4（API契約レビュー）
 【L3 依存関係】Codex 5.3: 依存マップ生成 → 実装順序決定
   ↓ → estimation §8-10
 【L4 工程表】Codex 5.3: 工程表作成（難易度スコア・モデル割当・オーケストレーション込み）
   ↓ ★事前調査ゲート（実装.1 通過条件に調査メモ存在を追加）
   ↓ → ai-coding §4                         ← codex review（既存）
 【L4.5 実装】Opus: 工程表に従いディスパッチ（自分で実装しない）
-  │ Codex 5.3 → 設計→実装（一気通貫）
+  │ Codex 5.4 → レビュー・品質アップ・トラブルシュート
+  │ Codex 5.3 → 実装メイン（設計→実装の一気通貫）
+  │ Codex 5.3 Spark → 軽量実装・軽微修正
+  │ Codex 5.2 → 大規模コード精読・スキャン
   │ Sonnet → テスト・ドキュメント（実装禁止）
-  │ Codex 5.2 → 軽微修正
-  │ Haiku 4.5 → 調査
+  │ Haiku 4.5 → リサーチ特化
   │ ★ 実装.2: codex review（軽量）/ 実装.5: codex review（フル品質）
   ↓ → visual-design                        ← codex review --uncommitted
 【L4.7 Visual Refinement】実装済みUIへのビジュアルデザイン適用・調整
@@ -64,13 +67,14 @@ HELIXフレームワーク用スキルの一覧と分類。
 **フェーズ間ルール:**
 - 各フェーズ完了前に次フェーズに進まない
 - 検証不合格 → レイヤー内ループ（5回）→ 上位層エスカレ → 人間
-- Opus は自分で実装しない。全タスクをモデル割当表に従って委譲する（設計・実装はCodex 5.3/5.2、テスト・ドキュメントはSonnet）
-- L2-L4 フェーズは Codex 5.3 固定。実装フェーズのみ難易度スコアで Codex 5.3/5.2 を分ける（下記「モデル割当」参照）
+- Opus は自分で実装しない。全タスクをモデル割当表に従って委譲する（設計・実装はCodex 5.3/5.3 Spark、レビュー・品質はCodex 5.4、精読はCodex 5.2、テスト・ドキュメントはSonnet）
+- L2-L4 フェーズは Codex 5.3 が作成 + Codex 5.4 がレビュー。実装フェーズは難易度スコアで Codex 5.3/5.3 Spark を分ける。5.4 はレビュー・品質アップ専任。5.2 は大規模精読タスク種別で分岐
 - 小〜中規模タスクは全フェーズを踏む必要はない（下記の決定木に従う）
 - **Codex レビュー義務化**: フェーズ遷移時に Codex レビューを必須とする（フロー図の `←` 参照）
-  - コード差分 → `codex review --uncommitted`（L4.5→L4.7, L4.7→検証）
-  - 設計書・仕様書 → `codex exec "レビュー"`（L2→L2.5, L2.5→L3）
-  - 実装フェーズ内: 実装.2（軽量: Critical/High のみ）+ 実装.5（フル品質）
+  - コード差分 → `codex review --uncommitted`（L4.5→L4.7, L4.7→検証）— Codex 5.4
+  - 設計書・仕様書 → `codex exec "レビュー"`（L2→L2.5, L2.5→L3）— Codex 5.4
+  - 実装フェーズ内: 実装.2（軽量: Critical/High のみ）+ 実装.5（フル品質）— Codex 5.4
+  - **5.4 ボトルネック緩和**: 低リスク案件（サイジング S + セキュリティゲート非該当）は Codex 5.3 が一次レビュー可。高リスク案件は 5.4 必須
 - **ミニレトロ（マイルストーン基準）**: フェーズスキップに対応した振り返り（フロー図の `★ミニレトロ` 参照）
   - 設計凍結後 / 実装凍結後 / 終端フェーズ後にミニKPT（Keep/Problem/Try）を実施
   - Try は owner + due 必須（空文化防止）。重大リスク発見時のみ blocking Issue 化
@@ -95,6 +99,12 @@ HELIXフレームワーク用スキルの一覧と分類。
   - 失敗時: IIP パターン踏襲（P0 ゲート内 / P1 検証差戻し / P2 L4.5差戻し / P3 人間エスカレ）
   - 詳細: `ai-coding/references/layer-interface.md §L5 内部ゲート`
 - **L5 と V-L6 の責務境界**: L5 = デプロイ結果の SLO 達成確認、V-L6 = 運用体制の充足性検証。V-L6 は検証フェーズで実施済みであり、L5 の開始前提として参照する
+- **adversarial-review（対立的レビュー）**: 高リスク設計判断の反証検証（フロー図の `★adversarial-review` 参照）
+  - 自動発火: セキュリティゲート条件該当時（認証・決済・PII・外部API・インフラ構成変更）/ ADR 作成時
+  - 任意発火: PM が「後戻りコストが高い」と判断した設計判断
+  - スキップ: サイジング S / 既存ルールの機械的適用 / 同一テーマ実施済み
+  - 責務分離: TL壁打ち（1案検証・低コスト）< codex review（品質チェック・中コスト）< adversarial-review（反証・高コスト）
+  - 詳細: `workflow/adversarial-review/SKILL.md`
 
 ## タスクサイジング
 

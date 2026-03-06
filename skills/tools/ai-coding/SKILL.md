@@ -196,34 +196,39 @@ src/
 | 役割 | モデル | 担当 | 稼働形態 |
 |------|--------|------|----------|
 | 言語化 | Opus | ユーザーの意図を構造化・言語化。ビジネス判断 | スポット |
-| エンジニア | Codex 5.3 | 設計レビュー・実装・コードレビュー。設計から実装まで一気通貫 | 非同期常時 |
-| 修正 | Codex 5.2 | 軽微なエラー修正。エラー多数時は5.3にエスカレーション | 非同期 |
-| テスト・ドキュメント | Sonnet | テストコード作成・実行、設計書・仕様書の更新 | 常時 |
-| 調査 | Haiku 4.5 | 情報収集・下調べ・軽量タスク | 随時 |
+| レビュー・品質 | Codex 5.4 | 設計レビュー・コードレビュー・品質アップ・トラブルシューティング・FEデザイン清書。1Mコンテキストで横断的把握 | 非同期常時 |
+| 実装 | Codex 5.3 | コード実装（スコア4+）・設計→実装の一気通貫。エラー多発時は5.4にエスカレーション | 非同期 |
+| 軽量実装 | Codex 5.3 Spark | 軽量実装・軽微修正（スコア1-3の実装系） | 非同期 |
+| 精読 | Codex 5.2 | 大規模コード精読・スキャン・列挙（独立トークン予算活用） | 非同期 |
+| テスト・ドキュメント | Sonnet | テストコード作成・実行、設計書・仕様書の更新、FEデザイン初稿 | 常時 |
+| リサーチ | Haiku 4.5 | Web検索・先行事例調査・情報収集（リサーチ特化） | 随時 |
 
 ### 役割の分離原則
 
 ```
 Opus（言語化）: ユーザーの「やりたいこと」を構造化。実装しない
-Codex 5.3（エンジニア）: 設計→実装→レビューを一気通貫。修正サイクルを最小化
-Codex 5.2（修正）: 軽微な修正を低コストで処理。判断が必要な修正は5.3へ
-Sonnet（テスト・ドキュメント）: テスト作成・ドキュメント更新に専念
-Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
+Codex 5.4（レビュー・品質）: 設計レビュー→コードレビュー→品質アップ→トラブルシューティング。1Mコンテキストで横断的把握。実装はしない
+Codex 5.3（実装）: スコア4+の実装を担当。設計→実装の一気通貫。エラー多発時は5.4へ
+Codex 5.3 Spark（軽量実装）: 軽量実装・軽微修正を高速処理
+Codex 5.2（精読）: 大規模コード精読・スキャン・列挙。独立トークン予算を活用
+Sonnet（テスト・ドキュメント）: テスト作成・ドキュメント更新・FEデザイン初稿に専念
+Haiku 4.5（リサーチ）: Web検索・先行事例調査・情報収集に特化
 ```
 
 ### フェーズ別フロー
 
 ```
-【設計】Opus が言語化 → Codex 5.3 がエンジニア視点でレビュー → 合意
-            ↓ ← codex exec（設計レビュー）: L2→L2.5
-            ↓ ← codex exec（API契約レビュー）: L2.5→L3
+【設計】Opus が言語化 → Codex 5.4 がレビュー → 合意
+            ↓ ← codex exec -m gpt-5.4（設計レビュー）: L2→L2.5
+            ↓ ← codex exec -m gpt-5.4（API契約レビュー）: L2.5→L3
 【実装】Codex 5.3 が設計から実装まで一気通貫で実行
-            │ ← codex review（軽量: Critical/High のみ）: 実装.2
-            │ ← codex review（フル品質）: 実装.5
-            ↓ ← codex review --uncommitted: L4.5→L4.7
+            │ ← codex review（軽量: Critical/High のみ）: 実装.2（5.4 レビュー）
+            │ ← codex review（フル品質）: 実装.5（5.4 レビュー）
+            ↓ ← codex review --uncommitted: L4.5→L4.7（5.4 レビュー）
+【品質アップ】Codex 5.4 がリファクタ・清書・FEデザイン清書
 【ビジュアル】visual-design に基づくデザイン適用・調整
-            ↓ ← codex review --uncommitted: L4.7→検証
-【修正】エラー少 → Codex 5.2 / エラー多 → Codex 5.3
+            ↓ ← codex review --uncommitted: L4.7→検証（5.4 レビュー）
+【修正】エラー少 → Codex 5.3 Spark / エラー多 → Codex 5.3 → さらに多発は 5.4
             ↓
 【テスト】Sonnet がテストコード作成・実行
             ↓
@@ -274,19 +279,24 @@ Haiku 4.5（調査）: 低コストで大量の情報収集・下調べ
 ### 呼び出し方
 
 ```bash
-# Codex 5.3: 設計レビュー・実装・コードレビュー
-codex exec "Implement X feature based on design docs"
-codex review                    # コードレビュー
-codex -m gpt-5.3-codex          # モデル明示指定
+# Codex 5.4: 設計レビュー・コードレビュー・品質アップ・トラブルシュート
+codex exec "レビュー: X feature の設計書" -m gpt-5.4
+codex review --uncommitted      # コードレビュー
 
-# Codex 5.2: 軽微な修正
-codex exec "Fix lint errors in src/..."
+# Codex 5.3: 実装メイン（スコア4+）
+codex exec "Implement X feature based on design docs" -m gpt-5.3-codex
+
+# Codex 5.3 Spark: 軽量実装・軽微修正
+codex exec "Fix lint errors in src/..." -m gpt-5.3-codex-spark
+
+# Codex 5.2: 大規模コード精読・スキャン
+codex exec "精読: src/ 配下の認証関連コードを列挙" -m gpt-5.2-codex
 
 # Sonnet: テスト・ドキュメント
 Task(model: "sonnet", prompt: "Write tests for ...")
 Task(model: "sonnet", prompt: "Update design-doc with ...")
 
-# Haiku 4.5: 調査
+# Haiku 4.5: リサーチ
 Task(model: "haiku", prompt: "Search for ... and summarize")
 ```
 
@@ -294,16 +304,21 @@ Task(model: "haiku", prompt: "Search for ... and summarize")
 
 ```
 タスクの種類は？
-├── 設計を詰める → Opus（言語化）+ Codex 5.3（エンジニアレビュー）
-├── 設計書・仕様書をレビューする → Codex 5.3（codex exec "レビュー"）
-├── コードを実装する → Codex 5.3（codex exec）
-├── コードをレビューする → Codex 5.3（codex review --uncommitted）
-├── プラン・方針を壁打ちする → Codex 5.3（codex exec "TL壁打ち"）
-├── 軽微なエラー修正 → Codex 5.2（codex exec）
-│   └── エラー多数 → Codex 5.3 にエスカレーション
+├── 設計を詰める → Opus（言語化）+ Codex 5.4（エンジニアレビュー）
+├── 設計書・仕様書をレビューする → Codex 5.4（codex exec "レビュー"）
+├── コード実装（スコア4+）→ Codex 5.3（codex exec -m gpt-5.3-codex）
+├── 軽量実装・軽微修正（スコア1-3）→ Codex 5.3 Spark（codex exec -m gpt-5.3-codex-spark）
+│   └── エラー多発 → Codex 5.3 にエスカレ → さらに多発なら 5.4
+├── 大規模コード精読・スキャン → Codex 5.2（codex exec -m gpt-5.2-codex）
+├── コードをレビューする → Codex 5.4（codex review --uncommitted）
+│   └── 低リスク（S + セキュリティゲート非該当）→ Codex 5.3 が一次レビュー可
+├── 品質アップ（リファクタ・清書）→ Codex 5.4（codex exec -m gpt-5.4）
+├── トラブルシューティング → Codex 5.4（常に。1Mコンテキストで最強）
+├── プラン・方針を壁打ちする → Codex 5.4（codex exec "TL壁打ち"）
+├── FEデザイン → Sonnet（初稿）→ Codex 5.4（清書）
 ├── テストを書く → Sonnet（Task tool）
 ├── ドキュメントを更新する → Sonnet（Task tool）
-├── 調査・下調べ → Haiku 4.5（Task tool）
+├── リサーチ → Haiku 4.5（Task tool。Web検索・先行事例調査特化）
 └── ビジネス判断 → Opus（自分）
 ```
 
@@ -311,13 +326,15 @@ Task(model: "haiku", prompt: "Search for ... and summarize")
 
 ```
 Opus:   10%（言語化・ビジネス判断）
-Codex 5.3:  55%（設計レビュー・実装・コードレビュー）
-Codex 5.2:   5%（軽微修正）
-Sonnet: 20%（テスト・ドキュメント）
-Haiku 4.5:  10%（調査・下調べ）
+Codex 5.4:  20%（設計レビュー・コードレビュー・品質アップ・トラブルシュート）
+Codex 5.3:  35%（実装メイン）
+Codex 5.3 Spark:  10%（軽量実装・軽微修正）
+Codex 5.2:  5%（大規模コード精読・スキャン）
+Sonnet: 15%（テスト・ドキュメント）
+Haiku 4.5:  5%（リサーチ）
 
 効果:
-- Codex 5.3 が設計→実装を一気通貫 → 設計者と実装者のギャップ消滅
+- Codex 5.3 が設計→実装を一気通貫 + Codex 5.4 がレビュー・品質アップ → 実装速度と品質の両立
 - 修正サイクルが 3-5回 → 1-2回 に削減
 - Sonnet はテスト・ドキュメントに専念 → 品質向上
 ```
@@ -329,7 +346,7 @@ Sub-agents（上記）= 親子関係。実装の並列化に最適。
 Agent Teams = 対等関係。設計の多角検証に最適。
 
 判断:
-- 実装タスク → Codex 5.3 / Codex 5.2（このセクション）
+- 実装タスク → Codex 5.4 / Codex 5.3（このセクション）
 - 設計検証・アーキテクチャ決定 → Agent Teams
 ```
 
@@ -362,9 +379,10 @@ Opus はオーケストレーターとして工程表を読み、タスクをサ
   6. 次タスクの入力に変換して継続
 
 Opus の自作業禁止（CLAUDE.md 参照）:
-  - コード実装 → Codex 5.3 / Codex 5.2（常時委譲）
+  - コード実装 → Codex 5.3 / Codex 5.3 Spark（常時委譲）
+  - レビュー・品質アップ → Codex 5.4（常時委譲）
+  - 大規模精読 → Codex 5.2（常時委譲）
   - テスト・ドキュメント → Sonnet（常時委譲）
-  - ファイル編集 → Codex 5.2（常時委譲）
   - 調査・検索 → Haiku 4.5（常時委譲）
   - 唯一の例外: MCP検証などツール動作確認のみ自分で実行可
 ```

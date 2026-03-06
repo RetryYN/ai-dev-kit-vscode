@@ -120,13 +120,14 @@ decisions:
 
 | 作業 | 委譲先 |
 |------|--------|
-| コード実装 | Codex 5.3 / Codex 5.2 (codex exec) |
+| コード実装 | Codex 5.3 / Codex 5.3 Spark (codex exec) |
+| レビュー・品質アップ | Codex 5.4 (codex review / codex exec) |
+| 大規模コード精読 | Codex 5.2 (codex exec) |
 | テスト作成 | Sonnet (Task tool) |
 | ドキュメント作成 | Sonnet (Task tool) |
-| ファイル編集 | Codex 5.2 (codex exec) |
 | 調査・検索 | Haiku 4.5 (Task tool) |
-| コードレビュー | Codex 5.3 (codex review --uncommitted) |
-| 設計・仕様レビュー | Codex 5.3 (codex exec "レビュー") |
+| コードレビュー | Codex 5.4 (codex review --uncommitted) |
+| 設計・仕様レビュー | Codex 5.4 (codex exec "レビュー") |
 
 **常時すべて委譲**。唯一の例外: MCP検証などツール動作確認のみ自分で実行可。
 
@@ -290,7 +291,7 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
     - task_id: "T-001"
       task: "タスク内容"
       difficulty: 0-14
-      model: "Haiku 4.5 | Codex 5.2 | Codex 5.3 | Sonnet"
+      model: "Haiku 4.5 | Codex 5.3 | Codex 5.4 | Sonnet"
       skills: ["読み込むスキル"]
       tools_allowed: ["許可ツール"]
       prerequisites: ["前提タスクID"]

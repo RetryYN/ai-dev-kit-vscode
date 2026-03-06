@@ -99,14 +99,16 @@ claude --chrome
 ```
 マルチエージェント構成:
 - Opus: オーケストレーター（判断・統合・ディスパッチ。実装しない）
-- Codex 5.3: 中〜大規模実装
-- Codex 5.2: 小規模実装・軽微修正
+- Codex 5.4: レビュー・品質アップ・トラブルシュート
+- Codex 5.3: 実装メイン（設計→実装の一気通貫）
+- Codex 5.3 Spark: 軽量実装・軽微修正
+- Codex 5.2: 大規模コード精読・スキャン
 - Sonnet: テスト・ドキュメント
-- Haiku 4.5: 調査
+- Haiku 4.5: リサーチ特化
 
 指示例:
 「このタスクはCodex 5.3で実装して」
-「Haikuでlint修正だけして」
+「5.4でレビューして品質上げて」
 ```
 
 ---
@@ -347,8 +349,9 @@ function validateUser(email: string, password: string): User | null {
 Claude Max ($200/月):
 - メイン開発にはClaude Code
 - Opus: オーケストレーター（実装しない）
-- Codex 5.3: 中〜大規模実装
-- Codex 5.2: 軽微な修正
+- Codex 5.4: レビュー・品質アップ・トラブルシュート
+- Codex 5.3: 実装メイン
+- Codex 5.3 Spark: 軽量実装・軽微修正
 
 追加コスト回避:
 - Cursorは無料枠で補完のみ
