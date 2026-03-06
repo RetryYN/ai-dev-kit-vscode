@@ -11,7 +11,7 @@
 | 認証・セキュリティ | security, api | セキュリティベストプラクティス |
 | API実装 | api, error-fix | RESTful設計、エラーハンドリング |
 | UI実装 | ui, design | UI設計パターン |
-| ビジュアルデザイン適用 | visual-design, ui, design | 配色・余白・タイポグラフィ・構図の適用（L4.7） |
+| ビジュアルデザイン適用 | visual-design, ui, design | 配色・余白・タイポグラフィ・構図の適用（L5） |
 | DB操作 | db, performance | スキーマ設計、クエリ最適化 |
 | テスト | testing, quality-lv5 | テスト設計 |
 | 検証 | verification, code-review | 検証ロジック、レビュー観点 |
@@ -24,11 +24,13 @@
 | 読み取り専用 | Read, Grep, Glob | Edit, Write, Bash |
 | 検証 | Read, Grep, Glob, Bash | Edit, Write |
 | 実装 | 全ツール | なし |
-| UI実装 | Read, Edit, Write, Grep, Glob | Bash |
+| UI実装 | Read, Edit, Write, Grep, Glob, Bash | なし（Bash はテスト実行・dev server 起動に必要） |
 
 原則: **最小権限** — 必要最小限のツールのみ許可。
 
-## 思考トークン設定
+## 思考トークン設定（Claude サブエージェント用）
+
+Task tool 経由の Claude サブエージェント（Sonnet / Haiku）に適用する。
 
 | 難易度スコア | 設定 | 対象タスク |
 |-------------|------|-----------|
@@ -36,6 +38,9 @@
 | 4-7点 | low | 標準タスク |
 | 8-10点 | medium | 複雑タスク |
 | 11-14点 | high | 最高難度タスク |
+
+> **Codex 系モデルとの関係**: Codex 系（5.4/5.3/5.3 Spark/5.2）は `codex exec` 経由で実行し、`model_reasoning_effort = "xhigh"` 固定（CLAUDE.md 参照）。上記の難易度別設定は適用しない。
+> モデル割当の正本は `workflow-core.md §モデル割当テーブル`。
 
 ## スキル自動推論ルール
 
@@ -57,13 +62,8 @@
 
 ### 事前調査タスクの自動付与条件
 
-以下に該当する場合、L1→L2 遷移時 / 実装.1 ゲート時に「事前調査」タスクを自動付与する:
-
-| 条件 | 付与 |
-|------|------|
-| 外部API連携（新規/変更）、認証・認可、新規ライブラリ/FW導入、技術選定（ADR対象）、メジャーアップグレード、公開API/DB契約変更、決済・PII・法令影響 | **自動付与**（Haiku 4.5） |
-| 高負荷/並行性/移行（migration） | PM 判断で付与 |
-| 純粋な内部リファクタリング/バグ修正 | 不要 |
+G1R / G3 / 実装.1 ゲート時に、`ai-coding/SKILL.md §8` の強制条件（単一ソース）に基づき「事前調査」タスクを自動付与する。
+MUST 条件該当 → Haiku 4.5 に自動付与。SHOULD → PM 判断。不要 → 付与しない。
 
 ---
 
@@ -85,8 +85,8 @@
 
 各フェーズで読み込むスキルを種別ごとに定義。`-` はそのフェーズをスキップ。
 
-| 種別 | L1 | L2 | L2.5 | 実装 | L4.7 | 検証 |
-|------|----|----|------|------|------|------|
+| 種別 | L1 | L2 | L3(API) | 実装 | L5 | L6 |
+|------|----|----|---------|------|----|----|
 | feature | requirements-handover, estimation | design-doc, api, db, visual-design（方針） | api-contract | coding + ドメインスキル | visual-design（UI変更時） | verification, testing |
 | bugfix | - | error-fix | - | error-fix, coding | -（UI変更時のみ） | testing |
 | refactor | - | refactoring, design-doc | - | refactoring, coding | - | testing, code-review |

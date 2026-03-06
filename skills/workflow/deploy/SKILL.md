@@ -2,7 +2,7 @@
 name: deploy
 description: デプロイ・リリース・ロールバックのBlue/Green戦略と実行チェックリストを提供
 metadata:
-  helix_layer: L5
+  helix_layer: L7
   triggers:
     - デプロイ実行時
     - リリース準備時
@@ -27,11 +27,11 @@ compatibility:
 
 ## HELIX フェーズ位置づけ
 
-- **HELIX フェーズ**: L5 デプロイ
-- **ゲート定義**: `ai-coding/references/layer-interface.md §L5 内部ゲート` を参照（L5.1 準備 / L5.2 実行 / L5.3 安定性）
-- **I/O 仕様**: `ai-coding/references/orchestration-workflow.md §L5: デプロイ` を参照
+- **HELIX フェーズ**: L7 デプロイ
+- **ゲート定義**: `ai-coding/references/layer-interface.md §L7 内部ゲート` を参照（L7.1 準備 / L7.2 実行 / L7.3 安定性）
+- **I/O 仕様**: `ai-coding/references/orchestration-workflow.md §L7: デプロイ` を参照
 - **SLO/パフォーマンス基準**: `observability-sre/SKILL.md §7 劣化レベル表`（唯一の閾値権威源。本スキル内で重複定義しない）
-- **前提**: 検証フェーズ完了（V-L5 テスト検証 pass + V-L6 運用検証 pass）
+- **前提**: L6 統合検証完了（V-L5 テスト検証 pass + V-L6 運用検証 pass）
 
 ---
 
@@ -134,7 +134,7 @@ Phase 4: 問題なければ100%へ
 ### コード
 - [ ] 全テスト通過
 - [ ] コードレビュー完了
-- [ ] セキュリティスキャン通過（L5.1 ゲート基準）
+- [ ] セキュリティスキャン通過（L7.1 ゲート基準）
   - [ ] `npm audit` / `pip-audit`: critical 0件（例外なし）
   - [ ] high: 新規追加 0件（既知受容リストは `docs/security/accepted-vulnerabilities.md` で管理）
   - [ ] 依存パッケージの既知 CVE: critical/high 0件（新規追加分）
@@ -186,7 +186,7 @@ Phase 4: 問題なければ100%へ
 - [ ] レスポンスタイム正常
 - [ ] ログに異常なし
 - [ ] ユーザーからの報告なし
-- [ ] Extended Watch 完了（L5.3 pass 後 **60分間**、low 閾値で P2 Warning 監視）
+- [ ] Extended Watch 完了（L7.3 pass 後 **60分間**、low 閾値で P2 Warning 監視）
 - [ ] リリース完了通知送信
 - [ ] Gitタグ作成
 - [ ] リリースブランチマージ（main, develop）

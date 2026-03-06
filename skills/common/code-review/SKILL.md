@@ -2,7 +2,7 @@
 name: code-review
 description: コードレビューでセキュリティ・パフォーマンス・設計の観点チェックリストと建設的フィードバック例を提供
 metadata:
-  helix_layer: L5
+  helix_layer: L4
   triggers:
     - コードレビュー実施時
     - PRテンプレート作成時

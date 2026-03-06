@@ -1,6 +1,6 @@
 ---
 name: verification
-description: L1〜L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供
+description: L1〜V-L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供（V-L3〜V-L6は本スキル固有番号）
 metadata:
   helix_layer: all
   triggers:
@@ -9,10 +9,10 @@ metadata:
     - デプロイ前
     - 品質ゲート通過時
   verification:
-    - "L1-L6の全レイヤー status: pass"
+    - "L1-L2, L3_api, V-L3〜V-L6 全レイヤー status: pass"
     - "L1: 要件カバレッジ 100% (functional/non-functional)"
     - "L2: 画面-API-DBマッピング 未対応 0件"
-    - "L2.5: 型一致率 100% (FE-BE-DB)"
+    - "L3_api: 型一致率 100% (FE-BE-DB)"
     - "V-L3: API仕様カバレッジ ≥95%"
     - "V-L4: 脆弱性 0件 (critical/high)"
     - "V-L5: カバレッジ ≥70% (unit), クリティカルパス 100%"
@@ -22,7 +22,7 @@ compatibility:
   codex: true
 ---
 
-# 検証スキル（L1-L6）
+# 検証スキル（L1-L2, L3_api, V-L3〜V-L6）
 
 ## 適用タイミング
 
@@ -38,14 +38,14 @@ compatibility:
 ```
 L1:    要件検証      ← 企画書・要件定義
 L2:    設計検証      ← 基本設計・詳細設計
-L2.5:  API整合性    ← Frontend/Backend/DB間の型・スキーマ一致（★Helix中核）
+L3_api: API整合性   ← Frontend/Backend/DB間の型・スキーマ一致（★Helix中核、Helix L3内）
 V-L3:  コントラクト  ← API仕様・インターフェース定義
 V-L4:  依存関係      ← パッケージ・外部サービス
 V-L5:  テスト検証    ← 単体・結合・E2E
 V-L6:  運用検証      ← 監視・アラート・SRE
 
 ※ V-L3〜V-L6 は本スキル固有の検証レイヤー番号。
-  HELIXフェーズ番号（L3=依存関係、L4=工程表、L5=デプロイ、L6=受入）とは別体系。
+  HELIXフェーズ番号（L3=詳細設計+API契約、L4=実装、L5=Visual Refinement、L6=統合検証、L7=デプロイ、L8=受入）とは別体系。
 ```
 
 ---
@@ -122,9 +122,9 @@ l1_verification:
 
 ---
 
-## 4. L2.5: API整合性検証 ★
+## 4. L3: API整合性検証（API契約検証）★
 
-→ 詳細は `skills/workflow/api-contract/SKILL.md` を参照（Helix L2.5相当）
+→ 詳細は `skills/workflow/api-contract/SKILL.md` を参照（Helix L3 API契約）
 
 ### 検証項目
 
@@ -140,13 +140,13 @@ l1_verification:
 
 □ 自動検証
   - Codex による型一致率の数値判定
-  - 不合格時はL2.5内でループ（契約再定義 or 各層の実装修正）
+  - 不合格時はL3 API契約検証内でループ（契約再定義 or 各層の実装修正）
 ```
 
 ### 出力
 
 ```yaml
-l2_5_verification:
+l3_api_verification:
   status: pass/fail
   type_match_rate: "100%"  # Frontend ↔ Backend ↔ DB
   schema_coverage: "100%"
@@ -156,7 +156,7 @@ l2_5_verification:
 
 ---
 
-## 5. L3: コントラクト検証
+## 5. V-L3: コントラクト検証
 
 → 詳細は `skills/workflow/api-contract/SKILL.md` を参照
 
@@ -171,7 +171,7 @@ l2_5_verification:
 
 ---
 
-## 6. L4: 依存関係検証
+## 6. V-L4: 依存関係検証
 
 → 詳細は `skills/workflow/dependency-map/SKILL.md` を参照
 
@@ -186,7 +186,7 @@ l2_5_verification:
 
 ---
 
-## 7. L5: テスト検証
+## 7. V-L5: テスト検証
 
 → 詳細は `skills/workflow/quality-lv5/SKILL.md` を参照
 
@@ -201,11 +201,11 @@ l2_5_verification:
 
 ---
 
-## 8. L6: 運用検証
+## 8. V-L6: 運用検証
 
-> **V-L6 と L5 の責務境界**: V-L6 は「運用体制の充足性」（可観測性設計・アラート設定・運用手順の存在）を検証する。
-> 「デプロイ後の SLO 達成」は L5.3（本番安定性ゲート）の責務。
-> V-L6 は検証フェーズ（L4.7 → 検証）で実施され、L5 の開始前提として pass が必要。
+> **V-L6 と L7 の責務境界**: V-L6 は「運用体制の充足性」（可観測性設計・アラート設定・運用手順の存在）を検証する。
+> 「デプロイ後の SLO 達成」は L7.3（本番安定性ゲート＝G7）の責務。
+> V-L6 は統合検証フェーズ（L5 → L6）で実施され、L7 の開始前提として pass が必要。
 
 ### 検証項目
 
@@ -228,6 +228,25 @@ l2_5_verification:
 
 ---
 
+## 8.5. フェーズ証跡 vs L6 集約再検証
+
+| 検証項目 | 証跡作成フェーズ | L6 で再検証するか | 備考 |
+|---------|----------------|-----------------|------|
+| 要件カバレッジ | L1（G1 通過時） | ○ 突合のみ | 実装結果と要件の対応確認 |
+| 設計整合性 | L2（G2 通過時） | ○ 差分検証 | 実装が設計から逸脱していないか |
+| API/型一致率 | L3（G3 通過時） | ○ 再計測 | FE↔BE↔DB の型一致を実コードで再検証 |
+| 実装品質 | L4（各ゲート） | △ サンプル | codex review 結果の確認（全件再実行はしない） |
+| ビジュアル適合 | L5（G5 通過時） | △ スクリーンショット | UI変更時のみ |
+| 依存関係・脆弱性 | L3/L4 | ○ 再スキャン | npm audit / pip-audit を最新状態で実行 |
+| テストカバレッジ | L4（実装.4） | ○ 再実行 | 全テストスイート実行 |
+| 運用体制 | L6 で新規作成 | — | SLO定義・アラート・運用手順の存在確認 |
+
+- ○: L6 で必ず再検証（最新状態で確認）
+- △: L6 で確認するが、問題なければ証跡流用可
+- —: 該当フェーズの成果物
+
+---
+
 ## 9. 検証実行フロー
 
 ```
@@ -241,23 +260,23 @@ l2_5_verification:
   │     │
   │     pass
   │     ↓
-  ├─→ L2.5検証 → fail → 型/スキーマ修正 → 再検証 ★API整合性
+  ├─→ L3 API整合性検証 → fail → 型/スキーマ修正 → 再検証 ★API整合性
   │     │
   │     pass
   │     ↓
-  ├─→ L3検証 ──→ fail → API仕様修正 → 再検証
+  ├─→ V-L3検証 ──→ fail → API仕様修正 → 再検証
   │     │
   │     pass
   │     ↓
-  ├─→ L4検証 ──→ fail → 依存修正 → 再検証
+  ├─→ V-L4検証 ──→ fail → 依存修正 → 再検証
   │     │
   │     pass
   │     ↓
-  ├─→ L5検証 ──→ fail → テスト追加 → 再検証
+  ├─→ V-L5検証 ──→ fail → テスト追加 → 再検証
   │     │
   │     pass
   │     ↓
-  └─→ L6検証 ──→ fail → 運用設定修正 → 再検証
+  └─→ V-L6検証 ──→ fail → 運用設定修正 → 再検証
         │
         pass
         ↓
@@ -285,28 +304,28 @@ verification_report:
       status: "pass"
       coverage: "100%"
       issues: []
-    L2.5:
+    L3_api:
       status: "pass"
       type_match_rate: "100%"
       schema_coverage: "100%"
       issues: []
-    L3:
+    V-L3:
       status: "pass"
       coverage: "95%"
       issues:
-        - id: "L3-001"
+        - id: "VL3-001"
           severity: "low"
           description: "Optional field not documented"
-    L4:
+    V-L4:
       status: "pass"
       vulnerabilities: 0
       outdated: 2
-    L5:
+    V-L5:
       status: "pass"
       unit_coverage: "85%"
       integration_coverage: "70%"
       e2e_coverage: "critical_paths"
-    L6:
+    V-L6:
       status: "pass"
       observability: "complete"
       alerts: "configured"
@@ -329,17 +348,17 @@ verify:
       # 要件追跡ツール連携
     l2-design:
       # 設計ドキュメント検証
-    l2_5-api-integrity:
+    l3-api-integrity:
       # Frontend/Backend/DB型一致検証（Codex）
-    l3-contract:
+    vl3-contract:
       # OpenAPI検証
-    l4-dependencies:
+    vl4-dependencies:
       - run: npm audit
       - run: npx license-checker
-    l5-testing:
+    vl5-testing:
       - run: npm run test:coverage
       - run: npm run test:e2e
-    l6-operations:
+    vl6-operations:
       # 監視設定検証
 ```
 
@@ -353,10 +372,10 @@ verify:
 
 | 役割 | 担当 |
 |------|------|
-| Accountable | helix-auditor（監査エージェント）[現行: PM（Opus）が代替] |
-| Responsible | task-owner（タスク担当エージェント） |
-| Consulted | secondary-reviewer |
-| Informed | human:project-owner |
+| Accountable | PM（Opus） |
+| Responsible | SE（Codex 5.3）／担当エージェント |
+| Consulted | TL（Codex 5.4） |
+| Informed | PO（人間） |
 
 ### 対応SLA（回数ベース）
 
@@ -432,14 +451,13 @@ Critical条件は人間が無応答でも「推奨選択肢で続行」しては
 各レイヤーは独立した検証ループを持ち、左（計画）と右（検証）の対比で品質を確認する。
 
 ```
-L1  要件定義 ←──────────────────→ 受入検証（L6）
+L1  要件定義 ←──────────────────→ 受入検証（L8）
 L2    設計書 ←────────────────→ 設計整合性検証
-L2.5    API契約 ←──────────→ API整合性検証
-L3       依存関係 ←──────→ 依存関係検証
-L4         工程表 ←────→ テスト検証
-             L4.5 実装（底）
-             L4.7 ビジュアル適用
-L5             デプロイ ←→ 本番検証
+L3      詳細設計+API契約 ←──→ API整合性検証+依存関係検証+テスト検証
+             L4 実装（底）
+             L5 Visual Refinement
+L6        統合検証 ←────────→ E2E・性能・セキュリティ検証
+L7             デプロイ ←──→ 本番検証
 ```
 
 ### レイヤー内検証ループ

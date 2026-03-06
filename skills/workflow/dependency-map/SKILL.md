@@ -2,7 +2,7 @@
 name: dependency-map
 description: 依存関係マップの作成と脆弱性・ライセンス・循環依存の検証観点を提供
 metadata:
-  helix_layer: L4
+  helix_layer: L3
   triggers:
     - パッケージ追加・更新時
     - 外部サービス連携時

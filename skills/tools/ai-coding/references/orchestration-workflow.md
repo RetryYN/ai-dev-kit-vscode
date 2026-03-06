@@ -1,6 +1,7 @@
 # オーケストレーション・ディスパッチワークフロー
 
 > 出典: docs/archive/v-model-reference-cycle-v2.md §工程表のオーケストレーション記載、§サブエージェント間の引継ぎフロー
+> 本文書は詳細仕様。手順正本は `workflow-core.md`（ディスパッチ・並列・ADR）と `gate-policy.md`（ゲート・遷移）。矛盾時は正本が優先。
 
 ## ディスパッチフロー
 
@@ -14,9 +15,9 @@ Opus (Orchestrator)
   ├─ 2. 前提条件を確認
   │     - 前提工程が全て completed か
   │     - 参照ドキュメントが存在するか
-  │     ⚠️ 参照先が未指定の工程は実行不可（スキップ）
+  │     ⚠️ 参照先が未指定の工程は実行不可 → status: blocked（タスク自体を実行しない）
   │
-  ├─ 2.5. 事前調査ゲート（L1→L2 / L4→L4.5 遷移時）
+  ├─ 2.5. 事前調査ゲート（L1→L2 / L3→L4 遷移時）
   │     - ai-coding §8 の強制条件に該当するか PM が判定
   │     - 該当 → Haiku 4.5 に調査タスク配送
   │       └─ 調査レポートを reference_docs に追加
@@ -129,7 +130,7 @@ decisions:
 | コードレビュー | Codex 5.4 (codex review --uncommitted) |
 | 設計・仕様レビュー | Codex 5.4 (codex exec "レビュー") |
 
-**常時すべて委譲**。唯一の例外: MCP検証などツール動作確認のみ自分で実行可。
+**常時すべて委譲**。唯一の例外: MCP検証などツール動作確認と**フロント（デザイン含む）設計**のみ自分で実行可。
 
 Opus が自分で行うこと:
 
@@ -185,7 +186,7 @@ IIP 発動時（status: interrupted）:
 ## フェーズ I/O 詳細仕様
 
 Opus はフェーズ完了時にこの仕様で出力を検証し、次フェーズの入力に整形する。
-サマリーは `SKILL_MAP.md §フェーズ別 I/O サマリー` を参照。
+各フェーズで読むスキルは `SKILL_MAP.md` のフロー図（`→` 右）を参照。
 
 ### L1: 要件定義
 
@@ -239,11 +240,12 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 完了条件: 全 REQ が設計に反映されている
 ```
 
-### L2.5: API契約
+### L3: 詳細設計 + API契約 + テスト設計 + 工程表
 
 ```yaml
 入力:
   design: "L2 出力"
+  difficulty_scores: "estimation §9 で算出"
 
 出力:
   api_contract:
@@ -255,18 +257,6 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
   consistency:
     fe_be_match: "100%"
     be_db_match: "100%"
-
-完了条件: FE↔BE↔DB の型一致率 100%
-```
-
-### L3: 依存関係
-
-```yaml
-入力:
-  design: "L2 出力"
-  api_contract: "L2.5 出力"
-
-出力:
   dependency_map:
     modules:
       - name: "モジュール名"
@@ -275,43 +265,34 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
     parallel_groups:
       - group: 1
         tasks: ["並列可能なタスク"]
-
-完了条件: 循環依存なし + 実装順序決定済み
-```
-
-### L4: 工程表
-
-```yaml
-入力:
-  dependency_map: "L3 出力"
-  difficulty_scores: "estimation §9 で算出"
-
-出力:
   schedule:
     - task_id: "T-001"
       task: "タスク内容"
       difficulty: 0-14
-      model: "Haiku 4.5 | Codex 5.3 | Codex 5.4 | Sonnet"
+      model: "Haiku 4.5 | Codex 5.2 | Codex 5.3 Spark | Codex 5.3 | Codex 5.4 | Sonnet"
       skills: ["読み込むスキル"]
       tools_allowed: ["許可ツール"]
       prerequisites: ["前提タスクID"]
       reference_docs: ["参照ドキュメント"]
-      verification_layer: "L2 | L2.5 | L3 | L4 | L5"
+      verification_layer: "L2 | L3 | L4 | L5 | L6 | L7"
 
-完了条件: 全タスクに difficulty + model + skills + reference_docs 付与済み
+完了条件:
+  - FE↔BE↔DB の型一致率 100%
+  - 循環依存なし + 実装順序決定済み
+  - 全タスクに difficulty + model + skills + reference_docs 付与済み
 ```
 
 ### 実装フェーズ
 
 ```
-入力: L4 出力（schedule）+ 設計書群
+入力: L3 出力（schedule）+ 設計書群
 出力: 上記「サブエージェント I/O 仕様」に従う（既存）
 完了条件: 全タスクの status が completed
 ```
 
 ※ 実装フェーズ内部の段階ゲート（実装.1〜.5）は `implementation-gate.md` に分離して定義する。
 
-### 検証フェーズ
+### L6: 統合検証
 
 ```
 入力: 実装コード + 設計書群
@@ -319,7 +300,7 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
 完了条件: 全検証レイヤーで合格（不合格 → レイヤー内5ループ → エスカレ）
 ```
 
-### L5: デプロイ
+### L7: デプロイ
 
 ```yaml
 入力:
@@ -335,15 +316,15 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
     version: "v1.x.x"
     status: "success | rolled-back"
     gates:
-      l5_1_preparation:
+      l7_1_preparation:
         security_scan: "pass | fail"
         environment_config: "pass | fail"
         human_approval: "approved | not-required | rejected"
-      l5_2_execution:
+      l7_2_execution:
         staging_verification: "pass | fail"
         production_deploy: "pass | fail"
         health_check: "pass | fail"
-      l5_3_stability:
+      l7_3_stability:
         slo_compliance: "pass | fail | conditional-pass"
         degradation_level: "none | low | medium | high | critical"
         observation_window: "15min | 30min(canary)"
@@ -354,12 +335,12 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
     error_rate_percent: 0.1
     observation_period: "15min"
 
-完了条件: L5.1〜L5.3 全ゲート pass + 劣化レベル none（low は条件付き pass）
+完了条件: L7.1〜L7.3 全ゲート pass + 劣化レベル none（low は条件付き pass）
 ```
 
-※ L5 内部ゲート（L5.1〜L5.3）の詳細は `layer-interface.md §L5 内部ゲート` を参照。
+※ L7 内部ゲート（L7.1〜L7.3）の詳細は `layer-interface.md §L7 内部ゲート` を参照。
 
-### 受入フェーズ
+### L8: 受入
 
 ```
 入力: L1 要件リスト + 最終成果物

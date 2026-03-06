@@ -2,7 +2,7 @@
 name: error-fix
 description: エラー修正で原因特定フロー・デバッグ手順・再現テストと修正パターンを提供
 metadata:
-  helix_layer: L5
+  helix_layer: L4
   triggers:
     - エラー発生時
     - バグ修正時

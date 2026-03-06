@@ -2,7 +2,7 @@
 name: quality-lv5
 description: テスト品質をLv1-5で評価し、テストピラミッド比率とカバレッジ目標の検証手順を提供
 metadata:
-  helix_layer: L5
+  helix_layer: L6
   triggers:
     - テスト作成完了時
     - 品質ゲート通過時
@@ -17,7 +17,7 @@ compatibility:
   codex: true
 ---
 
-# テスト品質検証スキル（L5）
+# テスト品質検証スキル（V-L5）
 
 ## 適用タイミング
 
@@ -25,7 +25,7 @@ compatibility:
 - テスト作成完了時の品質確認
 - 品質ゲート通過判定時
 - リリース前の最終検証時
-- L5検証（テスト検証）実行時
+- V-L5検証（テスト検証）実行時
 
 ---
 

@@ -2,7 +2,7 @@
 name: api-contract
 description: APIコントラクト定義とスキーマ・レスポンス・エラー整合の検証チェックリストを提供
 metadata:
-  helix_layer: L2.5
+  helix_layer: L3
   triggers:
     - APIエンドポイント追加時
     - フロントエンド・バックエンド連携時
@@ -25,7 +25,7 @@ compatibility:
 - APIエンドポイント作成・修正時
 - フロントエンド・バックエンド間の連携確認時
 - 外部APIとの統合時
-- L2.5検証（API整合性）実行時
+- L3検証（API整合性）実行時
 
 ---
 

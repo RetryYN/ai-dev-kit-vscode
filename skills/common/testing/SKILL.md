@@ -2,7 +2,7 @@
 name: testing
 description: テスト戦略策定でユニット/統合/E2Eテストのテンプレートとカバレッジ目標の検証手順を提供
 metadata:
-  helix_layer: L5
+  helix_layer: L4
   triggers:
     - テスト作成時
     - 機能実装完了時

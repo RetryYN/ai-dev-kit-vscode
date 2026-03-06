@@ -2,7 +2,7 @@
 name: performance
 description: パフォーマンス最適化でCore Web Vitals目標値・ボトルネック診断フローチャート・計測手順とチェックリストを提供
 metadata:
-  helix_layer: L5
+  helix_layer: L4
   triggers:
     - パフォーマンス改善時
     - ボトルネック調査時

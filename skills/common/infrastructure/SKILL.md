@@ -2,7 +2,7 @@
 name: infrastructure
 description: Docker・PostgreSQL・Redis・Nginxの本番構成と安全設定の指針を提供
 metadata:
-  helix_layer: L5
+  helix_layer: L7
   triggers:
     - インフラ構築時
     - デプロイ設定時
