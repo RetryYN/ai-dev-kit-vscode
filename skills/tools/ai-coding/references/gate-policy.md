@@ -1,7 +1,7 @@
 # ゲートポリシー（手順正本）
 
 > CLAUDE.md / SKILL_MAP.md から参照される手順の正本。
-> 所有: ゲート定義、セキュリティチェック、フェーズ遷移、IIP、CC、V分類、LPR、ミニレトロ、adversarial-review、リファクタリング運用。
+> 所有: ゲート定義、セキュリティチェック、フェーズ遷移、IIP、CC、V分類、LPR、ミニレトロ、adversarial-review、リファクタリング運用、Reverse ゲート。
 
 ## Status 共通語彙
 
@@ -291,6 +291,55 @@ IIP（L4 内の前提崩壊）や V 分類（L5 の visual 差戻し）とは異
 1. G4 で `debt_register` 必須（未解決 debt は台帳化が G4 通過条件）。保存先: `docs/debt/YYYY-MM-DD-debt-register.md`
 2. 毎イテレーション **20%** を改善枠に予約（ガイドライン。実績はミニレトロで振り返り）
 3. 重複コード **3 回** で共通化を**検討**（ヒューリスティック。dev-policy / refactoring スキル準拠）
+
+## Reverse ゲート（HELIX Reverse）
+
+Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに対し、Reverse ゲートは「**証拠の十分性 / 仮説の反証可能性**」を判定する。詳細フロー: `workflow/reverse-analysis/SKILL.md`
+
+### 共通指標（全 Reverse ゲート）
+
+| 指標 | 意味 |
+|------|------|
+| **coverage** | 対象モジュール/契約/設計のうち分析済みの割合 |
+| **confidence** | 各仮説の確度（high / medium / low） |
+| **contradictions** | 仮説間の矛盾数（未解決） |
+| **unknowns** | 分類不能な項目数 |
+
+### RG0 証拠網羅ゲート（R0 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 通過条件 | 対象モジュール coverage 100%、依存グラフ完成、DB スキーマ取得済み、unknowns が全て cataloged |
+| 判定者 | TL |
+| Fail | 未スキャン領域の追加調査 |
+
+### RG1 契約検証ゲート（R1 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 通過条件 | API/DB/型の抽出 coverage ≥ 90%、confidence high ≥ 80%、characterization tests で主要パス検証済み、contradictions 0（未解決） |
+| 判定者 | TL（Codex 5.4） |
+| Fail | confidence low の契約に追加テスト / 再抽出 |
+
+### RG2 設計検証ゲート（R2 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 通過条件 | アーキテクチャ復元完了、ADR 仮説の confidence high ≥ 70%、contradictions 0（未解決）、adversarial-review 実施済み（M/L） |
+| 判定者 | TL（Codex 5.4）+ adversarial-review |
+| Fail | 矛盾する ADR の追加調査 / 仮説修正 |
+
+### RG3 仮説検証ゲート（R3 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 通過条件 | PO 検証済み仮説率 ≥ 80%、unknown 分類の全項目に調査タスク割当済み、accidental/deprecated の全項目に対応方針決定済み |
+| 判定者 | PM + PO + TL |
+| Fail | PO 追加ヒアリング / unknown の調査タスク実行 |
+
+### RG4 は独立ゲートではない
+
+R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 = gap_register の全項目に routing 割当 + 優先順位合意で、Forward フローの該当レイヤー（L1/L2/L3/L4）に直接接続する。
 
 ## 再入規則（横断）
 
