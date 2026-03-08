@@ -385,6 +385,10 @@ TL: 影響度を分類（P0/P1/P2/P3）
 | **要件の曖昧さ発見** | スコープ問題 | PO に確認（L1 に戻る可能性） |
 | **セキュリティ・個人情報** | 必須確認 | PO に必ず確認 |
 
+## 凍結後変更管理（CC）・後半差戻し（LPR）
+
+G4 pass 後の要件修正（CC-S/M/L）および G5 pass 後の差戻し分類（LPR R0-R3）の詳細は `gate-policy.md §CC` `§LPR` `§プロトコル棲み分け` を参照。
+
 ## ゲート実装方法（実行例）
 
 PM が TL に検証を依頼 + スコープ管理：
@@ -438,6 +442,7 @@ fi
 | L8 | 受入判定 | `docs/acceptance/` | `YYYY-MM-DD-acceptance.md` |
 | ミニレトロ | 振り返り記録 | `docs/retro/` | `YYYY-MM-DD-{milestone}-retro.md` |
 | 事前調査 | 調査レポート | `docs/research/` | `YYYY-MM-DD-{topic}.md` |
+| G4 | 負債台帳 | `docs/debt/` | `YYYY-MM-DD-debt-register.md` |
 
 ### フォーマット例: L2 設計書
 
