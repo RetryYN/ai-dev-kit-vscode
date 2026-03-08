@@ -96,16 +96,31 @@ skills/
 
 ## カスタマイズ
 
-`~/.claude/CLAUDE.md`（Claude Code）や `~/.codex/AGENTS.md`（Codex CLI）に個人設定を追加できる。
-プロジェクト固有の設定は各プロジェクトの `CLAUDE.md` / `CLAUDE.local.md` に書く。
+| ツール | グローバル設定 | プロジェクト固有 |
+|--------|--------------|----------------|
+| Claude Code | `~/.claude/CLAUDE.md` | `CLAUDE.md` / `CLAUDE.local.md` |
+| Codex CLI | `~/.codex/AGENTS.md` + `~/.codex/config.toml` | プロジェクトルートの `AGENTS.md` |
+
+Codex CLI のモデル・推論設定は `~/.codex/config.toml` で管理：
+
+```toml
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+```
 
 ## Remote SSH / 複数マシン
 
-`~/.claude/CLAUDE.md` 内のパスは `~` ベースなので、各マシンで同じ手順を実行すれば動く：
+パスは `~` ベースなので、各マシンで同じ手順を実行すれば動く：
 
 ```bash
 git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
+
+# Claude Code
 # ~/.claude/CLAUDE.md をコピー or dotfiles で同期
+
+# Codex CLI
+bash ~/ai-dev-kit-vscode/helix/sync-codex-skills.sh
+cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
 ```
 
 ## ライセンス
