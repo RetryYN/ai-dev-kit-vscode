@@ -1,6 +1,6 @@
 ---
 name: verification
-description: L1〜V-L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供（V-L3〜V-L6は本スキル固有番号）
+description: L1〜V-L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供（V-L3〜V-L6は本スキル固有番号）。Reverse モード（RG0-RG3 + RGC）の検証基盤を含む
 metadata:
   helix_layer: all
   triggers:
@@ -8,6 +8,8 @@ metadata:
     - 実装完了時
     - デプロイ前
     - 品質ゲート通過時
+    - Reverse ゲート（RG0-RG3）通過時
+    - RGC Gap 閉塞検証時
   verification:
     - "L1-L2, L3_api, V-L3〜V-L6 全レイヤー status: pass"
     - "L1: 要件カバレッジ 100% (functional/non-functional)"
@@ -17,6 +19,11 @@ metadata:
     - "V-L4: 脆弱性 0件 (critical/high)"
     - "V-L5: カバレッジ ≥70% (unit), クリティカルパス 100%"
     - "V-L6: SLO定義 3種以上, アラートルール ≥1件"
+    - "RG0: モジュール coverage 100%, unknowns cataloged"
+    - "RG1: 契約 coverage ≥90%, confidence high ≥80%, contradictions 0"
+    - "RG2: ADR confidence high ≥70%, contradictions 0, adversarial-review 済"
+    - "RG3: PO 検証済み仮説率 ≥80%, unknown 全件タスク割当済み"
+    - "RGC: gap_register 全件 status 付与, 昇格判定完了"
 compatibility:
   claude: true
   codex: true
@@ -330,6 +337,40 @@ verification_report:
       observability: "complete"
       alerts: "configured"
 
+  # Reverse モード（該当時のみ追加）
+  reverse_layers:
+    RG0:
+      status: "pass"
+      coverage: "100%"
+      unknowns_cataloged: true
+      issues: []
+    RG1:
+      status: "pass"
+      api_coverage: "92%"
+      db_coverage: "95%"
+      type_coverage: "88%"
+      confidence_high_rate: "83%"
+      contradictions: 0
+      issues: []
+    RG2:
+      status: "pass"
+      adr_confidence_high_rate: "75%"
+      contradictions: 0
+      adversarial_review: "completed"
+      issues: []
+    RG3:
+      status: "pass"
+      po_verified_rate: "85%"
+      unknown_tasks_assigned: true
+      issues: []
+    RGC:
+      status: "pass"
+      gap_closed: 38
+      gap_partial: 3
+      gap_open: 1
+      po_approval: "PO-approved"
+      issues: []
+
   overall: "pass"
   notes: "Ready for production deployment"
 ```
@@ -475,6 +516,178 @@ L7             デプロイ ←──→ 本番検証
 ```
 
 → 詳細は `references/verification-cycle.md` を参照
+
+---
+
+## 15. Reverse モード検証（HELIX Reverse 対応）
+
+Forward 検証が「**仕様に対する実装の適合**」を判定するのに対し、Reverse 検証は「**証拠に対する仮説の十分性**」を判定する。
+
+→ Reverse フロー詳細: `workflow/reverse-analysis/SKILL.md`
+→ Reverse ゲート定義: `tools/ai-coding/references/gate-policy.md §Reverse ゲート`
+
+### 15.1 Forward ↔ Reverse 検証の対比
+
+| | Forward 検証 | Reverse 検証 |
+|--|-------------|-------------|
+| 問い | 「実装は仕様を満たすか？」 | 「証拠は仮説を支持するか？」 |
+| 判定基準 | 一致率・カバレッジ・pass/fail | **coverage, confidence, contradictions, unknowns** |
+| 不合格時 | 実装修正 → 再検証 | 追加証拠収集 or 仮説修正 → 再検証 |
+| 完了条件 | 全レイヤー pass | 仮説の反証可能性が確保され、unknowns が管理下 |
+
+### 15.2 Reverse ゲート検証項目
+
+#### RG0 証拠網羅検証
+
+```
+□ evidence_map にスコープ内全モジュール含有
+□ 依存グラフ（内部 + 外部）完成
+□ DB スキーマ取得済み（テーブル・インデックス・制約）
+□ unknowns が全て cataloged（未分析でも記録済み）
+□ ファイルツリーで未スキャン領域 = 0
+```
+
+```yaml
+rg0_verification:
+  status: pass/fail
+  timestamp: "ISO8601"
+  coverage: "100%"  # モジュール coverage
+  unknowns_cataloged: true
+  issues: []
+```
+
+#### RG1 契約検証
+
+```
+□ API エンドポイント抽出 coverage ≥ 90%
+□ DB スキーマ抽出 coverage ≥ 90%
+□ 型マッピング（FE↔BE↔DB）抽出 coverage ≥ 90%
+□ confidence high の契約 ≥ 80%
+□ characterization tests で主要パス検証済み
+□ contradictions 0（未解決）
+□ 契約抽出と検証設計が分離されている（混在禁止）
+```
+
+```yaml
+rg1_verification:
+  status: pass/fail
+  timestamp: "ISO8601"
+  api_coverage: "92%"
+  db_coverage: "95%"
+  type_coverage: "88%"
+  confidence_high_rate: "83%"
+  contradictions: 0
+  issues: []
+```
+
+#### RG2 設計検証
+
+```
+□ アーキテクチャスタイル特定済み
+□ コンポーネント境界・依存関係グラフ完成
+□ ADR 仮説の confidence high ≥ 70%
+□ contradictions 0（未解決）
+□ adversarial-review 実施済み（M/L サイジング時）
+□ パターン一貫性分析完了（consistent / inconsistent 分類）
+```
+
+```yaml
+rg2_verification:
+  status: pass/fail
+  timestamp: "ISO8601"
+  architecture_identified: true
+  adr_confidence_high_rate: "75%"
+  contradictions: 0
+  adversarial_review: completed  # or skipped_s_sizing
+  issues: []
+```
+
+#### RG3 仮説検証
+
+```
+□ PO 検証済み仮説率 ≥ 80%
+□ 全仮説に Intended / Accidental / Unknown / Deprecated 分類済み
+□ unknown 分類の全項目に調査タスク割当済み
+□ accidental / deprecated の全項目に対応方針決定済み
+□ PO が判断できない項目はエスカレーション済み
+```
+
+```yaml
+rg3_verification:
+  status: pass/fail
+  timestamp: "ISO8601"
+  po_verified_rate: "85%"
+  classification:
+    intended: 28
+    accidental: 3
+    unknown: 2
+    deprecated: 2
+  unknown_tasks_assigned: true
+  issues: []
+```
+
+### 15.3 RGC Gap 閉塞検証
+
+Forward HELIX 完了後に実施する。gap_register の各項目が閉じたことを検証する。
+
+```
+□ gap_register 全項目に closed / partial / open ステータス付与
+□ closed 項目に evidence（テスト結果、コード差分等）記録済み
+□ Behavioral Defect: テスト追加 + pass
+□ Contract Drift: R1 characterization tests 再実行で差分 0
+□ Architectural Debt: R2 パターン分析再実行で violation 0
+□ Requirements Gap: R3 PO 検証で intended 確認
+□ Security/Compliance: セキュリティゲート準拠
+□ 仮説成果物の昇格判定完了（intent_hypotheses は PO 承認必須）
+□ 残存 gap → debt_register に移管済み
+□ 新規発見 gap → gap_register に追記 + routing 済み
+```
+
+```yaml
+rgc_verification:
+  status: pass/fail
+  timestamp: "ISO8601"
+  gap_summary:
+    total: 42
+    closed: 38
+    partial: 3
+    open: 1
+  artifact_promotion:
+    observed_contracts: promoted  # → L3 API 契約正本（RG1 pass + gap 閉塞）
+    as_is_design: promoted        # → L2 設計書正本（RG2 pass + gap 閉塞）
+    intent_hypotheses: promoted   # → L1 要件リスト正本（RG3 pass + PO 承認）
+    po_approval: "PO-approved"    # intent_hypotheses 昇格の必須承認
+  remaining_gaps:
+    debt_register: 3
+    next_iteration: 1
+  issues: []
+```
+
+### 15.4 Reverse 検証フロー
+
+> **フェーズスキップ時**: Reverse サイジングにより R2/R3 を skip する場合、対応する RG2/RG3 検証も N/A となる。
+> 詳細: `workflow/reverse-analysis/SKILL.md §フェーズスキップ決定木`
+
+```
+R0 完了（フルフロー時。skip 時は該当ゲートを N/A で記録）
+  ├─→ RG0 検証 ──→ fail → 未スキャン領域の追加調査
+  │     │
+  │     pass
+  │     ↓
+  ├─→ RG1 検証 ──→ fail → confidence low の追加テスト / 再抽出
+  │     │
+  │     pass
+  │     ↓
+  ├─→ RG2 検証 ──→ fail → 矛盾 ADR の追加調査 / 仮説修正
+  │     │
+  │     pass
+  │     ↓
+  └─→ RG3 検証 ──→ fail → PO 追加ヒアリング / unknown 調査
+        │
+        pass
+        ↓
+      R4 Gap & Routing → Forward HELIX → RGC 検証
+```
 
 ---
 
