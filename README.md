@@ -1,7 +1,7 @@
 # ai-dev-kit-vscode
 
 Claude Code / Codex CLI 向けの HELIX スキルフレームワーク。
-41 のスキルが全プロジェクトで使えるようになる。
+42 のスキルが全プロジェクトで使えるようになる。
 
 ## セットアップ
 
@@ -47,7 +47,7 @@ Claude Code:
 
 Codex CLI:
   ~/.codex/AGENTS.md            <- HELIX_CORE.md を Read 指示
-  ~/.codex/skills/helix-*/      <- 41 スキルのシンボリックリンク
+  ~/.codex/skills/helix-*/      <- 42 スキルのシンボリックリンク
     └── SKILL.md frontmatter    <- name + description で自動発見
 ```
 
@@ -66,11 +66,11 @@ Phase 3: 仕上げ  L5(Visual) → L6(検証) → L7(デプロイ) → L8(受入
 
 詳細は [SKILL_MAP.md](skills/SKILL_MAP.md) を参照。
 
-## スキル一覧（41 スキル）
+## スキル一覧（42 スキル）
 
 | カテゴリ | スキル |
 |---------|--------|
-| workflow/ (17) | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory |
+| workflow/ (18) | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis |
 | common/ (12) | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
 | project/ (3) | ui, api, db |
 | advanced/ (6) | tech-selection, i18n, external-api, ai-integration, migration, legacy |
@@ -87,7 +87,7 @@ helix/
 skills/
 ├── SKILL_MAP.md              <- エントリポイント（@import 対象）
 ├── common/                   <- 汎用スキル（12）
-├── workflow/                  <- ワークフロースキル（17）
+├── workflow/                  <- ワークフロースキル（18）
 ├── project/                   <- プロジェクト固有スキル（3）
 ├── advanced/                  <- 高度なスキル（6）
 ├── tools/                     <- ツール連携スキル（2）

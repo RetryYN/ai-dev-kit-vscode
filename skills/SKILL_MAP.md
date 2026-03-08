@@ -121,5 +121,5 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 
 1. スキル追加時: SKILL_MAP.md を更新。500行超 → references/ に分割
 2. 重複防止: 追加前に既存スキルとの重複確認
-3. 廃止済み: architecture / orchestrator / codex / vscode-plugins → 使用禁止。検出: `rg -wn "orchestrator|architecture|codex|vscode-plugins" skills/`
+3. 廃止済みスキル名: architecture / orchestrator / codex / vscode-plugins → **スキル名としての参照**禁止（ツール名 `codex review`・メタデータ `codex: true`・YAML キー `architecture:` は正当な用法）。検出: `rg -wn "orchestrator" skills/ --glob '!SKILL_MAP.md'`
 4. metadata.helix_layer 必須。description は具体的用途を記載（「〇〇関連」禁止）
