@@ -151,7 +151,7 @@ src/
 
 #### 強制フロー（ゲートは順番固定）
 - 実装作業は **実装.1 → .2 → .3 → .4 → .5** の順に進める（**スキップ不可 / 先送り不可**）。
-- 各ゲート完了時は、`passed | failed | blocked | interrupted` を明示して状態を返す（フォーマット詳細は `references/implementation-gate.md`）。
+- 各ゲート完了時は、ゲート状態（gate_status）として `passed | failed | blocked | interrupted` を明示して返す（フォーマット詳細は `references/implementation-gate.md`）。
 - `passed | failed | blocked | interrupted` は **ゲート判定の status** であり、工程表タスクの status（オーケストレーター管理）と混同しない。
 - `failed` は原則「同一ゲート内で修正して再判定」。`blocked` は「前提不足/仕様不明」として停止し、オーケストレーターへ報告する（配送・ステータス運用は `references/orchestration-workflow.md`）。
 - `interrupted` は「前提崩壊/範囲再定義（IIP発動）」。**リトライカウントに含めない**。影響度分類（P0〜P3）は `references/implementation-gate.md` の IIP セクションに従う。

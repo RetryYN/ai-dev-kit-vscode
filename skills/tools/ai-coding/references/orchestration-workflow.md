@@ -71,7 +71,7 @@ expected_output:
 
 ```yaml
 task_id: "T-001"
-status: "completed"                 # completed | failed | blocked | partial | interrupted（IIP発動: 前提崩壊/範囲再定義）
+task_status: "completed"            # task_status: completed | failed | blocked | partial | interrupted（IIP発動: 前提崩壊/範囲再定義）
 quality_achieved: "Lv4.5"
 artifacts:
   - "src/auth/login.ts"
@@ -82,11 +82,11 @@ decisions:
 issues: []                          # 問題がある場合
 ```
 
-### ブロッカー報告（status: blocked の場合）
+### ブロッカー報告（task_status: blocked の場合）
 
 ```yaml
 task_id: "T-003"
-status: "blocked"
+task_status: "blocked"
 blocker:
   type: "dependency"                # dependency | unclear_spec | tool_limitation
   description: "外部API仕様が未確定"
@@ -94,11 +94,11 @@ blocker:
   suggested_action: "T-005完了後に再開"
 ```
 
-### 途中完了報告（status: partial の場合）
+### 途中完了報告（task_status: partial の場合）
 
 ```yaml
 task_id: "T-002"
-status: "partial"
+task_status: "partial"
 artifacts:
   - "src/auth/login.ts"            # 完了分の成果物
 remaining_tasks:

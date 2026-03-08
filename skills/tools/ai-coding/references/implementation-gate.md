@@ -226,7 +226,7 @@
 
 ```yaml
 gate: "実装.3"
-status: "passed"          # passed | failed | blocked | interrupted
+gate_status: "passed"     # gate_status: passed | failed | blocked | interrupted
 summary: "何を確認し、何がOKで、次に何をするか"
 notes:
   - "仮定: ..."
