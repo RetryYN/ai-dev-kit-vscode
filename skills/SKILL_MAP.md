@@ -39,7 +39,7 @@ L5  Visual Refinement（DESIGNER.md 駆動）
   ↓ G5   デザイン凍結ゲート     [TL+PM]    UIなしskip可
   ↓ → verification, testing, quality-lv5
 L6  統合検証（E2E・性能・セキュリティ・運用準備）
-  ↓ G6   RC判定ゲート          [PM+TL+PO]  ★セキュリティ③
+  ↓ G6   RC判定ゲート（Release Candidate）  [PM+TL+PO]  ★セキュリティ③
   ↓ → deploy, infrastructure, observability-sre
 L7  デプロイ（staging → 本番 → watch）
   ↓ G7   安定性ゲート          [自動/PM]    ★セキュリティ④

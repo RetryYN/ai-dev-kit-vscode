@@ -351,3 +351,60 @@ Opus はフェーズ完了時にこの仕様で出力を検証し、次フェー
       evidence: "根拠"
 完了条件: 全 REQ が pass
 ```
+
+## Reverse ディスパッチフロー
+
+Forward の L1→L8 とは逆方向。詳細: `workflow/reverse-analysis/SKILL.md`
+
+```
+Opus (Orchestrator) — Reverse モード
+  │
+  ├─ 1. Reverse サイジング（5軸）→ S/M/L 判定
+  │     - フェーズスキップ決定木に従い R2/R3 skip を判定
+  │
+  ├─ 2. R0: Evidence Acquisition
+  │     - Codex 5.2 にコード精読・スキャンを配送
+  │     - Haiku 4.5 に外部依存・ライブラリ調査を配送
+  │     → RG0 ゲート判定（TL）
+  │
+  ├─ 3. R1: Observed Contracts
+  │     - Codex 5.3 に契約抽出を配送
+  │     - Codex 5.4 にレビュー + RG1 判定を配送
+  │     → RG1 ゲート判定（TL）
+  │
+  ├─ 4. R2: As-Is Design（S skip 可）
+  │     - Codex 5.4 に設計復元 + adversarial-review を配送
+  │     → RG2 ゲート判定（TL + adversarial-review）
+  │
+  ├─ 5. R3: Intent Hypotheses（S/M-PO明確 skip 可）
+  │     - PM が仮説構造化、PO に提示
+  │     - TL が accidental vs intended の技術的仕分け
+  │     → RG3 ゲート判定（PM + PO + TL）
+  │
+  ├─ 6. R4: Gap & Routing
+  │     - PM + TL が gap_register を集約
+  │     - Gap → Forward routing matrix で接続先決定
+  │     → Forward HELIX の該当レイヤーに配送
+  │
+  └─ 7. RGC: Gap Closure（Forward 完了後）
+        - TL が gap 閉塞の技術検証
+        - PM が成果物昇格判定
+        - PO が intent_hypotheses の昇格承認
+        → 完了 or 残存 gap を次イテレーションへ
+```
+
+### Reverse I/O 仕様
+
+各層の入出力は `workflow/reverse-analysis/SKILL.md` の成果物 YAML を参照。
+gap_register の処理フロー:
+
+```yaml
+# R4 出力 → Forward 入力への変換
+gap_routing:
+  - gap_id: "GAP-001"
+    routing: L4        # Forward の接続先
+    forward_input:     # Forward L4 のタスクとして配送
+      task_description: "users.legacy_role カラム削除"
+      reference_docs: ["docs/reverse/YYYY-MM-DD-gap-register.md"]
+      sizing: S
+```

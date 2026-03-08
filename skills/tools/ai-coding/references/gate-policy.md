@@ -341,6 +341,28 @@ Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに
 
 R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 = gap_register の全項目に routing 割当 + 優先順位合意で、Forward フローの該当レイヤー（L1/L2/L3/L4）に直接接続する。
 
+### RGC Gap Closure（Reverse Gap Closure — Forward 完了後）
+
+> Forward の「G6 RC 判定ゲート」（RC = Release Candidate）とは別概念。RGC = Reverse Gap Closure。
+
+| 項目 | 内容 |
+|------|------|
+| 実行タイミング | Forward HELIX 完了（L6/L8 pass）後 |
+| 通過条件 | gap_register 全項目に closed/partial/open ステータス付与、closed 項目に evidence 記録済み、仮説成果物の昇格判定完了（intent_hypotheses は PO 承認必須） |
+| 判定者 | TL（技術検証）+ PM（昇格判定）+ PO（intent_hypotheses 承認） |
+| Fail | 未閉塞 gap の追加修正 → Forward 再実行 → RGC 再判定 |
+
+**RGC 3 段階:**
+
+| 段階 | 内容 |
+|------|------|
+| RGC-1 | Gap 閉塞検証（gap 種別ごとの検証手段で確認） |
+| RGC-2 | 成果物昇格（observed_contracts → L3 正本、as_is_design → L2 正本、intent_hypotheses → L1 正本） |
+| RGC-3 | 残存 Gap 判定（closed → 完了 / partial → debt_register 移管 / 新規 → 次イテレーション routing） |
+
+詳細フロー: `workflow/reverse-analysis/SKILL.md §RGC`
+検証チェックリスト: `workflow/verification/SKILL.md §15.3`
+
 ## 再入規則（横断）
 
 | 条件 | アクション |

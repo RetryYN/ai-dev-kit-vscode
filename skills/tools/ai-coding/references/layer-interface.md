@@ -614,6 +614,37 @@ PM: 工程表再作成
 
 **差し戻し累積カウント**: PM がフェーズ間差し戻しの回数を追跡する。カウントはプロジェクト開始時にゼロ、上位フェーズへのエスカレーション成功時にリセットしない（累積管理）。
 
+## Reverse 階層間コントラクト
+
+Forward（L1→L8）とは逆方向のフロー。詳細: `workflow/reverse-analysis/SKILL.md`
+
+### Reverse 層間遷移
+
+| 遷移 | Input | Output | Gate | 担当 |
+|------|-------|--------|------|------|
+| → R0 | スコープ定義 + アクセス権限 | evidence_map | RG0 | Codex 5.2 + Haiku 4.5 |
+| R0 → R1 | evidence_map | observed_contracts + r1_gaps | RG1 | Codex 5.3 + Codex 5.4 |
+| R1 → R2 | observed_contracts | as_is_design + r2_gaps | RG2 | Codex 5.4 |
+| R2 → R3 | as_is_design | intent_hypotheses + r3_gaps | RG3 | PM + PO + TL |
+| R3 → R4 | 全層の gaps | gap_register + remediation_plan | — | PM + TL |
+| R4 → Forward | gap_register | Forward L1/L2/L3/L4 の入力 | Forward ゲート | 通常 Forward フロー |
+| Forward → RGC | Forward 完了 | gap_closure + artifact_promotion | RGC | TL + PM + PO |
+
+### Reverse 成果物の保存場所
+
+| 成果物 | 保存場所 | 命名規則 |
+|--------|----------|----------|
+| evidence_map | `docs/reverse/` | `YYYY-MM-DD-evidence-map.md` |
+| observed_contracts | `docs/reverse/` | `YYYY-MM-DD-observed-contracts.md` |
+| as_is_design | `docs/reverse/` | `YYYY-MM-DD-as-is-design.md` |
+| intent_hypotheses | `docs/reverse/` | `YYYY-MM-DD-intent-hypotheses.md` |
+| gap_register | `docs/reverse/` | `YYYY-MM-DD-gap-register.md` |
+| gap_closure（RGC） | `docs/reverse/` | `YYYY-MM-DD-gap-closure.md` |
+
+### Reverse ゲート定義
+
+ゲート通過条件・判定者・Fail 時のアクション → `gate-policy.md §Reverse ゲート` を参照。
+
 ## 参考リンク
 
 - `skills/SKILL_MAP.md`（階層一覧）
