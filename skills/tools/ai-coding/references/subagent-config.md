@@ -15,7 +15,7 @@
 | DB操作 | db, performance | スキーマ設計、クエリ最適化 |
 | テスト | testing, quality-lv5 | テスト設計 |
 | 検証 | verification, code-review | 検証ロジック、レビュー観点 |
-| 事前調査 | ai-coding §8 | 設計・実装前の先行事例調査（Haiku 4.5 固定） |
+| 事前調査 | ai-coding §7 | 設計・実装前の先行事例調査（Haiku 4.5 固定） |
 
 ## ツール制限テーブル
 
@@ -56,13 +56,13 @@ Task tool 経由の Claude サブエージェント（Sonnet / Haiku）に適用
 | テスト, test, spec | testing |
 | 検証, verify, validation | verification |
 | エラー, error, 例外 | error-fix |
-| 調査, research, 事前調査, 先行事例 | ai-coding §8 |
+| 調査, research, 事前調査, 先行事例 | ai-coding §7 |
 
 推論精度が低い場合(キーワード一致のみ)、設計書の該当セクションから追加推論を行う。
 
 ### 事前調査タスクの自動付与条件
 
-G1R / G3 / 実装.1 ゲート時に、`ai-coding/SKILL.md §8` の強制条件（単一ソース）に基づき「事前調査」タスクを自動付与する。
+G1R / G3 / 実装.1 ゲート時に、`ai-coding/SKILL.md §7` の強制条件（単一ソース）に基づき「事前調査」タスクを自動付与する。
 MUST 条件該当 → Haiku 4.5 に自動付与。SHOULD → PM 判断。不要 → 付与しない。
 
 ---
@@ -79,7 +79,7 @@ MUST 条件該当 → Haiku 4.5 に自動付与。SHOULD → PM 判断。不要 
 | infra | インフラ・環境変更 | CI/CD、環境変数 |
 | docs | ドキュメント変更 | README更新、API仕様書 |
 | security | セキュリティ関連 | 認証変更、脆弱性対応 |
-| research | 事前調査（ai-coding §8 の強制条件該当時に自動付与） | 外部API調査、ライブラリ選定調査 |
+| research | 事前調査（ai-coding §7 の強制条件該当時に自動付与） | 外部API調査、ライブラリ選定調査 |
 
 ## 種別×フェーズのスキルマトリクス
 
