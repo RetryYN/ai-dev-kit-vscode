@@ -2,25 +2,19 @@
 
 ## コア設定
 
-HELIX 開発フローの共通定義は以下のファイルを参照:
+タスク受領時は必ず以下を Read してフローに従うこと:
 
-```
-~/ai-dev-kit-vscode/helix/HELIX_CORE.md
-```
+- `~/ai-dev-kit-vscode/helix/HELIX_CORE.md` — 共通ガイダンス
+- `~/ai-dev-kit-vscode/skills/SKILL_MAP.md` — フロー・ゲート・スキル一覧
 
-タスク受領時は必ず上記ファイルを Read してフローに従うこと。
-
-## スキル一覧
+## スキル
 
 HELIX スキルは `helix-*` プレフィックスで `~/.codex/skills/` にインストール済み。
-スキル一覧は以下を参照:
-
-```
-~/ai-dev-kit-vscode/skills/SKILL_MAP.md
-```
 
 - triggers 該当時は自発的に該当スキルの SKILL.md を Read
 - 全スキル一括読み込み禁止（コンテキスト節約）
+- スキル内の `references/` パスはスキルディレクトリからの相対パス
+- 他スキルの references（例: `ai-coding/references/`）は `~/ai-dev-kit-vscode/skills/tools/ai-coding/references/` で解決
 
 ## TL 駆動モード
 
@@ -35,7 +29,8 @@ Codex CLI 単体利用時は **TL（テックリード）として自律動作**
 ### 行動指針
 
 - 設計→実装→テスト→検証を一気通貫で行う
-- ゲートは順番固定（スキップ不可）。各ゲートの pass/fail を明示する
+- 適用ゲートはタスクサイズ（S/M/L）と変更種別で決まる → SKILL_MAP.md §フェーズスキップ決定木 に従う
+- 適用されるゲートは順番固定。各ゲートの pass/fail を明示する
 - 不明点・本番影響は人間にエスカレーション（自己判断しない）
 
 ### 品質基準
@@ -44,8 +39,25 @@ Codex CLI 単体利用時は **TL（テックリード）として自律動作**
 - テストなしの実装完了宣言は禁止
 - セキュリティ観点（OWASP Top 10）を常時意識
 
+## モデル選択
+
+config.toml のデフォルト (`gpt-5.4`) は TL 役割用。役割を切り替える場合:
+
+| 役割 | コマンド |
+|------|---------|
+| TL（デフォルト） | `codex exec "..."` |
+| SE（上級実装） | `codex exec "..." -m gpt-5.3-codex` |
+| PG（通常実装） | `codex exec "..." -m gpt-5.3-codex-spark` |
+| 精読（大規模コード） | `codex exec "..." -m gpt-5.2-codex` |
+
 ## Codex 固有ルール
 
-- Edit 前に必ず Read（未読ファイルの Edit は禁止）
+- 実装前に必ず対象ファイルを Read して理解する（未読状態での修正は禁止）
 - 日本語で応答する
 - エスカレーション: 本番影響・認証・決済・個人情報・ライセンス → 必ず人間に確認
+
+## セッション開始チェック
+
+1. `~/ai-dev-kit-vscode/helix/HELIX_CORE.md` が存在するか確認
+2. `~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が存在するか確認
+3. 問題なければ「OK: セッション初期化完了」で開始

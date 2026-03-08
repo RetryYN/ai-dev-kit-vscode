@@ -4,8 +4,8 @@
 
 ## 正本宣言
 
-- **正本**: 各ツールの設定ファイル + SKILL_MAP.md + 各 SKILL.md
-- **手順正本**: `ai-coding/references/workflow-core.md`（ディスパッチ・並列・ADR）+ `ai-coding/references/gate-policy.md`（ゲート・遷移）
+- **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（CLAUDE.md / AGENTS.md）
+- **手順正本**: `tools/ai-coding/references/workflow-core.md`（ディスパッチ・並列・ADR）+ `tools/ai-coding/references/gate-policy.md`（ゲート・遷移）
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
 ---
@@ -23,11 +23,11 @@
 ## タスク受領
 
 1. サイジング S/M/L（SKILL_MAP.md §タスクサイジング）
-2. フェーズスキップ決定（§フェーズスキップ決定木）
-3. ゲート判定（`ai-coding/references/gate-policy.md §ゲート一覧`）
+2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
+3. ゲート判定（`tools/ai-coding/references/gate-policy.md §ゲート一覧`）
 4. 該当スキルを Read（フロー図の `→` 右のスキル名を参照）
 5. 実行開始
-6. ミニレトロ: G2/G4/L8 通過時（`ai-coding/references/gate-policy.md §ミニレトロ`）
+6. ミニレトロ: G2/G4/L8 通過時（`tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 
 ## 原則
 

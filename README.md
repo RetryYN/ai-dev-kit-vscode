@@ -34,7 +34,8 @@ cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
 
 ### 共通設定
 
-`helix/HELIX_CORE.md` に Claude Code / Codex CLI 共通のフロー定義（L1-L8、ゲート、モデル割当）を配置。
+`helix/HELIX_CORE.md` に Claude Code / Codex CLI 共通のガイダンス（タスク受領・スキル・原則）を配置。
+L1-L8 フロー・ゲートは `SKILL_MAP.md`、モデル割当は各ツール設定に記載。
 ツール固有の設定は `~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md` にそれぞれ記載。
 
 ## しくみ

@@ -28,8 +28,8 @@ compatibility:
 ## HELIX フェーズ位置づけ
 
 - **HELIX フェーズ**: L7 デプロイ
-- **ゲート定義**: `ai-coding/references/layer-interface.md §L7 内部ゲート` を参照（L7.1 準備 / L7.2 実行 / L7.3 安定性）
-- **I/O 仕様**: `ai-coding/references/orchestration-workflow.md §L7: デプロイ` を参照
+- **ゲート定義**: `tools/ai-coding/references/layer-interface.md §L7 内部ゲート` を参照（L7.1 準備 / L7.2 実行 / L7.3 安定性）
+- **I/O 仕様**: `tools/ai-coding/references/orchestration-workflow.md §L7: デプロイ` を参照
 - **SLO/パフォーマンス基準**: `observability-sre/SKILL.md §7 劣化レベル表`（唯一の閾値権威源。本スキル内で重複定義しない）
 - **前提**: L6 統合検証完了（V-L5 テスト検証 pass + V-L6 運用検証 pass）
 

@@ -201,7 +201,7 @@ Level 4: デバッグ（オンコール向け）
 >
 > **L7 デプロイフェーズでの参照**: L7.3（本番安定性ゲート）はこの劣化レベル表を**唯一の合否基準**として使用する。
 > 15分の観測ウィンドウ（Canary は30分）で劣化レベル `none` を維持すれば L7.3 pass。
-> 詳細は `ai-coding/references/layer-interface.md §L7.3` を参照。
+> 詳細は `tools/ai-coding/references/layer-interface.md §L7.3` を参照。
 
 ### SLOメトリクス
 

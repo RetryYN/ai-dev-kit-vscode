@@ -165,8 +165,8 @@ src/
 ## ワークフロー
 - タスクサイジング: SKILL_MAP.md §タスクサイジング 参照
 - フェーズスキップ: SKILL_MAP.md §フェーズスキップ決定木 参照
-- ディスパッチ: ai-coding/references/orchestration-workflow.md 参照
-- サブエージェント: ai-coding/references/subagent-config.md 参照
+- ディスパッチ: tools/ai-coding/references/orchestration-workflow.md 参照
+- サブエージェント: tools/ai-coding/references/subagent-config.md 参照
 ```
 
 ### 1.4 Codex CLI（AGENTS.md）差分

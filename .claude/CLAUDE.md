@@ -11,7 +11,7 @@
 
 **常時すべて委譲**。例外は MCP検証などツール動作確認と**フロント（デザイン含む）設計**。
 
-> 正本: `ai-coding/references/workflow-core.md §モデル割当テーブル`
+> 正本: `tools/ai-coding/references/workflow-core.md §モデル割当テーブル`
 
 | 委譲先 | 役割 | 担当 |
 |--------|------|------|
