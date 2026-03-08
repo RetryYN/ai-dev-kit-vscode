@@ -1,9 +1,11 @@
 # ai-dev-kit-vscode
 
 Claude Code / Codex CLI 向けの HELIX スキルフレームワーク。
-`~/.claude/CLAUDE.md` に 1 行追加するだけで、41 のスキルが全プロジェクトで使えるようになる。
+41 のスキルが全プロジェクトで使えるようになる。
 
 ## セットアップ
+
+### Claude Code
 
 ```bash
 # 1. クローン
@@ -11,22 +13,44 @@ git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
 
 # 2. グローバル CLAUDE.md に追加
 mkdir -p ~/.claude
-echo '@~/ai-dev-kit-vscode/skills/SKILL_MAP.md' >> ~/.claude/CLAUDE.md
+cat >> ~/.claude/CLAUDE.md << 'EOF'
+@~/ai-dev-kit-vscode/skills/SKILL_MAP.md
+@~/ai-dev-kit-vscode/helix/HELIX_CORE.md
+EOF
 ```
 
-これで次回の Claude Code セッションから有効になる。
+### Codex CLI
+
+```bash
+# 1. クローン（済みならスキップ）
+git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
+
+# 2. スキルをシンボリックリンク
+bash ~/ai-dev-kit-vscode/helix/sync-codex-skills.sh
+
+# 3. AGENTS.md をコピー
+cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
+```
+
+### 共通設定
+
+`helix/HELIX_CORE.md` に Claude Code / Codex CLI 共通のフロー定義（L1-L8、ゲート、モデル割当）を配置。
+ツール固有の設定は `~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md` にそれぞれ記載。
 
 ## しくみ
 
 ```
-~/.claude/CLAUDE.md          <- 全プロジェクト共通（User レベル）
-  └── @import SKILL_MAP.md   <- 41 スキルの一覧（常時読み込み、~100行）
-        └── 各 SKILL.md      <- タスクに応じてオンデマンド Read
+Claude Code:
+  ~/.claude/CLAUDE.md           <- @import で SKILL_MAP.md + HELIX_CORE.md を取り込み
+    └── 各 SKILL.md             <- タスクに応じてオンデマンド Read
+
+Codex CLI:
+  ~/.codex/AGENTS.md            <- HELIX_CORE.md を Read 指示
+  ~/.codex/skills/helix-*/      <- 41 スキルのシンボリックリンク
+    └── SKILL.md frontmatter    <- name + description で自動発見
 ```
 
-- `~/.claude/CLAUDE.md` は Claude Code が**毎セッション自動で読み込む**
-- `@import` で SKILL_MAP.md を取り込み、Claude にスキル一覧を認識させる
-- 個々のスキルは triggers に該当したとき Claude が自発的に Read する
+- 個々のスキルは triggers に該当したとき自発的に Read する
 - 全スキル一括読み込みはしない（コンテキストウィンドウ節約）
 
 ## HELIX 開発フロー
@@ -55,6 +79,10 @@ Phase 3: 仕上げ  L5(Visual) → L6(検証) → L7(デプロイ) → L8(受入
 ## ディレクトリ構造
 
 ```
+helix/
+├── HELIX_CORE.md             <- 共通コア設定（Claude/Codex 共用）
+├── AGENTS.md.example         <- Codex CLI 用テンプレート
+└── sync-codex-skills.sh      <- スキルシンボリックリンク生成
 skills/
 ├── SKILL_MAP.md              <- エントリポイント（@import 対象）
 ├── common/                   <- 汎用スキル（12）
@@ -68,17 +96,8 @@ skills/
 
 ## カスタマイズ
 
-`~/.claude/CLAUDE.md` に個人設定を追加できる：
-
-```markdown
-# Global Settings
-
-@~/ai-dev-kit-vscode/skills/SKILL_MAP.md
-
-- 日本語で応答する
-```
-
-プロジェクト固有の設定は各プロジェクトの `CLAUDE.md` または `CLAUDE.local.md` に書く。
+`~/.claude/CLAUDE.md`（Claude Code）や `~/.codex/AGENTS.md`（Codex CLI）に個人設定を追加できる。
+プロジェクト固有の設定は各プロジェクトの `CLAUDE.md` / `CLAUDE.local.md` に書く。
 
 ## Remote SSH / 複数マシン
 

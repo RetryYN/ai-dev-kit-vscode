@@ -1,0 +1,29 @@
+# Codex CLI — HELIX 開発フロー設定
+
+## コア設定
+
+HELIX 開発フローの共通定義は以下のファイルを参照:
+
+```
+~/ai-dev-kit-vscode/helix/HELIX_CORE.md
+```
+
+タスク受領時は必ず上記ファイルを Read してフローに従うこと。
+
+## スキル一覧
+
+HELIX スキルは `helix-*` プレフィックスで `~/.codex/skills/` にインストール済み。
+スキル一覧は以下を参照:
+
+```
+~/ai-dev-kit-vscode/skills/SKILL_MAP.md
+```
+
+- triggers 該当時は自発的に該当スキルの SKILL.md を Read
+- 全スキル一括読み込み禁止（コンテキスト節約）
+
+## Codex 固有ルール
+
+- Edit 前に必ず Read（未読ファイルの Edit は禁止）
+- 日本語で応答する
+- エスカレーション: 本番影響・認証・決済・個人情報・ライセンス → 必ず人間に確認
