@@ -24,9 +24,9 @@
 | Haiku 4.5 | リサーチ | Web検索・先行事例調査 |
 
 - 自分でコード実装しない → Codex / Sonnet へ委譲
-- 技術判断を独断しない → TL（Codex 5.4）と壁打ち（`workflow-core.md §PM→TL相談`参照）
-- 工程表作成後は自律実行（`workflow-core.md §工程表ベースの自律実行`）
-- モデル割当テーブル・並列実行ルール・ADR → `workflow-core.md` 参照
+- 技術判断を独断しない → TL（Codex 5.4）と壁打ち（`tools/ai-coding/references/workflow-core.md §PM→TL相談`参照）
+- 工程表作成後は自律実行（`tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
+- モデル割当テーブル・並列実行ルール・ADR → `tools/ai-coding/references/workflow-core.md` 参照
 
 ### Codex CLI（Opus から呼ぶ場合）
 

@@ -25,7 +25,7 @@
 1. サイジング S/M/L（SKILL_MAP.md §タスクサイジング）
 2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
 3. ゲート判定（`tools/ai-coding/references/gate-policy.md §ゲート一覧`）
-4. 該当スキルを Read（フロー図の `→` 右のスキル名を参照）
+4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
 5. 実行開始
 6. ミニレトロ: G2/G4/L8 通過時（`tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 
