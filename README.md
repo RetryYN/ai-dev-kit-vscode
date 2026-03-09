@@ -91,7 +91,10 @@ skills/
 ├── project/                   <- プロジェクト固有スキル（3）
 ├── advanced/                  <- 高度なスキル（6）
 ├── tools/                     <- ツール連携スキル（2）
-│   └── ai-coding/references/  <- 手順正本（workflow-core, gate-policy 等）
+│   └── ai-coding/references/  <- 手順正本（9ファイル）
+│       ├── workflow-core.md   <- モデル割当・ディスパッチ・並列実行・ADR
+│       ├── gate-policy.md     <- ゲート定義・遷移・IIP・CC・LPR
+│       └── ...                <- orchestration, layer-interface, implementation-gate 等
 └── integration/               <- マルチエージェント連携（1）
 ```
 

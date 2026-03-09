@@ -36,6 +36,7 @@ mkdir -p ~/.claude
 # Global Settings
 
 @~/ai-dev-kit-vscode/skills/SKILL_MAP.md
+@~/ai-dev-kit-vscode/helix/HELIX_CORE.md
 
 ## 言語
 
@@ -45,13 +46,14 @@ mkdir -p ~/.claude
 
 - スキルは `~/ai-dev-kit-vscode/skills/` に配置
 - SKILL_MAP.md（上記 @import）でスキル一覧を把握する
+- HELIX_CORE.md で共通開発フロー（タスク受領・スキル・原則）を把握する
 - タスクに該当するスキルがあれば、そのスキルの SKILL.md を Read してから作業する
 - スキルの triggers に該当する作業を検出したら、自発的にスキルを読み込む
 - 全スキルを一度に読み込まない（コンテキスト節約）
 ```
 
 **ポイント:**
-- `@~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が HELIX 全 40 スキルへのエントリポイント
+- `@~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が HELIX 全 42 スキルへのエントリポイント
 - 言語や個人的な好みはここに書く（全プロジェクトに適用される）
 
 ### 1.2 ~/.claude/settings.json
@@ -413,7 +415,7 @@ ln -s CLAUDE.md AGENTS.md
 ### 5.3 config.toml
 
 ```toml
-model = "o3"
+model = "gpt-5.4"
 approval_mode = "suggest"
 ```
 
