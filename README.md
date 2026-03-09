@@ -35,6 +35,7 @@ cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
 ### 共通設定
 
 `helix/HELIX_CORE.md` に Claude Code / Codex CLI 共通のガイダンス（タスク受領・スキル・原則）を配置。
+`helix/CODEX_TL_MODE.md` に Codex CLI 単体利用時の TL 主導読み替えルールを配置。
 L1-L8 フロー・ゲートは `SKILL_MAP.md`、モデル割当は各ツール設定に記載。
 ツール固有の設定は `~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md` にそれぞれ記載。
 
@@ -46,7 +47,7 @@ Claude Code:
     └── 各 SKILL.md             <- タスクに応じてオンデマンド Read
 
 Codex CLI:
-  ~/.codex/AGENTS.md            <- HELIX_CORE.md を Read 指示
+  ~/.codex/AGENTS.md            <- HELIX_CORE.md + CODEX_TL_MODE.md を Read 指示
   ~/.codex/skills/helix-*/      <- 42 スキルのシンボリックリンク
     └── SKILL.md frontmatter    <- name + description で自動発見
 ```
@@ -82,6 +83,7 @@ Phase 3: 仕上げ  L5(Visual) → L6(検証) → L7(デプロイ) → L8(受入
 ```
 helix/
 ├── HELIX_CORE.md             <- 共通コア設定（Claude/Codex 共用）
+├── CODEX_TL_MODE.md          <- Codex CLI の TL 主導読み替え
 ├── AGENTS.md.example         <- Codex CLI 用テンプレート
 └── sync-codex-skills.sh      <- スキルシンボリックリンク生成
 skills/
