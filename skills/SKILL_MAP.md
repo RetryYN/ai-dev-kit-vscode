@@ -32,7 +32,7 @@ L2  全体設計（方針・アーキテクチャ・visual方針・ADR）
 L3  詳細設計 + API契約 + テスト設計 + 工程表
   ↓ G3   実装着手ゲート         [TL+PM]    ★API/Schema Freeze ★事前調査
   ↓ → ai-coding §4
-L4  実装（マイクロスプリント: .1a→.1b→.2→.2.5→.3→.4→.5）
+L4  実装（マイクロスプリント: .1a→.1b→.2→.3→.4→.5）
   ↓ G4   実装凍結ゲート         [TL+PM]    ★セキュリティ② ★ミニレトロ
   ↓ → visual-design
 L5  Visual Refinement（DESIGNER.md 駆動）
