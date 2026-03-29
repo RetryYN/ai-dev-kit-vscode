@@ -1,0 +1,121 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-init: HELIX プロジェクト初期化
+# Usage: helix-init [--project-name "name"] [--force]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+TEMPLATES_DIR="$SCRIPT_DIR/templates"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+
+# --- 引数パース ---
+PROJECT_NAME=""
+FORCE=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --project-name) PROJECT_NAME="$2"; shift 2 ;;
+    --force) FORCE=true; shift ;;
+    --help|-h)
+      echo "Usage: helix-init [--project-name \"name\"] [--force]"
+      echo ""
+      echo "Options:"
+      echo "  --project-name  プロジェクト名（phase.yaml に設定）"
+      echo "  --force         既存ファイルを上書き（CLAUDE.md 以外）"
+      exit 0
+      ;;
+    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ -z "$PROJECT_NAME" ]]; then
+  PROJECT_NAME="$(basename "$PROJECT_ROOT")"
+fi
+
+echo "=== HELIX Init ==="
+echo "Project: $PROJECT_NAME"
+echo "Root:    $PROJECT_ROOT"
+echo ""
+
+# --- .helix/ ディレクトリ ---
+copy_template() {
+  local src="$1"
+  local dst="$2"
+  local name="$(basename "$dst")"
+  if [[ -f "$dst" && "$FORCE" != true ]]; then
+    echo "  skip: $name (already exists)"
+    return
+  fi
+  cp "$src" "$dst"
+  echo "  created: $name"
+}
+
+mkdir -p "$HELIX_DIR"
+echo "[.helix/]"
+copy_template "$TEMPLATES_DIR/doc-map.yaml" "$HELIX_DIR/doc-map.yaml"
+copy_template "$TEMPLATES_DIR/gate-checks.yaml" "$HELIX_DIR/gate-checks.yaml"
+copy_template "$TEMPLATES_DIR/phase.yaml" "$HELIX_DIR/phase.yaml"
+
+# phase.yaml にプロジェクト名を設定
+if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
+  sed -i "s/^project: .*/project: \"$PROJECT_NAME\"/" "$HELIX_DIR/phase.yaml"
+fi
+echo ""
+
+# --- CLAUDE.md ---
+echo "[CLAUDE.md]"
+if [[ -f "$PROJECT_ROOT/CLAUDE.md" ]]; then
+  echo "  skip: CLAUDE.md (already exists)"
+elif [[ -f "$PROJECT_ROOT/.claude/CLAUDE.md" ]]; then
+  echo "  skip: .claude/CLAUDE.md (already exists)"
+else
+  if [[ -f "$TEMPLATES_DIR/CLAUDE.md.template" ]]; then
+    cp "$TEMPLATES_DIR/CLAUDE.md.template" "$PROJECT_ROOT/CLAUDE.md"
+    sed -i "s/^# プロジェクト名/# $PROJECT_NAME/" "$PROJECT_ROOT/CLAUDE.md"
+    echo "  created: CLAUDE.md (from template)"
+  else
+    echo "  warn: template not found"
+  fi
+fi
+echo ""
+
+# --- .gitignore ---
+echo "[.gitignore]"
+GITIGNORE="$PROJECT_ROOT/.gitignore"
+if [[ ! -f "$GITIGNORE" ]]; then
+  touch "$GITIGNORE"
+  echo "  created: .gitignore"
+fi
+
+add_gitignore() {
+  local entry="$1"
+  if ! grep -qF "$entry" "$GITIGNORE" 2>/dev/null; then
+    echo "$entry" >> "$GITIGNORE"
+    echo "  added: $entry"
+  else
+    echo "  skip: $entry (already in .gitignore)"
+  fi
+}
+
+add_gitignore "CLAUDE.local.md"
+add_gitignore ".claude/settings.local.json"
+echo ""
+
+# --- ディレクトリ構造 ---
+echo "[directories]"
+for dir in docs/design docs/adr; do
+  if [[ ! -d "$PROJECT_ROOT/$dir" ]]; then
+    mkdir -p "$PROJECT_ROOT/$dir"
+    echo "  created: $dir/"
+  else
+    echo "  skip: $dir/ (already exists)"
+  fi
+done
+echo ""
+
+echo "=== Done ==="
+echo "Next steps:"
+echo "  1. CLAUDE.md を編集してプロジェクト情報を記入"
+echo "  2. helix-size でタスクサイジング"
+echo "  3. helix-gate --dry-run G2 でゲートチェック確認"

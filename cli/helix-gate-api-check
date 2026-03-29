@@ -1,0 +1,151 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-gate-api-check: API契約と実装のエンドポイント突合
+# G4 static チェックとして使用
+# Exit 0 = pass, Exit 1 = fail
+
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+
+# --- API契約ファイルを探す ---
+CONTRACT=""
+for pattern in "docs/design/L3-api-contract.yaml" "docs/design/L3-api-contract.yml" "docs/design/L3-api-contract.md"; do
+  if [[ -f "$PROJECT_ROOT/$pattern" ]]; then
+    CONTRACT="$PROJECT_ROOT/$pattern"
+    break
+  fi
+done
+
+if [[ -z "$CONTRACT" ]]; then
+  echo "  SKIP: API契約ファイルなし（docs/design/L3-api-contract.*）"
+  exit 0
+fi
+
+# --- 契約からエンドポイント抽出 ---
+contract_endpoints=$(python3 -c "
+import sys, re
+from pathlib import Path
+
+content = Path('$CONTRACT').read_text()
+ext = Path('$CONTRACT').suffix
+
+endpoints = set()
+
+if ext in ('.yaml', '.yml'):
+    # YAML: endpoint: '/path' + method: 'GET'
+    import yaml
+    try:
+        data = yaml.safe_load(content)
+        if isinstance(data, dict):
+            for key in ('contracts', 'endpoints', 'paths'):
+                items = data.get(key, [])
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict):
+                            method = item.get('method', 'GET').upper()
+                            path = item.get('endpoint', item.get('path', ''))
+                            if path:
+                                endpoints.add(f'{method} {path}')
+                elif isinstance(items, dict):
+                    # OpenAPI style: paths -> /path -> get/post/...
+                    for path, methods in items.items():
+                        if isinstance(methods, dict):
+                            for method in methods:
+                                if method.upper() in ('GET','POST','PUT','DELETE','PATCH'):
+                                    endpoints.add(f'{method.upper()} {path}')
+    except:
+        pass
+
+# Also try regex for any format
+for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s\"]+)', content):
+    endpoints.add(f'{match.group(1)} {match.group(2)}')
+
+for ep in sorted(endpoints):
+    print(ep)
+" 2>/dev/null)
+
+if [[ -z "$contract_endpoints" ]]; then
+  echo "  SKIP: API契約からエンドポイントを抽出できませんでした"
+  exit 0
+fi
+
+# --- 実装からエンドポイント抽出 ---
+impl_endpoints=$(python3 -c "
+import re, os
+from pathlib import Path
+
+root = Path('$PROJECT_ROOT/src')
+if not root.exists():
+    root = Path('$PROJECT_ROOT')
+
+endpoints = set()
+
+# Common route patterns
+patterns = [
+    # Express/Fastify: router.get('/path', ...) or app.post('/path', ...)
+    r'(?:router|app|server)\.(get|post|put|delete|patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*',
+    # NestJS: @Get('/path'), @Post('/path')
+    r'@(Get|Post|Put|Delete|Patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*\)',
+    # FastAPI: @app.get('/path')
+    r'@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*',
+]
+
+for f in root.rglob('*'):
+    if f.suffix not in ('.ts', '.tsx', '.js', '.jsx', '.py', '.go'):
+        continue
+    if 'node_modules' in str(f) or '.next' in str(f):
+        continue
+    try:
+        content = f.read_text()
+    except:
+        continue
+    for pat in patterns:
+        for m in re.finditer(pat, content, re.IGNORECASE):
+            method = m.group(1).upper()
+            path = m.group(2)
+            endpoints.add(f'{method} {path}')
+
+for ep in sorted(endpoints):
+    print(ep)
+" 2>/dev/null)
+
+# --- 突合 ---
+contract_only=""
+impl_only=""
+
+while IFS= read -r ep; do
+  [[ -z "$ep" ]] && continue
+  if ! echo "$impl_endpoints" | grep -qF "$ep"; then
+    contract_only+="    $ep\n"
+  fi
+done <<< "$contract_endpoints"
+
+while IFS= read -r ep; do
+  [[ -z "$ep" ]] && continue
+  if ! echo "$contract_endpoints" | grep -qF "$ep"; then
+    impl_only+="    $ep\n"
+  fi
+done <<< "$impl_endpoints"
+
+# --- レポート ---
+echo "  API契約: $(echo "$contract_endpoints" | wc -l) endpoints"
+echo "  実装:    $(echo "$impl_endpoints" | wc -l) endpoints"
+
+EXIT_CODE=0
+
+if [[ -n "$contract_only" ]]; then
+  echo "  FAIL: 契約にあるが未実装:"
+  printf "$contract_only"
+  EXIT_CODE=1
+fi
+
+if [[ -n "$impl_only" ]]; then
+  echo "  WARN: 実装にあるが契約にない（スコープクリープ?）:"
+  printf "$impl_only"
+fi
+
+if [[ $EXIT_CODE -eq 0 && -z "$impl_only" ]]; then
+  echo "  OK: 契約と実装が一致"
+fi
+
+exit $EXIT_CODE

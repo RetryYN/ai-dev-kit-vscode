@@ -15,3 +15,19 @@ gates:
   G5:  { status: pending }
   G6:  { status: pending }
   G7:  { status: pending }
+
+sprint:
+  current_step: null
+  steps:
+    ".1a": { status: pending }
+    ".1b": { status: pending }
+    ".2":  { status: pending }
+    ".3":  { status: pending }
+    ".4":  { status: pending }
+    ".5":  { status: pending }
+
+reverse_gates:
+  RG0: { status: pending }
+  RG1: { status: pending }
+  RG2: { status: pending }
+  RG3: { status: pending }

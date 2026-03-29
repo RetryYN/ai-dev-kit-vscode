@@ -1,0 +1,194 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-reverse: Reverse HELIX パイプライン (R0→R4)
+# Usage: helix-reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+REVERSE_DIR="$HELIX_DIR/reverse"
+HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+
+# --- 引数パース ---
+STAGE=""
+TARGET=""
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --target)  TARGET="$2"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --help|-h)
+      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]"
+      echo ""
+      echo "Stages:"
+      echo "  R0  Evidence Acquisition（証拠収集）"
+      echo "  R1  Observed Contracts（契約抽出）"
+      echo "  R2  As-Is Design（設計復元）"
+      echo "  R3  Intent Hypotheses（要件仮説）"
+      echo "  R4  Gap & Routing（差分分析→Forward接続）"
+      echo "  status  現在の Reverse 状態を表示"
+      exit 0
+      ;;
+    R[0-4]) STAGE="$1"; shift ;;
+    status) STAGE="status"; shift ;;
+    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [[ -z "$STAGE" ]]; then
+  echo "Error: Stage required (R0-R4 or status)" >&2
+  exit 1
+fi
+
+# --- .helix/ チェック ---
+if [[ ! -d "$HELIX_DIR" ]]; then
+  echo "Error: .helix/ not found. Run 'helix-init' first." >&2
+  exit 1
+fi
+
+# --- reverse_gates 読み書き (python3) ---
+get_rgate_status() {
+  local rgate="$1"
+  python3 -c "
+import yaml
+try:
+    with open('$PHASE_FILE') as f:
+        d = yaml.safe_load(f) or {}
+    print(d.get('reverse_gates', {}).get('$rgate', {}).get('status', 'pending'))
+except:
+    print('pending')
+" 2>/dev/null || echo "pending"
+}
+
+set_rgate_status() {
+  local rgate="$1"
+  local status="$2"
+  python3 -c "
+import yaml
+from datetime import date
+with open('$PHASE_FILE') as f:
+    d = yaml.safe_load(f) or {}
+if 'reverse_gates' not in d:
+    d['reverse_gates'] = {}
+    for rg in ['RG0', 'RG1', 'RG2', 'RG3']:
+        d['reverse_gates'][rg] = {'status': 'pending'}
+d['reverse_gates']['$rgate'] = {'status': '$status', 'date': str(date.today())}
+with open('$PHASE_FILE', 'w') as f:
+    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
+" 2>/dev/null
+}
+
+# --- status ---
+if [[ "$STAGE" == "status" ]]; then
+  echo "=== Reverse HELIX Status ==="
+  echo ""
+  for rg in RG0 RG1 RG2 RG3; do
+    status=$(get_rgate_status "$rg")
+    echo "  $rg: $status"
+  done
+  echo ""
+  if [[ -d "$REVERSE_DIR" ]]; then
+    echo "成果物:"
+    ls -1 "$REVERSE_DIR"/*.yaml "$REVERSE_DIR"/*.md 2>/dev/null | while read -r f; do
+      echo "  $(basename "$f")"
+    done
+  fi
+  exit 0
+fi
+
+# --- ステージ定義 ---
+declare -A STAGE_ROLE=(
+  ["R0"]="legacy"
+  ["R1"]="legacy"
+  ["R2"]="legacy"
+  ["R3"]="legacy"
+  ["R4"]="tl"
+)
+
+declare -A STAGE_RGATE=(
+  ["R0"]="RG0"
+  ["R1"]="RG1"
+  ["R2"]="RG2"
+  ["R3"]="RG3"
+  ["R4"]="RG3"
+)
+
+declare -A STAGE_PREREQ=(
+  ["R0"]=""
+  ["R1"]="RG0"
+  ["R2"]="RG1"
+  ["R3"]="RG2"
+  ["R4"]="RG3"
+)
+
+declare -A STAGE_OUTPUT=(
+  ["R0"]="R0-evidence-map.yaml"
+  ["R1"]="R1-observed-contracts.yaml"
+  ["R2"]="R2-as-is-design.md"
+  ["R3"]="R3-intent-hypotheses.md"
+  ["R4"]="R4-gap-register.yaml"
+)
+
+# --- 前提条件チェック ---
+prereq="${STAGE_PREREQ[$STAGE]}"
+if [[ -n "$prereq" ]]; then
+  prereq_status=$(get_rgate_status "$prereq")
+  if [[ "$prereq_status" != "passed" ]]; then
+    echo "Error: $prereq が未通過 (status: $prereq_status)" >&2
+    echo "先に前のステージを完了してください" >&2
+    exit 1
+  fi
+fi
+
+# --- タスクプロンプト構築 ---
+mkdir -p "$REVERSE_DIR"
+TARGET_DESC="${TARGET:-$PROJECT_ROOT}"
+PREV_OUTPUT=""
+case "$STAGE" in
+  R1) [[ -f "$REVERSE_DIR/R0-evidence-map.yaml" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R0-evidence-map.yaml を Read して参照せよ。" ;;
+  R2) [[ -f "$REVERSE_DIR/R1-observed-contracts.yaml" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R1-observed-contracts.yaml を Read して参照せよ。" ;;
+  R3) [[ -f "$REVERSE_DIR/R2-as-is-design.md" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R2-as-is-design.md を Read して参照せよ。" ;;
+  R4) [[ -f "$REVERSE_DIR/R3-intent-hypotheses.md" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R3-intent-hypotheses.md を Read して参照せよ。" ;;
+esac
+
+declare -A STAGE_TASK=(
+  ["R0"]="R0 Evidence Acquisition: $TARGET_DESC のコード・DB・設定・外部APIを調査し、evidence_map を YAML で出力せよ。modules / db_schema / external_apis / config_files / unknowns の5カテゴリで整理。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
+  ["R1"]="R1 Observed Contracts: API/DB/型の機械抽出を行い、observed_contracts を YAML で出力せよ。各エンドポイントの request/response 型、DB テーブルの列定義、外部API呼び出しの契約を記録。characterization tests の候補も列挙。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
+  ["R2"]="R2 As-Is Design: アーキテクチャを復元し、ADR仮説を立てよ。コンポーネント図（テキスト）、データフロー、依存関係、推定された設計判断（ADR形式）を出力。矛盾点と不明点を明示。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
+  ["R3"]="R3 Intent Hypotheses: 要件仮説を立て、PO検証用の質問リストを作成せよ。各仮説に confidence (high/medium/low) を付与。unknown は全件タスク化。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
+  ["R4"]="R4 Gap & Routing: 差分を集約し、Forward HELIX への接続を設計せよ。各 gap を defect/assumption/quality/scope に分類し、L1/L2/L3/L4 への振り分けを提案。remediation plan を含める。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
+)
+
+TASK="${STAGE_TASK[$STAGE]}"
+ROLE="${STAGE_ROLE[$STAGE]}"
+
+echo "=== Reverse HELIX: $STAGE ==="
+echo "Role:   $ROLE"
+echo "Target: $TARGET_DESC"
+echo "Output: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
+echo ""
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo "[dry-run] helix-codex --role $ROLE --task:"
+  echo "$TASK"
+  exit 0
+fi
+
+# --- 実行 ---
+"$HELIX_CODEX" --role "$ROLE" --task "$TASK" 2>&1
+
+# --- ゲート更新 ---
+rgate="${STAGE_RGATE[$STAGE]}"
+if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
+  set_rgate_status "$rgate" "passed"
+  echo ""
+  echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
+else
+  set_rgate_status "$rgate" "failed"
+  echo ""
+  echo "[helix-reverse] WARN: 成果物が生成されませんでした — $rgate failed"
+  echo "[helix-reverse]   手動で $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} を作成してください"
+fi

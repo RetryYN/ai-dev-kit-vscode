@@ -1,0 +1,159 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-size: タスクサイジング + フェーズスキップ自動判定
+# Usage: helix-size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE]
+
+# --- 引数パース ---
+FILES=0
+LINES=0
+HAS_API=false
+HAS_DB=false
+HAS_UI=false
+TASK_TYPE=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --files) FILES="$2"; shift 2 ;;
+    --lines) LINES="$2"; shift 2 ;;
+    --api)   HAS_API=true; shift ;;
+    --db)    HAS_DB=true; shift ;;
+    --ui)    HAS_UI=true; shift ;;
+    --type)  TASK_TYPE="$2"; shift 2 ;;
+    --help|-h)
+      echo "Usage: helix-size [options]"
+      echo ""
+      echo "Options:"
+      echo "  --files N     変更ファイル数"
+      echo "  --lines N     変更行数"
+      echo "  --api         API変更あり"
+      echo "  --db          DB変更あり"
+      echo "  --ui          UI変更あり"
+      echo "  --type TYPE   タスク種別:"
+      echo "                  bugfix, refactor, new-feature, ui-change, doc, new-module"
+      echo ""
+      echo "Example:"
+      echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature"
+      exit 0
+      ;;
+    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+# --- サイジング ---
+size_from_files() {
+  if [[ $FILES -le 3 ]]; then echo "S"
+  elif [[ $FILES -le 10 ]]; then echo "M"
+  else echo "L"
+  fi
+}
+
+size_from_lines() {
+  if [[ $LINES -le 100 ]]; then echo "S"
+  elif [[ $LINES -le 500 ]]; then echo "M"
+  else echo "L"
+  fi
+}
+
+size_from_api_db() {
+  if [[ "$HAS_API" == true && "$HAS_DB" == true ]]; then echo "L"
+  elif [[ "$HAS_API" == true || "$HAS_DB" == true ]]; then echo "M"
+  else echo "S"
+  fi
+}
+
+max_size() {
+  local sizes=("$@")
+  for s in "${sizes[@]}"; do
+    [[ "$s" == "L" ]] && echo "L" && return
+  done
+  for s in "${sizes[@]}"; do
+    [[ "$s" == "M" ]] && echo "M" && return
+  done
+  echo "S"
+}
+
+FILE_SIZE=$(size_from_files)
+LINE_SIZE=$(size_from_lines)
+API_DB_SIZE=$(size_from_api_db)
+FINAL_SIZE=$(max_size "$FILE_SIZE" "$LINE_SIZE" "$API_DB_SIZE")
+
+# --- フェーズスキップ決定 ---
+PHASES=()
+SKIPPED=()
+NOTES=""
+
+api_or_db=$([[ "$HAS_API" == true || "$HAS_DB" == true ]] && echo true || echo false)
+
+case "$FINAL_SIZE" in
+  S)
+    case "$TASK_TYPE" in
+      bugfix|refactor|doc)
+        PHASES=("L4")
+        SKIPPED=("L1" "L2" "L3" "L5" "L6" "L7" "L8")
+        ;;
+      ui-change)
+        PHASES=("L2" "L3" "L4" "L5" "L6")
+        SKIPPED=("L1" "L7" "L8")
+        ;;
+      new-feature|"")
+        PHASES=("L2" "L3" "L4" "L6")
+        SKIPPED=("L1" "L5" "L7" "L8")
+        ;;
+      *)
+        PHASES=("L4")
+        SKIPPED=("L1" "L2" "L3" "L5" "L6" "L7" "L8")
+        ;;
+    esac
+    NOTES="S案件の L3 は最小版: タスクリスト + 担当割当のみ（API契約・依存マップは省略可）"
+    ;;
+  M)
+    if [[ "$TASK_TYPE" == "new-module" ]]; then
+      PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
+      SKIPPED=()
+      [[ "$HAS_UI" != true ]] && PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8") && SKIPPED=("L5")
+    elif [[ "$api_or_db" == true && "$HAS_UI" == true ]]; then
+      PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
+      SKIPPED=()
+    elif [[ "$api_or_db" == true && "$HAS_UI" != true ]]; then
+      PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
+      SKIPPED=("L1" "L5")
+    elif [[ "$api_or_db" != true && "$HAS_UI" == true ]]; then
+      PHASES=("L2" "L3" "L4" "L5" "L6" "L7" "L8")
+      SKIPPED=("L1")
+      NOTES="G1.5/G1R skip可、G3会議省略可"
+    else
+      PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
+      SKIPPED=("L1" "L5")
+    fi
+    ;;
+  L)
+    if [[ "$HAS_UI" == true ]]; then
+      PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
+      SKIPPED=()
+    else
+      PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8")
+      SKIPPED=("L5")
+      NOTES="純BE: L5/G5 skip"
+    fi
+    ;;
+esac
+
+# --- 出力 ---
+echo "=== タスクサイジング結果 ==="
+echo ""
+echo "サイズ: $FINAL_SIZE"
+echo "  ファイル数: $FILES → $FILE_SIZE"
+echo "  変更行数:   $LINES → $LINE_SIZE"
+echo "  API/DB:     $API_DB_SIZE (api=$HAS_API, db=$HAS_DB)"
+echo ""
+echo "推奨フェーズ: ${PHASES[*]}"
+if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+  echo "スキップ:     ${SKIPPED[*]}"
+fi
+if [[ -n "$NOTES" ]]; then
+  echo "備考:         $NOTES"
+fi
+echo ""
+echo "タスク種別:   ${TASK_TYPE:-未指定}"
+echo "UI変更:       $HAS_UI"

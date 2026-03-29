@@ -51,6 +51,8 @@ G4:
       cmd: "npx eslint . --quiet 2>&1; test $? -eq 0"
     - name: "テスト"
       cmd: "npm test 2>&1; test $? -eq 0"
+    - name: "API契約実装突合"
+      cmd: "~/ai-dev-kit-vscode/cli/helix-gate-api-check"
     - name: "TODO/FIXME 残存"
       cmd: "! grep -rn 'TODO\\|FIXME' src/ --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'"
   ai:

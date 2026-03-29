@@ -84,3 +84,8 @@ triggers:
     phase: L7
     on_write: design_sync
     design_ref: "docs/design/L2-architecture.md"
+
+  # === ADR ===
+  - pattern: "docs/adr/ADR-*.md"
+    phase: any
+    on_write: adr_index

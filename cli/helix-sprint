@@ -1,0 +1,190 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-sprint: L4 マイクロスプリント管理
+# Usage: helix-sprint <status|next|complete|reset>
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+
+STEPS=(".1a" ".1b" ".2" ".3" ".4" ".5")
+declare -A STEP_NAMES=(
+  [".1a"]="コード調査 (impact analysis)"
+  [".1b"]="変更計画 (plan + 事前調査)"
+  [".2"]="最小実装 (skeleton + codex review Critical/High)"
+  [".3"]="安全性・互換性 (security first-pass)"
+  [".4"]="テスト・検証 (coverage + codex review)"
+  [".5"]="仕上げ (full review + doc alignment)"
+)
+
+# --- .helix/ チェック ---
+if [[ ! -d "$HELIX_DIR" ]]; then
+  echo "Error: .helix/ not found. Run 'helix-init' first." >&2
+  exit 1
+fi
+
+# --- sprint セクションの読み書き (python3) ---
+get_sprint_step() {
+  python3 -c "
+import yaml, sys
+try:
+    with open('$PHASE_FILE') as f:
+        d = yaml.safe_load(f) or {}
+    sprint = d.get('sprint', {})
+    print(sprint.get('current_step', '') or '')
+except:
+    print('')
+" 2>/dev/null || echo ""
+}
+
+set_sprint_step() {
+  local step="$1"
+  python3 -c "
+import yaml
+with open('$PHASE_FILE') as f:
+    d = yaml.safe_load(f) or {}
+if 'sprint' not in d:
+    d['sprint'] = {'current_step': None, 'steps': {}}
+    for s in ['.1a', '.1b', '.2', '.3', '.4', '.5']:
+        d['sprint']['steps'][s] = {'status': 'pending'}
+d['sprint']['current_step'] = '$step' if '$step' else None
+with open('$PHASE_FILE', 'w') as f:
+    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
+" 2>/dev/null
+}
+
+mark_step_done() {
+  local step="$1"
+  python3 -c "
+import yaml
+with open('$PHASE_FILE') as f:
+    d = yaml.safe_load(f) or {}
+if 'sprint' not in d:
+    d['sprint'] = {'current_step': None, 'steps': {}}
+d['sprint'].setdefault('steps', {})
+d['sprint']['steps']['$step'] = {'status': 'completed'}
+with open('$PHASE_FILE', 'w') as f:
+    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
+" 2>/dev/null
+}
+
+get_step_status() {
+  local step="$1"
+  python3 -c "
+import yaml
+try:
+    with open('$PHASE_FILE') as f:
+        d = yaml.safe_load(f) or {}
+    print(d.get('sprint', {}).get('steps', {}).get('$step', {}).get('status', 'pending'))
+except:
+    print('pending')
+" 2>/dev/null || echo "pending"
+}
+
+# --- サブコマンド ---
+CMD="${1:-status}"
+
+case "$CMD" in
+  status)
+    echo "=== L4 Sprint Status ==="
+    echo ""
+    current=$(get_sprint_step)
+    for step in "${STEPS[@]}"; do
+      status=$(get_step_status "$step")
+      marker=" "
+      if [[ "$step" == "$current" ]]; then
+        marker="→"
+        status="in_progress"
+      elif [[ "$status" == "completed" ]]; then
+        marker="✓"
+      fi
+      printf "  %s %s  %-8s  %s\n" "$marker" "$step" "[$status]" "${STEP_NAMES[$step]}"
+    done
+    echo ""
+    if [[ -z "$current" ]]; then
+      echo "Sprint 未開始。'helix-sprint next' で開始"
+    elif [[ "$current" == "completed" ]]; then
+      echo "Sprint 完了"
+    else
+      echo "現在: $current — ${STEP_NAMES[$current]}"
+    fi
+    ;;
+
+  next)
+    current=$(get_sprint_step)
+    if [[ -z "$current" ]]; then
+      # 未開始 → .1a から
+      set_sprint_step ".1a"
+      echo "[helix-sprint] Sprint 開始: .1a — ${STEP_NAMES[.1a]}"
+    elif [[ "$current" == "completed" ]]; then
+      echo "[helix-sprint] Sprint は既に完了しています"
+    else
+      # 現在のステップを完了して次へ
+      mark_step_done "$current"
+      local next_step=""
+      local found=false
+      for step in "${STEPS[@]}"; do
+        if [[ "$found" == true ]]; then
+          next_step="$step"
+          break
+        fi
+        if [[ "$step" == "$current" ]]; then
+          found=true
+        fi
+      done
+      if [[ -z "$next_step" ]]; then
+        set_sprint_step "completed"
+        echo "[helix-sprint] .5 完了 — Sprint 完了！"
+        echo "[helix-sprint] 'helix-gate G4' でゲート検証を実行してください"
+      else
+        set_sprint_step "$next_step"
+        echo "[helix-sprint] $current 完了 → $next_step — ${STEP_NAMES[$next_step]}"
+      fi
+    fi
+    ;;
+
+  complete)
+    current=$(get_sprint_step)
+    if [[ -z "$current" || "$current" == "completed" ]]; then
+      echo "Error: 完了するステップがありません" >&2
+      exit 1
+    fi
+    mark_step_done "$current"
+    echo "[helix-sprint] $current 完了"
+    # 自動で次へは進まない（next で明示的に進む）
+    ;;
+
+  reset)
+    set_sprint_step ""
+    python3 -c "
+import yaml
+with open('$PHASE_FILE') as f:
+    d = yaml.safe_load(f) or {}
+if 'sprint' in d:
+    for s in d['sprint'].get('steps', {}):
+        d['sprint']['steps'][s] = {'status': 'pending'}
+    d['sprint']['current_step'] = None
+with open('$PHASE_FILE', 'w') as f:
+    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
+" 2>/dev/null
+    echo "[helix-sprint] Sprint リセット完了"
+    ;;
+
+  --help|-h)
+    echo "Usage: helix-sprint <status|next|complete|reset>"
+    echo ""
+    echo "Commands:"
+    echo "  status    現在のスプリント状態を表示"
+    echo "  next      次のステップに進む（現在ステップを自動完了）"
+    echo "  complete  現在のステップを完了（次には進まない）"
+    echo "  reset     スプリントをリセット"
+    ;;
+
+  *)
+    echo "Error: Unknown command: $CMD" >&2
+    echo "Usage: helix-sprint <status|next|complete|reset>" >&2
+    exit 1
+    ;;
+esac

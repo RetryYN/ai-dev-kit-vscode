@@ -60,63 +60,6 @@ echo ""
 echo "=== $GATE: $gate_name ==="
 echo ""
 
-STATIC_PASS=0
-STATIC_FAIL=0
-STATIC_TOTAL=0
-AI_RESULTS=()
-
-# --- 静的チェック ---
-if [[ "$AI_ONLY" != true ]]; then
-  # static セクションを抽出
-  in_gate=false
-  in_static=false
-  current_name=""
-  current_cmd=""
-
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^${GATE}: ]]; then
-      in_gate=true
-      continue
-    fi
-    if [[ "$in_gate" == true && "$line" =~ ^[A-Z] ]]; then
-      in_gate=false
-      continue
-    fi
-    if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]*static: ]]; then
-      in_static=true
-      continue
-    fi
-    if [[ "$in_gate" == true && "$in_static" == true ]]; then
-      if [[ "$line" =~ ^[[:space:]]*ai: ]] || [[ "$line" =~ ^[A-Z] ]]; then
-        # static セクション終了、最後のコマンドを実行
-        if [[ -n "$current_cmd" ]]; then
-          run_static_check "$current_name" "$current_cmd"
-        fi
-        in_static=false
-        continue
-      fi
-      if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*name:[[:space:]]*\"(.+)\" ]]; then
-        # 前のコマンドを実行
-        if [[ -n "$current_cmd" ]]; then
-          run_static_check "$current_name" "$current_cmd"
-        fi
-        current_name="${BASH_REMATCH[1]}"
-        current_cmd=""
-      elif [[ "$line" =~ cmd:[[:space:]]*\"(.+)\" ]]; then
-        current_cmd="${BASH_REMATCH[1]}"
-      fi
-    fi
-  done < "$GATE_CHECKS"
-
-  # 最後の static チェック
-  if [[ "$in_static" == true && -n "$current_cmd" ]]; then
-    run_static_check "$current_name" "$current_cmd"
-  fi
-fi
-
-# --- 静的チェック実行関数（前方宣言が必要なので書き直し） ---
-# bash は関数の前方宣言ができないので、スクリプトを再構成
-
 # 実際の実行はここから
 run_checks() {
   local gate="$1"
@@ -288,11 +231,66 @@ run_checks() {
     local today
     today=$(date '+%Y-%m-%d')
     sed -i "s/\(${gate}:.*status:\) .*/\1 passed, date: ${today} }/" "$PHASE_FILE" 2>/dev/null || true
+    # ミニレトロ自動生成
+    maybe_generate_retro "$gate"
   fi
 
   if [[ $static_fail -gt 0 ]]; then
     exit 1
   fi
+}
+
+# --- ミニレトロ自動生成 ---
+maybe_generate_retro() {
+  local gate="$1"
+  local phase_desc=""
+
+  case "$gate" in
+    G2) phase_desc="設計フェーズ (L1-L2)" ;;
+    G4) phase_desc="実装フェーズ (L3-L4)" ;;
+    *)  return ;;
+  esac
+
+  local retro_dir="$HELIX_DIR/retros"
+  mkdir -p "$retro_dir"
+  local today
+  today=$(date '+%Y-%m-%d')
+  local retro_file="$retro_dir/${today}-${gate}.md"
+
+  if [[ -f "$retro_file" ]]; then
+    echo ""
+    echo "[helix-gate] Retro already exists: $retro_file"
+    return
+  fi
+
+  local template="$SCRIPT_DIR/templates/retro.md.template"
+  if [[ -f "$template" ]]; then
+    sed -e "s/{{GATE}}/$gate/g" \
+        -e "s/{{DATE}}/$today/g" \
+        -e "s/{{PHASE_DESC}}/$phase_desc/g" \
+        "$template" > "$retro_file"
+  else
+    cat > "$retro_file" <<RETRO
+# Mini Retro: $gate ($today)
+
+## Phase: $phase_desc
+
+### Keep（うまくいったこと）
+-
+
+### Problem（問題があったこと）
+-
+
+### Try（次に試すこと）
+| アクション | 担当 | 期日 |
+|-----------|------|------|
+| | | |
+RETRO
+  fi
+
+  echo ""
+  echo "[helix-gate] ミニレトロ生成: $retro_file"
+  echo "[helix-gate]   内容を記入してください（Try は owner + due 必須）"
 }
 
 run_checks "$GATE"
