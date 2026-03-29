@@ -1,0 +1,355 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-task: HELIX タスクオペレーティングシステム
+# Usage: helix task <catalog|plan|run|status> [args...]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+YP="$SCRIPT_DIR/lib/yaml_parser.py"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+CATALOG="$HELIX_HOME/cli/templates/task-catalog.yaml"
+TASK_PLAN="$HELIX_DIR/task-plan.yaml"
+HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+# ============================
+# catalog: タスクカタログ表示
+# ============================
+cmd_catalog() {
+  local filter="${1:-}"
+
+  python3 -c "
+import re, sys
+
+cats = {}
+current_cat = None
+current_task = None
+tasks = {}
+
+with open('$CATALOG') as f:
+    for line in f:
+        line = line.rstrip()
+        if not line or line.lstrip().startswith('#'):
+            continue
+        # カテゴリ
+        m = re.match(r'^(\w[\w-]*):\s*$', line)
+        if m:
+            name = m.group(1)
+            if name not in ('name','input','output','role','estimate','depends','skill'):
+                current_cat = name
+                cats[current_cat] = []
+                continue
+        # タスク
+        m = re.match(r'  ([\w-]+):\s*$', line)
+        if m and current_cat:
+            current_task = m.group(1)
+            tasks[current_task] = {'cat': current_cat}
+            cats[current_cat].append(current_task)
+            continue
+        # フィールド
+        if current_task:
+            m = re.match(r'    (\w+):\s*(.+)', line)
+            if m:
+                tasks[current_task][m.group(1)] = m.group(2).strip('\"')
+
+filt = '$filter'
+print('=== HELIX Task Catalog ===')
+print()
+for cat, task_ids in cats.items():
+    if filt and filt != cat and not any(filt in t for t in task_ids):
+        continue
+    print(f'[{cat}] ({len(task_ids)} tasks)')
+    for tid in task_ids:
+        t = tasks[tid]
+        name = t.get('name', tid)
+        role = t.get('role', '?')
+        est = t.get('estimate', '?')
+        print(f'  {tid:<30s} {role:<12s} ~{est}min  {name}')
+    print()
+print(f'Total: {sum(len(v) for v in cats.values())} tasks / {len(cats)} categories')
+" 2>/dev/null
+}
+
+# ============================
+# plan: タスクプラン作成
+# ============================
+cmd_plan() {
+  local goal="" task_ids=()
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --goal) goal="$2"; shift 2 ;;
+      --tasks) IFS=',' read -ra task_ids <<< "$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ -z "$goal" || ${#task_ids[@]} -eq 0 ]]; then
+    echo "Usage: helix task plan --goal '...' --tasks 'research-library,design-api,implement-api,...'" >&2
+    exit 1
+  fi
+
+  mkdir -p "$HELIX_DIR"
+
+  # タスクプランを生成
+  python3 -c "
+import re, sys, json
+from datetime import date
+
+# カタログ読み込み
+cats = {}
+current_cat = None
+current_task = None
+tasks = {}
+
+with open('$CATALOG') as f:
+    for line in f:
+        line = line.rstrip()
+        if not line or line.lstrip().startswith('#'):
+            continue
+        m = re.match(r'^(\w[\w-]*):\s*$', line)
+        if m:
+            name = m.group(1)
+            if name not in ('name','input','output','role','estimate','depends','skill'):
+                current_cat = name
+                cats[current_cat] = []
+                continue
+        m = re.match(r'  ([\w-]+):\s*$', line)
+        if m and current_cat:
+            current_task = m.group(1)
+            tasks[current_task] = {'cat': current_cat}
+            cats[current_cat].append(current_task)
+            continue
+        if current_task:
+            m = re.match(r'    (\w+):\s*(.+)', line)
+            if m:
+                val = m.group(2).strip('\"')
+                tasks[current_task][m.group(1)] = val
+
+# タスクプラン生成
+selected = [t.strip() for t in '${task_ids[*]}'.split()]
+plan_tasks = []
+total_estimate = 0
+
+for i, tid in enumerate(selected, 1):
+    t = tasks.get(tid, {})
+    est = int(t.get('estimate', 0))
+    total_estimate += est
+    plan_tasks.append({
+        'id': f'T{i:03d}',
+        'task': tid,
+        'name': t.get('name', tid),
+        'role': t.get('role', '?'),
+        'estimate': est,
+        'status': 'pending',
+        'skill': t.get('skill', ''),
+    })
+
+# YAML 出力
+lines = [
+    f'# Task Plan — {date.today()}',
+    f'goal: \"$goal\"',
+    f'total_estimate: {total_estimate}',
+    f'status: active',
+    f'tasks:',
+]
+for t in plan_tasks:
+    lines.append(f'  {t[\"id\"]}:')
+    lines.append(f'    task: {t[\"task\"]}')
+    lines.append(f'    name: \"{t[\"name\"]}\"')
+    lines.append(f'    role: {t[\"role\"]}')
+    lines.append(f'    estimate: {t[\"estimate\"]}')
+    lines.append(f'    status: pending')
+    lines.append(f'    skill: {t[\"skill\"]}')
+
+with open('$TASK_PLAN', 'w') as f:
+    f.write('\n'.join(lines) + '\n')
+
+print(f'=== Task Plan: $goal ===')
+print()
+print(f'Total: {len(plan_tasks)} tasks, ~{total_estimate} min')
+print()
+for t in plan_tasks:
+    print(f'  {t[\"id\"]} [{t[\"role\"]:<12s}] ~{t[\"estimate\"]:>3d}min  {t[\"name\"]}')
+print()
+print(f'Saved: $TASK_PLAN')
+print(f'Next: helix task run')
+" 2>/dev/null
+}
+
+# ============================
+# run: 次のタスクを実行
+# ============================
+cmd_run() {
+  if [[ ! -f "$TASK_PLAN" ]]; then
+    echo "Error: タスクプランがありません。'helix task plan' で作成してください。" >&2
+    exit 1
+  fi
+
+  # 次の pending タスクを取得
+  local next_task
+  next_task=$(python3 -c "
+import re
+current_id = None
+current_task = None
+current_role = None
+current_name = None
+current_skill = None
+
+with open('$TASK_PLAN') as f:
+    for line in f:
+        line = line.rstrip()
+        m = re.match(r'  (T\d+):', line)
+        if m:
+            current_id = m.group(1)
+            continue
+        if current_id:
+            m = re.match(r'    (\w+):\s*(.+)', line)
+            if m:
+                key, val = m.group(1), m.group(2).strip('\"')
+                if key == 'task': current_task = val
+                elif key == 'role': current_role = val
+                elif key == 'name': current_name = val
+                elif key == 'skill': current_skill = val
+                elif key == 'status' and val == 'pending':
+                    print(f'{current_id}|{current_task}|{current_role}|{current_name}|{current_skill}')
+                    exit()
+" 2>/dev/null)
+
+  if [[ -z "$next_task" ]]; then
+    echo "=== All tasks completed ==="
+    exit 0
+  fi
+
+  IFS='|' read -r tid task_type role name skill <<< "$next_task"
+
+  echo "=== $tid: $name ==="
+  echo "Task: $task_type"
+  echo "Role: $role"
+  echo "Skill: $skill"
+  echo ""
+
+  # ステータスを running に
+  sed -i "/$tid:/,/status:/{s/status: pending/status: running/}" "$TASK_PLAN" 2>/dev/null
+
+  # ロールに応じて実行
+  case "$role" in
+    fe-design|fe-component|fe-style|fe-a11y|fe-test)
+      # Claude サブエージェント → ユーザーに @メンション依頼
+      echo "[helix-task] Claude サブエージェント @$role に委譲してください"
+      echo "  @$role $name"
+      ;;
+    *)
+      # Codex ロール
+      if [[ -n "$skill" ]]; then
+        echo "[helix-task] helix-codex --role $role に委譲"
+        "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 || true
+      else
+        echo "[helix-task] helix-codex --role $role に委譲"
+        "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 || true
+      fi
+      ;;
+  esac
+
+  # ステータスを completed に
+  sed -i "/$tid:/,/status:/{s/status: running/status: completed/}" "$TASK_PLAN" 2>/dev/null
+
+  echo ""
+  echo "[helix-task] $tid 完了。'helix task run' で次のタスクを実行"
+}
+
+# ============================
+# status: タスクプラン状態表示
+# ============================
+cmd_status() {
+  if [[ ! -f "$TASK_PLAN" ]]; then
+    echo "タスクプランがありません。" >&2
+    exit 1
+  fi
+
+  python3 -c "
+import re
+
+goal = ''
+total = 0
+tasks = []
+current = {}
+
+with open('$TASK_PLAN') as f:
+    for line in f:
+        line = line.rstrip()
+        m = re.match(r'goal:\s*\"?(.+?)\"?\s*$', line)
+        if m: goal = m.group(1)
+        m = re.match(r'  (T\d+):', line)
+        if m:
+            if current: tasks.append(current)
+            current = {'id': m.group(1)}
+            continue
+        if current:
+            m = re.match(r'    (\w+):\s*(.+)', line)
+            if m:
+                current[m.group(1)] = m.group(2).strip('\"')
+    if current: tasks.append(current)
+
+done = sum(1 for t in tasks if t.get('status') == 'completed')
+running = sum(1 for t in tasks if t.get('status') == 'running')
+pending = sum(1 for t in tasks if t.get('status') == 'pending')
+total_est = sum(int(t.get('estimate', 0)) for t in tasks)
+
+print(f'=== Task Plan: {goal} ===')
+print(f'Progress: {done}/{len(tasks)} completed, {running} running, {pending} pending')
+print(f'Estimate: ~{total_est} min')
+print()
+for t in tasks:
+    status = t.get('status', '?')
+    icon = {'completed':'✓', 'running':'→', 'pending':' '}.get(status, '?')
+    role = t.get('role', '?')
+    name = t.get('name', t.get('task', '?'))
+    est = t.get('estimate', '?')
+    print(f'  {icon} {t[\"id\"]} [{role:<12s}] ~{est:>3s}min  {name}')
+" 2>/dev/null
+}
+
+# ============================
+# メインディスパッチ
+# ============================
+case "$CMD" in
+  catalog) cmd_catalog "$@" ;;
+  plan)    cmd_plan "$@" ;;
+  run)     cmd_run "$@" ;;
+  status)  cmd_status "$@" ;;
+  help|-h|--help)
+    cat <<'USAGE'
+Usage: helix task <command> [args...]
+
+HELIX Task Operating System — タスク駆動開発
+
+Commands:
+  catalog [filter]    タスクカタログ表示（63タスク/12カテゴリ）
+  plan               タスクプラン作成
+                      --goal "ゴール" --tasks "task1,task2,..."
+  run                次の pending タスクを実行（Codex or サブエージェントに委譲）
+  status             タスクプラン進捗表示
+
+Flow:
+  1. PM が catalog からタスクを選択
+  2. plan でタスク表を作成
+  3. run で順次実行（自動ロール割当+スキル注入）
+  4. status で進捗確認
+
+Example:
+  helix task catalog review           # review 系タスク一覧
+  helix task plan --goal "認証機能" \
+    --tasks "research-library,document-adr,design-api,contract-api,implement-api,implement-test,review-security,verify-unit"
+  helix task run                       # T001 から順次実行
+USAGE
+    ;;
+  *)
+    echo "Error: Unknown command '$CMD'" >&2
+    exit 1
+    ;;
+esac

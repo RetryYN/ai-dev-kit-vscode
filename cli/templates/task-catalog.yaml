@@ -1,0 +1,625 @@
+# task-catalog.yaml — HELIX タスクカタログ
+# タスクオペレーティングシステムの正本
+#
+# 各タスクの定義:
+#   input:    必要な入力（前タスクの output が来る）
+#   output:   このタスクが生成するもの
+#   role:     実行ロール（helix-codex のロール or Claude サブエージェント）
+#   estimate: 目安時間（分）
+#   depends:  前提タスクのカテゴリ（同カテゴリ内の任意タスク）
+#   skill:    参照する HELIX スキルパス
+
+# ============================================================
+# research: 調査系
+# ============================================================
+research:
+  research-library:
+    name: "ライブラリ比較調査"
+    input: "調査テーマ + 要件"
+    output: "比較表（メリット/デメリット/推奨）"
+    role: research
+    estimate: 15
+    depends: []
+    skill: advanced/tech-selection
+
+  research-prior-art:
+    name: "先行事例調査"
+    input: "テーマ"
+    output: "事例リスト + 学び"
+    role: research
+    estimate: 15
+    depends: []
+    skill: advanced/tech-selection
+
+  research-feasibility:
+    name: "実現可能性調査"
+    input: "仮説 or 技術的問い"
+    output: "実現可否判定 + 根拠"
+    role: research
+    estimate: 20
+    depends: []
+    skill: advanced/tech-selection
+
+  research-security:
+    name: "セキュリティ調査"
+    input: "対象技術 or ライブラリ"
+    output: "CVE/脆弱性リスト + 対策"
+    role: research
+    estimate: 15
+    depends: []
+    skill: common/security
+
+  research-compliance:
+    name: "コンプライアンス調査"
+    input: "対象ライブラリ or データ種別"
+    output: "ライセンス/法規制チェック結果"
+    role: research
+    estimate: 10
+    depends: []
+    skill: workflow/compliance
+
+  research-performance:
+    name: "パフォーマンス調査"
+    input: "対象システム or ライブラリ"
+    output: "ベンチマーク結果 + ボトルネック分析"
+    role: perf
+    estimate: 20
+    depends: []
+    skill: common/performance
+
+# ============================================================
+# design: 設計系
+# ============================================================
+design:
+  design-architecture:
+    name: "アーキテクチャ設計"
+    input: "要件 + 調査結果"
+    output: "アーキテクチャ設計書"
+    role: tl
+    estimate: 30
+    depends: [research]
+    skill: workflow/design-doc
+
+  design-api:
+    name: "API エンドポイント設計"
+    input: "アーキテクチャ設計書"
+    output: "API 設計書"
+    role: tl
+    estimate: 20
+    depends: [design]
+    skill: project/api
+
+  design-db:
+    name: "DB スキーマ設計"
+    input: "アーキテクチャ設計書"
+    output: "ER 図 + テーブル定義"
+    role: dba
+    estimate: 20
+    depends: [design]
+    skill: project/db
+
+  design-ui:
+    name: "UI/UX 設計"
+    input: "要件 + アーキテクチャ"
+    output: "画面設計 + コンポーネント構成"
+    role: fe-design
+    estimate: 25
+    depends: [design]
+    skill: common/visual-design
+
+  design-security:
+    name: "セキュリティ設計"
+    input: "アーキテクチャ設計書"
+    output: "脅威モデル + 対策方針"
+    role: security
+    estimate: 20
+    depends: [design]
+    skill: common/security
+
+# ============================================================
+# contract: 契約定義系
+# ============================================================
+contract:
+  contract-api:
+    name: "API コントラクト定義"
+    input: "API 設計書"
+    output: "OpenAPI / コントラクト YAML"
+    role: tl
+    estimate: 20
+    depends: [design]
+    skill: workflow/api-contract
+
+  contract-type:
+    name: "型定義"
+    input: "API コントラクト"
+    output: "TypeScript / Python 型定義"
+    role: se
+    estimate: 15
+    depends: [contract]
+    skill: common/coding
+
+  contract-test-design:
+    name: "テスト設計"
+    input: "API コントラクト + 設計書"
+    output: "テスト計画書"
+    role: qa
+    estimate: 15
+    depends: [contract]
+    skill: common/testing
+
+# ============================================================
+# document: ドキュメント系
+# ============================================================
+document:
+  document-adr:
+    name: "ADR（設計判断記録）作成"
+    input: "設計判断の内容"
+    output: "ADR ドキュメント"
+    role: docs
+    estimate: 10
+    depends: []
+    skill: common/documentation
+
+  document-readme:
+    name: "README 作成/更新"
+    input: "プロジェクト情報"
+    output: "README.md"
+    role: docs
+    estimate: 10
+    depends: []
+    skill: common/documentation
+
+  document-api-spec:
+    name: "API 仕様書作成"
+    input: "API コントラクト"
+    output: "API 仕様書"
+    role: docs
+    estimate: 15
+    depends: [contract]
+    skill: common/documentation
+
+  document-setup-guide:
+    name: "セットアップガイド作成"
+    input: "プロジェクト構成"
+    output: "セットアップ手順書"
+    role: docs
+    estimate: 10
+    depends: []
+    skill: workflow/dev-setup
+
+# ============================================================
+# mapping: マッピング・依存関係系
+# ============================================================
+mapping:
+  mapping-design-code:
+    name: "設計↔実装マッピング"
+    input: "設計書 + コード"
+    output: "マッピング表（設計項目→ファイル/関数）"
+    role: tl
+    estimate: 15
+    depends: [design, implement]
+    skill: workflow/dependency-map
+
+  mapping-api-type:
+    name: "API↔型マッピング"
+    input: "API コントラクト + 型定義"
+    output: "型一致率レポート"
+    role: tl
+    estimate: 10
+    depends: [contract]
+    skill: workflow/api-contract
+
+  mapping-dependency:
+    name: "依存関係マップ作成"
+    input: "コードベース"
+    output: "依存関係図 + 脆弱性チェック"
+    role: tl
+    estimate: 15
+    depends: []
+    skill: workflow/dependency-map
+
+# ============================================================
+# review: レビュー系
+# ============================================================
+review:
+  review-code-quality:
+    name: "コード品質レビュー"
+    input: "コード diff"
+    output: "指摘リスト（命名/構造/型安全性）"
+    role: tl
+    estimate: 15
+    depends: [implement]
+    skill: common/code-review
+
+  review-security:
+    name: "セキュリティレビュー"
+    input: "コード"
+    output: "脆弱性リスト（OWASP Top 10）"
+    role: security
+    estimate: 20
+    depends: [implement]
+    skill: common/security
+
+  review-performance:
+    name: "パフォーマンスレビュー"
+    input: "コード"
+    output: "ボトルネック指摘 + 最適化提案"
+    role: perf
+    estimate: 15
+    depends: [implement]
+    skill: common/performance
+
+  review-accessibility:
+    name: "アクセシビリティレビュー"
+    input: "UI コード"
+    output: "WCAG 違反リスト + 修正案"
+    role: fe-a11y
+    estimate: 15
+    depends: [implement]
+    skill: project/ui
+
+  review-usability:
+    name: "ユーザビリティレビュー"
+    input: "UI 実装"
+    output: "UX ヒューリスティック評価"
+    role: fe-design
+    estimate: 15
+    depends: [implement]
+    skill: common/design
+
+  review-api-contract:
+    name: "API 契約突合レビュー"
+    input: "API コントラクト + 実装"
+    output: "差分レポート"
+    role: tl
+    estimate: 10
+    depends: [contract, implement]
+    skill: workflow/api-contract
+
+  review-design-consistency:
+    name: "設計一貫性レビュー"
+    input: "設計書 + 実装"
+    output: "乖離リスト"
+    role: tl
+    estimate: 15
+    depends: [design, implement]
+    skill: workflow/adversarial-review
+
+  review-adversarial:
+    name: "adversarial レビュー"
+    input: "設計書"
+    output: "反証リスト + 改善提案"
+    role: tl
+    estimate: 20
+    depends: [design]
+    skill: workflow/adversarial-review
+
+# ============================================================
+# implement: 実装系
+# ============================================================
+implement:
+  implement-scaffold:
+    name: "スケルトン作成"
+    input: "設計書 + API コントラクト"
+    output: "ディレクトリ構造 + 空ファイル"
+    role: pg
+    estimate: 10
+    depends: [design]
+    skill: common/coding
+
+  implement-api:
+    name: "API エンドポイント実装"
+    input: "API コントラクト + スケルトン"
+    output: "API コード"
+    role: se
+    estimate: 30
+    depends: [contract, implement]
+    skill: project/api
+
+  implement-db:
+    name: "DB マイグレーション実装"
+    input: "DB スキーマ設計"
+    output: "マイグレーションファイル"
+    role: dba
+    estimate: 20
+    depends: [design]
+    skill: project/db
+
+  implement-logic:
+    name: "ビジネスロジック実装"
+    input: "設計書"
+    output: "ロジックコード"
+    role: se
+    estimate: 30
+    depends: [design]
+    skill: common/coding
+
+  implement-auth:
+    name: "認証認可実装"
+    input: "セキュリティ設計"
+    output: "認証ミドルウェア + ガード"
+    role: se
+    estimate: 25
+    depends: [design]
+    skill: common/security
+
+  implement-ui-component:
+    name: "UI コンポーネント実装"
+    input: "UI 設計"
+    output: "コンポーネントコード"
+    role: fe-component
+    estimate: 25
+    depends: [design]
+    skill: project/ui
+
+  implement-style:
+    name: "スタイリング実装"
+    input: "デザイン仕様"
+    output: "CSS / Tailwind コード"
+    role: fe-style
+    estimate: 20
+    depends: [implement]
+    skill: common/visual-design
+
+  implement-test:
+    name: "テストコード実装"
+    input: "テスト設計 + 実装コード"
+    output: "テストファイル"
+    role: qa
+    estimate: 25
+    depends: [contract, implement]
+    skill: common/testing
+
+  implement-e2e:
+    name: "E2E テスト実装"
+    input: "テスト設計 + 実装コード"
+    output: "E2E テストファイル"
+    role: qa
+    estimate: 20
+    depends: [implement]
+    skill: common/testing
+
+  implement-config:
+    name: "設定・環境変数実装"
+    input: "アーキテクチャ設計"
+    output: "設定ファイル + .env.example"
+    role: pg
+    estimate: 10
+    depends: [design]
+    skill: common/infrastructure
+
+  implement-ci:
+    name: "CI/CD パイプライン実装"
+    input: "プロジェクト構成"
+    output: "GitHub Actions / Dockerfile"
+    role: devops
+    estimate: 20
+    depends: [implement]
+    skill: workflow/deploy
+
+  implement-i18n:
+    name: "多言語対応実装"
+    input: "UI コード + 翻訳キー"
+    output: "i18n ファイル + コンポーネント修正"
+    role: pg
+    estimate: 15
+    depends: [implement]
+    skill: advanced/i18n
+
+# ============================================================
+# verify: 検証系
+# ============================================================
+verify:
+  verify-unit:
+    name: "ユニットテスト実行"
+    input: "テストコード"
+    output: "テスト結果 + カバレッジ"
+    role: qa
+    estimate: 5
+    depends: [implement]
+    skill: common/testing
+
+  verify-integration:
+    name: "統合テスト実行"
+    input: "テストコード"
+    output: "統合テスト結果"
+    role: qa
+    estimate: 10
+    depends: [implement]
+    skill: common/testing
+
+  verify-e2e:
+    name: "E2E テスト実行"
+    input: "E2E テストコード"
+    output: "E2E 結果"
+    role: qa
+    estimate: 10
+    depends: [implement]
+    skill: common/testing
+
+  verify-security-scan:
+    name: "脆弱性スキャン"
+    input: "コードベース"
+    output: "脆弱性レポート"
+    role: security
+    estimate: 10
+    depends: [implement]
+    skill: common/security
+
+  verify-performance:
+    name: "パフォーマンステスト"
+    input: "コード + ベンチマーク"
+    output: "性能レポート"
+    role: perf
+    estimate: 15
+    depends: [implement]
+    skill: common/performance
+
+  verify-regression:
+    name: "リグレッション検証"
+    input: "verify/ スクリプト群"
+    output: "全スクリプト pass/fail"
+    role: qa
+    estimate: 5
+    depends: [implement]
+    skill: workflow/verification
+
+  verify-accessibility:
+    name: "アクセシビリティ検証"
+    input: "UI 実装"
+    output: "axe-core / Lighthouse スコア"
+    role: fe-a11y
+    estimate: 10
+    depends: [implement]
+    skill: project/ui
+
+# ============================================================
+# fix: 修正系
+# ============================================================
+fix:
+  fix-bug:
+    name: "バグ修正"
+    input: "バグ報告 + 再現手順"
+    output: "修正コード + テスト"
+    role: se
+    estimate: 20
+    depends: []
+    skill: common/error-fix
+
+  fix-security:
+    name: "セキュリティ修正"
+    input: "脆弱性レポート"
+    output: "修正コード + 検証"
+    role: se
+    estimate: 25
+    depends: [review]
+    skill: common/security
+
+  fix-performance:
+    name: "パフォーマンス修正"
+    input: "ボトルネック指摘"
+    output: "最適化コード + ベンチマーク"
+    role: perf
+    estimate: 20
+    depends: [review]
+    skill: common/performance
+
+  fix-accessibility:
+    name: "アクセシビリティ修正"
+    input: "WCAG 違反リスト"
+    output: "修正コード"
+    role: fe-a11y
+    estimate: 15
+    depends: [review]
+    skill: project/ui
+
+# ============================================================
+# refactor: リファクタ系
+# ============================================================
+refactor:
+  refactor-structure:
+    name: "構造リファクタリング"
+    input: "コード品質レビュー結果"
+    output: "リファクタ済みコード"
+    role: se
+    estimate: 25
+    depends: [review]
+    skill: common/refactoring
+
+  refactor-naming:
+    name: "命名改善"
+    input: "コード品質レビュー結果"
+    output: "リネーム diff"
+    role: pg
+    estimate: 10
+    depends: [review]
+    skill: common/refactoring
+
+  refactor-type-safety:
+    name: "型安全性向上"
+    input: "コード"
+    output: "any 排除 + 型追加"
+    role: se
+    estimate: 20
+    depends: []
+    skill: common/coding
+
+# ============================================================
+# deploy: デプロイ系
+# ============================================================
+deploy:
+  deploy-staging:
+    name: "ステージングデプロイ"
+    input: "CI pass + RC ビルド"
+    output: "ステージング環境"
+    role: devops
+    estimate: 15
+    depends: [verify]
+    skill: workflow/deploy
+
+  deploy-production:
+    name: "本番デプロイ"
+    input: "ステージング検証済み"
+    output: "本番環境"
+    role: devops
+    estimate: 15
+    depends: [deploy]
+    skill: workflow/deploy
+
+  deploy-rollback:
+    name: "ロールバック"
+    input: "障害検知"
+    output: "前バージョン復旧"
+    role: devops
+    estimate: 10
+    depends: []
+    skill: workflow/deploy
+
+  deploy-monitoring:
+    name: "監視設定"
+    input: "デプロイ済みシステム"
+    output: "SLO/SLI + アラート"
+    role: devops
+    estimate: 15
+    depends: [deploy]
+    skill: workflow/observability-sre
+
+# ============================================================
+# legacy: レガシー系
+# ============================================================
+legacy:
+  legacy-evidence:
+    name: "証拠収集（R0）"
+    input: "既存コードベース"
+    output: "evidence map"
+    role: legacy
+    estimate: 30
+    depends: []
+    skill: workflow/reverse-analysis
+
+  legacy-contract-extract:
+    name: "契約抽出（R1）"
+    input: "evidence map"
+    output: "observed contracts"
+    role: legacy
+    estimate: 25
+    depends: [legacy]
+    skill: workflow/reverse-analysis
+
+  legacy-design-recovery:
+    name: "設計復元（R2）"
+    input: "observed contracts"
+    output: "as-is design + ADR 仮説"
+    role: legacy
+    estimate: 30
+    depends: [legacy]
+    skill: workflow/reverse-analysis
+
+  legacy-migration-plan:
+    name: "移行計画策定"
+    input: "as-is design + gap register"
+    output: "移行計画書"
+    role: legacy
+    estimate: 25
+    depends: [legacy]
+    skill: advanced/migration
