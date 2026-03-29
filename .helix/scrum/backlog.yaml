@@ -40,3 +40,45 @@ hypotheses:
     verify_script: verify/h105-unified-status-display.sh
     status: confirmed
     sprint: 1
+  H201:
+    title: "Codex role dispatch"
+    question: "helix-codex が全12ロールのスキル注入と dry-run を正しく処理するか"
+    acceptance: "12ロール全て dry-run pass、スキルパス・モデル・共通ドキュメントが正しい"
+    verify_script: verify/h201-codex-role-dispatch.sh
+    status: confirmed
+    sprint: 2
+  H202:
+    title: "PR generation"
+    question: "helix-pr がゲート結果とコミットからPRテンプレートを正しく生成するか"
+    acceptance: "dry-run でゲートテーブル・サマリ・テストプランが含まれる"
+    verify_script: verify/h202-pr-generation.sh
+    status: confirmed
+    sprint: 2
+  H203:
+    title: "CLAUDE.md enforcement"
+    question: "helix-check-claudemd がテンプレートなしの CLAUDE.md 作成をブロックするか"
+    acceptance: "必須セクション欠落で deny、準拠で pass、既存ファイル更新はスルー"
+    verify_script: verify/h203-claudemd-enforcement.sh
+    status: confirmed
+    sprint: 2
+  H204:
+    title: "Session context injection"
+    question: "helix-session-start が有効な JSON でコンテキストを出力するか"
+    acceptance: "JSON valid、全ツール名を含む、Scrum 情報を含む"
+    verify_script: verify/h204-session-context-injection.sh
+    status: confirmed
+    sprint: 2
+  H205:
+    title: "Gate cascade integrity"
+    question: "G2→G7 の全ゲート前提条件チェーンが正しく機能するか"
+    acceptance: G3はG2必須、G4はG3必須...G7はG6必須。未通過で全てブロック
+    verify_script: verify/h205-gate-cascade-integrity.sh
+    status: confirmed
+    sprint: 2
+  H206:
+    title: "Concurrent mode safety"
+    question: "Forward と Scrum を同一プロジェクトで並行運用してphase.yamlが壊れないか"
+    acceptance: gate操作とsprint操作とscrum操作が互いに干渉しない
+    verify_script: verify/h206-concurrent-mode-safety.sh
+    status: confirmed
+    sprint: 2
