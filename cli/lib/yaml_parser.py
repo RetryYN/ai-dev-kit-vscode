@@ -130,14 +130,37 @@ def get_nested(data, dotpath):
 
 
 def set_nested(data, dotpath, value):
-    """ドットパスで値を設定。キーに `.` を含む場合も対応。"""
-    keys = _split_dotpath(data, dotpath)
+    """ドットパスで値を設定。キーに `.` を含む場合も対応。新規キーはドット分割で作成。"""
+    # set では既存キーの貪欲マッチ + 新規キーのドット分割を組み合わせる
+    parts = []
+    remaining = dotpath
     current = data
-    for key in keys[:-1]:
-        if key not in current or not isinstance(current[key], dict):
+    while remaining:
+        if isinstance(current, dict) and remaining in current:
+            parts.append(remaining)
+            break
+        found = False
+        dot_positions = [i for i, c in enumerate(remaining) if c == '.']
+        for pos in dot_positions:
+            candidate = remaining[:pos]
+            if isinstance(current, dict) and candidate in current:
+                parts.append(candidate)
+                current = current[candidate]
+                remaining = remaining[pos + 1:]
+                found = True
+                break
+        if not found:
+            # 既存キーにマッチしない → ドットで単純分割
+            rest_parts = remaining.split('.')
+            parts.extend(rest_parts)
+            break
+
+    current = data
+    for key in parts[:-1]:
+        if key not in current or not isinstance(current.get(key), dict):
             current[key] = {}
         current = current[key]
-    current[keys[-1]] = _cast(str(value)) if not isinstance(value, dict) else value
+    current[parts[-1]] = _cast(str(value)) if not isinstance(value, dict) else value
 
 
 def dump_yaml(data, indent=0):

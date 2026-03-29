@@ -1,0 +1,16 @@
+# scrum-backlog.yaml — HELIX Scrum 仮説バックログ
+# .helix/scrum/backlog.yaml に配置
+#
+# status: queued → testing → confirmed / rejected / pivot
+# sprint: どのスプリントで検証するか（null = 未割当）
+
+hypotheses:
+  # H001:
+  #   title: "仮説のタイトル"
+  #   question: "何を検証するか？"
+  #   acceptance: "どうなったら成功か？"
+  #   verify_script: "verify/001-hypothesis-name.sh"
+  #   status: queued
+  #   sprint: null
+  #   result: null
+  #   learnings: ""

@@ -1,0 +1,485 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-scrum: HELIX Scrum（検証駆動開発）
+# Usage: helix scrum <init|backlog|plan|poc|verify|decide|review|status> [args...]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+YP="$SCRIPT_DIR/lib/yaml_parser.py"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+SCRUM_DIR="$HELIX_DIR/scrum"
+BACKLOG="$SCRUM_DIR/backlog.yaml"
+SPRINT_FILE="$SCRUM_DIR/sprint.yaml"
+VERIFY_DIR="$PROJECT_ROOT/verify"
+HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+# ============================
+# init: Scrum モード初期化
+# ============================
+cmd_init() {
+  echo "=== HELIX Scrum Init ==="
+  mkdir -p "$SCRUM_DIR" "$VERIFY_DIR"
+
+  if [[ ! -f "$BACKLOG" ]]; then
+    cp "$SCRIPT_DIR/templates/scrum-backlog.yaml" "$BACKLOG"
+    echo "  created: .helix/scrum/backlog.yaml"
+  else
+    echo "  skip: backlog.yaml (already exists)"
+  fi
+
+  if [[ ! -f "$SPRINT_FILE" ]]; then
+    cp "$SCRIPT_DIR/templates/scrum-sprint.yaml" "$SPRINT_FILE"
+    echo "  created: .helix/scrum/sprint.yaml"
+  else
+    echo "  skip: sprint.yaml (already exists)"
+  fi
+
+  echo "  created: verify/ (検証スクリプト格納ディレクトリ)"
+  echo ""
+  echo "Next: helix scrum backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'"
+}
+
+# ============================
+# backlog: 仮説バックログ管理
+# ============================
+cmd_backlog() {
+  local subcmd="${1:-list}"
+  shift 2>/dev/null || true
+
+  case "$subcmd" in
+    list)
+      if [[ ! -f "$BACKLOG" ]]; then
+        echo "バックログなし。'helix scrum init' で初期化してください。"
+        exit 1
+      fi
+      echo "=== Hypothesis Backlog ==="
+      echo ""
+      python3 -c "
+import json, sys
+sys.path.insert(0, '$SCRIPT_DIR/lib')
+from yaml_parser import parse_yaml, get_nested
+text = open('$BACKLOG').read()
+data = parse_yaml(text)
+hypotheses = data.get('hypotheses', {})
+if not hypotheses or (isinstance(hypotheses, dict) and not any(isinstance(v, dict) for v in hypotheses.values())):
+    print('  (空)')
+    sys.exit(0)
+print(f'  {\"ID\":<6} {\"Status\":<12} {\"Sprint\":<8} {\"Title\"}')
+print(f'  {\"---\":<6} {\"------\":<12} {\"------\":<8} {\"-----\"}')
+for hid, h in sorted(hypotheses.items()):
+    if not isinstance(h, dict):
+        continue
+    status = h.get('status', 'queued')
+    sprint = h.get('sprint', '—') or '—'
+    title = h.get('title', '')
+    icon = {'queued':' ', 'testing':'→', 'confirmed':'✓', 'rejected':'✗', 'pivot':'↻'}.get(status, ' ')
+    print(f'  {icon} {hid:<5} {status:<12} {str(sprint):<8} {title}')
+" 2>/dev/null
+      echo ""
+      ;;
+
+    add)
+      local hid="" title="" question="" acceptance=""
+      while [[ $# -gt 0 ]]; do
+        case $1 in
+          --id) hid="$2"; shift 2 ;;
+          --title) title="$2"; shift 2 ;;
+          --question) question="$2"; shift 2 ;;
+          --acceptance) acceptance="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      if [[ -z "$hid" || -z "$title" ]]; then
+        echo "Usage: helix scrum backlog add --id H001 --title '...' --question '...' --acceptance '...'" >&2
+        exit 1
+      fi
+      local verify_script="verify/${hid,,}-$(echo "$title" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | head -c 30).sh"
+
+      python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.title" "$title"
+      python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.question" "$question"
+      python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.acceptance" "$acceptance"
+      python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.verify_script" "$verify_script"
+      python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.status" "queued"
+
+      # 検証スクリプトのスケルトン生成
+      if [[ ! -f "$PROJECT_ROOT/$verify_script" ]]; then
+        mkdir -p "$(dirname "$PROJECT_ROOT/$verify_script")"
+        cat > "$PROJECT_ROOT/$verify_script" << VEOF
+#!/bin/bash
+set -eo pipefail
+# 検証スクリプト: $hid — $title
+# 受入条件: $acceptance
+#
+# exit 0 = 検証成功, exit 1 = 検証失敗
+
+echo "=== $hid: $title ==="
+
+# TODO: 検証ロジックを実装
+echo "FAIL: 未実装"
+exit 1
+VEOF
+        chmod +x "$PROJECT_ROOT/$verify_script"
+      fi
+
+      echo "[scrum] $hid 追加: $title"
+      echo "  検証スクリプト: $verify_script"
+      echo "  → スクリプトを編集して検証ロジックを実装してください"
+      ;;
+
+    *)
+      echo "Usage: helix scrum backlog <list|add>" >&2
+      exit 1
+      ;;
+  esac
+}
+
+# ============================
+# plan: スプリント計画
+# ============================
+cmd_plan() {
+  local sprint_num goal=""
+  local hypotheses=()
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --goal) goal="$2"; shift 2 ;;
+      --hypotheses) IFS=',' read -ra hypotheses <<< "$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  # 現在のスプリント番号を取得して +1
+  local current
+  current=$(python3 "$YP" read "$SPRINT_FILE" "current_sprint" 2>/dev/null || echo 0)
+  sprint_num=$((current + 1))
+
+  python3 "$YP" write "$SPRINT_FILE" "current_sprint" "$sprint_num"
+  python3 "$YP" write "$SPRINT_FILE" "sprints.${sprint_num}.goal" "${goal:-Sprint $sprint_num}"
+  python3 "$YP" write "$SPRINT_FILE" "sprints.${sprint_num}.status" "active"
+  python3 "$YP" write "$SPRINT_FILE" "sprints.${sprint_num}.started" "$(date '+%Y-%m-%d')"
+
+  # 仮説をスプリントに割り当て
+  for h in "${hypotheses[@]}"; do
+    h=$(echo "$h" | tr -d ' ')
+    python3 "$YP" write "$BACKLOG" "hypotheses.${h}.sprint" "$sprint_num"
+    python3 "$YP" write "$BACKLOG" "hypotheses.${h}.status" "testing"
+  done
+
+  echo "=== Sprint $sprint_num 開始 ==="
+  echo "Goal: ${goal:-Sprint $sprint_num}"
+  echo "Hypotheses: ${hypotheses[*]}"
+  echo ""
+  echo "Next: helix scrum poc --hypothesis H001"
+}
+
+# ============================
+# poc: PoC 実装を Codex に委譲
+# ============================
+cmd_poc() {
+  local hid=""
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --hypothesis) hid="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ -z "$hid" ]]; then
+    echo "Usage: helix scrum poc --hypothesis H001" >&2
+    exit 1
+  fi
+
+  local title question acceptance verify_script
+  title=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.title" 2>/dev/null)
+  question=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.question" 2>/dev/null)
+  acceptance=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.acceptance" 2>/dev/null)
+  verify_script=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.verify_script" 2>/dev/null)
+
+  echo "=== PoC: $hid — $title ==="
+  echo "Question: $question"
+  echo "Acceptance: $acceptance"
+  echo "Verify: $verify_script"
+  echo ""
+
+  "$HELIX_CODEX" --role pg --task "PoC 実装: $title
+
+仮説: $question
+受入条件: $acceptance
+検証スクリプト: $PROJECT_ROOT/$verify_script
+
+手順:
+1. 仮説を検証する最小限のコードを実装
+2. 検証スクリプト ($verify_script) を実装（受入条件を自動チェックするコード）
+3. 検証スクリプトを実行して結果を確認
+4. pass するまでコードを修正
+
+検証スクリプトは exit 0 = 成功、exit 1 = 失敗。
+既存の verify/ 内のスクリプトも全て実行してリグレッションがないことを確認。" 2>&1
+}
+
+# ============================
+# verify: 全検証スクリプト実行
+# ============================
+cmd_verify() {
+  local target="${1:-all}"
+
+  echo "=== Verification Run ==="
+  echo ""
+
+  local pass=0 fail=0 total=0
+  local failed_scripts=()
+
+  if [[ "$target" == "all" ]]; then
+    # 全検証スクリプト実行
+    for script in "$VERIFY_DIR"/*.sh; do
+      [[ ! -f "$script" ]] && continue
+      total=$((total + 1))
+      local name
+      name=$(basename "$script")
+      printf "  %-40s " "$name"
+      set +e
+      output=$(bash "$script" 2>&1)
+      local exit_code=$?
+      set -e
+      if [[ $exit_code -eq 0 ]]; then
+        echo "PASS"
+        pass=$((pass + 1))
+      else
+        echo "FAIL"
+        fail=$((fail + 1))
+        failed_scripts+=("$name")
+      fi
+    done
+  else
+    # 指定スクリプトのみ
+    if [[ -f "$VERIFY_DIR/$target" ]]; then
+      total=1
+      printf "  %-40s " "$target"
+      set +e
+      bash "$VERIFY_DIR/$target" 2>&1
+      local exit_code=$?
+      set -e
+      if [[ $exit_code -eq 0 ]]; then
+        echo "PASS"
+        pass=1
+      else
+        echo "FAIL"
+        fail=1
+      fi
+    else
+      echo "Error: $VERIFY_DIR/$target not found" >&2
+      exit 1
+    fi
+  fi
+
+  echo ""
+  echo "=== Results: $pass/$total passed, $fail failed ==="
+
+  if [[ $fail -gt 0 ]]; then
+    echo "Failed:"
+    for f in "${failed_scripts[@]}"; do
+      echo "  - $f"
+    done
+    exit 1
+  fi
+}
+
+# ============================
+# decide: 仮説の判定
+# ============================
+cmd_decide() {
+  local hid="" decision="" learnings=""
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --hypothesis) hid="$2"; shift 2 ;;
+      --confirmed)  decision="confirmed"; shift ;;
+      --rejected)   decision="rejected"; shift ;;
+      --pivot)      decision="pivot"; shift ;;
+      --learnings)  learnings="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ -z "$hid" || -z "$decision" ]]; then
+    echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--learnings '...']" >&2
+    exit 1
+  fi
+
+  python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.status" "$decision"
+  if [[ -n "$learnings" ]]; then
+    python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.learnings" "$learnings"
+  fi
+
+  local title
+  title=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.title" 2>/dev/null)
+
+  echo "[scrum] $hid: $decision — $title"
+
+  case "$decision" in
+    confirmed)
+      echo "  → Forward HELIX に接続可能。'helix size' でサイジングしてください。"
+      echo "  → 検証スクリプトは verify/ に残り、リグレッションテストとして機能します。"
+      ;;
+    rejected)
+      echo "  → バックログから除外。学びを記録しました。"
+      ;;
+    pivot)
+      echo "  → 仮説を修正して次スプリントで再検証してください。"
+      ;;
+  esac
+}
+
+# ============================
+# review: スプリントレビュー
+# ============================
+cmd_review() {
+  local sprint_num
+  sprint_num=$(python3 "$YP" read "$SPRINT_FILE" "current_sprint" 2>/dev/null || echo 0)
+
+  if [[ "$sprint_num" -eq 0 ]]; then
+    echo "アクティブなスプリントがありません。" >&2
+    exit 1
+  fi
+
+  echo "=== Sprint $sprint_num Review ==="
+  echo ""
+
+  # 全検証スクリプト実行
+  echo "[Verification]"
+  cmd_verify all 2>&1 || true
+  echo ""
+
+  # 仮説状態サマリ
+  echo "[Hypotheses]"
+  python3 -c "
+import sys
+sys.path.insert(0, '$SCRIPT_DIR/lib')
+from yaml_parser import parse_yaml
+text = open('$BACKLOG').read()
+data = parse_yaml(text)
+hypotheses = data.get('hypotheses', {})
+confirmed = sum(1 for h in hypotheses.values() if isinstance(h, dict) and h.get('status') == 'confirmed')
+rejected = sum(1 for h in hypotheses.values() if isinstance(h, dict) and h.get('status') == 'rejected')
+testing = sum(1 for h in hypotheses.values() if isinstance(h, dict) and h.get('status') == 'testing')
+pivot = sum(1 for h in hypotheses.values() if isinstance(h, dict) and h.get('status') == 'pivot')
+print(f'  Confirmed: {confirmed}  Rejected: {rejected}  Testing: {testing}  Pivot: {pivot}')
+" 2>/dev/null
+  echo ""
+
+  # スプリント完了
+  python3 "$YP" write "$SPRINT_FILE" "sprints.${sprint_num}.status" "completed"
+  python3 "$YP" write "$SPRINT_FILE" "sprints.${sprint_num}.ended" "$(date '+%Y-%m-%d')"
+
+  # レトロテンプレート生成
+  local retro_file="$SCRUM_DIR/retro-sprint-${sprint_num}.md"
+  cat > "$retro_file" << RETRO
+# Sprint $sprint_num Retrospective ($(date '+%Y-%m-%d'))
+
+## Verified
+- 全検証スクリプト実行結果を上に記載
+
+## Keep（うまくいったこと）
+-
+
+## Problem（問題があったこと）
+-
+
+## Try（次に試すこと）
+| アクション | 担当 | 期日 |
+|-----------|------|------|
+| | | |
+
+## Learnings（学び）
+-
+RETRO
+
+  echo "[Retro] $retro_file を生成しました。記入してください。"
+  echo ""
+  echo "Sprint $sprint_num 完了。次: helix scrum plan --goal '...' --hypotheses H002,H003"
+}
+
+# ============================
+# status: 現在の状態表示
+# ============================
+cmd_status() {
+  if [[ ! -d "$SCRUM_DIR" ]]; then
+    echo "HELIX Scrum 未初期化。'helix scrum init' で初期化してください。"
+    exit 1
+  fi
+
+  echo "=== HELIX Scrum Status ==="
+  echo ""
+
+  # スプリント情報
+  local sprint_num
+  sprint_num=$(python3 "$YP" read "$SPRINT_FILE" "current_sprint" 2>/dev/null || echo 0)
+  local sprint_status
+  sprint_status=$(python3 "$YP" read "$SPRINT_FILE" "sprints.${sprint_num}.status" 2>/dev/null || echo "none")
+  local sprint_goal
+  sprint_goal=$(python3 "$YP" read "$SPRINT_FILE" "sprints.${sprint_num}.goal" 2>/dev/null || echo "—")
+
+  echo "Sprint: #$sprint_num ($sprint_status)"
+  echo "Goal:   $sprint_goal"
+  echo ""
+
+  # バックログ
+  cmd_backlog list
+
+  # 検証スクリプト数
+  local script_count
+  script_count=$(ls "$VERIFY_DIR"/*.sh 2>/dev/null | wc -l)
+  echo "検証スクリプト: $script_count 件 (verify/)"
+  if [[ $script_count -gt 0 ]]; then
+    ls -1 "$VERIFY_DIR"/*.sh 2>/dev/null | while read -r f; do
+      echo "  $(basename "$f")"
+    done
+  fi
+}
+
+# ============================
+# メインディスパッチ
+# ============================
+case "$CMD" in
+  init)    cmd_init "$@" ;;
+  backlog) cmd_backlog "$@" ;;
+  plan)    cmd_plan "$@" ;;
+  poc)     cmd_poc "$@" ;;
+  verify)  cmd_verify "$@" ;;
+  decide)  cmd_decide "$@" ;;
+  review)  cmd_review "$@" ;;
+  status)  cmd_status "$@" ;;
+  help|-h|--help)
+    cat <<'USAGE'
+Usage: helix scrum <command> [args...]
+
+HELIX Scrum — 検証駆動開発
+
+Commands:
+  init                    Scrum モード初期化
+  backlog list            仮説バックログ表示
+  backlog add             仮説追加 (--id --title --question --acceptance)
+  plan                    スプリント開始 (--goal --hypotheses H001,H002)
+  poc                     PoC 実装を Codex に委譲 (--hypothesis H001)
+  verify [script]         検証スクリプト実行 (引数なし=全実行)
+  decide                  判定 (--hypothesis H001 --confirmed|--rejected|--pivot)
+  review                  スプリントレビュー + レトロ
+  status                  現在の状態表示
+
+Flow:
+  init → backlog add → plan → poc → verify → decide → review → (next sprint)
+
+検証スクリプトは verify/ に蓄積され、毎回全実行でリグレッションを検出。
+confirmed な仮説は Forward HELIX (L2→) に接続。
+USAGE
+    ;;
+  *)
+    echo "Error: Unknown command '$CMD'" >&2
+    echo "Run 'helix scrum help' for usage" >&2
+    exit 1
+    ;;
+esac

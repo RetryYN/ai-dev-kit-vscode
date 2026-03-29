@@ -151,6 +151,16 @@ run_test "yaml write" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase
 run_test_contains "yaml write verify" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
 echo ""
 
+echo "[helix-scrum]"
+run_test "scrum init" "$SCRIPT_DIR/helix-scrum init"
+run_test "scrum backlog add" "$SCRIPT_DIR/helix-scrum backlog add --id H001 --title Test --question Q --acceptance A"
+run_test_contains "scrum backlog list" "$SCRIPT_DIR/helix-scrum backlog list" "H001"
+run_test_contains "scrum plan" "$SCRIPT_DIR/helix-scrum plan --goal TestGoal --hypotheses H001" "Sprint"
+run_test "scrum verify (fail expected)" "$SCRIPT_DIR/helix-scrum verify" 1
+run_test_contains "scrum decide" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "confirmed"
+run_test_contains "scrum status" "$SCRIPT_DIR/helix-scrum status" "Sprint"
+echo ""
+
 echo "[helix wrapper]"
 run_test_contains "helix help" "$SCRIPT_DIR/helix help" "Commands:"
 run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1
