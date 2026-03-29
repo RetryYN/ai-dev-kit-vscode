@@ -368,35 +368,48 @@ import json; print(json.dumps({
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  UI 目視確認が必要です"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "  確認項目:"
-    echo "    1. デザインカンプとの差異がないか"
-    echo "    2. レスポンシブ表示（sm/md/lg）に崩れがないか"
-    echo "    3. ダークモード対応（該当する場合）"
-    echo "    4. フォント・配色・余白がデザイントークンに準拠しているか"
-    echo "    5. アニメーション・トランジションが意図通りか"
-    echo ""
-
-    # 確認記録ファイル
     local VISUAL_CHECK_DIR="$HELIX_DIR/visual-checks"
-    mkdir -p "$VISUAL_CHECK_DIR"
+    local SCREENSHOT_DIR="$VISUAL_CHECK_DIR/${tid}-screenshots"
+    mkdir -p "$SCREENSHOT_DIR"
     local check_file="$VISUAL_CHECK_DIR/${tid}-${task_type}.md"
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  UI 目視確認が必要です"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  スクリーンショットを撮影して以下に保存してください:"
+    echo "    $SCREENSHOT_DIR/"
+    echo ""
+    echo "  必須スクリーンショット:"
+    echo "    desktop.png   — デスクトップ表示 (1280px+)"
+    echo "    tablet.png    — タブレット表示 (768px)"
+    echo "    mobile.png    — モバイル表示 (375px)"
+    echo ""
+    echo "  任意:"
+    echo "    dark.png      — ダークモード"
+    echo "    hover.png     — ホバー/インタラクション状態"
+    echo "    error.png     — エラー状態"
+    echo ""
+    echo "  撮影方法:"
+    echo "    ブラウザ DevTools → Toggle device → Screenshot"
+    echo "    または: npx playwright screenshot --url http://localhost:3000 --path $SCREENSHOT_DIR/desktop.png"
+    echo ""
 
     cat > "$check_file" << VCHECK
 # UI 目視確認: $tid — $name
 # Date: $(date '+%Y-%m-%d %H:%M')
 
+## スクリーンショット
+- desktop.png: [ ] 撮影済み
+- tablet.png:  [ ] 撮影済み
+- mobile.png:  [ ] 撮影済み
+
 ## 確認結果
 - [ ] デザインカンプとの一致
-- [ ] レスポンシブ (sm):
-- [ ] レスポンシブ (md):
-- [ ] レスポンシブ (lg):
-- [ ] ダークモード:
-- [ ] デザイントークン準拠:
-- [ ] アニメーション:
-
-## スクリーンショット確認ポイント
--
+- [ ] レスポンシブ崩れなし
+- [ ] デザイントークン準拠（色・フォント・余白）
+- [ ] アクセシビリティ（コントラスト・フォーカス）
 
 ## 指摘事項
 -
@@ -405,8 +418,7 @@ import json; print(json.dumps({
 VCHECK
 
     echo "  確認記録: $check_file"
-    echo "  → チェックリストを記入して判定を approved に変更してください"
-    echo "  → 判定が pending のまま G5 を通過できません"
+    echo "  → スクリーンショット 3 枚 + 判定を approved に変更で G5 通過可能"
     echo ""
   fi
 
