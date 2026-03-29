@@ -160,14 +160,50 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 
-# --- 実行 ---
-"$HELIX_CODEX" --role "$ROLE" --task "$TASK" 2>&1
+# --- ログ + DB 記録 ---
+DB_PY="$SCRIPT_DIR/lib/helix_db.py"
+DB_PATH="$HELIX_DIR/helix.db"
+LOG_DIR="$HELIX_DIR/task-logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/${STAGE}-${STAGE_OUTPUT[$STAGE]%.yaml}.log"
+
+# DB にタスク記録
+local_db_run_id=""
+if [[ -f "$DB_PATH" ]]; then
+  local_db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
+import json; print(json.dumps({
+    'task_id': '$STAGE', 'task_type': 'legacy-${STAGE,,}',
+    'plan_goal': 'Reverse HELIX', 'role': '$ROLE', 'status': 'running'
+}))" 2>/dev/null)" 2>/dev/null || echo "")
+fi
+
+# --- 実行（ログ保存） ---
+set +e
+"$HELIX_CODEX" --role "$ROLE" --task "$TASK" 2>&1 | tee "$LOG_FILE"
+set -e
+
+# DB 完了更新
+if [[ -f "$DB_PATH" && -n "$local_db_run_id" ]]; then
+  python3 -c "
+import sqlite3
+from datetime import datetime
+conn = sqlite3.connect('$DB_PATH')
+conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
+    ('completed', datetime.now().isoformat(), '$LOG_FILE', $local_db_run_id))
+conn.commit()
+conn.close()
+" 2>/dev/null || true
+fi
+
+echo ""
+echo "[helix-reverse] ログ: $LOG_FILE"
+echo "[helix-reverse] 'helix debug trace $LOG_FILE' でアクション追跡"
+echo ""
 
 # --- ゲート更新 ---
 rgate="${STAGE_RGATE[$STAGE]}"
 if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
   set_rgate_status "$rgate" "passed"
-  echo ""
   echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
 else
   set_rgate_status "$rgate" "failed"

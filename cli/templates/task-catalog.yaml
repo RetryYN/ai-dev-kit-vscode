@@ -751,56 +751,269 @@ deploy:
       - { type: validate-assumption, desc: "アラート発火テスト" }
 
 # ============================================================
-# legacy: レガシー系
+# legacy: レガシー系（Reverse HELIX R0→R4 + 移行）
 # ============================================================
 legacy:
-  legacy-evidence:
-    name: "証拠収集（R0）"
+  # --- R0: 証拠収集 ---
+  legacy-scan-structure:
+    name: "ディレクトリ構造スキャン"
     role: legacy
-    estimate: 40
+    estimate: 10
     skill: workflow/reverse-analysis
     actions:
-      - { type: read-code, desc: "ディレクトリ構造の把握" }
-      - { type: read-code, desc: "エントリポイント特定" }
-      - { type: search-internal, desc: "DB 接続・設定ファイル検索" }
-      - { type: search-internal, desc: "外部 API 呼び出し検索" }
-      - { type: analyze, desc: "モジュール一覧作成" }
-      - { type: write-doc, desc: "evidence map 作成" }
+      - { type: read-code, desc: "トップレベルディレクトリ一覧" }
+      - { type: read-code, desc: "package.json / go.mod / Cargo.toml 等の依存ファイル特定" }
+      - { type: analyze, desc: "フレームワーク・言語の推定" }
+      - { type: write-doc, desc: "ディレクトリ構造マップ" }
 
-  legacy-contract-extract:
-    name: "契約抽出（R1）"
+  legacy-scan-entrypoints:
+    name: "エントリポイント特定"
     role: legacy
-    estimate: 35
+    estimate: 15
     skill: workflow/reverse-analysis
     actions:
-      - { type: search-internal, desc: "API ルート定義の抽出" }
-      - { type: search-internal, desc: "DB テーブル・クエリの抽出" }
-      - { type: search-internal, desc: "型定義・インターフェースの抽出" }
-      - { type: write-test, desc: "characterization test 作成" }
+      - { type: search-internal, desc: "main / index / app / server ファイルの検索" }
+      - { type: read-code, desc: "起動シーケンスの追跡" }
+      - { type: read-code, desc: "ルーティング初期化の特定" }
+      - { type: write-doc, desc: "エントリポイント一覧" }
+
+  legacy-scan-db:
+    name: "DB スキーマ抽出"
+    role: legacy
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "ORM モデル / migration ファイル検索" }
+      - { type: read-code, desc: "テーブル定義・リレーション解析" }
+      - { type: search-internal, desc: "生 SQL クエリの検索" }
+      - { type: write-schema, desc: "DB スキーマ定義（推定）" }
+      - { type: fact-check, desc: "実 DB との突合（接続可能な場合）" }
+
+  legacy-scan-external:
+    name: "外部依存抽出"
+    role: legacy
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "HTTP クライアント呼び出し検索（fetch/axios/http）" }
+      - { type: search-internal, desc: "環境変数から外部 URL 抽出" }
+      - { type: search-internal, desc: "SDK / クライアントライブラリの使用箇所" }
+      - { type: write-doc, desc: "外部 API 依存マップ" }
+      - { type: fact-check, desc: "外部 API の現在の稼働状況確認" }
+
+  legacy-scan-config:
+    name: "設定・環境解析"
+    role: legacy
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: ".env / config / settings ファイル検索" }
+      - { type: read-code, desc: "環境変数の使用箇所と用途の特定" }
+      - { type: evaluate-risk, desc: "ハードコードされた秘密情報の検出" }
+      - { type: write-doc, desc: "設定一覧（必須/任意/デフォルト値）" }
+
+  legacy-catalog-unknowns:
+    name: "不明領域のカタログ化"
+    role: legacy
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "TODO / FIXME / HACK / DEPRECATED 検索" }
+      - { type: analyze, desc: "テストカバレッジの低い領域の特定" }
+      - { type: analyze, desc: "コメントなし・ドキュメントなしのモジュール特定" }
+      - { type: write-doc, desc: "unknowns カタログ（調査必要リスト）" }
+
+  legacy-evidence-map:
+    name: "証拠マップ統合（R0 成果物）"
+    role: legacy
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "各スキャン結果の統合・矛盾チェック" }
+      - { type: review-cross-ref, desc: "モジュール↔DB↔外部APIの対応確認" }
+      - { type: write-doc, desc: "evidence_map.yaml 作成" }
+      - { type: fact-check, desc: "証拠の網羅性確認（未調査領域がないか）" }
+
+  # --- R1: 契約抽出 ---
+  legacy-extract-api:
+    name: "API ルート自動抽出"
+    role: legacy
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "ルーティング定義の grep（router/app.get 等）" }
+      - { type: read-code, desc: "各エンドポイントのハンドラ解析" }
+      - { type: analyze, desc: "リクエスト/レスポンスの型推定" }
+      - { type: write-contract, desc: "observed API contracts 作成" }
+
+  legacy-extract-db:
+    name: "DB 契約抽出"
+    role: legacy
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "CRUD パターンの抽出" }
+      - { type: read-code, desc: "クエリの WHERE 条件・JOIN 解析" }
+      - { type: write-schema, desc: "observed DB contracts 作成" }
+      - { type: review-cross-ref, desc: "API↔DB の対応確認" }
+
+  legacy-extract-types:
+    name: "型・インターフェース抽出"
+    role: legacy
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "interface / type / class 定義の検索" }
+      - { type: analyze, desc: "型の依存関係グラフ" }
+      - { type: write-schema, desc: "observed type definitions" }
+
+  legacy-characterization-test:
+    name: "特性テスト作成"
+    role: qa
+    estimate: 20
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: read-code, desc: "主要フローの特定" }
+      - { type: write-test, desc: "既存動作を固定する characterization test" }
       - { type: run-test, desc: "characterization test 実行" }
-      - { type: write-doc, desc: "observed contracts 作成" }
+      - { type: fact-check, desc: "テストが実際の動作を正しく反映しているか検証" }
+      - { type: analyze, desc: "契約の信頼度評価（high/medium/low）" }
 
-  legacy-design-recovery:
-    name: "設計復元（R2）"
+  legacy-contracts-map:
+    name: "契約マップ統合（R1 成果物）"
     role: legacy
-    estimate: 35
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "API/DB/型の契約を統合" }
+      - { type: review-cross-ref, desc: "API↔型↔DB の整合性確認" }
+      - { type: write-doc, desc: "observed_contracts.yaml 作成" }
+      - { type: fact-check, desc: "characterization test pass 率で信頼度検証" }
+
+  # --- R2: 設計復元 ---
+  legacy-recover-architecture:
+    name: "アーキテクチャ復元"
+    role: legacy
+    estimate: 20
     skill: workflow/reverse-analysis
     actions:
       - { type: analyze, desc: "コンポーネント間依存関係の分析" }
-      - { type: analyze, desc: "データフローの復元" }
-      - { type: decide, desc: "ADR 仮説の策定" }
-      - { type: review-adversarial, desc: "復元設計の矛盾検出" }
-      - { type: write-doc, desc: "as-is 設計書作成" }
+      - { type: analyze, desc: "レイヤー構造の推定（Presentation/Business/Data）" }
+      - { type: write-doc, desc: "コンポーネント図（テキスト）" }
+      - { type: review-adversarial, desc: "推定アーキテクチャの矛盾検出" }
+
+  legacy-recover-dataflow:
+    name: "データフロー復元"
+    role: legacy
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: read-code, desc: "主要ユースケースのデータ経路追跡" }
+      - { type: analyze, desc: "入力→処理→出力→永続化の流れ" }
+      - { type: write-doc, desc: "データフロー図（テキスト）" }
+      - { type: review-cross-ref, desc: "API 契約↔データフローの一致確認" }
+
+  legacy-recover-adr:
+    name: "ADR 仮説策定"
+    role: tl
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "なぜこの技術選定がされたか推定" }
+      - { type: search-external, desc: "当時のベストプラクティス調査" }
+      - { type: decide, desc: "ADR 仮説（推定）作成" }
+      - { type: fact-check, desc: "Git 履歴・コミットメッセージから根拠確認" }
+      - { type: write-doc, desc: "ADR 仮説ドキュメント" }
+
+  legacy-recover-review:
+    name: "復元設計レビュー"
+    role: tl
+    estimate: 15
+    skill: workflow/adversarial-review
+    actions:
+      - { type: review-adversarial, desc: "復元した設計の穴を突く" }
+      - { type: review-cross-ref, desc: "evidence map↔復元設計の一致確認" }
+      - { type: review-cross-ref, desc: "contracts↔復元設計の一致確認" }
+      - { type: write-doc, desc: "矛盾リスト + 追加調査項目" }
+      - { type: human-confirm, desc: "復元設計の PO/TL 承認" }
+
+  # --- R3: 要件仮説 ---
+  legacy-intent-hypothesis:
+    name: "要件仮説策定"
+    role: legacy
+    estimate: 20
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: read-code, desc: "ユースケースの推定" }
+      - { type: analyze, desc: "各機能の「なぜ存在するか」仮説" }
+      - { type: search-external, desc: "類似プロダクトの要件調査" }
+      - { type: write-doc, desc: "要件仮説リスト（confidence: high/medium/low）" }
+      - { type: human-confirm, desc: "PO による仮説検証" }
+
+  legacy-unknown-tasking:
+    name: "不明項目のタスク化"
+    role: legacy
+    estimate: 10
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "unknowns カタログから調査タスク生成" }
+      - { type: analyze, desc: "PO 検証で reject された仮説のタスク化" }
+      - { type: write-doc, desc: "追加調査タスクリスト" }
+      - { type: estimate, desc: "追加調査の工数見積もり" }
+
+  # --- R4: Gap & Routing ---
+  legacy-gap-analysis:
+    name: "Gap 分析"
+    role: tl
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "as-is vs to-be の差分抽出" }
+      - { type: analyze, desc: "各 gap の分類（defect/assumption/quality/scope）" }
+      - { type: evaluate-risk, desc: "gap ごとのリスク・影響評価" }
+      - { type: write-doc, desc: "gap_register.yaml 作成" }
+
+  legacy-forward-routing:
+    name: "Forward HELIX 接続"
+    role: tl
+    estimate: 15
+    skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "各 gap を L1/L2/L3/L4 に振り分け" }
+      - { type: write-doc, desc: "remediation plan 作成" }
+      - { type: estimate, desc: "Forward 工数見積もり" }
+      - { type: human-confirm, desc: "移行方針の PO/TL 承認" }
+
+  # --- 移行 ---
+  legacy-migration-strategy:
+    name: "移行戦略選定"
+    role: legacy
+    estimate: 15
+    skill: advanced/migration
+    actions:
+      - { type: search-external, desc: "移行パターン調査（Strangler Fig / Big Bang / Parallel Run）" }
+      - { type: analyze, desc: "リスク/コスト/スケジュール比較" }
+      - { type: decide, desc: "移行戦略選定" }
+      - { type: write-doc, desc: "ADR: 移行戦略" }
 
   legacy-migration-plan:
     name: "移行計画策定"
     role: legacy
-    estimate: 30
+    estimate: 20
     skill: advanced/migration
     actions:
-      - { type: analyze, desc: "gap 分析（as-is vs to-be）" }
-      - { type: evaluate-risk, desc: "移行リスク評価" }
-      - { type: decide, desc: "移行戦略選定（Strangler Fig 等）" }
-      - { type: estimate, desc: "移行工数見積もり" }
-      - { type: write-doc, desc: "移行計画書作成" }
+      - { type: analyze, desc: "移行フェーズ分割" }
+      - { type: estimate, desc: "フェーズ別工数見積もり" }
+      - { type: evaluate-risk, desc: "ロールバック計画" }
+      - { type: write-doc, desc: "移行計画書" }
       - { type: human-confirm, desc: "移行計画の承認" }
+
+  legacy-migration-test:
+    name: "移行テスト設計"
+    role: qa
+    estimate: 15
+    skill: advanced/migration
+    actions:
+      - { type: analyze, desc: "移行前後のデータ整合性チェック項目" }
+      - { type: write-test, desc: "移行検証テスト作成" }
+      - { type: write-doc, desc: "移行テスト計画書" }
