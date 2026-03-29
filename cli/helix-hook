@@ -29,46 +29,98 @@ fi
 # 相対パスに変換
 REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
 
-# --- YAML からトリガーを検索 ---
-# 軽量パーサー: pattern にマッチするトリガーを探す
+# --- YAML からトリガーを検索 (Python パーサー) ---
 match_trigger() {
   local file="$1"
-  local current_pattern=""
-  local current_on_write=""
-  local current_gate=""
-  local current_design_ref=""
-  local in_trigger=false
+  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
 
-  while IFS= read -r line; do
-    # コメント・空行スキップ
-    [[ -z "${line// /}" ]] && continue
-    [[ "$line" =~ ^[[:space:]]*# ]] && continue
-    # トリガーブロック開始
-    if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*pattern:[[:space:]]*\"(.+)\" ]]; then
-      # 前のトリガーを評価
-      if [[ "$in_trigger" == true && -n "$current_pattern" ]]; then
-        eval_trigger "$file" "$current_pattern" "$current_on_write" "$current_gate" "$current_design_ref"
-      fi
-      current_pattern="${BASH_REMATCH[1]}"
-      current_on_write=""
-      current_gate=""
-      current_design_ref=""
-      in_trigger=true
-    elif [[ "$in_trigger" == true ]]; then
-      if [[ "$line" =~ on_write:[[:space:]]*(.+) ]]; then
-        current_on_write="${BASH_REMATCH[1]}"
-      elif [[ "$line" =~ gate:[[:space:]]*(.+) ]]; then
-        current_gate="${BASH_REMATCH[1]}"
-      elif [[ "$line" =~ design_ref:[[:space:]]*\"(.+)\" ]]; then
-        current_design_ref="${BASH_REMATCH[1]}"
-      fi
-    fi
-  done < "$DOC_MAP"
+  # Python でトリガーマッチを実行（doc-map.yaml はリスト構造なので直接パース）
+  python3 -c "
+import re, sys
 
-  # 最後のトリガーを評価
-  if [[ "$in_trigger" == true && -n "$current_pattern" ]]; then
-    eval_trigger "$file" "$current_pattern" "$current_on_write" "$current_gate" "$current_design_ref"
-  fi
+# 簡易パーサー: triggers リストを抽出
+triggers = []
+current = {}
+with open('$DOC_MAP') as f:
+    for line in f:
+        line = line.rstrip()
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        if re.match(r'\s*-\s*pattern:', line):
+            if current:
+                triggers.append(current)
+            m = re.search(r'pattern:\s*\"(.+?)\"', line)
+            current = {'pattern': m.group(1) if m else ''}
+        elif current:
+            for key in ('phase', 'on_write', 'gate'):
+                m = re.match(rf'\s*{key}:\s*(.+)', line)
+                if m:
+                    current[key] = m.group(1).strip().strip('\"')
+            m = re.match(r'\s*design_ref:\s*\"(.+?)\"', line)
+            if m:
+                current['design_ref'] = m.group(1)
+    if current:
+        triggers.append(current)
+
+file_path = '$file'
+
+def glob_match(f, pattern):
+    regex = pattern.replace('**', 'DOUBLESTAR').replace('*', '[^/]*').replace('DOUBLESTAR', '.*')
+    return bool(re.match('^' + regex + '$', f))
+
+for t in triggers:
+    pattern = t.get('pattern', '')
+    if not pattern or not glob_match(file_path, pattern):
+        continue
+    on_write = t.get('on_write', '')
+    gate = t.get('gate', '')
+    design_ref = t.get('design_ref', '')
+    if on_write == 'gate_ready' and gate:
+        print(f'GATE_READY|{gate}|{file_path}')
+    elif on_write == 'design_sync' and design_ref:
+        print(f'DESIGN_SYNC|{design_ref}|{file_path}')
+    elif on_write == 'coverage_check':
+        print(f'COVERAGE_CHECK|{file_path}')
+    elif on_write == 'adr_index':
+        print(f'ADR_INDEX|{file_path}')
+" 2>/dev/null | while IFS='|' read -r action arg1 arg2; do
+    case "$action" in
+      GATE_READY)
+        echo "[helix-hook] gate_ready: $arg2 → $arg1"
+        echo "[helix-hook] $arg1 のチェック準備が整いました。'helix-gate $arg1' で検証を実行してください。"
+        ;;
+      DESIGN_SYNC)
+        # design_ref の glob を展開
+        local design_files
+        design_files=$(cd "$PROJECT_ROOT" && ls $arg1 2>/dev/null || true)
+        if [[ -z "$design_files" ]]; then
+          echo "[helix-hook] WARN: 設計文書未作成 — $arg1 が存在しません"
+          echo "[helix-hook]   実装: $arg2"
+          echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
+        else
+          local impl_mtime
+          impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$arg2" 2>/dev/null || echo 0)
+          for df in $design_files; do
+            local design_mtime
+            design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
+            if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
+              echo "[helix-hook] WARN: 設計が実装より古い可能性があります"
+              echo "[helix-hook]   実装: $arg2"
+              echo "[helix-hook]   設計: $df"
+            fi
+          done
+        fi
+        ;;
+      COVERAGE_CHECK)
+        echo "[helix-hook] coverage_check: テストファイル変更 — $arg1"
+        echo "[helix-hook]   次回ゲートでカバレッジを確認します"
+        ;;
+      ADR_INDEX)
+        # ADR index は check_adr_index で処理済み
+        ;;
+    esac
+  done
 }
 
 # --- glob マッチ判定 ---

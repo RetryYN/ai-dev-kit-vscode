@@ -59,11 +59,35 @@ Codex CLI:
 
 ```
 Phase 1: 計画    L1(要件) → L2(設計) → L3(詳細設計+API契約+工程表)
-Phase 2: 実装    L4(マイクロスプリント: .1→.2→.3→.4→.5)
+Phase 2: 実装    L4(マイクロスプリント: .1a→.1b→.2→.3→.4→.5)
 Phase 3: 仕上げ  L5(Visual) → L6(検証) → L7(デプロイ) → L8(受入)
+Phase R: リバース R0(証拠収集) → R1(契約抽出) → R2(設計復元) → R3(仮説) → R4(Gap)
+Phase S: スクラム HS0(仮説) → HS1(計画) → HS2(PoC) → HS3(検証) → HS4(判定) → HS5(レビュー)
 ```
 
 ゲート: G1→G1.5→G1R→G2→G3→G4→G5→G6→G7→L8
+
+### HELIX Scrum（検証駆動開発）
+
+要件未確定・実現可能性不明な場合に使う検証駆動開発モデル。
+
+```bash
+helix scrum init                          # Scrum モード初期化
+helix scrum backlog add --id H001 \       # 仮説登録
+  --title "JSON to Image" \
+  --question "JSONで画像生成できるか" \
+  --acceptance "1024x1024が3秒以内"
+helix scrum plan --goal "画像生成検証" \  # スプリント開始
+  --hypotheses "H001,H002"
+helix scrum poc --hypothesis H001         # PoC 実装を Codex に委譲
+helix scrum verify                        # 全検証スクリプト実行
+helix scrum decide --hypothesis H001 \    # 判定
+  --confirmed
+helix scrum review                        # スプリントレビュー + レトロ
+```
+
+検証スクリプト（`verify/*.sh`）は蓄積され、毎回全実行でリグレッション検出。
+confirmed な仮説は Forward HELIX（L2→）に接続。
 
 詳細は [SKILL_MAP.md](skills/SKILL_MAP.md) を参照。
 
