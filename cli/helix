@@ -20,6 +20,7 @@ case "$CMD" in
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
+  debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;

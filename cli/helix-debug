@@ -1,0 +1,380 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-debug: HELIX デバッグツール
+# Usage: helix debug <trace|inspect|replay|doctor> [args...]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+DB_PATH="$HELIX_DIR/helix.db"
+DB_PY="$SCRIPT_DIR/lib/helix_db.py"
+LOG_DIR="$HELIX_DIR/task-logs"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+# ============================
+# trace: タスクログをアクション単位で解析
+# ============================
+cmd_trace() {
+  local target="${1:-}"
+
+  if [[ -z "$target" ]]; then
+    # 最新のログを表示
+    if [[ -d "$LOG_DIR" ]]; then
+      target=$(ls -t "$LOG_DIR"/*.log 2>/dev/null | head -1)
+    fi
+    if [[ -z "$target" ]]; then
+      echo "ログなし。'helix task run' でタスクを実行してください。" >&2
+      exit 1
+    fi
+  elif [[ ! -f "$target" && -f "$LOG_DIR/$target" ]]; then
+    target="$LOG_DIR/$target"
+  elif [[ ! -f "$target" && -f "$LOG_DIR/${target}.log" ]]; then
+    target="$LOG_DIR/${target}.log"
+  fi
+
+  if [[ ! -f "$target" ]]; then
+    echo "Error: ログファイルが見つかりません: $target" >&2
+    exit 1
+  fi
+
+  local filename=$(basename "$target" .log)
+  local task_type=$(echo "$filename" | sed 's/^T[0-9]*-//')
+
+  echo "=== Debug Trace: $filename ==="
+  echo "File: $target"
+  echo "Size: $(wc -c < "$target") bytes"
+  echo "Lines: $(wc -l < "$target") lines"
+  echo ""
+
+  # アクション型のキーワードで出力を分析
+  python3 -c "
+import re, sys, os
+
+# アクション型のキーワードルール読み込み
+action_rules = {}
+current_type = None
+keywords = []
+with open('$HELIX_HOME/cli/templates/action-types.yaml') as f:
+    for line in f:
+        line = line.rstrip()
+        if not line or line.lstrip().startswith('#'):
+            continue
+        m = re.match(r'^([\w-]+):\s*$', line)
+        if m:
+            if current_type and keywords:
+                action_rules[current_type] = keywords
+            current_type = m.group(1)
+            keywords = []
+        m = re.match(r'\s+expect_keywords:\s*\[(.+)\]', line)
+        if m and current_type:
+            keywords = [k.strip().strip('\"') for k in m.group(1).split(',')]
+    if current_type and keywords:
+        action_rules[current_type] = keywords
+
+# タスクカタログからアクション列読み込み
+task_actions = []
+current_task = None
+in_actions = False
+with open('$HELIX_HOME/cli/templates/task-catalog.yaml') as f:
+    for line in f:
+        line = line.rstrip()
+        m = re.match(r'  ([\w-]+):\s*$', line)
+        if m:
+            name = m.group(1)
+            if name not in ('name','role','estimate','skill','actions'):
+                if current_task == '$task_type':
+                    break
+                current_task = name
+                in_actions = False
+        if current_task == '$task_type' and 'actions:' in line:
+            in_actions = True
+            continue
+        if current_task == '$task_type' and in_actions and '{ type:' in line:
+            tm = re.search(r'type:\s*([\w-]+)', line)
+            dm = re.search(r'desc:\s*\"(.+?)\"', line)
+            if tm:
+                task_actions.append({
+                    'type': tm.group(1),
+                    'desc': dm.group(1) if dm else ''
+                })
+
+log_content = open('$target').read()
+log_lines = log_content.splitlines()
+
+print('=== Action Trace ===')
+print()
+
+if not task_actions:
+    print(f'(タスク \"$task_type\" のアクション定義が見つかりません)')
+    print()
+    print('=== Raw Log (last 20 lines) ===')
+    for line in log_lines[-20:]:
+        print(f'  {line}')
+    sys.exit(0)
+
+for i, action in enumerate(task_actions, 1):
+    atype = action['type']
+    desc = action['desc']
+    keywords = action_rules.get(atype, [])
+
+    matched = [kw for kw in keywords if kw.lower() in log_content.lower()]
+    status = 'PASS' if matched else 'FAIL'
+    icon = '✓' if status == 'PASS' else '✗'
+
+    print(f'{icon} Action {i}: [{atype}] {desc}')
+    if matched:
+        print(f'    matched: {matched}')
+    else:
+        print(f'    expected: {keywords[:5]}')
+        # ログから関連しそうな行を抽出
+        relevant = []
+        for line in log_lines:
+            if any(kw.lower() in line.lower() for kw in [atype, desc.split()[0]] if kw):
+                relevant.append(line.strip())
+        if relevant:
+            print(f'    近い行:')
+            for r in relevant[:3]:
+                print(f'      > {r[:100]}')
+        else:
+            print(f'    → ログに痕跡なし（このアクションが実行されていない可能性）')
+    print()
+
+# サマリ
+total = len(task_actions)
+passed = sum(1 for a in task_actions
+    for kws in [action_rules.get(a['type'], [])]
+    if any(kw.lower() in log_content.lower() for kw in kws))
+print(f'=== Summary: {passed}/{total} actions traced ===')
+if passed < total:
+    print(f'Missing actions: {total - passed}')
+    print('→ エージェントがアクションをスキップした可能性があります')
+" 2>/dev/null
+}
+
+# ============================
+# inspect: プロジェクトの健全性チェック
+# ============================
+cmd_inspect() {
+  echo "=== HELIX Project Inspection ==="
+  echo ""
+
+  local issues=0
+
+  # .helix/ 存在
+  if [[ ! -d "$HELIX_DIR" ]]; then
+    echo "✗ .helix/ ディレクトリなし → 'helix init' を実行"
+    issues=$((issues + 1))
+  else
+    echo "✓ .helix/ 存在"
+  fi
+
+  # 必須ファイル
+  for f in phase.yaml doc-map.yaml gate-checks.yaml; do
+    if [[ -f "$HELIX_DIR/$f" ]]; then
+      echo "✓ .helix/$f"
+    else
+      echo "✗ .helix/$f なし"
+      issues=$((issues + 1))
+    fi
+  done
+
+  # CLAUDE.md
+  if [[ -f "$PROJECT_ROOT/CLAUDE.md" || -f "$PROJECT_ROOT/.claude/CLAUDE.md" ]]; then
+    echo "✓ CLAUDE.md 存在"
+    # テンプレート準拠チェック
+    local claude_file="$PROJECT_ROOT/CLAUDE.md"
+    [[ ! -f "$claude_file" ]] && claude_file="$PROJECT_ROOT/.claude/CLAUDE.md"
+    for section in "技術スタック" "コーディング規約" "コマンド"; do
+      if grep -q "$section" "$claude_file" 2>/dev/null; then
+        echo "  ✓ セクション: $section"
+      else
+        echo "  ✗ セクション欠落: $section"
+        issues=$((issues + 1))
+      fi
+    done
+  else
+    echo "✗ CLAUDE.md なし → 'helix init' を実行"
+    issues=$((issues + 1))
+  fi
+
+  # .gitignore
+  if [[ -f "$PROJECT_ROOT/.gitignore" ]]; then
+    grep -q "CLAUDE.local.md" "$PROJECT_ROOT/.gitignore" && echo "✓ .gitignore: CLAUDE.local.md" || { echo "✗ .gitignore: CLAUDE.local.md 欠落"; issues=$((issues + 1)); }
+  fi
+
+  # DB
+  if [[ -f "$DB_PATH" ]]; then
+    echo "✓ helix.db 存在"
+  else
+    echo "— helix.db なし（'helix log init' で作成可）"
+  fi
+
+  # agents
+  if [[ -d "$PROJECT_ROOT/.claude/agents" ]]; then
+    local agent_count=$(ls "$PROJECT_ROOT/.claude/agents/"*.md 2>/dev/null | wc -l)
+    echo "✓ サブエージェント: $agent_count 件"
+  else
+    echo "— .claude/agents/ なし"
+  fi
+
+  # verify scripts
+  if [[ -d "$PROJECT_ROOT/verify" ]]; then
+    local verify_count=$(ls "$PROJECT_ROOT/verify/"*.sh 2>/dev/null | wc -l)
+    echo "✓ 検証スクリプト: $verify_count 件"
+  fi
+
+  echo ""
+  if [[ $issues -eq 0 ]]; then
+    echo "=== All OK: $issues issues ==="
+  else
+    echo "=== $issues issues found ==="
+    exit 1
+  fi
+}
+
+# ============================
+# replay: 失敗タスクの再実行用プロンプト生成
+# ============================
+cmd_replay() {
+  local target="${1:-}"
+
+  if [[ -z "$target" ]]; then
+    echo "Usage: helix debug replay <log-file or task-id>" >&2
+    exit 1
+  fi
+
+  local log_file=""
+  if [[ -f "$target" ]]; then
+    log_file="$target"
+  elif [[ -f "$LOG_DIR/$target" ]]; then
+    log_file="$LOG_DIR/$target"
+  elif [[ -f "$LOG_DIR/${target}.log" ]]; then
+    log_file="$LOG_DIR/${target}.log"
+  else
+    # task-id から検索
+    log_file=$(ls "$LOG_DIR"/${target}-*.log 2>/dev/null | head -1)
+  fi
+
+  if [[ -z "$log_file" || ! -f "$log_file" ]]; then
+    echo "Error: ログが見つかりません: $target" >&2
+    exit 1
+  fi
+
+  local filename=$(basename "$log_file" .log)
+  local task_type=$(echo "$filename" | sed 's/^T[0-9]*-//')
+  local prev_output=$(tail -30 "$log_file")
+
+  echo "=== Replay Prompt for $filename ==="
+  echo ""
+  echo "前回の実行で以下の問題がありました:"
+  echo ""
+  echo "タスク: $task_type"
+  echo "ログ: $log_file"
+  echo ""
+  echo "前回の出力（末尾30行）:"
+  echo "---"
+  echo "$prev_output"
+  echo "---"
+  echo ""
+  echo "再実行コマンド:"
+  echo "  helix task run  # 次の pending タスクを実行"
+  echo ""
+  echo "デバッグ付き再実行:"
+  echo "  HELIX_DEBUG=1 helix task run"
+}
+
+# ============================
+# doctor: 全ツールの動作確認
+# ============================
+cmd_doctor() {
+  echo "=== HELIX Doctor ==="
+  echo ""
+
+  local pass=0 fail=0
+
+  check_cmd() {
+    local name="$1" cmd="$2"
+    printf "  %-30s " "$name"
+    set +e
+    eval "$cmd" >/dev/null 2>&1
+    local r=$?
+    set -e
+    if [[ $r -eq 0 ]]; then
+      echo "OK"
+      pass=$((pass + 1))
+    else
+      echo "FAIL"
+      fail=$((fail + 1))
+    fi
+  }
+
+  echo "[Dependencies]"
+  check_cmd "python3" "python3 --version"
+  check_cmd "git" "git --version"
+  check_cmd "bash >= 4.0" "bash -c '[[ 1 =~ 1 ]]'"
+  check_cmd "codex" "command -v codex || test -x $HOME/.npm-global/bin/codex"
+  echo ""
+
+  echo "[CLI Tools]"
+  check_cmd "helix" "$SCRIPT_DIR/helix help"
+  check_cmd "helix-codex --help" "$SCRIPT_DIR/helix-codex --help"
+  check_cmd "helix-gate --help" "$SCRIPT_DIR/helix-gate --help"
+  check_cmd "helix-size --help" "$SCRIPT_DIR/helix-size --help"
+  check_cmd "helix-task help" "$SCRIPT_DIR/helix-task help"
+  check_cmd "helix-scrum help" "$SCRIPT_DIR/helix-scrum help"
+  check_cmd "helix-log help" "$SCRIPT_DIR/helix-log help"
+  echo ""
+
+  echo "[Libraries]"
+  check_cmd "yaml_parser.py" "python3 -c \"import sys; sys.path.insert(0,'$SCRIPT_DIR/lib'); from yaml_parser import parse_yaml\""
+  check_cmd "helix_db.py" "python3 -c \"import sys; sys.path.insert(0,'$SCRIPT_DIR/lib'); from helix_db import init_db\""
+  echo ""
+
+  echo "[Templates]"
+  for t in task-catalog.yaml action-types.yaml CLAUDE.md.template phase.yaml doc-map.yaml gate-checks.yaml; do
+    check_cmd "$t" "test -f $SCRIPT_DIR/templates/$t"
+  done
+  echo ""
+
+  echo "[Roles]"
+  local role_count=$(ls "$SCRIPT_DIR/roles/"*.conf 2>/dev/null | wc -l)
+  printf "  %-30s " "$role_count roles"
+  if [[ $role_count -eq 12 ]]; then echo "OK"; pass=$((pass + 1)); else echo "FAIL (expected 12)"; fail=$((fail + 1)); fi
+  echo ""
+
+  echo "=== Doctor: $pass OK, $fail FAIL ==="
+  [[ $fail -eq 0 ]] || exit 1
+}
+
+# ============================
+# メインディスパッチ
+# ============================
+case "$CMD" in
+  trace)   cmd_trace "$@" ;;
+  inspect) cmd_inspect "$@" ;;
+  replay)  cmd_replay "$@" ;;
+  doctor)  cmd_doctor "$@" ;;
+  help|-h|--help)
+    cat <<'USAGE'
+Usage: helix debug <command> [args...]
+
+HELIX デバッグツール
+
+Commands:
+  trace [log]       タスクログをアクション単位で解析
+                     → どのアクションが実行され、どれがスキップされたか
+  inspect           プロジェクトの健全性チェック
+                     → .helix/, CLAUDE.md, DB, agents の状態確認
+  replay <task-id>  失敗タスクの再実行用プロンプト生成
+  doctor            全ツール・依存の動作確認
+USAGE
+    ;;
+  *)
+    echo "Error: Unknown command '$CMD'" >&2
+    exit 1
+    ;;
+esac
