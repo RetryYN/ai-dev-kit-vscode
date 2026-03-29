@@ -1,0 +1,49 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix: HELIX CLI 統一エントリポイント
+# Usage: helix <subcommand> [args...]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  init)     exec "$SCRIPT_DIR/helix-init" "$@" ;;
+  codex)    exec "$SCRIPT_DIR/helix-codex" "$@" ;;
+  gate)     exec "$SCRIPT_DIR/helix-gate" "$@" ;;
+  size)     exec "$SCRIPT_DIR/helix-size" "$@" ;;
+  sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
+  pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
+  reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
+  status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
+  test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
+  help|-h|--help)
+    cat <<'USAGE'
+Usage: helix <command> [args...]
+
+Commands:
+  init          プロジェクト初期化（.helix/ + CLAUDE.md + gitignore）
+  codex         ロール別 Codex 委譲（12ロール）
+  gate          ゲート自動検証（G2-G7）
+  size          タスクサイジング + フェーズスキップ判定
+  sprint        L4 マイクロスプリント管理
+  pr            ゲート結果から PR 自動生成
+  reverse       Reverse HELIX パイプライン（R0-R4）
+  status        プロジェクト全体の状態表示
+  test          全ツールのセルフテスト
+
+Environment:
+  HELIX_HOME    HELIX インストールディレクトリ (default: ~/ai-dev-kit-vscode)
+
+Run 'helix <command> --help' for command-specific help.
+USAGE
+    ;;
+  *)
+    echo "Error: Unknown command '$CMD'" >&2
+    echo "Run 'helix help' for available commands" >&2
+    exit 1
+    ;;
+esac

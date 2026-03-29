@@ -1,0 +1,172 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-test: HELIX CLI 全ツールのセルフテスト
+# Usage: helix-test
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+
+PASS=0
+FAIL=0
+ERRORS=()
+
+run_test() {
+  local name="$1"
+  local cmd="$2"
+  local expect_exit="${3:-0}"
+  printf "  %-40s " "$name"
+  set +e
+  output=$(eval "$cmd" 2>&1 </dev/null)
+  actual_exit=$?
+  set -e
+  if [[ "$actual_exit" -eq "$expect_exit" ]]; then
+    echo "PASS"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL (exit=$actual_exit, expected=$expect_exit)"
+    ERRORS+=("$name: $output")
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+run_test_contains() {
+  local name="$1"
+  local cmd="$2"
+  local pattern="$3"
+  printf "  %-40s " "$name"
+  output=$(eval "$cmd" 2>&1 </dev/null)
+  if echo "$output" | grep -q "$pattern"; then
+    echo "PASS"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL (pattern '$pattern' not found)"
+    ERRORS+=("$name: output=$output")
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+echo "=== HELIX CLI Self-Test ==="
+echo ""
+
+# --- セットアップ ---
+TEST_DIR=$(mktemp -d /tmp/helix-test-XXXXXX)
+trap 'rm -rf "$TEST_DIR"' EXIT
+cd "$TEST_DIR"
+git init -q
+git config user.email "test@test.com"
+git config user.name "Test"
+echo "# test" > README.md
+echo '{"name":"test"}' > package.json
+git add . && git commit -q -m "init"
+export HELIX_PROJECT_ROOT="$TEST_DIR"
+
+echo "[helix-init]"
+run_test "init new project" "$SCRIPT_DIR/helix-init --project-name test-app"
+run_test "init idempotent" "$SCRIPT_DIR/helix-init --project-name test-app"
+run_test "init --force" "$SCRIPT_DIR/helix-init --project-name test-v2 --force"
+run_test_contains "CLAUDE.md created" "cat CLAUDE.md" "HELIX"
+run_test_contains ".gitignore has CLAUDE.local.md" "cat .gitignore" "CLAUDE.local.md"
+run_test_contains "agents copied" "ls .claude/agents/" "fe-design"
+run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js"
+echo ""
+
+echo "[helix-size]"
+run_test_contains "S bugfix" "$SCRIPT_DIR/helix-size --files 1 --lines 20 --type bugfix" "サイズ: S"
+run_test_contains "M new-feature" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ: M"
+run_test_contains "L full" "$SCRIPT_DIR/helix-size --files 15 --lines 800 --api --db --ui" "サイズ: L"
+run_test_contains "skip L4 only" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type doc" "L4"
+echo ""
+
+echo "[helix-sprint]"
+run_test "sprint reset" "$SCRIPT_DIR/helix-sprint reset"
+run_test_contains "sprint start" "$SCRIPT_DIR/helix-sprint next" ".1a"
+run_test_contains "sprint advance" "$SCRIPT_DIR/helix-sprint next" ".1b"
+run_test_contains "sprint status" "$SCRIPT_DIR/helix-sprint status" ".1b"
+# full cycle
+for i in 1 2 3 4 5; do $SCRIPT_DIR/helix-sprint next >/dev/null 2>&1; done
+run_test_contains "sprint completed" "$SCRIPT_DIR/helix-sprint status" "Sprint 完了"
+echo ""
+
+echo "[helix-gate]"
+mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
+run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
+run_test_contains "retro generated" "ls .helix/retros/" "G2"
+# G4 prereq test: G3 must be passed
+run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
+echo ""
+
+echo "[helix-gate-api-check]"
+cat > docs/design/L3-api-contract.yaml << 'EOF'
+contracts:
+  - method: "GET"
+    endpoint: "/api/v1/users"
+  - method: "POST"
+    endpoint: "/api/v1/users"
+EOF
+mkdir -p src/api
+cat > src/api/users.ts << 'TSEOF'
+import { Router } from 'express';
+const router = Router();
+router.get('/api/v1/users', getUsers);
+router.post('/api/v1/users', createUser);
+export default router;
+TSEOF
+run_test_contains "API match" "$SCRIPT_DIR/helix-gate-api-check" "OK: 契約と実装が一致"
+printf '  - method: "GET"\n    endpoint: "/api/v1/orders"\n' >> docs/design/L3-api-contract.yaml
+run_test "API mismatch detected" "$SCRIPT_DIR/helix-gate-api-check" 1
+echo ""
+
+echo "[helix-hook]"
+# freeze-break
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
+echo "change" > src/api/auth.ts
+run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/auth.ts" "API凍結違反"
+# ADR index
+mkdir -p docs/adr
+echo "# ADR-001: Test" > docs/adr/ADR-001.md
+run_test_contains "ADR index" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/adr/ADR-001.md" "ADR index"
+run_test_contains "ADR index content" "cat docs/adr/index.md" "ADR-001"
+echo ""
+
+echo "[helix-status]"
+run_test_contains "status shows project" "$SCRIPT_DIR/helix-status" "Project:"
+run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
+echo ""
+
+echo "[helix-pr]"
+run_test_contains "pr dry-run" "$SCRIPT_DIR/helix-pr --dry-run" "Summary"
+echo ""
+
+echo "[helix-reverse]"
+run_test_contains "reverse status" "$SCRIPT_DIR/helix-reverse status" "Reverse HELIX Status"
+run_test_contains "reverse R0 dry-run" "$SCRIPT_DIR/helix-reverse R0 --dry-run" "Evidence Acquisition"
+run_test "reverse R1 prereq fail" "$SCRIPT_DIR/helix-reverse R1 --dry-run" 1
+echo ""
+
+echo "[yaml_parser]"
+run_test_contains "yaml read" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml project" "test"
+run_test "yaml write" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_phase L4"
+run_test_contains "yaml write verify" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
+echo ""
+
+echo "[helix wrapper]"
+run_test_contains "helix help" "$SCRIPT_DIR/helix help" "Commands:"
+run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1
+echo ""
+
+# --- 結果 ---
+echo "==================================="
+echo "Results: $PASS passed, $FAIL failed"
+echo "==================================="
+
+if [[ $FAIL -gt 0 ]]; then
+  echo ""
+  echo "Failures:"
+  for err in "${ERRORS[@]}"; do
+    echo "  - $err" | head -c 200
+    echo ""
+  done
+  exit 1
+fi

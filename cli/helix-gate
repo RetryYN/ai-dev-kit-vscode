@@ -53,6 +53,28 @@ if [[ ! -f "$GATE_CHECKS" ]]; then
   exit 1
 fi
 
+# --- ゲート前提条件チェック ---
+declare -A GATE_PREREQS=(
+  ["G2"]=""
+  ["G3"]="G2"
+  ["G4"]="G3"
+  ["G5"]="G4"
+  ["G6"]="G4"
+  ["G7"]="G6"
+)
+
+YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+
+prereq="${GATE_PREREQS[$GATE]:-}"
+if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
+  prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
+  if [[ "$prereq_status" != "passed" ]]; then
+    echo "Error: 前提ゲート $prereq が未通過 (status: $prereq_status)" >&2
+    echo "$prereq を先に通過させてください" >&2
+    exit 1
+  fi
+fi
+
 # --- ゲート名を取得 ---
 gate_name=$(grep -A1 "^${GATE}:" "$GATE_CHECKS" | grep 'name:' | sed 's/.*name: *"//' | sed 's/"//' || echo "$GATE")
 

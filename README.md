@@ -78,9 +78,86 @@ Phase 3: 仕上げ  L5(Visual) → L6(検証) → L7(デプロイ) → L8(受入
 | tools/ (2) | ai-coding, ide-tools |
 | integration/ (1) | agent-teams |
 
+## CLI ツール
+
+`helix <command>` で統一的に呼び出し可能。PATH に `~/ai-dev-kit-vscode/cli/` を追加するか、`HELIX_HOME` 環境変数を設定。
+
+| コマンド | 用途 |
+|---------|------|
+| `helix init` | プロジェクト初期化（.helix/ + CLAUDE.md + gitignore + agents） |
+| `helix codex --role <role> --task "..."` | ロール別 Codex 委譲（12ロール） |
+| `helix gate <G2-G7>` | ゲート自動検証（static + AI チェック） |
+| `helix size --files N --lines N [--api] [--db] [--ui]` | タスクサイジング + フェーズスキップ |
+| `helix sprint <status\|next\|complete\|reset>` | L4 マイクロスプリント管理 |
+| `helix pr [--dry-run]` | ゲート結果から PR 自動生成 |
+| `helix reverse <R0-R4\|status>` | Reverse HELIX パイプライン |
+| `helix status` | プロジェクト全体の状態表示 |
+| `helix test` | 全ツールのセルフテスト |
+
+### Codex ロール（12種）
+
+| ロール | model | 担当 |
+|--------|-------|------|
+| tl | gpt-5.4 | 設計・レビュー・ゲート判定 |
+| se | gpt-5.3-codex | 上級実装（スコア4+） |
+| pg | gpt-5.3-codex-spark | 通常実装（スコア1-3） |
+| fe | gpt-5.4 | フロントエンド |
+| qa | gpt-5.4 | テスト・検証 |
+| security | gpt-5.4 | セキュリティ監査 |
+| dba | gpt-5.3-codex | DB設計・最適化 |
+| devops | gpt-5.3-codex | デプロイ・インフラ |
+| docs | gpt-5.3-codex-spark | ドキュメント |
+| research | gpt-5.4 | 技術調査 |
+| legacy | gpt-5.4 | レガシー分析・Reverse |
+| perf | gpt-5.4 | パフォーマンス |
+
+### Claude サブエージェント（FE特化 5種）
+
+| エージェント | 担当 |
+|---|---|
+| fe-design | UI/UXデザイン・配色・レイアウト |
+| fe-component | コンポーネント実装 |
+| fe-style | CSS/スタイリング |
+| fe-a11y | アクセシビリティ |
+| fe-test | フロントテスト |
+
+### Hooks（自動発火）
+
+| Hook | タイミング | 動作 |
+|------|----------|------|
+| SessionStart | セッション開始時 | HELIX コンテキスト注入 |
+| PreToolUse (Write) | CLAUDE.md 作成時 | テンプレート使用を強制 |
+| PostToolUse (Edit/Write) | コード変更時 | 設計整合チェック + freeze-break + ADR index |
+
 ## ディレクトリ構造
 
 ```
+cli/
+├── helix                     <- 統一エントリポイント
+├── helix-codex               <- Codex ロール別委譲
+├── helix-gate                <- ゲート自動検証
+├── helix-gate-api-check      <- API契約実装突合
+├── helix-init                <- プロジェクト初期化
+├── helix-size                <- タスクサイジング
+├── helix-sprint              <- L4 スプリント管理
+├── helix-pr                  <- PR 自動生成
+├── helix-reverse             <- Reverse HELIX パイプライン
+├── helix-status              <- 全体状態表示
+├── helix-test                <- セルフテスト
+├── helix-hook                <- PostToolUse hook
+├── helix-check-claudemd      <- PreToolUse hook
+├── helix-session-start       <- SessionStart hook
+├── ROLE_MAP.md               <- 全ロール共通参照
+├── lib/
+│   └── yaml_parser.py        <- 軽量YAMLパーサー（PyYAML不要）
+├── roles/                    <- 12ロール定義（.conf）
+└── templates/                <- プロジェクト初期化テンプレート
+    ├── CLAUDE.md.template
+    ├── doc-map.yaml
+    ├── gate-checks.yaml
+    ├── phase.yaml
+    ├── retro.md.template
+    └── agents/               <- FE サブエージェント定義
 helix/
 ├── HELIX_CORE.md             <- 共通コア設定（Claude/Codex 共用）
 ├── CODEX_TL_MODE.md          <- Codex CLI の TL 主導読み替え
@@ -94,9 +171,6 @@ skills/
 ├── advanced/                  <- 高度なスキル（6）
 ├── tools/                     <- ツール連携スキル（2）
 │   └── ai-coding/references/  <- 手順正本（9ファイル）
-│       ├── workflow-core.md   <- モデル割当・ディスパッチ・並列実行・ADR
-│       ├── gate-policy.md     <- ゲート定義・遷移・IIP・CC・LPR
-│       └── ...                <- orchestration, layer-interface, implementation-gate 等
 └── integration/               <- マルチエージェント連携（1）
 ```
 

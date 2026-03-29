@@ -4,6 +4,9 @@ set -euo pipefail
 # helix-pr: ゲート結果から PR テンプレート自動生成
 # Usage: helix-pr [--dry-run] [--base main] [--title "title"]
 
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 HELIX_DIR="$PROJECT_ROOT/.helix"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
@@ -46,27 +49,29 @@ DIFF_STAT=$(git -C "$PROJECT_ROOT" diff --stat "$BASE..HEAD" 2>/dev/null || echo
 # --- Gate Results ---
 GATE_TABLE=""
 if [[ -f "$PHASE_FILE" ]]; then
-  GATE_TABLE="| Gate | Status | Date |\n|------|--------|------|\n"
-  for gate in G1 G1.5 G1R G2 G3 G4 G5 G6 G7; do
-    local_status=$(grep "${gate}:" "$PHASE_FILE" 2>/dev/null | grep -oP 'status: \K[a-z]+' || echo "pending")
-    local_date=$(grep "${gate}:" "$PHASE_FILE" 2>/dev/null | grep -oP 'date: \K[0-9-]+' || echo "—")
-    if [[ "$local_status" != "pending" ]]; then
-      GATE_TABLE+="| $gate | $local_status | $local_date |\n"
-    fi
-  done
+  PHASE_JSON=$(python3 "$YAML_PARSER" dump "$PHASE_FILE" 2>/dev/null || echo "{}")
+  GATE_TABLE=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+gates = d.get('gates', {})
+lines = ['| Gate | Status | Date |', '|------|--------|------|']
+for g in ['G1', 'G1.5', 'G1R', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']:
+    v = gates.get(g, {})
+    s = v.get('status', 'pending') if isinstance(v, dict) else 'pending'
+    dt = v.get('date', '—') if isinstance(v, dict) else '—'
+    if s != 'pending':
+        lines.append(f'| {g} | {s} | {dt} |')
+print('\n'.join(lines))
+" 2>/dev/null)
 fi
 
 # --- Sprint Status ---
 SPRINT_STATUS=""
 if [[ -f "$PHASE_FILE" ]]; then
-  sprint_step=$(python3 -c "
-import yaml
-try:
-    with open('$PHASE_FILE') as f:
-        d = yaml.safe_load(f) or {}
-    print(d.get('sprint', {}).get('current_step', '') or 'N/A')
-except:
-    print('N/A')
+  sprint_step=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print(d.get('sprint', {}).get('current_step', '') or 'N/A')
 " 2>/dev/null || echo "N/A")
   if [[ "$sprint_step" != "N/A" ]]; then
     SPRINT_STATUS="Sprint: $sprint_step"

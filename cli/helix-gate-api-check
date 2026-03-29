@@ -82,7 +82,7 @@ patterns = [
 for f in src_root.rglob('*'):
     if f.suffix not in ('.ts', '.tsx', '.js', '.jsx', '.py', '.go'):
         continue
-    if 'node_modules' in str(f) or '.next' in str(f):
+    if any(p in str(f) for p in ('node_modules', '.next', '.git', '.helix', '__pycache__')):
         continue
     try:
         code = f.read_text()

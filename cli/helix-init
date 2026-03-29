@@ -104,7 +104,7 @@ echo ""
 
 # --- ディレクトリ構造 ---
 echo "[directories]"
-for dir in docs/design docs/adr; do
+for dir in docs/design docs/adr .claude/agents; do
   if [[ ! -d "$PROJECT_ROOT/$dir" ]]; then
     mkdir -p "$PROJECT_ROOT/$dir"
     echo "  created: $dir/"
@@ -112,6 +112,73 @@ for dir in docs/design docs/adr; do
     echo "  skip: $dir/ (already exists)"
   fi
 done
+echo ""
+
+# --- サブエージェント ---
+echo "[agents]"
+AGENT_TEMPLATES="$TEMPLATES_DIR/agents"
+if [[ -d "$AGENT_TEMPLATES" ]]; then
+  for agent_file in "$AGENT_TEMPLATES"/*.md; do
+    [[ ! -f "$agent_file" ]] && continue
+    local_name=$(basename "$agent_file")
+    dst="$PROJECT_ROOT/.claude/agents/$local_name"
+    if [[ -f "$dst" && "$FORCE" != true ]]; then
+      echo "  skip: $local_name (already exists)"
+    else
+      cp "$agent_file" "$dst"
+      echo "  created: $local_name"
+    fi
+  done
+else
+  echo "  skip: agent templates not found"
+fi
+echo ""
+
+# --- フレームワーク検出 ---
+echo "[framework detection]"
+DETECTED_FW=""
+if [[ -f "$PROJECT_ROOT/package.json" ]]; then
+  DETECTED_FW="node"
+  echo "  detected: Node.js (package.json)"
+elif [[ -f "$PROJECT_ROOT/pyproject.toml" || -f "$PROJECT_ROOT/requirements.txt" ]]; then
+  DETECTED_FW="python"
+  echo "  detected: Python"
+elif [[ -f "$PROJECT_ROOT/go.mod" ]]; then
+  DETECTED_FW="go"
+  echo "  detected: Go"
+elif [[ -f "$PROJECT_ROOT/Cargo.toml" ]]; then
+  DETECTED_FW="rust"
+  echo "  detected: Rust"
+else
+  echo "  detected: unknown (Node.js defaults will be used)"
+fi
+
+# gate-checks.yaml のフレームワーク調整
+if [[ -n "$DETECTED_FW" && -f "$HELIX_DIR/gate-checks.yaml" ]]; then
+  case "$DETECTED_FW" in
+    python)
+      sed -i 's|npx tsc --noEmit.*|python3 -m mypy . 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npx eslint.*|python3 -m ruff check . 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npm test.*|python3 -m pytest 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      echo "  gate-checks.yaml: Python 用に調整済み"
+      ;;
+    go)
+      sed -i 's|npx tsc --noEmit.*|go vet ./... 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npx eslint.*|golangci-lint run 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npm test.*|go test ./... 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      echo "  gate-checks.yaml: Go 用に調整済み"
+      ;;
+    rust)
+      sed -i 's|npx tsc --noEmit.*|cargo check 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npx eslint.*|cargo clippy 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      sed -i 's|npm test.*|cargo test 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
+      echo "  gate-checks.yaml: Rust 用に調整済み"
+      ;;
+    node)
+      echo "  gate-checks.yaml: Node.js (default)"
+      ;;
+  esac
+fi
 echo ""
 
 echo "=== Done ==="
