@@ -99,11 +99,11 @@ run_checks() {
             else
               if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
                 echo "  PASS: $check_name"
-                ((static_pass++))
+                static_pass=$((static_pass + 1))
               else
                 echo "  FAIL: $check_name"
                 echo "    cmd: $check_cmd"
-                ((static_fail++))
+                static_fail=$((static_fail + 1))
               fi
             fi
           fi
@@ -118,11 +118,11 @@ run_checks() {
             else
               if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
                 echo "  PASS: $check_name"
-                ((static_pass++))
+                static_pass=$((static_pass + 1))
               else
                 echo "  FAIL: $check_name"
                 echo "    cmd: $check_cmd"
-                ((static_fail++))
+                static_fail=$((static_fail + 1))
               fi
             fi
           fi
@@ -141,11 +141,11 @@ run_checks() {
       else
         if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
           echo "  PASS: $check_name"
-          ((static_pass++))
+          static_pass=$((static_pass + 1))
         else
           echo "  FAIL: $check_name"
           echo "    cmd: $check_cmd"
-          ((static_fail++))
+          static_fail=$((static_fail + 1))
         fi
       fi
     fi
@@ -185,7 +185,7 @@ run_checks() {
         if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*role:[[:space:]]*(.+) ]]; then
           # 前の AI チェックを実行
           if [[ -n "$ai_role" && -n "$ai_task" ]]; then
-            ((ai_count++))
+            ai_count=$((ai_count + 1))
             if [[ "$DRY_RUN" == true ]]; then
               echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
             else
@@ -208,7 +208,7 @@ run_checks() {
 
     # 最後の AI チェック
     if [[ -n "$ai_role" && -n "$ai_task" ]]; then
-      ((ai_count++))
+      ai_count=$((ai_count + 1))
       if [[ "$DRY_RUN" == true ]]; then
         echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
       else

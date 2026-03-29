@@ -123,8 +123,8 @@ case "$CMD" in
     else
       # 現在のステップを完了して次へ
       mark_step_done "$current"
-      local next_step=""
-      local found=false
+      next_step=""
+      found=false
       for step in "${STEPS[@]}"; do
         if [[ "$found" == true ]]; then
           next_step="$step"

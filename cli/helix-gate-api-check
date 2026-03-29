@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 # helix-gate-api-check: API契約と実装のエンドポイント突合
 # G4 static チェックとして使用
@@ -21,20 +21,25 @@ if [[ -z "$CONTRACT" ]]; then
   exit 0
 fi
 
-# --- 契約からエンドポイント抽出 ---
-contract_endpoints=$(python3 -c "
-import sys, re
+# --- Python で突合実行 ---
+TMPSCRIPT=$(mktemp /tmp/helix-api-check-XXXXXX.py)
+trap 'rm -f "$TMPSCRIPT"' EXIT
+
+cat > "$TMPSCRIPT" << 'PYEOF'
+import re, sys, os
 from pathlib import Path
 
-content = Path('$CONTRACT').read_text()
-ext = Path('$CONTRACT').suffix
+contract_path = sys.argv[1]
+project_root = sys.argv[2]
 
-endpoints = set()
+# --- 契約からエンドポイント抽出 ---
+content = Path(contract_path).read_text()
+contract_eps = set()
 
+ext = Path(contract_path).suffix
 if ext in ('.yaml', '.yml'):
-    # YAML: endpoint: '/path' + method: 'GET'
-    import yaml
     try:
+        import yaml
         data = yaml.safe_load(content)
         if isinstance(data, dict):
             for key in ('contracts', 'endpoints', 'paths'):
@@ -45,107 +50,74 @@ if ext in ('.yaml', '.yml'):
                             method = item.get('method', 'GET').upper()
                             path = item.get('endpoint', item.get('path', ''))
                             if path:
-                                endpoints.add(f'{method} {path}')
+                                contract_eps.add(f'{method} {path}')
                 elif isinstance(items, dict):
-                    # OpenAPI style: paths -> /path -> get/post/...
                     for path, methods in items.items():
                         if isinstance(methods, dict):
                             for method in methods:
                                 if method.upper() in ('GET','POST','PUT','DELETE','PATCH'):
-                                    endpoints.add(f'{method.upper()} {path}')
-    except:
+                                    contract_eps.add(f'{method.upper()} {path}')
+    except Exception:
         pass
 
-# Also try regex for any format
-for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s\"]+)', content):
-    endpoints.add(f'{match.group(1)} {match.group(2)}')
+for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content):
+    contract_eps.add(f'{match.group(1)} {match.group(2)}')
 
-for ep in sorted(endpoints):
-    print(ep)
-" 2>/dev/null)
-
-if [[ -z "$contract_endpoints" ]]; then
-  echo "  SKIP: API契約からエンドポイントを抽出できませんでした"
-  exit 0
-fi
+if not contract_eps:
+    print("  SKIP: API契約からエンドポイントを抽出できませんでした")
+    sys.exit(0)
 
 # --- 実装からエンドポイント抽出 ---
-impl_endpoints=$(python3 -c "
-import re, os
-from pathlib import Path
+src_root = Path(project_root) / 'src'
+if not src_root.exists():
+    src_root = Path(project_root)
 
-root = Path('$PROJECT_ROOT/src')
-if not root.exists():
-    root = Path('$PROJECT_ROOT')
-
-endpoints = set()
-
-# Common route patterns
+impl_eps = set()
 patterns = [
-    # Express/Fastify: router.get('/path', ...) or app.post('/path', ...)
-    r'(?:router|app|server)\.(get|post|put|delete|patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*',
-    # NestJS: @Get('/path'), @Post('/path')
-    r'@(Get|Post|Put|Delete|Patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*\)',
-    # FastAPI: @app.get('/path')
-    r'@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*['\''\"](\/[^'\''\"]*)[\''\"]\s*',
+    r'(?:router|app|server)\.(get|post|put|delete|patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
+    r'@(Get|Post|Put|Delete|Patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
+    r'@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
 ]
 
-for f in root.rglob('*'):
+for f in src_root.rglob('*'):
     if f.suffix not in ('.ts', '.tsx', '.js', '.jsx', '.py', '.go'):
         continue
     if 'node_modules' in str(f) or '.next' in str(f):
         continue
     try:
-        content = f.read_text()
-    except:
+        code = f.read_text()
+    except Exception:
         continue
     for pat in patterns:
-        for m in re.finditer(pat, content, re.IGNORECASE):
+        for m in re.finditer(pat, code, re.IGNORECASE):
             method = m.group(1).upper()
             path = m.group(2)
-            endpoints.add(f'{method} {path}')
-
-for ep in sorted(endpoints):
-    print(ep)
-" 2>/dev/null)
+            impl_eps.add(f'{method} {path}')
 
 # --- 突合 ---
-contract_only=""
-impl_only=""
+print(f"  API契約: {len(contract_eps)} endpoints")
+print(f"  実装:    {len(impl_eps)} endpoints")
 
-while IFS= read -r ep; do
-  [[ -z "$ep" ]] && continue
-  if ! echo "$impl_endpoints" | grep -qF "$ep"; then
-    contract_only+="    $ep\n"
-  fi
-done <<< "$contract_endpoints"
+contract_only = contract_eps - impl_eps
+impl_only = impl_eps - contract_eps
 
-while IFS= read -r ep; do
-  [[ -z "$ep" ]] && continue
-  if ! echo "$contract_endpoints" | grep -qF "$ep"; then
-    impl_only+="    $ep\n"
-  fi
-done <<< "$impl_endpoints"
+exit_code = 0
 
-# --- レポート ---
-echo "  API契約: $(echo "$contract_endpoints" | wc -l) endpoints"
-echo "  実装:    $(echo "$impl_endpoints" | wc -l) endpoints"
+if contract_only:
+    print("  FAIL: 契約にあるが未実装:")
+    for ep in sorted(contract_only):
+        print(f"    {ep}")
+    exit_code = 1
 
-EXIT_CODE=0
+if impl_only:
+    print("  WARN: 実装にあるが契約にない（スコープクリープ?）:")
+    for ep in sorted(impl_only):
+        print(f"    {ep}")
 
-if [[ -n "$contract_only" ]]; then
-  echo "  FAIL: 契約にあるが未実装:"
-  printf "$contract_only"
-  EXIT_CODE=1
-fi
+if not contract_only and not impl_only:
+    print("  OK: 契約と実装が一致")
 
-if [[ -n "$impl_only" ]]; then
-  echo "  WARN: 実装にあるが契約にない（スコープクリープ?）:"
-  printf "$impl_only"
-fi
+sys.exit(exit_code)
+PYEOF
 
-if [[ $EXIT_CODE -eq 0 && -z "$impl_only" ]]; then
-  echo "  OK: 契約と実装が一致"
-fi
-
-exit $EXIT_CODE
+python3 "$TMPSCRIPT" "$CONTRACT" "$PROJECT_ROOT"
