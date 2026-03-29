@@ -356,6 +356,60 @@ import json; print(json.dumps({
       ;;
   esac
 
+  # UI 系タスクの目視確認チェック
+  local UI_TASKS="implement-ui-component implement-style design-ui"
+  local needs_visual_check=false
+  for ui_task in $UI_TASKS; do
+    [[ "$task_type" == "$ui_task" ]] && needs_visual_check=true
+  done
+
+  if [[ "$needs_visual_check" == true ]]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  UI 目視確認が必要です"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  確認項目:"
+    echo "    1. デザインカンプとの差異がないか"
+    echo "    2. レスポンシブ表示（sm/md/lg）に崩れがないか"
+    echo "    3. ダークモード対応（該当する場合）"
+    echo "    4. フォント・配色・余白がデザイントークンに準拠しているか"
+    echo "    5. アニメーション・トランジションが意図通りか"
+    echo ""
+
+    # 確認記録ファイル
+    local VISUAL_CHECK_DIR="$HELIX_DIR/visual-checks"
+    mkdir -p "$VISUAL_CHECK_DIR"
+    local check_file="$VISUAL_CHECK_DIR/${tid}-${task_type}.md"
+
+    cat > "$check_file" << VCHECK
+# UI 目視確認: $tid — $name
+# Date: $(date '+%Y-%m-%d %H:%M')
+
+## 確認結果
+- [ ] デザインカンプとの一致
+- [ ] レスポンシブ (sm):
+- [ ] レスポンシブ (md):
+- [ ] レスポンシブ (lg):
+- [ ] ダークモード:
+- [ ] デザイントークン準拠:
+- [ ] アニメーション:
+
+## スクリーンショット確認ポイント
+-
+
+## 指摘事項
+-
+
+## 判定: pending
+VCHECK
+
+    echo "  確認記録: $check_file"
+    echo "  → チェックリストを記入して判定を approved に変更してください"
+    echo "  → 判定が pending のまま G5 を通過できません"
+    echo ""
+  fi
+
   # ステータスを completed に
   sed -i "/$tid:/,/status:/{s/status: running/status: completed/}" "$TASK_PLAN" 2>/dev/null
 

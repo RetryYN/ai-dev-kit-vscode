@@ -72,6 +72,9 @@ G4:
 
 G5:
   name: "デザイン凍結ゲート"
+  static:
+    - name: "UI目視確認 全件 approved"
+      cmd: "! grep -rl 'pending' .helix/visual-checks/*.md 2>/dev/null || test $(ls .helix/visual-checks/*.md 2>/dev/null | wc -l) -eq 0"
   ai:
     - role: fe
       task: |
