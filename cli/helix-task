@@ -236,22 +236,23 @@ with open('$TASK_PLAN') as f:
   # ステータスを running に
   sed -i "/$tid:/,/status:/{s/status: pending/status: running/}" "$TASK_PLAN" 2>/dev/null
 
-  # ロールに応じて実行
+  # ログディレクトリ
+  local LOG_DIR="$HELIX_DIR/task-logs"
+  mkdir -p "$LOG_DIR"
+  local LOG_FILE="$LOG_DIR/${tid}-${task_type}.log"
+
+  # ロールに応じて実行（出力をログに保存）
   case "$role" in
     fe-design|fe-component|fe-style|fe-a11y|fe-test)
-      # Claude サブエージェント → ユーザーに @メンション依頼
       echo "[helix-task] Claude サブエージェント @$role に委譲してください"
       echo "  @$role $name"
+      echo "[agent-delegation] @$role $name" > "$LOG_FILE"
       ;;
     *)
-      # Codex ロール
-      if [[ -n "$skill" ]]; then
-        echo "[helix-task] helix-codex --role $role に委譲"
-        "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 || true
-      else
-        echo "[helix-task] helix-codex --role $role に委譲"
-        "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 || true
-      fi
+      echo "[helix-task] helix-codex --role $role に委譲"
+      set +e
+      "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
+      set -e
       ;;
   esac
 
@@ -259,7 +260,9 @@ with open('$TASK_PLAN') as f:
   sed -i "/$tid:/,/status:/{s/status: running/status: completed/}" "$TASK_PLAN" 2>/dev/null
 
   echo ""
-  echo "[helix-task] $tid 完了。'helix task run' で次のタスクを実行"
+  echo "[helix-task] $tid 完了。ログ: $LOG_FILE"
+  echo "[helix-task] 'helix task observe $tid' で品質検証"
+  echo "[helix-task] 'helix task run' で次のタスクを実行"
 }
 
 # ============================
@@ -315,12 +318,145 @@ for t in tasks:
 }
 
 # ============================
+# observe: タスク実行結果の品質検証
+# ============================
+cmd_observe() {
+  local target="${1:-all}"
+  local LOG_DIR="$HELIX_DIR/task-logs"
+  local ACTION_TYPES="$HELIX_HOME/cli/templates/action-types.yaml"
+
+  if [[ ! -d "$LOG_DIR" ]]; then
+    echo "ログなし。'helix task run' でタスクを実行してください。" >&2
+    exit 1
+  fi
+
+  python3 -c "
+import re, sys, os
+
+# アクション型のオブザーバールール読み込み
+action_rules = {}
+current_type = None
+current_keywords = []
+with open('$ACTION_TYPES') as f:
+    for line in f:
+        line = line.rstrip()
+        if not line or line.lstrip().startswith('#'):
+            continue
+        m = re.match(r'^([\w-]+):\s*$', line)
+        if m:
+            if current_type and current_keywords:
+                action_rules[current_type] = current_keywords
+            current_type = m.group(1)
+            current_keywords = []
+            continue
+        m = re.match(r'\s+expect_keywords:\s*\[(.+)\]', line)
+        if m and current_type:
+            current_keywords = [k.strip().strip('\"') for k in m.group(1).split(',')]
+    if current_type and current_keywords:
+        action_rules[current_type] = current_keywords
+
+# タスクカタログからアクション列読み込み
+task_actions = {}
+current_task = None
+with open('$CATALOG') as f:
+    for line in f:
+        line = line.rstrip()
+        m = re.match(r'  ([\w-]+):\s*$', line)
+        if m:
+            name = m.group(1)
+            if name not in ('name','role','estimate','skill','actions'):
+                current_task = name
+                task_actions[current_task] = []
+                continue
+        if current_task and '{ type:' in line:
+            m = re.search(r'type:\s*([\w-]+)', line)
+            dm = re.search(r'desc:\s*\"?(.+?)\"?\s*\}', line)
+            if m:
+                task_actions[current_task].append({
+                    'type': m.group(1),
+                    'desc': dm.group(1) if dm else ''
+                })
+
+# ログファイルを検証
+log_dir = '$LOG_DIR'
+target = '$target'
+total_actions = 0
+passed_actions = 0
+failed_actions = 0
+results = []
+
+for log_file in sorted(os.listdir(log_dir)):
+    if not log_file.endswith('.log'):
+        continue
+    tid = log_file.split('-')[0]
+    task_type = '-'.join(log_file.split('-')[1:]).replace('.log', '')
+
+    if target != 'all' and target != tid:
+        continue
+
+    log_path = os.path.join(log_dir, log_file)
+    log_content = open(log_path).read()
+
+    actions = task_actions.get(task_type, [])
+    if not actions:
+        results.append((tid, task_type, 'SKIP', 'No actions defined', []))
+        continue
+
+    action_results = []
+    task_pass = 0
+    task_fail = 0
+
+    for action in actions:
+        atype = action['type']
+        desc = action['desc']
+        keywords = action_rules.get(atype, [])
+
+        if not keywords:
+            action_results.append(('—', atype, desc, 'no rules'))
+            continue
+
+        matched = any(kw.lower() in log_content.lower() for kw in keywords)
+        total_actions += 1
+        if matched:
+            passed_actions += 1
+            task_pass += 1
+            action_results.append(('✓', atype, desc, ''))
+        else:
+            failed_actions += 1
+            task_fail += 1
+            action_results.append(('✗', atype, desc, f'expected: {keywords[:3]}'))
+
+    status = 'PASS' if task_fail == 0 else f'FAIL ({task_fail} actions)'
+    results.append((tid, task_type, status, f'{task_pass}/{task_pass+task_fail}', action_results))
+
+# 出力
+print('=== Task Observation Report ===')
+print()
+for tid, task_type, status, summary, action_results in results:
+    icon = '✓' if 'PASS' in status else ('—' if 'SKIP' in status else '✗')
+    print(f'{icon} {tid} {task_type}: {status} ({summary})')
+    if action_results and 'FAIL' in status:
+        for aicon, atype, desc, note in action_results:
+            if aicon == '✗':
+                print(f'    {aicon} [{atype}] {desc}')
+                if note:
+                    print(f'      → {note}')
+    print()
+
+print(f'=== Summary: {passed_actions}/{total_actions} actions passed, {failed_actions} failed ===')
+if failed_actions > 0:
+    sys.exit(1)
+" 2>/dev/null
+}
+
+# ============================
 # メインディスパッチ
 # ============================
 case "$CMD" in
   catalog) cmd_catalog "$@" ;;
   plan)    cmd_plan "$@" ;;
   run)     cmd_run "$@" ;;
+  observe) cmd_observe "$@" ;;
   status)  cmd_status "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
