@@ -99,10 +99,10 @@ def _split_dotpath(data, dotpath):
         if isinstance(current, dict) and remaining in current:
             parts.append(remaining)
             return parts
-        # 最長一致: 先頭からドットまでの各位置を長い順に試す
+        # 最長一致: ドット位置を逆順（最長プレフィックスから）試す
         found = False
         dot_positions = [i for i, c in enumerate(remaining) if c == '.']
-        for pos in dot_positions:
+        for pos in reversed(dot_positions):
             candidate = remaining[:pos]
             if isinstance(current, dict) and candidate in current:
                 parts.append(candidate)
