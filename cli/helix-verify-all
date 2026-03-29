@@ -1,0 +1,143 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-verify-all: HELIX 全レイヤー検証を1コマンドで実行
+# Usage: helix verify-all [--fix]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+
+FIX_MODE=false
+[[ "${1:-}" == "--fix" ]] && FIX_MODE=true
+
+TOTAL_PASS=0
+TOTAL_FAIL=0
+TOTAL_SKIP=0
+SECTIONS=()
+
+run_section() {
+  local name="$1" cmd="$2"
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  $name"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  set +e
+  output=$(eval "$cmd" 2>&1)
+  local exit_code=$?
+  set -e
+  echo "$output"
+
+  if [[ $exit_code -eq 0 ]]; then
+    SECTIONS+=("✓ $name")
+  else
+    SECTIONS+=("✗ $name")
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+  fi
+}
+
+echo "============================================"
+echo "  HELIX 全レイヤー検証"
+echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+echo "============================================"
+
+# === Layer 1: 環境 ===
+run_section "Layer 1: Doctor（環境・依存チェック）" \
+  "$SCRIPT_DIR/helix-debug doctor"
+
+# === Layer 2: プロジェクト設定 ===
+if [[ -d "$HELIX_DIR" ]]; then
+  run_section "Layer 2: Inspect（プロジェクト健全性）" \
+    "$SCRIPT_DIR/helix-debug inspect"
+else
+  echo ""
+  echo "  Layer 2: Inspect — SKIP（.helix/ なし）"
+  TOTAL_SKIP=$((TOTAL_SKIP + 1))
+  SECTIONS+=("— Layer 2: Inspect (skipped)")
+fi
+
+# === Layer 3: ツール単体テスト ===
+run_section "Layer 3: Unit Tests（helix-test 42項目）" \
+  "timeout 120 $SCRIPT_DIR/helix-test </dev/null"
+
+# === Layer 4: 検証スクリプト ===
+if [[ -d "$PROJECT_ROOT/verify" ]] && ls "$PROJECT_ROOT/verify/"*.sh >/dev/null 2>&1; then
+  run_section "Layer 4: Verification Scripts（verify/）" \
+    "HELIX_PROJECT_ROOT=$PROJECT_ROOT $SCRIPT_DIR/helix-scrum verify"
+else
+  echo ""
+  echo "  Layer 4: Verification Scripts — SKIP（verify/ なし）"
+  TOTAL_SKIP=$((TOTAL_SKIP + 1))
+  SECTIONS+=("— Layer 4: Verification (skipped)")
+fi
+
+# === Layer 5: タスクログ検証 ===
+if [[ -d "$HELIX_DIR/task-logs" ]] && ls "$HELIX_DIR/task-logs/"*.log >/dev/null 2>&1; then
+  run_section "Layer 5: Task Observation（アクション品質）" \
+    "$SCRIPT_DIR/helix-task observe"
+else
+  echo ""
+  echo "  Layer 5: Task Observation — SKIP（ログなし）"
+  TOTAL_SKIP=$((TOTAL_SKIP + 1))
+  SECTIONS+=("— Layer 5: Observation (skipped)")
+fi
+
+# === Layer 6: DB 整合性 ===
+if [[ -f "$HELIX_DIR/helix.db" ]]; then
+  run_section "Layer 6: DB Integrity（SQLite チェック）" \
+    "python3 -c \"
+import sqlite3
+conn = sqlite3.connect('$HELIX_DIR/helix.db')
+tables = [r[0] for r in conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table'\\\").fetchall()]
+expected = ['task_runs','action_logs','observations','feedback','task_evaluations','task_selections']
+missing = [t for t in expected if t not in tables]
+if missing:
+    print(f'FAIL: missing tables: {missing}')
+    exit(1)
+print(f'OK: {len(tables)} tables ({', '.join(tables)})')
+conn.execute('PRAGMA integrity_check')
+print('Integrity: OK')
+\""
+else
+  echo ""
+  echo "  Layer 6: DB Integrity — SKIP（helix.db なし）"
+  TOTAL_SKIP=$((TOTAL_SKIP + 1))
+  SECTIONS+=("— Layer 6: DB (skipped)")
+fi
+
+# === 結果サマリ ===
+echo ""
+echo "============================================"
+echo "  検証結果サマリ"
+echo "============================================"
+echo ""
+for s in "${SECTIONS[@]}"; do
+  echo "  $s"
+done
+echo ""
+
+fail_count=0
+for s in "${SECTIONS[@]}"; do
+  [[ "$s" == "✗"* ]] && fail_count=$((fail_count + 1))
+done
+pass_count=0
+for s in "${SECTIONS[@]}"; do
+  [[ "$s" == "✓"* ]] && pass_count=$((pass_count + 1))
+done
+
+echo "  Pass: $pass_count / Skip: $TOTAL_SKIP / Fail: $fail_count"
+echo ""
+
+if [[ $fail_count -gt 0 ]]; then
+  echo "  Status: FAIL"
+  if [[ "$FIX_MODE" == true ]]; then
+    echo ""
+    echo "  Auto-fix: 'helix init' + 'helix log init' を実行..."
+    $SCRIPT_DIR/helix-init --project-name "$(basename "$PROJECT_ROOT")" 2>&1 | grep -E "(created|skip)"
+    $SCRIPT_DIR/helix-log init 2>&1 || true
+  fi
+  exit 1
+else
+  echo "  Status: ALL CLEAR"
+fi

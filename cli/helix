@@ -21,6 +21,7 @@ case "$CMD" in
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
+  verify-all) exec "$SCRIPT_DIR/helix-verify-all" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
