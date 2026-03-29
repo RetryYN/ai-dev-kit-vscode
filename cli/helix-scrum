@@ -98,7 +98,11 @@ for hid, h in sorted(hypotheses.items()):
         echo "Usage: helix scrum backlog add --id H001 --title '...' --question '...' --acceptance '...'" >&2
         exit 1
       fi
-      local verify_script="verify/${hid,,}-$(echo "$title" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | head -c 30).sh"
+      # ファイル名はASCIIのみ（日本語タイトル対応）
+      local safe_name
+      safe_name=$(echo "$title" | sed 's/[^a-zA-Z0-9 _-]//g' | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | head -c 30)
+      [[ -z "$safe_name" ]] && safe_name="${hid,,}"
+      local verify_script="verify/${hid,,}-${safe_name}.sh"
 
       python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.title" "$title"
       python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.question" "$question"

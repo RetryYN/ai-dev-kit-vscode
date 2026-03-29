@@ -5,12 +5,38 @@
 # sprint: どのスプリントで検証するか（null = 未割当）
 
 hypotheses:
-  # H001:
-  #   title: "仮説のタイトル"
-  #   question: "何を検証するか？"
-  #   acceptance: "どうなったら成功か？"
-  #   verify_script: "verify/001-hypothesis-name.sh"
-  #   status: queued
-  #   sprint: null
-  #   result: null
-  #   learnings: ""
+  H101:
+    title: "Forward full flow"
+    question: "init to G2 to G4 works"
+    acceptance: "G2 G3 pass"
+    verify_script: verify/h101-forward-full-flow.sh
+    status: confirmed
+    sprint: 1
+  H102:
+    title: "Freeze-break recovery"
+    question: "invalidated gates can be re-passed"
+    acceptance: "invalidated to passed"
+    verify_script: verify/h102-freeze-break-recovery.sh
+    status: confirmed
+    sprint: 1
+  H103:
+    title: "Scrum to Forward handoff"
+    question: "confirmed hypothesis feeds into size and sprint"
+    acceptance: "scrum decide confirmed then helix size and sprint work"
+    verify_script: verify/h103-scrum-to-forward-handoff.sh
+    status: confirmed
+    sprint: 1
+  H104:
+    title: "Multi-sprint accumulation"
+    question: "sprint 2 verify runs sprint 1 scripts too"
+    acceptance: "all scripts run on every verify"
+    verify_script: verify/h104-multi-sprint-accumulation.sh
+    status: confirmed
+    sprint: 1
+  H105:
+    title: "Unified status display"
+    question: "helix status shows gates plus scrum in one view"
+    acceptance: "gates and sprint and scrum visible"
+    verify_script: verify/h105-unified-status-display.sh
+    status: confirmed
+    sprint: 1

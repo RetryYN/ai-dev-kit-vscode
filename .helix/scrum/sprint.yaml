@@ -1,14 +1,10 @@
 # scrum-sprint.yaml — HELIX Scrum スプリント状態
 # .helix/scrum/sprint.yaml に配置
 
-current_sprint: 0
-sprints: {}
-  # 1:
-  #   goal: "スプリントゴール"
-  #   hypotheses: ["H001", "H002"]
-  #   status: active | completed | aborted
-  #   started: 2026-03-30
-  #   ended: null
-  #   velocity: 0
-  #   review: ""
-  #   retro: ""
+current_sprint: 1
+sprints:
+  1:
+    goal: HELIX基盤の統合検証
+    status: completed
+    started: 2026-03-30
+    ended: 2026-03-30
