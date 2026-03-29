@@ -1,0 +1,110 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-log: HELIX ログ・評価システム
+# Usage: helix log <init|feedback|report> [args...]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+DB_PY="$SCRIPT_DIR/lib/helix_db.py"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+DB_PATH="$HELIX_DIR/helix.db"
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  init)
+    mkdir -p "$HELIX_DIR"
+    python3 "$DB_PY" init "$DB_PATH"
+    ;;
+
+  feedback)
+    # helix log feedback --task T001 --type correction --category task-selection --desc "..." --impact high
+    local_task="" local_type="correction" local_cat="" local_desc="" local_impact="medium" local_resolution=""
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        --task)       local_task="$2"; shift 2 ;;
+        --type)       local_type="$2"; shift 2 ;;
+        --category)   local_cat="$2"; shift 2 ;;
+        --desc)       local_desc="$2"; shift 2 ;;
+        --impact)     local_impact="$2"; shift 2 ;;
+        --resolution) local_resolution="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+
+    if [[ -z "$local_desc" ]]; then
+      echo "Usage: helix log feedback --desc '...' [--task T001] [--type correction|praise|suggestion|complaint] [--category task-selection|quality|missing-action|wrong-role|scope] [--impact high|medium|low]" >&2
+      exit 1
+    fi
+
+    # task_run_id を取得（task_id からDB検索）
+    local_run_id=""
+    if [[ -n "$local_task" ]]; then
+      local_run_id=$(python3 -c "
+import sqlite3
+conn = sqlite3.connect('$DB_PATH')
+row = conn.execute('SELECT id FROM task_runs WHERE task_id = ? ORDER BY id DESC LIMIT 1', ('$local_task',)).fetchone()
+print(row[0] if row else '')
+conn.close()
+" 2>/dev/null)
+    fi
+
+    python3 "$DB_PY" record-feedback "$DB_PATH" "$(python3 -c "
+import json
+print(json.dumps({
+    'task_run_id': ${local_run_id:-0} or None,
+    'feedback_type': '$local_type',
+    'category': '$local_cat',
+    'description': '$local_desc',
+    'impact': '$local_impact',
+    'resolution': '$local_resolution'
+}))
+")"
+    ;;
+
+  report)
+    local_report_type="${1:-summary}"
+    if [[ ! -f "$DB_PATH" ]]; then
+      echo "DB なし。'helix log init' で初期化してください。" >&2
+      exit 1
+    fi
+    python3 "$DB_PY" report "$DB_PATH" "$local_report_type"
+    ;;
+
+  help|-h|--help)
+    cat <<'USAGE'
+Usage: helix log <command> [args...]
+
+HELIX ログ・評価システム — SQLite ベース
+
+Commands:
+  init                    DB 初期化（.helix/helix.db）
+  feedback               ユーザーフィードバック記録
+    --desc "内容"         フィードバック内容（必須）
+    --task T001           対象タスク
+    --type correction     種別: correction|praise|suggestion|complaint
+    --category scope      分類: task-selection|quality|missing-action|wrong-role|scope
+    --impact high         影響度: high|medium|low
+  report [type]          レポート表示
+    summary               全体サマリ（デフォルト）
+    tasks                 タスク実行履歴
+    actions               アクション型別パフォーマンス
+    feedback              フィードバック分析
+    quality               タスク選択品質（observation pass率 + 修正頻度）
+
+Data flow:
+  helix task run → task_runs + action_logs に自動記録
+  helix task observe → observations に自動記録
+  helix log feedback → feedback に手動記録
+  helix log report quality → タスク選択の改善ポイントを表示
+USAGE
+    ;;
+
+  *)
+    echo "Error: Unknown command '$CMD'" >&2
+    exit 1
+    ;;
+esac

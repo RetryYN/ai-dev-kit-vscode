@@ -19,6 +19,7 @@ case "$CMD" in
   pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
+  log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;

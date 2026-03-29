@@ -12,6 +12,8 @@ HELIX_DIR="$PROJECT_ROOT/.helix"
 CATALOG="$HELIX_HOME/cli/templates/task-catalog.yaml"
 TASK_PLAN="$HELIX_DIR/task-plan.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+DB_PY="$SCRIPT_DIR/lib/helix_db.py"
+DB_PATH="$HELIX_DIR/helix.db"
 
 CMD="${1:-help}"
 shift 2>/dev/null || true
@@ -236,6 +238,18 @@ with open('$TASK_PLAN') as f:
   # ステータスを running に
   sed -i "/$tid:/,/status:/{s/status: pending/status: running/}" "$TASK_PLAN" 2>/dev/null
 
+  # DB 記録（DB がある場合）
+  local db_run_id=""
+  if [[ -f "$DB_PATH" ]]; then
+    local plan_goal
+    plan_goal=$(grep '^goal:' "$TASK_PLAN" 2>/dev/null | sed 's/goal: *"*//' | sed 's/"*$//' || echo "")
+    db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
+import json; print(json.dumps({
+    'task_id': '$tid', 'task_type': '$task_type',
+    'plan_goal': '$plan_goal', 'role': '$role', 'status': 'running'
+}))" 2>/dev/null)" 2>/dev/null || echo "")
+  fi
+
   # ログディレクトリ
   local LOG_DIR="$HELIX_DIR/task-logs"
   mkdir -p "$LOG_DIR"
@@ -258,6 +272,19 @@ with open('$TASK_PLAN') as f:
 
   # ステータスを completed に
   sed -i "/$tid:/,/status:/{s/status: running/status: completed/}" "$TASK_PLAN" 2>/dev/null
+
+  # DB 更新
+  if [[ -f "$DB_PATH" && -n "$db_run_id" ]]; then
+    python3 -c "
+import sqlite3
+from datetime import datetime
+conn = sqlite3.connect('$DB_PATH')
+conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
+    ('completed', datetime.now().isoformat(), '$LOG_FILE', $db_run_id))
+conn.commit()
+conn.close()
+" 2>/dev/null || true
+  fi
 
   echo ""
   echo "[helix-task] $tid 完了。ログ: $LOG_FILE"
