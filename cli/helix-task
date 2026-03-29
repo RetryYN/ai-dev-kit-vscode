@@ -342,19 +342,81 @@ import json; print(json.dumps({
   local LOG_FILE="$LOG_DIR/${tid}-${task_type}.log"
 
   # ロールに応じて実行（出力をログに保存）
-  case "$role" in
-    fe-design|fe-component|fe-style|fe-a11y|fe-test)
-      echo "[helix-task] Claude サブエージェント @$role に委譲してください"
-      echo "  @$role $name"
-      echo "[agent-delegation] @$role $name" > "$LOG_FILE"
-      ;;
-    *)
-      echo "[helix-task] helix-codex --role $role に委譲"
-      set +e
-      "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
-      set -e
-      ;;
-  esac
+  if [[ "$task_type" == "review-visual" ]]; then
+    # ビジュアルレビュー: スクショを Claude に読ませる
+    echo "[helix-task] ビジュアルレビュー実行"
+    echo ""
+
+    local VISUAL_CHECK_DIR="$HELIX_DIR/visual-checks"
+    local screenshots=()
+    for ss_dir in "$VISUAL_CHECK_DIR"/*-screenshots/; do
+      [[ -d "$ss_dir" ]] || continue
+      for img in "$ss_dir"*.png; do
+        [[ -f "$img" ]] && screenshots+=("$img")
+      done
+    done
+
+    if [[ ${#screenshots[@]} -eq 0 ]]; then
+      echo "[helix-task] スクリーンショットが見つかりません" | tee "$LOG_FILE"
+      echo "  先に UI タスクを実行してスクショを撮影してください"
+    else
+      echo "  レビュー対象: ${#screenshots[@]} 枚"
+      for ss in "${screenshots[@]}"; do
+        echo "    $(basename "$ss")"
+      done
+      echo ""
+
+      # Claude に画像を読ませてレビュー（Read ツールは画像対応）
+      local review_prompt="ビジュアルレビュー:
+
+以下のスクリーンショットを確認し、UIデザインの品質をレビューせよ。
+
+スクリーンショット:"
+      for ss in "${screenshots[@]}"; do
+        review_prompt+="
+- $ss"
+      done
+      review_prompt+="
+
+レビュー観点:
+1. レイアウトの崩れ・意図しない余白
+2. テキストの切れ・はみ出し
+3. 配色の一貫性（ベース/メイン/アクセントの比率）
+4. フォントサイズ・ウェイトの適切さ
+5. ボタン・入力フィールドのサイズ・タップ領域
+6. コントラスト比（アクセシビリティ）
+7. desktop/tablet/mobile 間の一貫性
+
+各スクリーンショットを Read して目視確認し、指摘事項を出力せよ。
+指摘がなければ「問題なし」と明記。
+最後に判定: approved / needs-fix を出力。"
+
+      echo "[helix-task] @fe-design にスクショレビューを委譲してください:"
+      echo ""
+      echo "  @fe-design $review_prompt"
+      echo ""
+      echo "$review_prompt" > "$LOG_FILE"
+
+      # 確認記録を更新
+      for check_md in "$VISUAL_CHECK_DIR"/*.md; do
+        [[ -f "$check_md" ]] || continue
+        if grep -q "判定: pending" "$check_md" 2>/dev/null; then
+          sed -i 's/判定: pending/判定: reviewing/' "$check_md"
+        fi
+      done
+      echo "[helix-task] 確認記録を reviewing に更新"
+      echo "  → レビュー結果に基づき approved / needs-fix に変更してください"
+    fi
+  elif [[ "$role" == fe-design || "$role" == fe-component || "$role" == fe-style || "$role" == fe-a11y || "$role" == fe-test ]]; then
+    echo "[helix-task] Claude サブエージェント @$role に委譲してください"
+    echo "  @$role $name"
+    echo "[agent-delegation] @$role $name" > "$LOG_FILE"
+  else
+    echo "[helix-task] helix-codex --role $role に委譲"
+    set +e
+    "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
+    set -e
+  fi
 
   # UI 系タスクの目視確認チェック
   local UI_TASKS="implement-ui-component implement-style design-ui"

@@ -345,6 +345,22 @@ review:
       - { type: review-adversarial, desc: "初見ユーザー視点での問題発見" }
       - { type: write-doc, desc: "UX 改善提案" }
 
+  review-visual:
+    name: "ビジュアルレビュー"
+    role: fe-design
+    estimate: 20
+    skill: common/visual-design
+    actions:
+      - { type: read-code, desc: "デザイン仕様（DESIGNER.md / デザイントークン）確認" }
+      - { type: review-checklist, desc: "スクショ目視: デザインカンプとの一致" }
+      - { type: review-checklist, desc: "スクショ目視: レスポンシブ (desktop/tablet/mobile)" }
+      - { type: review-checklist, desc: "スクショ目視: 配色比率 70-25-5" }
+      - { type: review-checklist, desc: "スクショ目視: タイポグラフィ・余白・整列" }
+      - { type: review-checklist, desc: "スクショ目視: ダークモード (該当時)" }
+      - { type: review-adversarial, desc: "デザイン崩れ・意図しない表示の発見" }
+      - { type: write-doc, desc: "ビジュアルレビューレポート（指摘 + スクショ参照）" }
+      - { type: human-confirm, desc: "デザイナー/PO による最終承認" }
+
   review-api-contract:
     name: "API 契約突合レビュー"
     role: tl

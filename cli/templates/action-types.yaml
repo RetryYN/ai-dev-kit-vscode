@@ -200,6 +200,15 @@ review-checklist:
     expect_keywords: ["チェック", "確認", "✓", "✗", "pass", "fail", "OK", "NG"]
     evidence: "チェック結果（pass/fail 件数）"
 
+review-visual:
+  name: "ビジュアルレビュー"
+  desc: "スクリーンショットを目視確認し、デザイン仕様との差異を検出"
+  tool: "Read"
+  observe:
+    expect_keywords: ["スクショ", "screenshot", "desktop", "tablet", "mobile", "配色", "余白", "フォント", "レスポンシブ", "崩れ"]
+    expect_artifact: "*.png"
+    evidence: "確認したスクショとデザイン指摘"
+
 review-diff:
   name: "差分レビュー"
   desc: "変更差分の確認・指摘"
