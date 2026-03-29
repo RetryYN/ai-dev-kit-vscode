@@ -82,12 +82,27 @@ CREATE TABLE IF NOT EXISTS task_evaluations (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- タスク選択ログ（PM が何を選び、何を選ばなかったか）
+CREATE TABLE IF NOT EXISTS task_selections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id TEXT NOT NULL,              -- プランの識別子
+    plan_goal TEXT NOT NULL,
+    selected_tasks TEXT NOT NULL,        -- JSON array: 選択したタスクID
+    available_tasks TEXT,                -- JSON array: カタログの全タスク（選択肢）
+    selection_rationale TEXT,            -- PM がなぜこのタスクを選んだか
+    review_status TEXT DEFAULT 'pending', -- pending, approved, rejected, revised
+    review_result TEXT,                  -- TL レビュー結果
+    review_suggestions TEXT,            -- TL からの追加/削除提案
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- インデックス
 CREATE INDEX IF NOT EXISTS idx_task_runs_type ON task_runs(task_type);
 CREATE INDEX IF NOT EXISTS idx_task_runs_role ON task_runs(role);
 CREATE INDEX IF NOT EXISTS idx_action_logs_type ON action_logs(action_type);
 CREATE INDEX IF NOT EXISTS idx_feedback_type ON feedback(feedback_type);
 CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category);
+CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
 """
 
 
@@ -157,6 +172,36 @@ def record_feedback(db_path, data):
     conn.commit()
     conn.close()
     print("Feedback recorded")
+
+
+def record_selection(db_path, data):
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO task_selections (plan_id, plan_goal, selected_tasks, "
+        "available_tasks, selection_rationale, review_status) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (data['plan_id'], data['plan_goal'],
+         json.dumps(data.get('selected_tasks', [])),
+         json.dumps(data.get('available_tasks', [])),
+         data.get('selection_rationale', ''),
+         'pending')
+    )
+    sel_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.commit()
+    conn.close()
+    print(sel_id)
+
+
+def update_review(db_path, data):
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE task_selections SET review_status=?, review_result=?, review_suggestions=? "
+        "WHERE id=?",
+        (data['review_status'], data.get('review_result', ''),
+         data.get('review_suggestions', ''), data['selection_id'])
+    )
+    conn.commit()
+    conn.close()
 
 
 def report(db_path, report_type='summary'):
@@ -268,6 +313,25 @@ def report(db_path, report_type='summary'):
         for r in rows:
             print(f"  {r['task_type']}: {r['corrections']} corrections")
 
+    elif report_type == 'selections':
+        print("=== Task Selection History ===\n")
+        rows = conn.execute(
+            "SELECT id, plan_id, plan_goal, selected_tasks, review_status, "
+            "review_result, review_suggestions, created_at "
+            "FROM task_selections ORDER BY id DESC LIMIT 10"
+        ).fetchall()
+        for r in rows:
+            status_icon = {'approved': '✓', 'rejected': '✗', 'revised': '↻', 'pending': '?'}.get(r['review_status'], '?')
+            selected = json.loads(r['selected_tasks']) if r['selected_tasks'] else []
+            print(f"{status_icon} Plan #{r['plan_id']} — {r['plan_goal']} ({r['created_at'][:10]})")
+            print(f"  Selected: {len(selected)} tasks — {', '.join(selected[:5])}{'...' if len(selected) > 5 else ''}")
+            print(f"  Review: {r['review_status']}")
+            if r['review_result']:
+                print(f"  Result: {r['review_result'][:100]}")
+            if r['review_suggestions']:
+                print(f"  Suggestions: {r['review_suggestions'][:100]}")
+            print()
+
     conn.close()
 
 
@@ -289,6 +353,10 @@ def main():
         record_observation(db_path, json.loads(sys.argv[3]))
     elif cmd == 'record-feedback':
         record_feedback(db_path, json.loads(sys.argv[3]))
+    elif cmd == 'record-selection':
+        record_selection(db_path, json.loads(sys.argv[3]))
+    elif cmd == 'update-review':
+        update_review(db_path, json.loads(sys.argv[3]))
     elif cmd == 'report':
         report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
         report(db_path, report_type)

@@ -179,8 +179,94 @@ for t in plan_tasks:
     print(f'  {t[\"id\"]} [{t[\"role\"]:<12s}] ~{t[\"estimate\"]:>3d}min  {t[\"name\"]}')
 print()
 print(f'Saved: $TASK_PLAN')
-print(f'Next: helix task run')
 " 2>/dev/null
+
+  # === タスク選択を DB に記録 ===
+  if [[ -f "$DB_PATH" ]]; then
+    local plan_id
+    plan_id="plan-$(date '+%Y%m%d-%H%M%S')"
+    local all_tasks
+    all_tasks=$(python3 -c "
+import re
+tasks = []
+current_cat = None
+with open('$CATALOG') as f:
+    for line in f:
+        m = re.match(r'  ([\w-]+):\s*$', line.rstrip())
+        if m:
+            name = m.group(1)
+            if name not in ('name','role','estimate','skill','actions'):
+                tasks.append(name)
+import json; print(json.dumps(tasks))
+" 2>/dev/null)
+
+    python3 "$DB_PY" record-selection "$DB_PATH" "$(python3 -c "
+import json
+print(json.dumps({
+    'plan_id': '$plan_id',
+    'plan_goal': '$goal',
+    'selected_tasks': '${task_ids[*]}'.split(),
+    'available_tasks': json.loads('$all_tasks')
+}))
+" 2>/dev/null)" 2>/dev/null
+
+    local sel_id
+    sel_id=$(python3 -c "
+import sqlite3
+conn = sqlite3.connect('$DB_PATH')
+row = conn.execute('SELECT id FROM task_selections ORDER BY id DESC LIMIT 1').fetchone()
+print(row[0] if row else '')
+conn.close()
+" 2>/dev/null)
+
+    echo ""
+    echo "[helix-task] タスク選択を DB に記録 (selection #$sel_id)"
+
+    # === TL レビュー自動発火 ===
+    echo "[helix-task] TL レビューを実行中..."
+    echo ""
+
+    local review_prompt="タスクプランレビュー:
+
+ゴール: $goal
+選択タスク: ${task_ids[*]}
+
+以下の観点でレビューせよ:
+1. タスクの過不足（足りないタスクはないか、不要なタスクはないか）
+2. タスクの順序（依存関係が正しいか）
+3. ロール割当（適切なロールか）
+4. リスク（セキュリティレビューや検証が抜けていないか）
+
+結果を判定(approved/rejected)とともに、追加すべきタスク・削除すべきタスクの提案を返せ。"
+
+    set +e
+    local review_result
+    review_result=$("$HELIX_CODEX" --role tl --task "$review_prompt" 2>&1)
+    set -e
+
+    # レビュー結果をDB に記録
+    local review_status="approved"
+    echo "$review_result" | grep -qi "reject\|不足\|追加すべき\|missing" && review_status="revised"
+
+    python3 "$DB_PY" update-review "$DB_PATH" "$(python3 -c "
+import json
+print(json.dumps({
+    'selection_id': $sel_id,
+    'review_status': '$review_status',
+    'review_result': '''$(echo "$review_result" | tail -20 | head -c 500)''',
+    'review_suggestions': ''
+}))
+" 2>/dev/null)" 2>/dev/null
+
+    echo ""
+    echo "[helix-task] TL レビュー: $review_status"
+    if [[ "$review_status" == "revised" ]]; then
+      echo "[helix-task] TL から修正提案があります。内容を確認してください。"
+    fi
+    echo ""
+  fi
+
+  echo "Next: helix task run"
 }
 
 # ============================

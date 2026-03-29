@@ -1,0 +1,33 @@
+# Task Plan — 2026-03-30
+goal: "テスト機能"
+total_estimate: 95
+status: active
+tasks:
+  T001:
+    task: research-library
+    name: "ライブラリ比較調査"
+    role: research
+    estimate: 30
+    status: pending
+    skill: advanced/tech-selection
+  T002:
+    task: design-api
+    name: "API エンドポイント設計"
+    role: tl
+    estimate: 25
+    status: pending
+    skill: project/api
+  T003:
+    task: implement-api
+    name: "API エンドポイント実装"
+    role: se
+    estimate: 35
+    status: pending
+    skill: project/api
+  T004:
+    task: verify-unit
+    name: "ユニットテスト実行"
+    role: qa
+    estimate: 5
+    status: pending
+    skill: common/testing
