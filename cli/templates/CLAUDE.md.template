@@ -1,0 +1,42 @@
+# プロジェクト名
+
+## 概要
+一文でプロジェクトを説明（例: "Next.js + Stripe のECアプリ"）
+
+## 技術スタック
+- Frontend:
+- Backend:
+- DB:
+- インフラ:
+
+## アーキテクチャ
+主要コンポーネントと役割
+
+## コーディング規約
+- 命名: camelCase / snake_case
+- テスト: 必須
+- 型: strict
+
+## ディレクトリ構造
+```
+src/
+├── ...
+```
+
+## コマンド
+- ビルド: `npm run build`
+- テスト: `npm test`
+- lint: `npm run lint`
+- dev: `npm run dev`
+
+## 禁止事項
+- any型の使用
+- console.log残し
+- 未使用import
+
+## HELIX ワークフロー
+- タスクサイジング: SKILL_MAP.md §タスクサイジング 参照
+- フェーズスキップ: SKILL_MAP.md §フェーズスキップ決定木 参照
+- Codex 委譲: `~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task "..."`
+- ゲート検証: `~/ai-dev-kit-vscode/cli/helix-gate <G2-G7>`
+- FE サブエージェント: @fe-design / @fe-component / @fe-style / @fe-a11y / @fe-test

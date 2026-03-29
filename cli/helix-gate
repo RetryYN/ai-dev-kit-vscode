@@ -1,0 +1,298 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-gate: HELIX ゲート自動検証
+# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+GATE_CHECKS="$HELIX_DIR/gate-checks.yaml"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+
+# --- 引数パース ---
+GATE=""
+STATIC_ONLY=false
+AI_ONLY=false
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --static-only) STATIC_ONLY=true; shift ;;
+    --ai-only)     AI_ONLY=true; shift ;;
+    --dry-run)     DRY_RUN=true; shift ;;
+    --help|-h)
+      echo "Usage: helix-gate <gate> [--static-only] [--ai-only] [--dry-run]"
+      echo ""
+      echo "Gates: G2, G3, G4, G5, G6, G7"
+      exit 0
+      ;;
+    *)
+      if [[ -z "$GATE" ]]; then
+        GATE="$1"; shift
+      else
+        echo "Error: Unknown option: $1" >&2; exit 1
+      fi
+      ;;
+  esac
+done
+
+if [[ -z "$GATE" ]]; then
+  echo "Error: Gate name required (G2, G3, G4, G5, G6, G7)" >&2
+  exit 1
+fi
+
+if [[ ! "$GATE" =~ ^G[2-7]$ ]]; then
+  echo "Error: Invalid gate: $GATE (must be G2-G7)" >&2
+  exit 1
+fi
+
+if [[ ! -f "$GATE_CHECKS" ]]; then
+  echo "Error: $GATE_CHECKS not found. Run 'helix-init' to set up." >&2
+  exit 1
+fi
+
+# --- ゲート名を取得 ---
+gate_name=$(grep -A1 "^${GATE}:" "$GATE_CHECKS" | grep 'name:' | sed 's/.*name: *"//' | sed 's/"//' || echo "$GATE")
+
+echo ""
+echo "=== $GATE: $gate_name ==="
+echo ""
+
+STATIC_PASS=0
+STATIC_FAIL=0
+STATIC_TOTAL=0
+AI_RESULTS=()
+
+# --- 静的チェック ---
+if [[ "$AI_ONLY" != true ]]; then
+  # static セクションを抽出
+  in_gate=false
+  in_static=false
+  current_name=""
+  current_cmd=""
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^${GATE}: ]]; then
+      in_gate=true
+      continue
+    fi
+    if [[ "$in_gate" == true && "$line" =~ ^[A-Z] ]]; then
+      in_gate=false
+      continue
+    fi
+    if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]*static: ]]; then
+      in_static=true
+      continue
+    fi
+    if [[ "$in_gate" == true && "$in_static" == true ]]; then
+      if [[ "$line" =~ ^[[:space:]]*ai: ]] || [[ "$line" =~ ^[A-Z] ]]; then
+        # static セクション終了、最後のコマンドを実行
+        if [[ -n "$current_cmd" ]]; then
+          run_static_check "$current_name" "$current_cmd"
+        fi
+        in_static=false
+        continue
+      fi
+      if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*name:[[:space:]]*\"(.+)\" ]]; then
+        # 前のコマンドを実行
+        if [[ -n "$current_cmd" ]]; then
+          run_static_check "$current_name" "$current_cmd"
+        fi
+        current_name="${BASH_REMATCH[1]}"
+        current_cmd=""
+      elif [[ "$line" =~ cmd:[[:space:]]*\"(.+)\" ]]; then
+        current_cmd="${BASH_REMATCH[1]}"
+      fi
+    fi
+  done < "$GATE_CHECKS"
+
+  # 最後の static チェック
+  if [[ "$in_static" == true && -n "$current_cmd" ]]; then
+    run_static_check "$current_name" "$current_cmd"
+  fi
+fi
+
+# --- 静的チェック実行関数（前方宣言が必要なので書き直し） ---
+# bash は関数の前方宣言ができないので、スクリプトを再構成
+
+# 実際の実行はここから
+run_checks() {
+  local gate="$1"
+  local static_pass=0
+  local static_fail=0
+  local static_skip=0
+
+  if [[ "$AI_ONLY" != true ]]; then
+    echo "[static]"
+
+    # gate-checks.yaml からこのゲートの static チェックを抽出・実行
+    local in_gate=false
+    local in_static=false
+    local check_name=""
+    local check_cmd=""
+
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
+        in_gate=true
+        continue
+      fi
+      # 次のゲート定義に入ったら終了
+      if [[ "$in_gate" == true ]] && echo "$line" | grep -qE '^[A-Z][0-9]+:'; then
+        break
+      fi
+      if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+static: ]]; then
+        in_static=true
+        continue
+      fi
+      if [[ "$in_gate" == true && "$in_static" == true ]]; then
+        # ai: セクションに入ったら static 終了
+        if [[ "$line" =~ ^[[:space:]]+ai: ]]; then
+          # 残りのチェックを実行
+          if [[ -n "$check_cmd" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "  [dry-run] $check_name: $check_cmd"
+            else
+              if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+                echo "  PASS: $check_name"
+                ((static_pass++))
+              else
+                echo "  FAIL: $check_name"
+                echo "    cmd: $check_cmd"
+                ((static_fail++))
+              fi
+            fi
+          fi
+          in_static=false
+          continue
+        fi
+        if [[ "$line" =~ name:[[:space:]]*\"(.+)\" ]]; then
+          # 前のチェックを実行
+          if [[ -n "$check_cmd" ]]; then
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "  [dry-run] $check_name: $check_cmd"
+            else
+              if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+                echo "  PASS: $check_name"
+                ((static_pass++))
+              else
+                echo "  FAIL: $check_name"
+                echo "    cmd: $check_cmd"
+                ((static_fail++))
+              fi
+            fi
+          fi
+          check_name="${BASH_REMATCH[1]}"
+          check_cmd=""
+        elif [[ "$line" =~ cmd:[[:space:]]*\"(.+)\" ]]; then
+          check_cmd="${BASH_REMATCH[1]}"
+        fi
+      fi
+    done < "$GATE_CHECKS"
+
+    # 最後のチェック
+    if [[ "$in_static" == true && -n "$check_cmd" ]]; then
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  [dry-run] $check_name: $check_cmd"
+      else
+        if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+          echo "  PASS: $check_name"
+          ((static_pass++))
+        else
+          echo "  FAIL: $check_name"
+          echo "    cmd: $check_cmd"
+          ((static_fail++))
+        fi
+      fi
+    fi
+
+    if [[ $((static_pass + static_fail)) -eq 0 ]]; then
+      echo "  (static チェックなし)"
+    else
+      echo ""
+      echo "  static: $static_pass pass, $static_fail fail"
+    fi
+    echo ""
+  fi
+
+  # --- AI チェック ---
+  if [[ "$STATIC_ONLY" != true ]]; then
+    echo "[ai]"
+
+    local in_gate=false
+    local in_ai=false
+    local ai_role=""
+    local ai_task=""
+    local ai_count=0
+
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
+        in_gate=true
+        continue
+      fi
+      if [[ "$in_gate" == true ]] && echo "$line" | grep -qE '^[A-Z][0-9]+:'; then
+        break
+      fi
+      if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+ai: ]]; then
+        in_ai=true
+        continue
+      fi
+      if [[ "$in_ai" == true ]]; then
+        if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*role:[[:space:]]*(.+) ]]; then
+          # 前の AI チェックを実行
+          if [[ -n "$ai_role" && -n "$ai_task" ]]; then
+            ((ai_count++))
+            if [[ "$DRY_RUN" == true ]]; then
+              echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
+            else
+              echo "  実行中: helix-codex --role $ai_role ..."
+              "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1 || true
+              echo ""
+            fi
+          fi
+          ai_role="${BASH_REMATCH[1]}"
+          ai_task=""
+        elif [[ "$line" =~ task:[[:space:]]*\|[[:space:]]*$ ]]; then
+          # multiline task 開始
+          ai_task=""
+        elif [[ "$in_ai" == true && -n "$ai_role" && "$line" =~ ^[[:space:]]{8} ]]; then
+          # multiline task の続き
+          ai_task+="${line#        }"$'\n'
+        fi
+      fi
+    done < "$GATE_CHECKS"
+
+    # 最後の AI チェック
+    if [[ -n "$ai_role" && -n "$ai_task" ]]; then
+      ((ai_count++))
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
+      else
+        echo "  実行中: helix-codex --role $ai_role ..."
+        "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1 || true
+        echo ""
+      fi
+    fi
+
+    if [[ $ai_count -eq 0 ]]; then
+      echo "  (AI チェックなし)"
+    fi
+  fi
+
+  echo ""
+  echo "=== $gate 検証完了 ==="
+
+  # phase.yaml を更新（実行時のみ）
+  if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" && $static_fail -eq 0 ]]; then
+    local today
+    today=$(date '+%Y-%m-%d')
+    sed -i "s/\(${gate}:.*status:\) .*/\1 passed, date: ${today} }/" "$PHASE_FILE" 2>/dev/null || true
+  fi
+
+  if [[ $static_fail -gt 0 ]]; then
+    exit 1
+  fi
+}
+
+run_checks "$GATE"

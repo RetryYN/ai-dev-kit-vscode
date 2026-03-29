@@ -1,0 +1,12 @@
+#!/bin/bash
+# helix-session-start: SessionStart hook
+# セッション開始時に HELIX フレームワークの概要を Claude に注入する
+
+cat <<'CONTEXT'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "## HELIX フレームワーク稼働中\n\nこのセッションでは HELIX 開発フレームワークが有効。以下のツールが使える:\n\n### Codex 委譲（バックエンド・設計・レビュー）\n```bash\n~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task \"タスク内容\"\n```\nロール: tl(設計/レビュー) / se(上級実装) / pg(通常実装) / fe(FE) / qa(テスト) / security(監査) / dba(DB) / devops(インフラ) / docs(文書) / research(調査) / legacy(レガシー) / perf(性能)\n詳細: ~/ai-dev-kit-vscode/cli/ROLE_MAP.md\n\n### ゲート検証\n```bash\n~/ai-dev-kit-vscode/cli/helix-gate <G2|G3|G4|G5|G6|G7> [--static-only] [--dry-run]\n```\n\n### Claude サブエージェント（フロント特化）\n@fe-design / @fe-component / @fe-style / @fe-a11y / @fe-test\n\n### 原則\n- Opus = PM。自分でコード実装しない。Codex or サブエージェントに委譲\n- バックエンド → helix-codex（Codex）\n- フロント → Claude サブエージェント\n- 設計・レビュー → helix-codex --role tl\n- .helix/ があるプロジェクトでは Edit/Write 時に設計整合チェックが自動発火する\n\n### CLAUDE.md 作成時\nCLAUDE.md を新規作成する場合は必ずテンプレートを使うこと:\n~/ai-dev-kit-vscode/cli/templates/CLAUDE.md.template\nテンプレートなしで Write すると PreToolUse hook でブロックされる。"
+  }
+}
+CONTEXT

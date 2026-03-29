@@ -1,0 +1,109 @@
+# gate-checks.yaml — ゲートごとの自動チェック定義
+# プロジェクトルートの .helix/gate-checks.yaml にコピーして使う
+#
+# static: シェルコマンド（exit 0 = pass, 非0 = fail）
+# ai: helix-codex で実行する AI 検証
+#   role: helix-codex のロール
+#   task: プロンプト
+
+G2:
+  name: "設計凍結ゲート"
+  static:
+    - name: "設計書 TODO 残存"
+      cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L2-*.md"
+    - name: "設計書存在"
+      cmd: "ls docs/design/L2-*.md >/dev/null 2>&1"
+  ai:
+    - role: tl
+      task: |
+        G2 設計凍結ゲート検証:
+        docs/design/L2-*.md を全て読み、以下を検出せよ:
+        1. 未定義のAPI・画面・モジュール
+        2. 矛盾する設計判断
+        3. セキュリティ上の懸念（脅威分析）
+    - role: security
+      task: |
+        G2 脅威分析:
+        docs/design/L2-*.md を読み、STRIDE モデルで脅威を分析せよ
+
+G3:
+  name: "実装着手ゲート"
+  static:
+    - name: "API契約存在"
+      cmd: "ls docs/design/L3-api-contract.* >/dev/null 2>&1"
+    - name: "API契約 TODO 残存"
+      cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L3-*.md docs/design/L3-*.yaml 2>/dev/null"
+  ai:
+    - role: tl
+      task: |
+        G3 実装着手ゲート検証:
+        L2 設計書と L3 詳細設計/API契約の整合性を確認せよ:
+        1. L2 に記載された全 API が L3 で定義されているか
+        2. データ型の一貫性
+        3. エラーハンドリングの網羅性
+
+G4:
+  name: "実装凍結ゲート"
+  static:
+    - name: "型チェック"
+      cmd: "npx tsc --noEmit 2>&1 | tail -1 | grep -q '0 errors' || npx tsc --noEmit 2>&1 | grep -qv error"
+    - name: "lint"
+      cmd: "npx eslint . --quiet 2>&1; test $? -eq 0"
+    - name: "テスト"
+      cmd: "npm test 2>&1; test $? -eq 0"
+    - name: "TODO/FIXME 残存"
+      cmd: "! grep -rn 'TODO\\|FIXME' src/ --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'"
+  ai:
+    - role: tl
+      task: |
+        G4 実装凍結ゲート検証:
+        設計文書（docs/design/）と実装（src/）を突合し、以下を検出せよ:
+        1. 書いただけで接続されていないコード（未使用 export, 呼ばれていない関数, 未使用コンポーネント）
+        2. ハードコード値（マジックナンバー, 埋め込みURL, 埋め込みキー, 埋め込み文字列）
+        3. 設計に記載があるが実装されていない機能
+        4. 実装されているが設計に記載がない機能（スコープクリープ）
+        5. エラーハンドリングの欠落
+    - role: security
+      task: |
+        G4 セキュリティ実装検証:
+        src/ を読み、OWASP Top 10 観点で脆弱性を検出せよ
+
+G5:
+  name: "デザイン凍結ゲート"
+  ai:
+    - role: fe
+      task: |
+        G5 デザイン凍結ゲート検証:
+        DESIGNER.md（docs/design/L5-designer.md）と実装（src/components/）を突合し:
+        1. 未適用のデザイン指示
+        2. デザイントークンを使わずハードコードされたスタイル値
+        3. レスポンシブ対応の欠落
+        4. アクセシビリティの欠落
+
+G6:
+  name: "RC判定ゲート"
+  static:
+    - name: "全テスト通過"
+      cmd: "npm test 2>&1; test $? -eq 0"
+    - name: "E2E テスト"
+      cmd: "npx playwright test 2>&1; test $? -eq 0"
+  ai:
+    - role: qa
+      task: |
+        G6 RC判定ゲート検証:
+        テストカバレッジとクリティカルパスの網羅性を検証せよ
+    - role: security
+      task: |
+        G6 最終セキュリティチェック:
+        RC としてリリース可能か、脆弱性スキャン結果を評価せよ
+
+G7:
+  name: "安定性ゲート"
+  static:
+    - name: "Docker ビルド"
+      cmd: "docker build -t test . 2>&1; test $? -eq 0"
+  ai:
+    - role: devops
+      task: |
+        G7 安定性ゲート検証:
+        デプロイ設定・環境変数・ヘルスチェック・ロールバック手順を検証せよ

@@ -1,0 +1,147 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-hook: Claude Code PostToolUse hook
+# Edit/Write 後に自動発火し、ドキュメント駆動ゲートを実行する
+# Usage: helix-hook <changed-file-path>
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+DOC_MAP="$HELIX_DIR/doc-map.yaml"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+
+# --- 引数 ---
+CHANGED_FILE="${1:-}"
+if [[ -z "$CHANGED_FILE" ]]; then
+  exit 0
+fi
+
+# .helix/ がなければ何もしない（HELIX 未導入プロジェクト）
+if [[ ! -d "$HELIX_DIR" ]]; then
+  exit 0
+fi
+
+if [[ ! -f "$DOC_MAP" ]]; then
+  exit 0
+fi
+
+# 相対パスに変換
+REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
+
+# --- YAML からトリガーを検索 ---
+# 軽量パーサー: pattern にマッチするトリガーを探す
+match_trigger() {
+  local file="$1"
+  local current_pattern=""
+  local current_on_write=""
+  local current_gate=""
+  local current_design_ref=""
+  local in_trigger=false
+
+  while IFS= read -r line; do
+    # トリガーブロック開始
+    if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*pattern:[[:space:]]*\"(.+)\" ]]; then
+      # 前のトリガーを評価
+      if [[ "$in_trigger" == true && -n "$current_pattern" ]]; then
+        eval_trigger "$file" "$current_pattern" "$current_on_write" "$current_gate" "$current_design_ref"
+      fi
+      current_pattern="${BASH_REMATCH[1]}"
+      current_on_write=""
+      current_gate=""
+      current_design_ref=""
+      in_trigger=true
+    elif [[ "$in_trigger" == true ]]; then
+      if [[ "$line" =~ on_write:[[:space:]]*(.+) ]]; then
+        current_on_write="${BASH_REMATCH[1]}"
+      elif [[ "$line" =~ gate:[[:space:]]*(.+) ]]; then
+        current_gate="${BASH_REMATCH[1]}"
+      elif [[ "$line" =~ design_ref:[[:space:]]*\"(.+)\" ]]; then
+        current_design_ref="${BASH_REMATCH[1]}"
+      fi
+    fi
+  done < "$DOC_MAP"
+
+  # 最後のトリガーを評価
+  if [[ "$in_trigger" == true && -n "$current_pattern" ]]; then
+    eval_trigger "$file" "$current_pattern" "$current_on_write" "$current_gate" "$current_design_ref"
+  fi
+}
+
+# --- glob マッチ判定 ---
+glob_match() {
+  local file="$1"
+  local pattern="$2"
+  # bash の extglob でマッチ。** は任意パス
+  local regex_pattern
+  regex_pattern=$(echo "$pattern" | sed 's/\*\*/DOUBLESTAR/g' | sed 's/\*/[^\/]*/g' | sed 's/DOUBLESTAR/.*/g')
+  [[ "$file" =~ ^${regex_pattern}$ ]]
+}
+
+# --- トリガー評価 ---
+eval_trigger() {
+  local file="$1"
+  local pattern="$2"
+  local on_write="$3"
+  local gate="$4"
+  local design_ref="$5"
+
+  if ! glob_match "$file" "$pattern"; then
+    return
+  fi
+
+  case "$on_write" in
+    gate_ready)
+      echo "[helix-hook] gate_ready: $file → $gate"
+      echo "[helix-hook] $gate のチェック準備が整いました。'helix-gate $gate' で検証を実行してください。"
+      ;;
+
+    design_sync)
+      if [[ -z "$design_ref" ]]; then
+        return
+      fi
+      # design_ref の glob を展開
+      local design_files
+      design_files=$(cd "$PROJECT_ROOT" && ls $design_ref 2>/dev/null || true)
+
+      if [[ -z "$design_files" ]]; then
+        echo "[helix-hook] WARN: 設計文書未作成 — $design_ref が存在しません"
+        echo "[helix-hook]   実装: $file"
+        echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
+        exit 1
+      fi
+
+      # 設計文書と実装ファイルのタイムスタンプ比較
+      local impl_mtime design_mtime
+      impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$file" 2>/dev/null || echo 0)
+
+      local stale_designs=()
+      for df in $design_files; do
+        design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
+        if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
+          stale_designs+=("$df")
+        fi
+      done
+
+      if [[ ${#stale_designs[@]} -gt 0 ]]; then
+        echo "[helix-hook] WARN: 設計が実装より古い可能性があります"
+        echo "[helix-hook]   実装: $file ($(date -d @"$impl_mtime" '+%Y-%m-%d %H:%M' 2>/dev/null || echo 'unknown'))"
+        for sd in "${stale_designs[@]}"; do
+          local sd_mtime
+          sd_mtime=$(stat -c %Y "$PROJECT_ROOT/$sd" 2>/dev/null || echo 0)
+          echo "[helix-hook]   設計: $sd ($(date -d @"$sd_mtime" '+%Y-%m-%d %H:%M' 2>/dev/null || echo 'unknown'))"
+        done
+        echo "[helix-hook]   設計文書の更新を検討してください"
+        # warn のみ、ブロックはしない（ブロックしたい場合は exit 1）
+      fi
+      ;;
+
+    coverage_check)
+      echo "[helix-hook] coverage_check: テストファイル変更 — $file"
+      echo "[helix-hook]   次回ゲートでカバレッジを確認します"
+      ;;
+  esac
+}
+
+# --- 実行 ---
+match_trigger "$REL_PATH"

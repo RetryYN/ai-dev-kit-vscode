@@ -1,0 +1,86 @@
+# doc-map.yaml — ドキュメント駆動ゲートのマッピング正本
+# プロジェクトルートの .helix/doc-map.yaml にコピーして使う
+#
+# pattern: glob パターン（プロジェクトルートからの相対パス）
+# phase: HELIX フェーズ
+# on_write: トリガー種別
+#   - gate_ready: ゲート readiness check を実行
+#   - design_sync: 設計文書との整合性チェック
+#   - coverage_check: カバレッジチェック
+# gate: 対応するゲート（gate_ready 時に必須）
+# design_ref: 参照する設計文書（design_sync 時に必須）
+
+triggers:
+  # === L2: 全体設計 ===
+  - pattern: "docs/design/L2-*.md"
+    phase: L2
+    on_write: gate_ready
+    gate: G2
+
+  # === L3: 詳細設計 + API契約 ===
+  - pattern: "docs/design/L3-*.md"
+    phase: L3
+    on_write: gate_ready
+    gate: G3
+
+  - pattern: "docs/design/L3-*.yaml"
+    phase: L3
+    on_write: gate_ready
+    gate: G3
+
+  # === L4: 実装 → 設計との整合性チェック ===
+  - pattern: "src/api/**"
+    phase: L4
+    on_write: design_sync
+    design_ref: "docs/design/L3-api-contract.*"
+
+  - pattern: "src/components/**"
+    phase: L4
+    on_write: design_sync
+    design_ref: "docs/design/L5-designer.md"
+
+  - pattern: "src/lib/**"
+    phase: L4
+    on_write: design_sync
+    design_ref: "docs/design/L2-architecture.md"
+
+  - pattern: "src/middleware/**"
+    phase: L4
+    on_write: design_sync
+    design_ref: "docs/design/L2-architecture.md"
+
+  - pattern: "src/db/**"
+    phase: L4
+    on_write: design_sync
+    design_ref: "docs/design/L3-db-schema.*"
+
+  # === L5: Visual Refinement ===
+  - pattern: "docs/design/L5-*.md"
+    phase: L5
+    on_write: gate_ready
+    gate: G5
+
+  # === L6: テスト・検証 ===
+  - pattern: "tests/**"
+    phase: L6
+    on_write: coverage_check
+
+  - pattern: "e2e/**"
+    phase: L6
+    on_write: coverage_check
+
+  # === L7: デプロイ ===
+  - pattern: "Dockerfile"
+    phase: L7
+    on_write: design_sync
+    design_ref: "docs/design/L2-architecture.md"
+
+  - pattern: "docker-compose*.yaml"
+    phase: L7
+    on_write: design_sync
+    design_ref: "docs/design/L2-architecture.md"
+
+  - pattern: ".github/workflows/**"
+    phase: L7
+    on_write: design_sync
+    design_ref: "docs/design/L2-architecture.md"

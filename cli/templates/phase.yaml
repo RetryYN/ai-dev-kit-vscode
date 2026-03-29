@@ -1,0 +1,17 @@
+# phase.yaml — プロジェクトのフェーズ状態追跡
+# プロジェクトルートの .helix/phase.yaml にコピーして使う
+# helix-gate が自動更新する
+
+project: ""
+current_phase: L1
+
+gates:
+  G1:  { status: pending }
+  G1.5: { status: skipped }
+  G1R: { status: skipped }
+  G2:  { status: pending }
+  G3:  { status: pending }
+  G4:  { status: pending }
+  G5:  { status: pending }
+  G6:  { status: pending }
+  G7:  { status: pending }

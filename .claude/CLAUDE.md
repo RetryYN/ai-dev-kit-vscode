@@ -30,8 +30,32 @@
 
 ### Codex CLI（Opus から呼ぶ場合）
 
-- 上級実装: `codex exec "プロンプト" -m gpt-5.3-codex`（軽量: `-m gpt-5.3-codex-spark`）
-- 設計・レビュー: `codex exec "レビュー: [対象]" -m gpt-5.4` / `codex review --uncommitted`
+**helix-codex を優先使用**。ロール別スキル注入+共通マップ付きで Codex を呼ぶ:
+
+```bash
+~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task "タスク内容"
+```
+
+ロール選択は `~/ai-dev-kit-vscode/cli/ROLE_MAP.md` を参照:
+
+| ロール | 用途 | model |
+|--------|------|-------|
+| tl | 設計・レビュー・ゲート判定 | gpt-5.4 |
+| se | 上級実装（スコア4+） | gpt-5.3-codex |
+| pg | 通常実装（スコア1-3） | gpt-5.3-codex-spark |
+| fe | フロントエンド実装 | gpt-5.4 |
+| qa | テスト・検証・品質ゲート | gpt-5.4 |
+| security | セキュリティ監査 | gpt-5.4 |
+| dba | DB設計・マイグレーション | gpt-5.3-codex |
+| devops | デプロイ・インフラ・監視 | gpt-5.3-codex |
+| docs | ドキュメント・API仕様書 | gpt-5.3-codex-spark |
+| research | 技術調査・比較 | gpt-5.4 |
+| legacy | レガシー分析・Reverse | gpt-5.4 |
+| perf | パフォーマンス最適化 | gpt-5.4 |
+
+**直接 codex exec を使う場合**（helix-codex で対応できないとき）:
+- `codex exec "プロンプト" -m gpt-5.3-codex`（軽量: `-m gpt-5.3-codex-spark`）
+- `codex review --uncommitted`
 - 精読: `codex exec "精読: [対象]" -m gpt-5.2-codex`
 - 思考トークン: Codex 系は `model_reasoning_effort = "xhigh"` 固定
 - `--quiet` / `-q` は存在しない。`--uncommitted` とプロンプト引数は併用不可
