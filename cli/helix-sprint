@@ -25,62 +25,26 @@ if [[ ! -d "$HELIX_DIR" ]]; then
   exit 1
 fi
 
-# --- sprint セクションの読み書き (python3) ---
+# --- sprint セクションの読み書き (yaml_parser.py) ---
+YP="$SCRIPT_DIR/lib/yaml_parser.py"
+
 get_sprint_step() {
-  python3 -c "
-import yaml, sys
-try:
-    with open('$PHASE_FILE') as f:
-        d = yaml.safe_load(f) or {}
-    sprint = d.get('sprint', {})
-    print(sprint.get('current_step', '') or '')
-except:
-    print('')
-" 2>/dev/null || echo ""
+  python3 "$YP" read "$PHASE_FILE" "sprint.current_step" 2>/dev/null || echo ""
 }
 
 set_sprint_step() {
   local step="$1"
-  python3 -c "
-import yaml
-with open('$PHASE_FILE') as f:
-    d = yaml.safe_load(f) or {}
-if 'sprint' not in d:
-    d['sprint'] = {'current_step': None, 'steps': {}}
-    for s in ['.1a', '.1b', '.2', '.3', '.4', '.5']:
-        d['sprint']['steps'][s] = {'status': 'pending'}
-d['sprint']['current_step'] = '$step' if '$step' else None
-with open('$PHASE_FILE', 'w') as f:
-    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
-" 2>/dev/null
+  python3 "$YP" write "$PHASE_FILE" "sprint.current_step" "$step" 2>/dev/null
 }
 
 mark_step_done() {
   local step="$1"
-  python3 -c "
-import yaml
-with open('$PHASE_FILE') as f:
-    d = yaml.safe_load(f) or {}
-if 'sprint' not in d:
-    d['sprint'] = {'current_step': None, 'steps': {}}
-d['sprint'].setdefault('steps', {})
-d['sprint']['steps']['$step'] = {'status': 'completed'}
-with open('$PHASE_FILE', 'w') as f:
-    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
-" 2>/dev/null
+  python3 "$YP" write "$PHASE_FILE" "sprint.steps.${step}.status" "completed" 2>/dev/null
 }
 
 get_step_status() {
   local step="$1"
-  python3 -c "
-import yaml
-try:
-    with open('$PHASE_FILE') as f:
-        d = yaml.safe_load(f) or {}
-    print(d.get('sprint', {}).get('steps', {}).get('$step', {}).get('status', 'pending'))
-except:
-    print('pending')
-" 2>/dev/null || echo "pending"
+  python3 "$YP" read "$PHASE_FILE" "sprint.steps.${step}.status" 2>/dev/null || echo "pending"
 }
 
 # --- サブコマンド ---
@@ -158,17 +122,9 @@ case "$CMD" in
 
   reset)
     set_sprint_step ""
-    python3 -c "
-import yaml
-with open('$PHASE_FILE') as f:
-    d = yaml.safe_load(f) or {}
-if 'sprint' in d:
-    for s in d['sprint'].get('steps', {}):
-        d['sprint']['steps'][s] = {'status': 'pending'}
-    d['sprint']['current_step'] = None
-with open('$PHASE_FILE', 'w') as f:
-    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
-" 2>/dev/null
+    for step in "${STEPS[@]}"; do
+      python3 "$YP" write "$PHASE_FILE" "sprint.steps.${step}.status" "pending" 2>/dev/null
+    done
     echo "[helix-sprint] Sprint リセット完了"
     ;;
 

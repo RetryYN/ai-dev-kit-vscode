@@ -110,9 +110,10 @@ if contract_only:
     exit_code = 1
 
 if impl_only:
-    print("  WARN: 実装にあるが契約にない（スコープクリープ?）:")
+    print("  FAIL: 実装にあるが契約にない（未承認エンドポイント）:")
     for ep in sorted(impl_only):
         print(f"    {ep}")
+    exit_code = 1
 
 if not contract_only and not impl_only:
     print("  OK: 契約と実装が一致")

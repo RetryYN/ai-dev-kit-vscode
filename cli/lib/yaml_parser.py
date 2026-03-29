@@ -89,9 +89,37 @@ def _cast(val):
     return val
 
 
+def _split_dotpath(data, dotpath):
+    """ドットパスを分割。`G1.5` のようにキー自体に `.` を含む場合、既存キーを優先する。"""
+    parts = []
+    remaining = dotpath
+    current = data
+    while remaining:
+        # まず完全一致を試す（残り全体がキー）
+        if isinstance(current, dict) and remaining in current:
+            parts.append(remaining)
+            return parts
+        # 最長一致: 先頭からドットまでの各位置を長い順に試す
+        found = False
+        dot_positions = [i for i, c in enumerate(remaining) if c == '.']
+        for pos in dot_positions:
+            candidate = remaining[:pos]
+            if isinstance(current, dict) and candidate in current:
+                parts.append(candidate)
+                current = current[candidate]
+                remaining = remaining[pos + 1:]
+                found = True
+                break
+        if not found:
+            # ドットがないか、どのプレフィックスもマッチしない → 残り全体をキーとする
+            parts.append(remaining)
+            return parts
+    return parts
+
+
 def get_nested(data, dotpath):
-    """ドットパスで値を取得。"""
-    keys = dotpath.split('.')
+    """ドットパスで値を取得。キーに `.` を含む場合も対応。"""
+    keys = _split_dotpath(data, dotpath)
     current = data
     for key in keys:
         if isinstance(current, dict) and key in current:
@@ -102,8 +130,8 @@ def get_nested(data, dotpath):
 
 
 def set_nested(data, dotpath, value):
-    """ドットパスで値を設定。"""
-    keys = dotpath.split('.')
+    """ドットパスで値を設定。キーに `.` を含む場合も対応。"""
+    keys = _split_dotpath(data, dotpath)
     current = data
     for key in keys[:-1]:
         if key not in current or not isinstance(current[key], dict):

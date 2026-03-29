@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 # helix-gate: HELIX ゲート自動検証
 # Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]
@@ -88,6 +88,8 @@ run_checks() {
   local static_pass=0
   local static_fail=0
   local static_skip=0
+  local ai_pass=0
+  local ai_fail=0
 
   if [[ "$AI_ONLY" != true ]]; then
     echo "[static]"
@@ -119,7 +121,7 @@ run_checks() {
             if [[ "$DRY_RUN" == true ]]; then
               echo "  [dry-run] $check_name: $check_cmd"
             else
-              if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+              if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
                 echo "  PASS: $check_name"
                 static_pass=$((static_pass + 1))
               else
@@ -138,7 +140,7 @@ run_checks() {
             if [[ "$DRY_RUN" == true ]]; then
               echo "  [dry-run] $check_name: $check_cmd"
             else
-              if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+              if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
                 echo "  PASS: $check_name"
                 static_pass=$((static_pass + 1))
               else
@@ -161,7 +163,7 @@ run_checks() {
       if [[ "$DRY_RUN" == true ]]; then
         echo "  [dry-run] $check_name: $check_cmd"
       else
-        if (cd "$PROJECT_ROOT" && eval "$check_cmd") >/dev/null 2>&1; then
+        if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
           echo "  PASS: $check_name"
           static_pass=$((static_pass + 1))
         else
@@ -190,6 +192,8 @@ run_checks() {
     local ai_role=""
     local ai_task=""
     local ai_count=0
+    local ai_pass=0
+    local ai_fail=0
 
     while IFS= read -r line; do
       if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
@@ -212,7 +216,12 @@ run_checks() {
               echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
             else
               echo "  実行中: helix-codex --role $ai_role ..."
-              "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1 || true
+              if "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1; then
+                ai_pass=$((ai_pass + 1))
+              else
+                ai_fail=$((ai_fail + 1))
+                echo "  [ai] FAIL: $ai_role"
+              fi
               echo ""
             fi
           fi
@@ -235,30 +244,39 @@ run_checks() {
         echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
       else
         echo "  実行中: helix-codex --role $ai_role ..."
-        "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1 || true
+        if "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1; then
+          ai_pass=$((ai_pass + 1))
+        else
+          ai_fail=$((ai_fail + 1))
+          echo "  [ai] FAIL: $ai_role"
+        fi
         echo ""
       fi
     fi
 
     if [[ $ai_count -eq 0 ]]; then
       echo "  (AI チェックなし)"
+    else
+      echo "  ai: $ai_pass pass, $ai_fail fail"
     fi
   fi
 
+  # --- 総合判定 ---
+  local total_fail=$((static_fail + ai_fail))
   echo ""
-  echo "=== $gate 検証完了 ==="
-
-  # phase.yaml を更新（実行時のみ）
-  if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" && $static_fail -eq 0 ]]; then
-    local today
-    today=$(date '+%Y-%m-%d')
-    sed -i "s/\(${gate}:.*status:\) .*/\1 passed, date: ${today} }/" "$PHASE_FILE" 2>/dev/null || true
-    # ミニレトロ自動生成
-    maybe_generate_retro "$gate"
-  fi
-
-  if [[ $static_fail -gt 0 ]]; then
+  if [[ $total_fail -gt 0 ]]; then
+    echo "=== $gate FAIL (static: $static_fail fail, ai: $ai_fail fail) ==="
+    if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
+      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
+    fi
     exit 1
+  else
+    echo "=== $gate PASS ==="
+    if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
+      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "passed" 2>/dev/null || true
+      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+      maybe_generate_retro "$gate"
+    fi
   fi
 }
 

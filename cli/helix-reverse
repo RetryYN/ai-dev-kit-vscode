@@ -49,36 +49,19 @@ if [[ ! -d "$HELIX_DIR" ]]; then
   exit 1
 fi
 
-# --- reverse_gates 読み書き (python3) ---
+# --- reverse_gates 読み書き (yaml_parser.py) ---
+YP="$SCRIPT_DIR/lib/yaml_parser.py"
+
 get_rgate_status() {
   local rgate="$1"
-  python3 -c "
-import yaml
-try:
-    with open('$PHASE_FILE') as f:
-        d = yaml.safe_load(f) or {}
-    print(d.get('reverse_gates', {}).get('$rgate', {}).get('status', 'pending'))
-except:
-    print('pending')
-" 2>/dev/null || echo "pending"
+  python3 "$YP" read "$PHASE_FILE" "reverse_gates.${rgate}.status" 2>/dev/null || echo "pending"
 }
 
 set_rgate_status() {
   local rgate="$1"
   local status="$2"
-  python3 -c "
-import yaml
-from datetime import date
-with open('$PHASE_FILE') as f:
-    d = yaml.safe_load(f) or {}
-if 'reverse_gates' not in d:
-    d['reverse_gates'] = {}
-    for rg in ['RG0', 'RG1', 'RG2', 'RG3']:
-        d['reverse_gates'][rg] = {'status': 'pending'}
-d['reverse_gates']['$rgate'] = {'status': '$status', 'date': str(date.today())}
-with open('$PHASE_FILE', 'w') as f:
-    yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
-" 2>/dev/null
+  python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.status" "$status" 2>/dev/null
+  python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null
 }
 
 # --- status ---

@@ -148,26 +148,11 @@ check_freeze_violation() {
   local file="$1"
   [[ ! -f "$PHASE_FILE" ]] && return 0
 
-  local gate_statuses
-  gate_statuses=$(python3 -c "
-import yaml
-try:
-    with open('$PHASE_FILE') as f:
-        d = yaml.safe_load(f) or {}
-    gates = d.get('gates', {})
-    for g in ['G2', 'G3', 'G5']:
-        v = gates.get(g, {})
-        s = v.get('status', 'pending') if isinstance(v, dict) else 'pending'
-        print(f'{g}={s}')
-except:
-    for g in ['G2', 'G3', 'G5']:
-        print(f'{g}=pending')
-" 2>/dev/null)
-
+  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
   local g2_status g3_status g5_status
-  g2_status=$(echo "$gate_statuses" | grep '^G2=' | cut -d= -f2)
-  g3_status=$(echo "$gate_statuses" | grep '^G3=' | cut -d= -f2)
-  g5_status=$(echo "$gate_statuses" | grep '^G5=' | cut -d= -f2)
+  g2_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G2.status" 2>/dev/null || echo "pending")
+  g3_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G3.status" 2>/dev/null || echo "pending")
+  g5_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G5.status" 2>/dev/null || echo "pending")
 
   # G2 passed = 設計凍結
   if [[ "$g2_status" == "passed" ]]; then
@@ -195,27 +180,18 @@ except:
 }
 
 cascade_invalidate() {
-  local gates_to_check="$*"
-  local result
-  result=$(python3 -c "
-import yaml
-with open('$PHASE_FILE') as f:
-    d = yaml.safe_load(f) or {}
-gates = d.get('gates', {})
-changed = []
-for g in '$gates_to_check'.split():
-    v = gates.get(g, {})
-    if isinstance(v, dict) and v.get('status') == 'passed':
-        v['status'] = 'invalidated'
-        changed.append(g)
-if changed:
-    with open('$PHASE_FILE', 'w') as f:
-        yaml.dump(d, f, default_flow_style=False, allow_unicode=True)
-    print(' '.join(changed))
-" 2>/dev/null)
-
-  if [[ -n "$result" ]]; then
-    echo "[helix-hook]   下流ゲート無効化: $result"
+  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  local changed=()
+  for gate in "$@"; do
+    local current
+    current=$(python3 "$YP" read "$PHASE_FILE" "gates.${gate}.status" 2>/dev/null || echo "pending")
+    if [[ "$current" == "passed" ]]; then
+      python3 "$YP" write "$PHASE_FILE" "gates.${gate}.status" "invalidated" 2>/dev/null
+      changed+=("$gate")
+    fi
+  done
+  if [[ ${#changed[@]} -gt 0 ]]; then
+    echo "[helix-hook]   下流ゲート無効化: ${changed[*]}"
     echo "[helix-hook]   freeze-break 手続きが必要です（gate-policy.md §freeze-break 参照）"
   fi
 }
