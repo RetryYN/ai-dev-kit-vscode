@@ -1,0 +1,89 @@
+# Task Plan — 2026-03-30
+goal: "認証機能追加"
+total_estimate: 200
+status: active
+tasks:
+  T001:
+    task: research-library
+    name: "ライブラリ比較調査"
+    role: research
+    estimate: 15
+    status: pending
+    skill: advanced/tech-selection
+  T002:
+    task: research-security
+    name: "セキュリティ調査"
+    role: research
+    estimate: 15
+    status: pending
+    skill: common/security
+  T003:
+    task: document-adr
+    name: "ADR（設計判断記録）作成"
+    role: docs
+    estimate: 10
+    status: pending
+    skill: common/documentation
+  T004:
+    task: design-api
+    name: "API エンドポイント設計"
+    role: tl
+    estimate: 20
+    status: pending
+    skill: project/api
+  T005:
+    task: design-security
+    name: "セキュリティ設計"
+    role: security
+    estimate: 20
+    status: pending
+    skill: common/security
+  T006:
+    task: contract-api
+    name: "API コントラクト定義"
+    role: tl
+    estimate: 20
+    status: pending
+    skill: workflow/api-contract
+  T007:
+    task: implement-auth
+    name: "認証認可実装"
+    role: se
+    estimate: 25
+    status: pending
+    skill: common/security
+  T008:
+    task: implement-test
+    name: "テストコード実装"
+    role: qa
+    estimate: 25
+    status: pending
+    skill: common/testing
+  T009:
+    task: review-security
+    name: "セキュリティレビュー"
+    role: security
+    estimate: 20
+    status: pending
+    skill: common/security
+  T010:
+    task: review-code-quality
+    name: "コード品質レビュー"
+    role: tl
+    estimate: 15
+    status: pending
+    skill: common/code-review
+  T011:
+    task: verify-unit
+    name: "ユニットテスト実行"
+    role: qa
+    estimate: 5
+    status: pending
+    skill: common/testing
+  T012:
+    task: verify-security-scan
+    name: "脆弱性スキャン"
+    role: security
+    estimate: 10
+    status: pending
+    skill: common/security

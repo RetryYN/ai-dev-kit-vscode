@@ -1,0 +1,155 @@
+# action-types.yaml — HELIX アクション型定義
+# タスクを構成する最小単位の作業
+
+# ============================================================
+# 情報収集系
+# ============================================================
+search-internal:
+  name: "内部検索"
+  desc: "コードベース・設計書・既存ドキュメント内の検索"
+  tool: "Grep, Glob, Read"
+
+search-external:
+  name: "外部検索"
+  desc: "Web 検索・先行事例・ライブラリ探索"
+  tool: "WebSearch, WebFetch"
+
+read-docs:
+  name: "ドキュメント読解"
+  desc: "公式ドキュメント・API リファレンス・仕様書の読解"
+  tool: "WebFetch, Read"
+
+read-code:
+  name: "コード精読"
+  desc: "既存コードの構造・ロジック・依存関係の理解"
+  tool: "Read, Grep, Glob"
+
+# ============================================================
+# 検証系
+# ============================================================
+fact-check:
+  name: "ファクトチェック"
+  desc: "情報の正確性・最新性・ソースの信頼性を裏取り"
+  tool: "WebSearch, WebFetch"
+
+validate-assumption:
+  name: "前提検証"
+  desc: "暗黙の前提・仮定が正しいか確認"
+  tool: "Read, Bash"
+
+poc:
+  name: "PoC 実装"
+  desc: "最小限のコードで技術的仮説を検証"
+  tool: "Edit, Write, Bash"
+
+run-test:
+  name: "テスト実行"
+  desc: "既存テストスイートの実行・結果確認"
+  tool: "Bash"
+
+run-lint:
+  name: "静的解析実行"
+  desc: "lint / type-check / format check の実行"
+  tool: "Bash"
+
+run-benchmark:
+  name: "ベンチマーク実行"
+  desc: "パフォーマンス計測・負荷テスト"
+  tool: "Bash"
+
+# ============================================================
+# 分析・判断系
+# ============================================================
+analyze:
+  name: "分析"
+  desc: "情報の比較・評価・分類・優先度付け"
+  tool: "Read"
+
+evaluate-risk:
+  name: "リスク評価"
+  desc: "技術的リスク・セキュリティリスク・運用リスクの評価"
+  tool: "Read"
+
+decide:
+  name: "判断"
+  desc: "選択肢から決定を下す（ADR に記録）"
+  tool: "Write"
+
+estimate:
+  name: "見積もり"
+  desc: "工数・複雑度・影響範囲の見積もり"
+  tool: "Read"
+
+# ============================================================
+# 記述・生成系
+# ============================================================
+write-doc:
+  name: "ドキュメント記述"
+  desc: "設計書・ADR・README・仕様書の作成"
+  tool: "Write, Edit"
+
+write-code:
+  name: "コード記述"
+  desc: "プロダクションコードの実装"
+  tool: "Edit, Write"
+
+write-test:
+  name: "テスト記述"
+  desc: "テストコードの作成"
+  tool: "Write, Edit"
+
+write-config:
+  name: "設定記述"
+  desc: "設定ファイル・環境変数・CI 定義の作成"
+  tool: "Write, Edit"
+
+write-schema:
+  name: "スキーマ記述"
+  desc: "DB スキーマ・API スキーマ・型定義の作成"
+  tool: "Write, Edit"
+
+write-contract:
+  name: "契約記述"
+  desc: "API コントラクト・インターフェース定義の作成"
+  tool: "Write"
+
+# ============================================================
+# レビュー系
+# ============================================================
+review-checklist:
+  name: "チェックリスト照合"
+  desc: "定義済みチェックリストとの突合"
+  tool: "Read"
+
+review-diff:
+  name: "差分レビュー"
+  desc: "変更差分の確認・指摘"
+  tool: "Read, Grep"
+
+review-cross-ref:
+  name: "相互参照レビュー"
+  desc: "設計書↔実装、契約↔コードの一致確認"
+  tool: "Read, Grep"
+
+review-adversarial:
+  name: "反証レビュー"
+  desc: "意図的に穴を探す・壊す観点でのレビュー"
+  tool: "Read"
+
+# ============================================================
+# 操作系
+# ============================================================
+execute-command:
+  name: "コマンド実行"
+  desc: "ビルド・デプロイ・マイグレーション等のコマンド実行"
+  tool: "Bash"
+
+human-confirm:
+  name: "人間確認"
+  desc: "本番影響・認証・決済・個人情報に関する確認"
+  tool: "AskUserQuestion"
+
+rollback:
+  name: "ロールバック"
+  desc: "変更の取り消し・前バージョンへの復旧"
+  tool: "Bash"

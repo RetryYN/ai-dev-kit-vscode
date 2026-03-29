@@ -1,13 +1,9 @@
-# task-catalog.yaml — HELIX タスクカタログ
+# task-catalog.yaml — HELIX タスクカタログ v2
 # タスクオペレーティングシステムの正本
 #
-# 各タスクの定義:
-#   input:    必要な入力（前タスクの output が来る）
-#   output:   このタスクが生成するもの
-#   role:     実行ロール（helix-codex のロール or Claude サブエージェント）
-#   estimate: 目安時間（分）
-#   depends:  前提タスクのカテゴリ（同カテゴリ内の任意タスク）
-#   skill:    参照する HELIX スキルパス
+# 構造: タスク > アクション（2層）
+#   タスク: PM が選んで組み合わせる単位
+#   アクション: 実行時の最小作業単位（action-types.yaml 参照）
 
 # ============================================================
 # research: 調査系
@@ -15,57 +11,85 @@
 research:
   research-library:
     name: "ライブラリ比較調査"
-    input: "調査テーマ + 要件"
-    output: "比較表（メリット/デメリット/推奨）"
     role: research
-    estimate: 15
-    depends: []
+    estimate: 30
     skill: advanced/tech-selection
+    actions:
+      - { type: analyze, desc: "要件から比較軸を定義" }
+      - { type: search-external, desc: "候補を Web 検索" }
+      - { type: read-docs, desc: "各候補の公式ドキュメント確認" }
+      - { type: fact-check, desc: "GitHub/npm でメンテ状況・スター・issue 確認" }
+      - { type: fact-check, desc: "ライセンス確認" }
+      - { type: poc, desc: "有力候補を最小コードで動作確認" }
+      - { type: analyze, desc: "比較表作成（メリット/デメリット/推奨）" }
+      - { type: fact-check, desc: "結論の根拠が最新か検証" }
+      - { type: write-doc, desc: "調査報告書作成" }
 
   research-prior-art:
     name: "先行事例調査"
-    input: "テーマ"
-    output: "事例リスト + 学び"
     role: research
-    estimate: 15
-    depends: []
+    estimate: 25
     skill: advanced/tech-selection
+    actions:
+      - { type: analyze, desc: "調査テーマの定義" }
+      - { type: search-external, desc: "類似プロジェクト・事例を Web 検索" }
+      - { type: read-docs, desc: "事例のアーキテクチャ・技術スタック確認" }
+      - { type: fact-check, desc: "事例の成功/失敗要因の裏取り" }
+      - { type: analyze, desc: "自プロジェクトへの適用可能性評価" }
+      - { type: write-doc, desc: "事例報告書作成" }
 
   research-feasibility:
     name: "実現可能性調査"
-    input: "仮説 or 技術的問い"
-    output: "実現可否判定 + 根拠"
     role: research
-    estimate: 20
-    depends: []
+    estimate: 30
     skill: advanced/tech-selection
+    actions:
+      - { type: analyze, desc: "技術的問いの明確化" }
+      - { type: search-external, desc: "技術的制約・限界の調査" }
+      - { type: search-internal, desc: "既存コードベースとの互換性確認" }
+      - { type: poc, desc: "最小 PoC で実現性検証" }
+      - { type: run-test, desc: "PoC の動作確認" }
+      - { type: evaluate-risk, desc: "技術リスク評価" }
+      - { type: write-doc, desc: "実現可能性レポート" }
 
   research-security:
     name: "セキュリティ調査"
-    input: "対象技術 or ライブラリ"
-    output: "CVE/脆弱性リスト + 対策"
     role: research
-    estimate: 15
-    depends: []
+    estimate: 25
     skill: common/security
+    actions:
+      - { type: search-external, desc: "CVE/脆弱性データベース検索" }
+      - { type: read-docs, desc: "セキュリティアドバイザリ確認" }
+      - { type: search-internal, desc: "該当ライブラリのバージョン確認" }
+      - { type: fact-check, desc: "脆弱性の影響範囲と攻撃条件の裏取り" }
+      - { type: evaluate-risk, desc: "リスクレベル判定（Critical/High/Medium/Low）" }
+      - { type: write-doc, desc: "セキュリティ調査報告書" }
 
   research-compliance:
     name: "コンプライアンス調査"
-    input: "対象ライブラリ or データ種別"
-    output: "ライセンス/法規制チェック結果"
     role: research
-    estimate: 10
-    depends: []
+    estimate: 20
     skill: workflow/compliance
+    actions:
+      - { type: search-external, desc: "ライセンス条文確認" }
+      - { type: search-external, desc: "データ保護規制（GDPR/個人情報保護法）確認" }
+      - { type: fact-check, desc: "ライセンス互換性チェック" }
+      - { type: analyze, desc: "コンプライアンス適合性評価" }
+      - { type: human-confirm, desc: "法務確認が必要か判断" }
+      - { type: write-doc, desc: "コンプライアンスチェック結果" }
 
   research-performance:
     name: "パフォーマンス調査"
-    input: "対象システム or ライブラリ"
-    output: "ベンチマーク結果 + ボトルネック分析"
     role: perf
-    estimate: 20
-    depends: []
+    estimate: 25
     skill: common/performance
+    actions:
+      - { type: search-external, desc: "ベンチマーク手法・ツール調査" }
+      - { type: read-code, desc: "現行コードのホットパス特定" }
+      - { type: run-benchmark, desc: "現状のパフォーマンス計測" }
+      - { type: analyze, desc: "ボトルネック分析" }
+      - { type: search-external, desc: "最適化手法の調査" }
+      - { type: write-doc, desc: "パフォーマンス調査レポート" }
 
 # ============================================================
 # design: 設計系
@@ -73,48 +97,65 @@ research:
 design:
   design-architecture:
     name: "アーキテクチャ設計"
-    input: "要件 + 調査結果"
-    output: "アーキテクチャ設計書"
     role: tl
-    estimate: 30
-    depends: [research]
+    estimate: 40
     skill: workflow/design-doc
+    actions:
+      - { type: read-code, desc: "既存コードベース構造の把握" }
+      - { type: analyze, desc: "要件からコンポーネント分割" }
+      - { type: search-external, desc: "アーキテクチャパターン調査" }
+      - { type: decide, desc: "アーキテクチャパターン選定" }
+      - { type: write-doc, desc: "コンポーネント図・データフロー記述" }
+      - { type: evaluate-risk, desc: "アーキテクチャリスク評価" }
+      - { type: write-doc, desc: "ADR 記録" }
 
   design-api:
     name: "API エンドポイント設計"
-    input: "アーキテクチャ設計書"
-    output: "API 設計書"
     role: tl
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: project/api
+    actions:
+      - { type: analyze, desc: "必要なエンドポイント洗い出し" }
+      - { type: search-internal, desc: "既存 API との重複確認" }
+      - { type: write-schema, desc: "リクエスト/レスポンス型定義" }
+      - { type: write-doc, desc: "エンドポイント一覧表作成" }
+      - { type: review-cross-ref, desc: "要件↔API の網羅性確認" }
 
   design-db:
     name: "DB スキーマ設計"
-    input: "アーキテクチャ設計書"
-    output: "ER 図 + テーブル定義"
     role: dba
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: project/db
+    actions:
+      - { type: analyze, desc: "エンティティ抽出" }
+      - { type: search-internal, desc: "既存テーブルとの関連確認" }
+      - { type: write-schema, desc: "テーブル定義・ER 図作成" }
+      - { type: analyze, desc: "インデックス設計" }
+      - { type: evaluate-risk, desc: "マイグレーションリスク評価" }
 
   design-ui:
     name: "UI/UX 設計"
-    input: "要件 + アーキテクチャ"
-    output: "画面設計 + コンポーネント構成"
     role: fe-design
-    estimate: 25
-    depends: [design]
+    estimate: 30
     skill: common/visual-design
+    actions:
+      - { type: analyze, desc: "画面フロー定義" }
+      - { type: search-external, desc: "UI パターン・デザインシステム調査" }
+      - { type: decide, desc: "配色・タイポグラフィ・レイアウト方針" }
+      - { type: write-doc, desc: "コンポーネント構成（Atomic Design）" }
+      - { type: write-doc, desc: "レスポンシブ・アクセシビリティ方針" }
 
   design-security:
     name: "セキュリティ設計"
-    input: "アーキテクチャ設計書"
-    output: "脅威モデル + 対策方針"
     role: security
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: common/security
+    actions:
+      - { type: analyze, desc: "STRIDE モデルで脅威分析" }
+      - { type: search-external, desc: "OWASP Top 10 該当項目確認" }
+      - { type: decide, desc: "認証・認可・暗号化方式選定" }
+      - { type: write-doc, desc: "脅威モデル + 対策方針" }
+      - { type: human-confirm, desc: "セキュリティ方針の承認" }
 
 # ============================================================
 # contract: 契約定義系
@@ -122,70 +163,85 @@ design:
 contract:
   contract-api:
     name: "API コントラクト定義"
-    input: "API 設計書"
-    output: "OpenAPI / コントラクト YAML"
     role: tl
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: workflow/api-contract
+    actions:
+      - { type: read-code, desc: "API 設計書の確認" }
+      - { type: write-contract, desc: "OpenAPI / YAML 契約定義" }
+      - { type: write-schema, desc: "リクエスト/レスポンススキーマ" }
+      - { type: write-schema, desc: "エラーコード定義" }
+      - { type: review-cross-ref, desc: "設計書↔契約の一致確認" }
+      - { type: fact-check, desc: "既存 API との互換性確認" }
 
   contract-type:
     name: "型定義"
-    input: "API コントラクト"
-    output: "TypeScript / Python 型定義"
     role: se
-    estimate: 15
-    depends: [contract]
+    estimate: 20
     skill: common/coding
+    actions:
+      - { type: read-code, desc: "API コントラクトの確認" }
+      - { type: write-schema, desc: "TypeScript/Python 型定義生成" }
+      - { type: review-cross-ref, desc: "契約↔型の一致確認" }
+      - { type: run-lint, desc: "型チェック実行" }
 
   contract-test-design:
     name: "テスト設計"
-    input: "API コントラクト + 設計書"
-    output: "テスト計画書"
     role: qa
-    estimate: 15
-    depends: [contract]
+    estimate: 20
     skill: common/testing
+    actions:
+      - { type: analyze, desc: "テスト対象の洗い出し" }
+      - { type: analyze, desc: "テストピラミッド配分決定" }
+      - { type: write-doc, desc: "テストケース一覧作成" }
+      - { type: review-cross-ref, desc: "要件↔テストケースの網羅性確認" }
 
 # ============================================================
 # document: ドキュメント系
 # ============================================================
 document:
   document-adr:
-    name: "ADR（設計判断記録）作成"
-    input: "設計判断の内容"
-    output: "ADR ドキュメント"
+    name: "ADR 作成"
     role: docs
-    estimate: 10
-    depends: []
+    estimate: 15
     skill: common/documentation
+    actions:
+      - { type: analyze, desc: "判断のコンテキスト整理" }
+      - { type: search-internal, desc: "過去の ADR との関連確認" }
+      - { type: write-doc, desc: "ADR 本文（コンテキスト/選択肢/決定/影響）" }
+      - { type: fact-check, desc: "選択肢の比較根拠が正確か検証" }
 
   document-readme:
     name: "README 作成/更新"
-    input: "プロジェクト情報"
-    output: "README.md"
     role: docs
-    estimate: 10
-    depends: []
+    estimate: 15
     skill: common/documentation
+    actions:
+      - { type: read-code, desc: "プロジェクト構成の確認" }
+      - { type: write-doc, desc: "セットアップ手順・使い方記述" }
+      - { type: validate-assumption, desc: "手順が実際に動くか検証" }
+      - { type: fact-check, desc: "バージョン・依存の記載が最新か" }
 
   document-api-spec:
     name: "API 仕様書作成"
-    input: "API コントラクト"
-    output: "API 仕様書"
     role: docs
-    estimate: 15
-    depends: [contract]
+    estimate: 20
     skill: common/documentation
+    actions:
+      - { type: read-code, desc: "API コントラクト読解" }
+      - { type: write-doc, desc: "エンドポイント仕様記述" }
+      - { type: write-doc, desc: "認証・エラー仕様記述" }
+      - { type: review-cross-ref, desc: "コントラクト↔仕様書の一致確認" }
 
   document-setup-guide:
     name: "セットアップガイド作成"
-    input: "プロジェクト構成"
-    output: "セットアップ手順書"
     role: docs
-    estimate: 10
-    depends: []
+    estimate: 15
     skill: workflow/dev-setup
+    actions:
+      - { type: read-code, desc: "依存関係・設定ファイル確認" }
+      - { type: write-doc, desc: "手順書記述" }
+      - { type: validate-assumption, desc: "クリーン環境で手順を実行検証" }
 
 # ============================================================
 # mapping: マッピング・依存関係系
@@ -193,30 +249,36 @@ document:
 mapping:
   mapping-design-code:
     name: "設計↔実装マッピング"
-    input: "設計書 + コード"
-    output: "マッピング表（設計項目→ファイル/関数）"
     role: tl
-    estimate: 15
-    depends: [design, implement]
+    estimate: 20
     skill: workflow/dependency-map
+    actions:
+      - { type: read-code, desc: "設計書の項目一覧抽出" }
+      - { type: search-internal, desc: "各項目の実装ファイル特定" }
+      - { type: write-doc, desc: "マッピング表作成" }
+      - { type: review-cross-ref, desc: "未実装項目の検出" }
 
   mapping-api-type:
     name: "API↔型マッピング"
-    input: "API コントラクト + 型定義"
-    output: "型一致率レポート"
     role: tl
-    estimate: 10
-    depends: [contract]
+    estimate: 15
     skill: workflow/api-contract
+    actions:
+      - { type: read-code, desc: "API 契約の型定義確認" }
+      - { type: search-internal, desc: "実装側の型定義検索" }
+      - { type: review-cross-ref, desc: "型一致率チェック" }
+      - { type: write-doc, desc: "不一致レポート" }
 
   mapping-dependency:
     name: "依存関係マップ作成"
-    input: "コードベース"
-    output: "依存関係図 + 脆弱性チェック"
     role: tl
-    estimate: 15
-    depends: []
+    estimate: 20
     skill: workflow/dependency-map
+    actions:
+      - { type: read-code, desc: "import/require の依存グラフ抽出" }
+      - { type: search-external, desc: "外部依存の脆弱性チェック" }
+      - { type: fact-check, desc: "ライセンス互換性確認" }
+      - { type: write-doc, desc: "依存関係図 + リスク一覧" }
 
 # ============================================================
 # review: レビュー系
@@ -224,75 +286,98 @@ mapping:
 review:
   review-code-quality:
     name: "コード品質レビュー"
-    input: "コード diff"
-    output: "指摘リスト（命名/構造/型安全性）"
     role: tl
-    estimate: 15
-    depends: [implement]
+    estimate: 20
     skill: common/code-review
+    actions:
+      - { type: review-diff, desc: "変更差分の確認" }
+      - { type: review-checklist, desc: "命名規則チェック" }
+      - { type: review-checklist, desc: "関数サイズ・引数数チェック" }
+      - { type: review-checklist, desc: "型安全性チェック（any 使用等）" }
+      - { type: review-adversarial, desc: "エッジケース・境界値の考慮漏れ" }
+      - { type: write-doc, desc: "指摘リスト作成" }
 
   review-security:
     name: "セキュリティレビュー"
-    input: "コード"
-    output: "脆弱性リスト（OWASP Top 10）"
     role: security
-    estimate: 20
-    depends: [implement]
+    estimate: 25
     skill: common/security
+    actions:
+      - { type: review-checklist, desc: "OWASP Top 10 チェック" }
+      - { type: search-internal, desc: "ハードコード秘密情報の検索" }
+      - { type: review-checklist, desc: "入力バリデーション確認" }
+      - { type: review-checklist, desc: "認証・認可の実装確認" }
+      - { type: review-adversarial, desc: "攻撃シナリオの想定" }
+      - { type: fact-check, desc: "使用ライブラリの CVE 確認" }
+      - { type: write-doc, desc: "脆弱性レポート（Critical/High/Medium/Low）" }
 
   review-performance:
     name: "パフォーマンスレビュー"
-    input: "コード"
-    output: "ボトルネック指摘 + 最適化提案"
     role: perf
-    estimate: 15
-    depends: [implement]
+    estimate: 20
     skill: common/performance
+    actions:
+      - { type: read-code, desc: "ホットパス・ループ・N+1 検出" }
+      - { type: review-checklist, desc: "バンドルサイズ・遅延ロード確認" }
+      - { type: review-checklist, desc: "DB クエリ最適化確認" }
+      - { type: write-doc, desc: "ボトルネック指摘 + 最適化提案" }
 
   review-accessibility:
     name: "アクセシビリティレビュー"
-    input: "UI コード"
-    output: "WCAG 違反リスト + 修正案"
     role: fe-a11y
-    estimate: 15
-    depends: [implement]
+    estimate: 20
     skill: project/ui
+    actions:
+      - { type: review-checklist, desc: "WCAG 2.1 AA チェックリスト照合" }
+      - { type: search-internal, desc: "aria 属性・alt 属性の確認" }
+      - { type: review-checklist, desc: "キーボードナビゲーション確認" }
+      - { type: review-checklist, desc: "コントラスト比確認" }
+      - { type: write-doc, desc: "違反リスト（Critical/Major/Minor）" }
 
   review-usability:
     name: "ユーザビリティレビュー"
-    input: "UI 実装"
-    output: "UX ヒューリスティック評価"
     role: fe-design
-    estimate: 15
-    depends: [implement]
+    estimate: 20
     skill: common/design
+    actions:
+      - { type: review-checklist, desc: "ニールセンのヒューリスティック評価" }
+      - { type: analyze, desc: "ユーザーフロー分析" }
+      - { type: review-adversarial, desc: "初見ユーザー視点での問題発見" }
+      - { type: write-doc, desc: "UX 改善提案" }
 
   review-api-contract:
     name: "API 契約突合レビュー"
-    input: "API コントラクト + 実装"
-    output: "差分レポート"
     role: tl
-    estimate: 10
-    depends: [contract, implement]
+    estimate: 15
     skill: workflow/api-contract
+    actions:
+      - { type: review-cross-ref, desc: "契約↔実装のエンドポイント突合" }
+      - { type: review-cross-ref, desc: "リクエスト/レスポンス型の一致確認" }
+      - { type: review-checklist, desc: "エラーコードの網羅性確認" }
+      - { type: write-doc, desc: "差分レポート" }
 
   review-design-consistency:
     name: "設計一貫性レビュー"
-    input: "設計書 + 実装"
-    output: "乖離リスト"
     role: tl
-    estimate: 15
-    depends: [design, implement]
+    estimate: 20
     skill: workflow/adversarial-review
+    actions:
+      - { type: review-cross-ref, desc: "設計書↔実装の対応確認" }
+      - { type: search-internal, desc: "設計に記載のない実装（スコープクリープ）検出" }
+      - { type: search-internal, desc: "実装されていない設計項目の検出" }
+      - { type: write-doc, desc: "乖離リスト" }
 
   review-adversarial:
     name: "adversarial レビュー"
-    input: "設計書"
-    output: "反証リスト + 改善提案"
     role: tl
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: workflow/adversarial-review
+    actions:
+      - { type: review-adversarial, desc: "設計の前提を疑う" }
+      - { type: review-adversarial, desc: "障害シナリオの想定" }
+      - { type: review-adversarial, desc: "スケーラビリティの限界を突く" }
+      - { type: fact-check, desc: "代替案の存在確認" }
+      - { type: write-doc, desc: "反証リスト + 改善提案" }
 
 # ============================================================
 # implement: 実装系
@@ -300,111 +385,147 @@ review:
 implement:
   implement-scaffold:
     name: "スケルトン作成"
-    input: "設計書 + API コントラクト"
-    output: "ディレクトリ構造 + 空ファイル"
     role: pg
-    estimate: 10
-    depends: [design]
+    estimate: 15
     skill: common/coding
+    actions:
+      - { type: read-code, desc: "既存プロジェクト構造の確認" }
+      - { type: write-code, desc: "ディレクトリ構造作成" }
+      - { type: write-code, desc: "空ファイル + export 定義" }
+      - { type: run-lint, desc: "構文チェック" }
 
   implement-api:
     name: "API エンドポイント実装"
-    input: "API コントラクト + スケルトン"
-    output: "API コード"
     role: se
-    estimate: 30
-    depends: [contract, implement]
+    estimate: 35
     skill: project/api
+    actions:
+      - { type: read-code, desc: "API コントラクト確認" }
+      - { type: write-code, desc: "ルーティング定義" }
+      - { type: write-code, desc: "バリデーション実装" }
+      - { type: write-code, desc: "ハンドラ実装" }
+      - { type: write-code, desc: "エラーハンドリング実装" }
+      - { type: run-lint, desc: "型チェック + lint" }
+      - { type: run-test, desc: "既存テストが壊れていないか確認" }
 
   implement-db:
     name: "DB マイグレーション実装"
-    input: "DB スキーマ設計"
-    output: "マイグレーションファイル"
     role: dba
-    estimate: 20
-    depends: [design]
+    estimate: 25
     skill: project/db
+    actions:
+      - { type: read-code, desc: "DB スキーマ設計の確認" }
+      - { type: write-code, desc: "マイグレーション up 作成" }
+      - { type: write-code, desc: "マイグレーション down 作成" }
+      - { type: write-code, desc: "Seed データ作成" }
+      - { type: validate-assumption, desc: "マイグレーション実行テスト" }
+      - { type: evaluate-risk, desc: "破壊的変更がないか確認" }
 
   implement-logic:
     name: "ビジネスロジック実装"
-    input: "設計書"
-    output: "ロジックコード"
     role: se
-    estimate: 30
-    depends: [design]
+    estimate: 35
     skill: common/coding
+    actions:
+      - { type: read-code, desc: "設計書・仕様の確認" }
+      - { type: write-code, desc: "コアロジック実装" }
+      - { type: write-code, desc: "エラーハンドリング" }
+      - { type: run-lint, desc: "型チェック + lint" }
+      - { type: run-test, desc: "ユニットテスト実行" }
 
   implement-auth:
     name: "認証認可実装"
-    input: "セキュリティ設計"
-    output: "認証ミドルウェア + ガード"
     role: se
-    estimate: 25
-    depends: [design]
+    estimate: 30
     skill: common/security
+    actions:
+      - { type: read-code, desc: "セキュリティ設計の確認" }
+      - { type: write-code, desc: "認証ミドルウェア実装" }
+      - { type: write-code, desc: "認可ガード実装" }
+      - { type: write-config, desc: "シークレット管理設定" }
+      - { type: run-test, desc: "認証テスト実行" }
+      - { type: human-confirm, desc: "セキュリティ実装の承認" }
 
   implement-ui-component:
     name: "UI コンポーネント実装"
-    input: "UI 設計"
-    output: "コンポーネントコード"
     role: fe-component
-    estimate: 25
-    depends: [design]
+    estimate: 30
     skill: project/ui
+    actions:
+      - { type: read-code, desc: "UI 設計・デザイントークン確認" }
+      - { type: write-code, desc: "コンポーネント実装" }
+      - { type: write-code, desc: "Props / 型定義" }
+      - { type: write-code, desc: "Storybook ストーリー" }
+      - { type: run-lint, desc: "型チェック + lint" }
 
   implement-style:
     name: "スタイリング実装"
-    input: "デザイン仕様"
-    output: "CSS / Tailwind コード"
     role: fe-style
-    estimate: 20
-    depends: [implement]
+    estimate: 25
     skill: common/visual-design
+    actions:
+      - { type: read-code, desc: "デザイン仕様確認" }
+      - { type: write-code, desc: "CSS / Tailwind 実装" }
+      - { type: write-code, desc: "レスポンシブ対応" }
+      - { type: write-code, desc: "ダークモード対応（該当時）" }
+      - { type: validate-assumption, desc: "各ブレークポイントで表示確認" }
 
   implement-test:
     name: "テストコード実装"
-    input: "テスト設計 + 実装コード"
-    output: "テストファイル"
     role: qa
-    estimate: 25
-    depends: [contract, implement]
+    estimate: 30
     skill: common/testing
+    actions:
+      - { type: read-code, desc: "テスト設計の確認" }
+      - { type: write-test, desc: "ユニットテスト実装" }
+      - { type: write-test, desc: "統合テスト実装" }
+      - { type: run-test, desc: "テスト実行 + カバレッジ確認" }
+      - { type: review-cross-ref, desc: "テストケース↔要件の網羅性確認" }
 
   implement-e2e:
     name: "E2E テスト実装"
-    input: "テスト設計 + 実装コード"
-    output: "E2E テストファイル"
     role: qa
-    estimate: 20
-    depends: [implement]
+    estimate: 25
     skill: common/testing
+    actions:
+      - { type: analyze, desc: "クリティカルパスの特定" }
+      - { type: write-test, desc: "E2E テストシナリオ実装" }
+      - { type: run-test, desc: "E2E テスト実行" }
+      - { type: fact-check, desc: "テストの安定性確認（flaky でないか）" }
 
   implement-config:
     name: "設定・環境変数実装"
-    input: "アーキテクチャ設計"
-    output: "設定ファイル + .env.example"
     role: pg
-    estimate: 10
-    depends: [design]
+    estimate: 15
     skill: common/infrastructure
+    actions:
+      - { type: read-code, desc: "必要な設定値の洗い出し" }
+      - { type: write-config, desc: ".env.example 作成" }
+      - { type: write-config, desc: "設定ファイル作成" }
+      - { type: validate-assumption, desc: "設定なしで起動した場合のエラー確認" }
 
   implement-ci:
     name: "CI/CD パイプライン実装"
-    input: "プロジェクト構成"
-    output: "GitHub Actions / Dockerfile"
     role: devops
-    estimate: 20
-    depends: [implement]
+    estimate: 25
     skill: workflow/deploy
+    actions:
+      - { type: read-code, desc: "プロジェクト構成確認" }
+      - { type: write-config, desc: "Dockerfile 作成" }
+      - { type: write-config, desc: "CI 設定ファイル作成" }
+      - { type: validate-assumption, desc: "ローカルでビルド検証" }
+      - { type: run-test, desc: "CI パイプラインの動作確認" }
 
   implement-i18n:
     name: "多言語対応実装"
-    input: "UI コード + 翻訳キー"
-    output: "i18n ファイル + コンポーネント修正"
     role: pg
-    estimate: 15
-    depends: [implement]
+    estimate: 20
     skill: advanced/i18n
+    actions:
+      - { type: search-internal, desc: "ハードコード文字列の検索" }
+      - { type: write-code, desc: "翻訳キーファイル作成" }
+      - { type: write-code, desc: "コンポーネントの i18n 対応" }
+      - { type: validate-assumption, desc: "言語切り替えの動作確認" }
 
 # ============================================================
 # verify: 検証系
@@ -412,66 +533,69 @@ implement:
 verify:
   verify-unit:
     name: "ユニットテスト実行"
-    input: "テストコード"
-    output: "テスト結果 + カバレッジ"
     role: qa
     estimate: 5
-    depends: [implement]
     skill: common/testing
+    actions:
+      - { type: run-test, desc: "テストスイート実行" }
+      - { type: analyze, desc: "カバレッジレポート確認" }
 
   verify-integration:
     name: "統合テスト実行"
-    input: "テストコード"
-    output: "統合テスト結果"
     role: qa
     estimate: 10
-    depends: [implement]
     skill: common/testing
+    actions:
+      - { type: run-test, desc: "統合テスト実行" }
+      - { type: analyze, desc: "失敗テスト分析" }
 
   verify-e2e:
     name: "E2E テスト実行"
-    input: "E2E テストコード"
-    output: "E2E 結果"
     role: qa
     estimate: 10
-    depends: [implement]
     skill: common/testing
+    actions:
+      - { type: run-test, desc: "E2E テスト実行" }
+      - { type: analyze, desc: "失敗シナリオ分析" }
 
   verify-security-scan:
     name: "脆弱性スキャン"
-    input: "コードベース"
-    output: "脆弱性レポート"
     role: security
     estimate: 10
-    depends: [implement]
     skill: common/security
+    actions:
+      - { type: execute-command, desc: "脆弱性スキャナー実行" }
+      - { type: analyze, desc: "検出結果のトリアージ" }
+      - { type: write-doc, desc: "脆弱性レポート" }
 
   verify-performance:
     name: "パフォーマンステスト"
-    input: "コード + ベンチマーク"
-    output: "性能レポート"
     role: perf
     estimate: 15
-    depends: [implement]
     skill: common/performance
+    actions:
+      - { type: run-benchmark, desc: "ベンチマーク実行" }
+      - { type: analyze, desc: "Core Web Vitals 目標との比較" }
+      - { type: write-doc, desc: "パフォーマンスレポート" }
 
   verify-regression:
     name: "リグレッション検証"
-    input: "verify/ スクリプト群"
-    output: "全スクリプト pass/fail"
     role: qa
     estimate: 5
-    depends: [implement]
     skill: workflow/verification
+    actions:
+      - { type: run-test, desc: "全 verify/ スクリプト実行" }
+      - { type: analyze, desc: "新規失敗の特定" }
 
   verify-accessibility:
     name: "アクセシビリティ検証"
-    input: "UI 実装"
-    output: "axe-core / Lighthouse スコア"
     role: fe-a11y
     estimate: 10
-    depends: [implement]
     skill: project/ui
+    actions:
+      - { type: execute-command, desc: "axe-core / Lighthouse 実行" }
+      - { type: analyze, desc: "スコア評価（目標 ≥90）" }
+      - { type: write-doc, desc: "違反レポート" }
 
 # ============================================================
 # fix: 修正系
@@ -479,39 +603,51 @@ verify:
 fix:
   fix-bug:
     name: "バグ修正"
-    input: "バグ報告 + 再現手順"
-    output: "修正コード + テスト"
     role: se
-    estimate: 20
-    depends: []
+    estimate: 25
     skill: common/error-fix
+    actions:
+      - { type: read-code, desc: "バグ報告の確認" }
+      - { type: search-internal, desc: "原因箇所の特定" }
+      - { type: validate-assumption, desc: "再現手順で再現確認" }
+      - { type: write-code, desc: "修正コード" }
+      - { type: write-test, desc: "再発防止テスト" }
+      - { type: run-test, desc: "修正確認 + リグレッション" }
 
   fix-security:
     name: "セキュリティ修正"
-    input: "脆弱性レポート"
-    output: "修正コード + 検証"
     role: se
-    estimate: 25
-    depends: [review]
+    estimate: 30
     skill: common/security
+    actions:
+      - { type: read-code, desc: "脆弱性レポートの確認" }
+      - { type: search-external, desc: "修正方法の調査" }
+      - { type: write-code, desc: "修正実装" }
+      - { type: write-test, desc: "脆弱性再現テスト" }
+      - { type: run-test, desc: "修正確認" }
+      - { type: human-confirm, desc: "セキュリティ修正の承認" }
 
   fix-performance:
     name: "パフォーマンス修正"
-    input: "ボトルネック指摘"
-    output: "最適化コード + ベンチマーク"
     role: perf
-    estimate: 20
-    depends: [review]
+    estimate: 25
     skill: common/performance
+    actions:
+      - { type: read-code, desc: "ボトルネック箇所の確認" }
+      - { type: write-code, desc: "最適化実装" }
+      - { type: run-benchmark, desc: "改善前後の比較" }
+      - { type: run-test, desc: "リグレッション確認" }
 
   fix-accessibility:
     name: "アクセシビリティ修正"
-    input: "WCAG 違反リスト"
-    output: "修正コード"
     role: fe-a11y
-    estimate: 15
-    depends: [review]
+    estimate: 20
     skill: project/ui
+    actions:
+      - { type: read-code, desc: "違反リストの確認" }
+      - { type: write-code, desc: "修正実装" }
+      - { type: execute-command, desc: "axe-core 再実行" }
+      - { type: validate-assumption, desc: "スクリーンリーダーで確認" }
 
 # ============================================================
 # refactor: リファクタ系
@@ -519,30 +655,36 @@ fix:
 refactor:
   refactor-structure:
     name: "構造リファクタリング"
-    input: "コード品質レビュー結果"
-    output: "リファクタ済みコード"
     role: se
-    estimate: 25
-    depends: [review]
+    estimate: 30
     skill: common/refactoring
+    actions:
+      - { type: read-code, desc: "現状の構造分析" }
+      - { type: analyze, desc: "責務分離の方針決定" }
+      - { type: write-code, desc: "ファイル/モジュール分割" }
+      - { type: run-test, desc: "全テスト通過確認" }
+      - { type: review-diff, desc: "振る舞い変更がないか確認" }
 
   refactor-naming:
     name: "命名改善"
-    input: "コード品質レビュー結果"
-    output: "リネーム diff"
     role: pg
-    estimate: 10
-    depends: [review]
+    estimate: 15
     skill: common/refactoring
+    actions:
+      - { type: search-internal, desc: "改善対象の列挙" }
+      - { type: write-code, desc: "リネーム実行" }
+      - { type: run-test, desc: "全テスト通過確認" }
 
   refactor-type-safety:
     name: "型安全性向上"
-    input: "コード"
-    output: "any 排除 + 型追加"
     role: se
-    estimate: 20
-    depends: []
+    estimate: 25
     skill: common/coding
+    actions:
+      - { type: search-internal, desc: "any / unknown / 未型付け箇所の検索" }
+      - { type: write-code, desc: "型定義追加" }
+      - { type: run-lint, desc: "型チェック実行" }
+      - { type: run-test, desc: "リグレッション確認" }
 
 # ============================================================
 # deploy: デプロイ系
@@ -550,39 +692,47 @@ refactor:
 deploy:
   deploy-staging:
     name: "ステージングデプロイ"
-    input: "CI pass + RC ビルド"
-    output: "ステージング環境"
     role: devops
-    estimate: 15
-    depends: [verify]
+    estimate: 20
     skill: workflow/deploy
+    actions:
+      - { type: validate-assumption, desc: "CI 全 pass 確認" }
+      - { type: execute-command, desc: "ステージングビルド + デプロイ" }
+      - { type: validate-assumption, desc: "ヘルスチェック確認" }
+      - { type: run-test, desc: "スモークテスト" }
 
   deploy-production:
     name: "本番デプロイ"
-    input: "ステージング検証済み"
-    output: "本番環境"
     role: devops
-    estimate: 15
-    depends: [deploy]
+    estimate: 20
     skill: workflow/deploy
+    actions:
+      - { type: human-confirm, desc: "本番デプロイ承認" }
+      - { type: execute-command, desc: "本番ビルド + デプロイ" }
+      - { type: validate-assumption, desc: "ヘルスチェック確認" }
+      - { type: run-test, desc: "スモークテスト" }
+      - { type: validate-assumption, desc: "メトリクス異常なし確認" }
 
   deploy-rollback:
     name: "ロールバック"
-    input: "障害検知"
-    output: "前バージョン復旧"
     role: devops
     estimate: 10
-    depends: []
     skill: workflow/deploy
+    actions:
+      - { type: human-confirm, desc: "ロールバック判断の確認" }
+      - { type: rollback, desc: "前バージョンに切り戻し" }
+      - { type: validate-assumption, desc: "復旧確認" }
 
   deploy-monitoring:
     name: "監視設定"
-    input: "デプロイ済みシステム"
-    output: "SLO/SLI + アラート"
     role: devops
-    estimate: 15
-    depends: [deploy]
+    estimate: 20
     skill: workflow/observability-sre
+    actions:
+      - { type: analyze, desc: "SLO/SLI 定義" }
+      - { type: write-config, desc: "アラートルール作成" }
+      - { type: write-config, desc: "ダッシュボード作成" }
+      - { type: validate-assumption, desc: "アラート発火テスト" }
 
 # ============================================================
 # legacy: レガシー系
@@ -590,36 +740,51 @@ deploy:
 legacy:
   legacy-evidence:
     name: "証拠収集（R0）"
-    input: "既存コードベース"
-    output: "evidence map"
     role: legacy
-    estimate: 30
-    depends: []
+    estimate: 40
     skill: workflow/reverse-analysis
+    actions:
+      - { type: read-code, desc: "ディレクトリ構造の把握" }
+      - { type: read-code, desc: "エントリポイント特定" }
+      - { type: search-internal, desc: "DB 接続・設定ファイル検索" }
+      - { type: search-internal, desc: "外部 API 呼び出し検索" }
+      - { type: analyze, desc: "モジュール一覧作成" }
+      - { type: write-doc, desc: "evidence map 作成" }
 
   legacy-contract-extract:
     name: "契約抽出（R1）"
-    input: "evidence map"
-    output: "observed contracts"
     role: legacy
-    estimate: 25
-    depends: [legacy]
+    estimate: 35
     skill: workflow/reverse-analysis
+    actions:
+      - { type: search-internal, desc: "API ルート定義の抽出" }
+      - { type: search-internal, desc: "DB テーブル・クエリの抽出" }
+      - { type: search-internal, desc: "型定義・インターフェースの抽出" }
+      - { type: write-test, desc: "characterization test 作成" }
+      - { type: run-test, desc: "characterization test 実行" }
+      - { type: write-doc, desc: "observed contracts 作成" }
 
   legacy-design-recovery:
     name: "設計復元（R2）"
-    input: "observed contracts"
-    output: "as-is design + ADR 仮説"
     role: legacy
-    estimate: 30
-    depends: [legacy]
+    estimate: 35
     skill: workflow/reverse-analysis
+    actions:
+      - { type: analyze, desc: "コンポーネント間依存関係の分析" }
+      - { type: analyze, desc: "データフローの復元" }
+      - { type: decide, desc: "ADR 仮説の策定" }
+      - { type: review-adversarial, desc: "復元設計の矛盾検出" }
+      - { type: write-doc, desc: "as-is 設計書作成" }
 
   legacy-migration-plan:
     name: "移行計画策定"
-    input: "as-is design + gap register"
-    output: "移行計画書"
     role: legacy
-    estimate: 25
-    depends: [legacy]
+    estimate: 30
     skill: advanced/migration
+    actions:
+      - { type: analyze, desc: "gap 分析（as-is vs to-be）" }
+      - { type: evaluate-risk, desc: "移行リスク評価" }
+      - { type: decide, desc: "移行戦略選定（Strangler Fig 等）" }
+      - { type: estimate, desc: "移行工数見積もり" }
+      - { type: write-doc, desc: "移行計画書作成" }
+      - { type: human-confirm, desc: "移行計画の承認" }
