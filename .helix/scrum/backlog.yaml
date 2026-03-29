@@ -82,3 +82,73 @@ hypotheses:
     verify_script: verify/h206-concurrent-mode-safety.sh
     status: confirmed
     sprint: 2
+  H301:
+    title: "Codex skill file validation"
+    question: "All role .conf skills and common_docs point to existing files"
+    acceptance: "12 roles x all skills resolved"
+    verify_script: verify/h301-codex-skill-file-validation.sh
+    status: confirmed
+    sprint: 3
+  H302:
+    title: "Gate static all patterns"
+    question: "G2-G7 static checks pass/fail correctly with matching file states"
+    acceptance: "G2 no-design=fail"
+    verify_script: verify/h302-gate-static-all-patterns.sh
+    status: confirmed
+    sprint: 3
+  H303:
+    title: "Sprint edge cases"
+    question: "complete without next"
+    acceptance: "All edge cases return proper errors"
+    verify_script: verify/h303-sprint-edge-cases.sh
+    status: confirmed
+    sprint: 3
+  H304:
+    title: "Hook all triggers"
+    question: gate_ready
+    acceptance: "Each trigger type produces expected output"
+    verify_script: verify/h304-hook-all-triggers.sh
+    status: confirmed
+    sprint: 3
+  H305:
+    title: "Init framework variants"
+    question: "Python pyproject.toml"
+    acceptance: "gate-checks.yaml uses mypy/ruff/pytest or go vet/golangci/go test"
+    verify_script: verify/h305-init-framework-variants.sh
+    status: confirmed
+    sprint: 3
+  H306:
+    title: "Size all type patterns"
+    question: "bugfix/refactor/doc/ui-change/new-feature/new-module all produce correct phases"
+    acceptance: "Each type matches SKILL_MAP decision tree"
+    verify_script: verify/h306-size-all-type-patterns.sh
+    status: confirmed
+    sprint: 3
+  H307:
+    title: "Reverse full prereq chain"
+    question: "R0 ok"
+    acceptance: "Each stage blocks without prereq"
+    verify_script: verify/h307-reverse-full-prereq-chain.sh
+    status: confirmed
+    sprint: 3
+  H308:
+    title: "Scrum rejected and pivot"
+    question: "rejected removes from active"
+    acceptance: "Status shows rejected/pivot correctly"
+    verify_script: verify/h308-scrum-rejected-and-pivot.sh
+    status: confirmed
+    sprint: 3
+  H309:
+    title: "Graceful YAML failure"
+    question: "Empty or corrupted phase.yaml does not crash tools"
+    acceptance: "Tools exit with error message"
+    verify_script: verify/h309-graceful-yaml-failure.sh
+    status: confirmed
+    sprint: 3
+  H310:
+    title: "No helix dir noop"
+    question: "All hook/gate/sprint tools exit 0 silently without .helix/"
+    acceptance: "No errors on non-HELIX projects"
+    verify_script: verify/h310-no-helix-dir-noop.sh
+    status: confirmed
+    sprint: 3

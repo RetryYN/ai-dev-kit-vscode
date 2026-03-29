@@ -40,6 +40,9 @@ match_trigger() {
   local in_trigger=false
 
   while IFS= read -r line; do
+    # コメント・空行スキップ
+    [[ -z "${line// /}" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
     # トリガーブロック開始
     if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*pattern:[[:space:]]*\"(.+)\" ]]; then
       # 前のトリガーを評価
