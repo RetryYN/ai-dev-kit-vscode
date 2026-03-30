@@ -30,19 +30,25 @@ ensure_within_dir() {
 ROLE=""
 TASK=""
 DRY_RUN=false
+SANDBOX="workspace-write"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --role)    ROLE="$2"; shift 2 ;;
-    --task)    TASK="$2"; shift 2 ;;
-    --dry-run) DRY_RUN=true; shift ;;
+    --role)      ROLE="$2"; shift 2 ;;
+    --task)      TASK="$2"; shift 2 ;;
+    --sandbox)   SANDBOX="$2"; shift 2 ;;
+    --read-only) SANDBOX="read-only"; shift ;;
+    --dry-run)   DRY_RUN=true; shift ;;
     --help|-h)
       echo "Usage: helix-codex --role <role> --task \"タスク内容\""
       echo ""
       echo "Options:"
-      echo "  --role     ロール名"
-      echo "  --task     タスク内容"
-      echo "  --dry-run  実行せずプロンプトだけ表示"
+      echo "  --role       ロール名"
+      echo "  --task       タスク内容"
+      echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
+      echo "               デフォルト: workspace-write"
+      echo "  --read-only  --sandbox read-only のショートカット"
+      echo "  --dry-run    実行せずプロンプトだけ表示"
       echo ""
       echo "Roles:"
       for f in "$ROLES_DIR"/*.conf; do
@@ -161,6 +167,7 @@ if [[ "$DRY_RUN" == true ]]; then
   echo "=== helix-codex dry-run ==="
   echo "Role:      $ROLE"
   echo "Model:     $codex_model"
+  echo "Sandbox:   $SANDBOX"
   echo "Skills:    ${LOADED_SKILLS[*]:-none}"
   echo "Docs:      ${LOADED_DOCS[*]:-none}"
   echo "Prompt:    $(echo "$PROMPT" | wc -c) bytes"
@@ -175,6 +182,6 @@ if [[ ! -x "$CODEX_BIN" ]]; then
   exit 1
 fi
 
-echo "[helix-codex] role=$ROLE model=$codex_model skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
+echo "[helix-codex] role=$ROLE model=$codex_model sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
-"$CODEX_BIN" exec "$PROMPT" -m "$codex_model"
+"$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX"

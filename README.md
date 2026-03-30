@@ -5,13 +5,27 @@ Claude Code / Codex CLI 向けの HELIX スキルフレームワーク。
 
 ## セットアップ
 
-### Claude Code
+```bash
+git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
+bash ~/ai-dev-kit-vscode/setup.sh
+```
+
+これだけで以下が自動設定される:
+
+| 対象 | 処理 |
+|------|------|
+| 依存チェック | python3, bash 4+, git, sqlite3 CLI, codex CLI |
+| Claude Code | `~/.claude/CLAUDE.md` に @import 追記 + `settings.json` に hooks マージ |
+| Codex CLI | スキル symlink + `~/.codex/AGENTS.md` コピー（codex がある場合のみ） |
+
+何度実行しても安全（冪等）。アンインストール: `bash ~/ai-dev-kit-vscode/setup.sh --uninstall`
+
+### 手動セットアップ（setup.sh を使わない場合）
+
+<details>
+<summary>Claude Code</summary>
 
 ```bash
-# 1. クローン
-git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
-
-# 2. グローバル CLAUDE.md に追加
 mkdir -p ~/.claude
 cat >> ~/.claude/CLAUDE.md << 'EOF'
 @~/ai-dev-kit-vscode/skills/SKILL_MAP.md
@@ -19,18 +33,17 @@ cat >> ~/.claude/CLAUDE.md << 'EOF'
 EOF
 ```
 
-### Codex CLI
+`~/.claude/settings.json` の hooks に SessionStart / PreToolUse / PostToolUse を手動追加する必要がある。
+</details>
+
+<details>
+<summary>Codex CLI</summary>
 
 ```bash
-# 1. クローン（済みならスキップ）
-git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
-
-# 2. スキルをシンボリックリンク
 bash ~/ai-dev-kit-vscode/helix/sync-codex-skills.sh
-
-# 3. AGENTS.md をコピー
 cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
 ```
+</details>
 
 ### 共通設定
 
@@ -156,6 +169,7 @@ confirmed な仮説は Forward HELIX（L2→）に接続。
 ## ディレクトリ構造
 
 ```
+setup.sh                          <- ワンライナーセットアップ
 cli/
 ├── helix                     <- 統一エントリポイント
 ├── helix-codex               <- Codex ロール別委譲
@@ -173,7 +187,8 @@ cli/
 ├── helix-session-start       <- SessionStart hook
 ├── ROLE_MAP.md               <- 全ロール共通参照
 ├── lib/
-│   └── yaml_parser.py        <- 軽量YAMLパーサー（PyYAML不要）
+│   ├── yaml_parser.py        <- 軽量YAMLパーサー（PyYAML不要）
+│   └── merge_settings.py     <- settings.json hooks マージ
 ├── roles/                    <- 12ロール定義（.conf）
 └── templates/                <- プロジェクト初期化テンプレート
     ├── CLAUDE.md.template
@@ -218,13 +233,7 @@ model_reasoning_effort = "xhigh"
 
 ```bash
 git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
-
-# Claude Code
-# ~/.claude/CLAUDE.md をコピー or dotfiles で同期
-
-# Codex CLI
-bash ~/ai-dev-kit-vscode/helix/sync-codex-skills.sh
-cp ~/ai-dev-kit-vscode/helix/AGENTS.md.example ~/.codex/AGENTS.md
+bash ~/ai-dev-kit-vscode/setup.sh
 ```
 
 ## ライセンス
