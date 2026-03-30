@@ -1,7 +1,53 @@
 #!/bin/bash
 # helix-session-start: SessionStart hook
-# セッション開始時に HELIX フレームワークの概要を Claude に注入する
+# セットアップ未完了 → README 強制熟読モード
+# セットアップ完了   → 通常の HELIX コンテキスト注入
 
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+
+# --- セットアップ完了チェック ---
+setup_ok=true
+
+# 1. CLAUDE.md に @import があるか
+if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
+  grep -qF "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md" "$HOME/.claude/CLAUDE.md" || setup_ok=false
+else
+  setup_ok=false
+fi
+
+# 2. settings.json に HELIX hooks があるか
+if [[ -f "$HOME/.claude/settings.json" ]]; then
+  grep -q "helix-session-start" "$HOME/.claude/settings.json" || setup_ok=false
+else
+  setup_ok=false
+fi
+
+# 3. PATH に cli/ が通っているか（.bashrc or .zshrc）
+path_found=false
+for rcfile in "$HOME/.bashrc" "$HOME/.zshrc"; do
+  if [[ -f "$rcfile" ]] && grep -qF "ai-dev-kit-vscode/cli" "$rcfile"; then
+    path_found=true
+    break
+  fi
+done
+if [[ "$path_found" == false ]]; then
+  setup_ok=false
+fi
+
+# --- 未完了: README 強制熟読モード ---
+if [[ "$setup_ok" == false ]]; then
+  cat <<'SETUP_NEEDED'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "## HELIX セットアップ未完了\n\n**作業を始める前に、まず HELIX フレームワークのセットアップを完了してください。**\n\n### 手順\n\n1. README を読む:\n```bash\ncat ~/ai-dev-kit-vscode/README.md\n```\n\n2. セットアップを実行:\n```bash\nbash ~/ai-dev-kit-vscode/setup.sh\n```\n\n3. シェルを再読み込み:\n```bash\nsource ~/.bashrc  # or source ~/.zshrc\n```\n\n### 重要\n- **セットアップが完了するまで、他のタスクに着手しないでください**\n- セットアップは1分で終わります\n- 問題があればユーザーに確認してください\n\nこのメッセージはセットアップ完了後に自動的に消えます。"
+  }
+}
+SETUP_NEEDED
+  exit 0
+fi
+
+# --- 完了: 通常の HELIX コンテキスト ---
 cat <<'CONTEXT'
 {
   "hookSpecificOutput": {
