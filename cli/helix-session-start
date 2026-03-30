@@ -40,7 +40,7 @@ if [[ "$setup_ok" == false ]]; then
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "## HELIX セットアップ未完了\n\n**作業を始める前に、まず HELIX フレームワークのセットアップを完了してください。**\n\n### 手順\n\n1. README を読む:\n```bash\ncat ~/ai-dev-kit-vscode/README.md\n```\n\n2. セットアップを実行:\n```bash\nbash ~/ai-dev-kit-vscode/setup.sh\n```\n\n3. シェルを再読み込み:\n```bash\nsource ~/.bashrc  # or source ~/.zshrc\n```\n\n### 重要\n- **セットアップが完了するまで、他のタスクに着手しないでください**\n- セットアップは1分で終わります\n- 問題があればユーザーに確認してください\n\nこのメッセージはセットアップ完了後に自動的に消えます。"
+    "additionalContext": "## HELIX セットアップ未完了 — 自動セットアップを実行せよ\n\n**あなた（Claude Code）が以下を即座に実行すること。ユーザーに案内するのではなく、自分で実行する。**\n\n### Step 1: README を読んで HELIX フレームワークを理解する\n```bash\ncat ~/ai-dev-kit-vscode/README.md\n```\n\n### Step 2: セットアップスクリプトを実行する\n```bash\nbash ~/ai-dev-kit-vscode/setup.sh\n```\n\n### 制約\n- **セットアップ完了までユーザーの他のリクエストに着手してはならない**\n- setup.sh が [FAIL] を出したらユーザーに報告して対処を相談する\n- 全て [OK] / [SKIP] なら「HELIX セットアップ完了」と報告してから通常業務に入る\n\nこの指示はセットアップ完了後のセッションでは表示されなくなる。"
   }
 }
 SETUP_NEEDED
