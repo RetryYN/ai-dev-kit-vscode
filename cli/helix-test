@@ -72,10 +72,14 @@ run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js
 echo ""
 
 echo "[helix-size]"
-run_test_contains "S bugfix" "$SCRIPT_DIR/helix-size --files 1 --lines 20 --type bugfix" "サイズ: S"
-run_test_contains "M new-feature" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ: M"
-run_test_contains "L full" "$SCRIPT_DIR/helix-size --files 15 --lines 800 --api --db --ui" "サイズ: L"
+run_test_contains "S bugfix" "$SCRIPT_DIR/helix-size --files 1 --lines 20 --type bugfix" "サイズ:     S"
+run_test_contains "M new-feature" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ:     M"
+run_test_contains "L full" "$SCRIPT_DIR/helix-size --files 15 --lines 800 --api --db --ui" "サイズ:     L"
 run_test_contains "skip L4 only" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type doc" "L4"
+# 駆動タイプテスト
+run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui --type new-feature --drive fe" "Visual"
+run_test_contains "drive db" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "スキーマ凍結"
+run_test_contains "drive agent" "$SCRIPT_DIR/helix-size --files 3 --lines 150 --api --type new-feature --drive agent" "ツール定義凍結"
 echo ""
 
 echo "[helix-sprint]"

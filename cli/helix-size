@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-size: タスクサイジング + フェーズスキップ自動判定
-# Usage: helix-size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE]
+# Usage: helix-size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE] [--drive DRIVE]
 
 # --- 引数パース ---
 FILES=0
@@ -11,6 +11,7 @@ HAS_API=false
 HAS_DB=false
 HAS_UI=false
 TASK_TYPE=""
+DRIVE="be"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]]; do
     --db)    HAS_DB=true; shift ;;
     --ui)    HAS_UI=true; shift ;;
     --type)  TASK_TYPE="$2"; shift 2 ;;
+    --drive) DRIVE="$2"; shift 2 ;;
     --help|-h)
       echo "Usage: helix-size [options]"
       echo ""
@@ -31,14 +33,28 @@ while [[ $# -gt 0 ]]; do
       echo "  --ui          UI変更あり"
       echo "  --type TYPE   タスク種別:"
       echo "                  bugfix, refactor, new-feature, ui-change, doc, new-module"
+      echo "  --drive DRIVE 駆動タイプ (デフォルト: be):"
+      echo "                  be    バックエンド駆動 — API/ロジック起点"
+      echo "                  fe    フロントエンド駆動 — デザイン/UX起点"
+      echo "                  db    データベース駆動 — スキーマ/データモデル起点"
+      echo "                  agent エージェント駆動 — ツール/プロンプト起点"
       echo ""
       echo "Example:"
-      echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature"
+      echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature --drive be"
+      echo "  helix-size --files 8 --lines 300 --ui --type new-feature --drive fe"
+      echo "  helix-size --files 5 --lines 200 --db --type new-module --drive db"
+      echo "  helix-size --files 3 --lines 150 --api --type new-feature --drive agent"
       exit 0
       ;;
     *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+# --- 駆動タイプバリデーション ---
+case "$DRIVE" in
+  be|fe|db|agent) ;;
+  *) echo "Error: Invalid --drive value '$DRIVE'. Use: be, fe, db, agent" >&2; exit 1 ;;
+esac
 
 # --- サイジング ---
 size_from_files() {
@@ -78,12 +94,65 @@ LINE_SIZE=$(size_from_lines)
 API_DB_SIZE=$(size_from_api_db)
 FINAL_SIZE=$(max_size "$FILE_SIZE" "$LINE_SIZE" "$API_DB_SIZE")
 
+# --- 駆動タイプ別 L2〜L5 の内容記述 ---
+L2_DESC="" ; L3_DESC="" ; L4_DESC="" ; L5_DESC=""
+G2_DESC="" ; G3_DESC=""
+
+case "$DRIVE" in
+  be)
+    L2_DESC="API設計・アーキテクチャ・ADR"
+    L3_DESC="API契約 + DB設計 + 工程表"
+    L4_DESC="ロジック → API → FE"
+    L5_DESC="表示確認（薄い）"
+    G2_DESC="API設計凍結"
+    G3_DESC="API/Schema Freeze"
+    ;;
+  fe)
+    L2_DESC="Visual方針・コンポーネント設計・デザインシステム"
+    L3_DESC="コンポーネントツリー + Props設計 + 工程表"
+    L4_DESC="コンポーネント → スタイル → API繋ぎ込み"
+    L5_DESC="デザイン駆動レビュー（厚い）"
+    G2_DESC="Visual設計凍結"
+    G3_DESC="Component Contract Freeze"
+    ;;
+  db)
+    L2_DESC="ER図・スキーマ設計・データフロー"
+    L3_DESC="マイグレーション設計 + API契約 + 工程表"
+    L4_DESC="スキーマ → CRUD → API → FE"
+    L5_DESC="管理画面確認（薄い）"
+    G2_DESC="スキーマ凍結"
+    G3_DESC="Migration Freeze"
+    ;;
+  agent)
+    L2_DESC="ツール定義・プロンプト設計・オーケストレーション"
+    L3_DESC="ツール契約 + 統合テスト設計 + 工程表"
+    L4_DESC="ツール → オーケストレーション → UI"
+    L5_DESC="会話UI/デモ確認"
+    G2_DESC="ツール定義凍結"
+    G3_DESC="Tool Contract Freeze"
+    ;;
+esac
+
 # --- フェーズスキップ決定 ---
 PHASES=()
 SKIPPED=()
 NOTES=""
 
 api_or_db=$([[ "$HAS_API" == true || "$HAS_DB" == true ]] && echo true || echo false)
+
+# 駆動タイプで L5 の要否判定を変える
+# BE/DB: UI有りのときだけ L5
+# FE: 常に L5（FE駆動の核心）
+# Agent: 会話UIがあれば L5
+needs_l5() {
+  case "$DRIVE" in
+    fe)    echo true ;;
+    be|db) [[ "$HAS_UI" == true ]] && echo true || echo false ;;
+    agent) echo true ;;
+  esac
+}
+
+L5_NEEDED=$(needs_l5)
 
 case "$FINAL_SIZE" in
   S)
@@ -97,28 +166,37 @@ case "$FINAL_SIZE" in
         SKIPPED=("L1" "L7" "L8")
         ;;
       new-feature|"")
-        PHASES=("L2" "L3" "L4" "L6")
-        SKIPPED=("L1" "L5" "L7" "L8")
+        if [[ "$L5_NEEDED" == true ]]; then
+          PHASES=("L2" "L3" "L4" "L5" "L6")
+          SKIPPED=("L1" "L7" "L8")
+        else
+          PHASES=("L2" "L3" "L4" "L6")
+          SKIPPED=("L1" "L5" "L7" "L8")
+        fi
         ;;
       *)
         PHASES=("L4")
         SKIPPED=("L1" "L2" "L3" "L5" "L6" "L7" "L8")
         ;;
     esac
-    NOTES="S案件の L3 は最小版: タスクリスト + 担当割当のみ（API契約・依存マップは省略可）"
+    NOTES="S案件の L3 は最小版: タスクリスト + 担当割当のみ"
     ;;
   M)
     if [[ "$TASK_TYPE" == "new-module" ]]; then
+      if [[ "$L5_NEEDED" == true ]]; then
+        PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
+        SKIPPED=()
+      else
+        PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8")
+        SKIPPED=("L5")
+      fi
+    elif [[ "$api_or_db" == true && "$L5_NEEDED" == true ]]; then
       PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
       SKIPPED=()
-      [[ "$HAS_UI" != true ]] && PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8") && SKIPPED=("L5")
-    elif [[ "$api_or_db" == true && "$HAS_UI" == true ]]; then
-      PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
-      SKIPPED=()
-    elif [[ "$api_or_db" == true && "$HAS_UI" != true ]]; then
+    elif [[ "$api_or_db" == true && "$L5_NEEDED" != true ]]; then
       PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
       SKIPPED=("L1" "L5")
-    elif [[ "$api_or_db" != true && "$HAS_UI" == true ]]; then
+    elif [[ "$api_or_db" != true && "$L5_NEEDED" == true ]]; then
       PHASES=("L2" "L3" "L4" "L5" "L6" "L7" "L8")
       SKIPPED=("L1")
       NOTES="G1.5/G1R skip可、G3会議省略可"
@@ -128,24 +206,45 @@ case "$FINAL_SIZE" in
     fi
     ;;
   L)
-    if [[ "$HAS_UI" == true ]]; then
+    if [[ "$L5_NEEDED" == true ]]; then
       PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
       SKIPPED=()
     else
       PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8")
       SKIPPED=("L5")
-      NOTES="純BE: L5/G5 skip"
+      NOTES="L5/G5 skip"
     fi
+    ;;
+esac
+
+# --- 駆動タイプ固有の補足 ---
+case "$DRIVE" in
+  fe)
+    NOTES="${NOTES:+$NOTES / }L5はデザイン駆動レビュー（厚い）。L4はコンポーネント→スタイル→API繋ぎの順"
+    ;;
+  db)
+    NOTES="${NOTES:+$NOTES / }L2はER/スキーマ起点。L4はスキーマ→CRUD→API→FEの順"
+    ;;
+  agent)
+    NOTES="${NOTES:+$NOTES / }L2はツール/プロンプト設計起点。L5は会話UI/デモ確認"
     ;;
 esac
 
 # --- 出力 ---
 echo "=== タスクサイジング結果 ==="
 echo ""
-echo "サイズ: $FINAL_SIZE"
+echo "サイズ:     $FINAL_SIZE"
 echo "  ファイル数: $FILES → $FILE_SIZE"
 echo "  変更行数:   $LINES → $LINE_SIZE"
 echo "  API/DB:     $API_DB_SIZE (api=$HAS_API, db=$HAS_DB)"
+echo ""
+echo "駆動タイプ: $DRIVE"
+echo "  L2: $L2_DESC"
+echo "  L3: $L3_DESC"
+echo "  L4: $L4_DESC"
+echo "  L5: $L5_DESC"
+echo "  G2: $G2_DESC"
+echo "  G3: $G3_DESC"
 echo ""
 echo "推奨フェーズ: ${PHASES[*]}"
 if [[ ${#SKIPPED[@]} -gt 0 ]]; then
