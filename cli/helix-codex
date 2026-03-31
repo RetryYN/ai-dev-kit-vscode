@@ -184,4 +184,5 @@ fi
 
 echo "[helix-codex] role=$ROLE model=$codex_model sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
-"$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX"
+"$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
+  -c 'shell_environment_policy.inherit=all'

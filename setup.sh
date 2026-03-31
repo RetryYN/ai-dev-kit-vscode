@@ -16,6 +16,10 @@ CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 CLAUDE_SETTINGS="$CLAUDE_DIR/settings.json"
 MERGE_SCRIPT="$HELIX_HOME/cli/lib/merge_settings.py"
 CODEX_BIN="${CODEX_BIN:-$(command -v codex 2>/dev/null || echo "")}"
+CODEX_DIR="$HOME/.codex"
+CODEX_AGENTS="$CODEX_DIR/AGENTS.md"
+CODEX_CONFIG="$CODEX_DIR/config.toml"
+CODEX_HELIX_COMMENT="# HELIX: サンドボックス内に LANG/LC_ALL を継承（Windows/WSL 文字化け対策）"
 
 IMPORT_SKILL="@~/ai-dev-kit-vscode/skills/SKILL_MAP.md"
 IMPORT_CORE="@~/ai-dev-kit-vscode/helix/HELIX_CORE.md"
@@ -189,14 +193,36 @@ setup_codex() {
     fi
 
     # AGENTS.md
-    local agents_md="$HOME/.codex/AGENTS.md"
     local agents_example="$HELIX_HOME/helix/AGENTS.md.example"
-    if [[ ! -f "$agents_md" ]] && [[ -f "$agents_example" ]]; then
-        mkdir -p "$HOME/.codex"
-        cp "$agents_example" "$agents_md"
-        _ok "Copied AGENTS.md → $agents_md"
+    if [[ ! -f "$CODEX_AGENTS" ]] && [[ -f "$agents_example" ]]; then
+        mkdir -p "$CODEX_DIR"
+        cp "$agents_example" "$CODEX_AGENTS"
+        _ok "Copied AGENTS.md → $CODEX_AGENTS"
     else
         _skip "AGENTS.md already exists or template not found"
+    fi
+
+    # config.toml
+    if [[ ! -f "$CODEX_CONFIG" ]]; then
+        mkdir -p "$CODEX_DIR"
+        cat > "$CODEX_CONFIG" <<EOF
+$CODEX_HELIX_COMMENT
+[shell_environment_policy]
+inherit = "all"
+EOF
+        _ok "Created $CODEX_CONFIG with HELIX defaults"
+    elif grep -qE '^[[:space:]]*\[shell_environment_policy\][[:space:]]*$' "$CODEX_CONFIG"; then
+        _skip "shell_environment_policy already exists in config.toml"
+    else
+        if [[ -s "$CODEX_CONFIG" ]]; then
+            echo "" >> "$CODEX_CONFIG"
+        fi
+        cat >> "$CODEX_CONFIG" <<EOF
+$CODEX_HELIX_COMMENT
+[shell_environment_policy]
+inherit = "all"
+EOF
+        _ok "Added shell_environment_policy to config.toml"
     fi
 
     echo ""
@@ -238,8 +264,25 @@ uninstall() {
         fi
     done
 
+    # Codex config.toml
+    if [[ -f "$CODEX_CONFIG" ]]; then
+        local tmp="${CODEX_CONFIG}.tmp"
+        sed '/^# HELIX:/{N;/\n\[shell_environment_policy\]$/{N;/\ninherit = "all"$/d;};}' "$CODEX_CONFIG" \
+            | sed '/^# HELIX:/d' > "$tmp"
+
+        if cmp -s "$CODEX_CONFIG" "$tmp"; then
+            rm -f "$tmp"
+            _skip "No HELIX entries found in $CODEX_CONFIG"
+        else
+            mv "$tmp" "$CODEX_CONFIG"
+            _ok "Removed HELIX entries from $CODEX_CONFIG"
+        fi
+    else
+        _skip "$CODEX_CONFIG not found"
+    fi
+
     # Codex symlinks
-    local codex_skills="$HOME/.codex/skills"
+    local codex_skills="$CODEX_DIR/skills"
     if [[ -d "$codex_skills" ]]; then
         find "$codex_skills" -maxdepth 1 -type l -name "helix-*" -delete 2>/dev/null
         _ok "Removed Codex skill symlinks"
