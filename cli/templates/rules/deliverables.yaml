@@ -1,0 +1,607 @@
+# deliverables.yaml — Deliverable Catalog v1 and gate ownership rules
+# Generated from: docs/adr/ADR-001-deliverable-matrix-as-source-of-truth.md
+#
+# Notes:
+# - compile 対象は .helix/runtime/index.json。yaml_parser.py では直接扱わない
+# - validators はテンプレート定義のみ。実コマンド実装は Phase 1 の対象外
+
+catalog_version: v1
+
+deliverables:
+  - id: D-REQ-F
+    name: 機能要件一覧
+    layer: L1
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-REQ-F}
+      - type: heading_check
+        params: {required: [目的, インスコープ, アウトスコープ, 機能要件]}
+      - type: ai_review
+        params: {role: tl, focus: "機能要件の網羅性とスコープ境界"}
+    gate_ownership: [G1]
+
+  - id: D-REQ-NF
+    name: 非機能要件
+    layer: L1
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-REQ-NF}
+      - type: heading_check
+        params: {required: [可用性, セキュリティ, 性能, 運用保守性]}
+      - type: ai_review
+        params: {role: tl, focus: "NFR の測定可能性と受入可能性"}
+    gate_ownership: [G1]
+
+  - id: D-ACC
+    name: 受入条件
+    layer: L1
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-ACC}
+      - type: heading_check
+        params: {required: [シナリオ, 期待結果, 判定基準]}
+    gate_ownership: [G1]
+
+  - id: D-RES
+    name: 事前調査レポート
+    layer: L1
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-RES}
+      - type: heading_check
+        params: {required: [調査対象, 一次ソース, 採用理由, 不採用理由]}
+      - type: ai_review
+        params: {role: tl, focus: "一次ソース優先と open blocker の有無"}
+    gate_ownership: [G1R, G3]
+
+  - id: D-ARCH
+    name: アーキテクチャ設計
+    layer: L2
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-ARCH}
+      - type: heading_check
+        params: {required: [概要, コンテキスト, 責務境界, 運用方針]}
+      - type: ai_review
+        params: {role: tl, focus: "境界設計、依存方向、運用前提"}
+    gate_ownership: [G2]
+
+  - id: D-ADR
+    name: Architecture Decision Record
+    layer: L2
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-ADR}
+      - type: heading_check
+        params: {required: [Context, Decision, Consequences, Alternatives]}
+      - type: ai_review
+        params: {role: tl, focus: "決定理由、代替案、後戻りコスト"}
+    gate_ownership: [G2]
+
+  - id: D-THREAT
+    name: 脅威モデル
+    layer: L2
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-THREAT}
+      - type: heading_check
+        params: {required: [資産, 信頼境界, 攻撃面, 緩和策]}
+      - type: ai_review
+        params: {role: security, focus: "STRIDE と権限境界の欠落検出"}
+    gate_ownership: [G2]
+
+  - id: D-VIS-ARCH
+    name: Visual アーキテクチャ
+    layer: L2
+    drives: [fe]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-VIS-ARCH}
+      - type: heading_check
+        params: {required: [情報設計, コンポーネント境界, デザイントークン, レスポンシブ方針]}
+      - type: ai_review
+        params: {role: tl, focus: "UI 構造と契約境界"}
+    gate_ownership: [G2]
+
+  - id: D-DATA-ARCH
+    name: データアーキテクチャ
+    layer: L2
+    drives: [db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DATA-ARCH}
+      - type: heading_check
+        params: {required: [データフロー, 永続化境界, 一貫性要件, バックアップ方針]}
+      - type: ai_review
+        params: {role: tl, focus: "整合性境界とデータ責務"}
+    gate_ownership: [G2]
+
+  - id: D-ORCH-ARCH
+    name: オーケストレーション設計
+    layer: L2
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-ORCH-ARCH}
+      - type: heading_check
+        params: {required: [ツール境界, ルーティング, フォールバック, 観測性]}
+      - type: ai_review
+        params: {role: tl, focus: "状態遷移、失敗時挙動、可逆性"}
+    gate_ownership: [G2]
+
+  - id: D-API
+    name: API 契約
+    layer: L3
+    drives: [be]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-API}
+      - type: schema_validate
+        params: {schema: openapi-3.1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "I/O 整合、エラーコード、破壊的変更"}
+    gate_ownership: [G3]
+
+  - id: D-DB
+    name: DB 設計
+    layer: L3
+    drives: [be, db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DB}
+      - type: heading_check
+        params: {required: [エンティティ, 制約, インデックス, 変更影響]}
+      - type: ai_review
+        params: {role: tl, focus: "整合性、マイグレーション可逆性、権限境界"}
+    gate_ownership: [G3]
+
+  - id: D-MIG-PLAN
+    name: マイグレーション計画
+    layer: L3
+    drives: [be, db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-MIG-PLAN}
+      - type: heading_check
+        params: {required: [前提, 手順, ロールバック, リハーサル]}
+      - type: ai_review
+        params: {role: tl, focus: "部分失敗時の復旧計画"}
+    gate_ownership: [G3]
+
+  - id: D-DEP
+    name: 依存関係マップ
+    layer: L3
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DEP}
+      - type: heading_check
+        params: {required: [内部依存, 外部依存, 外部サービス, 障害時影響]}
+      - type: ai_review
+        params: {role: tl, focus: "循環依存、単一障害点、ライセンス/脆弱性リスク"}
+    gate_ownership: [G3]
+
+  - id: D-TEST
+    name: テスト設計
+    layer: L3
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-TEST}
+      - type: heading_check
+        params: {required: [対象, 正常系, 異常系, 境界値, 回帰範囲]}
+      - type: ai_review
+        params: {role: tl, focus: "クリティカルパスと異常系の網羅性"}
+    gate_ownership: [G3]
+
+  - id: D-PLAN
+    name: 工程表
+    layer: L3
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-PLAN}
+      - type: heading_check
+        params: {required: [タスク, 依存, 担当, 環境, ロールバック準備]}
+      - type: ai_review
+        params: {role: tl, focus: "依存順序と凍結条件の整合"}
+    gate_ownership: [G3]
+
+  - id: D-UI
+    name: UI 仕様
+    layer: L3
+    drives: [fe]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-UI}
+      - type: heading_check
+        params: {required: [画面一覧, 状態, バリデーション, アクセシビリティ]}
+      - type: ai_review
+        params: {role: tl, focus: "UI 契約とコンポーネント責務"}
+    gate_ownership: [G3]
+
+  - id: D-STATE
+    name: 状態設計
+    layer: L3
+    drives: [fe]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-STATE}
+      - type: schema_validate
+        params: {schema: state-model-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "状態遷移、排他、エラー復帰"}
+    gate_ownership: [G3]
+
+  - id: D-API-CONS
+    name: API 利用契約
+    layer: L3
+    drives: [fe]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-API-CONS}
+      - type: schema_validate
+        params: {schema: client-contract-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "フロント/バック契約の整合"}
+    gate_ownership: [G3]
+
+  - id: D-DATA-ACCESS
+    name: データアクセス設計
+    layer: L3
+    drives: [db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DATA-ACCESS}
+      - type: heading_check
+        params: {required: [アクセスパターン, 排他制御, 性能前提, 権限制御]}
+      - type: ai_review
+        params: {role: tl, focus: "クエリ特性と整合性崩壊リスク"}
+    gate_ownership: [G3]
+
+  - id: D-TOOL
+    name: ツール契約
+    layer: L3
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-TOOL}
+      - type: schema_validate
+        params: {schema: tool-contract-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "入出力、失敗モード、権限制約"}
+    gate_ownership: [G3]
+
+  - id: D-PROMPT
+    name: プロンプト契約
+    layer: L3
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-PROMPT}
+      - type: schema_validate
+        params: {schema: prompt-contract-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "安全境界、禁止事項、期待出力"}
+    gate_ownership: [G3]
+
+  - id: D-EVAL-PLAN
+    name: 評価計画
+    layer: L3
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-EVAL-PLAN}
+      - type: schema_validate
+        params: {schema: eval-plan-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "評価軸、失敗許容、再現手順"}
+    gate_ownership: [G3]
+
+  - id: D-IMPL
+    name: 実装成果物
+    layer: L4
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-IMPL}
+      - type: cmd
+        params: {profile: build-test-smoke, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "設計逸脱、未接続コード、エラーハンドリング欠落"}
+    gate_ownership: [G4]
+
+  - id: D-MIG
+    name: マイグレーション成果物
+    layer: L4
+    drives: [be, db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-MIG}
+      - type: cmd
+        params: {profile: migration-dry-run, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "冪等性、ロールバック可否、データ損失リスク"}
+    gate_ownership: [G4]
+
+  - id: D-CONFIG
+    name: 設定成果物
+    layer: L4
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-CONFIG}
+      - type: schema_validate
+        params: {schema: config-manifest-v1, advisory_only: true}
+      - type: ai_review
+        params: {role: security, focus: "secret 境界、環境差分、危険な既定値"}
+    gate_ownership: [G4]
+
+  - id: D-VIS
+    name: Visual Refinement
+    layer: L5
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-VIS}
+      - type: heading_check
+        params: {required: [差分要約, デザイントークン, レスポンシブ, 未解決事項]}
+      - type: ai_review
+        params: {role: tl, focus: "V0/V1/V2 判定と契約影響"}
+    gate_ownership: [G5]
+
+  - id: D-A11Y
+    name: アクセシビリティ設計
+    layer: L5
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-A11Y}
+      - type: heading_check
+        params: {required: [対象画面, キーボード操作, ラベル, コントラスト]}
+      - type: ai_review
+        params: {role: tl, focus: "アクセシビリティ要件の抜け漏れ"}
+    gate_ownership: [G5]
+
+  - id: D-UX-SIGNOFF
+    name: UX サインオフ
+    layer: L5
+    drives: [fe]
+    scopes: [feature]
+    validators:
+      - type: exists
+        params: {path_ref: D-UX-SIGNOFF}
+      - type: heading_check
+        params: {required: [レビュー対象, 判定, 指摘, 承認者]}
+      - type: ai_review
+        params: {role: tl, focus: "UX 期待変更の有無と残課題"}
+    gate_ownership: [G5]
+
+  - id: D-DEMO
+    name: デモ成果物
+    layer: L5
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DEMO}
+      - type: heading_check
+        params: {required: [シナリオ, 前提, 成功条件, 観測ポイント]}
+      - type: ai_review
+        params: {role: tl, focus: "デモと契約の整合"}
+    gate_ownership: [G5]
+
+  - id: D-E2E
+    name: E2E 検証
+    layer: L6
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-E2E}
+      - type: cmd
+        params: {profile: e2e, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "クリティカルパスと失敗時観測性"}
+    gate_ownership: [G6]
+
+  - id: D-PERF
+    name: 性能検証
+    layer: L6
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-PERF}
+      - type: heading_check
+        params: {required: [シナリオ, 閾値, 結果, ボトルネック]}
+      - type: cmd
+        params: {profile: perf-smoke, advisory_only: true}
+    gate_ownership: [G6]
+
+  - id: D-SECV
+    name: セキュリティ検証
+    layer: L6
+    drives: [be, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-SECV}
+      - type: heading_check
+        params: {required: [攻撃面, 検証手順, 結果, 残余リスク]}
+      - type: ai_review
+        params: {role: security, focus: "OWASP Top 10 と権限境界の検証"}
+    gate_ownership: [G6]
+
+  - id: D-OPS
+    name: 運用準備
+    layer: L6
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-OPS}
+      - type: heading_check
+        params: {required: [運用手順, アラート, 復旧手順, 連絡先]}
+      - type: ai_review
+        params: {role: tl, focus: "運用 readiness と rollback 導線"}
+    gate_ownership: [G6]
+
+  - id: D-A11Y-VERIFY
+    name: アクセシビリティ検証
+    layer: L6
+    drives: [fe]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-A11Y-VERIFY}
+      - type: cmd
+        params: {profile: a11y-audit, advisory_only: true}
+      - type: ai_review
+        params: {role: tl, focus: "設計との差分と blocking issue"}
+    gate_ownership: [G6]
+
+  - id: D-DATA-VERIFY
+    name: データ検証
+    layer: L6
+    drives: [db]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DATA-VERIFY}
+      - type: heading_check
+        params: {required: [検証対象, 整合条件, 差分, 復旧方針]}
+      - type: cmd
+        params: {profile: data-verification, advisory_only: true}
+    gate_ownership: [G6]
+
+  - id: D-EVAL
+    name: 評価結果
+    layer: L6
+    drives: [agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-EVAL}
+      - type: heading_check
+        params: {required: [評価軸, ベースライン, 結果, 改善点]}
+      - type: ai_review
+        params: {role: tl, focus: "評価再現性と受入妥当性"}
+    gate_ownership: [G6]
+
+  - id: D-DEPLOY
+    name: デプロイ成果物
+    layer: L7
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-DEPLOY}
+      - type: heading_check
+        params: {required: [対象環境, 手順, rollback, health_check]}
+      - type: cmd
+        params: {profile: deploy-readiness, advisory_only: true}
+    gate_ownership: [G7]
+
+  - id: D-RELNOTE
+    name: リリースノート
+    layer: L7
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-RELNOTE}
+      - type: heading_check
+        params: {required: [変更概要, 影響範囲, 既知リスク, 連絡先]}
+    gate_ownership: [G7]
+
+  - id: D-OBS
+    name: 監視・可観測性成果物
+    layer: L7
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-OBS}
+      - type: heading_check
+        params: {required: [SLI/SLO, ダッシュボード, アラート, ログ方針]}
+      - type: ai_review
+        params: {role: tl, focus: "検知粒度と復旧支援の十分性"}
+    gate_ownership: [G7]
+
+  - id: D-UAT
+    name: UAT 成果物
+    layer: L8
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-UAT}
+      - type: heading_check
+        params: {required: [シナリオ, 判定, 未解決事項, 承認者]}
+      - type: ai_review
+        params: {role: tl, focus: "L1 受入条件とのトレース"}
+    gate_ownership: [L8]
+
+  - id: D-HANDOVER
+    name: 引継ぎ成果物
+    layer: L8
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-HANDOVER}
+      - type: heading_check
+        params: {required: [対象, 運用窓口, 手順, 残課題]}
+      - type: ai_review
+        params: {role: tl, focus: "運用引継ぎの欠落確認"}
+    gate_ownership: [L8]
+
+  - id: D-RETRO
+    name: レトロスペクティブ
+    layer: L8
+    drives: [be, fe, db, agent]
+    scopes: [feature, shared, platform]
+    validators:
+      - type: exists
+        params: {path_ref: D-RETRO}
+      - type: heading_check
+        params: {required: [Context, What Went Well, Problems, Try, Owner]}
+      - type: ai_review
+        params: {role: tl, focus: "G2/G4/L8 の学習が行動項目まで落ちているか"}
+    gate_ownership: [G2, G4, L8]

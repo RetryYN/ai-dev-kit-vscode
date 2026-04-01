@@ -56,6 +56,26 @@ echo "[.helix/]"
 copy_template "$TEMPLATES_DIR/doc-map.yaml" "$HELIX_DIR/doc-map.yaml"
 copy_template "$TEMPLATES_DIR/gate-checks.yaml" "$HELIX_DIR/gate-checks.yaml"
 copy_template "$TEMPLATES_DIR/phase.yaml" "$HELIX_DIR/phase.yaml"
+copy_template "$TEMPLATES_DIR/matrix.yaml" "$HELIX_DIR/matrix.yaml"
+
+# matrix rules テンプレート
+if [[ -d "$TEMPLATES_DIR/rules" ]]; then
+  mkdir -p "$HELIX_DIR/rules"
+  for rule_file in "$TEMPLATES_DIR/rules"/*.yaml; do
+    [[ ! -f "$rule_file" ]] && continue
+    copy_template "$rule_file" "$HELIX_DIR/rules/$(basename "$rule_file")"
+  done
+fi
+
+# matrix runtime/state ディレクトリ
+for dir in "$HELIX_DIR/state" "$HELIX_DIR/runtime"; do
+  if [[ ! -d "$dir" ]]; then
+    mkdir -p "$dir"
+    echo "  created: ${dir#$HELIX_DIR/}/"
+  else
+    echo "  skip: ${dir#$HELIX_DIR/}/ (already exists)"
+  fi
+done
 
 # phase.yaml にプロジェクト名を設定
 if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
@@ -184,5 +204,6 @@ echo ""
 echo "=== Done ==="
 echo "Next steps:"
 echo "  1. CLAUDE.md を編集してプロジェクト情報を記入"
-echo "  2. helix-size でタスクサイジング"
-echo "  3. helix-gate --dry-run G2 でゲートチェック確認"
+echo "  2. helix matrix compile で成果物対照表を有効化"
+echo "  3. helix-size でタスクサイジング"
+echo "  4. helix-gate --dry-run G2 でゲートチェック確認"

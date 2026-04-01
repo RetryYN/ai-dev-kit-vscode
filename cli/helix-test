@@ -46,6 +46,22 @@ run_test_contains() {
   fi
 }
 
+run_test_not_contains() {
+  local name="$1"
+  local cmd="$2"
+  local pattern="$3"
+  printf "  %-40s " "$name"
+  output=$(eval "$cmd" 2>&1 </dev/null)
+  if echo "$output" | grep -q "$pattern"; then
+    echo "FAIL (pattern '$pattern' was found)"
+    ERRORS+=("$name: output=$output")
+    FAIL=$((FAIL + 1))
+  else
+    echo "PASS"
+    PASS=$((PASS + 1))
+  fi
+}
+
 echo "=== HELIX CLI Self-Test ==="
 echo ""
 
@@ -69,6 +85,10 @@ run_test_contains "CLAUDE.md created" "cat CLAUDE.md" "HELIX"
 run_test_contains ".gitignore has CLAUDE.local.md" "cat .gitignore" "CLAUDE.local.md"
 run_test_contains "agents copied" "ls .claude/agents/" "fe-design"
 run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js"
+run_test_contains "matrix template copied" "test -f .helix/matrix.yaml && echo OK" "OK"
+run_test_contains "rules template copied" "test -f .helix/rules/deliverables.yaml && test -f .helix/rules/structure.yaml && echo OK" "OK"
+run_test_contains "state/runtime dirs created" "test -d .helix/state && test -d .helix/runtime && echo OK" "OK"
+run_test_contains "matrix compile guidance shown" "$SCRIPT_DIR/helix-init --force" "matrix compile で成果物対照表を有効化"
 echo ""
 
 echo "[helix-size]"
@@ -119,12 +139,40 @@ TSEOF
 run_test_contains "API match" "$SCRIPT_DIR/helix-gate-api-check" "OK: 契約と実装が一致"
 printf '  - method: "GET"\n    endpoint: "/api/v1/orders"\n' >> docs/design/L3-api-contract.yaml
 run_test "API mismatch detected" "$SCRIPT_DIR/helix-gate-api-check" 1
+rm -f docs/design/L3-api-contract.yaml
+rm -f src/api/users.ts
+mkdir -p docs/features/user-auth/D-API src/features/user-auth/D-IMPL
+cat > docs/features/user-auth/D-API/api-contract.yaml << 'EOF'
+contracts:
+  - method: "GET"
+    endpoint: "/api/v1/profile"
+EOF
+cat > src/features/user-auth/D-IMPL/profile.ts << 'TSEOF'
+import { Router } from 'express';
+const router = Router();
+router.get('/api/v1/profile', getProfile);
+export default router;
+TSEOF
+run_test_contains "API match (new path)" "$SCRIPT_DIR/helix-gate-api-check" "OK: 契約と実装が一致"
+cat > docs/design/L3-api-contract.yaml << 'EOF'
+contracts:
+  - method: "GET"
+    endpoint: "/api/v1/profile"
+EOF
 echo ""
 
 echo "[helix-hook]"
 # freeze-break
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G2.status passed 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
+mkdir -p docs/features/user-auth/D-ARCH docs/features/user-auth/D-API
+echo "# arch change" > docs/features/user-auth/D-ARCH/architecture.md
+echo "contracts: []" > docs/features/user-auth/D-API/api-contract.yaml
+run_test_contains "freeze-break design (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-ARCH/architecture.md" "設計凍結違反"
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
+run_test_contains "freeze-break API doc (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-API/api-contract.yaml" "API凍結違反"
 echo "change" > src/api/auth.ts
 run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/auth.ts" "API凍結違反"
 # ADR index
@@ -163,6 +211,296 @@ run_test_contains "scrum plan" "$SCRIPT_DIR/helix-scrum plan --goal TestGoal --h
 run_test "scrum verify (fail expected)" "$SCRIPT_DIR/helix-scrum verify" 1
 run_test_contains "scrum decide" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "confirmed"
 run_test_contains "scrum status" "$SCRIPT_DIR/helix-scrum status" "Sprint"
+echo ""
+
+echo "[helix-matrix]"
+run_test "matrix init" "$SCRIPT_DIR/helix-matrix init"
+run_test_contains "matrix.yaml generated" "test -f .helix/matrix.yaml && echo OK" "OK"
+run_test_contains "rules generated" "test -f .helix/rules/deliverables.yaml && test -f .helix/rules/structure.yaml && echo OK" "OK"
+run_test "matrix compile" "$SCRIPT_DIR/helix-matrix compile"
+run_test_contains "doc-map generated" "test -f .helix/doc-map.yaml && echo OK" "OK"
+run_test_contains "gate-checks generated" "test -f .helix/gate-checks.yaml && echo OK" "OK"
+run_test_contains "state generated" "test -f .helix/state/deliverables.json && echo OK" "OK"
+run_test_contains "runtime index generated" "test -f .helix/runtime/index.json && echo OK" "OK"
+run_test "matrix validate pass" "$SCRIPT_DIR/helix-matrix validate"
+run_test_contains "matrix status output" "$SCRIPT_DIR/helix-matrix status" "user-auth"
+
+echo "[helix-gate deliverable]"
+python3 - <<'PY'
+import json
+import re
+from pathlib import Path
+
+root = Path(".")
+index_path = root / ".helix/runtime/index.json"
+state_path = root / ".helix/state/deliverables.json"
+index = json.loads(index_path.read_text(encoding="utf-8"))
+state = json.loads(state_path.read_text(encoding="utf-8"))
+
+rules = index.get("rules", {})
+roots = rules.get("roots", {}) if isinstance(rules.get("roots"), dict) else {}
+path_mapping = rules.get("path_mapping", {}) if isinstance(rules.get("path_mapping"), dict) else {}
+
+heading_requirements = {}
+for item in rules.get("deliverables", []):
+    if not isinstance(item, dict):
+        continue
+    did = item.get("id")
+    if not isinstance(did, str):
+        continue
+    required = []
+    for validator in item.get("validators", []):
+        if not isinstance(validator, dict):
+            continue
+        if validator.get("type") != "heading_check":
+            continue
+        params = validator.get("params", {})
+        if isinstance(params, dict):
+            values = params.get("required", [])
+            if isinstance(values, list):
+                required.extend([str(x) for x in values if isinstance(x, str)])
+    heading_requirements[did] = required
+
+
+def render(template: str, values: dict[str, str]) -> str:
+    return re.sub(r"{([a-zA-Z0-9_]+)}", lambda m: str(values.get(m.group(1), m.group(0))), template)
+
+
+features = index.get("features", {})
+for feature_id, feature in features.items():
+    if not isinstance(feature, dict):
+        continue
+    requires = feature.get("requires", {})
+    if not isinstance(requires, dict):
+        continue
+
+    docs_root = str(roots.get("docs_root", "docs"))
+    src_root = str(roots.get("src_root", "src"))
+    docs_scope_root = str(feature.get("docs_root", f"{docs_root}/features/{feature_id}"))
+    src_scope_root = str(feature.get("src_root", f"{src_root}/features/{feature_id}"))
+
+    ordered = []
+    for layer in ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8"):
+        values = requires.get(layer, [])
+        if not isinstance(values, list):
+            continue
+        for did in values:
+            if isinstance(did, str) and did not in ordered:
+                ordered.append(did)
+
+    for did in ordered:
+        mapping = path_mapping.get(did, {})
+        if not isinstance(mapping, dict):
+            continue
+        template = mapping.get("primary_path")
+        if not isinstance(template, str) or not template:
+            continue
+        default_filename = "manifest.json"
+        defaults = mapping.get("default_filenames", [])
+        if isinstance(defaults, list) and defaults:
+            default_filename = str(defaults[0])
+        context = {
+            "docs_root": docs_root,
+            "src_root": src_root,
+            "infra_root": str(roots.get("infra_root", "infra")),
+            "state_root": str(roots.get("state_root", ".helix/state")),
+            "runtime_root": str(roots.get("runtime_root", ".helix/runtime")),
+            "scope_id": feature_id,
+            "deliverable_id": did,
+            "docs_scope_root": docs_scope_root,
+            "src_scope_root": src_scope_root,
+            "filename": default_filename,
+        }
+        rel = render(template, context)
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        headings = heading_requirements.get(did, [])
+        body = [f"# {did}"]
+        body.extend([f"## {h}" for h in headings])
+        path.write_text("\n".join(body) + "\n", encoding="utf-8")
+
+state_features = state.get("features", {})
+if isinstance(state_features, dict):
+    for feature_state in state_features.values():
+        if not isinstance(feature_state, dict):
+            continue
+        deliverables = feature_state.get("deliverables", {})
+        if not isinstance(deliverables, dict):
+            continue
+        for entry in deliverables.values():
+            if not isinstance(entry, dict):
+                continue
+            entry["status"] = "done"
+            entry["updated_at"] = "2099-01-01T00:00:00Z"
+
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+run_test "G2 deliverable all done pass" "$SCRIPT_DIR/helix-gate G2 --static-only"
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+root = Path(".")
+index = json.loads((root / ".helix/runtime/index.json").read_text(encoding="utf-8"))
+state_path = root / ".helix/state/deliverables.json"
+state = json.loads(state_path.read_text(encoding="utf-8"))
+target_feature = "user-auth"
+l2 = index.get("features", {}).get(target_feature, {}).get("requires", {}).get("L2", [])
+if isinstance(l2, list) and l2:
+    did = l2[0]
+    entry = state["features"][target_feature]["deliverables"].setdefault(did, {})
+    if isinstance(entry, dict):
+        entry["status"] = "pending"
+        entry["updated_at"] = "2099-01-02T00:00:00Z"
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+run_test "G2 deliverable L2 pending fail" "$SCRIPT_DIR/helix-gate G2 --static-only" 1
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+root = Path(".")
+state_path = root / ".helix/state/deliverables.json"
+state = json.loads(state_path.read_text(encoding="utf-8"))
+for feature_state in state.get("features", {}).values():
+    if not isinstance(feature_state, dict):
+        continue
+    deliverables = feature_state.get("deliverables", {})
+    if not isinstance(deliverables, dict):
+        continue
+    for entry in deliverables.values():
+        if isinstance(entry, dict):
+            entry["status"] = "done"
+            entry["updated_at"] = "2099-01-03T00:00:00Z"
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
+run_test_contains "G5 ui=false skip" "$SCRIPT_DIR/helix-gate G5 --static-only" "ui=false, skip"
+run_test_contains "G2 dry-run shows deliverable" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run" "\\[deliverable\\]"
+echo ""
+
+echo "[helix-hook matrix advisory]"
+# 1) 登録済み feature + docs/state 充足では advisory が出ない
+python3 - <<'PY'
+import json
+import re
+from pathlib import Path
+
+root = Path(".")
+index = json.loads((root / ".helix/runtime/index.json").read_text(encoding="utf-8"))
+state_path = root / ".helix/state/deliverables.json"
+state = json.loads(state_path.read_text(encoding="utf-8"))
+
+feature = index["features"]["user-auth"]
+rules = index.get("rules", {})
+path_mapping = rules.get("path_mapping", {})
+roots = rules.get("roots", {})
+
+context = {
+    "docs_root": roots.get("docs_root", "docs"),
+    "src_root": roots.get("src_root", "src"),
+    "infra_root": roots.get("infra_root", "infra"),
+    "state_root": roots.get("state_root", ".helix/state"),
+    "runtime_root": roots.get("runtime_root", ".helix/runtime"),
+    "scope_id": "user-auth",
+    "docs_scope_root": feature.get("docs_root", "docs/features/user-auth"),
+    "src_scope_root": feature.get("src_root", "src/features/user-auth"),
+    "filename": "manifest.json",
+}
+
+def render(template: str, deliverable_id: str) -> str:
+    values = dict(context)
+    values["deliverable_id"] = deliverable_id
+    return re.sub(r"{([a-zA-Z0-9_]+)}", lambda m: str(values.get(m.group(1), m.group(0))), template)
+
+for layer in ("L1", "L2", "L3"):
+    for did in feature.get("requires", {}).get(layer, []):
+        mapping = path_mapping.get(did, {})
+        if mapping.get("root") != "docs":
+            continue
+        primary = mapping.get("primary_path")
+        if not isinstance(primary, str) or not primary:
+            continue
+        doc_path = root / render(primary, did)
+        doc_path.parent.mkdir(parents=True, exist_ok=True)
+        if not doc_path.exists():
+            doc_path.write_text("# test\n", encoding="utf-8")
+        deliverable_state = state["features"]["user-auth"]["deliverables"].setdefault(did, {})
+        if isinstance(deliverable_state, dict):
+            deliverable_state["status"] = "done"
+            deliverable_state["updated_at"] = "2099-01-01T00:00:00Z"
+
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+mkdir -p src/features/user-auth
+echo "const ok = true;" > src/features/user-auth/app.ts
+run_test_not_contains "matrix advisory none (registered)" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/user-auth/app.ts" "\\[helix-advisory\\]"
+
+# 2) 未登録 feature で「未登録」advisory
+mkdir -p src/features/unknown
+echo "const unknown = true;" > src/features/unknown/new.ts
+run_test_contains "matrix advisory unregistered" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/unknown/new.ts" "未登録"
+
+# 3) docs なしで src 変更時に「docs 欠落」advisory
+rm -rf docs/features/payment
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+root = Path(".")
+index = json.loads((root / ".helix/runtime/index.json").read_text(encoding="utf-8"))
+state_path = root / ".helix/state/deliverables.json"
+state = json.loads(state_path.read_text(encoding="utf-8"))
+
+for layer in ("L1", "L2", "L3"):
+    for did in index["features"]["payment"].get("requires", {}).get(layer, []):
+        entry = state["features"]["payment"]["deliverables"].setdefault(did, {})
+        if isinstance(entry, dict):
+            entry["status"] = "done"
+            entry["updated_at"] = "2099-01-01T00:00:00Z"
+
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+mkdir -p src/features/payment
+echo "const payment = true;" > src/features/payment/service.ts
+run_test_contains "matrix advisory missing docs" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/payment/service.ts" "docs 欠落"
+
+# 4) L3 pending で D-IMPL 相当変更時に「フェーズ飛ばし」advisory
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+root = Path(".")
+index = json.loads((root / ".helix/runtime/index.json").read_text(encoding="utf-8"))
+state_path = root / ".helix/state/deliverables.json"
+state = json.loads(state_path.read_text(encoding="utf-8"))
+requires = index["features"]["user-auth"].get("requires", {})
+
+for did in requires.get("L1", []):
+    entry = state["features"]["user-auth"]["deliverables"].setdefault(did, {})
+    if isinstance(entry, dict):
+        entry["status"] = "done"
+for did in requires.get("L2", []):
+    entry = state["features"]["user-auth"]["deliverables"].setdefault(did, {})
+    if isinstance(entry, dict):
+        entry["status"] = "done"
+for did in requires.get("L3", []):
+    entry = state["features"]["user-auth"]["deliverables"].setdefault(did, {})
+    if isinstance(entry, dict):
+        entry["status"] = "pending"
+
+state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+echo "const impl = true;" > src/features/user-auth/impl.ts
+run_test_contains "matrix advisory phase skip" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/user-auth/impl.ts" "フェーズ飛ばし"
+echo ""
+
+cp .helix/matrix.yaml .helix/matrix.yaml.bak
+sed -i '0,/D-ARCH/s//D-UNKNOWN/' .helix/matrix.yaml
+run_test "matrix validate fail" "$SCRIPT_DIR/helix-matrix validate" 1
+mv .helix/matrix.yaml.bak .helix/matrix.yaml
 echo ""
 
 echo "[helix wrapper]"

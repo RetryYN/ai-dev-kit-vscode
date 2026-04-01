@@ -64,6 +64,7 @@ declare -A GATE_PREREQS=(
 )
 
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
 
 prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
@@ -85,11 +86,25 @@ echo ""
 # 実際の実行はここから
 run_checks() {
   local gate="$1"
+  local deliv_fail=0
   local static_pass=0
   local static_fail=0
   local static_skip=0
   local ai_pass=0
   local ai_fail=0
+
+  # --- Deliverable Check ---
+  local index_file="$HELIX_DIR/runtime/index.json"
+  local state_file="$HELIX_DIR/state/deliverables.json"
+  if [[ -f "$index_file" && -f "$state_file" ]]; then
+    echo "[deliverable]"
+    if python3 "$DELIVERABLE_GATE" --index "$index_file" --state "$state_file" --gate "$gate"; then
+      echo ""
+    else
+      deliv_fail=1
+      echo ""
+    fi
+  fi
 
   if [[ "$AI_ONLY" != true ]]; then
     echo "[static]"
@@ -262,10 +277,10 @@ run_checks() {
   fi
 
   # --- 総合判定 ---
-  local total_fail=$((static_fail + ai_fail))
+  local total_fail=$((deliv_fail + static_fail + ai_fail))
   echo ""
   if [[ $total_fail -gt 0 ]]; then
-    echo "=== $gate FAIL (static: $static_fail fail, ai: $ai_fail fail) ==="
+    echo "=== $gate FAIL (deliverable: $deliv_fail fail, static: $static_fail fail, ai: $ai_fail fail) ==="
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
     fi

@@ -7,17 +7,31 @@ set -eo pipefail
 
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
-# --- API契約ファイルを探す ---
-CONTRACT=""
-for pattern in "docs/design/L3-api-contract.yaml" "docs/design/L3-api-contract.yml" "docs/design/L3-api-contract.md"; do
+# --- API契約ファイルを探す（旧パス + 新パス） ---
+declare -a CONTRACTS=()
+
+# 旧パス
+for pattern in \
+  "docs/design/L3-api-contract.yaml" \
+  "docs/design/L3-api-contract.yml" \
+  "docs/design/L3-api-contract.md"; do
   if [[ -f "$PROJECT_ROOT/$pattern" ]]; then
-    CONTRACT="$PROJECT_ROOT/$pattern"
-    break
+    CONTRACTS+=("$PROJECT_ROOT/$pattern")
   fi
 done
 
-if [[ -z "$CONTRACT" ]]; then
-  echo "  SKIP: API契約ファイルなし（docs/design/L3-api-contract.*）"
+# 新パス（matrix compile 生成系）
+for feature_dir in "$PROJECT_ROOT"/docs/features/*/D-API; do
+  [[ ! -d "$feature_dir" ]] && continue
+  for name in "api-contract.yaml" "api-contract.yml" "api-contract.md"; do
+    if [[ -f "$feature_dir/$name" ]]; then
+      CONTRACTS+=("$feature_dir/$name")
+    fi
+  done
+done
+
+if [[ ${#CONTRACTS[@]} -eq 0 ]]; then
+  echo "  SKIP: API契約ファイルなし（docs/design/L3-api-contract.* / docs/features/*/D-API/api-contract.*）"
   exit 0
 fi
 
@@ -26,42 +40,45 @@ TMPSCRIPT=$(mktemp /tmp/helix-api-check-XXXXXX.py)
 trap 'rm -f "$TMPSCRIPT"' EXIT
 
 cat > "$TMPSCRIPT" << 'PYEOF'
-import re, sys, os
+import re, sys
 from pathlib import Path
 
-contract_path = sys.argv[1]
-project_root = sys.argv[2]
-
-# --- 契約からエンドポイント抽出 ---
-content = Path(contract_path).read_text()
+project_root = sys.argv[1]
+contract_paths = [Path(p) for p in sys.argv[2:]]
 contract_eps = set()
 
-ext = Path(contract_path).suffix
-if ext in ('.yaml', '.yml'):
+for contract_path in contract_paths:
     try:
-        import yaml
-        data = yaml.safe_load(content)
-        if isinstance(data, dict):
-            for key in ('contracts', 'endpoints', 'paths'):
-                items = data.get(key, [])
-                if isinstance(items, list):
-                    for item in items:
-                        if isinstance(item, dict):
-                            method = item.get('method', 'GET').upper()
-                            path = item.get('endpoint', item.get('path', ''))
-                            if path:
-                                contract_eps.add(f'{method} {path}')
-                elif isinstance(items, dict):
-                    for path, methods in items.items():
-                        if isinstance(methods, dict):
-                            for method in methods:
-                                if method.upper() in ('GET','POST','PUT','DELETE','PATCH'):
-                                    contract_eps.add(f'{method.upper()} {path}')
+        content = contract_path.read_text()
     except Exception:
-        pass
+        continue
 
-for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content):
-    contract_eps.add(f'{match.group(1)} {match.group(2)}')
+    ext = contract_path.suffix
+    if ext in ('.yaml', '.yml'):
+        try:
+            import yaml
+            data = yaml.safe_load(content)
+            if isinstance(data, dict):
+                for key in ('contracts', 'endpoints', 'paths'):
+                    items = data.get(key, [])
+                    if isinstance(items, list):
+                        for item in items:
+                            if isinstance(item, dict):
+                                method = item.get('method', 'GET').upper()
+                                path = item.get('endpoint', item.get('path', ''))
+                                if path:
+                                    contract_eps.add(f'{method} {path}')
+                    elif isinstance(items, dict):
+                        for path, methods in items.items():
+                            if isinstance(methods, dict):
+                                for method in methods:
+                                    if method.upper() in ('GET','POST','PUT','DELETE','PATCH'):
+                                        contract_eps.add(f'{method.upper()} {path}')
+        except Exception:
+            pass
+
+    for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content):
+        contract_eps.add(f'{match.group(1)} {match.group(2)}')
 
 if not contract_eps:
     print("  SKIP: API契約からエンドポイントを抽出できませんでした")
@@ -95,6 +112,7 @@ for f in src_root.rglob('*'):
             impl_eps.add(f'{method} {path}')
 
 # --- 突合 ---
+print(f"  API契約ファイル: {len(contract_paths)}")
 print(f"  API契約: {len(contract_eps)} endpoints")
 print(f"  実装:    {len(impl_eps)} endpoints")
 
@@ -121,4 +139,4 @@ if not contract_only and not impl_only:
 sys.exit(exit_code)
 PYEOF
 
-python3 "$TMPSCRIPT" "$CONTRACT" "$PROJECT_ROOT"
+python3 "$TMPSCRIPT" "$PROJECT_ROOT" "${CONTRACTS[@]}"

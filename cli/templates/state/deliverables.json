@@ -1,0 +1,152 @@
+{
+  "_meta": {
+    "purpose": "Runtime state template for deliverable completion status. Mutable state is separated from matrix.yaml.",
+    "generated_from": [
+      "cli/templates/matrix.yaml",
+      "cli/templates/rules/deliverables.yaml"
+    ],
+    "note": "JSON does not support comments, so purpose and origin are stored in _meta. Consumers must read only features and ignore top-level keys that start with underscore."
+  },
+  "features": {
+    "user-auth": {
+      "deliverables": {
+        "D-REQ-F": { "status": "pending", "updated_at": null },
+        "D-REQ-NF": { "status": "pending", "updated_at": null },
+        "D-ACC": { "status": "pending", "updated_at": null },
+        "D-RES": { "status": "pending", "updated_at": null },
+        "D-ARCH": { "status": "pending", "updated_at": null },
+        "D-ADR": { "status": "pending", "updated_at": null },
+        "D-THREAT": { "status": "pending", "updated_at": null },
+        "D-API": { "status": "pending", "updated_at": null },
+        "D-DB": { "status": "pending", "updated_at": null },
+        "D-MIG-PLAN": { "status": "pending", "updated_at": null },
+        "D-DEP": { "status": "pending", "updated_at": null },
+        "D-TEST": { "status": "pending", "updated_at": null },
+        "D-PLAN": { "status": "pending", "updated_at": null },
+        "D-IMPL": { "status": "pending", "updated_at": null },
+        "D-MIG": { "status": "pending", "updated_at": null },
+        "D-CONFIG": { "status": "pending", "updated_at": null },
+        "D-VIS": { "status": "pending", "updated_at": null },
+        "D-A11Y": { "status": "pending", "updated_at": null },
+        "D-E2E": { "status": "pending", "updated_at": null },
+        "D-PERF": { "status": "pending", "updated_at": null },
+        "D-SECV": { "status": "pending", "updated_at": null },
+        "D-OPS": { "status": "pending", "updated_at": null },
+        "D-DEPLOY": { "status": "pending", "updated_at": null },
+        "D-RELNOTE": { "status": "pending", "updated_at": null },
+        "D-OBS": { "status": "pending", "updated_at": null },
+        "D-UAT": { "status": "pending", "updated_at": null },
+        "D-HANDOVER": { "status": "pending", "updated_at": null },
+        "D-RETRO": { "status": "pending", "updated_at": null }
+      }
+    },
+    "payment": {
+      "deliverables": {
+        "D-REQ-F": { "status": "pending", "updated_at": null },
+        "D-REQ-NF": { "status": "pending", "updated_at": null },
+        "D-ACC": { "status": "pending", "updated_at": null },
+        "D-RES": { "status": "pending", "updated_at": null },
+        "D-ARCH": { "status": "pending", "updated_at": null },
+        "D-ADR": { "status": "pending", "updated_at": null },
+        "D-THREAT": { "status": "pending", "updated_at": null },
+        "D-API": { "status": "pending", "updated_at": null },
+        "D-DB": { "status": "pending", "updated_at": null },
+        "D-MIG-PLAN": { "status": "pending", "updated_at": null },
+        "D-DEP": { "status": "pending", "updated_at": null },
+        "D-TEST": { "status": "pending", "updated_at": null },
+        "D-PLAN": { "status": "pending", "updated_at": null },
+        "D-IMPL": { "status": "pending", "updated_at": null },
+        "D-MIG": { "status": "pending", "updated_at": null },
+        "D-CONFIG": { "status": "pending", "updated_at": null },
+        "D-E2E": { "status": "pending", "updated_at": null },
+        "D-PERF": { "status": "pending", "updated_at": null },
+        "D-SECV": { "status": "pending", "updated_at": null },
+        "D-OPS": { "status": "pending", "updated_at": null },
+        "D-DEPLOY": { "status": "pending", "updated_at": null },
+        "D-RELNOTE": { "status": "pending", "updated_at": null },
+        "D-OBS": { "status": "pending", "updated_at": null },
+        "D-UAT": { "status": "pending", "updated_at": null },
+        "D-HANDOVER": { "status": "pending", "updated_at": null },
+        "D-RETRO": { "status": "pending", "updated_at": null }
+      }
+    },
+    "identity-common": {
+      "deliverables": {
+        "D-REQ-F": { "status": "pending", "updated_at": null },
+        "D-REQ-NF": { "status": "pending", "updated_at": null },
+        "D-ACC": { "status": "pending", "updated_at": null },
+        "D-ARCH": { "status": "pending", "updated_at": null },
+        "D-ADR": { "status": "pending", "updated_at": null },
+        "D-THREAT": { "status": "pending", "updated_at": null },
+        "D-API": { "status": "pending", "updated_at": null },
+        "D-DB": { "status": "pending", "updated_at": null },
+        "D-DEP": { "status": "pending", "updated_at": null },
+        "D-TEST": { "status": "pending", "updated_at": null },
+        "D-PLAN": { "status": "pending", "updated_at": null },
+        "D-IMPL": { "status": "pending", "updated_at": null },
+        "D-CONFIG": { "status": "pending", "updated_at": null },
+        "D-E2E": { "status": "pending", "updated_at": null },
+        "D-SECV": { "status": "pending", "updated_at": null },
+        "D-OPS": { "status": "pending", "updated_at": null },
+        "D-DEPLOY": { "status": "pending", "updated_at": null },
+        "D-RELNOTE": { "status": "pending", "updated_at": null },
+        "D-OBS": { "status": "pending", "updated_at": null },
+        "D-HANDOVER": { "status": "pending", "updated_at": null },
+        "D-RETRO": { "status": "pending", "updated_at": null }
+      }
+    },
+    "billing-core": {
+      "deliverables": {
+        "D-REQ-F": { "status": "pending", "updated_at": null },
+        "D-REQ-NF": { "status": "pending", "updated_at": null },
+        "D-ACC": { "status": "pending", "updated_at": null },
+        "D-RES": { "status": "pending", "updated_at": null },
+        "D-ARCH": { "status": "pending", "updated_at": null },
+        "D-ADR": { "status": "pending", "updated_at": null },
+        "D-THREAT": { "status": "pending", "updated_at": null },
+        "D-API": { "status": "pending", "updated_at": null },
+        "D-DB": { "status": "pending", "updated_at": null },
+        "D-MIG-PLAN": { "status": "pending", "updated_at": null },
+        "D-DEP": { "status": "pending", "updated_at": null },
+        "D-TEST": { "status": "pending", "updated_at": null },
+        "D-PLAN": { "status": "pending", "updated_at": null },
+        "D-IMPL": { "status": "pending", "updated_at": null },
+        "D-MIG": { "status": "pending", "updated_at": null },
+        "D-CONFIG": { "status": "pending", "updated_at": null },
+        "D-E2E": { "status": "pending", "updated_at": null },
+        "D-PERF": { "status": "pending", "updated_at": null },
+        "D-SECV": { "status": "pending", "updated_at": null },
+        "D-OPS": { "status": "pending", "updated_at": null },
+        "D-DEPLOY": { "status": "pending", "updated_at": null },
+        "D-RELNOTE": { "status": "pending", "updated_at": null },
+        "D-OBS": { "status": "pending", "updated_at": null },
+        "D-HANDOVER": { "status": "pending", "updated_at": null },
+        "D-RETRO": { "status": "pending", "updated_at": null }
+      }
+    },
+    "observability-core": {
+      "deliverables": {
+        "D-REQ-F": { "status": "pending", "updated_at": null },
+        "D-REQ-NF": { "status": "pending", "updated_at": null },
+        "D-ACC": { "status": "pending", "updated_at": null },
+        "D-ARCH": { "status": "pending", "updated_at": null },
+        "D-ADR": { "status": "pending", "updated_at": null },
+        "D-THREAT": { "status": "pending", "updated_at": null },
+        "D-DEP": { "status": "pending", "updated_at": null },
+        "D-TEST": { "status": "pending", "updated_at": null },
+        "D-PLAN": { "status": "pending", "updated_at": null },
+        "D-IMPL": { "status": "pending", "updated_at": null },
+        "D-CONFIG": { "status": "pending", "updated_at": null },
+        "D-PERF": { "status": "pending", "updated_at": null },
+        "D-SECV": { "status": "pending", "updated_at": null },
+        "D-OPS": { "status": "pending", "updated_at": null },
+        "D-DEPLOY": { "status": "pending", "updated_at": null },
+        "D-RELNOTE": { "status": "pending", "updated_at": null },
+        "D-OBS": { "status": "pending", "updated_at": null },
+        "D-UAT": { "status": "pending", "updated_at": null },
+        "D-HANDOVER": { "status": "pending", "updated_at": null },
+        "D-RETRO": { "status": "pending", "updated_at": null }
+      }
+    }
+  }
+}

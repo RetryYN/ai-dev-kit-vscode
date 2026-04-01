@@ -1,4 +1,10 @@
-# doc-map.yaml — ドキュメント駆動ゲートのマッピング正本
+# doc-map.yaml — ドキュメント駆動ゲートのマッピング
+#
+# ⚠ このファイルは後方互換用テンプレートです。
+# 新規プロジェクトでは `helix matrix init && helix matrix compile` で
+# matrix.yaml から自動生成してください。
+# matrix compile で生成された doc-map.yaml が優先されます。
+#
 # プロジェクトルートの .helix/doc-map.yaml にコピーして使う
 #
 # pattern: glob パターン（プロジェクトルートからの相対パス）

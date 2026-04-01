@@ -1,0 +1,129 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-matrix: matrix.yaml ベースの生成/検証ユーティリティ
+# Usage: helix-matrix <init|compile|validate|status> [options]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+TEMPLATES_DIR="$SCRIPT_DIR/templates"
+COMPILER="$SCRIPT_DIR/lib/matrix_compiler.py"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix matrix <subcommand> [options]
+
+Subcommands:
+  init       templates から .helix/matrix.yaml + .helix/rules/ を生成
+             Options: --force
+  compile    matrix.yaml + rules から派生ファイルを生成
+             Options: --force
+  validate   matrix.yaml の構造検証（必須キー/ID/循環参照）
+  status     feature x deliverable の状態一覧を表示
+
+Examples:
+  helix matrix init
+  helix matrix compile
+  helix matrix compile --force
+  helix matrix validate
+  helix matrix status
+USAGE
+}
+
+copy_template() {
+  local src="$1"
+  local dst="$2"
+  local force="$3"
+  if [[ ! -f "$src" ]]; then
+    echo "エラー: テンプレートが見つかりません: $src" >&2
+    exit 1
+  fi
+  if [[ -f "$dst" && "$force" != true ]]; then
+    echo "  skip: ${dst#$PROJECT_ROOT/} (already exists)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  echo "  created: ${dst#$PROJECT_ROOT/}"
+}
+
+run_init() {
+  local force=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force) force=true; shift ;;
+      --help|-h) usage; exit 0 ;;
+      *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  mkdir -p "$HELIX_DIR" "$HELIX_DIR/rules" "$HELIX_DIR/state" "$HELIX_DIR/runtime"
+  echo "=== HELIX Matrix Init ==="
+  copy_template "$TEMPLATES_DIR/matrix.yaml" "$HELIX_DIR/matrix.yaml" "$force"
+  copy_template "$TEMPLATES_DIR/rules/deliverables.yaml" "$HELIX_DIR/rules/deliverables.yaml" "$force"
+  copy_template "$TEMPLATES_DIR/rules/structure.yaml" "$HELIX_DIR/rules/structure.yaml" "$force"
+  copy_template "$TEMPLATES_DIR/rules/naming.yaml" "$HELIX_DIR/rules/naming.yaml" "$force"
+  copy_template "$TEMPLATES_DIR/rules/common-defs.yaml" "$HELIX_DIR/rules/common-defs.yaml" "$force"
+  echo "完了: matrix テンプレートを初期化しました"
+}
+
+run_compile() {
+  local force=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force) force=true; shift ;;
+      --help|-h) usage; exit 0 ;;
+      *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    esac
+  done
+
+  if [[ ! -f "$HELIX_DIR/matrix.yaml" ]]; then
+    echo "エラー: $HELIX_DIR/matrix.yaml が見つかりません。先に 'helix matrix init' を実行してください。" >&2
+    exit 1
+  fi
+
+  mkdir -p "$HELIX_DIR/state" "$HELIX_DIR/runtime"
+  if [[ "$force" == true ]]; then
+    python3 "$COMPILER" --project-root "$PROJECT_ROOT" compile --force
+  else
+    python3 "$COMPILER" --project-root "$PROJECT_ROOT" compile
+  fi
+}
+
+run_validate() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h) usage; exit 0 ;;
+      *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    esac
+  done
+  python3 "$COMPILER" --project-root "$PROJECT_ROOT" validate
+}
+
+run_status() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h) usage; exit 0 ;;
+      *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    esac
+  done
+  python3 "$COMPILER" --project-root "$PROJECT_ROOT" status
+}
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  init) run_init "$@" ;;
+  compile) run_compile "$@" ;;
+  validate) run_validate "$@" ;;
+  status) run_status "$@" ;;
+  help|-h|--help) usage ;;
+  *)
+    echo "エラー: 不明なサブコマンドです: $CMD" >&2
+    usage
+    exit 1
+    ;;
+esac

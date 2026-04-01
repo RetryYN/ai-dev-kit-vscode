@@ -1,0 +1,124 @@
+# matrix.yaml — Deliverable matrix spec template (immutable declaration source)
+# Generated from: docs/adr/ADR-001-deliverable-matrix-as-source-of-truth.md
+#
+# Notes:
+# - status は意図的に含めない。可変状態は .helix/state/deliverables.json に保持する
+# - 本 YAML は compile 前提の宣言入力。yaml_parser.py では直接扱わない
+# - `features` キーは後方互換のため残しているが、Phase 1 では scope instance catalog として扱う
+
+project:
+  size: M
+  default_drive: be
+  roots:
+    docs_root: docs
+    src_root: src
+  ruleset_version: v1
+
+features:
+  user-auth:
+    drive: be
+    scope: feature
+    risk_flags:
+      - auth
+      - pii
+    ui: true
+    docs_root: docs/features/user-auth
+    src_root: src/features/user-auth
+    requires:
+      L1: [D-REQ-F, D-REQ-NF, D-ACC, D-RES]
+      L2: [D-ARCH, D-ADR, D-THREAT]
+      L3: [D-API, D-DB, D-MIG-PLAN, D-DEP, D-TEST, D-PLAN]
+      L4: [D-IMPL, D-MIG, D-CONFIG]
+      L5: [D-VIS, D-A11Y]
+      L6: [D-E2E, D-PERF, D-SECV, D-OPS]
+      L7: [D-DEPLOY, D-RELNOTE, D-OBS]
+      L8: [D-UAT, D-HANDOVER, D-RETRO]
+    shared_uses:
+      - identity-common
+      - observability-core
+
+  payment:
+    drive: be
+    scope: feature
+    risk_flags:
+      - payment
+      - pii
+      - external_api
+    ui: false
+    docs_root: docs/features/payment
+    src_root: src/features/payment
+    requires:
+      L1: [D-REQ-F, D-REQ-NF, D-ACC, D-RES]
+      L2: [D-ARCH, D-ADR, D-THREAT]
+      L3: [D-API, D-DB, D-MIG-PLAN, D-DEP, D-TEST, D-PLAN]
+      L4: [D-IMPL, D-MIG, D-CONFIG]
+      L6: [D-E2E, D-PERF, D-SECV, D-OPS]
+      L7: [D-DEPLOY, D-RELNOTE, D-OBS]
+      L8: [D-UAT, D-HANDOVER, D-RETRO]
+    shared_uses:
+      - identity-common
+      - billing-core
+      - observability-core
+
+  identity-common:
+    drive: be
+    scope: shared
+    risk_flags:
+      - auth
+      - pii
+    ui: false
+    docs_root: docs/shared/identity-common
+    src_root: src/shared/identity-common
+    requires:
+      L1: [D-REQ-F, D-REQ-NF, D-ACC]
+      L2: [D-ARCH, D-ADR, D-THREAT]
+      L3: [D-API, D-DB, D-DEP, D-TEST, D-PLAN]
+      L4: [D-IMPL, D-CONFIG]
+      L6: [D-E2E, D-SECV, D-OPS]
+      L7: [D-DEPLOY, D-RELNOTE, D-OBS]
+      L8: [D-HANDOVER, D-RETRO]
+    shared_uses:
+      - observability-core
+
+  billing-core:
+    drive: be
+    scope: shared
+    risk_flags:
+      - payment
+      - external_api
+    ui: false
+    docs_root: docs/shared/billing-core
+    src_root: src/shared/billing-core
+    requires:
+      L1: [D-REQ-F, D-REQ-NF, D-ACC, D-RES]
+      L2: [D-ARCH, D-ADR, D-THREAT]
+      L3: [D-API, D-DB, D-MIG-PLAN, D-DEP, D-TEST, D-PLAN]
+      L4: [D-IMPL, D-MIG, D-CONFIG]
+      L6: [D-E2E, D-PERF, D-SECV, D-OPS]
+      L7: [D-DEPLOY, D-RELNOTE, D-OBS]
+      L8: [D-HANDOVER, D-RETRO]
+    shared_uses:
+      - observability-core
+
+  observability-core:
+    drive: be
+    scope: platform
+    risk_flags: []
+    ui: false
+    docs_root: docs/platform/observability-core
+    src_root: src/platform/observability-core
+    requires:
+      L1: [D-REQ-F, D-REQ-NF, D-ACC]
+      L2: [D-ARCH, D-ADR, D-THREAT]
+      L3: [D-DEP, D-TEST, D-PLAN]
+      L4: [D-IMPL, D-CONFIG]
+      L6: [D-PERF, D-SECV, D-OPS]
+      L7: [D-DEPLOY, D-RELNOTE, D-OBS]
+      L8: [D-UAT, D-HANDOVER, D-RETRO]
+    shared_uses: []
+
+waivers:
+  - feature_id: observability-core
+    deliverable_id: D-UAT
+    reason: "platform scope has no direct end-user workflow; acceptance is performed via dependent feature UAT evidence in advisory phase"
+    approved_by: "PO"

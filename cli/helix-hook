@@ -29,6 +29,24 @@ fi
 # 相対パスに変換
 REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
 
+# --- Matrix Advisory Check ---
+check_matrix_advisory() {
+  local file="$1"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+  local STATE="$HELIX_DIR/state/deliverables.json"
+
+  [[ ! -f "$INDEX" ]] && return 0
+
+  # advisory only: 失敗しても hook 全体を止めない
+  if ! python3 "$SCRIPT_DIR/lib/matrix_advisor.py" \
+    --index "$INDEX" \
+    --state "$STATE" \
+    --file "$file" \
+    --project-root "$PROJECT_ROOT"; then
+    :
+  fi
+}
+
 # --- YAML からトリガーを検索 (Python パーサー) ---
 match_trigger() {
   local file="$1"
@@ -211,7 +229,10 @@ check_freeze_violation() {
 
   # G2 passed = 設計凍結
   if [[ "$g2_status" == "passed" ]]; then
-    if glob_match "$file" "docs/design/L2-.*"; then
+    if glob_match "$file" "docs/design/L2-.*" \
+      || glob_match "$file" "docs/features/.*/D-ARCH/.*" \
+      || glob_match "$file" "docs/features/.*/D-ADR/.*" \
+      || glob_match "$file" "docs/features/.*/D-THREAT/.*"; then
       echo "[helix-hook] WARN: 設計凍結違反 — G2 passed 後に $file を変更"
       cascade_invalidate "G3" "G4" "G5" "G6" "G7"
     fi
@@ -219,7 +240,9 @@ check_freeze_violation() {
 
   # G3 passed = API凍結
   if [[ "$g3_status" == "passed" ]]; then
-    if glob_match "$file" "src/api/.*"; then
+    if glob_match "$file" "src/api/.*" \
+      || glob_match "$file" "docs/features/.*/D-API/.*" \
+      || glob_match "$file" "src/features/.*/D-IMPL/.*"; then
       echo "[helix-hook] WARN: API凍結違反 — G3 passed 後に $file を変更"
       cascade_invalidate "G4" "G5" "G6" "G7"
     fi
@@ -288,6 +311,7 @@ check_adr_index() {
 }
 
 # --- 実行 ---
+check_matrix_advisory "$REL_PATH"
 check_freeze_violation "$REL_PATH"
 check_adr_index "$REL_PATH"
 match_trigger "$REL_PATH"

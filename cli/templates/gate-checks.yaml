@@ -1,6 +1,10 @@
 # gate-checks.yaml — ゲートごとの自動チェック定義
-# プロジェクトルートの .helix/gate-checks.yaml にコピーして使う
 #
+# ⚠ このファイルは後方互換用テンプレートです。
+# 新規プロジェクトでは `helix matrix init && helix matrix compile` で
+# matrix.yaml から自動生成してください。
+#
+# プロジェクトルートの .helix/gate-checks.yaml にコピーして使う
 # static: シェルコマンド（exit 0 = pass, 非0 = fail）
 # ai: helix-codex で実行する AI 検証
 #   role: helix-codex のロール

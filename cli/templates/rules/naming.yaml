@@ -1,0 +1,39 @@
+# naming.yaml — Scope/deliverable/file naming rules for matrix-based templates
+# Generated from: docs/adr/ADR-001-deliverable-matrix-as-source-of-truth.md
+#
+# Notes:
+# - compile 対象は .helix/runtime/index.json。yaml_parser.py では直接扱わない
+# - Phase 1 では `features.<id>` が shared/platform も収容するため、feature_id 規則は scope instance ID 全体に適用する
+
+feature_id:
+  style: kebab-case
+  regex: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+  max_length: 48
+  examples_valid: [user-auth, payment, identity-common, observability-core]
+  examples_invalid: [UserAuth, payment_v2, shared/common, auth.]
+
+deliverable_id:
+  style: "D-{CATEGORY}"
+  regex: "^D-[A-Z0-9]+(?:-[A-Z0-9]+)*$"
+  examples_valid: [D-ARCH, D-MIG-PLAN, D-A11Y-VERIFY]
+  examples_invalid: [d-arch, D_arch, ARCH, D-arch]
+
+file_naming:
+  docs:
+    style: lower-kebab-case
+    regex: "^[a-z0-9]+(?:-[a-z0-9]+)*\\.(md|ya?ml|json)$"
+    examples: [requirements.md, api-contract.yaml, threat-model.md]
+  runtime:
+    style: fixed-name
+    allowed: [deliverables.json, index.json]
+  src:
+    style: stack-conventional within deliverable directory
+    regex: "^[A-Za-z0-9._-]+$"
+    note: "ディレクトリ名は deliverable ID を維持し、内側のファイル名だけ言語/フレームワーク慣習に従う"
+
+path_regex:
+  docs_scope: "^docs/(features|shared|platform)/[a-z][a-z0-9]*(?:-[a-z0-9]+)*/D-[A-Z0-9]+(?:-[A-Z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*\\.(md|ya?ml|json)$"
+  src_scope: "^src/(features|shared|platform)/[a-z][a-z0-9]*(?:-[a-z0-9]+)*/D-[A-Z0-9]+(?:-[A-Z0-9]+)*/[^/]+$"
+  infra_scope: "^infra/[a-z][a-z0-9]*(?:-[a-z0-9]+)*/D-[A-Z0-9]+(?:-[A-Z0-9]+)*/[^/]+$"
+  state_file: "^\\.helix/state/deliverables\\.json$"
+  runtime_index: "^\\.helix/runtime/index\\.json$"

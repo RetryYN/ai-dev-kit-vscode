@@ -1,0 +1,226 @@
+# structure.yaml — Scope directory templates and deliverable path mapping
+# Generated from: docs/adr/ADR-001-deliverable-matrix-as-source-of-truth.md + Deliverable Catalog v1
+#
+# Notes:
+# - compile 対象は .helix/runtime/index.json。yaml_parser.py では直接扱わない
+# - path_mapping は primary artifact の既定パターンを定義し、必要に応じて alternate_paths/capture_globs を併記する
+
+roots:
+  docs_root: docs
+  src_root: src
+  infra_root: infra
+  state_root: .helix/state
+  runtime_root: .helix/runtime
+
+scope_templates:
+  feature:
+    docs_scope_root: "{docs_root}/features/{scope_id}"
+    src_scope_root: "{src_root}/features/{scope_id}"
+    deliverable_dirs:
+      docs: "{docs_scope_root}/{deliverable_id}"
+      src: "{src_scope_root}/{deliverable_id}"
+
+  shared:
+    docs_scope_root: "{docs_root}/shared/{scope_id}"
+    src_scope_root: "{src_root}/shared/{scope_id}"
+    deliverable_dirs:
+      docs: "{docs_scope_root}/{deliverable_id}"
+      src: "{src_scope_root}/{deliverable_id}"
+
+  platform:
+    docs_scope_root: "{docs_root}/platform/{scope_id}"
+    src_scope_root: "{src_root}/platform/{scope_id}"
+    alternate_src_scope_roots:
+      - "{infra_root}/{scope_id}"
+    deliverable_dirs:
+      docs: "{docs_scope_root}/{deliverable_id}"
+      src: "{src_scope_root}/{deliverable_id}"
+
+path_mapping:
+  D-REQ-F:
+    root: docs
+    primary_path: "{docs_scope_root}/D-REQ-F/requirements.md"
+  D-REQ-NF:
+    root: docs
+    primary_path: "{docs_scope_root}/D-REQ-NF/nfr.md"
+  D-ACC:
+    root: docs
+    primary_path: "{docs_scope_root}/D-ACC/acceptance.md"
+  D-RES:
+    root: docs
+    primary_path: "{docs_scope_root}/D-RES/research.md"
+  D-ARCH:
+    root: docs
+    primary_path: "{docs_scope_root}/D-ARCH/architecture.md"
+  D-ADR:
+    root: docs
+    primary_path: "{docs_scope_root}/D-ADR/adr.md"
+  D-THREAT:
+    root: docs
+    primary_path: "{docs_scope_root}/D-THREAT/threat-model.md"
+  D-VIS-ARCH:
+    root: docs
+    primary_path: "{docs_scope_root}/D-VIS-ARCH/visual-architecture.md"
+  D-DATA-ARCH:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DATA-ARCH/data-architecture.md"
+  D-ORCH-ARCH:
+    root: docs
+    primary_path: "{docs_scope_root}/D-ORCH-ARCH/orchestration-architecture.md"
+  D-API:
+    root: docs
+    primary_path: "{docs_scope_root}/D-API/api-contract.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-DB:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DB/db-schema.md"
+  D-MIG-PLAN:
+    root: docs
+    primary_path: "{docs_scope_root}/D-MIG-PLAN/migration-plan.md"
+  D-DEP:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DEP/dependency-map.md"
+  D-TEST:
+    root: docs
+    primary_path: "{docs_scope_root}/D-TEST/test-design.md"
+  D-PLAN:
+    root: docs
+    primary_path: "{docs_scope_root}/D-PLAN/implementation-plan.md"
+  D-UI:
+    root: docs
+    primary_path: "{docs_scope_root}/D-UI/ui-spec.md"
+  D-STATE:
+    root: docs
+    primary_path: "{docs_scope_root}/D-STATE/state-model.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-API-CONS:
+    root: docs
+    primary_path: "{docs_scope_root}/D-API-CONS/api-consumption.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-DATA-ACCESS:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DATA-ACCESS/data-access.md"
+  D-TOOL:
+    root: docs
+    primary_path: "{docs_scope_root}/D-TOOL/tool-contract.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-PROMPT:
+    root: docs
+    primary_path: "{docs_scope_root}/D-PROMPT/prompt-contract.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-EVAL-PLAN:
+    root: docs
+    primary_path: "{docs_scope_root}/D-EVAL-PLAN/evaluation-plan.yaml"
+    allowed_extensions: [yaml, yml, json]
+  D-IMPL:
+    root: src
+    primary_path: "{src_scope_root}/D-IMPL/{filename}"
+    default_filenames: [manifest.json]
+    capture_globs:
+      - "{src_scope_root}/D-IMPL/**/*"
+    alternate_paths:
+      - "{infra_root}/{scope_id}/D-IMPL/{filename}"
+  D-MIG:
+    root: src
+    primary_path: "{src_scope_root}/D-MIG/{filename}"
+    default_filenames: [manifest.json]
+    capture_globs:
+      - "{src_scope_root}/D-MIG/**/*"
+      - "{infra_root}/{scope_id}/D-MIG/**/*"
+  D-CONFIG:
+    root: src
+    primary_path: "{src_scope_root}/D-CONFIG/{filename}"
+    default_filenames: [config.example.yaml]
+    capture_globs:
+      - "{src_scope_root}/D-CONFIG/**/*"
+      - "{infra_root}/{scope_id}/D-CONFIG/**/*"
+  D-VIS:
+    root: docs
+    primary_path: "{docs_scope_root}/D-VIS/visual-review.md"
+  D-A11Y:
+    root: docs
+    primary_path: "{docs_scope_root}/D-A11Y/accessibility-design.md"
+  D-UX-SIGNOFF:
+    root: docs
+    primary_path: "{docs_scope_root}/D-UX-SIGNOFF/ux-signoff.md"
+  D-DEMO:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DEMO/demo-script.md"
+  D-E2E:
+    root: docs
+    primary_path: "{docs_scope_root}/D-E2E/e2e-report.md"
+  D-PERF:
+    root: docs
+    primary_path: "{docs_scope_root}/D-PERF/performance-report.md"
+  D-SECV:
+    root: docs
+    primary_path: "{docs_scope_root}/D-SECV/security-verification.md"
+  D-OPS:
+    root: docs
+    primary_path: "{docs_scope_root}/D-OPS/operations-readiness.md"
+  D-A11Y-VERIFY:
+    root: docs
+    primary_path: "{docs_scope_root}/D-A11Y-VERIFY/accessibility-report.md"
+  D-DATA-VERIFY:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DATA-VERIFY/data-verification.md"
+  D-EVAL:
+    root: docs
+    primary_path: "{docs_scope_root}/D-EVAL/evaluation-report.md"
+  D-DEPLOY:
+    root: docs
+    primary_path: "{docs_scope_root}/D-DEPLOY/deploy-manifest.md"
+    alternate_paths:
+      - "{infra_root}/{scope_id}/D-DEPLOY/{filename}"
+  D-RELNOTE:
+    root: docs
+    primary_path: "{docs_scope_root}/D-RELNOTE/release-notes.md"
+  D-OBS:
+    root: docs
+    primary_path: "{docs_scope_root}/D-OBS/observability.md"
+    alternate_paths:
+      - "{infra_root}/{scope_id}/D-OBS/{filename}"
+  D-UAT:
+    root: docs
+    primary_path: "{docs_scope_root}/D-UAT/uat-report.md"
+  D-HANDOVER:
+    root: docs
+    primary_path: "{docs_scope_root}/D-HANDOVER/handover.md"
+  D-RETRO:
+    root: docs
+    primary_path: "{docs_scope_root}/D-RETRO/retro.md"
+
+unregistered_detection:
+  include:
+    - "{src_root}/features/**/*"
+    - "{src_root}/shared/**/*"
+    - "{src_root}/platform/**/*"
+    - "{infra_root}/**/*"
+  exclude:
+    - "**/node_modules/**/*"
+    - "**/vendor/**/*"
+    - "**/dist/**/*"
+    - "**/build/**/*"
+    - "**/coverage/**/*"
+    - "**/*.test.*"
+    - "**/*.spec.*"
+    - "**/*.snap"
+    - "**/.DS_Store"
+  rules:
+    - name: scope-root-must-exist-in-matrix
+      match: "{src_root}/{scope_collection}/{scope_id}/**/*"
+      action: warn_when_scope_id_is_missing_from_matrix
+    - name: deliverable-dir-must-exist-in-catalog
+      match: "{src_root}/{scope_collection}/{scope_id}/D-*/**/*"
+      action: warn_when_deliverable_id_is_missing_from_catalog
+    - name: platform-infra-ownership
+      match: "{infra_root}/{scope_id}/**/*"
+      action: allow_only_when_scope_is_platform
+    - name: generated-runtime-output
+      match: "{runtime_root}/**/*"
+      action: ignore
+    - name: shared-use-reference-consistency
+      match: "{src_root}/shared/{scope_id}/**/*"
+      action: warn_when_neither_declared_nor_referenced_by_shared_uses
+  report_fields: [path, inferred_scope, inferred_deliverable, reason, suggested_matrix_entry]
+  advisory_only: true

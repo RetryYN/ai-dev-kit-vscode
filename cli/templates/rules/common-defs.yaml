@@ -1,0 +1,53 @@
+# common-defs.yaml — Shared vocabulary for deliverable matrix templates
+# Generated from: docs/adr/ADR-001-deliverable-matrix-as-source-of-truth.md + HELIX gate vocabulary
+#
+# Notes:
+# - compile 対象は .helix/runtime/index.json。yaml_parser.py では直接扱わない
+# - Phase 1 は advisory only。語彙は先に固定し、block 化は後続フェーズで段階導入する
+
+nfr_categories:
+  - availability
+  - security
+  - performance
+  - operability
+  - maintainability
+  - reliability
+  - observability
+  - scalability
+  - compliance
+
+risk_flags:
+  auth:
+    description: 認証・認可・資格情報・セッション境界に影響する変更
+    forces_gates: [G2, G4]
+  payment:
+    description: 課金・決済・返金・請求に影響する変更
+    forces_gates: [G2, G4, G6]
+  pii:
+    description: 個人情報の収集・保存・転送・表示に影響する変更
+    forces_gates: [G2, G6]
+  external_api:
+    description: 外部 API / SaaS との連携追加または変更
+    forces_gates: [G1R, G3, G6]
+  data_migration:
+    description: データ移行・再計算・破壊的変更を伴う変更
+    forces_gates: [G3, G4, G6]
+  infra:
+    description: ネットワーク・ランタイム・デプロイ基盤の変更
+    forces_gates: [G2, G6, G7]
+
+status_vocab:
+  pending: 未着手
+  in_progress: 進行中
+  done: 完了
+  waived: 例外承認により完了扱い
+  not_applicable: 適用外
+  partial: 一部充足だが gate 通過条件未達
+
+glossary:
+  matrix_yaml: 人間が編集する不変 spec。成果物の適用対象と必須性を宣言する
+  runtime_state: ".helix/state/deliverables.json。status や検証時刻などの可変状態を保持する"
+  deliverable_catalog: Deliverable Catalog v1。利用可能な成果物 ID と gate 所有を定義する規約
+  scope_instance: "feature/shared/platform の各 ID 単位。Phase 1 では features.<id> 配下で表現する"
+  waiver: "適用対象だが例外承認する宣言。reason と approved_by を必須とする"
+  advisory_mode: "不足や不整合を警告するが、Phase 1 ではゲートをブロックしない運用"
