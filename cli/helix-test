@@ -91,6 +91,28 @@ run_test_contains "state/runtime dirs created" "test -d .helix/state && test -d 
 run_test_contains "matrix compile guidance shown" "$SCRIPT_DIR/helix-init --force" "matrix compile で成果物対照表を有効化"
 echo ""
 
+echo "[helix-plan]"
+mkdir -p docs/features/user-auth/D-ARCH
+echo "# user auth architecture" > docs/features/user-auth/D-ARCH/architecture.md
+run_test "plan draft" "$SCRIPT_DIR/helix-plan draft --title 'ユーザー認証のAPI設計' --file docs/features/user-auth/D-ARCH/architecture.md"
+run_test_contains "plan yaml generated" "test -f .helix/plans/PLAN-001.yaml && echo OK" "OK"
+run_test_contains "plan list output" "$SCRIPT_DIR/helix-plan list" "PLAN-001"
+run_test "plan finalize blocked without review" "$SCRIPT_DIR/helix-plan finalize --id PLAN-001" 1
+run_test_contains "plan status output" "$SCRIPT_DIR/helix-plan status --id PLAN-001" "Review:"
+
+cat > "$TEST_DIR/mock-helix-codex" << 'EOF'
+#!/bin/bash
+cat << 'JSON'
+{"verdict":"approve","summary":"設計は妥当です。","findings":[],"next_steps":["finalize を実行してください。"]}
+JSON
+EOF
+chmod +x "$TEST_DIR/mock-helix-codex"
+
+run_test "plan review with mock" "HELIX_CODEX=$TEST_DIR/mock-helix-codex $SCRIPT_DIR/helix-plan review --id PLAN-001"
+run_test_contains "plan review json saved" "test -f .helix/reviews/plans/PLAN-001.json && echo OK" "OK"
+run_test "plan finalize after approve" "$SCRIPT_DIR/helix-plan finalize --id PLAN-001"
+echo ""
+
 echo "[helix-size]"
 run_test_contains "S bugfix" "$SCRIPT_DIR/helix-size --files 1 --lines 20 --type bugfix" "サイズ:     S"
 run_test_contains "M new-feature" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ:     M"
@@ -110,6 +132,17 @@ run_test_contains "sprint status" "$SCRIPT_DIR/helix-sprint status" ".1b"
 # full cycle
 for i in 1 2 3 4 5; do $SCRIPT_DIR/helix-sprint next >/dev/null 2>&1; done
 run_test_contains "sprint completed" "$SCRIPT_DIR/helix-sprint status" "Sprint 完了"
+echo ""
+
+echo "[helix-interrupt]"
+run_test "interrupt start" "$SCRIPT_DIR/helix-interrupt start --reason 'DB設計が機能単位で足りない' --kind design_gap --scope user-auth"
+run_test_contains "interrupt record created" "test -f .helix/interrupts/INT-001/record.yaml && echo OK" "OK"
+run_test_contains "interrupt sprint interrupted" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.status" "interrupted"
+run_test_contains "interrupt status list" "$SCRIPT_DIR/helix-interrupt status" "INT-001"
+run_test "interrupt resume before apply fails" "$SCRIPT_DIR/helix-interrupt resume --id INT-001" 1
+run_test_contains "interrupt classification P1" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/interrupts/INT-001/record.yaml classification" "P1"
+run_test "interrupt cancel" "$SCRIPT_DIR/helix-interrupt cancel --id INT-001"
+run_test_contains "interrupt sprint active after cancel" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.status" "active"
 echo ""
 
 echo "[helix-gate]"
@@ -180,6 +213,48 @@ mkdir -p docs/adr
 echo "# ADR-001: Test" > docs/adr/ADR-001.md
 run_test_contains "ADR index" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/adr/ADR-001.md" "ADR index"
 run_test_contains "ADR index content" "cat docs/adr/index.md" "ADR-001"
+echo ""
+
+echo "[helix-hook phase guard]"
+mkdir -p src/features/phase-guard docs/adr
+echo "const guarded = true;" > src/features/phase-guard/main.ts
+echo "# ADR-099: Phase Guard" > docs/adr/ADR-099.md
+
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase L1 2>/dev/null || true
+for gate in G1 G2 G3 G4 G5 G6 G7; do
+  python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.${gate}.status" pending 2>/dev/null || true
+done
+run_test "phase guard block L1 src/features" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts" 1
+
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase L1 2>/dev/null || true
+for gate in G1 G2 G3 G4 G5 G6 G7; do
+  python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.${gate}.status" pending 2>/dev/null || true
+done
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G1.status passed 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G2.status passed 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed 2>/dev/null || true
+run_test "phase guard allow after G3 passed" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts"
+
+mv .helix/phase.yaml .helix/phase.yaml.bak
+run_test "phase guard disabled when phase missing" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts"
+mv .helix/phase.yaml.bak .helix/phase.yaml
+
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase L1 2>/dev/null || true
+for gate in G1 G2 G3 G4 G5 G6 G7; do
+  python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.${gate}.status" pending 2>/dev/null || true
+done
+run_test "phase guard bypass HELIX_GUARD=off" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts"
+
+run_test "phase guard allow docs/adr" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/adr/ADR-099.md"
+
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase null 2>/dev/null || true
+for gate in G1 G2 G3 G4 G5 G6 G7; do
+  python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.${gate}.status" pending 2>/dev/null || true
+done
+run_test "phase guard block unsized src" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts" 1
+run_test_contains "phase guard unsized message" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts 2>&1 || true" "サイジングが必要"
+
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase L1 2>/dev/null || true
 echo ""
 
 echo "[helix-status]"

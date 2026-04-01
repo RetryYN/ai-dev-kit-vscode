@@ -31,6 +31,12 @@
 
 > **Reverse モード**: 既存コードからの設計復元は SKILL_MAP.md §Phase R / `workflow/reverse-analysis/SKILL.md` を参照。Forward とは別のサイジング・ゲート体系（R0→R4→Forward→RGC）を使用。
 
+## 設計提案
+
+- ユーザーへの技術提案前に `helix plan draft → review → finalize` を実施
+- TL approve なしで finalize 不可
+- 詳細は `workflow-core.md §設計提案レビュー` 参照
+
 ## 原則
 
 - **エスカレーション**: 本番影響・認証・決済・個人情報・ライセンス → 必ず人間に確認

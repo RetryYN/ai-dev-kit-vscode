@@ -1,0 +1,890 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-interrupt: IIP / CC の割り込み管理
+# Usage: helix interrupt <start|apply|resume|status|cancel> [options]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+INTERRUPTS_DIR="$HELIX_DIR/interrupts"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+MATRIX_FILE="$HELIX_DIR/matrix.yaml"
+STATE_FILE="$HELIX_DIR/state/deliverables.json"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix interrupt <subcommand> [options]
+
+Subcommands:
+  start    interrupt を作成し sprint.status を interrupted にする
+           Options: --reason <text> --kind <design_gap|new_requirement|constraint|po_change> [--scope <scope-id>]
+  apply    matrix 変更提案を適用し matrix compile を実行する
+           Options: --id <INT-NNN>
+  resume   追加成果物・再ゲートを確認して sprint を再開する
+           Options: --id <INT-NNN>
+  status   interrupt 一覧/詳細を表示する
+           Options: [--id <INT-NNN>] [--json]
+  cancel   誤検知 interrupt を取消し sprint を active に戻す
+           Options: --id <INT-NNN>
+
+Examples:
+  helix interrupt start --reason "DB設計が足りない" --kind design_gap --scope user-auth
+  helix interrupt apply --id INT-001
+  helix interrupt resume --id INT-001
+  helix interrupt status
+  helix interrupt status --id INT-001 --json
+  helix interrupt cancel --id INT-001
+USAGE
+}
+
+ensure_helix_ready() {
+  if [[ ! -d "$HELIX_DIR" ]]; then
+    echo "エラー: .helix/ が見つかりません。先に 'helix init' を実行してください。" >&2
+    exit 1
+  fi
+  if [[ ! -f "$PHASE_FILE" ]]; then
+    echo "エラー: phase.yaml が見つかりません: $PHASE_FILE" >&2
+    exit 1
+  fi
+}
+
+yaml_read() {
+  local file="$1"
+  local dotpath="$2"
+  python3 "$YAML_PARSER" read "$file" "$dotpath" 2>/dev/null || true
+}
+
+yaml_write() {
+  local file="$1"
+  local dotpath="$2"
+  local value="$3"
+  python3 "$YAML_PARSER" write "$file" "$dotpath" "$value" >/dev/null 2>&1
+}
+
+normalize_null() {
+  local value="$1"
+  case "$value" in
+    ""|"null"|"None"|"~") echo "" ;;
+    *) echo "$value" ;;
+  esac
+}
+
+validate_interrupt_id() {
+  local id="$1"
+  if [[ ! "$id" =~ ^INT-[0-9]{3,}$ ]]; then
+    echo "エラー: 不正な interrupt id です: $id (例: INT-001)" >&2
+    exit 1
+  fi
+}
+
+interrupt_dir() {
+  local id="$1"
+  echo "$INTERRUPTS_DIR/$id"
+}
+
+record_file() {
+  local id="$1"
+  echo "$INTERRUPTS_DIR/$id/record.yaml"
+}
+
+ensure_interrupt_exists() {
+  local id="$1"
+  local rec
+  rec="$(record_file "$id")"
+  if [[ ! -f "$rec" ]]; then
+    echo "エラー: interrupt が見つかりません: $id" >&2
+    exit 1
+  fi
+}
+
+next_interrupt_id() {
+  local max_num=0
+  local d base num
+  mkdir -p "$INTERRUPTS_DIR"
+  shopt -s nullglob
+  for d in "$INTERRUPTS_DIR"/INT-*; do
+    [[ ! -d "$d" ]] && continue
+    base="$(basename "$d")"
+    num="${base#INT-}"
+    if [[ "$num" =~ ^[0-9]+$ ]]; then
+      num=$((10#$num))
+      if (( num > max_num )); then
+        max_num="$num"
+      fi
+    fi
+  done
+  shopt -u nullglob
+  printf "INT-%03d" $((max_num + 1))
+}
+
+classify_iip() {
+  local kind="$1"
+  case "$kind" in
+    design_gap) echo "P1" ;;
+    new_requirement) echo "P2" ;;
+    constraint) echo "P1" ;;
+    po_change) echo "P3" ;;
+    *)
+      echo "エラー: kind が不正です: $kind" >&2
+      exit 1
+      ;;
+  esac
+}
+
+classify_cc() {
+  local kind="$1"
+  case "$kind" in
+    design_gap) echo "CC-M" ;;
+    new_requirement) echo "CC-M" ;;
+    constraint) echo "CC-S" ;;
+    po_change) echo "CC-L" ;;
+    *)
+      echo "エラー: kind が不正です: $kind" >&2
+      exit 1
+      ;;
+  esac
+}
+
+resume_step_for() {
+  local classification="$1"
+  local sprint_step="$2"
+  case "$classification" in
+    P0)
+      sprint_step="$(normalize_null "$sprint_step")"
+      if [[ -n "$sprint_step" ]]; then
+        echo "$sprint_step"
+      else
+        echo ".1a"
+      fi
+      ;;
+    P1|P2|CC-S|CC-M) echo ".1a" ;;
+    P3|CC-L) echo "null" ;;
+    *) echo ".1a" ;;
+  esac
+}
+
+write_record_yaml() {
+  local out_file="$1"
+  local id="$2"
+  local reason="$3"
+  local kind="$4"
+  local scope="$5"
+  local classification="$6"
+  local created_at="$7"
+  local sprint_step="$8"
+  local resume_step="$9"
+  python3 - <<'PY' "$out_file" "$id" "$reason" "$kind" "$scope" "$classification" "$created_at" "$sprint_step" "$resume_step"
+import json
+import sys
+from pathlib import Path
+
+out_file = Path(sys.argv[1])
+id_ = sys.argv[2]
+reason = sys.argv[3]
+kind = sys.argv[4]
+scope = sys.argv[5]
+classification = sys.argv[6]
+created_at = sys.argv[7]
+sprint_step = sys.argv[8]
+resume_step = sys.argv[9]
+
+def q(text: str) -> str:
+    return json.dumps(text, ensure_ascii=False)
+
+scope_line = "null" if scope == "" else q(scope)
+sprint_step_line = "null" if sprint_step == "" else q(sprint_step)
+resume_step_line = "null" if resume_step in ("", "null") else q(resume_step)
+
+content = f"""id: {id_}
+reason: {q(reason)}
+kind: {kind}
+scope: {scope_line}
+classification: {classification}
+status: open
+created_at: {q(created_at)}
+sprint_step_at_interrupt: {sprint_step_line}
+affected_deliverables: []
+matrix_changes: []
+plan_changes: []
+resume_step: {resume_step_line}
+"""
+out_file.parent.mkdir(parents=True, exist_ok=True)
+out_file.write_text(content, encoding="utf-8")
+PY
+}
+
+collect_scope_proposal_json() {
+  local scope="$1"
+  local classification="$2"
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$MATRIX_FILE" "$STATE_FILE" "$scope" "$classification"
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1]).resolve()
+matrix_file = Path(sys.argv[2]).resolve()
+state_file = Path(sys.argv[3]).resolve()
+scope = sys.argv[4]
+classification = sys.argv[5]
+
+sys.path.insert(0, str(lib_dir))
+
+result = {
+    "matrix_exists": matrix_file.exists(),
+    "registered": False,
+    "scope": scope,
+    "classification": classification,
+    "layers": [],
+    "suggested": [],
+    "incomplete": [],
+    "error": "",
+}
+
+if not matrix_file.exists():
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+try:
+    from matrix_compiler import load_yaml
+except Exception as exc:
+    result["error"] = f"matrix_compiler import failed: {exc}"
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+try:
+    matrix = load_yaml(matrix_file)
+except Exception as exc:
+    result["error"] = f"matrix parse failed: {exc}"
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+if not isinstance(matrix, dict):
+    result["error"] = "matrix.yaml top-level is not mapping"
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+features = matrix.get("features", {})
+if not isinstance(features, dict):
+    result["error"] = "matrix.features is not mapping"
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+feature = features.get(scope)
+if not isinstance(feature, dict):
+    print(json.dumps(result, ensure_ascii=False))
+    sys.exit(0)
+
+result["registered"] = True
+
+layers_by_class = {
+    "P0": [],
+    "P1": ["L4"],
+    "P2": ["L3", "L4"],
+    "P3": ["L1", "L2", "L3", "L4"],
+    "CC-S": ["L4"],
+    "CC-M": ["L3", "L4"],
+    "CC-L": ["L1", "L2", "L3", "L4"],
+}
+layers = layers_by_class.get(classification, ["L4"])
+result["layers"] = layers
+
+requires = feature.get("requires", {})
+suggested = []
+if isinstance(requires, dict):
+    for layer in layers:
+        ids = requires.get(layer, [])
+        if not isinstance(ids, list):
+            continue
+        for did in ids:
+            if isinstance(did, str) and did not in suggested:
+                suggested.append(did)
+result["suggested"] = suggested
+
+state_payload = {}
+if state_file.exists():
+    try:
+        state_payload = json.loads(state_file.read_text(encoding="utf-8"))
+    except Exception:
+        state_payload = {}
+
+feature_deliverables = {}
+if isinstance(state_payload, dict):
+    state_features = state_payload.get("features", {})
+    if isinstance(state_features, dict):
+        state_feature = state_features.get(scope, {})
+        if isinstance(state_feature, dict):
+            deliverables = state_feature.get("deliverables", {})
+            if isinstance(deliverables, dict):
+                feature_deliverables = deliverables
+
+complete_statuses = {"done", "waived", "not_applicable"}
+incomplete = []
+for did in suggested:
+    status = "pending"
+    entry = feature_deliverables.get(did)
+    if isinstance(entry, dict):
+        raw = entry.get("status", "pending")
+        if raw is not None:
+            status = str(raw)
+    elif isinstance(entry, str):
+        status = entry
+    if status not in complete_statuses:
+        incomplete.append({"id": did, "status": status})
+result["incomplete"] = incomplete
+
+print(json.dumps(result, ensure_ascii=False))
+PY
+}
+
+print_scope_proposal() {
+  local proposal_json="$1"
+  python3 - <<'PY' "$proposal_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+scope = payload.get("scope", "")
+classification = payload.get("classification", "")
+
+if payload.get("error"):
+    print(f"[helix-interrupt] WARN: matrix 読み取り失敗: {payload['error']}")
+    sys.exit(0)
+
+if not payload.get("matrix_exists"):
+    print("[helix-interrupt] matrix.yaml が未作成です。先に 'helix matrix init' を実行してください。")
+    sys.exit(0)
+
+if not payload.get("registered"):
+    print(f"[helix-interrupt] scope '{scope}' は matrix.yaml に未登録です。")
+    print("[helix-interrupt] matrix.yaml を人間が編集し、必要 deliverable を定義してください。")
+    sys.exit(0)
+
+layers = payload.get("layers", [])
+suggested = payload.get("suggested", [])
+incomplete = payload.get("incomplete", [])
+
+layer_text = ", ".join(layers) if layers else "なし"
+print(f"[helix-interrupt] 追加 deliverable 提案: scope={scope}, classification={classification}, layers={layer_text}")
+if suggested:
+    print("[helix-interrupt]   提案:", ", ".join(suggested))
+else:
+    print("[helix-interrupt]   提案: なし")
+
+if incomplete:
+    preview = ", ".join(f"{item.get('id')}({item.get('status')})" for item in incomplete[:8])
+    if len(incomplete) > 8:
+        preview += f", ... +{len(incomplete)-8}"
+    print(f"[helix-interrupt]   未完了: {preview}")
+PY
+}
+
+proposal_field() {
+  local proposal_json="$1"
+  local key="$2"
+  python3 - <<'PY' "$proposal_json" "$key"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+key = sys.argv[2]
+value = payload.get(key)
+if isinstance(value, bool):
+    print("true" if value else "false")
+elif value is None:
+    print("")
+else:
+    print(value)
+PY
+}
+
+proposal_suggested_yaml() {
+  local proposal_json="$1"
+  python3 - <<'PY' "$proposal_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+suggested = payload.get("suggested", [])
+if not isinstance(suggested, list) or not suggested:
+    print("[]")
+else:
+    items = ",".join(str(x) for x in suggested if isinstance(x, str))
+    print(f"[{items}]")
+PY
+}
+
+proposal_incomplete_count() {
+  local proposal_json="$1"
+  python3 - <<'PY' "$proposal_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+items = payload.get("incomplete", [])
+if isinstance(items, list):
+    print(len(items))
+else:
+    print(0)
+PY
+}
+
+collect_record_files() {
+  if [[ ! -d "$INTERRUPTS_DIR" ]]; then
+    return 0
+  fi
+  shopt -s nullglob
+  local records=("$INTERRUPTS_DIR"/INT-*/record.yaml)
+  shopt -u nullglob
+  if [[ ${#records[@]} -eq 0 ]]; then
+    return 0
+  fi
+  printf "%s\n" "${records[@]}" | sort
+}
+
+emit_status_json() {
+  local target_id="${1:-}"
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$INTERRUPTS_DIR" "$target_id"
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1]).resolve()
+interrupt_dir = Path(sys.argv[2]).resolve()
+target_id = sys.argv[3]
+
+sys.path.insert(0, str(lib_dir))
+
+try:
+    from matrix_compiler import load_yaml
+except Exception:
+    print("[]" if not target_id else "{}")
+    sys.exit(0)
+
+records = []
+if interrupt_dir.exists():
+    for rec in sorted(interrupt_dir.glob("INT-*/record.yaml")):
+        try:
+            data = load_yaml(rec)
+        except Exception:
+            continue
+        if isinstance(data, dict):
+            data["_file"] = str(rec)
+            records.append(data)
+
+if target_id:
+    for item in records:
+        if str(item.get("id", "")) == target_id:
+            print(json.dumps(item, ensure_ascii=False, indent=2))
+            sys.exit(0)
+    print("{}")
+else:
+    print(json.dumps(records, ensure_ascii=False, indent=2))
+PY
+}
+
+require_gate_passed() {
+  local gate="$1"
+  local status
+  status="$(yaml_read "$PHASE_FILE" "gates.${gate}.status")"
+  status="$(normalize_null "$status")"
+  if [[ "$status" != "passed" ]]; then
+    echo "エラー: resume には ${gate}=passed が必要です (現在: ${status:-pending})" >&2
+    exit 1
+  fi
+}
+
+validate_additional_deliverables() {
+  local scope="$1"
+  local classification="$2"
+
+  scope="$(normalize_null "$scope")"
+  if [[ -z "$scope" ]]; then
+    return 0
+  fi
+
+  local proposal_json
+  proposal_json="$(collect_scope_proposal_json "$scope" "$classification")"
+
+  local matrix_exists
+  matrix_exists="$(proposal_field "$proposal_json" "matrix_exists")"
+  if [[ "$matrix_exists" != "true" ]]; then
+    echo "エラー: matrix.yaml がないため追加成果物の完了確認ができません" >&2
+    exit 1
+  fi
+
+  local registered
+  registered="$(proposal_field "$proposal_json" "registered")"
+  if [[ "$registered" != "true" ]]; then
+    echo "エラー: scope '$scope' が matrix.yaml に未登録のため追加成果物確認ができません" >&2
+    exit 1
+  fi
+
+  local incomplete_count
+  incomplete_count="$(proposal_incomplete_count "$proposal_json")"
+  if [[ "$incomplete_count" -gt 0 ]]; then
+    print_scope_proposal "$proposal_json"
+    echo "エラー: 追加成果物に未完了があります。done/waived/not_applicable に更新後に resume してください。" >&2
+    exit 1
+  fi
+}
+
+cmd_start() {
+  ensure_helix_ready
+
+  local reason=""
+  local kind=""
+  local scope=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --reason)
+        reason="${2:-}"
+        shift 2
+        ;;
+      --kind)
+        kind="${2:-}"
+        shift 2
+        ;;
+      --scope)
+        scope="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$reason" ]]; then
+    echo "エラー: --reason は必須です" >&2
+    exit 1
+  fi
+  if [[ -z "$kind" ]]; then
+    echo "エラー: --kind は必須です" >&2
+    exit 1
+  fi
+  case "$kind" in
+    design_gap|new_requirement|constraint|po_change) ;;
+    *)
+      echo "エラー: --kind は design_gap|new_requirement|constraint|po_change のいずれかです" >&2
+      exit 1
+      ;;
+  esac
+
+  mkdir -p "$INTERRUPTS_DIR"
+
+  local id rec_dir rec_file
+  id="$(next_interrupt_id)"
+  rec_dir="$(interrupt_dir "$id")"
+  rec_file="$(record_file "$id")"
+  mkdir -p "$rec_dir"
+
+  local sprint_step g4_status classification resume_step created_at
+  sprint_step="$(yaml_read "$PHASE_FILE" "sprint.current_step")"
+  sprint_step="$(normalize_null "$sprint_step")"
+  g4_status="$(yaml_read "$PHASE_FILE" "gates.G4.status")"
+  g4_status="$(normalize_null "$g4_status")"
+
+  classification="$(classify_iip "$kind")"
+  if [[ "$g4_status" == "passed" ]]; then
+    classification="$(classify_cc "$kind")"
+  fi
+
+  resume_step="$(resume_step_for "$classification" "$sprint_step")"
+  created_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  write_record_yaml "$rec_file" "$id" "$reason" "$kind" "$scope" "$classification" "$created_at" "$sprint_step" "$resume_step"
+  yaml_write "$PHASE_FILE" "sprint.status" "interrupted"
+
+  echo "[helix-interrupt] created: .helix/interrupts/$id/record.yaml"
+  echo "[helix-interrupt] classification: $classification"
+  echo "[helix-interrupt] sprint.status: interrupted"
+  if [[ "$classification" == "P3" || "$classification" == "CC-L" ]]; then
+    echo "[helix-interrupt] 人間エスカレーションが必要です（resume は不可）"
+  fi
+}
+
+cmd_apply() {
+  ensure_helix_ready
+
+  local id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        id="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_interrupt_id "$id"
+  ensure_interrupt_exists "$id"
+
+  local rec status scope classification
+  rec="$(record_file "$id")"
+  status="$(yaml_read "$rec" "status")"
+  status="$(normalize_null "$status")"
+  if [[ "$status" != "open" ]]; then
+    echo "エラー: apply 可能な status は open のみです (現在: ${status:-unknown})" >&2
+    exit 1
+  fi
+
+  scope="$(yaml_read "$rec" "scope")"
+  scope="$(normalize_null "$scope")"
+  classification="$(yaml_read "$rec" "classification")"
+  classification="$(normalize_null "$classification")"
+
+  if [[ -n "$scope" ]]; then
+    local proposal_json suggested_yaml
+    proposal_json="$(collect_scope_proposal_json "$scope" "$classification")"
+    print_scope_proposal "$proposal_json"
+    suggested_yaml="$(proposal_suggested_yaml "$proposal_json")"
+    yaml_write "$rec" "affected_deliverables" "$suggested_yaml"
+  else
+    echo "[helix-interrupt] scope 未指定のため、deliverable 提案をスキップしました"
+  fi
+
+  echo "[helix-interrupt] matrix.yaml の仕様更新は人間編集が原則です（必要なら .helix/matrix.yaml を編集してください）"
+  echo "[helix-interrupt] 実行: helix matrix compile"
+  "$SCRIPT_DIR/helix" matrix compile
+
+  yaml_write "$rec" "status" "applied"
+  echo "[helix-interrupt] status: $id -> applied"
+}
+
+cmd_resume() {
+  ensure_helix_ready
+
+  local id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        id="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_interrupt_id "$id"
+  ensure_interrupt_exists "$id"
+
+  local rec status classification scope resume_step fallback_step
+  rec="$(record_file "$id")"
+  status="$(yaml_read "$rec" "status")"
+  status="$(normalize_null "$status")"
+  if [[ "$status" != "applied" ]]; then
+    echo "エラー: resume 可能な status は applied のみです (現在: ${status:-unknown})" >&2
+    exit 1
+  fi
+
+  classification="$(yaml_read "$rec" "classification")"
+  classification="$(normalize_null "$classification")"
+  scope="$(yaml_read "$rec" "scope")"
+  scope="$(normalize_null "$scope")"
+
+  case "$classification" in
+    P2)
+      require_gate_passed "G2"
+      require_gate_passed "G3"
+      ;;
+    P3|CC-L)
+      echo "エラー: classification=$classification は人間エスカレーションが必要です。resume できません。" >&2
+      exit 1
+      ;;
+    CC-S)
+      require_gate_passed "G4"
+      ;;
+    CC-M)
+      require_gate_passed "G3"
+      ;;
+  esac
+
+  validate_additional_deliverables "$scope" "$classification"
+
+  resume_step="$(yaml_read "$rec" "resume_step")"
+  resume_step="$(normalize_null "$resume_step")"
+  if [[ -z "$resume_step" ]]; then
+    fallback_step="$(yaml_read "$rec" "sprint_step_at_interrupt")"
+    resume_step="$(normalize_null "$fallback_step")"
+  fi
+  if [[ -n "$resume_step" ]]; then
+    yaml_write "$PHASE_FILE" "sprint.current_step" "$resume_step"
+  fi
+
+  yaml_write "$PHASE_FILE" "sprint.status" "active"
+  yaml_write "$rec" "status" "resumed"
+
+  echo "[helix-interrupt] sprint.status: active"
+  if [[ -n "$resume_step" ]]; then
+    echo "[helix-interrupt] sprint.current_step: $resume_step"
+  fi
+  echo "[helix-interrupt] status: $id -> resumed"
+}
+
+cmd_status() {
+  ensure_helix_ready
+
+  local id=""
+  local output_json=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        id="${2:-}"
+        shift 2
+        ;;
+      --json)
+        output_json=true
+        shift
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -n "$id" ]]; then
+    validate_interrupt_id "$id"
+    ensure_interrupt_exists "$id"
+    if [[ "$output_json" == true ]]; then
+      emit_status_json "$id"
+      return
+    fi
+
+    local rec
+    rec="$(record_file "$id")"
+    echo "ID:            $(yaml_read "$rec" "id")"
+    echo "Reason:        $(yaml_read "$rec" "reason")"
+    echo "Kind:          $(yaml_read "$rec" "kind")"
+    echo "Scope:         $(yaml_read "$rec" "scope")"
+    echo "Classification:$(yaml_read "$rec" "classification")"
+    echo "Status:        $(yaml_read "$rec" "status")"
+    echo "Created At:    $(yaml_read "$rec" "created_at")"
+    echo "Interrupted At:$(yaml_read "$rec" "sprint_step_at_interrupt")"
+    echo "Resume Step:   $(yaml_read "$rec" "resume_step")"
+    echo "Deliverables:  $(yaml_read "$rec" "affected_deliverables")"
+    return
+  fi
+
+  if [[ "$output_json" == true ]]; then
+    emit_status_json ""
+    return
+  fi
+
+  local records
+  records="$(collect_record_files)"
+  if [[ -z "$records" ]]; then
+    echo "interrupt は登録されていません。"
+    return
+  fi
+
+  printf "%-10s | %-10s | %-14s | %-16s | %-18s\n" "ID" "Status" "Class" "Kind" "Scope"
+  printf -- "--------------------------------------------------------------------------------\n"
+  while IFS= read -r rec; do
+    [[ -z "$rec" ]] && continue
+    local rid rstatus rclass rkind rscope
+    rid="$(yaml_read "$rec" "id")"
+    rstatus="$(yaml_read "$rec" "status")"
+    rclass="$(yaml_read "$rec" "classification")"
+    rkind="$(yaml_read "$rec" "kind")"
+    rscope="$(yaml_read "$rec" "scope")"
+    printf "%-10s | %-10s | %-14s | %-16s | %-18s\n" "$rid" "$rstatus" "$rclass" "$rkind" "${rscope:--}"
+  done <<< "$records"
+}
+
+cmd_cancel() {
+  ensure_helix_ready
+
+  local id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        id="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_interrupt_id "$id"
+  ensure_interrupt_exists "$id"
+
+  local rec status
+  rec="$(record_file "$id")"
+  status="$(yaml_read "$rec" "status")"
+  status="$(normalize_null "$status")"
+  if [[ "$status" == "resumed" || "$status" == "cancelled" ]]; then
+    echo "エラー: status=$status の interrupt は cancel できません" >&2
+    exit 1
+  fi
+
+  yaml_write "$PHASE_FILE" "sprint.status" "active"
+  yaml_write "$rec" "status" "cancelled"
+
+  echo "[helix-interrupt] sprint.status: active"
+  echo "[helix-interrupt] status: $id -> cancelled"
+}
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  start) cmd_start "$@" ;;
+  apply) cmd_apply "$@" ;;
+  resume) cmd_resume "$@" ;;
+  status) cmd_status "$@" ;;
+  cancel) cmd_cancel "$@" ;;
+  help|-h|--help) usage ;;
+  *)
+    echo "エラー: 不明なサブコマンドです: $CMD" >&2
+    usage
+    exit 1
+    ;;
+esac

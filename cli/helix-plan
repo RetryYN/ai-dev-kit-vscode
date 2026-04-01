@@ -1,0 +1,602 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-plan: 設計提案の下書き/レビュー/確定を管理
+# Usage: helix plan <draft|review|finalize|list|status> [options]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+PLAN_DIR="$HELIX_DIR/plans"
+REVIEW_DIR="$HELIX_DIR/reviews/plans"
+YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+HELIX_CODEX="${HELIX_CODEX:-$SCRIPT_DIR/helix-codex}"
+REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix plan <subcommand> [options]
+
+Subcommands:
+  draft      プラン下書きを作成
+             Options: --title <title> [--file <path>]
+  review     TL レビューを実行し結果を保存
+             Options: --id <PLAN-NNN>
+  finalize   approve 済みプランを確定
+             Options: --id <PLAN-NNN>
+  list       プラン一覧を表示
+  status     プラン詳細を表示
+             Options: --id <PLAN-NNN>
+
+Examples:
+  helix plan draft --title "ユーザー認証のAPI設計" --file docs/features/user-auth/D-ARCH/architecture.md
+  helix plan review --id PLAN-001
+  helix plan finalize --id PLAN-001
+  helix plan list
+  helix plan status --id PLAN-001
+USAGE
+}
+
+ensure_dirs() {
+  mkdir -p "$PLAN_DIR" "$REVIEW_DIR"
+}
+
+validate_plan_id() {
+  local id="$1"
+  if [[ ! "$id" =~ ^PLAN-[0-9]{3,}$ ]]; then
+    echo "エラー: 不正な plan id です: $id (例: PLAN-001)" >&2
+    exit 1
+  fi
+}
+
+plan_file_path() {
+  local id="$1"
+  echo "$PLAN_DIR/$id.yaml"
+}
+
+ensure_plan_exists() {
+  local id="$1"
+  local plan_file
+  plan_file="$(plan_file_path "$id")"
+  if [[ ! -f "$plan_file" ]]; then
+    echo "エラー: プランが見つかりません: $id" >&2
+    exit 1
+  fi
+}
+
+yaml_read() {
+  local file="$1"
+  local dotpath="$2"
+  python3 "$YAML_PARSER" read "$file" "$dotpath" 2>/dev/null || true
+}
+
+yaml_write() {
+  local file="$1"
+  local dotpath="$2"
+  local value="$3"
+  python3 "$YAML_PARSER" write "$file" "$dotpath" "$value" >/dev/null 2>&1
+}
+
+next_plan_id() {
+  local max_num=0
+  local f base num
+  shopt -s nullglob
+  for f in "$PLAN_DIR"/PLAN-*.yaml; do
+    base="$(basename "$f" .yaml)"
+    num="${base#PLAN-}"
+    if [[ "$num" =~ ^[0-9]+$ ]]; then
+      num=$((10#$num))
+      if (( num > max_num )); then
+        max_num=$num
+      fi
+    fi
+  done
+  shopt -u nullglob
+  printf "PLAN-%03d" $((max_num + 1))
+}
+
+build_review_prompt() {
+  local plan_id="$1"
+  local title="$2"
+  local source_file="$3"
+  local prompt=""
+
+  if [[ -n "$source_file" && "$source_file" != "null" ]]; then
+    local source_path="$source_file"
+    if [[ "$source_path" != /* ]]; then
+      source_path="$PROJECT_ROOT/$source_path"
+    fi
+    if [[ -f "$source_path" ]]; then
+      local source_preview
+      source_preview="$(python3 - <<'PY' "$source_path"
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="replace")
+limit = 24000
+print(text[:limit])
+PY
+)"
+      prompt=$(cat <<EOF
+設計提案レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+- source_file: $source_file
+
+評価観点:
+- 技術妥当性
+- リスク（API/DB/認証/外部API/移行/セキュリティ）
+- 実装可能性と欠落事項
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+
+設計案本文:
+$source_preview
+EOF
+)
+    else
+      prompt=$(cat <<EOF
+設計提案レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+- source_file: $source_file (ファイル未検出のためタイトルベースで判断)
+
+評価観点:
+- 技術妥当性
+- リスク（API/DB/認証/外部API/移行/セキュリティ）
+- 実装可能性と欠落事項
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+EOF
+)
+    fi
+  else
+    prompt=$(cat <<EOF
+設計提案レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+
+評価観点:
+- 技術妥当性
+- リスク（API/DB/認証/外部API/移行/セキュリティ）
+- 実装可能性と欠落事項
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+EOF
+)
+  fi
+
+  printf "%s" "$prompt"
+}
+
+extract_and_validate_review_json() {
+  local raw_output_file="$1"
+  local out_json_file="$2"
+  python3 - <<'PY' "$raw_output_file" "$out_json_file" "$REVIEW_SCHEMA"
+import json
+import sys
+from pathlib import Path
+
+
+def validate_review_schema(obj, schema):
+    errors = []
+    if not isinstance(obj, dict):
+        return ["Top-level JSON must be an object."]
+
+    required = set(schema.get("required", []))
+    allowed = set(schema.get("properties", {}).keys())
+
+    missing = sorted(required - set(obj.keys()))
+    if missing:
+        errors.append(f"Missing top-level keys: {', '.join(missing)}")
+
+    extra = sorted(set(obj.keys()) - allowed)
+    if extra:
+        errors.append(f"Unexpected top-level keys: {', '.join(extra)}")
+
+    verdict = obj.get("verdict")
+    verdict_enum = schema["properties"]["verdict"].get("enum", [])
+    if verdict not in verdict_enum:
+        errors.append(f"verdict must be one of: {verdict_enum}")
+
+    summary = obj.get("summary")
+    if not isinstance(summary, str) or not summary.strip():
+        errors.append("summary must be a non-empty string")
+
+    findings = obj.get("findings")
+    if not isinstance(findings, list):
+        errors.append("findings must be an array")
+        findings = []
+
+    finding_schema = schema["properties"]["findings"]["items"]
+    f_required = set(finding_schema.get("required", []))
+    f_allowed = set(finding_schema.get("properties", {}).keys())
+    severity_enum = finding_schema["properties"]["severity"].get("enum", [])
+
+    for idx, finding in enumerate(findings):
+        prefix = f"findings[{idx}]"
+        if not isinstance(finding, dict):
+            errors.append(f"{prefix} must be an object")
+            continue
+        missing_f = sorted(f_required - set(finding.keys()))
+        if missing_f:
+            errors.append(f"{prefix} missing keys: {', '.join(missing_f)}")
+        extra_f = sorted(set(finding.keys()) - f_allowed)
+        if extra_f:
+            errors.append(f"{prefix} unexpected keys: {', '.join(extra_f)}")
+
+        severity = finding.get("severity")
+        if severity not in severity_enum:
+            errors.append(f"{prefix}.severity must be one of: {severity_enum}")
+
+        for key in ("title", "body", "file"):
+            value = finding.get(key)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{prefix}.{key} must be a non-empty string")
+
+        for key in ("line_start", "line_end"):
+            value = finding.get(key)
+            if not isinstance(value, int) or value < 1:
+                errors.append(f"{prefix}.{key} must be an integer >= 1")
+
+        conf = finding.get("confidence")
+        if not isinstance(conf, (int, float)) or conf < 0 or conf > 1:
+            errors.append(f"{prefix}.confidence must be between 0 and 1")
+
+        recommendation = finding.get("recommendation")
+        if recommendation is not None and not isinstance(recommendation, str):
+            errors.append(f"{prefix}.recommendation must be a string")
+
+        helix_phase = finding.get("helix_phase")
+        if helix_phase is not None and not isinstance(helix_phase, str):
+            errors.append(f"{prefix}.helix_phase must be a string")
+
+    next_steps = obj.get("next_steps")
+    if not isinstance(next_steps, list):
+        errors.append("next_steps must be an array")
+    else:
+        for i, step in enumerate(next_steps):
+            if not isinstance(step, str) or not step.strip():
+                errors.append(f"next_steps[{i}] must be a non-empty string")
+
+    return errors
+
+
+raw_file = Path(sys.argv[1])
+out_file = Path(sys.argv[2])
+schema_file = Path(sys.argv[3])
+
+text = raw_file.read_text(encoding="utf-8", errors="replace")
+schema = json.loads(schema_file.read_text(encoding="utf-8"))
+
+decoder = json.JSONDecoder()
+candidates = []
+for idx, ch in enumerate(text):
+    if ch != "{":
+        continue
+    try:
+        obj, end = decoder.raw_decode(text[idx:])
+    except json.JSONDecodeError:
+        continue
+    if isinstance(obj, dict):
+        candidates.append(obj)
+
+if not candidates:
+    print("No JSON object found in TL review output.", file=sys.stderr)
+    sys.exit(1)
+
+valid = None
+last_errors = []
+for candidate in reversed(candidates):
+    errors = validate_review_schema(candidate, schema)
+    if not errors:
+        valid = candidate
+        break
+    last_errors = errors
+
+if valid is None:
+    print("No schema-compliant review JSON found.", file=sys.stderr)
+    for err in last_errors:
+        print(f"- {err}", file=sys.stderr)
+    sys.exit(1)
+
+out_file.parent.mkdir(parents=True, exist_ok=True)
+out_file.write_text(
+    json.dumps(valid, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
+print(valid.get("verdict", ""))
+PY
+}
+
+cmd_draft() {
+  local title=""
+  local source_file=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --title)
+        title="$2"
+        shift 2
+        ;;
+      --file)
+        source_file="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$title" ]]; then
+    echo "エラー: --title は必須です" >&2
+    exit 1
+  fi
+
+  ensure_dirs
+
+  local plan_id plan_file created_at
+  plan_id="$(next_plan_id)"
+  plan_file="$PLAN_DIR/$plan_id.yaml"
+  created_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  python3 - <<'PY' "$plan_file" "$plan_id" "$title" "$created_at" "$source_file"
+import json
+import sys
+from pathlib import Path
+
+plan_file = Path(sys.argv[1])
+plan_id = sys.argv[2]
+title = sys.argv[3]
+created_at = sys.argv[4]
+source_file = sys.argv[5]
+
+def q(s):
+    return json.dumps(s, ensure_ascii=False)
+
+source_line = "null" if source_file == "" else q(source_file)
+
+content = f"""id: {plan_id}
+title: {q(title)}
+status: draft
+created_at: {q(created_at)}
+source_file: {source_line}
+finalized_at: null
+review:
+  status: pending
+  reviewed_at: null
+  review_file: null
+"""
+plan_file.parent.mkdir(parents=True, exist_ok=True)
+plan_file.write_text(content, encoding="utf-8")
+PY
+
+  echo "作成: ${plan_file#$PROJECT_ROOT/}"
+  echo "ID: $plan_id"
+}
+
+cmd_review() {
+  local plan_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        plan_id="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_plan_id "$plan_id"
+  ensure_plan_exists "$plan_id"
+  ensure_dirs
+
+  local plan_file
+  plan_file="$(plan_file_path "$plan_id")"
+
+  local current_status
+  current_status="$(yaml_read "$plan_file" "status")"
+  if [[ "$current_status" != "draft" && "$current_status" != "reviewed" && "$current_status" != "rejected" ]]; then
+    echo "エラー: review 可能な status は draft/reviewed/rejected のみです (現在: $current_status)" >&2
+    exit 1
+  fi
+
+  local title source_file review_prompt
+  title="$(yaml_read "$plan_file" "title")"
+  source_file="$(yaml_read "$plan_file" "source_file")"
+  review_prompt="$(build_review_prompt "$plan_id" "$title" "$source_file")"
+
+  local raw_output_file review_output
+  raw_output_file="$(mktemp /tmp/helix-plan-review-XXXXXX.log)"
+  trap 'rm -f "$raw_output_file"' RETURN
+
+  set +e
+  review_output=$("$HELIX_CODEX" --role tl --task "$review_prompt" 2>&1)
+  local cmd_exit=$?
+  set -e
+  printf "%s\n" "$review_output" > "$raw_output_file"
+
+  if [[ $cmd_exit -ne 0 ]]; then
+    echo "エラー: TL review の実行に失敗しました (exit=$cmd_exit)" >&2
+    tail -n 20 "$raw_output_file" >&2
+    exit $cmd_exit
+  fi
+
+  local review_file review_rel verdict reviewed_at
+  review_file="$REVIEW_DIR/$plan_id.json"
+  review_rel=".helix/reviews/plans/$plan_id.json"
+  verdict="$(extract_and_validate_review_json "$raw_output_file" "$review_file")"
+  reviewed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  yaml_write "$plan_file" "review.status" "$verdict"
+  yaml_write "$plan_file" "review.reviewed_at" "$reviewed_at"
+  yaml_write "$plan_file" "review.review_file" "$review_rel"
+
+  if [[ "$verdict" == "approve" ]]; then
+    yaml_write "$plan_file" "status" "reviewed"
+  else
+    yaml_write "$plan_file" "status" "rejected"
+  fi
+
+  echo "レビュー完了: $plan_id ($verdict)"
+  echo "保存: ${review_file#$PROJECT_ROOT/}"
+}
+
+cmd_finalize() {
+  local plan_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        plan_id="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_plan_id "$plan_id"
+  ensure_plan_exists "$plan_id"
+
+  local plan_file review_status
+  plan_file="$(plan_file_path "$plan_id")"
+  review_status="$(yaml_read "$plan_file" "review.status")"
+
+  if [[ "$review_status" != "approve" ]]; then
+    echo "エラー: TL review が approve ではないため finalize できません (review.status=$review_status)" >&2
+    exit 1
+  fi
+
+  local finalized_at
+  finalized_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  yaml_write "$plan_file" "status" "finalized"
+  yaml_write "$plan_file" "finalized_at" "$finalized_at"
+
+  echo "finalize 完了: $plan_id"
+}
+
+cmd_list() {
+  ensure_dirs
+
+  local files=()
+  shopt -s nullglob
+  files=("$PLAN_DIR"/PLAN-*.yaml)
+  shopt -u nullglob
+
+  if [[ ${#files[@]} -eq 0 ]]; then
+    echo "プランは登録されていません。"
+    return
+  fi
+
+  printf "%-10s | %-36s | %-10s | %-16s\n" "ID" "Title" "Status" "Review"
+  printf -- "--------------------------------------------------------------------------------\n"
+  local f id title status review_status
+  for f in $(printf "%s\n" "${files[@]}" | sort); do
+    id="$(yaml_read "$f" "id")"
+    title="$(yaml_read "$f" "title")"
+    status="$(yaml_read "$f" "status")"
+    review_status="$(yaml_read "$f" "review.status")"
+    printf "%-10s | %-36.36s | %-10s | %-16s\n" "$id" "$title" "$status" "${review_status:-pending}"
+  done
+}
+
+cmd_status() {
+  local plan_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        plan_id="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+  validate_plan_id "$plan_id"
+  ensure_plan_exists "$plan_id"
+
+  local plan_file
+  plan_file="$(plan_file_path "$plan_id")"
+
+  echo "ID:          $(yaml_read "$plan_file" "id")"
+  echo "Title:       $(yaml_read "$plan_file" "title")"
+  echo "Status:      $(yaml_read "$plan_file" "status")"
+  echo "Created At:  $(yaml_read "$plan_file" "created_at")"
+  echo "Finalized At:$(yaml_read "$plan_file" "finalized_at")"
+  echo "Source File: $(yaml_read "$plan_file" "source_file")"
+  echo "Review:"
+  echo "  Status:    $(yaml_read "$plan_file" "review.status")"
+  echo "  Reviewed At: $(yaml_read "$plan_file" "review.reviewed_at")"
+  echo "  Review File: $(yaml_read "$plan_file" "review.review_file")"
+}
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  draft) cmd_draft "$@" ;;
+  review) cmd_review "$@" ;;
+  finalize) cmd_finalize "$@" ;;
+  list) cmd_list "$@" ;;
+  status) cmd_status "$@" ;;
+  help|-h|--help) usage ;;
+  *)
+    echo "エラー: 不明なサブコマンドです: $CMD" >&2
+    usage
+    exit 1
+    ;;
+esac

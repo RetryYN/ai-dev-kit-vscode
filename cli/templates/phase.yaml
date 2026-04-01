@@ -18,6 +18,7 @@ gates:
 
 sprint:
   current_step: null
+  status: active
   steps:
     ".1a": { status: pending }
     ".1b": { status: pending }

@@ -23,8 +23,8 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | ロール | model | 担当フェーズ | 説明 |
 |--------|-------|-------------|------|
 | tl | gpt-5.4 | L2/L3/G2-G5 | 設計・レビュー・ゲート判定 |
-| se | gpt-5.3-codex | L4 | 上級実装（スコア4+） |
-| pg | gpt-5.3-codex-spark | L4 | 通常実装（スコア1-3） |
+| se | gpt-5.3-codex | L4 | 上級実装（スコア4+、full-auto eligible） |
+| pg | gpt-5.3-codex-spark | L4 | 通常実装（スコア1-3、full-auto eligible） |
 | fe | gpt-5.4 | L4/L5 | フロントエンド実装・Visual |
 | qa | gpt-5.4 | L6/G4/G6 | テスト・検証・品質ゲート |
 | security | gpt-5.4 | G2/G4/G6/G7 | セキュリティ監査・脆弱性診断 |

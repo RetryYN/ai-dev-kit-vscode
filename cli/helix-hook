@@ -47,6 +47,27 @@ check_matrix_advisory() {
   fi
 }
 
+# --- Phase Guard ---
+check_phase_guard() {
+  local file="$1"
+  local GUARD="$SCRIPT_DIR/lib/phase_guard.py"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+
+  [[ ! -f "$PHASE_FILE" ]] && return 0
+  [[ ! -f "$GUARD" ]] && return 0
+
+  # HELIX_GUARD=off で一時的に無効化
+  [[ "${HELIX_GUARD:-on}" == "off" ]] && return 0
+
+  local args=(--phase-file "$PHASE_FILE" --file "$file")
+  [[ -f "$INDEX" ]] && args+=(--index "$INDEX")
+
+  if ! python3 "$GUARD" "${args[@]}"; then
+    echo "[helix-guard] ヒント: HELIX_GUARD=off を設定すると一時的にガードを無効化できます"
+    exit 1
+  fi
+}
+
 # --- YAML からトリガーを検索 (Python パーサー) ---
 match_trigger() {
   local file="$1"
@@ -311,6 +332,7 @@ check_adr_index() {
 }
 
 # --- 実行 ---
+check_phase_guard "$REL_PATH"
 check_matrix_advisory "$REL_PATH"
 check_freeze_violation "$REL_PATH"
 check_adr_index "$REL_PATH"

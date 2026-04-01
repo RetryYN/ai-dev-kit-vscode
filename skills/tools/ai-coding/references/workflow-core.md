@@ -7,14 +7,26 @@
 
 実装フェーズのタスク難易度スコアで担当モデルを決定。設計(L2-L3)は Codex 5.4 TL。L3 に API契約・テスト設計・工程表を含む。フロント設計は Opus、フロント実装は Sonnet。
 
-| スコア | モデル |
-|--------|--------|
-| 0-3 | Haiku 4.5（リサーチ）/ Codex 5.3 Spark PG（実装系） |
-| 4-7 | Codex 5.3 SE |
-| 8-10 | Codex 5.3 SE（5.4 TL がレビュー・品質アップ） |
-| 11-14 | Codex 5.3 SE（Opus がフロント設計 + 5.4 TL がレビュー・品質アップ） |
-| FE実装 | Sonnet（フロント実装・FEデザイン初稿・テスト・ドキュメント。スコア不問） |
-| — | Codex 5.2（大規模コード精読・スキャン。タスク種別で分岐） |
+| スコア | モデル | 実行モード |
+|--------|--------|-----------|
+| 0-3 | Codex 5.3 Spark PG | full-auto（L4） |
+| 4-7 | Codex 5.3 SE | full-auto（L4） |
+| 8-10 | Codex 5.3 SE + 5.4 TL review | full-auto + mandatory review |
+| 11-14 | Codex 5.3 SE + Opus FE設計 + 5.4 TL review | full-auto + mandatory review |
+| FE実装 | Sonnet | sub-agent |
+| — | Codex 5.2 | read-only scan |
+
+> **full-auto**: `approval: never` + `sandbox: workspace-write` 前提で、コード・テスト・検証まで一括実行する委譲モード。
+> ただし以下のレビューゲートは full-auto でも省略不可:
+> - 実装.2（軽量 codex review: Critical/High のみ）
+> - 実装.5（フル codex review）
+> - G4（実装凍結ゲート）
+> - G5（デザイン凍結ゲート）
+>
+> 以下の条件に該当する場合は TL/Security review を追加で強制:
+> - risk_flags: auth, payment, pii, external_api, data_migration, infra
+> - API/DB スキーマ変更
+> - 難易度スコア 8+
 
 スコア計算: `estimation SKILL.md §9`
 
@@ -90,6 +102,26 @@
 | 実現可能性（工数、技術制約） | 必須 | - |
 | 製品スコープ（機能の要否、優先順位） | - | 直接 PO |
 | ビジネス判断（価格、リリース時期） | - | 直接 PO |
+
+## 設計提案レビュー（Plan Review Gate）
+
+PM がユーザーへ技術提案を提示する前に、TL レビューを実施する。
+
+### 必須タイミング
+- L2/L3 の設計判断
+- API/DB/認証/外部API/移行に関する提案
+- 工程表・フェーズスキップの提案
+
+### 不要なケース
+- 進捗報告
+- 既承認設計の言い換え
+- 軽微な文言修正
+
+### 手順
+1. `helix plan draft --title "..." --file <path>`
+2. `helix plan review --id PLAN-NNN`
+3. approve → `helix plan finalize --id PLAN-NNN` → ユーザーに提示
+4. needs-attention → 修正 → 再 review
 
 ## レビュー手段の使い分け
 

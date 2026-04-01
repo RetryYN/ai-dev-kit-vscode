@@ -7,11 +7,14 @@
 
 | カテゴリ | 値 | 意味 |
 |---------|-----|------|
-| **task_status**（工程表タスク） | `pending` / `in_progress` / `completed` / `blocked` / `partial` | オーケストレーター管理。`partial` は調査・文書系のみ下流利用可 |
-| **gate_status**（ゲート判定） | `passed` / `failed` / `blocked` / `interrupted` | ゲート単位。`interrupted` は IIP 発動時（リトライカウント外） |
-| **verification_status**（検証レイヤー） | `pass` / `fail` | 検証レポート用。issues 配列で詳細を記録 |
+| task_status | `pending` / `in_progress` / `completed` / `blocked` / `partial` | 工程表タスク |
+| gate_status | `passed` / `failed` / `blocked` / `interrupted` / `invalidated` | ゲート単位。`invalidated` は freeze-break による無効化 |
+| verification_status | `pass` / `fail` | 検証レポート |
+| sprint_status | `active` / `interrupted` / `completed` | L4 スプリント状態 |
+| deliverable_status | `pending` / `in_progress` / `done` / `waived` / `not_applicable` / `partial` | 成果物状態（ADR-001） |
 
 - task_status と gate_status を混同しない（`ai-coding/SKILL.md §4` 参照）
+- `interrupted` は gate_status（IIP 発動時）と sprint_status（中断時）の両方で使用する
 - `blocked` は両カテゴリに存在するが意味が異なる: task は「前提タスク未完了」、gate は「前提不足/仕様不明」
 
 ## フェーズ遷移ルール
