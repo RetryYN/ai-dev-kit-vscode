@@ -9,7 +9,11 @@ SCRIPT_DIR="$HELIX_HOME/cli"
 YP="$SCRIPT_DIR/lib/yaml_parser.py"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 HELIX_DIR="$PROJECT_ROOT/.helix"
+PROJECT_CATALOG="$HELIX_DIR/task-catalog.yaml"
 CATALOG="$HELIX_HOME/cli/templates/task-catalog.yaml"
+if [[ -f "$PROJECT_CATALOG" ]]; then
+  CATALOG="$PROJECT_CATALOG"
+fi
 TASK_PLAN="$HELIX_DIR/task-plan.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
@@ -340,6 +344,8 @@ import json; print(json.dumps({
   local LOG_DIR="$HELIX_DIR/task-logs"
   mkdir -p "$LOG_DIR"
   local LOG_FILE="$LOG_DIR/${tid}-${task_type}.log"
+  local task_status="completed"
+  local delegate_exit=0
 
   # ロールに応じて実行（出力をログに保存）
   if [[ "$task_type" == "review-visual" ]]; then
@@ -415,7 +421,11 @@ import json; print(json.dumps({
     echo "[helix-task] helix-codex --role $role に委譲"
     set +e
     "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
+    delegate_exit=$?
     set -e
+    if [[ "$delegate_exit" -ne 0 ]]; then
+      task_status="failed"
+    fi
   fi
 
   # UI 系タスクの目視確認チェック
@@ -484,8 +494,8 @@ VCHECK
     echo ""
   fi
 
-  # ステータスを completed に
-  sed -i "/$tid:/,/status:/{s/status: running/status: completed/}" "$TASK_PLAN" 2>/dev/null
+  # ステータス更新
+  sed -i "/$tid:/,/status:/{s/status: running/status: $task_status/}" "$TASK_PLAN" 2>/dev/null
 
   # DB 更新
   if [[ -f "$DB_PATH" && -n "$db_run_id" ]]; then
@@ -494,10 +504,17 @@ import sqlite3
 from datetime import datetime
 conn = sqlite3.connect('$DB_PATH')
 conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
-    ('completed', datetime.now().isoformat(), '$LOG_FILE', $db_run_id))
+    ('$task_status', datetime.now().isoformat(), '$LOG_FILE', $db_run_id))
 conn.commit()
 conn.close()
 " 2>/dev/null || true
+  fi
+
+  if [[ "$task_status" == "failed" ]]; then
+    echo ""
+    echo "[helix-task] $tid 失敗。ログ: $LOG_FILE"
+    echo "[helix-task] codex 委譲コマンドが失敗したため status=failed を記録しました"
+    return 1
   fi
 
   echo ""

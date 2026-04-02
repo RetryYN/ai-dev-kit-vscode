@@ -8,13 +8,19 @@ export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
 ROLES_DIR="$SCRIPT_DIR/roles"
 SKILLS_DIR="$HELIX_HOME/skills"
-PROJECT_ROOT="$HELIX_HOME"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+PROJECT_GENERATED_SKILLS_DIR="$PROJECT_ROOT/skills/generated"
+PROJECT_SKILLS_DIR="$PROJECT_ROOT/skills"
+PROJECT_CLAUDE_SKILLS_DIR="$PROJECT_ROOT/.claude/skills"
 CODEX_BIN="${CODEX_BIN:-$(command -v codex 2>/dev/null || echo "$HOME/.npm-global/bin/codex")}"
 
 # --- パス検証ユーティリティ ---
 ROLES_DIR_REAL="$(realpath "$ROLES_DIR")"
 SKILLS_DIR_REAL="$(realpath "$SKILLS_DIR")"
-PROJECT_ROOT_REAL="$(realpath "$PROJECT_ROOT")"
+HELIX_HOME_REAL="$(realpath "$HELIX_HOME")"
+PROJECT_GENERATED_SKILLS_DIR_REAL="$(realpath -m "$PROJECT_GENERATED_SKILLS_DIR")"
+PROJECT_SKILLS_DIR_REAL="$(realpath -m "$PROJECT_SKILLS_DIR")"
+PROJECT_CLAUDE_SKILLS_DIR_REAL="$(realpath -m "$PROJECT_CLAUDE_SKILLS_DIR")"
 
 ensure_within_dir() {
   local target="$1"
@@ -118,20 +124,48 @@ parse_array() {
   done < "$file"
 }
 
+resolve_skill_file() {
+  local skill="$1"
+  local -a candidates=(
+    "$PROJECT_GENERATED_SKILLS_DIR/$skill/SKILL.md"
+    "$PROJECT_SKILLS_DIR/$skill/SKILL.md"
+    "$PROJECT_CLAUDE_SKILLS_DIR/$skill/SKILL.md"
+    "$SKILLS_DIR/$skill/SKILL.md"
+  )
+  local -a bases=(
+    "$PROJECT_GENERATED_SKILLS_DIR_REAL"
+    "$PROJECT_SKILLS_DIR_REAL"
+    "$PROJECT_CLAUDE_SKILLS_DIR_REAL"
+    "$SKILLS_DIR_REAL"
+  )
+  local candidate
+  local candidate_real
+  local i
+
+  for i in "${!candidates[@]}"; do
+    candidate="${candidates[$i]}"
+    candidate_real="$(realpath -m "$candidate")"
+    ensure_within_dir "$candidate_real" "${bases[$i]}" "skill"
+    if [[ -f "$candidate_real" ]]; then
+      echo "$candidate_real"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 # --- スキルパス一覧を構築 ---
 SKILL_PATHS=""
 LOADED_SKILLS=()
 while IFS= read -r skill; do
   [[ -z "$skill" ]] && continue
-  skill_file="$SKILLS_DIR/$skill/SKILL.md"
-  skill_file_real="$(realpath -m "$skill_file")"
-  ensure_within_dir "$skill_file_real" "$SKILLS_DIR_REAL" "skill"
-  if [[ -f "$skill_file_real" ]]; then
+  if skill_file_real="$(resolve_skill_file "$skill")"; then
     SKILL_PATHS+="- $skill_file_real
 "
     LOADED_SKILLS+=("$skill")
   else
-    echo "Warning: Skill not found: $skill_file" >&2
+    echo "Warning: Skill not found in overlay/global search order: $skill" >&2
   fi
 done < <(parse_array "skills" "$ROLE_FILE_REAL")
 
@@ -140,9 +174,9 @@ COMMON_DOC_PATHS=""
 LOADED_DOCS=()
 while IFS= read -r doc; do
   [[ -z "$doc" ]] && continue
-  doc_file="$PROJECT_ROOT/$doc"
+  doc_file="$HELIX_HOME/$doc"
   doc_file_real="$(realpath -m "$doc_file")"
-  ensure_within_dir "$doc_file_real" "$PROJECT_ROOT_REAL" "common doc"
+  ensure_within_dir "$doc_file_real" "$HELIX_HOME_REAL" "common doc"
   if [[ -f "$doc_file_real" ]]; then
     COMMON_DOC_PATHS+="- $doc_file_real
 "

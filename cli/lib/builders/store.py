@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -58,7 +59,35 @@ _REDACTION_TOKENS = (
     "secret",
     "key",
     "credential",
+    "authorization",
+    "bearer",
+    "api_key",
+    "api-key",
+    "apikey",
+    "access_token",
+    "refresh_token",
+    "private_key",
+    "ssh-rsa",
+    "-----begin",
 )
+
+_REDACTION_PATTERNS = (
+    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]+\b", re.IGNORECASE),
+    re.compile(r"\bsk-[A-Za-z0-9._-]+\b"),
+    re.compile(r"\bghp_[A-Za-z0-9]+\b"),
+    re.compile(r"\bxoxb-[A-Za-z0-9-]+\b"),
+    re.compile(r"\bxoxp-[A-Za-z0-9-]+\b"),
+)
+
+PRAGMA_JOURNAL_MODE = "WAL"
+PRAGMA_BUSY_TIMEOUT_MS = 5000
+
+
+def _connect(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
+    conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
+    return conn
 
 
 class BuilderStore:
@@ -69,7 +98,9 @@ class BuilderStore:
     @staticmethod
     def init_db(db_path: str):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(db_path)
+        conn = _connect(db_path)
+        conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
+        conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
         conn.executescript(SCHEMA)
         conn.commit()
         conn.close()
@@ -87,7 +118,7 @@ class BuilderStore:
         input_hash = _build_input_hash(input_params)
         pattern_tags = _extract_pattern_tags(input_params)
 
-        conn = sqlite3.connect(self.db_path)
+        conn = _connect(self.db_path)
         conn.execute(
             """
             INSERT INTO builder_executions (
@@ -114,7 +145,7 @@ class BuilderStore:
         return execution_id
 
     def add_step(self, execution_id: str, name: str, data: dict):
-        conn = sqlite3.connect(self.db_path)
+        conn = _connect(self.db_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT step_count, step_trace_json FROM builder_executions WHERE execution_id = ?",
@@ -166,7 +197,7 @@ class BuilderStore:
         quality_score = _to_quality_score(validation_summary)
         status = "completed" if success else "failed"
 
-        conn = sqlite3.connect(self.db_path)
+        conn = _connect(self.db_path)
         conn.execute(
             """
             UPDATE builder_executions
@@ -196,7 +227,7 @@ class BuilderStore:
         conn.close()
 
     def get_execution(self, execution_id: str) -> dict:
-        conn = sqlite3.connect(self.db_path)
+        conn = _connect(self.db_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT * FROM builder_executions WHERE execution_id = ?",
@@ -227,7 +258,7 @@ class BuilderStore:
         )
         params.append(max(1, int(limit)))
 
-        conn = sqlite3.connect(self.db_path)
+        conn = _connect(self.db_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(sql, tuple(params)).fetchall()
         conn.close()
@@ -293,7 +324,9 @@ def _now_iso() -> str:
 
 def _should_redact(text: str) -> bool:
     lowered = text.lower()
-    return any(token in lowered for token in _REDACTION_TOKENS)
+    if any(token in lowered for token in _REDACTION_TOKENS):
+        return True
+    return any(pattern.search(text) for pattern in _REDACTION_PATTERNS)
 
 
 def _redact(value: Any, key_hint: str = "") -> Any:

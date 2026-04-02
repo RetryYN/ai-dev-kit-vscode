@@ -30,6 +30,7 @@
 6. ミニレトロ: G2/G4/L8 通過時（`tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 
 > **Reverse モード**: 既存コードからの設計復元は SKILL_MAP.md §Phase R / `workflow/reverse-analysis/SKILL.md` を参照。Forward とは別のサイジング・ゲート体系（R0→R4→Forward→RGC）を使用。
+> ※ RGC（Reverse Gap Closure）は CLI 未実装。Forward HELIX の L6/L8 pass 後に手動で実施する。
 
 ## 設計提案
 

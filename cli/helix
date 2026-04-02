@@ -34,20 +34,24 @@ case "$CMD" in
 Usage: helix <command> [args...]
 
 Commands:
-  init          プロジェクト初期化（.helix/ + CLAUDE.md + gitignore）
-  codex         ロール別 Codex 委譲（12ロール）
-  gate          ゲート自動検証（G2-G7）
-  size          タスクサイジング + フェーズスキップ判定
-  sprint        L4 マイクロスプリント管理
-  pr            ゲート結果から PR 自動生成
-  reverse       Reverse HELIX パイプライン（R0-R4）
-  builder       Builder System 実行（list/schema/generate/validate/history）
-  scrum         検証駆動開発（HELIX Scrum）
-  matrix        matrix.yaml の初期化・コンパイル・検証
-  plan          設計提案の draft/review/finalize 管理
-  interrupt     L4割り込み(IIP) / 凍結後変更(CC) 管理
-  status        プロジェクト全体の状態表示
-  test          全ツールのセルフテスト
+  init        プロジェクト初期化
+  codex       Codex へのタスク委譲
+  gate        ゲート自動検証
+  size        タスクサイジング
+  sprint      L4 マイクロスプリント
+  pr          PR 自動生成
+  reverse     Reverse HELIX パイプライン
+  scrum       検証駆動開発
+  task        タスクオペレーティングシステム
+  log         ログ・評価システム
+  matrix      成果物対照表
+  plan        設計提案レビュー
+  interrupt   追加設計・追加要件モード
+  builder     ビルダーツール群
+  status      プロジェクト状態表示
+  test        セルフテスト
+  debug       デバッグユーティリティ
+  verify-all  全検証スクリプト実行
 
 Environment:
   HELIX_HOME    HELIX インストールディレクトリ (default: ~/ai-dev-kit-vscode)

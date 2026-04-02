@@ -11,6 +11,16 @@ HELIX_DIR="$PROJECT_ROOT/.helix"
 DB_PATH="$HELIX_DIR/helix.db"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
 LOG_DIR="$HELIX_DIR/task-logs"
+PROJECT_CATALOG="$HELIX_DIR/task-catalog.yaml"
+PROJECT_ACTION_TYPES="$HELIX_DIR/action-types.yaml"
+CATALOG="$HELIX_HOME/cli/templates/task-catalog.yaml"
+ACTION_TYPES="$HELIX_HOME/cli/templates/action-types.yaml"
+if [[ -f "$PROJECT_CATALOG" ]]; then
+  CATALOG="$PROJECT_CATALOG"
+fi
+if [[ -f "$PROJECT_ACTION_TYPES" ]]; then
+  ACTION_TYPES="$PROJECT_ACTION_TYPES"
+fi
 
 CMD="${1:-help}"
 shift 2>/dev/null || true
@@ -58,7 +68,7 @@ import re, sys, os
 action_rules = {}
 current_type = None
 keywords = []
-with open('$HELIX_HOME/cli/templates/action-types.yaml') as f:
+with open('$ACTION_TYPES') as f:
     for line in f:
         line = line.rstrip()
         if not line or line.lstrip().startswith('#'):
@@ -79,7 +89,7 @@ with open('$HELIX_HOME/cli/templates/action-types.yaml') as f:
 task_actions = []
 current_task = None
 in_actions = False
-with open('$HELIX_HOME/cli/templates/task-catalog.yaml') as f:
+with open('$CATALOG') as f:
     for line in f:
         line = line.rstrip()
         m = re.match(r'  ([\w-]+):\s*$', line)

@@ -347,6 +347,7 @@ R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 =
 ### RGC Gap Closure（Reverse Gap Closure — Forward 完了後）
 
 > Forward の「G6 RC 判定ゲート」（RC = Release Candidate）とは別概念。RGC = Reverse Gap Closure。
+> ※ CLI 未実装。将来バージョンで `helix reverse rgc` として実装予定。
 
 | 項目 | 内容 |
 |------|------|

@@ -207,8 +207,46 @@ run_checks() {
     local ai_role=""
     local ai_task=""
     local ai_count=0
-    local ai_pass=0
-    local ai_fail=0
+
+    run_ai_check() {
+      local role="$1"
+      local task="$2"
+
+      ai_count=$((ai_count + 1))
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  [dry-run] helix-codex --role $role --task \"${task:0:60}...\""
+        return
+      fi
+
+      echo "  実行中: helix-codex --role $role ..."
+      local ai_output_file
+      ai_output_file=$(mktemp "${TMPDIR:-/tmp}/helix-gate-ai-XXXXXX")
+
+      set +e
+      "$HELIX_CODEX" --role "$role" --task "$task" >"$ai_output_file" 2>&1
+      local ai_exit=$?
+      set -e
+
+      cat "$ai_output_file"
+
+      local verdict=""
+      verdict=$(grep -Eo '"verdict"[[:space:]]*:[[:space:]]*"(approve|needs-attention)"' "$ai_output_file" | head -n1 | sed -E 's/.*"(approve|needs-attention)"/\1/' || true)
+
+      if [[ "$verdict" == "needs-attention" ]]; then
+        ai_fail=$((ai_fail + 1))
+        echo "  [ai] FAIL: $role (verdict: needs-attention)"
+      elif [[ -n "$verdict" ]]; then
+        ai_pass=$((ai_pass + 1))
+      elif [[ "$ai_exit" -eq 0 ]]; then
+        ai_pass=$((ai_pass + 1))
+      else
+        ai_fail=$((ai_fail + 1))
+        echo "  [ai] FAIL: $role"
+      fi
+
+      rm -f "$ai_output_file"
+      echo ""
+    }
 
     while IFS= read -r line; do
       if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
@@ -226,19 +264,7 @@ run_checks() {
         if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*role:[[:space:]]*(.+) ]]; then
           # 前の AI チェックを実行
           if [[ -n "$ai_role" && -n "$ai_task" ]]; then
-            ai_count=$((ai_count + 1))
-            if [[ "$DRY_RUN" == true ]]; then
-              echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
-            else
-              echo "  実行中: helix-codex --role $ai_role ..."
-              if "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1; then
-                ai_pass=$((ai_pass + 1))
-              else
-                ai_fail=$((ai_fail + 1))
-                echo "  [ai] FAIL: $ai_role"
-              fi
-              echo ""
-            fi
+            run_ai_check "$ai_role" "$ai_task"
           fi
           ai_role="${BASH_REMATCH[1]}"
           ai_task=""
@@ -254,19 +280,7 @@ run_checks() {
 
     # 最後の AI チェック
     if [[ -n "$ai_role" && -n "$ai_task" ]]; then
-      ai_count=$((ai_count + 1))
-      if [[ "$DRY_RUN" == true ]]; then
-        echo "  [dry-run] helix-codex --role $ai_role --task \"${ai_task:0:60}...\""
-      else
-        echo "  実行中: helix-codex --role $ai_role ..."
-        if "$HELIX_CODEX" --role "$ai_role" --task "$ai_task" 2>&1; then
-          ai_pass=$((ai_pass + 1))
-        else
-          ai_fail=$((ai_fail + 1))
-          echo "  [ai] FAIL: $ai_role"
-        fi
-        echo ""
-      fi
+      run_ai_check "$ai_role" "$ai_task"
     fi
 
     if [[ $ai_count -eq 0 ]]; then

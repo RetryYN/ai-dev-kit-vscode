@@ -71,59 +71,8 @@ check_phase_guard() {
 # --- YAML からトリガーを検索 (Python パーサー) ---
 match_trigger() {
   local file="$1"
-  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
 
-  # Python でトリガーマッチを実行（doc-map.yaml はリスト構造なので直接パース）
-  python3 -c "
-import re, sys
-
-# 簡易パーサー: triggers リストを抽出
-triggers = []
-current = {}
-with open('$DOC_MAP') as f:
-    for line in f:
-        line = line.rstrip()
-        stripped = line.lstrip()
-        if not stripped or stripped.startswith('#'):
-            continue
-        if re.match(r'\s*-\s*pattern:', line):
-            if current:
-                triggers.append(current)
-            m = re.search(r'pattern:\s*\"(.+?)\"', line)
-            current = {'pattern': m.group(1) if m else ''}
-        elif current:
-            for key in ('phase', 'on_write', 'gate'):
-                m = re.match(rf'\s*{key}:\s*(.+)', line)
-                if m:
-                    current[key] = m.group(1).strip().strip('\"')
-            m = re.match(r'\s*design_ref:\s*\"(.+?)\"', line)
-            if m:
-                current['design_ref'] = m.group(1)
-    if current:
-        triggers.append(current)
-
-file_path = '$file'
-
-def glob_match(f, pattern):
-    regex = pattern.replace('**', 'DOUBLESTAR').replace('*', '[^/]*').replace('DOUBLESTAR', '.*')
-    return bool(re.match('^' + regex + '$', f))
-
-for t in triggers:
-    pattern = t.get('pattern', '')
-    if not pattern or not glob_match(file_path, pattern):
-        continue
-    on_write = t.get('on_write', '')
-    gate = t.get('gate', '')
-    design_ref = t.get('design_ref', '')
-    if on_write == 'gate_ready' and gate:
-        print(f'GATE_READY|{gate}|{file_path}')
-    elif on_write == 'design_sync' and design_ref:
-        print(f'DESIGN_SYNC|{design_ref}|{file_path}')
-    elif on_write == 'coverage_check':
-        print(f'COVERAGE_CHECK|{file_path}')
-    elif on_write == 'adr_index':
-        print(f'ADR_INDEX|{file_path}')
-" 2>/dev/null | while IFS='|' read -r action arg1 arg2; do
+  python3 "$SCRIPT_DIR/lib/doc_map_matcher.py" "$DOC_MAP" "$file" 2>/dev/null | while IFS='|' read -r action arg1 arg2; do
     case "$action" in
       GATE_READY)
         echo "[helix-hook] gate_ready: $arg2 → $arg1"

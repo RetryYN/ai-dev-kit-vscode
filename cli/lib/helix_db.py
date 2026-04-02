@@ -106,8 +106,21 @@ CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
 """
 
 
-def init_db(db_path):
+PRAGMA_JOURNAL_MODE = "WAL"
+PRAGMA_BUSY_TIMEOUT_MS = 5000
+
+
+def _connect(db_path):
     conn = sqlite3.connect(db_path)
+    conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
+    conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
+    return conn
+
+
+def init_db(db_path):
+    conn = _connect(db_path)
+    conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
+    conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
     conn.executescript(SCHEMA)
     conn.commit()
     conn.close()
@@ -115,7 +128,7 @@ def init_db(db_path):
 
 
 def record_task(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, output_log) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -131,7 +144,7 @@ def record_task(db_path, data):
 
 
 def record_action(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
         "VALUES (?, ?, ?, ?, ?, ?)",
@@ -146,7 +159,7 @@ def record_action(db_path, data):
 
 
 def record_observation(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "INSERT INTO observations (task_run_id, action_log_id, action_type, "
         "expected_keywords, matched_keywords, passed, reason) "
@@ -161,7 +174,7 @@ def record_observation(db_path, data):
 
 
 def record_feedback(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "INSERT INTO feedback (task_run_id, feedback_type, category, description, impact, resolution) "
         "VALUES (?, ?, ?, ?, ?, ?)",
@@ -175,7 +188,7 @@ def record_feedback(db_path, data):
 
 
 def record_selection(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "INSERT INTO task_selections (plan_id, plan_goal, selected_tasks, "
         "available_tasks, selection_rationale, review_status) "
@@ -193,7 +206,7 @@ def record_selection(db_path, data):
 
 
 def update_review(db_path, data):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.execute(
         "UPDATE task_selections SET review_status=?, review_result=?, review_suggestions=? "
         "WHERE id=?",
@@ -205,7 +218,7 @@ def update_review(db_path, data):
 
 
 def report(db_path, report_type='summary'):
-    conn = sqlite3.connect(db_path)
+    conn = _connect(db_path)
     conn.row_factory = sqlite3.Row
 
     if report_type == 'summary':

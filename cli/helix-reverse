@@ -166,6 +166,7 @@ DB_PATH="$HELIX_DIR/helix.db"
 LOG_DIR="$HELIX_DIR/task-logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/${STAGE}-${STAGE_OUTPUT[$STAGE]%.yaml}.log"
+RUN_STATUS="completed"
 
 # DB にタスク記録
 local_db_run_id=""
@@ -180,7 +181,11 @@ fi
 # --- 実行（ログ保存） ---
 set +e
 "$HELIX_CODEX" --role "$ROLE" --task "$TASK" 2>&1 | tee "$LOG_FILE"
+codex_exit=$?
 set -e
+if [[ "$codex_exit" -ne 0 ]]; then
+  RUN_STATUS="failed"
+fi
 
 # DB 完了更新
 if [[ -f "$DB_PATH" && -n "$local_db_run_id" ]]; then
@@ -189,7 +194,7 @@ import sqlite3
 from datetime import datetime
 conn = sqlite3.connect('$DB_PATH')
 conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
-    ('completed', datetime.now().isoformat(), '$LOG_FILE', $local_db_run_id))
+    ('$RUN_STATUS', datetime.now().isoformat(), '$LOG_FILE', $local_db_run_id))
 conn.commit()
 conn.close()
 " 2>/dev/null || true
@@ -202,6 +207,12 @@ echo ""
 
 # --- ゲート更新 ---
 rgate="${STAGE_RGATE[$STAGE]}"
+if [[ "$RUN_STATUS" == "failed" ]]; then
+  set_rgate_status "$rgate" "failed"
+  echo "[helix-reverse] WARN: helix-codex が失敗したため $rgate failed"
+  exit 1
+fi
+
 if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
   set_rgate_status "$rgate" "passed"
   echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"

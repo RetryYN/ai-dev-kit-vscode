@@ -208,6 +208,9 @@ python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status
 run_test_contains "freeze-break API doc (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-API/api-contract.yaml" "API凍結違反"
 echo "change" > src/api/auth.ts
 run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/auth.ts" "API凍結違反"
+run_test_contains "doc_map_matcher gate_ready" "python3 $SCRIPT_DIR/lib/doc_map_matcher.py .helix/doc-map.yaml docs/design/L2-architecture.md" "GATE_READY|G2|docs/design/L2-architecture.md"
+touch "$TEST_DIR/test; echo hacked"
+run_test_not_contains "hook no injection filename" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook '$TEST_DIR/test; echo hacked' 2>&1 || true" "^hacked$"
 # ADR index
 mkdir -p docs/adr
 echo "# ADR-001: Test" > docs/adr/ADR-001.md
@@ -266,6 +269,32 @@ echo "[helix-pr]"
 run_test_contains "pr dry-run" "$SCRIPT_DIR/helix-pr --dry-run" "Summary"
 echo ""
 
+echo "[helix-task]"
+cat > "$TEST_DIR/mock-codex-fail" << 'EOF'
+#!/bin/bash
+echo "mock codex failed" >&2
+exit 1
+EOF
+chmod +x "$TEST_DIR/mock-codex-fail"
+run_test "task db init" "python3 $SCRIPT_DIR/lib/helix_db.py init .helix/helix.db"
+cat > .helix/task-plan.yaml << 'EOF'
+goal: "failure propagation test"
+total_estimate: 1
+status: active
+tasks:
+  T001:
+    task: test-failing-task
+    name: "Failing Codex Task"
+    role: tl
+    estimate: 1
+    status: pending
+    skill: common/error-fix
+EOF
+run_test "task run codex fail exit" "CODEX_BIN=$TEST_DIR/mock-codex-fail $SCRIPT_DIR/helix-task run" 1
+run_test_contains "task run marks failed in plan" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/task-plan.yaml tasks.T001.status" "failed"
+run_test_contains "task run marks failed in DB" "python3 -c \"import sqlite3; conn=sqlite3.connect('.helix/helix.db'); row=conn.execute(\\\"SELECT status FROM task_runs WHERE task_id='T001' ORDER BY id DESC LIMIT 1\\\").fetchone(); conn.close(); print(row[0] if row else '')\"" "failed"
+echo ""
+
 echo "[helix-reverse]"
 run_test_contains "reverse status" "$SCRIPT_DIR/helix-reverse status" "Reverse HELIX Status"
 run_test_contains "reverse R0 dry-run" "$SCRIPT_DIR/helix-reverse R0 --dry-run" "Evidence Acquisition"
@@ -276,6 +305,10 @@ echo "[yaml_parser]"
 run_test_contains "yaml read" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml project" "test"
 run_test "yaml write" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_phase L4"
 run_test_contains "yaml write verify" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
+echo ""
+
+echo "[sqlite]"
+run_test_contains "helix_db WAL enabled" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-wal-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); print(conn.execute('PRAGMA journal_mode').fetchone()[0].lower()); conn.close()\"" "wal"
 echo ""
 
 echo "[helix-scrum]"
@@ -591,6 +624,7 @@ run_test "BuilderStore finish_execution updates status" "PYTHONPATH=\"$SCRIPT_DI
 run_test "BuilderStore input_hash deterministic" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); eid1=store.create_execution(\"demo\", \"TASK-H1\", {\"a\": 1, \"b\": 2}, \"1.0\"); eid2=store.create_execution(\"demo\", \"TASK-H2\", {\"b\": 2, \"a\": 1}, \"1.0\"); h1=store.get_execution(eid1)[\"input_hash\"]; h2=store.get_execution(eid2)[\"input_hash\"]; raise SystemExit(0 if h1 == h2 else 1)'"
 
 run_test "BuilderStore redaction works" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); execution_id=store.create_execution(\"demo\", \"TASK-RD\", {\"z\": 1}, \"1.0\"); store.add_step(execution_id, \"test\", {\"password\": \"hunter2\", \"token\": \"abc123\", \"path\": \"/home/test/path\", \"note\": \"safe\"}); row=store.get_execution(execution_id); data=row[\"step_trace\"][0][\"data\"]; ok=(data[\"password\"] == \"[REDACTED]\" and data[\"token\"] == \"[REDACTED]\" and data[\"path\"] == \"[REDACTED]\" and data[\"note\"] == \"safe\"); raise SystemExit(0 if ok else 1)'"
+run_test "BuilderStore redacts Bearer token" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); execution_id=store.create_execution(\"demo\", \"TASK-RD2\", {\"z\": 1}, \"1.0\"); store.add_step(execution_id, \"test\", {\"authorization\": \"Bearer abc123TOKEN\", \"note\": \"safe\"}); row=store.get_execution(execution_id); data=row[\"step_trace\"][-1][\"data\"]; ok=(data[\"authorization\"] == \"[REDACTED]\" and data[\"note\"] == \"safe\"); raise SystemExit(0 if ok else 1)'"
 
 BUILDER_INPUT_DIR="$TEST_DIR/builder-inputs"
 mkdir -p "$BUILDER_INPUT_DIR"
@@ -660,6 +694,7 @@ cat > "$BUILDER_INPUT_DIR/task.json" << 'EOF'
 EOF
 run_test "builder task generate" "$SCRIPT_DIR/helix builder task generate --task-id BT-TASK --input $BUILDER_INPUT_DIR/task.json"
 run_test_contains "builder task overlay updated" "cat .helix/task-catalog.yaml" "agent-review-loop-generated"
+run_test_contains "helix-task catalog reads overlay" "$SCRIPT_DIR/helix-task catalog" "agent-review-loop-generated"
 
 cat > "$BUILDER_INPUT_DIR/workflow.json" << 'EOF'
 {
@@ -758,6 +793,24 @@ echo ""
 
 echo "[helix wrapper]"
 run_test_contains "helix help" "$SCRIPT_DIR/helix help" "Commands:"
+run_test_contains "helix help init" "$SCRIPT_DIR/helix help" "  init"
+run_test_contains "helix help codex" "$SCRIPT_DIR/helix help" "  codex"
+run_test_contains "helix help gate" "$SCRIPT_DIR/helix help" "  gate"
+run_test_contains "helix help size" "$SCRIPT_DIR/helix help" "  size"
+run_test_contains "helix help sprint" "$SCRIPT_DIR/helix help" "  sprint"
+run_test_contains "helix help pr" "$SCRIPT_DIR/helix help" "  pr"
+run_test_contains "helix help reverse" "$SCRIPT_DIR/helix help" "  reverse"
+run_test_contains "helix help scrum" "$SCRIPT_DIR/helix help" "  scrum"
+run_test_contains "helix help task" "$SCRIPT_DIR/helix help" "  task"
+run_test_contains "helix help log" "$SCRIPT_DIR/helix help" "  log"
+run_test_contains "helix help matrix" "$SCRIPT_DIR/helix help" "  matrix"
+run_test_contains "helix help plan" "$SCRIPT_DIR/helix help" "  plan"
+run_test_contains "helix help interrupt" "$SCRIPT_DIR/helix help" "  interrupt"
+run_test_contains "helix help builder" "$SCRIPT_DIR/helix help" "  builder"
+run_test_contains "helix help status" "$SCRIPT_DIR/helix help" "  status"
+run_test_contains "helix help test" "$SCRIPT_DIR/helix help" "  test"
+run_test_contains "helix help debug" "$SCRIPT_DIR/helix help" "  debug"
+run_test_contains "helix help verify-all" "$SCRIPT_DIR/helix help" "  verify-all"
 run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1
 echo ""
 

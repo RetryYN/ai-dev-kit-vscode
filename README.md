@@ -128,8 +128,17 @@ confirmed な仮説は Forward HELIX（L2→）に接続。
 | `helix sprint <status\|next\|complete\|reset>` | L4 マイクロスプリント管理 |
 | `helix pr [--dry-run]` | ゲート結果から PR 自動生成 |
 | `helix reverse <R0-R4\|status>` | Reverse HELIX パイプライン |
+| `helix scrum <init\|backlog\|plan\|poc\|verify\|decide\|review\|status>` | 検証駆動開発（HELIX Scrum） |
+| `helix task <catalog\|plan\|run\|observe\|status>` | タスクオペレーティングシステム |
+| `helix log <init\|record\|list\|review\|metrics\|status>` | ログ・評価システム |
+| `helix matrix <init\|compile\|validate\|status>` | 成果物対照表の初期化・コンパイル・検証 |
+| `helix plan <draft\|review\|finalize\|status\|list>` | 設計提案レビュー運用 |
+| `helix interrupt <start\|status\|apply\|resume\|cancel>` | 追加設計・追加要件モード管理 |
+| `helix builder <list\|schema\|generate\|validate\|history>` | ビルダーツール群の実行 |
 | `helix status` | プロジェクト全体の状態表示 |
 | `helix test` | 全ツールのセルフテスト |
+| `helix debug <trace\|inspect\|replay\|doctor>` | デバッグユーティリティ |
+| `helix verify-all` | 全検証スクリプト実行 |
 
 ### Codex ロール（12種）
 
