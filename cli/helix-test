@@ -578,6 +578,184 @@ run_test "matrix validate fail" "$SCRIPT_DIR/helix-matrix validate" 1
 mv .helix/matrix.yaml.bak .helix/matrix.yaml
 echo ""
 
+echo "[helix-builder]"
+run_test_contains "helix builder list" "$SCRIPT_DIR/helix builder list" "Available builders"
+
+BUILDER_TEST_DB="$TEST_DIR/.helix/builder-test.db"
+run_test "BuilderStore init_db creates table" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; BuilderStore.init_db(db); conn=sqlite3.connect(db); row=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"builder_executions\\\"\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)'"
+
+run_test "BuilderStore create/get roundtrip" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); execution_id=store.create_execution(\"demo\", \"TASK-RT\", {\"alpha\": 1, \"beta\": 2}, \"1.0\"); row=store.get_execution(execution_id); ok=(row[\"execution_id\"] == execution_id and row[\"builder_type\"] == \"demo\" and row[\"task_id\"] == \"TASK-RT\"); raise SystemExit(0 if ok else 1)'"
+
+run_test "BuilderStore finish_execution updates status" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); execution_id=store.create_execution(\"demo\", \"TASK-FN\", {\"x\": 1}, \"1.0\"); store.finish_execution(execution_id, True, [{\"path\": \"artifact.json\"}], {\"quality_score\": 88}, None); row=store.get_execution(execution_id); ok=(row[\"status\"] == \"completed\" and int(row[\"success\"]) == 1 and float(row[\"quality_score\"]) == 88.0); raise SystemExit(0 if ok else 1)'"
+
+run_test "BuilderStore input_hash deterministic" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); eid1=store.create_execution(\"demo\", \"TASK-H1\", {\"a\": 1, \"b\": 2}, \"1.0\"); eid2=store.create_execution(\"demo\", \"TASK-H2\", {\"b\": 2, \"a\": 1}, \"1.0\"); h1=store.get_execution(eid1)[\"input_hash\"]; h2=store.get_execution(eid2)[\"input_hash\"]; raise SystemExit(0 if h1 == h2 else 1)'"
+
+run_test "BuilderStore redaction works" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; store=BuilderStore(db); execution_id=store.create_execution(\"demo\", \"TASK-RD\", {\"z\": 1}, \"1.0\"); store.add_step(execution_id, \"test\", {\"password\": \"hunter2\", \"token\": \"abc123\", \"path\": \"/home/test/path\", \"note\": \"safe\"}); row=store.get_execution(execution_id); data=row[\"step_trace\"][0][\"data\"]; ok=(data[\"password\"] == \"[REDACTED]\" and data[\"token\"] == \"[REDACTED]\" and data[\"path\"] == \"[REDACTED]\" and data[\"note\"] == \"safe\"); raise SystemExit(0 if ok else 1)'"
+
+BUILDER_INPUT_DIR="$TEST_DIR/builder-inputs"
+mkdir -p "$BUILDER_INPUT_DIR"
+
+cat > "$BUILDER_INPUT_DIR/json-converter.json" << 'EOF'
+{
+  "name": "review-to-slack",
+  "source_schema": {
+    "verdict": "string",
+    "summary": "string",
+    "findings": ["object"]
+  },
+  "target_schema": {
+    "text": "string",
+    "blocks": ["object"]
+  },
+  "mapping_hints": {
+    "verdict -> text": "prefix with emoji",
+    "findings -> blocks": "each finding as section"
+  }
+}
+EOF
+run_test "builder json-converter generate" "$SCRIPT_DIR/helix builder json-converter generate --task-id BT-JC --input $BUILDER_INPUT_DIR/json-converter.json"
+run_test "builder json-converter artifacts" "test -f builders/json-converters/review-to-slack.json && test -f builders/json-converters/convert_review-to-slack.py"
+
+cat > "$BUILDER_INPUT_DIR/verify-script.json" << 'EOF'
+{
+  "id": "h501",
+  "slug": "builder-store-init",
+  "checks": [
+    { "desc": "tmpdir存在確認", "cmd": "test -d ." }
+  ],
+  "setup": "true",
+  "teardown": "true"
+}
+EOF
+run_test "builder verify-script generate" "$SCRIPT_DIR/helix builder verify-script generate --task-id BT-VS --input $BUILDER_INPUT_DIR/verify-script.json"
+run_test "builder verify-script bash -n" "bash -n verify/h501-builder-store-init.sh"
+
+cat > "$BUILDER_INPUT_DIR/agent-loop.json" << 'EOF'
+{
+  "name": "review-retry",
+  "role": "tl",
+  "task_template": "レビュー: {target}",
+  "stop_condition": { "type": "verdict", "value": "approve" },
+  "max_iterations": 3,
+  "on_failure": "escalate"
+}
+EOF
+run_test "builder agent-loop generate" "$SCRIPT_DIR/helix builder agent-loop generate --task-id BT-AL --input $BUILDER_INPUT_DIR/agent-loop.json"
+run_test "builder agent-loop artifact" "test -f builders/loops/review-retry.json"
+
+cat > "$BUILDER_INPUT_DIR/task.json" << 'EOF'
+{
+  "category": "agent",
+  "task_id": "agent-review-loop-generated",
+  "name": "レビューループエージェント",
+  "role": "tl",
+  "estimate": 30,
+  "skill": "common/code-review",
+  "actions": [
+    { "type": "analyze", "desc": "対象コードの分析" },
+    { "type": "generate", "desc": "レビューコメント生成" },
+    { "type": "builder-agent-loop", "desc": "approve まで反復" }
+  ]
+}
+EOF
+run_test "builder task generate" "$SCRIPT_DIR/helix builder task generate --task-id BT-TASK --input $BUILDER_INPUT_DIR/task.json"
+run_test_contains "builder task overlay updated" "cat .helix/task-catalog.yaml" "agent-review-loop-generated"
+
+cat > "$BUILDER_INPUT_DIR/workflow.json" << 'EOF'
+{
+  "name": "review-pipeline",
+  "nodes": [
+    { "id": "analyze", "builder": "task", "task_id": "agent-review-loop-generated" },
+    { "id": "notify", "builder": "sub-agent", "role": "docs" }
+  ],
+  "edges": [
+    { "from": "analyze", "to": "notify", "condition": "success" }
+  ],
+  "failure_policy": "stop_on_first"
+}
+EOF
+run_test "builder workflow generate" "$SCRIPT_DIR/helix builder workflow generate --task-id BT-WF --input $BUILDER_INPUT_DIR/workflow.json"
+run_test "builder workflow artifact" "test -f builders/workflows/review-pipeline.json"
+
+cat > "$BUILDER_INPUT_DIR/workflow-cycle.json" << 'EOF'
+{
+  "name": "review-pipeline-cycle",
+  "nodes": [
+    { "id": "a", "builder": "task" },
+    { "id": "b", "builder": "sub-agent" }
+  ],
+  "edges": [
+    { "from": "a", "to": "b", "condition": "success" },
+    { "from": "b", "to": "a", "condition": "success" }
+  ],
+  "failure_policy": "stop_on_first"
+}
+EOF
+run_test "builder workflow cycle detected" "$SCRIPT_DIR/helix builder workflow generate --task-id BT-WFC --input $BUILDER_INPUT_DIR/workflow-cycle.json" 1
+
+cat > "$BUILDER_INPUT_DIR/agent-pipeline.json" << 'EOF'
+{
+  "name": "slack-review",
+  "stages": [
+    {
+      "name": "review",
+      "builder": "sub-agent",
+      "config": {
+        "role": "tl",
+        "task": "レビュー",
+        "exports": { "text": "string" }
+      }
+    },
+    {
+      "name": "notify",
+      "builder": "sub-agent",
+      "config": {
+        "role": "devops",
+        "task": "Slack通知",
+        "consumes": { "text": "string" }
+      }
+    }
+  ],
+  "error_handling": "retry_stage"
+}
+EOF
+run_test "builder agent-pipeline generate" "$SCRIPT_DIR/helix builder agent-pipeline generate --task-id BT-AP --input $BUILDER_INPUT_DIR/agent-pipeline.json"
+run_test "builder agent-pipeline artifact" "test -f builders/pipelines/slack-review.json"
+
+cat > "$BUILDER_INPUT_DIR/agent-skill.json" << 'EOF'
+{
+  "name": "custom-review-generated",
+  "description": "カスタムレビュールール適用",
+  "helix_layer": "L4",
+  "triggers": ["コードレビュー時", "PR作成前"],
+  "verification": ["Critical/High指摘 0件"],
+  "sections": {
+    "overview": "カスタムルールに基づくレビュー",
+    "checklist": ["命名規約準拠", "エラーハンドリング確認"]
+  }
+}
+EOF
+run_test "builder agent-skill generate" "$SCRIPT_DIR/helix builder agent-skill generate --task-id BT-AS --input $BUILDER_INPUT_DIR/agent-skill.json"
+run_test "builder agent-skill artifact" "test -f skills/generated/custom-review-generated/SKILL.md"
+
+cat > "$BUILDER_INPUT_DIR/sub-agent.json" << 'EOF'
+{
+  "name": "codex-review-agent",
+  "role": "tl",
+  "task_template": "以下をレビュー: {target}\\n判定基準: {criteria}",
+  "context_files": ["docs/features/{feature}/D-ARCH/architecture.md"],
+  "output_contract": {
+    "verdict": "approve|needs-attention",
+    "summary": "string",
+    "findings": ["object"]
+  },
+  "execution": "helix-codex"
+}
+EOF
+run_test "builder sub-agent generate" "$SCRIPT_DIR/helix builder sub-agent generate --task-id BT-SA --input $BUILDER_INPUT_DIR/sub-agent.json"
+run_test "builder sub-agent artifact" "test -f builders/sub-agents/codex-review-agent.json"
+echo ""
+
 echo "[helix wrapper]"
 run_test_contains "helix help" "$SCRIPT_DIR/helix help" "Commands:"
 run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1

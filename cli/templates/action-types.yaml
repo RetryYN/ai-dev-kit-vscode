@@ -261,3 +261,78 @@ rollback:
     expect_keywords: ["rollback", "復旧", "取り消し", "revert"]
     expect_exit: 0
     evidence: "ロールバック対象と結果"
+
+# ============================================================
+# Builder 系
+# ============================================================
+builder-json-converter:
+  name: "JSON変換器ビルド"
+  desc: "スキーマ変換パイプライン生成"
+  tool: "helix builder json-converter generate"
+  observe:
+    expect_keywords: ["converter", "json", "変換", "生成"]
+    expect_artifact: "builders/json-converters/*.json"
+    evidence: "変換定義と変換スクリプト"
+
+builder-verify-script:
+  name: "検証スクリプトビルド"
+  desc: "verify/*.sh 実行スクリプト生成"
+  tool: "helix builder verify-script generate"
+  observe:
+    expect_keywords: ["verify", "script", "検証", "生成"]
+    expect_artifact: "verify/*.sh"
+    evidence: "生成スクリプトと構文チェック結果"
+
+builder-agent-loop:
+  name: "エージェントループビルド"
+  desc: "停止条件付きループ定義生成"
+  tool: "helix builder agent-loop generate"
+  observe:
+    expect_keywords: ["loop", "stop_condition", "反復", "生成"]
+    expect_artifact: "builders/loops/*.json"
+    evidence: "ループ定義JSON"
+
+builder-task:
+  name: "タスクビルド"
+  desc: "project-local task-catalog overlay 生成"
+  tool: "helix builder task generate"
+  observe:
+    expect_keywords: ["task", "catalog", "overlay", "生成"]
+    expect_artifact: ".helix/task-catalog.yaml"
+    evidence: "追記したタスク定義"
+
+builder-workflow:
+  name: "ワークフロービルド"
+  desc: "DAGベースのworkflow定義生成"
+  tool: "helix builder workflow generate"
+  observe:
+    expect_keywords: ["workflow", "dag", "edge", "生成"]
+    expect_artifact: "builders/workflows/*.json"
+    evidence: "workflow定義JSONと循環チェック"
+
+builder-agent-pipeline:
+  name: "エージェントパイプラインビルド"
+  desc: "ステージ連結パイプライン生成"
+  tool: "helix builder agent-pipeline generate"
+  observe:
+    expect_keywords: ["pipeline", "stage", "adapter", "生成"]
+    expect_artifact: "builders/pipelines/*.json"
+    evidence: "pipeline定義JSONと契約チェック"
+
+builder-agent-skill:
+  name: "エージェントスキルビルド"
+  desc: "SKILL.md フォーマットでスキル生成"
+  tool: "helix builder agent-skill generate"
+  observe:
+    expect_keywords: ["skill", "frontmatter", "markdown", "生成"]
+    expect_artifact: "skills/generated/*/SKILL.md"
+    evidence: "生成SKILL.mdとfrontmatter検証"
+
+builder-sub-agent:
+  name: "サブエージェントビルド"
+  desc: "サブエージェント定義生成"
+  tool: "helix builder sub-agent generate"
+  observe:
+    expect_keywords: ["sub-agent", "execution", "context", "生成"]
+    expect_artifact: "builders/sub-agents/*.json"
+    evidence: "サブエージェント定義JSON"

@@ -1,0 +1,15 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-builder: Builder System CLI
+# Usage: helix builder <type> <action> [options]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+DB_PATH="$HELIX_DIR/helix.db"
+
+mkdir -p "$HELIX_DIR"
+
+python3 "$SCRIPT_DIR/lib/builders/cli.py" --project-root "$PROJECT_ROOT" --db "$DB_PATH" "$@"

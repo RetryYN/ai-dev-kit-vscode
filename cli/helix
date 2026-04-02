@@ -18,6 +18,7 @@ case "$CMD" in
   sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
   pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
+  builder)  exec "$SCRIPT_DIR/helix-builder" "$@" ;;
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
@@ -40,6 +41,7 @@ Commands:
   sprint        L4 マイクロスプリント管理
   pr            ゲート結果から PR 自動生成
   reverse       Reverse HELIX パイプライン（R0-R4）
+  builder       Builder System 実行（list/schema/generate/validate/history）
   scrum         検証駆動開発（HELIX Scrum）
   matrix        matrix.yaml の初期化・コンパイル・検証
   plan          設計提案の draft/review/finalize 管理
