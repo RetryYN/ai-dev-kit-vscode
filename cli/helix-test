@@ -791,6 +791,235 @@ run_test "builder sub-agent generate" "$SCRIPT_DIR/helix builder sub-agent gener
 run_test "builder sub-agent artifact" "test -f builders/sub-agents/codex-review-agent.json"
 echo ""
 
+echo "[helix-learning-engine]"
+LEARN_GLOBAL_HOME="$TEST_DIR/.helix-global"
+run_test "learning db init" "python3 $SCRIPT_DIR/lib/helix_db.py init .helix/helix.db"
+python3 - <<'PY'
+import sqlite3
+from datetime import datetime, timezone
+
+conn = sqlite3.connect(".helix/helix.db")
+now = datetime.now(timezone.utc).isoformat()
+
+for i in range(1, 4):
+    conn.execute(
+        "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, completed_at, output_log) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            f"L{i:03d}",
+            "learning-engine-demo",
+            "recipe generation test",
+            "se",
+            "completed",
+            now,
+            now,
+            "",
+        ),
+    )
+    run_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 1, "search-external", "query=builder recipe", "passed", '{"query":"builder recipe"}'),
+    )
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 2, "generate", "target=task", "passed", '{"target":"task"}'),
+    )
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 3, "verify", "check=output", "passed", '{"check":"output"}'),
+    )
+    conn.execute(
+        "INSERT INTO observations (task_run_id, action_log_id, action_type, expected_keywords, matched_keywords, passed, reason) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (run_id, None, "verify", "[]", "[]", 1, ""),
+    )
+
+conn.execute(
+    "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, completed_at, output_log) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    ("L999", "learning-engine-demo", "missing action logs should skip", "se", "completed", now, now, ""),
+)
+
+conn.commit()
+conn.close()
+PY
+run_test "helix learn --all" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn --all"
+run_test_contains "learn --all skips incomplete completed" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn --all" "action_logs 欠損でスキップ: 1"
+run_test_contains "learn generated recipe" "test -n \"$(ls .helix/recipes/*.json 2>/dev/null | head -n 1)\" && echo OK" "OK"
+run_test "global_store init_global_db tables" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import init_global_db; db=init_global_db(); conn=sqlite3.connect(db); t1=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"recipe_index\\\"\").fetchone(); t2=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"promotion_records\\\"\").fetchone(); conn.close(); raise SystemExit(0 if (t1 and t2) else 1)'"
+run_test "global_store sync roundtrip" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import sync_from_local, init_global_db; sync_from_local(\".helix/helix.db\", \"test-project\"); db=init_global_db(); conn=sqlite3.connect(db); row=conn.execute(\"SELECT COUNT(*) FROM recipe_index\").fetchone(); conn.close(); raise SystemExit(0 if (row and row[0] > 0) else 1)'"
+cat > "$TEST_DIR/learning-cross-project-collision.py" <<'PY'
+import sqlite3
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+from global_store import init_global_db, sync_from_local
+from helix_db import init_db
+
+base = Path(tempfile.mkdtemp(prefix="helix-cross-project-"))
+now = datetime.now(timezone.utc).isoformat()
+
+
+def create_project(name: str) -> tuple[Path, str]:
+    root = base / name
+    db_path = root / ".helix" / "helix.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    init_db(str(db_path))
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, completed_at, output_log) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        ("DUP-001", "dup-collision-demo", "cross-project collision test", "se", "completed", now, now, ""),
+    )
+    run_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 1, "search", "query=collision", "passed", '{"query":"collision"}'),
+    )
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 2, "generate", "target=task", "passed", '{"target":"task"}'),
+    )
+    conn.execute(
+        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (run_id, 3, "verify", "check=output", "passed", '{"check":"output"}'),
+    )
+    conn.execute(
+        "INSERT INTO observations (task_run_id, action_log_id, action_type, expected_keywords, matched_keywords, passed, reason) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (run_id, None, "verify", "[]", "[]", 1, ""),
+    )
+    conn.commit()
+    conn.close()
+    return db_path, f"{name}-project"
+
+
+for project_name in ("alpha", "beta"):
+    local_db, project_id = create_project(project_name)
+    sync_from_local(str(local_db), project_id)
+
+db = init_global_db()
+conn = sqlite3.connect(db)
+rows = conn.execute(
+    "SELECT recipe_id, project_id FROM recipe_index WHERE project_id IN ('alpha-project', 'beta-project') ORDER BY project_id ASC"
+).fetchall()
+conn.close()
+
+if len(rows) != 2:
+    raise SystemExit(1)
+if str(rows[0][0]) == str(rows[1][0]):
+    raise SystemExit(1)
+PY
+run_test "global_store duplicate recipe_id cross-project sync" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/learning-cross-project-collision.py"
+cat > "$TEST_DIR/promote-over-50-lookup.py" <<'PY'
+import json
+import os
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+
+from global_store import init_global_db
+
+global_home = Path(os.environ["HELIX_GLOBAL_HOME"])
+recipe_dir = global_home / "recipes"
+recipe_dir.mkdir(parents=True, exist_ok=True)
+
+db_path = init_global_db()
+conn = sqlite3.connect(db_path)
+now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def upsert(recipe_id: str, pattern_key: str, project_id: str, success_count: int, quality: float) -> None:
+    payload = {
+        "recipe_id": recipe_id,
+        "pattern_key": pattern_key,
+        "steps": [],
+        "metrics": {"quality_score": quality},
+        "classification": {"builder_type": "task", "task_type": "lookup-demo", "role": "se", "tags": []},
+        "source": {"project_id": project_id},
+        "created_at": now,
+    }
+    (recipe_dir / f"{recipe_id}.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    context = {
+        "project_id": project_id,
+        "task_type": "lookup-demo",
+        "success_count": success_count,
+        "total_count": max(success_count, 1),
+        "recipe_ids": [recipe_id],
+    }
+    conn.execute(
+        """
+        INSERT INTO recipe_index (
+            recipe_id, pattern_key, builder_type, project_id, success_rate, quality_score_mean,
+            tags_json, context_json, local_path, global_path, promotion_status, success_count, total_count, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none', ?, ?, ?, ?)
+        ON CONFLICT(pattern_key, project_id)
+        DO UPDATE SET
+            recipe_id = excluded.recipe_id,
+            builder_type = excluded.builder_type,
+            success_rate = excluded.success_rate,
+            quality_score_mean = excluded.quality_score_mean,
+            tags_json = excluded.tags_json,
+            context_json = excluded.context_json,
+            local_path = excluded.local_path,
+            global_path = excluded.global_path,
+            success_count = excluded.success_count,
+            total_count = excluded.total_count,
+            updated_at = excluded.updated_at
+        """,
+        (
+            recipe_id,
+            pattern_key,
+            "task",
+            project_id,
+            1.0 if success_count > 0 else 0.0,
+            float(quality),
+            "[]",
+            json.dumps(context, ensure_ascii=False, sort_keys=True),
+            "",
+            str(recipe_dir / f"{recipe_id}.json"),
+            int(success_count),
+            max(int(success_count), 1),
+            now,
+            now,
+        ),
+    )
+
+
+for i in range(60):
+    upsert(
+        recipe_id=f"lookup-high-{i:03d}",
+        pattern_key=f"bulk-pattern-{i:03d}",
+        project_id=f"bulk-project-{i:03d}",
+        success_count=200 - i,
+        quality=99.0,
+    )
+
+upsert(
+    recipe_id="lookup-target",
+    pattern_key="target-pattern",
+    project_id="target-project",
+    success_count=0,
+    quality=0.0,
+)
+
+conn.commit()
+conn.close()
+PY
+run_test_contains "helix promote lookup over 50 recipes" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/promote-over-50-lookup.py && HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote lookup-target --type task" "recipe_id: lookup-target"
+run_test_contains "helix promote --auto candidates" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote --auto" "pattern="
+run_test_contains "helix discover returns result" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix discover --query builder --limit 5" "score="
+echo ""
+
 echo "[helix wrapper]"
 run_test_contains "helix help" "$SCRIPT_DIR/helix help" "Commands:"
 run_test_contains "helix help init" "$SCRIPT_DIR/helix help" "  init"
@@ -806,6 +1035,9 @@ run_test_contains "helix help log" "$SCRIPT_DIR/helix help" "  log"
 run_test_contains "helix help matrix" "$SCRIPT_DIR/helix help" "  matrix"
 run_test_contains "helix help plan" "$SCRIPT_DIR/helix help" "  plan"
 run_test_contains "helix help interrupt" "$SCRIPT_DIR/helix help" "  interrupt"
+run_test_contains "helix help learn" "$SCRIPT_DIR/helix help" "  learn"
+run_test_contains "helix help promote" "$SCRIPT_DIR/helix help" "  promote"
+run_test_contains "helix help discover" "$SCRIPT_DIR/helix help" "  discover"
 run_test_contains "helix help builder" "$SCRIPT_DIR/helix help" "  builder"
 run_test_contains "helix help status" "$SCRIPT_DIR/helix help" "  status"
 run_test_contains "helix help test" "$SCRIPT_DIR/helix help" "  test"

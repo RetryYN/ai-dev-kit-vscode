@@ -139,7 +139,7 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 
 **セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（42スキル）
+## スキル群配置（48スキル + Wave B/C 候補）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）
@@ -152,6 +152,19 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools |
 | integration/ | agent-teams |
+| writing/ | japanese, explain |
+| design-tools/ | diagram, web-system |
+| automation/ | site-mapping, browser-script |
+
+### Wave B/C（未実装）
+
+- story（未実装）
+- presentation（未実装）
+- social（未実装）
+- pptx（未実装）
+- graphic（未実装）
+- character（未実装）
+- flow-optimize（未実装）
 
 ## メンテナンス指針
 

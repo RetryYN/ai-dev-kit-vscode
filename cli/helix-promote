@@ -1,0 +1,375 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+LIB_DIR = SCRIPT_DIR / "lib"
+if str(LIB_DIR) not in sys.path:
+    sys.path.append(str(LIB_DIR))
+
+# Builder registry に型を登録するため、明示 import する。
+import builders.agent_skill  # noqa: F401
+import builders.sub_agent  # noqa: F401
+import builders.task_builder  # noqa: F401
+import builders.verify_script  # noqa: F401
+from builders.registry import BuilderRegistry
+from builders.store import BuilderStore
+
+from global_store import get_promotion_candidates, get_recipe_by_id, record_promotion
+from learning_engine import find_recipe
+
+
+PROMOTE_TYPE_TO_BUILDER = {
+    "skill": "agent-skill",
+    "script": "verify-script",
+    "task": "task",
+    "sub-agent": "sub-agent",
+}
+
+
+def _project_root() -> Path:
+    env = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
+    if env:
+        return Path(env).expanduser().resolve()
+
+    try:
+        raw = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if raw:
+            return Path(raw).resolve()
+    except Exception:
+        pass
+
+    return Path.cwd().resolve()
+
+
+def _slugify(text: str) -> str:
+    lowered = (text or "").strip().lower()
+    out = []
+    for char in lowered:
+        if char.isalnum():
+            out.append(char)
+        else:
+            out.append("-")
+    value = "".join(out)
+    while "--" in value:
+        value = value.replace("--", "-")
+    return value.strip("-") or "generated"
+
+
+def _project_id(project_root: Path) -> str:
+    digest = hashlib.sha1(str(project_root).encode("utf-8")).hexdigest()[:8]
+    return f"{project_root.name}-{digest}"
+
+
+def _safe_role(value: str) -> str:
+    role = (value or "").strip()
+    if not role:
+        return "tl"
+    return role
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="helix promote",
+        description="recipe を Builder 生成物に昇格する",
+    )
+    parser.add_argument("recipe_id", nargs="?", help="対象 recipe_id")
+    parser.add_argument("--auto", action="store_true", help="しきい値超え候補を一覧表示")
+    parser.add_argument(
+        "--type",
+        dest="promote_type",
+        choices=["skill", "script", "task", "sub-agent"],
+        help="昇格先種類",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=int,
+        default=3,
+        help="--auto 時の候補しきい値（デフォルト: 3）",
+    )
+    return parser.parse_args()
+
+
+def _load_recipe(recipe_id: str, project_root: Path) -> dict[str, Any] | None:
+    recipe = find_recipe(recipe_id=recipe_id, project_root=str(project_root))
+    if recipe is not None:
+        return recipe
+
+    candidate = get_recipe_by_id(recipe_id=recipe_id)
+    if candidate is None:
+        return None
+
+    global_path = str(candidate.get("global_path", "")).strip()
+    if not global_path:
+        return None
+    path = Path(global_path)
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+    if isinstance(payload, dict):
+        payload["_path"] = str(path)
+        payload["recipe_id"] = str(candidate.get("recipe_id") or payload.get("recipe_id") or recipe_id)
+        candidate_project_id = str(candidate.get("project_id") or "").strip()
+        if candidate_project_id:
+            payload["project_id"] = candidate_project_id
+            source = payload.get("source", {})
+            if not isinstance(source, dict):
+                source = {}
+            source["project_id"] = candidate_project_id
+            payload["source"] = source
+        return payload
+
+    return None
+
+
+def _infer_promote_type(recipe: dict[str, Any], preferred: str | None) -> str:
+    if preferred:
+        return preferred
+
+    classification = recipe.get("classification", {})
+    if isinstance(classification, dict):
+        builder_type = str(classification.get("builder_type", "")).strip()
+        reverse = {
+            "agent-skill": "skill",
+            "verify-script": "script",
+            "task": "task",
+            "sub-agent": "sub-agent",
+        }
+        if builder_type in reverse:
+            return reverse[builder_type]
+
+    return "skill"
+
+
+def _digest(text: str) -> str:
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()[:8]
+
+
+def _task_actions_from_recipe(recipe: dict[str, Any]) -> list[dict[str, str]]:
+    steps = recipe.get("steps", [])
+    if not isinstance(steps, list):
+        return [{"type": "analyze", "desc": "recipe を分析する"}]
+
+    actions: list[dict[str, str]] = []
+    for step in steps[:6]:
+        if not isinstance(step, dict):
+            continue
+        action_type = str(step.get("action_type") or step.get("tool") or "action").strip() or "action"
+        desc = str(step.get("description") or step.get("action_desc") or "step").strip() or "step"
+        actions.append({"type": action_type, "desc": desc})
+
+    if not actions:
+        return [{"type": "analyze", "desc": "recipe を分析する"}]
+    return actions
+
+
+def _recipe_to_builder_input(recipe: dict[str, Any], promote_type: str) -> dict[str, Any]:
+    recipe_id = str(recipe.get("recipe_id") or "recipe")
+    pattern_key = str(recipe.get("pattern_key") or recipe_id)
+    classification = recipe.get("classification", {}) if isinstance(recipe.get("classification"), dict) else {}
+    metrics = recipe.get("metrics", {}) if isinstance(recipe.get("metrics"), dict) else {}
+    notes = recipe.get("notes", {}) if isinstance(recipe.get("notes"), dict) else {}
+
+    task_type = str(classification.get("task_type") or "generated-task")
+    role = _safe_role(str(classification.get("role") or "tl"))
+    quality = float(metrics.get("quality_score", 0.0) or 0.0)
+    digest = _digest(pattern_key)
+
+    actions = _task_actions_from_recipe(recipe)
+
+    if promote_type == "skill":
+        return {
+            "name": f"recipe-{digest}-generated",
+            "description": f"Recipe昇格: {pattern_key}",
+            "helix_layer": "L4",
+            "triggers": [f"{task_type} 実行時", f"role={role} のタスク実行時"],
+            "verification": [f"quality_score >= {int(quality)}", "重大な回帰がないこと"],
+            "sections": {
+                "overview": str(notes.get("why_it_worked") or "成功パターンをテンプレート化したスキル"),
+                "checklist": [
+                    str(notes.get("applicability") or "類似タスクで再利用する"),
+                    "redaction 済み情報のみ扱う",
+                ],
+            },
+        }
+
+    if promote_type == "script":
+        checks = []
+        for index, action in enumerate(actions[:5], start=1):
+            checks.append(
+                {
+                    "desc": f"step{index}: {action['desc']}",
+                    "cmd": "true",
+                }
+            )
+        return {
+            "id": f"P{digest}",
+            "slug": f"recipe-{_slugify(task_type)}-{digest}",
+            "checks": checks or [{"desc": "recipe check", "cmd": "true"}],
+            "setup": "",
+            "teardown": "",
+        }
+
+    if promote_type == "task":
+        estimate = max(5, min(90, len(actions) * 10))
+        return {
+            "category": "generated",
+            "task_id": f"recipe-{_slugify(task_type)}-{digest}",
+            "name": f"Recipe昇格タスク ({task_type})",
+            "role": role,
+            "estimate": estimate,
+            "skill": "common/coding",
+            "actions": actions,
+        }
+
+    if promote_type == "sub-agent":
+        joined_steps = "\\n".join([f"- {action['desc']}" for action in actions[:5]])
+        return {
+            "name": f"recipe-{digest}-agent",
+            "role": role,
+            "task_template": f"以下の成功パターンに従って実行:\\n{joined_steps}",
+            "context_files": ["docs/**/*.md", "src/**/*.py"],
+            "output_contract": {
+                "verdict": "approve|needs-attention",
+                "summary": "string",
+                "findings": ["object"],
+            },
+            "execution": "helix-codex",
+        }
+
+    raise ValueError(f"unsupported promote type: {promote_type}")
+
+
+def _print_auto_candidates(candidates: list[dict[str, Any]], threshold: int):
+    print("=== helix promote --auto ===")
+    print(f"しきい値: {threshold} 回")
+    if not candidates:
+        print("昇格候補はありません。")
+        return
+
+    print("昇格候補:")
+    for item in candidates:
+        print(
+            "  - {recipe_id} | pattern={pattern_key} | success_count={success_count} | quality={quality:.1f}".format(
+                recipe_id=item.get("recipe_id", ""),
+                pattern_key=item.get("pattern_key", ""),
+                success_count=int(item.get("success_count", 0) or 0),
+                quality=float(item.get("quality_score_mean", 0.0) or 0.0),
+            )
+        )
+    print("明示実行する場合: helix promote <recipe-id> --type <skill|script|task|sub-agent>")
+
+
+def main() -> int:
+    args = _parse_args()
+    project_root = _project_root()
+
+    if args.auto and not args.recipe_id:
+        candidates = get_promotion_candidates(threshold=max(1, int(args.threshold)))
+        _print_auto_candidates(candidates, threshold=max(1, int(args.threshold)))
+
+        for candidate in candidates:
+            if str(candidate.get("promotion_status", "none")) == "none":
+                record_promotion(
+                    recipe_id=str(candidate.get("recipe_id", "")),
+                    artifact_type="proposal",
+                    builder_type=str(candidate.get("builder_type", "task")),
+                    artifact_ref="",
+                    status="proposed",
+                    project_id=str(candidate.get("project_id", "")),
+                )
+        return 0
+
+    if not args.recipe_id:
+        print("Error: recipe-id か --auto のどちらかが必要です。", file=sys.stderr)
+        return 1
+
+    recipe = _load_recipe(recipe_id=args.recipe_id, project_root=project_root)
+    if recipe is None:
+        print(f"Error: recipe が見つかりません: {args.recipe_id}", file=sys.stderr)
+        return 1
+
+    promote_type = _infer_promote_type(recipe, args.promote_type)
+    builder_type = PROMOTE_TYPE_TO_BUILDER[promote_type]
+
+    input_params = _recipe_to_builder_input(recipe, promote_type=promote_type)
+
+    db_path = project_root / ".helix" / "helix.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    store = BuilderStore(str(db_path))
+    builder_cls = BuilderRegistry.get(builder_type)
+    builder = builder_cls(store, str(project_root))
+
+    recipe_id = str(recipe.get("recipe_id") or args.recipe_id)
+    recipe_project_id = str(recipe.get("project_id") or "").strip()
+    if not recipe_project_id:
+        source = recipe.get("source", {})
+        if isinstance(source, dict):
+            recipe_project_id = str(source.get("project_id") or "").strip()
+    if not recipe_project_id:
+        recipe_project_id = _project_id(project_root)
+
+    try:
+        result = builder.build(
+            task_id=f"PROMOTE-{recipe_id}",
+            input_params=input_params,
+            seed_execution_id=None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        promotion_id = record_promotion(
+            recipe_id=recipe_id,
+            artifact_type=promote_type,
+            builder_type=builder_type,
+            artifact_ref="",
+            status="failed",
+            project_id=recipe_project_id,
+        )
+        print(f"Error: promote 実行に失敗しました: {exc}", file=sys.stderr)
+        print(f"promotion_id: {promotion_id}", file=sys.stderr)
+        return 1
+
+    artifacts = result.get("artifacts", []) if isinstance(result, dict) else []
+    artifact_paths = [str(item.get("path", "")) for item in artifacts if isinstance(item, dict)]
+    artifact_ref = ",".join([path for path in artifact_paths if path])
+
+    promotion_id = record_promotion(
+        recipe_id=recipe_id,
+        artifact_type=promote_type,
+        builder_type=builder_type,
+        artifact_ref=artifact_ref,
+        status="generated",
+        project_id=recipe_project_id,
+    )
+
+    print("=== helix promote ===")
+    print(f"recipe_id: {recipe_id}")
+    print(f"promote_type: {promote_type}")
+    print(f"builder_type: {builder_type}")
+    print(f"execution_id: {result.get('execution_id', '')}")
+    print(f"promotion_id: {promotion_id}")
+    print("artifacts:")
+    for path in artifact_paths:
+        print(f"  - {path}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

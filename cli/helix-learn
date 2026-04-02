@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+LIB_DIR = SCRIPT_DIR / "lib"
+if str(LIB_DIR) not in sys.path:
+    sys.path.append(str(LIB_DIR))
+
+from global_store import sync_from_local
+from learning_engine import analyze_success, resolve_success_run_ids, save_recipe
+
+
+def _project_root() -> Path:
+    env_root = Path(os.environ.get("HELIX_PROJECT_ROOT", "")).expanduser()
+    if str(env_root).strip():
+        return env_root.resolve()
+
+    try:
+        raw = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if raw:
+            return Path(raw).resolve()
+    except Exception:
+        pass
+
+    return Path.cwd().resolve()
+
+
+def _project_id(project_root: Path) -> str:
+    digest = hashlib.sha1(str(project_root).encode("utf-8")).hexdigest()[:8]
+    return f"{project_root.name}-{digest}"
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="helix learn",
+        description="成功タスクから recipe を生成し global.db へ同期する",
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--task-id", help="task_run_id(数値) または task_id(T001 など)")
+    group.add_argument("--all", action="store_true", help="全成功タスクを対象にする")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    project_root = _project_root()
+
+    helix_dir = project_root / ".helix"
+    db_path = helix_dir / "helix.db"
+
+    if not db_path.exists():
+        print(f"Error: helix.db が見つかりません: {db_path}", file=sys.stderr)
+        return 1
+
+    run_ids = resolve_success_run_ids(
+        db_path=str(db_path),
+        task_id=args.task_id,
+        all_success=bool(args.all),
+    )
+
+    if not run_ids:
+        print("成功タスクが見つかりませんでした。")
+        return 1
+
+    generated_paths: list[str] = []
+    failed: list[str] = []
+    skipped_no_actions = 0
+
+    for run_id in run_ids:
+        try:
+            recipe = analyze_success(task_run_id=run_id, db_path=str(db_path))
+            if recipe is None:
+                skipped_no_actions += 1
+                continue
+            output_path = save_recipe(recipe=recipe, project_root=str(project_root))
+            generated_paths.append(output_path)
+        except Exception as exc:  # noqa: BLE001
+            failed.append(f"task_run_id={run_id}: {exc}")
+
+    project_id = _project_id(project_root)
+    sync_result = sync_from_local(local_db=str(db_path), project_id=project_id)
+
+    print("=== helix learn ===")
+    print(f"対象プロジェクト: {project_root}")
+    print(f"recipe 生成数: {len(generated_paths)}")
+    print(f"action_logs 欠損でスキップ: {skipped_no_actions}")
+    for path in generated_paths:
+        print(f"  - {path}")
+
+    print("同期結果:")
+    print(f"  - project_id: {sync_result.get('project_id')}")
+    print(f"  - synced_patterns: {sync_result.get('synced_patterns')}")
+    print(f"  - synced_runs: {sync_result.get('synced_runs')}")
+    print(f"  - global_db: {sync_result.get('global_db')}")
+
+    if failed:
+        print("\n失敗:", file=sys.stderr)
+        for item in failed:
+            print(f"  - {item}", file=sys.stderr)
+        return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

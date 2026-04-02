@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+LIB_DIR = SCRIPT_DIR / "lib"
+if str(LIB_DIR) not in sys.path:
+    sys.path.append(str(LIB_DIR))
+
+from builders.history import BuilderHistory
+from global_store import search_global
+from learning_engine import list_recipes
+
+
+def _project_root() -> Path:
+    env = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
+    if env:
+        return Path(env).expanduser().resolve()
+
+    try:
+        raw = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if raw:
+            return Path(raw).resolve()
+    except Exception:
+        pass
+
+    return Path.cwd().resolve()
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="helix discover",
+        description="local/global recipe から類似候補を検索する",
+    )
+    parser.add_argument("--query", default="", help="検索キーワード")
+    parser.add_argument("--limit", type=int, default=10, help="表示件数")
+    return parser.parse_args()
+
+
+def _project_id(project_root: Path) -> str:
+    digest = hashlib.sha1(str(project_root).encode("utf-8")).hexdigest()[:8]
+    return f"{project_root.name}-{digest}"
+
+
+def _local_candidates(project_root: Path) -> list[dict[str, Any]]:
+    recipes = list_recipes(str(project_root))
+    candidates: list[dict[str, Any]] = []
+    project_id = _project_id(project_root)
+
+    for recipe in recipes:
+        payload = dict(recipe)
+        payload["source_scope"] = "local"
+        payload["source_path"] = str(recipe.get("_path", ""))
+        payload["project_id"] = project_id
+        candidates.append(payload)
+
+    return candidates
+
+
+def _global_candidates(query: str, limit: int) -> list[dict[str, Any]]:
+    rows = search_global(query=query, limit=max(20, int(limit) * 5))
+    candidates: list[dict[str, Any]] = []
+
+    for row in rows:
+        context = row.get("context", {}) if isinstance(row.get("context"), dict) else {}
+        tags = row.get("tags", []) if isinstance(row.get("tags"), list) else []
+
+        payload = {
+            "recipe_id": row.get("recipe_id", ""),
+            "pattern_key": row.get("pattern_key", ""),
+            "classification": {
+                "builder_type": row.get("builder_type", ""),
+                "task_type": context.get("task_type", ""),
+                "tags": tags,
+            },
+            "tags": tags,
+            "quality_score_mean": row.get("quality_score_mean", 0.0),
+            "metrics": {"quality_score": row.get("quality_score_mean", 0.0)},
+            "source_scope": "global",
+            "source_path": row.get("global_path", ""),
+            "project_id": row.get("project_id", "") or context.get("project_id", ""),
+            "context": context,
+        }
+        candidates.append(payload)
+
+    return candidates
+
+
+def _dedupe(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+
+    for item in candidates:
+        recipe_id = str(item.get("recipe_id", ""))
+        project_id = str(item.get("project_id", "")).strip() or str(item.get("source_scope", ""))
+        key = (recipe_id, project_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(item)
+
+    return merged
+
+
+def main() -> int:
+    args = _parse_args()
+    project_root = _project_root()
+
+    local_items = _local_candidates(project_root)
+    global_items = _global_candidates(query=args.query, limit=max(10, int(args.limit)))
+
+    combined = _dedupe(local_items + global_items)
+    scored = BuilderHistory.search_recipe_candidates(
+        query=args.query,
+        candidates=combined,
+        limit=max(1, int(args.limit)),
+    )
+
+    print("=== helix discover ===")
+    print(f"query: {args.query or '(empty)'}")
+    print(f"source: local={len(local_items)} / global={len(global_items)}")
+
+    if not scored:
+        print("結果なし")
+        return 0
+
+    print("results:")
+    for item in scored:
+        print(
+            "  - score={score:.2f} | recipe={recipe} | scope={scope} | pattern={pattern}".format(
+                score=float(item.get("_score", 0.0) or 0.0),
+                recipe=str(item.get("recipe_id", "")),
+                scope=str(item.get("source_scope", "")),
+                pattern=str(item.get("pattern_key", "")),
+            )
+        )
+        source_path = str(item.get("source_path", "")).strip()
+        if source_path:
+            print(f"      path={source_path}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

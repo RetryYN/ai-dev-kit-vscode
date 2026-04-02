@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 
 from .store import BuilderStore
 
@@ -47,6 +48,19 @@ class BuilderHistory:
             + (quality_norm * 10.0)
             + (recency * 10.0)
         )
+
+    @staticmethod
+    def search_recipe_candidates(query: str, candidates: list[dict], limit: int = 5) -> list[dict]:
+        """recipe 検索向けのスコアリング。"""
+        tokens = _query_tokens(query)
+        scored: list[dict] = []
+
+        for candidate in candidates:
+            score = _recipe_score(tokens, candidate)
+            scored.append({**candidate, "_score": score})
+
+        scored.sort(key=lambda item: item.get("_score", 0.0), reverse=True)
+        return scored[: max(1, int(limit))]
 
 
 def _signature_keys(payload: dict) -> set[str]:
@@ -112,3 +126,84 @@ def _recency_score(finished_at: str) -> float:
     now = datetime.now(timezone.utc)
     days_since = max((now - done_at.astimezone(timezone.utc)).total_seconds() / 86400.0, 0.0)
     return 1.0 - min(days_since / 90.0, 1.0)
+
+
+def _query_tokens(query: str) -> list[str]:
+    text = (query or "").strip().lower()
+    if not text:
+        return []
+    return [token for token in re.split(r"[\s,]+", text) if token]
+
+
+def _recipe_text(candidate: dict) -> str:
+    classification = candidate.get("classification", {})
+    if not isinstance(classification, dict):
+        classification = {}
+    notes = candidate.get("notes", {})
+    if not isinstance(notes, dict):
+        notes = {}
+
+    parts: list[str] = []
+    for key in ("pattern_key", "recipe_id", "builder_type", "task_type"):
+        value = candidate.get(key)
+        if value is not None:
+            parts.append(str(value))
+    for key in ("task_type", "role", "builder_type"):
+        value = classification.get(key)
+        if value is not None:
+            parts.append(str(value))
+    for key in ("why_it_worked", "applicability"):
+        value = notes.get(key)
+        if value is not None:
+            parts.append(str(value))
+    return " ".join(parts).lower()
+
+
+def _recipe_tags(candidate: dict) -> set[str]:
+    tags = set()
+
+    root_tags = candidate.get("tags")
+    if isinstance(root_tags, list):
+        tags |= {str(tag).lower() for tag in root_tags}
+
+    classification = candidate.get("classification", {})
+    if isinstance(classification, dict):
+        cls_tags = classification.get("tags")
+        if isinstance(cls_tags, list):
+            tags |= {str(tag).lower() for tag in cls_tags}
+
+    return tags
+
+
+def _recipe_quality(candidate: dict) -> float:
+    metrics = candidate.get("metrics", {})
+    if not isinstance(metrics, dict):
+        metrics = {}
+    raw = metrics.get("quality_score", candidate.get("quality_score_mean", 0.0))
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return 0.0
+    if value < 0.0:
+        return 0.0
+    if value > 100.0:
+        return 100.0
+    return value
+
+
+def _recipe_score(tokens: list[str], candidate: dict) -> float:
+    text = _recipe_text(candidate)
+    tags = _recipe_tags(candidate)
+    quality = _recipe_quality(candidate) / 100.0
+
+    if not tokens:
+        return (quality * 60.0) + (min(len(tags), 5) / 5.0 * 40.0)
+
+    text_hits = sum(1 for token in tokens if token in text)
+    tag_hits = sum(1 for token in tokens if any(token in tag for tag in tags))
+
+    text_score = (text_hits / len(tokens)) * 65.0
+    tag_score = (tag_hits / len(tokens)) * 25.0
+    quality_score = quality * 10.0
+
+    return text_score + tag_score + quality_score
