@@ -62,19 +62,29 @@ class AgentSkillBuilder(BuilderBase):
     def generate(self, params: dict, seed: dict | None) -> list[dict]:
         del seed
 
-        skill_dir = Path(self.project_root) / "skills" / "generated" / params["name"]
-        skill_dir.mkdir(parents=True, exist_ok=True)
-
-        skill_path = skill_dir / "SKILL.md"
         content = _render_skill_markdown(params)
-        skill_path.write_text(content, encoding="utf-8")
+        artifacts = []
 
-        return [{"path": str(skill_path.relative_to(self.project_root)), "kind": "generated-skill"}]
+        # HELIX 独自パス（skills/generated/）
+        helix_dir = Path(self.project_root) / "skills" / "generated" / params["name"]
+        helix_dir.mkdir(parents=True, exist_ok=True)
+        helix_path = helix_dir / "SKILL.md"
+        helix_path.write_text(content, encoding="utf-8")
+        artifacts.append({"path": str(helix_path.relative_to(self.project_root)), "kind": "generated-skill"})
+
+        # Claude Code 公式パス（.claude/skills/）— /skillname で即呼べる
+        claude_dir = Path(self.project_root) / ".claude" / "skills" / params["name"]
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        claude_path = claude_dir / "SKILL.md"
+        claude_path.write_text(content, encoding="utf-8")
+        artifacts.append({"path": str(claude_path.relative_to(self.project_root)), "kind": "claude-skill"})
+
+        return artifacts
 
     def validate_output(self, artifacts: list[dict]) -> dict:
         paths = [_artifact_path(self.project_root, artifact) for artifact in artifacts]
-        if len(paths) != 1:
-            raise ValueError("agent-skill expects one artifact")
+        if not paths:
+            raise ValueError("agent-skill expects at least one artifact")
 
         skill_path = paths[0]
         if not skill_path.exists():
