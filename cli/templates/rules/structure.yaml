@@ -71,6 +71,10 @@ path_mapping:
     root: docs
     primary_path: "{docs_scope_root}/D-API/api-contract.yaml"
     allowed_extensions: [yaml, yml, json]
+  D-CONTRACT:
+    root: docs
+    primary_path: "{docs_scope_root}/D-CONTRACT/contract.yaml"
+    allowed_extensions: [yaml, yml, json]
   D-DB:
     root: docs
     primary_path: "{docs_scope_root}/D-DB/db-schema.md"

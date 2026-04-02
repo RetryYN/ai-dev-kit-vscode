@@ -19,6 +19,9 @@ gates:
 sprint:
   current_step: null
   status: active
+  drive: null
+  tracks: null
+  phase: null
   steps:
     ".1a": { status: pending }
     ".1b": { status: pending }

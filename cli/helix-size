@@ -37,12 +37,14 @@ while [[ $# -gt 0 ]]; do
       echo "                  be    バックエンド駆動 — API/ロジック起点"
       echo "                  fe    フロントエンド駆動 — デザイン/UX起点"
       echo "                  db    データベース駆動 — スキーマ/データモデル起点"
+      echo "                  fullstack フルスタック駆動 — BE+FE同時起点"
       echo "                  agent エージェント駆動 — ツール/プロンプト起点"
       echo ""
       echo "Example:"
       echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature --drive be"
       echo "  helix-size --files 8 --lines 300 --ui --type new-feature --drive fe"
       echo "  helix-size --files 5 --lines 200 --db --type new-module --drive db"
+      echo "  helix-size --files 6 --lines 220 --api --ui --type new-feature --drive fullstack"
       echo "  helix-size --files 3 --lines 150 --api --type new-feature --drive agent"
       exit 0
       ;;
@@ -52,8 +54,8 @@ done
 
 # --- 駆動タイプバリデーション ---
 case "$DRIVE" in
-  be|fe|db|agent) ;;
-  *) echo "Error: Invalid --drive value '$DRIVE'. Use: be, fe, db, agent" >&2; exit 1 ;;
+  be|fe|db|fullstack|agent) ;;
+  *) echo "Error: Invalid --drive value '$DRIVE'. Use: be, fe, db, fullstack, agent" >&2; exit 1 ;;
 esac
 
 # --- サイジング ---
@@ -123,6 +125,14 @@ case "$DRIVE" in
     G2_DESC="スキーマ凍結"
     G3_DESC="Migration Freeze"
     ;;
+  fullstack)
+    L2_DESC="BE方針 + FE方針 + 接続契約方針（同時策定）"
+    L3_DESC="D-API + D-UI + D-CONTRACT + D-DB + D-STATE + 工程表"
+    L4_DESC="Phase A: BE Sprint ∥ FE Sprint → Phase B: L4.5結合"
+    L5_DESC="標準（結合後にVisual Refinement）"
+    G2_DESC="接続契約方針凍結（BE+FE+Contract三点セット）"
+    G3_DESC="API/Schema/UI/Contract 全凍結"
+    ;;
   agent)
     L2_DESC="ツール定義・プロンプト設計・オーケストレーション"
     L3_DESC="ツール契約 + 統合テスト設計 + 工程表"
@@ -143,10 +153,12 @@ api_or_db=$([[ "$HAS_API" == true || "$HAS_DB" == true ]] && echo true || echo f
 # 駆動タイプで L5 の要否判定を変える
 # BE/DB: UI有りのときだけ L5
 # FE: 常に L5（FE駆動の核心）
-# Agent: 会話UIがあれば L5
+# fullstack: 常に L5（結合後 Visual Refinement が必須）
+# Agent: 常に L5（会話UI/デモ確認）
 needs_l5() {
   case "$DRIVE" in
     fe)    echo true ;;
+    fullstack) echo true ;;
     be|db) [[ "$HAS_UI" == true ]] && echo true || echo false ;;
     agent) echo true ;;
   esac
@@ -224,6 +236,9 @@ case "$DRIVE" in
     ;;
   db)
     NOTES="${NOTES:+$NOTES / }L2はER/スキーマ起点。L4はスキーマ→CRUD→API→FEの順"
+    ;;
+  fullstack)
+    NOTES="${NOTES:+$NOTES / }L4はPhase A（BE/FE並行）→Phase B（L4.5結合）。L5は常に必要"
     ;;
   agent)
     NOTES="${NOTES:+$NOTES / }L2はツール/プロンプト設計起点。L5は会話UI/デモ確認"

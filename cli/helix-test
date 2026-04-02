@@ -122,6 +122,7 @@ run_test_contains "skip L4 only" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --
 run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui --type new-feature --drive fe" "Visual"
 run_test_contains "drive db" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "スキーマ凍結"
 run_test_contains "drive agent" "$SCRIPT_DIR/helix-size --files 3 --lines 150 --api --type new-feature --drive agent" "ツール定義凍結"
+run_test_contains "drive fullstack phase skip" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --type new-feature --drive fullstack" "推奨フェーズ: L2 L3 L4 L5 L6 L7 L8"
 echo ""
 
 echo "[helix-sprint]"
@@ -132,6 +133,20 @@ run_test_contains "sprint status" "$SCRIPT_DIR/helix-sprint status" ".1b"
 # full cycle
 for i in 1 2 3 4 5; do $SCRIPT_DIR/helix-sprint next >/dev/null 2>&1; done
 run_test_contains "sprint completed" "$SCRIPT_DIR/helix-sprint status" "Sprint 完了"
+run_test "fullstack sprint drive set" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack"
+run_test "fullstack sprint reset" "$SCRIPT_DIR/helix-sprint reset"
+run_test_contains "fullstack sprint status BE track" "$SCRIPT_DIR/helix-sprint status" "BE Track"
+run_test_contains "fullstack sprint status FE track" "$SCRIPT_DIR/helix-sprint status" "FE Track"
+run_test_contains "fullstack sprint next be" "$SCRIPT_DIR/helix-sprint next --track be" ".1b"
+run_test_contains "fullstack be stage advanced" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.tracks.be.stage" ".1b"
+run_test "fullstack be stage .5" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"
+run_test "fullstack fe stage .4" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .4"
+run_test "fullstack contract ci pass" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.contract.ci pass"
+run_test_contains "fullstack phase blocked when one track incomplete" "$SCRIPT_DIR/helix-sprint status" "Phase: A"
+run_test "fullstack fe stage .5" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .5"
+run_test_contains "fullstack phase promoted when ready" "$SCRIPT_DIR/helix-sprint status" "Phase: B"
+run_test "sprint drive restore be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
+run_test "sprint reset after fullstack tests" "$SCRIPT_DIR/helix-sprint reset"
 echo ""
 
 echo "[helix-interrupt]"

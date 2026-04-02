@@ -244,6 +244,18 @@ deliverables:
         params: {role: tl, focus: "UI 契約とコンポーネント責務"}
     gate_ownership: [G3]
 
+  - id: D-CONTRACT
+    name: 接続契約
+    layer: L3
+    drives: [fullstack]
+    scopes: [feature, shared]
+    validators:
+      - type: exists
+      - type: heading_check
+        params:
+          required: ["エンドポイント", "認証", "エラー形式", "状態境界"]
+    gate_ownership: [G3]
+
   - id: D-STATE
     name: 状態設計
     layer: L3

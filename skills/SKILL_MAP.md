@@ -91,18 +91,19 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 | **be**（デフォルト） | API/ロジック | 業務系、解析系、SaaS バックエンド |
 | **fe** | デザイン/UX | LP、EC、ダッシュボード |
 | **db** | スキーマ/データモデル | マスタ管理、ERP、データ基盤 |
+| **fullstack** | BE+FE同時 | SaaS、EC、ダッシュボード + API |
 | **agent** | ツール/プロンプト | AI アプリ、自動化、ワークフロー |
 
 ### 駆動タイプ別 L2〜L5
 
-| フェーズ | be | fe | db | agent |
-|---------|----|----|----|----|
-| L2 設計 | API設計・アーキテクチャ・ADR | Visual方針・コンポーネント設計 | ER図・スキーマ設計 | ツール定義・プロンプト設計 |
-| L3 詳細 | API契約+DB+工程表 | コンポーネントツリー+Props+工程表 | マイグレーション+API契約+工程表 | ツール契約+統合テスト設計+工程表 |
-| L4 実装順 | ロジック→API→FE | コンポーネント→スタイル→API繋ぎ | スキーマ→CRUD→API→FE | ツール→オーケストレーション→UI |
-| L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 会話UI/デモ確認 |
-| G2 凍結 | API設計凍結 | Visual設計凍結 | スキーマ凍結 | ツール定義凍結 |
-| G3 着手 | API/Schema Freeze | Component Contract Freeze | Migration Freeze | Tool Contract Freeze |
+| フェーズ | be | fe | db | fullstack | agent |
+|---------|----|----|----|-----------|----|
+| L2 設計 | API設計・アーキテクチャ・ADR | Visual方針・コンポーネント設計 | ER図・スキーマ設計 | BE方針+FE方針+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
+| L3 詳細 | API契約+DB+工程表 | コンポーネントツリー+Props+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+工程表 | ツール契約+統合テスト設計+工程表 |
+| L4 実装順 | ロジック→API→FE | コンポーネント→スタイル→API繋ぎ | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint → Phase B: L4.5結合 | ツール→オーケストレーション→UI |
+| L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
+| G2 凍結 | API設計凍結 | Visual設計凍結 | スキーマ凍結 | 接続契約方針凍結（BE+FE+Contract三点セット） | ツール定義凍結 |
+| G3 着手 | API/Schema Freeze | Component Contract Freeze | Migration Freeze | API/Schema/UI/Contract全凍結 | Tool Contract Freeze |
 
 ### L5 要否の判定
 
@@ -111,6 +112,7 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 | be | `--ui` 有りのときのみ |
 | fe | **常に必要**（FE駆動の核心） |
 | db | `--ui` 有りのときのみ |
+| fullstack | **常に必要**（結合後の Visual Refinement） |
 | agent | **常に必要**（会話UI/デモ） |
 
 ## フェーズスキップ決定木
@@ -137,9 +139,13 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 
 (L5) = 駆動タイプの L5 要否判定に従う
 
+fullstack 追加条件:
+- L4 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L4.5 結合）
+- L5 は常に必要（結合後の Visual Refinement）
+
 **セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（48スキル + Wave B/C 候補）
+## スキル群配置（53スキル + Wave B/C 候補）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）
@@ -152,19 +158,19 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools |
 | integration/ | agent-teams |
-| writing/ | japanese, explain |
-| design-tools/ | diagram, web-system |
-| automation/ | site-mapping, browser-script |
+| writing/ | japanese, explain, story, presentation |
+| design-tools/ | diagram, web-system, pptx, graphic |
+| automation/ | site-mapping, browser-script, flow-optimize |
 
-### Wave B/C（未実装）
+### Wave B/C
 
-- story（未実装）
-- presentation（未実装）
+- story
+- presentation
 - social（未実装）
-- pptx（未実装）
-- graphic（未実装）
+- pptx
+- graphic
 - character（未実装）
-- flow-optimize（未実装）
+- flow-optimize
 
 ## メンテナンス指針
 

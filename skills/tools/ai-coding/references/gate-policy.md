@@ -11,6 +11,7 @@
 | gate_status | `passed` / `failed` / `blocked` / `interrupted` / `invalidated` | ゲート単位。`invalidated` は freeze-break による無効化 |
 | verification_status | `pass` / `fail` | 検証レポート |
 | sprint_status | `active` / `interrupted` / `completed` | L4 スプリント状態 |
+| track_status | `active` / `completed` / `blocked` / `waiting` | Twin Track 状態（BE/FE 個別） |
 | deliverable_status | `pending` / `in_progress` / `done` / `waived` / `not_applicable` / `partial` | 成果物状態（ADR-001） |
 
 - task_status と gate_status を混同しない（`ai-coding/SKILL.md §4` 参照）
@@ -74,7 +75,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない |
+| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
 | 判定者 | TL（主）、PM（共同）、自動チェック補助 |
 | 判定形式 | ハイブリッド（API/DB 変更なしなら明示会議省略可） |
 | 中規模 skip | 会議省略可 |
@@ -85,7 +86,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録 |
+| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
 | 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |
 | 判定形式 | ハイブリッド（M/L では実質明示） |
 | 中規模 skip | 不可 |
