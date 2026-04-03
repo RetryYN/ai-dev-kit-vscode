@@ -13,6 +13,8 @@ git init -q && git config user.email "t@t" && git config user.name "T"
 echo "t" > README.md && git add . && git commit -q -m "init"
 export HELIX_PROJECT_ROOT="$DIR"
 $CLI/helix-init --project-name t >/dev/null 2>&1
+cp "$CLI/templates/gate-checks.yaml" .helix/gate-checks.yaml
+rm -f .helix/runtime/index.json .helix/state/deliverables.json
 $CLI/helix-scrum init >/dev/null 2>&1
 
 echo "=== H206: Concurrent Mode Safety ==="

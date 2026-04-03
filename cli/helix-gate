@@ -93,6 +93,11 @@ run_checks() {
   local ai_pass=0
   local ai_fail=0
 
+  # deliverable check の前に state を自動更新
+  if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
+    python3 "$SCRIPT_DIR/lib/matrix_compiler.py" --project-root "$PROJECT_ROOT" auto-detect 2>/dev/null || true
+  fi
+
   # --- Deliverable Check ---
   local index_file="$HELIX_DIR/runtime/index.json"
   local state_file="$HELIX_DIR/state/deliverables.json"

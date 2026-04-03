@@ -10,6 +10,8 @@ cd "$DIR" && git init -q && git config user.email "t@t" && git config user.name 
 echo '{"name":"t"}' > package.json && echo "t" > README.md && git add . && git commit -q -m "i"
 export HELIX_PROJECT_ROOT="$DIR"
 $CLI/helix-init --project-name t >/dev/null 2>&1
+cp "$CLI/templates/gate-checks.yaml" .helix/gate-checks.yaml
+rm -f .helix/runtime/index.json .helix/state/deliverables.json
 
 echo "=== H302: Gate Static All Patterns ==="
 

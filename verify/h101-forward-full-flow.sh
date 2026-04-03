@@ -19,6 +19,8 @@ export HELIX_PROJECT_ROOT="$DIR"
 echo "=== H101: Forward Full Flow ==="
 
 $CLI/helix-init --project-name forward-test >/dev/null 2>&1
+cp "$CLI/templates/gate-checks.yaml" .helix/gate-checks.yaml
+rm -f .helix/runtime/index.json .helix/state/deliverables.json
 mkdir -p docs/design
 echo "# L2 Architecture" > docs/design/L2-architecture.md
 

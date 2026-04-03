@@ -192,6 +192,17 @@ check_freeze_violation() {
   [[ ! -f "$PHASE_FILE" ]] && return 0
 
   local YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+
+  # runtime/index.json がある場合は Python でスマートに判定
+  if [[ -f "$INDEX" ]]; then
+    python3 "$SCRIPT_DIR/lib/freeze_checker.py" \
+      --phase-file "$PHASE_FILE" \
+      --index "$INDEX" \
+      --file "$file" 2>/dev/null || true
+    return 0
+  fi
+
   local g2_status g3_status g5_status
   g2_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G2.status" 2>/dev/null || echo "pending")
   g3_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G3.status" 2>/dev/null || echo "pending")

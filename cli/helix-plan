@@ -443,6 +443,8 @@ cmd_review() {
   raw_output_file="$(mktemp /tmp/helix-plan-review-XXXXXX.log)"
   trap 'rm -f "$raw_output_file"' RETURN
 
+  echo "[helix-plan] PM → TL レビュー委譲（Codex 5.4）"
+
   set +e
   review_output=$("$HELIX_CODEX" --role tl --task "$review_prompt" 2>&1)
   local cmd_exit=$?

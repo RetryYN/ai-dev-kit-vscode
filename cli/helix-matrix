@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # helix-matrix: matrix.yaml ベースの生成/検証ユーティリティ
-# Usage: helix-matrix <init|compile|validate|status> [options]
+# Usage: helix-matrix <init|compile|validate|status|update|auto-detect> [options]
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
@@ -22,6 +22,9 @@ Subcommands:
              Options: --force
   validate   matrix.yaml の構造検証（必須キー/ID/循環参照）
   status     feature x deliverable の状態一覧を表示
+  update     deliverable state を手動更新
+             Options: --feature <id> --deliverable <D-ID> --status <done|waived|not_applicable|in_progress>
+  auto-detect 実ファイルの存在から deliverable state を自動更新
 
 Examples:
   helix matrix init
@@ -29,6 +32,8 @@ Examples:
   helix matrix compile --force
   helix matrix validate
   helix matrix status
+  helix matrix update --feature user-auth --deliverable D-ARCH --status done
+  helix matrix auto-detect
 USAGE
 }
 
@@ -112,6 +117,56 @@ run_status() {
   python3 "$COMPILER" --project-root "$PROJECT_ROOT" status
 }
 
+run_update() {
+  local feature=""
+  local deliverable=""
+  local status=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --feature)
+        feature="${2:-}"
+        shift 2
+        ;;
+      --deliverable)
+        deliverable="${2:-}"
+        shift 2
+        ;;
+      --status)
+        status="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$feature" || -z "$deliverable" || -z "$status" ]]; then
+    echo "エラー: --feature --deliverable --status は必須です" >&2
+    exit 1
+  fi
+  python3 "$COMPILER" --project-root "$PROJECT_ROOT" update \
+    --feature "$feature" \
+    --deliverable "$deliverable" \
+    --status "$status"
+}
+
+run_auto_detect() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h) usage; exit 0 ;;
+      *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    esac
+  done
+  python3 "$COMPILER" --project-root "$PROJECT_ROOT" auto-detect
+}
+
 CMD="${1:-help}"
 shift 2>/dev/null || true
 
@@ -120,6 +175,8 @@ case "$CMD" in
   compile) run_compile "$@" ;;
   validate) run_validate "$@" ;;
   status) run_status "$@" ;;
+  update) run_update "$@" ;;
+  auto-detect) run_auto_detect "$@" ;;
   help|-h|--help) usage ;;
   *)
     echo "エラー: 不明なサブコマンドです: $CMD" >&2

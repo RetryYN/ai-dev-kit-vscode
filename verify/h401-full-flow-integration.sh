@@ -53,6 +53,8 @@ echo "=== H401: Full Flow Integration ==="
 # 1. init
 check "init" "$CLI/helix-init --project-name myapp"
 check "init idempotent" "$CLI/helix-init --project-name myapp"
+cp "$CLI/templates/gate-checks.yaml" .helix/gate-checks.yaml
+rm -f .helix/runtime/index.json .helix/state/deliverables.json
 
 # 2. log init
 check "log init" "$CLI/helix-log init"

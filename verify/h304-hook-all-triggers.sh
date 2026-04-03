@@ -13,20 +13,21 @@ $CLI/helix-init --project-name t >/dev/null 2>&1
 
 echo "=== H304: Hook All Triggers ==="
 
-# gate_ready
-mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
-set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/docs/design/L2-arch.md" 2>&1); set -e
+# gate_ready (matrix path)
+mkdir -p docs/features/user-auth/D-ARCH && echo "# L2" > docs/features/user-auth/D-ARCH/architecture.md
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/docs/features/user-auth/D-ARCH/architecture.md" 2>&1); set -e
 echo "$out" | grep -q "gate_ready.*G2" || { echo "FAIL: gate_ready G2"; exit 1; }
 
 # design_sync WARN
-mkdir -p src/components && echo "x" > src/components/Btn.tsx
-set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/src/components/Btn.tsx" 2>&1); set -e
+mkdir -p src/features/user-auth/D-IMPL/nested && echo "x" > src/features/user-auth/D-IMPL/nested/impl.ts
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/src/features/user-auth/D-IMPL/nested/impl.ts" 2>&1); set -e
 echo "$out" | grep -q "設計文書未作成\|WARN" || { echo "FAIL: design_sync"; exit 1; }
 
-# coverage_check
-mkdir -p tests && echo "x" > tests/app.test.ts
-set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/tests/app.test.ts" 2>&1); set -e
-echo "$out" | grep -q "coverage_check" || { echo "FAIL: coverage_check (out='$out')"; exit 1; }
+# freeze-break
+python3 "$CLI/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed >/dev/null 2>&1 || true
+mkdir -p docs/features/user-auth/D-API && echo "contracts: []" > docs/features/user-auth/D-API/api-contract.yaml
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/docs/features/user-auth/D-API/api-contract.yaml" 2>&1); set -e
+echo "$out" | grep -q "凍結違反" || { echo "FAIL: freeze-break"; exit 1; }
 
 # no-op
 NOHELIX=$(mktemp -d /tmp/helix-noop-XXXXXX)
@@ -34,4 +35,4 @@ set +e; out=$(HELIX_PROJECT_ROOT="$NOHELIX" $CLI/helix-hook "$NOHELIX/f.ts" 2>&1
 rm -rf "$NOHELIX"
 [[ $r -eq 0 && -z "$out" ]] || { echo "FAIL: no-op"; exit 1; }
 
-echo "PASS: gate_ready + design_sync + coverage_check + no-op"
+echo "PASS: gate_ready + design_sync + freeze-break + no-op"

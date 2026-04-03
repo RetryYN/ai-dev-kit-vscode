@@ -162,63 +162,74 @@ echo ""
 # --- フレームワーク検出 ---
 echo "[framework detection]"
 DETECTED_FW=""
+FW_LINT=""
+FW_TYPECHECK=""
+FW_TEST=""
 if [[ -f "$PROJECT_ROOT/package.json" ]]; then
   DETECTED_FW="node"
+  FW_LINT="npx eslint . --quiet"
+  FW_TYPECHECK="npx tsc --noEmit"
+  FW_TEST="npm test"
   echo "  detected: Node.js (package.json)"
 elif [[ -f "$PROJECT_ROOT/pyproject.toml" || -f "$PROJECT_ROOT/requirements.txt" ]]; then
   DETECTED_FW="python"
+  FW_LINT="ruff check src/"
+  FW_TYPECHECK="mypy src/"
+  FW_TEST="pytest"
   echo "  detected: Python"
 elif [[ -f "$PROJECT_ROOT/go.mod" ]]; then
   DETECTED_FW="go"
+  FW_LINT="staticcheck ./..."
+  FW_TYPECHECK="go vet ./..."
+  FW_TEST="go test ./..."
   echo "  detected: Go"
 elif [[ -f "$PROJECT_ROOT/Cargo.toml" ]]; then
   DETECTED_FW="rust"
+  FW_LINT="cargo clippy -- -D warnings"
+  FW_TYPECHECK="cargo check"
+  FW_TEST="cargo test"
   echo "  detected: Rust"
 else
+  DETECTED_FW="unknown"
   echo "  detected: unknown (Node.js defaults will be used)"
 fi
 
-# gate-checks.yaml のフレームワーク調整
-if [[ -n "$DETECTED_FW" && -f "$HELIX_DIR/gate-checks.yaml" ]]; then
-  case "$DETECTED_FW" in
-    python)
-      sed -i 's|npx tsc --noEmit.*|python3 -m mypy . 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npx eslint.*|python3 -m ruff check . 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npm test.*|python3 -m pytest 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      echo "  gate-checks.yaml: Python 用に調整済み"
-      ;;
-    go)
-      sed -i 's|npx tsc --noEmit.*|go vet ./... 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npx eslint.*|golangci-lint run 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npm test.*|go test ./... 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      echo "  gate-checks.yaml: Go 用に調整済み"
-      ;;
-    rust)
-      sed -i 's|npx tsc --noEmit.*|cargo check 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npx eslint.*|cargo clippy 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      sed -i 's|npm test.*|cargo test 2>\&1; test $? -eq 0|' "$HELIX_DIR/gate-checks.yaml"
-      echo "  gate-checks.yaml: Rust 用に調整済み"
-      ;;
-    node)
-      echo "  gate-checks.yaml: Node.js (default)"
-      ;;
-  esac
+FRAMEWORK_YAML="$HELIX_DIR/framework.yaml"
+if [[ "$DETECTED_FW" == "unknown" ]]; then
+  cat > "$FRAMEWORK_YAML" <<EOF
+detected: unknown
+tools: {}
+EOF
+else
+  cat > "$FRAMEWORK_YAML" <<EOF
+detected: $DETECTED_FW
+tools:
+  lint: "$FW_LINT"
+  typecheck: "$FW_TYPECHECK"
+  test: "$FW_TEST"
+EOF
 fi
+echo "  created: .helix/framework.yaml"
 echo ""
 
 # matrix.yaml が存在すれば自動 compile
 if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
   echo "matrix compile を実行中..."
-  "$SCRIPT_DIR/helix-matrix" compile 2>/dev/null && \
-    echo "  成果物対照表を生成しました" || \
-    echo "  WARN: matrix compile に失敗しました（後で helix matrix compile を実行してください）"
+  "$SCRIPT_DIR/helix-matrix" compile 2>/dev/null || true
+  echo "matrix auto-detect を実行中..."
+  "$SCRIPT_DIR/helix-matrix" auto-detect 2>/dev/null || true
+  if [[ -f "$HELIX_DIR/runtime/index.json" && -f "$HELIX_DIR/state/deliverables.json" ]]; then
+    echo "  成果物対照表を生成しました"
+  else
+    echo "  WARN: matrix compile / auto-detect に失敗しました（後で helix matrix compile / helix matrix auto-detect を実行してください）"
+  fi
   echo ""
 fi
 
 echo "=== Done ==="
 echo "Next steps:"
 echo "  1. CLAUDE.md を編集してプロジェクト情報を記入"
-echo "  2. helix matrix compile で成果物対照表を有効化"
+echo "  2. helix matrix compile / helix matrix auto-detect で成果物対照表を有効化"
 echo "  3. helix status でプロジェクト状態を確認"
 echo "  4. helix-size でタスクサイジング"
 echo "  5. helix-gate --dry-run G2 でゲートチェック確認"

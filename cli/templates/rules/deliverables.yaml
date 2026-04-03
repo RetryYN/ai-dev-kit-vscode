@@ -608,7 +608,7 @@ deliverables:
     name: レトロスペクティブ
     layer: L8
     drives: [be, fe, db, agent]
-    scopes: [feature, shared, platform]
+    scopes: [feature]
     validators:
       - type: exists
         params: {path_ref: D-RETRO}
@@ -616,4 +616,4 @@ deliverables:
         params: {required: [Context, What Went Well, Problems, Try, Owner]}
       - type: ai_review
         params: {role: tl, focus: "G2/G4/L8 の学習が行動項目まで落ちているか"}
-    gate_ownership: [G2, G4, L8]
+    gate_ownership: [L8]
