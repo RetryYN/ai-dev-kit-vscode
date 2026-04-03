@@ -245,6 +245,30 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 
+# L2/L3 設計タスクの場合、plan finalized チェック
+if [[ "$ROLE" == "tl" || "$ROLE" == "se" ]]; then
+  YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+  PHASE_FILE="$PROJECT_ROOT/.helix/phase.yaml"
+  if [[ -f "$YAML_PARSER" && -f "$PHASE_FILE" ]]; then
+    current_phase=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "current_phase" 2>/dev/null || echo "")
+    if [[ "$current_phase" == "L2" || "$current_phase" == "L3" ]]; then
+      shopt -s nullglob
+      plan_files=("$PROJECT_ROOT/.helix/plans"/PLAN-*.yaml)
+      shopt -u nullglob
+      plan_count=${#plan_files[@]}
+      finalized=0
+      for plan_file in "${plan_files[@]}"; do
+        if grep -q "^status: finalized" "$plan_file" 2>/dev/null; then
+          finalized=$((finalized + 1))
+        fi
+      done
+      if [[ $plan_count -gt 0 && $finalized -eq 0 ]]; then
+        echo "[helix-codex] 警告: 未確定の設計提案があります。helix plan finalize で確定してください" >&2
+      fi
+    fi
+  fi
+fi
+
 if [[ ! -x "$CODEX_BIN" ]]; then
   echo "エラー: codex が見つかりません: $CODEX_BIN" >&2
   echo "CODEX_BIN 環境変数を設定するか、codex をインストールしてください" >&2
@@ -253,6 +277,14 @@ fi
 
 echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
+set +e
 "$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
   -c "model_reasoning_effort=\"$THINKING\"" \
   -c 'shell_environment_policy.inherit=all'
+codex_exit=$?
+set -e
+
+HELIX_DB_PATH="$PROJECT_ROOT/.helix/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert cost_log \
+  "{\"role\":\"$ROLE\",\"model\":\"$codex_model\",\"thinking\":\"$THINKING\"}" 2>/dev/null || true
+
+exit $codex_exit

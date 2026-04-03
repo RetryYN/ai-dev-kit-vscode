@@ -4,6 +4,7 @@ set -eo pipefail
 # helix-gate: HELIX ゲート自動検証
 # Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]
 
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 HELIX_DIR="$PROJECT_ROOT/.helix"
@@ -66,6 +67,27 @@ declare -A GATE_PREREQS=(
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
 
+now_ms() {
+  local ms
+  ms=$(date +%s%3N 2>/dev/null || true)
+  if [[ -z "$ms" ]]; then
+    ms=$(( $(date +%s) * 1000 ))
+  fi
+  echo "$ms"
+}
+
+log_gate_run() {
+  local gate="$1"
+  local result="$2"
+  local deliv_fail="$3"
+  local static_fail="$4"
+  local ai_fail="$5"
+  local duration_ms="$6"
+  local payload
+  payload="{\"gate\":\"$gate\",\"result\":\"$result\",\"fail_reasons\":\"deliverable:$deliv_fail,static:$static_fail,ai:$ai_fail\",\"duration_ms\":$duration_ms}"
+  HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert gate_runs "$payload" 2>/dev/null || true
+}
+
 prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
@@ -96,6 +118,8 @@ fi
 # 実際の実行はここから
 run_checks() {
   local gate="$1"
+  local started_ms
+  started_ms=$(now_ms)
   local deliv_fail=0
   local static_pass=0
   local static_fail=0
@@ -105,7 +129,57 @@ run_checks() {
 
   # deliverable check の前に state を自動更新
   if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
+    local state_file="$HELIX_DIR/state/deliverables.json"
+    cp "$state_file" "$state_file.prev" 2>/dev/null || true
     python3 "$SCRIPT_DIR/lib/matrix_compiler.py" --project-root "$PROJECT_ROOT" auto-detect 2>/dev/null || true
+    HELIX_STATE_PREV="$state_file.prev" HELIX_STATE_CURR="$state_file" python3 - <<'PY' 2>/dev/null || true
+import json
+import os
+
+
+def collect_statuses(payload):
+    statuses = {}
+    features = payload.get("features", {})
+    if not isinstance(features, dict):
+        return statuses
+    for feature_id, feature in features.items():
+        if not isinstance(feature, dict):
+            continue
+        deliverables = feature.get("deliverables", {})
+        if not isinstance(deliverables, dict):
+            continue
+        for did, entry in deliverables.items():
+            if not isinstance(entry, dict):
+                continue
+            statuses[f"{feature_id}/{did}"] = str(entry.get("status", "pending"))
+    return statuses
+
+
+prev_path = os.environ.get("HELIX_STATE_PREV", "")
+curr_path = os.environ.get("HELIX_STATE_CURR", "")
+if not prev_path or not curr_path:
+    raise SystemExit(0)
+if not os.path.exists(prev_path) or not os.path.exists(curr_path):
+    raise SystemExit(0)
+
+with open(prev_path, "r", encoding="utf-8") as fp:
+    prev = json.load(fp)
+with open(curr_path, "r", encoding="utf-8") as fp:
+    curr = json.load(fp)
+
+prev_status = collect_statuses(prev)
+curr_status = collect_statuses(curr)
+drifted = sorted(
+    key for key, old_status in prev_status.items()
+    if old_status == "done" and curr_status.get(key) == "pending"
+)
+if drifted:
+    print("[helix-gate] WARN: auto-detect により done → pending へ戻った成果物があります")
+    for item in drifted[:10]:
+        print(f"[helix-gate]   - {item}")
+    if len(drifted) > 10:
+        print(f"[helix-gate]   ... +{len(drifted) - 10} 件")
+PY
   fi
 
   # --- Deliverable Check ---
@@ -119,6 +193,17 @@ run_checks() {
       deliv_fail=1
       echo ""
     fi
+  fi
+
+  # G2/G4 ミニレトロの記入チェック
+  if [[ "$gate" == "G6" ]]; then
+    for retro in "$HELIX_DIR"/retros/*-G4.md; do
+      [[ -f "$retro" ]] || continue
+      if grep -qE '^-\s*$' "$retro" 2>/dev/null; then
+        echo "  WARN: レトロ未記入: $(basename "$retro")"
+        echo "    Keep/Problem/Try を記入してください"
+      fi
+    done
   fi
 
   # --- Fullstack Twin Track Check ---
@@ -347,6 +432,17 @@ run_checks() {
 
   # --- 総合判定 ---
   local total_fail=$((deliv_fail + static_fail + ai_fail))
+  local ended_ms duration_ms result
+  ended_ms=$(now_ms)
+  duration_ms=$((ended_ms - started_ms))
+  if [[ $total_fail -gt 0 ]]; then
+    result="fail"
+  else
+    result="pass"
+  fi
+  if [[ "$DRY_RUN" != true ]]; then
+    log_gate_run "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail" "$duration_ms"
+  fi
   echo ""
   if [[ $total_fail -gt 0 ]]; then
     echo "=== $gate FAIL (deliverable: $deliv_fail fail, static: $static_fail fail, ai: $ai_fail fail) ==="

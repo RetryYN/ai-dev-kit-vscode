@@ -10,10 +10,13 @@ Usage:
   python3 helix_db.py record-feedback-argv <db> <task_run_id_or_0> <type> <category> <desc> [impact] [resolution]
   python3 helix_db.py latest-task-run <db> <task_id>
   python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality]
+  python3 helix_db.py insert [<db_path>] <table> <json>
 """
 
-import sqlite3
 import json
+import os
+import re
+import sqlite3
 import sys
 from datetime import datetime
 
@@ -97,6 +100,83 @@ CREATE TABLE IF NOT EXISTS task_selections (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS gate_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gate TEXT NOT NULL,
+    result TEXT NOT NULL,
+    fail_reasons TEXT DEFAULT '',
+    retry_count INTEGER DEFAULT 0,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS plan_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    reviewer TEXT DEFAULT 'tl',
+    findings_count INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS interrupts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    interrupt_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    classification TEXT NOT NULL,
+    scope TEXT DEFAULT '',
+    status TEXT NOT NULL,
+    duration_ms INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    resolved_at TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS retro_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gate TEXT NOT NULL,
+    item_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    owner TEXT DEFAULT '',
+    due TEXT DEFAULT '',
+    done INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS debt_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    source TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TEXT NOT NULL,
+    resolved_at TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS hook_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    file TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cost_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role TEXT NOT NULL,
+    model TEXT NOT NULL,
+    thinking TEXT DEFAULT 'high',
+    tokens_est INTEGER DEFAULT 0,
+    cost_est REAL DEFAULT 0.0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bench_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period TEXT NOT NULL,
+    metrics_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 -- インデックス
 CREATE INDEX IF NOT EXISTS idx_task_runs_type ON task_runs(task_type);
 CREATE INDEX IF NOT EXISTS idx_task_runs_role ON task_runs(role);
@@ -111,6 +191,12 @@ PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 
 
+def _prepare_db_path(db_path):
+    parent_dir = os.path.dirname(os.path.abspath(db_path))
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+
+
 def _connect(db_path):
     conn = sqlite3.connect(db_path)
     conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
@@ -119,6 +205,7 @@ def _connect(db_path):
 
 
 def init_db(db_path):
+    _prepare_db_path(db_path)
     conn = _connect(db_path)
     conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
     conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
@@ -126,6 +213,56 @@ def init_db(db_path):
     conn.commit()
     conn.close()
     print(f"DB initialized: {db_path}")
+
+
+def resolve_default_db_path():
+    env_path = os.environ.get('HELIX_DB_PATH', '').strip()
+    if env_path:
+        return env_path
+    project_root = os.environ.get('HELIX_PROJECT_ROOT', '').strip()
+    if project_root:
+        return os.path.join(project_root, '.helix', 'helix.db')
+    return os.path.join(os.getcwd(), '.helix', 'helix.db')
+
+
+def insert_row(db_path, table, data):
+    if not isinstance(data, dict):
+        raise ValueError('insert payload must be a JSON object')
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', table):
+        raise ValueError(f'invalid table name: {table}')
+
+    _prepare_db_path(db_path)
+    conn = _connect(db_path)
+    conn.executescript(SCHEMA)
+
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    if not rows:
+        conn.close()
+        raise ValueError(f'unknown table: {table}')
+
+    valid_columns = {row[1] for row in rows}
+    payload = dict(data)
+    if 'created_at' in valid_columns and 'created_at' not in payload:
+        payload['created_at'] = datetime.now().isoformat()
+
+    if not payload:
+        conn.close()
+        raise ValueError('insert payload is empty')
+
+    for key in payload:
+        if key not in valid_columns:
+            conn.close()
+            raise KeyError(f'unknown column: {table}.{key}')
+
+    columns = list(payload.keys())
+    values = [payload[col] for col in columns]
+    placeholders = ', '.join(['?'] * len(columns))
+    sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
+    conn.execute(sql, values)
+    row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    conn.commit()
+    conn.close()
+    print(row_id)
 
 
 def record_task(db_path, data):
@@ -390,47 +527,65 @@ def report(db_path, report_type='summary'):
 
 
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         print("Usage: helix_db.py <command> <db_path> [args]", file=sys.stderr)
         sys.exit(1)
 
     cmd = sys.argv[1]
-    db_path = sys.argv[2]
 
     try:
         if cmd == 'init':
+            db_path = sys.argv[2] if len(sys.argv) > 2 else resolve_default_db_path()
             init_db(db_path)
-        elif cmd == 'record-task':
-            record_task(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'record-action':
-            record_action(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'record-observation':
-            record_observation(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'record-feedback':
-            record_feedback(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'record-feedback-argv':
-            record_feedback_argv(
-                db_path,
-                sys.argv[3],
-                sys.argv[4],
-                sys.argv[5],
-                sys.argv[6],
-                sys.argv[7] if len(sys.argv) > 7 else 'medium',
-                sys.argv[8] if len(sys.argv) > 8 else '',
-            )
-        elif cmd == 'latest-task-run':
-            latest_task_run_id(db_path, sys.argv[3])
-        elif cmd == 'record-selection':
-            record_selection(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'update-review':
-            update_review(db_path, json.loads(sys.argv[3]))
-        elif cmd == 'report':
-            report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
-            report(db_path, report_type)
-        else:
-            print(f"Unknown command: {cmd}", file=sys.stderr)
+        elif cmd == 'insert':
+            if len(sys.argv) == 4:
+                db_path = resolve_default_db_path()
+                table = sys.argv[2]
+                payload = json.loads(sys.argv[3])
+            elif len(sys.argv) == 5:
+                db_path = sys.argv[2]
+                table = sys.argv[3]
+                payload = json.loads(sys.argv[4])
+            else:
+                print("Usage: helix_db.py insert [<db_path>] <table> <json>", file=sys.stderr)
+                sys.exit(1)
+            insert_row(db_path, table, payload)
+        elif len(sys.argv) < 3:
+            print("Usage: helix_db.py <command> <db_path> [args]", file=sys.stderr)
             sys.exit(1)
-    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        else:
+            db_path = sys.argv[2]
+            if cmd == 'record-task':
+                record_task(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'record-action':
+                record_action(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'record-observation':
+                record_observation(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'record-feedback':
+                record_feedback(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'record-feedback-argv':
+                record_feedback_argv(
+                    db_path,
+                    sys.argv[3],
+                    sys.argv[4],
+                    sys.argv[5],
+                    sys.argv[6],
+                    sys.argv[7] if len(sys.argv) > 7 else 'medium',
+                    sys.argv[8] if len(sys.argv) > 8 else '',
+                )
+            elif cmd == 'latest-task-run':
+                latest_task_run_id(db_path, sys.argv[3])
+            elif cmd == 'record-selection':
+                record_selection(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'update-review':
+                update_review(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'report':
+                report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
+                report(db_path, report_type)
+            else:
+                print(f"Unknown command: {cmd}", file=sys.stderr)
+                sys.exit(1)
+    except (json.JSONDecodeError, IndexError, KeyError, ValueError) as e:
         print(f"エラー: 入力形式が不正です — {e}", file=sys.stderr)
         sys.exit(1)
 

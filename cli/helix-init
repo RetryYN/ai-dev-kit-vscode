@@ -139,6 +139,28 @@ for dir in docs/design docs/adr .claude/agents; do
 done
 echo ""
 
+# --- Git hooks ---
+echo "[git hooks]"
+HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+if [[ -d "$HOOKS_DIR" ]]; then
+  if [[ -f "$TEMPLATES_DIR/pre-commit-hook" ]]; then
+    copy_template "$TEMPLATES_DIR/pre-commit-hook" "$HOOKS_DIR/pre-commit"
+    chmod +x "$HOOKS_DIR/pre-commit" 2>/dev/null || true
+  else
+    echo "  skip: pre-commit-hook template not found"
+  fi
+
+  if [[ -f "$TEMPLATES_DIR/commit-msg-hook" ]]; then
+    copy_template "$TEMPLATES_DIR/commit-msg-hook" "$HOOKS_DIR/commit-msg"
+    chmod +x "$HOOKS_DIR/commit-msg" 2>/dev/null || true
+  else
+    echo "  skip: commit-msg-hook template not found"
+  fi
+else
+  echo "  skip: .git/hooks not found"
+fi
+echo ""
+
 # --- サブエージェント ---
 echo "[agents]"
 AGENT_TEMPLATES="$TEMPLATES_DIR/agents"

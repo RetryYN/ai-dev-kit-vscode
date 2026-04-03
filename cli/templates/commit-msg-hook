@@ -1,0 +1,8 @@
+#!/bin/bash
+MSG=$(head -1 "$1")
+if ! echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\(.+\))?!?: .+'; then
+  echo "エラー: Conventional Commits 形式で書いてください"
+  echo "  例: feat: 新機能追加"
+  echo "  例: fix(auth): ログインバグ修正"
+  exit 1
+fi

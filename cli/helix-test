@@ -100,6 +100,8 @@ run_test "init --force" "$SCRIPT_DIR/helix-init --project-name test-v2 --force"
 run_test_contains "CLAUDE.md created" "cat CLAUDE.md" "HELIX"
 run_test_contains ".gitignore has CLAUDE.local.md" "cat .gitignore" "CLAUDE.local.md"
 run_test_contains "agents copied" "ls .claude/agents/" "fe-design"
+run_test_contains "commit-msg hook installed" "test -f .git/hooks/commit-msg && echo OK" "OK"
+run_test_contains "commit-msg hook executable" "test -x .git/hooks/commit-msg && echo OK" "OK"
 run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js"
 run_test_contains "framework.yaml generated" "test -f .helix/framework.yaml && cat .helix/framework.yaml" "detected: node"
 run_test_contains "matrix template copied" "test -f .helix/matrix.yaml && echo OK" "OK"
@@ -124,8 +126,11 @@ run_test_contains "action-types discover-pattern" "grep -n '^discover-pattern:' 
 run_test_contains "gate-checks has OWASP SQL" "grep -n 'OWASP: SQL インジェクション検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: SQL インジェクション検出"
 run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: XSS 検出"
 run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
+run_test_contains "gate-checks has debt register check" "grep -n '技術負債台帳の存在' $SCRIPT_DIR/templates/gate-checks.yaml" "技術負債台帳の存在"
+run_test_contains "gate-checks has coverage check" "grep -n 'テストカバレッジ（あれば）' $SCRIPT_DIR/templates/gate-checks.yaml" "テストカバレッジ（あれば）"
 run_test_contains "gate-checks has D-DB static check" "grep -n 'DB スキーマ定義存在（D-DB）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB スキーマ定義存在（D-DB）"
 run_test_contains "gate-checks has D-MIG-PLAN static check" "grep -n 'DB マイグレーション計画存在（D-MIG-PLAN）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB マイグレーション計画存在（D-MIG-PLAN）"
+run_test_contains "commit-msg hook template exists" "test -f $SCRIPT_DIR/templates/commit-msg-hook && echo OK" "OK"
 echo ""
 
 echo "[setup scripts]"
@@ -172,6 +177,7 @@ run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl
 run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  medium"
 run_test "codex rejects invalid thinking" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra" 1
 run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra 2>&1 || true" "無効な --thinking 値"
+run_test_contains "codex warns unfinalized plan in L2" "D=\$(mktemp -d); cd \"\$D\"; git init -q; git config user.email test@test.com; git config user.name Test; mkdir -p .helix/plans; printf 'current_phase: L2\n' > .helix/phase.yaml; printf 'id: PLAN-001\nstatus: draft\n' > .helix/plans/PLAN-001.yaml; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role tl --task 'plan warning test' 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "未確定の設計提案があります"
 echo ""
 
 echo "[helix-size]"
@@ -235,6 +241,7 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
+run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
 run_test "G4 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed"
@@ -254,6 +261,7 @@ run_test "fullstack gate set FE status" "python3 $SCRIPT_DIR/lib/yaml_parser.py 
 run_test "fullstack gate set contract ci fail" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.contract.ci fail"
 run_test_contains "fullstack G4 twin-track fail" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run 2>&1 || true" "fullstack G4: FAIL"
 run_test "fullstack gate restore drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
+run_test "gate_runs insert after gate execution" "rm -f .helix/helix.db; mkdir -p docs/design; echo '# L2 Architecture' > docs/design/L2-architecture.md; $SCRIPT_DIR/helix-gate G2 --static-only >/dev/null 2>&1 || true; python3 -c \"import sqlite3; conn=sqlite3.connect('.helix/helix.db'); row=conn.execute(\\\"SELECT gate, result FROM gate_runs ORDER BY id DESC LIMIT 1\\\").fetchone(); conn.close(); raise SystemExit(0 if row and row[0] == 'G2' and row[1] in ('pass','fail') else 1)\""
 echo ""
 
 echo "[helix-gate-api-check]"
@@ -501,6 +509,7 @@ echo ""
 
 echo "[sqlite]"
 run_test_contains "helix_db WAL enabled" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-wal-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); print(conn.execute('PRAGMA journal_mode').fetchone()[0].lower()); conn.close()\"" "wal"
+run_test "helix_db creates gate_runs table" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-schema-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); row=conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table' AND name='gate_runs'\\\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)\""
 echo ""
 
 echo "[helix-scrum]"
@@ -524,6 +533,7 @@ run_test "matrix add-feature compile success" "D=\$(mktemp -d); cd \"\$D\"; git 
 run_test "matrix compile" "$SCRIPT_DIR/helix-matrix compile"
 run_test_contains "doc-map generated" "test -f .helix/doc-map.yaml && echo OK" "OK"
 run_test_contains "gate-checks generated" "test -f .helix/gate-checks.yaml && echo OK" "OK"
+run_test_contains "matrix gate-checks has debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
 run_test_contains "state generated" "test -f .helix/state/deliverables.json && echo OK" "OK"
 run_test_contains "runtime index generated" "test -f .helix/runtime/index.json && echo OK" "OK"
 run_test "matrix validate pass" "$SCRIPT_DIR/helix-matrix validate"
