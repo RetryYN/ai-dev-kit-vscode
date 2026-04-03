@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+# HELIX pre-commit hook
+# 予約済み: 将来の軽量チェック追加ポイント
+exit 0

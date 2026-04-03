@@ -40,6 +40,22 @@ helix init
 - `.helix/doc-map.yaml`
 - `.helix/gate-checks.yaml`
 
+### モノレポの場合
+
+リポジトリ内の特定パッケージだけを HELIX 管理対象にする。
+
+```bash
+cd /path/to/mono-repo
+helix init --monorepo-package packages/api
+```
+
+`helix init` 後のコマンドは、対象パッケージを `HELIX_PROJECT_ROOT` に指定して実行する。
+
+```bash
+HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix matrix compile
+HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G2
+```
+
 ## 3. matrix を有効化（必須）
 
 ```bash
