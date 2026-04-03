@@ -109,31 +109,35 @@ def remove(settings):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: merge_settings.py <settings.json> [--remove]", file=sys.stderr)
+    try:
+        if len(sys.argv) < 2:
+            print("Usage: merge_settings.py <settings.json> [--remove]", file=sys.stderr)
+            sys.exit(1)
+
+        path = sys.argv[1]
+        do_remove = "--remove" in sys.argv
+
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                settings = json.load(f)
+        else:
+            settings = {}
+
+        if do_remove:
+            changed = remove(settings)
+        else:
+            changed = merge(settings)
+
+        if changed:
+            with open(path, "w") as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+
+        # 終了コード: 0=変更あり, 1=変更なし（スクリプト側で判定に使う）
+        sys.exit(0 if changed else 1)
+    except Exception as e:
+        print(f"エラー: 設定マージに失敗しました — {e}", file=sys.stderr)
         sys.exit(1)
-
-    path = sys.argv[1]
-    do_remove = "--remove" in sys.argv
-
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            settings = json.load(f)
-    else:
-        settings = {}
-
-    if do_remove:
-        changed = remove(settings)
-    else:
-        changed = merge(settings)
-
-    if changed:
-        with open(path, "w") as f:
-            json.dump(settings, f, indent=2, ensure_ascii=False)
-            f.write("\n")
-
-    # 終了コード: 0=変更あり, 1=変更なし（スクリプト側で判定に使う）
-    sys.exit(0 if changed else 1)
 
 
 if __name__ == "__main__":

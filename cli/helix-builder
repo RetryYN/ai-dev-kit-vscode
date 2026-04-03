@@ -10,6 +10,15 @@ PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null 
 HELIX_DIR="$PROJECT_ROOT/.helix"
 DB_PATH="$HELIX_DIR/helix.db"
 
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix builder <type> <action> [オプション]"
+    echo ""
+    echo "Builder 生成ツールを実行します。"
+    exit 0
+    ;;
+esac
+
 mkdir -p "$HELIX_DIR"
 
 python3 "$SCRIPT_DIR/lib/builders/cli.py" --project-root "$PROJECT_ROOT" --db "$DB_PATH" "$@"

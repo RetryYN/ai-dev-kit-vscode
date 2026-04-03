@@ -5,6 +5,15 @@
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix session-start [オプション]"
+    echo ""
+    echo "SessionStart フック用コンテキストを出力します。"
+    exit 0
+    ;;
+esac
+
 # --- セットアップ完了チェック ---
 setup_ok=true
 

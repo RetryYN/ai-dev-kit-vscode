@@ -60,7 +60,7 @@ def main() -> int:
     db_path = helix_dir / "helix.db"
 
     if not db_path.exists():
-        print(f"Error: helix.db が見つかりません: {db_path}", file=sys.stderr)
+        print(f"エラー: helix.db が見つかりません: {db_path}", file=sys.stderr)
         return 1
 
     try:
@@ -70,7 +70,7 @@ def main() -> int:
             all_success=bool(args.all),
         )
     except Exception as exc:  # noqa: BLE001
-        print(f"Error: 成功実行の取得に失敗しました: {exc}", file=sys.stderr)
+        print(f"エラー: 成功実行の取得に失敗しました: {exc}", file=sys.stderr)
         return 1
 
     if not run_ids:
@@ -102,7 +102,7 @@ def main() -> int:
     try:
         sync_result = sync_from_local(local_db=str(db_path), project_id=project_id)
     except Exception as exc:  # noqa: BLE001
-        print(f"Warning: global 同期をスキップしました: {exc}", file=sys.stderr)
+        print(f"警告: global 同期をスキップしました: {exc}", file=sys.stderr)
 
     print("=== helix learn ===")
     print(f"対象プロジェクト: {project_root}")
@@ -133,5 +133,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:  # noqa: BLE001
-        print(f"Error: helix learn 実行中に予期しないエラーが発生しました: {exc}", file=sys.stderr)
+        print(f"エラー: helix learn 実行中に予期しないエラーが発生しました: {exc}", file=sys.stderr)
         raise SystemExit(1)

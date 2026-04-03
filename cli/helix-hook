@@ -11,6 +11,15 @@ HELIX_DIR="$PROJECT_ROOT/.helix"
 DOC_MAP="$HELIX_DIR/doc-map.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix hook <変更ファイルパス>"
+    echo ""
+    echo "編集後フックとして設計整合チェックを実行します。"
+    exit 0
+    ;;
+esac
+
 # --- 引数 ---
 CHANGED_FILE="${1:-}"
 if [[ -z "$CHANGED_FILE" ]]; then

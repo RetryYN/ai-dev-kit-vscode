@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
     --read-only) SANDBOX="read-only"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
     --help|-h)
-      echo "Usage: helix-codex --role <role> --task \"タスク内容\""
+      echo "使い方: helix codex --role <role> --task \"タスク内容\""
       echo ""
       echo "Options:"
       echo "  --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"

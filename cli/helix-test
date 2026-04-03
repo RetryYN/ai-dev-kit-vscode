@@ -86,6 +86,13 @@ echo '{"name":"test"}' > package.json
 git add . && git commit -q -m "init"
 export HELIX_PROJECT_ROOT="$TEST_DIR"
 
+echo "[help-localization]"
+run_test_contains "helix --help usage ja" "$SCRIPT_DIR/helix --help" "使い方: helix <コマンド>"
+run_test_contains "builder --help usage" "HELIX_HOME=/tmp/helix-missing-home $SCRIPT_DIR/helix-builder --help" "使い方: helix builder <type> <action>"
+run_test_not_contains "builder --help no main execution" "HELIX_HOME=/tmp/helix-missing-home $SCRIPT_DIR/helix-builder --help" "No such file or directory"
+run_test_contains "hook --help usage" "$SCRIPT_DIR/helix-hook --help" "使い方: helix hook <変更ファイルパス>"
+echo ""
+
 echo "[helix-init]"
 run_test "init new project" "$SCRIPT_DIR/helix-init --project-name test-app"
 run_test "init idempotent" "$SCRIPT_DIR/helix-init --project-name test-app"

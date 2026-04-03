@@ -7,6 +7,15 @@ set -eo pipefail
 
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix gate-api-check [オプション]"
+    echo ""
+    echo "API 契約と実装の整合性を検証します。"
+    exit 0
+    ;;
+esac
+
 # --- API契約ファイルを探す（旧パス + 新パス） ---
 declare -a CONTRACTS=()
 

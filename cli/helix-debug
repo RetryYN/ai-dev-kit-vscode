@@ -47,7 +47,7 @@ cmd_trace() {
   fi
 
   if [[ ! -f "$target" ]]; then
-    echo "Error: ログファイルが見つかりません: $target" >&2
+    echo "エラー: ログファイルが見つかりません: $target" >&2
     exit 1
   fi
 
@@ -253,7 +253,7 @@ cmd_replay() {
   local target="${1:-}"
 
   if [[ -z "$target" ]]; then
-    echo "Usage: helix debug replay <log-file or task-id>" >&2
+    echo "使い方: helix debug replay <log-file or task-id>" >&2
     exit 1
   fi
 
@@ -270,7 +270,7 @@ cmd_replay() {
   fi
 
   if [[ -z "$log_file" || ! -f "$log_file" ]]; then
-    echo "Error: ログが見つかりません: $target" >&2
+    echo "エラー: ログが見つかりません: $target" >&2
     exit 1
   fi
 
@@ -370,7 +370,7 @@ case "$CMD" in
   doctor)  cmd_doctor "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
-Usage: helix debug <command> [args...]
+使い方: helix debug <コマンド> [args...]
 
 HELIX デバッグツール
 
@@ -384,7 +384,7 @@ Commands:
 USAGE
     ;;
   *)
-    echo "Error: Unknown command '$CMD'" >&2
+    echo "エラー: 不明なコマンド '$CMD'" >&2
     exit 1
     ;;
 esac

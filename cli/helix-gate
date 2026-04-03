@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
     --ai-only)     AI_ONLY=true; shift ;;
     --dry-run)     DRY_RUN=true; shift ;;
     --help|-h)
-      echo "Usage: helix-gate <gate> [--static-only] [--ai-only] [--dry-run]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run]"
       echo ""
       echo "Gates: G2, G3, G4, G5, G6, G7"
       exit 0

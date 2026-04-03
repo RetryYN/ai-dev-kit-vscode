@@ -34,7 +34,7 @@ case "$CMD" in
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
-Usage: helix <command> [args...]
+使い方: helix <コマンド>
 
 Commands:
   init        プロジェクト初期化
@@ -66,8 +66,8 @@ Run 'helix <command> --help' for command-specific help.
 USAGE
     ;;
   *)
-    echo "Error: Unknown command '$CMD'" >&2
-    echo "Run 'helix help' for available commands" >&2
+    echo "エラー: 不明なコマンド '$CMD'" >&2
+    echo "利用可能なコマンドは 'helix help' で確認してください" >&2
     exit 1
     ;;
 esac

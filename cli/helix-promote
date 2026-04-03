@@ -342,12 +342,12 @@ def main() -> int:
         return 0
 
     if not args.recipe_id:
-        print("Error: recipe-id か --auto のどちらかが必要です。", file=sys.stderr)
+        print("エラー: recipe-id か --auto のどちらかが必要です。", file=sys.stderr)
         return 1
 
     recipe = _load_recipe(recipe_id=args.recipe_id, project_root=project_root)
     if recipe is None:
-        print(f"Error: recipe が見つかりません: {args.recipe_id}", file=sys.stderr)
+        print(f"エラー: recipe が見つかりません: {args.recipe_id}", file=sys.stderr)
         return 1
 
     warnings = _verification_warnings(recipe)
@@ -391,7 +391,7 @@ def main() -> int:
             status="failed",
             project_id=recipe_project_id,
         )
-        print(f"Error: promote 実行に失敗しました: {exc}", file=sys.stderr)
+        print(f"エラー: promote 実行に失敗しました: {exc}", file=sys.stderr)
         print(f"promotion_id: {promotion_id}", file=sys.stderr)
         return 1
 
