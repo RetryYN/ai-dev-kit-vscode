@@ -91,6 +91,7 @@ def _global_candidates(query: str, limit: int) -> list[dict[str, Any]]:
             "source_path": row.get("global_path", ""),
             "project_id": row.get("project_id", "") or context.get("project_id", ""),
             "context": context,
+            "verification": row.get("verification", {}) if isinstance(row.get("verification"), dict) else {},
         }
         candidates.append(payload)
 
@@ -111,6 +112,43 @@ def _dedupe(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
         merged.append(item)
 
     return merged
+
+
+def _to_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return int(default)
+
+
+def _verification_summary(item: dict[str, Any]) -> tuple[str, str, str]:
+    verification = item.get("verification", {}) if isinstance(item.get("verification"), dict) else {}
+    tests = verification.get("tests", {}) if isinstance(verification.get("tests"), dict) else {}
+    contracts = verification.get("contracts", {}) if isinstance(verification.get("contracts"), dict) else {}
+    quality = verification.get("quality", {}) if isinstance(verification.get("quality"), dict) else {}
+
+    passed = _to_int(tests.get("passed", 0), 0)
+    total = _to_int(tests.get("total", 0), 0)
+    tests_summary = f"{passed}/{total}"
+
+    schema_valid = contracts.get("schema_valid")
+    contracts_summary = "OK" if schema_valid is True else ("NG" if schema_valid is False else "-")
+
+    lint_errors = _to_int(quality.get("lint_errors", -1), -1)
+    security_issues = _to_int(quality.get("security_issues", -1), -1)
+    textlint_errors = _to_int(quality.get("textlint_errors", -1), -1)
+    if lint_errors == 0 and security_issues in (0, -1) and textlint_errors in (0, -1):
+        quality_summary = "clean"
+    elif lint_errors > 0:
+        quality_summary = f"lint:{lint_errors}"
+    elif security_issues > 0:
+        quality_summary = f"security:{security_issues}"
+    elif textlint_errors > 0:
+        quality_summary = f"textlint:{textlint_errors}"
+    else:
+        quality_summary = "unknown"
+
+    return tests_summary, contracts_summary, quality_summary
 
 
 def main() -> int:
@@ -137,14 +175,21 @@ def main() -> int:
 
     print("results:")
     for item in scored:
+        tests_summary, contracts_summary, quality_summary = _verification_summary(item)
+        score_value = round(float(item.get("_score", 0.0) or 0.0))
+        classification = item.get("classification", {}) if isinstance(item.get("classification"), dict) else {}
+        task_label = str(classification.get("task_type", "")).strip() or str(item.get("pattern_key", ""))
         print(
-            "  - score={score:.2f} | recipe={recipe} | scope={scope} | pattern={pattern}".format(
-                score=float(item.get("_score", 0.0) or 0.0),
+            "  {recipe}  {task}  score:{score}  tests:{tests}  contracts:{contracts}  quality:{quality}".format(
                 recipe=str(item.get("recipe_id", "")),
-                scope=str(item.get("source_scope", "")),
-                pattern=str(item.get("pattern_key", "")),
+                task=task_label,
+                score=int(score_value),
+                tests=tests_summary,
+                contracts=contracts_summary,
+                quality=quality_summary,
             )
         )
+        print(f"      scope={str(item.get('source_scope', ''))}")
         source_path = str(item.get("source_path", "")).strip()
         if source_path:
             print(f"      path={source_path}")

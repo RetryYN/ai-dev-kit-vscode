@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
+import os
 import re
+import shutil
 import sqlite3
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,6 +44,11 @@ _REDACTION_PATTERNS = (
 
 _KEY_VALUE_PATTERN = re.compile(r"([a-zA-Z0-9_\-.]+)=([^\s,;]+)")
 _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+_HELIX_TEST_RESULT_PATTERN = re.compile(r"Results:\s*(\d+)\s+passed,\s*(\d+)\s+failed", re.IGNORECASE)
+_PY_MYPY_ERROR_PATTERN = re.compile(r"Found\s+(\d+)\s+errors?", re.IGNORECASE)
+_TS_ERROR_PATTERN = re.compile(r"\berror TS\d+:", re.IGNORECASE)
+
+_VERIFICATION_CACHE: dict[str, dict[str, Any]] = {}
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -194,6 +203,547 @@ def _infer_applicability(task_type: str, role: str, action_types: list[str]) -> 
     return f"{role_label} が担当する {type_label} 系の標準実装フローで適用しやすい。"
 
 
+def _project_root_from_db_path(db_path: str) -> Path:
+    path = Path(db_path).resolve()
+    if path.parent.name == ".helix":
+        return path.parent.parent
+    return path.parent
+
+
+def _resolve_tool(project_root: Path, tool_name: str) -> str | None:
+    local_tool = project_root / "node_modules" / ".bin" / tool_name
+    if local_tool.exists() and os.access(local_tool, os.X_OK):
+        return str(local_tool)
+    return shutil.which(tool_name)
+
+
+def _run_command(command: list[str], cwd: Path, timeout: int = 5) -> tuple[bool, int | None, str, str]:
+    try:
+        proc = subprocess.run(
+            command,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=max(1, int(timeout)),
+            check=False,
+        )
+        return True, int(proc.returncode), str(proc.stdout or ""), str(proc.stderr or "")
+    except FileNotFoundError:
+        return False, None, "", "not available"
+    except subprocess.TimeoutExpired as exc:
+        stdout = str(exc.stdout or "")
+        stderr = str(exc.stderr or "")
+        if stderr:
+            stderr += "\n"
+        stderr += f"timeout({timeout}s)"
+        return True, None, stdout, stderr
+    except Exception as exc:  # noqa: BLE001
+        return False, None, "", str(exc)
+
+
+def _parse_json_from_text(text: str) -> Any | None:
+    stripped = (text or "").strip()
+    if not stripped:
+        return None
+
+    for start_char in ("{", "["):
+        idx = stripped.find(start_char)
+        if idx < 0:
+            continue
+        candidate = stripped[idx:].strip()
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _find_test_result_in_text(text: str) -> tuple[int, int] | None:
+    matches = list(_HELIX_TEST_RESULT_PATTERN.finditer(text or ""))
+    if not matches:
+        return None
+    latest = matches[-1]
+    try:
+        return int(latest.group(1)), int(latest.group(2))
+    except (TypeError, ValueError):
+        return None
+
+
+def _latest_helix_test_result(project_root: Path) -> tuple[int, int] | None:
+    candidates: list[Path] = [
+        project_root / ".helix" / "logs" / "helix-test.log",
+        project_root / ".helix" / "logs" / "helix-test.txt",
+        project_root / ".helix" / "runtime" / "helix-test.log",
+        project_root / ".helix" / "helix-test.log",
+        project_root / "helix-test.log",
+    ]
+
+    log_dir = project_root / ".helix" / "logs"
+    if log_dir.exists():
+        candidates.extend(sorted(log_dir.glob("helix-test*.log")))
+        candidates.extend(sorted(log_dir.glob("helix-test*.txt")))
+
+    existing = [path for path in candidates if path.exists() and path.is_file()]
+    existing.sort(key=lambda item: item.stat().st_mtime, reverse=True)
+
+    for path in existing:
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        parsed = _find_test_result_in_text(text)
+        if parsed is not None:
+            return parsed
+
+    db_path = project_root / ".helix" / "helix.db"
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(str(db_path))
+            row = conn.execute(
+                """
+                SELECT output_log
+                FROM task_runs
+                WHERE output_log LIKE '%Results:%passed,%failed%'
+                ORDER BY completed_at DESC, id DESC
+                LIMIT 20
+                """
+            ).fetchall()
+            conn.close()
+            for item in row:
+                if not item:
+                    continue
+                parsed = _find_test_result_in_text(str(item[0] or ""))
+                if parsed is not None:
+                    return parsed
+        except sqlite3.Error:
+            pass
+
+    return None
+
+
+def _count_python_source_lines(path: Path) -> int:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return 0
+    count = 0
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            continue
+        count += 1
+    return count
+
+
+def _extract_python_coverage_percent(coverage_db: Path, project_root: Path) -> float | None:
+    try:
+        from coverage import numbits  # type: ignore
+    except Exception:
+        return None
+
+    try:
+        conn = sqlite3.connect(str(coverage_db))
+        rows = conn.execute(
+            """
+            SELECT file.path, line_bits.numbits
+            FROM line_bits
+            JOIN file ON file.id = line_bits.file_id
+            """
+        ).fetchall()
+        conn.close()
+    except sqlite3.Error:
+        return None
+
+    if not rows:
+        return None
+
+    covered_by_file: dict[str, set[int]] = {}
+    for path_value, numbits_blob in rows:
+        file_path = str(path_value or "")
+        if not file_path:
+            continue
+        try:
+            line_numbers = set(int(v) for v in numbits.numbits_to_nums(numbits_blob))
+        except Exception:
+            continue
+        if not line_numbers:
+            continue
+        bucket = covered_by_file.setdefault(file_path, set())
+        bucket.update(line_numbers)
+
+    total_lines = 0
+    covered_lines = 0
+    for path_value, covered in covered_by_file.items():
+        target = Path(path_value)
+        if not target.is_absolute():
+            target = (project_root / target).resolve()
+        source_count = _count_python_source_lines(target)
+        if source_count <= 0:
+            continue
+        total_lines += source_count
+        covered_lines += min(len(covered), source_count)
+
+    if total_lines <= 0:
+        return None
+
+    return (covered_lines / total_lines) * 100.0
+
+
+def _extract_go_coverage_percent(coverage_out: Path, project_root: Path) -> float | None:
+    go_tool = _resolve_tool(project_root, "go")
+    if go_tool:
+        available, code, stdout, stderr = _run_command(
+            [go_tool, "tool", "cover", "-func", str(coverage_out)],
+            cwd=project_root,
+            timeout=5,
+        )
+        if available and code is not None:
+            output = f"{stdout}\n{stderr}"
+            matched = re.search(r"total:\s+\(statements\)\s+([0-9.]+)%", output)
+            if matched:
+                try:
+                    return float(matched.group(1))
+                except ValueError:
+                    pass
+
+    try:
+        text = coverage_out.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+
+    total = 0
+    covered = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("mode:"):
+            continue
+        parts = stripped.split()
+        if len(parts) < 3:
+            continue
+        try:
+            statements = int(parts[-2])
+            hits = int(parts[-1])
+        except ValueError:
+            continue
+        total += statements
+        if hits > 0:
+            covered += statements
+
+    if total <= 0:
+        return None
+    return (covered / total) * 100.0
+
+
+def _collect_test_results(project_root: str) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    result: dict[str, Any] = {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "coverage": 0.0,
+        "test_files": [],
+    }
+
+    parsed = _latest_helix_test_result(root)
+    if parsed is not None:
+        passed, failed = parsed
+        result["passed"] = max(0, int(passed))
+        result["failed"] = max(0, int(failed))
+        result["total"] = max(0, int(passed) + int(failed))
+
+    verify_dir = root / "verify"
+    if verify_dir.exists():
+        files = [str(path.relative_to(root)) for path in sorted(verify_dir.glob("*.sh")) if path.is_file()]
+        result["test_files"] = files
+
+    coverage_summary = root / "coverage" / "coverage-summary.json"
+    if coverage_summary.exists():
+        try:
+            payload = json.loads(coverage_summary.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                coverage = (
+                    payload.get("total", {})
+                    if isinstance(payload.get("total"), dict)
+                    else payload
+                )
+                lines = coverage.get("lines", {}) if isinstance(coverage, dict) else {}
+                pct = lines.get("pct") if isinstance(lines, dict) else None
+                if isinstance(pct, (int, float)):
+                    result["coverage"] = round(float(pct), 2)
+                    return result
+        except Exception:  # noqa: BLE001
+            pass
+
+    py_coverage_db = root / ".coverage"
+    if py_coverage_db.exists():
+        py_cov = _extract_python_coverage_percent(py_coverage_db, root)
+        if isinstance(py_cov, (int, float)):
+            result["coverage"] = round(float(py_cov), 2)
+            return result
+
+    go_coverage_out = root / "coverage.out"
+    if go_coverage_out.exists():
+        go_cov = _extract_go_coverage_percent(go_coverage_out, root)
+        if isinstance(go_cov, (int, float)):
+            result["coverage"] = round(float(go_cov), 2)
+
+    return result
+
+
+def _validate_matrix_schema(project_root: Path) -> bool:
+    try:
+        from . import matrix_compiler as compiler
+    except ImportError:
+        import matrix_compiler as compiler  # type: ignore
+
+    matrix = compiler._load_matrix(project_root)  # type: ignore[attr-defined]
+    cli_root = Path(compiler.__file__).resolve().parents[1]
+    deliverables_rules, _structure, naming, _common_defs = compiler._read_rules(project_root, cli_root)  # type: ignore[attr-defined]
+    compiler.validate_matrix(matrix, deliverables_rules, naming)
+    return True
+
+
+def _collect_contract_results(project_root: str) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    result: dict[str, Any] = {"api_diff": "", "type_check": "", "schema_valid": None}
+
+    openapi_files = sorted(root.glob("docs/**/D-API/*.yaml")) + sorted(root.glob("docs/**/D-API/*.yml"))
+    if not openapi_files:
+        result["api_diff"] = "not found"
+    else:
+        openapi_diff = _resolve_tool(root, "openapi-diff")
+        if not openapi_diff:
+            result["api_diff"] = "not available"
+        elif len(openapi_files) < 2:
+            result["api_diff"] = "found"
+        else:
+            available, code, stdout, stderr = _run_command(
+                [openapi_diff, str(openapi_files[-2]), str(openapi_files[-1])],
+                cwd=root,
+                timeout=5,
+            )
+            if not available or code is None:
+                result["api_diff"] = "not available"
+            elif code == 0:
+                result["api_diff"] = "0 breaking changes"
+            else:
+                output = f"{stdout}\n{stderr}"
+                if re.search(r"no breaking changes", output, re.IGNORECASE):
+                    result["api_diff"] = "0 breaking changes"
+                else:
+                    result["api_diff"] = f"breaking changes detected (exit={code})"
+
+    type_check_messages: list[str] = []
+    if (root / "tsconfig.json").exists():
+        tsc = _resolve_tool(root, "tsc")
+        if not tsc:
+            type_check_messages.append("typescript project detected (not available)")
+        else:
+            available, code, stdout, stderr = _run_command(
+                [tsc, "--noEmit", "--pretty", "false"],
+                cwd=root,
+                timeout=5,
+            )
+            if not available or code is None:
+                type_check_messages.append("typescript project detected (not available)")
+            elif code == 0:
+                type_check_messages.append("0 errors (typescript)")
+            else:
+                output = f"{stdout}\n{stderr}"
+                errors = len(_TS_ERROR_PATTERN.findall(output))
+                if errors > 0:
+                    type_check_messages.append(f"{errors} errors (typescript)")
+                else:
+                    type_check_messages.append(f"typescript errors (exit={code})")
+
+    if (root / "pyproject.toml").exists():
+        mypy = _resolve_tool(root, "mypy")
+        if not mypy:
+            type_check_messages.append("mypy project detected (not available)")
+        else:
+            available, code, stdout, stderr = _run_command([mypy, "."], cwd=root, timeout=5)
+            if not available or code is None:
+                type_check_messages.append("mypy project detected (not available)")
+            elif code == 0:
+                type_check_messages.append("0 errors (mypy)")
+            else:
+                output = f"{stdout}\n{stderr}"
+                matched = _PY_MYPY_ERROR_PATTERN.search(output)
+                if matched:
+                    type_check_messages.append(f"{int(matched.group(1))} errors (mypy)")
+                else:
+                    type_check_messages.append(f"mypy errors (exit={code})")
+
+    result["type_check"] = "; ".join(type_check_messages) if type_check_messages else "not detected"
+
+    if (root / ".helix" / "matrix.yaml").exists():
+        try:
+            result["schema_valid"] = _validate_matrix_schema(root)
+        except Exception:  # noqa: BLE001
+            result["schema_valid"] = False
+
+    return result
+
+
+def _parse_ruff_errors(output: str) -> int:
+    found_match = re.search(r"Found\s+(\d+)\s+errors?", output, re.IGNORECASE)
+    if found_match:
+        return int(found_match.group(1))
+    total = 0
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        head = stripped.split(maxsplit=1)[0]
+        if head.isdigit():
+            total += int(head)
+    return total
+
+
+def _collect_lint_errors(project_root: Path) -> int:
+    ruff = _resolve_tool(project_root, "ruff")
+    if ruff:
+        available, code, stdout, stderr = _run_command([ruff, "check", "--statistics", "."], cwd=project_root, timeout=5)
+        if available and code == 0:
+            return 0
+        if available and code is not None:
+            parsed = _parse_ruff_errors(f"{stdout}\n{stderr}")
+            return parsed if parsed > 0 else 1
+
+    eslint = _resolve_tool(project_root, "eslint")
+    if eslint:
+        available, code, stdout, stderr = _run_command([eslint, ".", "--format", "json"], cwd=project_root, timeout=5)
+        if available and (stdout or stderr):
+            payload = _parse_json_from_text(stdout or stderr)
+            if isinstance(payload, list):
+                total = 0
+                for item in payload:
+                    if not isinstance(item, dict):
+                        continue
+                    total += int(item.get("errorCount", 0) or 0)
+                return total
+        if available and code == 0:
+            return 0
+        if available and code is not None:
+            return 1
+
+    flake8 = _resolve_tool(project_root, "flake8")
+    if flake8:
+        available, code, stdout, stderr = _run_command([flake8, "."], cwd=project_root, timeout=5)
+        if available and code == 0:
+            return 0
+        if available and code is not None:
+            merged = "\n".join([line for line in (stdout, stderr) if line]).strip()
+            if not merged:
+                return 1
+            return len([line for line in merged.splitlines() if line.strip()])
+
+    return -1
+
+
+def _collect_security_issues(project_root: Path) -> int:
+    npm = _resolve_tool(project_root, "npm")
+    if npm and (project_root / "package.json").exists():
+        available, code, stdout, stderr = _run_command([npm, "audit", "--json"], cwd=project_root, timeout=5)
+        if available and (stdout or stderr):
+            payload = _parse_json_from_text(stdout or stderr)
+            if isinstance(payload, dict):
+                meta = payload.get("metadata", {})
+                vulnerabilities = meta.get("vulnerabilities", {}) if isinstance(meta, dict) else {}
+                if isinstance(vulnerabilities, dict):
+                    high = int(vulnerabilities.get("high", 0) or 0)
+                    critical = int(vulnerabilities.get("critical", 0) or 0)
+                    return high + critical
+        if available and code == 0:
+            return 0
+
+    pip_audit = _resolve_tool(project_root, "pip-audit")
+    if pip_audit and ((project_root / "pyproject.toml").exists() or (project_root / "requirements.txt").exists()):
+        available, code, stdout, stderr = _run_command([pip_audit, "-f", "json"], cwd=project_root, timeout=5)
+        if available and (stdout or stderr):
+            payload = _parse_json_from_text(stdout or stderr)
+            if isinstance(payload, list):
+                count = 0
+                for dep in payload:
+                    if not isinstance(dep, dict):
+                        continue
+                    vulns = dep.get("vulns", [])
+                    if isinstance(vulns, list):
+                        count += len(vulns)
+                return count
+        if available and code == 0:
+            return 0
+
+    return -1
+
+
+def _collect_textlint_errors(project_root: Path) -> int:
+    textlint = _resolve_tool(project_root, "textlint")
+    if not textlint:
+        return -1
+
+    available, code, stdout, stderr = _run_command(
+        [textlint, "--format", "json", "."],
+        cwd=project_root,
+        timeout=5,
+    )
+    if not available:
+        return -1
+
+    payload = _parse_json_from_text(stdout or stderr)
+    if isinstance(payload, list):
+        total = 0
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            messages = item.get("messages", [])
+            if isinstance(messages, list):
+                total += len(messages)
+        return total
+
+    if code == 0:
+        return 0
+    if code is not None:
+        return 1
+    return -1
+
+
+def _collect_quality_results(project_root: str) -> dict[str, Any]:
+    root = Path(project_root).resolve()
+    result = {"lint_errors": -1, "security_issues": -1, "textlint_errors": -1}
+    try:
+        result["lint_errors"] = int(_collect_lint_errors(root))
+    except Exception:  # noqa: BLE001
+        result["lint_errors"] = -1
+    try:
+        result["security_issues"] = int(_collect_security_issues(root))
+    except Exception:  # noqa: BLE001
+        result["security_issues"] = -1
+    try:
+        result["textlint_errors"] = int(_collect_textlint_errors(root))
+    except Exception:  # noqa: BLE001
+        result["textlint_errors"] = -1
+    return result
+
+
+def _collect_verification(project_root: str) -> dict[str, Any]:
+    key = str(Path(project_root).resolve())
+    cached = _VERIFICATION_CACHE.get(key)
+    if cached is not None:
+        return copy.deepcopy(cached)
+
+    verification = {
+        "tests": _collect_test_results(project_root),
+        "contracts": _collect_contract_results(project_root),
+        "quality": _collect_quality_results(project_root),
+        "collected_at": _now_iso(),
+    }
+    _VERIFICATION_CACHE[key] = verification
+    return copy.deepcopy(verification)
+
+
 def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
     """成功タスク実行ログを recipe dict に変換する。"""
     conn = _connect(db_path)
@@ -290,6 +840,9 @@ def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
         }
     )
 
+    project_root = _project_root_from_db_path(db_path)
+    verification = _collect_verification(str(project_root))
+
     recipe = {
         "recipe_id": recipe_id,
         "pattern_key": pattern_key,
@@ -316,6 +869,7 @@ def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
             "why_it_worked": _infer_why_it_worked(action_types, observation_pass_rate),
             "applicability": _infer_applicability(task_type, role, action_types),
         },
+        "verification": verification,
         "source": {
             "task_run_id": int(task_row["id"]),
             "task_id": str(task_row["task_id"] or ""),

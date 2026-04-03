@@ -865,8 +865,33 @@ PY
 run_test "helix learn --all" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn --all"
 run_test_contains "learn --all skips incomplete completed" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn --all" "action_logs 欠損でスキップ: 1"
 run_test_contains "learn generated recipe" "test -n \"$(ls .helix/recipes/*.json 2>/dev/null | head -n 1)\" && echo OK" "OK"
+run_test "learn recipe has verification section" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); v = d.get(\"verification\"); raise SystemExit(0 if isinstance(v, dict) else 1)'"
+run_test "learn recipe verification.tests.total >= 0" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); t = d.get(\"verification\", {}).get(\"tests\", {}).get(\"total\", -1); raise SystemExit(0 if isinstance(t, (int, float)) and t >= 0 else 1)'"
+run_test "learn recipe verification.contracts is dict" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); c = d.get(\"verification\", {}).get(\"contracts\"); raise SystemExit(0 if isinstance(c, dict) else 1)'"
 run_test "global_store init_global_db tables" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import init_global_db; db=init_global_db(); conn=sqlite3.connect(db); t1=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"recipe_index\\\"\").fetchone(); t2=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"promotion_records\\\"\").fetchone(); conn.close(); raise SystemExit(0 if (t1 and t2) else 1)'"
 run_test "global_store sync roundtrip" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import sync_from_local, init_global_db; sync_from_local(\".helix/helix.db\", \"test-project\"); db=init_global_db(); conn=sqlite3.connect(db); row=conn.execute(\"SELECT COUNT(*) FROM recipe_index\").fetchone(); conn.close(); raise SystemExit(0 if (row and row[0] > 0) else 1)'"
+FAILED_RECIPE_ID=$(python3 - <<'PY'
+import glob
+import json
+
+recipe_path = sorted(glob.glob(".helix/recipes/*.json"))[0]
+with open(recipe_path, encoding="utf-8") as f:
+    payload = json.load(f)
+
+verification = payload.setdefault("verification", {})
+tests = verification.setdefault("tests", {})
+tests["failed"] = 2
+tests["passed"] = max(0, int(tests.get("passed", 0)))
+tests["total"] = max(int(tests.get("total", 0)), tests["passed"] + tests["failed"])
+
+with open(recipe_path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
+    f.write("\n")
+
+print(payload.get("recipe_id", ""))
+PY
+)
+run_test_contains "helix promote warns failed tests" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote $FAILED_RECIPE_ID --type task || true" "テスト失敗あり。昇格しますか？"
 cat > "$TEST_DIR/learning-cross-project-collision.py" <<'PY'
 import sqlite3
 import tempfile
@@ -1032,7 +1057,7 @@ conn.close()
 PY
 run_test_contains "helix promote lookup over 50 recipes" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/promote-over-50-lookup.py && HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote lookup-target --type task" "recipe_id: lookup-target"
 run_test_contains "helix promote --auto candidates" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote --auto" "pattern="
-run_test_contains "helix discover returns result" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix discover --query builder --limit 5" "score="
+run_test_contains "helix discover returns result" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix discover --query builder --limit 5" "score:"
 echo ""
 
 echo "[helix wrapper]"

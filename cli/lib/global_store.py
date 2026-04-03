@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS recipe_index (
     quality_score_mean REAL DEFAULT 0.0,
     tags_json TEXT DEFAULT '[]',
     context_json TEXT DEFAULT '{}',
+    verification_json TEXT DEFAULT '{}',
     local_path TEXT DEFAULT '',
     global_path TEXT DEFAULT '',
     promotion_status TEXT DEFAULT 'none',
@@ -139,9 +140,25 @@ def init_global_db() -> str:
     db_path = _global_db_path()
     conn = _connect(str(db_path))
     conn.executescript(SCHEMA)
+    _migrate_schema(conn)
     conn.commit()
     conn.close()
     return str(db_path)
+
+
+def _column_exists(conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    for row in rows:
+        if len(row) < 2:
+            continue
+        if str(row[1]) == str(column_name):
+            return True
+    return False
+
+
+def _migrate_schema(conn: sqlite3.Connection) -> None:
+    if not _column_exists(conn, "recipe_index", "verification_json"):
+        conn.execute("ALTER TABLE recipe_index ADD COLUMN verification_json TEXT DEFAULT '{}'")
 
 
 def _load_local_recipes_by_run(project_root: Path) -> dict[int, dict[str, Any]]:
@@ -337,6 +354,9 @@ def sync_from_local(local_db: str, project_id: str) -> dict[str, Any]:
             "total_count": total_count,
             "recipe_ids": sorted(set(bucket["recipe_ids"])),
         }
+        verification = sample_recipe.get("verification", {}) if isinstance(sample_recipe, dict) else {}
+        if not isinstance(verification, dict):
+            verification = {}
 
         global_conn.execute(
             """
@@ -349,6 +369,7 @@ def sync_from_local(local_db: str, project_id: str) -> dict[str, Any]:
                 quality_score_mean,
                 tags_json,
                 context_json,
+                verification_json,
                 local_path,
                 global_path,
                 promotion_status,
@@ -356,7 +377,7 @@ def sync_from_local(local_db: str, project_id: str) -> dict[str, Any]:
                 total_count,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none', ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'none', ?, ?, ?, ?)
             ON CONFLICT(pattern_key, project_id)
             DO UPDATE SET
                 recipe_id = excluded.recipe_id,
@@ -365,6 +386,7 @@ def sync_from_local(local_db: str, project_id: str) -> dict[str, Any]:
                 quality_score_mean = excluded.quality_score_mean,
                 tags_json = excluded.tags_json,
                 context_json = excluded.context_json,
+                verification_json = excluded.verification_json,
                 local_path = excluded.local_path,
                 global_path = excluded.global_path,
                 success_count = excluded.success_count,
@@ -380,6 +402,7 @@ def sync_from_local(local_db: str, project_id: str) -> dict[str, Any]:
                 float(quality_mean),
                 _json_dump(tags),
                 _json_dump(context),
+                _json_dump(verification),
                 local_path,
                 global_path,
                 success_count,
@@ -414,9 +437,27 @@ def _score_global_row(tokens: list[str], row: dict[str, Any]) -> float:
 
     success_count = int(row.get("success_count", 0) or 0)
     quality_mean = float(row.get("quality_score_mean", 0.0) or 0.0)
+    verification = row.get("verification", {}) if isinstance(row.get("verification"), dict) else {}
+    tests = verification.get("tests", {}) if isinstance(verification.get("tests"), dict) else {}
+    contracts = verification.get("contracts", {}) if isinstance(verification.get("contracts"), dict) else {}
+    quality = verification.get("quality", {}) if isinstance(verification.get("quality"), dict) else {}
+
+    verification_bonus = 0.0
+    try:
+        if int(tests.get("failed", -1) or -1) == 0:
+            verification_bonus += 5.0
+    except (TypeError, ValueError):
+        pass
+    if contracts.get("schema_valid") is True:
+        verification_bonus += 3.0
+    try:
+        if int(quality.get("lint_errors", -1) or -1) == 0:
+            verification_bonus += 2.0
+    except (TypeError, ValueError):
+        pass
 
     if not tokens:
-        return min(success_count / 5.0, 1.0) * 60.0 + min(quality_mean / 100.0, 1.0) * 40.0
+        return min(success_count / 5.0, 1.0) * 60.0 + min(quality_mean / 100.0, 1.0) * 40.0 + verification_bonus
 
     pattern_hits = sum(1 for token in tokens if token in pattern_key)
     tag_hits = sum(1 for token in tokens if any(token in tag for tag in tags))
@@ -426,7 +467,7 @@ def _score_global_row(tokens: list[str], row: dict[str, Any]) -> float:
     success_score = min(success_count / 5.0, 1.0) * 10.0
     quality_score = min(quality_mean / 100.0, 1.0) * 10.0
 
-    return pattern_score + tag_score + success_score + quality_score
+    return pattern_score + tag_score + success_score + quality_score + verification_bonus
 
 
 def search_global(query: str, limit: int = 10) -> list[dict[str, Any]]:
@@ -437,7 +478,7 @@ def search_global(query: str, limit: int = 10) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT recipe_id, pattern_key, builder_type, project_id, success_rate,
-               quality_score_mean, tags_json, context_json, local_path, global_path,
+               quality_score_mean, tags_json, context_json, verification_json, local_path, global_path,
                promotion_status, success_count, total_count
         FROM recipe_index
         ORDER BY success_count DESC, quality_score_mean DESC, updated_at DESC
@@ -452,6 +493,7 @@ def search_global(query: str, limit: int = 10) -> list[dict[str, Any]]:
         payload = dict(row)
         payload["tags"] = _json_load(str(payload.get("tags_json") or ""), [])
         payload["context"] = _json_load(str(payload.get("context_json") or ""), {})
+        payload["verification"] = _json_load(str(payload.get("verification_json") or ""), {})
         payload["score"] = round(_score_global_row(tokens, payload), 2)
         scored.append(payload)
 
@@ -471,7 +513,7 @@ def get_recipe_by_id(recipe_id: str) -> dict[str, Any] | None:
     row = conn.execute(
         """
         SELECT recipe_id, pattern_key, builder_type, project_id, success_rate,
-               quality_score_mean, tags_json, context_json, local_path, global_path,
+               quality_score_mean, tags_json, context_json, verification_json, local_path, global_path,
                promotion_status, success_count, total_count
         FROM recipe_index
         WHERE recipe_id = ?
@@ -488,6 +530,7 @@ def get_recipe_by_id(recipe_id: str) -> dict[str, Any] | None:
     payload = dict(row)
     payload["tags"] = _json_load(str(payload.get("tags_json") or ""), [])
     payload["context"] = _json_load(str(payload.get("context_json") or ""), {})
+    payload["verification"] = _json_load(str(payload.get("verification_json") or ""), {})
     return payload
 
 
@@ -500,7 +543,7 @@ def get_promotion_candidates(threshold: int = 3) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
         SELECT recipe_id, pattern_key, builder_type, project_id, success_rate,
-               quality_score_mean, tags_json, context_json, local_path, global_path,
+               quality_score_mean, tags_json, context_json, verification_json, local_path, global_path,
                promotion_status, success_count, total_count
         FROM recipe_index
         WHERE success_count >= ?
@@ -516,6 +559,7 @@ def get_promotion_candidates(threshold: int = 3) -> list[dict[str, Any]]:
         payload = dict(row)
         payload["tags"] = _json_load(str(payload.get("tags_json") or ""), [])
         payload["context"] = _json_load(str(payload.get("context_json") or ""), {})
+        payload["verification"] = _json_load(str(payload.get("verification_json") or ""), {})
         candidates.append(payload)
     return candidates
 
