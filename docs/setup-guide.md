@@ -53,7 +53,7 @@ mkdir -p ~/.claude
 ```
 
 **ポイント:**
-- `@~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が HELIX 全 42 スキルへのエントリポイント
+- `@~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が HELIX 全 55 スキルへのエントリポイント
 - 言語や個人的な好みはここに書く（全プロジェクトに適用される）
 
 ### 1.2 ~/.claude/settings.json

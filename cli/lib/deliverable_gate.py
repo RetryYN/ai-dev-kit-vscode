@@ -66,6 +66,54 @@ def _is_pass(status: str) -> bool:
     return status in PASS_STATUSES
 
 
+def _catalog_ids(index_payload: dict[str, Any]) -> set[str]:
+    rules = index_payload.get("rules", {})
+    if not isinstance(rules, dict):
+        return set()
+
+    deliverables = rules.get("deliverables", [])
+    if not isinstance(deliverables, list):
+        return set()
+
+    ids: set[str] = set()
+    for item in deliverables:
+        if not isinstance(item, dict):
+            continue
+        did = item.get("id")
+        if isinstance(did, str):
+            ids.add(did)
+    return ids
+
+
+def _validate_fullstack_requirements(index_payload: dict[str, Any]) -> None:
+    catalog_ids = _catalog_ids(index_payload)
+    if catalog_ids and "D-CONTRACT" not in catalog_ids:
+        raise DeliverableGateError("deliverables catalog に D-CONTRACT がありません")
+
+    features = index_payload.get("features", {})
+    if not isinstance(features, dict):
+        return
+
+    errors: list[str] = []
+    for feature_id, feature_raw in features.items():
+        if not isinstance(feature_raw, dict):
+            continue
+        if str(feature_raw.get("drive", "")).strip().lower() != "fullstack":
+            continue
+        requires = feature_raw.get("requires", {})
+        if not isinstance(requires, dict):
+            errors.append(f"{feature_id}: requires が不正です")
+            continue
+        l3_raw = requires.get("L3", [])
+        l3 = {x for x in l3_raw if isinstance(x, str)} if isinstance(l3_raw, list) else set()
+        missing = [did for did in ("D-CONTRACT", "D-STATE") if did not in l3]
+        if missing:
+            errors.append(f"{feature_id}: L3 に不足 {', '.join(missing)}")
+
+    if errors:
+        raise DeliverableGateError("fullstack 成果物定義エラー: " + "; ".join(errors))
+
+
 def evaluate_gate(
     index_payload: dict[str, Any],
     state_payload: dict[str, Any],
@@ -77,6 +125,8 @@ def evaluate_gate(
     features = index_payload.get("features", {})
     if not isinstance(features, dict):
         raise DeliverableGateError("index.json の features が辞書ではありません")
+
+    _validate_fullstack_requirements(index_payload)
 
     state_features = state_payload.get("features", {})
     if not isinstance(state_features, dict):

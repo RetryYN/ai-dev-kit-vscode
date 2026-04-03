@@ -40,8 +40,46 @@ if [[ -z "$TITLE" ]]; then
   TITLE="$BRANCH"
 fi
 
+# --- Conventional Commits からリリースノート生成 ---
+append_release_section() {
+  local heading="$1"
+  local body="$2"
+  local output="$3"
+  [[ -z "$body" ]] && return 0
+
+  printf "### %s\n" "$heading" >> "$output"
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    printf -- "- %s\n" "$line" >> "$output"
+  done <<< "$body"
+  printf "\n" >> "$output"
+}
+
+generate_release_notes() {
+  local base_branch="${1:-main}"
+  local tmp
+  tmp=$(mktemp /tmp/helix-pr-notes-XXXXXX)
+
+  local feats fixes docs
+  feats=$(git -C "$PROJECT_ROOT" log "$base_branch"..HEAD --oneline --grep='^feat' 2>/dev/null || true)
+  fixes=$(git -C "$PROJECT_ROOT" log "$base_branch"..HEAD --oneline --grep='^fix' 2>/dev/null || true)
+  docs=$(git -C "$PROJECT_ROOT" log "$base_branch"..HEAD --oneline --grep='^docs' 2>/dev/null || true)
+
+  append_release_section "新機能" "$feats" "$tmp"
+  append_release_section "バグ修正" "$fixes" "$tmp"
+  append_release_section "ドキュメント" "$docs" "$tmp"
+
+  if [[ ! -s "$tmp" ]]; then
+    echo "（Conventional Commits の feat/fix/docs は検出されませんでした）"
+  else
+    cat "$tmp"
+  fi
+  rm -f "$tmp"
+}
+
 # --- Summary（コミットから） ---
 COMMITS=$(git -C "$PROJECT_ROOT" log --oneline "$BASE..HEAD" 2>/dev/null || echo "(no commits)")
+RELEASE_NOTES=$(generate_release_notes "$BASE")
 
 # --- Changes ---
 DIFF_STAT=$(git -C "$PROJECT_ROOT" diff --stat "$BASE..HEAD" 2>/dev/null || echo "(no diff)")
@@ -82,6 +120,10 @@ fi
 BODY="## Summary
 
 $(echo "$COMMITS" | head -20)
+
+## Release Notes
+
+$RELEASE_NOTES
 
 ## Gate Results
 

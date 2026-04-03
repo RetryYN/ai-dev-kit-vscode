@@ -306,6 +306,28 @@ ADR: XXX-{decision-title}
 
 ---
 
+## マルチエージェント協調管理
+
+### Supervisor パターン（HELIX デフォルト）
+
+- PM（Opus）が全体を統括する
+- タスクを TL / SE / PG / FE に委譲する
+- 結果をレビューして統合し、次フェーズへ進める
+
+### 状態共有メカニズム
+
+- `phase.yaml`: フェーズ状態
+- sprint tracks: BE / FE 個別進捗
+- matrix: 成果物状態
+- SQLite: 実行ログ
+
+### デッドロック検出
+
+- 全 track が `blocked` なら PM にエスカレーションする
+- 同一タスクで 3 回 `failed` した場合は TL レビューを強制する
+
+---
+
 ## チェックリスト
 
 ### プロジェクト開始時

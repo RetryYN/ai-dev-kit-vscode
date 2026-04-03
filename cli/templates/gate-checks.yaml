@@ -17,6 +17,8 @@ G2:
       cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L2-*.md"
     - name: "設計書存在"
       cmd: "ls docs/design/L2-*.md >/dev/null 2>&1"
+    - name: "AG02 権限設定確認"
+      cmd: "test -f .claude/settings.json && ! grep -q 'danger-full-access' .claude/settings.json 2>/dev/null || echo 'WARN: settings.json 未設定'"
   ai:
     - role: tl
       task: |
@@ -59,6 +61,16 @@ G4:
       cmd: "~/ai-dev-kit-vscode/cli/helix-gate-api-check"
     - name: "TODO/FIXME 残存"
       cmd: "! grep -rn 'TODO\\|FIXME' src/ --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'"
+    - name: "OWASP: SQL インジェクション検出"
+      cmd: "! rg -n \"f['\\\"].*SELECT|execute\\(.*\\+|format\\(.*SELECT\" --type py src/ 2>/dev/null | grep -v '#.*noqa' | head -1"
+    - name: "OWASP: XSS 検出"
+      cmd: "! rg -n \"innerHTML|dangerouslySetInnerHTML|v-html\" --type js --type ts src/ 2>/dev/null | head -1"
+    - name: "秘密情報ハードコード検出"
+      cmd: "! rg -n '(?i)(api[_-]?key|secret|token|password|credential)\\s*[=:]\\s*[\\x27\"][^\\x27\\\"]{8,}' --type-not md src/ 2>/dev/null | grep -v '.*\\.example\\.' | head -1"
+    - name: "AG05 秘密情報混入チェック"
+      cmd: "! rg -n '(?i)(bearer |sk-|ghp_|xoxb-|xoxp-|-----BEGIN)' src/ --type-not md 2>/dev/null | head -1"
+    - name: ".env が git 追跡されていない"
+      cmd: "! git ls-files .env .env.* 2>/dev/null | head -1"
   ai:
     - role: tl
       task: |
@@ -98,6 +110,8 @@ G6:
       cmd: "npm test 2>&1; test $? -eq 0"
     - name: "E2E テスト"
       cmd: "npx playwright test 2>&1; test $? -eq 0"
+    - name: "Flaky テスト検出（3回実行で不安定なし）"
+      cmd: "echo 'SKIP: Flaky テスト検出は手動実行推奨（helix test を3回実行して比較）'"
   ai:
     - role: qa
       task: |

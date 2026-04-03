@@ -168,6 +168,51 @@ git push origin main
 - Docs: xxx.md
 ```
 
+## リリースノート自動生成
+
+### コンセプト
+
+`git log` から構造化リリースノート（D-RELNOTE）を自動生成する。
+
+### Conventional Commits ベースの分類
+
+- `feat:` → 新機能
+- `fix:` → バグ修正
+- `docs:` → ドキュメント
+- `perf:` → パフォーマンス改善
+- `refactor:` → リファクタリング
+- `test:` → テスト
+- `chore:` → その他
+
+### 生成テンプレート
+
+```markdown
+# v1.2.0 リリースノート (YYYY-MM-DD)
+
+## 新機能
+- feat: ユーザー認証の追加 (#123)
+
+## バグ修正
+- fix: ログイン画面のバリデーション修正 (#456)
+
+## 破壊的変更
+- BREAKING: API v1 の廃止
+```
+
+### `git log` → JSON 変換スクリプト例（bash + grep）
+
+```bash
+git log --pretty=format:'%H|%s|%ad' --date=short \
+  | grep -E '^(.*\|(feat|fix|docs|perf|refactor|test|chore):)' \
+  | awk -F'|' '{printf("{\"sha\":\"%s\",\"subject\":\"%s\",\"date\":\"%s\"}\n",$1,$2,$3)}'
+```
+
+### HELIX 統合
+
+- L8 受入時に D-RELNOTE の自動生成を提案する
+- `helix-pr` のリリースノートセクションに自動挿入する
+- writing/social スキルと連携し、リリースノートから SNS 投稿素材を生成する
+
 ### マージ条件
 
 1. CI通過（lint + test）

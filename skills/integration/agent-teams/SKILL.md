@@ -338,6 +338,47 @@ flowchart TD
 
 ---
 
+## エンタープライズマルチエージェントパターン
+
+### Swarms のプリビルトアーキテクチャ
+
+- SequentialWorkflow: `A → B → C`（HELIX Pipeline Builder に対応）
+- ConcurrentWorkflow: `A ∥ B ∥ C → merge`（HELIX Twin に対応）
+- HierarchicalSwarm: `PM → TL → SE/PG`（HELIX のデフォルト）
+- AdaptiveSwarm: 負荷に応じてエージェント追加（将来拡張）
+
+### MAESTRO 評価指標
+
+- タスク完了率
+- 結果品質スコア
+- エージェント間の通信効率
+- コスト効率（トークン/成果物）
+
+### HELIX Builder System との統合
+
+- Agent Pipeline Builder: SequentialWorkflow 相当
+- Agent Loop Builder: 反復ワークフロー
+- Workflow Builder: DAG ワークフロー
+
+---
+
+## DevOps-Gym ベンチマーク（自己評価）
+
+### 700+ 実タスクの評価カテゴリ
+
+- ビルド: コンパイルエラー修正率
+- 監視: アラート設定の適切性
+- テスト: テスト生成の網羅性
+- イシュー解決: バグ修正の正確性
+
+### HELIX への適用
+
+- `helix test` の結果を DevOps-Gym 風にスコア化する
+- recipe の `quality_score` に DevOps 指標を組み込む
+- 「先月比で何%改善」を可視化する
+
+---
+
 ## チェックリスト
 
 ### 使用前

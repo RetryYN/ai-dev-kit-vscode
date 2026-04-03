@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
 """HELIX phase guard checker.
 
+3 層ガードレールアーキテクチャ:
+  Layer 1 (Input Guard):
+    - フェーズ違反チェック（現在の実装）
+    - 未サイジング検出
+    - 除外パス判定
+
+  Layer 2 (Process Guard): [将来拡張]
+    - 実行中のリソース制限
+    - トークン消費上限
+    - 実行時間制限
+
+  Layer 3 (Output Guard): [将来拡張]
+    - 生成物の品質チェック
+    - 安全性チェック（秘密情報混入防止）
+    - 契約整合チェック
+
 Usage:
   python3 phase_guard.py --phase-file <path> --file <rel_or_abs_path> [--index <path>]
 
@@ -75,9 +91,14 @@ STATIC_DELIVERABLE_LAYER = {
     "D-ADR": "L2",
     "D-THREAT": "L2",
     "D-API": "L3",
+    "D-CONTRACT": "L3",
     "D-DB": "L3",
     "D-TEST": "L3",
     "D-PLAN": "L3",
+    "D-STATE": "L3",
+    "D-UI": "L3",
+    "D-API-CONS": "L3",
+    "D-DATA-ACCESS": "L3",
     "D-IMPL": "L4",
     "D-MIG": "L4",
     "D-CONFIG": "L4",

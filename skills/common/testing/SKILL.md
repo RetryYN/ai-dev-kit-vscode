@@ -330,3 +330,141 @@ func TestCreateUser_Success(t *testing.T) {
 - 生成後に testing スキルの必須ケース（正常系/異常系/境界値）で不足分を追記
 - G4 前に自動生成テストを手動レビューし、偽陽性・過剰モックを除去
 ```
+
+---
+
+## Property-based Testing（性質ベーステスト）
+
+### コンセプト
+
+個別テストケースではなく「全入力で成り立つ性質」を定義して検証する。
+
+### ツール別ガイド
+
+#### Python: Hypothesis
+
+```python
+from hypothesis import given, strategies as st
+
+@given(st.integers(), st.integers())
+def test_add_commutative(a, b):
+    assert add(a, b) == add(b, a)
+```
+
+#### JavaScript: fast-check
+
+```typescript
+fc.assert(fc.property(fc.integer(), fc.integer(), (a, b) => {
+  return add(a, b) === add(b, a);
+}));
+```
+
+#### Go: testing/quick
+
+```go
+func TestAddCommutative(t *testing.T) {
+    f := func(a, b int) bool {
+        return Add(a, b) == Add(b, a)
+    }
+    if err := quick.Check(f, nil); err != nil {
+        t.Fatal(err)
+    }
+}
+```
+
+### 性質の種類
+
+- 可換性（`a+b == b+a`）
+- 冪等性（`f(f(x)) == f(x)`）
+- 往復性（`decode(encode(x)) == x`）
+- 不変条件（`sort` 後も要素数が同じ）
+- モデルベース（簡易実装と本実装の結果が一致）
+
+### HELIX D-TEST への統合
+
+- 各 property のテンプレートを D-TEST に含める
+- G4 ゲートで property-based test の存在を検証する
+
+### セットアップ
+
+```bash
+pip install hypothesis
+npm install fast-check
+```
+
+---
+
+## Mutation Testing（変異テスト）
+
+### コンセプト
+
+テスト対象コードに意図的な変異を加え、テストが検出できるかを検証する。
+
+### Mutation Score
+
+`Mutation Score = 検出された変異 / 全変異`
+
+### ツール別ガイド
+
+#### Python: mutmut
+
+```bash
+pip install mutmut
+mutmut run --paths-to-mutate=src/
+mutmut results
+```
+
+#### JavaScript: Stryker
+
+```bash
+npx stryker run
+```
+
+#### Go: go-mutesting
+
+```bash
+go install github.com/zimmski/go-mutesting/cmd/go-mutesting@latest
+go-mutesting ./...
+```
+
+### 変異の種類
+
+- 条件反転（`if x > 0` -> `if x <= 0`）
+- 演算子変更（`+` -> `-`, `*` -> `/`）
+- 戻り値変更（`return true` -> `return false`）
+- 境界値変更（`>` -> `>=`）
+- 定数変更（`0` -> `1`）
+
+### HELIX 統合
+
+- G4 ゲートで Mutation Score 70%以上を推奨基準とする
+- `quality_score` の計算に Mutation Score を組み込む
+- D-TEST に変異テスト対象範囲を明記する
+
+---
+
+## Flaky テスト検出と治療
+
+### Flaky テストの検出方法
+
+- 同一コードで3回実行し、結果が異なる場合は flaky と判定する
+- `pytest --count=3` / `jest --repeat=3` を利用する
+
+### よくある原因と修正パターン
+
+- タイミング依存 -> `sleep` ではなく条件付き `wait` を使う
+- 順序依存 -> setup/teardown を徹底しテスト間独立性を確保する
+- 外部依存 -> モック化またはテスト用サーバーを使う
+- 日時依存 -> `freezegun` / `jest.useFakeTimers` で時刻を固定する
+- ランダム値 -> シードを固定する
+
+### E2E テストの Flaky 対策
+
+- Playwright の auto-waiting と retry を活用する
+- セレクタを安定化する（`data-testid` 推奨）
+- `page.waitForResponse` でネットワーク待機を明示する
+
+### HELIX 統合
+
+- G6 ゲートで flaky テストの存在をチェックする
+- `verify/` スクリプトに flaky 検出ロジックの追加を提案する

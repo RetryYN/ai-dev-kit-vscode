@@ -263,6 +263,31 @@ rollback:
     evidence: "ロールバック対象と結果"
 
 # ============================================================
+# Learning Engine 系
+# ============================================================
+learn-from-success:
+  name: "成功パターン学習"
+  desc: "タスク成功から recipe を自動生成し global.db に同期"
+  tool: "helix learn"
+  observe:
+    expect_keywords: ["recipe", "生成", "学習", "sync"]
+    expect_artifact: ".helix/recipes/*.json"
+
+promote-recipe:
+  name: "レシピ昇格"
+  desc: "成功パターンをスキル/スクリプト/タスクに昇格"
+  tool: "helix promote"
+  observe:
+    expect_keywords: ["昇格", "promote", "生成", "skill"]
+
+discover-pattern:
+  name: "パターン検索"
+  desc: "グローバル/ローカルから成功パターンを検索"
+  tool: "helix discover"
+  observe:
+    expect_keywords: ["検索", "discover", "候補", "score"]
+
+# ============================================================
 # Builder 系
 # ============================================================
 builder-json-converter:

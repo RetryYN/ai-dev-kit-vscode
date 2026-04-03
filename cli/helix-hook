@@ -281,9 +281,42 @@ check_adr_index() {
   echo "[helix-hook] ADR index 更新: $index_file"
 }
 
+# --- Textlint Advisory ---
+check_textlint_advisory() {
+  local file="$1"
+  [[ ! "$file" =~ ^docs/.*\.md$ ]] && return 0
+  command -v textlint >/dev/null 2>&1 || return 0
+
+  local result
+  result=$(textlint "$PROJECT_ROOT/$file" 2>&1) || true
+  if [[ -n "$result" && "$result" != *"0 problems"* ]]; then
+    echo "[helix-hook] textlint: $file"
+    echo "$result" | head -5
+    echo "[helix-hook]   日本語品質の改善を検討してください"
+  fi
+}
+
+# --- Dangerous Pattern Advisory ---
+check_dangerous_patterns() {
+  local file="$1"
+  [[ ! -f "$PROJECT_ROOT/$file" ]] && return 0
+  [[ ! "$file" =~ \.(sh|bash|yml|yaml|json)$ ]] && return 0
+
+  local patterns='rm -rf /|rm -rf ~|chmod 777|DROP DATABASE|DROP TABLE|kill -9$|dd if=/dev/zero|> /dev/sda|git push.*--force.*(main|master)'
+  local found
+  found=$(rg -n "$patterns" "$PROJECT_ROOT/$file" 2>/dev/null | head -3) || true
+  if [[ -n "$found" ]]; then
+    echo "[helix-hook] WARN: 危険パターン検出: $file"
+    echo "$found"
+    echo "[helix-hook]   本当に意図した変更か確認してください"
+  fi
+}
+
 # --- 実行 ---
 check_phase_guard "$REL_PATH"
 check_matrix_advisory "$REL_PATH"
 check_freeze_violation "$REL_PATH"
 check_adr_index "$REL_PATH"
 match_trigger "$REL_PATH"
+check_textlint_advisory "$REL_PATH"
+check_dangerous_patterns "$REL_PATH"

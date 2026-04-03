@@ -379,6 +379,11 @@ def _resolve_scope_roots(feature_id: str, feature: dict[str, Any], structure: di
     return docs_scope_root, src_scope_root
 
 
+def _d_contract_doc_pattern(feature_id: str, feature: dict[str, Any], structure: dict[str, Any]) -> str:
+    docs_scope_root, _ = _resolve_scope_roots(feature_id, feature, structure)
+    return f"{docs_scope_root}/D-CONTRACT/*"
+
+
 def _resolve_paths(
     feature_id: str,
     feature: dict[str, Any],
@@ -509,6 +514,21 @@ def build_doc_map(
                 if not isinstance(did_raw, str):
                     continue
                 did = did_raw
+                if layer == "L3" and did == "D-CONTRACT":
+                    pattern = _d_contract_doc_pattern(feature_id, feature_raw, structure)
+                    trigger = {
+                        "pattern": pattern,
+                        "phase": "L3",
+                        "on_write": "gate_ready",
+                        "gate": "G3",
+                    }
+                    signature = (pattern, "L3", "gate_ready", "G3", None)
+                    if signature in seen:
+                        continue
+                    seen.add(signature)
+                    triggers.append(trigger)
+                    continue
+
                 resolved = _resolve_paths(feature_id, feature_raw, did, structure)
                 if layer == "L4":
                     pattern = resolved.capture[0] if resolved.capture else resolved.primary
@@ -685,10 +705,13 @@ def build_gate_checks(
                 for did_raw in required:
                     if not isinstance(did_raw, str):
                         continue
-                    resolved = _resolve_paths(feature_id, feature_raw, did_raw, structure)
-                    if not resolved.primary:
-                        continue
-                    cmd = _build_file_cmd(resolved.primary)
+                    if gate == "G3" and did_raw == "D-CONTRACT":
+                        cmd = _build_exists_cmd(_d_contract_doc_pattern(feature_id, feature_raw, structure))
+                    else:
+                        resolved = _resolve_paths(feature_id, feature_raw, did_raw, structure)
+                        if not resolved.primary:
+                            continue
+                        cmd = _build_file_cmd(resolved.primary)
                     cmd_key = f"deliverable_file::{cmd}"
                     if cmd_key in static_seen[gate]:
                         continue

@@ -162,6 +162,35 @@ fullstack 追加条件:
 | design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize |
 
+### 既存スキル強化メモ（description 更新）
+
+```yaml
+common/security:
+  description: セキュリティ対策で環境別設定ガイド・認証認可実装パターン・脆弱性対策チェックリストとOWASP検証手順・秘密情報スキャン・AI生成コード品質チェックを提供
+common/error-fix:
+  description: エラー修正で体系的デバッグ手順・失敗パターンレジストリ運用・危険コマンドガードを提供
+common/visual-design:
+  description: ビジュアル設計原則に加えてAI生成らしさを抑える品質チェックと実践指針を提供
+workflow/observability-sre:
+  description: SLO/SLI設計・構造化ログ・ダッシュボード・AIエージェントメトリクスに加え、リアルタイム監視設計とD-OBSテンプレートを提供
+workflow/verification:
+  description: L1〜V-L6検証に加えて、D-API/D-CONTRACT/D-DB起点のSpec駆動検証とL8仕様突合チェックを提供
+tools/ai-coding:
+  description: AIコーディング運用に加えて、GitHub ActionsでのCI/CDエージェント統合パターンを提供
+integration/agent-teams:
+  description: 複数エージェント協調運用に加えて、n8n/Dify発想のビジュアルワークフロー設計を提供
+automation/site-mapping:
+  description: Crawl4AI中心のサイト構造抽出に加えて、Firecrawl代替クローラーの使い分けと安全運用を提供
+common/performance:
+  description: パフォーマンス最適化指針に加えてAIセッション記録/再生と学習連携の運用手順を提供
+writing/explain:
+  description: 4部構成テンプレートに加えてEEATベースのコンテンツ品質監査チェックを提供
+writing/social:
+  description: SNS投稿テンプレートに加えてGEO（生成エンジン最適化）の設計指針を提供
+automation/browser-script:
+  description: Playwright記録からのE2E化に加えてaxe-coreによるアクセシビリティ自動検証を提供
+```
+
 ### Wave B/C
 
 - story

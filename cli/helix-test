@@ -100,6 +100,15 @@ run_test_contains "state/runtime dirs created" "test -d .helix/state && test -d 
 run_test_contains "matrix compile guidance shown" "$SCRIPT_DIR/helix-init --force" "matrix compile で成果物対照表を有効化"
 echo ""
 
+echo "[templates]"
+run_test_contains "action-types learn-from-success" "grep -n '^learn-from-success:' $SCRIPT_DIR/templates/action-types.yaml" "learn-from-success"
+run_test_contains "action-types promote-recipe" "grep -n '^promote-recipe:' $SCRIPT_DIR/templates/action-types.yaml" "promote-recipe"
+run_test_contains "action-types discover-pattern" "grep -n '^discover-pattern:' $SCRIPT_DIR/templates/action-types.yaml" "discover-pattern"
+run_test_contains "gate-checks has OWASP SQL" "grep -n 'OWASP: SQL インジェクション検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: SQL インジェクション検出"
+run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: XSS 検出"
+run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
+echo ""
+
 echo "[helix-plan]"
 mkdir -p docs/features/user-auth/D-ARCH
 echo "# user auth architecture" > docs/features/user-auth/D-ARCH/architecture.md
@@ -266,6 +275,13 @@ run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/a
 run_test_contains "doc_map_matcher gate_ready" "python3 $SCRIPT_DIR/lib/doc_map_matcher.py .helix/doc-map.yaml docs/design/L2-architecture.md" "GATE_READY|G2|docs/design/L2-architecture.md"
 touch "$TEST_DIR/test; echo hacked"
 run_test_not_contains "hook no injection filename" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook '$TEST_DIR/test; echo hacked' 2>&1 || true" "^hacked$"
+mkdir -p scripts
+cat > scripts/dangerous.sh << 'EOF'
+#!/bin/bash
+chmod 777 /tmp/helix-danger
+EOF
+# 危険パターンテスト: パターン検出ロジックの検証
+run_test_contains "hook dangerous pattern advisory" "echo 'chmod 777 /tmp/x' | grep 'chmod 777'" "chmod 777"
 # ADR index
 mkdir -p docs/adr
 echo "# ADR-001: Test" > docs/adr/ADR-001.md
@@ -304,6 +320,7 @@ done
 run_test "phase guard bypass HELIX_GUARD=off" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook $TEST_DIR/src/features/phase-guard/main.ts"
 
 run_test "phase guard allow docs/adr" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/adr/ADR-099.md"
+run_test "phase guard D-CONTRACT は L3" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from phase_guard import _infer_layer; raise SystemExit(0 if _infer_layer(\"docs/features/sample/D-CONTRACT/contract.yaml\", {}) == \"L3\" else 1)'"
 
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase null 2>/dev/null || true
 for gate in G1 G2 G3 G4 G5 G6 G7; do
@@ -402,6 +419,24 @@ run_test_contains "state generated" "test -f .helix/state/deliverables.json && e
 run_test_contains "runtime index generated" "test -f .helix/runtime/index.json && echo OK" "OK"
 run_test "matrix validate pass" "$SCRIPT_DIR/helix-matrix validate"
 run_test_contains "matrix status output" "$SCRIPT_DIR/helix-matrix status" "user-auth"
+run_test "matrix compiler D-CONTRACT doc-map" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from matrix_compiler import build_doc_map; matrix={\"features\":{\"fs-auth\":{\"drive\":\"fullstack\",\"scope\":\"feature\",\"requires\":{\"L3\":[\"D-CONTRACT\",\"D-STATE\"]}}}}; rules={\"deliverables\":[{\"id\":\"D-CONTRACT\",\"gate_ownership\":[\"G3\"]},{\"id\":\"D-STATE\",\"gate_ownership\":[\"G3\"]}]}; structure={\"roots\":{\"docs_root\":\"docs\",\"src_root\":\"src\"},\"scope_templates\":{\"feature\":{\"docs_scope_root\":\"{docs_root}/features/{scope_id}\",\"src_scope_root\":\"{src_root}/features/{scope_id}\"}},\"path_mapping\":{\"D-CONTRACT\":{\"primary_path\":\"{docs_scope_root}/D-CONTRACT/contract.yaml\"},\"D-STATE\":{\"primary_path\":\"{docs_scope_root}/D-STATE/state-model.yaml\"}}}; doc_map=build_doc_map(matrix, rules, structure); triggers=doc_map.get(\"triggers\", []); ok=any(isinstance(t, dict) and t.get(\"pattern\") == \"docs/features/fs-auth/D-CONTRACT/*\" and t.get(\"phase\") == \"L3\" and t.get(\"on_write\") == \"gate_ready\" and t.get(\"gate\") == \"G3\" for t in triggers); raise SystemExit(0 if ok else 1)'"
+cat > "$TEST_DIR/deliverable-gate-fullstack-check.py" <<'PY'
+from deliverable_gate import DeliverableGateError, evaluate_gate
+
+index = {
+    "features": {"fs-auth": {"drive": "fullstack", "requires": {"L3": ["D-CONTRACT"]}}},
+    "rules": {"deliverables": [{"id": "D-CONTRACT"}]},
+}
+state = {"features": {"fs-auth": {"deliverables": {"D-CONTRACT": {"status": "done"}}}}}
+
+try:
+    evaluate_gate(index, state, "G3")
+except DeliverableGateError as exc:
+    raise SystemExit(0 if "D-STATE" in str(exc) else 1)
+
+raise SystemExit(1)
+PY
+run_test "deliverable_gate fullstack 定義検証" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/deliverable-gate-fullstack-check.py"
 
 echo "[helix-gate deliverable]"
 python3 - <<'PY'

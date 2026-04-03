@@ -156,6 +156,9 @@ def _recipe_text(candidate: dict) -> str:
         value = notes.get(key)
         if value is not None:
             parts.append(str(value))
+    summary = candidate.get("summary")
+    if summary is not None:
+        parts.append(str(summary))
     return " ".join(parts).lower()
 
 
@@ -231,9 +234,12 @@ def _recipe_score(tokens: list[str], candidate: dict) -> float:
 
     text_hits = sum(1 for token in tokens if token in text)
     tag_hits = sum(1 for token in tokens if any(token in tag for tag in tags))
+    summary = str(candidate.get("summary") or "").lower()
+    summary_hits = sum(1 for token in tokens if token in summary) if summary else 0
 
     text_score = (text_hits / len(tokens)) * 65.0
     tag_score = (tag_hits / len(tokens)) * 25.0
     quality_score = quality * 10.0
+    summary_score = (summary_hits / len(tokens)) * 15.0
 
-    return text_score + tag_score + quality_score + verification_bonus
+    return text_score + tag_score + quality_score + summary_score + verification_bonus

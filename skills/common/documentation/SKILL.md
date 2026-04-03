@@ -422,6 +422,64 @@ rg -n "@(app|router)\\.(get|post|put|delete|patch)|@(router\\.(get|post|put|dele
 
 ---
 
+## コード変更→文書自動更新
+
+### コンセプト
+
+`src` 変更時に影響を受ける `docs` を自動検出し、更新提案を生成する。
+
+### 検出ロジック
+
+1. `git diff` で変更ファイルを取得する
+2. Deliverable Matrix から対応する docs を特定する
+3. docs の最終更新日と src の最終更新日を比較する
+4. docs が古ければ「更新が必要」を提案する
+
+### HELIX hook との統合
+
+- matrix advisory の拡張として実装可能
+- `src/features/{id}/D-IMPL` 変更時に `docs/features/{id}/D-API` 更新を提案可能
+
+### 自動更新の範囲（提案対象）
+
+- API エンドポイント一覧の差分を `D-API` に反映提案
+- DB スキーマ変更を `D-DB` に反映提案
+- 設定項目追加を `D-CONFIG` に反映提案
+- 新規関数/クラス追加を `D-ARCH` の構造図更新として提案
+
+### 安全装置
+
+自動更新は行わず、提案のみ出力し、人間が確認して適用する。
+
+---
+
+## API 文書自動生成
+
+### コンセプト
+
+ソースコードから API ドキュメントを自動生成し、仕様と実装の乖離を減らす。
+
+### 言語別生成方法
+
+- Python: docstring から Sphinx/MkDocs を生成
+- TypeScript: JSDoc から TypeDoc を生成
+- Go: `godoc` で API 文書を生成
+- Rust: `cargo doc` で API 文書を生成
+
+### OpenAPI 自動生成
+
+- FastAPI: `/docs` で Swagger UI を自動生成
+- Express + swagger-jsdoc: JSDoc コメントから OpenAPI を生成
+- Spring: `springdoc-openapi` で OpenAPI を生成
+
+### HELIX 統合
+
+- D-API 成果物の品質基準として「自動生成可能状態」を維持する
+- G3 ゲートで OpenAPI spec の自動生成チェックを実施する
+- CI で API ドキュメント更新ジョブを実行する
+
+---
+
 ## 6. 良いドキュメントの原則
 
 ### 原則
