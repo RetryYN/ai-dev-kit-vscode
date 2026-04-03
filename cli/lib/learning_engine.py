@@ -47,6 +47,44 @@ _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
 _HELIX_TEST_RESULT_PATTERN = re.compile(r"Results:\s*(\d+)\s+passed,\s*(\d+)\s+failed", re.IGNORECASE)
 _PY_MYPY_ERROR_PATTERN = re.compile(r"Found\s+(\d+)\s+errors?", re.IGNORECASE)
 _TS_ERROR_PATTERN = re.compile(r"\berror TS\d+:", re.IGNORECASE)
+_HISTORY_QUERY_TOKEN_PATTERN = re.compile(r"[\s,]+")
+
+_FAILURE_TYPE_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
+    "syntax_error": (
+        re.compile(r"\bsyntaxerror\b", re.IGNORECASE),
+        re.compile(r"\binvalid syntax\b", re.IGNORECASE),
+        re.compile(r"\bparse error\b", re.IGNORECASE),
+        re.compile(r"\berror TS\d+\b", re.IGNORECASE),
+        re.compile(r"\bsyntax\s+error\b", re.IGNORECASE),
+    ),
+    "timeout": (
+        re.compile(r"\btimeout\b", re.IGNORECASE),
+        re.compile(r"\btimed out\b", re.IGNORECASE),
+        re.compile(r"\bdeadline exceeded\b", re.IGNORECASE),
+    ),
+    "test_failure": (
+        re.compile(r"\btest(s)?\s+failed\b", re.IGNORECASE),
+        re.compile(r"\bpytest\b", re.IGNORECASE),
+        re.compile(r"\bjest\b", re.IGNORECASE),
+        re.compile(r"\bplaywright\b", re.IGNORECASE),
+        re.compile(r"\bassert(ion)?\s+failed\b", re.IGNORECASE),
+    ),
+    "gate_failure": (
+        re.compile(r"\bgate\b", re.IGNORECASE),
+        re.compile(r"\bg[1-8](?:\.\d+)?\b", re.IGNORECASE),
+        re.compile(r"\bphase guard\b", re.IGNORECASE),
+        re.compile(r"\bdeliverable gate\b", re.IGNORECASE),
+        re.compile(r"\bfreeze\b", re.IGNORECASE),
+    ),
+}
+
+_FAILURE_PREVENTION_TEMPLATES: dict[str, str] = {
+    "syntax_error": "静的検査（lint/type-check）を修正前後で実行し、構文と型の不整合を先に除去する。",
+    "runtime_error": "入力境界・null許容・例外処理を明示し、異常系の再現テストを追加する。",
+    "test_failure": "失敗テストを最小再現として固定し、1件ずつ修正して回帰テストを追加する。",
+    "gate_failure": "ゲート要件をチェックリスト化し、未達項目を埋めてから再判定する。",
+    "timeout": "重い処理を分割し、タイムアウト閾値とリトライ条件を明示する。",
+}
 
 _VERIFICATION_CACHE: dict[str, dict[str, Any]] = {}
 _BUILDER_EXECUTION_RUN_ID_MULTIPLIER = -1
@@ -202,6 +240,231 @@ def _infer_applicability(task_type: str, role: str, action_types: list[str]) -> 
     if any("api" in action.lower() for action in action_types):
         return f"{role_label} が担当する {type_label} 系の API 実装・検証タスクで適用しやすい。"
     return f"{role_label} が担当する {type_label} 系の標準実装フローで適用しやすい。"
+
+
+def _collect_summary(recipe: dict[str, Any]) -> str:
+    """recipe から検索用の 1 行サマリを生成する。"""
+    classification = recipe.get("classification", {})
+    if not isinstance(classification, dict):
+        classification = {}
+
+    pattern = recipe.get("pattern", {})
+    if not isinstance(pattern, dict):
+        pattern = {}
+
+    metrics = recipe.get("metrics", {})
+    if not isinstance(metrics, dict):
+        metrics = {}
+
+    notes = recipe.get("notes", {})
+    if not isinstance(notes, dict):
+        notes = {}
+
+    builder = str(classification.get("builder_type") or pattern.get("builder_type") or "unknown").strip() or "unknown"
+
+    raw_tags = classification.get("tags", [])
+    tags = [str(tag).strip() for tag in raw_tags if str(tag).strip()] if isinstance(raw_tags, list) else []
+
+    success_rate = metrics.get("success_rate")
+    if success_rate is None:
+        success_rate = metrics.get("action_pass_rate")
+    if success_rate is None:
+        success_rate = metrics.get("observation_pass_rate")
+    if success_rate is None and metrics.get("action_failure_rate") is not None:
+        try:
+            success_rate = 1.0 - float(metrics.get("action_failure_rate") or 0.0)
+        except (TypeError, ValueError):
+            success_rate = None
+    if success_rate is None and metrics.get("observation_failure_rate") is not None:
+        try:
+            success_rate = 1.0 - float(metrics.get("observation_failure_rate") or 0.0)
+        except (TypeError, ValueError):
+            success_rate = None
+    if success_rate is None:
+        try:
+            success_rate = float(metrics.get("quality_score", 0.0) or 0.0) / 100.0
+        except (TypeError, ValueError):
+            success_rate = 0.0
+
+    try:
+        normalized_success_rate = float(success_rate)
+    except (TypeError, ValueError):
+        normalized_success_rate = 0.0
+    normalized_success_rate = min(max(normalized_success_rate, 0.0), 1.0)
+
+    why = str(
+        notes.get("why_it_worked")
+        or notes.get("failure_reason")
+        or notes.get("applicability")
+        or ""
+    )
+    why = " ".join(why.split())
+
+    return (
+        f"{builder} | tags:{','.join(tags[:5])} | "
+        f"success:{normalized_success_rate:.0%} | {why[:80]}"
+    )
+
+
+def _collect_failure_text(
+    output_log: str,
+    action_rows: list[sqlite3.Row],
+    observation_rows: list[sqlite3.Row],
+) -> str:
+    parts: list[str] = []
+    if output_log:
+        parts.append(str(output_log))
+
+    for row in action_rows:
+        status = str(row["status"] or "").lower()
+        if status not in {"failed", "error"}:
+            continue
+        for key in ("action_desc", "evidence"):
+            text = str(row[key] or "").strip()
+            if text:
+                parts.append(text)
+
+    for row in observation_rows:
+        reason = str(row["reason"] or "").strip()
+        if reason:
+            parts.append(reason)
+
+    return "\n".join(parts).strip()
+
+
+def _classify_failure_type(
+    task_type: str,
+    output_log: str,
+    action_rows: list[sqlite3.Row],
+    observation_rows: list[sqlite3.Row],
+) -> str:
+    corpus = _collect_failure_text(output_log, action_rows, observation_rows).lower()
+
+    # テスト実行系 action が失敗していれば test_failure を優先する。
+    for row in action_rows:
+        status = str(row["status"] or "").lower()
+        action_type = str(row["action_type"] or "").lower()
+        if status in {"failed", "error"} and any(tag in action_type for tag in ("test", "pytest", "jest", "playwright")):
+            return "test_failure"
+
+    for failure_type in ("syntax_error", "timeout", "test_failure", "gate_failure"):
+        patterns = _FAILURE_TYPE_PATTERNS.get(failure_type, ())
+        if any(pattern.search(corpus) for pattern in patterns):
+            return failure_type
+
+    task_hint = str(task_type or "").lower()
+    if "test" in task_hint:
+        return "test_failure"
+    if "gate" in task_hint:
+        return "gate_failure"
+
+    return "runtime_error"
+
+
+def _failure_reason(
+    output_log: str,
+    action_rows: list[sqlite3.Row],
+    observation_rows: list[sqlite3.Row],
+    redaction_stats: dict[str, int],
+) -> str:
+    for row in observation_rows:
+        reason = str(row["reason"] or "").strip()
+        if reason:
+            return _truncate(str(_redact(reason, redaction_stats)), limit=220)
+
+    for row in action_rows:
+        status = str(row["status"] or "").lower()
+        if status not in {"failed", "error"}:
+            continue
+        evidence = str(row["evidence"] or "").strip()
+        if evidence:
+            return _truncate(str(_redact(evidence, redaction_stats)), limit=220)
+        desc = str(row["action_desc"] or "").strip()
+        if desc:
+            return _truncate(str(_redact(desc, redaction_stats)), limit=220)
+
+    if output_log:
+        return _truncate(str(_redact(output_log, redaction_stats)), limit=220)
+    return "失敗理由をログから特定できませんでした。"
+
+
+def _failure_prevention_template(failure_type: str) -> str:
+    return _FAILURE_PREVENTION_TEMPLATES.get(
+        failure_type,
+        _FAILURE_PREVENTION_TEMPLATES["runtime_error"],
+    )
+
+
+def _history_query_tokens(query: str) -> list[str]:
+    text = str(query or "").strip().lower()
+    if not text:
+        return []
+    return [token for token in _HISTORY_QUERY_TOKEN_PATTERN.split(text) if token]
+
+
+def _history_recipe_text(recipe: dict[str, Any]) -> str:
+    classification = recipe.get("classification", {})
+    notes = recipe.get("notes", {})
+    source = recipe.get("source", {})
+
+    if not isinstance(classification, dict):
+        classification = {}
+    if not isinstance(notes, dict):
+        notes = {}
+    if not isinstance(source, dict):
+        source = {}
+
+    parts: list[str] = []
+    for key in ("pattern_key", "recipe_id", "failure_type"):
+        value = recipe.get(key)
+        if value:
+            parts.append(str(value))
+    for key in ("task_type", "role", "builder_type"):
+        value = classification.get(key)
+        if value:
+            parts.append(str(value))
+    for key in ("failure_reason", "recurrence_prevention", "why_it_worked", "applicability"):
+        value = notes.get(key)
+        if value:
+            parts.append(str(value))
+    for key in ("task_id", "plan_goal"):
+        value = source.get(key)
+        if value:
+            parts.append(str(value))
+    return " ".join(parts).lower()
+
+
+def _history_recipe_score(tokens: list[str], recipe: dict[str, Any]) -> float:
+    text = _history_recipe_text(recipe)
+    classification = recipe.get("classification", {})
+    tags: set[str] = set()
+    if isinstance(classification, dict):
+        raw_tags = classification.get("tags", [])
+        if isinstance(raw_tags, list):
+            tags = {str(item).lower() for item in raw_tags}
+
+    metrics = recipe.get("metrics", {})
+    if not isinstance(metrics, dict):
+        metrics = {}
+    try:
+        quality = float(metrics.get("quality_score", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        quality = 0.0
+    quality = min(max(quality, 0.0), 100.0) / 100.0
+
+    if not tokens:
+        return quality * 100.0
+
+    text_hits = sum(1 for token in tokens if token in text)
+    tag_hits = sum(1 for token in tokens if any(token in tag for tag in tags))
+    summary = str(recipe.get("summary") or "").lower()
+    summary_hits = sum(1 for token in tokens if token in summary) if summary else 0
+    return (
+        (text_hits / len(tokens)) * 70.0
+        + (tag_hits / len(tokens)) * 20.0
+        + quality * 10.0
+        + (summary_hits / len(tokens)) * 15.0
+    )
 
 
 def _project_root_from_db_path(db_path: str) -> Path:
@@ -898,7 +1161,176 @@ def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
         },
         "created_at": _now_iso(),
     }
+    recipe["summary"] = _collect_summary(recipe)
 
+    return recipe
+
+
+def analyze_failure(task_run_id: int, db_path: str) -> dict[str, Any] | None:
+    """失敗実行ログを failure recipe dict に変換する。"""
+    builder_row_id = _decode_builder_execution_run_id(task_run_id)
+    if builder_row_id is not None:
+        return _analyze_builder_failure(builder_row_id=builder_row_id, db_path=db_path)
+
+    conn = _connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    task_row = conn.execute(
+        """
+        SELECT id, task_id, task_type, plan_goal, role, status, started_at, completed_at, output_log
+        FROM task_runs
+        WHERE id = ?
+        """,
+        (int(task_run_id),),
+    ).fetchone()
+
+    if task_row is None:
+        conn.close()
+        raise ValueError(f"task_run_id not found: {task_run_id}")
+
+    status_text = str(task_row["status"] or "").strip().lower()
+    if status_text == "completed":
+        conn.close()
+        raise ValueError(f"task_run_id is not failure: {task_run_id}")
+
+    action_rows = conn.execute(
+        """
+        SELECT action_index, action_type, action_desc, status, evidence
+        FROM action_logs
+        WHERE task_run_id = ?
+        ORDER BY action_index ASC, id ASC
+        """,
+        (int(task_run_id),),
+    ).fetchall()
+
+    observation_rows = conn.execute(
+        """
+        SELECT passed, reason
+        FROM observations
+        WHERE task_run_id = ?
+        ORDER BY id ASC
+        """,
+        (int(task_run_id),),
+    ).fetchall()
+    conn.close()
+
+    redaction_stats = {"count": 0}
+    steps: list[dict[str, Any]] = []
+    action_types: list[str] = []
+
+    for fallback_index, row in enumerate(action_rows, start=1):
+        action_type = str(row["action_type"] or "").strip()
+        action_desc = str(row["action_desc"] or "").strip()
+        action_status = str(row["status"] or "pending").strip()
+        evidence = str(row["evidence"] or "")
+        action_types.append(action_type)
+
+        step_index = int(row["action_index"] or fallback_index)
+        parameters = _extract_parameters(action_desc, evidence, redaction_stats)
+        safe_desc = _redact(action_desc, redaction_stats)
+
+        steps.append(
+            {
+                "index": step_index,
+                "tool": action_type,
+                "action_type": action_type,
+                "description": safe_desc,
+                "parameters": parameters,
+                "status": action_status,
+            }
+        )
+
+    if not steps:
+        fallback_action = str(task_row["task_type"] or "task-failed")
+        action_types = [fallback_action]
+        steps = [
+            {
+                "index": 1,
+                "tool": fallback_action,
+                "action_type": fallback_action,
+                "description": fallback_action,
+                "parameters": {
+                    "status": status_text or "failed",
+                },
+                "status": "failed",
+            }
+        ]
+
+    action_total = len(steps)
+    action_failed = sum(1 for step in steps if str(step.get("status", "")).lower() in {"failed", "error"})
+    action_failure_rate = (action_failed / action_total) if action_total > 0 else 1.0
+
+    observation_total = len(observation_rows)
+    observation_failed = sum(1 for row in observation_rows if int(row["passed"] or 0) == 0)
+    observation_failure_rate = (observation_failed / observation_total) if observation_total > 0 else 1.0
+
+    # failure recipe でも score を持たせ、検索時に比較可能にする（低いほど不安定）。
+    quality_score = max(0.0, 100.0 - (((action_failure_rate * 0.45) + (observation_failure_rate * 0.55)) * 100.0))
+
+    task_type = str(task_row["task_type"] or "unknown")
+    role = str(task_row["role"] or "")
+    output_log = str(task_row["output_log"] or "")
+    failure_type = _classify_failure_type(task_type, output_log, action_rows, observation_rows)
+    failure_reason = _failure_reason(output_log, action_rows, observation_rows, redaction_stats)
+
+    pattern_key = _build_pattern_key(f"{task_type}-failure", action_types + [failure_type])
+    pattern_digest = hashlib.sha1(pattern_key.encode("utf-8")).hexdigest()[:8]
+    recipe_id = f"recipe-failure-{int(task_run_id)}-{pattern_digest}"
+
+    tags = sorted(
+        {
+            f"task:{_slugify(task_type)}",
+            f"role:{_slugify(role)}" if role else "role:unknown",
+            f"failure:{failure_type}",
+            *[f"action:{_slugify(item)}" for item in action_types if item],
+        }
+    )
+
+    project_root = _project_root_from_db_path(db_path)
+    verification = _collect_verification(str(project_root))
+
+    recipe = {
+        "recipe_id": recipe_id,
+        "pattern_key": pattern_key,
+        "success": False,
+        "failure_type": failure_type,
+        "steps": sorted(steps, key=lambda item: int(item.get("index", 0))),
+        "metrics": {
+            "action_count": action_total,
+            "action_failure_rate": round(action_failure_rate, 4),
+            "observation_total": observation_total,
+            "observation_failure_rate": round(observation_failure_rate, 4),
+            "quality_score": round(quality_score, 2),
+        },
+        "classification": {
+            "task_type": task_type,
+            "role": role,
+            "builder_type": _guess_builder_type(task_type, action_types),
+            "tags": tags,
+        },
+        "security": {
+            "redaction_applied": True,
+            "redacted_fields": int(redaction_stats.get("count", 0)),
+            "notes": "global sync 前提で redaction 済み",
+        },
+        "notes": {
+            "failure_reason": failure_reason,
+            "recurrence_prevention": _failure_prevention_template(failure_type),
+            "applicability": f"{role or '汎用ロール'} が担当する {task_type} の失敗予防チェックで再利用できる。",
+        },
+        "verification": verification,
+        "source": {
+            "task_run_id": int(task_row["id"]),
+            "task_id": str(task_row["task_id"] or ""),
+            "plan_goal": _redact(str(task_row["plan_goal"] or ""), redaction_stats),
+            "status": status_text or "failed",
+            "started_at": str(task_row["started_at"] or ""),
+            "completed_at": str(task_row["completed_at"] or ""),
+            "output_log": _truncate(str(_redact(output_log, redaction_stats)), limit=400) if output_log else "",
+        },
+        "created_at": _now_iso(),
+    }
+    recipe["summary"] = _collect_summary(recipe)
     return recipe
 
 
@@ -1082,6 +1514,218 @@ def _analyze_builder_success(builder_row_id: int, db_path: str) -> dict[str, Any
     if isinstance(validation, dict) and validation:
         recipe["source"]["validation_summary"] = _redact(validation, redaction_stats)
 
+    recipe["summary"] = _collect_summary(recipe)
+    return recipe
+
+
+def _analyze_builder_failure(builder_row_id: int, db_path: str) -> dict[str, Any] | None:
+    conn = _connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    builder_row = conn.execute(
+        """
+        SELECT
+            id,
+            execution_id,
+            builder_type,
+            builder_name,
+            task_id,
+            status,
+            success,
+            input_signature_json,
+            pattern_tags_json,
+            step_trace_json,
+            current_step,
+            quality_score,
+            validation_summary_json,
+            started_at,
+            finished_at,
+            error_text
+        FROM builder_executions
+        WHERE id = ?
+        """,
+        (int(builder_row_id),),
+    ).fetchone()
+    conn.close()
+
+    if builder_row is None:
+        raise ValueError(f"builder_executions に実行履歴がありません: {builder_row_id}")
+
+    success_flag = int(builder_row["success"] or 0) == 1
+    status_text = str(builder_row["status"] or "").strip().lower()
+    if success_flag or status_text == "completed":
+        raise ValueError(f"builder 実行は失敗ではありません: {builder_row_id}")
+
+    redaction_stats = {"count": 0}
+    action_types: list[str] = []
+    steps: list[dict[str, Any]] = []
+    failure_action_rows: list[dict[str, Any]] = []
+
+    raw_trace = _json_load_or_none(str(builder_row["step_trace_json"] or ""))
+    step_trace = raw_trace if isinstance(raw_trace, list) else []
+
+    for index, item in enumerate(step_trace, start=1):
+        if isinstance(item, dict):
+            action_type = str(item.get("name") or f"step-{index}").strip() or f"step-{index}"
+            raw_data = item.get("data")
+            if isinstance(raw_data, (dict, list, tuple)):
+                parameters = _redact(raw_data, redaction_stats)
+            elif raw_data is None:
+                parameters = {}
+            else:
+                parameters = {"value": _redact(raw_data, redaction_stats)}
+            status = str(item.get("status") or "passed")
+        else:
+            action_type = f"step-{index}"
+            parameters = {"value": _redact(item, redaction_stats)}
+            status = "passed"
+
+        action_types.append(action_type)
+        steps.append(
+            {
+                "index": index,
+                "tool": action_type,
+                "action_type": action_type,
+                "description": action_type,
+                "parameters": parameters,
+                "status": status,
+            }
+        )
+        failure_action_rows.append(
+            {
+                "action_type": action_type,
+                "action_desc": action_type,
+                "status": status,
+                "evidence": json.dumps(parameters, ensure_ascii=False, default=str),
+            }
+        )
+
+    if not steps:
+        fallback_step = (
+            str(builder_row["current_step"] or "").strip()
+            or str(builder_row["builder_type"] or "").strip()
+            or "builder-execution"
+        )
+        action_types = [fallback_step]
+        steps = [
+            {
+                "index": 1,
+                "tool": fallback_step,
+                "action_type": fallback_step,
+                "description": fallback_step,
+                "parameters": {"status": status_text or "failed"},
+                "status": "failed",
+            }
+        ]
+        failure_action_rows = [
+            {
+                "action_type": fallback_step,
+                "action_desc": fallback_step,
+                "status": "failed",
+                "evidence": str(builder_row["error_text"] or ""),
+            }
+        ]
+
+    action_total = len(steps)
+    action_failed = sum(1 for step in steps if str(step.get("status", "")).lower() in {"failed", "error"})
+    if action_failed == 0:
+        action_failed = 1
+    action_failure_rate = (action_failed / action_total) if action_total > 0 else 1.0
+
+    # builder failure は 1 観測として扱う。
+    observation_total = 1
+    observation_failure_rate = 1.0
+
+    raw_quality_score = builder_row["quality_score"]
+    try:
+        quality_score = float(raw_quality_score)
+    except (TypeError, ValueError):
+        quality_score = 0.0
+    quality_score = min(max(quality_score, 0.0), 100.0)
+    if quality_score <= 0.0:
+        quality_score = max(0.0, 100.0 - (((action_failure_rate * 0.45) + (observation_failure_rate * 0.55)) * 100.0))
+
+    builder_type = str(builder_row["builder_type"] or "builder")
+    task_type = f"builder-{builder_type}"
+    role = "builder"
+    error_text = str(builder_row["error_text"] or "")
+    failure_type = _classify_failure_type(task_type, error_text, failure_action_rows, [])
+    failure_reason = _failure_reason(error_text, failure_action_rows, [], redaction_stats)
+
+    pattern_key = _build_pattern_key(f"{task_type}-failure", action_types + [failure_type])
+    pattern_digest = hashlib.sha1(pattern_key.encode("utf-8")).hexdigest()[:8]
+    recipe_id = f"recipe-builder-failure-{int(builder_row['id'])}-{pattern_digest}"
+
+    raw_tags = _json_load_or_none(str(builder_row["pattern_tags_json"] or ""))
+    pattern_tags = raw_tags if isinstance(raw_tags, list) else []
+    tags = sorted(
+        {
+            f"task:{_slugify(task_type)}",
+            "role:builder",
+            f"builder:{_slugify(builder_type)}",
+            f"failure:{failure_type}",
+            *[f"action:{_slugify(item)}" for item in action_types if item],
+            *[str(tag) for tag in pattern_tags if str(tag).strip()],
+        }
+    )
+
+    project_root = _project_root_from_db_path(db_path)
+    verification = _collect_verification(str(project_root))
+
+    raw_signature = _json_load_or_none(str(builder_row["input_signature_json"] or ""))
+    input_signature = raw_signature if isinstance(raw_signature, dict) else {}
+
+    recipe = {
+        "recipe_id": recipe_id,
+        "pattern_key": pattern_key,
+        "success": False,
+        "failure_type": failure_type,
+        "steps": sorted(steps, key=lambda item: int(item.get("index", 0))),
+        "metrics": {
+            "action_count": action_total,
+            "action_failure_rate": round(action_failure_rate, 4),
+            "observation_total": observation_total,
+            "observation_failure_rate": round(observation_failure_rate, 4),
+            "quality_score": round(quality_score, 2),
+        },
+        "classification": {
+            "task_type": task_type,
+            "role": role,
+            "builder_type": builder_type,
+            "tags": tags,
+        },
+        "security": {
+            "redaction_applied": True,
+            "redacted_fields": int(redaction_stats.get("count", 0)),
+            "notes": "global sync 前提で redaction 済み",
+        },
+        "notes": {
+            "failure_reason": failure_reason,
+            "recurrence_prevention": _failure_prevention_template(failure_type),
+            "applicability": f"builder_type={builder_type} の失敗予防チェックとして再利用しやすい。",
+        },
+        "verification": verification,
+        "source": {
+            "origin": "builder_executions",
+            "builder_execution_id": str(builder_row["execution_id"] or ""),
+            "builder_row_id": int(builder_row["id"]),
+            "task_id": str(builder_row["task_id"] or ""),
+            "builder_name": _redact(str(builder_row["builder_name"] or ""), redaction_stats),
+            "input_signature": _redact(input_signature, redaction_stats),
+            "status": status_text or "failed",
+            "started_at": str(builder_row["started_at"] or ""),
+            "completed_at": str(builder_row["finished_at"] or ""),
+            "error_text": _truncate(str(_redact(error_text, redaction_stats)), limit=400),
+            "task_run_id": _encode_builder_execution_run_id(int(builder_row["id"])),
+        },
+        "created_at": _now_iso(),
+    }
+
+    validation = _json_load_or_none(str(builder_row["validation_summary_json"] or ""))
+    if isinstance(validation, dict) and validation:
+        recipe["source"]["validation_summary"] = _redact(validation, redaction_stats)
+
+    recipe["summary"] = _collect_summary(recipe)
     return recipe
 
 
@@ -1096,6 +1740,8 @@ def save_recipe(recipe: dict[str, Any], project_root: str) -> str:
         digest = hashlib.sha1(pattern_key.encode("utf-8")).hexdigest()[:8] if pattern_key else "unknown"
         recipe_id = f"recipe-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{digest}"
         recipe["recipe_id"] = recipe_id
+
+    recipe["summary"] = _collect_summary(recipe)
 
     recipe_dir = Path(project_root) / ".helix" / "recipes"
     recipe_dir.mkdir(parents=True, exist_ok=True)
@@ -1122,6 +1768,72 @@ def list_recipes(project_root: str) -> list[dict[str, Any]]:
         payload["_path"] = str(recipe_file)
         recipes.append(payload)
     return recipes
+
+
+def from_history(query: str, project_root: str, limit: int = 5) -> dict[str, Any]:
+    """履歴 recipe から候補を検索し、失敗パターンは警告として返す。"""
+    recipes = list_recipes(project_root)
+    if not recipes:
+        return {
+            "query": str(query or ""),
+            "recommendations": [],
+            "warnings": [],
+            "failure_recipes": [],
+        }
+
+    tokens = _history_query_tokens(query)
+    scored: list[dict[str, Any]] = []
+    for recipe in recipes:
+        if not isinstance(recipe, dict):
+            continue
+        score = _history_recipe_score(tokens, recipe)
+        if tokens and score <= 0.0:
+            continue
+        scored.append({**recipe, "_score": score})
+
+    scored.sort(key=lambda item: float(item.get("_score", 0.0) or 0.0), reverse=True)
+
+    recommendations: list[dict[str, Any]] = []
+    warning_messages: list[str] = []
+    failure_recipes: list[dict[str, Any]] = []
+
+    for item in scored:
+        failure_type = str(item.get("failure_type") or "").strip()
+        explicit_success = item.get("success")
+        is_failure = explicit_success is False or bool(failure_type)
+
+        if not is_failure:
+            clean = dict(item)
+            clean.pop("_score", None)
+            recommendations.append(clean)
+            if len(recommendations) >= max(1, int(limit)):
+                break
+            continue
+
+        notes = item.get("notes", {}) if isinstance(item.get("notes"), dict) else {}
+        source = item.get("source", {}) if isinstance(item.get("source"), dict) else {}
+        reason_raw = (
+            notes.get("failure_reason")
+            or source.get("error_text")
+            or source.get("output_log")
+            or failure_type
+            or "原因不明"
+        )
+        reason = _truncate(str(_redact(str(reason_raw))), limit=200)
+        warning = f"このパターンは過去に失敗しています: {reason}"
+        warning_messages.append(warning)
+
+        failure_detail = dict(item)
+        failure_detail.pop("_score", None)
+        failure_detail["warning"] = warning
+        failure_recipes.append(failure_detail)
+
+    return {
+        "query": str(query or ""),
+        "recommendations": recommendations[: max(1, int(limit))],
+        "warnings": warning_messages[: max(1, int(limit))],
+        "failure_recipes": failure_recipes[: max(1, int(limit))],
+    }
 
 
 def find_recipe(recipe_id: str, project_root: str) -> dict[str, Any] | None:

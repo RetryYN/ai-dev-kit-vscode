@@ -167,6 +167,59 @@ npx playwright test
 
 ---
 
+## アクセシビリティ自動テスト
+
+### axe-core の Playwright 統合
+
+```typescript
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('a11y snapshot', async ({ page }) => {
+  await page.goto('/sample');
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+```
+
+### WCAG 2.1 AA 準拠チェック
+
+- 色コントラスト（通常テキスト 4.5:1 以上）
+- キーボード操作可能性
+- フォーカス可視性
+- ラベル・代替テキストの適切性
+
+### よくある違反と修正
+
+- コントラスト不足:
+  - 修正: カラー調整で AA 基準を満たす
+- alt テキスト欠落:
+  - 修正: 意味のある代替テキストを追加する
+- フォーカス順序不整合:
+  - 修正: `tabindex` の乱用を避け、DOM順序を整理する
+- ラベル欠落:
+  - 修正: `aria-label` または `label` 要素を追加する
+
+### HELIX L6 D-A11Y-VERIFY との統合
+
+1. D-E2E と並行して D-A11Y-VERIFY を作成
+2. 主要画面に axe 自動検査を追加
+3. 検出違反を修正後、再実行結果を L6 証跡に添付
+
+### CI での自動実行設定
+
+```yaml
+a11y-test:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - run: npm ci
+    - run: npx playwright install --with-deps
+    - run: npm run test:e2e -- --grep "a11y"
+```
+
+---
+
 ## 7. セキュリティ制約
 
 必須ルール：

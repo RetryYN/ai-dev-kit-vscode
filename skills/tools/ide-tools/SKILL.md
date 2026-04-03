@@ -454,6 +454,63 @@ Haiku 4.5:
 
 ---
 
+## MCP サーバー統合ガイド
+
+### MCP（Model Context Protocol）の基本概念
+
+- MCP は、LLM エージェントが外部ツールやデータソースへ安全に接続するための共通プロトコル
+- クライアント（例: Claude Code）と MCP サーバーを分離し、ツール追加時の実装差分を最小化できる
+- ツール実行権限をサーバー単位で管理できるため、最小権限設計と監査ログ運用に向く
+
+### Claude Code での MCP 設定（`.claude/settings.json`）
+
+```json
+{
+  "mcpServers": {
+    "filesystem-local": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "enabled": true
+    },
+    "postgres-readonly": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_URL}"],
+      "enabled": true
+    }
+  }
+}
+```
+
+運用ルール:
+- 認証情報は `settings.json` に直書きせず、必ず環境変数で注入する
+- サーバー追加時は用途別に分割し、不要時は `enabled: false` で停止する
+
+### HELIX 開発で有用な MCP サーバーカテゴリ
+
+| カテゴリ | 主な用途 | 代表例 |
+|---------|----------|--------|
+| ファイルシステム | ファイル読み書き、検索、差分確認 | filesystem MCP |
+| データベース | SQLite / PostgreSQL / MySQL への安全なクエリ実行 | sqlite / postgres / mysql MCP |
+| ブラウザ | UI動作確認、E2E補助、収集 | Playwright MCP、Crawl4AI MCP |
+| Git | リポジトリ操作、PR補助、履歴参照 | GitHub API MCP |
+| ドキュメント | 社内ナレッジ参照、仕様同期 | Notion MCP、Confluence MCP |
+| 監視 | ログ取得、メトリクス参照、障害切り分け | observability 系 MCP |
+
+### MCP サーバーのセキュリティ評価基準
+
+- `allowed-origins` / `blocked-origins` を設定し、外部送信先を明示的に制限する
+- API キーやトークンは環境変数のみ許可し、設定ファイルや履歴へ残さない
+- 送信データの宛先、内容、保持期間を事前に確認し、PII/機密の外部送信を禁止する
+- ツール権限は最小化し、読み取りで十分な用途は `read-only` 構成を優先する
+
+### HELIX Builder との連携
+
+- Sub-agent Builder: 役割ごとに MCP ツールを割り当て、レビュー担当は read-only、実装担当のみ write を許可する
+- Agent Pipeline Builder: ステージ単位で MCP サーバーを組み込み、`調査 -> 実装 -> 検証` の各段で利用ツールを固定する
+- パイプライン定義時は「どのステージがどの MCP にアクセスするか」を明文化し、監査可能性を確保する
+
+---
+
 ## チェックリスト
 
 ### ツール選定

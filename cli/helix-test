@@ -933,6 +933,8 @@ run_test_contains "learn generated recipe" "test -n \"$(ls .helix/recipes/*.json
 run_test "learn recipe has verification section" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); v = d.get(\"verification\"); raise SystemExit(0 if isinstance(v, dict) else 1)'"
 run_test "learn recipe verification.tests.total >= 0" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); t = d.get(\"verification\", {}).get(\"tests\", {}).get(\"total\", -1); raise SystemExit(0 if isinstance(t, (int, float)) and t >= 0 else 1)'"
 run_test "learn recipe verification.contracts is dict" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); c = d.get(\"verification\", {}).get(\"contracts\"); raise SystemExit(0 if isinstance(c, dict) else 1)'"
+run_test "learning _collect_summary one-line" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'from learning_engine import _collect_summary; r={\"classification\":{\"builder_type\":\"verify-script\",\"tags\":[\"alpha\",\"beta\"]},\"metrics\":{\"action_pass_rate\":0.92},\"notes\":{\"why_it_worked\":\"検証手順を固定し再現性が向上した\"}}; s=_collect_summary(r); raise SystemExit(0 if (\"\\n\" not in s and \"verify-script\" in s and \"tags:alpha,beta\" in s and \"success:92%\" in s) else 1)'"
+run_test "learn recipe has summary field" "python3 -c 'import glob, json; p = sorted(glob.glob(\".helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); s = d.get(\"summary\", \"\"); raise SystemExit(0 if isinstance(s, str) and s.strip() and \"\\n\" not in s else 1)'"
 run_test "global_store init_global_db tables" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import init_global_db; db=init_global_db(); conn=sqlite3.connect(db); t1=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"recipe_index\\\"\").fetchone(); t2=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"promotion_records\\\"\").fetchone(); conn.close(); raise SystemExit(0 if (t1 and t2) else 1)'"
 run_test "global_store sync roundtrip" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from global_store import sync_from_local, init_global_db; sync_from_local(\".helix/helix.db\", \"test-project\"); db=init_global_db(); conn=sqlite3.connect(db); row=conn.execute(\"SELECT COUNT(*) FROM recipe_index\").fetchone(); conn.close(); raise SystemExit(0 if (row and row[0] > 0) else 1)'"
 FAILED_RECIPE_ID=$(python3 - <<'PY'
@@ -1164,6 +1166,39 @@ low["verification"] = {
 (recipe_dir / "rank-low-verification.json").write_text(json.dumps(low, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 run_test "discover verification ranking" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME SCRIPT_DIR=$SCRIPT_DIR python3 -c 'import os, subprocess; out = subprocess.check_output([os.environ[\"SCRIPT_DIR\"] + \"/helix\", \"discover\", \"--query\", \"verification-rank-token\", \"--limit\", \"2\"], text=True, env=dict(os.environ, HELIX_GLOBAL_HOME=os.environ[\"HELIX_GLOBAL_HOME\"])); lines = [line.strip() for line in out.splitlines() if line.strip().startswith(\"rank-\")]; raise SystemExit(0 if lines and lines[0].startswith(\"rank-high-verification\") else 1)'"
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+recipe_dir = Path(".helix/recipes")
+recipe_dir.mkdir(parents=True, exist_ok=True)
+
+base = {
+    "pattern_key": "summary-match-test",
+    "classification": {
+        "task_type": "summary-match",
+        "role": "se",
+        "builder_type": "verify-script",
+        "tags": ["summary-match"],
+    },
+    "metrics": {"quality_score": 80},
+    "steps": [{"index": 1, "tool": "verify", "action_type": "verify", "description": "verify", "parameters": {}, "status": "passed"}],
+    "source": {"task_run_id": 999003},
+}
+
+hit = dict(base)
+hit["recipe_id"] = "summary-hit-recipe"
+hit["summary"] = "verify-script | tags:summary-match | success:92% | firecrawl-map-extract-ready"
+
+miss = dict(base)
+miss["recipe_id"] = "summary-miss-recipe"
+miss["source"] = {"task_run_id": 999004}
+miss["summary"] = "verify-script | tags:summary-match | success:92% | baseline"
+
+(recipe_dir / "summary-hit-recipe.json").write_text(json.dumps(hit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+(recipe_dir / "summary-miss-recipe.json").write_text(json.dumps(miss, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+run_test "discover summary text matching" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME SCRIPT_DIR=$SCRIPT_DIR python3 -c 'import os, subprocess; out = subprocess.check_output([os.environ[\"SCRIPT_DIR\"] + \"/helix\", \"discover\", \"--query\", \"firecrawl-map-extract-ready\", \"--limit\", \"2\"], text=True, env=dict(os.environ, HELIX_GLOBAL_HOME=os.environ[\"HELIX_GLOBAL_HOME\"])); lines = [line.strip() for line in out.splitlines() if line.strip().startswith(\"summary-\")]; raise SystemExit(0 if lines and lines[0].startswith(\"summary-hit-recipe\") else 1)'"
 run_test_contains "helix discover returns result" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix discover --query builder --limit 5" "score:"
 echo ""
 

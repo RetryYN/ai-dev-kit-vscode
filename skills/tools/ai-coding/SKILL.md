@@ -1,6 +1,6 @@
 ---
 name: ai-coding
-description: AIツール活用で構造化プロンプトテンプレート・マルチエージェント人事配置戦略・出力レビューチェックリストを提供
+description: AIツール活用で構造化プロンプトテンプレート・マルチエージェント戦略・CI/CDエージェント統合パターン・出力レビューチェックリストを提供
 metadata:
   helix_layer: all
   triggers:
@@ -389,6 +389,56 @@ research_report:
 「〇〇について、2026年の最新情報を検索して実装して」
 「〇〇の公式ドキュメントを確認して」（→ Context7 MCP を優先使用）
 「〇〇のセキュリティベストプラクティスを検索して適用して」
+```
+
+---
+
+## CI/CD エージェント統合
+
+GitHub Actions 上で AI エージェントを補助運用し、レビュー負荷と初動コストを下げる。
+
+### 代表パターン
+
+| パターン | 自動化内容 | 最低限の出力 |
+|---------|-----------|-------------|
+| Issue トリアージ | ラベル自動付与 + 担当者候補提案 | `labels`, `assignee_candidates`, `reason` |
+| PR レビュー | 変更要約 + リスク評価 | `summary`, `risk_level`, `hotspots` |
+| CI 失敗分析 | ログ要約 + 原因候補 + 修正案 | `root_cause_hypothesis`, `fix_candidates` |
+| リリースノート生成 | コミット差分から公開向け要約 | `highlights`, `breaking_changes`, `migration_notes` |
+
+### Markdown ベースのワークフロー定義
+
+YAML を直接編集する代わりに、運用側は Markdown で意図を定義し、生成ステップで YAML に変換する。
+
+```markdown
+# workflow: pr-review-agent
+on: pull_request
+steps:
+  - collect diff
+  - summarize changes
+  - evaluate risk (security/performance/compatibility)
+  - post comment
+```
+
+この方式により、非開発メンバーでもレビュー手順を更新しやすくなる。
+
+### HELIX との統合ポイント
+
+1. `helix-gate` の結果を GitHub Actions で再現実行し、PR 上で pass/fail を可視化
+2. `helix-pr` による PR 本文生成をワークフロー内に組み込み、説明品質を標準化
+3. `helix-hook` のローカルチェックを CI でも実行し、ローカル/CI 差分を最小化
+
+### 最小ジョブ例（概念）
+
+```yaml
+jobs:
+  helix-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./cli/helix-hook
+      - run: ./cli/helix-gate G4 --static-only
+      - run: ./cli/helix-pr --dry-run
 ```
 
 ---

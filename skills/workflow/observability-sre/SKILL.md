@@ -1,6 +1,6 @@
 ---
 name: observability-sre
-description: SLO/SLI設計・アラート戦略・ダッシュボード構築の可観測性指針を提供
+description: SLO/SLI設計・アラート戦略・ダッシュボード構築に加え、リアルタイム監視設計の可観測性指針を提供
 metadata:
   helix_layer: L7
   triggers:
@@ -235,6 +235,206 @@ Level 4: デバッグ（オンコール向け）
   ├─ high → 即時対応 → ロールバック検討 → 人間通知 → 根本原因調査
   │
   └─ critical → 自動停止 → ロールバック実行 → 人間即時通知 → インシデント対応
+```
+
+---
+
+## SLO/SLI 設計テンプレート
+
+### SLI 定義テンプレート
+
+```yaml
+service: sample-api
+slis:
+  availability:
+    good_event: "HTTP status < 500"
+    total_event: "all requests"
+  latency:
+    metric: "p95 response time"
+    threshold_ms: 300
+  throughput:
+    metric: "requests per second"
+    target_rps: 120
+  error_rate:
+    metric: "5xx / total requests"
+    threshold_percent: 0.5
+```
+
+### SLO 設定ガイド（30日換算の目安）
+
+| SLO | 許容ダウンタイム |
+|-----|------------------|
+| 99.99% | 約4.3分/月 |
+| 99.9% | 約43.2分/月 |
+| 99.0% | 約7.2時間/月 |
+| 98.8% | 約8.7時間/月 |
+
+### エラーバジェット運用
+
+```text
+error_budget = 1 - SLO
+
+運用基準:
+- 消費 < 50%: 通常開発
+- 50%〜75%: リスクの高い変更を抑制
+- 75%〜100%: 信頼性改善を優先
+- 100%超: 機能開発を凍結し復旧・再発防止を優先
+```
+
+### アラート設計（閾値ベース vs バーンレート）
+
+- 閾値ベース:
+  - 例: `error_rate > 2%` が 5 分継続
+  - 単純で導入しやすいが、短時間の急劣化を見逃す場合がある
+- バーンレート:
+  - 例: 1時間窓でバジェット消費速度が `14x` 超過
+  - SLO違反リスクを早期に検知しやすい
+
+---
+
+## 構造化ログ設計
+
+### JSON ログフォーマット標準
+
+```json
+{
+  "timestamp": "2026-04-04T12:00:00Z",
+  "level": "INFO",
+  "message": "request completed",
+  "context": {
+    "service": "sample-api",
+    "path": "/v1/items",
+    "status_code": 200,
+    "duration_ms": 42
+  },
+  "trace_id": "trc-1234abcd"
+}
+```
+
+### ログレベル使い分け
+
+- `DEBUG`: 開発時の詳細調査情報
+- `INFO`: 正常系の主要イベント
+- `WARN`: 要注意だが継続可能な異常
+- `ERROR`: リクエスト失敗や処理不能
+- `FATAL`: サービス継続不能（即時復旧対象）
+
+### 分散トレーシング実装パターン（trace_id/span_id）
+
+1. 入口（API Gateway/HTTPミドルウェア）で `trace_id` を生成または受信
+2. 各内部処理で `span_id` を発行し、親子関係を保持
+3. ログ・メトリクス・トレースへ同一 `trace_id` を付与
+4. 失敗時は `trace_id` をインシデント票へ転記して追跡する
+
+---
+
+## ダッシュボード設計
+
+### RED メソッド（Rate, Errors, Duration）
+
+- `Rate`: 秒間リクエスト数
+- `Errors`: 4xx/5xx 比率と件数
+- `Duration`: p50/p95/p99 レイテンシ
+
+### USE メソッド（Utilization, Saturation, Errors）
+
+- `Utilization`: CPU/メモリ/接続使用率
+- `Saturation`: キュー長、接続待ち、スレッド枯渇
+- `Errors`: ノード/ディスク/ネットワークの異常件数
+
+### ゴールデンシグナル 4 指標
+
+1. Latency（遅延）
+2. Traffic（トラフィック）
+3. Errors（エラー）
+4. Saturation（飽和）
+
+---
+
+## AI エージェントメトリクス
+
+### エージェント固有の監視項目
+
+- API 呼び出し回数 / エラー率 / レイテンシ
+- トークン消費量 / コスト
+- タスク成功率 / リトライ率
+- コンテキストウィンドウ使用率
+
+### HELIX `helix.db` との統合（SQLite 抽出例）
+
+```sql
+-- タスク成功率（直近7日）
+SELECT
+  COUNT(*) AS total_runs,
+  SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS success_runs
+FROM task_runs
+WHERE started_at >= datetime('now', '-7 day');
+```
+
+```sql
+-- 失敗アクションの種別分布
+SELECT action_type, COUNT(*) AS failed_count
+FROM action_logs
+WHERE status = 'failed'
+GROUP BY action_type
+ORDER BY failed_count DESC;
+```
+
+```sql
+-- 失敗観測理由の上位
+SELECT reason, COUNT(*) AS cnt
+FROM observations
+WHERE passed = 0
+GROUP BY reason
+ORDER BY cnt DESC
+LIMIT 10;
+```
+
+---
+
+## リアルタイム監視設計
+
+Netdata の「ゼロ設定で即時可視化」コンセプトを参考に、導入初日から監視の最低ラインを確保する。
+
+### HELIX プロジェクト監視テンプレート
+
+| 監視レイヤー | 主要メトリクス | 目的 |
+|-------------|---------------|------|
+| アプリケーション層 | HTTP レスポンスタイム / エラー率 / スループット | ユーザー影響の早期検知 |
+| インフラ層 | CPU / メモリ / ディスクI/O / ネットワーク | リソース飽和の検知 |
+| DB 層 | クエリレイテンシ / コネクションプール / スロークエリ | データ層のボトルネック検知 |
+| AI エージェント層 | API コール数 / トークン消費 / コスト | 生成系運用コスト管理 |
+
+### アラート設計ベストプラクティス
+
+1. ノイズ削減: 一過性スパイクで鳴らさず、継続時間と閾値の両方で判定
+2. エスカレーション: `severity` ごとに通知先を段階化（Slack → PagerDuty → 電話）
+3. 自動復旧: ヘルスチェック失敗時に `自動再起動 → 再判定 → 手動介入` の順で実行
+
+### D-OBS 成果物テンプレート
+
+```yaml
+d_obs:
+  service: "sample-api"
+  dashboards:
+    - name: "app-red"
+      metrics: ["http_latency_p95", "http_error_rate", "http_rps"]
+    - name: "infra-use"
+      metrics: ["cpu_utilization", "memory_usage", "disk_io", "network_io"]
+    - name: "db-health"
+      metrics: ["db_query_latency_p95", "db_pool_usage", "db_slow_query_count"]
+    - name: "agent-cost"
+      metrics: ["agent_api_calls", "agent_token_usage", "agent_cost_daily"]
+  alerts:
+    - severity: "critical"
+      condition: "error_rate > 5% for 5m"
+      notify: ["pagerduty", "phone"]
+    - severity: "high"
+      condition: "latency_p95 > 800ms for 10m"
+      notify: ["slack", "pagerduty"]
+  runbook:
+    healthcheck: "docs/runbooks/healthcheck.md"
+    rollback: "docs/runbooks/rollback.md"
 ```
 
 ---

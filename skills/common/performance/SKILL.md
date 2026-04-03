@@ -545,6 +545,33 @@ CREATE INDEX IF NOT EXISTS idx_agent_cost_logs_project_created
 
 ---
 
+## AI セッション記録と再生
+
+### セッションログの構造化記録
+
+- タイムスタンプ付きアクションログを残す
+- 入力/出力はハッシュ化またはマスキング（redacted）して保存する
+- 使用ツール、実行時間、結果ステータスを1イベント単位で記録する
+
+### Learning Engine 連携
+
+- `helix learn` は成功セッションから recipe を生成する
+- `helix publish` で再利用可能なセッションパターンを共有する
+- 失敗セッションは failure recipe として分離し、再発防止に使う
+
+### 記録フォーマット（JSONL）
+
+```json
+{"ts":"2026-04-04T12:00:00","action":"codex-review","input_hash":"a3f2","result":"approve","duration_ms":5200}
+```
+
+運用ルール:
+- 1行=1アクション
+- 機密値は保存しない（キー名・値の両方を検査）
+- 再生時は `ts` 順に並べて依存順序を復元する
+
+---
+
 ## チェックリスト
 
 ### 計測時

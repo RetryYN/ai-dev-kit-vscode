@@ -1,6 +1,6 @@
 ---
 name: verification
-description: L1〜V-L6の各検証レイヤーのチェック項目と結果記録フォーマットを提供（V-L3〜V-L6は本スキル固有番号）。Reverse モード（RG0-RG3 + RGC）の検証基盤を含む
+description: L1〜V-L6の各検証レイヤーに加え、Spec駆動検証とL8仕様突合チェックを提供（V-L3〜V-L6は本スキル固有番号）。Reverse モード（RG0-RG3 + RGC）の検証基盤を含む
 metadata:
   helix_layer: all
   triggers:
@@ -687,6 +687,140 @@ R0 完了（フルフロー時。skip 時は該当ゲートを N/A で記録）
         pass
         ↓
       R4 Gap & Routing → Forward HELIX → RGC 検証
+```
+
+---
+
+## Spec 駆動検証
+
+仕様成果物（`D-API` / `D-CONTRACT` / `D-DB`）を起点に、実装後テストを自動導出する。
+実装コードから逆算してテストを作るのではなく、仕様を正として不足を検出する。
+
+### 仕様 → テスト自動導出の基本手順
+
+1. `D-API`: エンドポイント、メソッド、期待ステータスを抽出
+2. `D-CONTRACT`: Consumer/Provider の契約条件を抽出
+3. `D-DB`: テーブル、制約、NULL可否、境界値条件を抽出
+4. テンプレートに流し込み、`pytest` / `Jest` のテスト雛形を生成
+5. G4 で自動実行し、L8 で仕様突合レポートに統合
+
+### API 仕様 → マトリクステスト
+
+最小単位は `endpoint × method × status_code`。
+
+| endpoint | method | status | 目的 |
+|----------|--------|--------|------|
+| `/api/v1/users` | `GET` | `200` | 正常系 |
+| `/api/v1/users` | `POST` | `201` | 作成成功 |
+| `/api/v1/users/{id}` | `GET` | `404` | 存在しないID |
+| `/api/v1/users` | `POST` | `422` | バリデーション違反 |
+
+### DB スキーマ → CRUD / 制約 / 境界値テスト
+
+`テーブル × CRUD × 制約違反 × NULL/境界値` を最低セットにする。
+
+- CRUD: create/read/update/delete の往復整合
+- 制約違反: UNIQUE / FK / CHECK / NOT NULL の失敗確認
+- NULL/境界値: 最小値、最大値、空文字、長さ超過
+
+### 契約仕様 → Consumer / Provider 契約テスト
+
+- Consumer 視点: 期待レスポンス構造・必須フィールド・型
+- Provider 視点: 実際の応答が契約を満たすか
+- 双方向差分: Consumer 期待にない項目、Provider 未実装項目を検出
+
+### HELIX Deliverable Matrix 統合
+
+| Deliverable | 生成タイミング | 自動化内容 |
+|------------|----------------|------------|
+| `D-API` | G4 | API テスト自動生成・実行 |
+| `D-CONTRACT` | G4 | 契約テスト自動生成 |
+| `D-DB` | G4 | マイグレーションテスト自動生成 |
+
+### テスト生成テンプレート（`pytest` / `Jest`）
+
+#### `pytest`
+
+```python
+import pytest
+
+@pytest.mark.parametrize(
+    "method,path,expected_status",
+    [
+        ("GET", "/api/v1/users", 200),
+        ("POST", "/api/v1/users", 201),
+        ("POST", "/api/v1/users", 422),
+    ],
+)
+def test_api_spec_matrix(client, method, path, expected_status):
+    response = client.request(method, path)
+    assert response.status_code == expected_status
+```
+
+#### `Jest`
+
+```typescript
+describe('D-API matrix', () => {
+  const cases = [
+    { method: 'get', path: '/api/v1/users', status: 200 },
+    { method: 'post', path: '/api/v1/users', status: 201 },
+    { method: 'post', path: '/api/v1/users', status: 422 },
+  ] as const
+
+  test.each(cases)('$method $path => $status', async ({ method, path, status }) => {
+    const res = await request(app)[method](path)
+    expect(res.status).toBe(status)
+  })
+})
+```
+
+---
+
+## 仕様突合チェック
+
+L8 受入時に `D-*` 成果物と実装コードを自動突合し、仕様差分を検出する。
+
+### 検出対象
+
+- 仕様に書いてあるが実装に存在しない項目（spec-only）
+- 実装に存在するが仕様に書いていない項目（impl-only）
+
+### `rg` ベースの突合パターン
+
+```bash
+# 例1: D-API と実装ルータ突合（spec-only / impl-only）
+rg -n "^(GET|POST|PUT|PATCH|DELETE)\\s+/api" docs/features/**/D-API/*.md | sort > /tmp/spec_api.txt
+rg -n "@(router\\.|app\\.|bp\\.)?(get|post|put|patch|delete)\\(" src/ backend/ | sort > /tmp/impl_api.txt
+comm -23 /tmp/spec_api.txt /tmp/impl_api.txt   # spec-only
+comm -13 /tmp/spec_api.txt /tmp/impl_api.txt   # impl-only
+
+# 例2: D-DB と migration 突合
+rg -n "CREATE TABLE|ALTER TABLE|CONSTRAINT" docs/features/**/D-DB/*.md | sort > /tmp/spec_db.txt
+rg -n "CREATE TABLE|ALTER TABLE|CONSTRAINT" migrations/ db/ | sort > /tmp/impl_db.txt
+comm -23 /tmp/spec_db.txt /tmp/impl_db.txt
+comm -13 /tmp/spec_db.txt /tmp/impl_db.txt
+
+# 例3: D-CONTRACT と契約テスト突合
+rg -n "consumer|provider|contract|schema" docs/features/**/D-CONTRACT/*.md | sort > /tmp/spec_contract.txt
+rg -n "contract|consumer|provider|pact|schema" tests/ contracts/ | sort > /tmp/impl_contract.txt
+comm -23 /tmp/spec_contract.txt /tmp/impl_contract.txt
+comm -13 /tmp/spec_contract.txt /tmp/impl_contract.txt
+```
+
+### 出力フォーマット（L8 添付）
+
+```yaml
+spec_reconciliation:
+  d_api:
+    spec_only: []
+    impl_only: []
+  d_contract:
+    spec_only: []
+    impl_only: []
+  d_db:
+    spec_only: []
+    impl_only: []
+  verdict: pass/fail
 ```
 
 ---

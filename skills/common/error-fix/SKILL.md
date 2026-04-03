@@ -162,6 +162,120 @@ import { A } from './moduleA'
 
 ---
 
+## 体系的デバッグ手法
+
+### パッチ連鎖防止の原則
+
+- 症状に対する場当たり修正を避け、**根本原因を特定してから**修正する
+- 「一時的に動く」より「再発しない」を優先する
+- 修正のたびに再現手順と検証手順を更新する
+
+### 5段階デバッグフロー
+
+1. 再現条件の確定（最小再現手順）
+2. 仮説の列挙（原因候補を3つ以上）
+3. 仮説の検証（1つずつ潰す、複数同時に変えない）
+4. 根本原因の特定（なぜなぜ分析、5回の Why）
+5. 修正と回帰テスト作成
+
+### アンチパターン
+
+- いきなり修正する（再現確認・仮説検証なし）
+- 複数箇所を同時変更する（原因切り分け不能）
+- テストなしで修正完了とする（再発防止不十分）
+
+---
+
+## 失敗パターンレジストリ
+
+### 記録フォーマット（構造化）
+
+失敗を「属人メモ」ではなく、以下の4要素で記録する。
+
+- 症状（何が起きたか）
+- 原因（なぜ起きたか）
+- 修正方法（どう直したか）
+- 再発防止策（次回どう防ぐか）
+
+### SQLite テーブル設計案（`failure_patterns`）
+
+```sql
+CREATE TABLE IF NOT EXISTS failure_patterns (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_run_id INTEGER NOT NULL,
+  task_type TEXT NOT NULL,
+  failure_type TEXT NOT NULL,
+  symptom TEXT NOT NULL,
+  root_cause TEXT NOT NULL,
+  fix_summary TEXT NOT NULL,
+  prevention TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_failure_patterns_task_type
+  ON failure_patterns(task_type, failure_type, created_at);
+```
+
+### `helix learn --failure` 拡張提案
+
+- 成功レシピだけでなく、失敗レシピも学習対象として保存する
+- 失敗レシピは `success: false` と `failure_type` を持つ
+- 同種タスク開始時に「過去失敗パターン」を先に提示する
+
+### よくある失敗パターン集
+
+#### Python
+
+- import 循環（モジュール分割境界の不備）
+- 型不一致（静的型と実データの乖離）
+- async 漏れ（`await` 未使用、同期/非同期混在）
+
+#### JavaScript / TypeScript
+
+- this バインド不備（コールバック実行文脈の喪失）
+- Promise 未処理（`unhandledrejection`）
+- null チェーン未考慮（`undefined` アクセス）
+
+#### DB
+
+- N+1 クエリ（繰り返し参照で過剰クエリ）
+- デッドロック（ロック順序不整合）
+- マイグレーション順序ミス（依存関係の逆転）
+
+### HELIX Learning Engine 連携
+
+- `from_history()` が失敗レシピを検出した場合は警告を返す
+- 警告形式:
+  - `このパターンは過去に失敗しています: {reason}`
+- 実装前に同一パターンの再発リスクを明示できる
+
+---
+
+## 危険コマンドガード
+
+以下のパターンは、誤操作時の影響が大きいためデフォルトでブロック対象とする。
+
+- `rm -rf /` / `rm -rf ~` / `rm -rf .`
+- `chmod 777` / `chmod -R 777`
+- `git push --force`（`main` / `master`）
+- `DROP DATABASE` / `DROP TABLE`（本番）
+- `kill -9`（PID 指定なし）
+- `dd if=/dev/zero`
+- `> /dev/sda`
+
+### HELIX Phase Guard 連携提案
+
+- コマンド実行前に危険パターンを静的検知
+- 検知時は実行を中断し、代替コマンドまたは明示承認を要求
+- G4/G6 ではブロックイベントを監査ログへ記録する
+
+### 例外条件
+
+- 人間による明示承認がある場合のみ実行可
+- 運用上は `HELIX_GUARD=off` 相当を一時的に付与し、理由を記録する
+
+---
+
 ## 報告フォーマット
 
 ```markdown

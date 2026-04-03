@@ -1,6 +1,6 @@
 ---
 name: site-mapping
-description: Crawl4AIによるサイト構造自動抽出でReverse証拠収集・競合分析・サイトマップ生成を自動化
+description: Crawl4AIとFirecrawlの使い分けでサイト構造抽出・Reverse証拠収集・構造化データ抽出を自動化
 metadata:
   helix_layer: R0
   triggers:
@@ -161,6 +161,36 @@ artifacts/site-mapping/sessions/
 1. `robots.txt` を尊重する
 2. 429 が出たら遅延を増やす
 3. サイト運用者の規約を優先する
+
+---
+
+## Firecrawl 統合（代替クローラー）
+
+Firecrawl は `/scrape` / `/crawl` / `/map` / `/extract` を統一 API で扱えるクローラー基盤。
+構造化抽出の強さを活かし、Crawl4AI と用途で使い分ける。
+
+### Crawl4AI vs Firecrawl
+
+| 観点 | Crawl4AI | Firecrawl |
+|------|----------|-----------|
+| 実行形態 | ローカル完結 | 外部 API ベース |
+| HELIX 連携 | MCP 直結しやすい | API アダプタ経由 |
+| コスト | 無料運用しやすい | 有料プランあり |
+| 強み | 監査しやすいローカル処理 | 構造化抽出（表/フォーム/API）の精度 |
+
+### HELIX Reverse R0 での活用
+
+1. `/map` で対象サイトの URL 構造を一括取得
+2. `/extract` でテーブル、フォーム、API エンドポイント候補を抽出
+3. R0 証拠台帳へ「取得元 URL / 抽出日時 / 抽出方法」を記録
+4. RG0 では Crawl4AI の結果と Firecrawl 結果を突合し、欠落ページを補完
+
+### セキュリティ注意
+
+- Firecrawl は外部 API のため、`allowlist` と API キー管理を必須化する
+- 送信データは最小化し、機密情報や内部URLを含めない
+- API キーは `.env` で管理し、`SKILL.md` / `README` / スクリプトに直書きしない
+- 本番系ドメインへのクロールは人間承認後に実行する
 
 ---
 
