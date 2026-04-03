@@ -328,6 +328,11 @@ cmd_decide() {
     confirmed)
       echo "  → Forward HELIX に接続可能。'helix size' でサイジングしてください。"
       echo "  → 検証スクリプトは verify/ に残り、リグレッションテストとして機能します。"
+      echo ""
+      echo "=== 次のステップ ==="
+      echo "  1. helix size --type new-feature でサイジング"
+      echo "  2. helix plan draft で設計提案"
+      echo "  3. Forward HELIX を開始"
       ;;
     rejected)
       echo "  → バックログから除外。学びを記録しました。"

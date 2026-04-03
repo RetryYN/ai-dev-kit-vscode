@@ -35,3 +35,7 @@ reverse_gates:
   RG1: { status: pending }
   RG2: { status: pending }
   RG3: { status: pending }
+
+reverse:
+  status: null
+  completed_at: null

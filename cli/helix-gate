@@ -239,6 +239,7 @@ run_checks() {
 
   # --- AI チェック ---
   if [[ "$STATIC_ONLY" != true ]]; then
+    echo "[helix-gate] TL レビュー（Codex 5.4）"
     echo "[ai]"
 
     local in_gate=false
@@ -345,6 +346,18 @@ run_checks() {
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true
       maybe_generate_retro "$gate"
     fi
+    case "$gate" in
+      G4)
+        echo "次のアクション: helix gate G5 または helix gate G6 に進んでください"
+        echo "[helix-gate] ヒント: 'helix promote --auto' で昇格候補を確認できます"
+        ;;
+      G6)
+        echo "次のアクション: helix gate G7 → helix pr でリリース準備"
+        ;;
+      G7)
+        echo "次のアクション: helix pr で PR を作成してください"
+        ;;
+    esac
   fi
 }
 

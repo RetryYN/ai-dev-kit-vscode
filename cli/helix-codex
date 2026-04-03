@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-codex: HELIX スキル注入付き Codex CLI ラッパー
-# Usage: helix-codex --role <role> --task "タスク内容"
+# Usage: helix-codex --role <role> --task "タスク内容" [--thinking <level>]
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
@@ -35,6 +35,7 @@ ensure_within_dir() {
 # --- 引数パース ---
 ROLE=""
 TASK=""
+THINKING=""
 DRY_RUN=false
 SANDBOX="workspace-write"
 
@@ -42,6 +43,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --role)      ROLE="$2"; shift 2 ;;
     --task)      TASK="$2"; shift 2 ;;
+    --thinking)  THINKING="$2"; shift 2 ;;
     --sandbox)   SANDBOX="$2"; shift 2 ;;
     --read-only) SANDBOX="read-only"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
@@ -49,8 +51,9 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: helix-codex --role <role> --task \"タスク内容\""
       echo ""
       echo "Options:"
-      echo "  --role       ロール名"
-      echo "  --task       タスク内容"
+      echo "  --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"
+      echo "  --task \"...\"        タスク内容"
+      echo "  --thinking <level>  思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
       echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
       echo "               デフォルト: workspace-write"
       echo "  --read-only  --sandbox read-only のショートカット"
@@ -76,6 +79,34 @@ fi
 if [[ ! "$ROLE" =~ ^[a-z0-9_-]+$ ]]; then
   echo "エラー: 無効な --role 値です: '$ROLE'（許可パターン: ^[a-z0-9_-]+$）" >&2
   exit 1
+fi
+
+# --- thinking level バリデーション ---
+if [[ -n "$THINKING" ]]; then
+  case "$THINKING" in
+    low|medium|high|xhigh) ;;
+    *)
+      echo "エラー: 無効な --thinking 値です: '$THINKING'（有効値: low|medium|high|xhigh）" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+# --thinking 未指定時のロール別デフォルト
+get_default_thinking() {
+  local role="$1"
+  case "$role" in
+    tl|security)   echo "xhigh" ;;
+    se|fe|qa|perf) echo "high" ;;
+    pg|dba|devops) echo "medium" ;;
+    docs|research) echo "low" ;;
+    legacy)        echo "xhigh" ;;
+    *)             echo "high" ;;
+  esac
+}
+
+if [[ -z "$THINKING" ]]; then
+  THINKING="$(get_default_thinking "$ROLE")"
 fi
 
 # --- ロール設定読み込み ---
@@ -163,6 +194,9 @@ while IFS= read -r skill; do
   if skill_file_real="$(resolve_skill_file "$skill")"; then
     SKILL_PATHS+="- $skill_file_real
 "
+    if grep -Eq '^[[:space:]]*verified:[[:space:]]*false([[:space:]]|$)' "$skill_file_real" 2>/dev/null; then
+      echo "[helix-codex] WARN: $skill は未検証のスキルです" >&2
+    fi
     LOADED_SKILLS+=("$skill")
   else
     echo "警告: スキルが見つかりません（overlay/global 検索順）: $skill" >&2
@@ -201,6 +235,7 @@ if [[ "$DRY_RUN" == true ]]; then
   echo "=== helix-codex dry-run ==="
   echo "Role:      $ROLE"
   echo "Model:     $codex_model"
+  echo "Thinking:  $THINKING"
   echo "Sandbox:   $SANDBOX"
   echo "Skills:    ${LOADED_SKILLS[*]:-none}"
   echo "Docs:      ${LOADED_DOCS[*]:-none}"
@@ -216,7 +251,8 @@ if [[ ! -x "$CODEX_BIN" ]]; then
   exit 1
 fi
 
-echo "[helix-codex] role=$ROLE model=$codex_model sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
+echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
 "$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
+  -c "model_reasoning_effort=\"$THINKING\"" \
   -c 'shell_environment_policy.inherit=all'

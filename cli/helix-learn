@@ -123,6 +123,9 @@ def main() -> int:
             print(f"  - {item}", file=sys.stderr)
         return 1
 
+    print("")
+    print("昇格候補の確認: helix promote --auto")
+
     return 0
 
 

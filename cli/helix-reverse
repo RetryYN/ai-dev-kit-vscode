@@ -216,6 +216,19 @@ fi
 if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
   set_rgate_status "$rgate" "passed"
   echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
+  if [[ "$STAGE" == "R4" ]]; then
+    echo ""
+    echo "=== Reverse HELIX 完了 ==="
+    echo ""
+    echo "Forward HELIX への接続:"
+    echo "  1. helix size でサイジング"
+    echo "  2. helix plan draft で設計提案"
+    echo "  3. helix matrix init で成果物対照表を初期化"
+    echo ""
+    echo "Gap Register を確認し、Forward フェーズに振り分けてください。"
+    python3 "$YP" write "$PHASE_FILE" "reverse.status" "completed" 2>/dev/null || true
+    python3 "$YP" write "$PHASE_FILE" "reverse.completed_at" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+  fi
 else
   set_rgate_status "$rgate" "failed"
   echo ""

@@ -417,6 +417,12 @@ def main() -> int:
     print("artifacts:")
     for path in artifact_paths:
         print(f"  - {path}")
+    print("")
+    print("⚠ 生成された成果物は未検証です。")
+    print("  実行系に載せる前に以下を実施してください:")
+    print("  1. helix plan review で TL レビュー")
+    print("  2. helix test で回帰テスト")
+    print("")
 
     return 0
 

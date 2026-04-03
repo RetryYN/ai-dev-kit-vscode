@@ -24,7 +24,7 @@ def parse_yaml(text):
     result = {}
     stack = [(result, -1)]  # (current_dict, indent_level)
 
-    for line in text.splitlines():
+    for lineno, line in enumerate(text.splitlines(), start=1):
         stripped = line.lstrip()
         if not stripped or stripped.startswith('#'):
             continue
@@ -40,7 +40,9 @@ def parse_yaml(text):
         # key: value パターン
         m = re.match(r'^(["\']?[\w.\-]+["\']?)\s*:\s*(.*)', stripped)
         if not m:
-            continue
+            if stripped.startswith('- '):
+                continue
+            raise ValueError(f"Unsupported YAML syntax at line {lineno}: {stripped}")
 
         key = m.group(1).strip("'\"")
         raw_val = m.group(2).strip()
@@ -205,13 +207,18 @@ def main():
     filepath = sys.argv[2]
 
     text = Path(filepath).read_text()
-    data = parse_yaml(text)
 
     if cmd == 'dump':
+        data = parse_yaml(text)
         print(json.dumps(data, ensure_ascii=False, indent=2))
     elif cmd == 'read':
         if len(sys.argv) < 4:
             print("Usage: yaml_parser.py read <file> <dotpath>", file=sys.stderr)
+            sys.exit(1)
+        try:
+            data = parse_yaml(text)
+        except Exception as e:
+            print(f"エラー: YAML 解析失敗 — {e}", file=sys.stderr)
             sys.exit(1)
         dotpath = sys.argv[3]
         val = get_nested(data, dotpath)
@@ -223,6 +230,7 @@ def main():
         if len(sys.argv) < 5:
             print("Usage: yaml_parser.py write <file> <dotpath> <value>", file=sys.stderr)
             sys.exit(1)
+        data = parse_yaml(text)
         dotpath = sys.argv[3]
         value = sys.argv[4]
         set_nested(data, dotpath, value)

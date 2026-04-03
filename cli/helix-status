@@ -111,6 +111,27 @@ for rg in ['RG0', 'RG1', 'RG2', 'RG3']:
   echo ""
 fi
 
+reverse_status=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+reverse = d.get('reverse', {})
+print(reverse.get('status', '') if isinstance(reverse, dict) else '')
+" 2>/dev/null || echo "")
+
+if [[ "$reverse_status" == "completed" ]]; then
+  reverse_completed_at=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+reverse = d.get('reverse', {})
+print(reverse.get('completed_at', '') if isinstance(reverse, dict) else '')
+" 2>/dev/null || echo "")
+  echo "Reverse: Reverse 完了 → Forward 接続待ち"
+  if [[ -n "$reverse_completed_at" ]]; then
+    echo "  completed_at: $reverse_completed_at"
+  fi
+  echo ""
+fi
+
 # --- レトロ ---
 if [[ -d "$HELIX_DIR/retros" ]]; then
   retro_count=$(ls "$HELIX_DIR/retros/"*.md 2>/dev/null | wc -l)
@@ -133,4 +154,43 @@ if [[ -d "$PROJECT_ROOT/docs/design" ]]; then
     done
     echo ""
   fi
+fi
+
+# --- アクションガイド ---
+action=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+phase = (d.get('current_phase') or '').strip()
+gates = d.get('gates', {})
+
+failed = []
+for gate in ['G1', 'G1.5', 'G1R', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']:
+    value = gates.get(gate, {})
+    status = value.get('status', 'pending') if isinstance(value, dict) else str(value)
+    if status == 'failed':
+        failed.append(gate)
+
+if failed:
+    print('FAILED:' + ','.join(failed))
+else:
+    actions = {
+        'L1': 'helix plan draft で設計を開始',
+        'L2': 'helix gate G2 で設計凍結ゲートを確認',
+        'L3': 'helix gate G3 で実装着手ゲートを確認',
+        'L4': 'helix sprint status でスプリント進捗確認',
+        'L5': 'helix gate G5 でデザイン凍結ゲートを確認',
+        'L6': 'helix gate G6 で RC 判定を実施',
+        'L7': 'helix gate G7 の安定性確認後に helix pr を準備',
+        'L8': '受入条件を確認し PO 承認へ進む',
+    }
+    print(actions.get(phase, 'helix status で状態を継続確認し、未通過ゲートを解消'))
+" 2>/dev/null)
+
+echo "Action Guide:"
+if [[ "$action" == FAILED:* ]]; then
+  failed_gates="${action#FAILED:}"
+  echo "  該当ゲートの指摘事項を確認し修正"
+  echo "  失敗ゲート: ${failed_gates:-unknown}"
+else
+  echo "  $action"
 fi

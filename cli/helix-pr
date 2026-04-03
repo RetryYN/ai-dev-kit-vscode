@@ -34,6 +34,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- Gate 状態の事前確認（警告のみ） ---
+if [[ -f "$PHASE_FILE" ]]; then
+  g4_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.G4.status" 2>/dev/null || echo "pending")
+  if [[ "$g4_status" != "passed" ]]; then
+    echo "警告: G4 が passed ではありません (現在: ${g4_status:-pending})。先に 'helix gate G4' を確認してください。" >&2
+  fi
+else
+  echo "警告: phase.yaml が見つからないため G4 状態を確認できませんでした。" >&2
+fi
+
 # --- ブランチ情報 ---
 BRANCH=$(git -C "$PROJECT_ROOT" branch --show-current 2>/dev/null || echo "unknown")
 if [[ -z "$TITLE" ]]; then

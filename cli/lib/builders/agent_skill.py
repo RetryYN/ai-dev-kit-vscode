@@ -126,6 +126,7 @@ def _render_skill_markdown(params: dict) -> str:
         "---",
         f"name: {params['name']}",
         f"description: \"{_yaml_escape(params['description'])}\"",
+        "verified: false",
         "metadata:",
         f"  helix_layer: {params['helix_layer']}",
         "  triggers:",

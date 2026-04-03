@@ -46,6 +46,7 @@ yaml_read() {
 yaml_write() {
   local path="$1"
   local value="$2"
+  cp "$PHASE_FILE" "$PHASE_FILE.bak" 2>/dev/null || true
   python3 "$YP" write "$PHASE_FILE" "$path" "$value" 2>/dev/null
 }
 
@@ -364,6 +365,9 @@ command_complete() {
   fi
   mark_step_done "$current"
   echo "[helix-sprint] $current 完了"
+  echo ""
+  echo "スプリント完了。次のゲート検証を実行してください:"
+  echo "  helix gate G4"
   # 自動で次へは進まない（next で明示的に進む）
 }
 

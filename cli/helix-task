@@ -22,6 +22,29 @@ DB_PATH="$HELIX_DIR/helix.db"
 CMD="${1:-help}"
 shift 2>/dev/null || true
 
+resolve_model_for_role() {
+  local role="$1"
+  local role_conf="$SCRIPT_DIR/roles/${role}.conf"
+  local model=""
+
+  if [[ -f "$role_conf" ]]; then
+    model=$(grep '^codex_model=' "$role_conf" | head -n1 | cut -d= -f2)
+  fi
+
+  if [[ -z "$model" ]]; then
+    case "$role" in
+      fe-design|fe-component|fe-style|fe-a11y|fe-test)
+        model="claude-subagent"
+        ;;
+      *)
+        model="unknown-model"
+        ;;
+    esac
+  fi
+
+  echo "$model"
+}
+
 # ============================
 # catalog: タスクカタログ表示
 # ============================
@@ -323,6 +346,9 @@ with open('$TASK_PLAN') as f:
   echo "Task: $task_type"
   echo "Role: $role"
   echo "Skill: $skill"
+  local model
+  model="$(resolve_model_for_role "$role")"
+  echo "[helix-task] 委譲: $role ($model)"
   echo ""
 
   # ステータスを running に
@@ -518,6 +544,7 @@ conn.close()
   fi
 
   echo ""
+  echo "[helix-task] タスク完了。'helix learn' で成功パターンを記録できます。"
   echo "[helix-task] $tid 完了。ログ: $LOG_FILE"
   echo "[helix-task] 'helix task observe $tid' で品質検証"
   echo "[helix-task] 'helix task run' で次のタスクを実行"

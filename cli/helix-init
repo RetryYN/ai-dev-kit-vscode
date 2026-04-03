@@ -206,9 +206,19 @@ if [[ -n "$DETECTED_FW" && -f "$HELIX_DIR/gate-checks.yaml" ]]; then
 fi
 echo ""
 
+# matrix.yaml が存在すれば自動 compile
+if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
+  echo "matrix compile を実行中..."
+  "$SCRIPT_DIR/helix-matrix" compile 2>/dev/null && \
+    echo "  成果物対照表を生成しました" || \
+    echo "  WARN: matrix compile に失敗しました（後で helix matrix compile を実行してください）"
+  echo ""
+fi
+
 echo "=== Done ==="
 echo "Next steps:"
 echo "  1. CLAUDE.md を編集してプロジェクト情報を記入"
 echo "  2. helix matrix compile で成果物対照表を有効化"
-echo "  3. helix-size でタスクサイジング"
-echo "  4. helix-gate --dry-run G2 でゲートチェック確認"
+echo "  3. helix status でプロジェクト状態を確認"
+echo "  4. helix-size でタスクサイジング"
+echo "  5. helix-gate --dry-run G2 でゲートチェック確認"
