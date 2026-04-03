@@ -58,6 +58,19 @@ helix gate G4
 helix pr
 ```
 
+## モノレポでの使い方
+
+特定パッケージだけを HELIX 管理対象にできます。
+
+```bash
+# リポジトリルートで実行
+helix init --monorepo-package packages/api
+
+# 以降のコマンドは対象パッケージをプロジェクトルートとして扱う
+HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix size --files 5 --lines 120 --type bugfix --drive be
+HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
+```
+
 ## CLI コマンド一覧（26 本）
 
 ### 基本
