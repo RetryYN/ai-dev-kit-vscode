@@ -128,6 +128,8 @@ run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRI
 run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
 run_test_contains "gate-checks has debt register check" "grep -n '技術負債台帳の存在' $SCRIPT_DIR/templates/gate-checks.yaml" "技術負債台帳の存在"
 run_test_contains "gate-checks has coverage check" "grep -n 'テストカバレッジ（あれば）' $SCRIPT_DIR/templates/gate-checks.yaml" "テストカバレッジ（あれば）"
+run_test_contains "gate-checks has requirement map check" "grep -n '要件→実装マッピング存在（あれば）' $SCRIPT_DIR/templates/gate-checks.yaml" "要件→実装マッピング存在（あれば）"
+run_test_contains "gate-checks has FE mock check" "grep -n 'モック/ダミー残存チェック' $SCRIPT_DIR/templates/gate-checks.yaml" "モック/ダミー残存チェック"
 run_test_contains "gate-checks has D-DB static check" "grep -n 'DB スキーマ定義存在（D-DB）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB スキーマ定義存在（D-DB）"
 run_test_contains "gate-checks has D-MIG-PLAN static check" "grep -n 'DB マイグレーション計画存在（D-MIG-PLAN）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB マイグレーション計画存在（D-MIG-PLAN）"
 run_test_contains "commit-msg hook template exists" "test -f $SCRIPT_DIR/templates/commit-msg-hook && echo OK" "OK"
@@ -344,6 +346,16 @@ run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/a
 run_test "doc_map_matcher gate_ready" "python3 $SCRIPT_DIR/lib/doc_map_matcher.py .helix/doc-map.yaml docs/design/L2-architecture.md >/dev/null"
 touch "$TEST_DIR/test; echo hacked"
 run_test_not_contains "hook no injection filename" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook '$TEST_DIR/test; echo hacked' 2>&1 || true" "^hacked$"
+mkdir -p src/components
+cat > src/components/fe-advisory.tsx << 'EOF'
+export function FeAdvisory() {
+  console.log('debug')
+  fetch('/api/health')
+  return null
+}
+EOF
+run_test_contains "hook FE console advisory" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook $TEST_DIR/src/components/fe-advisory.tsx" "FE: console.log"
+run_test_contains "hook FE api layering advisory" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook $TEST_DIR/src/components/fe-advisory.tsx" "service/api 層に分離を推奨"
 mkdir -p scripts
 cat > scripts/dangerous.sh << 'EOF'
 #!/bin/bash
@@ -426,6 +438,8 @@ run_test "log init" "$SCRIPT_DIR/helix-log init"
 INJECTION_DESC="q'x');__import__('os').system('echo HELIX_PWNED');#"
 run_test "log feedback quoted input accepted" "$SCRIPT_DIR/helix-log feedback --desc \"$INJECTION_DESC\" --type correction"
 run_test_not_contains "log feedback no python injection" "$SCRIPT_DIR/helix-log feedback --desc \"$INJECTION_DESC\" --type correction 2>&1 || true" "HELIX_PWNED"
+run_test "log export json" "$SCRIPT_DIR/helix-log export --format json --output .helix/export.json"
+run_test_contains "log export file created" "test -f .helix/export.json && echo OK" "OK"
 run_test "helix_db invalid json exit" "python3 $SCRIPT_DIR/lib/helix_db.py record-feedback .helix/helix.db \"{invalid-json\"" 1
 run_test_contains "helix_db invalid json message" "python3 $SCRIPT_DIR/lib/helix_db.py record-feedback .helix/helix.db \"{invalid-json\" 2>&1 || true" "エラー: 入力形式が不正です"
 echo ""
@@ -510,6 +524,10 @@ echo ""
 echo "[sqlite]"
 run_test_contains "helix_db WAL enabled" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-wal-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); print(conn.execute('PRAGMA journal_mode').fetchone()[0].lower()); conn.close()\"" "wal"
 run_test "helix_db creates gate_runs table" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-schema-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); row=conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table' AND name='gate_runs'\\\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)\""
+run_test "helix_db creates requirements table" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-req-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); row=conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table' AND name='requirements'\\\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)\""
+run_test "helix_db creates schema_version table" "python3 -c \"import sqlite3, tempfile, subprocess; db=tempfile.mkstemp(prefix='helix-ver-', suffix='.db')[1]; subprocess.check_call(['python3', '$SCRIPT_DIR/lib/helix_db.py', 'init', db]); conn=sqlite3.connect(db); row=conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'\\\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)\""
+run_test "helix_db FK pragma enabled" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import tempfile; from helix_db import init_db, _connect; db=tempfile.mkstemp(prefix=\"helix-fk-\", suffix=\".db\")[1]; init_db(db); conn=_connect(db); fk=conn.execute(\"PRAGMA foreign_keys\").fetchone()[0]; conn.close(); raise SystemExit(0 if int(fk) == 1 else 1)'"
+run_test "helix_db migrate idempotent" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import tempfile; from helix_db import init_db, migrate, _connect; db=tempfile.mkstemp(prefix=\"helix-mig-\", suffix=\".db\")[1]; init_db(db); conn=_connect(db); migrate(conn); migrate(conn); cnt=conn.execute(\"SELECT COUNT(*) FROM schema_version WHERE version=2\").fetchone()[0]; conn.close(); raise SystemExit(0 if cnt == 1 else 1)'"
 echo ""
 
 echo "[helix-scrum]"
@@ -534,6 +552,8 @@ run_test "matrix compile" "$SCRIPT_DIR/helix-matrix compile"
 run_test_contains "doc-map generated" "test -f .helix/doc-map.yaml && echo OK" "OK"
 run_test_contains "gate-checks generated" "test -f .helix/gate-checks.yaml && echo OK" "OK"
 run_test_contains "matrix gate-checks has debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
+run_test_contains "matrix gate-checks has requirement map check" "grep -n '要件→実装マッピング存在（あれば）' .helix/gate-checks.yaml" "要件→実装マッピング存在（あれば）"
+run_test_contains "matrix gate-checks has FE mock check" "grep -n 'モック/ダミー残存チェック' .helix/gate-checks.yaml" "モック/ダミー残存チェック"
 run_test_contains "state generated" "test -f .helix/state/deliverables.json && echo OK" "OK"
 run_test_contains "runtime index generated" "test -f .helix/runtime/index.json && echo OK" "OK"
 run_test "matrix validate pass" "$SCRIPT_DIR/helix-matrix validate"

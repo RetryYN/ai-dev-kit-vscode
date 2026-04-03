@@ -392,6 +392,23 @@ check_dangerous_patterns() {
   fi
 }
 
+# --- FE Quality Advisory ---
+check_fe_quality() {
+  local file="$1"
+  [[ ! -f "$PROJECT_ROOT/$file" ]] && return 0
+  [[ ! "$file" =~ \.(ts|tsx|js|jsx|vue|svelte)$ ]] && return 0
+
+  # console.log 検知
+  if grep -qE 'console\.(log|debug)' "$PROJECT_ROOT/$file" 2>/dev/null; then
+    echo "[helix-hook] FE: console.log が含まれています: $file"
+  fi
+
+  # fetch/axios がコンポーネントに直書き
+  if [[ "$file" =~ components/ ]] && grep -qE '(fetch\(|axios\.)' "$PROJECT_ROOT/$file" 2>/dev/null; then
+    echo "[helix-hook] FE: API 呼び出しがコンポーネント内にあります。service/api 層に分離を推奨: $file"
+  fi
+}
+
 # --- 実行 ---
 check_phase_guard "$REL_PATH"
 check_matrix_advisory "$REL_PATH"
@@ -400,4 +417,5 @@ check_adr_index "$REL_PATH"
 match_trigger "$REL_PATH"
 check_textlint_advisory "$REL_PATH"
 check_a11y_advisory "$REL_PATH"
+check_fe_quality "$REL_PATH"
 check_dangerous_patterns "$REL_PATH"

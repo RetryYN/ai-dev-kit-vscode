@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # helix-log: HELIX ログ・評価システム
-# Usage: helix log <init|feedback|report> [args...]
+# Usage: helix log <init|feedback|report|export> [args...]
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
@@ -59,6 +59,33 @@ case "$CMD" in
     python3 "$DB_PY" report "$DB_PATH" "$local_report_type"
     ;;
 
+  export)
+    local_format="json"
+    local_output=""
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        --format) local_format="$2"; shift 2 ;;
+        --output) local_output="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+
+    if [[ "$local_format" != "json" ]]; then
+      echo "Error: --format は json のみ対応です" >&2
+      exit 1
+    fi
+    if [[ -z "$local_output" ]]; then
+      echo "Usage: helix log export --format json --output <path>" >&2
+      exit 1
+    fi
+    if [[ ! -f "$DB_PATH" ]]; then
+      echo "DB なし。'helix log init' で初期化してください。" >&2
+      exit 1
+    fi
+
+    python3 "$DB_PY" export-json "$DB_PATH" "$local_output"
+    ;;
+
   help|-h|--help)
     cat <<'USAGE'
 Usage: helix log <command> [args...]
@@ -79,12 +106,15 @@ Commands:
     actions               アクション型別パフォーマンス
     feedback              フィードバック分析
     quality               タスク選択品質（observation pass率 + 修正頻度）
+  export --format json --output <path>
+                         DB 全テーブルを JSON にエクスポート
 
 Data flow:
   helix task run → task_runs + action_logs に自動記録
   helix task observe → observations に自動記録
   helix log feedback → feedback に手動記録
   helix log report quality → タスク選択の改善ポイントを表示
+  helix log export --format json --output logs/helix-db.json
 USAGE
     ;;
 

@@ -10,6 +10,7 @@ Usage:
   python3 helix_db.py record-feedback-argv <db> <task_run_id_or_0> <type> <category> <desc> [impact] [resolution]
   python3 helix_db.py latest-task-run <db> <task_id>
   python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality]
+  python3 helix_db.py export-json <db> <output_path>
   python3 helix_db.py insert [<db_path>] <table> <json>
 """
 
@@ -189,6 +190,62 @@ CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
+CURRENT_SCHEMA_VERSION = 2
+
+
+SCHEMA_VERSION_SCHEMA = """
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL
+);
+"""
+
+
+REQUIREMENTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS requirements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    req_id TEXT UNIQUE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    acceptance_criteria TEXT DEFAULT '[]',
+    feature TEXT DEFAULT '',
+    status TEXT DEFAULT 'draft',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS req_impl_map (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    req_id TEXT NOT NULL,
+    impl_path TEXT NOT NULL,
+    impl_type TEXT DEFAULT 'source',
+    verified INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (req_id) REFERENCES requirements(req_id)
+);
+
+CREATE TABLE IF NOT EXISTS req_test_map (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    req_id TEXT NOT NULL,
+    acc_index INTEGER DEFAULT 0,
+    test_path TEXT NOT NULL,
+    test_result TEXT DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (req_id) REFERENCES requirements(req_id)
+);
+
+CREATE TABLE IF NOT EXISTS req_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    req_id TEXT NOT NULL,
+    change_type TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    old_value TEXT DEFAULT '',
+    new_value TEXT DEFAULT '',
+    source TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (req_id) REFERENCES requirements(req_id)
+);
+"""
 
 
 def _prepare_db_path(db_path):
@@ -201,15 +258,38 @@ def _connect(db_path):
     conn = sqlite3.connect(db_path)
     conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
     conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def _create_requirements_tables(conn):
+    conn.executescript(REQUIREMENTS_SCHEMA)
+
+
+def migrate(conn):
+    """スキーマをマイグレーション"""
+    current = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] or 0
+    if current < CURRENT_SCHEMA_VERSION:
+        # v1→v2: requirements 系テーブル追加
+        if current < 2:
+            _create_requirements_tables(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (2, datetime('now'))"
+            )
+        conn.commit()
+
+
+def _ensure_schema(conn):
+    conn.executescript(SCHEMA)
+    conn.executescript(SCHEMA_VERSION_SCHEMA)
+    migrate(conn)
 
 
 def init_db(db_path):
     _prepare_db_path(db_path)
     conn = _connect(db_path)
-    conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
-    conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
-    conn.executescript(SCHEMA)
+    conn.execute("PRAGMA foreign_keys = ON")
+    _ensure_schema(conn)
     conn.commit()
     conn.close()
     print(f"DB initialized: {db_path}")
@@ -233,7 +313,7 @@ def insert_row(db_path, table, data):
 
     _prepare_db_path(db_path)
     conn = _connect(db_path)
-    conn.executescript(SCHEMA)
+    _ensure_schema(conn)
 
     rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
     if not rows:
@@ -526,6 +606,39 @@ def report(db_path, report_type='summary'):
     conn.close()
 
 
+def _quote_identifier(name):
+    return '"' + str(name).replace('"', '""') + '"'
+
+
+def export_json(db_path, output_path):
+    """DB 全テーブルを JSON にエクスポート"""
+    conn = sqlite3.connect(db_path)
+    tables = [
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+    ]
+    data = {}
+    for table in tables:
+        table_ident = _quote_identifier(table)
+        rows = conn.execute(f"SELECT * FROM {table_ident}").fetchall()
+        columns = [
+            col[1]
+            for col in conn.execute(f"PRAGMA table_info({table_ident})").fetchall()
+        ]
+        data[table] = [dict(zip(columns, row)) for row in rows]
+    conn.close()
+
+    out_dir = os.path.dirname(os.path.abspath(output_path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    print(f"Exported: {output_path}")
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: helix_db.py <command> <db_path> [args]", file=sys.stderr)
@@ -582,6 +695,8 @@ def main():
             elif cmd == 'report':
                 report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
                 report(db_path, report_type)
+            elif cmd == 'export-json':
+                export_json(db_path, sys.argv[3])
             else:
                 print(f"Unknown command: {cmd}", file=sys.stderr)
                 sys.exit(1)
