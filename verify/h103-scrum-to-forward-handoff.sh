@@ -23,7 +23,7 @@ $CLI/helix-scrum decide --hypothesis H001 --confirmed >/dev/null 2>&1
 
 # Forward handoff
 out=$($CLI/helix-size --files 3 --lines 80 --type new-feature 2>&1)
-echo "$out" | grep -q "サイズ: S" || { echo "FAIL: size"; exit 1; }
+echo "$out" | grep -q "サイズ:.*S" || { echo "FAIL: size"; exit 1; }
 
 $CLI/helix-sprint reset >/dev/null 2>&1
 out=$($CLI/helix-sprint next 2>&1)

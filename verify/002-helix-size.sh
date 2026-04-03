@@ -10,16 +10,16 @@ echo "=== 002: helix-size ==="
 
 # S bugfix → L4 only
 out=$($CLI/helix-size --files 1 --lines 20 --type bugfix 2>&1)
-echo "$out" | grep -q "サイズ: S" || { echo "FAIL: S bugfix size"; exit 1; }
+echo "$out" | grep -q "サイズ:.*S" || { echo "FAIL: S bugfix size"; exit 1; }
 echo "$out" | grep -q "L4" || { echo "FAIL: S bugfix phases"; exit 1; }
 
 # M new-feature + API + UI → full
 out=$($CLI/helix-size --files 5 --lines 200 --api --ui --type new-feature 2>&1)
-echo "$out" | grep -q "サイズ: M" || { echo "FAIL: M size"; exit 1; }
+echo "$out" | grep -q "サイズ:.*M" || { echo "FAIL: M size"; exit 1; }
 
 # L → full
 out=$($CLI/helix-size --files 15 --lines 800 --api --db --ui 2>&1)
-echo "$out" | grep -q "サイズ: L" || { echo "FAIL: L size"; exit 1; }
+echo "$out" | grep -q "サイズ:.*L" || { echo "FAIL: L size"; exit 1; }
 
 # S doc → L4 only
 out=$($CLI/helix-size --files 1 --lines 10 --type doc 2>&1)

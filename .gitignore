@@ -1,4 +1,4 @@
 .claude/settings.local.json
 CLAUDE.local.md
-cli/lib/__pycache__/
+__pycache__/
 *.pyc

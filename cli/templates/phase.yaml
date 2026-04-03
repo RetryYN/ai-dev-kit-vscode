@@ -1,6 +1,6 @@
 # phase.yaml — プロジェクトのフェーズ状態追跡
 # プロジェクトルートの .helix/phase.yaml にコピーして使う
-# helix-gate が自動更新する
+# helix-size / helix-gate / helix-sprint が自動更新する
 
 project: ""
 current_phase: L1

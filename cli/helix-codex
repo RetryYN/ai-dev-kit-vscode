@@ -27,7 +27,7 @@ ensure_within_dir() {
   local base="$2"
   local label="$3"
   if [[ "$target" != "$base" && "$target" != "$base/"* ]]; then
-    echo "Error: Invalid ${label} path (outside allowed directory): $target" >&2
+    echo "エラー: 無効な ${label} パスです（許可ディレクトリ外）: $target" >&2
     exit 1
   fi
 }
@@ -62,19 +62,19 @@ while [[ $# -gt 0 ]]; do
       done
       exit 0
       ;;
-    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+    *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$ROLE" || -z "$TASK" ]]; then
-  echo "Error: --role and --task are required" >&2
-  echo "Run with --help for usage" >&2
+  echo "エラー: --role と --task は必須です" >&2
+  echo "--help で使い方を確認してください" >&2
   exit 1
 fi
 
 # --- ロール名バリデーション ---
 if [[ ! "$ROLE" =~ ^[a-z0-9_-]+$ ]]; then
-  echo "Error: Invalid --role value '$ROLE'. Allowed pattern: ^[a-z0-9_-]+$" >&2
+  echo "エラー: 無効な --role 値です: '$ROLE'（許可パターン: ^[a-z0-9_-]+$）" >&2
   exit 1
 fi
 
@@ -84,8 +84,8 @@ ROLE_FILE_REAL="$(realpath -m "$ROLE_FILE")"
 ensure_within_dir "$ROLE_FILE_REAL" "$ROLES_DIR_REAL" "role file"
 
 if [[ ! -f "$ROLE_FILE_REAL" ]]; then
-  echo "Error: Role not found: $ROLE" >&2
-  echo "Available roles:" >&2
+  echo "エラー: ロールが見つかりません: $ROLE" >&2
+  echo "利用可能なロール:" >&2
   for f in "$ROLES_DIR"/*.conf; do
     basename "$f" .conf >&2
   done
@@ -97,7 +97,7 @@ codex_model=$(grep '^codex_model=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
 system_prompt=$(grep '^system_prompt=' "$ROLE_FILE_REAL" | sed 's/^system_prompt="//' | sed 's/"$//' || true)
 
 if [[ -z "$codex_model" ]]; then
-  echo "Error: codex_model not found in $ROLE_FILE_REAL" >&2
+  echo "エラー: $ROLE_FILE_REAL に codex_model が定義されていません" >&2
   exit 1
 fi
 
@@ -165,7 +165,7 @@ while IFS= read -r skill; do
 "
     LOADED_SKILLS+=("$skill")
   else
-    echo "Warning: Skill not found in overlay/global search order: $skill" >&2
+    echo "警告: スキルが見つかりません（overlay/global 検索順）: $skill" >&2
   fi
 done < <(parse_array "skills" "$ROLE_FILE_REAL")
 
@@ -182,7 +182,7 @@ while IFS= read -r doc; do
 "
     LOADED_DOCS+=("$doc")
   else
-    echo "Warning: Common doc not found: $doc_file" >&2
+    echo "警告: 共通ドキュメントが見つかりません: $doc_file" >&2
   fi
 done < <(parse_array "common_docs" "$ROLE_FILE_REAL")
 
@@ -211,8 +211,8 @@ if [[ "$DRY_RUN" == true ]]; then
 fi
 
 if [[ ! -x "$CODEX_BIN" ]]; then
-  echo "Error: codex not found at $CODEX_BIN" >&2
-  echo "Set CODEX_BIN env var or install codex" >&2
+  echo "エラー: codex が見つかりません: $CODEX_BIN" >&2
+  echo "CODEX_BIN 環境変数を設定するか、codex をインストールしてください" >&2
   exit 1
 fi
 

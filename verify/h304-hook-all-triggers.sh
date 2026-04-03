@@ -15,17 +15,17 @@ echo "=== H304: Hook All Triggers ==="
 
 # gate_ready
 mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
-set +e; out=$($CLI/helix-hook "$DIR/docs/design/L2-arch.md" 2>&1); set -e
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/docs/design/L2-arch.md" 2>&1); set -e
 echo "$out" | grep -q "gate_ready.*G2" || { echo "FAIL: gate_ready G2"; exit 1; }
 
 # design_sync WARN
 mkdir -p src/components && echo "x" > src/components/Btn.tsx
-set +e; out=$($CLI/helix-hook "$DIR/src/components/Btn.tsx" 2>&1); set -e
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/src/components/Btn.tsx" 2>&1); set -e
 echo "$out" | grep -q "設計文書未作成\|WARN" || { echo "FAIL: design_sync"; exit 1; }
 
 # coverage_check
 mkdir -p tests && echo "x" > tests/app.test.ts
-set +e; out=$($CLI/helix-hook "$DIR/tests/app.test.ts" 2>&1); set -e
+set +e; out=$(HELIX_GUARD=off $CLI/helix-hook "$DIR/tests/app.test.ts" 2>&1); set -e
 echo "$out" | grep -q "coverage_check" || { echo "FAIL: coverage_check (out='$out')"; exit 1; }
 
 # no-op

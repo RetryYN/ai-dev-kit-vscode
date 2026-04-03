@@ -23,7 +23,7 @@ echo ""
 echo "--- 1. Skill Count ---"
 ACTUAL_COUNT=$(find "$SKILLS_DIR" -name "SKILL.md" -not -path "*/archive/*" | wc -l | tr -d ' ')
 README_COUNT=$(grep -oP '\d+ スキル' "$ROOT/README.md" | head -1 | grep -oP '\d+')
-SKILLMAP_COUNT=$(grep -oP '（\K\d+(?=スキル）)' "$SKILLS_DIR/SKILL_MAP.md" | head -1)
+SKILLMAP_COUNT=$(grep -oP '（\K\d+(?=\s*スキル(?:\s*\+\s*Wave[^）]*)?）)' "$SKILLS_DIR/SKILL_MAP.md" | head -1)
 
 if [ "$ACTUAL_COUNT" = "$README_COUNT" ]; then
   pass "README skill count matches ($ACTUAL_COUNT)"
@@ -59,10 +59,7 @@ echo ""
 echo "--- 3. Deprecated Term Detection ---"
 DEPRECATED_TERMS=("orchestrator" "architecture" "vscode-plugins")
 for term in "${DEPRECATED_TERMS[@]}"; do
-  HITS=$(grep -rwn "$term" "$SKILLS_DIR" \
-    --include="*.md" \
-    --glob='!SKILL_MAP.md' \
-    --glob='!*/archive/*' \
+  HITS=$(rg -n --glob '*.md' --glob '!SKILL_MAP.md' --glob '!**/archive/**' "$term" "$SKILLS_DIR" \
     2>/dev/null \
     | grep -v "architecture_decisions\|architecture:\|architectural\|architecture_identified\|architecture_style\|Architecture Decision\|style:" \
     || true)
@@ -75,10 +72,7 @@ for term in "${DEPRECATED_TERMS[@]}"; do
 done
 
 # codex as skill name (not as tool name)
-CODEX_HITS=$(grep -rwn "\bcodex\b" "$SKILLS_DIR" \
-  --include="*.md" \
-  --glob='!SKILL_MAP.md' \
-  --glob='!*/archive/*' \
+CODEX_HITS=$(rg -n --glob '*.md' --glob '!SKILL_MAP.md' --glob '!**/archive/**' "\bcodex\b" "$SKILLS_DIR" \
   2>/dev/null \
   | grep -iv "codex exec\|codex review\|codex 5\.\|codex cli\|codex_\|codex系\|Codex（\|gpt-5\.\|codex: true\|codex-skills\|sync-codex\|\.codex/" \
   || true)

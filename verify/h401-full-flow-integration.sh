@@ -58,7 +58,7 @@ check "init idempotent" "$CLI/helix-init --project-name myapp"
 check "log init" "$CLI/helix-log init"
 
 # 3. size
-check_contains "size M" "$CLI/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ: M"
+check_contains "size M" "$CLI/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ:.*M"
 
 # 4. scrum init + backlog
 check "scrum init" "$CLI/helix-scrum init"

@@ -320,9 +320,19 @@ run_test_contains "status --help usage" "$SCRIPT_DIR/helix-status --help" "Usage
 run_test_not_contains "status --help no runtime" "$SCRIPT_DIR/helix-status --help" "HELIX Project Status"
 run_test_contains "status shows project" "$SCRIPT_DIR/helix-status" "Project:"
 run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
+run_test "status error writes stderr" "mv .helix .helix.bak; out=\$(mktemp); err=\$(mktemp); set +e; $SCRIPT_DIR/helix-status >\"\$out\" 2>\"\$err\"; code=\$?; set -e; mv .helix.bak .helix; grep -q 'HELIX 未初期化' \"\$err\" && ! grep -q 'HELIX 未初期化' \"\$out\" && [[ \$code -eq 1 ]]"
 run_test_contains "test --help usage" "$SCRIPT_DIR/helix-test --help" "Usage: helix test"
 run_test_not_contains "test --help no self-test run" "$SCRIPT_DIR/helix-test --help" "HELIX CLI Self-Test"
 run_test_contains "verify-all --help usage" "$SCRIPT_DIR/helix-verify-all --help" "Usage: helix verify-all"
+echo ""
+
+echo "[helix-log / helix_db]"
+run_test "log init" "$SCRIPT_DIR/helix-log init"
+INJECTION_DESC="q'x');__import__('os').system('echo HELIX_PWNED');#"
+run_test "log feedback quoted input accepted" "$SCRIPT_DIR/helix-log feedback --desc \"$INJECTION_DESC\" --type correction"
+run_test_not_contains "log feedback no python injection" "$SCRIPT_DIR/helix-log feedback --desc \"$INJECTION_DESC\" --type correction 2>&1 || true" "HELIX_PWNED"
+run_test "helix_db invalid json exit" "python3 $SCRIPT_DIR/lib/helix_db.py record-feedback .helix/helix.db \"{invalid-json\"" 1
+run_test_contains "helix_db invalid json message" "python3 $SCRIPT_DIR/lib/helix_db.py record-feedback .helix/helix.db \"{invalid-json\" 2>&1 || true" "エラー: 入力形式が不正です"
 echo ""
 
 echo "[helix-pr]"

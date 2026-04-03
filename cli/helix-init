@@ -120,6 +120,11 @@ add_gitignore() {
 
 add_gitignore "CLAUDE.local.md"
 add_gitignore ".claude/settings.local.json"
+add_gitignore ".env"
+add_gitignore ".env.*"
+add_gitignore "*.pem"
+add_gitignore "*.key"
+add_gitignore "credentials.json"
 echo ""
 
 # --- ディレクトリ構造 ---

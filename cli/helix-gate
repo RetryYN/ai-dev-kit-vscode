@@ -32,24 +32,24 @@ while [[ $# -gt 0 ]]; do
       if [[ -z "$GATE" ]]; then
         GATE="$1"; shift
       else
-        echo "Error: Unknown option: $1" >&2; exit 1
+        echo "エラー: 不明なオプションです: $1" >&2; exit 1
       fi
       ;;
   esac
 done
 
 if [[ -z "$GATE" ]]; then
-  echo "Error: Gate name required (G2, G3, G4, G5, G6, G7)" >&2
+  echo "エラー: ゲート名が必要です（G2, G3, G4, G5, G6, G7）" >&2
   exit 1
 fi
 
 if [[ ! "$GATE" =~ ^G[2-7]$ ]]; then
-  echo "Error: Invalid gate: $GATE (must be G2-G7)" >&2
+  echo "エラー: 無効なゲートです: $GATE（G2-G7 を指定してください）" >&2
   exit 1
 fi
 
 if [[ ! -f "$GATE_CHECKS" ]]; then
-  echo "Error: $GATE_CHECKS not found. Run 'helix-init' to set up." >&2
+  echo "エラー: $GATE_CHECKS が見つかりません。'helix-init' を実行してください。" >&2
   exit 1
 fi
 
@@ -70,7 +70,7 @@ prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
   if [[ "$prereq_status" != "passed" && "$prereq_status" != "skipped" ]]; then
-    echo "Error: 前提ゲート $prereq が未通過 (status: $prereq_status)" >&2
+    echo "エラー: 前提ゲート $prereq が未通過です (status: $prereq_status)" >&2
     echo "$prereq を先に通過させてください" >&2
     exit 1
   fi

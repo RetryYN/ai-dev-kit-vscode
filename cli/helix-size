@@ -52,14 +52,14 @@ while [[ $# -gt 0 ]]; do
       echo "  helix-size --files 3 --lines 150 --api --type new-feature --drive agent"
       exit 0
       ;;
-    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+    *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
   esac
 done
 
 # --- 駆動タイプバリデーション ---
 case "$DRIVE" in
   be|fe|db|fullstack|agent) ;;
-  *) echo "Error: Invalid --drive value '$DRIVE'. Use: be, fe, db, fullstack, agent" >&2; exit 1 ;;
+  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent を指定してください）" >&2; exit 1 ;;
 esac
 
 # --- サイジング ---

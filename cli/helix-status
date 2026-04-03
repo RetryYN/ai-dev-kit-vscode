@@ -21,12 +21,12 @@ HELIX_DIR="$PROJECT_ROOT/.helix"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 
 if [[ ! -d "$HELIX_DIR" ]]; then
-  echo "HELIX 未初期化。'helix init' で初期化してください。"
+  echo "HELIX 未初期化。'helix init' で初期化してください。" >&2
   exit 1
 fi
 
 if [[ ! -f "$PHASE_FILE" ]]; then
-  echo "phase.yaml が見つかりません。"
+  echo "phase.yaml が見つかりません。" >&2
   exit 1
 fi
 

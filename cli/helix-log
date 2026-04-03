@@ -41,28 +41,13 @@ case "$CMD" in
     fi
 
     # task_run_id を取得（task_id からDB検索）
-    local_run_id=""
+    local_run_id="0"
     if [[ -n "$local_task" ]]; then
-      local_run_id=$(python3 -c "
-import sqlite3
-conn = sqlite3.connect('$DB_PATH')
-row = conn.execute('SELECT id FROM task_runs WHERE task_id = ? ORDER BY id DESC LIMIT 1', ('$local_task',)).fetchone()
-print(row[0] if row else '')
-conn.close()
-" 2>/dev/null)
+      local_run_id="$(python3 "$DB_PY" latest-task-run "$DB_PATH" "$local_task" 2>/dev/null || true)"
     fi
 
-    python3 "$DB_PY" record-feedback "$DB_PATH" "$(python3 -c "
-import json
-print(json.dumps({
-    'task_run_id': ${local_run_id:-0} or None,
-    'feedback_type': '$local_type',
-    'category': '$local_cat',
-    'description': '$local_desc',
-    'impact': '$local_impact',
-    'resolution': '$local_resolution'
-}))
-")"
+    python3 "$DB_PY" record-feedback-argv "$DB_PATH" "${local_run_id:-0}" \
+      "$local_type" "$local_cat" "$local_desc" "$local_impact" "$local_resolution"
     ;;
 
   report)

@@ -7,6 +7,8 @@ Usage:
   python3 helix_db.py record-action <db> <json>
   python3 helix_db.py record-observation <db> <json>
   python3 helix_db.py record-feedback <db> <json>
+  python3 helix_db.py record-feedback-argv <db> <task_run_id_or_0> <type> <category> <desc> [impact] [resolution]
+  python3 helix_db.py latest-task-run <db> <task_id>
   python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality]
 """
 
@@ -14,7 +16,6 @@ import sqlite3
 import json
 import sys
 from datetime import datetime
-from pathlib import Path
 
 
 SCHEMA = """
@@ -187,6 +188,46 @@ def record_feedback(db_path, data):
     print("Feedback recorded")
 
 
+def record_feedback_argv(
+    db_path,
+    task_run_id,
+    feedback_type,
+    category,
+    description,
+    impact='medium',
+    resolution='',
+):
+    run_id = None
+    if isinstance(task_run_id, str):
+        value = task_run_id.strip()
+        if value.isdigit() and int(value) > 0:
+            run_id = int(value)
+    elif isinstance(task_run_id, int) and task_run_id > 0:
+        run_id = task_run_id
+
+    record_feedback(
+        db_path,
+        {
+            'task_run_id': run_id,
+            'feedback_type': feedback_type,
+            'category': category,
+            'description': description,
+            'impact': impact,
+            'resolution': resolution,
+        },
+    )
+
+
+def latest_task_run_id(db_path, task_id):
+    conn = _connect(db_path)
+    row = conn.execute(
+        "SELECT id FROM task_runs WHERE task_id = ? ORDER BY id DESC LIMIT 1",
+        (task_id,),
+    ).fetchone()
+    conn.close()
+    print(row[0] if row else "")
+
+
 def record_selection(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -356,25 +397,41 @@ def main():
     cmd = sys.argv[1]
     db_path = sys.argv[2]
 
-    if cmd == 'init':
-        init_db(db_path)
-    elif cmd == 'record-task':
-        record_task(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'record-action':
-        record_action(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'record-observation':
-        record_observation(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'record-feedback':
-        record_feedback(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'record-selection':
-        record_selection(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'update-review':
-        update_review(db_path, json.loads(sys.argv[3]))
-    elif cmd == 'report':
-        report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
-        report(db_path, report_type)
-    else:
-        print(f"Unknown command: {cmd}", file=sys.stderr)
+    try:
+        if cmd == 'init':
+            init_db(db_path)
+        elif cmd == 'record-task':
+            record_task(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'record-action':
+            record_action(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'record-observation':
+            record_observation(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'record-feedback':
+            record_feedback(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'record-feedback-argv':
+            record_feedback_argv(
+                db_path,
+                sys.argv[3],
+                sys.argv[4],
+                sys.argv[5],
+                sys.argv[6],
+                sys.argv[7] if len(sys.argv) > 7 else 'medium',
+                sys.argv[8] if len(sys.argv) > 8 else '',
+            )
+        elif cmd == 'latest-task-run':
+            latest_task_run_id(db_path, sys.argv[3])
+        elif cmd == 'record-selection':
+            record_selection(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'update-review':
+            update_review(db_path, json.loads(sys.argv[3]))
+        elif cmd == 'report':
+            report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
+            report(db_path, report_type)
+        else:
+            print(f"Unknown command: {cmd}", file=sys.stderr)
+            sys.exit(1)
+    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        print(f"エラー: 入力形式が不正です — {e}", file=sys.stderr)
         sys.exit(1)
 
 

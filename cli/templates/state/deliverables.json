@@ -5,6 +5,7 @@
       "cli/templates/matrix.yaml",
       "cli/templates/rules/deliverables.yaml"
     ],
+    "auto_generated_notice": "このファイルは helix matrix compile で自動生成されます。直接編集しないでください。",
     "note": "JSON does not support comments, so purpose and origin are stored in _meta. Consumers must read only features and ignore top-level keys that start with underscore."
   },
   "features": {
