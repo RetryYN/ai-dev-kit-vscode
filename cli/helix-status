@@ -64,6 +64,11 @@ for g in ['G1', 'G1.5', 'G1R', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']:
 echo ""
 
 # --- スプリント状態 ---
+sprint_drive=$(echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print((d.get('sprint', {}) or {}).get('drive', '') or '')
+" 2>/dev/null || echo "")
 sprint_step=$(echo "$PHASE_JSON" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -71,7 +76,41 @@ s = d.get('sprint', {})
 print(s.get('current_step', '') or 'N/A')
 " 2>/dev/null || echo "N/A")
 
-if [[ "$sprint_step" != "N/A" ]]; then
+if [[ "$sprint_drive" == "fullstack" ]]; then
+  echo "Sprint:"
+  echo "$PHASE_JSON" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+sprint = d.get('sprint', {}) if isinstance(d.get('sprint', {}), dict) else {}
+tracks = sprint.get('tracks', {}) if isinstance(sprint.get('tracks', {}), dict) else {}
+
+phase_raw = str(sprint.get('phase') or 'A')
+phase_label = {'A': 'A (並行実装)', 'B': 'B (結合)'}.get(phase_raw, phase_raw)
+
+def track_value(name: str):
+    raw = tracks.get(name, {})
+    if not isinstance(raw, dict):
+        return '.1a', 'active'
+    stage_raw = str(raw.get('stage') or '.1a')
+    stage = {'0.2': '.2', '0.3': '.3', '0.4': '.4', '0.5': '.5'}.get(stage_raw, stage_raw)
+    status = str(raw.get('status') or 'active')
+    return stage, status
+
+be_stage, be_status = track_value('be')
+fe_stage, fe_status = track_value('fe')
+contract_raw = tracks.get('contract', {})
+if isinstance(contract_raw, dict):
+    contract_ci = str(contract_raw.get('ci') or 'pending')
+else:
+    contract_ci = 'pending'
+
+print(f'  Phase:   {phase_label}')
+print(f'  BE Track: {be_stage} ({be_status})')
+print(f'  FE Track: {fe_stage} ({fe_status})')
+print(f'  Contract CI: {contract_ci}')
+" 2>/dev/null
+  echo ""
+elif [[ "$sprint_step" != "N/A" ]]; then
   echo "Sprint: $sprint_step"
   echo "$PHASE_JSON" | python3 -c "
 import sys, json

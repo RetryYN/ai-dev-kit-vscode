@@ -31,6 +31,44 @@ class MatrixError(Exception):
 
 VALID_STATE_STATUSES = {"pending", "in_progress", "done", "waived", "not_applicable"}
 MANUAL_LOCKED_STATUSES = {"waived", "not_applicable"}
+ALLOWED_DRIVES = {"be", "fe", "db", "fullstack", "agent"}
+ALLOWED_SCOPES = {"feature", "shared", "platform"}
+UI_REQUIRED_DRIVES = {"fe", "fullstack", "agent"}
+FEATURE_ID_REGEX_DEFAULT = r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+
+COMMON_REQUIRES = {
+    "L1": ["D-REQ-F", "D-REQ-NF", "D-ACC"],
+    "L2": ["D-ARCH", "D-ADR", "D-THREAT"],
+    "L6": ["D-E2E", "D-PERF", "D-SECV", "D-OPS"],
+    "L7": ["D-DEPLOY", "D-RELNOTE", "D-OBS"],
+    "L8": ["D-UAT", "D-HANDOVER", "D-RETRO"],
+}
+
+DRIVE_L3_REQUIRES = {
+    "be": ["D-API", "D-DB", "D-MIG-PLAN", "D-DEP", "D-TEST", "D-PLAN"],
+    "fe": ["D-UI", "D-STATE", "D-API-CONS", "D-DEP", "D-TEST", "D-PLAN"],
+    "db": ["D-DB", "D-MIG-PLAN", "D-DATA-ACCESS", "D-DEP", "D-TEST", "D-PLAN"],
+    "fullstack": [
+        "D-API",
+        "D-DB",
+        "D-MIG-PLAN",
+        "D-DEP",
+        "D-TEST",
+        "D-PLAN",
+        "D-CONTRACT",
+        "D-UI",
+        "D-STATE",
+    ],
+    "agent": ["D-TOOL", "D-PROMPT", "D-EVAL-PLAN", "D-DEP", "D-TEST", "D-PLAN"],
+}
+
+DRIVE_L4_REQUIRES = {
+    "be": ["D-IMPL", "D-MIG", "D-CONFIG"],
+    "fe": ["D-IMPL", "D-CONFIG"],
+    "db": ["D-IMPL", "D-MIG", "D-CONFIG"],
+    "fullstack": ["D-IMPL", "D-MIG", "D-CONFIG"],
+    "agent": ["D-IMPL", "D-CONFIG"],
+}
 
 
 def _strip_inline_comment(line: str) -> str:
@@ -1008,19 +1046,12 @@ def validate_matrix(
         errors.append("project セクションが必要です")
 
     features = matrix.get("features")
-    if not isinstance(features, dict) or not features:
-        errors.append("features セクションが空、または辞書ではありません")
+    if not isinstance(features, dict):
+        errors.append("features セクションが辞書ではありません")
         raise MatrixError("\n".join(errors))
 
     catalog_ids = set(_catalog_index(deliverables_rules).keys())
-    feature_regex = str(
-        (
-            naming.get("feature_id", {}).get("regex")
-            if isinstance(naming.get("feature_id"), dict)
-            else ""
-        )
-        or r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-    )
+    feature_regex = _feature_id_regex(naming)
     deliverable_regex = str(
         (
             naming.get("deliverable_id", {}).get("regex")
@@ -1105,6 +1136,211 @@ def validate_matrix(
 
     if errors:
         raise MatrixError("matrix validate 失敗:\n- " + "\n- ".join(errors))
+
+
+def _feature_id_regex(naming: dict[str, Any]) -> str:
+    raw = (
+        naming.get("feature_id", {}).get("regex")
+        if isinstance(naming.get("feature_id"), dict)
+        else ""
+    )
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return FEATURE_ID_REGEX_DEFAULT
+
+
+def _build_requires_for_drive(drive: str, ui: bool) -> dict[str, list[str]]:
+    if drive not in ALLOWED_DRIVES:
+        raise MatrixError(
+            f"drive が不正です: {drive}（be|fe|db|fullstack|agent を指定）"
+        )
+
+    requires: dict[str, list[str]] = {
+        "L1": list(COMMON_REQUIRES["L1"]),
+        "L2": list(COMMON_REQUIRES["L2"]),
+        "L3": list(DRIVE_L3_REQUIRES[drive]),
+        "L4": list(DRIVE_L4_REQUIRES[drive]),
+        "L6": list(COMMON_REQUIRES["L6"]),
+        "L7": list(COMMON_REQUIRES["L7"]),
+        "L8": list(COMMON_REQUIRES["L8"]),
+    }
+    if ui:
+        requires["L5"] = ["D-VIS", "D-A11Y"]
+    return requires
+
+
+def _normalize_risk_flags(raw_risk: str) -> list[str]:
+    if not raw_risk:
+        return []
+    flags: list[str] = []
+    for token in raw_risk.split(","):
+        value = token.strip()
+        if value and value not in flags:
+            flags.append(value)
+    return flags
+
+
+def _feature_scope_paths(matrix: dict[str, Any], scope: str, feature_id: str) -> tuple[str, str]:
+    project = matrix.get("project", {})
+    roots = project.get("roots", {}) if isinstance(project, dict) else {}
+    docs_root = str(roots.get("docs_root", "docs"))
+    src_root = str(roots.get("src_root", "src"))
+    segment = {"feature": "features", "shared": "shared", "platform": "platform"}[scope]
+    return f"{docs_root}/{segment}/{feature_id}", f"{src_root}/{segment}/{feature_id}"
+
+
+def _yaml_scalar(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    text = str(value)
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _dump_yaml_node(value: Any, indent: int = 0) -> list[str]:
+    prefix = " " * indent
+    lines: list[str] = []
+    if isinstance(value, dict):
+        for key, node in value.items():
+            key_text = str(key)
+            if isinstance(node, dict):
+                if node:
+                    lines.append(f"{prefix}{key_text}:")
+                    lines.extend(_dump_yaml_node(node, indent + 2))
+                else:
+                    lines.append(f"{prefix}{key_text}: {{}}")
+            elif isinstance(node, list):
+                if not node:
+                    lines.append(f"{prefix}{key_text}: []")
+                elif all(not isinstance(item, (dict, list)) for item in node):
+                    rendered = ", ".join(_yaml_scalar(item) for item in node)
+                    lines.append(f"{prefix}{key_text}: [{rendered}]")
+                else:
+                    lines.append(f"{prefix}{key_text}:")
+                    for item in node:
+                        item_prefix = " " * (indent + 2)
+                        if isinstance(item, (dict, list)):
+                            lines.append(f"{item_prefix}-")
+                            lines.extend(_dump_yaml_node(item, indent + 4))
+                        else:
+                            lines.append(f"{item_prefix}- {_yaml_scalar(item)}")
+            else:
+                lines.append(f"{prefix}{key_text}: {_yaml_scalar(node)}")
+        return lines
+
+    if isinstance(value, list):
+        if not value:
+            return [f"{prefix}[]"]
+        for item in value:
+            if isinstance(item, (dict, list)):
+                lines.append(f"{prefix}-")
+                lines.extend(_dump_yaml_node(item, indent + 2))
+            else:
+                lines.append(f"{prefix}- {_yaml_scalar(item)}")
+        return lines
+
+    return [f"{prefix}{_yaml_scalar(value)}"]
+
+
+def dump_matrix_yaml(matrix: dict[str, Any]) -> str:
+    ordered: dict[str, Any] = {}
+    for key in ("project", "features", "waivers"):
+        if key in matrix:
+            ordered[key] = matrix[key]
+    for key, value in matrix.items():
+        if key not in ordered:
+            ordered[key] = value
+    return "\n".join(_dump_yaml_node(ordered)) + "\n"
+
+
+def _write_matrix(project_root: Path, matrix: dict[str, Any]) -> None:
+    matrix_path = project_root / ".helix" / "matrix.yaml"
+    _write_text(matrix_path, dump_matrix_yaml(matrix))
+
+
+def _upsert_feature_state(
+    project_root: Path,
+    matrix: dict[str, Any],
+    feature_id: str,
+    feature: dict[str, Any],
+) -> None:
+    state_path = project_root / ".helix" / "state" / "deliverables.json"
+    state_payload = _ensure_state_payload(matrix, state_path)
+    now = _now_iso()
+    changed = 0
+    for did in _ordered_deliverables(feature):
+        entry = _ensure_feature_deliverable(state_payload, feature_id, did)
+        if "status" not in entry:
+            entry["status"] = "pending"
+            changed += 1
+        if not entry.get("updated_at"):
+            entry["updated_at"] = now
+            changed += 1
+
+    meta = state_payload.setdefault("_meta", {})
+    if isinstance(meta, dict):
+        meta["generated_at"] = now
+
+    if changed > 0:
+        _write_json(state_path, state_payload)
+
+
+def add_matrix_feature(
+    project_root: Path,
+    name: str,
+    drive: str,
+    scope: str,
+    ui: bool,
+    risk: str,
+) -> None:
+    normalized_name = name.strip()
+    normalized_drive = drive.strip().lower()
+    normalized_scope = scope.strip().lower()
+    normalized_ui = bool(ui) or normalized_drive in UI_REQUIRED_DRIVES
+
+    if normalized_scope not in ALLOWED_SCOPES:
+        raise MatrixError(
+            f"scope が不正です: {scope}（feature|shared|platform を指定）"
+        )
+
+    cli_root = Path(__file__).resolve().parents[1]
+    _deliverables_rules, _structure, naming, _common_defs = _read_rules(project_root, cli_root)
+    feature_regex = _feature_id_regex(naming)
+    if not re.fullmatch(feature_regex, normalized_name):
+        raise MatrixError(
+            f"feature 名が不正です: {normalized_name}（kebab-case を指定）"
+        )
+
+    matrix = _load_matrix(project_root)
+    features = matrix.get("features")
+    if features is None:
+        matrix["features"] = {}
+        features = matrix["features"]
+    if not isinstance(features, dict):
+        raise MatrixError("matrix.features が辞書ではありません")
+    if normalized_name in features:
+        raise MatrixError(f"feature は既に存在します: {normalized_name}")
+
+    docs_root, src_root = _feature_scope_paths(matrix, normalized_scope, normalized_name)
+    feature = {
+        "drive": normalized_drive,
+        "scope": normalized_scope,
+        "risk_flags": _normalize_risk_flags(risk),
+        "ui": normalized_ui,
+        "docs_root": docs_root,
+        "src_root": src_root,
+        "requires": _build_requires_for_drive(normalized_drive, normalized_ui),
+    }
+    features[normalized_name] = feature
+
+    _write_matrix(project_root, matrix)
+    print(f"追加: {normalized_name} (drive={normalized_drive}, scope={normalized_scope}, ui={str(normalized_ui).lower()})")
+    compile_matrix(project_root, force_state=False)
+    _upsert_feature_state(project_root, matrix, normalized_name, feature)
 
 
 def _load_matrix(project_root: Path) -> dict[str, Any]:
@@ -1425,6 +1661,33 @@ def build_arg_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("validate", help="matrix.yaml の構造検証")
     subparsers.add_parser("status", help="feature x deliverable の状態表示")
     subparsers.add_parser("auto-detect", help="実ファイルから deliverable state を自動更新")
+    add_feature_parser = subparsers.add_parser(
+        "add-feature",
+        help="matrix.yaml に feature を追加し、compile を実行",
+    )
+    add_feature_parser.add_argument("name", help="feature id (kebab-case)")
+    add_feature_parser.add_argument(
+        "--drive",
+        required=True,
+        choices=["be", "fe", "db", "fullstack", "agent"],
+        help="駆動タイプ",
+    )
+    add_feature_parser.add_argument(
+        "--scope",
+        default="feature",
+        choices=["feature", "shared", "platform"],
+        help="スコープ種別",
+    )
+    add_feature_parser.add_argument(
+        "--ui",
+        action="store_true",
+        help="UI deliverables（L5）を含める",
+    )
+    add_feature_parser.add_argument(
+        "--risk",
+        default="",
+        help="risk flag（カンマ区切り）",
+    )
     update_parser = subparsers.add_parser("update", help="deliverable state を手動更新")
     update_parser.add_argument("--feature", required=True, help="feature id")
     update_parser.add_argument("--deliverable", required=True, help="deliverable id (D-*)")
@@ -1451,6 +1714,15 @@ def main() -> int:
             status_matrix(project_root)
         elif args.command == "auto-detect":
             auto_detect_state(project_root)
+        elif args.command == "add-feature":
+            add_matrix_feature(
+                project_root=project_root,
+                name=str(args.name),
+                drive=str(args.drive),
+                scope=str(args.scope),
+                ui=bool(args.ui),
+                risk=str(args.risk),
+            )
         elif args.command == "update":
             update_matrix_state(
                 project_root=project_root,

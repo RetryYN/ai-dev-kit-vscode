@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # helix-matrix: matrix.yaml ベースの生成/検証ユーティリティ
-# Usage: helix-matrix <init|compile|validate|status|update|auto-detect> [options]
+# Usage: helix-matrix <init|compile|validate|status|update|auto-detect|add-feature> [options]
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
@@ -22,6 +22,8 @@ Subcommands:
              Options: --force
   validate   matrix.yaml の構造検証（必須キー/ID/循環参照）
   status     feature x deliverable の状態一覧を表示
+  add-feature matrix.yaml に feature を追加して自動 compile
+             Usage: add-feature <name> --drive <be|fe|db|fullstack|agent> [--scope feature|shared|platform] [--ui] [--risk <flags>]
   update     deliverable state を手動更新
              Options: --feature <id> --deliverable <D-ID> --status <done|waived|not_applicable|in_progress>
   auto-detect 実ファイルの存在から deliverable state を自動更新
@@ -32,6 +34,7 @@ Examples:
   helix matrix compile --force
   helix matrix validate
   helix matrix status
+  helix matrix add-feature user-auth --drive be --ui --risk auth,pii
   helix matrix update --feature user-auth --deliverable D-ARCH --status done
   helix matrix auto-detect
 USAGE
@@ -167,6 +170,69 @@ run_auto_detect() {
   python3 "$COMPILER" --project-root "$PROJECT_ROOT" auto-detect
 }
 
+run_add_feature() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    echo "エラー: feature 名を指定してください" >&2
+    echo "例: helix matrix add-feature user-auth --drive be" >&2
+    exit 1
+  fi
+  shift
+
+  local drive=""
+  local scope="feature"
+  local ui=false
+  local risk=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --drive)
+        drive="${2:-}"
+        shift 2
+        ;;
+      --scope)
+        scope="${2:-}"
+        shift 2
+        ;;
+      --ui)
+        ui=true
+        shift
+        ;;
+      --risk)
+        risk="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$drive" ]]; then
+    echo "エラー: --drive は必須です（be|fe|db|fullstack|agent）" >&2
+    exit 1
+  fi
+
+  local cmd=(
+    python3 "$COMPILER" --project-root "$PROJECT_ROOT" add-feature "$name"
+    --drive "$drive"
+    --scope "$scope"
+  )
+  if [[ "$ui" == true ]]; then
+    cmd+=(--ui)
+  fi
+  if [[ -n "$risk" ]]; then
+    cmd+=(--risk "$risk")
+  fi
+
+  "${cmd[@]}"
+}
+
 CMD="${1:-help}"
 shift 2>/dev/null || true
 
@@ -175,6 +241,7 @@ case "$CMD" in
   compile) run_compile "$@" ;;
   validate) run_validate "$@" ;;
   status) run_status "$@" ;;
+  add-feature) run_add_feature "$@" ;;
   update) run_update "$@" ;;
   auto-detect) run_auto_detect "$@" ;;
   help|-h|--help) usage ;;

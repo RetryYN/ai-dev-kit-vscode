@@ -171,6 +171,7 @@ def main() -> int:
 
     if not scored:
         print("結果なし")
+        print("  ヒント: 'helix learn --all' で成功パターンを先に記録してください")
         return 0
 
     print("results:")
