@@ -1,6 +1,6 @@
 ---
 name: security
-description: セキュリティ対策で環境別設定ガイド・認証認可実装パターン・脆弱性対策チェックリストとOWASP検証手順を提供
+description: セキュリティ対策で環境別設定ガイド・認証認可実装パターン・脆弱性対策チェックリストとOWASP検証手順・秘密情報スキャン・AI生成コード品質チェックを提供
 metadata:
   helix_layer: L2
   triggers:
@@ -436,6 +436,101 @@ app.use('/api/auth/login', loginLimiter)
 - 500エラーの急増
 - レート制限ヒット
 - 異常なアクセスパターン
+```
+
+---
+
+## OWASP Top 10 自動スキャン
+
+OWASP Top 10 を `rg` で一次検出し、ヒット箇所をレビュー対象にする。
+このスキャンは「脆弱性の可能性」を見つけるための補助であり、確定診断ではない。
+
+| OWASP | 検出観点 | `rg` パターン例 |
+|------|----------|------------------|
+| A01: Broken Access Control | 管理権限の直書き・認可チェック漏れ | `rg -n "isAdmin\\s*=\\s*true|role\\s*==\\s*['\\\"]admin['\\\"]|/admin" --type py --type js --type ts` |
+| A02: Cryptographic Failures | 弱いハッシュ・平文保存 | `rg -n "md5\\(|sha1\\(|AES-ECB|password.*plain|base64.*password" --type py --type js --type ts` |
+| A03: Injection（SQLi） | 文字列連結SQL・危険なフォーマット | `rg -n "f['\\\"].*SELECT|execute\\(.*\\+|format\\(.*SELECT" --type py` |
+| A03: Injection（XSS） | 危険な HTML 挿入 | `rg -n "innerHTML|dangerouslySetInnerHTML|v-html" --type js --type ts` |
+| A04: Insecure Design | 開発用バックドア・デバッグ分岐残存 | `rg -n "bypass|backdoor|debug.*auth|skip.*auth" --type py --type js --type ts` |
+| A05: Security Misconfiguration | デバッグ有効・危険な設定値 | `rg -n "DEBUG\\s*=\\s*True|CORS_ORIGINS:\\s*\\[\"\\*\"\\]|allow_origins=\\[\"\\*\"\\]" --type py --type js --type ts --type yaml` |
+| A06: Vulnerable and Outdated Components | 古い依存・保守停止依存の放置 | `rg -n "(deprecated|unmaintained|end-of-life|known-vulnerable)" package.json package-lock.json requirements*.txt go.mod` |
+| A07: Identification and Authentication Failures | 証明書検証無効・認証情報の直書き | `rg -n "verify=False|VERIFY_SSL.*False|password.*=.*['\\\"]" --type py` |
+| A08: Software and Data Integrity Failures | 署名検証スキップ・unsafe deserialize | `rg -n "verify_signature\\s*=\\s*False|yaml\\.load\\(|pickle\\.loads\\(" --type py --type js --type ts` |
+| A09: Security Logging and Monitoring Failures | 例外握り潰し・監査ログ不足 | `rg -n "except\\s+Exception:\\s+pass|logger\\.debug\\(.*token|print\\(.*password" --type py --type js --type ts` |
+| A10: SSRF | 外部URLをそのまま取得 | `rg -n "requests\\.(get|post)\\(.*(url|uri)|axios\\.(get|post)\\(.*(url|uri)|fetch\\(.*(req\\.query|req\\.body)" --type py --type js --type ts` |
+
+### 運用手順
+
+```bash
+# 例: まず OWASP A03（Injection）を重点スキャン
+rg -n "f['\\\"].*SELECT|execute\\(.*\\+|format\\(.*SELECT" --type py
+rg -n "innerHTML|dangerouslySetInnerHTML|v-html" --type js --type ts
+```
+
+```
+1. ヒット箇所を分類（真陽性 / 偽陽性）
+2. 真陽性は修正PRにリンクし、再スキャンしてクローズ
+3. 偽陽性は理由を記録（次回の除外パターン改善）
+```
+
+---
+
+## 秘密情報スキャン
+
+APIキー、トークン、パスワード、証明書などの漏えいを `rg` で検出する。
+
+### 基本スキャン
+
+```bash
+rg -n "(?i)(api[_-]?key|secret|token|password|credential|bearer)\\s*[=:]\\s*['\\\"][^'\\\"]{8,}" --type-not md
+```
+
+### 証明書・鍵ファイルの混入確認
+
+```bash
+rg --files -g "*.pem" -g "*.key" -g "*.p12" -g "*.pfx"
+```
+
+### `.env` の Git 追跡チェック
+
+```bash
+git ls-files | rg '^\\.env(\\..+)?$'
+```
+
+```
+期待値:
+- 出力なし（.env / .env.* は Git 管理対象外）
+- 必要な場合は .env.example のみ追跡
+```
+
+### HELIX ゲート統合
+
+```
+- G4（実装凍結）: static check に秘密情報スキャンを追加
+- G7（安定性）: リリース前の最終スキャンとして再実行
+```
+
+---
+
+## AI 生成コード品質チェック
+
+OpenClaw の cacheforge-vibe-check コンセプトを参考に、AI 生成コードの
+「品質の癖」を検出してレビューを促進する。判定は advisory（非ブロッキング）。
+
+### 典型パターンの検出例
+
+| 観点 | `rg` パターン例 | レビュー意図 |
+|------|------------------|--------------|
+| 過剰なコメント | `rg -n "^(\\s*//\\s*(This|Set|Get|Initialize|Handle)|\\s*#\\s*(This|Set|Get|Initialize|Handle))" --type js --type ts --type py` | コメント頼みのコードを分解・命名改善できるか確認 |
+| 不要な try/except | `rg -n "except\\s+Exception\\s+as\\s+e:|except\\s+Exception:\\s+pass|catch\\s*\\(e\\)\\s*\\{\\s*\\}" --type py --type js --type ts` | 例外を握り潰していないか確認 |
+| 冗長な変数名 | `rg -n "\\b[a-zA-Z_][a-zA-Z0-9_]{30,}\\b" --type py --type js --type ts` | 意味を保った短い命名へ改善 |
+
+### 運用ルール
+
+```
+- このチェックは品質レビューを促進するための補助で、merge ブロック条件にはしない
+- 指摘は [Should]/[Nit] を基本とし、可読性・保守性の改善提案として扱う
+- セキュリティや正確性に直結する場合のみ [Must] に格上げする
 ```
 
 ---
