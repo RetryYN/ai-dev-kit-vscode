@@ -400,6 +400,37 @@ class UserServiceFacade:
 - 循環的複雑度 10以下
 ```
 
+## 自動モダナイゼーション（ReforgeAI コンセプト）
+
+### Reverse R4 → Forward 接続の自動化
+
+1. R4 `gap_register` からモダナイゼーション候補を自動抽出する
+2. 候補ごとに変換計画を自動生成する
+   - 言語バージョンアップ（Python 2→3、Java 8→21）
+   - フレームワーク移行（jQuery→React、Express→Fastify）
+   - アーキテクチャ変更（モノリス→マイクロサービス）
+   - DB マイグレーション（MySQL→PostgreSQL、on-prem→cloud）
+3. 生成した変換計画を HELIX の L2/L3 成果物へ変換する
+4. Forward HELIX で段階実行し、移行を進める
+
+### 安全な実行手順
+
+- Strangler Fig: 旧コードを段階的に新コードへ置換
+- Expand-Contract: 新旧並行運用後に旧経路を廃止
+- Characterization Testing: 現行挙動を固定してから改修
+
+### HELIX Reverse 連携
+
+- R1 Observed Contracts: 現行 API の自動文書化
+- R2 As-Is Design: 現行アーキテクチャの可視化
+- R3 Intent Hypotheses: 仕様意図の仮説化
+- R4 Gap: 差分からモダナイゼーション計画を自動生成
+
+### コスト見積もりの扱い
+
+- 参考実績として、AI 支援移行で時間 50% 短縮・コード変更 74% 自動生成の報告がある
+- 実案件では 5-10x の高速化余地を仮説値として使い、PoC で補正する
+
 ---
 
 ## 8. 避けるべきアンチパターン

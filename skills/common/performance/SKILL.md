@@ -459,6 +459,53 @@ k6 run --vus 100 --duration 60s script.js
 [ ] 統計情報更新
 ```
 
+## トークンコスト最適化（90% 削減戦略）
+
+### Prompt Caching
+
+- system prompt（role 定義 + スキル参照）を固定し、キャッシュヒット時に大幅削減を狙う
+- HELIX では `helix-codex` の role prompt はセッション内で固定し、キャッシュ対象にする
+- 実装例:
+  - Anthropic API の prompt caching
+  - OpenAI の `cached_tokens`
+
+### Semantic Caching
+
+- 類似クエリの結果をローカル再利用し、同一探索の再実行を減らす
+- HELIX では `helix discover` の検索結果をキャッシュ対象にする
+- 実装例:
+  - `input_hash` をキャッシュキーに採用
+  - SQLite に結果を保存
+
+### Model Routing（3軸マトリクス強化）
+
+現行スコア 0-14 のみではなく、`タスク種別 × リスク × コスト` でモデルを選ぶ。
+
+| タスク種別 | 推奨モデル | 目的 |
+|-----------|-----------|------|
+| 調査/検索 | Haiku | 最小コストで一次調査 |
+| テンプレ生成 | Spark | 低コストで反復 |
+| 実装 | SE / Codex 5.3 | 中コストで実装品質を確保 |
+| レビュー/設計 | TL / Codex 5.4 | 高精度レビュー |
+| フロント設計 | Opus | 表現品質重視 |
+
+- 委譲前に推定費用を表示する（例: `推定 $X.XX`）
+
+### Dynamic Context Pruning
+
+- 長時間セッションで古い会話を動的に削除し、必要文脈のみ残す
+- HELIX では `helix-codex --task` に渡す参照を最小化する
+- 変更対象ファイル中心に限定し、全ファイル Read を避ける
+
+### コスト追跡ダッシュボード設計
+
+```text
+helix log report cost:
+  今日:    Opus $2.40 / Codex $1.80 / Sonnet $0.30 / Haiku $0.05
+  今週:    $22.50（先週比 -15%）
+  最適化:  キャッシュヒット率 62%、圧縮率 3.2x
+```
+
 ---
 
 ## AI エージェントコスト追跡

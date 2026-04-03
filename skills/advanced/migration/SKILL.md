@@ -424,6 +424,31 @@ kubectl scale deployment new-app --replicas=0
 - [ ] 運用チーム: @zzz
 ```
 
+## AI 支援マイグレーション
+
+### 4 段階フレーム
+
+1. 分析: 現行コードの依存関係と影響範囲を自動マッピング
+2. 計画: 変換ルール定義とテスト戦略策定
+3. 実行: AI による一括変換 + 人間レビュー
+4. 検証: 自動テスト + 性能比較 + 動作確認
+
+### HELIX D-MIG-PLAN 連携
+
+- 移行計画書テンプレートを標準化（`before` / `after` / `rollback` / `test`）
+- 段階実行をバッチ化して管理
+  - バッチ 1: 基盤
+  - バッチ 2: ビジネスロジック
+  - バッチ 3: 周辺機能と運用導線
+
+### よくある移行パターン
+
+- REST → GraphQL
+- Callback → async/await
+- Class Component → Function Component + Hooks
+- SQL 直書き → ORM
+- 手動テスト → 自動テスト
+
 ---
 
 ## チェックリスト

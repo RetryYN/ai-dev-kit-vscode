@@ -109,6 +109,11 @@ run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRI
 run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
 echo ""
 
+echo "[skill-docs]"
+run_test_contains "context-memory has graph memory section" "grep -n '^## 知識グラフベースの記憶（Graphiti コンセプト）' $HELIX_HOME/skills/workflow/context-memory/SKILL.md" "知識グラフベースの記憶"
+run_test_contains "performance has token cost section" "grep -n '^## トークンコスト最適化（90% 削減戦略）' $HELIX_HOME/skills/common/performance/SKILL.md" "トークンコスト最適化"
+echo ""
+
 echo "[helix-plan]"
 mkdir -p docs/features/user-auth/D-ARCH
 echo "# user auth architecture" > docs/features/user-auth/D-ARCH/architecture.md
