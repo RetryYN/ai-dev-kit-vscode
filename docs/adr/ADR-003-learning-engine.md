@@ -40,10 +40,16 @@ Learning Engine の基盤決定として、以下を採用する。
 
 ### 2. Recipe を成功パターンの構造化単位とする
 
-- recipe は `pattern_key`, `steps`, `metrics`, `classification`, `security` を持つ `recipe.json` とする
+- recipe は `pattern_key`, `steps`, `metrics`, `classification`, `security`, `verification` を持つ `recipe.json` とする
 - ローカル保存先は `.helix/recipes/`、グローバル保存先は `~/.helix/recipes/` とする
 - `pattern_key` によりクロスプロジェクトで重複排除する
 - notes（`why_it_worked`, `applicability`）は日本語で保持する
+
+`verification` には以下を格納する:
+- `tests`: `total/passed/failed/coverage/test_files`
+- `contracts`: `api_diff/type_check/schema_valid`
+- `quality`: `lint_errors/security_issues/textlint_errors`
+- `collected_at`: 収集時刻（ISO8601）
 
 これにより、ログの生データを直接再利用するのではなく、再利用可能な学習アセットとして管理できる。
 

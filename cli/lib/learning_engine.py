@@ -49,6 +49,7 @@ _PY_MYPY_ERROR_PATTERN = re.compile(r"Found\s+(\d+)\s+errors?", re.IGNORECASE)
 _TS_ERROR_PATTERN = re.compile(r"\berror TS\d+:", re.IGNORECASE)
 
 _VERIFICATION_CACHE: dict[str, dict[str, Any]] = {}
+_BUILDER_EXECUTION_RUN_ID_MULTIPLIER = -1
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -255,6 +256,20 @@ def _parse_json_from_text(text: str) -> Any | None:
             return json.loads(candidate)
         except json.JSONDecodeError:
             continue
+    return None
+
+
+def _encode_builder_execution_run_id(builder_row_id: int) -> int:
+    return _BUILDER_EXECUTION_RUN_ID_MULTIPLIER * int(builder_row_id)
+
+
+def _decode_builder_execution_run_id(run_id: int) -> int | None:
+    try:
+        raw = int(run_id)
+    except (TypeError, ValueError):
+        return None
+    if raw < 0:
+        return abs(raw)
     return None
 
 
@@ -745,7 +760,11 @@ def _collect_verification(project_root: str) -> dict[str, Any]:
 
 
 def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
-    """成功タスク実行ログを recipe dict に変換する。"""
+    """成功実行ログを recipe dict に変換する。"""
+    builder_row_id = _decode_builder_execution_run_id(task_run_id)
+    if builder_row_id is not None:
+        return _analyze_builder_success(builder_row_id=builder_row_id, db_path=db_path)
+
     conn = _connect(db_path)
     conn.row_factory = sqlite3.Row
 
@@ -883,6 +902,189 @@ def analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None:
     return recipe
 
 
+def _analyze_builder_success(builder_row_id: int, db_path: str) -> dict[str, Any] | None:
+    conn = _connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    builder_row = conn.execute(
+        """
+        SELECT
+            id,
+            execution_id,
+            builder_type,
+            builder_name,
+            task_id,
+            status,
+            success,
+            input_signature_json,
+            pattern_tags_json,
+            step_trace_json,
+            current_step,
+            quality_score,
+            validation_summary_json,
+            started_at,
+            finished_at,
+            error_text
+        FROM builder_executions
+        WHERE id = ?
+        """,
+        (int(builder_row_id),),
+    ).fetchone()
+    conn.close()
+
+    if builder_row is None:
+        raise ValueError(f"builder_executions に実行履歴がありません: {builder_row_id}")
+
+    success_flag = int(builder_row["success"] or 0) == 1
+    status_text = str(builder_row["status"] or "").strip().lower()
+    if not success_flag and status_text != "completed":
+        raise ValueError(f"builder 実行が成功していません: {builder_row_id}")
+
+    redaction_stats = {"count": 0}
+    action_types: list[str] = []
+    steps: list[dict[str, Any]] = []
+
+    raw_trace = _json_load_or_none(str(builder_row["step_trace_json"] or ""))
+    step_trace = raw_trace if isinstance(raw_trace, list) else []
+
+    for index, item in enumerate(step_trace, start=1):
+        if isinstance(item, dict):
+            action_type = str(item.get("name") or f"step-{index}").strip() or f"step-{index}"
+            raw_data = item.get("data")
+            if isinstance(raw_data, (dict, list, tuple)):
+                parameters = _redact(raw_data, redaction_stats)
+            elif raw_data is None:
+                parameters = {}
+            else:
+                parameters = {"value": _redact(raw_data, redaction_stats)}
+            status = str(item.get("status") or "passed")
+        else:
+            action_type = f"step-{index}"
+            parameters = {"value": _redact(item, redaction_stats)}
+            status = "passed"
+
+        action_types.append(action_type)
+        steps.append(
+            {
+                "index": index,
+                "tool": action_type,
+                "action_type": action_type,
+                "description": action_type,
+                "parameters": parameters,
+                "status": status,
+            }
+        )
+
+    if not steps:
+        fallback_step = (
+            str(builder_row["current_step"] or "").strip()
+            or str(builder_row["builder_type"] or "").strip()
+            or "builder-execution"
+        )
+        action_types = [fallback_step]
+        steps = [
+            {
+                "index": 1,
+                "tool": fallback_step,
+                "action_type": fallback_step,
+                "description": fallback_step,
+                "parameters": {},
+                "status": "passed",
+            }
+        ]
+
+    action_total = len(steps)
+    action_passed = sum(1 for step in steps if str(step.get("status", "")).lower() in {"passed", "completed"})
+    if action_total > 0 and action_passed == 0 and success_flag:
+        action_passed = action_total
+    action_pass_rate = (action_passed / action_total) if action_total > 0 else 0.0
+
+    observation_total = 1
+    observation_pass_rate = 1.0 if success_flag else 0.0
+
+    raw_quality_score = builder_row["quality_score"]
+    try:
+        quality_score = float(raw_quality_score)
+    except (TypeError, ValueError):
+        quality_score = 0.0
+    quality_score = min(max(quality_score, 0.0), 100.0)
+    if quality_score <= 0.0:
+        quality_score = ((action_pass_rate * 0.45) + (observation_pass_rate * 0.55)) * 100.0
+
+    builder_type = str(builder_row["builder_type"] or "builder")
+    task_type = f"builder-{builder_type}"
+    role = "builder"
+    pattern_key = _build_pattern_key(task_type, action_types)
+    pattern_digest = hashlib.sha1(pattern_key.encode("utf-8")).hexdigest()[:8]
+    recipe_id = f"recipe-builder-{int(builder_row['id'])}-{pattern_digest}"
+
+    raw_tags = _json_load_or_none(str(builder_row["pattern_tags_json"] or ""))
+    pattern_tags = raw_tags if isinstance(raw_tags, list) else []
+    tags = sorted(
+        {
+            f"task:{_slugify(task_type)}",
+            "role:builder",
+            f"builder:{_slugify(builder_type)}",
+            *[f"action:{_slugify(item)}" for item in action_types if item],
+            *[str(tag) for tag in pattern_tags if str(tag).strip()],
+        }
+    )
+
+    project_root = _project_root_from_db_path(db_path)
+    verification = _collect_verification(str(project_root))
+
+    raw_signature = _json_load_or_none(str(builder_row["input_signature_json"] or ""))
+    input_signature = raw_signature if isinstance(raw_signature, dict) else {}
+
+    recipe = {
+        "recipe_id": recipe_id,
+        "pattern_key": pattern_key,
+        "steps": sorted(steps, key=lambda item: int(item.get("index", 0))),
+        "metrics": {
+            "action_count": action_total,
+            "action_pass_rate": round(action_pass_rate, 4),
+            "observation_total": observation_total,
+            "observation_pass_rate": round(observation_pass_rate, 4),
+            "quality_score": round(quality_score, 2),
+        },
+        "classification": {
+            "task_type": task_type,
+            "role": role,
+            "builder_type": builder_type,
+            "tags": tags,
+        },
+        "security": {
+            "redaction_applied": True,
+            "redacted_fields": int(redaction_stats.get("count", 0)),
+            "notes": "global sync 前提で redaction 済み",
+        },
+        "notes": {
+            "why_it_worked": _infer_why_it_worked(action_types, observation_pass_rate),
+            "applicability": f"builder_type={builder_type} の自動生成タスクで再利用しやすい。",
+        },
+        "verification": verification,
+        "source": {
+            "origin": "builder_executions",
+            "builder_execution_id": str(builder_row["execution_id"] or ""),
+            "builder_row_id": int(builder_row["id"]),
+            "task_id": str(builder_row["task_id"] or ""),
+            "builder_name": _redact(str(builder_row["builder_name"] or ""), redaction_stats),
+            "input_signature": _redact(input_signature, redaction_stats),
+            "started_at": str(builder_row["started_at"] or ""),
+            "completed_at": str(builder_row["finished_at"] or ""),
+            "error_text": _redact(str(builder_row["error_text"] or ""), redaction_stats),
+            "task_run_id": _encode_builder_execution_run_id(int(builder_row["id"])),
+        },
+        "created_at": _now_iso(),
+    }
+
+    validation = _json_load_or_none(str(builder_row["validation_summary_json"] or ""))
+    if isinstance(validation, dict) and validation:
+        recipe["source"]["validation_summary"] = _redact(validation, redaction_stats)
+
+    return recipe
+
+
 def save_recipe(recipe: dict[str, Any], project_root: str) -> str:
     """recipe dict を .helix/recipes/<id>.json に保存してパスを返す。"""
     if not isinstance(recipe, dict):
@@ -957,43 +1159,125 @@ def resolve_success_run_ids(db_path: str, task_id: str | None = None, all_succes
     """learn 用に成功 task_run_id 一覧を返す。"""
     conn = _connect(db_path)
     conn.row_factory = sqlite3.Row
+    try:
+        if all_success:
+            task_rows: list[sqlite3.Row] = []
+            builder_rows: list[sqlite3.Row] = []
+            try:
+                task_rows = conn.execute(
+                    "SELECT id FROM task_runs WHERE status = 'completed' ORDER BY id ASC"
+                ).fetchall()
+            except sqlite3.Error:
+                task_rows = []
+            try:
+                builder_rows = conn.execute(
+                    """
+                    SELECT id
+                    FROM builder_executions
+                    WHERE success = 1 OR status = 'completed'
+                    ORDER BY id ASC
+                    """
+                ).fetchall()
+            except sqlite3.Error:
+                builder_rows = []
 
-    if all_success:
-        rows = conn.execute(
-            "SELECT id FROM task_runs WHERE status = 'completed' ORDER BY id ASC"
-        ).fetchall()
+            run_ids = [int(row["id"]) for row in task_rows]
+            run_ids.extend(_encode_builder_execution_run_id(int(row["id"])) for row in builder_rows)
+            return run_ids
+
+        if task_id is None:
+            row = None
+            try:
+                row = conn.execute(
+                    "SELECT id FROM task_runs WHERE status = 'completed' ORDER BY id DESC LIMIT 1"
+                ).fetchone()
+            except sqlite3.Error:
+                row = None
+            if row:
+                return [int(row["id"])]
+
+            builder_row = None
+            try:
+                builder_row = conn.execute(
+                    """
+                    SELECT id
+                    FROM builder_executions
+                    WHERE success = 1 OR status = 'completed'
+                    ORDER BY
+                        CASE WHEN finished_at = '' THEN 1 ELSE 0 END,
+                        finished_at DESC,
+                        id DESC
+                    LIMIT 1
+                    """
+                ).fetchone()
+            except sqlite3.Error:
+                builder_row = None
+            return [_encode_builder_execution_run_id(int(builder_row["id"]))] if builder_row else []
+
+        value = str(task_id).strip()
+        if not value:
+            return []
+
+        if value.isdigit():
+            row = None
+            try:
+                row = conn.execute(
+                    "SELECT id FROM task_runs WHERE id = ? AND status = 'completed'",
+                    (int(value),),
+                ).fetchone()
+            except sqlite3.Error:
+                row = None
+            if row:
+                return [int(row["id"])]
+
+            builder_row = None
+            try:
+                builder_row = conn.execute(
+                    """
+                    SELECT id
+                    FROM builder_executions
+                    WHERE id = ? AND (success = 1 OR status = 'completed')
+                    """,
+                    (int(value),),
+                ).fetchone()
+            except sqlite3.Error:
+                builder_row = None
+            return [_encode_builder_execution_run_id(int(builder_row["id"]))] if builder_row else []
+
+        row = None
+        try:
+            row = conn.execute(
+                """
+                SELECT id
+                FROM task_runs
+                WHERE task_id = ? AND status = 'completed'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (value,),
+            ).fetchone()
+        except sqlite3.Error:
+            row = None
+        if row:
+            return [int(row["id"])]
+
+        builder_row = None
+        try:
+            builder_row = conn.execute(
+                """
+                SELECT id
+                FROM builder_executions
+                WHERE
+                    (task_id = ? OR execution_id = ?)
+                    AND (success = 1 OR status = 'completed')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (value, value),
+            ).fetchone()
+        except sqlite3.Error:
+            builder_row = None
+
+        return [_encode_builder_execution_run_id(int(builder_row["id"]))] if builder_row else []
+    finally:
         conn.close()
-        return [int(row["id"]) for row in rows]
-
-    if task_id is None:
-        row = conn.execute(
-            "SELECT id FROM task_runs WHERE status = 'completed' ORDER BY id DESC LIMIT 1"
-        ).fetchone()
-        conn.close()
-        return [int(row["id"])] if row else []
-
-    value = str(task_id).strip()
-    if not value:
-        conn.close()
-        return []
-
-    if value.isdigit():
-        row = conn.execute(
-            "SELECT id FROM task_runs WHERE id = ? AND status = 'completed'",
-            (int(value),),
-        ).fetchone()
-        conn.close()
-        return [int(row["id"])] if row else []
-
-    row = conn.execute(
-        """
-        SELECT id
-        FROM task_runs
-        WHERE task_id = ? AND status = 'completed'
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (value,),
-    ).fetchone()
-    conn.close()
-    return [int(row["id"])] if row else []

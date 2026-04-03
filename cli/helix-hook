@@ -212,6 +212,7 @@ check_freeze_violation() {
   if [[ "$g3_status" == "passed" ]]; then
     if glob_match "$file" "src/api/.*" \
       || glob_match "$file" "docs/features/.*/D-API/.*" \
+      || glob_match "$file" "docs/features/.*/D-CONTRACT/.*" \
       || glob_match "$file" "src/features/.*/D-IMPL/.*"; then
       echo "[helix-hook] WARN: API凍結違反 — G3 passed 後に $file を変更"
       cascade_invalidate "G4" "G5" "G6" "G7"

@@ -123,6 +123,10 @@ run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui 
 run_test_contains "drive db" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "スキーマ凍結"
 run_test_contains "drive agent" "$SCRIPT_DIR/helix-size --files 3 --lines 150 --api --type new-feature --drive agent" "ツール定義凍結"
 run_test_contains "drive fullstack phase skip" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --type new-feature --drive fullstack" "推奨フェーズ: L2 L3 L4 L5 L6 L7 L8"
+run_test_contains "size writes phase.yaml" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type bugfix --drive fullstack" "phase.yaml 更新: current_phase=L4, drive=fullstack"
+run_test_contains "size sets current_phase" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
+run_test_contains "size sets sprint.drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.drive" "fullstack"
+run_test "size restore sprint drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
 echo ""
 
 echo "[helix-sprint]"
@@ -166,6 +170,15 @@ run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "retro generated" "ls .helix/retros/" "G2"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
+run_test "G4 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed"
+run_test "fullstack gate set drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack"
+run_test "fullstack gate set BE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"
+run_test "fullstack gate set FE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .3"
+run_test "fullstack gate set BE status" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.status completed"
+run_test "fullstack gate set FE status" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.status active"
+run_test "fullstack gate set contract ci fail" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.contract.ci fail"
+run_test_contains "fullstack G4 twin-track fail" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run 2>&1 || true" "fullstack G4: FAIL"
+run_test "fullstack gate restore drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
 echo ""
 
 echo "[helix-gate-api-check]"
@@ -217,10 +230,13 @@ python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status
 mkdir -p docs/features/user-auth/D-ARCH docs/features/user-auth/D-API
 echo "# arch change" > docs/features/user-auth/D-ARCH/architecture.md
 echo "contracts: []" > docs/features/user-auth/D-API/api-contract.yaml
+mkdir -p docs/features/user-auth/D-CONTRACT
+echo "contract: []" > docs/features/user-auth/D-CONTRACT/schema.yaml
 run_test_contains "freeze-break design (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-ARCH/architecture.md" "設計凍結違反"
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G3.status passed 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
 run_test_contains "freeze-break API doc (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-API/api-contract.yaml" "API凍結違反"
+run_test_contains "freeze-break contract doc (new path)" "$SCRIPT_DIR/helix-hook $TEST_DIR/docs/features/user-auth/D-CONTRACT/schema.yaml" "API凍結違反"
 echo "change" > src/api/auth.ts
 run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/auth.ts" "API凍結違反"
 run_test_contains "doc_map_matcher gate_ready" "python3 $SCRIPT_DIR/lib/doc_map_matcher.py .helix/doc-map.yaml docs/design/L2-architecture.md" "GATE_READY|G2|docs/design/L2-architecture.md"
@@ -808,6 +824,16 @@ echo ""
 
 echo "[helix-learning-engine]"
 LEARN_GLOBAL_HOME="$TEST_DIR/.helix-global"
+BUILDER_ONLY_PROJECT="$TEST_DIR/builder-only-project"
+BUILDER_ONLY_DB="$BUILDER_ONLY_PROJECT/.helix/helix.db"
+export BUILDER_ONLY_PROJECT BUILDER_ONLY_DB
+mkdir -p "$BUILDER_ONLY_PROJECT/.helix"
+run_test "builder-only db init" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import os; from builders.store import BuilderStore; BuilderStore.init_db(os.environ[\"BUILDER_ONLY_DB\"])'"
+run_test "builder-only execution success" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import os; from builders.store import BuilderStore; db=os.environ[\"BUILDER_ONLY_DB\"]; s=BuilderStore(db); eid=s.create_execution(\"verify-script\",\"BONLY-001\",{\"pattern_tags\":[\"verification-rank-token\",\"builder-only\"]},\"1.0\"); s.add_step(eid,\"collect\",{\"target\":\"verify\"}); s.add_step(eid,\"validate\",{\"result\":\"ok\"}); s.finish_execution(eid, True, [{\"path\":\"verify/generated.sh\"}], {\"quality_score\":91}, None)'"
+run_test "builder-only helix learn" "HELIX_PROJECT_ROOT=$BUILDER_ONLY_PROJECT HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn"
+run_test_not_contains "builder-only learn no traceback" "HELIX_PROJECT_ROOT=$BUILDER_ONLY_PROJECT HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix learn 2>&1 || true" "Traceback"
+run_test "builder-only recipe generated" "python3 -c 'import glob, os; paths = sorted(glob.glob(os.environ[\"BUILDER_ONLY_PROJECT\"] + \"/.helix/recipes/*.json\")); raise SystemExit(0 if paths else 1)'"
+run_test "builder-only recipe source origin" "python3 -c 'import glob, json, os; p = sorted(glob.glob(os.environ[\"BUILDER_ONLY_PROJECT\"] + \"/.helix/recipes/*.json\"))[0]; d = json.load(open(p, encoding=\"utf-8\")); raise SystemExit(0 if d.get(\"source\", {}).get(\"origin\") == \"builder_executions\" else 1)'"
 run_test "learning db init" "python3 $SCRIPT_DIR/lib/helix_db.py init .helix/helix.db"
 python3 - <<'PY'
 import sqlite3
@@ -1057,6 +1083,48 @@ conn.close()
 PY
 run_test_contains "helix promote lookup over 50 recipes" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/promote-over-50-lookup.py && HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote lookup-target --type task" "recipe_id: lookup-target"
 run_test_contains "helix promote --auto candidates" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix promote --auto" "pattern="
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+recipe_dir = Path(".helix/recipes")
+recipe_dir.mkdir(parents=True, exist_ok=True)
+
+base = {
+    "pattern_key": "verification-rank-test",
+    "classification": {
+        "task_type": "verification-rank-token",
+        "role": "se",
+        "builder_type": "task",
+        "tags": ["verification-rank-token", "ranking"],
+    },
+    "tags": ["verification-rank-token", "ranking"],
+    "metrics": {"quality_score": 60},
+    "steps": [{"index": 1, "tool": "verify", "action_type": "verify", "description": "verify", "parameters": {}, "status": "passed"}],
+    "source": {"task_run_id": 999001},
+}
+
+high = dict(base)
+high["recipe_id"] = "rank-high-verification"
+high["verification"] = {
+    "tests": {"total": 3, "passed": 3, "failed": 0},
+    "contracts": {"schema_valid": True},
+    "quality": {"lint_errors": 0},
+}
+
+low = dict(base)
+low["recipe_id"] = "rank-low-verification"
+low["source"] = {"task_run_id": 999002}
+low["verification"] = {
+    "tests": {"total": 3, "passed": 2, "failed": 1},
+    "contracts": {"schema_valid": False},
+    "quality": {"lint_errors": 4},
+}
+
+(recipe_dir / "rank-high-verification.json").write_text(json.dumps(high, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+(recipe_dir / "rank-low-verification.json").write_text(json.dumps(low, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+run_test "discover verification ranking" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME SCRIPT_DIR=$SCRIPT_DIR python3 -c 'import os, subprocess; out = subprocess.check_output([os.environ[\"SCRIPT_DIR\"] + \"/helix\", \"discover\", \"--query\", \"verification-rank-token\", \"--limit\", \"2\"], text=True, env=dict(os.environ, HELIX_GLOBAL_HOME=os.environ[\"HELIX_GLOBAL_HOME\"])); lines = [line.strip() for line in out.splitlines() if line.strip().startswith(\"rank-\")]; raise SystemExit(0 if lines and lines[0].startswith(\"rank-high-verification\") else 1)'"
 run_test_contains "helix discover returns result" "HELIX_GLOBAL_HOME=$LEARN_GLOBAL_HOME $SCRIPT_DIR/helix discover --query builder --limit 5" "score:"
 echo ""
 

@@ -63,11 +63,15 @@ def main() -> int:
         print(f"Error: helix.db が見つかりません: {db_path}", file=sys.stderr)
         return 1
 
-    run_ids = resolve_success_run_ids(
-        db_path=str(db_path),
-        task_id=args.task_id,
-        all_success=bool(args.all),
-    )
+    try:
+        run_ids = resolve_success_run_ids(
+            db_path=str(db_path),
+            task_id=args.task_id,
+            all_success=bool(args.all),
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"Error: 成功実行の取得に失敗しました: {exc}", file=sys.stderr)
+        return 1
 
     if not run_ids:
         print("成功タスクが見つかりませんでした。")
@@ -89,7 +93,16 @@ def main() -> int:
             failed.append(f"task_run_id={run_id}: {exc}")
 
     project_id = _project_id(project_root)
-    sync_result = sync_from_local(local_db=str(db_path), project_id=project_id)
+    sync_result = {
+        "project_id": project_id,
+        "synced_patterns": 0,
+        "synced_runs": 0,
+        "global_db": "",
+    }
+    try:
+        sync_result = sync_from_local(local_db=str(db_path), project_id=project_id)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Warning: global 同期をスキップしました: {exc}", file=sys.stderr)
 
     print("=== helix learn ===")
     print(f"対象プロジェクト: {project_root}")
@@ -114,4 +127,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Exception as exc:  # noqa: BLE001
+        print(f"Error: helix learn 実行中に予期しないエラーが発生しました: {exc}", file=sys.stderr)
+        raise SystemExit(1)

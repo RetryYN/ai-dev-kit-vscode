@@ -196,8 +196,38 @@ def _recipe_score(tokens: list[str], candidate: dict) -> float:
     tags = _recipe_tags(candidate)
     quality = _recipe_quality(candidate) / 100.0
 
+    verification_bonus = 0.0
+    verification = candidate.get("verification", {})
+    if isinstance(verification, dict):
+        tests = verification.get("tests", {})
+        contracts = verification.get("contracts", {})
+        quality_info = verification.get("quality", {})
+
+        if isinstance(tests, dict):
+            try:
+                tests_failed = int(tests.get("failed", -1))
+            except (TypeError, ValueError):
+                tests_failed = -1
+            try:
+                tests_total = int(tests.get("total", 0))
+            except (TypeError, ValueError):
+                tests_total = 0
+            if tests_failed == 0 and tests_total > 0:
+                verification_bonus += 5.0  # テスト全 pass
+
+        if isinstance(contracts, dict) and contracts.get("schema_valid") is True:
+            verification_bonus += 3.0  # 契約検証 OK
+
+        if isinstance(quality_info, dict):
+            try:
+                lint_errors = int(quality_info.get("lint_errors", -1))
+            except (TypeError, ValueError):
+                lint_errors = -1
+            if lint_errors == 0:
+                verification_bonus += 2.0  # lint clean
+
     if not tokens:
-        return (quality * 60.0) + (min(len(tags), 5) / 5.0 * 40.0)
+        return (quality * 60.0) + (min(len(tags), 5) / 5.0 * 40.0) + verification_bonus
 
     text_hits = sum(1 for token in tokens if token in text)
     tag_hits = sum(1 for token in tokens if any(token in tag for tag in tags))
@@ -206,4 +236,4 @@ def _recipe_score(tokens: list[str], candidate: dict) -> float:
     tag_score = (tag_hits / len(tokens)) * 25.0
     quality_score = quality * 10.0
 
-    return text_score + tag_score + quality_score
+    return text_score + tag_score + quality_score + verification_bonus

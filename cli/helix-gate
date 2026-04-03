@@ -106,6 +106,45 @@ run_checks() {
     fi
   fi
 
+  # --- Fullstack Twin Track Check ---
+  if [[ -f "$PHASE_FILE" ]]; then
+    local drive
+    drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
+    if [[ "$drive" == "fullstack" && ("$gate" == "G3" || "$gate" == "G4") ]]; then
+      echo "[fullstack]"
+      # G4: BE/FE 両 track の stage が .5 かつ status が completed であること
+      if [[ "$gate" == "G4" ]]; then
+        local be_stage fe_stage contract_ci be_status fe_status
+        be_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.stage" 2>/dev/null || echo "")
+        fe_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.stage" 2>/dev/null || echo "")
+        be_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.status" 2>/dev/null || echo "")
+        fe_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.status" 2>/dev/null || echo "")
+        contract_ci=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.contract.ci" 2>/dev/null || echo "")
+
+        local twin_fail=0
+        if [[ "$be_stage" != ".5" || "$be_status" != "completed" ]]; then
+          echo "  FAIL: BE Track 未完了 (stage=$be_stage, status=$be_status)"
+          twin_fail=1
+        fi
+        if [[ "$fe_stage" != ".5" || "$fe_status" != "completed" ]]; then
+          echo "  FAIL: FE Track 未完了 (stage=$fe_stage, status=$fe_status)"
+          twin_fail=1
+        fi
+        if [[ "$contract_ci" != "pass" ]]; then
+          echo "  FAIL: Contract CI 未通過 (ci=$contract_ci)"
+          twin_fail=1
+        fi
+        if [[ $twin_fail -gt 0 ]]; then
+          deliv_fail=$((deliv_fail + twin_fail))
+          echo "  fullstack G4: FAIL"
+        else
+          echo "  fullstack G4: BE .5 ✓ FE .5 ✓ Contract CI ✓"
+        fi
+        echo ""
+      fi
+    fi
+  fi
+
   if [[ "$AI_ONLY" != true ]]; then
     echo "[static]"
 

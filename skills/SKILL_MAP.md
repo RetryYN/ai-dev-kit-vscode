@@ -145,7 +145,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（53スキル + Wave B/C 候補）
+## スキル群配置（55スキル + Wave B/C 候補）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）

@@ -4,6 +4,10 @@ set -euo pipefail
 # helix-size: タスクサイジング + フェーズスキップ自動判定
 # Usage: helix-size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE] [--drive DRIVE]
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+
 # --- 引数パース ---
 FILES=0
 LINES=0
@@ -271,3 +275,18 @@ fi
 echo ""
 echo "タスク種別:   ${TASK_TYPE:-未指定}"
 echo "UI変更:       $HAS_UI"
+
+FIRST_PHASE="${PHASES[0]:-L1}"
+
+# phase.yaml への反映
+if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
+  YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  if [[ -f "$YP" ]]; then
+    # current_phase を設定（L1 から開始、フェーズスキップ時は最初の有効フェーズ）
+    python3 "$YP" write "$HELIX_DIR/phase.yaml" "current_phase" "$FIRST_PHASE" 2>/dev/null || true
+    # drive を設定
+    python3 "$YP" write "$HELIX_DIR/phase.yaml" "sprint.drive" "$DRIVE" 2>/dev/null || true
+    echo ""
+    echo "phase.yaml 更新: current_phase=$FIRST_PHASE, drive=$DRIVE"
+  fi
+fi
