@@ -4,6 +4,15 @@ set -eo pipefail
 # helix-status: プロジェクト全体の HELIX 状態を表示
 # Usage: helix-status
 
+case "${1:-}" in
+  --help|-h)
+    echo "Usage: helix status"
+    echo ""
+    echo "プロジェクト全体の HELIX 状態を表示します。"
+    exit 0
+    ;;
+esac
+
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"

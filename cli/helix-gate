@@ -59,7 +59,7 @@ declare -A GATE_PREREQS=(
   ["G3"]="G2"
   ["G4"]="G3"
   ["G5"]="G4"
-  ["G6"]="G4"
+  ["G6"]="G5"
   ["G7"]="G6"
 )
 
@@ -69,7 +69,7 @@ DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
 prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
-  if [[ "$prereq_status" != "passed" ]]; then
+  if [[ "$prereq_status" != "passed" && "$prereq_status" != "skipped" ]]; then
     echo "Error: 前提ゲート $prereq が未通過 (status: $prereq_status)" >&2
     echo "$prereq を先に通過させてください" >&2
     exit 1

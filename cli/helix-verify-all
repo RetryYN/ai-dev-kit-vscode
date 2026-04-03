@@ -4,6 +4,15 @@ set -eo pipefail
 # helix-verify-all: HELIX 全レイヤー検証を1コマンドで実行
 # Usage: helix verify-all [--fix]
 
+case "${1:-}" in
+  --help|-h)
+    echo "Usage: helix verify-all"
+    echo ""
+    echo "verify/ 配下の全検証スクリプトを実行します。"
+    exit 0
+    ;;
+esac
+
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -58,7 +67,7 @@ else
 fi
 
 # === Layer 3: ツール単体テスト ===
-run_section "Layer 3: Unit Tests（helix-test 42項目）" \
+run_section "Layer 3: Unit Tests（helix-test セルフテスト）" \
   "timeout 120 $SCRIPT_DIR/helix-test </dev/null"
 
 # === Layer 4: 検証スクリプト ===

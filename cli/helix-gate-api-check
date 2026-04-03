@@ -47,42 +47,90 @@ project_root = sys.argv[1]
 contract_paths = [Path(p) for p in sys.argv[2:]]
 contract_eps = set()
 
+
+def extract_method_endpoint_pairs(text: str) -> set[str]:
+    endpoints: set[str] = set()
+    # method -> endpoint（現行フォーマット）
+    pattern_forward = re.compile(
+        r'(?is)method\s*:\s*["\']?(get|post|put|delete|patch)["\']?'
+        r'.{0,500}?endpoint\s*:\s*["\']?(/[^"\',\s#]+)'
+    )
+    # endpoint -> method（順序違いを許容）
+    pattern_reverse = re.compile(
+        r'(?is)endpoint\s*:\s*["\']?(/[^"\',\s#]+)'
+        r'.{0,500}?method\s*:\s*["\']?(get|post|put|delete|patch)["\']?'
+    )
+    for m in pattern_forward.finditer(text):
+        method = m.group(1).upper()
+        endpoint = m.group(2).strip()
+        endpoints.add(f"{method} {endpoint}")
+    for m in pattern_reverse.finditer(text):
+        endpoint = m.group(1).strip()
+        method = m.group(2).upper()
+        endpoints.add(f"{method} {endpoint}")
+    return endpoints
+
+
+def extract_openapi_paths(text: str) -> set[str]:
+    endpoints: set[str] = set()
+    lines = text.splitlines()
+    in_paths = False
+    paths_indent = -1
+    current_path = ""
+
+    for raw in lines:
+        line = raw.split("#", 1)[0].rstrip("\n")
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        stripped = line.strip()
+
+        if not in_paths:
+            if re.match(r"^paths\s*:\s*$", stripped):
+                in_paths = True
+                paths_indent = indent
+                current_path = ""
+            continue
+
+        # paths ブロック終了
+        if indent <= paths_indent:
+            in_paths = False
+            current_path = ""
+            if re.match(r"^paths\s*:\s*$", stripped):
+                in_paths = True
+                paths_indent = indent
+            continue
+
+        path_match = re.match(r'^[\'"]?(/[^\'":#]+)[\'"]?\s*:\s*$', stripped)
+        if path_match:
+            current_path = path_match.group(1).strip()
+            continue
+
+        method_match = re.match(r"^(get|post|put|delete|patch)\s*:\s*$", stripped, re.IGNORECASE)
+        if method_match and current_path:
+            endpoints.add(f"{method_match.group(1).upper()} {current_path}")
+
+    return endpoints
+
+
 for contract_path in contract_paths:
     try:
         content = contract_path.read_text()
     except Exception:
         continue
 
-    ext = contract_path.suffix
-    if ext in ('.yaml', '.yml'):
-        try:
-            import yaml
-            data = yaml.safe_load(content)
-            if isinstance(data, dict):
-                for key in ('contracts', 'endpoints', 'paths'):
-                    items = data.get(key, [])
-                    if isinstance(items, list):
-                        for item in items:
-                            if isinstance(item, dict):
-                                method = item.get('method', 'GET').upper()
-                                path = item.get('endpoint', item.get('path', ''))
-                                if path:
-                                    contract_eps.add(f'{method} {path}')
-                    elif isinstance(items, dict):
-                        for path, methods in items.items():
-                            if isinstance(methods, dict):
-                                for method in methods:
-                                    if method.upper() in ('GET','POST','PUT','DELETE','PATCH'):
-                                        contract_eps.add(f'{method.upper()} {path}')
-        except Exception:
-            pass
+    contract_eps.update(extract_method_endpoint_pairs(content))
+    contract_eps.update(extract_openapi_paths(content))
 
-    for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content):
-        contract_eps.add(f'{match.group(1)} {match.group(2)}')
+    # Markdown/プレーンテキスト形式（GET /api/...）
+    for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content, re.IGNORECASE):
+        contract_eps.add(f'{match.group(1).upper()} {match.group(2)}')
 
 if not contract_eps:
-    print("  SKIP: API契約からエンドポイントを抽出できませんでした")
-    sys.exit(0)
+    print("  FAIL: API契約ファイルは存在しますが、エンドポイントを抽出できませんでした")
+    for p in contract_paths:
+        print(f"    - {p}")
+    sys.exit(1)
 
 # --- 実装からエンドポイント抽出 ---
 src_root = Path(project_root) / 'src'

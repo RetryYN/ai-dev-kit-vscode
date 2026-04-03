@@ -4,6 +4,15 @@ set -eo pipefail
 # helix-test: HELIX CLI 全ツールのセルフテスト
 # Usage: helix-test
 
+case "${1:-}" in
+  --help|-h)
+    echo "Usage: helix test"
+    echo ""
+    echo "HELIX CLI 全ツールのセルフテストを実行します。"
+    exit 0
+    ;;
+esac
+
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
 
@@ -171,6 +180,11 @@ run_test_contains "retro generated" "ls .helix/retros/" "G2"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
 run_test "G4 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed"
+run_test "G6 prereq set G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
+run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 1
+run_test "G6 prereq set G5 skipped" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status skipped"
+run_test "G6 prereq pass when G5 skipped" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run"
+run_test "G6 prereq reset G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
 run_test "fullstack gate set drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack"
 run_test "fullstack gate set BE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"
 run_test "fullstack gate set FE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .3"
@@ -198,6 +212,16 @@ router.post('/api/v1/users', createUser);
 export default router;
 TSEOF
 run_test_contains "API match" "$SCRIPT_DIR/helix-gate-api-check" "OK: 契約と実装が一致"
+cat > docs/design/L3-api-contract.yaml << 'EOF'
+openapi: 3.0.0
+paths:
+  /api/v1/users:
+    get:
+      summary: users list
+    post:
+      summary: users create
+EOF
+run_test_contains "API match (openapi paths)" "$SCRIPT_DIR/helix-gate-api-check" "OK: 契約と実装が一致"
 printf '  - method: "GET"\n    endpoint: "/api/v1/orders"\n' >> docs/design/L3-api-contract.yaml
 run_test "API mismatch detected" "$SCRIPT_DIR/helix-gate-api-check" 1
 rm -f docs/design/L3-api-contract.yaml
@@ -292,8 +316,13 @@ python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml current_phase L
 echo ""
 
 echo "[helix-status]"
+run_test_contains "status --help usage" "$SCRIPT_DIR/helix-status --help" "Usage: helix status"
+run_test_not_contains "status --help no runtime" "$SCRIPT_DIR/helix-status --help" "HELIX Project Status"
 run_test_contains "status shows project" "$SCRIPT_DIR/helix-status" "Project:"
 run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
+run_test_contains "test --help usage" "$SCRIPT_DIR/helix-test --help" "Usage: helix test"
+run_test_not_contains "test --help no self-test run" "$SCRIPT_DIR/helix-test --help" "HELIX CLI Self-Test"
+run_test_contains "verify-all --help usage" "$SCRIPT_DIR/helix-verify-all --help" "Usage: helix verify-all"
 echo ""
 
 echo "[helix-pr]"

@@ -1,7 +1,7 @@
 # ai-dev-kit-vscode
 
 Claude Code / Codex CLI 向けの HELIX スキルフレームワーク。
-42 のスキルが全プロジェクトで使えるようになる。
+55 のスキルが全プロジェクトで使えるようになる。
 
 ## セットアップ
 
@@ -61,7 +61,7 @@ Claude Code:
 
 Codex CLI:
   ~/.codex/AGENTS.md            <- HELIX_CORE.md + CODEX_TL_MODE.md を Read 指示
-  ~/.codex/skills/helix-*/      <- 42 スキルのシンボリックリンク
+  ~/.codex/skills/helix-*/      <- 55 スキルのシンボリックリンク
     └── SKILL.md frontmatter    <- name + description で自動発見
 ```
 
@@ -104,7 +104,7 @@ confirmed な仮説は Forward HELIX（L2→）に接続。
 
 詳細は [SKILL_MAP.md](skills/SKILL_MAP.md) を参照。
 
-## スキル一覧（42 スキル）
+## スキル一覧（55 スキル）
 
 | カテゴリ | スキル |
 |---------|--------|
@@ -114,10 +114,14 @@ confirmed な仮説は Forward HELIX（L2→）に接続。
 | advanced/ (6) | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ (2) | ai-coding, ide-tools |
 | integration/ (1) | agent-teams |
+| writing/ (5) | japanese, explain, story, presentation, social |
+| design-tools/ (5) | diagram, web-system, pptx, graphic, character |
+| automation/ (3) | site-mapping, browser-script, flow-optimize |
 
-## CLI ツール
+## CLI ツール（26 コマンド）
 
 `helix <command>` で統一的に呼び出し可能。PATH に `~/ai-dev-kit-vscode/cli/` を追加するか、`HELIX_HOME` 環境変数を設定。
+新機能として `matrix` / `plan` / `interrupt` / `builder` / `learn` / `promote` / `discover` を含む。
 
 | コマンド | 用途 |
 |---------|------|
@@ -134,6 +138,9 @@ confirmed な仮説は Forward HELIX（L2→）に接続。
 | `helix matrix <init\|compile\|validate\|status>` | 成果物対照表の初期化・コンパイル・検証 |
 | `helix plan <draft\|review\|finalize\|status\|list>` | 設計提案レビュー運用 |
 | `helix interrupt <start\|status\|apply\|resume\|cancel>` | 追加設計・追加要件モード管理 |
+| `helix learn [--all\|--task-run-id N\|--recipe-id ID]` | 成功パターン学習（recipe生成 + global同期） |
+| `helix promote <recipe-id\|--auto> --type <skill\|script\|task\|sub-agent>` | recipe昇格（Builder生成） |
+| `helix discover --query TEXT [--limit N]` | recipe探索（local + global） |
 | `helix builder <list\|schema\|generate\|validate\|history>` | ビルダーツール群の実行 |
 | `helix status` | プロジェクト全体の状態表示 |
 | `helix test` | 全ツールのセルフテスト |
