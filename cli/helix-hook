@@ -316,6 +316,14 @@ check_textlint_advisory() {
   fi
 }
 
+# --- A11Y Advisory ---
+check_a11y_advisory() {
+  local file="$1"
+  [[ ! "$file" =~ D-VIS/|D-A11Y/|D-UX-SIGNOFF/ ]] && return 0
+  echo "[helix-hook] a11y: Visual 成果物が更新されました"
+  echo "  axe-core でアクセシビリティチェックを推奨: npx @axe-core/cli <url>"
+}
+
 # --- Dangerous Pattern Advisory ---
 check_dangerous_patterns() {
   local file="$1"
@@ -339,4 +347,5 @@ check_freeze_violation "$REL_PATH"
 check_adr_index "$REL_PATH"
 match_trigger "$REL_PATH"
 check_textlint_advisory "$REL_PATH"
+check_a11y_advisory "$REL_PATH"
 check_dangerous_patterns "$REL_PATH"

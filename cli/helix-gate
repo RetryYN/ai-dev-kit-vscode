@@ -83,6 +83,16 @@ echo ""
 echo "=== $GATE: $gate_name ==="
 echo ""
 
+if [[ "$GATE" == "G7" ]]; then
+  echo "[helix-gate] デプロイ前チェックリスト:"
+  echo "  □ staging 環境でのスモークテスト完了"
+  echo "  □ ロールバック手順の確認"
+  echo "  □ DB マイグレーションの rehearsal 完了"
+  echo "  □ 監視ダッシュボードの確認"
+  echo "  □ リリースノート（D-RELNOTE）の最終確認"
+  echo ""
+fi
+
 # 実際の実行はここから
 run_checks() {
   local gate="$1"
@@ -357,10 +367,18 @@ run_checks() {
         echo "[helix-gate] ヒント: 'helix promote --auto' で昇格候補を確認できます"
         ;;
       G6)
+        echo "[helix-gate] ヒント: E2E テストを実行してください"
+        echo "  npx playwright test（Playwright）"
+        echo "  npm test -- --coverage（Jest）"
+        echo "  pytest --cov（pytest）"
         echo "次のアクション: helix gate G7 → helix pr でリリース準備"
         ;;
       G7)
         echo "次のアクション: helix pr で PR を作成してください"
+        echo ""
+        echo "[helix-gate] L8 受入準備:"
+        echo "  受入条件（D-ACC）と実装の突合を実施してください"
+        echo "  helix matrix status で全成果物の状態を確認"
         ;;
     esac
   fi

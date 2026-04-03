@@ -39,6 +39,10 @@ G3:
       cmd: "ls docs/design/L3-api-contract.* >/dev/null 2>&1"
     - name: "API契約 TODO 残存"
       cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L3-*.md docs/design/L3-*.yaml 2>/dev/null"
+    - name: "DB スキーマ定義存在（D-DB）"
+      cmd: "find docs -path '*/D-DB/*.md' -o -path '*/D-DB/*.yaml' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-DB なし'"
+    - name: "DB マイグレーション計画存在（D-MIG-PLAN）"
+      cmd: "find docs -path '*/D-MIG-PLAN/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-MIG-PLAN なし'"
   ai:
     - role: tl
       task: |

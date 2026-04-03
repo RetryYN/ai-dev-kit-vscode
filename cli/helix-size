@@ -272,6 +272,17 @@ fi
 if [[ -n "$NOTES" ]]; then
   echo "備考:         $NOTES"
 fi
+
+if [[ " ${PHASES[*]} " == *" L1 "* ]]; then
+  echo ""
+  echo "L1 要件定義テンプレート:"
+  echo "  docs/features/<name>/D-REQ-F/requirements.md  — 機能要件"
+  echo "  docs/features/<name>/D-REQ-NF/nfr.md          — 非機能要件"
+  echo "  docs/features/<name>/D-ACC/acceptance.md      — 受入条件"
+  echo ""
+  echo "  helix matrix add-feature <name> --drive $DRIVE で追加してください"
+fi
+
 echo ""
 echo "タスク種別:   ${TASK_TYPE:-未指定}"
 echo "UI変更:       $HAS_UI"

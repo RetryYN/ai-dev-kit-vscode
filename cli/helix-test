@@ -124,6 +124,13 @@ run_test_contains "action-types discover-pattern" "grep -n '^discover-pattern:' 
 run_test_contains "gate-checks has OWASP SQL" "grep -n 'OWASP: SQL インジェクション検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: SQL インジェクション検出"
 run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: XSS 検出"
 run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
+run_test_contains "gate-checks has D-DB static check" "grep -n 'DB スキーマ定義存在（D-DB）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB スキーマ定義存在（D-DB）"
+run_test_contains "gate-checks has D-MIG-PLAN static check" "grep -n 'DB マイグレーション計画存在（D-MIG-PLAN）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB マイグレーション計画存在（D-MIG-PLAN）"
+echo ""
+
+echo "[setup scripts]"
+run_test_contains "setup-textlint exists" "test -f $SCRIPT_DIR/scripts/setup-textlint.sh && echo OK" "OK"
+run_test_contains "setup-playwright exists" "test -f $SCRIPT_DIR/scripts/setup-playwright.sh && echo OK" "OK"
 echo ""
 
 echo "[skill-docs]"
@@ -177,6 +184,7 @@ run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui 
 run_test_contains "drive db" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "スキーマ凍結"
 run_test_contains "drive agent" "$SCRIPT_DIR/helix-size --files 3 --lines 150 --api --type new-feature --drive agent" "ツール定義凍結"
 run_test_contains "drive fullstack phase skip" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --type new-feature --drive fullstack" "推奨フェーズ: L2 L3 L4 L5 L6 L7 L8"
+run_test_contains "size shows L1 requirements template" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "L1 要件定義テンプレート:"
 run_test_contains "size writes phase.yaml" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type bugfix --drive fullstack" "phase.yaml 更新: current_phase=L4, drive=fullstack"
 run_test_contains "size sets current_phase" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
 run_test_contains "size sets sprint.drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.drive" "fullstack"
@@ -234,7 +242,10 @@ run_test "G6 prereq set G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py writ
 run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 1
 run_test "G6 prereq set G5 skipped" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status skipped"
 run_test "G6 prereq pass when G5 skipped" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run"
+run_test_contains "G6 shows E2E hint" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run 2>&1" "ヒント: E2E テストを実行してください"
 run_test "G6 prereq reset G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
+run_test "G7 prereq set G6 passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.status passed"
+run_test_contains "G7 shows deploy checklist" "$SCRIPT_DIR/helix-gate G7 --static-only --dry-run 2>&1" "デプロイ前チェックリスト:"
 run_test "fullstack gate set drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack"
 run_test "fullstack gate set BE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"
 run_test "fullstack gate set FE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .3"
