@@ -9,6 +9,7 @@ SCRIPT_DIR="$HELIX_HOME/cli"
 ROLES_DIR="$SCRIPT_DIR/roles"
 SKILLS_DIR="$HELIX_HOME/skills"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
 PROJECT_GENERATED_SKILLS_DIR="$PROJECT_ROOT/skills/generated"
 PROJECT_SKILLS_DIR="$PROJECT_ROOT/skills"
 PROJECT_CLAUDE_SKILLS_DIR="$PROJECT_ROOT/.claude/skills"
@@ -38,12 +39,14 @@ TASK=""
 THINKING=""
 DRY_RUN=false
 SANDBOX="workspace-write"
+TIMEOUT=300
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --role)      ROLE="$2"; shift 2 ;;
     --task)      TASK="$2"; shift 2 ;;
     --thinking)  THINKING="$2"; shift 2 ;;
+    --timeout)   TIMEOUT="$2"; shift 2 ;;
     --sandbox)   SANDBOX="$2"; shift 2 ;;
     --read-only) SANDBOX="read-only"; shift ;;
     --dry-run)   DRY_RUN=true; shift ;;
@@ -54,6 +57,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"
       echo "  --task \"...\"        タスク内容"
       echo "  --thinking <level>  思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
+      echo "  --timeout <sec>     codex exec タイムアウト秒（デフォルト: 300）"
       echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
       echo "               デフォルト: workspace-write"
       echo "  --read-only  --sandbox read-only のショートカット"
@@ -107,6 +111,11 @@ get_default_thinking() {
 
 if [[ -z "$THINKING" ]]; then
   THINKING="$(get_default_thinking "$ROLE")"
+fi
+
+if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
+  echo "エラー: 無効な --timeout 値です: '$TIMEOUT'（正の整数秒を指定）" >&2
+  exit 1
 fi
 
 # --- ロール設定読み込み ---
@@ -236,6 +245,7 @@ if [[ "$DRY_RUN" == true ]]; then
   echo "Role:      $ROLE"
   echo "Model:     $codex_model"
   echo "Thinking:  $THINKING"
+  echo "Timeout:   $TIMEOUT"
   echo "Sandbox:   $SANDBOX"
   echo "Skills:    ${LOADED_SKILLS[*]:-none}"
   echo "Docs:      ${LOADED_DOCS[*]:-none}"
@@ -277,14 +287,31 @@ fi
 
 echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SANDBOX skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
-set +e
-"$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
-  -c "model_reasoning_effort=\"$THINKING\"" \
-  -c 'shell_environment_policy.inherit=all'
-codex_exit=$?
-set -e
+MAX_RETRY=2
+retry=0
+codex_exit=1
+while [[ $retry -le $MAX_RETRY ]]; do
+  set +e
+  timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
+    -c "model_reasoning_effort=\"$THINKING\"" \
+    -c 'shell_environment_policy.inherit=all'
+  codex_exit=$?
+  set -e
 
-HELIX_DB_PATH="$PROJECT_ROOT/.helix/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert cost_log \
-  "{\"role\":\"$ROLE\",\"model\":\"$codex_model\",\"thinking\":\"$THINKING\"}" 2>/dev/null || true
+  if [[ $codex_exit -eq 0 ]]; then
+    break
+  fi
+
+  retry=$((retry + 1))
+  if [[ $retry -le $MAX_RETRY ]]; then
+    echo "[helix-codex] リトライ ($retry/$MAX_RETRY)..." >&2
+  fi
+done
+
+# コスト記録（バックグラウンド）
+if [[ -f "$HELIX_DIR/helix.db" ]]; then
+  HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert cost_log \
+    "{\"role\":\"$ROLE\",\"model\":\"$codex_model\",\"thinking\":\"$THINKING\"}" 2>/dev/null &
+fi
 
 exit $codex_exit

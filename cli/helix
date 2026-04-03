@@ -13,6 +13,7 @@ shift 2>/dev/null || true
 case "$CMD" in
   init)     exec "$SCRIPT_DIR/helix-init" "$@" ;;
   codex)    exec "$SCRIPT_DIR/helix-codex" "$@" ;;
+  team)     exec "$SCRIPT_DIR/helix-team" "$@" ;;
   gate)     exec "$SCRIPT_DIR/helix-gate" "$@" ;;
   size)     exec "$SCRIPT_DIR/helix-size" "$@" ;;
   sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
@@ -43,6 +44,7 @@ case "$CMD" in
 Commands:
   init        プロジェクト初期化
   codex       Codex へのタスク委譲
+  team        エージェントチーム実行
   gate        ゲート自動検証
   size        タスクサイジング
   sprint      L4 マイクロスプリント

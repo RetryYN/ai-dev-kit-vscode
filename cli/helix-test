@@ -143,6 +143,7 @@ run_test_contains "post-merge hook template exists" "test -f $SCRIPT_DIR/templat
 echo ""
 
 echo "[setup scripts]"
+run_test_contains "setup-all exists" "test -f $SCRIPT_DIR/scripts/setup-all.sh && echo OK" "OK"
 run_test_contains "setup-textlint exists" "test -f $SCRIPT_DIR/scripts/setup-textlint.sh && echo OK" "OK"
 run_test_contains "setup-playwright exists" "test -f $SCRIPT_DIR/scripts/setup-playwright.sh && echo OK" "OK"
 run_test_contains "setup-marp exists" "test -f $SCRIPT_DIR/scripts/setup-marp.sh && echo OK" "OK"
@@ -153,6 +154,9 @@ echo ""
 
 echo "[new commands]"
 run_test_contains "bench --help" "$SCRIPT_DIR/helix bench --help" "使い方: helix bench"
+run_test_contains "team --help" "$SCRIPT_DIR/helix team --help" "使い方: helix team <サブコマンド>"
+run_test "team list exits 0" "$SCRIPT_DIR/helix team list"
+run_test_contains "team list has review-team" "$SCRIPT_DIR/helix team list" "review-team"
 run_test_contains "retro --help" "$SCRIPT_DIR/helix retro --help" "使い方: helix retro"
 run_test_contains "debt --help" "$SCRIPT_DIR/helix debt --help" "使い方: helix debt"
 run_test_contains "doctor --help" "$SCRIPT_DIR/helix doctor --help" "使い方: helix doctor"
@@ -198,11 +202,16 @@ EOF
 chmod +x "$TEST_DIR/mock-codex-cli"
 
 run_test_contains "codex accepts --thinking xhigh" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'thinking test explicit' --thinking xhigh" "model_reasoning_effort=\"xhigh\""
+run_test_contains "codex accepts --timeout" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'timeout test explicit' --timeout 1" "mock-codex args:"
 run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl --task 'thinking test tl default' --dry-run" "Thinking:  xhigh"
 run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  medium"
 run_test "codex rejects invalid thinking" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra" 1
 run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra 2>&1 || true" "無効な --thinking 値"
 run_test_contains "codex warns unfinalized plan in L2" "D=\$(mktemp -d); cd \"\$D\"; git init -q; git config user.email test@test.com; git config user.name Test; mkdir -p .helix/plans; printf 'current_phase: L2\n' > .helix/phase.yaml; printf 'id: PLAN-001\nstatus: draft\n' > .helix/plans/PLAN-001.yaml; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role tl --task 'plan warning test' 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "未確定の設計提案があります"
+run_test "team run uses mocked codex" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix team run --definition $SCRIPT_DIR/templates/teams/review-team.yaml"
+run_test_contains "team status saved" "test -f .helix/team-status.json && echo OK" "OK"
+run_test "team_runner parse members" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c \"from team_runner import _parse_team_yaml; text='name: demo\\nstrategy: parallel\\nmembers:\\n  - role: se\\n    engine: codex\\n    task: \\\"A\\\"\\n  - role: qa\\n    engine: codex\\n    task: \\\"B\\\"\\n'; d=_parse_team_yaml(text); import sys; sys.exit(0 if d.get('strategy') == 'parallel' and len(d.get('members', [])) == 2 and d['members'][0].get('role') == 'se' and d['members'][1].get('role') == 'qa' else 1)\""
+run_test_contains "review-team template exists" "test -f $SCRIPT_DIR/templates/teams/review-team.yaml && echo OK" "OK"
 echo ""
 
 echo "[helix-size]"

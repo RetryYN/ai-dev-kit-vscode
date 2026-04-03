@@ -1,0 +1,12 @@
+name: implementation-team
+strategy: parallel
+members:
+  - role: se
+    engine: codex
+    task: "API 実装"
+  - role: dba
+    engine: codex
+    task: "DB マイグレーション"
+  - role: fe
+    engine: claude
+    task: "画面実装"

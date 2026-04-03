@@ -1,0 +1,11 @@
+name: twin-sprint
+strategy: twin
+members:
+  - role: se
+    engine: codex
+    track: be
+    task: "バックエンド実装: API エンドポイントとビジネスロジック"
+  - role: fe
+    engine: claude
+    track: fe
+    task: "フロントエンド実装: 画面コンポーネントとスタイル"

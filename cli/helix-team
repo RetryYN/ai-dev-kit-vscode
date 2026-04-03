@@ -1,0 +1,100 @@
+#!/bin/bash
+set -eo pipefail
+
+# helix-team: エージェントチーム実行
+# Usage: helix team <run|status|list>
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix team <サブコマンド> [オプション]
+
+サブコマンド:
+  run --definition <yaml>    チーム定義に基づいて実行
+  status                     実行中チームの状態
+  list                       利用可能なチーム定義一覧
+
+Examples:
+  helix team run --definition .helix/teams/review-team.yaml
+  helix team run --definition .helix/teams/twin-sprint.yaml
+  helix team list
+USAGE
+}
+
+case "${1:-help}" in
+  --help|-h|help)
+    usage
+    exit 0
+    ;;
+
+  run)
+    shift
+    DEF=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --definition)
+          DEF="$2"
+          shift 2
+          ;;
+        *)
+          echo "エラー: 不明なオプション: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    [[ -z "$DEF" ]] && {
+      echo "エラー: --definition は必須です" >&2
+      exit 1
+    }
+    [[ ! -f "$DEF" ]] && {
+      echo "エラー: 定義ファイルが見つかりません: $DEF" >&2
+      exit 1
+    }
+
+    echo "=== HELIX Team 実行 ==="
+    echo "定義: $DEF"
+    echo ""
+
+    python3 "$SCRIPT_DIR/lib/team_runner.py" \
+      --definition "$DEF" \
+      --project-root "$PROJECT_ROOT" \
+      --helix-home "$HELIX_HOME"
+    ;;
+
+  status)
+    echo "=== HELIX Team Status ==="
+    if [[ -f "$HELIX_DIR/team-status.json" ]]; then
+      python3 -c "import json; d=json.load(open('$HELIX_DIR/team-status.json')); [print(f'  {m[\"role\"]}: {m[\"status\"]}') for m in d.get('members', [])]" 2>/dev/null
+    else
+      echo "実行中のチームなし"
+    fi
+    ;;
+
+  list)
+    echo "=== チーム定義一覧 ==="
+    echo "[ビルトイン]"
+    for f in "$HELIX_HOME/cli/templates/teams"/*.yaml; do
+      [[ -f "$f" ]] || continue
+      echo "  $(basename "$f" .yaml)"
+    done
+
+    if ls "$HELIX_DIR/teams"/*.yaml >/dev/null 2>&1; then
+      echo "[プロジェクト]"
+      for f in "$HELIX_DIR/teams"/*.yaml; do
+        [[ -f "$f" ]] || continue
+        echo "  $(basename "$f" .yaml)"
+      done
+    fi
+    ;;
+
+  *)
+    echo "エラー: 不明なサブコマンド: $1" >&2
+    usage
+    exit 1
+    ;;
+esac

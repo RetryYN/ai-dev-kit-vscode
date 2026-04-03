@@ -1,0 +1,12 @@
+name: review-team
+strategy: sequential
+members:
+  - role: tl
+    engine: codex
+    task: "設計レビュー: 変更内容の設計整合性を確認"
+  - role: security
+    engine: codex
+    task: "セキュリティレビュー: 脆弱性とOWASP対策を確認"
+  - role: qa
+    engine: codex
+    task: "テスト網羅性レビュー: テストカバレッジと品質を確認"
