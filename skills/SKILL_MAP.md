@@ -158,18 +158,18 @@ fullstack 追加条件:
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools |
 | integration/ | agent-teams |
-| writing/ | japanese, explain, story, presentation |
-| design-tools/ | diagram, web-system, pptx, graphic |
+| writing/ | japanese, explain, story, presentation, social |
+| design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize |
 
 ### Wave B/C
 
 - story
 - presentation
-- social（未実装）
+- social
 - pptx
 - graphic
-- character（未実装）
+- character
 - flow-optimize
 
 ## メンテナンス指針
