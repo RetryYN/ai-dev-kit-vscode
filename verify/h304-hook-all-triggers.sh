@@ -10,6 +10,7 @@ cd "$DIR" && git init -q && git config user.email "t@t" && git config user.name 
 echo "t" > README.md && git add . && git commit -q -m "i"
 export HELIX_PROJECT_ROOT="$DIR"
 $CLI/helix-init --project-name t >/dev/null 2>&1
+$CLI/helix-matrix add-feature user-auth --drive be >/dev/null 2>&1
 
 echo "=== H304: Hook All Triggers ==="
 
