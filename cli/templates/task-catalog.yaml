@@ -751,6 +751,174 @@ deploy:
       - { type: validate-assumption, desc: "アラート発火テスト" }
 
 # ============================================================
+# triage: トリアージ系
+# ============================================================
+triage:
+  issue-triage:
+    name: "Issue トリアージ"
+    role: pg
+    estimate: 15
+    skill: workflow/project-management
+    actions:
+      - { type: analyze, desc: "Issue の内容を分析" }
+      - { type: classify, desc: "severity/priority を判定" }
+      - { type: generate, desc: "ラベル・担当者を提案" }
+
+  bug-triage:
+    name: "バグトリアージ"
+    role: qa
+    estimate: 20
+    skill: common/error-fix
+    actions:
+      - { type: analyze, desc: "バグレポートの再現確認" }
+      - { type: classify, desc: "severity 判定" }
+      - { type: generate, desc: "修正優先度と担当を提案" }
+
+  pr-triage:
+    name: "PR トリアージ"
+    role: tl
+    estimate: 15
+    skill: common/code-review
+    actions:
+      - { type: analyze, desc: "PR の変更範囲とリスク評価" }
+      - { type: classify, desc: "レビュー優先度を判定" }
+      - { type: generate, desc: "レビューポイントを提案" }
+
+# ============================================================
+# ci-cd: CI/CD 系
+# ============================================================
+ci-cd:
+  build-fix:
+    name: "ビルドエラー修正"
+    role: pg
+    estimate: 30
+    skill: common/error-fix
+    actions:
+      - { type: analyze, desc: "ビルドログの解析" }
+      - { type: search-internal, desc: "エラー原因の特定" }
+      - { type: implement, desc: "修正実装" }
+      - { type: verify, desc: "ビルド成功確認" }
+
+  ci-failure-analysis:
+    name: "CI 失敗分析"
+    role: se
+    estimate: 20
+    skill: common/error-fix
+    actions:
+      - { type: analyze, desc: "CI ログの解析" }
+      - { type: classify, desc: "失敗原因の分類" }
+      - { type: generate, desc: "修正提案" }
+
+  dependency-update:
+    name: "依存ライブラリ更新"
+    role: se
+    estimate: 45
+    skill: workflow/dependency-map
+    actions:
+      - { type: analyze, desc: "outdated/脆弱性の確認" }
+      - { type: implement, desc: "バージョンアップ" }
+      - { type: verify, desc: "互換性テスト" }
+
+  release-cut:
+    name: "リリースカット"
+    role: devops
+    estimate: 30
+    skill: workflow/deploy
+    actions:
+      - { type: generate, desc: "リリースブランチ作成" }
+      - { type: generate, desc: "バージョン番号更新" }
+      - { type: generate, desc: "リリースノート生成" }
+
+  hotfix:
+    name: "ホットフィックス"
+    role: se
+    estimate: 60
+    skill: common/error-fix
+    actions:
+      - { type: analyze, desc: "緊急バグの影響範囲特定" }
+      - { type: implement, desc: "修正実装" }
+      - { type: verify, desc: "テスト + cherry-pick" }
+      - { type: deploy, desc: "緊急デプロイ" }
+
+# ============================================================
+# monitoring: 監視系
+# ============================================================
+monitoring:
+  alert-setup:
+    name: "アラート設定"
+    role: devops
+    estimate: 30
+    skill: workflow/observability-sre
+    actions:
+      - { type: analyze, desc: "監視対象の特定" }
+      - { type: generate, desc: "アラートルール定義" }
+      - { type: verify, desc: "テストアラート発火確認" }
+
+  dashboard-build:
+    name: "ダッシュボード構築"
+    role: devops
+    estimate: 45
+    skill: workflow/observability-sre
+    actions:
+      - { type: analyze, desc: "メトリクス要件の整理" }
+      - { type: generate, desc: "ダッシュボード定義" }
+      - { type: verify, desc: "データ表示確認" }
+
+  log-analysis:
+    name: "ログ分析"
+    role: se
+    estimate: 30
+    skill: workflow/observability-sre
+    actions:
+      - { type: search-internal, desc: "ログパターン検索" }
+      - { type: analyze, desc: "異常パターン特定" }
+      - { type: generate, desc: "分析レポート作成" }
+
+# ============================================================
+# incident: インシデント系
+# ============================================================
+incident:
+  incident-response:
+    name: "インシデント対応"
+    role: devops
+    estimate: 60
+    skill: workflow/incident
+    actions:
+      - { type: analyze, desc: "影響範囲の特定" }
+      - { type: implement, desc: "緊急対処" }
+      - { type: verify, desc: "復旧確認" }
+      - { type: generate, desc: "タイムライン記録" }
+
+  root-cause-analysis:
+    name: "根本原因分析"
+    role: tl
+    estimate: 45
+    skill: common/error-fix
+    actions:
+      - { type: analyze, desc: "5 Whys 分析" }
+      - { type: search-internal, desc: "関連コード・設定の調査" }
+      - { type: generate, desc: "RCA レポート" }
+
+  postmortem-write:
+    name: "ポストモーテム作成"
+    role: tl
+    estimate: 30
+    skill: workflow/postmortem
+    actions:
+      - { type: analyze, desc: "タイムラインと影響の整理" }
+      - { type: generate, desc: "ポストモーテム文書作成" }
+
+  runbook-update:
+    name: "運用手順書更新"
+    role: docs
+    estimate: 30
+    skill: common/documentation
+    actions:
+      - { type: analyze, desc: "既存手順の確認" }
+      - { type: implement, desc: "手順の更新・追加" }
+      - { type: verify, desc: "手順の実行テスト" }
+
+# ============================================================
 # legacy: レガシー系（Reverse HELIX R0→R4 + 移行）
 # ============================================================
 legacy:

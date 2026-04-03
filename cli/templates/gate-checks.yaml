@@ -19,6 +19,10 @@ G2:
       cmd: "ls docs/design/L2-*.md >/dev/null 2>&1"
     - name: "AG02 権限設定確認"
       cmd: "test -f .claude/settings.json && ! grep -q 'danger-full-access' .claude/settings.json 2>/dev/null || echo 'WARN: settings.json 未設定'"
+    - name: "ADR が代替案を含むか"
+      cmd: "find docs -path '*/D-ADR/*' -name '*.md' -exec grep -l '代替案\\|alternatives\\|却下' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: ADR なし'"
+    - name: "スコープ境界が明示されているか"
+      cmd: "find docs -path '*/D-REQ-F/*' -name '*.md' -exec grep -l 'スコープ外\\|対象外\\|out.of.scope' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 要件文書なし'"
   ai:
     - role: tl
       task: |
@@ -39,6 +43,8 @@ G3:
       cmd: "ls docs/design/L3-api-contract.* >/dev/null 2>&1"
     - name: "API契約 TODO 残存"
       cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L3-*.md docs/design/L3-*.yaml 2>/dev/null"
+    - name: "API 凍結宣言"
+      cmd: "find docs -path '*/D-API/*' -name '*.yaml' -o -path '*/D-API/*' -name '*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: API 契約なし'"
     - name: "DB スキーマ定義存在（D-DB）"
       cmd: "find docs -path '*/D-DB/*.md' -o -path '*/D-DB/*.yaml' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-DB なし'"
     - name: "DB マイグレーション計画存在（D-MIG-PLAN）"
@@ -135,6 +141,8 @@ G6:
       cmd: "npx playwright test 2>&1; test $? -eq 0"
     - name: "Flaky テスト検出（3回実行で不安定なし）"
       cmd: "echo 'SKIP: Flaky テスト検出は手動実行推奨（helix test を3回実行して比較）'"
+    - name: "テスト十分性の判断記録"
+      cmd: "echo 'advisory: テストカバレッジと mutation score を確認してください'"
   ai:
     - role: qa
       task: |
@@ -150,6 +158,10 @@ G7:
   static:
     - name: "Docker ビルド"
       cmd: "docker build -t test . 2>&1; test $? -eq 0"
+    - name: "ロールバック手順の存在"
+      cmd: "find docs -path '*/D-DEPLOY/*' -name '*.md' -exec grep -l 'ロールバック\\|rollback' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: デプロイ文書なし'"
+    - name: "監視設定の存在"
+      cmd: "find docs -path '*/D-OBS/*' -name '*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 監視文書なし'"
   ai:
     - role: devops
       task: |

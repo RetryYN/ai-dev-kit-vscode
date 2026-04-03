@@ -459,6 +459,24 @@ PY
     fi
     case "$gate" in
       G4)
+        echo ""
+        echo "[helix-gate] 品質改善の提案:"
+
+        # TODO/FIXME/HACK/WORKAROUND の残存数を集計
+        todo_count=$( (rg -c 'TODO|FIXME|HACK|WORKAROUND' src/ 2>/dev/null || true) | awk -F: '{s+=$2}END{print s+0}' )
+        if [[ $todo_count -gt 0 ]]; then
+          echo "  TODO/FIXME: $todo_count 件 → helix debt add で台帳化を推奨"
+        fi
+
+        # 負債台帳の未解決件数サマリ
+        if [[ -f "$HELIX_DIR/debt-register.yaml" ]]; then
+          debt_count=$(grep -c "status: open" "$HELIX_DIR/debt-register.yaml" 2>/dev/null || true)
+          debt_count="${debt_count:-0}"
+          echo "  技術負債: $debt_count 件（未解決）→ 次イテレーション 20% 枠で対応推奨"
+        fi
+
+        echo "  helix promote --auto で昇格候補を確認"
+        echo "  helix bench で品質推移を確認"
         echo "次のアクション: helix gate G5 または helix gate G6 に進んでください"
         echo "[helix-gate] ヒント: 'helix promote --auto' で昇格候補を確認できます"
         ;;

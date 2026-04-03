@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +52,51 @@ def _parse_args() -> argparse.Namespace:
     group.add_argument("--task-id", help="task_run_id(数値) または task_id(T001 など)")
     group.add_argument("--all", action="store_true", help="全成功タスクを対象にする")
     return parser.parse_args()
+
+
+def _load_pattern_keys(recipe_paths: list[str]) -> list[str]:
+    pattern_keys: list[str] = []
+    seen: set[str] = set()
+
+    for recipe_path in recipe_paths:
+        try:
+            payload = json.loads(Path(recipe_path).read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if not isinstance(payload, dict):
+            continue
+        pattern_key = str(payload.get("pattern_key") or "").strip()
+        if not pattern_key or pattern_key in seen:
+            continue
+        seen.add(pattern_key)
+        pattern_keys.append(pattern_key)
+
+    return pattern_keys
+
+
+def _count_projects_for_pattern(global_db: str, pattern_key: str) -> int:
+    db_path = Path(global_db).expanduser()
+    if not db_path.exists():
+        return 0
+
+    conn: sqlite3.Connection | None = None
+    try:
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute(
+            "SELECT COUNT(DISTINCT project_id) FROM recipe_index WHERE pattern_key = ?",
+            (pattern_key,),
+        ).fetchone()
+        if not row:
+            return 0
+        try:
+            return int(row[0] or 0)
+        except (TypeError, ValueError):
+            return 0
+    except Exception:  # noqa: BLE001
+        return 0
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def main() -> int:
@@ -125,6 +172,15 @@ def main() -> int:
 
     print("")
     print("昇格候補の確認: helix promote --auto")
+
+    global_db = str(sync_result.get("global_db") or "").strip()
+    if global_db:
+        for pattern_key in _load_pattern_keys(generated_paths):
+            similar_count = _count_projects_for_pattern(global_db, pattern_key)
+            if similar_count >= 3:
+                print(f"[helix-learn] 外部化候補: このパターンは {similar_count} プロジェクトで使用されています")
+                print("  helix promote で共通スキル/スクリプトへの昇格を検討してください")
+                print(f"  pattern_key: {pattern_key}")
 
     return 0
 

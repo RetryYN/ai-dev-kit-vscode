@@ -126,12 +126,15 @@ run_test_contains "action-types discover-pattern" "grep -n '^discover-pattern:' 
 run_test_contains "gate-checks has OWASP SQL" "grep -n 'OWASP: SQL インジェクション検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: SQL インジェクション検出"
 run_test_contains "gate-checks has OWASP XSS" "grep -n 'OWASP: XSS 検出' $SCRIPT_DIR/templates/gate-checks.yaml" "OWASP: XSS 検出"
 run_test_contains "gate-checks has credential scan" "grep -n '秘密情報ハードコード検出' $SCRIPT_DIR/templates/gate-checks.yaml" "秘密情報ハードコード検出"
+run_test_contains "gate-checks has ADR alternatives check" "grep -n 'ADR が代替案を含むか' $SCRIPT_DIR/templates/gate-checks.yaml" "ADR が代替案を含むか"
 run_test_contains "gate-checks has debt register check" "grep -n '技術負債台帳の存在' $SCRIPT_DIR/templates/gate-checks.yaml" "技術負債台帳の存在"
 run_test_contains "gate-checks has coverage check" "grep -n 'テストカバレッジ（あれば）' $SCRIPT_DIR/templates/gate-checks.yaml" "テストカバレッジ（あれば）"
 run_test_contains "gate-checks has requirement map check" "grep -n '要件→実装マッピング存在（あれば）' $SCRIPT_DIR/templates/gate-checks.yaml" "要件→実装マッピング存在（あれば）"
 run_test_contains "gate-checks has FE mock check" "grep -n 'モック/ダミー残存チェック' $SCRIPT_DIR/templates/gate-checks.yaml" "モック/ダミー残存チェック"
 run_test_contains "gate-checks has D-DB static check" "grep -n 'DB スキーマ定義存在（D-DB）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB スキーマ定義存在（D-DB）"
 run_test_contains "gate-checks has D-MIG-PLAN static check" "grep -n 'DB マイグレーション計画存在（D-MIG-PLAN）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB マイグレーション計画存在（D-MIG-PLAN）"
+run_test_contains "task-catalog has triage category" "grep -n '^triage:' $SCRIPT_DIR/templates/task-catalog.yaml" "triage:"
+run_test_contains "action-types has classify" "grep -n '^classify:' $SCRIPT_DIR/templates/action-types.yaml" "classify:"
 run_test_contains "commit-msg hook template exists" "test -f $SCRIPT_DIR/templates/commit-msg-hook && echo OK" "OK"
 echo ""
 
@@ -247,6 +250,7 @@ run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
 run_test "G4 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed"
+run_test_contains "G4 pass shows quality suggestions" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run 2>&1" "品質改善の提案"
 run_test "G6 prereq set G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
 run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 1
 run_test "G6 prereq set G5 skipped" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status skipped"
