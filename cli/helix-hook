@@ -40,6 +40,43 @@ fi
 # 相対パスに変換
 REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
 
+# Python チェックのキャッシュ（同一ファイルの連続チェックを高速化）
+CACHE_DIR="${TMPDIR:-/tmp}/helix-hook-cache"
+mkdir -p "$CACHE_DIR" 2>/dev/null || true
+hash_file_short() {
+  local path="$1"
+  [[ -f "$path" ]] || { echo "0"; return; }
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum "$path" 2>/dev/null | cut -c1-16
+  else
+    shasum "$path" 2>/dev/null | cut -c1-16
+  fi
+}
+
+FILE_HASH=$(hash_file_short "$CHANGED_FILE")
+PHASE_HASH=$(hash_file_short "$PHASE_FILE")
+INDEX_HASH=$(hash_file_short "$HELIX_DIR/runtime/index.json")
+DOC_MAP_HASH=$(hash_file_short "$DOC_MAP")
+
+if command -v md5sum >/dev/null 2>&1; then
+  CACHE_KEY=$(printf '%s|%s|%s|%s|%s|%s|%s' "$PROJECT_ROOT" "$REL_PATH" "$FILE_HASH" "$PHASE_HASH" "$INDEX_HASH" "$DOC_MAP_HASH" "${HELIX_GUARD:-on}" | md5sum | cut -c1-16)
+else
+  CACHE_KEY=$(printf '%s|%s|%s|%s|%s|%s|%s' "$PROJECT_ROOT" "$REL_PATH" "$FILE_HASH" "$PHASE_HASH" "$INDEX_HASH" "$DOC_MAP_HASH" "${HELIX_GUARD:-on}" | shasum | cut -c1-16)
+fi
+CACHE_FILE="$CACHE_DIR/$CACHE_KEY.out"
+CACHE_STATUS_FILE="$CACHE_DIR/$CACHE_KEY.status"
+CACHE_TTL=5
+
+if [[ -f "$CACHE_FILE" && -f "$CACHE_STATUS_FILE" ]]; then
+  cache_age=$(( $(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0) ))
+  if [[ $cache_age -lt $CACHE_TTL ]]; then
+    cat "$CACHE_FILE"
+    cached_status=$(cat "$CACHE_STATUS_FILE" 2>/dev/null || echo 0)
+    [[ "$cached_status" =~ ^[0-9]+$ ]] || cached_status=0
+    exit "$cached_status"
+  fi
+fi
+
 json_escape() {
   local value="$1"
   value="${value//\\/\\\\}"
@@ -109,7 +146,7 @@ check_phase_guard() {
   if ! python3 "$GUARD" "${args[@]}"; then
     log_hook_event "phase_guard_block" "$file" "blocked"
     echo "[helix-guard] ヒント: HELIX_GUARD=off を設定すると一時的にガードを無効化できます"
-    exit 1
+    return 1
   fi
 }
 
@@ -409,13 +446,27 @@ check_fe_quality() {
   fi
 }
 
-# --- 実行 ---
-check_phase_guard "$REL_PATH"
-check_matrix_advisory "$REL_PATH"
-check_freeze_violation "$REL_PATH"
-check_adr_index "$REL_PATH"
-match_trigger "$REL_PATH"
-check_textlint_advisory "$REL_PATH"
-check_a11y_advisory "$REL_PATH"
-check_fe_quality "$REL_PATH"
-check_dangerous_patterns "$REL_PATH"
+run_all_checks() {
+  check_phase_guard "$REL_PATH" || return 1
+  check_matrix_advisory "$REL_PATH"
+  check_freeze_violation "$REL_PATH"
+  check_adr_index "$REL_PATH"
+  match_trigger "$REL_PATH"
+  check_textlint_advisory "$REL_PATH"
+  check_a11y_advisory "$REL_PATH"
+  check_fe_quality "$REL_PATH"
+  check_dangerous_patterns "$REL_PATH"
+}
+
+tmp_out=$(mktemp "${TMPDIR:-/tmp}/helix-hook-run-XXXXXX")
+set +e
+run_all_checks >"$tmp_out" 2>&1
+hook_status=$?
+set -e
+
+cat "$tmp_out"
+cp "$tmp_out" "$CACHE_FILE" 2>/dev/null || true
+echo "$hook_status" > "$CACHE_STATUS_FILE" 2>/dev/null || true
+rm -f "$tmp_out"
+
+exit "$hook_status"

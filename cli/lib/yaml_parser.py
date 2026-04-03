@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Lightweight YAML parser — PyYAML 不要。
+責務: HELIX の phase/state YAML の読み書き（状態管理）を安全に行う。
 helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーではない。
 
 Usage:
@@ -14,8 +15,10 @@ Examples:
 """
 
 import sys
+import os
 import json
 import re
+import fcntl
 from pathlib import Path
 
 
@@ -198,6 +201,42 @@ def _serialize(val):
     return str(val)
 
 
+def _build_output_with_header(text, data):
+    """ヘッダーコメントを保持した YAML 出力を作る。"""
+    header = []
+    for line in text.splitlines():
+        if line.startswith('#'):
+            header.append(line)
+        else:
+            break
+    header_text = '\n'.join(header)
+    body = dump_yaml(data)
+    if header_text:
+        return header_text + '\n\n' + body + '\n'
+    return body + '\n'
+
+
+def write_yaml_safe(filepath, dotpath, value):
+    """排他ロック + atomic rename で YAML を安全に更新する。"""
+    lock_path = filepath + ".lock"
+    with open(lock_path, 'w', encoding='utf-8') as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        try:
+            text = Path(filepath).read_text(encoding='utf-8')
+            data = parse_yaml(text)
+            set_nested(data, dotpath, value)
+            output = _build_output_with_header(text, data)
+            tmp_path = f"{filepath}.tmp.{os.getpid()}"
+            Path(tmp_path).write_text(output, encoding='utf-8')
+            os.replace(tmp_path, filepath)
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+    try:
+        os.unlink(lock_path)
+    except OSError:
+        pass
+
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: yaml_parser.py <read|write|dump> <file> [dotpath] [value]", file=sys.stderr)
@@ -206,9 +245,8 @@ def main():
     cmd = sys.argv[1]
     filepath = sys.argv[2]
 
-    text = Path(filepath).read_text()
-
     if cmd == 'dump':
+        text = Path(filepath).read_text(encoding='utf-8')
         data = parse_yaml(text)
         print(json.dumps(data, ensure_ascii=False, indent=2))
     elif cmd == 'read':
@@ -216,6 +254,7 @@ def main():
             print("Usage: yaml_parser.py read <file> <dotpath>", file=sys.stderr)
             sys.exit(1)
         try:
+            text = Path(filepath).read_text(encoding='utf-8')
             data = parse_yaml(text)
         except Exception as e:
             print(f"エラー: YAML 解析失敗 — {e}", file=sys.stderr)
@@ -230,19 +269,9 @@ def main():
         if len(sys.argv) < 5:
             print("Usage: yaml_parser.py write <file> <dotpath> <value>", file=sys.stderr)
             sys.exit(1)
-        data = parse_yaml(text)
         dotpath = sys.argv[3]
         value = sys.argv[4]
-        set_nested(data, dotpath, value)
-        # ヘッダーコメントを保持
-        header = []
-        for line in text.splitlines():
-            if line.startswith('#'):
-                header.append(line)
-            else:
-                break
-        output = '\n'.join(header) + '\n\n' + dump_yaml(data) + '\n'
-        Path(filepath).write_text(output)
+        write_yaml_safe(filepath, dotpath, value)
     else:
         print(f"Unknown command: {cmd}", file=sys.stderr)
         sys.exit(1)

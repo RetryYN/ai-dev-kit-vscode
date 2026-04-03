@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """doc-map.yaml のトリガーマッチャー。
 
+責務: 変更ファイルに対して doc-map のトリガー種別を判定し、hook 用イベントへ変換する。
+
 Usage:
   python3 doc_map_matcher.py <doc_map_path> <file_path>
 

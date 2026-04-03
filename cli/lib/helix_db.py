@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """HELIX ログデータベース — SQLite ベースのタスク実行・評価・改善追跡
 
+責務: HELIX の実行ログを SQLite に永続化し、集計/参照 API を提供する。
+
 Usage:
   python3 helix_db.py init <db_path>
   python3 helix_db.py record-task <db> <json>

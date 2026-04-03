@@ -1,3 +1,8 @@
+"""HELIX learning engine.
+
+責務: 実行履歴から成功/失敗パターンを分析し、再利用可能な recipe を生成する。
+"""
+
 from __future__ import annotations
 
 import copy

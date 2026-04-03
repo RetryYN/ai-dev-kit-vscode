@@ -112,6 +112,7 @@ run_test_contains "matrix auto-detect auto run" "$SCRIPT_DIR/helix-init --force"
 run_test_contains "matrix compile auto outputs" "test -f .helix/runtime/index.json && test -f .helix/state/deliverables.json && echo OK" "OK"
 run_test_contains "matrix compile guidance shown" "$SCRIPT_DIR/helix-init --force" "matrix compile / helix matrix auto-detect で成果物対照表を有効化"
 run_test_contains "init status guidance shown" "$SCRIPT_DIR/helix-init --force" "helix status でプロジェクト状態を確認"
+run_test "init monorepo package mode" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p packages/api; echo '{\"name\":\"mono\"}' > package.json; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name api --monorepo-package packages/api >/dev/null 2>&1; test -d \"\$D/packages/api/.helix\"; rm -rf \"\$D\""
 run_test_contains "matrix template empty features" "grep -n '^features: {}$' .helix/matrix.yaml" "features: {}"
 run_test "matrix seed add-feature user-auth" "$SCRIPT_DIR/helix-matrix add-feature user-auth --drive be --ui --risk auth,pii"
 run_test "matrix seed add-feature payment" "$SCRIPT_DIR/helix-matrix add-feature payment --drive be --risk payment,pii,external_api"
@@ -246,6 +247,9 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
+run_test "G2 undo to pending" "$SCRIPT_DIR/helix-gate G2 --undo"
+run_test_contains "G2 undo status pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "pending"
+run_test "G2 undo clears date" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c \"import pathlib, yaml_parser; data=yaml_parser.parse_yaml(pathlib.Path('.helix/phase.yaml').read_text(encoding='utf-8')); v=yaml_parser.get_nested(data, 'gates.G2.date'); raise SystemExit(0 if v in (None, '') else 1)\""
 run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
@@ -523,6 +527,7 @@ run_test "yaml write" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase
 run_test_contains "yaml write verify" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
 run_test "yaml read broken fails" "printf 'project: test\nbroken-line\n' > .helix/broken.yaml; python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/broken.yaml project" 1
 run_test_contains "yaml read broken error message" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/broken.yaml project 2>&1 || true" "エラー: YAML 解析失敗"
+run_test "yaml write waits on lock" "python3 -c \"import fcntl, subprocess, tempfile, time, pathlib; y='$SCRIPT_DIR/lib/yaml_parser.py'; d=pathlib.Path(tempfile.mkdtemp(prefix='helix-lock-')); p=d/'phase.yaml'; p.write_text('project: t\\n', encoding='utf-8'); lock=open(str(p)+'.lock','w',encoding='utf-8'); fcntl.flock(lock, fcntl.LOCK_EX); proc=subprocess.Popen(['python3', y, 'write', str(p), 'gates.G2.status', 'passed']); time.sleep(0.3); blocked=(proc.poll() is None); fcntl.flock(lock, fcntl.LOCK_UN); lock.close(); proc.wait(timeout=5); raise SystemExit(0 if blocked and proc.returncode==0 else 1)\""
 echo ""
 
 echo "[sqlite]"
@@ -569,9 +574,11 @@ run_test_contains "matrix update in_progress persisted" "python3 -c \"import jso
 run_test "matrix update invalid deliverable fails" "$SCRIPT_DIR/helix-matrix update --feature user-auth --deliverable D-NOT-EXIST --status done" 1
 run_test "matrix set pending for auto-detect doc" "python3 -c \"import json; p='.helix/state/deliverables.json'; d=json.load(open(p)); d['features']['user-auth']['deliverables']['D-REQ-F']['status']='pending'; json.dump(d, open(p,'w'), ensure_ascii=False, indent=2); open(p,'a').write('\\n')\""
 mkdir -p docs/features/user-auth/D-REQ-F
-echo "# 要件" > docs/features/user-auth/D-REQ-F/requirements.md
+printf '0123456789\n' > docs/features/user-auth/D-REQ-F/requirements.md
 run_test "matrix auto-detect docs" "$SCRIPT_DIR/helix-matrix auto-detect"
 run_test_contains "matrix auto-detect docs done" "python3 -c \"import json; d=json.load(open('.helix/state/deliverables.json')); print(d['features']['user-auth']['deliverables']['D-REQ-F']['status'])\"" "done"
+run_test "matrix auto-detect empty file pending" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name matrix-empty-file >/dev/null 2>&1; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" add-feature user-auth --drive be >/dev/null 2>&1; mkdir -p \"\$D/docs/features/user-auth/D-REQ-F\"; : > \"\$D/docs/features/user-auth/D-REQ-F/requirements.md\"; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" auto-detect >/dev/null 2>&1; python3 -c \"import json; d=json.load(open('\$D/.helix/state/deliverables.json')); print(d['features']['user-auth']['deliverables']['D-REQ-F']['status'])\" | grep -q '^pending$'; rm -rf \"\$D\""
+run_test "matrix auto-detect 10bytes done" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name matrix-10bytes >/dev/null 2>&1; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" add-feature user-auth --drive be >/dev/null 2>&1; mkdir -p \"\$D/docs/features/user-auth/D-REQ-F\"; printf '0123456789' > \"\$D/docs/features/user-auth/D-REQ-F/requirements.md\"; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" auto-detect >/dev/null 2>&1; python3 -c \"import json; d=json.load(open('\$D/.helix/state/deliverables.json')); print(d['features']['user-auth']['deliverables']['D-REQ-F']['status'])\" | grep -q '^done$'; rm -rf \"\$D\""
 run_test "matrix set pending for auto-detect impl" "python3 -c \"import json; p='.helix/state/deliverables.json'; d=json.load(open(p)); d['features']['user-auth']['deliverables']['D-IMPL']['status']='pending'; json.dump(d, open(p,'w'), ensure_ascii=False, indent=2); open(p,'a').write('\\n')\""
 mkdir -p src/features/user-auth/D-IMPL
 echo "export const impl = true;" > src/features/user-auth/D-IMPL/impl.ts
@@ -689,7 +696,7 @@ for feature_id, feature in features.items():
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         headings = heading_requirements.get(did, [])
-        body = [f"# {did}"]
+        body = [f"# {did}", "seed content"]
         body.extend([f"## {h}" for h in headings])
         path.write_text("\n".join(body) + "\n", encoding="utf-8")
 
@@ -753,8 +760,8 @@ state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", en
 PY
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml gates.G4.status passed 2>/dev/null || true
 run_test_contains "G5 ui=false skip" "$SCRIPT_DIR/helix-gate G5 --static-only" "ui=false, skip"
-run_test_contains "G2 dry-run shows deliverable" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run" "\\[deliverable\\]"
-run_test "default matrix auto-detect e2e" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name test-flow 2>/dev/null; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" add-feature user-auth --drive be 2>/dev/null; mkdir -p docs/features/user-auth/D-REQ-F; echo '# 要件' > docs/features/user-auth/D-REQ-F/requirements.md; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" auto-detect 2>/dev/null; python3 -c \"import json; d=json.load(open('\$D/.helix/state/deliverables.json')); print('auto-detect ok' if d['features']['user-auth']['deliverables']['D-REQ-F']['status']=='done' else 'FAIL')\" | grep -q 'auto-detect ok'; rm -rf \"\$D\""
+run_test_contains "G2 dry-run shows deliverable" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run 2>&1 || true" "\\[deliverable\\]"
+run_test "default matrix auto-detect e2e" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name test-flow 2>/dev/null; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" add-feature user-auth --drive be 2>/dev/null; mkdir -p docs/features/user-auth/D-REQ-F; printf '0123456789\n' > docs/features/user-auth/D-REQ-F/requirements.md; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" auto-detect 2>/dev/null; python3 -c \"import json; d=json.load(open('\$D/.helix/state/deliverables.json')); print('auto-detect ok' if d['features']['user-auth']['deliverables']['D-REQ-F']['status']=='done' else 'FAIL')\" | grep -q 'auto-detect ok'; rm -rf \"\$D\""
 echo ""
 
 echo "[helix-hook matrix advisory]"

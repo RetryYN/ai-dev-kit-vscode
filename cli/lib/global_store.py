@@ -1,3 +1,8 @@
+"""HELIX global recipe store.
+
+責務: 複数プロジェクト横断で recipe インデックスを保存・検索する。
+"""
+
 from __future__ import annotations
 
 import hashlib

@@ -3,6 +3,14 @@ set -eo pipefail
 
 # helix-gate: HELIX ゲート自動検証
 # Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]
+#
+# 責務分離:
+#   1. 前提条件チェック（prereq gate）      → check_prerequisites()
+#   2. Deliverable チェック                 → deliverable_gate.py
+#   3. Static チェック                      → gate-checks.yaml 実行
+#   4. AI チェック                          → helix-codex 委譲
+#   5. 総合判定 + phase.yaml 更新           → update_phase()
+#   6. 後処理（retro 生成、提案メッセージ）  → post_gate()
 
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -17,14 +25,16 @@ GATE=""
 STATIC_ONLY=false
 AI_ONLY=false
 DRY_RUN=false
+UNDO=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --static-only) STATIC_ONLY=true; shift ;;
     --ai-only)     AI_ONLY=true; shift ;;
     --dry-run)     DRY_RUN=true; shift ;;
+    --undo)        UNDO=true; shift ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo]"
       echo ""
       echo "Gates: G2, G3, G4, G5, G6, G7"
       exit 0
@@ -49,11 +59,6 @@ if [[ ! "$GATE" =~ ^G[2-7]$ ]]; then
   exit 1
 fi
 
-if [[ ! -f "$GATE_CHECKS" ]]; then
-  echo "エラー: $GATE_CHECKS が見つかりません。'helix-init' を実行してください。" >&2
-  exit 1
-fi
-
 # --- ゲート前提条件チェック ---
 declare -A GATE_PREREQS=(
   ["G2"]=""
@@ -66,6 +71,22 @@ declare -A GATE_PREREQS=(
 
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
+
+if [[ "$UNDO" == true ]]; then
+  if [[ ! -f "$PHASE_FILE" ]]; then
+    echo "エラー: $PHASE_FILE が見つかりません。'helix-init' を実行してください。" >&2
+    exit 1
+  fi
+  python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.status" "pending" 2>/dev/null || true
+  python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.date" "" 2>/dev/null || true
+  echo "=== $GATE を pending に戻しました ==="
+  exit 0
+fi
+
+if [[ ! -f "$GATE_CHECKS" ]]; then
+  echo "エラー: $GATE_CHECKS が見つかりません。'helix-init' を実行してください。" >&2
+  exit 1
+fi
 
 now_ms() {
   local ms

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """merge_settings.py — ~/.claude/settings.json に HELIX hooks を安全にマージ/除去する
 
+責務: Claude settings の hook 設定を安全に追加・削除して整合性を保つ。
+
 Usage:
     python3 merge_settings.py <settings.json>            # マージ（追加）
     python3 merge_settings.py <settings.json> --remove   # HELIX hooks を除去

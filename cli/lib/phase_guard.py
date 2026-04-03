@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """HELIX phase guard checker.
 
+責務: 現在フェーズと変更パスを照合し、違反変更をブロックする。
+
 3 層ガードレールアーキテクチャ:
   Layer 1 (Input Guard):
     - フェーズ違反チェック（現在の実装）

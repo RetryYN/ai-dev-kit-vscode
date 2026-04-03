@@ -2,32 +2,45 @@
 set -euo pipefail
 
 # helix-init: HELIX プロジェクト初期化
-# Usage: helix-init [--project-name "name"] [--force]
+# Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+REPO_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+PROJECT_ROOT="$REPO_ROOT"
 HELIX_DIR="$PROJECT_ROOT/.helix"
 
 # --- 引数パース ---
 PROJECT_NAME=""
 FORCE=false
+MONOREPO_PKG=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --project-name) PROJECT_NAME="$2"; shift 2 ;;
     --force) FORCE=true; shift ;;
+    --monorepo-package) MONOREPO_PKG="$2"; shift 2 ;;
     --help|-h)
-      echo "使い方: helix init [--project-name \"name\"] [--force]"
+      echo "使い方: helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"]"
       echo ""
       echo "Options:"
       echo "  --project-name  プロジェクト名（phase.yaml に設定）"
       echo "  --force         既存ファイルを上書き（CLAUDE.md 以外）"
+      echo "  --monorepo-package  モノレポ内で HELIX 管理対象にするパッケージ相対パス"
       exit 0
       ;;
     *) echo "エラー: 不明なオプション: $1" >&2; exit 1 ;;
   esac
 done
+
+if [[ -n "$MONOREPO_PKG" ]]; then
+  PROJECT_ROOT="$REPO_ROOT/$MONOREPO_PKG"
+  HELIX_DIR="$PROJECT_ROOT/.helix"
+  if [[ ! -d "$PROJECT_ROOT" ]]; then
+    echo "エラー: モノレポ対象パッケージが見つかりません: $MONOREPO_PKG" >&2
+    exit 1
+  fi
+fi
 
 if [[ -z "$PROJECT_NAME" ]]; then
   PROJECT_NAME="$(basename "$PROJECT_ROOT")"
@@ -35,7 +48,13 @@ fi
 
 echo "=== HELIX Init ==="
 echo "Project: $PROJECT_NAME"
-echo "Root:    $PROJECT_ROOT"
+if [[ -n "$MONOREPO_PKG" ]]; then
+  echo "Repo:    $REPO_ROOT"
+  echo "Root:    $PROJECT_ROOT"
+  echo "モノレポモード: $MONOREPO_PKG を HELIX 管理します"
+else
+  echo "Root:    $PROJECT_ROOT"
+fi
 echo ""
 
 # --- .helix/ ディレクトリ ---

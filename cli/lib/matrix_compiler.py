@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """HELIX matrix compiler.
 
+責務:
+  - matrix.yaml と rules から HELIX の派生ファイルを生成する
+  - 成果物の自動検知（auto-detect）で状態を更新する
+
 matrix.yaml + rules/*.yaml から以下を生成する:
 - .helix/doc-map.yaml
 - .helix/gate-checks.yaml
@@ -35,6 +39,7 @@ ALLOWED_DRIVES = {"be", "fe", "db", "fullstack", "agent"}
 ALLOWED_SCOPES = {"feature", "shared", "platform"}
 UI_REQUIRED_DRIVES = {"fe", "fullstack", "agent"}
 FEATURE_ID_REGEX_DEFAULT = r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+MIN_ARTIFACT_BYTES = 10
 
 COMMON_REQUIRES = {
     "L1": ["D-REQ-F", "D-REQ-NF", "D-ACC"],
@@ -705,6 +710,82 @@ def _build_framework_checks(framework: dict[str, Any] | None) -> list[dict[str, 
     return checks
 
 
+def _build_policy_g4_checks() -> list[dict[str, str]]:
+    return [
+        {
+            "name": "技術負債台帳の存在",
+            "cmd": "test -f .helix/debt-register.yaml || echo 'SKIP: 負債台帳なし（helix debt add で作成）'",
+        },
+        {
+            "name": "要件→実装マッピング存在（あれば）",
+            "cmd": (
+                "python3 -c \"import sqlite3,sys; c=sqlite3.connect('.helix/helix.db'); "
+                "r=c.execute('SELECT COUNT(*) FROM requirements').fetchone()[0]; "
+                "m=c.execute('SELECT COUNT(*) FROM req_impl_map').fetchone()[0]; "
+                "print(f'REQ:{r} MAP:{m}'); sys.exit(0 if r==0 or m>=r else 1)\" "
+                "2>/dev/null || echo 'SKIP: 要件テーブルなし'"
+            ),
+        },
+        {
+            "name": "API エンドポイント整合チェック",
+            "cmd": "$HELIX_HOME/cli/helix-gate-api-check",
+        },
+        {
+            "name": "テストカバレッジ（あれば）",
+            "cmd": (
+                "if [ -f coverage/coverage-summary.json ]; then "
+                "python3 -c \"import json; d=json.load(open('coverage/coverage-summary.json')); "
+                "pct=d.get('total',{}).get('lines',{}).get('pct',0); exit(0 if pct>=70 else 1)\"; "
+                "elif [ -f .coverage ]; then echo 'coverage exists'; "
+                "else echo 'SKIP: カバレッジ未計測'; fi"
+            ),
+        },
+        {
+            "name": "モック/ダミー残存チェック",
+            "cmd": (
+                "! rg -n '(?i)(localhost:[0-9]|mock-api|dummy-data|FIXME|TODO.*mock)' src/ "
+                "--type ts --type js --type tsx --type jsx 2>/dev/null "
+                "| grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
+            ),
+        },
+        {
+            "name": "console.log/debugger 残存チェック",
+            "cmd": (
+                "! rg -n '^\\s*(console\\.(log|debug|warn|error)|debugger)' src/ "
+                "--type ts --type js --type tsx --type jsx 2>/dev/null "
+                "| grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
+            ),
+        },
+        {
+            "name": "開発用語の UI 露出チェック",
+            "cmd": (
+                "! rg -n '(Exception|NullPointerException|undefined is not|Cannot read prop|Stack trace|Error:.*at )' src/ "
+                "--type ts --type js --type tsx --type jsx 2>/dev/null "
+                "| grep -v 'catch\\|throw\\|Error(' | head -1"
+            ),
+        },
+        {
+            "name": "AI っぽい出力チェック",
+            "cmd": (
+                "! rg -n '(もちろんです|お手伝いします|ご質問にお答えします|As an AI|I apologize)' src/ "
+                "--type ts --type js --type tsx --type jsx 2>/dev/null | head -1"
+            ),
+        },
+        {
+            "name": "ハードコード URL チェック",
+            "cmd": (
+                "! rg -n 'https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)' src/ "
+                "--type ts --type js --type tsx --type jsx 2>/dev/null "
+                "| grep -v '.*\\.test\\.' | grep -v 'env\\.' | head -1"
+            ),
+        },
+        {
+            "name": "CSS マジックナンバーチェック",
+            "cmd": "! rg -n 'z-index:\\s*[0-9]{3,}' src/ --type css 2>/dev/null | head -1",
+        },
+    ]
+
+
 def build_gate_checks(
     matrix: dict[str, Any],
     deliverables_rules: dict[str, Any],
@@ -826,6 +907,12 @@ def build_gate_checks(
 
     g4_bucket = gates.setdefault("G4", {"name": _gate_name("G4"), "static": [], "ai": []})
     static_seen.setdefault("G4", set())
+    for check in _build_policy_g4_checks():
+        cmd = check.get("cmd", "")
+        if cmd in static_seen["G4"]:
+            continue
+        static_seen["G4"].add(cmd)
+        g4_bucket["static"].append(check)
     for check in _build_framework_checks(framework):
         cmd = check.get("cmd", "")
         if cmd in static_seen["G4"]:
@@ -1414,41 +1501,67 @@ def _contains_glob(path: str) -> bool:
     return any(ch in path for ch in ("*", "?", "["))
 
 
-def _glob_has_file(project_root: Path, pattern: str) -> bool:
+def _glob_scan_files(project_root: Path, pattern: str) -> tuple[bool, list[str]]:
     abs_pattern = str(project_root / pattern)
+    has_sufficient = False
+    small_files: list[str] = []
     for matched in glob.glob(abs_pattern, recursive=True):
         candidate = Path(matched)
-        if candidate.is_file():
-            return True
-    return False
+        if not candidate.is_file():
+            continue
+        try:
+            size = candidate.stat().st_size
+        except OSError:
+            continue
+        if size >= MIN_ARTIFACT_BYTES:
+            has_sufficient = True
+        else:
+            try:
+                small_files.append(str(candidate.relative_to(project_root)))
+            except ValueError:
+                small_files.append(str(candidate))
+    return has_sufficient, small_files
 
 
-def _deliverable_has_artifact(
+def _deliverable_artifact_scan(
     project_root: Path,
     feature_id: str,
     feature: dict[str, Any],
     deliverable_id: str,
     structure: dict[str, Any],
-) -> bool:
+) -> tuple[bool, list[str]]:
     resolved = _resolve_paths(feature_id, feature, deliverable_id, structure)
     candidates: list[str] = []
     if resolved.primary:
         candidates.append(resolved.primary)
     candidates.extend([x for x in resolved.capture if x not in candidates])
 
+    small_files: list[str] = []
     for candidate in candidates:
         if _contains_glob(candidate):
-            if _glob_has_file(project_root, candidate):
-                return True
+            has_sufficient, small = _glob_scan_files(project_root, candidate)
+            small_files.extend(small)
+            if has_sufficient:
+                return True, small_files
         else:
-            if (project_root / candidate).is_file():
-                return True
+            path = project_root / candidate
+            if not path.is_file():
+                continue
+            try:
+                size = path.stat().st_size
+            except OSError:
+                continue
+            if size >= MIN_ARTIFACT_BYTES:
+                return True, small_files
+            small_files.append(candidate)
 
     if resolved.primary:
         primary_parent = Path(resolved.primary).parent.as_posix()
-        if _glob_has_file(project_root, f"{primary_parent}/**/*"):
-            return True
-    return False
+        has_sufficient, small = _glob_scan_files(project_root, f"{primary_parent}/**/*")
+        small_files.extend(small)
+        if has_sufficient:
+            return True, small_files
+    return False, small_files
 
 
 def update_matrix_state(project_root: Path, feature_id: str, deliverable_id: str, status: str) -> None:
@@ -1502,13 +1615,14 @@ def auto_detect_state(project_root: Path) -> None:
 
     changed = 0
     scanned = 0
+    warnings = 0
     now = _now_iso()
     for feature_id, feature_raw in features.items():
         if not isinstance(feature_raw, dict):
             continue
         for did in _ordered_deliverables(feature_raw):
             scanned += 1
-            has_artifact = _deliverable_has_artifact(
+            has_artifact, small_files = _deliverable_artifact_scan(
                 project_root=project_root,
                 feature_id=feature_id,
                 feature=feature_raw,
@@ -1524,17 +1638,30 @@ def auto_detect_state(project_root: Path) -> None:
                     entry["updated_at"] = now
                     changed += 1
             else:
-                if "status" not in entry:
+                if current_status not in MANUAL_LOCKED_STATUSES and current_status != "pending":
                     entry["status"] = "pending"
                     entry["updated_at"] = now
                     changed += 1
+                elif "status" not in entry:
+                    entry["status"] = "pending"
+                    entry["updated_at"] = now
+                    changed += 1
+                if small_files:
+                    warnings += 1
+                    samples = ", ".join(small_files[:3])
+                    if len(small_files) > 3:
+                        samples += f", ... +{len(small_files) - 3}"
+                    print(
+                        f"WARN: 空の成果物を検知 {feature_id}/{did} "
+                        f"(10 bytes 未満): {samples}"
+                    )
 
     meta = state_payload.setdefault("_meta", {})
     if isinstance(meta, dict):
         meta["generated_at"] = now
 
     _write_json(state_path, state_payload)
-    print(f"auto-detect: {changed} 更新 / {scanned} deliverables")
+    print(f"auto-detect: {changed} 更新 / {scanned} deliverables, warnings={warnings}")
 
 
 def compile_matrix(project_root: Path, force_state: bool = False) -> None:

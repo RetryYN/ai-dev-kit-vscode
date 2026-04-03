@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""HELIX matrix advisory checker (Phase 3: advisory only)."""
+"""HELIX matrix advisory checker (Phase 3: advisory only).
+
+責務: 変更ファイルと Deliverable Matrix の整合性を advisory として通知する。
+"""
 
 from __future__ import annotations
 

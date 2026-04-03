@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""HELIX freeze-break checker (runtime/index.json driven)."""
+"""HELIX freeze-break checker (runtime/index.json driven).
+
+責務: 凍結後の変更（freeze-break）を検知し、下流ゲート無効化の要否を判定する。
+"""
 
 from __future__ import annotations
 

@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""HELIX deliverable gate checker."""
+"""HELIX deliverable gate checker.
+
+責務:
+  - gate ごとに必要 deliverable の状態を評価し pass/fail を判定する
+  - runtime index を使って空成果物（10 バイト未満）を検知し警告する
+"""
 
 from __future__ import annotations
 
 import argparse
+import glob
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,6 +26,7 @@ GATE_LAYERS = {
 }
 
 PASS_STATUSES = {"done", "waived", "not_applicable"}
+MIN_ARTIFACT_BYTES = 10
 
 
 class DeliverableGateError(Exception):
@@ -64,6 +72,132 @@ def _collect_waivers(index_payload: dict[str, Any]) -> set[tuple[str, str]]:
 
 def _is_pass(status: str) -> bool:
     return status in PASS_STATUSES
+
+
+def _contains_glob(path: str) -> bool:
+    return any(ch in path for ch in ("*", "?", "["))
+
+
+def _format_template(template: str, values: dict[str, Any]) -> str:
+    def repl(match: re.Match[str]) -> str:
+        return str(values.get(match.group(1), match.group(0)))
+
+    return re.sub(r"{([a-zA-Z0-9_]+)}", repl, template)
+
+
+def _resolve_scope_roots(
+    feature_id: str,
+    feature: dict[str, Any],
+    rules: dict[str, Any],
+) -> tuple[str, str]:
+    roots = rules.get("roots", {})
+    roots = roots if isinstance(roots, dict) else {}
+    docs_root = str(roots.get("docs_root", "docs"))
+    src_root = str(roots.get("src_root", "src"))
+
+    scope = str(feature.get("scope", "feature"))
+    scope_templates = rules.get("scope_templates", {})
+    scope_templates = scope_templates if isinstance(scope_templates, dict) else {}
+    template_block = scope_templates.get(scope, {})
+    template_block = template_block if isinstance(template_block, dict) else {}
+
+    docs_scope_template = str(template_block.get("docs_scope_root", "{docs_root}/features/{scope_id}"))
+    src_scope_template = str(template_block.get("src_scope_root", "{src_root}/features/{scope_id}"))
+    context = {
+        "docs_root": docs_root,
+        "src_root": src_root,
+        "scope_id": feature_id,
+    }
+    docs_scope_root = str(feature.get("docs_root", _format_template(docs_scope_template, context)))
+    src_scope_root = str(feature.get("src_root", _format_template(src_scope_template, context)))
+    return docs_scope_root, src_scope_root
+
+
+def _resolve_artifact_candidates(
+    index_payload: dict[str, Any],
+    feature_id: str,
+    feature: dict[str, Any],
+    deliverable_id: str,
+) -> list[str]:
+    rules = index_payload.get("rules", {})
+    if not isinstance(rules, dict):
+        return []
+    path_mapping = rules.get("path_mapping", {})
+    if not isinstance(path_mapping, dict):
+        return []
+    mapping = path_mapping.get(deliverable_id)
+    if not isinstance(mapping, dict):
+        return []
+
+    roots = rules.get("roots", {})
+    roots = roots if isinstance(roots, dict) else {}
+    docs_scope_root, src_scope_root = _resolve_scope_roots(feature_id, feature, rules)
+    default_filename = "manifest.json"
+    defaults = mapping.get("default_filenames")
+    if isinstance(defaults, list) and defaults:
+        default_filename = str(defaults[0])
+
+    context = {
+        "docs_root": roots.get("docs_root", "docs"),
+        "src_root": roots.get("src_root", "src"),
+        "infra_root": roots.get("infra_root", "infra"),
+        "state_root": roots.get("state_root", ".helix/state"),
+        "runtime_root": roots.get("runtime_root", ".helix/runtime"),
+        "scope_id": feature_id,
+        "deliverable_id": deliverable_id,
+        "docs_scope_root": docs_scope_root,
+        "src_scope_root": src_scope_root,
+        "filename": default_filename,
+    }
+
+    candidates: list[str] = []
+    primary = mapping.get("primary_path")
+    if isinstance(primary, str) and primary:
+        candidates.append(_format_template(primary, context))
+
+    capture_globs = mapping.get("capture_globs")
+    if isinstance(capture_globs, list):
+        for capture in capture_globs:
+            if isinstance(capture, str) and capture:
+                path = _format_template(capture, context)
+                if path not in candidates:
+                    candidates.append(path)
+
+    alternate_paths = mapping.get("alternate_paths")
+    if isinstance(alternate_paths, list):
+        for alt in alternate_paths:
+            if isinstance(alt, str) and alt:
+                path = _format_template(alt, context)
+                if path not in candidates:
+                    candidates.append(path)
+
+    return candidates
+
+
+def _collect_artifact_paths(project_root: Path, candidates: list[str]) -> list[Path]:
+    paths: list[Path] = []
+    for candidate in candidates:
+        if _contains_glob(candidate):
+            for matched in glob.glob(str(project_root / candidate), recursive=True):
+                path = Path(matched)
+                if path.is_file():
+                    paths.append(path)
+        else:
+            path = project_root / candidate
+            if path.is_file():
+                paths.append(path)
+    return paths
+
+
+def _filter_small_artifacts(paths: list[Path]) -> list[Path]:
+    small: list[Path] = []
+    for path in paths:
+        try:
+            if path.stat().st_size < MIN_ARTIFACT_BYTES:
+                small.append(path)
+        except OSError:
+            continue
+    return small
 
 
 def _catalog_ids(index_payload: dict[str, Any]) -> set[str]:
@@ -118,6 +252,7 @@ def evaluate_gate(
     index_payload: dict[str, Any],
     state_payload: dict[str, Any],
     gate: str,
+    project_root: Path | None = None,
 ) -> dict[str, Any]:
     if gate not in GATE_LAYERS:
         raise DeliverableGateError(f"サポート外の gate です: {gate}")
@@ -146,10 +281,13 @@ def evaluate_gate(
         "in_progress": 0,
         "partial": 0,
         "unknown": 0,
+        "warnings": 0,
+        "empty_artifacts": 0,
     }
 
     result_features: dict[str, Any] = {}
     overall_pass = True
+    warnings: list[dict[str, Any]] = []
 
     for feature_id in sorted(features.keys()):
         feature_raw = features.get(feature_id)
@@ -184,6 +322,30 @@ def evaluate_gate(
                     status = _status_from_state(deliverables_state.get(did))
                     if (feature_id, did) in waivers and status not in {"waived", "not_applicable", "done"}:
                         status = "waived"
+                    if status == "done" and project_root is not None:
+                        candidates = _resolve_artifact_candidates(index_payload, feature_id, feature, did)
+                        matched_paths = _collect_artifact_paths(project_root, candidates)
+                        if matched_paths:
+                            small = _filter_small_artifacts(matched_paths)
+                            if len(small) == len(matched_paths):
+                                status = "pending"
+                                summary["warnings"] += 1
+                                summary["empty_artifacts"] += 1
+                                sample: list[str] = []
+                                for path in small[:3]:
+                                    try:
+                                        sample.append(str(path.relative_to(project_root)))
+                                    except ValueError:
+                                        sample.append(str(path))
+                                warnings.append(
+                                    {
+                                        "type": "empty_deliverable",
+                                        "feature_id": feature_id,
+                                        "deliverable_id": did,
+                                        "files": sample,
+                                        "message": "空の成果物（10 バイト未満）を検知",
+                                    }
+                                )
 
                 passed = _is_pass(status)
                 if not passed:
@@ -228,6 +390,7 @@ def evaluate_gate(
         "result": "pass" if overall_pass else "fail",
         "features": result_features,
         "summary": summary,
+        "warnings": warnings,
     }
 
 
@@ -241,6 +404,7 @@ def _format_summary(result: dict[str, Any]) -> str:
     in_progress = int(summary.get("in_progress", 0))
     partial = int(summary.get("partial", 0))
     unknown = int(summary.get("unknown", 0))
+    warnings = int(summary.get("warnings", 0))
     gate_result = str(result.get("result", "fail")).upper()
 
     parts = [f"deliverable: {done}/{total} done"]
@@ -256,6 +420,8 @@ def _format_summary(result: dict[str, Any]) -> str:
         parts.append(f"{partial} partial")
     if unknown:
         parts.append(f"{unknown} unknown")
+    if warnings:
+        parts.append(f"{warnings} warnings")
     return ", ".join(parts) + f" -> {gate_result}"
 
 
@@ -298,6 +464,20 @@ def print_text_result(result: dict[str, Any]) -> None:
             print(f"  {layer}: {' '.join(token_list)} {mark}")
 
     print("---")
+    warning_items = result.get("warnings", [])
+    if isinstance(warning_items, list) and warning_items:
+        for item in warning_items:
+            if not isinstance(item, dict):
+                continue
+            feature_id = str(item.get("feature_id", "?"))
+            did = str(item.get("deliverable_id", "?"))
+            message = str(item.get("message", "warning"))
+            files = item.get("files", [])
+            file_part = ""
+            if isinstance(files, list) and files:
+                file_part = f" ({', '.join(str(x) for x in files[:3])})"
+            print(f"WARN: {feature_id}/{did} {message}{file_part}")
+        print("---")
     print(_format_summary(result))
 
 
@@ -313,9 +493,19 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        index_payload = _load_json(Path(args.index))
+        index_path = Path(args.index)
+        index_payload = _load_json(index_path)
         state_payload = _load_json(Path(args.state))
-        result = evaluate_gate(index_payload=index_payload, state_payload=state_payload, gate=args.gate)
+        project_root: Path | None = None
+        resolved = index_path.resolve()
+        if len(resolved.parents) >= 3:
+            project_root = resolved.parents[2]
+        result = evaluate_gate(
+            index_payload=index_payload,
+            state_payload=state_payload,
+            gate=args.gate,
+            project_root=project_root,
+        )
     except DeliverableGateError as exc:
         print(f"エラー: {exc}", file=sys.stderr)
         return 2
