@@ -1,0 +1,13 @@
+#!/bin/bash
+# HELIX post-merge hook
+# git merge 後に matrix を自動再コンパイル
+
+HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+
+if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
+  echo "[helix] post-merge: matrix recompile..."
+  "$HELIX_HOME/cli/helix-matrix" compile 2>/dev/null && echo "[helix] matrix recompile 完了" || true
+  "$HELIX_HOME/cli/helix-matrix" auto-detect 2>/dev/null || true
+fi

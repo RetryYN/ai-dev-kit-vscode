@@ -32,6 +32,10 @@ case "$CMD" in
   discover) exec "$SCRIPT_DIR/helix-discover" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
+  bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
+  retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
+  debt)     exec "$SCRIPT_DIR/helix-debt" "$@" ;;
+  doctor)   exec "$SCRIPT_DIR/helix-doctor" "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
 使い方: helix <コマンド>
@@ -56,6 +60,10 @@ Commands:
   builder     ビルダーツール群
   status      プロジェクト状態表示
   test        セルフテスト
+  bench       HELIX ベンチマーク表示
+  retro       ミニレトロ管理
+  debt        技術負債台帳管理
+  doctor      環境診断
   debug       デバッグユーティリティ
   verify-all  全検証スクリプト実行
 

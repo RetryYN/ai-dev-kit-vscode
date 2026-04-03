@@ -1,0 +1,130 @@
+#!/bin/bash
+set -eo pipefail
+# helix-debt: 技術負債台帳管理
+# Usage: helix debt <list|add|resolve>
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+REGISTER="$HELIX_DIR/debt-register.yaml"
+
+case "${1:-help}" in
+  --help|-h|help)
+    echo "使い方: helix debt <list|add|resolve>"
+    echo ""
+    echo "サブコマンド:"
+    echo "  list                          負債一覧"
+    echo "  add --title \"...\" --priority <high|medium|low> [--source <file>]"
+    echo "  resolve --id <N>              解決済みにする"
+    exit 0
+    ;;
+  list)
+    if [[ ! -f "$REGISTER" ]]; then
+      echo "技術負債台帳なし。helix debt add で追加してください。"
+      exit 0
+    fi
+    echo "=== 技術負債台帳 ==="
+    grep -E "^  - id:|^    title:|^    priority:|^    status:" "$REGISTER" 2>/dev/null | paste - - - - | \
+      sed 's/  - id: //;s/    title: //;s/    priority: //;s/    status: //' | \
+      while IFS=$'\t' read -r id title priority status; do
+        marker="  "
+        [[ "$status" == *"resolved"* ]] && marker="✓ "
+        echo "$marker#$id $priority $title"
+      done
+    ;;
+  add)
+    shift
+    TITLE=""
+    PRIORITY=""
+    SOURCE=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --title)
+          TITLE="$2"
+          shift 2
+          ;;
+        --priority)
+          PRIORITY="$2"
+          shift 2
+          ;;
+        --source)
+          SOURCE="$2"
+          shift 2
+          ;;
+        *)
+          echo "エラー: 不明なオプション: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    if [[ -z "$TITLE" || -z "$PRIORITY" ]]; then
+      echo "エラー: --title と --priority は必須です" >&2
+      exit 1
+    fi
+    case "$PRIORITY" in
+      high|medium|low) ;;
+      *)
+        echo "エラー: --priority は high|medium|low のいずれかを指定してください" >&2
+        exit 1
+        ;;
+    esac
+
+    mkdir -p "$HELIX_DIR"
+    if [[ -f "$REGISTER" ]]; then
+      last_id=$(grep "id:" "$REGISTER" 2>/dev/null | tail -1 | grep -oE '[0-9]+' || echo 0)
+    else
+      last_id=0
+      echo "items:" > "$REGISTER"
+    fi
+    next_id=$((last_id + 1))
+
+    cat >> "$REGISTER" << EOF
+  - id: $next_id
+    title: "$TITLE"
+    priority: $PRIORITY
+    source: "$SOURCE"
+    status: open
+    created_at: "$(date -Iseconds)"
+    resolved_at: ""
+EOF
+    echo "追加: #$next_id $PRIORITY $TITLE"
+    ;;
+  resolve)
+    shift
+    [[ "${1:-}" == "--id" ]] && shift
+    ID="${1:-}"
+    if [[ -z "$ID" ]]; then
+      echo "エラー: --id は必須です" >&2
+      exit 1
+    fi
+
+    if [[ -f "$REGISTER" ]] && grep -q "id: $ID" "$REGISTER"; then
+      python3 -c "
+from datetime import datetime
+
+lines = open('$REGISTER', encoding='utf-8').read().split('\n')
+found = False
+for i, line in enumerate(lines):
+    if f'id: $ID' in line:
+        found = True
+        continue
+    if found and 'status: open' in line:
+        lines[i] = line.replace('status: open', 'status: resolved')
+        continue
+    if found and 'resolved_at: \"\"' in line:
+        lines[i] = line.replace('resolved_at: \"\"', f'resolved_at: \"{datetime.now().isoformat()}\"')
+        break
+open('$REGISTER', 'w', encoding='utf-8').write('\n'.join(lines))
+" 2>/dev/null
+      echo "解決: #$ID"
+    else
+      echo "エラー: ID $ID が見つかりません" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "エラー: 不明なサブコマンド: $1" >&2
+    exit 1
+    ;;
+esac

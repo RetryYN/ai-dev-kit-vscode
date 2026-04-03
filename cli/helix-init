@@ -175,6 +175,13 @@ if [[ -d "$HOOKS_DIR" ]]; then
   else
     echo "  skip: commit-msg-hook template not found"
   fi
+
+  if [[ -f "$TEMPLATES_DIR/post-merge-hook" ]]; then
+    copy_template "$TEMPLATES_DIR/post-merge-hook" "$HOOKS_DIR/post-merge"
+    chmod +x "$HOOKS_DIR/post-merge" 2>/dev/null || true
+  else
+    echo "  skip: post-merge-hook template not found"
+  fi
 else
   echo "  skip: .git/hooks not found"
 fi

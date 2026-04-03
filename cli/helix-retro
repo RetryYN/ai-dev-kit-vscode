@@ -1,0 +1,61 @@
+#!/bin/bash
+set -eo pipefail
+# helix-retro: ミニレトロ管理
+# Usage: helix retro <list|show|check>
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+RETRO_DIR="$PROJECT_ROOT/.helix/retros"
+
+case "${1:-help}" in
+  --help|-h|help)
+    echo "使い方: helix retro <list|show|check>"
+    echo ""
+    echo "サブコマンド:"
+    echo "  list    レトロ一覧を表示"
+    echo "  show    レトロ内容を表示（引数: ファイル名）"
+    echo "  check   未記入レトロを警告"
+    exit 0
+    ;;
+  list)
+    if [[ ! -d "$RETRO_DIR" ]] || ! ls "$RETRO_DIR"/*.md >/dev/null 2>&1; then
+      echo "レトロなし。helix gate G2/G4 通過後に自動生成されます。"
+      exit 0
+    fi
+    echo "=== ミニレトロ一覧 ==="
+    for f in "$RETRO_DIR"/*.md; do
+      name=$(basename "$f" .md)
+      empty=$(grep -cE '^\s*-\s*$' "$f" 2>/dev/null || echo 0)
+      if [[ $empty -gt 0 ]]; then
+        echo "  ⚠ $name（未記入項目あり）"
+      else
+        echo "  ✓ $name"
+      fi
+    done
+    ;;
+  show)
+    file="$RETRO_DIR/${2:-}.md"
+    [[ -f "$file" ]] && cat "$file" || echo "エラー: $file が見つかりません"
+    ;;
+  check)
+    if [[ ! -d "$RETRO_DIR" ]]; then
+      echo "レトロなし"
+      exit 0
+    fi
+    found=0
+    for f in "$RETRO_DIR"/*.md; do
+      [[ -f "$f" ]] || continue
+      empty=$(grep -cE '^\s*-\s*$' "$f" 2>/dev/null || echo 0)
+      if [[ $empty -gt 0 ]]; then
+        echo "⚠ 未記入: $(basename "$f" .md)"
+        grep -n '^\s*-\s*$' "$f" | head -3
+        found=1
+      fi
+    done
+    [[ $found -eq 0 ]] && echo "全レトロ記入済み ✓"
+    ;;
+  *)
+    echo "エラー: 不明なサブコマンド: $1" >&2
+    exit 1
+    ;;
+esac

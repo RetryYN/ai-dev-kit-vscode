@@ -1,0 +1,97 @@
+#!/bin/bash
+set -eo pipefail
+# helix-doctor: 環境チェック
+# Usage: helix doctor [--fix]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+PROJECT_NAME="$(basename "$PROJECT_ROOT")"
+FIX=false
+
+case "${1:-}" in
+  --fix) FIX=true ;;
+  --help|-h)
+    echo "使い方: helix doctor [--fix]"
+    echo ""
+    echo "環境と .helix/ の整合性をチェックします。"
+    exit 0
+    ;;
+  "")
+    ;;
+  *)
+    echo "エラー: 不明なオプション: $1" >&2
+    echo "使い方: helix doctor [--fix]" >&2
+    exit 1
+    ;;
+esac
+
+echo "=== HELIX Doctor ==="
+PASS=0
+FAIL=0
+WARN=0
+
+check() {
+  local name="$1"
+  local cmd="$2"
+  local fix_cmd="${3:-}"
+  if eval "$cmd" >/dev/null 2>&1; then
+    echo "  ✓ $name"
+    PASS=$((PASS + 1))
+  else
+    if [[ -n "$fix_cmd" && "$FIX" == true ]]; then
+      if eval "$fix_cmd" >/dev/null 2>&1; then
+        echo "  ✓ $name（自動修正）"
+        PASS=$((PASS + 1))
+        return
+      fi
+    fi
+    echo "  ✗ $name"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+warn() {
+  local name="$1"
+  local cmd="$2"
+  local fix_cmd="${3:-}"
+  if eval "$cmd" >/dev/null 2>&1; then
+    echo "  ✓ $name"
+    PASS=$((PASS + 1))
+  else
+    if [[ -n "$fix_cmd" && "$FIX" == true ]]; then
+      if eval "$fix_cmd" >/dev/null 2>&1; then
+        echo "  ✓ $name（自動修正）"
+        PASS=$((PASS + 1))
+        return
+      fi
+    fi
+    echo "  △ $name（推奨）"
+    WARN=$((WARN + 1))
+  fi
+}
+
+echo ""
+echo "[必須依存]"
+check "python3" "command -v python3"
+check "bash 4+" "bash --version | grep -qE 'version [4-9]'"
+check "git" "command -v git"
+check "sqlite3" "command -v sqlite3"
+
+echo ""
+echo "[推奨依存]"
+warn "rg (ripgrep)" "command -v rg"
+warn "codex" "command -v codex"
+warn "node" "command -v node"
+warn "npm" "command -v npm"
+
+echo ""
+echo "[プロジェクト]"
+check ".helix/ 存在" "test -d '$HELIX_DIR'" "mkdir -p '$HELIX_DIR'"
+check "phase.yaml" "test -f '$HELIX_DIR/phase.yaml'" "'$HELIX_HOME/cli/helix-init' --project-name '$PROJECT_NAME' 2>/dev/null"
+check "matrix.yaml" "test -f '$HELIX_DIR/matrix.yaml'"
+warn "runtime/index.json" "test -f '$HELIX_DIR/runtime/index.json'" "'$HELIX_HOME/cli/helix-matrix' compile 2>/dev/null"
+
+echo ""
+echo "結果: $PASS pass, $FAIL fail, $WARN warn"
+[[ $FAIL -gt 0 ]] && exit 1 || exit 0

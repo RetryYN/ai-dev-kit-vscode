@@ -1,0 +1,88 @@
+#!/bin/bash
+set -eo pipefail
+# helix-bench: HELIX 自己ベンチマーク
+# Usage: helix bench [--period <week|month|all>]
+
+export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$HELIX_HOME/cli"
+PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+HELIX_DIR="$PROJECT_ROOT/.helix"
+DB="$HELIX_DIR/helix.db"
+
+usage() {
+  echo "使い方: helix bench [--period <week|month|all>]"
+  echo ""
+  echo "プロジェクトの HELIX メトリクスを表示します。"
+}
+
+PERIOD="all"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --period)
+      PERIOD="${2:-}"
+      shift 2
+      ;;
+    *)
+      echo "エラー: 不明なオプション: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+case "$PERIOD" in
+  week|month|all) ;;
+  *)
+    echo "エラー: --period は week|month|all のいずれかを指定してください" >&2
+    exit 1
+    ;;
+esac
+
+echo "=== HELIX ベンチマーク（$PERIOD）==="
+echo ""
+
+if [[ ! -f "$DB" ]]; then
+  echo "データなし。helix task run や helix gate を実行するとメトリクスが蓄積されます。"
+  exit 0
+fi
+
+# gate_runs / cost_log からメトリクス集計
+python3 -c "
+import sqlite3
+
+db = '$DB'
+period = '$PERIOD'
+
+where = ''
+params = ()
+if period == 'week':
+    where = \" WHERE created_at >= datetime('now', '-7 day')\"
+elif period == 'month':
+    where = \" WHERE created_at >= datetime('now', '-30 day')\"
+
+try:
+    c = sqlite3.connect(db)
+    total = c.execute('SELECT COUNT(*) FROM gate_runs' + where, params).fetchone()[0]
+    passed = c.execute(\"SELECT COUNT(*) FROM gate_runs\" + where + \" AND result='pass'\" if where else \"SELECT COUNT(*) FROM gate_runs WHERE result='pass'\", params).fetchone()[0]
+    cost_count = c.execute('SELECT COUNT(*) FROM cost_log' + where, params).fetchone()[0]
+    print(f'ゲート実行:       {total} 回')
+    print(f'一発通過率:       {passed}/{total} ({passed*100//max(total,1)}%)' if total > 0 else '一発通過率:       0/0 (0%)')
+    print(f'コスト記録:       {cost_count} 件')
+except Exception as e:
+    print(f'集計エラー: {e}')
+" 2>/dev/null || echo "DB 読み取りエラー"
+
+recipe_count=$(find "$HELIX_DIR/recipes" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
+echo "recipe 数:        $recipe_count"
+
+if [[ -f "$HELIX_DIR/debt-register.yaml" ]]; then
+  debt_open=$(grep -c "status: open" "$HELIX_DIR/debt-register.yaml" 2>/dev/null || echo 0)
+  echo "技術負債(未解決): $debt_open 件"
+fi
+
+echo ""
+echo "helix test を実行して最新のテスト数を確認してください。"
