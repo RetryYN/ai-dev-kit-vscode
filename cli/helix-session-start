@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 # helix-session-start: SessionStart hook
 # セットアップ未完了 → README 強制熟読モード
 # セットアップ完了   → 通常の HELIX コンテキスト注入

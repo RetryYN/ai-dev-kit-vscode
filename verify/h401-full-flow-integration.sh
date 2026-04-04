@@ -86,6 +86,7 @@ check_contains "scrum decide" "$CLI/helix-scrum decide --hypothesis H001 --confi
 
 # 10. gate G2
 mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 check_contains "gate G2 pass" "$CLI/helix-gate G2 --static-only" "PASS"
 
 # 11. gate G3

@@ -24,6 +24,9 @@ rm -f .helix/runtime/index.json .helix/state/deliverables.json
 mkdir -p docs/design
 echo "# L2 Architecture" > docs/design/L2-architecture.md
 
+# G1 を passed に設定（G2 の前提条件）
+python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
+
 # G2
 set +e
 $CLI/helix-gate G2 --static-only >/dev/null 2>&1; g2=$?

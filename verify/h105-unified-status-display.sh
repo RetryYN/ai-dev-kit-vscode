@@ -4,6 +4,7 @@ set -eo pipefail
 
 HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 CLI="$HELIX_HOME/cli"
+YP="$CLI/lib/yaml_parser.py"
 DIR=$(mktemp -d /tmp/helix-verify-XXXXXX)
 trap 'rm -rf "$DIR"' EXIT
 
@@ -20,6 +21,7 @@ echo "=== H105: Unified Status Display ==="
 
 # Forward
 mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 $CLI/helix-gate G2 --static-only >/dev/null 2>&1
 $CLI/helix-sprint reset >/dev/null 2>&1
 $CLI/helix-sprint next >/dev/null 2>&1

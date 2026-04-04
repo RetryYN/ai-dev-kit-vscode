@@ -22,6 +22,7 @@ echo "=== 004: helix-gate ==="
 
 # G2: 設計書を作成して pass
 mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 out=$($CLI/helix-gate G2 --static-only 2>&1)
 echo "$out" | grep -q "PASS" || { echo "FAIL: G2 should pass"; exit 1; }
 

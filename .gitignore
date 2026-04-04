@@ -2,3 +2,8 @@
 CLAUDE.local.md
 __pycache__/
 *.pyc
+.env
+.env.*
+*.pem
+*.key
+credentials.json

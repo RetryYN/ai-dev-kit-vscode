@@ -4,6 +4,7 @@ set -eo pipefail
 
 HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 CLI="$HELIX_HOME/cli"
+YP="$CLI/lib/yaml_parser.py"
 DIR=$(mktemp -d /tmp/helix-verify-XXXXXX)
 trap 'rm -rf "$DIR"' EXIT
 cd "$DIR" && git init -q && git config user.email "t@t" && git config user.name "T"
@@ -16,6 +17,7 @@ rm -f .helix/runtime/index.json .helix/state/deliverables.json
 echo "=== H302: Gate Static All Patterns ==="
 
 # G2 no design → fail
+python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 set +e; $CLI/helix-gate G2 --static-only >/dev/null 2>&1; r=$?; set -e
 [[ $r -ne 0 ]] || { echo "FAIL: G2 no design should fail"; exit 1; }
 
