@@ -21,12 +21,26 @@ import glob
 import json
 import os
 import re
-import shlex
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    from .gate_check_generator import (
+        build_doc_map as _build_doc_map_impl,
+        build_gate_checks as _build_gate_checks_impl,
+        dump_doc_map_yaml as _dump_doc_map_yaml_impl,
+        dump_gate_checks_yaml as _dump_gate_checks_yaml_impl,
+    )
+except ImportError:
+    from gate_check_generator import (
+        build_doc_map as _build_doc_map_impl,
+        build_gate_checks as _build_gate_checks_impl,
+        dump_doc_map_yaml as _dump_doc_map_yaml_impl,
+        dump_gate_checks_yaml as _dump_gate_checks_yaml_impl,
+    )
 
 
 class MatrixError(Exception):
@@ -379,17 +393,6 @@ def load_yaml(path: Path) -> Any:
     return parser.parse()
 
 
-def _path_sort_key(gate: str) -> tuple[int, str]:
-    m = re.match(r"^G(\d+)", gate)
-    if m:
-        return int(m.group(1)), gate
-    return 999, gate
-
-
-def _escape_yaml_double(value: str) -> str:
-    return value.replace("\\", "\\\\").replace('"', '\\"')
-
-
 def _format_template(template: str, values: dict[str, Any]) -> str:
     def replacer(match: re.Match[str]) -> str:
         key = match.group(1)
@@ -505,286 +508,22 @@ def _catalog_index(deliverables_rules: dict[str, Any]) -> dict[str, dict[str, An
     return result
 
 
-def _select_gate(layer: str, deliverable: dict[str, Any]) -> str | None:
-    preferred = {"L2": "G2", "L3": "G3", "L5": "G5"}.get(layer)
-    ownership = deliverable.get("gate_ownership")
-    gate_list = ownership if isinstance(ownership, list) else []
-    if preferred and preferred in gate_list:
-        return preferred
-    for gate in gate_list:
-        if isinstance(gate, str) and re.fullmatch(r"G\d+", gate):
-            return gate
-    return preferred
-
-
-def _choose_design_ref(
-    feature_id: str,
-    feature: dict[str, Any],
-    requires: dict[str, Any],
-    structure: dict[str, Any],
-) -> str | None:
-    candidates: list[str] = []
-    for key in ("L3", "L2"):
-        ids = requires.get(key)
-        if isinstance(ids, list):
-            candidates.extend([str(x) for x in ids if isinstance(x, str)])
-
-    priority = ["D-API", "D-ARCH", "D-DB", "D-TEST", "D-PLAN", "D-ADR"]
-    for did in priority:
-        if did in candidates:
-            resolved = _resolve_paths(feature_id, feature, did, structure)
-            if resolved.primary:
-                return resolved.primary
-    if candidates:
-        resolved = _resolve_paths(feature_id, feature, candidates[0], structure)
-        if resolved.primary:
-            return resolved.primary
-    return None
-
-
 def build_doc_map(
     matrix: dict[str, Any],
     deliverables_rules: dict[str, Any],
     structure: dict[str, Any],
 ) -> dict[str, Any]:
-    features = matrix.get("features", {})
-    if not isinstance(features, dict):
-        raise MatrixError("matrix.features が辞書ではありません")
-
-    catalog = _catalog_index(deliverables_rules)
-    triggers: list[dict[str, str]] = []
-    seen: set[tuple[str, str, str, str | None, str | None]] = set()
-    for feature_id, feature_raw in features.items():
-        if not isinstance(feature_raw, dict):
-            continue
-        requires = feature_raw.get("requires", {})
-        if not isinstance(requires, dict):
-            continue
-
-        for layer in ("L2", "L3", "L4", "L5"):
-            deliverable_ids = requires.get(layer, [])
-            if not isinstance(deliverable_ids, list):
-                continue
-
-            for did_raw in deliverable_ids:
-                if not isinstance(did_raw, str):
-                    continue
-                did = did_raw
-                if layer == "L3" and did == "D-CONTRACT":
-                    pattern = _d_contract_doc_pattern(feature_id, feature_raw, structure)
-                    trigger = {
-                        "pattern": pattern,
-                        "phase": "L3",
-                        "on_write": "gate_ready",
-                        "gate": "G3",
-                    }
-                    signature = (pattern, "L3", "gate_ready", "G3", None)
-                    if signature in seen:
-                        continue
-                    seen.add(signature)
-                    triggers.append(trigger)
-                    continue
-
-                resolved = _resolve_paths(feature_id, feature_raw, did, structure)
-                if layer == "L4":
-                    pattern = resolved.capture[0] if resolved.capture else resolved.primary
-                    design_ref = _choose_design_ref(feature_id, feature_raw, requires, structure)
-                    if not pattern or not design_ref:
-                        continue
-                    trigger = {
-                        "pattern": pattern,
-                        "phase": "L4",
-                        "on_write": "design_sync",
-                        "design_ref": design_ref,
-                    }
-                    signature = (pattern, "L4", "design_sync", None, design_ref)
-                else:
-                    pattern = resolved.primary or (resolved.capture[0] if resolved.capture else None)
-                    if not pattern:
-                        continue
-                    gate = _select_gate(layer, catalog.get(did, {}))
-                    if not gate:
-                        continue
-                    trigger = {
-                        "pattern": pattern,
-                        "phase": layer,
-                        "on_write": "gate_ready",
-                        "gate": gate,
-                    }
-                    signature = (pattern, layer, "gate_ready", gate, None)
-
-                if signature in seen:
-                    continue
-                seen.add(signature)
-                triggers.append(trigger)
-
-    return {"triggers": triggers}
-
-
-def _gate_name(gate: str) -> str:
-    names = {
-        "G2": "設計凍結ゲート",
-        "G3": "実装着手ゲート",
-        "G4": "実装凍結ゲート",
-        "G5": "デザイン凍結ゲート",
-        "G6": "RC判定ゲート",
-        "G7": "安定性ゲート",
-    }
-    return names.get(gate, f"{gate} ゲート")
-
-GATE_REQUIRED_LAYERS = {
-    "G2": ("L1", "L2"),
-    "G3": ("L1", "L2", "L3"),
-    "G4": ("L1", "L2", "L3", "L4"),
-    "G5": ("L5",),
-    "G6": ("L1", "L2", "L3", "L4", "L5", "L6"),
-    "G7": ("L1", "L2", "L3", "L4", "L5", "L6", "L7"),
-}
-
-
-def _build_exists_cmd(path: str) -> str:
-    if any(ch in path for ch in ("*", "?", "[")):
-        return f"ls {path} >/dev/null 2>&1"
-    return f"test -e {shlex.quote(path)}"
-
-
-def _build_file_cmd(path: str) -> str:
-    return f"test -f {shlex.quote(path)}"
-
-
-def _build_heading_cmd(path: str, headings: list[str]) -> str:
-    escaped_path = shlex.quote(path)
-    checks = [f"grep -q {shlex.quote(h)} {escaped_path}" for h in headings]
-    return f"test -f {escaped_path} && " + " && ".join(checks)
-
-
-def _framework_defaults(detected: str) -> dict[str, str]:
-    fw = detected.strip().lower()
-    if fw == "python":
-        return {
-            "lint": "ruff check src/",
-            "typecheck": "mypy src/",
-            "test": "pytest",
-        }
-    if fw == "go":
-        return {
-            "lint": "staticcheck ./...",
-            "typecheck": "go vet ./...",
-            "test": "go test ./...",
-        }
-    if fw == "rust":
-        return {
-            "lint": "cargo clippy -- -D warnings",
-            "typecheck": "cargo check",
-            "test": "cargo test",
-        }
-    return {}
-
-
-def _build_framework_checks(framework: dict[str, Any] | None) -> list[dict[str, str]]:
-    if not isinstance(framework, dict):
-        return []
-
-    detected_raw = framework.get("detected", "")
-    detected = str(detected_raw).strip().lower()
-    if detected not in {"python", "go", "rust"}:
-        return []
-
-    tools_raw = framework.get("tools")
-    tools = tools_raw if isinstance(tools_raw, dict) else {}
-    defaults = _framework_defaults(detected)
-
-    checks: list[dict[str, str]] = []
-    for key, label in (("lint", "lint"), ("typecheck", "typecheck"), ("test", "test")):
-        cmd_raw = tools.get(key, defaults.get(key))
-        if not isinstance(cmd_raw, str):
-            continue
-        cmd = cmd_raw.strip()
-        if not cmd:
-            continue
-        checks.append(
-            {
-                "name": f"framework {detected} {label}",
-                "cmd": f"{cmd} >/dev/null 2>&1",
-            }
+    try:
+        return _build_doc_map_impl(
+            matrix,
+            deliverables_rules,
+            structure,
+            catalog_index=_catalog_index,
+            resolve_paths=_resolve_paths,
+            d_contract_doc_pattern=_d_contract_doc_pattern,
         )
-    return checks
-
-
-def _build_policy_g4_checks() -> list[dict[str, str]]:
-    return [
-        {
-            "name": "技術負債台帳の存在",
-            "cmd": "test -f .helix/debt-register.yaml || echo 'SKIP: 負債台帳なし（helix debt add で作成）'",
-        },
-        {
-            "name": "要件→実装マッピング存在（あれば）",
-            "cmd": (
-                "python3 -c \"import sqlite3,sys; c=sqlite3.connect('.helix/helix.db'); "
-                "r=c.execute('SELECT COUNT(*) FROM requirements').fetchone()[0]; "
-                "m=c.execute('SELECT COUNT(*) FROM req_impl_map').fetchone()[0]; "
-                "print(f'REQ:{r} MAP:{m}'); sys.exit(0 if r==0 or m>=r else 1)\" "
-                "2>/dev/null || echo 'SKIP: 要件テーブルなし'"
-            ),
-        },
-        {
-            "name": "API エンドポイント整合チェック",
-            "cmd": "$HELIX_HOME/cli/helix-gate-api-check",
-        },
-        {
-            "name": "テストカバレッジ（あれば）",
-            "cmd": (
-                "if [ -f coverage/coverage-summary.json ]; then "
-                "python3 -c \"import json; d=json.load(open('coverage/coverage-summary.json')); "
-                "pct=d.get('total',{}).get('lines',{}).get('pct',0); exit(0 if pct>=70 else 1)\"; "
-                "elif [ -f .coverage ]; then echo 'coverage exists'; "
-                "else echo 'SKIP: カバレッジ未計測'; fi"
-            ),
-        },
-        {
-            "name": "モック/ダミー残存チェック",
-            "cmd": (
-                "! rg -n '(?i)(localhost:[0-9]|mock-api|dummy-data|FIXME|TODO.*mock)' src/ "
-                "--type ts --type js --type tsx --type jsx 2>/dev/null "
-                "| grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
-            ),
-        },
-        {
-            "name": "console.log/debugger 残存チェック",
-            "cmd": (
-                "! rg -n '^\\s*(console\\.(log|debug|warn|error)|debugger)' src/ "
-                "--type ts --type js --type tsx --type jsx 2>/dev/null "
-                "| grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
-            ),
-        },
-        {
-            "name": "開発用語の UI 露出チェック",
-            "cmd": (
-                "! rg -n '(Exception|NullPointerException|undefined is not|Cannot read prop|Stack trace|Error:.*at )' src/ "
-                "--type ts --type js --type tsx --type jsx 2>/dev/null "
-                "| grep -v 'catch\\|throw\\|Error(' | head -1"
-            ),
-        },
-        {
-            "name": "AI っぽい出力チェック",
-            "cmd": (
-                "! rg -n '(もちろんです|お手伝いします|ご質問にお答えします|As an AI|I apologize)' src/ "
-                "--type ts --type js --type tsx --type jsx 2>/dev/null | head -1"
-            ),
-        },
-        {
-            "name": "ハードコード URL チェック",
-            "cmd": (
-                "! rg -n 'https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)' src/ "
-                "--type ts --type js --type tsx --type jsx 2>/dev/null "
-                "| grep -v '.*\\.test\\.' | grep -v 'env\\.' | head -1"
-            ),
-        },
-        {
-            "name": "CSS マジックナンバーチェック",
-            "cmd": "! rg -n 'z-index:\\s*[0-9]{3,}' src/ --type css 2>/dev/null | head -1",
-        },
-    ]
+    except ValueError as exc:
+        raise MatrixError(str(exc)) from exc
 
 
 def build_gate_checks(
@@ -793,135 +532,18 @@ def build_gate_checks(
     structure: dict[str, Any],
     framework: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    catalog = _catalog_index(deliverables_rules)
-    features = matrix.get("features", {})
-    if not isinstance(features, dict):
-        raise MatrixError("matrix.features が辞書ではありません")
-
-    gates: dict[str, dict[str, Any]] = {}
-    static_seen: dict[str, set[str]] = {}
-    ai_seen: dict[str, set[tuple[str, str]]] = {}
-
-    for feature_id, feature_raw in features.items():
-        if not isinstance(feature_raw, dict):
-            continue
-        requires = feature_raw.get("requires", {})
-        if not isinstance(requires, dict):
-            continue
-
-        for deliverable_ids in requires.values():
-            if not isinstance(deliverable_ids, list):
-                continue
-            for did_raw in deliverable_ids:
-                if not isinstance(did_raw, str):
-                    continue
-                did = did_raw
-                deliverable = catalog.get(did)
-                if not isinstance(deliverable, dict):
-                    continue
-                gate_ownership = deliverable.get("gate_ownership", [])
-                if not isinstance(gate_ownership, list):
-                    continue
-                validators = deliverable.get("validators", [])
-                if not isinstance(validators, list):
-                    validators = []
-
-                resolved = _resolve_paths(feature_id, feature_raw, did, structure)
-                primary = resolved.primary or (resolved.capture[0] if resolved.capture else None)
-
-                for gate_raw in gate_ownership:
-                    if not isinstance(gate_raw, str):
-                        continue
-                    if not re.fullmatch(r"G\d+", gate_raw):
-                        continue
-                    gate = gate_raw
-                    bucket = gates.setdefault(gate, {"name": _gate_name(gate), "static": [], "ai": []})
-                    static_seen.setdefault(gate, set())
-                    ai_seen.setdefault(gate, set())
-
-                    for validator in validators:
-                        if not isinstance(validator, dict):
-                            continue
-                        vtype = validator.get("type")
-                        params = validator.get("params", {})
-                        if not isinstance(params, dict):
-                            params = {}
-
-                        if vtype == "exists" and primary:
-                            cmd = _build_exists_cmd(primary)
-                            if cmd not in static_seen[gate]:
-                                static_seen[gate].add(cmd)
-                                bucket["static"].append(
-                                    {"name": f"{feature_id} {did} 存在", "cmd": cmd}
-                                )
-                        elif vtype == "heading_check" and primary:
-                            required = params.get("required", [])
-                            headings = [str(h) for h in required] if isinstance(required, list) else []
-                            if headings:
-                                cmd = _build_heading_cmd(primary, headings)
-                                if cmd not in static_seen[gate]:
-                                    static_seen[gate].add(cmd)
-                                    bucket["static"].append(
-                                        {"name": f"{feature_id} {did} 見出しチェック", "cmd": cmd}
-                                    )
-                        elif vtype == "ai_review":
-                            role = str(params.get("role", "tl"))
-                            focus = str(params.get("focus", "成果物整合性"))
-                            deliverable_name = str(deliverable.get("name", did))
-                            task = (
-                                f"{gate} 検証: {feature_id} の {did}（{deliverable_name}）を確認する。"
-                                f"観点: {focus}"
-                            )
-                            signature = (role, task)
-                            if signature not in ai_seen[gate]:
-                                ai_seen[gate].add(signature)
-                                bucket["ai"].append({"role": role, "task": task})
-
-        for gate, layers in GATE_REQUIRED_LAYERS.items():
-            if gate == "G5" and not bool(feature_raw.get("ui", False)):
-                continue
-            bucket = gates.setdefault(gate, {"name": _gate_name(gate), "static": [], "ai": []})
-            static_seen.setdefault(gate, set())
-            ai_seen.setdefault(gate, set())
-
-            for layer in layers:
-                required = requires.get(layer, [])
-                if not isinstance(required, list):
-                    continue
-                for did_raw in required:
-                    if not isinstance(did_raw, str):
-                        continue
-                    if gate == "G3" and did_raw == "D-CONTRACT":
-                        cmd = _build_exists_cmd(_d_contract_doc_pattern(feature_id, feature_raw, structure))
-                    else:
-                        resolved = _resolve_paths(feature_id, feature_raw, did_raw, structure)
-                        if not resolved.primary:
-                            continue
-                        cmd = _build_file_cmd(resolved.primary)
-                    cmd_key = f"deliverable_file::{cmd}"
-                    if cmd_key in static_seen[gate]:
-                        continue
-                    static_seen[gate].add(cmd_key)
-                    bucket["static"].append(
-                        {"name": f"{feature_id} {did_raw} file", "cmd": cmd}
-                    )
-
-    g4_bucket = gates.setdefault("G4", {"name": _gate_name("G4"), "static": [], "ai": []})
-    static_seen.setdefault("G4", set())
-    for check in _build_policy_g4_checks():
-        cmd = check.get("cmd", "")
-        if cmd in static_seen["G4"]:
-            continue
-        static_seen["G4"].add(cmd)
-        g4_bucket["static"].append(check)
-    for check in _build_framework_checks(framework):
-        cmd = check.get("cmd", "")
-        if cmd in static_seen["G4"]:
-            continue
-        static_seen["G4"].add(cmd)
-        g4_bucket["static"].append(check)
-
-    return {gate: gates[gate] for gate in sorted(gates.keys(), key=_path_sort_key)}
+    try:
+        return _build_gate_checks_impl(
+            matrix,
+            deliverables_rules,
+            structure,
+            framework=framework,
+            catalog_index=_catalog_index,
+            resolve_paths=_resolve_paths,
+            d_contract_doc_pattern=_d_contract_doc_pattern,
+        )
+    except ValueError as exc:
+        raise MatrixError(str(exc)) from exc
 
 
 def _ordered_deliverables(feature: dict[str, Any]) -> list[str]:
@@ -1003,73 +625,11 @@ def build_runtime_index(
 
 
 def dump_doc_map_yaml(doc_map: dict[str, Any]) -> str:
-    lines: list[str] = []
-    lines.append("# doc-map.yaml — matrix compile generated")
-    lines.append(f"# helix_template_version: {HELIX_TEMPLATE_VERSION}")
-    lines.append("triggers:")
-    triggers = doc_map.get("triggers", [])
-    if not isinstance(triggers, list):
-        triggers = []
-    for item in triggers:
-        if not isinstance(item, dict):
-            continue
-        pattern = _escape_yaml_double(str(item.get("pattern", "")))
-        phase = str(item.get("phase", ""))
-        on_write = str(item.get("on_write", ""))
-        lines.append(f'  - pattern: "{pattern}"')
-        lines.append(f"    phase: {phase}")
-        lines.append(f"    on_write: {on_write}")
-        if "gate" in item:
-            lines.append(f"    gate: {item['gate']}")
-        if "design_ref" in item:
-            design_ref = _escape_yaml_double(str(item["design_ref"]))
-            lines.append(f'    design_ref: "{design_ref}"')
-    return "\n".join(lines) + "\n"
+    return _dump_doc_map_yaml_impl(doc_map, helix_template_version=HELIX_TEMPLATE_VERSION)
 
 
 def dump_gate_checks_yaml(gate_checks: dict[str, Any]) -> str:
-    lines: list[str] = []
-    lines.append("# gate-checks.yaml — matrix compile generated")
-    lines.append(f"# helix_template_version: {HELIX_TEMPLATE_VERSION}")
-    for gate in sorted(gate_checks.keys(), key=_path_sort_key):
-        entry = gate_checks.get(gate, {})
-        if not isinstance(entry, dict):
-            continue
-        name = _escape_yaml_double(str(entry.get("name", _gate_name(gate))))
-        lines.append(f"{gate}:")
-        lines.append(f'  name: "{name}"')
-
-        static_items = entry.get("static", [])
-        if not isinstance(static_items, list) or not static_items:
-            lines.append("  static: []")
-        else:
-            lines.append("  static:")
-            for static in static_items:
-                if not isinstance(static, dict):
-                    continue
-                static_name = _escape_yaml_double(str(static.get("name", "unnamed")))
-                static_cmd = _escape_yaml_double(str(static.get("cmd", "true")))
-                lines.append(f'    - name: "{static_name}"')
-                lines.append(f'      cmd: "{static_cmd}"')
-
-        ai_items = entry.get("ai", [])
-        if not isinstance(ai_items, list) or not ai_items:
-            lines.append("  ai: []")
-        else:
-            lines.append("  ai:")
-            for ai in ai_items:
-                if not isinstance(ai, dict):
-                    continue
-                role = str(ai.get("role", "tl"))
-                task = str(ai.get("task", "")).strip()
-                lines.append(f"    - role: {role}")
-                lines.append("      task: |")
-                if task:
-                    for task_line in task.splitlines():
-                        lines.append(f"        {task_line}")
-                else:
-                    lines.append("        (task omitted)")
-    return "\n".join(lines) + "\n"
+    return _dump_gate_checks_yaml_impl(gate_checks, helix_template_version=HELIX_TEMPLATE_VERSION)
 
 
 def _read_rules(project_root: Path, cli_root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:

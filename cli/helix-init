@@ -76,6 +76,7 @@ copy_template "$TEMPLATES_DIR/gate-checks.yaml" "$HELIX_DIR/gate-checks.yaml"
 copy_template "$TEMPLATES_DIR/phase.yaml" "$HELIX_DIR/phase.yaml"
 copy_template "$TEMPLATES_DIR/matrix.yaml" "$HELIX_DIR/matrix.yaml"
 copy_template "$TEMPLATES_DIR/config.yaml" "$HELIX_DIR/config.yaml"
+cp -n "$TEMPLATES_DIR/state-machine.yaml" "$HELIX_DIR/" 2>/dev/null || true
 
 # matrix rules テンプレート
 if [[ -d "$TEMPLATES_DIR/rules" ]]; then

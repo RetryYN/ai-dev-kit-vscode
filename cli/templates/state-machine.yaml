@@ -1,0 +1,21 @@
+# helix_template_version: 1
+# state-machine.yaml — HELIX 状態遷移定義
+gate_statuses: [pending, passed, failed, skipped, invalidated]
+gates:
+  G0.5: { prereqs: [], on_pass_phase: L1, on_invalidate: [] }
+  G1:   { prereqs: [], on_pass_phase: L2, on_invalidate: [] }
+  G1.5: { prereqs: [], on_pass_phase: null, on_invalidate: [] }
+  G1R:  { prereqs: [], on_pass_phase: null, on_invalidate: [] }
+  G2:   { prereqs: [G1], on_pass_phase: L3, on_invalidate: [G3,G4,G5,G6,G7] }
+  G3:   { prereqs: [G2], on_pass_phase: L4, on_invalidate: [G4,G5,G6,G7] }
+  G4:   { prereqs: [G3], on_pass_phase: L5, on_invalidate: [G5,G6,G7] }
+  G5:   { prereqs: [G4], on_pass_phase: L6, on_invalidate: [G6,G7] }
+  G6:   { prereqs: [G5], on_pass_phase: L7, on_invalidate: [G7] }
+  G7:   { prereqs: [G6], on_pass_phase: L8, on_invalidate: [] }
+valid_transitions:
+  pending: [passed, failed, skipped]
+  passed: [invalidated]
+  failed: [pending]
+  skipped: [pending]
+  invalidated: [pending]
+sprint_steps: ['.1a', '.1b', '.2', '.3', '.4', '.5']

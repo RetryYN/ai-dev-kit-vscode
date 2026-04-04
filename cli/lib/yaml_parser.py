@@ -22,6 +22,40 @@ import fcntl
 from pathlib import Path
 
 
+def _split_inline_pairs(text):
+    """インライン dict の `k:v, k2:v2` をトップレベルカンマで分割する。"""
+    pairs = []
+    buf = []
+    depth = 0
+    in_single = False
+    in_double = False
+    for ch in text:
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            buf.append(ch)
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            buf.append(ch)
+            continue
+        if not in_single and not in_double:
+            if ch in '[{(':
+                depth += 1
+            elif ch in ']})' and depth > 0:
+                depth -= 1
+            elif ch == ',' and depth == 0:
+                part = ''.join(buf).strip()
+                if part:
+                    pairs.append(part)
+                buf = []
+                continue
+        buf.append(ch)
+    tail = ''.join(buf).strip()
+    if tail:
+        pairs.append(tail)
+    return pairs
+
+
 def parse_yaml(text):
     """簡易 YAML パーサー。ネスト対応（インデントベース）。"""
     result = {}
@@ -60,7 +94,7 @@ def parse_yaml(text):
             # インライン dict: { status: pending, date: 2026-03-30 }
             inner = raw_val[1:-1].strip()
             d = {}
-            for pair in inner.split(','):
+            for pair in _split_inline_pairs(inner):
                 pair = pair.strip()
                 if ':' in pair:
                     k, v = pair.split(':', 1)
@@ -82,6 +116,13 @@ def _cast(val):
         return True
     if val in ('false', 'False'):
         return False
+    if isinstance(val, str):
+        s = val.strip()
+        if s.startswith('[') and s.endswith(']'):
+            inner = s[1:-1].strip()
+            if not inner:
+                return []
+            return [_cast(item.strip()) for item in _split_inline_pairs(inner)]
     val = val.strip("'\"")
     try:
         return int(val)
@@ -194,6 +235,8 @@ def _serialize(val):
         return 'null'
     if isinstance(val, bool):
         return 'true' if val else 'false'
+    if isinstance(val, list):
+        return '[' + ', '.join(_serialize(item) for item in val) + ']'
     if isinstance(val, str):
         if ' ' in val or val.startswith('.') or val in ('null', 'true', 'false'):
             return f'"{val}"'

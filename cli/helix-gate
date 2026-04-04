@@ -95,15 +95,24 @@ print(
 PY
 }
 
-declare -A GATE_PREREQS=(
-  ["G0.5"]=""
-  ["G2"]="G1"
-  ["G3"]="G2"
-  ["G4"]="G3"
-  ["G5"]="G4"
-  ["G6"]="G5"
-  ["G7"]="G6"
-)
+YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
+
+STATE_MACHINE="$SCRIPT_DIR/templates/state-machine.yaml"
+if [[ ! -f "$STATE_MACHINE" ]]; then
+  echo "エラー: state-machine.yaml が見つかりません" >&2
+  exit $EXIT_INTERNAL_ERROR
+fi
+declare -A GATE_PREREQS
+while IFS=: read -r gate prereq; do
+  GATE_PREREQS["$gate"]="$prereq"
+done < <(python3 "$YAML_PARSER" dump "$STATE_MACHINE" 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for g, v in d.get('gates', {}).items():
+    p = v.get('prereqs', [])
+    print(f'{g}:{p[0] if p else \"\"}')
+")
 
 if [[ -f "$CONFIG_FILE" ]]; then
   skip_gates=$(python3 "$YAML_PARSER" read "$CONFIG_FILE" gate_skip 2>/dev/null || echo '[]')
@@ -119,9 +128,6 @@ if [[ -f "$CONFIG_FILE" ]]; then
   fi
 fi
 
-YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
-DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
-
 if [[ "$UNDO" == true ]]; then
   if [[ ! -f "$PHASE_FILE" ]]; then
     echo "エラー: $PHASE_FILE が見つかりません。'helix-init' を実行してください。" >&2
@@ -129,6 +135,18 @@ if [[ "$UNDO" == true ]]; then
   fi
   python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.status" "pending" 2>/dev/null || true
   python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.date" "" 2>/dev/null || true
+  cascade=$(python3 "$YAML_PARSER" dump "$STATE_MACHINE" 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+inv = d.get('gates',{}).get('$GATE',{}).get('on_invalidate',[])
+print(' '.join(inv))
+")
+  for cg in $cascade; do
+    python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${cg}.status" invalidated 2>/dev/null || true
+  done
+  if [[ -n "$cascade" ]]; then
+    echo "下流ゲート ($cascade) を invalidated にしました"
+  fi
   echo "=== $GATE を pending に戻しました ==="
   exit "$EXIT_SUCCESS"
 fi
