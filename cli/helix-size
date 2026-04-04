@@ -181,13 +181,14 @@ case "$FINAL_SIZE" in
         PHASES=("L2" "L3" "L4" "L5" "L6")
         SKIPPED=("L1" "L7" "L8")
         ;;
-      new-feature|"")
+      new-feature|new-module|"")
+        # 新機能/新モジュールは S でも L1（要件定義）を飛ばさない
         if [[ "$L5_NEEDED" == true ]]; then
-          PHASES=("L2" "L3" "L4" "L5" "L6")
-          SKIPPED=("L1" "L7" "L8")
+          PHASES=("L1" "L2" "L3" "L4" "L5" "L6")
+          SKIPPED=("L7" "L8")
         else
-          PHASES=("L2" "L3" "L4" "L6")
-          SKIPPED=("L1" "L5" "L7" "L8")
+          PHASES=("L1" "L2" "L3" "L4" "L6")
+          SKIPPED=("L5" "L7" "L8")
         fi
         ;;
       *)
@@ -195,7 +196,7 @@ case "$FINAL_SIZE" in
         SKIPPED=("L1" "L2" "L3" "L5" "L6" "L7" "L8")
         ;;
     esac
-    NOTES="S案件の L3 は最小版: タスクリスト + 担当割当のみ"
+    NOTES="S案件の L1/L3 は最小版: 目的+受入条件+タスクリスト"
     ;;
   M)
     if [[ "$TASK_TYPE" == "new-module" ]]; then
@@ -210,15 +211,22 @@ case "$FINAL_SIZE" in
       PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
       SKIPPED=()
     elif [[ "$api_or_db" == true && "$L5_NEEDED" != true ]]; then
-      PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
-      SKIPPED=("L1" "L5")
+      # API/DB 変更あり → L1 必須（要件定義を飛ばさない）
+      PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8")
+      SKIPPED=("L5")
     elif [[ "$api_or_db" != true && "$L5_NEEDED" == true ]]; then
-      PHASES=("L2" "L3" "L4" "L5" "L6" "L7" "L8")
-      SKIPPED=("L1")
+      PHASES=("L1" "L2" "L3" "L4" "L5" "L6" "L7" "L8")
+      SKIPPED=()
       NOTES="G1.5/G1R skip可、G3会議省略可"
     else
-      PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
-      SKIPPED=("L1" "L5")
+      # API/DB 変更なしでも新機能なら L1 必須
+      if [[ "$TASK_TYPE" == "new-feature" || "$TASK_TYPE" == "new-module" ]]; then
+        PHASES=("L1" "L2" "L3" "L4" "L6" "L7" "L8")
+        SKIPPED=("L5")
+      else
+        PHASES=("L2" "L3" "L4" "L6" "L7" "L8")
+        SKIPPED=("L1" "L5")
+      fi
     fi
     ;;
   L)

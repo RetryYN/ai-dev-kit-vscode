@@ -223,7 +223,7 @@ run_test_contains "skip L4 only" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --
 run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui --type new-feature --drive fe" "Visual"
 run_test_contains "drive db" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "スキーマ凍結"
 run_test_contains "drive agent" "$SCRIPT_DIR/helix-size --files 3 --lines 150 --api --type new-feature --drive agent" "ツール定義凍結"
-run_test_contains "drive fullstack phase skip" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --type new-feature --drive fullstack" "推奨フェーズ: L2 L3 L4 L5 L6 L7 L8"
+run_test_contains "drive fullstack phase skip" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --type new-feature --drive fullstack" "推奨フェーズ: L1 L2 L3 L4 L5 L6 L7 L8"
 run_test_contains "size shows L1 requirements template" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --db --type new-module --drive db" "L1 要件定義テンプレート:"
 run_test_contains "size writes phase.yaml" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type bugfix --drive fullstack" "phase.yaml 更新: current_phase=L4, drive=fullstack"
 run_test_contains "size sets current_phase" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
