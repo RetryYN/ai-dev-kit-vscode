@@ -235,6 +235,10 @@ run_checks() {
   local static_pass=0
   local static_fail=0
   local static_skip=0
+  local mandatory_pass=0
+  local mandatory_fail=0
+  local advisory_pass=0
+  local advisory_fail=0
   local ai_pass=0
   local ai_fail=0
   local escaped_gate
@@ -361,92 +365,105 @@ PY
 
   if [[ "$AI_ONLY" != true ]]; then
     echo "[static]"
-
-    # gate-checks.yaml からこのゲートの static チェックを抽出・実行
-    local in_gate=false
-    local in_static=false
     local check_name=""
     local check_cmd=""
+    local check_level="advisory"
 
-    while IFS= read -r line; do
-      if [[ "$line" =~ ^${escaped_gate}:[[:space:]]*$ ]]; then
-        in_gate=true
-        continue
+    run_static_check() {
+      local level="$1"
+      local passed=false
+      local level_label=""
+      if [[ "$level" != "mandatory" && "$level" != "advisory" ]]; then
+        level="advisory"
       fi
-      # 次のゲート定義に入ったら終了
-      if [[ "$in_gate" == true && "$line" =~ $section_heading_re ]]; then
-        break
-      fi
-      if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+static: ]]; then
-        in_static=true
-        continue
-      fi
-      if [[ "$in_gate" == true && "$in_static" == true ]]; then
-        # ai: セクションに入ったら static 終了
-        if [[ "$line" =~ ^[[:space:]]+ai: ]]; then
-          # 残りのチェックを実行
-          if [[ -n "$check_cmd" ]]; then
-            if [[ "$DRY_RUN" == true ]]; then
-              echo "  [dry-run] $check_name: $check_cmd"
-            else
-              if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
-                echo "  PASS: $check_name"
-                static_pass=$((static_pass + 1))
-              else
-                echo "  FAIL: $check_name"
-                echo "    cmd: $check_cmd"
-                static_fail=$((static_fail + 1))
-              fi
-            fi
-          fi
-          in_static=false
-          continue
-        fi
-        if [[ "$line" =~ name:[[:space:]]*\"(.+)\" ]]; then
-          # 前のチェックを実行
-          if [[ -n "$check_cmd" ]]; then
-            if [[ "$DRY_RUN" == true ]]; then
-              echo "  [dry-run] $check_name: $check_cmd"
-            else
-              if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
-                echo "  PASS: $check_name"
-                static_pass=$((static_pass + 1))
-              else
-                echo "  FAIL: $check_name"
-                echo "    cmd: $check_cmd"
-                static_fail=$((static_fail + 1))
-              fi
-            fi
-          fi
-          check_name="${BASH_REMATCH[1]}"
-          check_cmd=""
-        elif [[ "$line" =~ cmd:[[:space:]]*\"(.+)\" ]]; then
-          check_cmd="${BASH_REMATCH[1]}"
-        fi
-      fi
-    done < "$GATE_CHECKS"
 
-    # 最後のチェック
-    if [[ "$in_static" == true && -n "$check_cmd" ]]; then
-      if [[ "$DRY_RUN" == true ]]; then
-        echo "  [dry-run] $check_name: $check_cmd"
+      if [[ "$level" == "mandatory" ]]; then
+        level_label="mandatory"
       else
-        if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
-          echo "  PASS: $check_name"
+        level_label="advisory"
+      fi
+
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "  [dry-run][$level_label] $check_name: $check_cmd"
+        return
+      fi
+
+      if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
+        passed=true
+      fi
+
+      if [[ "$level" == "mandatory" ]]; then
+        if [[ "$passed" == true ]]; then
+          echo "  PASS [mandatory]: $check_name"
+          mandatory_pass=$((mandatory_pass + 1))
           static_pass=$((static_pass + 1))
         else
-          echo "  FAIL: $check_name"
+          echo "  FAIL [mandatory]: $check_name"
           echo "    cmd: $check_cmd"
+          mandatory_fail=$((mandatory_fail + 1))
           static_fail=$((static_fail + 1))
         fi
+      else
+        if [[ "$passed" == true ]]; then
+          echo "  PASS [advisory]: $check_name"
+          advisory_pass=$((advisory_pass + 1))
+          static_pass=$((static_pass + 1))
+        else
+          echo "  WARN [advisory]: $check_name"
+          echo "    cmd: $check_cmd"
+          advisory_fail=$((advisory_fail + 1))
+          static_skip=$((static_skip + 1))
+        fi
       fi
-    fi
+    }
 
-    if [[ $((static_pass + static_fail)) -eq 0 ]]; then
+    # gate-checks.yaml からこのゲートの static チェックを抽出・実行（YAMLは python3 でパース）
+    local static_rows=()
+    while IFS= read -r row; do
+      static_rows+=("$row")
+    done < <(
+      python3 - "$GATE_CHECKS" "$gate" <<'PY'
+import sys
+
+import yaml
+
+gate_checks = sys.argv[1]
+gate = sys.argv[2]
+with open(gate_checks, "r", encoding="utf-8") as fp:
+    data = yaml.safe_load(fp) or {}
+for check in data.get(gate, {}).get("static", []):
+    if not isinstance(check, dict):
+        continue
+    name = str(check.get("name", "")).replace("\n", " ").replace("\x1f", " ")
+    cmd = str(check.get("cmd", "")).replace("\x1f", " ")
+    level = str(check.get("level", "advisory")).lower()
+    if level not in ("mandatory", "advisory"):
+        level = "advisory"
+    print(f"{name}\x1f{cmd}\x1f{level}")
+PY
+    )
+
+    for row in "${static_rows[@]}"; do
+      IFS=$'\x1f' read -r check_name check_cmd check_level <<< "$row"
+      [[ -n "$check_cmd" ]] || continue
+      run_static_check "$check_level"
+    done
+
+    local mandatory_total advisory_total mandatory_ok static_total
+    mandatory_total=$((mandatory_pass + mandatory_fail))
+    advisory_total=$((advisory_pass + advisory_fail))
+    mandatory_ok=$((mandatory_total - mandatory_fail))
+    static_total=$((mandatory_total + advisory_total))
+
+    if [[ $static_total -eq 0 ]]; then
       echo "  (static チェックなし)"
     else
       echo ""
-      echo "  static: $static_pass pass, $static_fail fail"
+      if [[ $mandatory_fail -gt 0 ]]; then
+        echo "  FAIL (mandatory: $mandatory_ok/$mandatory_total - $mandatory_fail mandatory check failed, advisory: $advisory_pass/$advisory_total)"
+      else
+        echo "  PASS (mandatory: $mandatory_ok/$mandatory_total, advisory: $advisory_pass/$advisory_total)"
+      fi
     fi
     echo ""
   fi
@@ -545,7 +562,7 @@ PY
   fi
 
   # --- 総合判定 ---
-  local total_fail=$((deliv_fail + static_fail + ai_fail))
+  local total_fail=$((deliv_fail + mandatory_fail + ai_fail))
   local ended_ms duration_ms result
   ended_ms=$(now_ms)
   duration_ms=$((ended_ms - started_ms))
@@ -559,7 +576,7 @@ PY
   fi
   echo ""
   if [[ $total_fail -gt 0 ]]; then
-    echo "=== $gate FAIL (deliverable: $deliv_fail fail, static: $static_fail fail, ai: $ai_fail fail) ==="
+    echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail) ==="
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
     fi

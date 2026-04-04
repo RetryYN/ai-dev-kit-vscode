@@ -16,20 +16,28 @@ G0.5:
   static:
     - name: "企画書の存在"
       cmd: "find docs -name 'proposal.*' -o -name 'planning.*' -o -name '企画書.*' -o -path '*/D-REQ-F/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 企画書なし'"
+      level: advisory
     - name: "要件定義の存在"
       cmd: "find docs -path '*/D-REQ-F/*.md' 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
     - name: "受入条件の存在"
       cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-ACC なし'"
+      level: advisory
     - name: "要件定義に TODO/TBD 残存なし"
       cmd: "! find docs -path '*/D-REQ-F/*.md' -exec grep -l 'TODO\\|TBD\\|未定\\|要確認' {} + 2>/dev/null | head -1"
+      level: mandatory
     - name: "要件の解像度チェック（最低行数）"
       cmd: "for f in $(find docs -path '*/D-REQ-F/*.md' 2>/dev/null); do lines=$(wc -l < \"$f\"); if [ \"$lines\" -lt 10 ]; then echo \"FAIL: $f が $lines 行（最低10行）\"; exit 1; fi; done; echo 'OK'"
+      level: advisory
     - name: "受入条件に測定可能な数値があるか"
       cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null -exec grep -lE '[0-9]+(ms|秒|%|件|回|MB|GB)' {} + | head -1 | grep -q . || echo 'SKIP: D-ACC なしまたは数値基準なし'"
+      level: advisory
     - name: "非機能要件のカテゴリ網羅"
       cmd: "find docs -path '*/D-REQ-NF/*.md' 2>/dev/null -exec grep -lE '可用性|セキュリティ|性能|運用|保守' {} + | head -1 | grep -q . || echo 'SKIP: D-REQ-NF なしまたはカテゴリ不足'"
+      level: advisory
     - name: "エラーケースの記載"
       cmd: "find docs -path '*/D-REQ-F/*.md' 2>/dev/null -exec grep -lE 'エラー|異常|失敗|例外|バリデーション' {} + | head -1 | grep -q . || echo 'SKIP: エラーケース記載なし'"
+      level: advisory
   ai:
     - role: tl
       task: |
@@ -65,14 +73,31 @@ G2:
   static:
     - name: "設計書 TODO 残存"
       cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L2-*.md"
+      level: mandatory
     - name: "設計書存在"
       cmd: "ls docs/design/L2-*.md >/dev/null 2>&1"
+      level: mandatory
     - name: "AG02 権限設定確認"
       cmd: "test -f .claude/settings.json && ! grep -q 'danger-full-access' .claude/settings.json 2>/dev/null || echo 'WARN: settings.json 未設定'"
+      level: advisory
     - name: "ADR が代替案を含むか"
       cmd: "find docs -path '*/D-ADR/*' -name '*.md' -exec grep -l '代替案\\|alternatives\\|却下' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: ADR なし'"
+      level: advisory
     - name: "スコープ境界が明示されているか"
       cmd: "find docs -path '*/D-REQ-F/*' -name '*.md' -exec grep -l 'スコープ外\\|対象外\\|out.of.scope' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 要件文書なし'"
+      level: advisory
+    - name: "アーキテクチャ図"
+      cmd: "find docs -path '*/L2-*' -exec grep -l 'mermaid\\|構成図' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+    - name: "技術スタック選定理由"
+      cmd: "find docs -path '*/L2-*' -exec grep -l '選定理由' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+    - name: "セキュリティ設計"
+      cmd: "find docs -path '*/L2-*' -exec grep -l 'STRIDE\\|脅威\\|セキュリティ' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+    - name: "非機能要件言及"
+      cmd: "find docs -path '*/L2-*' -exec grep -l '性能\\|可用性\\|SLA' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
   ai:
     - role: tl
       task: |
@@ -91,14 +116,28 @@ G3:
   static:
     - name: "API契約存在"
       cmd: "ls docs/design/L3-api-contract.* >/dev/null 2>&1"
+      level: mandatory
     - name: "API契約 TODO 残存"
       cmd: "! grep -rn 'TODO\\|FIXME\\|TBD\\|未定' docs/design/L3-*.md docs/design/L3-*.yaml 2>/dev/null"
+      level: mandatory
     - name: "API 凍結宣言"
       cmd: "find docs -path '*/D-API/*' -name '*.yaml' -o -path '*/D-API/*' -name '*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: API 契約なし'"
+      level: advisory
     - name: "DB スキーマ定義存在（D-DB）"
       cmd: "find docs -path '*/D-DB/*.md' -o -path '*/D-DB/*.yaml' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-DB なし'"
+      level: advisory
     - name: "DB マイグレーション計画存在（D-MIG-PLAN）"
       cmd: "find docs -path '*/D-MIG-PLAN/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-MIG-PLAN なし'"
+      level: advisory
+    - name: "テスト設計"
+      cmd: "find docs -path '*/L3-*' -exec grep -l 'テスト\\|TC-' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+    - name: "工程表"
+      cmd: "find docs -path '*/L3-*' -exec grep -l '工程表\\|タスク.*見積' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+    - name: "エラーハンドリング"
+      cmd: "find docs -path '*/L3-*' -exec grep -l 'エラー.*コード\\|Error' {} + 2>/dev/null | head -1 | grep -q ."
+      level: advisory
   ai:
     - role: tl
       task: |
@@ -113,43 +152,62 @@ G4:
   static:
     - name: "技術負債台帳の存在"
       cmd: "test -f .helix/debt-register.yaml || echo 'SKIP: 負債台帳なし（helix debt add で作成）'"
+      level: advisory
     - name: "要件→実装マッピング存在（あれば）"
       cmd: "python3 -c \"import sqlite3,sys; c=sqlite3.connect('.helix/helix.db'); r=c.execute('SELECT COUNT(*) FROM requirements').fetchone()[0]; m=c.execute('SELECT COUNT(*) FROM req_impl_map').fetchone()[0]; print(f'REQ:{r} MAP:{m}'); sys.exit(0 if r==0 or m>=r else 1)\" 2>/dev/null || echo 'SKIP: 要件テーブルなし'"
+      level: advisory
     - name: "型チェック"
       cmd: "npx tsc --noEmit 2>&1 | tail -1 | grep -q '0 errors' || npx tsc --noEmit 2>&1 | grep -qv error"
+      level: advisory
     - name: "lint"
       cmd: "npx eslint . --quiet 2>&1; test $? -eq 0"
+      level: advisory
     - name: "テスト"
       cmd: "npm test 2>&1; test $? -eq 0"
+      level: mandatory
     - name: "API エンドポイント整合チェック"
       cmd: "$HELIX_HOME/cli/helix-gate-api-check"
+      level: mandatory
     - name: "テストカバレッジ（あれば）"
       cmd: "if [ -f coverage/coverage-summary.json ]; then python3 -c \"import json; d=json.load(open('coverage/coverage-summary.json')); pct=d.get('total',{}).get('lines',{}).get('pct',0); exit(0 if pct>=70 else 1)\"; elif [ -f .coverage ]; then echo 'coverage exists'; else echo 'SKIP: カバレッジ未計測'; fi"
+      level: advisory
     - name: "TODO/FIXME 残存"
       cmd: "! grep -rn 'TODO\\|FIXME' src/ --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx'"
+      level: advisory
     - name: "OWASP: SQL インジェクション検出"
       cmd: "! rg -n \"f['\\\"].*SELECT|execute\\(.*\\+|format\\(.*SELECT\" --type py src/ 2>/dev/null | grep -v '#.*noqa' | head -1"
+      level: mandatory
     - name: "OWASP: XSS 検出"
       cmd: "! rg -n \"innerHTML|dangerouslySetInnerHTML|v-html\" --type js --type ts src/ 2>/dev/null | head -1"
+      level: mandatory
     - name: "秘密情報ハードコード検出"
       cmd: "! rg -n '(?i)(api[_-]?key|secret|token|password|credential)\\s*[=:]\\s*[\\x27\"][^\\x27\\\"]{8,}' --type-not md src/ 2>/dev/null | grep -v '.*\\.example\\.' | head -1"
+      level: mandatory
     - name: "AG05 秘密情報混入チェック"
       cmd: "! rg -n '(?i)(bearer |sk-|ghp_|xoxb-|xoxp-|-----BEGIN)' src/ --type-not md 2>/dev/null | head -1"
+      level: advisory
     - name: ".env が git 追跡されていない"
       cmd: "! git ls-files .env .env.* 2>/dev/null | head -1"
+      level: mandatory
     # === FE 品質チェック ===
     - name: "モック/ダミー残存チェック"
       cmd: "! rg -n '(?i)(localhost:[0-9]|mock-api|dummy-data|FIXME|TODO.*mock)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
+      level: advisory
     - name: "console.log/debugger 残存チェック"
       cmd: "! rg -n '^\\s*(console\\.(log|debug|warn|error)|debugger)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
+      level: advisory
     - name: "開発用語の UI 露出チェック"
       cmd: "! rg -n '(Exception|NullPointerException|undefined is not|Cannot read prop|Stack trace|Error:.*at )' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v 'catch\\|throw\\|Error(' | head -1"
+      level: advisory
     - name: "AI っぽい出力チェック"
       cmd: "! rg -n '(もちろんです|お手伝いします|ご質問にお答えします|As an AI|I apologize)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | head -1"
+      level: advisory
     - name: "ハードコード URL チェック"
       cmd: "! rg -n 'https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v 'env\\.' | head -1"
+      level: advisory
     - name: "CSS マジックナンバーチェック"
       cmd: "! rg -n 'z-index:\\s*[0-9]{3,}' src/ --type css 2>/dev/null | head -1"
+      level: advisory
   ai:
     - role: tl
       task: |
@@ -170,8 +228,10 @@ G5:
   static:
     - name: "UI目視確認 全件 approved"
       cmd: "! grep -rl '判定: pending' .helix/visual-checks/*.md 2>/dev/null || test $(ls .helix/visual-checks/*.md 2>/dev/null | wc -l) -eq 0"
+      level: advisory
     - name: "スクリーンショット必須3枚"
       cmd: "for d in .helix/visual-checks/*-screenshots/; do [ -d \"$d\" ] || continue; for f in desktop.png tablet.png mobile.png; do [ -f \"$d/$f\" ] || exit 1; done; done"
+      level: advisory
   ai:
     - role: fe
       task: |
@@ -187,12 +247,16 @@ G6:
   static:
     - name: "全テスト通過"
       cmd: "npm test 2>&1; test $? -eq 0"
+      level: mandatory
     - name: "E2E テスト"
       cmd: "npx playwright test 2>&1; test $? -eq 0"
+      level: mandatory
     - name: "Flaky テスト検出（3回実行で不安定なし）"
       cmd: "echo 'SKIP: Flaky テスト検出は手動実行推奨（helix test を3回実行して比較）'"
+      level: advisory
     - name: "テスト十分性の判断記録"
       cmd: "echo 'advisory: テストカバレッジと mutation score を確認してください'"
+      level: advisory
   ai:
     - role: qa
       task: |
@@ -208,10 +272,13 @@ G7:
   static:
     - name: "Docker ビルド"
       cmd: "docker build -t test . 2>&1; test $? -eq 0"
+      level: advisory
     - name: "ロールバック手順の存在"
       cmd: "find docs -path '*/D-DEPLOY/*' -name '*.md' -exec grep -l 'ロールバック\\|rollback' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: デプロイ文書なし'"
+      level: mandatory
     - name: "監視設定の存在"
       cmd: "find docs -path '*/D-OBS/*' -name '*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 監視文書なし'"
+      level: advisory
   ai:
     - role: devops
       task: |

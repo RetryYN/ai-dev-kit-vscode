@@ -355,6 +355,39 @@ if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
   fi
 fi
 
+# --- 設計テンプレート自動生成 ---
+DOC_TEMPLATES="$SCRIPT_DIR/templates/docs"
+if [[ -d "$DOC_TEMPLATES" ]]; then
+  for phase in "${PHASES[@]}"; do
+    case "$phase" in
+      L1)
+        mkdir -p "$PROJECT_ROOT/docs/requirements"
+        if [[ "$JSON_OUTPUT" != true ]]; then
+          cp -n "$DOC_TEMPLATES/L1-requirements.md" "$PROJECT_ROOT/docs/requirements/" 2>/dev/null && echo "L1 要件定義テンプレート: docs/requirements/L1-requirements.md" || true
+        else
+          cp -n "$DOC_TEMPLATES/L1-requirements.md" "$PROJECT_ROOT/docs/requirements/" 2>/dev/null || true
+        fi
+        ;;
+      L2)
+        mkdir -p "$PROJECT_ROOT/docs/design"
+        if [[ "$JSON_OUTPUT" != true ]]; then
+          cp -n "$DOC_TEMPLATES/L2-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L2 基本設計テンプレート: docs/design/L2-design.md" || true
+        else
+          cp -n "$DOC_TEMPLATES/L2-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
+        fi
+        ;;
+      L3)
+        mkdir -p "$PROJECT_ROOT/docs/design"
+        if [[ "$JSON_OUTPUT" != true ]]; then
+          cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L3 詳細設計テンプレート: docs/design/L3-detailed-design.md" || true
+        else
+          cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
+        fi
+        ;;
+    esac
+  done
+fi
+
 if [[ "$JSON_OUTPUT" == true ]]; then
   PHASES_NL="$(printf '%s\n' "${PHASES[@]}")"
   FINAL_SIZE="$FINAL_SIZE" DRIVE="$DRIVE" PHASES_NL="$PHASES_NL" python3 - <<'PY'
