@@ -18,6 +18,7 @@ case "$CMD" in
   sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
   pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
+  mode)     exec "$SCRIPT_DIR/helix-mode" "$@" ;;
   builder)  exec "$SCRIPT_DIR/helix-builder" "$@" ;;
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
@@ -44,6 +45,7 @@ Commands:
 プロジェクト管理:
   init        プロジェクト初期化
   status      プロジェクト状態表示
+  mode        開発モード切替
   matrix      成果物マトリクス管理
   doctor      環境診断・修復
   debug       デバッグツール

@@ -19,6 +19,12 @@ shift 2>/dev/null || true
 # init: Scrum モード初期化
 # ============================
 cmd_init() {
+  current_mode=$(python3 "$YP" read "$HELIX_DIR/phase.yaml" current_mode 2>/dev/null || echo "forward")
+  if [[ "$current_mode" != "scrum" && -f "$HELIX_DIR/phase.yaml" ]]; then
+    python3 "$YP" write "$HELIX_DIR/phase.yaml" current_mode scrum 2>/dev/null || true
+    echo "[helix-scrum] モードを scrum に自動切替しました"
+  fi
+
   echo "=== HELIX Scrum Init ==="
   mkdir -p "$SCRUM_DIR" "$VERIFY_DIR"
 

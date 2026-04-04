@@ -497,6 +497,7 @@ echo "[helix-status]"
 run_test_contains "status --help usage" "$SCRIPT_DIR/helix-status --help" "Usage: helix status"
 run_test_not_contains "status --help no runtime" "$SCRIPT_DIR/helix-status --help" "HELIX Project Status"
 run_test_contains "status shows project" "$SCRIPT_DIR/helix-status" "Project:"
+run_test_contains "status shows mode" "$SCRIPT_DIR/helix-status" "Mode:"
 run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
 run_test_contains "status shows action guide" "$SCRIPT_DIR/helix-status" "Action Guide:"
 run_test_contains "status action guide for L1" "$SCRIPT_DIR/helix-status" "helix plan draft で設計を開始"
@@ -572,6 +573,15 @@ tasks:
     skill: common/coding
 EOF
 run_test_contains "task run success learn hint" "CODEX_BIN=$TEST_DIR/mock-codex-success $SCRIPT_DIR/helix-task run" "helix learn"
+echo ""
+
+echo "[helix-mode]"
+run_test_contains "mode --help" "$SCRIPT_DIR/helix mode --help" "使い方: helix mode \\[モード\\]"
+run_test_contains "mode display default forward" "$SCRIPT_DIR/helix mode" "現在のモード: forward"
+run_test_contains "mode switch reverse" "$SCRIPT_DIR/helix mode reverse" "モードを forward → reverse に切り替えました"
+run_test "mode forward blocked when reverse incomplete" "$SCRIPT_DIR/helix mode forward" 3
+run_test_contains "mode switch scrum" "$SCRIPT_DIR/helix mode scrum" "モードを reverse → scrum に切り替えました"
+run_test "mode invalid value error" "$SCRIPT_DIR/helix mode invalid" 2
 echo ""
 
 echo "[helix-reverse]"

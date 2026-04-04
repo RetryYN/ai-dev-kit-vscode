@@ -206,11 +206,13 @@ def main():
         return 1
 
     project = data.get("project", "") or "unknown"
+    mode = data.get("current_mode", "") or "forward"
     phase = data.get("current_phase", "") or "unknown"
 
     print("=== HELIX Project Status ===")
     print("")
     print(f"Project: {project}")
+    print(f"Mode:    {mode}")
     print(f"Phase:   {phase}")
     print("")
 

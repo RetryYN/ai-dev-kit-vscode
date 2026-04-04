@@ -41,6 +41,15 @@ if [[ -z "$STAGE" ]]; then
   exit 1
 fi
 
+# auto-switch to reverse mode
+if [[ "$STAGE" == "R0" ]]; then
+  current_mode=$(python3 "$YAML_PARSER" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
+  if [[ "$current_mode" != "reverse" && -f "$PHASE_FILE" ]]; then
+    python3 "$YAML_PARSER" write "$PHASE_FILE" current_mode reverse 2>/dev/null || true
+    echo "[helix-reverse] モードを reverse に自動切替しました"
+  fi
+fi
+
 # --- .helix/ チェック ---
 if [[ ! -d "$HELIX_DIR" ]]; then
   echo "Error: .helix/ not found. Run 'helix-init' first." >&2

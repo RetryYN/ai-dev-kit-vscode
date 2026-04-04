@@ -4,6 +4,7 @@
 # helix-size / helix-gate / helix-sprint が自動更新する
 
 project: ""
+current_mode: forward
 current_phase: L1
 
 gates:
