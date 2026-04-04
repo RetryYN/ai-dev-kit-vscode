@@ -368,7 +368,6 @@ class HybridSearch:
 | Claude Sonnet | 200K | 64K | 〜150K |
 | Claude Haiku 4.5 | 200K | 64K | 〜150K |
 | GPT-4o | 128K | 16K | 〜100K |
-| Gemini 2.0 Pro | 2M | 8K | 〜1.5M |
 
 ### コンテキスト圧縮戦略
 
