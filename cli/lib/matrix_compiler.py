@@ -40,6 +40,7 @@ ALLOWED_SCOPES = {"feature", "shared", "platform"}
 UI_REQUIRED_DRIVES = {"fe", "fullstack", "agent"}
 FEATURE_ID_REGEX_DEFAULT = r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
 MIN_ARTIFACT_BYTES = 10
+HELIX_TEMPLATE_VERSION = 3
 
 COMMON_REQUIRES = {
     "L1": ["D-REQ-F", "D-REQ-NF", "D-ACC"],
@@ -1003,6 +1004,8 @@ def build_runtime_index(
 
 def dump_doc_map_yaml(doc_map: dict[str, Any]) -> str:
     lines: list[str] = []
+    lines.append("# doc-map.yaml — matrix compile generated")
+    lines.append(f"# helix_template_version: {HELIX_TEMPLATE_VERSION}")
     lines.append("triggers:")
     triggers = doc_map.get("triggers", [])
     if not isinstance(triggers, list):
@@ -1026,6 +1029,8 @@ def dump_doc_map_yaml(doc_map: dict[str, Any]) -> str:
 
 def dump_gate_checks_yaml(gate_checks: dict[str, Any]) -> str:
     lines: list[str] = []
+    lines.append("# gate-checks.yaml — matrix compile generated")
+    lines.append(f"# helix_template_version: {HELIX_TEMPLATE_VERSION}")
     for gate in sorted(gate_checks.keys(), key=_path_sort_key):
         entry = gate_checks.get(gate, {})
         if not isinstance(entry, dict):

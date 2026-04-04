@@ -1,18 +1,19 @@
 #!/bin/bash
 set -eo pipefail
 # helix-bench: HELIX 自己ベンチマーク
-# Usage: helix bench [--period <week|month|all>]
+# Usage: helix bench [--period <week|month|all>] [--json]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DB="$HELIX_DIR/helix.db"
 
 usage() {
-  echo "使い方: helix bench [--period <week|month|all>]"
+  echo "使い方: helix bench [--period <week|month|all>] [--json]"
   echo ""
   echo "プロジェクトの HELIX メトリクスを表示します。"
 }
 
 PERIOD="all"
+JSON_OUTPUT=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
@@ -22,6 +23,10 @@ while [[ $# -gt 0 ]]; do
     --period)
       PERIOD="${2:-}"
       shift 2
+      ;;
+    --json)
+      JSON_OUTPUT=true
+      shift
       ;;
     *)
       echo "エラー: 不明なオプション: $1" >&2
@@ -39,47 +44,89 @@ case "$PERIOD" in
     ;;
 esac
 
-echo "=== HELIX ベンチマーク（$PERIOD）==="
-echo ""
+if [[ "$JSON_OUTPUT" != true ]]; then
+  echo "=== HELIX ベンチマーク（$PERIOD）==="
+  echo ""
+fi
 
 if [[ ! -f "$DB" ]]; then
-  echo "データなし。helix task run や helix gate を実行するとメトリクスが蓄積されます。"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    PERIOD="$PERIOD" python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "period": os.environ.get("PERIOD", "all"),
+    "gate_runs": {"total": 0, "passed": 0, "pass_rate": 0},
+    "cost_log_count": 0,
+    "recipe_count": 0,
+    "debt_open": 0,
+}, ensure_ascii=False))
+PY
+  else
+    echo "データなし。helix task run や helix gate を実行するとメトリクスが蓄積されます。"
+  fi
   exit 0
 fi
 
-# gate_runs / cost_log からメトリクス集計
-python3 -c "
+DB="$DB" PERIOD="$PERIOD" HELIX_DIR="$HELIX_DIR" JSON_OUTPUT="$JSON_OUTPUT" python3 - <<'PY'
+import json
 import sqlite3
+import os
+from pathlib import Path
 
-db = '$DB'
-period = '$PERIOD'
+db = os.environ["DB"]
+period = os.environ.get("PERIOD", "all")
+helix_dir = Path(os.environ["HELIX_DIR"])
+json_output = os.environ.get("JSON_OUTPUT") == "true"
 
-where = ''
-params = ()
-if period == 'week':
-    where = \" WHERE created_at >= datetime('now', '-7 day')\"
-elif period == 'month':
-    where = \" WHERE created_at >= datetime('now', '-30 day')\"
+where = ""
+if period == "week":
+    where = " WHERE created_at >= datetime('now', '-7 day')"
+elif period == "month":
+    where = " WHERE created_at >= datetime('now', '-30 day')"
 
+total = 0
+passed = 0
+cost_count = 0
 try:
     c = sqlite3.connect(db)
-    total = c.execute('SELECT COUNT(*) FROM gate_runs' + where, params).fetchone()[0]
-    passed = c.execute(\"SELECT COUNT(*) FROM gate_runs\" + where + \" AND result='pass'\" if where else \"SELECT COUNT(*) FROM gate_runs WHERE result='pass'\", params).fetchone()[0]
-    cost_count = c.execute('SELECT COUNT(*) FROM cost_log' + where, params).fetchone()[0]
-    print(f'ゲート実行:       {total} 回')
-    print(f'一発通過率:       {passed}/{total} ({passed*100//max(total,1)}%)' if total > 0 else '一発通過率:       0/0 (0%)')
-    print(f'コスト記録:       {cost_count} 件')
+    total = c.execute("SELECT COUNT(*) FROM gate_runs" + where).fetchone()[0]
+    if where:
+        passed = c.execute("SELECT COUNT(*) FROM gate_runs" + where + " AND result='pass'").fetchone()[0]
+    else:
+        passed = c.execute("SELECT COUNT(*) FROM gate_runs WHERE result='pass'").fetchone()[0]
+    cost_count = c.execute("SELECT COUNT(*) FROM cost_log" + where).fetchone()[0]
 except Exception as e:
-    print(f'集計エラー: {e}')
-" 2>/dev/null || echo "DB 読み取りエラー"
+    if json_output:
+        print(json.dumps({"error": f"集計エラー: {e}"}, ensure_ascii=False))
+    else:
+        print(f"集計エラー: {e}")
+    raise SystemExit(0)
 
-recipe_count=$(find "$HELIX_DIR/recipes" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
-echo "recipe 数:        $recipe_count"
+recipe_count = len(list((helix_dir / "recipes").glob("*.json"))) if (helix_dir / "recipes").exists() else 0
+debt_open = 0
+debt_file = helix_dir / "debt-register.yaml"
+if debt_file.exists():
+    debt_open = sum(1 for line in debt_file.read_text(encoding="utf-8", errors="ignore").splitlines() if "status: open" in line)
 
-if [[ -f "$HELIX_DIR/debt-register.yaml" ]]; then
-  debt_open=$(grep -c "status: open" "$HELIX_DIR/debt-register.yaml" 2>/dev/null || echo 0)
-  echo "技術負債(未解決): $debt_open 件"
-fi
+pass_rate = (passed * 100 // max(total, 1)) if total > 0 else 0
 
-echo ""
-echo "helix test を実行して最新のテスト数を確認してください。"
+if json_output:
+    print(json.dumps({
+        "period": period,
+        "gate_runs": {"total": total, "passed": passed, "pass_rate": pass_rate},
+        "cost_log_count": cost_count,
+        "recipe_count": recipe_count,
+        "debt_open": debt_open,
+    }, ensure_ascii=False))
+else:
+    print(f"ゲート実行:       {total} 回")
+    print(f"一発通過率:       {passed}/{total} ({pass_rate}%)" if total > 0 else "一発通過率:       0/0 (0%)")
+    print(f"コスト記録:       {cost_count} 件")
+    print(f"recipe 数:        {recipe_count}")
+    if debt_file.exists():
+        print(f"技術負債(未解決): {debt_open} 件")
+    print("")
+    print("helix test を実行して最新のテスト数を確認してください。")
+PY

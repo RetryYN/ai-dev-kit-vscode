@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project",
+    "current_phase",
+    "gates",
+    "sprint",
+    "reverse_gates",
+    "reverse"
+  ],
+  "properties": {
+    "project": {
+      "type": "string"
+    },
+    "current_phase": {
+      "type": "string",
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5",
+        "L6",
+        "L7",
+        "L8"
+      ]
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "G0.5",
+        "G1",
+        "G1.5",
+        "G1R",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7"
+      ],
+      "properties": {
+        "G0.5": { "$ref": "#/$defs/gateState" },
+        "G1": { "$ref": "#/$defs/gateState" },
+        "G1.5": { "$ref": "#/$defs/gateState" },
+        "G1R": { "$ref": "#/$defs/gateState" },
+        "G2": { "$ref": "#/$defs/gateState" },
+        "G3": { "$ref": "#/$defs/gateState" },
+        "G4": { "$ref": "#/$defs/gateState" },
+        "G5": { "$ref": "#/$defs/gateState" },
+        "G6": { "$ref": "#/$defs/gateState" },
+        "G7": { "$ref": "#/$defs/gateState" }
+      }
+    },
+    "sprint": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "current_step",
+        "status",
+        "drive",
+        "tracks",
+        "phase",
+        "steps"
+      ],
+      "properties": {
+        "current_step": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] },
+        "drive": { "type": ["string", "null"] },
+        "tracks": { "type": ["object", "null"] },
+        "phase": { "type": ["string", "null"] },
+        "steps": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "reverse_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["RG0", "RG1", "RG2", "RG3"],
+      "properties": {
+        "RG0": { "$ref": "#/$defs/gateState" },
+        "RG1": { "$ref": "#/$defs/gateState" },
+        "RG2": { "$ref": "#/$defs/gateState" },
+        "RG3": { "$ref": "#/$defs/gateState" }
+      }
+    },
+    "reverse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "completed_at"],
+      "properties": {
+        "status": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "$defs": {
+    "gateState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "passed",
+            "failed",
+            "skipped",
+            "blocked",
+            "interrupted",
+            "invalidated"
+          ]
+        },
+        "date": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

@@ -41,32 +41,41 @@ case "$CMD" in
 使い方: helix <コマンド>
 
 Commands:
+プロジェクト管理:
   init        プロジェクト初期化
-  codex       Codex へのタスク委譲
-  team        エージェントチーム実行
+  status      プロジェクト状態表示
+  matrix      成果物マトリクス管理
+  doctor      環境診断・修復
+  debug       デバッグツール
+
+ワークフロー:
   gate        ゲート自動検証
   size        タスクサイジング
   sprint      L4 マイクロスプリント
-  pr          PR 自動生成
-  reverse     Reverse HELIX パイプライン
+  plan        設計計画
+  reverse     リバース HELIX
   scrum       検証駆動開発
+  interrupt   中断・復帰管理
+
+実行・委譲:
+  codex       Codex へのタスク委譲
   task        タスクオペレーティングシステム
+  team        エージェントチーム実行
+  builder     成果物ビルダー
+  pr          PR 自動生成
+
+データ・学習:
   log         ログ・評価システム
-  matrix      成果物対照表
-  plan        設計提案レビュー
-  interrupt   追加設計・追加要件モード
-  learn       成功パターン学習（recipe生成 + global同期）
-  promote     recipe昇格（Builder生成）
-  discover    recipe探索（local + global）
-  builder     ビルダーツール群
-  status      プロジェクト状態表示
+  bench       メトリクスベンチマーク
+  debt        技術負債管理
+  retro       レトロスペクティブ
+  learn       成功パターン学習
+  promote     レシピ昇格
+  discover    パターン検索
+
+検証:
   test        セルフテスト
-  bench       HELIX ベンチマーク表示
-  retro       ミニレトロ管理
-  debt        技術負債台帳管理
-  doctor      環境診断
-  debug       デバッグユーティリティ
-  verify-all  全検証スクリプト実行
+  verify-all  全レイヤー検証
 
 Environment:
   HELIX_HOME    HELIX インストールディレクトリ (default: ~/ai-dev-kit-vscode)

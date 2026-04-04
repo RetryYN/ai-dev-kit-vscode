@@ -1,0 +1,19 @@
+# helix_template_version: 1
+# HELIX プロジェクト設定
+# .helix/config.yaml にコピーされる
+
+# ゲートスキップ設定（skip したいゲートを列挙）
+gate_skip: []
+# 例: gate_skip: [G1.5, G1R, G5]
+
+# スプリントステップスキップ
+sprint_skip_steps: []
+
+# AI レビュー無効化（コスト削減用）
+ai_review: true
+
+# 駆動タイプデフォルト
+default_drive: be
+
+# 言語設定
+lang: ja

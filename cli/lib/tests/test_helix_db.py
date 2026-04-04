@@ -108,7 +108,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3]
+    assert [row["version"] for row in versions] == [2, 3, 4]
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -288,7 +288,7 @@ def test_report_quality_runs_without_exception(tmp_path: Path, capsys) -> None:
     assert "review-security" in output
 
 
-def test_migrate_from_v1_to_v3_is_idempotent(tmp_path: Path) -> None:
+def test_migrate_from_v1_to_v4_is_idempotent(tmp_path: Path) -> None:
     db_path = tmp_path / "legacy.db"
     conn = sqlite3.connect(str(db_path))
     conn.executescript(helix_db.SCHEMA)
@@ -315,8 +315,110 @@ def test_migrate_from_v1_to_v3_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3]
+    assert versions == [1, 2, 3, 4]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
+
+
+def test_migrate_from_v3_to_v4_recreates_tables_with_fk_and_keeps_data(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v3.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+
+    conn.execute("DROP TABLE IF EXISTS retro_items")
+    conn.execute("DROP TABLE IF EXISTS interrupts")
+    conn.execute("DROP TABLE IF EXISTS gate_runs")
+
+    conn.execute(
+        """
+        CREATE TABLE gate_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gate TEXT NOT NULL,
+            result TEXT NOT NULL,
+            fail_reasons TEXT DEFAULT '',
+            retry_count INTEGER DEFAULT 0,
+            duration_ms INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE interrupts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            interrupt_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            classification TEXT NOT NULL,
+            scope TEXT DEFAULT '',
+            status TEXT NOT NULL,
+            duration_ms INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            resolved_at TEXT DEFAULT ''
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE retro_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gate TEXT NOT NULL,
+            item_type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            owner TEXT DEFAULT '',
+            due TEXT DEFAULT '',
+            done INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+
+    conn.execute(
+        "INSERT INTO gate_runs (id, gate, result, fail_reasons, retry_count, duration_ms, created_at) VALUES (1, 'G2', 'pass', '', 0, 10, '2025-01-01T00:00:00')"
+    )
+    conn.execute(
+        "INSERT INTO interrupts (id, interrupt_id, kind, classification, scope, status, duration_ms, created_at, resolved_at) VALUES (1, 'INT-001', 'incident', 'P1', 'core', 'closed', 55, '2025-01-01T00:01:00', '2025-01-01T00:02:00')"
+    )
+    conn.execute(
+        "INSERT INTO retro_items (id, gate, item_type, content, owner, due, done, created_at) VALUES (1, 'G2', 'action', 'Add regression', 'tl', '2025-01-10', 0, '2025-01-01T00:03:00')"
+    )
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (3, '2025-01-01T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+
+    gate_runs_cols = {row[1] for row in conn.execute("PRAGMA table_info(gate_runs)")}
+    interrupts_cols = {row[1] for row in conn.execute("PRAGMA table_info(interrupts)")}
+    retro_cols = {row[1] for row in conn.execute("PRAGMA table_info(retro_items)")}
+
+    gate_runs_fk_tables = {row[2] for row in conn.execute("PRAGMA foreign_key_list(gate_runs)")}
+    interrupts_fk_tables = {row[2] for row in conn.execute("PRAGMA foreign_key_list(interrupts)")}
+    retro_fk_tables = {row[2] for row in conn.execute("PRAGMA foreign_key_list(retro_items)")}
+
+    migrated_gate = conn.execute(
+        "SELECT gate, task_run_id FROM gate_runs WHERE id = 1"
+    ).fetchone()
+    migrated_interrupt = conn.execute(
+        "SELECT interrupt_id, task_run_id FROM interrupts WHERE id = 1"
+    ).fetchone()
+    migrated_retro = conn.execute(
+        "SELECT gate, gate_name, gate_run_id FROM retro_items WHERE id = 1"
+    ).fetchone()
+    conn.close()
+
+    assert versions == [3, 4]
+    assert "task_run_id" in gate_runs_cols
+    assert "task_run_id" in interrupts_cols
+    assert {"gate_name", "gate_run_id"} <= retro_cols
+    assert "task_runs" in gate_runs_fk_tables
+    assert "task_runs" in interrupts_fk_tables
+    assert "gate_runs" in retro_fk_tables
+    assert migrated_gate == ("G2", None)
+    assert migrated_interrupt == ("INT-001", None)
+    assert migrated_retro == ("G2", "G2", None)
 
 
 def test_export_json_writes_valid_json(tmp_path: Path, capsys) -> None:
@@ -334,4 +436,3 @@ def test_export_json_writes_valid_json(tmp_path: Path, capsys) -> None:
     assert "task_runs" in payload
     assert "action_logs" in payload
     assert payload["feedback"][0]["description"] == "Need more coverage"
-

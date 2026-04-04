@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["triggers"],
+  "properties": {
+    "triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "phase", "on_write"],
+        "properties": {
+          "pattern": { "type": "string" },
+          "phase": { "type": "string" },
+          "on_write": { "type": "string" },
+          "gate": { "type": "string" },
+          "design_ref": { "type": "string" }
+        }
+      }
+    }
+  }
+}

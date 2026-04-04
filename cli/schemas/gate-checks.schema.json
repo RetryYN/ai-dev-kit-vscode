@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "G0.5",
+    "G1",
+    "G1.5",
+    "G1R",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "G6",
+    "G7"
+  ],
+  "properties": {
+    "G0.5": { "$ref": "#/$defs/gateCheck" },
+    "G1": { "$ref": "#/$defs/gateCheck" },
+    "G1.5": { "$ref": "#/$defs/gateCheck" },
+    "G1R": { "$ref": "#/$defs/gateCheck" },
+    "G2": { "$ref": "#/$defs/gateCheck" },
+    "G3": { "$ref": "#/$defs/gateCheck" },
+    "G4": { "$ref": "#/$defs/gateCheck" },
+    "G5": { "$ref": "#/$defs/gateCheck" },
+    "G6": { "$ref": "#/$defs/gateCheck" },
+    "G7": { "$ref": "#/$defs/gateCheck" }
+  },
+  "$defs": {
+    "gateCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "static": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "cmd"],
+            "properties": {
+              "name": { "type": "string" },
+              "cmd": { "type": "string" }
+            }
+          }
+        },
+        "ai": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "task"],
+            "properties": {
+              "role": { "type": "string" },
+              "task": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

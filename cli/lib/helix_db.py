@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS task_selections (
 
 CREATE TABLE IF NOT EXISTS gate_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_run_id INTEGER REFERENCES task_runs(id),
     gate TEXT NOT NULL,
     result TEXT NOT NULL,
     fail_reasons TEXT DEFAULT '',
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS plan_reviews (
 
 CREATE TABLE IF NOT EXISTS interrupts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_run_id INTEGER REFERENCES task_runs(id),
     interrupt_id TEXT NOT NULL,
     kind TEXT NOT NULL,
     classification TEXT NOT NULL,
@@ -137,6 +139,8 @@ CREATE TABLE IF NOT EXISTS interrupts (
 CREATE TABLE IF NOT EXISTS retro_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     gate TEXT NOT NULL,
+    gate_name TEXT,
+    gate_run_id INTEGER REFERENCES gate_runs(id),
     item_type TEXT NOT NULL,
     content TEXT NOT NULL,
     owner TEXT DEFAULT '',
@@ -189,12 +193,15 @@ CREATE INDEX IF NOT EXISTS idx_action_logs_task_run_status ON action_logs(action
 CREATE INDEX IF NOT EXISTS idx_feedback_type ON feedback(feedback_type);
 CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category);
 CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
+CREATE INDEX IF NOT EXISTS idx_gate_runs_task_run_id ON gate_runs(task_run_id);
+CREATE INDEX IF NOT EXISTS idx_interrupts_task_run_id ON interrupts(task_run_id);
+CREATE INDEX IF NOT EXISTS idx_retro_items_gate_run_id ON retro_items(gate_run_id);
 """
 
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -270,6 +277,99 @@ def _create_requirements_tables(conn):
     conn.executescript(REQUIREMENTS_SCHEMA)
 
 
+def _has_column(conn, table_name, column_name):
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return any(row[1] == column_name for row in rows)
+
+
+def _migrate_gate_runs_v4(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS gate_runs_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_run_id INTEGER REFERENCES task_runs(id),
+            gate TEXT NOT NULL,
+            result TEXT NOT NULL,
+            fail_reasons TEXT DEFAULT '',
+            retry_count INTEGER DEFAULT 0,
+            duration_ms INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO gate_runs_new
+            (id, task_run_id, gate, result, fail_reasons, retry_count, duration_ms, created_at)
+        SELECT
+            id, NULL, gate, result, fail_reasons, retry_count, duration_ms, created_at
+        FROM gate_runs
+        """
+    )
+    conn.execute("DROP TABLE gate_runs")
+    conn.execute("ALTER TABLE gate_runs_new RENAME TO gate_runs")
+
+
+def _migrate_interrupts_v4(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS interrupts_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_run_id INTEGER REFERENCES task_runs(id),
+            interrupt_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            classification TEXT NOT NULL,
+            scope TEXT DEFAULT '',
+            status TEXT NOT NULL,
+            duration_ms INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            resolved_at TEXT DEFAULT ''
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO interrupts_new
+            (id, task_run_id, interrupt_id, kind, classification, scope, status, duration_ms, created_at, resolved_at)
+        SELECT
+            id, NULL, interrupt_id, kind, classification, scope, status, duration_ms, created_at, resolved_at
+        FROM interrupts
+        """
+    )
+    conn.execute("DROP TABLE interrupts")
+    conn.execute("ALTER TABLE interrupts_new RENAME TO interrupts")
+
+
+def _migrate_retro_items_v4(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS retro_items_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            gate TEXT NOT NULL,
+            gate_name TEXT,
+            gate_run_id INTEGER REFERENCES gate_runs(id),
+            item_type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            owner TEXT DEFAULT '',
+            due TEXT DEFAULT '',
+            done INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO retro_items_new
+            (id, gate, gate_name, gate_run_id, item_type, content, owner, due, done, created_at)
+        SELECT
+            id, gate, gate, NULL, item_type, content, owner, due, done, created_at
+        FROM retro_items
+        """
+    )
+    conn.execute("DROP TABLE retro_items")
+    conn.execute("ALTER TABLE retro_items_new RENAME TO retro_items")
+
+
 def migrate(conn):
     """スキーマをマイグレーション"""
     current = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] or 0
@@ -290,6 +390,26 @@ def migrate(conn):
             )
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (3, datetime('now'))"
+            )
+        # v3→v4: gate_runs / interrupts / retro_items に FK カラム追加
+        if current < 4:
+            if not _has_column(conn, "gate_runs", "task_run_id"):
+                _migrate_gate_runs_v4(conn)
+            if not _has_column(conn, "interrupts", "task_run_id"):
+                _migrate_interrupts_v4(conn)
+            if not _has_column(conn, "retro_items", "gate_name") or not _has_column(conn, "retro_items", "gate_run_id"):
+                _migrate_retro_items_v4(conn)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_gate_runs_task_run_id ON gate_runs(task_run_id)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_interrupts_task_run_id ON interrupts(task_run_id)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_retro_items_gate_run_id ON retro_items(gate_run_id)"
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (4, datetime('now'))"
             )
         conn.commit()
 

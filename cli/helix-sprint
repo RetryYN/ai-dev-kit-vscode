@@ -18,7 +18,7 @@ declare -A STEP_NAMES=(
 )
 
 usage() {
-  echo "Usage: helix-sprint <status|next|complete|reset> [--track be|fe]"
+  echo "Usage: helix-sprint <status|next|complete|reset> [--track be|fe] [--json]"
   echo ""
   echo "Commands:"
   echo "  status                現在のスプリント状態を表示"
@@ -30,7 +30,12 @@ usage() {
 # --- .helix/ チェック ---
 if [[ ! -d "$HELIX_DIR" ]]; then
   echo "Error: .helix/ not found. Run 'helix-init' first." >&2
-  exit 1
+  exit "$EXIT_PREREQ_ERROR"
+fi
+
+if [[ ! -f "$PHASE_FILE" ]]; then
+  echo "Error: $PHASE_FILE not found. Run 'helix-init' first." >&2
+  exit "$EXIT_PREREQ_ERROR"
 fi
 
 # --- sprint セクションの読み書き (yaml_parser.py) ---
@@ -243,6 +248,70 @@ command_status() {
     echo "Error: status にオプションは指定できません" >&2
     exit 1
   fi
+  if [[ "${JSON_OUTPUT:-false}" == true ]]; then
+    if [[ "$(get_sprint_drive)" == "fullstack" ]]; then
+      ensure_fullstack_tracks
+      refresh_fullstack_phase
+      local phase be_stage be_status fe_stage fe_status contract_ci
+      phase="$(get_sprint_phase)"
+      be_stage="$(get_track_stage be)"
+      be_status="$(get_track_status be)"
+      fe_stage="$(get_track_stage fe)"
+      fe_status="$(get_track_status fe)"
+      contract_ci="$(get_contract_ci)"
+      PHASE="$phase" BE_STAGE="$be_stage" BE_STATUS="$be_status" FE_STAGE="$fe_stage" FE_STATUS="$fe_status" CONTRACT_CI="$contract_ci" python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "drive": "fullstack",
+    "phase": os.environ.get("PHASE", "A") or "A",
+    "tracks": {
+        "be": {
+            "stage": os.environ.get("BE_STAGE", ".1a") or ".1a",
+            "status": os.environ.get("BE_STATUS", "active") or "active",
+        },
+        "fe": {
+            "stage": os.environ.get("FE_STAGE", ".1a") or ".1a",
+            "status": os.environ.get("FE_STATUS", "active") or "active",
+        },
+        "contract": {
+            "ci": os.environ.get("CONTRACT_CI", "pending") or "pending",
+        },
+    },
+}, ensure_ascii=False))
+PY
+    else
+      local current step statuses_line status
+      current="$(get_sprint_step)"
+      statuses_line=""
+      for step in "${STEPS[@]}"; do
+        status="$(get_step_status "$step")"
+        if [[ "$step" == "$current" ]]; then
+          status="in_progress"
+        fi
+        statuses_line+="${step}=${status}"$'\n'
+      done
+      CURRENT="$current" STATUSES_LINE="$statuses_line" python3 - <<'PY'
+import json
+import os
+
+steps = {}
+for line in os.environ.get("STATUSES_LINE", "").splitlines():
+    if "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    steps[key] = value
+
+print(json.dumps({
+    "drive": "standard",
+    "current_step": os.environ.get("CURRENT", ""),
+    "steps": steps,
+}, ensure_ascii=False))
+PY
+    fi
+    return
+  fi
   if [[ "$(get_sprint_drive)" == "fullstack" ]]; then
     print_fullstack_status
   else
@@ -397,6 +466,23 @@ command_reset() {
   fi
 }
 
+# --- グローバルオプション ---
+JSON_OUTPUT=false
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --json)
+      JSON_OUTPUT=true
+      shift
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+set -- "${POSITIONAL[@]}"
+
 # --- サブコマンド ---
 CMD="${1:-status}"
 shift || true
@@ -414,6 +500,6 @@ case "$CMD" in
   *)
     echo "Error: Unknown command: $CMD" >&2
     usage >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
     ;;
 esac

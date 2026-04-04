@@ -69,6 +69,36 @@ warn() {
   fi
 }
 
+extract_template_version() {
+  local file="$1"
+  local version=""
+  if [[ -f "$file" ]]; then
+    version="$(grep -E -m1 'helix_template_version:[[:space:]]*[0-9]+' "$file" | sed -E 's/.*helix_template_version:[[:space:]]*([0-9]+).*/\1/' || true)"
+  fi
+  if [[ -n "$version" ]]; then
+    echo "$version"
+  else
+    echo "0"
+  fi
+}
+
+check_template_version() {
+  local project_file="$1"
+  local template_file="$2"
+  local label="$3"
+  local project_version template_version
+  project_version="$(extract_template_version "$project_file")"
+  template_version="$(extract_template_version "$template_file")"
+
+  if [[ "$project_version" == "$template_version" ]]; then
+    echo "  ✓ $label テンプレート版数 (v$project_version)"
+    PASS=$((PASS + 1))
+  else
+    echo "  WARN: $label (v$project_version) が古い → テンプレート (v$template_version)。helix init --force で更新可"
+    WARN=$((WARN + 1))
+  fi
+}
+
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
@@ -89,6 +119,12 @@ check ".helix/ 存在" "test -d '$HELIX_DIR'" "mkdir -p '$HELIX_DIR'"
 check "phase.yaml" "test -f '$HELIX_DIR/phase.yaml'" "'$HELIX_HOME/cli/helix-init' --project-name '$PROJECT_NAME' 2>/dev/null"
 check "matrix.yaml" "test -f '$HELIX_DIR/matrix.yaml'"
 warn "runtime/index.json" "test -f '$HELIX_DIR/runtime/index.json'" "'$HELIX_HOME/cli/helix-matrix' compile 2>/dev/null"
+
+echo ""
+echo "[テンプレート版数]"
+check_template_version "$HELIX_DIR/phase.yaml" "$HELIX_HOME/cli/templates/phase.yaml" "phase.yaml"
+check_template_version "$HELIX_DIR/gate-checks.yaml" "$HELIX_HOME/cli/templates/gate-checks.yaml" "gate-checks.yaml"
+check_template_version "$HELIX_DIR/doc-map.yaml" "$HELIX_HOME/cli/templates/doc-map.yaml" "doc-map.yaml"
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"

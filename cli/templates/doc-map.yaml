@@ -1,4 +1,5 @@
 # doc-map.yaml — ドキュメント駆動ゲートのマッピング
+# helix_template_version: 3
 #
 # ⚠ このファイルは後方互換用テンプレートです。
 # 新規プロジェクトでは `helix matrix init && helix matrix compile` で

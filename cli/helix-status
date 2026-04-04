@@ -2,16 +2,24 @@
 set -eo pipefail
 
 # helix-status: プロジェクト全体の HELIX 状態を表示
-# Usage: helix-status
+# Usage: helix-status [--json]
 
-case "${1:-}" in
-  --help|-h)
-    echo "Usage: helix status"
-    echo ""
-    echo "プロジェクト全体の HELIX 状態を表示します。"
-    exit 0
-    ;;
-esac
+JSON_OUTPUT=false
+while [[ $# -gt 0 ]]; do
+  case "${1:-}" in
+    --json) JSON_OUTPUT=true; shift ;;
+    --help|-h)
+      echo "Usage: helix status [--json]"
+      echo ""
+      echo "プロジェクト全体の HELIX 状態を表示します。"
+      exit 0
+      ;;
+    *)
+      echo "エラー: 不明なオプションです: $1" >&2
+      exit 2
+      ;;
+  esac
+done
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
@@ -31,6 +39,23 @@ fi
 if ! PHASE_JSON=$(python3 "$YAML_PARSER" dump "$PHASE_FILE" 2>/dev/null); then
   echo "phase.yaml の読み込みに失敗しました。" >&2
   exit 1
+fi
+
+if [[ "$JSON_OUTPUT" == true ]]; then
+  PHASE_JSON="$PHASE_JSON" python3 - <<'PY'
+import json
+import os
+import sys
+
+try:
+    data = json.loads(os.environ.get("PHASE_JSON", ""))
+except Exception as exc:
+    print(f"phase.yaml の JSON 読み込みに失敗しました: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+print(json.dumps(data, ensure_ascii=False))
+PY
+  exit $?
 fi
 
 if ! PHASE_JSON="$PHASE_JSON" HELIX_DIR="$HELIX_DIR" PROJECT_ROOT="$PROJECT_ROOT" python3 - <<'PY'

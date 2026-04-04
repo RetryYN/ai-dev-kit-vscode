@@ -23,6 +23,7 @@ STATIC_ONLY=false
 AI_ONLY=false
 DRY_RUN=false
 UNDO=false
+JSON_OUTPUT=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -30,33 +31,70 @@ while [[ $# -gt 0 ]]; do
     --ai-only)     AI_ONLY=true; shift ;;
     --dry-run)     DRY_RUN=true; shift ;;
     --undo)        UNDO=true; shift ;;
+    --json)        JSON_OUTPUT=true; shift ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json]"
       echo ""
       echo "Gates: G0.5, G2, G3, G4, G5, G6, G7"
-      exit 0
+      exit "$EXIT_SUCCESS"
       ;;
     *)
       if [[ -z "$GATE" ]]; then
         GATE="$1"; shift
       else
-        echo "エラー: 不明なオプションです: $1" >&2; exit 1
+        echo "エラー: 不明なオプションです: $1" >&2; exit "$EXIT_INPUT_ERROR"
       fi
       ;;
   esac
 done
 
+if [[ "$JSON_OUTPUT" == true ]]; then
+  exec 3>&1
+  exec 1>&2
+fi
+
 if [[ -z "$GATE" ]]; then
   echo "エラー: ゲート名が必要です（G0.5, G2, G3, G4, G5, G6, G7）" >&2
-  exit 1
+  exit "$EXIT_INPUT_ERROR"
 fi
 
 if [[ ! "$GATE" =~ ^G(0\.5|[2-7])$ ]]; then
   echo "エラー: 無効なゲートです: $GATE（G0.5, G2-G7 を指定してください）" >&2
-  exit 1
+  exit "$EXIT_INPUT_ERROR"
 fi
 
-# --- ゲート前提条件チェック ---
+emit_gate_json() {
+  local gate="$1"
+  local result="$2"
+  local static_pass="$3"
+  local static_fail="$4"
+  local prereq_gate="$5"
+  GATE_JSON_GATE="$gate" \
+  GATE_JSON_RESULT="$result" \
+  GATE_JSON_STATIC_PASS="$static_pass" \
+  GATE_JSON_STATIC_FAIL="$static_fail" \
+  GATE_JSON_PREREQ="$prereq_gate" \
+  python3 - <<'PY' >&3
+import json
+import os
+
+print(
+    json.dumps(
+        {
+            "gate": os.environ.get("GATE_JSON_GATE", ""),
+            "result": os.environ.get("GATE_JSON_RESULT", ""),
+            "checks": {
+                "static_pass": int(os.environ.get("GATE_JSON_STATIC_PASS", "0")),
+                "static_fail": int(os.environ.get("GATE_JSON_STATIC_FAIL", "0")),
+            },
+            "prereq": os.environ.get("GATE_JSON_PREREQ", ""),
+        },
+        ensure_ascii=False,
+    )
+)
+PY
+}
+
 declare -A GATE_PREREQS=(
   ["G0.5"]=""
   ["G2"]="G1"
@@ -67,23 +105,37 @@ declare -A GATE_PREREQS=(
   ["G7"]="G6"
 )
 
+if [[ -f "$CONFIG_FILE" ]]; then
+  skip_gates=$(python3 "$YAML_PARSER" read "$CONFIG_FILE" gate_skip 2>/dev/null || echo '[]')
+  if echo "$skip_gates" | grep -q "$GATE"; then
+    echo "=== $GATE: config.yaml で skip 設定済み ==="
+    if [[ -f "$PHASE_FILE" ]]; then
+      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.status" skipped 2>/dev/null || true
+    fi
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "$GATE" "skipped" 0 0 "${GATE_PREREQS[$GATE]:-}"
+    fi
+    exit 0
+  fi
+fi
+
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
 
 if [[ "$UNDO" == true ]]; then
   if [[ ! -f "$PHASE_FILE" ]]; then
     echo "エラー: $PHASE_FILE が見つかりません。'helix-init' を実行してください。" >&2
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
   python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.status" "pending" 2>/dev/null || true
   python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.date" "" 2>/dev/null || true
   echo "=== $GATE を pending に戻しました ==="
-  exit 0
+  exit "$EXIT_SUCCESS"
 fi
 
 if [[ ! -f "$GATE_CHECKS" ]]; then
   echo "エラー: $GATE_CHECKS が見つかりません。'helix-init' を実行してください。" >&2
-  exit 1
+  exit "$EXIT_PREREQ_ERROR"
 fi
 
 now_ms() {
@@ -113,7 +165,10 @@ if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   if [[ "$prereq_status" != "passed" && "$prereq_status" != "skipped" ]]; then
     echo "エラー: 前提ゲート $prereq が未通過です (status: $prereq_status)" >&2
     echo "$prereq を先に通過させてください" >&2
-    exit 1
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "$GATE" "fail" 0 0 "$prereq"
+    fi
+    exit "$EXIT_PREREQ_ERROR"
   fi
 fi
 
@@ -490,7 +545,10 @@ PY
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
     fi
-    exit 1
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "$gate" "fail" "$static_pass" "$static_fail" "$prereq"
+    fi
+    exit "$EXIT_CHECK_FAILED"
   else
     echo "=== $gate PASS ==="
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
@@ -536,6 +594,9 @@ PY
         echo "  helix matrix status で全成果物の状態を確認"
         ;;
     esac
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "$gate" "pass" "$static_pass" "$static_fail" "$prereq"
+    fi
   fi
 }
 

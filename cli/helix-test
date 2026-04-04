@@ -70,6 +70,24 @@ run_test_not_contains() {
   fi
 }
 
+run_test_json_valid() {
+  local name="$1"
+  local cmd="$2"
+  printf "  %-40s " "$name"
+  set +e
+  eval "$cmd" >/dev/null 2>&1
+  local actual_exit=$?
+  set -e
+  if [[ "$actual_exit" -eq 0 ]]; then
+    echo "PASS"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL (invalid json or command error, exit=$actual_exit)"
+    ERRORS+=("$name: json validation failed")
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 echo "=== HELIX CLI Self-Test ==="
 echo ""
 
@@ -106,8 +124,11 @@ run_test_contains "post-merge hook executable" "test -x .git/hooks/post-merge &&
 run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js"
 run_test_contains "framework.yaml generated" "test -f .helix/framework.yaml && cat .helix/framework.yaml" "detected: node"
 run_test_contains "matrix template copied" "test -f .helix/matrix.yaml && echo OK" "OK"
+run_test_contains "config template copied" "test -f .helix/config.yaml && echo OK" "OK"
 run_test_contains "rules template copied" "test -f .helix/rules/deliverables.yaml && test -f .helix/rules/structure.yaml && echo OK" "OK"
 run_test_contains "state/runtime dirs created" "test -d .helix/state && test -d .helix/runtime && echo OK" "OK"
+run_test "config not overwritten when exists" "printf '%s\n' 'default_drive: fe' > .helix/config.yaml; $SCRIPT_DIR/helix-init --project-name test-app >/dev/null 2>&1; grep -q '^default_drive: fe$' .helix/config.yaml"
+run_test "config restore template defaults" "cp $SCRIPT_DIR/templates/config.yaml .helix/config.yaml"
 run_test_contains "matrix compile auto run" "$SCRIPT_DIR/helix-init --force" "matrix compile を実行中..."
 run_test_contains "matrix auto-detect auto run" "$SCRIPT_DIR/helix-init --force" "matrix auto-detect を実行中..."
 run_test_contains "matrix compile auto outputs" "test -f .helix/runtime/index.json && test -f .helix/state/deliverables.json && echo OK" "OK"
@@ -160,6 +181,7 @@ run_test_contains "retro --help" "$SCRIPT_DIR/helix retro --help" "使い方: he
 run_test_contains "debt --help" "$SCRIPT_DIR/helix debt --help" "使い方: helix debt"
 run_test_contains "doctor --help" "$SCRIPT_DIR/helix doctor --help" "使い方: helix doctor"
 run_test "bench exits 0" "$SCRIPT_DIR/helix bench --period week"
+run_test_json_valid "bench --json valid" "$SCRIPT_DIR/helix bench --period week --json | python3 -m json.tool"
 run_test "retro list exits 0" "$SCRIPT_DIR/helix retro list"
 run_test "debt add roundtrip" "$SCRIPT_DIR/helix debt add --title 'helix-test debt sample' --priority medium --source 'cli/helix-test'"
 run_test_contains "debt list contains added item" "$SCRIPT_DIR/helix debt list" "helix-test debt sample"
@@ -217,6 +239,8 @@ echo "[helix-size]"
 run_test_contains "S bugfix" "$SCRIPT_DIR/helix-size --files 1 --lines 20 --type bugfix" "サイズ:     S"
 run_test_contains "M new-feature" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --ui --type new-feature" "サイズ:     M"
 run_test_contains "L full" "$SCRIPT_DIR/helix-size --files 15 --lines 800 --api --db --ui" "サイズ:     L"
+run_test "size missing required options" "$SCRIPT_DIR/helix-size --files 1" 2
+run_test "size missing option value" "$SCRIPT_DIR/helix-size --files" 2
 run_test_contains "skip L4 only" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type doc" "L4"
 # 駆動タイプテスト
 run_test_contains "drive fe" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --ui --type new-feature --drive fe" "Visual"
@@ -227,6 +251,10 @@ run_test_contains "size shows L1 requirements template" "$SCRIPT_DIR/helix-size 
 run_test_contains "size writes phase.yaml" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type bugfix --drive fullstack" "phase.yaml 更新: current_phase=L4, drive=fullstack"
 run_test_contains "size sets current_phase" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml current_phase" "L4"
 run_test_contains "size sets sprint.drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.drive" "fullstack"
+run_test "size default drive set fe in config" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml default_drive fe"
+run_test_contains "size uses config default drive when --drive omitted" "$SCRIPT_DIR/helix-size --files 2 --lines 50 --type bugfix" "駆動タイプ: fe"
+run_test "size restore config default drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml default_drive be"
+run_test_json_valid "size --json valid" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --type new-feature --json | python3 -m json.tool"
 run_test "size restore sprint drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
 echo ""
 
@@ -242,6 +270,7 @@ run_test "fullstack sprint drive set" "python3 $SCRIPT_DIR/lib/yaml_parser.py wr
 run_test "fullstack sprint reset" "$SCRIPT_DIR/helix-sprint reset"
 run_test_contains "fullstack sprint status BE track" "$SCRIPT_DIR/helix-sprint status" "BE Track"
 run_test_contains "fullstack sprint status FE track" "$SCRIPT_DIR/helix-sprint status" "FE Track"
+run_test "sprint invalid subcommand exit 2" "$SCRIPT_DIR/helix-sprint unknown-cmd" 2
 run_test_contains "fullstack sprint next be" "$SCRIPT_DIR/helix-sprint next --track be" ".1b"
 run_test_contains "fullstack be stage advanced" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml sprint.tracks.be.stage" ".1b"
 run_test "fullstack be stage .5" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"
@@ -252,9 +281,14 @@ run_test "fullstack fe stage .5" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .
 run_test_contains "fullstack phase promoted when ready" "$SCRIPT_DIR/helix-sprint status" "Phase: B"
 run_test "sprint drive restore be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
 run_test "sprint reset after fullstack tests" "$SCRIPT_DIR/helix-sprint reset"
+run_test_json_valid "sprint status --json valid" "$SCRIPT_DIR/helix-sprint status --json | python3 -m json.tool"
+run_test "sprint phase.yaml missing exit 3" "mv .helix/phase.yaml .helix/phase.yaml.bak; $SCRIPT_DIR/helix-sprint status >/dev/null 2>&1; rc=\$?; mv .helix/phase.yaml.bak .helix/phase.yaml; exit \$rc" 3
 run_test "sprint set .5 for complete guidance" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.current_step .5"
 run_test_contains "sprint complete gate guidance" "$SCRIPT_DIR/helix-sprint complete" "helix gate G4"
 run_test "sprint reset after complete guidance" "$SCRIPT_DIR/helix-sprint reset"
+run_test_json_valid "status --json valid" "$SCRIPT_DIR/helix-status --json | python3 -m json.tool"
+run_test "gate prereq set passed for json test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G1.status passed"
+run_test_json_valid "gate --json valid" "($SCRIPT_DIR/helix-gate G2 --static-only --dry-run --json || true) | python3 -m json.tool"
 echo ""
 
 echo "[helix-interrupt]"
@@ -283,10 +317,18 @@ run_test "G2 undo clears date" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c \"impo
 run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
+run_test "G4 prereq fail exit 3" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run" 3
+run_test "gate invalid name exit 2" "$SCRIPT_DIR/helix-gate G9 --static-only" 2
+run_test "gate invalid option exit 2" "$SCRIPT_DIR/helix-gate G2 --bad-opt" 2
+run_test "set G4 prereq pending for config skip test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status pending"
+run_test "config set gate_skip G4" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml gate_skip '[G4]'"
+run_test_contains "G4 skipped by config" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1" "config.yaml で skip 設定済み"
+run_test_contains "G4 status skipped by config" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G4.status" "skipped"
+run_test "config clear gate_skip" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml gate_skip '[]'"
 run_test "G4 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed"
 run_test_contains "G4 pass shows quality suggestions" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run 2>&1" "品質改善の提案"
 run_test "G6 prereq set G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
-run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 1
+run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 3
 run_test "G6 prereq set G5 skipped" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status skipped"
 run_test "G6 prereq pass when G5 skipped" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run"
 run_test_contains "G6 shows E2E hint" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run 2>&1" "ヒント: E2E テストを実行してください"

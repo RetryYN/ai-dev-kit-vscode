@@ -13,17 +13,49 @@ HAS_API=false
 HAS_DB=false
 HAS_UI=false
 TASK_TYPE=""
-DRIVE="be"
+DRIVE=""
+DRIVE_SET=false
+FILES_SET=false
+LINES_SET=false
+JSON_OUTPUT=false
+
+require_opt_arg() {
+  local opt_name="$1"
+  if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+    echo "エラー: $opt_name には値が必要です" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+}
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --files) FILES="$2"; shift 2 ;;
-    --lines) LINES="$2"; shift 2 ;;
+    --files)
+      require_opt_arg "$1" "${2-}"
+      FILES="$2"
+      FILES_SET=true
+      shift 2
+      ;;
+    --lines)
+      require_opt_arg "$1" "${2-}"
+      LINES="$2"
+      LINES_SET=true
+      shift 2
+      ;;
     --api)   HAS_API=true; shift ;;
     --db)    HAS_DB=true; shift ;;
     --ui)    HAS_UI=true; shift ;;
-    --type)  TASK_TYPE="$2"; shift 2 ;;
-    --drive) DRIVE="$2"; shift 2 ;;
+    --type)
+      require_opt_arg "$1" "${2-}"
+      TASK_TYPE="$2"
+      shift 2
+      ;;
+    --drive)
+      require_opt_arg "$1" "${2-}"
+      DRIVE="$2"
+      DRIVE_SET=true
+      shift 2
+      ;;
+    --json) JSON_OUTPUT=true; shift ;;
     --help|-h)
       echo "Usage: helix-size [options]"
       echo ""
@@ -41,6 +73,7 @@ while [[ $# -gt 0 ]]; do
       echo "                  db    データベース駆動 — スキーマ/データモデル起点"
       echo "                  fullstack フルスタック駆動 — BE+FE同時起点"
       echo "                  agent エージェント駆動 — ツール/プロンプト起点"
+      echo "  --json        JSON形式で出力"
       echo ""
       echo "Example:"
       echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature --drive be"
@@ -48,16 +81,26 @@ while [[ $# -gt 0 ]]; do
       echo "  helix-size --files 5 --lines 200 --db --type new-module --drive db"
       echo "  helix-size --files 6 --lines 220 --api --ui --type new-feature --drive fullstack"
       echo "  helix-size --files 3 --lines 150 --api --type new-feature --drive agent"
-      exit 0
+      exit "$EXIT_SUCCESS"
       ;;
-    *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
+    *) echo "エラー: 不明なオプションです: $1" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
 done
+
+if [[ "$FILES_SET" != true || "$LINES_SET" != true ]]; then
+  echo "エラー: 必須オプション --files と --lines を指定してください" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+
+if [[ "$DRIVE_SET" != true && -f "$CONFIG_FILE" && -f "$YAML_PARSER" ]]; then
+  DRIVE=$(python3 "$YAML_PARSER" read "$CONFIG_FILE" default_drive 2>/dev/null || echo "")
+fi
+DRIVE="${DRIVE:-be}"
 
 # --- 駆動タイプバリデーション ---
 case "$DRIVE" in
   be|fe|db|fullstack|agent) ;;
-  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent を指定してください）" >&2; exit 1 ;;
+  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
 esac
 
 # --- サイジング ---
@@ -255,43 +298,45 @@ case "$DRIVE" in
     ;;
 esac
 
-# --- 出力 ---
-echo "=== タスクサイジング結果 ==="
-echo ""
-echo "サイズ:     $FINAL_SIZE"
-echo "  ファイル数: $FILES → $FILE_SIZE"
-echo "  変更行数:   $LINES → $LINE_SIZE"
-echo "  API/DB:     $API_DB_SIZE (api=$HAS_API, db=$HAS_DB)"
-echo ""
-echo "駆動タイプ: $DRIVE"
-echo "  L2: $L2_DESC"
-echo "  L3: $L3_DESC"
-echo "  L4: $L4_DESC"
-echo "  L5: $L5_DESC"
-echo "  G2: $G2_DESC"
-echo "  G3: $G3_DESC"
-echo ""
-echo "推奨フェーズ: ${PHASES[*]}"
-if [[ ${#SKIPPED[@]} -gt 0 ]]; then
-  echo "スキップ:     ${SKIPPED[*]}"
-fi
-if [[ -n "$NOTES" ]]; then
-  echo "備考:         $NOTES"
-fi
-
-if [[ " ${PHASES[*]} " == *" L1 "* ]]; then
+if [[ "$JSON_OUTPUT" != true ]]; then
+  # --- 出力 ---
+  echo "=== タスクサイジング結果 ==="
   echo ""
-  echo "L1 要件定義テンプレート:"
-  echo "  docs/features/<name>/D-REQ-F/requirements.md  — 機能要件"
-  echo "  docs/features/<name>/D-REQ-NF/nfr.md          — 非機能要件"
-  echo "  docs/features/<name>/D-ACC/acceptance.md      — 受入条件"
+  echo "サイズ:     $FINAL_SIZE"
+  echo "  ファイル数: $FILES → $FILE_SIZE"
+  echo "  変更行数:   $LINES → $LINE_SIZE"
+  echo "  API/DB:     $API_DB_SIZE (api=$HAS_API, db=$HAS_DB)"
   echo ""
-  echo "  helix matrix add-feature <name> --drive $DRIVE で追加してください"
-fi
+  echo "駆動タイプ: $DRIVE"
+  echo "  L2: $L2_DESC"
+  echo "  L3: $L3_DESC"
+  echo "  L4: $L4_DESC"
+  echo "  L5: $L5_DESC"
+  echo "  G2: $G2_DESC"
+  echo "  G3: $G3_DESC"
+  echo ""
+  echo "推奨フェーズ: ${PHASES[*]}"
+  if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+    echo "スキップ:     ${SKIPPED[*]}"
+  fi
+  if [[ -n "$NOTES" ]]; then
+    echo "備考:         $NOTES"
+  fi
 
-echo ""
-echo "タスク種別:   ${TASK_TYPE:-未指定}"
-echo "UI変更:       $HAS_UI"
+  if [[ " ${PHASES[*]} " == *" L1 "* ]]; then
+    echo ""
+    echo "L1 要件定義テンプレート:"
+    echo "  docs/features/<name>/D-REQ-F/requirements.md  — 機能要件"
+    echo "  docs/features/<name>/D-REQ-NF/nfr.md          — 非機能要件"
+    echo "  docs/features/<name>/D-ACC/acceptance.md      — 受入条件"
+    echo ""
+    echo "  helix matrix add-feature <name> --drive $DRIVE で追加してください"
+  fi
+
+  echo ""
+  echo "タスク種別:   ${TASK_TYPE:-未指定}"
+  echo "UI変更:       $HAS_UI"
+fi
 
 FIRST_PHASE="${PHASES[0]:-L1}"
 
@@ -303,7 +348,29 @@ if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
     python3 "$YP" write "$HELIX_DIR/phase.yaml" "current_phase" "$FIRST_PHASE" 2>/dev/null || true
     # drive を設定
     python3 "$YP" write "$HELIX_DIR/phase.yaml" "sprint.drive" "$DRIVE" 2>/dev/null || true
-    echo ""
-    echo "phase.yaml 更新: current_phase=$FIRST_PHASE, drive=$DRIVE"
+    if [[ "$JSON_OUTPUT" != true ]]; then
+      echo ""
+      echo "phase.yaml 更新: current_phase=$FIRST_PHASE, drive=$DRIVE"
+    fi
   fi
+fi
+
+if [[ "$JSON_OUTPUT" == true ]]; then
+  PHASES_NL="$(printf '%s\n' "${PHASES[@]}")"
+  FINAL_SIZE="$FINAL_SIZE" DRIVE="$DRIVE" PHASES_NL="$PHASES_NL" python3 - <<'PY'
+import json
+import os
+
+phases = [line for line in os.environ.get("PHASES_NL", "").splitlines() if line]
+print(
+    json.dumps(
+        {
+            "size": os.environ.get("FINAL_SIZE", ""),
+            "phases": phases,
+            "drive": os.environ.get("DRIVE", ""),
+        },
+        ensure_ascii=False,
+    )
+)
+PY
 fi

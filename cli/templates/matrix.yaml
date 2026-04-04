@@ -1,4 +1,5 @@
 # matrix.yaml — 成果物対照表（Deliverable Matrix）
+# helix_template_version: 3
 # helix matrix add-feature <name> --drive <type> でフィーチャーを追加
 #
 # 手動で追加する場合の例:
