@@ -22,13 +22,13 @@ G0.5:
       level: mandatory
     - name: "受入条件の存在"
       cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-ACC なし'"
-      level: advisory
+      level: mandatory
     - name: "要件定義に TODO/TBD 残存なし"
       cmd: "! find docs -path '*/D-REQ-F/*.md' -exec grep -l 'TODO\\|TBD\\|未定\\|要確認' {} + 2>/dev/null | head -1"
       level: mandatory
     - name: "要件の解像度チェック（最低行数）"
       cmd: "for f in $(find docs -path '*/D-REQ-F/*.md' 2>/dev/null); do lines=$(wc -l < \"$f\"); if [ \"$lines\" -lt 10 ]; then echo \"FAIL: $f が $lines 行（最低10行）\"; exit 1; fi; done; echo 'OK'"
-      level: advisory
+      level: mandatory
     - name: "受入条件に測定可能な数値があるか"
       cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null -exec grep -lE '[0-9]+(ms|秒|%|件|回|MB|GB)' {} + | head -1 | grep -q . || echo 'SKIP: D-ACC なしまたは数値基準なし'"
       level: advisory
@@ -85,7 +85,10 @@ G2:
       level: advisory
     - name: "スコープ境界が明示されているか"
       cmd: "find docs -path '*/D-REQ-F/*' -name '*.md' -exec grep -l 'スコープ外\\|対象外\\|out.of.scope' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 要件文書なし'"
-      level: advisory
+      level: mandatory
+    - name: "要件→機能のトレーサビリティ"
+      cmd: "find docs -path '*/L2-*' -exec grep -l 'REQ-F-' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: L2 に REQ-F 参照なし'"
+      level: mandatory
     - name: "アーキテクチャ図"
       cmd: "find docs -path '*/L2-*' -exec grep -l 'mermaid\\|構成図' {} + 2>/dev/null | head -1 | grep -q ."
       level: advisory
@@ -94,7 +97,7 @@ G2:
       level: advisory
     - name: "セキュリティ設計"
       cmd: "find docs -path '*/L2-*' -exec grep -l 'STRIDE\\|脅威\\|セキュリティ' {} + 2>/dev/null | head -1 | grep -q ."
-      level: advisory
+      level: mandatory
     - name: "非機能要件言及"
       cmd: "find docs -path '*/L2-*' -exec grep -l '性能\\|可用性\\|SLA' {} + 2>/dev/null | head -1 | grep -q ."
       level: advisory
@@ -131,13 +134,19 @@ G3:
       level: advisory
     - name: "テスト設計"
       cmd: "find docs -path '*/L3-*' -exec grep -l 'テスト\\|TC-' {} + 2>/dev/null | head -1 | grep -q ."
-      level: advisory
+      level: mandatory
+    - name: "機能→API のトレーサビリティ"
+      cmd: "find docs -path '*/L3-*' -exec grep -l 'F-[0-9]' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: L3 に F-ID 参照なし'"
+      level: mandatory
+    - name: "要件→テストのトレーサビリティ"
+      cmd: "find docs -path '*/L3-*' -exec grep -l 'TC-[0-9]' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: L3 に TC-ID なし'"
+      level: mandatory
     - name: "工程表"
       cmd: "find docs -path '*/L3-*' -exec grep -l '工程表\\|タスク.*見積' {} + 2>/dev/null | head -1 | grep -q ."
       level: advisory
     - name: "エラーハンドリング"
       cmd: "find docs -path '*/L3-*' -exec grep -l 'エラー.*コード\\|Error' {} + 2>/dev/null | head -1 | grep -q ."
-      level: advisory
+      level: mandatory
   ai:
     - role: tl
       task: |
@@ -185,7 +194,7 @@ G4:
       level: mandatory
     - name: "AG05 秘密情報混入チェック"
       cmd: "! rg -n '(?i)(bearer |sk-|ghp_|xoxb-|xoxp-|-----BEGIN)' src/ --type-not md 2>/dev/null | head -1"
-      level: advisory
+      level: mandatory
     - name: ".env が git 追跡されていない"
       cmd: "! git ls-files .env .env.* 2>/dev/null | head -1"
       level: mandatory

@@ -27,6 +27,13 @@ graph TD
 | Database | | | |
 | Infrastructure | | | |
 | 監視 | | | |
+<!-- 記入例:
+| Frontend | Next.js | 14.x | SSR/SSG対応、React エコシステム活用 |
+| Backend | FastAPI | 0.110 | 型安全、OpenAPI自動生成、非同期対応 |
+| Database | PostgreSQL | 16 | JSONB対応、実績豊富 |
+| Infrastructure | AWS ECS | - | コンテナ運用、オートスケール |
+| 監視 | Datadog | - | APM + ログ統合 |
+-->
 
 ### 2.3 ADR (Architecture Decision Records)
 - [ADR-001](../adr/ADR-001.md): 
@@ -77,6 +84,10 @@ erDiagram
 | Information Disclosure | | | |
 | Denial of Service | | | |
 | Elevation of Privilege | | | |
+<!-- 記入例:
+| Spoofing | 他ユーザーのJWTを偽造 | 高 | JWT署名検証 + 短い有効期限 |
+| Tampering | リクエストボディ改竄 | 中 | 入力バリデーション + HTTPS必須 |
+-->
 
 ### 7.2 認証・認可設計
 - 認証フロー:
@@ -108,3 +119,14 @@ erDiagram
 | ID | リスク | 影響度 | 発生確率 | 対策 |
 |----|--------|--------|---------|------|
 | R-001 | | 高/中/低 | | |
+
+---
+## 駆動タイプ別の重点ガイド
+
+| 駆動 | 必須セクション | 重点 | 省略可 |
+|------|--------------|------|--------|
+| be | §2,3,4,5,7,8 | API設計・データモデル | §6 画面 |
+| fe | §2,3,6,7 | 画面一覧・ユーザーフロー | §4 データモデル詳細 |
+| db | §2,4,5,8 | ER図・スキーマ・マイグレーション | §6 画面 |
+| fullstack | 全セクション | BE+FE接続契約 | なし |
+| agent | §2,3,5,7 | ツール定義・プロンプト設計 | §6 画面 |
