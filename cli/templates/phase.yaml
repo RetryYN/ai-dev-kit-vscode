@@ -6,6 +6,7 @@ project: ""
 current_phase: L1
 
 gates:
+  G0.5: { status: pending }
   G1:  { status: pending }
   G1.5: { status: skipped }
   G1R: { status: skipped }

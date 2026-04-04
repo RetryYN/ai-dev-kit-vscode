@@ -47,6 +47,7 @@ from yaml_parser import get_nested, parse_yaml
 LAYER_ORDER = {f"L{i}": i for i in range(1, 9)}
 
 GATE_NAMES = {
+    "G0.5": "企画突合ゲート",
     "G1": "要件完了ゲート",
     "G2": "設計凍結ゲート",
     "G3": "実装着手ゲート",
@@ -255,6 +256,7 @@ def _compute_allowed_layer(current_phase: str, phase_data: dict[str, Any]) -> in
     allowed = LAYER_ORDER.get(current_phase, 1)
 
     gate_status = {
+        "G0.5": _status(get_nested(phase_data, "gates.G0.5.status")),
         "G1": _status(get_nested(phase_data, "gates.G1.status")),
         "G2": _status(get_nested(phase_data, "gates.G2.status")),
         "G3": _status(get_nested(phase_data, "gates.G3.status")),

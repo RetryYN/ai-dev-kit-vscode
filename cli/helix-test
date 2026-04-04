@@ -272,6 +272,9 @@ echo ""
 echo "[helix-gate]"
 run_test "restore gate-checks template" "cp $SCRIPT_DIR/templates/gate-checks.yaml .helix/gate-checks.yaml"
 run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .helix/state/deliverables.json"
+# G2 の前提ゲート（G0.5, G1）を passed に
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
 mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
@@ -635,6 +638,9 @@ PY
 run_test "deliverable_gate fullstack 定義検証" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 $TEST_DIR/deliverable-gate-fullstack-check.py"
 
 echo "[helix-gate deliverable]"
+# G2 の前提ゲートを passed に
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
 python3 - <<'PY'
 import json
 import re

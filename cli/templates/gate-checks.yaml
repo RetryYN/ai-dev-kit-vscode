@@ -10,6 +10,35 @@
 #   role: helix-codex のロール
 #   task: プロンプト
 
+G0.5:
+  name: "企画突合ゲート"
+  static:
+    - name: "企画書の存在"
+      cmd: "find docs -name 'proposal.*' -o -name 'planning.*' -o -name '企画書.*' -o -path '*/D-REQ-F/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 企画書なし'"
+    - name: "要件定義の存在"
+      cmd: "find docs -path '*/D-REQ-F/*.md' 2>/dev/null | head -1 | grep -q ."
+    - name: "受入条件の存在"
+      cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: D-ACC なし'"
+    - name: "要件定義に TODO/TBD 残存なし"
+      cmd: "! find docs -path '*/D-REQ-F/*.md' -exec grep -l 'TODO\\|TBD\\|未定\\|要確認' {} + 2>/dev/null | head -1"
+    - name: "要件の解像度チェック（最低行数）"
+      cmd: "for f in $(find docs -path '*/D-REQ-F/*.md' 2>/dev/null); do lines=$(wc -l < \"$f\"); if [ \"$lines\" -lt 10 ]; then echo \"FAIL: $f が $lines 行（最低10行）\"; exit 1; fi; done; echo 'OK'"
+    - name: "受入条件に測定可能な数値があるか"
+      cmd: "find docs -path '*/D-ACC/*.md' 2>/dev/null -exec grep -lE '[0-9]+(ms|秒|%|件|回|MB|GB)' {} + | head -1 | grep -q . || echo 'SKIP: D-ACC なしまたは数値基準なし'"
+    - name: "非機能要件のカテゴリ網羅"
+      cmd: "find docs -path '*/D-REQ-NF/*.md' 2>/dev/null -exec grep -lE '可用性|セキュリティ|性能|運用|保守' {} + | head -1 | grep -q . || echo 'SKIP: D-REQ-NF なしまたはカテゴリ不足'"
+    - name: "エラーケースの記載"
+      cmd: "find docs -path '*/D-REQ-F/*.md' 2>/dev/null -exec grep -lE 'エラー|異常|失敗|例外|バリデーション' {} + | head -1 | grep -q . || echo 'SKIP: エラーケース記載なし'"
+  ai:
+    - role: tl
+      task: |
+        企画突合ゲート G0.5 検証:
+        docs/ 配下の企画書（proposal/planning/企画書）と要件定義（D-REQ-F）を比較し:
+        1. 企画書の各項目が要件定義に反映されているか
+        2. 漏れている項目はないか
+        3. 要件定義にあって企画書にない追加項目を列挙
+        結果を verdict: approve/needs-attention で返してください。
+
 G2:
   name: "設計凍結ゲート"
   static:

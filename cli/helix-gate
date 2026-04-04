@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
     --help|-h)
       echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo]"
       echo ""
-      echo "Gates: G2, G3, G4, G5, G6, G7"
+      echo "Gates: G0.5, G2, G3, G4, G5, G6, G7"
       exit 0
       ;;
     *)
@@ -50,18 +50,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$GATE" ]]; then
-  echo "エラー: ゲート名が必要です（G2, G3, G4, G5, G6, G7）" >&2
+  echo "エラー: ゲート名が必要です（G0.5, G2, G3, G4, G5, G6, G7）" >&2
   exit 1
 fi
 
-if [[ ! "$GATE" =~ ^G[2-7]$ ]]; then
-  echo "エラー: 無効なゲートです: $GATE（G2-G7 を指定してください）" >&2
+if [[ ! "$GATE" =~ ^G(0\.5|[2-7])$ ]]; then
+  echo "エラー: 無効なゲートです: $GATE（G0.5, G2-G7 を指定してください）" >&2
   exit 1
 fi
 
 # --- ゲート前提条件チェック ---
 declare -A GATE_PREREQS=(
-  ["G2"]=""
+  ["G0.5"]=""
+  ["G2"]="G1"
   ["G3"]="G2"
   ["G4"]="G3"
   ["G5"]="G4"
@@ -120,7 +121,26 @@ if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
 fi
 
 # --- ゲート名を取得 ---
-gate_name=$(grep -A1 "^${GATE}:" "$GATE_CHECKS" | grep 'name:' | sed 's/.*name: *"//' | sed 's/"//' || echo "$GATE")
+gate_name=$(
+  awk -v gate="$GATE" '
+    {
+      line = $0
+      sub(/[[:space:]]+$/, "", line)
+    }
+    line == gate ":" {
+      in_gate = 1
+      next
+    }
+    in_gate && match($0, /name:[[:space:]]*"([^"]+)"/, m) {
+      print m[1]
+      exit
+    }
+    in_gate && line ~ /^G[0-9]+([.][0-9]+)?[A-Z]?:$/ {
+      exit
+    }
+  ' "$GATE_CHECKS"
+)
+gate_name="${gate_name:-$GATE}"
 
 echo ""
 echo "=== $GATE: $gate_name ==="
@@ -147,6 +167,9 @@ run_checks() {
   local static_skip=0
   local ai_pass=0
   local ai_fail=0
+  local escaped_gate
+  escaped_gate="${gate//./\\.}"
+  local section_heading_re='^G[0-9]+([.][0-9]+)?[A-Z]?:'
 
   # deliverable check の前に state を自動更新
   if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
@@ -276,12 +299,12 @@ PY
     local check_cmd=""
 
     while IFS= read -r line; do
-      if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
+      if [[ "$line" =~ ^${escaped_gate}:[[:space:]]*$ ]]; then
         in_gate=true
         continue
       fi
       # 次のゲート定義に入ったら終了
-      if [[ "$in_gate" == true ]] && echo "$line" | grep -qE '^[A-Z][0-9]+:'; then
+      if [[ "$in_gate" == true && "$line" =~ $section_heading_re ]]; then
         break
       fi
       if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+static: ]]; then
@@ -410,11 +433,11 @@ PY
     }
 
     while IFS= read -r line; do
-      if [[ "$line" =~ ^${gate}:[[:space:]]*$ ]]; then
+      if [[ "$line" =~ ^${escaped_gate}:[[:space:]]*$ ]]; then
         in_gate=true
         continue
       fi
-      if [[ "$in_gate" == true ]] && echo "$line" | grep -qE '^[A-Z][0-9]+:'; then
+      if [[ "$in_gate" == true && "$line" =~ $section_heading_re ]]; then
         break
       fi
       if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+ai: ]]; then

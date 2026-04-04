@@ -275,6 +275,14 @@ check_freeze_violation() {
 
   local YP="$SCRIPT_DIR/lib/yaml_parser.py"
   local INDEX="$HELIX_DIR/runtime/index.json"
+  local g05_status
+  g05_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G0.5.status" 2>/dev/null || echo "pending")
+  if [[ "$g05_status" == "passed" ]]; then
+    if [[ "$file" =~ (proposal|planning|企画書) ]]; then
+      echo "[helix-hook] WARN: 企画突合後に企画書が変更されました"
+      echo "[helix-hook]   G0.5 を再実行して突合を確認してください"
+    fi
+  fi
 
   # runtime/index.json がある場合は Python でスマートに判定
   if [[ -f "$INDEX" ]]; then
