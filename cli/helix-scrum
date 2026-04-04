@@ -4,11 +4,8 @@ set -eo pipefail
 # helix-scrum: HELIX Scrum（検証駆動開発）
 # Usage: helix scrum <init|backlog|plan|poc|verify|decide|review|status> [args...]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YP="$SCRIPT_DIR/lib/yaml_parser.py"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
 SCRUM_DIR="$HELIX_DIR/scrum"
 BACKLOG="$SCRUM_DIR/backlog.yaml"
 SPRINT_FILE="$SCRUM_DIR/sprint.yaml"

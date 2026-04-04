@@ -4,11 +4,8 @@ set -euo pipefail
 # helix-pr: ゲート結果から PR テンプレート自動生成
 # Usage: helix-pr [--dry-run] [--base main] [--title "title"]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 
 # --- 引数パース ---

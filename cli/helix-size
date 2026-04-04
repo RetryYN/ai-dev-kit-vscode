@@ -4,9 +4,7 @@ set -euo pipefail
 # helix-size: タスクサイジング + フェーズスキップ自動判定
 # Usage: helix-size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE] [--drive DRIVE]
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 # --- 引数パース ---
 FILES=0

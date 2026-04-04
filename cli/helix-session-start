@@ -4,7 +4,7 @@ set -eo pipefail
 # セットアップ未完了 → README 強制熟読モード
 # セットアップ完了   → 通常の HELIX コンテキスト注入
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 case "${1:-}" in
   --help|-h)

@@ -4,10 +4,7 @@ set -eo pipefail
 # helix-debug: HELIX デバッグツール
 # Usage: helix debug <trace|inspect|replay|doctor> [args...]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DB_PATH="$HELIX_DIR/helix.db"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
 LOG_DIR="$HELIX_DIR/task-logs"
@@ -310,7 +307,7 @@ cmd_doctor() {
     local name="$1" cmd="$2"
     printf "  %-30s " "$name"
     set +e
-    eval "$cmd" >/dev/null 2>&1
+    bash -c "$cmd" >/dev/null 2>&1
     local r=$?
     set -e
     if [[ $r -eq 0 ]]; then

@@ -5,7 +5,7 @@ set -eo pipefail
 # G4 static チェックとして使用
 # Exit 0 = pass, Exit 1 = fail
 
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 case "${1:-}" in
   --help|-h)

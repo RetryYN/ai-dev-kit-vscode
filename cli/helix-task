@@ -4,11 +4,8 @@ set -eo pipefail
 # helix-task: HELIX タスクオペレーティングシステム
 # Usage: helix task <catalog|plan|run|status> [args...]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YP="$SCRIPT_DIR/lib/yaml_parser.py"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
 PROJECT_CATALOG="$HELIX_DIR/task-catalog.yaml"
 CATALOG="$HELIX_HOME/cli/templates/task-catalog.yaml"
 if [[ -f "$PROJECT_CATALOG" ]]; then

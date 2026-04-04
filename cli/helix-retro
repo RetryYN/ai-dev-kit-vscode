@@ -3,8 +3,7 @@ set -eo pipefail
 # helix-retro: ミニレトロ管理
 # Usage: helix retro <list|show|check>
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 RETRO_DIR="$PROJECT_ROOT/.helix/retros"
 
 case "${1:-help}" in

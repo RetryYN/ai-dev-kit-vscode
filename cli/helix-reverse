@@ -4,9 +4,7 @@ set -euo pipefail
 # helix-reverse: Reverse HELIX パイプライン (R0→R4)
 # Usage: helix-reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 REVERSE_DIR="$HELIX_DIR/reverse"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"

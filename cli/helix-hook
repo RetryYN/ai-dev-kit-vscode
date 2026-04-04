@@ -5,9 +5,7 @@ set -eo pipefail
 # Edit/Write 後に自動発火し、ドキュメント駆動ゲートを実行する
 # Usage: helix-hook <changed-file-path>
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DOC_MAP="$HELIX_DIR/doc-map.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"

@@ -4,10 +4,9 @@ set -euo pipefail
 # helix-init: HELIX プロジェクト初期化
 # Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"]
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
-REPO_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-PROJECT_ROOT="$REPO_ROOT"
+REPO_ROOT="$PROJECT_ROOT"
 HELIX_DIR="$PROJECT_ROOT/.helix"
 
 # --- 引数パース ---

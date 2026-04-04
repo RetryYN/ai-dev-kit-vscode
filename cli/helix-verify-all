@@ -13,10 +13,7 @@ case "${1:-}" in
     ;;
 esac
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 export HELIX_DIR
 REAL_HELIX_HOME="$(cd "$HELIX_HOME" 2>/dev/null && pwd -P || echo "$HELIX_HOME")"
 REAL_PROJECT_ROOT="$(cd "$PROJECT_ROOT" 2>/dev/null && pwd -P || echo "$PROJECT_ROOT")"

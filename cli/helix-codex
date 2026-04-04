@@ -4,12 +4,9 @@ set -euo pipefail
 # helix-codex: HELIX スキル注入付き Codex CLI ラッパー
 # Usage: helix-codex --role <role> --task "タスク内容" [--thinking <level>]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 ROLES_DIR="$SCRIPT_DIR/roles"
 SKILLS_DIR="$HELIX_HOME/skills"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
 PROJECT_GENERATED_SKILLS_DIR="$PROJECT_ROOT/skills/generated"
 PROJECT_SKILLS_DIR="$PROJECT_ROOT/skills"
 PROJECT_CLAUDE_SKILLS_DIR="$PROJECT_ROOT/.claude/skills"

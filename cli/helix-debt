@@ -3,9 +3,7 @@ set -eo pipefail
 # helix-debt: 技術負債台帳管理
 # Usage: helix debt <list|add|resolve>
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 REGISTER="$HELIX_DIR/debt-register.yaml"
 
 case "${1:-help}" in

@@ -4,9 +4,7 @@ set -euo pipefail
 # helix-sprint: L4 マイクロスプリント管理
 # Usage: helix-sprint <status|next|complete|reset> [--track be|fe]
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 
 STEPS=(".1a" ".1b" ".2" ".3" ".4" ".5")

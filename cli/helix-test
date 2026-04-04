@@ -13,8 +13,7 @@ case "${1:-}" in
     ;;
 esac
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 PASS=0
 FAIL=0

@@ -12,10 +12,7 @@ set -eo pipefail
 #   5. 総合判定 + phase.yaml 更新           → update_phase()
 #   6. 後処理（retro 生成、提案メッセージ）  → post_gate()
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 GATE_CHECKS="$HELIX_DIR/gate-checks.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"

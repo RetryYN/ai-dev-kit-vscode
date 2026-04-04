@@ -4,11 +4,8 @@ set -eo pipefail
 # helix-log: HELIX ログ・評価システム
 # Usage: helix log <init|feedback|report|export> [args...]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
 DB_PATH="$HELIX_DIR/helix.db"
 
 CMD="${1:-help}"

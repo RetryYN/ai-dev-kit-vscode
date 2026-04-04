@@ -183,7 +183,9 @@ CREATE TABLE IF NOT EXISTS bench_snapshots (
 -- インデックス
 CREATE INDEX IF NOT EXISTS idx_task_runs_type ON task_runs(task_type);
 CREATE INDEX IF NOT EXISTS idx_task_runs_role ON task_runs(role);
+CREATE INDEX IF NOT EXISTS idx_task_runs_task_id_id_desc ON task_runs(task_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_action_logs_type ON action_logs(action_type);
+CREATE INDEX IF NOT EXISTS idx_action_logs_task_run_status ON action_logs(action_type, status);
 CREATE INDEX IF NOT EXISTS idx_feedback_type ON feedback(feedback_type);
 CREATE INDEX IF NOT EXISTS idx_feedback_category ON feedback(category);
 CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
@@ -192,7 +194,7 @@ CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -277,6 +279,17 @@ def migrate(conn):
             _create_requirements_tables(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (2, datetime('now'))"
+            )
+        # v2→v3: パフォーマンス改善インデックス追加
+        if current < 3:
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_task_runs_task_id_id_desc ON task_runs(task_id, id DESC)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_action_logs_task_run_status ON action_logs(action_type, status)"
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (3, datetime('now'))"
             )
         conn.commit()
 

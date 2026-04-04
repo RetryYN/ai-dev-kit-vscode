@@ -3,10 +3,7 @@ set -eo pipefail
 # helix-bench: HELIX 自己ベンチマーク
 # Usage: helix bench [--period <week|month|all>]
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
-SCRIPT_DIR="$HELIX_HOME/cli"
-PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-HELIX_DIR="$PROJECT_ROOT/.helix"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DB="$HELIX_DIR/helix.db"
 
 usage() {

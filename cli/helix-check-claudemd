@@ -3,7 +3,7 @@ set -eo pipefail
 # helix-check-claudemd: PreToolUse hook for Write
 # CLAUDE.md を新規作成しようとしたらテンプレート使用を強制する
 
-export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATE="$HELIX_HOME/cli/templates/CLAUDE.md.template"
 
 case "${1:-}" in
