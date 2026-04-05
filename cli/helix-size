@@ -384,6 +384,25 @@ if [[ -d "$DOC_TEMPLATES" ]]; then
           cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
         fi
         ;;
+      L4)
+        # 駆動タイプ別 L4 スプリントガイドをコピー
+        L4_GUIDE=""
+        case "$DRIVE" in
+          be)        L4_GUIDE="L4-be-sprint-guide.md" ;;
+          fe)        L4_GUIDE="L4-fe-sprint-guide.md" ;;
+          db)        L4_GUIDE="L4-db-sprint-guide.md" ;;
+          fullstack) L4_GUIDE="L4-fullstack-sprint-guide.md" ;;
+          agent)     L4_GUIDE="L4-agent-sprint-guide.md" ;;
+        esac
+        if [[ -n "$L4_GUIDE" && -f "$DOC_TEMPLATES/$L4_GUIDE" ]]; then
+          mkdir -p "$PROJECT_ROOT/docs/sprint"
+          if [[ "$JSON_OUTPUT" != true ]]; then
+            cp -n "$DOC_TEMPLATES/$L4_GUIDE" "$PROJECT_ROOT/docs/sprint/" 2>/dev/null && echo "L4 スプリントガイド ($DRIVE): docs/sprint/$L4_GUIDE" || true
+          else
+            cp -n "$DOC_TEMPLATES/$L4_GUIDE" "$PROJECT_ROOT/docs/sprint/" 2>/dev/null || true
+          fi
+        fi
+        ;;
       L5)
         mkdir -p "$PROJECT_ROOT/docs/design"
         if [[ "$JSON_OUTPUT" != true ]]; then
