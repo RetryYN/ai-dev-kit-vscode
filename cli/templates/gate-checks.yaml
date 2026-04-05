@@ -201,19 +201,25 @@ G4:
     # === FE 品質チェック ===
     - name: "モック/ダミー残存チェック"
       cmd: "! rg -n '(?i)(localhost:[0-9]|mock-api|dummy-data|FIXME|TODO.*mock)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
-      level: advisory
+      level: mandatory
     - name: "console.log/debugger 残存チェック"
       cmd: "! rg -n '^\\s*(console\\.(log|debug|warn|error)|debugger)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v '.*\\.spec\\.' | head -1"
-      level: advisory
+      level: mandatory
     - name: "開発用語の UI 露出チェック"
       cmd: "! rg -n '(Exception|NullPointerException|undefined is not|Cannot read prop|Stack trace|Error:.*at )' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v 'catch\\|throw\\|Error(' | head -1"
-      level: advisory
+      level: mandatory
     - name: "AI っぽい出力チェック"
       cmd: "! rg -n '(もちろんです|お手伝いします|ご質問にお答えします|As an AI|I apologize)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | head -1"
-      level: advisory
+      level: mandatory
     - name: "ハードコード URL チェック"
       cmd: "! rg -n 'https?://(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)' src/ --type ts --type js --type tsx --type jsx 2>/dev/null | grep -v '.*\\.test\\.' | grep -v 'env\\.' | head -1"
-      level: advisory
+      level: mandatory
+    - name: "エラーメッセージ安全性"
+      cmd: "! rg -n '(err|error)\\.message|err\\.stack|error\\.stack' src/ --type ts --type js 2>/dev/null | grep -v 'catch\\|log\\|logger\\|console' | head -1"
+      level: mandatory
+    - name: "レスポンスに内部情報漏洩なし"
+      cmd: "! rg -n 'stack.*res\\.|res.*stack|res\\.json.*err\\b|res\\.send.*err\\b' src/ --type ts --type js 2>/dev/null | head -1"
+      level: mandatory
     - name: "CSS マジックナンバーチェック"
       cmd: "! rg -n 'z-index:\\s*[0-9]{3,}' src/ --type css 2>/dev/null | head -1"
       level: advisory
