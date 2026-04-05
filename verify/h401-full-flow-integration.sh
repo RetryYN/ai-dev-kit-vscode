@@ -85,7 +85,7 @@ check "scrum verify pass" "$CLI/helix-scrum verify"
 check_contains "scrum decide" "$CLI/helix-scrum decide --hypothesis H001 --confirmed" "confirmed"
 
 # 10. gate G2
-mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+mkdir -p docs/design && printf '# L2 設計書\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\nREQ-F-001\n' > docs/design/L2-arch.md
 python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 check_contains "gate G2 pass" "$CLI/helix-gate G2 --static-only" "PASS"
 

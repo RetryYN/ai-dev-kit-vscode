@@ -349,13 +349,13 @@ with open('$TASK_PLAN') as f:
   echo ""
 
   # ステータスを running に
-  sed -i "/$tid:/,/status:/{s/status: pending/status: running/}" "$TASK_PLAN" 2>/dev/null
+  python3 "$YP" write "$TASK_PLAN" "tasks.${tid}.status" running 2>/dev/null
 
   # DB 記録（DB がある場合）
   local db_run_id=""
   if [[ -f "$DB_PATH" ]]; then
     local plan_goal
-    plan_goal=$(grep '^goal:' "$TASK_PLAN" 2>/dev/null | sed 's/goal: *"*//' | sed 's/"*$//' || echo "")
+    plan_goal=$(python3 "$YP" read "$TASK_PLAN" goal 2>/dev/null || echo "")
     db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
 import json; print(json.dumps({
     'task_id': '$tid', 'task_type': '$task_type',
@@ -518,7 +518,7 @@ VCHECK
   fi
 
   # ステータス更新
-  sed -i "/$tid:/,/status:/{s/status: running/status: $task_status/}" "$TASK_PLAN" 2>/dev/null
+  python3 "$YP" write "$TASK_PLAN" "tasks.${tid}.status" "$task_status" 2>/dev/null
 
   # DB 更新
   if [[ -f "$DB_PATH" && -n "$db_run_id" ]]; then

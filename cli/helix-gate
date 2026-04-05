@@ -192,23 +192,32 @@ fi
 
 # --- ゲート名を取得 ---
 gate_name=$(
-  awk -v gate="$GATE" '
-    {
-      line = $0
-      sub(/[[:space:]]+$/, "", line)
-    }
-    line == gate ":" {
-      in_gate = 1
-      next
-    }
-    in_gate && match($0, /name:[[:space:]]*"([^"]+)"/, m) {
-      print m[1]
-      exit
-    }
-    in_gate && line ~ /^G[0-9]+([.][0-9]+)?[A-Z]?:$/ {
-      exit
-    }
-  ' "$GATE_CHECKS"
+  python3 - "$GATE_CHECKS" "$GATE" <<'PY'
+import re, sys
+
+gate_checks = sys.argv[1]
+gate = sys.argv[2]
+
+with open(gate_checks, "r", encoding="utf-8") as fp:
+    lines = fp.readlines()
+
+in_gate = False
+gate_header = re.compile(rf"^\s*{re.escape(gate)}:\s*$")
+next_gate_header = re.compile(r"^G[0-9]+([.][0-9]+)?[A-Z]?:\s*$")
+
+for line in lines:
+    stripped = line.strip()
+    if not in_gate:
+        if gate_header.match(line):
+            in_gate = True
+        continue
+    if next_gate_header.match(stripped):
+        break
+    m = re.match(r'\s*name:\s*"([^"]+)"', line)
+    if m:
+        print(m.group(1))
+        break
+PY
 )
 gate_name="${gate_name:-$GATE}"
 
@@ -241,10 +250,6 @@ run_checks() {
   local advisory_fail=0
   local ai_pass=0
   local ai_fail=0
-  local escaped_gate
-  escaped_gate="${gate//./\\.}"
-  local section_heading_re='^G[0-9]+([.][0-9]+)?[A-Z]?:'
-
   # deliverable check の前に state を自動更新
   if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
     local state_file="$HELIX_DIR/state/deliverables.json"
@@ -417,26 +422,84 @@ PY
       fi
     }
 
-    # gate-checks.yaml からこのゲートの static チェックを抽出・実行（YAMLは python3 でパース）
+    # gate-checks.yaml からこのゲートの static チェックを抽出・実行（PyYAML 非依存）
     local static_rows=()
     while IFS= read -r row; do
       static_rows+=("$row")
     done < <(
       python3 - "$GATE_CHECKS" "$gate" <<'PY'
+import re
 import sys
 
-import yaml
+def parse_scalar(raw):
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == '"' and text[-1] == '"':
+        inner = text[1:-1]
+        inner = inner.replace('\\\\', '\x00').replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t')
+        return inner.replace('\x00', '\\')
+    if len(text) >= 2 and text[0] == "'" and text[-1] == "'":
+        return text[1:-1]
+    return text
 
 gate_checks = sys.argv[1]
 gate = sys.argv[2]
+
 with open(gate_checks, "r", encoding="utf-8") as fp:
-    data = yaml.safe_load(fp) or {}
-for check in data.get(gate, {}).get("static", []):
-    if not isinstance(check, dict):
+    lines = fp.readlines()
+
+in_gate = False
+in_static = False
+current = None
+rows = []
+gate_header = re.compile(rf"^\s*{re.escape(gate)}:\s*$")
+next_gate_header = re.compile(r"^G[0-9]+([.][0-9]+)?[A-Z]?:\s*$")
+
+for line in lines:
+    stripped = line.strip()
+
+    if not in_gate:
+        if gate_header.match(line):
+            in_gate = True
         continue
+
+    if next_gate_header.match(stripped):
+        break
+
+    if stripped == "static:":
+        in_static = True
+        continue
+
+    if not in_static:
+        continue
+
+    if stripped == "ai:":
+        break
+
+    if not stripped or stripped.startswith("#"):
+        continue
+
+    m_name = re.match(r'^\s*-\s*name:\s*(.+)\s*$', line)
+    if m_name:
+        if isinstance(current, dict) and current.get("cmd"):
+            rows.append(current)
+        current = {"name": parse_scalar(m_name.group(1)), "cmd": "", "level": "advisory"}
+        continue
+
+    if not isinstance(current, dict):
+        continue
+
+    m_field = re.match(r"^\s*(cmd|level):\s*(.+)\s*$", line)
+    if m_field:
+        key = m_field.group(1)
+        current[key] = parse_scalar(m_field.group(2))
+
+if isinstance(current, dict) and current.get("cmd"):
+    rows.append(current)
+
+for check in rows:
     name = str(check.get("name", "")).replace("\n", " ").replace("\x1f", " ")
     cmd = str(check.get("cmd", "")).replace("\x1f", " ")
-    level = str(check.get("level", "advisory")).lower()
+    level = str(check.get("level", "advisory")).strip().lower()
     if level not in ("mandatory", "advisory"):
         level = "advisory"
     print(f"{name}\x1f{cmd}\x1f{level}")
@@ -473,10 +536,7 @@ PY
     echo "[helix-gate] TL レビュー（Codex 5.4）"
     echo "[ai]"
 
-    local in_gate=false
-    local in_ai=false
-    local ai_role=""
-    local ai_task=""
+    local ai_rows=()
     local ai_count=0
 
     run_ai_check() {
@@ -519,40 +579,113 @@ PY
       echo ""
     }
 
-    while IFS= read -r line; do
-      if [[ "$line" =~ ^${escaped_gate}:[[:space:]]*$ ]]; then
-        in_gate=true
-        continue
-      fi
-      if [[ "$in_gate" == true && "$line" =~ $section_heading_re ]]; then
-        break
-      fi
-      if [[ "$in_gate" == true && "$line" =~ ^[[:space:]]+ai: ]]; then
-        in_ai=true
-        continue
-      fi
-      if [[ "$in_ai" == true ]]; then
-        if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*role:[[:space:]]*(.+) ]]; then
-          # 前の AI チェックを実行
-          if [[ -n "$ai_role" && -n "$ai_task" ]]; then
-            run_ai_check "$ai_role" "$ai_task"
-          fi
-          ai_role="${BASH_REMATCH[1]}"
-          ai_task=""
-        elif [[ "$line" =~ task:[[:space:]]*\|[[:space:]]*$ ]]; then
-          # multiline task 開始
-          ai_task=""
-        elif [[ "$in_ai" == true && -n "$ai_role" && "$line" =~ ^[[:space:]]{8} ]]; then
-          # multiline task の続き
-          ai_task+="${line#        }"$'\n'
-        fi
-      fi
-    done < "$GATE_CHECKS"
+    while IFS= read -r row; do
+      ai_rows+=("$row")
+    done < <(
+      python3 - "$GATE_CHECKS" "$gate" <<'PY'
+import re
+import sys
 
-    # 最後の AI チェック
-    if [[ -n "$ai_role" && -n "$ai_task" ]]; then
+def parse_scalar(raw):
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == '"' and text[-1] == '"':
+        inner = text[1:-1]
+        inner = inner.replace('\\\\', '\x00').replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t')
+        return inner.replace('\x00', '\\')
+    if len(text) >= 2 and text[0] == "'" and text[-1] == "'":
+        return text[1:-1]
+    return text
+
+gate_checks = sys.argv[1]
+gate = sys.argv[2]
+
+with open(gate_checks, "r", encoding="utf-8") as fp:
+    lines = fp.readlines()
+
+in_gate = False
+in_ai = False
+current_role = ""
+current_task_lines = []
+capture_task = False
+task_indent = 0
+content_indent = None
+rows = []
+
+gate_header = re.compile(rf"^\s*{re.escape(gate)}:\s*$")
+next_gate_header = re.compile(r"^G[0-9]+([.][0-9]+)?[A-Z]?:\s*$")
+
+def flush_current():
+    if current_role and current_task_lines:
+        task = "\n".join(current_task_lines).rstrip()
+        if task:
+            print(f"{current_role}\x1f{task}")
+
+for line in lines:
+    stripped = line.strip()
+    indent = len(line) - len(line.lstrip(" "))
+
+    if not in_gate:
+        if gate_header.match(line):
+            in_gate = True
+        continue
+
+    if next_gate_header.match(stripped):
+        break
+
+    if stripped == "ai:":
+        in_ai = True
+        continue
+
+    if not in_ai:
+        continue
+
+    role_match = re.match(r"^\s*-\s*role:\s*(.+)\s*$", line)
+    if role_match:
+        flush_current()
+        current_role = parse_scalar(role_match.group(1))
+        current_task_lines = []
+        capture_task = False
+        task_indent = 0
+        content_indent = None
+        continue
+
+    task_block_match = re.match(r"^(\s*)task:\s*\|\s*$", line)
+    if task_block_match and current_role:
+        capture_task = True
+        task_indent = len(task_block_match.group(1))
+        content_indent = None
+        continue
+
+    task_inline_match = re.match(r"^\s*task:\s*(.+)\s*$", line)
+    if task_inline_match and current_role:
+        current_task_lines = [parse_scalar(task_inline_match.group(1))]
+        capture_task = False
+        continue
+
+    if capture_task:
+        if stripped == "":
+            current_task_lines.append("")
+            continue
+        if indent <= task_indent:
+            capture_task = False
+            continue
+        if content_indent is None and stripped:
+            content_indent = indent
+        if content_indent is None:
+            current_task_lines.append("")
+        else:
+            current_task_lines.append(line[content_indent:].rstrip("\n"))
+
+flush_current()
+PY
+    )
+
+    for row in "${ai_rows[@]}"; do
+      local ai_role ai_task
+      IFS=$'\x1f' read -r ai_role ai_task <<< "$row"
+      [[ -n "$ai_role" && -n "$ai_task" ]] || continue
       run_ai_check "$ai_role" "$ai_task"
-    fi
+    done
 
     if [[ $ai_count -eq 0 ]]; then
       echo "  (AI チェックなし)"

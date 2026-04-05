@@ -22,7 +22,7 @@ $CLI/helix-init --project-name forward-test >/dev/null 2>&1
 cp "$CLI/templates/gate-checks.yaml" .helix/gate-checks.yaml
 rm -f .helix/runtime/index.json .helix/state/deliverables.json
 mkdir -p docs/design
-echo "# L2 Architecture" > docs/design/L2-architecture.md
+printf '# L2 Architecture\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\n## トレーサビリティ\nREQ-F-001 → F-001\n' > docs/design/L2-architecture.md
 
 # G1 を passed に設定（G2 の前提条件）
 python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
@@ -35,7 +35,7 @@ set -e
 [[ "$(python3 "$YP" read .helix/phase.yaml gates.G2.status 2>/dev/null)" == "passed" ]] || { echo "FAIL: G2 state"; exit 1; }
 
 # G3
-echo "contracts:" > docs/design/L3-api-contract.yaml
+printf 'contracts:\n# テスト設計\nTC-001: test\n# エラーハンドリング\nError Code: 400\n# トレーサビリティ\nF-001 → A-001\n' > docs/design/L3-api-contract.yaml
 set +e
 $CLI/helix-gate G3 --static-only >/dev/null 2>&1; g3=$?
 set -e

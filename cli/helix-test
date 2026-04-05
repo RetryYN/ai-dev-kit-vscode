@@ -43,7 +43,9 @@ run_test_contains() {
   local cmd="$2"
   local pattern="$3"
   printf "  %-40s " "$name"
+  set +e
   output=$(eval "$cmd" 2>&1 </dev/null)
+  set -e
   if echo "$output" | grep -q "$pattern"; then
     echo "PASS"
     PASS=$((PASS + 1))
@@ -59,7 +61,9 @@ run_test_not_contains() {
   local cmd="$2"
   local pattern="$3"
   printf "  %-40s " "$name"
+  set +e
   output=$(eval "$cmd" 2>&1 </dev/null)
+  set -e
   if echo "$output" | grep -q "$pattern"; then
     echo "FAIL (pattern '$pattern' was found)"
     ERRORS+=("$name: output=$output")
@@ -308,7 +312,7 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 # G2 の前提ゲート（G0.5, G1）を passed に
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
-mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
+mkdir -p docs/design && printf '# L2 Architecture\n\n## セキュリティ\n\nSTRIDE 脅威分析済み\n' > docs/design/L2-architecture.md
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
 run_test "G2 undo to pending" "$SCRIPT_DIR/helix-gate G2 --undo"

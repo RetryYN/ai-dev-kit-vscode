@@ -22,7 +22,7 @@ set +e; $CLI/helix-gate G2 --static-only >/dev/null 2>&1; r=$?; set -e
 [[ $r -ne 0 ]] || { echo "FAIL: G2 no design should fail"; exit 1; }
 
 # G2 with design → pass
-mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+mkdir -p docs/design && printf '# L2 設計書\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\nREQ-F-001\n' > docs/design/L2-arch.md
 set +e; $CLI/helix-gate G2 --static-only >/dev/null 2>&1; r=$?; set -e
 [[ $r -eq 0 ]] || { echo "FAIL: G2 with design should pass"; exit 1; }
 
@@ -31,7 +31,7 @@ set +e; $CLI/helix-gate G3 --static-only >/dev/null 2>&1; r=$?; set -e
 [[ $r -ne 0 ]] || { echo "FAIL: G3 no contract should fail"; exit 1; }
 
 # G3 with contract → pass
-echo "contracts:" > docs/design/L3-api-contract.yaml
+printf 'contracts:\n# テスト設計\nTC-001: test\n# エラーハンドリング\nError Code: 400\n# トレーサビリティ\nF-001 → A-001\n' > docs/design/L3-api-contract.yaml
 set +e; $CLI/helix-gate G3 --static-only >/dev/null 2>&1; r=$?; set -e
 [[ $r -eq 0 ]] || { echo "FAIL: G3 with contract should pass"; exit 1; }
 

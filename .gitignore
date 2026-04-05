@@ -7,3 +7,4 @@ __pycache__/
 *.pem
 *.key
 credentials.json
+__pycache__/

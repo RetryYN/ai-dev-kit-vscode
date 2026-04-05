@@ -17,7 +17,7 @@ $CLI/helix-init --project-name t >/dev/null 2>&1
 echo "=== H102: Freeze-break Recovery ==="
 
 mkdir -p docs/design src/api
-echo "# L2" > docs/design/L2-arch.md
+printf '# L2 設計書\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\nREQ-F-001\n' > docs/design/L2-arch.md
 python3 "$YP" write .helix/phase.yaml gates.G2.status passed 2>/dev/null
 python3 "$YP" write .helix/phase.yaml gates.G3.status passed 2>/dev/null
 python3 "$YP" write .helix/phase.yaml gates.G4.status passed 2>/dev/null

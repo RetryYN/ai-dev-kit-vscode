@@ -21,7 +21,7 @@ rm -f .helix/runtime/index.json .helix/state/deliverables.json
 echo "=== 004: helix-gate ==="
 
 # G2: 設計書を作成して pass
-mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+mkdir -p docs/design && printf '# L2 設計書\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\nREQ-F-001\n' > docs/design/L2-arch.md
 python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 out=$($CLI/helix-gate G2 --static-only 2>&1)
 echo "$out" | grep -q "PASS" || { echo "FAIL: G2 should pass"; exit 1; }

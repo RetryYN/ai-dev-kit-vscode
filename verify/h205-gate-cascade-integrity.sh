@@ -20,13 +20,13 @@ rm -f .helix/runtime/index.json .helix/state/deliverables.json
 echo "=== H205: Gate Cascade Integrity ==="
 
 # G2 → G1 前提（G1 を事前に pass）
-mkdir -p docs/design && echo "# L2" > docs/design/L2-arch.md
+mkdir -p docs/design && printf '# L2 設計書\n## セキュリティ設計\nSTRIDE 脅威分析\n## スコープ\n対象外: なし\nREQ-F-001\n' > docs/design/L2-arch.md
 python3 "$YP" write .helix/phase.yaml gates.G1.status passed 2>/dev/null
 set +e; $CLI/helix-gate G2 --static-only >/dev/null 2>&1; g2=$?; set -e
 [[ $g2 -eq 0 ]] || { echo "FAIL: G2 should pass (G1 passed)"; exit 1; }
 
 # G3 → G2 必須（G2 passed なので OK）
-echo "contracts:" > docs/design/L3-api-contract.yaml
+printf 'contracts:\n# テスト設計\nTC-001: test\n# エラーハンドリング\nError Code: 400\n# トレーサビリティ\nF-001 → A-001\n' > docs/design/L3-api-contract.yaml
 set +e; $CLI/helix-gate G3 --static-only >/dev/null 2>&1; g3=$?; set -e
 [[ $g3 -eq 0 ]] || { echo "FAIL: G3 should pass (G2 passed)"; exit 1; }
 
