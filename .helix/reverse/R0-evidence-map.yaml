@@ -1,0 +1,1166 @@
+# R0 Evidence Map — HELIX Framework
+# 生成日: 2026-04-05
+# 対象: ~/ai-dev-kit-vscode
+# フェーズ: R0 Evidence Acquisition
+#
+# 5カテゴリ: modules / db_schema / config_files / external_apis / unknowns
+
+# =============================================================================
+# 1. modules — CLI コマンド + lib モジュール + builders
+# =============================================================================
+modules:
+  # --- CLI コマンド (32本) ---
+  cli_commands:
+    - name: helix
+      path: cli/helix
+      lang: bash
+      lines: 93
+      responsibility: 統一エントリポイント。サブコマンドを helix-<cmd> へディスパッチする
+
+    - name: helix-bench
+      path: cli/helix-bench
+      lang: bash
+      lines: 132
+      responsibility: 自己ベンチマーク。DB から集計し期間別メトリクスを JSON 出力する
+
+    - name: helix-builder
+      path: cli/helix-builder
+      lang: bash
+      lines: 21
+      responsibility: Builder System CLI。cli/lib/builders/cli.py への薄いラッパー
+
+    - name: helix-check-claudemd
+      path: cli/helix-check-claudemd
+      lang: bash
+      lines: 69
+      responsibility: PreToolUse hook。CLAUDE.md 新規作成時にテンプレート使用を強制する
+
+    - name: helix-codex
+      path: cli/helix-codex
+      lang: bash
+      lines: 314
+      responsibility: スキル注入付き Codex CLI ラッパー。12ロール対応・リトライ・コスト記録
+
+    - name: helix-debt
+      path: cli/helix-debt
+      lang: bash
+      lines: 128
+      responsibility: 技術負債台帳管理（list/add/resolve）。SQLite debt_items テーブル操作
+
+    - name: helix-debug
+      path: cli/helix-debug
+      lang: bash
+      lines: 387
+      responsibility: デバッグツール（trace/inspect/replay/doctor）。環境診断・フェーズ検査
+
+    - name: helix-discover
+      path: cli/helix-discover
+      lang: python
+      lines: 202
+      responsibility: local/global recipe から類似候補を検索する。BuilderHistory スコアリング使用
+
+    - name: helix-gate
+      path: cli/helix-gate
+      lang: bash
+      lines: 691
+      responsibility: ゲート自動検証（G0.5-G7）。static/ai チェック実行。fail-close 方式
+
+    - name: helix-gate-api-check
+      path: cli/helix-gate-api-check
+      lang: bash
+      lines: 199
+      responsibility: API 契約と実装のエンドポイント突合。G4 static チェックとして使用
+
+    - name: helix-hook
+      path: cli/helix-hook
+      lang: bash
+      lines: 478
+      responsibility: PostToolUse hook。Edit/Write 後に自動発火しドキュメント駆動ゲートを実行
+
+    - name: helix-init
+      path: cli/helix-init
+      lang: bash
+      lines: 284
+      responsibility: プロジェクト初期化。.helix/ 構造・phase.yaml・DB・Claude settings 設定
+
+    - name: helix-interrupt
+      path: cli/helix-interrupt
+      lang: bash
+      lines: 890
+      responsibility: IIP/CC の割り込み管理（start/apply/resume/status/cancel）
+
+    - name: helix-learn
+      path: cli/helix-learn
+      lang: python
+      lines: 193
+      responsibility: 成功タスクから recipe を生成し global.db へ同期する
+
+    - name: helix-log
+      path: cli/helix-log
+      lang: bash
+      lines: 122
+      responsibility: ログ・評価システム（init/feedback/report/export）。helix_db.py 呼び出し
+
+    - name: helix-matrix
+      path: cli/helix-matrix
+      lang: bash
+      lines: 250
+      responsibility: matrix.yaml ベースの成果物対照表操作（init/compile/validate/status/update/auto-detect/add-feature）
+
+    - name: helix-mode
+      path: cli/helix-mode
+      lang: bash
+      lines: 87
+      responsibility: 開発モード管理（forward/reverse/scrum）。phase.yaml の current_mode を更新
+
+    - name: helix-plan
+      path: cli/helix-plan
+      lang: bash
+      lines: 601
+      responsibility: 設計提案の下書き/レビュー/確定を管理。TL approve なしで finalize 不可
+
+    - name: helix-pr
+      path: cli/helix-pr
+      lang: bash
+      lines: 171
+      responsibility: ゲート結果から PR テンプレート自動生成。gh CLI 依存
+
+    - name: helix-promote
+      path: cli/helix-promote
+      lang: python
+      lines: 431
+      responsibility: recipe を Builder 生成物（skill/script/task/sub-agent）に昇格する
+
+    - name: helix-retro
+      path: cli/helix-retro
+      lang: bash
+      lines: 60
+      responsibility: ミニレトロ管理（list/show/check）。G2/G4/L8 通過時に実行
+
+    - name: helix-reverse
+      path: cli/helix-reverse
+      lang: bash
+      lines: 244
+      responsibility: Reverse HELIX パイプライン（R0-R4/status）。Codex へ分析タスク委譲
+
+    - name: helix-scrum
+      path: cli/helix-scrum
+      lang: bash
+      lines: 497
+      responsibility: Scrum 検証駆動開発（init/backlog/plan/poc/verify/decide/review/status）
+
+    - name: helix-session-start
+      path: cli/helix-session-start
+      lang: bash
+      lines: 68
+      responsibility: SessionStart hook。セットアップ未完了なら README 強制熟読モード起動
+
+    - name: helix-size
+      path: cli/helix-size
+      lang: bash
+      lines: 409
+      responsibility: タスクサイジング（S/M/L）+ フェーズスキップ自動判定。phase.yaml 更新
+
+    - name: helix-sprint
+      path: cli/helix-sprint
+      lang: bash
+      lines: 505
+      responsibility: L4 マイクロスプリント管理（status/next/complete/reset）。be/fe トラック対応
+
+    - name: helix-status
+      path: cli/helix-status
+      lang: bash
+      lines: 247
+      responsibility: プロジェクト全体の HELIX 状態表示（フェーズ・ゲート・スプリント・DB 統計）
+
+    - name: helix-task
+      path: cli/helix-task
+      lang: bash
+      lines: 773
+      responsibility: Task OS（catalog/plan/run/observe/status）。63タスク・27アクション型・295アクション
+
+    - name: helix-team
+      path: cli/helix-team
+      lang: bash
+      lines: 97
+      responsibility: エージェントチーム実行（run/status/list）。team_runner.py 呼び出し
+
+    - name: helix-test
+      path: cli/helix-test
+      lang: bash
+      lines: 1540
+      responsibility: CLI 全ツールのセルフテスト。42テストケース（一部統合テスト含む）
+
+    - name: helix-test-debug
+      path: cli/helix-test-debug
+      lang: bash
+      lines: 1533
+      responsibility: helix-test のデバッグ版（同一テスト内容、詳細出力付き）
+
+    - name: helix-verify-all
+      path: cli/helix-verify-all
+      lang: bash
+      lines: 194
+      responsibility: "全レイヤー検証を1コマンドで実行（Layer 1-7: 構造・スキーマ・テスト・DB整合性等）"
+
+  # --- lib モジュール (15本 + helix-common.sh) ---
+  lib_modules:
+    - name: helix-common.sh
+      path: cli/lib/helix-common.sh
+      lang: bash
+      lines: 16
+      responsibility: 共通初期化。HELIX_HOME/SCRIPT_DIR/PROJECT_ROOT/DB_PATH/終了コード定義
+
+    - name: helix_db.py
+      path: cli/lib/helix_db.py
+      lang: python
+      lines: 844
+      responsibility: SQLite ベースのタスク実行・評価・改善追跡。19テーブル + マイグレーション管理
+
+    - name: yaml_parser.py
+      path: cli/lib/yaml_parser.py
+      lang: python
+      lines: 324
+      responsibility: 軽量 YAML パーサー（PyYAML 不要）。phase.yaml の読み書き専用
+
+    - name: learning_engine.py
+      path: cli/lib/learning_engine.py
+      lang: python
+      lines: 2000
+      responsibility: 実行履歴から成功/失敗パターンを分析し再利用可能な recipe を生成する
+
+    - name: matrix_compiler.py
+      path: cli/lib/matrix_compiler.py
+      lang: python
+      lines: 1435
+      responsibility: matrix.yaml + rules から doc-map/gate-checks/runtime/index.json を生成する
+
+    - name: gate_check_generator.py
+      path: cli/lib/gate_check_generator.py
+      lang: python
+      lines: 609
+      responsibility: matrix_compiler から抽出されたゲート/doc-map 生成ロジック
+
+    - name: global_store.py
+      path: cli/lib/global_store.py
+      lang: python
+      lines: 611
+      responsibility: 複数プロジェクト横断で recipe インデックスを保存・検索（~/.helix/global.db）
+
+    - name: deliverable_gate.py
+      path: cli/lib/deliverable_gate.py
+      lang: python
+      lines: 522
+      responsibility: ゲートごとに必要 deliverable の状態を評価し pass/fail を判定する
+
+    - name: matrix_advisor.py
+      path: cli/lib/matrix_advisor.py
+      lang: python
+      lines: 453
+      responsibility: 変更ファイルと Deliverable Matrix の整合性を advisory として通知する
+
+    - name: phase_guard.py
+      path: cli/lib/phase_guard.py
+      lang: python
+      lines: 366
+      responsibility: 現在フェーズと変更パスを照合しフェーズ違反変更をブロックする（3層ガードレール）
+
+    - name: freeze_checker.py
+      path: cli/lib/freeze_checker.py
+      lang: python
+      lines: 351
+      responsibility: 凍結後の変更（freeze-break）を検知し下流ゲート無効化の要否を判定する
+
+    - name: recipe_store.py
+      path: cli/lib/recipe_store.py
+      lang: python
+      lines: 245
+      responsibility: レシピの保存・検索・推薦
+
+    - name: team_runner.py
+      path: cli/lib/team_runner.py
+      lang: python
+      lines: 248
+      responsibility: チーム定義 YAML を読み strategy に応じて複数メンバーを実行する
+
+    - name: schema_validator.py
+      path: cli/lib/schema_validator.py
+      lang: python
+      lines: 163
+      responsibility: JSON Schema の簡易バリデータ（標準ライブラリのみ）
+
+    - name: merge_settings.py
+      path: cli/lib/merge_settings.py
+      lang: python
+      lines: 146
+      responsibility: ~/.claude/settings.json に HELIX hooks を安全にマージ/除去する
+
+    - name: doc_map_matcher.py
+      path: cli/lib/doc_map_matcher.py
+      lang: python
+      lines: 111
+      responsibility: doc-map.yaml のトリガーマッチャー。変更ファイルに対しイベントへ変換する
+
+  # --- builders モジュール (14本) ---
+  builder_modules:
+    - name: __init__.py
+      path: cli/lib/builders/__init__.py
+      lang: python
+      lines: 6
+      responsibility: パッケージ初期化。BuilderBase/BuilderStore/BuilderHistory/BuilderRegistry をエクスポート
+
+    - name: base.py
+      path: cli/lib/builders/base.py
+      lang: python
+      lines: 88
+      responsibility: 全ビルダーの基底クラス。テンプレートメソッドパターン（build→validate→generate→finish）
+
+    - name: registry.py
+      path: cli/lib/builders/registry.py
+      lang: python
+      lines: 19
+      responsibility: ビルダー型の登録管理。BUILDER_TYPE → クラスのマッピング
+
+    - name: store.py
+      path: cli/lib/builders/store.py
+      lang: python
+      lines: 350
+      responsibility: builder_executions テーブルの CRUD + 秘密情報リダクション + WAL モード
+
+    - name: history.py
+      path: cli/lib/builders/history.py
+      lang: python
+      lines: 245
+      responsibility: 成功履歴から類似パターンを検索。structural/tag/role/quality/recency スコアリング
+
+    - name: cli.py
+      path: cli/lib/builders/cli.py
+      lang: python
+      lines: 220
+      responsibility: Builder CLI 本体。generate/list/seed/convert サブコマンド
+
+    - name: agent_loop.py
+      path: cli/lib/builders/agent_loop.py
+      lang: python
+      lines: 155
+      responsibility: AgentLoopBuilder。エージェントループ定義の生成
+
+    - name: agent_pipeline.py
+      path: cli/lib/builders/agent_pipeline.py
+      lang: python
+      lines: 213
+      responsibility: AgentPipelineBuilder。エージェントパイプライン定義の生成
+
+    - name: agent_skill.py
+      path: cli/lib/builders/agent_skill.py
+      lang: python
+      lines: 289
+      responsibility: AgentSkillBuilder。SKILL.md ファイルの自動生成
+
+    - name: sub_agent.py
+      path: cli/lib/builders/sub_agent.py
+      lang: python
+      lines: 164
+      responsibility: SubAgentBuilder。Codex サブエージェント定義の生成
+
+    - name: task_builder.py
+      path: cli/lib/builders/task_builder.py
+      lang: python
+      lines: 269
+      responsibility: TaskBuilder。タスクカタログエントリの生成
+
+    - name: verify_script.py
+      path: cli/lib/builders/verify_script.py
+      lang: python
+      lines: 181
+      responsibility: VerifyScriptBuilder。E2E 検証スクリプトの自動生成
+
+    - name: workflow_builder.py
+      path: cli/lib/builders/workflow_builder.py
+      lang: python
+      lines: 188
+      responsibility: WorkflowBuilder。ワークフロー定義の生成
+
+    - name: json_converter.py
+      path: cli/lib/builders/json_converter.py
+      lang: python
+      lines: 268
+      responsibility: JsonConverterBuilder。異フォーマット間のJSON変換
+
+  # --- 総行数 ---
+  summary:
+    cli_commands_total_lines: 11910
+    lib_modules_total_lines: 8444
+    builder_modules_total_lines: 2655
+    grand_total_lines: 23009
+
+# =============================================================================
+# 2. db_schema — SQLite テーブル・カラム・FK・インデックス
+# =============================================================================
+db_schema:
+  # --- メイン DB: .helix/helix.db ---
+  main_db:
+    path: .helix/helix.db
+    schema_version: 4
+    pragma:
+      journal_mode: WAL
+      busy_timeout_ms: 5000
+
+    tables:
+      task_runs:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_id, type: TEXT, not_null: true }
+          - { name: task_type, type: TEXT, not_null: true }
+          - { name: plan_goal, type: TEXT }
+          - { name: role, type: TEXT, not_null: true }
+          - { name: status, type: TEXT, default: "'running'" }
+          - { name: started_at, type: TEXT, not_null: true }
+          - { name: completed_at, type: TEXT }
+          - { name: output_log, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+        indexes:
+          - { name: idx_task_runs_type, columns: [task_type] }
+          - { name: idx_task_runs_role, columns: [role] }
+          - { name: idx_task_runs_task_id_id_desc, columns: [task_id, "id DESC"] }
+
+      action_logs:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_run_id, type: INTEGER, fk: "task_runs(id)" }
+          - { name: action_index, type: INTEGER, not_null: true }
+          - { name: action_type, type: TEXT, not_null: true }
+          - { name: action_desc, type: TEXT }
+          - { name: status, type: TEXT, default: "'pending'" }
+          - { name: evidence, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+        indexes:
+          - { name: idx_action_logs_type, columns: [action_type] }
+          - { name: idx_action_logs_task_run_status, columns: [action_type, status] }
+
+      observations:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_run_id, type: INTEGER, fk: "task_runs(id)" }
+          - { name: action_log_id, type: INTEGER, fk: "action_logs(id)" }
+          - { name: action_type, type: TEXT, not_null: true }
+          - { name: expected_keywords, type: TEXT, note: "JSON array" }
+          - { name: matched_keywords, type: TEXT, note: "JSON array" }
+          - { name: passed, type: INTEGER, not_null: true, note: "1=pass, 0=fail" }
+          - { name: reason, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+
+      feedback:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_run_id, type: INTEGER, fk: "task_runs(id)" }
+          - { name: feedback_type, type: TEXT, not_null: true, note: "correction|praise|suggestion|complaint" }
+          - { name: category, type: TEXT, note: "task-selection|quality|missing-action|wrong-role|scope" }
+          - { name: description, type: TEXT, not_null: true }
+          - { name: impact, type: TEXT, note: "high|medium|low" }
+          - { name: resolution, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+        indexes:
+          - { name: idx_feedback_type, columns: [feedback_type] }
+          - { name: idx_feedback_category, columns: [category] }
+
+      task_evaluations:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: plan_goal, type: TEXT }
+          - { name: task_type, type: TEXT, not_null: true }
+          - { name: was_useful, type: INTEGER, note: "1=有用, 0=不要" }
+          - { name: was_sufficient, type: INTEGER, note: "1=十分, 0=追加作業必要" }
+          - { name: quality_score, type: REAL, note: "0.0-1.0" }
+          - { name: user_score, type: REAL, note: "1-5" }
+          - { name: notes, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+
+      task_selections:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: plan_id, type: TEXT, not_null: true }
+          - { name: plan_goal, type: TEXT, not_null: true }
+          - { name: selected_tasks, type: TEXT, not_null: true, note: "JSON array" }
+          - { name: available_tasks, type: TEXT, note: "JSON array" }
+          - { name: selection_rationale, type: TEXT }
+          - { name: review_status, type: TEXT, default: "'pending'" }
+          - { name: review_result, type: TEXT }
+          - { name: review_suggestions, type: TEXT }
+          - { name: created_at, type: TEXT, default: "datetime('now')" }
+        indexes:
+          - { name: idx_task_selections_plan, columns: [plan_id] }
+
+      gate_runs:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_run_id, type: INTEGER, fk: "task_runs(id)" }
+          - { name: gate, type: TEXT, not_null: true }
+          - { name: result, type: TEXT, not_null: true }
+          - { name: fail_reasons, type: TEXT, default: "''" }
+          - { name: retry_count, type: INTEGER, default: 0 }
+          - { name: duration_ms, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+        indexes:
+          - { name: idx_gate_runs_task_run_id, columns: [task_run_id] }
+
+      plan_reviews:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: plan_id, type: TEXT, not_null: true }
+          - { name: verdict, type: TEXT, not_null: true }
+          - { name: reviewer, type: TEXT, default: "'tl'" }
+          - { name: findings_count, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+
+      interrupts:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: task_run_id, type: INTEGER, fk: "task_runs(id)" }
+          - { name: interrupt_id, type: TEXT, not_null: true }
+          - { name: kind, type: TEXT, not_null: true }
+          - { name: classification, type: TEXT, not_null: true }
+          - { name: scope, type: TEXT, default: "''" }
+          - { name: status, type: TEXT, not_null: true }
+          - { name: duration_ms, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+          - { name: resolved_at, type: TEXT, default: "''" }
+        indexes:
+          - { name: idx_interrupts_task_run_id, columns: [task_run_id] }
+
+      retro_items:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: gate, type: TEXT, not_null: true }
+          - { name: gate_name, type: TEXT }
+          - { name: gate_run_id, type: INTEGER, fk: "gate_runs(id)" }
+          - { name: item_type, type: TEXT, not_null: true }
+          - { name: content, type: TEXT, not_null: true }
+          - { name: owner, type: TEXT, default: "''" }
+          - { name: due, type: TEXT, default: "''" }
+          - { name: done, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+        indexes:
+          - { name: idx_retro_items_gate_run_id, columns: [gate_run_id] }
+
+      debt_items:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: title, type: TEXT, not_null: true }
+          - { name: priority, type: TEXT, not_null: true }
+          - { name: source, type: TEXT, default: "''" }
+          - { name: status, type: TEXT, not_null: true, default: "'open'" }
+          - { name: created_at, type: TEXT, not_null: true }
+          - { name: resolved_at, type: TEXT, default: "''" }
+
+      hook_events:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: event_type, type: TEXT, not_null: true }
+          - { name: file, type: TEXT, not_null: true }
+          - { name: result, type: TEXT, not_null: true }
+          - { name: created_at, type: TEXT, not_null: true }
+
+      cost_log:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: role, type: TEXT, not_null: true }
+          - { name: model, type: TEXT, not_null: true }
+          - { name: thinking, type: TEXT, default: "'high'" }
+          - { name: tokens_est, type: INTEGER, default: 0 }
+          - { name: cost_est, type: REAL, default: 0.0 }
+          - { name: created_at, type: TEXT, not_null: true }
+
+      bench_snapshots:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: period, type: TEXT, not_null: true }
+          - { name: metrics_json, type: TEXT, not_null: true }
+          - { name: created_at, type: TEXT, not_null: true }
+
+      requirements:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: req_id, type: TEXT, unique: true, not_null: true }
+          - { name: title, type: TEXT, not_null: true }
+          - { name: description, type: TEXT, default: "''" }
+          - { name: acceptance_criteria, type: TEXT, default: "'[]'", note: "JSON array" }
+          - { name: feature, type: TEXT, default: "''" }
+          - { name: status, type: TEXT, default: "'draft'" }
+          - { name: created_at, type: TEXT, not_null: true }
+          - { name: updated_at, type: TEXT, not_null: true }
+        note: schema_version >= 2
+
+      req_impl_map:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: req_id, type: TEXT, not_null: true, fk: "requirements(req_id)" }
+          - { name: impl_path, type: TEXT, not_null: true }
+          - { name: impl_type, type: TEXT, default: "'source'" }
+          - { name: verified, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+        note: schema_version >= 2
+
+      req_test_map:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: req_id, type: TEXT, not_null: true, fk: "requirements(req_id)" }
+          - { name: acc_index, type: INTEGER, default: 0 }
+          - { name: test_path, type: TEXT, not_null: true }
+          - { name: test_result, type: TEXT, default: "'pending'" }
+          - { name: created_at, type: TEXT, not_null: true }
+        note: schema_version >= 2
+
+      req_changes:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: req_id, type: TEXT, not_null: true, fk: "requirements(req_id)" }
+          - { name: change_type, type: TEXT, not_null: true }
+          - { name: reason, type: TEXT, not_null: true }
+          - { name: old_value, type: TEXT, default: "''" }
+          - { name: new_value, type: TEXT, default: "''" }
+          - { name: source, type: TEXT, default: "''" }
+          - { name: created_at, type: TEXT, not_null: true }
+        note: schema_version >= 2
+
+      schema_version:
+        columns:
+          - { name: version, type: INTEGER, pk: true }
+          - { name: applied_at, type: TEXT, not_null: true }
+        note: マイグレーション管理用
+
+    fk_summary:
+      - { from: action_logs.task_run_id, to: task_runs.id }
+      - { from: observations.task_run_id, to: task_runs.id }
+      - { from: observations.action_log_id, to: action_logs.id }
+      - { from: feedback.task_run_id, to: task_runs.id }
+      - { from: gate_runs.task_run_id, to: task_runs.id }
+      - { from: interrupts.task_run_id, to: task_runs.id }
+      - { from: retro_items.gate_run_id, to: gate_runs.id }
+      - { from: req_impl_map.req_id, to: requirements.req_id }
+      - { from: req_test_map.req_id, to: requirements.req_id }
+      - { from: req_changes.req_id, to: requirements.req_id }
+
+  # --- Builder DB: builder_executions テーブル（helix.db 内に on-demand 作成） ---
+  builder_db:
+    note: helix-builder 初回実行時に .helix/helix.db 内に CREATE IF NOT EXISTS で追加
+    tables:
+      builder_executions:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: execution_id, type: TEXT, unique: true, not_null: true }
+          - { name: builder_type, type: TEXT, not_null: true }
+          - { name: builder_name, type: TEXT, default: "''" }
+          - { name: task_id, type: TEXT, default: "''" }
+          - { name: status, type: TEXT, not_null: true, default: "'running'" }
+          - { name: success, type: INTEGER, default: 0 }
+          - { name: schema_version, type: TEXT, default: "'1.0'" }
+          - { name: input_signature_json, type: TEXT, default: "'{}'" }
+          - { name: input_hash, type: TEXT, default: "''" }
+          - { name: pattern_tags_json, type: TEXT, default: "'[]'" }
+          - { name: artifact_refs_json, type: TEXT, default: "'[]'" }
+          - { name: current_step, type: TEXT, default: "''" }
+          - { name: step_count, type: INTEGER, default: 0 }
+          - { name: step_trace_json, type: TEXT, default: "'[]'" }
+          - { name: quality_score, type: REAL, default: 0.0 }
+          - { name: validation_summary_json, type: TEXT, default: "'{}'" }
+          - { name: source_execution_id, type: TEXT, default: "''" }
+          - { name: error_text, type: TEXT, default: "''" }
+          - { name: started_at, type: TEXT, not_null: true }
+          - { name: finished_at, type: TEXT, default: "''" }
+          - { name: created_at, type: TEXT, not_null: true }
+          - { name: updated_at, type: TEXT, not_null: true }
+        indexes:
+          - { name: idx_be_type_success, columns: [builder_type, success, finished_at] }
+          - { name: idx_be_task, columns: [task_id] }
+          - { name: idx_be_hash, columns: [input_hash] }
+
+  # --- Global DB: ~/.helix/global.db ---
+  global_db:
+    path: "~/.helix/global.db"
+    note: 複数プロジェクト横断の recipe インデックス。global_store.py が管理
+    tables:
+      recipe_index:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: recipe_id, type: TEXT, not_null: true }
+          - { name: pattern_key, type: TEXT, not_null: true }
+          - { name: builder_type, type: TEXT, default: "''" }
+          - { name: project_id, type: TEXT, not_null: true }
+          - { name: success_rate, type: REAL, default: 0.0 }
+          - { name: quality_score_mean, type: REAL, default: 0.0 }
+          - { name: tags_json, type: TEXT, default: "'[]'" }
+          - { name: context_json, type: TEXT, default: "'{}'" }
+          - { name: verification_json, type: TEXT, default: "'{}'" }
+          - { name: local_path, type: TEXT, default: "''" }
+          - { name: global_path, type: TEXT, default: "''" }
+          - { name: promotion_status, type: TEXT, default: "'none'" }
+          - { name: success_count, type: INTEGER, default: 0 }
+          - { name: total_count, type: INTEGER, default: 0 }
+          - { name: created_at, type: TEXT, not_null: true }
+          - { name: updated_at, type: TEXT, not_null: true }
+        constraints:
+          - "UNIQUE(pattern_key, project_id)"
+        indexes:
+          - { name: idx_recipe_pattern, columns: [pattern_key] }
+          - { name: idx_recipe_success, columns: [success_count, success_rate] }
+          - { name: idx_recipe_promotion, columns: [promotion_status] }
+          - { name: idx_recipe_recipe_id, columns: [recipe_id] }
+          - { name: idx_recipe_recipe_project, columns: [recipe_id, project_id] }
+
+      promotion_records:
+        columns:
+          - { name: id, type: INTEGER, pk: true, autoincrement: true }
+          - { name: promotion_id, type: TEXT, unique: true, not_null: true }
+          - { name: recipe_id, type: TEXT, not_null: true }
+          - { name: artifact_type, type: TEXT, not_null: true }
+          - { name: builder_type, type: TEXT, not_null: true }
+          - { name: artifact_ref, type: TEXT, default: "''" }
+          - { name: status, type: TEXT, not_null: true }
+          - { name: created_at, type: TEXT, not_null: true }
+        indexes:
+          - { name: idx_promotion_recipe, columns: [recipe_id, created_at] }
+
+# =============================================================================
+# 3. config_files — .helix/ 配下の設定ファイル + テンプレート + スキーマ
+# =============================================================================
+config_files:
+  # --- プロジェクト設定（.helix/ 配下） ---
+  project_config:
+    - path: .helix/phase.yaml
+      purpose: フェーズ状態追跡（current_phase, gates, sprint, reverse, mode）
+      updated_by: helix-size, helix-gate, helix-sprint, helix-mode, helix-reverse
+
+    - path: .helix/matrix.yaml
+      purpose: 成果物対照表（Deliverable Matrix）。features/waivers 定義
+      updated_by: helix-matrix (add-feature, update)
+
+    - path: .helix/framework.yaml
+      purpose: 検出フレームワーク情報（detected, tools）
+      updated_by: helix-init (フレームワーク自動検出)
+
+    - path: .helix/doc-map.yaml
+      purpose: ドキュメント変更→ゲートトリガーのマッピング
+      generated_by: helix-matrix compile (matrix_compiler.py)
+
+    - path: .helix/gate-checks.yaml
+      purpose: ゲート別 static/ai チェック定義
+      generated_by: helix-matrix compile (gate_check_generator.py)
+
+    - path: .helix/helix.db
+      purpose: メイン SQLite データベース（19テーブル）
+      updated_by: 全コマンド
+
+    - path: .helix/runtime/index.json
+      purpose: matrix + rules のコンパイル済みランタイムインデックス（55KB）
+      generated_by: helix-matrix compile
+
+    - path: .helix/state/deliverables.json
+      purpose: 成果物完了状態のランタイムトラッキング
+      generated_by: helix-matrix compile
+
+    - path: .helix/rules/common-defs.yaml
+      purpose: 共通語彙定義（NFR カテゴリ・ゲート・フェーズ等）
+      copied_from: cli/templates/rules/common-defs.yaml
+
+    - path: .helix/rules/deliverables.yaml
+      purpose: 成果物定義（全フェーズ × 全駆動タイプ）
+      copied_from: cli/templates/rules/deliverables.yaml
+
+    - path: .helix/rules/naming.yaml
+      purpose: ファイル命名規約
+      copied_from: cli/templates/rules/naming.yaml
+
+    - path: .helix/rules/structure.yaml
+      purpose: ディレクトリ構造定義
+      copied_from: cli/templates/rules/structure.yaml
+
+    - path: .helix/plans/PLAN-*.yaml
+      purpose: 設計提案の永続化（id, title, status, review）
+      updated_by: helix-plan (draft/review/finalize)
+
+    - path: .helix/scrum/backlog.yaml
+      purpose: Scrum 仮説バックログ
+      updated_by: helix-scrum (backlog/decide)
+
+    - path: .helix/scrum/sprint.yaml
+      purpose: Scrum スプリント状態
+      updated_by: helix-scrum (plan/review)
+
+    - path: .helix/scrum/retro-sprint-*.md
+      purpose: スプリントレトロ記録
+      generated_by: helix-scrum review
+
+  # --- テンプレート（cli/templates/ 配下） ---
+  templates:
+    - path: cli/templates/phase.yaml
+      purpose: phase.yaml の初期テンプレート
+
+    - path: cli/templates/config.yaml
+      purpose: config.yaml の初期テンプレート
+
+    - path: cli/templates/CLAUDE.md.template
+      purpose: CLAUDE.md 初期テンプレート
+
+    - path: cli/templates/matrix.yaml
+      purpose: matrix.yaml の初期テンプレート
+
+    - path: cli/templates/doc-map.yaml
+      purpose: doc-map.yaml テンプレート（フルセット）
+
+    - path: cli/templates/gate-checks.yaml
+      purpose: gate-checks.yaml テンプレート（全ゲート G0.5-G7 定義）
+
+    - path: cli/templates/state-machine.yaml
+      purpose: フェーズ状態機械定義
+
+    - path: cli/templates/task-catalog.yaml
+      purpose: 63タスク・295アクション定義のマスタカタログ（47KB）
+
+    - path: cli/templates/action-types.yaml
+      purpose: 27アクション型の定義
+
+    - path: cli/templates/retro.md.template
+      purpose: レトロ振り返り Markdown テンプレート
+
+    - path: cli/templates/commit-msg-hook
+      purpose: git commit-msg フックテンプレート
+
+    - path: cli/templates/pre-commit-hook
+      purpose: git pre-commit フックテンプレート
+
+    - path: cli/templates/post-merge-hook
+      purpose: git post-merge フックテンプレート
+
+    - path: cli/templates/scrum-backlog.yaml
+      purpose: Scrum バックログテンプレート
+
+    - path: cli/templates/scrum-sprint.yaml
+      purpose: Scrum スプリントテンプレート
+
+    - path: cli/templates/rules/common-defs.yaml
+      purpose: 共通語彙定義テンプレート
+
+    - path: cli/templates/rules/deliverables.yaml
+      purpose: 成果物定義テンプレート（19KB）
+
+    - path: cli/templates/rules/naming.yaml
+      purpose: 命名規約テンプレート
+
+    - path: cli/templates/rules/structure.yaml
+      purpose: ディレクトリ構造テンプレート
+
+    - path: cli/templates/state/deliverables.json
+      purpose: 成果物状態テンプレート（8.5KB）
+
+    - path: cli/templates/docs/L1-requirements.md
+      purpose: L1 要件定義テンプレート
+
+    - path: cli/templates/docs/L2-design.md
+      purpose: L2 全体設計テンプレート
+
+    - path: cli/templates/docs/L3-detailed-design.md
+      purpose: L3 詳細設計テンプレート
+
+    - path: cli/templates/agents/fe-a11y.md
+      purpose: FE アクセシビリティエージェントプロンプト
+
+    - path: cli/templates/agents/fe-component.md
+      purpose: FE コンポーネントエージェントプロンプト
+
+    - path: cli/templates/agents/fe-design.md
+      purpose: FE デザインエージェントプロンプト
+
+    - path: cli/templates/agents/fe-style.md
+      purpose: FE スタイルエージェントプロンプト
+
+    - path: cli/templates/agents/fe-test.md
+      purpose: FE テストエージェントプロンプト
+
+    - path: cli/templates/teams/implementation-team.yaml
+      purpose: 実装チーム定義テンプレート
+
+    - path: cli/templates/teams/review-team.yaml
+      purpose: レビューチーム定義テンプレート
+
+    - path: cli/templates/teams/twin-sprint.yaml
+      purpose: ツインスプリント（BE+FE並列）チーム定義テンプレート
+
+  # --- JSON Schema (cli/schemas/ 配下) ---
+  schemas:
+    - path: cli/schemas/phase.schema.json
+      purpose: phase.yaml のバリデーションスキーマ
+
+    - path: cli/schemas/matrix.schema.json
+      purpose: matrix.yaml のバリデーションスキーマ
+
+    - path: cli/schemas/doc-map.schema.json
+      purpose: doc-map.yaml のバリデーションスキーマ
+
+    - path: cli/schemas/gate-checks.schema.json
+      purpose: gate-checks.yaml のバリデーションスキーマ
+
+    - path: cli/schemas/review-output.schema.json
+      purpose: Codex レビュー出力のバリデーションスキーマ
+
+  # --- ロール設定 (cli/roles/ 配下) ---
+  role_configs:
+    - path: cli/roles/tl.conf
+      purpose: TL ロール（model=gpt-5.4, 設計・レビュー・ゲート判定）
+
+    - path: cli/roles/se.conf
+      purpose: SE ロール（model=gpt-5.3-codex, 上級実装）
+
+    - path: cli/roles/pg.conf
+      purpose: PG ロール（model=gpt-5.3-codex-spark, 通常実装）
+
+    - path: cli/roles/fe.conf
+      purpose: FE ロール（model=gpt-5.4, フロントエンド実装）
+
+    - path: cli/roles/qa.conf
+      purpose: QA ロール（model=gpt-5.4, テスト・検証）
+
+    - path: cli/roles/security.conf
+      purpose: Security ロール（model=gpt-5.4, セキュリティ監査）
+
+    - path: cli/roles/dba.conf
+      purpose: DBA ロール（DB設計・マイグレーション）
+
+    - path: cli/roles/devops.conf
+      purpose: DevOps ロール（デプロイ・インフラ）
+
+    - path: cli/roles/docs.conf
+      purpose: Docs ロール（ドキュメント・API仕様書）
+
+    - path: cli/roles/research.conf
+      purpose: Research ロール（技術調査・比較）
+
+    - path: cli/roles/legacy.conf
+      purpose: Legacy ロール（レガシー分析・Reverse）
+
+    - path: cli/roles/perf.conf
+      purpose: Perf ロール（パフォーマンス最適化）
+
+  # --- プロンプト (cli/prompts/ 配下) ---
+  prompts:
+    - path: cli/prompts/adversarial-review.md
+      purpose: Adversarial review 用プロンプト
+
+    - path: cli/prompts/stop-review-gate.md
+      purpose: Stop-time review gate 用プロンプト
+
+  # --- セットアップスクリプト (cli/scripts/ 配下) ---
+  setup_scripts:
+    - path: cli/scripts/setup-all.sh
+      purpose: 全ツールの一括セットアップ
+
+    - path: cli/scripts/setup-axe.sh
+      purpose: axe-core アクセシビリティツール
+
+    - path: cli/scripts/setup-crawl4ai.sh
+      purpose: Crawl4AI クローラー
+
+    - path: cli/scripts/setup-d2.sh
+      purpose: D2 ダイアグラムツール
+
+    - path: cli/scripts/setup-marp.sh
+      purpose: Marp プレゼンテーションツール
+
+    - path: cli/scripts/setup-playwright.sh
+      purpose: Playwright E2E テストツール
+
+    - path: cli/scripts/setup-textlint.sh
+      purpose: textlint 日本語校正ツー���
+
+# =============================================================================
+# 4. external_apis — 外部依存
+# =============================================================================
+external_apis:
+  runtime_required:
+    - name: python3
+      usage: lib モジュール全般・yaml_parser・helix_db・matrix_compiler 等
+      version_constraint: ">=3.10（match/case, pathlib, typing）"
+      note: 標準ライブラリのみ使用（PyYAML, requests 等のサードパーティ不要）
+
+    - name: bash
+      usage: CLI コマンド本体（32本中28本が bash）
+      version_constraint: ">=4.0（連想配列・mapfile 使用）"
+
+    - name: git
+      usage: PROJECT_ROOT 検出（git rev-parse）、helix-test 内の git init
+      note: helix-common.sh で git rev-parse --show-toplevel を使用
+
+    - name: sqlite3
+      usage: python3 sqlite3 モジュール経由。外部バイナリ直接呼び出しなし
+      note: WAL ジャーナルモード使用
+
+  external_tools:
+    - name: codex
+      usage: helix-codex から codex exec で Codex CLI を呼び出し
+      invocation: "codex exec <prompt> -m <model> -s <sandbox>"
+      fallback: "$HOME/.npm-global/bin/codex"
+      required: true
+      note: 全12ロールの委譲先。リトライ2回・タイムアウト300秒
+
+    - name: gh
+      usage: helix-pr で gh pr create
+      required: false
+      note: PR 作成時のみ必要
+
+    - name: rg (ripgrep)
+      usage: gate-checks.yaml の static チェック内で使用
+      required: false
+      note: ゲートチェック時のみ。なければチェックスキップ
+
+  optional_tools:
+    - name: d2
+      usage: ダイアグラム生成（skills/design-tools/diagram）
+      setup: cli/scripts/setup-d2.sh
+
+    - name: marp
+      usage: プレゼンテーション生成（skills/design-tools/pptx）
+      setup: cli/scripts/setup-marp.sh
+
+    - name: playwright
+      usage: E2E テスト・ブラウザスクリプト
+      setup: cli/scripts/setup-playwright.sh
+
+    - name: textlint
+      usage: 日本語テキスト校正（skills/writing/japanese）
+      setup: cli/scripts/setup-textlint.sh
+
+    - name: axe-core
+      usage: アクセシビリティ自動検証（skills/common/testing）
+      setup: cli/scripts/setup-axe.sh
+
+    - name: crawl4ai
+      usage: サイト構造抽出（skills/automation/site-mapping）
+      setup: cli/scripts/setup-crawl4ai.sh
+
+# =============================================================================
+# 5. unknowns — 設計文書なし / テストなし / 仕様不明
+# =============================================================================
+unknowns:
+  # --- 設計文書なし ---
+  no_design_doc:
+    - item: CLI 全体のアーキテクチャ設計書
+      note: SKILL_MAP.md + HELIX_CORE.md にフロー定義あるが、CLI 内部アーキテクチャの設計文書は未作成
+
+    - item: Builder System の設計仕様書
+      note: builders/ は12モジュール・2655行あるが独立した設計文書なし。base.py の docstring のみ
+
+    - item: Learning Engine の設計仕様書
+      note: 2000行の最大モジュール。recipe 生成ロジックの設計文書なし
+
+    - item: DB マイグレーション戦略の文書化
+      note: schema_version 4 まで進行。マイグレーションロジックは helix_db.py 内にあるが方針文書なし
+
+    - item: 状態機械の遷移仕様書
+      note: state-machine.yaml テンプレートはあるが、実際の遷移制約が phase_guard.py 内にハードコードされている
+
+  # --- ユニットテストなし（helix-test の統合テストのみ） ---
+  no_unit_test:
+    - module: cli/lib/deliverable_gate.py
+      lines: 522
+      severity: medium
+
+    - module: cli/lib/doc_map_matcher.py
+      lines: 111
+      severity: low
+
+    - module: cli/lib/freeze_checker.py
+      lines: 351
+      severity: medium
+
+    - module: cli/lib/gate_check_generator.py
+      lines: 609
+      severity: medium
+
+    - module: cli/lib/global_store.py
+      lines: 611
+      severity: high
+      note: 複数プロジェクト横断のデータ管理。統合テストの一部としてのみカバー
+
+    - module: cli/lib/matrix_compiler.py
+      lines: 1435
+      severity: high
+      note: 最重要コンパイラ。統合テストはあるがユニットテストなし
+
+    - module: cli/lib/matrix_advisor.py
+      lines: 453
+      severity: medium
+
+    - module: cli/lib/merge_settings.py
+      lines: 146
+      severity: low
+
+    - module: cli/lib/phase_guard.py
+      lines: 366
+      severity: medium
+
+    - module: cli/lib/recipe_store.py
+      lines: 245
+      severity: medium
+
+    - module: cli/lib/team_runner.py
+      lines: 248
+      severity: medium
+
+    - module: cli/lib/builders/
+      lines: 2655
+      severity: medium
+      note: 14モジュール全体にユニットテストなし。helix-test 統合テストで一部カバー
+
+  # --- helix-test 内テストが --help のみ / 極小 ---
+  minimal_test_coverage:
+    - command: helix-debug
+      note: helix-test 内でテストなし。helix help に表示確認のみ
+
+    - command: helix-verify-all
+      note: --help テストのみ。verify/h401 で部分カバー
+
+  # --- 仕様不明点 ---
+  spec_unclear:
+    - item: helix-interrupt の IIP/CC 分類ロジック
+      note: 890行と大規模だが分類アルゴリズムの仕様文書なし
+
+    - item: helix-hook の doc-map トリガー優先度
+      note: 複数トリガーが一致した場合の優先度制御が不明
+
+    - item: Builder quality_score の算出基準
+      note: validate_output で返す validation dict の quality_score 算出方法がビルダーごとに異なるが統一基準なし
+
+    - item: recipe の昇格条件
+      note: helix-promote が recipe → Builder 生成物に昇格するが、自動昇格の閾値が文書化されていない
+
+    - item: gate_runs.task_run_id FK の実 DB 不整合
+      note: |
+        helix_db.py の CREATE TABLE 定義では gate_runs.task_run_id に REFERENCES task_runs(id) があるが、
+        実際の DB スキーマでは FK なしで作成されている（SQLite の FK 制約はデフォルト無効）
+
+    - item: helix-test と helix-test-debug の重複
+      note: ほぼ同一内容（1540行 vs 1533行）。差分管理の方針が不明
+
+    - item: fullstack 駆動タイプの L4.5 結合フェーズ
+      note: SKILL_MAP.md で定義されているが CLI 側での実装状況が不明
+
+    - item: RGC（Reverse Gap Closure）
+      note: MEMORY.md に「CLI 未実装」と明記。Forward L6/L8 pass 後の手動実施とされている
+
+  # --- 潜在リスク ---
+  potential_risks:
+    - item: SQLite FK 制約が未 enforce
+      note: PRAGMA foreign_keys = ON が未設定。整合性は application レイヤーで保証
+      severity: medium
+
+    - item: yaml_parser.py は限定的 YAML パーサー
+      note: 複雑な YAML（アンカー・マージキー・フロー等）は非対応。用途限定で問題ないが制約が明文化されていない
+      severity: low
+
+    - item: learning_engine.py の 2000行
+      note: 単一ファイルで最大。責務が recipe 生成 + 分析 + スコアリングに跨り分割候補
+      severity: low
+
+    - item: Codex 依存のレジリエンス
+      note: codex exec が失敗した場合のフォールバックはリトライ2回のみ。代替モデルへの切り替えなし
+      severity: medium

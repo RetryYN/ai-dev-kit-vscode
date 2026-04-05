@@ -1,0 +1,958 @@
+# R1 Observed Contracts — HELIX Framework
+# 生成日: 2026-04-05
+# 抽出方法: 実装コードの grep/read ベース
+# 対象: ~/ai-dev-kit-vscode/cli/
+
+# ===========================================================
+# 1. 共通定義 (helix-common.sh)
+# ===========================================================
+common:
+  source: cli/lib/helix-common.sh
+  environment:
+    HELIX_HOME: "${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+    SCRIPT_DIR: "$HELIX_HOME/cli"
+    PROJECT_ROOT: "${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel)}"
+    HELIX_DIR: "$PROJECT_ROOT/.helix"
+    CONFIG_FILE: "$HELIX_DIR/config.yaml"
+    YAML_PARSER: "$SCRIPT_DIR/lib/yaml_parser.py"
+    DB_PY: "$SCRIPT_DIR/lib/helix_db.py"
+    DB_PATH: "$HELIX_DIR/helix.db"
+  exit_codes:
+    EXIT_SUCCESS: 0
+    EXIT_CHECK_FAILED: 1
+    EXIT_INPUT_ERROR: 2
+    EXIT_PREREQ_ERROR: 3
+    EXIT_INTERNAL_ERROR: 127
+
+# ===========================================================
+# 2. CLI コマンド契約
+# ===========================================================
+cli_commands:
+
+  # -----------------------------------------------------------
+  # helix-gate
+  # -----------------------------------------------------------
+  helix-gate:
+    source: cli/helix-gate
+    usage: "helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json]"
+    subcommands: null
+    arguments:
+      gate:
+        required: true
+        type: positional
+        valid_values: ["G0.5", "G2", "G3", "G4", "G5", "G6", "G7"]
+        validation_regex: "^G(0\\.5|[2-7])$"
+    options:
+      --static-only: "AI チェックをスキップし static チェックのみ実行"
+      --ai-only: "static チェックをスキップし AI チェックのみ実行"
+      --dry-run: "実行せずチェック内容を表示"
+      --undo: "ゲートを pending に戻し、下流ゲートを invalidated にする"
+      --json: "結果を JSON で fd3 に出力"
+    exit_codes:
+      0: "ゲート通過（pass）"
+      1: "ゲート失敗（deliverable/mandatory/ai のいずれか fail）"
+      2: "入力エラー（ゲート名不正、不明オプション）"
+      3: "前提条件未達（前提ゲート未通過、phase.yaml 未存在）"
+      127: "内部エラー（state-machine.yaml 未存在）"
+    side_effects:
+      - "phase.yaml の gates.<gate>.status を passed/failed に更新"
+      - "phase.yaml の gates.<gate>.date を更新（pass 時）"
+      - "--undo 時: gates.<gate>.status を pending に、下流ゲートを invalidated に"
+      - "helix.db gate_runs テーブルにログ挿入"
+      - "G2/G4 pass 時: .helix/retros/ にミニレトロテンプレート生成"
+      - "matrix.yaml 存在時: auto-detect → state/deliverables.json を更新"
+      - "deliverable_gate.py による成果物チェック"
+      - "helix-codex 経由で AI レビュー実行（--static-only でない場合）"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - cli/lib/deliverable_gate.py
+      - cli/lib/matrix_compiler.py
+      - cli/templates/state-machine.yaml
+      - ".helix/gate-checks.yaml"
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-size
+  # -----------------------------------------------------------
+  helix-size:
+    source: cli/helix-size
+    usage: "helix size [--files N] [--lines N] [--api] [--db] [--ui] [--type TYPE] [--drive DRIVE] [--json]"
+    subcommands: null
+    arguments: null
+    options:
+      --files: "変更ファイル数（必須）"
+      --lines: "変更行数（必須）"
+      --api: "API 変更あり"
+      --db: "DB 変更あり"
+      --ui: "UI 変更あり"
+      --type: "タスク種別: bugfix, refactor, new-feature, ui-change, doc, new-module"
+      --drive: "駆動タイプ: be(default), fe, db, fullstack, agent"
+      --json: "JSON 形式で出力"
+    exit_codes:
+      0: "正常終了"
+      2: "入力エラー（--files/--lines 未指定、不正な --drive 値）"
+    side_effects:
+      - "phase.yaml の current_phase を最初の有効フェーズに設定"
+      - "phase.yaml の sprint.drive を設定"
+      - "docs/requirements/ docs/design/ にテンプレートをコピー（未存在時）"
+    sizing_logic:
+      axes:
+        files: {S: "1-3", M: "4-10", L: "11+"}
+        lines: {S: "~100", M: "101-500", L: "501+"}
+        api_db: {S: "なし", M: "片方", L: "両方"}
+      final_size: "3軸の最大値を採用"
+    drive_types: ["be", "fe", "db", "fullstack", "agent"]
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - ".helix/config.yaml (default_drive)"
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-sprint
+  # -----------------------------------------------------------
+  helix-sprint:
+    source: cli/helix-sprint
+    usage: "helix sprint <status|next|complete|reset> [--track be|fe] [--json]"
+    subcommands:
+      status: "現在のスプリント状態を表示"
+      next: "次のステップに進む（fullstack は --track be|fe 必須）"
+      complete: "現在のステップを完了（非 fullstack 用）"
+      reset: "スプリントをリセット"
+    options:
+      --track: "fullstack 駆動時の Track 指定（be|fe）"
+      --json: "JSON 形式で出力"
+    sprint_steps: [".1a", ".1b", ".2", ".3", ".4", ".5"]
+    step_names:
+      ".1a": "コード調査 (impact analysis)"
+      ".1b": "変更計画 (plan + 事前調査)"
+      ".2": "最小実装 (skeleton + codex review Critical/High)"
+      ".3": "安全性・互換性 (security first-pass)"
+      ".4": "テスト・検証 (coverage + codex review)"
+      ".5": "仕上げ (full review + doc alignment)"
+    exit_codes:
+      0: "正常終了"
+      1: "エラー（不正なサブコマンド/オプション、完了するステップなし）"
+      2: "入力エラー（不明コマンド）"
+      3: "前提条件未達（.helix/ 未存在、phase.yaml 未存在）"
+    side_effects:
+      - "phase.yaml の sprint.current_step を更新"
+      - "phase.yaml の sprint.steps.<step>.status を completed に"
+      - "fullstack: sprint.tracks.be/fe.stage, sprint.tracks.be/fe.status を更新"
+      - "fullstack: sprint.tracks.contract.ci を更新"
+      - "fullstack: sprint.phase を A/B に自動切替"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-init
+  # -----------------------------------------------------------
+  helix-init:
+    source: cli/helix-init
+    usage: "helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"]"
+    subcommands: null
+    options:
+      --project-name: "プロジェクト名（phase.yaml に設定）"
+      --force: "既存ファイルを上書き（CLAUDE.md 以外）"
+      --monorepo-package: "モノレポ内で HELIX 管理対象にするパッケージ相対パス"
+    exit_codes:
+      0: "正常終了"
+      1: "エラー（不明オプション、モノレポパッケージ未存在）"
+    side_effects:
+      - ".helix/ ディレクトリ作成"
+      - ".helix/phase.yaml, gate-checks.yaml, config.yaml, matrix.yaml, doc-map.yaml, state-machine.yaml をテンプレートからコピー"
+      - ".helix/rules/ ディレクトリにルールファイルをコピー"
+      - ".helix/state/ .helix/runtime/ ディレクトリ作成"
+      - "CLAUDE.md をテンプレートから作成（未存在時）"
+      - ".gitignore に CLAUDE.local.md, .claude/settings.local.json, .env, .env.*, *.pem, *.key, credentials.json を追加"
+      - "docs/design/, docs/adr/, .claude/agents/ ディレクトリ作成"
+      - ".git/hooks/ に pre-commit, commit-msg, post-merge フックをコピー"
+      - ".claude/agents/ にエージェントテンプレートをコピー"
+      - ".helix/framework.yaml を自動生成（node/python/go/rust 検出）"
+      - "matrix compile + auto-detect を実行"
+    framework_detection:
+      node: "package.json 存在"
+      python: "pyproject.toml or requirements.txt 存在"
+      go: "go.mod 存在"
+      rust: "Cargo.toml 存在"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/templates/
+
+  # -----------------------------------------------------------
+  # helix-mode
+  # -----------------------------------------------------------
+  helix-mode:
+    source: cli/helix-mode
+    usage: "helix mode [forward|reverse|scrum]"
+    subcommands: null
+    arguments:
+      mode:
+        required: false
+        type: positional
+        valid_values: ["forward", "reverse", "scrum"]
+        description: "引数なし=現在モード表示、指定=モード切替"
+    exit_codes:
+      0: "正常終了（モード表示/切替成功/既に同じモード）"
+      2: "入力エラー（無効なモード名、phase.yaml 未存在）"
+      3: "前提条件未達（reverse→forward: R4 未完了）"
+    side_effects:
+      - "phase.yaml の current_mode を更新"
+    transition_constraints:
+      reverse_to_forward: "reverse.status == completed が必須"
+      scrum_to_forward: "confirmed な仮説がない場合は WARN（ブロックしない）"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-reverse
+  # -----------------------------------------------------------
+  helix-reverse:
+    source: cli/helix-reverse
+    usage: "helix reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]"
+    subcommands:
+      R0: "Evidence Acquisition（証拠収集）"
+      R1: "Observed Contracts（契約抽出）"
+      R2: "As-Is Design（設計復元）"
+      R3: "Intent Hypotheses（要件仮説）"
+      R4: "Gap & Routing（差分分析→Forward接続）"
+      status: "現在の Reverse 状態を表示"
+    options:
+      --target: "対象パス（デフォルト: PROJECT_ROOT）"
+      --dry-run: "実行せずプロンプトだけ表示"
+    stage_roles:
+      R0: legacy
+      R1: legacy
+      R2: legacy
+      R3: legacy
+      R4: tl
+    stage_gates:
+      R0: RG0
+      R1: RG1
+      R2: RG2
+      R3: RG3
+      R4: RG3
+    stage_prereqs:
+      R0: null
+      R1: RG0
+      R2: RG1
+      R3: RG2
+      R4: RG3
+    stage_outputs:
+      R0: "R0-evidence-map.yaml"
+      R1: "R1-observed-contracts.yaml"
+      R2: "R2-as-is-design.md"
+      R3: "R3-intent-hypotheses.md"
+      R4: "R4-gap-register.yaml"
+    exit_codes:
+      0: "正常終了（ステージ成功またはstatus表示）"
+      1: "エラー（前提ゲート未通過、codex 失敗、成果物未生成）"
+    side_effects:
+      - "R0 実行時: current_mode を reverse に自動切替"
+      - ".helix/reverse/ に成果物ファイル生成"
+      - "phase.yaml の reverse_gates.<RGx>.status を passed/failed に更新"
+      - "phase.yaml の reverse_gates.<RGx>.date を更新"
+      - "helix.db task_runs にログ挿入"
+      - ".helix/task-logs/ にログファイル保存"
+      - "R4 完了時: reverse.status=completed, reverse.completed_at を記録"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - cli/lib/helix_db.py
+      - cli/helix-codex
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-scrum
+  # -----------------------------------------------------------
+  helix-scrum:
+    source: cli/helix-scrum
+    usage: "helix scrum <init|backlog|plan|poc|verify|decide|review|status> [args...]"
+    subcommands:
+      init: "Scrum モード初期化"
+      backlog:
+        list: "仮説バックログ表示"
+        add: "仮説追加 (--id --title --question --acceptance)"
+      plan: "スプリント開始 (--goal --hypotheses H001,H002)"
+      poc: "PoC 実装を Codex に委譲 (--hypothesis H001)"
+      verify: "検証スクリプト実行 (引数なし=全実行, 引数=指定スクリプト)"
+      decide: "仮説判定 (--hypothesis H001 --confirmed|--rejected|--pivot [--learnings])"
+      review: "スプリントレビュー + レトロ"
+      status: "現在の状態表示"
+    exit_codes:
+      0: "正常終了"
+      1: "エラー（バックログ未初期化、必須引数不足、検証失敗、verify script not found）"
+    side_effects:
+      init:
+        - "current_mode を scrum に自動切替"
+        - ".helix/scrum/ ディレクトリ + backlog.yaml + sprint.yaml 作成"
+        - "verify/ ディレクトリ作成"
+      backlog_add:
+        - "backlog.yaml に仮説エントリ追加"
+        - "verify/<hid>-<safe_name>.sh スケルトン生成"
+      plan:
+        - "sprint.yaml の current_sprint をインクリメント"
+        - "sprint.yaml にスプリント情報記録"
+        - "backlog.yaml の仮説にスプリント番号と status=testing を設定"
+      poc:
+        - "helix-codex --role pg で PoC 実装を委譲"
+      verify:
+        - "verify/*.sh を順次実行。exit 0=PASS, exit 1=FAIL"
+      decide:
+        - "backlog.yaml の仮説 status を confirmed/rejected/pivot に更新"
+        - "learnings を記録"
+      review:
+        - "全検証スクリプト実行"
+        - "sprint.yaml のスプリント status=completed, ended 記録"
+        - ".helix/scrum/retro-sprint-N.md 生成"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - cli/helix-codex
+      - ".helix/scrum/backlog.yaml"
+      - ".helix/scrum/sprint.yaml"
+
+  # -----------------------------------------------------------
+  # helix-status
+  # -----------------------------------------------------------
+  helix-status:
+    source: cli/helix-status
+    usage: "helix status [--json]"
+    subcommands: null
+    options:
+      --json: "phase.yaml の内容を JSON で出力"
+    exit_codes:
+      0: "正常終了"
+      1: "エラー（.helix/ 未存在、phase.yaml 未存在/読み込み失敗）"
+      2: "入力エラー（不明オプション）"
+    side_effects: []
+    output_sections:
+      - "Project / Mode / Phase"
+      - "Gates（G1〜G7 の status + date）"
+      - "Sprint（standard or fullstack twin tracks）"
+      - "Reverse Gates（RG0〜RG3、存在時のみ）"
+      - "Retros（.helix/retros/ 内のファイル一覧）"
+      - "Design Docs（docs/design/ 内のファイル数）"
+      - "Action Guide（次のアクション提案）"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - ".helix/phase.yaml"
+
+  # -----------------------------------------------------------
+  # helix-task
+  # -----------------------------------------------------------
+  helix-task:
+    source: cli/helix-task
+    usage: "helix task <catalog|plan|run|status|observe> [args...]"
+    subcommands:
+      catalog: "タスクカタログ表示（オプション: [filter]）"
+      plan: "タスクプラン作成 (--goal '...' --tasks 'task1,task2,...')"
+      run: "次の pending タスクを実行（Codex or サブエージェントに委譲）"
+      status: "タスクプラン進捗表示"
+      observe: "タスク実行結果の品質検証 (引数: [task_id|all])"
+    exit_codes:
+      0: "正常終了（全タスク完了時も 0）"
+      1: "エラー（タスクプラン未存在、委譲失敗、observe 失敗）"
+    side_effects:
+      plan:
+        - ".helix/task-plan.yaml を生成"
+        - "helix.db task_selections にタスク選択を記録"
+        - "helix-codex --role tl で TL レビュー自動発火"
+        - "helix.db update-review でレビュー結果を記録"
+      run:
+        - "task-plan.yaml の status を running → completed/failed に更新"
+        - "helix.db task_runs にログ挿入"
+        - ".helix/task-logs/<tid>-<task_type>.log にログ保存"
+        - "helix-codex で委譲実行（非 FE ロール）"
+        - "FE ロール: サブエージェント委譲メッセージ出力"
+        - "UI 系タスク: .helix/visual-checks/ に確認記録生成"
+      observe:
+        - "action-types.yaml の expect_keywords でログ内容を照合"
+        - "pass/fail レポートを出力"
+    catalog_source: ".helix/task-catalog.yaml（存在時）or cli/templates/task-catalog.yaml"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/lib/yaml_parser.py
+      - cli/lib/helix_db.py
+      - cli/helix-codex
+      - cli/templates/task-catalog.yaml
+      - cli/templates/action-types.yaml
+
+  # -----------------------------------------------------------
+  # helix-codex
+  # -----------------------------------------------------------
+  helix-codex:
+    source: cli/helix-codex
+    usage: "helix codex --role <role> --task \"タスク内容\" [--thinking <level>] [--timeout <sec>] [--sandbox <mode>] [--read-only] [--dry-run]"
+    subcommands: null
+    arguments:
+      --role:
+        required: true
+        valid_values: ["tl", "se", "pg", "fe", "qa", "security", "dba", "devops", "docs", "research", "legacy", "perf"]
+        validation_regex: "^[a-z0-9_-]+$"
+      --task:
+        required: true
+        type: string
+    options:
+      --thinking: "思考レベル (low|medium|high|xhigh)。省略時はロール別デフォルト"
+      --timeout: "codex exec タイムアウト秒（デフォルト: 300）"
+      --sandbox: "サンドボックスモード (read-only|workspace-write|danger-full-access)。デフォルト: workspace-write"
+      --read-only: "--sandbox read-only のショートカット"
+      --dry-run: "実行せずプロンプトだけ表示"
+    thinking_defaults:
+      tl: xhigh
+      security: xhigh
+      legacy: xhigh
+      se: high
+      fe: high
+      qa: high
+      perf: high
+      pg: medium
+      dba: medium
+      devops: medium
+      docs: low
+      research: low
+    exit_codes:
+      0: "codex exec 成功"
+      1: "codex exec 失敗（リトライ MAX_RETRY=2 回後）"
+    side_effects:
+      - "codex exec でタスク実行"
+      - "helix.db cost_log にコスト記録（バックグラウンド）"
+      - "L2/L3 フェーズの tl/se ロール: 未確定設計提案の警告出力"
+    prompt_construction:
+      - "roles/<role>.conf から system_prompt, codex_model, skills[], common_docs[] を読み込み"
+      - "skills は overlay 検索順: project/skills/generated → project/skills → project/.claude/skills → global skills/"
+      - "プロンプト = system_prompt + 共通参照パス一覧 + スキルパス一覧 + タスク内容"
+    security:
+      - "ロール名バリデーション: ^[a-z0-9_-]+$ のみ許可"
+      - "パス検証: realpath + ensure_within_dir でディレクトリ外アクセスを防止"
+      - "未検証スキル警告: verified: false のスキルは WARN 出力"
+    dependencies:
+      - cli/lib/helix-common.sh
+      - cli/roles/<role>.conf
+      - "skills/ (global + project overlay)"
+      - "codex CLI binary ($CODEX_BIN)"
+
+# ===========================================================
+# 3. Python ライブラリ契約
+# ===========================================================
+python_libraries:
+
+  # -----------------------------------------------------------
+  # helix_db.py
+  # -----------------------------------------------------------
+  helix_db:
+    source: cli/lib/helix_db.py
+    description: "HELIX ログデータベース — SQLite ベースのタスク実行・評価・改善追跡"
+    schema_version: 4
+    tables:
+      - task_runs
+      - action_logs
+      - observations
+      - feedback
+      - task_evaluations
+      - task_selections
+      - gate_runs
+      - plan_reviews
+      - interrupts
+      - retro_items
+      - debt_items
+      - hook_events
+      - cost_log
+      - bench_snapshots
+      - schema_version
+      - requirements
+      - req_impl_map
+      - req_test_map
+      - req_changes
+    public_functions:
+      init_db:
+        signature: "init_db(db_path: str) -> None"
+        description: "DB を初期化（テーブル作成 + マイグレーション）"
+        side_effects: "SQLite ファイル作成、スキーマ適用"
+      resolve_default_db_path:
+        signature: "resolve_default_db_path() -> str"
+        description: "HELIX_DB_PATH or HELIX_PROJECT_ROOT or cwd から DB パスを解決"
+      insert_row:
+        signature: "insert_row(db_path: str, table: str, data: dict) -> None"
+        description: "任意テーブルに 1 行挿入。created_at 自動付与。row_id を stdout に出力"
+        validation: "テーブル名は ^[A-Za-z_][A-Za-z0-9_]*$ のみ許可。不明カラムは KeyError"
+      record_task:
+        signature: "record_task(db_path: str, data: dict) -> None"
+        description: "task_runs に挿入。run_id を stdout に出力"
+        required_keys: ["task_id", "task_type", "role"]
+      record_action:
+        signature: "record_action(db_path: str, data: dict) -> None"
+        description: "action_logs に挿入。action_id を stdout に出力"
+        required_keys: ["task_run_id", "action_index", "action_type"]
+      record_observation:
+        signature: "record_observation(db_path: str, data: dict) -> None"
+        description: "observations に挿入"
+        required_keys: ["task_run_id", "action_type", "passed"]
+      record_feedback:
+        signature: "record_feedback(db_path: str, data: dict) -> None"
+        description: "feedback に挿入。stdout に 'Feedback recorded'"
+        required_keys: ["feedback_type", "description"]
+      record_feedback_argv:
+        signature: "record_feedback_argv(db_path, task_run_id, feedback_type, category, description, impact='medium', resolution='') -> None"
+        description: "CLI 引数ベースで feedback を記録。task_run_id=0 は NULL 変換"
+      latest_task_run_id:
+        signature: "latest_task_run_id(db_path: str, task_id: str) -> None"
+        description: "指定 task_id の最新 run id を stdout に出力"
+      record_selection:
+        signature: "record_selection(db_path: str, data: dict) -> None"
+        description: "task_selections に挿入。sel_id を stdout に出力"
+        required_keys: ["plan_id", "plan_goal"]
+      update_review:
+        signature: "update_review(db_path: str, data: dict) -> None"
+        description: "task_selections のレビュー結果を更新"
+        required_keys: ["selection_id", "review_status"]
+      report:
+        signature: "report(db_path: str, report_type: str = 'summary') -> None"
+        description: "レポート出力"
+        report_types: ["summary", "tasks", "actions", "feedback", "quality", "selections"]
+      export_json:
+        signature: "export_json(db_path: str, output_path: str) -> None"
+        description: "全テーブルを JSON にエクスポート"
+      migrate:
+        signature: "migrate(conn: sqlite3.Connection) -> None"
+        description: "スキーマバージョンに応じたマイグレーション実行"
+    cli_usage: |
+      python3 helix_db.py init <db_path>
+      python3 helix_db.py record-task <db> <json>
+      python3 helix_db.py record-action <db> <json>
+      python3 helix_db.py record-observation <db> <json>
+      python3 helix_db.py record-feedback <db> <json>
+      python3 helix_db.py record-feedback-argv <db> <run_id> <type> <category> <desc> [impact] [resolution]
+      python3 helix_db.py latest-task-run <db> <task_id>
+      python3 helix_db.py record-selection <db> <json>
+      python3 helix_db.py update-review <db> <json>
+      python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality|selections]
+      python3 helix_db.py export-json <db> <output_path>
+      python3 helix_db.py insert [<db_path>] <table> <json>
+    pragmas:
+      journal_mode: WAL
+      busy_timeout: 5000
+      foreign_keys: ON
+
+  # -----------------------------------------------------------
+  # yaml_parser.py
+  # -----------------------------------------------------------
+  yaml_parser:
+    source: cli/lib/yaml_parser.py
+    description: "Lightweight YAML parser — PyYAML 不要。HELIX の phase/state YAML の読み書き専用"
+    public_functions:
+      parse_yaml:
+        signature: "parse_yaml(text: str) -> dict"
+        description: "YAML テキストをパースして dict に変換。インデントベース、インライン dict 対応"
+        limitations: "リスト（- item）は部分的サポート。完全な YAML パーサーではない"
+      get_nested:
+        signature: "get_nested(data: dict, dotpath: str) -> Any | None"
+        description: "ドットパスで値を取得。キーに . を含む場合も対応（G1.5 等）"
+      set_nested:
+        signature: "set_nested(data: dict, dotpath: str, value: Any) -> None"
+        description: "ドットパスで値を設定。既存キーの貪欲マッチ + 新規キーのドット分割"
+      dump_yaml:
+        signature: "dump_yaml(data: dict, indent: int = 0) -> str"
+        description: "dict を YAML 文字列に変換。小さい dict はインライン化"
+      write_yaml_safe:
+        signature: "write_yaml_safe(filepath: str, dotpath: str, value: Any) -> None"
+        description: "排他ロック (fcntl.LOCK_EX) + atomic rename で YAML を安全に更新"
+        side_effects: ".lock ファイル一時作成、.tmp.<pid> 一時ファイル作成 → os.replace"
+    cli_usage: |
+      python3 yaml_parser.py read <file> <dotpath>
+      python3 yaml_parser.py write <file> <dotpath> <value>
+      python3 yaml_parser.py dump <file>
+    type_casting:
+      "null/None/~/empty": null
+      "true/True": true
+      "false/False": false
+      "[...]": "list"
+      "integer string": int
+      "float string": float
+      "other": str
+
+  # -----------------------------------------------------------
+  # learning_engine.py
+  # -----------------------------------------------------------
+  learning_engine:
+    source: cli/lib/learning_engine.py
+    description: "実行履歴から成功/失敗パターンを分析し、再利用可能な recipe を生成する"
+    public_functions:
+      analyze_success:
+        signature: "analyze_success(task_run_id: int, db_path: str) -> dict[str, Any] | None"
+        description: "成功タスクのアクション列を分析し recipe を生成"
+        returns: "recipe dict or None"
+      analyze_failure:
+        signature: "analyze_failure(task_run_id: int, db_path: str) -> dict[str, Any] | None"
+        description: "失敗タスクの原因を分析し failure recipe を生成"
+        returns: "failure recipe dict or None"
+      save_recipe:
+        signature: "save_recipe(recipe: dict[str, Any], project_root: str) -> str"
+        description: "recipe を .helix/recipes/ に YAML として保存"
+        returns: "保存先パス"
+      list_recipes:
+        signature: "list_recipes(project_root: str) -> list[dict[str, Any]]"
+        description: "保存済み recipe 一覧を返す"
+      from_history:
+        signature: "from_history(query: str, project_root: str, limit: int = 5) -> dict[str, Any]"
+        description: "クエリに一致する recipe を検索。トークン分割 + スコアリング"
+        returns: "{'recipes': [...], 'total': N}"
+      find_recipe:
+        signature: "find_recipe(recipe_id: str, project_root: str) -> dict[str, Any] | None"
+        description: "ID で recipe を検索"
+      resolve_success_run_ids:
+        signature: "resolve_success_run_ids(db_path: str, task_id: str | None = None, all_success: bool = False) -> list[int]"
+        description: "成功した task_run の ID リストを返す"
+    security:
+      redaction_tokens: ["password", "token", "secret", "apikey", "api_key", "credential", "authorization", "bearer", "ssh-rsa", "-----begin", "/home"]
+      redaction_patterns: ["Bearer tokens", "sk-*", "ghp_*", "xoxb-/xoxp-*"]
+    failure_types: ["syntax_error", "timeout", "test_failure", "gate_failure", "runtime_error"]
+
+  # -----------------------------------------------------------
+  # matrix_compiler.py
+  # -----------------------------------------------------------
+  matrix_compiler:
+    source: cli/lib/matrix_compiler.py
+    description: "matrix.yaml と rules から HELIX の派生ファイルを生成し、成果物の自動検知で状態を更新"
+    public_functions:
+      load_yaml:
+        signature: "load_yaml(path: Path) -> Any"
+        description: "YAML サブセットパーサーで読み込み"
+      validate_matrix:
+        signature: "validate_matrix(matrix: dict, ...) -> list[str]"
+        description: "matrix.yaml のバリデーション（feature_id, drive, scope 等）"
+      build_doc_map:
+        signature: "build_doc_map(matrix, deliverables_rules, structure, ...) -> dict"
+        description: "matrix.yaml から doc-map.yaml を生成"
+      build_gate_checks:
+        signature: "build_gate_checks(matrix, deliverables_rules, ...) -> dict"
+        description: "matrix.yaml から gate-checks.yaml を生成"
+      build_state:
+        signature: "build_state(matrix: dict, generated_at: str) -> dict"
+        description: "state/deliverables.json のペイロードを構築"
+      build_runtime_index:
+        signature: "build_runtime_index(matrix, deliverables_rules, structure, ...) -> dict"
+        description: "runtime/index.json を構築"
+      compile_matrix:
+        signature: "compile_matrix(project_root: Path, force_state: bool = False) -> None"
+        description: "matrix.yaml から全派生ファイルを一括生成"
+        side_effects:
+          - ".helix/doc-map.yaml 生成"
+          - ".helix/gate-checks.yaml 生成"
+          - ".helix/state/deliverables.json 生成"
+          - ".helix/runtime/index.json 生成"
+      auto_detect_state:
+        signature: "auto_detect_state(project_root: Path) -> None"
+        description: "ファイル存在チェックで成果物状態を自動更新"
+        side_effects: ".helix/state/deliverables.json を更新"
+      update_matrix_state:
+        signature: "update_matrix_state(project_root: Path, feature_id: str, deliverable_id: str, status: str) -> None"
+        description: "特定成果物の状態を手動更新"
+        valid_statuses: ["pending", "in_progress", "done", "waived", "not_applicable"]
+      add_matrix_feature:
+        signature: "add_matrix_feature(project_root, feature_id, drive, ...) -> None"
+        description: "matrix.yaml に feature を追加"
+      status_matrix:
+        signature: "status_matrix(project_root: Path) -> None"
+        description: "成果物対照表の状態をコンソール出力"
+      validate_only:
+        signature: "validate_only(project_root: Path) -> None"
+        description: "matrix.yaml のバリデーションのみ実行"
+      dump_matrix_yaml:
+        signature: "dump_matrix_yaml(matrix: dict) -> str"
+        description: "matrix dict を YAML 文字列に変換"
+    constants:
+      VALID_STATE_STATUSES: ["pending", "in_progress", "done", "waived", "not_applicable"]
+      ALLOWED_DRIVES: ["be", "fe", "db", "fullstack", "agent"]
+      ALLOWED_SCOPES: ["feature", "shared", "platform"]
+      HELIX_TEMPLATE_VERSION: 3
+      MIN_ARTIFACT_BYTES: 10
+    cli_usage: |
+      python3 matrix_compiler.py compile [--project-root PATH] [--force-state]
+      python3 matrix_compiler.py validate [--project-root PATH]
+      python3 matrix_compiler.py auto-detect [--project-root PATH]
+      python3 matrix_compiler.py status [--project-root PATH]
+      python3 matrix_compiler.py add-feature <id> --drive <drive> [--scope <scope>] [--ui] [--desc "..."]
+      python3 matrix_compiler.py update-state <feature_id> <deliverable_id> <status>
+
+  # -----------------------------------------------------------
+  # schema_validator.py
+  # -----------------------------------------------------------
+  schema_validator:
+    source: cli/lib/schema_validator.py
+    description: "JSON Schema の簡易バリデータ（標準ライブラリのみ）"
+    public_functions:
+      validate:
+        signature: "validate(data: dict[str, Any], schema_name: str) -> list[str]"
+        description: "指定スキーマでデータを検証し、エラー一覧を返す。空リスト = valid"
+        schema_resolution: "cli/schemas/<schema_name>.schema.json を検索（.json, .schema 拡張子対応）"
+    supported_features:
+      - "type validation (object, array, string, number, integer, boolean, null)"
+      - "$ref resolution (内部参照のみ #/...)"
+      - "required properties"
+      - "additionalProperties (true/false/schema)"
+      - "enum"
+      - "minLength"
+      - "minimum / maximum"
+      - "items (array element validation)"
+
+# ===========================================================
+# 4. テンプレート契約（必須フィールド）
+# ===========================================================
+templates:
+
+  # -----------------------------------------------------------
+  # phase.yaml
+  # -----------------------------------------------------------
+  phase_yaml:
+    source: cli/templates/phase.yaml
+    helix_template_version: 3
+    required_fields:
+      project: "string (プロジェクト名)"
+      current_mode: "enum: forward | reverse | scrum"
+      current_phase: "enum: L1-L8"
+      gates:
+        G0.5: { status: "enum: pending | passed | failed | skipped | invalidated" }
+        G1: { status: "enum" }
+        G1.5: { status: "enum (初期値: skipped)" }
+        G1R: { status: "enum (初期値: skipped)" }
+        G2: { status: "enum" }
+        G3: { status: "enum" }
+        G4: { status: "enum" }
+        G5: { status: "enum" }
+        G6: { status: "enum" }
+        G7: { status: "enum" }
+      sprint:
+        current_step: "string | null (.1a/.1b/.2/.3/.4/.5/completed)"
+        status: "string (active)"
+        drive: "string | null (be/fe/db/fullstack/agent)"
+        tracks: "dict | null (fullstack 用: be/fe/contract)"
+        phase: "string | null (fullstack 用: A/B)"
+        steps:
+          ".1a": { status: "enum: pending | completed" }
+          ".1b": { status: "enum" }
+          ".2": { status: "enum" }
+          ".3": { status: "enum" }
+          ".4": { status: "enum" }
+          ".5": { status: "enum" }
+      reverse_gates:
+        RG0: { status: "enum: pending | passed | failed" }
+        RG1: { status: "enum" }
+        RG2: { status: "enum" }
+        RG3: { status: "enum" }
+      reverse:
+        status: "string | null (completed)"
+        completed_at: "date string | null"
+
+  # -----------------------------------------------------------
+  # gate-checks.yaml
+  # -----------------------------------------------------------
+  gate_checks_yaml:
+    source: cli/templates/gate-checks.yaml
+    helix_template_version: 3
+    structure: |
+      各ゲート（G0.5, G2-G7）が トップレベルキー。
+      各ゲートは name, static, ai を持つ。
+    required_fields_per_gate:
+      name: "string (ゲート名)"
+      static:
+        - name: "string (チェック名)"
+          cmd: "string (シェルコマンド。exit 0 = pass)"
+          level: "enum: mandatory | advisory"
+      ai:
+        - role: "string (helix-codex のロール)"
+          task: "string (プロンプト。multiline 対応)"
+    defined_gates: ["G0.5", "G2", "G3", "G4", "G5", "G6", "G7"]
+    check_levels:
+      mandatory: "fail 時にゲート失敗"
+      advisory: "fail 時は WARN のみ（ゲート全体は fail しない）"
+
+  # -----------------------------------------------------------
+  # state-machine.yaml
+  # -----------------------------------------------------------
+  state_machine_yaml:
+    source: cli/templates/state-machine.yaml
+    helix_template_version: 1
+    required_fields:
+      gate_statuses: "[pending, passed, failed, skipped, invalidated]"
+      gates:
+        "<gate_id>":
+          prereqs: "list[string] — 前提ゲートの ID"
+          on_pass_phase: "string | null — pass 時の遷移先フェーズ"
+          on_invalidate: "list[string] — 無効化時の下流ゲート"
+      valid_transitions:
+        pending: "[passed, failed, skipped]"
+        passed: "[invalidated]"
+        failed: "[pending]"
+        skipped: "[pending]"
+        invalidated: "[pending]"
+      sprint_steps: "['.1a', '.1b', '.2', '.3', '.4', '.5']"
+    gate_dependency_chain:
+      G0.5: { prereqs: [], on_pass: L1 }
+      G1: { prereqs: [], on_pass: L2 }
+      G2: { prereqs: [G1], on_pass: L3, invalidates: [G3, G4, G5, G6, G7] }
+      G3: { prereqs: [G2], on_pass: L4, invalidates: [G4, G5, G6, G7] }
+      G4: { prereqs: [G3], on_pass: L5, invalidates: [G5, G6, G7] }
+      G5: { prereqs: [G4], on_pass: L6, invalidates: [G6, G7] }
+      G6: { prereqs: [G5], on_pass: L7, invalidates: [G7] }
+      G7: { prereqs: [G6], on_pass: L8, invalidates: [] }
+
+  # -----------------------------------------------------------
+  # config.yaml
+  # -----------------------------------------------------------
+  config_yaml:
+    source: cli/templates/config.yaml
+    helix_template_version: 1
+    required_fields:
+      gate_skip: "list[string] — スキップするゲート ID（例: [G1.5, G1R, G5]）"
+      sprint_skip_steps: "list[string] — スキップするスプリントステップ"
+      ai_review: "boolean — AI レビュー有効/無効（デフォルト: true）"
+      default_drive: "string — デフォルト駆動タイプ（デフォルト: be）"
+      lang: "string — 言語設定（デフォルト: ja）"
+
+# ===========================================================
+# 5. Hook 契約
+# ===========================================================
+hooks:
+
+  # -----------------------------------------------------------
+  # SessionStart
+  # -----------------------------------------------------------
+  SessionStart:
+    source: cli/helix-session-start
+    trigger: "Claude Code セッション開始時に自動発火"
+    configuration: "~/.claude/settings.json → hooks.SessionStart"
+    input:
+      type: "なし（引数なし）"
+      stdin: "なし"
+    output:
+      format: JSON
+      schema:
+        hookSpecificOutput:
+          hookEventName: "SessionStart"
+          additionalContext: "string — Claude Code に注入するコンテキスト"
+    behavior:
+      setup_incomplete: |
+        以下の3条件を全チェック:
+        1. ~/.claude/CLAUDE.md に @~/ai-dev-kit-vscode/skills/SKILL_MAP.md が含まれるか
+        2. ~/.claude/settings.json に helix-session-start フックがあるか
+        3. ~/.bashrc or ~/.zshrc に ai-dev-kit-vscode/cli がパスに含まれるか
+        未完了時: setup.sh の自動実行を指示するコンテキストを注入
+      setup_complete: |
+        HELIX ツール一覧と使い方を additionalContext として注入
+    exit_codes:
+      0: "常に 0（エラー時も JSON を返す）"
+
+  # -----------------------------------------------------------
+  # PreToolUse (Write)
+  # -----------------------------------------------------------
+  PreToolUse_Write:
+    source: cli/helix-check-claudemd
+    trigger: "Claude Code が Write ツールを呼ぶ前に発火"
+    configuration: "~/.claude/settings.json → hooks.PreToolUse[matcher=Write]"
+    input:
+      type: stdin
+      format: JSON
+      schema:
+        tool_input:
+          file_path: "string — 書き込み先ファイルパス"
+          content: "string — 書き込み内容"
+    output:
+      format: JSON (deny 時のみ)
+      schema:
+        hookSpecificOutput:
+          hookEventName: "PreToolUse"
+          permissionDecision: "deny"
+          permissionDecisionReason: "string — 拒否理由"
+    behavior: |
+      CLAUDE.md の新規作成時のみチェック:
+      1. file_path が */CLAUDE.md にマッチするか
+      2. 既存ファイルか（既存なら素通し）
+      3. content にテンプレート必須セクションが含まれるか
+         必須: "技術スタック", "コーディング規約", "コマンド", "HELIX ワークフロー"
+      不足時は permissionDecision: deny で拒否
+    exit_codes:
+      0: "常に 0（許可時は何も出力しない、拒否時は JSON を出力）"
+
+  # -----------------------------------------------------------
+  # PostToolUse (Edit|Write)
+  # -----------------------------------------------------------
+  PostToolUse_EditWrite:
+    source: cli/helix-hook
+    trigger: "Claude Code が Edit or Write ツールを呼んだ後に発火"
+    configuration: "~/.claude/settings.json → hooks.PostToolUse[matcher=Edit|Write]"
+    input:
+      type: argument
+      format: "string — 変更されたファイルパス"
+      extraction: "stdin JSON から tool_input.file_path or tool_response.filePath を Python で抽出"
+    output:
+      format: "テキスト（stdout に警告/情報メッセージ）"
+    checks_executed:
+      1_phase_guard: "現在フェーズで編集が許可されているか（HELIX_GUARD=off で無効化可）"
+      2_matrix_advisory: "成果物対照表との整合チェック（advisory のみ）"
+      3_freeze_violation: "凍結違反検出（G2 passed 後の設計変更、G3 後の API 変更、G5 後の UI 変更）"
+      4_adr_index: "docs/adr/ADR-*.md 変更時に index.md を自動再生成"
+      5_doc_map_trigger: "doc-map.yaml に基づく gate_ready / design_sync / coverage_check"
+      6_textlint_advisory: "docs/*.md 変更時に textlint 実行（インストール済みの場合）"
+      7_a11y_advisory: "Visual 成果物変更時に axe-core チェック推奨"
+      8_fe_quality: "FE ファイル変更時に console.log / コンポーネント内 API 呼び出し検出"
+      9_dangerous_patterns: "sh/yaml/json ファイルの危険パターン検出"
+    side_effects:
+      - "helix.db hook_events にイベント記録（バックグラウンド）"
+      - "凍結違反時: 下流ゲートを invalidated にカスケード更新"
+      - "ADR 変更時: docs/adr/index.md を自動再生成"
+    caching:
+      mechanism: "ファイルハッシュベースのキャッシュ（/tmp/helix-hook-cache/）"
+      ttl: "5秒"
+      cache_key: "PROJECT_ROOT + REL_PATH + FILE_HASH + PHASE_HASH + INDEX_HASH + DOC_MAP_HASH + HELIX_GUARD"
+    exit_codes:
+      0: "チェック通過（警告あり含む）"
+      1: "phase_guard でブロックされた場合"
+
+# ===========================================================
+# 6. characterization test 候補
+# ===========================================================
+characterization_test_candidates:
+  - name: "helix-gate exit code: 無効ゲート名"
+    command: "helix-gate INVALID 2>&1"
+    expected_exit: 2
+  - name: "helix-gate exit code: 前提ゲート未通過"
+    command: "helix-gate G3 2>&1  # G2 が pending の場合"
+    expected_exit: 3
+  - name: "helix-size 必須引数なし"
+    command: "helix-size 2>&1"
+    expected_exit: 2
+  - name: "helix-size 不正 --drive"
+    command: "helix-size --files 1 --lines 10 --drive invalid 2>&1"
+    expected_exit: 2
+  - name: "helix-sprint 不正コマンド"
+    command: "helix-sprint INVALID 2>&1"
+    expected_exit: 2
+  - name: "helix-sprint .helix/ 未存在"
+    command: "cd /tmp && helix-sprint status 2>&1"
+    expected_exit: 3
+  - name: "helix-mode 無効モード"
+    command: "helix-mode INVALID 2>&1"
+    expected_exit: 2
+  - name: "helix-codex --role 未指定"
+    command: "helix-codex --task 'test' 2>&1"
+    expected_exit: 1
+  - name: "helix-codex 無効ロール名"
+    command: "helix-codex --role '../hack' --task 'test' 2>&1"
+    expected_exit: 1
+  - name: "yaml_parser.py read 不正パス"
+    command: "python3 yaml_parser.py read /nonexistent dotpath 2>&1"
+    expected_exit: 1
+  - name: "helix_db.py insert 不正テーブル"
+    command: "python3 helix_db.py insert 'DROP TABLE' '{}' 2>&1"
+    expected_exit: 1
+  - name: "schema_validator.py 不存在スキーマ"
+    command: "python3 -c \"from schema_validator import validate; print(validate({}, 'nonexistent'))\""
+    expected_output_contains: "schema not found"
