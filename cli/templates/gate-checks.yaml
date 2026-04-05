@@ -235,6 +235,15 @@ G4:
 G5:
   name: "デザイン凍結ゲート"
   static:
+    - name: "デザイントークン定義"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'トークン\\|token\\|--color\\|--space\\|--font' {} + | head -1 | grep -q ."
+      level: mandatory
+    - name: "アクセシビリティチェック"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'WCAG\\|アクセシビリティ\\|コントラスト' {} + | head -1 | grep -q ."
+      level: mandatory
+    - name: "レスポンシブ対応"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'mobile\\|tablet\\|desktop\\|ブレークポイント' {} + | head -1 | grep -q ."
+      level: mandatory
     - name: "UI目視確認 全件 approved"
       cmd: "! grep -rl '判定: pending' .helix/visual-checks/*.md 2>/dev/null || test $(ls .helix/visual-checks/*.md 2>/dev/null | wc -l) -eq 0"
       level: advisory
@@ -244,12 +253,15 @@ G5:
   ai:
     - role: fe
       task: |
-        G5 デザイン凍結ゲート検証:
-        DESIGNER.md（docs/design/L5-designer.md）と実装（src/components/）を突合し:
+        G5 デザイン品質検証:
+        L5 仕様書（docs/design/L5-visual-design.md）と L2 設計のデザイン方針が一貫しているか、
+        デザイントークンが実装に適用されているか確認。
+        具体的に:
         1. 未適用のデザイン指示
         2. デザイントークンを使わずハードコードされたスタイル値
         3. レスポンシブ対応の欠落
         4. アクセシビリティの欠落
+        5. L2 設計書のデザイン方針との一貫性
 
 G6:
   name: "RC判定ゲート"

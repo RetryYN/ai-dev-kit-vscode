@@ -384,6 +384,14 @@ if [[ -d "$DOC_TEMPLATES" ]]; then
           cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
         fi
         ;;
+      L5)
+        mkdir -p "$PROJECT_ROOT/docs/design"
+        if [[ "$JSON_OUTPUT" != true ]]; then
+          cp -n "$DOC_TEMPLATES/L5-visual-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L5 Visual Design テンプレート: docs/design/L5-visual-design.md" || true
+        else
+          cp -n "$DOC_TEMPLATES/L5-visual-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
+        fi
+        ;;
     esac
   done
 fi
