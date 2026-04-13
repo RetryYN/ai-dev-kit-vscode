@@ -50,6 +50,18 @@ HELIX_HOOKS = {
                 }
             ]
         }
+    ],
+    "Stop": [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/ai-dev-kit-vscode/cli/helix-session-summary",
+                    "timeout": 8,
+                    "statusMessage": "Generating session summary..."
+                }
+            ]
+        }
     ]
 }
 

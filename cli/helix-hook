@@ -452,6 +452,13 @@ check_fe_quality() {
   fi
 }
 
+check_drift() {
+  local file="$1"
+  if [[ "$file" =~ D-API/|D-CONTRACT/|D-DB/ ]]; then
+    "$SCRIPT_DIR/helix-drift-check" "$PROJECT_ROOT/$file" 2>/dev/null &
+  fi
+}
+
 run_all_checks() {
   check_phase_guard "$REL_PATH" || return 1
   check_matrix_advisory "$REL_PATH"
@@ -462,6 +469,7 @@ run_all_checks() {
   check_a11y_advisory "$REL_PATH"
   check_fe_quality "$REL_PATH"
   check_dangerous_patterns "$REL_PATH"
+  check_drift "$REL_PATH"
 }
 
 tmp_out=$(mktemp "${TMPDIR:-/tmp}/helix-hook-run-XXXXXX")

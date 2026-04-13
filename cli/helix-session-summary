@@ -1,0 +1,81 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-session-summary: セッション終了時サマリ生成（Stop hook 用）
+# Usage: helix session-summary
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix session-summary"
+    echo ""
+    echo "セッション終了時にサマリを .helix/session-summaries/ に生成します。"
+    exit 0
+    ;;
+esac
+
+[[ ! -d "$HELIX_DIR" ]] && exit 0
+[[ ! -f "$DB_PATH" ]] && exit 0
+
+SUMMARY_DIR="$HELIX_DIR/session-summaries"
+mkdir -p "$SUMMARY_DIR" 2>/dev/null || true
+
+TODAY=$(date '+%Y-%m-%d')
+NOW=$(date '+%Y-%m-%d %H:%M')
+SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
+
+python3 - "$DB_PATH" "$SUMMARY_FILE" "$NOW" <<'PY'
+import sqlite3, sys
+
+db_path, summary_file, now = sys.argv[1], sys.argv[2], sys.argv[3]
+today = now.split(" ")[0]
+
+try:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    events = conn.execute(
+        "SELECT event_type, COUNT(*) as cnt FROM hook_events "
+        "WHERE date(created_at) = ? GROUP BY event_type", (today,)
+    ).fetchall()
+
+    gates = conn.execute(
+        "SELECT gate, result, COUNT(*) as cnt FROM gate_runs "
+        "WHERE date(created_at) = ? GROUP BY gate, result", (today,)
+    ).fetchall()
+
+    costs = conn.execute(
+        "SELECT role, model, COUNT(*) as cnt FROM cost_log "
+        "WHERE date(created_at) = ? GROUP BY role, model", (today,)
+    ).fetchall()
+
+    with open(summary_file, 'a', encoding='utf-8') as f:
+        f.write(f'\n## セッション終了: {now}\n\n')
+        if events:
+            f.write('### Hook イベント\n')
+            for e in events:
+                f.write(f'- {e["event_type"]}: {e["cnt"]}件\n')
+        if gates:
+            f.write('\n### ゲート実行\n')
+            for g in gates:
+                f.write(f'- {g["gate"]} {g["result"]}: {g["cnt"]}回\n')
+        if costs:
+            f.write('\n### コスト記録\n')
+            for c in costs:
+                f.write(f'- {c["role"]} ({c["model"]}): {c["cnt"]}回\n')
+        if not events and not gates and not costs:
+            f.write('（記録なし）\n')
+        f.write('\n')
+
+    print(f'[helix-session] サマリ更新: {summary_file}')
+    conn.close()
+except Exception as e:
+    print(f'[helix-session] エラー: {e}', file=sys.stderr)
+PY
+
+# cost_log に Opus-PM セッション記録
+HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
+  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null &
+
+exit 0

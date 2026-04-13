@@ -192,16 +192,6 @@ automation/browser-script:
   description: Playwright記録からのE2E化に加えてaxe-coreによるアクセシビリティ自動検証を提供
 ```
 
-### Wave B/C
-
-- story
-- presentation
-- social
-- pptx
-- graphic
-- character
-- flow-optimize
-
 ## メンテナンス指針
 
 1. スキル追加時: SKILL_MAP.md を更新。500行超 → references/ に分割

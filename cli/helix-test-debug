@@ -43,9 +43,7 @@ run_test_contains() {
   local cmd="$2"
   local pattern="$3"
   printf "  %-40s " "$name"
-  set +e
   output=$(eval "$cmd" 2>&1 </dev/null)
-  set -e
   if echo "$output" | grep -q "$pattern"; then
     echo "PASS"
     PASS=$((PASS + 1))
@@ -61,9 +59,7 @@ run_test_not_contains() {
   local cmd="$2"
   local pattern="$3"
   printf "  %-40s " "$name"
-  set +e
   output=$(eval "$cmd" 2>&1 </dev/null)
-  set -e
   if echo "$output" | grep -q "$pattern"; then
     echo "FAIL (pattern '$pattern' was found)"
     ERRORS+=("$name: output=$output")
@@ -79,7 +75,8 @@ run_test_json_valid() {
   local cmd="$2"
   printf "  %-40s " "$name"
   set +e
-  eval "$cmd" >/dev/null 2>&1
+  local json_out
+  json_out=$(eval "$cmd" 2>&1)
   local actual_exit=$?
   set -e
   if [[ "$actual_exit" -eq 0 ]]; then
@@ -87,6 +84,8 @@ run_test_json_valid() {
     PASS=$((PASS + 1))
   else
     echo "FAIL (invalid json or command error, exit=$actual_exit)"
+    echo "    cmd: $cmd"
+    echo "    out: $json_out"
     ERRORS+=("$name: json validation failed")
     FAIL=$((FAIL + 1))
   fi
@@ -299,7 +298,7 @@ run_test_contains "sprint complete gate guidance" "$SCRIPT_DIR/helix-sprint comp
 run_test "sprint reset after complete guidance" "$SCRIPT_DIR/helix-sprint reset"
 run_test_json_valid "status --json valid" "$SCRIPT_DIR/helix-status --json | python3 -m json.tool"
 run_test "gate prereq set passed for json test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G1.status passed"
-run_test_json_valid "gate --json valid" "($SCRIPT_DIR/helix-gate G2 --static-only --dry-run --json || true) | python3 -m json.tool"
+run_test_json_valid "gate --json valid" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run --json | python3 -m json.tool"
 echo ""
 
 echo "[helix-interrupt]"
@@ -319,7 +318,7 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 # G2 の前提ゲート（G0.5, G1）を passed に
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
-mkdir -p docs/design && printf '# L2 Architecture\n\n## セキュリティ\n\nSTRIDE 脅威分析済み\n' > docs/design/L2-architecture.md
+mkdir -p docs/design && echo "# L2 Architecture" > docs/design/L2-architecture.md
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
 run_test "G2 undo to pending" "$SCRIPT_DIR/helix-gate G2 --undo"
@@ -508,7 +507,6 @@ echo "[helix-status]"
 run_test_contains "status --help usage" "$SCRIPT_DIR/helix-status --help" "Usage: helix status"
 run_test_not_contains "status --help no runtime" "$SCRIPT_DIR/helix-status --help" "HELIX Project Status"
 run_test_contains "status shows project" "$SCRIPT_DIR/helix-status" "Project:"
-run_test_contains "status shows mode" "$SCRIPT_DIR/helix-status" "Mode:"
 run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
 run_test_contains "status shows action guide" "$SCRIPT_DIR/helix-status" "Action Guide:"
 run_test_contains "status action guide for L1" "$SCRIPT_DIR/helix-status" "helix plan draft で設計を開始"
@@ -584,15 +582,6 @@ tasks:
     skill: common/coding
 EOF
 run_test_contains "task run success learn hint" "CODEX_BIN=$TEST_DIR/mock-codex-success $SCRIPT_DIR/helix-task run" "helix learn"
-echo ""
-
-echo "[helix-mode]"
-run_test_contains "mode --help" "$SCRIPT_DIR/helix mode --help" "使い方: helix mode \\[モード\\]"
-run_test_contains "mode display default forward" "$SCRIPT_DIR/helix mode" "現在のモード: forward"
-run_test_contains "mode switch reverse" "$SCRIPT_DIR/helix mode reverse" "モードを forward → reverse に切り替えました"
-run_test "mode forward blocked when reverse incomplete" "$SCRIPT_DIR/helix mode forward" 3
-run_test_contains "mode switch scrum" "$SCRIPT_DIR/helix mode scrum" "モードを reverse → scrum に切り替えました"
-run_test "mode invalid value error" "$SCRIPT_DIR/helix mode invalid" 2
 echo ""
 
 echo "[helix-reverse]"

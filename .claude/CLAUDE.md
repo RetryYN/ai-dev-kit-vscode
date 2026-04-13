@@ -28,6 +28,50 @@
 - 工程表作成後は自律実行（`tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
 - モデル割当テーブル・並列実行ルール・ADR → `tools/ai-coding/references/workflow-core.md` 参照
 
+### Agent tool コスト制御（必須）
+
+Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略すると Opus→Opus になりコスト爆発。
+
+| 用途 | 委譲先 | 根拠 |
+|------|--------|------|
+| コード探索・ファイル検索 | Agent(model: "sonnet") or 自分で Grep/Glob | Sonnet で十分 |
+| 設計計画 | helix-codex --role tl | Codex TL が適切 |
+| BE実装・レビュー・テスト | helix-codex --role (se/pg/qa) | Codex が主力 |
+| FE実装・デザイン | @fe-design / @fe-component 等 | 既に Sonnet |
+| PM判断・統合・返答 | Opus（自分） | 委譲しない |
+
+**禁止**: Agent tool を model 指定なしで呼ぶこと
+**禁止**: Opus がバックエンドコードを直接 Edit/Write すること
+
+### ディスパッチ決定木
+
+タスク受領時、以下の順で評価:
+
+1. BE実装/DB/インフラ → `helix-codex --role (se|pg|dba|devops)`
+2. 設計・レビュー → `helix-codex --role tl`
+3. セキュリティ → `helix-codex --role security`
+4. FE実装 → `@fe-component` / `@fe-style`
+5. FE設計 → `@fe-design`
+6. テスト(BE) → `helix-codex --role qa`
+7. テスト(FE) → `@fe-test`
+8. コード調査 → Agent(model: "sonnet") or 自分で直接ツール使用
+9. PM判断・統合 → 自分で対応
+
+### 思考レベル制御
+
+#### Codex 側
+ロール別 thinking level は helix-codex が自動適用（`--thinking` でオーバーライド可）。
+
+#### Claude 側（Agent tool）
+| 難易度 | 判断基準 | 対応 |
+|--------|---------|------|
+| Critical | アーキテクチャ判断・セキュリティ設計 | Opus 自身が対応（委譲しない） |
+| High | 複雑な実装・複数モジュール横断 | Codex (--thinking high) |
+| Medium | 標準的な修正・FE実装 | Sonnet サブエージェント |
+| Low | ドキュメント・単純修正 | Sonnet or Codex (--thinking low) |
+
+Critical は委譲せず自分で判断。High 以下は必ず委譲。
+
 ### Codex CLI（Opus から呼ぶ場合）
 
 **helix-codex を優先使用**。ロール別スキル注入+共通マップ付きで Codex を呼ぶ:
@@ -36,22 +80,7 @@
 ~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task "タスク内容"
 ```
 
-ロール選択は `~/ai-dev-kit-vscode/cli/ROLE_MAP.md` を参照:
-
-| ロール | 用途 | model |
-|--------|------|-------|
-| tl | 設計・レビュー・ゲート判定 | gpt-5.4 |
-| se | 上級実装（スコア4+） | gpt-5.3-codex |
-| pg | 通常実装（スコア1-3） | gpt-5.3-codex-spark |
-| fe | フロントエンド実装 | gpt-5.4 |
-| qa | テスト・検証・品質ゲート | gpt-5.4 |
-| security | セキュリティ監査 | gpt-5.4 |
-| dba | DB設計・マイグレーション | gpt-5.3-codex |
-| devops | デプロイ・インフラ・監視 | gpt-5.3-codex |
-| docs | ドキュメント・API仕様書 | gpt-5.3-codex-spark |
-| research | 技術調査・比較 | gpt-5.4 |
-| legacy | レガシー分析・Reverse | gpt-5.4 |
-| perf | パフォーマンス最適化 | gpt-5.4 |
+ロール選択は `~/ai-dev-kit-vscode/cli/ROLE_MAP.md` を参照（12ロール: tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）。
 
 **直接 codex exec を使う場合**（helix-codex で対応できないとき）:
 - `codex exec "プロンプト" -m gpt-5.3-codex`（軽量: `-m gpt-5.3-codex-spark`）

@@ -36,6 +36,9 @@ case "$CMD" in
   bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
   retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
   debt)     exec "$SCRIPT_DIR/helix-debt" "$@" ;;
+  review)   exec "$SCRIPT_DIR/helix-review" "$@" ;;
+  drift-check) exec "$SCRIPT_DIR/helix-drift-check" "$@" ;;
+  session-summary) exec "$SCRIPT_DIR/helix-session-summary" "$@" ;;
   doctor)   exec "$SCRIPT_DIR/helix-doctor" "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
@@ -65,6 +68,7 @@ Commands:
   team        エージェントチーム実行
   builder     成果物ビルダー
   pr          PR 自動生成
+  review      Codex 自動レビュー
 
 データ・学習:
   log         ログ・評価システム

@@ -165,6 +165,54 @@ next_step_for() {
   echo ""
 }
 
+print_recommended_action() {
+  local step="$1"
+  echo ""
+  echo "[helix-sprint] 推奨アクション:"
+  case "$step" in
+    .1a) echo "  helix codex --role legacy --task 'impact analysis: [対象]' --read-only" ;;
+    .1b) echo "  helix codex --role tl --task 'change plan: [機能名]' --read-only" ;;
+    .2)  echo "  helix codex --role se --task 'skeleton: [機能名]' --full-auto" ;;
+    .3)  echo "  helix codex --role security --task 'security first-pass: [機能名]'" ;;
+    .4)  echo "  helix codex --role qa --task 'test and verify: [機能名]'"
+         echo "  codex review --uncommitted" ;;
+    .5)  echo "  helix codex --role tl --task 'full review: [機能名]'"
+         echo "  helix gate G4" ;;
+  esac
+}
+
+trigger_auto_review_if_needed() {
+  local completed_step="$1"
+  case "$completed_step" in
+    .2|.5)
+      echo "[helix-sprint] Codex レビューをバックグラウンドで起動..."
+      "$SCRIPT_DIR/helix-review" --uncommitted --bg 2>/dev/null || true
+      ;;
+    .3)
+      echo "[helix-sprint] セキュリティ first-pass をバックグラウンドで起動..."
+      "$SCRIPT_DIR/helix-codex" --role security --task 'Sprint .3 完了: セキュリティ first-pass を実施。OWASP Top 10 の観点で未コミット変更をチェックし、Critical/High の問題があれば報告せよ。' --read-only --thinking medium 2>/dev/null &
+      disown 2>/dev/null || true
+      ;;
+  esac
+}
+
+run_g4_static_check() {
+  echo "[helix-sprint] Sprint 完了。G4 静的チェックを自動実行..."
+  if "$SCRIPT_DIR/helix-gate" G4 --static-only; then
+    echo "[helix-sprint] G4 静的チェック PASS"
+  else
+    echo "[helix-sprint] G4 静的チェック FAIL — 'helix gate G4' で詳細を確認してください"
+  fi
+}
+
+log_sprint_step() {
+  local step="$1" next="$2"
+  if [[ -f "$HELIX_DIR/helix.db" ]]; then
+    HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert action_logs \
+      "{\"task_run_id\":0,\"action_index\":0,\"action_type\":\"sprint-step\",\"action_desc\":\"completed $step → $next\",\"status\":\"passed\"}" 2>/dev/null || true
+  fi
+}
+
 ensure_fullstack_tracks() {
   if [[ "$(get_sprint_drive)" != "fullstack" ]]; then
     return
@@ -178,6 +226,30 @@ ensure_fullstack_tracks() {
   [[ -n "$(get_sprint_phase)" ]] || set_sprint_phase "A"
 }
 
+run_fullstack_contract_check_before_phase_b() {
+  local be_stage fe_stage contract_ci
+  be_stage="$(get_track_stage be)"
+  fe_stage="$(get_track_stage fe)"
+  contract_ci="$(get_contract_ci)"
+
+  # Phase B 昇格前の契約検証（TL判定: helix-gate 配下のチェックを必須化）
+  if [[ "$be_stage" == ".5" && "$fe_stage" == ".5" && "$contract_ci" != "pass" ]]; then
+    if [[ ! -x "$SCRIPT_DIR/helix-gate-api-check" ]]; then
+      echo "[helix-sprint] WARNING: helix-gate-api-check が見つからないため契約検証をスキップします"
+      return
+    fi
+
+    echo "[helix-sprint] Phase B 昇格前の契約検証を実行中..."
+    if "$SCRIPT_DIR/helix-gate-api-check" 2>/dev/null; then
+      echo "[helix-sprint] 契約検証 PASS → contract.ci を pass に設定"
+      python3 "$YP" write "$PHASE_FILE" sprint.tracks.contract.ci pass 2>/dev/null || true
+    else
+      echo "[helix-sprint] 契約検証 FAIL → contract.ci は pending のまま"
+      echo "[helix-sprint] helix gate-api-check を確認して修正してください"
+    fi
+  fi
+}
+
 refresh_fullstack_phase() {
   if [[ "$(get_sprint_drive)" != "fullstack" ]]; then
     return
@@ -188,6 +260,7 @@ refresh_fullstack_phase() {
   be_stage="$(get_track_stage be)"
   fe_stage="$(get_track_stage fe)"
   contract_ci="$(get_contract_ci)"
+
   if [[ "$be_stage" == ".5" && "$fe_stage" == ".5" && "$contract_ci" == "pass" ]]; then
     set_sprint_phase "B"
   else
@@ -358,6 +431,7 @@ command_next() {
       set_track_stage "$track" ".1a"
       set_track_status "$track" "active"
       echo "[helix-sprint] ${track^^} Track 開始: .1a — ${STEP_NAMES[.1a]}"
+      print_recommended_action ".1a"
       refresh_fullstack_phase
       return
     fi
@@ -376,13 +450,20 @@ command_next() {
         set_track_status "$track" "active"
         echo "[helix-sprint] ${track^^} Track: $current 完了 → $next_step"
       fi
+      print_recommended_action "$next_step"
     fi
 
+    run_fullstack_contract_check_before_phase_b
     refresh_fullstack_phase
     current_phase="$(get_sprint_phase)"
     if [[ "$previous_phase" != "B" && "$current_phase" == "B" ]]; then
       echo "[helix-sprint] Phase B 昇格: L4.5 結合に進めます"
+      run_g4_static_check
     fi
+    if [[ -n "$next_step" ]]; then
+      log_sprint_step "$current" "$next_step"
+    fi
+    trigger_auto_review_if_needed "$current"
     return
   fi
 
@@ -397,6 +478,7 @@ command_next() {
     # 未開始 → .1a から
     set_sprint_step ".1a"
     echo "[helix-sprint] Sprint 開始: .1a — ${STEP_NAMES[.1a]}"
+    print_recommended_action ".1a"
   elif [[ "$current" == "completed" ]]; then
     echo "[helix-sprint] Sprint は既に完了しています"
   else
@@ -405,12 +487,15 @@ command_next() {
     next_step="$(next_step_for "$current")"
     if [[ -z "$next_step" ]]; then
       set_sprint_step "completed"
-      echo "[helix-sprint] .5 完了 — Sprint 完了！"
-      echo "[helix-sprint] 'helix-gate G4' でゲート検証を実行してください"
+      next_step="completed"
+      run_g4_static_check
     else
       set_sprint_step "$next_step"
       echo "[helix-sprint] $current 完了 → $next_step — ${STEP_NAMES[$next_step]}"
+      print_recommended_action "$next_step"
     fi
+    log_sprint_step "$current" "$next_step"
+    trigger_auto_review_if_needed "$current"
   fi
 }
 
@@ -433,8 +518,12 @@ command_complete() {
   mark_step_done "$current"
   echo "[helix-sprint] $current 完了"
   echo ""
-  echo "スプリント完了。次のゲート検証を実行してください:"
-  echo "  helix gate G4"
+  if [[ "$current" == ".5" ]]; then
+    set_sprint_step "completed"
+    run_g4_static_check
+  else
+    echo "[helix-sprint] 次のステップへ進むには 'helix-sprint next' を実行してください"
+  fi
   # 自動で次へは進まない（next で明示的に進む）
 }
 

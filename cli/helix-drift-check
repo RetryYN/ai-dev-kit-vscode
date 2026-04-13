@@ -1,0 +1,64 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-drift-check: 設計ドキュメントと実装の契約ドリフト検知
+# PostToolUse hook からバックグラウンド発火される
+# D-API 変更 → helix-gate-api-check を実行
+# D-CONTRACT/D-DB 変更 → 警告を出力（チェッカー未実装）
+# Usage: helix-drift-check <changed-file-path>
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix drift-check <変更ファイルパス>"
+    echo ""
+    echo "設計ドキュメント変更時に契約ドリフトを検知します。"
+    echo "D-API → helix-gate-api-check 実行"
+    echo "D-CONTRACT/D-DB → 警告出力"
+    exit 0
+    ;;
+esac
+
+CHANGED_FILE="${1:-}"
+[[ -z "$CHANGED_FILE" ]] && exit 0
+[[ ! -d "$HELIX_DIR" ]] && exit 0
+
+REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
+
+# D-API ファイル変更 → helix-gate-api-check をバックグラウンドで実行
+if [[ "$REL_PATH" =~ D-API/ ]]; then
+  if [[ -x "$SCRIPT_DIR/helix-gate-api-check" ]]; then
+    echo "[helix-drift] D-API 変更検出: $REL_PATH → API 契約チェック実行中..."
+    nohup "$SCRIPT_DIR/helix-gate-api-check" > "${TMPDIR:-/tmp}/helix-drift-api-$(date +%s).log" 2>&1 &
+    echo "[helix-drift] バックグラウンドで API 契約チェックを起動 (PID=$!)"
+  else
+    echo "[helix-drift] D-API 変更検出: $REL_PATH （helix-gate-api-check 未設置のためスキップ）"
+  fi
+
+  # DB 記録
+  if [[ -f "$DB_PATH" ]]; then
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+      "{\"event_type\":\"drift_check_api\",\"file\":\"$REL_PATH\",\"result\":\"triggered\"}" 2>/dev/null || true
+  fi
+
+# D-CONTRACT ファイル変更 → 警告（チェッカー未実装）
+elif [[ "$REL_PATH" =~ D-CONTRACT/ ]]; then
+  echo "[helix-drift] D-CONTRACT 変更検出: $REL_PATH"
+  echo "[helix-drift] WARNING: 契約チェッカー未実装。helix gate G4 での手動検証を推奨"
+
+  if [[ -f "$DB_PATH" ]]; then
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+      "{\"event_type\":\"drift_check_contract\",\"file\":\"$REL_PATH\",\"result\":\"warn_no_checker\"}" 2>/dev/null || true
+  fi
+
+# D-DB ファイル変更 → 警告（チェッカー未実装）
+elif [[ "$REL_PATH" =~ D-DB/ ]]; then
+  echo "[helix-drift] D-DB 変更検出: $REL_PATH"
+  echo "[helix-drift] WARNING: スキーマチェッカー未実装。helix gate G4 での手動検証を推奨"
+
+  if [[ -f "$DB_PATH" ]]; then
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+      "{\"event_type\":\"drift_check_db\",\"file\":\"$REL_PATH\",\"result\":\"warn_no_checker\"}" 2>/dev/null || true
+  fi
+fi

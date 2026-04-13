@@ -1,12 +1,7 @@
 # HELIX Core — 共通開発フロー定義
 
 > Claude Code / Codex CLI 共通。ツール固有設定は各ツールの設定ファイルに記載。
-
-## 正本宣言
-
-- **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（CLAUDE.md / AGENTS.md）
-- **手順正本**: `tools/ai-coding/references/workflow-core.md`（ディスパッチ・並列・ADR）+ `tools/ai-coding/references/gate-policy.md`（ゲート・遷移）
-- **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
+> 正本: SKILL_MAP.md §正本宣言 参照
 
 ---
 
@@ -37,6 +32,16 @@
 - ユーザーへの技術提案前に `helix plan draft → review → finalize` を実施
 - TL approve なしで finalize 不可
 - 詳細は `workflow-core.md §設計提案レビュー` 参照
+
+## 状態管理の二層構造
+
+| 層 | ファイル | 役割 | 参照元 |
+|----|---------|------|--------|
+| 宣言的状態 | `.helix/phase.yaml` | 現在のフェーズ・ゲート通過状況・凍結フラグ | 15スクリプト |
+| イベントログ | `.helix/helix.db` (SQLite) | タスク実行履歴・hook 発火・フィードバック・学習 | 18+スクリプト |
+
+- phase.yaml は YAML で人間が読める。手動リセット可能
+- helix.db はイベント蓄積のみ。`helix log report` で可視化
 
 ## 原則
 

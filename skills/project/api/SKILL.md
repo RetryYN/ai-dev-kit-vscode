@@ -1,12 +1,12 @@
 ---
 name: api
-description: RESTful/GraphQL API設計でエンドポイント規約・レスポンス形式テンプレート・認証認可パターンを提供
+description: RESTful/GraphQL API設計でエンドポイント規約・レスポンス形式テンプレート・認証認可パターンを提供（L2-L3 設計時に参照。契約凍結後の検証は api-contract を使用）
 metadata:
-  helix_layer: L3
+  helix_layer: L2-L3
   triggers:
-    - APIエンドポイント作成時
-    - API修正時
-    - フロントエンド連携時
+    - API設計時
+    - REST/GraphQL選定時
+    - 認証認可パターン検討時
   verification:
     - "OpenAPI定義: 全エンドポイント記載（実装との差分 0件）"
     - "APIテスト: npm test / pytest exit code 0（正常系 + 主要エラー系）"

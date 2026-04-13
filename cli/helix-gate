@@ -177,6 +177,23 @@ log_gate_run() {
   HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert gate_runs "$payload" 2>/dev/null || true
 }
 
+log_gate_summary() {
+  local gate="$1" result="$2" deliv_fail="$3" static_fail="$4" ai_fail="$5"
+  local summary_dir="$HELIX_DIR/session-summaries"
+  mkdir -p "$summary_dir" 2>/dev/null || true
+  local today now summary_file
+  today=$(date '+%Y-%m-%d')
+  now=$(date '+%Y-%m-%d %H:%M')
+  summary_file="$summary_dir/${today}-session.md"
+  {
+    echo ""
+    echo "## ゲート通過: $gate ($now)"
+    echo ""
+    echo "- 結果: $result"
+    echo "- deliverable fail: $deliv_fail, static fail: $static_fail, ai fail: $ai_fail"
+  } >> "$summary_file"
+}
+
 prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
@@ -710,6 +727,9 @@ PY
   echo ""
   if [[ $total_fail -gt 0 ]]; then
     echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail) ==="
+    if [[ "$DRY_RUN" != true ]]; then
+      log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
+    fi
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
     fi
@@ -719,6 +739,9 @@ PY
     exit "$EXIT_CHECK_FAILED"
   else
     echo "=== $gate PASS ==="
+    if [[ "$DRY_RUN" != true ]]; then
+      log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
+    fi
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "passed" 2>/dev/null || true
       python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true

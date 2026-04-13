@@ -1,12 +1,12 @@
 ---
 name: api-contract
-description: APIコントラクト定義とスキーマ・レスポンス・エラー整合の検証チェックリストを提供
+description: APIコントラクト定義（D-API/D-CONTRACT）とスキーマ・レスポンス・エラー整合の検証チェックリストを提供（G3 契約凍結後の整合検証に使用。設計段階は project/api を参照）
 metadata:
-  helix_layer: L3
+  helix_layer: L3-L4
   triggers:
-    - APIエンドポイント追加時
-    - フロントエンド・バックエンド連携時
-    - 外部API統合時
+    - API契約凍結時
+    - D-API/D-CONTRACT 整合検証時
+    - 契約ドリフト検知時
   verification:
     - "openapi-diff 破壊的変更 0件"
     - "型生成差分 0件（openapi-typescript → 実装型）"
