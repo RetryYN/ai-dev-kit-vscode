@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-scrum: HELIX Scrum（検証駆動開発）
 # Usage: helix scrum <init|backlog|plan|poc|verify|decide|review|status> [args...]
@@ -118,7 +118,7 @@ for hid, h in sorted(hypotheses.items()):
         mkdir -p "$(dirname "$PROJECT_ROOT/$verify_script")"
         cat > "$PROJECT_ROOT/$verify_script" << VEOF
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # 検証スクリプト: $hid — $title
 # 受入条件: $acceptance
 #

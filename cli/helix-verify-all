@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-verify-all: HELIX 全レイヤー検証を1コマンドで実行
 # Usage: helix verify-all [--fix]

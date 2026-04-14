@@ -8,6 +8,7 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 
 STEPS=(".1a" ".1b" ".2" ".3" ".4" ".5")
+B_STEPS=(".b1" ".b2" ".b3")
 declare -A STEP_NAMES=(
   [".1a"]="コード調査 (impact analysis)"
   [".1b"]="変更計画 (plan + 事前調査)"
@@ -15,6 +16,9 @@ declare -A STEP_NAMES=(
   [".3"]="安全性・互換性 (security first-pass)"
   [".4"]="テスト・検証 (coverage + codex review)"
   [".5"]="仕上げ (full review + doc alignment)"
+  [".b1"]="結合テスト設計 (BE+FE integration plan)"
+  [".b2"]="結合実装 (endpoint binding + integration tests)"
+  [".b3"]="E2E確認 (critical path verification)"
 )
 
 usage() {
@@ -22,7 +26,7 @@ usage() {
   echo ""
   echo "Commands:"
   echo "  status                現在のスプリント状態を表示"
-  echo "  next [--track t]      次のステップに進む（fullstack は --track be|fe 必須）"
+  echo "  next [--track t]      次のステップに進む（fullstack Phase A は --track be|fe 必須）"
   echo "  complete              現在のステップを完了（非 fullstack 用）"
   echo "  reset                 スプリントをリセット"
 }
@@ -149,11 +153,69 @@ set_contract_ci() {
   yaml_write "sprint.tracks.contract.ci" "$status"
 }
 
+get_phase_b_current_step() {
+  local value
+  value="$(yaml_read "sprint.phase_b.current_step")"
+  normalize_stage "$value"
+}
+
+set_phase_b_current_step() {
+  local step="$1"
+  yaml_write "sprint.phase_b.current_step" "$step"
+}
+
+get_phase_b_status() {
+  local value
+  value="$(yaml_read "sprint.phase_b.status")"
+  if [[ -z "$value" ]]; then
+    echo "pending"
+  else
+    echo "$value"
+  fi
+}
+
+set_phase_b_status() {
+  local status="$1"
+  yaml_write "sprint.phase_b.status" "$status"
+}
+
+mark_phase_b_step_done() {
+  local step="$1"
+  yaml_write "sprint.phase_b.steps.${step}.status" "completed"
+}
+
+get_phase_b_step_status() {
+  local step="$1"
+  local value
+  value="$(yaml_read "sprint.phase_b.steps.${step}.status")"
+  if [[ -z "$value" ]]; then
+    echo "pending"
+  else
+    echo "$value"
+  fi
+}
+
 next_step_for() {
   local current="$1"
   local found=false
   local step
   for step in "${STEPS[@]}"; do
+    if [[ "$found" == true ]]; then
+      echo "$step"
+      return
+    fi
+    if [[ "$step" == "$current" ]]; then
+      found=true
+    fi
+  done
+  echo ""
+}
+
+next_phase_b_step_for() {
+  local current="$1"
+  local found=false
+  local step
+  for step in "${B_STEPS[@]}"; do
     if [[ "$found" == true ]]; then
       echo "$step"
       return
@@ -177,6 +239,11 @@ print_recommended_action() {
     .4)  echo "  helix codex --role qa --task 'test and verify: [機能名]'"
          echo "  codex review --uncommitted" ;;
     .5)  echo "  helix codex --role tl --task 'full review: [機能名]'"
+         echo "  helix gate G4" ;;
+    .b1) echo "  helix codex --role qa --task 'integration test design: [機能名] (BE+FE 結合観点を定義)'"
+         echo "  helix gate G4 --static-only" ;;
+    .b2) echo "  helix codex --role se --task 'integration implementation: [機能名] (endpoint 結合 + integration test 実装)' --full-auto" ;;
+    .b3) echo "  helix codex --role qa --task 'run E2E critical path: [機能名]'"
          echo "  helix gate G4" ;;
   esac
 }
@@ -224,6 +291,12 @@ ensure_fullstack_tracks() {
   [[ -n "$(yaml_read "sprint.tracks.fe.status")" ]] || set_track_status fe "active"
   [[ -n "$(yaml_read "sprint.tracks.contract.ci")" ]] || set_contract_ci "pending"
   [[ -n "$(get_sprint_phase)" ]] || set_sprint_phase "A"
+  [[ -n "$(yaml_read "sprint.phase_b.status")" ]] || set_phase_b_status "pending"
+  [[ -n "$(yaml_read "sprint.phase_b.current_step")" ]] || set_phase_b_current_step "null"
+  local step
+  for step in "${B_STEPS[@]}"; do
+    [[ -n "$(yaml_read "sprint.phase_b.steps.${step}.status")" ]] || yaml_write "sprint.phase_b.steps.${step}.status" "pending"
+  done
 }
 
 run_fullstack_contract_check_before_phase_b() {
@@ -256,13 +329,22 @@ refresh_fullstack_phase() {
   fi
 
   ensure_fullstack_tracks
-  local be_stage fe_stage contract_ci
+  local be_stage fe_stage contract_ci phase_b_current phase_b_status
   be_stage="$(get_track_stage be)"
   fe_stage="$(get_track_stage fe)"
   contract_ci="$(get_contract_ci)"
+  phase_b_current="$(get_phase_b_current_step)"
+  phase_b_status="$(get_phase_b_status)"
 
   if [[ "$be_stage" == ".5" && "$fe_stage" == ".5" && "$contract_ci" == "pass" ]]; then
     set_sprint_phase "B"
+    if [[ -z "$phase_b_current" ]]; then
+      set_phase_b_current_step ".b1"
+      phase_b_current=".b1"
+    fi
+    if [[ "$phase_b_status" == "pending" ]]; then
+      set_phase_b_status "active"
+    fi
   else
     set_sprint_phase "A"
   fi
@@ -312,8 +394,27 @@ print_fullstack_status() {
   echo "  BE Track: $be_stage [$be_status]"
   echo "  FE Track: $fe_stage [$fe_status]"
   echo "  Contract CI: $contract_ci"
-  echo ""
-  echo "Phase B 昇格条件: be.stage=.5 && fe.stage=.5 && contract.ci=pass"
+  if [[ "$phase" == "B" ]]; then
+    local phase_b_current phase_b_status step marker status
+    phase_b_current="$(get_phase_b_current_step)"
+    phase_b_status="$(get_phase_b_status)"
+    echo "  Phase B Status: $phase_b_status"
+    echo "  Phase B Steps:"
+    for step in "${B_STEPS[@]}"; do
+      status="$(get_phase_b_step_status "$step")"
+      marker=" "
+      if [[ "$step" == "$phase_b_current" ]]; then
+        marker="→"
+        status="in_progress"
+      elif [[ "$status" == "completed" ]]; then
+        marker="✓"
+      fi
+      printf "    %s %s  %-8s  %s\n" "$marker" "$step" "[$status]" "${STEP_NAMES[$step]}"
+    done
+  else
+    echo ""
+    echo "Phase B 昇格条件: be.stage=.5 && fe.stage=.5 && contract.ci=pass"
+  fi
 }
 
 command_status() {
@@ -332,9 +433,27 @@ command_status() {
       fe_stage="$(get_track_stage fe)"
       fe_status="$(get_track_status fe)"
       contract_ci="$(get_contract_ci)"
-      PHASE="$phase" BE_STAGE="$be_stage" BE_STATUS="$be_status" FE_STAGE="$fe_stage" FE_STATUS="$fe_status" CONTRACT_CI="$contract_ci" python3 - <<'PY'
+      local phase_b_current phase_b_status phase_b_steps_line step status
+      phase_b_current="$(get_phase_b_current_step)"
+      phase_b_status="$(get_phase_b_status)"
+      phase_b_steps_line=""
+      for step in "${B_STEPS[@]}"; do
+        status="$(get_phase_b_step_status "$step")"
+        if [[ "$step" == "$phase_b_current" ]]; then
+          status="in_progress"
+        fi
+        phase_b_steps_line+="${step}=${status}"$'\n'
+      done
+      PHASE="$phase" BE_STAGE="$be_stage" BE_STATUS="$be_status" FE_STAGE="$fe_stage" FE_STATUS="$fe_status" CONTRACT_CI="$contract_ci" PHASE_B_CURRENT="$phase_b_current" PHASE_B_STATUS="$phase_b_status" PHASE_B_STEPS_LINE="$phase_b_steps_line" python3 - <<'PY'
 import json
 import os
+
+phase_b_steps = {}
+for line in os.environ.get("PHASE_B_STEPS_LINE", "").splitlines():
+    if "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    phase_b_steps[key] = value
 
 print(json.dumps({
     "drive": "fullstack",
@@ -351,6 +470,11 @@ print(json.dumps({
         "contract": {
             "ci": os.environ.get("CONTRACT_CI", "pending") or "pending",
         },
+    },
+    "phase_b": {
+        "current_step": os.environ.get("PHASE_B_CURRENT", "") or "",
+        "status": os.environ.get("PHASE_B_STATUS", "pending") or "pending",
+        "steps": phase_b_steps,
     },
 }, ensure_ascii=False))
 PY
@@ -413,6 +537,50 @@ command_next() {
 
   if [[ "$(get_sprint_drive)" == "fullstack" ]]; then
     ensure_fullstack_tracks
+    refresh_fullstack_phase
+    local sprint_phase
+    sprint_phase="$(get_sprint_phase)"
+
+    if [[ "$sprint_phase" == "B" ]]; then
+      if [[ -n "$track" ]]; then
+        echo "Error: fullstack Phase B では --track は指定できません。'helix-sprint next' を実行してください" >&2
+        exit 1
+      fi
+
+      local current_b next_b
+      current_b="$(get_phase_b_current_step)"
+      if [[ -z "$current_b" ]]; then
+        set_phase_b_current_step ".b1"
+        set_phase_b_status "active"
+        echo "[helix-sprint] Phase B 開始: .b1 — ${STEP_NAMES[.b1]}"
+        print_recommended_action ".b1"
+        return
+      fi
+
+      if [[ "$current_b" == "completed" ]]; then
+        echo "[helix-sprint] Phase B は既に完了しています"
+        return
+      fi
+
+      mark_phase_b_step_done "$current_b"
+      next_b="$(next_phase_b_step_for "$current_b")"
+      if [[ -z "$next_b" ]]; then
+        set_phase_b_current_step "completed"
+        set_phase_b_status "completed"
+        echo "[helix-sprint] Phase B 完了: $current_b 完了 → 結合フェーズ完了"
+        run_g4_static_check
+        log_sprint_step "$current_b" "completed"
+      else
+        set_phase_b_current_step "$next_b"
+        set_phase_b_status "active"
+        echo "[helix-sprint] Phase B: $current_b 完了 → $next_b — ${STEP_NAMES[$next_b]}"
+        print_recommended_action "$next_b"
+        log_sprint_step "$current_b" "$next_b"
+      fi
+      trigger_auto_review_if_needed "$current_b"
+      return
+    fi
+
     case "$track" in
       be|fe) ;;
       "")
@@ -457,8 +625,10 @@ command_next() {
     refresh_fullstack_phase
     current_phase="$(get_sprint_phase)"
     if [[ "$previous_phase" != "B" && "$current_phase" == "B" ]]; then
-      echo "[helix-sprint] Phase B 昇格: L4.5 結合に進めます"
-      run_g4_static_check
+      [[ -n "$(get_phase_b_current_step)" ]] || set_phase_b_current_step ".b1"
+      set_phase_b_status "active"
+      echo "[helix-sprint] Phase B 昇格: L4.5 結合フェーズを開始 (.b1)"
+      print_recommended_action ".b1"
     fi
     if [[ -n "$next_step" ]]; then
       log_sprint_step "$current" "$next_step"
@@ -547,6 +717,11 @@ command_reset() {
     set_track_stage fe ".1a"
     set_track_status fe "active"
     set_contract_ci "pending"
+    set_phase_b_current_step "null"
+    set_phase_b_status "pending"
+    for step in "${B_STEPS[@]}"; do
+      yaml_write "sprint.phase_b.steps.${step}.status" "pending"
+    done
     echo "[helix-sprint] Sprint リセット完了 (fullstack twin tracks 初期化)"
   else
     yaml_write "sprint.tracks" "null"

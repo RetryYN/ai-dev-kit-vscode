@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-matrix: matrix.yaml ベースの生成/検証ユーティリティ
 # Usage: helix-matrix <init|compile|validate|status|update|auto-detect|add-feature> [options]

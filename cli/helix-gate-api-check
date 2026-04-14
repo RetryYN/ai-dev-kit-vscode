@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-gate-api-check: API契約と実装のエンドポイント突合
 # G4 static チェックとして使用

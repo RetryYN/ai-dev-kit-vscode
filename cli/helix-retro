@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-retro: ミニレトロ管理
 # Usage: helix retro <list|show|check>
 

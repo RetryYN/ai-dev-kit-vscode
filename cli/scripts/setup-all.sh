@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # HELIX 全ツール一発セットアップ
 # Usage: bash ~/ai-dev-kit-vscode/cli/scripts/setup-all.sh [--skip-optional]

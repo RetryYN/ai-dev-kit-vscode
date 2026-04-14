@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-status: プロジェクト全体の HELIX 状態を表示
 # Usage: helix-status [--json]

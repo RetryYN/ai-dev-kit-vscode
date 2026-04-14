@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-interrupt: IIP / CC の割り込み管理
 # Usage: helix interrupt <start|apply|resume|status|cancel> [options]

@@ -3,15 +3,52 @@
 責務: HELIX の phase/state YAML の読み書き（状態管理）を安全に行う。
 helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーではない。
 
-Usage:
-  python3 yaml_parser.py read <file> <dotpath>        # 値を読む
+## サポートする YAML 構文
+
+- 基本的なブロックスタイルのマッピング（key: value）
+- ネストされたマッピング（インデント2スペース）
+- スカラ値: 文字列（クォート有/無）、数値、真偽値（true/false）、null
+- インライン dict: `{ k1: v1, k2: v2 }`
+- コメント（`# ...` 行内・行末）
+
+## サポートしない YAML 機能（制約）
+
+以下の YAML 機能は **意図的にサポートしない**。これらを必要とする場合は PyYAML を使うこと:
+
+- **アンカー・エイリアス** (`&anchor`, `*alias`) — 参照の展開は未実装
+- **マージキー** (`<<:`) — dict のマージは未実装
+- **フロースタイルシーケンス** (`[a, b, c]`) — ブロックスタイル（`- a\n- b\n- c`）のみサポート
+- **ネストされたインライン dict** (`{ k: { nested: v } }`) — トップレベルのみサポート
+- **複数行文字列** (`|`, `>`) — 単一行文字列のみ
+- **タグ** (`!!str`, `!!int` 等) — 型推論のみ
+- **複雑なキー** (`? key\n: value`) — シンプルなキーのみ
+- **複数ドキュメント** (`---` 区切りの複数 YAML) — 単一ドキュメントのみ
+
+## 設計根拠
+
+HELIX の `phase.yaml`, `matrix.yaml`, `gate-checks.yaml` 等は全て上記サポート範囲内で記述可能。
+PyYAML への依存を避けることで:
+
+- 外部依存を減らす（標準 Python のみで動作）
+- セキュリティリスク（YAML.load の任意コード実行）を回避
+- キー単位の部分更新を fcntl ロックで安全に実装可能
+
+## 使用方法
+
+  python3 yaml_parser.py read <file> <dotpath>         # 値を読む
   python3 yaml_parser.py write <file> <dotpath> <val>  # 値を書く
   python3 yaml_parser.py dump <file>                   # JSON で出力
 
-Examples:
+## 例
+
   python3 yaml_parser.py read phase.yaml gates.G2.status
   python3 yaml_parser.py write phase.yaml gates.G2.status passed
   python3 yaml_parser.py write phase.yaml sprint.current_step .1a
+
+## 関連
+
+- GAP-036: yaml_parser.py の制約明文化（本文書で解消）
+- docs/design/D-YAML-PARSER-SPEC.md: 詳細仕様
 """
 
 import sys

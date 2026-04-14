@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-check-claudemd: PreToolUse hook for Write
 # CLAUDE.md を新規作成しようとしたらテンプレート使用を強制する
 

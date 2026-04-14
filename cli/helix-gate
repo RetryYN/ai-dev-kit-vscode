@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-gate: HELIX ゲート自動検証
 # Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]

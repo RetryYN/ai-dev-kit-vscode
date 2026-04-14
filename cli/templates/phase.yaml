@@ -25,6 +25,13 @@ sprint:
   drive: null
   tracks: null
   phase: null
+  phase_b:
+    current_step: null
+    status: pending
+    steps:
+      ".b1": { status: pending }
+      ".b2": { status: pending }
+      ".b3": { status: pending }
   steps:
     ".1a": { status: pending }
     ".1b": { status: pending }

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 echo "=== Playwright セットアップ ==="
 npm init -y 2>/dev/null || true
 npm install --save-dev @playwright/test

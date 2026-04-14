@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
 # Usage: helix plan <draft|review|finalize|list|status> [options]

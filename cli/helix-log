@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-log: HELIX ログ・評価システム
 # Usage: helix log <init|feedback|report|export> [args...]

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-team: エージェントチーム実行
 # Usage: helix team <run|status|list>

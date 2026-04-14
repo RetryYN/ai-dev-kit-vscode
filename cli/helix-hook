@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # helix-hook: Claude Code PostToolUse hook
 # Edit/Write 後に自動発火し、ドキュメント駆動ゲートを実行する

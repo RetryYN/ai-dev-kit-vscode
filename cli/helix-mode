@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-mode: 開発モード管理
 # Usage: helix mode [forward|reverse|scrum]
 

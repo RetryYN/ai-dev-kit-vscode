@@ -25,6 +25,10 @@ TODAY=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
 SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
 
+# cost_log にセッション記録を先に書き込む（サマリに反映するため）
+HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
+  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
+
 python3 - "$DB_PATH" "$SUMMARY_FILE" "$NOW" <<'PY'
 import sqlite3, sys
 
@@ -73,9 +77,5 @@ try:
 except Exception as e:
     print(f'[helix-session] エラー: {e}', file=sys.stderr)
 PY
-
-# cost_log に Opus-PM セッション記録
-HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null &
 
 exit 0

@@ -71,7 +71,7 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix size --files 5 --lines 120 --type
 HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 ```
 
-## CLI コマンド一覧（26 本）
+## CLI コマンド一覧（35 本）
 
 ### 基本
 
@@ -80,31 +80,40 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 | `helix init` | プロジェクト初期化（.helix/ + CLAUDE.md） |
 | `helix size` | タスクサイジング + フェーズスキップ判定 |
 | `helix status` | プロジェクト状態表示（次アクションガイド付き） |
+| `helix mode` | モード切替（forward / reverse / scrum） |
 | `helix test` | 全ツールのセルフテスト |
+| `helix test-debug` | デバッグ版セルフテスト |
 | `helix verify-all` | verify/ の全検証スクリプト実行 |
 | `helix debug` | デバッグユーティリティ |
+| `helix doctor` | HELIX セットアップ診断 |
 
 ### フェーズ管理
 
 | コマンド | 説明 |
 |---------|------|
-| `helix gate <G2-G7>` | ゲート自動検証（deliverable + static + AI） |
+| `helix gate <G0.5\|G2-G7>` | ゲート自動検証（deliverable + static + AI） |
+| `helix gate-api-check` | API エンドポイント整合チェック |
 | `helix sprint` | L4 マイクロスプリント管理（Twin Track 対応） |
 | `helix plan` | 設計提案（draft → TL review → finalize） |
 | `helix interrupt` | 追加設計モード（IIP/CC 自動分類） |
 | `helix pr` | ゲート結果から PR 自動生成（リリースノート付き） |
+| `helix retro` | ミニレトロ管理 |
 
 ### 成果物管理
 
 | コマンド | 説明 |
 |---------|------|
 | `helix matrix` | 成果物対照表（init/compile/validate/status） |
+| `helix drift-check` | 契約ドリフト検知（D-API/D-CONTRACT/D-DB） |
+| `helix debt` | 技術的負債レジスタ管理 |
 
 ### AI 委譲
 
 | コマンド | 説明 |
 |---------|------|
 | `helix codex --role <role> --task "..."` | Codex ロール別委譲（12 ロール） |
+| `helix team <team> --task "..."` | チーム単位での委譲 |
+| `helix review [--uncommitted]` | Codex 自動レビュー |
 
 --thinking オプション:
 
@@ -122,6 +131,7 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 | `helix learn` | 成功パターンの分析・recipe 生成 |
 | `helix promote` | recipe → スキル/スクリプトに昇格 |
 | `helix discover` | グローバルからパターン検索 |
+| `helix bench` | プロジェクト HELIX メトリクス表示 |
 
 ### ビルダー
 
@@ -140,6 +150,15 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 | `helix scrum` | 検証駆動開発（PoC → verify） |
 | `helix task` | タスクオペレーティングシステム |
 | `helix log` | SQLite ログ・評価システム |
+
+### Hooks（自動発火）
+
+| コマンド | 説明 |
+|---------|------|
+| `helix hook` | PostToolUse hook（doc-map トリガー） |
+| `helix check-claudemd` | PreToolUse hook（CLAUDE.md テンプレート強制） |
+| `helix session-start` | SessionStart hook（コンテキスト注入） |
+| `helix session-summary` | Stop hook（セッションサマリ生成） |
 
 ## スキル（55 本、9 カテゴリ）
 
@@ -176,7 +195,16 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 
 - ADR-001: Deliverable Matrix as Source of Truth
 - ADR-002: Builder System Foundations
-- ADR-003: Learning Engine
+- ADR-003: Learning Engine Foundations
+- ADR-004: Bash-Python ハイブリッドアーキテクチャ
+- ADR-005: YAML-SQLite 二重状態管理
+- ADR-006: テンプレートコピーアーキテクチャ
+- ADR-007: 3モード統合（Forward / Reverse / Scrum）
+- ADR-008: ビルダーシステムによる成果物生成の抽象化
+- ADR-009: Hook 戦略（doc-map トリガー中心）
+- ADR-010: Task OS（2層構造: タスク→アクション）
+
+詳細: [docs/adr/](docs/adr/)
 
 ## ライセンス
 

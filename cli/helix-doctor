@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-doctor: 環境チェック
 # Usage: helix doctor [--fix]
 

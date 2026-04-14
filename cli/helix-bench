@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-bench: HELIX 自己ベンチマーク
 # Usage: helix bench [--period <week|month|all>] [--json]
 

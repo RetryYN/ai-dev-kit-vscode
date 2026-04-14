@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 # helix-debt: 技術負債台帳管理
 # Usage: helix debt <list|add|resolve>
 
