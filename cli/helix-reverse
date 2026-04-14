@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
     --target)  TARGET="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --help|-h)
-      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]"
+      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status|rgc> [--target <path>] [--dry-run]"
       echo ""
       echo "Stages:"
       echo "  R0  Evidence Acquisition（証拠収集）"
@@ -28,10 +28,12 @@ while [[ $# -gt 0 ]]; do
       echo "  R3  Intent Hypotheses（要件仮説）"
       echo "  R4  Gap & Routing（差分分析→Forward接続）"
       echo "  status  現在の Reverse 状態を表示"
+      echo "  rgc     Reverse Gap Closure — R4 Gap Register の状態を集計表示"
       exit 0
       ;;
     R[0-4]) STAGE="$1"; shift ;;
     status) STAGE="status"; shift ;;
+    rgc) STAGE="rgc"; shift ;;
     *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -70,6 +72,101 @@ set_rgate_status() {
   python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.status" "$status" 2>/dev/null
   python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null
 }
+
+# --- rgc: Reverse Gap Closure ---
+# R4 Gap Register を読み取り、各 Gap の状態を集計表示する
+if [[ "$STAGE" == "rgc" ]]; then
+  GAP_REGISTER="$REVERSE_DIR/R4-gap-register.md"
+
+  if [[ ! -f "$GAP_REGISTER" ]]; then
+    echo "Error: $GAP_REGISTER が見つかりません" >&2
+    echo "  先に 'helix reverse R4' を実行してください" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+
+  echo "=== Reverse Gap Closure (RGC) ==="
+  echo ""
+  echo "Source: $GAP_REGISTER"
+  echo ""
+
+  # Markdown テーブルから Gap 状態を集計
+  python3 - "$GAP_REGISTER" <<'PY'
+import re, sys
+from collections import defaultdict
+
+gap_file = sys.argv[1]
+with open(gap_file, 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Gap 行を正規表現で抽出: | GAP-XXX | ... | priority | ... | status_text | ... |
+gap_pattern = re.compile(
+    r'\|\s*(GAP-\d{3})\s*\|.*?\|\s*\w+\s*\|\s*(P[012])\s*\|.*?\|\s*([^|]+?)\s*\|',
+    re.MULTILINE
+)
+
+stats = defaultdict(lambda: defaultdict(int))
+unresolved = []
+
+for match in gap_pattern.finditer(content):
+    gap_id, priority, status = match.groups()
+    status_clean = status.strip()
+
+    # ステータス分類
+    if "解決済" in status_clean and "部分" not in status_clean:
+        stats[priority]['resolved'] += 1
+    elif "部分解決" in status_clean:
+        stats[priority]['partial'] += 1
+        unresolved.append((gap_id, priority, status_clean[:50]))
+    else:
+        stats[priority]['open'] += 1
+        unresolved.append((gap_id, priority, status_clean[:50]))
+
+# 集計表示
+total = 0
+total_resolved = 0
+total_partial = 0
+total_open = 0
+
+print(f"{'Priority':<10} {'Resolved':>10} {'Partial':>10} {'Open':>10} {'Total':>10}")
+print(f"{'-'*10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10}")
+
+for priority in ['P0', 'P1', 'P2']:
+    s = stats[priority]
+    t = s['resolved'] + s['partial'] + s['open']
+    total += t
+    total_resolved += s['resolved']
+    total_partial += s['partial']
+    total_open += s['open']
+    print(f"{priority:<10} {s['resolved']:>10} {s['partial']:>10} {s['open']:>10} {t:>10}")
+
+print(f"{'-'*10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10}")
+print(f"{'Total':<10} {total_resolved:>10} {total_partial:>10} {total_open:>10} {total:>10}")
+print()
+
+# 進捗率
+if total > 0:
+    closure_rate = (total_resolved + total_partial * 0.5) / total * 100
+    print(f"Closure Rate: {closure_rate:.1f}% ({total_resolved} resolved + {total_partial} partial = {total_resolved + total_partial}/{total})")
+
+# 未解決リスト
+if unresolved:
+    print()
+    print("=== 未解決/部分解決の Gap ===")
+    for gap_id, priority, status in unresolved[:20]:
+        marker = "◐" if "部分" in status else "○"
+        print(f"  {marker} {gap_id} [{priority}] {status}")
+    if len(unresolved) > 20:
+        print(f"  ... 他 {len(unresolved) - 20} 件")
+
+# 全件 closed なら祝福
+if total > 0 and total_open == 0 and total_partial == 0:
+    print()
+    print("🎉 All Reverse HELIX Gaps are CLOSED!")
+    print("   Forward HELIX is fully aligned with the Reverse analysis.")
+PY
+
+  exit "$EXIT_SUCCESS"
+fi
 
 # --- status ---
 if [[ "$STAGE" == "status" ]]; then

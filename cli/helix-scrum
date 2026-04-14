@@ -58,7 +58,7 @@ cmd_backlog() {
     list)
       if [[ ! -f "$BACKLOG" ]]; then
         echo "バックログなし。'helix scrum init' で初期化してください。"
-        exit 1
+        exit "$EXIT_PREREQ_ERROR"
       fi
       echo "=== Hypothesis Backlog ==="
       echo ""
@@ -99,7 +99,7 @@ for hid, h in sorted(hypotheses.items()):
       done
       if [[ -z "$hid" || -z "$title" ]]; then
         echo "Usage: helix scrum backlog add --id H001 --title '...' --question '...' --acceptance '...'" >&2
-        exit 1
+        exit "$EXIT_INPUT_ERROR"
       fi
       # ファイル名はASCIIのみ（日本語タイトル対応）
       local safe_name
@@ -140,7 +140,7 @@ VEOF
 
     *)
       echo "Usage: helix scrum backlog <list|add>" >&2
-      exit 1
+      exit "$EXIT_INPUT_ERROR"
       ;;
   esac
 }
@@ -198,7 +198,7 @@ cmd_poc() {
 
   if [[ -z "$hid" ]]; then
     echo "Usage: helix scrum poc --hypothesis H001" >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
   fi
 
   local title question acceptance verify_script
@@ -280,7 +280,7 @@ cmd_verify() {
       fi
     else
       echo "Error: $VERIFY_DIR/$target not found" >&2
-      exit 1
+      exit "$EXIT_PREREQ_ERROR"
     fi
   fi
 
@@ -292,7 +292,7 @@ cmd_verify() {
     for f in "${failed_scripts[@]}"; do
       echo "  - $f"
     done
-    exit 1
+    exit "$EXIT_CHECK_FAILED"
   fi
 }
 
@@ -314,7 +314,7 @@ cmd_decide() {
 
   if [[ -z "$hid" || -z "$decision" ]]; then
     echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--learnings '...']" >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
   fi
 
   python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.status" "$decision"
@@ -355,7 +355,7 @@ cmd_review() {
 
   if [[ "$sprint_num" -eq 0 ]]; then
     echo "アクティブなスプリントがありません。" >&2
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
 
   echo "=== Sprint $sprint_num Review ==="
@@ -421,7 +421,7 @@ RETRO
 cmd_status() {
   if [[ ! -d "$SCRUM_DIR" ]]; then
     echo "HELIX Scrum 未初期化。'helix scrum init' で初期化してください。"
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
 
   echo "=== HELIX Scrum Status ==="
@@ -492,6 +492,6 @@ USAGE
   *)
     echo "Error: Unknown command '$CMD'" >&2
     echo "Run 'helix scrum help' for usage" >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
     ;;
 esac

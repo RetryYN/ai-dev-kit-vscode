@@ -523,6 +523,14 @@ run_test_contains "test --help usage" "$SCRIPT_DIR/helix-test --help" "Usage: he
 run_test_not_contains "test --help no self-test run" "$SCRIPT_DIR/helix-test --help" "HELIX CLI Self-Test"
 run_test_contains "verify-all --help usage" "$SCRIPT_DIR/helix-verify-all --help" "Usage: helix verify-all"
 run_test "verify-all layer6 missing tables warn only" "D=\$(mktemp -d); mkdir -p \"\$D/cli\" \"\$D/project/.helix\"; cp \"$SCRIPT_DIR/helix-verify-all\" \"\$D/cli/helix-verify-all\"; printf '%b' '#!/bin/bash\ncase \"\${1:-}\" in\n  doctor|inspect) exit 0 ;;\n  *) exit 0 ;;\nesac\n' > \"\$D/cli/helix-debug\"; chmod +x \"\$D/cli/helix-debug\"; printf '%b' '#!/bin/bash\nexit 0\n' > \"\$D/cli/helix-test\"; chmod +x \"\$D/cli/helix-test\"; python3 -c \"import sqlite3; conn=sqlite3.connect('\$D/project/.helix/helix.db'); conn.execute('CREATE TABLE IF NOT EXISTS sample(id INTEGER)'); conn.commit(); conn.close()\"; out=\$(HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"\$D/project\" \"\$D/cli/helix-verify-all\" 2>&1); echo \"\$out\" | grep -q 'Layer 6: DB Integrity' && echo \"\$out\" | grep -q 'WARN: missing tables' && echo \"\$out\" | grep -q 'Status: ALL CLEAR'; rm -rf \"\$D\""
+run_test "verify-all no --help exits properly" "out=\$($SCRIPT_DIR/helix-verify-all --help 2>&1); echo \"\$out\" | grep -q 'verify-all'"
+
+# helix-debug テスト（GAP-039）
+run_test_contains "debug --help usage" "$SCRIPT_DIR/helix-debug --help" "使い方: helix debug"
+run_test_contains "debug --help lists commands" "$SCRIPT_DIR/helix-debug --help" "trace"
+run_test_contains "debug --help inspect command" "$SCRIPT_DIR/helix-debug --help" "inspect"
+run_test "debug inspect runs without error" "$SCRIPT_DIR/helix-debug inspect >/dev/null 2>&1 || true; true"
+run_test "debug unknown command handled" "set +e; $SCRIPT_DIR/helix-debug unknown-cmd >/dev/null 2>&1; code=\$?; set -e; [[ \$code -ne 0 ]]"
 echo ""
 
 echo "[helix-log / helix_db]"

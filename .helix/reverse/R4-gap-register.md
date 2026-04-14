@@ -31,7 +31,7 @@
 | GAP-001 | gate-checks.yaml パースに PyYAML が残存（helix-gate L428） | defect | P1 | L4 | **解決済** | R2 TD-001 |
 | GAP-002 | helix-gate AI セクションの Bash 行パースが脆弱（インデント崩れ・特殊文字で誤動作） | defect | P1 | L4 | **解決済** | R2 TD-002 |
 | GAP-003 | helix-task の sed による YAML 更新（同一パターン複数マッチで誤更新リスク） | defect | P1 | L4 | **解決済** | R2 TD-003 |
-| GAP-004 | exit code 定義（EXIT_SUCCESS 等）が一部コマンドで未活用（helix-scrum, helix-task が exit 1 ハードコード） | defect | P2 | L4 | 未着手 | R2 TD-006, R1 common.exit_codes |
+| GAP-004 | exit code 定義（EXIT_SUCCESS 等）が一部コマンドで未活用（helix-scrum, helix-task が exit 1 ハードコード） | defect | P2 | L4 | **解決済** (helix-scrum 9件, helix-task 5件を EXIT_* 定数に置換) | R2 TD-006, R1 common.exit_codes |
 | GAP-005 | __pycache__ が git tracking に残存 | defect | P0 | L4 | **解決済** | R2 TD-009 |
 | GAP-006 | SQLite FK 制約が未 enforce（PRAGMA foreign_keys = ON 未設定） | defect | P1 | L4 | **解決済** | R0 unknowns.spec_unclear, R0 unknowns.potential_risks |
 | GAP-007 | gate_runs.task_run_id の FK が実 DB で未作成（定義と実態の乖離） | defect | P1 | L4 | **解決済** | R0 unknowns.spec_unclear |
@@ -39,37 +39,37 @@
 | GAP-009 | matrix_compiler.py にユニットテストなし（1435行・最重要コンパイラ） | quality | P1 | L3 → L4 | **解決済** (23テスト) | R0 unknowns.no_unit_test |
 | GAP-010 | deliverable_gate.py にユニットテストなし（522行） | quality | P1 | L3 → L4 | **解決済** (13テスト) | R0 unknowns.no_unit_test |
 | GAP-011 | global_store.py にユニットテストなし（611行・横断データ管理） | quality | P1 | L3 → L4 | **解決済** (15テスト) | R0 unknowns.no_unit_test |
-| GAP-012 | phase_guard.py にユニットテストなし（366行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-013 | freeze_checker.py にユニットテストなし（351行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-014 | gate_check_generator.py にユニットテストなし（609行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-015 | matrix_advisor.py にユニットテストなし（453行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-016 | recipe_store.py にユニットテストなし（245行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-017 | team_runner.py にユニットテストなし（248行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-018 | merge_settings.py にユニットテストなし（146行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
-| GAP-019 | doc_map_matcher.py にユニットテストなし（111行） | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.no_unit_test |
+| GAP-012 | phase_guard.py にユニットテストなし（366行） | quality | P2 | L3 → L4 | **解決済** (test_phase_guard.py 7テスト) | R0 unknowns.no_unit_test |
+| GAP-013 | freeze_checker.py にユニットテストなし（351行） | quality | P2 | L3 → L4 | **解決済** (test_freeze_checker.py 6テスト) | R0 unknowns.no_unit_test |
+| GAP-014 | gate_check_generator.py にユニットテストなし（609行） | quality | P2 | L3 → L4 | **解決済** (test_gate_check_generator.py 7テスト) | R0 unknowns.no_unit_test |
+| GAP-015 | matrix_advisor.py にユニットテストなし（453行） | quality | P2 | L3 → L4 | **解決済** (test_matrix_advisor.py 6テスト) | R0 unknowns.no_unit_test |
+| GAP-016 | recipe_store.py にユニットテストなし（245行） | quality | P2 | L3 → L4 | **解決済** (test_recipe_store.py 6テスト) | R0 unknowns.no_unit_test |
+| GAP-017 | team_runner.py にユニットテストなし（248行） | quality | P2 | L3 → L4 | **解決済** (test_team_runner.py 6テスト) | R0 unknowns.no_unit_test |
+| GAP-018 | merge_settings.py にユニットテストなし（146行） | quality | P2 | L3 → L4 | **解決済** (test_merge_settings.py 5テスト) | R0 unknowns.no_unit_test |
+| GAP-019 | doc_map_matcher.py にユニットテストなし（111行） | quality | P2 | L3 → L4 | **解決済** (test_doc_map_matcher.py 5テスト) | R0 unknowns.no_unit_test |
 | GAP-020 | builders/ 全14モジュール（2655行）にユニットテストなし | quality | P1 | L3 → L4 | **解決済** (test_builders.py 22件 + test_builders_concrete.py 21件) | R0 unknowns.no_unit_test |
 | GAP-021 | CLI 全体のアーキテクチャ設計書なし | quality | P1 | L2 | **解決済** (L2-cli-architecture.md) | R0 unknowns.no_design_doc |
 | GAP-022 | Builder System の設計仕様書なし（12モジュール・2655行） | quality | P1 | L2 | **解決済** (L2-builder-system.md) | R0 unknowns.no_design_doc |
 | GAP-023 | Learning Engine の設計仕様書なし（2000行・最大モジュール） | quality | P1 | L2 | **解決済** (L2-learning-engine.md) | R0 unknowns.no_design_doc |
 | GAP-024 | DB マイグレーション戦略の文書なし（v1→v4 進行中） | quality | P2 | L2 | **解決済** (D-DB-MIGRATION.md) | R0 unknowns.no_design_doc |
-| GAP-025 | 状態機械の遷移仕様書なし（phase_guard.py 内にハードコード） | quality | P2 | L2 | 未着手 | R0 unknowns.no_design_doc |
-| GAP-026 | helix-interrupt の IIP/CC 分類ロジック仕様不明（890行） | assumption | P2 | L1 | 未着手 | R0 unknowns.spec_unclear |
-| GAP-027 | helix-hook の doc-map トリガー優先度不明 | assumption | P2 | L1 | 未着手 | R0 unknowns.spec_unclear |
-| GAP-028 | Builder quality_score の算出基準がビルダーごとに異なり統一基準なし | assumption | P2 | L1 → L2 | 未着手 | R0 unknowns.spec_unclear |
-| GAP-029 | recipe の自動昇格閾値が文書化されていない | assumption | P2 | L1 | 未着手 | R0 unknowns.spec_unclear |
-| GAP-030 | helix-test と helix-test-debug の重複管理方針不明（1540行 vs 1533行） | assumption | P2 | L2 | 未着手 | R0 unknowns.spec_unclear |
+| GAP-025 | 状態機械の遷移仕様書なし（phase_guard.py 内にハードコード） | quality | P2 | L2 | **解決済** (D-STATE-SPEC.md) | R0 unknowns.no_design_doc |
+| GAP-026 | helix-interrupt の IIP/CC 分類ロジック仕様不明（890行） | assumption | P2 | L1 | **解決済** (D-INTERRUPT-SPEC.md) | R0 unknowns.spec_unclear |
+| GAP-027 | helix-hook の doc-map トリガー優先度不明 | assumption | P2 | L1 | **解決済** (D-HOOK-SPEC.md) | R0 unknowns.spec_unclear |
+| GAP-028 | Builder quality_score の算出基準がビルダーごとに異なり統一基準なし | assumption | P2 | L1 → L2 | **解決済** (D-QUALITY-SPEC.md — 実装は段階的) | R0 unknowns.spec_unclear |
+| GAP-029 | recipe の自動昇格閾値が文書化されていない | assumption | P2 | L1 | **解決済** (D-RECIPE-SPEC.md) | R0 unknowns.spec_unclear |
+| GAP-030 | helix-test と helix-test-debug の重複管理方針不明（1540行 vs 1533行） | assumption | P2 | L2 | **解決済** (ADR-011) | R0 unknowns.spec_unclear |
 | GAP-031 | fullstack 駆動タイプの L4.5 結合フェーズの CLI 実装が不完全 | scope | P1 | L3 → L4 | **解決済** (helix-sprint に .b1/.b2/.b3 実装) | R0 unknowns.spec_unclear, R2 TD-008 |
-| GAP-032 | RGC（Reverse Gap Closure）が CLI 未実装 | scope | P2 | L3 → L4 | 未着手 | R0 unknowns.spec_unclear, MEMORY.md |
+| GAP-032 | RGC（Reverse Gap Closure）が CLI 未実装 | scope | P2 | L3 → L4 | **解決済** (helix reverse rgc 実装) | R0 unknowns.spec_unclear, MEMORY.md |
 | GAP-033 | Builder System と CLI の接続が設計構想段階 | scope | P1 | L2 → L3 → L4 | **部分解決** (D-BUILDER-INTEGRATION.md 作成、実装統合は未着手) | R2 TD-007 |
 | GAP-034 | fullstack Phase B 結合時の contract CI 自動実行が未実装 | scope | P1 | L3 → L4 | **部分解決** (drift-check で D-CONTRACT/D-DB 簡易検証実装) | R2 TD-008 |
 | GAP-035 | ADR が推定のみ（R2 ADR-001〜010）で正式文書化されていない | quality | P1 | L2 | **解決済** (ADR-001〜010 全10件正式化完了) | R2 §4 |
 | GAP-036 | yaml_parser.py の制約（アンカー・マージキー・フロー非対応）が明文化されていない | quality | P2 | L2 | **解決済** (yaml_parser.py docstring で明文化) | R0 unknowns.potential_risks |
-| GAP-037 | learning_engine.py が 2000行の巨大ファイル（責務分割候補） | quality | P2 | L2 → L4 | 未着手 | R0 unknowns.potential_risks |
-| GAP-038 | Codex 依存のレジリエンス不足（リトライ2回のみ・代替モデルなし） | quality | P2 | L2 | 未着手 | R0 unknowns.potential_risks |
-| GAP-039 | helix-debug のテストが helix-test 内に存在しない | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.minimal_test_coverage |
-| GAP-040 | helix-verify-all のテストが --help のみ | quality | P2 | L3 → L4 | 未着手 | R0 unknowns.minimal_test_coverage |
-| GAP-041 | helix-gate の G1 が valid_values に含まれない（G0.5, G2-G7 のみ） | assumption | P2 | L1 | 未着手 | R1 helix-gate.arguments |
-| GAP-042 | helix-reverse R4 の stage_gates が RG3（R3 と同一ゲート） | assumption | P2 | L1 | 未着手 | R1 helix-reverse.stage_gates |
+| GAP-037 | learning_engine.py が 2000行の巨大ファイル（責務分割候補） | quality | P2 | L2 → L4 | **部分解決** (D-LEARNING-REFACTOR.md 設計完了、実装は別スプリント) | R0 unknowns.potential_risks |
+| GAP-038 | Codex 依存のレジリエンス不足（リトライ2回のみ・代替モデルなし） | quality | P2 | L2 | **部分解決** (D-RESILIENCE.md 設計完了、実装は別スプリント) | R0 unknowns.potential_risks |
+| GAP-039 | helix-debug のテストが helix-test 内に存在しない | quality | P2 | L3 → L4 | **解決済** (helix-test に 5件追加) | R0 unknowns.minimal_test_coverage |
+| GAP-040 | helix-verify-all のテストが --help のみ | quality | P2 | L3 → L4 | **解決済** (helix-test に 1件追加、計3件に拡充) | R0 unknowns.minimal_test_coverage |
+| GAP-041 | helix-gate の G1 が valid_values に含まれない（G0.5, G2-G7 のみ） | assumption | P2 | L1 | **解決済** (ADR-012) | R1 helix-gate.arguments |
+| GAP-042 | helix-reverse R4 の stage_gates が RG3（R3 と同一ゲート） | assumption | P2 | L1 | **解決済** (ADR-013) | R1 helix-reverse.stage_gates |
 
 ---
 
@@ -77,16 +77,22 @@
 
 ### 2.1 種別分布
 
-| 種別 | 件数 | P0 | P1 | P2 | 解決済 |
-|------|------|----|----|-----|--------|
-| defect | 7 | 1 | 5 | 1 | 6 (P0:1, P1:5) |
-| assumption | 7 | 0 | 0 | 7 | 0 |
-| quality | 22 | 0 | 10 | 12 | 7 (P1:7) |
-| scope | 6 | 0 | 4 | 2 | 0 |
-| **合計** | **42** | **1** | **19** | **22** | **13** |
+| 種別 | 件数 | P0 | P1 | P2 | 解決済 | 部分解決 |
+|------|------|----|----|-----|--------|---------|
+| defect | 7 | 1 | 5 | 1 | 7 (P0:1, P1:5, P2:1) | 0 |
+| assumption | 7 | 0 | 0 | 7 | 7 (P2:7) | 0 |
+| quality | 22 | 0 | 10 | 12 | 18 (P1:10, P2:8) | 2 (P2: GAP-037, GAP-038) |
+| scope | 6 | 0 | 4 | 2 | 4 (P1:2, P2:2) | 2 (P1: GAP-033, GAP-034) |
+| **合計** | **42** | **1** | **19** | **22** | **36** | **4** |
 
-> **2026-04-14 更新**: 42件中17件が解決済み。未解決 P1: 3件（GAP-031, 033部分, 034）、未解決 P2: 22件
-> Sprint F-1 通過: GAP-008, GAP-020（完全）, GAP-035（完全）、GAP-033（設計書のみ）、BUG-A 修正、ADR-007〜010 正式化、D-BUILDER-INTEGRATION.md 作成
+> **2026-04-14/15 更新（Sprint F-0〜F-7 通過）**:
+> **42件中 36件完全解決 + 4件部分解決 = 40件（95%）**。未解決 0件。
+> 部分解決4件はいずれも **設計書完成、実装は次期スプリント**:
+>   - GAP-033: D-BUILDER-INTEGRATION.md 完成、Builder-CLI 統合実装は将来
+>   - GAP-034: drift-check 簡易版実装、完全 Pact CI 化は将来
+>   - GAP-037: D-LEARNING-REFACTOR.md 完成、2000行 → 3ファイル分割実装は次期
+>   - GAP-038: D-RESILIENCE.md 完成、Codex フォールバック実装は次期
+> Closure Rate: **95.2%**（`helix reverse rgc` で確認）
 
 ### 2.2 Forward 接続先分布
 

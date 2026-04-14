@@ -116,7 +116,7 @@ cmd_plan() {
 
   if [[ -z "$goal" || ${#task_ids[@]} -eq 0 ]]; then
     echo "Usage: helix task plan --goal '...' --tasks 'research-library,design-api,implement-api,...'" >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
   fi
 
   mkdir -p "$HELIX_DIR"
@@ -299,7 +299,7 @@ print(json.dumps({
 cmd_run() {
   if [[ ! -f "$TASK_PLAN" ]]; then
     echo "Error: タスクプランがありません。'helix task plan' で作成してください。" >&2
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
 
   # 次の pending タスクを取得
@@ -553,7 +553,7 @@ conn.close()
 cmd_status() {
   if [[ ! -f "$TASK_PLAN" ]]; then
     echo "タスクプランがありません。" >&2
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
 
   python3 -c "
@@ -609,7 +609,7 @@ cmd_observe() {
 
   if [[ ! -d "$LOG_DIR" ]]; then
     echo "ログなし。'helix task run' でタスクを実行してください。" >&2
-    exit 1
+    exit "$EXIT_PREREQ_ERROR"
   fi
 
   python3 -c "
@@ -768,6 +768,6 @@ USAGE
     ;;
   *)
     echo "Error: Unknown command '$CMD'" >&2
-    exit 1
+    exit "$EXIT_INPUT_ERROR"
     ;;
 esac
