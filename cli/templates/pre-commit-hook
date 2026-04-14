@@ -2,5 +2,43 @@
 set -e
 
 # HELIX pre-commit hook
-# 予約済み: 将来の軽量チェック追加ポイント
+# GAP-034: staged された D-API/D-CONTRACT/D-DB 変更に対して drift-check を実行
+
+# helix-drift-check の場所を解決
+HELIX_DRIFT_CHECK=""
+for candidate in "$HOME/ai-dev-kit-vscode/cli/helix-drift-check" "/usr/local/bin/helix-drift-check"; do
+  if [[ -x "$candidate" ]]; then
+    HELIX_DRIFT_CHECK="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$HELIX_DRIFT_CHECK" ]]; then
+  # helix がインストールされていない場合はスキップ（非 HELIX プロジェクトでの動作互換）
+  exit 0
+fi
+
+# staged な D-API / D-CONTRACT / D-DB ファイルを取得
+CHANGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -E '^(D-API|D-CONTRACT|D-DB|docs/D-API|docs/D-CONTRACT|docs/D-DB)/' || true)
+
+if [[ -n "$CHANGED" ]]; then
+  echo "[helix pre-commit] design file changes detected — running drift-check..."
+  DRIFT_RC=0
+  while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+    echo ""
+    echo "--- drift-check: $file ---"
+    if ! "$HELIX_DRIFT_CHECK" "$file"; then
+      DRIFT_RC=1
+    fi
+  done <<< "$CHANGED"
+
+  # drift-check は現状警告のみなので、commit は失敗させない（advisory）
+  # 将来 strict mode を入れる場合は: [[ $DRIFT_RC -ne 0 ]] && exit 1
+  if [[ $DRIFT_RC -ne 0 ]]; then
+    echo ""
+    echo "[helix pre-commit] ⚠ drift-check で警告あり。commit は継続しますが内容を確認してください。"
+  fi
+fi
+
 exit 0

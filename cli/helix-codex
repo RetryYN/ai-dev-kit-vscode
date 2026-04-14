@@ -38,25 +38,31 @@ DRY_RUN=false
 SANDBOX="workspace-write"
 FULL_AUTO=""
 TIMEOUT=300
+MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
+FALLBACK_MODEL=""    # GAP-038 Phase 2: Layer 2 代替モデル
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --role)      ROLE="$2"; shift 2 ;;
-    --task)      TASK="$2"; shift 2 ;;
-    --thinking)  THINKING="$2"; shift 2 ;;
-    --timeout)   TIMEOUT="$2"; shift 2 ;;
-    --sandbox)   SANDBOX="$2"; shift 2 ;;
-    --read-only) SANDBOX="read-only"; shift ;;
-    --full-auto) FULL_AUTO="--full-auto"; shift ;;
-    --dry-run)   DRY_RUN=true; shift ;;
+    --role)            ROLE="$2"; shift 2 ;;
+    --task)            TASK="$2"; shift 2 ;;
+    --thinking)        THINKING="$2"; shift 2 ;;
+    --timeout)         TIMEOUT="$2"; shift 2 ;;
+    --max-retries)     MAX_RETRY="$2"; shift 2 ;;
+    --fallback-model)  FALLBACK_MODEL="$2"; shift 2 ;;
+    --sandbox)         SANDBOX="$2"; shift 2 ;;
+    --read-only)       SANDBOX="read-only"; shift ;;
+    --full-auto)       FULL_AUTO="--full-auto"; shift ;;
+    --dry-run)         DRY_RUN=true; shift ;;
     --help|-h)
       echo "使い方: helix codex --role <role> --task \"タスク内容\""
       echo ""
       echo "Options:"
-      echo "  --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"
-      echo "  --task \"...\"        タスク内容"
-      echo "  --thinking <level>  思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
-      echo "  --timeout <sec>     codex exec タイムアウト秒（デフォルト: 300）"
+      echo "  --role <role>            ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"
+      echo "  --task \"...\"             タスク内容"
+      echo "  --thinking <level>       思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
+      echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 300）"
+      echo "  --max-retries <n>        最大リトライ回数（デフォルト: 2、0 でリトライなし）"
+      echo "  --fallback-model <name>  Codex 失敗時の代替モデル（例: gpt-5.2-codex）"
       echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
       echo "               デフォルト: workspace-write"
       echo "  --read-only  --sandbox read-only のショートカット"
@@ -72,6 +78,12 @@ while [[ $# -gt 0 ]]; do
     *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
   esac
 done
+
+# --- max_retries バリデーション ---
+if ! [[ "$MAX_RETRY" =~ ^[0-9]+$ ]] || [[ "$MAX_RETRY" -gt 10 ]]; then
+  echo "エラー: 無効な --max-retries 値です: '$MAX_RETRY'（0-10 の整数を指定）" >&2
+  exit 1
+fi
 
 if [[ -z "$ROLE" || -z "$TASK" ]]; then
   echo "エラー: --role と --task は必須です" >&2
@@ -288,17 +300,50 @@ fi
 
 echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SANDBOX full_auto=$FULL_AUTO skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
 
-MAX_RETRY=2
-retry=0
-codex_exit=1
-while [[ $retry -le $MAX_RETRY ]]; do
+# --- GAP-038 リジリエンス強化: リトライ + バックオフ + フォールバック ---
+# エラー分類:
+#   - timeout (exit 124)    : 即リトライ（バックオフなし）
+#   - network (exit 7-8)    : エクスポネンシャルバックオフ（1s, 2s, 4s ...）
+#   - その他                : 標準バックオフ（1秒）
+classify_codex_error() {
+  local code="$1"
+  case "$code" in
+    124)     echo "timeout" ;;
+    7|8|28)  echo "network" ;;  # curl-style exit codes
+    *)       echo "other" ;;
+  esac
+}
+
+calculate_backoff() {
+  local error_type="$1"
+  local attempt="$2"
+  case "$error_type" in
+    timeout)  echo 0 ;;                            # 即リトライ
+    network)  echo $((1 << (attempt - 1))) ;;      # 1, 2, 4, 8 ...（エクスポネンシャル）
+    *)        echo 1 ;;                            # 標準
+  esac
+}
+
+run_codex_once() {
+  local model="$1"
   set +e
-  timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$codex_model" -s "$SANDBOX" \
+  timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$model" -s "$SANDBOX" \
     -c "model_reasoning_effort=\"$THINKING\"" \
     -c 'shell_environment_policy.inherit=all' \
     ${FULL_AUTO:+$FULL_AUTO}
-  codex_exit=$?
+  local rc=$?
   set -e
+  return $rc
+}
+
+# Primary model リトライループ
+retry=0
+codex_exit=1
+active_model="$codex_model"
+
+while [[ $retry -le $MAX_RETRY ]]; do
+  run_codex_once "$active_model"
+  codex_exit=$?
 
   if [[ $codex_exit -eq 0 ]]; then
     break
@@ -306,14 +351,33 @@ while [[ $retry -le $MAX_RETRY ]]; do
 
   retry=$((retry + 1))
   if [[ $retry -le $MAX_RETRY ]]; then
-    echo "[helix-codex] リトライ ($retry/$MAX_RETRY)..." >&2
+    error_type=$(classify_codex_error "$codex_exit")
+    backoff=$(calculate_backoff "$error_type" "$retry")
+    echo "[helix-codex] リトライ ($retry/$MAX_RETRY, error=$error_type, backoff=${backoff}s)..." >&2
+    if [[ $backoff -gt 0 ]]; then
+      sleep "$backoff" 2>/dev/null || true
+    fi
   fi
 done
 
+# --- Layer 2 フォールバック: Primary 失敗時に代替モデルで1回だけ再試行 ---
+if [[ $codex_exit -ne 0 ]] && [[ -n "$FALLBACK_MODEL" ]]; then
+  echo "[helix-codex] Primary ($codex_model) 失敗。フォールバック: $FALLBACK_MODEL で再試行" >&2
+  active_model="$FALLBACK_MODEL"
+  run_codex_once "$active_model"
+  codex_exit=$?
+  if [[ $codex_exit -eq 0 ]]; then
+    echo "[helix-codex] フォールバック成功: $FALLBACK_MODEL" >&2
+  else
+    echo "[helix-codex] フォールバックも失敗: $FALLBACK_MODEL (exit=$codex_exit)" >&2
+  fi
+fi
+
 # コスト記録（バックグラウンド）
 if [[ -f "$HELIX_DIR/helix.db" ]]; then
+  # active_model は Primary または Fallback のどちらが最終的に使われたか
   HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert cost_log \
-    "{\"role\":\"$ROLE\",\"model\":\"$codex_model\",\"thinking\":\"$THINKING\"}" 2>/dev/null &
+    "{\"role\":\"$ROLE\",\"model\":\"$active_model\",\"thinking\":\"$THINKING\",\"retries\":$retry,\"exit_code\":$codex_exit}" 2>/dev/null &
 fi
 
 exit $codex_exit

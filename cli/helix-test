@@ -232,6 +232,13 @@ run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl
 run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  medium"
 run_test "codex rejects invalid thinking" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra" 1
 run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra 2>&1 || true" "無効な --thinking 値"
+# GAP-038: リジリエンス強化オプション
+run_test_contains "codex --max-retries option documented" "$SCRIPT_DIR/helix-codex --help" "max-retries"
+run_test_contains "codex --fallback-model option documented" "$SCRIPT_DIR/helix-codex --help" "fallback-model"
+run_test "codex rejects invalid --max-retries" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries abc" 1
+run_test "codex rejects --max-retries over 10" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries 11" 1
+run_test "codex accepts --max-retries 0" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'no retry' --max-retries 0"
+run_test "codex accepts --fallback-model" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'fallback test' --fallback-model gpt-5.2-codex"
 run_test_contains "codex warns unfinalized plan in L2" "D=\$(mktemp -d); cd \"\$D\"; git init -q; git config user.email test@test.com; git config user.name Test; mkdir -p .helix/plans; printf 'current_phase: L2\n' > .helix/phase.yaml; printf 'id: PLAN-001\nstatus: draft\n' > .helix/plans/PLAN-001.yaml; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role tl --task 'plan warning test' 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "未確定の設計提案があります"
 run_test "team run uses mocked codex" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix team run --definition $SCRIPT_DIR/templates/teams/review-team.yaml"
 run_test_contains "team status saved" "test -f .helix/team-status.json && echo OK" "OK"
@@ -531,6 +538,17 @@ run_test_contains "debug --help lists commands" "$SCRIPT_DIR/helix-debug --help"
 run_test_contains "debug --help inspect command" "$SCRIPT_DIR/helix-debug --help" "inspect"
 run_test "debug inspect runs without error" "$SCRIPT_DIR/helix-debug inspect >/dev/null 2>&1 || true; true"
 run_test "debug unknown command handled" "set +e; $SCRIPT_DIR/helix-debug unknown-cmd >/dev/null 2>&1; code=\$?; set -e; [[ \$code -ne 0 ]]"
+
+# helix-drift-check テスト（GAP-034）
+run_test_contains "drift-check --help usage" "$SCRIPT_DIR/helix-drift-check --help" "使い方: helix drift-check"
+run_test_contains "drift-check --help mentions D-CONTRACT" "$SCRIPT_DIR/helix-drift-check --help" "D-CONTRACT"
+run_test_contains "drift-check --help mentions D-DB" "$SCRIPT_DIR/helix-drift-check --help" "D-DB"
+run_test "drift-check no arg exits ok" "$SCRIPT_DIR/helix-drift-check"
+run_test_contains "drift-check D-CONTRACT warns for empty contract" "D=\$(mktemp -d); cd \"\$D\"; git init -q 2>/dev/null || true; mkdir -p D-CONTRACT .helix; touch .helix/doc-map.yaml; touch D-CONTRACT/empty.json; out=\$($SCRIPT_DIR/helix-drift-check D-CONTRACT/empty.json 2>&1 || true); rm -rf \"\$D\"; echo \"\$out\"" "D-CONTRACT"
+
+# pre-commit hook テンプレート（GAP-034）
+run_test_contains "pre-commit hook template mentions drift-check" "cat $SCRIPT_DIR/templates/pre-commit-hook" "helix-drift-check"
+run_test "pre-commit hook syntax valid" "bash -n $SCRIPT_DIR/templates/pre-commit-hook"
 echo ""
 
 echo "[helix-log / helix_db]"
@@ -992,6 +1010,10 @@ echo ""
 
 echo "[helix-builder]"
 run_test_contains "helix builder list" "$SCRIPT_DIR/helix builder list" "Available builders"
+# GAP-033: info サブコマンドの動作確認
+run_test_contains "helix builder info shows builder_type" "$SCRIPT_DIR/helix builder agent-loop info" "\"builder_type\": \"agent-loop\""
+run_test_contains "helix builder info shows class_name" "$SCRIPT_DIR/helix builder workflow info" "\"class_name\": \"WorkflowBuilder\""
+run_test_contains "helix builder info shows required_fields" "$SCRIPT_DIR/helix builder task info" "\"required_fields\""
 
 BUILDER_TEST_DB="$TEST_DIR/.helix/builder-test.db"
 run_test "BuilderStore init_db creates table" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import sqlite3; from builders.store import BuilderStore; db=\"${BUILDER_TEST_DB}\"; BuilderStore.init_db(db); conn=sqlite3.connect(db); row=conn.execute(\"SELECT name FROM sqlite_master WHERE type=\\\"table\\\" AND name=\\\"builder_executions\\\"\").fetchone(); conn.close(); raise SystemExit(0 if row else 1)'"

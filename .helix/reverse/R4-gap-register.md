@@ -60,12 +60,12 @@
 | GAP-030 | helix-test と helix-test-debug の重複管理方針不明（1540行 vs 1533行） | assumption | P2 | L2 | **解決済** (ADR-011) | R0 unknowns.spec_unclear |
 | GAP-031 | fullstack 駆動タイプの L4.5 結合フェーズの CLI 実装が不完全 | scope | P1 | L3 → L4 | **解決済** (helix-sprint に .b1/.b2/.b3 実装) | R0 unknowns.spec_unclear, R2 TD-008 |
 | GAP-032 | RGC（Reverse Gap Closure）が CLI 未実装 | scope | P2 | L3 → L4 | **解決済** (helix reverse rgc 実装) | R0 unknowns.spec_unclear, MEMORY.md |
-| GAP-033 | Builder System と CLI の接続が設計構想段階 | scope | P1 | L2 → L3 → L4 | **部分解決** (D-BUILDER-INTEGRATION.md 作成、実装統合は未着手) | R2 TD-007 |
-| GAP-034 | fullstack Phase B 結合時の contract CI 自動実行が未実装 | scope | P1 | L3 → L4 | **部分解決** (drift-check で D-CONTRACT/D-DB 簡易検証実装) | R2 TD-008 |
+| GAP-033 | Builder System と CLI の接続が設計構想段階 | scope | P1 | L2 → L3 → L4 | **解決済** (D-BUILDER-INTEGRATION.md + info サブコマンド実装) | R2 TD-007 |
+| GAP-034 | fullstack Phase B 結合時の contract CI 自動実行が未実装 | scope | P1 | L3 → L4 | **解決済** (drift-check 実検証 + GitHub Actions PR統合 + pre-commit hook連動) | R2 TD-008 |
 | GAP-035 | ADR が推定のみ（R2 ADR-001〜010）で正式文書化されていない | quality | P1 | L2 | **解決済** (ADR-001〜010 全10件正式化完了) | R2 §4 |
 | GAP-036 | yaml_parser.py の制約（アンカー・マージキー・フロー非対応）が明文化されていない | quality | P2 | L2 | **解決済** (yaml_parser.py docstring で明文化) | R0 unknowns.potential_risks |
-| GAP-037 | learning_engine.py が 2000行の巨大ファイル（責務分割候補） | quality | P2 | L2 → L4 | **部分解決** (D-LEARNING-REFACTOR.md 設計完了、実装は別スプリント) | R0 unknowns.potential_risks |
-| GAP-038 | Codex 依存のレジリエンス不足（リトライ2回のみ・代替モデルなし） | quality | P2 | L2 | **部分解決** (D-RESILIENCE.md 設計完了、実装は別スプリント) | R0 unknowns.potential_risks |
+| GAP-037 | learning_engine.py が 2000行の巨大ファイル（責務分割候補） | quality | P2 | L2 → L4 | **解決済** (learning/ facade package: core/metrics/recipe 公開) | R0 unknowns.potential_risks |
+| GAP-038 | Codex 依存のレジリエンス不足（リトライ2回のみ・代替モデルなし） | quality | P2 | L2 | **解決済** (--max-retries/--fallback-model + エラー分類 + エクスポバックオフ実装) | R0 unknowns.potential_risks |
 | GAP-039 | helix-debug のテストが helix-test 内に存在しない | quality | P2 | L3 → L4 | **解決済** (helix-test に 5件追加) | R0 unknowns.minimal_test_coverage |
 | GAP-040 | helix-verify-all のテストが --help のみ | quality | P2 | L3 → L4 | **解決済** (helix-test に 1件追加、計3件に拡充) | R0 unknowns.minimal_test_coverage |
 | GAP-041 | helix-gate の G1 が valid_values に含まれない（G0.5, G2-G7 のみ） | assumption | P2 | L1 | **解決済** (ADR-012) | R1 helix-gate.arguments |
@@ -81,18 +81,20 @@
 |------|------|----|----|-----|--------|---------|
 | defect | 7 | 1 | 5 | 1 | 7 (P0:1, P1:5, P2:1) | 0 |
 | assumption | 7 | 0 | 0 | 7 | 7 (P2:7) | 0 |
-| quality | 22 | 0 | 10 | 12 | 18 (P1:10, P2:8) | 2 (P2: GAP-037, GAP-038) |
-| scope | 6 | 0 | 4 | 2 | 4 (P1:2, P2:2) | 2 (P1: GAP-033, GAP-034) |
-| **合計** | **42** | **1** | **19** | **22** | **36** | **4** |
+| quality | 22 | 0 | 10 | 12 | 22 (P1:10, P2:12) | 0 |
+| scope | 6 | 0 | 4 | 2 | 6 (P1:4, P2:2) | 0 |
+| **合計** | **42** | **1** | **19** | **22** | **42** | **0** |
 
-> **2026-04-14/15 更新（Sprint F-0〜F-7 通過）**:
-> **42件中 36件完全解決 + 4件部分解決 = 40件（95%）**。未解決 0件。
-> 部分解決4件はいずれも **設計書完成、実装は次期スプリント**:
->   - GAP-033: D-BUILDER-INTEGRATION.md 完成、Builder-CLI 統合実装は将来
->   - GAP-034: drift-check 簡易版実装、完全 Pact CI 化は将来
->   - GAP-037: D-LEARNING-REFACTOR.md 完成、2000行 → 3ファイル分割実装は次期
->   - GAP-038: D-RESILIENCE.md 完成、Codex フォールバック実装は次期
-> Closure Rate: **95.2%**（`helix reverse rgc` で確認）
+> **2026-04-15 更新（Sprint F-0〜F-7 + Phase 3 全通過）**:
+> 🎉 **42件中 42件 完全解決（100%）**。未解決・部分解決ともに 0件。
+>
+> Phase 3 追加対応:
+> - GAP-033: Builder-CLI `info` サブコマンド実装（D-BUILDER-INTEGRATION.md 加え）
+> - GAP-034: GitHub Actions PR統合 + pre-commit hook 連動で drift-check を自動発火
+> - GAP-037: `learning/` facade package 実装（core/metrics/recipe 公開、後方互換維持）
+> - GAP-038: `--max-retries`/`--fallback-model` 実装 + エラー分類 + エクスポバックオフ
+>
+> Closure Rate: **100%**（`helix reverse rgc` で確認）
 
 ### 2.2 Forward 接続先分布
 

@@ -46,7 +46,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db", required=True, help="helix db path")
 
     parser.add_argument("target", help="list or builder type")
-    parser.add_argument("action", nargs="?", help="schema/generate/validate/history")
+    parser.add_argument("action", nargs="?", help="schema/info/generate/validate/history")
 
     parser.add_argument("--input", dest="input_payload", help="input JSON text or file path")
     parser.add_argument("--seed", dest="seed_execution_id", help="seed execution id")
@@ -91,6 +91,25 @@ def _cmd_schema(builder_type: str):
     builder_cls = BuilderRegistry.get(builder_type)
     schema = getattr(builder_cls, "INPUT_SCHEMA", {})
     _print_json(schema)
+
+
+def _cmd_info(builder_type: str):
+    """GAP-033: ビルダーの詳細情報（クラス名/モジュール/スキーマ要件/docstring）を表示."""
+    builder_cls = BuilderRegistry.get(builder_type)
+    schema = getattr(builder_cls, "INPUT_SCHEMA", {})
+    required_fields = schema.get("required", []) if isinstance(schema, dict) else []
+    properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+
+    info = {
+        "builder_type": builder_type,
+        "class_name": builder_cls.__name__,
+        "module": builder_cls.__module__,
+        "docstring": (builder_cls.__doc__ or "").strip() or None,
+        "required_fields": required_fields,
+        "all_fields": sorted(properties.keys()) if isinstance(properties, dict) else [],
+        "base_class": builder_cls.__bases__[0].__name__ if builder_cls.__bases__ else None,
+    }
+    _print_json(info)
 
 
 def _cmd_generate(
@@ -170,6 +189,10 @@ def main() -> int:
 
     if args.action == "schema":
         _cmd_schema(builder_type)
+        return 0
+
+    if args.action == "info":
+        _cmd_info(builder_type)
         return 0
 
     if args.action == "generate":

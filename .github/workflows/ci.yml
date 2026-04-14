@@ -37,3 +37,31 @@ jobs:
       - name: Run pytest (if tests exist)
         if: ${{ hashFiles('cli/lib/tests/**') != '' }}
         run: python3 -m pytest cli/lib/tests/ -v || true
+
+      # GAP-034: drift-check を PR で変更された D-API/D-CONTRACT/D-DB ファイルに対して実行
+      - name: Detect changed design files
+        if: github.event_name == 'pull_request'
+        id: changed
+        run: |
+          # base と head の差分から D-API/D-CONTRACT/D-DB ファイルを検出
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null | grep -E '^(D-API|D-CONTRACT|D-DB|docs/D-API|docs/D-CONTRACT|docs/D-DB)/' || true)
+          if [[ -n "$changed_files" ]]; then
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$changed_files" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run drift-check on changed design files
+        if: github.event_name == 'pull_request' && steps.changed.outputs.has_changes == 'true'
+        run: |
+          echo "=== Drift Check ==="
+          echo "${{ steps.changed.outputs.files }}" | while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            echo ""
+            echo "--- $file ---"
+            bash cli/helix-drift-check "$file" || true
+          done
