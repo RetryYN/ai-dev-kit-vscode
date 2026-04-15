@@ -230,10 +230,25 @@ def _codex_dict(role: str) -> dict:
     }
 
 
+def _ensure_db_schema(conn: sqlite3.Connection) -> None:
+    """helix_db のマイグレーションを適用し、DB を最新スキーマに揃える。"""
+    try:
+        import helix_db
+    except ImportError:
+        return
+    try:
+        # schema_version テーブルが無い DB への対応
+        conn.executescript(getattr(helix_db, "SCHEMA_VERSION_SCHEMA", ""))
+        helix_db.migrate(conn)
+    except Exception as e:
+        sys.stderr.write(f"警告: DB マイグレーション失敗: {e}\n")
+
+
 def _insert_usage(db_path: Path, row: dict) -> int:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:
+        _ensure_db_schema(conn)
         cols = list(row.keys())
         placeholders = ", ".join(["?"] * len(cols))
         sql = f"INSERT INTO skill_usage ({', '.join(cols)}) VALUES ({placeholders})"
@@ -249,8 +264,14 @@ def _update_usage(db_path: Path, usage_id: int, fields: dict) -> None:
         return
     conn = sqlite3.connect(str(db_path))
     try:
-        sets = ", ".join(f"{k} = ?" for k in fields)
-        values = list(fields.values()) + [usage_id]
+        _ensure_db_schema(conn)
+        # 未知のカラムを skip してエラー回避（旧 DB がマイグレで列追加されるまでの保険）
+        existing_cols = {r[1] for r in conn.execute("PRAGMA table_info(skill_usage)")}
+        safe_fields = {k: v for k, v in fields.items() if k in existing_cols}
+        if not safe_fields:
+            return
+        sets = ", ".join(f"{k} = ?" for k in safe_fields)
+        values = list(safe_fields.values()) + [usage_id]
         conn.execute(f"UPDATE skill_usage SET {sets} WHERE id = ?", values)
         conn.commit()
     finally:
