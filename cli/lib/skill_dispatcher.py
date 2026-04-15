@@ -237,9 +237,18 @@ def _ensure_db_schema(conn: sqlite3.Connection) -> None:
     except ImportError:
         return
     try:
-        # schema_version テーブルが無い DB への対応
+        # 可能なら helix_db 側の初期化ルーチンをそのまま使う
+        ensure_schema = getattr(helix_db, "_ensure_schema", None)
+        if callable(ensure_schema):
+            ensure_schema(conn)
+            return
+
+        # fallback: 空 DB でも基礎テーブル + schema_version + migrate を揃える
+        conn.executescript(getattr(helix_db, "SCHEMA", ""))
         conn.executescript(getattr(helix_db, "SCHEMA_VERSION_SCHEMA", ""))
-        helix_db.migrate(conn)
+        migrate = getattr(helix_db, "migrate", None)
+        if callable(migrate):
+            migrate(conn)
     except Exception as e:
         sys.stderr.write(f"警告: DB マイグレーション失敗: {e}\n")
 
@@ -340,7 +349,7 @@ def dispatch(
             f"を呼び出してください。\n\n"
             f"スキル: {skill_id}\n"
             f"タスク: {task_text}\n"
-            f"Context bundle は skill_usage.id={usage_id} に記録済み。"
+            f"skill_usage に usage_id={usage_id} を記録しました。"
         )
         _update_usage(db_path, usage_id, {
             "outcome": "delegated_via_mention",

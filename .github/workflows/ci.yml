@@ -34,9 +34,13 @@ jobs:
       - name: Run helix-verify-all
         run: bash cli/helix-verify-all
 
-      - name: Run pytest (if tests exist)
+      - name: Install pytest
         if: ${{ hashFiles('cli/lib/tests/**') != '' }}
-        run: python3 -m pytest cli/lib/tests/ -v || true
+        run: python3 -m pip install --quiet pytest
+
+      - name: Run pytest
+        if: ${{ hashFiles('cli/lib/tests/**') != '' }}
+        run: python3 -m pytest cli/lib/tests/ -v
 
       # GAP-034: drift-check を PR で変更された D-API/D-CONTRACT/D-DB ファイルに対して実行
       - name: Detect changed design files

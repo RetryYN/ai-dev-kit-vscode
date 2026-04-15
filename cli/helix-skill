@@ -26,7 +26,11 @@ run_py_with_json() {
   local json="$1"
   local tmpf rc
   tmpf=$(mktemp "${TMPDIR:-/tmp}/helix-skill-payload.XXXXXX") || return 3
-  printf '%s' "$json" > "$tmpf"
+  # 明示削除 (trap RETURN は dynamic scope で親関数の戻りも拾い set -u 下で誤発火するため使わない)
+  if ! printf '%s' "$json" > "$tmpf"; then
+    rm -f "$tmpf"
+    return 3
+  fi
   set +e
   HELIX_PAYLOAD_FILE="$tmpf" python3 -
   rc=$?
@@ -134,7 +138,7 @@ run_dispatcher_dispatch() {
   fi
 
   local output err_file rc
-  err_file=$(mktemp "${TMPDIR:-/tmp}/helix-skill-err.XXXXXX")
+  err_file=$(mktemp "${TMPDIR:-/tmp}/helix-skill-err.XXXXXX") || return 3
   set +e
   output=$(cd "$SCRIPT_DIR" && "${cmd[@]}" 2>"$err_file")
   rc=$?
@@ -143,7 +147,8 @@ run_dispatcher_dispatch() {
     echo "エラー: skill_dispatcher の実行に失敗しました (exit=$rc)" >&2
     [[ -s "$err_file" ]] && cat "$err_file" >&2
     rm -f "$err_file"
-    return 3
+    # dispatcher の exit code をそのまま伝搬 (7=unknown skill / 5=timeout / 3=prereq 等)
+    return $rc
   fi
   # dispatcher からの警告 (path traversal 拒否等) は stderr に出ているので転送
   [[ -s "$err_file" ]] && cat "$err_file" >&2
@@ -151,7 +156,7 @@ run_dispatcher_dispatch() {
 
   if ! printf '%s' "$output" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
     echo "エラー: skill_dispatcher の応答 JSON を解析できませんでした" >&2
-    return 3
+    return 4
   fi
 
   printf '%s\n' "$output"
@@ -201,11 +206,11 @@ size_text = str(bundle_size) if isinstance(bundle_size, int) else "unknown"
 
 print(f"スキル: {skill_id}")
 print(f"委譲先: {agent_invoke} ({agent_type}, is_claude_native={str(is_claude_native).lower()})")
-print(f"References ({len(refs)}):")
+print(f"参考資料 ({len(refs)}):")
 for ref in refs:
     print(f"  - {ref}")
-print(f"Context Bundle size: {size_text}")
-print("(plan_only モード — 実行しません)")
+print(f"コンテキスト束: {size_text} 行")
+print("(dry-run モード — 実行しません)")
 PY
 }
 
@@ -259,7 +264,8 @@ if is_codex:
     raise SystemExit(0)
 
 if agent_invoke:
-    print(f"@{agent_invoke} を呼び出してください")
+    # agent_invoke は既に "@fe-design" または "helix-codex --role X" 形式で渡ってくる
+    print(f"{agent_invoke} を呼び出してください")
 else:
     print("@subagent を呼び出してください")
 if bundle_path:
@@ -275,7 +281,38 @@ use_skill() {
   local dry_run="$3"
   local as_json="$4"
   local force_agent="$5"
-  local force_references="$6"
+  shift 5
+  # 残り引数は references 配列（各要素を独立して検証可能、, を含むパスも安全）
+  local -a refs_array=("$@")
+
+  # dispatcher への受け渡しは CSV だが、事前に安全性チェック:
+  #   - bash 側 path traversal 検証 (2 層防御、dispatcher 側に加えて)
+  #   - ref にカンマが含まれる場合は警告してスキップ
+  local -a safe_refs=()
+  local r
+  for r in "${refs_array[@]}"; do
+    if [[ -z "$r" ]]; then
+      continue
+    fi
+    if [[ "$r" == *,* ]]; then
+      echo "警告: reference にカンマが含まれるためスキップしました: $r" >&2
+      continue
+    fi
+    if [[ "$r" == /* ]]; then
+      echo "警告: 絶対パス指定の reference は拒否しました (bash 側): $r" >&2
+      continue
+    fi
+    if [[ "$r" == *..* ]]; then
+      echo "警告: parent 参照を含む reference は拒否しました (bash 側): $r" >&2
+      continue
+    fi
+    safe_refs+=("$r")
+  done
+  local force_references=""
+  if [[ ${#safe_refs[@]} -gt 0 ]]; then
+    printf -v force_references '%s,' "${safe_refs[@]}"
+    force_references="${force_references%,}"
+  fi
 
   local dispatch_json
   dispatch_json=$(run_dispatcher_dispatch "$skill_id" "$task" "$dry_run" "$force_agent" "$force_references") || return $?
@@ -319,16 +356,15 @@ chain_skill() {
     return 3
   fi
 
-  local parsed
-  parsed=$(run_py_with_json "$rec_json" <<'PY'
+  # Python 側は JSON で構造化出力し、Bash 側は一時ファイル経由で個別フィールドを取り出す
+  # (改行区切りでは summary/reason に改行が入ると列崩れするため)
+  local parsed_json
+  parsed_json=$(run_py_with_json "$rec_json" <<'PY'
 import json
 import os
 with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
     d = json.load(_f)
 cands = d.get("candidates") or []
-has = "1" if cands else "0"
-reason = (d.get("no_match_reason") or "該当スキルが見つかりませんでした。").strip()
-summary = (d.get("task_summary") or "").strip()
 if cands:
     c = cands[0] if isinstance(cands[0], dict) else {}
     skill_id = (c.get("skill_id") or "").strip()
@@ -341,36 +377,90 @@ if cands:
     if not isinstance(refs, list):
         refs = []
     refs = [str(x).strip() for x in refs if str(x).strip()]
-    refs_csv = ",".join(refs)
-    selected_line = f"[{skill_id}] score {score:.2f}  agent: {agent}"
+    out = {
+        "has_candidate": True,
+        "summary": (d.get("task_summary") or "").strip(),
+        "skill_id": skill_id,
+        "agent": agent,
+        "score": score,
+        "references": refs,
+        "selected_line": f"[{skill_id}] score {score:.2f}  agent: {agent}",
+    }
 else:
-    skill_id = agent = refs_csv = selected_line = ""
-print(has)
-print(reason)
-print(summary)
-print(selected_line)
-print(skill_id)
-print(agent)
-print(refs_csv)
+    out = {
+        "has_candidate": False,
+        "no_match_reason": (d.get("no_match_reason") or "該当スキルが見つかりませんでした。").strip(),
+        "summary": (d.get("task_summary") or "").strip(),
+    }
+print(json.dumps(out, ensure_ascii=False))
 PY
 )
 
-  local -a fields=()
-  mapfile -t fields <<< "$parsed"
-  local has_candidate="${fields[0]:-0}"
+  # JSON から個別フィールドを抽出（一時ファイル経由で大 JSON にも耐える）
+  local has_candidate
+  has_candidate=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    d = json.load(_f)
+print("1" if d.get("has_candidate") else "0")
+PY
+)
+
   if [[ "$has_candidate" != "1" ]]; then
-    local reason="${fields[1]:-該当スキルが見つかりませんでした。}"
-    echo "=== Search ==="
+    local reason
+    reason=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    d = json.load(_f)
+print(d.get("no_match_reason", "該当スキルが見つかりませんでした。"))
+PY
+)
+    echo "=== 検索 ==="
     echo "検索: $task"
     echo "候補なし: $reason"
     return 0
   fi
 
-  local summary="${fields[2]:-}"
-  local selected_line="${fields[3]:-}"
-  local skill_id="${fields[4]:-}"
-  local selected_agent="${fields[5]:-}"
-  local references_csv="${fields[6]:-}"
+  local summary selected_line skill_id selected_agent
+  summary=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    print(json.load(_f).get("summary", ""))
+PY
+)
+  selected_line=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    print(json.load(_f).get("selected_line", ""))
+PY
+)
+  skill_id=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    print(json.load(_f).get("skill_id", ""))
+PY
+)
+  selected_agent=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    print(json.load(_f).get("agent", ""))
+PY
+)
+
+  # references を bash 配列として受け取る（改行区切り、空行は除外）
+  local -a refs_array=()
+  local refs_nl
+  refs_nl=$(run_py_with_json "$parsed_json" <<'PY'
+import json, os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    for r in json.load(_f).get("references", []) or []:
+        if r and "\n" not in r:
+            print(r)
+PY
+)
+  if [[ -n "$refs_nl" ]]; then
+    mapfile -t refs_array <<< "$refs_nl"
+  fi
 
   if [[ -z "$summary" ]]; then
     summary="$task"
@@ -381,13 +471,13 @@ PY
     use_agent="$selected_agent"
   fi
 
-  echo "=== Search ==="
+  echo "=== 検索 ==="
   echo "検索: $summary"
   echo "選定: $selected_line"
   echo ""
-  echo "=== Use ==="
+  echo "=== 委譲 ==="
 
-  use_skill "$skill_id" "$task" "$dry_run" "false" "$use_agent" "$references_csv"
+  use_skill "$skill_id" "$task" "$dry_run" "false" "$use_agent" "${refs_array[@]}"
 }
 
 rebuild_catalog() {
@@ -793,7 +883,13 @@ main() {
         esac
       done
       [[ -n "$task" ]] || { echo "エラー: --task は必須です" >&2; use_usage >&2; return 64; }
-      use_skill "$skill_id" "$task" "$dry_run" "$as_json" "$force_agent" "$force_references"
+      # --references は CSV 入力を bash 配列に展開して use_skill に可変長で渡す
+      # (use_skill 内で各要素を個別に検証 + 安全に dispatcher へ再エンコード)
+      local -a cli_refs_array=()
+      if [[ -n "$force_references" ]]; then
+        IFS=',' read -ra cli_refs_array <<< "$force_references"
+      fi
+      use_skill "$skill_id" "$task" "$dry_run" "$as_json" "$force_agent" "${cli_refs_array[@]}"
       return $?
       ;;
     chain)

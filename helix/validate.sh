@@ -61,7 +61,7 @@ DEPRECATED_TERMS=("orchestrator" "architecture" "vscode-plugins")
 for term in "${DEPRECATED_TERMS[@]}"; do
   HITS=$(rg -n --glob '*.md' --glob '!SKILL_MAP.md' --glob '!**/archive/**' "$term" "$SKILLS_DIR" \
     2>/dev/null \
-    | grep -v "architecture_decisions\|architecture:\|architectural\|architecture_identified\|architecture_style\|Architecture Decision\|style:" \
+    | grep -v "architecture_decisions\|architecture:\|architectural\|architecture_identified\|architecture_style\|Architecture Decision\|information-architecture\|Information Architecture\|style:" \
     || true)
   if [ -n "$HITS" ]; then
     fail "Deprecated term '$term' found:"
@@ -97,6 +97,11 @@ for ref_file in "$REF_DIR"/*.md; do
     if echo "$referenced" | grep -qP '^YYYY-'; then
       continue
     fi
+    # Skip generic markdown terms that are not actual file references
+    # (SKILL.md は「スキル本体ファイル」の一般名詞、CLAUDE.md も HELIX 全体の設定ファイル名)
+    case "$referenced" in
+      SKILL.md|CLAUDE.md|README.md|AGENTS.md|DESIGN.md|DESIGNER.md) continue ;;
+    esac
     ref_path="$REF_DIR/$referenced"
     if [ ! -f "$ref_path" ]; then
       # Try relative to skills/

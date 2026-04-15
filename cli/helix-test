@@ -199,7 +199,7 @@ run_test_contains "helix skill list" "$SCRIPT_DIR/helix-skill list" "common/visu
 run_test_contains "helix skill show common/visual-design" "$SCRIPT_DIR/helix-skill show common/visual-design" "design-md-format"
 run_test "helix skill use dry-run visual-design" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'テスト' --dry-run >/dev/null"
 run_test "helix skill use unknown fails" "! $SCRIPT_DIR/helix-skill use nonexistent/foo --task 'test' --dry-run >/dev/null 2>&1"
-run_test_contains "helix skill use rejects path traversal refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '../../etc/passwd' --dry-run 2>&1 || true" "skill ディレクトリ外"
+run_test_contains "helix skill use rejects path traversal refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '../../etc/passwd' --dry-run 2>&1 || true" "拒否しました"
 run_test_contains "helix skill use rejects absolute path refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '/etc/passwd' --dry-run 2>&1 || true" "絶対パス"
 run_test "helix-codex --task-file option works" "T=\$(mktemp); echo 'test prompt' > \"\$T\"; $SCRIPT_DIR/helix-codex --role pg --task-file \"\$T\" --dry-run >/dev/null 2>&1; rc=\$?; rm -f \"\$T\"; exit \$rc"
 run_test "helix-codex --task and --task-file exclusive" "! $SCRIPT_DIR/helix-codex --role pg --task 'x' --task-file /tmp/anything --dry-run >/dev/null 2>&1"

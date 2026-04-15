@@ -658,6 +658,7 @@ command_next() {
     if [[ -z "$next_step" ]]; then
       set_sprint_step "completed"
       next_step="completed"
+      echo "[helix-sprint] $current 完了 — Sprint 完了"
       run_g4_static_check
     else
       set_sprint_step "$next_step"

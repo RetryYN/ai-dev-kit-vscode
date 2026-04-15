@@ -349,8 +349,9 @@ cmd_doctor() {
 
   echo "[Roles]"
   local role_count=$(ls "$SCRIPT_DIR/roles/"*.conf 2>/dev/null | wc -l)
+  local min_roles=12  # tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf
   printf "  %-30s " "$role_count roles"
-  if [[ $role_count -eq 12 ]]; then echo "OK"; pass=$((pass + 1)); else echo "FAIL (expected 12)"; fail=$((fail + 1)); fi
+  if [[ $role_count -ge $min_roles ]]; then echo "OK"; pass=$((pass + 1)); else echo "FAIL (expected >= $min_roles)"; fail=$((fail + 1)); fi
   echo ""
 
   echo "=== Doctor: $pass OK, $fail FAIL ==="

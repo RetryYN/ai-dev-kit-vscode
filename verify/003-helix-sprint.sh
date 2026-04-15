@@ -9,6 +9,7 @@ DIR=$(mktemp -d /tmp/helix-verify-XXXXXX)
 trap 'rm -rf "$DIR"' EXIT
 
 cp -a "$CLI_SRC" "$DIR/cli"
+export HELIX_HOME="$DIR"
 CLI="$DIR/cli"
 
 cd "$DIR"

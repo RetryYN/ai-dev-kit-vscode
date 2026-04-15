@@ -143,9 +143,8 @@ get_default_thinking() {
   esac
 }
 
-if [[ -z "$THINKING" ]]; then
-  THINKING="$(get_default_thinking "$ROLE")"
-fi
+# 注: THINKING の決定は ROLE_FILE 読み込み後に行う
+# (CLI --thinking > conf の codex_thinking > ロール別デフォルト の優先順位)
 
 if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
   echo "エラー: 無効な --timeout 値です: '$TIMEOUT'（正の整数秒を指定）" >&2
@@ -168,11 +167,21 @@ fi
 
 # conf ファイルから値を抽出
 codex_model=$(grep '^codex_model=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
+codex_thinking=$(grep '^codex_thinking=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
 system_prompt=$(grep '^system_prompt=' "$ROLE_FILE_REAL" | sed 's/^system_prompt="//' | sed 's/"$//' || true)
 
 if [[ -z "$codex_model" ]]; then
   echo "エラー: $ROLE_FILE_REAL に codex_model が定義されていません" >&2
   exit 1
+fi
+
+# --- THINKING 決定 (CLI --thinking > conf の codex_thinking > ロール別デフォルト) ---
+if [[ -z "$THINKING" ]]; then
+  if [[ -n "$codex_thinking" ]]; then
+    THINKING="$codex_thinking"
+  else
+    THINKING="$(get_default_thinking "$ROLE")"
+  fi
 fi
 
 # --- 配列抽出関数 ---
