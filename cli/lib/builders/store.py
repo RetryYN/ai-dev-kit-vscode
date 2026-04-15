@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+from redaction import redact_value
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS builder_executions (
@@ -51,33 +52,6 @@ _JSON_COLUMNS = {
     "step_trace_json": "step_trace",
     "validation_summary_json": "validation_summary",
 }
-
-_REDACTION_TOKENS = (
-    "/home",
-    "password",
-    "token",
-    "secret",
-    "key",
-    "credential",
-    "authorization",
-    "bearer",
-    "api_key",
-    "api-key",
-    "apikey",
-    "access_token",
-    "refresh_token",
-    "private_key",
-    "ssh-rsa",
-    "-----begin",
-)
-
-_REDACTION_PATTERNS = (
-    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]+\b", re.IGNORECASE),
-    re.compile(r"\bsk-[A-Za-z0-9._-]+\b"),
-    re.compile(r"\bghp_[A-Za-z0-9]+\b"),
-    re.compile(r"\bxoxb-[A-Za-z0-9-]+\b"),
-    re.compile(r"\bxoxp-[A-Za-z0-9-]+\b"),
-)
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
@@ -322,29 +296,5 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _should_redact(text: str) -> bool:
-    lowered = text.lower()
-    if any(token in lowered for token in _REDACTION_TOKENS):
-        return True
-    return any(pattern.search(text) for pattern in _REDACTION_PATTERNS)
-
-
 def _redact(value: Any, key_hint: str = "") -> Any:
-    if isinstance(key_hint, str) and key_hint and _should_redact(key_hint):
-        return "[REDACTED]"
-
-    if isinstance(value, str):
-        if _should_redact(value):
-            return "[REDACTED]"
-        return value
-
-    if isinstance(value, dict):
-        return {str(key): _redact(item, key_hint=str(key)) for key, item in value.items()}
-
-    if isinstance(value, list):
-        return [_redact(item, key_hint=key_hint) for item in value]
-
-    if isinstance(value, tuple):
-        return [_redact(item, key_hint=key_hint) for item in value]
-
-    return value
+    return redact_value(value, key_hint=key_hint, extra_tokens=("key",), tuple_as_list=True)

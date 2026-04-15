@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from redaction import redact_value
 import skill_catalog
 
 
@@ -334,7 +335,7 @@ def dispatch(
         }
 
     row = {
-        "task_text": task_text,
+        "task_text": redact_value(task_text),
         "skill_id": skill_id,
         "references_used": json.dumps(references or [], ensure_ascii=False),
         "agent_used": agent["invoke"],
@@ -393,8 +394,8 @@ def dispatch(
         outcome = "delegated" if proc.returncode == 0 else "failed"
         _update_usage(db_path, usage_id, {
             "outcome": outcome,
-            "result_stdout": proc.stdout,
-            "result_stderr": proc.stderr,
+            "result_stdout": redact_value(proc.stdout),
+            "result_stderr": redact_value(proc.stderr),
             "completed_at": datetime.now().isoformat(),
         })
         return {

@@ -17,35 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from redaction import redact_value
+
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
-
-_REDACTION_TOKENS = (
-    "password",
-    "passwd",
-    "token",
-    "secret",
-    "apikey",
-    "api_key",
-    "api-key",
-    "access_token",
-    "refresh_token",
-    "private_key",
-    "credential",
-    "authorization",
-    "bearer",
-    "ssh-rsa",
-    "-----begin",
-    "/home",
-)
-
-_REDACTION_PATTERNS = (
-    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]+\b", re.IGNORECASE),
-    re.compile(r"\bsk-[A-Za-z0-9._-]+\b"),
-    re.compile(r"\bghp_[A-Za-z0-9]+\b"),
-    re.compile(r"\bxox[bap]-[A-Za-z0-9-]+\b", re.IGNORECASE),
-)
 
 _KEY_VALUE_PATTERN = re.compile(r"([a-zA-Z0-9_\-.]+)=([^\s,;]+)")
 _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
@@ -134,41 +110,7 @@ def _truncate(text: str, limit: int = 220) -> str:
 
 
 def _redact(value: Any, stats: dict[str, int] | None = None) -> Any:
-    if isinstance(value, dict):
-        redacted = {}
-        for key, item in value.items():
-            key_lower = str(key).lower()
-            if any(token in key_lower for token in _REDACTION_TOKENS):
-                if stats is not None:
-                    stats["count"] = stats.get("count", 0) + 1
-                redacted[str(key)] = "[REDACTED]"
-            else:
-                redacted[str(key)] = _redact(item, stats)
-        return redacted
-
-    if isinstance(value, list):
-        return [_redact(item, stats) for item in value]
-
-    if isinstance(value, tuple):
-        return tuple(_redact(item, stats) for item in value)
-
-    if not isinstance(value, str):
-        return value
-
-    candidate = value
-    for pattern in _REDACTION_PATTERNS:
-        if pattern.search(candidate):
-            if stats is not None:
-                stats["count"] = stats.get("count", 0) + 1
-            return "[REDACTED]"
-
-    lowered = candidate.lower()
-    if any(token in lowered for token in _REDACTION_TOKENS):
-        if stats is not None:
-            stats["count"] = stats.get("count", 0) + 1
-        return "[REDACTED]"
-
-    return candidate
+    return redact_value(value, stats=stats)
 
 
 def _extract_parameters(action_desc: str, evidence: str, stats: dict[str, int]) -> dict[str, Any]:
