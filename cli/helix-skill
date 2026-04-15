@@ -3,15 +3,16 @@ set -euo pipefail
 
 # helix-skill: スキル catalog の管理・表示・検索
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+HELIX_SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HELIX_SKILL_DIR/lib/helix-common.sh"
 
-LIB_DIR="$SCRIPT_DIR/lib"
+LIB_DIR="$HELIX_SKILL_DIR/lib"
 CATALOG_PY="$LIB_DIR/skill_catalog.py"
 RECOMMENDER_PY="$LIB_DIR/skill_recommender.py"
 DISPATCHER_MODULE="lib.skill_dispatcher"
 CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.json"
 RECOMMEND_CACHE_DIR="$PROJECT_ROOT/.helix/cache/recommendations"
-SKILLS_ROOT="${HELIX_SKILLS_ROOT:-$HOME/ai-dev-kit-vscode/skills}"
+SKILLS_ROOT="${HELIX_SKILLS_ROOT:-${HELIX_HOME:-$HOME/ai-dev-kit-vscode}/skills}"
 
 # bash↔Python 境界で巨大 JSON を受け渡すヘルパー。
 # 使用例:
@@ -98,7 +99,7 @@ USAGE
 }
 
 dispatcher_available() {
-  (cd "$SCRIPT_DIR" && python3 - <<'PY'
+  (cd "$HELIX_SKILL_DIR" && python3 - <<'PY'
 import importlib.util
 import sys
 
@@ -140,7 +141,7 @@ run_dispatcher_dispatch() {
   local output err_file rc
   err_file=$(mktemp "${TMPDIR:-/tmp}/helix-skill-err.XXXXXX") || return 3
   set +e
-  output=$(cd "$SCRIPT_DIR" && "${cmd[@]}" 2>"$err_file")
+  output=$(cd "$HELIX_SKILL_DIR" && "${cmd[@]}" 2>"$err_file")
   rc=$?
   set -e
   if [[ $rc -ne 0 ]]; then
@@ -984,7 +985,7 @@ USAGE
       if [[ "$as_json" == "true" ]]; then
         stats_cmd+=(--json)
       fi
-      (cd "$SCRIPT_DIR" && "${stats_cmd[@]}")
+      (cd "$HELIX_SKILL_DIR" && "${stats_cmd[@]}")
       return $?
       ;;
     *)
