@@ -236,7 +236,27 @@ src/
 4. コード参照の最適化
    ファイル全体 ❌
    関連部分のみ ✅
+
+5. LLM ベース選定（helix skill search）
+   全スキル手動選定 ❌
+   gpt-5.4-mini で top N 自動選定 ✅
 ```
+
+### スキル自動推挙（gpt-5.4-mini）
+
+全 55 スキル + 75+ references から LLM マッチングで最適なコンテキストを選定:
+
+```bash
+helix skill search "<タスク記述>" -n 5       # top N 候補 + 推奨 agent + 関連 references
+helix skill chain  "<タスク記述>" [--dry-run]  # search → use 一気通貫
+helix skill use <id> --task "..." --dry-run    # context bundle を plan 表示
+```
+
+**効果**: SKILL.md を手動で選ぶ代わりに、タスク記述 → 最適 skill + references 配列を 1 秒未満で取得。推挙結果は 1 時間キャッシュ。
+
+**委譲自動化**: `helix skill use` が recommender の選んだ agent（サブエージェント @fe-* / Codex ロール）へ context bundle 込みで委譲する。
+
+詳細: [SKILL_MAP.md §自動推挙システム](../../SKILL_MAP.md)
 
 ---
 

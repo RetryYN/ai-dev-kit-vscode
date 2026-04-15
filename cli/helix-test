@@ -190,6 +190,42 @@ run_test "retro list exits 0" "$SCRIPT_DIR/helix retro list"
 run_test "debt add roundtrip" "$SCRIPT_DIR/helix debt add --title 'helix-test debt sample' --priority medium --source 'cli/helix-test'"
 run_test_contains "debt list contains added item" "$SCRIPT_DIR/helix debt list" "helix-test debt sample"
 run_test "doctor exits 0 with mocked sqlite3" "D=\$(mktemp -d); printf '%b' '#!/bin/bash\nexit 0\n' > \"\$D/sqlite3\"; chmod +x \"\$D/sqlite3\"; PATH=\"\$D:\$PATH\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" HELIX_HOME=\"$HELIX_HOME\" $SCRIPT_DIR/helix doctor >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+run_test "helix skill help" "$SCRIPT_DIR/helix-skill --help" 0
+run_test "helix skill search help" "$SCRIPT_DIR/helix-skill search --help 2>&1 || true" 0
+run_test "helix skill use help" "$SCRIPT_DIR/helix-skill use --help 2>&1 || true" 0
+run_test "helix skill chain help" "$SCRIPT_DIR/helix-skill chain --help 2>&1 || true" 0
+run_test_contains "helix skill catalog rebuild" "$SCRIPT_DIR/helix-skill catalog rebuild" "スキル"
+run_test_contains "helix skill list" "$SCRIPT_DIR/helix-skill list" "common/visual-design"
+run_test_contains "helix skill show common/visual-design" "$SCRIPT_DIR/helix-skill show common/visual-design" "design-md-format"
+run_test "helix skill use dry-run visual-design" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'テスト' --dry-run >/dev/null"
+run_test "helix skill use unknown fails" "! $SCRIPT_DIR/helix-skill use nonexistent/foo --task 'test' --dry-run >/dev/null 2>&1"
+run_test_contains "helix skill use rejects path traversal refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '../../etc/passwd' --dry-run 2>&1 || true" "skill ディレクトリ外"
+run_test_contains "helix skill use rejects absolute path refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '/etc/passwd' --dry-run 2>&1 || true" "絶対パス"
+run_test "helix-codex --task-file option works" "T=\$(mktemp); echo 'test prompt' > \"\$T\"; $SCRIPT_DIR/helix-codex --role pg --task-file \"\$T\" --dry-run >/dev/null 2>&1; rc=\$?; rm -f \"\$T\"; exit \$rc"
+run_test "helix-codex --task and --task-file exclusive" "! $SCRIPT_DIR/helix-codex --role pg --task 'x' --task-file /tmp/anything --dry-run >/dev/null 2>&1"
+run_test "helix-codex --task-file nonexistent file fails" "! $SCRIPT_DIR/helix-codex --role pg --task-file /tmp/definitely-nonexistent-abc123 --dry-run >/dev/null 2>&1"
+run_test "HELIX_DISPATCH_TIMEOUT env var honored" "HELIX_DISPATCH_TIMEOUT=42 python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import skill_dispatcher; assert skill_dispatcher._dispatch_timeout_seconds() == 42, \"expected 42\"'"
+run_test "HELIX_DISPATCH_TIMEOUT default" "python3 -c 'import os, sys; os.environ.pop(\"HELIX_DISPATCH_TIMEOUT\", None); sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import skill_dispatcher; assert skill_dispatcher._dispatch_timeout_seconds() == 300'"
+run_test "v5 to v6 migration adds stdout/stderr columns" "python3 -c 'import sqlite3, sys, tempfile, os; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import helix_db
+with tempfile.TemporaryDirectory() as d:
+    db=os.path.join(d,\"v5.db\")
+    c=sqlite3.connect(db)
+    c.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    c.execute(\"CREATE TABLE skill_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, task_text TEXT NOT NULL, skill_id TEXT NOT NULL, outcome TEXT)\")
+    c.execute(\"INSERT INTO skill_usage (task_text, skill_id, outcome) VALUES (?, ?, ?)\", (\"t\",\"x/y\",\"delegated\"))
+    c.execute(\"DELETE FROM schema_version\")
+    c.execute(\"INSERT INTO schema_version (version, applied_at) VALUES (5, datetime(\\\"now\\\"))\")
+    c.commit()
+    helix_db.migrate(c)
+    cols={r[1] for r in c.execute(\"PRAGMA table_info(skill_usage)\")}
+    assert \"result_stdout\" in cols, f\"missing result_stdout: {cols}\"
+    assert \"result_stderr\" in cols, f\"missing result_stderr: {cols}\"
+    v=c.execute(\"SELECT MAX(version) FROM schema_version\").fetchone()[0]
+    assert v == 6, f\"expected 6, got {v}\"
+    row=c.execute(\"SELECT task_text, skill_id FROM skill_usage\").fetchone()
+    assert row == (\"t\",\"x/y\"), f\"data not preserved: {row}\"
+    c.close()
+'"
 echo ""
 
 echo "[skill-docs]"

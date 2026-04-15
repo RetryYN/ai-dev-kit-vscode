@@ -200,3 +200,37 @@ automation/browser-script:
 2. 重複防止: 追加前に既存スキルとの重複確認
 3. 廃止済みスキル名: architecture / orchestrator / codex / vscode-plugins → **スキル名としての参照**禁止（ツール名 `codex review`・メタデータ `codex: true`・YAML キー `architecture:` は正当な用法）。検出: `rg -wn "orchestrator" skills/ --glob '!SKILL_MAP.md'`
 4. metadata.helix_layer 必須。description は具体的用途を記載（「〇〇関連」禁止）
+
+## 自動推挙システム（gpt-5.4-mini）
+
+全 55 スキル + 75+ references を LLM マッチングで自動推挙する CLI を搭載。
+
+```bash
+helix skill list [--layer L2] [--category common] [--json]
+helix skill show <skill-id> [--with-content]
+helix skill catalog rebuild             # SKILL.md frontmatter + references 冒頭 blockquote を parse
+helix skill search "<task>" [-n 5]      # Codex gpt-5.4-mini で推挙
+helix skill use <id> --task "..." [--dry-run] [--agent NAME] [--references PATHS]
+helix skill chain "<task>" [-n 1]       # search → use の一気通貫
+helix skill stats [--days 30]           # 使用統計（skill_usage テーブル）
+```
+
+### 推挙の仕組み
+- catalog: `.helix/cache/skill-catalog.json`（SKILL.md frontmatter + references 冒頭 `> 目的:` blockquote を機械抽出）
+- エンジン: `gpt-5.4-mini` (`cli/roles/recommender.conf`、thinking=low)
+- プロンプト: `cli/templates/skill-search-prompt.md`（9種の agent 決定マッピング含む）
+- キャッシュ: `.helix/cache/recommendations/<sha256>.json` で 1 時間保存
+- 使用履歴: `helix.db` (v5) の `skill_usage` テーブル
+
+### 委譲の自動化
+`helix skill use` は recommender が選んだ agent へ委譲する:
+- `fe-design` / `fe-component` / `fe-style` / `fe-test` / `fe-a11y` はネイティブサブエージェント（`@` mention 指示）
+- `tl` / `se` / `pg` / `qa` / `security` / `dba` / `devops` / `docs` / `research` / `legacy` / `perf` は Codex ロール（`helix-codex --role X --task "<bundle>\n\n<task>"` で自動実行）
+
+### 実装ファイル
+- `cli/lib/skill_catalog.py` — catalog 生成・読み込み（SKILL.md + references parser）
+- `cli/lib/skill_recommender.py` — Codex 呼び出し・キャッシュ
+- `cli/lib/skill_dispatcher.py` — context bundle 作成・委譲・DB 記録・stats
+- `cli/helix-skill` — bash ディスパッチャ (list/show/catalog/search/use/chain/stats)
+- `cli/roles/recommender.conf` — gpt-5.4-mini ロール定義
+- `cli/templates/skill-search-prompt.md` — LLM プロンプトテンプレート

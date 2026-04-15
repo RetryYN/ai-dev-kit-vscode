@@ -1,0 +1,902 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-skill: スキル catalog の管理・表示・検索
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+LIB_DIR="$SCRIPT_DIR/lib"
+CATALOG_PY="$LIB_DIR/skill_catalog.py"
+RECOMMENDER_PY="$LIB_DIR/skill_recommender.py"
+DISPATCHER_MODULE="lib.skill_dispatcher"
+CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.json"
+RECOMMEND_CACHE_DIR="$PROJECT_ROOT/.helix/cache/recommendations"
+SKILLS_ROOT="${HELIX_SKILLS_ROOT:-$HOME/ai-dev-kit-vscode/skills}"
+
+# bash↔Python 境界で巨大 JSON を受け渡すヘルパー。
+# 使用例:
+#   run_py_with_json "$json" <<'PY'
+#   import json, os
+#   with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+#       d = json.load(_f)
+#   ...
+#   PY
+# ARG_MAX 回避のため一時ファイル経由。env var には path だけ入る。
+run_py_with_json() {
+  local json="$1"
+  local tmpf rc
+  tmpf=$(mktemp "${TMPDIR:-/tmp}/helix-skill-payload.XXXXXX") || return 3
+  printf '%s' "$json" > "$tmpf"
+  set +e
+  HELIX_PAYLOAD_FILE="$tmpf" python3 -
+  rc=$?
+  set -e
+  rm -f "$tmpf"
+  return $rc
+}
+
+usage() {
+  cat <<'USAGE'
+使い方: helix skill <subcommand>
+
+Subcommands:
+  list [--layer LAYER] [--category CAT] [--json]  スキル一覧表示
+  show <skill-id> [--with-content]                スキル詳細表示
+  catalog rebuild                                 catalog を再生成
+  search "<task>" [-n N] [--layer L] [--category C] [--json] [--no-cache]
+  use <skill-id> --task "<task>" [--agent A] [--references R] [--dry-run] [--json]
+  chain "<task>" [-n N] [--dry-run] [--agent A] [--layer L] [--category C]
+  stats [--days N] [--json]                       スキル使用統計
+  --help                                          このヘルプ
+USAGE
+}
+
+search_usage() {
+  cat <<'USAGE'
+使い方: helix skill search "<task>" [-n N] [--layer L] [--category C] [--json] [--no-cache]
+
+Options:
+  -n N          上位候補数（デフォルト: 5）
+  --layer L     helix_layer フィルタ
+  --category C  category フィルタ
+  --json        JSON をそのまま出力
+  --no-cache    推挙キャッシュを無視
+  --help        search のヘルプ
+USAGE
+}
+
+use_usage() {
+  cat <<'USAGE'
+使い方: helix skill use <skill-id> --task "<task>" [--agent NAME] [--references PATHS] [--dry-run] [--json]
+
+Options:
+  --task "<task>"      実行タスク（必須）
+  --agent <name>       委譲先エージェントを強制指定
+  --references <paths> references パス（カンマ区切り）
+  --dry-run            実行せず plan のみ表示
+  --json               結果 JSON をそのまま出力
+  --help               use のヘルプ
+USAGE
+}
+
+chain_usage() {
+  cat <<'USAGE'
+使い方: helix skill chain "<task>" [-n N] [--dry-run] [--agent NAME] [--layer L] [--category C]
+
+Options:
+  -n, --top-n N        search の上位候補数（デフォルト: 1）
+  --dry-run            search + use(dry-run) を表示
+  --agent <name>       use 時のエージェントを強制指定
+  --layer L            search の helix_layer フィルタ
+  --category C         search の category フィルタ
+  --help               chain のヘルプ
+USAGE
+}
+
+dispatcher_available() {
+  (cd "$SCRIPT_DIR" && python3 - <<'PY'
+import importlib.util
+import sys
+
+spec = importlib.util.find_spec("lib.skill_dispatcher")
+sys.exit(0 if spec is not None else 1)
+PY
+  )
+}
+
+run_dispatcher_dispatch() {
+  local skill_id="$1"
+  local task="$2"
+  local dry_run="$3"
+  local agent="$4"
+  local references="$5"
+
+  if ! dispatcher_available; then
+    echo "エラー: skill_dispatcher が利用できません（lib.skill_dispatcher が未配置です）" >&2
+    return 3
+  fi
+
+  local -a cmd=(
+    python3 -m "$DISPATCHER_MODULE"
+    --mode dispatch
+    --skill-id "$skill_id"
+    --task "$task"
+    --json
+  )
+  if [[ "$dry_run" == "true" ]]; then
+    cmd+=(--dry-run)
+  fi
+  if [[ -n "$agent" ]]; then
+    cmd+=(--agent "$agent")
+  fi
+  if [[ -n "$references" ]]; then
+    cmd+=(--references "$references")
+  fi
+
+  local output err_file rc
+  err_file=$(mktemp "${TMPDIR:-/tmp}/helix-skill-err.XXXXXX")
+  set +e
+  output=$(cd "$SCRIPT_DIR" && "${cmd[@]}" 2>"$err_file")
+  rc=$?
+  set -e
+  if [[ $rc -ne 0 ]]; then
+    echo "エラー: skill_dispatcher の実行に失敗しました (exit=$rc)" >&2
+    [[ -s "$err_file" ]] && cat "$err_file" >&2
+    rm -f "$err_file"
+    return 3
+  fi
+  # dispatcher からの警告 (path traversal 拒否等) は stderr に出ているので転送
+  [[ -s "$err_file" ]] && cat "$err_file" >&2
+  rm -f "$err_file"
+
+  if ! printf '%s' "$output" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
+    echo "エラー: skill_dispatcher の応答 JSON を解析できませんでした" >&2
+    return 3
+  fi
+
+  printf '%s\n' "$output"
+}
+
+print_dispatch_dry_run() {
+  local payload="$1"
+  run_py_with_json "$payload" <<'PY'
+import json
+import os
+import pathlib
+import sys
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    d = json.load(_f)
+
+skill_id = str(d.get("skill_id") or d.get("skill", {}).get("id") or "")
+agent = d.get("agent") if isinstance(d.get("agent"), dict) else {}
+agent_invoke = str(agent.get("invoke") or d.get("recommended_agent") or "")
+agent_type = str(agent.get("type") or "")
+is_claude_native = bool(agent.get("is_claude_native", False))
+
+refs = d.get("references")
+if not isinstance(refs, list):
+    refs = []
+refs = [str(ref).strip() for ref in refs if str(ref).strip()]
+
+bundle = d.get("context_bundle")
+bundle_path = ""
+bundle_size = d.get("context_bundle_lines") or d.get("context_bundle_size")
+
+if isinstance(bundle, dict):
+    bundle_path = str(bundle.get("path") or "")
+    for key in ("line_count", "lines", "size", "size_lines", "line_size"):
+        value = bundle.get(key)
+        if isinstance(value, int):
+            bundle_size = value
+            break
+
+if not bundle_path:
+    bundle_path = str(d.get("context_bundle_path") or "")
+
+if not isinstance(bundle_size, int) and isinstance(bundle, str):
+    bundle_size = bundle.count("\n") + 1
+
+size_text = str(bundle_size) if isinstance(bundle_size, int) else "unknown"
+
+print(f"スキル: {skill_id}")
+print(f"委譲先: {agent_invoke} ({agent_type}, is_claude_native={str(is_claude_native).lower()})")
+print(f"References ({len(refs)}):")
+for ref in refs:
+    print(f"  - {ref}")
+print(f"Context Bundle size: {size_text}")
+print("(plan_only モード — 実行しません)")
+PY
+}
+
+print_dispatch_execute() {
+  local payload="$1"
+  run_py_with_json "$payload" <<'PY'
+import json
+import os
+import sys
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    d = json.load(_f)
+agent = d.get("agent") if isinstance(d.get("agent"), dict) else {}
+agent_invoke = str(agent.get("invoke") or d.get("recommended_agent") or "").strip()
+agent_type = str(agent.get("type") or "").strip()
+
+is_codex = agent_type == "codex" or agent_invoke == "codex"
+
+stdout = ""
+for source in (
+    d.get("execution"),
+    d.get("result"),
+):
+    if isinstance(source, dict) and isinstance(source.get("stdout"), str):
+        stdout = source.get("stdout", "")
+        if stdout:
+            break
+if not stdout and isinstance(d.get("stdout"), str):
+    stdout = d.get("stdout", "")
+
+usage_id = str(
+    d.get("usage_id")
+    or (d.get("usage", {}).get("id") if isinstance(d.get("usage"), dict) else "")
+    or ""
+).strip()
+
+bundle_path = ""
+bundle = d.get("context_bundle")
+if isinstance(bundle, dict):
+    bundle_path = str(bundle.get("path") or "")
+elif isinstance(bundle, str):
+    bundle_path = bundle
+if not bundle_path:
+    bundle_path = str(d.get("context_bundle_path") or "").strip()
+
+if is_codex:
+    if stdout.strip():
+        print(stdout.rstrip())
+    if usage_id:
+        print(f"usage_id: {usage_id}")
+    raise SystemExit(0)
+
+if agent_invoke:
+    print(f"@{agent_invoke} を呼び出してください")
+else:
+    print("@subagent を呼び出してください")
+if bundle_path:
+    print(f"context_bundle: {bundle_path}")
+if usage_id:
+    print(f"usage_id: {usage_id}")
+PY
+}
+
+use_skill() {
+  local skill_id="$1"
+  local task="$2"
+  local dry_run="$3"
+  local as_json="$4"
+  local force_agent="$5"
+  local force_references="$6"
+
+  local dispatch_json
+  dispatch_json=$(run_dispatcher_dispatch "$skill_id" "$task" "$dry_run" "$force_agent" "$force_references") || return $?
+
+  if [[ "$as_json" == "true" ]]; then
+    printf '%s\n' "$dispatch_json"
+    return 0
+  fi
+
+  if [[ "$dry_run" == "true" ]]; then
+    print_dispatch_dry_run "$dispatch_json"
+  else
+    print_dispatch_execute "$dispatch_json"
+  fi
+}
+
+chain_skill() {
+  local task="$1"
+  local top_n="$2"
+  local dry_run="$3"
+  local force_agent="$4"
+  local layer="$5"
+  local category="$6"
+
+  local -a rec_cmd=(python3 "$RECOMMENDER_PY" --task "$task" --top-n "$top_n" --json)
+  if [[ -n "$layer" ]]; then
+    rec_cmd+=(--layer "$layer")
+  fi
+  if [[ -n "$category" ]]; then
+    rec_cmd+=(--category "$category")
+  fi
+
+  local rec_json
+  if ! rec_json=$("${rec_cmd[@]}" 2>/dev/null); then
+    echo "エラー: スキル推挙に失敗しました" >&2
+    return 3
+  fi
+
+  if ! printf '%s' "$rec_json" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
+    echo "エラー: スキル推挙結果の JSON を解析できませんでした" >&2
+    return 3
+  fi
+
+  local parsed
+  parsed=$(run_py_with_json "$rec_json" <<'PY'
+import json
+import os
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    d = json.load(_f)
+cands = d.get("candidates") or []
+has = "1" if cands else "0"
+reason = (d.get("no_match_reason") or "該当スキルが見つかりませんでした。").strip()
+summary = (d.get("task_summary") or "").strip()
+if cands:
+    c = cands[0] if isinstance(cands[0], dict) else {}
+    skill_id = (c.get("skill_id") or "").strip()
+    agent = (c.get("recommended_agent") or "").strip()
+    try:
+        score = float(c.get("score", 0.0))
+    except Exception:
+        score = 0.0
+    refs = c.get("references") or []
+    if not isinstance(refs, list):
+        refs = []
+    refs = [str(x).strip() for x in refs if str(x).strip()]
+    refs_csv = ",".join(refs)
+    selected_line = f"[{skill_id}] score {score:.2f}  agent: {agent}"
+else:
+    skill_id = agent = refs_csv = selected_line = ""
+print(has)
+print(reason)
+print(summary)
+print(selected_line)
+print(skill_id)
+print(agent)
+print(refs_csv)
+PY
+)
+
+  local -a fields=()
+  mapfile -t fields <<< "$parsed"
+  local has_candidate="${fields[0]:-0}"
+  if [[ "$has_candidate" != "1" ]]; then
+    local reason="${fields[1]:-該当スキルが見つかりませんでした。}"
+    echo "=== Search ==="
+    echo "検索: $task"
+    echo "候補なし: $reason"
+    return 0
+  fi
+
+  local summary="${fields[2]:-}"
+  local selected_line="${fields[3]:-}"
+  local skill_id="${fields[4]:-}"
+  local selected_agent="${fields[5]:-}"
+  local references_csv="${fields[6]:-}"
+
+  if [[ -z "$summary" ]]; then
+    summary="$task"
+  fi
+
+  local use_agent="$force_agent"
+  if [[ -z "$use_agent" ]]; then
+    use_agent="$selected_agent"
+  fi
+
+  echo "=== Search ==="
+  echo "検索: $summary"
+  echo "選定: $selected_line"
+  echo ""
+  echo "=== Use ==="
+
+  use_skill "$skill_id" "$task" "$dry_run" "false" "$use_agent" "$references_csv"
+}
+
+rebuild_catalog() {
+  local output
+  if ! output=$(python3 "$CATALOG_PY" build "$SKILLS_ROOT" "$CACHE_PATH" 2>/dev/null); then
+    echo "エラー: catalog の再生成に失敗しました" >&2
+    return 2
+  fi
+
+  local summary
+  summary=$(run_py_with_json "$output" <<'PY'
+import json
+import os
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    data = json.load(_f)
+print(f"{data.get('skill_count', 0)}|{data.get('reference_count', 0)}")
+PY
+)
+
+  local skill_count ref_count
+  skill_count="${summary%%|*}"
+  ref_count="${summary##*|}"
+  echo "スキル catalog を更新しました: ${skill_count} スキル / ${ref_count} references"
+}
+
+ensure_catalog() {
+  if [[ -f "$CACHE_PATH" ]]; then
+    return 0
+  fi
+  rebuild_catalog || return 2
+  if [[ ! -f "$CACHE_PATH" ]]; then
+    echo "エラー: catalog が見つかりません" >&2
+    return 2
+  fi
+}
+
+list_skills() {
+  local layer="$1"
+  local category="$2"
+  local as_json="$3"
+
+  ensure_catalog || return 2
+
+  python3 - "$CATALOG_PY" "$CACHE_PATH" "$layer" "$category" "$as_json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import skill_catalog  # type: ignore
+
+cache_path = Path(sys.argv[2])
+layer = sys.argv[3]
+category = sys.argv[4]
+as_json = sys.argv[5] == "true"
+
+catalog = skill_catalog.load_catalog(cache_path)
+skills = []
+for item in catalog.get("skills", []):
+    if layer and item.get("helix_layer") != layer:
+        continue
+    if category and item.get("category") != category:
+        continue
+    skills.append(item)
+
+if as_json:
+    payload = {
+        "version": catalog.get("version", "1.0"),
+        "generated_at": catalog.get("generated_at", ""),
+        "skill_count": len(skills),
+        "reference_count": sum(len(s.get("references", [])) for s in skills),
+        "skills": skills,
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+for skill in skills:
+    desc = (skill.get("description", "") or "").strip()
+    ref_names = [Path(ref.get("path", "")).name for ref in skill.get("references", [])]
+    ref_head = ", ".join(ref_names[:3])
+    if len(ref_names) > 3:
+        ref_head += ", ..."
+    print(f"[{skill.get('id', '')}] {skill.get('helix_layer', '')} — {desc}")
+    if ref_names:
+        print(f"  references ({len(ref_names)}): {ref_head}")
+    else:
+        print("  references (0): なし")
+PY
+}
+
+show_skill() {
+  local skill_id="$1"
+  local with_content="$2"
+
+  ensure_catalog || return 2
+
+  python3 - "$CATALOG_PY" "$CACHE_PATH" "$skill_id" "$with_content" "$SKILLS_ROOT" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import skill_catalog  # type: ignore
+
+cache_path = Path(sys.argv[2])
+skill_id = sys.argv[3]
+with_content = sys.argv[4] == "true"
+skills_root = Path(sys.argv[5])
+
+catalog = skill_catalog.load_catalog(cache_path)
+skill = skill_catalog.find_skill(catalog, skill_id)
+if skill is None:
+    print(f"エラー: スキルが見つかりません: {skill_id}", file=sys.stderr)
+    raise SystemExit(2)
+
+print(f"id: {skill.get('id', '')}")
+print(f"name: {skill.get('name', '')}")
+print(f"category: {skill.get('category', '')}")
+print(f"helix_layer: {skill.get('helix_layer', '')}")
+print(f"path: {skill.get('path', '')}")
+print(f"description: {skill.get('description', '')}")
+print(f"compatibility: claude={skill.get('compatibility', {}).get('claude', False)} codex={skill.get('compatibility', {}).get('codex', False)}")
+
+triggers = skill.get("triggers", [])
+print("triggers:")
+for trig in triggers:
+    print(f"  - {trig}")
+
+verification = skill.get("verification", [])
+print("verification:")
+for check in verification:
+    print(f"  - {check}")
+
+refs = skill.get("references", [])
+print(f"references ({len(refs)}):")
+for ref in refs:
+    print(f"  - {ref.get('path', '')}")
+    print(f"    title: {ref.get('title', '')}")
+    intro = (ref.get("intro", "") or "").strip()
+    if intro:
+        print(f"    intro: {intro}")
+
+if with_content:
+    rel_path = skill.get("path", "")
+    if rel_path.startswith("skills/"):
+        local_rel = rel_path[len("skills/"):]
+        skill_file = skills_root / local_rel
+    else:
+        skill_file = skills_root / skill.get("category", "") / skill.get("name", "") / "SKILL.md"
+
+    print("\n--- SKILL.md ---")
+    if skill_file.exists():
+        print(skill_file.read_text(encoding="utf-8"))
+    else:
+        print(f"(SKILL.md が見つかりません: {skill_file})")
+PY
+}
+
+search_skills() {
+  local task="$1"
+  local top_n="$2"
+  local layer="$3"
+  local category="$4"
+  local as_json="$5"
+  local no_cache="$6"
+
+  python3 - "$LIB_DIR" "$task" "$top_n" "$layer" "$category" "$as_json" "$no_cache" "$CACHE_PATH" "$RECOMMEND_CACHE_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+task = sys.argv[2]
+top_n = int(sys.argv[3])
+layer = sys.argv[4] or None
+category = sys.argv[5] or None
+as_json = sys.argv[6] == "true"
+no_cache = sys.argv[7] == "true"
+catalog_path = Path(sys.argv[8])
+cache_dir = Path(sys.argv[9])
+
+sys.path.insert(0, str(lib_dir))
+import skill_recommender  # type: ignore
+
+try:
+    result = skill_recommender.recommend(
+        task_text=task,
+        top_n=top_n,
+        layer_filter=layer,
+        category_filter=category,
+        catalog_path=catalog_path,
+        cache_dir=cache_dir,
+        force_refresh=no_cache,
+    )
+except skill_recommender.RecommenderError as exc:
+    print(f"エラー: {exc}", file=sys.stderr)
+    raise SystemExit(exc.code)
+
+if as_json:
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+summary = (result.get("task_summary") or task).strip()
+print(f"検索: {summary}")
+print("")
+
+candidates = result.get("candidates") or []
+if not candidates:
+    reason = (result.get("no_match_reason") or "該当スキルが見つかりませんでした。").strip()
+    print(f"候補なし: {reason}")
+    raise SystemExit(0)
+
+for idx, cand in enumerate(candidates, start=1):
+    skill_id = (cand.get("skill_id") or "").strip()
+    score = float(cand.get("score", 0.0))
+    agent = (cand.get("recommended_agent") or "").strip()
+    reason = (cand.get("reason") or "").strip()
+    refs = cand.get("references") if isinstance(cand.get("references"), list) else []
+    refs = [str(ref).strip() for ref in refs if str(ref).strip()]
+    refs_text = ", ".join(refs) if refs else "なし"
+    print(f"{idx}. [{skill_id}] score {score:.2f}  agent: {agent}")
+    print(f"   reason: {reason}")
+    print(f"   refs ({len(refs)}): {refs_text}")
+    if idx < len(candidates):
+        print("")
+PY
+}
+
+main() {
+  local cmd="${1:---help}"
+  shift || true
+
+  case "$cmd" in
+    --help|-h|help)
+      usage
+      return 0
+      ;;
+    catalog)
+      local sub="${1:-}"
+      shift || true
+      case "$sub" in
+        rebuild)
+          rebuild_catalog
+          return $?
+          ;;
+        *)
+          echo "エラー: 不明なサブコマンドです: catalog ${sub:-<none>}" >&2
+          usage >&2
+          return 64
+          ;;
+      esac
+      ;;
+    list)
+      local layer=""
+      local category=""
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --layer)
+            [[ $# -ge 2 ]] || { echo "エラー: --layer には値が必要です" >&2; return 64; }
+            layer="$2"
+            shift 2
+            ;;
+          --category)
+            [[ $# -ge 2 ]] || { echo "エラー: --category には値が必要です" >&2; return 64; }
+            category="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      list_skills "$layer" "$category" "$as_json"
+      return $?
+      ;;
+    show)
+      [[ $# -ge 1 ]] || { echo "エラー: show には skill-id が必要です" >&2; return 64; }
+      local skill_id="$1"
+      shift
+      local with_content="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --with-content)
+            with_content="true"
+            shift
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      show_skill "$skill_id" "$with_content"
+      return $?
+      ;;
+    search)
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        search_usage
+        return 0
+      fi
+      [[ $# -ge 1 ]] || { echo "エラー: search にはタスク記述が必要です" >&2; search_usage >&2; return 64; }
+      local task="$1"
+      shift
+      local top_n="5"
+      local layer=""
+      local category=""
+      local as_json="false"
+      local no_cache="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          -n)
+            [[ $# -ge 2 ]] || { echo "エラー: -n には値が必要です" >&2; return 64; }
+            top_n="$2"
+            shift 2
+            ;;
+          --layer)
+            [[ $# -ge 2 ]] || { echo "エラー: --layer には値が必要です" >&2; return 64; }
+            layer="$2"
+            shift 2
+            ;;
+          --category)
+            [[ $# -ge 2 ]] || { echo "エラー: --category には値が必要です" >&2; return 64; }
+            category="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --no-cache)
+            no_cache="true"
+            shift
+            ;;
+          --help|-h)
+            search_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      if [[ ! "$top_n" =~ ^[0-9]+$ ]] || [[ "$top_n" -le 0 ]]; then
+        echo "エラー: -n には 1 以上の整数を指定してください" >&2
+        return 64
+      fi
+      search_skills "$task" "$top_n" "$layer" "$category" "$as_json" "$no_cache"
+      return $?
+      ;;
+    use)
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        use_usage
+        return 0
+      fi
+      [[ $# -ge 1 ]] || { echo "エラー: use には skill-id が必要です" >&2; use_usage >&2; return 64; }
+      local skill_id="$1"
+      shift
+      local task=""
+      local dry_run="false"
+      local as_json="false"
+      local force_agent=""
+      local force_references=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --task)
+            [[ $# -ge 2 ]] || { echo "エラー: --task には値が必要です" >&2; return 64; }
+            task="$2"
+            shift 2
+            ;;
+          --agent)
+            [[ $# -ge 2 ]] || { echo "エラー: --agent には値が必要です" >&2; return 64; }
+            force_agent="$2"
+            shift 2
+            ;;
+          --references)
+            [[ $# -ge 2 ]] || { echo "エラー: --references には値が必要です" >&2; return 64; }
+            force_references="$2"
+            shift 2
+            ;;
+          --dry-run)
+            dry_run="true"
+            shift
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            use_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      [[ -n "$task" ]] || { echo "エラー: --task は必須です" >&2; use_usage >&2; return 64; }
+      use_skill "$skill_id" "$task" "$dry_run" "$as_json" "$force_agent" "$force_references"
+      return $?
+      ;;
+    chain)
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        chain_usage
+        return 0
+      fi
+      [[ $# -ge 1 ]] || { echo "エラー: chain にはタスク記述が必要です" >&2; chain_usage >&2; return 64; }
+      local task="$1"
+      shift
+      local top_n="1"
+      local dry_run="false"
+      local force_agent=""
+      local layer=""
+      local category=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          -n|--top-n)
+            [[ $# -ge 2 ]] || { echo "エラー: $1 には値が必要です" >&2; return 64; }
+            top_n="$2"
+            shift 2
+            ;;
+          --dry-run)
+            dry_run="true"
+            shift
+            ;;
+          --agent)
+            [[ $# -ge 2 ]] || { echo "エラー: --agent には値が必要です" >&2; return 64; }
+            force_agent="$2"
+            shift 2
+            ;;
+          --layer)
+            [[ $# -ge 2 ]] || { echo "エラー: --layer には値が必要です" >&2; return 64; }
+            layer="$2"
+            shift 2
+            ;;
+          --category)
+            [[ $# -ge 2 ]] || { echo "エラー: --category には値が必要です" >&2; return 64; }
+            category="$2"
+            shift 2
+            ;;
+          --help|-h)
+            chain_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      if [[ ! "$top_n" =~ ^[0-9]+$ ]] || [[ "$top_n" -le 0 ]]; then
+        echo "エラー: -n/--top-n には 1 以上の整数を指定してください" >&2
+        return 64
+      fi
+      chain_skill "$task" "$top_n" "$dry_run" "$force_agent" "$layer" "$category"
+      return $?
+      ;;
+    stats)
+      local days="30"
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --days)
+            [[ $# -ge 2 ]] || { echo "エラー: --days には値が必要です" >&2; return 64; }
+            days="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix skill stats [--days N] [--json]
+
+直近 N 日間のスキル使用統計を表示する（デフォルト 30 日）。
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      if [[ ! "$days" =~ ^[0-9]+$ ]]; then
+        echo "エラー: --days には整数を指定してください" >&2
+        return 64
+      fi
+      local -a stats_cmd=(python3 -m lib.skill_dispatcher --mode stats --days "$days")
+      if [[ "$as_json" == "true" ]]; then
+        stats_cmd+=(--json)
+      fi
+      (cd "$SCRIPT_DIR" && "${stats_cmd[@]}")
+      return $?
+      ;;
+    *)
+      echo "エラー: 不明なサブコマンドです: $cmd" >&2
+      usage >&2
+      return 64
+      ;;
+  esac
+}
+
+main "$@"

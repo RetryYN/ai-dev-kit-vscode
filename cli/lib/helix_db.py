@@ -184,6 +184,22 @@ CREATE TABLE IF NOT EXISTS bench_snapshots (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS skill_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_text TEXT NOT NULL,
+    skill_id TEXT NOT NULL,
+    references_used TEXT,
+    agent_used TEXT,
+    match_score REAL,
+    match_reason TEXT,
+    outcome TEXT,
+    user_feedback TEXT,
+    result_stdout TEXT,
+    result_stderr TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
 -- インデックス
 CREATE INDEX IF NOT EXISTS idx_task_runs_type ON task_runs(task_type);
 CREATE INDEX IF NOT EXISTS idx_task_runs_role ON task_runs(role);
@@ -196,12 +212,14 @@ CREATE INDEX IF NOT EXISTS idx_task_selections_plan ON task_selections(plan_id);
 CREATE INDEX IF NOT EXISTS idx_gate_runs_task_run_id ON gate_runs(task_run_id);
 CREATE INDEX IF NOT EXISTS idx_interrupts_task_run_id ON interrupts(task_run_id);
 CREATE INDEX IF NOT EXISTS idx_retro_items_gate_run_id ON retro_items(gate_run_id);
+CREATE INDEX IF NOT EXISTS idx_skill_usage_skill ON skill_usage(skill_id);
+CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 """
 
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 6
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -370,6 +388,35 @@ def _migrate_retro_items_v4(conn):
     conn.execute("ALTER TABLE retro_items_new RENAME TO retro_items")
 
 
+def _migrate_skill_usage_v5(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS skill_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_text TEXT NOT NULL,
+            skill_id TEXT NOT NULL,
+            references_used TEXT,
+            agent_used TEXT,
+            match_score REAL,
+            match_reason TEXT,
+            outcome TEXT,
+            user_feedback TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_skill_usage_skill ON skill_usage(skill_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome)")
+
+
+def _migrate_skill_usage_stdout_v6(conn):
+    if not _has_column(conn, "skill_usage", "result_stdout"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN result_stdout TEXT")
+    if not _has_column(conn, "skill_usage", "result_stderr"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN result_stderr TEXT")
+
+
 def migrate(conn):
     """スキーマをマイグレーション"""
     current = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] or 0
@@ -410,6 +457,18 @@ def migrate(conn):
             )
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (4, datetime('now'))"
+            )
+        # v4→v5: skill_usage テーブル追加
+        if current < 5:
+            _migrate_skill_usage_v5(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (5, datetime('now'))"
+            )
+        # v5→v6: skill_usage に result_stdout / result_stderr カラム追加
+        if current < 6:
+            _migrate_skill_usage_stdout_v6(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (6, datetime('now'))"
             )
         conn.commit()
 

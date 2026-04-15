@@ -33,6 +33,7 @@ ensure_within_dir() {
 # --- 引数パース ---
 ROLE=""
 TASK=""
+TASK_FILE=""
 THINKING=""
 DRY_RUN=false
 SANDBOX="workspace-write"
@@ -45,6 +46,7 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --role)            ROLE="$2"; shift 2 ;;
     --task)            TASK="$2"; shift 2 ;;
+    --task-file)       TASK_FILE="$2"; shift 2 ;;
     --thinking)        THINKING="$2"; shift 2 ;;
     --timeout)         TIMEOUT="$2"; shift 2 ;;
     --max-retries)     MAX_RETRY="$2"; shift 2 ;;
@@ -54,11 +56,12 @@ while [[ $# -gt 0 ]]; do
     --full-auto)       FULL_AUTO="--full-auto"; shift ;;
     --dry-run)         DRY_RUN=true; shift ;;
     --help|-h)
-      echo "使い方: helix codex --role <role> --task \"タスク内容\""
+      echo "使い方: helix codex --role <role> (--task \"タスク\" | --task-file <path>)"
       echo ""
       echo "Options:"
       echo "  --role <role>            ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）"
-      echo "  --task \"...\"             タスク内容"
+      echo "  --task \"...\"             タスク内容（文字列）"
+      echo "  --task-file <path>       タスク内容をファイルから読む（大きなプロンプト向け、ARG_MAX 回避）"
       echo "  --thinking <level>       思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
       echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 300）"
       echo "  --max-retries <n>        最大リトライ回数（デフォルト: 2、0 でリトライなし）"
@@ -78,6 +81,25 @@ while [[ $# -gt 0 ]]; do
     *) echo "エラー: 不明なオプションです: $1" >&2; exit 1 ;;
   esac
 done
+
+# --- --task と --task-file の排他チェック ---
+if [[ -n "$TASK" && -n "$TASK_FILE" ]]; then
+  echo "エラー: --task と --task-file は同時指定できません" >&2
+  exit 1
+fi
+
+# --- --task-file 読み込み ---
+if [[ -n "$TASK_FILE" ]]; then
+  if [[ ! -f "$TASK_FILE" ]]; then
+    echo "エラー: --task-file が見つかりません: $TASK_FILE" >&2
+    exit 1
+  fi
+  if [[ ! -r "$TASK_FILE" ]]; then
+    echo "エラー: --task-file を読み込めません: $TASK_FILE" >&2
+    exit 1
+  fi
+  TASK=$(cat "$TASK_FILE")
+fi
 
 # --- max_retries バリデーション ---
 if ! [[ "$MAX_RETRY" =~ ^[0-9]+$ ]] || [[ "$MAX_RETRY" -gt 10 ]]; then
@@ -328,6 +350,7 @@ run_codex_once() {
   local model="$1"
   set +e
   timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$model" -s "$SANDBOX" \
+    --skip-git-repo-check \
     -c "model_reasoning_effort=\"$THINKING\"" \
     -c 'shell_environment_policy.inherit=all' \
     ${FULL_AUTO:+$FULL_AUTO}

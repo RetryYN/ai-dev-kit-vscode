@@ -18,7 +18,7 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 横断:          Security / DBA / Perf / Docs / Research / Legacy
 ```
 
-## ロール一覧 (12)
+## ロール一覧 (13)
 
 | ロール | model | 担当フェーズ | 説明 |
 |--------|-------|-------------|------|
@@ -34,6 +34,7 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | research | gpt-5.4 | L1/G1R | 技術調査・先行事例・比較 |
 | legacy | gpt-5.4 | R0-R4 | レガシー分析・Reverse HELIX |
 | perf | gpt-5.4 | L4/L6 | パフォーマンス計測・最適化 |
+| recommender | gpt-5.4-mini | 全フェーズ | スキル自動推挙（`helix skill search` 専用、軽量・高速） |
 
 ## 共通ルール
 

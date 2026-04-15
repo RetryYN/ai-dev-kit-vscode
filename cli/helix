@@ -31,6 +31,7 @@ case "$CMD" in
   learn)    exec "$SCRIPT_DIR/helix-learn" "$@" ;;
   promote)  exec "$SCRIPT_DIR/helix-promote" "$@" ;;
   discover) exec "$SCRIPT_DIR/helix-discover" "$@" ;;
+  skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
   bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
@@ -82,6 +83,9 @@ Commands:
 検証:
   test        セルフテスト
   verify-all  全レイヤー検証
+
+スキル管理:
+  skill list/show/catalog/search     スキル自動推挙コマンド
 
 Environment:
   HELIX_HOME    HELIX インストールディレクトリ (default: ~/ai-dev-kit-vscode)
