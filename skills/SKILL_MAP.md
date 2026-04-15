@@ -171,7 +171,9 @@ common/security:
 common/error-fix:
   description: エラー修正で体系的デバッグ手順・失敗パターンレジストリ運用・危険コマンドガードを提供
 common/visual-design:
-  description: ビジュアル設計原則に加えてAI生成らしさを抑える品質チェックと実践指針を提供
+  description: ビジュアル設計原則・AI品質チェックに加え、DESIGN.md 9セクション形式ブランド参照（JP24件+EN10件）・IA/モーション/UXパターン/a11y/データViz論を references/ で提供
+design-tools/web-system:
+  description: shadcn/uiデザインシステム構築に加え、デザイントークン3層設計・スケール策定プロセス・DESIGN.md形式のD-VIS-ARCH適用手順を references/ で提供
 workflow/observability-sre:
   description: SLO/SLI設計・構造化ログ・ダッシュボード・AIエージェントメトリクスに加え、リアルタイム監視設計とD-OBSテンプレートを提供
 workflow/verification:
