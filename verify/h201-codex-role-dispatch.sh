@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-# H201: 全12ロールの dry-run がスキル注入+モデル選択+共通ドキュメント付きで正しく動くか
+# H201: cli/roles 配下の全ロール dry-run がスキル注入+モデル選択+共通ドキュメント付きで正しく動くか
 
 HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 CLI="$HELIX_HOME/cli"
@@ -38,4 +38,4 @@ trav_exit=$?
 set -e
 [[ $trav_exit -ne 0 ]] || { echo "FAIL: traversal should fail"; exit 1; }
 
-echo "PASS: 12 roles + invalid + traversal"
+echo "PASS: all roles + invalid + traversal"

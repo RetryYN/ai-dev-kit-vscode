@@ -34,7 +34,7 @@ Layer 1: Entry Point     helix — 統一ディスパッチャー
 | Lib | `cli/lib/*.py`, `cli/lib/*.sh` | Python/Bash | 14 | 状態管理（yaml_parser, phase_guard）、DB 操作（helix_db）、検証（schema_validator, deliverable_gate, freeze_checker）、学習（learning_engine, global_store, recipe_store）、マトリクス（matrix_compiler, gate_check_generator, doc_map_matcher, matrix_advisor）、チーム実行（team_runner）、共通関数（helix-common.sh） |
 | Builders | `cli/lib/builders/*.py` | Python | 14 | 成果物の自動生成パイプライン（BuilderBase + Registry + Store + 具体ビルダー群）。詳細は `L2-builder-system.md` 参照 |
 | Templates & Schemas | `cli/templates/`, `cli/schemas/` | YAML/JSON/MD | ~35 | プロジェクト初期化時にコピーされるテンプレート群。JSON Schema による構造検証定義 |
-| Roles | `cli/roles/*.conf` | INI-like | 12 | Codex CLI 呼び出し時のロール別設定（model, skills, system_prompt） |
+| Roles | `cli/roles/*.conf` | INI-like | 可変（`cli/roles/` 配下） | Codex CLI 呼び出し時のロール別設定（model, skills, system_prompt） |
 | Skills | `skills/**` | Markdown | 55+ | AI エージェントへの専門知識注入。triggers ベースで必要時のみ読み込み |
 
 ### 2.2 レイヤー依存関係図
@@ -95,7 +95,7 @@ AI エージェントへのタスク委譲と成果物生成を担当する。
 
 | コマンド | 説明 |
 |---------|------|
-| `helix codex` | Codex CLI へのロール別タスク委譲。12 ロール対応。roles/*.conf からモデル・スキル・プロンプトを自動注入 |
+| `helix codex` | Codex CLI へのロール別タスク委譲。`cli/roles/` 配下のロールに対応。roles/*.conf からモデル・スキル・プロンプトを自動注入 |
 | `helix task` | Task OS の操作（catalog / plan / run / observe）。63 タスク / 27 アクション型 / 295 アクション |
 | `helix team` | エージェントチーム実行。teams/*.yaml の定義に従い複数エージェントを協調実行 |
 | `helix builder` | 成果物ビルダーの呼び出し。BuilderRegistry 経由で 8 タイプのビルダーを実行 |

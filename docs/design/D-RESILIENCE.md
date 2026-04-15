@@ -193,7 +193,7 @@ helix codex --role se --task "..." \
 ## 8. References
 
 - `cli/helix-codex` (319行, 現状実装)
-- `cli/roles/*.conf` (12ロール設定)
+- `cli/roles/*.conf` (`cli/roles/` 配下のロール設定)
 - [ADR-002: Builder System Foundations](../adr/ADR-002-builder-system-foundations.md)
 - [ADR-004: Bash-Python ハイブリッド](../adr/ADR-004-bash-python-hybrid.md)
 - Codex CLI ドキュメント: ~/.codex/AGENTS.md

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-# H301: 全12ロール .conf のスキル・共通ドキュメントが実在するか
+# H301: cli/roles 配下の全ロール .conf のスキル・共通ドキュメントが実在するか
 
 HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 CLI="$HELIX_HOME/cli"
@@ -34,4 +34,4 @@ for conf in "$ROLES_DIR"/*.conf; do
     fi
   done < "$conf"
 done
-echo "PASS: all 12 roles' skills and docs exist"
+echo "PASS: all roles' skills and docs exist"
