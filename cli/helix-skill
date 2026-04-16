@@ -11,6 +11,7 @@ CATALOG_PY="$LIB_DIR/skill_catalog.py"
 RECOMMENDER_PY="$LIB_DIR/skill_recommender.py"
 DISPATCHER_MODULE="lib.skill_dispatcher"
 CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.json"
+JSONL_CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.jsonl"
 RECOMMEND_CACHE_DIR="$PROJECT_ROOT/.helix/cache/recommendations"
 SKILLS_ROOT="${HELIX_SKILLS_ROOT:-${HELIX_HOME:-$HOME/ai-dev-kit-vscode}/skills}"
 
@@ -52,6 +53,8 @@ Subcommands:
   use <skill-id> --task "<task>" [--agent A] [--references R] [--dry-run] [--json]
   chain "<task>" [-n N] [--dry-run] [--agent A] [--layer L] [--category C]
   stats [--days N] [--json]                       スキル使用統計
+  review-pending [--json]                         pending エントリ一覧
+  approve <skill-id> [--all-pending]              pending 承認
   --help                                          このヘルプ
 USAGE
 }
@@ -95,6 +98,26 @@ Options:
   --layer L            search の helix_layer フィルタ
   --category C         search の category フィルタ
   --help               chain のヘルプ
+USAGE
+}
+
+review_pending_usage() {
+  cat <<'USAGE'
+使い方: helix skill review-pending [--json]
+
+Options:
+  --json   pending エントリを JSON で出力
+  --help   review-pending のヘルプ
+USAGE
+}
+
+approve_usage() {
+  cat <<'USAGE'
+使い方: helix skill approve <skill-id> [--all-pending]
+
+Options:
+  --all-pending   pending 全件を承認
+  --help          approve のヘルプ
 USAGE
 }
 
@@ -707,6 +730,101 @@ for idx, cand in enumerate(candidates, start=1):
 PY
 }
 
+review_pending_skills() {
+  local as_json="$1"
+
+  if [[ ! -f "$JSONL_CACHE_PATH" ]]; then
+    echo "警告: JSONL catalog が見つかりません（pending 0 件扱い）: $JSONL_CACHE_PATH" >&2
+  fi
+
+  python3 - "$LIB_DIR" "$JSONL_CACHE_PATH" "$as_json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+jsonl_path = Path(sys.argv[2])
+as_json = sys.argv[3] == "true"
+
+sys.path.insert(0, str(lib_dir))
+import skill_review  # type: ignore
+
+entries = skill_review.list_pending_entries(jsonl_path)
+
+if as_json:
+    print(json.dumps(entries, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+print(f"=== pending skills ({len(entries)} 件) ===")
+for idx, entry in enumerate(entries, start=1):
+    classification = entry.get("classification")
+    if not isinstance(classification, dict):
+        classification = {}
+
+    phases = entry.get("phases") if isinstance(entry.get("phases"), list) else []
+    tasks = entry.get("tasks") if isinstance(entry.get("tasks"), list) else []
+    confidence = classification.get("confidence")
+    if isinstance(confidence, (int, float)):
+        confidence_text = f"{float(confidence):.2f}"
+    else:
+        confidence_text = "-"
+    classified_at = classification.get("classified_at")
+    if not isinstance(classified_at, str) or not classified_at.strip():
+        classified_at = "-"
+
+    phases_text = ", ".join(str(p) for p in phases) if phases else "-"
+    tasks_text = ", ".join(str(t) for t in tasks) if tasks else "-"
+
+    print(f"[{idx}] {entry.get('id', '')}")
+    print(f"    summary: {entry.get('summary', '')}")
+    print(f"    agent: {entry.get('agent', '')}")
+    print(f"    phases: {phases_text}")
+    print(f"    tasks: {tasks_text}")
+    print(f"    confidence: {confidence_text}")
+    print(f"    classified_at: {classified_at}")
+    if idx < len(entries):
+        print("")
+PY
+}
+
+approve_skills() {
+  local skill_id="$1"
+  local all_pending="$2"
+
+  python3 - "$LIB_DIR" "$JSONL_CACHE_PATH" "$skill_id" "$all_pending" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+jsonl_path = Path(sys.argv[2])
+skill_id = sys.argv[3]
+all_pending = sys.argv[4] == "true"
+
+sys.path.insert(0, str(lib_dir))
+import skill_review  # type: ignore
+
+if all_pending:
+    approved_ids = skill_review.approve_all_pending(jsonl_path)
+    for sid in approved_ids:
+        print(f"[helix-skill] approved: {sid}")
+    if not approved_ids:
+        print("[helix-skill] 警告: pending はありません", file=sys.stderr)
+    raise SystemExit(0)
+
+try:
+    changed = skill_review.approve_entry(jsonl_path, skill_id)
+except skill_review.SkillEntryNotFoundError:
+    print(f"エラー: スキルが見つかりません: {skill_id}", file=sys.stderr)
+    raise SystemExit(2)
+
+if not changed:
+    print(f"[helix-skill] 警告: pending ではないため未変更: {skill_id}", file=sys.stderr)
+    raise SystemExit(0)
+
+print(f"[helix-skill] approved: {skill_id}")
+PY
+}
+
 main() {
   local cmd="${1:---help}"
   shift || true
@@ -947,6 +1065,74 @@ main() {
         return 64
       fi
       chain_skill "$task" "$top_n" "$dry_run" "$force_agent" "$layer" "$category"
+      return $?
+      ;;
+    review-pending)
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            review_pending_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            review_pending_usage >&2
+            return 64
+            ;;
+        esac
+      done
+      review_pending_skills "$as_json"
+      return $?
+      ;;
+    approve)
+      if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        approve_usage
+        return 0
+      fi
+      local skill_id=""
+      local all_pending="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --all-pending)
+            all_pending="true"
+            shift
+            ;;
+          --help|-h)
+            approve_usage
+            return 0
+            ;;
+          -*)
+            echo "エラー: 不明なオプションです: $1" >&2
+            approve_usage >&2
+            return 64
+            ;;
+          *)
+            if [[ -n "$skill_id" ]]; then
+              echo "エラー: skill-id は 1 つだけ指定してください" >&2
+              approve_usage >&2
+              return 64
+            fi
+            skill_id="$1"
+            shift
+            ;;
+        esac
+      done
+      if [[ "$all_pending" == "true" && -n "$skill_id" ]]; then
+        echo "エラー: --all-pending と skill-id は同時指定できません" >&2
+        approve_usage >&2
+        return 64
+      fi
+      if [[ "$all_pending" != "true" && -z "$skill_id" ]]; then
+        echo "エラー: approve には skill-id か --all-pending が必要です" >&2
+        approve_usage >&2
+        return 64
+      fi
+      approve_skills "$skill_id" "$all_pending"
       return $?
       ;;
     stats)
