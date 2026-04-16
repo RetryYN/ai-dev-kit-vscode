@@ -271,6 +271,7 @@ def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
 
 
 _ALL_FORWARD_PHASES = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
+_MAX_REFERENCES_PER_ENTRY = 10
 
 
 def _to_phase_list(raw: Any) -> list[str]:
@@ -366,7 +367,18 @@ def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str
     references: list[dict[str, str]] = []
     references_dir = skill_md.parent / "references"
     if references_dir.is_dir():
-        for ref in sorted(references_dir.rglob("*.md")):
+        all_refs = sorted(references_dir.rglob("*.md"))
+        priority: list[Path] = []
+        normal: list[Path] = []
+        for ref in all_refs:
+            ref_rel = ref.relative_to(references_dir).as_posix()
+            if "brands-" in ref_rel:
+                normal.append(ref)
+            elif ref.stem.upper() == "INDEX":
+                priority.append(ref)
+            else:
+                priority.append(ref)
+        for ref in (priority + normal)[:_MAX_REFERENCES_PER_ENTRY]:
             ref_rel = ref.relative_to(references_dir).as_posix()
             references.append(
                 {

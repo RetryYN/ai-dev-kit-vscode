@@ -16,8 +16,8 @@
 
 ### モード判定（最初に必ず実施）
 
-1. `{{jsonl_candidates}}` が非空なら **JSONL mode (pre-filtered)**
-2. `{{jsonl_candidates}}` が空で `{{skill_catalog}}` が非空なら **fallback JSON mode**
+1. 後述の **JSONL CANDIDATES** セクションが非空なら **JSONL mode (pre-filtered)**
+2. **JSONL CANDIDATES** が空で **SKILL CATALOG** が非空なら **fallback JSON mode**
 3. 両方空なら候補なしとして返す
 
 ### USER TASK
@@ -34,20 +34,25 @@
 
 ### JSONL CANDIDATES (optional)
 
-- 変数: `{{jsonl_candidates}}`
 - 形式: phase で絞込済みの JSONL entries（1 行 1 JSON）
 - JSONL mode では、この候補集合のみを評価対象とする
 - 各 entry の `agent` は正規化済み短縮名であり、出力へそのまま使用する
-- 各 entry の `references` 配列（`[{path, title, summary?}]`）から必要資料を選択する
+- 各 entry の `references` 配列（要素: `{path, title, summary?}`）から必要資料を選択する
+
+候補（空なら fallback）:
+
+```
+{{jsonl_candidates}}
+```
 
 ### SKILL CATALOG (fallback JSON)
+
+- 後方互換の fallback 用入力
+- fallback JSON mode では catalog 全体から候補抽出し、references を選択する
 
 ```json
 {{skill_catalog}}
 ```
-
-- `{{skill_catalog}}` は後方互換の fallback 用入力
-- fallback JSON mode では catalog 全体から候補抽出し、references を選択する
 
 ---
 
@@ -86,11 +91,11 @@
 ### mode 別ルール
 
 - JSONL mode:
-  - 入力済み `{{jsonl_candidates}}` だけを使う（catalog 全体探索しない）
+  - **JSONL CANDIDATES** だけを使う（catalog 全体探索しない）
   - `recommended_agent` は candidate の `agent` をそのまま採用
   - `references` は candidate の `references` 配列から選ぶ
 - fallback JSON mode:
-  - `{{skill_catalog}}` から候補を抽出
+  - **SKILL CATALOG** から候補を抽出
   - `recommended_agent` は上記許可値に正規化して返す
   - `references` は catalog 全体から該当資料を選ぶ
 
