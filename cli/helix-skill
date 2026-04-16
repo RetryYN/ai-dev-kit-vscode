@@ -1257,6 +1257,36 @@ main() {
       chain_skill "$task" "$top_n" "$dry_run" "$force_agent" "$layer" "$category"
       return $?
       ;;
+    classify)
+      [[ $# -ge 1 ]] || { echo "エラー: classify には skill-id が必要です" >&2; classify_usage >&2; return 64; }
+      local skill_id="$1"
+      shift
+      local approve="false"
+      local dry_run="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --approve)
+            approve="true"
+            shift
+            ;;
+          --dry-run)
+            dry_run="true"
+            shift
+            ;;
+          --help|-h)
+            classify_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            classify_usage >&2
+            return 64
+            ;;
+        esac
+      done
+      classify_skill_entry "$skill_id" "$approve" "$dry_run"
+      return $?
+      ;;
     review-pending)
       local as_json="false"
       while [[ $# -gt 0 ]]; do

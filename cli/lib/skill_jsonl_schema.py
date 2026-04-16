@@ -124,7 +124,6 @@ def validate_entry(entry: dict, *, known_task_ids: set[str] | None = None) -> No
 
     tasks = entry["tasks"]
     _ensure(isinstance(tasks, list), "tasks", "must be a list")
-    _ensure(len(tasks) > 0, "tasks", "must not be empty")
     _ensure(all(isinstance(t, str) for t in tasks), "tasks", "all elements must be strings")
     _ensure_unique_list(tasks, "tasks")
     if known_task_ids is not None:
@@ -160,15 +159,25 @@ def validate_entry(entry: dict, *, known_task_ids: set[str] | None = None) -> No
     _ensure(status in ALLOWED_STATUS, "classification.status", "must be one of ALLOWED_STATUS")
 
     classified_at = classification["classified_at"]
-    _ensure(isinstance(classified_at, str), "classification.classified_at", "must be a string")
-    _ensure(
-        bool(ISO8601_UTC_PATTERN.fullmatch(classified_at)),
-        "classification.classified_at",
-        "must be ISO8601 UTC with Z suffix",
-    )
-
     classifier_model = classification["classifier_model"]
-    _ensure(isinstance(classifier_model, str), "classification.classifier_model", "must be a string")
+    if status == "pending":
+        if classified_at is not None:
+            _ensure(isinstance(classified_at, str), "classification.classified_at", "must be string or null")
+            _ensure(
+                bool(ISO8601_UTC_PATTERN.fullmatch(classified_at)),
+                "classification.classified_at",
+                "must be ISO8601 UTC with Z suffix",
+            )
+        if classifier_model is not None:
+            _ensure(isinstance(classifier_model, str), "classification.classifier_model", "must be string or null")
+    else:
+        _ensure(isinstance(classified_at, str), "classification.classified_at", "must be a string")
+        _ensure(
+            bool(ISO8601_UTC_PATTERN.fullmatch(classified_at)),
+            "classification.classified_at",
+            "must be ISO8601 UTC with Z suffix",
+        )
+        _ensure(isinstance(classifier_model, str), "classification.classifier_model", "must be a string")
 
     if "confidence" in classification:
         confidence = classification["confidence"]

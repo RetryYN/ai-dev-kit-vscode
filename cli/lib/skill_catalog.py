@@ -270,6 +270,9 @@ def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
     return None
 
 
+_ALL_FORWARD_PHASES = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
+
+
 def _to_phase_list(raw: Any) -> list[str]:
     phases: list[str] = []
 
@@ -279,9 +282,13 @@ def _to_phase_list(raw: Any) -> list[str]:
         text = str(value).strip()
         if not text:
             return
-        for part in text.split(","):
+        for part in re.split(r"[,/\-]", text):
             phase = part.strip()
-            if phase and phase not in phases:
+            if phase == "all":
+                for p in _ALL_FORWARD_PHASES:
+                    if p not in phases:
+                        phases.append(p)
+            elif phase and phase not in phases:
                 phases.append(phase)
 
     if isinstance(raw, list):
@@ -370,6 +377,15 @@ def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str
 
     new_hash = compute_source_hash(content)
     existing = existing_map.get(skill_id)
+
+    if (
+        existing is not None
+        and existing.get("source_hash") == new_hash
+        and isinstance(existing.get("classification"), dict)
+        and existing["classification"].get("status") in ("approved", "manual")
+    ):
+        return existing
+
     title = frontmatter.get("name") or frontmatter.get("title") or skill_id
     triggers = metadata.get("triggers", [])
     if not isinstance(triggers, list):

@@ -83,11 +83,12 @@ def classify_one(
     source_hash = compute_source_hash(skill_md_content)
 
     classified = classify_skill(skill_id, skill_md_content, known_task_ids=known_task_ids)
+    confidence_value = float(classified.pop("confidence", 0.0))
     target_entry.update(classified)
     target_entry["source_hash"] = source_hash
     target_entry["classification"] = _classification_payload(
         approved=approve,
-        confidence=float(classified.get("confidence", 0.0)),
+        confidence=confidence_value,
     )
     validate_entry(target_entry, known_task_ids=known_task_ids)
 
@@ -144,12 +145,13 @@ def classify_all(
             skill_md_content = _skill_md_path(skills_root, skill_id).read_text(encoding="utf-8")
             source_hash = compute_source_hash(skill_md_content)
             classified = classify_skill(skill_id, skill_md_content, known_task_ids=known_task_ids)
+            confidence_value = float(classified.pop("confidence", 0.0))
 
             entry.update(classified)
             entry["source_hash"] = source_hash
             entry["classification"] = _classification_payload(
                 approved=False,
-                confidence=float(classified.get("confidence", 0.0)),
+                confidence=confidence_value,
             )
             validate_entry(entry, known_task_ids=known_task_ids)
             classified_count += 1
