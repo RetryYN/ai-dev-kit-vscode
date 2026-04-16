@@ -10,6 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from .skill_jsonl_schema import JsonlSchemaError, compute_source_hash, validate_entry
+except ImportError:  # pragma: no cover - script execution fallback
+    from skill_jsonl_schema import JsonlSchemaError, compute_source_hash, validate_entry
+
 
 def _warn(message: str) -> None:
     print(f"[skill_catalog] 警告: {message}", file=sys.stderr)
@@ -263,6 +268,184 @@ def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
         if skill.get("name") == target:
             return skill
     return None
+
+
+def _to_phase_list(raw: Any) -> list[str]:
+    phases: list[str] = []
+
+    def _append(value: Any) -> None:
+        if value is None:
+            return
+        text = str(value).strip()
+        if not text:
+            return
+        for part in text.split(","):
+            phase = part.strip()
+            if phase and phase not in phases:
+                phases.append(phase)
+
+    if isinstance(raw, list):
+        for item in raw:
+            _append(item)
+    else:
+        _append(raw)
+    return phases
+
+
+def _to_summary(description: Any) -> str:
+    text = str(description or "").strip()
+    if len(text) <= 30:
+        return text
+    return f"{text[:30]}..."
+
+
+def _default_agent(skill_id: str, category: str, phases: list[str]) -> str:
+    if skill_id == "common/security":
+        return "security"
+    if skill_id == "common/testing":
+        return "qa"
+    if category == "workflow" or any(phase in {"L2", "L3"} for phase in phases):
+        return "tl"
+    return "pg"
+
+
+def _classification_for_entry(existing: dict[str, Any] | None, new_hash: str) -> dict[str, Any]:
+    if not isinstance(existing, dict):
+        return {"status": "pending", "classified_at": None, "classifier_model": None}
+
+    existing_hash = existing.get("source_hash")
+    existing_class = existing.get("classification")
+    if not isinstance(existing_class, dict):
+        return {"status": "pending", "classified_at": None, "classifier_model": None}
+
+    status = existing_class.get("status")
+    hash_matches = existing_hash == new_hash
+
+    if hash_matches and status in {"approved", "manual"}:
+        return dict(existing_class)
+
+    if not hash_matches and status == "manual":
+        downgraded = {
+            "status": "pending",
+            "classified_at": existing_class.get("classified_at"),
+            "classifier_model": existing_class.get("classifier_model"),
+        }
+        if "confidence" in existing_class:
+            downgraded["confidence"] = existing_class.get("confidence")
+        return downgraded
+
+    return {"status": "pending", "classified_at": None, "classifier_model": None}
+
+
+def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    content = skill_md.read_text(encoding="utf-8")
+    frontmatter = _extract_frontmatter(content)
+    if not frontmatter:
+        _warn(f"frontmatter が無いため JSONL スキップ: {skill_md}")
+        return None
+
+    rel = skill_md.relative_to(skills_root)
+    parts = rel.parts
+    if len(parts) < 3:
+        _warn(f"期待するパス構造(category/name/SKILL.md)ではないため JSONL スキップ: {skill_md}")
+        return None
+
+    category = parts[0]
+    name = parts[1]
+    skill_id = f"{category}/{name}"
+    metadata = frontmatter.get("metadata", {}) if isinstance(frontmatter.get("metadata"), dict) else {}
+    phases = _to_phase_list(metadata.get("helix_layer"))
+
+    references: list[dict[str, str]] = []
+    references_dir = skill_md.parent / "references"
+    if references_dir.is_dir():
+        for ref in sorted(references_dir.rglob("*.md")):
+            ref_rel = ref.relative_to(references_dir).as_posix()
+            references.append(
+                {
+                    "path": f"skills/{skill_id}/references/{ref_rel}",
+                    "title": ref.stem,
+                }
+            )
+
+    new_hash = compute_source_hash(content)
+    existing = existing_map.get(skill_id)
+    title = frontmatter.get("name") or frontmatter.get("title") or skill_id
+    triggers = metadata.get("triggers", [])
+    if not isinstance(triggers, list):
+        triggers = []
+
+    return {
+        "id": skill_id,
+        "title": str(title),
+        "summary": _to_summary(frontmatter.get("description")),
+        "phases": phases,
+        "tasks": [],
+        "triggers": [str(item) for item in triggers],
+        "anti_triggers": [],
+        "agent": _default_agent(skill_id, category, phases),
+        "similar": [],
+        "references": references,
+        "source_hash": new_hash,
+        "classification": _classification_for_entry(existing, new_hash),
+    }
+
+
+def build_jsonl_catalog(
+    skills_root: Path,
+    *,
+    task_ids: set[str] | None = None,
+    existing_jsonl_path: Path | None = None,
+) -> list[dict]:
+    del task_ids  # classifier 適用前の skeleton 生成では未使用
+
+    resolved_root = skills_root.resolve()
+    existing_map: dict[str, dict[str, Any]] = {}
+    if existing_jsonl_path is not None:
+        for entry in read_jsonl_catalog(existing_jsonl_path):
+            if isinstance(entry, dict) and isinstance(entry.get("id"), str):
+                existing_map[entry["id"]] = entry
+
+    entries: list[dict[str, Any]] = []
+    for skill_md in sorted(resolved_root.rglob("SKILL.md")):
+        entry = _build_jsonl_entry(skill_md, resolved_root, existing_map)
+        if entry is not None:
+            entries.append(entry)
+
+    return sorted(entries, key=lambda item: str(item.get("id", "")))
+
+
+def write_jsonl_catalog(entries: list[dict], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="\n") as fp:
+        for entry in entries:
+            try:
+                validate_entry(entry, known_task_ids=None)
+            except JsonlSchemaError as exc:
+                _warn(f"JSONL entry をスキップ: {exc}")
+                continue
+            fp.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def read_jsonl_catalog(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+
+    entries: list[dict] = []
+    for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        text = raw.strip()
+        if not text:
+            continue
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError as exc:
+            _warn(f"JSONL parse 失敗 line={line_no}: {exc}")
+            continue
+        if not isinstance(parsed, dict):
+            _warn(f"JSONL parse 失敗 line={line_no}: object ではありません")
+            continue
+        entries.append(parsed)
+    return entries
 
 
 def _usage() -> None:
