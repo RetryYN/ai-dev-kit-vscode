@@ -8,12 +8,14 @@ source "$HELIX_SKILL_DIR/lib/helix-common.sh"
 
 LIB_DIR="$HELIX_SKILL_DIR/lib"
 CATALOG_PY="$LIB_DIR/skill_catalog.py"
+CLASSIFY_RUNNER_PY="$LIB_DIR/skill_classify_runner.py"
 RECOMMENDER_PY="$LIB_DIR/skill_recommender.py"
 DISPATCHER_MODULE="lib.skill_dispatcher"
 CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.json"
 JSONL_CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.jsonl"
 RECOMMEND_CACHE_DIR="$PROJECT_ROOT/.helix/cache/recommendations"
 SKILLS_ROOT="${HELIX_SKILLS_ROOT:-${HELIX_HOME:-$HOME/ai-dev-kit-vscode}/skills}"
+TASK_CATALOG_PATH="$HELIX_SKILL_DIR/templates/task-catalog.yaml"
 
 # bash↔Python 境界で巨大 JSON を受け渡すヘルパー。
 # 使用例:
@@ -48,7 +50,9 @@ usage() {
 Subcommands:
   list [--layer LAYER] [--category CAT] [--json]  スキル一覧表示
   show <skill-id> [--with-content]                スキル詳細表示
-  catalog rebuild                                 catalog を再生成
+  catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
+                                                   catalog を再生成
+  classify <skill-id> [--approve] [--dry-run]     単発分類
   search "<task>" [-n N] [--layer L] [--category C] [--json] [--no-cache]
   use <skill-id> --task "<task>" [--agent A] [--references R] [--dry-run] [--json]
   chain "<task>" [-n N] [--dry-run] [--agent A] [--layer L] [--category C]
@@ -118,6 +122,29 @@ approve_usage() {
 Options:
   --all-pending   pending 全件を承認
   --help          approve のヘルプ
+USAGE
+}
+
+classify_usage() {
+  cat <<'USAGE'
+使い方: helix skill classify <skill-id> [--approve] [--dry-run]
+
+Options:
+  --approve  status を approved で書き込む
+  --dry-run  分類だけ実行し JSONL へは書き込まない
+  --help     classify のヘルプ
+USAGE
+}
+
+catalog_rebuild_usage() {
+  cat <<'USAGE'
+使い方: helix skill catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
+
+Options:
+  --auto-classify  skeleton 生成後に classify_all を実行する
+  --only-pending   --auto-classify 時に pending/invalidated のみ再分類
+  --dry-run        書き込みせず、分類サマリのみ表示
+  --help           catalog rebuild のヘルプ
 USAGE
 }
 
@@ -505,6 +532,10 @@ PY
 }
 
 rebuild_catalog() {
+  local auto_classify="${1:-false}"
+  local only_pending="${2:-false}"
+  local dry_run="${3:-false}"
+
   local output
   if ! output=$(python3 "$CATALOG_PY" build "$SKILLS_ROOT" "$CACHE_PATH" 2>/dev/null); then
     echo "エラー: catalog の再生成に失敗しました" >&2
@@ -522,10 +553,169 @@ print(f"{data.get('skill_count', 0)}|{data.get('reference_count', 0)}")
 PY
 )
 
+  if ! python3 - "$LIB_DIR" "$SKILLS_ROOT" "$JSONL_CACHE_PATH" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+skills_root = Path(sys.argv[2])
+jsonl_path = Path(sys.argv[3])
+
+sys.path.insert(0, str(lib_dir))
+import skill_catalog  # type: ignore
+
+entries = skill_catalog.build_jsonl_catalog(skills_root, existing_jsonl_path=jsonl_path)
+skill_catalog.write_jsonl_catalog(entries, jsonl_path)
+PY
+  then
+    echo "エラー: JSONL skeleton の生成に失敗しました" >&2
+    return 2
+  fi
+
   local skill_count ref_count
   skill_count="${summary%%|*}"
   ref_count="${summary##*|}"
-  echo "スキル catalog を更新しました: ${skill_count} スキル / ${ref_count} references"
+
+  if [[ "$auto_classify" != "true" ]]; then
+    echo "スキル catalog を更新しました: ${skill_count} スキル / ${ref_count} references"
+    echo "JSONL skeleton を更新しました: $JSONL_CACHE_PATH"
+    return 0
+  fi
+
+  local classify_json
+  if ! classify_json=$(python3 - "$CLASSIFY_RUNNER_PY" "$SKILLS_ROOT" "$JSONL_CACHE_PATH" "$TASK_CATALOG_PATH" "$only_pending" "$dry_run" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import skill_classify_runner  # type: ignore
+
+skills_root = Path(sys.argv[2])
+jsonl_path = Path(sys.argv[3])
+task_catalog_path = Path(sys.argv[4])
+only_pending = sys.argv[5] == "true"
+dry_run = sys.argv[6] == "true"
+
+known_task_ids = skill_classify_runner.load_known_task_ids(task_catalog_path)
+result = skill_classify_runner.classify_all(
+    skills_root=skills_root,
+    jsonl_path=jsonl_path,
+    known_task_ids=known_task_ids,
+    only_pending=only_pending,
+    dry_run=dry_run,
+)
+print(json.dumps(result, ensure_ascii=False))
+PY
+); then
+    echo "エラー: auto-classify の実行に失敗しました" >&2
+    return 7
+  fi
+
+  run_py_with_json "$classify_json" <<'PY'
+import json
+import os
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    result = json.load(_f)
+
+target = int(result.get("target", 0))
+skip_hash = int(result.get("skipped_approved_hash_match", 0))
+to_classify = int(result.get("to_classify", 0))
+classified = int(result.get("classified", 0))
+errors = result.get("errors") if isinstance(result.get("errors"), list) else []
+
+print(f"  対象: {target} 件")
+print(f"  skip (approved hash一致): {skip_hash} 件")
+print(f"  classify 予定: {to_classify} 件")
+if errors:
+    print(f"  errors: {len(errors)} 件")
+    for err in errors:
+        if isinstance(err, dict):
+            skill_id = err.get("skill_id", "")
+            code = err.get("code", "")
+            print(f"    - {skill_id}: code={code}")
+if classified or errors:
+    print(f"  classify 実行: {classified} 件")
+PY
+  if [[ "$dry_run" == "true" ]]; then
+    echo "  (dry-run: 実行されません)"
+  fi
+}
+
+classify_skill_entry() {
+  local skill_id="$1"
+  local approve="$2"
+  local dry_run="$3"
+
+  local classify_json
+  if ! classify_json=$(python3 - "$CLASSIFY_RUNNER_PY" "$SKILLS_ROOT" "$JSONL_CACHE_PATH" "$TASK_CATALOG_PATH" "$skill_id" "$approve" "$dry_run" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import skill_classify_runner  # type: ignore
+
+skills_root = Path(sys.argv[2])
+jsonl_path = Path(sys.argv[3])
+task_catalog_path = Path(sys.argv[4])
+skill_id = sys.argv[5]
+approve = sys.argv[6] == "true"
+dry_run = sys.argv[7] == "true"
+
+known_task_ids = skill_classify_runner.load_known_task_ids(task_catalog_path)
+result = skill_classify_runner.classify_one(
+    skill_id,
+    skills_root=skills_root,
+    jsonl_path=jsonl_path,
+    known_task_ids=known_task_ids,
+    approve=approve,
+    dry_run=dry_run,
+)
+print(json.dumps(result, ensure_ascii=False))
+PY
+); then
+    echo "エラー: classify の実行に失敗しました: $skill_id" >&2
+    return 7
+  fi
+
+  run_py_with_json "$classify_json" <<'PY'
+import json
+import os
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as _f:
+    payload = json.load(_f)
+
+entry = payload.get("entry") if isinstance(payload.get("entry"), dict) else {}
+classification = entry.get("classification") if isinstance(entry.get("classification"), dict) else {}
+phases = entry.get("phases") if isinstance(entry.get("phases"), list) else []
+tasks = entry.get("tasks") if isinstance(entry.get("tasks"), list) else []
+triggers = entry.get("triggers") if isinstance(entry.get("triggers"), list) else []
+similar = entry.get("similar") if isinstance(entry.get("similar"), list) else []
+confidence = classification.get("confidence")
+
+def _fmt(values):
+    return "[" + ", ".join(str(v) for v in values) + "]"
+
+print(f"[skill_classify] {payload.get('skill_id', '')}")
+print(f"  phases: {_fmt(phases)}")
+print(f"  tasks: {_fmt(tasks)}")
+print(f"  triggers: {_fmt(triggers)}")
+print(f"  agent: {entry.get('agent', '')}")
+print(f"  similar: {_fmt(similar)}")
+if isinstance(confidence, (int, float)):
+    print(f"  confidence: {float(confidence):.2f}")
+else:
+    print("  confidence: -")
+status = str(classification.get("status", "pending"))
+if status == "pending":
+    print("  status: pending (--approve で approved に昇格)")
+else:
+    print(f"  status: {status}")
+if payload.get("dry_run"):
+    print("  (dry-run: JSONL には書き込みなし)")
+PY
 }
 
 ensure_catalog() {
