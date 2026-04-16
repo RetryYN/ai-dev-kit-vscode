@@ -233,6 +233,14 @@ run_test_contains "context-memory has graph memory section" "grep -n '^## 知識
 run_test_contains "performance has token cost section" "grep -n '^## トークンコスト最適化（90% 削減戦略）' $HELIX_HOME/skills/common/performance/SKILL.md" "トークンコスト最適化"
 echo ""
 
+echo "[jsonl-smoke]"
+run_test_contains "jsonl schema allowed agents count" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); from skill_jsonl_schema import ALLOWED_AGENTS; print(len(ALLOWED_AGENTS))'" "^16$"
+run_test "skill_catalog jsonl imports" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); from skill_catalog import build_jsonl_catalog, read_jsonl_catalog, write_jsonl_catalog; assert callable(build_jsonl_catalog); assert callable(read_jsonl_catalog); assert callable(write_jsonl_catalog)'"
+run_test "skill_classifier import" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); import skill_classifier'"
+run_test "skill_review import" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); import skill_review'"
+run_test "skill_classify_runner import if present" "python3 -c 'import importlib, pathlib, sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); path = pathlib.Path(\"'$SCRIPT_DIR'/lib/skill_classify_runner.py\"); importlib.import_module(\"skill_classify_runner\") if path.is_file() else None'"
+echo ""
+
 echo "[helix-plan]"
 mkdir -p docs/features/user-auth/D-ARCH
 echo "# user auth architecture" > docs/features/user-auth/D-ARCH/architecture.md

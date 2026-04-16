@@ -107,6 +107,25 @@ def test_build_jsonl_catalog_keeps_classification_when_approved_and_hash_matches
     assert rebuilt[0]["classification"] == existing_entry["classification"]
 
 
+def test_build_jsonl_catalog_keeps_manual_classification_when_hash_matches(tmp_path: Path) -> None:
+    skills_root = tmp_path / "skills"
+    _write_skill(skills_root, "common", "alpha", description="same")
+    current = skill_catalog.build_jsonl_catalog(skills_root)[0]
+
+    existing_path = tmp_path / "catalog.jsonl"
+    existing_entry = dict(current)
+    existing_entry["classification"] = {
+        "status": "manual",
+        "classified_at": "2026-04-16T03:00:00Z",
+        "classifier_model": "human",
+        "confidence": 0.77,
+    }
+    existing_path.write_text(json.dumps(existing_entry, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    rebuilt = skill_catalog.build_jsonl_catalog(skills_root, existing_jsonl_path=existing_path)
+    assert rebuilt[0]["classification"] == existing_entry["classification"]
+
+
 def test_build_jsonl_catalog_downgrades_approved_to_pending_on_hash_mismatch(tmp_path: Path) -> None:
     skills_root = tmp_path / "skills"
     _write_skill(skills_root, "common", "alpha", description="new-content")
@@ -196,3 +215,43 @@ def test_read_jsonl_catalog_skips_parse_failures(tmp_path: Path) -> None:
 def test_read_jsonl_catalog_returns_empty_when_missing(tmp_path: Path) -> None:
     missing = tmp_path / "missing.jsonl"
     assert skill_catalog.read_jsonl_catalog(missing) == []
+
+
+def test_read_jsonl_catalog_returns_empty_for_empty_file(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.jsonl"
+    path.write_text("", encoding="utf-8")
+
+    assert skill_catalog.read_jsonl_catalog(path) == []
+
+
+def test_read_jsonl_catalog_accepts_leading_blank_line_and_bom(tmp_path: Path) -> None:
+    path = tmp_path / "catalog.jsonl"
+    path.write_text("\n\ufeff" + json.dumps(_valid_jsonl_entry(), ensure_ascii=False) + "\n", encoding="utf-8")
+
+    loaded = skill_catalog.read_jsonl_catalog(path)
+
+    assert [entry["id"] for entry in loaded] == ["common/security"]
+
+
+def test_write_jsonl_catalog_sorts_entries_by_id(tmp_path: Path) -> None:
+    output_path = tmp_path / "catalog.jsonl"
+    later = _valid_jsonl_entry()
+    earlier = {**_valid_jsonl_entry(), "id": "common/alpha"}
+
+    skill_catalog.write_jsonl_catalog([later, earlier], output_path)
+
+    lines = output_path.read_text(encoding="utf-8").splitlines()
+    assert [json.loads(line)["id"] for line in lines] == ["common/alpha", "common/security"]
+
+
+def test_write_then_read_jsonl_catalog_round_trips_entries(tmp_path: Path) -> None:
+    output_path = tmp_path / "catalog.jsonl"
+    entries = [
+        _valid_jsonl_entry(),
+        {**_valid_jsonl_entry(), "id": "workflow/design-doc", "source_hash": "b" * 64},
+    ]
+
+    skill_catalog.write_jsonl_catalog(entries, output_path)
+    loaded = skill_catalog.read_jsonl_catalog(output_path)
+
+    assert loaded == sorted(entries, key=lambda item: item["id"])

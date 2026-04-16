@@ -109,6 +109,40 @@ def test_load_jsonl_candidates_returns_empty_list_when_phase_filter_has_no_match
     assert reason is None
 
 
+def test_load_jsonl_candidates_allows_partial_success_on_single_parse_failure(tmp_path: Path, capsys) -> None:
+    jsonl_path = tmp_path / "catalog.jsonl"
+    jsonl_path.write_text(
+        "\n".join(
+            [
+                json.dumps(_jsonl_entry(status="approved"), ensure_ascii=False),
+                "{invalid json",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    candidates, reason = skill_recommender._load_jsonl_candidates(jsonl_path)
+
+    captured = capsys.readouterr()
+    assert reason is None
+    assert candidates is not None
+    assert [entry["id"] for entry in candidates] == ["common/security"]
+    assert "有効行のみで継続" in captured.err
+
+
+def test_load_jsonl_candidates_falls_back_when_all_lines_are_invalid(tmp_path: Path, capsys) -> None:
+    jsonl_path = tmp_path / "catalog.jsonl"
+    jsonl_path.write_text("{invalid json\n", encoding="utf-8")
+
+    candidates, reason = skill_recommender._load_jsonl_candidates(jsonl_path)
+
+    captured = capsys.readouterr()
+    assert candidates is None
+    assert reason == "jsonl_parse_failed"
+    assert "JSON fallback" in captured.err
+
+
 def test_recommend_renders_prompt_with_jsonl_candidates(monkeypatch, tmp_path: Path) -> None:
     catalog_path = tmp_path / "skill-catalog.json"
     jsonl_path = tmp_path / "skill-catalog.jsonl"
@@ -217,3 +251,81 @@ def test_recommend_overwrites_agent_with_jsonl_value(monkeypatch, tmp_path: Path
     )
 
     assert result["candidates"][0]["recommended_agent"] == "security"
+
+
+def test_recommend_normalizes_legacy_helix_codex_agent_name(monkeypatch, tmp_path: Path) -> None:
+    catalog_path = tmp_path / "skill-catalog.json"
+    jsonl_path = tmp_path / "skill-catalog.jsonl"
+    cache_dir = tmp_path / "cache"
+    _write_json(catalog_path, _catalog_fixture())
+    _write_jsonl(jsonl_path, [_jsonl_entry(status="approved", agent="security")])
+
+    def _fake_run(_: str) -> str:
+        return json.dumps(
+            {
+                "recommendations": [
+                    {
+                        "skill_id": "common/security",
+                        "recommended_agent": "helix-codex --role security",
+                        "match_reason": "legacy format",
+                        "references": [],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+
+    monkeypatch.setattr(skill_recommender, "_run_recommender", _fake_run)
+
+    result = skill_recommender.recommend(
+        task_text="認証レビュー",
+        top_n=1,
+        catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_path,
+        cache_dir=cache_dir,
+        force_refresh=True,
+    )
+
+    assert result["candidates"][0]["recommended_agent"] == "security"
+
+
+def test_recommend_clears_agent_when_llm_returns_value_outside_allowlist(monkeypatch, tmp_path: Path) -> None:
+    catalog_path = tmp_path / "skill-catalog.json"
+    jsonl_path = tmp_path / "skill-catalog.jsonl"
+    cache_dir = tmp_path / "cache"
+    _write_json(catalog_path, _catalog_fixture())
+    _write_jsonl(
+        jsonl_path,
+        [
+            _jsonl_entry(status="approved"),
+            {**_jsonl_entry(status="approved", agent="qa"), "id": "common/testing", "source_hash": "b" * 64},
+        ],
+    )
+
+    def _fake_run(_: str) -> str:
+        return json.dumps(
+            {
+                "recommendations": [
+                    {
+                        "skill_id": "unknown/skill",
+                        "recommended_agent": "frontend",
+                        "match_reason": "invalid agent",
+                        "references": [],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        )
+
+    monkeypatch.setattr(skill_recommender, "_run_recommender", _fake_run)
+
+    result = skill_recommender.recommend(
+        task_text="未知タスク",
+        top_n=1,
+        catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_path,
+        cache_dir=cache_dir,
+        force_refresh=True,
+    )
+
+    assert result["candidates"][0]["recommended_agent"] == ""

@@ -172,3 +172,54 @@ def test_validate_entry_rejects_invalid_reference_shape() -> None:
 
     with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
         skill_jsonl_schema.validate_entry(entry)
+
+
+@pytest.mark.parametrize("reference", ["references/a.md", 42, ["nested"]])
+def test_validate_entry_rejects_reference_items_that_are_not_dict(reference) -> None:
+    entry = _valid_entry()
+    entry["references"] = [reference]
+
+    with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
+        skill_jsonl_schema.validate_entry(entry)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("path", ""),
+        ("path", "   "),
+        ("title", ""),
+        ("title", "   "),
+    ],
+)
+def test_validate_entry_rejects_empty_reference_path_or_title(field: str, value: str) -> None:
+    entry = _valid_entry()
+    entry["references"] = [{"path": "references/a.md", "title": "doc"}]
+    entry["references"][0][field] = value
+
+    with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
+        skill_jsonl_schema.validate_entry(entry)
+
+
+@pytest.mark.parametrize(
+    "classified_at",
+    [
+        "2026-04-16T03:00:00",
+        "2026-04-16T03:00:00+00:00",
+        "2026-04-16T03:00:00.Z",
+    ],
+)
+def test_validate_entry_rejects_invalid_classified_at_format(classified_at: str) -> None:
+    entry = _valid_entry()
+    entry["classification"]["classified_at"] = classified_at
+
+    with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
+        skill_jsonl_schema.validate_entry(entry)
+
+
+def test_validate_entry_rejects_string_confidence() -> None:
+    entry = _valid_entry()
+    entry["classification"]["confidence"] = "0.8"
+
+    with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
+        skill_jsonl_schema.validate_entry(entry)

@@ -87,6 +87,8 @@ def _validate_references(references: Any) -> None:
         _ensure("title" in ref, item_field, "missing required field 'title'")
         _ensure(isinstance(ref["path"], str), f"{item_field}.path", "must be a string")
         _ensure(isinstance(ref["title"], str), f"{item_field}.title", "must be a string")
+        _ensure(bool(ref["path"].strip()), f"{item_field}.path", "must not be empty")
+        _ensure(bool(ref["title"].strip()), f"{item_field}.title", "must not be empty")
         if "summary" in ref:
             _ensure(isinstance(ref["summary"], str), f"{item_field}.summary", "must be a string")
 

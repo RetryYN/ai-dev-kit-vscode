@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import skill_catalog
-from skill_jsonl_schema import JsonlSchemaError, validate_entry
+from skill_jsonl_schema import ALLOWED_AGENTS, JsonlSchemaError, validate_entry
 
 
 MODEL_NAME = "gpt-5.4-mini"
@@ -214,11 +214,19 @@ def _load_jsonl_candidates(
     if not jsonl_path.is_file():
         return None, "jsonl_missing"
 
-    non_empty_lines = [line for line in jsonl_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    parse_failures = 0
+    non_empty_lines = [line for line in jsonl_path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+    for raw in non_empty_lines:
+        try:
+            json.loads(raw.strip())
+        except json.JSONDecodeError:
+            parse_failures += 1
     parsed_entries = skill_catalog.read_jsonl_catalog(jsonl_path)
-    if len(parsed_entries) != len(non_empty_lines):
+    if parse_failures and not parsed_entries:
         print("[skill_recommender] 警告: JSONL parse failed. JSON fallback を使用します。", file=sys.stderr)
         return None, "jsonl_parse_failed"
+    if parse_failures:
+        print("[skill_recommender] 警告: JSONL parse failed. 有効行のみで継続します。", file=sys.stderr)
 
     valid_entries: list[dict] = []
     for entry in parsed_entries:
@@ -278,6 +286,18 @@ def _normalize_references(refs: Any) -> list[str]:
     return normalized
 
 
+def _normalize_agent_name(value: Any) -> str:
+    text = _safe_text(value).strip()
+    if not text:
+        return ""
+    match = re.fullmatch(r"helix-codex\s+--role\s+([a-z][a-z0-9-]*)", text)
+    if match:
+        text = match.group(1)
+    if text in ALLOWED_AGENTS:
+        return text
+    return ""
+
+
 def _normalize_result(data: dict[str, Any], top_n: int, task_text: str) -> dict[str, Any]:
     normalized_candidates: list[dict[str, Any]] = []
     raw_candidates = data.get("recommendations")
@@ -301,7 +321,7 @@ def _normalize_result(data: dict[str, Any], top_n: int, task_text: str) -> dict[
                     "score": score,
                     "reason": _safe_text(item.get("reason") or item.get("match_reason")).strip(),
                     "references": _normalize_references(item.get("references", [])),
-                    "recommended_agent": _safe_text(item.get("recommended_agent")).strip(),
+                    "recommended_agent": _normalize_agent_name(item.get("recommended_agent")),
                 }
             )
 

@@ -418,7 +418,7 @@ def build_jsonl_catalog(
 def write_jsonl_catalog(entries: list[dict], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as fp:
-        for entry in entries:
+        for entry in sorted(entries, key=lambda item: str(item.get("id", ""))):
             try:
                 validate_entry(entry, known_task_ids=None)
             except JsonlSchemaError as exc:
@@ -432,7 +432,7 @@ def read_jsonl_catalog(path: Path) -> list[dict]:
         return []
 
     entries: list[dict] = []
-    for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_no, raw in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
         text = raw.strip()
         if not text:
             continue
