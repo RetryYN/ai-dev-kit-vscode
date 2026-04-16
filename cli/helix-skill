@@ -136,7 +136,7 @@ Options:
 USAGE
 }
 
-catalog_rebuild_usage() {
+catalog_catalog_rebuild_usage() {
   cat <<'USAGE'
 使い方: helix skill catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
 
@@ -1029,7 +1029,35 @@ main() {
       shift || true
       case "$sub" in
         rebuild)
-          rebuild_catalog
+          local auto_classify="false"
+          local only_pending="false"
+          local dry_run="false"
+          while [[ $# -gt 0 ]]; do
+            case "$1" in
+              --auto-classify)
+                auto_classify="true"
+                shift
+                ;;
+              --only-pending)
+                only_pending="true"
+                shift
+                ;;
+              --dry-run)
+                dry_run="true"
+                shift
+                ;;
+              --help|-h)
+                catalog_rebuild_usage
+                return 0
+                ;;
+              *)
+                echo "エラー: 不明なオプションです: $1" >&2
+                catalog_rebuild_usage >&2
+                return 64
+                ;;
+            esac
+          done
+          rebuild_catalog "$auto_classify" "$only_pending" "$dry_run"
           return $?
           ;;
         *)
