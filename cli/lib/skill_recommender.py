@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import skill_catalog
+from skill_jsonl_schema import JsonlSchemaError, validate_entry
 
 
 MODEL_NAME = "gpt-5.4-mini"
@@ -43,6 +44,10 @@ def _default_catalog_path() -> Path:
 
 def _default_cache_dir() -> Path:
     return _repo_root() / ".helix" / "cache" / "recommendations"
+
+
+def _default_jsonl_catalog_path() -> Path:
+    return _repo_root() / ".helix" / "cache" / "skill-catalog.jsonl"
 
 
 def _default_skills_root() -> Path:
@@ -111,6 +116,9 @@ def _cache_key(
     layer_filter: str | None,
     category_filter: str | None,
     catalog_version: str,
+    phase_filter: list[str] | None,
+    use_no_jsonl: bool,
+    jsonl_version: str,
 ) -> str:
     payload = {
         "task_text": task_text,
@@ -118,6 +126,9 @@ def _cache_key(
         "layer_filter": layer_filter or "",
         "category_filter": category_filter or "",
         "catalog_version": catalog_version,
+        "phase_filter": phase_filter or [],
+        "use_no_jsonl": use_no_jsonl,
+        "jsonl_version": jsonl_version,
     }
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -179,11 +190,101 @@ def _run_recommender(prompt: str) -> str:
     return proc.stdout or ""
 
 
+def _jsonl_version(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    return str(path.stat().st_mtime_ns)
+
+
+def _load_jsonl_candidates(
+    jsonl_path: Path,
+    *,
+    phase_filter: list[str] | None = None,
+    use_no_jsonl: bool = False,
+) -> tuple[list[dict] | None, str | None]:
+    """
+    Returns (candidates, fallback_reason)
+    - JSONL ファイル不在 / parse fail / schema fail / approved/manual 0件
+      → (None, reason)
+    - 正常: phase_filter で絞込み → (filtered_list, None)
+      (filtered_list が 0 件でも JSONL 正常扱い、JSON にフォールバックしない)
+    """
+    if use_no_jsonl:
+        return None, "jsonl_disabled"
+    if not jsonl_path.is_file():
+        return None, "jsonl_missing"
+
+    non_empty_lines = [line for line in jsonl_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    parsed_entries = skill_catalog.read_jsonl_catalog(jsonl_path)
+    if len(parsed_entries) != len(non_empty_lines):
+        print("[skill_recommender] 警告: JSONL parse failed. JSON fallback を使用します。", file=sys.stderr)
+        return None, "jsonl_parse_failed"
+
+    valid_entries: list[dict] = []
+    for entry in parsed_entries:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            validate_entry(entry, known_task_ids=None)
+        except JsonlSchemaError:
+            continue
+        valid_entries.append(entry)
+
+    if non_empty_lines and not valid_entries:
+        print("[skill_recommender] 警告: JSONL schema invalid. JSON fallback を使用します。", file=sys.stderr)
+        return None, "jsonl_schema_invalid"
+
+    approved_manual = [
+        entry
+        for entry in valid_entries
+        if str(((entry.get("classification") or {}).get("status") if isinstance(entry.get("classification"), dict) else "")).strip()
+        in {"approved", "manual"}
+    ]
+    if not approved_manual:
+        return None, "jsonl_no_approved"
+
+    if not phase_filter:
+        return approved_manual, None
+
+    allowed = {phase.strip() for phase in phase_filter if phase.strip()}
+    filtered: list[dict] = []
+    for entry in approved_manual:
+        phases = entry.get("phases")
+        if not isinstance(phases, list):
+            continue
+        if any(str(phase).strip() in allowed for phase in phases):
+            filtered.append(entry)
+    return filtered, None
+
+
+def _jsonl_prompt_lines(entries: list[dict]) -> str:
+    return "\n".join(json.dumps(entry, ensure_ascii=False, separators=(",", ":")) for entry in entries)
+
+
+def _normalize_references(refs: Any) -> list[str]:
+    if not isinstance(refs, list):
+        return []
+
+    normalized: list[str] = []
+    for ref in refs:
+        if isinstance(ref, dict):
+            path = _safe_text(ref.get("path")).strip()
+            if path:
+                normalized.append(path)
+            continue
+        text = _safe_text(ref).strip()
+        if text:
+            normalized.append(text)
+    return normalized
+
+
 def _normalize_result(data: dict[str, Any], top_n: int, task_text: str) -> dict[str, Any]:
     normalized_candidates: list[dict[str, Any]] = []
-    raw_candidates = data.get("candidates", [])
+    raw_candidates = data.get("recommendations")
+    if not isinstance(raw_candidates, list):
+        raw_candidates = data.get("candidates", [])
     if isinstance(raw_candidates, list):
-        for item in raw_candidates:
+        for index, item in enumerate(raw_candidates):
             if not isinstance(item, dict):
                 continue
             skill_id = _safe_text(item.get("skill_id")).strip()
@@ -192,17 +293,14 @@ def _normalize_result(data: dict[str, Any], top_n: int, task_text: str) -> dict[
             try:
                 score = float(item.get("score", 0.0))
             except (TypeError, ValueError):
-                score = 0.0
+                score = 1.0 - (index / max(len(raw_candidates), 1))
             score = max(0.0, min(1.0, score))
-            refs = item.get("references", [])
-            if not isinstance(refs, list):
-                refs = []
             normalized_candidates.append(
                 {
                     "skill_id": skill_id,
                     "score": score,
-                    "reason": _safe_text(item.get("reason")).strip(),
-                    "references": [_safe_text(ref).strip() for ref in refs if _safe_text(ref).strip()],
+                    "reason": _safe_text(item.get("reason") or item.get("match_reason")).strip(),
+                    "references": _normalize_references(item.get("references", [])),
                     "recommended_agent": _safe_text(item.get("recommended_agent")).strip(),
                 }
             )
@@ -226,6 +324,24 @@ def _normalize_result(data: dict[str, Any], top_n: int, task_text: str) -> dict[
     }
 
 
+def _overwrite_agents_with_jsonl(result: dict[str, Any], jsonl_candidates: list[dict]) -> None:
+    agent_map: dict[str, str] = {}
+    for entry in jsonl_candidates:
+        if not isinstance(entry, dict):
+            continue
+        skill_id = _safe_text(entry.get("id")).strip()
+        agent = _safe_text(entry.get("agent")).strip()
+        if skill_id and agent:
+            agent_map[skill_id] = agent
+
+    for item in result.get("candidates", []):
+        if not isinstance(item, dict):
+            continue
+        skill_id = _safe_text(item.get("skill_id")).strip()
+        if skill_id in agent_map:
+            item["recommended_agent"] = agent_map[skill_id]
+
+
 def recommend(
     task_text: str,
     top_n: int = 5,
@@ -233,6 +349,9 @@ def recommend(
     category_filter: str | None = None,
     catalog_path: Path | None = None,
     cache_dir: Path | None = None,
+    jsonl_catalog_path: Path | None = None,
+    phase_filter: list[str] | None = None,
+    use_no_jsonl: bool = False,
     force_refresh: bool = False,
 ) -> dict[str, Any]:
     if not task_text.strip():
@@ -240,11 +359,29 @@ def recommend(
 
     resolved_catalog_path = (catalog_path or _default_catalog_path()).resolve()
     resolved_cache_dir = (cache_dir or _default_cache_dir()).resolve()
+    resolved_jsonl_path = (jsonl_catalog_path or _default_jsonl_catalog_path()).resolve()
     catalog = _load_or_build_catalog(resolved_catalog_path)
     filtered_catalog = _filter_catalog(catalog, layer_filter, category_filter)
     catalog_version = _safe_text(catalog.get("version") or "1.0")
+    jsonl_candidates, fallback_reason = _load_jsonl_candidates(
+        resolved_jsonl_path,
+        phase_filter=phase_filter,
+        use_no_jsonl=use_no_jsonl,
+    )
+    is_jsonl_mode = jsonl_candidates is not None and fallback_reason is None
+    if fallback_reason and fallback_reason != "jsonl_disabled":
+        print(f"[skill_recommender] debug: JSONL fallback reason={fallback_reason}", file=sys.stderr)
 
-    key = _cache_key(task_text, top_n, layer_filter, category_filter, catalog_version)
+    key = _cache_key(
+        task_text,
+        top_n,
+        layer_filter,
+        category_filter,
+        catalog_version,
+        phase_filter,
+        use_no_jsonl,
+        _jsonl_version(resolved_jsonl_path),
+    )
     cache_file = resolved_cache_dir / f"{key}.json"
 
     if not force_refresh and _cache_is_fresh(cache_file):
@@ -262,6 +399,8 @@ def recommend(
             "TOP_N": top_n,
             "LAYER_FILTER": layer_filter,
             "CATEGORY_FILTER": category_filter,
+            "jsonl_candidates": _jsonl_prompt_lines(jsonl_candidates or []) if is_jsonl_mode else "",
+            "skill_catalog": "" if is_jsonl_mode else json.dumps(filtered_catalog, ensure_ascii=False, separators=(",", ":")),
             "CATALOG_JSON": json.dumps(filtered_catalog, ensure_ascii=False, separators=(",", ":")),
         },
     )
@@ -276,6 +415,8 @@ def recommend(
         raise RecommenderError(4, "推挙結果の JSON 解析に失敗しました。")
 
     result = _normalize_result(extracted, top_n, task_text)
+    if is_jsonl_mode and jsonl_candidates is not None:
+        _overwrite_agents_with_jsonl(result, jsonl_candidates)
     result["_cached"] = False
     result["_model"] = MODEL_NAME
 
@@ -290,19 +431,24 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--top-n", type=int, default=5, help="上位候補数")
     parser.add_argument("--layer", default=None, help="helix_layer フィルタ")
     parser.add_argument("--category", default=None, help="category フィルタ")
+    parser.add_argument("--phase", default=None, help="phase フィルタ（カンマ区切り）")
     parser.add_argument("--json", action="store_true", help="JSON のみ出力")
     parser.add_argument("--no-cache", action="store_true", help="推挙キャッシュを無視")
+    parser.add_argument("--no-jsonl", action="store_true", help="JSONL を使わず JSON mode を強制")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    phase_filter = [part.strip() for part in (args.phase or "").split(",") if part.strip()] or None
     try:
         result = recommend(
             task_text=args.task,
             top_n=max(1, args.top_n),
             layer_filter=args.layer,
             category_filter=args.category,
+            phase_filter=phase_filter,
+            use_no_jsonl=args.no_jsonl,
             force_refresh=args.no_cache,
         )
     except RecommenderError as exc:
