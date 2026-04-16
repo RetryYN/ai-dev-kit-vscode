@@ -65,14 +65,16 @@ USAGE
 
 search_usage() {
   cat <<'USAGE'
-使い方: helix skill search "<task>" [-n N] [--layer L] [--category C] [--json] [--no-cache]
+使い方: helix skill search "<task>" [-n N] [--layer L] [--category C] [--phase P] [--json] [--no-cache] [--no-jsonl]
 
 Options:
   -n N          上位候補数（デフォルト: 5）
   --layer L     helix_layer フィルタ
   --category C  category フィルタ
+  --phase P     phase フィルタ（カンマ区切り）
   --json        JSON をそのまま出力
   --no-cache    推挙キャッシュを無視
+  --no-jsonl    JSONL を使わず JSON fallback を強制
   --help        search のヘルプ
 USAGE
 }
@@ -855,10 +857,12 @@ search_skills() {
   local top_n="$2"
   local layer="$3"
   local category="$4"
-  local as_json="$5"
-  local no_cache="$6"
+  local phase="$5"
+  local as_json="$6"
+  local no_cache="$7"
+  local no_jsonl="$8"
 
-  python3 - "$LIB_DIR" "$task" "$top_n" "$layer" "$category" "$as_json" "$no_cache" "$CACHE_PATH" "$RECOMMEND_CACHE_DIR" <<'PY'
+  python3 - "$LIB_DIR" "$task" "$top_n" "$layer" "$category" "$phase" "$as_json" "$no_cache" "$no_jsonl" "$CACHE_PATH" "$JSONL_CACHE_PATH" "$RECOMMEND_CACHE_DIR" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -868,13 +872,18 @@ task = sys.argv[2]
 top_n = int(sys.argv[3])
 layer = sys.argv[4] or None
 category = sys.argv[5] or None
-as_json = sys.argv[6] == "true"
-no_cache = sys.argv[7] == "true"
-catalog_path = Path(sys.argv[8])
-cache_dir = Path(sys.argv[9])
+phase = sys.argv[6] or None
+as_json = sys.argv[7] == "true"
+no_cache = sys.argv[8] == "true"
+no_jsonl = sys.argv[9] == "true"
+catalog_path = Path(sys.argv[10])
+jsonl_catalog_path = Path(sys.argv[11])
+cache_dir = Path(sys.argv[12])
 
 sys.path.insert(0, str(lib_dir))
 import skill_recommender  # type: ignore
+
+phase_filter = [part.strip() for part in (phase or "").split(",") if part.strip()] or None
 
 try:
     result = skill_recommender.recommend(
@@ -883,7 +892,10 @@ try:
         layer_filter=layer,
         category_filter=category,
         catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_catalog_path,
         cache_dir=cache_dir,
+        phase_filter=phase_filter,
+        use_no_jsonl=no_jsonl,
         force_refresh=no_cache,
     )
 except skill_recommender.RecommenderError as exc:
@@ -1127,8 +1139,10 @@ main() {
       local top_n="5"
       local layer=""
       local category=""
+      local phase=""
       local as_json="false"
       local no_cache="false"
+      local no_jsonl="false"
       while [[ $# -gt 0 ]]; do
         case "$1" in
           -n)
@@ -1146,12 +1160,21 @@ main() {
             category="$2"
             shift 2
             ;;
+          --phase)
+            [[ $# -ge 2 ]] || { echo "エラー: --phase には値が必要です" >&2; return 64; }
+            phase="$2"
+            shift 2
+            ;;
           --json)
             as_json="true"
             shift
             ;;
           --no-cache)
             no_cache="true"
+            shift
+            ;;
+          --no-jsonl)
+            no_jsonl="true"
             shift
             ;;
           --help|-h)
@@ -1168,7 +1191,7 @@ main() {
         echo "エラー: -n には 1 以上の整数を指定してください" >&2
         return 64
       fi
-      search_skills "$task" "$top_n" "$layer" "$category" "$as_json" "$no_cache"
+      search_skills "$task" "$top_n" "$layer" "$category" "$phase" "$as_json" "$no_cache" "$no_jsonl"
       return $?
       ;;
     use)
