@@ -9,15 +9,15 @@ DB_PATH="$HELIX_DIR/helix.db"
 
 case "${1:-}" in
   --help|-h|"")
-    echo "使い方: helix builder <target> [action] [オプション]"
+    echo "使い方: helix builder <type> <action> [オプション]"
     echo ""
     echo "Builder 生成ツールを実行します。"
     echo ""
     echo "必須引数:"
-    echo "  target           生成対象の builder 種別 (例: task, component, agent)"
+    echo "  type             生成対象の builder 種別 (例: task, component, agent)"
+    echo "  action           アクション (例: create, list, show)"
     echo ""
     echo "任意引数:"
-    echo "  action           アクション (デフォルト: builder 種別依存)"
     echo "  --input PATH     入力 payload ファイル"
     echo "  --seed ID        シード実行 ID"
     echo "  --out PATH       出力パス"

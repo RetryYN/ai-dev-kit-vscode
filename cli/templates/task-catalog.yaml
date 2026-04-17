@@ -13,7 +13,7 @@ research:
     name: "ライブラリ比較調査"
     role: research
     estimate: 30
-    skill: advanced/tech-selection
+    skill: workflow/research
     actions:
       - { type: analyze, desc: "要件から比較軸を定義" }
       - { type: search-external, desc: "候補を Web 検索" }
@@ -29,7 +29,7 @@ research:
     name: "先行事例調査"
     role: research
     estimate: 25
-    skill: advanced/tech-selection
+    skill: workflow/research
     actions:
       - { type: analyze, desc: "調査テーマの定義" }
       - { type: search-external, desc: "類似プロジェクト・事例を Web 検索" }
@@ -42,7 +42,7 @@ research:
     name: "実現可能性調査"
     role: research
     estimate: 30
-    skill: advanced/tech-selection
+    skill: workflow/research
     actions:
       - { type: analyze, desc: "技術的問いの明確化" }
       - { type: search-external, desc: "技術的制約・限界の調査" }
@@ -56,7 +56,7 @@ research:
     name: "セキュリティ調査"
     role: research
     estimate: 25
-    skill: common/security
+    skill: workflow/research
     actions:
       - { type: search-external, desc: "CVE/脆弱性データベース検索" }
       - { type: read-docs, desc: "セキュリティアドバイザリ確認" }
@@ -69,7 +69,7 @@ research:
     name: "コンプライアンス調査"
     role: research
     estimate: 20
-    skill: workflow/compliance
+    skill: workflow/research
     actions:
       - { type: search-external, desc: "ライセンス条文確認" }
       - { type: search-external, desc: "データ保護規制（GDPR/個人情報保護法）確認" }
@@ -137,7 +137,7 @@ design:
     name: "UI/UX 設計"
     role: fe-design
     estimate: 30
-    skill: common/visual-design
+    skill: project/fe-design
     actions:
       - { type: analyze, desc: "画面フロー定義" }
       - { type: search-external, desc: "UI パターン・デザインシステム調査" }
@@ -149,7 +149,7 @@ design:
     name: "セキュリティ設計"
     role: security
     estimate: 25
-    skill: common/security
+    skill: workflow/threat-model
     actions:
       - { type: analyze, desc: "STRIDE モデルで脅威分析" }
       - { type: search-external, desc: "OWASP Top 10 該当項目確認" }
@@ -326,7 +326,7 @@ review:
     name: "アクセシビリティレビュー"
     role: fe-a11y
     estimate: 20
-    skill: project/ui
+    skill: project/fe-a11y
     actions:
       - { type: review-checklist, desc: "WCAG 2.1 AA チェックリスト照合" }
       - { type: search-internal, desc: "aria 属性・alt 属性の確認" }
@@ -338,7 +338,7 @@ review:
     name: "ユーザビリティレビュー"
     role: fe-design
     estimate: 20
-    skill: common/design
+    skill: project/fe-design
     actions:
       - { type: review-checklist, desc: "ニールセンのヒューリスティック評価" }
       - { type: analyze, desc: "ユーザーフロー分析" }
@@ -349,7 +349,7 @@ review:
     name: "ビジュアルレビュー"
     role: fe-design
     estimate: 20
-    skill: common/visual-design
+    skill: project/fe-design
     actions:
       - { type: read-code, desc: "デザイン仕様（DESIGNER.md / デザイントークン）確認" }
       - { type: review-checklist, desc: "スクショ目視: デザインカンプとの一致" }
@@ -466,7 +466,7 @@ implement:
     name: "UI コンポーネント実装"
     role: fe-component
     estimate: 30
-    skill: project/ui
+    skill: project/fe-component
     actions:
       - { type: read-code, desc: "UI 設計・デザイントークン確認" }
       - { type: write-code, desc: "コンポーネント実装" }
@@ -478,7 +478,7 @@ implement:
     name: "スタイリング実装"
     role: fe-style
     estimate: 25
-    skill: common/visual-design
+    skill: project/fe-style
     actions:
       - { type: read-code, desc: "デザイン仕様確認" }
       - { type: write-code, desc: "CSS / Tailwind 実装" }
@@ -607,7 +607,7 @@ verify:
     name: "アクセシビリティ検証"
     role: fe-a11y
     estimate: 10
-    skill: project/ui
+    skill: project/fe-a11y
     actions:
       - { type: execute-command, desc: "axe-core / Lighthouse 実行" }
       - { type: analyze, desc: "スコア評価（目標 ≥90）" }
@@ -658,7 +658,7 @@ fix:
     name: "アクセシビリティ修正"
     role: fe-a11y
     estimate: 20
-    skill: project/ui
+    skill: project/fe-a11y
     actions:
       - { type: read-code, desc: "違反リストの確認" }
       - { type: write-code, desc: "修正実装" }
@@ -927,7 +927,7 @@ legacy:
     name: "ディレクトリ構造スキャン"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: read-code, desc: "トップレベルディレクトリ一覧" }
       - { type: read-code, desc: "package.json / go.mod / Cargo.toml 等の依存ファイル特定" }
@@ -938,7 +938,7 @@ legacy:
     name: "エントリポイント特定"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: search-internal, desc: "main / index / app / server ファイルの検索" }
       - { type: read-code, desc: "起動シーケンスの追跡" }
@@ -949,7 +949,7 @@ legacy:
     name: "DB スキーマ抽出"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: search-internal, desc: "ORM モデル / migration ファイル検索" }
       - { type: read-code, desc: "テーブル定義・リレーション解析" }
@@ -961,7 +961,7 @@ legacy:
     name: "外部依存抽出"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: search-internal, desc: "HTTP クライアント呼び出し検索（fetch/axios/http）" }
       - { type: search-internal, desc: "環境変数から外部 URL 抽出" }
@@ -973,7 +973,7 @@ legacy:
     name: "設定・環境解析"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: search-internal, desc: ".env / config / settings ファイル検索" }
       - { type: read-code, desc: "環境変数の使用箇所と用途の特定" }
@@ -984,7 +984,7 @@ legacy:
     name: "不明領域のカタログ化"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: search-internal, desc: "TODO / FIXME / HACK / DEPRECATED 検索" }
       - { type: analyze, desc: "テストカバレッジの低い領域の特定" }
@@ -995,7 +995,7 @@ legacy:
     name: "証拠マップ統合（R0 成果物）"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r0
     actions:
       - { type: analyze, desc: "各スキャン結果の統合・矛盾チェック" }
       - { type: review-cross-ref, desc: "モジュール↔DB↔外部APIの対応確認" }
@@ -1007,7 +1007,7 @@ legacy:
     name: "API ルート自動抽出"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r1
     actions:
       - { type: search-internal, desc: "ルーティング定義の grep（router/app.get 等）" }
       - { type: read-code, desc: "各エンドポイントのハンドラ解析" }
@@ -1018,7 +1018,7 @@ legacy:
     name: "DB 契約抽出"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r1
     actions:
       - { type: search-internal, desc: "CRUD パターンの抽出" }
       - { type: read-code, desc: "クエリの WHERE 条件・JOIN 解析" }
@@ -1029,7 +1029,7 @@ legacy:
     name: "型・インターフェース抽出"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r1
     actions:
       - { type: search-internal, desc: "interface / type / class 定義の検索" }
       - { type: analyze, desc: "型の依存関係グラフ" }
@@ -1051,7 +1051,7 @@ legacy:
     name: "契約マップ統合（R1 成果物）"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r1
     actions:
       - { type: analyze, desc: "API/DB/型の契約を統合" }
       - { type: review-cross-ref, desc: "API↔型↔DB の整合性確認" }
@@ -1063,7 +1063,7 @@ legacy:
     name: "アーキテクチャ復元"
     role: legacy
     estimate: 20
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r2
     actions:
       - { type: analyze, desc: "コンポーネント間依存関係の分析" }
       - { type: analyze, desc: "レイヤー構造の推定（Presentation/Business/Data）" }
@@ -1074,7 +1074,7 @@ legacy:
     name: "データフロー復元"
     role: legacy
     estimate: 15
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r2
     actions:
       - { type: read-code, desc: "主要ユースケースのデータ経路追跡" }
       - { type: analyze, desc: "入力→処理→出力→永続化の流れ" }
@@ -1110,7 +1110,7 @@ legacy:
     name: "要件仮説策定"
     role: legacy
     estimate: 20
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r3
     actions:
       - { type: read-code, desc: "ユースケースの推定" }
       - { type: analyze, desc: "各機能の「なぜ存在するか」仮説" }
@@ -1122,7 +1122,7 @@ legacy:
     name: "不明項目のタスク化"
     role: legacy
     estimate: 10
-    skill: workflow/reverse-analysis
+    skill: workflow/reverse-r3
     actions:
       - { type: analyze, desc: "unknowns カタログから調査タスク生成" }
       - { type: analyze, desc: "PO 検証で reject された仮説のタスク化" }
