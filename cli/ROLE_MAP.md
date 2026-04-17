@@ -35,6 +35,12 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | legacy | gpt-5.4 | R0-R4 | レガシー分析・Reverse HELIX |
 | perf | gpt-5.4 | L4/L6 | パフォーマンス計測・最適化 |
 | recommender | gpt-5.4-mini | 全フェーズ | スキル自動推挙（`helix skill search` 専用、軽量・高速） |
+| classifier | gpt-5.4-mini | 内部 | スキル分類（`helix skill catalog classify` 専用、LLM 最適化 JSONL 生成） |
+| fe-design | gpt-5.4 | L2 | 情報アーキテクチャ・D-IA・コンテンツマップ担当 |
+| fe-component | gpt-5.4 | L4 | Atomic Design コンポーネント実装・Props 型定義 |
+| fe-style | gpt-5.4 | L4/L5 | デザイントークン・Tailwind/styled-components 実装 |
+| fe-a11y | gpt-5.4 | L4/L5/L6 | WCAG 2.1 AA 準拠・axe-core 検証 |
+| fe-test | gpt-5.4 | L4/L6 | Storybook・E2E (Playwright)・VRT 設計 |
 
 ## 共通ルール
 
