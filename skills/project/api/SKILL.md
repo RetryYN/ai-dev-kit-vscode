@@ -2,7 +2,7 @@
 name: api
 description: RESTful/GraphQL API設計でエンドポイント規約・レスポンス形式テンプレート・認証認可パターンを提供（L2-L3 設計時に参照。契約凍結後の検証は api-contract を使用）
 metadata:
-  helix_layer: L2-L3
+  helix_layer: L2
   triggers:
     - API設計時
     - REST/GraphQL選定時

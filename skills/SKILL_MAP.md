@@ -228,7 +228,7 @@ automation/browser-script:
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 55 スキル + 75+ references を LLM マッチングで自動推挙する CLI を搭載。
+全 75 スキル + 75+ references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]

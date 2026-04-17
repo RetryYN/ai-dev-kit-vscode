@@ -2,7 +2,7 @@
 name: visual-design
 description: ビジュアルデザイン基礎（構図・レイアウト・配色・タイポグラフィ・余白・視線誘導）に基づいてSNS画像、Web UI、資料、プレゼンテーションのデザイン判断を支援する。配色提案、レイアウト設計、フォント選定、余白設計、構図選択、デザインレビューに使用する
 metadata:
-  helix_layer: L2/L5
+  helix_layer: L2
   triggers:
     - L2設計時（ビジュアル方針決定）
     - L5 Visual Refinement（実装後のデザイン適用・調整）
@@ -123,7 +123,7 @@ S案件は 5行以内の最小版コンテンツマップで可。
 - SNS画像・バナー・LP・プレゼン資料の制作時
 - 既存デザインの改善点を指摘する時
 
-**補完スキル:** UI/UX心理学・ブランディングは `design` スキル、コンポーネント実装は `ui` スキルを参照。
+**補完スキル:** UI/UX心理学・ブランディングは `design`、IA・情報設計は `project/fe-design`、コンポーネント実装は `project/fe-component`、スタイル/トークンは `project/fe-style`、a11y は `project/fe-a11y`、テストは `project/fe-test` を参照。
 
 ---
 

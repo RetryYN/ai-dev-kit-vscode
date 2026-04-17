@@ -37,6 +37,9 @@
 | 判定形式 | チェックリスト（自動 + 手動） |
 | Fail | L1 差戻し。漏れた項目を追加 |
 
+**担当スキル**:
+- gate-planning（企画突合、2026-04-17 追加）
+
 ### G1 要件完了ゲート（L1 出口）
 
 | 項目 | 内容 |
@@ -58,6 +61,10 @@
 | 中規模 skip | 可（不確実性なし） |
 | Fail | L1 差戻し or L2 案再設計。仮説更新後に再 PoC |
 
+**担当スキル**:
+- poc（PoC 設計/実行、2026-04-17 追加）
+- gate-planning（企画整合、2026-04-17 追加）
+
 ### G1R 事前調査ゲート
 
 | 項目 | 内容 |
@@ -70,6 +77,9 @@
 | Fail | 次層着手禁止 |
 | 強制条件 | `ai-coding/SKILL.md §7`（単一ソース） |
 
+**担当スキル**:
+- research（事前調査、2026-04-17 追加）
+
 ### G2 設計凍結ゲート（L2 出口）
 
 | 項目 | 内容 |
@@ -80,6 +90,11 @@
 | 中規模 skip | 不可 |
 | Fail | L2 差戻し、要件曖昧なら L1。ADR/境界変更が入ったら G3 以降無効 |
 | レビュー | `codex exec "レビュー"` — Codex 5.4 |
+
+**担当スキル**:
+- adversarial-review（批判レビュー）
+- threat-model（脅威モデル、2026-04-17 追加）
+- security（セキュリティ設計）
 
 ### G3 実装着手ゲート（L3 出口）
 
@@ -92,6 +107,9 @@
 | Fail | L3 差戻し、設計矛盾なら L2。契約/スキーマ変更時は G4 以降無効 |
 | レビュー | `codex exec "レビュー"` — Codex 5.4 |
 
+**担当スキル**:
+- schedule-wbs（工程表/WBS、2026-04-17 追加）
+
 ### G4 実装凍結ゲート（L4 出口）
 
 | 項目 | 内容 |
@@ -102,6 +120,9 @@
 | 中規模 skip | 不可 |
 | Fail | L4 差戻し、IIP P2/P3 なら L3/L2/L1 へ逆流。コード局所修正なら G4 再審、契約変更なら G3 から |
 | レビュー | `codex review --uncommitted` — Codex 5.4 |
+
+**担当スキル**:
+- debt-register（負債台帳、2026-04-17 追加）
 
 ### G5 デザイン凍結ゲート（L5 出口）
 
@@ -123,6 +144,9 @@
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
 | Fail | L6 が基本、原因次第で L5/L4/L3/L2。成果物/設定が変わったら新 RC 振り直し |
+
+**担当スキル**:
+- runbook（運用手順、2026-04-17 追加）
 
 ### G7 安定性ゲート（L7 出口）
 
@@ -327,6 +351,9 @@ Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに
 | 判定者 | TL |
 | Fail | 未スキャン領域の追加調査 |
 
+**生成スキル**:
+- reverse-r0（Evidence Acquisition、2026-04-17 追加）
+
 ### RG1 契約検証ゲート（R1 出口）
 
 | 項目 | 内容 |
@@ -334,6 +361,9 @@ Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに
 | 通過条件 | API/DB/型の抽出 coverage ≥ 90%、confidence high ≥ 80%、characterization tests で主要パス検証済み、contradictions 0（未解決） |
 | 判定者 | TL（Codex 5.4） |
 | Fail | confidence low の契約に追加テスト / 再抽出 |
+
+**生成スキル**:
+- reverse-r1（Observed Contracts、2026-04-17 追加）
 
 ### RG2 設計検証ゲート（R2 出口）
 
@@ -343,6 +373,9 @@ Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに
 | 判定者 | TL（Codex 5.4）+ adversarial-review |
 | Fail | 矛盾する ADR の追加調査 / 仮説修正 |
 
+**生成スキル**:
+- reverse-r2（As-Is Design、2026-04-17 追加）
+
 ### RG3 仮説検証ゲート（R3 出口）
 
 | 項目 | 内容 |
@@ -351,14 +384,21 @@ Forward ゲートが「定義の完全性 / 凍結可否」を判定するのに
 | 判定者 | PM + PO + TL |
 | Fail | PO 追加ヒアリング / unknown の調査タスク実行 |
 
+**生成スキル**:
+- reverse-r3（Intent Hypotheses、2026-04-17 追加）
+
 ### RG4 は独立ゲートではない
 
 R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 = gap_register の全項目に routing 割当 + 優先順位合意で、Forward フローの該当レイヤー（L1/L2/L3/L4）に直接接続する。
+
+**生成スキル**:
+- reverse-r4（Gap & Routing、2026-04-17 追加）
 
 ### RGC Gap Closure（Reverse Gap Closure — Forward 完了後）
 
 > Forward の「G6 RC 判定ゲート」（RC = Release Candidate）とは別概念。RGC = Reverse Gap Closure。
 > ※ CLI 未実装。将来バージョンで `helix reverse rgc` として実装予定。
+> ※ 2026-04-17 更新: Python 実装済み（`helix reverse rgc` サブコマンド）。
 
 | 項目 | 内容 |
 |------|------|
@@ -366,6 +406,9 @@ R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 =
 | 通過条件 | gap_register 全項目に closed/partial/open ステータス付与、closed 項目に evidence 記録済み、仮説成果物の昇格判定完了（intent_hypotheses は PO 承認必須） |
 | 判定者 | TL（技術検証）+ PM（昇格判定）+ PO（intent_hypotheses 承認） |
 | Fail | 未閉塞 gap の追加修正 → Forward 再実行 → RGC 再判定 |
+
+**生成スキル**:
+- reverse-rgc（Gap Closure、2026-04-17 追加）
 
 **RGC 3 段階:**
 
