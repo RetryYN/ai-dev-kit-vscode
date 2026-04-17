@@ -149,7 +149,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（76スキル）
+## スキル群配置（75スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）
@@ -160,16 +160,16 @@ fullstack 追加条件:
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
 | project/ | ui, api, db, **fe-design**, **fe-component**, **fe-style**, **fe-a11y**, **fe-test** |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
-| tools/ | ai-coding, ide-tools, **web-search**, **ai-search**, **mcp-wrapper-template** |
+| tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
 | integration/ | agent-teams |
 | writing/ | japanese, explain, story, presentation, social |
 | design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize |
 
-**2026-04-17 追加分** (21スキル):
+**2026-04-17 追加分** (20スキル):
 - workflow/: research (G1R)・poc (G1.5)・gate-planning (G0.5/G1.5)・schedule-wbs (L3)・threat-model (G2)・runbook (L6)・debt-register (G4)・reverse-r0〜r4 + reverse-rgc (R0-R4 + RGC)
 - project/: fe-design・fe-component・fe-style・fe-a11y・fe-test (FE サブエージェント 5種)
-- tools/: web-search (Tavily MCP)・ai-search (Perplexity MCP)・mcp-wrapper-template (MCP 統合雛型)
+- tools/: web-search (native WebSearch + WebFetch)・ai-search (Haiku 4.5 委譲)
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
 
