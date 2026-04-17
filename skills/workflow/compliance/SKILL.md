@@ -1,6 +1,6 @@
 ---
 name: compliance
-description: ライセンス検証・データ保護・監査対応を含むコンプライアンス実施手順を提供
+description: 法令遵守・ライセンス・規制対応を提供
 metadata:
   helix_layer: L1
   triggers:
@@ -26,6 +26,11 @@ compatibility:
 - 個人情報保護対応時（GDPR、個人情報保護法）
 - セキュリティ監査準備時
 - 規制要件の実装時
+
+> **責務境界**
+> - compliance (本スキル): 法令遵守・ライセンス・規制対応 (GDPR/個人情報保護法など)
+> - security: 脆弱性・OWASP・秘密情報・AI生成コード品質
+> - adversarial-review: 批判的レビュー手法 (脅威モデル特化は workflow/threat-model 参照)
 
 ---
 

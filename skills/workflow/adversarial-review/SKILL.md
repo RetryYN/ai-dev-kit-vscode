@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: 複数AIで設計判断の反証レビューを行うための観点・手順・出力フォーマットを提供
+description: 設計批判レビュー手法 (G2 固有) — 脅威モデル作成は workflow/threat-model に委譲
 metadata:
   helix_layer: L2
   triggers:
@@ -35,6 +35,12 @@ compatibility:
 |------|---------|
 | 後戻りコストが高い設計判断 | DB設計の根幹・認証方式・外部API統合方針など |
 | フレームワーク・運用ルールの大規模変更 | HELIX 自体の構造変更など（今回の使用例） |
+
+> **責務境界**
+> - adversarial-review (本スキル): 批判的レビュー手法 (G2 固有)
+> - security: 脆弱性・OWASP・秘密情報・AI生成コード品質
+> - compliance: 法令遵守・ライセンス・規制対応 (GDPR/個人情報保護法など)
+> - threat-model: STRIDE/DREAD による脅威モデル作成
 
 ### スキップ条件
 

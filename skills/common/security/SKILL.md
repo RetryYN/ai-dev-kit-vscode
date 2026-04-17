@@ -1,6 +1,6 @@
 ---
 name: security
-description: セキュリティ対策で環境別設定ガイド・認証認可実装パターン・脆弱性対策チェックリストとOWASP検証手順・秘密情報スキャン・AI生成コード品質チェックを提供
+description: 脆弱性対策・OWASP・秘密情報管理を提供
 metadata:
   helix_layer: L2
   triggers:
@@ -28,6 +28,11 @@ compatibility:
 - 機密情報の扱い時
 - 本番環境デプロイ時
 - セキュリティレビュー時
+
+> **責務境界**
+> - security (本スキル): 脆弱性・OWASP・秘密情報・AI生成コード品質
+> - compliance: 法令遵守・ライセンス・規制対応 (GDPR/個人情報保護法など)
+> - adversarial-review: 批判的レビュー手法 (脅威モデル特化は workflow/threat-model 参照)
 
 ---
 

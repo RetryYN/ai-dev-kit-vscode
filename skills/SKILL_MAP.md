@@ -38,6 +38,9 @@ L4  実装（マイクロスプリント: .1a→.1b→.2→.3→.4→.5）
   ↓ → visual-design
 L5  Visual Refinement（DESIGNER.md 駆動）
   ↓ G5   デザイン凍結ゲート     [TL+PM]    UIなしskip可
+G5 デザイン凍結ゲート:
+  前提条件: ①information / ②layout / ③ux の三点セット (L2 visual-design) が完成していること
+  UIなし: スキップ可
   ↓ → verification, testing, quality-lv5
 L6  統合検証（E2E・性能・セキュリティ・運用準備）
   ↓ G6   RC判定ゲート（Release Candidate）  [PM+TL+PO]  ★セキュリティ③
@@ -169,6 +172,21 @@ fullstack 追加条件:
 - tools/: web-search (Tavily MCP)・ai-search (Perplexity MCP)・mcp-wrapper-template (MCP 統合雛型)
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
+
+### 責務境界クリア化（テスト・検証・品質系の使い分け）
+
+3スキルが近接領域だが層が異なる。発火順に整理:
+
+| スキル | フェーズ | 役割 |
+|--------|---------|------|
+| `common/testing` | **L4** 実装時 | テストケース作成・テストテンプレート (unit/integration/E2E の書き方) |
+| `workflow/quality-lv5` | **L6** 統合検証 | テスト品質を Lv1-5 で評価・テストピラミッド比率・カバレッジ目標の判定 |
+| `workflow/verification` | **all** (L1〜L8 + R0-R4) | Spec駆動検証・L8 仕様突合・Reverse RG0-RG3 ゲート検証基盤 |
+
+使い分けルール:
+- **テストを書く**: `common/testing` のみ参照
+- **テスト品質の合否判定**: `workflow/quality-lv5` (G4/G6 ゲート時)
+- **成果物 ↔ 要件の突合検証**: `workflow/verification` (L1 受入条件 / L8 受入 / Reverse ゲート)
 
 ### 既存スキル強化メモ（description 更新）
 

@@ -120,6 +120,12 @@ npx shadcn@latest add button input card dialog table tabs form
 
 ## 5. HELIX FE駆動タイプとの統合
 
+### D-VIS-ARCH の前提成果物
+
+D-VIS-ARCH を作る前に以下が揃っていること：
+- D-IA（`docs/fe/D-IA.md`）
+- D-UX-FLOW（`docs/fe/D-UX-FLOW.md`）
+
 ### L2（設計）
 
 - D-UI にコンポーネント一覧と採用理由を記載

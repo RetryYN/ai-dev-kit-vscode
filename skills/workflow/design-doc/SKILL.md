@@ -55,6 +55,16 @@ compatibility:
 | 基本設計 | システム構成図、画面一覧、API一覧、ER図 | 全体像、主要機能 |
 | 詳細設計 | API仕様、テーブル定義、画面仕様、処理フロー | 実装可能な粒度 |
 
+### L2 成果物（ID管理）
+
+| 成果物ID | 出力先 | 担当スキル |
+|---------|--------|-----------|
+| D-API | `docs/features/{id}/D-API/` | api |
+| D-DB | `docs/features/{id}/D-DB/` | db |
+| DESIGNER.md | `DESIGNER.md`（プロジェクトルート） | visual-design ⑤ |
+| D-IA | `docs/fe/` | fe-design / visual-design ① |
+| D-UX-FLOW | `docs/fe/` | fe-design / visual-design ③ |
+
 ---
 
 ## 2. 企画書から基本設計
