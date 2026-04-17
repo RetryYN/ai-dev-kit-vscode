@@ -8,10 +8,24 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 DB_PATH="$HELIX_DIR/helix.db"
 
 case "${1:-}" in
-  --help|-h)
-    echo "使い方: helix builder <type> <action> [オプション]"
+  --help|-h|"")
+    echo "使い方: helix builder <target> [action] [オプション]"
     echo ""
     echo "Builder 生成ツールを実行します。"
+    echo ""
+    echo "必須引数:"
+    echo "  target           生成対象の builder 種別 (例: task, component, agent)"
+    echo ""
+    echo "任意引数:"
+    echo "  action           アクション (デフォルト: builder 種別依存)"
+    echo "  --input PATH     入力 payload ファイル"
+    echo "  --seed ID        シード実行 ID"
+    echo "  --out PATH       出力パス"
+    echo "  --artifact PATH  成果物パス"
+    echo "  --task-id ID     紐付けタスク ID"
+    echo "  --limit N        最大生成数"
+    echo ""
+    echo "詳細: python3 $SCRIPT_DIR/lib/builders/cli.py --help"
     exit 0
     ;;
 esac

@@ -13,7 +13,7 @@ metadata:
     - "エスカレーション: 判断基準・ルート 定義済み"
 compatibility:
   claude: true
-  codex: false
+  codex: true
 ---
 
 # Agent Teams スキル
