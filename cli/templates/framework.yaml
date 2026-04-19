@@ -1,0 +1,20 @@
+# framework.yaml — プロジェクトフレームワーク検出結果
+# helix_template_version: 3
+# helix-init の framework detection で上書き生成される
+#
+# Node.js プロジェクト例:
+#   detected: node
+#   tools:
+#     lint: "npm run lint"
+#     typecheck: "npm run typecheck"
+#     test: "npm test"
+#
+# Python プロジェクト例:
+#   detected: python
+#   tools:
+#     lint: "ruff check ."
+#     typecheck: "mypy ."
+#     test: "pytest"
+
+detected: unknown
+tools: {}

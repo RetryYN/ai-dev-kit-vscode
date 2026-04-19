@@ -140,6 +140,7 @@ add_gitignore() {
 
 add_gitignore "CLAUDE.local.md"
 add_gitignore ".claude/settings.local.json"
+add_gitignore ".claude/scheduled_tasks.lock"
 add_gitignore ".env"
 add_gitignore ".env.*"
 add_gitignore "*.pem"
@@ -246,11 +247,13 @@ fi
 FRAMEWORK_YAML="$HELIX_DIR/framework.yaml"
 if [[ "$DETECTED_FW" == "unknown" ]]; then
   cat > "$FRAMEWORK_YAML" <<EOF
+# helix_template_version: 3
 detected: unknown
 tools: {}
 EOF
 else
   cat > "$FRAMEWORK_YAML" <<EOF
+# helix_template_version: 3
 detected: $DETECTED_FW
 tools:
   lint: "$FW_LINT"
