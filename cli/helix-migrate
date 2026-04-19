@@ -1,0 +1,80 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-migrate: .helix/ テンプレートへの安全なマージアップデート
+# Usage: helix migrate [--dry-run|--yes|--rollback|--help]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/helix-common.sh"
+
+MODE=interactive
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run)  MODE=dry-run ;;
+    --yes|-y)   MODE=yes ;;
+    --rollback) MODE=rollback ;;
+    --help|-h)
+      cat <<'EOF'
+使い方: helix migrate [--dry-run|--yes|--rollback]
+
+  (デフォルト)  対話的にマージ適用 (ファイル毎 y/N)
+  --dry-run     差分のみ表示、ファイル更新しない
+  --yes / -y    全適用 (CI 用、確認プロンプトなし)
+  --rollback    直近 backup から復元
+
+対象ファイル:
+  .helix/phase.yaml / gate-checks.yaml / doc-map.yaml
+  .helix/matrix.yaml / framework.yaml (存在すれば)
+
+バックアップ:
+  適用前に .helix/backup/YYYYMMDD-HHMMSS/ に退避 (直近 5 世代保持)
+
+Exit code:
+   0  成功 (no-op の場合も 0)
+   1  引数エラー
+   2  テンプレート不在
+   3  rollback 時にバックアップなし
+EOF
+      exit 0 ;;
+    *)
+      echo "エラー: 不明なオプション: $arg" >&2
+      echo "使い方: helix migrate [--dry-run|--yes|--rollback]" >&2
+      exit 1 ;;
+  esac
+done
+
+HELIX_DIR="$PROJECT_ROOT/.helix"
+TEMPLATES_DIR="$SCRIPT_DIR/templates"
+PY="python3 $SCRIPT_DIR/lib/migrate.py"
+
+if [[ ! -d "$HELIX_DIR" ]]; then
+  echo "エラー: .helix/ が見つかりません: $HELIX_DIR" >&2
+  echo "helix init で初期化してください" >&2
+  exit 2
+fi
+
+case "$MODE" in
+  rollback)
+    exec $PY rollback --helix-dir "$HELIX_DIR" --templates-dir "$TEMPLATES_DIR"
+    ;;
+  dry-run)
+    exec $PY merge --helix-dir "$HELIX_DIR" --templates-dir "$TEMPLATES_DIR" --dry-run
+    ;;
+  yes)
+    # 全適用。migrate.py は対話プロンプトを持たないので --apply で CI 動作
+    exec $PY merge --helix-dir "$HELIX_DIR" --templates-dir "$TEMPLATES_DIR" --apply
+    ;;
+  interactive)
+    # 対話モード: まず差分を表示し、全適用してよいか確認
+    echo "=== Dry-run: 変更プレビュー ==="
+    $PY merge --helix-dir "$HELIX_DIR" --templates-dir "$TEMPLATES_DIR" --dry-run || true
+    echo ""
+    read -r -p "上記の変更を適用しますか？ [y/N]: " REPLY
+    if [[ "${REPLY,,}" == "y" || "${REPLY,,}" == "yes" ]]; then
+      exec $PY merge --helix-dir "$HELIX_DIR" --templates-dir "$TEMPLATES_DIR" --apply
+    else
+      echo "キャンセルしました"
+      exit 0
+    fi
+    ;;
+esac

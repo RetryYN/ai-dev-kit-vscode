@@ -41,6 +41,7 @@ case "$CMD" in
   drift-check) exec "$SCRIPT_DIR/helix-drift-check" "$@" ;;
   session-summary) exec "$SCRIPT_DIR/helix-session-summary" "$@" ;;
   doctor)   exec "$SCRIPT_DIR/helix-doctor" "$@" ;;
+  migrate)  exec "$SCRIPT_DIR/helix-migrate" "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
 使い方: helix <コマンド>
@@ -52,6 +53,7 @@ Commands:
   mode        開発モード切替
   matrix      成果物マトリクス管理
   doctor      環境診断・修復
+  migrate     .helix/ テンプレ追従 (--dry-run/--yes/--rollback)
   debug       デバッグツール
 
 ワークフロー:
