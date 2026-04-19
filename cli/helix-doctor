@@ -28,6 +28,78 @@ echo "=== HELIX Doctor ==="
 PASS=0
 FAIL=0
 WARN=0
+PACKAGE_MANAGER=""
+
+detect_package_manager() {
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "brew"
+    return
+  fi
+
+  if [[ -r /etc/os-release ]]; then
+    local os_id
+    os_id="$(grep -E '^ID=' /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')"
+    case "$os_id" in
+      debian|ubuntu)
+        echo "apt"
+        return
+        ;;
+      arch|manjaro)
+        echo "pacman"
+        return
+        ;;
+    esac
+  fi
+
+  echo "unknown"
+}
+
+can_auto_fix_with_apt() {
+  [[ "$PACKAGE_MANAGER" == "apt" ]] || return 1
+  command -v sudo >/dev/null 2>&1 || return 1
+  sudo -n true >/dev/null 2>&1
+}
+
+install_hint_for() {
+  local dep="$1"
+  local apt_pkg=""
+  local pacman_pkg=""
+  local brew_pkg=""
+
+  case "$dep" in
+    sqlite3)
+      apt_pkg="sqlite3"
+      pacman_pkg="sqlite"
+      brew_pkg="sqlite"
+      ;;
+    rg)
+      apt_pkg="ripgrep"
+      pacman_pkg="ripgrep"
+      brew_pkg="ripgrep"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  case "$PACKAGE_MANAGER" in
+    apt)
+      printf '%s\n' "      → インストール: sudo apt install $apt_pkg"
+      ;;
+    pacman)
+      printf '%s\n' "      → インストール: sudo pacman -S --needed $pacman_pkg"
+      ;;
+    brew)
+      printf '%s\n' "      → インストール: brew install $brew_pkg"
+      ;;
+    *)
+      printf '%s\n' \
+        "      → インストール候補: sudo apt install $apt_pkg      (Debian/Ubuntu)" \
+        "                        sudo pacman -S --needed $pacman_pkg  (Arch/Manjaro)" \
+        "                        brew install $brew_pkg             (macOS)"
+      ;;
+  esac
+}
 
 check() {
   local name="$1"
@@ -52,7 +124,8 @@ check() {
 warn() {
   local name="$1"
   local cmd="$2"
-  local fix_cmd="${3:-}"
+  local hint="${3:-}"
+  local fix_cmd="${4:-}"
   if bash -c "$cmd" >/dev/null 2>&1; then
     echo "  ✓ $name"
     PASS=$((PASS + 1))
@@ -65,6 +138,12 @@ warn() {
       fi
     fi
     echo "  △ $name（推奨）"
+    if [[ -n "$hint" ]]; then
+      while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        echo "$line"
+      done <<< "$hint"
+    fi
     WARN=$((WARN + 1))
   fi
 }
@@ -105,10 +184,20 @@ check "python3" "command -v python3"
 check "bash 4+" "bash --version | grep -qE 'version [4-9]'"
 check "git" "command -v git"
 
+PACKAGE_MANAGER="$(detect_package_manager)"
+SQLITE3_HINT="$(install_hint_for sqlite3)"
+RG_HINT="$(install_hint_for rg)"
+SQLITE3_FIX_CMD=""
+RG_FIX_CMD=""
+if can_auto_fix_with_apt; then
+  SQLITE3_FIX_CMD="sudo apt install -y sqlite3"
+  RG_FIX_CMD="sudo apt install -y ripgrep"
+fi
+
 echo ""
 echo "[推奨依存]"
-warn "sqlite3 CLI" "command -v sqlite3"
-warn "rg (ripgrep)" "command -v rg"
+warn "sqlite3 CLI" "command -v sqlite3" "$SQLITE3_HINT" "$SQLITE3_FIX_CMD"
+warn "rg (ripgrep)" "command -v rg" "$RG_HINT" "$RG_FIX_CMD"
 warn "codex" "command -v codex"
 warn "node" "command -v node"
 warn "npm" "command -v npm"
