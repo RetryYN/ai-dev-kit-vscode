@@ -432,10 +432,114 @@ def record_feedback(usage_id: int, feedback: str, db_path: Path | None = None) -
     _update_usage(db_path, usage_id, {"user_feedback": feedback})
 
 
-def stats(db_path: Path | None = None, days: int = 30) -> dict:
+def _gini_coefficient(values: list[int]) -> float:
+    non_negative = [max(0, int(v)) for v in values]
+    n = len(non_negative)
+    total = sum(non_negative)
+    if n == 0 or total == 0:
+        return 0.0
+
+    sorted_values = sorted(non_negative)
+    weighted_sum = sum((idx + 1) * value for idx, value in enumerate(sorted_values))
+    gini = (2.0 * weighted_sum) / (n * total) - (n + 1.0) / n
+    return max(0.0, min(1.0, gini))
+
+
+def _gini_label(gini: float) -> str:
+    if gini <= 0.3:
+        return "均等"
+    if gini <= 0.5:
+        return "やや偏り"
+    if gini <= 0.7:
+        return "偏り大"
+    return "集中"
+
+
+def _load_skill_inventory(
+    catalog_path: Path | None = None,
+    skills_root: Path | None = None,
+) -> dict[str, int]:
+    catalog_path = catalog_path or _default_catalog_path()
+    skills_root = skills_root or _default_skills_root()
+
+    catalog: dict[str, Any] | None = None
+    try:
+        catalog = skill_catalog.load_catalog(catalog_path)
+    except (FileNotFoundError, OSError, ValueError, json.JSONDecodeError):
+        catalog = None
+
+    if catalog is None:
+        try:
+            catalog = skill_catalog.build_catalog(skills_root)
+        except OSError:
+            catalog = None
+        else:
+            try:
+                skill_catalog.save_catalog(catalog, catalog_path)
+            except OSError:
+                pass
+
+    if not isinstance(catalog, dict):
+        return {"total_skills": 0, "total_categories": 0}
+
+    skills = catalog.get("skills", [])
+    if not isinstance(skills, list):
+        skills = []
+
+    categories: set[str] = set()
+    for item in skills:
+        if not isinstance(item, dict):
+            continue
+        category = str(item.get("category", "")).strip()
+        if not category:
+            skill_id = str(item.get("id", ""))
+            category = skill_id.split("/", 1)[0] if "/" in skill_id else "other"
+        categories.add(category)
+
+    total_skills = int(catalog.get("skill_count", len(skills)) or 0)
+    if total_skills <= 0:
+        total_skills = len(skills)
+
+    return {
+        "total_skills": total_skills,
+        "total_categories": len(categories),
+    }
+
+
+def _empty_stats(total_skills: int, total_categories: int) -> dict[str, Any]:
+    return {
+        "total": 0,
+        "success_rate": 0.0,
+        "avg_score": 0.0,
+        "top_skills": [],
+        "by_category": {},
+        "diversity": {
+            "unique_skills_used": 0,
+            "total_skills": total_skills,
+            "coverage_rate": 0.0,
+            "gini_coefficient": 0.0,
+            "gini_label": _gini_label(0.0),
+            "top_skill_share": 0.0,
+            "top_skill_id": "",
+            "category_count": 0,
+            "total_categories": total_categories,
+        },
+    }
+
+
+def stats(
+    db_path: Path | None = None,
+    days: int = 30,
+    catalog_path: Path | None = None,
+    skills_root: Path | None = None,
+) -> dict:
     db_path = db_path or _default_db_path()
+    inventory = _load_skill_inventory(catalog_path=catalog_path, skills_root=skills_root)
+    total_skills = inventory["total_skills"]
+    total_categories = inventory["total_categories"]
+
     if not db_path.exists():
-        return {"total": 0, "success_rate": 0.0, "avg_score": 0.0, "top_skills": [], "by_category": {}}
+        return _empty_stats(total_skills, total_categories)
 
     conn = sqlite3.connect(str(db_path))
     try:
@@ -448,7 +552,7 @@ def stats(db_path: Path | None = None, days: int = 30) -> dict:
         total = total_row["total"] or 0
 
         if total == 0:
-            return {"total": 0, "success_rate": 0.0, "avg_score": 0.0, "top_skills": [], "by_category": {}}
+            return _empty_stats(total_skills, total_categories)
 
         success_row = conn.execute(
             f"SELECT COUNT(*) AS n FROM skill_usage "
@@ -463,17 +567,36 @@ def stats(db_path: Path | None = None, days: int = 30) -> dict:
         ).fetchone()
         avg_score = float(avg_row["avg_score"] or 0.0)
 
-        top_rows = conn.execute(
+        usage_rows = conn.execute(
             f"SELECT skill_id, COUNT(*) AS cnt FROM skill_usage "
             f"WHERE created_at >= {cutoff} "
-            f"GROUP BY skill_id ORDER BY cnt DESC LIMIT 10"
+            f"GROUP BY skill_id ORDER BY cnt DESC, skill_id ASC"
         ).fetchall()
-        top = [{"skill_id": r["skill_id"], "count": r["cnt"]} for r in top_rows]
 
+        top_rows = usage_rows[:10]
+        top = [{"skill_id": r["skill_id"], "count": r["cnt"]} for r in top_rows]
         by_cat: dict[str, int] = {}
-        for r in top_rows:
+        usage_counts: list[int] = []
+        top_skill_id = ""
+        top_skill_count = 0
+        for i, r in enumerate(usage_rows):
+            count = int(r["cnt"] or 0)
+            usage_counts.append(count)
             cat = r["skill_id"].split("/", 1)[0] if "/" in r["skill_id"] else "other"
-            by_cat[cat] = by_cat.get(cat, 0) + r["cnt"]
+            by_cat[cat] = by_cat.get(cat, 0) + count
+            if i == 0:
+                top_skill_id = str(r["skill_id"] or "")
+                top_skill_count = count
+
+        unique_skills_used = len(usage_rows)
+        if total_skills > unique_skills_used:
+            usage_counts.extend([0] * (total_skills - unique_skills_used))
+        gini = _gini_coefficient(usage_counts)
+        coverage_rate = (unique_skills_used / total_skills) if total_skills > 0 else 0.0
+        top_skill_share = (top_skill_count / total) if total > 0 else 0.0
+        category_count = len(by_cat)
+        if total_categories <= 0:
+            total_categories = category_count
 
         return {
             "total": total,
@@ -481,6 +604,17 @@ def stats(db_path: Path | None = None, days: int = 30) -> dict:
             "avg_score": avg_score,
             "top_skills": top,
             "by_category": by_cat,
+            "diversity": {
+                "unique_skills_used": unique_skills_used,
+                "total_skills": total_skills,
+                "coverage_rate": coverage_rate,
+                "gini_coefficient": gini,
+                "gini_label": _gini_label(gini),
+                "top_skill_share": top_skill_share,
+                "top_skill_id": top_skill_id,
+                "category_count": category_count,
+                "total_categories": total_categories,
+            },
         }
     finally:
         conn.close()
@@ -551,7 +685,12 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.mode == "stats":
-            result = stats(db_path, args.days)
+            result = stats(
+                db_path=db_path,
+                days=args.days,
+                catalog_path=catalog_path,
+                skills_root=skills_root,
+            )
             if args.json:
                 print(json.dumps(result, ensure_ascii=False, indent=2))
             else:
@@ -565,6 +704,28 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"    - {s['skill_id']}: {s['count']}")
                 if result["by_category"]:
                     print(f"  by category: {result['by_category']}")
+                diversity = result.get("diversity", {})
+                if isinstance(diversity, dict):
+                    unique_used = int(diversity.get("unique_skills_used", 0) or 0)
+                    total_skill_count = int(diversity.get("total_skills", 0) or 0)
+                    coverage_rate = float(diversity.get("coverage_rate", 0.0) or 0.0)
+                    gini = float(diversity.get("gini_coefficient", 0.0) or 0.0)
+                    gini_label = str(diversity.get("gini_label", _gini_label(gini)))
+                    top_share = float(diversity.get("top_skill_share", 0.0) or 0.0)
+                    top_skill_id = str(diversity.get("top_skill_id", "") or "")
+                    category_count = int(diversity.get("category_count", 0) or 0)
+                    total_category_count = int(diversity.get("total_categories", 0) or 0)
+
+                    print("  diversity:")
+                    print(
+                        f"    unique_skills: {unique_used} / {total_skill_count} ({coverage_rate:.1%})"
+                    )
+                    print(f"    gini: {gini:.2f} ({gini_label})")
+                    if top_skill_id:
+                        print(f"    top_skill_share: {top_share:.1%} ({top_skill_id})")
+                    else:
+                        print(f"    top_skill_share: {top_share:.1%}")
+                    print(f"    category_count: {category_count} / {total_category_count}")
             return 0
 
     except DispatcherError as e:
