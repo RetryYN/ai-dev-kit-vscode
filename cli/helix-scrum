@@ -333,7 +333,8 @@ cmd_decide() {
       echo "  → 検証スクリプトは verify/ に残り、リグレッションテストとして機能します。"
       echo ""
       echo "=== 次のステップ ==="
-      echo "  1. helix size --type new-feature でサイジング"
+      echo "  1. helix size --type new-feature [--ui] [--api] [--db] でサイジング"
+      echo "     (UI あり → fe 駆動 / API+DB あり → fullstack 駆動 を自動判定)"
       echo "  2. helix plan draft で設計提案"
       echo "  3. Forward HELIX を開始"
       ;;

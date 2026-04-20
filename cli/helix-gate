@@ -444,12 +444,13 @@ PY
     echo "[fullstack]"
     # G4: BE/FE 両 track の stage が .5 かつ status が completed であること
     if [[ "$gate" == "G4" ]]; then
-      local be_stage fe_stage contract_ci be_status fe_status
+      local be_stage fe_stage contract_ci be_status fe_status phase_b_status
       be_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.stage" 2>/dev/null || echo "")
       fe_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.stage" 2>/dev/null || echo "")
       be_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.status" 2>/dev/null || echo "")
       fe_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.status" 2>/dev/null || echo "")
       contract_ci=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.contract.ci" 2>/dev/null || echo "")
+      phase_b_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.phase_b.status" 2>/dev/null || echo "")
 
       local twin_fail=0
       if [[ "$be_stage" != ".5" || "$be_status" != "completed" ]]; then
@@ -464,11 +465,15 @@ PY
         echo "  FAIL: Contract CI 未通過 (ci=$contract_ci)"
         twin_fail=1
       fi
+      if [[ "$phase_b_status" != "completed" ]]; then
+        echo "  FAIL: L4.5 結合フェーズ未完了 (phase_b.status=$phase_b_status)"
+        twin_fail=1
+      fi
       if [[ $twin_fail -gt 0 ]]; then
         deliv_fail=$((deliv_fail + twin_fail))
         echo "  fullstack G4: FAIL"
       else
-        echo "  fullstack G4: BE .5 ✓ FE .5 ✓ Contract CI ✓"
+        echo "  fullstack G4: BE .5 ✓ FE .5 ✓ Contract CI ✓ L4.5 ✓"
       fi
       echo ""
     fi
