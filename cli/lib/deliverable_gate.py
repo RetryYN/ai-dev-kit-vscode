@@ -18,6 +18,7 @@ from typing import Any
 
 GATE_LAYERS = {
     "G0.5": ["L1"],
+    "G1": ["L1"],
     "G2": ["L1", "L2"],
     "G3": ["L1", "L2", "L3"],
     "G4": ["L1", "L2", "L3", "L4"],

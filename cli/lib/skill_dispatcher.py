@@ -380,13 +380,16 @@ def dispatch(
             raise
         task_tmp = Path(tmpname)
 
+        codex_cmd = [
+            HELIX_CODEX_BIN,
+            "--role", agent["name"],
+            "--task-file", str(task_tmp),
+            "--timeout", str(timeout_seconds),
+        ]
+        if os.environ.get("HELIX_SKILL_AUTO_THINKING") == "1":
+            codex_cmd.append("--auto-thinking")
         proc = subprocess.run(
-            [
-                HELIX_CODEX_BIN,
-                "--role", agent["name"],
-                "--task-file", str(task_tmp),
-                "--timeout", str(timeout_seconds),
-            ],
+            codex_cmd,
             capture_output=True,
             text=True,
             timeout=timeout_seconds + 30,

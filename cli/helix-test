@@ -243,6 +243,32 @@ run_test "budget.py CodexBudget unavailable or OK" "python3 -c 'import sys; sys.
 run_test "ForecastEngine predict" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from budget import ForecastEngine; fc = ForecastEngine.predict({\"weekly_used_pct\":50}, {\"weekly_used_pct\":40}, days=7); assert fc[\"risk\"] in (\"low\",\"medium\",\"high\",\"critical\")'"
 echo ""
 
+echo "[helix-auto-thinking]"
+run_test_contains "helix-codex --help contains --auto-thinking" "$SCRIPT_DIR/helix-codex --help 2>&1" "auto-thinking"
+run_test_contains "helix-skill use --help contains --auto-thinking" "$SCRIPT_DIR/helix-skill use --help 2>&1" "auto-thinking"
+run_test_contains "helix-codex --auto-thinking --dry-run emits auto-thinking line" "$SCRIPT_DIR/helix-codex --role se --task 'typo 修正' --auto-thinking --dry-run 2>&1 | head -3" "auto-thinking"
+run_test_contains "helix-codex manual --thinking overrides auto" "$SCRIPT_DIR/helix-codex --role se --task 'typo 修正' --thinking high --auto-thinking --dry-run 2>&1 | head -3" "手動"
+run_test "effort_classifier cache set/get" "python3 -c '
+import sys, tempfile, os, shutil
+sys.path.insert(0, \"$SCRIPT_DIR/lib\")
+with tempfile.TemporaryDirectory() as d:
+    os.chdir(d)
+    import effort_classifier
+    effort_classifier.CACHE_DIR = __import__(\"pathlib\").Path(\".helix/budget/cache/classify\")
+    r1 = effort_classifier.classify(\"typo 修正\", role=\"pg\", size=\"S\", use_llm=False)
+    r2 = effort_classifier.classify(\"typo 修正\", role=\"pg\", size=\"S\", use_llm=False)
+    assert r1[\"effort\"] == r2[\"effort\"]
+    assert r2[\"cached\"] == True, r2
+'"
+run_test "effort_classifier LLM skip for low score" "python3 -c '
+import sys
+sys.path.insert(0, \"$SCRIPT_DIR/lib\")
+from effort_classifier import classify, BOUNDARY_SCORES
+r = classify(\"\", role=\"pg\", size=\"S\", files=1, use_llm=True)
+assert r[\"llm_used\"] == False or r[\"score\"] in BOUNDARY_SCORES
+'"
+echo ""
+
 echo "[helix-budget-migration]"
 run_test "v7 migration skill_usage new columns" "python3 -c '
 import sqlite3, sys, tempfile, os

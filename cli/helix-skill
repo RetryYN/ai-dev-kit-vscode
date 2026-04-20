@@ -54,7 +54,7 @@ Subcommands:
                                                    catalog を再生成
   classify <skill-id> [--approve] [--dry-run]     単発分類
   search "<task>" [-n N] [--layer L] [--category C] [--json] [--no-cache]
-  use <skill-id> --task "<task>" [--agent A] [--references R] [--dry-run] [--json]
+  use <skill-id> --task "<task>" [--agent A] [--references R] [--auto-thinking] [--dry-run] [--json]
   chain "<task>" [-n N] [--dry-run] [--agent A] [--layer L] [--category C]
   stats [--days N] [--json]                       スキル使用統計
   review-pending [--json]                         pending エントリ一覧
@@ -81,7 +81,7 @@ USAGE
 
 use_usage() {
   cat <<'USAGE'
-使い方: helix skill use <skill-id> --task "<task>" [--agent NAME] [--references PATHS] [--dry-run] [--json]
+使い方: helix skill use <skill-id> --task "<task>" [--agent NAME] [--references PATHS] [--auto-thinking] [--dry-run] [--json]
 
 Options:
   --task "<task>"      実行タスク（必須）
@@ -1207,6 +1207,7 @@ main() {
       local as_json="false"
       local force_agent=""
       local force_references=""
+      local auto_thinking="false"
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --task)
@@ -1223,6 +1224,10 @@ main() {
             [[ $# -ge 2 ]] || { echo "エラー: --references には値が必要です" >&2; return 64; }
             force_references="$2"
             shift 2
+            ;;
+          --auto-thinking)
+            auto_thinking="true"
+            shift
             ;;
           --dry-run)
             dry_run="true"
@@ -1243,6 +1248,10 @@ main() {
         esac
       done
       [[ -n "$task" ]] || { echo "エラー: --task は必須です" >&2; use_usage >&2; return 64; }
+      if [[ "$auto_thinking" == "true" ]]; then
+        export HELIX_SKILL_AUTO_THINKING=1
+        echo "[auto-thinking] helix-skill use: Codex ロール選択時のみ effort classifier を適用" >&2
+      fi
       # --references は CSV 入力を bash 配列に展開して use_skill に可変長で渡す
       # (use_skill 内で各要素を個別に検証 + 安全に dispatcher へ再エンコード)
       local -a cli_refs_array=()

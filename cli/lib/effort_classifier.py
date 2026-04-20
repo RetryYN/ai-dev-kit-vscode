@@ -1,12 +1,23 @@
 """effort_classifier.py — タスク難度 → effort (low/medium/high/xhigh) 自動判定。
 
-Minimum Viable: ルールベース (5 軸ヒューリスティック)。LLM 呼び出しは後続スプリントで追加。
+ルールベース (5 軸ヒューリスティック) + gpt-5.4-mini 境界値判定ハイブリッド。
 詳細: docs/features/helix-budget-autothinking/D-API/api-contract.yaml §helix budget classify
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
+import shutil
+import subprocess
+import time
+from pathlib import Path
 from typing import Any
+
+CACHE_DIR = Path(".helix/budget/cache/classify")
+CACHE_TTL_SEC = 3600
+BOUNDARY_SCORES = {3, 4, 7, 8, 12, 13}
+LLM_TIMEOUT_SEC = 10
 
 _BUG_FIX = re.compile(r"\b(bug|fix|typo|patch|誤字|修正)\b", re.IGNORECASE)
 _NEW_DESIGN = re.compile(r"\b(新規|設計|architect|design|ADR)\b", re.IGNORECASE)
@@ -70,15 +81,104 @@ ROLE_DEFAULT_THINKING = {
 }
 
 
+def _cache_key(task_text: str, role: str | None, size: str | None) -> str:
+    payload = f"{task_text}|{role or ''}|{size or ''}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
+
+
+def _cache_get(key: str) -> dict[str, Any] | None:
+    p = CACHE_DIR / f"{key}.json"
+    if not p.exists():
+        return None
+    if time.time() - p.stat().st_mtime > CACHE_TTL_SEC:
+        return None
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        data["cached"] = True
+        return data
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _cache_set(key: str, value: dict[str, Any]) -> None:
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        (CACHE_DIR / f"{key}.json").write_text(
+            json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except OSError:
+        pass
+
+
+def call_classifier(
+    task_text: str,
+    role: str | None = None,
+    size: str | None = None,
+    files: int | None = None,
+    lines: int | None = None,
+) -> dict[str, Any] | None:
+    codex = shutil.which("codex")
+    if not codex:
+        return None
+
+    prompt_path = Path(__file__).resolve().parent.parent / "templates" / "effort-classify-prompt.md"
+    if not prompt_path.exists():
+        return None
+    system_prompt = prompt_path.read_text(encoding="utf-8", errors="ignore")
+
+    payload = {"task": task_text[:2000], "role": role, "size": size,
+               "files": files, "lines": lines}
+    full_prompt = (
+        system_prompt
+        + "\n\n## 入力\n```json\n"
+        + json.dumps(payload, ensure_ascii=False)
+        + "\n```\n\n## 出力\nJSON のみを出力 ({\"effort\": \"...\", \"score\": N, ...})。"
+    )
+
+    try:
+        result = subprocess.run(
+            [codex, "exec", "-m", "gpt-5.4-mini", full_prompt],
+            capture_output=True, text=True, timeout=LLM_TIMEOUT_SEC,
+        )
+        if result.returncode != 0:
+            return None
+        output = result.stdout.strip()
+        m = re.search(r"\{[\s\S]*\}", output)
+        if not m:
+            return None
+        parsed = json.loads(m.group(0))
+        if "effort" not in parsed:
+            return None
+        return parsed
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+        return None
+
+
 def classify(
     task_text: str,
     role: str | None = None,
     size: str | None = None,
     files: int | None = None,
     lines: int | None = None,
+    use_llm: bool = True,
 ) -> dict[str, Any]:
+    key = _cache_key(task_text, role, size)
+    cached = _cache_get(key)
+    if cached is not None:
+        return cached
+
     scored = score_task(task_text, role, size, files, lines)
     effort = map_to_effort(scored["score"])
+    llm_used = False
+
+    if use_llm and scored["score"] in BOUNDARY_SCORES:
+        llm_result = call_classifier(task_text, role, size, files, lines)
+        if llm_result is not None and llm_result.get("effort") in {"low", "medium", "high", "xhigh"}:
+            llm_used = True
+            levels = ["low", "medium", "high", "xhigh"]
+            rule_idx = levels.index(effort)
+            llm_idx = levels.index(llm_result["effort"])
+            effort = levels[max(rule_idx, llm_idx)]
     role_default = ROLE_DEFAULT_THINKING.get(role or "", "medium")
     if effort == "low" and role_default in ("high", "xhigh"):
         recommended_thinking = "medium"
@@ -95,9 +195,11 @@ def classify(
         reason_bits.append(f"ファイル数 score={b['files']}")
     if split_recommended:
         reason_bits.append("S サイズに xhigh → 分割推奨")
+    if llm_used:
+        reason_bits.append("LLM 境界値判定")
     reason = " / ".join(reason_bits) if reason_bits else "標準難度"
 
-    return {
+    result = {
         "effort": effort,
         "score": scored["score"],
         "breakdown": scored["breakdown"],
@@ -105,5 +207,8 @@ def classify(
         "recommended_thinking": recommended_thinking,
         "split_recommended": split_recommended,
         "role_default_thinking": role_default,
+        "llm_used": llm_used,
         "cached": False,
     }
+    _cache_set(key, result)
+    return result

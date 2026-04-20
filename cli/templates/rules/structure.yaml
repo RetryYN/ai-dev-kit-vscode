@@ -49,6 +49,12 @@ path_mapping:
   D-RES:
     root: docs
     primary_path: "{docs_scope_root}/D-RES/research.md"
+  # L2 アーキテクチャ系成果物の使い分け:
+  #   D-ARCH       : 一般アーキテクチャ (be/db/agent 駆動、BE/CLI 中心の構造設計)
+  #   D-VIS-ARCH   : visual アーキテクチャ (fe/fullstack 駆動、デザインシステム・IA・トークン設計)
+  #   D-DATA-ARCH  : データアーキテクチャ (db 駆動、ER/スキーマ中心)
+  #   D-ORCH-ARCH  : オーケストレーションアーキ (agent 駆動、ツール/プロンプト構成)
+  # 駆動タイプで L2 の必須 deliverable が変わる (gate-checks.yaml 側で要求を差し替え)
   D-ARCH:
     root: docs
     primary_path: "{docs_scope_root}/D-ARCH/architecture.md"

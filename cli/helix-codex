@@ -35,6 +35,8 @@ ROLE=""
 TASK=""
 TASK_FILE=""
 THINKING=""
+THINKING_EXPLICIT=false
+AUTO_THINKING=false
 DRY_RUN=false
 SANDBOX="workspace-write"
 FULL_AUTO=""
@@ -47,7 +49,8 @@ while [[ $# -gt 0 ]]; do
     --role)            ROLE="$2"; shift 2 ;;
     --task)            TASK="$2"; shift 2 ;;
     --task-file)       TASK_FILE="$2"; shift 2 ;;
-    --thinking)        THINKING="$2"; shift 2 ;;
+    --thinking)        THINKING="$2"; THINKING_EXPLICIT=true; shift 2 ;;
+    --auto-thinking)   AUTO_THINKING=true; shift ;;
     --timeout)         TIMEOUT="$2"; shift 2 ;;
     --max-retries)     MAX_RETRY="$2"; shift 2 ;;
     --fallback-model)  FALLBACK_MODEL="$2"; shift 2 ;;
@@ -63,6 +66,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --task \"...\"             タスク内容（文字列）"
       echo "  --task-file <path>       タスク内容をファイルから読む（大きなプロンプト向け、ARG_MAX 回避）"
       echo "  --thinking <level>       思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
+      echo "  --auto-thinking          タスク難度から thinking を自動推定（--thinking と併用時は手動優先）"
       echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 300）"
       echo "  --max-retries <n>        最大リトライ回数（デフォルト: 2、0 でリトライなし）"
       echo "  --fallback-model <name>  Codex 失敗時の代替モデル（例: gpt-5.2-codex）"
@@ -181,6 +185,30 @@ if [[ -z "$THINKING" ]]; then
     THINKING="$codex_thinking"
   else
     THINKING="$(get_default_thinking "$ROLE")"
+  fi
+fi
+
+# --- auto-thinking: タスク難度から thinking を自動推定 ---
+if [[ "$AUTO_THINKING" == true ]]; then
+  AUTO_RESULT=$(python3 - <<PY 2>/dev/null || echo ""
+import sys
+sys.path.insert(0, "$SCRIPT_DIR/lib")
+from effort_classifier import classify
+r = classify(${TASK@Q}, role=${ROLE@Q}, size=None, files=None, lines=None, use_llm=False)
+print(f"{r['recommended_thinking']}|effort={r['effort']}|score={r['score']}")
+PY
+)
+  if [[ -n "$AUTO_RESULT" ]]; then
+    AUTO_THINKING_LEVEL="${AUTO_RESULT%%|*}"
+    AUTO_DETAILS="${AUTO_RESULT#*|}"
+    if [[ "$THINKING_EXPLICIT" == true && "$THINKING" != "$AUTO_THINKING_LEVEL" ]]; then
+      echo "[auto-thinking] 手動 --thinking=$THINKING 優先 (自動推定=$AUTO_THINKING_LEVEL, $AUTO_DETAILS)" >&2
+    else
+      echo "[auto-thinking] thinking=$AUTO_THINKING_LEVEL ($AUTO_DETAILS)" >&2
+      THINKING="$AUTO_THINKING_LEVEL"
+    fi
+  else
+    echo "[auto-thinking] warning: classifier 失敗、ロール既定 thinking=$THINKING 使用" >&2
   fi
 fi
 

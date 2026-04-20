@@ -128,6 +128,21 @@ if [[ -f "$CONFIG_FILE" ]]; then
   fi
 fi
 
+# G5 自動 skip 判定: drive=be|db かつ UI フラグなしなら auto-skipped
+if [[ "$GATE" == "G5" && -f "$PHASE_FILE" ]]; then
+  auto_drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
+  ui_flag=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.ui" 2>/dev/null || echo "")
+  if [[ ("$auto_drive" == "be" || "$auto_drive" == "db") && "$ui_flag" != "true" ]]; then
+    echo "=== G5: drive=$auto_drive + ui=false, skip (L5/G5 不要、auto-skipped) ==="
+    python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.G5.status" skipped 2>/dev/null || true
+    python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.G5.note" "auto-skipped: drive=${auto_drive}, no UI" 2>/dev/null || true
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "G5" "skipped" 0 0 "${GATE_PREREQS[G5]:-}"
+    fi
+    exit 0
+  fi
+fi
+
 if [[ "$UNDO" == true ]]; then
   if [[ ! -f "$PHASE_FILE" ]]; then
     echo "エラー: $PHASE_FILE が見つかりません。'helix-init' を実行してください。" >&2
