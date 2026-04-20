@@ -57,20 +57,32 @@ Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略す
 8. コード調査 → Agent(model: "sonnet") or 自分で直接ツール使用
 9. PM判断・統合 → 自分で対応
 
-### 思考レベル制御
+### 思考レベル制御 (effort)
 
 #### Codex 側
-ロール別 thinking level は helix-codex が自動適用（`--thinking` でオーバーライド可）。
+ロール別 thinking level は helix-codex が自動適用（`--thinking low/medium/high/xhigh` でオーバーライド可）。
 
-#### Claude 側（Agent tool）
+#### Claude サブエージェント側
+`.claude/agents/*.md` の frontmatter `effort` フィールドで指定:
+
+| effort | エージェント |
+|--------|------------|
+| **high** | be-api / be-logic / db-schema / devops-deploy / fe-design / security-audit |
+| **medium** | fe-component / fe-style / fe-a11y / fe-test / qa-test |
+
+責務ベースで設定済み。設計責任重 → high、実装・検査中心 → medium。
+
+#### 難易度判断
 | 難易度 | 判断基準 | 対応 |
 |--------|---------|------|
 | Critical | アーキテクチャ判断・セキュリティ設計 | Opus 自身が対応（委譲しない） |
-| High | 複雑な実装・複数モジュール横断 | Codex (--thinking high) |
-| Medium | 標準的な修正・FE実装 | Sonnet サブエージェント |
-| Low | ドキュメント・単純修正 | Sonnet or Codex (--thinking low) |
+| High | 複雑な実装・複数モジュール横断 | Codex `--thinking high` or effort high サブエージェント |
+| Medium | 標準的な修正・FE実装 | Sonnet サブエージェント (effort medium) |
+| Low | ドキュメント・単純修正 | Sonnet or Codex `--thinking low` |
 
 Critical は委譲せず自分で判断。High 以下は必ず委譲。
+
+**タスク規模と effort の整合性**: 小規模タスク (S、1-3 ファイル) に high を使うと Codex 10 分 timeout のリスクあり。迷ったら medium で投げて、必要に応じて分割＋再委譲する方が安全。
 
 ### Codex CLI（Opus から呼ぶ場合）
 

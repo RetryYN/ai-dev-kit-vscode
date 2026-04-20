@@ -3,6 +3,7 @@ name: fe-test
 description: フロントエンドテスト。コンポーネントテスト・Storybook・E2Eテスト・ビジュアルリグレッションテスト作成時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
+effort: medium
 memory: project
 maxTurns: 25
 ---

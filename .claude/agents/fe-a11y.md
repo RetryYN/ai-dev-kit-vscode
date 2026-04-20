@@ -3,6 +3,7 @@ name: fe-a11y
 description: アクセシビリティ監査・修正。WCAG準拠チェック・aria属性・キーボードナビゲーション・スクリーンリーダー対応時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
+effort: medium
 memory: project
 maxTurns: 20
 ---

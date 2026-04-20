@@ -3,6 +3,7 @@ name: fe-design
 description: UI/UXデザイン設計。デザインシステム・配色・タイポグラフィ・レイアウト方針・ワイヤーフレーム。L2ビジュアル方針・L5 Visual Refinement 時に使う。
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: sonnet
+effort: high
 memory: project
 maxTurns: 30
 ---

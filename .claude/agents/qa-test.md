@@ -3,6 +3,7 @@ name: qa-test
 description: QAテスト設計・実行。テスト戦略・カバレッジ・E2E・パフォーマンス・セキュリティテスト。L6検証・G4/G6ゲート時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
+effort: medium
 memory: project
 maxTurns: 25
 ---

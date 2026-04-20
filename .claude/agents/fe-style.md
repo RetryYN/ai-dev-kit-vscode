@@ -3,6 +3,7 @@ name: fe-style
 description: CSS/スタイリング実装。Tailwind・CSS Modules・styled-components。レスポンシブ・アニメーション・ダークモード対応時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
+effort: medium
 memory: project
 maxTurns: 25
 ---

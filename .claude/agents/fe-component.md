@@ -3,6 +3,7 @@ name: fe-component
 description: UIコンポーネント実装。React/Vue/Svelte等のコンポーネント作成・Props設計・状態管理。Atomic Designベースの実装時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
+effort: medium
 memory: project
 maxTurns: 30
 ---
