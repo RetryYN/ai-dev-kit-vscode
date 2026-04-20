@@ -76,6 +76,31 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 **Reverse ゲート詳細** → `tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
 **Reverse フロー詳細** → `workflow/reverse-analysis/SKILL.md` 参照
 
+### HELIX Scrum（検証駆動 / 要件未確定時）
+
+```
+【仮説・要件不確実】実現可能性不明・PoC 要・技術検証必要
+  ↓ helix size --uncertain → scrum 判定 / または helix scrum init を直接起動
+S0  Backlog 構築（仮説一覧 + 検証質問 + 成功条件）
+  ↓ helix scrum backlog add
+S1  Sprint Plan（ゴール + 対象仮説選定）
+  ↓ helix scrum plan
+S2  PoC 実装（Codex に委譲、verify/ スクリプト化）
+  ↓ helix scrum poc --hypothesis H001
+S3  Verify（全検証スクリプト実行 → リグレッション蓄積）
+  ↓ helix scrum verify
+S4  Decide（confirmed / rejected / pivot）
+  ↓ helix scrum decide --hypothesis H001 --confirmed
+  ↓
+Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/fullstack 再判定）
+```
+
+**Scrum モードの特徴**:
+- Forward HELIX のフェーズ進行 (L1-L8) は走らない。`.helix/scrum/` 配下で独立管理
+- verify/*.sh は毎回全実行 → リグレッション検出
+- `decide --confirmed` で Forward HELIX に接続
+- `db` / `agent` エッジケースでも「仮説検証フェーズ」として scrum 前段利用可能
+
 ## タスクサイジング
 
 3軸の**最大サイズ**を採用:
@@ -88,15 +113,35 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 
 ## 駆動タイプ
 
-`helix size --drive <type>` で指定。L2〜L5 の中身とゲート判定基準が変わる。
+`helix size --drive <type>` で明示指定、または `--ui/--api/--db/--uncertain` フラグで自動判定。L2〜L5 の中身とゲート判定基準が変わる。
+
+### 主要 4 パターン (通常はこの 4 択)
 
 | 駆動タイプ | 起点 | 典型プロジェクト |
 |-----------|------|----------------|
 | **be**（デフォルト） | API/ロジック | 業務系、解析系、SaaS バックエンド |
-| **fe** | デザイン/UX | LP、EC、ダッシュボード |
+| **fe** | デザイン/UX → モック駆動 | LP、EC、ダッシュボード、UX重視プロダクト |
+| **scrum** | 仮説検証（要件不確実） | PoC、新規事業、技術検証、リサーチ系 |
+| **fullstack** | BE+FE同時（Twin Track） | SaaS、EC、ダッシュボード + API |
+
+### エッジケース (特殊起点)
+
+| 駆動タイプ | 起点 | 典型プロジェクト |
+|-----------|------|----------------|
 | **db** | スキーマ/データモデル | マスタ管理、ERP、データ基盤 |
-| **fullstack** | BE+FE同時 | SaaS、EC、ダッシュボード + API |
 | **agent** | ツール/プロンプト | AI アプリ、自動化、ワークフロー |
+
+### 自動判定ロジック (`helix size` のフラグベース)
+
+```
+--uncertain あり                   → scrum (Phase S / 検証駆動)
+--ui + (--api or --db) あり        → fullstack (Twin Track)
+--ui のみ                          → fe (モック駆動)
+--api or --db あり                 → be
+フラグなし                         → be (デフォルト)
+```
+
+明示 `--drive <type>` 指定は常に最優先。`db` / `agent` は明示指定のみ。
 
 ### 駆動タイプ別 L2〜L5
 

@@ -53,3 +53,24 @@ teardown() {
   grep -q '"drive": "be"' "$TMP_ROOT/out.json"
   ! grep -q '\[drive-auto\]' "$TMP_ROOT/err.log"
 }
+
+@test "--uncertain -> scrum (検証駆動 案内)" {
+  run bash -lc "HELIX_HOME='$REPO_ROOT' HELIX_PROJECT_ROOT='$PROJ' '$CLI' --files 5 --lines 100 --uncertain --json >'$TMP_ROOT/out.json' 2>'$TMP_ROOT/err.log'"
+  [ "$status" -eq 0 ]
+  grep -q '"drive": "scrum"' "$TMP_ROOT/out.json"
+  grep -q '"mode": "scrum"' "$TMP_ROOT/out.json"
+  grep -q '\[drive-auto\] 判定: scrum' "$TMP_ROOT/err.log"
+}
+
+@test "--uncertain --ui -> scrum (uncertain が最優先)" {
+  run bash -lc "HELIX_HOME='$REPO_ROOT' HELIX_PROJECT_ROOT='$PROJ' '$CLI' --files 5 --lines 100 --uncertain --ui --json >'$TMP_ROOT/out.json' 2>'$TMP_ROOT/err.log'"
+  [ "$status" -eq 0 ]
+  grep -q '"drive": "scrum"' "$TMP_ROOT/out.json"
+}
+
+@test "--drive scrum 明示 -> scrum" {
+  run bash -lc "HELIX_HOME='$REPO_ROOT' HELIX_PROJECT_ROOT='$PROJ' '$CLI' --files 5 --lines 100 --drive scrum --json >'$TMP_ROOT/out.json' 2>'$TMP_ROOT/err.log'"
+  [ "$status" -eq 0 ]
+  grep -q '"drive": "scrum"' "$TMP_ROOT/out.json"
+  ! grep -q '\[drive-auto\]' "$TMP_ROOT/err.log"
+}

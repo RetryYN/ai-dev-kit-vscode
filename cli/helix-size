@@ -12,6 +12,7 @@ LINES=0
 HAS_API=false
 HAS_DB=false
 HAS_UI=false
+UNCERTAIN=false
 TASK_TYPE=""
 DRIVE=""
 DRIVE_SET=false
@@ -41,9 +42,10 @@ while [[ $# -gt 0 ]]; do
       LINES_SET=true
       shift 2
       ;;
-    --api)   HAS_API=true; shift ;;
-    --db)    HAS_DB=true; shift ;;
-    --ui)    HAS_UI=true; shift ;;
+    --api)       HAS_API=true; shift ;;
+    --db)        HAS_DB=true; shift ;;
+    --ui)        HAS_UI=true; shift ;;
+    --uncertain) UNCERTAIN=true; shift ;;
     --type)
       require_opt_arg "$1" "${2-}"
       TASK_TYPE="$2"
@@ -65,6 +67,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --api         API変更あり"
       echo "  --db          DB変更あり"
       echo "  --ui          UI変更あり"
+      echo "  --uncertain   要件不確実 (仮説検証が必要) → scrum (検証駆動) を推奨"
       echo "  --type TYPE   タスク種別:"
       echo "                  bugfix, refactor, new-feature, ui-change, doc, new-module"
       echo "  --drive DRIVE 駆動タイプ (デフォルト: be):"
@@ -100,7 +103,12 @@ if [[ "$DRIVE_SET" != true && -f "$CONFIG_FILE" && -f "$YAML_PARSER" ]]; then
 fi
 
 if [[ "$DRIVE_SET" != true ]]; then
-  if [[ "$HAS_UI" == true && ( "$HAS_API" == true || "$HAS_DB" == true ) ]]; then
+  if [[ "$UNCERTAIN" == true ]]; then
+    DRIVE="scrum"
+    echo "[drive-auto] 判定: scrum (要件不確実 → 検証駆動)" >&2
+    echo "[drive-auto] → helix scrum init で仮説検証から開始してください" >&2
+    echo "[drive-auto] → 確定後に helix size --ui/--api/--db で再サイジング" >&2
+  elif [[ "$HAS_UI" == true && ( "$HAS_API" == true || "$HAS_DB" == true ) ]]; then
     DRIVE="fullstack"
     echo "[drive-auto] 判定: fullstack (--ui あり, --api/--db あり)" >&2
   elif [[ "$HAS_UI" == true ]]; then
@@ -118,8 +126,8 @@ DRIVE="${DRIVE:-be}"
 
 # --- 駆動タイプバリデーション ---
 case "$DRIVE" in
-  be|fe|db|fullstack|agent) ;;
-  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  be|fe|db|fullstack|agent|scrum) ;;
+  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent, scrum を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
 esac
 
 # --- サイジング ---
@@ -129,6 +137,35 @@ size_from_files() {
   else echo "L"
   fi
 }
+
+# --- scrum (検証駆動) 専用分岐: Forward HELIX のフェーズ進行は行わない ---
+if [[ "$DRIVE" == "scrum" ]]; then
+  _SIZE_SCRUM=$(size_from_files)
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '{"size": "%s", "drive": "scrum", "mode": "scrum", "phases": []}\n' "$_SIZE_SCRUM"
+  else
+    echo "=== タスクサイジング結果 ==="
+    echo "サイズ:       $_SIZE_SCRUM"
+    echo "駆動タイプ:   scrum (検証駆動)"
+    echo ""
+    echo "要件不確実性が高いため Phase S (検証駆動) を推奨します。"
+    echo "仮説検証サイクルで要件を確定してから Forward HELIX に移行してください。"
+    echo ""
+    echo "=== 次のステップ ==="
+    echo "  1. helix scrum init"
+    echo "  2. helix scrum backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'"
+    echo "  3. helix scrum plan --goal 'ゴール' --hypotheses H001"
+    echo "  4. helix scrum poc --hypothesis H001 で PoC 実装"
+    echo "  5. helix scrum verify で全検証スクリプト実行"
+    echo "  6. helix scrum decide --hypothesis H001 --confirmed で仮説確定"
+    echo "  7. 確定後に helix size --ui/--api/--db で再サイジング → Forward HELIX へ"
+  fi
+  if [[ -f "$HELIX_DIR/phase.yaml" && -f "$YAML_PARSER" ]]; then
+    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "sprint.drive" "scrum" 2>/dev/null || true
+    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "current_mode" "scrum" 2>/dev/null || true
+  fi
+  exit "$EXIT_SUCCESS"
+fi
 
 size_from_lines() {
   if [[ $LINES -le 100 ]]; then echo "S"
