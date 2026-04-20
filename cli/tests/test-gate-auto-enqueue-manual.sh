@@ -70,7 +70,9 @@ run_gate() {
 count_debt_ids() {
   local file="$1"
   local id="$2"
-  rg -c "^\s*-\s+id:\s*${id}\s*$" "$file" 2>/dev/null || true
+  local n
+  n=$(grep -cE "^[[:space:]]*-[[:space:]]+id:[[:space:]]*${id}[[:space:]]*$" "$file" 2>/dev/null || echo 0)
+  echo "${n:-0}"
 }
 
 # Case 1: fe 駆動で G2 実行 -> 3項目登録
