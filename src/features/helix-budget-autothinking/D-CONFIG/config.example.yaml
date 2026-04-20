@@ -1,0 +1,65 @@
+# D-CONFIG: helix-budget + auto-thinking 設定例
+#
+# 配置場所:
+#   cli/config/model-fallback.yaml  (HELIX ビルトイン、デフォルト)
+#   ~/.config/helix/model-fallback.yaml  (ユーザー上書き、優先)
+#
+# 完全版は cli/config/model-fallback.yaml を参照。
+
+version: 1
+
+# -----------------------------------------------------------
+# モデル降格ルール (ADR-004)
+# -----------------------------------------------------------
+rules:
+  - model: gpt-5.3-codex-spark
+    same_tier: [gpt-5.4-mini]
+    upgrade: [gpt-5.3-codex]
+    trigger_pct: 90
+    note: "Spark 枯渇時、軽量タスクは 5.4-mini、実装系は 5.3 昇格"
+
+  - model: gpt-5.3-codex
+    same_tier: []
+    upgrade: [gpt-5.4]
+    downgrade_small: [gpt-5.3-codex-spark]
+    trigger_pct: 90
+    note: "5.3 枯渇時、雑/判断多は 5.4、S 純粋実装は Spark"
+
+  - model: gpt-5.4
+    hold: true
+    trigger_pct: 95
+    note: "5.4 は原則降格しない、タスク保留推奨"
+
+# -----------------------------------------------------------
+# プラン別想定上限 (cli/config/plan-limits.yaml)
+# -----------------------------------------------------------
+# 初期値は公称 / ヒューリスティック。
+# 枯渇検知時に .helix/budget/observed-limits.json が実測ベースで上書き。
+#
+# claude:
+#   free: {weekly_tokens: 100000}
+#   pro:  {weekly_tokens: 1000000}
+#   max:  {weekly_tokens: 10000000}
+#   team: {weekly_tokens: 20000000}
+# codex:
+#   free: {weekly_tokens: 500000}
+#   pro:  {weekly_tokens: 3000000}
+#   max:  {weekly_tokens: 15000000}
+
+# -----------------------------------------------------------
+# effort classifier (cli/roles/effort-classifier.conf)
+# -----------------------------------------------------------
+# role_name=effort-classifier
+# codex_model=gpt-5.4-mini
+# codex_thinking=low
+# cache_ttl_sec=3600
+# system_prompt_file=cli/templates/effort-classify-prompt.md
+
+# -----------------------------------------------------------
+# 設定の優先順位 (高い → 低い)
+# -----------------------------------------------------------
+# 1. CLI 引数 (--thinking, --auto-thinking など)
+# 2. 環境変数 (HELIX_AUTO_THINKING, HELIX_CODEX_MODEL など)
+# 3. ユーザー設定 (~/.config/helix/*.yaml)
+# 4. HELIX ビルトイン (cli/config/*.yaml)
+# 5. コード内デフォルト (fallback)

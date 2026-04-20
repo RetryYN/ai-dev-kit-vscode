@@ -1,0 +1,34 @@
+{
+  "feature": "helix-budget-autothinking",
+  "schema_version": "1.0",
+  "migration_type": "db-schema",
+  "from_version": 6,
+  "to_version": 7,
+  "engine": "sqlite",
+  "target_db": ".helix/helix.db",
+  "changes": [
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "effort_estimated", "sql_type": "TEXT"},
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "effort_actual", "sql_type": "TEXT"},
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "timeout_occurred", "sql_type": "INTEGER DEFAULT 0"},
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "tokens_used", "sql_type": "INTEGER"},
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "model_used", "sql_type": "TEXT"},
+    {"type": "ALTER TABLE", "table": "skill_usage", "column": "fallback_applied", "sql_type": "INTEGER DEFAULT 0"},
+    {"type": "CREATE TABLE", "table": "budget_events"},
+    {"type": "CREATE INDEX", "name": "idx_budget_events_at"},
+    {"type": "CREATE INDEX", "name": "idx_budget_events_type"},
+    {"type": "CREATE INDEX", "name": "idx_skill_usage_model"}
+  ],
+  "rollback": {
+    "strategy": "backup + restore (SQLite 3.35+ なら DROP COLUMN 可)",
+    "commands": [
+      "cp .helix/helix.db.backup-v6-* .helix/helix.db",
+      "または DROP COLUMN / DROP TABLE を逆順実行"
+    ]
+  },
+  "implemented_in": "cli/lib/helix_db.py",
+  "tested_by": "cli/helix-test [helix-budget-migration]",
+  "rehearsal_status": "passed",
+  "idempotent": true,
+  "non_breaking": true,
+  "note": "既存 453 テスト全 PASS を確認。ALTER TABLE は非破壊、新カラム NULL 埋め。"
+}

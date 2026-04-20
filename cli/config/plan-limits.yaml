@@ -1,0 +1,10 @@
+version: 1
+claude:
+  free: {weekly_tokens: 100000}
+  pro:  {weekly_tokens: 1000000}
+  max:  {weekly_tokens: 10000000}   # 実測で上書き
+  team: {weekly_tokens: 20000000}
+codex:
+  free: {weekly_tokens: 500000}
+  pro:  {weekly_tokens: 3000000}
+  max:  {weekly_tokens: 15000000}

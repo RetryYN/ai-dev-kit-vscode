@@ -219,7 +219,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -295,7 +295,12 @@ def _create_requirements_tables(conn):
     conn.executescript(REQUIREMENTS_SCHEMA)
 
 
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
 def _has_column(conn, table_name, column_name):
+    if not _IDENTIFIER_RE.match(str(table_name)):
+        raise ValueError(f"invalid table name: {table_name!r}")
     rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
     return any(row[1] == column_name for row in rows)
 
@@ -417,6 +422,43 @@ def _migrate_skill_usage_stdout_v6(conn):
         conn.execute("ALTER TABLE skill_usage ADD COLUMN result_stderr TEXT")
 
 
+def _migrate_skill_usage_v7(conn):
+    if not _has_column(conn, "skill_usage", "effort_estimated"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN effort_estimated TEXT")
+    if not _has_column(conn, "skill_usage", "effort_actual"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN effort_actual TEXT")
+    if not _has_column(conn, "skill_usage", "timeout_occurred"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN timeout_occurred INTEGER DEFAULT 0")
+    if not _has_column(conn, "skill_usage", "tokens_used"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN tokens_used INTEGER")
+    if not _has_column(conn, "skill_usage", "model_used"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN model_used TEXT")
+    if not _has_column(conn, "skill_usage", "fallback_applied"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN fallback_applied INTEGER DEFAULT 0")
+
+
+def _create_budget_events_table(conn):
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS budget_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            occurred_at TEXT NOT NULL,
+            event_type TEXT NOT NULL CHECK(event_type IN
+                ('exhaustion', 'fallback', 'warning', 'forecast_miss', 'limit_observed')),
+            model TEXT,
+            pct_used REAL,
+            details_json TEXT
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_budget_events_at ON budget_events(occurred_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_budget_events_type ON budget_events(event_type)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_skill_usage_model ON skill_usage(model_used) "
+        "WHERE model_used IS NOT NULL"
+    )
+
+
 def migrate(conn):
     """スキーマをマイグレーション"""
     current = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] or 0
@@ -469,6 +511,13 @@ def migrate(conn):
             _migrate_skill_usage_stdout_v6(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (6, datetime('now'))"
+            )
+        # v6→v7: skill_usage に budget/autothinking 拡張カラム追加 + budget_events 作成
+        if current < 7:
+            _migrate_skill_usage_v7(conn)
+            _create_budget_events_table(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (7, datetime('now'))"
             )
         conn.commit()
 

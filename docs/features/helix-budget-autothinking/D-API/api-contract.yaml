@@ -1,0 +1,214 @@
+openapi: "cli-contract/1.0"
+info:
+  title: helix-budget CLI Contract
+  version: 1.0.0
+  description: helix-budget + auto-thinking CLI の入出力契約 (OpenAPI 風の CLI 契約 YAML)
+
+commands:
+  - name: helix budget status
+    description: Claude/Codex の消費 % と枯渇予測を表示
+    args:
+      - name: --json
+        type: bool
+        default: false
+      - name: --breakdown
+        type: bool
+        default: false
+      - name: --no-cache
+        type: bool
+        default: false
+    outputs:
+      stdout_format: text | json
+      json_schema:
+        type: object
+        required: [claude, codex, recommendations, cached]
+        properties:
+          claude:
+            type: object
+            required: [plan, weekly_used_pct, weekly_remaining_pct, weekly_reset_at, source]
+            properties:
+              plan: { type: string, enum: [free, pro, max, team] }
+              weekly_used_pct: { type: integer, minimum: 0, maximum: 100 }
+              weekly_remaining_pct: { type: integer, minimum: 0, maximum: 100 }
+              weekly_reset_at: { type: string, format: date-time }
+              forecast_exhaustion_days: { type: number }
+              source: { type: string, enum: [ccusage, jsonl-fallback] }
+          codex:
+            type: object
+            required: [plan, five_hour_used_pct, weekly_used_pct, source]
+            properties:
+              plan: { type: string }
+              five_hour_used_pct: { type: integer, minimum: 0, maximum: 100 }
+              weekly_used_pct: { type: integer, minimum: 0, maximum: 100 }
+              five_hour_reset_at: { type: string, format: date-time }
+              weekly_reset_at: { type: string, format: date-time }
+              forecast_exhaustion_days: { type: number }
+              by_model:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    used_pct: { type: number }
+                    weight: { type: number }
+              source: { type: string }
+          recommendations:
+            type: array
+            items:
+              type: object
+              properties:
+                severity: { type: string, enum: [info, warning, critical] }
+                message: { type: string }
+          cached: { type: boolean }
+          cache_age_sec: { type: integer }
+    exit_codes:
+      0: 正常
+      1: 一般エラー
+      3: 残量取得失敗 (両側)
+      10: 枯渇警告
+
+  - name: helix budget forecast
+    description: N 日後の消費予測
+    args:
+      - name: --days
+        type: int
+        default: 7
+      - name: --json
+        type: bool
+        default: false
+    outputs:
+      json_schema:
+        type: object
+        required: [days, claude_forecast_pct, codex_forecast_pct, risk]
+        properties:
+          days: { type: integer }
+          avg_daily_claude_pct: { type: number }
+          avg_daily_codex_pct: { type: number }
+          claude_forecast_pct: { type: number }
+          codex_forecast_pct: { type: number }
+          risk: { type: string, enum: [low, medium, high, critical] }
+
+  - name: helix budget classify
+    description: タスク記述から effort 推定 (dry-run)
+    args:
+      - name: --task
+        type: string
+        required: true
+      - name: --role
+        type: string
+        enum: [tl, se, pg, fe, qa, security, dba, devops, docs, research, legacy, perf]
+      - name: --size
+        type: string
+        enum: [S, M, L]
+      - name: --files
+        type: int
+      - name: --lines
+        type: int
+      - name: --json
+        type: bool
+    outputs:
+      json_schema:
+        type: object
+        required: [effort, score, score_breakdown, reason]
+        properties:
+          effort: { type: string, enum: [low, medium, high, xhigh] }
+          score: { type: integer, minimum: 0, maximum: 25 }
+          score_breakdown:
+            type: object
+            properties:
+              files: { type: integer }
+              cross_module: { type: integer }
+              spec_understanding: { type: integer }
+              side_effect: { type: integer }
+              test_complexity: { type: integer }
+          reason: { type: string }
+          recommended_thinking: { type: string }
+          split_recommended: { type: boolean }
+          cached: { type: boolean }
+
+  - name: helix budget simulate
+    description: classify + budget を統合して最終モデル + thinking 提示
+    args:
+      - name: --task
+        type: string
+        required: true
+      - name: --role
+        type: string
+      - name: --json
+        type: bool
+    outputs:
+      json_schema:
+        type: object
+        required: [recommended_model, recommended_thinking, reason]
+        properties:
+          recommended_model: { type: string }
+          recommended_thinking: { type: string, enum: [low, medium, high, xhigh] }
+          fallback_applied: { type: boolean }
+          original_model: { type: string }
+          reason: { type: string }
+
+  - name: helix budget cache
+    description: キャッシュ管理
+    subcommands: [status, clear]
+
+  - name: helix-codex --auto-thinking
+    description: 既存 helix-codex への追加フラグ
+    extends: helix-codex
+    added_flags:
+      - name: --auto-thinking
+        type: bool
+        default: false
+    behavior:
+      - classifier を呼び出し effort 自動決定
+      - budget 確認
+      - 必要なら降格提案
+      - ユーザー非対話時は --yes で続行
+    non_breaking: true
+
+  - name: helix-skill use --auto-thinking
+    description: 既存 helix-skill use への追加フラグ
+    extends: helix-skill use
+    added_flags:
+      - name: --auto-thinking
+        type: bool
+        default: false
+    behavior:
+      - Codex ロール選択時のみ有効
+      - Claude サブエージェントは frontmatter effort 固定で影響なし
+
+hook_contracts:
+  - name: SessionStart
+    trigger: Claude Code セッション開始
+    command: ~/ai-dev-kit-vscode/cli/helix-budget-hook session-start
+    timeout_ms: 1500
+    exit_code_policy: always_zero
+    output_format: "[HELIX] Budget: Claude {X}% left, Codex {Y}% left{warnings}"
+
+db_contracts:
+  - table: skill_usage
+    added_columns:
+      - {name: effort_estimated, type: TEXT, nullable: true}
+      - {name: effort_actual, type: TEXT, nullable: true}
+      - {name: timeout_occurred, type: INTEGER, default: 0}
+      - {name: tokens_used, type: INTEGER, nullable: true}
+      - {name: model_used, type: TEXT, nullable: true}
+      - {name: fallback_applied, type: INTEGER, default: 0}
+  - table: budget_events
+    new: true
+    columns:
+      - {name: id, type: INTEGER, primary_key: true, auto: true}
+      - {name: occurred_at, type: TEXT, nullable: false}
+      - {name: event_type, type: TEXT, nullable: false}
+      - {name: model, type: TEXT, nullable: true}
+      - {name: pct_used, type: REAL, nullable: true}
+      - {name: details_json, type: TEXT, nullable: true}
+    indexes:
+      - {name: idx_budget_events_at, columns: [occurred_at]}
+
+compatibility:
+  schema_version: 7
+  migration_from: 6
+  rollback: "ALTER TABLE DROP COLUMN + DROP TABLE budget_events"
+
+freeze_statement: >
+  この contract を G3 で凍結する。L4 実装中の変更は drift-check で検知し
+  debt-register に auto-enqueue される。

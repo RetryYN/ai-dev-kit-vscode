@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || $# -eq 0 ]]; then
+  cat <<'EOF'
+使い方: helix budget <subcommand>
+
+サブコマンド:
+  status [--json] [--no-cache] [--breakdown]
+                              Claude/Codex 両側の消費 % と枯渇予測を表示
+  forecast [--days N] [--json]
+                              N 日後の消費予測
+  classify --task "..." [--role X] [--size S|M|L] [--files N] [--lines N] [--json]
+                              タスク難度 → effort 自動判定
+  simulate --task "..." [--role X] [--size S|M|L] [--json]
+                              classify + budget 統合で最適モデル + thinking を提示
+  cache status | cache clear  キャッシュ管理
+
+詳細: docs/features/helix-budget-autothinking/D-API/api-contract.yaml
+EOF
+  exit 0
+fi
+
+exec python3 "$SCRIPT_DIR/lib/budget_cli.py" "$@"

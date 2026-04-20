@@ -1,0 +1,18 @@
+# HELIX モデル降格ルール
+version: 1
+rules:
+  - model: gpt-5.3-codex-spark
+    same_tier: [gpt-5.4-mini]
+    upgrade: [gpt-5.3-codex]
+    trigger_pct: 90  # 消費 90% 超で発火
+    note: 'Spark 枯渇時、軽量タスクは 5.4-mini、実装系は 5.3 昇格'
+  - model: gpt-5.3-codex
+    same_tier: []
+    upgrade: [gpt-5.4]
+    downgrade_small: [gpt-5.3-codex-spark]
+    trigger_pct: 90
+    note: '5.3 枯渇時、雑/判断多は 5.4、S 純粋実装は Spark'
+  - model: gpt-5.4
+    hold: true
+    trigger_pct: 95
+    note: '5.4 は原則降格しない、タスク保留推奨'

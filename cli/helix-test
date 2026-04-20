@@ -221,9 +221,55 @@ with tempfile.TemporaryDirectory() as d:
     assert \"result_stdout\" in cols, f\"missing result_stdout: {cols}\"
     assert \"result_stderr\" in cols, f\"missing result_stderr: {cols}\"
     v=c.execute(\"SELECT MAX(version) FROM schema_version\").fetchone()[0]
-    assert v == 6, f\"expected 6, got {v}\"
+    assert v == helix_db.CURRENT_SCHEMA_VERSION, f\"expected {helix_db.CURRENT_SCHEMA_VERSION}, got {v}\"
     row=c.execute(\"SELECT task_text, skill_id FROM skill_usage\").fetchone()
     assert row == (\"t\",\"x/y\"), f\"data not preserved: {row}\"
+    c.close()
+'"
+echo ""
+
+echo "[helix-budget]"
+run_test "helix-budget --help exits 0" "$SCRIPT_DIR/helix-budget --help"
+run_test "helix-budget status runs" "$SCRIPT_DIR/helix-budget status --no-cache"
+run_test_contains "helix-budget status --json produces valid JSON" "$SCRIPT_DIR/helix-budget status --no-cache --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(\"claude\" in d and \"codex\" in d)'" "True"
+run_test_contains "helix-budget classify trivial task" "$SCRIPT_DIR/helix-budget classify --task 'typo 修正' --size S --files 1 --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[\"effort\"])'" "medium\|low"
+run_test_contains "helix-budget classify design task" "$SCRIPT_DIR/helix-budget classify --task '新規 API 設計 + DB migration 横断' --size L --files 8 --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[\"effort\"])'" "high\|xhigh"
+run_test "helix-budget simulate runs" "$SCRIPT_DIR/helix-budget simulate --task 'API 実装' --role se --size M"
+run_test "effort_classifier boundary" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from effort_classifier import map_to_effort; assert map_to_effort(3) == \"low\"; assert map_to_effort(4) == \"medium\"; assert map_to_effort(8) == \"high\"; assert map_to_effort(13) == \"xhigh\"'"
+run_test "model_fallback spark exhaustion" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from model_fallback import suggest_model; r = suggest_model(\"gpt-5.3-codex-spark\", {\"codex\":{\"weekly_used_pct\":95,\"by_model\":{}}}, effort=\"medium\", size=\"M\"); assert r[\"fallback_applied\"], r'"
+run_test "model_fallback 5.4 hold" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from model_fallback import suggest_model; r = suggest_model(\"gpt-5.4\", {\"codex\":{\"weekly_used_pct\":98,\"by_model\":{}}}, effort=\"high\", size=\"M\"); assert not r[\"fallback_applied\"], r'"
+run_test "budget.py ClaudeBudget fallback" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from budget import ClaudeBudget; r = ClaudeBudget.get(); assert \"weekly_used_pct\" in r; assert r[\"source\"] in (\"ccusage\",\"jsonl-fallback\",\"unavailable\")'"
+run_test "budget.py CodexBudget unavailable or OK" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from budget import CodexBudget; r = CodexBudget.get(); assert \"weekly_used_pct\" in r; assert r[\"source\"] in (\"state.db\",\"state.db-error\",\"unavailable\")'"
+run_test "ForecastEngine predict" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); from budget import ForecastEngine; fc = ForecastEngine.predict({\"weekly_used_pct\":50}, {\"weekly_used_pct\":40}, days=7); assert fc[\"risk\"] in (\"low\",\"medium\",\"high\",\"critical\")'"
+echo ""
+
+echo "[helix-budget-migration]"
+run_test "v7 migration skill_usage new columns" "python3 -c '
+import sqlite3, sys, tempfile, os
+sys.path.insert(0, \"$SCRIPT_DIR/lib\")
+import helix_db
+with tempfile.TemporaryDirectory() as d:
+    db = os.path.join(d, \"test.db\")
+    helix_db.init_db(db)
+    c = sqlite3.connect(db)
+    cols = {r[1] for r in c.execute(\"PRAGMA table_info(skill_usage)\")}
+    required = {\"effort_estimated\", \"effort_actual\", \"timeout_occurred\", \"tokens_used\", \"model_used\", \"fallback_applied\"}
+    assert required.issubset(cols), cols
+    v = c.execute(\"SELECT MAX(version) FROM schema_version\").fetchone()[0]
+    assert v == helix_db.CURRENT_SCHEMA_VERSION, v
+    c.close()
+'"
+run_test "v7 migration budget_events table" "python3 -c '
+import sqlite3, sys, tempfile, os
+sys.path.insert(0, \"$SCRIPT_DIR/lib\")
+import helix_db
+with tempfile.TemporaryDirectory() as d:
+    db = os.path.join(d, \"test.db\")
+    helix_db.init_db(db)
+    c = sqlite3.connect(db)
+    c.execute(\"INSERT INTO budget_events (occurred_at, event_type, model, pct_used) VALUES (datetime(\\\"now\\\"), ?, ?, ?)\", (\"fallback\", \"gpt-5.3-codex\", 92.5))
+    row = c.execute(\"SELECT event_type, pct_used FROM budget_events\").fetchone()
+    assert row == (\"fallback\", 92.5), row
     c.close()
 '"
 echo ""

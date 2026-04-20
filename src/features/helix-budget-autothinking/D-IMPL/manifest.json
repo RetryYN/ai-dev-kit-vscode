@@ -1,0 +1,36 @@
+{
+  "feature": "helix-budget-autothinking",
+  "schema_version": "1.0",
+  "layer": "L4",
+  "status": "completed-mvp",
+  "note": "HELIX CLI ツールは cli/ 配下に配置される規約。本 manifest は deliverable 整合のため参照メタデータのみ格納。",
+  "sources": {
+    "cli/helix-budget": "bash dispatcher",
+    "cli/lib/budget.py": "Claude/Codex 消費取得 + ForecastEngine + BudgetCache",
+    "cli/lib/effort_classifier.py": "5 軸ルールベース難度判定 (LLM は後続)",
+    "cli/lib/model_fallback.py": "降格ルール適用",
+    "cli/lib/budget_cli.py": "argparse ベースサブコマンド dispatch",
+    "cli/lib/helix_db.py": "v6→v7 migration 実装 (_migrate_skill_usage_v7 + _create_budget_events_table)",
+    "cli/helix-test": "14 新規 smoke テスト追加",
+    "cli/tests/helix-budget-status.bats": "bats 10 ケース (bats インストール後実行)",
+    "cli/tests/helix-budget-migration.bats": "bats 4 ケース (同上)"
+  },
+  "commit_reference": "TBD (L7 でコミット時に追記)",
+  "test_results": {
+    "helix_test_total": 467,
+    "helix_test_passed": 467,
+    "helix_test_failed": 0,
+    "new_tests_added": 14
+  },
+  "deferred_to_next_sprint": [
+    "gpt-5.4-mini LLM 呼び出し (effort_classifier.py の call_classifier)",
+    "helix-codex --auto-thinking フラグ統合",
+    "helix-skill use --auto-thinking フラグ統合",
+    "helix-budget-hook (SessionStart)",
+    "helix log report budget",
+    "ccusage のより精密な JSON parse (現行は行数ベース推定)",
+    "state.db スキーマ詳細調査 + 実クエリ (現行は存在チェックのみ)",
+    "pytest integration (35 ケース)",
+    "bats 実行環境整備 (npm install -g bats-core)"
+  ]
+}

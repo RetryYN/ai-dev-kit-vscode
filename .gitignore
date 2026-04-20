@@ -17,3 +17,5 @@ credentials.json
 !**/.helix/reverse/**
 !**/.helix/scrum/
 !**/.helix/scrum/**
+
+.helix/budget/
