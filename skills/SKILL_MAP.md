@@ -111,6 +111,8 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 | G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
 | G6 追加条件 | — | **MOCK-DERIVED-CONTRACT resolved 必須** | — | 同左（fe同等） | — |
 
+> **fe / fullstack の詳細フロー**（L2 ステップ内訳 / TL 契約導出手順 / モック由来 debt ライフサイクル / 責務分担表 / アンチパターン）→ `skills/project/fe-design/references/fe-drive-flow.md` 参照
+
 ### L5 要否の判定
 
 | 駆動タイプ | L5 必要条件 |
