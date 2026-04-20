@@ -454,7 +454,7 @@ check_fe_quality() {
 
 check_drift() {
   local file="$1"
-  if [[ "$file" =~ D-API/|D-CONTRACT/|D-DB/ ]]; then
+  if [[ "$file" =~ ^(docs|\.helix)/.*D-[A-Z][A-Z0-9-]*/ ]]; then
     "$SCRIPT_DIR/helix-drift-check" "$PROJECT_ROOT/$file" 2>/dev/null &
   fi
 }

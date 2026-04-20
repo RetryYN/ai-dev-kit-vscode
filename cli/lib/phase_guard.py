@@ -45,6 +45,7 @@ if str(SCRIPT_DIR) not in sys.path:
 from yaml_parser import get_nested, parse_yaml
 
 LAYER_ORDER = {f"L{i}": i for i in range(1, 9)}
+UNKNOWN_LAYER = "unknown"
 
 GATE_NAMES = {
     "G0.5": "企画突合ゲート",
@@ -90,18 +91,28 @@ EXEMPT_ROOT_FILES = {
 }
 
 STATIC_DELIVERABLE_LAYER = {
+    "D-ACC": "L1",
+    "D-RES": "L1",
     "D-ARCH": "L2",
     "D-ADR": "L2",
     "D-THREAT": "L2",
+    "D-VIS-ARCH": "L2",
+    "D-DATA-ARCH": "L2",
+    "D-ORCH-ARCH": "L2",
     "D-API": "L3",
     "D-CONTRACT": "L3",
     "D-DB": "L3",
+    "D-MIG-PLAN": "L3",
+    "D-DEP": "L3",
     "D-TEST": "L3",
     "D-PLAN": "L3",
     "D-STATE": "L3",
     "D-UI": "L3",
     "D-API-CONS": "L3",
     "D-DATA-ACCESS": "L3",
+    "D-TOOL": "L3",
+    "D-PROMPT": "L3",
+    "D-EVAL-PLAN": "L3",
     "D-IMPL": "L4",
     "D-MIG": "L4",
     "D-CONFIG": "L4",
@@ -113,6 +124,9 @@ STATIC_DELIVERABLE_LAYER = {
     "D-PERF": "L6",
     "D-SECV": "L6",
     "D-OPS": "L6",
+    "D-A11Y-VERIFY": "L6",
+    "D-DATA-VERIFY": "L6",
+    "D-EVAL": "L6",
     "D-DEPLOY": "L7",
     "D-RELNOTE": "L7",
     "D-OBS": "L7",
@@ -198,6 +212,16 @@ def _fallback_deliverable_layer(deliverable_id: str) -> str | None:
     return STATIC_DELIVERABLE_LAYER.get(deliverable_id)
 
 
+def _resolve_deliverable_layer(deliverable_id: str, catalog_layers: dict[str, str]) -> tuple[str | None, str]:
+    layer = catalog_layers.get(deliverable_id)
+    if layer:
+        return layer, "catalog"
+    fallback = _fallback_deliverable_layer(deliverable_id)
+    if fallback:
+        return fallback, "static"
+    return None, UNKNOWN_LAYER
+
+
 def _load_catalog_layers(index_path: Path | None) -> dict[str, str]:
     if index_path is None or not index_path.exists():
         return {}
@@ -231,13 +255,19 @@ def _infer_layer(rel_path: str, catalog_layers: dict[str, str]) -> str | None:
     if docs_match:
         did = _extract_deliverable_id(docs_match.group(2))
         if did:
-            return catalog_layers.get(did) or _fallback_deliverable_layer(did)
+            layer, source = _resolve_deliverable_layer(did, catalog_layers)
+            if source == UNKNOWN_LAYER:
+                return UNKNOWN_LAYER
+            return layer
 
     src_match = SRC_SCOPE_RE.match(rel_path)
     if src_match:
         did = _extract_deliverable_id(src_match.group(2))
         if did:
-            return catalog_layers.get(did) or _fallback_deliverable_layer(did)
+            layer, source = _resolve_deliverable_layer(did, catalog_layers)
+            if source == UNKNOWN_LAYER:
+                return UNKNOWN_LAYER
+            return layer
         return catalog_layers.get("D-IMPL", "L4")
 
     if re.match(r"^docs/design/L2-[^/]+", rel_path):
@@ -346,6 +376,8 @@ def main() -> int:
     catalog_layers = _load_catalog_layers(index_path)
     target_layer = _infer_layer(rel_path, catalog_layers)
     if target_layer is None:
+        return 0
+    if target_layer == UNKNOWN_LAYER:
         return 0
 
     target_layer_num = LAYER_ORDER.get(target_layer)

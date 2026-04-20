@@ -84,7 +84,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録 |
+| 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み。通過時に `MOCK-DERIVED-CONTRACT` / `MOCK-HARDCODE` / `MOCK-CODE-LEAK` の 3 項目が debt-register に auto-enqueue される |
 | 判定者 | PM（最終）、TL（必須）、PO（条件付き） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
@@ -100,7 +100,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
+| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。**fe 追加条件**: TL が `state-events.md` から API 契約導出完了、モック凍結済み。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
 | 判定者 | TL（主）、PM（共同）、自動チェック補助 |
 | 判定形式 | ハイブリッド（API/DB 変更なしなら明示会議省略可） |
 | 中規模 skip | 会議省略可 |
@@ -114,7 +114,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
+| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix-gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
 | 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |
 | 判定形式 | ハイブリッド（M/L では実質明示） |
 | 中規模 skip | 不可 |
@@ -139,7 +139,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了 |
+| 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了。**fe/fullstack 追加条件**: `MOCK-DERIVED-CONTRACT`（モック由来 API 契約のドメイン整合性 TL レビュー）が resolved（`helix-gate` が自動 fail-close） |
 | 判定者 | PM（Go/No-Go）、TL（技術推奨）、PO（条件付き） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |

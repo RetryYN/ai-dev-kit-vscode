@@ -167,3 +167,31 @@ def test_main_returns_zero_when_phase_file_is_missing(
     )
 
     assert phase_guard.main() == 0
+
+
+def test_unknown_deliverable_returns_unknown_layer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delitem(phase_guard.STATIC_DELIVERABLE_LAYER, "D-PERF", raising=False)
+    monkeypatch.delitem(phase_guard.STATIC_DELIVERABLE_LAYER, "D-AUDIT", raising=False)
+
+    perf_layer = phase_guard._infer_layer("docs/features/auth/D-PERF/custom.md", {})
+    audit_layer = phase_guard._infer_layer("docs/features/auth/D-AUDIT/custom.md", {})
+
+    assert perf_layer == phase_guard.UNKNOWN_LAYER
+    assert audit_layer == phase_guard.UNKNOWN_LAYER
+
+
+def test_vis_arch_resolves_to_l2() -> None:
+    layer = phase_guard._infer_layer("docs/features/auth/D-VIS-ARCH/overview.md", {})
+    assert layer == "L2"
+
+
+def test_data_arch_resolves_to_l2() -> None:
+    layer = phase_guard._infer_layer("docs/features/auth/D-DATA-ARCH/schema.md", {})
+    assert layer == "L2"
+
+
+def test_mig_plan_resolves_to_l3() -> None:
+    layer = phase_guard._infer_layer("docs/features/auth/D-MIG-PLAN/plan.md", {})
+    assert layer == "L3"

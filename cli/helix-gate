@@ -267,6 +267,68 @@ run_checks() {
   local advisory_fail=0
   local ai_pass=0
   local ai_fail=0
+  local drive=""
+  if [[ -f "$PHASE_FILE" ]]; then
+    drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
+  fi
+
+  is_fe_driven_gate() {
+    [[ "$drive" == "fe" || "$drive" == "fullstack" ]]
+  }
+
+  debt_status_by_id() {
+    local debt_id="$1"
+    local register="$HELIX_DIR/debt-register.yaml"
+    python3 - "$register" "$debt_id" <<'PY'
+import re
+import sys
+
+register = sys.argv[1]
+target = sys.argv[2]
+
+try:
+    with open(register, "r", encoding="utf-8") as fp:
+        lines = fp.readlines()
+except FileNotFoundError:
+    print("missing")
+    raise SystemExit(0)
+
+item_re = re.compile(r"^\s*-\s+id:\s*(.+?)\s*$")
+status_re = re.compile(r"^\s*status:\s*(.+?)\s*$")
+
+active = False
+for raw in lines:
+    m_item = item_re.match(raw)
+    if m_item:
+        value = m_item.group(1).strip().strip('"').strip("'")
+        active = value == target
+        continue
+    if active:
+        m_status = status_re.match(raw)
+        if m_status:
+            print(m_status.group(1).strip().strip('"').strip("'"))
+            raise SystemExit(0)
+
+print("missing")
+PY
+  }
+
+  enqueue_mock_driven_debts() {
+    "$SCRIPT_DIR/helix-debt" add \
+      --id MOCK-DERIVED-CONTRACT --title 'モック由来 API 契約のドメイン整合性を L6 で TL レビュー' \
+      --priority high --category mock-driven --impact high --effort M \
+      --owner TL --target-sprint L6 --source 'helix-gate G2 auto-enqueue'
+
+    "$SCRIPT_DIR/helix-debt" add \
+      --id MOCK-HARDCODE --title 'モックのハードコード値残存を G4 で grep チェック' \
+      --priority medium --category mock-driven --impact medium --effort S \
+      --owner SE --target-sprint G4 --source 'helix-gate G2 auto-enqueue'
+
+    "$SCRIPT_DIR/helix-debt" add \
+      --id MOCK-CODE-LEAK --title '.helix/mock/ 配下の本実装への import 禁止を G4 で AST チェック' \
+      --priority high --category mock-driven --impact high --effort S \
+      --owner SE --target-sprint G4 --source 'helix-gate G2 auto-enqueue'
+  }
   # deliverable check の前に state を自動更新
   if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
     local state_file="$HELIX_DIR/state/deliverables.json"
@@ -346,42 +408,69 @@ PY
     done
   fi
 
-  # --- Fullstack Twin Track Check ---
-  if [[ -f "$PHASE_FILE" ]]; then
-    local drive
-    drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
-    if [[ "$drive" == "fullstack" && ("$gate" == "G3" || "$gate" == "G4") ]]; then
-      echo "[fullstack]"
-      # G4: BE/FE 両 track の stage が .5 かつ status が completed であること
-      if [[ "$gate" == "G4" ]]; then
-        local be_stage fe_stage contract_ci be_status fe_status
-        be_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.stage" 2>/dev/null || echo "")
-        fe_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.stage" 2>/dev/null || echo "")
-        be_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.status" 2>/dev/null || echo "")
-        fe_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.status" 2>/dev/null || echo "")
-        contract_ci=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.contract.ci" 2>/dev/null || echo "")
+  if [[ "$gate" == "G2" ]] && is_fe_driven_gate; then
+    if ! enqueue_mock_driven_debts; then
+      echo "G2 fail: mock-driven debt の auto-enqueue に失敗" >&2
+      mandatory_fail=$((mandatory_fail + 1))
+    fi
+  fi
 
-        local twin_fail=0
-        if [[ "$be_stage" != ".5" || "$be_status" != "completed" ]]; then
-          echo "  FAIL: BE Track 未完了 (stage=$be_stage, status=$be_status)"
-          twin_fail=1
-        fi
-        if [[ "$fe_stage" != ".5" || "$fe_status" != "completed" ]]; then
-          echo "  FAIL: FE Track 未完了 (stage=$fe_stage, status=$fe_status)"
-          twin_fail=1
-        fi
-        if [[ "$contract_ci" != "pass" ]]; then
-          echo "  FAIL: Contract CI 未通過 (ci=$contract_ci)"
-          twin_fail=1
-        fi
-        if [[ $twin_fail -gt 0 ]]; then
-          deliv_fail=$((deliv_fail + twin_fail))
-          echo "  fullstack G4: FAIL"
-        else
-          echo "  fullstack G4: BE .5 ✓ FE .5 ✓ Contract CI ✓"
-        fi
-        echo ""
+  if is_fe_driven_gate; then
+    if [[ "$gate" == "G4" ]]; then
+      local hardcode_status code_leak_status
+      hardcode_status=$(debt_status_by_id "MOCK-HARDCODE")
+      code_leak_status=$(debt_status_by_id "MOCK-CODE-LEAK")
+
+      if [[ "$hardcode_status" != "resolved" ]]; then
+        echo "G4 fail: MOCK-HARDCODE が未解決 (fe駆動時は必須)" >&2
+        mandatory_fail=$((mandatory_fail + 1))
       fi
+      if [[ "$code_leak_status" != "resolved" ]]; then
+        echo "G4 fail: MOCK-CODE-LEAK が未解決 (fe駆動時は必須)" >&2
+        mandatory_fail=$((mandatory_fail + 1))
+      fi
+    elif [[ "$gate" == "G6" ]]; then
+      local derived_contract_status
+      derived_contract_status=$(debt_status_by_id "MOCK-DERIVED-CONTRACT")
+      if [[ "$derived_contract_status" != "resolved" ]]; then
+        echo "G6 fail: MOCK-DERIVED-CONTRACT が未解決 (fe駆動時は必須)" >&2
+        mandatory_fail=$((mandatory_fail + 1))
+      fi
+    fi
+  fi
+
+  # --- Fullstack Twin Track Check ---
+  if [[ "$drive" == "fullstack" && ("$gate" == "G3" || "$gate" == "G4") ]]; then
+    echo "[fullstack]"
+    # G4: BE/FE 両 track の stage が .5 かつ status が completed であること
+    if [[ "$gate" == "G4" ]]; then
+      local be_stage fe_stage contract_ci be_status fe_status
+      be_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.stage" 2>/dev/null || echo "")
+      fe_stage=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.stage" 2>/dev/null || echo "")
+      be_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.be.status" 2>/dev/null || echo "")
+      fe_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.fe.status" 2>/dev/null || echo "")
+      contract_ci=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.tracks.contract.ci" 2>/dev/null || echo "")
+
+      local twin_fail=0
+      if [[ "$be_stage" != ".5" || "$be_status" != "completed" ]]; then
+        echo "  FAIL: BE Track 未完了 (stage=$be_stage, status=$be_status)"
+        twin_fail=1
+      fi
+      if [[ "$fe_stage" != ".5" || "$fe_status" != "completed" ]]; then
+        echo "  FAIL: FE Track 未完了 (stage=$fe_stage, status=$fe_status)"
+        twin_fail=1
+      fi
+      if [[ "$contract_ci" != "pass" ]]; then
+        echo "  FAIL: Contract CI 未通過 (ci=$contract_ci)"
+        twin_fail=1
+      fi
+      if [[ $twin_fail -gt 0 ]]; then
+        deliv_fail=$((deliv_fail + twin_fail))
+        echo "  fullstack G4: FAIL"
+      else
+        echo "  fullstack G4: BE .5 ✓ FE .5 ✓ Contract CI ✓"
+      fi
+      echo ""
     fi
   fi
 

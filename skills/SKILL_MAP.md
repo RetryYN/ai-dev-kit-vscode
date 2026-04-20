@@ -102,12 +102,14 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 
 | フェーズ | be | fe | db | fullstack | agent |
 |---------|----|----|----|-----------|----|
-| L2 設計 | API設計・アーキテクチャ・ADR | Visual方針・コンポーネント設計 | ER図・スキーマ設計 | BE方針+FE方針+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
-| L3 詳細 | API契約+DB+工程表 | コンポーネントツリー+Props+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+工程表 | ツール契約+統合テスト設計+工程表 |
-| L4 実装順 | ロジック→API→FE | コンポーネント→スタイル→API繋ぎ | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint → Phase B: L4.5結合 | ツール→オーケストレーション→UI |
+| L2 設計 | API設計・アーキテクチャ・ADR | **モック駆動設計**（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（**mock含む**）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
+| L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
+| L4 実装順 | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L4.5結合 | ツール→オーケストレーション→UI |
 | L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
-| G2 凍結 | API設計凍結 | Visual設計凍結 | スキーマ凍結 | 接続契約方針凍結（BE+FE+Contract三点セット） | ツール定義凍結 |
-| G3 着手 | API/Schema Freeze | Component Contract Freeze | Migration Freeze | API/Schema/UI/Contract全凍結 | Tool Contract Freeze |
+| G2 凍結 | API設計凍結 | **モック凍結**（UX承認 + MOCK-* auto-enqueue 発火） | スキーマ凍結 | 接続契約方針凍結（BE+FE+Contract三点セット） + MOCK-* auto-enqueue | ツール定義凍結 |
+| G3 着手 | API/Schema Freeze | **モック+API/Schema Freeze** | Migration Freeze | API/Schema/UI/Contract全凍結 | Tool Contract Freeze |
+| G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
+| G6 追加条件 | — | **MOCK-DERIVED-CONTRACT resolved 必須** | — | 同左（fe同等） | — |
 
 ### L5 要否の判定
 

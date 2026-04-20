@@ -94,6 +94,25 @@ fi
 
 if [[ "$DRIVE_SET" != true && -f "$CONFIG_FILE" && -f "$YAML_PARSER" ]]; then
   DRIVE=$(python3 "$YAML_PARSER" read "$CONFIG_FILE" default_drive 2>/dev/null || echo "")
+  if [[ -n "$DRIVE" ]]; then
+    DRIVE_SET=true
+  fi
+fi
+
+if [[ "$DRIVE_SET" != true ]]; then
+  if [[ "$HAS_UI" == true && ( "$HAS_API" == true || "$HAS_DB" == true ) ]]; then
+    DRIVE="fullstack"
+    echo "[drive-auto] 判定: fullstack (--ui あり, --api/--db あり)" >&2
+  elif [[ "$HAS_UI" == true ]]; then
+    DRIVE="fe"
+    echo "[drive-auto] 判定: fe (--ui あり, API/DB なし)" >&2
+  elif [[ "$HAS_API" == true || "$HAS_DB" == true ]]; then
+    DRIVE="be"
+    echo "[drive-auto] 判定: be (--api または --db あり)" >&2
+  else
+    DRIVE="be"
+    echo "[drive-auto] 判定: be (UI/API/DB なし, 既定値)" >&2
+  fi
 fi
 DRIVE="${DRIVE:-be}"
 

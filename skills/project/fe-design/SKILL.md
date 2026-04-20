@@ -8,10 +8,20 @@ metadata:
     - "L5 情報階層確認時"
     - "D-IA 生成時"
     - "コンテンツマップ設計時"
+    - "モック作成時"
+    - "プロトタイプ生成時"
+    - "インタラクション設計時"
+  outputs:
+    - "docs/fe/D-IA.md"
+    - ".helix/mock/<feature>/mock.html（fe 駆動時のみ必須）"
+    - ".helix/mock/<feature>/state-events.md（fe 駆動時のみ必須）"
   verification:
     - "D-IA が docs/fe/ に存在する"
     - "ページ一覧と階層が可視化済み"
     - "ナビゲーションラベルが確定している"
+    - "fe 駆動時: .helix/mock/<feature>/mock.html が存在し、ブラウザで開いて触れる状態である（throw-away 前提）"
+    - "fe 駆動時: state-events.md に画面状態一覧・イベント一覧・状態遷移図（stateDiagram-v2）が記載されている"
+    - "be 駆動時: mock.html / state-events.md は optional（未作成可）"
 compatibility:
   claude: true
   codex: true
@@ -23,6 +33,7 @@ compatibility:
 
 visual-design スキルの **①information** ステップの具体実装を担当する。
 visual-design が「何を決めるか」を定義し、fe-design が「どう文書化するか」を実行する。
+また、fe 駆動時は L2 で動くモックと状態・イベント定義までを出力し、L3 の API 契約導出入力を担保する。
 
 ```
 visual-design §①information（方針）
@@ -128,6 +139,11 @@ L5 Visual Refinement 入場時、以下を突合する。
 - ファイルパス: `docs/fe/D-IA.md`
 - 形式: Markdown テーブル + 箇条書き階層
 - 必須セクション: ページ一覧 / 情報階層 / ナビゲーション設計
+- fe 駆動時の追加成果物（必須）:
+  - `.helix/mock/<feature>/mock.html`（throw-away モック。`src/` import 禁止）
+  - `.helix/mock/<feature>/state-events.md`（画面状態・イベント・状態遷移図）
+- be 駆動時:
+  - `mock.html` / `state-events.md` は optional（作成しない運用可）
 
 ---
 

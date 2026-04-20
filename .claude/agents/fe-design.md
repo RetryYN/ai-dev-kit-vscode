@@ -50,12 +50,35 @@ maxTurns: 30
 - デザイントークンのハードコード禁止
 - 日本市場向け UI 指針を考慮（フォント/行間/余白）
 
-## コード実装はしない
-設計・方針のみ。実装は以下に委譲:
+## 本実装コードは書かない
+設計・方針のみ。`src/` など本実装コードの作成・編集は行わない。
+ただし例外として、`.helix/mock/` 配下の throw-away プロトタイプ生成は許可する。
+実装は以下に委譲:
 - @fe-component: コンポーネント実装
 - @fe-style: スタイリング
 - @fe-a11y: アクセシビリティ修正
 - @fe-test: テスト作成
+
+## 動くモック生成
+- 保存先: `.helix/mock/<feature>/mock.html`
+- 技術: HTML + Tailwind CDN (`https://cdn.tailwindcss.com`) + Alpine.js（必要時のみ）
+- 制約:
+  - フレームワーク依存なし（Vanilla HTML 基準）
+  - `src/` への import 禁止（本実装への依存禁止）
+  - throw-away 前提（量産コード化しない）
+- 実装要件:
+  - クリック操作を実際に試せること
+  - フォーム入力・送信を試せること
+  - 画面遷移（疑似遷移含む）を触れること
+
+## 状態・イベント定義
+- 保存先: `.helix/mock/<feature>/state-events.md`
+- 必須内容:
+  - 画面状態一覧（例: `loading` / `empty` / `error` / `populated`）
+  - 発生イベント一覧（例: `click` / `submit` / `hover` / `scroll`）
+  - 状態遷移図（`mermaid` の `stateDiagram-v2`）
+- 連携前提:
+  - TL (Codex) がこの定義を読み、L3 で API 契約を導出する
 
 ## 出力形式
 - デザイントークン: YAML テーブル or CSS 変数一覧

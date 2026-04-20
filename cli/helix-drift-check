@@ -27,6 +27,9 @@ CHANGED_FILE="${1:-}"
 [[ ! -d "$HELIX_DIR" ]] && exit 0
 
 REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+PHASE_GUARD="$SCRIPT_DIR/lib/phase_guard.py"
+RUNTIME_INDEX_FILE="$HELIX_DIR/runtime/index.json"
 
 # D-API ファイル変更 → helix-gate-api-check をバックグラウンドで実行
 if [[ "$REL_PATH" =~ D-API/ ]]; then
@@ -142,5 +145,54 @@ elif [[ "$REL_PATH" =~ D-DB/ ]]; then
   if [[ -f "$DB_PATH" ]]; then
     HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
       "{\"event_type\":\"drift_check_db\",\"file\":\"$REL_PATH\",\"result\":\"$db_result\"}" 2>/dev/null || true
+  fi
+
+else
+  # 汎用 D-XXX 成果物（既存の特化分岐に該当しないもの）を検出
+  if [[ "$REL_PATH" =~ (D-[A-Z][A-Z0-9-]*/) ]]; then
+    deliverable_path="${BASH_REMATCH[1]}"
+    if [[ "$deliverable_path" =~ ^D-[A-Z][A-Z0-9-]*/$ ]]; then
+      deliverable_id="${deliverable_path%/}"
+      index_file="$PROJECT_ROOT/.helix/index.json"
+
+      if [[ ! -f "$index_file" ]]; then
+        echo "[drift-check] WARN: missing index.json at $index_file" >&2
+        exit 0
+      fi
+
+      deliverable_meta=""
+      if command -v jq >/dev/null 2>&1; then
+        deliverable_meta=$(jq -c --arg id "$deliverable_id" \
+          '((.deliverables // .rules.deliverables // []) | map(select(.id == $id)) | .[0]) // empty' \
+          "$index_file" 2>/dev/null || true)
+      fi
+
+      if [[ -n "$deliverable_meta" ]]; then
+        echo "[drift-check] generic deliverable change: $deliverable_id at $REL_PATH" >&2
+        generic_result="recorded"
+
+        if [[ -f "$PHASE_FILE" && -f "$PHASE_GUARD" ]]; then
+          guard_args=(--phase-file "$PHASE_FILE" --file "$REL_PATH")
+          [[ -f "$RUNTIME_INDEX_FILE" ]] && guard_args+=(--index "$RUNTIME_INDEX_FILE")
+          guard_output=""
+          if ! guard_output=$(python3 "$PHASE_GUARD" "${guard_args[@]}" 2>&1); then
+            [[ -n "$guard_output" ]] && echo "$guard_output" >&2
+            echo "[drift-check] WARN: frozen deliverable update detected: $deliverable_id at $REL_PATH" >&2
+            generic_result="warn"
+          fi
+        fi
+
+        if [[ -f "$DB_PATH" ]]; then
+          HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+            "{\"event_type\":\"drift_check_generic\",\"file\":\"$REL_PATH\",\"result\":\"$generic_result\"}" 2>/dev/null || true
+        fi
+      else
+        echo "[drift-check] unknown deliverable: $deliverable_id at $REL_PATH" >&2
+        if [[ -f "$DB_PATH" ]]; then
+          HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+            "{\"event_type\":\"drift_check_unknown\",\"file\":\"$REL_PATH\",\"result\":\"unknown\"}" 2>/dev/null || true
+        fi
+      fi
+    fi
   fi
 fi
