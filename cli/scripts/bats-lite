@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: bats <file.bats> [more.bats...]
+
+Minimal bats-compatible runner for HELIX local/offline setup.
+USAGE
+}
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
+  echo "bats-lite 0.1.0"
+  exit 0
+fi
+
+if [[ $# -eq 0 ]]; then
+  usage >&2
+  exit 2
+fi
+
+status=0
+output=""
+lines=()
+
+run() {
+  status=0
+  output=""
+  lines=()
+  local out
+  set +e
+  out="$("$@" 2>&1)"
+  status=$?
+  set -e
+  output="$out"
+  while IFS= read -r line; do
+    lines+=("$line")
+  done <<<"$out"
+  return 0
+}
+
+convert_bats_file() {
+  local src="$1"
+  local dst="$2"
+  local idx=1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^@test[[:space:]]+\"(.*)\"[[:space:]]*\{[[:space:]]*$ ]]; then
+      local test_name fn_name
+      test_name="${BASH_REMATCH[1]}"
+      fn_name="__bats_test_${idx}"
+      printf '__bats_test_names+=("%s")\n' "$test_name" >>"$dst"
+      printf '__bats_test_funcs+=("%s")\n' "$fn_name" >>"$dst"
+      printf '%s() {\n' "$fn_name" >>"$dst"
+      idx=$((idx + 1))
+    else
+      printf '%s\n' "$line" >>"$dst"
+    fi
+  done <"$src"
+}
+
+run_file() {
+  local file="$1"
+  local abs_file abs_dir converted
+  abs_file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  abs_dir="$(dirname "$abs_file")"
+  converted="$(mktemp /tmp/bats-lite-XXXXXX.sh)"
+
+  {
+    echo "declare -a __bats_test_names=()"
+    echo "declare -a __bats_test_funcs=()"
+    declare -f run
+    echo "BATS_TEST_FILENAME='$abs_file'"
+    echo "BATS_TEST_DIRNAME='$abs_dir'"
+  } >"$converted"
+
+  convert_bats_file "$abs_file" "$converted"
+  # shellcheck source=/dev/null
+  source "$converted"
+  rm -f "$converted"
+
+  local i fn_name test_name
+  for i in "${!__bats_test_funcs[@]}"; do
+    fn_name="${__bats_test_funcs[$i]}"
+    test_name="${__bats_test_names[$i]}"
+    TOTAL=$((TOTAL + 1))
+    if (
+      set -e
+      export BATS_TEST_FILENAME="$abs_file"
+      export BATS_TEST_DIRNAME="$abs_dir"
+      if declare -F setup >/dev/null 2>&1; then
+        setup
+      fi
+      "$fn_name"
+      if declare -F teardown >/dev/null 2>&1; then
+        teardown
+      fi
+    ); then
+      echo "ok $TOTAL - $test_name"
+      PASS=$((PASS + 1))
+    else
+      echo "not ok $TOTAL - $test_name"
+      FAIL=$((FAIL + 1))
+      FAILED_TESTS+=("$abs_file :: $test_name")
+    fi
+  done
+
+  unset -f setup 2>/dev/null || true
+  unset -f teardown 2>/dev/null || true
+  for fn_name in "${__bats_test_funcs[@]}"; do
+    unset -f "$fn_name" 2>/dev/null || true
+  done
+}
+
+TOTAL=0
+PASS=0
+FAIL=0
+FAILED_TESTS=()
+
+for file in "$@"; do
+  if [[ ! -f "$file" ]]; then
+    echo "not ok - missing file: $file" >&2
+    exit 1
+  fi
+  run_file "$file"
+done
+
+echo "1..$TOTAL"
+if [[ "$FAIL" -gt 0 ]]; then
+  printf 'Failed tests:\n' >&2
+  printf '  %s\n' "${FAILED_TESTS[@]}" >&2
+  exit 1
+fi
+exit 0
