@@ -143,7 +143,35 @@ def _extract_frontmatter(text: str) -> dict[str, Any] | None:
 
     frontmatter_lines = lines[1:end]
     parsed, _ = _parse_mapping(frontmatter_lines, 0, 0)
-    return parsed
+    return _normalize_frontmatter(parsed)
+
+
+def _normalize_frontmatter(data: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(data)
+    current_metadata = normalized.get("metadata")
+    metadata = dict(current_metadata) if isinstance(current_metadata, dict) else {}
+
+    for key in ("helix_layer", "helix_gate", "triggers", "verification"):
+        if key in normalized and key not in metadata:
+            metadata[key] = _normalize_frontmatter_value(normalized[key])
+
+    if metadata:
+        normalized["metadata"] = metadata
+    return normalized
+
+
+def _normalize_frontmatter_value(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+
+    text = value.strip()
+    if not (text.startswith("[") and text.endswith("]")):
+        return value
+
+    inner = text[1:-1].strip()
+    if not inner:
+        return []
+    return [_parse_scalar(part.strip()) for part in inner.split(",")]
 
 
 def _extract_reference_intro(text: str) -> str:
@@ -272,6 +300,7 @@ def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
 
 _ALL_FORWARD_PHASES = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
 _MAX_REFERENCES_PER_ENTRY = 10
+_PHASE_ALIASES = {"S0": "L1", "S1": "L2", "S2": "L4", "S3": "L6", "S4": "L8"}
 
 
 def _to_phase_list(raw: Any) -> list[str]:
@@ -284,7 +313,7 @@ def _to_phase_list(raw: Any) -> list[str]:
         if not text:
             return
         for part in re.split(r"[,/\-]", text):
-            phase = part.strip()
+            phase = _PHASE_ALIASES.get(part.strip(), part.strip())
             if phase == "all":
                 for p in _ALL_FORWARD_PHASES:
                     if p not in phases:
