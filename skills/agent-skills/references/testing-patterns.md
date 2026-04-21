@@ -1,5 +1,7 @@
 # Testing Patterns Reference
 
+> Note: HELIX 本体の日本語詳細は `skills/common/testing/SKILL.md` を参照。
+
 Quick reference for common testing patterns across the stack. Use alongside the `test-driven-development` skill.
 
 ## Table of Contents

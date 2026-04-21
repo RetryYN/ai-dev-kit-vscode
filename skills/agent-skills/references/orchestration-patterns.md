@@ -1,5 +1,7 @@
 # Orchestration Patterns
 
+> Note: ship skill 固有。persona 間の連携パターンを定義する補助リファレンス。
+
 Reference catalog of agent orchestration patterns this repo endorses, plus anti-patterns to avoid. Read this before adding a new slash command that coordinates multiple personas, or before introducing a new persona that "wraps" existing ones.
 
 The governing rule: **the user (or a slash command) is the orchestrator. Personas do not invoke other personas.** Skills are mandatory hops inside a persona's workflow.

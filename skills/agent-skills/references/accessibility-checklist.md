@@ -1,5 +1,7 @@
 # Accessibility Checklist
 
+> Note: HELIX 本体の日本語詳細は `skills/common/visual-design/references/accessibility-design.md` を参照。
+
 Quick reference for WCAG 2.1 AA compliance. Use alongside the `frontend-ui-engineering` skill.
 
 ## Table of Contents

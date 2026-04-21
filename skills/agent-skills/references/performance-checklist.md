@@ -1,5 +1,7 @@
 # Performance Checklist
 
+> Note: HELIX 本体の日本語詳細は `skills/common/performance/SKILL.md` を参照。
+
 Quick reference checklist for web application performance. Use alongside the `performance-optimization` skill.
 
 ## Table of Contents

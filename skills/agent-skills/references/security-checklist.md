@@ -1,5 +1,7 @@
 # Security Checklist
 
+> Note: HELIX 本体の日本語詳細は `skills/common/security/SKILL.md` を参照。
+
 Quick reference for web application security. Use alongside the `security-and-hardening` skill.
 
 ## Table of Contents
