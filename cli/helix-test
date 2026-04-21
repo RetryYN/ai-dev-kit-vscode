@@ -247,6 +247,7 @@ run_test_contains "team --help" "$SCRIPT_DIR/helix team --help" "使い方: heli
 run_test "team list exits 0" "$SCRIPT_DIR/helix team list"
 run_test_contains "team list has review-team" "$SCRIPT_DIR/helix team list" "review-team"
 run_test_contains "retro --help" "$SCRIPT_DIR/helix retro --help" "使い方: helix retro"
+run_test_contains "retro auto-enqueue --help" "$SCRIPT_DIR/helix retro auto-enqueue --help" "使い方: helix retro auto-enqueue"
 run_test_contains "debt --help" "$SCRIPT_DIR/helix debt --help" "使い方: helix debt"
 run_test_contains "doctor --help" "$SCRIPT_DIR/helix doctor --help" "使い方: helix doctor"
 run_test "bench exits 0" "$SCRIPT_DIR/helix bench --period week"

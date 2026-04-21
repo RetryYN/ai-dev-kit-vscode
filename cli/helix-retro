@@ -1,19 +1,37 @@
 #!/bin/bash
 set -euo pipefail
 # helix-retro: ミニレトロ管理
-# Usage: helix retro <list|show|check>
+# Usage: helix retro <list|show|check|auto-enqueue>
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 RETRO_DIR="$PROJECT_ROOT/.helix/retros"
+REGISTER="$HELIX_DIR/debt-register.yaml"
+
+count_empty_items() {
+  local file="$1"
+  grep -cE '^\s*-\s*$' "$file" 2>/dev/null || echo 0
+}
+
+slugify_name() {
+  local text="$1"
+  echo "$text" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'
+}
+
+debt_id_exists() {
+  local debt_id="$1"
+  [[ -f "$REGISTER" ]] || return 1
+  grep -qE "^\s*-\s+id:\s*\"?${debt_id}\"?\s*$" "$REGISTER"
+}
 
 case "${1:-help}" in
   --help|-h|help)
-    echo "使い方: helix retro <list|show|check>"
+    echo "使い方: helix retro <list|show|check|auto-enqueue>"
     echo ""
     echo "サブコマンド:"
     echo "  list    レトロ一覧を表示"
     echo "  show    レトロ内容を表示（引数: ファイル名）"
     echo "  check   未記入レトロを警告"
+    echo "  auto-enqueue [--sprint <name>] [--dry-run]   未記入レトロを debt に登録"
     exit 0
     ;;
   list)
@@ -52,6 +70,84 @@ case "${1:-help}" in
       fi
     done
     [[ $found -eq 0 ]] && echo "全レトロ記入済み ✓"
+    ;;
+  auto-enqueue)
+    shift
+    sprint=""
+    dry_run=0
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --sprint)
+          sprint="${2:-}"
+          if [[ -z "$sprint" ]]; then
+            echo "エラー: --sprint には値が必要です" >&2
+            exit 1
+          fi
+          shift 2
+          ;;
+        --dry-run)
+          dry_run=1
+          shift
+          ;;
+        --help|-h)
+          echo "使い方: helix retro auto-enqueue [--sprint <name>] [--dry-run]"
+          exit 0
+          ;;
+        *)
+          echo "エラー: 不明なオプション: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    if [[ ! -d "$RETRO_DIR" ]]; then
+      echo "レトロなし"
+      exit 0
+    fi
+
+    files=()
+    if [[ -n "$sprint" ]]; then
+      target="$RETRO_DIR/$sprint.md"
+      if [[ ! -f "$target" ]]; then
+        echo "エラー: $target が見つかりません" >&2
+        exit 1
+      fi
+      files+=("$target")
+    else
+      for f in "$RETRO_DIR"/*.md; do
+        [[ -f "$f" ]] || continue
+        files+=("$f")
+      done
+    fi
+
+    [[ ${#files[@]} -eq 0 ]] && { echo "レトロなし"; exit 0; }
+
+    for f in "${files[@]}"; do
+      sprint_name="$(basename "$f" .md)"
+      empty_count="$(count_empty_items "$f")"
+      if [[ "$empty_count" -eq 0 ]]; then
+        echo "記入済み: $sprint_name"
+        continue
+      fi
+
+      slug="$(slugify_name "$sprint_name")"
+      debt_id="RETRO-UNDOC-${slug:-unknown}"
+      title="ミニレトロ未記入: $sprint_name (${empty_count}件)"
+      if debt_id_exists "$debt_id"; then
+        echo "warn: 既存IDのためスキップ: $debt_id"
+        continue
+      fi
+
+      if [[ "$dry_run" -eq 1 ]]; then
+        echo "[dry-run] enqueue: id=$debt_id title=$title"
+        continue
+      fi
+
+      "$SCRIPT_DIR/helix-debt" add \
+        --id "$debt_id" --title "$title" --priority medium \
+        --category retro-undocumented --impact medium --effort S \
+        --owner PM --target-sprint next --source "helix-retro auto-enqueue"
+    done
     ;;
   *)
     echo "エラー: 不明なサブコマンド: $1" >&2
