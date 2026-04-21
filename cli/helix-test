@@ -4,20 +4,49 @@ set -euo pipefail
 # helix-test: HELIX CLI 全ツールのセルフテスト
 # Usage: helix-test
 
-case "${1:-}" in
-  --help|-h)
-    echo "Usage: helix test"
-    echo ""
-    echo "HELIX CLI 全ツールのセルフテストを実行します。"
-    exit 0
-    ;;
-esac
+RUN_CORE_TESTS=1
+RUN_BATS_TESTS=1
+BATS_STRICT=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      echo "Usage: helix test [--no-bats] [--bats-only] [--bats-strict]"
+      echo ""
+      echo "HELIX CLI 全ツールのセルフテストを実行します。"
+      echo "  --no-bats     bats テストを実行しない"
+      echo "  --bats-only   bats テストのみ実行する"
+      echo "  --bats-strict bats 未導入時を FAIL 扱いにする"
+      exit 0
+      ;;
+    --no-bats)
+      RUN_BATS_TESTS=0
+      ;;
+    --bats-only)
+      RUN_CORE_TESTS=0
+      RUN_BATS_TESTS=1
+      ;;
+    --bats-strict)
+      BATS_STRICT=1
+      ;;
+    *)
+      echo "エラー: 不明なオプション '$1'" >&2
+      echo "使い方: helix test [--no-bats] [--bats-only] [--bats-strict]" >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 PASS=0
 FAIL=0
 ERRORS=()
+BATS_PASS=0
+BATS_FAIL=0
+BATS_SKIP=0
+BATS_STATUS="not-run"
 
 run_test() {
   local name="$1"
@@ -92,20 +121,56 @@ run_test_json_valid() {
   fi
 }
 
+run_bats_tests() {
+  local bats_bin
+  bats_bin="$(command -v bats || true)"
+  if [[ -z "$bats_bin" ]]; then
+    BATS_STATUS="skipped (bats not installed)"
+    BATS_SKIP=1
+    if [[ "$BATS_STRICT" -eq 1 ]]; then
+      BATS_FAIL=1
+      FAIL=$((FAIL + 1))
+      ERRORS+=("bats: bats コマンドが未導入です（--bats-strict）")
+      return 1
+    fi
+    return 0
+  fi
+
+  echo "[bats]"
+  local bats_output bats_rc
+  set +e
+  bats_output="$("$bats_bin" "$SCRIPT_DIR/tests/"*.bats 2>&1)"
+  bats_rc=$?
+  set -e
+  echo "$bats_output"
+
+  BATS_PASS=$(printf '%s\n' "$bats_output" | grep -Ec '^ok [0-9]+' || true)
+  BATS_FAIL=$(printf '%s\n' "$bats_output" | grep -Ec '^not ok [0-9]+' || true)
+  BATS_STATUS="done"
+  PASS=$((PASS + BATS_PASS))
+  FAIL=$((FAIL + BATS_FAIL))
+  if [[ "$bats_rc" -ne 0 ]]; then
+    ERRORS+=("bats: one or more tests failed")
+    return 1
+  fi
+  return 0
+}
+
 echo "=== HELIX CLI Self-Test ==="
 echo ""
 
-# --- セットアップ ---
-TEST_DIR=$(mktemp -d /tmp/helix-test-XXXXXX)
-trap 'rm -rf "$TEST_DIR"' EXIT
-cd "$TEST_DIR"
-git init -q
-git config user.email "test@test.com"
-git config user.name "Test"
-echo "# test" > README.md
-echo '{"name":"test"}' > package.json
-git add . && git commit -q -m "init"
-export HELIX_PROJECT_ROOT="$TEST_DIR"
+if [[ "$RUN_CORE_TESTS" -eq 1 ]]; then
+  # --- セットアップ ---
+  TEST_DIR=$(mktemp -d /tmp/helix-test-XXXXXX)
+  trap 'rm -rf "$TEST_DIR"' EXIT
+  cd "$TEST_DIR"
+  git init -q
+  git config user.email "test@test.com"
+  git config user.name "Test"
+  echo "# test" > README.md
+  echo '{"name":"test"}' > package.json
+  git add . && git commit -q -m "init"
+  export HELIX_PROJECT_ROOT="$TEST_DIR"
 
 echo "[help-localization]"
 run_test_contains "helix --help usage ja" "$SCRIPT_DIR/helix --help" "使い方: helix <コマンド>"
@@ -1690,10 +1755,17 @@ run_test_contains "helix help debug" "$SCRIPT_DIR/helix help" "  debug"
 run_test_contains "helix help verify-all" "$SCRIPT_DIR/helix help" "  verify-all"
 run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1
 echo ""
+fi
+
+if [[ "$RUN_BATS_TESTS" -eq 1 ]]; then
+  run_bats_tests || true
+  echo ""
+fi
 
 # --- 結果 ---
 echo "==================================="
 echo "Results: $PASS passed, $FAIL failed"
+echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
 echo "==================================="
 
 if [[ $FAIL -gt 0 ]]; then
