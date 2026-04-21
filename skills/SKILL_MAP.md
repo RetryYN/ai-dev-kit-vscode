@@ -226,7 +226,7 @@ fullstack 追加条件:
 - HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
 - 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-helix
 - 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・agent-skills/agents/ 3 persona・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
-- 統合ガイド: docs/agent-skills/helix-integration.md・docs/agent-skills/skill-anatomy.md
+- 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
 
