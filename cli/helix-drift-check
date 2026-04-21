@@ -30,6 +30,7 @@ REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 PHASE_GUARD="$SCRIPT_DIR/lib/phase_guard.py"
 RUNTIME_INDEX_FILE="$HELIX_DIR/runtime/index.json"
+DB_DIFF_PY="$SCRIPT_DIR/lib/drift_db_diff.py"
 
 # D-API ファイル変更 → helix-gate-api-check をバックグラウンドで実行
 if [[ "$REL_PATH" =~ D-API/ ]]; then
@@ -97,12 +98,14 @@ elif [[ "$REL_PATH" =~ D-CONTRACT/ ]]; then
       "{\"event_type\":\"drift_check_contract\",\"file\":\"$REL_PATH\",\"result\":\"$contract_result\"}" 2>/dev/null || true
   fi
 
-# D-DB ファイル変更 → スキーマ設計書と実DBの差分検知（簡易）
+# D-DB ファイル変更 → スキーマ設計書と実DBの差分検知
 elif [[ "$REL_PATH" =~ D-DB/ ]]; then
   echo "[helix-drift] D-DB 変更検出: $REL_PATH"
 
   db_result="ok"
   warnings=()
+  declare -A warn_kind_counts=()
+  table_names=""
 
   # 1. スキーマ設計書サイズチェック
   if [[ -f "$CHANGED_FILE" ]]; then
@@ -113,23 +116,56 @@ elif [[ "$REL_PATH" =~ D-DB/ ]]; then
     fi
   fi
 
-  # 2. CREATE TABLE 文の存在確認
+  # 2. CREATE TABLE 文の存在確認（簡易）
   if [[ -f "$CHANGED_FILE" ]]; then
     if grep -qiE "CREATE[[:space:]]+TABLE" "$CHANGED_FILE" 2>/dev/null; then
       # テーブル名を抽出
       table_names=$(grep -oiE "CREATE[[:space:]]+TABLE[[:space:]]+(IF[[:space:]]+NOT[[:space:]]+EXISTS[[:space:]]+)?[a-zA-Z_][a-zA-Z0-9_]*" "$CHANGED_FILE" 2>/dev/null | sed -E 's/.*[[:space:]]([a-zA-Z_][a-zA-Z0-9_]*)$/\1/' | sort -u || true)
-
-      # 3. 各テーブルが SQLite DB に存在するか確認
-      if [[ -f "$DB_PATH" ]] && command -v sqlite3 >/dev/null 2>&1; then
-        for table in $table_names; do
-          if ! sqlite3 "$DB_PATH" ".schema $table" 2>/dev/null | grep -q "CREATE"; then
-            warnings+=("設計書のテーブル「$table」が実 DB に存在しません（マイグレーション未実施の可能性）")
-            db_result="warn"
-          fi
-        done
-      fi
     else
       warnings+=("CREATE TABLE 文が見つかりません — ER 図のみの可能性")
+    fi
+  fi
+
+  # 3. 実 DB + sqlite3 が利用可能な場合に詳細差分検知
+  if [[ -f "$DB_PATH" ]] && command -v sqlite3 >/dev/null 2>&1; then
+    if [[ -f "$DB_DIFF_PY" ]]; then
+      while IFS= read -r diff_line; do
+        [[ -z "$diff_line" ]] && continue
+
+        if [[ "$diff_line" =~ ^RESULT\|(.+)$ ]]; then
+          diff_result="${BASH_REMATCH[1]}"
+          [[ "$diff_result" == "warn" ]] && db_result="warn"
+          continue
+        fi
+
+        if [[ "$diff_line" =~ ^WARN\|([^|]+)\|(.+)$ ]]; then
+          warn_kind="${BASH_REMATCH[1]}"
+          warn_body="${BASH_REMATCH[2]}"
+          warnings+=("[$warn_kind] $warn_body")
+          warn_kind_counts["$warn_kind"]=$(( ${warn_kind_counts["$warn_kind"]:-0} + 1 ))
+          db_result="warn"
+          continue
+        fi
+
+        if [[ "$diff_line" =~ ^ERROR\|([^|]+)\|(.+)$ ]]; then
+          err_code="${BASH_REMATCH[1]}"
+          err_body="${BASH_REMATCH[2]}"
+          warnings+=("[schema-drift] DB 差分チェック失敗 (${err_code}): ${err_body}")
+          warn_kind_counts["schema-drift"]=$(( ${warn_kind_counts["schema-drift"]:-0} + 1 ))
+          db_result="error"
+        fi
+      done < <(python3 "$DB_DIFF_PY" --doc "$CHANGED_FILE" --db "$DB_PATH" 2>/dev/null || true)
+    else
+      warnings+=("[schema-drift] DB 差分スクリプトが見つかりません: $DB_DIFF_PY")
+      warn_kind_counts["schema-drift"]=$(( ${warn_kind_counts["schema-drift"]:-0} + 1 ))
+      db_result="error"
+    fi
+  else
+    # 互換維持: sqlite3 or DB 不在時は従来どおり簡易チェックのみ
+    if [[ -f "$DB_PATH" ]] && [[ -n "$table_names" ]]; then
+      for table in $table_names; do
+        :
+      done
     fi
   fi
 
@@ -145,6 +181,14 @@ elif [[ "$REL_PATH" =~ D-DB/ ]]; then
   if [[ -f "$DB_PATH" ]]; then
     HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
       "{\"event_type\":\"drift_check_db\",\"file\":\"$REL_PATH\",\"result\":\"$db_result\"}" 2>/dev/null || true
+
+    if [[ ${#warn_kind_counts[@]} -gt 0 ]]; then
+      for kind in "${!warn_kind_counts[@]}"; do
+        safe_kind="${kind//-/_}"
+        HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events \
+          "{\"event_type\":\"drift_check_db_${safe_kind}\",\"file\":\"$REL_PATH\",\"result\":\"warn\"}" 2>/dev/null || true
+      done
+    fi
   fi
 
 else
