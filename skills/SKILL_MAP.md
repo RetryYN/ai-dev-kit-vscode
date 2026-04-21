@@ -198,7 +198,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（75スキル）
+## スキル群配置（100スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）
@@ -214,11 +214,19 @@ fullstack 追加条件:
 | writing/ | japanese, explain, story, presentation, social |
 | design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize |
+| **agent-skills/** | idea-refine, spec-driven-development, planning-and-task-breakdown, incremental-implementation, test-driven-development, context-engineering, source-driven-development, frontend-ui-engineering, api-and-interface-design, browser-testing-with-devtools, debugging-and-error-recovery, code-review-and-quality, code-simplification, security-and-hardening, performance-optimization, git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, shipping-and-launch, using-agent-skills, **system-design-sizing**, **technical-writing**, **mock-driven-development**, **helix-scrum** |
 
 **2026-04-17 追加分** (20スキル):
 - workflow/: research (G1R)・poc (G1.5)・gate-planning (G0.5/G1.5)・schedule-wbs (L3)・threat-model (G2)・runbook (L6)・debt-register (G4)・reverse-r0〜r4 + reverse-rgc (R0-R4 + RGC)
 - project/: fe-design・fe-component・fe-style・fe-a11y・fe-test (FE サブエージェント 5種)
 - tools/: web-search (native WebSearch + WebFetch)・ai-search (Haiku 4.5 委譲)
+
+**2026-04-22 追加分** (25スキル、agent-skills/ カテゴリ新設):
+- 上流由来 21 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / code-simplification / security-and-hardening / performance-optimization / git-workflow-and-versioning / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
+- HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
+- 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-helix
+- 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・agent-skills/agents/ 3 persona・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
+- 統合ガイド: docs/agent-skills/helix-integration.md・docs/agent-skills/skill-anatomy.md
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
 

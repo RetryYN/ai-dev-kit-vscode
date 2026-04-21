@@ -1,0 +1,13 @@
+{
+  "name": "helix-agent-skills",
+  "description": "HELIX 開発フレームワーク専用のエンジニアリングスキル集。仕様駆動・テスト駆動・ゲート判定・Codex ロール統合・日本語化済みワークフローを提供。",
+  "version": "0.1.0",
+  "author": {
+    "name": "HELIX Team",
+    "upstream": "Addy Osmani (addyosmani/agent-skills)"
+  },
+  "homepage": "https://github.com/addyosmani/agent-skills",
+  "repository": "https://github.com/addyosmani/agent-skills",
+  "license": "MIT",
+  "commands": "./.claude/commands"
+}

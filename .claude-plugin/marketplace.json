@@ -1,0 +1,21 @@
+{
+  "name": "helix-agent-skills",
+  "owner": {
+    "name": "HELIX Team"
+  },
+  "metadata": {
+    "description": "HELIX 開発フレームワーク向けにカスタマイズされた AI エージェント用スキル集。addyosmani/agent-skills をフォークし、日本語化・9 フェーズ（L1-L8 + Reverse + Scrum）・Codex ロール 12 種対応を追加。",
+    "upstream": "https://github.com/addyosmani/agent-skills",
+    "license": "MIT"
+  },
+  "plugins": [
+    {
+      "name": "helix-agent-skills",
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      },
+      "description": "HELIX のゲート判定・Codex ロール・9 フェーズに統合されたエンジニアリングスキル集。仕様/計画/実装/検証/レビュー/出荷の全工程を日本語化済みワークフローでカバー。"
+    }
+  ]
+}
