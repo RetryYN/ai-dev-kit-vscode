@@ -362,6 +362,34 @@ def _overwrite_agents_with_jsonl(result: dict[str, Any], jsonl_candidates: list[
             item["recommended_agent"] = agent_map[skill_id]
 
 
+def _normalize_commands(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    commands: list[str] = []
+    for item in value:
+        text = _safe_text(item).strip()
+        if text:
+            commands.append(text)
+    return commands
+
+
+def _attach_catalog_commands(result: dict[str, Any], catalog: dict[str, Any]) -> None:
+    skill_commands_map: dict[str, list[str]] = {}
+    for skill in catalog.get("skills", []):
+        if not isinstance(skill, dict):
+            continue
+        skill_id = _safe_text(skill.get("id")).strip()
+        if not skill_id:
+            continue
+        skill_commands_map[skill_id] = _normalize_commands(skill.get("commands"))
+
+    for candidate in result.get("candidates", []):
+        if not isinstance(candidate, dict):
+            continue
+        skill_id = _safe_text(candidate.get("skill_id")).strip()
+        candidate["commands"] = list(skill_commands_map.get(skill_id, []))
+
+
 def recommend(
     task_text: str,
     top_n: int = 5,
@@ -407,6 +435,7 @@ def recommend(
     if not force_refresh and _cache_is_fresh(cache_file):
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
         if isinstance(cached, dict):
+            _attach_catalog_commands(cached, catalog)
             cached["_cached"] = True
             cached["_model"] = MODEL_NAME
             return cached
@@ -437,6 +466,7 @@ def recommend(
     result = _normalize_result(extracted, top_n, task_text)
     if is_jsonl_mode and jsonl_candidates is not None:
         _overwrite_agents_with_jsonl(result, jsonl_candidates)
+    _attach_catalog_commands(result, catalog)
     result["_cached"] = False
     result["_model"] = MODEL_NAME
 
@@ -490,9 +520,12 @@ def main(argv: list[str] | None = None) -> int:
     for i, cand in enumerate(candidates, start=1):
         refs = cand.get("references", [])
         refs_text = ", ".join(refs) if refs else "なし"
+        commands = cand.get("commands", [])
+        commands_text = " | ".join(commands) if isinstance(commands, list) and commands else "なし"
         print(f"{i}. [{cand.get('skill_id', '')}] score {float(cand.get('score', 0.0)):.2f}  agent: {cand.get('recommended_agent', '')}")
         print(f"   reason: {cand.get('reason', '')}")
         print(f"   refs ({len(refs)}): {refs_text}")
+        print(f"   関連コマンド: {commands_text}")
         print("")
 
     return 0

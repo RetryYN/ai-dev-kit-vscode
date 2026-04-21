@@ -22,6 +22,8 @@ LAYER_COMMANDS = {
     "S4": ["helix-scrum decide"],
 }
 
+ALL_LAYER_COMMANDS = ["helix-verify-all", "helix-gate"]
+
 GATE_COMMANDS = {
     "G0.5": ["helix-gate G0.5"],
     "G1": ["helix-gate G1"],
@@ -61,7 +63,11 @@ def derive_commands(skill_data: dict) -> list[str]:
     if isinstance(layers, str):
         layers = [layers]
     for layer in layers or []:
-        derived.extend(LAYER_COMMANDS.get(str(layer).strip(), []))
+        layer_key = str(layer).strip()
+        if layer_key == "all":
+            derived.extend(ALL_LAYER_COMMANDS)
+            continue
+        derived.extend(LAYER_COMMANDS.get(layer_key, []))
 
     gates = metadata.get("helix_gate") or []
     if isinstance(gates, str):

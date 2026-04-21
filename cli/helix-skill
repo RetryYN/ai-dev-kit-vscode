@@ -430,6 +430,10 @@ if cands:
     if not isinstance(refs, list):
         refs = []
     refs = [str(x).strip() for x in refs if str(x).strip()]
+    commands = c.get("commands") or []
+    if not isinstance(commands, list):
+        commands = []
+    commands = [str(x).strip() for x in commands if str(x).strip()]
     out = {
         "has_candidate": True,
         "summary": (d.get("task_summary") or "").strip(),
@@ -437,7 +441,8 @@ if cands:
         "agent": agent,
         "score": score,
         "references": refs,
-        "selected_line": f"[{skill_id}] score {score:.2f}  agent: {agent}",
+        "commands": commands,
+        "selected_line": f"[{skill_id}] score {score:.2f}  agent: {agent}  commands: {' | '.join(commands) if commands else 'なし'}",
     }
 else:
     out = {
@@ -816,6 +821,9 @@ print(f"helix_layer: {skill.get('helix_layer', '')}")
 print(f"path: {skill.get('path', '')}")
 print(f"description: {skill.get('description', '')}")
 print(f"compatibility: claude={skill.get('compatibility', {}).get('claude', False)} codex={skill.get('compatibility', {}).get('codex', False)}")
+commands = skill.get("commands") if isinstance(skill.get("commands"), list) else []
+commands = [str(command).strip() for command in commands if str(command).strip()]
+print(f"commands: {' | '.join(commands) if commands else 'なし'}")
 
 triggers = skill.get("triggers", [])
 print("triggers:")
@@ -923,10 +931,14 @@ for idx, cand in enumerate(candidates, start=1):
     reason = (cand.get("reason") or "").strip()
     refs = cand.get("references") if isinstance(cand.get("references"), list) else []
     refs = [str(ref).strip() for ref in refs if str(ref).strip()]
+    commands = cand.get("commands") if isinstance(cand.get("commands"), list) else []
+    commands = [str(command).strip() for command in commands if str(command).strip()]
     refs_text = ", ".join(refs) if refs else "なし"
+    commands_text = " | ".join(commands) if commands else "なし"
     print(f"{idx}. [{skill_id}] score {score:.2f}  agent: {agent}")
     print(f"   reason: {reason}")
     print(f"   refs ({len(refs)}): {refs_text}")
+    print(f"   関連コマンド: {commands_text}")
     if idx < len(candidates):
         print("")
 PY

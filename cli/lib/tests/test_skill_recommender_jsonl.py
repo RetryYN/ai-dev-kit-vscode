@@ -29,6 +29,7 @@ def _catalog_fixture() -> dict:
                 "triggers": ["認証"],
                 "verification": [],
                 "compatibility": {"claude": True, "codex": True},
+                "commands": ["security-audit", "owasp-check"],
                 "references": [{"path": "references/a.md", "title": "a", "intro": ""}],
             }
         ],
@@ -251,6 +252,7 @@ def test_recommend_overwrites_agent_with_jsonl_value(monkeypatch, tmp_path: Path
     )
 
     assert result["candidates"][0]["recommended_agent"] == "security"
+    assert result["candidates"][0]["commands"] == ["security-audit", "owasp-check"]
 
 
 def test_recommend_normalizes_legacy_helix_codex_agent_name(monkeypatch, tmp_path: Path) -> None:
@@ -329,3 +331,57 @@ def test_recommend_clears_agent_when_llm_returns_value_outside_allowlist(monkeyp
     )
 
     assert result["candidates"][0]["recommended_agent"] == ""
+    assert result["candidates"][0]["commands"] == []
+
+
+def test_recommend_attaches_commands_on_cached_legacy_payload(monkeypatch, tmp_path: Path) -> None:
+    catalog_path = tmp_path / "skill-catalog.json"
+    jsonl_path = tmp_path / "skill-catalog.jsonl"
+    cache_dir = tmp_path / "cache"
+    _write_json(catalog_path, _catalog_fixture())
+    _write_jsonl(jsonl_path, [_jsonl_entry(status="approved")])
+
+    catalog_version = _catalog_fixture().get("version", "1.0")
+    key = skill_recommender._cache_key(
+        "認証レビュー",
+        1,
+        None,
+        None,
+        str(catalog_version),
+        None,
+        False,
+        skill_recommender._jsonl_version(jsonl_path),
+    )
+    legacy_payload = {
+        "candidates": [
+            {
+                "skill_id": "common/security",
+                "score": 0.8,
+                "reason": "legacy cache payload",
+                "references": [],
+                "recommended_agent": "security",
+            }
+        ],
+        "task_summary": "認証レビュー",
+        "no_match_reason": None,
+    }
+    cache_file = cache_dir / f"{key}.json"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(json.dumps(legacy_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    def _should_not_run(_: str) -> str:
+        raise AssertionError("fresh cache should bypass LLM call")
+
+    monkeypatch.setattr(skill_recommender, "_run_recommender", _should_not_run)
+
+    result = skill_recommender.recommend(
+        task_text="認証レビュー",
+        top_n=1,
+        catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_path,
+        cache_dir=cache_dir,
+        force_refresh=False,
+    )
+
+    assert result["_cached"] is True
+    assert result["candidates"][0]["commands"] == ["security-audit", "owasp-check"]

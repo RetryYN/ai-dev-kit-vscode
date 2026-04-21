@@ -429,7 +429,15 @@ def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str
         and isinstance(existing.get("classification"), dict)
         and existing["classification"].get("status") in ("approved", "manual")
     ):
-        return existing
+        refreshed = dict(existing)
+        refreshed["commands"] = derive_commands(
+            {
+                "metadata": metadata,
+                "id": skill_id,
+                "helix_layer": metadata.get("helix_layer"),
+            }
+        )
+        return refreshed
 
     title = frontmatter.get("name") or frontmatter.get("title") or skill_id
     triggers = metadata.get("triggers", [])
