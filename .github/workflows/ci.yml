@@ -28,8 +28,16 @@ jobs:
           git config --global user.email "ci@example.com"
           git config --global user.name "GitHub Actions CI"
 
+      - name: Install bats
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
       - name: Run helix-test
         run: bash cli/helix-test
+
+      - name: Run bats
+        run: bats cli/tests/*.bats
 
       - name: Run helix-verify-all
         run: bash cli/helix-verify-all
