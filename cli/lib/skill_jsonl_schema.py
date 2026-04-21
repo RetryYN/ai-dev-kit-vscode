@@ -42,7 +42,7 @@ REQUIRED_FIELDS = {
     "source_hash",
     "classification",
 }
-OPTIONAL_FIELDS = {"anti_triggers", "similar", "references"}
+OPTIONAL_FIELDS = {"anti_triggers", "similar", "references", "commands"}
 ALL_FIELDS = REQUIRED_FIELDS | OPTIONAL_FIELDS
 
 
@@ -186,6 +186,12 @@ def validate_entry(entry: dict, *, known_task_ids: set[str] | None = None) -> No
 
     if "references" in entry:
         _validate_references(entry["references"])
+
+    if "commands" in entry:
+        commands = entry["commands"]
+        _ensure(isinstance(commands, list), "commands", "must be a list")
+        _ensure(all(isinstance(cmd, str) for cmd in commands), "commands", "all elements must be strings")
+        _ensure_unique_list(commands, "commands")
 
 
 def compute_source_hash(skill_md_text: str) -> str:

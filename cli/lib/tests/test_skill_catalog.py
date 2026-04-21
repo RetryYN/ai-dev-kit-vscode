@@ -74,3 +74,77 @@ helix_layer: [L1, L3]
         self.assertEqual(set(jsonl_entries), {"workflow/nested-skill", "agent-skills/flat-skill"})
         self.assertEqual(jsonl_entries["workflow/nested-skill"]["phases"], ["L2"])
         self.assertEqual(jsonl_entries["agent-skills/flat-skill"]["phases"], ["L1", "L3"])
+
+    def test_commands_include_derived_from_flat_helix_layers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skills_root = Path(tmpdir) / "skills"
+            _write_skill(
+                skills_root,
+                "agent-skills",
+                "flat-skill",
+                """---
+name: flat-skill
+description: flat style
+helix_layer: [L1, L3]
+---""",
+            )
+
+            catalog_entry = skill_catalog.build_catalog(skills_root)["skills"][0]
+            jsonl_entry = skill_catalog.build_jsonl_catalog(skills_root)[0]
+
+        self.assertIn("helix-size", catalog_entry["commands"])
+        self.assertIn("helix-plan", catalog_entry["commands"])
+        self.assertIn("/sdd-plan", catalog_entry["commands"])
+        self.assertIn("helix-size", jsonl_entry["commands"])
+        self.assertIn("helix-plan", jsonl_entry["commands"])
+        self.assertIn("/sdd-plan", jsonl_entry["commands"])
+
+    def test_commands_include_derived_from_nested_helix_layer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skills_root = Path(tmpdir) / "skills"
+            _write_skill(
+                skills_root,
+                "workflow",
+                "nested-skill",
+                """---
+name: nested-skill
+description: nested style
+metadata:
+  helix_layer: L2
+---""",
+            )
+
+            catalog_entry = skill_catalog.build_catalog(skills_root)["skills"][0]
+            jsonl_entry = skill_catalog.build_jsonl_catalog(skills_root)[0]
+
+        self.assertIn("helix-gate G2", catalog_entry["commands"])
+        self.assertIn("/spec", catalog_entry["commands"])
+        self.assertIn("helix-gate G2", jsonl_entry["commands"])
+        self.assertIn("/spec", jsonl_entry["commands"])
+
+    def test_explicit_commands_are_prioritized_before_derived_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skills_root = Path(tmpdir) / "skills"
+            _write_skill(
+                skills_root,
+                "workflow",
+                "explicit-skill",
+                """---
+name: explicit-skill
+description: explicit commands
+metadata:
+  helix_layer: L2
+  commands:
+    - custom-cmd
+---""",
+            )
+
+            catalog_entry = skill_catalog.build_catalog(skills_root)["skills"][0]
+            jsonl_entry = skill_catalog.build_jsonl_catalog(skills_root)[0]
+
+        self.assertEqual(catalog_entry["commands"][0], "custom-cmd")
+        self.assertEqual(jsonl_entry["commands"][0], "custom-cmd")
+        self.assertIn("helix-gate G2", catalog_entry["commands"])
+        self.assertIn("/spec", catalog_entry["commands"])
+        self.assertIn("helix-gate G2", jsonl_entry["commands"])
+        self.assertIn("/spec", jsonl_entry["commands"])

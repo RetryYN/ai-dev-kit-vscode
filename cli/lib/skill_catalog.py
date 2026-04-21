@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .command_mapper import derive_commands
     from .skill_jsonl_schema import JsonlSchemaError, compute_source_hash, validate_entry
 except ImportError:  # pragma: no cover - script execution fallback
+    from command_mapper import derive_commands
     from skill_jsonl_schema import JsonlSchemaError, compute_source_hash, validate_entry
 
 
@@ -223,6 +225,7 @@ def _build_skill_entry(skill_md: Path, skills_root: Path) -> dict[str, Any] | No
 
     category = parts[0]
     name = parts[1]
+    skill_id = f"{category}/{name}"
     metadata = frontmatter.get("metadata", {}) if isinstance(frontmatter.get("metadata"), dict) else {}
     compatibility = frontmatter.get("compatibility", {}) if isinstance(frontmatter.get("compatibility"), dict) else {}
 
@@ -241,7 +244,7 @@ def _build_skill_entry(skill_md: Path, skills_root: Path) -> dict[str, Any] | No
             )
 
     return {
-        "id": f"{category}/{name}",
+        "id": skill_id,
         "name": name,
         "category": category,
         "path": f"skills/{rel.as_posix()}",
@@ -253,6 +256,7 @@ def _build_skill_entry(skill_md: Path, skills_root: Path) -> dict[str, Any] | No
             "claude": bool(compatibility.get("claude", False)),
             "codex": bool(compatibility.get("codex", False)),
         },
+        "commands": derive_commands({"metadata": metadata, "id": skill_id, "helix_layer": metadata.get("helix_layer")}),
         "references": references,
     }
 
@@ -442,6 +446,7 @@ def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str
         "anti_triggers": [],
         "agent": _default_agent(skill_id, category, phases),
         "similar": [],
+        "commands": derive_commands({"metadata": metadata, "id": skill_id, "helix_layer": metadata.get("helix_layer")}),
         "references": references,
         "source_hash": new_hash,
         "classification": _classification_for_entry(existing, new_hash),
