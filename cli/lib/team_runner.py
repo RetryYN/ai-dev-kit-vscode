@@ -107,7 +107,12 @@ def _truncate_output(stdout: str, stderr: str) -> str:
     return joined[-500:] if joined else ""
 
 
-def run_member(member: dict[str, str], project_root: str, helix_home: str) -> dict[str, Any]:
+def run_member(
+    member: dict[str, str],
+    project_root: str,
+    helix_home: str,
+    timeout: int = 1800,
+) -> dict[str, Any]:
     """1 メンバーを実行する。"""
 
     role = member.get("role", "pg")
@@ -120,12 +125,24 @@ def run_member(member: dict[str, str], project_root: str, helix_home: str) -> di
         if thinking:
             cmd.extend(["--thinking", thinking])
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env={**os.environ, "HELIX_PROJECT_ROOT": project_root},
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                env={**os.environ, "HELIX_PROJECT_ROOT": project_root},
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout if isinstance(exc.stdout, str) else ""
+            stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+            return {
+                "role": role,
+                "engine": engine,
+                "exit_code": 124,
+                "status": "timeout",
+                "output": _truncate_output(stdout, stderr),
+            }
         status = "completed" if result.returncode == 0 else "failed"
         return {
             "role": role,

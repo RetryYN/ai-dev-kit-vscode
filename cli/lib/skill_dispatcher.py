@@ -677,7 +677,10 @@ def main(argv: list[str] | None = None) -> int:
                 if result.get("stdout"):
                     print("")
                     print(result["stdout"])
-            return 0
+            outcome = str(result.get("outcome", ""))
+            if outcome in ("delegated", "delegated_via_mention", "plan_only"):
+                return 0
+            return 1
 
         if args.mode == "feedback":
             if not args.usage_id or not args.feedback:

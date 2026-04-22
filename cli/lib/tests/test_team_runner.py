@@ -1,9 +1,12 @@
+import io
 import json
 import py_compile
 import sys
+import tempfile
+import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
-
-import pytest
+from unittest.mock import patch
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
@@ -31,160 +34,182 @@ def _team_definition(strategy: str = "sequential") -> str:
     )
 
 
-def test_module_py_compile() -> None:
-    py_compile.compile(str(MODULE_PATH), doraise=True)
+class TeamRunnerTest(unittest.TestCase):
+    def test_module_py_compile(self) -> None:
+        py_compile.compile(str(MODULE_PATH), doraise=True)
 
+    def test_parse_team_yaml_extracts_members_and_strips_quotes(self) -> None:
+        parsed = team_runner._parse_team_yaml(_team_definition(strategy="parallel"))
 
-def test_parse_team_yaml_extracts_members_and_strips_quotes() -> None:
-    parsed = team_runner._parse_team_yaml(_team_definition(strategy="parallel"))
+        self.assertEqual(parsed["name"], "QA Team")
+        self.assertEqual(parsed["strategy"], "parallel")
+        self.assertEqual(parsed["members"][0]["role"], "qa")
+        self.assertEqual(parsed["members"][0]["thinking"], "high")
+        self.assertEqual(parsed["members"][1]["engine"], "claude")
 
-    assert parsed["name"] == "QA Team"
-    assert parsed["strategy"] == "parallel"
-    assert parsed["members"][0]["role"] == "qa"
-    assert parsed["members"][0]["thinking"] == "high"
-    assert parsed["members"][1]["engine"] == "claude"
+    def test_run_member_codex_invokes_cli_with_project_env(self) -> None:
+        captured: dict[str, object] = {}
 
+        class _Result:
+            returncode = 0
+            stdout = "line1\nline2\n"
+            stderr = ""
 
-def test_run_member_codex_invokes_cli_with_project_env(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
+        def fake_run(
+            cmd: list[str],
+            capture_output: bool,
+            text: bool,
+            env: dict[str, str],
+            timeout: int,
+        ) -> _Result:
+            captured["cmd"] = cmd
+            captured["capture_output"] = capture_output
+            captured["text"] = text
+            captured["env"] = env
+            captured["timeout"] = timeout
+            return _Result()
 
-    class _Result:
-        returncode = 0
-        stdout = "line1\nline2\n"
-        stderr = ""
+        with tempfile.TemporaryDirectory() as td:
+            with patch.object(team_runner.subprocess, "run", side_effect=fake_run):
+                result = team_runner.run_member(
+                    {"role": "qa", "task": "verify", "engine": "codex", "thinking": "deep"},
+                    td,
+                    "/helix-home",
+                )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, env: dict[str, str]) -> _Result:
-        captured["cmd"] = cmd
-        captured["capture_output"] = capture_output
-        captured["text"] = text
-        captured["env"] = env
-        return _Result()
+        self.assertEqual(
+            captured["cmd"],
+            [
+                "/helix-home/cli/helix-codex",
+                "--role",
+                "qa",
+                "--task",
+                "verify",
+                "--thinking",
+                "deep",
+            ],
+        )
+        self.assertIs(captured["capture_output"], True)
+        self.assertIs(captured["text"], True)
+        self.assertEqual(captured["timeout"], 1800)
+        self.assertEqual(captured["env"]["HELIX_PROJECT_ROOT"], td)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["output"], "line1\nline2")
 
-    monkeypatch.setattr(team_runner.subprocess, "run", fake_run)
+    def test_run_member_codex_timeout_returns_timeout_status(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            helix_home = tmp_path / "helix-home"
+            bin_path = helix_home / "cli" / "helix-codex"
+            bin_path.parent.mkdir(parents=True, exist_ok=True)
+            bin_path.write_text("#!/usr/bin/env bash\nsleep 5\nexit 0\n", encoding="utf-8")
+            bin_path.chmod(0o755)
 
-    result = team_runner.run_member(
-        {"role": "qa", "task": "verify", "engine": "codex", "thinking": "deep"},
-        str(tmp_path),
-        "/helix-home",
-    )
+            result = team_runner.run_member(
+                {"role": "qa", "task": "verify", "engine": "codex"},
+                str(tmp_path),
+                str(helix_home),
+                timeout=2,
+            )
 
-    assert captured["cmd"] == [
-        "/helix-home/cli/helix-codex",
-        "--role",
-        "qa",
-        "--task",
-        "verify",
-        "--thinking",
-        "deep",
-    ]
-    assert captured["capture_output"] is True
-    assert captured["text"] is True
-    assert captured["env"]["HELIX_PROJECT_ROOT"] == str(tmp_path)
-    assert result["status"] == "completed"
-    assert result["output"] == "line1\nline2"
+        self.assertEqual(result["exit_code"], 124)
+        self.assertEqual(result["status"], "timeout")
 
+    def test_run_sequential_stops_after_first_failure(self) -> None:
+        calls: list[str] = []
 
-def test_run_sequential_stops_after_first_failure(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    calls: list[str] = []
+        def fake_run_member(member: dict[str, str], _project_root: str, _helix_home: str) -> dict[str, object]:
+            calls.append(member["role"])
+            return {
+                "role": member["role"],
+                "engine": member.get("engine", "codex"),
+                "exit_code": 1,
+                "status": "failed",
+                "output": "boom",
+            }
 
-    def fake_run_member(member: dict[str, str], _project_root: str, _helix_home: str) -> dict[str, object]:
-        calls.append(member["role"])
-        return {
-            "role": member["role"],
-            "engine": member.get("engine", "codex"),
-            "exit_code": 1,
-            "status": "failed",
-            "output": "boom",
-        }
+        buf = io.StringIO()
+        with patch.object(team_runner, "run_member", side_effect=fake_run_member):
+            with redirect_stdout(buf):
+                results = team_runner.run_sequential(
+                    [{"role": "qa"}, {"role": "docs"}],
+                    "/project",
+                    "/helix",
+                )
+        output = buf.getvalue()
 
-    monkeypatch.setattr(team_runner, "run_member", fake_run_member)
+        self.assertEqual(calls, ["qa"])
+        self.assertEqual(len(results), 1)
+        self.assertIn("チーム実行を中断", output)
 
-    results = team_runner.run_sequential(
-        [{"role": "qa"}, {"role": "docs"}],
-        "/project",
-        "/helix",
-    )
-    output = capsys.readouterr().out
-
-    assert calls == ["qa"]
-    assert len(results) == 1
-    assert "チーム実行を中断" in output
-
-
-def test_run_parallel_collects_claude_and_codex_members(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    def fake_run_member(member: dict[str, str], _project_root: str, _helix_home: str) -> dict[str, object]:
-        return {
-            "role": member["role"],
-            "engine": "codex",
-            "exit_code": 0,
-            "status": "completed",
-            "output": f"done:{member['role']}",
-        }
-
-    monkeypatch.setattr(team_runner, "run_member", fake_run_member)
-
-    results = team_runner.run_parallel(
-        [
-            {"role": "qa", "engine": "codex", "task": "verify"},
-            {"role": "docs", "engine": "claude", "task": "summarize"},
-        ],
-        "/project",
-        "/helix",
-    )
-    output = capsys.readouterr().out
-
-    assert "Claude sub-agent" in output
-    assert any(item["engine"] == "claude" and item["status"] == "delegated" for item in results)
-    assert any(item["role"] == "qa" and item["status"] == "completed" for item in results)
-
-
-def test_main_writes_team_status_file(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    definition_path = tmp_path / "team.yaml"
-    definition_path.write_text(_team_definition(strategy="sequential"), encoding="utf-8")
-
-    monkeypatch.setattr(
-        team_runner,
-        "run_sequential",
-        lambda members, project_root, helix_home: [
-            {
-                "role": members[0]["role"],
-                "engine": members[0]["engine"],
+    def test_run_parallel_collects_claude_and_codex_members(self) -> None:
+        def fake_run_member(member: dict[str, str], _project_root: str, _helix_home: str) -> dict[str, object]:
+            return {
+                "role": member["role"],
+                "engine": "codex",
                 "exit_code": 0,
                 "status": "completed",
-                "output": "ok",
+                "output": f"done:{member['role']}",
             }
-        ],
-    )
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "team_runner.py",
-            "--definition",
-            str(definition_path),
-            "--project-root",
-            str(tmp_path),
-            "--helix-home",
-            "/helix-home",
-        ],
-    )
 
-    team_runner.main()
+        buf = io.StringIO()
+        with patch.object(team_runner, "run_member", side_effect=fake_run_member):
+            with redirect_stdout(buf):
+                results = team_runner.run_parallel(
+                    [
+                        {"role": "qa", "engine": "codex", "task": "verify"},
+                        {"role": "docs", "engine": "claude", "task": "summarize"},
+                    ],
+                    "/project",
+                    "/helix",
+                )
+        output = buf.getvalue()
 
-    status_path = tmp_path / ".helix" / "team-status.json"
-    payload = json.loads(status_path.read_text(encoding="utf-8"))
-    assert payload["name"] == "QA Team"
-    assert payload["strategy"] == "sequential"
-    assert payload["members"][0]["status"] == "completed"
+        self.assertIn("Claude sub-agent", output)
+        self.assertTrue(any(item["engine"] == "claude" and item["status"] == "delegated" for item in results))
+        self.assertTrue(any(item["role"] == "qa" and item["status"] == "completed" for item in results))
+
+    def test_main_writes_team_status_file(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            definition_path = tmp_path / "team.yaml"
+            definition_path.write_text(_team_definition(strategy="sequential"), encoding="utf-8")
+
+            with patch.object(
+                team_runner,
+                "run_sequential",
+                lambda members, project_root, helix_home: [
+                    {
+                        "role": members[0]["role"],
+                        "engine": members[0]["engine"],
+                        "exit_code": 0,
+                        "status": "completed",
+                        "output": "ok",
+                    }
+                ],
+            ):
+                with patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "team_runner.py",
+                        "--definition",
+                        str(definition_path),
+                        "--project-root",
+                        str(tmp_path),
+                        "--helix-home",
+                        "/helix-home",
+                    ],
+                ):
+                    with redirect_stdout(io.StringIO()):
+                        team_runner.main()
+
+            status_path = tmp_path / ".helix" / "team-status.json"
+            payload = json.loads(status_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["name"], "QA Team")
+            self.assertEqual(payload["strategy"], "sequential")
+            self.assertEqual(payload["members"][0]["status"], "completed")
+
+
+if __name__ == "__main__":
+    unittest.main()
