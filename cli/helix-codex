@@ -40,7 +40,7 @@ AUTO_THINKING=false
 DRY_RUN=false
 SANDBOX="workspace-write"
 FULL_AUTO=""
-TIMEOUT=300
+TIMEOUT=1800
 MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
 FALLBACK_MODEL=""    # GAP-038 Phase 2: Layer 2 代替モデル
 
@@ -67,7 +67,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --task-file <path>       タスク内容をファイルから読む（大きなプロンプト向け、ARG_MAX 回避）"
       echo "  --thinking <level>       思考レベル（low/medium/high/xhigh）。省略時はロール別デフォルト"
       echo "  --auto-thinking          タスク難度から thinking を自動推定（--thinking と併用時は手動優先）"
-      echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 300）"
+      echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 1800）"
       echo "  --max-retries <n>        最大リトライ回数（デフォルト: 2、0 でリトライなし）"
       echo "  --fallback-model <name>  Codex 失敗時の代替モデル（例: gpt-5.2-codex）"
       echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
