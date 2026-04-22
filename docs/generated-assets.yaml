@@ -1,0 +1,48 @@
+version: 1
+
+asset_root:
+  filesystem_path: public/generated/codex
+  public_url_prefix: /generated/codex
+  owner: codex
+  purpose: >
+    Codex が生成した画像アセットの保存先と管理台帳。
+    既存の HELIX フローや .helix 配下の状態管理とは分離して運用する。
+
+naming:
+  pattern: "{category}/{slug}-v{version}.{ext}"
+  slug_rule: "lower-kebab-case"
+  allowed_extensions:
+    - png
+    - webp
+    - jpg
+    - jpeg
+    - svg
+  version_rule: "差し替え時は v1, v2, v3... を増やす"
+
+categories:
+  - id: hero
+    description: LP や主要画面のヒーロー画像
+  - id: empty-states
+    description: 空状態・説明用イラスト
+  - id: illustrations
+    description: オンボーディングや説明セクション用の汎用イラスト
+  - id: backgrounds
+    description: セクション背景や装飾ビジュアル
+  - id: social
+    description: OGP、バナー、SNS 用素材
+
+workflow:
+  add_only_policy: true
+  rules:
+    - "Codex 生成画像は public/generated/codex 配下にのみ保存する"
+    - "採用前の画像も台帳に登録する"
+    - "利用用途が未確定の画像は status=draft にする"
+    - "UI へ本採用した画像だけ status=approved にする"
+    - "既存画像を置換するときは上書きせず version を増やす"
+
+statuses:
+  - draft
+  - approved
+  - deprecated
+
+assets: []

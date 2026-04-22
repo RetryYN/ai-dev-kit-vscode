@@ -19,3 +19,9 @@ credentials.json
 !**/.helix/scrum/**
 
 .helix/budget/
+
+# Codex CLI 副産物 (空ファイルが生成される)
+.codex
+
+# Codex 画像生成出力先 (docs/generated-assets.yaml で管理)
+public/generated/
