@@ -34,7 +34,6 @@ case "$CMD" in
   skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
-  bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
   retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
   debt)     exec "$SCRIPT_DIR/helix-debt" "$@" ;;
   review)   exec "$SCRIPT_DIR/helix-review" "$@" ;;
@@ -75,7 +74,6 @@ Commands:
 
 データ・学習:
   log         ログ・評価システム
-  bench       メトリクスベンチマーク
   debt        技術負債管理
   retro       レトロスペクティブ
   learn       成功パターン学習
