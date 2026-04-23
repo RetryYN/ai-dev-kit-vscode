@@ -4,6 +4,10 @@
 > 目的: AI エージェント（Claude Code / Codex / Cursor など）が正確な UI を生成するための**構造化デザイン仕様書**のテンプレート。
 > 適用フェーズ: L2 Visual 方針策定時（設計前）、L5 Visual Refinement（実装後の調整）。
 
+HELIX 9 は authoring lens（執筆視点）であり、公開 `docs/DESIGN.md` のトップレベル見出しは **公式 8 セクション**（Overview / Colors / Typography / Layout / Elevation / Shapes / Components / Do's & Don'ts）を順序どおり採用する。9 セクションの観点は失わず、公開契約の見出し体系だけを公式仕様に合わせる。
+
+Shapes は front matter の `rounded` token、Buttons/Inputs/Cards の border radius 記述、pill 使用条件の文章ルールから補完して構成する。公式 8 の Layer 1 を保ったまま、Layer 2 として `### HELIX Extension: ...` subsection を各 canonical section 配下に置き、Responsive / Agent Prompt Guide / 日本語タイポ詳細を収容する。
+
 ## 役割分担: DESIGNER.md vs DESIGN.md
 
 HELIX には2種類のデザイン文書がある。用途が異なるので使い分ける。

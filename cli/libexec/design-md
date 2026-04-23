@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+
+PINNED_PACKAGE="@google/design.md@0.1.1"
+SELF_NAME="$(basename "$0")"
+
+print_usage() {
+  cat <<EOF
+Usage: $SELF_NAME <lint|diff|export|spec> [args...]
+
+Wrapper for pinned design.md CLI.
+Pinned package: $PINNED_PACKAGE
+EOF
+}
+
+require_npx() {
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "[design-md-wrapper][ERROR] npx command not found. Install Node.js/npm to use $PINNED_PACKAGE." >&2
+    exit 127
+  fi
+}
+
+print_version() {
+  require_npx
+  local upstream_version
+  if ! upstream_version="$(npx --yes "$PINNED_PACKAGE" --version 2>/dev/null)"; then
+    echo "[design-md-wrapper][ERROR] failed to fetch upstream version from $PINNED_PACKAGE." >&2
+    exit 1
+  fi
+  echo "$SELF_NAME pin: $PINNED_PACKAGE"
+  echo "$SELF_NAME upstream: $upstream_version"
+}
+
+if [[ $# -eq 0 ]]; then
+  print_usage
+  exit 2
+fi
+
+case "$1" in
+  -h|--help)
+    print_usage
+    print_version
+    ;;
+  --version)
+    print_version
+    ;;
+  lint|diff|export|spec)
+    subcommand="$1"
+    shift
+    require_npx
+    exec npx --yes "$PINNED_PACKAGE" "$subcommand" "$@"
+    ;;
+  *)
+    echo "[design-md-wrapper][ERROR] unsupported subcommand: $1" >&2
+    print_usage >&2
+    exit 2
+    ;;
+esac

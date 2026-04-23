@@ -97,6 +97,7 @@ PY
 
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 DELIVERABLE_GATE="$SCRIPT_DIR/lib/deliverable_gate.py"
+DESIGN_MD_WRAPPER="$SCRIPT_DIR/libexec/design-md"
 
 STATE_MACHINE="$SCRIPT_DIR/templates/state-machine.yaml"
 if [[ ! -f "$STATE_MACHINE" ]]; then
@@ -187,8 +188,13 @@ log_gate_run() {
   local static_fail="$4"
   local ai_fail="$5"
   local duration_ms="$6"
+  local extra_fail_reasons="${7:-}"
   local payload
-  payload="{\"gate\":\"$gate\",\"result\":\"$result\",\"fail_reasons\":\"deliverable:$deliv_fail,static:$static_fail,ai:$ai_fail\",\"duration_ms\":$duration_ms}"
+  local fail_reasons="deliverable:$deliv_fail,static:$static_fail,ai:$ai_fail"
+  if [[ -n "$extra_fail_reasons" ]]; then
+    fail_reasons="${fail_reasons},${extra_fail_reasons}"
+  fi
+  payload="{\"gate\":\"$gate\",\"result\":\"$result\",\"fail_reasons\":\"$fail_reasons\",\"duration_ms\":$duration_ms}"
   HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert gate_runs "$payload" 2>/dev/null || true
 }
 
@@ -283,12 +289,45 @@ run_checks() {
   local ai_pass=0
   local ai_fail=0
   local drive=""
+  local ui_flag=""
+  local extra_fail_reasons=""
   if [[ -f "$PHASE_FILE" ]]; then
     drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
+    ui_flag=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.ui" 2>/dev/null || echo "")
   fi
 
   is_fe_driven_gate() {
     [[ "$drive" == "fe" || "$drive" == "fullstack" ]]
+  }
+
+  add_fail_reason() {
+    local reason="$1"
+    [[ -n "$reason" ]] || return 0
+    if [[ ",$extra_fail_reasons," == *",$reason,"* ]]; then
+      return 0
+    fi
+    if [[ -n "$extra_fail_reasons" ]]; then
+      extra_fail_reasons="${extra_fail_reasons},${reason}"
+    else
+      extra_fail_reasons="$reason"
+    fi
+  }
+
+  requires_design_md_lint() {
+    local drive_value="$1"
+    local ui_value="$2"
+    case "$drive_value" in
+      fe|fullstack)
+        return 0
+        ;;
+      agent|be|db)
+        [[ "$ui_value" == "true" ]]
+        return $?
+        ;;
+      *)
+        return 1
+        ;;
+    esac
   }
 
   debt_status_by_id() {
@@ -344,6 +383,60 @@ PY
       --priority high --category mock-driven --impact high --effort S \
       --owner SE --target-sprint G4 --source 'helix-gate G2 auto-enqueue'
   }
+
+  if [[ "$gate" == "G5" ]] && requires_design_md_lint "$drive" "$ui_flag"; then
+    local design_md_file="$PROJECT_ROOT/docs/DESIGN.md"
+    local lint_output=""
+    local lint_exit=0
+    echo "[design-md]"
+
+    if [[ ! -f "$design_md_file" ]]; then
+      echo "[design-md][ERROR] missing required file: docs/DESIGN.md" >&2
+      mandatory_fail=$((mandatory_fail + 1))
+      add_fail_reason "design-md-lint"
+    else
+      set +e
+      lint_output=$("$DESIGN_MD_WRAPPER" lint "$design_md_file" 2>&1)
+      lint_exit=$?
+      set -e
+
+      if [[ $lint_exit -eq 0 ]]; then
+        if [[ -n "$lint_output" ]]; then
+          while IFS= read -r line; do
+            [[ -n "$line" ]] || continue
+            if [[ "${line,,}" == warning:* ]]; then
+              echo "[design-md][INFO] warning: ${line#*: }"
+            else
+              echo "[design-md][INFO] $line"
+            fi
+          done <<< "$lint_output"
+        else
+          echo "[design-md][INFO] lint passed"
+        fi
+      elif [[ $lint_exit -eq 1 ]]; then
+        mandatory_fail=$((mandatory_fail + 1))
+        add_fail_reason "design-md-lint"
+        echo "[design-md][ERROR] lint failed for docs/DESIGN.md (exit=1)" >&2
+        if [[ -n "$lint_output" ]]; then
+          while IFS= read -r line; do
+            [[ -n "$line" ]] || continue
+            echo "[design-md][ERROR] $line" >&2
+          done <<< "$lint_output"
+        fi
+      else
+        mandatory_fail=$((mandatory_fail + 1))
+        add_fail_reason "design-md-lint"
+        echo "[design-md][ERROR] tool execution failed (exit=$lint_exit). fail-close." >&2
+        if [[ -n "$lint_output" ]]; then
+          while IFS= read -r line; do
+            [[ -n "$line" ]] || continue
+            echo "[design-md][ERROR] $line" >&2
+          done <<< "$lint_output"
+        fi
+      fi
+    fi
+    echo ""
+  fi
   # deliverable check の前に state を自動更新
   if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
     local state_file="$HELIX_DIR/state/deliverables.json"
@@ -831,7 +924,7 @@ PY
     result="pass"
   fi
   if [[ "$DRY_RUN" != true ]]; then
-    log_gate_run "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail" "$duration_ms"
+    log_gate_run "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail" "$duration_ms" "$extra_fail_reasons"
   fi
   echo ""
   if [[ $total_fail -gt 0 ]]; then
