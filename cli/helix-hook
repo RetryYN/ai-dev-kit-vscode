@@ -11,6 +11,9 @@ PHASE_FILE="$HELIX_DIR/phase.yaml"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
 DB_PATH="$HELIX_DIR/helix.db"
 
+# hook の再入防止（同一プロセス系統での多重実行を抑止）
+[[ "${HELIX_HOOK_RUNNING:-}" == "1" ]] && exit 0
+
 case "${1:-}" in
   --help|-h)
     echo "使い方: helix hook <変更ファイルパス>"
@@ -92,7 +95,10 @@ log_hook_event() {
   file_esc=$(json_escape "$file")
   result_esc=$(json_escape "$result")
   payload="{\"event_type\":\"$event_type_esc\",\"file\":\"$file_esc\",\"result\":\"$result_esc\"}"
-  HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events "$payload" >/dev/null 2>&1 &
+  (
+    export HELIX_HOOK_RUNNING=1
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events "$payload" >/dev/null 2>&1
+  ) || true
 }
 
 show_freeze_diff_summary() {
@@ -284,11 +290,20 @@ check_freeze_violation() {
 
   # runtime/index.json がある場合は Python でスマートに判定
   if [[ -f "$INDEX" ]]; then
-    local output
+    local output freeze_rc
+    set +e
     output=$(python3 "$SCRIPT_DIR/lib/freeze_checker.py" \
       --phase-file "$PHASE_FILE" \
       --index "$INDEX" \
-      --file "$file" 2>/dev/null || true)
+      --file "$file" 2>&1)
+    freeze_rc=$?
+    set -e
+    if [[ $freeze_rc -ne 0 ]]; then
+      [[ -n "$output" ]] && echo "$output"
+      echo "[helix-hook] ERROR: freeze checker の内部エラーにより編集をブロックしました"
+      log_hook_event "freeze_break" "$file" "error"
+      return 2
+    fi
     if [[ -n "$output" ]]; then
       echo "$output"
       if echo "$output" | grep -q "凍結違反"; then

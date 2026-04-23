@@ -4,6 +4,8 @@
 from prometheus_client import Counter, Histogram, Gauge
 
 # REDメトリクス
+> 目的: REDメトリクス の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
+
 REQUEST_COUNT = Counter(
     'http_requests_total',
     'Total HTTP requests',

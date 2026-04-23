@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -282,7 +283,9 @@ def build_catalog(skills_root: Path) -> dict[str, Any]:
 
 def save_catalog(catalog: dict[str, Any], cache_path: Path) -> None:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cache_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp_path = cache_path.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_path, cache_path)
 
 
 def load_catalog(cache_path: Path) -> dict[str, Any]:

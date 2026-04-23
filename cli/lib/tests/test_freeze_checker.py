@@ -133,3 +133,16 @@ def test_run_ignores_unmatched_path(tmp_path: Path, capsys) -> None:
 
     assert freeze_checker.run(phase_file, index_file, "README.md") == 0
     assert capsys.readouterr().out == ""
+
+
+def test_main_returns_two_on_internal_error(
+    monkeypatch,
+    capsys,
+) -> None:
+    def _boom():
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(freeze_checker, "parse_args", _boom)
+
+    assert freeze_checker.main() == 2
+    assert "ERROR: freeze check failed: boom" in capsys.readouterr().err

@@ -10,6 +10,7 @@ SCRUM_DIR="$HELIX_DIR/scrum"
 BACKLOG="$SCRUM_DIR/backlog.yaml"
 SPRINT_FILE="$SCRUM_DIR/sprint.yaml"
 VERIFY_DIR="$PROJECT_ROOT/verify"
+SCRUM_VERIFY_DIR="$SCRUM_DIR/verify"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 
 CMD="${1:-help}"
@@ -27,6 +28,7 @@ cmd_init() {
 
   echo "=== HELIX Scrum Init ==="
   mkdir -p "$SCRUM_DIR" "$VERIFY_DIR"
+  mkdir -p "$SCRUM_VERIFY_DIR"
 
   if [[ ! -f "$BACKLOG" ]]; then
     cp "$SCRIPT_DIR/templates/scrum-backlog.yaml" "$BACKLOG"
@@ -301,19 +303,21 @@ cmd_verify() {
 # ============================
 cmd_decide() {
   local hid="" decision="" learnings=""
+  local strict_promote=false
   while [[ $# -gt 0 ]]; do
     case $1 in
       --hypothesis) hid="$2"; shift 2 ;;
       --confirmed)  decision="confirmed"; shift ;;
       --rejected)   decision="rejected"; shift ;;
       --pivot)      decision="pivot"; shift ;;
+      --strict-promote) strict_promote=true; shift ;;
       --learnings)  learnings="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
 
   if [[ -z "$hid" || -z "$decision" ]]; then
-    echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--learnings '...']" >&2
+    echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--strict-promote] [--learnings '...']" >&2
     exit "$EXIT_INPUT_ERROR"
   fi
 
@@ -329,6 +333,73 @@ cmd_decide() {
 
   case "$decision" in
     confirmed)
+      if [[ "$strict_promote" == true ]]; then
+        echo "[scrum] strict-promote checks:"
+        verify_hypothesis_dir="$SCRUM_VERIFY_DIR/$hid"
+        verify_count=$(find "$verify_hypothesis_dir" -maxdepth 1 -type f -name '*.sh' 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+        if [[ "${verify_count:-0}" -gt 0 ]]; then
+          echo "  PASS: .helix/scrum/verify/$hid/*.sh = ${verify_count} 本"
+        else
+          echo "  WARN: .helix/scrum/verify/$hid/*.sh が見つかりません（推奨）"
+        fi
+
+        latest_impl_ts=$(git -C "$PROJECT_ROOT" log -1 --format=%ct -- '*.py' '*.ts' '*.tsx' '*.js' '*.jsx' '*.go' '*.java' '*.rb' '*.php' '*.rs' '*.c' '*.cc' '*.cpp' '*.cs' '*.kt' 2>/dev/null || echo "")
+        if [[ -z "$latest_impl_ts" ]]; then
+          echo "  WARN: 対応実装の commit が見つかりません（推奨）"
+        else
+          now_ts=$(date +%s)
+          age_days=$(( (now_ts - latest_impl_ts) / 86400 ))
+          if (( now_ts - latest_impl_ts <= 30 * 24 * 60 * 60 )); then
+            echo "  PASS: 対応実装の最終 commit は ${age_days} 日前"
+          else
+            echo "  WARN: 対応実装の最終 commit が 30 日超です（${age_days} 日前、推奨）"
+          fi
+        fi
+      else
+        echo "  WARN: --strict-promote 未指定のため昇格チェックは warning のみです"
+      fi
+
+      handoff_file="$HELIX_DIR/scrum-handoff.md"
+      handoff_template="$SCRIPT_DIR/templates/scrum-handoff.md.template"
+      if [[ -f "$handoff_template" ]]; then
+        HYPOTHESIS_ID="$hid" \
+        HYPOTHESIS_TITLE="${title:-N/A}" \
+        HANDOFF_DATE="$(date '+%Y-%m-%d')" \
+        python3 - "$handoff_template" "$handoff_file" <<'PY'
+from pathlib import Path
+import os
+import sys
+
+template = Path(sys.argv[1]).read_text(encoding="utf-8")
+content = (
+    template.replace("{{HYPOTHESIS_ID}}", os.environ.get("HYPOTHESIS_ID", ""))
+    .replace("{{HYPOTHESIS_TITLE}}", os.environ.get("HYPOTHESIS_TITLE", "N/A"))
+    .replace("{{DATE}}", os.environ.get("HANDOFF_DATE", ""))
+)
+Path(sys.argv[2]).write_text(content, encoding="utf-8")
+PY
+      else
+        cat > "$handoff_file" <<EOF
+# Scrum Handoff ($(date '+%Y-%m-%d'))
+
+## Confirmed Hypothesis
+- id: $hid
+- title: ${title:-N/A}
+
+## PoC Outcome
+- (記入)
+
+## Promotion Plan (PoC -> Production)
+- [ ] 要件化（L1）
+- [ ] 設計凍結（L2/G2）
+- [ ] 実装計画（L3）
+- [ ] 本実装（L4）
+
+## Risks
+- (記入)
+EOF
+      fi
+      echo "  → 生成: .helix/scrum-handoff.md"
       echo "  → Forward HELIX に接続可能。'helix size' でサイジングしてください。"
       echo "  → 検証スクリプトは verify/ に残り、リグレッションテストとして機能します。"
       echo ""
@@ -480,6 +551,7 @@ Commands:
   poc                     PoC 実装を Codex に委譲 (--hypothesis H001)
   verify [script]         検証スクリプト実行 (引数なし=全実行)
   decide                  判定 (--hypothesis H001 --confirmed|--rejected|--pivot)
+                          --strict-promote を指定すると昇格推奨チェックを追加
   review                  スプリントレビュー + レトロ
   status                  現在の状態表示
 

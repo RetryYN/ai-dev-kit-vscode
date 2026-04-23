@@ -22,6 +22,7 @@ import re
 import sqlite3
 import sys
 from datetime import datetime
+from pathlib import Path
 
 
 SCHEMA = """
@@ -219,6 +220,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
+DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
 CURRENT_SCHEMA_VERSION = 7
 
 
@@ -283,12 +285,19 @@ def _prepare_db_path(db_path):
         os.makedirs(parent_dir, exist_ok=True)
 
 
-def _connect(db_path):
-    conn = sqlite3.connect(db_path)
+def get_connection(db_path: str | Path | None = None, timeout: float = DEFAULT_SQLITE_TIMEOUT_SEC) -> sqlite3.Connection:
+    """HELIX 統一 SQLite 接続。WAL + timeout + row_factory 設定済み。"""
+    target_path = resolve_default_db_path() if db_path is None else str(db_path)
+    conn = sqlite3.connect(target_path, timeout=timeout)
     conn.execute(f"PRAGMA journal_mode={PRAGMA_JOURNAL_MODE}")
-    conn.execute(f"PRAGMA busy_timeout={PRAGMA_BUSY_TIMEOUT_MS}")
+    conn.execute(f"PRAGMA busy_timeout={int(timeout * 1000)}")
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row
     return conn
+
+
+def _connect(db_path):
+    return get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
 
 
 def _create_requirements_tables(conn):
@@ -855,7 +864,7 @@ def _quote_identifier(name):
 
 def export_json(db_path, output_path):
     """DB 全テーブルを JSON にエクスポート"""
-    conn = sqlite3.connect(db_path)
+    conn = get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
     tables = [
         r[0]
         for r in conn.execute(

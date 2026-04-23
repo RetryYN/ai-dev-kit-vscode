@@ -1,4 +1,5 @@
 # Performance Checklist
+> 目的: Performance Checklist を実施前後に点検し、品質ゲートの抜け漏れを防ぐチェックリスト
 
 > Note: HELIX 本体の日本語詳細は `skills/common/performance/SKILL.md` を参照。
 

@@ -1,4 +1,5 @@
 # DESIGN.md — マネーフォワード
+> 目的: moneyforward の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照
 
 > マネーフォワード（https://moneyforward.com/）のデザイン仕様書。
 > コーポレートサイトおよびサービスページの computed style に基づく。

@@ -31,6 +31,28 @@ bash ~/ai-dev-kit-vscode/setup.sh
 
 何度実行しても安全（冪等）。アンインストール: `bash ~/ai-dev-kit-vscode/setup.sh --uninstall`
 
+このリポジトリへ clone した後は、Git hook を有効化するために `bash scripts/install-git-hooks.sh` を追加で実行してください。  
+`pre-commit` は staged 内容の secret 混入を、`pre-push` は `CLAUDE.md` / `SKILL.md` / `references/*.md` の機密・PII 混入を検知します。  
+運用境界は [docs/security-guidelines.md](docs/security-guidelines.md) を参照してください。
+
+## 開発者セットアップ（pytest）
+
+`helix test` は shell テストに加えて `cli/lib/tests/` の pytest も実行します。
+
+```bash
+# 1) pip が使えることを確認
+python3 -m pip --version
+
+# 2) 開発依存をインストール
+python3 -m pip install --user -r requirements-dev.txt
+
+# 3) 動作確認
+python3 -m pytest --version
+```
+
+pytest を導入していない環境では `helix test` は pytest を警告付きで skip します。  
+未導入を失敗扱いにしたい場合は `helix test --pytest-strict` を使用します。
+
 ## クイックスタート
 
 ```bash

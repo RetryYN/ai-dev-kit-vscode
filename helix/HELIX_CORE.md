@@ -19,13 +19,13 @@
 
 1. サイジング S/M/L（SKILL_MAP.md §タスクサイジング）
 2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
-3. ゲート判定（`tools/ai-coding/references/gate-policy.md §ゲート一覧`）
+3. ゲート判定（`skills/tools/ai-coding/references/gate-policy.md §ゲート一覧`）
 4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
 5. 実行開始
-6. ミニレトロ: G2/G4/L8 通過時（`tools/ai-coding/references/gate-policy.md §ミニレトロ`）
+6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 
 > **Reverse モード**: 既存コードからの設計復元は SKILL_MAP.md §Phase R / `workflow/reverse-analysis/SKILL.md` を参照。Forward とは別のサイジング・ゲート体系（R0→R4→Forward→RGC）を使用。
-> ※ RGC（Reverse Gap Closure）は CLI 未実装。Forward HELIX の L6/L8 pass 後に手動で実施する。
+> ※ RGC（Reverse Gap Closure）は `helix reverse rgc` で実装済み。R4 Gap Register から集計を表示する。
 
 ## 設計提案
 

@@ -143,9 +143,9 @@ def _validate_classification(
 def _run_classifier(prompt: str, *, helix_codex_path: str) -> str:
     cmd = [helix_codex_path, "--role", "classifier", "--task", prompt]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False)
     except subprocess.TimeoutExpired as exc:
-        raise ClassifierError(7, "Codex 呼び出しがタイムアウトしました（60秒）。") from exc
+        raise ClassifierError(7, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
     except OSError as exc:
         raise ClassifierError(7, f"helix-codex の起動に失敗しました: {exc}") from exc
 

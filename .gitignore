@@ -17,6 +17,12 @@ credentials.json
 !**/.helix/reverse/**
 !**/.helix/scrum/
 !**/.helix/scrum/**
+!**/.helix/retros/
+!**/.helix/retros/**
+!**/.helix/session-summaries/
+!**/.helix/session-summaries/**
+!**/.helix/research/
+!**/.helix/research/**
 
 .helix/budget/
 
@@ -25,6 +31,9 @@ credentials.json
 
 # Codex 画像生成出力先 (docs/generated-assets.yaml で管理)
 public/generated/
+
+# 履歴アーカイブ（ローカル保管、Git 追跡対象外）
+/docs/archive/
 
 # シェル展開失敗ガード: `~` がリテラル文字列のまま mkdir されるケース防止
 # (過去コミット 5314036 で混入した残骸の再発防止)

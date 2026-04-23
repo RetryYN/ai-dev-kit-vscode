@@ -1,4 +1,5 @@
 # Testing Patterns Reference
+> 目的: Testing Patterns Reference の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 > Note: HELIX 本体の日本語詳細は `skills/common/testing/SKILL.md` を参照。
 

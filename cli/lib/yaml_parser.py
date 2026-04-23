@@ -296,25 +296,35 @@ def _build_output_with_header(text, data):
     return body + '\n'
 
 
+def _lock_open(lock_path):
+    lock_file = Path(lock_path)
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    fh = lock_file.open("a+", encoding="utf-8")
+    fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    return fh
+
+
+def _lock_close(lock_fh):
+    try:
+        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+    finally:
+        lock_fh.close()
+
+
 def write_yaml_safe(filepath, dotpath, value):
     """排他ロック + atomic rename で YAML を安全に更新する。"""
     lock_path = filepath + ".lock"
-    with open(lock_path, 'w', encoding='utf-8') as lock_file:
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
-        try:
-            text = Path(filepath).read_text(encoding='utf-8')
-            data = parse_yaml(text)
-            set_nested(data, dotpath, value)
-            output = _build_output_with_header(text, data)
-            tmp_path = f"{filepath}.tmp.{os.getpid()}"
-            Path(tmp_path).write_text(output, encoding='utf-8')
-            os.replace(tmp_path, filepath)
-        finally:
-            fcntl.flock(lock_file, fcntl.LOCK_UN)
+    lock_fh = _lock_open(lock_path)
     try:
-        os.unlink(lock_path)
-    except OSError:
-        pass
+        text = Path(filepath).read_text(encoding='utf-8')
+        data = parse_yaml(text)
+        set_nested(data, dotpath, value)
+        output = _build_output_with_header(text, data)
+        tmp_path = f"{filepath}.tmp.{os.getpid()}"
+        Path(tmp_path).write_text(output, encoding='utf-8')
+        os.replace(tmp_path, filepath)
+    finally:
+        _lock_close(lock_fh)
 
 
 def main():

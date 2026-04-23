@@ -165,8 +165,8 @@ src/
 ## ワークフロー
 - タスクサイジング: SKILL_MAP.md §タスクサイジング 参照
 - フェーズスキップ: SKILL_MAP.md §フェーズスキップ決定木 参照
-- ディスパッチ: tools/ai-coding/references/orchestration-workflow.md 参照
-- サブエージェント: tools/ai-coding/references/subagent-config.md 参照
+- ディスパッチ: skills/tools/ai-coding/references/orchestration-workflow.md 参照
+- サブエージェント: skills/tools/ai-coding/references/subagent-config.md 参照
 ```
 
 ### 1.4 Codex CLI（AGENTS.md）差分
@@ -244,7 +244,7 @@ src/
 
 ### スキル自動推挙（gpt-5.4-mini）
 
-全 55 スキル + 75+ references から LLM マッチングで最適なコンテキストを選定:
+全 100 スキル + 89+ references から LLM マッチングで最適なコンテキストを選定:
 
 ```bash
 helix skill search "<タスク記述>" -n 5       # top N 候補 + 推奨 agent + 関連 references

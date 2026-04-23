@@ -385,3 +385,93 @@ def test_recommend_attaches_commands_on_cached_legacy_payload(monkeypatch, tmp_p
 
     assert result["_cached"] is True
     assert result["candidates"][0]["commands"] == ["security-audit", "owasp-check"]
+
+
+def test_recommend_writes_cache_atomically(monkeypatch, tmp_path: Path) -> None:
+    catalog_path = tmp_path / "skill-catalog.json"
+    jsonl_path = tmp_path / "skill-catalog.jsonl"
+    cache_dir = tmp_path / "cache"
+    _write_json(catalog_path, _catalog_fixture())
+    _write_jsonl(jsonl_path, [_jsonl_entry(status="approved")])
+
+    replace_calls: list[tuple[Path, Path]] = []
+    real_replace = skill_recommender.os.replace
+
+    def _record_replace(src, dst):
+        replace_calls.append((Path(src), Path(dst)))
+        return real_replace(src, dst)
+
+    def _fake_run(_: str) -> str:
+        return json.dumps({"recommendations": []}, ensure_ascii=False)
+
+    monkeypatch.setattr(skill_recommender, "_run_recommender", _fake_run)
+    monkeypatch.setattr(skill_recommender.os, "replace", _record_replace)
+
+    result = skill_recommender.recommend(
+        task_text="認証レビュー",
+        top_n=1,
+        catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_path,
+        cache_dir=cache_dir,
+        force_refresh=True,
+    )
+
+    key = skill_recommender._cache_key(
+        "認証レビュー",
+        1,
+        None,
+        None,
+        str(_catalog_fixture().get("version", "1.0")),
+        None,
+        False,
+        skill_recommender._jsonl_version(jsonl_path),
+    )
+    cache_file = cache_dir / f"{key}.json"
+    tmp_file = cache_file.with_suffix(".tmp")
+
+    assert result["_cached"] is False
+    assert cache_file.exists()
+    assert not tmp_file.exists()
+    assert replace_calls == [(tmp_file, cache_file)]
+
+
+def test_recommend_gc_removes_expired_cache_files(monkeypatch, tmp_path: Path) -> None:
+    catalog_path = tmp_path / "skill-catalog.json"
+    jsonl_path = tmp_path / "skill-catalog.jsonl"
+    cache_dir = tmp_path / "cache"
+    _write_json(catalog_path, _catalog_fixture())
+    _write_jsonl(jsonl_path, [_jsonl_entry(status="approved")])
+
+    stale = cache_dir / "stale.json"
+    fresh = cache_dir / "fresh.json"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    stale.write_text("{}", encoding="utf-8")
+    fresh.write_text("{}", encoding="utf-8")
+
+    now = skill_recommender.time.time()
+    ttl = skill_recommender.CACHE_TTL_SECONDS
+    stale_mtime = now - ttl - 10
+    fresh_mtime = now - 10
+    stale.touch()
+    fresh.touch()
+    import os
+
+    os.utime(stale, (stale_mtime, stale_mtime))
+    os.utime(fresh, (fresh_mtime, fresh_mtime))
+
+    def _fake_run(_: str) -> str:
+        return json.dumps({"recommendations": []}, ensure_ascii=False)
+
+    monkeypatch.setattr(skill_recommender, "_run_recommender", _fake_run)
+
+    skill_recommender.recommend(
+        task_text="認証レビュー",
+        top_n=1,
+        catalog_path=catalog_path,
+        jsonl_catalog_path=jsonl_path,
+        cache_dir=cache_dir,
+        force_refresh=True,
+    )
+
+    assert not stale.exists()
+    assert fresh.exists()

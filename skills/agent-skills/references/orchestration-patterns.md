@@ -1,4 +1,5 @@
 # Orchestration Patterns
+> 目的: Orchestration Patterns の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 > Note: ship skill 固有。persona 間の連携パターンを定義する補助リファレンス。
 

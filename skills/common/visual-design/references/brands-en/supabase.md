@@ -1,4 +1,5 @@
 # Design System Inspired by Supabase
+> 目的: SUPABASE の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 ## 1. Visual Theme & Atmosphere
 

@@ -1,4 +1,9 @@
 #!/bin/bash
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo "エラー: helix-gate は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
+  echo "macOS の場合: brew install bash && シェルを /opt/homebrew/bin/bash に変更" >&2
+  exit 1
+fi
 set -euo pipefail
 
 # helix-gate: HELIX ゲート自動検証
@@ -104,6 +109,16 @@ if [[ ! -f "$STATE_MACHINE" ]]; then
   echo "エラー: state-machine.yaml が見つかりません" >&2
   exit $EXIT_INTERNAL_ERROR
 fi
+
+write_phase_or_die() {
+  local dotpath="$1"
+  local value="$2"
+  if ! python3 "$YAML_PARSER" write "$PHASE_FILE" "$dotpath" "$value"; then
+    echo "エラー: phase.yaml 更新失敗: ${dotpath}=${value}" >&2
+    exit "$EXIT_INTERNAL_ERROR"
+  fi
+}
+
 declare -A GATE_PREREQS
 while IFS=: read -r gate prereq; do
   GATE_PREREQS["$gate"]="$prereq"
@@ -384,6 +399,183 @@ PY
       --owner SE --target-sprint G4 --source 'helix-gate G2 auto-enqueue'
   }
 
+  check_retro_sections() {
+    local retro_file="$1"
+    python3 - "$retro_file" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+retro_file = Path(sys.argv[1])
+text = retro_file.read_text(encoding="utf-8")
+required_sections = ("Keep", "Problem", "Try")
+missing = []
+warnings = []
+
+for section in required_sections:
+    pattern = rf"^## {section}\s*$"
+    m = re.search(pattern, text, flags=re.MULTILINE)
+    if not m:
+        missing.append(f"section_missing:{section}")
+        continue
+    start = m.end()
+    next_m = re.search(r"^##\s+", text[start:], flags=re.MULTILINE)
+    end = start + next_m.start() if next_m else len(text)
+    block = text[start:end]
+    bullets = re.findall(r"^- .+$", block, flags=re.MULTILINE)
+    if len(bullets) == 0:
+        missing.append(f"bullet_missing:{section}")
+
+    if section == "Try" and bullets:
+        has_owner = any(re.search(r"@\w+", line) for line in bullets)
+        has_due = any(re.search(r"\b\d{4}-\d{2}-\d{2}\b", line) for line in bullets)
+        if not has_owner or not has_due:
+            warnings.append("Try section は @owner と YYYY-MM-DD の記載を推奨")
+
+if missing:
+    print(f"FAIL: {retro_file.name} -> {', '.join(missing)}")
+    raise SystemExit(1)
+
+print(f"PASS: {retro_file.name}")
+for warning in warnings:
+    print(f"WARN: {retro_file.name} -> {warning}")
+PY
+  }
+
+  check_adversarial_requirement_runtime() {
+    local risk_defs_file=""
+    if [[ -f "$HELIX_DIR/rules/common-defs.yaml" ]]; then
+      risk_defs_file="$HELIX_DIR/rules/common-defs.yaml"
+    elif [[ -f "$SCRIPT_DIR/templates/rules/common-defs.yaml" ]]; then
+      risk_defs_file="$SCRIPT_DIR/templates/rules/common-defs.yaml"
+    fi
+
+    local matrix_file="$HELIX_DIR/matrix.yaml"
+    local risk_eval="false	S		"
+    if [[ -f "$matrix_file" ]]; then
+      risk_eval=$(python3 - "$matrix_file" "$risk_defs_file" "$SCRIPT_DIR/lib" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+matrix_path = Path(sys.argv[1])
+risk_defs_path = Path(sys.argv[2]) if sys.argv[2] else None
+lib_path = Path(sys.argv[3])
+sys.path.insert(0, str(lib_path))
+import yaml_parser
+
+matrix = yaml_parser.parse_yaml(matrix_path.read_text(encoding="utf-8"))
+size = str((matrix.get("project") or {}).get("size") or "S")
+features = matrix.get("features", {})
+if not isinstance(features, dict):
+    features = {}
+
+canonical = {"auth", "payment", "pii", "external_api", "data_migration", "infra"}
+if risk_defs_path and risk_defs_path.exists():
+    defs = yaml_parser.parse_yaml(risk_defs_path.read_text(encoding="utf-8"))
+    rf = defs.get("risk_flags", {})
+    if isinstance(rf, dict) and rf:
+        canonical = {k for k in rf.keys() if isinstance(k, str) and k}
+
+flags = set()
+themes = []
+for feature_id, feature in features.items():
+    if not isinstance(feature, dict):
+        continue
+    risk_flags = feature.get("risk_flags", [])
+    if isinstance(risk_flags, str):
+        risk_flags = [risk_flags]
+    if not isinstance(risk_flags, list):
+        continue
+    selected = [f for f in risk_flags if isinstance(f, str) and f in canonical]
+    if selected:
+        themes.append(str(feature_id))
+        flags.update(selected)
+
+required = bool(flags) and size != "S"
+print(
+    f"{'true' if required else 'false'}\t{size}\t{','.join(sorted(flags))}\t{','.join(themes)}"
+)
+PY
+)
+    fi
+
+    local needs_review project_size risky_flags risky_themes
+    IFS=$'\t' read -r needs_review project_size risky_flags risky_themes <<< "$risk_eval"
+    if [[ "$needs_review" != "true" ]]; then
+      return 0
+    fi
+
+    local mechanical_only=false
+    if [[ "${HELIX_MECHANICAL_ONLY:-}" == "1" || -f "$HELIX_DIR/mechanical-only.flag" ]]; then
+      mechanical_only=true
+    fi
+    if [[ "$mechanical_only" == true ]]; then
+      echo "WARN: adversarial-review skip（機械適用のみ）"
+      return 0
+    fi
+
+    local same_theme_recent=""
+    if [[ -n "$risky_themes" ]]; then
+      same_theme_recent=$(python3 - "$HELIX_DIR/adversarial-review" "$risky_themes" <<'PY'
+import re
+import sys
+import time
+from pathlib import Path
+
+review_dir = Path(sys.argv[1])
+themes = [t for t in sys.argv[2].split(",") if t]
+threshold = time.time() - (30 * 24 * 60 * 60)
+
+if not review_dir.exists():
+    raise SystemExit(0)
+
+for theme in themes:
+    review_file = review_dir / f"{theme}-G2.md"
+    if not review_file.exists():
+        continue
+    if review_file.stat().st_mtime < threshold:
+        continue
+    text = review_file.read_text(encoding="utf-8")
+    if re.search(r"^Reviewer:\s*\S+", text, flags=re.MULTILINE):
+        print(theme)
+        raise SystemExit(0)
+PY
+)
+    fi
+    if [[ -n "$same_theme_recent" ]]; then
+      echo "WARN: adversarial-review skip（同一テーマ ${same_theme_recent} は30日以内に実施済み）"
+      return 0
+    fi
+
+    local review_files=()
+    if [[ -d "$HELIX_DIR/adversarial-review" ]]; then
+      mapfile -t review_files < <(find "$HELIX_DIR/adversarial-review" -maxdepth 1 -type f -name '*-G2.md' | sort)
+    fi
+    if [[ ${#review_files[@]} -eq 0 ]]; then
+      echo "G2 fail: adversarial-review 必須（risk_flags: ${risky_flags}, size: ${project_size}）ですが .helix/adversarial-review/*-G2.md がありません" >&2
+      mandatory_fail=$((mandatory_fail + 1))
+      add_fail_reason "adversarial-review"
+      return 0
+    fi
+
+    local reviewer_ok=false
+    for review_file in "${review_files[@]}"; do
+      if grep -qE '^Reviewer:[[:space:]]*\S+' "$review_file" 2>/dev/null; then
+        reviewer_ok=true
+        break
+      fi
+    done
+    if [[ "$reviewer_ok" != true ]]; then
+      echo "G2 fail: adversarial-review 必須ですが Reviewer: 行が未記入です" >&2
+      mandatory_fail=$((mandatory_fail + 1))
+      add_fail_reason "adversarial-review"
+      return 0
+    fi
+
+    echo "PASS: adversarial-review runtime check (risk_flags: ${risky_flags}, size: ${project_size})"
+  }
+
   if [[ "$gate" == "G5" ]] && requires_design_md_lint "$drive" "$ui_flag"; then
     local design_md_file="$PROJECT_ROOT/docs/DESIGN.md"
     local lint_output=""
@@ -505,15 +697,26 @@ PY
     fi
   fi
 
-  # G2/G4 ミニレトロの記入チェック
+  # G6 ミニレトロの section 単位チェック
   if [[ "$gate" == "G6" ]]; then
-    for retro in "$HELIX_DIR"/retros/*-G4.md; do
-      [[ -f "$retro" ]] || continue
-      if grep -qE '^-\s*$' "$retro" 2>/dev/null; then
-        echo "  WARN: レトロ未記入: $(basename "$retro")"
-        echo "    Keep/Problem/Try を記入してください"
-      fi
-    done
+    local retro_checked=0
+    if [[ -d "$HELIX_DIR/retros" ]]; then
+      while IFS= read -r retro; do
+        [[ -f "$retro" ]] || continue
+        retro_checked=$((retro_checked + 1))
+        if ! check_retro_sections "$retro"; then
+          mandatory_fail=$((mandatory_fail + 1))
+          add_fail_reason "retro-sections"
+        fi
+      done < <(find "$HELIX_DIR/retros" -maxdepth 1 -type f -name '*.md' | sort)
+    fi
+    if [[ "$retro_checked" -eq 0 ]]; then
+      echo "WARN: retros/*.md が存在しないため section チェックをスキップしました"
+    fi
+  fi
+
+  if [[ "$gate" == "G2" ]]; then
+    check_adversarial_requirement_runtime
   fi
 
   if [[ "$gate" == "G2" ]] && is_fe_driven_gate; then
@@ -933,7 +1136,7 @@ PY
       log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
     fi
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
-      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "failed" 2>/dev/null || true
+      write_phase_or_die "gates.${gate}.status" "failed"
     fi
     if [[ "$JSON_OUTPUT" == true ]]; then
       emit_gate_json "$gate" "fail" "$static_pass" "$static_fail" "$prereq"
@@ -945,8 +1148,8 @@ PY
       log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
     fi
     if [[ "$DRY_RUN" != true && -f "$PHASE_FILE" ]]; then
-      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.status" "passed" 2>/dev/null || true
-      python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${gate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+      write_phase_or_die "gates.${gate}.status" "passed"
+      write_phase_or_die "gates.${gate}.date" "$(date '+%Y-%m-%d')"
       maybe_generate_retro "$gate"
     fi
     case "$gate" in
@@ -1028,22 +1231,20 @@ maybe_generate_retro() {
 
 ## Phase: $phase_desc
 
-### Keep（うまくいったこと）
--
+## Keep
+- うまくいったことを記載
 
-### Problem（問題があったこと）
--
+## Problem
+- 問題だったことを記載
 
-### Try（次に試すこと）
-| アクション | 担当 | 期日 |
-|-----------|------|------|
-| | | |
+## Try
+- @owner 2026-01-01 次に試すアクション
 RETRO
   fi
 
   echo ""
   echo "[helix-gate] ミニレトロ生成: $retro_file"
-  echo "[helix-gate]   内容を記入してください（Try は owner + due 必須）"
+  echo "[helix-gate]   内容を記入してください（Try の @owner と YYYY-MM-DD は推奨）"
 }
 
 run_checks "$GATE"

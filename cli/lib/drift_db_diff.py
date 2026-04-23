@@ -10,6 +10,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from helix_db import DEFAULT_SQLITE_TIMEOUT_SEC, get_connection
+
 CONSTRAINT_PREFIXES = {"constraint", "primary", "unique", "foreign", "check"}
 INLINE_CONSTRAINTS = {
     "primary",
@@ -108,7 +110,7 @@ def _parse_design_indexes(doc: str) -> dict[str, set[str]]:
 
 
 def _load_actual_schema(db_path: Path) -> tuple[set[str], dict[str, dict[str, str]], dict[str, set[str]]]:
-    conn = sqlite3.connect(str(db_path))
+    conn = get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
     try:
         table_rows = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"

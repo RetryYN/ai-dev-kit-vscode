@@ -48,15 +48,17 @@ resolve_model_for_role() {
 cmd_catalog() {
   local filter="${1:-}"
 
-  python3 -c "
-import re, sys
+  HELIX_TASK_CATALOG="$CATALOG" HELIX_TASK_FILTER="$filter" python3 - <<'PY' 2>/dev/null
+import os
+import re
+import sys
 
 cats = {}
 current_cat = None
 current_task = None
 tasks = {}
 
-with open('$CATALOG') as f:
+with open(os.environ["HELIX_TASK_CATALOG"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         if not line or line.lstrip().startswith('#'):
@@ -82,7 +84,7 @@ with open('$CATALOG') as f:
             if m:
                 tasks[current_task][m.group(1)] = m.group(2).strip('\"')
 
-filt = '$filter'
+filt = os.environ.get("HELIX_TASK_FILTER", "")
 print('=== HELIX Task Catalog ===')
 print()
 for cat, task_ids in cats.items():
@@ -97,7 +99,7 @@ for cat, task_ids in cats.items():
         print(f'  {tid:<30s} {role:<12s} ~{est}min  {name}')
     print()
 print(f'Total: {sum(len(v) for v in cats.values())} tasks / {len(cats)} categories')
-" 2>/dev/null
+PY
 }
 
 # ============================
@@ -120,10 +122,21 @@ cmd_plan() {
   fi
 
   mkdir -p "$HELIX_DIR"
+  local selected_tasks_input=""
+  if [[ ${#task_ids[@]} -gt 0 ]]; then
+    selected_tasks_input=$(printf '%s\n' "${task_ids[@]}")
+  fi
 
   # タスクプランを生成
-  python3 -c "
-import re, sys, json
+  HELIX_TASK_CATALOG="$CATALOG" \
+  HELIX_TASK_PLAN="$TASK_PLAN" \
+  HELIX_PLAN_GOAL="$goal" \
+  HELIX_SELECTED_TASKS="$selected_tasks_input" \
+  python3 - <<'PY' 2>/dev/null
+import json
+import os
+import re
+import sys
 from datetime import date
 
 # カタログ読み込み
@@ -132,7 +145,7 @@ current_cat = None
 current_task = None
 tasks = {}
 
-with open('$CATALOG') as f:
+with open(os.environ["HELIX_TASK_CATALOG"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         if not line or line.lstrip().startswith('#'):
@@ -157,7 +170,9 @@ with open('$CATALOG') as f:
                 tasks[current_task][m.group(1)] = val
 
 # タスクプラン生成
-selected = [t.strip() for t in '${task_ids[*]}'.split()]
+selected = [t.strip() for t in os.environ.get("HELIX_SELECTED_TASKS", "").splitlines() if t.strip()]
+goal = os.environ["HELIX_PLAN_GOAL"]
+task_plan_path = os.environ["HELIX_TASK_PLAN"]
 plan_tasks = []
 total_estimate = 0
 
@@ -178,7 +193,7 @@ for i, tid in enumerate(selected, 1):
 # YAML 出力
 lines = [
     f'# Task Plan — {date.today()}',
-    f'goal: \"$goal\"',
+    f'goal: \"{goal}\"',
     f'total_estimate: {total_estimate}',
     f'status: active',
     f'tasks:',
@@ -192,56 +207,68 @@ for t in plan_tasks:
     lines.append(f'    status: pending')
     lines.append(f'    skill: {t[\"skill\"]}')
 
-with open('$TASK_PLAN', 'w') as f:
+with open(task_plan_path, 'w', encoding='utf-8') as f:
     f.write('\n'.join(lines) + '\n')
 
-print(f'=== Task Plan: $goal ===')
+print(f'=== Task Plan: {goal} ===')
 print()
 print(f'Total: {len(plan_tasks)} tasks, ~{total_estimate} min')
 print()
 for t in plan_tasks:
     print(f'  {t[\"id\"]} [{t[\"role\"]:<12s}] ~{t[\"estimate\"]:>3d}min  {t[\"name\"]}')
 print()
-print(f'Saved: $TASK_PLAN')
-" 2>/dev/null
+print(f'Saved: {task_plan_path}')
+PY
 
   # === タスク選択を DB に記録 ===
   if [[ -f "$DB_PATH" ]]; then
     local plan_id
     plan_id="plan-$(date '+%Y%m%d-%H%M%S')"
     local all_tasks
-    all_tasks=$(python3 -c "
+    all_tasks=$(HELIX_TASK_CATALOG="$CATALOG" python3 - <<'PY' 2>/dev/null
+import json
+import os
 import re
 tasks = []
 current_cat = None
-with open('$CATALOG') as f:
+with open(os.environ["HELIX_TASK_CATALOG"], encoding="utf-8") as f:
     for line in f:
         m = re.match(r'  ([\w-]+):\s*$', line.rstrip())
         if m:
             name = m.group(1)
             if name not in ('name','role','estimate','skill','actions'):
                 tasks.append(name)
-import json; print(json.dumps(tasks))
-" 2>/dev/null)
+print(json.dumps(tasks))
+PY
+)
 
-    python3 "$DB_PY" record-selection "$DB_PATH" "$(python3 -c "
+    python3 "$DB_PY" record-selection "$DB_PATH" "$(HELIX_PLAN_ID="$plan_id" HELIX_PLAN_GOAL="$goal" HELIX_SELECTED_TASKS="$selected_tasks_input" HELIX_AVAILABLE_TASKS_JSON="$all_tasks" python3 - <<'PY' 2>/dev/null
 import json
+import os
+
+available_tasks = json.loads(os.environ["HELIX_AVAILABLE_TASKS_JSON"])
+selected_tasks = [t.strip() for t in os.environ.get("HELIX_SELECTED_TASKS", "").splitlines() if t.strip()]
 print(json.dumps({
-    'plan_id': '$plan_id',
-    'plan_goal': '$goal',
-    'selected_tasks': '${task_ids[*]}'.split(),
-    'available_tasks': json.loads('$all_tasks')
+    'plan_id': os.environ["HELIX_PLAN_ID"],
+    'plan_goal': os.environ["HELIX_PLAN_GOAL"],
+    'selected_tasks': selected_tasks,
+    'available_tasks': available_tasks,
 }))
-" 2>/dev/null)" 2>/dev/null
+PY
+)" 2>/dev/null
 
     local sel_id
-    sel_id=$(python3 -c "
-import sqlite3
-conn = sqlite3.connect('$DB_PATH')
+    sel_id=$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_DB_PATH_VALUE="$DB_PATH" python3 - <<'PY' 2>/dev/null
+import os
+import sys
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+import helix_db
+conn = helix_db.get_connection(os.environ["HELIX_DB_PATH_VALUE"])
 row = conn.execute('SELECT id FROM task_selections ORDER BY id DESC LIMIT 1').fetchone()
 print(row[0] if row else '')
 conn.close()
-" 2>/dev/null)
+PY
+)
 
     echo ""
     echo "[helix-task] タスク選択を DB に記録 (selection #$sel_id)"
@@ -271,16 +298,22 @@ conn.close()
     # レビュー結果をDB に記録
     local review_status="approved"
     echo "$review_result" | grep -qi "reject\|不足\|追加すべき\|missing" && review_status="revised"
+    local review_excerpt
+    review_excerpt=$(printf '%s' "$review_result" | tail -20 | head -c 500)
 
-    python3 "$DB_PY" update-review "$DB_PATH" "$(python3 -c "
+    python3 "$DB_PY" update-review "$DB_PATH" "$(HELIX_SELECTION_ID="$sel_id" HELIX_REVIEW_STATUS="$review_status" HELIX_REVIEW_RESULT="$review_excerpt" python3 - <<'PY' 2>/dev/null
 import json
+import os
+
+selection_id = os.environ.get("HELIX_SELECTION_ID", "").strip()
 print(json.dumps({
-    'selection_id': $sel_id,
-    'review_status': '$review_status',
-    'review_result': '''$(echo "$review_result" | tail -20 | head -c 500)''',
-    'review_suggestions': ''
+    'selection_id': int(selection_id) if selection_id else None,
+    'review_status': os.environ["HELIX_REVIEW_STATUS"],
+    'review_result': os.environ["HELIX_REVIEW_RESULT"],
+    'review_suggestions': '',
 }))
-" 2>/dev/null)" 2>/dev/null
+PY
+)" 2>/dev/null
 
     echo ""
     echo "[helix-task] TL レビュー: $review_status"
@@ -304,7 +337,8 @@ cmd_run() {
 
   # 次の pending タスクを取得
   local next_task
-  next_task=$(python3 -c "
+  next_task=$(HELIX_TASK_PLAN="$TASK_PLAN" python3 - <<'PY' 2>/dev/null
+import os
 import re
 current_id = None
 current_task = None
@@ -312,7 +346,7 @@ current_role = None
 current_name = None
 current_skill = None
 
-with open('$TASK_PLAN') as f:
+with open(os.environ["HELIX_TASK_PLAN"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         m = re.match(r'  (T\d+):', line)
@@ -330,7 +364,8 @@ with open('$TASK_PLAN') as f:
                 elif key == 'status' and val == 'pending':
                     print(f'{current_id}|{current_task}|{current_role}|{current_name}|{current_skill}')
                     exit()
-" 2>/dev/null)
+PY
+)
 
   if [[ -z "$next_task" ]]; then
     echo "=== All tasks completed ==="
@@ -356,11 +391,19 @@ with open('$TASK_PLAN') as f:
   if [[ -f "$DB_PATH" ]]; then
     local plan_goal
     plan_goal=$(python3 "$YP" read "$TASK_PLAN" goal 2>/dev/null || echo "")
-    db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
-import json; print(json.dumps({
-    'task_id': '$tid', 'task_type': '$task_type',
-    'plan_goal': '$plan_goal', 'role': '$role', 'status': 'running'
-}))" 2>/dev/null)" 2>/dev/null || echo "")
+    db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(HELIX_TASK_ID="$tid" HELIX_TASK_TYPE="$task_type" HELIX_PLAN_GOAL="$plan_goal" HELIX_TASK_ROLE="$role" python3 - <<'PY' 2>/dev/null
+import json
+import os
+
+print(json.dumps({
+    'task_id': os.environ["HELIX_TASK_ID"],
+    'task_type': os.environ["HELIX_TASK_TYPE"],
+    'plan_goal': os.environ["HELIX_PLAN_GOAL"],
+    'role': os.environ["HELIX_TASK_ROLE"],
+    'status': 'running',
+}))
+PY
+)" 2>/dev/null || echo "")
   fi
 
   # ログディレクトリ
@@ -443,8 +486,16 @@ import json; print(json.dumps({
   else
     echo "[helix-task] helix-codex --role $role に委譲"
     set +e
+    local old_pipefail
+    if [[ -o pipefail ]]; then
+      old_pipefail=1
+    else
+      old_pipefail=0
+      set -o pipefail
+    fi
     "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
     delegate_exit=$?
+    [[ "$old_pipefail" == "0" ]] && set +o pipefail
     set -e
     if [[ "$delegate_exit" -ne 0 ]]; then
       task_status="failed"
@@ -522,15 +573,28 @@ VCHECK
 
   # DB 更新
   if [[ -f "$DB_PATH" && -n "$db_run_id" ]]; then
-    python3 -c "
-import sqlite3
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" \
+    HELIX_DB_PATH_VALUE="$DB_PATH" \
+    HELIX_TASK_STATUS="$task_status" \
+    HELIX_LOG_FILE="$LOG_FILE" \
+    HELIX_DB_RUN_ID="$db_run_id" \
+    python3 - <<'PY' 2>/dev/null || true
 from datetime import datetime
-conn = sqlite3.connect('$DB_PATH')
+import os
+import sys
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+import helix_db
+conn = helix_db.get_connection(os.environ["HELIX_DB_PATH_VALUE"])
 conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
-    ('$task_status', datetime.now().isoformat(), '$LOG_FILE', $db_run_id))
+    (
+        os.environ["HELIX_TASK_STATUS"],
+        datetime.now().isoformat(),
+        os.environ["HELIX_LOG_FILE"],
+        int(os.environ["HELIX_DB_RUN_ID"]),
+    ))
 conn.commit()
 conn.close()
-" 2>/dev/null || true
+PY
   fi
 
   if [[ "$task_status" == "failed" ]]; then
@@ -556,7 +620,8 @@ cmd_status() {
     exit "$EXIT_PREREQ_ERROR"
   fi
 
-  python3 -c "
+  HELIX_TASK_PLAN="$TASK_PLAN" python3 - <<'PY' 2>/dev/null
+import os
 import re
 
 goal = ''
@@ -564,7 +629,7 @@ total = 0
 tasks = []
 current = {}
 
-with open('$TASK_PLAN') as f:
+with open(os.environ["HELIX_TASK_PLAN"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         m = re.match(r'goal:\s*\"?(.+?)\"?\s*$', line)
@@ -596,7 +661,7 @@ for t in tasks:
     name = t.get('name', t.get('task', '?'))
     est = t.get('estimate', '?')
     print(f'  {icon} {t[\"id\"]} [{role:<12s}] ~{est:>3s}min  {name}')
-" 2>/dev/null
+PY
 }
 
 # ============================
@@ -612,14 +677,20 @@ cmd_observe() {
     exit "$EXIT_PREREQ_ERROR"
   fi
 
-  python3 -c "
-import re, sys, os
+  HELIX_ACTION_TYPES="$ACTION_TYPES" \
+  HELIX_TASK_CATALOG="$CATALOG" \
+  HELIX_LOG_DIR="$LOG_DIR" \
+  HELIX_OBSERVE_TARGET="$target" \
+  python3 - <<'PY' 2>/dev/null
+import os
+import re
+import sys
 
 # アクション型のオブザーバールール読み込み
 action_rules = {}
 current_type = None
 current_keywords = []
-with open('$ACTION_TYPES') as f:
+with open(os.environ["HELIX_ACTION_TYPES"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         if not line or line.lstrip().startswith('#'):
@@ -640,7 +711,7 @@ with open('$ACTION_TYPES') as f:
 # タスクカタログからアクション列読み込み
 task_actions = {}
 current_task = None
-with open('$CATALOG') as f:
+with open(os.environ["HELIX_TASK_CATALOG"], encoding="utf-8") as f:
     for line in f:
         line = line.rstrip()
         m = re.match(r'  ([\w-]+):\s*$', line)
@@ -660,8 +731,8 @@ with open('$CATALOG') as f:
                 })
 
 # ログファイルを検証
-log_dir = '$LOG_DIR'
-target = '$target'
+log_dir = os.environ["HELIX_LOG_DIR"]
+target = os.environ.get("HELIX_OBSERVE_TARGET", "all")
 total_actions = 0
 passed_actions = 0
 failed_actions = 0
@@ -728,7 +799,7 @@ for tid, task_type, status, summary, action_results in results:
 print(f'=== Summary: {passed_actions}/{total_actions} actions passed, {failed_actions} failed ===')
 if failed_actions > 0:
     sys.exit(1)
-" 2>/dev/null
+PY
 }
 
 # ============================

@@ -584,7 +584,7 @@ L7             デプロイ ←──→ 本番検証
 Forward 検証が「**仕様に対する実装の適合**」を判定するのに対し、Reverse 検証は「**証拠に対する仮説の十分性**」を判定する。
 
 → Reverse フロー詳細: `workflow/reverse-analysis/SKILL.md`
-→ Reverse ゲート定義: `tools/ai-coding/references/gate-policy.md §Reverse ゲート`
+→ Reverse ゲート定義: `skills/tools/ai-coding/references/gate-policy.md §Reverse ゲート`
 
 ### 15.1 Forward ↔ Reverse 検証の対比
 

@@ -1,6 +1,7 @@
 > Adapted from codex-plugin-cc (OpenAI, Apache 2.0)
 
 # Codex Prompt Blocks for HELIX
+> 目的: Codex Prompt Blocks for HELIX の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 HELIX運用向けに、Codex/GPT-5.4向けのプロンプトブロックを再整理したリファレンス。
 XMLブロック自体は英語のまま利用し、周辺ガイドのみ日本語で運用する。

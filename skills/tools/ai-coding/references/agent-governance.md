@@ -1,4 +1,5 @@
 # HELIX Agent Governance Policy
+> 目的: HELIX Agent Governance Policy の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 ## 目的
 

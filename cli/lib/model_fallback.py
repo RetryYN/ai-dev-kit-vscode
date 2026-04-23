@@ -15,11 +15,26 @@ sys.path.insert(0, str(HELIX_ROOT / "cli" / "lib"))
 try:
     from yaml_parser import load_yaml  # type: ignore
 except ImportError:
+    try:
+        from matrix_compiler import load_yaml as _matrix_load_yaml  # type: ignore
+    except ImportError:
+        _matrix_load_yaml = None
+
+    try:
+        from yaml_parser import parse_yaml as _parse_yaml  # type: ignore
+    except ImportError:
+        _parse_yaml = None
+
     def load_yaml(path: str | Path) -> Any:
         import json
         p = Path(path)
+        text = p.read_text(encoding="utf-8")
         if p.suffix in (".json",):
-            return json.loads(p.read_text(encoding="utf-8"))
+            return json.loads(text)
+        if _matrix_load_yaml is not None:
+            return _matrix_load_yaml(p)
+        if _parse_yaml is not None:
+            return _parse_yaml(text)
         raise RuntimeError("yaml_parser not available")
 
 

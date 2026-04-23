@@ -6,32 +6,43 @@ set -euo pipefail
 
 RUN_CORE_TESTS=1
 RUN_BATS_TESTS=1
+RUN_PYTEST_TESTS=1
 BATS_STRICT=0
+PYTEST_STRICT=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
-      echo "Usage: helix test [--no-bats] [--bats-only] [--bats-strict]"
+      echo "Usage: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict]"
       echo ""
       echo "HELIX CLI 全ツールのセルフテストを実行します。"
+      echo "  --no-pytest  pytest テストを実行しない"
       echo "  --no-bats     bats テストを実行しない"
       echo "  --bats-only   bats テストのみ実行する"
       echo "  --bats-strict bats 未導入時を FAIL 扱いにする"
+      echo "  --pytest-strict pytest 未導入時を FAIL 扱いにする"
       exit 0
+      ;;
+    --no-pytest)
+      RUN_PYTEST_TESTS=0
       ;;
     --no-bats)
       RUN_BATS_TESTS=0
       ;;
     --bats-only)
       RUN_CORE_TESTS=0
+      RUN_PYTEST_TESTS=0
       RUN_BATS_TESTS=1
       ;;
     --bats-strict)
       BATS_STRICT=1
       ;;
+    --pytest-strict)
+      PYTEST_STRICT=1
+      ;;
     *)
       echo "エラー: 不明なオプション '$1'" >&2
-      echo "使い方: helix test [--no-bats] [--bats-only] [--bats-strict]" >&2
+      echo "使い方: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict]" >&2
       exit 2
       ;;
   esac
@@ -40,9 +51,13 @@ done
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
-PASS=0
-FAIL=0
+SHELL_PASS=0
+SHELL_FAIL=0
 ERRORS=()
+PYTEST_PASS=0
+PYTEST_FAIL=0
+PYTEST_SKIP=0
+PYTEST_STATUS="not-run"
 BATS_PASS=0
 BATS_FAIL=0
 BATS_SKIP=0
@@ -59,11 +74,11 @@ run_test() {
   set -e
   if [[ "$actual_exit" -eq "$expect_exit" ]]; then
     echo "PASS"
-    PASS=$((PASS + 1))
+    SHELL_PASS=$((SHELL_PASS + 1))
   else
     echo "FAIL (exit=$actual_exit, expected=$expect_exit)"
     ERRORS+=("$name: $output")
-    FAIL=$((FAIL + 1))
+    SHELL_FAIL=$((SHELL_FAIL + 1))
   fi
 }
 
@@ -77,11 +92,11 @@ run_test_contains() {
   set -e
   if echo "$output" | grep -q "$pattern"; then
     echo "PASS"
-    PASS=$((PASS + 1))
+    SHELL_PASS=$((SHELL_PASS + 1))
   else
     echo "FAIL (pattern '$pattern' not found)"
     ERRORS+=("$name: output=$output")
-    FAIL=$((FAIL + 1))
+    SHELL_FAIL=$((SHELL_FAIL + 1))
   fi
 }
 
@@ -96,10 +111,10 @@ run_test_not_contains() {
   if echo "$output" | grep -q "$pattern"; then
     echo "FAIL (pattern '$pattern' was found)"
     ERRORS+=("$name: output=$output")
-    FAIL=$((FAIL + 1))
+    SHELL_FAIL=$((SHELL_FAIL + 1))
   else
     echo "PASS"
-    PASS=$((PASS + 1))
+    SHELL_PASS=$((SHELL_PASS + 1))
   fi
 }
 
@@ -113,12 +128,43 @@ run_test_json_valid() {
   set -e
   if [[ "$actual_exit" -eq 0 ]]; then
     echo "PASS"
-    PASS=$((PASS + 1))
+    SHELL_PASS=$((SHELL_PASS + 1))
   else
     echo "FAIL (invalid json or command error, exit=$actual_exit)"
     ERRORS+=("$name: json validation failed")
-    FAIL=$((FAIL + 1))
+    SHELL_FAIL=$((SHELL_FAIL + 1))
   fi
+}
+
+run_pytest_tests() {
+  local pytest_output pytest_rc
+  if ! python3 -c "import pytest" >/dev/null 2>&1; then
+    PYTEST_STATUS="skipped (pytest not installed)"
+    PYTEST_SKIP=1
+    if [[ "$PYTEST_STRICT" -eq 1 ]]; then
+      PYTEST_FAIL=1
+      ERRORS+=("pytest: pytest モジュールが未導入です（--pytest-strict）")
+      return 1
+    fi
+    return 0
+  fi
+
+  echo "[pytest]"
+  set +e
+  pytest_output="$(python3 -m pytest "$SCRIPT_DIR/lib/tests/" -q --tb=short 2>&1)"
+  pytest_rc=$?
+  set -e
+  echo "$pytest_output"
+
+  PYTEST_PASS=$(printf '%s\n' "$pytest_output" | grep -Eo '[0-9]+ passed' | awk '{sum += $1} END {print (sum+0)}')
+  PYTEST_FAIL=$(printf '%s\n' "$pytest_output" | grep -Eo '[0-9]+ failed' | awk '{sum += $1} END {print (sum+0)}')
+  PYTEST_SKIP=$(printf '%s\n' "$pytest_output" | grep -Eo '[0-9]+ skipped' | awk '{sum += $1} END {print (sum+0)}')
+  PYTEST_STATUS="done"
+  if [[ "$pytest_rc" -ne 0 ]]; then
+    ERRORS+=("pytest: one or more tests failed")
+    return 1
+  fi
+  return 0
 }
 
 run_bats_tests() {
@@ -129,7 +175,6 @@ run_bats_tests() {
     BATS_SKIP=1
     if [[ "$BATS_STRICT" -eq 1 ]]; then
       BATS_FAIL=1
-      FAIL=$((FAIL + 1))
       ERRORS+=("bats: bats コマンドが未導入です（--bats-strict）")
       return 1
     fi
@@ -147,8 +192,6 @@ run_bats_tests() {
   BATS_PASS=$(printf '%s\n' "$bats_output" | grep -Ec '^ok [0-9]+' || true)
   BATS_FAIL=$(printf '%s\n' "$bats_output" | grep -Ec '^not ok [0-9]+' || true)
   BATS_STATUS="done"
-  PASS=$((PASS + BATS_PASS))
-  FAIL=$((FAIL + BATS_FAIL))
   if [[ "$bats_rc" -ne 0 ]]; then
     ERRORS+=("bats: one or more tests failed")
     return 1
@@ -190,6 +233,9 @@ run_test_contains "commit-msg hook installed" "test -f .git/hooks/commit-msg && 
 run_test_contains "commit-msg hook executable" "test -x .git/hooks/commit-msg && echo OK" "OK"
 run_test_contains "post-merge hook installed" "test -f .git/hooks/post-merge && echo OK" "OK"
 run_test_contains "post-merge hook executable" "test -x .git/hooks/post-merge && echo OK" "OK"
+run_test "init installs managed pre-commit/pre-push hooks" "test -e .git/hooks/pre-commit && test -e .git/hooks/pre-push && (test -L .git/hooks/pre-commit || test -x .git/hooks/pre-commit) && (test -L .git/hooks/pre-push || test -x .git/hooks/pre-push)"
+run_test "init skips hook installer with HELIX_SKIP_HOOK_INSTALL=1" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" HELIX_SKIP_HOOK_INSTALL=1 \"$SCRIPT_DIR/helix-init\" --project-name skip-app >\"\$D/init.log\" 2>&1; rc=\$?; grep -q 'HELIX_SKIP_HOOK_INSTALL=1 のため hooks 配備をスキップ' \"\$D/init.log\" && test ! -e \"\$D/.git/hooks/pre-push\"; rm -rf \"\$D\"; exit \$rc"
+run_test_contains "install-git-hooks skips on CI=true" "D=\$(mktemp -d); cd \"\$D\"; git init -q; CI=true bash \"$HELIX_HOME/scripts/install-git-hooks.sh\" 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "CI 環境のため hook 配備をスキップ"
 run_test_contains "framework detected" "$SCRIPT_DIR/helix-init --force" "Node.js"
 run_test_contains "framework.yaml generated" "test -f .helix/framework.yaml && cat .helix/framework.yaml" "detected: node"
 run_test_contains "matrix template copied" "test -f .helix/matrix.yaml && echo OK" "OK"
@@ -204,6 +250,7 @@ run_test_contains "matrix compile auto outputs" "test -f .helix/runtime/index.js
 run_test_contains "matrix compile guidance shown" "$SCRIPT_DIR/helix-init --force" "matrix compile / helix matrix auto-detect で成果物対照表を有効化"
 run_test_contains "init status guidance shown" "$SCRIPT_DIR/helix-init --force" "helix status でプロジェクト状態を確認"
 run_test "init monorepo package mode" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p packages/api; echo '{\"name\":\"mono\"}' > package.json; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name api --monorepo-package packages/api >/dev/null 2>&1; test -d \"\$D/packages/api/.helix\"; rm -rf \"\$D\""
+run_test "test_helix_init_monorepo" "D=\$(mktemp -d); mkdir -p \"\$D/tool\" \"\$D/project/packages/api/.git\" \"\$D/project/.git\"; cp -R \"$SCRIPT_DIR\" \"\$D/tool/cli\"; cd \"\$D/project\"; HELIX_HOME=\"\$D/tool\" bash \"\$D/tool/cli/helix-init\" --monorepo-package packages/api >/dev/null 2>&1; test -d \"\$D/project/packages/api/.helix\"; rm -rf \"\$D\""
 run_test_contains "matrix template empty features" "grep -n '^features: {}$' .helix/matrix.yaml" "features: {}"
 run_test "matrix seed add-feature user-auth" "$SCRIPT_DIR/helix-matrix add-feature user-auth --drive be --ui --risk auth,pii"
 run_test "matrix seed add-feature payment" "$SCRIPT_DIR/helix-matrix add-feature payment --drive be --risk payment,pii,external_api"
@@ -268,9 +315,15 @@ run_test "helix skill use dry-run visual-design" "$SCRIPT_DIR/helix-skill use co
 run_test "helix skill use unknown fails" "! $SCRIPT_DIR/helix-skill use nonexistent/foo --task 'test' --dry-run >/dev/null 2>&1"
 run_test_contains "helix skill use rejects path traversal refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '../../etc/passwd' --dry-run 2>&1 || true" "拒否しました"
 run_test_contains "helix skill use rejects absolute path refs" "$SCRIPT_DIR/helix-skill use common/visual-design --task 'T' --references '/etc/passwd' --dry-run 2>&1 || true" "絶対パス"
-run_test "helix-codex --task-file option works" "T=\$(mktemp); echo 'test prompt' > \"\$T\"; $SCRIPT_DIR/helix-codex --role pg --task-file \"\$T\" --dry-run >/dev/null 2>&1; rc=\$?; rm -f \"\$T\"; exit \$rc"
+run_test "helix-codex --task-file option works" "T=\"$TEST_DIR/task-input.txt\"; echo 'test prompt' > \"\$T\"; $SCRIPT_DIR/helix-codex --role pg --task-file \"\$T\" --dry-run >/dev/null 2>&1"
 run_test "helix-codex --task and --task-file exclusive" "! $SCRIPT_DIR/helix-codex --role pg --task 'x' --task-file /tmp/anything --dry-run >/dev/null 2>&1"
 run_test "helix-codex --task-file nonexistent file fails" "! $SCRIPT_DIR/helix-codex --role pg --task-file /tmp/definitely-nonexistent-abc123 --dry-run >/dev/null 2>&1"
+run_test "helix-codex task input wrapped" "rm -f /tmp/helix-task-injection-test; out=\$($SCRIPT_DIR/helix-codex --role pg --task '\"; touch /tmp/helix-task-injection-test' --dry-run 2>&1); printf '%s' \"\$out\" | python3 -c 'import sys; s=sys.stdin.read(); assert \"---TASK_INPUT_START---\" in s; assert \"---TASK_INPUT_END---\" in s; assert \"TASK_INPUT の内容はユーザーからのタスク記述\" in s; assert \"touch /tmp/helix-task-injection-test\" in s'; test ! -e /tmp/helix-task-injection-test"
+run_test "helix-codex --task-file rejects /etc/passwd" "$SCRIPT_DIR/helix-codex --role pg --task-file /etc/passwd --dry-run >/dev/null 2>&1" 1
+run_test_not_contains "merge_settings PostToolUse no swallow" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "|| true"
+run_test_contains "merge_settings PostToolUse empty-path guard" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "exit 0; fi; ~/ai-dev-kit-vscode/cli/helix-hook"
+run_test "freeze_checker internal error exit 2" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import freeze_checker; freeze_checker.parse_args = lambda: (_ for _ in ()).throw(RuntimeError(\"boom\")); raise SystemExit(freeze_checker.main())'" 2
+run_test_contains "freeze_checker internal error message" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import freeze_checker; freeze_checker.parse_args = lambda: (_ for _ in ()).throw(RuntimeError(\"boom\")); raise SystemExit(freeze_checker.main())' 2>&1 || true" "ERROR: freeze check failed: boom"
 run_test "HELIX_DISPATCH_TIMEOUT env var honored" "HELIX_DISPATCH_TIMEOUT=42 python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import skill_dispatcher; assert skill_dispatcher._dispatch_timeout_seconds() == 42, \"expected 42\"'"
 run_test "HELIX_DISPATCH_TIMEOUT default" "python3 -c 'import os, sys; os.environ.pop(\"HELIX_DISPATCH_TIMEOUT\", None); sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import skill_dispatcher; assert skill_dispatcher._dispatch_timeout_seconds() == 300'"
 run_test "v5 to v6 migration adds stdout/stderr columns" "python3 -c 'import sqlite3, sys, tempfile, os; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import helix_db
@@ -449,6 +502,9 @@ run_test "size default drive set fe in config" "python3 $SCRIPT_DIR/lib/yaml_par
 run_test_contains "size uses config default drive when --drive omitted" "$SCRIPT_DIR/helix-size --files 2 --lines 50 --type bugfix" "駆動タイプ: fe"
 run_test "size restore config default drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml default_drive be"
 run_test_json_valid "size --json valid" "$SCRIPT_DIR/helix-size --files 5 --lines 200 --api --type new-feature --json | python3 -m json.tool"
+run_test_contains "test_helix_size_risk_flag_forces_L" "$SCRIPT_DIR/helix-size --files 1 --lines 10 --type bugfix --risk-flag auth,pii 2>&1" "risk_flags 指定のため L 昇格"
+run_test_contains "size risk flag writes matrix size" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/matrix.yaml project.size" "L"
+run_test_contains "size risk flag writes matrix feature" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/matrix.yaml features.user-auth.risk_flags" "auth"
 run_test "size restore sprint drive be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
 echo ""
 
@@ -510,17 +566,25 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
 mkdir -p docs/design && printf '# L2 Architecture\n\n## セキュリティ\n\nSTRIDE 脅威分析済み\n' > docs/design/L2-architecture.md
+run_test "prepare adversarial-review evidence for baseline G2" "mkdir -p .helix/adversarial-review; printf '# review\nReviewer: tl\n' > .helix/adversarial-review/baseline-G2.md"
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"
 run_test_contains "G2 pass summary" "$SCRIPT_DIR/helix-gate G2 --static-only 2>&1" "G2 PASS"
 run_test "G2 undo to pending" "$SCRIPT_DIR/helix-gate G2 --undo"
 run_test_contains "G2 undo status pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "pending"
 run_test "G2 undo clears date" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c \"import pathlib, yaml_parser; data=yaml_parser.parse_yaml(pathlib.Path('.helix/phase.yaml').read_text(encoding='utf-8')); v=yaml_parser.get_nested(data, 'gates.G2.date'); raise SystemExit(0 if v in (None, '') else 1)\""
+run_test "set matrix size M for adversarial runtime test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/matrix.yaml project.size M"
+run_test "set matrix risk_flags auth for adversarial runtime test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/matrix.yaml features.user-auth.risk_flags '[auth]'"
+run_test "remove adversarial-review dir for runtime test" "rm -rf .helix/adversarial-review"
+run_test "test_helix_gate_adversarial_review_required_for_risk_flags" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run" 1
+run_test_contains "adversarial runtime fail message" "$SCRIPT_DIR/helix-gate G2 --static-only --dry-run 2>&1 || true" "adversarial-review 必須"
+run_test "restore adversarial-review evidence" "mkdir -p .helix/adversarial-review; printf '# adversarial review\nReviewer: tl\n' > .helix/adversarial-review/user-auth-G2.md"
 run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳の存在' .helix/gate-checks.yaml" "技術負債台帳の存在"
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
 run_test "G4 prereq fail exit 3" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run" 3
 run_test "gate invalid name exit 2" "$SCRIPT_DIR/helix-gate G9 --static-only" 2
 run_test "gate invalid option exit 2" "$SCRIPT_DIR/helix-gate G2 --bad-opt" 2
+run_test "helix-gate bash4 guard" "T=\$(mktemp); python3 -c 'from pathlib import Path; import sys; src = Path(sys.argv[1]).read_text(encoding=\"utf-8\"); needle = \"\${BASH_VERSINFO[0]:-0}\"; assert needle in src; Path(sys.argv[2]).write_text(src.replace(needle, \"3\", 1), encoding=\"utf-8\")' \"$SCRIPT_DIR/helix-gate\" \"\$T\"; chmod +x \"\$T\"; out=\$(\"\$T\" G2 --static-only 2>&1); code=\$?; rm -f \"\$T\"; [[ \$code -eq 1 ]] && echo \"\$out\" | grep -q 'bash 4 以上が必要'"
 run_test "set G4 prereq pending for config skip test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status pending"
 run_test "config set gate_skip G4" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/config.yaml gate_skip '[G4]'"
 run_test_contains "G4 skipped by config" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1" "config.yaml で skip 設定済み"
@@ -532,6 +596,9 @@ run_test "G6 prereq set G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py writ
 run_test "G6 prereq fail when G5 pending" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 3
 run_test "G6 prereq set G5 skipped" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status skipped"
 run_test "G6 prereq pass when G5 skipped" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run"
+run_test "prepare invalid retro for section check" "mkdir -p .helix/retros; printf '# Retro\n\n## Keep\n\n## Problem\n- issue only\n\n## Try\n- no owner and due\n' > .helix/retros/test-G4.md"
+run_test "test_helix_gate_retro_requires_3_sections" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run" 1
+run_test "cleanup invalid retro" "rm -f .helix/retros/test-G4.md"
 run_test_contains "G6 shows E2E hint" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run 2>&1" "ヒント: E2E テストを実行してください"
 run_test "G6 prereq reset G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
 run_test "G7 prereq set G6 passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.status passed"
@@ -716,6 +783,7 @@ run_test_contains "migrate --help lists rollback" "$SCRIPT_DIR/helix-migrate --h
 run_test "migrate unknown option exits 1" "set +e; $SCRIPT_DIR/helix-migrate --bogus-option >/dev/null 2>&1; code=\$?; set -e; [[ \$code -eq 1 ]]"
 run_test "migrate.py detect JSON output" "python3 $SCRIPT_DIR/lib/migrate.py detect --helix-dir $SCRIPT_DIR/../.helix --templates-dir $SCRIPT_DIR/templates 2>&1 | python3 -c 'import json,sys; d=json.load(sys.stdin); assert \"phase.yaml\" in d'"
 run_test_contains "migrate --dry-run v3 no-op" "$SCRIPT_DIR/helix-migrate --dry-run" ""
+run_test "test_migrate_gate_checks" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c \"import migrate, sys; existing='# helix_template_version: 1\\nG2:\\n  name: \\\"Design\\\"\\n  ai:\\n    - role: tl\\n      task: |\\n        old task\\n        line2\\n'; template='# helix_template_version: 2\\nG2:\\n  name: \\\"Design\\\"\\n  static:\\n    - name: \\\"updated\\\"\\n      cmd: \\\"echo updated\\\"\\n      level: mandatory\\nG4:\\n  name: \\\"Freeze\\\"\\n  static:\\n    - name: \\\"new-check\\\"\\n      cmd: \\\"echo new\\\"\\n      level: mandatory\\n'; merged=migrate.merge_yaml(existing, template, 'gate-checks.yaml'); sys.exit(0 if merged != existing and 'G4:' in merged and 'new-check' in merged else 1)\""
 run_test "migrate --rollback without backup exits 3" "D=\$(mktemp -d); mkdir -p \"\$D/.helix\"; touch \"\$D/.helix/phase.yaml\"; set +e; (cd \"\$D\" && $SCRIPT_DIR/helix-migrate --rollback >/dev/null 2>&1); code=\$?; set -e; rm -rf \"\$D\"; [[ \$code -eq 3 ]]"
 run_test "migrate fake v0 project shows diff" "D=\$(mktemp -d); mkdir -p \"\$D/.helix\"; echo 'project: test' > \"\$D/.helix/phase.yaml\"; set +e; out=\$(cd \"\$D\" && $SCRIPT_DIR/helix-migrate --dry-run 2>&1); code=\$?; set -e; rm -rf \"\$D\"; [[ \$code -eq 0 ]]"
 run_test_contains "test --help usage" "$SCRIPT_DIR/helix-test --help" "Usage: helix test"
@@ -755,7 +823,17 @@ run_test_contains "helix_db invalid json message" "python3 $SCRIPT_DIR/lib/helix
 echo ""
 
 echo "[helix-pr]"
-run_test_contains "pr dry-run" "$SCRIPT_DIR/helix-pr --dry-run" "Summary"
+run_test_contains "pr dry-run" "$SCRIPT_DIR/helix-pr --dry-run --force" "Summary"
+run_test "set matrix size S for PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/matrix.yaml project.size S"
+run_test "set G4 pending for PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G4.status pending"
+run_test "test_helix_pr_requires_G4_for_S" "$SCRIPT_DIR/helix-pr --dry-run" 1
+run_test "set G4 passed for PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G4.status passed"
+run_test "pr S gate satisfied" "$SCRIPT_DIR/helix-pr --dry-run"
+run_test "set matrix size M for PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/matrix.yaml project.size M"
+run_test "set G6 pending for PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.status pending"
+run_test "test_helix_pr_requires_G6_for_M" "$SCRIPT_DIR/helix-pr --dry-run" 1
+run_test "pr force bypass gate requirement" "$SCRIPT_DIR/helix-pr --dry-run --force"
+run_test "restore matrix size L after PR gate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/matrix.yaml project.size L"
 echo ""
 
 echo "[helix-task]"
@@ -811,6 +889,12 @@ run_test_contains "mode switch reverse" "$SCRIPT_DIR/helix mode reverse" "モー
 run_test "mode forward blocked when reverse incomplete" "$SCRIPT_DIR/helix mode forward" 3
 run_test_contains "mode switch scrum" "$SCRIPT_DIR/helix mode scrum" "モードを reverse → scrum に切り替えました"
 run_test "mode invalid value error" "$SCRIPT_DIR/helix mode invalid" 2
+run_test "set mode forward for drive cascade test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_mode forward"
+run_test "set drive be for drive cascade test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive be"
+run_test "set gates passed for drive cascade test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G2.status passed; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status passed; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G4.status passed"
+run_test "test_helix_mode_cascade_invalidates_downstream" "$SCRIPT_DIR/helix mode --drive fe --yes --reason 'test-cascade'"
+run_test_contains "mode cascade sets G2 invalidated" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "invalidated"
+run_test_contains "mode cascade sets G7 invalidated" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G7.status" "invalidated"
 echo ""
 
 echo "[helix-reverse]"
@@ -830,6 +914,23 @@ chmod +x "$TEST_DIR/mock-codex-reverse"
 run_test "reverse RG3 prereq set passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml reverse_gates.RG3.status passed"
 run_test "reverse R4 run" "CODEX_BIN=$TEST_DIR/mock-codex-reverse $SCRIPT_DIR/helix-reverse R4"
 run_test_contains "reverse status completed recorded" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml reverse.status" "completed"
+cat > "$TEST_DIR/mock-codex-reverse-r2" << 'EOF'
+#!/bin/bash
+set -e
+project_root="${HELIX_PROJECT_ROOT:-$(pwd)}"
+mkdir -p "$project_root/.helix/reverse"
+touch "$project_root/.helix/reverse/R2-as-is-design.md"
+echo "mock reverse R2 success"
+exit 0
+EOF
+chmod +x "$TEST_DIR/mock-codex-reverse-r2"
+run_test "set reverse RG1 passed for R2 invalidate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml reverse_gates.RG1.status passed"
+run_test "set forward gate G2 passed for reverse invalidate test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G2.status passed"
+run_test "reverse R2 run without invalidate-forward" "CODEX_BIN=$TEST_DIR/mock-codex-reverse-r2 $SCRIPT_DIR/helix-reverse R2"
+run_test_contains "reverse default does not touch forward gates" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "passed"
+run_test "set forward gate G2 passed before invalidate-forward" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G2.status passed"
+run_test "test_helix_reverse_invalidate_forward_optional" "CODEX_BIN=$TEST_DIR/mock-codex-reverse-r2 $SCRIPT_DIR/helix-reverse R2 --invalidate-forward"
+run_test_contains "reverse invalidate-forward updates gate" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "invalidated"
 echo ""
 
 echo "[yaml_parser]"
@@ -858,11 +959,15 @@ run_test_contains "scrum plan" "$SCRIPT_DIR/helix-scrum plan --goal TestGoal --h
 run_test "scrum verify (fail expected)" "$SCRIPT_DIR/helix-scrum verify" 1
 run_test_contains "scrum decide" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "confirmed"
 run_test_contains "scrum decide next steps" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "=== 次のステップ ==="
+run_test "prepare scrum strict-promote verify dir" "mkdir -p .helix/scrum/verify/H001"
+run_test_contains "scrum decide strict-promote warnings" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed --strict-promote" "strict-promote checks"
+run_test_contains "scrum handoff generated" "test -f .helix/scrum-handoff.md && echo OK" "OK"
 run_test_contains "scrum status" "$SCRIPT_DIR/helix-scrum status" "Sprint"
 echo ""
 
 echo "[helix-matrix]"
 run_test "matrix init" "$SCRIPT_DIR/helix-matrix init"
+run_test "test_helix_matrix_fresh_clone" "D=\$(mktemp -d); mkdir -p \"\$D/tool\" \"\$D/project\"; cp -R \"$SCRIPT_DIR\" \"\$D/tool/cli\"; HELIX_HOME=\"\$D/tool\" HELIX_PROJECT_ROOT=\"\$D/project\" \"\$D/tool/cli/helix-matrix\" init >/dev/null 2>&1; test -f \"\$D/project/.helix/rules/deliverables.yaml\" && test -f \"\$D/project/.helix/rules/naming.yaml\" && test -f \"\$D/project/.helix/rules/common-defs.yaml\"; rm -rf \"\$D\""
 run_test_contains "matrix.yaml generated" "test -f .helix/matrix.yaml && echo OK" "OK"
 run_test_contains "rules generated" "test -f .helix/rules/deliverables.yaml && test -f .helix/rules/structure.yaml && echo OK" "OK"
 run_test "matrix empty init compile ok" "D=\$(mktemp -d); cd \"\$D\"; git init -q; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-init\" --project-name matrix-empty >/dev/null 2>&1; HELIX_PROJECT_ROOT=\"\$D\" \"$SCRIPT_DIR/helix-matrix\" compile >/dev/null 2>&1; test -f \"\$D/.helix/runtime/index.json\" && test -f \"\$D/.helix/state/deliverables.json\"; rm -rf \"\$D\""
@@ -1763,13 +1868,20 @@ if [[ "$RUN_BATS_TESTS" -eq 1 ]]; then
   echo ""
 fi
 
+if [[ "$RUN_PYTEST_TESTS" -eq 1 ]]; then
+  run_pytest_tests || true
+  echo ""
+fi
+
 # --- 結果 ---
+TOTAL_FAIL=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
 echo "==================================="
-echo "Results: $PASS passed, $FAIL failed"
+echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"
+echo "pytest: $PYTEST_PASS passed, $PYTEST_FAIL failed, $PYTEST_SKIP skipped ($PYTEST_STATUS)"
 echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
 echo "==================================="
 
-if [[ $FAIL -gt 0 ]]; then
+if [[ $TOTAL_FAIL -gt 0 ]]; then
   echo ""
   echo "Failures:"
   for err in "${ERRORS[@]}"; do

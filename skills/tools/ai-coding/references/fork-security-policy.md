@@ -1,4 +1,5 @@
 # OpenClaw Fork Security Policy
+> 目的: OpenClaw Fork Security Policy の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 ## 1. 目的
 

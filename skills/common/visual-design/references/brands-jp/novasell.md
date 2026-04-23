@@ -1,4 +1,5 @@
 # DESIGN.md — Novasell
+> 目的: NOVASELL の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > Novasell（https://novasell.com/）のデザイン仕様書。
 > ラクスルグループの AI マーケティングエージェンシー。

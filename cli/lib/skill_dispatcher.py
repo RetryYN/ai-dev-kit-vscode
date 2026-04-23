@@ -15,6 +15,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from redaction import redact_value
+import helix_db
 import skill_catalog
 
 
@@ -234,10 +235,6 @@ def _codex_dict(role: str) -> dict:
 def _ensure_db_schema(conn: sqlite3.Connection) -> None:
     """helix_db のマイグレーションを適用し、DB を最新スキーマに揃える。"""
     try:
-        import helix_db
-    except ImportError:
-        return
-    try:
         # 可能なら helix_db 側の初期化ルーチンをそのまま使う
         ensure_schema = getattr(helix_db, "_ensure_schema", None)
         if callable(ensure_schema):
@@ -256,7 +253,7 @@ def _ensure_db_schema(conn: sqlite3.Connection) -> None:
 
 def _insert_usage(db_path: Path, row: dict) -> int:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path))
+    conn = helix_db.get_connection(db_path=db_path, timeout=helix_db.DEFAULT_SQLITE_TIMEOUT_SEC)
     try:
         _ensure_db_schema(conn)
         cols = list(row.keys())
@@ -272,7 +269,7 @@ def _insert_usage(db_path: Path, row: dict) -> int:
 def _update_usage(db_path: Path, usage_id: int, fields: dict) -> None:
     if not fields:
         return
-    conn = sqlite3.connect(str(db_path))
+    conn = helix_db.get_connection(db_path=db_path, timeout=helix_db.DEFAULT_SQLITE_TIMEOUT_SEC)
     try:
         _ensure_db_schema(conn)
         # 未知のカラムを skip してエラー回避（旧 DB がマイグレで列追加されるまでの保険）
@@ -544,9 +541,8 @@ def stats(
     if not db_path.exists():
         return _empty_stats(total_skills, total_categories)
 
-    conn = sqlite3.connect(str(db_path))
+    conn = helix_db.get_connection(db_path=db_path, timeout=helix_db.DEFAULT_SQLITE_TIMEOUT_SEC)
     try:
-        conn.row_factory = sqlite3.Row
         cutoff = f"datetime('now', '-{int(days)} days')"
 
         total_row = conn.execute(

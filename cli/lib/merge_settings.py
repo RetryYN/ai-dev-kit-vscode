@@ -20,7 +20,8 @@ HELIX_HOOKS = {
                     "type": "command",
                     "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
                     "timeout": 5,
-                    "statusMessage": "Loading HELIX framework..."
+                    "statusMessage": "Loading HELIX framework...",
+                    "blockOnFailure": True,
                 }
             ]
         }
@@ -33,7 +34,8 @@ HELIX_HOOKS = {
                     "type": "command",
                     "command": "~/ai-dev-kit-vscode/cli/helix-check-claudemd",
                     "timeout": 5,
-                    "statusMessage": "Checking CLAUDE.md template..."
+                    "statusMessage": "Checking CLAUDE.md template...",
+                    "blockOnFailure": True,
                 }
             ]
         }
@@ -44,9 +46,10 @@ HELIX_HOOKS = {
             "hooks": [
                 {
                     "type": "command",
-                    "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path','') or d.get('tool_response',{}).get('filePath',''))\" | { read -r f; [ -n \"$f\" ] && ~/ai-dev-kit-vscode/cli/helix-hook \"$f\"; } 2>/dev/null || true",
+                    "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path','') or d.get('tool_response',{}).get('filePath',''))\" | { read -r f; if [ -z \"$f\" ]; then exit 0; fi; ~/ai-dev-kit-vscode/cli/helix-hook \"$f\"; }",
                     "timeout": 10,
-                    "statusMessage": "HELIX design sync check..."
+                    "statusMessage": "HELIX design sync check...",
+                    "blockOnFailure": True,
                 }
             ]
         }
@@ -58,7 +61,8 @@ HELIX_HOOKS = {
                     "type": "command",
                     "command": "~/ai-dev-kit-vscode/cli/helix-session-summary",
                     "timeout": 8,
-                    "statusMessage": "Generating session summary..."
+                    "statusMessage": "Generating session summary...",
+                    "blockOnFailure": False,
                 }
             ]
         }

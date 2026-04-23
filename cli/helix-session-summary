@@ -29,15 +29,17 @@ SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
 HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
   "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
 
-python3 - "$DB_PATH" "$SUMMARY_FILE" "$NOW" <<'PY'
-import sqlite3, sys
+python3 - "$DB_PATH" "$SUMMARY_FILE" "$NOW" "$SCRIPT_DIR/lib" <<'PY'
+import sys
 
-db_path, summary_file, now = sys.argv[1], sys.argv[2], sys.argv[3]
+db_path, summary_file, now, lib_dir = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+sys.path.insert(0, lib_dir)
+import helix_db
+
 today = now.split(" ")[0]
 
 try:
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    conn = helix_db.get_connection(db_path)
 
     events = conn.execute(
         "SELECT event_type, COUNT(*) as cnt FROM hook_events "

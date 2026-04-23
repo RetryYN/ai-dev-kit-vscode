@@ -1,4 +1,5 @@
 # DESIGN.md — 楽天市場
+> 目的: RAKUTEN の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > 楽天市場（https://www.rakuten.co.jp/）のデザイン仕様書。
 > 実サイトの computed style に基づく。CSS Custom Properties は使用されていない。

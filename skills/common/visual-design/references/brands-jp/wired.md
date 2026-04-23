@@ -1,4 +1,5 @@
 # DESIGN.md — WIRED.jp
+> 目的: WIRED の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > WIRED Japan（https://wired.jp/）のデザイン仕様書。
 > Condé Nast Japan の styled-components ベースのプラットフォーム。

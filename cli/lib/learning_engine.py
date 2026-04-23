@@ -17,11 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from helix_db import DEFAULT_SQLITE_TIMEOUT_SEC, get_connection
 from redaction import redact_value
 
 
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
+_TOOL_PROBE_TIMEOUT = 5  # lint/typecheck 等のツール可用性チェック用
 
 _KEY_VALUE_PATTERN = re.compile(r"([a-zA-Z0-9_\-.]+)=([^\s,;]+)")
 _SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
@@ -523,7 +525,7 @@ def _latest_helix_test_result(project_root: Path) -> tuple[int, int] | None:
     db_path = project_root / ".helix" / "helix.db"
     if db_path.exists():
         try:
-            conn = sqlite3.connect(str(db_path))
+            conn = get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
             row = conn.execute(
                 """
                 SELECT output_log
@@ -569,7 +571,7 @@ def _extract_python_coverage_percent(coverage_db: Path, project_root: Path) -> f
         return None
 
     try:
-        conn = sqlite3.connect(str(coverage_db))
+        conn = get_connection(db_path=coverage_db, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
         rows = conn.execute(
             """
             SELECT file.path, line_bits.numbits
@@ -622,7 +624,7 @@ def _extract_go_coverage_percent(coverage_out: Path, project_root: Path) -> floa
         available, code, stdout, stderr = _run_command(
             [go_tool, "tool", "cover", "-func", str(coverage_out)],
             cwd=project_root,
-            timeout=5,
+            timeout=_TOOL_PROBE_TIMEOUT,
         )
         if available and code is not None:
             output = f"{stdout}\n{stderr}"
@@ -747,7 +749,7 @@ def _collect_contract_results(project_root: str) -> dict[str, Any]:
             available, code, stdout, stderr = _run_command(
                 [openapi_diff, str(openapi_files[-2]), str(openapi_files[-1])],
                 cwd=root,
-                timeout=5,
+                timeout=_TOOL_PROBE_TIMEOUT,
             )
             if not available or code is None:
                 result["api_diff"] = "not available"
@@ -769,7 +771,7 @@ def _collect_contract_results(project_root: str) -> dict[str, Any]:
             available, code, stdout, stderr = _run_command(
                 [tsc, "--noEmit", "--pretty", "false"],
                 cwd=root,
-                timeout=5,
+                timeout=_TOOL_PROBE_TIMEOUT,
             )
             if not available or code is None:
                 type_check_messages.append("typescript project detected (not available)")
@@ -788,7 +790,7 @@ def _collect_contract_results(project_root: str) -> dict[str, Any]:
         if not mypy:
             type_check_messages.append("mypy project detected (not available)")
         else:
-            available, code, stdout, stderr = _run_command([mypy, "."], cwd=root, timeout=5)
+            available, code, stdout, stderr = _run_command([mypy, "."], cwd=root, timeout=_TOOL_PROBE_TIMEOUT)
             if not available or code is None:
                 type_check_messages.append("mypy project detected (not available)")
             elif code == 0:
@@ -830,7 +832,9 @@ def _parse_ruff_errors(output: str) -> int:
 def _collect_lint_errors(project_root: Path) -> int:
     ruff = _resolve_tool(project_root, "ruff")
     if ruff:
-        available, code, stdout, stderr = _run_command([ruff, "check", "--statistics", "."], cwd=project_root, timeout=5)
+        available, code, stdout, stderr = _run_command(
+            [ruff, "check", "--statistics", "."], cwd=project_root, timeout=_TOOL_PROBE_TIMEOUT
+        )
         if available and code == 0:
             return 0
         if available and code is not None:
@@ -839,7 +843,9 @@ def _collect_lint_errors(project_root: Path) -> int:
 
     eslint = _resolve_tool(project_root, "eslint")
     if eslint:
-        available, code, stdout, stderr = _run_command([eslint, ".", "--format", "json"], cwd=project_root, timeout=5)
+        available, code, stdout, stderr = _run_command(
+            [eslint, ".", "--format", "json"], cwd=project_root, timeout=_TOOL_PROBE_TIMEOUT
+        )
         if available and (stdout or stderr):
             payload = _parse_json_from_text(stdout or stderr)
             if isinstance(payload, list):
@@ -856,7 +862,7 @@ def _collect_lint_errors(project_root: Path) -> int:
 
     flake8 = _resolve_tool(project_root, "flake8")
     if flake8:
-        available, code, stdout, stderr = _run_command([flake8, "."], cwd=project_root, timeout=5)
+        available, code, stdout, stderr = _run_command([flake8, "."], cwd=project_root, timeout=_TOOL_PROBE_TIMEOUT)
         if available and code == 0:
             return 0
         if available and code is not None:
@@ -871,7 +877,7 @@ def _collect_lint_errors(project_root: Path) -> int:
 def _collect_security_issues(project_root: Path) -> int:
     npm = _resolve_tool(project_root, "npm")
     if npm and (project_root / "package.json").exists():
-        available, code, stdout, stderr = _run_command([npm, "audit", "--json"], cwd=project_root, timeout=5)
+        available, code, stdout, stderr = _run_command([npm, "audit", "--json"], cwd=project_root, timeout=_TOOL_PROBE_TIMEOUT)
         if available and (stdout or stderr):
             payload = _parse_json_from_text(stdout or stderr)
             if isinstance(payload, dict):
@@ -886,7 +892,9 @@ def _collect_security_issues(project_root: Path) -> int:
 
     pip_audit = _resolve_tool(project_root, "pip-audit")
     if pip_audit and ((project_root / "pyproject.toml").exists() or (project_root / "requirements.txt").exists()):
-        available, code, stdout, stderr = _run_command([pip_audit, "-f", "json"], cwd=project_root, timeout=5)
+        available, code, stdout, stderr = _run_command(
+            [pip_audit, "-f", "json"], cwd=project_root, timeout=_TOOL_PROBE_TIMEOUT
+        )
         if available and (stdout or stderr):
             payload = _parse_json_from_text(stdout or stderr)
             if isinstance(payload, list):
@@ -912,7 +920,7 @@ def _collect_textlint_errors(project_root: Path) -> int:
     available, code, stdout, stderr = _run_command(
         [textlint, "--format", "json", "."],
         cwd=project_root,
-        timeout=5,
+        timeout=_TOOL_PROBE_TIMEOUT,
     )
     if not available:
         return -1

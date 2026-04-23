@@ -4,6 +4,7 @@
 
 ```bash
 # /etc/sysctl.conf
+> 目的: /etc/sysctl.conf の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 # ネットワーク
 net.core.somaxconn = 65535

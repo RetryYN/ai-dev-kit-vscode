@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -17,25 +15,7 @@ if str(LIB_DIR) not in sys.path:
 from builders.history import BuilderHistory
 from global_store import search_global
 from learning_engine import list_recipes
-
-
-def _project_root() -> Path:
-    env = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
-    if env:
-        return Path(env).expanduser().resolve()
-
-    try:
-        raw = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"],
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-        if raw:
-            return Path(raw).resolve()
-    except Exception:
-        pass
-
-    return Path.cwd().resolve()
+from paths import project_root as resolve_project_root
 
 
 def _parse_args() -> argparse.Namespace:
@@ -153,7 +133,7 @@ def _verification_summary(item: dict[str, Any]) -> tuple[str, str, str]:
 
 def main() -> int:
     args = _parse_args()
-    project_root = _project_root()
+    project_root = resolve_project_root()
 
     local_items = _local_candidates(project_root)
     global_items = _global_candidates(query=args.query, limit=max(10, int(args.limit)))

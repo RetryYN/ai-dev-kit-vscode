@@ -3,7 +3,7 @@
 ## 正本宣言
 
 - **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md`）
-- **手順正本**: `tools/ai-coding/references/workflow-core.md` + `tools/ai-coding/references/gate-policy.md`
+- **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
 ## 3フェーズ思想
@@ -51,7 +51,7 @@ L7  デプロイ（staging → 本番 → watch）
 L8  受入（要件 ↔ 最終成果物の突合 → PO最終承認）★ミニレトロ
 ```
 
-**ゲート詳細・セキュリティ・遷移ルール** → `tools/ai-coding/references/gate-policy.md` 参照
+**ゲート詳細・セキュリティ・遷移ルール** → `skills/tools/ai-coding/references/gate-policy.md` 参照
 
 ### HELIX Reverse（既存コードからの逆引き設計）
 
@@ -73,7 +73,7 @@ R4  Gap & Routing（差分集約 → Forward HELIX に接続）
 Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 ```
 
-**Reverse ゲート詳細** → `tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
+**Reverse ゲート詳細** → `skills/tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
 **Reverse フロー詳細** → `workflow/reverse-analysis/SKILL.md` 参照
 
 ### HELIX Scrum（検証駆動 / 要件未確定時）
@@ -196,12 +196,12 @@ fullstack 追加条件:
 - L4 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L4.5 結合）
 - L5 は常に必要（結合後の Visual Refinement）
 
-**セキュリティゲート強制条件** → `tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
+**セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
 ## スキル群配置（100スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
-詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `tools/ai-coding/references/`）
+詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
 
 | カテゴリ | スキル |
 |---------|--------|
@@ -225,7 +225,7 @@ fullstack 追加条件:
 - 上流由来 21 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / code-simplification / security-and-hardening / performance-optimization / git-workflow-and-versioning / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
 - HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
 - 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-helix
-- 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・3 persona は .claude/agents/ に統合・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
+- 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 12 エージェント構成）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
@@ -285,7 +285,7 @@ automation/browser-script:
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 75 スキル + 75+ references を LLM マッチングで自動推挙する CLI を搭載。
+全 100 スキル + 89+ references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]

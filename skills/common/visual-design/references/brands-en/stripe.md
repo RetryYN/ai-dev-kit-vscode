@@ -1,4 +1,5 @@
 # Design System Inspired by Stripe
+> 目的: STRIPE の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 ## 1. Visual Theme & Atmosphere
 

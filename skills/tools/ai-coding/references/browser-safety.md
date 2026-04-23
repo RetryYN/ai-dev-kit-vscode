@@ -1,4 +1,5 @@
 # Browser Automation Safety Baseline
+> 目的: Browser Automation Safety Baseline の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 automation 系スキル（`site-mapping`, `browser-script`）で共通適用する安全基準。
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -148,3 +150,22 @@ metadata:
         self.assertIn("/spec", catalog_entry["commands"])
         self.assertIn("helix-gate G2", jsonl_entry["commands"])
         self.assertIn("/spec", jsonl_entry["commands"])
+
+    def test_save_catalog_uses_atomic_replace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_path = Path(tmpdir) / "skill-catalog.json"
+            payload = {
+                "version": "1.0",
+                "generated_at": "2026-01-01T00:00:00Z",
+                "skill_count": 0,
+                "reference_count": 0,
+                "skills": [],
+            }
+
+            with mock.patch.object(skill_catalog.os, "replace", wraps=skill_catalog.os.replace) as mocked_replace:
+                skill_catalog.save_catalog(payload, cache_path)
+
+            self.assertTrue(cache_path.exists())
+            self.assertEqual(json.loads(cache_path.read_text(encoding="utf-8")), payload)
+            self.assertFalse(cache_path.with_suffix(".tmp").exists())
+            mocked_replace.assert_called_once_with(cache_path.with_suffix(".tmp"), cache_path)

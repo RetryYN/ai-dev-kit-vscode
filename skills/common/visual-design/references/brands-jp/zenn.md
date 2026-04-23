@@ -1,4 +1,5 @@
 # DESIGN.md — Zenn
+> 目的: ZENN の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > Zenn（https://zenn.dev/）のデザイン仕様書。
 > 実サイトの computed style に基づく。技術記事プラットフォームとして Qiita と並ぶ存在。ブランドカラー「Zennブルー」#3ea8ff が特徴。CSS Custom Properties は未使用。

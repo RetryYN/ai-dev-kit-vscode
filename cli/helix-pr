@@ -7,38 +7,110 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
+MATRIX_FILE="$HELIX_DIR/matrix.yaml"
 
 # --- 引数パース ---
 DRY_RUN=false
 BASE="main"
 TITLE=""
+REQUIRE_GATES_RAW=""
+FORCE=false
+
+require_opt_arg() {
+  local opt_name="$1"
+  if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+    echo "Error: $opt_name requires a value" >&2
+    exit 2
+  fi
+}
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --dry-run) DRY_RUN=true; shift ;;
-    --base)    BASE="$2"; shift 2 ;;
-    --title)   TITLE="$2"; shift 2 ;;
+    --base)
+      require_opt_arg "$1" "${2-}"
+      BASE="$2"
+      shift 2
+      ;;
+    --title)
+      require_opt_arg "$1" "${2-}"
+      TITLE="$2"
+      shift 2
+      ;;
+    --require-gates)
+      require_opt_arg "$1" "${2-}"
+      REQUIRE_GATES_RAW="$2"
+      shift 2
+      ;;
+    --force) FORCE=true; shift ;;
     --help|-h)
-      echo "Usage: helix-pr [--dry-run] [--base main] [--title \"title\"]"
+      echo "Usage: helix-pr [--dry-run] [--base main] [--title \"title\"] [--require-gates G4,G6] [--force]"
       echo ""
       echo "Options:"
       echo "  --dry-run  PR を作成せずマークダウンを出力"
       echo "  --base     ベースブランチ (default: main)"
       echo "  --title    PR タイトル"
+      echo "  --require-gates G4,G6  必須ゲートを明示指定（デフォルト判定を上書き）"
+      echo "  --force    ゲート未通過でも警告表示で続行"
       exit 0
       ;;
     *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
-# --- Gate 状態の事前確認（警告のみ） ---
-if [[ -f "$PHASE_FILE" ]]; then
-  g4_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.G4.status" 2>/dev/null || echo "pending")
-  if [[ "$g4_status" != "passed" ]]; then
-    echo "警告: G4 が passed ではありません (現在: ${g4_status:-pending})。先に 'helix gate G4' を確認してください。" >&2
+project_size=""
+if [[ -f "$MATRIX_FILE" ]]; then
+  project_size=$(python3 "$YAML_PARSER" read "$MATRIX_FILE" "project.size" 2>/dev/null || echo "")
+fi
+project_size="${project_size:-L}"
+
+required_gates=()
+if [[ -n "$REQUIRE_GATES_RAW" ]]; then
+  IFS=',' read -r -a required_candidates <<< "$REQUIRE_GATES_RAW"
+  for gate in "${required_candidates[@]}"; do
+    gate="${gate// /}"
+    [[ -n "$gate" ]] || continue
+    if [[ ! "$gate" =~ ^G(0\.5|1|1R|1\.5|[2-7])$ ]]; then
+      echo "Error: invalid gate in --require-gates: $gate" >&2
+      exit 2
+    fi
+    if [[ " ${required_gates[*]} " != *" $gate "* ]]; then
+      required_gates+=("$gate")
+    fi
+  done
+else
+  if [[ "$project_size" == "S" ]]; then
+    required_gates=("G4")
+  else
+    required_gates=("G6")
+  fi
+fi
+
+if [[ ! -f "$PHASE_FILE" ]]; then
+  if [[ "$FORCE" == true ]]; then
+    echo "警告: phase.yaml が見つからないためゲート状態の確認をスキップします (--force)" >&2
+  else
+    echo "エラー: phase.yaml が見つからないためゲート状態を確認できません。--force でバイパスできます。" >&2
+    exit 1
   fi
 else
-  echo "警告: phase.yaml が見つからないため G4 状態を確認できませんでした。" >&2
+  unmet=()
+  for gate in "${required_gates[@]}"; do
+    status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${gate}.status" 2>/dev/null || echo "pending")
+    if [[ "$status" != "passed" ]]; then
+      unmet+=("${gate}:${status:-pending}")
+    fi
+  done
+
+  if [[ ${#unmet[@]} -gt 0 ]]; then
+    if [[ "$FORCE" == true ]]; then
+      echo "警告: 必須ゲート未通過ですが --force により継続します: ${unmet[*]}" >&2
+    else
+      echo "エラー: 必須ゲート未通過: ${unmet[*]}" >&2
+      echo "ヒント: --require-gates で条件を明示、または --force で警告付きバイパス可能です。" >&2
+      exit 1
+    fi
+  fi
 fi
 
 # --- ブランチ情報 ---

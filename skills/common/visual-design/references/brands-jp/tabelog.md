@@ -1,4 +1,5 @@
 # DESIGN.md — 食べログ
+> 目的: TABELOG の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > 食べログ（https://tabelog.com/）のデザイン仕様書。
 > 実サイトの computed style に基づく。CSS Custom Properties は使用していない従来型のCSS設計。

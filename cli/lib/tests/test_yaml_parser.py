@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -64,14 +65,14 @@ def test_build_output_with_header_preserves_comment_block() -> None:
     assert "a: 2" in output
 
 
-def test_write_yaml_safe_updates_file_and_removes_lock(tmp_path: Path) -> None:
+def test_write_yaml_safe_updates_file_and_keeps_lock(tmp_path: Path) -> None:
     yaml_path = tmp_path / "phase.yaml"
     yaml_path.write_text("# header\na:\n  b: old\n", encoding="utf-8")
 
     yaml_parser.write_yaml_safe(str(yaml_path), "a.b", "new")
 
     assert "b: new" in yaml_path.read_text(encoding="utf-8")
-    assert not yaml_path.with_name("phase.yaml.lock").exists()
+    assert yaml_path.with_name("phase.yaml.lock").exists()
 
 
 def test_write_yaml_safe_uses_file_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -87,6 +88,26 @@ def test_write_yaml_safe_uses_file_lock(tmp_path: Path, monkeypatch: pytest.Monk
     yaml_parser.write_yaml_safe(str(yaml_path), "a", "2")
 
     assert calls == [yaml_parser.fcntl.LOCK_EX, yaml_parser.fcntl.LOCK_UN]
+
+
+def test_write_yaml_safe_parallel_processes_smoke(tmp_path: Path) -> None:
+    yaml_path = tmp_path / "phase.yaml"
+    yaml_path.write_text("gates:\n  G2:\n    status: pending\n", encoding="utf-8")
+    parser = Path(yaml_parser.__file__).resolve()
+
+    proc1 = subprocess.Popen(
+        [sys.executable, str(parser), "write", str(yaml_path), "gates.G2.status", "passed"]
+    )
+    proc2 = subprocess.Popen(
+        [sys.executable, str(parser), "write", str(yaml_path), "gates.G3.status", "passed"]
+    )
+
+    assert proc1.wait(timeout=10) == 0
+    assert proc2.wait(timeout=10) == 0
+
+    data = yaml_parser.parse_yaml(yaml_path.read_text(encoding="utf-8"))
+    assert yaml_parser.get_nested(data, "gates.G2.status") == "passed"
+    assert yaml_parser.get_nested(data, "gates.G3.status") == "passed"
 
 
 def test_main_dump_outputs_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -128,4 +149,3 @@ def test_main_read_missing_key_prints_nothing(
     yaml_parser.main()
 
     assert capsys.readouterr().out == ""
-

@@ -43,7 +43,7 @@ src/
 - スキル自動推挙: `helix skill search "<タスク>"` / `helix skill chain "<タスク>"`
 - FE サブエージェント: @fe-design / @fe-component / @fe-style / @fe-a11y / @fe-test
 
-## 主要スキル (75本、よく使うもの)
+## 主要スキル (100本、よく使うもの)
 - 調査: `tools/web-search` (WebSearch+WebFetch) / `tools/ai-search` (Haiku 委譲) / `workflow/research` (G1R)
 - ゲート特化: `workflow/gate-planning` (G0.5/G1.5) / `workflow/poc` (G1.5) / `workflow/threat-model` (G2) / `workflow/debt-register` (G4)
 - 工程設計: `workflow/schedule-wbs` (L3 工程表) / `workflow/runbook` (L6 運用)

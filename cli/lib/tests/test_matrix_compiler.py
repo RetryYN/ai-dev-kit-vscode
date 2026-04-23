@@ -44,7 +44,7 @@ def _setup_project(tmp_path: Path) -> Path:
     helix.mkdir()
     (helix / "matrix.yaml").write_text(_minimal_matrix_yaml(), encoding="utf-8")
 
-    # rules を templates からコピーする代わりにシンボリックリンク
+    # rules 正本は cli/templates/rules
     rules_src = Path(__file__).resolve().parents[2] / "templates" / "rules"
     rules_dst = helix / "rules"
     if rules_src.exists():
@@ -52,6 +52,13 @@ def _setup_project(tmp_path: Path) -> Path:
         for f in rules_src.iterdir():
             (rules_dst / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
     return tmp_path
+
+
+def _repo_rules_dir() -> Path:
+    rules_dir = Path(__file__).resolve().parents[2] / "templates" / "rules"
+    if not rules_dir.exists():
+        pytest.skip("cli/templates/rules が存在しない")
+    return rules_dir
 
 
 # ---------------------------------------------------------------------------
@@ -130,16 +137,12 @@ class TestBuildState:
 
 class TestValidateMatrix:
     def _rules(self) -> dict:
-        rules_dir = Path(__file__).resolve().parents[2] / "templates" / "rules"
-        if not rules_dir.exists():
-            pytest.skip("templates/rules が存在しない")
+        rules_dir = _repo_rules_dir()
         deliverables = matrix_compiler.load_yaml(rules_dir / "deliverables.yaml")
         return deliverables
 
     def _naming(self) -> dict:
-        rules_dir = Path(__file__).resolve().parents[2] / "templates" / "rules"
-        if not rules_dir.exists():
-            pytest.skip("templates/rules が存在しない")
+        rules_dir = _repo_rules_dir()
         naming = matrix_compiler.load_yaml(rules_dir / "naming.yaml")
         return naming if isinstance(naming, dict) else {}
 

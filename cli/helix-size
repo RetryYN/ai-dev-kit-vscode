@@ -19,12 +19,126 @@ DRIVE_SET=false
 FILES_SET=false
 LINES_SET=false
 JSON_OUTPUT=false
+RISK_FLAGS_RAW=""
+RISK_FLAGS_SET=false
+RISK_FLAGS=()
 
 require_opt_arg() {
   local opt_name="$1"
   if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
     echo "エラー: $opt_name には値が必要です" >&2
     exit "$EXIT_INPUT_ERROR"
+  fi
+}
+
+resolve_common_defs_file() {
+  if [[ -f "$HELIX_DIR/rules/common-defs.yaml" ]]; then
+    echo "$HELIX_DIR/rules/common-defs.yaml"
+    return 0
+  fi
+  if [[ -f "$SCRIPT_DIR/templates/rules/common-defs.yaml" ]]; then
+    echo "$SCRIPT_DIR/templates/rules/common-defs.yaml"
+    return 0
+  fi
+  echo ""
+}
+
+load_valid_risk_flags() {
+  local defs_file="$1"
+  if [[ -z "$defs_file" || ! -f "$defs_file" ]]; then
+    return 1
+  fi
+  python3 "$YAML_PARSER" dump "$defs_file" 2>/dev/null | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+risk_flags = data.get("risk_flags", {})
+if isinstance(risk_flags, dict):
+    for key in risk_flags.keys():
+        if isinstance(key, str) and key:
+            print(key)
+' 2>/dev/null
+}
+
+join_csv() {
+  local IFS=","
+  echo "$*"
+}
+
+update_matrix_size_and_risk_flags() {
+  local size="$1"
+  local matrix_file="$HELIX_DIR/matrix.yaml"
+  [[ -f "$matrix_file" && -f "$YAML_PARSER" ]] || return 0
+
+  python3 "$YAML_PARSER" write "$matrix_file" "project.size" "$size" 2>/dev/null || true
+
+  if [[ "$RISK_FLAGS_SET" != true ]]; then
+    if [[ "$JSON_OUTPUT" != true ]]; then
+      echo "matrix.yaml 更新: project.size=$size"
+    fi
+    return 0
+  fi
+
+  local feature_info feature_id feature_count
+  feature_info=$(python3 "$YAML_PARSER" dump "$matrix_file" 2>/dev/null | python3 -c '
+import json
+import sys
+
+data = json.load(sys.stdin)
+features = data.get("features", {})
+if not isinstance(features, dict) or not features:
+    print("\t0")
+    raise SystemExit(0)
+
+keys = list(features.keys())
+print(f"{keys[0]}\t{len(keys)}")
+' 2>/dev/null || echo $'\t0')
+  feature_id="${feature_info%%$'\t'*}"
+  feature_count="${feature_info##*$'\t'}"
+
+  if [[ -z "$feature_id" ]]; then
+    echo "WARN: matrix.yaml に feature がないため risk_flags の記録をスキップしました" >&2
+    if [[ "$JSON_OUTPUT" != true ]]; then
+      echo "matrix.yaml 更新: project.size=$size"
+    fi
+    return 0
+  fi
+
+  if [[ "${feature_count:-0}" -gt 1 ]]; then
+    echo "WARN: feature が複数あるため先頭 feature '$feature_id' に risk_flags を記録します" >&2
+  fi
+
+  local current_flags merged_flags risk_csv
+  risk_csv=$(join_csv "${RISK_FLAGS[@]}")
+  current_flags=$(python3 "$YAML_PARSER" read "$matrix_file" "features.${feature_id}.risk_flags" 2>/dev/null || echo "[]")
+  merged_flags=$(python3 - "$current_flags" "$risk_csv" <<'PY'
+import ast
+import sys
+
+raw_existing = sys.argv[1]
+raw_new = sys.argv[2]
+
+existing = []
+try:
+    parsed = ast.literal_eval(raw_existing)
+    if isinstance(parsed, list):
+        for item in parsed:
+            if isinstance(item, str) and item:
+                existing.append(item)
+except Exception:
+    pass
+
+for item in [x.strip() for x in raw_new.split(",") if x.strip()]:
+    if item not in existing:
+        existing.append(item)
+
+print("[" + ", ".join(existing) + "]")
+PY
+)
+  python3 "$YAML_PARSER" write "$matrix_file" "features.${feature_id}.risk_flags" "$merged_flags" 2>/dev/null || true
+  if [[ "$JSON_OUTPUT" != true ]]; then
+    echo "matrix.yaml 更新: project.size=$size, features.$feature_id.risk_flags=${merged_flags}"
   fi
 }
 
@@ -57,6 +171,11 @@ while [[ $# -gt 0 ]]; do
       DRIVE_SET=true
       shift 2
       ;;
+    --risk-flag)
+      require_opt_arg "$1" "${2-}"
+      RISK_FLAGS_RAW="$2"
+      shift 2
+      ;;
     --json) JSON_OUTPUT=true; shift ;;
     --help|-h)
       echo "Usage: helix-size [options]"
@@ -76,6 +195,8 @@ while [[ $# -gt 0 ]]; do
       echo "                  db    データベース駆動 — スキーマ/データモデル起点"
       echo "                  fullstack フルスタック駆動 — BE+FE同時起点"
       echo "                  agent エージェント駆動 — ツール/プロンプト起点"
+      echo "  --risk-flag FLAGS   リスクフラグ（カンマ区切り）:"
+      echo "                  auth,payment,pii,external_api,data_migration,infra"
       echo "  --json        JSON形式で出力"
       echo ""
       echo "Example:"
@@ -93,6 +214,29 @@ done
 if [[ "$FILES_SET" != true || "$LINES_SET" != true ]]; then
   echo "エラー: 必須オプション --files と --lines を指定してください" >&2
   exit "$EXIT_INPUT_ERROR"
+fi
+
+if [[ -n "$RISK_FLAGS_RAW" ]]; then
+  defs_file=$(resolve_common_defs_file)
+  valid_flags_nl=$(load_valid_risk_flags "$defs_file" || true)
+  if [[ -z "$valid_flags_nl" ]]; then
+    valid_flags_nl=$'auth\npayment\npii\nexternal_api\ndata_migration\ninfra'
+  fi
+
+  IFS=',' read -r -a risk_candidates <<< "$RISK_FLAGS_RAW"
+  for risk_flag in "${risk_candidates[@]}"; do
+    risk_flag="${risk_flag// /}"
+    [[ -n "$risk_flag" ]] || continue
+    if ! printf '%s\n' "$valid_flags_nl" | grep -qx "$risk_flag"; then
+      echo "エラー: 無効な --risk-flag 値です: '$risk_flag'" >&2
+      echo "許可値: $(printf '%s\n' "$valid_flags_nl" | paste -sd, -)" >&2
+      exit "$EXIT_INPUT_ERROR"
+    fi
+    if [[ " ${RISK_FLAGS[*]} " != *" $risk_flag "* ]]; then
+      RISK_FLAGS+=("$risk_flag")
+      RISK_FLAGS_SET=true
+    fi
+  done
 fi
 
 if [[ "$DRIVE_SET" != true && -f "$CONFIG_FILE" && -f "$YAML_PARSER" ]]; then
@@ -141,6 +285,11 @@ size_from_files() {
 # --- scrum (検証駆動) 専用分岐: Forward HELIX のフェーズ進行は行わない ---
 if [[ "$DRIVE" == "scrum" ]]; then
   _SIZE_SCRUM=$(size_from_files)
+  if [[ "$RISK_FLAGS_SET" == true ]]; then
+    FINAL_SIZE="L"
+    echo "警告: risk_flags 指定のため L 昇格" >&2
+    _SIZE_SCRUM="$FINAL_SIZE"
+  fi
   if [[ "$JSON_OUTPUT" == true ]]; then
     printf '{"size": "%s", "drive": "scrum", "mode": "scrum", "phases": []}\n' "$_SIZE_SCRUM"
   else
@@ -164,6 +313,7 @@ if [[ "$DRIVE" == "scrum" ]]; then
     python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "sprint.drive" "scrum" 2>/dev/null || true
     python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "current_mode" "scrum" 2>/dev/null || true
   fi
+  update_matrix_size_and_risk_flags "$_SIZE_SCRUM"
   exit "$EXIT_SUCCESS"
 fi
 
@@ -196,6 +346,15 @@ FILE_SIZE=$(size_from_files)
 LINE_SIZE=$(size_from_lines)
 API_DB_SIZE=$(size_from_api_db)
 FINAL_SIZE=$(max_size "$FILE_SIZE" "$LINE_SIZE" "$API_DB_SIZE")
+
+if [[ "$RISK_FLAGS_SET" == true ]]; then
+  if [[ "$FINAL_SIZE" != "L" ]]; then
+    echo "警告: risk_flags 指定のため L 昇格" >&2
+  else
+    echo "警告: risk_flags 指定のため L 昇格" >&2
+  fi
+  FINAL_SIZE="L"
+fi
 
 # --- 駆動タイプ別 L2〜L5 の内容記述 ---
 L2_DESC="" ; L3_DESC="" ; L4_DESC="" ; L5_DESC=""
@@ -410,6 +569,8 @@ if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
     fi
   fi
 fi
+
+update_matrix_size_and_risk_flags "$FINAL_SIZE"
 
 # --- 設計テンプレート自動生成 ---
 DOC_TEMPLATES="$SCRIPT_DIR/templates/docs"

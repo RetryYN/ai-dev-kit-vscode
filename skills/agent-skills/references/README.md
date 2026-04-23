@@ -1,4 +1,5 @@
 # agent-skills references index
+> 目的: agent-skills references index の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 `skills/agent-skills/references/` の用途と、HELIX 本体スキルとの関係を示す索引。
 

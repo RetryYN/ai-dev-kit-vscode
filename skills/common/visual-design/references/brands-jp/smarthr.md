@@ -1,4 +1,5 @@
 # DESIGN.md — SmartHR
+> 目的: SMARTHR の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > SmartHR（https://smarthr.jp/）のデザイン仕様書。
 > SmartHR Design System（https://smarthr.design/）の公式デザイントークンに基づく。

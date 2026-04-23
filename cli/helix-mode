@@ -1,36 +1,52 @@
 #!/bin/bash
 set -euo pipefail
-# helix-mode: 開発モード管理
-# Usage: helix mode [forward|reverse|scrum]
+# helix-mode: 開発モード/drive 管理
+# Usage:
+#   helix mode [forward|reverse|scrum]
+#   helix mode --drive <be|fe|db|fullstack|agent|scrum> [--reason "text"] [--dry-run] [--yes]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 YP="$YAML_PARSER"
+STATE_MACHINE="$SCRIPT_DIR/templates/state-machine.yaml"
 
-case "${1:-}" in
-  --help|-h)
-    cat <<'USAGE'
+usage() {
+  cat <<'USAGE'
 使い方: helix mode [モード]
+       helix mode --drive <type> [--reason "理由"] [--dry-run] [--yes]
 
 引数なし: 現在のモードを表示
 forward:  Forward HELIX (L1→L8) に切替
 reverse:  Reverse HELIX (R0→R4) に切替
 scrum:    HELIX Scrum（検証駆動開発）に切替
+
+--drive:  sprint.drive を切り替え（be/fe/db/fullstack/agent/scrum）
+          変更時は一番若い passed ゲートを起点に G7 まで invalidated
+          --dry-run で影響範囲プレビュー
+          --yes で確認プロンプトを省略
 USAGE
-    exit 0
-    ;;
-esac
+}
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  usage
+  exit 0
+fi
 
 if [[ ! -f "$PHASE_FILE" ]]; then
   echo "エラー: HELIX 未初期化。'helix init' で初期化してください。" >&2
   exit 2
 fi
 
-current=$(python3 "$YP" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
+if [[ ! -f "$STATE_MACHINE" ]]; then
+  echo "エラー: state-machine.yaml が見つかりません: $STATE_MACHINE" >&2
+  exit 2
+fi
+
+current_mode=$(python3 "$YP" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
 
 if [[ -z "${1:-}" ]]; then
-  echo "現在のモード: $current"
-  case "$current" in
+  echo "現在のモード: $current_mode"
+  case "$current_mode" in
     forward) echo "  Forward HELIX (L1→L8): ゲート駆動の新規開発" ;;
     reverse) echo "  Reverse HELIX (R0→R4): 既存コードからの設計復元" ;;
     scrum)   echo "  HELIX Scrum: 仮説検証駆動開発" ;;
@@ -38,19 +54,174 @@ if [[ -z "${1:-}" ]]; then
   exit 0
 fi
 
+find_youngest_passed_gate() {
+  local gate status
+  for gate in G2 G3 G4 G5 G6 G7; do
+    status=$(python3 "$YP" read "$PHASE_FILE" "gates.${gate}.status" 2>/dev/null || echo "pending")
+    if [[ "$status" == "passed" ]]; then
+      echo "$gate"
+      return 0
+    fi
+  done
+  echo ""
+}
+
+cascade_targets_from_gate() {
+  local gate="$1"
+  [[ -n "$gate" ]] || return 0
+  python3 "$YP" dump "$STATE_MACHINE" 2>/dev/null | python3 -c "
+import json
+import sys
+
+payload = json.load(sys.stdin)
+start = '$gate'
+gates = payload.get('gates', {})
+seen = []
+
+def add(item):
+    if item and item not in seen:
+        seen.append(item)
+
+add(start)
+for item in gates.get(start, {}).get('on_invalidate', []) or []:
+    add(item)
+
+print(' '.join(seen))
+" 2>/dev/null
+}
+
+run_drive_switch() {
+  local new_drive=""
+  local reason="manual"
+  local dry_run=false
+  local auto_yes=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --drive)
+        if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+          echo "エラー: --drive には値が必要です" >&2
+          exit 2
+        fi
+        new_drive="$2"
+        shift 2
+        ;;
+      --reason)
+        if [[ $# -lt 2 || -z "${2:-}" || "${2:-}" == --* ]]; then
+          echo "エラー: --reason には値が必要です" >&2
+          exit 2
+        fi
+        reason="$2"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run=true
+        shift
+        ;;
+      --yes)
+        auto_yes=true
+        shift
+        ;;
+      *)
+        echo "エラー: 不明なオプション '$1'" >&2
+        exit 2
+        ;;
+    esac
+  done
+
+  if [[ -z "$new_drive" ]]; then
+    echo "エラー: --drive <type> を指定してください" >&2
+    exit 2
+  fi
+
+  case "$new_drive" in
+    be|fe|db|fullstack|agent|scrum) ;;
+    *)
+      echo "エラー: 無効な drive '$new_drive'（be, fe, db, fullstack, agent, scrum）" >&2
+      exit 2
+      ;;
+  esac
+
+  local old_drive youngest_passed_gate cascade_targets
+  old_drive=$(python3 "$YP" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "be")
+  youngest_passed_gate=$(find_youngest_passed_gate)
+  cascade_targets=$(cascade_targets_from_gate "$youngest_passed_gate")
+
+  echo "=== Drive 切替プレビュー ==="
+  echo "  drive: $old_drive -> $new_drive"
+  echo "  reason: $reason"
+  if [[ -n "$youngest_passed_gate" ]]; then
+    echo "  invalidate 起点: $youngest_passed_gate"
+    echo "  invalidate 対象: ${cascade_targets:-なし}"
+  else
+    echo "  invalidate 起点: なし（passed ゲートなし）"
+    echo "  invalidate 対象: なし"
+  fi
+
+  if [[ "$dry_run" == true ]]; then
+    echo "[dry-run] 変更は適用していません"
+    return 0
+  fi
+
+  if [[ "$auto_yes" != true ]]; then
+    printf "この変更を適用しますか？ [y/N]: " >&2
+    read -r answer
+    if [[ "$answer" != "y" && "$answer" != "Y" ]]; then
+      echo "キャンセルしました"
+      return 0
+    fi
+  fi
+
+  python3 "$YP" write "$PHASE_FILE" "sprint.drive" "$new_drive" 2>/dev/null || true
+  if [[ -n "$cascade_targets" ]]; then
+    for gate in $cascade_targets; do
+      python3 "$YP" write "$PHASE_FILE" "gates.${gate}.status" "invalidated" 2>/dev/null || true
+    done
+  fi
+
+  local history_file stamp changed_at
+  history_file="$HELIX_DIR/drive-history.yaml"
+  stamp=$(date '+%Y%m%dT%H%M%S')
+  changed_at=$(date '+%Y-%m-%dT%H:%M:%S%z')
+  if [[ ! -f "$history_file" ]]; then
+    cat > "$history_file" <<'YAML'
+# drive-history.yaml — sprint.drive の変更履歴
+entries: {}
+YAML
+  fi
+  python3 "$YP" write "$history_file" "entries.${stamp}.changed_at" "$changed_at" 2>/dev/null || true
+  python3 "$YP" write "$history_file" "entries.${stamp}.from" "$old_drive" 2>/dev/null || true
+  python3 "$YP" write "$history_file" "entries.${stamp}.to" "$new_drive" 2>/dev/null || true
+  python3 "$YP" write "$history_file" "entries.${stamp}.reason" "$reason" 2>/dev/null || true
+
+  echo "drive を $old_drive → $new_drive に更新しました"
+  if [[ -n "$cascade_targets" ]]; then
+    echo "gates を invalidated に更新: $cascade_targets"
+  fi
+  echo "履歴更新: $history_file"
+}
+
+if [[ "${1:-}" == "--drive" ]]; then
+  run_drive_switch "$@"
+  exit 0
+fi
+
 NEW_MODE="$1"
 case "$NEW_MODE" in
   forward|reverse|scrum) ;;
-  *) echo "エラー: 無効なモード '$NEW_MODE'（forward, reverse, scrum を指定）" >&2; exit 2 ;;
+  *)
+    echo "エラー: 無効なモード '$NEW_MODE'（forward, reverse, scrum を指定）" >&2
+    exit 2
+    ;;
 esac
 
-if [[ "$current" == "$NEW_MODE" ]]; then
+if [[ "$current_mode" == "$NEW_MODE" ]]; then
   echo "既に $NEW_MODE モードです"
   exit 0
 fi
 
 # 遷移制約チェック
-if [[ "$current" == "reverse" && "$NEW_MODE" == "forward" ]]; then
+if [[ "$current_mode" == "reverse" && "$NEW_MODE" == "forward" ]]; then
   rev_status=$(python3 "$YP" read "$PHASE_FILE" reverse.status 2>/dev/null || echo "")
   if [[ "$rev_status" != "completed" ]]; then
     echo "エラー: Reverse が未完了です（status: $rev_status）。R4 まで完了してから Forward に切り替えてください。" >&2
@@ -58,11 +229,12 @@ if [[ "$current" == "reverse" && "$NEW_MODE" == "forward" ]]; then
   fi
 fi
 
-if [[ "$current" == "scrum" && "$NEW_MODE" == "forward" ]]; then
+if [[ "$current_mode" == "scrum" && "$NEW_MODE" == "forward" ]]; then
   # confirmed な仮説があるかチェック（scrum/backlog.yaml）
   if [[ -f "$HELIX_DIR/scrum/backlog.yaml" ]]; then
     confirmed=$(python3 "$YP" dump "$HELIX_DIR/scrum/backlog.yaml" 2>/dev/null | python3 -c "
-import sys, json
+import json
+import sys
 d = json.load(sys.stdin)
 items = d.get('hypotheses', [])
 if isinstance(items, list):
@@ -78,7 +250,7 @@ print(c)
 fi
 
 python3 "$YP" write "$PHASE_FILE" current_mode "$NEW_MODE" 2>/dev/null
-echo "モードを $current → $NEW_MODE に切り替えました"
+echo "モードを $current_mode → $NEW_MODE に切り替えました"
 
 case "$NEW_MODE" in
   forward) echo "  次のステップ: helix size でサイジングを実行" ;;

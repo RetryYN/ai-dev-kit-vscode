@@ -1,4 +1,5 @@
 # DESIGN.md — Apple Japan
+> 目的: APPLE の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > Apple Japan（https://www.apple.com/jp/）のデザイン仕様書。
 > Puppeteer による computed style 実測値（2026-04-06 取得）に基づく。

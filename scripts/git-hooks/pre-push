@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OPENAI_PATTERN='sk-[A-Za-z0-9]{20,}'
+ANTHROPIC_PATTERN='sk-ant-[A-Za-z0-9-]{50,}'
+GITHUB_PAT_PATTERN='gh''p_[A-Za-z0-9]{30,}'
+GITHUB_SECRET_PATTERN='gh''s_[A-Za-z0-9]{30,}'
+SLACK_BOT_PATTERN='xo''xb-[A-Za-z0-9-]{40,}'
+AWS_ACCESS_KEY_PATTERN='AKIA[A-Z0-9]{16}'
+BEARER_PATTERN='Bearer [A-Za-z0-9._-]{30,}'
+PRIVATE_KEY_PATTERN='-----BE''GIN [A-Z ]*PRIVATE KEY-----'
+PHONE_PATTERN='[0-9]{3}-[0-9]{4}-[0-9]{4}'
+POSTAL_PATTERN='(郵便番号|〒)[^0-9]{0,8}[0-9]{3}-?[0-9]{4}'
+INTERNAL_URL_PATTERN='([A-Za-z0-9-]+\.)+internal|([A-Za-z0-9-]+\.)+corp\.[A-Za-z0-9.-]+'
+EMAIL_PATTERN='[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+SCAN_REGEX="${OPENAI_PATTERN}|${ANTHROPIC_PATTERN}|${GITHUB_PAT_PATTERN}|${GITHUB_SECRET_PATTERN}|${SLACK_BOT_PATTERN}|${AWS_ACCESS_KEY_PATTERN}|${BEARER_PATTERN}|${PRIVATE_KEY_PATTERN}|${PHONE_PATTERN}|${POSTAL_PATTERN}|${INTERNAL_URL_PATTERN}|${EMAIL_PATTERN}"
+
+dry_run="${HELIX_DRY_RUN_HOOK:-0}"
+found=0
+
+mask_match() {
+  local match="$1"
+  printf '%s***' "${match:0:4}"
+}
+
+is_all_zero_sha() {
+  local sha="$1"
+  [[ "$sha" =~ ^0+$ ]]
+}
+
+is_protected_markdown() {
+  local file="$1"
+
+  case "$file" in
+    *CLAUDE.md|*SKILL.md|*/references/*.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+report_match() {
+  local commit="$1"
+  local file="$2"
+  local line_no="$3"
+  local line="$4"
+  local match=""
+  local status_word="blocked"
+
+  if [[ "$dry_run" == "1" ]]; then
+    status_word="warning"
+  fi
+
+  while IFS= read -r match; do
+    [[ -z "$match" ]] && continue
+    if [[ $found -eq 0 ]]; then
+      echo "[helix pre-push] ${status_word}: protected markdown diff contains potential sensitive data:"
+    fi
+    printf '  [%s] %s:%s: %s\n' "${commit:0:7}" "$file" "$line_no" "$(mask_match "$match")"
+    found=1
+  done < <(printf '%s\n' "$line" | LC_ALL=C grep -Eao -- "$SCAN_REGEX" || true)
+}
+
+scan_commit_file() {
+  local commit="$1"
+  local file="$2"
+  local diff_line=""
+  local current_line=0
+  local hunk=""
+  local added=""
+
+  while IFS= read -r diff_line; do
+    case "$diff_line" in
+      @@*)
+        hunk=${diff_line#*+}
+        hunk=${hunk%% @@*}
+        current_line=${hunk%%,*}
+        ;;
+      '+++'*|'---'*|'diff --git '*|'index '*)
+        ;;
+      '+'*)
+        added=${diff_line#?}
+        report_match "$commit" "$file" "$current_line" "$added"
+        current_line=$((current_line + 1))
+        ;;
+      ' '*)
+        current_line=$((current_line + 1))
+        ;;
+      '-'*|'\'*)
+        ;;
+    esac
+  done < <(git show --format= --unified=0 --no-color "$commit" -- "$file")
+}
+
+collect_commits() {
+  local local_ref=""
+  local local_sha=""
+  local remote_ref=""
+  local remote_sha=""
+
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    [[ -z "${local_sha:-}" ]] && continue
+    if is_all_zero_sha "$local_sha"; then
+      continue
+    fi
+
+    if is_all_zero_sha "$remote_sha"; then
+      git rev-list "$local_sha" --not --remotes 2>/dev/null || true
+    else
+      git rev-list "${remote_sha}..${local_sha}" 2>/dev/null || true
+    fi
+  done | awk 'NF && !seen[$0]++'
+}
+
+main() {
+  local commit=""
+  local file=""
+
+  while IFS= read -r commit; do
+    [[ -z "$commit" ]] && continue
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      if is_protected_markdown "$file"; then
+        scan_commit_file "$commit" "$file"
+      fi
+    done < <(git diff-tree --root --no-commit-id --name-only -r --diff-filter=ACMR "$commit")
+  done < <(collect_commits)
+
+  if [[ $found -ne 0 ]]; then
+    if [[ "$dry_run" == "1" ]]; then
+      echo "HELIX_DRY_RUN_HOOK=1 is set, so this push is allowed after warning."
+      exit 0
+    fi
+
+    echo "Review the diff and use 'git push --no-verify' only after explicit approval."
+    exit 1
+  fi
+}
+
+main "$@"

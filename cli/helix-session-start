@@ -6,6 +6,10 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
+LOCK_FD=9
+exec 9>"/tmp/helix-session-start.${USER}.lock" 2>/dev/null || { exec 9>/dev/null; }
+flock -n $LOCK_FD 2>/dev/null || { echo "[session-start] 別プロセスが実行中 — skip" >&2; exit 0; }
+
 git_status_suffix=""
 if git rev-parse --is-inside-work-tree >/dev/null 2>/dev/null; then
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")"

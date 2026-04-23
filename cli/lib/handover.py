@@ -88,12 +88,16 @@ def parse_tests(raw_values):
 
 
 def run_git(project_root, args, strict=True):
-    proc = subprocess.run(
-        ["git"] + args,
-        cwd=str(project_root),
-        capture_output=True,
-        text=True,
-    )
+    try:
+        proc = subprocess.run(
+            ["git"] + args,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HandoverError("git timeout", EXIT_PREREQ_ERROR) from exc
     if proc.returncode != 0:
         if strict:
             msg = proc.stderr.strip() or proc.stdout.strip() or "git command failed"

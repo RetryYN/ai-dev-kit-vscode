@@ -343,8 +343,9 @@ def main() -> int:
             index_file=Path(args.index),
             file_path=str(args.file),
         )
-    except Exception:
-        return 0
+    except Exception as exc:
+        print(f"ERROR: freeze check failed: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

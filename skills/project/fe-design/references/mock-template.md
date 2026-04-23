@@ -1,4 +1,5 @@
 # Mock Template
+> 目的: README・ADR・設計資料を作成する際に再利用できる文書テンプレート集として参照
 
 fe-design が fe 駆動で使用する throw-away モック用テンプレート。
 本テンプレートは `src/` など本実装コードへの import を行わないことを前提とする。

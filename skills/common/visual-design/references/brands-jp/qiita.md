@@ -1,4 +1,5 @@
 # DESIGN.md — Qiita
+> 目的: QIITA の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > Qiita（https://qiita.com/）のデザイン仕様書。
 > 実サイトの computed style に基づく。開発者コミュニティとしてコードブロックとの混植を重視。

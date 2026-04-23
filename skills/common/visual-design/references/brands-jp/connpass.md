@@ -1,4 +1,5 @@
 # DESIGN.md — connpass
+> 目的: CONNPASS の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > connpass（https://connpass.com/）のデザイン仕様書。
 > IT勉強会・イベント管理プラットフォーム。実サイトのCSS computed style に基づく。

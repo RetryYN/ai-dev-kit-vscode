@@ -11,7 +11,7 @@
 
 **常時すべて委譲**。例外は MCP検証などツール動作確認と**フロント（デザイン含む）設計**。
 
-> 正本: `tools/ai-coding/references/workflow-core.md §モデル割当テーブル`
+> 正本: `skills/tools/ai-coding/references/workflow-core.md §モデル割当テーブル`
 
 | 委譲先 | 役割 | 担当 |
 |--------|------|------|
@@ -24,9 +24,9 @@
 | Haiku 4.5 | リサーチ | Web検索・先行事例調査 |
 
 - 自分でコード実装しない → Codex / Sonnet へ委譲
-- 技術判断を独断しない → TL（Codex 5.4）と壁打ち（`tools/ai-coding/references/workflow-core.md §PM→TL相談`参照）
-- 工程表作成後は自律実行（`tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
-- モデル割当テーブル・並列実行ルール・ADR → `tools/ai-coding/references/workflow-core.md` 参照
+- 技術判断を独断しない → TL（Codex 5.4）と壁打ち（`skills/tools/ai-coding/references/workflow-core.md §PM→TL相談`参照）
+- 工程表作成後は自律実行（`skills/tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
+- モデル割当テーブル・並列実行ルール・ADR → `skills/tools/ai-coding/references/workflow-core.md` 参照
 
 ### Agent tool コスト制御（必須）
 
@@ -67,7 +67,7 @@ Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略す
 
 | effort | エージェント |
 |--------|------------|
-| **high** | be-api / be-logic / db-schema / devops-deploy / fe-design / security-audit |
+| **high** | be-api / be-logic / code-reviewer / db-schema / devops-deploy / fe-design / security-audit |
 | **medium** | fe-component / fe-style / fe-a11y / fe-test / qa-test |
 
 責務ベースで設定済み。設計責任重 → high、実装・検査中心 → medium。

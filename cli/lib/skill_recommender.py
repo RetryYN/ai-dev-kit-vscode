@@ -140,6 +140,19 @@ def _cache_is_fresh(path: Path, ttl_seconds: int = CACHE_TTL_SECONDS) -> bool:
     return (time.time() - path.stat().st_mtime) <= ttl_seconds
 
 
+def _gc_expired_cache(cache_dir: Path, ttl_seconds: int = CACHE_TTL_SECONDS) -> int:
+    now = time.time()
+    removed = 0
+    for cache_file in cache_dir.glob("*.json"):
+        try:
+            if now - cache_file.stat().st_mtime > ttl_seconds:
+                cache_file.unlink()
+                removed += 1
+        except OSError:
+            continue
+    return removed
+
+
 def _load_or_build_catalog(catalog_path: Path) -> dict[str, Any]:
     if catalog_path.is_file():
         return skill_catalog.load_catalog(catalog_path)
@@ -172,9 +185,9 @@ def _filter_catalog(catalog: dict[str, Any], layer_filter: str | None, category_
 def _run_recommender(prompt: str) -> str:
     cmd = [_helix_codex_path(), "--role", "recommender", "--task", prompt]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False)
     except subprocess.TimeoutExpired as exc:
-        raise RecommenderError(5, "Codex 呼び出しがタイムアウトしました（60秒）。") from exc
+        raise RecommenderError(5, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
     except OSError as exc:
         raise RecommenderError(3, f"helix-codex の起動に失敗しました: {exc}") from exc
 
@@ -471,7 +484,11 @@ def recommend(
     result["_model"] = MODEL_NAME
 
     resolved_cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    removed = _gc_expired_cache(resolved_cache_dir, CACHE_TTL_SECONDS)
+    print(f"[skill_recommender] cache gc removed={removed}", file=sys.stderr)
+    tmp_path = cache_file.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_path, cache_file)
     return result
 
 

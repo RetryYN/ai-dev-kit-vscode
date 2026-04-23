@@ -1,4 +1,5 @@
 # DESIGN.md — Sansan
+> 目的: SANSAN の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > Sansan（https://jp.sansan.com/）のデザイン仕様書。
 > コーポレートサイトの computed style 実測値に基づく。

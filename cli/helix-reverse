@@ -1,4 +1,9 @@
 #!/bin/bash
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo "エラー: helix-reverse は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
+  echo "macOS の場合: brew install bash && シェルを /opt/homebrew/bin/bash に変更" >&2
+  exit 1
+fi
 set -euo pipefail
 
 # helix-reverse: Reverse HELIX パイプライン (R0→R4)
@@ -13,13 +18,15 @@ HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 STAGE=""
 TARGET=""
 DRY_RUN=false
+INVALIDATE_FORWARD=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --target)  TARGET="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --invalidate-forward) INVALIDATE_FORWARD=true; shift ;;
     --help|-h)
-      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status|rgc> [--target <path>] [--dry-run]"
+      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status|rgc> [--target <path>] [--dry-run] [--invalidate-forward]"
       echo ""
       echo "Stages:"
       echo "  R0  Evidence Acquisition（証拠収集）"
@@ -29,6 +36,9 @@ while [[ $# -gt 0 ]]; do
       echo "  R4  Gap & Routing（差分分析→Forward接続）"
       echo "  status  現在の Reverse 状態を表示"
       echo "  rgc     Reverse Gap Closure — R4 Gap Register の状態を集計表示"
+      echo ""
+      echo "Options:"
+      echo "  --invalidate-forward  R2/R3/R4 実行時に Forward gates (G2-G7) を invalidated にする"
       exit 0
       ;;
     R[0-4]) STAGE="$1"; shift ;;
@@ -71,6 +81,14 @@ set_rgate_status() {
   local status="$2"
   python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.status" "$status" 2>/dev/null
   python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null
+}
+
+invalidate_forward_gates() {
+  local gate
+  for gate in G2 G3 G4 G5 G6 G7; do
+    python3 "$YP" write "$PHASE_FILE" "gates.${gate}.status" "invalidated" 2>/dev/null || true
+  done
+  echo "[helix-reverse] Forward gates を invalidated に更新しました: G2 G3 G4 G5 G6 G7"
 }
 
 # --- rgc: Reverse Gap Closure ---
@@ -261,6 +279,9 @@ echo ""
 if [[ "$DRY_RUN" == true ]]; then
   echo "[dry-run] helix-codex --role $ROLE --task:"
   echo "$TASK"
+  if [[ "$INVALIDATE_FORWARD" == true && "$STAGE" =~ ^R[2-4]$ ]]; then
+    echo "[dry-run] --invalidate-forward: Forward gates (G2-G7) を invalidated に更新します"
+  fi
   exit 0
 fi
 
@@ -294,9 +315,11 @@ fi
 # DB 完了更新
 if [[ -f "$DB_PATH" && -n "$local_db_run_id" ]]; then
   python3 -c "
-import sqlite3
 from datetime import datetime
-conn = sqlite3.connect('$DB_PATH')
+import sys
+sys.path.insert(0, '$SCRIPT_DIR/lib')
+import helix_db
+conn = helix_db.get_connection('$DB_PATH')
 conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
     ('$RUN_STATUS', datetime.now().isoformat(), '$LOG_FILE', $local_db_run_id))
 conn.commit()
@@ -320,6 +343,9 @@ fi
 if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
   set_rgate_status "$rgate" "passed"
   echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
+  if [[ "$INVALIDATE_FORWARD" == true && "$STAGE" =~ ^R[2-4]$ ]]; then
+    invalidate_forward_gates
+  fi
   if [[ "$STAGE" == "R4" ]]; then
     echo ""
     echo "=== Reverse HELIX 完了 ==="

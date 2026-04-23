@@ -1,4 +1,5 @@
 # DESIGN.md — freee
+> 目的: FREEE の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > freee（https://www.freee.co.jp/）のデザイン仕様書。
 > freee Vibes Design System（https://vibes.freee.co.jp/）の公式デザイントークンおよびコーポレートサイトのCSSに基づく。

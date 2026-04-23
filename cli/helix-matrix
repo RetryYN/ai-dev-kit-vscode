@@ -6,6 +6,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
+BASE_RULES_DIR="$TEMPLATES_DIR/rules"
 COMPILER="$SCRIPT_DIR/lib/matrix_compiler.py"
 
 usage() {
@@ -67,10 +68,10 @@ run_init() {
   mkdir -p "$HELIX_DIR" "$HELIX_DIR/rules" "$HELIX_DIR/state" "$HELIX_DIR/runtime"
   echo "=== HELIX Matrix Init ==="
   copy_template "$TEMPLATES_DIR/matrix.yaml" "$HELIX_DIR/matrix.yaml" "$force"
-  copy_template "$TEMPLATES_DIR/rules/deliverables.yaml" "$HELIX_DIR/rules/deliverables.yaml" "$force"
+  copy_template "$BASE_RULES_DIR/deliverables.yaml" "$HELIX_DIR/rules/deliverables.yaml" "$force"
   copy_template "$TEMPLATES_DIR/rules/structure.yaml" "$HELIX_DIR/rules/structure.yaml" "$force"
-  copy_template "$TEMPLATES_DIR/rules/naming.yaml" "$HELIX_DIR/rules/naming.yaml" "$force"
-  copy_template "$TEMPLATES_DIR/rules/common-defs.yaml" "$HELIX_DIR/rules/common-defs.yaml" "$force"
+  copy_template "$BASE_RULES_DIR/naming.yaml" "$HELIX_DIR/rules/naming.yaml" "$force"
+  copy_template "$BASE_RULES_DIR/common-defs.yaml" "$HELIX_DIR/rules/common-defs.yaml" "$force"
   echo "完了: matrix テンプレートを初期化しました"
 }
 

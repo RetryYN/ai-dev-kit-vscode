@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from helix_db import DEFAULT_SQLITE_TIMEOUT_SEC, get_connection
+
 
 class BudgetCache:
     def __init__(self, cache_dir: Path | None = None, ttl_sec: int = 3600):
@@ -114,7 +116,7 @@ class CodexBudget:
             }
 
         try:
-            conn = sqlite3.connect(f"file:{state_db}?mode=ro", uri=True, timeout=2.0)
+            conn = get_connection(db_path=state_db, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
             try:
                 tables = {r[0] for r in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"

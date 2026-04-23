@@ -1,4 +1,5 @@
 # DESIGN.md — Toyota
+> 目的: TOYOTA の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > トヨタ自動車（https://toyota.jp/）のデザイン仕様書。
 > 実サイトの CSS computed style に基づく。CSS Custom Properties 128件の独自トークン体系を持つ。

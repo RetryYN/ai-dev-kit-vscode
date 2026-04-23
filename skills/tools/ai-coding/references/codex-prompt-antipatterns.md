@@ -1,6 +1,7 @@
 > Adapted from codex-plugin-cc (OpenAI, Apache 2.0)
 
 # Codex Prompt Anti-Patterns for HELIX
+> 目的: Codex Prompt Anti-Patterns for HELIX の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 HELIX運用で再発しやすいプロンプトの失敗パターンを整理した。
 各項目は「悪い例」「改善例」「典型発生場面」をセットで示す。

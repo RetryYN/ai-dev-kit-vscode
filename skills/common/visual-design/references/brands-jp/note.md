@@ -1,4 +1,5 @@
 # DESIGN.md — note
+> 目的: NOTE の配色・タイポ・UI特徴を分析し、画面デザイン検討時に参照。
 
 > note（https://note.com/）のデザイン仕様書。
 > 実サイトのCSS（Tailwind CSS v3.4.1 + Svelte スコープドスタイル）および CSS Custom Properties に基づく。

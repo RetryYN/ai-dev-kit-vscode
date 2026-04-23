@@ -1,0 +1,58 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
+            "timeout": 5,
+            "statusMessage": "Loading HELIX framework...",
+            "blockOnFailure": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/ai-dev-kit-vscode/cli/helix-check-claudemd",
+            "timeout": 5,
+            "statusMessage": "Checking CLAUDE.md template...",
+            "blockOnFailure": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path','') or d.get('tool_response',{}).get('filePath',''))\" | { read -r f; if [ -z \"$f\" ]; then exit 0; fi; ~/ai-dev-kit-vscode/cli/helix-hook \"$f\"; }",
+            "timeout": 10,
+            "statusMessage": "HELIX design sync check...",
+            "blockOnFailure": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/ai-dev-kit-vscode/cli/helix-session-summary",
+            "timeout": 8,
+            "statusMessage": "Generating session summary...",
+            "blockOnFailure": false
+          }
+        ]
+      }
+    ]
+  }
+}

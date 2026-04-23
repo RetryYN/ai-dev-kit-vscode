@@ -138,8 +138,10 @@ fi
 if [[ -f "$HELIX_DIR/helix.db" ]]; then
   run_section "Layer 6: DB Integrity（SQLite チェック）" \
     "python3 -c \"
-import sqlite3
-conn = sqlite3.connect('$HELIX_DIR/helix.db')
+import sys
+sys.path.insert(0, '$SCRIPT_DIR/lib')
+import helix_db
+conn = helix_db.get_connection('$HELIX_DIR/helix.db')
 tables = [r[0] for r in conn.execute(\\\"SELECT name FROM sqlite_master WHERE type='table'\\\").fetchall()]
 expected = ['task_runs','action_logs','observations','feedback','task_evaluations','task_selections']
 missing = [t for t in expected if t not in tables]

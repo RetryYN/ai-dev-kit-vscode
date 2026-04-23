@@ -131,6 +131,8 @@ class ParallelLLM:
         return response.content[0].text
 
 # 使用例
+> 目的: LLM統合のRAG・評価・運用設計を進める際の実装指針として参照。
+
 async def main():
     llm = ParallelLLM(anthropic_client)
     

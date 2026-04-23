@@ -1,0 +1,22 @@
+# Scrum Handoff ({{DATE}})
+
+## Confirmed Hypothesis
+- id: {{HYPOTHESIS_ID}}
+- title: {{HYPOTHESIS_TITLE}}
+
+## PoC Outcome
+- 検証で得られた事実:
+- 再現手順:
+
+## Promotion Plan (PoC -> Production)
+- [ ] L1: 要件定義（D-REQ-F / D-REQ-NF / D-ACC）
+- [ ] L2: 設計凍結（G2）
+- [ ] L3: 詳細設計・契約凍結（G3）
+- [ ] L4: 本実装・検証（G4）
+
+## Verification Assets
+- `.helix/scrum/verify/{{HYPOTHESIS_ID}}/*.sh`
+- `verify/*.sh`（必要に応じて）
+
+## Risks / Open Items
+- 

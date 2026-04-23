@@ -8,6 +8,8 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
 REPO_ROOT="$PROJECT_ROOT"
 HELIX_DIR="$PROJECT_ROOT/.helix"
+PRIMARY_RULES_DIR="$TEMPLATES_DIR/rules"
+FALLBACK_RULES_DIR="$HELIX_HOME/.helix/rules"
 
 # --- 引数パース ---
 PROJECT_NAME=""
@@ -69,6 +71,19 @@ copy_template() {
   echo "  created: $name"
 }
 
+resolve_rule_template() {
+  local rule_name="$1"
+  if [[ -f "$PRIMARY_RULES_DIR/$rule_name" ]]; then
+    printf '%s\n' "$PRIMARY_RULES_DIR/$rule_name"
+    return 0
+  fi
+  if [[ -f "$FALLBACK_RULES_DIR/$rule_name" ]]; then
+    printf '%s\n' "$FALLBACK_RULES_DIR/$rule_name"
+    return 0
+  fi
+  return 1
+}
+
 mkdir -p "$HELIX_DIR"
 echo "[.helix/]"
 copy_template "$TEMPLATES_DIR/doc-map.yaml" "$HELIX_DIR/doc-map.yaml"
@@ -79,12 +94,19 @@ copy_template "$TEMPLATES_DIR/config.yaml" "$HELIX_DIR/config.yaml"
 cp -n "$TEMPLATES_DIR/state-machine.yaml" "$HELIX_DIR/" 2>/dev/null || true
 
 # matrix rules テンプレート
-if [[ -d "$TEMPLATES_DIR/rules" ]]; then
-  mkdir -p "$HELIX_DIR/rules"
-  for rule_file in "$TEMPLATES_DIR/rules"/*.yaml; do
-    [[ ! -f "$rule_file" ]] && continue
-    copy_template "$rule_file" "$HELIX_DIR/rules/$(basename "$rule_file")"
-  done
+mkdir -p "$HELIX_DIR/rules"
+for rule_name in deliverables.yaml naming.yaml common-defs.yaml; do
+  rule_template="$(resolve_rule_template "$rule_name" || true)"
+  if [[ -n "$rule_template" ]]; then
+    copy_template "$rule_template" "$HELIX_DIR/rules/$rule_name"
+  else
+    echo "  warn: base rule not found: $rule_name (searched: $PRIMARY_RULES_DIR, $FALLBACK_RULES_DIR)"
+  fi
+done
+if [[ -f "$TEMPLATES_DIR/rules/structure.yaml" ]]; then
+  copy_template "$TEMPLATES_DIR/rules/structure.yaml" "$HELIX_DIR/rules/structure.yaml"
+else
+  echo "  warn: template rule not found: $TEMPLATES_DIR/rules/structure.yaml"
 fi
 
 # matrix runtime/state ディレクトリ
@@ -276,6 +298,21 @@ if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
     echo "  WARN: matrix compile / auto-detect に失敗しました（後で helix matrix compile / helix matrix auto-detect を実行してください）"
   fi
   echo ""
+fi
+
+# Git hooks (secrets 検知) を配備
+HOOKS_INSTALLER="$HELIX_HOME/scripts/install-git-hooks.sh"
+if [[ -x "$HOOKS_INSTALLER" ]]; then
+  if [[ "${HELIX_SKIP_HOOK_INSTALL:-}" != "1" ]]; then
+    echo "Git hooks を配備中..."
+    if bash "$HOOKS_INSTALLER" 2>&1 | sed 's/^/  /'; then
+      echo "Git hooks 配備完了"
+    else
+      echo "警告: Git hooks 配備失敗 (手動: bash $HOOKS_INSTALLER)" >&2
+    fi
+  else
+    echo "HELIX_SKIP_HOOK_INSTALL=1 のため hooks 配備をスキップ"
+  fi
 fi
 
 echo "=== Done ==="

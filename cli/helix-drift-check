@@ -1,4 +1,9 @@
 #!/bin/bash
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  echo "エラー: helix-drift-check は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
+  echo "macOS の場合: brew install bash && シェルを /opt/homebrew/bin/bash に変更" >&2
+  exit 1
+fi
 set -euo pipefail
 
 # helix-drift-check: 設計ドキュメントと実装の契約ドリフト検知

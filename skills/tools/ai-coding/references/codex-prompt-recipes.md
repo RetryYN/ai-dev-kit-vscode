@@ -1,6 +1,7 @@
 > Adapted from codex-plugin-cc (OpenAI, Apache 2.0)
 
 # Codex Prompt Recipes for HELIX
+> 目的: Codex Prompt Recipes for HELIX の要点を把握し、設計・実装判断を行う際のクイックリファレンスとして参照
 
 Codex/GPT-5.4向けレシピをHELIX運用（ロール・フェーズ・ゲート）に合わせて再編成した。
 各レシピは「最小構成」で使い、不要なブロックは削って運用する。

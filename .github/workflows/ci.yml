@@ -42,9 +42,9 @@ jobs:
       - name: Run helix-verify-all
         run: bash cli/helix-verify-all
 
-      - name: Install pytest
-        if: ${{ hashFiles('cli/lib/tests/**') != '' }}
-        run: python3 -m pip install --quiet pytest
+      - name: Install dev requirements
+        if: ${{ hashFiles('requirements-dev.txt') != '' }}
+        run: python3 -m pip install --quiet -r requirements-dev.txt
 
       - name: Run pytest
         if: ${{ hashFiles('cli/lib/tests/**') != '' }}

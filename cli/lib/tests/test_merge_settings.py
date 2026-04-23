@@ -84,3 +84,12 @@ def test_main_exits_one_when_no_change(
         merge_settings.main()
 
     assert exc.value.code == 1
+
+
+def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
+    hook = merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]
+    command = hook["command"]
+
+    assert "|| true" not in command
+    assert 'if [ -z "$f" ]; then exit 0; fi;' in command
+    assert hook["blockOnFailure"] is True
