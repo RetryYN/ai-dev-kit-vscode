@@ -1,0 +1,32 @@
+{
+  "schema_version": __SCHEMA_VERSION__,
+  "generated_at": __GENERATED_AT__,
+  "updated_at": __UPDATED_AT__,
+  "revision": __REVISION__,
+  "owner": __OWNER__,
+  "scope": __SCOPE__,
+  "git": {
+    "branch": __BRANCH__,
+    "head_sha": __HEAD_SHA__,
+    "dirty": __DIRTY__
+  },
+  "phase": __PHASE__,
+  "sprint": __SPRINT__,
+  "project": __PROJECT__,
+  "task": {
+    "id": __TASK_ID__,
+    "title": __TASK_TITLE__,
+    "status": __TASK_STATUS__
+  },
+  "contracts": {
+    "d_api": __D_API__,
+    "d_db": __D_DB__,
+    "d_contract": __D_CONTRACT__
+  },
+  "files": {
+    "target": __TARGET__,
+    "completed": __COMPLETED__,
+    "pending": __PENDING__
+  },
+  "tests": __TESTS__
+}

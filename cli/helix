@@ -28,6 +28,7 @@ case "$CMD" in
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
+  handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
   learn)    exec "$SCRIPT_DIR/helix-learn" "$@" ;;
   promote)  exec "$SCRIPT_DIR/helix-promote" "$@" ;;
   discover) exec "$SCRIPT_DIR/helix-discover" "$@" ;;
@@ -63,6 +64,7 @@ Commands:
   reverse     リバース HELIX
   scrum       検証駆動開発
   interrupt   中断・復帰管理
+  handover    Opus/Codex handover 管理
 
 実行・委譲:
   codex       Codex へのタスク委譲

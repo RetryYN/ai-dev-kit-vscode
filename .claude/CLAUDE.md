@@ -102,9 +102,47 @@ Critical は委譲せず自分で判断。High 以下は必ず委譲。
 - `--quiet` / `-q` は存在しない。`--uncommitted` とプロンプト引数は併用不可
 - **Codex 担当タスクを Sonnet で代替しない**。Task tool に Codex がなくても Codex CLI を使う
 
+### BE 実装時の Handover ファイル維持
+
+Claude Code セッション上限対策。BE 実装中または切れが近いときに `.helix/handover/CURRENT.json` を維持し、
+ユーザーが Codex CLI チャットで「続き」と言うだけで BE 実装を継続できる状態を保つ。
+
+**いつ使うか**:
+- L4 で BE 実装に入るとき (dump)
+- BE 実装中の区切り (update)
+- セッション切れが近いと感じたとき (update --owner codex)
+- FE 設計 / PM 判断 / 契約変更時は使わない (BE 実装スコープのみ)
+
+**運用フロー**:
+1. 初期化:
+   ```
+   helix handover dump --task-id <ID> --task-title "..." \
+     --files "path1,path2" --tests "pytest tests/..." \
+     --next "1. ... 2. ... 3. ..."
+   ```
+2. 実装の区切りごとに更新:
+   - ファイル完成: `helix handover update --complete <path> --complete-note "..."`
+   - 詰まったとき: `helix handover update --blocker "..."`
+   - 解決時: `helix handover update --unblock "..."`
+   - 文脈メモ: `helix handover update --note "..."`
+3. Codex に引き渡す直前:
+   `helix handover update --owner codex --note "Opus セッション終了、Codex に継続依頼"`
+
+**完了時** (Codex が `ready_for_review` に遷移して戻してきたら):
+- Opus セッションで内容レビュー
+- 問題なければ `helix handover clear --reason completed`
+- 修正必要なら `helix handover update --status in_progress --owner opus`
+
+**Codex からエスカレーションされたとき** (`.helix/handover/ESCALATION.md` がある):
+- ESCALATION.md を Read して判断
+- 必要なら設計・契約を更新
+- 再開するなら `helix handover update --status in_progress --owner opus` して Next Action を書き直す
+- 放棄するなら `helix handover clear --reason abandoned --force`
+
 ### セッション開始チェック（SKILL_MAP.md があるプロジェクトはスキップ）
 
 1. `./CLAUDE.md` の存在確認
 2. `.gitignore` に `CLAUDE.local.md` / `.claude/settings.local.json` 含むか
-3. 問題なければ「OK: 初期化チェック完了」で終える
+3. `.helix/handover/ESCALATION.md` が存在するか (あれば Read して状況把握)
+4. 問題なければ「OK: 初期化チェック完了」で終える
 - CLAUDE.md 未存在 → context-memory §1.3 テンプレートで作成提案

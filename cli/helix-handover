@@ -1,0 +1,130 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-handover: Claude Code(Opus) <-> Codex CLI の非同期 handover 管理
+# Usage: helix handover <dump|status|update|clear|escalate> [options]
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+HANDOVER_DIR="$HELIX_DIR/handover"
+HANDOVER_PY="$SCRIPT_DIR/lib/handover.py"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix handover <subcommand> [options]
+
+Subcommands:
+  dump      CURRENT.json / CURRENT.md を生成
+  status    handover 状態を表示
+  update    handover 状態を更新
+  clear     handover を archive に移動
+  escalate  ESCALATION.md を生成して status=escalated に遷移
+
+Examples:
+  helix handover dump --task-id T-001 --task-title "JWT 実装" --files "src/auth.py,tests/test_auth.py"
+  helix handover status --json
+  helix handover update --owner codex --note "作業再開"
+  helix handover escalate --reason "仕様判断が必要" --context "..."
+  helix handover clear --reason completed
+USAGE
+}
+
+ensure_helix_ready() {
+  if [[ ! -d "$HELIX_DIR" ]]; then
+    echo "エラー: .helix/ が見つかりません。先に 'helix init' を実行してください。" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+  if [[ ! -f "$PHASE_FILE" ]]; then
+    echo "エラー: phase.yaml が見つかりません: $PHASE_FILE" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+  if [[ ! -f "$HANDOVER_PY" ]]; then
+    echo "エラー: handover コアが見つかりません: $HANDOVER_PY" >&2
+    exit "$EXIT_INTERNAL_ERROR"
+  fi
+}
+
+yaml_read() {
+  local file="$1"
+  local dotpath="$2"
+  python3 "$YAML_PARSER" read "$file" "$dotpath" 2>/dev/null || true
+}
+
+normalize_null() {
+  local value="$1"
+  case "$value" in
+    ""|"null"|"None"|"~") echo "" ;;
+    *) echo "$value" ;;
+  esac
+}
+
+normalize_sprint() {
+  local value="$1"
+  if [[ "$value" =~ ^0\.([0-9]+)$ ]]; then
+    echo ".${BASH_REMATCH[1]}"
+    return
+  fi
+  echo "$value"
+}
+
+run_handover_py() {
+  python3 "$HANDOVER_PY" \
+    --handover-dir "$HANDOVER_DIR" \
+    --project-root "$PROJECT_ROOT" \
+    "$@"
+}
+
+SUBCOMMAND="${1:-help}"
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
+case "$SUBCOMMAND" in
+  dump)
+    ensure_helix_ready
+    phase="$(normalize_null "$(yaml_read "$PHASE_FILE" "current_phase")")"
+    project="$(normalize_null "$(yaml_read "$PHASE_FILE" "project")")"
+    phase_sprint="$(normalize_null "$(yaml_read "$PHASE_FILE" "sprint.current_step")")"
+    phase_sprint="$(normalize_sprint "$phase_sprint")"
+
+    if [[ -z "$phase" ]]; then
+      echo "エラー: phase.yaml の current_phase が未設定です" >&2
+      exit "$EXIT_PREREQ_ERROR"
+    fi
+    if [[ -z "$project" ]]; then
+      echo "エラー: phase.yaml の project が未設定です" >&2
+      exit "$EXIT_PREREQ_ERROR"
+    fi
+
+    py_args=(dump --phase "$phase" --project "$project")
+    if [[ -n "$phase_sprint" ]]; then
+      py_args+=(--phase-sprint "$phase_sprint")
+    fi
+    run_handover_py "${py_args[@]}" "$@"
+    ;;
+  status)
+    ensure_helix_ready
+    run_handover_py status "$@"
+    ;;
+  update)
+    ensure_helix_ready
+    run_handover_py update "$@"
+    ;;
+  clear)
+    ensure_helix_ready
+    run_handover_py clear "$@"
+    ;;
+  escalate)
+    ensure_helix_ready
+    run_handover_py escalate "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "エラー: 不明なサブコマンド '$SUBCOMMAND'" >&2
+    usage >&2
+    exit "$EXIT_INPUT_ERROR"
+    ;;
+esac

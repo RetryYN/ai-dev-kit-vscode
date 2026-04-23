@@ -1,0 +1,15 @@
+# HELIX Handover — BE Implementation
+
+> 機械状態は `.helix/handover/CURRENT.json` を参照
+> 本ファイルは append-only イベントログ
+
+## 継続タスク
+__TASK_LINE__
+
+## Next Action (Codex 向け)
+__NEXT_ACTION__
+
+## イベントログ
+
+### [__TIMESTAMP__] dump (owner: __OWNER__, status: __STATUS__)
+__DUMP_NOTE__

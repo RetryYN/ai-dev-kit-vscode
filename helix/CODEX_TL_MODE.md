@@ -128,6 +128,41 @@
 
 これらに該当したら、推奨案を整理した上で人間に確認する。
 
+## Handover 継続モード
+
+`.helix/handover/CURRENT.json` が存在する場合、Opus セッションからの BE 実装継続依頼として扱う。
+詳細なプロトコルは `~/.codex/AGENTS.md §HELIX Handover プロトコル` 参照。
+
+### TL モードでの読み替え
+
+通常 TL モードは「設計〜実装〜検証を一気通貫」だが、Handover 継続時は以下の制約が加わる:
+
+- **スコープは Next Action に限定**。設計判断 (L2-L3) は Opus 側で済んでいる前提
+- **Next Action にないファイルへの変更は事前確認** (それ自体がエスカレーション対象)
+- **契約 (D-API / D-DB / D-CONTRACT) の変更が必要と判断したら escalate**。単独確定しない
+- **clear コマンドは Codex 実行禁止**。完了判定は Opus が行う
+
+### Handover 特有のエスカレーション追加条件
+
+通常のエスカレーション境界に加え、以下は handover 継続時に必ず escalate:
+
+- FE 接続点 (state-events.md) に触る必要
+- Next Action で指定されていないファイルへの変更
+- 見積もり工数の 2 倍以上になりそう
+- git branch / head_sha が handover 当時と不一致 (stale detection)
+- 未読のローカル変更混入 (git dirty state が想定外)
+
+### escalate 実行時のふるまい
+
+```
+helix handover escalate --reason "<1 行サマリ>" --context "<詳細: 試したこと、考察、関連ファイル>"
+```
+
+実行後:
+- `task.status` が `escalated` に遷移
+- `.helix/handover/ESCALATION.md` が生成される
+- ユーザーに「Opus セッション再開が必要」と通知して作業終了
+
 ## 最終報告の最小フォーマット
 
 ```markdown
