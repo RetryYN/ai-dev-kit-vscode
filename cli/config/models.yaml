@@ -3,10 +3,10 @@ default_primary: gpt-5.3-codex
 default_fallback: gpt-5.4-mini
 
 roles:
-  tl: gpt-5.4
-  se: gpt-5.3-codex
+  tl: gpt-5.5
+  se: gpt-5.5
   pg: gpt-5.3-codex-spark
-  qa: gpt-5.3-codex-spark
+  qa: gpt-5.5
   security: gpt-5.3-codex
   dba: gpt-5.3-codex
   devops: gpt-5.3-codex
