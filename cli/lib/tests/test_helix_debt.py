@@ -11,6 +11,7 @@ SCRIPT_PATH = REPO_ROOT / "cli" / "helix-debt"
 def _run(args: list[str], tmp_path: Path) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["HELIX_HOME"] = str(REPO_ROOT)
+    env["HELIX_PROJECT_ROOT"] = str(tmp_path)
     return subprocess.run(
         ["bash", str(SCRIPT_PATH), *args],
         cwd=tmp_path,

@@ -7,8 +7,10 @@ import fcntl
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 EXIT_SUCCESS = 0
@@ -449,14 +451,49 @@ def archive_current(paths):
         idx += 1
     ensure_dir(archive_dir)
 
-    moved_any = False
+    pairs = []
     for name in ("json", "md", "escalation"):
         src = paths[name]
-        if src.exists():
-            os.replace(src, archive_dir / src.name)
-            moved_any = True
-    if not moved_any:
+        pairs.append((src, archive_dir / src.name))
+
+    tmp_staging = Path(tempfile.mkdtemp(prefix="helix-handover-archive-"))
+    staged = []
+    try:
+        for src, dst in pairs:
+            if not src.exists():
+                continue
+            tmp = tmp_staging / src.name
+            shutil.copy2(src, tmp)
+            staged.append((src, dst, tmp))
+    except Exception:
+        shutil.rmtree(tmp_staging, ignore_errors=True)
+        raise HandoverError("archive staging failed", EXIT_CHECK_FAILED) from None
+
+    if not staged:
+        shutil.rmtree(tmp_staging, ignore_errors=True)
         raise HandoverError("archive 対象ファイルが存在しません", EXIT_CHECK_FAILED)
+
+    completed = []
+    try:
+        for src, dst, tmp in staged:
+            os.replace(tmp, dst)
+            completed.append((src, dst))
+        for src, _dst in completed:
+            src.unlink(missing_ok=True)
+    except Exception as exc:
+        for src, dst in reversed(completed):
+            try:
+                os.replace(dst, src)
+            except Exception as rollback_exc:
+                print(
+                    f"[handover] WARN: archive rollback failed: {dst} -> {src}: {rollback_exc}. "
+                    "手動リカバリが必要な可能性があります",
+                    file=sys.stderr,
+                )
+        raise HandoverError(f"archive commit failed: {exc}", EXIT_CHECK_FAILED) from exc
+    finally:
+        shutil.rmtree(tmp_staging, ignore_errors=True)
+
     return archive_dir
 
 

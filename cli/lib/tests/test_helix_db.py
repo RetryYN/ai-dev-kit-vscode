@@ -108,7 +108,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6]
+    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7]
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -315,7 +315,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6]
+    assert versions == [1, 2, 3, 4, 5, 6, 7]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -409,7 +409,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6]
+    assert versions == [3, 4, 5, 6, 7]
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -446,7 +446,7 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6]
+    assert versions == [4, 5, 6, 7]
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
 

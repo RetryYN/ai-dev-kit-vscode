@@ -11,7 +11,7 @@ def test_require_rg_warns_when_missing() -> None:
         [
             "bash",
             "-lc",
-            f'PATH="/nonexistent" source "{script}" && require_rg',
+            f'export PATH="/nonexistent"; source "{script}"; require_rg',
         ],
         capture_output=True,
         text=True,

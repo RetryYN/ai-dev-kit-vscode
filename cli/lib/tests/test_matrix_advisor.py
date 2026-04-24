@@ -17,7 +17,8 @@ MODULE_PATH = LIB_DIR / "matrix_advisor.py"
 def _write_index(path: Path, features: dict | None = None) -> Path:
     payload = {
         "features": features
-        or {
+        if features is not None
+        else {
             "auth": {
                 "scope": "feature",
                 "requires": {

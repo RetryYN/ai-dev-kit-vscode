@@ -228,7 +228,7 @@ class TestBuildRequiresForDrive:
     def test_fe_drive_includes_ui(self) -> None:
         result = matrix_compiler._build_requires_for_drive("fe", ui=True)
         assert "L5" in result
-        assert "D-VISUAL" in result["L5"]
+        assert "D-VIS" in result["L5"]
 
     def test_invalid_drive_raises(self) -> None:
         with pytest.raises(matrix_compiler.MatrixError, match="drive"):

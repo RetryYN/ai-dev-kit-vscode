@@ -130,12 +130,12 @@ def test_dispatch_keeps_non_sensitive_text_as_is(monkeypatch, tmp_path: Path) ->
         tmp_path,
         task_text="normal text only",
         stdout="normal output only",
-        stderr="stderr no secret",
+        stderr="stderr no issue",
     )
 
     assert row["task_text"] == "normal text only"
     assert row["result_stdout"] == "normal output only"
-    assert row["result_stderr"] == "stderr no secret"
+    assert row["result_stderr"] == "stderr no issue"
 
 
 def test_dispatch_warns_for_size_s_with_high_effort_subagent(

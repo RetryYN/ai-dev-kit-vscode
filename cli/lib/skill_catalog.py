@@ -506,7 +506,7 @@ def read_jsonl_catalog(path: Path) -> list[dict]:
 
     entries: list[dict] = []
     for line_no, raw in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
-        text = raw.strip()
+        text = raw.lstrip("\ufeff").strip()
         if not text:
             continue
         try:

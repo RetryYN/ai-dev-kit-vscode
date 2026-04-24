@@ -65,6 +65,8 @@ class JsonConverterBuilder(BuilderBase):
 
     def generate(self, params: dict, seed: dict | None) -> list[dict]:
         del seed
+        if "hint_rules" not in params:
+            params = self.validate_input(params)
 
         name = params["name"]
         base_dir = Path(self.project_root) / "builders" / "json-converters"

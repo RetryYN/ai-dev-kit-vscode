@@ -191,7 +191,7 @@ def test_main_blocks_when_phase_yaml_is_invalid(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     repo_root, phase_file = _init_fake_repo(tmp_path)
-    phase_file.write_text("current_phase: [\n", encoding="utf-8")
+    phase_file.write_text("current_phase: L4\n@\n", encoding="utf-8")
     changed_file = str(repo_root / "src" / "features" / "auth" / "main.py")
 
     result = _run_main(monkeypatch, phase_file, changed_file)

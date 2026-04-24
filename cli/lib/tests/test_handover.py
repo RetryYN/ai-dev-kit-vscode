@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -352,3 +353,67 @@ def test_run_git_timeout_uses_standard_message(tmp_path: Path, monkeypatch: pyte
         handover.run_git(tmp_path, ["fetch"], strict=True)
 
     assert str(exc_info.value) == "git timeout"
+
+
+def test_archive_current_rollback_on_partial_failure(tmp_path: Path) -> None:
+    handover_dir = tmp_path / "handover"
+    handover_dir.mkdir(parents=True, exist_ok=True)
+    paths = handover.current_paths(handover_dir)
+
+    paths["json"].write_text('{"a":1}\n', encoding="utf-8")
+    paths["md"].write_text("# current\n", encoding="utf-8")
+
+    original_replace = handover.os.replace
+    call_count = {"n": 0}
+
+    def _flaky_replace(src, dst):
+        call_count["n"] += 1
+        if call_count["n"] == 2:
+            raise OSError("simulated replace failure")
+        return original_replace(src, dst)
+
+    with patch("handover.os.replace", side_effect=_flaky_replace):
+        with pytest.raises(handover.HandoverError) as exc_info:
+            handover.archive_current(paths)
+
+    assert "archive commit failed" in str(exc_info.value)
+    assert paths["json"].exists()
+    assert paths["md"].exists()
+    assert paths["json"].read_text(encoding="utf-8") == '{"a":1}\n'
+    assert paths["md"].read_text(encoding="utf-8") == "# current\n"
+    archived_json_files = list(paths["archive"].glob("*/CURRENT.json"))
+    assert archived_json_files == []
+
+
+def test_archive_current_idempotent_on_success(tmp_path: Path) -> None:
+    handover_dir = tmp_path / "handover"
+    handover_dir.mkdir(parents=True, exist_ok=True)
+    paths = handover.current_paths(handover_dir)
+
+    paths["json"].write_text('{"ok":true}\n', encoding="utf-8")
+    paths["md"].write_text("# md\n", encoding="utf-8")
+    paths["escalation"].write_text("# esc\n", encoding="utf-8")
+
+    archive_dir = handover.archive_current(paths)
+
+    assert archive_dir.exists()
+    assert not paths["json"].exists()
+    assert not paths["md"].exists()
+    assert not paths["escalation"].exists()
+    assert (archive_dir / "CURRENT.json").read_text(encoding="utf-8") == '{"ok":true}\n'
+    assert (archive_dir / "CURRENT.md").read_text(encoding="utf-8") == "# md\n"
+    assert (archive_dir / "ESCALATION.md").read_text(encoding="utf-8") == "# esc\n"
+
+
+def test_archive_current_no_staged_when_nothing_exists(tmp_path: Path) -> None:
+    handover_dir = tmp_path / "handover"
+    handover_dir.mkdir(parents=True, exist_ok=True)
+    paths = handover.current_paths(handover_dir)
+
+    with pytest.raises(handover.HandoverError) as exc_info:
+        handover.archive_current(paths)
+
+    assert str(exc_info.value) == "archive 対象ファイルが存在しません"
+    assert list(paths["archive"].glob("*/CURRENT.json")) == []
+    assert list(paths["archive"].glob("*/CURRENT.md")) == []
+    assert list(paths["archive"].glob("*/ESCALATION.md")) == []

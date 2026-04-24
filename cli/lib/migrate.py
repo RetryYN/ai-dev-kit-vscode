@@ -104,12 +104,27 @@ def deep_merge(template: Any, existing: Any) -> Any:
 def apply_legacy_mapping(file_kind: str, existing: dict[str, Any]) -> dict[str, Any]:
     if file_kind != "phase.yaml":
         return existing
+    def _normalize_sprint_step(value: Any) -> str:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, float):
+            text = f"{value}"
+            if text.startswith("0."):
+                return f".{text[2:]}"
+            return text
+        if isinstance(value, int):
+            return str(value)
+        return str(value)
+
     if "phase" in existing and "current_phase" not in existing:
         existing["current_phase"] = existing.pop("phase")
     if "sprint_step" in existing:
         sprint = existing.setdefault("sprint", {})
         if isinstance(sprint, dict) and "current_step" not in sprint:
-            sprint["current_step"] = existing.pop("sprint_step")
+            sprint["current_step"] = _normalize_sprint_step(existing.pop("sprint_step"))
+    sprint = existing.get("sprint")
+    if isinstance(sprint, dict) and "current_step" in sprint and not isinstance(sprint["current_step"], str):
+        sprint["current_step"] = _normalize_sprint_step(sprint["current_step"])
     if "gate" in existing and isinstance(existing["gate"], dict):
         gates = existing.setdefault("gates", {})
         if isinstance(gates, dict):
@@ -158,9 +173,13 @@ def merge_yaml(existing_text: str, template_text: str, file_kind: str) -> str:
             raise YamlParseError("root must be mapping")
     except Exception:
         # gate-checks.yaml など複雑 YAML は migrate.py 内の互換ローダーで処理する。
-        existing_obj = _load_yaml_legacy(existing_text)
-        template_obj = _load_yaml_legacy(template_text)
-        use_legacy_yaml = True
+        try:
+            existing_obj = _load_yaml_legacy(existing_text)
+            template_obj = _load_yaml_legacy(template_text)
+            use_legacy_yaml = True
+        except Exception:
+            # 既存 YAML が壊れている場合は保守的にそのまま返す。
+            return existing_text
 
     existing_obj = apply_legacy_mapping(file_kind, existing_obj)
 

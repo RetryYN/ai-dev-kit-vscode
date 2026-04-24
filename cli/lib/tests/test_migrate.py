@@ -83,7 +83,7 @@ def test_do_merge_apply_migrates_legacy_phase_yaml_and_creates_backup(tmp_path: 
     assert result == 0
     migrated = (helix_dir / "phase.yaml").read_text(encoding="utf-8")
     assert "current_phase: L4" in migrated
-    assert "current_step: .2" in migrated
+    assert 'current_step: ".2"' in migrated
     assert "G4: { status: pending }" in migrated
     assert "G6: { status: pending }" in migrated
     assert "custom_key: keep-me" in migrated

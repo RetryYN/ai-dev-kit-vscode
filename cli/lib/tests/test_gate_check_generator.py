@@ -166,7 +166,7 @@ def test_build_gate_checks_collects_validators_and_required_files() -> None:
 
     assert any(item["name"] == "auth D-API 見出しチェック" for item in g3_static)
     assert any(item["cmd"] == "test -f docs/features/auth/D-API/spec.md" for item in g3_static)
-    assert any(item["cmd"] == "test -e docs/features/auth/D-CONTRACT/**/*.md" for item in g3_static)
+    assert any(item["cmd"] == "ls docs/features/auth/D-CONTRACT/**/*.md >/dev/null 2>&1" for item in g3_static)
     assert g4_ai == [
         {
             "role": "qa",

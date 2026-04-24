@@ -21,6 +21,7 @@ def test_helix_matrix_fresh_clone(tmp_path: Path) -> None:
     env = os.environ.copy()
     env["HELIX_HOME"] = str(tool_root)
     env["HELIX_PROJECT_ROOT"] = str(project_root)
+    env["HELIX_PROJECT_ROOT"] = str(project_root)
 
     result = subprocess.run(
         [str(tool_root / "cli" / "helix-matrix"), "init"],
@@ -45,6 +46,7 @@ def test_helix_init_monorepo(tmp_path: Path) -> None:
 
     env = os.environ.copy()
     env["HELIX_HOME"] = str(tool_root)
+    env["HELIX_PROJECT_ROOT"] = str(project_root)
 
     result = subprocess.run(
         [
