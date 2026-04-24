@@ -952,6 +952,198 @@ def cmd_escalate(args):
     print("handover escalated")
 
 
+def render_resume_md(
+    state,
+    base_sha,
+    current_sha,
+    base_reachable,
+    diff_stat,
+    changed_files,
+    commits_between,
+    note,
+):
+    task = state["task"]
+    lines = [
+        "# HELIX Handover Resume (Codex -> Opus)",
+        "",
+        f"Generated: {state['updated_at']}",
+        f"Task: {task['id']} {task['title']} ({state['phase']} Sprint {state['sprint']})",
+        f"Base HEAD: `{base_sha[:12]}` ({'reachable' if base_reachable else 'UNREACHABLE - 要確認'})",
+        f"Current HEAD: `{current_sha[:12]}`",
+        "",
+    ]
+
+    if not base_reachable:
+        lines.extend(
+            [
+                "> 警告: base_sha が git log 200 件に含まれていません。",
+                "> rebase/force-push/shallow clone の可能性。diff 抽出をスキップしました。",
+                "",
+            ]
+        )
+
+    if commits_between:
+        lines.extend(["## Commits (Codex セッション中)", "", "```"])
+        lines.extend(commits_between[:50])
+        if len(commits_between) > 50:
+            lines.append(f"... ({len(commits_between) - 50} more)")
+        lines.extend(["```", ""])
+
+    if diff_stat.strip():
+        lines.extend(["## Diff stat", "", "```", diff_stat.rstrip(), "```", ""])
+
+    if changed_files:
+        lines.append(f"## Changed files ({len(changed_files)})")
+        lines.append("")
+        for path in changed_files[:80]:
+            lines.append(f"- `{path}`")
+        if len(changed_files) > 80:
+            lines.append(f"- ... ({len(changed_files) - 80} more)")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Opus レビューチェックリスト",
+            "",
+            "- [ ] 変更ファイルが `files.target` / `files.completed` と整合している",
+            "- [ ] `files.pending` に残タスクがある場合、次の dump/update で反映",
+            "- [ ] 追加された行に TODO/FIXME が残っていない (`rg -n 'TODO|FIXME' <changed files>`)",
+            "- [ ] 既存テストが green (`helix test` / 対象 pytest)",
+            "- [ ] 新規関数・エンドポイントに対応するテストが追加されている",
+            "- [ ] 契約 (d_api / d_db / d_contract) と実装の整合",
+            "- [ ] シークレット・認証情報が diff に混入していない",
+            "- [ ] ログに個人情報/機微情報が出力されていない",
+            "- [ ] エラーハンドリング・入力バリデーションの網羅性",
+            "",
+        ]
+    )
+
+    if note:
+        lines.extend(["## Note", "", note, ""])
+
+    lines.extend(
+        [
+            "## CURRENT.json snapshot",
+            "",
+            "```json",
+            json.dumps(state, ensure_ascii=False, indent=2),
+            "```",
+            "",
+        ]
+    )
+
+    return "\n".join(lines)
+
+
+def cmd_resume(args):
+    paths = current_paths(args.handover_dir)
+    lock_fh = lock_open(paths["lock"])
+    try:
+        if not paths["json"].exists():
+            raise HandoverError(
+                "CURRENT.json が存在しません。先に helix handover dump を実行してください",
+                EXIT_PREREQ_ERROR,
+            )
+
+        state = load_json(paths["json"])
+        validate_state(state)
+
+        current_status = state["task"]["status"]
+        if current_status == "escalated":
+            raise HandoverError(
+                "escalated 状態では resume できません。先に escalation を解決してください",
+                EXIT_CHECK_FAILED,
+            )
+
+        allowed_from = {"ready_for_review", "blocked", "in_progress"}
+        if current_status not in allowed_from:
+            raise HandoverError(
+                f"resume できない status です: {current_status}",
+                EXIT_CHECK_FAILED,
+            )
+
+        base_sha = state["git"]["head_sha"]
+        current_sha = run_git(args.project_root, ["rev-parse", "HEAD"], strict=True)
+        if not SHA40_RE.fullmatch(current_sha):
+            raise HandoverError(f"現在の HEAD SHA が不正: {current_sha}", EXIT_INTERNAL_ERROR)
+
+        log_text = run_git(args.project_root, ["log", "--format=%H", "-n", "200"], strict=False)
+        reachable = {line.strip() for line in (log_text or "").splitlines() if line.strip()}
+        base_reachable = base_sha in reachable
+
+        diff_stat = ""
+        changed_files = []
+        commits_between = []
+        if base_reachable and base_sha != current_sha:
+            diff_stat = (
+                run_git(args.project_root, ["diff", f"{base_sha}..HEAD", "--stat"], strict=False)
+                or ""
+            )
+            name_only = (
+                run_git(args.project_root, ["diff", f"{base_sha}..HEAD", "--name-only"], strict=False)
+                or ""
+            )
+            changed_files = [line.strip() for line in name_only.splitlines() if line.strip()]
+            log_out = (
+                run_git(
+                    args.project_root,
+                    ["log", f"{base_sha}..HEAD", "--oneline", "--no-decorate"],
+                    strict=False,
+                )
+                or ""
+            )
+            commits_between = [line.strip() for line in log_out.splitlines() if line.strip()]
+
+        expected_revision = state["revision"]
+        updated = json.loads(json.dumps(state, ensure_ascii=False))
+        before_owner = updated["owner"]
+        updated["owner"] = "opus"
+        if not args.no_status_transition and current_status != "in_progress":
+            updated["task"]["status"] = "in_progress"
+        updated["updated_at"] = now_iso()
+        updated["revision"] = expected_revision + 1
+        validate_state(updated)
+
+        atomic_write_json_with_revision(paths["json"], updated, expected_revision)
+
+        resume_md = render_resume_md(
+            state=updated,
+            base_sha=base_sha,
+            current_sha=current_sha,
+            base_reachable=base_reachable,
+            diff_stat=diff_stat,
+            changed_files=changed_files,
+            commits_between=commits_between,
+            note=args.note,
+        )
+        resume_path = paths["json"].parent / "RESUME.md"
+        write_text(resume_path, resume_md)
+
+        ensure_md_exists(paths["md"], updated)
+        if before_owner != "opus":
+            append_event(paths["md"], "owner_change", "opus", f"{before_owner} -> opus")
+
+        body_lines = [
+            f"base_sha: {base_sha[:12]}",
+            f"current_sha: {current_sha[:12]}",
+            f"changed_files: {len(changed_files)}",
+            f"commits: {len(commits_between)}",
+        ]
+        if args.note:
+            body_lines.append(f"note: {args.note}")
+        append_event(
+            paths["md"],
+            "resume",
+            "opus",
+            "\n".join(body_lines),
+            status=updated["task"]["status"],
+        )
+    finally:
+        lock_close(lock_fh)
+
+    print("handover resumed -> .helix/handover/RESUME.md")
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="HELIX handover core")
     parser.add_argument("--handover-dir", default=".helix/handover")
@@ -1005,6 +1197,14 @@ def parse_args(argv):
     escalate_p.add_argument("--reason", required=True)
     escalate_p.add_argument("--context", required=True)
 
+    resume_p = sub.add_parser("resume", help="Codex→Opus 復帰支援 (RESUME.md 生成)")
+    resume_p.add_argument("--note", default=None, help="Opus 側の追加メモ")
+    resume_p.add_argument(
+        "--no-status-transition",
+        action="store_true",
+        help="status 遷移をスキップ (owner のみ変更)",
+    )
+
     args = parser.parse_args(argv)
     args.handover_dir = Path(args.handover_dir).resolve()
     args.project_root = Path(args.project_root).resolve()
@@ -1024,6 +1224,8 @@ def main(argv=None):
         cmd_clear(args)
     elif args.subcommand == "escalate":
         cmd_escalate(args)
+    elif args.subcommand == "resume":
+        cmd_resume(args)
     else:
         raise HandoverError(f"unknown subcommand: {args.subcommand}", EXIT_INPUT_ERROR)
 

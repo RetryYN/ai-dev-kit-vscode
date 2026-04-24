@@ -295,6 +295,9 @@ helix skill search "<task>" [-n 5]      # Codex gpt-5.4-mini で推挙
 helix skill use <id> --task "..." [--dry-run] [--agent NAME] [--references PATHS]
 helix skill chain "<task>" [-n 1]       # search → use の一気通貫
 helix skill stats [--days 30]           # 使用統計（skill_usage テーブル）
+helix budget
+helix recipe <learn|promote|discover|list>  # learn/promote/discover は deprecated
+helix handover resume
 ```
 
 ### 推挙の仕組み

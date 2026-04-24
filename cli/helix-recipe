@@ -1,0 +1,53 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-recipe: 成功パターン学習系コマンド (learn/promote/discover) の統合ディスパッチャ
+# Phase 1-c で集約 (TL 推奨ネーミング)
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix recipe <subcommand> [options]
+
+サブコマンド:
+  learn       成功タスクから recipe を生成 (helix-learn 相当)
+  promote     recipe を共通スキル/スクリプトに昇格 (helix-promote 相当)
+  discover    local/global recipe から類似候補を検索 (helix-discover 相当)
+  list        全 recipe を一覧表示 (helix recipe discover --query "" --limit 50 のエイリアス)
+
+Examples:
+  helix recipe learn --all
+  helix recipe promote <recipe_id>
+  helix recipe discover --query "api"
+  helix recipe list
+USAGE
+}
+
+case "${1:-}" in
+  --help|-h|help|"")
+    usage
+    exit 0
+    ;;
+  learn)
+    shift
+    exec "$SCRIPT_DIR/helix-learn" "$@"
+    ;;
+  promote)
+    shift
+    exec "$SCRIPT_DIR/helix-promote" "$@"
+    ;;
+  discover)
+    shift
+    exec "$SCRIPT_DIR/helix-discover" "$@"
+    ;;
+  list)
+    shift
+    exec "$SCRIPT_DIR/helix-discover" --query "" --limit 50 "$@"
+    ;;
+  *)
+    echo "エラー: 不明なサブコマンド '$1'" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

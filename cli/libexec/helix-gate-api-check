@@ -1,0 +1,199 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-gate-api-check: API契約と実装のエンドポイント突合
+# G4 static チェックとして使用
+# Exit 0 = pass, Exit 1 = fail
+
+source "$(cd "$(dirname "$0")/.." && pwd)/lib/helix-common.sh"
+
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix gate-api-check [オプション]"
+    echo ""
+    echo "API 契約と実装の整合性を検証します。"
+    exit 0
+    ;;
+esac
+
+# --- API契約ファイルを探す（旧パス + 新パス） ---
+declare -a CONTRACTS=()
+
+# 旧パス
+for pattern in \
+  "docs/design/L3-api-contract.yaml" \
+  "docs/design/L3-api-contract.yml" \
+  "docs/design/L3-api-contract.md"; do
+  if [[ -f "$PROJECT_ROOT/$pattern" ]]; then
+    CONTRACTS+=("$PROJECT_ROOT/$pattern")
+  fi
+done
+
+# 新パス（matrix compile 生成系）
+for feature_dir in "$PROJECT_ROOT"/docs/features/*/D-API; do
+  [[ ! -d "$feature_dir" ]] && continue
+  for name in "api-contract.yaml" "api-contract.yml" "api-contract.md"; do
+    if [[ -f "$feature_dir/$name" ]]; then
+      CONTRACTS+=("$feature_dir/$name")
+    fi
+  done
+done
+
+if [[ ${#CONTRACTS[@]} -eq 0 ]]; then
+  echo "  SKIP: API契約ファイルなし（docs/design/L3-api-contract.* / docs/features/*/D-API/api-contract.*）"
+  exit 0
+fi
+
+# --- Python で突合実行 ---
+TMPSCRIPT=$(mktemp /tmp/helix-api-check-XXXXXX.py)
+trap 'rm -f "$TMPSCRIPT"' EXIT
+
+cat > "$TMPSCRIPT" << 'PYEOF'
+import re, sys
+from pathlib import Path
+
+project_root = sys.argv[1]
+contract_paths = [Path(p) for p in sys.argv[2:]]
+contract_eps = set()
+
+
+def extract_method_endpoint_pairs(text: str) -> set[str]:
+    endpoints: set[str] = set()
+    # method -> endpoint（現行フォーマット）
+    pattern_forward = re.compile(
+        r'(?is)method\s*:\s*["\']?(get|post|put|delete|patch)["\']?'
+        r'.{0,500}?endpoint\s*:\s*["\']?(/[^"\',\s#]+)'
+    )
+    # endpoint -> method（順序違いを許容）
+    pattern_reverse = re.compile(
+        r'(?is)endpoint\s*:\s*["\']?(/[^"\',\s#]+)'
+        r'.{0,500}?method\s*:\s*["\']?(get|post|put|delete|patch)["\']?'
+    )
+    for m in pattern_forward.finditer(text):
+        method = m.group(1).upper()
+        endpoint = m.group(2).strip()
+        endpoints.add(f"{method} {endpoint}")
+    for m in pattern_reverse.finditer(text):
+        endpoint = m.group(1).strip()
+        method = m.group(2).upper()
+        endpoints.add(f"{method} {endpoint}")
+    return endpoints
+
+
+def extract_openapi_paths(text: str) -> set[str]:
+    endpoints: set[str] = set()
+    lines = text.splitlines()
+    in_paths = False
+    paths_indent = -1
+    current_path = ""
+
+    for raw in lines:
+        line = raw.split("#", 1)[0].rstrip("\n")
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        stripped = line.strip()
+
+        if not in_paths:
+            if re.match(r"^paths\s*:\s*$", stripped):
+                in_paths = True
+                paths_indent = indent
+                current_path = ""
+            continue
+
+        # paths ブロック終了
+        if indent <= paths_indent:
+            in_paths = False
+            current_path = ""
+            if re.match(r"^paths\s*:\s*$", stripped):
+                in_paths = True
+                paths_indent = indent
+            continue
+
+        path_match = re.match(r'^[\'"]?(/[^\'":#]+)[\'"]?\s*:\s*$', stripped)
+        if path_match:
+            current_path = path_match.group(1).strip()
+            continue
+
+        method_match = re.match(r"^(get|post|put|delete|patch)\s*:\s*$", stripped, re.IGNORECASE)
+        if method_match and current_path:
+            endpoints.add(f"{method_match.group(1).upper()} {current_path}")
+
+    return endpoints
+
+
+for contract_path in contract_paths:
+    try:
+        content = contract_path.read_text()
+    except Exception:
+        continue
+
+    contract_eps.update(extract_method_endpoint_pairs(content))
+    contract_eps.update(extract_openapi_paths(content))
+
+    # Markdown/プレーンテキスト形式（GET /api/...）
+    for match in re.finditer(r'(GET|POST|PUT|DELETE|PATCH)\s+(/[^\s"]+)', content, re.IGNORECASE):
+        contract_eps.add(f'{match.group(1).upper()} {match.group(2)}')
+
+if not contract_eps:
+    print("  FAIL: API契約ファイルは存在しますが、エンドポイントを抽出できませんでした")
+    for p in contract_paths:
+        print(f"    - {p}")
+    sys.exit(1)
+
+# --- 実装からエンドポイント抽出 ---
+src_root = Path(project_root) / 'src'
+if not src_root.exists():
+    src_root = Path(project_root)
+
+impl_eps = set()
+patterns = [
+    r'(?:router|app|server)\.(get|post|put|delete|patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
+    r'@(Get|Post|Put|Delete|Patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
+    r'@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*[\'"](/[^\'"]*)[\'"]',
+]
+
+for f in src_root.rglob('*'):
+    if f.suffix not in ('.ts', '.tsx', '.js', '.jsx', '.py', '.go'):
+        continue
+    if any(p in str(f) for p in ('node_modules', '.next', '.git', '.helix', '__pycache__')):
+        continue
+    try:
+        code = f.read_text()
+    except Exception:
+        continue
+    for pat in patterns:
+        for m in re.finditer(pat, code, re.IGNORECASE):
+            method = m.group(1).upper()
+            path = m.group(2)
+            impl_eps.add(f'{method} {path}')
+
+# --- 突合 ---
+print(f"  API契約ファイル: {len(contract_paths)}")
+print(f"  API契約: {len(contract_eps)} endpoints")
+print(f"  実装:    {len(impl_eps)} endpoints")
+
+contract_only = contract_eps - impl_eps
+impl_only = impl_eps - contract_eps
+
+exit_code = 0
+
+if contract_only:
+    print("  FAIL: 契約にあるが未実装:")
+    for ep in sorted(contract_only):
+        print(f"    {ep}")
+    exit_code = 1
+
+if impl_only:
+    print("  FAIL: 実装にあるが契約にない（未承認エンドポイント）:")
+    for ep in sorted(impl_only):
+        print(f"    {ep}")
+    exit_code = 1
+
+if not contract_only and not impl_only:
+    print("  OK: 契約と実装が一致")
+
+sys.exit(exit_code)
+PYEOF
+
+python3 "$TMPSCRIPT" "$PROJECT_ROOT" "${CONTRACTS[@]}"

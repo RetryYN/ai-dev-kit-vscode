@@ -1,69 +1,10 @@
 #!/bin/bash
-set -euo pipefail
-# helix-check-claudemd: PreToolUse hook for Write
-# CLAUDE.md を新規作成しようとしたらテンプレート使用を強制する
-
-source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
-TEMPLATE="$HELIX_HOME/cli/templates/CLAUDE.md.template"
-
-case "${1:-}" in
-  --help|-h)
-    echo "使い方: helix check-claudemd [オプション]"
-    echo ""
-    echo "CLAUDE.md 新規作成時のテンプレート準拠を検証します。"
-    exit 0
-    ;;
-esac
-
-# stdin から JSON を読む
-INPUT=$(cat)
-
-# file_path を抽出
-FILE_PATH=$(echo "$INPUT" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('tool_input', {}).get('file_path', ''))
-" 2>/dev/null)
-
-# CLAUDE.md でなければスルー
-case "$FILE_PATH" in
-  */CLAUDE.md) ;;
-  *) exit 0 ;;
-esac
-
-# 既存ファイルの更新ならスルー（新規作成のみチェック）
-if [[ -f "$FILE_PATH" ]]; then
-  exit 0
+# DEPRECATED: このパスは後方互換のため残されています。
+# 新しい参照は cli/libexec/helix-check-claudemd を使ってください。
+# 将来のリリースで削除される可能性があります。
+set -e
+REAL_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
+  echo "[helix] warn: cli/helix-check-claudemd は deprecated。cli/libexec/helix-check-claudemd を参照してください (HELIX_SUPPRESS_LEGACY_WARN=1 で抑止)" >&2
 fi
-
-# テンプレートが存在するか確認
-if [[ ! -f "$TEMPLATE" ]]; then
-  exit 0
-fi
-
-# 書こうとしている内容にテンプレートの必須セクションが含まれているかチェック
-CONTENT=$(echo "$INPUT" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('tool_input', {}).get('content', ''))
-" 2>/dev/null)
-
-MISSING_SECTIONS=()
-for section in "技術スタック" "コーディング規約" "コマンド" "HELIX ワークフロー"; do
-  if ! echo "$CONTENT" | grep -q "$section"; then
-    MISSING_SECTIONS+=("$section")
-  fi
-done
-
-if [[ ${#MISSING_SECTIONS[@]} -gt 0 ]]; then
-  cat <<EOF
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "CLAUDE.md はテンプレートを使用してください。\nテンプレート: $TEMPLATE\n不足セクション: ${MISSING_SECTIONS[*]}\n\nテンプレートを Read してから CLAUDE.md を作成してください。"
-  }
-}
-EOF
-  exit 0
-fi
+exec "$REAL_DIR/libexec/helix-check-claudemd" "$@"

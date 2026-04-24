@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-handover: Claude Code(Opus) <-> Codex CLI の非同期 handover 管理
-# Usage: helix handover <dump|status|update|clear|escalate> [options]
+# Usage: helix handover <dump|status|update|clear|escalate|resume> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
@@ -20,11 +20,13 @@ Subcommands:
   update    handover 状態を更新
   clear     handover を archive に移動
   escalate  ESCALATION.md を生成して status=escalated に遷移
+  resume    Codex→Opus 復帰支援 (RESUME.md 生成)
 
 Examples:
   helix handover dump --task-id T-001 --task-title "JWT 実装" --files "src/auth.py,tests/test_auth.py"
   helix handover status --json
   helix handover update --owner codex --note "作業再開"
+  helix handover resume --note "Opus review restart"
   helix handover escalate --reason "仕様判断が必要" --context "..."
   helix handover clear --reason completed
 USAGE
@@ -118,6 +120,10 @@ case "$SUBCOMMAND" in
   escalate)
     ensure_helix_ready
     run_handover_py escalate "$@"
+    ;;
+  resume)
+    ensure_helix_ready
+    run_handover_py resume "$@"
     ;;
   help|-h|--help)
     usage

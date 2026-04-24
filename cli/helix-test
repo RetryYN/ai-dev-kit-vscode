@@ -220,6 +220,24 @@ run_test_contains "helix --help usage ja" "$SCRIPT_DIR/helix --help" "使い方:
 run_test_contains "builder --help usage" "HELIX_HOME=/tmp/helix-missing-home $SCRIPT_DIR/helix-builder --help" "使い方: helix builder <type> <action>"
 run_test_not_contains "builder --help no main execution" "HELIX_HOME=/tmp/helix-missing-home $SCRIPT_DIR/helix-builder --help" "No such file or directory"
 run_test_contains "hook --help usage" "$SCRIPT_DIR/helix-hook --help" "使い方: helix hook <変更ファイルパス>"
+
+echo "[libexec hooks (Phase 1-b)]"
+run_test "libexec helix-session-start exists" "[ -x $SCRIPT_DIR/libexec/helix-session-start ]"
+run_test "libexec helix-check-claudemd exists" "[ -x $SCRIPT_DIR/libexec/helix-check-claudemd ]"
+run_test "libexec helix-hook exists" "[ -x $SCRIPT_DIR/libexec/helix-hook ]"
+run_test "libexec helix-gate-api-check exists" "[ -x $SCRIPT_DIR/libexec/helix-gate-api-check ]"
+run_test "legacy helix-session-start wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-session-start --help 2>&1 | grep -q 'session\\|SessionStart\\|使い方\\|JSON'"
+run_test "legacy helix-check-claudemd wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-check-claudemd --help"
+run_test "legacy helix-hook wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-hook --help | grep -q '使い方'"
+run_test "legacy helix-gate-api-check wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-gate-api-check --help"
+run_test "legacy wrapper emits deprecation to stderr" "$SCRIPT_DIR/helix-hook --help 2>&1 1>/dev/null | grep -q deprecated"
+echo ""
+
+echo "[helix-budget]"
+run_test "budget --help" "$SCRIPT_DIR/helix budget --help"
+run_test_contains "budget --help lists status" "$SCRIPT_DIR/helix budget --help" "status"
+run_test_contains "budget --help lists classify" "$SCRIPT_DIR/helix budget --help" "classify"
+run_test_json_valid "budget status --json (via helix dispatcher)" "$SCRIPT_DIR/helix budget status --no-cache --json"
 echo ""
 
 echo "[helix-init]"
@@ -346,6 +364,11 @@ with tempfile.TemporaryDirectory() as d:
     assert row == (\"t\",\"x/y\"), f\"data not preserved: {row}\"
     c.close()
 '"
+echo ""
+
+echo "[helix-handover]"
+run_test "handover resume --help exits 0" "$SCRIPT_DIR/helix handover resume --help"
+run_test_contains "handover --help lists resume" "$SCRIPT_DIR/helix handover --help" "resume"
 echo ""
 
 echo "[helix-budget]"
@@ -1890,6 +1913,25 @@ run_test_contains "helix help migrate" "$SCRIPT_DIR/helix help" "  migrate"
 run_test_contains "helix help debug" "$SCRIPT_DIR/helix help" "  debug"
 run_test_contains "helix help verify-all" "$SCRIPT_DIR/helix help" "  verify-all"
 run_test "helix unknown cmd" "$SCRIPT_DIR/helix nonexistent" 1
+echo ""
+
+echo "[helix-recipe (Phase 1-c)]"
+run_test "recipe --help" "$SCRIPT_DIR/helix recipe --help"
+run_test_contains "recipe --help lists learn" "$SCRIPT_DIR/helix recipe --help" "learn"
+run_test_contains "recipe --help lists promote" "$SCRIPT_DIR/helix recipe --help" "promote"
+run_test_contains "recipe --help lists discover" "$SCRIPT_DIR/helix recipe --help" "discover"
+run_test_contains "recipe --help lists list" "$SCRIPT_DIR/helix recipe --help" "list"
+run_test "recipe learn delegates (help)" "$SCRIPT_DIR/helix recipe learn --help 2>&1 | grep -q '成功タスク\\|--task-id\\|--all'"
+run_test "recipe discover delegates (help)" "$SCRIPT_DIR/helix recipe discover --help 2>&1 | grep -q '類似候補\\|--query\\|--limit'"
+run_test "recipe promote delegates (help)" "$SCRIPT_DIR/helix recipe promote --help 2>&1 | grep -q 'recipe_id\\|--auto\\|promote'"
+run_test "recipe list works (alias for discover)" "$SCRIPT_DIR/helix recipe list --help 2>&1 | grep -q '類似候補\\|--query\\|--limit'"
+run_test "legacy helix learn dispatcher still works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix learn --help 2>&1 | grep -q '成功タスク\\|--task-id\\|--all'"
+run_test "legacy helix promote dispatcher still works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix promote --help 2>&1 | grep -q 'recipe_id\\|--auto\\|promote'"
+run_test "legacy helix discover dispatcher still works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix discover --help 2>&1 | grep -q '類似候補\\|--query'"
+run_test "legacy helix learn emits deprecation to stderr" "$SCRIPT_DIR/helix learn --help 2>&1 1>/dev/null | grep -q 'deprecated'"
+run_test "legacy helix promote emits deprecation to stderr" "$SCRIPT_DIR/helix promote --help 2>&1 1>/dev/null | grep -q 'deprecated'"
+run_test "legacy helix discover emits deprecation to stderr" "$SCRIPT_DIR/helix discover --help 2>&1 1>/dev/null | grep -q 'deprecated'"
+run_test "direct helix-learn no deprecation" "$SCRIPT_DIR/helix-learn --help 2>&1 | grep -v deprecated | grep -q '成功タスク\\|--task-id\\|--all'"
 echo ""
 fi
 

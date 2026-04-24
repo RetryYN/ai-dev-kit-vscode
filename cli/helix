@@ -29,9 +29,26 @@ case "$CMD" in
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
-  learn)    exec "$SCRIPT_DIR/helix-learn" "$@" ;;
-  promote)  exec "$SCRIPT_DIR/helix-promote" "$@" ;;
-  discover) exec "$SCRIPT_DIR/helix-discover" "$@" ;;
+  budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
+  recipe)   exec "$SCRIPT_DIR/helix-recipe" "$@" ;;
+  learn)
+    if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
+      echo "[helix] warn: 'helix learn' は deprecated。'helix recipe learn' を使用してください (2 release cycles 後に削除予定、HELIX_SUPPRESS_LEGACY_WARN=1 で抑止)" >&2
+    fi
+    exec "$SCRIPT_DIR/helix-learn" "$@"
+    ;;
+  promote)
+    if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
+      echo "[helix] warn: 'helix promote' は deprecated。'helix recipe promote' を使用してください (2 release cycles 後に削除予定、HELIX_SUPPRESS_LEGACY_WARN=1 で抑止)" >&2
+    fi
+    exec "$SCRIPT_DIR/helix-promote" "$@"
+    ;;
+  discover)
+    if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
+      echo "[helix] warn: 'helix discover' は deprecated。'helix recipe discover' を使用してください (2 release cycles 後に削除予定、HELIX_SUPPRESS_LEGACY_WARN=1 で抑止)" >&2
+    fi
+    exec "$SCRIPT_DIR/helix-discover" "$@"
+    ;;
   skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
@@ -65,6 +82,8 @@ Commands:
   scrum       検証駆動開発
   interrupt   中断・復帰管理
   handover    Opus/Codex handover 管理
+  budget      Claude/Codex 予算管理・モデル推奨
+  recipe      成功パターン学習 (learn/promote/discover/list)
 
 実行・委譲:
   codex       Codex へのタスク委譲
@@ -78,9 +97,9 @@ Commands:
   log         ログ・評価システム
   debt        技術負債管理
   retro       レトロスペクティブ
-  learn       成功パターン学習
-  promote     レシピ昇格
-  discover    パターン検索
+  learn       成功パターン学習 (deprecated: helix recipe learn)
+  promote     レシピ昇格 (deprecated: helix recipe promote)
+  discover    パターン検索 (deprecated: helix recipe discover)
 
 検証:
   test        セルフテスト

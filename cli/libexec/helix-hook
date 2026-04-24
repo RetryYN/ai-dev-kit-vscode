@@ -1,0 +1,562 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-hook: Claude Code PostToolUse hook
+# Edit/Write 後に自動発火し、ドキュメント駆動ゲートを実行する
+# Usage: helix-hook <changed-file-path>
+
+source "$(cd "$(dirname "$0")/.." && pwd)/lib/helix-common.sh"
+DOC_MAP="$HELIX_DIR/doc-map.yaml"
+PHASE_FILE="$HELIX_DIR/phase.yaml"
+DB_PY="$SCRIPT_DIR/lib/helix_db.py"
+DB_PATH="$HELIX_DIR/helix.db"
+SAFE_GLOB_MATCHES=()
+
+# hook の再入防止（同一プロセス系統での多重実行を抑止）
+[[ "${HELIX_HOOK_RUNNING:-}" == "1" ]] && exit 0
+
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix hook <変更ファイルパス>"
+    echo ""
+    echo "編集後フックとして設計整合チェックを実行します。"
+    exit 0
+    ;;
+esac
+
+# --- 引数 ---
+CHANGED_FILE="${1:-}"
+if [[ -z "$CHANGED_FILE" ]]; then
+  exit 0
+fi
+
+is_safe_hook_path() {
+  local path="$1"
+  python3 - "$path" <<'PY'
+import re
+import sys
+
+path = sys.argv[1]
+pattern = re.compile(r'^[A-Za-z0-9/_.\-\u3000-\u303F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF01-\uFF60\uFFE0-\uFFEE]+$')
+raise SystemExit(0 if path and pattern.fullmatch(path) else 1)
+PY
+}
+
+if ! is_safe_hook_path "$CHANGED_FILE"; then
+  printf '[helix-hook] WARN: 危険な file_path をスキップしました: %q\n' "$CHANGED_FILE" >&2
+  exit 0
+fi
+
+# .helix/ がなければ何もしない（HELIX 未導入プロジェクト）
+if [[ ! -d "$HELIX_DIR" ]]; then
+  exit 0
+fi
+
+if [[ ! -f "$DOC_MAP" ]]; then
+  exit 0
+fi
+
+# 相対パスに変換
+REL_PATH="${CHANGED_FILE#"$PROJECT_ROOT/"}"
+
+# Python チェックのキャッシュ（同一ファイルの連続チェックを高速化）
+CACHE_DIR="${TMPDIR:-/tmp}/helix-hook-cache"
+mkdir -p "$CACHE_DIR" 2>/dev/null || true
+hash_file_short() {
+  local path="$1"
+  [[ -f "$path" ]] || { echo "0"; return; }
+  if command -v md5sum >/dev/null 2>&1; then
+    md5sum "$path" 2>/dev/null | cut -c1-16
+  else
+    shasum "$path" 2>/dev/null | cut -c1-16
+  fi
+}
+
+FILE_HASH=$(hash_file_short "$CHANGED_FILE")
+PHASE_HASH=$(hash_file_short "$PHASE_FILE")
+INDEX_HASH=$(hash_file_short "$HELIX_DIR/runtime/index.json")
+DOC_MAP_HASH=$(hash_file_short "$DOC_MAP")
+
+if command -v md5sum >/dev/null 2>&1; then
+  CACHE_KEY=$(printf '%s|%s|%s|%s|%s|%s|%s' "$PROJECT_ROOT" "$REL_PATH" "$FILE_HASH" "$PHASE_HASH" "$INDEX_HASH" "$DOC_MAP_HASH" "${HELIX_GUARD:-on}" | md5sum | cut -c1-16)
+else
+  CACHE_KEY=$(printf '%s|%s|%s|%s|%s|%s|%s' "$PROJECT_ROOT" "$REL_PATH" "$FILE_HASH" "$PHASE_HASH" "$INDEX_HASH" "$DOC_MAP_HASH" "${HELIX_GUARD:-on}" | shasum | cut -c1-16)
+fi
+CACHE_FILE="$CACHE_DIR/$CACHE_KEY.out"
+CACHE_STATUS_FILE="$CACHE_DIR/$CACHE_KEY.status"
+CACHE_TTL=5
+
+if [[ -f "$CACHE_FILE" && -f "$CACHE_STATUS_FILE" ]]; then
+  cache_age=$(( $(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0) ))
+  if [[ $cache_age -lt $CACHE_TTL ]]; then
+    cat "$CACHE_FILE"
+    cached_status=$(cat "$CACHE_STATUS_FILE" 2>/dev/null || echo 0)
+    [[ "$cached_status" =~ ^[0-9]+$ ]] || cached_status=0
+    exit "$cached_status"
+  fi
+fi
+
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/ }"
+  echo "$value"
+}
+
+log_hook_event() {
+  local event_type="$1"
+  local file="$2"
+  local result="$3"
+  local event_type_esc file_esc result_esc payload
+  event_type_esc=$(json_escape "$event_type")
+  file_esc=$(json_escape "$file")
+  result_esc=$(json_escape "$result")
+  payload="{\"event_type\":\"$event_type_esc\",\"file\":\"$file_esc\",\"result\":\"$result_esc\"}"
+  (
+    export HELIX_HOOK_RUNNING=1
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert hook_events "$payload" >/dev/null 2>&1
+  ) || true
+}
+
+is_safe_design_ref_pattern() {
+  local pattern="$1"
+  [[ -n "$pattern" ]] || return 1
+  [[ "$pattern" =~ ^[A-Za-z0-9/_.*-]+$ ]]
+}
+
+expand_design_ref_matches() {
+  local pattern="$1"
+  SAFE_GLOB_MATCHES=()
+
+  if ! is_safe_design_ref_pattern "$pattern"; then
+    printf '[helix-hook] WARN: 危険な design_ref パターンをスキップしました: %q\n' "$pattern"
+    return 1
+  fi
+
+  local had_nullglob=0
+  local had_globstar=0
+  local oldpwd="$PWD"
+  local file
+
+  shopt -q nullglob && had_nullglob=1
+  shopt -q globstar && had_globstar=1
+  shopt -s nullglob globstar
+
+  if [[ "$pattern" == *"*"* ]]; then
+    builtin cd "$PROJECT_ROOT" || {
+      [[ $had_nullglob -eq 0 ]] && shopt -u nullglob
+      [[ $had_globstar -eq 0 ]] && shopt -u globstar
+      return 1
+    }
+    for file in $pattern; do
+      SAFE_GLOB_MATCHES+=("$file")
+    done
+    builtin cd "$oldpwd" || true
+  elif [[ -e "$PROJECT_ROOT/$pattern" ]]; then
+    SAFE_GLOB_MATCHES=("$pattern")
+  fi
+
+  [[ $had_nullglob -eq 0 ]] && shopt -u nullglob
+  [[ $had_globstar -eq 0 ]] && shopt -u globstar
+  return 0
+}
+
+show_freeze_diff_summary() {
+  local file="$1"
+  local git_tracked=""
+  git_tracked=$(cd "$PROJECT_ROOT" && git ls-files -- "$file" 2>/dev/null | head -1 || true)
+  if [[ -n "$git_tracked" ]]; then
+    echo "[helix-hook] 変更内容:"
+    (cd "$PROJECT_ROOT" && git diff --stat -- "$file" 2>/dev/null | head -5) || true
+  fi
+}
+
+# --- Matrix Advisory Check ---
+check_matrix_advisory() {
+  local file="$1"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+  local STATE="$HELIX_DIR/state/deliverables.json"
+
+  [[ ! -f "$INDEX" ]] && return 0
+
+  # advisory only: 失敗しても hook 全体を止めない
+  local output
+  output=$(python3 "$SCRIPT_DIR/lib/matrix_advisor.py" \
+    --index "$INDEX" \
+    --state "$STATE" \
+    --file "$file" \
+    --project-root "$PROJECT_ROOT" 2>&1 || true)
+  if [[ -n "$output" ]]; then
+    echo "$output"
+    log_hook_event "matrix_advisory" "$file" "advisory"
+  fi
+}
+
+# --- Phase Guard ---
+check_phase_guard() {
+  local file="$1"
+  local GUARD="$SCRIPT_DIR/lib/phase_guard.py"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+
+  [[ ! -f "$PHASE_FILE" ]] && return 0
+  [[ ! -f "$GUARD" ]] && return 0
+
+  # HELIX_GUARD=off で一時的に無効化
+  [[ "${HELIX_GUARD:-on}" == "off" ]] && return 0
+
+  local args=(--phase-file "$PHASE_FILE" --file "$file")
+  [[ -f "$INDEX" ]] && args+=(--index "$INDEX")
+
+  if ! python3 "$GUARD" "${args[@]}"; then
+    log_hook_event "phase_guard_block" "$file" "blocked"
+    echo "[helix-guard] ヒント: HELIX_GUARD=off を設定すると一時的にガードを無効化できます"
+    return 1
+  fi
+}
+
+# --- YAML からトリガーを検索 (Python パーサー) ---
+match_trigger() {
+  local file="$1"
+
+  python3 "$SCRIPT_DIR/lib/doc_map_matcher.py" "$DOC_MAP" "$file" 2>/dev/null | while IFS='|' read -r action arg1 arg2; do
+    case "$action" in
+      GATE_READY)
+        echo "[helix-hook] gate_ready: $arg2 → $arg1"
+        echo "[helix-hook] $arg1 のチェック準備が整いました。'helix-gate $arg1' で検証を実行してください。"
+        ;;
+      DESIGN_SYNC)
+        if ! expand_design_ref_matches "$arg1"; then
+          continue
+        fi
+        if [[ ${#SAFE_GLOB_MATCHES[@]} -eq 0 ]]; then
+          echo "[helix-hook] WARN: 設計文書未作成 — $arg1 が存在しません"
+          echo "[helix-hook]   実装: $arg2"
+          echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
+        else
+          local impl_mtime
+          impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$arg2" 2>/dev/null || echo 0)
+          for df in "${SAFE_GLOB_MATCHES[@]}"; do
+            local design_mtime
+            design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
+            if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
+              echo "[helix-hook] WARN: 設計が実装より古い可能性があります"
+              echo "[helix-hook]   実装: $arg2"
+              echo "[helix-hook]   設計: $df"
+            fi
+          done
+        fi
+        ;;
+      COVERAGE_CHECK)
+        echo "[helix-hook] coverage_check: テストファイル変更 — $arg1"
+        echo "[helix-hook]   次回ゲートでカバレッジを確認します"
+        ;;
+      ADR_INDEX)
+        # ADR index は check_adr_index で処理済み
+        ;;
+    esac
+  done
+}
+
+# --- glob マッチ判定 ---
+glob_match() {
+  local file="$1"
+  local pattern="$2"
+  # bash の extglob でマッチ。** は任意パス
+  local regex_pattern
+  regex_pattern=$(echo "$pattern" | sed 's/\*\*/DOUBLESTAR/g' | sed 's/\*/[^\/]*/g' | sed 's/DOUBLESTAR/.*/g')
+  [[ "$file" =~ ^${regex_pattern}$ ]]
+}
+
+# --- トリガー評価 ---
+eval_trigger() {
+  local file="$1"
+  local pattern="$2"
+  local on_write="$3"
+  local gate="$4"
+  local design_ref="$5"
+
+  if ! glob_match "$file" "$pattern"; then
+    return
+  fi
+
+  case "$on_write" in
+    gate_ready)
+      echo "[helix-hook] gate_ready: $file → $gate"
+      echo "[helix-hook] $gate のチェック準備が整いました。'helix-gate $gate' で検証を実行してください。"
+      ;;
+
+    design_sync)
+      if [[ -z "$design_ref" ]]; then
+        return
+      fi
+      if ! expand_design_ref_matches "$design_ref"; then
+        return
+      fi
+
+      if [[ ${#SAFE_GLOB_MATCHES[@]} -eq 0 ]]; then
+        echo "[helix-hook] WARN: 設計文書未作成 — $design_ref が存在しません"
+        echo "[helix-hook]   実装: $file"
+        echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
+        exit 1
+      fi
+
+      # 設計文書と実装ファイルのタイムスタンプ比較
+      local impl_mtime design_mtime
+      impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$file" 2>/dev/null || echo 0)
+
+      local stale_designs=()
+      for df in "${SAFE_GLOB_MATCHES[@]}"; do
+        design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
+        if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
+          stale_designs+=("$df")
+        fi
+      done
+
+      if [[ ${#stale_designs[@]} -gt 0 ]]; then
+        echo "[helix-hook] WARN: 設計が実装より古い可能性があります"
+        echo "[helix-hook]   実装: $file ($(date -d @"$impl_mtime" '+%Y-%m-%d %H:%M' 2>/dev/null || echo 'unknown'))"
+        for sd in "${stale_designs[@]}"; do
+          local sd_mtime
+          sd_mtime=$(stat -c %Y "$PROJECT_ROOT/$sd" 2>/dev/null || echo 0)
+          echo "[helix-hook]   設計: $sd ($(date -d @"$sd_mtime" '+%Y-%m-%d %H:%M' 2>/dev/null || echo 'unknown'))"
+        done
+        echo "[helix-hook]   設計文書の更新を検討してください"
+        # warn のみ、ブロックはしない（ブロックしたい場合は exit 1）
+      fi
+      ;;
+
+    coverage_check)
+      echo "[helix-hook] coverage_check: テストファイル変更 — $file"
+      echo "[helix-hook]   次回ゲートでカバレッジを確認します"
+      ;;
+  esac
+}
+
+# --- freeze-break 検出 ---
+check_freeze_violation() {
+  local file="$1"
+  [[ ! -f "$PHASE_FILE" ]] && return 0
+
+  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  local INDEX="$HELIX_DIR/runtime/index.json"
+  local g05_status
+  g05_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G0.5.status" 2>/dev/null || echo "pending")
+  if [[ "$g05_status" == "passed" ]]; then
+    if [[ "$file" =~ (proposal|planning|企画書) ]]; then
+      echo "[helix-hook] WARN: 企画突合後に企画書が変更されました"
+      echo "[helix-hook]   G0.5 を再実行して突合を確認してください"
+    fi
+  fi
+
+  # runtime/index.json がある場合は Python でスマートに判定
+  if [[ -f "$INDEX" ]]; then
+    local output freeze_rc
+    set +e
+    output=$(python3 "$SCRIPT_DIR/lib/freeze_checker.py" \
+      --phase-file "$PHASE_FILE" \
+      --index "$INDEX" \
+      --file "$file" 2>&1)
+    freeze_rc=$?
+    set -e
+    if [[ $freeze_rc -ne 0 ]]; then
+      [[ -n "$output" ]] && echo "$output"
+      echo "[helix-hook] ERROR: freeze checker の内部エラーにより編集をブロックしました"
+      log_hook_event "freeze_break" "$file" "error"
+      return 2
+    fi
+    if [[ -n "$output" ]]; then
+      echo "$output"
+      if echo "$output" | grep -q "凍結違反"; then
+        show_freeze_diff_summary "$file"
+        log_hook_event "freeze_break" "$file" "detected"
+      fi
+    fi
+    return 0
+  fi
+
+  local g2_status g3_status g5_status
+  g2_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G2.status" 2>/dev/null || echo "pending")
+  g3_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G3.status" 2>/dev/null || echo "pending")
+  g5_status=$(python3 "$YP" read "$PHASE_FILE" "gates.G5.status" 2>/dev/null || echo "pending")
+
+  # G2 passed = 設計凍結
+  if [[ "$g2_status" == "passed" ]]; then
+    if glob_match "$file" "docs/design/L2-.*" \
+      || glob_match "$file" "docs/features/.*/D-ARCH/.*" \
+      || glob_match "$file" "docs/features/.*/D-ADR/.*" \
+      || glob_match "$file" "docs/features/.*/D-THREAT/.*"; then
+      echo "[helix-hook] WARN: 設計凍結違反 — G2 passed 後に $file を変更"
+      show_freeze_diff_summary "$file"
+      log_hook_event "freeze_break" "$file" "detected"
+      cascade_invalidate "G3" "G4" "G5" "G6" "G7"
+    fi
+  fi
+
+  # G3 passed = API凍結
+  if [[ "$g3_status" == "passed" ]]; then
+    if glob_match "$file" "src/api/.*" \
+      || glob_match "$file" "docs/features/.*/D-API/.*" \
+      || glob_match "$file" "docs/features/.*/D-CONTRACT/.*" \
+      || glob_match "$file" "src/features/.*/D-IMPL/.*"; then
+      echo "[helix-hook] WARN: API凍結違反 — G3 passed 後に $file を変更"
+      show_freeze_diff_summary "$file"
+      log_hook_event "freeze_break" "$file" "detected"
+      cascade_invalidate "G4" "G5" "G6" "G7"
+    fi
+  fi
+
+  # G5 passed = Visual凍結
+  if [[ "$g5_status" == "passed" ]]; then
+    if glob_match "$file" "src/components/.*"; then
+      echo "[helix-hook] WARN: Visual凍結違反 — G5 passed 後に $file を変更"
+      show_freeze_diff_summary "$file"
+      log_hook_event "freeze_break" "$file" "detected"
+      cascade_invalidate "G6" "G7"
+    fi
+  fi
+}
+
+cascade_invalidate() {
+  local YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  local changed=()
+  for gate in "$@"; do
+    local current
+    current=$(python3 "$YP" read "$PHASE_FILE" "gates.${gate}.status" 2>/dev/null || echo "pending")
+    if [[ "$current" == "passed" ]]; then
+      python3 "$YP" write "$PHASE_FILE" "gates.${gate}.status" "invalidated" 2>/dev/null
+      changed+=("$gate")
+    fi
+  done
+  if [[ ${#changed[@]} -gt 0 ]]; then
+    echo "[helix-hook]   下流ゲート無効化: ${changed[*]}"
+    echo "[helix-hook]   freeze-break 手続きが必要です（gate-policy.md §freeze-break 参照）"
+  fi
+}
+
+# --- ADR 自動インデックス ---
+check_adr_index() {
+  local file="$1"
+  local adr_dir="$PROJECT_ROOT/docs/adr"
+
+  # docs/adr/ADR-*.md にマッチするか
+  if ! [[ "$file" =~ ^docs/adr/ADR-.*\.md$ ]]; then
+    return 0
+  fi
+
+  [[ ! -d "$adr_dir" ]] && return 0
+
+  local index_file="$adr_dir/index.md"
+  {
+    echo "# ADR Index"
+    echo ""
+    echo "| # | Title | Status | Date |"
+    echo "|---|-------|--------|------|"
+
+    for f in "$adr_dir"/ADR-*.md; do
+      [[ ! -f "$f" ]] && continue
+      local basename_f
+      basename_f=$(basename "$f" .md)
+      local title
+      title=$(head -5 "$f" | grep -m1 '^# ' | sed 's/^# //' || echo "$basename_f")
+      local status
+      status=$(grep -m1 -iP '^\s*(ステータス|status):?\s*' "$f" | sed 's/.*[:：]\s*//' | tr -d '\r' || echo "—")
+      local adr_date
+      adr_date=$(grep -m1 -iP '(date|日付|承認|YYYY)' "$f" | grep -oP '\d{4}-\d{2}-\d{2}' || echo "—")
+      echo "| $basename_f | $title | $status | $adr_date |"
+    done
+  } > "$index_file"
+
+  echo "[helix-hook] ADR index 更新: $index_file"
+}
+
+# --- Textlint Advisory ---
+check_textlint_advisory() {
+  local file="$1"
+  [[ ! "$file" =~ ^docs/.*\.md$ ]] && return 0
+  command -v textlint >/dev/null 2>&1 || return 0
+
+  local result
+  result=$(textlint "$PROJECT_ROOT/$file" 2>&1) || true
+  if [[ -n "$result" && "$result" != *"0 problems"* ]]; then
+    echo "[helix-hook] textlint: $file"
+    echo "$result" | head -5
+    echo "[helix-hook]   日本語品質の改善を検討してください"
+    log_hook_event "textlint" "$file" "advisory"
+  fi
+}
+
+# --- A11Y Advisory ---
+check_a11y_advisory() {
+  local file="$1"
+  [[ ! "$file" =~ D-VIS/|D-A11Y/|D-UX-SIGNOFF/ ]] && return 0
+  echo "[helix-hook] a11y: Visual 成果物が更新されました"
+  echo "  axe-core でアクセシビリティチェックを推奨: npx @axe-core/cli <url>"
+}
+
+# --- Dangerous Pattern Advisory ---
+check_dangerous_patterns() {
+  local file="$1"
+  [[ ! -f "$PROJECT_ROOT/$file" ]] && return 0
+  [[ ! "$file" =~ \.(sh|bash|yml|yaml|json)$ ]] && return 0
+
+  local patterns='rm -rf /|rm -rf ~|chmod 777|DROP DATABASE|DROP TABLE|kill -9$|dd if=/dev/zero|> /dev/sda|git push.*--force.*(main|master)'
+  local found
+  found=$(rg -n "$patterns" "$PROJECT_ROOT/$file" 2>/dev/null | head -3) || true
+  if [[ -n "$found" ]]; then
+    echo "[helix-hook] WARN: 危険パターン検出: $file"
+    echo "$found"
+    echo "[helix-hook]   本当に意図した変更か確認してください"
+    log_hook_event "dangerous_pattern" "$file" "warning"
+  fi
+}
+
+# --- FE Quality Advisory ---
+check_fe_quality() {
+  local file="$1"
+  [[ ! -f "$PROJECT_ROOT/$file" ]] && return 0
+  [[ ! "$file" =~ \.(ts|tsx|js|jsx|vue|svelte)$ ]] && return 0
+
+  # console.log 検知
+  if grep -qE 'console\.(log|debug)' "$PROJECT_ROOT/$file" 2>/dev/null; then
+    echo "[helix-hook] FE: console.log が含まれています: $file"
+  fi
+
+  # fetch/axios がコンポーネントに直書き
+  if [[ "$file" =~ components/ ]] && grep -qE '(fetch\(|axios\.)' "$PROJECT_ROOT/$file" 2>/dev/null; then
+    echo "[helix-hook] FE: API 呼び出しがコンポーネント内にあります。service/api 層に分離を推奨: $file"
+  fi
+}
+
+check_drift() {
+  local file="$1"
+  if [[ "$file" =~ ^(docs|\.helix)/.*D-[A-Z][A-Z0-9-]*/ ]]; then
+    "$SCRIPT_DIR/helix-drift-check" "$PROJECT_ROOT/$file" 2>/dev/null &
+  fi
+}
+
+run_all_checks() {
+  check_phase_guard "$REL_PATH" || return 1
+  check_matrix_advisory "$REL_PATH"
+  check_freeze_violation "$REL_PATH"
+  check_adr_index "$REL_PATH"
+  match_trigger "$REL_PATH"
+  check_textlint_advisory "$REL_PATH"
+  check_a11y_advisory "$REL_PATH"
+  check_fe_quality "$REL_PATH"
+  check_dangerous_patterns "$REL_PATH"
+  check_drift "$REL_PATH"
+}
+
+tmp_out=$(mktemp "${TMPDIR:-/tmp}/helix-hook-run-XXXXXX")
+set +e
+run_all_checks >"$tmp_out" 2>&1
+hook_status=$?
+set -e
+
+cat "$tmp_out"
+cp "$tmp_out" "$CACHE_FILE" 2>/dev/null || true
+echo "$hook_status" > "$CACHE_STATUS_FILE" 2>/dev/null || true
+rm -f "$tmp_out"
+
+exit "$hook_status"

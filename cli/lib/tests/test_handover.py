@@ -32,6 +32,72 @@ def _current_json(repo: Path) -> Path:
     return repo / ".helix" / "handover" / "CURRENT.json"
 
 
+def _handover_dir(repo: Path) -> Path:
+    return repo / ".helix" / "handover"
+
+
+def _dump_handover(
+    repo: Path,
+    capsys: pytest.CaptureFixture[str],
+    task_id: str = "TASK-RESUME",
+) -> Path:
+    handover_dir = _handover_dir(repo)
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "dump",
+            "--task-id",
+            task_id,
+            "--task-title",
+            "Resume handover",
+            "--phase",
+            "L4",
+            "--sprint",
+            ".5",
+            "--project",
+            "helix-cli",
+            "--files",
+            "cli/lib/handover.py",
+        ]
+    )
+    capsys.readouterr()
+    return handover_dir
+
+
+def _commit_file(repo: Path, rel_path: str, content: str, message: str) -> None:
+    path = repo / rel_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    subprocess.run(["git", "add", rel_path], cwd=repo, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "commit", "-m", message],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _update_ready_for_review(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    handover.main(
+        [
+            "--handover-dir",
+            str(_handover_dir(repo)),
+            "--project-root",
+            str(repo),
+            "update",
+            "--owner",
+            "codex",
+            "--status",
+            "ready_for_review",
+        ]
+    )
+    capsys.readouterr()
+
+
 def test_dump_update_and_clear_completed_e2e(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -196,6 +262,193 @@ def test_escalate_generates_markdown_and_sets_status(
     assert "design change needed" in escalation
     assert "D-API update required" in escalation
     assert "TASK-002 Investigate blocker" in escalation
+
+
+def test_resume_creates_md(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    _update_ready_for_review(repo, capsys)
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "resume",
+            "--note",
+            "review restart",
+        ]
+    )
+    output = capsys.readouterr().out
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    assert current["owner"] == "opus"
+    assert current["task"]["status"] == "in_progress"
+    assert "handover resumed" in output
+
+    resume_md = (handover_dir / "RESUME.md").read_text(encoding="utf-8")
+    current_md = (handover_dir / "CURRENT.md").read_text(encoding="utf-8")
+    assert "# HELIX Handover Resume" in resume_md
+    assert "## Opus レビューチェックリスト" in resume_md
+    assert "review restart" in resume_md
+    assert "resume (owner: opus, status: in_progress)" in current_md
+
+
+def test_resume_rejects_when_no_current(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    args = handover.parse_args(
+        [
+            "--handover-dir",
+            str(_handover_dir(repo)),
+            "--project-root",
+            str(repo),
+            "resume",
+        ]
+    )
+
+    with pytest.raises(handover.HandoverError) as exc_info:
+        handover.cmd_resume(args)
+
+    assert exc_info.value.exit_code == handover.EXIT_PREREQ_ERROR
+    assert "CURRENT.json が存在しません" in str(exc_info.value)
+
+
+def test_resume_rejects_when_escalated(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "escalate",
+            "--reason",
+            "needs design",
+            "--context",
+            "contract decision required",
+        ]
+    )
+    capsys.readouterr()
+
+    with pytest.raises(handover.HandoverError) as exc_info:
+        handover.main(
+            [
+                "--handover-dir",
+                str(handover_dir),
+                "--project-root",
+                str(repo),
+                "resume",
+            ]
+        )
+
+    assert exc_info.value.exit_code == handover.EXIT_CHECK_FAILED
+    assert "escalated 状態では resume できません" in str(exc_info.value)
+
+
+def test_resume_idempotent_from_in_progress(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "resume",
+        ]
+    )
+    capsys.readouterr()
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    current_md = (handover_dir / "CURRENT.md").read_text(encoding="utf-8")
+    assert current["owner"] == "opus"
+    assert current["task"]["status"] == "in_progress"
+    assert current_md.count("resume (owner: opus, status: in_progress)") == 1
+
+
+def test_resume_records_diff(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    _commit_file(repo, "feature.txt", "new feature\n", "add feature file")
+    _update_ready_for_review(repo, capsys)
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "resume",
+        ]
+    )
+    capsys.readouterr()
+
+    resume_md = (handover_dir / "RESUME.md").read_text(encoding="utf-8")
+    current_md = (handover_dir / "CURRENT.md").read_text(encoding="utf-8")
+    assert "## Commits (Codex セッション中)" in resume_md
+    assert "add feature file" in resume_md
+    assert "## Diff stat" in resume_md
+    assert "feature.txt" in resume_md
+    assert "changed_files: 1" in current_md
+    assert "commits: 1" in current_md
+
+
+def test_resume_base_sha_unreachable(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    initial_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    _commit_file(repo, "later.txt", "later\n", "later commit")
+    handover_dir = _dump_handover(repo, capsys)
+    subprocess.run(
+        ["git", "reset", "--hard", initial_sha],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "resume",
+        ]
+    )
+    capsys.readouterr()
+
+    resume_md = (handover_dir / "RESUME.md").read_text(encoding="utf-8")
+    assert "UNREACHABLE - 要確認" in resume_md
+    assert "diff 抽出をスキップしました" in resume_md
+
+
+def test_resume_revision_bump(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    before = json.loads(_current_json(repo).read_text(encoding="utf-8"))["revision"]
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "resume",
+        ]
+    )
+    capsys.readouterr()
+
+    after = json.loads(_current_json(repo).read_text(encoding="utf-8"))["revision"]
+    assert after == before + 1
 
 
 def test_update_ready_for_review_detects_fe_drift_and_writes_escalation(
