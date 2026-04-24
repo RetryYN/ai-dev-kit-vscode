@@ -226,10 +226,7 @@ def _load_catalog_layers(index_path: Path | None) -> dict[str, str]:
     if index_path is None or not index_path.exists():
         return {}
 
-    try:
-        payload = _load_json(index_path)
-    except Exception:
-        return {}
+    payload = _load_json(index_path)
 
     rules = payload.get("rules", {})
     if not isinstance(rules, dict):
@@ -337,6 +334,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _log_guard_error(label: str, path: Path | None, exc: Exception) -> None:
+    location = str(path) if path is not None else "(unknown)"
+    print(f"[helix-guard] ERROR: {label} 読み込み失敗 ({location}): {exc}", file=sys.stderr)
+
+
 def main() -> int:
     try:
         args = parse_args()
@@ -349,8 +351,14 @@ def main() -> int:
 
     try:
         phase_data = _load_phase(phase_path)
-    except Exception:
-        return 0
+    except (FileNotFoundError, OSError):
+        raise
+    except (json.JSONDecodeError, ValueError) as exc:
+        _log_guard_error("phase.yaml", phase_path, exc)
+        return 1
+    except Exception as exc:
+        _log_guard_error("phase.yaml", phase_path, exc)
+        return 1
 
     project_root = phase_path.resolve().parent.parent
     rel_path = _normalize_rel_path(args.file, project_root)
@@ -373,25 +381,38 @@ def main() -> int:
         return 0
 
     index_path = Path(args.index) if args.index else None
-    catalog_layers = _load_catalog_layers(index_path)
-    target_layer = _infer_layer(rel_path, catalog_layers)
-    if target_layer is None:
-        return 0
-    if target_layer == UNKNOWN_LAYER:
-        return 0
+    try:
+        catalog_layers = _load_catalog_layers(index_path)
+    except (FileNotFoundError, OSError):
+        raise
+    except (json.JSONDecodeError, ValueError) as exc:
+        _log_guard_error("index.json", index_path, exc)
+        return 1
+    except Exception as exc:
+        _log_guard_error("index.json", index_path, exc)
+        return 1
+    try:
+        target_layer = _infer_layer(rel_path, catalog_layers)
+        if target_layer is None:
+            return 0
+        if target_layer == UNKNOWN_LAYER:
+            return 0
 
-    target_layer_num = LAYER_ORDER.get(target_layer)
-    if target_layer_num is None:
-        return 0
+        target_layer_num = LAYER_ORDER.get(target_layer)
+        if target_layer_num is None:
+            return 0
 
-    phase_for_eval = normalized_phase if normalized_phase in LAYER_ORDER else current_phase
-    allowed_layer_num = _compute_allowed_layer(phase_for_eval, phase_data)
-    if target_layer_num <= allowed_layer_num:
-        return 0
+        phase_for_eval = normalized_phase if normalized_phase in LAYER_ORDER else current_phase
+        allowed_layer_num = _compute_allowed_layer(phase_for_eval, phase_data)
+        if target_layer_num <= allowed_layer_num:
+            return 0
 
-    current_label = phase_for_eval if phase_for_eval in LAYER_ORDER else f"L{allowed_layer_num}"
-    required_gate = LAYER_REQUIRED_GATE.get(target_layer_num)
-    return _block_phase_violation(target_layer, current_label, required_gate)
+        current_label = phase_for_eval if phase_for_eval in LAYER_ORDER else f"L{allowed_layer_num}"
+        required_gate = LAYER_REQUIRED_GATE.get(target_layer_num)
+        return _block_phase_violation(target_layer, current_label, required_gate)
+    except Exception as exc:
+        _log_guard_error("guard", None, exc)
+        return 1
 
 
 if __name__ == "__main__":

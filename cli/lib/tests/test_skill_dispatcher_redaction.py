@@ -136,3 +136,41 @@ def test_dispatch_keeps_non_sensitive_text_as_is(monkeypatch, tmp_path: Path) ->
     assert row["task_text"] == "normal text only"
     assert row["result_stdout"] == "normal output only"
     assert row["result_stderr"] == "stderr no secret"
+
+
+def test_dispatch_warns_for_size_s_with_high_effort_subagent(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    skills_root, catalog_path = _prepare_catalog(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    project_root = tmp_path / "project"
+    (project_root / ".helix").mkdir(parents=True, exist_ok=True)
+    (project_root / ".claude" / "agents").mkdir(parents=True, exist_ok=True)
+    (project_root / ".helix" / "matrix.yaml").write_text(
+        'project:\n  size: "S"\n',
+        encoding="utf-8",
+    )
+    (project_root / ".claude" / "agents" / "be-api.md").write_text(
+        "---\nname: be-api\neffort: high\n---\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(project_root))
+
+    result = skill_dispatcher.dispatch(
+        skill_id="common/testing",
+        task_text="normal task",
+        recommended_agent="@be-api",
+        references=[],
+        catalog_path=catalog_path,
+        skills_root=skills_root,
+        db_path=db_path,
+        dry_run=True,
+    )
+
+    captured = capsys.readouterr()
+    assert result["agent"]["type"] == "subagent"
+    assert "[helix] 警告: S タスクに effort=high のエージェントを使用" in captured.err

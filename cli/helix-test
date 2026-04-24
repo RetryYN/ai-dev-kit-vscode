@@ -475,6 +475,11 @@ run_test "codex rejects invalid --max-retries" "$SCRIPT_DIR/helix-codex --role p
 run_test "codex rejects --max-retries over 10" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries 11" 1
 run_test "codex accepts --max-retries 0" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'no retry' --max-retries 0"
 run_test "codex accepts --fallback-model" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'fallback test' --fallback-model gpt-5.2-codex"
+run_test "codex rejects fallback model outside allow-list" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model evil-model; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
+run_test "codex accepts allow-listed fallback model" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model gpt-5.2-codex; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+run_test "codex rejects danger sandbox in noninteractive mode" "env -u HELIX_ALLOW_DANGER_SANDBOX CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'danger sandbox test' --sandbox danger-full-access" 1
+run_test "codex allows danger sandbox with env override" "HELIX_ALLOW_DANGER_SANDBOX=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'danger sandbox test' --sandbox danger-full-access"
+run_test_contains "codex danger sandbox prompt string present" "grep -n '続行しますか' $SCRIPT_DIR/helix-codex" "続行しますか"
 run_test_contains "codex warns unfinalized plan in L2" "D=\$(mktemp -d); cd \"\$D\"; git init -q; git config user.email test@test.com; git config user.name Test; mkdir -p .helix/plans; printf 'current_phase: L2\n' > .helix/phase.yaml; printf 'id: PLAN-001\nstatus: draft\n' > .helix/plans/PLAN-001.yaml; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role tl --task 'plan warning test' 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "未確定の設計提案があります"
 run_test "team run uses mocked codex" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix team run --definition $SCRIPT_DIR/templates/teams/review-team.yaml"
 run_test_contains "team status saved" "test -f .helix/team-status.json && echo OK" "OK"
@@ -694,6 +699,10 @@ run_test_contains "freeze-break API" "$SCRIPT_DIR/helix-hook $TEST_DIR/src/api/a
 run_test "doc_map_matcher gate_ready" "python3 $SCRIPT_DIR/lib/doc_map_matcher.py .helix/doc-map.yaml docs/design/L2-architecture.md >/dev/null"
 touch "$TEST_DIR/test; echo hacked"
 run_test_not_contains "hook no injection filename" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook '$TEST_DIR/test; echo hacked' 2>&1 || true" "^hacked$"
+run_test "hook skips unsafe file_path chars" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook \"$TEST_DIR/src/bad\\\\name.ts\""
+run_test_contains "hook warns unsafe file_path chars" "HELIX_GUARD=off $SCRIPT_DIR/helix-hook \"$TEST_DIR/src/bad\\\\name.ts\" 2>&1 || true" "危険な file_path"
+run_test "hook skips unsafe design_ref glob" "D=\$(mktemp -d); mkdir -p \"\$D/.helix\" \"\$D/src\"; printf '%s\n' 'triggers:' '  - pattern: \"src/*.ts\"' '    phase: L4' '    on_write: design_sync' '    design_ref: \"docs/design/[unsafe].md\"' > \"\$D/.helix/doc-map.yaml\"; touch \"\$D/src/app.ts\"; HELIX_PROJECT_ROOT=\"\$D\" HELIX_GUARD=off $SCRIPT_DIR/helix-hook \"\$D/src/app.ts\" >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+run_test_contains "hook warns unsafe design_ref glob" "D=\$(mktemp -d); mkdir -p \"\$D/.helix\" \"\$D/src\"; printf '%s\n' 'triggers:' '  - pattern: \"src/*.ts\"' '    phase: L4' '    on_write: design_sync' '    design_ref: \"docs/design/[unsafe].md\"' > \"\$D/.helix/doc-map.yaml\"; touch \"\$D/src/app.ts\"; HELIX_PROJECT_ROOT=\"\$D\" HELIX_GUARD=off $SCRIPT_DIR/helix-hook \"\$D/src/app.ts\" 2>&1 || true; rc=\$?; rm -rf \"\$D\"; exit \$rc" "危険な design_ref パターン"
 mkdir -p src/components
 cat > src/components/fe-advisory.tsx << 'EOF'
 export function FeAdvisory() {
@@ -880,6 +889,27 @@ tasks:
     skill: common/coding
 EOF
 run_test_contains "task run success learn hint" "CODEX_BIN=$TEST_DIR/mock-codex-success $SCRIPT_DIR/helix-task run" "helix learn"
+cat > "$TEST_DIR/mock-codex-redacted" << 'EOF'
+#!/bin/bash
+echo "token=abc123"
+echo "safe=line"
+exit 0
+EOF
+chmod +x "$TEST_DIR/mock-codex-redacted"
+cat > .helix/task-plan.yaml << 'EOF'
+goal: "task log redaction test"
+total_estimate: 1
+status: active
+tasks:
+  T003:
+    task: test-redaction
+    name: "Redaction Task"
+    role: tl
+    estimate: 1
+    status: pending
+    skill: common/coding
+EOF
+run_test "task run redacts output log" "CODEX_BIN=$TEST_DIR/mock-codex-redacted $SCRIPT_DIR/helix-task run >/dev/null 2>&1; test -f .helix/task-logs/T003-test-redaction.log && grep -q '\\[REDACTED\\]' .helix/task-logs/T003-test-redaction.log && ! grep -q 'token=abc123' .helix/task-logs/T003-test-redaction.log && grep -q 'safe=line' .helix/task-logs/T003-test-redaction.log"
 echo ""
 
 echo "[helix-mode]"

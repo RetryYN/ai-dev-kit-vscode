@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -20,6 +21,7 @@ import skill_catalog
 
 
 HELIX_CODEX_BIN = os.environ.get("HELIX_CODEX_BIN", "helix-codex")
+_FRONTMATTER_PATTERN = re.compile(r"\A---\n(.*?)\n---(?:\n|$)", re.DOTALL)
 
 
 def _dispatch_timeout_seconds() -> int:
@@ -78,6 +80,53 @@ def _default_catalog_path() -> Path:
 
 def _default_db_path() -> Path:
     return _repo_root() / ".helix" / "helix.db"
+
+
+def _load_matrix_size(project_root: Path) -> str:
+    matrix_path = project_root / ".helix" / "matrix.yaml"
+    if not matrix_path.exists():
+        return ""
+    try:
+        text = matrix_path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    for line in text.splitlines():
+        m = re.match(r"^\s*size:\s*['\"]?([A-Za-z]+)['\"]?\s*$", line)
+        if m:
+            return m.group(1).strip().upper()
+    return ""
+
+
+def _load_agent_effort(project_root: Path, agent_name: str) -> str:
+    if not agent_name:
+        return ""
+    path = project_root / ".claude" / "agents" / f"{agent_name}.md"
+    if not path.exists():
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = _FRONTMATTER_PATTERN.match(text)
+    if not m:
+        return ""
+    for line in m.group(1).splitlines():
+        mm = re.match(r"^\s*effort:\s*['\"]?([A-Za-z]+)['\"]?\s*$", line)
+        if mm:
+            return mm.group(1).strip().lower()
+    return ""
+
+
+def _warn_s_task_high_effort_agent(project_root: Path, agent: dict[str, Any]) -> None:
+    if agent.get("type") != "subagent":
+        return
+    if _load_matrix_size(project_root) != "S":
+        return
+    if _load_agent_effort(project_root, str(agent.get("name", ""))) != "high":
+        return
+    sys.stderr.write(
+        "[helix] 警告: S タスクに effort=high のエージェントを使用 (timeout リスク)。medium への切替推奨\n"
+    )
 
 
 def _resolve_skill_md_path(skill: dict, skills_root: Path) -> Path:
@@ -316,6 +365,7 @@ def dispatch(
 
     bundle = build_context_bundle(skill, references or [], skills_root)
     agent = determine_agent(skill, recommended_agent)
+    _warn_s_task_high_effort_agent(_repo_root(), agent)
 
     if dry_run:
         return {
@@ -738,4 +788,9 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass  # Python < 3.7
     raise SystemExit(main())

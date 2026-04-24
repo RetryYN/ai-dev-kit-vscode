@@ -169,6 +169,61 @@ def test_main_returns_zero_when_phase_file_is_missing(
     assert phase_guard.main() == 0
 
 
+def test_load_catalog_layers_reraises_file_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    index_path = tmp_path / "index.json"
+    index_path.write_text("{}", encoding="utf-8")
+
+    def _raise(_path: Path) -> dict[str, object]:
+        raise FileNotFoundError("missing")
+
+    monkeypatch.setattr(phase_guard, "_load_json", _raise)
+
+    with pytest.raises(FileNotFoundError):
+        phase_guard._load_catalog_layers(index_path)
+
+
+def test_main_blocks_when_phase_yaml_is_invalid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    phase_file.write_text("current_phase: [\n", encoding="utf-8")
+    changed_file = str(repo_root / "src" / "features" / "auth" / "main.py")
+
+    result = _run_main(monkeypatch, phase_file, changed_file)
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert "ERROR: phase.yaml 読み込み失敗" in captured.err
+
+
+def test_main_blocks_when_index_json_is_invalid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    _write_phase(phase_file, "L4", {"G1": "passed", "G2": "passed", "G3": "passed"})
+    index_path = repo_root / ".helix" / "runtime" / "index.json"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text('{"rules":', encoding="utf-8")
+
+    result = _run_main(
+        monkeypatch,
+        phase_file,
+        str(repo_root / "docs" / "features" / "auth" / "D-VIS" / "screen.md"),
+        index_path,
+    )
+    captured = capsys.readouterr()
+
+    assert result == 1
+    assert "ERROR: index.json 読み込み失敗" in captured.err
+
+
 def test_unknown_deliverable_returns_unknown_layer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

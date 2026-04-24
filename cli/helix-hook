@@ -10,6 +10,7 @@ DOC_MAP="$HELIX_DIR/doc-map.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
 DB_PATH="$HELIX_DIR/helix.db"
+SAFE_GLOB_MATCHES=()
 
 # hook の再入防止（同一プロセス系統での多重実行を抑止）
 [[ "${HELIX_HOOK_RUNNING:-}" == "1" ]] && exit 0
@@ -26,6 +27,23 @@ esac
 # --- 引数 ---
 CHANGED_FILE="${1:-}"
 if [[ -z "$CHANGED_FILE" ]]; then
+  exit 0
+fi
+
+is_safe_hook_path() {
+  local path="$1"
+  python3 - "$path" <<'PY'
+import re
+import sys
+
+path = sys.argv[1]
+pattern = re.compile(r'^[A-Za-z0-9/_.\-\u3000-\u303F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF01-\uFF60\uFFE0-\uFFEE]+$')
+raise SystemExit(0 if path and pattern.fullmatch(path) else 1)
+PY
+}
+
+if ! is_safe_hook_path "$CHANGED_FILE"; then
+  printf '[helix-hook] WARN: 危険な file_path をスキップしました: %q\n' "$CHANGED_FILE" >&2
   exit 0
 fi
 
@@ -101,6 +119,49 @@ log_hook_event() {
   ) || true
 }
 
+is_safe_design_ref_pattern() {
+  local pattern="$1"
+  [[ -n "$pattern" ]] || return 1
+  [[ "$pattern" =~ ^[A-Za-z0-9/_.*-]+$ ]]
+}
+
+expand_design_ref_matches() {
+  local pattern="$1"
+  SAFE_GLOB_MATCHES=()
+
+  if ! is_safe_design_ref_pattern "$pattern"; then
+    printf '[helix-hook] WARN: 危険な design_ref パターンをスキップしました: %q\n' "$pattern"
+    return 1
+  fi
+
+  local had_nullglob=0
+  local had_globstar=0
+  local oldpwd="$PWD"
+  local file
+
+  shopt -q nullglob && had_nullglob=1
+  shopt -q globstar && had_globstar=1
+  shopt -s nullglob globstar
+
+  if [[ "$pattern" == *"*"* ]]; then
+    builtin cd "$PROJECT_ROOT" || {
+      [[ $had_nullglob -eq 0 ]] && shopt -u nullglob
+      [[ $had_globstar -eq 0 ]] && shopt -u globstar
+      return 1
+    }
+    for file in $pattern; do
+      SAFE_GLOB_MATCHES+=("$file")
+    done
+    builtin cd "$oldpwd" || true
+  elif [[ -e "$PROJECT_ROOT/$pattern" ]]; then
+    SAFE_GLOB_MATCHES=("$pattern")
+  fi
+
+  [[ $had_nullglob -eq 0 ]] && shopt -u nullglob
+  [[ $had_globstar -eq 0 ]] && shopt -u globstar
+  return 0
+}
+
 show_freeze_diff_summary() {
   local file="$1"
   local git_tracked=""
@@ -165,17 +226,17 @@ match_trigger() {
         echo "[helix-hook] $arg1 のチェック準備が整いました。'helix-gate $arg1' で検証を実行してください。"
         ;;
       DESIGN_SYNC)
-        # design_ref の glob を展開
-        local design_files
-        design_files=$(cd "$PROJECT_ROOT" && ls $arg1 2>/dev/null || true)
-        if [[ -z "$design_files" ]]; then
+        if ! expand_design_ref_matches "$arg1"; then
+          continue
+        fi
+        if [[ ${#SAFE_GLOB_MATCHES[@]} -eq 0 ]]; then
           echo "[helix-hook] WARN: 設計文書未作成 — $arg1 が存在しません"
           echo "[helix-hook]   実装: $arg2"
           echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
         else
           local impl_mtime
           impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$arg2" 2>/dev/null || echo 0)
-          for df in $design_files; do
+          for df in "${SAFE_GLOB_MATCHES[@]}"; do
             local design_mtime
             design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
             if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
@@ -229,11 +290,11 @@ eval_trigger() {
       if [[ -z "$design_ref" ]]; then
         return
       fi
-      # design_ref の glob を展開
-      local design_files
-      design_files=$(cd "$PROJECT_ROOT" && ls $design_ref 2>/dev/null || true)
+      if ! expand_design_ref_matches "$design_ref"; then
+        return
+      fi
 
-      if [[ -z "$design_files" ]]; then
+      if [[ ${#SAFE_GLOB_MATCHES[@]} -eq 0 ]]; then
         echo "[helix-hook] WARN: 設計文書未作成 — $design_ref が存在しません"
         echo "[helix-hook]   実装: $file"
         echo "[helix-hook]   設計文書を先に作成するか、設計遅れとして PM に報告してください"
@@ -245,7 +306,7 @@ eval_trigger() {
       impl_mtime=$(stat -c %Y "$PROJECT_ROOT/$file" 2>/dev/null || echo 0)
 
       local stale_designs=()
-      for df in $design_files; do
+      for df in "${SAFE_GLOB_MATCHES[@]}"; do
         design_mtime=$(stat -c %Y "$PROJECT_ROOT/$df" 2>/dev/null || echo 0)
         if [[ "$design_mtime" -lt "$impl_mtime" ]]; then
           stale_designs+=("$df")

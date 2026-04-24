@@ -12,6 +12,8 @@
 # Dependencies: jq, curl, shasum (or sha256sum).
 
 set -euo pipefail
+TMP=""
+trap 'rm -f "${TMP:-}" 2>/dev/null' EXIT
 
 command -v jq   >/dev/null 2>&1 || exit 0
 command -v curl >/dev/null 2>&1 || exit 0

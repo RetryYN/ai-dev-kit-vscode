@@ -80,8 +80,10 @@ def load_rules(yaml_path: str | Path | None = None) -> list[dict]:
         rules = data.get("rules") if isinstance(data, dict) else None
         if isinstance(rules, list):
             return rules
-    except Exception:
-        pass
+    except FileNotFoundError:
+        return DEFAULT_RULES
+    except Exception as exc:
+        print(f"WARN: fallback rules 読込失敗 ({yaml_path}): {exc}", file=sys.stderr)
     return DEFAULT_RULES
 
 

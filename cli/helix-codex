@@ -62,8 +62,10 @@ while [[ $# -gt 0 ]]; do
       echo "  --timeout <sec>          codex exec タイムアウト秒（デフォルト: 1800）"
       echo "  --max-retries <n>        最大リトライ回数（デフォルト: 2、0 でリトライなし）"
       echo "  --fallback-model <name>  Codex 失敗時の代替モデル（例: gpt-5.2-codex）"
+      echo "  HELIX_MODEL_OVERRIDE     環境変数でモデルを強制上書き（models.yaml より優先）"
       echo "  --sandbox    サンドボックスモード (read-only|workspace-write|danger-full-access)"
       echo "               デフォルト: workspace-write"
+      echo "               danger-full-access は対話確認、非対話では HELIX_ALLOW_DANGER_SANDBOX=1 が必要"
       echo "  --read-only  --sandbox read-only のショートカット"
       echo "  --full-auto          承認なしで自律実行"
       echo "  --dry-run    実行せずプロンプトだけ表示"
@@ -141,6 +143,54 @@ get_default_thinking() {
   esac
 }
 
+validate_sandbox_mode() {
+  local sandbox="$1"
+  case "$sandbox" in
+    read-only|workspace-write|danger-full-access) ;;
+    *)
+      echo "エラー: 無効な --sandbox 値です: '$sandbox'（有効値: read-only|workspace-write|danger-full-access）" >&2
+      return 1
+      ;;
+  esac
+}
+
+guard_danger_sandbox() {
+  [[ "$SANDBOX" == "danger-full-access" ]] || return 0
+  [[ "$DRY_RUN" == true ]] && return 0
+
+  if [[ -t 0 && -t 2 && -r /dev/tty ]]; then
+    local confirm=""
+    printf '[helix-codex] 警告: --sandbox danger-full-access を使用します。続行しますか? [y/N] ' >&2
+    IFS= read -r confirm < /dev/tty || true
+    case "$confirm" in
+      y|Y|yes|YES) ;;
+      *)
+        echo "エラー: danger-full-access がユーザー確認で拒否されました" >&2
+        return 1
+        ;;
+    esac
+  elif [[ "${HELIX_ALLOW_DANGER_SANDBOX:-}" != "1" ]]; then
+    echo "エラー: 非対話環境で --sandbox danger-full-access を使うには HELIX_ALLOW_DANGER_SANDBOX=1 が必要です" >&2
+    return 1
+  fi
+}
+
+# models.yaml から role モデルと default_fallback を読み込む
+resolve_models_from_registry() {
+  local role="$1"
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_ROLE="$role" python3 - <<'PY' 2>/dev/null
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+from model_registry import get_default_fallback, resolve_role_model
+
+role = os.environ.get("HELIX_ROLE", "").strip()
+print(resolve_role_model(role, default="", allow_override=False))
+print(get_default_fallback(default=""))
+PY
+}
+
 # 注: THINKING の決定は ROLE_FILE 読み込み後に行う
 # (CLI --thinking > conf の codex_thinking > ロール別デフォルト の優先順位)
 
@@ -148,6 +198,9 @@ if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
   echo "エラー: 無効な --timeout 値です: '$TIMEOUT'（正の整数秒を指定）" >&2
   exit 1
 fi
+
+validate_sandbox_mode "$SANDBOX" || exit 1
+guard_danger_sandbox || exit 1
 
 # --- ロール設定読み込み ---
 ROLE_FILE="$ROLES_DIR/${ROLE}.conf"
@@ -163,14 +216,34 @@ if [[ ! -f "$ROLE_FILE_REAL" ]]; then
   exit 1
 fi
 
-# conf ファイルから値を抽出
-codex_model=$(grep '^codex_model=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
+# conf ファイルから値を抽出（モデルは後方互換 fallback）
+codex_model_conf=$(grep '^codex_model=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
 codex_thinking=$(grep '^codex_thinking=' "$ROLE_FILE_REAL" | cut -d= -f2 || true)
 system_prompt=$(grep '^system_prompt=' "$ROLE_FILE_REAL" | sed 's/^system_prompt="//' | sed 's/"$//' || true)
 
+# モデル決定優先度:
+#   HELIX_MODEL_OVERRIDE > models.yaml.roles[role] > models.yaml.default_primary > roles/*.conf codex_model
+codex_model="$codex_model_conf"
+registry_model=""
+registry_default_fallback=""
+if mapfile -t model_registry_values < <(resolve_models_from_registry "$ROLE"); then
+  registry_model="${model_registry_values[0]:-}"
+  registry_default_fallback="${model_registry_values[1]:-}"
+fi
+
+if [[ -n "${HELIX_MODEL_OVERRIDE:-}" ]]; then
+  codex_model="$HELIX_MODEL_OVERRIDE"
+elif [[ -n "$registry_model" ]]; then
+  codex_model="$registry_model"
+fi
+
 if [[ -z "$codex_model" ]]; then
-  echo "エラー: $ROLE_FILE_REAL に codex_model が定義されていません" >&2
+  echo "エラー: モデルを解決できませんでした（role=$ROLE, conf=$ROLE_FILE_REAL）" >&2
   exit 1
+fi
+
+if [[ -z "$FALLBACK_MODEL" && -n "$registry_default_fallback" && "$registry_default_fallback" != "$codex_model" ]]; then
+  FALLBACK_MODEL="$registry_default_fallback"
 fi
 
 # --- THINKING 決定 (CLI --thinking > conf の codex_thinking > ロール別デフォルト) ---
@@ -236,6 +309,84 @@ parse_array() {
     fi
   done < "$file"
 }
+
+validate_model_id() {
+  local model="$1"
+  local allowed_file="$HELIX_HOME/cli/config/models.yaml"
+  local allowed=""
+
+  [[ -z "$model" ]] && return 0
+  [[ -f "$allowed_file" ]] || return 0
+
+  allowed=$(
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_ALLOWED_FILE="$allowed_file" python3 - <<'PY'
+import os
+import re
+import sys
+from pathlib import Path
+
+MODEL_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+from yaml_parser import parse_yaml
+
+
+def add_strings(value, sink):
+    if isinstance(value, str):
+        if MODEL_RE.fullmatch(value):
+            sink.add(value)
+        return
+    if isinstance(value, list):
+        for item in value:
+            add_strings(item, sink)
+        return
+    if isinstance(value, dict):
+        for item in value.values():
+            add_strings(item, sink)
+
+
+path = Path(os.environ["HELIX_ALLOWED_FILE"])
+data = parse_yaml(path.read_text(encoding="utf-8"))
+if not isinstance(data, dict):
+    raise SystemExit(1)
+
+roles = data.get("roles", {})
+allowed = set()
+if isinstance(roles, dict):
+    for role_config in roles.values():
+        add_strings(role_config, allowed)
+        if not isinstance(role_config, dict):
+            continue
+        for key in ("primary", "fallback", "model", "models"):
+            if key in role_config:
+                add_strings(role_config[key], allowed)
+
+for key in ("default_primary", "default_fallback", "primary", "fallback", "model", "models"):
+    if key in data:
+        add_strings(data[key], allowed)
+
+print("\n".join(sorted(allowed)))
+PY
+  ) || {
+    echo "エラー: models.yaml から許可モデル一覧を取得できません: $allowed_file" >&2
+    return 1
+  }
+
+  if [[ -z "$allowed" ]]; then
+    echo "エラー: models.yaml に許可モデルが定義されていません: $allowed_file" >&2
+    return 1
+  fi
+
+  if ! grep -qxF "$model" <<< "$allowed"; then
+    echo "エラー: 許可されていないモデル ID: $model" >&2
+    return 1
+  fi
+}
+
+if [[ -z "${HELIX_MODEL_OVERRIDE:-}" ]]; then
+  validate_model_id "$codex_model" || exit 1
+fi
+validate_model_id "$FALLBACK_MODEL" || exit 1
 
 resolve_skill_file() {
   local skill="$1"

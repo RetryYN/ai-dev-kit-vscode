@@ -38,6 +38,27 @@ def test_load_rules_returns_default_rules_when_yaml_has_no_rules_key(tmp_path: P
     assert model_fallback.load_rules(config) == model_fallback.DEFAULT_RULES
 
 
+def test_load_rules_warns_when_yaml_load_fails(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    config = tmp_path / "model-fallback.yaml"
+    config.write_text("rules:\n  - model: x\n", encoding="utf-8")
+
+    def _raise(_path):
+        raise ValueError("broken yaml")
+
+    monkeypatch.setattr(model_fallback, "load_yaml", _raise)
+
+    rules = model_fallback.load_rules(config)
+    captured = capsys.readouterr()
+
+    assert rules == model_fallback.DEFAULT_RULES
+    assert "WARN: fallback rules 読込失敗" in captured.err
+    assert str(config) in captured.err
+
+
 def test_suggest_model_uses_fallback_when_threshold_exceeded() -> None:
     result = model_fallback.suggest_model(
         "gpt-5.3-codex",

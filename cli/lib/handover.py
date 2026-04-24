@@ -106,6 +106,162 @@ def run_git(project_root, args, strict=True):
     return proc.stdout.strip()
 
 
+def _unique_nonempty(items):
+    seen = set()
+    out = []
+    for raw in items:
+        value = str(raw).strip().replace("\\", "/")
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
+
+
+def _collect_changed_files(project_root):
+    files = []
+    commands = [
+        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "ls-files", "--others", "--exclude-standard"],
+    ]
+    for cmd in commands:
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(project_root),
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+        except Exception:
+            continue
+        if proc.returncode != 0:
+            continue
+        files.extend(line for line in proc.stdout.splitlines() if line.strip())
+    return _unique_nonempty(files)
+
+
+def _load_fe_feature_ids(project_root):
+    matrix_path = project_root / ".helix" / "matrix.yaml"
+    if not matrix_path.exists():
+        return set()
+
+    payload = None
+    try:
+        from matrix_compiler import load_yaml as _matrix_load_yaml
+
+        payload = _matrix_load_yaml(matrix_path)
+    except Exception:
+        try:
+            from yaml_parser import parse_yaml as _parse_yaml
+
+            payload = _parse_yaml(matrix_path.read_text(encoding="utf-8"))
+        except Exception:
+            return set()
+
+    if not isinstance(payload, dict):
+        return set()
+    features = payload.get("features")
+    if not isinstance(features, dict):
+        return set()
+
+    fe_ids = set()
+    for feature_id, raw in features.items():
+        if not isinstance(feature_id, str) or not isinstance(raw, dict):
+            continue
+        if str(raw.get("drive", "")).strip().lower() == "fe":
+            fe_ids.add(feature_id)
+    return fe_ids
+
+
+def _is_fe_path(path, fe_feature_ids):
+    normalized = str(path).strip().replace("\\", "/")
+    if not normalized:
+        return False
+    lower = normalized.lower()
+
+    if lower.endswith((".tsx", ".jsx", ".vue")):
+        return True
+    if "/d-vis/" in lower:
+        return True
+    if "/fe/" in lower:
+        return True
+
+    with_slashes = f"/{normalized}"
+    for feature_id in fe_feature_ids:
+        marker = f"/features/{feature_id}/"
+        if marker in with_slashes:
+            return True
+    return False
+
+
+def detect_fe_drift(project_root, changed_files=None):
+    files = changed_files if changed_files is not None else _collect_changed_files(project_root)
+    fe_feature_ids = _load_fe_feature_ids(project_root)
+    return [path for path in files if _is_fe_path(path, fe_feature_ids)]
+
+
+def _run_drift_check(project_root, changed_files):
+    drift_check = Path(__file__).resolve().parents[1] / "helix-drift-check"
+    if not drift_check.exists():
+        return
+
+    for rel_path in changed_files:
+        target = str((project_root / rel_path).resolve())
+        try:
+            proc = subprocess.run(
+                [str(drift_check), target],
+                cwd=str(project_root),
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        except Exception as exc:
+            print(f"[handover] WARN: drift-check 実行失敗 ({rel_path}): {exc}", file=sys.stderr)
+            continue
+
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "").strip()
+            print(f"[handover] WARN: drift-check 失敗 ({rel_path}): {detail}", file=sys.stderr)
+
+
+def _write_auto_escalation(escalation_path, state, fe_files):
+    timestamp = now_iso()
+    lines = [
+        "# HELIX Auto Escalation",
+        "",
+        f"Timestamp: {timestamp}",
+        "From: handover update (auto detection)",
+        f"Task: {state['task']['id']} {state['task']['title']} ({state['phase']} Sprint {state['sprint']})",
+        "",
+        "## Reason",
+        "scope=backend のまま FE 変更を検知しました。",
+        "",
+        "## FE Drift Files",
+    ]
+    lines.extend(f"- {path}" for path in fe_files)
+    lines.extend(
+        [
+            "",
+            "## CURRENT snapshot",
+            "```json",
+            json.dumps(state, ensure_ascii=False, indent=2),
+            "```",
+            "",
+        ]
+    )
+    block = "\n".join(lines)
+
+    ensure_dir(escalation_path.parent)
+    if escalation_path.exists():
+        existing = read_text(escalation_path).rstrip()
+        write_text(escalation_path, existing + "\n\n---\n\n" + block)
+    else:
+        write_text(escalation_path, block)
+
+
 def lock_open(lock_path):
     ensure_dir(lock_path.parent)
     fh = lock_path.open("a+", encoding="utf-8")
@@ -545,6 +701,7 @@ def cmd_update(args):
 
         changed = False
         events = []
+        ready_for_review_transition = False
 
         # status 更新
         current_status = updated["task"]["status"]
@@ -554,6 +711,8 @@ def cmd_update(args):
             events.append(("status_change", f"{current_status} -> {args.status}", None))
             changed = True
             current_status = args.status
+            if args.status == "ready_for_review":
+                ready_for_review_transition = True
 
         # blocker / unblock
         if args.blocker:
@@ -650,6 +809,26 @@ def cmd_update(args):
 
         for event_type, body, event_status in events:
             append_event(paths["md"], event_type, updated["owner"], body, status=event_status)
+
+        if ready_for_review_transition:
+            changed_files = _collect_changed_files(args.project_root)
+            _run_drift_check(args.project_root, changed_files)
+
+            fe_drift = detect_fe_drift(args.project_root, changed_files=changed_files)
+            if fe_drift and updated.get("scope") == "backend":
+                print("[handover] 警告: scope=backend だが FE ファイル変更を検知しました", file=sys.stderr)
+                for path in fe_drift[:5]:
+                    print(f"  - {path}", file=sys.stderr)
+                print("[handover] ESCALATION.md を自動更新しました", file=sys.stderr)
+
+                _write_auto_escalation(paths["escalation"], updated, fe_drift)
+                append_event(
+                    paths["md"],
+                    "fe_drift",
+                    updated["owner"],
+                    "\n".join(fe_drift),
+                    status="ready_for_review",
+                )
     finally:
         lock_close(lock_fh)
 

@@ -77,9 +77,9 @@ G2:
     - name: "設計書存在"
       cmd: "ls docs/design/L2-*.md >/dev/null 2>&1"
       level: mandatory
-    - name: "AG02 権限設定確認"
-      cmd: "test -f .claude/settings.json && ! grep -q 'danger-full-access' .claude/settings.json 2>/dev/null || echo 'WARN: settings.json 未設定'"
-      level: advisory
+    - name: "AG02 danger-full-access ハードコードなし"
+      cmd: "if [ -f .claude/settings.json ] || [ -d scripts ]; then ! grep -RIn 'danger-full-access' .claude/settings.json scripts/ 2>/dev/null | head -1; else echo 'SKIP: settings/scripts なし'; fi"
+      level: mandatory
     - name: "ADR が代替案を含むか"
       cmd: "find docs -path '*/D-ADR/*' -name '*.md' -exec grep -l '代替案\\|alternatives\\|却下' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: ADR なし'"
       level: advisory

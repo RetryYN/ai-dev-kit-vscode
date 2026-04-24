@@ -15,6 +15,7 @@ TASK_PLAN="$HELIX_DIR/task-plan.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 DB_PY="$SCRIPT_DIR/lib/helix_db.py"
 DB_PATH="$HELIX_DIR/helix.db"
+REDACTION_PY="$SCRIPT_DIR/lib/redaction.py"
 
 CMD="${1:-help}"
 shift 2>/dev/null || true
@@ -493,7 +494,7 @@ PY
       old_pipefail=0
       set -o pipefail
     fi
-    "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | tee "$LOG_FILE"
+    "$HELIX_CODEX" --role "$role" --task "$name" 2>&1 | python3 "$REDACTION_PY" --stream | tee "$LOG_FILE"
     delegate_exit=$?
     [[ "$old_pipefail" == "0" ]] && set +o pipefail
     set -e

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import re
+import sys
 from typing import Any, Iterable, Pattern
 
 REDACTED = "[REDACTED]"
@@ -123,3 +125,29 @@ def redact_value(
         return value
 
     return value
+
+
+def redact_stream(lines: Iterable[str]) -> Iterable[str]:
+    for raw_line in lines:
+        has_newline = raw_line.endswith("\n")
+        line = raw_line[:-1] if has_newline else raw_line
+        redacted = redact_value(line)
+        yield f"{redacted}\n" if has_newline else str(redacted)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="HELIX redaction utilities")
+    parser.add_argument("--stream", action="store_true", help="redact stdin line-by-line and write to stdout")
+    args = parser.parse_args(argv)
+
+    if not args.stream:
+        parser.error("supported mode: --stream")
+
+    for line in redact_stream(sys.stdin):
+        sys.stdout.write(line)
+        sys.stdout.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

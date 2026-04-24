@@ -1,0 +1,25 @@
+# HELIX モデル一元管理
+default_primary: gpt-5.3-codex
+default_fallback: gpt-5.4-mini
+
+roles:
+  tl: gpt-5.4
+  se: gpt-5.3-codex
+  pg: gpt-5.3-codex-spark
+  qa: gpt-5.3-codex-spark
+  security: gpt-5.3-codex
+  dba: gpt-5.3-codex
+  devops: gpt-5.3-codex
+  docs: gpt-5.3-codex-spark
+  research: gpt-5.2-codex
+  legacy: gpt-5.4
+  perf: gpt-5.3-codex
+  fe: gpt-5.3-codex
+  fe-design: gpt-5.4
+  fe-component: gpt-5.4
+  fe-style: gpt-5.4
+  fe-a11y: gpt-5.4
+  fe-test: gpt-5.4
+  recommender: gpt-5.4-mini
+  classifier: gpt-5.4-mini
+  effort-classifier: gpt-5.4-mini

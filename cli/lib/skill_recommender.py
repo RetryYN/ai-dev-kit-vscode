@@ -16,9 +16,9 @@ from typing import Any
 
 import skill_catalog
 from skill_jsonl_schema import ALLOWED_AGENTS, JsonlSchemaError, validate_entry
+from model_registry import resolve_role_model
 
-
-MODEL_NAME = "gpt-5.4-mini"
+MODEL_NAME = resolve_role_model("recommender", default="gpt-5.4-mini")
 CACHE_TTL_SECONDS = 3600
 NETWORK_EXIT_CODES = {7, 8, 28, 124}
 

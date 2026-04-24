@@ -197,6 +197,59 @@ def test_escalate_generates_markdown_and_sets_status(
     assert "TASK-002 Investigate blocker" in escalation
 
 
+def test_update_ready_for_review_detects_fe_drift_and_writes_escalation(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = repo / ".helix" / "handover"
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "dump",
+            "--task-id",
+            "TASK-DRIFT",
+            "--task-title",
+            "Detect FE drift",
+            "--phase",
+            "L4",
+            "--sprint",
+            ".4",
+            "--project",
+            "helix-cli",
+            "--files",
+            "cli/lib/handover.py",
+        ]
+    )
+    capsys.readouterr()
+
+    fe_file = repo / "src" / "features" / "ui-kit" / "D-VIS" / "screen.tsx"
+    fe_file.parent.mkdir(parents=True, exist_ok=True)
+    fe_file.write_text("export const x = 1;\n", encoding="utf-8")
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "update",
+            "--status",
+            "ready_for_review",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert "scope=backend だが FE ファイル変更を検知" in captured.err
+    escalation = (handover_dir / "ESCALATION.md").read_text(encoding="utf-8")
+    assert "# HELIX Auto Escalation" in escalation
+    assert "src/features/ui-kit/D-VIS/screen.tsx" in escalation
+
+
 def test_atomic_write_json_with_revision_detects_conflict(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

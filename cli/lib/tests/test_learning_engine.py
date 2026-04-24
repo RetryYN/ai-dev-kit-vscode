@@ -259,6 +259,19 @@ def test_from_history_returns_failure_recipe_as_warning(tmp_path: Path) -> None:
     assert result["failure_recipes"][0]["recipe_id"] == "recipe-failure"
 
 
+def test_connect_sets_wal_and_busy_timeout(tmp_path: Path) -> None:
+    db_path = tmp_path / "learning.db"
+    conn = learning_engine._connect(str(db_path))  # noqa: SLF001
+    try:
+        journal_mode = str(conn.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+        busy_timeout = int(conn.execute("PRAGMA busy_timeout").fetchone()[0])
+    finally:
+        conn.close()
+
+    assert journal_mode == "wal"
+    assert busy_timeout == 5000
+
+
 def test_from_history_returns_empty_result_when_no_recipes(tmp_path: Path) -> None:
     project_root = _project_root(tmp_path)
 

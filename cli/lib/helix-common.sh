@@ -1,9 +1,15 @@
 # helix-common.sh - 共通初期化
+if [[ -z "${HOME:-}" ]]; then
+  echo "[helix] エラー: 環境変数 HOME が未設定です" >&2
+  exit 1
+fi
+
 export HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
 SCRIPT_DIR="$HELIX_HOME/cli"
 PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 export PROJECT_ROOT
 export HELIX_PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$PROJECT_ROOT}"
+export PYTHONIOENCODING="${PYTHONIOENCODING:-utf-8}"
 HELIX_DIR="$PROJECT_ROOT/.helix"
 CONFIG_FILE="$HELIX_DIR/config.yaml"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
@@ -47,4 +53,14 @@ ensure_within_any_dir() {
 
   echo "エラー: 無効な ${label} パスです（許可ディレクトリ外）: $target" >&2
   exit 1
+}
+
+require_rg() {
+  if ! command -v rg >/dev/null 2>&1; then
+    echo "[helix] 警告: ripgrep (rg) が未インストールです。チェックをスキップ" >&2
+    echo "  Ubuntu/Debian: sudo apt install ripgrep" >&2
+    echo "  macOS: brew install ripgrep" >&2
+    return 1
+  fi
+  return 0
 }

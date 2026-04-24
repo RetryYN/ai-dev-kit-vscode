@@ -11,11 +11,12 @@ from typing import Any
 
 try:
     from .skill_jsonl_schema import ALLOWED_AGENTS, ALLOWED_PHASES, JsonlSchemaError
+    from .model_registry import resolve_role_model
 except ImportError:  # pragma: no cover - script execution fallback
     from skill_jsonl_schema import ALLOWED_AGENTS, ALLOWED_PHASES, JsonlSchemaError
+    from model_registry import resolve_role_model
 
-
-MODEL_NAME = "gpt-5.4-mini"
+MODEL_NAME = resolve_role_model("classifier", default="gpt-5.4-mini")
 CLASSIFIER_RETRY_COUNT = 3
 NETWORK_EXIT_CODES = {7, 8, 28, 124}
 
