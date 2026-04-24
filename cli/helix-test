@@ -1962,3 +1962,39 @@ if [[ $TOTAL_FAIL -gt 0 ]]; then
   done
   exit 1
 fi
+
+echo ""
+echo "[helix-init --start-phase]"
+run_test "init --start-phase L4 works" "\
+  tmp=\$(mktemp -d) && \
+  cd \$tmp && git init -q && \
+  HELIX_HOME=$HELIX_HOME HELIX_PROJECT_ROOT=\$tmp $SCRIPT_DIR/helix-init --project-name demo --start-phase L4 --force >/dev/null 2>&1 && \
+  grep -q 'current_phase: L4' .helix/phase.yaml && \
+  grep -A1 'G3:' .helix/phase.yaml | grep -q skipped"
+run_test "init --start-phase L9 fails" "! $SCRIPT_DIR/helix-init --start-phase L9 --force 2>&1"
+run_test "init without --start-phase defaults to L1" "\
+  tmp=\$(mktemp -d) && cd \$tmp && git init -q && \
+  HELIX_HOME=$HELIX_HOME HELIX_PROJECT_ROOT=\$tmp $SCRIPT_DIR/helix-init --project-name demo --force >/dev/null 2>&1 && \
+  grep -q 'current_phase: L1' .helix/phase.yaml"
+
+echo ""
+echo "[helix-session-start progress inject]"
+run_test_not_contains "session-start no helix no progress" "D=\$(mktemp -d); cd \"\$D\"; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/libexec/helix-session-start; rc=\$?; rm -rf \"\$D\"; exit \$rc" "HELIX 現在の進捗"
+run_test_contains "session-start with phase.yaml emits progress" "HELIX_PROJECT_ROOT=\"\$PWD\" $SCRIPT_DIR/libexec/helix-session-start" "HELIX 現在の進捗"
+
+TOTAL_FAIL=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
+echo "==================================="
+echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"
+echo "pytest: $PYTEST_PASS passed, $PYTEST_FAIL failed, $PYTEST_SKIP skipped ($PYTEST_STATUS)"
+echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
+echo "==================================="
+
+if [[ $TOTAL_FAIL -gt 0 ]]; then
+  echo ""
+  echo "Failures:"
+  for err in "${ERRORS[@]}"; do
+    echo "  - $err" | head -c 200
+    echo ""
+  done
+  exit 1
+fi

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-init: HELIX プロジェクト初期化
-# Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"]
+# Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"] [--start-phase L1..L8]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
@@ -15,24 +15,35 @@ FALLBACK_RULES_DIR="$HELIX_HOME/.helix/rules"
 PROJECT_NAME=""
 FORCE=false
 MONOREPO_PKG=""
+START_PHASE="L1"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --project-name) PROJECT_NAME="$2"; shift 2 ;;
     --force) FORCE=true; shift ;;
     --monorepo-package) MONOREPO_PKG="$2"; shift 2 ;;
+    --start-phase) START_PHASE="$2"; shift 2 ;;
     --help|-h)
-      echo "使い方: helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"]"
+      echo "使い方: helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"] [--start-phase L1..L8]"
       echo ""
       echo "Options:"
       echo "  --project-name  プロジェクト名（phase.yaml に設定）"
       echo "  --force         既存ファイルを上書き（CLAUDE.md 以外）"
       echo "  --monorepo-package  モノレポ内で HELIX 管理対象にするパッケージ相対パス"
+      echo "  --start-phase L1..L8  既存プロジェクトに途中から導入する際の開始フェーズ (デフォルト: L1)"
       exit 0
       ;;
     *) echo "エラー: 不明なオプション: $1" >&2; exit 1 ;;
   esac
 done
+
+case "$START_PHASE" in
+  L1|L2|L3|L4|L5|L6|L7|L8) ;;
+  *)
+    echo "エラー: --start-phase は L1..L8 のいずれかを指定してください: $START_PHASE" >&2
+    exit 2
+    ;;
+esac
 
 if [[ -n "$MONOREPO_PKG" ]]; then
   PROJECT_ROOT="$REPO_ROOT/$MONOREPO_PKG"
@@ -122,6 +133,13 @@ done
 # phase.yaml にプロジェクト名を設定
 if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
   sed -i "s/^project: .*/project: \"$PROJECT_NAME\"/" "$HELIX_DIR/phase.yaml"
+  if [[ "$START_PHASE" != "L1" ]]; then
+    python3 "$SCRIPT_DIR/lib/init_helpers.py" apply-start-phase \
+      --phase-file "$HELIX_DIR/phase.yaml" \
+      --start-phase "$START_PHASE"
+    echo "[helix-init] start-phase=$START_PHASE 適用: 前提ゲートを skipped に設定"
+    echo "[helix-init] Reverse HELIX 併用時は helix reverse R0 から開始してください"
+  fi
 fi
 echo ""
 

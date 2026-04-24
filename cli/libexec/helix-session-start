@@ -86,15 +86,26 @@ SETUP_NEEDED
   exit 0
 fi
 
+# 進捗サマリを生成する。失敗しても SessionStart hook は止めない。
+helix_progress_escaped=""
+if [[ -f "$PROJECT_ROOT/.helix/phase.yaml" ]]; then
+  helix_progress="$(python3 "$SCRIPT_DIR/lib/session_start_helpers.py" progress "$PROJECT_ROOT" 2>/dev/null || true)"
+  if [[ -n "$helix_progress" ]]; then
+    helix_progress_escaped="$(printf '%s' "$helix_progress" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(), ensure_ascii=False)[1:-1])')"
+    helix_progress_escaped="${helix_progress_escaped}\\n\\n"
+  fi
+fi
+
 # --- 完了: 通常の HELIX コンテキスト ---
 context_output="$(cat <<'CONTEXT'
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "## HELIX フレームワーク稼働中\n\nこのセッションでは HELIX 開発フレームワークが有効。以下のツールが使える:\n\n### Codex 委譲（バックエンド・設計・レビュー）\n```bash\n~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task \"タスク内容\"\n```\nロール: tl(設計/レビュー) / se(上級実装) / pg(通常実装) / fe(FE) / qa(テスト) / security(監査) / dba(DB) / devops(インフラ) / docs(文書) / research(調査) / legacy(レガシー) / perf(性能)\n詳細: ~/ai-dev-kit-vscode/cli/ROLE_MAP.md\n\n### ゲート検証\n```bash\n~/ai-dev-kit-vscode/cli/helix-gate <G2|G3|G4|G5|G6|G7> [--static-only] [--dry-run]\n```\n\n### Claude サブエージェント（フロント特化）\n@fe-design / @fe-component / @fe-style / @fe-a11y / @fe-test\n\n### 原則\n- Opus = PM。自分でコード実装しない。Codex or サブエージェントに委譲\n- .helix/ があるプロジェクトでは Edit/Write 時に設計整合チェックが自動発火する\n- 委譲ルール詳細: CLAUDE.md §ディスパッチ決定木 参照\n\n### CLAUDE.md 作成時\nCLAUDE.md を新規作成する場合は必ずテンプレートを使うこと:\n~/ai-dev-kit-vscode/cli/templates/CLAUDE.md.template\nテンプレートなしで Write すると PreToolUse hook でブロックされる。\n\n### その他ツール\n- helix-init: プロジェクト初期化（.helix/ + CLAUDE.md + gitignore）\n- helix-size --files N --lines N [--api] [--db] [--ui] --type TYPE: タスクサイジング + フェーズスキップ判定\n- helix-sprint <status|next|complete|reset>: L4 マイクロスプリント管理\n- helix-pr [--dry-run]: ゲート結果から PR 自動生成\n- helix-reverse <R0-R4|status>: Reverse HELIX パイプライン\nすべて ~/ai-dev-kit-vscode/cli/ にある。\n\n### HELIX Scrum（検証駆動開発）\n要件未確定・実現可能性不明な場合に使う:\n- helix scrum init: Scrum モード初期化\n- helix scrum backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'\n- helix scrum plan --goal 'ゴール' --hypotheses H001,H002\n- helix scrum poc --hypothesis H001: PoC 実装を Codex に委譲\n- helix scrum verify: 全検証スクリプト実行（verify/*.sh）\n- helix scrum decide --hypothesis H001 --confirmed: 仮説判定\n検証スクリプトは蓄積され、毎回全実行でリグレッション検出。confirmed → Forward HELIX に接続。\n\n### スキル自動推挙（gpt-5.4-mini LLM マッチング）\nタスクを始める前に、最適なスキルと references を自動選定:\n```bash\nhelix skill search \"<タスク記述>\" [-n 5]       # top N 候補 + 推奨 agent\nhelix skill chain  \"<タスク記述>\" [--dry-run]  # search → use 一気通貫\nhelix skill use <skill-id> --task \"...\" [--dry-run]  # 手動委譲\nhelix skill list / show <id> / stats           # 一覧・詳細・統計\n```\n推挙結果は 1 時間キャッシュ (.helix/cache/recommendations/)。ブランド DESIGN.md 34件を含む全 references から選定される。__GIT_STATUS_SUFFIX__"
+    "additionalContext": "__HELIX_PROGRESS__## HELIX フレームワーク稼働中\n\nこのセッションでは HELIX 開発フレームワークが有効。以下のツールが使える:\n\n### Codex 委譲（バックエンド・設計・レビュー）\n```bash\n~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task \"タスク内容\"\n```\nロール: tl(設計/レビュー) / se(上級実装) / pg(通常実装) / fe(FE) / qa(テスト) / security(監査) / dba(DB) / devops(インフラ) / docs(文書) / research(調査) / legacy(レガシー) / perf(性能)\n詳細: ~/ai-dev-kit-vscode/cli/ROLE_MAP.md\n\n### ゲート検証\n```bash\n~/ai-dev-kit-vscode/cli/helix-gate <G2|G3|G4|G5|G6|G7> [--static-only] [--dry-run]\n```\n\n### Claude サブエージェント（フロント特化）\n@fe-design / @fe-component / @fe-style / @fe-a11y / @fe-test\n\n### 原則\n- Opus = PM。自分でコード実装しない。Codex or サブエージェントに委譲\n- .helix/ があるプロジェクトでは Edit/Write 時に設計整合チェックが自動発火する\n- 委譲ルール詳細: CLAUDE.md §ディスパッチ決定木 参照\n\n### CLAUDE.md 作成時\nCLAUDE.md を新規作成する場合は必ずテンプレートを使うこと:\n~/ai-dev-kit-vscode/cli/templates/CLAUDE.md.template\nテンプレートなしで Write すると PreToolUse hook でブロックされる。\n\n### その他ツール\n- helix-init: プロジェクト初期化（.helix/ + CLAUDE.md + gitignore）\n- helix-size --files N --lines N [--api] [--db] [--ui] --type TYPE: タスクサイジング + フェーズスキップ判定\n- helix-sprint <status|next|complete|reset>: L4 マイクロスプリント管理\n- helix-pr [--dry-run]: ゲート結果から PR 自動生成\n- helix-reverse <R0-R4|status>: Reverse HELIX パイプライン\nすべて ~/ai-dev-kit-vscode/cli/ にある。\n\n### HELIX Scrum（検証駆動開発）\n要件未確定・実現可能性不明な場合に使う:\n- helix scrum init: Scrum モード初期化\n- helix scrum backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'\n- helix scrum plan --goal 'ゴール' --hypotheses H001,H002\n- helix scrum poc --hypothesis H001: PoC 実装を Codex に委譲\n- helix scrum verify: 全検証スクリプト実行（verify/*.sh）\n- helix scrum decide --hypothesis H001 --confirmed: 仮説判定\n検証スクリプトは蓄積され、毎回全実行でリグレッション検出。confirmed → Forward HELIX に接続。\n\n### スキル自動推挙（gpt-5.4-mini LLM マッチング）\nタスクを始める前に、最適なスキルと references を自動選定:\n```bash\nhelix skill search \"<タスク記述>\" [-n 5]       # top N 候補 + 推奨 agent\nhelix skill chain  \"<タスク記述>\" [--dry-run]  # search → use 一気通貫\nhelix skill use <skill-id> --task \"...\" [--dry-run]  # 手動委譲\nhelix skill list / show <id> / stats           # 一覧・詳細・統計\n```\n推挙結果は 1 時間キャッシュ (.helix/cache/recommendations/)。ブランド DESIGN.md 34件を含む全 references から選定される。__GIT_STATUS_SUFFIX__"
   }
 }
 CONTEXT
 )"
+context_output="${context_output//__HELIX_PROGRESS__/${helix_progress_escaped}}"
 context_output="${context_output//__GIT_STATUS_SUFFIX__/${git_status_suffix}}"
 printf '%s\n' "$context_output"
