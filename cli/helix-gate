@@ -764,11 +764,12 @@ PY
       phase_b_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.phase_b.status" 2>/dev/null || echo "")
 
       local twin_fail=0
-      if [[ "$be_stage" != ".5" || "$be_status" != "completed" ]]; then
+      # yaml_parser._cast が ".5" を float 0.5 に変換するため両方を許容
+      if [[ ( "$be_stage" != ".5" && "$be_stage" != "0.5" ) || "$be_status" != "completed" ]]; then
         echo "  FAIL: BE Track 未完了 (stage=$be_stage, status=$be_status)"
         twin_fail=1
       fi
-      if [[ "$fe_stage" != ".5" || "$fe_status" != "completed" ]]; then
+      if [[ ( "$fe_stage" != ".5" && "$fe_stage" != "0.5" ) || "$fe_status" != "completed" ]]; then
         echo "  FAIL: FE Track 未完了 (stage=$fe_stage, status=$fe_status)"
         twin_fail=1
       fi
