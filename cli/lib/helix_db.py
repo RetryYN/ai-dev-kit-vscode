@@ -993,21 +993,46 @@ def insert_metric(db_path, metric_name, value, tags=None):
         conn.close()
 
 
-def acquire_db_lock(db_path, name, pid, scope="project", timeout=None):
-    """PLAN-005 lock の最小 acquire API。期限切れ再取得は Sprint 2 で実装する。"""
+def acquire_db_lock(
+    db_path,
+    name,
+    pid,
+    scope="project",
+    timeout=None,
+    ttl=None,
+    acquired_at=None,
+    expires_at=None,
+):
+    """Acquire or refresh PLAN-005 lock metadata.
+
+    ``timeout`` is kept as a backwards-compatible TTL alias for the Sprint 1
+    skeleton. The file lock remains the conflict source of truth.
+    """
     name = _require_non_empty(name, "name")
     scope = _validate_choice(scope, "scope", LOCK_SCOPES_V9)
-    acquired_at = _epoch_now()
-    expires_at = acquired_at + int(timeout) if timeout is not None else None
+    acquired_at = int(acquired_at or _epoch_now())
+    ttl_seconds = ttl if ttl is not None else timeout
+    if expires_at is None and ttl_seconds is not None:
+        expires_at = acquired_at + int(ttl_seconds)
+    if expires_at is not None:
+        expires_at = int(expires_at)
 
     conn = _automation_conn(db_path)
     try:
-        cur = conn.execute(
-            "INSERT OR IGNORE INTO locks (name, pid, acquired_at, expires_at, scope) VALUES (?, ?, ?, ?, ?)",
+        conn.execute(
+            """
+            INSERT INTO locks (name, pid, acquired_at, expires_at, scope)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                pid = excluded.pid,
+                acquired_at = excluded.acquired_at,
+                expires_at = excluded.expires_at,
+                scope = excluded.scope
+            """,
             (name, int(pid), acquired_at, expires_at, scope),
         )
         conn.commit()
-        return cur.rowcount == 1
+        return True
     finally:
         conn.close()
 

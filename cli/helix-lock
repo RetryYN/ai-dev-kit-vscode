@@ -9,10 +9,14 @@ usage() {
 使い方: helix lock <subcommand> [args...]
 
 サブコマンド:
-  acquire   DB lock を取得
-  release   DB lock を解放
-  list      DB lock 一覧を表示
-  status    DB lock 状態を表示
+  acquire --name <key> [--timeout <seconds>] [--scope home|project] [--ttl <seconds>]
+            file lock + DB metadata lock を取得
+  release --name <key> [--scope home|project]
+            lock を解放
+  list [--scope home|project|all]
+            DB lock 一覧を表示
+  status --name <key> [--scope home|project]
+            lock 状態を表示
 USAGE
 }
 
@@ -21,8 +25,11 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   acquire|release|list|status)
-    echo "Sprint X で実装予定 (PLAN-005)"
-    exit 0
+    export HELIX_LOCK_OWNER_PID="${HELIX_LOCK_OWNER_PID:-$PPID}"
+    exec python3 "$SCRIPT_DIR/lib/lock_helper.py" \
+      --db-path "$DB_PATH" \
+      --project-root "$PROJECT_ROOT" \
+      "$CMD" "$@"
     ;;
   help|-h|--help)
     usage
