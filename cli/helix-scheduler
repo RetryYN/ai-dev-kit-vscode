@@ -9,11 +9,11 @@ usage() {
 使い方: helix scheduler <subcommand> [args...]
 
 サブコマンド:
-  add       スケジュールを追加
-  list      スケジュール一覧を表示
-  cancel    スケジュールをキャンセル
-  status    スケジュール状態を表示
-  run-due   実行期限に達したスケジュールを処理
+  add --schedule "<cron|+5m>" --task-type <type> --task-payload <payload> [--id <id>]
+  list [--status <s>]
+  cancel --id <id>
+  status --id <id>
+  run-due [--dry-run]
 USAGE
 }
 
@@ -22,8 +22,9 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   add|list|cancel|status|run-due)
-    echo "Sprint X で実装予定 (PLAN-005)"
-    exit 0
+    exec python3 "$SCRIPT_DIR/lib/scheduler_helper.py" \
+      --db-path "$DB_PATH" \
+      "$CMD" "$@"
     ;;
   help|-h|--help)
     usage
