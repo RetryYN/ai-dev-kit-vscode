@@ -9,9 +9,11 @@ usage() {
 使い方: helix setup <subcommand> [args...]
 
 サブコマンド:
-  verify    初期化状態を検証
-  install   初期化に必要な要素を導入
-  repair    初期化状態を修復
+  verify --name <component>     初期化状態を検証
+  install --name <component>    初期化に必要な要素を導入
+  repair --name <component>     初期化状態を修復
+  list                          利用可能 component 一覧
+  status [--name <component>]   component 状態を表示
 USAGE
 }
 
@@ -19,9 +21,11 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 
 case "$CMD" in
-  verify|install|repair)
-    echo "Sprint X で実装予定 (PLAN-005)"
-    exit 0
+  verify|install|repair|list|status)
+    exec python3 "$SCRIPT_DIR/lib/setup_helper.py" \
+      --setup-dir "$SCRIPT_DIR/setup" \
+      --project-root "$PROJECT_ROOT" \
+      "$CMD" "$@"
     ;;
   help|-h|--help)
     usage
@@ -29,6 +33,6 @@ case "$CMD" in
   *)
     echo "エラー: 不明な setup subcommand: $CMD" >&2
     usage >&2
-    exit 1
+    exit 2
     ;;
 esac
