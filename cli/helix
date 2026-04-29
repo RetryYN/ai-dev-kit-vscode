@@ -35,6 +35,7 @@ case "$CMD" in
   lock)      exec "$SCRIPT_DIR/helix-lock" "$@" ;;
   setup)     exec "$SCRIPT_DIR/helix-setup" "$@" ;;
   observe)   exec "$SCRIPT_DIR/helix-observe" "$@" ;;
+  audit)     exec "$SCRIPT_DIR/helix-audit" "$@" ;;
   recipe)   exec "$SCRIPT_DIR/helix-recipe" "$@" ;;
   learn)
     if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
@@ -93,6 +94,7 @@ Commands:
   lock        DB lock 管理 (PLAN-005)
   setup       初期化検証・修復 (PLAN-005)
   observe     イベント・メトリクス観測 (PLAN-005)
+  audit       A1 audit decisions 同期・検証
   recipe      成功パターン学習 (learn/promote/discover/list)
 
 実行・委譲:

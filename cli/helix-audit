@@ -1,0 +1,244 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix audit <subcommand> [options]
+
+Subcommands:
+  a1 import        decisions.yaml を audit_decisions テーブルへ同期
+                   Options: --file <decisions.yaml> [--dry-run]
+  a1 verify-sync   decisions.yaml と audit_decisions の差分検証
+                   Options: --file <decisions.yaml>
+  a1 status        active な audit_decisions を表示
+                   Options: [--candidate-id <id>]
+
+exit code:
+  0 = success
+  1 = validation error
+  2 = drift detected (verify-sync)
+  3 = lock conflict
+  4 = internal error
+USAGE
+}
+
+require_value() {
+  local opt="$1"
+  local value="${2:-}"
+  if [[ -z "$value" ]]; then
+    echo "$opt requires a value" >&2
+    exit 1
+  fi
+}
+
+observe_log() {
+  "$SCRIPT_DIR/helix-observe" log "$@" >/dev/null 2>&1 || true
+}
+
+json_file_data() {
+  python3 - "$1" <<'PY'
+import json
+import sys
+print(json.dumps({"file": sys.argv[1]}, ensure_ascii=False))
+PY
+}
+
+cmd_a1_import() {
+  local file="" dry_run=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --file)
+        require_value "$1" "${2:-}"
+        file="$2"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run=1
+        shift
+        ;;
+      *)
+        echo "Unknown: $1" >&2
+        exit 4
+        ;;
+    esac
+  done
+  [[ -z "$file" ]] && { echo "--file required" >&2; exit 1; }
+
+  if [[ $dry_run -eq 1 ]]; then
+    python3 - "$SCRIPT_DIR/lib" "$DB_PATH" "$file" <<'PY'
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+from audit_a1 import A1ImportEngine
+
+eng = A1ImportEngine(sys.argv[2], sys.argv[3])
+report = eng.dry_run()
+print(json.dumps({
+    "validation_errors": report.validation_errors,
+    "case_counts": report.case_counts,
+    "has_errors": report.has_errors,
+}, ensure_ascii=False, indent=2))
+sys.exit(1 if report.has_errors else 0)
+PY
+    return
+  fi
+
+  local lock_timeout="${HELIX_AUDIT_LOCK_TIMEOUT:-30}"
+  if ! "$SCRIPT_DIR/helix-lock" acquire --name a1_import --timeout "$lock_timeout" --scope project >/dev/null 2>&1; then
+    echo "lock conflict: a1_import" >&2
+    exit 3
+  fi
+
+  trap '"$SCRIPT_DIR/helix-lock" release --name a1_import --scope project >/dev/null 2>&1 || true' EXIT
+
+  observe_log --event audit.a1.import.started --data "$(json_file_data "$file")" --severity info --source helix-audit
+
+  local result rc
+  set +e
+  result=$(python3 - "$SCRIPT_DIR/lib" "$DB_PATH" "$file" <<'PY'
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+from audit_a1 import A1ImportEngine
+
+eng = A1ImportEngine(sys.argv[2], sys.argv[3])
+result = eng.import_sync()
+print(json.dumps({
+    "run_id": result.run_id,
+    "success": result.success,
+    "imported_rows": result.imported_rows,
+    "error_summary": result.error_summary,
+    "case_counts": result.case_counts,
+}, ensure_ascii=False, indent=2))
+if result.success:
+    sys.exit(0)
+if result.error_summary and result.error_summary.startswith("validation:"):
+    sys.exit(1)
+sys.exit(4)
+PY
+  )
+  rc=$?
+  set -e
+
+  echo "$result"
+
+  if [[ $rc -eq 0 ]]; then
+    observe_log --event audit.a1.import.completed --data "$result" --severity info --source helix-audit
+  else
+    observe_log --event audit.a1.import.failed --data "$result" --severity error --source helix-audit
+  fi
+  exit "$rc"
+}
+
+cmd_a1_verify_sync() {
+  local file=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --file)
+        require_value "$1" "${2:-}"
+        file="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unknown: $1" >&2
+        exit 4
+        ;;
+    esac
+  done
+  [[ -z "$file" ]] && { echo "--file required" >&2; exit 1; }
+
+  local result rc
+  set +e
+  result=$(python3 - "$SCRIPT_DIR/lib" "$DB_PATH" "$file" <<'PY'
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+from audit_a1 import A1ImportEngine
+
+eng = A1ImportEngine(sys.argv[2], sys.argv[3])
+validation_report = eng.dry_run()
+if validation_report.validation_errors:
+    print(json.dumps({
+        "in_sync": False,
+        "validation_errors": validation_report.validation_errors,
+    }, ensure_ascii=False, indent=2))
+    sys.exit(1)
+result = eng.verify_sync()
+print(json.dumps({
+    "in_sync": result.in_sync,
+    "yaml_count": result.yaml_count,
+    "db_active_count": result.db_active_count,
+    "missing_in_db": result.missing_in_db,
+    "extra_in_db": result.extra_in_db,
+    "hash_mismatch": result.hash_mismatch,
+}, ensure_ascii=False, indent=2))
+sys.exit(0 if result.in_sync else 2)
+PY
+  )
+  rc=$?
+  set -e
+
+  echo "$result"
+  if [[ $rc -eq 2 ]]; then
+    observe_log --event audit.a1.verify_sync.drift_detected --data "$result" --severity warning --source helix-audit
+  fi
+  exit "$rc"
+}
+
+cmd_a1_status() {
+  local candidate_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --candidate-id)
+        require_value "$1" "${2:-}"
+        candidate_id="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unknown: $1" >&2
+        exit 4
+        ;;
+    esac
+  done
+
+  python3 - "$SCRIPT_DIR/lib" "$DB_PATH" "$candidate_id" <<'PY'
+import json
+import sys
+sys.path.insert(0, sys.argv[1])
+import helix_db
+
+filters = {}
+if sys.argv[3]:
+    filters["candidate_id"] = sys.argv[3]
+rows = helix_db.query_active_audit_decisions(sys.argv[2], **filters)
+print(json.dumps({"count": len(rows), "active": rows}, ensure_ascii=False, indent=2, default=str))
+PY
+}
+
+main() {
+  [[ $# -eq 0 ]] && { usage; exit 0; }
+  case "$1" in
+    a1)
+      shift
+      [[ $# -eq 0 ]] && { usage; exit 0; }
+      case "$1" in
+        import) shift; cmd_a1_import "$@" ;;
+        verify-sync) shift; cmd_a1_verify_sync "$@" ;;
+        status) shift; cmd_a1_status "$@" ;;
+        *) usage; exit 4 ;;
+      esac
+      ;;
+    --help|-h|help)
+      usage
+      ;;
+    *)
+      usage >&2
+      exit 4
+      ;;
+  esac
+}
+
+main "$@"
