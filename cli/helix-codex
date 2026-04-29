@@ -31,7 +31,9 @@ THINKING_EXPLICIT=false
 AUTO_THINKING=false
 DRY_RUN=false
 SANDBOX="workspace-write"
-FULL_AUTO=""
+# 2026-04-30: full-auto を default 化 (Codex hang 防止、~/.codex/config.toml の
+# full_auto=true と整合させる。--no-full-auto で opt-out 可能)。
+FULL_AUTO="--full-auto"
 TIMEOUT=1800
 MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
 FALLBACK_MODEL=""    # GAP-038 Phase 2: Layer 2 代替モデル
@@ -49,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --sandbox)         SANDBOX="$2"; shift 2 ;;
     --read-only)       SANDBOX="read-only"; shift ;;
     --full-auto)       FULL_AUTO="--full-auto"; shift ;;
+    --no-full-auto)    FULL_AUTO=""; shift ;;
     --dry-run)         DRY_RUN=true; shift ;;
     --help|-h)
       echo "使い方: helix codex --role <role> (--task \"タスク\" | --task-file <path>)"
