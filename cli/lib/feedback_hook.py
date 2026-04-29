@@ -16,6 +16,11 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import helix_db
+from gate_policy_helper import (
+    compute_weighted_score,
+    load_accuracy_weights,
+    resolve_gate_policy_path,
+)
 import yaml_parser
 
 
@@ -202,6 +207,17 @@ def record_scores(
     evidence: str,
     sprint: str | None = None,
 ) -> None:
+    score_dicts = [
+        {"dimension": score.dimension, "level": score.level, "comment": score.comment}
+        for score in result.scores
+    ]
+    gate_weight = _resolve_gate_weight(gate)
+    evidence_obj = {
+        "weighted_score": compute_weighted_score(score_dicts, gate_weight),
+        "gate_weight": gate_weight,
+        "raw_evidence": evidence,
+    }
+    evidence_str = json.dumps(evidence_obj, ensure_ascii=False)
     for score in result.scores:
         helix_db.record_accuracy_score(
             str(db_path),
@@ -210,10 +226,18 @@ def record_scores(
             dimension=score.dimension,
             level=score.level,
             comment=score.comment,
-            evidence=evidence,
+            evidence=evidence_str,
             sprint=sprint,
             reviewer="codex-feedback-hook",
         )
+
+
+def _resolve_gate_weight(gate: str) -> float:
+    try:
+        weights = load_accuracy_weights(resolve_gate_policy_path())
+    except Exception:
+        return 0.5
+    return weights.get(gate, 0.5)
 
 
 def display_feedback(result: FeedbackResult, stdout: TextIO) -> None:

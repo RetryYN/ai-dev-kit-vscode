@@ -1,4 +1,5 @@
 import io
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ import feedback_hook
 import helix_db
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SAMPLE_FEEDBACK_JSON = """{
   "feedback_message": "ここまでの整理は良い流れです。\\n次は根拠と差分を一段厚くして Lv4-5 を狙えます。",
   "scores": [
@@ -55,7 +57,8 @@ def _rows(db_path: Path) -> list[sqlite3.Row]:
         conn.close()
 
 
-def test_feedback_hook_records_5_dimensions(tmp_path: Path, capsys) -> None:
+def test_feedback_hook_records_5_dimensions(tmp_path: Path, capsys, monkeypatch) -> None:
+    monkeypatch.setenv("HELIX_HOME", str(PROJECT_ROOT))
     project_root, helix_dir, db_path = _make_project(tmp_path)
     capsys.readouterr()
 
@@ -77,6 +80,35 @@ def test_feedback_hook_records_5_dimensions(tmp_path: Path, capsys) -> None:
     assert {row["plan_id"] for row in rows} == {"PLAN-004"}
     assert {row["gate"] for row in rows} == {"G2"}
     assert {row["reviewer"] for row in rows} == {"codex-feedback-hook"}
+    evidence = json.loads(rows[0]["evidence"])
+    assert evidence["weighted_score"] == 2.4
+    assert evidence["gate_weight"] == 0.6
+    assert "recent_work_summary" in evidence["raw_evidence"]
+
+
+def test_feedback_hook_uses_default_weight_when_policy_missing(
+    tmp_path: Path, capsys, monkeypatch
+) -> None:
+    monkeypatch.setenv("HELIX_HOME", str(tmp_path / "missing-helix-home"))
+    project_root, helix_dir, db_path = _make_project(tmp_path)
+    capsys.readouterr()
+
+    emitted = feedback_hook.emit_feedback(
+        project_root=project_root,
+        helix_dir=helix_dir,
+        gate="G2",
+        gate_name="設計凍結ゲート",
+        findings_summary="static_pass=2; static_fail=0",
+        codex_cmd=_fake_codex(tmp_path, SAMPLE_FEEDBACK_JSON),
+        env={},
+        stdout=io.StringIO(),
+    )
+
+    rows = _rows(db_path)
+    evidence = json.loads(rows[0]["evidence"])
+    assert emitted is True
+    assert evidence["weighted_score"] == 2.0
+    assert evidence["gate_weight"] == 0.5
 
 
 def test_feedback_hook_disabled_env(tmp_path: Path, capsys) -> None:

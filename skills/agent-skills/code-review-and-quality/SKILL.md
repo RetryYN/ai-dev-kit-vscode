@@ -14,6 +14,8 @@ upstream: addyosmani/agent-skills (MIT)
 
 Multi-dimensional code review with quality gates. Every change gets reviewed before merge — no exceptions. Review covers five axes: correctness, readability, architecture, security, and performance.
 
+**accuracy_weight**: 各 gate の重み付けは [gate-policy.md §accuracy_weight](../../tools/ai-coding/references/gate-policy.md) を参照 (PLAN-004 で導入)
+
 **The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a change because it isn't exactly how you would have written it. If it improves the codebase and follows the project's conventions, approve it.
 
 ## When to Use

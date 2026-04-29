@@ -38,6 +38,8 @@ compatibility:
 - 設計・実装・テスト・デプロイの検証時
 - HELIXフレームワークのL検証実行時
 
+**accuracy_weight**: 各 gate の重み付けは [gate-policy.md §accuracy_weight](../../tools/ai-coding/references/gate-policy.md) を参照 (PLAN-004 で導入)
+
 ---
 
 ## フェーズ別判断チェックリスト

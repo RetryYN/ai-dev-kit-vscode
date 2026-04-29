@@ -27,6 +27,8 @@ compatibility:
 - リリース前の最終検証時
 - V-L5検証（テスト検証）実行時
 
+**accuracy_weight**: 各 gate の重み付けは [gate-policy.md §accuracy_weight](../../tools/ai-coding/references/gate-policy.md) を参照 (PLAN-004 で導入)
+
 ---
 
 ## 1. 品質レベル定義

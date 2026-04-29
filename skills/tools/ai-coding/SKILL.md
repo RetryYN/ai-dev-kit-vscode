@@ -24,6 +24,8 @@ compatibility:
 - プロンプト作成時
 - AI出力のレビュー時
 
+**accuracy_weight**: 各 gate の重み付けは [gate-policy.md §accuracy_weight](references/gate-policy.md) を参照 (PLAN-004 で導入)
+
 ---
 
 ## 1. AIコーディングの原則
