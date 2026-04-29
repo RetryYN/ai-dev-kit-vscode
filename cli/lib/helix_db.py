@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -375,10 +375,59 @@ CREATE INDEX IF NOT EXISTS idx_metrics_name_at ON metrics(metric_name, recorded_
 """
 
 
+AUDIT_DECISIONS_SCHEMA_V10 = """
+CREATE TABLE IF NOT EXISTS import_runs (
+    id TEXT PRIMARY KEY,
+    started_at INTEGER NOT NULL,
+    completed_at INTEGER,
+    source_hash TEXT NOT NULL,
+    scope_hash TEXT NOT NULL,
+    imported_rows INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('started', 'success', 'failed')),
+    error_summary TEXT
+);
+
+CREATE TABLE IF NOT EXISTS audit_decisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    candidate_id TEXT NOT NULL,
+    schema_version INTEGER NOT NULL,
+    scope_hash TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('keep', 'remove', 'merge', 'deprecate')),
+    evidence TEXT NOT NULL DEFAULT '{}',
+    rationale TEXT NOT NULL,
+    fail_safe_action TEXT NOT NULL CHECK(fail_safe_action IN ('skip', 'quarantine', 'manual_review')),
+    status TEXT NOT NULL CHECK(status IN ('active', 'historical')) DEFAULT 'active',
+    import_run_id TEXT NOT NULL,
+    source_hash TEXT NOT NULL,
+    decision_hash TEXT NOT NULL,
+    imported_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (import_run_id) REFERENCES import_runs(id) ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_decisions_active_unique
+    ON audit_decisions(candidate_id, schema_version)
+    WHERE status = 'active';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_audit_decisions_event_unique
+    ON audit_decisions(candidate_id, schema_version, scope_hash, decision_hash);
+
+CREATE INDEX IF NOT EXISTS idx_audit_decisions_import_run_id
+    ON audit_decisions(import_run_id);
+
+CREATE INDEX IF NOT EXISTS idx_import_runs_status
+    ON import_runs(status, started_at);
+"""
+
+
 TASK_TYPES_V9 = ("helix:command", "shell:script", "http:webhook")
 AUTOMATION_STATUSES_V9 = ("pending", "running", "success", "failed", "cancelled")
 LOCK_SCOPES_V9 = ("home", "project")
 EVENT_SEVERITIES_V9 = ("debug", "info", "warning", "error", "critical")
+IMPORT_RUN_STATUSES_V10 = ("started", "success", "failed")
+AUDIT_DECISION_DECISIONS_V10 = ("keep", "remove", "merge", "deprecate")
+AUDIT_DECISION_FAIL_SAFE_ACTIONS_V10 = ("skip", "quarantine", "manual_review")
 
 
 def _prepare_db_path(db_path):
@@ -412,6 +461,10 @@ def _create_accuracy_score_table(conn):
 
 def _create_infra_tables_v9(conn):
     conn.executescript(INFRA_SCHEMA_V9)
+
+
+def _create_audit_decisions_v10(conn):
+    conn.executescript(AUDIT_DECISIONS_SCHEMA_V10)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -649,6 +702,12 @@ def migrate(conn):
             _create_infra_tables_v9(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (9, datetime('now'))"
+            )
+        # v9→v10: audit_decisions + import_runs (PLAN-002 棚卸し基盤)
+        if current < 10:
+            _create_audit_decisions_v10(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (10, datetime('now'))"
             )
         conn.commit()
 
@@ -952,6 +1011,165 @@ def _validate_observable_name(value, field_name):
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]*", value):
         raise ValueError(f"invalid {field_name}: {value}")
     return value
+
+
+def _validate_positive_int(value, field_name):
+    if type(value) is not int or value < 1:
+        raise ValueError(f"{field_name} must be a positive integer")
+    return value
+
+
+def insert_import_run(db_path, run_id, source_hash, scope_hash, status="started"):
+    """import_run を新規 INSERT する。started_at は epoch seconds。"""
+    run_id = _require_non_empty(run_id, "run_id")
+    source_hash = _require_non_empty(source_hash, "source_hash")
+    scope_hash = _require_non_empty(scope_hash, "scope_hash")
+    status = _validate_choice(status, "status", IMPORT_RUN_STATUSES_V10)
+    started_at = _epoch_now()
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO import_runs (id, started_at, source_hash, scope_hash, status) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (run_id, started_at, source_hash, scope_hash, status),
+        )
+        conn.commit()
+        return run_id
+    finally:
+        conn.close()
+
+
+def update_import_run(db_path, run_id, status, completed_at=None, imported_rows=0, error_summary=None):
+    """import_run を success/failed で更新する。"""
+    run_id = _require_non_empty(run_id, "run_id")
+    status = _validate_choice(status, "status", ("success", "failed"))
+    if completed_at is None:
+        completed_at = _epoch_now()
+    completed_at = int(completed_at)
+    imported_rows = int(imported_rows)
+    if imported_rows < 0:
+        raise ValueError("imported_rows must be non-negative")
+
+    conn = _automation_conn(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE import_runs SET status = ?, completed_at = ?, imported_rows = ?, error_summary = ? "
+            "WHERE id = ?",
+            (status, completed_at, imported_rows, error_summary, run_id),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
+def insert_audit_decision(
+    db_path,
+    candidate_id,
+    schema_version,
+    scope_hash,
+    decision,
+    evidence,
+    rationale,
+    fail_safe_action,
+    import_run_id,
+    source_hash,
+    decision_hash,
+    imported_at=None,
+):
+    """audit_decision を active 状態で INSERT する。Case A no-op 判定は呼び出し側で行う。"""
+    candidate_id = _require_non_empty(candidate_id, "candidate_id")
+    schema_version = _validate_positive_int(schema_version, "schema_version")
+    scope_hash = _require_non_empty(scope_hash, "scope_hash")
+    decision = _validate_choice(decision, "decision", AUDIT_DECISION_DECISIONS_V10)
+    if evidence is not None and not isinstance(evidence, (dict, str)):
+        raise ValueError("evidence must be a JSON object or JSON string")
+    evidence_text = _json_text(evidence, {})
+    rationale = _require_non_empty(rationale, "rationale")
+    fail_safe_action = _validate_choice(
+        fail_safe_action,
+        "fail_safe_action",
+        AUDIT_DECISION_FAIL_SAFE_ACTIONS_V10,
+    )
+    import_run_id = _require_non_empty(import_run_id, "import_run_id")
+    source_hash = _require_non_empty(source_hash, "source_hash")
+    decision_hash = _require_non_empty(decision_hash, "decision_hash")
+    imported_at = int(imported_at or _epoch_now())
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO audit_decisions "
+            "(candidate_id, schema_version, scope_hash, decision, evidence, rationale, "
+            "fail_safe_action, status, import_run_id, source_hash, decision_hash, "
+            "imported_at, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)",
+            (
+                candidate_id,
+                schema_version,
+                scope_hash,
+                decision,
+                evidence_text,
+                rationale,
+                fail_safe_action,
+                import_run_id,
+                source_hash,
+                decision_hash,
+                imported_at,
+                imported_at,
+                imported_at,
+            ),
+        )
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.commit()
+        return row_id
+    finally:
+        conn.close()
+
+
+def historical_to_active_audit_decision(db_path, candidate_id, schema_version, scope_hash):
+    """既存 active 行を historical に降格する。"""
+    candidate_id = _require_non_empty(candidate_id, "candidate_id")
+    schema_version = _validate_positive_int(schema_version, "schema_version")
+    _require_non_empty(scope_hash, "scope_hash")
+    updated_at = _epoch_now()
+
+    conn = _automation_conn(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE audit_decisions SET status = 'historical', updated_at = ? "
+            "WHERE candidate_id = ? AND schema_version = ? AND status = 'active'",
+            (updated_at, candidate_id, schema_version),
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def query_active_audit_decisions(db_path, candidate_id=None, schema_version=None):
+    """active な audit_decisions を取得する。"""
+    where = ["status = 'active'"]
+    params = []
+    if candidate_id is not None:
+        where.append("candidate_id = ?")
+        params.append(_require_non_empty(candidate_id, "candidate_id"))
+    if schema_version is not None:
+        where.append("schema_version = ?")
+        params.append(_validate_positive_int(schema_version, "schema_version"))
+
+    conn = _automation_conn(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM audit_decisions WHERE "
+            + " AND ".join(where)
+            + " ORDER BY candidate_id, schema_version, id",
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
 
 
 def _automation_conn(db_path):

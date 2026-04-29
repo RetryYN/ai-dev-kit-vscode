@@ -91,6 +91,45 @@ def _seed_history(db_path: Path) -> tuple[int, int]:
     return run_id, action_id
 
 
+def _insert_import_run_direct(conn: sqlite3.Connection, run_id: str = "run-1") -> None:
+    conn.execute(
+        "INSERT INTO import_runs (id, started_at, source_hash, scope_hash, status) "
+        "VALUES (?, 100, 'source-hash', 'scope-hash', 'started')",
+        (run_id,),
+    )
+
+
+def _insert_audit_decision_direct(
+    conn: sqlite3.Connection,
+    *,
+    candidate_id: str = "candidate-1",
+    schema_version: int = 1,
+    scope_hash: str = "scope-hash",
+    decision_hash: str = "decision-hash",
+    status: str = "active",
+    import_run_id: str = "run-1",
+    decision: str = "keep",
+    fail_safe_action: str = "skip",
+) -> None:
+    conn.execute(
+        "INSERT INTO audit_decisions "
+        "(candidate_id, schema_version, scope_hash, decision, evidence, rationale, "
+        "fail_safe_action, status, import_run_id, source_hash, decision_hash, "
+        "imported_at, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, '{}', 'rationale', ?, ?, ?, 'source-hash', ?, 100, 100, 100)",
+        (
+            candidate_id,
+            schema_version,
+            scope_hash,
+            decision,
+            fail_safe_action,
+            status,
+            import_run_id,
+            decision_hash,
+        ),
+    )
+
+
 def test_init_db_creates_primary_tables(tmp_path: Path, capsys) -> None:
     db_path = _init_db(tmp_path)
     capsys.readouterr()
@@ -110,7 +149,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9]
+    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -317,7 +356,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -411,7 +450,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6, 7, 8, 9]
+    assert versions == [3, 4, 5, 6, 7, 8, 9, 10]
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -448,7 +487,7 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6, 7, 8, 9]
+    assert versions == [4, 5, 6, 7, 8, 9, 10]
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
 
@@ -479,7 +518,7 @@ def test_migrate_v7_to_v8_creates_accuracy_score_table(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9]
+    assert versions == [7, 8, 9, 10]
     assert table is not None
     assert {"idx_accuracy_score_plan_gate", "idx_accuracy_score_recorded_at"} <= indexes
 
@@ -509,8 +548,140 @@ def test_migrate_v8_to_v9_creates_infra_tables(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [8, 9]
+    assert versions == [8, 9, 10]
     assert names == {"events", "metrics", "schedules", "jobs", "locks"}
+
+
+def test_migrate_v9_to_v10_creates_audit_decisions_and_import_runs(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v9.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.executescript(helix_db.ACCURACY_SCORE_SCHEMA)
+    conn.executescript(helix_db.INFRA_SCHEMA_V9)
+    conn.execute("DROP TABLE IF EXISTS audit_decisions")
+    conn.execute("DROP TABLE IF EXISTS import_runs")
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (9, '2025-01-01T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    names = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+            "('audit_decisions', 'import_runs')"
+        ).fetchall()
+    }
+    indexes = {
+        row[1]: row[2:]
+        for row in conn.execute("PRAGMA index_list(audit_decisions)").fetchall()
+        if row[1] in ("idx_audit_decisions_active_unique", "idx_audit_decisions_event_unique")
+    }
+    import_run_indexes = {
+        row[1]
+        for row in conn.execute("PRAGMA index_list(import_runs)").fetchall()
+    }
+    conn.close()
+
+    assert versions == [9, 10]
+    assert names == {"audit_decisions", "import_runs"}
+    assert set(indexes) == {"idx_audit_decisions_active_unique", "idx_audit_decisions_event_unique"}
+    assert indexes["idx_audit_decisions_active_unique"][0] == 1
+    assert indexes["idx_audit_decisions_active_unique"][2] == 1
+    assert indexes["idx_audit_decisions_event_unique"][0] == 1
+    assert "idx_import_runs_status" in import_run_indexes
+
+
+def test_audit_decisions_decision_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        _insert_import_run_direct(conn)
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, decision="archive")
+    finally:
+        conn.close()
+
+
+def test_audit_decisions_status_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        _insert_import_run_direct(conn)
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, status="pending")
+    finally:
+        conn.close()
+
+
+def test_audit_decisions_fail_safe_action_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        _insert_import_run_direct(conn)
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, fail_safe_action="delete")
+    finally:
+        conn.close()
+
+
+def test_audit_decisions_active_unique_index(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        _insert_import_run_direct(conn)
+        _insert_audit_decision_direct(conn, decision_hash="hash-1")
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, scope_hash="scope-2", decision_hash="hash-2")
+    finally:
+        conn.close()
+
+
+def test_audit_decisions_event_unique_index(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        _insert_import_run_direct(conn)
+        _insert_audit_decision_direct(conn, status="historical")
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, status="historical")
+    finally:
+        conn.close()
+
+
+def test_audit_decisions_fk_to_import_runs(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert_audit_decision_direct(conn, import_run_id="missing-run")
+    finally:
+        conn.close()
+
+
+def test_import_runs_status_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO import_runs (id, started_at, source_hash, scope_hash, status) "
+                "VALUES ('run-1', 100, 'source-hash', 'scope-hash', 'queued')"
+            )
+    finally:
+        conn.close()
 
 
 def test_schedules_status_check_constraint(tmp_path: Path, capsys) -> None:
@@ -580,13 +751,158 @@ def test_metrics_value_real(tmp_path: Path, capsys) -> None:
     assert row["value_type"] == "real"
 
 
-def test_migrate_v7_to_v9(tmp_path: Path) -> None:
-    db_path = tmp_path / "legacy-v7-to-v9.db"
+def test_insert_import_run_basic(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    run_id = helix_db.insert_import_run(str(db_path), "run-basic", "source-hash", "scope-hash")
+
+    row = _fetch_one(db_path, "SELECT * FROM import_runs WHERE id = ?", (run_id,))
+    assert row["id"] == "run-basic"
+    assert row["source_hash"] == "source-hash"
+    assert row["scope_hash"] == "scope-hash"
+    assert row["status"] == "started"
+    assert row["started_at"] > 0
+    assert row["completed_at"] is None
+    assert row["imported_rows"] == 0
+
+
+def test_update_import_run_to_success(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.insert_import_run(str(db_path), "run-success", "source-hash", "scope-hash")
+
+    updated = helix_db.update_import_run(
+        str(db_path),
+        "run-success",
+        "success",
+        completed_at=200,
+        imported_rows=3,
+    )
+
+    row = _fetch_one(db_path, "SELECT status, completed_at, imported_rows, error_summary FROM import_runs WHERE id = ?", ("run-success",))
+    assert updated is True
+    assert dict(row) == {
+        "status": "success",
+        "completed_at": 200,
+        "imported_rows": 3,
+        "error_summary": None,
+    }
+
+
+def test_update_import_run_to_failed_with_error(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.insert_import_run(str(db_path), "run-failed", "source-hash", "scope-hash")
+
+    updated = helix_db.update_import_run(
+        str(db_path),
+        "run-failed",
+        "failed",
+        completed_at=201,
+        imported_rows=0,
+        error_summary="validation failed",
+    )
+
+    row = _fetch_one(db_path, "SELECT status, completed_at, imported_rows, error_summary FROM import_runs WHERE id = ?", ("run-failed",))
+    assert updated is True
+    assert dict(row) == {
+        "status": "failed",
+        "completed_at": 201,
+        "imported_rows": 0,
+        "error_summary": "validation failed",
+    }
+
+
+def test_insert_audit_decision_basic(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.insert_import_run(str(db_path), "run-audit", "source-hash", "scope-hash")
+
+    row_id = helix_db.insert_audit_decision(
+        str(db_path),
+        "candidate-1",
+        1,
+        "scope-hash",
+        "keep",
+        {"hash": "abc", "redacted": True, "source": "decisions.yaml"},
+        "required by PLAN-002",
+        "skip",
+        "run-audit",
+        "source-hash",
+        "decision-hash",
+        imported_at=300,
+    )
+
+    row = _fetch_one(db_path, "SELECT * FROM audit_decisions WHERE id = ?", (row_id,))
+    assert row["candidate_id"] == "candidate-1"
+    assert row["schema_version"] == 1
+    assert row["decision"] == "keep"
+    assert json.loads(row["evidence"]) == {"hash": "abc", "redacted": True, "source": "decisions.yaml"}
+    assert row["status"] == "active"
+    assert row["imported_at"] == 300
+    assert row["created_at"] == 300
+    assert row["updated_at"] == 300
+
+
+def test_historical_to_active_demotion(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.insert_import_run(str(db_path), "run-demote", "source-hash", "scope-hash")
+    row_id = helix_db.insert_audit_decision(
+        str(db_path),
+        "candidate-1",
+        1,
+        "scope-hash",
+        "remove",
+        {},
+        "obsolete",
+        "manual_review",
+        "run-demote",
+        "source-hash",
+        "decision-hash",
+    )
+
+    updated = helix_db.historical_to_active_audit_decision(str(db_path), "candidate-1", 1, "scope-hash")
+
+    row = _fetch_one(db_path, "SELECT status, updated_at, created_at FROM audit_decisions WHERE id = ?", (row_id,))
+    assert updated == 1
+    assert row["status"] == "historical"
+    assert row["updated_at"] >= row["created_at"]
+
+
+def test_query_active_filters_correctly(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.insert_import_run(str(db_path), "run-query", "source-hash", "scope-hash")
+    helix_db.insert_audit_decision(str(db_path), "candidate-1", 1, "scope-1", "keep", {}, "r1", "skip", "run-query", "source-hash", "hash-1")
+    helix_db.insert_audit_decision(str(db_path), "candidate-2", 1, "scope-1", "keep", {}, "r2", "skip", "run-query", "source-hash", "hash-2")
+    helix_db.insert_audit_decision(str(db_path), "candidate-1", 2, "scope-2", "merge", {}, "r3", "quarantine", "run-query", "source-hash", "hash-3")
+
+    candidate_rows = helix_db.query_active_audit_decisions(str(db_path), candidate_id="candidate-1")
+    schema_rows = helix_db.query_active_audit_decisions(str(db_path), schema_version=1)
+    exact_rows = helix_db.query_active_audit_decisions(str(db_path), candidate_id="candidate-1", schema_version=1)
+
+    assert {(row["candidate_id"], row["schema_version"]) for row in candidate_rows} == {
+        ("candidate-1", 1),
+        ("candidate-1", 2),
+    }
+    assert {(row["candidate_id"], row["schema_version"]) for row in schema_rows} == {
+        ("candidate-1", 1),
+        ("candidate-2", 1),
+    }
+    assert len(exact_rows) == 1
+    assert exact_rows[0]["candidate_id"] == "candidate-1"
+    assert exact_rows[0]["schema_version"] == 1
+
+
+def test_migrate_v7_to_v10_sequential(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v7-to-v10.db"
     conn = sqlite3.connect(str(db_path))
     conn.executescript(helix_db.SCHEMA)
     conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
     conn.execute("DROP TABLE IF EXISTS accuracy_score")
-    for table in ("events", "metrics", "schedules", "jobs", "locks"):
+    for table in ("events", "metrics", "schedules", "jobs", "locks", "audit_decisions", "import_runs"):
         conn.execute(f"DROP TABLE IF EXISTS {table}")
     conn.execute("DELETE FROM schema_version")
     conn.execute(
@@ -600,13 +916,23 @@ def test_migrate_v7_to_v9(tmp_path: Path) -> None:
         row[0]
         for row in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
-            "('accuracy_score', 'events', 'metrics', 'schedules', 'jobs', 'locks')"
+            "('accuracy_score', 'events', 'metrics', 'schedules', 'jobs', 'locks', "
+            "'audit_decisions', 'import_runs')"
         ).fetchall()
     }
     conn.close()
 
-    assert versions == [7, 8, 9]
-    assert names == {"accuracy_score", "events", "metrics", "schedules", "jobs", "locks"}
+    assert versions == [7, 8, 9, 10]
+    assert names == {
+        "accuracy_score",
+        "events",
+        "metrics",
+        "schedules",
+        "jobs",
+        "locks",
+        "audit_decisions",
+        "import_runs",
+    }
 
 
 def test_record_accuracy_score_inserts_row(tmp_path: Path, capsys) -> None:
