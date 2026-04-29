@@ -30,6 +30,11 @@ case "$CMD" in
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
   budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
+  scheduler) exec "$SCRIPT_DIR/helix-scheduler" "$@" ;;
+  job)       exec "$SCRIPT_DIR/helix-job" "$@" ;;
+  lock)      exec "$SCRIPT_DIR/helix-lock" "$@" ;;
+  setup)     exec "$SCRIPT_DIR/helix-setup" "$@" ;;
+  observe)   exec "$SCRIPT_DIR/helix-observe" "$@" ;;
   recipe)   exec "$SCRIPT_DIR/helix-recipe" "$@" ;;
   learn)
     if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
@@ -83,6 +88,11 @@ Commands:
   interrupt   中断・復帰管理
   handover    Opus/Codex handover 管理
   budget      Claude/Codex 予算管理・モデル推奨
+  scheduler   定期実行スケジュール管理 (PLAN-005)
+  job         非同期ジョブキュー管理 (PLAN-005)
+  lock        DB lock 管理 (PLAN-005)
+  setup       初期化検証・修復 (PLAN-005)
+  observe     イベント・メトリクス観測 (PLAN-005)
   recipe      成功パターン学習 (learn/promote/discover/list)
 
 実行・委譲:

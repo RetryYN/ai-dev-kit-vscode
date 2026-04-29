@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix job <subcommand> [args...]
+
+サブコマンド:
+  enqueue   ジョブを登録
+  worker    ジョブ worker を起動
+  status    ジョブ状態を表示
+  cancel    ジョブをキャンセル
+  retry     失敗ジョブを再試行
+USAGE
+}
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  enqueue|worker|status|cancel|retry)
+    echo "Sprint X で実装予定 (PLAN-005)"
+    exit 0
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "エラー: 不明な job subcommand: $CMD" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

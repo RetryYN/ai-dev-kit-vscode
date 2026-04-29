@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix observe <subcommand> [args...]
+
+サブコマンド:
+  log       イベントログを記録
+  metric    メトリクスを記録
+  report    観測レポートを表示
+  export    観測データをエクスポート
+USAGE
+}
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  log|metric|report|export)
+    echo "Sprint X で実装予定 (PLAN-005)"
+    exit 0
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "エラー: 不明な observe subcommand: $CMD" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
