@@ -5,6 +5,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+import pytest
+
 
 LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
@@ -108,7 +110,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7]
+    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9]
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -315,7 +317,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6, 7]
+    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -409,7 +411,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6, 7]
+    assert versions == [3, 4, 5, 6, 7, 8, 9]
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -446,9 +448,267 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6, 7]
+    assert versions == [4, 5, 6, 7, 8, 9]
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
+
+
+def test_migrate_v7_to_v8_creates_accuracy_score_table(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v7.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.execute("DROP TABLE IF EXISTS accuracy_score")
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (7, '2025-01-01T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    table = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='accuracy_score'"
+    ).fetchone()
+    indexes = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name IN ('idx_accuracy_score_plan_gate', 'idx_accuracy_score_recorded_at')"
+        ).fetchall()
+    }
+    conn.close()
+
+    assert versions == [7, 8, 9]
+    assert table is not None
+    assert {"idx_accuracy_score_plan_gate", "idx_accuracy_score_recorded_at"} <= indexes
+
+
+def test_migrate_v8_to_v9_creates_infra_tables(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v8.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.executescript(helix_db.ACCURACY_SCORE_SCHEMA)
+    for table in ("events", "metrics", "schedules", "jobs", "locks"):
+        conn.execute(f"DROP TABLE IF EXISTS {table}")
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (8, '2025-01-01T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    names = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+            "('events', 'metrics', 'schedules', 'jobs', 'locks')"
+        ).fetchall()
+    }
+    conn.close()
+
+    assert versions == [8, 9]
+    assert names == {"events", "metrics", "schedules", "jobs", "locks"}
+
+
+def test_schedules_status_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO schedules "
+                "(id, schedule_expr, task_type, task_payload, status, created_at, updated_at) "
+                "VALUES ('s1', '+5m', 'helix:command', 'gate G4', 'queued', 1, 1)"
+            )
+    finally:
+        conn.close()
+
+
+def test_jobs_priority_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO jobs (id, task_type, task_payload, priority, created_at) "
+                "VALUES ('j1', 'helix:command', 'gate G4', 11, 1)"
+            )
+    finally:
+        conn.close()
+
+
+def test_locks_scope_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO locks (name, pid, acquired_at, scope) VALUES ('main', 123, 1, 'global')"
+            )
+    finally:
+        conn.close()
+
+
+def test_events_severity_check_constraint(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    conn = sqlite3.connect(str(db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO events (event_name, occurred_at, data_json, severity) "
+                "VALUES ('plan.started', 1, '{}', 'fatal')"
+            )
+    finally:
+        conn.close()
+
+
+def test_metrics_value_real(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    row_id = helix_db.insert_metric(str(db_path), "queue.depth", 1.25, tags={"scope": "project"})
+
+    row = _fetch_one(db_path, "SELECT value, typeof(value) AS value_type FROM metrics WHERE id = ?", (row_id,))
+    assert row["value"] == 1.25
+    assert row["value_type"] == "real"
+
+
+def test_migrate_v7_to_v9(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v7-to-v9.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.execute("DROP TABLE IF EXISTS accuracy_score")
+    for table in ("events", "metrics", "schedules", "jobs", "locks"):
+        conn.execute(f"DROP TABLE IF EXISTS {table}")
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (7, '2025-01-01T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    names = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+            "('accuracy_score', 'events', 'metrics', 'schedules', 'jobs', 'locks')"
+        ).fetchall()
+    }
+    conn.close()
+
+    assert versions == [7, 8, 9]
+    assert names == {"accuracy_score", "events", "metrics", "schedules", "jobs", "locks"}
+
+
+def test_record_accuracy_score_inserts_row(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    row_id = helix_db.record_accuracy_score(
+        str(db_path),
+        plan_id="PLAN-004",
+        gate="G4",
+        dimension="accuracy",
+        level=4,
+        comment="implementation matches DDL",
+        evidence="pytest passed",
+        sprint="Sprint 1",
+        reviewer="se",
+    )
+
+    row = _fetch_one(db_path, "SELECT * FROM accuracy_score WHERE id = ?", (row_id,))
+    assert row["plan_id"] == "PLAN-004"
+    assert row["gate"] == "G4"
+    assert row["dimension"] == "accuracy"
+    assert row["level"] == 4
+    assert row["comment"] == "implementation matches DDL"
+    assert row["evidence"] == "pytest passed"
+    assert row["sprint"] == "Sprint 1"
+    assert row["reviewer"] == "se"
+    assert row["recorded_at"]
+
+
+def test_record_accuracy_score_validates_dimension_enum(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    with pytest.raises(ValueError, match="invalid dimension"):
+        helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "speed", 3)
+
+
+def test_record_accuracy_score_validates_level_range(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    with pytest.raises(ValueError, match="level must be"):
+        helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "accuracy", 6)
+
+
+def test_record_accuracy_score_validates_gate_enum(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+
+    with pytest.raises(ValueError, match="invalid gate"):
+        helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G8", "accuracy", 3)
+
+
+def test_query_accuracy_history_filters_by_plan_id(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "accuracy", 4)
+    helix_db.record_accuracy_score(str(db_path), "PLAN-005", "G4", "accuracy", 3)
+
+    rows = helix_db.query_accuracy_history(str(db_path), plan_id="PLAN-004")
+
+    assert [row["plan_id"] for row in rows] == ["PLAN-004"]
+
+
+def test_query_accuracy_history_filters_by_dimension(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "accuracy", 4)
+    helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "depth", 3)
+
+    rows = helix_db.query_accuracy_history(str(db_path), dimension="depth")
+
+    assert len(rows) == 1
+    assert rows[0]["dimension"] == "depth"
+
+
+def test_query_accuracy_history_orders_desc(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    first_id = helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G3", "accuracy", 3)
+    second_id = helix_db.record_accuracy_score(str(db_path), "PLAN-004", "G4", "accuracy", 4)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("UPDATE accuracy_score SET recorded_at = ? WHERE id = ?", ("2025-01-01T00:00:00", first_id))
+    conn.execute("UPDATE accuracy_score SET recorded_at = ? WHERE id = ?", ("2025-01-02T00:00:00", second_id))
+    conn.commit()
+    conn.close()
+
+    rows = helix_db.query_accuracy_history(str(db_path), plan_id="PLAN-004")
+
+    assert [row["id"] for row in rows] == [second_id, first_id]
+
+
+def test_query_accuracy_history_limit_works(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    for gate in ("G2", "G3", "G4"):
+        helix_db.record_accuracy_score(str(db_path), "PLAN-004", gate, "accuracy", 3)
+
+    rows = helix_db.query_accuracy_history(str(db_path), plan_id="PLAN-004", limit=2)
+
+    assert len(rows) == 2
 
 
 def test_export_json_writes_valid_json(tmp_path: Path, capsys) -> None:

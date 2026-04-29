@@ -21,6 +21,8 @@ import os
 import re
 import sqlite3
 import sys
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -221,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 9
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -279,6 +281,106 @@ CREATE TABLE IF NOT EXISTS req_changes (
 """
 
 
+ACCURACY_SCORE_GATES = ("G2", "G3", "G4", "G5", "G6", "G7", "L8", "PLAN_REVIEW")
+ACCURACY_SCORE_DIMENSIONS = ("density", "depth", "breadth", "accuracy", "maintainability")
+
+
+ACCURACY_SCORE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS accuracy_score (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id TEXT NOT NULL,
+    gate TEXT NOT NULL CHECK(gate IN ('G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'L8', 'PLAN_REVIEW')),
+    dimension TEXT NOT NULL CHECK(dimension IN ('density', 'depth', 'breadth', 'accuracy', 'maintainability')),
+    level INTEGER NOT NULL CHECK(level BETWEEN 1 AND 5),
+    comment TEXT DEFAULT '',
+    evidence TEXT DEFAULT '',
+    recorded_at TEXT NOT NULL,
+    sprint TEXT DEFAULT NULL,
+    reviewer TEXT DEFAULT 'codex-tl'
+);
+
+CREATE INDEX IF NOT EXISTS idx_accuracy_score_plan_gate
+    ON accuracy_score(plan_id, gate);
+
+CREATE INDEX IF NOT EXISTS idx_accuracy_score_recorded_at
+    ON accuracy_score(recorded_at);
+"""
+
+
+INFRA_SCHEMA_V9 = """
+-- automation/scheduler
+CREATE TABLE IF NOT EXISTS schedules (
+    id TEXT PRIMARY KEY,
+    schedule_expr TEXT NOT NULL,
+    task_type TEXT NOT NULL CHECK(task_type IN ('helix:command', 'shell:script', 'http:webhook')),
+    task_payload TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')) DEFAULT 'pending',
+    next_run_at INTEGER,
+    last_run_at INTEGER,
+    last_error TEXT DEFAULT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_schedules_next_run ON schedules(next_run_at) WHERE status = 'pending';
+
+-- automation/job-queue
+CREATE TABLE IF NOT EXISTS jobs (
+    id TEXT PRIMARY KEY,
+    task_type TEXT NOT NULL CHECK(task_type IN ('helix:command', 'shell:script', 'http:webhook')),
+    task_payload TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 5 CHECK(priority BETWEEN 1 AND 10),
+    status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')) DEFAULT 'pending',
+    created_at INTEGER NOT NULL,
+    started_at INTEGER,
+    completed_at INTEGER,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retries INTEGER NOT NULL DEFAULT 3,
+    last_error TEXT DEFAULT NULL,
+    delay_until INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC, created_at);
+CREATE INDEX IF NOT EXISTS idx_jobs_delay ON jobs(delay_until) WHERE status = 'pending';
+
+-- automation/lock (DB lock 用)
+CREATE TABLE IF NOT EXISTS locks (
+    name TEXT PRIMARY KEY,
+    pid INTEGER NOT NULL,
+    acquired_at INTEGER NOT NULL,
+    expires_at INTEGER,
+    scope TEXT NOT NULL CHECK(scope IN ('home', 'project')) DEFAULT 'project'
+);
+CREATE INDEX IF NOT EXISTS idx_locks_expires ON locks(expires_at) WHERE expires_at IS NOT NULL;
+
+-- automation/observability (events)
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_name TEXT NOT NULL,
+    occurred_at INTEGER NOT NULL,
+    data_json TEXT NOT NULL DEFAULT '{}',
+    source TEXT DEFAULT NULL,
+    severity TEXT CHECK(severity IN ('debug', 'info', 'warning', 'error', 'critical')) DEFAULT 'info'
+);
+CREATE INDEX IF NOT EXISTS idx_events_name_at ON events(event_name, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_events_severity ON events(severity, occurred_at) WHERE severity IN ('warning', 'error', 'critical');
+
+-- automation/observability (metrics)
+CREATE TABLE IF NOT EXISTS metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_name TEXT NOT NULL,
+    value REAL NOT NULL,
+    tags_json TEXT DEFAULT '{}',
+    recorded_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_metrics_name_at ON metrics(metric_name, recorded_at);
+"""
+
+
+TASK_TYPES_V9 = ("helix:command", "shell:script", "http:webhook")
+AUTOMATION_STATUSES_V9 = ("pending", "running", "success", "failed", "cancelled")
+LOCK_SCOPES_V9 = ("home", "project")
+EVENT_SEVERITIES_V9 = ("debug", "info", "warning", "error", "critical")
+
+
 def _prepare_db_path(db_path):
     parent_dir = os.path.dirname(os.path.abspath(db_path))
     if parent_dir:
@@ -302,6 +404,14 @@ def _connect(db_path):
 
 def _create_requirements_tables(conn):
     conn.executescript(REQUIREMENTS_SCHEMA)
+
+
+def _create_accuracy_score_table(conn):
+    conn.executescript(ACCURACY_SCORE_SCHEMA)
+
+
+def _create_infra_tables_v9(conn):
+    conn.executescript(INFRA_SCHEMA_V9)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -528,6 +638,18 @@ def migrate(conn):
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (7, datetime('now'))"
             )
+        # v7→v8: accuracy_score テーブル追加 (PLAN-004)
+        if current < 8:
+            _create_accuracy_score_table(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (8, datetime('now'))"
+            )
+        # v8→v9: 5 infra テーブル追加 (PLAN-005 scheduler/job-queue/lock/observability)
+        if current < 9:
+            _create_infra_tables_v9(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (9, datetime('now'))"
+            )
         conn.commit()
 
 
@@ -685,6 +807,283 @@ def record_feedback_argv(
             'resolution': resolution,
         },
     )
+
+
+def record_accuracy_score(
+    db_path,
+    plan_id,
+    gate,
+    dimension,
+    level,
+    comment="",
+    evidence="",
+    sprint=None,
+    reviewer="codex-tl",
+):
+    """5 軸 Lv1-5 フィードバックを accuracy_score に記録。
+
+    Args:
+        plan_id: 対象 PLAN ID (e.g. "PLAN-002")
+        gate: gate 名 (G2/G3/G4/G5/G6/G7/L8/PLAN_REVIEW)
+        dimension: 評価軸 (density/depth/breadth/accuracy/maintainability)
+        level: 1-5
+        comment: 自由記述 (Sprint 3 までに redaction 適用必須)
+        evidence: 根拠 (Sprint 3 までに redaction 適用必須)
+        sprint: 任意 (e.g. "Sprint 2.3")
+        reviewer: 評価者 (default: codex-tl)
+
+    Returns:
+        挿入された行 ID
+    """
+    if not plan_id:
+        raise ValueError("plan_id is required")
+    if gate not in ACCURACY_SCORE_GATES:
+        raise ValueError(f"invalid gate: {gate}")
+    if dimension not in ACCURACY_SCORE_DIMENSIONS:
+        raise ValueError(f"invalid dimension: {dimension}")
+    if type(level) is not int or not 1 <= level <= 5:
+        raise ValueError("level must be an integer between 1 and 5")
+
+    _prepare_db_path(db_path)
+    conn = _connect(db_path)
+    try:
+        _ensure_schema(conn)
+        conn.execute(
+            "INSERT INTO accuracy_score "
+            "(plan_id, gate, dimension, level, comment, evidence, recorded_at, sprint, reviewer) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                plan_id,
+                gate,
+                dimension,
+                level,
+                comment,
+                evidence,
+                datetime.now().isoformat(),
+                sprint,
+                reviewer,
+            ),
+        )
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.commit()
+        return row_id
+    finally:
+        conn.close()
+
+
+def query_accuracy_history(db_path, plan_id=None, gate=None, dimension=None, since=None, limit=None):
+    """accuracy_score の履歴クエリ。フィルタ条件で絞り込み。
+
+    Args:
+        plan_id: 任意 (絞り込み)
+        gate: 任意
+        dimension: 任意
+        since: ISO8601 文字列、これ以降のレコードのみ
+        limit: 任意 (LIMIT 句)
+
+    Returns:
+        list of dict (各行を dict 化)
+    """
+    if gate is not None and gate not in ACCURACY_SCORE_GATES:
+        raise ValueError(f"invalid gate: {gate}")
+    if dimension is not None and dimension not in ACCURACY_SCORE_DIMENSIONS:
+        raise ValueError(f"invalid dimension: {dimension}")
+    if limit is not None and (type(limit) is not int or limit < 1):
+        raise ValueError("limit must be a positive integer")
+
+    _prepare_db_path(db_path)
+    conn = _connect(db_path)
+    try:
+        _ensure_schema(conn)
+        where = []
+        params = []
+        if plan_id is not None:
+            where.append("plan_id = ?")
+            params.append(plan_id)
+        if gate is not None:
+            where.append("gate = ?")
+            params.append(gate)
+        if dimension is not None:
+            where.append("dimension = ?")
+            params.append(dimension)
+        if since is not None:
+            where.append("recorded_at >= ?")
+            params.append(since)
+
+        sql = "SELECT * FROM accuracy_score"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY recorded_at DESC, id DESC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+
+        return [dict(row) for row in conn.execute(sql, params).fetchall()]
+    finally:
+        conn.close()
+
+
+def _epoch_now():
+    return int(time.time())
+
+
+def _json_text(value, default):
+    if value is None:
+        value = default
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _require_non_empty(value, field_name):
+    if value is None or str(value).strip() == "":
+        raise ValueError(f"{field_name} is required")
+    return str(value)
+
+
+def _validate_choice(value, field_name, allowed_values):
+    if value not in allowed_values:
+        raise ValueError(f"invalid {field_name}: {value}")
+    return value
+
+
+def _automation_conn(db_path):
+    _prepare_db_path(db_path)
+    conn = _connect(db_path)
+    _ensure_schema(conn)
+    return conn
+
+
+def insert_event(db_path, event_name, data, **kwargs):
+    """PLAN-005 observability event の最小 insert API。"""
+    event_name = _require_non_empty(event_name, "event_name")
+    severity = _validate_choice(kwargs.get("severity", "info"), "severity", EVENT_SEVERITIES_V9)
+    occurred_at = int(kwargs.get("occurred_at") or _epoch_now())
+    data_json = _json_text(data, {})
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO events (event_name, occurred_at, data_json, source, severity) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (event_name, occurred_at, data_json, kwargs.get("source"), severity),
+        )
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.commit()
+        return row_id
+    finally:
+        conn.close()
+
+
+def insert_metric(db_path, metric_name, value, tags=None):
+    """PLAN-005 observability metric の最小 insert API。"""
+    metric_name = _require_non_empty(metric_name, "metric_name")
+    metric_value = float(value)
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO metrics (metric_name, value, tags_json, recorded_at) VALUES (?, ?, ?, ?)",
+            (metric_name, metric_value, _json_text(tags, {}), _epoch_now()),
+        )
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.commit()
+        return row_id
+    finally:
+        conn.close()
+
+
+def acquire_db_lock(db_path, name, pid, scope="project", timeout=None):
+    """PLAN-005 lock の最小 acquire API。期限切れ再取得は Sprint 2 で実装する。"""
+    name = _require_non_empty(name, "name")
+    scope = _validate_choice(scope, "scope", LOCK_SCOPES_V9)
+    acquired_at = _epoch_now()
+    expires_at = acquired_at + int(timeout) if timeout is not None else None
+
+    conn = _automation_conn(db_path)
+    try:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO locks (name, pid, acquired_at, expires_at, scope) VALUES (?, ?, ?, ?, ?)",
+            (name, int(pid), acquired_at, expires_at, scope),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
+def release_db_lock(db_path, name, pid):
+    """PLAN-005 lock の最小 release API。pid 一致時のみ解放する。"""
+    name = _require_non_empty(name, "name")
+
+    conn = _automation_conn(db_path)
+    try:
+        cur = conn.execute("DELETE FROM locks WHERE name = ? AND pid = ?", (name, int(pid)))
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
+def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
+    """PLAN-005 job-queue の最小 enqueue API。worker 実行は後続 Sprint で実装する。"""
+    task_type = _validate_choice(task_type, "task_type", TASK_TYPES_V9)
+    task_payload = _require_non_empty(task_payload, "task_payload")
+    job_id = kwargs.get("job_id") or kwargs.get("id") or str(uuid.uuid4())
+    created_at = int(kwargs.get("created_at") or _epoch_now())
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO jobs "
+            "(id, task_type, task_payload, priority, status, created_at, max_retries, delay_until) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                job_id,
+                task_type,
+                task_payload,
+                int(priority),
+                _validate_choice(kwargs.get("status", "pending"), "status", AUTOMATION_STATUSES_V9),
+                created_at,
+                int(kwargs.get("max_retries", 3)),
+                kwargs.get("delay_until"),
+            ),
+        )
+        conn.commit()
+        return job_id
+    finally:
+        conn.close()
+
+
+def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
+    """PLAN-005 scheduler の最小 add API。next_run_at 計算は後続 Sprint で実装する。"""
+    schedule_expr = _require_non_empty(schedule_expr, "schedule_expr")
+    task_type = _validate_choice(task_type, "task_type", TASK_TYPES_V9)
+    task_payload = _require_non_empty(task_payload, "task_payload")
+    schedule_id = kwargs.get("schedule_id") or kwargs.get("id") or str(uuid.uuid4())
+    now = int(kwargs.get("created_at") or _epoch_now())
+
+    conn = _automation_conn(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO schedules "
+            "(id, schedule_expr, task_type, task_payload, status, next_run_at, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                schedule_id,
+                schedule_expr,
+                task_type,
+                task_payload,
+                _validate_choice(kwargs.get("status", "pending"), "status", AUTOMATION_STATUSES_V9),
+                kwargs.get("next_run_at"),
+                now,
+                int(kwargs.get("updated_at") or now),
+            ),
+        )
+        conn.commit()
+        return schedule_id
+    finally:
+        conn.close()
 
 
 def latest_task_run_id(db_path, task_id):
