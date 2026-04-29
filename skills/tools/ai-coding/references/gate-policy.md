@@ -34,6 +34,8 @@
 |------|------|
 | 挿入位置 | L1 完了後 → G1 前 |
 | 通過条件 | 企画書の全項目が D-REQ-F/D-REQ-NF/D-ACC に対応付けられている、企画書にあって要件定義にない項目が 0、要件定義にあって企画書にない項目は「追加提案」として明示 |
+| accuracy_weight | 0.4 |
+| 根拠 | 企画突合は方向性の整合確認が主で、詳細の正確性はまだ確定前のため高精度要求は抑えめ。 |
 | 判定者 | PM |
 | 判定形式 | チェックリスト（自動 + 手動） |
 | Fail | L1 差戻し。漏れた項目を追加 |
@@ -46,6 +48,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | REQ/NFR/受入条件 100% 定義、in/out scope 確定、未解決 blocker 0 |
+| accuracy_weight | 0.5 |
+| 根拠 | 要件完了は方向性の確度が中心で、実装決定までの精密検証は次フェーズで加速する。 |
 | 判定者 | PM（最終）、PO（スコープ承認） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
@@ -56,6 +60,8 @@
 | 項目 | 内容 |
 |------|------|
 | 発火条件 | 技術不確実性がある場合のみ |
+| accuracy_weight | 0.7 |
+| 根拠 | PoC は仮説検証の再現性が重要。方向性を保ちながら、検証結果の精度を高める。 |
 | 通過条件 | 仮説 + kill criteria 定義、成功指標達成 or 代替案決定、主要不確実性 0 or 受容 |
 | 判定者 | TL + PM、PO は予算/納期影響時 |
 | 判定形式 | 明示 |
@@ -71,6 +77,8 @@
 | 項目 | 内容 |
 |------|------|
 | 挿入位置 | G1 通過後 → L2 前 / G3 通過後 → L4 前 |
+| accuracy_weight | 0.6 |
+| 根拠 | 事前調査は採否判断に関わるためある程度の精度が必要。一次情報反映の誤りを抑える。 |
 | 通過条件 | research_report 存在、公式/一次ソース優先、採用/不採用理由記録、open blocker 0 |
 | 判定者 | 自動（外部 API/認証/法令/新 FW は TL spot check） |
 | 判定形式 | 自動通過可 |
@@ -86,6 +94,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み。通過時に `MOCK-DERIVED-CONTRACT` / `MOCK-HARDCODE` / `MOCK-CODE-LEAK` の 3 項目が debt-register に auto-enqueue される |
+| accuracy_weight | 0.6 |
+| 根拠 | 設計凍結は方向性と主要技術判断を固定し、実装時の前提ブレを防ぐ。 |
 | 判定者 | PM（最終）、TL（必須）、PO（条件付き） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
@@ -102,6 +112,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。**fe 追加条件**: TL が `state-events.md` から API 契約導出完了、モック凍結済み。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
+| accuracy_weight | 0.9 |
+| 根拠 | Schema/API Freeze が成立するため、実装前検証として高精度の一致判定を求める。 |
 | 判定者 | TL（主）、PM（共同）、自動チェック補助 |
 | 判定形式 | ハイブリッド（API/DB 変更なしなら明示会議省略可） |
 | 中規模 skip | 会議省略可 |
@@ -116,6 +128,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix-gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
+| accuracy_weight | 0.95 |
+| 根拠 | 実装凍結直前の最終合意点であり、実装品質を確実に担保するため精度を最重要とする。 |
 | 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |
 | 判定形式 | ハイブリッド（M/L では実質明示） |
 | 中規模 skip | 不可 |
@@ -130,6 +144,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | V0/V1/V2 分類完了、契約変更なし、UI レビュー/アクセシビリティ/性能許容内 |
+| accuracy_weight | 0.7 |
+| 根拠 | デザイン凍結は UI 検証が主で、実装詳細の精度より体験妥当性の担保が中心。 |
 | 判定者 | TL + PM、PO は UX 期待変更時のみ |
 | 判定形式 | V0 のみなら自動、V1/V2 は明示 |
 | 中規模 skip | UI なしは skip 可 |
@@ -141,6 +157,8 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了。**fe/fullstack 追加条件**: `MOCK-DERIVED-CONTRACT`（モック由来 API 契約のドメイン整合性 TL レビュー）が resolved（`helix-gate` が自動 fail-close） |
+| accuracy_weight | 0.95 |
+| 根拠 | RC 判定は最終品質ゲートであり、重大欠陥を防ぐため高精度な判断が求められる。 |
 | 判定者 | PM（Go/No-Go）、TL（技術推奨）、PO（条件付き） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
@@ -154,11 +172,22 @@
 | 項目 | 内容 |
 |------|------|
 | 通過条件 | デプロイ成功、health/smoke pass、watch window 完了、SLO 逸脱なし or low 1件以下で owner+ETA あり、rollback 不要 |
+| accuracy_weight | 0.7 |
+| 根拠 | 安定性フェーズは運用監視中心であり、方向性より回帰防止の精度を重視。 |
 | 判定者 | 自動が基本、条件付き pass は PM/TL |
 | 判定形式 | 自動通過可（顧客向け/高リスクは watch skip 不可） |
 | 中規模 skip | 不可 |
 | Fail | 即 rollback → 原因に応じ L6/L4/L3 差戻し。ビルド/設定/infra 変更なら G6 から |
 | 人間承認条件 | 初回デプロイ / 認証・決済・PII / 破壊的 DB マイグレ / 外部 API 変更 / エラーバジェット 75%超 / インフラ構成変更 |
+
+### PLAN レビュー（gate ではない）
+
+> PLAN レビューは gate ではないが、accuracy_score テーブル上は `gate='PLAN_REVIEW'` で記録される。
+
+| 項目 | 内容 |
+|------|------|
+| accuracy_weight | 0.5 |
+| 根拠 | 方向性凍結を確認するレビューであるため、G3/G4 のような実装凍結精度は不要。 |
 
 ### L8 受入（終端判定）
 
