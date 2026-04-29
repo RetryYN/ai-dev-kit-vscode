@@ -9,10 +9,14 @@ usage() {
 使い方: helix observe <subcommand> [args...]
 
 サブコマンド:
-  log       イベントログを記録
-  metric    メトリクスを記録
-  report    観測レポートを表示
-  export    観測データをエクスポート
+  log --event <name> --data <json> [--severity debug|info|warning|error|critical] [--source <name>]
+            イベントログを記録
+  metric --name <name> --value <num> [--tags k=v,k=v]
+            メトリクスを記録
+  report [--event <name>] [--metric <name>] [--since <iso>] [--until <iso>] [--limit N] [--format text|json]
+            観測レポートを表示
+  export [--event <name>] [--metric <name>] [--since <iso>] --format prometheus|json --output <path>
+            ~/.helix/quarantine/ 配下へ観測データをエクスポート
 USAGE
 }
 
@@ -21,8 +25,9 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   log|metric|report|export)
-    echo "Sprint X で実装予定 (PLAN-005)"
-    exit 0
+    exec python3 "$SCRIPT_DIR/lib/observability_helper.py" \
+      --db-path "$DB_PATH" \
+      "$CMD" "$@"
     ;;
   help|-h|--help)
     usage

@@ -947,6 +947,13 @@ def _validate_choice(value, field_name, allowed_values):
     return value
 
 
+def _validate_observable_name(value, field_name):
+    value = _require_non_empty(value, field_name)
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]*", value):
+        raise ValueError(f"invalid {field_name}: {value}")
+    return value
+
+
 def _automation_conn(db_path):
     _prepare_db_path(db_path)
     conn = _connect(db_path)
@@ -955,18 +962,23 @@ def _automation_conn(db_path):
 
 
 def insert_event(db_path, event_name, data, **kwargs):
-    """PLAN-005 observability event の最小 insert API。"""
-    event_name = _require_non_empty(event_name, "event_name")
+    """PLAN-005 observability event insert API."""
+    event_name = _validate_observable_name(event_name, "event_name")
     severity = _validate_choice(kwargs.get("severity", "info"), "severity", EVENT_SEVERITIES_V9)
     occurred_at = int(kwargs.get("occurred_at") or _epoch_now())
+    if data is not None and not isinstance(data, (dict, str)):
+        raise ValueError("data must be a JSON object or JSON string")
     data_json = _json_text(data, {})
+    source = kwargs.get("source")
+    if source is not None:
+        source = _require_non_empty(source, "source")
 
     conn = _automation_conn(db_path)
     try:
         conn.execute(
             "INSERT INTO events (event_name, occurred_at, data_json, source, severity) "
             "VALUES (?, ?, ?, ?, ?)",
-            (event_name, occurred_at, data_json, kwargs.get("source"), severity),
+            (event_name, occurred_at, data_json, source, severity),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         conn.commit()
@@ -976,15 +988,18 @@ def insert_event(db_path, event_name, data, **kwargs):
 
 
 def insert_metric(db_path, metric_name, value, tags=None):
-    """PLAN-005 observability metric の最小 insert API。"""
-    metric_name = _require_non_empty(metric_name, "metric_name")
+    """PLAN-005 observability metric insert API."""
+    metric_name = _validate_observable_name(metric_name, "metric_name")
     metric_value = float(value)
+    if tags is not None and not isinstance(tags, (dict, str)):
+        raise ValueError("tags must be a JSON object or JSON string")
+    recorded_at = int(_epoch_now())
 
     conn = _automation_conn(db_path)
     try:
         conn.execute(
             "INSERT INTO metrics (metric_name, value, tags_json, recorded_at) VALUES (?, ?, ?, ?)",
-            (metric_name, metric_value, _json_text(tags, {}), _epoch_now()),
+            (metric_name, metric_value, _json_text(tags, {}), recorded_at),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         conn.commit()
