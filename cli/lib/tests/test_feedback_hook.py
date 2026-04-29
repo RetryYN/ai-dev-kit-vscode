@@ -76,7 +76,7 @@ def test_feedback_hook_records_5_dimensions(tmp_path: Path, capsys) -> None:
     assert {row["dimension"] for row in rows} == set(feedback_hook.DIMENSIONS)
     assert {row["plan_id"] for row in rows} == {"PLAN-004"}
     assert {row["gate"] for row in rows} == {"G2"}
-    assert {row["reviewer"] for row in rows} == {"codex-tl"}
+    assert {row["reviewer"] for row in rows} == {"codex-feedback-hook"}
 
 
 def test_feedback_hook_disabled_env(tmp_path: Path, capsys) -> None:

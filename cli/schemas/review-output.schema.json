@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Adapted from codex-plugin-cc (OpenAI, Apache 2.0). HELIX extension: optional findings[].helix_phase.",
+  "description": "Adapted from codex-plugin-cc (OpenAI, Apache 2.0). HELIX extensions: optional overall_scores and findings[].dimension_scores / helix_phase.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -77,8 +77,31 @@
           "helix_phase": {
             "type": "string",
             "description": "Optional HELIX phase or gate where this finding was detected (e.g., L2, L4, G4)."
+          },
+          "dimension_scores": {
+            "type": "array",
+            "description": "Optional 5-axis Lv1-5 scores related to this finding.",
+            "items": {
+              "$ref": "#/$defs/dimension_score"
+            }
           }
         }
+      }
+    },
+    "overall_scores": {
+      "type": "array",
+      "description": "Optional 5-axis Lv1-5 overall review scores. Legacy reviews without this field are normalized to Lv3 by HELIX tooling.",
+      "minItems": 5,
+      "maxItems": 5,
+      "default": [
+        {"dimension": "density", "level": 3, "comment": "legacy review output: default Lv3"},
+        {"dimension": "depth", "level": 3, "comment": "legacy review output: default Lv3"},
+        {"dimension": "breadth", "level": 3, "comment": "legacy review output: default Lv3"},
+        {"dimension": "accuracy", "level": 3, "comment": "legacy review output: default Lv3"},
+        {"dimension": "maintainability", "level": 3, "comment": "legacy review output: default Lv3"}
+      ],
+      "items": {
+        "$ref": "#/$defs/dimension_score"
       }
     },
     "next_steps": {
@@ -86,6 +109,37 @@
       "items": {
         "type": "string",
         "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "dimension_score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "level",
+        "comment"
+      ],
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "enum": [
+            "density",
+            "depth",
+            "breadth",
+            "accuracy",
+            "maintainability"
+          ]
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "comment": {
+          "type": "string"
+        }
       }
     }
   }

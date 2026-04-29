@@ -21,6 +21,7 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 GATE_CHECKS="$HELIX_DIR/gate-checks.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
 
 # --- 引数パース ---
 GATE=""
@@ -245,6 +246,82 @@ _emit_feedback() {
     --gate "$gate" \
     --gate-name "$gate_display_name" \
     --summary "$summary" || true
+}
+
+record_ai_review_scores() {
+  local role="$1"
+  local output_file="$2"
+  local gate="$3"
+  local task="$4"
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$HELIX_DIR/helix.db" "$PHASE_FILE" "$REVIEW_SCHEMA" "$role" "$output_file" "$gate" "$task" || true
+import sys
+import os
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = Path(sys.argv[2])
+phase_file = Path(sys.argv[3])
+schema_file = Path(sys.argv[4])
+role = sys.argv[5]
+output_file = Path(sys.argv[6])
+gate = sys.argv[7]
+task = sys.argv[8]
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+import review_output
+import yaml_parser
+
+
+def resolve_plan_id() -> str:
+    env_plan_id = os.environ.get("HELIX_PLAN_ID", "").strip()
+    if env_plan_id:
+        return env_plan_id
+    if phase_file.exists():
+        data = yaml_parser.parse_yaml(phase_file.read_text(encoding="utf-8"))
+        value = data.get("plan_id")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+text = output_file.read_text(encoding="utf-8", errors="replace")
+try:
+    payload = review_output.extract_normalized_review_json(text, review_output.load_schema(schema_file))
+except review_output.ReviewOutputError:
+    raise SystemExit(0)
+
+plan_id = resolve_plan_id()
+if not plan_id:
+    raise SystemExit(0)
+
+task_preview = task[:500]
+evidence = f"source=helix-gate ai review\nrole={role}\ntask_preview={task_preview}"
+reviewer = f"codex-review:{role}"
+conn = helix_db._connect(str(db_path))
+try:
+    helix_db._ensure_schema(conn)
+    conn.execute(
+        "DELETE FROM accuracy_score WHERE plan_id = ? AND gate = ? AND reviewer = ?",
+        (plan_id, gate, reviewer),
+    )
+    conn.commit()
+finally:
+    conn.close()
+
+for score in payload.get("overall_scores", []):
+    helix_db.record_accuracy_score(
+        str(db_path),
+        plan_id=plan_id,
+        gate=gate,
+        dimension=score["dimension"],
+        level=score["level"],
+        comment=score.get("comment", ""),
+        evidence=evidence,
+        reviewer=reviewer,
+    )
+PY
 }
 
 prereq="${GATE_PREREQS[$GATE]:-}"
@@ -999,6 +1076,7 @@ PY
       set -e
 
       cat "$ai_output_file"
+      record_ai_review_scores "$role" "$ai_output_file" "$gate" "$task"
 
       local verdict=""
       verdict=$(grep -Eo '"verdict"[[:space:]]*:[[:space:]]*"(approve|needs-attention)"' "$ai_output_file" | head -n1 | sed -E 's/.*"(approve|needs-attention)"/\1/' || true)

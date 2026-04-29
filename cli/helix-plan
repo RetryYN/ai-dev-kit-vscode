@@ -230,140 +230,75 @@ EOF
 extract_and_validate_review_json() {
   local raw_output_file="$1"
   local out_json_file="$2"
-  python3 - <<'PY' "$raw_output_file" "$out_json_file" "$REVIEW_SCHEMA"
+  python3 - <<'PY' "$raw_output_file" "$out_json_file" "$REVIEW_SCHEMA" "$SCRIPT_DIR/lib"
 import json
 import sys
 from pathlib import Path
 
-
-def validate_review_schema(obj, schema):
-    errors = []
-    if not isinstance(obj, dict):
-        return ["Top-level JSON must be an object."]
-
-    required = set(schema.get("required", []))
-    allowed = set(schema.get("properties", {}).keys())
-
-    missing = sorted(required - set(obj.keys()))
-    if missing:
-        errors.append(f"Missing top-level keys: {', '.join(missing)}")
-
-    extra = sorted(set(obj.keys()) - allowed)
-    if extra:
-        errors.append(f"Unexpected top-level keys: {', '.join(extra)}")
-
-    verdict = obj.get("verdict")
-    verdict_enum = schema["properties"]["verdict"].get("enum", [])
-    if verdict not in verdict_enum:
-        errors.append(f"verdict must be one of: {verdict_enum}")
-
-    summary = obj.get("summary")
-    if not isinstance(summary, str) or not summary.strip():
-        errors.append("summary must be a non-empty string")
-
-    findings = obj.get("findings")
-    if not isinstance(findings, list):
-        errors.append("findings must be an array")
-        findings = []
-
-    finding_schema = schema["properties"]["findings"]["items"]
-    f_required = set(finding_schema.get("required", []))
-    f_allowed = set(finding_schema.get("properties", {}).keys())
-    severity_enum = finding_schema["properties"]["severity"].get("enum", [])
-
-    for idx, finding in enumerate(findings):
-        prefix = f"findings[{idx}]"
-        if not isinstance(finding, dict):
-            errors.append(f"{prefix} must be an object")
-            continue
-        missing_f = sorted(f_required - set(finding.keys()))
-        if missing_f:
-            errors.append(f"{prefix} missing keys: {', '.join(missing_f)}")
-        extra_f = sorted(set(finding.keys()) - f_allowed)
-        if extra_f:
-            errors.append(f"{prefix} unexpected keys: {', '.join(extra_f)}")
-
-        severity = finding.get("severity")
-        if severity not in severity_enum:
-            errors.append(f"{prefix}.severity must be one of: {severity_enum}")
-
-        for key in ("title", "body", "file"):
-            value = finding.get(key)
-            if not isinstance(value, str) or not value.strip():
-                errors.append(f"{prefix}.{key} must be a non-empty string")
-
-        for key in ("line_start", "line_end"):
-            value = finding.get(key)
-            if not isinstance(value, int) or value < 1:
-                errors.append(f"{prefix}.{key} must be an integer >= 1")
-
-        conf = finding.get("confidence")
-        if not isinstance(conf, (int, float)) or conf < 0 or conf > 1:
-            errors.append(f"{prefix}.confidence must be between 0 and 1")
-
-        recommendation = finding.get("recommendation")
-        if recommendation is not None and not isinstance(recommendation, str):
-            errors.append(f"{prefix}.recommendation must be a string")
-
-        helix_phase = finding.get("helix_phase")
-        if helix_phase is not None and not isinstance(helix_phase, str):
-            errors.append(f"{prefix}.helix_phase must be a string")
-
-    next_steps = obj.get("next_steps")
-    if not isinstance(next_steps, list):
-        errors.append("next_steps must be an array")
-    else:
-        for i, step in enumerate(next_steps):
-            if not isinstance(step, str) or not step.strip():
-                errors.append(f"next_steps[{i}] must be a non-empty string")
-
-    return errors
-
-
 raw_file = Path(sys.argv[1])
 out_file = Path(sys.argv[2])
 schema_file = Path(sys.argv[3])
+lib_dir = Path(sys.argv[4])
+sys.path.insert(0, str(lib_dir))
 
-text = raw_file.read_text(encoding="utf-8", errors="replace")
-schema = json.loads(schema_file.read_text(encoding="utf-8"))
+import review_output
 
-decoder = json.JSONDecoder()
-candidates = []
-for idx, ch in enumerate(text):
-    if ch != "{":
-        continue
-    try:
-        obj, end = decoder.raw_decode(text[idx:])
-    except json.JSONDecodeError:
-        continue
-    if isinstance(obj, dict):
-        candidates.append(obj)
-
-if not candidates:
-    print("No JSON object found in TL review output.", file=sys.stderr)
-    sys.exit(1)
-
-valid = None
-last_errors = []
-for candidate in reversed(candidates):
-    errors = validate_review_schema(candidate, schema)
-    if not errors:
-        valid = candidate
-        break
-    last_errors = errors
-
-if valid is None:
-    print("No schema-compliant review JSON found.", file=sys.stderr)
-    for err in last_errors:
-        print(f"- {err}", file=sys.stderr)
+try:
+    valid = review_output.extract_normalized_review_json(
+        raw_file.read_text(encoding="utf-8", errors="replace"),
+        review_output.load_schema(schema_file),
+    )
+except review_output.ReviewOutputError as exc:
+    print(str(exc), file=sys.stderr)
     sys.exit(1)
 
 out_file.parent.mkdir(parents=True, exist_ok=True)
-out_file.write_text(
-    json.dumps(valid, ensure_ascii=False, indent=2) + "\n",
-    encoding="utf-8",
-)
+out_file.write_text(json.dumps(valid, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(valid.get("verdict", ""))
+PY
+}
+
+record_plan_review_scores() {
+  local plan_id="$1"
+  local review_file="$2"
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$HELIX_DIR/helix.db" "$plan_id" "$review_file" || true
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = Path(sys.argv[2])
+plan_id = sys.argv[3]
+review_file = Path(sys.argv[4])
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+
+payload = json.loads(review_file.read_text(encoding="utf-8"))
+evidence = f"source=helix-plan review\nreview_file={review_file}"
+reviewer = "codex-review:tl"
+conn = helix_db._connect(str(db_path))
+try:
+    helix_db._ensure_schema(conn)
+    conn.execute(
+        "DELETE FROM accuracy_score WHERE plan_id = ? AND gate = ? AND reviewer = ?",
+        (plan_id, "PLAN_REVIEW", reviewer),
+    )
+    conn.commit()
+finally:
+    conn.close()
+
+for score in payload.get("overall_scores", []):
+    helix_db.record_accuracy_score(
+        str(db_path),
+        plan_id=plan_id,
+        gate="PLAN_REVIEW",
+        dimension=score["dimension"],
+        level=score["level"],
+        comment=score.get("comment", ""),
+        evidence=evidence,
+        reviewer=reviewer,
+    )
 PY
 }
 
@@ -502,6 +437,7 @@ cmd_review() {
   review_file="$REVIEW_DIR/$plan_id.json"
   review_rel=".helix/reviews/plans/$plan_id.json"
   verdict="$(extract_and_validate_review_json "$raw_output_file" "$review_file")"
+  record_plan_review_scores "$plan_id" "$review_file"
   reviewed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
   yaml_write "$plan_file" "review.status" "$verdict"

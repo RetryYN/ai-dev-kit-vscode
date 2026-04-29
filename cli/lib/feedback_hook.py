@@ -212,7 +212,7 @@ def record_scores(
             comment=score.comment,
             evidence=evidence,
             sprint=sprint,
-            reviewer="codex-tl",
+            reviewer="codex-feedback-hook",
         )
 
 
