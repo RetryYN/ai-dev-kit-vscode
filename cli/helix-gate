@@ -230,6 +230,23 @@ log_gate_summary() {
   } >> "$summary_file"
 }
 
+_emit_feedback() {
+  local gate="$1"
+  local gate_display_name="$2"
+  local summary="$3"
+
+  [[ "$gate" =~ ^G[2-7]$ ]] || return 0
+  [[ "${HELIX_DISABLE_FEEDBACK:-}" == "1" ]] && return 0
+  [[ "$DRY_RUN" == true ]] && return 0
+
+  python3 "$SCRIPT_DIR/lib/feedback_hook.py" \
+    --project-root "$PROJECT_ROOT" \
+    --helix-dir "$HELIX_DIR" \
+    --gate "$gate" \
+    --gate-name "$gate_display_name" \
+    --summary "$summary" || true
+}
+
 prereq="${GATE_PREREQS[$GATE]:-}"
 if [[ -n "$prereq" && -f "$PHASE_FILE" && -f "$YAML_PARSER" ]]; then
   prereq_status=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "gates.${prereq}.status" 2>/dev/null || echo "pending")
@@ -1153,6 +1170,10 @@ PY
       write_phase_or_die "gates.${gate}.date" "$(date '+%Y-%m-%d')"
       maybe_generate_retro "$gate"
     fi
+    _emit_feedback \
+      "$gate" \
+      "$gate_name" \
+      "gate_name=$gate_name; deliverable_fail=$deliv_fail; mandatory_fail=$mandatory_fail; advisory_fail=$advisory_fail; ai_fail=$ai_fail; static_pass=$static_pass; static_fail=$static_fail; extra_fail_reasons=${extra_fail_reasons:-none}"
     case "$gate" in
       G4)
         echo ""
