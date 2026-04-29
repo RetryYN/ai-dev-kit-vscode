@@ -22,8 +22,9 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   enqueue|worker|status|cancel|retry)
-    echo "Sprint X で実装予定 (PLAN-005)"
-    exit 0
+    exec python3 "$SCRIPT_DIR/lib/job_queue_helper.py" \
+      --db-path "$DB_PATH" \
+      "$CMD" "$@"
     ;;
   help|-h|--help)
     usage
