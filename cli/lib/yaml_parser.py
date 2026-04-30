@@ -7,6 +7,7 @@ helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーでは�
 
 - 基本的なブロックスタイルのマッピング（key: value）
 - ネストされたマッピング（インデント2スペース）
+- ブロックスタイルシーケンス（スカラ / dict）
 - スカラ値: 文字列（クォート有/無）、数値、真偽値（true/false）、null
 - インライン dict: `{ k1: v1, k2: v2 }`
 - コメント（`# ...` 行内・行末）
@@ -17,7 +18,7 @@ helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーでは�
 
 - **アンカー・エイリアス** (`&anchor`, `*alias`) — 参照の展開は未実装
 - **マージキー** (`<<:`) — dict のマージは未実装
-- **フロースタイルシーケンス** (`[a, b, c]`) — ブロックスタイル（`- a\n- b\n- c`）のみサポート
+- **ネストされたフロースタイルシーケンス** (`[{ k: v }]`) — 単純なスカラ配列のみサポート
 - **ネストされたインライン dict** (`{ k: { nested: v } }`) — トップレベルのみサポート
 - **複数行文字列** (`|`, `>`) — 単一行文字列のみ
 - **タグ** (`!!str`, `!!int` 等) — 型推論のみ
@@ -96,7 +97,12 @@ def _split_inline_pairs(text):
 def parse_yaml(text):
     """簡易 YAML パーサー。ネスト対応（インデントベース）。"""
     result = {}
-    stack = [(result, -1)]  # (current_dict, indent_level)
+    stack = [{
+        'container': result,
+        'indent': -1,
+        'parent': None,
+        'key': None,
+    }]
 
     for lineno, line in enumerate(text.splitlines(), start=1):
         stripped = line.lstrip()
@@ -106,17 +112,76 @@ def parse_yaml(text):
         indent = len(line) - len(stripped)
 
         # スタックを巻き戻し
-        while len(stack) > 1 and stack[-1][1] >= indent:
+        while len(stack) > 1 and stack[-1]['indent'] >= indent:
+            if (
+                stripped.startswith('- ')
+                and stack[-1]['indent'] == indent
+                and isinstance(stack[-1]['container'], dict)
+                and not stack[-1]['container']
+                and stack[-1].get('parent') is not None
+            ):
+                break
             stack.pop()
 
-        current = stack[-1][0]
+        entry = stack[-1]
+        current = entry['container']
+
+        if stripped.startswith('- '):
+            if not isinstance(current, list):
+                if (
+                    isinstance(current, dict)
+                    and not current
+                    and isinstance(entry.get('parent'), dict)
+                    and entry.get('key') is not None
+                ):
+                    new_list = []
+                    entry['parent'][entry['key']] = new_list
+                    entry['container'] = new_list
+                    current = new_list
+                else:
+                    raise ValueError(f"Unsupported YAML sequence at line {lineno}: {stripped}")
+
+            item_raw = stripped[2:].strip()
+            if not item_raw:
+                item = {}
+                current.append(item)
+                stack.append({
+                    'container': item,
+                    'indent': indent,
+                    'parent': current,
+                    'key': len(current) - 1,
+                })
+                continue
+
+            m_item = re.match(r'^(["\']?[\w.\-]+["\']?)\s*:\s*(.*)', item_raw)
+            if m_item:
+                item = {}
+                current.append(item)
+                key = m_item.group(1).strip("'\"")
+                raw_val = m_item.group(2).strip()
+                if not raw_val:
+                    child = {}
+                    item[key] = child
+                elif raw_val.startswith('{') and raw_val.endswith('}'):
+                    item[key] = _parse_inline_dict(raw_val)
+                else:
+                    item[key] = _cast(raw_val)
+                stack.append({
+                    'container': item,
+                    'indent': indent,
+                    'parent': current,
+                    'key': len(current) - 1,
+                })
+            else:
+                current.append(_cast(item_raw))
+            continue
 
         # key: value パターン
         m = re.match(r'^(["\']?[\w.\-]+["\']?)\s*:\s*(.*)', stripped)
         if not m:
-            if stripped.startswith('- '):
-                continue
             raise ValueError(f"Unsupported YAML syntax at line {lineno}: {stripped}")
+        if not isinstance(current, dict):
+            raise ValueError(f"Unsupported YAML mapping at line {lineno}: {stripped}")
 
         key = m.group(1).strip("'\"")
         raw_val = m.group(2).strip()
@@ -126,16 +191,15 @@ def parse_yaml(text):
             new_dict = {}
             if isinstance(current, dict):
                 current[key] = new_dict
-            stack.append((new_dict, indent))
+            stack.append({
+                'container': new_dict,
+                'indent': indent,
+                'parent': current,
+                'key': key,
+            })
         elif raw_val.startswith('{') and raw_val.endswith('}'):
             # インライン dict: { status: pending, date: 2026-03-30 }
-            inner = raw_val[1:-1].strip()
-            d = {}
-            for pair in _split_inline_pairs(inner):
-                pair = pair.strip()
-                if ':' in pair:
-                    k, v = pair.split(':', 1)
-                    d[k.strip()] = _cast(v.strip())
+            d = _parse_inline_dict(raw_val)
             if isinstance(current, dict):
                 current[key] = d
         else:
@@ -143,6 +207,17 @@ def parse_yaml(text):
                 current[key] = _cast(raw_val)
 
     return result
+
+
+def _parse_inline_dict(raw_val):
+    inner = raw_val[1:-1].strip()
+    d = {}
+    for pair in _split_inline_pairs(inner):
+        pair = pair.strip()
+        if ':' in pair:
+            k, v = pair.split(':', 1)
+            d[k.strip()] = _cast(v.strip())
+    return d
 
 
 def _cast(val):
@@ -262,8 +337,44 @@ def dump_yaml(data, indent=0):
             else:
                 lines.append(f'{prefix}{key}:')
                 lines.append(dump_yaml(val, indent + 1))
+        elif isinstance(val, list) and any(isinstance(item, dict) for item in val):
+            lines.append(f'{prefix}{key}:')
+            lines.append(dump_yaml_list(val, indent + 1))
         else:
             lines.append(f'{prefix}{key}: {_serialize(val)}')
+    return '\n'.join(lines)
+
+
+def dump_yaml_list(data, indent=0):
+    lines = []
+    prefix = '  ' * indent
+    child_prefix = '  ' * (indent + 1)
+    for item in data:
+        if isinstance(item, dict):
+            pairs = list(item.items())
+            if not pairs:
+                lines.append(f'{prefix}- {{}}')
+                continue
+            first_key, first_val = pairs[0]
+            if isinstance(first_val, dict):
+                lines.append(f'{prefix}- {first_key}:')
+                lines.append(dump_yaml(first_val, indent + 2))
+            elif isinstance(first_val, list) and any(isinstance(child, dict) for child in first_val):
+                lines.append(f'{prefix}- {first_key}:')
+                lines.append(dump_yaml_list(first_val, indent + 2))
+            else:
+                lines.append(f'{prefix}- {first_key}: {_serialize(first_val)}')
+            for key, val in pairs[1:]:
+                if isinstance(val, dict):
+                    lines.append(f'{child_prefix}{key}:')
+                    lines.append(dump_yaml(val, indent + 2))
+                elif isinstance(val, list) and any(isinstance(child, dict) for child in val):
+                    lines.append(f'{child_prefix}{key}:')
+                    lines.append(dump_yaml_list(val, indent + 2))
+                else:
+                    lines.append(f'{child_prefix}{key}: {_serialize(val)}')
+        else:
+            lines.append(f'{prefix}- {_serialize(item)}')
     return '\n'.join(lines)
 
 

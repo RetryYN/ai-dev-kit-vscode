@@ -56,6 +56,26 @@ def test_dump_yaml_round_trips_simple_structure() -> None:
     assert parsed == original
 
 
+def test_dump_yaml_round_trips_block_list_of_mappings() -> None:
+    original = {
+        "status": "draft",
+        "finalized_at": None,
+        "revision_history": [
+            {
+                "revision": 1,
+                "action": "plan_reset",
+                "from_status": "finalized",
+                "finalized_at": "2026-04-30T15:57:34Z",
+            }
+        ],
+    }
+
+    dumped = yaml_parser.dump_yaml(original)
+    parsed = yaml_parser.parse_yaml(dumped)
+
+    assert parsed == original
+
+
 def test_build_output_with_header_preserves_comment_block() -> None:
     text = "# header one\n# header two\na: 1\n"
 
