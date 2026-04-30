@@ -1,23 +1,24 @@
-# PLAN-008: Reverse 4系統化（フルバック追加） (v1)
+# PLAN-008: Reverse 5系統化（フルバック追加・設計 Reverse） (v2)
 
 ## 1. 目的 / Why
 
 既存 `workflow/reverse-analysis` は現在、`Code から設計復元` の 1 系統（R0-R4）を中心に据えた復元ワークフローとして機能している。
 
-`PLAN-008` は、運用上発生している 3 種類の設計ズレ・再構成ニーズを吸収するため、Reverse を 4 系統化し、実装前後の状態差を同じ実行基盤上で扱えるようにする。
+`PLAN-008` は、運用上発生している 3 種類の設計ズレ・再構成ニーズを吸収するため、Reverse を 5 系統化し、実装前後の状態差を同じ実行基盤上で扱えるようにする。
 
-追加する 4 系統は以下。
+追加する 5 系統は以下。
 
 - Code 復元 Reverse（既存）: 設計書なしレガシーコードから現行設計を復元し、Forward へ接続する。
 - バージョンアップ Reverse（新）: 次版実装予定を前提に、現行設計から実装上の想定差分を逆引きし、設計前提と移行計画の起点を作る。
 - ノーマライゼーション Reverse（新）: 実装と設計の乖離（drift）を前提に、実装実態を起点として設計を再正規化する。
 - フルバック Reverse（新）: 実装完了後に設計と文書を最終整合化し、管理ドキュメントとして成立する状態へ戻す。
+- 設計 Reverse（新）: 既存設計書群から依存関係を逆引きし、実装順序（topological sort）と並列実装可能ペアを自動算出する。
 
 ## 2. スコープ
 
 ### 2.1 含む
 
-- Reverse の処理系を `helix reverse <type>` で拡張し、4 系統の共通入口を持つ。
+- Reverse の処理系を `helix reverse <type>` で拡張し、5 系統の共通入口を持つ。
 - 各系統の `Input / Output / 成功条件` を定義し、R0-R4 の既存成果物と RGC への接続を明文化。
 - PLAN-004/006/007/009 への接続点を定義し、特に L9-L11 の後段設計整合に対する文脈を追加する。
 - `フルバック` を R1-R4（As-Is 復元）と対になる前向き整理フローとして位置づける。
@@ -31,7 +32,7 @@
 
 ## 3. 採用方針
 
-### 3.1 4 系統の定義
+### 3.1 5 系統の定義
 
 #### 3.1.1 Code 復元 Reverse（既存）
 
@@ -60,6 +61,14 @@
 - 観測: `完了実装 + 既存設計 doc + 変更履歴`
 - 出力: `management docs` の最終整合版（更新済みの PLAN/D-*/ADR と監査可能な差分履歴）
 - 目的: 実装完了後の設計/文書不整合を解消し、L8 受入〜L11 検証側面を再固定する。
+
+#### 3.1.5 設計 Reverse（新）
+
+- 入口: `helix reverse design`
+- 観測: `docs/plans/*.md`, `docs/design/D-*.md`, `docs/features/*/D-*.md` などの既存設計書群
+- 出力: 依存 DAG（機械可読 YAML / Mermaid 図）、実装順序（topological sort, PLAN ID / D-* 単位）、並列実装可能ペア
+- 対応 D-*: `D-DESIGN-DAG`（依存 DAG）, `D-IMPL-ORDER`（実装順序）
+- 目的: 既存設計資産から実装順序を抽出し、PLAN-006 からの forward 構築を補完する。
 
 ### 3.2 共通基盤としての R0/R4/RGC 再利用
 
@@ -92,9 +101,14 @@
   - **Output**: 整合済み管理文書（PLAN/ADR/D-API/D-CONTRACT/D-HANDOVER）
   - **成功条件**: 実装状態と文書状態が相互追跡可能で、L8/L9-L11 の受入条件に接続できる
 
+- 設計 Reverse
+  - **Input**: 既存設計書群（`docs/plans/*.md`、`docs/design/D-*.md`、`docs/features/*/D-*.md`）
+  - **Output**: 依存 DAG（YAML / Mermaid）、実装順序（topological sort、PLAN ID / D-* 単位）、並列実装可能ペア
+  - **成功条件**: 依存抽出が監査可能で、循環依存の検知・分割ルールに接続される
+
 ### 3.4 CLI `helix reverse <type>` の type 拡張
 
-- 追加型: `code | upgrade | normalization | fullback`
+- 追加型: `code | upgrade | normalization | fullback | design`
 - デフォルト継続: `code`
 - 既存挙動（`reverse-r*` 系）は内部ルーティングとして吸収し、表示結果に `reverse_type` を明示。
 - 例:
@@ -102,6 +116,8 @@
   - `helix reverse upgrade --from <ver> --to <ver>`
   - `helix reverse normalization --target drift`
   - `helix reverse fullback --artifact <path>`
+  - `helix reverse design --plans docs/plans/ --design docs/design/ [--output dag.yaml]`
+  - `helix reverse design --plans docs/plans/ --topological-sort`
 
 ## 4. 関連 PLAN
 
@@ -109,8 +125,11 @@
   - `L1 / 設計前提` と `G2/G3/G4 の受け渡し条件` を前提として反映。
 - `docs/plans/PLAN-006-upstream-meta-phase.md`
   - メタフェーズにおける前提解像度とドキュメント依存管理を継承。
+  - `設計 Reverse` は PLAN-006 の forward 構築を reverse 補完し、`D-DESIGN-DAG / D-IMPL-ORDER` を相互参照。
 - `docs/plans/PLAN-007-scrum-multitype-trigger.md`
   - 差し込み条件と Q5 トリガーの思想を、4 系統の例外処理・遅延処理に接続。
+- `docs/plans/PLAN-010-verification-agent.md`
+  - 設計 Reverse の依存 DAG から `cross-validation` 対象ペアを自動列挙する連携を追加。
 - `docs/plans/PLAN-009-?`
   - フルバック後段（デプロイ後工程）の接続先として参照。現時点では案内先不在（未作成）。
 
@@ -124,29 +143,35 @@
   - 対策: 各 type の入出力と最終成果物を固定し、R0-R4-RGC の共通出口で再統合。
 - 逆引き誤判定
   - 対策: 人手レビュー（docs/verification）と PO 依存前提の明示的再確認を強制。
+- 設計 Reverse 特有: 既存設計書の記述揺れによる DAG 誤検出
+  - 対策: 参照表現の同義語正規化、低信頼度検出の再確認ループを追加。
+- 設計 Reverse 特有: 循環依存の検出と解消手順不足
+  - 対策: SCC 分解手順と再実行順序定義を D-IMPL-ORDER に明示。
+- 設計 Reverse 特有: 頻繁な再生成コスト
+  - 対策: 差分再生成、キャッシュ、再生成頻度ガードを設計運用として明文化。
 
 ## 6. Sprint 計画概要（L1〜L4）
 
 ### Sprint L1
 
-- 4 系統定義の最終確定
+- 5 系統定義の最終確定
 - `helix reverse <type>` 入力/出力仕様の固定
 - 既存 `workflow/reverse-analysis` との接続ポリシー更新
 
 ### Sprint L2
 
 - バージョンアップ Reverse とノーマライゼーション Reverse の観測テンプレート整備
-- R0/R4/RGC を活用した差分記録方式の統一
+- 設計 Reverse の設計書抽出ルール（識別子正規化/同義語）整備
 
 ### Sprint L3
 
 - フルバック Reverse の成功条件検証（実装完了前提）
 - 進捗/例外の監査ログ設計
-- PLAN-004/006/007 への接続イベント定義
+- PLAN-004/006/007/010 への接続イベント定義
 
 ### Sprint L4
 
-- 4 系統を通した `L1〜L11` 受入連携レビュー
+- 5 系統を通した `L1〜L11` 受入連携レビュー
 - 運用ガイドラインと実施可否境界の確定
 
 ## 7. 改訂履歴
@@ -154,3 +179,4 @@
 | 日付 | バージョン | 変更内容 | 変更者 |
 | --- | --- | --- | --- |
 | 2026-04-30 | v1 | Reverse 4 系統（Code/Upgrade/Normalization/Fullback）定義を追加し、フルバック Reverse を L8↔L11 区間の管理整合プロセスとして定義。 | Docs (Codex) |
+| 2026-05-01 | v2 | 設計 Reverse を第5系統として追加。PLAN-006 補完関係、PLAN-010 連携、CLI `design` type、および `D-DESIGN-DAG / D-IMPL-ORDER` を明示。 | Docs (Codex) |
