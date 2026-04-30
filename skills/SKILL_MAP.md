@@ -6,12 +6,13 @@
 - **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
-## 3フェーズ思想
+## 4フェーズ思想
 
 ```
 Phase 1: 計画（ドキュメント・テスト駆動）  L1 → L2 → L3
 Phase 2: 実装（マイクロスプリント）          L4
 Phase 3: 仕上げ（デザイン駆動）             L5 → L6 → L7 → L8
+Phase 4: Run（本番運用確認）                L9 → L10 → L11
 
 Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 → R3 → R4 → Forward → RGC（閉塞検証）
 ```
@@ -49,6 +50,12 @@ L7  デプロイ（staging → 本番 → watch）
   ↓ G7   安定性ゲート          [自動/PM]    ★セキュリティ④
   ↓ → verification §14
 L8  受入（要件 ↔ 最終成果物の突合 → PO最終承認）★ミニレトロ
+  ↓ L9  デプロイ検証（staging 本番）
+  ↓ G9   デプロイ安定性ゲート    [自動/PM]    fail-close
+  ↓ L10 観測（SLO/SLI watch）
+  ↓ G10  観測完了ゲート         [PM]        fail-close
+  ↓ L11 運用学習（運用改善）
+  ↓ G11  運用学習完了ゲート     [PM]        fail-close
 ```
 
 **ゲート詳細・セキュリティ・遷移ルール** → `skills/tools/ai-coding/references/gate-policy.md` 参照
@@ -101,6 +108,18 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 - `decide --confirmed` で Forward HELIX に接続
 - `db` / `agent` エッジケースでも「仮説検証フェーズ」として scrum 前段利用可能
 
+## readiness と carry rule
+
+PLAN-004 v5 連動として、L1-L11 の entry/exit に readiness 条件を含める。
+
+- P0: gate stop（即修正）
+- P1: gate stop OR carry（PM承認）
+- P2: 次 L 開始まで or debt として `.helix/audit/deferred-findings.yaml` へ carry
+- P3: 任意 carry
+
+deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加算（減点）する。  
+（重みは既定の deferred レベル係数を参照）
+
 ## タスクサイジング
 
 3軸の**最大サイズ**を採用:
@@ -143,7 +162,7 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 
 明示 `--drive <type>` 指定は常に最優先。`db` / `agent` は明示指定のみ。
 
-### 駆動タイプ別 L2〜L5
+### 駆動タイプ別 L2〜L11
 
 | フェーズ | be | fe | db | fullstack | agent |
 |---------|----|----|----|-----------|----|
@@ -151,6 +170,9 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 | L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
 | L4 実装順 | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L4.5結合 | ツール→オーケストレーション→UI |
 | L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
+| L9 Run-1（デプロイ検証） | 標準 | 標準 | 薄い | 標準 | 薄い |
+| L10 Run-2（観測） | 薄い | 標準 | 薄い | 標準 | 薄い |
+| L11 Run-3（運用学習） | 標準 | 標準 | 薄い | 標準 | 標準 |
 | G2 凍結 | API設計凍結 | **モック凍結**（UX承認 + MOCK-* auto-enqueue 発火） | スキーマ凍結 | 接続契約方針凍結（BE+FE+Contract三点セット） + MOCK-* auto-enqueue | ツール定義凍結 |
 | G3 着手 | API/Schema Freeze | **モック+API/Schema Freeze** | Migration Freeze | API/Schema/UI/Contract全凍結 | Tool Contract Freeze |
 | G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
@@ -191,6 +213,10 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 ```
 
 (L5) = 駆動タイプの L5 要否判定に従う
+
+Run 工程（L9-L11）の適用可否:
+- 本番運用あり: G9-G11 を必須適用
+- PoC / 検証寄り: 本番影響がなければ Run は skip 可
 
 fullstack 追加条件:
 - L4 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L4.5 結合）

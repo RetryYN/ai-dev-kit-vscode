@@ -180,6 +180,52 @@
 | Fail | 即 rollback → 原因に応じ L6/L4/L3 差戻し。ビルド/設定/infra 変更なら G6 から |
 | 人間承認条件 | 初回デプロイ / 認証・決済・PII / 破壊的 DB マイグレ / 外部 API 変更 / エラーバジェット 75%超 / インフラ構成変更 |
 
+### G9 デプロイ安定性ゲート（L9 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L9 完了時 |
+| 通過条件 | L9（デプロイ検証）完了、ロールバック手順検証、smoke test pass |
+| 判定者 | 自動/PM |
+| 判定形式 | 自動＋明示 |
+| Fail | 即 rollback、次 L 差戻し |
+| 人間承認条件 | 本番影響が高い場合は PM 最終確認 |
+| accuracy_weight | 0.9 |
+
+### G10 観測完了ゲート（L10 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L10 完了時 |
+| 通過条件 | SLO/SLI 監視結果レビュー、異常検知 0 件 or すべて解消 |
+| 判定者 | PM |
+| 判定形式 | 明示 |
+| Fail | L10 再実行または差戻し |
+| accuracy_weight | 0.8 |
+
+### G11 運用学習完了ゲート（L11 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L11 完了時 |
+| 通過条件 | postmortem 作成、改善提案、次サイクル feedback 記載完了 |
+| 判定者 | PM |
+| 判定形式 | 明示 |
+| Fail | L10 差戻し |
+| accuracy_weight | 0.6 |
+
+## readiness exit と carry rule
+
+PLAN-004 v5 連動:
+
+- P0: gate stop（即修正）
+- P1: gate stop OR carry（PM 承認）
+- P2: 次 L 開始まで or debt として `.helix/audit/deferred-findings.yaml` に carry
+- P3: 任意 carry
+
+readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding 数で accuracy_score を加減算する。  
+（deferred 1件につき accuracy_score から減点。減点式は共通設定を参照）
+
 ### PLAN レビュー（gate ではない）
 
 > PLAN レビューは gate ではないが、accuracy_score テーブル上は `gate='PLAN_REVIEW'` で記録される。
@@ -219,6 +265,7 @@
 | 課金・決済関連 | G2 設計承認（PO）必須 + L4 実装.3 セキュリティチェック必須 |
 | 個人情報の取り扱い変更 | G2 設計承認（PO）必須 |
 | 複数リポジトリ / チームに影響 | L3 接続設計必須 |
+| Phase 4 Run（L9-L11） | G6/G7 相当の監査要求（config/secret/権限/脆弱性）を満たすこと |
 
 ## Codex レビュー義務化
 
