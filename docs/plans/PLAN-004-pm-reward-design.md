@@ -108,6 +108,14 @@
 - 文書の主語は「方針」。
 - コード/SQL の実装詳細値は L4 Sprint の本体に委譲。
 - 追加作業を v4 に同梱しない。`想定外作業` は `§9` に限定。
+- 本 PLAN scope と後続 PLAN scope を分離して明示する。
+
+| 区分 | 本 PLAN scope（確定） | 後続 PLAN scope（引き継ぎ） |
+| --- | --- | --- |
+| 本 PLAN 確定（G3） | `helix-readiness CLI` と `accuracy_score` の拡張要件 | - |
+| 本 PLAN 確定（G4） | `HELIX_CORE.md` / `gate-policy.md` / `SKILL_MAP.md` readiness section の記述を本文化 | - |
+| PLAN-006 依存 | - | 上流 L-1 への readiness matrix 継承を継続 |
+| PLAN-009 依存 | - | `L9-L11`（Run 工程）への readiness matrix 拡張 |
 
 ## §4 採用方針
 
@@ -214,7 +222,9 @@
 - `*.1-*` で実装/設計の主作業を行う。
 - `*.6/*.6/*.9` は adversarial-review + 5軸評価を満たして終了。
 
-#### 4.3.2 駆動タイプ別 skip/include rule
+#### 4.3.2 駆動タイプ別 skip/include rule（主要 sprint のみ）
+
+`§4.5` の「全 L.0 / L.X 必須」を優先し、以下のスキップ規則は主要 sprint（L.1〜L.X-1）のみ適用する。
 
 | 駆動タイプ | L1 research | L2 research | L3 research | review rule |
 |---|---|---|---|---|
@@ -231,10 +241,10 @@
 `type` は少なくとも以下を想定し、拡張可能な型階層を採用する（目安 ~20 種）。
 
 ```
-api-spec, data-model, contract, threat-model, architecture, test-plan,
-deployment, handover, ADR, policy, schema, config, observability,
-review-report, roadmap, acceptance-criteria, runbook, db-migration,
-risk-register, glossary, benchmark, release-note
+api-spec, architecture-decision, data-model, dependency-map,
+db-migration, handover, observability, policy, readiness-report,
+release-note, requirements-list, review-report, runbook, schema,
+state-machine, threat-model, test-plan, wbs, glossary
 ```
 
 #### 4.4.2 実装配置
@@ -277,15 +287,25 @@ types:
 #### 4.5.1 全 L.0 / L.X の埋め込みルール
 
 - L.0（research entry）  
-  - `tools/web-search` skill 経由の公式/一次情報調査。
-  - 1 L 当たり最大 1 営業日。
-  - 調査結果は `.helix/research/` 配下に保存（保存前 redaction を実施）。
+  - 全駆動タイプで必須。L.0 research を省略した場合は gate 通過不可。  
+  - `tools/web-search` skill 経由の公式/一次情報調査。  
+  - 1 L 当たり最大 1 営業日。  
+  - 調査結果は `.helix/research/` 配下に保存（保存前 redaction を実施）。  
 - L.X（review exit）  
-  - `workflow/adversarial-review`（レビュー対抗的観点）を実行。
-  - 5 軸で Lv3 以上を基本合格ラインとする。
-  - `severity` と `dimension_scores` を併記。
+  - 全駆動タイプで必須。  
+  - `workflow/adversarial-review`（レビュー対抗的観点）を実行。  
+  - 5 軸で Lv3 以上を基本合格ラインとする。  
+  - `severity` と `dimension_scores` を併記。  
 
-#### 4.5.2 Mid-sprint insertion と PLAN-007 連携
+#### 4.5.2 review finding carry ルール（G2/G3/G4 連動）
+
+- P0: 該当 gate stop。即時修正を前提とする。  
+- P1: gate stop OR PM 承認時の carry（deferred-finding として記録）。  
+- P2: 次 L 開始前に修正、または debt として `.helix/audit/deferred-findings.yaml` に carry。  
+- P3: 任意 carry。改善提案として次フェーズに反映。  
+- `gate-policy.md` の `accuracy_weight` は固定しつつ、carry 数・深刻度を反映した `accuracy_score` の再計算入力値として運用する（deferred-finding 数を加点減点対象に含める）。
+
+#### 4.5.3 Mid-sprint insertion と PLAN-007 連携
 
 - Sprint 中でも必要に応じて以下トリガーで挿入可能とする。
   - research-trigger（依存更新、仕様変更）
@@ -485,6 +505,7 @@ pass(Gx, L) =
 
 | 日付 | バージョン | 変更内容 | 変更者 |
 | --- | --- | --- | --- |
+| 2026-04-30 | v5 | TL レビュー `P1×1 + P2×2 + P3×1` を反映。`§4.5` の L.0/L.X 必須優先順位を明確化し、`§4.3.2` の skip rule を主要 sprint のみへ限定。`§3.4` に本 PLAN scope / 後続 PLAN scope を追加。`P1/P2` の carry ルール（deferred-finding・accuracy_score・`.helix/audit/deferred-findings.yaml`）を記述。Deliverable type は kebab-case 方針に統一。 | Docs (Codex) |
 | 2026-04-30 | v4 | `PLAN-004` を §1-§10 で再構成。§3 を A/B/C/D 4 軸化（v3報奨設計維持＋Implementation Readiness, Deliverable Adapter, Research/Review embed 追加）。§4 に Layer0-3 と L1-L3 sprint 構造、§5 に readiness exit 条件付き gate 方針、§7 に Sprint7-10 追加、関連 PLAN・リスク更新を反映。 | Docs (Codex) |
 | 2026-04-30 | v3 | TL レビュー P1×1 + P2×2 + P3×1 を反映し、報奨設計の方針統一と G2-G7 hook、`accuracy_score` 精度検証、redaction 方針、R-05/R-06 追加、改訂履歴追記。 | Docs (Codex) |
 | 2026-04-30 | v2 | `accuracy_weight` 単調増加表現を撤回し、根拠ベース化。`PLAN-004` と `G3` 境界統一、secret/PII 対応の基本方針を追加。 | Docs (Codex) |
