@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -467,6 +467,71 @@ def _create_audit_decisions_v10(conn):
     conn.executescript(AUDIT_DECISIONS_SCHEMA_V10)
 
 
+def _migrate_v10_to_v11(conn):
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS deferred_findings (
+            id TEXT PRIMARY KEY,
+            plan_id TEXT NOT NULL,
+            origin_plan_id TEXT NOT NULL,
+            origin_phase TEXT NOT NULL,
+            current_plan_id TEXT NOT NULL,
+            current_phase TEXT NOT NULL,
+            target_plan_id TEXT,
+            target_phase TEXT,
+            level TEXT NOT NULL CHECK (level IN ('P0','P1','P2','P3')),
+            carry_rule TEXT NOT NULL CHECK (carry_rule IN ('stop','carry-with-pm-approval','auto-carry','optional')),
+            phase TEXT NOT NULL,
+            source TEXT NOT NULL,
+            severity TEXT NOT NULL CHECK (severity IN ('critical','high','medium','low')),
+            status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','carried','resolved','abandoned')),
+            weight REAL NOT NULL DEFAULT 0.0,
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            pm_approved_by TEXT,
+            pm_approved_at TEXT,
+            pm_reason TEXT,
+            yaml_synced_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_deferred_findings_plan ON deferred_findings(plan_id);
+        CREATE INDEX IF NOT EXISTS idx_deferred_findings_status ON deferred_findings(status);
+        CREATE INDEX IF NOT EXISTS idx_deferred_findings_level ON deferred_findings(level);
+        CREATE INDEX IF NOT EXISTS idx_deferred_findings_phase ON deferred_findings(phase);
+
+        CREATE TABLE IF NOT EXISTS accuracy_score_adjustments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            finding_id TEXT NOT NULL REFERENCES deferred_findings(id) ON DELETE CASCADE,
+            plan_id TEXT NOT NULL,
+            gate TEXT NOT NULL,
+            dimension TEXT NOT NULL CHECK (dimension IN ('density','depth','breadth','accuracy','maintainability')),
+            penalty REAL NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_adjustments_finding ON accuracy_score_adjustments(finding_id);
+        CREATE INDEX IF NOT EXISTS idx_adjustments_plan_gate ON accuracy_score_adjustments(plan_id, gate);
+
+        DROP VIEW IF EXISTS accuracy_score_effective;
+        CREATE VIEW IF NOT EXISTS accuracy_score_effective AS
+        SELECT
+            a.id AS accuracy_score_id,
+            a.plan_id,
+            a.gate,
+            a.dimension,
+            a.level AS raw_level,
+            CAST(a.level AS REAL) AS raw_score,
+            COALESCE(SUM(adj.penalty), 0.0) AS total_penalty,
+            MAX(0.0, CAST(a.level AS REAL) - COALESCE(SUM(adj.penalty), 0.0)) AS effective_score,
+            a.recorded_at AS evaluated_at
+        FROM accuracy_score a
+        LEFT JOIN accuracy_score_adjustments adj
+            ON adj.plan_id = a.plan_id
+            AND adj.gate = a.gate
+            AND adj.dimension = a.dimension
+        GROUP BY a.id;
+        """
+    )
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -708,6 +773,12 @@ def migrate(conn):
             _create_audit_decisions_v10(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (10, datetime('now'))"
+            )
+        # v10→v11: deferred_findings + adjustments + effective view (HELIX-V3-FOLLOWUP)
+        if current < 11:
+            _migrate_v10_to_v11(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (11, datetime('now'))"
             )
         conn.commit()
 
