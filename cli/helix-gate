@@ -7,7 +7,7 @@ fi
 set -euo pipefail
 
 # helix-gate: HELIX ゲート自動検証
-# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run]
+# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run] [--readiness-mode warning|enforce|skip]
 #
 # 責務分離:
 #   1. 前提条件チェック（prereq gate）      → check_prerequisites()
@@ -30,6 +30,7 @@ AI_ONLY=false
 DRY_RUN=false
 UNDO=false
 JSON_OUTPUT=false
+READINESS_MODE_FLAG=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -38,10 +39,26 @@ while [[ $# -gt 0 ]]; do
     --dry-run)     DRY_RUN=true; shift ;;
     --undo)        UNDO=true; shift ;;
     --json)        JSON_OUTPUT=true; shift ;;
+    --readiness-mode)
+      if [[ -z "${2:-}" ]]; then
+        echo "エラー: --readiness-mode には warning|enforce|skip が必要です" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+      READINESS_MODE_FLAG="$2"
+      shift 2
+      ;;
+    --readiness-mode=*)
+      READINESS_MODE_FLAG="${1#--readiness-mode=}"
+      shift
+      ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--readiness-mode <warning|enforce|skip>]"
       echo ""
-      echo "Gates: G0.5, G2, G3, G4, G5, G6, G7"
+      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7"
+      echo ""
+      echo "Options:"
+      echo "  --readiness-mode <warning|enforce|skip>"
+      echo "      readiness exit の AND 条件モード (default: warning)"
       exit "$EXIT_SUCCESS"
       ;;
     *)
@@ -118,6 +135,82 @@ write_phase_or_die() {
     echo "エラー: phase.yaml 更新失敗: ${dotpath}=${value}" >&2
     exit "$EXIT_INTERNAL_ERROR"
   fi
+}
+
+read_config_readiness_mode() {
+  local config_file="$CONFIG_FILE"
+  [[ -f "$config_file" ]] || return 0
+
+  local value
+  value=$(python3 "$YAML_PARSER" read "$config_file" "readiness.mode" 2>/dev/null || true)
+  if [[ -n "$value" && "$value" != "null" && "$value" != "{}" ]]; then
+    echo "$value"
+    return 0
+  fi
+
+  awk '
+    /^[[:space:]]*readiness:[[:space:]]*$/ {
+      in_readiness = 1
+      base_indent = match($0, /[^[:space:]]/) - 1
+      next
+    }
+    in_readiness {
+      if ($0 !~ /^[[:space:]]*$/ && $0 !~ /^[[:space:]]*#/) {
+        indent = match($0, /[^[:space:]]/) - 1
+        if (indent <= base_indent) {
+          in_readiness = 0
+        }
+      }
+      if (in_readiness && $0 ~ /^[[:space:]]*mode:[[:space:]]*/) {
+        sub(/^[[:space:]]*mode:[[:space:]]*/, "", $0)
+        gsub(/["'\'']/, "", $0)
+        print $1
+        exit
+      }
+    }
+  ' "$config_file"
+}
+
+parse_readiness_mode() {
+  local flag_value="${1:-}"
+  local mode=""
+
+  if [[ -n "$flag_value" ]]; then
+    mode="$flag_value"
+  elif [[ -n "${HELIX_READINESS_MODE:-}" ]]; then
+    mode="$HELIX_READINESS_MODE"
+  else
+    mode="$(read_config_readiness_mode || true)"
+  fi
+
+  mode="${mode:-warning}"
+  case "$mode" in
+    warning|enforce|skip)
+      echo "$mode"
+      ;;
+    *)
+      echo "エラー: 無効な readiness mode です: $mode（warning|enforce|skip）" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+}
+
+_gate_to_l() {
+  local gate="$1"
+  case "$gate" in
+    G0.5) echo "L0" ;;
+    G1|G1R|G1.5) echo "L1" ;;
+    G2) echo "L2" ;;
+    G3) echo "L3" ;;
+    G4) echo "L4" ;;
+    G5) echo "L5" ;;
+    G6) echo "L6" ;;
+    G7) echo "L7" ;;
+    G9) echo "L9" ;;
+    G10) echo "L10" ;;
+    G11) echo "L11" ;;
+    *) return 1 ;;
+  esac
 }
 
 declare -A GATE_PREREQS
@@ -397,6 +490,7 @@ run_checks() {
   local advisory_fail=0
   local ai_pass=0
   local ai_fail=0
+  local readiness_fail=0
   local drive=""
   local ui_flag=""
   local extra_fail_reasons=""
@@ -1212,8 +1306,28 @@ PY
     fi
   fi
 
+  # --- Readiness exit check ---
+  local mapped_l readiness_mode readiness_output_file
+  mapped_l=$(_gate_to_l "$gate")
+  readiness_mode=$(parse_readiness_mode "${READINESS_MODE_FLAG:-}")
+  if [[ "$readiness_mode" != "skip" ]]; then
+    readiness_output_file=$(mktemp "${TMPDIR:-/tmp}/helix-readiness-${gate}-XXXXXX")
+    if ! "$SCRIPT_DIR/helix-readiness" check --phase "$mapped_l" --json >"$readiness_output_file" 2>&1; then
+      if [[ "$readiness_mode" == "warning" ]]; then
+        echo "⚠ readiness exit not satisfied for $mapped_l (warning mode)" >&2
+        cat "$readiness_output_file" >&2
+      else
+        echo "✗ readiness exit not satisfied for $mapped_l (enforce mode)" >&2
+        cat "$readiness_output_file" >&2
+        readiness_fail=1
+        add_fail_reason "readiness"
+      fi
+    fi
+    rm -f "$readiness_output_file"
+  fi
+
   # --- 総合判定 ---
-  local total_fail=$((deliv_fail + mandatory_fail + ai_fail))
+  local total_fail=$((deliv_fail + mandatory_fail + ai_fail + readiness_fail))
   local ended_ms duration_ms result
   ended_ms=$(now_ms)
   duration_ms=$((ended_ms - started_ms))
@@ -1227,7 +1341,11 @@ PY
   fi
   echo ""
   if [[ $total_fail -gt 0 ]]; then
-    echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail) ==="
+    local readiness_summary=""
+    if [[ "$readiness_fail" -gt 0 ]]; then
+      readiness_summary=", readiness: $readiness_fail fail"
+    fi
+    echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail${readiness_summary}) ==="
     if [[ "$DRY_RUN" != true ]]; then
       log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
     fi

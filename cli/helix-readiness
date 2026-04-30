@@ -1,0 +1,469 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# helix-readiness: HELIX readiness exit 判定 / deferred-finding 操作
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+Usage: helix readiness <subcommand> [options]
+
+Subcommands:
+  check   [--phase L4] [--json]
+  list    [--plan PLAN-007] [--level P1,P2] [--status open,carried]
+  report  [--plan PLAN-009] [--phase L9] [--json]
+  defer   --finding DF-... --to PLAN-009:L9 [--approved-by PM]
+  accept  --finding DF-... --status resolved|abandoned --evidence <path> [--approved-by PM]
+
+Exit codes for check:
+  0 ready
+  1 not-ready
+  2 blocking-finding
+  3 missing-evidence
+USAGE
+}
+
+run_readiness_py() {
+  local subcommand="$1"
+  shift
+  python3 - "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$HELIX_DIR" "$subcommand" "$@" <<'PY'
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+lib_dir = Path(sys.argv[1])
+project_root = Path(sys.argv[2])
+helix_dir = Path(sys.argv[3])
+subcommand = sys.argv[4]
+argv = sys.argv[5:]
+sys.path.insert(0, str(lib_dir))
+
+import deferred_findings
+import yaml_parser
+
+READY = 0
+NOT_READY = 1
+BLOCKING_FINDING = 2
+MISSING_EVIDENCE = 3
+FINDINGS_YAML = helix_dir / "audit" / "deferred-findings.yaml"
+DB_PATH = helix_dir / "helix.db"
+PHASE_FILE = helix_dir / "phase.yaml"
+VALID_PHASES = {f"L{i}" for i in range(12)}
+VALID_CARRY_TARGETS = VALID_PHASES | {f"G{i}" for i in range(1, 12)} | {"G0.5", "G1R", "G1.5"}
+
+
+def read_yaml(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return yaml_parser.parse_yaml(path.read_text(encoding="utf-8"))
+
+
+def phase_data() -> dict[str, Any]:
+    return read_yaml(PHASE_FILE)
+
+
+def validate_phase(phase: str) -> str:
+    if phase not in VALID_PHASES:
+        raise ValueError(f"invalid phase: {phase}")
+    return phase
+
+
+def validate_carry_target(target: str) -> str:
+    if target not in VALID_CARRY_TARGETS:
+        raise ValueError(f"invalid carry target: {target}")
+    return target
+
+
+def plan_matches(finding: dict[str, Any], plan: str | None) -> bool:
+    if plan is None:
+        return True
+    candidates = [finding.get("plan_id")]
+    for key in ("origin", "current", "target"):
+        value = finding.get(key)
+        if isinstance(value, dict):
+            candidates.append(value.get("plan_id"))
+    return plan in {str(item) for item in candidates if item is not None}
+
+
+def current_phase() -> str:
+    phase = str(phase_data().get("current_phase") or "").strip()
+    if not phase:
+        raise ValueError(".helix/phase.yaml に current_phase がありません")
+    return validate_phase(phase)
+
+
+def glob_files(patterns: list[str]) -> list[Path]:
+    files: list[Path] = []
+    for pattern in patterns:
+        files.extend(path for path in project_root.glob(pattern) if path.is_file())
+    return sorted(files)
+
+
+def any_file(patterns: list[str]) -> bool:
+    return bool(glob_files(patterns))
+
+
+def any_named(globs: list[str], names: list[str]) -> bool:
+    for pattern in globs:
+        for path in project_root.rglob(pattern):
+            if path.is_file() and any(fnmatch.fnmatch(path.name, name) for name in names):
+                return True
+    return False
+
+
+def check_l0() -> tuple[list[str], dict[str, Any]]:
+    if not PHASE_FILE.exists():
+        return [".helix/phase.yaml"], {}
+    if not str(phase_data().get("project") or "").strip():
+        return [".helix/phase.yaml:project"], {}
+    return [], {}
+
+
+def check_l1() -> tuple[list[str], dict[str, Any]]:
+    return ([], {}) if any_file([".helix/requirements/*.md", "docs/requirements/*.md"]) else (["requirements markdown (.helix/requirements/*.md or docs/requirements/*.md)"], {})
+
+
+def check_l2() -> tuple[list[str], dict[str, Any]]:
+    return ([], {}) if any_file(["docs/adr/*.md", ".helix/adr/*.md"]) else (["ADR markdown (docs/adr/*.md or .helix/adr/*.md)"], {})
+
+
+def check_l3() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    has_api = any_file(["docs/api/*.yaml", ".helix/api/*.yaml"]) or any_named(["docs/**/*", ".helix/**/*"], ["D-API*", "*D-API*"])
+    has_plan = any_named(["docs/**/*", ".helix/**/*"], ["*wbs*", "*WBS*", "*test-plan*", "*TEST-PLAN*", "*test_plan*"]) or any_file(["docs/test-plan/*.md", "docs/test-plans/*.md", ".helix/test-plan/*.md", ".helix/wbs/*.md"])
+    if not has_api:
+        missing.append("API contract (docs/api/*.yaml, .helix/api/*.yaml, or D-API file)")
+    if not has_plan:
+        missing.append("WBS or test plan")
+    return missing, {}
+
+
+def check_l4() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_file([".helix/sprint/*.yaml"]):
+        missing.append("sprint record (.helix/sprint/*.yaml)")
+    has_ci = any_file([".github/workflows/*", ".circleci/config.yml"]) or (project_root / ".gitlab-ci.yml").is_file() or (project_root / "Jenkinsfile").is_file()
+    if not has_ci:
+        missing.append("CI config (.github/workflows/* or equivalent)")
+    return missing, {}
+
+
+def is_ui_drive() -> bool:
+    sprint = phase_data().get("sprint")
+    sprint = sprint if isinstance(sprint, dict) else {}
+    drive = str(sprint.get("drive") or "").strip()
+    ui_flag = sprint.get("ui")
+    return drive in {"fe", "fullstack", "agent"} or ui_flag is True or str(ui_flag).lower() == "true"
+
+
+def check_l5() -> tuple[list[str], dict[str, Any]]:
+    if not is_ui_drive():
+        return [], {"waived": True, "reason": "non-ui drive"}
+    return ([], {}) if any_file(["docs/design/*", ".helix/design/*"]) else (["design deliverable (docs/design/* or .helix/design/*)"], {})
+
+
+def check_l6() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_named(["tests/**/*", "e2e/**/*", "docs/**/*", ".helix/**/*"], ["*e2e*", "*E2E*", "*playwright*", "*cypress*"]):
+        missing.append("E2E test file")
+    if not any_named(["tests/**/*", "perf/**/*", "docs/**/*", ".helix/**/*"], ["*perf*", "*performance*", "*load-test*", "*benchmark*"]):
+        missing.append("performance test file")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*security-review*", "*security_review*", "*SECURITY-REVIEW*"]):
+        missing.append("security review record")
+    return missing, {}
+
+
+def check_l7() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not (any_file(["docs/runbook/*", ".helix/runbook/*"]) or (project_root / "runbook.md").is_file()):
+        missing.append("runbook (docs/runbook/* or runbook.md)")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*release-note*", "*release_notes*", "*RELEASE*"]):
+        missing.append("release note")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*rollback*", "*ROLLBACK*"]):
+        missing.append("rollback procedure")
+    return missing, {}
+
+
+def check_l8() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*acceptance*", "*accepted*", "*受入*"]):
+        missing.append("acceptance record")
+    if not (any_named(["docs/**/*", ".helix/**/*"], ["*deferred*handover*", "*handover*deferred*"]) or FINDINGS_YAML.exists()):
+        missing.append("deferred handover")
+    return missing, {}
+
+
+def check_l9() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_named(["docs/**/*", ".helix/**/*", "tests/**/*"], ["*smoke*", "*SMOKE*"]):
+        missing.append("smoke test result")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*rollback*", "*ROLLBACK*"]):
+        missing.append("rollback confirmation")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*metrics*", "*dashboard*", "*METRICS*"]):
+        missing.append("metrics dashboard reference")
+    return missing, {}
+
+
+def check_l10() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*slo*", "*sli*", "*SLO*", "*SLI*"]):
+        missing.append("SLO/SLI record")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*abnormal-log*", "*error-log*", "*log-verification*", "*異常ログ*"]):
+        missing.append("abnormal log verification")
+    return missing, {}
+
+
+def check_l11() -> tuple[list[str], dict[str, Any]]:
+    missing = []
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*postmortem*", "*POSTMORTEM*"]):
+        missing.append("postmortem")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*run-learning*", "*learning*", "*RUN-LEARNING*"]):
+        missing.append("run-learning")
+    if not any_named(["docs/**/*", ".helix/**/*"], ["*next-cycle*", "*next_cycle*", "*proposal*"]):
+        missing.append("next-cycle proposal")
+    return missing, {}
+
+
+PHASE_CHECKS = {
+    "L0": check_l0,
+    "L1": check_l1,
+    "L2": check_l2,
+    "L3": check_l3,
+    "L4": check_l4,
+    "L5": check_l5,
+    "L6": check_l6,
+    "L7": check_l7,
+    "L8": check_l8,
+    "L9": check_l9,
+    "L10": check_l10,
+    "L11": check_l11,
+}
+
+
+def phase_matches(finding: dict[str, Any], phase: str | None) -> bool:
+    if phase is None:
+        return True
+    candidates = [finding.get("phase")]
+    for key in ("current", "target", "origin"):
+        value = finding.get(key)
+        if isinstance(value, dict):
+            candidates.append(value.get("phase"))
+    return phase in {str(item) for item in candidates if item is not None}
+
+
+def finding_summary(finding: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": finding.get("id"),
+        "level": finding.get("level"),
+        "phase": finding.get("phase"),
+        "status": finding.get("status"),
+        "title": finding.get("title"),
+    }
+
+
+def blocking_findings(phase: str | None = None, plan: str | None = None) -> list[dict[str, Any]]:
+    blocking = []
+    for finding in deferred_findings.load_findings(FINDINGS_YAML)["findings"]:
+        if not plan_matches(finding, plan):
+            continue
+        if not phase_matches(finding, phase):
+            continue
+        status = str(finding.get("status") or "open")
+        level = str(finding.get("level") or "")
+        approval = finding.get("pm_approval") if isinstance(finding.get("pm_approval"), dict) else {}
+        if level == "P0" and status == "open":
+            blocking.append(finding)
+        elif level == "P1" and status not in {"resolved", "abandoned"} and not approval.get("approved_by"):
+            blocking.append(finding)
+    return blocking
+
+
+def readiness_report(phase: str, plan: str | None = None) -> dict[str, Any]:
+    missing, meta = PHASE_CHECKS[phase]()
+    blocking = blocking_findings(phase=phase, plan=plan)
+    report = {
+        "plan": plan,
+        "phase": phase,
+        "ready": not missing and not blocking,
+        "blocking": [finding_summary(item) for item in blocking],
+        "missing_evidence": missing,
+    }
+    report.update(meta)
+    return report
+
+
+def print_json(data: dict[str, Any]) -> None:
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def split_csv(value: str | None) -> set[str] | None:
+    if value is None:
+        return None
+    items = {item.strip() for item in value.split(",") if item.strip()}
+    return items or None
+
+
+def cmd_check(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="helix readiness check")
+    parser.add_argument("--phase")
+    parser.add_argument("--json", action="store_true")
+    ns = parser.parse_args(args)
+    phase = validate_phase(ns.phase) if ns.phase else current_phase()
+    report = readiness_report(phase)
+    if ns.json:
+        print_json(report)
+    elif report["ready"]:
+        suffix = " (waived)" if report.get("waived") else ""
+        print(f"ready: {phase}{suffix}")
+    else:
+        for finding in report["blocking"]:
+            print(f"blocking finding: {finding['id']} {finding['level']} {finding['status']} {finding['title']}")
+        for item in report["missing_evidence"]:
+            print(f"missing evidence: {item}")
+    if report["blocking"]:
+        return BLOCKING_FINDING
+    if report["missing_evidence"]:
+        return MISSING_EVIDENCE
+    return READY
+
+
+def cmd_list(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="helix readiness list")
+    parser.add_argument("--plan")
+    parser.add_argument("--level")
+    parser.add_argument("--status")
+    ns = parser.parse_args(args)
+    levels = split_csv(ns.level)
+    statuses = split_csv(ns.status)
+    rows = []
+    for finding in deferred_findings.load_findings(FINDINGS_YAML)["findings"]:
+        if not plan_matches(finding, ns.plan):
+            continue
+        if levels and str(finding.get("level")) not in levels:
+            continue
+        if statuses and str(finding.get("status")) not in statuses:
+            continue
+        rows.append(finding)
+    if not rows:
+        print("no findings")
+        return READY
+    print("id\tlevel\tphase\tstatus\ttitle")
+    for finding in rows:
+        print("\t".join([str(finding.get("id") or ""), str(finding.get("level") or ""), str(finding.get("phase") or ""), str(finding.get("status") or ""), str(finding.get("title") or "")]))
+    return READY
+
+
+def cmd_report(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="helix readiness report")
+    parser.add_argument("--plan")
+    parser.add_argument("--phase")
+    parser.add_argument("--json", action="store_true")
+    ns = parser.parse_args(args)
+    phase = validate_phase(ns.phase) if ns.phase else current_phase()
+    report = readiness_report(phase, plan=ns.plan)
+    if ns.json:
+        print_json(report)
+        return READY
+    print(f"plan: {report['plan'] or '-'}")
+    print(f"phase: {report['phase']}")
+    print(f"ready: {str(report['ready']).lower()}")
+    if report.get("waived"):
+        print(f"waived: {report.get('reason', '')}")
+    for finding in report["blocking"]:
+        print(f"blocking: {finding['id']} {finding['level']} {finding['status']} {finding['title']}")
+    for item in report["missing_evidence"]:
+        print(f"missing evidence: {item}")
+    return READY
+
+
+def sync_yaml_to_db() -> None:
+    deferred_findings.sync_yaml_to_db(FINDINGS_YAML, DB_PATH)
+
+
+def cmd_defer(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="helix readiness defer")
+    parser.add_argument("--finding", required=True)
+    parser.add_argument("--to", required=True)
+    parser.add_argument("--approved-by")
+    ns = parser.parse_args(args)
+    if ":" not in ns.to:
+        raise ValueError("--to は PLAN-009:L9 形式で指定してください")
+    target_plan, target_phase = ns.to.split(":", 1)
+    validate_carry_target(target_phase)
+    item = deferred_findings.carry_finding(FINDINGS_YAML, ns.finding, target_plan, target_phase, approved_by=ns.approved_by, db_path=DB_PATH)
+    sync_yaml_to_db()
+    print(f"deferred: {item['id']} -> {target_plan}:{target_phase}")
+    return READY
+
+
+def cmd_accept(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="helix readiness accept")
+    parser.add_argument("--finding", required=True)
+    parser.add_argument("--status", required=True, choices=["resolved", "abandoned"])
+    parser.add_argument("--evidence", required=True)
+    parser.add_argument("--approved-by")
+    ns = parser.parse_args(args)
+    payload = deferred_findings.load_findings(FINDINGS_YAML)
+    existing = next((item for item in payload["findings"] if item.get("id") == ns.finding), None)
+    if existing is None:
+        raise KeyError(f"finding not found: {ns.finding}")
+    approval = dict(existing.get("pm_approval") or {}) if isinstance(existing.get("pm_approval"), dict) else {}
+    if ns.approved_by:
+        approval["approved_by"] = ns.approved_by
+    patch: dict[str, Any] = {"status": ns.status, "evidence": {"path": ns.evidence}}
+    if approval:
+        patch["pm_approval"] = approval
+    item = deferred_findings.update_finding(FINDINGS_YAML, ns.finding, db_path=DB_PATH, **patch)
+    sync_yaml_to_db()
+    print(f"accepted: {item['id']} status={item['status']} evidence={ns.evidence}")
+    return READY
+
+
+COMMANDS = {
+    "check": cmd_check,
+    "list": cmd_list,
+    "report": cmd_report,
+    "defer": cmd_defer,
+    "accept": cmd_accept,
+}
+
+try:
+    if subcommand not in COMMANDS:
+        raise ValueError(f"unknown subcommand: {subcommand}")
+    raise SystemExit(COMMANDS[subcommand](argv))
+except BrokenPipeError:
+    raise SystemExit(READY)
+except Exception as exc:
+    print(f"エラー: {exc}", file=sys.stderr)
+    raise SystemExit(NOT_READY)
+PY
+}
+
+cmd_check() { run_readiness_py check "$@"; }
+cmd_list() { run_readiness_py list "$@"; }
+cmd_report() { run_readiness_py report "$@"; }
+cmd_defer() { run_readiness_py defer "$@"; }
+cmd_accept() { run_readiness_py accept "$@"; }
+
+CMD="${1:-help}"
+shift 2>/dev/null || true
+
+case "$CMD" in
+  check) cmd_check "$@" ;;
+  list) cmd_list "$@" ;;
+  report) cmd_report "$@" ;;
+  defer) cmd_defer "$@" ;;
+  accept) cmd_accept "$@" ;;
+  help|-h|--help) usage ;;
+  *)
+    echo "エラー: 不明な subcommand です: $CMD" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

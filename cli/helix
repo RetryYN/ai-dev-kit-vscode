@@ -27,6 +27,7 @@ case "$CMD" in
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
+  readiness) exec "$SCRIPT_DIR/helix-readiness" "$@" ;;
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
   budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
@@ -84,6 +85,7 @@ Commands:
   size        タスクサイジング
   sprint      L4 マイクロスプリント
   plan        設計計画
+  readiness   readiness exit 判定 / deferred-finding 操作
   reverse     リバース HELIX
   scrum       検証駆動開発
   interrupt   中断・復帰管理
