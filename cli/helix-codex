@@ -595,12 +595,15 @@ run_codex_once() {
   set +e
   export PROJECT_ROOT="$PROJECT_ROOT"
   export HELIX_PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$PROJECT_ROOT}"
+  # stdin を /dev/null に固定: Codex CLI が tty 不在時に "Reading additional input from stdin..."
+  # で hang する問題を防ぐ (run_in_background / 別シェル経由呼び出しで再現)
   timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$model" -s "$SANDBOX" \
     --skip-git-repo-check \
     -c "model_reasoning_effort=\"$THINKING\"" \
     -c 'shell_environment_policy.inherit=none' \
     -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","PYTHONIOENCODING"]' \
-    ${FULL_AUTO:+$FULL_AUTO}
+    ${FULL_AUTO:+$FULL_AUTO} \
+    < /dev/null
   local rc=$?
   set -e
   return $rc
