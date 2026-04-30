@@ -28,6 +28,71 @@
 
 ## ゲート一覧
 
+## readiness exit と gate AND 条件
+
+PLAN-004 v5 / HELIX-V3-FOLLOWUP で確定した運用契約。
+
+### 概要
+
+各 L (L0-L11) は entry/exit に readiness 条件を持ち、対応する G* ゲートの通過判定に AND 結合される。
+
+| gate | mapped L | readiness exit |
+|---|---|---|
+| G0.5 | L0 | phase/config 初期化 |
+| G1   | L1 | 要件/受入条件 |
+| G1R  | L1 | 同上 (research 補完) |
+| G1.5 | L1 | 同上 (PoC 補完) |
+| G2   | L2 | ADR/設計/threat model |
+| G3   | L3 | API/Schema/WBS/test plan |
+| G4   | L4 | sprint .1-.5/CI |
+| G5   | L5 | UI/visual/a11y or waived |
+| G6   | L6 | E2E/性能/セキュリティ |
+| G7   | L7 | runbook/release/rollback |
+| G9   | L9 | smoke/rollback/metrics |
+| G10  | L10 | SLO/SLI/異常ログ |
+| G11  | L11 | postmortem/run-learning/next-cycle proposal |
+
+### 判定式
+
+```text
+before: gate prereq + deliverable + static + AI                       → pass
+after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
+```
+
+### モード切替 (破壊性軽減)
+
+`helix gate Gx --readiness-mode <warning|enforce|skip>` で切り替え可能。  
+優先順位: CLI フラグ > `HELIX_READINESS_MODE` 環境変数 > `.helix/config.yaml` の `readiness.mode` > **default = warning**。
+
+| モード | 挙動 |
+|---|---|
+| skip | readiness check を実行しない (既存挙動と完全同一) |
+| warning (default) | readiness check 実行、未達は stderr に warning、gate 結果は変えない |
+| enforce | readiness check の結果を gate AND に組み込む。未達は gate fail |
+
+### 移行ガイドライン
+
+- 既存プロジェクトは既定 (warning) のままで段階的に readiness を整備
+- L2/L3 着手時に `helix readiness check --phase L2` を運用に組み込む
+- enforce は L4 以降の本格運用時に opt-in 推奨
+- P0 (critical) finding は status=open のままだと enforce で必ず fail
+- P1 (high) finding は `pm_approval.approved_by` 必須 (`helix readiness defer --approved-by PM`)
+
+### 関連 CLI
+
+- `helix readiness check [--phase Lx] [--json]`
+- `helix readiness list [--plan PLAN-X] [--level P1,P2] [--status open,carried]`
+- `helix readiness report [--plan PLAN-X] [--phase Lx] [--json]`
+- `helix readiness defer --finding DF-X --to PLAN-Y:Lz [--approved-by PM]`
+- `helix readiness accept --finding DF-X --status resolved|abandoned --evidence <path>`
+
+### 関連ファイル
+
+- `.helix/audit/deferred-findings.yaml` — finding 単位の永続化
+- `helix.db` (v11+) — `deferred_findings` テーブル + `accuracy_score_adjustments` + `accuracy_score_effective` VIEW
+- `cli/lib/deferred_findings.py` — YAML I/O + redaction + DB sync
+- `cli/helix-readiness` — CLI 本体
+
 ### G0.5 企画突合ゲート（L1 内）
 
 | 項目 | 内容 |
@@ -225,6 +290,13 @@ PLAN-004 v5 連動:
 
 readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding 数で accuracy_score を加減算する。  
 （deferred 1件につき accuracy_score から減点。減点式は共通設定を参照）
+
+### deferred finding による accuracy_score 補正
+
+`accuracy_score_effective = raw_score - SUM(adjustments.penalty)` で算定する。
+- penalty 既定: P0=1.00 / P1=0.70 / P2=0.35 / P3=0.10
+- `helix readiness defer/accept` で carry / resolve すると adjustment が登録される
+- gate ごと dimension ごとに集計 (gate × dimension 単位の view)
 
 ### PLAN レビュー（gate ではない）
 
