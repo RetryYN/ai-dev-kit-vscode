@@ -39,6 +39,34 @@
   - `worktree_snapshot_hash` 以前の抽出要件
   - PLAN-002 の継続分離結果（B/D）のうち、B（自動継続）と D（残量警告）に関係する分のみを継承
 
+## 3.1 readiness retro 反映 (PLAN-004 v5 連動)
+
+### 3.1.1 適用範囲
+- 本 PLAN は PLAN-004 v5 確定前に finalize 済みのため、readiness 概念を retro 反映する。
+- 実装スコープは変更せず、retro 方針の追記のみ実施する。
+- PLAN-004 v5 の L-level 例外条件（P 連動ルール）を PLAN-003 の既存 L-level 運用へ写像する。
+
+### 3.1.2 readiness exit 条件マッピング
+| L-level | 本 PLAN の対応セクション | readiness exit 条件 | 適合状況 |
+|---|---|---|---|
+| L1 | §4（L1） | B/D PoC 前提の安全境界・脅威モデル・引き継ぎ条件が明示されていること | 適合 |
+| L2 | §4（L2 設計） | D-HOOK-SPEC/D-DB/D-CURRENT/D-DEPENDENCY の 4 設計成果が受入条件に接続されていること | 適合 |
+| L3 | §4（L3） | DDL、DDL 制約、matcher/結果整合、trust boundary を詳細化していること | 適合 |
+| L4 | §4.1〜§4.6（Sprint） | Sprint ごとに実装範囲が固定され、フェイルセーフと移行条件が明示されていること | 適合 |
+| L6 | §6 | B/D PoC/再試行を観測し fresh checkout 再現まで検証すること | 部分 |
+| L7 | §7 | 運用有効化時の設定/鍵/コピー生成をデプロイ条件に含めること | 適合 |
+| L8 | §8 | G1R/B&D/G1.5 と outcome matrix を突合する受入を定義すること | 適合 |
+
+### 3.1.3 deferred-finding カウント方針
+- 本 PLAN の本文上では未解消 P1/P2 finding は直接列挙されていないため、deferred-finding の明示候補は原則未設定。
+- 改訂履歴（v1/v2）に記載の TL レビュー指摘は、deferred 化候補レジストリ化対象として検討対象に残す。
+- `.helix/audit/deferred-findings.yaml` への反映は PLAN-004 v5 の G4（本 PLAN 実装完了後）で実施する。
+
+### 3.1.4 accuracy_score 適用
+- 本 PLAN 完了（G7）時に、`PLAN-004 v5 §4.1` の 5 軸評価を retro 再計算する。
+- P0/P1/P2 扱いを含む減点・加点ルールを反映し、deferred-finding の件数を評価入力に含める。
+- 計算結果は次 PLAN の readiness 初期基準値として提出し、`carry` 指標の起点にする。
+
 ## 4. Phase 構成
 
 ### L1 要件
@@ -294,6 +322,7 @@ CREATE TABLE IF NOT EXISTS auto_restart_log (
 
 | 日付 | バージョン | 変更内容 |
 | --- | --- | --- |
+| 2026-04-30 | v3 | readiness retro 反映（PLAN-004 v5 連動）
 | 2026-04-29 | v1 | PLAN-002 v34 の auto-restart・残量警告・hook 運用を抽出し、独立計画として新設 |
 | 2026-04-29 | v2 | TL レビュー（P1×2/P2×3/P3×1）反映。C を除外し B/D に統一、G1.5(D) 追加、判定軸分離、信頼境界と DB 所有境界を明文化 |
 

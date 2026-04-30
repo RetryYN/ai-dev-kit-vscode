@@ -60,6 +60,34 @@
   - `scope_hash` の扱いに対する再ベースライン方針が固定
   - `migration` は v7→v8 で `audit_decisions` と `import_runs` の追加を前提
 
+## 3.1 readiness retro 反映 (PLAN-004 v5 連動)
+
+### 3.1.1 適用範囲
+- 本 PLAN は PLAN-004 v5 確定前に finalize 済みのため、readiness 概念を retro 反映する。
+- 実装スコープは変更せず、retro 方針の追記のみ実施する。
+- L-level readiness は本 PLAN の既存 L1/L2/L3/L4/L6/L7/L8 対応セクションへ対応付けて評価する。
+
+### 3.1.2 readiness exit 条件マッピング
+| L-level | 本 PLAN の対応セクション | readiness exit 条件 | 適合状況 |
+|---|---|---|---|
+| L1 | §4.4 / §4.4.1 / §4.4.2 | A0/A1 の受入条件に対する要件明確化と、triaged 残存時の fail 条件定義があること | 適合 |
+| L2 | §4.5 / §4.5.1 | D-DB / D-AUDIT 成果物を成果要件として確定し、設計 freeze 前提が明示されていること | 適合 |
+| L3 | §4.6 / §4.6.1 / §4.6.2 / §4.6.3 | DDL と migration/rollback 条件を固定し、検証ケースを L4 前提で拘束すること | 適合 |
+| L4 | §4.7 | Sprint 単位で deterministic 実装を定義し、棚卸し対象外を PLAN-003 へ移管していること | 適合 |
+| L6 | §6 | G1-L3 / migration rehearsal / dry-run import の検証を満たすこと | 部分 |
+| L7 | §7 | 既存配布物への前提追加のみとし、deploy 受入前提を明示すること | 適合 |
+| L8 | §8 | G1〜G7 と A1 完了条件を同時に確認する受入を定義していること | 適合 |
+
+### 3.1.3 deferred-finding カウント方針
+- 本 PLAN の既存 review finding は本文上の明示的な P1/P2 記述が少なく、deferred-finding の明示候補は現時点で「未明示」と扱う。
+- `docs/plans/PLAN-002-helix-inventory-foundation.md` の改訂履歴中の P1/P2 記載（v3/v4/v5）を、deferred 候補候補リストとして抽出対象へ取り込む。
+- `.helix/audit/deferred-findings.yaml` への記録は PLAN-004 v5 の G4（実装後）で行う運用を採用する。
+
+### 3.1.4 accuracy_score 適用
+- 本 PLAN 完了（G7）時の 5 軸評価を、`PLAN-004 v5 §4.1` の精度枠組みで retro 再評価する。
+- `deferred-finding` 件数（P1/P2 を含む）を反映して accuracy_score を計算する方針を明文化する。
+- 反映結果は次 PLAN の基準値として参照する（レビュー運用上の carry 指標）。
+
 ## 4. Phase 構成
 
 ### Phase 0（Preflight）
@@ -453,6 +481,7 @@ CREATE INDEX IF NOT EXISTS idx_import_runs_id_status
 
 | 日付 | バージョン | 変更内容 |
 | --- | --- | --- |
+| 2026-04-30 | v6 | readiness retro 反映（PLAN-004 v5 連動） |
 | 2026-04-29 | v5 | TL レビュー P1×3 + P2×2 反映（`.gitignore` 判定反転、`audit_decisions` 2層制約、import_runs rollback 方針分離、schema_version 欠落 preflight fail-closed、hash redaction 対象変更） |
 | 2026-04-29 | v4 | TL P1×2 + P2×3 反映（raw log と redacted 分離、migration preflight 再定義、migration スコープ統一、same-scope 再 import 衝突ケースの明文化、A1 source-of-truth の G3 作成・凍結方針追加） |
 | 2026-04-29 | v3 | TL レビュー P1×3 + P2×3 の v3 反映（partial unique index、逐次 migration、CLI `helix_db.py` への v8 ブロック接続、FK 追加、hash 正規化、gitleaks 再実行可否手順） |
