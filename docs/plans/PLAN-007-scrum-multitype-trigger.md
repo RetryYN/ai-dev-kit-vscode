@@ -1,4 +1,4 @@
-# PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v1)
+# PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v3)
 
 ## 1. 目的 / Why
 
@@ -73,7 +73,7 @@ PLAN-007 は、既存 `S0-S4` を **PoC Scrum として保持**しながら、
 2. 新事実発見により、スプリント中に前提が崩れた
 3. 実装開始前に未確定領域へ突入した
 
-上記条件を満たした場合、以下を対象 Scrim 種別へ**最優先接続**する。
+上記条件を満たした場合、以下を対象 Scrum 種別へ**最優先接続**する。
 
 - 条件1/3 と画面操作・導線論点が主なら UI Scrum
 - 条件1/3 とロジック確度・境界条件が主なら ユニット Scrum
@@ -107,6 +107,86 @@ PLAN-007 は、既存 `S0-S4` を **PoC Scrum として保持**しながら、
 - 既定は `PoC Scrum` 継続、条件一致時のみ他種へ差し込み（デフォルト停止や全面巻き戻しは行わない）
 - PLAN-006 の上流再構成方針に合わせ、S0 以前/以後での依存不確定情報を D-文書へ戻す
 
+### 3.5 trigger detection の保存境界と redaction 方針（P1）
+
+#### 3.5.1 保存 allowlist
+
+保存/記録対象は以下のみ許可し、`body` や `raw` テキストは保存しない。
+
+| 区分 | 保存フィールド |
+|---|---|
+| 識別 | `trigger_id`, `scrum_type`, `source_id`, `artifact_ref`, `event_type`, `plan_id`, `sprint_id` |
+| 時系列 | `detected_at`, `last_seen_at`, `ttl_at`, `resolved_at` |
+| 評価値 | `uncertainty_score`, `impact_score`, `confidence`, `evidence_count`, `normalized_signature`, `content_hash` |
+| メタ | `status`, `status_owner`, `status_reason`, `reason_code`, `evidence_path_hint` |
+| 参照 | `source_path`, `source_line_start`, `source_line_end`, `created_by`, `created_at` |
+
+#### 3.5.2 保存前 redaction と raw body 非保存
+
+1. `cli/lib/deferred_findings.py` の redaction 方針（`SECRET_EXTRA_PATTERNS` + `redact_value`）と同等の処理を `helix-db` 保存前に適用する。
+2. redaction 対象は `title`, `evidence`, `reason`, `recommendation`。
+3. `source_path + line range + content_hash` を保存し、`raw body` は保存しない。
+4. redaction 失敗時は candidate を `rejected` として終了し、証跡を残す。
+
+#### 3.5.3 retention と削除ジョブ
+
+- retention はデフォルト **90 日**（`detected_at` 基準）。
+- 経過後はまず `archived`、次の保守スケジュールで削除対象化。
+- 削除ジョブは `cli/helix-scheduler`（`cli/lib/scheduler_helper.py`）で運用し、`PLAN-007` 専用の削除タスクを追加する。
+
+#### 3.5.4 閲覧権限・export 制約
+
+- PM: 全件参照可（ただし raw 参照キーは監査ログ経由）
+- TL: pending/triaged/adopted まで参照可
+- SE: adopted のみ参照可
+- `export` は PM 承認なしで raw 未 redacted 項目を出力不可。PM 以外は redaction 済みのみ許可。
+
+### 3.6 差し込み候補 lifecycle・重複抑止（P2）
+
+#### 3.6.1 lifecycle
+
+- `pending → triaged → adopted/rejected → archived`
+- `pending`: TL 起票、保留期限を設定
+- `triaged`: PM が優先順位・重複を判断
+- `adopted`: PM 承認で実行化
+- `rejected`: 取り下げ or ノイズ
+- `archived`: 完了/期限切れを保管
+
+#### 3.6.2 dedup key
+
+重複キー: `(scrum_type, source_id, normalized_signature)`  
+同一キーは1 Sprint内では1件に圧縮し、再検知時は `evidence_count` と `last_seen_at` のみ更新。
+
+#### 3.6.3 TTL / Sprint 上限
+
+- `pending` のまま **5 営業日**で `triaged` へエスカレーション
+- `triaged` のまま **10 営業日**で `archived` または `rejected`
+- Sprint あたり採用上限: **5 件**
+- 超過時は `impact_score` → `uncertainty_score` → `detected_at` 順で切り捨て、保留へ移送
+
+### 3.7 4 象限評価（P2）
+
+#### 3.7.1 軸定義
+
+- X: 不確実性（uncertainty, 1-5）
+- Y: 影響範囲（impact, 1-5；1-2=local、3-5=global）
+- High 判定は `>=3`
+
+#### 3.7.2 採用しきい値
+
+- `uncertainty >=3` かつ `impact >=3` で候補化
+- 追加で `evidence_count >=3` も候補化条件
+- 連続再判定の優先スコア: `impact*0.6 + uncertainty*0.4`
+
+#### 3.7.3 象限マッピング
+
+| 象限 | 推奨 Scrum |
+|---|---|
+| low / low | `Unit`（ロジック）または `UI`（UI） |
+| high / low | `Unit` |
+| low / high | `Sprint` または `UI`（画面崩れ） |
+| high / high | `Sprint`（運用観測シグナル時は `Post-deploy` を優先） |
+
 ## 4. 関連 PLAN
 
 - `docs/plans/PLAN-004-pm-reward-design.md`
@@ -116,8 +196,8 @@ PLAN-007 は、既存 `S0-S4` を **PoC Scrum として保持**しながら、
   - 本 PLAN は PLAN-006 の接続先として `5 種の差し込み` を追加
 - `docs/plans/PLAN-007-scrum-multitype-trigger.md`
   - 本文書（自己参照）として、Scrum 5 種の運用粒度を確定
-- `docs/plans/PLAN-009-?`（デプロイ後 Scrum 接続）
-  - 接続先予定。未作成時点では計画参照のみ
+- `docs/plans/PLAN-009-run-phase-l9-l11.md`（デプロイ後 Scrum 接続）
+  - 接続先は `PLAN-009-run-phase-l9-l11.md` の L11 結果と接続
 
 - `skills/agent-skills/helix-scrum/SKILL.md`
   - PoC Scrum（S0-S4）の既存運用を継承
@@ -169,3 +249,4 @@ PLAN-007 は、既存 `S0-S4` を **PoC Scrum として保持**しながら、
 | 日付 | バージョン | 変更内容 | 変更者 |
 | --- | --- | --- | --- |
 | 2026-04-30 | v1 | Scrum 5 種（PoC/UI/Unit/Sprint/Post-deploy）を導入し、差し込みトリガー（Q5）と `--scrum-suggest`、`helix scrum trigger detect`、helix.db 蓄積方針を初期策定。`S0-S4` を PoC Scrum として維持し互換を明示。 | Docs (Codex) |
+| 2026-05-01 | v3 | P1×1/P2×2/P3×1 に対する設計追記。§3.5 で保存 allowlist + redaction + retention/export 制約、§3.6 で lifecycle/TTL/重複抑止、§3.7 で 4 象限軸の閾値と Scrum 推奨を追加。PLAN-009 参照を `...-run-phase-l9-l11.md` に修正。 | Docs (Codex) |
