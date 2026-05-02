@@ -6,81 +6,321 @@ if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
 fi
 set -euo pipefail
 
-# helix-reverse: Reverse HELIX パイプライン (R0→R4)
-# Usage: helix-reverse <R0|R1|R2|R3|R4|status> [--target <path>] [--dry-run]
+# helix-reverse: Reverse HELIX pipeline
+# Usage:
+#   helix reverse <type> [<run|status|rgc|retry|R0|R1|R2|R3|R4>] [options]
+#   helix reverse R0|R1|R2|R3|R4|status|rgc [options]  # legacy code alias
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
-REVERSE_DIR="$HELIX_DIR/reverse"
+CODE_REVERSE_DIR="$HELIX_DIR/reverse"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+YP="$SCRIPT_DIR/lib/yaml_parser.py"
 
-# --- 引数パース ---
-STAGE=""
+TYPE="code"
+SUBCOMMAND=""
 TARGET=""
 DRY_RUN=false
 INVALIDATE_FORWARD=false
+JSON_OUTPUT=false
+LAST_FAILED=false
+RETRY_STAGE=""
+PLANS_PATH="docs/plans/"
+DESIGN_PATH="docs/design/"
+FEATURES_PATH="docs/features/"
+OUTPUT_PATH=""
+TOPOLOGICAL_SORT=false
 
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --target)  TARGET="$2"; shift 2 ;;
-    --dry-run) DRY_RUN=true; shift ;;
-    --invalidate-forward) INVALIDATE_FORWARD=true; shift ;;
-    --help|-h)
-      echo "Usage: helix-reverse <R0|R1|R2|R3|R4|status|rgc> [--target <path>] [--dry-run] [--invalidate-forward]"
-      echo ""
-      echo "Stages:"
-      echo "  R0  Evidence Acquisition（証拠収集）"
-      echo "  R1  Observed Contracts（契約抽出）"
-      echo "  R2  As-Is Design（設計復元）"
-      echo "  R3  Intent Hypotheses（要件仮説）"
-      echo "  R4  Gap & Routing（差分分析→Forward接続）"
-      echo "  status  現在の Reverse 状態を表示"
-      echo "  rgc     Reverse Gap Closure — R4 Gap Register の状態を集計表示"
-      echo ""
-      echo "Options:"
-      echo "  --invalidate-forward  R2/R3/R4 実行時に Forward gates (G2-G7) を invalidated にする"
-      exit 0
+usage() {
+  cat <<'USAGE'
+Usage:
+  helix-reverse <type> [<subcommand>] [options]
+  helix-reverse R0|R1|R2|R3|R4|status|rgc [options]  # legacy alias for code
+
+Types:
+  code        Existing Reverse HELIX behavior (default / legacy compatible)
+  design      Reverse design assets into evidence, DAG, implementation order, routing
+  upgrade     Not implemented yet (reserved by PLAN-008)
+  normalization  Not implemented yet (reserved by PLAN-008)
+  fullback    Not implemented yet (reserved by PLAN-008)
+
+Subcommands:
+  run         Run alias. Starts at the type's first stage (R0)
+  status      Show type-specific Reverse status
+  rgc         Reverse Gap Closure
+  retry       Retry a stage: retry <R0|R1|R2|R3|R4>
+  R0..R4      Run a stage directly
+
+Options:
+  --target <path>             code: target path (legacy)
+  --invalidate-forward        code + R2/R3/R4/run/retry only; invalidate Forward gates on success
+  --json                      status only
+  --last-failed               retry only
+  --dry-run                   Print delegated helix-codex task without running it
+
+Design options:
+  --plans <path>              default: docs/plans/
+  --design <path>             default: docs/design/
+  --features <path>           default: docs/features/
+  --output <path>             R2/R3 custom output file or directory
+  --topological-sort          R3 only; include topological sort result
+USAGE
+}
+
+usage_type() {
+  local type="$1"
+  case "$type" in
+    design)
+      cat <<'USAGE'
+Usage:
+  helix-reverse design [run|status|rgc|retry|R0|R2|R3|R4] [options]
+
+Design stages:
+  R0  Design Evidence Acquisition -> D0-design-evidence-map.yaml
+  R1  skipped for design
+  R2  Design DAG extraction       -> D2-design-dag.yaml
+  R3  Implementation order        -> D3-impl-order.yaml (optional)
+  R4  Design routing              -> D4-design-routing.yaml
+  rgc Optional closure check for D4-design-routing.yaml after Forward L2 freeze
+
+Options:
+  --plans <path>              default: docs/plans/
+  --design <path>             default: docs/design/
+  --features <path>           default: docs/features/
+  --output <path>             R2/R3 custom output file or directory
+  --topological-sort          R3 only; include topological sort result
+  --dry-run                   Print delegated helix-codex task without running it
+USAGE
       ;;
-    R[0-4]) STAGE="$1"; shift ;;
-    status) STAGE="status"; shift ;;
-    rgc) STAGE="rgc"; shift ;;
-    *) echo "Error: Unknown option: $1" >&2; exit 1 ;;
+    *) usage ;;
   esac
-done
+}
 
-if [[ -z "$STAGE" ]]; then
-  echo "Error: Stage required (R0-R4 or status)" >&2
-  exit 1
-fi
+is_type() {
+  case "$1" in
+    code|design|upgrade|normalization|fullback) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
-# auto-switch to reverse mode
-if [[ "$STAGE" == "R0" ]]; then
-  current_mode=$(python3 "$YAML_PARSER" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
-  if [[ "$current_mode" != "reverse" && -f "$PHASE_FILE" ]]; then
-    python3 "$YAML_PARSER" write "$PHASE_FILE" current_mode reverse 2>/dev/null || true
-    echo "[helix-reverse] モードを reverse に自動切替しました"
+is_stage() {
+  [[ "$1" =~ ^R[0-4]$ ]]
+}
+
+is_subcommand() {
+  case "$1" in
+    run|status|rgc|retry|R0|R1|R2|R3|R4) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+parse_args() {
+  if [[ $# -eq 0 ]]; then
+    usage >&2
+    exit "$EXIT_INPUT_ERROR"
   fi
-fi
 
-# --- .helix/ チェック ---
-if [[ ! -d "$HELIX_DIR" ]]; then
-  echo "Error: .helix/ not found. Run 'helix-init' first." >&2
-  exit 1
-fi
+  case "${1:-}" in
+    --help|-h|help)
+      usage
+      exit "$EXIT_SUCCESS"
+      ;;
+  esac
 
-# --- reverse_gates 読み書き (yaml_parser.py) ---
-YP="$SCRIPT_DIR/lib/yaml_parser.py"
+  if is_type "$1"; then
+    TYPE="$1"
+    shift
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+      usage_type "$TYPE"
+      exit "$EXIT_SUCCESS"
+    fi
+    case "$TYPE" in
+      upgrade|normalization|fullback)
+        SUBCOMMAND="run"
+        return
+        ;;
+    esac
+    if [[ $# -gt 0 && "$(printf '%s' "$1" | cut -c1)" != "-" ]]; then
+      if is_subcommand "$1"; then
+        SUBCOMMAND="$1"
+        shift
+      else
+        echo "Error: Unknown subcommand for reverse type '$TYPE': $1" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+    fi
+    [[ -z "$SUBCOMMAND" ]] && SUBCOMMAND="run"
+  else
+    # Existing compatibility: helix reverse R0/status/rgc -> code <subcommand>
+    if is_subcommand "$1"; then
+      TYPE="code"
+      SUBCOMMAND="$1"
+      shift
+    else
+      echo "Error: Unknown reverse type or subcommand: $1" >&2
+      usage >&2
+      exit "$EXIT_INPUT_ERROR"
+    fi
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)
+        TARGET="${2:-}"
+        [[ -n "$TARGET" ]] || { echo "Error: --target requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --plans)
+        PLANS_PATH="${2:-}"
+        [[ -n "$PLANS_PATH" ]] || { echo "Error: --plans requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --design)
+        DESIGN_PATH="${2:-}"
+        [[ -n "$DESIGN_PATH" ]] || { echo "Error: --design requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --features)
+        FEATURES_PATH="${2:-}"
+        [[ -n "$FEATURES_PATH" ]] || { echo "Error: --features requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --output)
+        OUTPUT_PATH="${2:-}"
+        [[ -n "$OUTPUT_PATH" ]] || { echo "Error: --output requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --topological-sort)
+        TOPOLOGICAL_SORT=true
+        shift
+        ;;
+      --dry-run)
+        DRY_RUN=true
+        shift
+        ;;
+      --invalidate-forward)
+        INVALIDATE_FORWARD=true
+        shift
+        ;;
+      --json)
+        JSON_OUTPUT=true
+        shift
+        ;;
+      --last-failed)
+        LAST_FAILED=true
+        shift
+        ;;
+      --help|-h)
+        usage_type "$TYPE"
+        exit "$EXIT_SUCCESS"
+        ;;
+      *)
+        if [[ "$SUBCOMMAND" == "retry" && -z "$RETRY_STAGE" && "$1" =~ ^R[0-4]$ ]]; then
+          RETRY_STAGE="$1"
+          shift
+        else
+          echo "Error: Unknown option: $1" >&2
+          exit "$EXIT_INPUT_ERROR"
+        fi
+        ;;
+    esac
+  done
+}
+
+validate_args() {
+  case "$TYPE" in
+    code|design) ;;
+    upgrade|normalization|fullback)
+      # TODO(PLAN-008): implement these reserved reverse types in separate sessions.
+      # Add type-specific option schemas, stage mappings, gate keys, and Codex tasks here.
+      echo "Error: reverse type '$TYPE' is not implemented in this session." >&2
+      echo "PLAN-008 reserves this type; implementation is deferred to a separate PLAN/session." >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+
+  if [[ "$JSON_OUTPUT" == true && "$SUBCOMMAND" != "status" ]]; then
+    echo "Error: --json is valid only with status" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  if [[ "$LAST_FAILED" == true && "$SUBCOMMAND" != "retry" ]]; then
+    echo "Error: --last-failed is valid only with retry" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  if [[ "$INVALIDATE_FORWARD" == true ]]; then
+    if [[ "$TYPE" != "code" ]]; then
+      echo "Error: --invalidate-forward is valid only for reverse type 'code'" >&2
+      exit "$EXIT_INPUT_ERROR"
+    fi
+    case "$SUBCOMMAND" in
+      run|retry|R2|R3|R4) ;;
+      *)
+        echo "Error: --invalidate-forward is valid only for code run/retry or R2/R3/R4" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  fi
+
+  if [[ "$TOPOLOGICAL_SORT" == true && "$TYPE" == "design" ]]; then
+    if [[ "$SUBCOMMAND" != "R3" && ! ( "$SUBCOMMAND" == "retry" && "$RETRY_STAGE" == "R3" ) ]]; then
+      echo "Error: --topological-sort is valid only for design R3" >&2
+      exit "$EXIT_INPUT_ERROR"
+    fi
+  elif [[ "$TOPOLOGICAL_SORT" == true ]]; then
+    echo "Error: --topological-sort is valid only for reverse type 'design'" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  if [[ "$TYPE" == "design" && "$SUBCOMMAND" == "R1" ]]; then
+    echo "Error: design R1 is skipped by PLAN-008 and cannot be executed" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+}
+
+ensure_helix_dir() {
+  if [[ ! -d "$HELIX_DIR" ]]; then
+    echo "Error: .helix/ not found. Run 'helix-init' first." >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+}
+
+auto_switch_reverse_mode() {
+  local stage="$1"
+  if [[ "$stage" == "R0" ]]; then
+    local current_mode
+    current_mode=$(python3 "$YAML_PARSER" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
+    if [[ "$current_mode" != "reverse" && -f "$PHASE_FILE" ]]; then
+      python3 "$YAML_PARSER" write "$PHASE_FILE" current_mode reverse 2>/dev/null || true
+      echo "[helix-reverse] モードを reverse に自動切替しました"
+    fi
+  fi
+}
+
+reverse_dir_for_type() {
+  case "$1" in
+    code) echo "$CODE_REVERSE_DIR" ;;
+    design) echo "$CODE_REVERSE_DIR/design" ;;
+  esac
+}
 
 get_rgate_status() {
-  local rgate="$1"
-  python3 "$YP" read "$PHASE_FILE" "reverse_gates.${rgate}.status" 2>/dev/null || echo "pending"
+  local type="$1"
+  local rgate="$2"
+  local path="reverse_gates.${rgate}.status"
+  [[ "$type" == "design" ]] && path="reverse_gates.design.${rgate}.status"
+  python3 "$YP" read "$PHASE_FILE" "$path" 2>/dev/null || echo "pending"
 }
 
 set_rgate_status() {
-  local rgate="$1"
-  local status="$2"
-  python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.status" "$status" 2>/dev/null
-  python3 "$YP" write "$PHASE_FILE" "reverse_gates.${rgate}.date" "$(date '+%Y-%m-%d')" 2>/dev/null
+  local type="$1"
+  local rgate="$2"
+  local status="$3"
+  local base="reverse_gates.${rgate}"
+  [[ "$type" == "design" ]] && base="reverse_gates.design.${rgate}"
+  python3 "$YP" write "$PHASE_FILE" "${base}.status" "$status" 2>/dev/null || true
+  python3 "$YP" write "$PHASE_FILE" "${base}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true
 }
 
 invalidate_forward_gates() {
@@ -91,24 +331,264 @@ invalidate_forward_gates() {
   echo "[helix-reverse] Forward gates を invalidated に更新しました: G2 G3 G4 G5 G6 G7"
 }
 
-# --- rgc: Reverse Gap Closure ---
-# R4 Gap Register を読み取り、各 Gap の状態を集計表示する
-if [[ "$STAGE" == "rgc" ]]; then
-  GAP_REGISTER="$REVERSE_DIR/R4-gap-register.md"
+stage_for_command() {
+  case "$SUBCOMMAND" in
+    run)
+      echo "R0"
+      ;;
+    retry)
+      if [[ -n "$RETRY_STAGE" ]]; then
+        echo "$RETRY_STAGE"
+      elif [[ "$LAST_FAILED" == true ]]; then
+        find_last_failed_stage
+      else
+        echo "Error: retry requires <R0|R1|R2|R3|R4> or --last-failed" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+      ;;
+    R[0-4])
+      echo "$SUBCOMMAND"
+      ;;
+    *)
+      echo "Error: subcommand '$SUBCOMMAND' does not map to a stage" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+}
 
-  if [[ ! -f "$GAP_REGISTER" ]]; then
-    echo "Error: $GAP_REGISTER が見つかりません" >&2
+find_last_failed_stage() {
+  local stage gate status
+  for stage in R4 R3 R2 R1 R0; do
+    if [[ "$TYPE" == "design" && "$stage" == "R1" ]]; then
+      continue
+    fi
+    gate=$(stage_rgate "$TYPE" "$stage")
+    status=$(get_rgate_status "$TYPE" "$gate")
+    if [[ "$status" == "failed" ]]; then
+      echo "$stage"
+      return
+    fi
+  done
+  echo "Error: no failed reverse stage found for type '$TYPE'" >&2
+  exit "$EXIT_PREREQ_ERROR"
+}
+
+stage_role() {
+  local type="$1"
+  local stage="$2"
+  case "$type:$stage" in
+    code:R0|code:R1|code:R2|code:R3) echo "legacy" ;;
+    code:R4) echo "tl" ;;
+    design:R0) echo "research" ;;
+    design:R2|design:R3|design:R4) echo "tl" ;;
+    *) echo "Error: unsupported stage $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  esac
+}
+
+stage_rgate() {
+  local type="$1"
+  local stage="$2"
+  case "$type:$stage" in
+    code:R0) echo "RG0" ;;
+    code:R1) echo "RG1" ;;
+    code:R2) echo "RG2" ;;
+    code:R3|code:R4) echo "RG3" ;;
+    design:R0) echo "RG0" ;;
+    design:R2) echo "RG2" ;;
+    design:R3) echo "RG3" ;;
+    design:R4) echo "RGC" ;;
+    *) echo "Error: unsupported gate mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  esac
+}
+
+stage_prereq() {
+  local type="$1"
+  local stage="$2"
+  case "$type:$stage" in
+    code:R0|design:R0) echo "" ;;
+    code:R1) echo "RG0" ;;
+    code:R2) echo "RG1" ;;
+    code:R3) echo "RG2" ;;
+    code:R4) echo "RG3" ;;
+    design:R2) echo "RG0" ;;
+    design:R3) echo "RG2" ;;
+    design:R4) echo "RG2" ;;
+    *) echo "Error: unsupported prerequisite mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  esac
+}
+
+stage_output() {
+  local type="$1"
+  local stage="$2"
+  case "$type:$stage" in
+    code:R0) echo "R0-evidence-map.yaml" ;;
+    code:R1) echo "R1-observed-contracts.yaml" ;;
+    code:R2) echo "R2-as-is-design.md" ;;
+    code:R3) echo "R3-intent-hypotheses.md" ;;
+    code:R4) echo "R4-gap-register.yaml" ;;
+    design:R0) echo "D0-design-evidence-map.yaml" ;;
+    design:R2) echo "D2-design-dag.yaml" ;;
+    design:R3) echo "D3-impl-order.yaml" ;;
+    design:R4) echo "D4-design-routing.yaml" ;;
+    *) echo "Error: unsupported output mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  esac
+}
+
+resolve_output_file() {
+  local type="$1"
+  local stage="$2"
+  local base_dir
+  local default_name
+  base_dir=$(reverse_dir_for_type "$type")
+  default_name=$(stage_output "$type" "$stage")
+
+  if [[ "$type" == "design" && ( "$stage" == "R2" || "$stage" == "R3" ) && -n "$OUTPUT_PATH" ]]; then
+    if [[ "$OUTPUT_PATH" == */ || -d "$OUTPUT_PATH" ]]; then
+      echo "${OUTPUT_PATH%/}/$default_name"
+    else
+      echo "$OUTPUT_PATH"
+    fi
+  else
+    echo "$base_dir/$default_name"
+  fi
+}
+
+prev_output_note() {
+  local type="$1"
+  local stage="$2"
+  local dir
+  dir=$(reverse_dir_for_type "$type")
+  case "$type:$stage" in
+    code:R1) [[ -f "$dir/R0-evidence-map.yaml" ]] && echo "前ステージ成果物: $dir/R0-evidence-map.yaml を Read して参照せよ。" ;;
+    code:R2) [[ -f "$dir/R1-observed-contracts.yaml" ]] && echo "前ステージ成果物: $dir/R1-observed-contracts.yaml を Read して参照せよ。" ;;
+    code:R3) [[ -f "$dir/R2-as-is-design.md" ]] && echo "前ステージ成果物: $dir/R2-as-is-design.md を Read して参照せよ。" ;;
+    code:R4) [[ -f "$dir/R3-intent-hypotheses.md" ]] && echo "前ステージ成果物: $dir/R3-intent-hypotheses.md を Read して参照せよ。" ;;
+    design:R2) [[ -f "$dir/D0-design-evidence-map.yaml" ]] && echo "前ステージ成果物: $dir/D0-design-evidence-map.yaml を Read して参照せよ。" ;;
+    design:R3) [[ -f "$dir/D2-design-dag.yaml" ]] && echo "前ステージ成果物: $dir/D2-design-dag.yaml を Read して参照せよ。" ;;
+    design:R4) [[ -f "$dir/D2-design-dag.yaml" ]] && echo "前ステージ成果物: $dir/D2-design-dag.yaml を Read して参照せよ。$([[ -f "$dir/D3-impl-order.yaml" ]] && echo "任意成果物: $dir/D3-impl-order.yaml も参照せよ。")" ;;
+  esac
+  return 0
+}
+
+stage_task() {
+  local type="$1"
+  local stage="$2"
+  local target_desc="$3"
+  local output_file="$4"
+  local prev="$5"
+  local generated_schema="stage_id / generated_at / source_paths を必須フィールドとして持つ YAML skeleton を出力すること。"
+
+  case "$type:$stage" in
+    code:R0)
+      echo "R0 Evidence Acquisition: $target_desc のコード・DB・設定・外部APIを調査し、evidence_map を YAML で出力せよ。modules / db_schema / external_apis / config_files / unknowns の5カテゴリで整理。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    code:R1)
+      echo "R1 Observed Contracts: API/DB/型の機械抽出を行い、observed_contracts を YAML で出力せよ。各エンドポイントの request/response 型、DB テーブルの列定義、外部API呼び出しの契約を記録。characterization tests の候補も列挙。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    code:R2)
+      echo "R2 As-Is Design: アーキテクチャを復元し、ADR仮説を立てよ。コンポーネント図（テキスト）、データフロー、依存関係、推定された設計判断（ADR形式）を出力。矛盾点と不明点を明示。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    code:R3)
+      echo "R3 Intent Hypotheses: 要件仮説を立て、PO検証用の質問リストを作成せよ。各仮説に confidence (high/medium/low) を付与。unknown は全件タスク化。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    code:R4)
+      echo "R4 Gap & Routing: 差分を集約し、Forward HELIX への接続を設計せよ。各 gap を defect/assumption/quality/scope に分類し、L1/L2/L3/L4 への振り分けを提案。remediation plan を含める。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    design:R0)
+      echo "Design R0 Evidence Acquisition: 設計資産をスキャンし、design evidence map を YAML で出力せよ。対象: plans=$PLANS_PATH, design=$DESIGN_PATH, features=$FEATURES_PATH。docs/plans/, docs/design/D-*.md, docs/features/*/D-* の設計資産を source_paths として記録し、抽出不能参照を unknowns に列挙。$generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    design:R2)
+      echo "Design R2 DAG Extraction: 設計資産から依存 DAG を抽出し、nodes / edges / cycles / unknowns を YAML で出力せよ。対象: plans=$PLANS_PATH, design=$DESIGN_PATH, features=$FEATURES_PATH。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    design:R3)
+      local topo_note=""
+      [[ "$TOPOLOGICAL_SORT" == true ]] && topo_note="topological_sort セクションを含め、実装順序と並列実行可能グループを明示。"
+      echo "Design R3 Implementation Order: D2 DAG から実装順序を導出し、implementation_order / parallel_groups / unknown_edges を YAML で出力せよ。$topo_note $prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    design:R4)
+      echo "Design R4 Routing: design DAG と任意の実装順序を Forward HELIX に接続し、routing_to_forward / disconnected_designs / deferred_findings_candidates を YAML で出力せよ。Forward L1/L2/L3/L4 の接続先と接続確度を明示。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+  esac
+}
+
+status_json() {
+  local type="$1"
+  local dir="$2"
+  local gates
+  if [[ "$type" == "design" ]]; then
+    gates="RG0 RG2 RG3 RGC"
+  else
+    gates="RG0 RG1 RG2 RG3"
+  fi
+
+  printf '{\n'
+  printf '  "reverse_type": "%s",\n' "$type"
+  printf '  "gates": {\n'
+  local first=true gate status
+  for gate in $gates; do
+    status=$(get_rgate_status "$type" "$gate")
+    [[ "$first" == false ]] && printf ',\n'
+    printf '    "%s": "%s"' "$gate" "$status"
+    first=false
+  done
+  printf '\n  },\n'
+  printf '  "artifacts": ['
+  local artifact_first=true f
+  if [[ -d "$dir" ]]; then
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      [[ "$artifact_first" == false ]] && printf ', '
+      printf '"%s"' "$(basename "$f")"
+      artifact_first=false
+    done < <(find "$dir" -maxdepth 1 \( -name '*.yaml' -o -name '*.md' \) -type f 2>/dev/null | sort)
+  fi
+  printf ']\n'
+  printf '}\n'
+}
+
+cmd_status() {
+  local dir
+  dir=$(reverse_dir_for_type "$TYPE")
+
+  if [[ "$JSON_OUTPUT" == true || "$TYPE" == "design" ]]; then
+    status_json "$TYPE" "$dir"
+    return
+  fi
+
+  echo "=== Reverse HELIX Status ==="
+  echo "reverse_type: $TYPE"
+  echo ""
+  for rg in RG0 RG1 RG2 RG3; do
+    status=$(get_rgate_status "$TYPE" "$rg")
+    echo "  $rg: $status"
+  done
+  echo ""
+  if [[ -d "$dir" ]]; then
+    echo "成果物:"
+    find "$dir" -maxdepth 1 \( -name '*.yaml' -o -name '*.md' \) -type f 2>/dev/null | sort | while read -r f; do
+      echo "  $(basename "$f")"
+    done
+  fi
+}
+
+cmd_rgc_code() {
+  local gap_register="$CODE_REVERSE_DIR/R4-gap-register.md"
+  if [[ ! -f "$gap_register" && -f "$CODE_REVERSE_DIR/R4-gap-register.yaml" ]]; then
+    gap_register="$CODE_REVERSE_DIR/R4-gap-register.yaml"
+  fi
+
+  if [[ ! -f "$gap_register" ]]; then
+    echo "Error: $CODE_REVERSE_DIR/R4-gap-register.md が見つかりません" >&2
     echo "  先に 'helix reverse R4' を実行してください" >&2
     exit "$EXIT_PREREQ_ERROR"
   fi
 
   echo "=== Reverse Gap Closure (RGC) ==="
   echo ""
-  echo "Source: $GAP_REGISTER"
+  echo "Source: $gap_register"
   echo ""
 
-  # Markdown テーブルから Gap 状態を集計
-  python3 - "$GAP_REGISTER" <<'PY'
+  python3 - "$gap_register" <<'PY'
 import re, sys
 from collections import defaultdict
 
@@ -116,7 +596,6 @@ gap_file = sys.argv[1]
 with open(gap_file, 'r', encoding='utf-8') as f:
     content = f.read()
 
-# Gap 行を正規表現で抽出: | GAP-XXX | ... | priority | ... | status_text | ... |
 gap_pattern = re.compile(
     r'\|\s*(GAP-\d{3})\s*\|.*?\|\s*\w+\s*\|\s*(P[012])\s*\|.*?\|\s*([^|]+?)\s*\|',
     re.MULTILINE
@@ -128,8 +607,6 @@ unresolved = []
 for match in gap_pattern.finditer(content):
     gap_id, priority, status = match.groups()
     status_clean = status.strip()
-
-    # ステータス分類
     if "解決済" in status_clean and "部分" not in status_clean:
         stats[priority]['resolved'] += 1
     elif "部分解決" in status_clean:
@@ -139,12 +616,7 @@ for match in gap_pattern.finditer(content):
         stats[priority]['open'] += 1
         unresolved.append((gap_id, priority, status_clean[:50]))
 
-# 集計表示
-total = 0
-total_resolved = 0
-total_partial = 0
-total_open = 0
-
+total = total_resolved = total_partial = total_open = 0
 print(f"{'Priority':<10} {'Resolved':>10} {'Partial':>10} {'Open':>10} {'Total':>10}")
 print(f"{'-'*10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10}")
 
@@ -161,12 +633,10 @@ print(f"{'-'*10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10} {'-'*10:>10}")
 print(f"{'Total':<10} {total_resolved:>10} {total_partial:>10} {total_open:>10} {total:>10}")
 print()
 
-# 進捗率
 if total > 0:
     closure_rate = (total_resolved + total_partial * 0.5) / total * 100
     print(f"Closure Rate: {closure_rate:.1f}% ({total_resolved} resolved + {total_partial} partial = {total_resolved + total_partial}/{total})")
 
-# 未解決リスト
 if unresolved:
     print()
     print("=== 未解決/部分解決の Gap ===")
@@ -176,192 +646,169 @@ if unresolved:
     if len(unresolved) > 20:
         print(f"  ... 他 {len(unresolved) - 20} 件")
 
-# 全件 closed なら祝福
 if total > 0 and total_open == 0 and total_partial == 0:
     print()
-    print("🎉 All Reverse HELIX Gaps are CLOSED!")
-    print("   Forward HELIX is fully aligned with the Reverse analysis.")
+    print("All Reverse HELIX Gaps are CLOSED.")
+    print("Forward HELIX is fully aligned with the Reverse analysis.")
 PY
+}
 
-  exit "$EXIT_SUCCESS"
-fi
+cmd_rgc_design() {
+  local dir="$CODE_REVERSE_DIR/design"
+  local routing="$dir/D4-design-routing.yaml"
+  if [[ ! -f "$routing" ]]; then
+    echo "Error: $routing が見つかりません" >&2
+    echo "  先に 'helix reverse design R4' を実行してください" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
 
-# --- status ---
-if [[ "$STAGE" == "status" ]]; then
-  echo "=== Reverse HELIX Status ==="
+  echo "=== Reverse Design Gap Closure (RGC) ==="
+  echo "reverse_type: design"
+  echo "Source: $routing"
   echo ""
-  for rg in RG0 RG1 RG2 RG3; do
-    status=$(get_rgate_status "$rg")
-    echo "  $rg: $status"
-  done
+  echo "Forward L2 設計凍結後の任意チェックです。D4-design-routing.yaml の受入注記を確認してください。"
+}
+
+run_stage() {
+  local stage="$1"
+  local dir role target_desc output_file prev task rgate prereq prereq_status
+  dir=$(reverse_dir_for_type "$TYPE")
+  role=$(stage_role "$TYPE" "$stage")
+  output_file=$(resolve_output_file "$TYPE" "$stage")
+  prev=$(prev_output_note "$TYPE" "$stage")
+  target_desc="${TARGET:-$PROJECT_ROOT}"
+  [[ "$TYPE" == "design" ]] && target_desc="plans=$PLANS_PATH design=$DESIGN_PATH features=$FEATURES_PATH"
+
+  auto_switch_reverse_mode "$stage"
+  mkdir -p "$dir"
+
+  if [[ "$SUBCOMMAND" != "retry" ]]; then
+    prereq=$(stage_prereq "$TYPE" "$stage")
+    if [[ -n "$prereq" ]]; then
+      prereq_status=$(get_rgate_status "$TYPE" "$prereq")
+      if [[ "$prereq_status" != "passed" ]]; then
+        echo "Error: $prereq が未通過 (status: $prereq_status)" >&2
+        echo "先に前のステージを完了してください" >&2
+        exit "$EXIT_CHECK_FAILED"
+      fi
+    fi
+  fi
+
+  task=$(stage_task "$TYPE" "$stage" "$target_desc" "$output_file" "$prev")
+
+  echo "=== Reverse HELIX: $TYPE $stage ==="
+  echo "Role:   $role"
+  echo "Target: $target_desc"
+  echo "Output: $output_file"
   echo ""
-  if [[ -d "$REVERSE_DIR" ]]; then
-    echo "成果物:"
-    ls -1 "$REVERSE_DIR"/*.yaml "$REVERSE_DIR"/*.md 2>/dev/null | while read -r f; do
-      echo "  $(basename "$f")"
-    done
+
+  if [[ "$DRY_RUN" == true ]]; then
+    echo "[dry-run] helix-codex --role $role --task:"
+    echo "$task"
+    if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
+      echo "[dry-run] --invalidate-forward: Forward gates (G2-G7) を invalidated に更新します"
+    fi
+    return
   fi
-  exit 0
-fi
 
-# --- ステージ定義 ---
-declare -A STAGE_ROLE=(
-  ["R0"]="legacy"
-  ["R1"]="legacy"
-  ["R2"]="legacy"
-  ["R3"]="legacy"
-  ["R4"]="tl"
-)
+  local log_dir log_name log_file run_status db_run_id codex_exit
+  log_dir="$HELIX_DIR/task-logs"
+  mkdir -p "$log_dir"
+  log_name="$(basename "$output_file")"
+  log_name="${log_name%.*}"
+  log_file="$log_dir/${TYPE}-${stage}-${log_name}.log"
+  run_status="completed"
+  db_run_id=""
 
-declare -A STAGE_RGATE=(
-  ["R0"]="RG0"
-  ["R1"]="RG1"
-  ["R2"]="RG2"
-  ["R3"]="RG3"
-  ["R4"]="RG3"
-)
-
-declare -A STAGE_PREREQ=(
-  ["R0"]=""
-  ["R1"]="RG0"
-  ["R2"]="RG1"
-  ["R3"]="RG2"
-  ["R4"]="RG3"
-)
-
-declare -A STAGE_OUTPUT=(
-  ["R0"]="R0-evidence-map.yaml"
-  ["R1"]="R1-observed-contracts.yaml"
-  ["R2"]="R2-as-is-design.md"
-  ["R3"]="R3-intent-hypotheses.md"
-  ["R4"]="R4-gap-register.yaml"
-)
-
-# --- 前提条件チェック ---
-prereq="${STAGE_PREREQ[$STAGE]}"
-if [[ -n "$prereq" ]]; then
-  prereq_status=$(get_rgate_status "$prereq")
-  if [[ "$prereq_status" != "passed" ]]; then
-    echo "Error: $prereq が未通過 (status: $prereq_status)" >&2
-    echo "先に前のステージを完了してください" >&2
-    exit 1
-  fi
-fi
-
-# --- タスクプロンプト構築 ---
-mkdir -p "$REVERSE_DIR"
-TARGET_DESC="${TARGET:-$PROJECT_ROOT}"
-PREV_OUTPUT=""
-case "$STAGE" in
-  R1) [[ -f "$REVERSE_DIR/R0-evidence-map.yaml" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R0-evidence-map.yaml を Read して参照せよ。" ;;
-  R2) [[ -f "$REVERSE_DIR/R1-observed-contracts.yaml" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R1-observed-contracts.yaml を Read して参照せよ。" ;;
-  R3) [[ -f "$REVERSE_DIR/R2-as-is-design.md" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R2-as-is-design.md を Read して参照せよ。" ;;
-  R4) [[ -f "$REVERSE_DIR/R3-intent-hypotheses.md" ]] && PREV_OUTPUT="前ステージ成果物: $REVERSE_DIR/R3-intent-hypotheses.md を Read して参照せよ。" ;;
-esac
-
-declare -A STAGE_TASK=(
-  ["R0"]="R0 Evidence Acquisition: $TARGET_DESC のコード・DB・設定・外部APIを調査し、evidence_map を YAML で出力せよ。modules / db_schema / external_apis / config_files / unknowns の5カテゴリで整理。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
-  ["R1"]="R1 Observed Contracts: API/DB/型の機械抽出を行い、observed_contracts を YAML で出力せよ。各エンドポイントの request/response 型、DB テーブルの列定義、外部API呼び出しの契約を記録。characterization tests の候補も列挙。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
-  ["R2"]="R2 As-Is Design: アーキテクチャを復元し、ADR仮説を立てよ。コンポーネント図（テキスト）、データフロー、依存関係、推定された設計判断（ADR形式）を出力。矛盾点と不明点を明示。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
-  ["R3"]="R3 Intent Hypotheses: 要件仮説を立て、PO検証用の質問リストを作成せよ。各仮説に confidence (high/medium/low) を付与。unknown は全件タスク化。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
-  ["R4"]="R4 Gap & Routing: 差分を集約し、Forward HELIX への接続を設計せよ。各 gap を defect/assumption/quality/scope に分類し、L1/L2/L3/L4 への振り分けを提案。remediation plan を含める。$PREV_OUTPUT 結果は $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} に書き出すこと。"
-)
-
-TASK="${STAGE_TASK[$STAGE]}"
-ROLE="${STAGE_ROLE[$STAGE]}"
-
-echo "=== Reverse HELIX: $STAGE ==="
-echo "Role:   $ROLE"
-echo "Target: $TARGET_DESC"
-echo "Output: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
-echo ""
-
-if [[ "$DRY_RUN" == true ]]; then
-  echo "[dry-run] helix-codex --role $ROLE --task:"
-  echo "$TASK"
-  if [[ "$INVALIDATE_FORWARD" == true && "$STAGE" =~ ^R[2-4]$ ]]; then
-    echo "[dry-run] --invalidate-forward: Forward gates (G2-G7) を invalidated に更新します"
-  fi
-  exit 0
-fi
-
-# --- ログ + DB 記録 ---
-DB_PY="$SCRIPT_DIR/lib/helix_db.py"
-DB_PATH="$HELIX_DIR/helix.db"
-LOG_DIR="$HELIX_DIR/task-logs"
-mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/${STAGE}-${STAGE_OUTPUT[$STAGE]%.yaml}.log"
-RUN_STATUS="completed"
-
-# DB にタスク記録
-local_db_run_id=""
-if [[ -f "$DB_PATH" ]]; then
-  local_db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
+  if [[ -f "$DB_PATH" ]]; then
+    db_run_id=$(python3 "$DB_PY" record-task "$DB_PATH" "$(python3 -c "
 import json; print(json.dumps({
-    'task_id': '$STAGE', 'task_type': 'legacy-${STAGE,,}',
-    'plan_goal': 'Reverse HELIX', 'role': '$ROLE', 'status': 'running'
+    'task_id': '$TYPE-$stage', 'task_type': 'reverse-$TYPE-${stage,,}',
+    'plan_goal': 'Reverse HELIX', 'role': '$role', 'status': 'running'
 }))" 2>/dev/null)" 2>/dev/null || echo "")
-fi
+  fi
 
-# --- 実行（ログ保存） ---
-set +e
-"$HELIX_CODEX" --role "$ROLE" --task "$TASK" 2>&1 | tee "$LOG_FILE"
-codex_exit=$?
-set -e
-if [[ "$codex_exit" -ne 0 ]]; then
-  RUN_STATUS="failed"
-fi
+  set +e
+  "$HELIX_CODEX" --role "$role" --task "$task" 2>&1 | tee "$log_file"
+  codex_exit=${PIPESTATUS[0]}
+  set -e
+  if [[ "$codex_exit" -ne 0 ]]; then
+    run_status="failed"
+  fi
 
-# DB 完了更新
-if [[ -f "$DB_PATH" && -n "$local_db_run_id" ]]; then
-  python3 -c "
+  if [[ -f "$DB_PATH" && -n "$db_run_id" ]]; then
+    python3 -c "
 from datetime import datetime
 import sys
 sys.path.insert(0, '$SCRIPT_DIR/lib')
 import helix_db
 conn = helix_db.get_connection('$DB_PATH')
 conn.execute('UPDATE task_runs SET status=?, completed_at=?, output_log=? WHERE id=?',
-    ('$RUN_STATUS', datetime.now().isoformat(), '$LOG_FILE', $local_db_run_id))
+    ('$run_status', datetime.now().isoformat(), '$log_file', $db_run_id))
 conn.commit()
 conn.close()
 " 2>/dev/null || true
-fi
-
-echo ""
-echo "[helix-reverse] ログ: $LOG_FILE"
-echo "[helix-reverse] 'helix debug trace $LOG_FILE' でアクション追跡"
-echo ""
-
-# --- ゲート更新 ---
-rgate="${STAGE_RGATE[$STAGE]}"
-if [[ "$RUN_STATUS" == "failed" ]]; then
-  set_rgate_status "$rgate" "failed"
-  echo "[helix-reverse] WARN: helix-codex が失敗したため $rgate failed"
-  exit 1
-fi
-
-if [[ -f "$REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}" ]]; then
-  set_rgate_status "$rgate" "passed"
-  echo "[helix-reverse] $rgate passed — 成果物: $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]}"
-  if [[ "$INVALIDATE_FORWARD" == true && "$STAGE" =~ ^R[2-4]$ ]]; then
-    invalidate_forward_gates
   fi
-  if [[ "$STAGE" == "R4" ]]; then
-    echo ""
-    echo "=== Reverse HELIX 完了 ==="
-    echo ""
-    echo "Forward HELIX への接続:"
-    echo "  1. helix size でサイジング"
-    echo "  2. helix plan draft で設計提案"
-    echo "  3. helix matrix init で成果物対照表を初期化"
-    echo ""
-    echo "Gap Register を確認し、Forward フェーズに振り分けてください。"
-    python3 "$YP" write "$PHASE_FILE" "reverse.status" "completed" 2>/dev/null || true
-    python3 "$YP" write "$PHASE_FILE" "reverse.completed_at" "$(date '+%Y-%m-%d')" 2>/dev/null || true
-  fi
-else
-  set_rgate_status "$rgate" "failed"
+
   echo ""
-  echo "[helix-reverse] WARN: 成果物が生成されませんでした — $rgate failed"
-  echo "[helix-reverse]   手動で $REVERSE_DIR/${STAGE_OUTPUT[$STAGE]} を作成してください"
-fi
+  echo "[helix-reverse] ログ: $log_file"
+  echo "[helix-reverse] 'helix debug trace $log_file' でアクション追跡"
+  echo ""
+
+  rgate=$(stage_rgate "$TYPE" "$stage")
+  if [[ "$run_status" == "failed" ]]; then
+    set_rgate_status "$TYPE" "$rgate" "failed"
+    echo "[helix-reverse] WARN: helix-codex が失敗したため $rgate failed"
+    exit "$EXIT_CHECK_FAILED"
+  fi
+
+  if [[ -f "$output_file" ]]; then
+    set_rgate_status "$TYPE" "$rgate" "passed"
+    echo "[helix-reverse] $rgate passed — 成果物: $output_file"
+    if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
+      invalidate_forward_gates
+    fi
+    if [[ "$TYPE" == "code" && "$stage" == "R4" ]]; then
+      echo ""
+      echo "=== Reverse HELIX 完了 ==="
+      echo ""
+      echo "Forward HELIX への接続:"
+      echo "  1. helix size でサイジング"
+      echo "  2. helix plan draft で設計提案"
+      echo "  3. helix matrix init で成果物対照表を初期化"
+      echo ""
+      echo "Gap Register を確認し、Forward フェーズに振り分けてください。"
+      python3 "$YP" write "$PHASE_FILE" "reverse.status" "completed" 2>/dev/null || true
+      python3 "$YP" write "$PHASE_FILE" "reverse.completed_at" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+    fi
+  else
+    set_rgate_status "$TYPE" "$rgate" "failed"
+    echo ""
+    echo "[helix-reverse] WARN: 成果物が生成されませんでした — $rgate failed"
+    echo "[helix-reverse]   手動で $output_file を作成してください"
+  fi
+}
+
+parse_args "$@"
+validate_args
+ensure_helix_dir
+
+case "$SUBCOMMAND" in
+  status)
+    cmd_status
+    ;;
+  rgc)
+    if [[ "$TYPE" == "code" ]]; then
+      cmd_rgc_code
+    else
+      cmd_rgc_design
+    fi
+    ;;
+  run|retry|R[0-4])
+    run_stage "$(stage_for_command)"
+    ;;
+  *)
+    echo "Error: Unknown subcommand: $SUBCOMMAND" >&2
+    exit "$EXIT_INPUT_ERROR"
+    ;;
+esac

@@ -48,6 +48,11 @@ reverse_gates:
   RG1: { status: pending }
   RG2: { status: pending }
   RG3: { status: pending }
+  design:
+    RG0: { status: pending }
+    RG2: { status: pending }
+    RG3: { status: pending }
+    RGC: { status: pending }
 
 reverse:
   status: null
