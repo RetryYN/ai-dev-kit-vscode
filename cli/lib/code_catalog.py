@@ -23,8 +23,9 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 _INDEX_MARKER = "@helix:index"
 _FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related)=")
-# Sprint .6 TL findings: markdown は構文判定が困難なため除外、PLAN-011 §3.1 v1.2 で plan 側追従予定
-_TRACKED_SUFFIXES = {".py", ".sh", ".bats"}
+# PLAN-011 v1.2: .md と .bats は heredoc / 文字列内の marker を構文判定で除外できないため走査対象外
+# (Python は tokenize.COMMENT、bash は #-行頭コメントで構文判定可能)
+_TRACKED_SUFFIXES = {".py", ".sh"}
 _REJECTION_LOG = "code-catalog-rejected.log"
 
 _DANGER_PATTERNS = [
@@ -88,7 +89,7 @@ def _comment_marker_lines(path: Path, text: str) -> set[int]:
             }
         return marker_lines
 
-    if path.suffix in {".sh", ".bats"}:
+    if path.suffix == ".sh":
         return {
             line_no
             for line_no, line in enumerate(text.splitlines(), start=1)
