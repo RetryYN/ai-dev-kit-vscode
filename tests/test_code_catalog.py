@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "cli" / "lib"))
 
 import code_catalog  # noqa: E402
+import helix_db  # noqa: E402
 
 
 def init_repo(tmp_path: Path) -> Path:
@@ -234,3 +236,168 @@ def test_coverage_pct_unchanged_by_bucket_filter(tmp_path: Path) -> None:
     all_payload = code_catalog.compute_coverage_report(repo, bucket="all")
     private_payload = code_catalog.compute_coverage_report(repo, bucket="private_helper")
     assert all_payload["summary"]["coverage_pct"] == private_payload["summary"]["coverage_pct"] == 50.0
+
+
+def test_compute_coverage_report_scope_cli_lib_returns_more_eligible(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "cli/lib/code_catalog.py",
+        "def core_symbol():\n"
+        "    return 1\n",
+    )
+    write(
+        repo,
+        "cli/lib/extra_module.py",
+        "def extra_symbol():\n"
+        "    return 2\n",
+    )
+
+    core5 = code_catalog.compute_coverage_report(repo, scope="core5", bucket="coverage_eligible")
+    cli_lib = code_catalog.compute_coverage_report(repo, scope="cli-lib", bucket="coverage_eligible")
+
+    assert core5["summary"]["eligible"] == 1
+    assert cli_lib["summary"]["eligible"] == 2
+    assert cli_lib["summary"]["eligible"] > core5["summary"]["eligible"]
+
+
+def test_three_bucket_classification_deterministic(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    jsonl_path = repo / ".helix/cache/code-catalog.jsonl"
+    db_path = repo / ".helix/helix.db"
+    write(
+        repo,
+        "cli/lib/public_fixture.py",
+        "# @helix:index id=fixture.public domain=cli/lib summary=public fixture\n"
+        "def public_symbol():\n"
+        "    return 1\n",
+    )
+    write(
+        repo,
+        "cli/lib/private_fixture.py",
+        "# @helix:index id=fixture.private domain=cli/lib summary=private fixture\n"
+        "def _private_symbol():\n"
+        "    return 2\n",
+    )
+    write(
+        repo,
+        "setup.sh",
+        "# @helix:index id=fixture.excluded domain=ops summary=excluded fixture\n"
+        "setup_task() {\n"
+        "  true\n"
+        "}\n",
+    )
+
+    code_catalog.rebuild_catalog(repo, jsonl_path, db_path)
+    first_rows = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines()]
+    first_projection = {
+        row["id"]: {"bucket": row["bucket"], "symbol_line": row["symbol_line"]}
+        for row in first_rows
+    }
+
+    code_catalog.rebuild_catalog(repo, jsonl_path, db_path)
+    second_rows = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines()]
+    second_projection = {
+        row["id"]: {"bucket": row["bucket"], "symbol_line": row["symbol_line"]}
+        for row in second_rows
+    }
+
+    assert first_projection == {
+        "fixture.excluded": {"bucket": "excluded", "symbol_line": 2},
+        "fixture.private": {"bucket": "private_helper", "symbol_line": 2},
+        "fixture.public": {"bucket": "coverage_eligible", "symbol_line": 2},
+    }
+    assert second_projection == first_projection
+
+
+def test_migration_v14_to_v15_idempotent(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v14.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(
+        """
+        CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+        INSERT INTO schema_version (version, applied_at) VALUES (14, '2026-05-03T00:00:00');
+        CREATE TABLE code_index (
+          id TEXT PRIMARY KEY,
+          domain TEXT NOT NULL,
+          summary TEXT NOT NULL,
+          path TEXT NOT NULL,
+          line_no INTEGER NOT NULL,
+          since TEXT,
+          related TEXT,
+          source_hash TEXT,
+          updated_at DATETIME
+        );
+        INSERT INTO code_index (id, domain, summary, path, line_no)
+        VALUES ('legacy.entry', 'cli/lib', 'legacy entry', 'cli/lib/legacy.py', 7);
+        """
+    )
+
+    helix_db.migrate(conn)
+    helix_db.migrate(conn)
+
+    version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()}
+    row = conn.execute(
+        "SELECT id, symbol_line, bucket FROM code_index WHERE id = 'legacy.entry'"
+    ).fetchone()
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    conn.close()
+
+    assert version == 15
+    assert versions == [14, 15]
+    assert {"bucket", "symbol_line"} <= columns
+    assert row == ("legacy.entry", 7, "coverage_eligible")
+
+
+def test_non_indexable_takes_priority_over_excluded(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    jsonl_path = repo / ".helix/cache/code-catalog.jsonl"
+    write(
+        repo,
+        "tests/setup.sh",
+        "# @helix:index id=tests.setup domain=tests summary=tests setup\n"
+        "tests_setup() {\n"
+        "  true\n"
+        "}\n",
+    )
+    write(
+        repo,
+        "generated/setup.sh",
+        "# @helix:index id=generated.setup domain=generated summary=generated setup\n"
+        "generated_setup() {\n"
+        "  true\n"
+        "}\n",
+    )
+    write(
+        repo,
+        "setup.sh",
+        "# @helix:index id=root.setup domain=ops summary=root setup\n"
+        "root_setup() {\n"
+        "  true\n"
+        "}\n",
+    )
+
+    code_catalog.rebuild_catalog(repo, jsonl_path, repo / ".helix/helix.db")
+    rows = [json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines()]
+
+    assert {row["id"] for row in rows} == {"root.setup"}
+    assert rows[0]["bucket"] == "excluded"
+
+
+def test_excluded_only_for_actual_paths(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "cli/lib/setup.sh",
+        "# @helix:index id=cli.setup domain=cli/lib summary=cli setup\n"
+        "cli_setup() {\n"
+        "  true\n"
+        "}\n",
+    )
+
+    entries = code_catalog.scan_tracked_files(repo)
+
+    assert len(entries) == 1
+    assert entries[0]["id"] == "cli.setup"
+    assert entries[0]["bucket"] == "coverage_eligible"

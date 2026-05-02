@@ -364,6 +364,42 @@ PY
   [[ "$output" == *"summary: covered="* ]]
 }
 
+@test "helix code stats --uncovered --scope cli-lib returns exit 0 even with low coverage (warning only)" {
+  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
+  cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
+  cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
+  cp "$HELIX_ROOT/cli/lib/skill_dispatcher.py" "$PROJECT_ROOT/cli/lib/skill_dispatcher.py"
+  git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
+@test "helix code stats --uncovered --scope cli-lib --fail-under 0 returns exit 0" {
+  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
+  cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
+  cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
+  cp "$HELIX_ROOT/cli/lib/skill_dispatcher.py" "$PROJECT_ROOT/cli/lib/skill_dispatcher.py"
+  git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
+@test "helix code stats --uncovered --scope cli-lib --fail-under 50 returns exit 2 (enforce when explicit)" {
+  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
+  cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
+  cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
+  cp "$HELIX_ROOT/cli/lib/skill_dispatcher.py" "$PROJECT_ROOT/cli/lib/skill_dispatcher.py"
+  git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 50
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
 @test "helix code stats --uncovered TSV includes bucket / seed_candidate / seed_promotable columns" {
   run "$HELIX_ROOT/cli/helix" code stats --uncovered
   [ "$status" -eq 0 ]
