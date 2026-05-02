@@ -21,6 +21,7 @@
 2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
 3. ゲート判定（`skills/tools/ai-coding/references/gate-policy.md §ゲート一覧`）
 4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
+4.5 実装着手前 (L4 entry): `helix code find "<keyword>"` で既存実装の流用候補を確認する
 5. 実行開始
 6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 7. readiness exit 条件確認 → 該当スキル Read

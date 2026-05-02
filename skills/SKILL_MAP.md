@@ -345,3 +345,22 @@ helix handover resume
 - `cli/helix-skill` — bash ディスパッチャ (list/show/catalog/search/use/chain/stats)
 - `cli/roles/recommender.conf` — gpt-5.4-mini ロール定義
 - `cli/templates/skill-search-prompt.md` — LLM プロンプトテンプレート
+
+## コードインデックス（PLAN-011）
+
+既存コードに `# @helix:index ...` メタデータを付与し、検索・重複検知・統計を可能にする `helix code` 系 CLI。skill catalog と同じ枠組みをコード資産へ拡張する。
+
+```bash
+helix code build                                        # 全 tracked files を走査し catalog を再構築
+helix code find "<query>" [-n 5]                        # gpt-5.4-mini で流用候補を探索
+helix code show <id>                                    # path / line / metadata を表示
+helix code dup [--threshold 0.85] [--domain <name>]     # 同一 domain 内の重複候補を検出
+helix code stats [--by domain|since]                    # domain / since 別の集計
+helix code list [--domain <name>] [--json]              # entry 一覧
+```
+
+メタデータ規約:
+- Python: `# @helix:index id=code-catalog.parse-frontmatter domain=cli/lib summary=YAML frontmatterをdictに展開`
+- bash: `# @helix:index id=helix-code.build domain=cli summary=code-catalogを再構築`
+
+関連 PLAN: PLAN-011（catalog skeleton + helix.db v14 `code_index` table）
