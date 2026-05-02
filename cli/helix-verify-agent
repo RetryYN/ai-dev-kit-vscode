@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-verify-agent: PLAN-010 verification agent CLI
+# Usage: helix verify-agent <harvest|design|cross-check|list|show> [options]
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+case "${1:-}" in
+  --help|-h|help|"")
+    cat <<'USAGE'
+Usage: helix verify-agent <command> [options]
+
+HELIX verification agent (PLAN-010 §3.5)
+検証ツール候補の harvest、D-* 起点の検証方法 design、PLAN 間 drift cross-check を実行します。
+
+Commands:
+  harvest --plan PLAN-XXX [--llm-suggest] [--save] [--json]
+      PLAN 内の検証要件を抽出し、.helix/patterns/verify-tools.yaml と突き合わせます。
+      verify-tools.yaml 未設置または該当なしの場合は source=fallback / adoption_status=candidate_only で fail-close 用候補を返します。
+
+  design --contract <path> [--save] [--json] [--dry-run]
+      D-CONTRACT / D-API / D-DB から test pyramid、境界設計、最低 1 つの性能・品質閾値を生成します。
+
+  cross-check --impl PLAN-X --spec PLAN-Y [--save] [--json] [--dry-run]
+      2 つの PLAN を比較し spec-only / impl-only / contract-only / behavior-only drift を検出します。
+      drift_severity=P0/P1/unclassified は fail-close として非 0 で終了します。
+
+  list [--type harvest|design|cross-check] [--json]
+      保存済み run 一覧を表示します。現版の --save は helix.db v13 予定の no-op です。
+
+  show <id>
+      保存済み run 詳細を表示します。現版では v13 永続化待ちのため未保存 ID はエラーです。
+
+Persistence:
+  raw output は保存しません。helix.db 永続化は v13 で対応予定です。
+USAGE
+    exit "$EXIT_SUCCESS"
+    ;;
+esac
+
+exec python3 "$SCRIPT_DIR/lib/verify_agent.py" --project-root "$PROJECT_ROOT" "$@"

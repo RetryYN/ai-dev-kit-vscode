@@ -24,6 +24,7 @@ case "$CMD" in
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
   verify-all) exec "$SCRIPT_DIR/helix-verify-all" "$@" ;;
+  verify-agent) exec "$SCRIPT_DIR/helix-verify-agent" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
@@ -118,6 +119,7 @@ Commands:
 検証:
   test        セルフテスト
   verify-all  全レイヤー検証
+  verify-agent 検証ツール harvest / design / PLAN drift cross-check
 
 スキル管理:
   skill list/show/catalog/search     スキル自動推挙コマンド
