@@ -1,0 +1,86 @@
+# HELIX pattern.yaml — ドキュメント駆動メタフェーズの固定ルール
+# 正本: PLAN-006 §3.3 / §3.3.1 / §3.3.2
+#
+# scope.phase: phase.yaml.current_phase の enum (L1〜L8) と一致する値のみ許可
+# scope.gate:  phase.yaml.gates のキー (G0.5/G1/G1R/G1.5/G2〜G7) のみ許可
+# scope.subphase: pattern-local label (例: L-1, L1.5)。phase.yaml には投入しない
+# L9-L11 / G9-G11 は PLAN-009 の phase.yaml schema 拡張完了後に許可
+#
+# applies_when: 最小 DSL (PLAN-006 §3.3.2)
+#   - all: (AND) / any: (OR)
+#   - <key>: <value> 形式
+#     - YAML list = メンバ in 判定
+#     - scalar = 厳密一致
+#     - null = <key> 未定義で true
+
+version: 1
+patterns:
+  # 例 1: 上流ドキュメント駆動 governance
+  - id: doc-governance
+    scope:
+      layer: [Plan, Architecture]
+      phase: [L1]
+      gate: [G0.5, G1]
+      subphase: [L-1]
+    priority: 100
+    applies_when:
+      all:
+        - drive: [be, fe, fullstack, db, agent]
+    outputs:
+      - path: docs/adr/{id}.md
+        type: ADR
+    conflicts_with: []
+    exception_policy:
+      requires_approval: PM
+      audit_log: true
+    audit_log:
+      enabled: true
+      path: .helix/audit/pattern-applications.yaml
+
+  # 例 2: research bundle (機能/技術/OSS の同時評価)
+  - id: research-bundle
+    scope:
+      layer: [Architecture]
+      phase: [L1]
+      gate: [G1R]
+      subphase: [L-1]
+    priority: 90
+    applies_when:
+      all:
+        - has_external_api: true
+    outputs:
+      - path: .helix/research/{task_id}/feature.md
+        type: research
+      - path: .helix/research/{task_id}/tech.md
+        type: research
+      - path: .helix/research/{task_id}/oss.md
+        type: research
+    conflicts_with: []
+    exception_policy:
+      requires_approval: TL
+      audit_log: true
+    audit_log:
+      enabled: true
+      path: .helix/audit/pattern-applications.yaml
+
+  # 例 3: phase handoff (deferred / risk / 実験条件の引継ぎ)
+  - id: phase-handoff
+    scope:
+      layer: [Contract]
+      phase: [L1, L2, L3, L4, L5, L6, L7, L8]
+      subphase: []
+    priority: 80
+    applies_when:
+      any:
+        - has_deferred_findings: true
+        - has_blocking_findings: true
+    outputs:
+      - path: .helix/audit/deferred-findings.yaml
+        type: deferred-findings
+    conflicts_with: []
+    exception_policy:
+      requires_approval: PM
+      audit_log: true
+    audit_log:
+      enabled: true
+      path: .helix/audit/pattern-applications.yaml

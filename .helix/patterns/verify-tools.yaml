@@ -1,0 +1,91 @@
+# HELIX verify-tools.yaml — 検証ツール選定の固定ルールソース
+# 正本: PLAN-010 §3.1.1 (template + schema + fallback)
+#
+# 必須フィールド:
+#   id                       kebab-case 一意
+#   category                 unit-test|integration|e2e|lint|format|security|dependency|perf|contract|golden|fuzz
+#   languages                対象言語 list
+#   license                  SPDX 識別子 (不明時は unknown、採用不可)
+#   last_release_or_activity ISO 8601 日付 (PLAN-010 §3.1.2 harvest 出力 schema と統一)
+#   maintenance_signal       active|maintenance|stale|deprecated
+#   official_source          一次ソース URL
+#   security_notes           CVE/GHSA/supply chain risk 列。未検出時は [] 必須 (lint pass)
+#   adoption_status          candidate_only|approved|rejected
+#
+# 任意:
+#   helix_alignment          紐付く HELIX 資産 (PLAN-XXX / skills/...)
+#
+# 未設置時 fallback (PLAN-010 §3.1.1):
+#   harvest 結果に source=fallback / fallback_reason 必須
+#   採用確定不可、G1R fail-close
+
+version: 1
+tools:
+  # 例 1: unit-test 系
+  - id: vitest
+    category: unit-test
+    languages: [ts, js]
+    license: MIT
+    last_release_or_activity: 2026-04-15
+    maintenance_signal: active
+    official_source: https://vitest.dev
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, workflow/verification]
+
+  - id: pytest
+    category: unit-test
+    languages: [py]
+    license: MIT
+    last_release_or_activity: 2026-03-20
+    maintenance_signal: active
+    official_source: https://pytest.org
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, workflow/verification]
+
+  - id: bats-core
+    category: unit-test
+    languages: [bash]
+    license: MIT
+    last_release_or_activity: 2026-02-10
+    maintenance_signal: active
+    official_source: https://github.com/bats-core/bats-core
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, workflow/verification]
+
+  # 例 2: e2e 系
+  - id: playwright
+    category: e2e
+    languages: [ts, js, py]
+    license: Apache-2.0
+    last_release_or_activity: 2026-04-25
+    maintenance_signal: active
+    official_source: https://playwright.dev
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, project/fe-test]
+
+  # 例 3: security/dependency 系
+  - id: trivy
+    category: security
+    languages: [any]
+    license: Apache-2.0
+    last_release_or_activity: 2026-04-10
+    maintenance_signal: active
+    official_source: https://github.com/aquasecurity/trivy
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, common/security]
+
+  - id: dependabot
+    category: dependency
+    languages: [any]
+    license: MIT
+    last_release_or_activity: 2026-04-30
+    maintenance_signal: active
+    official_source: https://github.com/dependabot/dependabot-core
+    security_notes: []
+    adoption_status: candidate_only
+    helix_alignment: [PLAN-010, common/security]

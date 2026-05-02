@@ -23,6 +23,8 @@ credentials.json
 !**/.helix/session-summaries/**
 !**/.helix/research/
 !**/.helix/research/**
+!**/.helix/patterns/
+!**/.helix/patterns/**
 
 .helix/budget/
 
