@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -467,6 +467,30 @@ CREATE INDEX IF NOT EXISTS idx_scrum_trigger_type ON scrum_trigger(scrum_type, s
 """
 
 
+VERIFY_RUNS_SCHEMA_V13 = """
+CREATE TABLE IF NOT EXISTS verify_runs (
+  run_id TEXT PRIMARY KEY,
+  subcommand TEXT NOT NULL,
+  plan_id TEXT,
+  spec_plan_id TEXT,
+  contract_path TEXT,
+  inputs_hash TEXT NOT NULL,
+  candidates_count INTEGER,
+  drifts_count INTEGER,
+  drift_severity_summary TEXT,
+  has_fail_close BOOLEAN DEFAULT 0,
+  output_summary TEXT,
+  llm_suggest_used BOOLEAN DEFAULT 0,
+  fallback_used BOOLEAN DEFAULT 0,
+  created_at TEXT NOT NULL,
+  created_by TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_verify_runs_subcommand ON verify_runs(subcommand, created_at);
+CREATE INDEX IF NOT EXISTS idx_verify_runs_fail_close ON verify_runs(has_fail_close, created_at);
+"""
+
+
 def _prepare_db_path(db_path):
     parent_dir = os.path.dirname(os.path.abspath(db_path))
     if parent_dir:
@@ -571,6 +595,10 @@ def _migrate_v10_to_v11(conn):
 
 def _migrate_v11_to_v12(conn):
     conn.executescript(SCRUM_TRIGGER_SCHEMA_V12)
+
+
+def _migrate_v12_to_v13(conn):
+    conn.executescript(VERIFY_RUNS_SCHEMA_V13)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -826,6 +854,12 @@ def migrate(conn):
             _migrate_v11_to_v12(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (12, datetime('now'))"
+            )
+        # v12→v13: verify_runs table (PLAN-010 verify-agent persistence)
+        if current < 13:
+            _migrate_v12_to_v13(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (13, datetime('now'))"
             )
         conn.commit()
 

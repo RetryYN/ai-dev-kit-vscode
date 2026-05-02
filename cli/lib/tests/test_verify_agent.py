@@ -58,6 +58,13 @@ tools:
     return path
 
 
+def _write_contract(root: Path) -> Path:
+    path = root / "docs" / "features" / "sample" / "D-CONTRACT.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# D-CONTRACT\n- endpoint: /api/test\n", encoding="utf-8")
+    return path
+
+
 def test_harvest_matches_verify_tools_and_required_fields(tmp_path: Path) -> None:
     plan = _write_plan(tmp_path)
     _write_verify_tools(tmp_path)
@@ -183,9 +190,124 @@ def test_severity_route(severity: str, route: str) -> None:
     assert verify_agent.severity_route(severity) == route
 
 
-def test_save_to_db_is_noop_until_v13() -> None:
-    result = verify_agent.save_to_db("harvest", {"plan_id": "PLAN-999"}, {"count": 1}, True)
+def test_save_to_db_harvest_inserts_row(tmp_path: Path) -> None:
+    plan = _write_plan(tmp_path)
+    result = verify_agent.save_to_db(
+        "harvest",
+        {"plan_id": "PLAN-999"},
+        {"count": 1},
+        True,
+        project_root=tmp_path,
+        input_paths=[plan],
+        plan_id="PLAN-999",
+        candidates_count=1,
+        fallback_used=True,
+    )
 
     assert result["requested"] is True
-    assert result["persisted"] is False
-    assert "v13" in result["reason"]
+    assert result["persisted"] is True
+    assert result["run_id"].startswith("VR-")
+    row = verify_agent.show_run(result["run_id"], project_root=tmp_path)
+    assert row["subcommand"] == "harvest"
+    assert row["plan_id"] == "PLAN-999"
+    assert row["candidates_count"] == 1
+    assert row["fallback_used"] is True
+
+
+def test_save_to_db_cross_check_formats_drift_severity_summary(tmp_path: Path) -> None:
+    impl = _write_plan(tmp_path, "PLAN-901-impl.md", "# PLAN-901\n- impl validation\n")
+    spec = _write_plan(tmp_path, "PLAN-902-spec.md", "# PLAN-902\n- spec validation\n")
+
+    result = verify_agent.save_to_db(
+        "cross-check",
+        {"impl": "docs/plans/PLAN-901-impl.md", "spec": "docs/plans/PLAN-902-spec.md"},
+        {"fail_close": True},
+        True,
+        project_root=tmp_path,
+        input_paths=[impl, spec],
+        plan_id="PLAN-901",
+        spec_plan_id="PLAN-902",
+        drifts_count=3,
+        drift_severity_summary={"P0": 0, "P1": 2, "P2": 1, "P3": 0, "unclassified": 0},
+        has_fail_close=True,
+    )
+
+    row = verify_agent.show_run(result["run_id"], project_root=tmp_path)
+    assert row["drift_severity_summary"] == "P0:0,P1:2,P2:1,P3:0,unclassified:0"
+    assert row["has_fail_close"] is True
+    assert row["drifts_count"] == 3
+
+
+def test_save_to_db_allows_duplicate_inputs_hash_with_different_run_id(tmp_path: Path) -> None:
+    plan = _write_plan(tmp_path)
+
+    first = verify_agent.save_to_db(
+        "harvest",
+        {"plan_id": "PLAN-999"},
+        {"count": 1},
+        True,
+        project_root=tmp_path,
+        input_paths=[plan],
+        plan_id="PLAN-999",
+    )
+    second = verify_agent.save_to_db(
+        "harvest",
+        {"plan_id": "PLAN-999"},
+        {"count": 1},
+        True,
+        project_root=tmp_path,
+        input_paths=[plan],
+        plan_id="PLAN-999",
+    )
+
+    assert first["run_id"] != second["run_id"]
+    rows = verify_agent.list_runs(project_root=tmp_path)["runs"]
+    assert len(rows) == 2
+    assert {row["inputs_hash"] for row in rows} == {first["inputs_hash"]}
+
+
+def test_list_runs_empty(tmp_path: Path) -> None:
+    result = verify_agent.list_runs(project_root=tmp_path)
+
+    assert result["runs"] == []
+
+
+def test_list_runs_after_save_returns_one_row(tmp_path: Path) -> None:
+    plan = _write_plan(tmp_path)
+    saved = verify_agent.save_to_db(
+        "harvest",
+        {"plan_id": "PLAN-999"},
+        {"count": 1},
+        True,
+        project_root=tmp_path,
+        input_paths=[plan],
+        plan_id="PLAN-999",
+    )
+
+    result = verify_agent.list_runs("harvest", project_root=tmp_path)
+
+    assert [row["run_id"] for row in result["runs"]] == [saved["run_id"]]
+
+
+def test_show_run_returns_detail_dict(tmp_path: Path) -> None:
+    contract = _write_contract(tmp_path)
+    saved = verify_agent.save_to_db(
+        "design",
+        {"contract_path": "docs/features/sample/D-CONTRACT.md"},
+        {"pyramid_targets": {"unit": 60, "integration": 30, "e2e": 10}},
+        True,
+        project_root=tmp_path,
+        input_paths=[contract],
+        contract_path="docs/features/sample/D-CONTRACT.md",
+    )
+
+    row = verify_agent.show_run(saved["run_id"], project_root=tmp_path)
+
+    assert row["run_id"] == saved["run_id"]
+    assert row["subcommand"] == "design"
+    assert row["contract_path"] == "docs/features/sample/D-CONTRACT.md"
+
+
+def test_show_run_missing_raises(tmp_path: Path) -> None:
+    with pytest.raises(verify_agent.VerifyAgentError):
+        verify_agent.show_run("VR-2099-01-01-9999", project_root=tmp_path)

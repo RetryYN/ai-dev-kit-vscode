@@ -6,11 +6,14 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+import helix_db
 import yaml_parser
 from redaction import redact_value
 
@@ -20,6 +23,8 @@ VALID_RUN_TYPES = ("harvest", "design", "cross-check")
 VALID_DRIFT_TYPES = ("spec-only", "impl-only", "contract-only", "behavior-only")
 VALID_DRIFT_SEVERITIES = ("P0", "P1", "P2", "P3", "unclassified")
 FAIL_CLOSE_SEVERITIES = {"P0", "P1", "unclassified"}
+DRIFT_SEVERITY_ORDER = ("P0", "P1", "P2", "P3", "unclassified")
+OUTPUT_SUMMARY_MAX_CHARS = 500
 HARVEST_REQUIRED_FIELDS = (
     "tool_id",
     "source",
@@ -68,6 +73,10 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def _json_dump(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -109,6 +118,57 @@ def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError as exc:
         raise VerifyAgentError(f"failed to read {path}: {exc}") from exc
+
+
+def _db_connect(project_root: Path | str | None = None, db_path: Path | str | None = None) -> sqlite3.Connection:
+    if db_path:
+        target = Path(db_path)
+    elif project_root:
+        target = Path(project_root) / ".helix" / "helix.db"
+    else:
+        target = Path(helix_db.resolve_default_db_path())
+    target.parent.mkdir(parents=True, exist_ok=True)
+    conn = helix_db.get_connection(target)
+    helix_db._ensure_schema(conn)
+    return conn
+
+
+def _inputs_hash(input_paths: Iterable[Path], root: Path) -> str:
+    parts: list[str] = []
+    for path in sorted({Path(item).resolve() for item in input_paths}, key=lambda item: _rel(item, root)):
+        parts.append(_rel(path, root))
+        parts.append(_read_text(path))
+    return _sha256("\n\0\n".join(parts))
+
+
+def _truncate_summary(value: Any) -> str:
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if len(text) <= OUTPUT_SUMMARY_MAX_CHARS:
+        return text
+    return text[: OUTPUT_SUMMARY_MAX_CHARS - 3] + "..."
+
+
+def _format_drift_severity_summary(summary: dict[str, Any] | str | None) -> str | None:
+    if summary is None:
+        return None
+    if isinstance(summary, str):
+        return summary
+    return ",".join(f"{severity}:{int(summary.get(severity) or 0)}" for severity in DRIFT_SEVERITY_ORDER)
+
+
+def _next_run_id(conn: sqlite3.Connection, created_at: str) -> str:
+    day = created_at[:10]
+    prefix = f"VR-{day}-"
+    rows = conn.execute(
+        "SELECT run_id FROM verify_runs WHERE run_id LIKE ?",
+        (f"{prefix}%",),
+    ).fetchall()
+    max_seq = 0
+    for row in rows:
+        suffix = str(row["run_id"]).removeprefix(prefix)
+        if suffix.isdigit():
+            max_seq = max(max_seq, int(suffix))
+    return f"{prefix}{max_seq + 1:04d}"
 
 
 def extract_verification_requirements(plan_text: str) -> list[dict[str, Any]]:
@@ -310,7 +370,18 @@ def harvest(
         "requirements": requirements,
         "matched_categories": categories,
         "candidates": candidates,
-        "save": save_to_db("harvest", {"plan_id": plan_id, "plan_path": _rel(plan_path, root)}, result_summary(candidates), save),
+        "save": save_to_db(
+            "harvest",
+            {"plan_id": plan_id, "plan_path": _rel(plan_path, root)},
+            result_summary(candidates),
+            save,
+            project_root=root,
+            input_paths=[plan_path, tools_path] if tools_path.is_file() else [plan_path],
+            plan_id=plan_id,
+            candidates_count=len(candidates),
+            llm_suggest_used=llm_suggest,
+            fallback_used=any(candidate.get("source") == "fallback" for candidate in candidates),
+        ),
     }
     return result
 
@@ -375,7 +446,15 @@ def design(
         "contract_path": _rel(contract_path, root),
         "source": source,
         **design_result,
-        "save": save_to_db("design", {"contract_path": _rel(contract_path, root)}, result_summary(design_result), save),
+        "save": save_to_db(
+            "design",
+            {"contract_path": _rel(contract_path, root)},
+            result_summary(design_result),
+            save,
+            project_root=root,
+            input_paths=[contract_path],
+            contract_path=_rel(contract_path, root),
+        ),
     }
 
 
@@ -460,12 +539,26 @@ def cross_check(
         normalized = _normalize_cross_check(data)
         source = "helix-codex"
     inputs = {"impl": _rel(impl_path, root), "spec": _rel(spec_path, root)}
+    impl_plan_id = _extract_plan_id(impl_text, impl_path)
+    spec_plan_id = _extract_plan_id(spec_text, spec_path)
     return {
         "subcommand": "cross-check",
         "inputs": inputs,
         "source": source,
         **normalized,
-        "save": save_to_db("cross-check", inputs, result_summary(normalized), save),
+        "save": save_to_db(
+            "cross-check",
+            inputs,
+            result_summary(normalized),
+            save,
+            project_root=root,
+            input_paths=[impl_path, spec_path],
+            plan_id=impl_plan_id,
+            spec_plan_id=spec_plan_id,
+            drifts_count=len(normalized["drifts"]),
+            drift_severity_summary=normalized["drift_severity_summary"],
+            has_fail_close=normalized["fail_close"],
+        ),
     }
 
 
@@ -477,30 +570,136 @@ def result_summary(value: Any) -> dict[str, Any]:
     return {}
 
 
-def save_to_db(subcommand: str, inputs: dict[str, Any], output_summary: dict[str, Any], save: bool) -> dict[str, Any]:
-    inputs_hash = _sha256(json.dumps(inputs, ensure_ascii=False, sort_keys=True))
-    return {
+def save_to_db(
+    subcommand: str,
+    inputs: dict[str, Any],
+    output_summary: dict[str, Any],
+    save: bool,
+    *,
+    project_root: Path | str | None = None,
+    db_path: Path | str | None = None,
+    run_id: str | None = None,
+    input_paths: Iterable[Path] | None = None,
+    plan_id: str | None = None,
+    spec_plan_id: str | None = None,
+    contract_path: str | None = None,
+    candidates_count: int | None = None,
+    drifts_count: int | None = None,
+    drift_severity_summary: dict[str, Any] | str | None = None,
+    has_fail_close: bool = False,
+    llm_suggest_used: bool = False,
+    fallback_used: bool = False,
+    created_by: str = "helix-verify-agent",
+) -> dict[str, Any]:
+    if subcommand not in VALID_RUN_TYPES:
+        raise VerifyAgentError(f"invalid subcommand: {subcommand}")
+    root = _project_root(project_root)
+    if input_paths:
+        inputs_hash = _inputs_hash(input_paths, root)
+    else:
+        inputs_hash = _sha256(json.dumps(inputs, ensure_ascii=False, sort_keys=True))
+    result: dict[str, Any] = {
         "requested": bool(save),
         "persisted": False,
-        "reason": "helix.db persistence is deferred to schema v13; raw output is not stored",
         "subcommand": subcommand,
         "inputs_hash": inputs_hash,
         "output_summary": output_summary,
     }
+    if not save:
+        return result
+
+    created_at = _utcnow()
+    summary_text = _truncate_summary(output_summary)
+    severity_summary_text = _format_drift_severity_summary(drift_severity_summary)
+    conn = _db_connect(root, db_path)
+    try:
+        actual_run_id = run_id or _next_run_id(conn, created_at)
+        conn.execute(
+            """
+            INSERT INTO verify_runs (
+              run_id, subcommand, plan_id, spec_plan_id, contract_path, inputs_hash,
+              candidates_count, drifts_count, drift_severity_summary, has_fail_close,
+              output_summary, llm_suggest_used, fallback_used, created_at, created_by
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                actual_run_id,
+                subcommand,
+                plan_id,
+                spec_plan_id,
+                contract_path,
+                inputs_hash,
+                candidates_count,
+                drifts_count,
+                severity_summary_text,
+                1 if has_fail_close else 0,
+                summary_text,
+                1 if llm_suggest_used else 0,
+                1 if fallback_used else 0,
+                created_at,
+                created_by,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    result.update({"persisted": True, "run_id": actual_run_id, "created_at": created_at})
+    return result
 
 
-def list_runs(run_type: str | None = None) -> dict[str, Any]:
+def _row_to_run(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    for key in ("has_fail_close", "llm_suggest_used", "fallback_used"):
+        item[key] = bool(item.get(key))
+    return item
+
+
+def list_runs(
+    run_type: str | None = None,
+    status: str | None = None,
+    *,
+    project_root: Path | str | None = None,
+    db_path: Path | str | None = None,
+) -> dict[str, Any]:
     if run_type is not None and run_type not in VALID_RUN_TYPES:
         raise VerifyAgentError(f"invalid type: {run_type}")
-    return {
-        "runs": [],
-        "type": run_type,
-        "persistence": "helix.db persistence is planned for schema v13; current implementation is JSON/no-op only",
-    }
+    if status is not None and status not in ("pass", "fail-close"):
+        raise VerifyAgentError(f"invalid status: {status}")
+    conn = _db_connect(project_root, db_path)
+    try:
+        where: list[str] = []
+        params: list[Any] = []
+        if run_type:
+            where.append("subcommand = ?")
+            params.append(run_type)
+        if status:
+            where.append("has_fail_close = ?")
+            params.append(1 if status == "fail-close" else 0)
+        sql = "SELECT * FROM verify_runs"
+        if where:
+            sql += " WHERE " + " AND ".join(where)
+        sql += " ORDER BY created_at DESC, run_id DESC"
+        runs = [_row_to_run(row) for row in conn.execute(sql, params).fetchall()]
+    finally:
+        conn.close()
+    return {"runs": runs, "type": run_type, "status": status}
 
 
-def show_run(run_id: str) -> dict[str, Any]:
-    raise VerifyAgentError(f"run not found: {run_id} (helix.db persistence is planned for schema v13)")
+def show_run(
+    run_id: str,
+    *,
+    project_root: Path | str | None = None,
+    db_path: Path | str | None = None,
+) -> dict[str, Any]:
+    conn = _db_connect(project_root, db_path)
+    try:
+        row = conn.execute("SELECT * FROM verify_runs WHERE run_id = ?", (run_id,)).fetchone()
+        if row is None:
+            raise VerifyAgentError(f"run not found: {run_id}")
+        return _row_to_run(row)
+    finally:
+        conn.close()
 
 
 def _print_harvest_table(candidates: list[dict[str, Any]]) -> None:
@@ -541,10 +740,12 @@ def main(argv: list[str] | None = None) -> int:
 
     list_parser = subparsers.add_parser("list", help="list saved verify-agent runs")
     list_parser.add_argument("--type", choices=VALID_RUN_TYPES)
+    list_parser.add_argument("--status", choices=("pass", "fail-close"))
     list_parser.add_argument("--json", action="store_true")
 
     show_parser = subparsers.add_parser("show", help="show a saved verify-agent run")
     show_parser.add_argument("run_id")
+    show_parser.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
     try:
@@ -590,15 +791,25 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"  {drift['id']} {drift['drift_type']} {drift['drift_severity']}: {drift['title']}")
             return 1 if result["fail_close"] else 0
         if args.command == "list":
-            result = list_runs(args.type)
+            result = list_runs(args.type, args.status, project_root=args.project_root)
             if args.json:
                 print(_json_dump(result))
             else:
-                print("(empty)")
-                print(result["persistence"])
+                rows = result["runs"]
+                if not rows:
+                    print("(empty)")
+                else:
+                    print(f"{'Run ID':<18} {'Type':<12} {'Fail':<5} {'Created':<20} Summary")
+                    print(f"{'------':<18} {'----':<12} {'----':<5} {'-------':<20} -------")
+                    for row in rows:
+                        print(
+                            f"{row['run_id']:<18} {row['subcommand']:<12} "
+                            f"{str(row['has_fail_close']).lower():<5} {row['created_at']:<20} "
+                            f"{row.get('output_summary') or ''}"
+                        )
             return 0
         if args.command == "show":
-            result = show_run(args.run_id)
+            result = show_run(args.run_id, project_root=args.project_root)
             print(_json_dump(result))
             return 0
     except (VerifyAgentError, ValueError) as exc:

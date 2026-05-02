@@ -87,10 +87,42 @@ YAML
   printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["drifts"] == []; assert d["fail_close"] is False'
 }
 
-@test "helix verify-agent list is empty without v13 persistence" {
+@test "helix verify-agent list is empty" {
   run "$HELIX_ROOT/cli/helix" verify-agent list
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"(empty)"* ]]
-  [[ "$output" == *"v13"* ]]
+  [[ "$output" != *"v13"* ]]
+}
+
+@test "helix verify-agent harvest --save persists run and list shows it" {
+  write_plan
+  write_verify_tools
+
+  run "$HELIX_ROOT/cli/helix" verify-agent harvest --plan docs/plans/PLAN-999-verify-agent-test.md --save --json
+
+  [ "$status" -eq 0 ]
+  run_id="$(printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["save"]["run_id"])')"
+  [[ "$run_id" == VR-* ]]
+
+  run "$HELIX_ROOT/cli/helix" verify-agent list
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"$run_id"* ]]
+  [[ "$output" == *"harvest"* ]]
+}
+
+@test "helix verify-agent show returns saved run as json" {
+  write_plan
+  write_verify_tools
+
+  run "$HELIX_ROOT/cli/helix" verify-agent harvest --plan docs/plans/PLAN-999-verify-agent-test.md --save --json
+
+  [ "$status" -eq 0 ]
+  run_id="$(printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["save"]["run_id"])')"
+
+  run "$HELIX_ROOT/cli/helix" verify-agent show "$run_id"
+
+  [ "$status" -eq 0 ]
+  printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["run_id"].startswith("VR-"); assert d["subcommand"] == "harvest"; assert d["plan_id"] == "PLAN-999"'
 }

@@ -149,7 +149,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -356,7 +356,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -450,7 +450,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert versions == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -487,7 +487,7 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
 
@@ -518,7 +518,7 @@ def test_migrate_v7_to_v8_creates_accuracy_score_table(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12]
+    assert versions == [7, 8, 9, 10, 11, 12, 13]
     assert table is not None
     assert {"idx_accuracy_score_plan_gate", "idx_accuracy_score_recorded_at"} <= indexes
 
@@ -548,7 +548,7 @@ def test_migrate_v8_to_v9_creates_infra_tables(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [8, 9, 10, 11, 12]
+    assert versions == [8, 9, 10, 11, 12, 13]
     assert names == {"events", "metrics", "schedules", "jobs", "locks"}
 
 
@@ -587,7 +587,7 @@ def test_migrate_v9_to_v10_creates_audit_decisions_and_import_runs(tmp_path: Pat
     }
     conn.close()
 
-    assert versions == [9, 10, 11, 12]
+    assert versions == [9, 10, 11, 12, 13]
     assert names == {"audit_decisions", "import_runs"}
     assert set(indexes) == {"idx_audit_decisions_active_unique", "idx_audit_decisions_event_unique"}
     assert indexes["idx_audit_decisions_active_unique"][0] == 1
@@ -922,7 +922,7 @@ def test_migrate_v7_to_v10_sequential(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12]
+    assert versions == [7, 8, 9, 10, 11, 12, 13]
     assert names == {
         "accuracy_score",
         "events",
@@ -964,7 +964,7 @@ def test_migrate_v10_to_v11_creates_deferred_findings_adjustments_and_view(tmp_p
     }
     conn.close()
 
-    assert versions == [10, 11, 12]
+    assert versions == [10, 11, 12, 13]
     assert names == {"deferred_findings", "accuracy_score_adjustments", "accuracy_score_effective"}
 
 
@@ -994,7 +994,7 @@ def test_migrate_v11_to_v12_creates_scrum_trigger_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(scrum_trigger)").fetchall()}
     conn.close()
 
-    assert versions == [11, 12]
+    assert versions == [11, 12, 13]
     assert table is not None
     assert {
         "trigger_id",
@@ -1006,6 +1006,48 @@ def test_migrate_v11_to_v12_creates_scrum_trigger_table(tmp_path: Path) -> None:
         "status",
     } <= columns
     assert {"idx_scrum_trigger_status", "idx_scrum_trigger_type"} <= indexes
+
+
+def test_migrate_v12_to_v13_creates_verify_runs_table(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy-v12.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.executescript(helix_db.ACCURACY_SCORE_SCHEMA)
+    conn.executescript(helix_db.INFRA_SCHEMA_V9)
+    conn.executescript(helix_db.AUDIT_DECISIONS_SCHEMA_V10)
+    helix_db._migrate_v10_to_v11(conn)
+    helix_db._migrate_v11_to_v12(conn)
+    conn.execute("DROP TABLE IF EXISTS verify_runs")
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (12, '2026-05-02T00:00:00')"
+    )
+    conn.commit()
+
+    helix_db.migrate(conn)
+
+    versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
+    table = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='verify_runs'"
+    ).fetchone()
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(verify_runs)").fetchall()}
+    indexes = {row[1] for row in conn.execute("PRAGMA index_list(verify_runs)").fetchall()}
+    conn.close()
+
+    assert versions == [12, 13]
+    assert table is not None
+    assert {
+        "run_id",
+        "subcommand",
+        "plan_id",
+        "spec_plan_id",
+        "contract_path",
+        "inputs_hash",
+        "output_summary",
+        "created_at",
+    } <= columns
+    assert {"idx_verify_runs_subcommand", "idx_verify_runs_fail_close"} <= indexes
 
 
 def test_record_accuracy_score_inserts_row(tmp_path: Path, capsys) -> None:

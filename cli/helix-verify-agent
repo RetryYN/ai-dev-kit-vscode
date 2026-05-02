@@ -26,14 +26,14 @@ Commands:
       2 つの PLAN を比較し spec-only / impl-only / contract-only / behavior-only drift を検出します。
       drift_severity=P0/P1/unclassified は fail-close として非 0 で終了します。
 
-  list [--type harvest|design|cross-check] [--json]
-      保存済み run 一覧を表示します。現版の --save は helix.db v13 予定の no-op です。
+  list [--type harvest|design|cross-check] [--status pass|fail-close] [--json]
+      保存済み run 一覧を表示します。
 
   show <id>
-      保存済み run 詳細を表示します。現版では v13 永続化待ちのため未保存 ID はエラーです。
+      保存済み run 詳細を JSON で表示します。
 
 Persistence:
-  raw output は保存しません。helix.db 永続化は v13 で対応予定です。
+  raw output は保存しません。helix.db には入力 hash と最大 500 文字の summary のみ保存します。
 USAGE
     exit "$EXIT_SUCCESS"
     ;;
