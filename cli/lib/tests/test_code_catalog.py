@@ -232,3 +232,61 @@ def test_rebuild_catalog_rolls_back_jsonl_on_db_sync_error(tmp_path: Path, monke
         code_catalog.rebuild_catalog(tmp_path, jsonl_path, db_path)
 
     assert jsonl_path.read_text(encoding="utf-8") == original_content
+
+
+def test_scan_file_skips_string_literals(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        'X = "# @helix:index id=str.foo domain=bar summary=stringliteral"\n',
+        encoding="utf-8",
+    )
+
+    entries = code_catalog.scan_file(source)
+
+    assert entries == []
+
+
+def test_scan_file_only_comment_lines(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=comment.foo domain=bar summary=commentline\n"
+        'X = "# @helix:index id=str.foo domain=bar summary=stringliteral"\n',
+        encoding="utf-8",
+    )
+
+    entries = code_catalog.scan_file(source)
+
+    assert [entry["id"] for entry in entries] == ["comment.foo"]
+
+
+def test_scan_tracked_files_excludes_markdown(tmp_path: Path) -> None:
+    root = tmp_path
+    markdown_file = root / "sample.md"
+    python_file = root / "sample.py"
+    markdown_file.write_text("# @helix:index id=skip.md domain=docs summary=markdown\n", encoding="utf-8")
+    python_file.write_text("# @helix:index id=keep.py domain=cli/lib summary=python\n", encoding="utf-8")
+
+    import subprocess
+
+    subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "add", "sample.md", "sample.py"], cwd=root, check=True, capture_output=True)
+
+    entries = code_catalog.scan_tracked_files(root)
+
+    assert ".md" not in code_catalog._TRACKED_SUFFIXES
+    assert [entry["id"] for entry in entries] == ["keep.py"]
+
+
+def test_rebuild_catalog_rejects_duplicate_id(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    jsonl_path = tmp_path / ".helix" / "cache" / "code-catalog.jsonl"
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    def _scan(_path: Path) -> list[dict]:
+        return [{"id": "duplicate.id"}, {"id": "duplicate.id"}]
+
+    monkeypatch.setattr(code_catalog, "scan_tracked_files", _scan)
+
+    with pytest.raises(ValueError, match=r"重複した id が検出されました: duplicate\.id \(2 箇所\)"):
+        code_catalog.rebuild_catalog(tmp_path, jsonl_path, db_path)
+
+    assert not jsonl_path.exists()

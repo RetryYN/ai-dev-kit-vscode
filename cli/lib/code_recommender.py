@@ -58,14 +58,28 @@ def _helix_codex_path() -> str:
     return str(Path(__file__).resolve().parents[1] / "helix-codex")
 
 
+def _default_catalog_jsonl_path() -> Path:
+    return _repo_root() / ".helix" / "cache" / "code-catalog.jsonl"
+
+
+def _catalog_fingerprint(jsonl_path: Path) -> str:
+    if not jsonl_path.is_file():
+        return "no-catalog"
+    try:
+        stat = jsonl_path.stat()
+    except OSError:
+        return "no-catalog"
+    return f"{stat.st_mtime_ns}:{stat.st_size}"
+
+
 def _safe_text(value: Any) -> str:
     if value is None:
         return ""
     return str(value)
 
 
-def _cache_key(query: str, top_n: int) -> str:
-    payload = {"query": query, "n": top_n}
+def _cache_key(query: str, top_n: int, catalog_fingerprint: str = "") -> str:
+    payload = {"query": query, "n": top_n, "catalog_fingerprint": catalog_fingerprint}
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
@@ -253,7 +267,9 @@ def find_code(query: str, n: int = 5) -> list[dict[str, Any]]:
         return []
 
     cache_dir = _default_cache_dir()
-    cache_file = cache_dir / f"{_cache_key(query_text, top_n)}.json"
+    catalog_fingerprint = _catalog_fingerprint(_default_catalog_jsonl_path())
+    cache_key = _cache_key(query_text, top_n, catalog_fingerprint if catalog_fingerprint != "no-catalog" else "")
+    cache_file = cache_dir / f"{cache_key}.json"
     if _cache_is_fresh(cache_file):
         cached = json.loads(cache_file.read_text(encoding="utf-8"))
         return _attach_entry_metadata(_normalize_result(cached, top_n), entries)

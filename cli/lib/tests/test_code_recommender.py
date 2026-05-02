@@ -22,6 +22,15 @@ def test_cache_key_is_deterministic() -> None:
     assert first != third
 
 
+def test_cache_key_includes_catalog_fingerprint() -> None:
+    first = code_recommender._cache_key("frontmatter parser", 3, "fp-123")
+    second = code_recommender._cache_key("frontmatter parser", 3, "fp-124")
+    base = code_recommender._cache_key("frontmatter parser", 3)
+
+    assert first != second
+    assert first != base
+
+
 def test_cache_is_fresh_detects_missing_and_ttl() -> None:
     cache_file = Path("/tmp/code-recommender-cache-test.json")
     if cache_file.exists():
@@ -60,6 +69,24 @@ def test_gc_expired_cache_removes_only_expired_files(tmp_path: Path) -> None:
     assert not stale.exists()
 
 
+def test_catalog_fingerprint_changes_after_jsonl_update(tmp_path: Path) -> None:
+    jsonl_path = tmp_path / ".helix" / "cache" / "code-catalog.jsonl"
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    jsonl_path.write_text("line-1\n", encoding="utf-8")
+    before = code_recommender._catalog_fingerprint(jsonl_path)
+
+    jsonl_path.write_text("line-1\nline-2\n", encoding="utf-8")
+    after = code_recommender._catalog_fingerprint(jsonl_path)
+
+    assert before != after
+
+
+def test_catalog_fingerprint_handles_missing_file(tmp_path: Path) -> None:
+    missing = tmp_path / ".helix" / "cache" / "code-catalog.jsonl"
+    assert not missing.exists()
+    assert code_recommender._catalog_fingerprint(missing) == "no-catalog"
+
+
 def test_find_code_uses_cache_without_running_recommender(monkeypatch, tmp_path: Path) -> None:
     cache_dir = tmp_path / ".helix" / "cache" / "recommendations" / "code"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -89,6 +116,7 @@ def test_find_code_uses_cache_without_running_recommender(monkeypatch, tmp_path:
         ]
 
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
+    monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: tmp_path / "no-catalog.jsonl")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
     monkeypatch.setattr(code_recommender, "_fetch_entries", lambda: _fetch_entries())
 

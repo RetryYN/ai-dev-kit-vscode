@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
+import tokenize
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,7 +23,8 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 _INDEX_MARKER = "@helix:index"
 _FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related)=")
-_TRACKED_SUFFIXES = {".py", ".sh", ".md", ".bats"}
+# Sprint .6 TL findings: markdown は構文判定が困難なため除外、PLAN-011 §3.1 v1.2 で plan 側追従予定
+_TRACKED_SUFFIXES = {".py", ".sh", ".bats"}
 _REJECTION_LOG = "code-catalog-rejected.log"
 
 _DANGER_PATTERNS = [
@@ -69,6 +72,32 @@ def _parse_marker_payload(line: str) -> dict[str, str] | None:
     return _parse_key_values(payload.strip())
 
 
+def _comment_marker_lines(path: Path, text: str) -> set[int]:
+    if path.suffix == ".py":
+        marker_lines: set[int] = set()
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+            for token in tokens:
+                if token.type == tokenize.COMMENT and _INDEX_MARKER in token.string:
+                    marker_lines.add(token.start[0])
+        except tokenize.TokenError:
+            marker_lines = {
+                line_no
+                for line_no, line in enumerate(text.splitlines(), start=1)
+                if _INDEX_MARKER in line and line.lstrip().startswith("#")
+            }
+        return marker_lines
+
+    if path.suffix in {".sh", ".bats"}:
+        return {
+            line_no
+            for line_no, line in enumerate(text.splitlines(), start=1)
+            if _INDEX_MARKER in line and line.lstrip().startswith("#")
+        }
+
+    return set()
+
+
 def _project_root_for(path: Path) -> Path:
     current = path.resolve()
     for parent in (current, *current.parents):
@@ -105,6 +134,7 @@ def should_redact(summary: str) -> tuple[bool, str | None]:
     return False, None
 
 
+# @helix:index id=code-catalog.parse-helix-index-comment domain=cli/lib summary=コメント行から@helix:indexメタデータを抽出する
 def parse_helix_index_comment(line: str) -> dict[str, Any] | None:
     if _INDEX_MARKER not in line:
         return None
@@ -130,14 +160,20 @@ def parse_helix_index_comment(line: str) -> dict[str, Any] | None:
     }
 
 
+# @helix:index id=code-catalog.scan-file domain=cli/lib summary=対象ファイルのコメント行を走査して索引項目を作る
 def scan_file(path: Path) -> list[dict[str, Any]]:
     source_hash = _source_hash(path)
     updated_at = _now_iso()
     entries: list[dict[str, Any]] = []
     reject_dir = _project_root_for(path) / ".helix" / "cache"
+    text = path.read_text(encoding="utf-8")
+    marker_lines = _comment_marker_lines(path, text)
 
-    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        fields = _parse_marker_payload(line) if _INDEX_MARKER in line else None
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        if line_no not in marker_lines:
+            continue
+
+        fields = _parse_marker_payload(line)
         if fields is not None and fields.get("summary"):
             should_skip, reason = should_redact(fields["summary"])
             if should_skip:
@@ -190,6 +226,7 @@ def scan_tracked_files(repo_root: Path) -> list[dict[str, Any]]:
     return sorted(entries, key=lambda item: str(item.get("id", "")))
 
 
+# @helix:index id=code-catalog.write-jsonl domain=cli/lib summary=索引項目をJSONL正本へ原子的に書き込む
 def write_jsonl(entries: list[dict], jsonl_path: Path) -> None:
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = jsonl_path.with_suffix(jsonl_path.suffix + ".tmp")
@@ -204,6 +241,7 @@ def write_jsonl(entries: list[dict], jsonl_path: Path) -> None:
     os.replace(tmp_path, jsonl_path)
 
 
+# @helix:index id=code-catalog.sync-to-db domain=cli/lib summary=索引項目をSQLite派生キャッシュへ同期する
 def sync_to_db(entries: list[dict], db_path: Path) -> None:
     helix_db._prepare_db_path(str(db_path))
     conn = helix_db._connect(str(db_path))
@@ -237,8 +275,21 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
         conn.close()
 
 
+def _validate_unique_ids(entries: list[dict]) -> None:
+    counts: dict[str, int] = {}
+    for entry in entries:
+        entry_id = str(entry.get("id", ""))
+        counts[entry_id] = counts.get(entry_id, 0) + 1
+
+    for entry_id, count in sorted(counts.items()):
+        if count > 1:
+            raise ValueError(f"重複した id が検出されました: {entry_id} ({count} 箇所)")
+
+
+# @helix:index id=code-catalog.rebuild-catalog domain=cli/lib summary=trackedファイルから索引を再構築する
 def rebuild_catalog(repo_root: Path, jsonl_path: Path, db_path: Path) -> dict[str, Any]:
     entries = scan_tracked_files(repo_root)
+    _validate_unique_ids(entries)
     write_jsonl(entries, jsonl_path)
 
     try:
