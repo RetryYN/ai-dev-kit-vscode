@@ -28,20 +28,68 @@
 - 工程表作成後は自律実行（`skills/tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
 - モデル割当テーブル・並列実行ルール・ADR → `skills/tools/ai-coding/references/workflow-core.md` 参照
 
+### 並列実行ルール（必須）
+
+依存関係がないタスクは **必ず並列** で投入。直列にしない。
+
+判定（1 つでも該当 → 直列、全て NO → 並列）:
+- 編集対象ファイルが衝突する
+- 後段が前段の出力 (成果物 / レビュー結果) を入力にする
+- 共有状態 (helix.db / phase.yaml / handover の同フィールド) を同時更新する
+
+実装:
+- 同一メッセージで複数の Bash/Agent 呼び出し (`run_in_background: true` を活用)
+- 完了通知が来た順にレビュー → コミット。一斉待ち合わせ不要
+- どちらが先に終わってもよい場合は独立に進行・独立にコミット
+- 並列投入前に「衝突するファイル」「後段依存」を 1 行で書き出して根拠を残す
+
+例: BE 実装 (Codex SE) ∥ FE 実装 (@fe-component) ∥ docs 起草 (Codex docs) / 異なる Sprint で独立ファイル群を編集する Codex 同時投入 / 完了済み Sprint の commit と次 Sprint の委譲を並走
+
+**禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
+
 ### Agent tool コスト制御（必須）
 
 Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略すると Opus→Opus になりコスト爆発。
 
 | 用途 | 委譲先 | 根拠 |
 |------|--------|------|
-| コード探索・ファイル検索 | Agent(model: "sonnet") or 自分で Grep/Glob | Sonnet で十分 |
+| コード探索 (1 回の Grep/Glob/Read で完結) | 自分で直接 (Bash/Read) | オーバーヘッド回避 |
+| コード探索 (2 ステップ以上、複数ファイル横断) | Agent(model: "sonnet", subagent_type: "Explore") | Opus context 保護 |
+| 長文 Read (≥100 行 / review.json / PLAN.md 全体) | Agent(model: "sonnet") + 要約受領 | Opus トークン削減 |
 | 設計計画 | helix-codex --role tl | Codex TL が適切 |
 | BE実装・レビュー・テスト | helix-codex --role (se/pg/qa) | Codex が主力 |
 | FE実装・デザイン | @fe-design / @fe-component 等 | 既に Sonnet |
 | PM判断・統合・返答 | Opus（自分） | 委譲しない |
+| ドキュメント本文起草 (>100 行) | helix-codex --role docs | PM は要件提示と finalize のみ |
+
+#### 委譲必須の判定基準（厳格化、2026-05-03 改訂）
+
+以下のいずれかに該当 → **Opus 自身でやらず Sonnet/Codex 委譲を必須化**:
+
+- 同一タスクで Read 合計が 200 行を超える見込み
+- Grep / Glob が 3 回以上必要
+- 同じファイルを複数視点で見る (構造把握 + 詳細確認 等)
+- 長文ドキュメント (PLAN.md / review.json / SKILL.md / CURRENT.md) の全体 Read
+
+**Opus が直接 Read してよい範囲**:
+- handover status / phase.yaml / 単発短ファイル (< 100 行)
+- Edit 直前の対象ファイル冒頭〜該当箇所のみ
+- ユーザーから明示指定された 1 ファイル
 
 **禁止**: Agent tool を model 指定なしで呼ぶこと
 **禁止**: Opus がバックエンドコードを直接 Edit/Write すること
+**禁止**: Opus が「自分でやった方が早い」を理由に委譲基準を超えた直接実行をすること
+
+#### Budget 可視化（Opus 残使用量の把握）
+
+セッション開始時 / 委譲判断に迷ったら以下で残使用量を確認:
+
+```bash
+helix budget status              # Claude/Codex 両側の消費 % と枯渇予測
+helix budget simulate --task "..." [--size M]  # classify + budget で最適モデル + thinking 提示
+```
+
+Opus 週間残量が少ない時は委譲を強化（探索・長文 Read を 100% Sonnet 委譲）。Codex 残量も合わせて確認。新タスク着手前に `helix budget simulate` で最適委譲先を機械判定するのが推奨運用。
 
 ### ディスパッチ決定木
 
@@ -54,8 +102,11 @@ Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略す
 5. FE設計 → `@fe-design`
 6. テスト(BE) → `helix-codex --role qa`
 7. テスト(FE) → `@fe-test`
-8. コード調査 → Agent(model: "sonnet") or 自分で直接ツール使用
-9. PM判断・統合 → 自分で対応
+8a. コード調査（単発・< 100 行 Read 1 回 / Grep 1 回で完結）→ 自分で直接ツール使用
+8b. コード調査（複数ステップ・複数ファイル横断・長文 Read）→ Agent(model: "sonnet", subagent_type: "Explore")
+8c. ドキュメント長文解析（PLAN/review.json 全体）→ Agent(model: "sonnet") で要約受領
+8d. ドキュメント本文起草（PLAN/SKILL.md > 100 行）→ `helix-codex --role docs`
+9. PM判断・統合・finalize 判断 → 自分で対応
 
 ### 思考レベル制御 (effort)
 
