@@ -1,4 +1,4 @@
-# PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v1)
+# PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v3.3)
 
 ## §1. 目的 / Why
 
@@ -9,7 +9,7 @@ PLAN-006〜PLAN-009 で整備された `上流メタ` / `Scrum 差し込み` / `
 
 - 検証要件を PLAN から機械抽出し、候補ツールを収集する。
 - PoC/検証シナリオごとに運用可能な検証スタックを提案する。
-- 契約（D-CONTRACT）・API/DB・導線（D-DB）・設計の整合性まで含めた検証設計を提示する。
+- 契約（D-CONTRACT）・API/DB（D-API / **D-DB = DB/データモデル成果物**）・導線（D-STATE / UI/UX flow）・設計の整合性まで含めた検証設計を提示する。
 - PLAN 間 cross-check を組み込み、実装乖離を可観測化する。
 
 ## §2. スコープ
@@ -50,14 +50,66 @@ PLAN-006〜PLAN-009 で整備された `上流メタ` / `Scrum 差し込み` / `
 - skill catalog: `workflow/verification`, `workflow/research`, `workflow/poc` 等
 - `WebSearch + skill catalog` の二軸（本 PLAN レベルでは候補カテゴリの列挙まで）
 
+#### §3.1.2 候補 harvest 出力の必須フィールド (G1R 証跡 / P2 解消)
+
+OSS / WebSearch / LLM suggestion から harvest した候補は、採用検討へ進める前に以下のフィールドを必須で記録する。これらは G1R (事前調査ゲート) 証跡として研究レポートに接続される。
+
+| フィールド | 必須 | 内容 |
+|---|---|---|
+| `tool_id` | 必須 | 候補ツール ID (kebab-case) |
+| `source` | 必須 | `oss` / `websearch` / `llm-suggest` / `.helix/patterns/verify-tools.yaml` (実パス) / **`fallback`** (§3.1.1 fallback 経路) |
+| `official_source` | 必須 | 一次ソース URL (公式 repository / website) |
+| `license` | 必須 | SPDX 識別子。不明時は `unknown` (採用不可) |
+| `last_release_or_activity` | 必須 | 最終リリース or 主要 commit 日付 (ISO 8601) |
+| `maintenance_signal` | 必須 | `active` / `maintenance` / `stale` / `deprecated` |
+| `security_notes` | 必須 | CVE / GHSA / 既知の supply chain risk 列。なしの場合は空配列を明示 |
+| `adoption_status` | 必須 | **`candidate_only`** で初期化。採用確定は PM 承認後 |
+| `evidence_path` | 必須 | `.helix/research/<id>/verification.md` 内の該当章へのリンク |
+
+`adoption_status` を `candidate_only` 以外に変更するには PLAN-006 §3.2.2 OSS license 承認境界に従い PM 承認 + `oss-approval.md` 記録を必須化する。証跡未充足のまま G1R 通過は fail-close。
+
 #### 選定原則（3 軸）
 - 契約適合: D-* と接続しやすいこと（型・エンドポイント・エラーモデルの扱い）
 - 運用負荷: 導入後のメンテと CI/日次実行負荷が妥当であること
 - 失敗検知力: 仕様差分・脆弱性・劣化シグナルを捕捉できること
 
 #### 収集先ポリシー（固定+補完）
-- 固定: `.helix/patterns/verify-tools.yaml` を前提に扱う（現時点で本リポジトリ未所蔵）
+- 固定: `.helix/patterns/verify-tools.yaml` を前提に扱う（**未設置時は §3.1.1 fallback ルールに従う**）
 - 補完: `workflow/poc`, `workflow/verification`, `workflow/research` 既存 skill と `matrix.yaml` マッピング
+
+#### §3.1.1 verify-tools.yaml 正本化 (P2 解消)
+
+固定ルールソースの正本化を Sprint L1 で完了させる。template / schema / owner / fallback を以下に固定する。
+
+##### 配置・所有
+
+- 配置: `.helix/patterns/verify-tools.yaml`
+- owner: TL (作成 + 維持) / PM (採用判断承認)
+- 作成タスク: PLAN-010 **Sprint L1** で template + schema を確定し、PR 単位で merge (PLAN-009 の `Run Sprint 1` とは別概念)
+
+##### 最小 schema
+
+```yaml
+version: 1
+tools:
+  - id: vitest                     # 必須、kebab-case 一意
+    category: unit-test            # 必須: unit-test|integration|e2e|lint|format|security|dependency|perf|contract|golden|fuzz
+    languages: [ts, js]            # 必須、対象言語
+    license: MIT                   # 必須、SPDX 識別子
+    last_release_or_activity: 2026-04-15  # 必須、ISO 8601 日付 (§3.1.2 harvest 出力 schema と同一フィールド名で統一)
+    maintenance_signal: active     # 必須: active|maintenance|stale|deprecated
+    official_source: https://vitest.dev    # 必須、一次ソース
+    security_notes: []             # 必須、CVE / GHSA / supply chain risk 等。未検出時は `[]` を必ず明示 (空配列は lint pass)
+    adoption_status: candidate_only        # 必須: candidate_only|approved|rejected
+    helix_alignment: [PLAN-010, workflow/verification]   # 任意、紐付く HELIX 資産
+```
+
+##### fallback 挙動 (未設置時)
+
+- harvest 結果に `source=fallback` を必ず付与
+- `欠測理由` (例: `verify-tools.yaml not yet provisioned`) を `fallback_reason` に記録
+- fallback 出力は **採用確定不可**、PM 承認かつ verify-tools.yaml 整備後に再 harvest 必須
+- fallback 状態のまま G1R 通過は **fail-close**
 
 ### §3.2 PoC 用ツール選定
 
@@ -105,8 +157,21 @@ PoC の verify 用スクリプト（`verify/*.sh`）は用途別に分離し、`
 
 #### §3.4.2 Drift 検出
 - `spec-only`, `impl-only`, `contract-only`, `behavior-only` の 4 タイプ分類
-- 差分重大度：P1/P2/P3/P4 を付与して次施策へルーティング
+- 差分重大度: **P0/P1/P2/P3** を付与して次施策へルーティング (HELIX レビュー / 割り込み / 計画レビュー文脈の P0-P3 と統一、PLAN-004 v5 の deferred-finding carry rule に接続)
 - `Phase 2-3` の検証連鎖: `PLAN-002/003 完了` 後に `PLAN-009/L9-L11` へ接続
+
+#### §3.4.3 Drift severity と次施策ルーティング (P2 解消)
+
+差分重大度の保存 schema と次施策を以下に固定する。`P4` は使用しない。
+
+| severity | 条件 | 次施策 | carry rule (PLAN-004 v5) | 例 |
+|---|---|---|---|---|
+| `P0` | 致命的不整合 (実装が契約に違反、本番影響あり) | 即停止、incident 起票 | stop | API 戻り値が D-CONTRACT と非互換、認証スキップ |
+| `P1` | 重大不整合 (機能差し戻し or 仕様凍結見直し) | G2/G3 fail-close、scrum (Unit/Sprint) 起票 | carry-with-pm-approval | 必須フィールド欠落、エラーモデル不一致 |
+| `P2` | 中度不整合 (是正計画あり、carry 可) | 次工程開始前に解消 or readiness defer | auto-carry | optional フィールドの命名揺れ、ログ形式差 |
+| `P3` | 軽微不整合 (記録のみ) | 任意 carry、deferred 台帳記録 | optional | コメント差分、サンプル値の表記揺れ |
+
+`severity` 判定不能時は canonical 値 **`unclassified`** を出力 (alias `triage_required` は廃止) し、`requires_pm_triage=true` を必須付与する。PM/TL 再判定完了まで G2/G3/G4 および cross-check 完了判定を **fail-close** とし、auto-carry 経路には流さない。`drift_severity` を report 出力 schema の必須フィールドとし、`P0`/`P1`/`unclassified` は **fail-close 条件**に直結する。
 
 ### §3.5 CLI / skill 配置方針
 
@@ -120,7 +185,7 @@ PoC の verify 用スクリプト（`verify/*.sh`）は用途別に分離し、`
 
 ## §4. 関連 PLAN
 
-- `docs/plans/PLAN-001-poc-skill.md`（未作成のため次タスクで確認が必要）
+- `docs/plans/PLAN-001-poc-skill.md`（**draft 状態 = 未 finalize**。PLAN-001 が finalize されるまでは PoC 接続を `skills/workflow/poc/SKILL.md` への参照に置換し、PLAN-010 Sprint L3/L4 で PLAN-001 確定後に正規化する）
 - `docs/plans/PLAN-004-pm-reward-design.md`
 - `docs/plans/PLAN-006-upstream-meta-phase.md`
 - `docs/plans/PLAN-007-scrum-multitype-trigger.md`
@@ -143,7 +208,7 @@ PoC の verify 用スクリプト（`verify/*.sh`）は用途別に分離し、`
 - R4: PLAN-007 差し込み連携の過多（頻発）
   - 対応: 5 種 Scrum の条件満たし時のみ再実行する（条件不一致は観測扱い）
 - R5: `.helix/patterns/verify-tools.yaml` の未設置
-  - 対応: 本 PLAN では「未所在」を明示し、代替ソースを暫定採用
+  - 対応: §3.1.1 で正本化 (PLAN-010 **Sprint L1** で template+schema 確定。PLAN-009 の `Run Sprint 1` とは別概念)。未設置時は fallback 出力 (`source=fallback` + `fallback_reason` 必須)、採用確定不可、G1R fail-close で運用。
 
 ## §6. Sprint 計画概要（L1〜L4）
 
@@ -151,10 +216,11 @@ PoC の verify 用スクリプト（`verify/*.sh`）は用途別に分離し、`
 - PLAN-010 の目的・境界・採択基準を確定
 - PoC/profile 分類（PoC/UI/Unit/Sprint/Post-deploy）
 - `matrix.yaml` 連携要件を確定
+- **`.helix/patterns/verify-tools.yaml` の template + schema 確定 + 初版 commit** (Sprint L1 タスク、§3.1.1。PLAN-009 の `Run Sprint 1` とは別概念のため混同しないこと)
 
 ### Sprint L2: 方針固定
 - `harvest/design/cross-check` の入出力仕様
-- severity / trigger / next_action の固定フォーマット
+- severity / trigger / next_action の固定フォーマット (`P0/P1/P2/P3` 統一、§3.4.3 mapping)
 - PLAN-006/007 接続ルールを確定
 
 ### Sprint L3: 運用シミュレーション
@@ -172,3 +238,7 @@ PoC の verify 用スクリプト（`verify/*.sh`）は用途別に分離し、`
 | 日付 | バージョン | 変更内容 | 変更者 |
 | --- | --- | --- | --- |
 | 2026-05-01 | v1 | PLAN-010 を新規ドラフト作成（検証ツール選定、PoC 用 verify ツール選定、検証方法設計、PLAN 間 cross-check、CLI 配置） | Docs (Codex) |
+| 2026-05-02 | v3 | TL レビュー finding 解消。P2-1: §3.4.2 で drift severity を `P0/P1/P2/P3` に統一 (P4 撤廃)、§3.4.3 で severity → 次施策ルーティング表 + carry rule (PLAN-004 v5) 接続を新設。P2-2: §3.1.1 で `.helix/patterns/verify-tools.yaml` 正本化 (配置 / owner / 最小 schema (id/category/license/maintenance_signal 等) / fallback 挙動 (`source=fallback` 必須・採用確定不可・G1R fail-close)) を新設、§5 R5 を更新。P2-3: §3.1.2 候補 harvest 出力の必須フィールド (tool_id/source/official_source/license/last_release_or_activity/maintenance_signal/security_notes/adoption_status/evidence_path) を新設、PLAN-006 §3.2.2 OSS 承認境界と接続。P3: §1 で D-DB を「DB/データモデル成果物」と明示し、導線を D-STATE / UI/UX flow に振り分け。 | PM (Opus) |
+| 2026-05-02 | v3.1 | TL v3 review finding 解消。P2-1: §3.1.2 `source` enum に `fallback` を追加、§3.1.1 fallback 経路と整合。P2-2: §3.4.3 severity 判定不能時のデフォルトを `P2 + auto-carry` から **`unclassified` + `requires_pm_triage=true` + fail-close** に変更、auto-carry 迂回を防止。P3: §3.1.1 verify-tools.yaml schema で `security_notes` を必須化 (未検出時は `[]` 必須)、harvest 出力 schema との整合確保。 | PM (Opus) |
+| 2026-05-02 | v3.2 | TL v3.1 review finding 解消。P2-1: §3.1.2 `source` enum の固定ルール参照値を実パス `.helix/patterns/verify-tools.yaml` に統一。P2-2: §4 関連 PLAN で `PLAN-001-poc-skill.md` の draft 状態を明記、PLAN-001 finalize までは `skills/workflow/poc/SKILL.md` 参照に置換し PLAN-010 Sprint L3/L4 で再正規化する条件を明示。P3: §3.1.1 / §6 Sprint L1 の Sprint 名を `Sprint L1` に統一 (PLAN-009 の `Run Sprint 1` と別概念であることを明記)。 | PM (Opus) |
+| 2026-05-02 | v3.3 | TL v3.2 review finding 解消。P2-1: §3.1.1 verify-tools.yaml schema の `last_release` を `last_release_or_activity` に統一し §3.1.2 harvest 出力 schema とフィールド名整合。P2-2: §3.4.3 判定不能 drift の値を canonical `unclassified` 1 つに固定 (alias `triage_required` 廃止)、fail-close 条件と統一。P3: §5 R5 リスク欄の `Run Sprint 1` を `Sprint L1` に統一 (Sprint 名混在解消)。 | PM (Opus) |
