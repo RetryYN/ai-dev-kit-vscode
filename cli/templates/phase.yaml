@@ -19,7 +19,12 @@ gates:
   G6:  { status: pending }
   G7:  { status: pending }
   G9:  { status: pending }
-  G10: { status: pending }
+  G10:
+    status: pending
+    outcome: null
+    outcome_owner: null
+    outcome_eta: null
+    outcome_reason: null
   G11: { status: pending }
 
 sprint:
