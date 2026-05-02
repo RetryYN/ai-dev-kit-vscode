@@ -152,3 +152,85 @@ def test_compute_uncovered_includes_bucket_and_seed_fields(tmp_path: Path) -> No
     assert by_symbol["public_symbol"]["seed_promotable"] is False
     assert by_symbol["_private_symbol"]["bucket"] == "private_helper"
     assert by_symbol["_private_symbol"]["seed_candidate"] is False
+
+
+def coverage_report_repo(tmp_path: Path) -> Path:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "cli/lib/report_fixture.py",
+        "# @helix:index id=report.covered domain=cli/lib summary=covered public\n"
+        "def covered_public():\n"
+        "    return 1\n\n"
+        "def uncovered_public():\n"
+        "    return 2\n\n"
+        "# @helix:index id=report.private domain=cli/lib summary=covered private\n"
+        "def _covered_private():\n"
+        "    return 3\n\n"
+        "def _uncovered_private():\n"
+        "    return 4\n",
+    )
+    write(
+        repo,
+        "setup.sh",
+        "setup_task() {\n"
+        "  true\n"
+        "}\n",
+    )
+    entries = code_catalog.scan_tracked_files(repo)
+    private_entry = next(entry for entry in entries if entry["id"] == "report.private")
+    private_entry["metadata"]["seed_promotable"] = True
+    code_catalog.write_jsonl(entries, repo / ".helix/cache/code-catalog.jsonl")
+    return repo
+
+
+def test_compute_coverage_report_returns_covered_and_uncovered_union(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all")
+    by_symbol = {item["symbol"]: item for item in payload["items"]}
+    assert {"covered_public", "uncovered_public", "_covered_private", "_uncovered_private", "setup_task"} <= set(by_symbol)
+    assert by_symbol["covered_public"]["id"] == "report.covered"
+    assert "id" not in by_symbol["uncovered_public"]
+    assert "metadata" not in by_symbol["covered_public"]
+
+
+def test_filter_by_bucket_coverage_eligible(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="coverage_eligible")
+    assert {item["bucket"] for item in payload["items"]} == {"coverage_eligible"}
+
+
+def test_filter_by_bucket_private_helper(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="private_helper")
+    assert {item["symbol"] for item in payload["items"]} == {"_covered_private", "_uncovered_private"}
+
+
+def test_filter_by_seed_candidate_true(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all", seed_candidate="true")
+    assert {item["symbol"] for item in payload["items"]} == {"covered_public", "uncovered_public", "_covered_private"}
+
+
+def test_filter_by_seed_promotable_false(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all", seed_promotable="false")
+    assert "_covered_private" not in {item["symbol"] for item in payload["items"]}
+    assert all(item["seed_promotable"] is False for item in payload["items"])
+
+
+def test_summary_bucket_counts_present(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all")
+    assert payload["summary"]["bucket_counts"] == {
+        "coverage_eligible": 2,
+        "private_helper": 2,
+        "excluded": 1,
+    }
+
+
+def test_summary_seed_candidate_count_present(tmp_path: Path) -> None:
+    payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all")
+    assert payload["summary"]["seed_candidate_count"] == 3
+    assert payload["summary"]["seed_promotable_count"] == 1
+
+
+def test_coverage_pct_unchanged_by_bucket_filter(tmp_path: Path) -> None:
+    repo = coverage_report_repo(tmp_path)
+    all_payload = code_catalog.compute_coverage_report(repo, bucket="all")
+    private_payload = code_catalog.compute_coverage_report(repo, bucket="private_helper")
+    assert all_payload["summary"]["coverage_pct"] == private_payload["summary"]["coverage_pct"] == 50.0

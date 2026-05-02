@@ -256,6 +256,123 @@ PY
   [ "$status" -eq 0 ]
 }
 
+@test "helix code stats --uncovered --bucket coverage_eligible returns only public symbols" {
+  cat > "$PROJECT_ROOT/cli/lib/bucket_fixture.py" <<'PY'
+def public_symbol():
+    return 1
+
+def _private_symbol():
+    return 2
+PY
+  git add cli/lib/bucket_fixture.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket coverage_eligible
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'cli/lib/bucket_fixture.py\t1\tpublic_symbol\tfunction\tcoverage_eligible\ttrue\tfalse'* ]]
+  [[ "$output" != *"_private_symbol"* ]]
+}
+
+@test "helix code stats --uncovered --bucket private_helper lists underscore-prefixed symbols" {
+  cat > "$PROJECT_ROOT/cli/lib/private_fixture.py" <<'PY'
+def public_symbol():
+    return 1
+
+def _private_symbol():
+    return 2
+PY
+  git add cli/lib/private_fixture.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket private_helper
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'cli/lib/private_fixture.py\t4\t_private_symbol\tfunction\tprivate_helper\tfalse\tfalse'* ]]
+  [[ "$output" != *"public_symbol"* ]]
+}
+
+@test "helix code stats --uncovered --bucket excluded lists setup.sh / verify entries" {
+  cat > "$PROJECT_ROOT/setup.sh" <<'SH'
+setup_task() {
+  true
+}
+SH
+  mkdir -p "$PROJECT_ROOT/verify"
+  cat > "$PROJECT_ROOT/verify/check.sh" <<'SH'
+verify_task() {
+  true
+}
+SH
+  git add setup.sh verify/check.sh >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket excluded
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'setup.sh\t1\tsetup_task\tfunction\texcluded\tfalse\tfalse'* ]]
+  [[ "$output" == *$'verify/check.sh\t1\tverify_task\tfunction\texcluded\tfalse\tfalse'* ]]
+}
+
+@test "helix code stats --uncovered --bucket all returns 3-bucket union" {
+  cat > "$PROJECT_ROOT/cli/lib/union_fixture.py" <<'PY'
+def public_symbol():
+    return 1
+
+def _private_symbol():
+    return 2
+PY
+  cat > "$PROJECT_ROOT/setup.sh" <<'SH'
+setup_task() {
+  true
+}
+SH
+  git add cli/lib/union_fixture.py setup.sh >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket all --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.load(sys.stdin); buckets={i["bucket"] for i in d["items"]}; assert {"coverage_eligible","private_helper","excluded"} <= buckets' <<<"$output"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code stats --uncovered --seed-candidate true filters items" {
+  cat > "$PROJECT_ROOT/cli/lib/seed_fixture.py" <<'PY'
+def public_symbol():
+    return 1
+
+def _private_symbol():
+    return 2
+PY
+  git add cli/lib/seed_fixture.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket all --seed-candidate true --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["items"]; assert all(i["seed_candidate"] is True for i in d["items"]); assert all(i["bucket"] == "coverage_eligible" for i in d["items"])' <<<"$output"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code stats --uncovered --json places bucket_counts inside summary" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.load(sys.stdin); assert "bucket_counts" in d["summary"]; assert "bucket_counts" not in d; assert {"coverage_eligible","private_helper","excluded"} <= set(d["summary"]["bucket_counts"])' <<<"$output"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80 exits 0" {
+  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
+  cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
+  cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
+  cp "$HELIX_ROOT/cli/lib/skill_dispatcher.py" "$PROJECT_ROOT/cli/lib/skill_dispatcher.py"
+  git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
+@test "helix code stats --uncovered TSV includes bucket / seed_candidate / seed_promotable columns" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered
+  [ "$status" -eq 0 ]
+  run awk -F '\t' 'NF == 7 { found=1 } END { exit found ? 0 : 1 }' <<<"$output"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"seed_candidate="* ]]
+  [[ "$output" == *"seed_promotable="* ]]
+}
+
 @test "helix code stats --uncovered --scope core5 limits to core 5 files" {
   cat > "$PROJECT_ROOT/cli/lib/non_core.py" <<'PY'
 def non_core():

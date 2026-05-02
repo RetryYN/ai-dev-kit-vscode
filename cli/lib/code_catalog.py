@@ -36,6 +36,7 @@ _CORE5_PATHS = {
     "cli/lib/skill_catalog.py",
     "cli/lib/skill_dispatcher.py",
 }
+_BUCKETS = ("coverage_eligible", "private_helper", "excluded")
 _NON_INDEXABLE_PATH_PARTS = {"tests", "fixture", "fixtures", "generated", "vendor"}
 _SH_FUNCTION_RE = re.compile(r"^(?:function\s+)?([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*\))?\s*\{")
 
@@ -448,20 +449,243 @@ def _coverage_pct(covered: int, eligible: int) -> float:
     return round((covered / eligible) * 100, 1)
 
 
-# @helix:index id=code-catalog.compute-uncovered domain=cli/lib summary=未カバーpublic symbolを集計する
-def compute_uncovered(repo_root: Path, scope: str = "all") -> dict[str, Any]:
-    if scope not in {"all", "core5"}:
+# @helix:index id=code-catalog.filter-scope domain=cli/lib summary=scope別に対象ファイルを絞り込む
+def _filter_scope(paths: list[Path], scope: str) -> list[Path]:
+    if scope == "all":
+        return paths
+    if scope == "core5":
+        return [path for path in paths if path.as_posix() in _CORE5_PATHS]
+    if scope == "cli-lib":
+        return [path for path in paths if path.as_posix().startswith("cli/lib/")]
+    raise ValueError(f"unsupported scope: {scope}")
+
+
+def _flatten_catalog_entry(entry: dict[str, Any], root: Path) -> dict[str, Any] | None:
+    rel_path = Path(str(entry.get("path", "")))
+    symbol_line = int(entry.get("symbol_line") or entry.get("line_no") or 0)
+    if not rel_path.as_posix() or symbol_line <= 0:
+        return None
+
+    symbol, kind = _symbol_at_line(root / rel_path, symbol_line)
+    bucket = str(entry.get("bucket") or _classify_bucket(rel_path, symbol, kind))
+    metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+    seed_defaults = _default_seed_metadata(bucket, covered=True)
+
+    flattened = {
+        "id": entry.get("id"),
+        "domain": entry.get("domain"),
+        "summary": entry.get("summary"),
+        "since": entry.get("since"),
+        "related": entry.get("related", []),
+        "path": rel_path.as_posix(),
+        "line": int(entry.get("line_no") or symbol_line),
+        "line_no": int(entry.get("line_no") or symbol_line),
+        "symbol_line": symbol_line,
+        "source_hash": entry.get("source_hash"),
+        "updated_at": entry.get("updated_at"),
+        "symbol": symbol,
+        "kind": kind,
+        "bucket": bucket,
+        "seed_candidate": bool(metadata.get("seed_candidate", seed_defaults["seed_candidate"])),
+        "seed_promotable": bool(metadata.get("seed_promotable", seed_defaults["seed_promotable"])),
+    }
+    return flattened
+
+
+def _load_catalog_entries(repo_root: Path, eligible_files: list[Path]) -> list[dict[str, Any]]:
+    jsonl_path = repo_root / ".helix" / "cache" / "code-catalog.jsonl"
+    if jsonl_path.is_file():
+        raw_entries_by_path: dict[str, list[dict[str, Any]]] = {}
+        eligible_path_set = {path.as_posix() for path in eligible_files}
+        for line in jsonl_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            raw = json.loads(line)
+            rel_path = Path(str(raw.get("path", ""))).as_posix()
+            if rel_path in eligible_path_set:
+                raw_entries_by_path.setdefault(rel_path, []).append(raw)
+
+        entries: list[dict[str, Any]] = []
+        for rel_path in eligible_files:
+            path_entries = raw_entries_by_path.get(rel_path.as_posix(), [])
+            current_hash = _source_hash(repo_root / rel_path)
+            if path_entries and all(raw.get("source_hash") == current_hash for raw in path_entries):
+                source_entries = path_entries
+            else:
+                source_entries = scan_file(repo_root / rel_path)
+                for raw in source_entries:
+                    raw["path"] = rel_path.as_posix()
+            for raw in source_entries:
+                flattened = _flatten_catalog_entry(raw, repo_root)
+                if flattened is not None:
+                    entries.append(flattened)
+        return entries
+
+    entries = []
+    for rel_path in eligible_files:
+        for raw in scan_file(repo_root / rel_path):
+            raw["path"] = rel_path.as_posix()
+            flattened = _flatten_catalog_entry(raw, repo_root)
+            if flattened is not None:
+                entries.append(flattened)
+    return entries
+
+
+def _summary_for_items(items: list[dict[str, Any]], coverage_summary: dict[str, Any]) -> dict[str, Any]:
+    bucket_counts = {bucket: 0 for bucket in _BUCKETS}
+    seed_candidate_count = 0
+    seed_promotable_count = 0
+    for item in items:
+        bucket = str(item.get("bucket", "coverage_eligible"))
+        if bucket in bucket_counts:
+            bucket_counts[bucket] += 1
+        if item.get("seed_candidate") is True:
+            seed_candidate_count += 1
+        if item.get("seed_promotable") is True:
+            seed_promotable_count += 1
+
+    return {
+        "covered": coverage_summary["covered"],
+        "eligible": coverage_summary["eligible"],
+        "coverage_pct": coverage_summary["coverage_pct"],
+        "bucket_counts": bucket_counts,
+        "seed_candidate_count": seed_candidate_count,
+        "seed_promotable_count": seed_promotable_count,
+    }
+
+
+# @helix:index id=code-catalog.filter-coverage-items domain=cli/lib summary=bucketとseed条件でitemsを絞り込む
+def _filter_coverage_items(
+    items: list[dict[str, Any]],
+    *,
+    bucket: str = "coverage_eligible",
+    seed_candidate: str = "all",
+    seed_promotable: str = "all",
+) -> list[dict[str, Any]]:
+    if bucket not in {"coverage_eligible", "private_helper", "excluded", "all"}:
+        raise ValueError(f"unsupported bucket: {bucket}")
+    if seed_candidate not in {"true", "false", "all"}:
+        raise ValueError(f"unsupported seed_candidate: {seed_candidate}")
+    if seed_promotable not in {"true", "false", "all"}:
+        raise ValueError(f"unsupported seed_promotable: {seed_promotable}")
+
+    def bool_matches(value: Any, expected: str) -> bool:
+        if expected == "all":
+            return True
+        return bool(value) is (expected == "true")
+
+    filtered = []
+    for item in items:
+        if bucket != "all" and item.get("bucket") != bucket:
+            continue
+        if not bool_matches(item.get("seed_candidate"), seed_candidate):
+            continue
+        if not bool_matches(item.get("seed_promotable"), seed_promotable):
+            continue
+        filtered.append(item)
+    return filtered
+
+
+# @helix:index id=code-catalog.compute-coverage-report domain=cli/lib summary=coveredとuncoveredを統合して集計する
+def _compute_coverage_report(
+    repo_root: Path,
+    scope: str = "all",
+    *,
+    bucket: str = "coverage_eligible",
+    seed_candidate: str = "all",
+    seed_promotable: str = "all",
+) -> dict[str, Any]:
+    if scope not in {"all", "core5", "cli-lib"}:
         raise ValueError(f"unsupported scope: {scope}")
 
     root = repo_root.resolve()
-    eligible_files = _iter_tracked_eligible_files(root)
-    if scope == "core5":
-        eligible_files = [path for path in eligible_files if path.as_posix() in _CORE5_PATHS]
+    eligible_files = _filter_scope(_iter_tracked_eligible_files(root), scope)
 
     items: list[dict[str, Any]] = []
     covered = 0
     eligible = 0
-    bucket_counts = {"coverage_eligible": 0, "private_helper": 0, "excluded": 0}
+    seen_ids: set[str] = set()
+    covered_items: dict[tuple[str, int], dict[str, Any]] = {}
+
+    for entry in _load_catalog_entries(root, eligible_files):
+        symbol_line = int(entry.get("symbol_line") or entry.get("line_no") or 0)
+        marker_id = str(entry.get("id") or "")
+        if marker_id in seen_ids:
+            print(
+                f"warning: 重複した @helix:index id を除外しました: {marker_id} "
+                f"({entry.get('path')}:{entry.get('line_no')})",
+                file=sys.stderr,
+            )
+            continue
+        seen_ids.add(marker_id)
+        covered_items[(str(entry["path"]), symbol_line)] = entry
+
+    for rel_path in eligible_files:
+        full_path = root / rel_path
+        for line_no, symbol, kind in _extract_top_level_symbols(full_path):
+            bucket_name = _classify_bucket(rel_path, symbol, kind)
+            if bucket_name == "coverage_eligible":
+                eligible += 1
+            key = (rel_path.as_posix(), line_no)
+            if key in covered_items:
+                entry = dict(covered_items[key])
+                entry["symbol"] = symbol
+                entry["kind"] = kind
+                entry["bucket"] = bucket_name
+                if bucket_name == "coverage_eligible":
+                    covered += 1
+                items.append(entry)
+                continue
+
+            metadata = _default_seed_metadata(bucket_name, covered=False)
+            items.append(
+                {
+                    "path": rel_path.as_posix(),
+                    "line": line_no,
+                    "line_no": line_no,
+                    "symbol_line": line_no,
+                    "symbol": symbol,
+                    "kind": kind,
+                    "bucket": bucket_name,
+                    "seed_candidate": metadata["seed_candidate"],
+                    "seed_promotable": metadata["seed_promotable"],
+                }
+            )
+
+    items.sort(key=lambda item: (str(item["path"]), int(item["symbol_line"])))
+    coverage_summary = {
+        "covered": covered,
+        "eligible": eligible,
+        "coverage_pct": _coverage_pct(covered, eligible),
+    }
+    filtered_items = _filter_coverage_items(
+        items,
+        bucket=bucket,
+        seed_candidate=seed_candidate,
+        seed_promotable=seed_promotable,
+    )
+    return {
+        "items": filtered_items,
+        "summary": _summary_for_items(filtered_items, coverage_summary),
+    }
+
+
+filter_coverage_items = _filter_coverage_items
+compute_coverage_report = _compute_coverage_report
+
+
+# @helix:index id=code-catalog.compute-uncovered domain=cli/lib summary=未カバーpublic symbolを集計する
+def compute_uncovered(repo_root: Path, scope: str = "all") -> dict[str, Any]:
+    if scope not in {"all", "core5", "cli-lib"}:
+        raise ValueError(f"unsupported scope: {scope}")
+
+    root = repo_root.resolve()
+    eligible_files = _filter_scope(_iter_tracked_eligible_files(root), scope)
+
+    items: list[dict[str, Any]] = []
+    covered = 0
+    eligible = 0
+    bucket_counts = {bucket: 0 for bucket in _BUCKETS}
     seen_ids: set[str] = set()
     covered_keys: set[tuple[str, int]] = set()
 

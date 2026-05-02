@@ -324,22 +324,44 @@ def fail_under(value: str) -> int:
 
 parser = HelixArgumentParser(prog="helix code stats --uncovered")
 parser.add_argument("--uncovered", action="store_true", required=True)
-parser.add_argument("--scope", choices=["all", "core5"], default="all")
+parser.add_argument("--scope", choices=["core5", "cli-lib", "all"], default="all")
+parser.add_argument("--bucket", choices=["coverage_eligible", "private_helper", "excluded", "all"], default="coverage_eligible")
+parser.add_argument("--seed-candidate", choices=["true", "false", "all"], default="all")
+parser.add_argument("--seed-promotable", choices=["true", "false", "all"], default="all")
 parser.add_argument("--fail-under", type=fail_under, default=0)
 parser.add_argument("--json", action="store_true")
 args = parser.parse_args(argv)
 
-payload = code_catalog.compute_uncovered(repo_root, scope=args.scope)
+payload = code_catalog.compute_coverage_report(
+    repo_root,
+    scope=args.scope,
+    bucket=args.bucket,
+    seed_candidate=args.seed_candidate,
+    seed_promotable=args.seed_promotable,
+)
 summary = payload["summary"]
 
 if args.json:
     print(json.dumps(payload, ensure_ascii=False, sort_keys=False))
 else:
     for item in payload["items"]:
-        print(f"{item['path']}\t{item['line']}\t{item['symbol']}\t{item['kind']}")
+        print(
+            f"{item['path']}\t{item['line_no']}\t{item['symbol']}\t{item['kind']}\t"
+            f"{item['bucket']}\t{str(item['seed_candidate']).lower()}\t"
+            f"{str(item['seed_promotable']).lower()}"
+        )
+    bucket_counts = summary["bucket_counts"]
     print(
         f"summary: covered={summary['covered']} eligible={summary['eligible']} "
         f"coverage={float(summary['coverage_pct']):.1f}%"
+    )
+    print(
+        "summary: "
+        f"bucket=coverage_eligible:{bucket_counts['coverage_eligible']},"
+        f"private_helper:{bucket_counts['private_helper']},"
+        f"excluded:{bucket_counts['excluded']} "
+        f"seed_candidate={summary['seed_candidate_count']} "
+        f"seed_promotable={summary['seed_promotable_count']}"
     )
 
 if args.fail_under and float(summary["coverage_pct"]) < args.fail_under:
