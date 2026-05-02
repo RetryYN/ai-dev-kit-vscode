@@ -125,3 +125,61 @@ PY
   [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
   [[ "$output" == *"0.99  cache hit test"* ]]
 }
+
+@test "helix code list --json outputs parseable json" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list --json
+  [ "$status" -eq 0 ]
+  run python3 - <<'PY'
+import json
+import sys
+
+payload = json.load(sys.stdin)
+assert isinstance(payload, dict)
+assert "entries" in payload
+assert isinstance(payload["entries"], list)
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code list --domain filters entries" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list --domain cli/lib --json
+  [ "$status" -eq 0 ]
+  run python3 - <<'PY'
+import json
+import sys
+
+payload = json.load(sys.stdin)
+entries = payload.get("entries", [])
+assert entries
+assert all(item.get("domain") == "cli/lib" for item in entries)
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code show unknown id returns error" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code show does-not-exist
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"エラー: code index entry が見つかりません"* ]]
+}
+
+@test "helix code find requires query argument" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code find
+  [ "$status" -eq 64 ]
+  [[ "$output" == *"find には query が必要です"* ]]
+}
+
+@test "helix code stats --by since includes unknown bucket" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code stats --by since
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'unknown\t'* ]]
+}

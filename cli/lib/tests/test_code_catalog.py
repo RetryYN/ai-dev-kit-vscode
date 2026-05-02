@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 from pathlib import Path
+import pytest
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
@@ -89,3 +90,145 @@ def test_scan_file_logs_rejection() -> None:
         assert entries == []
         lines = REJECT_LOG_PATH.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 1
+
+
+def test_parse_helix_index_comment_parses_quoted_fields_and_related() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=\"code-catalog.parse-frontmatter\" domain=cli/lib summary=\"YAML frontmatter を展開する\" related=common/security,workflow/design"
+    )
+
+    assert entry is not None
+    assert entry["id"] == "code-catalog.parse-frontmatter"
+    assert entry["domain"] == "cli/lib"
+    assert entry["summary"] == "YAML frontmatter を展開する"
+    assert entry["related"] == ["common/security", "workflow/design"]
+
+
+def test_parse_helix_index_comment_ignores_incomplete_marker() -> None:
+    assert code_catalog.parse_helix_index_comment("# @helix:index id=foo summary=missing-domain") is None
+
+
+def test_parse_helix_index_comment_rejects_secret_like_summary() -> None:
+    assert (
+        code_catalog.parse_helix_index_comment(
+            "# @helix:index id=foo domain=bar summary=secret token ABCDEFGHIJKLMNOPQRSTUVWXYZabcd1234"
+        )
+        is None
+    )
+
+
+def test_scan_file_skips_danger_summary_and_records_rejection_path(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "\n".join(
+            [
+                "# @helix:index id=ok-id domain=cli/lib summary=tokenize is allowed",
+                "# @helix:index id=bad-id domain=cli/lib summary=api_key token leaked",
+                "# @helix:index id=another-id domain=cli/lib summary=passwordless flow is allowed",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    if REJECT_LOG_PATH.exists():
+        REJECT_LOG_PATH.unlink()
+
+    entries = code_catalog.scan_file(source)
+
+    assert len(entries) == 2
+    assert [entry["id"] for entry in entries] == ["ok-id", "another-id"]
+    rejected = REJECT_LOG_PATH.read_text(encoding="utf-8").splitlines()
+    assert len(rejected) == 1
+    assert "bad-id" not in rejected[0]
+    assert "danger_pattern" in rejected[0]
+
+
+def test_scan_tracked_files_filters_supported_extensions(tmp_path: Path) -> None:
+    with tempfile.TemporaryDirectory() as workdir:
+        root = Path(workdir)
+        python_file = root / "sample.py"
+        text_file = root / "sample.txt"
+        python_file.write_text("# @helix:index id=keep domain=cli/lib summary=keep.py", encoding="utf-8")
+        text_file.write_text("# @helix:index id=skip domain=cli/lib summary=skip.txt", encoding="utf-8")
+        import subprocess
+
+        subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+        subprocess.run(["git", "add", "sample.py", "sample.txt"], cwd=root, check=True, capture_output=True)
+
+        entries = code_catalog.scan_tracked_files(root)
+
+        assert [entry["id"] for entry in entries] == ["keep"]
+
+
+def test_rebuild_catalog_writes_jsonl_and_returns_summary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    jsonl_path = tmp_path / ".helix" / "cache" / "code-catalog.jsonl"
+    db_path = tmp_path / ".helix" / "helix.db"
+    entries = [
+        {
+            "id": "cli-lib.foo",
+            "domain": "cli/lib",
+            "summary": "test summary",
+            "path": "cli/lib/foo.py",
+            "line_no": 1,
+            "since": "v1",
+            "related": [],
+            "source_hash": "a" * 64,
+            "updated_at": "2026-05-03T00:00:00+00:00",
+        }
+    ]
+
+    def _scan(_path: Path) -> list[dict]:
+        return entries
+
+    synced: dict[str, bool] = {}
+
+    def _sync(payload: list[dict], _db: Path) -> None:
+        synced["called"] = True
+        synced["count"] = len(payload)
+
+    monkeypatch.setattr(code_catalog, "scan_tracked_files", _scan)
+    monkeypatch.setattr(code_catalog, "sync_to_db", _sync)
+    result = code_catalog.rebuild_catalog(tmp_path, jsonl_path, db_path)
+
+    assert result["entry_count"] == 1
+    assert jsonl_path.exists()
+    assert synced.get("called") is True
+    assert synced.get("count") == 1
+
+
+def test_rebuild_catalog_rolls_back_jsonl_on_db_sync_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    jsonl_path = tmp_path / ".helix" / "cache" / "code-catalog.jsonl"
+    db_path = tmp_path / ".helix" / "helix.db"
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    original_content = (
+        '{"id":"old.id","domain":"cli/lib","summary":"old","path":"old.py","line_no":1,'
+        '"since":"v0","related":[],"source_hash":"0","updated_at":"2026-05-01T00:00:00+00:00"}\n'
+    )
+    jsonl_path.write_text(original_content, encoding="utf-8")
+
+    def _scan(_path: Path) -> list[dict]:
+        return [
+            {
+                "id": "new.id",
+                "domain": "cli/lib",
+                "summary": "new",
+                "path": "new.py",
+                "line_no": 2,
+                "since": "v1",
+                "related": [],
+                "source_hash": "1",
+                "updated_at": "2026-05-03T00:00:00+00:00",
+            }
+        ]
+
+    monkeypatch.setattr(code_catalog, "scan_tracked_files", _scan)
+
+    def _sync(_payload: list[dict], _db: Path) -> None:
+        raise RuntimeError("sync failed")
+
+    monkeypatch.setattr(code_catalog, "sync_to_db", _sync)
+
+    with pytest.raises(RuntimeError):
+        code_catalog.rebuild_catalog(tmp_path, jsonl_path, db_path)
+
+    assert jsonl_path.read_text(encoding="utf-8") == original_content
