@@ -58,6 +58,7 @@ case "$CMD" in
     exec "$SCRIPT_DIR/helix-discover" "$@"
     ;;
   skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
+  code)     exec "$SCRIPT_DIR/helix-code" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
   retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
@@ -110,6 +111,7 @@ Commands:
 
 データ・学習:
   log         ログ・評価システム
+  code        コードインデックス検索/重複検出/統計
   debt        技術負債管理
   retro       レトロスペクティブ
   learn       成功パターン学習 (deprecated: helix recipe learn)

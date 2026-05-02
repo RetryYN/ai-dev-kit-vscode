@@ -1,0 +1,221 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-code: コードインデックス catalog の管理・表示
+
+HELIX_CODE_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HELIX_CODE_DIR/lib/helix-common.sh"
+
+LIB_DIR="$HELIX_CODE_DIR/lib"
+JSONL_PATH="$PROJECT_ROOT/.helix/cache/code-catalog.jsonl"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix code <subcommand>
+
+Subcommands:
+  build                         tracked files を走査して JSONL + DB を同期
+  list [--domain NAME] [--json] code_index 一覧を表示
+  show <id>                     code_index の詳細を表示
+  find                          not implemented yet (Sprint .2)
+  dup                           not implemented yet (Sprint .2)
+  stats                         not implemented yet (Sprint .2)
+  --help                        このヘルプ
+USAGE
+}
+
+build_catalog() {
+  python3 - "$LIB_DIR" "$PROJECT_ROOT" "$JSONL_PATH" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+repo_root = Path(sys.argv[2])
+jsonl_path = Path(sys.argv[3])
+
+sys.path.insert(0, str(lib_dir))
+import code_catalog  # type: ignore
+import helix_db  # type: ignore
+
+db_path = Path(helix_db.resolve_default_db_path())
+result = code_catalog.rebuild_catalog(repo_root, jsonl_path, db_path)
+print(f"entry_count: {result.get('entry_count', 0)}")
+print(f"jsonl_path: {result.get('jsonl_path', jsonl_path.as_posix())}")
+print(f"db_path: {result.get('db_path', db_path.as_posix())}")
+PY
+}
+
+list_entries() {
+  local domain="$1"
+  local as_json="$2"
+
+  python3 - "$LIB_DIR" "$domain" "$as_json" <<'PY'
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+domain = sys.argv[2]
+as_json = sys.argv[3] == "true"
+
+sys.path.insert(0, str(lib_dir))
+import helix_db  # type: ignore
+
+db_path = helix_db.resolve_default_db_path()
+helix_db._prepare_db_path(db_path)
+conn = helix_db._connect(db_path)
+helix_db._ensure_schema(conn)
+conn.row_factory = sqlite3.Row
+try:
+    sql = """
+        SELECT id, domain, summary, path, line_no, since, related, source_hash, updated_at
+        FROM code_index
+    """
+    params = []
+    if domain:
+        sql += " WHERE domain = ?"
+        params.append(domain)
+    sql += " ORDER BY id"
+    rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
+finally:
+    conn.close()
+
+for row in rows:
+    try:
+        row["related"] = json.loads(row.get("related") or "[]")
+    except Exception:
+        row["related"] = []
+
+if as_json:
+    print(json.dumps({"entries": rows}, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+for row in rows:
+    summary = str(row.get("summary") or "")
+    if len(summary) > 80:
+        summary = summary[:77] + "..."
+    print(f"{row.get('id', '')}\t{row.get('domain', '')}\t{row.get('path', '')}:{row.get('line_no', '')}\t{summary}")
+PY
+}
+
+show_entry() {
+  local entry_id="$1"
+
+  python3 - "$LIB_DIR" "$entry_id" <<'PY'
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+entry_id = sys.argv[2]
+
+sys.path.insert(0, str(lib_dir))
+import helix_db  # type: ignore
+
+db_path = helix_db.resolve_default_db_path()
+helix_db._prepare_db_path(db_path)
+conn = helix_db._connect(db_path)
+helix_db._ensure_schema(conn)
+conn.row_factory = sqlite3.Row
+try:
+    row = conn.execute(
+        """
+        SELECT id, domain, summary, path, line_no, since, related, source_hash, updated_at
+        FROM code_index
+        WHERE id = ?
+        """,
+        (entry_id,),
+    ).fetchone()
+finally:
+    conn.close()
+
+if row is None:
+    print(f"エラー: code index entry が見つかりません: {entry_id}", file=sys.stderr)
+    raise SystemExit(2)
+
+data = dict(row)
+try:
+    related = json.loads(data.get("related") or "[]")
+except Exception:
+    related = []
+
+source_hash = str(data.get("source_hash") or "")
+print(f"id: {data.get('id', '')}")
+print(f"domain: {data.get('domain', '')}")
+print(f"summary: {data.get('summary', '')}")
+print(f"path: {data.get('path', '')}")
+print(f"line_no: {data.get('line_no', '')}")
+print(f"location: {data.get('path', '')}:{data.get('line_no', '')}")
+print(f"since: {data.get('since') or ''}")
+print(f"related: {', '.join(str(item) for item in related)}")
+print(f"source_hash: {source_hash[:12]}")
+print(f"updated_at: {data.get('updated_at') or ''}")
+PY
+}
+
+not_implemented_sprint_2() {
+  echo "not implemented yet (Sprint .2)"
+}
+
+main() {
+  local cmd="${1:---help}"
+  shift || true
+
+  case "$cmd" in
+    --help|-h|help)
+      usage
+      return 0
+      ;;
+    build)
+      build_catalog
+      return $?
+      ;;
+    list)
+      local domain=""
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --domain)
+            [[ $# -ge 2 ]] || { echo "エラー: --domain には値が必要です" >&2; return 64; }
+            domain="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix code list [--domain NAME] [--json]
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      list_entries "$domain" "$as_json"
+      return $?
+      ;;
+    show)
+      [[ $# -ge 1 ]] || { echo "エラー: show には id が必要です" >&2; return 64; }
+      show_entry "$1"
+      return $?
+      ;;
+    find|dup|stats)
+      not_implemented_sprint_2
+      return 0
+      ;;
+    *)
+      echo "エラー: 不明なサブコマンドです: $cmd" >&2
+      usage >&2
+      return 64
+      ;;
+  esac
+}
+
+main "$@"
