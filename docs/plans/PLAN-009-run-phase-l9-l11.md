@@ -1,4 +1,4 @@
-# PLAN-009: Run 工程（L9-L11）(v3)
+# PLAN-009: Run 工程（L9-L11）(v3.3)
 
 ## 1. 目的 / Why
 
@@ -42,6 +42,19 @@
 - **ゲート**: `G9`（デプロイ安定性ゲート、Auto + PM）
 - **参照**: `PLAN-005`（`workflow/deploy`）、`workflow/observability-sre`
 
+#### 3.1.1 L7 / G7 / L8 / L9 の責務境界 (P2 解消)
+
+Run 工程追加に伴い、deploy 前後の責務を以下のように固定する。L9 は既存 G7 の再実行ではなく **L8 受入後の longer-run verification** として設計する。
+
+| フェーズ/ゲート | 担当範囲 | 時間軸 | 主要判定 |
+|---|---|---|---|
+| `L7` | デプロイ準備・本番投入実行・即時スモーク | デプロイ前〜直後 (~30分) | デプロイ手順の安全実行、初動異常の検出 |
+| `G7` | **release go/no-go**（即時スモーク + rollback 判断） | デプロイ直後 (~30分以内) | 即時 SLO 維持・blocking 障害なし |
+| `L8` | PO 受入 / 受入条件 ↔ 成果物突合 | L7 通過後〜数時間 | PO 受領、受入条件の充足 |
+| `L9` | **post-acceptance run verification**（longer-run、本番運用直後 1-4h） | L8 通過後 1-4h | 主要 API / CRUD の継続健全性、リリースノート整合、監視開始確認 |
+
+`G7` の即時スモーク（リクエスト数件規模）と `L9` の longer-run verification（時間軸を持つ運用観測） は重複しない。`G7` で blocking 障害を捕捉できず L9 で発見した場合は、L7/G7 へ差戻し + scrum (post-deploy) を起票する。
+
 ### 3.2 L10 観測
 
 - **入力**: L9 デプロイ検証完了、観測対象 metric 定義
@@ -65,6 +78,52 @@
 - **ゲート**: `G11`（運用学習完了ゲート、PM）
 - **参照**: `workflow/postmortem`, `PLAN-004`
 
+### 3.3a Run 成果物の redaction / retention / 閲覧権限 (P2 解消)
+
+L10 (`observation report` / `anomaly log`) と L11 (`run-learning report` / `next-cycle improvement proposal`) はユーザー指標・incident ログ・サポート問い合わせ傾向を扱うため、PII / secret / runtime log raw が混入するリスクがある。`workflow/observability-sre` (PLAN-005) の redaction 方針を継承し、以下を必須化する。
+
+#### 保存禁止情報
+
+`auth credentials` / `PII` (個人識別情報・問い合わせ本文の氏名/連絡先など) / `runtime log raw` / `env vars` / `内部エンドポイント url の secret 部分` を保存しない。
+
+#### redaction 必須項目
+
+PLAN-007 §3.5.2 / PLAN-008 §3.6 と同等の redaction 手順を適用する。
+
+| 成果物 | redaction 対象フィールド |
+|---|---|
+| `observation report` | metric source path / dashboard query 内の token / customer identifier |
+| `anomaly log` | trace 詳細の secret / user PII / 内部 IP+port の機密部分 |
+| `run-learning report` | incident summary 内の顧客名 / サポート問い合わせ本文 / 流出 secret |
+| `next-cycle improvement proposal` | 提案根拠 evidence の PII / secret 引用 |
+
+#### retention
+
+- `observation report`: 365 日（年次レビュー対応）
+- `anomaly log`: 730 日（incident timeline 追跡用）
+- `run-learning report`: 永続保存（archive 可、redaction 済み）
+- `next-cycle improvement proposal`: 次サイクル完了まで（最低 90 日）
+
+retention 経過後は `archived` 化 → `cli/helix-scheduler` の月次ジョブ `audit-retention: run-phase` で削除。
+
+#### 閲覧権限
+
+PLAN-008 §3.6 と同等に、**HELIX 内部には raw を保持しない**。各ロールの閲覧範囲は以下:
+
+- PM: 全 redaction 済みデータ閲覧 + 外部 source への `raw proxy 参照` 許可（72h TTL audit token、`audit.evidence_view` 監査ログ記録必須）
+- TL: redaction 済み + `archived` 以外を閲覧可。raw proxy 参照は `incident 対応中` のみ許可（PM 承認必須）
+- SE / PG: redaction 済みのみ閲覧可。raw proxy 参照不可
+- 外部利害関係者 (PO 等): redaction 済み `run-learning report` のみ参照可
+
+#### raw 取り扱いの確定 (P2 解消)
+
+「raw 参照」とは **HELIX 外部 source (本番ログ基盤 / Sentry / Datadog 等) への監査付き一時参照** を意味し、HELIX 内部 (helix.db / `.helix/audit/` / `observation report` / `anomaly log` など) には raw を保存しない。
+
+- HELIX 内に保存可: `evidence_id` / `source_path` (外部 source URI) / `source_query` (sanitized) / `content_hash` / `redacted_summary` / `secret_patterns_hit_count`
+- HELIX 内に保存禁止: 候補本文の raw text / auth credentials raw / PII 平文 / runtime log raw / env vars 平文
+- raw proxy 参照時は `audit.evidence_view` を発行し、72h TTL audit token を発行。TTL 経過後は token 無効化 (`audit.evidence_token_revoked`)。
+- export は redacted 済みデータ限定。raw export は禁止。外部送信は PM 承認 + 暗号化必須。
+
 ### 3.4 ゲート設計（G9/G10/G11）
 
 - **G9 判定要件**
@@ -75,11 +134,28 @@
 - **G10 判定要件**
   - 観測計画どおりの指標記録率 90% 以上
   - 異常検知ログ欠測が 0 件
-  - SLO 逸脱が `観測継続` / `保留` / `要是正` の定義内に収束
+  - SLO 逸脱が §3.4.1 G10 outcome mapping に収束し、**`pass` の場合のみ G10 完了**として L11 遷移可
+  - `watch-continue` は **L10 観測延長として再 G10 必須**（G10 完了扱いではない、§3.4.1 参照）
+  - `blocked` / `failed` は次工程（L11）に進めず、是正/差戻しに接続
 - **G11 判定要件**
   - incident の主要原因分類 + 再発防止提案が完了
   - 次サイクルへ持ち越す改善提案（最小 1 件）提出
   - 運用学習報告と受入記録の連携更新
+
+#### 3.4.1 G10 outcome mapping (P2 解消)
+
+`要是正` を pass/blocked/failed のどれと扱うか曖昧だったため、以下の outcome に分離する。fail-close 方針として **未解決の是正事項を pass させない**。
+
+| outcome | gate_status | L11 遷移 | 説明 / 次工程 | 是正 owner・ETA |
+|---|---|---|---|---|
+| `pass` | `pass` (G10 完了) | **可** | SLO 逸脱なし or 是正完了 + 指標記録率 ≥ 90% + 異常欠測 0 件。L11 へ進行 | — |
+| `watch-continue` | `non-passing continuation` (G10 **未完了**) | **不可** | 軽微な逸脱 (P3 相当) + SLO 範囲内、観測延長で継続可。L10 観測延長 (最大 +30 日) → 再 G10 必須 | TL (観測継続)、ETA 30 日以内 |
+| `blocked` | `blocked` (G10 未完了) | **不可** | 中度の逸脱 (P2 相当) + 是正計画あり、本番運用は継続。L10 中断 → 是正 → 再 G10 | PM 指名、ETA 14 日以内 |
+| `failed` | `failed` (G10 fail-close) | **不可** | 重大な SLO 違反 (P1 相当) or incident 継続中。**L6/L7 差戻し** + post-deploy scrum 起票 (PLAN-007 §3.1.5) + incident 起票 (`workflow/incident`) | PM、ETA は incident 解消ベース |
+
+`要是正` は単独 outcome ではなく、`blocked` または `failed` のサブカテゴリとして扱い、必ず是正 owner と ETA を付与する。`watch-continue` で 30 日延長後も収束しない場合は `blocked` に格上げする。
+
+**L11 遷移は `pass` のみ可** (P2 解消)。`watch-continue` を G10 pass として L11 へ進める実装は禁止し、phase transition rules で fail-close する。`watch-continue` は **non-passing continuation** であり、観測延長中は G10 状態が継続するが完了扱いにはならない。
 
 ### 3.5 既存 `SKILL_MAP.md` / `HELIX_CORE.md` への追加方針
 
@@ -136,31 +212,33 @@
 
 ### 緩和策
 
-- L10 は標準 7 日 + 追加 23 日の 2 段階進行とし、暫定の `watch done` 判定を明確化。
+- L10 は標準 7 日 + 追加 23 日の 2 段階進行とし、暫定の `watch-continue` 判定 (§3.4.1) で観測延長を明示化。
 - L11 は `postmortem` + `run-learning report` の 2 成果物提出を必須化し、提出期限付きで運用。
 - `G9/G10/G11` は本文の定義を `review` で固定し、判定責任者を PM 1 名に限定。
 
-## 6. Sprint 計画概要（L1〜L4）
+## 6. Sprint 計画概要（Run Sprint 1〜4）
 
-### Sprint L1: L9 設計固定
+> v3 改訂で `Sprint L1〜L4` を `Run Sprint 1〜4` に改名。HELIX 本体の L1〜L4 フェーズ名と衝突しないようにラベル分離 (P3 解消)。
+
+### Run Sprint 1: L9 設計固定
 
 - デプロイ検証レポートの最小必須項目を定義
 - G9 判定条件のレビュー承認
 - `PLAN-005` / `PLAN-007` との接続点を確定
 
-### Sprint L2: L10 観測計画固定
+### Run Sprint 2: L10 観測計画固定
 
 - 観測対象 KPI（SLO/SLI/latency/error/ユーザー指標）を一覧化
 - 異常ログ記録フォーマットを標準化
-- G10 の観測率 / 欠測ゼロ条件を固定
+- G10 の観測率 / 欠測ゼロ条件と outcome mapping (§3.4.1) を固定
 
-### Sprint L3: L11 学習ループ化
+### Run Sprint 3: L11 学習ループ化
 
 - `run-learning report` テンプレート雛形を設定
 - `postmortem` / incident を受ける再学習ルールを確定
-- 次サイクルへの改善提案ルートを L1 承認条件へ接続
+- 次サイクルへの改善提案ルートを HELIX L1 承認条件へ接続
 
-### Sprint L4: 接続整備
+### Run Sprint 4: 接続整備
 
 - `SKILL_MAP.md` / `HELIX_CORE.md` / `docs/plans` 間の参照整合を確認
 - PLAN シリーズ全体のリンク整合・改訂履歴更新ルールを整理
@@ -172,3 +250,6 @@
 | 2026-04-30 | v1 | PLAN-009 新規ドラフト作成。Run 工程（L9-L11）を導入し、L8 後のデプロイ検証、観測、運用学習を統合。 | Docs (Codex) |
 | 2026-04-30 | v2 | P1 finding 対応。`SKILL_MAP.md` は `Phase 4 Run` として `L9→L10→L11` を新規追加し、`HELIX_CORE.md` は `4 フェーズ思想` 拡張へ反映する方針へ修正。 | Docs (Codex) |
 | 2026-04-30 | v3 | TL P1 finding 反映。§3.6（CLI/state/gate 反映方針）を新設し、`helix-gate G9/G10/G11` / `.helix/phase.yaml` / `gate-checks.yaml` 反映と自動検証スクリプト接続方針を明示。実装契約（CLI 引数仕様、phase schema、gate フォーマット）は本PLAN の L3 詳細設計で凍結。 | Docs (Codex) |
+| 2026-05-02 | v3.1 | TL v3 review finding 解消。P2-1: §3.4.1 G10 outcome mapping (`pass/watch-continue/blocked/failed`) を新設、`要是正` を blocked/failed のサブカテゴリに固定 (是正 owner/ETA 必須)。P2-2: §3.1.1 で L7/G7/L8/L9 責務境界表を追加、`G7=即時 release go/no-go`・`L9=longer-run post-acceptance verification` に分離。P2-3: §3.3a で Run 成果物 (observation report / anomaly log / run-learning report / next-cycle improvement proposal) の保存禁止情報・redaction 必須項目・retention (365/730 日 + 永続) ・閲覧権限 (PM/TL/SE/外部) を明文化、PLAN-007 §3.5.2 / PLAN-008 §3.6 と統一。P3: §6 Sprint L1〜L4 を `Run Sprint 1〜4` に改名し HELIX 本体 L1〜L4 とのラベル衝突を解消。 | PM (Opus) |
+| 2026-05-02 | v3.2 | TL v3.1 review finding 解消。P2-1: §3.4.1 outcome mapping に `gate_status` 列と「L11 遷移は `pass` のみ可」明文を追加。`watch-continue` を **non-passing continuation** として定義し L11 遷移不可を fail-close。P2-2: §3.3a に raw 取り扱いの確定章を追加、PLAN-008 §3.6 と整合 (HELIX 内部に raw 非保存、外部 source への 72h TTL audit token 経由 raw proxy 参照のみ、保存可/禁止フィールド明示)。P3: §5 緩和策の `watch done` を `watch-continue` (§3.4.1) に語彙統一。 | PM (Opus) |
+| 2026-05-02 | v3.3 | TL v3.2 review finding 解消。P2: §3.4 G10 判定要件文言を `pass` のみ完了 / `watch-continue` は再 G10 必須と明記し §3.4.1 と整合させる。P3: §3.4.1 outcome mapping の 2 段表 (`gate_status / L11 遷移 / 説明` と `次工程 / 是正 owner / ETA`) を 1 つの表 (`outcome / gate_status / L11 遷移 / 説明 / 次工程 / 是正 owner・ETA`) に統合。 | PM (Opus) |
