@@ -183,3 +183,91 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == *$'unknown\t'* ]]
 }
+
+@test "helix code build self-hosts code_catalog.py with seed metadata" {
+  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
+  git add cli/lib/code_catalog.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list --domain cli/lib
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"code-catalog.parse-helix-index-comment"* ]]
+  [[ "$output" == *"code-catalog.scan-file"* ]]
+  [[ "$output" == *"skill-catalog.strip-quotes"* ]]
+}
+
+@test "helix code dup detects identical summaries with default threshold" {
+  cat > "$PROJECT_ROOT/cli/lib/dup_a.py" <<'PY'
+# @helix:index id=dup.a domain=cli/lib summary=ファイル走査用ヘルパー実装
+def a():
+    return 1
+PY
+  cat > "$PROJECT_ROOT/cli/lib/dup_b.py" <<'PY'
+# @helix:index id=dup.b domain=cli/lib summary=ファイル走査用ヘルパー実装
+def b():
+    return 2
+PY
+  git add cli/lib/dup_a.py cli/lib/dup_b.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code dup --threshold 0.85 --domain cli/lib
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"dup.a"* ]]
+  [[ "$output" == *"dup.b"* ]]
+}
+
+@test "helix code build prunes stale entries on rescan" {
+  build_code_index >/dev/null
+  initial=$("$HELIX_ROOT/cli/helix" code list | wc -l)
+  [ "$initial" -gt 0 ]
+
+  rm "$PROJECT_ROOT/cli/lib/skill_catalog.py"
+  git add -A cli/lib >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"skill-catalog.strip-quotes"* ]]
+  after=$(wc -l <<<"$output")
+  [ "$after" -lt "$initial" ]
+}
+
+@test "helix code build excludes markdown fixtures and string literals" {
+  cat > "$PROJECT_ROOT/docs_example.md" <<'MD'
+# 例
+
+`# @helix:index id=docs.example domain=docs summary=ドキュメント例`
+MD
+  cat > "$PROJECT_ROOT/cli/lib/fixture_helper.py" <<'PY'
+def f():
+    return "# @helix:index id=fixture.in_string domain=cli/lib summary=文字列リテラル内"
+PY
+  git add docs_example.md cli/lib/fixture_helper.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"docs.example"* ]]
+  [[ "$output" != *"fixture.in_string"* ]]
+}
+
+@test "helix code build fails closed on duplicate id" {
+  cat > "$PROJECT_ROOT/cli/lib/dup_x.py" <<'PY'
+# @helix:index id=duplicate.same domain=cli/lib summary=ヘルパーX実装
+def x():
+    return 1
+PY
+  cat > "$PROJECT_ROOT/cli/lib/dup_y.py" <<'PY'
+# @helix:index id=duplicate.same domain=cli/lib summary=ヘルパーY実装
+def y():
+    return 2
+PY
+  git add cli/lib/dup_x.py cli/lib/dup_y.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code build
+  [ "$status" -ne 0 ]
+}
