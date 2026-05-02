@@ -123,6 +123,7 @@ def _fetch_entries(db_path: str | Path | None = None) -> list[dict[str, Any]]:
 
 
 def _entry_lines(entries: list[dict[str, Any]]) -> str:
+    """Return prompt input using only the allowed metadata fields."""
     lines: list[str] = []
     for entry in entries:
         entry_id = _safe_text(entry.get("id")).replace("|", "/").strip()
@@ -180,7 +181,7 @@ def _run_recommender(prompt: str) -> str:
     except subprocess.TimeoutExpired as exc:
         raise CodeRecommenderError(5, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
     except OSError as exc:
-        raise CodeRecommenderError(3, f"helix-codex の起動に失敗しました: {exc}") from exc
+        raise CodeRecommenderError(5, f"helix-codex の起動に失敗しました: {exc}") from exc
 
     stderr_text = (proc.stderr or "").strip()
     if stderr_text:
@@ -189,7 +190,7 @@ def _run_recommender(prompt: str) -> str:
     if proc.returncode != 0:
         if proc.returncode in NETWORK_EXIT_CODES:
             raise CodeRecommenderError(5, f"ネットワークまたはタイムアウトで失敗しました (exit={proc.returncode})。")
-        raise CodeRecommenderError(3, f"helix-codex が失敗しました (exit={proc.returncode})。")
+        raise CodeRecommenderError(5, f"helix-codex が失敗しました (exit={proc.returncode})。")
 
     return proc.stdout or ""
 
@@ -255,6 +256,57 @@ def _attach_entry_metadata(candidates: list[dict[str, Any]], entries: list[dict[
     return enriched
 
 
+def _query_terms(query: str) -> list[str]:
+    lowered = query.lower().strip()
+    terms = [part for part in re.split(r"[\s_\-./:()]+", lowered) if part]
+    if lowered and lowered not in terms:
+        terms.append(lowered)
+    return terms
+
+
+def _local_lexical_fallback(query: str, top_n: int, entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    terms = _query_terms(query)
+    if not terms:
+        return []
+
+    scored: list[dict[str, Any]] = []
+    for entry in entries:
+        haystack = " ".join(
+            _safe_text(entry.get(field)).lower()
+            for field in ("id", "domain", "summary", "path")
+        )
+        matched = [term for term in terms if term in haystack]
+        if not matched:
+            continue
+        score = min(1.0, len(set(matched)) / max(len(set(terms)), 1))
+        scored.append(
+            {
+                "id": _safe_text(entry.get("id")).strip(),
+                "score": score,
+                "reason": f"local lexical match: {', '.join(sorted(set(matched))[:3])}",
+            }
+        )
+
+    scored.sort(key=lambda item: (-float(item.get("score", 0.0)), _safe_text(item.get("id"))))
+    return scored[: max(top_n, 0)]
+
+
+def _load_fresh_cache(cache_file: Path, top_n: int, entries: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+    if not _cache_is_fresh(cache_file):
+        return None
+    cached = json.loads(cache_file.read_text(encoding="utf-8"))
+    return _attach_entry_metadata(_normalize_result(cached, top_n), entries)
+
+
+def _write_cache(cache_file: Path, normalized: list[dict[str, Any]]) -> None:
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    removed = _gc_expired_cache(cache_file.parent, CACHE_TTL_SECONDS)
+    print(f"[code_recommender] cache gc removed={removed}", file=sys.stderr)
+    tmp_path = cache_file.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_path, cache_file)
+
+
 def find_code(query: str, n: int = 5) -> list[dict[str, Any]]:
     """query に合う code_index entry を上位 n 件返す。"""
     query_text = query.strip()
@@ -268,30 +320,31 @@ def find_code(query: str, n: int = 5) -> list[dict[str, Any]]:
 
     cache_dir = _default_cache_dir()
     catalog_fingerprint = _catalog_fingerprint(_default_catalog_jsonl_path())
-    cache_key = _cache_key(query_text, top_n, catalog_fingerprint if catalog_fingerprint != "no-catalog" else "")
+    cache_key = _cache_key(query_text, top_n, catalog_fingerprint)
     cache_file = cache_dir / f"{cache_key}.json"
-    if _cache_is_fresh(cache_file):
-        cached = json.loads(cache_file.read_text(encoding="utf-8"))
-        return _attach_entry_metadata(_normalize_result(cached, top_n), entries)
+    cached_results = _load_fresh_cache(cache_file, top_n, entries)
+    if cached_results is not None:
+        return cached_results
 
     template = _template_path().read_text(encoding="utf-8")
     prompt = _render_prompt(template, query_text, top_n, _entry_lines(entries))
-    raw_output = _run_recommender(prompt)
-    extracted = _extract_json(raw_output)
-    if extracted is None:
-        retry_prompt = prompt + "\n\n重要: JSON 形式厳守。JSON 以外の文字を一切出力しないこと。"
-        raw_output = _run_recommender(retry_prompt)
+    try:
+        raw_output = _run_recommender(prompt)
         extracted = _extract_json(raw_output)
+        if extracted is None:
+            retry_prompt = prompt + "\n\n重要: JSON 形式厳守。JSON 以外の文字を一切出力しないこと。"
+            raw_output = _run_recommender(retry_prompt)
+            extracted = _extract_json(raw_output)
+    except CodeRecommenderError as exc:
+        if exc.code != 5:
+            raise
+        print(f"[code_recommender] local fallback: llm unavailable ({exc})", file=sys.stderr)
+        return _attach_entry_metadata(_local_lexical_fallback(query_text, top_n, entries), entries)
     if extracted is None:
         raise CodeRecommenderError(4, "推挙結果の JSON 解析に失敗しました。")
 
     normalized = _normalize_result(extracted, top_n)
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    removed = _gc_expired_cache(cache_dir, CACHE_TTL_SECONDS)
-    print(f"[code_recommender] cache gc removed={removed}", file=sys.stderr)
-    tmp_path = cache_file.with_suffix(".tmp")
-    tmp_path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp_path, cache_file)
+    _write_cache(cache_file, normalized)
     return _attach_entry_metadata(normalized, entries)
 
 

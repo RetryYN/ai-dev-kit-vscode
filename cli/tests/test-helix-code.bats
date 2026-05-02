@@ -100,7 +100,10 @@ import sys
 from pathlib import Path
 
 project_root = Path(sys.argv[1])
-payload = {"query": "frontmatter parser", "n": 1}
+jsonl_path = project_root / ".helix" / "cache" / "code-catalog.jsonl"
+stat = jsonl_path.stat()
+fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}"
+payload = {"query": "frontmatter parser", "n": 1, "catalog_fingerprint": fingerprint}
 raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 cache_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 cache_path = project_root / ".helix" / "cache" / "recommendations" / "code" / f"{cache_key}.json"
@@ -124,6 +127,61 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
   [[ "$output" == *"0.99  cache hit test"* ]]
+}
+
+@test "helix code find filters cached id missing from current DB" {
+  cat > "$PROJECT_ROOT/cli/lib/current_keep.py" <<'PY'
+# @helix:index id=current.keep domain=cli/lib summary=frontmatter parser current keep
+def keep():
+    return 1
+PY
+  git add cli/lib/current_keep.py >/dev/null 2>&1
+  build_code_index >/dev/null
+
+  rm "$PROJECT_ROOT/cli/lib/skill_catalog.py"
+  git add -A cli/lib >/dev/null 2>&1
+  build_code_index >/dev/null
+  mkdir -p "$PROJECT_ROOT/.helix/cache/recommendations/code"
+  python3 - "$PROJECT_ROOT" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+project_root = Path(sys.argv[1])
+jsonl_path = project_root / ".helix" / "cache" / "code-catalog.jsonl"
+stat = jsonl_path.stat()
+fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}"
+payload = {"query": "frontmatter parser", "n": 2, "catalog_fingerprint": fingerprint}
+raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+cache_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+cache_path = project_root / ".helix" / "cache" / "recommendations" / "code" / f"{cache_key}.json"
+cache_path.write_text(
+    json.dumps(
+        [
+            {"id": "skill-catalog.strip-quotes", "score": 0.99, "reason": "stale"},
+            {"id": "current.keep", "score": 0.8, "reason": "current"},
+        ],
+        ensure_ascii=False,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+
+  run env HELIX_CODEX=/bin/false "$HELIX_ROOT/cli/helix" code find "frontmatter parser" -n 2
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"skill-catalog.strip-quotes"* ]]
+  [[ "$output" == *"current.keep  cli/lib  cli/lib/current_keep.py:"* ]]
+}
+
+@test "helix code find falls back locally when Codex is unavailable" {
+  build_code_index >/dev/null
+
+  run bash -c "HELIX_CODEX=/bin/false '$HELIX_ROOT/cli/helix' code find '引用符' -n 1 2>&1"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"local fallback: llm unavailable"* ]]
+  [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
 }
 
 @test "helix code list --json outputs parseable json" {

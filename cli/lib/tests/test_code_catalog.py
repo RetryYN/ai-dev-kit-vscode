@@ -104,6 +104,28 @@ def test_parse_helix_index_comment_parses_quoted_fields_and_related() -> None:
     assert entry["related"] == ["common/security", "workflow/design"]
 
 
+def test_parse_helix_index_comment_parses_unquoted_summary_with_since_and_related() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.bar domain=cli/lib summary=空白を含む 日本語の説明 since=v1.2 related=common/security,workflow/design"
+    )
+
+    assert entry is not None
+    assert entry["id"] == "foo.bar"
+    assert entry["domain"] == "cli/lib"
+    assert entry["summary"] == "空白を含む 日本語の説明"
+    assert entry["since"] == "v1.2"
+    assert entry["related"] == ["common/security", "workflow/design"]
+
+
+def test_parse_helix_index_comment_parses_unquoted_summary_to_eol() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.eol domain=cli/lib summary=末尾までを値にする 空白OK"
+    )
+
+    assert entry is not None
+    assert entry["summary"] == "末尾までを値にする 空白OK"
+
+
 def test_parse_helix_index_comment_ignores_incomplete_marker() -> None:
     assert code_catalog.parse_helix_index_comment("# @helix:index id=foo summary=missing-domain") is None
 
