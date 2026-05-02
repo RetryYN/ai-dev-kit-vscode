@@ -71,3 +71,57 @@ PY
   [[ "$output" == *"id: skill-catalog.strip-quotes"* ]]
   [[ "$output" == *"location: cli/lib/skill_catalog.py:"* ]]
 }
+
+@test "helix code stats by domain includes cli lib seed metadata" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code stats --by domain
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'cli/lib\t'* ]]
+}
+
+@test "helix code dup threshold zero exits zero for cli lib domain" {
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code dup --threshold 0.0 --domain cli/lib
+  [ "$status" -eq 0 ]
+  if [[ -n "$output" ]]; then
+    [[ "$output" == *"cli/lib"* ]]
+  fi
+}
+
+@test "helix code find returns cached result without calling Codex" {
+  build_code_index >/dev/null
+  mkdir -p "$PROJECT_ROOT/.helix/cache/recommendations/code"
+  python3 - "$PROJECT_ROOT" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+project_root = Path(sys.argv[1])
+payload = {"query": "frontmatter parser", "n": 1}
+raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+cache_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+cache_path = project_root / ".helix" / "cache" / "recommendations" / "code" / f"{cache_key}.json"
+cache_path.write_text(
+    json.dumps(
+        [
+            {
+                "id": "skill-catalog.strip-quotes",
+                "score": 0.99,
+                "reason": "cache hit test",
+            }
+        ],
+        ensure_ascii=False,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+PY
+
+  run env HELIX_CODEX=/bin/false "$HELIX_ROOT/cli/helix" code find "frontmatter parser" -n 1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
+  [[ "$output" == *"0.99  cache hit test"* ]]
+}

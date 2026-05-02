@@ -17,9 +17,10 @@ Subcommands:
   build                         tracked files を走査して JSONL + DB を同期
   list [--domain NAME] [--json] code_index 一覧を表示
   show <id>                     code_index の詳細を表示
-  find                          not implemented yet (Sprint .2)
-  dup                           not implemented yet (Sprint .2)
-  stats                         not implemented yet (Sprint .2)
+  find <query> [-n 5]           query に近い流用候補を推挙
+  dup [--threshold 0.85] [--domain NAME]
+                                summary 類似の duplicate 候補を検出
+  stats [--by domain|since]     code_index の件数を集計
   --help                        このヘルプ
 USAGE
 }
@@ -155,8 +156,137 @@ print(f"updated_at: {data.get('updated_at') or ''}")
 PY
 }
 
-not_implemented_sprint_2() {
-  echo "not implemented yet (Sprint .2)"
+find_entries() {
+  local query="$1"
+  local top_n="$2"
+
+  python3 - "$LIB_DIR" "$query" "$top_n" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+query = sys.argv[2]
+top_n = int(sys.argv[3])
+
+sys.path.insert(0, str(lib_dir))
+import code_recommender  # type: ignore
+
+results = code_recommender.find_code(query, n=top_n)
+for item in results:
+    print(
+        f"{item.get('id', '')}  {item.get('domain', '')}  "
+        f"{item.get('path', '')}:{item.get('line_no', '')}  "
+        f"{float(item.get('score', 0.0)):.2f}  {item.get('reason', '')}"
+    )
+PY
+}
+
+dup_entries() {
+  local threshold="$1"
+  local domain="$2"
+
+  python3 - "$LIB_DIR" "$threshold" "$domain" <<'PY'
+import itertools
+import re
+import sqlite3
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+threshold = float(sys.argv[2])
+domain_filter = sys.argv[3]
+
+sys.path.insert(0, str(lib_dir))
+import helix_db  # type: ignore
+
+
+def tokenize(summary: str) -> set[str]:
+    return {part for part in re.split(r"[\s_\-./()]+", summary.lower()) if part}
+
+
+db_path = helix_db.resolve_default_db_path()
+helix_db._prepare_db_path(db_path)
+conn = helix_db._connect(db_path)
+helix_db._ensure_schema(conn)
+conn.row_factory = sqlite3.Row
+try:
+    sql = "SELECT id, domain, summary FROM code_index"
+    params = []
+    if domain_filter:
+        sql += " WHERE domain = ?"
+        params.append(domain_filter)
+    sql += " ORDER BY domain, id"
+    rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
+finally:
+    conn.close()
+
+by_domain: dict[str, list[dict]] = {}
+for row in rows:
+    by_domain.setdefault(str(row.get("domain") or ""), []).append(row)
+
+matches: list[tuple[float, str, str, str]] = []
+for domain, entries in by_domain.items():
+    for left, right in itertools.combinations(entries, 2):
+        left_tokens = tokenize(str(left.get("summary") or ""))
+        right_tokens = tokenize(str(right.get("summary") or ""))
+        union = left_tokens | right_tokens
+        score = 0.0 if not union else len(left_tokens & right_tokens) / len(union)
+        if score >= threshold:
+            matches.append((score, str(left.get("id") or ""), str(right.get("id") or ""), domain))
+
+for score, left_id, right_id, domain in sorted(matches, key=lambda item: (-item[0], item[3], item[1], item[2])):
+    print(f"{left_id}  {right_id}  {score:.3f}  {domain}")
+PY
+}
+
+stats_entries() {
+  local group_by="$1"
+
+  python3 - "$LIB_DIR" "$group_by" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+group_by = sys.argv[2]
+
+sys.path.insert(0, str(lib_dir))
+import helix_db  # type: ignore
+
+if group_by not in {"domain", "since"}:
+    print(f"エラー: --by は domain または since を指定してください: {group_by}", file=sys.stderr)
+    raise SystemExit(64)
+
+db_path = helix_db.resolve_default_db_path()
+helix_db._prepare_db_path(db_path)
+conn = helix_db._connect(db_path)
+helix_db._ensure_schema(conn)
+conn.row_factory = sqlite3.Row
+try:
+    if group_by == "domain":
+        rows = conn.execute(
+            """
+            SELECT domain AS key, COUNT(*) AS count
+            FROM code_index
+            GROUP BY domain
+            ORDER BY domain
+            """
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT COALESCE(NULLIF(since, ''), 'unknown') AS key, COUNT(*) AS count
+            FROM code_index
+            GROUP BY COALESCE(NULLIF(since, ''), 'unknown')
+            ORDER BY key
+            """
+        ).fetchall()
+finally:
+    conn.close()
+
+for row in rows:
+    print(f"{row['key']}\t{row['count']}")
+PY
 }
 
 main() {
@@ -206,8 +336,88 @@ USAGE
       show_entry "$1"
       return $?
       ;;
-    find|dup|stats)
-      not_implemented_sprint_2
+    find)
+      local top_n="5"
+      local query_parts=()
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          -n|--top-n)
+            [[ $# -ge 2 ]] || { echo "エラー: -n には値が必要です" >&2; return 64; }
+            top_n="$2"
+            shift 2
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix code find <query> [-n 5]
+USAGE
+            return 0
+            ;;
+          -*)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+          *)
+            query_parts+=("$1")
+            shift
+            ;;
+        esac
+      done
+      [[ "${#query_parts[@]}" -gt 0 ]] || { echo "エラー: find には query が必要です" >&2; return 64; }
+      find_entries "${query_parts[*]}" "$top_n"
+      return $?
+      ;;
+    dup)
+      local threshold="0.85"
+      local domain=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --threshold)
+            [[ $# -ge 2 ]] || { echo "エラー: --threshold には値が必要です" >&2; return 64; }
+            threshold="$2"
+            shift 2
+            ;;
+          --domain)
+            [[ $# -ge 2 ]] || { echo "エラー: --domain には値が必要です" >&2; return 64; }
+            domain="$2"
+            shift 2
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix code dup [--threshold 0.85] [--domain NAME]
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      dup_entries "$threshold" "$domain"
+      return $?
+      ;;
+    stats)
+      local group_by="domain"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --by)
+            [[ $# -ge 2 ]] || { echo "エラー: --by には値が必要です" >&2; return 64; }
+            group_by="$2"
+            shift 2
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix code stats [--by domain|since]
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      stats_entries "$group_by"
       return 0
       ;;
     *)
