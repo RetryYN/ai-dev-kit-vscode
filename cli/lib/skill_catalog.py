@@ -267,6 +267,7 @@ def _build_skill_entry(skill_md: Path, skills_root: Path) -> dict[str, Any] | No
     }
 
 
+# @helix:index id=skill-catalog.build-catalog domain=cli/lib summary=catalogを構築する
 def build_catalog(skills_root: Path) -> dict[str, Any]:
     skills_root = skills_root.resolve()
     skills = []
@@ -286,6 +287,7 @@ def build_catalog(skills_root: Path) -> dict[str, Any]:
     }
 
 
+# @helix:index id=skill-catalog.save-catalog domain=cli/lib summary=catalogを保存する
 def save_catalog(catalog: dict[str, Any], cache_path: Path) -> None:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = cache_path.with_suffix(".tmp")
@@ -293,10 +295,12 @@ def save_catalog(catalog: dict[str, Any], cache_path: Path) -> None:
     os.replace(tmp_path, cache_path)
 
 
+# @helix:index id=skill-catalog.load-catalog domain=cli/lib summary=catalogを読込する
 def load_catalog(cache_path: Path) -> dict[str, Any]:
     return json.loads(cache_path.read_text(encoding="utf-8"))
 
 
+# @helix:index id=skill-catalog.find-skill domain=cli/lib summary=skillを検索する
 def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
     target = skill_id.strip()
     if not target:
@@ -469,6 +473,7 @@ def _build_jsonl_entry(skill_md: Path, skills_root: Path, existing_map: dict[str
     }
 
 
+# @helix:index id=skill-catalog.build-jsonl-catalog domain=cli/lib summary=jsonl catalogを構築する
 def build_jsonl_catalog(
     skills_root: Path,
     *,
@@ -493,6 +498,7 @@ def build_jsonl_catalog(
     return sorted(entries, key=lambda item: str(item.get("id", "")))
 
 
+# @helix:index id=skill-catalog.write-jsonl-catalog domain=cli/lib summary=jsonl catalogを書込する
 def write_jsonl_catalog(entries: list[dict], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as fp:
@@ -533,6 +539,7 @@ def _usage() -> None:
     print("  skill_catalog.py find <cache_path> <skill_id>")
 
 
+# @helix:index id=skill-catalog.main domain=cli/lib summary=mainを実行する
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
         _usage()

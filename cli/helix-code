@@ -21,6 +21,8 @@ Subcommands:
   dup [--threshold 0.85] [--domain NAME]
                                 summary 類似の duplicate 候補を検出
   stats [--by domain|since]     code_index の件数を集計
+  stats --uncovered [--scope all|core5] [--fail-under N] [--json]
+                                未カバー public symbol を集計
   --help                        このヘルプ
 USAGE
 }
@@ -289,6 +291,63 @@ for row in rows:
 PY
 }
 
+stats_uncovered() {
+  python3 - "$LIB_DIR" "$PROJECT_ROOT" "$@" <<'PY'
+import argparse
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+repo_root = Path(sys.argv[2])
+argv = sys.argv[3:]
+
+sys.path.insert(0, str(lib_dir))
+import code_catalog  # type: ignore
+
+
+class HelixArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        self.print_usage(sys.stderr)
+        self.exit(64, f"{self.prog}: error: {message}\n")
+
+
+def fail_under(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("--fail-under は整数で指定してください") from exc
+    if parsed < 0 or parsed > 100:
+        raise argparse.ArgumentTypeError("--fail-under は 0..100 の範囲で指定してください")
+    return parsed
+
+
+parser = HelixArgumentParser(prog="helix code stats --uncovered")
+parser.add_argument("--uncovered", action="store_true", required=True)
+parser.add_argument("--scope", choices=["all", "core5"], default="all")
+parser.add_argument("--fail-under", type=fail_under, default=0)
+parser.add_argument("--json", action="store_true")
+args = parser.parse_args(argv)
+
+payload = code_catalog.compute_uncovered(repo_root, scope=args.scope)
+summary = payload["summary"]
+
+if args.json:
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=False))
+else:
+    for item in payload["items"]:
+        print(f"{item['path']}\t{item['line']}\t{item['symbol']}\t{item['kind']}")
+    print(
+        f"summary: covered={summary['covered']} eligible={summary['eligible']} "
+        f"coverage={float(summary['coverage_pct']):.1f}%"
+    )
+
+if args.fail_under and float(summary["coverage_pct"]) < args.fail_under:
+    raise SystemExit(2)
+raise SystemExit(0)
+PY
+}
+
 main() {
   local cmd="${1:---help}"
   shift || true
@@ -397,6 +456,12 @@ USAGE
       return $?
       ;;
     stats)
+      for arg in "$@"; do
+        if [[ "$arg" == "--uncovered" ]]; then
+          stats_uncovered "$@"
+          return $?
+        fi
+      done
       local group_by="domain"
       while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -408,6 +473,7 @@ USAGE
           --help|-h)
             cat <<'USAGE'
 使い方: helix code stats [--by domain|since]
+       helix code stats --uncovered [--scope all|core5] [--fail-under N] [--json]
 USAGE
             return 0
             ;;

@@ -48,6 +48,7 @@ CODEX_ROLES = {
 }
 
 
+# @helix:index id=skill-dispatcher.dispatcher-error domain=cli/lib summary=DispatcherErrorクラス
 class DispatcherError(RuntimeError):
     def __init__(self, code: int, message: str) -> None:
         super().__init__(message)
@@ -161,6 +162,7 @@ def _safe_reference_path(skill_dir: Path, ref: str) -> Path | None:
     return candidate
 
 
+# @helix:index id=skill-dispatcher.build-context-bundle domain=cli/lib summary=context bundleを構築する
 def build_context_bundle(skill: dict, references: list[str], skills_root: Path) -> str:
     skill_path = _resolve_skill_md_path(skill, skills_root)
     skill_dir = skill_path.parent
@@ -204,6 +206,7 @@ def build_context_bundle(skill: dict, references: list[str], skills_root: Path) 
     return "\n".join(lines)
 
 
+# @helix:index id=skill-dispatcher.determine-agent domain=cli/lib summary=determine agentを実行する
 def determine_agent(skill: dict, recommended_agent: str | None = None) -> dict:
     if recommended_agent:
         return _normalize_agent(recommended_agent)
@@ -334,6 +337,7 @@ def _update_usage(db_path: Path, usage_id: int, fields: dict) -> None:
         conn.close()
 
 
+# @helix:index id=skill-dispatcher.dispatch domain=cli/lib summary=dispatchを実行する
 def dispatch(
     skill_id: str,
     task_text: str,
@@ -687,6 +691,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
+# @helix:index id=skill-dispatcher.main domain=cli/lib summary=mainを実行する
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     catalog_path = Path(args.catalog_path) if args.catalog_path else None

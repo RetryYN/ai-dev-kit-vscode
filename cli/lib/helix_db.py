@@ -516,6 +516,7 @@ def _prepare_db_path(db_path):
         os.makedirs(parent_dir, exist_ok=True)
 
 
+# @helix:index id=helix-db.get-connection domain=cli/lib summary=connectionを取得する
 def get_connection(db_path: str | Path | None = None, timeout: float = DEFAULT_SQLITE_TIMEOUT_SEC) -> sqlite3.Connection:
     """HELIX 統一 SQLite 接続。WAL + timeout + row_factory 設定済み。"""
     target_path = resolve_default_db_path() if db_path is None else str(db_path)
@@ -788,6 +789,7 @@ def _create_budget_events_table(conn):
     )
 
 
+# @helix:index id=helix-db.migrate domain=cli/lib summary=migrateを実行する
 def migrate(conn):
     """スキーマをマイグレーション"""
     current = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] or 0
@@ -899,6 +901,7 @@ def _ensure_schema(conn):
     migrate(conn)
 
 
+# @helix:index id=helix-db.init-db domain=cli/lib summary=dbを初期化する
 def init_db(db_path):
     _prepare_db_path(db_path)
     conn = _connect(db_path)
@@ -909,6 +912,7 @@ def init_db(db_path):
     print(f"DB initialized: {db_path}")
 
 
+# @helix:index id=helix-db.resolve-default-db-path domain=cli/lib summary=default db pathを解決する
 def resolve_default_db_path():
     env_path = os.environ.get('HELIX_DB_PATH', '').strip()
     if env_path:
@@ -919,6 +923,7 @@ def resolve_default_db_path():
     return os.path.join(os.getcwd(), '.helix', 'helix.db')
 
 
+# @helix:index id=helix-db.insert-row domain=cli/lib summary=rowを挿入する
 def insert_row(db_path, table, data):
     if not isinstance(data, dict):
         raise ValueError('insert payload must be a JSON object')
@@ -959,6 +964,7 @@ def insert_row(db_path, table, data):
     print(row_id)
 
 
+# @helix:index id=helix-db.record-task domain=cli/lib summary=taskを記録する
 def record_task(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -975,6 +981,7 @@ def record_task(db_path, data):
     print(run_id)
 
 
+# @helix:index id=helix-db.record-action domain=cli/lib summary=actionを記録する
 def record_action(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -990,6 +997,7 @@ def record_action(db_path, data):
     print(action_id)
 
 
+# @helix:index id=helix-db.record-observation domain=cli/lib summary=observationを記録する
 def record_observation(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -1005,6 +1013,7 @@ def record_observation(db_path, data):
     conn.close()
 
 
+# @helix:index id=helix-db.record-feedback domain=cli/lib summary=feedbackを記録する
 def record_feedback(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -1019,6 +1028,7 @@ def record_feedback(db_path, data):
     print("Feedback recorded")
 
 
+# @helix:index id=helix-db.record-feedback-argv domain=cli/lib summary=feedback argvを記録する
 def record_feedback_argv(
     db_path,
     task_run_id,
@@ -1049,6 +1059,7 @@ def record_feedback_argv(
     )
 
 
+# @helix:index id=helix-db.record-accuracy-score domain=cli/lib summary=accuracy scoreを記録する
 def record_accuracy_score(
     db_path,
     plan_id,
@@ -1111,6 +1122,7 @@ def record_accuracy_score(
         conn.close()
 
 
+# @helix:index id=helix-db.query-accuracy-history domain=cli/lib summary=query accuracy historyを実行する
 def query_accuracy_history(db_path, plan_id=None, gate=None, dimension=None, since=None, limit=None):
     """accuracy_score の履歴クエリ。フィルタ条件で絞り込み。
 
@@ -1200,6 +1212,7 @@ def _validate_positive_int(value, field_name):
     return value
 
 
+# @helix:index id=helix-db.insert-import-run domain=cli/lib summary=import runを挿入する
 def insert_import_run(db_path, run_id, source_hash, scope_hash, status="started"):
     """import_run を新規 INSERT する。started_at は epoch seconds。"""
     run_id = _require_non_empty(run_id, "run_id")
@@ -1221,6 +1234,7 @@ def insert_import_run(db_path, run_id, source_hash, scope_hash, status="started"
         conn.close()
 
 
+# @helix:index id=helix-db.update-import-run domain=cli/lib summary=import runを更新する
 def update_import_run(db_path, run_id, status, completed_at=None, imported_rows=0, error_summary=None):
     """import_run を success/failed で更新する。"""
     run_id = _require_non_empty(run_id, "run_id")
@@ -1245,6 +1259,7 @@ def update_import_run(db_path, run_id, status, completed_at=None, imported_rows=
         conn.close()
 
 
+# @helix:index id=helix-db.insert-audit-decision domain=cli/lib summary=audit decisionを挿入する
 def insert_audit_decision(
     db_path,
     candidate_id,
@@ -1309,6 +1324,7 @@ def insert_audit_decision(
         conn.close()
 
 
+# @helix:index id=helix-db.historical-to-active-audit-decision domain=cli/lib summary=historical to active audit decisionを実行する
 def historical_to_active_audit_decision(db_path, candidate_id, schema_version, scope_hash):
     """既存 active 行を historical に降格する。"""
     candidate_id = _require_non_empty(candidate_id, "candidate_id")
@@ -1329,6 +1345,7 @@ def historical_to_active_audit_decision(db_path, candidate_id, schema_version, s
         conn.close()
 
 
+# @helix:index id=helix-db.query-active-audit-decisions domain=cli/lib summary=query active audit decisionsを実行する
 def query_active_audit_decisions(db_path, candidate_id=None, schema_version=None):
     """active な audit_decisions を取得する。"""
     where = ["status = 'active'"]
@@ -1360,6 +1377,7 @@ def _automation_conn(db_path):
     return conn
 
 
+# @helix:index id=helix-db.insert-event domain=cli/lib summary=eventを挿入する
 def insert_event(db_path, event_name, data, **kwargs):
     """PLAN-005 observability event insert API."""
     event_name = _validate_observable_name(event_name, "event_name")
@@ -1386,6 +1404,7 @@ def insert_event(db_path, event_name, data, **kwargs):
         conn.close()
 
 
+# @helix:index id=helix-db.insert-metric domain=cli/lib summary=metricを挿入する
 def insert_metric(db_path, metric_name, value, tags=None):
     """PLAN-005 observability metric insert API."""
     metric_name = _validate_observable_name(metric_name, "metric_name")
@@ -1553,6 +1572,7 @@ def record_selection(db_path, data):
     print(sel_id)
 
 
+# @helix:index id=helix-db.update-review domain=cli/lib summary=reviewを更新する
 def update_review(db_path, data):
     conn = _connect(db_path)
     conn.execute(
@@ -1700,6 +1720,7 @@ def _quote_identifier(name):
     return '"' + str(name).replace('"', '""') + '"'
 
 
+# @helix:index id=helix-db.export-json domain=cli/lib summary=jsonを出力する
 def export_json(db_path, output_path):
     """DB 全テーブルを JSON にエクスポート"""
     conn = get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
@@ -1729,6 +1750,7 @@ def export_json(db_path, output_path):
     print(f"Exported: {output_path}")
 
 
+# @helix:index id=helix-db.main domain=cli/lib summary=mainを実行する
 def main():
     if len(sys.argv) < 2:
         print("Usage: helix_db.py <command> <db_path> [args]", file=sys.stderr)

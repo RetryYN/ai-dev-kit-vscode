@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import io
 import json
@@ -10,6 +11,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tokenize
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +29,15 @@ _FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related)=")
 # (Python は tokenize.COMMENT、bash は #-行頭コメントで構文判定可能)
 _TRACKED_SUFFIXES = {".py", ".sh"}
 _REJECTION_LOG = "code-catalog-rejected.log"
+_CORE5_PATHS = {
+    "cli/lib/code_catalog.py",
+    "cli/lib/code_recommender.py",
+    "cli/lib/helix_db.py",
+    "cli/lib/skill_catalog.py",
+    "cli/lib/skill_dispatcher.py",
+}
+_EXCLUDED_PATH_PARTS = {"tests", "fixture", "fixtures", "generated", "vendor"}
+_SH_FUNCTION_RE = re.compile(r"^(?:function\s+)?([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*\))?\s*\{")
 
 _DANGER_PATTERNS = [
     (re.compile(r"(auth|api|access|bearer|refresh)[-_. ]?(token|key|secret)", re.IGNORECASE), "danger_pattern"),
@@ -73,6 +84,32 @@ def _parse_marker_payload(line: str) -> dict[str, str] | None:
     return _parse_key_values(payload.strip())
 
 
+def _comment_lines(path: Path, text: str) -> set[int]:
+    if path.suffix == ".py":
+        comment_lines: set[int] = set()
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(text).readline)
+            for token in tokens:
+                if token.type == tokenize.COMMENT:
+                    comment_lines.add(token.start[0])
+        except tokenize.TokenError:
+            comment_lines = {
+                line_no
+                for line_no, line in enumerate(text.splitlines(), start=1)
+                if line.lstrip().startswith("#")
+            }
+        return comment_lines
+
+    if path.suffix == ".sh":
+        return {
+            line_no
+            for line_no, line in enumerate(text.splitlines(), start=1)
+            if line.lstrip().startswith("#")
+        }
+
+    return set()
+
+
 def _comment_marker_lines(path: Path, text: str) -> set[int]:
     if path.suffix == ".py":
         marker_lines: set[int] = set()
@@ -99,6 +136,11 @@ def _comment_marker_lines(path: Path, text: str) -> set[int]:
     return set()
 
 
+def _is_index_marker_valid(line: str) -> bool:
+    fields = _parse_marker_payload(line) or {}
+    return {"id", "domain", "summary"} <= set(fields)
+
+
 def _project_root_for(path: Path) -> Path:
     current = path.resolve()
     for parent in (current, *current.parents):
@@ -107,6 +149,7 @@ def _project_root_for(path: Path) -> Path:
     return Path.cwd()
 
 
+# @helix:index id=code-catalog.write-rejection-log domain=cli/lib summary=rejection logを書込する
 def write_rejection_log(reject_dir: Path, path: str, line_no: int, pattern_name: str, reason: str) -> None:
     reject_dir.mkdir(parents=True, exist_ok=True)
     log_path = reject_dir / _REJECTION_LOG
@@ -202,6 +245,7 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
     return entries
 
 
+# @helix:index id=code-catalog.scan-tracked-files domain=cli/lib summary=tracked filesを走査する
 def scan_tracked_files(repo_root: Path) -> list[dict[str, Any]]:
     root = repo_root.resolve()
     result = subprocess.run(
@@ -225,6 +269,149 @@ def scan_tracked_files(repo_root: Path) -> list[dict[str, Any]]:
             entries.append(entry)
 
     return sorted(entries, key=lambda item: str(item.get("id", "")))
+
+
+def _is_eligible_path(rel_path: Path) -> bool:
+    path = Path(rel_path)
+    if path.suffix not in _TRACKED_SUFFIXES:
+        return False
+    if path.suffix == ".py" and path.name.startswith("test_"):
+        return False
+    if path.suffix == ".bats":
+        return False
+    return not any(part in _EXCLUDED_PATH_PARTS for part in path.parts)
+
+
+def _iter_tracked_eligible_files(repo_root: Path) -> list[Path]:
+    root = repo_root.resolve()
+    result = subprocess.run(
+        ["git", "ls-files"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    paths = [Path(raw_path) for raw_path in result.stdout.splitlines()]
+    return sorted(path for path in paths if _is_eligible_path(path) and (root / path).is_file())
+
+
+def _extract_public_symbols(path: Path) -> list[tuple[int, str, str]]:
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".py":
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return []
+
+        symbols: list[tuple[int, str, str]] = []
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if node.name.startswith("_"):
+                    continue
+                kind = "class" if isinstance(node, ast.ClassDef) else "function"
+                symbols.append((node.lineno, node.name, kind))
+        return symbols
+
+    if path.suffix == ".sh":
+        symbols = []
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            match = _SH_FUNCTION_RE.match(line)
+            if match is None:
+                continue
+            name = match.group(1)
+            if name.startswith("_"):
+                continue
+            symbols.append((line_no, name, "function"))
+        return symbols
+
+    return []
+
+
+def _coverage_marker_for_symbol(path: Path, symbol_line: int) -> tuple[dict[str, str], int] | None:
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    comment_lines = _comment_lines(path, text)
+    marker_lines = _comment_marker_lines(path, text)
+
+    previous_line = symbol_line - 1
+    if previous_line not in comment_lines:
+        return None
+
+    block_lines: list[int] = []
+    current = previous_line
+    while current in comment_lines:
+        block_lines.append(current)
+        current -= 1
+
+    valid_markers: list[tuple[dict[str, str], int]] = []
+    for line_no in block_lines:
+        if line_no not in marker_lines:
+            continue
+        fields = _parse_marker_payload(lines[line_no - 1]) or {}
+        if _is_index_marker_valid(lines[line_no - 1]):
+            valid_markers.append((fields, line_no))
+
+    return valid_markers[0] if len(valid_markers) == 1 else None
+
+
+def _is_covered(path: Path, symbol_line: int) -> bool:
+    return _coverage_marker_for_symbol(path, symbol_line) is not None
+
+
+def _coverage_pct(covered: int, eligible: int) -> float:
+    if eligible == 0:
+        return 100.0
+    return round((covered / eligible) * 100, 1)
+
+
+# @helix:index id=code-catalog.compute-uncovered domain=cli/lib summary=未カバーpublic symbolを集計する
+def compute_uncovered(repo_root: Path, scope: str = "all") -> dict[str, Any]:
+    if scope not in {"all", "core5"}:
+        raise ValueError(f"unsupported scope: {scope}")
+
+    root = repo_root.resolve()
+    eligible_files = _iter_tracked_eligible_files(root)
+    if scope == "core5":
+        eligible_files = [path for path in eligible_files if path.as_posix() in _CORE5_PATHS]
+
+    items: list[dict[str, Any]] = []
+    covered = 0
+    eligible = 0
+    seen_ids: set[str] = set()
+
+    for rel_path in eligible_files:
+        full_path = root / rel_path
+        for line_no, symbol, kind in _extract_public_symbols(full_path):
+            eligible += 1
+            marker = _coverage_marker_for_symbol(full_path, line_no)
+            if marker is None:
+                items.append({"path": rel_path.as_posix(), "line": line_no, "symbol": symbol, "kind": kind})
+                continue
+
+            fields, marker_line = marker
+            marker_id = fields.get("id", "")
+            if marker_id in seen_ids:
+                print(
+                    f"warning: 重複した @helix:index id を除外しました: {marker_id} "
+                    f"({rel_path.as_posix()}:{marker_line})",
+                    file=sys.stderr,
+                )
+                items.append({"path": rel_path.as_posix(), "line": line_no, "symbol": symbol, "kind": kind})
+                continue
+
+            seen_ids.add(marker_id)
+            covered += 1
+
+    items.sort(key=lambda item: (str(item["path"]), int(item["line"])))
+    return {
+        "items": items,
+        "summary": {
+            "covered": covered,
+            "eligible": eligible,
+            "coverage_pct": _coverage_pct(covered, eligible),
+        },
+    }
 
 
 # @helix:index id=code-catalog.write-jsonl domain=cli/lib summary=索引項目をJSONL正本へ原子的に書き込む

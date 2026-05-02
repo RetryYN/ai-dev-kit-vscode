@@ -28,6 +28,7 @@ CACHE_TTL_SECONDS = 3600
 NETWORK_EXIT_CODES = {7, 8, 28, 124}
 
 
+# @helix:index id=code-recommender.code-recommender-error domain=cli/lib summary=CodeRecommenderErrorクラス
 class CodeRecommenderError(RuntimeError):
     """コード推挙処理の終了コード付きエラー。"""
 
@@ -307,6 +308,7 @@ def _write_cache(cache_file: Path, normalized: list[dict[str, Any]]) -> None:
     os.replace(tmp_path, cache_file)
 
 
+# @helix:index id=code-recommender.find-code domain=cli/lib summary=codeを検索する
 def find_code(query: str, n: int = 5) -> list[dict[str, Any]]:
     """query に合う code_index entry を上位 n 件返す。"""
     query_text = query.strip()
@@ -356,6 +358,7 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# @helix:index id=code-recommender.main domain=cli/lib summary=mainを実行する
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:

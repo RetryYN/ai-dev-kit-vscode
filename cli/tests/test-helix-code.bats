@@ -242,6 +242,45 @@ PY
   [[ "$output" == *$'unknown\t'* ]]
 }
 
+@test "helix code stats --uncovered default outputs TSV with summary" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'cli/lib/skill_catalog.py\t270\tbuild_catalog\tfunction'* ]]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
+@test "helix code stats --uncovered --json outputs items and summary object" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.load(sys.stdin); assert isinstance(d.get("items"), list); assert {"covered","eligible","coverage_pct"} <= set(d.get("summary", {}))' <<<"$output"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code stats --uncovered --scope core5 limits to core 5 files" {
+  cat > "$PROJECT_ROOT/cli/lib/non_core.py" <<'PY'
+def non_core():
+    return 1
+PY
+  git add cli/lib/non_core.py >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope core5
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"cli/lib/skill_catalog.py"* ]]
+  [[ "$output" != *"cli/lib/non_core.py"* ]]
+}
+
+@test "helix code stats --uncovered --fail-under 100 returns exit 2 when coverage is low" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --fail-under 100
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
+@test "helix code stats --uncovered --fail-under 0 returns exit 0 always" {
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --fail-under 0
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"summary: covered="* ]]
+}
+
 @test "helix code build self-hosts code_catalog.py with seed metadata" {
   cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
   git add cli/lib/code_catalog.py >/dev/null 2>&1
