@@ -18,6 +18,9 @@ gates:
   G5:  { status: pending }
   G6:  { status: pending }
   G7:  { status: pending }
+  G9:  { status: pending }
+  G10: { status: pending }
+  G11: { status: pending }
 
 sprint:
   current_step: null

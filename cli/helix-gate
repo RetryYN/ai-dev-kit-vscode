@@ -54,7 +54,7 @@ while [[ $# -gt 0 ]]; do
     --help|-h)
       echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--readiness-mode <warning|enforce|skip>]"
       echo ""
-      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7"
+      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7, G9, G10, G11"
       echo ""
       echo "Options:"
       echo "  --readiness-mode <warning|enforce|skip>"
@@ -77,12 +77,12 @@ if [[ "$JSON_OUTPUT" == true ]]; then
 fi
 
 if [[ -z "$GATE" ]]; then
-  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7）" >&2
+  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7, G9, G10, G11）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
-if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|[2-7])$ ]]; then
-  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7 を指定してください）" >&2
+if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|[2-7]|9|10|11)$ ]]; then
+  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7, G9-G11 を指定してください）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 

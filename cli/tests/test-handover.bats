@@ -419,7 +419,7 @@ PY
   [ "$status" -eq 2 ]
 }
 
-@test "36 phase enum allows only L1-L8" {
+@test "36 phase enum allows only L1-L11" {
   cat > .helix/phase.yaml <<'YAML'
 project: handover-test
 current_phase: R0
@@ -429,4 +429,16 @@ sprint:
 YAML
   run "$HELIX_ROOT/cli/helix-handover" dump --task-id T-001 --task-title "test"
   [ "$status" -eq 2 ]
+}
+
+@test "37 phase enum accepts L11" {
+  cat > .helix/phase.yaml <<'YAML'
+project: handover-test
+current_phase: L11
+sprint:
+  current_step: .2
+  status: active
+YAML
+  run "$HELIX_ROOT/cli/helix-handover" dump --task-id T-001 --task-title "test"
+  [ "$status" -eq 0 ]
 }

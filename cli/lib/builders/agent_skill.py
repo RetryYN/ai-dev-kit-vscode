@@ -8,7 +8,25 @@ from .registry import BuilderRegistry
 
 
 _NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
-_ALLOWED_LAYERS = {"L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "R0", "R1", "R2", "R3", "R4", "RGC"}
+_ALLOWED_LAYERS = {
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "L7",
+    "L8",
+    "L9",
+    "L10",
+    "L11",
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "RGC",
+}
 
 
 class AgentSkillBuilder(BuilderBase):

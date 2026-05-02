@@ -60,7 +60,19 @@ def test_apply_start_phase_l8_sets_all_prereq_skipped(tmp_path: Path) -> None:
         assert yaml_parser.get_nested(data, f"gates.{gate}.status") == "skipped"
 
 
-@pytest.mark.parametrize("phase", ["L9", "X"])
+def test_apply_start_phase_l11_sets_run_prereq_skipped(tmp_path: Path) -> None:
+    phase_path = _copy_phase(tmp_path)
+
+    init_helpers.apply_start_phase(phase_path, "L11")
+
+    data = _load(phase_path)
+    assert data["current_phase"] == "L11"
+    for gate in ("G0.5", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G9", "G10"):
+        assert yaml_parser.get_nested(data, f"gates.{gate}.status") == "skipped"
+    assert yaml_parser.get_nested(data, "gates.G11.status") == "pending"
+
+
+@pytest.mark.parametrize("phase", ["L12", "X"])
 def test_apply_start_phase_rejects_unknown_phase(tmp_path: Path, phase: str) -> None:
     phase_path = _copy_phase(tmp_path)
 

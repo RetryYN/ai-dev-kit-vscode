@@ -305,7 +305,7 @@ def find_skill(catalog: dict[str, Any], skill_id: str) -> dict[str, Any] | None:
     return None
 
 
-_ALL_FORWARD_PHASES = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
+_ALL_FORWARD_PHASES = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10", "L11")
 _MAX_REFERENCES_PER_ENTRY = 10
 _PHASE_ALIASES = {"S0": "L1", "S1": "L2", "S2": "L4", "S3": "L6", "S4": "L8"}
 

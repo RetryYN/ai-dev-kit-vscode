@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-init: HELIX プロジェクト初期化
-# Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"] [--start-phase L1..L8]
+# Usage: helix-init [--project-name "name"] [--force] [--monorepo-package "packages/foo"] [--start-phase L1..L11]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
@@ -24,13 +24,13 @@ while [[ $# -gt 0 ]]; do
     --monorepo-package) MONOREPO_PKG="$2"; shift 2 ;;
     --start-phase) START_PHASE="$2"; shift 2 ;;
     --help|-h)
-      echo "使い方: helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"] [--start-phase L1..L8]"
+      echo "使い方: helix init [--project-name \"name\"] [--force] [--monorepo-package \"packages/foo\"] [--start-phase L1..L11]"
       echo ""
       echo "Options:"
       echo "  --project-name  プロジェクト名（phase.yaml に設定）"
       echo "  --force         既存ファイルを上書き（CLAUDE.md 以外）"
       echo "  --monorepo-package  モノレポ内で HELIX 管理対象にするパッケージ相対パス"
-      echo "  --start-phase L1..L8  既存プロジェクトに途中から導入する際の開始フェーズ (デフォルト: L1)"
+      echo "  --start-phase L1..L11  既存プロジェクトに途中から導入する際の開始フェーズ (デフォルト: L1)"
       exit 0
       ;;
     *) echo "エラー: 不明なオプション: $1" >&2; exit 1 ;;
@@ -38,9 +38,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$START_PHASE" in
-  L1|L2|L3|L4|L5|L6|L7|L8) ;;
+  L1|L2|L3|L4|L5|L6|L7|L8|L9|L10|L11) ;;
   *)
-    echo "エラー: --start-phase は L1..L8 のいずれかを指定してください: $START_PHASE" >&2
+    echo "エラー: --start-phase は L1..L11 のいずれかを指定してください: $START_PHASE" >&2
     exit 2
     ;;
 esac

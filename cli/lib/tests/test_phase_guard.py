@@ -34,6 +34,9 @@ def _write_phase(path: Path, current_phase: str, statuses: dict[str, str] | None
         "G5": "pending",
         "G6": "pending",
         "G7": "pending",
+        "G9": "pending",
+        "G10": "pending",
+        "G11": "pending",
     }
     if statuses:
         merged.update(statuses)
@@ -153,6 +156,78 @@ def test_main_allows_l5_change_after_g4_passed(
     )
 
     assert result == 0
+
+
+def test_main_allows_l9_run_verification_in_l9(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    _write_phase(phase_file, "L9", {"G7": "passed"})
+
+    result = _run_main(
+        monkeypatch,
+        phase_file,
+        str(repo_root / "docs" / "features" / "auth" / "deployment-verification" / "smoke.md"),
+    )
+
+    assert result == 0
+
+
+def test_main_blocks_l10_observation_before_g9(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    _write_phase(phase_file, "L9", {"G7": "passed", "G9": "pending"})
+
+    result = _run_main(
+        monkeypatch,
+        phase_file,
+        str(repo_root / "docs" / "features" / "auth" / "observation-report" / "week1.md"),
+    )
+    output = capsys.readouterr().out
+
+    assert result == 1
+    assert "フェーズ違反" in output
+    assert "G9" in output
+
+
+def test_main_allows_l10_observation_after_g9(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    _write_phase(phase_file, "L10", {"G7": "passed", "G9": "passed"})
+
+    result = _run_main(
+        monkeypatch,
+        phase_file,
+        str(repo_root / "docs" / "features" / "auth" / "observation-report" / "week1.md"),
+    )
+
+    assert result == 0
+
+
+def test_main_blocks_l11_learning_before_g10(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo_root, phase_file = _init_fake_repo(tmp_path)
+    _write_phase(phase_file, "L10", {"G7": "passed", "G9": "passed", "G10": "failed"})
+
+    result = _run_main(
+        monkeypatch,
+        phase_file,
+        str(repo_root / "docs" / "features" / "auth" / "run-learning" / "retro.md"),
+    )
+    output = capsys.readouterr().out
+
+    assert result == 1
+    assert "フェーズ違反" in output
+    assert "G10" in output
 
 
 def test_main_returns_zero_when_phase_file_is_missing(

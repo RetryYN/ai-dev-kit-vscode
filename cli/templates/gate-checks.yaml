@@ -311,3 +311,51 @@ G7:
       task: |
         G7 安定性ゲート検証:
         デプロイ設定・環境変数・ヘルスチェック・ロールバック手順を検証せよ
+
+G9:
+  name: "デプロイ検証ゲート"
+  static:
+    - name: "リリースノート D-RELNOTE 存在確認"
+      cmd: "find docs -path '*/D-RELNOTE/*' -name '*.md' 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+    - name: "rollback 手順 D-DEPLOY 存在確認"
+      cmd: "find docs -path '*/D-DEPLOY/*' -name '*.md' -exec grep -l 'ロールバック\\|rollback' {} + 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+    - name: "smoke test ログ存在確認"
+      cmd: "find docs -path '*/deployment-verification/*' -type f 2>/dev/null | head -1 | grep -q ."
+      level: advisory
+  ai:
+    - role: devops
+      task: |
+        G9 デプロイ検証ゲート: 本番投入直後 1-4h のスモーク結果、リリースノート整合、rollback 準備、監視開始確認を評価せよ。
+
+G10:
+  name: "観測完了ゲート"
+  static:
+    - name: "observation report 存在確認"
+      cmd: "find docs -path '*/observation-report/*' -type f 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+    - name: "anomaly log 存在確認"
+      cmd: "find docs \\( -path '*/anomaly-log/*' -o -path '*/anomaly-logs/*' \\) -type f 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+    - name: "指標記録率 90% 以上の記録存在確認"
+      cmd: "find docs -type f 2>/dev/null -exec grep -lE '指標記録率|metric recording|recording rate|90%|≥ 90|>= 90' {} + | head -1 | grep -q ."
+      level: advisory
+  ai:
+    - role: qa
+      task: |
+        G10 観測完了ゲート: 観測計画どおりの指標記録率 ≥ 90%、異常検知ログ欠測 0、SLO 逸脱が pass に収束していることを評価。outcome mapping (pass / watch-continue / blocked / failed) のいずれかを判定し、pass 以外なら needs-attention を返せ。watch-continue / blocked / failed では L11 遷移不可。
+
+G11:
+  name: "運用学習完了ゲート"
+  static:
+    - name: "run-learning report 存在確認"
+      cmd: "find docs -path '*/run-learning/*' -type f 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+    - name: "next-cycle improvement proposal 存在確認"
+      cmd: "find docs \\( -path '*/next-cycle-improvement/*' -o -path '*/next-cycle-improvements/*' \\) -type f 2>/dev/null | head -1 | grep -q ."
+      level: mandatory
+  ai:
+    - role: docs
+      task: |
+        G11 運用学習完了ゲート: incident 主要原因分類 + 再発防止提案完了、次サイクル改善提案 ≥ 1 件、運用学習報告と受入記録の連携更新を評価せよ。

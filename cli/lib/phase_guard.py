@@ -44,7 +44,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from yaml_parser import get_nested, parse_yaml
 
-LAYER_ORDER = {f"L{i}": i for i in range(1, 9)}
+LAYER_ORDER = {f"L{i}": i for i in range(1, 12)}
 UNKNOWN_LAYER = "unknown"
 
 GATE_NAMES = {
@@ -56,6 +56,9 @@ GATE_NAMES = {
     "G5": "デザイン凍結ゲート",
     "G6": "RC判定ゲート",
     "G7": "安定性ゲート",
+    "G9": "デプロイ安定性ゲート",
+    "G10": "観測完了ゲート",
+    "G11": "運用学習完了ゲート",
 }
 
 LAYER_REQUIRED_GATE = {
@@ -66,6 +69,9 @@ LAYER_REQUIRED_GATE = {
     6: "G4",
     7: "G6",
     8: "G7",
+    9: "G7",
+    10: "G9",
+    11: "G10",
 }
 
 DELIVERABLE_ID_RE = re.compile(r"^(D-[A-Z0-9]+(?:-[A-Z0-9]+)*)")
@@ -133,6 +139,11 @@ STATIC_DELIVERABLE_LAYER = {
     "D-UAT": "L8",
     "D-HANDOVER": "L8",
     "D-RETRO": "L8",
+    "D-RUN-VERIFY": "L9",
+    "D-OBSERVATION": "L10",
+    "D-ANOMALY": "L10",
+    "D-RUN-LEARNING": "L11",
+    "D-IMPROVEMENT": "L11",
 }
 
 
@@ -273,6 +284,12 @@ def _infer_layer(rel_path: str, catalog_layers: dict[str, str]) -> str | None:
         return "L3"
     if re.match(r"^docs/design/L5-[^/]+", rel_path):
         return "L5"
+    if re.search(r"/deployment-verification(?:/|$)", rel_path):
+        return "L9"
+    if re.search(r"/(?:observation-report|anomaly-log|anomaly-logs)(?:/|$)", rel_path):
+        return "L10"
+    if re.search(r"/(?:run-learning|next-cycle-improvement|next-cycle-improvements)(?:/|$)", rel_path):
+        return "L11"
     if rel_path.startswith("src/"):
         return "L4"
 
@@ -291,6 +308,9 @@ def _compute_allowed_layer(current_phase: str, phase_data: dict[str, Any]) -> in
         "G5": _status(get_nested(phase_data, "gates.G5.status")),
         "G6": _status(get_nested(phase_data, "gates.G6.status")),
         "G7": _status(get_nested(phase_data, "gates.G7.status")),
+        "G9": _status(get_nested(phase_data, "gates.G9.status")),
+        "G10": _status(get_nested(phase_data, "gates.G10.status")),
+        "G11": _status(get_nested(phase_data, "gates.G11.status")),
     }
 
     if current_phase == "L1":
@@ -309,8 +329,12 @@ def _compute_allowed_layer(current_phase: str, phase_data: dict[str, Any]) -> in
         allowed = max(allowed, 7)
     if gate_status["G7"] == "passed":
         allowed = max(allowed, 8)
+    if gate_status["G9"] == "passed":
+        allowed = max(allowed, 10)
+    if gate_status["G10"] == "passed":
+        allowed = max(allowed, 11)
 
-    return min(max(allowed, 1), 8)
+    return min(max(allowed, 1), 11)
 
 
 def _block_phase_violation(target_layer: str, current_phase: str, required_gate: str | None) -> int:

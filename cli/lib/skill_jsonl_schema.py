@@ -24,7 +24,24 @@ ALLOWED_AGENTS = {
     "fe-test",
     "fe-a11y",
 }
-ALLOWED_PHASES = {"L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "R0", "R1", "R2", "R3", "R4"}
+ALLOWED_PHASES = {
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "L7",
+    "L8",
+    "L9",
+    "L10",
+    "L11",
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+}
 ALLOWED_STATUS = {"pending", "approved", "manual"}
 
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$")

@@ -610,7 +610,7 @@ run_test_contains "G4 includes debt register check" "grep -n '技術負債台帳
 # G4 prereq test: G3 must be passed
 run_test_contains "G4 prereq fail" "$SCRIPT_DIR/helix-gate G4 --static-only 2>&1 || true" "前提ゲート"
 run_test "G4 prereq fail exit 3" "$SCRIPT_DIR/helix-gate G4 --static-only --dry-run" 3
-run_test "gate invalid name exit 2" "$SCRIPT_DIR/helix-gate G9 --static-only" 2
+run_test "gate invalid name exit 2" "$SCRIPT_DIR/helix-gate G8 --static-only" 2
 run_test "gate invalid option exit 2" "$SCRIPT_DIR/helix-gate G2 --bad-opt" 2
 run_test "helix-gate bash4 guard" "T=\$(mktemp); python3 -c 'from pathlib import Path; import sys; src = Path(sys.argv[1]).read_text(encoding=\"utf-8\"); needle = \"\${BASH_VERSINFO[0]:-0}\"; assert needle in src; Path(sys.argv[2]).write_text(src.replace(needle, \"3\", 1), encoding=\"utf-8\")' \"$SCRIPT_DIR/helix-gate\" \"\$T\"; chmod +x \"\$T\"; out=\$(\"\$T\" G2 --static-only 2>&1); code=\$?; rm -f \"\$T\"; [[ \$code -eq 1 ]] && echo \"\$out\" | grep -q 'bash 4 以上が必要'"
 run_test "set G4 prereq pending for config skip test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G3.status pending"
@@ -1971,7 +1971,13 @@ run_test "init --start-phase L4 works" "\
   HELIX_HOME=$HELIX_HOME HELIX_PROJECT_ROOT=\$tmp $SCRIPT_DIR/helix-init --project-name demo --start-phase L4 --force >/dev/null 2>&1 && \
   grep -q 'current_phase: L4' .helix/phase.yaml && \
   grep -A1 'G3:' .helix/phase.yaml | grep -q skipped"
-run_test "init --start-phase L9 fails" "! $SCRIPT_DIR/helix-init --start-phase L9 --force 2>&1"
+run_test "init --start-phase L9 works" "\
+  tmp=\$(mktemp -d) && \
+  cd \$tmp && git init -q && \
+  HELIX_HOME=$HELIX_HOME HELIX_PROJECT_ROOT=\$tmp $SCRIPT_DIR/helix-init --project-name demo --start-phase L9 --force >/dev/null 2>&1 && \
+  grep -q 'current_phase: L9' .helix/phase.yaml && \
+  grep -A1 'G7:' .helix/phase.yaml | grep -q skipped && \
+  grep -A1 'G9:' .helix/phase.yaml | grep -q pending"
 run_test "init without --start-phase defaults to L1" "\
   tmp=\$(mktemp -d) && cd \$tmp && git init -q && \
   HELIX_HOME=$HELIX_HOME HELIX_PROJECT_ROOT=\$tmp $SCRIPT_DIR/helix-init --project-name demo --force >/dev/null 2>&1 && \

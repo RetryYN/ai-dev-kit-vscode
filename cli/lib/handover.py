@@ -21,7 +21,7 @@ EXIT_INTERNAL_ERROR = 127
 
 ALLOWED_OWNER = {"opus", "codex"}
 ALLOWED_SCOPE = {"backend"}
-ALLOWED_PHASE = {f"L{i}" for i in range(1, 9)}
+ALLOWED_PHASE = {f"L{i}" for i in range(1, 12)}
 ALLOWED_SPRINT = {".1a", ".1b", ".2", ".3", ".4", ".5"}
 ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}
 ALLOWED_STATUS_UPDATE = {"in_progress", "blocked", "ready_for_review"}
@@ -291,7 +291,7 @@ def validate_sprint(value, field_name="sprint"):
 def validate_phase(value):
     if value not in ALLOWED_PHASE:
         raise HandoverError(
-            f"phase は L1〜L8 のみ許可されています: {value}",
+            f"phase は L1〜L11 のみ許可されています: {value}",
             EXIT_INPUT_ERROR,
         )
 

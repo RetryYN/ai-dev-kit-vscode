@@ -87,7 +87,7 @@ def test_validate_entry_rejects_invalid_agent() -> None:
 
 def test_validate_entry_rejects_unknown_phase() -> None:
     entry = _valid_entry()
-    entry["phases"] = ["L2", "L9"]
+    entry["phases"] = ["L2", "L12"]
 
     with pytest.raises(skill_jsonl_schema.JsonlSchemaError):
         skill_jsonl_schema.validate_entry(entry)
