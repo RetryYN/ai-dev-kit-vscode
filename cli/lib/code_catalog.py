@@ -22,6 +22,20 @@ except ImportError:  # pragma: no cover - script execution fallback
 _INDEX_MARKER = "@helix:index"
 _FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related)=")
 _TRACKED_SUFFIXES = {".py", ".sh", ".md", ".bats"}
+_REJECTION_LOG = "code-catalog-rejected.log"
+
+_DANGER_PATTERNS = [
+    (re.compile(r"(auth|api|access|bearer|refresh)[-_. ]?(token|key|secret)", re.IGNORECASE), "danger_pattern"),
+    (re.compile(r"password\b", re.IGNORECASE), "danger_pattern.password"),
+    (re.compile(r"credential(s)?\b", re.IGNORECASE), "danger_pattern.credential"),
+    (re.compile(r"client[-_ ]?secret", re.IGNORECASE), "danger_pattern.client_secret"),
+]
+
+_LONG_TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9+/=_-]{32,}")
+_VERSION_PATTERN = re.compile(r"^v\d+\.\d+\.\d+$")
+_COMMIT_HASH_PATTERN = re.compile(r"^[0-9a-f]{7,12}$")
+
+_SAFE_WORDS = {"tokenize", "token-based", "passwordless", "credentialing", "passwords-table-doc"}
 
 
 def _strip_quotes(value: str) -> str:
@@ -48,12 +62,46 @@ def _source_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _parse_marker_payload(line: str) -> dict[str, str] | None:
+    if _INDEX_MARKER not in line:
+        return None
+    _, payload = line.split(_INDEX_MARKER, 1)
+    return _parse_key_values(payload.strip())
+
+
+def _project_root_for(path: Path) -> Path:
+    current = path.resolve()
+    for parent in (current, *current.parents):
+        if (parent / ".helix").is_dir():
+            return parent
+    return Path.cwd()
+
+
+def write_rejection_log(reject_dir: Path, path: str, line_no: int, pattern_name: str, reason: str) -> None:
+    reject_dir.mkdir(parents=True, exist_ok=True)
+    log_path = reject_dir / _REJECTION_LOG
+    with log_path.open("a", encoding="utf-8", newline="\n") as fp:
+        fp.write(f"{_now_iso()}\t{path}:{line_no}\t{pattern_name}\t{reason}\n")
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 def should_redact(summary: str) -> tuple[bool, str | None]:
-    del summary
+    lowered = summary.lower()
+    if lowered in _SAFE_WORDS:
+        return False, None
+
+    for pattern, reason in _DANGER_PATTERNS:
+        if pattern.search(summary):
+            return True, reason
+
+    for token in _LONG_TOKEN_PATTERN.findall(summary):
+        if _VERSION_PATTERN.fullmatch(token) or _COMMIT_HASH_PATTERN.fullmatch(token):
+            continue
+        return True, "secret_like_value"
+
     return False, None
 
 
@@ -61,8 +109,7 @@ def parse_helix_index_comment(line: str) -> dict[str, Any] | None:
     if _INDEX_MARKER not in line:
         return None
 
-    _, payload = line.split(_INDEX_MARKER, 1)
-    fields = _parse_key_values(payload.strip())
+    fields = _parse_marker_payload(line) or {}
     if not {"id", "domain", "summary"} <= set(fields):
         return None
 
@@ -87,8 +134,21 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
     source_hash = _source_hash(path)
     updated_at = _now_iso()
     entries: list[dict[str, Any]] = []
+    reject_dir = _project_root_for(path) / ".helix" / "cache"
 
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        fields = _parse_marker_payload(line) if _INDEX_MARKER in line else None
+        if fields is not None and fields.get("summary"):
+            should_skip, reason = should_redact(fields["summary"])
+            if should_skip:
+                write_rejection_log(
+                    reject_dir=reject_dir,
+                    path=path.as_posix(),
+                    line_no=line_no,
+                    pattern_name=reason or "unknown",
+                    reason="redaction rule matched",
+                )
+                continue
         parsed = parse_helix_index_comment(line)
         if parsed is None:
             continue
