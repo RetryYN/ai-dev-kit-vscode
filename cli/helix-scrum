@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-scrum: HELIX Scrum（検証駆動開発）
-# Usage: helix scrum <init|backlog|plan|poc|verify|decide|review|status> [args...]
+# Usage: helix scrum <init|backlog|plan|poc|verify|decide|review|status|trigger> [args...]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YP="$SCRIPT_DIR/lib/yaml_parser.py"
@@ -526,6 +526,13 @@ cmd_status() {
 }
 
 # ============================
+# trigger: 差し込みトリガー検出
+# ============================
+cmd_trigger() {
+  python3 "$SCRIPT_DIR/lib/scrum_trigger.py" --db "$DB_PATH" --project-root "$PROJECT_ROOT" "$@"
+}
+
+# ============================
 # メインディスパッチ
 # ============================
 case "$CMD" in
@@ -537,6 +544,7 @@ case "$CMD" in
   decide)  cmd_decide "$@" ;;
   review)  cmd_review "$@" ;;
   status)  cmd_status "$@" ;;
+  trigger) cmd_trigger "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
 Usage: helix scrum <command> [args...]
@@ -554,6 +562,11 @@ Commands:
                           --strict-promote を指定すると昇格推奨チェックを追加
   review                  スプリントレビュー + レトロ
   status                  現在の状態表示
+  trigger detect          差し込み候補を検出 (--scan PATH [--save] [--json])
+  trigger list            差し込み候補一覧 (--status ... --type ... [--json])
+  trigger transition      状態遷移 (--id ST-... --status ... --owner ...)
+  trigger ttl             TTL 経過判定 ([--apply])
+  trigger evaluate        4 象限評価 (--id ST-...)
 
 Flow:
   init → backlog add → plan → poc → verify → decide → review → (next sprint)

@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 11
+CURRENT_SCHEMA_VERSION = 12
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -430,6 +430,43 @@ AUDIT_DECISION_DECISIONS_V10 = ("keep", "remove", "merge", "deprecate")
 AUDIT_DECISION_FAIL_SAFE_ACTIONS_V10 = ("skip", "quarantine", "manual_review")
 
 
+SCRUM_TRIGGER_SCHEMA_V12 = """
+CREATE TABLE IF NOT EXISTS scrum_trigger (
+  trigger_id TEXT PRIMARY KEY,
+  scrum_type TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  artifact_ref TEXT,
+  event_type TEXT NOT NULL,
+  plan_id TEXT,
+  sprint_id TEXT,
+  detected_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  ttl_at TEXT,
+  resolved_at TEXT,
+  uncertainty_score INTEGER,
+  impact_score INTEGER,
+  confidence REAL,
+  evidence_count INTEGER DEFAULT 1,
+  normalized_signature TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  status_owner TEXT,
+  status_reason TEXT,
+  reason_code TEXT,
+  evidence_path_hint TEXT,
+  source_path TEXT,
+  source_line_start INTEGER,
+  source_line_end INTEGER,
+  created_by TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(scrum_type, source_id, normalized_signature)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scrum_trigger_status ON scrum_trigger(status, detected_at);
+CREATE INDEX IF NOT EXISTS idx_scrum_trigger_type ON scrum_trigger(scrum_type, status);
+"""
+
+
 def _prepare_db_path(db_path):
     parent_dir = os.path.dirname(os.path.abspath(db_path))
     if parent_dir:
@@ -530,6 +567,10 @@ def _migrate_v10_to_v11(conn):
         GROUP BY a.id;
         """
     )
+
+
+def _migrate_v11_to_v12(conn):
+    conn.executescript(SCRUM_TRIGGER_SCHEMA_V12)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -779,6 +820,12 @@ def migrate(conn):
             _migrate_v10_to_v11(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (11, datetime('now'))"
+            )
+        # v11→v12: scrum_trigger table (PLAN-007 Scrum 5 種トリガー)
+        if current < 12:
+            _migrate_v11_to_v12(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (12, datetime('now'))"
             )
         conn.commit()
 
