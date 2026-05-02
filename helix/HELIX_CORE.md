@@ -22,6 +22,15 @@
 3. ゲート判定（`skills/tools/ai-coding/references/gate-policy.md §ゲート一覧`）
 4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
 4.5 実装着手前 (L4 entry): `helix code find "<keyword>"` で既存実装の流用候補を確認する
+  - 公開 API / 再利用候補は `--bucket coverage_eligible`（default）で確認
+  - private helper の再利用/PoC seed 探索は `--bucket private_helper` を併用する
+  - 非公開 → 公開昇格候補（seed candidate）を `--seed-promotable true` で抽出する
+
+L4 implementation / build / G4 補足（PLAN-013）:
+- L4 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
+- L4 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類する
+- L4 build: `helix code build` で catalog を再生成し、`bucket` / `symbol_line` / metadata を自動付与する
+- G4: `helix code stats --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
 5. 実行開始
 6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 7. readiness exit 条件確認 → 該当スキル Read
