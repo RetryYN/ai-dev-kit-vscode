@@ -368,3 +368,153 @@ PY
   run "$HELIX_ROOT/cli/helix" code build
   [ "$status" -ne 0 ]
 }
+
+@test "helix code build creates v15 schema with bucket and symbol_line columns" {
+  build_code_index >/dev/null
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+columns = {row[1] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()}
+assert version == 15
+assert {"bucket", "symbol_line"} <= columns
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code build skips non_indexable paths (tests/*.py)" {
+  mkdir -p "$PROJECT_ROOT/tests"
+  cat > "$PROJECT_ROOT/tests/hidden.py" <<'PY'
+# @helix:index id=tests.hidden domain=tests summary=hidden test marker
+def hidden():
+    return 1
+PY
+  git add tests/hidden.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code list
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"tests.hidden"* ]]
+}
+
+@test "helix code build classifies setup.sh as excluded" {
+  cat > "$PROJECT_ROOT/setup.sh" <<'SH'
+# @helix:index id=setup.run domain=ops summary=setup runner
+run_setup() {
+  true
+}
+SH
+  git add setup.sh >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+bucket = conn.execute("SELECT bucket FROM code_index WHERE id = 'setup.run'").fetchone()[0]
+assert bucket == "excluded"
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "helix code build resolves symbol_line for marker offset cases" {
+  cat > "$PROJECT_ROOT/cli/lib/offset_marker.py" <<'PY'
+# @helix:index id=offset.marker domain=cli/lib summary=offset marker
+
+def offset_target():
+    return 1
+PY
+  git add cli/lib/offset_marker.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" "$PROJECT_ROOT/.helix/cache/code-catalog.jsonl" <<'PY'
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+conn = sqlite3.connect(sys.argv[1])
+line_no, symbol_line = conn.execute(
+    "SELECT line_no, symbol_line FROM code_index WHERE id = 'offset.marker'"
+).fetchone()
+assert line_no == 1
+assert symbol_line == 3
+rows = [json.loads(line) for line in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines()]
+entry = next(row for row in rows if row["id"] == "offset.marker")
+assert entry["line_no"] == 1
+assert entry["symbol_line"] == 3
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "helix.db v14 → v15 migration is up-only and re-build regenerates JSONL with bucket/symbol_line" {
+  python3 - "$HELIX_ROOT/cli/lib" "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = sys.argv[2]
+sys.path.insert(0, str(lib_dir))
+import helix_db  # type: ignore
+
+helix_db._prepare_db_path(db_path)
+conn = sqlite3.connect(db_path)
+conn.executescript(
+    """
+    CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+    INSERT INTO schema_version (version, applied_at) VALUES (14, datetime('now'));
+    CREATE TABLE code_index (
+      id TEXT PRIMARY KEY,
+      domain TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      path TEXT NOT NULL,
+      line_no INTEGER NOT NULL,
+      since TEXT,
+      related TEXT,
+      source_hash TEXT,
+      updated_at DATETIME
+    );
+    INSERT INTO code_index (id, domain, summary, path, line_no)
+    VALUES ('legacy.entry', 'cli/lib', 'legacy entry', 'cli/lib/legacy.py', 7);
+    """
+)
+helix_db._ensure_schema(conn)
+columns = {row[1] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()}
+version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+row = conn.execute("SELECT symbol_line, bucket FROM code_index WHERE id = 'legacy.entry'").fetchone()
+assert version == 15
+assert {"bucket", "symbol_line"} <= columns
+assert row == (7, "coverage_eligible")
+conn.close()
+PY
+  [ "$status" -eq 0 ]
+
+  cat > "$PROJECT_ROOT/cli/lib/rebuilt.py" <<'PY'
+# @helix:index id=rebuilt.entry domain=cli/lib summary=rebuilt entry
+def rebuilt():
+    return 1
+PY
+  git add cli/lib/rebuilt.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run python3 - "$PROJECT_ROOT/.helix/cache/code-catalog.jsonl" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+rows = [json.loads(line) for line in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()]
+entry = next(row for row in rows if row["id"] == "rebuilt.entry")
+assert entry["bucket"] == "coverage_eligible"
+assert entry["symbol_line"] == 2
+PY
+  [ "$status" -eq 0 ]
+}

@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -491,22 +491,25 @@ CREATE INDEX IF NOT EXISTS idx_verify_runs_fail_close ON verify_runs(has_fail_cl
 """
 
 
-CODE_INDEX_SCHEMA_V14 = """
+CODE_INDEX_SCHEMA_V15 = """
 CREATE TABLE IF NOT EXISTS code_index (
   id TEXT PRIMARY KEY,
   domain TEXT NOT NULL,
   summary TEXT NOT NULL,
   path TEXT NOT NULL,
   line_no INTEGER NOT NULL,
+  symbol_line INTEGER NOT NULL DEFAULT 0,
   since TEXT,
   related TEXT,
   source_hash TEXT,
+  bucket TEXT NOT NULL DEFAULT 'coverage_eligible',
   updated_at DATETIME
 );
 
 CREATE INDEX IF NOT EXISTS idx_code_index_domain ON code_index(domain);
 CREATE INDEX IF NOT EXISTS idx_code_index_summary ON code_index(summary);
 CREATE INDEX IF NOT EXISTS idx_code_index_path ON code_index(path);
+CREATE INDEX IF NOT EXISTS idx_code_index_bucket ON code_index(bucket);
 """
 
 
@@ -622,7 +625,28 @@ def _migrate_v12_to_v13(conn):
 
 
 def _migrate_v13_to_v14(conn):
-    conn.executescript(CODE_INDEX_SCHEMA_V14)
+    conn.executescript(CODE_INDEX_SCHEMA_V15)
+
+
+def _migrate_v14_to_v15(conn):
+    table_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'code_index'"
+    ).fetchone()
+    if table_exists is None:
+        conn.executescript(CODE_INDEX_SCHEMA_V15)
+        return
+    if not _has_column(conn, "code_index", "symbol_line"):
+        conn.execute("ALTER TABLE code_index ADD COLUMN symbol_line INTEGER NOT NULL DEFAULT 0")
+    if not _has_column(conn, "code_index", "bucket"):
+        conn.execute("ALTER TABLE code_index ADD COLUMN bucket TEXT NOT NULL DEFAULT 'coverage_eligible'")
+    conn.execute(
+        """
+        UPDATE code_index
+        SET symbol_line = line_no
+        WHERE symbol_line IS NULL OR symbol_line = 0
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_code_index_bucket ON code_index(bucket)")
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -891,6 +915,12 @@ def migrate(conn):
             _migrate_v13_to_v14(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (14, datetime('now'))"
+            )
+        # v14→v15: code_index bucket + symbol_line (PLAN-013)
+        if current < 15:
+            _migrate_v14_to_v15(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (15, datetime('now'))"
             )
         conn.commit()
 

@@ -36,7 +36,7 @@ _CORE5_PATHS = {
     "cli/lib/skill_catalog.py",
     "cli/lib/skill_dispatcher.py",
 }
-_EXCLUDED_PATH_PARTS = {"tests", "fixture", "fixtures", "generated", "vendor"}
+_NON_INDEXABLE_PATH_PARTS = {"tests", "fixture", "fixtures", "generated", "vendor"}
 _SH_FUNCTION_RE = re.compile(r"^(?:function\s+)?([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*\))?\s*\{")
 
 _DANGER_PATTERNS = [
@@ -149,6 +149,102 @@ def _project_root_for(path: Path) -> Path:
     return Path.cwd()
 
 
+def _is_non_indexable_path(rel_path: str | Path) -> bool:
+    path = Path(rel_path)
+    posix = path.as_posix()
+    if path.suffix == ".py" and path.name.startswith("test_"):
+        return True
+    if posix.startswith("cli/tests/"):
+        return True
+    return any(part in _NON_INDEXABLE_PATH_PARTS for part in path.parts)
+
+
+def _is_excluded_path(rel_path: str | Path) -> bool:
+    posix = Path(rel_path).as_posix()
+    return (
+        posix == "setup.sh"
+        or posix.startswith("skills/agent-skills/hooks/") and posix.endswith(".sh")
+        or posix.startswith("verify/") and posix.endswith(".sh")
+    )
+
+
+def _classify_bucket(rel_path: str | Path, symbol: str, kind: str = "function") -> str:
+    del kind
+    if _is_excluded_path(rel_path):
+        return "excluded"
+    if symbol.startswith("_"):
+        return "private_helper"
+    return "coverage_eligible"
+
+
+def _default_seed_metadata(bucket: str, *, covered: bool = True) -> dict[str, bool]:
+    return {
+        "seed_candidate": bucket == "coverage_eligible" or (covered and bucket == "private_helper"),
+        "seed_promotable": False,
+    }
+
+
+def _python_top_level_symbols(text: str) -> list[tuple[int, str, str]]:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+
+    symbols: list[tuple[int, str, str]] = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            kind = "class" if isinstance(node, ast.ClassDef) else "function"
+            symbols.append((node.lineno, node.name, kind))
+    return symbols
+
+
+def _bash_symbols(text: str) -> list[tuple[int, str, str]]:
+    symbols: list[tuple[int, str, str]] = []
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        match = _SH_FUNCTION_RE.match(line)
+        if match is None:
+            continue
+        symbols.append((line_no, match.group(1), "function"))
+    return symbols
+
+
+def _extract_top_level_symbols(path: Path) -> list[tuple[int, str, str]]:
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".py":
+        return _python_top_level_symbols(text)
+    if path.suffix == ".sh":
+        return _bash_symbols(text)
+    return []
+
+
+def _resolve_symbol_line(path: Path, marker_line: int) -> int:
+    try:
+        for line_no, _symbol, _kind in _extract_top_level_symbols(path):
+            if line_no >= marker_line:
+                return line_no
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        return marker_line
+    return marker_line
+
+
+is_non_indexable_path = _is_non_indexable_path
+is_excluded_path = _is_excluded_path
+classify_bucket = _classify_bucket
+default_seed_metadata = _default_seed_metadata
+extract_top_level_symbols = _extract_top_level_symbols
+resolve_symbol_line = _resolve_symbol_line
+
+
+def _symbol_at_line(path: Path, symbol_line: int) -> tuple[str, str]:
+    try:
+        for line_no, symbol, kind in _extract_top_level_symbols(path):
+            if line_no == symbol_line:
+                return symbol, kind
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        pass
+    return "", "function"
+
+
 # @helix:index id=code-catalog.write-rejection-log domain=cli/lib summary=rejection logを書込する
 def write_rejection_log(reject_dir: Path, path: str, line_no: int, pattern_name: str, reason: str) -> None:
     reject_dir.mkdir(parents=True, exist_ok=True)
@@ -232,11 +328,17 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
         parsed = parse_helix_index_comment(line)
         if parsed is None:
             continue
+        symbol_line = _resolve_symbol_line(path, line_no)
+        symbol, kind = _symbol_at_line(path, symbol_line)
+        bucket = _classify_bucket(path, symbol, kind)
         parsed.update(
             {
                 "path": path.as_posix(),
                 "line_no": line_no,
+                "symbol_line": symbol_line,
                 "source_hash": source_hash,
+                "bucket": bucket,
+                "metadata": _default_seed_metadata(bucket, covered=True),
                 "updated_at": updated_at,
             }
         )
@@ -261,11 +363,18 @@ def scan_tracked_files(repo_root: Path) -> list[dict[str, Any]]:
         rel_path = Path(raw_path)
         if rel_path.suffix not in _TRACKED_SUFFIXES:
             continue
+        if _is_non_indexable_path(rel_path):
+            continue
         full_path = root / rel_path
         if not full_path.is_file():
             continue
         for entry in scan_file(full_path):
             entry["path"] = rel_path.as_posix()
+            symbol_line = int(entry.get("symbol_line") or entry.get("line_no") or 0)
+            symbol, kind = _symbol_at_line(full_path, symbol_line)
+            bucket = _classify_bucket(rel_path, symbol, kind)
+            entry["bucket"] = bucket
+            entry["metadata"] = _default_seed_metadata(bucket, covered=True)
             entries.append(entry)
 
     return sorted(entries, key=lambda item: str(item.get("id", "")))
@@ -275,11 +384,9 @@ def _is_eligible_path(rel_path: Path) -> bool:
     path = Path(rel_path)
     if path.suffix not in _TRACKED_SUFFIXES:
         return False
-    if path.suffix == ".py" and path.name.startswith("test_"):
-        return False
     if path.suffix == ".bats":
         return False
-    return not any(part in _EXCLUDED_PATH_PARTS for part in path.parts)
+    return not _is_non_indexable_path(path)
 
 
 def _iter_tracked_eligible_files(repo_root: Path) -> list[Path]:
@@ -297,35 +404,11 @@ def _iter_tracked_eligible_files(repo_root: Path) -> list[Path]:
 
 
 def _extract_public_symbols(path: Path) -> list[tuple[int, str, str]]:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix == ".py":
-        try:
-            tree = ast.parse(text)
-        except SyntaxError:
-            return []
-
-        symbols: list[tuple[int, str, str]] = []
-        for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if node.name.startswith("_"):
-                    continue
-                kind = "class" if isinstance(node, ast.ClassDef) else "function"
-                symbols.append((node.lineno, node.name, kind))
-        return symbols
-
-    if path.suffix == ".sh":
-        symbols = []
-        for line_no, line in enumerate(text.splitlines(), start=1):
-            match = _SH_FUNCTION_RE.match(line)
-            if match is None:
-                continue
-            name = match.group(1)
-            if name.startswith("_"):
-                continue
-            symbols.append((line_no, name, "function"))
-        return symbols
-
-    return []
+    return [
+        (line_no, symbol, kind)
+        for line_no, symbol, kind in _extract_top_level_symbols(path)
+        if not symbol.startswith("_")
+    ]
 
 
 def _coverage_marker_for_symbol(path: Path, symbol_line: int) -> tuple[dict[str, str], int] | None:
@@ -378,34 +461,55 @@ def compute_uncovered(repo_root: Path, scope: str = "all") -> dict[str, Any]:
     items: list[dict[str, Any]] = []
     covered = 0
     eligible = 0
+    bucket_counts = {"coverage_eligible": 0, "private_helper": 0, "excluded": 0}
     seen_ids: set[str] = set()
+    covered_keys: set[tuple[str, int]] = set()
 
     for rel_path in eligible_files:
         full_path = root / rel_path
-        for line_no, symbol, kind in _extract_public_symbols(full_path):
-            eligible += 1
-            marker = _coverage_marker_for_symbol(full_path, line_no)
-            if marker is None:
-                items.append({"path": rel_path.as_posix(), "line": line_no, "symbol": symbol, "kind": kind})
+        for entry in scan_file(full_path):
+            symbol_line = int(entry.get("symbol_line") or entry.get("line_no") or 0)
+            if symbol_line <= 0:
                 continue
-
-            fields, marker_line = marker
-            marker_id = fields.get("id", "")
+            marker_id = str(entry.get("id") or "")
             if marker_id in seen_ids:
                 print(
                     f"warning: 重複した @helix:index id を除外しました: {marker_id} "
-                    f"({rel_path.as_posix()}:{marker_line})",
+                    f"({rel_path.as_posix()}:{entry.get('line_no')})",
                     file=sys.stderr,
                 )
-                items.append({"path": rel_path.as_posix(), "line": line_no, "symbol": symbol, "kind": kind})
                 continue
-
             seen_ids.add(marker_id)
-            covered += 1
+            covered_keys.add((rel_path.as_posix(), symbol_line))
+
+        for line_no, symbol, kind in _extract_top_level_symbols(full_path):
+            bucket = _classify_bucket(rel_path, symbol, kind)
+            bucket_counts[bucket] += 1
+            if bucket == "coverage_eligible":
+                eligible += 1
+            if (rel_path.as_posix(), line_no) in covered_keys:
+                if bucket == "coverage_eligible":
+                    covered += 1
+                continue
+            metadata = _default_seed_metadata(bucket, covered=False)
+            items.append(
+                {
+                    "path": rel_path.as_posix(),
+                    "line": line_no,
+                    "line_no": line_no,
+                    "symbol_line": line_no,
+                    "symbol": symbol,
+                    "kind": kind,
+                    "bucket": bucket,
+                    "seed_candidate": metadata["seed_candidate"],
+                    "seed_promotable": metadata["seed_promotable"],
+                }
+            )
 
     items.sort(key=lambda item: (str(item["path"]), int(item["line"])))
     return {
         "items": items,
+        "bucket_counts": bucket_counts,
         "summary": {
             "covered": covered,
             "eligible": eligible,
@@ -440,9 +544,9 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
             conn.executemany(
                 """
                 INSERT OR REPLACE INTO code_index
-                    (id, domain, summary, path, line_no, since, related, source_hash, updated_at)
+                    (id, domain, summary, path, line_no, symbol_line, since, related, source_hash, bucket, updated_at)
                 VALUES
-                    (:id, :domain, :summary, :path, :line_no, :since, :related, :source_hash, :updated_at)
+                    (:id, :domain, :summary, :path, :line_no, :symbol_line, :since, :related, :source_hash, :bucket, :updated_at)
                 """,
                 [
                     {
@@ -451,9 +555,11 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
                         "summary": entry["summary"],
                         "path": entry["path"],
                         "line_no": entry["line_no"],
+                        "symbol_line": entry.get("symbol_line") or entry["line_no"],
                         "since": entry.get("since"),
                         "related": json.dumps(entry.get("related", []), ensure_ascii=False),
                         "source_hash": entry.get("source_hash"),
+                        "bucket": entry.get("bucket", "coverage_eligible"),
                         "updated_at": entry.get("updated_at"),
                     }
                     for entry in entries
