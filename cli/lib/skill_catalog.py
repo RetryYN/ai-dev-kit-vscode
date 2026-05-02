@@ -23,6 +23,7 @@ def _warn(message: str) -> None:
     print(f"[skill_catalog] 警告: {message}", file=sys.stderr)
 
 
+# @helix:index id=skill-catalog.strip-quotes domain=cli/lib summary=frontmatter値の外側引用符を取り除く
 def _strip_quotes(value: str) -> str:
     text = value.strip()
     if len(text) >= 2 and ((text[0] == '"' and text[-1] == '"') or (text[0] == "'" and text[-1] == "'")):
@@ -30,6 +31,7 @@ def _strip_quotes(value: str) -> str:
     return text
 
 
+# @helix:index id=skill-catalog.parse-scalar domain=cli/lib summary=frontmatterスカラー値をPython値へ変換する
 def _parse_scalar(value: str) -> Any:
     text = _strip_quotes(value.strip())
     if text == "":
@@ -76,6 +78,7 @@ def _parse_list(lines: list[str], index: int, indent: int) -> tuple[list[Any], i
     return items, i
 
 
+# @helix:index id=skill-catalog.parse-mapping domain=cli/lib summary=frontmatterのネスト付きmappingを解析する
 def _parse_mapping(lines: list[str], index: int, indent: int) -> tuple[dict[str, Any], int]:
     result: dict[str, Any] = {}
     i = index
@@ -130,6 +133,7 @@ def _parse_mapping(lines: list[str], index: int, indent: int) -> tuple[dict[str,
     return result, i
 
 
+# @helix:index id=skill-catalog.extract-frontmatter domain=cli/lib summary=Markdown先頭のYAMLfrontmatterを抽出する
 def _extract_frontmatter(text: str) -> dict[str, Any] | None:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -211,6 +215,7 @@ def _extract_reference_title(text: str, fallback: str) -> str:
     return fallback
 
 
+# @helix:index id=skill-catalog.build-skill-entry domain=cli/lib summary=SKILL.mdからcatalog用entryを構築する
 def _build_skill_entry(skill_md: Path, skills_root: Path) -> dict[str, Any] | None:
     content = skill_md.read_text(encoding="utf-8")
     frontmatter = _extract_frontmatter(content)
