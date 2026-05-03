@@ -30,26 +30,8 @@ NOW_TIME="${HELIX_TEST_TIME:-${NOW#"$TODAY "}}"
 SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
 LOCK_FILE="$LOCK_DIR/${TODAY}-session.lock"
 
-if [ -n "${HELIX_TEST_TODAY:-}" ]; then
-  EXISTING_COST_COUNT="$(HELIX_DB_PATH="$DB_PATH" python3 - <<'PY'
-import os, sqlite3
-
-conn = sqlite3.connect(os.environ["HELIX_DB_PATH"])
-try:
-    today = os.environ["HELIX_TEST_TODAY"]
-    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role = 'opus-pm' AND date(created_at) = ?", (today,)).fetchone()[0])
-finally:
-    conn.close()
-PY
-)"
-  if [ "$EXISTING_COST_COUNT" = "0" ]; then
-    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-      "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
-  fi
-else
-  HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-    "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
-fi
+HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
+  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\",\"created_at\":\"${TODAY}T${NOW_TIME}:00\"}" 2>/dev/null || true
 
 python3 - "$DB_PATH" "$SUMMARY_FILE" "$LOCK_FILE" "$TODAY" "$NOW_TIME" "$SCRIPT_DIR/lib" <<'PY'
 import fcntl, os, sys

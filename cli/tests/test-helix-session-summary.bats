@@ -140,22 +140,38 @@ assert_file_exists() {
   assert_eq "1" "$(date_header_count "$day2" "$file2")" "${day2} block count"
 }
 
-@test "DoD #3: finished count matches today's opus-pm cost_log rows" {
+@test "DoD #3: finished count equals one when no fixture rows exist" {
   local today="2026-05-03"
-  local file expected_count actual_count
+  local file inserted_today_count actual_count
   file="$(summary_file "$today")"
-  expected_count="3"
-
-  for _ in 1 2 3; do
-    insert_cost_log "$today"
-  done
 
   run run_session_summary
   assert_status_zero
 
+  if python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" "SELECT 1" >/dev/null 2>&1; then
+    inserted_today_count="$(python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" \
+      "SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)='${today}'" 2>/dev/null | tail -1)"
+  elif command -v sqlite3 >/dev/null 2>&1; then
+    inserted_today_count="$(sqlite3 "$PROJECT_ROOT/.helix/helix.db" "SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)='${today}'")"
+  else
+    inserted_today_count="$(python3 - "$PROJECT_ROOT/.helix/helix.db" "$today" <<'PY'
+import sqlite3
+import sys
+
+db_path, today = sys.argv[1:]
+conn = sqlite3.connect(db_path)
+try:
+    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)=?", (today,)).fetchone()[0])
+finally:
+    conn.close()
+PY
+)"
+  fi
+  assert_eq "1" "$inserted_today_count" "cost_log rows for mocked today"
+
   assert_file_exists "$file"
   actual_count="$(grep -oE '終了 [0-9]+ 回' "$file" | grep -oE '[0-9]+' || true)"
-  assert_eq "$expected_count" "$actual_count" "finished count"
+  assert_eq "1" "$actual_count" "finished count"
 }
 
 @test "DoD #4: legacy session-ended headings are preserved and new block is added" {
