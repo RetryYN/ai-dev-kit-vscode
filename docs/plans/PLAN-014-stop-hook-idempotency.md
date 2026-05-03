@@ -111,9 +111,12 @@ PLAN-014 は **当日内 Stop hook 出力の冪等化** を実装し、append-on
 | Sprint | 内容 | 担当 |
 |---|---|---|
 | .1 | bats スケルトン (DoD #1〜#4 の failing test) | Codex QA |
-| .2 | `cli/helix-session-summary` rewrite ロジック実装 | Codex SE |
-| .3 | helix test 全 PASS 確認 + DoD 検証 | Codex QA + Opus 統合 |
-| .4 | retro / handover clear | Opus |
+| .2 | `cli/helix-session-summary` rewrite ロジック実装 (atomic rewrite + flock) | Codex SE |
+| .3 | helix test 全 PASS 確認 + DoD #1〜#6 検証 | Codex QA |
+| .4a | retro 起草 (`.helix/retros/2026-05-03-G4-PLAN-014.md`) | Codex docs |
+| .4b | retro レビュー + handover clear + commit | Opus |
+
+> 担当原則: Opus = PM (レビュー / 統合判断 / finalize / handover 操作のみ)。実装・テスト・文書本文起草は Codex 各ロールへ委譲する。
 
 ### §4.2 G4 ゲート判定基準
 

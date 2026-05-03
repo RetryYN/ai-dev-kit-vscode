@@ -15,69 +15,142 @@ case "${1:-}" in
     ;;
 esac
 
-[[ ! -d "$HELIX_DIR" ]] && exit 0
+DB_PATH="${HELIX_TEST_DB_PATH:-${HELIX_DB_PATH:-$DB_PATH}}"
+SUMMARY_DIR="${HELIX_TEST_SUMMARY_DIR:-$HELIX_DIR/session-summaries}"
+LOCK_DIR="${HELIX_TEST_LOCK_DIR:-$HELIX_DIR/cache/locks}"
+
+[[ ! -d "$HELIX_DIR" && -z "${HELIX_TEST_SUMMARY_DIR:-}" ]] && exit 0
 [[ ! -f "$DB_PATH" ]] && exit 0
 
-SUMMARY_DIR="$HELIX_DIR/session-summaries"
-mkdir -p "$SUMMARY_DIR" 2>/dev/null || true
+mkdir -p "$SUMMARY_DIR" "$LOCK_DIR" 2>/dev/null || true
 
 TODAY=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
+NOW_TIME="${HELIX_TEST_TIME:-${NOW#"$TODAY "}}"
 SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
+LOCK_FILE="$LOCK_DIR/${TODAY}-session.lock"
 
-# cost_log にセッション記録を先に書き込む（サマリに反映するため）
-HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
+if [ -n "${HELIX_TEST_TODAY:-}" ]; then
+  EXISTING_COST_COUNT="$(HELIX_DB_PATH="$DB_PATH" python3 - <<'PY'
+import os, sqlite3
 
-python3 - "$DB_PATH" "$SUMMARY_FILE" "$NOW" "$SCRIPT_DIR/lib" <<'PY'
-import sys
+conn = sqlite3.connect(os.environ["HELIX_DB_PATH"])
+try:
+    today = os.environ["HELIX_TEST_TODAY"]
+    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role = 'opus-pm' AND date(created_at) = ?", (today,)).fetchone()[0])
+finally:
+    conn.close()
+PY
+)"
+  if [ "$EXISTING_COST_COUNT" = "0" ]; then
+    HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
+      "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
+  fi
+else
+  HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
+    "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\"}" 2>/dev/null || true
+fi
 
-db_path, summary_file, now, lib_dir = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+python3 - "$DB_PATH" "$SUMMARY_FILE" "$LOCK_FILE" "$TODAY" "$NOW_TIME" "$SCRIPT_DIR/lib" <<'PY'
+import fcntl, os, sys
+from pathlib import Path
+
+db_path, summary_file, lock_file, today, now_time, lib_dir = sys.argv[1:]
 sys.path.insert(0, lib_dir)
 import helix_db
 
-today = now.split(" ")[0]
+summary_path = Path(summary_file)
+lock_path = Path(lock_file)
+tmp_path = summary_path.with_name(f"{summary_path.name}.tmp.{os.getpid()}")
+
+
+def table_block(title, headers, rows):
+    lines = [f"### {title}", "", "| " + " | ".join(headers) + " |"]
+    lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
+    if not rows:
+        rows = [tuple(["（記録なし）"] + ["-"] * (len(headers) - 1))]
+    for row in rows:
+        lines.append("| " + " | ".join(str(value) for value in row) + " |")
+    return "\n".join(lines)
+
+
+def render_summary(conn):
+    events = conn.execute(
+        "SELECT event_type, COUNT(*) as cnt FROM hook_events "
+        "WHERE date(created_at) = ? GROUP BY event_type ORDER BY event_type",
+        (today,),
+    ).fetchall()
+    gates = conn.execute(
+        "SELECT gate, result, COUNT(*) as cnt FROM gate_runs "
+        "WHERE date(created_at) = ? GROUP BY gate, result ORDER BY gate, result",
+        (today,),
+    ).fetchall()
+    costs = conn.execute(
+        "SELECT role, model, COUNT(*) as cnt FROM cost_log "
+        "WHERE date(created_at) = ? GROUP BY role, model ORDER BY role, model",
+        (today,),
+    ).fetchall()
+    finished_count = conn.execute(
+        "SELECT COUNT(*) FROM cost_log WHERE role = 'opus-pm' AND date(created_at) = ?", (today,)
+    ).fetchone()[0]
+
+    return "\n".join([
+        f"## {today} セッション (最終更新 {now_time}, 終了 {finished_count} 回)",
+        "",
+        table_block("Hook イベント", ["event_type", "count"], [(r["event_type"], r["cnt"]) for r in events]),
+        "",
+        table_block("ゲート実行", ["gate", "result", "count"], [(r["gate"], r["result"], r["cnt"]) for r in gates]),
+        "",
+        table_block("コスト記録", ["role", "model", "count"], [(r["role"], r["model"], r["cnt"]) for r in costs]),
+        "",
+    ])
+
+
+def replace_today_block(existing, new_block):
+    lines = existing.splitlines(keepends=True)
+    start = next((i for i, line in enumerate(lines) if line.startswith(f"## {today} セッション")), None)
+    if start is None:
+        prefix = existing.rstrip("\n")
+        return f"{prefix}\n\n{new_block}" if prefix else new_block
+
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
+    replacement = new_block.rstrip("\n") + "\n\n"
+    return "".join(lines[:start]) + replacement + "".join(lines[end:]).lstrip("\n")
+
+
+def atomic_write(path, content):
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, path)
 
 try:
     conn = helix_db.get_connection(db_path)
 
-    events = conn.execute(
-        "SELECT event_type, COUNT(*) as cnt FROM hook_events "
-        "WHERE date(created_at) = ? GROUP BY event_type", (today,)
-    ).fetchall()
+    with open(lock_path, "a", encoding="utf-8") as lock_file:
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            conn.close()
+            print(f"[helix-session] サマリ更新 skip: lock busy ({summary_file})")
+            sys.exit(0)
 
-    gates = conn.execute(
-        "SELECT gate, result, COUNT(*) as cnt FROM gate_runs "
-        "WHERE date(created_at) = ? GROUP BY gate, result", (today,)
-    ).fetchall()
+        new_block = render_summary(conn)
+        conn.close()
 
-    costs = conn.execute(
-        "SELECT role, model, COUNT(*) as cnt FROM cost_log "
-        "WHERE date(created_at) = ? GROUP BY role, model", (today,)
-    ).fetchall()
+        existing = summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
+        next_content = replace_today_block(existing, new_block)
+        atomic_write(summary_path, next_content)
 
-    with open(summary_file, 'a', encoding='utf-8') as f:
-        f.write(f'\n## セッション終了: {now}\n\n')
-        if events:
-            f.write('### Hook イベント\n')
-            for e in events:
-                f.write(f'- {e["event_type"]}: {e["cnt"]}件\n')
-        if gates:
-            f.write('\n### ゲート実行\n')
-            for g in gates:
-                f.write(f'- {g["gate"]} {g["result"]}: {g["cnt"]}回\n')
-        if costs:
-            f.write('\n### コスト記録\n')
-            for c in costs:
-                f.write(f'- {c["role"]} ({c["model"]}): {c["cnt"]}回\n')
-        if not events and not gates and not costs:
-            f.write('（記録なし）\n')
-        f.write('\n')
-
-    print(f'[helix-session] サマリ更新: {summary_file}')
-    conn.close()
+    print(f"[helix-session] サマリ更新: {summary_file}")
 except Exception as e:
-    print(f'[helix-session] エラー: {e}', file=sys.stderr)
+    try:
+        tmp_path.unlink()
+    except FileNotFoundError:
+        pass
+    print(f"[helix-session] エラー: {e}", file=sys.stderr)
+    sys.exit(1)
 PY
 
 exit 0
