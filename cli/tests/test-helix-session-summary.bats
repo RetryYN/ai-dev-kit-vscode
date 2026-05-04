@@ -5,7 +5,6 @@ setup() {
   export HELIX_HOME="$HELIX_ROOT"
 
   TMP_ROOT="$(mktemp -d)"
-  trap 'rm -rf "$TMP_ROOT"' EXIT
   PROJECT_ROOT="$TMP_ROOT/project"
   HOME_DIR="$TMP_ROOT/home"
   FAKE_BIN="$TMP_ROOT/bin"
@@ -17,6 +16,10 @@ setup() {
   export PATH="$FAKE_BIN:$PATH"
   export HELIX_TEST_TODAY="2026-05-03"
   export HELIX_TEST_TIME="12:34"
+  export HELIX_TEST_DB_PATH="$PROJECT_ROOT/.helix/helix.db"
+  export HELIX_TEST_SUMMARY_DIR="$TMP_ROOT/session-summaries"
+  export HELIX_SESSION_SUMMARY_DIR="$HELIX_TEST_SUMMARY_DIR"
+  mkdir -p "$HELIX_TEST_SUMMARY_DIR"
 
   cat > "$FAKE_BIN/date" <<'SH'
 #!/usr/bin/env bash
@@ -34,7 +37,7 @@ esac
 SH
   chmod +x "$FAKE_BIN/date"
 
-  python3 "$HELIX_ROOT/cli/lib/helix_db.py" init "$PROJECT_ROOT/.helix/helix.db" >/dev/null
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" init "$HELIX_TEST_DB_PATH" >/dev/null
 }
 
 teardown() {
@@ -45,45 +48,46 @@ run_session_summary() {
   "$HELIX_ROOT/cli/helix-session-summary"
 }
 
-summary_file() {
-  printf '%s/.helix/session-summaries/%s-session.md\n' "$PROJECT_ROOT" "$1"
-}
-
-new_header_count() {
-  local file="$1"
-  grep -cE '^## [0-9]{4}-[0-9]{2}-[0-9]{2} セッション \(最終更新' "$file" || true
-}
-
-date_header_count() {
-  local date_value="$1"
-  local file="$2"
-  grep -cE "^## ${date_value} セッション \\(最終更新" "$file" || true
-}
-
 insert_cost_log() {
   local date_value="$1"
-  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$PROJECT_ROOT/.helix/helix.db" cost_log \
-    "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\",\"created_at\":\"${date_value}T10:00:00\"}" >/dev/null
+  local role="${2:-opus-pm}"
+  local model="${3:-claude-opus-4-6}"
+  local time_value="${4:-10:00:00}"
+
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$HELIX_TEST_DB_PATH" cost_log \
+    "{\"role\":\"${role}\",\"model\":\"${model}\",\"thinking\":\"high\",\"created_at\":\"${date_value}T${time_value}\"}" >/dev/null
 }
 
-assert_eq() {
-  local expected="$1"
-  local actual="$2"
-  local message="$3"
-  if [[ "$actual" != "$expected" ]]; then
-    echo "${message}: expected=${expected} actual=${actual}" >&2
-    exit 1
-  fi
+insert_hook_event() {
+  local date_value="$1"
+  local event_type="$2"
+  local time_value="${3:-10:00:00}"
+
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$HELIX_TEST_DB_PATH" hook_events \
+    "{\"event_type\":\"${event_type}\",\"file\":\"session\",\"result\":\"success\",\"created_at\":\"${date_value}T${time_value}\"}" >/dev/null
 }
 
-assert_ge() {
-  local minimum="$1"
-  local actual="$2"
-  local message="$3"
-  if (( actual < minimum )); then
-    echo "${message}: expected>=${minimum} actual=${actual}" >&2
-    exit 1
-  fi
+insert_gate_run() {
+  local date_value="$1"
+  local gate="$2"
+  local result="$3"
+  local time_value="${4:-10:00:00}"
+
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$HELIX_TEST_DB_PATH" gate_runs \
+    "{\"gate\":\"${gate}\",\"result\":\"${result}\",\"fail_reasons\":\"[]\",\"retry_count\":0,\"duration_ms\":12,\"created_at\":\"${date_value}T${time_value}\"}" >/dev/null
+}
+
+count_cost_log() {
+  python3 - "$HELIX_TEST_DB_PATH" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+try:
+    print(conn.execute("SELECT COUNT(*) FROM cost_log").fetchone()[0])
+finally:
+    conn.close()
+PY
 }
 
 assert_status_zero() {
@@ -93,177 +97,135 @@ assert_status_zero() {
   fi
 }
 
-assert_file_exists() {
-  local file="$1"
-  if [[ ! -f "$file" ]]; then
-    echo "missing file: $file" >&2
+assert_no_md_files() {
+  local count
+  count="$(find "$HELIX_TEST_SUMMARY_DIR" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
+  if [[ "$count" != "0" ]]; then
+    echo "expected no markdown files in $HELIX_TEST_SUMMARY_DIR, found $count" >&2
+    find "$HELIX_TEST_SUMMARY_DIR" -maxdepth 1 -name '*.md' -print >&2
     exit 1
   fi
 }
 
-@test "DoD #1: same-day five Stop hooks produce one current-day block" {
-  local today="2026-05-03"
-  local file
-  file="$(summary_file "$today")"
-
-  for _ in 1 2 3 4 5; do
-    run run_session_summary
-    assert_status_zero
-  done
-
-  assert_file_exists "$file"
-  assert_eq "1" "$(new_header_count "$file")" "current-day block count"
-}
-
-@test "DoD #2: two mocked days create independent files with one block each" {
-  local day1="2026-05-03"
-  local day2="2026-05-04"
-  local file1 file2
-  file1="$(summary_file "$day1")"
-  file2="$(summary_file "$day2")"
-
-  export HELIX_TEST_TODAY="$day1"
-  for _ in 1 2 3; do
-    run run_session_summary
-    assert_status_zero
-  done
-
-  export HELIX_TEST_TODAY="$day2"
-  for _ in 1 2 3; do
-    run run_session_summary
-    assert_status_zero
-  done
-
-  assert_file_exists "$file1"
-  assert_file_exists "$file2"
-  assert_eq "1" "$(date_header_count "$day1" "$file1")" "${day1} block count"
-  assert_eq "1" "$(date_header_count "$day2" "$file2")" "${day2} block count"
-}
-
-@test "DoD #3: finished count equals one when no fixture rows exist" {
-  local today="2026-05-03"
-  local file inserted_today_count actual_count
-  file="$(summary_file "$today")"
-
+@test "PLAN-016 DoD #1: helix-session-summary は md を新規生成しない" {
   run run_session_summary
   assert_status_zero
 
-  if python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" "SELECT 1" >/dev/null 2>&1; then
-    inserted_today_count="$(python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" \
-      "SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)='${today}'" 2>/dev/null | tail -1)"
-  elif command -v sqlite3 >/dev/null 2>&1; then
-    inserted_today_count="$(sqlite3 "$PROJECT_ROOT/.helix/helix.db" "SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)='${today}'")"
-  else
-    inserted_today_count="$(python3 - "$PROJECT_ROOT/.helix/helix.db" "$today" <<'PY'
-import sqlite3
-import sys
+  assert_no_md_files
+}
 
-db_path, today = sys.argv[1:]
-conn = sqlite3.connect(db_path)
-try:
-    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)=?", (today,)).fetchone()[0])
-finally:
-    conn.close()
+@test "PLAN-016 DoD #1: 既存 md があってもタイムスタンプを変更しない" {
+  local existing_file="$HELIX_TEST_SUMMARY_DIR/2026-05-03-session.md"
+  mkdir -p "$(dirname "$existing_file")"
+  printf '# existing\n' > "$existing_file"
+  touch -t 202605031001.00 "$existing_file"
+  local before
+  before="$(python3 - "$existing_file" <<'PY'
+import os
+import sys
+print(os.stat(sys.argv[1]).st_mtime_ns)
 PY
 )"
-  fi
-  assert_eq "1" "$inserted_today_count" "cost_log rows for mocked today"
-
-  assert_file_exists "$file"
-  actual_count="$(grep -oE '終了 [0-9]+ 回' "$file" | grep -oE '[0-9]+' || true)"
-  assert_eq "1" "$actual_count" "finished count"
-}
-
-@test "DoD #4: legacy session-ended headings are preserved and new block is added" {
-  local today="2026-05-03"
-  local file legacy_count
-  file="$(summary_file "$today")"
-  mkdir -p "$(dirname "$file")"
-  cat > "$file" <<'MD'
-# Session Summary
-
-## セッション終了: 2026-04-30 23:50
-
-legacy body
-MD
 
   run run_session_summary
   assert_status_zero
 
-  legacy_count="$(grep -c '^## セッション終了:' "$file" || true)"
-  assert_ge "1" "$legacy_count" "legacy heading count"
-  assert_eq "1" "$(date_header_count "$today" "$file")" "new-format current-day block count"
-}
-
-@test "DoD #6: concurrent Stop hook invocations do not corrupt summary" {
-  local today="2026-05-03"
-  local file out1 out2 pid1 pid2 status1 status2 combined_output size tmp_count
-  file="$(summary_file "$today")"
-  out1="$TMP_ROOT/concurrent-1.out"
-  out2="$TMP_ROOT/concurrent-2.out"
-  export HELIX_TEST_TODAY="$today"
-
-  python3 - "$PROJECT_ROOT/.helix/helix.db" "$today" <<'PY'
-import sqlite3
+  local after
+  after="$(python3 - "$existing_file" <<'PY'
+import os
 import sys
-
-db_path, today = sys.argv[1:]
-conn = sqlite3.connect(db_path)
-rows = [
-    ("opus-pm", "claude-opus-4-6", "high", f"{today}T10:{i % 60:02d}:00")
-    for i in range(150000)
-]
-conn.executemany(
-    "INSERT INTO cost_log (role, model, thinking, created_at) VALUES (?, ?, ?, ?)",
-    rows,
-)
-conn.commit()
-conn.close()
+print(os.stat(sys.argv[1]).st_mtime_ns)
 PY
-
-  ( run_session_summary >"$out1" 2>&1 ) &
-  pid1=$!
-  ( run_session_summary >"$out2" 2>&1 ) &
-  pid2=$!
-
-  status1=0
-  wait "$pid1" || status1=$?
-  status2=0
-  wait "$pid2" || status2=$?
-
-  assert_eq "0" "$status1" "first concurrent process exit status"
-  assert_eq "0" "$status2" "second concurrent process exit status"
-
-  combined_output="$(cat "$out1" "$out2")"
-  if [[ "$combined_output" != *"lock busy"* ]]; then
-    echo "expected lock busy message in concurrent output: ${combined_output}" >&2
-    exit 1
-  fi
-
-  assert_file_exists "$file"
-  size="$(wc -c < "$file" | tr -d ' ')"
-  assert_ge "1" "$size" "summary file size"
-  assert_eq "1" "$(date_header_count "$today" "$file")" "block count after concurrent run"
-
-  tmp_count="$(find "$(dirname "$file")" -maxdepth 1 -name "$(basename "$file").tmp.*" 2>/dev/null | wc -l | tr -d ' ')"
-  assert_eq "0" "$tmp_count" "leftover tmp files"
+)"
+  [[ "$after" == "$before" ]]
 }
 
-@test "helix log report session aggregates hook gate and cost rows by date" {
-  local today="2026-05-03"
+@test "PLAN-016 DoD #2: report session --date は任意日付ごとに cost_log を集計する" {
+  insert_cost_log "2026-05-03" "opus-pm" "claude-opus-4-6" "10:00:00"
+  insert_cost_log "2026-05-03" "claude-code" "claude-code" "10:01:00"
+  insert_cost_log "2026-05-04" "opus-pm" "claude-opus-4-6" "11:00:00"
 
-  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$PROJECT_ROOT/.helix/helix.db" hook_events \
-    "{\"event_type\":\"Stop\",\"file\":\"session\",\"result\":\"success\",\"created_at\":\"${today}T10:00:00\"}" >/dev/null
-  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$PROJECT_ROOT/.helix/helix.db" gate_runs \
-    "{\"gate\":\"G4\",\"result\":\"passed\",\"fail_reasons\":\"[]\",\"retry_count\":0,\"duration_ms\":12,\"created_at\":\"${today}T10:01:00\"}" >/dev/null
-  insert_cost_log "$today"
-
-  run "$HELIX_ROOT/cli/helix" log report session --date "$today"
+  run "$HELIX_ROOT/cli/helix" log report session --date "2026-05-03"
   assert_status_zero
-  [[ "$output" == *"=== Session Report ==="* ]]
-  [[ "$output" == *"Date: ${today}"* ]]
-  [[ "$output" == *"終了 1 回"* ]]
-  [[ "$output" == *"Stop: 1"* ]]
-  [[ "$output" == *"G4 passed: 1"* ]]
+  [[ "$output" == *"Date: 2026-05-03"* ]]
+  [[ "$output" == *"終了 2 回"* ]]
+  [[ "$output" == *"claude-code / claude-code: 1"* ]]
   [[ "$output" == *"opus-pm / claude-opus-4-6: 1"* ]]
+
+  run "$HELIX_ROOT/cli/helix" log report session --date "2026-05-04"
+  assert_status_zero
+  [[ "$output" == *"Date: 2026-05-04"* ]]
+  [[ "$output" == *"終了 1 回"* ]]
+  [[ "$output" != *"claude-code / claude-code: 1"* ]]
+  [[ "$output" == *"opus-pm / claude-opus-4-6: 1"* ]]
+}
+
+@test "PLAN-016 DoD #3: hook_events gate_runs cost_log を同日付で集計する" {
+  insert_hook_event "2026-05-03" "Stop" "10:00:00"
+  insert_hook_event "2026-05-03" "Stop" "10:01:00"
+  insert_hook_event "2026-05-04" "Stop" "10:02:00"
+  insert_gate_run "2026-05-03" "G4" "passed" "10:03:00"
+  insert_gate_run "2026-05-03" "G4" "passed" "10:04:00"
+  insert_gate_run "2026-05-04" "G4" "failed" "10:05:00"
+  insert_cost_log "2026-05-03" "opus-pm" "claude-opus-4-6" "10:06:00"
+  insert_cost_log "2026-05-03" "qa" "gpt-5.4" "10:07:00"
+  insert_cost_log "2026-05-04" "qa" "gpt-5.4" "10:08:00"
+
+  run "$HELIX_ROOT/cli/helix" log report session --date "2026-05-03"
+  assert_status_zero
+  [[ "$output" == *"Stop: 2"* ]]
+  [[ "$output" == *"G4 passed: 2"* ]]
+  [[ "$output" == *"opus-pm / claude-opus-4-6: 1"* ]]
+  [[ "$output" == *"qa / gpt-5.4: 1"* ]]
+  [[ "$output" != *"G4 failed: 1"* ]]
+}
+
+@test "PLAN-016 DoD #5: 単発実行は exit 0 かつ stdout stderr 0 byte" {
+  local stdout_file="$TMP_ROOT/session-summary.stdout"
+  local stderr_file="$TMP_ROOT/session-summary.stderr"
+
+  run bash -c '"$1" >"$2" 2>"$3"' _ "$HELIX_ROOT/cli/helix-session-summary" "$stdout_file" "$stderr_file"
+  assert_status_zero
+
+  [[ ! -s "$stdout_file" ]]
+  [[ ! -s "$stderr_file" ]]
+  [[ "$output" == "" ]]
+}
+
+@test "PLAN-016 DB INSERT: helix-session-summary は cost_log を 1 件追加する" {
+  local before after
+  before="$(count_cost_log)"
+
+  run run_session_summary
+  assert_status_zero
+
+  after="$(count_cost_log)"
+  [[ "$after" -eq "$((before + 1))" ]]
+}
+
+@test "PLAN-016 --help: report session への誘導を表示して exit 0" {
+  run "$HELIX_ROOT/cli/helix-session-summary" --help
+  assert_status_zero
+  [[ "$output" == *"使い方: helix session-summary"* ]]
+  [[ "$output" == *"helix log report session"* ]]
+
+  run "$HELIX_ROOT/cli/helix-session-summary" -h
+  assert_status_zero
+  [[ "$output" == *"使い方: helix session-summary"* ]]
+  [[ "$output" == *"helix log report session"* ]]
+}
+
+@test "PLAN-016 edge: HELIX_TEST_DB_PATH の DB が未存在でも exit 0 で静音" {
+  local missing_db="$TMP_ROOT/missing/helix.db"
+  local stdout_file="$TMP_ROOT/missing-db.stdout"
+  local stderr_file="$TMP_ROOT/missing-db.stderr"
+  export HELIX_TEST_DB_PATH="$missing_db"
+
+  run bash -c '"$1" >"$2" 2>"$3"' _ "$HELIX_ROOT/cli/helix-session-summary" "$stdout_file" "$stderr_file"
+  assert_status_zero
+
+  [[ ! -e "$missing_db" ]]
+  [[ ! -s "$stdout_file" ]]
+  [[ ! -s "$stderr_file" ]]
+  [[ "$output" == "" ]]
 }

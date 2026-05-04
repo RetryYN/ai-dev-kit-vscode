@@ -140,7 +140,7 @@
 | PLAN-013 | PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract | finalized | 7 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-013-code-index-eligibility-taxonomy.md`（seed metadata 契約と DoD 証跡を同期済み） |
 | PLAN-014 | Stop hook idempotency — session-summary 重複行抑制 | finalized | 2 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-014-stop-hook-idempotency.md` |
 | PLAN-015 | Stop hook test guard hack 解消 (DoD #3 fixture redesign) | finalized | 2 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-015-stop-hook-test-guard-hack.md` |
-| PLAN-016 | session-summary md 廃止 — helix log report session 化 | finalized | 1 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-016-session-summary-helix-log-report.md` |
+| PLAN-016 | session-summary md 廃止 — helix log report session 化 | finalized | 1 | yes | 0 | 0 | ✅ | `cli/helix-session-summary` を 153 → 39 行のシム化（stdout/stderr 完全静音 + cost_log INSERT のみ）、`cli/tests/test-helix-session-summary.bats` を 8 ケースで全面再設計、retro 追加 |
 
 ### 1.2 構想2件（実態を反映）
 

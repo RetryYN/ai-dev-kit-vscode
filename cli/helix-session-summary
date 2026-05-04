@@ -1,39 +1,27 @@
 #!/bin/bash
 set -euo pipefail
 
-# helix-session-summary: セッション終了時サマリ生成（Stop hook 用）
-# Usage: helix session-summary
-
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
 case "${1:-}" in
   --help|-h)
     echo "使い方: helix session-summary"
     echo ""
-    echo "セッション終了時にサマリを .helix/session-summaries/ に生成します。"
+    echo "セッション終了時に cost_log へ INSERT します。集計は \`helix log report session\` を使ってください。"
     exit 0
     ;;
 esac
 
 DB_PATH="${HELIX_TEST_DB_PATH:-${HELIX_DB_PATH:-$DB_PATH}}"
-SUMMARY_DIR="${HELIX_TEST_SUMMARY_DIR:-$HELIX_DIR/session-summaries}"
-LOCK_DIR="${HELIX_TEST_LOCK_DIR:-$HELIX_DIR/cache/locks}"
 
-[[ ! -d "$HELIX_DIR" && -z "${HELIX_TEST_SUMMARY_DIR:-}" ]] && exit 0
 [[ ! -f "$DB_PATH" ]] && exit 0
+[[ ! -d "$HELIX_DIR" ]] && exit 0
 
-mkdir -p "$SUMMARY_DIR" "$LOCK_DIR" 2>/dev/null || true
-
-TODAY=$(date '+%Y-%m-%d')
-NOW=$(date '+%Y-%m-%d %H:%M')
-NOW_TIME="${HELIX_TEST_TIME:-${NOW#"$TODAY "}}"
-SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
-LOCK_FILE="$LOCK_DIR/${TODAY}-session.lock"
 SESSION_ROLE="${HELIX_SESSION_ROLE:-claude-code}"
 SESSION_MODEL="${HELIX_SESSION_MODEL:-${CLAUDE_MODEL:-claude-code}}"
 SESSION_THINKING="${HELIX_SESSION_THINKING:-unknown}"
 
-cost_payload="$(python3 - "$SESSION_ROLE" "$SESSION_MODEL" "$SESSION_THINKING" "$TODAY" "$NOW_TIME" <<'PY'
+cost_payload="$(python3 - "$SESSION_ROLE" "$SESSION_MODEL" "$SESSION_THINKING" "$(date '+%Y-%m-%d')" "${HELIX_TEST_TIME:-$(date '+%Y-%m-%d %H:%M' | sed 's/^[^ ]* //')}" <<'PY'
 import json
 import sys
 
@@ -46,108 +34,6 @@ print(json.dumps({
 }, ensure_ascii=False))
 PY
 )"
-HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log "$cost_payload" 2>/dev/null || true
-
-python3 - "$DB_PATH" "$SUMMARY_FILE" "$LOCK_FILE" "$TODAY" "$NOW_TIME" "$SCRIPT_DIR/lib" "$SESSION_ROLE" <<'PY'
-import fcntl, os, sys
-from pathlib import Path
-
-db_path, summary_file, lock_file, today, now_time, lib_dir, session_role = sys.argv[1:]
-sys.path.insert(0, lib_dir)
-import helix_db
-
-summary_path = Path(summary_file)
-lock_path = Path(lock_file)
-tmp_path = summary_path.with_name(f"{summary_path.name}.tmp.{os.getpid()}")
-
-
-def table_block(title, headers, rows):
-    lines = [f"### {title}", "", "| " + " | ".join(headers) + " |"]
-    lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
-    if not rows:
-        rows = [tuple(["（記録なし）"] + ["-"] * (len(headers) - 1))]
-    for row in rows:
-        lines.append("| " + " | ".join(str(value) for value in row) + " |")
-    return "\n".join(lines)
-
-
-def render_summary(conn):
-    events = conn.execute(
-        "SELECT event_type, COUNT(*) as cnt FROM hook_events "
-        "WHERE date(created_at) = ? GROUP BY event_type ORDER BY event_type",
-        (today,),
-    ).fetchall()
-    gates = conn.execute(
-        "SELECT gate, result, COUNT(*) as cnt FROM gate_runs "
-        "WHERE date(created_at) = ? GROUP BY gate, result ORDER BY gate, result",
-        (today,),
-    ).fetchall()
-    costs = conn.execute(
-        "SELECT role, model, COUNT(*) as cnt FROM cost_log "
-        "WHERE date(created_at) = ? GROUP BY role, model ORDER BY role, model",
-        (today,),
-    ).fetchall()
-    finished_count = conn.execute(
-        "SELECT COUNT(*) FROM cost_log WHERE role = ? AND date(created_at) = ?", (session_role, today)
-    ).fetchone()[0]
-
-    return "\n".join([
-        f"## {today} セッション (最終更新 {now_time}, 終了 {finished_count} 回)",
-        "",
-        table_block("Hook イベント", ["event_type", "count"], [(r["event_type"], r["cnt"]) for r in events]),
-        "",
-        table_block("ゲート実行", ["gate", "result", "count"], [(r["gate"], r["result"], r["cnt"]) for r in gates]),
-        "",
-        table_block("コスト記録", ["role", "model", "count"], [(r["role"], r["model"], r["cnt"]) for r in costs]),
-        "",
-    ])
-
-
-def replace_today_block(existing, new_block):
-    lines = existing.splitlines(keepends=True)
-    start = next((i for i, line in enumerate(lines) if line.startswith(f"## {today} セッション")), None)
-    if start is None:
-        prefix = existing.rstrip("\n")
-        return f"{prefix}\n\n{new_block}" if prefix else new_block
-
-    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
-    replacement = new_block.rstrip("\n") + "\n\n"
-    return "".join(lines[:start]) + replacement + "".join(lines[end:]).lstrip("\n")
-
-
-def atomic_write(path, content):
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        f.write(content)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp_path, path)
-
-try:
-    conn = helix_db.get_connection(db_path)
-
-    with open(lock_path, "a", encoding="utf-8") as lock_file:
-        try:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            conn.close()
-            print(f"[helix-session] サマリ更新 skip: lock busy ({summary_file})")
-            sys.exit(0)
-
-        new_block = render_summary(conn)
-        conn.close()
-
-        existing = summary_path.read_text(encoding="utf-8") if summary_path.exists() else ""
-        next_content = replace_today_block(existing, new_block)
-        atomic_write(summary_path, next_content)
-
-    print(f"[helix-session] サマリ更新: {summary_file}")
-except Exception as e:
-    try:
-        tmp_path.unlink()
-    except FileNotFoundError:
-        pass
-    print(f"[helix-session] エラー: {e}", file=sys.stderr)
-    sys.exit(1)
-PY
+HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log "$cost_payload" >/dev/null 2>&1 || true
 
 exit 0
