@@ -12,6 +12,13 @@ sprint_skip_steps: []
 # AI レビュー無効化（コスト削減用）
 ai_review: true
 
+# Codex 実行ガード
+codex:
+  # true にすると write 実行は helix codex --approved 必須
+  require_approved: false
+  # true にすると --approved に .helix/approvals/ の承認証跡が必須
+  require_approval_evidence: false
+
 # 駆動タイプデフォルト
 default_drive: be
 

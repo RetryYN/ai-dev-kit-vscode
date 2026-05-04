@@ -7,8 +7,8 @@
 #
 # プロジェクトルートの .helix/gate-checks.yaml にコピーして使う
 # static: シェルコマンド（exit 0 = pass, 非0 = fail）
-# ai: helix-codex で実行する AI 検証
-#   role: helix-codex のロール
+# ai: helix codex で実行する AI 検証
+#   role: helix codex のロール
 #   task: プロンプト
 
 G0.5:

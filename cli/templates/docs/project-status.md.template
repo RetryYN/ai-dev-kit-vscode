@@ -1,0 +1,54 @@
+# Project Status
+
+## 0. Snapshot
+
+| 項目 | 値 |
+|------|----|
+| date | YYYY-MM-DD |
+| mode | forward / reverse / scrum |
+| phase | L1-L11 |
+| active_plan | PLAN-XXX / N/A |
+| active_sprint | .1a-.5 / N/A |
+| owner | |
+| status | green / yellow / red |
+
+## 1. Now
+
+- 現在の焦点:
+- 今日終えること:
+- 次の gate:
+
+## 2. Plans
+
+| PLAN | title | status | next action |
+|------|-------|--------|-------------|
+| PLAN-XXX | | draft / reviewed / finalized | |
+
+## 3. WBS / Sprint
+
+| Sprint | WBS | owner role | status | evidence |
+|--------|-----|------------|--------|----------|
+| .1a | WBS-001 | tl | pending / active / done | |
+
+## 4. Risks / Blockers
+
+| ID | 内容 | severity | owner | next action |
+|----|------|----------|-------|-------------|
+| BLK-001 | | P0/P1/P2/P3 | | |
+
+## 5. Recent Verification
+
+| Date | Command | Result | Notes |
+|------|---------|--------|-------|
+| YYYY-MM-DD | `helix test` | pass / fail / skipped | |
+
+## 6. Handover
+
+- CURRENT exists: yes / no
+- owner:
+- stale:
+- next action:
+
+## 7. Notes
+
+-

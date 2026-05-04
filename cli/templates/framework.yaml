@@ -1,6 +1,6 @@
 # framework.yaml — プロジェクトフレームワーク検出結果
 # helix_template_version: 3
-# helix-init の framework detection で上書き生成される
+# `helix init` の framework detection で上書き生成される
 #
 # Node.js プロジェクト例:
 #   detected: node

@@ -8,6 +8,6 @@ HELIX_DIR="$PROJECT_ROOT/.helix"
 
 if [[ -f "$HELIX_DIR/matrix.yaml" ]]; then
   echo "[helix] post-merge: matrix recompile..."
-  "$HELIX_HOME/cli/helix-matrix" compile 2>/dev/null && echo "[helix] matrix recompile 完了" || true
-  "$HELIX_HOME/cli/helix-matrix" auto-detect 2>/dev/null || true
+  "$HELIX_HOME/cli/helix" matrix compile 2>/dev/null && echo "[helix] matrix recompile 完了" || true
+  "$HELIX_HOME/cli/helix" matrix auto-detect 2>/dev/null || true
 fi

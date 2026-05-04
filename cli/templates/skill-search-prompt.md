@@ -1,6 +1,6 @@
 # Skill Search Prompt Template
 
-> Codex 5.4 mini に渡すスキル推挙プロンプト。`helix-skill search` が `skill_recommender.py` から動的に組み立てる。
+> Codex 5.4 mini に渡すスキル推挙プロンプト。`helix skill search` が `skill_recommender.py` から動的に組み立てる。
 > 変数は `{{ ... }}` で埋め込み。
 
 ---
@@ -69,7 +69,7 @@
 ### recommended_agent 契約（固定）
 
 - `recommended_agent` は常に正規化済み短縮名のみを返す
-- `helix-codex --role X` 形式は出力しない（dispatcher が解決する）
+- `helix codex --role X` 形式は出力しない（dispatcher が解決する）
 - 許可値は次のいずれかのみ:
   - `tl`
   - `se`

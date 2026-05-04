@@ -1,7 +1,7 @@
 # phase.yaml — プロジェクトのフェーズ状態追跡
 # helix_template_version: 3
 # プロジェクトルートの .helix/phase.yaml にコピーして使う
-# helix-size / helix-gate / helix-sprint が自動更新する
+# helix size / helix gate / helix sprint が自動更新する
 
 project: ""
 current_mode: forward

@@ -1,0 +1,94 @@
+# PLAN-XXX: タイトル
+
+## 0. Metadata
+
+| 項目 | 値 |
+|------|----|
+| status | draft |
+| owner | |
+| source | |
+| created_at | YYYY-MM-DD |
+| target_phase | L1-L11 |
+| drive | be / fe / db / fullstack / agent |
+
+## 1. Summary
+
+この計画で何を達成するかを 3-5 行で書く。
+
+## 2. Scope
+
+### In
+- 
+
+### Out
+- 
+
+## 3. Assumptions
+
+| ID | 前提 | 検証方法 | 状態 |
+|----|------|----------|------|
+| ASM-001 | | | open |
+
+## 4. Design Direction
+
+- 技術方針:
+- 既存資産との接続:
+- 代替案と棄却理由:
+
+## 5. Risks
+
+| ID | リスク | 影響 | 緩和策 | owner |
+|----|--------|------|--------|-------|
+| R-001 | | high / medium / low | | |
+
+## 6. Deliverables
+
+| ID | 成果物 | パス | Gate | 状態 |
+|----|--------|------|------|------|
+| D-REQ-F | 機能要件 | docs/features/.../D-REQ-F/ | G2 | pending |
+| D-API | API 契約 | docs/features/.../D-API/ | G3 | pending / N/A |
+| D-DB | DB 設計 | docs/features/.../D-DB/ | G3 | pending / N/A |
+| D-TEST | テスト設計 | docs/features/.../D-TEST/ | G3/G4 | pending |
+| D-PLAN | 工程表 | docs/design/L3-schedule-wbs.md | G3 | pending |
+
+## 7. Implementation Schedule
+
+詳細な WBS は `docs/design/L3-schedule-wbs.md` を正本にする。
+
+| Sprint | 内容 | owner role | 依存 | 完了条件 |
+|--------|------|------------|------|----------|
+| .1a | 調査 | tl | N/A | 影響範囲が明確 |
+| .1b | 変更計画 | tl/se | .1a | 実装順が明確 |
+| .2 | 最小実装 | se/pg | .1b | happy path が動作 |
+| .3 | 強化 | se/security | .2 | 異常系と安全性が完了 |
+| .4 | 検証 | qa | .3 | テスト pass |
+| .5 | 仕上げ | docs/tl | .4 | docs / review / gate evidence 同期 |
+
+## 8. Test Plan
+
+- Shell:
+- Python:
+- Unit:
+- Integration:
+- Bats:
+- Manual:
+
+## 9. Review / Gate Policy
+
+- PLAN review: `helix plan review --id PLAN-XXX`
+- finalize: `helix plan finalize --id PLAN-XXX`
+- G2:
+- G3:
+- G4:
+
+## 10. Open Items
+
+| ID | 内容 | owner | 解消目標 |
+|----|------|-------|----------|
+| TBD-001 | | | G3 |
+
+## 11. Revision History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| v1 | YYYY-MM-DD | 初版 |
