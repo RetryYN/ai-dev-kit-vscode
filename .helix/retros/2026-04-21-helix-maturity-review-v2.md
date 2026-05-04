@@ -142,3 +142,12 @@ HELIX は **Grade A- (91/100)** に到達。主要な摩擦 4 件を解消し、
 - 前回レビュー: `.helix/retros/2026-04-21-helix-maturity-review.md` (local only)
 - 強化コミット: 4cbd5fb
 - 強化施策の適用対象: improvements/helix-overhaul
+
+## Keep
+- v1 から v2 への改善幅を数値で示し、Priority 2 の残課題を明確化できた。
+
+## Problem
+- maturity review v2 も KPT 見出しを持たず、G6 の retro section check と形式がずれていた。
+
+## Try
+- @tl 2026-05-05 review 系 retro のテンプレートに KPT 互換見出しを追加する。

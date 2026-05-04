@@ -220,3 +220,12 @@ HELIX は「基盤は完成、実運用改善フェーズ」に入った。今�
 - 本レビュー対象セッション: 6397314f-dcf8-4237-b6c5-d8b852018e89
 - 実装コミット: 13b9ba5
 - L8 retro: `2026-04-21-L8-helix-budget-autothinking.md`
+
+## Keep
+- HELIX の実地検証結果を定量スコアと Priority queue に分解できた。
+
+## Problem
+- maturity review は retro ディレクトリ配下にあるが、KPT 見出しを持たず G6 の section check と形式がずれていた。
+
+## Try
+- @tl 2026-05-05 review 系 retro にも Keep/Problem/Try の互換見出しを付ける。
