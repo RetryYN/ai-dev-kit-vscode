@@ -1,6 +1,6 @@
 #!/bin/bash
 if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
-  echo "エラー: helix-reverse は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
+  echo "エラー: helix reverse は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
   echo "macOS の場合: brew install bash && シェルを /opt/homebrew/bin/bash に変更" >&2
   exit 1
 fi
@@ -30,19 +30,22 @@ DESIGN_PATH="docs/design/"
 FEATURES_PATH="docs/features/"
 OUTPUT_PATH=""
 TOPOLOGICAL_SORT=false
+UPGRADE_FROM=""
+UPGRADE_TO=""
+ARTIFACT_PATH=""
 
 usage() {
   cat <<'USAGE'
 Usage:
-  helix-reverse <type> [<subcommand>] [options]
-  helix-reverse R0|R1|R2|R3|R4|status|rgc [options]  # legacy alias for code
+  helix reverse <type> [<subcommand>] [options]
+  helix reverse R0|R1|R2|R3|R4|status|rgc [options]  # legacy alias for code
 
 Types:
   code        Existing Reverse HELIX behavior (default / legacy compatible)
   design      Reverse design assets into evidence, DAG, implementation order, routing
-  upgrade     Not implemented yet (reserved by PLAN-008)
-  normalization  Not implemented yet (reserved by PLAN-008)
-  fullback    Not implemented yet (reserved by PLAN-008)
+  upgrade     Version upgrade impact assessment and Forward routing
+  normalization  Design drift normalization and Forward routing
+  fullback    Post-implementation document alignment and closure routing
 
 Subcommands:
   run         Run alias. Starts at the type's first stage (R0)
@@ -56,7 +59,7 @@ Options:
   --invalidate-forward        code + R2/R3/R4/run/retry only; invalidate Forward gates on success
   --json                      status only
   --last-failed               retry only
-  --dry-run                   Print delegated helix-codex task without running it
+  --dry-run                   Print delegated helix codex task without running it
 
 Design options:
   --plans <path>              default: docs/plans/
@@ -64,6 +67,11 @@ Design options:
   --features <path>           default: docs/features/
   --output <path>             R2/R3 custom output file or directory
   --topological-sort          R3 only; include topological sort result
+
+Type-specific options:
+  --from <version>            upgrade: current version/context label
+  --to <version>              upgrade: target version/context label
+  --artifact <path>           fullback: completed artifact or handoff root
 USAGE
 }
 
@@ -73,7 +81,7 @@ usage_type() {
     design)
       cat <<'USAGE'
 Usage:
-  helix-reverse design [run|status|rgc|retry|R0|R2|R3|R4] [options]
+  helix reverse design [run|status|rgc|retry|R0|R2|R3|R4] [options]
 
 Design stages:
   R0  Design Evidence Acquisition -> D0-design-evidence-map.yaml
@@ -89,7 +97,7 @@ Options:
   --features <path>           default: docs/features/
   --output <path>             R2/R3 custom output file or directory
   --topological-sort          R3 only; include topological sort result
-  --dry-run                   Print delegated helix-codex task without running it
+  --dry-run                   Print delegated helix codex task without running it
 USAGE
       ;;
     *) usage ;;
@@ -134,12 +142,6 @@ parse_args() {
       usage_type "$TYPE"
       exit "$EXIT_SUCCESS"
     fi
-    case "$TYPE" in
-      upgrade|normalization|fullback)
-        SUBCOMMAND="run"
-        return
-        ;;
-    esac
     if [[ $# -gt 0 && "$(printf '%s' "$1" | cut -c1)" != "-" ]]; then
       if is_subcommand "$1"; then
         SUBCOMMAND="$1"
@@ -190,6 +192,21 @@ parse_args() {
         [[ -n "$OUTPUT_PATH" ]] || { echo "Error: --output requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
         shift 2
         ;;
+      --from)
+        UPGRADE_FROM="${2:-}"
+        [[ -n "$UPGRADE_FROM" ]] || { echo "Error: --from requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --to)
+        UPGRADE_TO="${2:-}"
+        [[ -n "$UPGRADE_TO" ]] || { echo "Error: --to requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
+      --artifact)
+        ARTIFACT_PATH="${2:-}"
+        [[ -n "$ARTIFACT_PATH" ]] || { echo "Error: --artifact requires a value" >&2; exit "$EXIT_INPUT_ERROR"; }
+        shift 2
+        ;;
       --topological-sort)
         TOPOLOGICAL_SORT=true
         shift
@@ -229,14 +246,7 @@ parse_args() {
 
 validate_args() {
   case "$TYPE" in
-    code|design) ;;
-    upgrade|normalization|fullback)
-      # TODO(PLAN-008): implement these reserved reverse types in separate sessions.
-      # Add type-specific option schemas, stage mappings, gate keys, and Codex tasks here.
-      echo "Error: reverse type '$TYPE' is not implemented in this session." >&2
-      echo "PLAN-008 reserves this type; implementation is deferred to a separate PLAN/session." >&2
-      exit "$EXIT_INPUT_ERROR"
-      ;;
+    code|design|upgrade|normalization|fullback) ;;
   esac
 
   if [[ "$JSON_OUTPUT" == true && "$SUBCOMMAND" != "status" ]]; then
@@ -277,11 +287,19 @@ validate_args() {
     echo "Error: design R1 is skipped by PLAN-008 and cannot be executed" >&2
     exit "$EXIT_INPUT_ERROR"
   fi
+  if [[ "$TYPE" == "normalization" && "$SUBCOMMAND" == "R1" ]]; then
+    echo "Error: normalization R1 is skipped by PLAN-008 and cannot be executed" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  if [[ "$TYPE" == "upgrade" && "$SUBCOMMAND" == "rgc" ]]; then
+    echo "Error: upgrade RGC is skipped by PLAN-008; use R4 routing instead" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
 }
 
 ensure_helix_dir() {
   if [[ ! -d "$HELIX_DIR" ]]; then
-    echo "Error: .helix/ not found. Run 'helix-init' first." >&2
+    echo "Error: .helix/ not found. Run 'helix init' first." >&2
     exit "$EXIT_PREREQ_ERROR"
   fi
 }
@@ -302,6 +320,9 @@ reverse_dir_for_type() {
   case "$1" in
     code) echo "$CODE_REVERSE_DIR" ;;
     design) echo "$CODE_REVERSE_DIR/design" ;;
+    upgrade) echo "$CODE_REVERSE_DIR/upgrade" ;;
+    normalization) echo "$CODE_REVERSE_DIR/normalization" ;;
+    fullback) echo "$CODE_REVERSE_DIR/fullback" ;;
   esac
 }
 
@@ -309,7 +330,7 @@ get_rgate_status() {
   local type="$1"
   local rgate="$2"
   local path="reverse_gates.${rgate}.status"
-  [[ "$type" == "design" ]] && path="reverse_gates.design.${rgate}.status"
+  [[ "$type" != "code" ]] && path="reverse_gates.${type}.${rgate}.status"
   python3 "$YP" read "$PHASE_FILE" "$path" 2>/dev/null || echo "pending"
 }
 
@@ -318,17 +339,17 @@ set_rgate_status() {
   local rgate="$2"
   local status="$3"
   local base="reverse_gates.${rgate}"
-  [[ "$type" == "design" ]] && base="reverse_gates.design.${rgate}"
+  [[ "$type" != "code" ]] && base="reverse_gates.${type}.${rgate}"
   python3 "$YP" write "$PHASE_FILE" "${base}.status" "$status" 2>/dev/null || true
   python3 "$YP" write "$PHASE_FILE" "${base}.date" "$(date '+%Y-%m-%d')" 2>/dev/null || true
 }
 
 invalidate_forward_gates() {
   local gate
-  for gate in G2 G3 G4 G5 G6 G7; do
+  for gate in G2 G3 G4 G5 G6 G7 G9 G10 G11; do
     python3 "$YP" write "$PHASE_FILE" "gates.${gate}.status" "invalidated" 2>/dev/null || true
   done
-  echo "[helix-reverse] Forward gates を invalidated に更新しました: G2 G3 G4 G5 G6 G7"
+  echo "[helix-reverse] Forward gates を invalidated に更新しました: G2-G11 (G8 excluded)"
 }
 
 stage_for_command() {
@@ -359,7 +380,7 @@ stage_for_command() {
 find_last_failed_stage() {
   local stage gate status
   for stage in R4 R3 R2 R1 R0; do
-    if [[ "$TYPE" == "design" && "$stage" == "R1" ]]; then
+    if [[ ( "$TYPE" == "design" || "$TYPE" == "normalization" ) && "$stage" == "R1" ]]; then
       continue
     fi
     gate=$(stage_rgate "$TYPE" "$stage")
@@ -381,6 +402,10 @@ stage_role() {
     code:R4) echo "tl" ;;
     design:R0) echo "research" ;;
     design:R2|design:R3|design:R4) echo "tl" ;;
+    upgrade:R0|upgrade:R1|upgrade:R2) echo "se" ;;
+    upgrade:R3|upgrade:R4) echo "tl" ;;
+    normalization:R0|normalization:R2|normalization:R3|normalization:R4) echo "tl" ;;
+    fullback:R0|fullback:R1|fullback:R2|fullback:R3|fullback:R4) echo "tl" ;;
     *) echo "Error: unsupported stage $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
 }
@@ -397,6 +422,17 @@ stage_rgate() {
     design:R2) echo "RG2" ;;
     design:R3) echo "RG3" ;;
     design:R4) echo "RGC" ;;
+    upgrade:R0) echo "RG0" ;;
+    upgrade:R1) echo "RG1" ;;
+    upgrade:R2) echo "RG2" ;;
+    upgrade:R3|upgrade:R4) echo "RG3" ;;
+    normalization:R0) echo "RG0" ;;
+    normalization:R2) echo "RG2" ;;
+    normalization:R3|normalization:R4) echo "RG3" ;;
+    fullback:R0) echo "RG0" ;;
+    fullback:R1) echo "RG1" ;;
+    fullback:R2) echo "RG2" ;;
+    fullback:R3|fullback:R4) echo "RG3" ;;
     *) echo "Error: unsupported gate mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
 }
@@ -405,7 +441,7 @@ stage_prereq() {
   local type="$1"
   local stage="$2"
   case "$type:$stage" in
-    code:R0|design:R0) echo "" ;;
+    code:R0|design:R0|upgrade:R0|normalization:R0|fullback:R0) echo "" ;;
     code:R1) echo "RG0" ;;
     code:R2) echo "RG1" ;;
     code:R3) echo "RG2" ;;
@@ -413,6 +449,17 @@ stage_prereq() {
     design:R2) echo "RG0" ;;
     design:R3) echo "RG2" ;;
     design:R4) echo "RG2" ;;
+    upgrade:R1) echo "RG0" ;;
+    upgrade:R2) echo "RG1" ;;
+    upgrade:R3) echo "RG2" ;;
+    upgrade:R4) echo "RG1" ;;
+    normalization:R2) echo "RG0" ;;
+    normalization:R3) echo "RG2" ;;
+    normalization:R4) echo "RG2" ;;
+    fullback:R1) echo "RG0" ;;
+    fullback:R2) echo "RG1" ;;
+    fullback:R3) echo "RG2" ;;
+    fullback:R4) echo "RG3" ;;
     *) echo "Error: unsupported prerequisite mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
 }
@@ -430,6 +477,20 @@ stage_output() {
     design:R2) echo "D2-design-dag.yaml" ;;
     design:R3) echo "D3-impl-order.yaml" ;;
     design:R4) echo "D4-design-routing.yaml" ;;
+    upgrade:R0) echo "U0-upgrade-context.yaml" ;;
+    upgrade:R1) echo "U1-upgrade-contracts.yaml" ;;
+    upgrade:R2) echo "U2-assessment-impact.yaml" ;;
+    upgrade:R3) echo "U3-upgrade-hypotheses.md" ;;
+    upgrade:R4) echo "U4-upgrade-routing.md" ;;
+    normalization:R0) echo "N0-drift-evidence.yaml" ;;
+    normalization:R2) echo "N2-normalization-drift.yaml" ;;
+    normalization:R3) echo "N3-normalization-hypotheses.md" ;;
+    normalization:R4) echo "N4-normalization-gap-register.yaml" ;;
+    fullback:R0) echo "F0-fullback-evidence.yaml" ;;
+    fullback:R1) echo "F1-fullback-contracts.yaml" ;;
+    fullback:R2) echo "F2-fullback-as-is-review.md" ;;
+    fullback:R3) echo "F3-fullback-handover-checklist.yaml" ;;
+    fullback:R4) echo "F4-fullback-routing.md" ;;
     *) echo "Error: unsupported output mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
 }
@@ -466,6 +527,17 @@ prev_output_note() {
     design:R2) [[ -f "$dir/D0-design-evidence-map.yaml" ]] && echo "前ステージ成果物: $dir/D0-design-evidence-map.yaml を Read して参照せよ。" ;;
     design:R3) [[ -f "$dir/D2-design-dag.yaml" ]] && echo "前ステージ成果物: $dir/D2-design-dag.yaml を Read して参照せよ。" ;;
     design:R4) [[ -f "$dir/D2-design-dag.yaml" ]] && echo "前ステージ成果物: $dir/D2-design-dag.yaml を Read して参照せよ。$([[ -f "$dir/D3-impl-order.yaml" ]] && echo "任意成果物: $dir/D3-impl-order.yaml も参照せよ。")" ;;
+    upgrade:R1) [[ -f "$dir/U0-upgrade-context.yaml" ]] && echo "前ステージ成果物: $dir/U0-upgrade-context.yaml を Read して参照せよ。" ;;
+    upgrade:R2) [[ -f "$dir/U1-upgrade-contracts.yaml" ]] && echo "前ステージ成果物: $dir/U1-upgrade-contracts.yaml を Read して参照せよ。" ;;
+    upgrade:R3) [[ -f "$dir/U2-assessment-impact.yaml" ]] && echo "前ステージ成果物: $dir/U2-assessment-impact.yaml を Read して参照せよ。" ;;
+    upgrade:R4) [[ -f "$dir/U1-upgrade-contracts.yaml" ]] && echo "前ステージ成果物: $dir/U1-upgrade-contracts.yaml を Read して参照せよ。$([[ -f "$dir/U2-assessment-impact.yaml" ]] && echo "任意成果物: $dir/U2-assessment-impact.yaml も参照せよ。")$([[ -f "$dir/U3-upgrade-hypotheses.md" ]] && echo "任意成果物: $dir/U3-upgrade-hypotheses.md も参照せよ。")" ;;
+    normalization:R2) [[ -f "$dir/N0-drift-evidence.yaml" ]] && echo "前ステージ成果物: $dir/N0-drift-evidence.yaml を Read して参照せよ。" ;;
+    normalization:R3) [[ -f "$dir/N2-normalization-drift.yaml" ]] && echo "前ステージ成果物: $dir/N2-normalization-drift.yaml を Read して参照せよ。" ;;
+    normalization:R4) [[ -f "$dir/N2-normalization-drift.yaml" ]] && echo "前ステージ成果物: $dir/N2-normalization-drift.yaml を Read して参照せよ。$([[ -f "$dir/N3-normalization-hypotheses.md" ]] && echo "任意成果物: $dir/N3-normalization-hypotheses.md も参照せよ。")" ;;
+    fullback:R1) [[ -f "$dir/F0-fullback-evidence.yaml" ]] && echo "前ステージ成果物: $dir/F0-fullback-evidence.yaml を Read して参照せよ。" ;;
+    fullback:R2) [[ -f "$dir/F1-fullback-contracts.yaml" ]] && echo "前ステージ成果物: $dir/F1-fullback-contracts.yaml を Read して参照せよ。" ;;
+    fullback:R3) [[ -f "$dir/F2-fullback-as-is-review.md" ]] && echo "前ステージ成果物: $dir/F2-fullback-as-is-review.md を Read して参照せよ。" ;;
+    fullback:R4) [[ -f "$dir/F3-fullback-handover-checklist.yaml" ]] && echo "前ステージ成果物: $dir/F3-fullback-handover-checklist.yaml を Read して参照せよ。" ;;
   esac
   return 0
 }
@@ -508,6 +580,48 @@ stage_task() {
     design:R4)
       echo "Design R4 Routing: design DAG と任意の実装順序を Forward HELIX に接続し、routing_to_forward / disconnected_designs / deferred_findings_candidates を YAML で出力せよ。Forward L1/L2/L3/L4 の接続先と接続確度を明示。$prev $generated_schema 結果は $output_file に書き出すこと。"
       ;;
+    upgrade:R0)
+      echo "Upgrade R0 Context Acquisition: $target_desc の現行実装・依存・運用制約・既知障害を調査し、upgrade_context を YAML で出力せよ。from / to / source_paths / constraints / unknowns を含める。$generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    upgrade:R1)
+      echo "Upgrade R1 Compatibility Contracts: 互換/保守/破壊変更候補を分類し、upgrade_contracts を YAML で出力せよ。API/DB/D-CONTRACT/依存ライブラリ/運用設定の観点を分ける。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    upgrade:R2)
+      echo "Upgrade R2 Impact Assessment: 変更影響一覧、migration 候補、rollback 注意点、検証条件を YAML で出力せよ。Reverse 内では migration/rollback 判断を確定せず、L2/L3/G3 への判断材料に留める。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    upgrade:R3)
+      echo "Upgrade R3 Hypotheses: 移行シナリオ仮説、成功条件、未確定前提、PO/TL 確認質問を Markdown で出力せよ。各仮説に confidence を付ける。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    upgrade:R4)
+      echo "Upgrade R4 Routing: upgrade assessment を Forward HELIX に接続し、routing_to_forward / compatibility_findings / freeze_pending を Markdown で出力せよ。API/DB/D-CONTRACT 疑義は L2/L3/G3 に振り分け、Reverse 内で設計 freeze しない。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    normalization:R0)
+      echo "Normalization R0 Drift Evidence: $target_desc の実装と設計文書の drift 根拠を収集し、drift_evidence を YAML で出力せよ。source_paths / observed_drift / confidence / unknowns を含める。$generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    normalization:R2)
+      echo "Normalization R2 Drift Model: drift を設計再正規化単位に分解し、affected_docs / required_updates / risk / priority を YAML で出力せよ。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    normalization:R3)
+      echo "Normalization R3 Hypotheses: 設計更新仮説、優先順位、再発防止観点、確認質問を Markdown で出力せよ。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    normalization:R4)
+      echo "Normalization R4 Gap Register: 設計再正規化の gap register を YAML で出力せよ。routing_to_forward / design_update_todos / deferred_findings_candidates / unresolved を含める。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    fullback:R0)
+      echo "Fullback R0 Evidence: $target_desc の完了実装・設計 doc・変更履歴を調査し、fullback_evidence を YAML で出力せよ。raw 本文、secret、PII、env vars 平文は保存せず、source_path / line_range / content_hash / redacted_summary のみ記録する。$generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    fullback:R1)
+      echo "Fullback R1 Contracts: PLAN/D-API/D-CONTRACT/ADR と実装状態の差分契約を YAML で出力せよ。doc_diff_summary / contract_alignment / security_review_required を含める。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    fullback:R2)
+      echo "Fullback R2 As-Is Review: 完了実装と管理文書の整合レビューを Markdown で出力せよ。監査追跡、未確定整合項目、L8/L9-L11 接続観点を明示。$prev 結果は $output_file に書き出すこと。"
+      ;;
+    fullback:R3)
+      echo "Fullback R3 Handover Checklist: L8/L11 受入・運用学習・引継ぎのチェックリストを YAML で出力せよ。owners / acceptance_links / open_items を含める。$prev $generated_schema 結果は $output_file に書き出すこと。"
+      ;;
+    fullback:R4)
+      echo "Fullback R4 Routing: 最終文書整合の routing を Markdown で出力せよ。resolved / partial / open gap、Forward/Run フェーズ接続先、RGC 実行条件を明示する。$prev 結果は $output_file に書き出すこと。"
+      ;;
   esac
 }
 
@@ -515,11 +629,12 @@ status_json() {
   local type="$1"
   local dir="$2"
   local gates
-  if [[ "$type" == "design" ]]; then
-    gates="RG0 RG2 RG3 RGC"
-  else
-    gates="RG0 RG1 RG2 RG3"
-  fi
+  case "$type" in
+    design) gates="RG0 RG2 RG3 RGC" ;;
+    normalization) gates="RG0 RG2 RG3 RGC" ;;
+    upgrade) gates="RG0 RG1 RG2 RG3" ;;
+    *) gates="RG0 RG1 RG2 RG3 RGC" ;;
+  esac
 
   printf '{\n'
   printf '  "reverse_type": "%s",\n' "$type"
@@ -550,7 +665,7 @@ cmd_status() {
   local dir
   dir=$(reverse_dir_for_type "$TYPE")
 
-  if [[ "$JSON_OUTPUT" == true || "$TYPE" == "design" ]]; then
+  if [[ "$JSON_OUTPUT" == true || "$TYPE" != "code" ]]; then
     status_json "$TYPE" "$dir"
     return
   fi
@@ -669,6 +784,83 @@ cmd_rgc_design() {
   echo "Forward L2 設計凍結後の任意チェックです。D4-design-routing.yaml の受入注記を確認してください。"
 }
 
+cmd_rgc_generic() {
+  local type="$1"
+  local dir routing label
+  dir=$(reverse_dir_for_type "$type")
+  case "$type" in
+    normalization)
+      routing="$dir/N4-normalization-gap-register.yaml"
+      label="Reverse Normalization Gap Closure"
+      ;;
+    fullback)
+      routing="$dir/F4-fullback-routing.md"
+      label="Reverse Fullback Gap Closure"
+      ;;
+    *)
+      echo "Error: RGC is not supported for reverse type '$type'" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+
+  if [[ ! -f "$routing" ]]; then
+    echo "Error: $routing が見つかりません" >&2
+    echo "  先に 'helix reverse $type R4' を実行してください" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+
+  echo "=== $label (RGC) ==="
+  echo "reverse_type: $type"
+  echo "Source: $routing"
+  echo ""
+  echo "Forward 通過後の閉鎖チェックです。open gap と deferred finding の扱いを確認してください。"
+}
+
+validate_stage_output() {
+  local output_file="$1"
+  if [[ ! -s "$output_file" ]]; then
+    echo "empty output file" >&2
+    return 1
+  fi
+
+  case "$output_file" in
+    *.yaml|*.yml)
+      python3 - "$SCRIPT_DIR" "$output_file" <<'PY'
+from pathlib import Path
+import sys
+
+script_dir = Path(sys.argv[1])
+path = Path(sys.argv[2])
+sys.path.insert(0, str(script_dir / "lib"))
+from yaml_parser import parse_yaml  # noqa: E402
+
+try:
+    data = parse_yaml(path.read_text(encoding="utf-8"))
+except Exception as exc:
+    print(f"invalid YAML: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+if not isinstance(data, dict) or not data:
+    print("YAML output must be a non-empty mapping", file=sys.stderr)
+    raise SystemExit(1)
+if not any(str(key).strip() for key in data.keys()):
+    print("YAML output must contain at least one named field", file=sys.stderr)
+    raise SystemExit(1)
+PY
+      ;;
+    *.md)
+      python3 - "$output_file" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+if len(text) < 20:
+    print("Markdown output is too short", file=sys.stderr)
+    raise SystemExit(1)
+PY
+      ;;
+  esac
+}
+
 run_stage() {
   local stage="$1"
   local dir role target_desc output_file prev task rgate prereq prereq_status
@@ -678,6 +870,9 @@ run_stage() {
   prev=$(prev_output_note "$TYPE" "$stage")
   target_desc="${TARGET:-$PROJECT_ROOT}"
   [[ "$TYPE" == "design" ]] && target_desc="plans=$PLANS_PATH design=$DESIGN_PATH features=$FEATURES_PATH"
+  [[ "$TYPE" == "upgrade" ]] && target_desc="project=$PROJECT_ROOT from=${UPGRADE_FROM:-unspecified} to=${UPGRADE_TO:-unspecified} target=${TARGET:-all}"
+  [[ "$TYPE" == "normalization" ]] && target_desc="project=$PROJECT_ROOT target=${TARGET:-drift}"
+  [[ "$TYPE" == "fullback" ]] && target_desc="project=$PROJECT_ROOT artifact=${ARTIFACT_PATH:-${TARGET:-completed-work}}"
 
   auto_switch_reverse_mode "$stage"
   mkdir -p "$dir"
@@ -703,10 +898,10 @@ run_stage() {
   echo ""
 
   if [[ "$DRY_RUN" == true ]]; then
-    echo "[dry-run] helix-codex --role $role --task:"
+    echo "[dry-run] helix codex --role $role --task:"
     echo "$task"
     if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
-      echo "[dry-run] --invalidate-forward: Forward gates (G2-G7) を invalidated に更新します"
+      echo "[dry-run] --invalidate-forward: Forward gates (G2-G11) を invalidated に更新します"
     fi
     return
   fi
@@ -762,13 +957,13 @@ conn.close()
     exit "$EXIT_CHECK_FAILED"
   fi
 
-  if [[ -f "$output_file" ]]; then
+  if [[ -f "$output_file" ]] && validate_stage_output "$output_file"; then
     set_rgate_status "$TYPE" "$rgate" "passed"
     echo "[helix-reverse] $rgate passed — 成果物: $output_file"
     if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
       invalidate_forward_gates
     fi
-    if [[ "$TYPE" == "code" && "$stage" == "R4" ]]; then
+    if [[ "$stage" == "R4" ]]; then
       echo ""
       echo "=== Reverse HELIX 完了 ==="
       echo ""
@@ -780,12 +975,17 @@ conn.close()
       echo "Gap Register を確認し、Forward フェーズに振り分けてください。"
       python3 "$YP" write "$PHASE_FILE" "reverse.status" "completed" 2>/dev/null || true
       python3 "$YP" write "$PHASE_FILE" "reverse.completed_at" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+      python3 "$YP" write "$PHASE_FILE" "reverse.last_type" "$TYPE" 2>/dev/null || true
+      python3 "$YP" write "$PHASE_FILE" "reverse.types.${TYPE}.status" "completed" 2>/dev/null || true
+      python3 "$YP" write "$PHASE_FILE" "reverse.types.${TYPE}.completed_at" "$(date '+%Y-%m-%d')" 2>/dev/null || true
+      python3 "$YP" write "$PHASE_FILE" "reverse.types.${TYPE}.routing_artifact" "${output_file#$PROJECT_ROOT/}" 2>/dev/null || true
     fi
   else
     set_rgate_status "$TYPE" "$rgate" "failed"
     echo ""
-    echo "[helix-reverse] WARN: 成果物が生成されませんでした — $rgate failed"
-    echo "[helix-reverse]   手動で $output_file を作成してください"
+    echo "[helix-reverse] WARN: 成果物が未生成または validation 不合格です — $rgate failed"
+    echo "[helix-reverse]   手動で有効な成果物を $output_file に作成してください"
+    exit "$EXIT_CHECK_FAILED"
   fi
 }
 
@@ -798,11 +998,15 @@ case "$SUBCOMMAND" in
     cmd_status
     ;;
   rgc)
-    if [[ "$TYPE" == "code" ]]; then
-      cmd_rgc_code
-    else
-      cmd_rgc_design
-    fi
+    case "$TYPE" in
+      code) cmd_rgc_code ;;
+      design) cmd_rgc_design ;;
+      normalization|fullback) cmd_rgc_generic "$TYPE" ;;
+      upgrade)
+        echo "Error: upgrade RGC is skipped by PLAN-008; use R4 routing instead" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
     ;;
   run|retry|R[0-4])
     run_stage "$(stage_for_command)"
