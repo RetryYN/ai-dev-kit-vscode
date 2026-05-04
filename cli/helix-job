@@ -10,10 +10,12 @@ usage() {
 
 サブコマンド:
   enqueue   ジョブを登録
-  worker    ジョブ worker を起動
+  worker    ジョブ worker を起動（既定で stale running を復旧）
   status    ジョブ状態を表示
   cancel    ジョブをキャンセル
   retry     失敗ジョブを再試行
+  requeue-stale  stale running ジョブを再投入
+  list      ジョブ一覧を表示
 USAGE
 }
 
@@ -21,7 +23,7 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 
 case "$CMD" in
-  enqueue|worker|status|cancel|retry)
+  enqueue|worker|status|cancel|retry|requeue-stale|list)
     exec python3 "$SCRIPT_DIR/lib/job_queue_helper.py" \
       --db-path "$DB_PATH" \
       "$CMD" "$@"

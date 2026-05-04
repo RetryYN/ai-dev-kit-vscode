@@ -328,12 +328,12 @@ cmd_doctor() {
 
   echo "[CLI Tools]"
   check_cmd "helix" "$SCRIPT_DIR/helix help"
-  check_cmd "helix-codex --help" "$SCRIPT_DIR/helix-codex --help"
-  check_cmd "helix-gate --help" "$SCRIPT_DIR/helix-gate --help"
-  check_cmd "helix-size --help" "$SCRIPT_DIR/helix-size --help"
-  check_cmd "helix-task help" "$SCRIPT_DIR/helix-task help"
-  check_cmd "helix-scrum help" "$SCRIPT_DIR/helix-scrum help"
-  check_cmd "helix-log help" "$SCRIPT_DIR/helix-log help"
+  check_cmd "helix codex --help" "$SCRIPT_DIR/helix codex --help"
+  check_cmd "helix gate --help" "$SCRIPT_DIR/helix gate --help"
+  check_cmd "helix size --help" "$SCRIPT_DIR/helix size --help"
+  check_cmd "helix task help" "$SCRIPT_DIR/helix task help"
+  check_cmd "helix scrum help" "$SCRIPT_DIR/helix scrum help"
+  check_cmd "helix log help" "$SCRIPT_DIR/helix log help"
   echo ""
 
   echo "[Libraries]"
@@ -342,7 +342,7 @@ cmd_doctor() {
   echo ""
 
   echo "[Templates]"
-  for t in task-catalog.yaml action-types.yaml CLAUDE.md.template phase.yaml doc-map.yaml gate-checks.yaml; do
+  for t in task-catalog.yaml action-types.yaml CLAUDE.md.template AGENTS.md.template phase.yaml doc-map.yaml gate-checks.yaml docs/L3-schedule-wbs.md docs/PLAN.md.template docs/project-status.md.template; do
     check_cmd "$t" "test -f $SCRIPT_DIR/templates/$t"
   done
   echo ""

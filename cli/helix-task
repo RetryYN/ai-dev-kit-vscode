@@ -200,13 +200,13 @@ lines = [
     f'tasks:',
 ]
 for t in plan_tasks:
-    lines.append(f'  {t[\"id\"]}:')
-    lines.append(f'    task: {t[\"task\"]}')
-    lines.append(f'    name: \"{t[\"name\"]}\"')
-    lines.append(f'    role: {t[\"role\"]}')
-    lines.append(f'    estimate: {t[\"estimate\"]}')
+    lines.append(f'  {t["id"]}:')
+    lines.append(f'    task: {t["task"]}')
+    lines.append(f'    name: "{t["name"]}"')
+    lines.append(f'    role: {t["role"]}')
+    lines.append(f'    estimate: {t["estimate"]}')
     lines.append(f'    status: pending')
-    lines.append(f'    skill: {t[\"skill\"]}')
+    lines.append(f'    skill: {t["skill"]}')
 
 with open(task_plan_path, 'w', encoding='utf-8') as f:
     f.write('\n'.join(lines) + '\n')
@@ -216,7 +216,7 @@ print()
 print(f'Total: {len(plan_tasks)} tasks, ~{total_estimate} min')
 print()
 for t in plan_tasks:
-    print(f'  {t[\"id\"]} [{t[\"role\"]:<12s}] ~{t[\"estimate\"]:>3d}min  {t[\"name\"]}')
+    print(f'  {t["id"]} [{t["role"]:<12s}] ~{t["estimate"]:>3d}min  {t["name"]}')
 print()
 print(f'Saved: {task_plan_path}')
 PY
@@ -485,7 +485,7 @@ PY
     echo "  @$role $name"
     echo "[agent-delegation] @$role $name" > "$LOG_FILE"
   else
-    echo "[helix-task] helix-codex --role $role に委譲"
+    echo "[helix-task] helix codex --role $role に委譲"
     set +e
     local old_pipefail
     if [[ -o pipefail ]]; then
@@ -661,7 +661,7 @@ for t in tasks:
     role = t.get('role', '?')
     name = t.get('name', t.get('task', '?'))
     est = t.get('estimate', '?')
-    print(f'  {icon} {t[\"id\"]} [{role:<12s}] ~{est:>3s}min  {name}')
+    print(f'  {icon} {t["id"]} [{role:<12s}] ~{est:>3s}min  {name}')
 PY
 }
 

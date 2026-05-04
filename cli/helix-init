@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --project-name  プロジェクト名（phase.yaml に設定）"
-      echo "  --force         既存ファイルを上書き（CLAUDE.md 以外）"
+      echo "  --force         既存ファイルを上書き（CLAUDE.md / AGENTS.md 以外）"
       echo "  --monorepo-package  モノレポ内で HELIX 管理対象にするパッケージ相対パス"
       echo "  --start-phase L1..L11  既存プロジェクトに途中から導入する際の開始フェーズ (デフォルト: L1)"
       exit 0
@@ -160,6 +160,21 @@ else
 fi
 echo ""
 
+# --- AGENTS.md ---
+echo "[AGENTS.md]"
+if [[ -f "$PROJECT_ROOT/AGENTS.md" ]]; then
+  echo "  skip: AGENTS.md (already exists)"
+else
+  if [[ -f "$TEMPLATES_DIR/AGENTS.md.template" ]]; then
+    cp "$TEMPLATES_DIR/AGENTS.md.template" "$PROJECT_ROOT/AGENTS.md"
+    sed -i "s/^# Codex CLI — プロジェクト名/# Codex CLI — $PROJECT_NAME/" "$PROJECT_ROOT/AGENTS.md"
+    echo "  created: AGENTS.md (from template)"
+  else
+    echo "  warn: template not found"
+  fi
+fi
+echo ""
+
 # --- .gitignore ---
 echo "[.gitignore]"
 GITIGNORE="$PROJECT_ROOT/.gitignore"
@@ -179,6 +194,7 @@ add_gitignore() {
 }
 
 add_gitignore "CLAUDE.local.md"
+add_gitignore "AGENTS.override.md"
 add_gitignore ".claude/settings.local.json"
 add_gitignore ".claude/scheduled_tasks.lock"
 add_gitignore ".env"
@@ -336,7 +352,8 @@ fi
 echo "=== Done ==="
 echo "Next steps:"
 echo "  1. CLAUDE.md を編集してプロジェクト情報を記入"
-echo "  2. helix matrix compile / helix matrix auto-detect で成果物対照表を有効化"
-echo "  3. helix status でプロジェクト状態を確認"
-echo "  4. helix-size でタスクサイジング"
-echo "  5. helix-gate --dry-run G2 でゲートチェック確認"
+echo "  2. AGENTS.md を編集して Codex 向け差分を記入"
+echo "  3. helix matrix compile / helix matrix auto-detect で成果物対照表を有効化"
+echo "  4. helix status でプロジェクト状態を確認"
+echo "  5. helix size でタスクサイジング"
+echo "  6. helix gate --dry-run G2 でゲートチェック確認"

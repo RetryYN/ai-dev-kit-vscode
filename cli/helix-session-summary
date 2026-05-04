@@ -29,15 +29,30 @@ NOW=$(date '+%Y-%m-%d %H:%M')
 NOW_TIME="${HELIX_TEST_TIME:-${NOW#"$TODAY "}}"
 SUMMARY_FILE="$SUMMARY_DIR/${TODAY}-session.md"
 LOCK_FILE="$LOCK_DIR/${TODAY}-session.lock"
+SESSION_ROLE="${HELIX_SESSION_ROLE:-claude-code}"
+SESSION_MODEL="${HELIX_SESSION_MODEL:-${CLAUDE_MODEL:-claude-code}}"
+SESSION_THINKING="${HELIX_SESSION_THINKING:-unknown}"
 
-HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\",\"created_at\":\"${TODAY}T${NOW_TIME}:00\"}" 2>/dev/null || true
+cost_payload="$(python3 - "$SESSION_ROLE" "$SESSION_MODEL" "$SESSION_THINKING" "$TODAY" "$NOW_TIME" <<'PY'
+import json
+import sys
 
-python3 - "$DB_PATH" "$SUMMARY_FILE" "$LOCK_FILE" "$TODAY" "$NOW_TIME" "$SCRIPT_DIR/lib" <<'PY'
+role, model, thinking, today, now_time = sys.argv[1:]
+print(json.dumps({
+    "role": role,
+    "model": model,
+    "thinking": thinking,
+    "created_at": f"{today}T{now_time}:00",
+}, ensure_ascii=False))
+PY
+)"
+HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log "$cost_payload" 2>/dev/null || true
+
+python3 - "$DB_PATH" "$SUMMARY_FILE" "$LOCK_FILE" "$TODAY" "$NOW_TIME" "$SCRIPT_DIR/lib" "$SESSION_ROLE" <<'PY'
 import fcntl, os, sys
 from pathlib import Path
 
-db_path, summary_file, lock_file, today, now_time, lib_dir = sys.argv[1:]
+db_path, summary_file, lock_file, today, now_time, lib_dir, session_role = sys.argv[1:]
 sys.path.insert(0, lib_dir)
 import helix_db
 
@@ -73,7 +88,7 @@ def render_summary(conn):
         (today,),
     ).fetchall()
     finished_count = conn.execute(
-        "SELECT COUNT(*) FROM cost_log WHERE role = 'opus-pm' AND date(created_at) = ?", (today,)
+        "SELECT COUNT(*) FROM cost_log WHERE role = ? AND date(created_at) = ?", (session_role, today)
     ).fetchone()[0]
 
     return "\n".join([

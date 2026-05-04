@@ -12,16 +12,21 @@ shift 2>/dev/null || true
 case "$CMD" in
   init)     exec "$SCRIPT_DIR/helix-init" "$@" ;;
   codex)    exec "$SCRIPT_DIR/helix-codex" "$@" ;;
+  claude)   exec "$SCRIPT_DIR/helix-claude" "$@" ;;
   team)     exec "$SCRIPT_DIR/helix-team" "$@" ;;
   gate)     exec "$SCRIPT_DIR/helix-gate" "$@" ;;
+  gate-api-check) exec "$SCRIPT_DIR/helix-gate-api-check" "$@" ;;
   size)     exec "$SCRIPT_DIR/helix-size" "$@" ;;
   sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
   pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
   mode)     exec "$SCRIPT_DIR/helix-mode" "$@" ;;
+  dashboard) exec "$SCRIPT_DIR/helix-dashboard" "$@" ;;
   builder)  exec "$SCRIPT_DIR/helix-builder" "$@" ;;
   task)     exec "$SCRIPT_DIR/helix-task" "$@" ;;
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
+  hook)     exec "$SCRIPT_DIR/helix-hook" "$@" ;;
+  check-claudemd) exec "$SCRIPT_DIR/helix-check-claudemd" "$@" ;;
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
   verify-all) exec "$SCRIPT_DIR/helix-verify-all" "$@" ;;
   verify-agent) exec "$SCRIPT_DIR/helix-verify-agent" "$@" ;;
@@ -59,72 +64,87 @@ case "$CMD" in
     ;;
   skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
   code)     exec "$SCRIPT_DIR/helix-code" "$@" ;;
+  bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
+  test-debug) exec "$SCRIPT_DIR/helix-test-debug" "$@" ;;
   retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
   debt)     exec "$SCRIPT_DIR/helix-debt" "$@" ;;
   review)   exec "$SCRIPT_DIR/helix-review" "$@" ;;
   drift-check) exec "$SCRIPT_DIR/helix-drift-check" "$@" ;;
+  session-start) exec "$SCRIPT_DIR/helix-session-start" "$@" ;;
   session-summary) exec "$SCRIPT_DIR/helix-session-summary" "$@" ;;
   doctor)   exec "$SCRIPT_DIR/helix-doctor" "$@" ;;
   migrate)  exec "$SCRIPT_DIR/helix-migrate" "$@" ;;
+  commands) exec "$SCRIPT_DIR/helix-commands" "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
 使い方: helix <コマンド>
 
 Commands:
-プロジェクト管理:
+HELIX 全体管理:
   init        プロジェクト初期化
   status      プロジェクト状態表示
-  mode        開発モード切替
-  matrix      成果物マトリクス管理
+  dashboard   主要状態の静的 snapshot 表示
+  mode        forward / reverse / scrum 切替
   doctor      環境診断・修復
   migrate     .helix/ テンプレ追従 (--dry-run/--yes/--rollback)
+  commands    コマンド route/help/docs と主要 workflow 連携契約の同期検証
+  setup       初期化検証・修復
+  test        セルフテスト
+  test-debug  デバッグ有効セルフテスト
   debug       デバッグツール
+  bench       プロジェクトメトリクス表示
 
-ワークフロー:
-  gate        ゲート自動検証
+HELIX プロジェクト管理:
   size        タスクサイジング
-  sprint      L4 マイクロスプリント
   plan        設計計画
+  matrix      成果物マトリクス管理
+  gate        ゲート自動検証
+  gate-api-check API エンドポイント整合チェック
   readiness   readiness exit 判定 / deferred-finding 操作
+  sprint      L4 マイクロスプリント
+  task        タスクオペレーティングシステム
+  interrupt   IIP/CC 中断・復帰管理
+  handover    Opus/Codex handover 管理
+  pr          PR 自動生成
+  retro       レトロスペクティブ
+  debt        技術負債管理
+  drift-check 契約ドリフト検知
+
+Codex / Claude Code 管理 harness:
+  codex       Codex への role/task 委譲
+  claude      Claude Code 用 plan/task prompt 生成
+  team        エージェントチーム実行
+  review      Codex 自動レビュー
+  skill       スキル検索・参照
+  budget      Claude/Codex 予算管理・モデル推奨
+  hook        PostToolUse hook
+  check-claudemd PreToolUse hook
+  session-start SessionStart hook
+  session-summary Stop hook
+
+Reverse / Scrum / 検証:
   reverse     リバース HELIX
   scrum       検証駆動開発
-  interrupt   中断・復帰管理
-  handover    Opus/Codex handover 管理
-  budget      Claude/Codex 予算管理・モデル推奨
-  scheduler   定期実行スケジュール管理 (PLAN-005)
-  job         非同期ジョブキュー管理 (PLAN-005)
-  lock        DB lock 管理 (PLAN-005)
-  setup       初期化検証・修復 (PLAN-005)
-  observe     イベント・メトリクス観測 (PLAN-005)
-  audit       A1 audit decisions 同期・検証
-  recipe      成功パターン学習 (learn/promote/discover/list)
-
-実行・委譲:
-  codex       Codex へのタスク委譲
-  task        タスクオペレーティングシステム
-  team        エージェントチーム実行
-  builder     成果物ビルダー
-  pr          PR 自動生成
-  review      Codex 自動レビュー
-
-データ・学習:
-  log         ログ・評価システム
-  code        コードインデックス検索/重複検出/統計
-  debt        技術負債管理
-  retro       レトロスペクティブ
-  learn       成功パターン学習 (deprecated: helix recipe learn)
-  promote     レシピ昇格 (deprecated: helix recipe promote)
-  discover    パターン検索 (deprecated: helix recipe discover)
-
-検証:
-  test        セルフテスト
   verify-all  全レイヤー検証
   verify-agent 検証ツール harvest / design / PLAN drift cross-check
 
-スキル管理:
-  skill list/show/catalog/search     スキル自動推挙コマンド
+学習・再利用:
+  log         ログ・評価システム
+  recipe      成功パターン学習 (learn/promote/discover/list)
+  learn       成功パターン学習 (deprecated: helix recipe learn)
+  promote     レシピ昇格 (deprecated: helix recipe promote)
+  discover    パターン検索 (deprecated: helix recipe discover)
+  builder     成果物ビルダー
+  code        コードインデックス検索/重複検出/統計
+  audit       A1 audit decisions 同期・検証
+
+補助・運用:
+  scheduler   定期実行スケジュール管理
+  job         非同期ジョブキュー管理
+  lock        DB lock 管理
+  observe     イベント・メトリクス観測
 
 Environment:
   HELIX_HOME    HELIX インストールディレクトリ (default: ~/ai-dev-kit-vscode)

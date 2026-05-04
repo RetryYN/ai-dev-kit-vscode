@@ -9,11 +9,13 @@ usage() {
 使い方: helix scheduler <subcommand> [args...]
 
 サブコマンド:
-  add --schedule "<cron|+5m>" --task-type <type> --task-payload <payload> [--id <id>]
+  add --schedule "<cron|+5m>" --task "<type>:<payload>" [--id <id>]
+  add-at --at "<iso|+5m>" --task "<type>:<payload>" [--id <id>]
   list [--status <s>]
   cancel --id <id>
   status --id <id>
-  run-due [--dry-run]
+  run-due [--max <n>] [--dry-run] [--no-requeue-stale]
+  requeue-stale [--older-than <seconds>]
 USAGE
 }
 
@@ -21,7 +23,7 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 
 case "$CMD" in
-  add|list|cancel|status|run-due)
+  add|add-at|list|cancel|status|run-due|requeue-stale)
     exec python3 "$SCRIPT_DIR/lib/scheduler_helper.py" \
       --db-path "$DB_PATH" \
       "$CMD" "$@"

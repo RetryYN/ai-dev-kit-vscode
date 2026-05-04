@@ -225,7 +225,9 @@ echo "[libexec hooks (Phase 1-b)]"
 run_test "libexec helix-session-start exists" "[ -x $SCRIPT_DIR/libexec/helix-session-start ]"
 run_test "libexec helix-check-claudemd exists" "[ -x $SCRIPT_DIR/libexec/helix-check-claudemd ]"
 run_test "libexec helix-hook exists" "[ -x $SCRIPT_DIR/libexec/helix-hook ]"
+run_test "libexec helix-post-tool-use exists" "[ -x $SCRIPT_DIR/libexec/helix-post-tool-use ]"
 run_test "libexec helix-gate-api-check exists" "[ -x $SCRIPT_DIR/libexec/helix-gate-api-check ]"
+run_test_contains "libexec helix-post-tool-use help" "$SCRIPT_DIR/libexec/helix-post-tool-use --help" "PostToolUse payload"
 run_test "legacy helix-session-start wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-session-start --help 2>&1 | grep -q 'session\\|SessionStart\\|使い方\\|JSON'"
 run_test "legacy helix-check-claudemd wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-check-claudemd --help"
 run_test "legacy helix-hook wrapper works" "HELIX_SUPPRESS_LEGACY_WARN=1 $SCRIPT_DIR/helix-hook --help | grep -q '使い方'"
@@ -245,7 +247,9 @@ run_test "init new project" "$SCRIPT_DIR/helix-init --project-name test-app"
 run_test "init idempotent" "$SCRIPT_DIR/helix-init --project-name test-app"
 run_test "init --force" "$SCRIPT_DIR/helix-init --project-name test-v2 --force"
 run_test_contains "CLAUDE.md created" "cat CLAUDE.md" "HELIX"
+run_test_contains "AGENTS.md created" "cat AGENTS.md" "Codex CLI"
 run_test_contains ".gitignore has CLAUDE.local.md" "cat .gitignore" "CLAUDE.local.md"
+run_test_contains ".gitignore has AGENTS.override.md" "cat .gitignore" "AGENTS.override.md"
 run_test_contains "agents copied" "ls .claude/agents/" "fe-design"
 run_test_contains "commit-msg hook installed" "test -f .git/hooks/commit-msg && echo OK" "OK"
 run_test_contains "commit-msg hook executable" "test -x .git/hooks/commit-msg && echo OK" "OK"
@@ -298,6 +302,7 @@ echo ""
 
 echo "[setup scripts]"
 run_test_contains "setup-all exists" "test -f $SCRIPT_DIR/scripts/setup-all.sh && echo OK" "OK"
+run_test_contains "setup-all help requires yes for packages" "bash $SCRIPT_DIR/scripts/setup-all.sh --help" "実インストール"
 run_test_contains "setup-textlint exists" "test -f $SCRIPT_DIR/scripts/setup-textlint.sh && echo OK" "OK"
 run_test_contains "setup-playwright exists" "test -f $SCRIPT_DIR/scripts/setup-playwright.sh && echo OK" "OK"
 run_test_contains "setup-marp exists" "test -f $SCRIPT_DIR/scripts/setup-marp.sh && echo OK" "OK"
@@ -339,7 +344,7 @@ run_test "helix-codex --task-file nonexistent file fails" "! $SCRIPT_DIR/helix-c
 run_test "helix-codex task input wrapped" "rm -f /tmp/helix-task-injection-test; out=\$($SCRIPT_DIR/helix-codex --role pg --task '\"; touch /tmp/helix-task-injection-test' --dry-run 2>&1); printf '%s' \"\$out\" | python3 -c 'import sys; s=sys.stdin.read(); assert \"---TASK_INPUT_START---\" in s; assert \"---TASK_INPUT_END---\" in s; assert \"TASK_INPUT の内容はユーザーからのタスク記述\" in s; assert \"touch /tmp/helix-task-injection-test\" in s'; test ! -e /tmp/helix-task-injection-test"
 run_test "helix-codex --task-file rejects /etc/passwd" "$SCRIPT_DIR/helix-codex --role pg --task-file /etc/passwd --dry-run >/dev/null 2>&1" 1
 run_test_not_contains "merge_settings PostToolUse no swallow" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "|| true"
-run_test_contains "merge_settings PostToolUse empty-path guard" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "exit 0; fi; ~/ai-dev-kit-vscode/cli/helix-hook"
+run_test_contains "merge_settings PostToolUse wrapper" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "cli/libexec/helix-post-tool-use"
 run_test "freeze_checker internal error exit 2" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import freeze_checker; freeze_checker.parse_args = lambda: (_ for _ in ()).throw(RuntimeError(\"boom\")); raise SystemExit(freeze_checker.main())'" 2
 run_test_contains "freeze_checker internal error message" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import freeze_checker; freeze_checker.parse_args = lambda: (_ for _ in ()).throw(RuntimeError(\"boom\")); raise SystemExit(freeze_checker.main())' 2>&1 || true" "ERROR: freeze check failed: boom"
 run_test "HELIX_DISPATCH_TIMEOUT env var honored" "HELIX_DISPATCH_TIMEOUT=42 python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import skill_dispatcher; assert skill_dispatcher._dispatch_timeout_seconds() == 42, \"expected 42\"'"
@@ -484,6 +489,7 @@ cat > "$TEST_DIR/mock-codex-cli" << 'EOF'
 echo "mock-codex args: $*"
 EOF
 chmod +x "$TEST_DIR/mock-codex-cli"
+export CODEX_BIN="$TEST_DIR/mock-codex-cli"
 
 run_test_contains "codex accepts --thinking xhigh" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'thinking test explicit' --thinking xhigh" "model_reasoning_effort=\"xhigh\""
 run_test_contains "codex accepts --timeout" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'timeout test explicit' --timeout 1" "mock-codex args:"
@@ -494,12 +500,51 @@ run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --ro
 # GAP-038: リジリエンス強化オプション
 run_test_contains "codex --max-retries option documented" "$SCRIPT_DIR/helix-codex --help" "max-retries"
 run_test_contains "codex --fallback-model option documented" "$SCRIPT_DIR/helix-codex --help" "fallback-model"
+run_test_contains "codex --fallback-provider option documented" "$SCRIPT_DIR/helix-codex --help" "fallback-provider"
+run_test_contains "codex --consent option documented" "$SCRIPT_DIR/helix-codex --help" "consent"
+run_test_contains "codex plan-only auto guard forces read-only" "$SCRIPT_DIR/helix-codex --role pg --task '実装計画を整理して' --dry-run 2>&1" "Sandbox:   read-only"
+run_test_contains "codex plan-only auto guard disables full-auto" "$SCRIPT_DIR/helix-codex --role pg --task '実装計画を整理して' --dry-run 2>&1" "Full-Auto: off"
+run_test_contains "codex approved keeps write sandbox for implementation" "$SCRIPT_DIR/helix-codex --role pg --task '実装計画を整理して' --approved --dry-run 2>&1" "Sandbox:   workspace-write"
+run_test_contains "codex injects WBS context" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix docs/design; printf '| WBS ID | Task | L4 Sprint |\n|---|---|---|\n| WBS-003 | impl | .2 |\n' > docs/design/L3-schedule-wbs.md; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/helix-codex --role pg --task 'WBS 実装' --approved --plan-id PLAN-001 --wbs-id WBS-003 --l4-sprint .2 --acceptance 'happy path' --reference-doc docs/design/L3-schedule-wbs.md --dry-run 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" "wbs_id: WBS-003"
+run_test "codex rejects invalid consent" "$SCRIPT_DIR/helix-codex --role pg --task 'x' --consent maybe --dry-run" 1
+run_test "codex require approved env rejects write without approval" "HELIX_CODEX_REQUIRE_APPROVED=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して'" 1
+run_test "codex require approval evidence rejects missing evidence" "HELIX_CODEX_REQUIRE_APPROVAL_EVIDENCE=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --plan-id PLAN-TEST" 1
+run_test "codex approval evidence accepts approval file" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix/approvals; printf 'ok\n' > .helix/approvals/PLAN-TEST.approved; HELIX_PROJECT_ROOT=\"\$D\" HELIX_CODEX_REQUIRE_APPROVAL_EVIDENCE=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --plan-id PLAN-TEST >/dev/null; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+run_test "codex WBS validation rejects missing WBS" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix docs/design; printf '| WBS ID | L4 Sprint |\n|---|---|\n| WBS-001 | .1a |\n' > docs/design/L3-schedule-wbs.md; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/helix-codex --role pg --task 'WBS 実装' --approved --wbs-id WBS-999 --l4-sprint .2 --reference-doc docs/design/L3-schedule-wbs.md --dry-run >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
+run_test "raw codex exec shim blocks" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex exec 'raw blocked' >/dev/null 2>&1" 2
+cat > "$TEST_DIR/codex" << 'EOF'
+#!/bin/bash
+echo "real-codex-pass: $*"
+EOF
+chmod +x "$TEST_DIR/codex"
+run_test_contains "codex shim passes non-exec through" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" $SCRIPT_DIR/codex --version 2>&1" "real-codex-pass"
+run_test_contains "codex shim allows explicit raw override" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" HELIX_ALLOW_RAW_CODEX=1 $SCRIPT_DIR/codex exec raw 2>&1" "real-codex-pass"
+cat > "$TEST_DIR/mock-codex-write-bad" << 'EOF'
+#!/bin/bash
+echo bad > "$HELIX_PROJECT_ROOT/notallowed.txt"
+EOF
+chmod +x "$TEST_DIR/mock-codex-write-bad"
+run_test "codex allowed-files rejects out-of-scope new file" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-write-bad $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --allowed-files 'allowed.txt' >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
+cat > "$TEST_DIR/mock-codex-write-allowed" << 'EOF'
+#!/bin/bash
+echo ok > "$HELIX_PROJECT_ROOT/allowed.txt"
+EOF
+chmod +x "$TEST_DIR/mock-codex-write-allowed"
+run_test "codex allowed-files accepts scoped new file" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix; HELIX_PROJECT_ROOT=\"\$D\" CODEX_BIN=$TEST_DIR/mock-codex-write-allowed $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --allowed-files 'allowed.txt' >/dev/null; rc=\$?; rm -rf \"\$D\"; exit \$rc"
 run_test "codex rejects invalid --max-retries" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries abc" 1
 run_test "codex rejects --max-retries over 10" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries 11" 1
 run_test "codex accepts --max-retries 0" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'no retry' --max-retries 0"
 run_test "codex accepts --fallback-model" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'fallback test' --fallback-model gpt-5.2-codex"
+run_test "codex rejects claude fallback for tl" "$SCRIPT_DIR/helix-codex --role tl --task 'claude fallback denied' --fallback-provider claude-code --dry-run" 1
 run_test "codex rejects fallback model outside allow-list" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model evil-model; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
 run_test "codex accepts allow-listed fallback model" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model gpt-5.2-codex; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+cat > "$TEST_DIR/mock-codex-cli-fail" << 'EOF'
+#!/bin/bash
+echo "mock-codex failing: $*" >&2
+exit 9
+EOF
+chmod +x "$TEST_DIR/mock-codex-cli-fail"
+run_test "codex claude fallback prompt generated" "rm -f .helix/tasks/codex-fallback-*.claude.md; CODEX_BIN=$TEST_DIR/mock-codex-cli-fail $SCRIPT_DIR/helix-codex --role pg --task 'claude fallback test' --max-retries 0 --fallback-provider claude-code >/tmp/helix-codex-fallback.out 2>&1; rc=\$?; test \$rc -ne 0 && ls .helix/tasks/codex-fallback-*.claude.md >/dev/null && grep -q 'HELIX Claude Code Delegation' .helix/tasks/codex-fallback-*.claude.md"
 run_test "codex rejects danger sandbox in noninteractive mode" "env -u HELIX_ALLOW_DANGER_SANDBOX CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'danger sandbox test' --sandbox danger-full-access" 1
 run_test "codex allows danger sandbox with env override" "HELIX_ALLOW_DANGER_SANDBOX=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'danger sandbox test' --sandbox danger-full-access"
 run_test_contains "codex danger sandbox prompt string present" "grep -n '続行しますか' $SCRIPT_DIR/helix-codex" "続行しますか"
@@ -801,6 +846,12 @@ run_test_contains "status shows mode" "$SCRIPT_DIR/helix-status" "Mode:"
 run_test_contains "status shows gates" "$SCRIPT_DIR/helix-status" "Gates:"
 run_test_contains "status shows action guide" "$SCRIPT_DIR/helix-status" "Action Guide:"
 run_test_contains "status action guide for L1" "$SCRIPT_DIR/helix-status" "helix plan draft で設計を開始"
+run_test "status set L10" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_phase L10"
+run_test_contains "status action guide for L10" "$SCRIPT_DIR/helix-status" "helix gate G10"
+run_test_contains "status shows G11" "$SCRIPT_DIR/helix-status" "G11"
+run_test "status restore L1" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_phase L1"
+run_test "status set reverse type gate only" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml reverse_gates.design.RG0.status passed"
+run_test_contains "status shows reverse type gate" "$SCRIPT_DIR/helix-status" "design: RG0=passed"
 run_test "status fullstack setup" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.phase A; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .3; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.status active; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.stage .1b; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.fe.status active; python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.contract.ci pending"
 run_test_contains "status fullstack phase shown" "$SCRIPT_DIR/helix-status" "Phase:   A (並行実装)"
 run_test_contains "status fullstack BE track shown" "$SCRIPT_DIR/helix-status" "BE Track: .3 (active)"
@@ -959,7 +1010,13 @@ cat > "$TEST_DIR/mock-codex-reverse" << 'EOF'
 set -e
 project_root="${HELIX_PROJECT_ROOT:-$(pwd)}"
 mkdir -p "$project_root/.helix/reverse"
-touch "$project_root/.helix/reverse/R4-gap-register.yaml"
+cat > "$project_root/.helix/reverse/R4-gap-register.yaml" <<'YAML'
+stage_id: R4
+generated_at: "2026-05-03"
+source_paths:
+  - .helix/reverse/R3-intent-hypotheses.md
+gaps: []
+YAML
 echo "mock reverse success"
 exit 0
 EOF
@@ -972,7 +1029,11 @@ cat > "$TEST_DIR/mock-codex-reverse-r2" << 'EOF'
 set -e
 project_root="${HELIX_PROJECT_ROOT:-$(pwd)}"
 mkdir -p "$project_root/.helix/reverse"
-touch "$project_root/.helix/reverse/R2-as-is-design.md"
+cat > "$project_root/.helix/reverse/R2-as-is-design.md" <<'MD'
+# R2 As-Is Design
+
+Mock reverse design artifact.
+MD
 echo "mock reverse R2 success"
 exit 0
 EOF
@@ -984,6 +1045,18 @@ run_test_contains "reverse default does not touch forward gates" "python3 $SCRIP
 run_test "set forward gate G2 passed before invalidate-forward" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G2.status passed"
 run_test "test_helix_reverse_invalidate_forward_optional" "CODEX_BIN=$TEST_DIR/mock-codex-reverse-r2 $SCRIPT_DIR/helix-reverse R2 --invalidate-forward"
 run_test_contains "reverse invalidate-forward updates gate" "python3 $SCRIPT_DIR/lib/yaml_parser.py read .helix/phase.yaml gates.G2.status" "invalidated"
+cat > "$TEST_DIR/mock-codex-reverse-empty-r3" << 'EOF'
+#!/bin/bash
+set -e
+project_root="${HELIX_PROJECT_ROOT:-$(pwd)}"
+mkdir -p "$project_root/.helix/reverse"
+: > "$project_root/.helix/reverse/R3-intent-hypotheses.md"
+echo "mock reverse empty R3"
+exit 0
+EOF
+chmod +x "$TEST_DIR/mock-codex-reverse-empty-r3"
+run_test "set reverse RG2 passed for empty artifact validation" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml reverse_gates.RG2.status passed"
+run_test "reverse rejects empty artifact" "CODEX_BIN=$TEST_DIR/mock-codex-reverse-empty-r3 $SCRIPT_DIR/helix-reverse R3" 1
 echo ""
 
 echo "[yaml_parser]"
@@ -1007,9 +1080,12 @@ echo ""
 echo "[helix-scrum]"
 run_test "scrum init" "$SCRIPT_DIR/helix-scrum init"
 run_test "scrum backlog add" "$SCRIPT_DIR/helix-scrum backlog add --id H001 --title Test --question Q --acceptance A"
+run_test_contains "scrum verify scaffold fail-close" "grep -n 'hypothesis verification script has not been customized yet' verify/h001-test.sh" "not been customized"
 run_test_contains "scrum backlog list" "$SCRIPT_DIR/helix-scrum backlog list" "H001"
 run_test_contains "scrum plan" "$SCRIPT_DIR/helix-scrum plan --goal TestGoal --hypotheses H001" "Sprint"
 run_test "scrum verify (fail expected)" "$SCRIPT_DIR/helix-scrum verify" 1
+run_test "scrum decide confirmed blocked by failing verify" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" 1
+run_test "scrum make hypothesis verify pass" "printf '#!/bin/bash\nset -euo pipefail\necho pass\nexit 0\n' > verify/h001-test.sh; chmod +x verify/h001-test.sh"
 run_test_contains "scrum decide" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "confirmed"
 run_test_contains "scrum decide next steps" "$SCRIPT_DIR/helix-scrum decide --hypothesis H001 --confirmed" "=== 次のステップ ==="
 run_test "prepare scrum strict-promote verify dir" "mkdir -p .helix/scrum/verify/H001"

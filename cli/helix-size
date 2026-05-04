@@ -178,7 +178,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --json) JSON_OUTPUT=true; shift ;;
     --help|-h)
-      echo "Usage: helix-size [options]"
+      echo "Usage: helix size [options]"
       echo ""
       echo "Options:"
       echo "  --files N     変更ファイル数"
@@ -200,11 +200,11 @@ while [[ $# -gt 0 ]]; do
       echo "  --json        JSON形式で出力"
       echo ""
       echo "Example:"
-      echo "  helix-size --files 5 --lines 200 --api --ui --type new-feature --drive be"
-      echo "  helix-size --files 8 --lines 300 --ui --type new-feature --drive fe"
-      echo "  helix-size --files 5 --lines 200 --db --type new-module --drive db"
-      echo "  helix-size --files 6 --lines 220 --api --ui --type new-feature --drive fullstack"
-      echo "  helix-size --files 3 --lines 150 --api --type new-feature --drive agent"
+      echo "  helix size --files 5 --lines 200 --api --ui --type new-feature --drive be"
+      echo "  helix size --files 8 --lines 300 --ui --type new-feature --drive fe"
+      echo "  helix size --files 5 --lines 200 --db --type new-module --drive db"
+      echo "  helix size --files 6 --lines 220 --api --ui --type new-feature --drive fullstack"
+      echo "  helix size --files 3 --lines 150 --api --type new-feature --drive agent"
       exit "$EXIT_SUCCESS"
       ;;
     *) echo "エラー: 不明なオプションです: $1" >&2; exit "$EXIT_INPUT_ERROR" ;;
@@ -597,8 +597,10 @@ if [[ -d "$DOC_TEMPLATES" ]]; then
         mkdir -p "$PROJECT_ROOT/docs/design"
         if [[ "$JSON_OUTPUT" != true ]]; then
           cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L3 詳細設計テンプレート: docs/design/L3-detailed-design.md" || true
+          cp -n "$DOC_TEMPLATES/L3-schedule-wbs.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L3 工程表テンプレート: docs/design/L3-schedule-wbs.md" || true
         else
           cp -n "$DOC_TEMPLATES/L3-detailed-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
+          cp -n "$DOC_TEMPLATES/L3-schedule-wbs.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
         fi
         ;;
       L4)

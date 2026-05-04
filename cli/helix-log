@@ -49,11 +49,29 @@ case "$CMD" in
 
   report)
     local_report_type="${1:-summary}"
+    [[ $# -gt 0 ]] && shift || true
+    local_report_date=""
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        --date)
+          local_report_date="${2:-}"
+          shift 2
+          ;;
+        *)
+          echo "Error: unknown report option: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
     if [[ ! -f "$DB_PATH" ]]; then
       echo "DB なし。'helix log init' で初期化してください。" >&2
       exit 1
     fi
-    python3 "$DB_PY" report "$DB_PATH" "$local_report_type"
+    if [[ -n "$local_report_date" ]]; then
+      python3 "$DB_PY" report "$DB_PATH" "$local_report_type" "$local_report_date"
+    else
+      python3 "$DB_PY" report "$DB_PATH" "$local_report_type"
+    fi
     ;;
 
   export)
@@ -103,6 +121,8 @@ Commands:
     actions               アクション型別パフォーマンス
     feedback              フィードバック分析
     quality               タスク選択品質（observation pass率 + 修正頻度）
+    session --date YYYY-MM-DD
+                          hook/gate/cost_log の日次セッション集計
   export --format json --output <path>
                          DB 全テーブルを JSON にエクスポート
 

@@ -11,9 +11,9 @@ usage() {
 使い方: helix recipe <subcommand> [options]
 
 サブコマンド:
-  learn       成功タスクから recipe を生成 (helix-learn 相当)
-  promote     recipe を共通スキル/スクリプトに昇格 (helix-promote 相当)
-  discover    local/global recipe から類似候補を検索 (helix-discover 相当)
+  learn       成功タスクから recipe を生成 (helix recipe learn)
+  promote     recipe を共通スキル/スクリプトに昇格 (helix recipe promote)
+  discover    local/global recipe から類似候補を検索 (helix recipe discover)
   list        全 recipe を一覧表示 (helix recipe discover --query "" --limit 50 のエイリアス)
 
 Examples:

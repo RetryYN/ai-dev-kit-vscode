@@ -282,7 +282,7 @@ def _recipe_to_builder_input(recipe: dict[str, Any], promote_type: str) -> dict[
 
 def _print_auto_candidates(candidates: list[dict[str, Any]], threshold: int):
     print("=== helix promote --auto ===")
-    print(f"しきい値: {threshold} 回")
+    print(f"しきい値: {threshold} 回（候補内順位は success/quality/verification の複合スコア）")
     if not candidates:
         print("昇格候補はありません。")
         return
@@ -290,11 +290,12 @@ def _print_auto_candidates(candidates: list[dict[str, Any]], threshold: int):
     print("昇格候補:")
     for item in candidates:
         print(
-            "  - {recipe_id} | pattern={pattern_key} | success_count={success_count} | quality={quality:.1f}".format(
+            "  - {recipe_id} | pattern={pattern_key} | success_count={success_count} | quality={quality:.1f} | score={score:.1f}".format(
                 recipe_id=item.get("recipe_id", ""),
                 pattern_key=item.get("pattern_key", ""),
                 success_count=int(item.get("success_count", 0) or 0),
                 quality=float(item.get("quality_score_mean", 0.0) or 0.0),
+                score=float(item.get("promotion_score", 0.0) or 0.0),
             )
         )
     print("明示実行する場合: helix promote <recipe-id> --type <skill|script|task|sub-agent>")

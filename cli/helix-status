@@ -122,13 +122,28 @@ def _print_reverse(data):
         isinstance(v, dict) and v.get("status", "pending") != "pending"
         for v in reverse_gates.values()
     )
-    if has_reverse:
+    type_gates = [
+        (type_name, gates)
+        for type_name, gates in reverse_gates.items()
+        if isinstance(gates, dict) and any(isinstance(v, dict) for v in gates.values())
+    ]
+    if has_reverse or type_gates:
         print("Reverse Gates:")
-        for rg in ["RG0", "RG1", "RG2", "RG3"]:
-            value = reverse_gates.get(rg, {})
-            status = value.get("status", "pending") if isinstance(value, dict) else "pending"
-            icon = {"passed": "✓", "failed": "✗"}.get(status, " ")
-            print(f"  {icon} {rg}  {status}")
+        if has_reverse:
+            for rg in ["RG0", "RG1", "RG2", "RG3"]:
+                value = reverse_gates.get(rg, {})
+                status = value.get("status", "pending") if isinstance(value, dict) else "pending"
+                icon = {"passed": "✓", "failed": "✗"}.get(status, " ")
+                print(f"  {icon} {rg}  {status}")
+        for type_name, gates in type_gates:
+            parts = []
+            for rg in ["RG0", "RG1", "RG2", "RG3", "RGC"]:
+                value = gates.get(rg, {})
+                status = value.get("status", "pending") if isinstance(value, dict) else "pending"
+                if status != "pending":
+                    parts.append(f"{rg}={status}")
+            if parts:
+                print(f"  {type_name}: " + " ".join(parts))
         print("")
 
     reverse = _safe_dict(data.get("reverse", {}))
@@ -172,7 +187,7 @@ def _print_action_guide(data):
     phase = str(data.get("current_phase", "") or "").strip()
     gates = _safe_dict(data.get("gates", {}))
     failed = []
-    for gate in ["G1", "G1.5", "G1R", "G2", "G3", "G4", "G5", "G6", "G7"]:
+    for gate in ["G1", "G1.5", "G1R", "G2", "G3", "G4", "G5", "G6", "G7", "G9", "G10", "G11"]:
         value = gates.get(gate, {})
         status = value.get("status", "pending") if isinstance(value, dict) else str(value)
         if status == "failed":
@@ -193,6 +208,9 @@ def _print_action_guide(data):
         "L6": "helix gate G6 で RC 判定を実施",
         "L7": "helix gate G7 の安定性確認後に helix pr を準備",
         "L8": "受入条件を確認し PO 承認へ進む",
+        "L9": "helix gate G9 でデプロイ安定性を確認",
+        "L10": "helix gate G10 で観測完了を確認",
+        "L11": "helix gate G11 で運用学習を完了",
     }
     action = actions.get(phase, "helix status で状態を継続確認し、未通過ゲートを解消")
     print(f"  {action}")
@@ -218,7 +236,7 @@ def main():
 
     print("Gates:")
     gates = _safe_dict(data.get("gates", {}))
-    for gate in ["G1", "G1.5", "G1R", "G2", "G3", "G4", "G5", "G6", "G7"]:
+    for gate in ["G1", "G1.5", "G1R", "G2", "G3", "G4", "G5", "G6", "G7", "G9", "G10", "G11"]:
         value = gates.get(gate, {})
         if isinstance(value, dict):
             status = value.get("status", "pending")

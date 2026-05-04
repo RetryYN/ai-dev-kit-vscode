@@ -223,7 +223,15 @@ fi
 # 遷移制約チェック
 if [[ "$current_mode" == "reverse" && "$NEW_MODE" == "forward" ]]; then
   rev_status=$(python3 "$YP" read "$PHASE_FILE" reverse.status 2>/dev/null || echo "")
-  if [[ "$rev_status" != "completed" ]]; then
+  completed_types=$(python3 "$YP" dump "$PHASE_FILE" 2>/dev/null | python3 -c "
+import json
+import sys
+
+data = json.load(sys.stdin)
+types = (data.get('reverse') or {}).get('types') or {}
+print(sum(1 for value in types.values() if isinstance(value, dict) and value.get('status') == 'completed'))
+" 2>/dev/null || echo "0")
+  if [[ "$rev_status" != "completed" && "${completed_types:-0}" == "0" ]]; then
     echo "エラー: Reverse が未完了です（status: $rev_status）。R4 まで完了してから Forward に切り替えてください。" >&2
     exit 3
   fi
@@ -236,9 +244,11 @@ if [[ "$current_mode" == "scrum" && "$NEW_MODE" == "forward" ]]; then
 import json
 import sys
 d = json.load(sys.stdin)
-items = d.get('hypotheses', [])
+items = d.get('hypotheses', {})
 if isinstance(items, list):
     c = sum(1 for h in items if isinstance(h, dict) and h.get('status') == 'confirmed')
+elif isinstance(items, dict):
+    c = sum(1 for h in items.values() if isinstance(h, dict) and h.get('status') == 'confirmed')
 else:
     c = 0
 print(c)

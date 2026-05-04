@@ -1,6 +1,6 @@
 #!/bin/bash
 if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
-  echo "エラー: helix-sprint は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
+  echo "エラー: helix sprint は bash 4 以上が必要です (現 ${BASH_VERSION:-unknown})" >&2
   echo "macOS の場合: brew install bash && シェルを /opt/homebrew/bin/bash に変更" >&2
   exit 1
 fi
@@ -27,7 +27,7 @@ declare -A STEP_NAMES=(
 )
 
 usage() {
-  echo "Usage: helix-sprint <status|next|complete|reset> [--track be|fe] [--json]"
+  echo "Usage: helix sprint <status|next|complete|reset> [--track be|fe] [--json]"
   echo ""
   echo "Commands:"
   echo "  status                現在のスプリント状態を表示"
@@ -38,12 +38,12 @@ usage() {
 
 # --- .helix/ チェック ---
 if [[ ! -d "$HELIX_DIR" ]]; then
-  echo "Error: .helix/ not found. Run 'helix-init' first." >&2
+  echo "Error: .helix/ not found. Run 'helix init' first." >&2
   exit "$EXIT_PREREQ_ERROR"
 fi
 
 if [[ ! -f "$PHASE_FILE" ]]; then
-  echo "Error: $PHASE_FILE not found. Run 'helix-init' first." >&2
+  echo "Error: $PHASE_FILE not found. Run 'helix init' first." >&2
   exit "$EXIT_PREREQ_ERROR"
 fi
 
@@ -313,7 +313,7 @@ run_fullstack_contract_check_before_phase_b() {
   # Phase B 昇格前の契約検証（TL判定: helix-gate 配下のチェックを必須化）
   if [[ "$be_stage" == ".5" && "$fe_stage" == ".5" && "$contract_ci" != "pass" ]]; then
     if [[ ! -x "$SCRIPT_DIR/helix-gate-api-check" ]]; then
-      echo "[helix-sprint] WARNING: helix-gate-api-check が見つからないため契約検証をスキップします"
+      echo "[helix-sprint] WARNING: helix gate-api-check が見つからないため契約検証をスキップします"
       return
     fi
 
@@ -373,7 +373,7 @@ print_standard_status() {
   done
   echo ""
   if [[ -z "$current" ]]; then
-    echo "Sprint 未開始。'helix-sprint next' で開始"
+    echo "Sprint 未開始。'helix sprint next' で開始"
   elif [[ "$current" == "completed" ]]; then
     echo "Sprint 完了"
   else
@@ -548,7 +548,7 @@ command_next() {
 
     if [[ "$sprint_phase" == "B" ]]; then
       if [[ -n "$track" ]]; then
-        echo "Error: fullstack Phase B では --track は指定できません。'helix-sprint next' を実行してください" >&2
+        echo "Error: fullstack Phase B では --track は指定できません。'helix sprint next' を実行してください" >&2
         exit 1
       fi
 
@@ -589,7 +589,7 @@ command_next() {
     case "$track" in
       be|fe) ;;
       "")
-        echo "Error: fullstack では 'helix-sprint next --track be|fe' が必要です" >&2
+        echo "Error: fullstack では 'helix sprint next --track be|fe' が必要です" >&2
         exit 1
         ;;
       *)
@@ -677,7 +677,7 @@ command_next() {
 
 command_complete() {
   if [[ "$(get_sprint_drive)" == "fullstack" ]]; then
-    echo "Error: fullstack では 'helix-sprint next --track be|fe' を使用してください" >&2
+    echo "Error: fullstack では 'helix sprint next --track be|fe' を使用してください" >&2
     exit 1
   fi
   if [[ $# -gt 0 ]]; then
@@ -698,7 +698,7 @@ command_complete() {
     set_sprint_step "completed"
     run_g4_static_check
   else
-    echo "[helix-sprint] 次のステップへ進むには 'helix-sprint next' を実行してください"
+    echo "[helix-sprint] 次のステップへ進むには 'helix sprint next' を実行してください"
   fi
   # 自動で次へは進まない（next で明示的に進む）
 }

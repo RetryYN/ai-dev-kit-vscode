@@ -406,7 +406,7 @@ fi
 
 if [[ "$UNDO" == true ]]; then
   if [[ ! -f "$PHASE_FILE" ]]; then
-    echo "エラー: $PHASE_FILE が見つかりません。'helix-init' を実行してください。" >&2
+    echo "エラー: $PHASE_FILE が見つかりません。'helix init' を実行してください。" >&2
     exit "$EXIT_PREREQ_ERROR"
   fi
   python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.${GATE}.status" "pending" 2>/dev/null || true
@@ -434,7 +434,7 @@ print(' '.join(inv))
 fi
 
 if [[ ! -f "$GATE_CHECKS" ]]; then
-  echo "エラー: $GATE_CHECKS が見つかりません。'helix-init' を実行してください。" >&2
+  echo "エラー: $GATE_CHECKS が見つかりません。'helix init' を実行してください。" >&2
   exit "$EXIT_PREREQ_ERROR"
 fi
 
@@ -758,22 +758,27 @@ missing = []
 warnings = []
 
 for section in required_sections:
-    pattern = rf"^## {section}\s*$"
+    pattern = rf"^##+\s+(?:\d+\.\s*)?{section}(?:\s|（|\(|$)"
     m = re.search(pattern, text, flags=re.MULTILINE)
     if not m:
         missing.append(f"section_missing:{section}")
         continue
     start = m.end()
-    next_m = re.search(r"^##\s+", text[start:], flags=re.MULTILINE)
+    next_m = re.search(r"^##+\s+", text[start:], flags=re.MULTILINE)
     end = start + next_m.start() if next_m else len(text)
     block = text[start:end]
-    bullets = re.findall(r"^- .+$", block, flags=re.MULTILINE)
-    if len(bullets) == 0:
+    bullets = re.findall(r"^-\s+\S.+$", block, flags=re.MULTILINE)
+    table_rows = [
+        line for line in re.findall(r"^\|.+\|$", block, flags=re.MULTILINE)
+        if not re.match(r"^\|\s*-+\s*(\|\s*-+\s*)+\|$", line)
+    ]
+    evidence_lines = bullets + table_rows
+    if len(evidence_lines) == 0:
         missing.append(f"bullet_missing:{section}")
 
-    if section == "Try" and bullets:
-        has_owner = any(re.search(r"@\w+", line) for line in bullets)
-        has_due = any(re.search(r"\b\d{4}-\d{2}-\d{2}\b", line) for line in bullets)
+    if section == "Try" and evidence_lines:
+        has_owner = any(re.search(r"@\w+", line) for line in evidence_lines)
+        has_due = any(re.search(r"\b\d{4}-\d{2}-\d{2}\b", line) for line in evidence_lines)
         if not has_owner or not has_due:
             warnings.append("Try section は @owner と YYYY-MM-DD の記載を推奨")
 
@@ -1313,11 +1318,11 @@ PY
 
       ai_count=$((ai_count + 1))
       if [[ "$DRY_RUN" == true ]]; then
-        echo "  [dry-run] helix-codex --role $role --task \"${task:0:60}...\""
+        echo "  [dry-run] helix codex --role $role --task \"${task:0:60}...\""
         return
       fi
 
-      echo "  実行中: helix-codex --role $role ..."
+      echo "  実行中: helix codex --role $role ..."
       local ai_output_file
       ai_output_file=$(mktemp "${TMPDIR:-/tmp}/helix-gate-ai-XXXXXX")
 

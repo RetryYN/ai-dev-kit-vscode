@@ -15,7 +15,7 @@ case "${1:-}" in
     echo ""
     echo "必須引数:"
     echo "  type             生成対象の builder 種別 (例: task, component, agent)"
-    echo "  action           アクション (例: create, list, show)"
+    echo "  action           アクション (例: schema, info, generate, validate, history)"
     echo ""
     echo "任意引数:"
     echo "  --input PATH     入力 payload ファイル"
