@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -152,3 +153,22 @@ def test_sample_redaction_denylist_install_creates_template(tmp_path: Path) -> N
     template = project / ".helix" / "audit" / "redaction-denylist.example.yaml"
     assert template.exists()
     assert "generic_api_key" in template.read_text(encoding="utf-8")
+
+    db_path = project / ".helix" / "helix.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        check = conn.execute(
+            "SELECT component, installed, last_install_at FROM setup_checks WHERE component = ?",
+            ("redaction-denylist",),
+        ).fetchone()
+        event = conn.execute(
+            "SELECT component, action, status FROM setup_events WHERE component = ? ORDER BY id DESC LIMIT 1",
+            ("redaction-denylist",),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert check["component"] == "redaction-denylist"
+    assert check["installed"] == 1
+    assert check["last_install_at"] is not None
+    assert dict(event) == {"component": "redaction-denylist", "action": "install", "status": "success"}

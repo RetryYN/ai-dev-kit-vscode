@@ -76,6 +76,35 @@ def test_dump_yaml_round_trips_block_list_of_mappings() -> None:
     assert parsed == original
 
 
+def test_parse_literal_block_scalar_in_mapping() -> None:
+    data = yaml_parser.parse_yaml("task: |\n  line one\n  line two\nnext: ok\n")
+
+    assert data["task"] == "line one\nline two"
+    assert data["next"] == "ok"
+
+
+def test_parse_quoted_key_with_special_chars() -> None:
+    data = yaml_parser.parse_yaml('type_casting:\n  "null/None/~/empty": null\n')
+
+    assert data["type_casting"]["null/None/~/empty"] is None
+
+
+def test_parse_literal_block_scalar_in_list_mapping() -> None:
+    data = yaml_parser.parse_yaml("ai:\n  - role: tl\n    task: |\n      check A\n      check B\n")
+
+    assert data["ai"][0]["role"] == "tl"
+    assert data["ai"][0]["task"] == "check A\ncheck B"
+
+
+def test_dump_yaml_round_trips_multiline_string() -> None:
+    original = {"ai": [{"role": "tl", "task": "check A\ncheck B"}]}
+
+    dumped = yaml_parser.dump_yaml(original)
+    parsed = yaml_parser.parse_yaml(dumped)
+
+    assert parsed == original
+
+
 def test_build_output_with_header_preserves_comment_block() -> None:
     text = "# header one\n# header two\na: 1\n"
 

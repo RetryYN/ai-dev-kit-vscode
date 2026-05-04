@@ -51,6 +51,60 @@ def test_scan_file_picks_python_def(tmp_path: Path) -> None:
     assert entries[0]["source_hash"]
 
 
+def test_scan_file_keeps_private_helper_out_of_seed_by_default(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=sample.private domain=cli/lib summary=private helper\n"
+        "def _private_helper():\n"
+        "    return 1\n",
+        encoding="utf-8",
+    )
+
+    entries = code_catalog.scan_file(source)
+
+    assert entries[0]["bucket"] == "private_helper"
+    assert entries[0]["metadata"] == {"seed_candidate": False, "seed_promotable": False}
+
+
+def test_scan_file_allows_explicit_private_seed_candidate(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=sample.private domain=cli/lib summary=private helper seed_candidate=true seed_promotable=true\n"
+        "def _private_helper():\n"
+        "    return 1\n",
+        encoding="utf-8",
+    )
+
+    entries = code_catalog.scan_file(source)
+
+    assert entries[0]["bucket"] == "private_helper"
+    assert entries[0]["metadata"] == {"seed_candidate": True, "seed_promotable": True}
+
+
+def test_scan_file_rejects_seed_promotable_for_public_symbol(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=sample.public domain=cli/lib summary=public helper seed_promotable=true\n"
+        "def public_helper():\n"
+        "    return 1\n",
+        encoding="utf-8",
+    )
+
+    entries = code_catalog.scan_file(source)
+
+    assert entries[0]["bucket"] == "coverage_eligible"
+    assert entries[0]["metadata"] == {"seed_candidate": True, "seed_promotable": False}
+
+
+def test_seed_metadata_keeps_excluded_paths_out_of_seed() -> None:
+    metadata = code_catalog.seed_metadata_from_fields(
+        "excluded",
+        {"seed_candidate": "true", "seed_promotable": "true"},
+    )
+
+    assert metadata == {"seed_candidate": False, "seed_promotable": False}
+
+
 def test_should_redact_detects_auth_token() -> None:
     should_skip, reason = code_catalog.should_redact("auth_token を含む要約")
 

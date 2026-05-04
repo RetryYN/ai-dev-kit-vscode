@@ -1725,6 +1725,28 @@ def list_recipes(project_root: str) -> list[dict[str, Any]]:
     return recipes
 
 
+def _recipe_lookup_paths(recipe_id: str, project_root: str) -> list[Path]:
+    file_name = recipe_id if recipe_id.endswith(".json") else f"{recipe_id}.json"
+    paths = [
+        Path(project_root) / ".helix" / "recipes" / file_name,
+        Path.home() / ".helix" / "recipes" / file_name,
+    ]
+
+    helix_home = os.environ.get("HELIX_HOME", "").strip()
+    if helix_home:
+        paths.append(Path(helix_home) / "recipes" / file_name)
+
+    unique_paths: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        resolved = path.expanduser()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique_paths.append(resolved)
+    return unique_paths
+
+
 def from_history(query: str, project_root: str, limit: int = 5) -> dict[str, Any]:
     """履歴 recipe から候補を検索し、失敗パターンは警告として返す。"""
     recipes = list_recipes(project_root)
@@ -1792,29 +1814,18 @@ def from_history(query: str, project_root: str, limit: int = 5) -> dict[str, Any
 
 
 def find_recipe(recipe_id: str, project_root: str) -> dict[str, Any] | None:
-    """Search order(project-local -> user-global) で recipe を解決する。"""
+    """Search order(project-local -> user-global -> shared install) で recipe を解決する。"""
     clean_id = str(recipe_id or "").strip()
     if not clean_id:
         return None
 
-    file_name = clean_id if clean_id.endswith(".json") else f"{clean_id}.json"
-
-    local_path = Path(project_root) / ".helix" / "recipes" / file_name
-    if local_path.exists():
+    for recipe_path in _recipe_lookup_paths(clean_id, project_root):
+        if not recipe_path.exists():
+            continue
         try:
-            payload = json.loads(local_path.read_text(encoding="utf-8"))
+            payload = json.loads(recipe_path.read_text(encoding="utf-8"))
             if isinstance(payload, dict):
-                payload["_path"] = str(local_path)
-                return payload
-        except json.JSONDecodeError:
-            return None
-
-    user_global = Path.home() / ".helix" / "recipes" / file_name
-    if user_global.exists():
-        try:
-            payload = json.loads(user_global.read_text(encoding="utf-8"))
-            if isinstance(payload, dict):
-                payload["_path"] = str(user_global)
+                payload["_path"] = str(recipe_path)
                 return payload
         except json.JSONDecodeError:
             return None

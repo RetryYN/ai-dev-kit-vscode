@@ -146,6 +146,24 @@ def get_job(db_path: str, job_id: str) -> dict | None:
         conn.close()
 
 
+def list_jobs(db_path: str, status_filter: str | None = None, limit: int | None = None) -> list[dict]:
+    params: list[object] = []
+    query = "SELECT * FROM jobs"
+    if status_filter and status_filter != "all":
+        query += " WHERE status = ?"
+        params.append(_validate_choice(status_filter, STATUS_VALUES, "status"))
+    query += " ORDER BY created_at DESC, id DESC"
+    if limit is not None:
+        limit = _validate_int_range(limit, "limit", 1, 1000)
+        query += " LIMIT ?"
+        params.append(limit)
+    conn = _conn(db_path)
+    try:
+        return [_row_to_dict(row) for row in conn.execute(query, params).fetchall()]
+    finally:
+        conn.close()
+
+
 def cancel_job(db_path: str, job_id: str) -> bool:
     now = int(time.time())
     conn = _conn(db_path)
@@ -169,6 +187,49 @@ def retry_job(db_path: str, job_id: str) -> bool:
             (job_id,),
         )
         return cur.rowcount == 1
+    finally:
+        conn.close()
+
+
+def requeue_stale_jobs(db_path: str, *, older_than: int = 3600, now: int | None = None) -> list[dict]:
+    older_than = _validate_int_range(older_than, "older_than", 1, 30 * 24 * 3600)
+    cutoff = int(now or time.time()) - older_than
+    conn = _conn(db_path)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        stale_rows = [
+            _row_to_dict(row)
+            for row in conn.execute(
+                "SELECT * FROM jobs WHERE status = 'running' AND started_at IS NOT NULL AND started_at <= ? "
+                "ORDER BY started_at ASC, id ASC",
+                (cutoff,),
+            ).fetchall()
+        ]
+        results: list[dict] = []
+        for row in stale_rows:
+            if should_retry(row):
+                conn.execute(
+                    "UPDATE jobs SET status = 'pending', retry_count = retry_count + 1, "
+                    "started_at = NULL, completed_at = NULL, last_error = ? WHERE id = ?",
+                    (f"stale running job requeued after {older_than}s", row["id"]),
+                )
+                action = "requeued"
+            else:
+                conn.execute(
+                    "UPDATE jobs SET status = 'failed', completed_at = ?, last_error = ? WHERE id = ?",
+                    (int(now or time.time()), f"stale running job exceeded retries after {older_than}s", row["id"]),
+                )
+                action = "failed"
+            updated = conn.execute("SELECT * FROM jobs WHERE id = ?", (row["id"],)).fetchone()
+            payload = _row_to_dict(updated)
+            payload["stale_action"] = action
+            results.append(payload)
+        conn.execute("COMMIT")
+        return results
+    except Exception:
+        with contextlib.suppress(sqlite3.Error):
+            conn.execute("ROLLBACK")
+        raise
     finally:
         conn.close()
 
@@ -203,6 +264,22 @@ def worker_loop(db_path: str, *, max_jobs: int | None = None, idle_sleep: float 
     return results
 
 
+def worker_loop_with_recovery(
+    db_path: str,
+    *,
+    max_jobs: int | None = None,
+    idle_sleep: float = 1.0,
+    requeue_stale_older_than: int | None = 3600,
+) -> dict[str, list[dict]]:
+    stale = []
+    if requeue_stale_older_than is not None:
+        stale = requeue_stale_jobs(db_path, older_than=requeue_stale_older_than)
+    return {
+        "stale": stale,
+        "jobs": worker_loop(db_path, max_jobs=max_jobs, idle_sleep=idle_sleep),
+    }
+
+
 def _validate_choice(value: str, choices: tuple[str, ...], name: str) -> str:
     if value not in choices:
         raise ValueError(f"{name} must be one of: {', '.join(choices)}")
@@ -226,6 +303,27 @@ def _require_text(value: str, name: str) -> str:
     return raw
 
 
+def parse_task_spec(task: str) -> tuple[str, str]:
+    raw = _require_text(task, "task")
+    for task_type in task_dispatcher.TASK_TYPES:
+        prefix = f"{task_type}:"
+        if raw.startswith(prefix):
+            return task_type, _require_text(raw[len(prefix):], "task_payload")
+    raise ValueError(
+        f"task must start with one of: {', '.join(f'{kind}:' for kind in task_dispatcher.TASK_TYPES)}"
+    )
+
+
+def _resolve_task_args(task: str | None, task_type: str | None, task_payload: str | None) -> tuple[str, str]:
+    if task:
+        if task_type or task_payload:
+            raise ValueError("--task cannot be combined with --task-type/--task-payload")
+        return parse_task_spec(task)
+    if not task_type or task_payload is None:
+        raise ValueError("either --task or both --task-type/--task-payload are required")
+    return _validate_choice(task_type, task_dispatcher.TASK_TYPES, "task_type"), _require_text(task_payload, "task_payload")
+
+
 def _trim_error(error_summary: str | None) -> str | None:
     if error_summary is None:
         return None
@@ -242,8 +340,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     enqueue = sub.add_parser("enqueue")
-    enqueue.add_argument("--task-type", required=True, choices=task_dispatcher.TASK_TYPES)
-    enqueue.add_argument("--task-payload", required=True)
+    enqueue.add_argument("--task")
+    enqueue.add_argument("--task-type", choices=task_dispatcher.TASK_TYPES)
+    enqueue.add_argument("--task-payload")
     enqueue.add_argument("--priority", type=int, default=5)
     enqueue.add_argument("--delay", type=int)
     enqueue.add_argument("--id")
@@ -252,6 +351,8 @@ def main(argv: list[str] | None = None) -> int:
     worker = sub.add_parser("worker")
     worker.add_argument("--max-jobs", type=int)
     worker.add_argument("--idle-sleep", type=float, default=1.0)
+    worker.add_argument("--requeue-stale-older-than", type=int, default=3600)
+    worker.add_argument("--no-requeue-stale", action="store_true")
 
     status = sub.add_parser("status")
     status.add_argument("--id", required=True)
@@ -262,13 +363,21 @@ def main(argv: list[str] | None = None) -> int:
     retry = sub.add_parser("retry")
     retry.add_argument("--id", required=True)
 
+    requeue = sub.add_parser("requeue-stale")
+    requeue.add_argument("--older-than", type=int, default=3600)
+
+    list_cmd = sub.add_parser("list")
+    list_cmd.add_argument("--status", choices=(*STATUS_VALUES, "all"), default="all")
+    list_cmd.add_argument("--limit", type=int)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "enqueue":
+            task_type, task_payload = _resolve_task_args(args.task, args.task_type, args.task_payload)
             job_id = enqueue_job(
                 args.db_path,
-                args.task_type,
-                args.task_payload,
+                task_type,
+                task_payload,
                 priority=args.priority,
                 delay=args.delay,
                 job_id=args.id,
@@ -277,7 +386,17 @@ def main(argv: list[str] | None = None) -> int:
             _print_json({"id": job_id, "job": get_job(args.db_path, job_id)})
             return 0
         if args.command == "worker":
-            _print_json(worker_loop(args.db_path, max_jobs=args.max_jobs, idle_sleep=args.idle_sleep))
+            if args.no_requeue_stale:
+                _print_json(worker_loop(args.db_path, max_jobs=args.max_jobs, idle_sleep=args.idle_sleep))
+            else:
+                _print_json(
+                    worker_loop_with_recovery(
+                        args.db_path,
+                        max_jobs=args.max_jobs,
+                        idle_sleep=args.idle_sleep,
+                        requeue_stale_older_than=args.requeue_stale_older_than,
+                    )
+                )
             return 0
         if args.command == "status":
             row = get_job(args.db_path, args.id)
@@ -294,6 +413,12 @@ def main(argv: list[str] | None = None) -> int:
             ok = retry_job(args.db_path, args.id)
             _print_json({"id": args.id, "retried": ok})
             return 0 if ok else 1
+        if args.command == "requeue-stale":
+            _print_json(requeue_stale_jobs(args.db_path, older_than=args.older_than))
+            return 0
+        if args.command == "list":
+            _print_json(list_jobs(args.db_path, args.status, args.limit))
+            return 0
     except (sqlite3.Error, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

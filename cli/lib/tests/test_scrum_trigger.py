@@ -138,6 +138,19 @@ def test_transition_status_validates_lifecycle(tmp_path: Path) -> None:
     assert updated["status_owner"] == "PM"
 
 
+def test_adopt_to_backlog_creates_hypothesis_from_trigger(tmp_path: Path) -> None:
+    trigger = _trigger(trigger_id="ST-2026-05-02-0001", scrum_type="sprint")
+
+    result = scrum_trigger.adopt_to_backlog(trigger, tmp_path)
+
+    backlog = tmp_path / ".helix" / "scrum" / "backlog.yaml"
+    assert result["created"] is True
+    assert result["hypothesis_id"] == "ST-2026-05-02-0001"
+    text = backlog.read_text(encoding="utf-8")
+    assert "source_trigger: ST-2026-05-02-0001" in text
+    assert "status: queued" in text
+
+
 def test_check_ttl_reports_and_applies_transitions(tmp_path: Path) -> None:
     db_path = _db_path(tmp_path)
     now = datetime(2026, 5, 20, tzinfo=timezone.utc)

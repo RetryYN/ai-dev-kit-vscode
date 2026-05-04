@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -107,6 +108,11 @@ def _truncate_output(stdout: str, stderr: str) -> str:
     return joined[-500:] if joined else ""
 
 
+def _safe_slug(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_.-]+", "-", value.strip()).strip("-")
+    return slug[:48] or "member"
+
+
 def run_member(
     member: dict[str, str],
     project_root: str,
@@ -153,13 +159,44 @@ def run_member(
         }
 
     if engine == "claude":
-        print(f"[team] Claude sub-agent 委譲: @{role} {task}")
+        task_dir = Path(project_root) / ".helix" / "tasks"
+        task_dir.mkdir(parents=True, exist_ok=True)
+        output_path = task_dir / f"team-{_safe_slug(role)}-{int(time.time())}.claude.md"
+        cmd = [
+            f"{helix_home}/cli/helix-claude",
+            "--role",
+            role,
+            "--task",
+            task,
+            "--output",
+            str(output_path),
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                env={**os.environ, "HELIX_PROJECT_ROOT": project_root},
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout if isinstance(exc.stdout, str) else ""
+            stderr = exc.stderr if isinstance(exc.stderr, str) else ""
+            return {
+                "role": role,
+                "engine": engine,
+                "exit_code": 124,
+                "status": "timeout",
+                "output": _truncate_output(stdout, stderr),
+            }
+        status = "delegated" if result.returncode == 0 else "failed"
         return {
             "role": role,
             "engine": engine,
-            "exit_code": 0,
-            "status": "delegated",
-            "output": "claude sub-agent 委譲",
+            "exit_code": result.returncode,
+            "status": status,
+            "output": _truncate_output(result.stdout or "", result.stderr or ""),
+            "prompt_file": str(output_path.relative_to(project_root)),
         }
 
     return {
@@ -191,18 +228,9 @@ def run_parallel(members: list[dict[str, str]], project_root: str, helix_home: s
     results: list[dict[str, Any]] = []
     codex_members = [m for m in members if m.get("engine", "codex") == "codex"]
     claude_members = [m for m in members if m.get("engine", "codex") == "claude"]
-
     for m in claude_members:
-        print(f"[team] Claude sub-agent: @{m.get('role', 'unknown')} {m.get('task', '')}")
-        results.append(
-            {
-                "role": m.get("role", "unknown"),
-                "engine": "claude",
-                "exit_code": 0,
-                "status": "delegated",
-                "output": "委譲指示",
-            }
-        )
+        print(f"[team] Claude prompt 生成: @{m.get('role', 'unknown')} {m.get('task', '')}")
+        results.append(run_member(m, project_root, helix_home))
 
     if codex_members:
         with ThreadPoolExecutor(max_workers=min(3, len(codex_members))) as executor:

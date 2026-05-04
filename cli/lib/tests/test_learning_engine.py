@@ -259,6 +259,54 @@ def test_from_history_returns_failure_recipe_as_warning(tmp_path: Path) -> None:
     assert result["failure_recipes"][0]["recipe_id"] == "recipe-failure"
 
 
+def test_find_recipe_reads_shared_install_layer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = _project_root(tmp_path)
+    home = tmp_path / "home"
+    helix_home = tmp_path / "helix-install"
+    shared_recipe_dir = helix_home / "recipes"
+    shared_recipe_dir.mkdir(parents=True)
+    recipe_path = shared_recipe_dir / "recipe-shared.json"
+    recipe_path.write_text('{"recipe_id":"recipe-shared"}', encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("HELIX_HOME", str(helix_home))
+
+    recipe = learning_engine.find_recipe("recipe-shared", str(project_root))
+
+    assert recipe is not None
+    assert recipe["recipe_id"] == "recipe-shared"
+    assert recipe["_path"] == str(recipe_path)
+
+
+def test_find_recipe_prefers_project_local_over_shared_install(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = _project_root(tmp_path)
+    home = tmp_path / "home"
+    helix_home = tmp_path / "helix-install"
+    shared_recipe_dir = helix_home / "recipes"
+    shared_recipe_dir.mkdir(parents=True)
+    (shared_recipe_dir / "recipe-same.json").write_text(
+        '{"recipe_id":"recipe-same","source":"shared"}',
+        encoding="utf-8",
+    )
+    local_recipe_dir = project_root / ".helix" / "recipes"
+    local_recipe_dir.mkdir(parents=True)
+    local_path = local_recipe_dir / "recipe-same.json"
+    local_path.write_text('{"recipe_id":"recipe-same","source":"local"}', encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("HELIX_HOME", str(helix_home))
+
+    recipe = learning_engine.find_recipe("recipe-same", str(project_root))
+
+    assert recipe is not None
+    assert recipe["source"] == "local"
+    assert recipe["_path"] == str(local_path)
+
+
 def test_connect_sets_wal_and_busy_timeout(tmp_path: Path) -> None:
     db_path = tmp_path / "learning.db"
     conn = learning_engine._connect(str(db_path))  # noqa: SLF001

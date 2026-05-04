@@ -139,6 +139,71 @@ def test_manual_retry_requeues_failed_job(tmp_path: Path, capsys) -> None:
     assert row["last_error"] is None
 
 
+def test_requeue_stale_running_job(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    jobs.enqueue_job(str(db_path), "helix:command", "status", job_id="stale", max_retries=2, now=1000)
+    assert jobs.claim_next_job(str(db_path), now=1001)["status"] == "running"
+
+    result = jobs.requeue_stale_jobs(str(db_path), older_than=60, now=2000)
+    row = _fetch_job(db_path, "stale")
+
+    assert result[0]["id"] == "stale"
+    assert result[0]["stale_action"] == "requeued"
+    assert row["status"] == "pending"
+    assert row["started_at"] is None
+    assert row["retry_count"] == 1
+    assert "stale running job" in row["last_error"]
+
+
+def test_requeue_stale_running_job_fails_when_retries_exhausted(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    jobs.enqueue_job(str(db_path), "helix:command", "status", job_id="stale-fail", max_retries=0, now=1000)
+    assert jobs.claim_next_job(str(db_path), now=1001)["status"] == "running"
+
+    result = jobs.requeue_stale_jobs(str(db_path), older_than=60, now=2000)
+    row = _fetch_job(db_path, "stale-fail")
+
+    assert result[0]["stale_action"] == "failed"
+    assert row["status"] == "failed"
+    assert row["completed_at"] == 2000
+
+
+def test_worker_loop_with_recovery_requeues_stale_before_processing(tmp_path: Path, monkeypatch, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    jobs.enqueue_job(str(db_path), "helix:command", "status", job_id="stale-run", max_retries=2, now=1000)
+    assert jobs.claim_next_job(str(db_path), now=1001)["status"] == "running"
+    monkeypatch.setattr(jobs.task_dispatcher, "dispatch_task", lambda *_args: (True, "ok"))
+
+    result = jobs.worker_loop_with_recovery(
+        str(db_path),
+        max_jobs=1,
+        idle_sleep=0,
+        requeue_stale_older_than=60,
+    )
+    row = _fetch_job(db_path, "stale-run")
+
+    assert result["stale"][0]["stale_action"] == "requeued"
+    assert result["jobs"][0]["id"] == "stale-run"
+    assert row["status"] == "success"
+
+
+def test_list_jobs_filters_status_and_limit(tmp_path: Path, capsys) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    jobs.enqueue_job(str(db_path), "helix:command", "status", job_id="one", now=1000)
+    jobs.enqueue_job(str(db_path), "helix:command", "status", job_id="two", now=1001)
+    assert [row["id"] for row in jobs.list_jobs(str(db_path), "pending", limit=1)] == ["two"]
+
+
+def test_parse_combined_task_spec() -> None:
+    task_type, task_payload = jobs.parse_task_spec("helix:command:status")
+    assert task_type == "helix:command"
+    assert task_payload == "status"
+
+
 def test_cli_enqueue_and_status(tmp_path: Path) -> None:
     project = tmp_path / "project"
     home = tmp_path / "home"
@@ -178,3 +243,42 @@ def test_cli_enqueue_and_status(tmp_path: Path) -> None:
     )
     assert status.returncode == 0
     assert '"id": "cli-job"' in status.stdout
+
+
+def test_cli_enqueue_combined_task_and_list(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    home = tmp_path / "home"
+    (project / ".helix").mkdir(parents=True)
+    home.mkdir()
+    env = os.environ.copy()
+    env["HELIX_HOME"] = str(REPO_ROOT)
+    env["HELIX_PROJECT_ROOT"] = str(project)
+    env["HOME"] = str(home)
+
+    enqueue = subprocess.run(
+        [
+            str(REPO_ROOT / "cli" / "helix-job"),
+            "enqueue",
+            "--task",
+            "helix:command:status",
+            "--id",
+            "combined-job",
+        ],
+        cwd=project,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert enqueue.returncode == 0, enqueue.stderr
+
+    listed = subprocess.run(
+        [str(REPO_ROOT / "cli" / "helix-job"), "list", "--status", "pending", "--limit", "1"],
+        cwd=project,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert listed.returncode == 0, listed.stderr
+    assert '"id": "combined-job"' in listed.stdout

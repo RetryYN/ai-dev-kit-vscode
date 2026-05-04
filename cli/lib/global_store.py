@@ -540,7 +540,7 @@ def get_recipe_by_id(recipe_id: str) -> dict[str, Any] | None:
 
 
 def get_promotion_candidates(threshold: int = 3) -> list[dict[str, Any]]:
-    """昇格候補を返す（同一 pattern_key の成功回数しきい値）。"""
+    """昇格候補を返す（成功回数しきい値 + 品質/検証スコアで順位付け）。"""
     db_path = init_global_db()
     conn = _connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -565,7 +565,16 @@ def get_promotion_candidates(threshold: int = 3) -> list[dict[str, Any]]:
         payload["tags"] = _json_load(str(payload.get("tags_json") or ""), [])
         payload["context"] = _json_load(str(payload.get("context_json") or ""), {})
         payload["verification"] = _json_load(str(payload.get("verification_json") or ""), {})
+        payload["promotion_score"] = round(_score_global_row([], payload), 2)
         candidates.append(payload)
+    candidates.sort(
+        key=lambda item: (
+            float(item.get("promotion_score", 0.0) or 0.0),
+            int(item.get("success_count", 0) or 0),
+            float(item.get("quality_score_mean", 0.0) or 0.0),
+        ),
+        reverse=True,
+    )
     return candidates
 
 

@@ -69,8 +69,10 @@ def _is_allowed(kind: str, value: str, allowlist: dict[str, list[str]]) -> bool:
     if value in allowed:
         return True
     if kind == "helix_commands":
-        head = value.split()[0] if value.split() else ""
-        return head in allowed
+        return any(
+            item.endswith(" *") and value.startswith(item[:-1])
+            for item in allowed
+        )
     return False
 
 

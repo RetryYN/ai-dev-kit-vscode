@@ -13,6 +13,7 @@ from typing import Any, Iterable
 import deferred_findings
 import helix_db
 from redaction import redact_value
+import yaml_parser
 
 
 VALID_SCRUM_TYPES = ("poc", "ui", "unit", "sprint", "post-deploy")
@@ -545,6 +546,57 @@ def transition_status(
         conn.close()
 
 
+def adopt_to_backlog(
+    trigger: dict[str, Any],
+    project_root: Path | str | None = None,
+) -> dict[str, Any]:
+    root = Path(project_root or os.environ.get("HELIX_PROJECT_ROOT") or os.getcwd())
+    scrum_dir = root / ".helix" / "scrum"
+    backlog_path = scrum_dir / "backlog.yaml"
+    scrum_dir.mkdir(parents=True, exist_ok=True)
+
+    if backlog_path.exists():
+        try:
+            backlog = yaml_parser.parse_yaml(backlog_path.read_text(encoding="utf-8"))
+        except Exception:
+            backlog = {}
+    else:
+        backlog = {
+            "hypotheses": {},
+            "metadata": {
+                "created_by": "helix-scrum-trigger",
+            },
+        }
+
+    if not isinstance(backlog.get("hypotheses"), dict):
+        backlog["hypotheses"] = {}
+    hypotheses = backlog["hypotheses"]
+
+    trigger_id = str(trigger.get("trigger_id") or "")
+    if not trigger_id:
+        raise ValueError("trigger_id is required for backlog adoption")
+    hid = re.sub(r"[^A-Za-z0-9_.-]+", "-", trigger_id).strip("-") or "trigger"
+    if hid in hypotheses and isinstance(hypotheses[hid], dict):
+        return {"hypothesis_id": hid, "created": False, "backlog": str(backlog_path)}
+
+    evidence = str(trigger.get("evidence_path_hint") or trigger.get("source_path") or "unknown")
+    event_type = str(trigger.get("event_type") or "uncertainty_marker")
+    scrum_type = str(trigger.get("scrum_type") or "unit")
+    hypotheses[hid] = {
+        "title": f"Trigger adoption: {event_type} ({scrum_type})",
+        "question": f"{evidence} の不確実性を検証し、Forward HELIX に接続できるか。",
+        "acceptance": "trigger の uncertainty/impact が解消され、次の L1/L2/L3/L4 接続先が明示されている。",
+        "verify_script": f"verify/{hid.lower()}-trigger.sh",
+        "status": "queued",
+        "source_trigger": trigger_id,
+        "scrum_type": scrum_type,
+        "evidence_path_hint": evidence,
+    }
+
+    backlog_path.write_text(yaml_parser.dump_yaml(backlog) + "\n", encoding="utf-8")
+    return {"hypothesis_id": hid, "created": True, "backlog": str(backlog_path)}
+
+
 def check_ttl(
     db_path: Path | str | None = None,
     *,
@@ -656,6 +708,7 @@ def main(argv: list[str] | None = None) -> int:
     transition_parser.add_argument("--status", required=True, choices=("triaged", "adopted", "rejected", "archived"))
     transition_parser.add_argument("--owner", required=True)
     transition_parser.add_argument("--reason", default="")
+    transition_parser.add_argument("--no-backlog", action="store_true")
     transition_parser.add_argument("--json", action="store_true")
 
     ttl_parser = subparsers.add_parser("ttl")
@@ -688,10 +741,19 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "transition":
             row = transition_status(args.trigger_id, args.status, args.owner, args.reason, args.db)
+            adoption = None
+            if args.status == "adopted" and not args.no_backlog:
+                adoption = adopt_to_backlog(row, args.project_root)
+                row = {**row, "backlog_adoption": adoption}
             if args.json:
                 print(json.dumps(row, ensure_ascii=False, indent=2))
             else:
                 print(f"transitioned: {row['trigger_id']} {row['status']}")
+                if adoption:
+                    print(
+                        f"backlog: {adoption['hypothesis_id']} "
+                        f"({'created' if adoption['created'] else 'exists'})"
+                    )
             return 0
         if args.command == "ttl":
             result = check_ttl(args.db, apply=args.apply)

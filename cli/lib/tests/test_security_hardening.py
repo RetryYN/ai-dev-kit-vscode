@@ -65,11 +65,12 @@ def _prepare_sync_repos(tmp_path: Path, *, added_line: str) -> tuple[Path, Path]
 
 def test_post_tool_use_settings_sanitize_file_path() -> None:
     payload = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
-    command = payload["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
+    post_tool_use = payload["hooks"]["PostToolUse"][0]
+    command = post_tool_use["hooks"][0]["command"]
 
-    assert "unsupported file_path skipped" in command
-    assert "all(allowed(ch) for ch in p)" in command
-    assert "~/ai-dev-kit-vscode/cli/helix-hook" in command
+    assert post_tool_use["matcher"] == "Edit|Write|MultiEdit"
+    assert command == "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
+    assert "python3 -c" not in command
 
 
 def test_redaction_stream_redacts_sensitive_lines() -> None:

@@ -25,6 +25,9 @@ GATE_LAYERS = {
     "G5": ["L5"],
     "G6": ["L1", "L2", "L3", "L4", "L5", "L6"],
     "G7": ["L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+    "G9": ["L9"],
+    "G10": ["L9", "L10"],
+    "G11": ["L9", "L10", "L11"],
 }
 
 PASS_STATUSES = {"done", "waived", "not_applicable"}

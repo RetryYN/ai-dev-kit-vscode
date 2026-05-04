@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 
 _INDEX_MARKER = "@helix:index"
-_FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related)=")
+_FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related|seed_candidate|seed_promotable)=")
 # PLAN-011 v1.2: .md と .bats は heredoc / 文字列内の marker を構文判定で除外できないため走査対象外
 # (Python は tokenize.COMMENT、bash は #-行頭コメントで構文判定可能)
 _TRACKED_SUFFIXES = {".py", ".sh"}
@@ -179,10 +179,38 @@ def _classify_bucket(rel_path: str | Path, symbol: str, kind: str = "function") 
 
 
 def _default_seed_metadata(bucket: str, *, covered: bool = True) -> dict[str, bool]:
+    del covered
     return {
-        "seed_candidate": bucket == "coverage_eligible" or (covered and bucket == "private_helper"),
+        "seed_candidate": bucket == "coverage_eligible",
         "seed_promotable": False,
     }
+
+
+def _parse_bool_field(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    lowered = value.strip().lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    return None
+
+
+def _seed_metadata_from_fields(bucket: str, fields: dict[str, str], *, covered: bool = True) -> dict[str, bool]:
+    metadata = _default_seed_metadata(bucket, covered=covered)
+    if bucket == "excluded":
+        return {"seed_candidate": False, "seed_promotable": False}
+
+    seed_candidate = _parse_bool_field(fields.get("seed_candidate"))
+    if seed_candidate is not None:
+        metadata["seed_candidate"] = seed_candidate
+
+    seed_promotable = _parse_bool_field(fields.get("seed_promotable"))
+    if seed_promotable is not None:
+        metadata["seed_promotable"] = seed_promotable and bucket == "private_helper"
+
+    return metadata
 
 
 def _python_top_level_symbols(text: str) -> list[tuple[int, str, str]]:
@@ -232,6 +260,7 @@ is_non_indexable_path = _is_non_indexable_path
 is_excluded_path = _is_excluded_path
 classify_bucket = _classify_bucket
 default_seed_metadata = _default_seed_metadata
+seed_metadata_from_fields = _seed_metadata_from_fields
 extract_top_level_symbols = _extract_top_level_symbols
 resolve_symbol_line = _resolve_symbol_line
 
@@ -332,6 +361,7 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
         symbol_line = _resolve_symbol_line(path, line_no)
         symbol, kind = _symbol_at_line(path, symbol_line)
         bucket = _classify_bucket(path, symbol, kind)
+        metadata = _seed_metadata_from_fields(bucket, fields or {}, covered=True)
         parsed.update(
             {
                 "path": path.as_posix(),
@@ -339,7 +369,7 @@ def scan_file(path: Path) -> list[dict[str, Any]]:
                 "symbol_line": symbol_line,
                 "source_hash": source_hash,
                 "bucket": bucket,
-                "metadata": _default_seed_metadata(bucket, covered=True),
+                "metadata": metadata,
                 "updated_at": updated_at,
             }
         )
@@ -375,7 +405,15 @@ def scan_tracked_files(repo_root: Path) -> list[dict[str, Any]]:
             symbol, kind = _symbol_at_line(full_path, symbol_line)
             bucket = _classify_bucket(rel_path, symbol, kind)
             entry["bucket"] = bucket
-            entry["metadata"] = _default_seed_metadata(bucket, covered=True)
+            existing_metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            entry["metadata"] = {
+                **_default_seed_metadata(bucket, covered=True),
+                **existing_metadata,
+            }
+            if bucket == "excluded":
+                entry["metadata"] = {"seed_candidate": False, "seed_promotable": False}
+            elif bucket != "private_helper":
+                entry["metadata"]["seed_promotable"] = False
             entries.append(entry)
 
     return sorted(entries, key=lambda item: str(item.get("id", "")))

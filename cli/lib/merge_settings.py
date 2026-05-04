@@ -42,11 +42,11 @@ HELIX_HOOKS = {
     ],
     "PostToolUse": [
         {
-            "matcher": "Edit|Write",
+            "matcher": "Edit|Write|MultiEdit",
             "hooks": [
                 {
                     "type": "command",
-                    "command": "python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path','') or d.get('tool_response',{}).get('filePath',''))\" | { read -r f; if [ -z \"$f\" ]; then exit 0; fi; ~/ai-dev-kit-vscode/cli/helix-hook \"$f\"; }",
+                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use",
                     "timeout": 10,
                     "statusMessage": "HELIX design sync check...",
                     "blockOnFailure": True,
@@ -89,15 +89,17 @@ def _has_helix_hook(entries):
 
 
 def merge(settings):
-    """HELIX hooks を追加（既存があればスキップ）。変更があったか返す"""
+    """HELIX hooks を追加・正規化する。変更があったか返す"""
     if "hooks" not in settings:
         settings["hooks"] = {}
 
     changed = False
     for event, helix_entries in HELIX_HOOKS.items():
         existing = settings["hooks"].get(event, [])
-        if not _has_helix_hook(existing):
-            settings["hooks"][event] = existing + helix_entries
+        non_helix_entries = [entry for entry in existing if not _is_helix_hook(entry)]
+        current_helix_entries = [entry for entry in existing if _is_helix_hook(entry)]
+        if current_helix_entries != helix_entries:
+            settings["hooks"][event] = non_helix_entries + helix_entries
             changed = True
 
     return changed

@@ -80,6 +80,72 @@ class TestGetPromotionCandidates:
         candidates = global_store.get_promotion_candidates(threshold=1)
         assert candidates == []
 
+    def test_candidates_include_composite_promotion_score(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        _set_global_home(monkeypatch, tmp_path)
+        db_path = global_store.init_global_db()
+        conn = sqlite3.connect(db_path)
+        now = "2026-01-01T00:00:00Z"
+        rows = [
+            (
+                "recipe-low",
+                "pattern-low",
+                "task",
+                "proj",
+                1.0,
+                20.0,
+                '["api"]',
+                "{}",
+                "{}",
+                "",
+                "",
+                "none",
+                3,
+                3,
+                now,
+                now,
+            ),
+            (
+                "recipe-high",
+                "pattern-high",
+                "task",
+                "proj",
+                1.0,
+                95.0,
+                '["api"]',
+                "{}",
+                '{"tests":{"failed":0},"contracts":{"schema_valid":true},"quality":{"lint_errors":0}}',
+                "",
+                "",
+                "none",
+                3,
+                3,
+                now,
+                now,
+            ),
+        ]
+        conn.executemany(
+            """
+            INSERT INTO recipe_index (
+                recipe_id, pattern_key, builder_type, project_id, success_rate,
+                quality_score_mean, tags_json, context_json, verification_json,
+                local_path, global_path, promotion_status, success_count, total_count,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        conn.commit()
+        conn.close()
+
+        candidates = global_store.get_promotion_candidates(threshold=3)
+
+        assert [item["recipe_id"] for item in candidates] == ["recipe-high", "recipe-low"]
+        assert candidates[0]["promotion_score"] > candidates[1]["promotion_score"]
+
 
 # ---------------------------------------------------------------------------
 # record_promotion

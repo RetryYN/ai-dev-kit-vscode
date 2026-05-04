@@ -3,6 +3,8 @@ import os
 import sqlite3
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -38,6 +40,12 @@ def test_parse_relative_schedule() -> None:
     assert scheduler.parse_schedule("+5m", 1000) == 1300
     assert scheduler.parse_schedule("+1h", 1000) == 4600
     assert scheduler.parse_schedule("+2d", 1000) == 173800
+
+
+def test_parse_absolute_at_schedule() -> None:
+    assert scheduler.parse_schedule("at:2026-05-03T00:00:00Z", 1000) == 1777766400
+    assert scheduler.parse_schedule("at:+30s", 1000) == 1030
+    assert scheduler.is_one_shot_schedule("at:+30s") is True
 
 
 def test_parse_cron_every_five_minutes() -> None:
@@ -99,6 +107,27 @@ def test_run_due_dry_run_does_not_mutate(tmp_path: Path, capsys: pytest.CaptureF
     assert row["last_run_at"] is None
 
 
+def test_run_due_max_limits_due_tasks(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    scheduler.add_schedule(str(db_path), "+30s", "helix:command", "status", id="one", now=1000, next_run_at=1)
+    scheduler.add_schedule(str(db_path), "+30s", "helix:command", "status", id="two", now=1000, next_run_at=1)
+    result = scheduler.run_due_schedules(str(db_path), dry_run=True, max_count=1)
+    assert len(result) == 1
+
+
+def test_add_at_success_is_one_shot(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    monkeypatch.setattr(scheduler, "dispatch_task", lambda *_args: (True, "ok"))
+    scheduler.add_at_schedule(str(db_path), "+30s", "helix:command", "status", id="once", now=1000, next_run_at=1)
+    result = scheduler.run_due_schedules(str(db_path))
+    row = _fetch_schedule(db_path, "once")
+    assert result[0]["ok"] is True
+    assert row["status"] == "success"
+    assert row["next_run_at"] is None
+
+
 def test_run_due_executes_allowlisted_script(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -135,6 +164,40 @@ def test_run_due_executes_allowlisted_script(
     assert row["next_run_at"] > row["last_run_at"]
 
 
+def test_concurrent_run_due_claims_schedule_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    scheduler.add_at_schedule(str(db_path), "+30s", "helix:command", "status", id="atomic", now=1000, next_run_at=1)
+    calls = 0
+    calls_lock = threading.Lock()
+    barrier = threading.Barrier(2)
+    results: list[list[dict]] = []
+
+    def fake_dispatch(*_args):
+        nonlocal calls
+        with calls_lock:
+            calls += 1
+        time.sleep(0.1)
+        return True, "ok"
+
+    def worker() -> None:
+        barrier.wait()
+        results.append(scheduler.run_due_schedules(str(db_path)))
+
+    monkeypatch.setattr(scheduler, "dispatch_task", fake_dispatch)
+    threads = [threading.Thread(target=worker) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert calls == 1
+    assert sum(1 for result in results if result) == 1
+    assert _fetch_schedule(db_path, "atomic")["status"] == "success"
+
+
 def test_run_due_fails_closed_when_not_allowlisted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -158,6 +221,63 @@ def test_run_due_fails_closed_when_not_allowlisted(
     assert result[0]["ok"] is False
     assert row["status"] == "failed"
     assert "not allowlisted" in row["last_error"]
+
+
+def test_requeue_stale_running_schedule(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    scheduler.add_schedule(
+        str(db_path),
+        "+30s",
+        "helix:command",
+        "status",
+        id="stale-schedule",
+        now=1000,
+        next_run_at=1,
+    )
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            "UPDATE schedules SET status = 'running', updated_at = ? WHERE id = ?",
+            (1001, "stale-schedule"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    result = scheduler.requeue_stale_schedules(str(db_path), older_than=60, now=2000)
+    row = _fetch_schedule(db_path, "stale-schedule")
+
+    assert result[0]["id"] == "stale-schedule"
+    assert result[0]["stale_action"] == "requeued"
+    assert row["status"] == "pending"
+    assert row["next_run_at"] == 2000
+    assert "stale running schedule" in row["last_error"]
+
+
+def test_run_due_requeues_stale_schedule_before_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    scheduler.add_at_schedule(str(db_path), "+30s", "helix:command", "status", id="stale-due", now=1000, next_run_at=1)
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            "UPDATE schedules SET status = 'running', updated_at = ? WHERE id = ?",
+            (1, "stale-due"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(scheduler, "dispatch_task", lambda *_args: (True, "ok"))
+
+    result = scheduler.run_due_schedules(str(db_path), requeue_stale_older_than=1)
+    row = _fetch_schedule(db_path, "stale-due")
+
+    assert result[0]["id"] == "stale-due"
+    assert result[0]["ok"] is True
+    assert row["status"] == "success"
 
 
 def test_cli_add_and_status(tmp_path: Path) -> None:
@@ -200,3 +320,35 @@ def test_cli_add_and_status(tmp_path: Path) -> None:
     )
     assert status.returncode == 0
     assert json.loads(status.stdout)["id"] == "cli-1"
+
+
+def test_cli_add_at_accepts_combined_task(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    home = tmp_path / "home"
+    (project / ".helix").mkdir(parents=True)
+    home.mkdir()
+    env = os.environ.copy()
+    env["HELIX_HOME"] = str(REPO_ROOT)
+    env["HELIX_PROJECT_ROOT"] = str(project)
+    env["HOME"] = str(home)
+    add = subprocess.run(
+        [
+            str(REPO_ROOT / "cli" / "helix-scheduler"),
+            "add-at",
+            "--at",
+            "+5m",
+            "--task",
+            "helix:command:status",
+            "--id",
+            "cli-at",
+        ],
+        cwd=project,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert add.returncode == 0, add.stderr
+    payload = json.loads(add.stdout)
+    assert payload["id"] == "cli-at"
+    assert payload["schedule"]["schedule_expr"] == "at:+5m"

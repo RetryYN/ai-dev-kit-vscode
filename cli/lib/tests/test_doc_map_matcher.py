@@ -81,6 +81,59 @@ def test_main_emits_matching_event(
     assert output == "DESIGN_SYNC|docs/features/auth/D-API/spec.md|src/features/auth/nested/main.ts"
 
 
+def test_matched_triggers_are_prioritized() -> None:
+    triggers = [
+        {"pattern": "**/*", "on_write": "coverage_check"},
+        {"pattern": "cli/helix-*", "on_write": "design_sync", "design_ref": "docs/design/L2.md"},
+        {"pattern": "cli/helix-gate", "on_write": "gate_ready", "gate": "G4"},
+    ]
+
+    matched = doc_map_matcher._matched_triggers(triggers, "cli/helix-gate")
+
+    assert [trigger["on_write"] for trigger in matched] == [
+        "gate_ready",
+        "design_sync",
+        "coverage_check",
+    ]
+
+
+def test_validate_triggers_reports_invalid_schema() -> None:
+    errors = doc_map_matcher._validate_triggers(
+        [
+            {"pattern": "src/**", "on_write": "unknown"},
+            {"pattern": "docs/**", "on_write": "gate_ready"},
+            {"pattern": "cli/**", "on_write": "design_sync"},
+            {"pattern": "src/**", "on_write": "unknown"},
+        ]
+    )
+
+    assert "trigger[0]: unsupported on_write 'unknown'" in errors
+    assert "trigger[1]: gate is required for gate_ready" in errors
+    assert "trigger[2]: design_ref is required for design_sync" in errors
+    assert "trigger[3]: duplicate trigger" in errors
+
+
+def test_main_warns_for_invalid_trigger(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    doc_map_path = tmp_path / "doc-map.yaml"
+    doc_map_path.write_text(
+        (
+            "triggers:\n"
+            '  - pattern: "src/**"\n'
+            "    on_write: typo\n"
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["doc_map_matcher.py", str(doc_map_path), "src/main.ts"])
+
+    assert doc_map_matcher.main() == 0
+    captured = capsys.readouterr()
+    assert "unsupported on_write 'typo'" in captured.err
+
+
 def test_main_returns_zero_when_doc_map_is_missing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

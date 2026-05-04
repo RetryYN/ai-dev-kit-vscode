@@ -115,6 +115,41 @@ class TeamRunnerTest(unittest.TestCase):
         self.assertEqual(result["exit_code"], 124)
         self.assertEqual(result["status"], "timeout")
 
+    def test_run_member_claude_invokes_harness_and_records_prompt_file(self) -> None:
+        captured: dict[str, object] = {}
+
+        class _Result:
+            returncode = 0
+            stdout = "[helix-claude] prompt written: .helix/tasks/team-docs.claude.md\n"
+            stderr = ""
+
+        def fake_run(
+            cmd: list[str],
+            capture_output: bool,
+            text: bool,
+            env: dict[str, str],
+            timeout: int,
+        ) -> _Result:
+            captured["cmd"] = cmd
+            captured["env"] = env
+            captured["timeout"] = timeout
+            return _Result()
+
+        with tempfile.TemporaryDirectory() as td:
+            with patch.object(team_runner.subprocess, "run", side_effect=fake_run):
+                result = team_runner.run_member(
+                    {"role": "docs", "task": "summarize", "engine": "claude"},
+                    td,
+                    "/helix-home",
+                )
+
+        cmd = captured["cmd"]
+        self.assertEqual(cmd[:5], ["/helix-home/cli/helix-claude", "--role", "docs", "--task", "summarize"])
+        self.assertIn("--output", cmd)
+        self.assertEqual(captured["env"]["HELIX_PROJECT_ROOT"], td)
+        self.assertEqual(result["status"], "delegated")
+        self.assertTrue(result["prompt_file"].startswith(".helix/tasks/team-docs-"))
+
     def test_run_sequential_stops_after_first_failure(self) -> None:
         calls: list[str] = []
 
@@ -144,6 +179,15 @@ class TeamRunnerTest(unittest.TestCase):
 
     def test_run_parallel_collects_claude_and_codex_members(self) -> None:
         def fake_run_member(member: dict[str, str], _project_root: str, _helix_home: str) -> dict[str, object]:
+            if member.get("engine") == "claude":
+                return {
+                    "role": member["role"],
+                    "engine": "claude",
+                    "exit_code": 0,
+                    "status": "delegated",
+                    "output": "prompt",
+                    "prompt_file": ".helix/tasks/team-docs.claude.md",
+                }
             return {
                 "role": member["role"],
                 "engine": "codex",
@@ -165,7 +209,7 @@ class TeamRunnerTest(unittest.TestCase):
                 )
         output = buf.getvalue()
 
-        self.assertIn("Claude sub-agent", output)
+        self.assertIn("Claude prompt", output)
         self.assertTrue(any(item["engine"] == "claude" and item["status"] == "delegated" for item in results))
         self.assertTrue(any(item["role"] == "qa" and item["status"] == "completed" for item in results))
 

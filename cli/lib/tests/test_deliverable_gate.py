@@ -53,6 +53,12 @@ class TestEvaluateGateBasic:
         assert result["result"] == "pass"
         assert result["gate"] == "G2"
 
+    def test_run_phase_gates_are_supported(self) -> None:
+        for gate in ("G9", "G10", "G11"):
+            result = deliverable_gate.evaluate_gate(_make_index({}), _make_state({}), gate)
+            assert result["result"] == "pass"
+            assert result["gate"] == gate
+
     def test_all_done_passes(self) -> None:
         index = _make_index({
             "feat-a": {

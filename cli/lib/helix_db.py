@@ -11,7 +11,7 @@ Usage:
   python3 helix_db.py record-feedback <db> <json>
   python3 helix_db.py record-feedback-argv <db> <task_run_id_or_0> <type> <category> <desc> [impact] [resolution]
   python3 helix_db.py latest-task-run <db> <task_id>
-  python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality]
+  python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality|session] [date]
   python3 helix_db.py export-json <db> <output_path>
   python3 helix_db.py insert [<db_path>] <table> <json>
 """
@@ -372,6 +372,33 @@ CREATE TABLE IF NOT EXISTS metrics (
     recorded_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_metrics_name_at ON metrics(metric_name, recorded_at);
+
+-- automation/init-setup
+CREATE TABLE IF NOT EXISTS setup_checks (
+    component TEXT PRIMARY KEY,
+    verify_state TEXT NOT NULL CHECK(verify_state IN ('pending', 'running', 'success', 'failed', 'cancelled')),
+    installed INTEGER NOT NULL DEFAULT 0,
+    last_verify_at INTEGER,
+    last_install_at INTEGER,
+    last_repair_at INTEGER,
+    verify_error TEXT,
+    install_version TEXT,
+    install_path TEXT,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS setup_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    component TEXT NOT NULL,
+    action TEXT NOT NULL CHECK(action IN ('verify','install','repair')),
+    status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')),
+    outcome TEXT,
+    details_json TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(component) REFERENCES setup_checks(component) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_setup_events_component_created ON setup_events(component, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_setup_events_status ON setup_events(status);
 """
 
 
@@ -545,6 +572,38 @@ def _create_accuracy_score_table(conn):
 
 def _create_infra_tables_v9(conn):
     conn.executescript(INFRA_SCHEMA_V9)
+
+
+def _ensure_setup_tables(conn):
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS setup_checks (
+            component TEXT PRIMARY KEY,
+            verify_state TEXT NOT NULL CHECK(verify_state IN ('pending', 'running', 'success', 'failed', 'cancelled')),
+            installed INTEGER NOT NULL DEFAULT 0,
+            last_verify_at INTEGER,
+            last_install_at INTEGER,
+            last_repair_at INTEGER,
+            verify_error TEXT,
+            install_version TEXT,
+            install_path TEXT,
+            updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS setup_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            component TEXT NOT NULL,
+            action TEXT NOT NULL CHECK(action IN ('verify','install','repair')),
+            status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')),
+            outcome TEXT,
+            details_json TEXT,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY(component) REFERENCES setup_checks(component) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_setup_events_component_created
+            ON setup_events(component, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_setup_events_status ON setup_events(status);
+        """
+    )
 
 
 def _create_audit_decisions_v10(conn):
@@ -880,7 +939,7 @@ def migrate(conn):
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (8, datetime('now'))"
             )
-        # v8→v9: 5 infra テーブル追加 (PLAN-005 scheduler/job-queue/lock/observability)
+        # v8→v9: automation infra テーブル追加 (PLAN-005 scheduler/job-queue/lock/setup/observability)
         if current < 9:
             _create_infra_tables_v9(conn)
             conn.execute(
@@ -929,6 +988,7 @@ def _ensure_schema(conn):
     conn.executescript(SCHEMA)
     conn.executescript(SCHEMA_VERSION_SCHEMA)
     migrate(conn)
+    _ensure_setup_tables(conn)
 
 
 # @helix:index id=helix-db.init-db domain=cli/lib summary=dbを初期化する
@@ -1468,8 +1528,8 @@ def acquire_db_lock(
 ):
     """Acquire or refresh PLAN-005 lock metadata.
 
-    ``timeout`` is kept as a backwards-compatible TTL alias for the Sprint 1
-    skeleton. The file lock remains the conflict source of truth.
+    ``timeout`` is kept as a backwards-compatible TTL alias. The file lock
+    remains the conflict source of truth.
     """
     name = _require_non_empty(name, "name")
     scope = _validate_choice(scope, "scope", LOCK_SCOPES_V9)
@@ -1501,7 +1561,7 @@ def acquire_db_lock(
 
 
 def release_db_lock(db_path, name, pid):
-    """PLAN-005 lock の最小 release API。pid 一致時のみ解放する。"""
+    """PLAN-005 lock release API。pid 一致時のみ解放する。"""
     name = _require_non_empty(name, "name")
 
     conn = _automation_conn(db_path)
@@ -1514,7 +1574,7 @@ def release_db_lock(db_path, name, pid):
 
 
 def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
-    """PLAN-005 job-queue の最小 enqueue API。worker 実行は後続 Sprint で実装する。"""
+    """PLAN-005 job-queue enqueue API。worker 実行は job_queue_helper が担当する。"""
     task_type = _validate_choice(task_type, "task_type", TASK_TYPES_V9)
     task_payload = _require_non_empty(task_payload, "task_payload")
     job_id = kwargs.get("job_id") or kwargs.get("id") or str(uuid.uuid4())
@@ -1544,7 +1604,7 @@ def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
 
 
 def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
-    """PLAN-005 scheduler の最小 add API。next_run_at 計算は後続 Sprint で実装する。"""
+    """PLAN-005 scheduler add API。next_run_at 計算は scheduler_helper が担当する。"""
     schedule_expr = _require_non_empty(schedule_expr, "schedule_expr")
     task_type = _validate_choice(task_type, "task_type", TASK_TYPES_V9)
     task_payload = _require_non_empty(task_payload, "task_payload")
@@ -1615,7 +1675,7 @@ def update_review(db_path, data):
     conn.close()
 
 
-def report(db_path, report_type='summary'):
+def report(db_path, report_type='summary', report_date=None):
     conn = _connect(db_path)
     conn.row_factory = sqlite3.Row
 
@@ -1743,6 +1803,57 @@ def report(db_path, report_type='summary'):
                 print(f"  Suggestions: {r['review_suggestions'][:100]}")
             print()
 
+    elif report_type == 'session':
+        target_date = report_date or datetime.now().date().isoformat()
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", target_date):
+            raise ValueError("session report date must be YYYY-MM-DD")
+
+        print("=== Session Report ===\n")
+        print(f"Date: {target_date}")
+
+        finished = conn.execute(
+            "SELECT COUNT(*) as cnt FROM cost_log "
+            "WHERE role IN ('claude-code', 'opus-pm') AND date(created_at)=?",
+            (target_date,),
+        ).fetchone()["cnt"]
+        print(f"終了 {finished} 回")
+
+        print("\n[hook_events]")
+        rows = conn.execute(
+            "SELECT event_type, COUNT(*) as cnt FROM hook_events "
+            "WHERE date(created_at)=? GROUP BY event_type ORDER BY event_type",
+            (target_date,),
+        ).fetchall()
+        if rows:
+            for r in rows:
+                print(f"  {r['event_type']}: {r['cnt']}")
+        else:
+            print("  (なし)")
+
+        print("\n[gate_runs]")
+        rows = conn.execute(
+            "SELECT gate, result, COUNT(*) as cnt FROM gate_runs "
+            "WHERE date(created_at)=? GROUP BY gate, result ORDER BY gate, result",
+            (target_date,),
+        ).fetchall()
+        if rows:
+            for r in rows:
+                print(f"  {r['gate']} {r['result']}: {r['cnt']}")
+        else:
+            print("  (なし)")
+
+        print("\n[cost_log]")
+        rows = conn.execute(
+            "SELECT role, model, COUNT(*) as cnt FROM cost_log "
+            "WHERE date(created_at)=? GROUP BY role, model ORDER BY role, model",
+            (target_date,),
+        ).fetchall()
+        if rows:
+            for r in rows:
+                print(f"  {r['role']} / {r['model']}: {r['cnt']}")
+        else:
+            print("  (なし)")
+
     conn.close()
 
 
@@ -1836,7 +1947,8 @@ def main():
                 update_review(db_path, json.loads(sys.argv[3]))
             elif cmd == 'report':
                 report_type = sys.argv[3] if len(sys.argv) > 3 else 'summary'
-                report(db_path, report_type)
+                report_date = sys.argv[4] if len(sys.argv) > 4 else None
+                report(db_path, report_type, report_date)
             elif cmd == 'export-json':
                 export_json(db_path, sys.argv[3])
             else:

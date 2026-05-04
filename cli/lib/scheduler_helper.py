@@ -11,6 +11,7 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import helix_db
 from task_dispatcher import TASK_TYPES, dispatch_task
@@ -44,6 +45,8 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
 
 def parse_schedule(schedule_expr: str, base_time: int) -> int:
     expr = (schedule_expr or "").strip()
+    if expr.startswith("at:"):
+        expr = expr[3:].strip()
     if not expr:
         raise ValueError("schedule_expr is required")
     relative = RELATIVE_RE.fullmatch(expr)
@@ -52,13 +55,37 @@ def parse_schedule(schedule_expr: str, base_time: int) -> int:
         if amount <= 0:
             raise ValueError("relative schedule amount must be positive")
         return int(base_time) + amount * UNIT_SECONDS[relative.group(2)]
+    absolute = _parse_absolute_time(expr)
+    if absolute is not None:
+        return absolute
     spec = _parse_cron(expr)
     return _next_cron_run(spec, int(base_time))
 
 
 def compute_next_run(schedule_expr: str, last_run: int | None, current_time: int) -> int:
+    if is_one_shot_schedule(schedule_expr):
+        raise ValueError("one-shot schedule has no next run")
     base_time = max(int(current_time), int(last_run or 0))
     return parse_schedule(schedule_expr, base_time)
+
+
+def is_one_shot_schedule(schedule_expr: str) -> bool:
+    return (schedule_expr or "").strip().startswith("at:")
+
+
+def _parse_absolute_time(expr: str) -> int | None:
+    raw = expr.strip()
+    if raw.isdigit():
+        return int(raw)
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
 
 
 def _parse_cron(expr: str) -> CronSpec:
@@ -152,6 +179,11 @@ def add_schedule(db_path: str, schedule_expr: str, task_type: str, task_payload:
     return schedule_id
 
 
+def add_at_schedule(db_path: str, at_expr: str, task_type: str, task_payload: str, **kwargs) -> str:
+    at_expr = _require_text(at_expr, "at")
+    return add_schedule(db_path, f"at:{at_expr}", task_type, task_payload, **kwargs)
+
+
 def list_schedules(db_path: str, status_filter: str | None = None) -> list[dict]:
     params: list[str] = []
     query = "SELECT * FROM schedules"
@@ -190,37 +222,100 @@ def cancel_schedule(db_path: str, schedule_id: str) -> bool:
         conn.close()
 
 
-def run_due_schedules(db_path: str, dry_run: bool = False) -> list[dict]:
-    now = int(time.time())
+def requeue_stale_schedules(db_path: str, *, older_than: int = 3600, now: int | None = None) -> list[dict]:
+    older_than = _validate_positive_int(older_than, "older_than", maximum=30 * 24 * 3600)
+    current_time = int(now or time.time())
+    cutoff = current_time - older_than
     conn = _conn(db_path)
     try:
-        rows = [
+        conn.execute("BEGIN IMMEDIATE")
+        stale_rows = [
             _row_to_dict(row)
             for row in conn.execute(
-                "SELECT * FROM schedules WHERE status = 'pending' AND next_run_at <= ? "
-                "ORDER BY next_run_at, created_at, id",
-                (now,),
+                "SELECT * FROM schedules WHERE status = 'running' AND updated_at <= ? "
+                "ORDER BY updated_at ASC, id ASC",
+                (cutoff,),
             ).fetchall()
         ]
+        results: list[dict] = []
+        for row in stale_rows:
+            conn.execute(
+                "UPDATE schedules SET status = 'pending', next_run_at = ?, last_error = ?, updated_at = ? "
+                "WHERE id = ?",
+                (current_time, f"stale running schedule requeued after {older_than}s", current_time, row["id"]),
+            )
+            updated = conn.execute("SELECT * FROM schedules WHERE id = ?", (row["id"],)).fetchone()
+            payload = _row_to_dict(updated)
+            payload["stale_action"] = "requeued"
+            results.append(payload)
+        conn.commit()
+        return results
+    except Exception:
+        with contextlib.suppress(sqlite3.Error):
+            conn.execute("ROLLBACK")
+        raise
+    finally:
+        conn.close()
+
+
+def run_due_schedules(
+    db_path: str,
+    dry_run: bool = False,
+    max_count: int | None = None,
+    *,
+    requeue_stale_older_than: int | None = None,
+) -> list[dict]:
+    now = int(time.time())
+    if max_count is not None and int(max_count) < 1:
+        raise ValueError("max_count must be >= 1")
+    if requeue_stale_older_than is not None and not dry_run:
+        requeue_stale_schedules(db_path, older_than=requeue_stale_older_than, now=now)
+    conn = _conn(db_path)
+    try:
+        limit_sql = "" if max_count is None else " LIMIT ?"
+        params: list[object] = [now]
+        if max_count is not None:
+            params.append(int(max_count))
+        query = (
+            "SELECT * FROM schedules WHERE status = 'pending' AND next_run_at <= ? "
+            "ORDER BY next_run_at, created_at, id" + limit_sql
+        )
+        if dry_run:
+            rows = [_row_to_dict(row) for row in conn.execute(query, params).fetchall()]
+        else:
+            conn.execute("BEGIN IMMEDIATE")
+            selected = [_row_to_dict(row) for row in conn.execute(query, params).fetchall()]
+            rows = []
+            for row in selected:
+                cur = conn.execute(
+                    "UPDATE schedules SET status = 'running', updated_at = ? "
+                    "WHERE id = ? AND status = 'pending'",
+                    (now, row["id"]),
+                )
+                if cur.rowcount == 1:
+                    rows.append(row)
+            conn.commit()
         results: list[dict] = []
         for row in rows:
             if dry_run:
                 results.append({"id": row["id"], "dry_run": True, "would_run": True, "ok": None, "output": ""})
                 continue
-            conn.execute(
-                "UPDATE schedules SET status = 'running', updated_at = ? WHERE id = ?",
-                (now, row["id"]),
-            )
-            conn.commit()
             ok, output = dispatch_task(row["task_type"], row["task_payload"])
             finished_at = int(time.time())
             if ok:
-                next_run_at = compute_next_run(row["schedule_expr"], finished_at, finished_at)
-                conn.execute(
-                    "UPDATE schedules SET status = 'pending', last_run_at = ?, next_run_at = ?, "
-                    "last_error = NULL, updated_at = ? WHERE id = ?",
-                    (finished_at, next_run_at, finished_at, row["id"]),
-                )
+                if is_one_shot_schedule(row["schedule_expr"]):
+                    conn.execute(
+                        "UPDATE schedules SET status = 'success', last_run_at = ?, next_run_at = NULL, "
+                        "last_error = NULL, updated_at = ? WHERE id = ?",
+                        (finished_at, finished_at, row["id"]),
+                    )
+                else:
+                    next_run_at = compute_next_run(row["schedule_expr"], finished_at, finished_at)
+                    conn.execute(
+                        "UPDATE schedules SET status = 'pending', last_run_at = ?, next_run_at = ?, "
+                        "last_error = NULL, updated_at = ? WHERE id = ?",
+                        (finished_at, next_run_at, finished_at, row["id"]),
+                    )
             else:
                 conn.execute(
                     "UPDATE schedules SET status = 'failed', last_run_at = ?, last_error = ?, "
@@ -240,11 +335,40 @@ def _validate_choice(value: str, choices: tuple[str, ...], name: str) -> str:
     return value
 
 
+def _validate_positive_int(value: int, name: str, *, maximum: int) -> int:
+    try:
+        resolved = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if resolved < 1 or resolved > maximum:
+        raise ValueError(f"{name} must be between 1 and {maximum}")
+    return resolved
+
+
 def _require_text(value: str, name: str) -> str:
     raw = (value or "").strip()
     if not raw:
         raise ValueError(f"{name} is required")
     return raw
+
+
+def parse_task_spec(task: str) -> tuple[str, str]:
+    raw = _require_text(task, "task")
+    for task_type in TASK_TYPES:
+        prefix = f"{task_type}:"
+        if raw.startswith(prefix):
+            return task_type, _require_text(raw[len(prefix):], "task_payload")
+    raise ValueError(f"task must start with one of: {', '.join(f'{kind}:' for kind in TASK_TYPES)}")
+
+
+def _resolve_task_args(task: str | None, task_type: str | None, task_payload: str | None) -> tuple[str, str]:
+    if task:
+        if task_type or task_payload:
+            raise ValueError("--task cannot be combined with --task-type/--task-payload")
+        return parse_task_spec(task)
+    if not task_type or task_payload is None:
+        raise ValueError("either --task or both --task-type/--task-payload are required")
+    return _validate_choice(task_type, TASK_TYPES, "task_type"), _require_text(task_payload, "task_payload")
 
 
 def _print_json(data) -> None:
@@ -258,9 +382,17 @@ def main(argv: list[str] | None = None) -> int:
 
     add = sub.add_parser("add")
     add.add_argument("--schedule", required=True)
-    add.add_argument("--task-type", required=True, choices=TASK_TYPES)
-    add.add_argument("--task-payload", required=True)
+    add.add_argument("--task")
+    add.add_argument("--task-type", choices=TASK_TYPES)
+    add.add_argument("--task-payload")
     add.add_argument("--id")
+
+    add_at = sub.add_parser("add-at")
+    add_at.add_argument("--at", required=True)
+    add_at.add_argument("--task")
+    add_at.add_argument("--task-type", choices=TASK_TYPES)
+    add_at.add_argument("--task-payload")
+    add_at.add_argument("--id")
 
     list_cmd = sub.add_parser("list")
     list_cmd.add_argument("--status", choices=STATUS_VALUES)
@@ -273,11 +405,24 @@ def main(argv: list[str] | None = None) -> int:
 
     run_due = sub.add_parser("run-due")
     run_due.add_argument("--dry-run", action="store_true")
+    run_due.add_argument("--max", dest="max_count", type=int)
+    run_due.add_argument("--requeue-stale-older-than", type=int, default=3600)
+    run_due.add_argument("--no-requeue-stale", action="store_true")
+
+    requeue = sub.add_parser("requeue-stale")
+    requeue.add_argument("--older-than", type=int, default=3600)
 
     args = parser.parse_args(argv)
     try:
         if args.command == "add":
-            schedule_id = add_schedule(args.db_path, args.schedule, args.task_type, args.task_payload, id=args.id)
+            task_type, task_payload = _resolve_task_args(args.task, args.task_type, args.task_payload)
+            schedule_id = add_schedule(args.db_path, args.schedule, task_type, task_payload, id=args.id)
+            row = get_schedule(args.db_path, schedule_id)
+            _print_json({"id": schedule_id, "schedule": row})
+            return 0
+        if args.command == "add-at":
+            task_type, task_payload = _resolve_task_args(args.task, args.task_type, args.task_payload)
+            schedule_id = add_at_schedule(args.db_path, args.at, task_type, task_payload, id=args.id)
             row = get_schedule(args.db_path, schedule_id)
             _print_json({"id": schedule_id, "schedule": row})
             return 0
@@ -296,7 +441,17 @@ def main(argv: list[str] | None = None) -> int:
             _print_json(row)
             return 0
         if args.command == "run-due":
-            _print_json(run_due_schedules(args.db_path, dry_run=args.dry_run))
+            _print_json(
+                run_due_schedules(
+                    args.db_path,
+                    dry_run=args.dry_run,
+                    max_count=args.max_count,
+                    requeue_stale_older_than=None if args.no_requeue_stale else args.requeue_stale_older_than,
+                )
+            )
+            return 0
+        if args.command == "requeue-stale":
+            _print_json(requeue_stale_schedules(args.db_path, older_than=args.older_than))
             return 0
     except (sqlite3.Error, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

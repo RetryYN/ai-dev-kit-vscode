@@ -19,6 +19,14 @@ import re
 import sys
 from pathlib import Path
 
+ALLOWED_ACTIONS = {"gate_ready", "design_sync", "coverage_check", "adr_index"}
+ACTION_PRIORITY = {
+    "gate_ready": 0,
+    "design_sync": 1,
+    "adr_index": 2,
+    "coverage_check": 3,
+}
+
 
 def _strip_quotes(value: str) -> str:
     text = value.strip()
@@ -67,12 +75,69 @@ def _parse_doc_map(doc_map_path: Path) -> list[dict[str, str]]:
     return triggers
 
 
-def _emit_matches(triggers: list[dict[str, str]], file_path: str) -> None:
-    for trigger in triggers:
+def _pattern_specificity(pattern: str) -> int:
+    if "**" in pattern:
+        return 1
+    if "*" in pattern:
+        return 2
+    return 3
+
+
+def _validate_trigger(trigger: dict[str, str], index: int) -> list[str]:
+    errors: list[str] = []
+    pattern = trigger.get("pattern", "")
+    on_write = trigger.get("on_write", "")
+
+    if not pattern:
+        errors.append(f"trigger[{index}]: pattern is required")
+    if on_write not in ALLOWED_ACTIONS:
+        errors.append(f"trigger[{index}]: unsupported on_write '{on_write}'")
+    if on_write == "gate_ready" and not trigger.get("gate", ""):
+        errors.append(f"trigger[{index}]: gate is required for gate_ready")
+    if on_write == "design_sync" and not trigger.get("design_ref", ""):
+        errors.append(f"trigger[{index}]: design_ref is required for design_sync")
+    return errors
+
+
+def _validate_triggers(triggers: list[dict[str, str]]) -> list[str]:
+    errors: list[str] = []
+    seen: set[tuple[str, str, str, str]] = set()
+
+    for index, trigger in enumerate(triggers):
+        errors.extend(_validate_trigger(trigger, index))
+        key = (
+            trigger.get("pattern", ""),
+            trigger.get("on_write", ""),
+            trigger.get("gate", ""),
+            trigger.get("design_ref", ""),
+        )
+        if key in seen:
+            errors.append(f"trigger[{index}]: duplicate trigger")
+        seen.add(key)
+    return errors
+
+
+def _matched_triggers(triggers: list[dict[str, str]], file_path: str) -> list[dict[str, str]]:
+    matched: list[tuple[int, int, int, int, dict[str, str]]] = []
+    for index, trigger in enumerate(triggers):
         pattern = trigger.get("pattern", "")
         if not pattern or not _glob_match(file_path, pattern):
             continue
+        matched.append(
+            (
+                -_pattern_specificity(pattern),
+                -len(pattern),
+                ACTION_PRIORITY.get(trigger.get("on_write", ""), 99),
+                index,
+                trigger,
+            )
+        )
+    matched.sort(key=lambda item: item[:4])
+    return [trigger for *_, trigger in matched]
 
+
+def _emit_matches(triggers: list[dict[str, str]], file_path: str) -> None:
+    for trigger in _matched_triggers(triggers, file_path):
         on_write = trigger.get("on_write", "")
         gate = trigger.get("gate", "")
         design_ref = trigger.get("design_ref", "")
@@ -102,6 +167,9 @@ def main() -> int:
         triggers = _parse_doc_map(doc_map_path)
     except OSError:
         return 1
+
+    for error in _validate_triggers(triggers):
+        print(f"[doc-map] WARN: {error}", file=sys.stderr)
 
     _emit_matches(triggers, file_path)
     return 0

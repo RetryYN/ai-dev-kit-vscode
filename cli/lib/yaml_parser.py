@@ -9,6 +9,7 @@ helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーでは�
 - ネストされたマッピング（インデント2スペース）
 - ブロックスタイルシーケンス（スカラ / dict）
 - スカラ値: 文字列（クォート有/無）、数値、真偽値（true/false）、null
+- 複数行文字列（literal `|` / folded `>` の基本形）
 - インライン dict: `{ k1: v1, k2: v2 }`
 - コメント（`# ...` 行内・行末）
 
@@ -20,7 +21,6 @@ helix CLI の phase.yaml 読み書き専用。完全な YAML パーサーでは�
 - **マージキー** (`<<:`) — dict のマージは未実装
 - **ネストされたフロースタイルシーケンス** (`[{ k: v }]`) — 単純なスカラ配列のみサポート
 - **ネストされたインライン dict** (`{ k: { nested: v } }`) — トップレベルのみサポート
-- **複数行文字列** (`|`, `>`) — 単一行文字列のみ
 - **タグ** (`!!str`, `!!int` 等) — 型推論のみ
 - **複雑なキー** (`? key\n: value`) — シンプルなキーのみ
 - **複数ドキュメント** (`---` 区切りの複数 YAML) — 単一ドキュメントのみ
@@ -94,6 +94,62 @@ def _split_inline_pairs(text):
     return pairs
 
 
+def _consume_block_scalar(lines, start_index, parent_indent, style):
+    """literal/folded block scalar を読み取る。
+
+    YAML の chomp/indent indicator は扱わず、HELIX 設定で使う `key: |` / `key: >`
+    の基本形だけをサポートする。
+    """
+    block = []
+    content_indent = None
+    index = start_index
+
+    while index < len(lines):
+        raw_line = lines[index]
+        stripped = raw_line.lstrip()
+        if not stripped:
+            block.append("")
+            index += 1
+            continue
+
+        indent = len(raw_line) - len(stripped)
+        if indent <= parent_indent:
+            break
+
+        if content_indent is None:
+            content_indent = indent
+        if indent >= content_indent:
+            block.append(raw_line[content_indent:])
+        else:
+            block.append(stripped)
+        index += 1
+
+    if style == ">":
+        folded = []
+        paragraph = []
+        for line in block:
+            if line == "":
+                if paragraph:
+                    folded.append(" ".join(paragraph))
+                    paragraph = []
+                folded.append("")
+            else:
+                paragraph.append(line.strip())
+        if paragraph:
+            folded.append(" ".join(paragraph))
+        return "\n".join(folded).rstrip("\n"), index
+
+    return "\n".join(block).rstrip("\n"), index
+
+
+def _match_key_value(text):
+    return re.match(r'^(?:"([^"]+)"|\'([^\']+)\'|([\w.\-]+))\s*:\s*(.*)', text)
+
+
+def _matched_key(match):
+    return next(group for group in match.groups()[:3] if group is not None)
+
+
 def parse_yaml(text):
     """簡易 YAML パーサー。ネスト対応（インデントベース）。"""
     result = {}
@@ -104,7 +160,12 @@ def parse_yaml(text):
         'key': None,
     }]
 
-    for lineno, line in enumerate(text.splitlines(), start=1):
+    lines = text.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        lineno = index + 1
+        index += 1
         stripped = line.lstrip()
         if not stripped or stripped.startswith('#'):
             continue
@@ -153,15 +214,17 @@ def parse_yaml(text):
                 })
                 continue
 
-            m_item = re.match(r'^(["\']?[\w.\-]+["\']?)\s*:\s*(.*)', item_raw)
+            m_item = _match_key_value(item_raw)
             if m_item:
                 item = {}
                 current.append(item)
-                key = m_item.group(1).strip("'\"")
-                raw_val = m_item.group(2).strip()
+                key = _matched_key(m_item)
+                raw_val = m_item.group(4).strip()
                 if not raw_val:
                     child = {}
                     item[key] = child
+                elif raw_val[0] in ("|", ">"):
+                    item[key], index = _consume_block_scalar(lines, index, indent, raw_val[0])
                 elif raw_val.startswith('{') and raw_val.endswith('}'):
                     item[key] = _parse_inline_dict(raw_val)
                 else:
@@ -177,14 +240,14 @@ def parse_yaml(text):
             continue
 
         # key: value パターン
-        m = re.match(r'^(["\']?[\w.\-]+["\']?)\s*:\s*(.*)', stripped)
+        m = _match_key_value(stripped)
         if not m:
             raise ValueError(f"Unsupported YAML syntax at line {lineno}: {stripped}")
         if not isinstance(current, dict):
             raise ValueError(f"Unsupported YAML mapping at line {lineno}: {stripped}")
 
-        key = m.group(1).strip("'\"")
-        raw_val = m.group(2).strip()
+        key = _matched_key(m)
+        raw_val = m.group(4).strip()
 
         if not raw_val:
             # サブキーが来る → 新しい dict
@@ -202,6 +265,9 @@ def parse_yaml(text):
             d = _parse_inline_dict(raw_val)
             if isinstance(current, dict):
                 current[key] = d
+        elif raw_val[0] in ("|", ">"):
+            if isinstance(current, dict):
+                current[key], index = _consume_block_scalar(lines, index, indent, raw_val[0])
         else:
             if isinstance(current, dict):
                 current[key] = _cast(raw_val)
@@ -340,6 +406,10 @@ def dump_yaml(data, indent=0):
         elif isinstance(val, list) and any(isinstance(item, dict) for item in val):
             lines.append(f'{prefix}{key}:')
             lines.append(dump_yaml_list(val, indent + 1))
+        elif isinstance(val, str) and '\n' in val:
+            lines.append(f'{prefix}{key}: |')
+            for block_line in val.splitlines():
+                lines.append(f'{"  " * (indent + 1)}{block_line}')
         else:
             lines.append(f'{prefix}{key}: {_serialize(val)}')
     return '\n'.join(lines)
@@ -362,6 +432,10 @@ def dump_yaml_list(data, indent=0):
             elif isinstance(first_val, list) and any(isinstance(child, dict) for child in first_val):
                 lines.append(f'{prefix}- {first_key}:')
                 lines.append(dump_yaml_list(first_val, indent + 2))
+            elif isinstance(first_val, str) and '\n' in first_val:
+                lines.append(f'{prefix}- {first_key}: |')
+                for block_line in first_val.splitlines():
+                    lines.append(f'{"  " * (indent + 2)}{block_line}')
             else:
                 lines.append(f'{prefix}- {first_key}: {_serialize(first_val)}')
             for key, val in pairs[1:]:
@@ -371,6 +445,10 @@ def dump_yaml_list(data, indent=0):
                 elif isinstance(val, list) and any(isinstance(child, dict) for child in val):
                     lines.append(f'{child_prefix}{key}:')
                     lines.append(dump_yaml_list(val, indent + 2))
+                elif isinstance(val, str) and '\n' in val:
+                    lines.append(f'{child_prefix}{key}: |')
+                    for block_line in val.splitlines():
+                        lines.append(f'{"  " * (indent + 2)}{block_line}')
                 else:
                     lines.append(f'{child_prefix}{key}: {_serialize(val)}')
         else:

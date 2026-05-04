@@ -87,9 +87,33 @@ def test_main_exits_one_when_no_change(
 
 
 def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
+    entry = merge_settings.HELIX_HOOKS["PostToolUse"][0]
     hook = merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]
     command = hook["command"]
 
     assert "|| true" not in command
-    assert 'if [ -z "$f" ]; then exit 0; fi;' in command
+    assert command == "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
+    assert entry["matcher"] == "Edit|Write|MultiEdit"
     assert hook["blockOnFailure"] is True
+
+
+def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
+    settings = {
+        "hooks": {
+            "PostToolUse": [
+                {"hooks": [{"command": "custom-post"}]},
+                {
+                    "matcher": "Edit|Write",
+                    "hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-hook"}],
+                },
+            ]
+        }
+    }
+
+    changed = merge_settings.merge(settings)
+
+    assert changed is True
+    assert settings["hooks"]["PostToolUse"] == [
+        {"hooks": [{"command": "custom-post"}]},
+        merge_settings.HELIX_HOOKS["PostToolUse"][0],
+    ]
