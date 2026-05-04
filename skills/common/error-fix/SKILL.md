@@ -261,7 +261,7 @@ CREATE INDEX IF NOT EXISTS idx_failure_patterns_task_type
 
 1. テスト失敗のスタックトレースを解析し、エラー種別を分類する
 2. `rg` と `git blame` で原因箇所と直近変更点を特定する
-3. 修正候補を生成する（`helix-codex --role se` に委譲）
+3. 修正候補を生成する（`helix codex --role se` に委譲）
 4. 修正候補ごとにテストを再実行し、全テスト pass を確認する
 5. pass なら自動適用、fail なら次候補を試行し、尽きたら人間へエスカレートする
 

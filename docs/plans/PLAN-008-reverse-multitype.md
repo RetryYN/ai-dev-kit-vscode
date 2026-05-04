@@ -139,7 +139,7 @@ RGC は **Forward の L6/L8 pass 後に実行する後工程**として定義す
 | optional | 出力が **forward 接続後の追跡で代替可能** (`design`) | `D4-design-routing.yaml` の Forward 接続承認率 ≥ 0.9 | **impact=high の未接続は 0 件が原則**。1 件以上を carry する場合は `P1 deferred-finding` として PM 承認必須、かつ DAG/実装順序出力を `non-authoritative=true` で発行 | 未接続 design は PLAN-006 forward 進行で再評価。P1 carry 中は forward に依存しない |
 | skip | 出力が **assessment only**（管理文書 freeze なし、`upgrade`） | `R4` の `routing_to_forward` 完了で代替 | upgrade routing で `freeze_pending=0` 必須 | 全 finding は L2/L3/G3 へ routing。Reverse 内 close 不可 |
 
-skip / optional 適用時も `R4` の `routing_to_forward` には全項目を残し、carry 経路は **deferred-finding 化**して `helix-readiness` で追跡する。
+skip / optional 適用時も `R4` の `routing_to_forward` には全項目を残し、carry 経路は **deferred-finding 化**して `helix readiness` で追跡する。
 
 #### 3.5.1 全体方針
 
@@ -282,7 +282,7 @@ option schema 詳細 (各 type で受け付ける option 列挙、必須/任意�
 - `retry`: 指定 stage の再実行（`code` のみ `--invalidate-forward` 有効）。  
   - `code`: R2/R3/R4 で失敗時に forward gate invalidation 可。  
   - `upgrade/normalization/design/fullback`: 再実行は `forward invalidation` なし。  
-- `--invalidate-forward` は `code` のみ実行時に既存挙動を維持し、`R2|R3|R4` 成功時に G2-G7 を invalidated にする。  
+- `--invalidate-forward` は `code` のみ実行時に既存挙動を維持し、`R2|R3|R4` 成功時に G2-G11（G8 は存在しない）を invalidated にする。  
 
 #### 3.7.3 既存互換
 

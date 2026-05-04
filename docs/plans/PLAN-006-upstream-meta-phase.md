@@ -59,7 +59,7 @@ L-1 exit の判定基準となる優先順位マトリクスは、各案件で�
 | `depends_on` | 必須 | 同マトリクス内の依存 artifact 列。空配列も明示 |
 | `risk` | 必須 | high / medium / low (default low、medium 以上は理由必須) |
 | `blocking_research_route` | 必須 | §3.2.1 の 6 ルートのうち **deferred 不可** (機能 / OSS-required / 検証方式-required) のサブセット。G0.5 / G1R で fail-close 判定対象 |
-| `deferred_research_route` | 必須 | §3.2.1 の 6 ルートのうち **deferred 可** (市場 / 技術 / マーケ など) のサブセット。carry 時は `helix-readiness` で追跡 |
+| `deferred_research_route` | 必須 | §3.2.1 の 6 ルートのうち **deferred 可** (市場 / 技術 / マーケ など) のサブセット。carry 時は `helix readiness` で追跡 |
 | `owner` | 必須 | PM / TL / SE / PG / DBA 等の責任ロール |
 | `blocking` | 必須 | true (G2 通過必須) / false (deferred 可) |
 | `deferred_level` | 条件付 | `blocking=false` のとき P0/P1/P2/P3 を必須記載 |
@@ -74,7 +74,7 @@ L-1 exit の判定基準となる優先順位マトリクスは、各案件で�
 5. G1R では `blocking_research_route` evidence の網羅率を判定し、`deferred_research_route` は readiness ledger に carry 状態を記録。
 6. 矛盾 (depends_on の循環、`blocking=true` かつ `deferred_level` 設定、`blocking_research_route` と `deferred_research_route` の重複など) は lint で reject。
 
-マトリクスは `.helix/research/<id>/l1-priority-matrix.yaml` に保存し、`helix-readiness check --phase L1` の入力源として連携する。
+マトリクスは `.helix/research/<id>/l1-priority-matrix.yaml` に保存し、`helix readiness check --phase L1` の入力源として連携する。
 
 #### 3.1.1 L-1 と既存 L1/G0.5/G1/G1R/G1.5 の接続条件（F01 解消）
 
@@ -88,7 +88,7 @@ L-1 は L1 内のメタ工程として位置づける。L1 の entry/exit を分
 | L1 補助 (research) | L1 | L-1 メタフェーズの研究ルート補完 | G1R | DAG の Plan Layer に発見事項が反映済み |
 | L1 補助 (PoC) | L1 | L-1 で「検証方式リサーチ」が confirmed | G1.5 | PoC 実施可能性が DAG 上で承認 |
 
-phase.yaml 表現は **L1 内のメタ工程** として扱い、独立した phase 識別子（例: `L0.5`）は導入しない。これにより既存 helix-status / helix-gate / helix-mode の挙動を破壊しない。
+phase.yaml 表現は **L1 内のメタ工程** として扱い、独立した phase 識別子（例: `L0.5`）は導入しない。これにより既存 `helix status` / `helix gate` / `helix mode` の挙動を破壊しない。
 
 ### 3.2 リサーチ多様化
 
@@ -229,12 +229,12 @@ patterns:
 
 phase.yaml は `current_phase` (L 系) と `gates` (G 系) を別構造で持つため、pattern.yaml も以下のように分離する。
 
-- `scope.phase` は **L 系のみ許可** (`L1`, `L2`, ..., `L8`)。L9-L11 は PLAN-009 の phase.yaml schema 拡張完了後に許可。
-- `scope.gate` は **G 系のみ許可** (`G0.5`, `G1`, `G1.5`, `G1R`, `G2`, ..., `G7`)。G9-G11 は PLAN-009 完了後に許可。
+- `scope.phase` は **L 系のみ許可** (`L1`, `L2`, ..., `L11`)。
+- `scope.gate` は **G 系のみ許可** (`G0.5`, `G1`, `G1.5`, `G1R`, `G2`, ..., `G11`。G8 は存在しない)。
 - `scope.subphase` は **pattern-local label** (例: `L-1`, `L1.5`)。phase.yaml の状態管理には投入しない。
-- pattern engine の解釈: helix-status / helix-gate / handover は `phase.yaml.current_phase` と `phase.yaml.gates` のみを参照し、`scope.subphase` は pattern エンジン内部フィルタにのみ影響。
+- pattern engine の解釈: `helix status` / `helix gate` / handover は `phase.yaml.current_phase` と `phase.yaml.gates` のみを参照し、`scope.subphase` は pattern エンジン内部フィルタにのみ影響。
 - 旧記法 (`scope.phase` に L-1 や G 系を含める) は v3 以降禁止。pattern.yaml の lint で reject。
-- L9-L11 / G9-G11 を `scope` に投入したい場合は **PLAN-009 の phase.yaml schema 拡張完了** を前提条件として明記し、それまでは pattern を `disabled: true` で待機させる。
+- L9-L11 / G9-G11 は PLAN-009 実装済みのため `scope` に投入可能。G8 は未定義値として lint で reject。
 
 ### 3.4 hybrid 適用ロジック
 
@@ -301,5 +301,6 @@ phase.yaml は `current_phase` (L 系) と `gates` (G 系) を別構造で持つ
 | 2026-04-30 | v1 | PLAN-006 新規ドラフト作成。Q2 の L-1 柔軟化、Q4 hybrid（pattern.yaml + --llm-suggest）を反映。ドキュメント駆動メタフェーズとリサーチ多様化、PLAN-004/007 接続方針を導入。 | Docs (Codex) |
 | 2026-05-01 | v2 | TL レビュー (PLAN-006.json) finding F01-F04 を解消。F01: §3.1.1 で L-1 ↔ L1/G0.5/G1/G1R/G1.5 マッピング表追加（L-1 は L1 内メタ工程として固定、新規 phase 識別子は導入しない）。F02: §3.2.1 でリサーチ 6 ルートの trigger/required-optional/evidence-path/DoD/deferred 可否/反映先を表化。F03: §3.3.1 で pattern.yaml 最小フィールド (id/scope/priority/applies_when/outputs/conflicts_with/exception_policy/audit_log) と固定 vs llm-suggest 競合時の優先規則を明文化。F04: §2.3 にスコープ補足追加（L-2/L-3 は適用先であり詳細設計対象外）。 | PM (Opus) |
 | 2026-05-02 | v3 | TL レビュー (PLAN-006.json) v2 review 新 finding を解消。P2-1: §3.3.1 pattern.yaml 最小契約で `scope.phase` を phase.yaml enum 一致に限定し、`scope.subphase` を pattern-local label として分離 (L-1 はここに置き phase.yaml には投入しない)。P2-2: §3.2.2 OSS ルート License 承認境界表を追加 (新規採用 / license 変更は PM 必須、同 license バージョン変更は TL、削除は TL + PM 通知、未承認は G1R fail-close)。P3: deferred 台帳の DF-PLAN-006-L1-004/005 を v3 改訂 evidence で resolved 化。 | PM (Opus) |
-| 2026-05-02 | v3.1 | TL v3 review 新 finding 解消。P2-1: §3.3.1 で `scope.phase` を L 系のみ・`scope.gate` を G 系のみ・`scope.subphase` を pattern-local label に三分割 (L9-L11 / G9-G11 は PLAN-009 拡張完了が前提)。P2-2: §3.1.0 L-1 priority matrix 最小契約 (artifact / depends_on / risk / required_research_route / owner / blocking / deferred_level / exit_evidence + tie-breaker + lint reject) を追加。P3: §3.2.1a 機能リサーチ DoD の代替条件 (内部基盤 → 類似事例 N≥2 / 競合・類似非該当 → N/A with rationale + PM 承認) を追加。 | PM (Opus) |
+| 2026-05-02 | v3.1 | TL v3 review 新 finding 解消。P2-1: §3.3.1 で `scope.phase` を L 系のみ・`scope.gate` を G 系のみ・`scope.subphase` を pattern-local label に三分割。P2-2: §3.1.0 L-1 priority matrix 最小契約 (artifact / depends_on / risk / required_research_route / owner / blocking / deferred_level / exit_evidence + tie-breaker + lint reject) を追加。P3: §3.2.1a 機能リサーチ DoD の代替条件 (内部基盤 → 類似事例 N≥2 / 競合・類似非該当 → N/A with rationale + PM 承認) を追加。 | PM (Opus) |
 | 2026-05-02 | v3.2 | TL v3.1 review finding 解消。P1: §3.2.2 OSS 操作で TL は AI ロールのため**全操作で人間 (PM) 承認を必須**化、CVE/GHSA/supply chain 検証を TL 役割として追加、緊急 security update のみ事後 24h 承認可。P2: §3.1.0 priority matrix を `blocking_research_route` (deferred 不可) と `deferred_research_route` (carry 可) に分け、G0.5 / G1R の fail-close 判定式を明確化。P3: §3.3.2 `applies_when` 最小 DSL (`all` / `any` + list (in 判定) / scalar (厳密一致) / null (未定義)) を追加し、正規表現・比較演算は最小 DSL から除外。 | PM (Opus) |
+| 2026-05-03 | v3.3 | 現行実装に合わせて `scope.phase` を L1-L11、`scope.gate` を G0.5-G11（G8 なし）へ更新。PLAN-009 で導入済みの Run phase / gate を通常 scope として扱う。 | Docs (Codex) |

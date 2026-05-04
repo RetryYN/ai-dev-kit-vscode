@@ -177,7 +177,7 @@ Before finalizing, make sure the revised prompt resolves the cited failure modes
 </verification_loop>
 ```
 
-## helix-codex実行形式（ロール → レシピ → ブロック組合せ）
+## helix codex 実行形式（ロール → レシピ → ブロック組合せ）
 
 | ロール | 優先レシピ | ブロック組合せ（最小） |
 |---|---|---|

@@ -25,7 +25,7 @@
 
 | ID | 要件 |
 |----|------|
-| NFR-B1 | 既存 CLI (helix-codex / helix-skill / helix-gate / helix-sprint) は新機能フラグなしで従来動作を維持 |
+| NFR-B1 | 既存 CLI (`helix codex` / `helix skill` / `helix gate` / `helix sprint`) は新機能フラグなしで従来動作を維持 |
 | NFR-B2 | `~/.claude/projects/` / `~/.codex/state.db` は read-only アクセス |
 | NFR-B3 | `helix test` (既存 453 テスト) を破壊しない |
 | NFR-B4 | settings.json / CLAUDE.md の既存セクションは上書きせず追記 |

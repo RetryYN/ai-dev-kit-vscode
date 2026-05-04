@@ -37,7 +37,7 @@
 └──────────────────────────────────────────────┘
                     ↓ 境界越え (task text のみ)
 ┌──────────────────────────────────────────────┐
-│ Codex CLI → OpenAI API (信頼境界 ③)         │
+│ Codex CLI 側の外部通信 (信頼境界 ③)         │
 │   gpt-5.4-mini classifier 呼び出し           │
 └──────────────────────────────────────────────┘
                     ↓ opt-in のみ (ADR-005)
@@ -79,7 +79,7 @@
 |---|------|------|
 | I-1 | **access_token をログ出力してしまう** | サニタイザ (cli/lib/sanitizer.py) で `access_token`, `sess_`, `eyJ...` パターン除去 (NFR-S1) |
 | I-2 | classifier への LLM 送信にパス名・API キー含まれる | payload サニタイザで `/home/`, `~/.env`, `API_KEY=` 除去 (NFR-S4) |
-| I-3 | `.helix/budget/` が git commit される | `.gitignore` 強制追加 + helix-init で検証 (NFR-S3) |
+| I-3 | `.helix/budget/` が git commit される | `.gitignore` 強制追加 + `helix init` で検証 (NFR-S3) |
 | I-4 | `~/.claude/projects/*.jsonl` のプライベート会話が classifier 経由で外部送信 | 送信は `task` パラメータのみ、task 以外は読まない |
 | I-5 | 非公式 API (wham/usage) 呼び出し時の token 漏洩 | opt-in + HTTPS + ログ禁止 + エラー trace でも token を出さない (ADR-005) |
 
@@ -106,7 +106,7 @@
 ### P0 (実装必須 / G4 までに)
 
 - [ ] サニタイザ `cli/lib/sanitizer.py` 実装 (I-1, I-2 対策)
-- [ ] `.gitignore` への `.helix/budget/` 強制追加 (helix-init で検証)
+- [ ] `.gitignore` への `.helix/budget/` 強制追加 (`helix init` で検証)
 - [ ] `yaml.safe_load` + スキーマ検証 (E-1, S-2 対策)
 - [ ] SQLite read-only open + プレースホルダ (E-2 対策)
 - [ ] SessionStart hook の 1.5 秒タイムアウト (D-3 対策)

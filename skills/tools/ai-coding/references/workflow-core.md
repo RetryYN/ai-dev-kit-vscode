@@ -19,8 +19,8 @@
 
 > **full-auto**: `approval: never` + `sandbox: workspace-write` 前提で、コード・テスト・検証まで一括実行する委譲モード。
 > ただし以下のレビューゲートは full-auto でも省略不可:
-> - 実装.2（軽量 codex review: Critical/High のみ）
-> - 実装.5（フル codex review）
+> - 実装.2（軽量 helix review: Critical/High のみ）
+> - 実装.5（フル helix review）
 > - G4（実装凍結ゲート）
 > - G5（デザイン凍結ゲート）
 >
@@ -128,7 +128,7 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 
 | 成果物 | コマンド | 用途 |
 |--------|---------|------|
-| コード差分 | `codex review --uncommitted` | L4 実装ゲート(.2/.5)、G4（実装凍結）、G5（デザイン凍結） |
+| コード差分 | `helix review --uncommitted` | L4 実装ゲート(.2/.5)、G4（実装凍結）、G5（デザイン凍結） |
 | 設計書・仕様書 | `codex exec "レビュー: [対象]"` | G2（設計凍結）、G3（実装着手 / API契約レビュー） |
 | プラン・方針 | `codex exec "TL壁打ち: [内容]"` | プランモード Phase 3 |
 

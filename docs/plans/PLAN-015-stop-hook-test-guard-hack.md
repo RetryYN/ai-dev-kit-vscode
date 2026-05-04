@@ -57,7 +57,7 @@ PLAN-014 mini-retro の Try 項目で起票された残課題「DoD #3 の test 
 
 ```bash
 HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
-  "{\"role\":\"opus-pm\",\"model\":\"claude-opus-4-6\",\"thinking\":\"high\",\"created_at\":\"${TODAY}T${NOW_TIME}:00\"}" 2>/dev/null || true
+  "{\"role\":\"claude-code\",\"model\":\"claude-code\",\"thinking\":\"unknown\",\"created_at\":\"${TODAY}T${NOW_TIME}:00\"}" 2>/dev/null || true
 ```
 
 ### §3.3 互換性（DoD #1/#2/#4/#6 への影響なし証明）
@@ -99,7 +99,7 @@ HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
 - 見積ライン数: ~30 (CLI 削除 ~20 + bats 書き換え ~10)
 - type: `refactor`
 - drive: `be`
-- 想定サイズ: S (helix-size: files=2 lines=~30 type=refactor drive=be)
+- 想定サイズ: S (`helix size`: files=2 lines=~30 type=refactor drive=be)
 - 備考: 本 PLAN は文書 + 実装変更を 1 PR (1 commit) で完了させる前提
 
 ### §3.6 リスクと緩和
@@ -127,7 +127,7 @@ HELIX_DB_PATH="$DB_PATH" python3 "$DB_PY" insert cost_log \
 ### §4.2 G4 ゲート判定基準
 
 - DoD #1〜#5 全て PASS（うち #1/#2/#6-既存 は PLAN-014 既存の継続 pass）
-- `helix-codex review --uncommitted` の重大指摘なし
+- `helix review --uncommitted` の重大指摘なし
 - 新規/既存の deferred-finding が P1/P2 に増えないこと
 - テスト結果の再現性（fixture 0 件 + 1 回実行）をレビューコメントに添付
 - 並行発火時の eventual consistency 仕様 (DoD #5) を retro に明文化

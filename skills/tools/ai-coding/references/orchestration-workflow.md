@@ -39,7 +39,7 @@ Opus (Orchestrator)
   │     - status: blocked → ブロッカーを記録、代替タスクに着手
   │     - status: partial → artifacts を取り込み、残作業をタスク分割して工程表に追記→再配送
   │     ⚠️ フェーズ遷移時は Codex レビュー必須（使い分け）:
-  │       - コード差分 → `codex review --uncommitted`
+  │       - コード差分 → `helix review --uncommitted`
   │       - 設計書・仕様書 → `codex exec "レビュー"`
   │
   └─ 6. 次タスクの入力に変換
@@ -47,12 +47,26 @@ Opus (Orchestrator)
         - 引継ぎ情報（decisions, changes）をマージ
 ```
 
+### Codex TL 単体運用での読み替え
+
+Codex CLI が TL として単体運用される場合も、工程表の拘束は緩めない。
+
+- Codex TL は Opus の「工程表管理・出力検証・統合判断」を内面化して実施する。
+- 実装は L3 工程表 / `.helix/task-plan.yaml` / handover Next Action の現在行に限定する。
+- 計画・実装順・整理案をユーザーへ提示した場合、明示承認があるまで編集・依存追加・外部状態変更へ進まない。
+- 工程表に role が分かれている場合、TL が全てを直接実装せず、`helix codex`、`helix claude --dry-run`、`helix team`、利用可能なサブエージェントで委譲する。
+- 上位実行環境がサブエージェント起動を制限する場合は、委譲 prompt / task-file 生成で代替し、未実行理由を evidence に残す。
+- 工程表外の変更が必要になった場合は `interrupted` として止め、工程表更新またはユーザー確認へ戻る。
+
 ## サブエージェント I/O 仕様
 
 ### 入力（Opus → サブエージェント）
 
 ```yaml
 task_id: "T-001"
+plan_id: "PLAN-001"
+wbs_id: "WBS-003"
+l4_sprint: ".2"
 task_description: "認証モジュール実装"
 context:
   skills: ["security", "api"]       # 読み込むスキル
@@ -66,6 +80,11 @@ expected_output:
   format: "実装コード + テスト"
   quality_target: "Lv4"
   files: ["src/auth/**"]
+  acceptance:
+    - "主要 happy path が通る"
+  required_commands:
+    - "helix code find auth"
+    - "helix review --uncommitted"
 ```
 
 ### 出力（サブエージェント → Opus）
@@ -80,6 +99,11 @@ artifacts:
 changes_summary: "JWT認証 + リフレッシュトークンを実装"
 decisions:
   - "bcrypt cost factor = 12（パフォーマンスとセキュリティのバランス）"
+commands_used:
+  - "helix code find auth"
+  - "python3 -m pytest tests/auth -q"
+delegation_used:
+  - "helix codex --role se --task-file .helix/tasks/T-001.md"
 issues: []                          # 問題がある場合
 ```
 
@@ -123,12 +147,12 @@ decisions:
 | 作業 | 委譲先 |
 |------|--------|
 | コード実装 | Codex 5.3 / Codex 5.3 Spark (codex exec) |
-| レビュー・品質アップ | Codex 5.4 (codex review / codex exec) |
+| レビュー・品質アップ | Codex 5.4 (helix review / codex exec) |
 | 大規模コード精読 | Codex 5.2 (codex exec) |
 | テスト作成 | Sonnet (Task tool) |
 | ドキュメント作成 | Sonnet (Task tool) |
 | 調査・検索 | Haiku 4.5 (Task tool) |
-| コードレビュー | Codex 5.4 (codex review --uncommitted) |
+| コードレビュー | Codex 5.4 (helix review --uncommitted) |
 | 設計・仕様レビュー | Codex 5.4 (codex exec "レビュー") |
 
 **常時すべて委譲**。唯一の例外: MCP検証などツール動作確認と**フロント（デザイン含む）設計**のみ自分で実行可。
@@ -162,7 +186,7 @@ Task B へ配送
 
 | 層 | 定義 | 上限 | 超過時 |
 |---|---|---|---|
-| **ゲート内リトライ** | 同一ゲート内の修正＋再判定（例: 実装.2 の codex review 3回） | 3回 | status: failed でゲートを出る → タスクリトライへ |
+| **ゲート内リトライ** | 同一ゲート内の修正＋再判定（例: 実装.2 の helix review 3回） | 3回 | status: failed でゲートを出る → タスクリトライへ |
 | **タスクリトライ** | status: failed のタスク再配送（Opus がプロンプト調整） | 3回 | 人間にエスカレーション |
 | **Progress Alert** | 同一タスクの合計試行回数（ゲート内＋タスク通算） | 5回 | 人間に状況報告（verification §13 参照） |
 

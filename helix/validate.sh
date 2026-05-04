@@ -59,22 +59,19 @@ echo ""
 echo "--- 3. Deprecated Term Detection ---"
 DEPRECATED_TERMS=("orchestrator" "architecture" "vscode-plugins")
 for term in "${DEPRECATED_TERMS[@]}"; do
-  HITS=$(rg -n --glob '*.md' --glob '!SKILL_MAP.md' --glob '!**/archive/**' "$term" "$SKILLS_DIR" \
-    2>/dev/null \
-    | grep -v "architecture_decisions\|architecture:\|architectural\|architecture_identified\|architecture_style\|Architecture Decision\|information-architecture\|Information Architecture\|style:" \
-    || true)
+  HITS=$(rg -n --glob 'SKILL.md' --glob '!**/archive/**' "^name:[[:space:]]*$term$|^name:[[:space:]]*.*/$term$" "$SKILLS_DIR" 2>/dev/null || true)
   if [ -n "$HITS" ]; then
-    fail "Deprecated term '$term' found:"
+    fail "Deprecated skill name '$term' found:"
     echo "$HITS" | head -5
   else
-    pass "No deprecated term '$term'"
+    pass "No deprecated skill name '$term'"
   fi
 done
 
 # codex as skill name (not as tool name)
 CODEX_HITS=$(rg -n --glob '*.md' --glob '!SKILL_MAP.md' --glob '!**/archive/**' "\bcodex\b" "$SKILLS_DIR" \
   2>/dev/null \
-  | grep -iv "codex exec\|codex review\|codex 5\.\|codex cli\|codex_\|codex系\|Codex（\|gpt-5\.\|codex: true\|codex-skills\|sync-codex\|\.codex/" \
+  | grep -iv "codex exec\|helix codex\|helix review\|codex 5\.\|codex cli\|codex_\|codex系\|Codex（\|gpt-5\.\|codex: true\|codex-skills\|codex-plugin-cc\|codex-review\|sync-codex\|\.codex/" \
   || true)
 if [ -n "$CODEX_HITS" ]; then
   warn "Potential deprecated 'codex' as skill name (review manually):"
@@ -100,7 +97,7 @@ for ref_file in "$REF_DIR"/*.md; do
     # Skip generic markdown terms that are not actual file references
     # (SKILL.md は「スキル本体ファイル」の一般名詞、CLAUDE.md も HELIX 全体の設定ファイル名)
     case "$referenced" in
-      SKILL.md|CLAUDE.md|README.md|AGENTS.md|DESIGN.md|DESIGNER.md) continue ;;
+      SKILL.md|CLAUDE.md|README.md|AGENTS.md|DESIGN.md|DESIGNER.md|state-events.md) continue ;;
     esac
     ref_path="$REF_DIR/$referenced"
     if [ ! -f "$ref_path" ]; then
@@ -123,11 +120,15 @@ echo ""
 echo "--- 5. Category Count Validation ---"
 declare -A EXPECTED_COUNTS=(
   ["common"]=12
-  ["workflow"]=18
-  ["project"]=3
+  ["workflow"]=31
+  ["project"]=8
   ["advanced"]=6
-  ["tools"]=2
+  ["tools"]=4
   ["integration"]=1
+  ["writing"]=5
+  ["design-tools"]=5
+  ["automation"]=8
+  ["agent-skills"]=25
 )
 
 for category in "${!EXPECTED_COUNTS[@]}"; do
@@ -139,6 +140,104 @@ for category in "${!EXPECTED_COUNTS[@]}"; do
     fail "$category/: expected $expected, found $actual"
   fi
 done
+
+# 6. 正本系 Markdown のローカルリンク整合性
+echo ""
+echo "--- 6. Markdown Link Validation ---"
+LINK_ERRORS=0
+LINK_TARGETS=(
+  "$ROOT/README.md"
+  "$ROOT/CLAUDE.md"
+  "$ROOT/AGENTS.md"
+  "$ROOT/docs/adr"
+  "$ROOT/docs/backlog"
+  "$ROOT/docs/commands"
+  "$ROOT/docs/design"
+  "$ROOT/docs/requirements"
+  "$ROOT/docs/roadmap"
+  "$ROOT/docs/specs"
+  "$ROOT/docs/quickstart.md"
+  "$ROOT/docs/security-guidelines.md"
+  "$ROOT/docs/setup-guide.md"
+)
+
+while IFS= read -r md_file; do
+  md_dir="$(dirname "$md_file")"
+  while IFS= read -r target; do
+    target="${target#<}"
+    target="${target%>}"
+    target="${target%%[[:space:]]\"*}"
+
+    if [[ "$target" == http://* || "$target" == https://* || "$target" == mailto:* || "$target" == app://* || "$target" == plugin://* || "$target" == \#* || "$target" == javascript:* || "$target" == *://* ]]; then
+      continue
+    fi
+
+    target="${target%%#*}"
+    target="${target%%\?*}"
+    [ -z "$target" ] && continue
+
+    # Runtime artifacts are generated per project/session and are not stable repo docs.
+    if [[ "$target" == .helix/* || "$target" == /.helix/* ]]; then
+      continue
+    fi
+
+    if [[ "$target" == /* ]]; then
+      candidate="$ROOT$target"
+    else
+      candidate="$md_dir/$target"
+    fi
+
+    if [ ! -e "$candidate" ]; then
+      fail "${md_file#$ROOT/}: broken link '$target'"
+      LINK_ERRORS=$((LINK_ERRORS + 1))
+    fi
+  done < <(perl -ne 'while(/!?\[[^\]]+\]\(([^)]+)\)/g){print "$1\n"}' "$md_file")
+done < <(
+  for target in "${LINK_TARGETS[@]}"; do
+    if [ -f "$target" ]; then
+      printf '%s\n' "$target"
+    elif [ -d "$target" ]; then
+      find "$target" -name '*.md' -not -path '*/archive/*'
+    fi
+  done | sort -u
+)
+
+if [ "$LINK_ERRORS" -eq 0 ]; then
+  pass "Core markdown local links resolve"
+fi
+
+# 7. Active docs の unresolved placeholder 検出
+echo ""
+echo "--- 7. Active Docs Placeholder Validation ---"
+PLACEHOLDER_ERRORS=0
+while IFS= read -r doc_file; do
+  hits=$(rg -n -P 'TODO|FIXME|TBD|要確認|未定(?!義)' "$doc_file" 2>/dev/null || true)
+  if [ -n "$hits" ]; then
+    fail "${doc_file#$ROOT/}: unresolved placeholder found"
+    echo "$hits" | head -5
+    PLACEHOLDER_ERRORS=$((PLACEHOLDER_ERRORS + 1))
+  fi
+done < <(
+  find "$ROOT/docs" -name '*.md' \
+    -not -path "$ROOT/docs/archive/*" \
+    -not -path "$ROOT/docs/plans/*" \
+    -not -path "$ROOT/docs/proposals/*" \
+    -not -path "$ROOT/docs/agent-skills/*"
+)
+
+if [ "$PLACEHOLDER_ERRORS" -eq 0 ]; then
+  pass "Active docs have no unresolved TODO/FIXME/TBD markers"
+fi
+
+# 8. コマンド route/help/docs 同期検証
+echo ""
+echo "--- 8. Command Catalog Validation ---"
+if "$ROOT/cli/helix" commands check >/tmp/helix-command-catalog-check.log 2>&1; then
+  pass "Command route/help/docs catalog is consistent"
+else
+  fail "Command route/help/docs catalog mismatch"
+  cat /tmp/helix-command-catalog-check.log
+fi
 
 # Summary
 echo ""

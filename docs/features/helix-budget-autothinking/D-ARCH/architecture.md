@@ -7,7 +7,7 @@
 
 ## 0. 概要
 
-helix-budget + auto-thinking Phase B は HELIX CLI に「消費トラッキング + タスク難度自動判定 + モデル降格」を追加するモジュール群。新規 CLI (`helix budget`) + 既存 CLI (helix-codex/helix-skill) への非破壊拡張で構成される。
+helix-budget + auto-thinking Phase B は HELIX CLI に「消費トラッキング + タスク難度自動判定 + モデル降格」を追加するモジュール群。新規 CLI (`helix budget`) + 既存 CLI (`helix codex` / `helix skill`) への非破壊拡張で構成される。
 
 ## 0.1 コンテキスト
 
@@ -31,7 +31,7 @@ helix-budget + auto-thinking Phase B は HELIX CLI に「消費トラッキン�
 | `cli/lib/effort_classifier.py` | 難度判定 (5軸 + LLM) | 残量判定 |
 | `cli/lib/model_fallback.py` | 降格ルール適用 | 残量取得 / 難度判定 |
 | `cli/lib/budget_cli.py` | サブコマンドエントリ | core ロジック |
-| `helix-codex/helix-skill` | `--auto-thinking` フラグ受付 | 判定自体 |
+| `helix codex` / `helix skill` | `--auto-thinking` フラグ受付 | 判定自体 |
 
 ## 0.3 運用方針
 
@@ -51,8 +51,8 @@ cli/
 │   ├── status / forecast / classify / simulate / cache
 │   └── python3 cli/lib/budget_cli.py $subcmd
 ├── helix-budget-hook             (SessionStart hook entry, ~40 lines)
-├── helix-codex                   (既存 + --auto-thinking 分岐追加)
-├── helix-skill                   (既存 + --auto-thinking 分岐追加)
+├── helix codex                   (既存 + --auto-thinking 分岐追加)
+├── helix skill                   (既存 + --auto-thinking 分岐追加)
 │
 ├── lib/
 │   ├── budget.py                 (~200 lines) — 消費取得メイン
@@ -117,9 +117,9 @@ stdout に 1 行サマリ: "[HELIX] Budget: Claude 58%, Codex 72% (warn: Spark<2
 ### 2.2 auto-thinking フロー
 
 ```
-[User] helix-codex --role se --task "..." --auto-thinking
+[User] helix codex --role se --task "..." --auto-thinking
     ↓
-helix-codex (bash)
+helix codex (bash)
     ↓ [classifier 呼び出し]
 python3 cli/lib/effort_classifier.py classify --task "..." --role se --size <auto>
     ↓
@@ -130,7 +130,7 @@ python3 cli/lib/effort_classifier.py classify --task "..." --role se --size <aut
   cache 保存
     ↓ [返す: effort=medium]
     ↓
-helix-codex
+helix codex
     ↓ [budget 確認]
 python3 cli/lib/budget.py check --model gpt-5.3-codex
     ↓ (残量 OK / NG)

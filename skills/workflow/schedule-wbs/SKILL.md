@@ -44,6 +44,8 @@ compatibility:
 
 ## 2. L3 工程表テンプレート
 
+CLI 配布テンプレートは `cli/templates/docs/L3-schedule-wbs.md`。`helix size` で L3 が対象になると `docs/design/L3-schedule-wbs.md` にコピーされる。
+
 ```markdown
 # L3 実装工程表
 

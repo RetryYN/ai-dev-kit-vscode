@@ -10,7 +10,7 @@
 
 HELIX フレームワークは3つの開発モードを持つ:
 
-- **Forward HELIX**: 要件→設計→実装→検証の標準フロー（L1〜L8 + G0.5〜G7）
+- **Forward HELIX**: 要件→設計→実装→検証→運用の標準フロー（L1〜L11 + G0.5〜G11）
 - **Reverse HELIX**: 既存コードからの設計復元（R0〜R4 + RG0〜RG3）
 - **Scrum HELIX**: 検証駆動開発（仮説→PoC→確認→Forward接続）
 
@@ -112,9 +112,9 @@ reverse: { status: completed | in-progress | null, completed_at: ... }
 
 | リスク | 緩和策 |
 |--------|--------|
-| モード切替時の不整合 | `helix-mode` が切替前に `phase.yaml` 構造を検証 |
+| モード切替時の不整合 | `helix mode` が切替前に `phase.yaml` 構造を検証 |
 | モード間データ競合 | Reverse/Forward/Scrum のキー名プレフィックスで名前空間を分離（`reverse_gates`, `gates`, `scrum/`） |
-| モード依存のゲート実行ミス | `helix-gate` が `current_mode` を参照し、モードに応じた valid_values をチェック |
+| モード依存のゲート実行ミス | `helix gate` が `current_mode` を参照し、モードに応じた valid_values をチェック |
 
 ---
 

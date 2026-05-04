@@ -1,6 +1,6 @@
 # D-QUALITY-SPEC: Builder quality_score 統一基準
 
-> Status: Draft（統一基準の提案段階）
+> Status: Staged（gate-policy / verification へ主要基準を反映済み）
 > Date: 2026-04-14
 > Authors: TL
 

@@ -7,6 +7,7 @@
 - 正本は `HELIX_CORE.md` / `SKILL_MAP.md` / 各 `SKILL.md`
 - この文書はそれらを **Codex の TL 主導運用に圧縮して解釈するための補助ルール**
 - Claude Code 側の運用は変更しない
+- 本文書の強制対象は Codex。Claude Code は既存の `CLAUDE.md` / `.claude/CLAUDE.md` / hook 運用を正とする
 
 ## 基本原則
 
@@ -14,6 +15,31 @@
 - 共通スキルに `PM/TL/SE/QA` の分業記述があっても、Codex 単体では自分の内面化された役割として処理する
 - 共有スキルを Codex 用に書き換えず、この文書で読み替える
 - 自動通過は会議省略を意味し、証跡省略を意味しない
+- **工程表を正とする**。実装順、担当 role、依存、受入条件、参照ドキュメントは L3 工程表 / `.helix/task-plan.yaml` / handover Next Action に従う
+- **計画提示後は承認待ち**。Codex がユーザーに計画・実装順・整理案を提示した場合、明示承認があるまでファイル編集や外部状態変更へ進まない
+- **HELIX コマンドと委譲を使う**。実装を直接進める前に、適用可能な `helix plan` / `helix task` / `helix sprint` / `helix code` / `helix codex` / `helix claude` / `helix team` / `helix review` の利用または不使用理由を証跡化する
+
+## Codex 非交渉ルール
+
+Codex が守らない問題を防ぐため、以下を **必須停止条件** とする。
+
+- 計画提示依頼なのに明示承認前に編集しようとしている → stop: `awaiting_plan_consent`
+- 工程表 / task-plan / handover の該当行があるのに、別順序または工程表外の実装へ進もうとしている → stop: `interrupted`
+- role 分担があるのに、委譲や `helix review` を使わず自己完結しようとしている → stop せずとも evidence に不使用理由が必須
+- 受入条件または reference_docs が特定できない実装 → stop: `blocked`
+
+### `helix codex` hard guard
+
+Codex 実装委譲は原則 `helix codex` 経由にする。`helix codex` は以下を実行プロンプトへ強制注入し、計画系タスクでは実行状態も制限する。
+
+- `--plan-only`: `sandbox=read-only` と `full-auto=off` を強制する
+- `--approved`: 明示承認済み実装として write 実行を許可する
+- `--consent auto`: 計画・整理・レビュー・調査系タスクを検出した場合、自動で plan-only guard をかける
+- `--plan-id` / `--task-id` / `--wbs-id` / `--l4-sprint` / `--acceptance` / `--reference-doc` / `--allowed-files`: 工程表文脈をプロンプトへ注入する
+- `HELIX_CODEX_REQUIRE_APPROVED=1`: write 実行に `--approved` を必須化する
+- `cli/codex` shim: PATH 上で raw `codex exec` を捕捉し、`helix codex` へ誘導する
+
+素の `codex exec` は上記 hard guard が効かないため、TL モードではブロック対象。どうしても必要な場合のみ `HELIX_ALLOW_RAW_CODEX=1 codex exec ...` とし、理由と代替不能性を evidence に残す。
 
 ## 役割の読み替え
 
@@ -35,9 +61,10 @@
 
 ### 他モデル前提の記述
 
-- Sonnet / Haiku / 別 Codex への委譲は **任意**
-- 利用しない場合も、テスト・ドキュメント・調査は省略せず自分で実施する
-- `codex review` や別モデルレビューを起動しない場合でも、**レビュー工程そのものは必須**
+- Sonnet / Haiku / 別 Codex / Claude Code への委譲は、工程表の role と作業種別に従って判断する
+- 工程表または task-plan で role が分かれている場合、TL が全作業を抱え込まず、`helix codex` / `helix claude --dry-run` / `helix team` / 利用可能なサブエージェントで委譲する
+- 利用できない場合も、テスト・ドキュメント・調査は省略せず自分で実施し、委譲できなかった理由を final の evidence に残す
+- `helix review` や別モデルレビューを起動しない場合でも、**レビュー工程そのものは必須**
 
 ### ツール前提の記述
 
@@ -55,12 +82,57 @@
    - フェーズスキップ決定
    - 適用ゲート決定
    - 必要スキルのみ Read
-3. 設計と実装
+3. 工程表・計画同期
+   - 既存の `helix plan status/list`、`.helix/task-plan.yaml`、L3 工程表、handover Next Action を確認する
+   - 実行対象の `plan_id` / `task_id` / `WBS ID` / `L4 Sprint` / 受入条件 / reference_docs を特定する
+   - 工程表が存在する実装タスクでは、前提 WBS が completed でない工程へ進まない
+   - 工程表が必要なのに存在しない場合は、実装前に最小の工程表または task-plan を作るか、blocked としてユーザーへ返す
+4. Plan Consent Gate
+   - Codex がユーザーに計画・実装順・整理案を提示した場合、`OK` / `進めて` / `実装して` / `それで` / `やって` / `apply` / `proceed` 等の明示承認があるまで実装しない
+   - ユーザーの最新依頼が最初から明確な実装指示の場合は、別途承認待ちにせず進めてよい
+   - 読み取り専用の調査、grep、テスト実行、状態確認は承認前でも実行可
+5. 設計と実装
    - 実装タスクでは `実装.1 → .2 → .3 → .4 → .5` を順番固定で実施
-4. 検証
+   - 各ゲート開始前に、該当工程の受入条件と reference_docs に対する作業であることを確認する
+6. 検証
    - テスト、lint、型、差分レビュー、必要な手動確認を行う
-5. ゲート報告
+7. ゲート報告
    - 適用ゲートごとに `passed / failed / blocked / interrupted` を明示する
+   - 工程表のどの行を完了したか、どの HELIX コマンド / サブエージェント / 委譲 prompt を使ったかを evidence に含める
+
+## 工程表遵守ゲート
+
+実装に入る直前に、Codex TL は以下を満たす必要がある。
+
+- `plan_id`、`task_id` または `WBS ID` が特定されている
+- 作業対象が L3 工程表 / `.helix/task-plan.yaml` / handover Next Action のいずれかに紐づいている
+- 前提工程、依存タスク、reference_docs、受入条件が読まれている
+- 工程表外のファイルや作業が必要になった場合、実装を止めて工程表更新またはユーザー確認へ戻す
+- 優先順位や実装順を変える場合、先に工程表 / task-plan / handover を更新し、その理由を記録する
+
+工程表がない小規模修正では、少なくとも次を会話または final に残す。
+
+```text
+scope:
+acceptance:
+files_read:
+commands_used:
+verification:
+```
+
+## 委譲・コマンド利用ゲート
+
+TL モードは「自分で全部やる」モードではなく、HELIX の管理 harness を使って進行する。
+
+- 実装前調査: `helix code find "<keyword>"` と必要に応じて `helix code stats`
+- 計画・タスク: `helix plan` / `helix task` / `helix sprint`
+- Codex 委譲: `helix codex --role <role> --task ...`
+- Claude Code 委譲: `helix claude --role <role> --task ... --dry-run`
+- 複数 role: `helix team run --definition ...`
+- 差分レビュー: `helix review --uncommitted`
+- 引継ぎ: `helix handover status --json` / `helix handover update`
+
+上位実行環境の制約でサブエージェント起動が制限される場合は、`helix claude --dry-run` や `.helix/tasks/` の task-file 生成で代替し、未実行理由を evidence に残す。
 
 ## 実装.1〜.5 の運用
 
@@ -108,7 +180,7 @@
 ## レビュー運用
 
 - `gate-policy.md` や `ai-coding` が要求するレビュー工程は必ず実施する
-- 別セッションの `codex review --uncommitted` が使えるなら使う
+- 別セッションの `helix review --uncommitted` が使えるなら使う
 - 使えない場合は、実装モードから一段引いて **セルフレビュー専用パス** を実施し、少なくとも以下を確認する
   - 仕様逸脱
   - Critical / High 相当の欠陥

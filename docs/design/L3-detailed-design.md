@@ -25,6 +25,11 @@
 - テストケース:
 
 ## 6. 工程表
-- タスク分解:
-- 見積:
-- マイルストーン:
+
+工程表の正本は `docs/design/L3-schedule-wbs.md` に分離する。
+
+- WBS:
+- L4 Sprint 接続:
+- feature flag:
+- rollback:
+- クリティカルパス:

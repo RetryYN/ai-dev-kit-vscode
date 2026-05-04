@@ -1,4 +1,4 @@
-# helix learn / promote / discover ガイド
+# helix recipe / learn / promote / discover ガイド
 
 ## 目的
 
@@ -6,7 +6,19 @@
 - しきい値を超えた recipe を Builder 生成物へ昇格
 - local/global から再利用パターンを検索
 
-## 1. learn
+## 1. 正規入口: recipe
+
+```bash
+helix recipe learn --task-id T001
+helix recipe learn --all
+helix recipe promote --auto
+helix recipe discover --query "auth" --limit 10
+helix recipe list
+```
+
+`helix learn` / `helix promote` / `helix discover` は後方互換の旧入口。新規手順では `helix recipe ...` を使う。
+
+## 2. learn
 
 ```bash
 helix learn --task-id T001
@@ -19,7 +31,7 @@ helix learn --all
 - `.helix/recipes/` に recipe 保存
 - `~/.helix/global.db` へ同期
 
-## 2. promote
+## 3. promote
 
 ```bash
 # 候補表示（自動判定）
@@ -38,7 +50,7 @@ helix promote <recipe-id> --type sub-agent
 helix promote --auto --threshold 5
 ```
 
-## 3. discover
+## 4. discover
 
 ```bash
 helix discover --query "auth" --limit 10

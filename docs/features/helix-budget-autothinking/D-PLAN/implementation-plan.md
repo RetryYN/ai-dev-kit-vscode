@@ -87,8 +87,8 @@
 
 | ID | タスク | 担当 | 依存 | 想定時間 |
 |----|-------|------|------|---------|
-| 6-01 | `helix-codex` に `--auto-thinking` フラグ追加 | Codex SE | 3-*, 4-* | 40 分 |
-| 6-02 | `helix-skill use` に `--auto-thinking` フラグ追加 | Codex SE | 6-01 | 30 分 |
+| 6-01 | `helix codex` に `--auto-thinking` フラグ追加 | Codex SE | 3-*, 4-* | 40 分 |
+| 6-02 | `helix skill use` に `--auto-thinking` フラグ追加 | Codex SE | 6-01 | 30 分 |
 | 6-03 | `cli/lib/skill_dispatcher.py` 拡張 (budget check hook point) | Codex SE | 6-01 | 25 分 |
 | 6-04 | `cli/helix-log` に `report budget` 追加 | Codex PG | 2-*, DB v6 | 40 分 |
 | 6-05 | bats (拡張系 10 件) | Codex QA | 6-01~04 | 60 分 |

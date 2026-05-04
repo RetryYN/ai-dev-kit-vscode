@@ -76,7 +76,7 @@ AIは「ジュニア開発者」と考える:
 
 ### 最適化ループ
 
-1. `helix-codex` で委譲実行
+1. `helix codex` で委譲実行
 2. 結果（成功/失敗）を記録
 3. 失敗パターンから role prompt の弱点を特定
 4. role prompt の改善案を生成
@@ -153,12 +153,12 @@ src/
             ↓ ← codex exec -m gpt-5.4（設計レビュー）: G2（設計凍結）
             ↓ ← codex exec -m gpt-5.4（API契約レビュー）: G3（実装着手 / API契約レビュー）
 【実装】Codex 5.3 が設計から実装まで一気通貫で実行
-            │ ← codex review（軽量: Critical/High のみ）: 実装.2（5.4 レビュー）
-            │ ← codex review（フル品質）: 実装.5（5.4 レビュー）
-            ↓ ← codex review --uncommitted: G4（実装凍結）
+            │ ← helix review（軽量: Critical/High のみ）: 実装.2（5.4 レビュー）
+            │ ← helix review（フル品質）: 実装.5（5.4 レビュー）
+            ↓ ← helix review --uncommitted: G4（実装凍結）
 【品質アップ】Codex 5.4 がリファクタ・清書・FEデザイン清書
 【ビジュアル】visual-design に基づくデザイン適用・調整
-            ↓ ← codex review --uncommitted: G5（デザイン凍結）
+            ↓ ← helix review --uncommitted: G5（デザイン凍結）
 【修正】エラー少 → Codex 5.3 Spark / エラー多 → Codex 5.3 → さらに多発は 5.4
             ↓
 【テスト】Sonnet がテストコード作成・実行
@@ -212,7 +212,7 @@ src/
 ```bash
 # Codex 5.4: 設計レビュー・コードレビュー・品質アップ・トラブルシュート
 codex exec "レビュー: X feature の設計書" -m gpt-5.4
-codex review --uncommitted      # コードレビュー
+helix review --uncommitted      # コードレビュー
 
 # Codex 5.3: 実装メイン（スコア4+）
 codex exec "Implement X feature based on design docs" -m gpt-5.3-codex
@@ -241,7 +241,7 @@ Task(model: "haiku", prompt: "Search for ... and summarize")
 ├── 軽量実装・軽微修正（スコア1-3）→ Codex 5.3 Spark（codex exec -m gpt-5.3-codex-spark）
 │   └── エラー多発 → Codex 5.3 にエスカレ → さらに多発なら 5.4
 ├── 大規模コード精読・スキャン → Codex 5.2（codex exec -m gpt-5.2-codex）
-├── コードをレビューする → Codex 5.4（codex review --uncommitted）
+├── コードをレビューする → Codex 5.4（helix review --uncommitted）
 │   └── 低リスク（S + セキュリティゲート非該当）→ Codex 5.3 が一次レビュー可
 ├── 品質アップ（リファクタ・清書）→ Codex 5.4（codex exec -m gpt-5.4）
 ├── トラブルシューティング → Codex 5.4（常に。1Mコンテキストで最強）
@@ -460,9 +460,9 @@ steps:
 
 ### HELIX との統合ポイント
 
-1. `helix-gate` の結果を GitHub Actions で再現実行し、PR 上で pass/fail を可視化
-2. `helix-pr` による PR 本文生成をワークフロー内に組み込み、説明品質を標準化
-3. `helix-hook` のローカルチェックを CI でも実行し、ローカル/CI 差分を最小化
+1. `helix gate` の結果を GitHub Actions で再現実行し、PR 上で pass/fail を可視化
+2. `helix pr` による PR 本文生成をワークフロー内に組み込み、説明品質を標準化
+3. `helix hook` のローカルチェックを CI でも実行し、ローカル/CI 差分を最小化
 
 ### 最小ジョブ例（概念）
 
@@ -472,9 +472,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: ./cli/helix-hook
-      - run: ./cli/helix-gate G4 --static-only
-      - run: ./cli/helix-pr --dry-run
+      - run: ./cli/helix hook
+      - run: ./cli/helix gate G4 --static-only
+      - run: ./cli/helix pr --dry-run
 ```
 
 ---

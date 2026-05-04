@@ -66,9 +66,9 @@
 
 | サービス | 用途 | ネットワーク | 必須/オプション |
 |---------|------|------------|---------------|
-| Codex CLI (gpt-5.4-mini) | effort classifier | HTTPS → OpenAI API | --auto-thinking 時必須 |
-| Codex CLI (通常ロール) | helix-codex 実行 | HTTPS → OpenAI API | 既存機能 |
-| Claude Code | セッション | HTTPS → Anthropic API | 既存機能 |
+| Codex CLI (gpt-5.4-mini) | effort classifier | Codex CLI 側の通信。HELIX は API を直接呼ばない | --auto-thinking 時必須 |
+| Codex CLI (通常ロール) | `helix codex` 実行 | Codex CLI 側の通信。HELIX は API を直接呼ばない | 既存機能 |
+| Claude Code | セッション / hook | Claude Code 側の通信。HELIX は API を直接呼ばない | 既存機能 |
 | `chatgpt.com/backend-api/wham/usage` (非公式) | Codex 残量精密取得 | HTTPS | **opt-in のみ (ADR-005)** |
 | npm registry (`ccusage` 取得) | インストール時のみ | HTTPS → npmjs.com | `npm install -g ccusage` 時 |
 
@@ -101,8 +101,8 @@
 | Codex CLI 呼び出し失敗 (classifier) | auto-thinking 無効化 | ルールベース fallback (NFR-R3) |
 | ネットワーク切断 | classifier 呼び出し不可 | キャッシュ hit で継続、miss 時はルールのみ |
 | Codex state.db スキーマ変更 | Codex 残量取得不可 | fallback + error event 記録 + 警告 |
-| OpenAI API 障害 | classifier 利用不可 | 既存の role 既定 thinking で続行 |
-| Anthropic API 障害 | HELIX 動作不可 (上位レイヤー) | 対応範囲外 |
+| Codex CLI 側の通信障害 | classifier 利用不可 | 既存の role 既定 thinking で続行 |
+| Claude Code 側の通信障害 | Claude Code セッション影響 | HELIX 側は handover / retry / dry-run prompt で継続 |
 
 ### 4.3 エスカレーション
 

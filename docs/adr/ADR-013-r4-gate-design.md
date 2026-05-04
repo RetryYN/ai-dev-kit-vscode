@@ -8,7 +8,7 @@
 
 ## Context
 
-`helix-reverse` の stage_gates マッピングでは、R3 と R4 が同じ RG3 ゲートを参照している:
+`helix reverse` の stage_gates マッピングでは、R3 と R4 が同じ RG3 ゲートを参照している:
 
 ```bash
 # cli/helix-reverse line 102-106
@@ -47,13 +47,17 @@ R3 と R4 は性質が異なる:
 1. **R4 は機械的集約**: R0-R3 で検証済みの情報から Gap を集約するのみ。新たな人間判定を要求しない
 2. **Forward 接続は別プロセス**: R4 完了 → Forward HELIX 接続は `helix mode forward` + 個別 Sprint 起票で管理。ゲートでの検証対象ではない
 3. **ゲート数の増加を回避**: 現在 RG0-RG3 の4ゲートで十分、RG4 追加は運用複雑化
-4. **RGC（Reverse Gap Closure）で将来補完**: Forward での Gap 閉塞確認は RGC フェーズで実施（GAP-032、別途）
+4. **RGC（Reverse Gap Closure）で補完**: Forward での Gap 閉塞確認は RGC フェーズで実施する
 
 ### 運用ルール
 
 - R4 の完了条件は「R4-gap-register.md が存在し、全 Gap が Forward ルーティング済み」
-- `helix reverse rgc`（将来実装）で Forward 側の閉塞確認を行う
+- `helix reverse rgc` で Forward 側の閉塞確認を行う
 - 現状の RG3 兼用は「Reverse フェーズ全体の完了ゲート」として解釈
+
+### 現行実装メモ（2026-05）
+
+RGC は `code` / `design` / `normalization` / `fullback` で CLI harness が実装済み。`upgrade` は PLAN-008 の設計に従い RGC をスキップし、R4 routing を Forward 側の接続点とする。
 
 ---
 
@@ -80,7 +84,7 @@ R3 と R4 は性質が異なる:
 
 ### 正の影響
 
-- **運用継続性**: 現状の helix-reverse 実装を変更不要
+- **運用継続性**: 現状の `helix reverse` 実装を変更不要
 - **明示的な設計判断**: 「なぜ RG4 がないか」が ADR として記録される
 - **RGC への接続**: R4 完了後の Forward 閉塞確認を RGC に委譲する設計を明確化
 
@@ -93,15 +97,15 @@ R3 と R4 は性質が異なる:
 
 | リスク | 緩和策 |
 |--------|--------|
-| R4 固有の品質問題を見逃す | R4-gap-register.md のテンプレート検証を `helix-reverse status` で実施 |
+| R4 固有の品質問題を見逃す | R4-gap-register.md のテンプレート検証を `helix reverse status` で実施 |
 | 「R4 完了」の判定が曖昧 | 判定基準を SKILL_MAP / reverse-analysis スキルに明記 |
-| RGC 未実装状態での運用 | GAP-032 完了まで手動で Forward 側進捗を確認 |
+| RGC 対象外 type の混乱 | `upgrade` は RGC を持たず、R4 routing を明示的な接続点として扱う |
 
 ---
 
 ## References
 
 - `cli/helix-reverse` line 102-106（stage_gates マッピング）
-- [GAP-032: RGC CLI 未実装](/.helix/reverse/R4-gap-register.md)
+- [Reverse RGC gap register](/.helix/reverse/R4-gap-register.md)
 - [skills/workflow/reverse-analysis/SKILL.md]
 - [SKILL_MAP.md §HELIX Reverse](../../skills/SKILL_MAP.md)

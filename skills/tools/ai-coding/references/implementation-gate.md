@@ -22,6 +22,10 @@
 - 参照ドキュメントが工程表タスクに紐づいている（reference_docs が空でない）
 - 仕様が「検証可能」になっている（受入条件/確認手順が最低1つある）
 - 影響範囲（変更対象ファイル/モジュール）が大まかに特定されている
+- L3 工程表 / `.helix/task-plan.yaml` / handover Next Action の該当行が確認済み
+- 該当行の `plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、担当 role が確認済み
+- 計画・実装順・整理案をユーザーへ提示済みの場合、明示承認を得ている
+- 工程表に指定された HELIX command / delegation を使う方針、または使えない理由が明記されている
 
 未達の場合は status: blocked として差し戻し（PM に報告）。
 
@@ -48,6 +52,7 @@
 
 **入力:**
 - 工程表タスク（task_id / task_description / reference_docs）
+- 工程表の該当行（plan_id / WBS ID / L4 Sprint / 担当 role / 依存 / 受入条件 / HELIX command）
 - 関連コード（現状）
 
 **チェック（通過条件）:**
@@ -55,8 +60,9 @@
 - 影響を受ける **依存関係の列挙**（import/export、DB参照、API呼び出し）
 - 既存 **テストカバレッジの確認**（テストがあるか、何をカバーしているか）
 - 既存 **パターン・規約の把握**（命名、構造、エラーハンドリング方式）
+- `helix code find "<keyword>"` または同等の既存実装検索を実行し、再利用候補または該当なしを記録
 
-**成果物:** `impact_analysis`（読了ファイル一覧 / 依存列挙 / テスト現状 / 規約メモ）
+**成果物:** `impact_analysis`（読了ファイル一覧 / 依存列挙 / テスト現状 / 規約メモ / commands_used）
 
 ### 実装.1b — 変更計画策定
 
@@ -70,6 +76,8 @@
 - 変更対象が列挙されている（例: 触るファイル候補、追加するエンドポイント、変更する型）
 - 変更しないものが明確（スコープ外）
 - ロールバック方針がある（戻せる粒度で変更する）
+- 工程表の担当 role と委譲先（`helix codex` / `helix claude --dry-run` / `helix team` / サブエージェント / 自実装）が明確
+- 工程表にない作業を追加する場合は、工程表更新またはユーザー確認へ戻っている
 - 不明点が「質問」か「仮定」かに分離されている
   - 仮定で進める場合は明示し、後続ゲートで検証する
 - **事前調査完了（調査メモが存在すること）** — ai-coding §7 の強制条件に該当する場合
@@ -91,7 +99,7 @@
 - ビルド/型チェック/起動のうち「最低1つ」が成立する（プロジェクトに合わせる）
 - 主要インタフェース（関数シグネチャ、API契約、型定義）が先に揃っている
 - TODO を残す場合、残件が列挙されている（ゲート跨ぎの宿題を可視化）
-- **`codex review --uncommitted` 合格（軽量パス: Critical/High のみ報告）**
+- **`helix review --uncommitted` 合格（軽量パス: Critical/High のみ報告）**
   - 骨格完成時点で方向ミスを早期検出する目的
   - Medium/Low は .5 のフルレビューで検出する
   - ※ CLI に severity フィルタがないため、レビュー結果から PM が Critical/High のみ抽出して判定する
@@ -99,7 +107,7 @@
 ### 失敗時アクション
 - 依存追加や設定不足ならここで修正してから次へ
 - 仕様変更が必要なら L2/L3 へ差し戻しを検討（PM へ報告）
-- codex review で Critical/High が出た場合、修正後に再レビュー（ゲート内リトライ: 最大3回）
+- helix review で Critical/High が出た場合、修正後に再レビュー（ゲート内リトライ: 最大3回）
 - **IIP 発動条件に該当する場合** → 下記「IIP（実装内割り込みプロトコル）」に従い影響度分類
 
 ---
@@ -152,7 +160,7 @@
 - 変更点の要約（changes_summary）が1段落で書ける
 - 重要な意思決定（decisions）が列挙されている（なぜそうしたか）
 - 参照ドキュメントとの整合が取れている（設計/契約/README等）
-- **`codex review --uncommitted` 合格（フル品質: 全 severity レベル）**
+- **`helix review --uncommitted` 合格（フル品質: 全 severity レベル）**
   - 具体項目は `review-checklist.md` を参照
   - .2 の軽量パスで見送った Medium/Low もここで検出する
 
@@ -233,6 +241,10 @@ notes:
   - "リスク: ..."
 artifacts:
   - "変更ファイル/差分の要点"
+commands_used:
+  - "helix code find ..."
+delegation_used:
+  - "helix codex --role se ..."
 next:
   - "次ゲートでやること"
 ```

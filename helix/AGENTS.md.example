@@ -34,6 +34,10 @@ Codex CLI 単体利用時は **TL（テックリード）として自律動作**
 - 設計→実装→テスト→検証を一気通貫で行う
 - 適用ゲートはタスクサイズ（S/M/L）と変更種別で決まる → SKILL_MAP.md §フェーズスキップ決定木 に従う
 - 適用されるゲートは順番固定。各ゲートの pass/fail を明示する
+- 工程表 / task-plan / handover Next Action を正とし、工程表外の実装へ勝手に進まない
+- 計画・実装順・整理案をユーザーへ提示した場合、明示承認があるまで編集へ進まない
+- 工程表の role に応じて `helix codex` / `helix claude --dry-run` / `helix team` / `helix review` を使い、使えない場合は理由を証跡化する
+- Codex 実装委譲は原則 `helix codex` 経由。計画のみは `--plan-only`、承認済み実装は `--approved` と WBS 文脈を渡す
 - 不明点・本番影響は人間にエスカレーション（自己判断しない）
 
 ### 品質基準
@@ -48,10 +52,10 @@ config.toml のデフォルト (`gpt-5.4`) は TL 役割用。役割を切り替
 
 | 役割 | コマンド |
 |------|---------|
-| TL（デフォルト） | `codex exec "..."` |
-| SE（上級実装） | `codex exec "..." -m gpt-5.3-codex` |
-| PG（通常実装） | `codex exec "..." -m gpt-5.3-codex-spark` |
-| 精読（大規模コード） | `codex exec "..." -m gpt-5.2-codex` |
+| TL（デフォルト） | `helix codex --role tl --task "..." --plan-only` |
+| SE（上級実装） | `helix codex --role se --task "..." --approved` |
+| PG（通常実装） | `helix codex --role pg --task "..." --approved` |
+| 精読（大規模コード） | `helix codex --role legacy --task "..." --read-only` |
 
 ## Codex 固有ルール
 
@@ -63,4 +67,26 @@ config.toml のデフォルト (`gpt-5.4`) は TL 役割用。役割を切り替
 
 1. `~/ai-dev-kit-vscode/helix/HELIX_CORE.md` が存在するか確認
 2. `~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が存在するか確認
-3. 問題なければ「OK: セッション初期化完了」で開始
+3. `~/ai-dev-kit-vscode/helix/CODEX_TL_MODE.md` が存在するか確認
+4. カレントディレクトリに `.helix/handover/CURRENT.json` が存在するかチェック
+5. 存在する場合は `helix handover status --json` を実行
+6. `stale: true` なら中断し、stale reason をユーザーに伝える
+7. stale でなければ `helix handover update --owner codex` で所有権を移し、`.helix/handover/CURRENT.md` の Next Action に従う
+8. handover がなければ「OK: セッション初期化完了」で開始
+
+## Codex / Claude Code 管理 harness
+
+Codex と Claude Code は API 直叩きではなく、契約プラン + ローカル CLI / hook を HELIX が管理する対象。
+
+- Codex 実行: `helix codex --role <role> --task "..."`
+- Codex 計画のみ: `helix codex --role <role> --task "..." --plan-only`
+- Codex 承認済み実装: `helix codex --role <role> --task "..." --approved --plan-id PLAN-001 --wbs-id WBS-003`
+- Claude Code prompt 生成: `helix claude --role <role> --task "..." --dry-run`
+- 複数 role 委譲: `helix team <team> --task "..."`
+- 差分レビュー: `helix review --uncommitted`
+- 引継ぎ: `helix handover status --json`
+- 実装前調査: `helix code find "<keyword>"`
+- タスク管理: `helix task catalog|plan|status`
+- L4 進行: `helix sprint status|next`
+
+外部 provider SDK や認証情報を前提にした fallback を通常導線として追加しない。

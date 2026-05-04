@@ -29,7 +29,33 @@ helix --help
 
 ```bash
 cd /path/to/your-project
+helix setup preflight --profile project
 helix init
+```
+
+一発で初期化まで進める場合:
+
+```bash
+helix setup bootstrap --project-name your-project
+```
+
+`bootstrap` は preflight、`helix init`、DB 初期化、safe setup components（redaction denylist / HELIX audit gitignore）、matrix compile / auto-detect、最終 preflight を順に実行する。OS パッケージや外部ツールのインストールは勝手に行わず、Codex CLI や gitleaks などは必要に応じて warning / component verify で確認する。
+
+開発支援パッケージを入れる場合は、別途 `packages` サブコマンドを使う。既定は dry-run で、実行時だけ `--yes` を付ける。
+
+```bash
+helix setup packages list
+helix setup packages install --name textlint
+helix setup packages install --name playwright --yes
+```
+
+対象: `textlint`, `playwright`, `axe`, `marp`, `d2`, `crawl4ai`, `bats`。
+
+旧来のまとめスクリプト `cli/scripts/setup-all.sh` も、同じ安全方針に揃えてある。既定ではパッケージ導入は dry-run 表示に留め、実インストールは明示的に `--yes` を付けた場合だけ行う。
+
+```bash
+bash ~/ai-dev-kit-vscode/cli/scripts/setup-all.sh
+bash ~/ai-dev-kit-vscode/cli/scripts/setup-all.sh --yes
 ```
 
 `helix init` で主に生成されるもの:
@@ -39,6 +65,10 @@ helix init
 - `.helix/rules/*.yaml`
 - `.helix/doc-map.yaml`
 - `.helix/gate-checks.yaml`
+- `CLAUDE.md`
+- `AGENTS.md`
+
+`helix size` 実行時は、対象 phase に応じて `docs/requirements/`、`docs/design/`、`docs/sprint/` に管理ドキュメントテンプレートが追加されます。L3 が対象の場合は `docs/design/L3-detailed-design.md` と `docs/design/L3-schedule-wbs.md` が生成されます。
 
 ### モノレポの場合
 
@@ -185,3 +215,14 @@ helix gate G4
 ```
 
 失敗時は `helix status` の Action Guide を確認し、不足成果物と検証結果を埋める。
+
+## 10. Reverse 開始前チェック
+
+既存コードや既存設計から Reverse HELIX を始める前に、入口条件を確認する。
+
+```bash
+helix setup preflight --profile reverse --reverse-type code --target src/
+helix reverse code R0 --target src/
+```
+
+`reverse-type` は `code | design | upgrade | normalization | fullback` を指定できる。`.helix/`、`phase.yaml`、`helix-codex` wrapper、出力先書き込み権限、対象 path を確認し、Codex CLI 未導入など開始前に見るべき項目は warning として表示する。

@@ -68,7 +68,7 @@ graph TB
 
 | コマンド | 説明 |
 |---------|------|
-| `helix init` | `.helix/` ディレクトリを作成し、テンプレートをコピーしてプロジェクトを初期化 |
+| `helix init` | `.helix/`、`CLAUDE.md`、`AGENTS.md` を作成し、テンプレートをコピーしてプロジェクトを初期化 |
 | `helix status` | phase.yaml + SQLite から現在のフェーズ・ゲート状態・スプリント進捗を表示 |
 | `helix mode` | Forward / Reverse / Scrum の開発モードを切替（phase.yaml の `current_mode` 更新） |
 | `helix matrix` | 成果物マトリクスの compile / auto-detect / 表示 |
@@ -153,7 +153,7 @@ helix-<cmd>                 <- Layer 2: 引数パース -> lib 呼び出し
 ### 4.2 Codex CLI 連携フロー
 
 ```
-helix-codex --role <role> --task "..."
+helix codex --role <role> --task "..."
     |
     +-- roles/<role>.conf      読み込み（model, skills, system_prompt）
     +-- skills/***/SKILL.md    スキル注入
@@ -168,7 +168,7 @@ Codex (GPT-5.x) 実行 -> 結果 -> cost_log 記録
 
 ### 4.3 テンプレート -> ランタイム変換フロー
 
-`helix init` 実行時にテンプレートファイルを `.helix/` にコピーし、以降は `matrix_compiler.py` 等がランタイムファイルを派生生成する。
+`helix init` 実行時にテンプレートファイルを `.helix/` と project root にコピーし、以降は `matrix_compiler.py` 等がランタイムファイルを派生生成する。
 
 ```
 cli/templates/                      .helix/ (ランタイム)
@@ -179,6 +179,14 @@ cli/templates/                      .helix/ (ランタイム)
   doc-map.yaml         --[cp]-->    doc-map.yaml
   state-machine.yaml   --[cp]-->    state-machine.yaml
   rules/*.yaml         --[cp]-->    rules/*.yaml
+
+cli/templates/docs/                 docs/ (管理ドキュメント)
+  L1-requirements.md   --[size]-->  docs/requirements/L1-requirements.md
+  L2-design.md         --[size]-->  docs/design/L2-design.md
+  L3-detailed-design.md --[size]--> docs/design/L3-detailed-design.md
+  L3-schedule-wbs.md   --[size]-->  docs/design/L3-schedule-wbs.md
+  L4-*-sprint-guide.md --[size]-->  docs/sprint/
+  L5-visual-design.md  --[size]-->  docs/design/L5-visual-design.md
 
 .helix/matrix.yaml
   |--[matrix_compiler.py compile]-->      .helix/runtime/index.json

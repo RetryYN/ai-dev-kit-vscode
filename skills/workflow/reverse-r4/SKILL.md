@@ -189,7 +189,7 @@ rgc_prep:
 `cli/helix-reverse` の `R4` は gap 出力を生成する入口として扱う。
 
 運用上の推奨:
-- `helix-reverse R4 --target <path>` で初期生成
+- `helix reverse R4 --target <path>` で初期生成
 - 生成物を `docs/reverse/gap_register.md` へ正規化
 - Forward 接続時に gate-policy と整合を確認
 
@@ -215,4 +215,3 @@ R4 を `done` とする条件:
 - 全 gap に `routing先(L1-L4)` が記載
 - Forward HELIX の入場レイヤーが宣言済み
 - RGC で使う closure 期待値が記載済み
-

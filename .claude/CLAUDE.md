@@ -3,6 +3,8 @@
 @~/ai-dev-kit-vscode/skills/SKILL_MAP.md
 @~/ai-dev-kit-vscode/helix/HELIX_CORE.md
 
+> このファイルは Claude Code runtime / orchestration policy 用。プロジェクト共通知識は repository root の `CLAUDE.md`、Codex CLI 向けルールは `AGENTS.md` を正本にする。
+
 ## Claude Code 固有設定
 
 - **Edit 前に Read**: 未読ファイルの Edit は失敗する

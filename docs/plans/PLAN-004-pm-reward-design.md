@@ -1,8 +1,8 @@
-# PLAN-004: PM 報奨設計 + Implementation Readiness Framework + Deliverable Abstraction + Research/Review Embed (v4)
+# PLAN-004: PM 報奨設計 + Implementation Readiness Framework + Deliverable Abstraction + Research/Review Embed (v5)
 
 ## §1 目的
 
-本 PLAN は `PLAN-004`（v3）を v4 へ改訂し、既存の「速度優先」から「正確・精度志向」への設計判断を実装前提まで拡張する。
+本 PLAN は `PLAN-004`（v3）を v5 へ改訂し、既存の「速度優先」から「正確・精度志向」への設計判断を実装前提まで拡張する。
 
 ### 1.1 本計画の中心方針
 
@@ -12,16 +12,16 @@
 - 各 L で `Research` と `Review` を組み込み、評価と意思決定の再現性を上げる。
 - v3 の報奨設計（既存 A）を維持し、L1-L3 の実行構造と CLI/アダプタ基盤を新規追加する。
 
-### 1.2 v4 で達成する結果
+### 1.2 v5 で達成する結果
 
 - PLAN-004 の本文を以下で更新する。
-  - `§1-§10` の v4 フォーマット確定
+  - `§1-§10` の v5 フォーマット確定
   - `§3` で A/B/C/D の 4 軸を明示
   - `§4.2-4.5` で Readiness/Deliverable/Research+Review を新規設計
   - `§7` で Sprint 7-10 を追加
-  - `§10` に v4 改訂履歴を追加
+  - `§10` に v5 改訂履歴を追加
 - `README`, `ADR`, `API仕様`, `データモデル`, `Threat modeling` を含むドキュメント品質管理を、Sprint/Task 自己評価へ接続する。
-- `helix-readiness` CLI（L4）を前提とした、readiness 評価の最短コマンド化（実装は sprint で進める）を前提化する。
+- `helix readiness` CLI（L4）を前提とした、readiness 評価の最短コマンド化（実装は sprint で進める）を前提化する。
 - 実装はしない（PLAN 更新のみ）。コミット禁止を維持する。
 
 ### 1.3 継続条件（本 PLAN 内）
@@ -49,7 +49,7 @@
 
 ### 2.3 v4 で追加する文脈
 
-- `helix-plan review` は方向性、`helix-gate` は実装性、`helix-readiness` は実装可否という 3 つを分離。
+- `helix plan review` は方向性、`helix gate` は実装性、`helix readiness` は実装可否という 3 つを分離。
 - Plan と実装を同時に書かず、L-level ごとの「入る条件」「出る条件」「継続条件」を可視化する。
 - `accuracy_score` は記録だけでなく、readiness とレビューの接続点として再定義する。
 
@@ -69,10 +69,10 @@
 
 #### B. Implementation Readiness Framework（新規）
 
-1. L-level Readiness Matrix（L1-L8）を追加。
+1. L-level Readiness Matrix（L1-L11）を追加。
 2. Layer 0〜3 の準備条件・達成条件を定義。
 3. `HELIX_CORE.md` と `skills/tools/ai-coding/references/gate-policy.md` を正本として定義更新。
-4. `L1-L8` の `entry/exit` 条件に readiness を入れ、G1-G7 の通過条件と連動。
+4. `L1-L11` の `entry/exit` 条件に readiness を入れ、G1-G11 の通過条件と連動。
 
 #### C. Deliverable Adapter Pattern（新規）
 
@@ -107,13 +107,13 @@
 
 - 文書の主語は「方針」。
 - コード/SQL の実装詳細値は L4 Sprint の本体に委譲。
-- 追加作業を v4 に同梱しない。`想定外作業` は `§9` に限定。
+- 追加作業を v5 に同梱しない。`想定外作業` は `§9` に限定。
 - 本 PLAN scope と後続 PLAN scope を分離して明示する。
 
 | 区分 | 本 PLAN scope（確定） | 後続 PLAN scope（引き継ぎ） |
 | --- | --- | --- |
-| 本 PLAN 確定（G3） | `helix-readiness CLI` と `accuracy_score` の拡張要件 | - |
-| 本 PLAN 確定（G4） | `HELIX_CORE.md` / `gate-policy.md` / `SKILL_MAP.md` readiness section の記述を本文化 | - |
+| 本 PLAN で方針確定、後続 G3 で凍結 | `helix readiness` CLI と `accuracy_score` の拡張要件 | - |
+| 本 PLAN で方針確定、後続 G4 で実装凍結 | `HELIX_CORE.md` / `gate-policy.md` / `SKILL_MAP.md` readiness section の記述を本文化 | - |
 | PLAN-006 依存 | - | 上流 L-1 への readiness matrix 継承を継続 |
 | PLAN-009 依存 | - | `L9-L11`（Run 工程）への readiness matrix 拡張 |
 
@@ -160,7 +160,7 @@
 
 ### 4.2 Implementation Readiness Framework（新規）
 
-#### 4.2.1 Layer 0: L-level Matrix（L1-L8）
+#### 4.2.1 Layer 0: L-level Matrix（L1-L11）
 
 各 L は `entry`（着手条件）/`exit`（完了条件）を満たさなければ次 gate に進まない。  
 最終正本は `helix/HELIX_CORE.md` へ反映し、本 PLANで準拠仕様を定義する。
@@ -226,7 +226,7 @@
 
 `§4.5` の「全 L.0 / L.X 必須」を優先し、以下のスキップ規則は主要 sprint（L.1〜L.X-1）のみ適用する。
 
-| 駆動タイプ | L1 research | L2 research | L3 research | review rule |
+| 駆動タイプ | L1 主要 sprint | L2 主要 sprint | L3 主要 sprint | review rule |
 |---|---|---|---|---|
 | be | 必須 | 必須 | 必須 | 例外なく実施 |
 | fe | 必要時のみ | 必須（設計接続のため） | 必須 | `adversarial-review` で API/画面接続を検証 |
@@ -315,7 +315,7 @@ types:
   - post-deploy-trigger（本番観測不一致）
 - 挿入時は該当 L sprint の「現状把握→軽量調査→review-exit の mini loop」を追加し、主 task 進行を停止しない。
 
-#### 4.5.3 研究結果の再利用
+#### 4.5.4 研究結果の再利用
 
 - `.helix/research/` と `.helix/review/` の参照整合性を次 PLAN でも読み直せるよう、`source_ref` を一意キーで管理。
 - 2 回目以降は差分だけを追記し、過去結果の重複を避ける。
@@ -324,11 +324,11 @@ types:
 
 ### 5.1 ゲート適用原則
 
-- 本 PLAN は G1-G7 の既存基準を維持し、`readiness exit` を追加条件として必須化する。
+- 本 PLAN は G1-G11 の既存基準を維持し、`readiness exit` を追加条件として必須化する。
 - 各 Gate は通常 pass 条件に加え、該当 L の readiness exit を満たしていることを要求。
 - readiness が満たされない場合、評価コメントは「needs-attention」に寄せる。
 
-### 5.2 G1-G7 追加条件
+### 5.2 G1-G11 追加条件
 
 #### G1 PM
 - 変更の目的・スコープが一致。
@@ -441,7 +441,7 @@ pass(Gx, L) =
 
 ### 7.7 Sprint 7（新）: Implementation Readiness CLI 実装
 
-- `cli/helix-readiness check --phase L4 --plan PLAN-X` を前提にする CLI 観点設計。
+- `helix readiness check --phase L4 --plan PLAN-X` を前提にする CLI 観点設計。
 - `.helix/phase.yaml` に readiness section を追加する方針を定義。
 - Layer 0-3 の check ロジックを設計段階で記述。
 - DoD:
@@ -462,7 +462,7 @@ pass(Gx, L) =
 ### 7.9 Sprint 9（新）: L1-L3 詳細 sprint structure
 
 - `HELIX_CORE.md`, `gate-policy.md`, `SKILL_MAP.md` の改訂を前提化。
-- `cli/helix-sprint --phase L1-L8 全 phase` の仕様を追加。
+- `helix sprint --phase L1-L11` 全 phase の仕様を追加。
 - DoD:
   - L1-L3 スプリント構造（x.0/x.x）確定
   - 駆動タイプ別 skip/include ルール
@@ -507,6 +507,6 @@ pass(Gx, L) =
 | --- | --- | --- | --- |
 | 2026-04-30 | v5 | TL レビュー `P1×1 + P2×2 + P3×1` を反映。`§4.5` の L.0/L.X 必須優先順位を明確化し、`§4.3.2` の skip rule を主要 sprint のみへ限定。`§3.4` に本 PLAN scope / 後続 PLAN scope を追加。`P1/P2` の carry ルール（deferred-finding・accuracy_score・`.helix/audit/deferred-findings.yaml`）を記述。Deliverable type は kebab-case 方針に統一。 | Docs (Codex) |
 | 2026-04-30 | v4 | `PLAN-004` を §1-§10 で再構成。§3 を A/B/C/D 4 軸化（v3報奨設計維持＋Implementation Readiness, Deliverable Adapter, Research/Review embed 追加）。§4 に Layer0-3 と L1-L3 sprint 構造、§5 に readiness exit 条件付き gate 方針、§7 に Sprint7-10 追加、関連 PLAN・リスク更新を反映。 | Docs (Codex) |
-| 2026-04-30 | v3 | TL レビュー P1×1 + P2×2 + P3×1 を反映し、報奨設計の方針統一と G2-G7 hook、`accuracy_score` 精度検証、redaction 方針、R-05/R-06 追加、改訂履歴追記。 | Docs (Codex) |
+| 2026-04-30 | v3 | TL レビュー P1×1 + P2×2 + P3×1 を反映し、報奨設計の方針統一と G2-G11 hook、`accuracy_score` 精度検証、redaction 方針、R-05/R-06 追加、改訂履歴追記。 | Docs (Codex) |
 | 2026-04-30 | v2 | `accuracy_weight` 単調増加表現を撤回し、根拠ベース化。`PLAN-004` と `G3` 境界統一、secret/PII 対応の基本方針を追加。 | Docs (Codex) |
 | 2026-04-30 | v1 | 初版。`HELIX` 評価哲学を速度から正確・精度志向へ再定義し、TL/Codex 観点、gate 重み、`helix accuracy report`、L8 組込条件を確定。 | Docs (Codex) |

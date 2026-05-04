@@ -1,6 +1,6 @@
 ---
 name: scheduler
-description: HELIX の cron-like 定期実行と相対時刻実行を管理する automation scheduler skeleton。
+description: HELIX の cron-like 定期実行、単発 at 実行、期限到達 task 実行を管理する automation scheduler。
 triggers:
   - スケジュール登録時
   - 定期実行設計時
@@ -14,21 +14,26 @@ metadata:
 
 ## 1. 概要
 
-`automation/scheduler` は、HELIX の定期実行、相対時刻実行、期限到達タスク処理を共通化するための skeleton skill です。Sprint 1 では CLI と DB migration の受け口のみを定義し、実際のスケジュール計算と実行制御は後続 Sprint で実装します。
+`automation/scheduler` は、HELIX の定期実行、相対時刻実行、期限到達タスク処理を共通化する skill です。`helix scheduler` は cron / `+5m` / `add-at` を受け付け、allowlist 済み task を fail-closed で実行します。`run-due` は既定で stale running schedule を復旧してから due task を処理します。
 
 ## 2. 提供機能
 
 - `helix scheduler add`
+- `helix scheduler add-at`
 - `helix scheduler list`
 - `helix scheduler cancel`
 - `helix scheduler status`
 - `helix scheduler run-due`
+- `helix scheduler requeue-stale`
 
 ## 3. 利用例
 
 ```bash
-helix scheduler add --schedule "+5m" --task "helix:command:gate G4"
-helix scheduler run-due
+helix scheduler add --schedule "+5m" --task "helix:command:status"
+helix scheduler add-at --at "2026-05-03T12:00:00Z" --task "helix:command:status"
+helix scheduler run-due --max 1
+helix scheduler run-due --max 1 --no-requeue-stale
+helix scheduler requeue-stale --older-than 3600
 ```
 
 ## 4. トラスト境界

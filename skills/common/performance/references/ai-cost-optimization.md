@@ -5,10 +5,10 @@
 ### Prompt Caching
 
 - system prompt（role 定義 + スキル参照）を固定し、キャッシュヒット時に大幅削減を狙う
-- HELIX では `helix-codex` の role prompt はセッション内で固定し、キャッシュ対象にする
+- HELIX では `helix codex` の role prompt はセッション内で固定し、キャッシュ対象にする
 - 実装例:
-  - Anthropic API の prompt caching
-  - OpenAI の `cached_tokens`
+  - Claude Code / Anthropic 側の prompt caching
+  - Codex / OpenAI 側の `cached_tokens`
 
 ### Semantic Caching
 
@@ -35,7 +35,7 @@
 ### Dynamic Context Pruning
 
 - 長時間セッションで古い会話を動的に削除し、必要文脈のみ残す
-- HELIX では `helix-codex --task` に渡す参照を最小化する
+- HELIX では `helix codex --task` に渡す参照を最小化する
 - 変更対象ファイル中心に限定し、全ファイル Read を避ける
 
 ### コスト追跡ダッシュボード設計
@@ -51,7 +51,7 @@ helix log report cost:
 
 ## AI エージェントコスト追跡
 
-helix-codex 委譲時のトークン使用量とコストを継続的に記録し、モデル選択を最適化する。
+helix codex 委譲時のトークン使用量とコストを継続的に記録し、モデル選択を最適化する。
 
 ### トークン使用量の推定（委譲単位）
 
@@ -159,4 +159,3 @@ CREATE INDEX IF NOT EXISTS idx_agent_cost_logs_project_created
 - 再生時は `ts` 順に並べて依存順序を復元する
 
 ---
-

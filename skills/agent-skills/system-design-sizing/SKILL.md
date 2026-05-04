@@ -25,7 +25,7 @@ upstream: donnemartin/system-design-primer (MIT)
 
 **使わないケース**
 
-- 単なる変更規模の見積もりだけが必要なとき: `helix-size` を使う
+- 単なる変更規模の見積もりだけが必要なとき: `helix size` を使う
 - 実装後の計測・チューニングが主目的なとき: `performance-optimization` を使う
 - API 契約や公開インターフェースの安定性が主題なとき: `api-and-interface-design` を使う
 
@@ -269,11 +269,11 @@ Parallel = 1 - (0.001 * 0.001) = 0.999999 = 99.9999%
 
 ## HELIX 連携
 
-- `helix-size` との違い: 本スキルは「システム設計規模」を扱い、`helix-size` は「変更規模」を扱う
+- `helix size` との違い: 本スキルは「システム設計規模」を扱い、`helix size` は「変更規模」を扱う
 - 本スキルの成果物は HELIX L2 設計書 `D-ARCH` に反映する
 - API 境界が主要論点なら `api-and-interface-design` を併用する
 - 実測やボトルネック改善フェーズに移ったら `performance-optimization` へ接続する
-- より大きい設計判断が必要なら `helix-codex --role tl` に追加委譲する
+- より大きい設計判断が必要なら `helix codex --role tl` に追加委譲する
 
 ## Common Rationalizations (よくある言い訳)
 

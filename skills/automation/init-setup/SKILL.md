@@ -1,6 +1,6 @@
 ---
 name: init-setup
-description: HELIX automation の初期化検証、導入、修復を扱う setup skeleton。
+description: HELIX automation の初期化検証、導入、修復、DB 追跡を扱う setup。
 triggers:
   - セットアップ検証時
   - automation 初期化時
@@ -14,13 +14,15 @@ metadata:
 
 ## 1. 概要
 
-`automation/init-setup` は、HELIX automation 基盤の DB、CLI、設定、権限を検証・導入・修復するための skeleton skill です。Sprint 1 では CLI の受け口のみを提供し、具体的な verify/install/repair 手順は後続 Sprint で実装します。
+`automation/init-setup` は、HELIX automation 基盤の DB、CLI、設定、権限を検証・導入・修復するための skill です。`cli/setup/*.sh` component を discovery し、verify/install/repair の結果を `setup_checks` / `setup_events` に記録します。
 
 ## 2. 提供機能
 
 - `helix setup verify`
 - `helix setup install`
 - `helix setup repair`
+- `helix setup list`
+- `helix setup status`
 
 ## 3. 利用例
 

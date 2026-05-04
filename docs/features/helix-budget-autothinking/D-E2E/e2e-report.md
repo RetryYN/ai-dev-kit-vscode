@@ -76,7 +76,7 @@ mock 残量 98% で `suggest_model("gpt-5.4", ...)` が fallback_applied=False �
 ## 4. 既存機能との回帰
 
 - `helix test`: 467/467 PASS (既存 453 + 新規 14)
-- `helix-codex --role pg --task 'x' --dry-run`: 既存挙動維持
+- `helix codex --role pg --task 'x' --dry-run`: 既存挙動維持
 - `helix gate G2/G3/G4`: 全 PASS (本 feature 対応後)
 
 ---

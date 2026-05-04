@@ -136,7 +136,7 @@ S2 の目的は、仮説を検証する最小限のコードと検証スクリ�
 helix scrum poc --hypothesis H001
 ```
 
-現行 CLI は PoC 実装を `helix-codex --role pg` に委譲し、対象仮説の `title`、`question`、`acceptance`、および検証スクリプトのパスをプロンプトに渡す。
+現行 CLI は PoC 実装を `helix codex --role pg` に委譲し、対象仮説の `title`、`question`、`acceptance`、および検証スクリプトのパスをプロンプトに渡す。
 PoC 実装では、対象仮説だけでなく、既存の `verify/` 配下のスクリプトも全実行する前提で進める。これにより、新しい PoC が以前の検証結果を壊していないかを確認できる。
 
 S2 の責務:
@@ -196,7 +196,7 @@ helix scrum decide --hypothesis H001 --rejected --learnings '外部APIの平均�
 helix scrum decide --hypothesis H001 --pivot --learnings '検索精度は成立したがコスト条件を満たさないため別案へ切替'
 ```
 
-現行 CLI の `decide` は仮説 status を更新し、`--learnings` があれば backlog に追記する。
+現行 CLI の `decide --confirmed` は対象仮説の `verify_script` を実行し、成功した場合だけ仮説 status を更新する。未検証のまま例外的に進める場合は `--force` を付け、warning を handoff / plan に残す。`--learnings` があれば backlog に追記する。
 運用上は rejected / pivot の判断理由を `.helix/scrum/decisions/` に別記してもよい。
 `confirmed` の場合は Forward HELIX への接続案内が表示され、検証スクリプトはそのまま回帰テストとして残る。
 
@@ -347,7 +347,7 @@ Scrum モードは、Forward HELIX の簡略版ではない。探索のための
 
 主な違い:
 
-- Forward HELIX の L1-L8 フェーズ進行は走らない
+- Forward HELIX の L1-L11 フェーズ進行は走らない
 - `.helix/scrum/` と `verify/` を中心に独立管理する
 - ゲート判定ではなく、S4 の `decide` を主軸に進める
 - 正式要件ではなく、仮説 backlog を起点にする
@@ -415,7 +415,7 @@ helix scrum status
 helix scrum review
 ```
 
-`review` は verify を再実行し、スプリント完了とレトロ生成まで行う。
+`review` は verify を再実行し、検証が成功した場合だけスプリント完了とレトロ生成まで行う。検証失敗を人間判断で完了扱いする場合だけ `--force-complete` を使う。
 スプリント単位の学習整理が必要な場合は、decide だけで終えず review まで回す。
 
 ## HELIX 連携

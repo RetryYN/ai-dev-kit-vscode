@@ -1,6 +1,6 @@
 # D-API: helix log report session（PLAN-016 Sprint .1）
 
-**Status**: Draft  
+**Status**: Active（PLAN-016 実装済み契約）
 **Owner**: docs  
 **Date**: 2026-05-03  
 **Source**: [docs/plans/PLAN-016-session-summary-helix-log-report.md](../plans/PLAN-016-session-summary-helix-log-report.md)  
@@ -11,9 +11,9 @@
 - `helix log report session` で Markdown / JSON の2形式を提供し、`session-summaries/*.md` の新規生成依存を減らす。
 - 既存データ（`hook_events`, `gate_runs`, `cost_log`）を日付境界で集計し、既存の `helix-session-summary` の集計ロジックを再利用可能な仕様として固定する。
 
-## 2. 非対象
+## 2. 境界
 
-- 実装（`cli/helix-log`, `cli/lib/helix_db.py`, `cli/helix-session-summary`）
+- 実装変更（`cli/helix-log`, `cli/lib/helix_db.py`, `cli/helix-session-summary` は PLAN-016 範囲で実装済み）
 - `helix log` の既存 report（`summary|tasks|actions|feedback|quality`）の既定実装変更
 - DB migration や本番環境の運用手順
 
@@ -76,8 +76,8 @@ Hook イベント | count 表
 #### 4.1.2 `終了 N 回` の定義
 
 - `cost_log` の以下件数:
-  - `role = 'opus-pm'`
-  - `model LIKE 'claude-opus-4-%'`
+  - `role IN ('claude-code', 'opus-pm')`
+  - `model LIKE 'claude%'`
   - `date(created_at) = :date`
 - 上記件数をヘッダ末尾に反映。
 
@@ -102,7 +102,7 @@ Hook イベント | count 表
     { "gate": "G4", "result": "fail", "count": 1 }
   ],
   "cost_log": [
-    { "role": "opus-pm", "model": "claude-opus-4-6", "count": 12 }
+    { "role": "claude-code", "model": "claude-code", "count": 12 }
   ]
 }
 ```
@@ -146,7 +146,7 @@ ORDER BY role, model;
 ```sql
 SELECT COUNT(*) 
 FROM cost_log
-WHERE role = 'opus-pm' AND model LIKE 'claude-opus-4-%' AND date(created_at) = :date;
+WHERE role IN ('claude-code', 'opus-pm') AND model LIKE 'claude%' AND date(created_at) = :date;
 ```
 
 ### 5.5 最終更新時刻
@@ -161,7 +161,7 @@ WHERE date(created_at) = :date;
 
 ## 6. 既存フォーマットとの互換
 
-- 旧個別ブロック（`## セッション終了: HH:MM`, `### コスト記録` + `- opus-pm: N回`）は本仕様では生成しない。
+- 旧個別ブロック（`## セッション終了: HH:MM`, `### コスト記録` + `- opus-pm: N回`）は本仕様では生成しない。既存の `opus-pm` 行は後方互換として集計対象に残す。
 - 既存 stop hook の既知出力行に依存するドキュメントは、Sprint .2 以降の実装時に利用文言を更新する想定。
 
 ## 7. スケッチ（実装向け）

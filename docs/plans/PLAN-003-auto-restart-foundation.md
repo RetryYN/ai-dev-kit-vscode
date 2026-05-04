@@ -1,4 +1,4 @@
-# PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v1)
+# PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v3)
 
 ## 1. 目的
 - PLAN-002 から auto-restart 関連の複雑領域を切り出し、継続制御（HMAC、再開安全性、HOME DB、CURRENT schema v2）を集中実装する。
@@ -33,7 +33,7 @@
 ## 3. 関連 PLAN
 - [PLAN-002-helix-inventory-foundation.md](PLAN-002-helix-inventory-foundation.md) が完了済みであることを前提とする。
 - 特に `schema_version` と `decisions.yaml` / `audit_decisions` 同期ルールは PLAN-003 の起点整合性検査条件。
-- PLAN-002 で未実装の以下を継承
+- PLAN-002 から分離された以下の残件を継承
   - auto-restart 仕様
   - CONTINUATION 系フラグ
   - `worktree_snapshot_hash` 以前の抽出要件
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS auto_restart_log (
 - HOME DB: `docs/design/D-HOME-DB.md`（本 PLAN で HOME DB v1 スキーマとして明文化）
 - helix.db: `docs/design/D-DB-MIGRATION.md`（`context_warnings` / `dep_review_log` を v9 で追加）
 
-### 8.3 trust boundary
+### 8.4 trust boundary
 - DB と directory 権限を確認
   - `~/.helix/auto-restart/`：owner current user、dir mode <= 0700、symlink 禁止
   - `~/.helix/auto-restart/log.db`：mode <= 0600

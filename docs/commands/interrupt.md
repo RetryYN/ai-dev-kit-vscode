@@ -27,6 +27,8 @@ helix interrupt resume --id INT-001
 ```bash
 helix interrupt status
 helix interrupt status --id INT-001 --json
+helix interrupt history
+helix interrupt history --json
 ```
 
 誤検知取り消し:
@@ -46,3 +48,4 @@ helix interrupt cancel --id INT-001
 
 - `apply` は `helix matrix compile` を実行する
 - human escalation が必要と判定された割り込みは `resume` 不可
+- `history` / `report` は `.helix/interrupts/INT-*/record.yaml` のローカル集計のみを行う

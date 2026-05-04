@@ -150,9 +150,9 @@ commands:
     description: キャッシュ管理
     subcommands: [status, clear]
 
-  - name: helix-codex --auto-thinking
-    description: 既存 helix-codex への追加フラグ
-    extends: helix-codex
+  - name: helix codex --auto-thinking
+    description: 既存 helix codex への追加フラグ
+    extends: helix codex
     added_flags:
       - name: --auto-thinking
         type: bool
@@ -164,9 +164,9 @@ commands:
       - ユーザー非対話時は --yes で続行
     non_breaking: true
 
-  - name: helix-skill use --auto-thinking
-    description: 既存 helix-skill use への追加フラグ
-    extends: helix-skill use
+  - name: helix skill use --auto-thinking
+    description: 既存 helix skill use への追加フラグ
+    extends: helix skill use
     added_flags:
       - name: --auto-thinking
         type: bool

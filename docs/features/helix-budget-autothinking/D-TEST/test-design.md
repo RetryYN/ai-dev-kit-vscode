@@ -18,7 +18,7 @@
 | `cli/lib/model_fallback.py` | pytest | — | 8 |
 | `cli/lib/budget_cli.py` | pytest (integration) | — | 5 |
 | `cli/helix-codex` (--auto-thinking) | bats | 3 | — |
-| `cli/helix-skill use` (--auto-thinking) | bats | 2 | — |
+| `helix skill use` (--auto-thinking) | bats | 2 | — |
 | マイグレーション (v5→v6) | bats | 4 | — |
 
 **合計**: bats 20 件 / pytest 35 件 → **55 テスト新規追加**
@@ -27,7 +27,7 @@
 
 - ccusage 本体の挙動 (OSS 側責任)
 - Codex CLI の挙動 (外部 CLI)
-- OpenAI API 実応答 (mock で代替)
+- Codex CLI 側の外部実応答 (mock で代替)
 - Claude Code UI 側 (HELIX 範囲外)
 
 ---
@@ -59,9 +59,9 @@
 
 | ID | テスト | 期待結果 |
 |----|--------|---------|
-| T-NH-12 | `helix-codex --role se --task ... --auto-thinking` | classifier 呼び出し + effort 自動決定 + 既存挙動維持 |
-| T-NH-13 | `helix-codex --role se --task ...` (フラグなし) | 従来挙動 100% 一致 |
-| T-NH-14 | `helix-skill use SKILL-ID --auto-thinking` | Codex ロール選択時のみ classifier 発火 |
+| T-NH-12 | `helix codex --role se --task ... --auto-thinking` | classifier 呼び出し + effort 自動決定 + 既存挙動維持 |
+| T-NH-13 | `helix codex --role se --task ...` (フラグなし) | 従来挙動 100% 一致 |
+| T-NH-14 | `helix skill use SKILL-ID --auto-thinking` | Codex ロール選択時のみ classifier 発火 |
 
 ### 2.4 マイグレーション正常系
 
@@ -156,8 +156,8 @@
 |---------|---------|---------|
 | `helix init` | 新 hook 追加で既存 settings.json 壊さない | settings diff 検証 bats |
 | `helix test` | 全 453 テスト PASS 継続 | G4 前に必ず実行 |
-| `helix-codex --role se ...` (auto なし) | 従来通り動作 | T-NH-13 |
-| `helix-skill use` (auto なし) | 従来通り動作 | bats |
+| `helix codex --role se ...` (auto なし) | 従来通り動作 | T-NH-13 |
+| `helix skill use` (auto なし) | 従来通り動作 | bats |
 | `helix gate G2/G3/G4/G6` | 動作継続 | 既存 gate tests |
 | `helix sprint` | 動作継続 | 既存 sprint tests |
 | `helix scrum verify` | 動作継続 | 手動 smoke |
@@ -199,7 +199,7 @@ cli/tests/
 ├── helix-budget-hook.bats            (T-NH-09~11)
 ├── helix-budget-migration.bats       (T-NH-15~18, T-ER-15~17)
 ├── helix-codex-auto-thinking.bats    (T-NH-12~13)
-├── helix-skill-auto-thinking.bats    (T-NH-14)
+├── helix-skill-auto-thinking.bats    (T-NH-14; legacy test filename)
 ├── helix-budget-security.bats        (T-ER-11~14)
 └── helix-budget-boundary.bats        (T-BD-*)
 ```

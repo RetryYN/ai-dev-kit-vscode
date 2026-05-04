@@ -1,9 +1,9 @@
 # 設計書: LLM最適化スキルカタログ + 自動分類機 (JSONL Catalog)
 
 > フェーズ: L2-L3 設計
-> ステータス: Draft (PM 起案、TL レビュー待ち)
+> ステータス: Active（JSONL catalog / recommender 実装済み）
 > 作成日: 2026-04-16
-> 対象: `cli/lib/skill_catalog.py`, `cli/lib/skill_recommender.py`, `cli/helix-skill`
+> 対象: `cli/lib/skill_catalog.py`, `cli/lib/skill_recommender.py`, `helix skill`
 > 関連: `SKILL_MAP.md §自動推挙システム`
 
 ---
@@ -74,11 +74,11 @@
 
 ### 2.2.1 agent 正規化と search prompt 契約
 
-現行 `cli/templates/skill-search-prompt.md` は `recommended_agent` に `fe-design` 等の短縮名と `helix-codex --role security` 形式を混在で返す仕様。JSONL 導入に伴い以下に統一する:
+現行 `cli/templates/skill-search-prompt.md` は `recommended_agent` に `fe-design` 等の短縮名と `helix codex --role security` 形式を混在で返す仕様。JSONL 導入に伴い以下に統一する:
 
 - JSONL の `agent` フィールドは常に**正規化済み短縮名**（裸ロール名 or `fe-*`）
 - 改訂後の search prompt は `recommended_agent` として JSONL の `agent` 値をそのまま返す
-- dispatcher 側の `helix-codex --role X` 形式の受付は後方互換として維持（将来非推奨判断）
+- dispatcher 側の `helix codex --role X` 形式の受付は後方互換として維持（将来非推奨判断）
 
 ### 2.2.2 references フィールドの位置づけ
 
@@ -124,7 +124,7 @@
 | `helix skill classify <skill-id>` | 単発分類（結果を pending で JSONL に書く） |
 | `helix skill classify <skill-id> --approve` | 分類 + 即承認 |
 | `helix skill classify <skill-id> --dry-run` | 分類結果を stdout に出して JSONL には書かない |
-| `helix skill catalog rebuild --auto-classify` | 55スキル全件を再分類（既存 approved/manual は hash 一致なら維持） |
+| `helix skill catalog rebuild --auto-classify` | 105スキル全件を再分類（既存 approved/manual は hash 一致なら維持） |
 | `helix skill catalog rebuild --auto-classify --only-pending` | **現 pending + hash 不一致で invalidated になった entry のみ**再分類（hash 一致の approved/manual は完全スキップ） |
 | `helix skill review-pending` | pending 一覧表示 |
 | `helix skill approve <skill-id>` | 既存 pending を承認に昇格 |
@@ -134,7 +134,7 @@
 **入力**:
 - `<skill-id>`: `category/name` 形式（例: `common/security`）
 - SKILL.md の content + frontmatter
-- 既存 55 スキルの JSONL（類似スキル検出用）
+- 既存 105 スキルの JSONL（類似スキル検出用）
 
 **出力（stdout）**:
 ```
@@ -257,7 +257,7 @@ SKILL.md (55件)
 |------|------|---------|
 | M1 | `build_jsonl_catalog()` 実装 + rebuild が JSON と JSONL 両方生成 | 非破壊（JSON は変わらず） |
 | M2 | `skill_classifier.py` 実装 + classify コマンド追加 | 新機能のみ |
-| M3 | 55 スキル一括 auto-classify 実行 → pending 状態 | JSONL 生成のみ |
+| M3 | 105 スキル一括 auto-classify 実行 → pending 状態 | JSONL 生成のみ |
 | M4 | 人間レビュー（PM が review-pending → approve） | JSONL のみ更新 |
 | M5 | recommender を JSONL 優先に切替（**前提: 対象 entry が `approved` or `manual`**） | M4 で承認済み entry のみ本線投入 |
 | M6 | (Phase 3) 精度計測後、JSON を非推奨化判断 | 判断のみ |

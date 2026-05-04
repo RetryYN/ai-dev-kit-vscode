@@ -22,12 +22,12 @@ PM 決定を反映した前提:
 - `cli/lib/helix_db.py` の session 集計拡張仕様の確定
 - `cli/helix-session-summary` を DB INSERT only シムへ変更する方針確定（stdout/stderr 無出力）
 - migration 方式の確定（案 B 採用、A/C は将来候補）
-- 実装 Sprint と DoD、回帰観点を含む `helix-plan draft --file` 扱いの PLAN 本文整備
+- 実装 Sprint と DoD、回帰観点を含む `helix plan draft --file` 扱いの PLAN 本文整備
 - `CLI` 関連資料（README/ADRs/skill/plan）への参照更新と、`retro` 起草対象の明示
 
 ### §2.2 out-of-scope
 
-- 本 PLAN 文書（draft 段階）の起草作業時点では実コード改修・テスト実行・`helix-plan draft` 登録を伴わない（PLAN finalize 後に Sprint .2/.3/.4 で PG/Opus が実施）
+- 本 PLAN 文書（draft 段階）の起草作業時点では実コード改修・テスト実行・`helix plan draft` 登録を伴わない（PLAN finalize 後に Sprint .2/.3/.4 で PG/Opus が実施）
 - 本番環境 Hook 自動反映手順の運用整備（環境別 rollout）
 - `PLAN-014/015` 以外の機能（予算報告、別コマンド再設計など）の再設計
 
@@ -44,8 +44,8 @@ PM 決定を反映した前提:
 
 #### B. `cli/helix-log`
 
-- 現在 `summary|tasks|actions|feedback|quality|selections` のみ。
-- `session` が未実装。
+- 起草時点では `summary|tasks|actions|feedback|quality|selections` のみ。
+- 現行実装（2026-05）では `helix log report session --date <YYYY-MM-DD>` が追加済み。`hook_events` / `gate_runs` / `cost_log` を日付条件でローカル集計する。
 
 #### C. `cli/lib/helix_db.py`
 
@@ -106,7 +106,7 @@ PM 決定を反映した前提:
 - `hook_events`: `event_type` 別件数
 - `gate_runs`: `gate` / `result` 別件数
 - `cost_log`: `role` / `model` 別件数
-- `終了 N 回`: `cost_log` で `role='opus-pm'` かつ当日条件。
+- `終了 N 回`: `cost_log` で `role IN ('claude-code', 'opus-pm')` かつ当日条件（`opus-pm` は旧 Stop hook 行の後方互換）。
 
 #### §3.4.3 出力仕様
 
@@ -170,7 +170,7 @@ PM 決定を反映した前提:
 ### §4.3 G4 ゲート判定基準（PLAN 承認）
 
 - DoD #1〜#7 を実装完了条件として固定。
-- `helix-codex review --uncommitted` で P1/P2 の未解消指摘なし。
+- `helix review --uncommitted` で P1/P2 の未解消指摘なし。
 - `accuracy_score` の遅延（deferred）新增なし。
 
 ## §5. 既存運用・リンク整合・追跡項目

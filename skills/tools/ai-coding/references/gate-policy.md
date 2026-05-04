@@ -91,7 +91,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 - `.helix/audit/deferred-findings.yaml` — finding 単位の永続化
 - `helix.db` (v11+) — `deferred_findings` テーブル + `accuracy_score_adjustments` + `accuracy_score_effective` VIEW
 - `cli/lib/deferred_findings.py` — YAML I/O + redaction + DB sync
-- `cli/helix-readiness` — CLI 本体
+- `helix readiness` — CLI 本体
 
 ### G0.5 企画突合ゲート（L1 内）
 
@@ -192,14 +192,14 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix-gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
+| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
 | accuracy_weight | 0.95 |
 | 根拠 | 実装凍結直前の最終合意点であり、実装品質を確実に担保するため精度を最重要とする。 |
 | 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |
 | 判定形式 | ハイブリッド（M/L では実質明示） |
 | 中規模 skip | 不可 |
 | Fail | L4 差戻し、IIP P2/P3 なら L3/L2/L1 へ逆流。コード局所修正なら G4 再審、契約変更なら G3 から |
-| レビュー | `codex review --uncommitted` — Codex 5.4 |
+| レビュー | `helix review --uncommitted` — Codex 5.4 |
 
 **担当スキル**:
 - debt-register（負債台帳、2026-04-17 追加）
@@ -215,13 +215,13 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 | 判定形式 | V0 のみなら自動、V1/V2 は明示 |
 | 中規模 skip | UI なしは skip 可 |
 | Fail | V0: L5 内修正 / V1: L4 差戻し / V2: L2 から再走（→L3→L4→L5） |
-| レビュー | `codex review --uncommitted` — Codex 5.4 |
+| レビュー | `helix review --uncommitted` — Codex 5.4 |
 
 ### G6 RC 判定ゲート（L6 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了。**fe/fullstack 追加条件**: `MOCK-DERIVED-CONTRACT`（モック由来 API 契約のドメイン整合性 TL レビュー）が resolved（`helix-gate` が自動 fail-close） |
+| 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了。**fe/fullstack 追加条件**: `MOCK-DERIVED-CONTRACT`（モック由来 API 契約のドメイン整合性 TL レビュー）が resolved（`helix gate` が自動 fail-close） |
 | accuracy_weight | 0.95 |
 | 根拠 | RC 判定は最終品質ゲートであり、重大欠陥を防ぐため高精度な判断が求められる。 |
 | 判定者 | PM（Go/No-Go）、TL（技術推奨）、PO（条件付き） |
@@ -345,10 +345,10 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 |------|------|------|
 | G2（設計凍結） | `codex exec "レビュー"` | Codex 5.4 |
 | G3（実装着手） | `codex exec "レビュー"` | Codex 5.4 |
-| L4 実装.2（軽量） | `codex review --uncommitted` | Codex 5.4（Critical/High のみ） |
-| L4 実装.5（フル品質） | `codex review --uncommitted` | Codex 5.4（全 severity） |
-| G4（実装凍結） | `codex review --uncommitted` | Codex 5.4 |
-| G5（デザイン凍結） | `codex review --uncommitted` | Codex 5.4 |
+| L4 実装.2（軽量） | `helix review --uncommitted` | Codex 5.4（Critical/High のみ） |
+| L4 実装.5（フル品質） | `helix review --uncommitted` | Codex 5.4（全 severity） |
+| G4（実装凍結） | `helix review --uncommitted` | Codex 5.4 |
+| G5（デザイン凍結） | `helix review --uncommitted` | Codex 5.4 |
 
 **5.4 ボトルネック緩和**: 低リスク案件（サイジング S + セキュリティゲート非該当）は Codex 5.3 SE が一次レビュー可。高リスク案件は 5.4 TL 必須。
 
@@ -452,7 +452,7 @@ IIP（L4 内の前提崩壊）や V 分類（L5 の visual 差戻し）とは異
 - 自動発火: セキュリティゲート条件該当時 / ADR 作成時
 - 任意発火: PM が「後戻りコストが高い」と判断した設計判断
 - スキップ: サイジング S / 既存ルールの機械的適用 / 同一テーマ実施済み
-- 責務分離: TL壁打ち（1案・低コスト）< codex review（品質・中コスト）< adversarial-review（反証・高コスト）
+- 責務分離: TL壁打ち（1案・低コスト）< helix review（品質・中コスト）< adversarial-review（反証・高コスト）
 - 詳細: `workflow/adversarial-review/SKILL.md`
 
 ## L1 スキップ時の最小要件メモ
@@ -546,8 +546,7 @@ R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 =
 ### RGC Gap Closure（Reverse Gap Closure — Forward 完了後）
 
 > Forward の「G6 RC 判定ゲート」（RC = Release Candidate）とは別概念。RGC = Reverse Gap Closure。
-> ※ CLI 未実装。将来バージョンで `helix reverse rgc` として実装予定。
-> ※ 2026-04-17 更新: Python 実装済み（`helix reverse rgc` サブコマンド）。
+> ※ `helix reverse rgc` サブコマンドは実装済み。ただし現時点では集計表示補助であり、閉塞判定の完全自動化ではない。
 
 | 項目 | 内容 |
 |------|------|

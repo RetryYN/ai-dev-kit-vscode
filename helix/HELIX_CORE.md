@@ -44,12 +44,20 @@ L4 implementation / build / G4 補足（PLAN-013）:
 - TL approve なしで finalize 不可
 - 詳細は `workflow-core.md §設計提案レビュー` 参照
 
+## 工程表・承認・委譲
+
+- 実装は L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を正とする。
+- 工程表がある場合、`plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、受入条件、reference_docs を確認してから L4 に入る。
+- 計画・実装順・整理案をユーザーへ提示した場合、明示承認があるまでファイル編集・依存追加・外部状態変更へ進まない。
+- 工程表外の変更が必要になった場合は、先に工程表更新またはユーザー確認へ戻る。
+- TL は工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team`、`helix review` を使い、使えない場合は理由を証跡化する。
+
 ## readiness と carry rule
 
-PLAN-004 v5 の方針として、L1-L8（Plan 連携では L9-L11 も対象）を進める際は以下を適用する。
+PLAN-004 v5 と PLAN-009 v3 の方針として、L1-L11 を進める際は以下を適用する。
 
 - 各 L の entry/exit 条件に readiness を明示し、未充足時は前段へ差戻す。
-- 各ゲート（特に G1-G7）は readiness exit 判定に接続し、未達成は carry/passed 制御に反映する。
+- 各ゲート（特に G1-G11）は readiness exit 判定に接続し、未達成は carry/passed 制御に反映する。
 - IIP/deferral の評価は下記で統一する。
 
 P0: gate stop（即修正）

@@ -22,8 +22,8 @@ HELIX の状態は3階層で構成される:
 
 ```
 モード (mode)           : forward | reverse | scrum
-  └─ フェーズ (phase)   : L1-L8 | R0-R4
-      └─ ゲート (gate)  : G0.5, G1, G2-G7, G1.5, G1R | RG0-RG3
+  └─ フェーズ (phase)   : L1-L11 | R0-R4 | S0-S4
+      └─ ゲート (gate)  : G0.5, G1, G1R, G1.5, G2-G11（G8 は存在しない） | RG0-RG3
           └─ sprint     : .1a, .1b, .2, .3, .4, .5, .b1, .b2, .b3
 ```
 

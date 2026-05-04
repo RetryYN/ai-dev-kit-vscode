@@ -69,19 +69,23 @@ run_secret_scan() {
 }
 
 run_drift_check() {
+  local helix_cmd=""
   local helix_drift_check=""
   local changed=""
   local drift_rc=0
   local file=""
 
-  for candidate in "$HOME/ai-dev-kit-vscode/cli/helix-drift-check" "/usr/local/bin/helix-drift-check"; do
-    if [[ -x "$candidate" ]]; then
-      helix_drift_check="$candidate"
-      break
-    fi
-  done
+  if [[ -x "$HOME/ai-dev-kit-vscode/cli/helix" ]]; then
+    helix_cmd="$HOME/ai-dev-kit-vscode/cli/helix"
+  elif command -v helix >/dev/null 2>&1; then
+    helix_cmd="helix"
+  elif [[ -x "$HOME/ai-dev-kit-vscode/cli/helix-drift-check" ]]; then
+    helix_drift_check="$HOME/ai-dev-kit-vscode/cli/helix-drift-check"
+  elif [[ -x "/usr/local/bin/helix-drift-check" ]]; then
+    helix_drift_check="/usr/local/bin/helix-drift-check"
+  fi
 
-  if [[ -z "$helix_drift_check" ]]; then
+  if [[ -z "$helix_cmd" && -z "$helix_drift_check" ]]; then
     return 0
   fi
 
@@ -95,7 +99,9 @@ run_drift_check() {
     [[ -z "$file" ]] && continue
     echo ""
     echo "--- drift-check: $file ---"
-    if ! "$helix_drift_check" "$file"; then
+    if [[ -n "$helix_cmd" ]]; then
+      "$helix_cmd" drift-check "$file" || drift_rc=1
+    elif ! "$helix_drift_check" "$file"; then
       drift_rc=1
     fi
   done <<< "$changed"

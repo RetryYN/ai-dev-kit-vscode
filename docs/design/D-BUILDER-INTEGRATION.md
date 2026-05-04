@@ -1,6 +1,6 @@
 # D-BUILDER-INTEGRATION: Builder System と CLI の統合設計
 
-> Status: Draft
+> Status: Staged（builder CLI / core builders 実装済み）
 > Date: 2026-04-14
 > Authors: TL
 > 参照: [ADR-002 Builder System Foundations](../adr/ADR-002-builder-system-foundations.md), [ADR-008 ビルダー抽象化](../adr/ADR-008-builder-abstraction.md), [L2-builder-system.md](./L2-builder-system.md)
@@ -104,7 +104,7 @@ Available builders:
 
 ### 3.1 直接接続されているコマンド
 
-**`helix-builder`** → Builder System のメインエントリ
+**`helix builder`** → Builder System のメインエントリ
 - 実装: `cli/helix-builder` (21行の薄いラッパー)
 - 動作: `python3 cli/lib/builders/cli.py "$@"` を呼び出す
 
@@ -114,18 +114,18 @@ Available builders:
 
 | コマンド | 現状 | 将来の統合方針 |
 |---------|------|--------------|
-| `helix-task` | 独自のタスク実行ロジック | `task` ビルダーに委譲（部分的に既に連携） |
-| `helix-team` | 独自のチーム実行ロジック | `workflow` ビルダーに委譲 |
-| `helix-init` | テンプレートコピー | Builder化しない（ADR-006 cp 方式を維持） |
-| `helix-codex` | Codex CLI 呼び出し | Builder化しない（ツール起動は対象外） |
+| `helix task` | 独自のタスク実行ロジック | `task` ビルダーに委譲（部分的に既に連携） |
+| `helix team` | 独自のチーム実行ロジック | `workflow` ビルダーに委譲 |
+| `helix init` | テンプレートコピー | Builder化しない（ADR-006 cp 方式を維持） |
+| `helix codex` | Codex CLI 呼び出し | Builder化しない（ツール起動は対象外） |
 
 ### 3.3 接続されていない領域
 
 以下は現時点で Builder System と無関係:
 
-- **Gate 検証系** (`helix-gate`, `helix-gate-api-check`, `helix-drift-check`) — 検証タスクは Builder の責務外
-- **状態管理系** (`helix-status`, `helix-mode`, `helix-sprint`) — phase.yaml 更新が主目的
-- **Hook 系** (`helix-hook`, `helix-check-claudemd`, `helix-session-*`) — イベント駆動型
+- **Gate 検証系** (`helix gate`, `helix gate-api-check`, `helix drift-check`) — 検証タスクは Builder の責務外
+- **状態管理系** (`helix status`, `helix mode`, `helix sprint`) — phase.yaml 更新が主目的
+- **Hook 系** (`helix hook`, `helix check-claudemd`, `helix session-*`) — イベント駆動型
 
 ---
 
@@ -199,7 +199,7 @@ helix builder agent-loop build --input-payload "$(cat params.json)"
 
 ## 7. 未解決事項
 
-- [ ] Builder と `helix-task` の責務分担明確化（現状は部分重複）
+- [ ] Builder と `helix task` の責務分担明確化（現状は部分重複）
 - [ ] Builder quality_score の統一基準（GAP-028）
 - [ ] 並列実行時の SQLite 競合検証
 - [ ] Builder Hooks の具体設計（必要性の評価含む）

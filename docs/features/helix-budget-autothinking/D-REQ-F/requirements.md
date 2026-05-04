@@ -32,7 +32,7 @@ HELIX 自身の運用における「Claude / Codex 枠切れ事故」「thinking
 
 HELIX フレームワークを 1 週間以上運用すると Claude / Codex の枠が切れて開発が止まる事故が多発する。特に:
 - Codex 5.3 Spark が週内に枯渇しやすい
-- `helix-codex --role se --thinking high` を S タスクに投げて 10 分 timeout
+- `helix codex --role se --thinking high` を S タスクに投げて 10 分 timeout
 - 残量不明のままタスク投入 → 途中で動かなくなる
 
 **ゴール**: 残量を常時可視化し、タスク難度に応じた effort 自動判定 + 枯渇モデル自動降格で「枠切れ事故ゼロ」を実現する。
@@ -73,14 +73,14 @@ HELIX フレームワークを 1 週間以上運用すると Claude / Codex の�
 | FR-D1 | `cli/roles/effort-classifier.conf` (gpt-5.4-mini) を定義 |
 | FR-D2 | `cli/lib/effort_classifier.py` がタスク記述 + role + size を受け取り effort (low/medium/high/xhigh) を返す |
 | FR-D3 | 難度スコアリング 5 軸 (ファイル数・横断度・仕様理解必要度・副作用リスク・テスト複雑度) を合計点で分類 |
-| FR-D4 | `helix-codex --auto-thinking` フラグで有効化 (デフォルト off、既存挙動維持) |
+| FR-D4 | `helix codex --auto-thinking` フラグで有効化 (デフォルト off、既存挙動維持) |
 | FR-D5 | 分割推奨フラグ (xhigh + S size → "分割推奨" を CLI 出力) |
 
 ### FR-E: モデル降格提案
 
 | ID | 要件 |
 |----|------|
-| FR-E1 | `helix-codex` / `helix-skill use` 前処理で残量を確認 |
+| FR-E1 | `helix codex` / `helix skill use` 前処理で残量を確認 |
 | FR-E2 | 枯渇モデル (残 < 10%) 検出時に降格ルールを適用した代替モデルを提案 |
 | FR-E3 | 降格ルール: Spark → 5.4-mini (軽量) or 5.3 (昇格) / 5.3 → 5.4 (雑・判断) or Spark (S 純粋実装) / 5.4 → hold |
 | FR-E4 | ユーザー確認待ち (非対話時は `--yes` で自動適用) |
@@ -102,7 +102,7 @@ HELIX フレームワークを 1 週間以上運用すると Claude / Codex の�
 | FR-G2 | `helix budget forecast [--days N]` — N 日後の消費予測 |
 | FR-G3 | `helix budget classify --task "..." --role X --size S` — effort 自動判定 (dry-run) |
 | FR-G4 | `helix budget simulate --task "..." --role X` — 残量 + effort 統合で推奨モデル提示 |
-| FR-G5 | `helix-codex --auto-thinking` / `helix-skill use --auto-thinking` オプション追加 |
+| FR-G5 | `helix codex --auto-thinking` / `helix skill use --auto-thinking` オプション追加 |
 
 ---
 

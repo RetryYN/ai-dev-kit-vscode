@@ -32,5 +32,4 @@
 - 定義:
 
 ## 8. 未決事項
-- TBD-01:
-- TBD-02:
+- 現時点ではなし。未決事項が発生した場合は、PLAN または readiness finding に owner / due 付きで登録する。

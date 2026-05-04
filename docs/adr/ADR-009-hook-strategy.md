@@ -10,7 +10,7 @@
 
 HELIX CLI は複数のフックポイントで自動検証・ガイド提示を行う:
 
-- **Claude Code hook**: SessionStart, PreToolUse(Write), PostToolUse(Edit/Write), Stop
+- **Claude Code hook**: SessionStart, PreToolUse(Write), PostToolUse(Edit/Write/MultiEdit), Stop
 - **Git hook**: pre-commit, commit-msg, post-merge
 - **doc-map トリガー**: ファイル編集時の設計整合チェック（PostToolUse 経由）
 
@@ -32,9 +32,9 @@ HELIX CLI は複数のフックポイントで自動検証・ガイド提示を�
 
 | 層 | タイミング | チェック内容 | 遅延許容 |
 |----|-----------|-------------|---------|
-| **Layer 1: PostToolUse (advisory)** | ファイル編集直後 | doc-map マッチ → 設計ドキュメント存在確認、契約ドリフト検知（helix-drift-check） | < 10秒 |
+| **Layer 1: PostToolUse (advisory)** | ファイル編集直後 | doc-map マッチ → 設計ドキュメント存在確認、契約ドリフト検知（`helix drift-check`） | < 10秒 |
 | **Layer 2: pre-commit (enforce)** | コミット前 | フェーズガード、CLAUDE.md テンプレート準拠、契約整合 | < 30秒 |
-| **Layer 3: helix-gate (full)** | ゲート通過時 | 成果物存在・静的パターン・AI検証 | < 数分 |
+| **Layer 3: helix gate (full)** | ゲート通過時 | 成果物存在・静的パターン・AI検証 | < 数分 |
 
 ### doc-map の役割
 
@@ -49,16 +49,16 @@ triggers:
   - pattern: "D-API/**/*.md"
     on_write:
       - gate: G3
-        check: helix-drift-check
+        check: helix drift-check
 ```
 
 ### 現在実装済みフック（2026-04-14時点）
 
 **Claude Code hooks** (`~/.claude/settings.json`):
-- SessionStart → `helix-session-start` (コンテキスト注入・セットアップチェック)
-- PreToolUse(Write) → `helix-check-claudemd` (CLAUDE.md テンプレート強制)
-- PostToolUse(Edit/Write) → `helix-hook` (doc-map トリガー、drift-check、advisory)
-- Stop → `helix-session-summary` (セッションサマリ生成)
+- SessionStart → `helix session-start` (コンテキスト注入・セットアップチェック)
+- PreToolUse(Write) → `helix check-claudemd` (CLAUDE.md テンプレート強制)
+- PostToolUse(Edit/Write/MultiEdit) → `helix-post-tool-use` → `helix hook` (payload 抽出、doc-map トリガー、drift-check、advisory)
+- Stop → `helix session-summary` (セッションサマリ生成)
 
 **Git hooks** (`cli/templates/pre-commit-hook` 等):
 - pre-commit → フェーズガード確認、大きすぎるファイル警告
@@ -100,7 +100,7 @@ triggers:
 
 - **即時フィードバック**: 編集直後（< 10秒）に軽量 advisory 発火 → AI エージェントが即座に修正判断可能
 - **コミット時保証**: pre-commit で強制チェック → 不整合のまま commit されない
-- **ゲート時の最終確認**: `helix-gate` で包括的検証（静的+AI）→ フェーズ遷移の品質担保
+- **ゲート時の最終確認**: `helix gate` で包括的検証（静的+AI）→ フェーズ遷移の品質担保
 - **設計ドキュメント連動**: doc-map 経由で実装と設計書の整合性を自動追跡
 
 ### 負の影響
@@ -122,6 +122,7 @@ triggers:
 
 ## References
 
+- `cli/libexec/helix-post-tool-use` (PostToolUse payload wrapper)
 - `cli/helix-hook` (PostToolUse フック本体)
 - `cli/helix-check-claudemd` (PreToolUse フック)
 - `cli/helix-session-start` (SessionStart フック)

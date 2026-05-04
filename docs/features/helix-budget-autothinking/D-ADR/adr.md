@@ -171,7 +171,7 @@ Phase A + B は**責務分離**。
 - Phase A: Claude サブエージェント (fe-*, be-*, qa-*, security-*, db-*, devops-*) の固定 effort
 - Phase B: Codex ロール (tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf) の動的 effort
 
-`helix-skill use` は recommender が agent を決めた後、Codex ロールなら Phase B classifier を呼び、Claude subagent なら Phase A frontmatter を使う。
+`helix skill use` は recommender が agent を決めた後、Codex ロールなら Phase B classifier を呼び、Claude subagent なら Phase A frontmatter を使う。
 
 ---
 

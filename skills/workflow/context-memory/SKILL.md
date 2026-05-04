@@ -172,8 +172,8 @@ src/
 ### 1.4 Codex CLI（AGENTS.md）差分
 
 ```
-このリポジトリでは CLAUDE.md -> AGENTS.md の symlink + sync-agents で同期。
-基本は同一内容で運用し、以下の差分だけ意識する。
+このリポジトリでは project context を CLAUDE.md / AGENTS.md に並置する。
+共有知識は揃えつつ、Claude Code runtime と Codex TL mode の差分だけ分ける。
 ```
 
 | 項目 | Claude Code | Codex CLI |
@@ -186,7 +186,9 @@ src/
 
 ```
 実務ルール:
-- "指示内容" は AGENTS.md（= CLAUDE.md と同文）に寄せる
+- "共有 project context" は CLAUDE.md と AGENTS.md で揃える
+- "Claude runtime / hook / orchestration policy" は .claude/CLAUDE.md に寄せる
+- "Codex TL mode / handover / test policy" は AGENTS.md に寄せる
 - "実行ポリシー"（サンドボックス、承認、出力形式）は config.toml に寄せる
 - 個人差分は AGENTS.override.md（gitignore推奨）
 - Codex には rules/ や @import がないため、500行超えは references/ で対処
@@ -244,7 +246,7 @@ src/
 
 ### スキル自動推挙（gpt-5.4-mini）
 
-全 100 スキル + 89+ references から LLM マッチングで最適なコンテキストを選定:
+全 105 スキル + 89+ references から LLM マッチングで最適なコンテキストを選定:
 
 ```bash
 helix skill search "<タスク記述>" -n 5       # top N 候補 + 推奨 agent + 関連 references
@@ -505,7 +507,7 @@ skills/
 
 ### HELIX での実用パターン
 
-- `helix-codex` の task テキストを圧縮してから委譲
+- `helix codex` の task テキストを圧縮してから委譲
 - recipe の `input_params_redacted` を圧縮して保存
 - skill Read 時に必要セクションのみ選択ロード
 

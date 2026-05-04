@@ -49,14 +49,14 @@
 |----|---------|----------|
 | AC-D1 | S タスク (files=1, lines=20) + 実装系 → effort=low/medium 推定 | bats: `helix budget classify --size S --task "typo 修正"` → low |
 | AC-D2 | L タスク (files=10+, API+DB 変更) + 設計系 → effort=high/xhigh 推定 | bats: 設計タスクで high 返却 |
-| AC-D3 | `--auto-thinking` で helix-codex 実際の CLI 呼び出しが thinking level を上書きする | tool wrapper 内で --thinking 引数を検証 |
+| AC-D3 | `--auto-thinking` で helix codex 実際の CLI 呼び出しが thinking level を上書きする | tool wrapper 内で --thinking 引数を検証 |
 | AC-D4 | xhigh + S size で "分割推奨" 警告が出る | bats: 小タスク + xhigh で stderr に分割推奨 |
 
 ## AC-E: モデル降格提案 (FR-E)
 
 | ID | 受入条件 | 検証方法 |
 |----|---------|----------|
-| AC-E1 | Spark 残 < 10% 状態で `helix-codex --role pg` 実行 → 5.4-mini 降格提案 | mock 残量で発火確認 |
+| AC-E1 | Spark 残 < 10% 状態で `helix codex --role pg` 実行 → 5.4-mini 降格提案 | mock 残量で発火確認 |
 | AC-E2 | 5.3 残 < 10% + M サイズ + 雑プロンプト → 5.4 昇格提案 | mock + task text 解析 |
 | AC-E3 | 5.4 は原則 hold、降格提案を出さない | bats で 5.4 時は降格 skip |
 | AC-E4 | `--yes` で自動適用 / 対話なしで続行 | stdin 閉じた環境で pass |
@@ -75,8 +75,8 @@
 | ID | 受入条件 |
 |----|---------|
 | AC-G1 | `helix budget --help` で status / forecast / classify / simulate サブコマンドが表示 |
-| AC-G2 | `helix-codex --help` に `--auto-thinking` が追加されている |
-| AC-G3 | `helix-skill use --help` に `--auto-thinking` が追加されている |
+| AC-G2 | `helix codex --help` に `--auto-thinking` が追加されている |
+| AC-G3 | `helix skill use --help` に `--auto-thinking` が追加されている |
 
 ## AC-Q: 品質 (横断)
 
@@ -86,7 +86,7 @@
 | AC-Q2 | `helix gate G4` pass (fail-close) |
 | AC-Q3 | `helix gate G6` pass |
 | AC-Q4 | `security-audit` agent レビューで Critical / High 指摘ゼロ |
-| AC-Q5 | 既存 helix-codex / helix-skill / helix-gate が新フラグ無しで従来通り動作 |
+| AC-Q5 | 既存 `helix codex` / `helix skill` / `helix gate` が新フラグ無しで従来通り動作 |
 
 ## AC-U: ユーザー検証 (L8)
 

@@ -1,6 +1,6 @@
-# D-RESILIENCE: Codex 依存のレジリエンス強化
+# D-RESILIENCE: Codex / Claude Code プラン利用前提のレジリエンス強化
 
-> Status: Draft（段階実装）
+> Status: Staged（plan-based harness v1 実装済み）
 > Date: 2026-04-14
 > Authors: TL
 
@@ -10,13 +10,15 @@
 
 HELIX CLI の Codex 依存部分におけるリジリエンス（障害耐性）を強化する。GAP-038「Codex 依存のレジリエンス不足（リトライ2回のみ・代替モデルなし）」の解消を目的とする。
 
+本設計で扱う Codex / Claude Code は、どちらも各ツールの契約プランとローカル CLI 利用を HELIX が `helix plan` / `helix task` / role / hook / handover で管理する前提とする。HELIX が外部プロバイダ呼び出しや認証情報を直接扱うフォールバックは本設計の対象外。
+
 ---
 
 ## 2. 現状分析
 
 ### 2.1 現状のリトライ機構
 
-`helix-codex` は以下のリトライ機構を持つ:
+`helix codex` は以下のリトライ機構を持つ:
 
 ```bash
 # cli/helix-codex L200 付近（推定）
@@ -24,7 +26,7 @@ for attempt in 1 2; do
     codex exec "$prompt" ...
     if [[ $? -eq 0 ]]; then break; fi
     if [[ $attempt -eq 1 ]]; then
-        echo "[helix-codex] リトライ ($attempt/2)..."
+        echo "[helix codex] リトライ ($attempt/2)..."
     fi
 done
 ```
@@ -42,7 +44,7 @@ done
 | パターン | 頻度 | 現状の挙動 |
 |---------|------|----------|
 | ネットワーク一時切断 | 中 | リトライで回復することが多い |
-| OpenAI API 混雑（429/503） | 中 | 2回リトライで失敗してタスク中断 |
+| Codex CLI 側の rate limit / サービス混雑 | 中 | 2回リトライで失敗してタスク中断 |
 | モデル非対応（gpt-5.x 新版問題） | 低 | 即エラー終了 |
 | タイムアウト（長大タスク） | 中 | 現状は 300 秒固定、延長機能なし |
 | 構文エラー（出力 YAML 不正） | 低 | エラー表示のみ、自動修復なし |
@@ -65,8 +67,8 @@ done
 └───────────┬─────────────┘
             ↓ 失敗
 ┌─────────────────────────┐
-│ Layer 3: Claude Sonnet  │  ← Claude API 経由で別プロバイダ
-│   (FE/ドキュメント限定)  │
+│ Layer 3: Claude Code CLI│  ← 契約プラン/CLI を HELIX harness で委譲
+│   (plan/task fallback)  │
 └───────────┬─────────────┘
             ↓ 失敗
 ┌─────────────────────────┐
@@ -76,94 +78,84 @@ done
 
 ### 3.2 段階的リトライ
 
-各 Layer 内で以下のリトライ戦略を適用:
+`cli/helix-codex` は Primary model の実行で以下の分類と backoff を適用する:
 
 ```python
-# cli/lib/codex_resilience.py（新規実装案）
-RETRY_CONFIG = {
-    "network_error":       {"max_retries": 3, "backoff": "exponential"},  # 1s, 2s, 4s
-    "rate_limit":          {"max_retries": 5, "backoff": "jittered"},     # 30s ± 10s
-    "model_error":         {"max_retries": 0, "fallback": True},          # 即フォールバック
-    "timeout":             {"max_retries": 1, "extend_timeout": 1.5},     # タイムアウトを1.5倍
-    "syntax_error":        {"max_retries": 1, "self_correction": True},   # 自己修正プロンプト
-}
+timeout_exit_124 -> backoff 0s
+network_exit_7_8_28 -> exponential backoff (1s, 2s, 4s ...)
+other -> backoff 1s
 ```
+
+`--max-retries` の上限は 10。Primary が失敗した場合は Layer 2 の Codex 代替モデルへ 1 回だけ進む。
 
 ### 3.3 フォールバック制御
 
-`helix-codex` に以下のオプションを追加（提案）:
+`helix codex` は以下のオプションを実装済み:
 
 ```bash
-helix codex --role se --task "..." \
+helix codex --role pg --task "..." \
   --fallback-model gpt-5.2-codex \        # Layer 2 の代替モデル指定
-  --fallback-provider claude-sonnet-4-6 \  # Layer 3 の代替プロバイダ指定
+  --fallback-provider claude-code \        # Layer 3 の Claude Code harness 指定
   --max-retries 3 \                        # 最大リトライ回数（デフォルト 2）
-  --timeout 600                            # タイムアウト秒数（デフォルト 300）
+  --timeout 600                            # タイムアウト秒数（デフォルト 1800）
 ```
+
+Layer 3 は `--fallback-provider claude-code` 指定時のみ有効になる。`helix claude` が Claude Code 用 prompt/task-file を生成し、`.helix/tasks/` に引き渡す。v1 は Claude Code を自動実行せず、HELIX は外部向けの直接呼び出しを行わない。
 
 ### 3.4 ロール別フォールバック許容
 
 全ロールで同一戦略を取らず、ロール特性に応じてフォールバックを許可/禁止:
 
-| ロール | Layer 2 フォールバック | Layer 3 (Claude) フォールバック | 備考 |
+| ロール | Layer 2 フォールバック | Layer 3 (Claude Code CLI) フォールバック | 備考 |
 |-------|---------------------|-----------------------------|------|
 | tl | ✓ | ✗ | 設計判断は Codex 限定（品質優先） |
 | se | ✓ | ✗ | 上級実装は Codex 限定 |
-| pg | ✓ | ✓ | 通常実装は Claude 代替可 |
-| fe | ✓ | ✓ | FE は元々 Claude Sonnet が主力 |
-| qa | ✓ | ✓ | テスト生成は Claude 代替可 |
+| pg | ✓ | ✓ | 通常実装は Claude Code 委譲候補 |
+| fe | ✓ | ✓ | FE は Claude Code 委譲候補 |
+| qa | ✓ | ✓ | テスト生成は Claude Code 委譲候補 |
 | security | ✓ | ✗ | セキュリティ判断は Codex 限定 |
-| dba | ✓ | ✓ | DB 実装は Claude 代替可 |
-| devops | ✓ | ✓ | インフラ設定は Claude 代替可 |
-| docs | ✓ | ✓ | ドキュメントは Claude 向き |
-| research | ✓ | ✓ | 調査系は Claude Haiku 代替可 |
+| dba | ✓ | ✓ | DB 実装は Claude Code 委譲候補 |
+| devops | ✓ | ✓ | インフラ設定は Claude Code 委譲候補 |
+| docs | ✓ | ✓ | ドキュメントは Claude Code 委譲候補 |
+| research | ✓ | ✓ | 調査系は Claude Code 委譲候補 |
 | legacy | ✓ | ✗ | レガシー分析は Codex 5.2 限定 |
 | perf | ✓ | ✗ | 性能分析は Codex 限定 |
 
 ---
 
-## 4. 実装計画
+## 4. 実装状態
 
-### Phase 1: 基盤（1 Sprint）
+### Phase 1: 基盤
 
-- `cli/lib/codex_resilience.py` を新規作成
-  - エラー分類関数（`classify_error()`）
-  - リトライ戦略関数（`get_retry_strategy()`）
-  - バックオフ計算（`calculate_backoff()`）
-- `helix-codex` に `--max-retries` / `--timeout` オプション追加
-- 既存のリトライロジックを `codex_resilience` 経由に変更
+- `cli/helix-codex` に `--max-retries` / `--timeout` を実装済み
+- `timeout` / `network` / `other` の分類とバックオフ計算を同 wrapper 内で実装済み
+- `--max-retries` は 0-10 の整数に制限
 
-### Phase 2: Layer 2 フォールバック（1 Sprint）
+### Phase 2: Layer 2 フォールバック
 
-- `helix-codex` に `--fallback-model` オプション追加
-- ロール別設定を `cli/roles/*.conf` に追加:
-  ```
-  # cli/roles/pg.conf
-  codex_model=gpt-5.3-codex-spark
-  fallback_model=gpt-5.2-codex
-  ```
-- エラー分類に基づく自動フォールバック
+- `helix codex` に `--fallback-model` を実装済み
+- `cli/config/models.yaml` の `default_fallback` を自動採用
+- 許可モデルは `models.yaml` から検証
 
-### Phase 3: Layer 3 フォールバック（2-3 Sprint）
+### Phase 3: Layer 3 フォールバック
 
-- Claude API クライアント実装（または既存 SDK 使用）
-- `cli/lib/claude_fallback.py` 新規作成
-- ロール別 Claude プロンプト変換ロジック
-- `--fallback-provider` オプション追加
+- `cli/helix-claude` による Claude Code 用ローカル委譲 harness を実装済み
+- `--task` / `--task-file` / `--plan-id` / `--handover` による plan/task 文脈の受け渡しを実装済み
+- `helix codex --fallback-provider claude-code` は Codex 失敗時に `.helix/tasks/codex-fallback-*.claude.md` を生成
+- Claude Code の自動実行と結果取込は v1 では未実施
 
-### Phase 4: 観測・アラート（1 Sprint）
+### Phase 4: 観測・アラート
 
-- フォールバック発生時に `hook_events` へ記録
-- `helix bench` でフォールバック率を可視化
-- フォールバック率が閾値超え → `helix doctor` で警告
+- `cost_log` に最終モデル・リトライ回数・exit code を記録
+- フォールバック率の専用可視化と閾値アラートは今後の課題
 
 ---
 
 ## 5. 後方互換性
 
-- デフォルト挙動は現状維持（2回リトライ、フォールバックなし）
-- 新オプションは opt-in（明示指定時のみ有効）
-- 既存テストは変更不要
+- `--max-retries` のデフォルトは 2
+- Layer 2 は `models.yaml` の `default_fallback` を使う。明示 `--fallback-model` で上書き可能
+- Layer 3 は opt-in（`--fallback-provider claude-code` 指定時のみ）
 
 ---
 
@@ -172,10 +164,10 @@ helix codex --role se --task "..." \
 | リスク | 緩和策 |
 |--------|--------|
 | フォールバック時に品質低下 | ロール別に厳格な許容設定、品質 ADR でガード |
-| Claude API 追加コスト | 環境変数で Layer 3 有効化を制御（`HELIX_ENABLE_CLAUDE_FALLBACK=1`） |
-| プロンプト非互換 | Codex と Claude で同じタスクが異なる出力になる可能性 → フォールバック時に警告表示 |
+| Claude Code 利用量増加 | 契約プラン範囲内の CLI 利用として扱い、HELIX は API key/env を管理しない |
+| プロンプト非互換 | Codex と Claude Code で同じタスクが異なる出力になる可能性 → フォールバック時に警告表示 |
 | リトライ無限ループ | max_retries 上限厳守、timeout での強制終了 |
-| フォールバック先 API 障害 | Layer 4（エラー報告）で最終的には人間に委譲 |
+| Claude Code CLI 利用不可 | Layer 4（エラー報告）で最終的には人間に委譲 |
 
 ---
 
@@ -183,16 +175,17 @@ helix codex --role se --task "..." \
 
 | 項目 | 内容 | 優先度 |
 |------|------|------|
-| Phase 1-2 未実装 | 設計のみ、実装は将来スプリント | P2（GAP-038 本体） |
-| Claude API 統合 | Phase 3 は API キー管理等の運用作業も必要 | P3 |
+| GAP-038 残件 | retry/backoff・結果取込・品質評価は将来スプリント | P2（GAP-038 本体） |
+| Claude Code harness | v1 は dry-run / prompt 生成中心。自動実行・結果取込は将来拡張 | P3 |
 | フォールバック品質評価 | 実運用データ蓄積後に配分ロジック調整 | P3 |
-| プロンプト翻訳 | Codex ↔ Claude の自動変換機構は未実装 | P3 |
+| プロンプト翻訳 | Codex ↔ Claude Code の変換は v1 テンプレート整形まで | P3 |
 
 ---
 
 ## 8. References
 
-- `cli/helix-codex` (319行, 現状実装)
+- `cli/helix-codex` (Codex wrapper / retry / fallback 実装)
+- `cli/helix-claude` (Claude Code 用 plan/task prompt harness)
 - `cli/roles/*.conf` (`cli/roles/` 配下のロール設定)
 - [ADR-002: Builder System Foundations](../adr/ADR-002-builder-system-foundations.md)
 - [ADR-004: Bash-Python ハイブリッド](../adr/ADR-004-bash-python-hybrid.md)

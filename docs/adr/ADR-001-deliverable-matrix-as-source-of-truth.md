@@ -30,7 +30,7 @@ HELIX v2 では、成果物対照表を中心に据えた document-driven gate �
 - `matrix.yaml` には status を含めない
 - `matrix.yaml` には少なくとも以下を表現できることを求める
   - 成果物 ID
-  - 適用レイヤー（L1-L8）
+  - 適用レイヤー（L1-L11）
   - 適用駆動タイプ（be / fe / db / agent）
   - 適用スコープ（feature / shared / platform）
   - 条件付き必須ルール

@@ -1,6 +1,6 @@
 ---
 name: lock
-description: HELIX の single-host DB lock を管理する automation lock skeleton。
+description: HELIX の single-host file lock + DB metadata lock を管理する automation lock。
 triggers:
   - 排他制御時
   - DB lock 取得時
@@ -14,7 +14,7 @@ metadata:
 
 ## 1. 概要
 
-`automation/lock` は、HELIX の single-host 前提の DB lock を共通化するための skeleton skill です。Sprint 1 では `locks` table と CLI skeleton を提供し、期限切れ lock の再取得や競合時 reason code は後続 Sprint で実装します。
+`automation/lock` は、HELIX の single-host 前提の file lock + DB metadata lock を共通化する skill です。期限切れ lock と pid dead は stale として検出し、再取得時に安全に回収します。
 
 ## 2. 提供機能
 

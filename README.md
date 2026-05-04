@@ -4,13 +4,13 @@
 
 ## 特徴
 
-- **フェーズ制御**: L1-L8 + Phase Guard ですっ飛ばし防止
+- **フェーズ制御**: L1-L11 + Phase Guard ですっ飛ばし防止
 - **ゲート強制**: 成果物が揃わないと次に進めない
 - **成果物駆動**: Deliverable Matrix で設計と実装を 1:1 対応
 - **自己改善**: Learning Engine で成功/失敗パターンを蓄積・昇格
 - **マルチモデル制御**: TL/SE/PG/FE の役割別委譲（thinking level 最適化）
 - **5 駆動タイプ**: be/fe/db/fullstack/agent
-- **55 スキル**: 開発・ライティング・デザイン・ブラウザ操作
+- **105 スキル**: 開発・ライティング・デザイン・ブラウザ操作・エージェント運用
 - **8 ビルダー**: エージェント開発の検証済みパーツ
 - **日本語ファースト**: 日本の開発水準底上げ
 
@@ -31,9 +31,12 @@ bash ~/ai-dev-kit-vscode/setup.sh
 
 何度実行しても安全（冪等）。アンインストール: `bash ~/ai-dev-kit-vscode/setup.sh --uninstall`
 
+このリポジトリ自体のエージェント向け project rules は [CLAUDE.md](CLAUDE.md) と [AGENTS.md](AGENTS.md) が正本です。個人差分は `CLAUDE.local.md` / `AGENTS.override.md` に置きます。
+
 このリポジトリへ clone した後は、Git hook を有効化するために `bash scripts/install-git-hooks.sh` を追加で実行してください。  
 `pre-commit` は staged 内容の secret 混入を、`pre-push` は `CLAUDE.md` / `SKILL.md` / `references/*.md` の機密・PII 混入を検知します。  
 運用境界は [docs/security-guidelines.md](docs/security-guidelines.md) を参照してください。
+意図的に保留している未実装・Draft 管理は [docs/backlog/intentional-deferred.md](docs/backlog/intentional-deferred.md) を正本とします。
 
 ## 開発者セットアップ（pytest）
 
@@ -57,7 +60,18 @@ pytest を導入していない環境では `helix test` は pytest を警告付
 
 ```bash
 # 1. プロジェクト初期化
+helix setup bootstrap --project-name "$(basename "$PWD")"
+
+# 手動で段階実行する場合
+helix setup preflight --profile project
 helix init
+
+# 開発支援パッケージは明示実行（既定 dry-run）
+helix setup packages list
+helix setup packages install --name textlint --yes
+
+# 旧まとめスクリプトも実インストールは --yes 必須
+bash ~/ai-dev-kit-vscode/cli/scripts/setup-all.sh --yes
 
 # 2. タスクサイジング
 helix size --files 10 --lines 300 --api --type new-feature --drive be
@@ -93,49 +107,48 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix size --files 5 --lines 120 --type
 HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 ```
 
-## CLI コマンド一覧（35 本）
+## CLI 機能マップ
 
-### 基本
+HELIX の入口は 6 領域に分けて使う。全コマンドの索引は [docs/commands/index.md](docs/commands/index.md) を参照。
 
-| コマンド | 説明 |
-|---------|------|
-| `helix init` | プロジェクト初期化（.helix/ + CLAUDE.md） |
-| `helix size` | タスクサイジング + フェーズスキップ判定 |
-| `helix status` | プロジェクト状態表示（次アクションガイド付き） |
-| `helix mode` | モード切替（forward / reverse / scrum） |
-| `helix test` | 全ツールのセルフテスト |
-| `helix test-debug` | デバッグ版セルフテスト |
-| `helix verify-all` | verify/ の全検証スクリプト実行 |
-| `helix debug` | デバッグユーティリティ |
-| `helix doctor` | HELIX セットアップ診断 |
+### 1. HELIX 全体管理
 
-### フェーズ管理
+| コマンド | 使う場面 |
+|---------|----------|
+| `helix init` | プロジェクトを HELIX 管理下に置く |
+| `helix status` | 現在地、次アクション、主要状態を見る |
+| `helix dashboard` | 静的な読み取り専用 snapshot を出す（Dashboard 構想管理の対象外） |
+| `helix mode` | forward / reverse / scrum を切り替える |
+| `helix doctor` / `helix migrate` / `helix commands` / `helix setup` | 環境診断、テンプレ追従、コマンド同期検証、初期化検証 |
+| `helix test` / `helix test-debug` | CLI 全体の回帰確認 |
+| `helix debug` / `helix bench` | 調査、メトリクス確認 |
 
-| コマンド | 説明 |
-|---------|------|
-| `helix gate <G0.5\|G2-G7>` | ゲート自動検証（deliverable + static + AI） |
-| `helix gate-api-check` | API エンドポイント整合チェック |
-| `helix sprint` | L4 マイクロスプリント管理（Twin Track 対応） |
-| `helix plan` | 設計提案（draft → TL review → finalize） |
-| `helix interrupt` | 追加設計モード（IIP/CC 自動分類） |
-| `helix pr` | ゲート結果から PR 自動生成（リリースノート付き） |
-| `helix retro` | ミニレトロ管理 |
+### 2. HELIX プロジェクト管理
 
-### 成果物管理
+| コマンド | 使う場面 |
+|---------|----------|
+| `helix size` | タスクサイズ、drive、フェーズスキップ判定 |
+| `helix plan` | 設計提案を draft → review → finalize で凍結 |
+| `helix matrix` | 成果物対照表、doc-map、gate-checks を管理 |
+| `helix gate` / `helix gate-api-check` | ゲート、API 契約整合を検証 |
+| `helix readiness` | deferred finding と readiness exit を管理 |
+| `helix sprint` / `helix task` | L4 実装スプリントとタスク OS |
+| `helix interrupt` / `helix handover` | IIP/CC と Opus/Codex handover |
+| `helix pr` / `helix retro` / `helix debt` | PR、ミニレトロ、技術負債 |
+| `helix drift-check` | D-API / D-CONTRACT / D-DB のドリフト検知 |
 
-| コマンド | 説明 |
-|---------|------|
-| `helix matrix` | 成果物対照表（init/compile/validate/status） |
-| `helix drift-check` | 契約ドリフト検知（D-API/D-CONTRACT/D-DB） |
-| `helix debt` | 技術的負債レジスタ管理 |
+### 3. Codex / Claude Code 管理 harness
 
-### AI 委譲
-
-| コマンド | 説明 |
-|---------|------|
-| `helix codex --role <role> --task "..."` | Codex ロール別委譲（12 ロール） |
-| `helix team <team> --task "..."` | チーム単位での委譲 |
+| コマンド | 使う場面 |
+|---------|----------|
+| `helix codex --role <role> --task "..."` | Codex CLI への role/task 委譲 |
+| `helix claude --role <role> --task "..." --dry-run` | Claude Code 用 plan/task prompt 生成 |
+| `helix team <team> --task "..."` | 複数 role のチーム委譲 |
 | `helix review [--uncommitted]` | Codex 自動レビュー |
+| `helix skill` | HELIX スキル検索・参照 |
+| `helix budget` | Claude/Codex の消費・モデル推奨 |
+| `helix hook` / `helix check-claudemd` | Claude Code hook の入口 |
+| `helix session-start` / `helix session-summary` | SessionStart / Stop hook |
 
 --thinking オプション:
 
@@ -146,55 +159,56 @@ HELIX_PROJECT_ROOT="$(pwd)/packages/api" helix gate G4 --static-only
 | pg/dba/devops | medium |
 | docs/research | low |
 
-### 学習・改善
+詳細: [docs/commands/ai-harness.md](docs/commands/ai-harness.md)
+
+### 4. Reverse / Scrum / 検証
 
 | コマンド | 説明 |
 |---------|------|
-| `helix learn` | 成功パターンの分析・recipe 生成 |
-| `helix promote` | recipe → スキル/スクリプトに昇格 |
-| `helix discover` | グローバルからパターン検索 |
-| `helix bench` | プロジェクト HELIX メトリクス表示 |
+| `helix reverse <type> <R0-R4>` | code / design / upgrade / normalization / fullback の Reverse HELIX |
+| `helix scrum` | 仮説検証、PoC、verify、Forward 接続 |
+| `helix verify-all` | verify/ 配下の検証スクリプト実行 |
+| `helix verify-agent` | 検証ツール harvest / design / PLAN drift cross-check |
 
-### ビルダー
+判定管理: [docs/commands/reverse.md](docs/commands/reverse.md), [docs/commands/scrum.md](docs/commands/scrum.md)
+
+### 5. 学習・再利用
 
 | コマンド | 説明 |
 |---------|------|
+| `helix log` | SQLite ログ・評価・session report |
+| `helix recipe` | learn / promote / discover / list の正規入口 |
+| `helix learn` / `helix promote` / `helix discover` | recipe 旧入口（deprecated） |
 | `helix builder list` | 利用可能なビルダー一覧 |
 | `helix builder <type> generate` | ビルダーでアーティファクト生成 |
+| `helix code` | コード index 検索・重複検出・統計 |
+| `helix audit` | A1 audit decisions 同期・検証 |
 
 8 種: json-converter, verify-script, agent-loop, task, workflow, agent-pipeline, agent-skill, sub-agent
 
-### その他
+### 6. 補助・運用
 
 | コマンド | 説明 |
 |---------|------|
-| `helix reverse <R0-R4>` | Reverse HELIX（既存コード→設計復元） |
-| `helix scrum` | 検証駆動開発（PoC → verify） |
-| `helix task` | タスクオペレーティングシステム |
-| `helix log` | SQLite ログ・評価システム |
+| `helix scheduler` | 定期実行スケジュール |
+| `helix job` | 非同期ジョブキュー |
+| `helix lock` | DB lock 管理 |
+| `helix observe` | イベント・メトリクス観測 |
 
-### Hooks（自動発火）
-
-| コマンド | 説明 |
-|---------|------|
-| `helix hook` | PostToolUse hook（doc-map トリガー） |
-| `helix check-claudemd` | PreToolUse hook（CLAUDE.md テンプレート強制） |
-| `helix session-start` | SessionStart hook（コンテキスト注入） |
-| `helix session-summary` | Stop hook（セッションサマリ生成） |
-
-## スキル（55 本、9 カテゴリ）
+## スキル（105 本、10 カテゴリ）
 
 | カテゴリ | スキル数 | 主な内容 |
 |---------|---------|---------|
-| workflow/ | 18 | プロジェクト管理・設計・検証・デプロイ |
+| workflow/ | 31 | プロジェクト管理・設計・検証・デプロイ・Reverse |
 | common/ | 12 | コーディング・レビュー・テスト・セキュリティ |
-| project/ | 3 | UI・API・DB |
+| project/ | 8 | UI・API・DB・FE サブエージェント |
 | advanced/ | 6 | 技術選定・i18n・レガシー・マイグレーション |
-| tools/ | 2 | AI コーディング・IDE ツール |
+| tools/ | 4 | AI コーディング・IDE ツール・検索 |
 | integration/ | 1 | エージェントチーム |
 | writing/ | 5 | 日本語品質・ストーリー・プレゼン・SNS |
 | design-tools/ | 5 | 図表・Web デザイン・PPTX・画像 |
-| automation/ | 3 | サイトマッピング・ブラウザ操作・フロー最適化 |
+| automation/ | 8 | サイトマッピング・ブラウザ操作・フロー最適化・scheduler/job/lock/setup/observe |
+| agent-skills/ | 25 | 上流 agent-skills 統合・HELIX 独自拡張 |
 
 ## 駆動タイプ（5 種）
 

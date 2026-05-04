@@ -101,7 +101,7 @@ def _has_column(conn, table_name, column_name):
 | A07 | ID / Auth Failures | N/A | 認証なし |
 | A08 | Software / Data Integrity | Pass | yaml_parser.py (安全)、DB migration transactional |
 | A09 | Logging & Monitoring | Pass | budget_events テーブル + skill_usage に記録 |
-| A10 | SSRF | N/A | 外部 URL 取得なし (非公式 API opt-in 時のみ、未実装) |
+| A10 | SSRF | N/A | 外部 URL 取得なし (非公式 API opt-in は deferred) |
 
 ---
 
@@ -111,7 +111,7 @@ def _has_column(conn, table_name, column_name):
 
 - **L-1 キャッシュクランプ**: キャッシュ破損時の UI 誤表示。ログイン後にブラウザで変な数字が出る程度、実害低。
 - **L-2 JSONL 走査上限**: 実害なし、cosmetic 改善。
-- **非公式 API 実装**: 現時点で未実装、将来 opt-in 時に再監査必要 (ADR-005)。
+- **非公式 API opt-in**: 現時点では deferred。将来 opt-in 時に再監査必要 (ADR-005)。
 
 ### 4.2 監視項目
 
@@ -119,7 +119,7 @@ def _has_column(conn, table_name, column_name):
 - `helix log report budget` (次期スプリント) で傾向監視
 - 認証情報 grep による監視: CI で `rg -iE 'access_token|eyJ|Bearer'` を定期実行
 
-### 4.3 未実装の緩和策 (P1/P2、L8 以降)
+### 4.3 Deferred 緩和策 (P1/P2、L8 以降)
 
 - [ ] budget_events フル記録 (実装骨格はあり、hook 統合後に発火)
 - [ ] ccusage version pinning (運用ドキュメントで誘導)

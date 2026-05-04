@@ -468,7 +468,7 @@ def select_relevant_context(query: str, available_contexts: list[dict], max_toke
 |---------|------|----------|-----------|
 | 1. Supervisor | 司令塔エージェントが計画・分岐・統合を担当 | 要件が広く、調整コストが高い案件 | PM が統括（HELIX デフォルト） |
 | 2. Debate | 複数エージェントが異なる案を提示して合意形成 | 設計リスクが高く、意思決定の妥当性を上げたい案件 | `adversarial-review` |
-| 3. Specialist | 領域ごとに専門エージェントへ委譲 | セキュリティ、DB、UI など専門性が明確な案件 | `helix-codex` の role 分担 |
+| 3. Specialist | 領域ごとに専門エージェントへ委譲 | セキュリティ、DB、UI など専門性が明確な案件 | `helix codex` の role 分担 |
 | 4. Pipeline | 入力を段階的に直列処理し、各段で成果物を確定 | 定型フロー、再現性重視の開発 | Agent Pipeline Builder |
 | 5. Swarm | タスク増加に応じてエージェントを動的追加 | 大規模分割や探索型タスク | 大規模タスク分割時の拡張運用 |
 

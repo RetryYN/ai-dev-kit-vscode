@@ -43,7 +43,7 @@ rg -n "innerHTML|dangerouslySetInnerHTML|v-html" --type js --type ts
 
 - 入力バリデーション: ユーザー入力をシステムプロンプトと分離し、命令文をそのまま昇格しない
 - 出力フィルタリング: 生成物に悪意あるコードや危険コマンドが含まれないかを検査する
-- HELIX: `helix-codex` に渡す task テキストを sanitize し、危険トークンを除去してから実行する
+- HELIX: `helix codex` に渡す task テキストを sanitize し、危険トークンを除去してから実行する
 
 ### AG02 不適切な権限管理
 
@@ -59,7 +59,7 @@ rg -n "innerHTML|dangerouslySetInnerHTML|v-html" --type js --type ts
 ### AG04 安全でないツール使用
 
 - ツール呼び出し前にパラメータ検証（パス、正規表現、危険コマンド）を行う
-- HELIX: `helix-hook` の advisory と `gate-checks` で事前検知する
+- HELIX: `helix hook` の advisory と `gate-checks` で事前検知する
 
 ### AG05 情報漏洩
 
@@ -81,4 +81,3 @@ rg -n "innerHTML|dangerouslySetInnerHTML|v-html" --type js --type ts
   HELIX対策: SQLite 実行ログ、ミニレトロ、Learning Engine で証跡を保持する
 
 ---
-

@@ -1,6 +1,7 @@
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 CLAUDE.local.md
+AGENTS.override.md
 __pycache__/
 *.pyc
 .env

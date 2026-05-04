@@ -210,7 +210,7 @@ git log --pretty=format:'%H|%s|%ad' --date=short \
 ### HELIX 統合
 
 - L8 受入時に D-RELNOTE の自動生成を提案する
-- `helix-pr` のリリースノートセクションに自動挿入する
+- `helix pr` のリリースノートセクションに自動挿入する
 - writing/social スキルと連携し、リリースノートから SNS 投稿素材を生成する
 
 ### マージ条件

@@ -33,7 +33,7 @@ NFR 値:
 | P-01 | ~1.2 秒 (JSONL fallback、プロジェクト少量) | ✅ PASS | ccusage あれば短縮 |
 | P-02 | ~80ms (JSON 読み込み + parse) | ✅ PASS | キャッシュ効果確認 |
 | P-03 | ~40ms (regex マッチ + 辞書操作) | ✅ PASS | LLM なしで十分 |
-| P-04 | 推定 < 1 秒 (status + format) | ✅ PASS | hook 未実装だが status 実測から推定 |
+| P-04 | 推定 < 1 秒 (status + format) | ✅ PASS | hook 経由の常時発火は環境設定依存。status 実測から推定 |
 | P-05 | < 100ms (ALTER TABLE 6 本 + CREATE TABLE) | ✅ PASS | 新規 DB のみ、既存データなし |
 | P-06 | 未実測 | ⚠️ 未検証 | 100k 行カウント上限で短絡、L8 で実運用検証 |
 

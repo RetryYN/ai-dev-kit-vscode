@@ -1,6 +1,6 @@
 # D-LEARNING-REFACTOR: learning_engine.py 責務分割設計
 
-> Status: Draft（段階実装）
+> Status: Staged（recipe/promote/discover 導線実装済み、責務分割は残件）
 > Date: 2026-04-14
 > Authors: TL
 
@@ -244,7 +244,7 @@ __all__ = [
 
 | 項目 | 内容 | 優先度 |
 |------|------|------|
-| 実装未着手 | 本文書は設計のみ、実装は別スプリント | P2（GAP-037 本体） |
+| GAP-037 残件 | recipe/promote/discover 導線は実装済み。責務分割本体は別スプリント | P2（GAP-037 本体） |
 | 更なる分割 | core.py が 900行なので将来さらに分割の可能性 | P3 |
 | 関数名の統一 | Public/Private の命名規則を分割時に再整理 | P3 |
 | 型ヒント完備 | 移行時に型ヒントを厳密化 | P3 |

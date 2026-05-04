@@ -33,11 +33,20 @@ HELIX CLI はプロジェクト初期化時に複数の設定ファイル・状�
 | `doc-map.yaml` | `doc-map.yaml` | cp |
 | `state-machine.yaml` | `state-machine.yaml` | cp |
 | `rules/*.yaml` | `rules/*.yaml` | cp（ディレクトリごと） |
-| `task-catalog.yaml` | — | 参照（helix-task が直接読む） |
-| `action-types.yaml` | — | 参照（helix-task が直接読む） |
-| `teams/*.yaml` | — | 参照（helix-team が直接読む） |
-| `agents/*.md` | — | 参照（helix-codex が直接読む） |
+| `task-catalog.yaml` | — | 参照（`helix task` が直接読む） |
+| `action-types.yaml` | — | 参照（`helix task` が直接読む） |
+| `teams/*.yaml` | — | 参照（`helix team` が直接読む） |
+| `agents/*.md` | — | 参照（`helix codex` が直接読む） |
 | `CLAUDE.md.template` | プロジェクト直下の `CLAUDE.md` | テンプレート展開 |
+| `AGENTS.md.template` | プロジェクト直下の `AGENTS.md` | テンプレート展開 |
+| `docs/L1-requirements.md` | `docs/requirements/L1-requirements.md` | `helix size` が対象 phase で cp |
+| `docs/L2-design.md` | `docs/design/L2-design.md` | `helix size` が対象 phase で cp |
+| `docs/L3-detailed-design.md` | `docs/design/L3-detailed-design.md` | `helix size` が対象 phase で cp |
+| `docs/L3-schedule-wbs.md` | `docs/design/L3-schedule-wbs.md` | `helix size` が対象 phase で cp |
+| `docs/L4-*-sprint-guide.md` | `docs/sprint/L4-*-sprint-guide.md` | `helix size` が drive に応じて cp |
+| `docs/L5-visual-design.md` | `docs/design/L5-visual-design.md` | `helix size` が対象 phase で cp |
+| `docs/PLAN.md.template` | `docs/plans/PLAN-XXX-*.md` | 参照テンプレート |
+| `docs/project-status.md.template` | `docs/status/project-status.md` | 参照テンプレート |
 | `pre-commit-hook` | `.git/hooks/pre-commit` | cp + chmod +x |
 | `commit-msg-hook` | `.git/hooks/commit-msg` | cp + chmod +x |
 | `post-merge-hook` | `.git/hooks/post-merge` | cp + chmod +x |
@@ -101,7 +110,7 @@ HELIX CLI はプロジェクト初期化時に複数の設定ファイル・状�
 | リスク | 緩和策 |
 |--------|--------|
 | テンプレート更新の非伝播 | `helix doctor` でテンプレートとの差分検出を提供。手動更新をガイド |
-| 初期化の冪等性 | `helix init` は既存ファイルがある場合スキップ。`--force` で上書き |
+| 初期化の冪等性 | `helix init` は既存ファイルがある場合スキップ。`--force` でも `CLAUDE.md` / `AGENTS.md` は上書きしない |
 | schema_validator.py との整合性 | JSON Schema (`cli/schemas/`) でランタイムファイルの構造を検証。テンプレート変更時は Schema も更新 |
 | 空ファイル問題 | `deliverable_gate.py` が 10 バイト未満のファイルを空として検出。形式的なコピーだけでは通過しない |
 

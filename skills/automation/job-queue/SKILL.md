@@ -1,6 +1,6 @@
 ---
 name: job-queue
-description: HELIX の非同期ジョブ登録、worker、retry を管理する automation job-queue skeleton。
+description: HELIX の非同期ジョブ登録、worker、retry、list を管理する automation job-queue。
 triggers:
   - ジョブ登録時
   - 非同期実行設計時
@@ -14,7 +14,7 @@ metadata:
 
 ## 1. 概要
 
-`automation/job-queue` は、HELIX の非同期ジョブ、優先度、遅延実行、再試行制御を共通化するための skeleton skill です。Sprint 1 では `jobs` table と CLI skeleton を提供し、worker の排他実行や retry アルゴリズムは後続 Sprint で実装します。
+`automation/job-queue` は、HELIX の非同期ジョブ、優先度、遅延実行、再試行制御を共通化する skill です。`helix job` は enqueue / worker / status / cancel / retry / requeue-stale / list を提供し、SQLite の atomic claim で二重実行を防ぎます。`worker` は既定で stale running job を復旧してから次の job を処理します。
 
 ## 2. 提供機能
 
@@ -23,13 +23,20 @@ metadata:
 - `helix job status`
 - `helix job cancel`
 - `helix job retry`
+- `helix job requeue-stale`
+- `helix job list`
 
 ## 3. 利用例
 
 ```bash
-helix job enqueue --task "helix:command:verify-all" --priority 7
-helix job worker --once
+helix job enqueue --task "helix:command:status" --priority 7
+helix job worker --max-jobs 1 --idle-sleep 0
+helix job worker --max-jobs 1 --no-requeue-stale
+helix job requeue-stale --older-than 3600
+helix job list --status pending --limit 10
 ```
+
+`requeue-stale` は worker crash などで `running` のまま残った job を復旧します。retry 可能なら `pending` に戻し、retry 上限を超えている場合は `failed` に倒します。
 
 ## 4. トラスト境界
 

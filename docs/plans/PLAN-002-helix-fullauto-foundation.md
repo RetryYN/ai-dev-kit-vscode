@@ -6,11 +6,11 @@
 
 ## 背景
 
-HELIX フレームワークは CLI・スキル・ゲートが揃い、L1〜L8 と Phase R/Phase S が運用可能な段階に到達した。次の課題は **「企画以降のフルオート化」** であり、現状以下のギャップがある:
+HELIX フレームワークは CLI・スキル・ゲートが揃い、L1〜L11 と Phase R/Phase S が運用可能な段階に到達した。次の課題は **「企画以降のフルオート化」** であり、現状以下のギャップがある:
 
 1. **セッション継続が手動**: Claude Code のコンテキスト上限到達時、`helix handover dump` は備わっているが、その後の「新セッション起動 → handover resume → 作業継続」が人間操作頼み。
 2. **コンテキスト管理が受動的**: `context-memory` スキルはあるが警告層がなく、気付いた時には詰まっている。
-3. **死蔵資産が増加傾向**: cli/ 37 コマンド・skills/ 100 スキル中、実装はあるが未使用 (skill_usage に記録なし) のものが混在。
+3. **死蔵資産が増加傾向**: `helix` 51 コマンド・skills/ 105 スキル中、実装はあるが未使用 (skill_usage に記録なし) のものが混在。
 4. **Reverse モードの発火条件が未整備**: `helix reverse <R0-R4>` は手動コマンドのみで、既存コード検出時の自動推奨がない。
 
 これらを統合的に解決し、PM (Opus) の介入を最小化する基盤を整備する。
@@ -267,7 +267,7 @@ G1.5(B): PoC (最小再現)
   - **user-private settings のみ** mode <= 0600 を強制、project settings は緩和 (group/world writable のみ拒否)
   - config ファイル (`.helix/config.yaml`): tracked OK、mode <= 0644 許容 (機密は **`~/.config/helix/auto-restart.local.yaml`** に分離、TL レビュー v29P1#1 反映: project-local secret 表記を撤廃、$HOME 配下に一本化)
   - lock ファイル (`~/.helix/auto-restart/locks/<workspace_hash>.lock`、TL レビュー v24P1#2 反映: $HOME 配下、project-local の旧パスは廃止): owner = current user、mode <= 0600 確認
-  - 実行バイナリ (`helix-codex`, `claude` etc): **絶対パスで起動** (`PATH` lookup 禁止)、起動前に realpath + owner/mode 検証 (mode <= 0755)
+  - 実行バイナリ (`helix codex`, `claude` etc): **絶対パスで起動** (`PATH` lookup 禁止)、起動前に realpath + owner/mode 検証 (mode <= 0755)
   - **path 全 component の信頼境界検証 (TL レビュー v19P1#2 反映: 対象種別で mode 要件分離)**:
     - **Tier A: secret/pending 系 (高信頼必須、TL レビュー v20P1#1 反映: $HOME 配下に限定)**:
       - 対象: HMAC 鍵 (`~/.config/helix/auto-restart.key` ファイル fallback 時)、pending payload ディレクトリ (`~/.helix/auto-restart/pending/`)、手動 restart 表示用ファイル (`~/.helix/restart-pending.txt`)、**HELIX secret 設定 (`~/.config/helix/auto-restart.local.yaml`)** (TL レビュー v27P1#1 反映: Claude Code 公式 settings から分離)、**lock ファイル (`~/.helix/auto-restart/locks/<workspace_hash>.lock`)**、**private runtime copy (`~/.helix/auto-restart/runtime/`)**、親ディレクトリ (`~/.config/helix/`、`~/.helix/auto-restart/`、`~/.helix/auto-restart/locks/`)
@@ -285,7 +285,7 @@ G1.5(B): PoC (最小再現)
         - 作成は atomic (`O_CREAT|O_EXCL|O_NOFOLLOW`)
       - これにより `/`, `/home`, `/Users` 等の root 所有 0755 が原因で常に fail-closed する問題を解消、かつ runtime script が実行可能
     - **Tier B: executable/project 系 (中信頼、TL レビュー v20P2#1 反映: symlink chain 検証)**:
-      - 対象: 実行バイナリ (`helix-codex`, `claude` etc、`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin` 等のシステム配置)、project settings (`.claude/settings.json`)、tracked hook ファイル (`.claude/hooks/*.sh`)
+      - 対象: 実行バイナリ (`helix codex`, `claude` etc、`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin` 等のシステム配置)、project settings (`.claude/settings.json`)、tracked hook ファイル (`.claude/hooks/*.sh`)
       - 検証 (realpath 解決後):
         - owner = current user **or root** (trusted owner)
         - **親ディレクトリ mode <= 0755** (世界書き込み禁止だが世界読み取り/実行は許容)
@@ -409,26 +409,22 @@ G1.5(D): 最小 PoC + 結合 PoC (TL レビュー v8P1#3 反映: 5% 結合検証
 
 | ソース | 信頼度 | 必須入力 | 取得元 | model context limit 決定 | 取得不能時 | **G-2 acceptance** |
 |--------|--------|---------|--------|------------------------|----------|------------------|
-| 1. Claude Code 公開 usage API | high | usage API レスポンス (input_tokens / output_tokens / total_tokens / model name) | hook payload or 環境変数 | API レスポンス内 model name → 静的マッピング (`models.yaml` で管理) | fallback to 2 | **G-2 達成経路 (full pass)** |
+| 1. Claude Code usage metadata | high | Claude Code CLI/hook から得られる usage metadata (input_tokens / output_tokens / total_tokens / model name) | hook payload or ローカル状態 | metadata 内 model name → 静的マッピング (`models.yaml` で管理) | fallback to 2 | **G-2 達成経路 (full pass)** |
 | 2. tiktoken (Claude 適合性 **要検証**、TL レビュー v10P2#2 反映) | low-medium | 直近 `auto_restart.token_sampling_window` メッセージのテキスト + model name + **Claude 用補正係数** | hook payload (transcript) + `.helix/config.yaml` の model 設定 + `models.yaml` の補正係数 | 静的マッピング (`models.yaml`) | fallback to 3 | **誤差率 ≤ 10% を確認できた場合のみ G-2 達成経路、それ以外は advisory のみ** |
 | 3. **stdlib fallback** (heuristic) | low | 直近 `auto_restart.token_sampling_window` メッセージのテキスト + 既定 context limit (`.helix/config.yaml` の `default_context_limit`) | hook payload (transcript) | `.helix/config.yaml` 既定値 (デフォルト 200000) | fail-open (警告できなかった旨ログ + 処理続行) | **advisory 専用、G-2 達成経路ではない** (TL レビュー v25P1#2 反映: stdlib のみで動作する状況は G-2 fail と等価、L1/G1 再ベースラインで別ゴール化のみ許容) |
 
 - **stdlib fallback**: メッセージ文字数 / 4 をトークン推定 (簡易 heuristic、信頼度 low の警告と共に表示)
 - **入力契約凍結場所**: G1R(D) 成果物 (`docs/research/D-feasibility.md`) で各層の必須入力フィールド + 取得元 + payload 形式を確定、L2 D-HOOK-SPEC で正式仕様化
-- **kill 判定 (TL レビュー v26P2#1 反映: stdlib advisory と整合)**: **usage API でも誤差検証済み tokenizer (誤差率 ≤ 10%) でも残量計算不能** なら G1.5(D) Kill Criteria に該当 → D 分離 (PLAN-005)。stdlib のみで動作する状況は G-2 達成経路ではない (advisory-only) ため、stdlib 動作は kill 回避の根拠にならない
-- **tiktoken の Claude 適合性検証 (TL レビュー v22P2#3 反映: 外部 API 利用条件)**:
+- **kill 判定 (TL レビュー v26P2#1 反映: stdlib advisory と整合)**: **Claude Code usage metadata でも誤差検証済み tokenizer (誤差率 ≤ 10%) でも残量計算不能** なら G1.5(D) Kill Criteria に該当 → D 分離 (PLAN-005)。stdlib のみで動作する状況は G-2 達成経路ではない (advisory-only) ため、stdlib 動作は kill 回避の根拠にならない
+- **tiktoken の Claude 適合性検証 (TL レビュー v22P2#3 反映: ローカル検証条件)**:
   - tiktoken は OpenAI 系 tokenizer のため、Claude の context usage と一致する保証なし
   - G1R(D) で **provider/model 別 tokenizer 適合性 + 許容誤差** を検証する条件を追加
-  - **検証時の外部 API 利用ポリシー (新、TL レビュー v22P2#3 反映)**:
-    - **既定では外部 Claude API は使わない** (hook payload + ローカル fixture のみで advisory 検証)
-    - 外部 Claude API を使う場合は **以下すべて必須**:
-      - **PM 承認** (`docs/research/D-feasibility.md` に「外部 API 利用承認: PM 署名 + 日付 + 理由」を記載)
-      - **credential 保管**: 環境変数 or `~/.config/helix/anthropic-api-key` (mode 0600、Tier A 検証対象)
-      - **非 PII fixture**: 検証用サンプルは public/synthetic データのみ、実 transcript や個人情報を送信しない
-      - **費用上限**: G1R(D) 全体で $5 上限、超過時は abort (helix.db `dep_review_log` で記録)
-      - **ログ redaction**: API レスポンスからトークン数のみ抽出、本文は記録しない
-    - 承認なしの場合は hook payload / ローカル fixture の advisory 検証のみ (誤差検証は省略、tiktoken は advisory-only として扱う)
-  - 検証手順 (外部 API 利用時): 既知の長文サンプル N 種を Claude 公開 API と tiktoken 推定で比較、誤差率を測定
+  - **検証時の方針 (更新、2026-05)**:
+    - HELIX は Codex / Claude Code を契約プラン + CLI/hook 経由で管理し、外部プロバイダ呼び出しや認証情報を直接扱わない
+    - 検証は hook payload / ローカル fixture / Claude Code usage metadata に限定する
+    - **非 PII fixture**: 検証用サンプルは public/synthetic データのみ、実 transcript や個人情報を送信しない
+    - 認証情報や本文はログに記録しない
+  - 検証手順: 既知の長文サンプル N 種を Claude Code usage metadata と tiktoken 推定で比較、誤差率を測定
   - acceptance への使用可否 (TL レビュー v24P2#1 反映: G-2 と整合):
     - 誤差率 ≤ 10%: tiktoken を G-2 acceptance 判定に使用可 (G-2 full pass の経路)
     - 誤差率 10-30%: **モデル別補正係数** (`models.yaml` で管理) を tiktoken 結果に乗じ、**別 fixture で再測定して誤差率 ≤ 10% を再検証できた場合のみ G-2 full pass に使用可**。再検証で 10% 以下を確認できなければ advisory 専用 (acceptance 判定には使わない)
@@ -574,7 +570,7 @@ Phase 1.5: 事前調査 + PoC (G1R + G1.5、B + D 並列、A0 のみ依存、TL 
   ↓   - **separated 判別**: `B-result.json` / `D-result.json` の `verdict`（pass/fail/separated）+ `scope_hash` + `.helix/baseline/PLAN-002-rebaseline-<outcome>.md` の存在で行う。  
   ↓     - outcome は `Bseparated` / `Dseparated` / `both-separated` を使用し、rebaseline 時の `scope_hash` と突合して再実行判定を行う。
   ↓   - **rebaseline 完了時**: 再実行可能性が確定し `gates.G1R/G1.5` の再実行で `passed` 条件を満たせる場合は status 更新。再実行不能なら `failed` 維持。
-  ↓   - これにより state-machine/template/helix-gate の CLI 変更は不要、本 PLAN スコープを守る。  
+  ↓   - これにより state-machine/template/`helix gate` の CLI 変更は不要、本 PLAN スコープを守る。  
   ↓   - 集約結果は `phase.yaml` の `gates.G1R.status` / `gates.G1.5.status` のみで管理（スキーマ拡張なし）。機械判別は `B-result.json` / `D-result.json` / `scope_hash` を参照。
   ↓   - G1.5: 同上のロジック
   ↓ G1R(B): hook event 実在 / claude --resume 非対話 / Codex 常駐 / keyring backend 調査
@@ -801,7 +797,7 @@ Kill Criteria 発火時、本 PLAN-002 のスコープが変動する。L1/G1 �
 | v19 | 2026-04-28 | TL レビュー P1×2/P2×3 反映: (P1#1) handover 署名対象を **manifest hash 方式** に拡張 (CURRENT.json 単体ではなく CURRENT.md + 補助ファイルも含む、auto-restart 入力一覧は G1R(B) で確定) / (P1#2) 信頼境界検証の mode 要件を **Tier A (secret/pending: 親 0700/file 0600)** と **Tier B (executable/project: 親 0755/file 0755 許容)** に分離、`/usr/bin` 等のシステム配置との衝突を解消 / (P2#1) `.gitignore` allowlist 更新を **Phase 0 preflight に前倒し** (A0 が git 管理対象を生成する前に適用、`git check-ignore --non-matching` で検証) / (P2#2) G1R phase.yaml status を **`passed`** に修正 (実行・通過の事実を機械判定可能に、`skipped` は未実施 waive 専用、waiver は順序例外証跡のみ) / (P2#3) L8 G-3 から **conditional 分岐を撤廃** (G3 通過条件で PO deferred 除外しているため通常経路到達不能、必要時は G3 前 L1/G1 再ベースラインで対処) |
 | v20 | 2026-04-28 | TL レビュー P1×3/P2×3 反映 (前修正で混入した矛盾解消): (P1#1) Tier A path 検証を **`$HOME` 配下 secret subtree のみ 0700 必須**、`$HOME` より上位 ancestor は root/current user owner + group/world writable 禁止で許容 (`/`, `/home` 等の標準 0755 を許容) / (P1#2) Phase 1.4 で **phase.yaml は触らない** (waiver ファイル作成のみ)、G1R 実施完了後に `gates.G1R.status: passed` 一本化、`skipped` 表記の混在を解消 / (P1#3) L8 G-3 受入条件から **古い conditional/PO 受容表現を撤廃**、v19 方針 (G3 通過不可 or G3 前 L1/G1 再ベースラインのみ) に統一 / (P2#1) Tier B の symlink を **chain 検証に変更** (brew/apt の symlink 配置を許容、各 link + 最終 target の owner/mode 検証) / (P2#2) fresh checkout テストを **L6 成果物 + L8 受入条件に明示追加** / (P2#3) A0 redaction の「顧客名らしき」を撤廃し **具体的 regex (メール/IP/AWS key/JWT/Bearer/credit card 様) + denylist + テストケース必須** に決定的仕様化 |
 | v21 | 2026-04-28 | TL レビュー P1×2/P2×3 反映 ("P0 なし" 継続): (P1#1) ゴール表 G-3 と A1 scope 表の conditional/PO 受容表現を **完全撤廃**、「triaged 残存=G-3 fail、scope 変更=G3 前 L1/G1 再ベースラインのみ」に統一 / (P1#2) G3 依存承認の fail-close 条件を **一意化** (承認証跡なし=blocked/fail 固定、fallback モードは PM 承認 + gitleaks Phase 0 preflight 済みの両方で初めて G3 通過可) / (P2#1) user-private settings を **`~/.claude/settings.local.json` のみ ($HOME 限定)** に統一、project-local は秘密情報配置先として禁止 / (P2#2) `redaction-denylist.yaml` を `.gitignore` allowlist に追加 (git 管理必須化) / (P2#3) `.gitignore` パッチ + 検証ログ + redaction-denylist 初期セット + redaction テストスクリプトを **Phase 0 preflight 成果物に前倒し**、L1 は参照のみ |
-| v22 | 2026-04-28 | TL レビュー **P1×1**/P2×3 反映 (G2 conditional 評価): (P1) private runtime copy を **`~/.helix/auto-restart/runtime/` ($HOME 配下) に移動**、Tier A 検証対象に追加 (project-local 配置による snapshot 自己変更 fail-closed を回避) / (P2#1) snapshot の index_repr/worktree_repr を **Git object format 非依存の content SHA-256** に統一 (`git cat-file blob <oid>` 経由、SHA-1/SHA-256 リポでも同一結果、unmerged/intent-to-add も明示) / (P2#2) L4 に **Shared 基盤スプリント (Sprint 2) を先行追加** (hook registry / settings merge / config schema / DB migration / shared utility)、B/D 並列は契約凍結済み独立ファイル限定、shared 基盤への変更は個別 sprint で行わない / (P2#3) G1R(D) 外部 Claude API 利用条件を **明文化** (既定使わない、使うなら PM 承認 + credential 0600 + 非 PII fixture + 費用上限 $5 + ログ redaction の全必須) |
+| v22 | 2026-04-28 | TL レビュー **P1×1**/P2×3 反映 (G2 conditional 評価): (P1) private runtime copy を **`~/.helix/auto-restart/runtime/` ($HOME 配下) に移動**、Tier A 検証対象に追加 (project-local 配置による snapshot 自己変更 fail-closed を回避) / (P2#1) snapshot の index_repr/worktree_repr を **Git object format 非依存の content SHA-256** に統一 (`git cat-file blob <oid>` 経由、SHA-1/SHA-256 リポでも同一結果、unmerged/intent-to-add も明示) / (P2#2) L4 に **Shared 基盤スプリント (Sprint 2) を先行追加** (hook registry / settings merge / config schema / DB migration / shared utility)、B/D 並列は契約凍結済み独立ファイル限定、shared 基盤への変更は個別 sprint で行わない / (P2#3) G1R(D) 検証条件を **ローカル fixture + Claude Code usage metadata 前提** に明文化 (非 PII fixture + ログ redaction 必須) |
 | v23 | 2026-04-28 | TL レビュー P1×2/P2×3 反映: (P1#1) Tier A の file mode を **artifact 種別で分離** (secret/payload/settings: 0600 / private runtime executable: 0500-0700)、parent dir 0700 は維持、fresh checkout テストに権限期待値固定 / (P1#2) lock ファイルを **`~/.helix/auto-restart/locks/<workspace_hash>.lock` ($HOME 配下) に移動**、Tier A の $HOME 限定方針と整合 / (P2#1) G-2 から conditional pass (advisory-only) を **撤廃**、stdlib-only は L1/G1 再ベースラインで「advisory warning goal」として再定義 (G-2 達成保証経路は usage API or 誤差検証済み tokenizer のみ) / (P2#2) redaction を **HMAC-SHA256 + 専用キー (`~/.config/helix/audit-redaction.key`、Tier A 管理)** に変更、辞書攻撃耐性 + run 間比較可能性、Phase 0 preflight で key 初期生成 / (P2#3) Phase 3 見出しを「分類運用は G3 前完了。L4 は A1 CLI / Shared 基盤 / B/C/D / 統合まで」に修正、Sprint 計画との矛盾解消 |
 | v24 | 2026-04-28 | TL レビュー P1×2/P2×2/P3×1 反映 (残存矛盾の最終クリーンアップ): (P1#1) D 用指標から **conditional pass / advisory-only 降格を完全削除**、stdlib-only fallback は G-2 fail と等価 (例外: L1/G1 再ベースラインで別ゴール化のみ)、補完 fail も降格ではなく残余リスクのみに変更 / (P1#2) lock 旧パス `.helix/auto-restart.lock` を全箇所で **新パス `~/.helix/auto-restart/locks/<workspace_hash>.lock` に置換**、runtime artifact 除外リストからも削除 / (P2#1) tokenizer 誤差 10-30% を **「補正後別 fixture で再測定し誤差率 ≤ 10% を確認した場合のみ G-2 full pass」** に明確化、再検証なしは advisory 専用 / (P2#2) `A1-source-of-truth.md` を L3 成果物表に追加 / (P3) gitignore 検証ログを **正本 `preflight-gitignore-verification.log`** に一本化、L1 は参照のみ |
 | v25 | 2026-04-28 | TL レビュー P1×2/P2×3 反映 (最終整合): (P1#1) D Kill Criteria の advisory-only 降格を完全削除 (片方未達は残余リスク記載のみ、conditional pass は撤廃)、Kill Criteria #2 を「stdlib のみで動作する状況は D fail」に明示 / (P1#2) 計測ソース表に **G-2 acceptance 列追加**、stdlib を「advisory 専用、G-2 達成経路ではない」と明記、tiktoken も誤差率 ≤ 10% 確認時のみ達成経路 / (P2#1) `dep_review_log` を D-DB 追加テーブルに含める (DDL/retention/redaction/migration 対象)、スコープ外の記載とも整合 / (P2#2) B/D 別 PoC 結果の machine-readable 形式 (B-result.json/D-result.json) と phase.yaml 単一 status 集約ロジックを明記 / (P2#3) audit_decisions の idempotency key を **`(candidate_id, schema_version, scope_hash)` の三組** に変更、再ベースライン時の historical エントリ保持で履歴喪失なし |

@@ -124,13 +124,13 @@ AGENTS.md と `skill` ツールを使った、エージェント駆動のスキ�
 
 ---
 
-## 全 28 スキル (上流 20 + メタ 1 + HELIX 独自 7)
+## 全 25 スキル (上流 20 + メタ 1 + HELIX 独自 4)
 
-上記コマンドはエントリーポイントです。内部では 20 のコアスキル + 1 つのメタスキルに加え、HELIX 独自の **7 スキル** が連携し、手順・検証ゲート・アンチ合理化ルールを実行します。各スキルは直接参照して使うこともできます。
+上記コマンドはエントリーポイントです。内部では 20 のコアスキル + 1 つのメタスキルに加え、HELIX 独自の **4 スキル** が連携し、手順・検証ゲート・アンチ合理化ルールを実行します。各スキルは直接参照して使うこともできます。
 
-HELIX 独自スキル (7 本):
+HELIX 独自スキル (4 本):
 - `system-design-sizing` / `technical-writing` (外部根拠ベース)
-- `adversarial-review` / `debt-register` / `mock-driven-development` / `helix-scrum` / `reverse-helix` (HELIX 本体由来)
+- `mock-driven-development` / `helix-scrum` (HELIX 本体由来)
 
 ### Define (L1 要件定義) — 何を作るか明確化
 
@@ -164,7 +164,7 @@ HELIX 独自スキル (7 本):
 | [browser-testing-with-devtools](skills/browser-testing-with-devtools/SKILL.md) | Chrome DevTools MCP を使い、DOM 検査、console、network trace、性能プロファイルを実行する | ブラウザ上で動く機能を実装・デバッグするとき |
 | [debugging-and-error-recovery](skills/debugging-and-error-recovery/SKILL.md) | 5 段階トリアージ（再現・局所化・最小化・修正・再発防止）と安全なフォールバックを適用する | テスト失敗、ビルド破綻、想定外挙動が発生したとき |
 
-### Review (G2-G6 レビュー) — マージ前の品質ゲート
+### Review (G2-G11 レビュー) — 品質・運用ゲート
 
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
@@ -194,17 +194,14 @@ HELIX 独自スキル (7 本):
 
 ## HELIX 独自拡張
 
-本フォークでは上流 20 スキルに加えて、HELIX フレームワーク固有の 7 スキルを追加済み:
+本フォークでは上流 20 スキルに加えて、HELIX フレームワーク固有の 4 スキルを追加済み:
 
 | Skill | 役割 | Phase / Gate |
 |-------|------|--------------|
 | [system-design-sizing](skills/system-design-sizing/SKILL.md) | 容量計画・CAP トレードオフ・ボトルネック識別 | L1-L2 / G1.5, G2 |
 | [technical-writing](skills/technical-writing/SKILL.md) | Google Tech Writing 原則で文書品質底上げ | L2/L3/L7 / G2, G4, G6 |
-| [adversarial-review](skills/adversarial-review/SKILL.md) | 三者分離・Propose/Collide/Challenge/Decide で設計批判 | L2 / **G2 必須** |
-| [debt-register](skills/debt-register/SKILL.md) | 技術負債台帳・G4 通過条件・Sprint .5 連携 | L4 / **G4 必須** |
 | [mock-driven-development](skills/mock-driven-development/SKILL.md) | FE 駆動の L2 核心・mock.html → 契約導出 → 昇格 | L2-L4 / G2, G4, G6 |
 | [helix-scrum](skills/helix-scrum/SKILL.md) | 仮説検証 S0-S4 → Forward HELIX 接続 | S0-S4 |
-| [reverse-helix](skills/reverse-helix/SKILL.md) | 既存コードから設計を逆引き R0-R4 + RGC | R0-R4 / RG0-RG3 |
 
 詳細は CLAUDE.md と docs/skill-anatomy.md を参照。
 
@@ -270,11 +267,10 @@ HELIX 独自スキル (7 本):
 
 ```
 agent-skills/
-├── skills/                            # 28 スキル (上流 20 + メタ 1 + HELIX 独自 7)
+├── skills/                            # 25 スキル (上流 20 + メタ 1 + HELIX 独自 4)
 │   ├── idea-refine/                   #   L1 要件定義
 │   ├── spec-driven-development/       #   L1 要件定義
 │   ├── planning-and-task-breakdown/   #   L2-L3 設計
-│   ├── adversarial-review/            #   ★HELIX 独自 L2 設計批判 (G2 必須)
 │   ├── mock-driven-development/       #   ★HELIX 独自 FE 駆動 L2-L4
 │   ├── incremental-implementation/    #   L4 実装
 │   ├── context-engineering/           #   L4 実装
@@ -283,13 +279,12 @@ agent-skills/
 │   ├── test-driven-development/       #   L4 実装
 │   ├── api-and-interface-design/      #   L4 実装
 │   ├── system-design-sizing/          #   ★HELIX 独自 L1-L2 規模見積もり
-│   ├── debt-register/                 #   ★HELIX 独自 L4 負債台帳 (G4 必須)
 │   ├── browser-testing-with-devtools/ #   L6 検証
 │   ├── debugging-and-error-recovery/  #   L6 検証
-│   ├── code-review-and-quality/       #   G2-G6 レビュー
-│   ├── code-simplification/           #   G2-G6 レビュー
-│   ├── security-and-hardening/        #   G2-G6 レビュー
-│   ├── performance-optimization/      #   G2-G6 レビュー
+│   ├── code-review-and-quality/       #   G2-G11 レビュー
+│   ├── code-simplification/           #   G2-G11 レビュー
+│   ├── security-and-hardening/        #   G2-G11 レビュー
+│   ├── performance-optimization/      #   G2-G11 レビュー
 │   ├── git-workflow-and-versioning/   #   L7 出荷
 │   ├── ci-cd-and-automation/          #   L7 出荷
 │   ├── deprecation-and-migration/     #   L7 出荷
@@ -297,7 +292,6 @@ agent-skills/
 │   ├── shipping-and-launch/           #   L7 出荷
 │   ├── technical-writing/             #   ★HELIX 独自 全フェーズ文書品質
 │   ├── helix-scrum/                   #   ★HELIX 独自 S0-S4 仮説検証
-│   ├── reverse-helix/                 #   ★HELIX 独自 R0-R4 + RGC 逆引き設計
 │   └── using-agent-skills/            #   メタ: スキルパックの使い方
 ├── agents/                            # 3 つの専門 persona
 ├── references/                        # 4 つの補助チェックリスト

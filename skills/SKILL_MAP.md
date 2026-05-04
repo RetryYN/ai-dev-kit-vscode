@@ -103,7 +103,7 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 ```
 
 **Scrum モードの特徴**:
-- Forward HELIX のフェーズ進行 (L1-L8) は走らない。`.helix/scrum/` 配下で独立管理
+- Forward HELIX のフェーズ進行 (L1-L11) は走らない。`.helix/scrum/` 配下で独立管理
 - verify/*.sh は毎回全実行 → リグレッション検出
 - `decide --confirmed` で Forward HELIX に接続
 - `db` / `agent` エッジケースでも「仮説検証フェーズ」として scrum 前段利用可能
@@ -224,7 +224,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（100スキル）
+## スキル群配置（105スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
@@ -239,7 +239,7 @@ fullstack 追加条件:
 | integration/ | agent-teams |
 | writing/ | japanese, explain, story, presentation, social |
 | design-tools/ | diagram, web-system, pptx, graphic, character |
-| automation/ | site-mapping, browser-script, flow-optimize |
+| automation/ | site-mapping, browser-script, flow-optimize, scheduler, job-queue, lock, init-setup, observability |
 | **agent-skills/** | idea-refine, spec-driven-development, planning-and-task-breakdown, incremental-implementation, test-driven-development, context-engineering, source-driven-development, frontend-ui-engineering, api-and-interface-design, browser-testing-with-devtools, debugging-and-error-recovery, code-review-and-quality, code-simplification, security-and-hardening, performance-optimization, git-workflow-and-versioning, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, shipping-and-launch, using-agent-skills, **system-design-sizing**, **technical-writing**, **mock-driven-development**, **helix-scrum** |
 
 **2026-04-17 追加分** (20スキル):
@@ -250,7 +250,7 @@ fullstack 追加条件:
 **2026-04-22 追加分** (25スキル、agent-skills/ カテゴリ新設):
 - 上流由来 21 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / code-simplification / security-and-hardening / performance-optimization / git-workflow-and-versioning / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
 - HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
-- 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-helix
+- 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-analysis
 - 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 12 エージェント構成）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
@@ -264,7 +264,7 @@ fullstack 追加条件:
 |--------|---------|------|
 | `common/testing` | **L4** 実装時 | テストケース作成・テストテンプレート (unit/integration/E2E の書き方) |
 | `workflow/quality-lv5` | **L6** 統合検証 | テスト品質を Lv1-5 で評価・テストピラミッド比率・カバレッジ目標の判定 |
-| `workflow/verification` | **all** (L1〜L8 + R0-R4) | Spec駆動検証・L8 仕様突合・Reverse RG0-RG3 ゲート検証基盤 |
+| `workflow/verification` | **all** (L1〜L11 + R0-R4 + RGC) | Spec駆動検証・L8-L11 仕様/運用突合・Reverse RG0-RG3/RGC ゲート検証基盤 |
 
 使い分けルール:
 - **テストを書く**: `common/testing` のみ参照
@@ -306,12 +306,12 @@ automation/browser-script:
 
 1. スキル追加時: SKILL_MAP.md を更新。500行超 → references/ に分割
 2. 重複防止: 追加前に既存スキルとの重複確認
-3. 廃止済みスキル名: architecture / orchestrator / codex / vscode-plugins → **スキル名としての参照**禁止（ツール名 `codex review`・メタデータ `codex: true`・YAML キー `architecture:` は正当な用法）。検出: `rg -wn "orchestrator" skills/ --glob '!SKILL_MAP.md'`
+3. 廃止済みスキル名: architecture / orchestrator / codex / vscode-plugins → **スキル名としての参照**禁止（ツール名 `helix review`・メタデータ `codex: true`・YAML キー `architecture:` は正当な用法）。検出: `rg -wn "orchestrator" skills/ --glob '!SKILL_MAP.md'`
 4. metadata.helix_layer 必須。description は具体的用途を記載（「〇〇関連」禁止）
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 100 スキル + 89+ references を LLM マッチングで自動推挙する CLI を搭載。
+全 105 スキル + 89+ references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]
@@ -336,7 +336,7 @@ helix handover resume
 ### 委譲の自動化
 `helix skill use` は recommender が選んだ agent へ委譲する:
 - `fe-design` / `fe-component` / `fe-style` / `fe-test` / `fe-a11y` はネイティブサブエージェント（`@` mention 指示）
-- `tl` / `se` / `pg` / `qa` / `security` / `dba` / `devops` / `docs` / `research` / `legacy` / `perf` は Codex ロール（`helix-codex --role X --task "<bundle>\n\n<task>"` で自動実行）
+- `tl` / `se` / `pg` / `qa` / `security` / `dba` / `devops` / `docs` / `research` / `legacy` / `perf` は Codex ロール（`helix codex --role X --task "<bundle>\n\n<task>"` で自動実行）
 
 ### 実装ファイル
 - `cli/lib/skill_catalog.py` — catalog 生成・読み込み（SKILL.md + references parser）
@@ -373,7 +373,7 @@ helix code list [--domain <name>] [--json]              # entry 一覧
 - non_indexable_paths: `tests/*.py` / `fixture/*` / `generated/*` / `vendor/*`（bucket 分類前 pre-filter）
 - helix.db schema: v14 → v15（`bucket` / `symbol_line` を追加）
 
-PLAN-013 運用フロー（L1-L8 追跡）:
+PLAN-013 運用フロー（L1-L11 追跡）:
 - L4 entry: `helix code find` / `helix code stats --uncovered --bucket coverage_eligible` で既存資産を確認
 - L4 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類
 - L4 build: `helix code build` で catalog を再生成し `bucket` / `symbol_line` / metadata を自動付与

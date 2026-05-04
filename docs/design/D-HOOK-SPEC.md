@@ -18,10 +18,10 @@ HELIX の Hook システム（Claude Code hooks + Git hooks + doc-map triggers�
 
 | Hook 種別 | 発火タイミング | 実装 | 遅延許容 |
 |----------|-------------|------|---------|
-| **SessionStart** | Claude Code セッション開始時 | `helix-session-start` | < 5秒 |
-| **PreToolUse** | Write ツール呼び出し直前 | `helix-check-claudemd` | < 2秒 |
-| **PostToolUse** | Edit/Write ツール呼び出し直後 | `helix-hook` | < 10秒 |
-| **Stop** | Claude Code セッション終了時 | `helix-session-summary` | < 8秒 |
+| **SessionStart** | Claude Code セッション開始時 | `helix session-start` | < 5秒 |
+| **PreToolUse** | Write ツール呼び出し直前 | `helix check-claudemd` | < 2秒 |
+| **PostToolUse** | Edit/Write/MultiEdit ツール呼び出し直後 | `cli/libexec/helix-post-tool-use` → `helix hook` | < 10秒 |
+| **Stop** | Claude Code セッション終了時 | `helix session-summary` | < 8秒 |
 | **Git pre-commit** | `git commit` 実行直前 | `cli/templates/pre-commit-hook` | < 30秒 |
 | **Git commit-msg** | コミットメッセージ作成時 | `cli/templates/commit-msg-hook` | < 2秒 |
 | **Git post-merge** | `git merge` 完了後 | `cli/templates/post-merge-hook` | < 5秒 |
@@ -31,14 +31,16 @@ HELIX の Hook システム（Claude Code hooks + Git hooks + doc-map triggers�
 ```
 Claude Code が Write ツール呼び出し
   ↓
-PreToolUse: helix-check-claudemd     ← CLAUDE.md テンプレート強制
+PreToolUse: helix check-claudemd     ← CLAUDE.md テンプレート強制
   ↓ (allowed)
 ファイル書き込み完了
   ↓
-PostToolUse: helix-hook               ← doc-map トリガー判定
+PostToolUse: helix-post-tool-use      ← payload から変更ファイルを抽出
+  ↓
+helix hook                            ← doc-map トリガー判定
   ↓ emit: GATE_READY|G4|cli/helix-test
   ↓ emit: DESIGN_SYNC|docs/design/L2-cli-architecture.md|cli/helix-test
-  ↓ (バックグラウンド): helix-drift-check
+  ↓ (バックグラウンド): helix drift-check
   ↓
 （編集継続、または commit へ）
   ↓
@@ -145,8 +147,8 @@ def _glob_match(file_path: str, pattern: str) -> bool:
 
 ## 5. 現行実装との差分
 
-現状の `doc_map_matcher.py` はマッチしたトリガーを **YAML 記述順** で emit している。
-本 ADR の優先度ルールを実装する場合は以下の改修が必要:
+`doc_map_matcher.py` はマッチしたトリガーを **特異性 → パターン長 → アクション優先度 → 記述順** で emit する。
+実装済みの優先度ルールは以下に対応する:
 
 ```python
 def _emit_matches_prioritized(triggers, file_path):
@@ -166,7 +168,7 @@ def _emit_matches_prioritized(triggers, file_path):
         _emit_single(m["trigger"], file_path)
 ```
 
-現在の優先度は YAML 記述順に依存しているため、**doc-map.yaml を記述する際は特異性の高いパターンから先に書く** ことで同等の効果を得られる（short-term mitigation）。
+同一優先度のトリガーだけは YAML 記述順を維持する。
 
 ---
 
@@ -192,9 +194,9 @@ CREATE TABLE hook_events (
 
 | 項目 | 内容 | 優先度 |
 |------|------|------|
-| 優先度ソート未実装 | 現状は YAML 記述順、本 ADR の優先度ルール実装は要対応 | P2 |
+| 優先度ソート | 実装済み。特異性 → パターン長 → アクション優先度 → 記述順で処理 | — |
 | パターン構文の制限 | glob 方式のみ、正規表現は未サポート | P3 |
-| doc-map.yaml スキーマ検証なし | 不正な `on_write` 値が黙ってスキップされる | P2 |
+| doc-map.yaml スキーマ検証 | 実装済み。不正な `on_write` / 必須キー欠落 / 完全重複は warning 出力 | — |
 | 並列 hook 発火時の競合 | 同一ファイル編集が高速連続発火した場合の動作未検証 | P3 |
 
 ---
@@ -202,7 +204,8 @@ CREATE TABLE hook_events (
 ## 8. References
 
 - [ADR-009: Hook 戦略（doc-map トリガー中心）](../adr/ADR-009-hook-strategy.md)
-- `cli/helix-hook` (PostToolUse hook 本体)
+- `cli/libexec/helix-post-tool-use` (PostToolUse payload wrapper)
+- `cli/helix-hook` / `cli/libexec/helix-hook` (PostToolUse hook 本体)
 - `cli/helix-check-claudemd` (PreToolUse hook)
 - `cli/helix-session-start` / `helix-session-summary`
 - `cli/lib/doc_map_matcher.py` (マッチングロジック)

@@ -294,7 +294,7 @@ C) 「タスク (2)」のように番号サフィックスを付ける（最も�
 
 ## HELIX 連携
 
-- 発火フェーズ: 全 9 フェーズ (L1-L8) + Reverse + Scrum
+- 発火フェーズ: 全 11 フェーズ (L1-L11) + Reverse + Scrum
 - 推奨 Codex ロール: tl (コンテキスト設計・セッション戦略)
 - 関連スキル:
   - HELIX 本体 `workflow/context-memory` (セッション記憶管理)

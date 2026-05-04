@@ -2,7 +2,7 @@
 
 > 目的: fe / fullstack 駆動採用時の L2〜L4 における具体的ステップ、モック駆動の実施手順、TL による API 契約導出プロセス、モック由来 debt のライフサイクルを定義する。
 >
-> 適用範囲: `helix-size --drive fe` または `--drive fullstack`（自動判定含む）
+> 適用範囲: `helix size --drive fe` または `--drive fullstack`（自動判定含む）
 >
 > 正本: SKILL_MAP.md §駆動タイプ別 L2〜L5 / gate-policy.md G2/G3/G4/G6
 
@@ -27,7 +27,7 @@
 | 2.5 | PM+PO | UX 承認（モックを触って確認） | G2 の必須入力 |
 
 **G2 通過時の自動処理**:
-- `helix-gate` が `.helix/phase.yaml` の `sprint.drive` が `fe|fullstack` なら以下を debt-register に auto-enqueue:
+- `helix gate` が `.helix/phase.yaml` の `sprint.drive` が `fe|fullstack` なら以下を debt-register に auto-enqueue:
   - `MOCK-DERIVED-CONTRACT`（TL レビュー対象、target_sprint=L6、owner=TL）
   - `MOCK-HARDCODE`（grep 対象、target_sprint=G4、owner=SE）
   - `MOCK-CODE-LEAK`（AST 対象、target_sprint=G4、owner=SE）

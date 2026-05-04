@@ -1,4 +1,4 @@
-# PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v2)
+# PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)
 
 ## 1. 目的
 - PLAN-002 v34 の棚卸し関連のみを独立させ、TL ループ要因である範囲肥大化を解消する。
@@ -36,7 +36,7 @@
 - L7 デプロイ
   - 既存配布物への前提条件追加のみ
 - L8 受入
-  - G1〜G7 の満了、A0/A1 完了条件、`decisions.yaml` と `audit_decisions` 同期証跡確認
+  - G1〜G11 の満了、A0/A1 完了条件、`decisions.yaml` と `audit_decisions` 同期証跡確認
 
 ### 2.2 含めない範囲（PLAN-003 へ分離）
 - HMAC 署名、`worktree_snapshot_hash`、`handover_manifest_hash`、`phase_yaml_hash`
@@ -76,7 +76,7 @@
 | L4 | §4.7 | Sprint 単位で deterministic 実装を定義し、棚卸し対象外を PLAN-003 へ移管していること | 適合 |
 | L6 | §6 | G1-L3 / migration rehearsal / dry-run import の検証を満たすこと | 部分 |
 | L7 | §7 | 既存配布物への前提追加のみとし、deploy 受入前提を明示すること | 適合 |
-| L8 | §8 | G1〜G7 と A1 完了条件を同時に確認する受入を定義していること | 適合 |
+| L8 | §8 | G1〜G11 と A1 完了条件を同時に確認する受入を定義していること | 適合 |
 
 ### 3.1.3 deferred-finding カウント方針
 - 本 PLAN の既存 review finding は本文上の明示的な P1/P2 記述が少なく、deferred-finding の明示候補は現時点で「未明示」と扱う。
@@ -292,6 +292,8 @@ CREATE INDEX IF NOT EXISTS idx_import_runs_id_status
   - 0 行（ユーザーテーブルなし）: 新規 DB として `v8` で初期化
   - 1 行以上: fail-closed。`~/.helix/quarantine/helix.db.legacy-<timestamp>` へ backup 後、`docs/runbook/legacy-db-repair.md` 参照の手順で手動 repair へ誘導
 - **Step 2**: `SELECT MAX(version) FROM schema_version` を評価
+  - `MAX(version) IS NULL`（schema_version table はあるが行がない）→ 空 DB として扱わず **fail-closed**。repair runbook へ誘導
+  - `current == 0` → v8 初期化ではなく **fail-closed**。0 は valid migrated version として扱わない
   - `current > 8` → **fail-closed**（downgrade 禁止）
   - `current == 8` → **no-op**
   - `1〜7` → v8 まで逐次 migration
@@ -307,6 +309,8 @@ CREATE INDEX IF NOT EXISTS idx_import_runs_id_status
     | 開始バージョン | 期待動作 | rehearsal 必須 |
     |---|---|---|
     | non-empty DB + schema_version 欠落 | fail-closed | ◯ |
+    | schema_version table exists + row なし (`MAX(version) IS NULL`) | fail-closed | ◯ |
+    | schema_version current=0 | fail-closed | ◯ |
     | 0 (空 DB) | v8 で初期化 | ◯ |
     | v1 | v1 → v8（逐次） | ◯ |
     | v4 | v4 → v8（逐次） | ◯ |
@@ -456,7 +460,7 @@ CREATE INDEX IF NOT EXISTS idx_import_runs_id_status
 | L6 | migration rehearsal レポート | empty/current/old DB |
 | L6 | G1.5 対象除外の再確認レポート | テスト境界明示 |
 | L7 | チェックリスト連携 | CI / release note |
-| L8 | L8 受入シート | G1〜G7、A1 完了条件 |
+| L8 | L8 受入シート | G1〜G11、A1 完了条件 |
 
 ## 7. 想定外作業
 - 本 PLAN で収集できない要件（B/C/D 自動再開領域）は PLAN-003 を起点に起票

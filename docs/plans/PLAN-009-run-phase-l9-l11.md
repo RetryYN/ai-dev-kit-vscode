@@ -173,8 +173,8 @@ PLAN-008 §3.6 と同等に、**HELIX 内部には raw を保持しない**。�
 ### 3.6 CLI / state / gate 反映方針
 
 - **CLI 反映**:
-  - 本 Run 工程を `helix-gate` の実行対象へ拡張し、`G9 / G10 / G11` を追加する。
-  - 追加ゲートは既存 `G2-G7` と同等の fail-close 設計（失敗時は前工程へ戻す/停止）で運用する。
+  - 本 Run 工程を `helix gate` の実行対象へ拡張し、`G9 / G10 / G11` を追加する。
+  - 追加ゲートは `G2-G11` の fail-close 設計（失敗時は前工程へ戻す/停止）で運用し、Run 工程では `G9-G11` を追加対象とする。
   - ゲート実行コマンド例と判定フラグは PLAN v3 方針として提示し、実装仕様は L3 詳細設計で凍結する。
 
 - **state 反映**:
@@ -184,7 +184,7 @@ PLAN-008 §3.6 と同等に、**HELIX 内部には raw を保持しない**。�
 
 - **gate 反映**:
   - `G9 / G10 / G11` の各ゲート判定条件を `gate-checks.yaml`（または同等の仕様ファイル）に登録する。
-  - Run 各ゲート用の自動検証スクリプトを `scripts/` に追加し、`helix-gate` から参照可能な形で紐付ける。
+  - Run 各ゲート用の自動検証スクリプトを `scripts/` に追加し、`helix gate` から参照可能な形で紐付ける。
   - ただし、CLI 引数仕様、`phase.yaml` スキーマ、`gate-checks.yaml` フォーマットの正確な契約は L3 詳細設計フェーズで凍結する。
 
 - **観測/振り返り連携**:
@@ -249,7 +249,7 @@ PLAN-008 §3.6 と同等に、**HELIX 内部には raw を保持しない**。�
 | --- | --- | --- | --- |
 | 2026-04-30 | v1 | PLAN-009 新規ドラフト作成。Run 工程（L9-L11）を導入し、L8 後のデプロイ検証、観測、運用学習を統合。 | Docs (Codex) |
 | 2026-04-30 | v2 | P1 finding 対応。`SKILL_MAP.md` は `Phase 4 Run` として `L9→L10→L11` を新規追加し、`HELIX_CORE.md` は `4 フェーズ思想` 拡張へ反映する方針へ修正。 | Docs (Codex) |
-| 2026-04-30 | v3 | TL P1 finding 反映。§3.6（CLI/state/gate 反映方針）を新設し、`helix-gate G9/G10/G11` / `.helix/phase.yaml` / `gate-checks.yaml` 反映と自動検証スクリプト接続方針を明示。実装契約（CLI 引数仕様、phase schema、gate フォーマット）は本PLAN の L3 詳細設計で凍結。 | Docs (Codex) |
+| 2026-04-30 | v3 | TL P1 finding 反映。§3.6（CLI/state/gate 反映方針）を新設し、`helix gate G9/G10/G11` / `.helix/phase.yaml` / `gate-checks.yaml` 反映と自動検証スクリプト接続方針を明示。実装契約（CLI 引数仕様、phase schema、gate フォーマット）は本PLAN の L3 詳細設計で凍結。 | Docs (Codex) |
 | 2026-05-02 | v3.1 | TL v3 review finding 解消。P2-1: §3.4.1 G10 outcome mapping (`pass/watch-continue/blocked/failed`) を新設、`要是正` を blocked/failed のサブカテゴリに固定 (是正 owner/ETA 必須)。P2-2: §3.1.1 で L7/G7/L8/L9 責務境界表を追加、`G7=即時 release go/no-go`・`L9=longer-run post-acceptance verification` に分離。P2-3: §3.3a で Run 成果物 (observation report / anomaly log / run-learning report / next-cycle improvement proposal) の保存禁止情報・redaction 必須項目・retention (365/730 日 + 永続) ・閲覧権限 (PM/TL/SE/外部) を明文化、PLAN-007 §3.5.2 / PLAN-008 §3.6 と統一。P3: §6 Sprint L1〜L4 を `Run Sprint 1〜4` に改名し HELIX 本体 L1〜L4 とのラベル衝突を解消。 | PM (Opus) |
 | 2026-05-02 | v3.2 | TL v3.1 review finding 解消。P2-1: §3.4.1 outcome mapping に `gate_status` 列と「L11 遷移は `pass` のみ可」明文を追加。`watch-continue` を **non-passing continuation** として定義し L11 遷移不可を fail-close。P2-2: §3.3a に raw 取り扱いの確定章を追加、PLAN-008 §3.6 と整合 (HELIX 内部に raw 非保存、外部 source への 72h TTL audit token 経由 raw proxy 参照のみ、保存可/禁止フィールド明示)。P3: §5 緩和策の `watch done` を `watch-continue` (§3.4.1) に語彙統一。 | PM (Opus) |
 | 2026-05-02 | v3.3 | TL v3.2 review finding 解消。P2: §3.4 G10 判定要件文言を `pass` のみ完了 / `watch-continue` は再 G10 必須と明記し §3.4.1 と整合させる。P3: §3.4.1 outcome mapping の 2 段表 (`gate_status / L11 遷移 / 説明` と `次工程 / 是正 owner / ETA`) を 1 つの表 (`outcome / gate_status / L11 遷移 / 説明 / 次工程 / 是正 owner・ETA`) に統合。 | PM (Opus) |

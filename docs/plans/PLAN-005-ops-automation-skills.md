@@ -50,9 +50,9 @@ PLAN-002 / PLAN-003 の既存設計を前提化し、CLI 仕様、DB スキー�
 ### 5.1 PLAN レベルゴール
 
 - 5 skill の API と DB スキーマを本文として確定
-- `helix.db` v11 migration を前提化し、既存 v7-v10 段階の整合方針を提示
+- `helix.db` v9 infra migration を前提化し、既存 v7-v8 段階の整合方針を提示
 - PLAN-002 / PLAN-003 の L3 から本 PLANの API を参照できる状態にする
-- 本 PLAN で実装を着手しない（skeleton と仕様に留める）
+- 本 PLAN は実装済み状態を正本化し、CLI/DB/skill の整合を維持する
 
 ### 5.2 受入ゴール（計画目標）
 
@@ -72,8 +72,8 @@ PLAN-002 / PLAN-003 の既存設計を前提化し、CLI 仕様、DB スキー�
 - `automation/lock` skill
 - `automation/init-setup` skill
 - `automation/observability` skill
-- 各 skill の CLI skeleton API 仕様
-- `helix.db` v11 DDL 追加計画
+- 各 skill の CLI API 仕様
+- `helix.db` v9 infra DDL 追加計画
 - 監査と export の最小実装方針（実装自体は L4）
 
 ### 6.2 含めない範囲
@@ -108,17 +108,18 @@ cron-like 定期実行 + at-time 単発を共通化。
 helix scheduler add --schedule "*/5 * * * *" --task "<type>:<payload>" [options]
 helix scheduler add-at --at "+5m" --task "<type>:<payload>" [options]
 helix scheduler list [--status pending|running|success|failed|cancelled|all]
-helix scheduler cancel <id>
-helix scheduler status <id>
+helix scheduler cancel --id <id>
+helix scheduler status --id <id>
 helix scheduler run-due [--max <n>] [--dry-run]
 ```
 
 ### 8.3 オプション
 
-- `--name`（任意）: 表示名
 - `--task`（必須）: `"<type>:<payload>"`
   - 例: `helix:command:gate G3`, `shell:script:./inventory.sh`, `http:webhook:https://...`
   - サポート type: `helix:command`（Helix CLI のみ）、`shell:script`（allowlist 登録 script）、`http:webhook`（allowlist URL）
+  - canonical parse rule: サポート type の longest-prefix match を使い、最初に一致した `type + ":"` より後ろを payload とする。単純な最初の colon split は禁止。
+  - `--task-type` + `--task-payload` から受け取った場合も、保存前に同じ canonical `type` / `payload` へ正規化する。
   - allowlist は `~/.config/helix/automation-allowlist.yaml`（Tier A, `$HOME` 配下, mode `0600`）から参照
   - free-form 文字列（旧形式）禁止。`type` 未定義や不正 payload は **fail-closed**
   - L3 freeze 時点で各 executor の引数 schema を固定し、`helix:command`, `shell:script`, `http:webhook` のバリデータを明記する。
@@ -127,15 +128,13 @@ helix scheduler run-due [--max <n>] [--dry-run]
     - `http:webhook`: allowlist の HTTPS URL のみ許可
 - `--schedule`（add）: cron または `+5m` / `+2h` 形式
 - `--at`（add-at）: `2026-04-30T15:00:00Z` または `+90s`
-- `--timezone`（任意）: IANA 名（例: `Asia/Tokyo`）
-- `--payload`（任意）: JSON（4KB 制限）
-- `--retry`（任意）: 失敗時再試行回数
-- `--max-retries`（任意）: 最大再試行回数
+- `--id`（任意）: schedule id（未指定時 UUID）
+- 後方互換: `--task-type` + `--task-payload` も受付。ただし新規利用は `--task` を推奨。
 
 ### 8.4 想定フロー
 
 - `add`: スケジュールを検証して DB へ保存。
-- `run-due`: 期限到達を取得、排他を取得、実行、結果記録、次回時刻再計算。
+- `run-due`: 期限到達を DB transaction で atomic claim し、実行、結果記録、次回時刻再計算。
 - `cancel`: running を cancelled へ変更。
 - `status`: 指定 id の履歴・エラー・次回実行を返す。
 
@@ -152,25 +151,17 @@ helix scheduler run-due [--max <n>] [--dry-run]
 ```sql
 CREATE TABLE IF NOT EXISTS schedules (
   id TEXT PRIMARY KEY,
-  name TEXT,
-  task TEXT NOT NULL,
   schedule_expr TEXT NOT NULL,
-  schedule_type TEXT NOT NULL CHECK(schedule_type IN ('cron', 'relative', 'at')),
-  timezone TEXT NOT NULL DEFAULT 'UTC',
-  status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')),
-  next_run_at INTEGER NOT NULL,
+  task_type TEXT NOT NULL CHECK(task_type IN ('helix:command', 'shell:script', 'http:webhook')),
+  task_payload TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')) DEFAULT 'pending',
+  next_run_at INTEGER,
   last_run_at INTEGER,
-  retry_count INTEGER NOT NULL DEFAULT 0,
-  max_retries INTEGER NOT NULL DEFAULT 3,
-  last_error TEXT,
-  payload_json TEXT,
+  last_error TEXT DEFAULT NULL,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  created_by TEXT,
-  CHECK(created_at <= updated_at)
+  updated_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_schedules_status_next ON schedules(status, next_run_at);
-CREATE INDEX IF NOT EXISTS idx_schedules_created_by ON schedules(created_by);
+CREATE INDEX IF NOT EXISTS idx_schedules_next_run ON schedules(next_run_at) WHERE status = 'pending';
 ```
 
 ### 8.7 監査ルール
@@ -191,10 +182,10 @@ CREATE INDEX IF NOT EXISTS idx_schedules_created_by ON schedules(created_by);
 
 ```bash
 helix job enqueue --task "<type>:<payload>" [--priority 1-10] [--delay <seconds>] [--id <uuid>]
-helix job worker [--once] [--sleep <seconds>] [--parallel 1-4]
-helix job status <id>
-helix job cancel <id>
-helix job retry <id>
+helix job worker [--max-jobs <n>] [--idle-sleep <seconds>]
+helix job status --id <id>
+helix job cancel --id <id>
+helix job retry --id <id>
 helix job list [--status pending|running|success|failed|cancelled|all] [--limit <n>]
 ```
 
@@ -202,15 +193,15 @@ helix job list [--status pending|running|success|failed|cancelled|all] [--limit 
 
 - `priority`: 1〜10、10 が高
 - `delay`: 実行遅延秒
-- `parallel`: 同時処理数（最大 4）
-- `once`: run-due を1回だけ処理
+- `max-jobs`: 1回の worker loop で処理する最大件数。未指定時は常駐 loop。
+- `idle-sleep`: pending job がないときの待機秒数。
 - `status`: `pending` / `running` / `success` / `failed` / `cancelled`
 
 ### 9.4 期待挙動
 
-- `enqueue` はジョブを `pending` で永続化し、`scheduled_at` を計算
+- `enqueue` はジョブを `pending` で永続化し、`delay_until` を計算
 - `worker` は `pending` から `running` へ遷移して実行、結果を `success/failed` へ更新
-- 失敗時は `retry_count` を加算し `max_retry` に従って再キュー
+- 失敗時は `retry_count` を加算し `max_retries` に従って再キュー
 - worker 再起動でも id の二重実行が起きないよう排他キーを保持
 
 - 5値モデル（`pending / running / success / failed / cancelled`）を前提とし、`queued` / `done` / `cancel_requested` は採用しない。
@@ -228,29 +219,20 @@ helix job list [--status pending|running|success|failed|cancelled|all] [--limit 
 ```sql
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY,
-  task TEXT NOT NULL,
-  payload_json TEXT,
-  status TEXT NOT NULL CHECK(
-    status IN ('pending','running','success','failed','cancelled')
-  ),
+  task_type TEXT NOT NULL CHECK(task_type IN ('helix:command', 'shell:script', 'http:webhook')),
+  task_payload TEXT NOT NULL,
   priority INTEGER NOT NULL DEFAULT 5 CHECK(priority BETWEEN 1 AND 10),
+  status TEXT NOT NULL CHECK(status IN ('pending', 'running', 'success', 'failed', 'cancelled')) DEFAULT 'pending',
   created_at INTEGER NOT NULL,
-  scheduled_at INTEGER NOT NULL,
   started_at INTEGER,
   completed_at INTEGER,
   retry_count INTEGER NOT NULL DEFAULT 0,
-  max_retry INTEGER NOT NULL DEFAULT 3,
-  worker_id TEXT,
-  last_error TEXT,
-  error_count INTEGER NOT NULL DEFAULT 0,
-  locked_at INTEGER,
-  CHECK(created_at <= scheduled_at),
-  CHECK(scheduled_at <= COALESCE(started_at, scheduled_at)),
-  CHECK(started_at <= COALESCE(completed_at, started_at))
+  max_retries INTEGER NOT NULL DEFAULT 3,
+  last_error TEXT DEFAULT NULL,
+  delay_until INTEGER
 );
-CREATE INDEX IF NOT EXISTS idx_jobs_status_priority_created ON jobs(status, priority DESC, created_at ASC);
-CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_jobs_worker ON jobs(worker_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC, created_at);
+CREATE INDEX IF NOT EXISTS idx_jobs_delay ON jobs(delay_until) WHERE status = 'pending';
 ```
 
 ### 9.7 利用シナリオ
@@ -412,18 +394,18 @@ CREATE INDEX IF NOT EXISTS idx_setup_events_status ON setup_events(status);
 ### 12.2 追加 CLI
 
 ```bash
-helix observe log --event <name> --data <json> [--component <name>] [--level info|warn|error]
-helix observe metric --name <name> --value <num> [--tags k=v] [--component <name>] [--unit count|ms|bytes|percent|ratio]
-helix observe report [--event <name>] [--metric <name>] [--since <time>] [--component <name>]
-helix observe export --format prometheus|json [--since <time>] [--out <path>] [--include-secrets]
+helix observe log --event <name> --data <json> [--source <name>] [--severity debug|info|warning|error|critical]
+helix observe metric --name <name> --value <num> [--tags k=v,k=v]
+helix observe report [--event <name>] [--metric <name>] [--since <time>] [--until <time>] [--limit <n>] [--format text|json]
+helix observe export --format prometheus|json [--since <time>] [--until <time>] --output <path> [--include-secrets]
 ```
 
 ### 12.3 log API 仕様
 
 - `event`: snake_case
 - `data`: JSON（16KB）
-- `component`: 任意
-- `level`: `info|warn|error`
+- `source`: 任意
+- `severity`: `debug|info|warning|error|critical`
 - PLAN-003 連携前提の `token` 系イベントについては
   - `input_tokens` / `output_tokens` / `total_tokens` は数値のみ保存
   - `context` 文字列は保存しない（token 計算用 transcript は保存前 redaction）
@@ -432,13 +414,11 @@ helix observe export --format prometheus|json [--since <time>] [--out <path>] [-
 
 - `name`: snake_case
 - `value`: float を許容
-- `unit`: 任意
 - `tags`: `k=v`（最大 20）
-- `--unit` 未指定時は `count`
 
 ### 12.5 report/export
 
-- report は集計（count / p50 / p95 / sum）を出力
+- report は raw event / metric の text または JSON 表示を出力
 - export/prometheus は `HELIX` 命名接頭辞を付与し、metric 形式に変換
 - export/json は時系列情報を含む
 
@@ -460,15 +440,16 @@ helix observe export --format prometheus|json [--since <time>] [--out <path>] [-
   - project-local `helix.db` は mode `0600` を前提とし、HOME 配置オプションは同等制約。
 - export 安全策
   - `helix observe export --format prometheus|json` は redaction 済みデータのみ export
-  - `--out` 先が `~/.helix/quarantine/` 以外なら **fail-closed**
+  - `--output` 先が `~/.helix/quarantine/` 以外なら **fail-closed**
   - `--include-secrets` は PM-only 承認フロー必須（監査ログに記録）
 - 主要リスク対策
   - `R-06` として、任意 JSON 経路の秘匿情報持出しリスクを明示し、L3 での redaction fixture preflight を必須化
 
 ### 12.8 retention / vacuum
 
-- events: 90 日（超過は `VACUUM`）
-- metrics: 90 日（超過は `VACUUM`）
+- events: 90 日。cleanup は `DELETE FROM events WHERE created_at < cutoff` を先に実行し、`VACUUM` は削除済み領域の再編成が必要な場合だけ後続実行する。
+- metrics: 90 日。cleanup は `DELETE FROM metrics WHERE created_at < cutoff` を先に実行し、`VACUUM` は削除済み領域の再編成が必要な場合だけ後続実行する。
+- cleanup job は dry-run で削除予定件数を出力し、cutoff 計算失敗・DB lock 取得失敗・redaction 未確認時は fail-closed とする。
 - scheduler / job / lock の運用タスクと連携し、定期 cleanup を実施
 
 ### 12.9 DDL（events / metrics）
@@ -502,28 +483,27 @@ CREATE INDEX IF NOT EXISTS idx_metrics_component_created ON metrics(component, c
 
 ---
 
-## 13. `helix.db v11`（migration 方針）
+## 13. `helix.db v9` infra migration 方針
 
 ### 13.1 現状前提
 
 - `schema_version` で現行バージョンを管理
 - PLAN-002 v8、PLAN-003 v9、PLAN-004 v10 完了を前提条件とする
 - 現在バージョン別の移行前提:
-  - `current ≤ 7` → `v8 → v9 → v10 → v11`（PLAN 必要条件未満なら fail-closed）
-  - `current = 8` → `v9 → v10 → v11`
-  - `current = 9` → `v10 → v11`
-  - `current = 10` → `v11 のみ`
-  - `current = 11` → no-op
-  - `current > 11` → fail-closed
-- 本 PLAN は v11 で5テーブルを追加
+  - `current ≤ 7` → `v8 → v9`（PLAN 必要条件未満なら fail-closed）
+  - `current = 8` → `v9`
+  - `current >= 9` → infra DDL は create-if-not-exists で no-op
+- 本 PLAN は v9 infra で 5 skill 分、7 物理テーブル（scheduler / job / lock / setup 2 tables / observability 2 tables）を追加
 
 ### 13.2 migration 概要
 
-- v11 へのアップグレードは `cli/lib/helix_db.py` の逐次 migration を使い順次適用
-- 既存 v1-v10 は後方互換のまま再現し、ダウングレードは未実装
+- v9 へのアップグレードは `cli/lib/helix_db.py` の逐次 migration を使い順次適用
+- 既存 v1-v8 は後方互換のまま再現し、ダウングレードは up-only 方針により unsupported
 - migration は冪等（create-if-not-exists / insert or ignore）
 
-### 13.3 v10→v11 追加テーブル
+### 13.3 v8→v9 追加テーブル
+
+5 skill 分の追加だが、物理テーブルは以下の 7 件とする。
 
 - `schedules`
 - `jobs`
@@ -531,7 +511,7 @@ CREATE INDEX IF NOT EXISTS idx_metrics_component_created ON metrics(component, c
 - `setup_checks`, `setup_events`
 - `events`, `metrics`
 
-### 13.4 v10→v11 DDL まとめ
+### 13.4 v8→v9 DDL まとめ
 
 ```sql
 CREATE TABLE IF NOT EXISTS schedules (...);
@@ -547,9 +527,9 @@ CREATE TABLE IF NOT EXISTS metrics (...);
 
 ### 13.5 migration 試験方針
 
-1. L3 rehearsal matrix: `current ≤ 10` からの up migration を必須化（7/8/9/10）
-2. `current = 11` の no-op を検証
-3. `current > 11` の fail-closed 検証
+1. L3 rehearsal matrix: `current ≤ 8` からの up migration を必須化（7/8）
+2. `current >= 9` の no-op を検証
+3. `current > CURRENT_SCHEMA_VERSION` の fail-closed 検証
 4. 既知の壊れ DB（legacy / schema 欠落）を使った fail-closed 確認
 5. 再実行で冪等
 
@@ -576,14 +556,14 @@ CREATE TABLE IF NOT EXISTS metrics (...);
 - gate-policy §G2 準拠
 - 本 PLAN 追加（5 skill API freeze）
 - PLAN-002/003 の統合方針 freeze
-- 各 skill SKILL.md skeleton freeze
+- 各 skill SKILL.md 実装済み API freeze
 - 主要 API / DDL への承認を得る
 
 ### 15.3 G3（要件）
 
-- 各 skill の DDL freeze（v11）
+- 各 skill の DDL freeze（v9 infra）
 - CLI 仕様 freeze（本 PLAN 章を変更不可）
-- `helix.db` v11 migration spec freeze
+- `helix.db` v9 infra migration spec freeze
 - テスト計画 freeze（L3 で受け入れ）
 
 ### 15.4 G4（要件）
@@ -628,11 +608,11 @@ CREATE TABLE IF NOT EXISTS metrics (...);
 
 ### 17.1 R-01: 5 skill 同時新設
 
-- 対策: Sprint 1 で skeleton 一括 + 以後 skill 単位で実装
+- 対策: shared infra を小さな skill 単位で実装し、各 CLI に smoke/regression test を置く
 
 ### 17.2 R-02: migration 順序事故
 
-- 対策: v10→v11 の rehearsal matrix を固定
+- 対策: v8→v9 の rehearsal matrix と current schema の no-op 検証を固定
 
 ### 17.3 R-03: 既存実装との衝突
 
@@ -654,14 +634,23 @@ CREATE TABLE IF NOT EXISTS metrics (...);
 
 - 対策: 本PLANの末尾で参照リンクを固定し、定期チェック（docs link check）を実施
 
+### 17.8 R-08: `http:webhook` 外部送信リスク
+
+- リスク: allowlist 済み URL でも、payload に秘匿情報が混入する、SSRF 類似の迂回が起きる、retry が外部副作用を重複させる可能性がある。
+- 対策:
+  - allowlist URL は scheme=https、host/path の canonical 文字列で比較し、redirect 追跡は禁止する。
+  - payload は送信前に §12.7 と同じ redaction を通し、redaction 未実施なら fail-closed。
+  - retry は idempotency key を payload metadata に含められる executor のみ許可し、未対応 webhook は retry disabled を既定とする。
+  - G1R/G3 で外部 API 契約レビュー要否を確認し、本番外部送信は PM 承認を必須とする。
+
 ---
 
 ## 18. Sprint 構成（L4）
 
 - **Sprint 1**
-  - `helix.db` v11 migration 下地
-  - 5 skill SKILL.md skeleton
-  - CLI skeleton（空実装）追加
+  - `helix.db` v9 infra migration 下地
+  - 5 skill SKILL.md 作成
+  - CLI 受け口追加
 - **Sprint 2**
   - lock: file + db lock
   - stale detect、テスト
@@ -693,6 +682,8 @@ CREATE TABLE IF NOT EXISTS metrics (...);
   - delay, retry, worker並列
   - cancel/retry
   - task 実行モデル（`type:payload`）のパースと allowlist fail-closed
+  - `helix:command`, `shell:script`, `http:webhook` が colon を含む type でも longest-prefix match で正規化されること
+  - retention cleanup は DELETE と VACUUM を分け、dry-run と fail-closed 条件を検証すること
   - status フィルタの 5 値固定
 - init-setup:
   - component verify/repair 成否
@@ -702,7 +693,7 @@ CREATE TABLE IF NOT EXISTS metrics (...);
   - report summary
   - export json/prometheus
 - migration:
-  - current 列に対する v11 up テスト（v7/8/9/10/11/>11）
+  - current 列に対する v9 infra up テスト（v7/8/current/>current）
   - 冪等
   - fail-closed
 
@@ -710,18 +701,19 @@ CREATE TABLE IF NOT EXISTS metrics (...);
 
 ## 20. 受入判定チェックリスト（最終）
 
-- [ ] 5 skill の CLI/API 仕様が記載済み
-- [ ] DDL と migration 方針が明確
-- [ ] 各 skill のエラーコードが明示済み
-- [ ] PLAN-002/003 参照接続点が明示済み
-- [ ] task 実行モデルと allowlist, fail-closed 仕様が固定済み
-- [ ] 5値 status の CLI/filter/DDL CHECK 制約が全 skill で一致済み
-- [ ] G1〜G7 の受け入れ条件定義済み
+- [x] 5 skill の CLI/API 仕様が記載済み
+- [x] DDL と migration 方針が明確
+- [x] 各 skill のエラーコードが明示済み
+- [x] PLAN-002/003 参照接続点が明示済み
+- [x] task 実行モデルと allowlist, fail-closed 仕様が固定済み
+- [x] 5値 status の CLI/filter/DDL CHECK 制約が全 skill で一致済み
+- [x] G1〜G11 の受け入れ条件定義済み
 
 ---
 
 ## 21. 受入済み変更履歴
 
+2026-05-03 | v3 | 実装実態へ同期（setup DB 追跡、job list、scheduler add-at / --max、skill stale 表記解消）
 2026-04-30 | v2 | TLレビュー反映（P1: observability データ境界、P2: task実行モデル・migration前提、P3: status列挙統一）
 2026-04-30 | v1 | 初版: 5 shared infra skills の PLAN レベル本文を新規作成
 

@@ -1,6 +1,6 @@
 ---
 name: observability
-description: HELIX automation の events と metrics を記録・集計する observability skeleton。
+description: HELIX automation の events と metrics を記録・集計・export する observability。
 triggers:
   - イベント記録時
   - メトリクス記録時
@@ -14,7 +14,7 @@ metadata:
 
 ## 1. 概要
 
-`automation/observability` は、HELIX automation の event と metric を共通フォーマットで記録し、後続 Sprint の report/export 実装につなげるための skeleton skill です。Sprint 1 では `events` / `metrics` table と CLI skeleton を定義します。
+`automation/observability` は、HELIX automation の event と metric を共通フォーマットで記録し、report/export まで扱う skill です。記録時と export 時に redaction を適用し、export 先は `~/.helix/quarantine/` 配下へ fail-closed します。
 
 ## 2. 提供機能
 

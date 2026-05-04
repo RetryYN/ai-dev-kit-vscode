@@ -115,19 +115,19 @@ $ helix budget simulate --task "API ハンドラ実装 (3 エンドポイント)
 
 ## 2. 既存 CLI 拡張
 
-### 2.1 `helix-codex --auto-thinking`
+### 2.1 `helix codex --auto-thinking`
 
 ```
-$ helix-codex --role se --task "..." --auto-thinking
+$ helix codex --role se --task "..." --auto-thinking
 [auto-thinking] classifier: effort=medium (score=6/20)
 [auto-thinking] budget check: 5.3=70% OK → 降格不要
-[helix-codex] invoking codex exec with --thinking medium
+[helix codex] invoking codex exec with --thinking medium
 ...
 ```
 
 `--thinking <level>` と併用時は手動優先、`--auto-thinking` は suggest 表示のみ。
 
-### 2.2 `helix-skill use --auto-thinking`
+### 2.2 `helix skill use --auto-thinking`
 
 Codex ロール選択時のみ有効 (Claude サブエージェントは frontmatter 固定)。
 

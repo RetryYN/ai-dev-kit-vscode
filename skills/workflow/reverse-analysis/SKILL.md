@@ -51,4 +51,4 @@ flowchart TD
 
 全体の進め方・フェーズ間の接続・実行順を把握したい場合は本スキルを読む。個別フェーズに着手する場合は必ず対応する `reverse-r*` スキルを読み、そこで定義された入出力・検証・ゲート条件に従う。
 
-後方互換: 旧 `reverse-analysis` に含まれていた L1-L8 含む詳細記述は、各 `reverse-r*` / `reverse-rgc` スキルへ移設済み。
+後方互換: 旧 `reverse-analysis` に含まれていた Forward 詳細記述は、各 `reverse-r*` / `reverse-rgc` スキルへ移設済み。

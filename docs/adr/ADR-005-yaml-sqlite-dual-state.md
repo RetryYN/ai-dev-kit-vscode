@@ -10,7 +10,7 @@
 
 HELIX CLI は 2 種類の状態を管理する必要がある:
 
-1. **フェーズ状態**: 現在のフェーズ（L1-L8）、ゲート状態（pending/passed/failed/skipped/invalidated）、スプリント進捗、開発モード（Forward/Reverse/Scrum）
+1. **フェーズ状態**: 現在のフェーズ（L1-L11）、ゲート状態（pending/passed/failed/skipped/invalidated）、スプリント進捗、開発モード（Forward/Reverse/Scrum）
 2. **実行履歴**: タスク実行ログ、アクション単位ログ、オブザーバー結果、フィードバック、技術負債、コスト記録
 
 これらの特性は大きく異なる:
@@ -38,7 +38,7 @@ HELIX CLI は 2 種類の状態を管理する必要がある:
 ### helix.db（実行履歴）
 
 - パス: `.helix/helix.db`
-- 19 テーブル、WAL モード、スキーマバージョン管理（v1 -> v4）
+- WAL モード、スキーマバージョン管理（v1 -> v15）
 - 読み書き: `helix_db.py` 経由
 - 並行安全: WAL モード + busy_timeout 5000ms
 
@@ -96,7 +96,7 @@ HELIX CLI は 2 種類の状態を管理する必要がある:
 |--------|--------|
 | phase.yaml と helix.db の不整合 | `helix doctor` で整合性チェックと修復を提供 |
 | yaml_parser.py の YAML サブセット制限 | HELIX が使用する YAML 構造（key-value + inline dict）に限定して対応。複雑な構造は使わない |
-| SQLite スキーマ変更 | schema_version テーブルで段階的マイグレーション。v1 -> v4 まで実績あり |
+| SQLite スキーマ変更 | schema_version テーブルで段階的マイグレーション。v1 -> v15 まで実績あり |
 | 排他ロックのデッドロック | fcntl.flock はプロセス単位のロック。タイムアウトなしだが、HELIX の使用パターンではデッドロックは発生しにくい |
 
 ---

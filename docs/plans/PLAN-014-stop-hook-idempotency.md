@@ -48,7 +48,7 @@ PLAN-014 は **当日内 Stop hook 出力の冪等化** を実装し、append-on
   - 「Hook イベント」表 (今日合計、`COUNT(*) GROUP BY event_type`)
   - 「ゲート実行」表 (今日合計、`gate, result`)
   - 「コスト記録」表 (今日合計、`role, model`)
-- 「終了 N 回」: `cost_log` の `role='opus-pm'` `date(created_at)=today` の row 数で算出
+- 「終了 N 回」: 現行実装では `cost_log` の `role IN ('claude-code', 'opus-pm')` `date(created_at)=today` の row 数で算出（`opus-pm` は旧 Stop hook 行の後方互換）
 - 別日のブロックは追記された時点で凍結 (rewrite 対象外)
 
 ### §3.2 ファイル更新アルゴリズム (atomic rewrite)
@@ -88,7 +88,7 @@ PLAN-014 は **当日内 Stop hook 出力の冪等化** を実装し、append-on
 
 ### §3.5 サイジング
 
-- size: S (helix-size: files=1 lines=~80 type=refactor drive=be)
+- size: S (`helix size`: files=1 lines=~80 type=refactor drive=be)
 - phases: L4 のみ
 - ファイル: `cli/helix-session-summary` (1)
 - テスト: `cli/tests/test-helix-session-summary.bats` (新規 or 既存に追加)
@@ -121,7 +121,7 @@ PLAN-014 は **当日内 Stop hook 出力の冪等化** を実装し、append-on
 ### §4.2 G4 ゲート判定基準
 
 - DoD #1〜#5 全て PASS
-- helix-codex review --uncommitted で重大指摘なし
+- helix review --uncommitted で重大指摘なし
 - accuracy_score 算定: deferred-finding が新規追加されないこと
 
 ## §5. 後続候補 (本 PLAN 範囲外)

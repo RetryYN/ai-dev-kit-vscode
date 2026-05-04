@@ -46,7 +46,7 @@ RGC は Forward 実装完了後に、Reverse で発見した gap が本当に閉
 - 各 gap に owner と routing が定義済み
 
 補足（重要）:
-- `gate-policy.md` 正本では「RGC は CLI 未実装、Forward L6/L8 pass 後に手動実施」と定義される
+- `gate-policy.md` 正本では `helix reverse rgc` は集計表示補助であり、閉塞判定の完全自動化ではない
 - 現行 `cli/helix-reverse` には `rgc` サブコマンドが存在する
 - ただし現実装は「集計表示補助」であり、閉塞判定の完全自動化ではない
 - よって本スキルでは **手動検証を正** とし、CLI は補助として利用する
@@ -113,12 +113,12 @@ RGC は Forward 実装完了後に、Reverse で発見した gap が本当に閉
 
 ---
 
-## 6. `helix-reverse rgc` 連携
+## 6. `helix reverse rgc` 連携
 
 利用方法（補助）:
 
 ```bash
-helix-reverse rgc
+helix reverse rgc
 ```
 
 想定用途:
@@ -202,4 +202,3 @@ RGC を `done` とする条件:
 - 全 gap に `closure_evidence` が記載
 - open_gap は次 routing と owner が設定済み
 - L8 受入参照が記録済み
-

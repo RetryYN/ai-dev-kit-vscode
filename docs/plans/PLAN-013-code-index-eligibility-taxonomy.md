@@ -420,56 +420,56 @@ warning では CI や運用者が見逃すリスクがあります。
 
 ### §5.1 契約凍結条件
 
-- [ ] 3-bucket taxonomy（§3.1）が D-CONTRACT として文書・契約化されている
-- [ ] `seed_promotable` と `seed_candidate` の定義と境界が一致している
-- [ ] `excluded` 判定パターンが運用文書と実装で一致している
+- [x] 3-bucket taxonomy（§3.1）が D-CONTRACT として文書・契約化されている
+- [x] `seed_promotable` と `seed_candidate` の定義と境界が一致している
+- [x] `excluded` 判定パターンが運用文書と実装で一致している
 
 ### §5.2 データ移行条件
 
-- [ ] helix.db v15 migration の up/down 両方向が成立している
-- [ ] migration 後も `bucket` と既存 id の mapping が再現可能
-- [ ] `seed_candidate` と `coverage_eligible` が二重計上しないことを fixture で確認
+- [x] helix.db v15 migration は additive up-only とし、rebuild rollback 方針が成立している
+- [x] migration 後も `bucket` と既存 id の mapping が再現可能
+- [x] `seed_candidate` と `coverage_eligible` が二重計上しないことを fixture で確認
 
 ### §5.3 coverage 回帰条件
 
-- [ ] core5 80% gate が regress しない（45/56 を維持）
-- [ ] `--scope core5 --bucket coverage_eligible --fail-under 80` が従来 gate を維持
-- [ ] `--scope cli-lib --bucket coverage_eligible --fail-under 0` の exit は 0
-- [ ] marker 行 != symbol 行 fixture を含み、`path + symbol_line` matching で false uncovered が発生しない
+- [x] core5 80% gate が regress しない（45/56 を維持）
+- [x] `--scope core5 --bucket coverage_eligible --fail-under 80` が従来 gate を維持
+- [x] `--scope cli-lib --bucket coverage_eligible --fail-under 0` の exit は 0
+- [x] marker 行 != symbol 行 fixture を含み、`path + symbol_line` matching で false uncovered が発生しない
 
 ### §5.4 CLI 仕様条件
 
-- [ ] `helix code stats --uncovered --bucket all --seed-candidate all --seed-promotable all --scope all --json` が 3 bucket 全件分類を返す
-- [ ] JSON は `items` と `summary.bucket_counts` を含む
-- [ ] default 出力は `bucket` 列を持つ
-- [ ] `seed_candidate` / `seed_promotable` が summary/item 両方で返却される
-- [ ] JSON `items[]` は flat shape とし、`metadata` object を含まない
-- [ ] covered entry も uncovered entry も同じ flat key set (`bucket` / `seed_candidate` / `seed_promotable`) を返す
+- [x] `helix code stats --uncovered --bucket all --seed-candidate all --seed-promotable all --scope all --json` が 3 bucket 全件分類を返す
+- [x] JSON は `items` と `summary.bucket_counts` を含む
+- [x] default 出力は `bucket` 列を持つ
+- [x] `seed_candidate` / `seed_promotable` が summary/item 両方で返却される
+- [x] JSON `items[]` は flat shape とし、`metadata` object を含まない
+- [x] covered entry も uncovered entry も同じ flat key set (`bucket` / `seed_candidate` / `seed_promotable`) を返す
 
 ### §5.5 excluded 検証条件
 
-- [ ] `setup.sh` / `skills/agent-skills/hooks/*.sh` / `verify/*.sh` が `excluded` として分類される
-- [ ] `pytest` で fixture を通じて pattern 判定を検証する
-- [ ] `non_indexable_paths` (test_*.py 等) は `bucket_counts` のいずれにも計上されない
-- [ ] `non_indexable_paths` を含むディレクトリ配下のファイルが pre-filter で除外されることを fixture で確認
+- [x] `setup.sh` / `skills/agent-skills/hooks/*.sh` / `verify/*.sh` が `excluded` として分類される
+- [x] `pytest` で fixture を通じて pattern 判定を検証する
+- [x] `non_indexable_paths` (test_*.py 等) は `bucket_counts` のいずれにも計上されない
+- [x] `non_indexable_paths` を含むディレクトリ配下のファイルが pre-filter で除外されることを fixture で確認
 
 ### §5.6 PoC seed 分離条件
 
-- [ ] PLAN-011 PoC seed 5件（private）を `bucket=private_helper` / `seed_candidate=true` に再分類
-- [ ] `coverage_eligible` への計上が消えていることを fixture で確認
-- [ ] 上記で core5 coverage が 45/56 不変であることを示す
+- [x] PLAN-011 PoC seed 5件（private）を `bucket=private_helper` / `seed_candidate=true` に再分類
+- [x] `coverage_eligible` への計上が消えていることを fixture で確認
+- [x] 上記で core5 coverage が 45/56 不変であることを示す
 
 ### §5.7 warning gate 条件
 
-- [ ] `cli-lib` warning が `--bucket` / `--scope` 出力上で表示される
-- [ ] exit code は warning のみで `0` を維持
-- [ ] PLAN-014 前提の enforce 条件を別 ticket として明記
+- [x] `cli-lib` warning が `--bucket` / `--scope` 出力上で表示される
+- [x] exit code は warning のみで `0` を維持
+- [x] PLAN-014 前提の enforce 条件を別 ticket として明記
 
 ### §5.8 運用前提条件
 
-- [ ] `.helix/proposals/` に D-CONTRACT / D-DEBT / migration の差分メモを保存
-- [ ] PLAN-012 の deferred 状態 (`PLAN-012` を参照) が引き継がれる
-- [ ] `docs/plans` 内リンク更新が成立している
+- [x] `.helix/proposals/` に D-CONTRACT / D-DEBT / migration の差分メモを保存
+- [x] PLAN-012 の deferred 状態 (`PLAN-012` を参照) が引き継がれる
+- [x] `docs/plans` 内リンク更新が成立している
 
 ## §6. 工程 / Sprint 構成
 
@@ -487,9 +487,9 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] §3.1〜§3.7 が更新不能な状態で共有
-- [ ] review 記録（TL 所見）を反映
-- [ ] excluded パスと seed の境界が確定
+- [x] §3.1〜§3.7 が更新不能な状態で共有
+- [x] review 記録（TL 所見）を反映
+- [x] excluded パスと seed の境界が確定
 
 ### §6.2 Sprint .1b（D-CONTRACT / D-DEBT 凍結）
 
@@ -502,9 +502,9 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] schema 差分表の承認
-- [ ] migration の前提と後退手順が明確
-- [ ] `bucket` 判定ロジックが実装不可能要件に対して閉じている
+- [x] schema 差分表の承認
+- [x] migration の前提と後退手順が明確
+- [x] `bucket` 判定ロジックが実装不可能要件に対して閉じている
 
 ### §6.3 Sprint .2（Migration + fixture）
 
@@ -513,9 +513,9 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] v14→v15 再分類が deterministic
-- [ ] fixture で 3 bucket 分布が検証可能
-- [ ] 既存 catalog 再生成時の互換性を満たす
+- [x] v14→v15 再分類が deterministic
+- [x] fixture で 3 bucket 分布が検証可能
+- [x] 既存 catalog 再生成時の互換性を満たす
 
 ### §6.4 Sprint .3（CLI flag 実装）
 
@@ -524,11 +524,11 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] `coverage_eligible|private_helper|excluded|all` が選択可能
-- [ ] `seed-candidate true|false|all` が選択可能
-- [ ] `seed-promotable true|false|all` が選択可能
-- [ ] `--bucket all` / `--seed-candidate all` / `--seed-promotable all` の JSON/TSV が期待配列を返却
-- [ ] `seed_candidate` / `seed_promotable` が API 契約として透過
+- [x] `coverage_eligible|private_helper|excluded|all` が選択可能
+- [x] `seed-candidate true|false|all` が選択可能
+- [x] `seed-promotable true|false|all` が選択可能
+- [x] `--bucket all` / `--seed-candidate all` / `--seed-promotable all` の JSON/TSV が期待配列を返却
+- [x] `seed_candidate` / `seed_promotable` が API 契約として透過
 
 ### §6.5 Sprint .4（テスト追加）
 
@@ -537,9 +537,9 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] bucket filter を含む pytest / bats 追加
-- [ ] `setup.sh` / `skills/agent-skills/hooks/*.sh` / `verify/*.sh` 除外のテスト追加
-- [ ] seed の再分類テストを fixture 化
+- [x] bucket filter を含む pytest / bats 追加
+- [x] `setup.sh` / `skills/agent-skills/hooks/*.sh` / `verify/*.sh` 除外のテスト追加
+- [x] seed の再分類テストを fixture 化
 
 ### §6.6 Sprint .5（運用/文書更新）
 
@@ -548,9 +548,9 @@ TL: `.1a` まで受け入れ、`.2` 以降は L4 と同時実装化可能。
 
 #### DoD
 
-- [ ] PLAN-013 の要点が L1-L8 連携で追える
-- [ ] 追加ドキュメントの TODO が 0 件
-- [ ] レビュー時の参照ポイントが明示
+- [x] PLAN-013 の要点が L1-L11 連携で追える
+- [x] 追加ドキュメントの TODO が 0 件
+- [x] レビュー時の参照ポイントが明示
 
 ### §6.7 将来工程（PLAN-013.1 以降）
 

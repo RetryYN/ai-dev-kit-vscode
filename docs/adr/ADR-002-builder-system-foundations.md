@@ -7,7 +7,7 @@ Accepted
 
 現状の HELIX CLI は、`task-catalog.yaml`、`action-types.yaml`、`SKILL.md` の解決先を主に `HELIX_HOME` 配下へ固定している。結果として、Builder がプロジェクト内に生成したタスク定義やスキルを置いても、実行時に参照されず、生成物が実質的に無効化される。
 
-特に、タスクカタログとアクション型は `HELIX_HOME/cli/templates/` を直接参照し、`helix-codex` のスキル解決も `HELIX_HOME/skills/` 固定である。この構造は共有インストールの再利用には有利だが、プロジェクトごとの差分適用、ローカル実験、生成物のシャドウ、CI 上での自己完結性を阻害する。
+特に、タスクカタログとアクション型は `HELIX_HOME/cli/templates/` を直接参照し、`helix codex` のスキル解決も `HELIX_HOME/skills/` 固定である。この構造は共有インストールの再利用には有利だが、プロジェクトごとの差分適用、ローカル実験、生成物のシャドウ、CI 上での自己完結性を阻害する。
 
 Builder 導入後は、HELIX 本体が提供する shared install と、プロジェクトが独自に保持する overlay/generated asset を同時に扱う必要がある。ここで探索順序が機能ごとに異なると、同じ名前のタスクやスキルが文脈ごとに別解決され、運用が不安定になる。そのため、project-local を優先し、shared install をフォールバックにする一貫した探索規約が必要である。
 
@@ -32,7 +32,7 @@ Builder System の基盤決定として、以下を採用する。
 
 - Builder が生成するスキルの配置先は `PROJECT_ROOT/skills/generated/<name>/SKILL.md` とする
 - スキル解決順は `PROJECT_ROOT/skills/generated/ → PROJECT_ROOT/skills/ → HELIX_HOME/skills/` とする
-- `helix-codex` の role prompt 組み立て時は、この順序で `SKILL.md` を探索する
+- `helix codex` の role prompt 組み立て時は、この順序で `SKILL.md` を探索する
 - 名前衝突時は、より local な候補を採用する
 - この衝突解決は「上書き」ではなく「シャドウ」として扱い、元の shared skill は保持したまま参照順位のみで切り替える
 
@@ -70,5 +70,5 @@ Builder System の基盤決定として、以下を採用する。
 
 - 解決結果の provenance を CLI が表示しない場合、誤った overlay や shadow が有効でも原因追跡が難しい
 - merge 規則をキー単位で厳密定義しないと、task-catalog や action-types の部分 overlay が不完全結合になり、静かに欠落や競合を起こす
-- `helix-codex` だけが新しい探索順序に対応し、周辺 CLI や verify が追随しない場合、設計と実装の間で不整合が残る
+- `helix codex` だけが新しい探索順序に対応し、周辺 CLI や verify が追随しない場合、設計と実装の間で不整合が残る
 - Builder 内部 JSON と外部 YAML の変換境界にバリデーションが不足すると、生成時は成功しても実行時に不整合が顕在化する
