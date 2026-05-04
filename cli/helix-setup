@@ -14,6 +14,25 @@ usage() {
   repair --name <component>     初期化状態を修復
   list                          利用可能 component 一覧
   status [--name <component>]   component 状態を表示
+  preflight --profile <profile> 実行前の入口チェック
+  bootstrap [options]           preflight + init + safe components を一発実行
+  packages <list|install>        開発支援パッケージ導入スクリプト
+
+Profiles:
+  project                       新規/既存プロジェクトの HELIX 導入前チェック
+  reverse                       Reverse HELIX 開始前チェック
+
+Bootstrap options:
+  --project-name <name>         helix init に渡すプロジェクト名
+  --start-phase <L1..L11>       途中導入時の開始フェーズ
+  --force                       init テンプレートを更新
+  --skip-components             redaction/gitignore component 導入をスキップ
+  --json                        結果を JSON で出力
+
+Package examples:
+  helix setup packages list
+  helix setup packages install --name textlint --dry-run
+  helix setup packages install --name playwright --yes
 USAGE
 }
 
@@ -21,10 +40,11 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 
 case "$CMD" in
-  verify|install|repair|list|status)
+  verify|install|repair|list|status|preflight|bootstrap|packages)
     exec python3 "$SCRIPT_DIR/lib/setup_helper.py" \
       --setup-dir "$SCRIPT_DIR/setup" \
       --project-root "$PROJECT_ROOT" \
+      --db-path "$DB_PATH" \
       "$CMD" "$@"
     ;;
   help|-h|--help)

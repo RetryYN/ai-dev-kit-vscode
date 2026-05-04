@@ -128,8 +128,8 @@ set -euo pipefail
 
 echo "=== $hid: $title ==="
 
-# TODO: 検証ロジックを実装
-echo "FAIL: 未実装"
+# この雛形は fail-close です。仮説固有の検証条件を実装してから exit 0 にしてください。
+echo "FAIL: hypothesis verification script has not been customized yet"
 exit 1
 VEOF
         chmod +x "$PROJECT_ROOT/$verify_script"
@@ -304,6 +304,7 @@ cmd_verify() {
 cmd_decide() {
   local hid="" decision="" learnings=""
   local strict_promote=false
+  local force=false
   while [[ $# -gt 0 ]]; do
     case $1 in
       --hypothesis) hid="$2"; shift 2 ;;
@@ -311,14 +312,46 @@ cmd_decide() {
       --rejected)   decision="rejected"; shift ;;
       --pivot)      decision="pivot"; shift ;;
       --strict-promote) strict_promote=true; shift ;;
+      --force) force=true; shift ;;
       --learnings)  learnings="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
 
   if [[ -z "$hid" || -z "$decision" ]]; then
-    echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--strict-promote] [--learnings '...']" >&2
+    echo "Usage: helix scrum decide --hypothesis H001 --confirmed|--rejected|--pivot [--strict-promote] [--force] [--learnings '...']" >&2
     exit "$EXIT_INPUT_ERROR"
+  fi
+
+  local title verify_script
+  title=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.title" 2>/dev/null)
+  verify_script=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.verify_script" 2>/dev/null || true)
+  if [[ -z "$title" || "$title" == "null" ]]; then
+    echo "Error: hypothesis not found: $hid" >&2
+    exit "$EXIT_PREREQ_ERROR"
+  fi
+
+  if [[ "$decision" == "confirmed" && "$force" != true ]]; then
+    if [[ -z "$verify_script" || "$verify_script" == "null" ]]; then
+      echo "Error: confirmed には verify_script が必要です: $hid" >&2
+      echo "  例外的に人間判断で進める場合は --force を付けてください。" >&2
+      exit "$EXIT_CHECK_FAILED"
+    fi
+    if [[ ! -f "$PROJECT_ROOT/$verify_script" ]]; then
+      echo "Error: verify script が見つかりません: $verify_script" >&2
+      echo "  例外的に人間判断で進める場合は --force を付けてください。" >&2
+      exit "$EXIT_CHECK_FAILED"
+    fi
+    set +e
+    verify_output=$(bash "$PROJECT_ROOT/$verify_script" 2>&1)
+    verify_exit=$?
+    set -e
+    if [[ "$verify_exit" -ne 0 ]]; then
+      echo "Error: confirmed には検証成功が必要です: $verify_script" >&2
+      printf "%s\n" "$verify_output" >&2
+      echo "  修正して再実行するか、例外的に人間判断で進める場合は --force を付けてください。" >&2
+      exit "$EXIT_CHECK_FAILED"
+    fi
   fi
 
   python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.status" "$decision"
@@ -326,13 +359,15 @@ cmd_decide() {
     python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.learnings" "$learnings"
   fi
 
-  local title
-  title=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.title" 2>/dev/null)
-
   echo "[scrum] $hid: $decision — $title"
 
   case "$decision" in
     confirmed)
+      if [[ "$force" == true ]]; then
+        echo "  WARN: --force 指定により検証成功チェックを bypass しました"
+      else
+        echo "  PASS: verify script passed — $verify_script"
+      fi
       if [[ "$strict_promote" == true ]]; then
         echo "[scrum] strict-promote checks:"
         verify_hypothesis_dir="$SCRUM_VERIFY_DIR/$hid"
@@ -400,6 +435,45 @@ PY
 EOF
       fi
       echo "  → 生成: .helix/scrum-handoff.md"
+      task_dir="$HELIX_DIR/tasks"
+      mkdir -p "$task_dir"
+      task_file="$task_dir/scrum-${hid}-forward.md"
+      cat > "$task_file" <<EOF
+# Scrum Forward Task: $hid
+
+## Confirmed Hypothesis
+- id: $hid
+- title: ${title:-N/A}
+- verify_script: ${verify_script:-N/A}
+
+## Promotion Scope
+- L1: 要件として確定仮説を取り込む
+- L2: PoC と Forward 実装の差分を設計に反映する
+- L3: 本実装タスク、契約、検証計画へ落とす
+- L4: verify script を回帰テストとして維持しながら本実装する
+
+## Evidence
+- scrum_handoff: .helix/scrum-handoff.md
+- verification: ${verify_script:-N/A}
+
+## Notes
+${learnings:-N/A}
+EOF
+      echo "  → 生成: .helix/tasks/scrum-${hid}-forward.md"
+
+      existing_plan_id=$(python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.promotion_plan_id" 2>/dev/null || true)
+      if [[ -z "$existing_plan_id" || "$existing_plan_id" == "null" ]]; then
+        plan_output=$("$SCRIPT_DIR/helix-plan" draft --title "Scrum promotion: $hid ${title:-N/A}" --file ".helix/tasks/scrum-${hid}-forward.md" 2>/dev/null || true)
+        promotion_plan_id=$(printf "%s\n" "$plan_output" | awk '/^ID: / {print $2}' | tail -n1)
+        if [[ -n "$promotion_plan_id" ]]; then
+          python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.promotion_plan_id" "$promotion_plan_id" 2>/dev/null || true
+          echo "  → 生成: .helix/plans/${promotion_plan_id}.yaml"
+        else
+          echo "  WARN: promotion plan draft は生成できませんでした"
+        fi
+      else
+        echo "  → 既存 plan: $existing_plan_id"
+      fi
       echo "  → Forward HELIX に接続可能。'helix size' でサイジングしてください。"
       echo "  → 検証スクリプトは verify/ に残り、リグレッションテストとして機能します。"
       echo ""
@@ -422,6 +496,14 @@ EOF
 # review: スプリントレビュー
 # ============================
 cmd_review() {
+  local force_complete=false
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --force-complete) force_complete=true; shift ;;
+      *) echo "Usage: helix scrum review [--force-complete]" >&2; exit "$EXIT_INPUT_ERROR" ;;
+    esac
+  done
+
   local sprint_num
   sprint_num=$(python3 "$YP" read "$SPRINT_FILE" "current_sprint" 2>/dev/null || echo 0)
 
@@ -435,7 +517,18 @@ cmd_review() {
 
   # 全検証スクリプト実行
   echo "[Verification]"
-  cmd_verify all 2>&1 || true
+  set +e
+  (cmd_verify all)
+  verify_status=$?
+  set -e
+  if [[ "$verify_status" -ne 0 && "$force_complete" != true ]]; then
+    echo ""
+    echo "Error: 検証失敗のため sprint review を完了できません。" >&2
+    echo "  修正して再実行するか、例外的に完了扱いする場合は --force-complete を付けてください。" >&2
+    exit "$EXIT_CHECK_FAILED"
+  elif [[ "$verify_status" -ne 0 ]]; then
+    echo "WARN: --force-complete 指定により検証失敗を保持したまま sprint を完了します"
+  fi
   echo ""
 
   # 仮説状態サマリ
@@ -559,8 +652,9 @@ Commands:
   poc                     PoC 実装を Codex に委譲 (--hypothesis H001)
   verify [script]         検証スクリプト実行 (引数なし=全実行)
   decide                  判定 (--hypothesis H001 --confirmed|--rejected|--pivot)
+                          confirmed は verify script 成功が必須。例外時のみ --force
                           --strict-promote を指定すると昇格推奨チェックを追加
-  review                  スプリントレビュー + レトロ
+  review                  スプリントレビュー + レトロ（検証失敗時は fail-close、例外時のみ --force-complete）
   status                  現在の状態表示
   trigger detect          差し込み候補を検出 (--scan PATH [--save] [--json])
   trigger list            差し込み候補一覧 (--status ... --type ... [--json])
