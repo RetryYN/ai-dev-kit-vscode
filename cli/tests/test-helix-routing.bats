@@ -87,7 +87,7 @@ PY
 
   for cmd in \
     init status dashboard mode doctor migrate commands setup test test-debug debug bench \
-    size plan matrix gate gate-api-check readiness sprint task interrupt handover pr retro debt drift-check \
+    size plan meta-phase matrix gate gate-api-check readiness sprint task interrupt handover pr retro debt drift-check \
     codex claude team review skill budget hook check-claudemd session-start session-summary \
     reverse scrum verify-all verify-agent \
     log recipe learn promote discover builder code audit \

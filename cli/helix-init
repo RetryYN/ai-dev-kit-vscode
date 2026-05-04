@@ -120,6 +120,14 @@ else
   echo "  warn: template rule not found: $TEMPLATES_DIR/rules/structure.yaml"
 fi
 
+# meta-phase pattern templates
+mkdir -p "$HELIX_DIR/patterns"
+if [[ -f "$TEMPLATES_DIR/patterns/pattern.yaml" ]]; then
+  copy_template "$TEMPLATES_DIR/patterns/pattern.yaml" "$HELIX_DIR/patterns/pattern.yaml"
+else
+  echo "  warn: template pattern not found: $TEMPLATES_DIR/patterns/pattern.yaml"
+fi
+
 # matrix runtime/state ディレクトリ
 for dir in "$HELIX_DIR/state" "$HELIX_DIR/runtime"; do
   if [[ ! -d "$dir" ]]; then

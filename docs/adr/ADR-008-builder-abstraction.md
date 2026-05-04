@@ -60,7 +60,7 @@ HELIX CLI は多様な成果物を生成する必要がある:
                 ↓
      ┌──────────┼──────────┐
      ↓          ↓          ↓
-  AgentLoop  Workflow  JsonConverter  ...  (9種類の具象ビルダー)
+  AgentLoop  Workflow  JsonConverter  ...  (8種類の具象ビルダー)
      │          │          │
      └──────────┼──────────┘
                 ↓
@@ -95,7 +95,7 @@ def build(self, task_id, input_params):
     return artifacts, validation
 ```
 
-### 現在登録されている9ビルダー
+### 現在登録されている8ビルダー
 
 | ビルダー | 用途 | 生成物 |
 |---------|------|--------|
@@ -107,7 +107,6 @@ def build(self, task_id, input_params):
 | task | タスク定義 | タスク YAML |
 | verify-script | 検証スクリプト | Bash スクリプト |
 | json-converter | JSON 変換 | 変換ロジック JSON |
-| cli | Builder CLI dispatch | (N/A: cli.py 自身) |
 
 ---
 
@@ -160,7 +159,7 @@ def build(self, task_id, input_params):
 - `cli/lib/builders/base.py` (BuilderBase 実装)
 - `cli/lib/builders/registry.py` (BuilderRegistry)
 - `cli/lib/builders/store.py` (BuilderStore, BuilderHistory)
-- `cli/lib/builders/{agent_loop, agent_pipeline, ...}.py` (9具象ビルダー)
+- `cli/lib/builders/{agent_loop, agent_pipeline, ...}.py` (8具象ビルダー)
 - `cli/lib/tests/test_builders.py` / `test_builders_concrete.py` (テスト)
 - `docs/design/L2-builder-system.md` (設計書)
 - `docs/design/D-BUILDER-INTEGRATION.md` (CLI 統合設計)

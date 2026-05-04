@@ -21,6 +21,7 @@ PLAN-004 以降、上流工程の「L-1」は実装起点の固定サブステ�
 - ドキュメント駆動のメタフェーズ設計（依存関係、順序、整合性ルールの明示）
 - 研究領域の多様化ルートの導入
 - `.helix/patterns/*.yaml` のパターン適用方針（既定は固定 + 任意 llm suggest）
+- `helix meta-phase status/check` による pattern 契約 lint
 - PLAN-004 readiness の上流接続（L-1 承継）
 - PLAN-007 の Scrum トリガー（research/UI/unit/sprint/post-deploy）との接続方針
 - v1 / 2026-04-30 改訂履歴の記録
@@ -153,8 +154,9 @@ TL は AI ロール (Codex 5.4) のため、ライセンス判断・採用判断
   - 例: `doc-governance`（要件→設計→実装依存順）
   - 例: `research-bundle`（機能/技術/OSS の同時評価）
   - 例: `phase-handoff`（deferred / risk / 実験条件の引継ぎ）
-- 本 PLAN では pattern.yaml の実体定義を実装しない。
-- ただし PLAN-006 で `pattern.yaml` の運用順序と適用優先順位を明文化し、PLAN-007 に接続する。
+- 本 PLAN の最小実装として `.helix/patterns/pattern.yaml` と `helix meta-phase status/check` を提供する。
+- `helix meta-phase check` は `scope.phase` / `scope.gate` / `scope.subphase`、`applies_when` 最小 DSL、`outputs`、`audit_log` の契約を lint する。
+- pattern application engine と `--llm-suggest` 実行は後続拡張とし、本 PLAN では固定 pattern の契約検証に限定する。
 
 #### 3.3.1 pattern.yaml 最小契約と競合解決規則（F03 解消）
 
@@ -282,6 +284,7 @@ phase.yaml は `current_phase` (L 系) と `gates` (G 系) を別構造で持つ
 - `.helix/patterns/*.yaml` 適用方針（分類・優先順位・例外）を文書化
 - `deferred` と承認条件をレビュー記録仕様として統一
 - L-1→L-2 受け渡しの gate-compatible チェック項目を定義
+- 実装 evidence: `helix meta-phase check` が project-local `.helix/patterns/pattern.yaml` の契約を検証する
 
 ### Sprint L3: hybrid ルール運用定着
 
@@ -304,3 +307,4 @@ phase.yaml は `current_phase` (L 系) と `gates` (G 系) を別構造で持つ
 | 2026-05-02 | v3.1 | TL v3 review 新 finding 解消。P2-1: §3.3.1 で `scope.phase` を L 系のみ・`scope.gate` を G 系のみ・`scope.subphase` を pattern-local label に三分割。P2-2: §3.1.0 L-1 priority matrix 最小契約 (artifact / depends_on / risk / required_research_route / owner / blocking / deferred_level / exit_evidence + tie-breaker + lint reject) を追加。P3: §3.2.1a 機能リサーチ DoD の代替条件 (内部基盤 → 類似事例 N≥2 / 競合・類似非該当 → N/A with rationale + PM 承認) を追加。 | PM (Opus) |
 | 2026-05-02 | v3.2 | TL v3.1 review finding 解消。P1: §3.2.2 OSS 操作で TL は AI ロールのため**全操作で人間 (PM) 承認を必須**化、CVE/GHSA/supply chain 検証を TL 役割として追加、緊急 security update のみ事後 24h 承認可。P2: §3.1.0 priority matrix を `blocking_research_route` (deferred 不可) と `deferred_research_route` (carry 可) に分け、G0.5 / G1R の fail-close 判定式を明確化。P3: §3.3.2 `applies_when` 最小 DSL (`all` / `any` + list (in 判定) / scalar (厳密一致) / null (未定義)) を追加し、正規表現・比較演算は最小 DSL から除外。 | PM (Opus) |
 | 2026-05-03 | v3.3 | 現行実装に合わせて `scope.phase` を L1-L11、`scope.gate` を G0.5-G11（G8 なし）へ更新。PLAN-009 で導入済みの Run phase / gate を通常 scope として扱う。 | Docs (Codex) |
+| 2026-05-04 | v3.4 | `helix meta-phase status/check` を最小実装として追加し、project-local `.helix/patterns/pattern.yaml` の phase/gate/subphase、nested `applies_when` DSL、outputs、audit_log 契約を CLI で検証可能にした。`helix init` に pattern template 配置も追加。 | Codex |

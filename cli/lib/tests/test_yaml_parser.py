@@ -96,6 +96,41 @@ def test_parse_literal_block_scalar_in_list_mapping() -> None:
     assert data["ai"][0]["task"] == "check A\ncheck B"
 
 
+def test_parse_list_mapping_with_nested_sequence_value() -> None:
+    data = yaml_parser.parse_yaml(
+        """
+applies_when:
+  all:
+    - drive: [be]
+    - any:
+        - has_external_api: true
+        - has_db_migration: true
+"""
+    )
+
+    assert data == {
+        "applies_when": {
+            "all": [
+                {"drive": ["be"]},
+                {"any": [{"has_external_api": True}, {"has_db_migration": True}]},
+            ]
+        }
+    }
+
+
+def test_parse_list_mapping_keeps_sibling_keys_outside_empty_child() -> None:
+    data = yaml_parser.parse_yaml(
+        """
+items:
+  - key:
+      nested: 1
+    other: 2
+"""
+    )
+
+    assert data == {"items": [{"key": {"nested": 1}, "other": 2}]}
+
+
 def test_dump_yaml_round_trips_multiline_string() -> None:
     original = {"ai": [{"role": "tl", "task": "check A\ncheck B"}]}
 

@@ -220,9 +220,13 @@ def parse_yaml(text):
                 current.append(item)
                 key = _matched_key(m_item)
                 raw_val = m_item.group(4).strip()
+                child_container = item
+                child_key = len(current) - 1
                 if not raw_val:
                     child = {}
                     item[key] = child
+                    child_container = child
+                    child_key = key
                 elif raw_val[0] in ("|", ">"):
                     item[key], index = _consume_block_scalar(lines, index, indent, raw_val[0])
                 elif raw_val.startswith('{') and raw_val.endswith('}'):
@@ -235,6 +239,13 @@ def parse_yaml(text):
                     'parent': current,
                     'key': len(current) - 1,
                 })
+                if child_key == key:
+                    stack.append({
+                        'container': child_container,
+                        'indent': indent + 2,
+                        'parent': item,
+                        'key': child_key,
+                    })
             else:
                 current.append(_cast(item_raw))
             continue

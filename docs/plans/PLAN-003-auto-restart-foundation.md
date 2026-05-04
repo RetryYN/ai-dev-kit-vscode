@@ -113,7 +113,10 @@
 - migration rehearsal / retention / VACUUM 一貫性検証
 
 ### L6 検証
-- G1R（事前調査）と G1.5（PoC）の結合検証（B、D、B+D の3段階）
+- G1R（事前調査）と G1.5（PoC）は実装着手前の gate evidence として保持する。
+- L6 では同じ scenario を再利用するが、証跡名は `regression-g1r-*` / `regression-g15-*` とし、事前 gate evidence と混在させない。
+- L8 では `acceptance-g15-*` として outcome matrix の最終突合だけを保存する。
+- B、D、B+D の3段階を L6 regression suite として再実行する。
 - 自動再開・警告発火・retry/replay を観測
 - fresh checkout で HOME DB と runtime copy が再現できることを確認
 
@@ -179,6 +182,7 @@
   - `cwd`
   - `branch`
   - `head_sha`
+  - `scope_hash`
   - `worktree_snapshot_hash`
   - `handover_manifest_hash`
   - `phase_yaml_hash`（`.helix/phase.yaml`）
@@ -190,6 +194,13 @@
 - `worktree_snapshot_hash`: git porcelain v2 + untracked 完全展開 + canonical JSON レコード + path/base path 正規化
 - `handover_manifest_hash`: `CURRENT.json` を含む `.helix/handover/` 参照ファイルの path/content sha256 を canonical 並び替えしハッシュ
 - `phase_yaml_hash`: `.helix/phase.yaml` の SHA-256
+- `scope_hash`: PLAN-002 A1 の candidate scope から渡される再ベースライン境界。HMAC payload と HOME DB 記録の両方に含め、不一致時は fail-closed とする。
+- `handover_manifest_hash` の CURRENT v2 対象は raw bytes ではなく、adapter 適用後の normalized output とする。
+  - 入力順序: legacy/current raw input -> schema adapter -> normalized output -> canonical JSON -> SHA-256
+  - canonical JSON は `json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False)` の UTF-8 bytes とする。
+  - normalized output には `schema_version`, `adapter_version`, `task.id`, `phase`, `sprint`, `owner`, `status`, `files`, `next_action` を含める。
+  - raw CURRENT.json の空白・キー順序差分では hash を変えず、adapter_version または normalized field の意味差分では hash を変える。
+  - adapter 適用失敗、schema_version 不明、必須 field 欠落は fail-closed とする。
 
 ### 7.3 replay / 検証
 - `nonce` と `auto_restart_log` の `(task_id, nonce)` で replay 防止
@@ -218,7 +229,12 @@ CREATE TABLE IF NOT EXISTS auto_restart_log (
 ```
 
 ### 8.2 運用
-- 1時間あたり 6 回を既定 rate limit とし、UTC epoch で計算
+- 1時間あたり 6 回を既定 rate limit とし、UTC epoch の sliding window で計算
+- 集計キーは `(workspace_hash, task_id)` とする。
+  - `workspace_hash` は normalized `cwd` と repository root の canonical path hash を使う。
+  - `task_id` が不明な場合は `task_id="unknown"` として同一 workspace 内で集約し、過剰再起動を fail-closed 寄りに抑止する。
+  - `resume_id` は監査フィールドとして保存するが、rate limit の集計キーには含めない。
+  - 超過時の decision は `rate_limited` とし、restart は実行せず手動再開ガイダンスのみを返す。
 - 90 日 retention
 - VACUUM + cleanup で古いレコードを削除
 - retention は HOME DB 単体（`auto_restart_log`）を 90 日で維持

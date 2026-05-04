@@ -1,0 +1,31 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix meta-phase <status|check> [--json]
+
+PLAN-006 の L1 内メタ工程として、.helix/patterns/pattern.yaml の固定ルール契約を検証する。
+
+サブコマンド:
+  status [--json]  pattern 契約の状態を表示
+  check  [--json]  pattern 契約を検証し、不整合があれば non-zero
+USAGE
+}
+
+case "${1:-help}" in
+  status|check)
+    exec python3 "$SCRIPT_DIR/lib/meta_phase.py" --root "$PROJECT_ROOT" "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "エラー: 不明な meta-phase subcommand: ${1:-}" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

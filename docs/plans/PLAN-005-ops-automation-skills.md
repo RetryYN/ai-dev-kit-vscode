@@ -441,7 +441,9 @@ helix observe export --format prometheus|json [--since <time>] [--until <time>] 
 - export 安全策
   - `helix observe export --format prometheus|json` は redaction 済みデータのみ export
   - `--output` 先が `~/.helix/quarantine/` 以外なら **fail-closed**
-  - `--include-secrets` は PM-only 承認フロー必須（監査ログに記録）
+  - `--include-secrets` は秘密値そのものを復元・出力するフラグではない。redaction 後の masked field metadata（redacted field name, rule id, count, hash prefix）だけを追加する。
+  - `--include-secrets` の利用は PM-only 承認フロー必須（監査ログに記録）とし、承認があっても raw secret value は export しない。
+  - raw secret value の export 経路は本 PLAN では未定義とし、必要な場合は別 PLAN で security review と人間承認を必須にする。
 - 主要リスク対策
   - `R-06` として、任意 JSON 経路の秘匿情報持出しリスクを明示し、L3 での redaction fixture preflight を必須化
 

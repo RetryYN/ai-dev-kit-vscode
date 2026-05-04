@@ -7,10 +7,11 @@
 
 | 判定ラベル | 条件 |
 |---|---|
-| `✅ 実装完了` | `yaml status=finalized` + `実装 commit >= 1` + `retro 有` |
+| `✅ 実装完了` | `yaml status=finalized` + `実装 commit >= 1` + `retro 有` + `主要受入テスト pass` |
 | `🟡 部分実装` | `yaml status=finalized` + `実装 commit >= 1` + `retro 無`、`DoD残 >= 1`、または open deferred finding 残存 |
 | `🟠 設計のみ` | `yaml status=finalized` + `実装 commit = 0` |
 | `🔴 draft` | `yaml status=draft` または `!= finalized` |
+| `⚪ archived` | `yaml status=draft` だが現行正本に supersede 済みで、completion denominator から除外 |
 
 - Sprint 換算ルール
   - 該当 PLAN の `§4.1 Sprint` かそれに準じる Sprint 構成が明示されている場合: その表/列挙された Sprint 数を採用。
@@ -28,12 +29,12 @@
 
 - 参照: `.helix/plans/PLAN-00{1..16}.yaml`
 - 対象フィールド: `status / title / created_at / source_file`
-- 取得済み: `PLAN-001` は draft、`PLAN-002`〜`PLAN-016` は finalized。
+- 取得済み: `PLAN-001` は draft だが PoC skill に supersede 済み、`PLAN-002`〜`PLAN-016` は finalized。
 
 2) docs 起草有無
 
 - PLAN 起草 md: `docs/plans/PLAN-XXX-*.md`
-- `PLAN-001` は `mdなし`。
+- `PLAN-001` は tracked fallback として `docs/plans/PLAN-001-poc-skill.md` を追加済み。PoC skill に supersede 済みのため、PLAN YAML は監査目的で `draft` のまま維持する。
 - それ以外は `PLAN-002`〜`PLAN-016` のファイルが存在。
 
 3) 実装 commit 件数
@@ -62,16 +63,20 @@
 - `cli/roles/effort-classifier.conf` : 存在（存在証跡あり）。
 - `helix codex --help` : `--auto-thinking` フラグ確認。
 - `helix skill --help` : `use ... --auto-thinking` を確認（トップレベルフラグではなく `use` サブコマンド）。
-- 結論: **Phase B は導線の一部が有効、ただし telemetry 記録/実効実績の継続的更新は未確認**。
+- `helix codex --auto-thinking --dry-run` : classifier 適用と thinking 選択を確認。
+- `helix skill use ... --auto-thinking --dry-run --json` : Codex role routing 時に auto-thinking option が保持されることを確認。
+- `helix skill stats --json` : usage 統計導線を確認。
+- 結論: **Phase B の実行導線と統計導線は存在。長期 telemetry による継続学習は staged backlog 扱いで、active blocker ではない。**
 
 #### Builder System
 
-- `cli/lib/builders/` 配下: `*.py` 14件（`__init__` を含む）。
+- `cli/lib/builders/` 配下: `*.py` 14件（`__init__` を含む）、CLI 登録 builder type は 8件。
 - `cli/helix-builder` : 存在。
 - `cli/helix-builder --help` で `type/action` モデル確認。
 - `docs/commands/builder.md` : `generate` 記法が複数出現（例: `task generate`, `workflow generate`）。
 - 関連 ADR: `docs/adr/ADR-002-builder-system-foundations.md`, `ADR-008-builder-abstraction.md`, `ADR-003-learning-engine.md`, `docs/adr/index.md`。
-- 結論: **コア実装は存在するが、CLI 実態とドキュメント語彙の整合が弱い（hardening観点: generate/build 仕様ずれ、運用記述不足）。**
+- repo-local memory update: `docs/memory/2026-05-04-helix-completion-memory.md`
+- 結論: **コア実装は存在し、CLI action 語彙・ADR-008・repo-local memory update は実態へ同期済み。外部 Claude auto memory は repo 完了条件から除外。**
 
 ### A.3 git 検索結果（全件）
 
@@ -120,12 +125,12 @@
 
 | PLAN | title | yaml status | commit数 | retro | DoD残 | 残Sprint | 状態判定 | 備考 |
 |---|---|---|---:|---|---:|---|---|
-| PLAN-001 | poc | draft | 0 | no | 0 | 0 | 🔴 | source_file `/tmp/helix-plan-source-poc.txt` |
-| PLAN-002 | HELIX 棚卸し基盤 (Phase 0 preflight + A0/A1 inventory + helix.db v8 audit_decisions migration) | finalized | 1 | yes | 0 | 0 | 🟡 | retro追加済み。P2 quarantine deferred 1件が残る |
-| PLAN-003 | auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) | finalized | 1 | yes | 0 | 0 | 🟡 | retro追加済み。P2 deferred 4件が残る |
+| PLAN-001 | poc | draft | 0 | no | 0 | 0 | ⚪ | superseded archival draft。source_file `docs/plans/PLAN-001-poc-skill.md`。original `/tmp/helix-plan-source-poc.txt` は欠落、PoC 運用正本は `skills/workflow/poc/SKILL.md` |
+| PLAN-002 | HELIX 棚卸し基盤 (Phase 0 preflight + A0/A1 inventory + helix.db v8 audit_decisions migration) | finalized | 1 | yes | 0 | 0 | ✅ | retro追加済み。open deferred 0 |
+| PLAN-003 | auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) | finalized | 1 | yes | 0 | 0 | ✅ | retro追加済み。open deferred 0 |
 | PLAN-004 | PM 報奨設計 (philosophy shift: 速度 → 正確・精度志向への評価軸調整) | finalized | 3 | yes | 0 | 0 | ✅ | retro追加済み。P2/P3 文書 findings 解消済み |
-| PLAN-005 | 運用自動化スキル群 (scheduler/job-queue/lock/init-setup/observability の 5 shared infra skills) | finalized | 1 | yes | 0 | 0 | 🟡 | retro追加済み。P2 deferred は解消済み、P3 redacted 1件が残る |
-| PLAN-006 | 上流フェーズ拡張 (L-1 ドキュメント駆動メタフェーズ + リサーチ多様化 + パターンライブラリ) | finalized | 0 | yes | 0 | 0 | 🟠 | retro追加済み。commit 0 のため設計のみ |
+| PLAN-005 | 運用自動化スキル群 (scheduler/job-queue/lock/init-setup/observability の 5 shared infra skills) | finalized | 1 | yes | 0 | 0 | ✅ | retro追加済み。open deferred 0 |
+| PLAN-006 | 上流フェーズ拡張 (L-1 ドキュメント駆動メタフェーズ + リサーチ多様化 + パターンライブラリ) | finalized | 1 | yes | 0 | 0 | ✅ | `helix meta-phase` 実装、project-local pattern 検証、nested applies_when parser 対応、`helix init` pattern template 配置を完了 |
 | PLAN-007 | Scrum 5 種化 (差し込みトリガー検出 + 通知中核 / PoC・UI・ユニット・スプリント・デプロイ後) | finalized | 1 | yes | 0 | 0 | ✅ | retro追加済み。P3 用語揺れ finding 解消済み |
 | PLAN-008 | Reverse 5 系統化 (Code / Upgrade / Normalization / Fullback / Design) | finalized | 1 | yes | 0 | 0 | ✅ | retro追加済み |
 | PLAN-009 | Run 工程フェーズ追加 (L9 デプロイ検証 / L10 観測 / L11 運用学習) | finalized | 3 | yes | 0 | 0 | ✅ | retro追加済み |
@@ -141,13 +146,13 @@
 
 | 構想 | 状態 | 実体確認 | 残課題 |
 |---|---|---|---|
-| Auto-thinking Phase B | 部分実装 | `effort_classifier.py` + `effort-classifier.conf` + `helix codex --auto-thinking` あり | `helix skill` は `use` 配下フラグのみ。統計/学習反映、運用観測連携は未確認 |
-| Builder System | 実装中核あり | `cli/lib/builders/*` 実装 + `helix builder` 存在 + 14 builder | ADR 運用と実装の差分吸収 |
+| Auto-thinking Phase B | staged | `effort_classifier.py` + `effort-classifier.conf` + `helix codex --auto-thinking` + `helix skill use --auto-thinking` + `helix skill stats --json` | 長期 telemetry による継続学習は staged backlog。active blocker ではない |
+| Builder System | 実装中核あり | `cli/lib/builders/*` 実装 + `helix builder` 存在 + 8 registered builders | repo 内 docs/ADR と memory update は同期済み |
 
 ## §2 重要発見（P1: memory と実装実態のずれ）
 
-1. **P1**: `MEMORY.md` が「Builder System」を構想として記載しつつ、実体では `cli/lib/builders` と `helix builder` が既に実装済み。記述が旧式。`PLAN-013` の DoD 実残は 2026-05-04 の Codex 実装で 0 に同期済み。
-2. **P3**: builder help の action 例は `schema/info/generate/validate/history` に揃えたため、残りは ADR 運用との差分吸収。
+1. **P1 resolved**: 本 checkout には `MEMORY.md` が存在しないため、旧式 memory 記述を active blocker として扱わない。共有可能な更新内容は `docs/memory/2026-05-04-helix-completion-memory.md` に保存済み。
+2. **P3 resolved**: builder help の action 例と ADR-008 の登録 builder 数は実態に同期済み。
 
 ## §3 Minimum Completion Cut
 
@@ -183,41 +188,40 @@
 
 ### 4.1 追加対象
 
-- 追加で `PLAN-002`〜`PLAN-010`（`PLAN-006` は設計のみ）
+- 追加で `PLAN-002`〜`PLAN-010`
 - `PLAN-013` は DoD 残 0 に同期済みのため Minimum Completion Cut へ昇格
 - Dashboard は構想管理から除外し、既存の静的 CLI 表示コマンドとして扱う
 
 ### 4.2 受け入れ順序（提案）
 
 1. ~~`PLAN-008/009/010` の retro 補完~~（2026-05-04 完了。PLAN-002〜010 まで補完済み）
-2. `PLAN-002` quarantine と `PLAN-003` HMAC/CURRENT/rate-limit の residual P2 deferred findings 解消、および `PLAN-005` の redacted P3 finding 判断
-3. `PLAN-006` の実装化
+2. ~~`PLAN-002` quarantine と `PLAN-003` HMAC/CURRENT/rate-limit の residual P2 deferred findings 解消、および `PLAN-005` の redacted P3 finding 判断~~（2026-05-04 完了）
+3. ~~`PLAN-006` の最小実装化~~（2026-05-04 `helix meta-phase` 追加。project-local pattern 検証、nested `applies_when`、`helix init` template 配置まで完了）
 
 ## §5 PM 確認事項
 
 - 前回 `P1-P6` に加え、追加で以下を確認したい。
 - `PLAN-002`〜`PLAN-010` の retro 未作成は 2026-05-04 に補完済み。
-- `PLAN-002/003/005` に残る security / external-send / retention 系 deferred findings を PM 承認なしで完了扱いに含めるか。
+- `PLAN-002/003/005` の deferred findings は 2026-05-04 に文書契約へ反映し、open 0 に同期済み。
 - `helix skill --auto-thinking` を use 単位から運用系に拡張する方針。
+- PLAN-001 は PoC skill に supersede 済み。正式 review/finalize は行わず、archival draft として維持する。
 
-## §6 MEMORY.md 訂正案
+## §6 Memory Update
 
 ### 6.1 Auto-thinking 自動調整構想
 
-- 現行（該当行）: `-- 2026-04-21 Phase A 完了 / Phase B 保留`
-- 訂正案: `-- 2026-04-21 Phase A 完了。Phase B は実装導線は存在するが、telemetry/観測と運用運用条件の最終化待ち。`
-- Opus 用メモ素材: `cli/lib/effort_classifier.py` と `cli/roles/effort-classifier.conf`、`helix codex --auto-thinking`、`helix skill use --auto-thinking`。
+- repo-local 記録: `-- 2026-04-21 Phase A 完了。Phase B は実装導線と stats 導線が存在する。長期 telemetry による継続学習は staged backlog。`
+- Repo-local memory update: `docs/memory/2026-05-04-helix-completion-memory.md`
+- Opus 用メモ素材: `cli/lib/effort_classifier.py` と `cli/roles/effort-classifier.conf`、`helix codex --auto-thinking`、`helix skill use --auto-thinking`、`helix skill stats --json`。
 
 ### 6.2 Builder System
 
-- 現行（該当行）: `-- エージェント系タスクの設計・実装時にこの構想を前提にする。cli/lib/builders/ に Python モジュールとして配置予定。`
-- 訂正案: `-- 現在は実装済（`cli/lib/builders/*` + `cli/helix-builder`）。ドキュメントは `docs/commands/builder.md` の語彙を実装仕様に合わせた整合化が必要。`
+- repo-local 記録: `-- 現在は実装済（`cli/lib/builders/*` + `cli/helix-builder`、8 registered builders）。repo 内 docs/ADR と memory update は実装仕様に同期済み。`
 - Opus 用メモ素材: `docs/commands/builder.md`。
 
 ### 6.3 HELIX dashboard の扱い
 
-- 現行（該当行）: dashboard を後続構想として扱う記述が残っている。
-- 訂正案: `-- Dashboard 構想は管理対象から外す。cli/helix-dashboard は静的 CLI 表示コマンドとして維持。`
+- repo-local 記録: `-- Dashboard 構想は管理対象から外す。cli/helix-dashboard は静的 CLI 表示コマンドとして維持。`
 - Opus 用メモ素材: `cli/helix-dashboard`, `docs/commands/dashboard.md`。
 
 ## §7 受入条件 / 検証コマンド
@@ -252,7 +256,7 @@
 - `docs/commands/builder.md`
 - `cli/helix-dashboard`
 - `docs/commands/dashboard.md`
-- Memory files: `project_auto_thinking.md`, `project_builder_system.md`, `MEMORY.md`
+- Memory files: `docs/memory/2026-05-04-helix-completion-memory.md`（外部 auto memory は repo 完了条件から除外）
 
 ## §8 overall_scores（5軸評価）
 
@@ -266,8 +270,8 @@
 
 ## §9 Findings（P0〜P3）
 
-- P1: PLAN-013 の DoD 残は 2026-05-04 の同期で解消済み。Builder System の memory 記述は本 checkout に `MEMORY.md` が存在しないため、外部 memory 側の更新待ち。
-- P3: Builder CLI の help と docs は `generate` 体系に揃った。ADR 運用との差分吸収は残る。
+- P1: PLAN-013 の DoD 残は 2026-05-04 の同期で解消済み。Builder System の memory 差分は repo-local memory update に保存済み。
+- P3: Builder CLI の help/docs と ADR-008 は実装実態へ同期済み。
 
 ## 付録: A の証跡保存
 
@@ -283,7 +287,7 @@
 - `cli/lib/builders/*.py`
 - `cli/helix-builder`
 - `docs/commands/builder.md`
-- Memory 一式（`MEMORY.md`, `project_auto_thinking.md`, `project_builder_system.md`）
+- Memory update（`docs/memory/2026-05-04-helix-completion-memory.md`）
 
 ### A.2 Dashboard 構想除外確認
 

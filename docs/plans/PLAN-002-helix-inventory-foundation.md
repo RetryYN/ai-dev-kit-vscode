@@ -129,7 +129,12 @@ fi
 - `inventory-once.sh` 実行ログに対し `gitleaks detect` を事後実行
   - **Step 1**: 検出要約を生成（`rule_id, file, line_redacted, raw_log_sha256, detected_at, head_sha, script_hash`）
   - **Step 2**: `raw` 検出結果は redaction 適用後、`.helix/audit/preflight-gitleaks-summary.log`（tracked）へ追記
-  - **Step 3**: `inventory-once.sh` raw log は `~/.helix/quarantine/inventory-run-<head_sha>-<timestamp>.log`（mode 0600、90日保管）へ退避、または `AUDIT_QUARANTINE=disabled` で即時破棄
+- **Step 3**: `inventory-once.sh` raw log は `~/.helix/quarantine/inventory-run-<head_sha>-<timestamp>.log`（mode 0600、90日保管）へ退避、または `AUDIT_QUARANTINE=disabled` で即時破棄
+  - 既定は `AUDIT_QUARANTINE=disabled` とし、raw log は redacted summary 生成後に即時破棄する。
+  - `AUDIT_QUARANTINE=enabled` は redaction 誤検知調査や migration repair 調査が必要な場合だけ明示指定する。
+  - quarantine 保存時は owner=current user、directory mode <= 0700、file mode <= 0600、symlink 禁止を検証し、不一致なら保存せず fail-closed とする。
+  - 90日を超えた raw log は `DELETE` 相当の削除処理を先に実行し、削除確認ログ（path, sha256, deleted_at, result）だけを redacted summary 側に残す。
+  - cleanup 失敗時は次回 preflight を fail-closed にし、raw path は tracked file や stdout に出さない。
   - **Step 4**: Phase 0 preflight は PM 確認まで **fail-closed**（停止）
 - `inventory-once.sh` の完了時、再現可能性（head_sha + script hash + DB snapshot）を保持
 
@@ -148,6 +153,8 @@ fi
   - `.helix/audit/inventory-summary-<head_sha>-<timestamp>.log`（検出 summary + 統計 + redaction 適用済み）
 - raw 生ログ（repo 外、never tracked）を分離保管
   - `~/.helix/quarantine/inventory-run-<head_sha>-<timestamp>.log`（mode 0600、Tier A）
+  - backup/quarantine は `~/.helix/quarantine/` 配下のみ許可し、project-local への退避は禁止する。
+  - legacy DB backup も同じ owner/mode/symlink 検証を適用し、repair 完了後は削除確認ログのみを残す。
 
 #### 4.2.3 fail-safe と初期 triage
 - 候補は初期状態を `triaged` とし、A1 分類前提で保持

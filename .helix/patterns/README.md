@@ -26,5 +26,5 @@
 
 ## 作成タスク
 
-- pattern.yaml: PLAN-006 Sprint L2 で実装 (現状は本 README + template)
+- pattern.yaml: PLAN-006 Sprint L2 の最小実装として `helix meta-phase check` で契約検証可能
 - verify-tools.yaml: PLAN-010 Sprint L1 で実装 (現状は本 README + template)

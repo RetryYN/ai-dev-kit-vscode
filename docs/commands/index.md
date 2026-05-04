@@ -6,7 +6,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 
 | コマンド | 役割 |
 |---|---|
-| `helix init` | `.helix/` とプロジェクト設定を初期化 |
+| `helix init` | `.helix/` とプロジェクト設定を初期化し、meta-phase pattern 契約テンプレートを配置 |
 | `helix status` | 現在 phase / gate / next action を表示 |
 | `helix dashboard` | 静的な読み取り専用 snapshot を表示（Dashboard 構想管理の対象外） |
 | `helix mode` | forward / reverse / scrum の mode 切替 |
@@ -25,6 +25,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 |---|---|
 | `helix size` | size / drive / phase skip 判定 |
 | `helix plan` | 設計計画 draft / review / finalize |
+| `helix meta-phase` | PLAN-006 L1 メタ工程の pattern 契約検証 |
 | `helix matrix` | 成果物対照表と gate-checks の生成 |
 | `helix gate` | G0.5-G11 のゲート検証 |
 | `helix gate-api-check` | D-API と実装 endpoint の整合検証 |
