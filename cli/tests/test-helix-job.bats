@@ -62,3 +62,34 @@ teardown() {
   [[ "$output" == *'"status": "success"'* ]]
   [ "$(cat "$MARKER")" = "ran" ]
 }
+
+@test "helix job list accepts combined task enqueue" {
+  run "$HELIX_ROOT/cli/helix" job enqueue --task "helix:command:status" --id "list-job"
+  [ "$status" -eq 0 ]
+
+  run "$HELIX_ROOT/cli/helix" job list --status pending --limit 1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"id": "list-job"'* ]]
+}
+
+@test "helix job requeue-stale recovers stuck running jobs" {
+  run "$HELIX_ROOT/cli/helix" job enqueue --task "helix:command:status" --id "stale-job"
+  [ "$status" -eq 0 ]
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1])
+conn.execute("UPDATE jobs SET status = 'running', started_at = 1 WHERE id = 'stale-job'")
+conn.commit()
+PY
+  [ "$status" -eq 0 ]
+
+  run "$HELIX_ROOT/cli/helix" job requeue-stale --older-than 60
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"id": "stale-job"'* ]]
+  [[ "$output" == *'"stale_action": "requeued"'* ]]
+
+  run "$HELIX_ROOT/cli/helix" job status --id stale-job
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"status": "pending"'* ]]
+}

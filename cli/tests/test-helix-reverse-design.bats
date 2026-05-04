@@ -71,6 +71,54 @@ teardown() {
   [[ "$output" == *"--invalidate-forward is valid only for reverse type 'code'"* ]]
 }
 
+@test "helix reverse code invalidate-forward covers run gates" {
+  run "$HELIX_ROOT/cli/helix" reverse code R2 --invalidate-forward --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Forward gates (G2-G11)"* ]]
+}
+
+@test "helix reverse upgrade dry-run starts U0 harness" {
+  run "$HELIX_ROOT/cli/helix" reverse upgrade --from v1 --to v2 --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Reverse HELIX: upgrade R0"* ]]
+  [[ "$output" == *"Role:   se"* ]]
+  [[ "$output" == *"U0-upgrade-context.yaml"* ]]
+  [[ "$output" == *"from=v1 to=v2"* ]]
+}
+
+@test "helix reverse upgrade rgc is skipped by design" {
+  run "$HELIX_ROOT/cli/helix" reverse upgrade rgc
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"upgrade RGC is skipped"* ]]
+}
+
+@test "helix reverse normalization retry R2 dry-run bypasses prerequisites" {
+  run "$HELIX_ROOT/cli/helix" reverse normalization retry R2 --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Reverse HELIX: normalization R2"* ]]
+  [[ "$output" == *"N2-normalization-drift.yaml"* ]]
+}
+
+@test "helix reverse normalization R1 is skipped" {
+  run "$HELIX_ROOT/cli/helix" reverse normalization R1 --dry-run
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"normalization R1 is skipped"* ]]
+}
+
+@test "helix reverse fullback dry-run starts F0 harness" {
+  run "$HELIX_ROOT/cli/helix" reverse fullback --artifact .helix/handover --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Reverse HELIX: fullback R0"* ]]
+  [[ "$output" == *"F0-fullback-evidence.yaml"* ]]
+  [[ "$output" == *"artifact=.helix/handover"* ]]
+}
+
 @test "legacy helix reverse R0 aliases code R0" {
   run "$HELIX_ROOT/cli/helix" reverse R0 --dry-run
 

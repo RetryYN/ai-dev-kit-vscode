@@ -150,9 +150,9 @@ assert_file_exists() {
 
   if python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" "SELECT 1" >/dev/null 2>&1; then
     inserted_today_count="$(python3 "$HELIX_ROOT/cli/lib/helix_db.py" query "$PROJECT_ROOT/.helix/helix.db" \
-      "SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)='${today}'" 2>/dev/null | tail -1)"
+      "SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)='${today}'" 2>/dev/null | tail -1)"
   elif command -v sqlite3 >/dev/null 2>&1; then
-    inserted_today_count="$(sqlite3 "$PROJECT_ROOT/.helix/helix.db" "SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)='${today}'")"
+    inserted_today_count="$(sqlite3 "$PROJECT_ROOT/.helix/helix.db" "SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)='${today}'")"
   else
     inserted_today_count="$(python3 - "$PROJECT_ROOT/.helix/helix.db" "$today" <<'PY'
 import sqlite3
@@ -161,7 +161,7 @@ import sys
 db_path, today = sys.argv[1:]
 conn = sqlite3.connect(db_path)
 try:
-    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role='opus-pm' AND date(created_at)=?", (today,)).fetchone()[0])
+    print(conn.execute("SELECT COUNT(*) FROM cost_log WHERE role='claude-code' AND date(created_at)=?", (today,)).fetchone()[0])
 finally:
     conn.close()
 PY
@@ -247,4 +247,23 @@ PY
 
   tmp_count="$(find "$(dirname "$file")" -maxdepth 1 -name "$(basename "$file").tmp.*" 2>/dev/null | wc -l | tr -d ' ')"
   assert_eq "0" "$tmp_count" "leftover tmp files"
+}
+
+@test "helix log report session aggregates hook gate and cost rows by date" {
+  local today="2026-05-03"
+
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$PROJECT_ROOT/.helix/helix.db" hook_events \
+    "{\"event_type\":\"Stop\",\"file\":\"session\",\"result\":\"success\",\"created_at\":\"${today}T10:00:00\"}" >/dev/null
+  python3 "$HELIX_ROOT/cli/lib/helix_db.py" insert "$PROJECT_ROOT/.helix/helix.db" gate_runs \
+    "{\"gate\":\"G4\",\"result\":\"passed\",\"fail_reasons\":\"[]\",\"retry_count\":0,\"duration_ms\":12,\"created_at\":\"${today}T10:01:00\"}" >/dev/null
+  insert_cost_log "$today"
+
+  run "$HELIX_ROOT/cli/helix" log report session --date "$today"
+  assert_status_zero
+  [[ "$output" == *"=== Session Report ==="* ]]
+  [[ "$output" == *"Date: ${today}"* ]]
+  [[ "$output" == *"終了 1 回"* ]]
+  [[ "$output" == *"Stop: 1"* ]]
+  [[ "$output" == *"G4 passed: 1"* ]]
+  [[ "$output" == *"opus-pm / claude-opus-4-6: 1"* ]]
 }

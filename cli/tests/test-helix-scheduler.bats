@@ -51,3 +51,44 @@ PY
   [[ "$output" == *'"id": "dry-run"'* ]]
   [[ "$output" == *'"dry_run": true'* ]]
 }
+
+@test "helix scheduler add-at accepts combined task and max dry-run" {
+  run "$HELIX_ROOT/cli/helix" scheduler add-at --at "+5m" --task "helix:command:status" --id "at-run"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"id": "at-run"'* ]]
+  [[ "$output" == *'"schedule_expr": "at:+5m"'* ]]
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1])
+conn.execute("UPDATE schedules SET next_run_at = 1 WHERE id = 'at-run'")
+conn.commit()
+PY
+  [ "$status" -eq 0 ]
+
+  run "$HELIX_ROOT/cli/helix" scheduler run-due --dry-run --max 1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"id": "at-run"'* ]]
+}
+
+@test "helix scheduler requeue-stale recovers stuck running schedules" {
+  run "$HELIX_ROOT/cli/helix" scheduler add --schedule "+30s" --task "helix:command:status" --id "stale-sched"
+  [ "$status" -eq 0 ]
+
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1])
+conn.execute("UPDATE schedules SET status = 'running', updated_at = 1 WHERE id = 'stale-sched'")
+conn.commit()
+PY
+  [ "$status" -eq 0 ]
+
+  run "$HELIX_ROOT/cli/helix" scheduler requeue-stale --older-than 60
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"id": "stale-sched"'* ]]
+  [[ "$output" == *'"stale_action": "requeued"'* ]]
+
+  run "$HELIX_ROOT/cli/helix" scheduler status --id stale-sched
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"status": "pending"'* ]]
+}

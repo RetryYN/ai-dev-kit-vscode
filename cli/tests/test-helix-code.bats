@@ -308,6 +308,40 @@ SH
   [[ "$output" == *$'verify/check.sh\t1\tverify_task\tfunction\texcluded\tfalse\tfalse'* ]]
 }
 
+@test "helix code stats --uncovered --bucket excluded lists agent skill hooks" {
+  mkdir -p "$PROJECT_ROOT/skills/agent-skills/hooks"
+  cat > "$PROJECT_ROOT/skills/agent-skills/hooks/session-start.sh" <<'SH'
+agent_hook_task() {
+  true
+}
+SH
+  git add skills/agent-skills/hooks/session-start.sh >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket excluded
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'skills/agent-skills/hooks/session-start.sh\t1\tagent_hook_task\tfunction\texcluded\tfalse\tfalse'* ]]
+}
+
+@test "helix code build keeps only explicit private helpers as seed candidates" {
+  cat > "$PROJECT_ROOT/cli/lib/private_seed.py" <<'PY'
+# @helix:index id=private.seed domain=cli/lib summary=private seed seed_candidate=true
+def _private_seed():
+    return 1
+
+# @helix:index id=private.default domain=cli/lib summary=private default
+def _private_default():
+    return 2
+PY
+  git add cli/lib/private_seed.py >/dev/null 2>&1
+
+  build_code_index >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket private_helper --seed-candidate true --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.load(sys.stdin); ids={i.get("id") for i in d["items"]}; assert "private.seed" in ids; assert "private.default" not in ids' <<<"$output"
+  [ "$status" -eq 0 ]
+}
+
 @test "helix code stats --uncovered --bucket all returns 3-bucket union" {
   cat > "$PROJECT_ROOT/cli/lib/union_fixture.py" <<'PY'
 def public_symbol():

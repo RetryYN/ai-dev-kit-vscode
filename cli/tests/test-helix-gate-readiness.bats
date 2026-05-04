@@ -92,3 +92,31 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == "failed" ]]
 }
+
+@test "helix gate G6 accepts retro headings with Japanese suffixes" {
+  mkdir -p "$PROJECT_ROOT/.helix/retros" "$PROJECT_ROOT/docs/security-review"
+  cat > "$PROJECT_ROOT/.helix/gate-checks.yaml" <<'YAML'
+G6:
+  name: "G6 retro test"
+  static:
+  ai:
+YAML
+  cat > "$PROJECT_ROOT/.helix/retros/sprint.md" <<'MD'
+# Mini Retro
+
+### Keep（うまくいったこと）
+- kept context
+
+### Problem（問題があったこと）
+- found issue
+
+### Try（次に試すこと）
+- @tl 2026-05-05 follow up
+MD
+  echo "# Security Review" > "$PROJECT_ROOT/docs/security-review/PLAN-test-security-review.md"
+
+  run "$HELIX_ROOT/cli/helix" gate G6 --static-only --readiness-mode skip
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"PASS: sprint.md"* ]]
+  [[ "$output" == *"=== G6 PASS ==="* ]]
+}
