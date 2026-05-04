@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-interrupt: IIP / CC の割り込み管理
-# Usage: helix interrupt <start|apply|resume|status|cancel> [options]
+# Usage: helix interrupt <start|apply|resume|status|history|report|cancel> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
@@ -24,6 +24,9 @@ Subcommands:
            Options: --id <INT-NNN>
   status   interrupt 一覧/詳細を表示する
            Options: [--id <INT-NNN>] [--json]
+  history  interrupt 履歴を kind/class/status で集計する
+           Options: [--json] [--limit <n>]
+  report   history の別名
   cancel   誤検知 interrupt を取消し sprint を active に戻す
            Options: --id <INT-NNN>
 
@@ -33,6 +36,7 @@ Examples:
   helix interrupt resume --id INT-001
   helix interrupt status
   helix interrupt status --id INT-001 --json
+  helix interrupt history
   helix interrupt cancel --id INT-001
 USAGE
 }
@@ -828,6 +832,114 @@ cmd_status() {
   done <<< "$records"
 }
 
+cmd_history() {
+  ensure_helix_ready
+
+  local output_json=false
+  local limit=10
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)
+        output_json=true
+        shift
+        ;;
+      --limit)
+        limit="${2:-}"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if ! [[ "$limit" =~ ^[0-9]+$ ]] || [[ "$limit" -lt 1 ]]; then
+    echo "エラー: --limit は 1 以上の整数で指定してください: $limit" >&2
+    exit 1
+  fi
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$INTERRUPTS_DIR" "$output_json" "$limit"
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1]).resolve()
+interrupt_dir = Path(sys.argv[2]).resolve()
+output_json = sys.argv[3] == "true"
+limit = int(sys.argv[4])
+
+sys.path.insert(0, str(lib_dir))
+
+try:
+    from matrix_compiler import load_yaml
+except Exception:
+    load_yaml = None
+
+records = []
+if interrupt_dir.exists() and load_yaml is not None:
+    for rec in sorted(interrupt_dir.glob("INT-*/record.yaml")):
+        try:
+            data = load_yaml(rec)
+        except Exception:
+            continue
+        if isinstance(data, dict):
+            data["_file"] = str(rec)
+            records.append(data)
+
+def value(item, key, default="unknown"):
+    raw = item.get(key)
+    if raw in (None, "", "null"):
+        return default
+    return str(raw)
+
+summary = {
+    "total": len(records),
+    "by_status": dict(Counter(value(item, "status") for item in records)),
+    "by_kind": dict(Counter(value(item, "kind") for item in records)),
+    "by_classification": dict(Counter(value(item, "classification") for item in records)),
+    "recent": [
+        {
+            "id": value(item, "id", ""),
+            "status": value(item, "status"),
+            "classification": value(item, "classification"),
+            "kind": value(item, "kind"),
+            "scope": value(item, "scope", ""),
+            "reason": value(item, "reason", ""),
+            "created_at": value(item, "created_at", ""),
+        }
+        for item in sorted(records, key=lambda row: value(row, "created_at", ""), reverse=True)[:limit]
+    ],
+}
+
+if output_json:
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+print("=== HELIX Interrupt History ===")
+print(f"total: {summary['total']}")
+print("by_status:", ", ".join(f"{k}={v}" for k, v in sorted(summary["by_status"].items())) or "-")
+print("by_kind:", ", ".join(f"{k}={v}" for k, v in sorted(summary["by_kind"].items())) or "-")
+print("by_classification:", ", ".join(f"{k}={v}" for k, v in sorted(summary["by_classification"].items())) or "-")
+if summary["recent"]:
+    print("")
+    print("recent:")
+    for item in summary["recent"]:
+        reason = item["reason"]
+        if len(reason) > 56:
+            reason = reason[:53] + "..."
+        print(
+            f"  {item['id']:<8} {item['status']:<10} {item['classification']:<6} "
+            f"{item['kind']:<16} {reason}"
+        )
+PY
+}
+
 cmd_cancel() {
   ensure_helix_ready
 
@@ -880,6 +992,7 @@ case "$CMD" in
   apply) cmd_apply "$@" ;;
   resume) cmd_resume "$@" ;;
   status) cmd_status "$@" ;;
+  history|report) cmd_history "$@" ;;
   cancel) cmd_cancel "$@" ;;
   help|-h|--help) usage ;;
   *)
