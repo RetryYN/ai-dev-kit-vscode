@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-post-tool-use: Claude Code PostToolUse payload wrapper
+# Edit/Write/MultiEdit の hook JSON から変更ファイルを抽出して helix-hook へ渡す。
+
+CLI_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+HOOK_PAYLOAD_PY="$CLI_DIR/lib/hook_payload.py"
+HELIX_HOOK_CMD="${HELIX_POST_TOOL_USE_HOOK:-$CLI_DIR/libexec/helix-hook}"
+
+case "${1:-}" in
+  --help|-h)
+    echo "使い方: helix-post-tool-use"
+    echo ""
+    echo "Claude Code PostToolUse payload を読み、変更ファイルごとに helix hook を実行します。"
+    exit 0
+    ;;
+esac
+
+payload="$(cat || true)"
+[[ -z "$payload" ]] && exit 0
+
+paths="$(printf '%s' "$payload" | python3 "$HOOK_PAYLOAD_PY" paths)"
+[[ -z "$paths" ]] && exit 0
+
+status=0
+while IFS= read -r changed_file; do
+  [[ -z "$changed_file" ]] && continue
+  if "$HELIX_HOOK_CMD" "$changed_file"; then
+    :
+  else
+    rc=$?
+    [[ "$status" -eq 0 ]] && status="$rc"
+  fi
+done <<< "$paths"
+
+exit "$status"

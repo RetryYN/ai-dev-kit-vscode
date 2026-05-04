@@ -219,7 +219,7 @@ check_phase_guard() {
 match_trigger() {
   local file="$1"
 
-  python3 "$SCRIPT_DIR/lib/doc_map_matcher.py" "$DOC_MAP" "$file" 2>/dev/null | while IFS='|' read -r action arg1 arg2; do
+  python3 "$SCRIPT_DIR/lib/doc_map_matcher.py" "$DOC_MAP" "$file" | while IFS='|' read -r action arg1 arg2; do
     case "$action" in
       GATE_READY)
         echo "[helix-hook] gate_ready: $arg2 → $arg1"
