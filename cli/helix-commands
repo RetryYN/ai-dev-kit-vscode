@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix commands <subcommand> [args...]
+
+サブコマンド:
+  list [--json]    route/help 由来のコマンドカタログを表示
+  check [--json]   route/help/docs/target と主要 workflow 連携契約を検証
+USAGE
+}
+
+CMD="${1:-help}"
+case "$CMD" in
+  list|check)
+    exec python3 "$SCRIPT_DIR/lib/command_catalog.py" --root "$(cd "$SCRIPT_DIR/.." && pwd)" "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "エラー: 不明な commands subcommand: $CMD" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

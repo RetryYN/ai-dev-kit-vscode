@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euo pipefail
+
+# codex shim: HELIX 配下で raw `codex exec` を止め、`helix codex` に寄せる。
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+resolve_real_codex() {
+  local candidate
+  local candidate_real
+  local self_real
+  self_real="$(realpath -m "$0")"
+
+  while IFS= read -r candidate; do
+    [[ -z "$candidate" ]] && continue
+    candidate_real="$(realpath -m "$candidate")"
+    [[ "$candidate_real" == "$self_real" ]] && continue
+    [[ "$candidate_real" == "$SCRIPT_DIR/codex" ]] && continue
+    if [[ -x "$candidate_real" ]]; then
+      echo "$candidate_real"
+      return 0
+    fi
+  done < <(type -P -a codex 2>/dev/null || true)
+
+  if [[ -x "$HOME/.npm-global/bin/codex" ]]; then
+    echo "$HOME/.npm-global/bin/codex"
+    return 0
+  fi
+
+  return 1
+}
+
+cmd="${1:-}"
+
+if [[ "$cmd" == "exec" && "${HELIX_CODEX_INTERNAL:-0}" != "1" && "${HELIX_ALLOW_RAW_CODEX:-0}" != "1" ]]; then
+  cat >&2 <<'EOF'
+エラー: raw `codex exec` は HELIX discipline が効かないためブロックしました。
+
+代わりに以下を使用してください:
+  helix codex --role <role> --task "..." --plan-only
+  helix codex --role <role> --task "..." --approved --plan-id PLAN-001 --wbs-id WBS-003
+
+どうしても raw Codex が必要な場合のみ、理由を evidence に残した上で:
+  HELIX_ALLOW_RAW_CODEX=1 codex exec ...
+EOF
+  exit 2
+fi
+
+real_codex="$(resolve_real_codex || true)"
+if [[ -z "$real_codex" ]]; then
+  echo "エラー: 実体の codex バイナリが見つかりません" >&2
+  exit 127
+fi
+
+exec "$real_codex" "$@"

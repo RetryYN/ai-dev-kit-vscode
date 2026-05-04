@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-test-debug: debug-enabled self-test wrapper
+# Usage: helix test-debug [helix test options...]
+
+case "${1:-}" in
+  --help|-h)
+    cat <<'USAGE'
+Usage: helix test-debug [helix test options...]
+
+HELIX_DEBUG=1 を有効化して helix test を実行します。
+USAGE
+    exit 0
+    ;;
+esac
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export HELIX_DEBUG=1
+exec "$SCRIPT_DIR/helix-test" "$@"

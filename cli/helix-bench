@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-bench: project metrics summary
+# Usage: helix bench [--json]
+
+case "${1:-}" in
+  --help|-h)
+    cat <<'USAGE'
+Usage: helix bench [--json]
+
+HELIX project metrics summary.
+This command returns the same static metrics snapshot as helix dashboard.
+
+Options:
+  --json   metrics payload を JSON で出力
+USAGE
+    exit 0
+    ;;
+esac
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/helix-dashboard" "$@"

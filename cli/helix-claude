@@ -1,0 +1,190 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-claude: Claude Code 向け plan/task 管理 harness
+# v1 は API/SDK を使わず、Claude Code CLI/契約プラン利用を前提に prompt を生成する。
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+ROLES_DIR="$SCRIPT_DIR/roles"
+ROLE=""
+TASK=""
+TASK_FILE=""
+PLAN_ID=""
+HANDOVER=false
+OUTPUT_PATH=""
+DRY_RUN=false
+
+usage() {
+  cat <<'USAGE'
+使い方: helix claude --role <role> (--task "..." | --task-file <path>) [options]
+
+Claude Code 用のローカル委譲 prompt を生成します。API/SDK は使用しません。
+
+Options:
+  --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）
+  --task "..."        タスク内容
+  --task-file <path>  タスク内容をファイルから読む
+  --plan-id <id>      HELIX plan id を明示
+  --handover          .helix/handover/CURRENT.md があれば参照指示を含める
+  --output <path>     生成 prompt を保存（プロジェクト配下のみ）
+  --dry-run           実行せず prompt を表示
+
+Examples:
+  helix claude --role pg --task "UI修正" --plan-id PLAN-001 --dry-run
+  helix claude --role docs --task-file .helix/tasks/T001.md --output .helix/tasks/T001.claude.md
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --role) ROLE="${2:-}"; shift 2 ;;
+    --task) TASK="${2:-}"; shift 2 ;;
+    --task-file) TASK_FILE="${2:-}"; shift 2 ;;
+    --plan-id) PLAN_ID="${2:-}"; shift 2 ;;
+    --handover) HANDOVER=true; shift ;;
+    --output) OUTPUT_PATH="${2:-}"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "エラー: 不明なオプションです: $1" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  esac
+done
+
+if [[ -z "$ROLE" ]]; then
+  echo "エラー: --role は必須です" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ ! "$ROLE" =~ ^[a-z0-9_-]+$ ]]; then
+  echo "エラー: 無効な --role 値です: $ROLE" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ -n "$TASK" && -n "$TASK_FILE" ]]; then
+  echo "エラー: --task と --task-file は同時指定できません" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ -z "$TASK" && -z "$TASK_FILE" ]]; then
+  echo "エラー: --task または --task-file が必要です" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+
+PROJECT_ROOT_REAL="$(realpath "$PROJECT_ROOT")"
+HELIX_HOME_REAL="$(realpath "$HELIX_HOME")"
+HOME_HELIX_REAL="$(realpath -m "$HOME/.helix")"
+ROLES_DIR_REAL="$(realpath "$ROLES_DIR")"
+
+ROLE_FILE_REAL="$(realpath -m "$ROLES_DIR/$ROLE.conf")"
+ensure_within_dir "$ROLE_FILE_REAL" "$ROLES_DIR_REAL" "role file"
+if [[ ! -f "$ROLE_FILE_REAL" ]]; then
+  echo "エラー: ロールが見つかりません: $ROLE" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+
+if [[ -n "$TASK_FILE" ]]; then
+  TASK_FILE_REAL="$(realpath "$TASK_FILE" 2>/dev/null || true)"
+  if [[ -z "$TASK_FILE_REAL" || ! -f "$TASK_FILE_REAL" ]]; then
+    echo "エラー: --task-file が見つかりません: $TASK_FILE" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  ensure_within_any_dir "$TASK_FILE_REAL" "task file" "$PROJECT_ROOT_REAL" "$HELIX_HOME_REAL" "$HOME_HELIX_REAL"
+  TASK="$(cat "$TASK_FILE_REAL")"
+fi
+
+parse_array() {
+  local key="$1"
+  local file="$2"
+  local in_array=false
+  while IFS= read -r line; do
+    if [[ "$line" == "${key}=(" ]]; then
+      in_array=true
+      continue
+    fi
+    if [[ "$in_array" == true ]]; then
+      if [[ "$line" == ")" ]]; then
+        break
+      fi
+      echo "$line" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
+    fi
+  done < "$file"
+}
+
+system_prompt=$(grep '^system_prompt=' "$ROLE_FILE_REAL" | sed 's/^system_prompt="//' | sed 's/"$//' || true)
+skills_list=$(parse_array "skills" "$ROLE_FILE_REAL" | sed '/^$/d' || true)
+common_docs=$(parse_array "common_docs" "$ROLE_FILE_REAL" | sed '/^$/d' || true)
+
+if [[ -z "$PLAN_ID" && -f "$HELIX_DIR/phase.yaml" ]]; then
+  PLAN_ID="$(python3 "$YAML_PARSER" read "$HELIX_DIR/phase.yaml" plan_id 2>/dev/null || true)"
+  [[ "$PLAN_ID" == "null" ]] && PLAN_ID=""
+fi
+
+handover_note=""
+if [[ "$HANDOVER" == true ]]; then
+  if [[ -f "$HELIX_DIR/handover/CURRENT.md" ]]; then
+    handover_note="- $HELIX_DIR/handover/CURRENT.md を Read し、Next Action と矛盾しないこと。"
+  else
+    handover_note="- handover 指定あり。ただし .helix/handover/CURRENT.md は存在しないため通常タスクとして扱うこと。"
+  fi
+fi
+
+PROMPT=$(
+  HELIX_ROLE="$ROLE" \
+  HELIX_PLAN_ID="${PLAN_ID:-none}" \
+  HELIX_SYSTEM_PROMPT="$system_prompt" \
+  HELIX_SKILLS="$skills_list" \
+  HELIX_DOCS="$common_docs" \
+  HELIX_HANDOVER_NOTE="$handover_note" \
+  HELIX_TASK="$TASK" \
+  python3 - <<'PY'
+import os
+
+print("# HELIX Claude Code Delegation")
+print()
+print("この prompt は HELIX が Claude Code の契約プラン/CLI 利用を管理するためのローカル harness です。API/SDK 呼び出しは前提にしません。")
+print()
+print("## Role")
+print(f"- role: {os.environ.get('HELIX_ROLE', '')}")
+print(f"- plan_id: {os.environ.get('HELIX_PLAN_ID', 'none')}")
+system_prompt = os.environ.get("HELIX_SYSTEM_PROMPT", "").strip()
+if system_prompt:
+    print(f"- system_prompt: {system_prompt}")
+print()
+print("## Required Context")
+docs = [line for line in os.environ.get("HELIX_DOCS", "").splitlines() if line.strip()]
+skills = [line for line in os.environ.get("HELIX_SKILLS", "").splitlines() if line.strip()]
+for doc in docs:
+    print(f"- common_doc: {doc}")
+for skill in skills:
+    print(f"- skill: {skill}")
+handover = os.environ.get("HELIX_HANDOVER_NOTE", "").strip()
+if handover:
+    print(handover)
+print()
+print("## Operating Rules")
+print("- HELIX の plan/task/handover を正本として扱う。")
+print("- Claude Code hooks と CLAUDE.md の運用に従う。")
+print("- 認証、PII、ライセンス、本番影響、破壊的 DB 操作は人間確認なしに確定しない。")
+print("- 完了時は変更ファイル、検証結果、残リスクを返す。")
+print()
+print("## TASK_INPUT")
+print("---TASK_INPUT_START---")
+print(os.environ.get("HELIX_TASK", ""))
+print("---TASK_INPUT_END---")
+PY
+)
+
+if [[ -n "$OUTPUT_PATH" ]]; then
+  OUTPUT_REAL="$(realpath -m "$OUTPUT_PATH")"
+  ensure_within_dir "$OUTPUT_REAL" "$PROJECT_ROOT_REAL" "output"
+  mkdir -p "$(dirname "$OUTPUT_REAL")"
+  printf "%s\n" "$PROMPT" > "$OUTPUT_REAL"
+  echo "[helix-claude] prompt written: ${OUTPUT_REAL#$PROJECT_ROOT_REAL/}"
+fi
+
+if [[ "$DRY_RUN" == true || -z "$OUTPUT_PATH" ]]; then
+  echo "=== helix-claude dry-run ==="
+  echo "Role:    $ROLE"
+  echo "Plan:    ${PLAN_ID:-none}"
+  echo "Output:  ${OUTPUT_PATH:-stdout}"
+  echo "Prompt:  $(printf "%s" "$PROMPT" | wc -c) bytes"
+  echo "=== Full prompt ==="
+  echo "$PROMPT"
+fi
