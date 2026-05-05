@@ -10,7 +10,7 @@
 
 HELIX CLI は複数のフックポイントで自動検証・ガイド提示を行う:
 
-- **Claude Code hook**: SessionStart, PreToolUse(Write), PostToolUse(Edit/Write/MultiEdit), Stop
+- **Claude Code hook**: SessionStart, PreToolUse(Write/Bash), PostToolUse(Edit/Write/MultiEdit), Stop
 - **Git hook**: pre-commit, commit-msg, post-merge
 - **doc-map トリガー**: ファイル編集時の設計整合チェック（PostToolUse 経由）
 
@@ -52,11 +52,12 @@ triggers:
         check: helix drift-check
 ```
 
-### 現在実装済みフック（2026-04-14時点）
+### 現在実装済みフック（2026-05-04時点）
 
 **Claude Code hooks** (`~/.claude/settings.json`):
 - SessionStart → `helix session-start` (コンテキスト注入・セットアップチェック)
 - PreToolUse(Write) → `helix check-claudemd` (CLAUDE.md テンプレート強制)
+- PreToolUse(Bash) → `cli/libexec/helix-pre-bash` (raw LLM CLI 直叩き防止、HELIX harness 誘導)
 - PostToolUse(Edit/Write/MultiEdit) → `helix-post-tool-use` → `helix hook` (payload 抽出、doc-map トリガー、drift-check、advisory)
 - Stop → `helix session-summary` (セッションサマリ生成)
 
@@ -117,14 +118,19 @@ triggers:
 | doc-map 複数マッチ時の優先順位曖昧 | GAP-027 で優先度ルールを明文化、`doc_map_matcher.py` で実装 |
 | Git hook と Claude Code hook の二重発火 | 異なる抽象度（ファイル単位 vs commit 単位）で分離、チェック内容の重複を許容 |
 | フック遅延が UX を損なう | 各フックは専用タイムアウト（SessionStart 5s, PostToolUse 10s, Stop 8s） |
+| raw LLM CLI 直叩きで HELIX discipline が外れる | PreToolUse(Bash) と PATH shim で `codex exec` / `claude` を止め、`helix codex --plan-only/--approved` / `helix claude --dry-run` へ誘導 |
+| context が膨張してフックや LLM 指示が読まれなくなる | `helix context check` / `cli/lib/context_guard.py` で AGENTS/CLAUDE/Hook docs の肥大化を検出 |
 
 ---
 
 ## References
 
 - `cli/libexec/helix-post-tool-use` (PostToolUse payload wrapper)
+- `cli/libexec/helix-pre-bash` (PreToolUse Bash guard)
 - `cli/helix-hook` (PostToolUse フック本体)
 - `cli/helix-check-claudemd` (PreToolUse フック)
+- `cli/helix-context` / `cli/lib/context_guard.py` (context budget guard)
+- `cli/lib/llm_guard.py` (raw LLM command guard)
 - `cli/helix-session-start` (SessionStart フック)
 - `cli/helix-session-summary` (Stop フック)
 - `cli/templates/doc-map.yaml` (トリガー定義テンプレート)

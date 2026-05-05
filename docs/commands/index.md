@@ -51,6 +51,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix budget` | Claude/Codex の消費・モデル推奨 |
 | `helix hook` | PostToolUse hook |
 | `helix check-claudemd` | PreToolUse hook |
+| `helix context` | AGENTS / CLAUDE / hook / memory の強制導線検査と context bundle 生成 |
 | `helix session-start` | SessionStart hook |
 | `helix session-summary` | Stop hook |
 
@@ -93,6 +94,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 |---|---|
 | 新規機能を正攻法で進める | `size` → `plan` → `matrix` → `gate` → `sprint` → `test` |
 | Codex / Claude Code を管理して使う | `plan` / `task` → `codex` or `claude` → `review` → `handover` |
+| AI 強制導線と memory の穴を確認する | `context check` → `context bundle` → `session-start` |
 | 要件が曖昧なものを検証する | `scrum init` → `scrum backlog add` → `scrum poc` → `scrum verify` |
 | 既存コードから設計を復元する | `reverse <type> R0` → `R1` → `R2` → `R3` → `R4` → `rgc` |
 | 成功パターンを再利用する | `log` → `recipe learn` → `recipe promote` → `builder` |

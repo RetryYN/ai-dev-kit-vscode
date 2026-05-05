@@ -22,6 +22,7 @@ HELIX は Codex と Claude Code を直接 API 統合として扱わず、契約�
 | スキル | `helix skill` | HELIX skill の検索・参照 |
 | 予算・難度 | `helix budget` | Claude/Codex の消費状況とモデル推奨 |
 | Hook | `helix hook` / `helix check-claudemd` / `cli/libexec/helix-post-tool-use` | Claude Code tool hook |
+| Context guard | `helix context check` / `helix context bundle` | AGENTS / CLAUDE / hook / memory の強制導線を検査し、短い注入 context を生成 |
 | セッション | `helix session-start` / `helix session-summary` | Claude Code session hook |
 | 引継ぎ | `helix handover` | Opus / Codex のファイル経由 handover |
 
@@ -43,7 +44,7 @@ helix claude --role pg --plan-id PLAN-001 --task "PLAN-001 の通常実装を継
 helix review --uncommitted
 ```
 
-Codex 側は `helix codex` 経由を原則にする。素の `codex exec` は `Codex Mandatory Discipline` の強制注入と plan-only guard が効かないため、PATH 上の `cli/codex` shim でブロックする。
+Codex 側は `helix codex` 経由を原則にする。素の `codex exec` は `Codex Mandatory Discipline` の強制注入と plan-only guard が効かないため、PATH 上の `cli/codex` shim でブロックする。Claude 側も素の `claude` 直叩きでは role / plan / handover 文脈が注入されないため、`cli/claude` shim で `helix claude --dry-run` へ寄せる。
 
 ```bash
 # 計画だけ。read-only + no-full-auto が強制される
@@ -114,6 +115,18 @@ helix claude --role pg --task-file .helix/tasks/WBS-003.md --dry-run
 `helix claude` v1 は prompt 生成中心の harness。HELIX は外部プロバイダ呼び出しや認証情報を直接扱わない。`helix team` の Claude member もこの harness を通り、`.helix/tasks/team-*.claude.md` に委譲 prompt を残す。
 
 Claude Code の PostToolUse は `Edit|Write|MultiEdit` を対象にし、settings からは `cli/libexec/helix-post-tool-use` を呼ぶ。wrapper が Claude Code の hook payload から安全な変更ファイルパスだけを抽出し、ファイルごとに `helix hook` の doc-map / freeze / drift advisory を実行する。
+
+Claude Code の PreToolUse は `Write` で `helix check-claudemd` を呼び、`Bash` で `cli/libexec/helix-pre-bash` を呼ぶ。`helix-pre-bash` は raw `codex exec` / `npx codex exec` と raw `claude` をブロックし、`helix codex` または `helix claude --dry-run` 経由へ寄せる。例外的に raw CLI が必要な場合は、同じ Bash command に対象別の証跡 env を含め、final / evidence に代替不能性を残す。
+
+```bash
+# Codex 例外
+HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...
+
+# Claude 例外
+HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...
+```
+
+Context / memory 側の drift は `helix context check` で検査する。SessionStart など短い注入文が必要な場面では `helix context bundle` を使う。
 
 ```bash
 helix claude --role pg --task "バグ修正" --dry-run

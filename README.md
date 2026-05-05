@@ -143,7 +143,7 @@ HELIX の入口は 6 領域に分けて使う。全コマンドの索引は [doc
 |---------|----------|
 | `helix codex --role <role> --task "..."` | Codex CLI への role/task 委譲 |
 | `helix claude --role <role> --task "..." --dry-run` | Claude Code 用 plan/task prompt 生成 |
-| `helix team <team> --task "..."` | 複数 role のチーム委譲 |
+| `helix team run --definition .helix/teams/<team>.yaml` | 複数 role のチーム委譲 |
 | `helix review [--uncommitted]` | Codex 自動レビュー |
 | `helix skill` | HELIX スキル検索・参照 |
 | `helix budget` | Claude/Codex の消費・モデル推奨 |

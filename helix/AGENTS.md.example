@@ -82,7 +82,7 @@ Codex と Claude Code は API 直叩きではなく、契約プラン + ロー�
 - Codex 計画のみ: `helix codex --role <role> --task "..." --plan-only`
 - Codex 承認済み実装: `helix codex --role <role> --task "..." --approved --plan-id PLAN-001 --wbs-id WBS-003`
 - Claude Code prompt 生成: `helix claude --role <role> --task "..." --dry-run`
-- 複数 role 委譲: `helix team <team> --task "..."`
+- 複数 role 委譲: `helix team run --definition .helix/teams/<team>.yaml`
 - 差分レビュー: `helix review --uncommitted`
 - 引継ぎ: `helix handover status --json`
 - 実装前調査: `helix code find "<keyword>"`

@@ -45,7 +45,7 @@ Codex と Claude Code は API 直叩きではなく、契約プラン + ロー�
 
 - Codex 実行: `helix codex --role <role> --task "..."`
 - Claude Code prompt 生成: `helix claude --role <role> --task "..." --dry-run`
-- 複数 role 委譲: `helix team <team> --task "..."`
+- 複数 role 委譲: `helix team run --definition .helix/teams/<team>.yaml`
 - 差分レビュー: `helix review --uncommitted`
 - 引継ぎ: `helix handover status --json`
 

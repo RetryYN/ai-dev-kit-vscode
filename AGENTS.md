@@ -42,7 +42,8 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 - role 分担がある作業では、`helix codex`、`helix claude --dry-run`、`helix team`、`helix review` などの harness を使う。
 - harness やサブエージェントを使えない場合は、理由を final の evidence に書く。
 - Codex 実装委譲は原則 `helix codex` 経由にする。素の `codex exec` は HELIX discipline の強制注入が効かないため、PATH 上の `cli/codex` shim でブロックされる。
-- raw Codex が必要な例外時だけ `HELIX_ALLOW_RAW_CODEX=1 codex exec ...` を使い、理由を evidence に残す。
+- Claude Code 委譲は原則 `helix claude --dry-run` で prompt / task-file を生成する。素の `claude` は HELIX discipline の強制注入が効かないため、PATH 上の `cli/claude` shim でブロックされる。
+- raw LLM CLI が必要な例外時だけ、Codex は `HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...`、Claude は `HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...` を使い、理由を evidence に残す。
 - 計画のみの Codex 呼び出しは `helix codex --plan-only`、実装承認済みの呼び出しは `helix codex --approved` を使う。
 - WBS 実装では `--plan-id`、`--wbs-id`、`--l4-sprint`、`--acceptance`、`--reference-doc`、必要に応じて `--allowed-files` を渡す。
 
@@ -72,7 +73,7 @@ Codex と Claude Code は API 直叩きではなく、契約プラン + ロー�
 - Codex 計画のみ: `helix codex --role <role> --task "..." --plan-only`
 - Codex 承認済み実装: `helix codex --role <role> --task "..." --approved --plan-id PLAN-001 --wbs-id WBS-003`
 - Claude Code prompt 生成: `helix claude --role <role> --task "..." --dry-run`
-- 複数 role 委譲: `helix team <team> --task "..."`
+- 複数 role 委譲: `helix team run --definition .helix/teams/<team>.yaml`
 - 差分レビュー: `helix review --uncommitted`
 - 引継ぎ: `helix handover status --json`
 - 実装前調査: `helix code find "<keyword>"`

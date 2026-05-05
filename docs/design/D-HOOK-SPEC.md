@@ -19,7 +19,8 @@ HELIX の Hook システム（Claude Code hooks + Git hooks + doc-map triggers�
 | Hook 種別 | 発火タイミング | 実装 | 遅延許容 |
 |----------|-------------|------|---------|
 | **SessionStart** | Claude Code セッション開始時 | `helix session-start` | < 5秒 |
-| **PreToolUse** | Write ツール呼び出し直前 | `helix check-claudemd` | < 2秒 |
+| **PreToolUse(Write)** | Write ツール呼び出し直前 | `helix check-claudemd` | < 2秒 |
+| **PreToolUse(Bash)** | Bash ツール呼び出し直前 | `cli/libexec/helix-pre-bash` | < 2秒 |
 | **PostToolUse** | Edit/Write/MultiEdit ツール呼び出し直後 | `cli/libexec/helix-post-tool-use` → `helix hook` | < 10秒 |
 | **Stop** | Claude Code セッション終了時 | `helix session-summary` | < 8秒 |
 | **Git pre-commit** | `git commit` 実行直前 | `cli/templates/pre-commit-hook` | < 30秒 |
@@ -31,7 +32,7 @@ HELIX の Hook システム（Claude Code hooks + Git hooks + doc-map triggers�
 ```
 Claude Code が Write ツール呼び出し
   ↓
-PreToolUse: helix check-claudemd     ← CLAUDE.md テンプレート強制
+PreToolUse(Write): helix check-claudemd     ← CLAUDE.md テンプレート強制
   ↓ (allowed)
 ファイル書き込み完了
   ↓
@@ -49,6 +50,18 @@ Git pre-commit: phase_guard チェック  ← フェーズ整合性
 Git commit-msg: Conventional Commits 検証
   ↓
 コミット完了
+```
+
+### 2.3 Hook チェーン例（Bash 実行時）
+
+```
+Claude Code が Bash ツール呼び出し
+  ↓
+PreToolUse(Bash): helix-pre-bash      ← コマンド文字列を検査
+  ↓
+llm_guard.py                          ← raw LLM CLI を検出
+  ↓ allowed: helix codex --plan-only / --approved、helix claude --dry-run 等の harness 経由
+  ↓ blocked: codex exec / claude 等の HELIX discipline を迂回する実行
 ```
 
 ---
@@ -198,6 +211,8 @@ CREATE TABLE hook_events (
 | パターン構文の制限 | glob 方式のみ、正規表現は未サポート | P3 |
 | doc-map.yaml スキーマ検証 | 実装済み。不正な `on_write` / 必須キー欠落 / 完全重複は warning 出力 | — |
 | 並列 hook 発火時の競合 | 同一ファイル編集が高速連続発火した場合の動作未検証 | P3 |
+| raw LLM CLI 直叩き | PreToolUse(Bash) と PATH shim で `helix codex` / `helix claude --dry-run` へ誘導 | — |
+| context budget 超過 | `helix context check` で AGENTS / CLAUDE / hook docs の肥大化を検出 | — |
 
 ---
 
@@ -205,8 +220,11 @@ CREATE TABLE hook_events (
 
 - [ADR-009: Hook 戦略（doc-map トリガー中心）](../adr/ADR-009-hook-strategy.md)
 - `cli/libexec/helix-post-tool-use` (PostToolUse payload wrapper)
+- `cli/libexec/helix-pre-bash` (PreToolUse Bash guard)
 - `cli/helix-hook` / `cli/libexec/helix-hook` (PostToolUse hook 本体)
 - `cli/helix-check-claudemd` (PreToolUse hook)
+- `cli/helix-context` / `cli/lib/context_guard.py` (context budget guard)
+- `cli/lib/llm_guard.py` (raw LLM command guard)
 - `cli/helix-session-start` / `helix-session-summary`
 - `cli/lib/doc_map_matcher.py` (マッチングロジック)
 - `cli/templates/doc-map.yaml` (トリガー定義テンプレート)
