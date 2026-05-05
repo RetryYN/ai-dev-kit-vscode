@@ -42,6 +42,7 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 - role 分担がある作業では、`helix codex`、`helix claude --dry-run`、`helix team`、`helix review` などの harness を使う。
 - harness やサブエージェントを使えない場合は、理由を final の evidence に書く。
 - Codex 実装委譲は原則 `helix codex` 経由にする。素の `codex exec` は HELIX discipline の強制注入が効かないため、PATH 上の `cli/codex` shim でブロックされる。
+- `helix codex` で呼ぶ **委譲 Codex** は `git add` / `git commit` / `git push` を一切しない（CODEX_DISCIPLINE_PROMPT §5 で強制）。コミット判断は呼び出し元の TL モード Codex またはユーザー (Opus / PM) が行う。委譲先が勝手に commit した場合は `git reset --soft HEAD~1` で巻き戻して呼び出し元で commit し直す。
 - Claude Code 委譲は原則 `helix claude --dry-run` で prompt / task-file を生成する。素の `claude` は HELIX discipline の強制注入が効かないため、PATH 上の `cli/claude` shim でブロックされる。
 - raw LLM CLI が必要な例外時だけ、Codex は `HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...`、Claude は `HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...` を使い、理由を evidence に残す。
 - 計画のみの Codex 呼び出しは `helix codex --plan-only`、実装承認済みの呼び出しは `helix codex --approved` を使う。

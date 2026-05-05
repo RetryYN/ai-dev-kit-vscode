@@ -77,3 +77,45 @@ skills/
 
 ## Codex との対応
 Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識はこの `CLAUDE.md` と揃え、Codex 固有の TL 動作・検証・handover ルールは `AGENTS.md` に寄せる。
+
+## モデル割当（真実は `cli/config/models.yaml`）
+
+| 委譲先 | ロール | 主な担当 |
+|--------|------|---------|
+| Opus (自身) | PM | 言語化・タスク分解・統合・エスカレーション判断・フロント設計 |
+| Codex 5.5 | TL / SE / QA | 設計・技術判断・上級実装・テスト設計 |
+| Codex 5.3 Spark | PG / docs | 通常以下実装・ドキュメント起草 |
+| Codex 5.4 | Legacy / FE 専門 | レガシー対応・fe-* サブエージェント |
+| Codex 5.3 | Security / DBA / DevOps / Perf | セキュリティ監査・DB・インフラ・性能 |
+| Codex 5.4-mini | Recommender / Classifier | スキル推挙・タスク分類 |
+| Sonnet | FE 実装 | フロント実装・テスト・ドキュメント |
+| Haiku 4.5 | Research | Web 検索・先行事例調査 |
+
+- ドキュメントと実装が乖離した場合は **実装 (`cli/config/models.yaml`) を正** とする。本表は周知用。
+- ロール定義の正本は [cli/ROLE_MAP.md](cli/ROLE_MAP.md)。
+
+## Agent tool コスト制御（必須）
+
+- Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略すると Opus→Opus になりコスト爆発。
+- 委譲必須の判定基準:
+  - 同一タスクで Read 合計が 200 行を超える見込み
+  - Grep / Glob が 3 回以上必要
+  - 同じファイルを複数視点で見る
+  - 長文ドキュメント (PLAN.md / review.json / SKILL.md / CURRENT.md) の全体 Read
+- Opus 直接 Read してよい範囲: handover status / phase.yaml / 単発短ファイル (< 100 行) / Edit 直前の対象箇所 / ユーザー明示指定の 1 ファイル
+- **禁止**: Agent tool を model 指定なしで呼ぶ / Opus がバックエンドコードを直接 Edit/Write する / 「自分でやった方が早い」を理由に委譲基準を超える
+
+## 並列実行ルール（必須）
+
+依存関係がないタスクは **必ず並列** で投入。直列にしない。
+
+判定（1 つでも該当 → 直列、全て NO → 並列）:
+- 編集対象ファイルが衝突する
+- 後段が前段の出力を入力にする
+- 共有状態 (helix.db / phase.yaml / handover の同フィールド) を同時更新する
+
+並列投入前に「衝突するファイル」「後段依存」を 1 行で書き出して根拠を残す。
+
+## 委譲 Codex のコミット禁止
+
+`helix codex` / `codex exec` で呼ぶ **委譲 Codex** は `git add` / `git commit` / `git push` を一切しない。Opus (PM) が成果物検証後に commit する。チャット (TL モード) Codex は対象外。
