@@ -1,0 +1,61 @@
+#!/bin/bash
+set -euo pipefail
+
+# claude shim: HELIX 配下で raw `claude` を止め、`helix claude` に寄せる。
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+resolve_real_claude() {
+  local candidate
+  local candidate_real
+  local self_real
+  self_real="$(realpath -m "$0")"
+
+  while IFS= read -r candidate; do
+    [[ -z "$candidate" ]] && continue
+    candidate_real="$(realpath -m "$candidate")"
+    [[ "$candidate_real" == "$self_real" ]] && continue
+    [[ "$candidate_real" == "$SCRIPT_DIR/claude" ]] && continue
+    if [[ -x "$candidate_real" ]]; then
+      echo "$candidate_real"
+      return 0
+    fi
+  done < <(type -P -a claude 2>/dev/null || true)
+
+  if [[ -x "$HOME/.npm-global/bin/claude" ]]; then
+    echo "$HOME/.npm-global/bin/claude"
+    return 0
+  fi
+
+  return 1
+}
+
+if [[ "${HELIX_CLAUDE_INTERNAL:-0}" != "1" ]]; then
+  raw_claude_reason="${HELIX_RAW_CLAUDE_REASON:-}"
+  if [[ "${HELIX_ALLOW_RAW_CLAUDE:-0}" == "1" && -n "${raw_claude_reason//[[:space:]]/}" ]]; then
+    real_claude="$(resolve_real_claude || true)"
+    if [[ -z "$real_claude" ]]; then
+      echo "エラー: 実体の claude バイナリが見つかりません" >&2
+      exit 127
+    fi
+    exec "$real_claude" "$@"
+  fi
+  cat >&2 <<'EOF'
+エラー: raw `claude` は HELIX discipline が効かないためブロックしました。
+
+代わりに以下を使用してください:
+  helix claude --role <role> --task "..." --dry-run
+
+どうしても raw Claude が必要な場合のみ、理由を evidence に残した上で:
+  HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...
+EOF
+  exit 2
+fi
+
+real_claude="$(resolve_real_claude || true)"
+if [[ -z "$real_claude" ]]; then
+  echo "エラー: 実体の claude バイナリが見つかりません" >&2
+  exit 127
+fi
+
+exec "$real_claude" "$@"

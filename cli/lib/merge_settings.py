@@ -38,6 +38,18 @@ HELIX_HOOKS = {
                     "blockOnFailure": True,
                 }
             ]
+        },
+        {
+            "matcher": "Bash",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-pre-bash",
+                    "timeout": 5,
+                    "statusMessage": "Checking HELIX LLM execution guard...",
+                    "blockOnFailure": True,
+                }
+            ]
         }
     ],
     "PostToolUse": [
@@ -157,7 +169,7 @@ def main():
         sys.exit(0 if changed else 1)
     except Exception as e:
         print(f"エラー: 設定マージに失敗しました — {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(3)
 
 
 if __name__ == "__main__":

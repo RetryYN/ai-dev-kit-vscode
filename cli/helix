@@ -27,6 +27,7 @@ case "$CMD" in
   log)      exec "$SCRIPT_DIR/helix-log" "$@" ;;
   hook)     exec "$SCRIPT_DIR/helix-hook" "$@" ;;
   check-claudemd) exec "$SCRIPT_DIR/helix-check-claudemd" "$@" ;;
+  context)  exec "$SCRIPT_DIR/helix-context" "$@" ;;
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
   verify-all) exec "$SCRIPT_DIR/helix-verify-all" "$@" ;;
   verify-agent) exec "$SCRIPT_DIR/helix-verify-agent" "$@" ;;
@@ -123,6 +124,7 @@ Codex / Claude Code 管理 harness:
   budget      Claude/Codex 予算管理・モデル推奨
   hook        PostToolUse hook
   check-claudemd PreToolUse hook
+  context     context / memory guardrail check
   session-start SessionStart hook
   session-summary Stop hook
 

@@ -622,6 +622,20 @@ echo ""
 echo "=== $GATE: $gate_name ==="
 echo ""
 
+if [[ "$GATE" == "G1R" && "$AI_ONLY" != true ]]; then
+  echo "[G1R] research evidence guard"
+  if ! python3 "$SCRIPT_DIR/lib/research_guard.py" --root "$PROJECT_ROOT"; then
+    if [[ -f "$PHASE_FILE" && "$DRY_RUN" != true ]]; then
+      write_phase_or_die "gates.${GATE}.status" "failed"
+    fi
+    if [[ "$JSON_OUTPUT" == true ]]; then
+      emit_gate_json "$GATE" "fail" 0 1 "$prereq"
+    fi
+    exit "$EXIT_CHECK_FAILED"
+  fi
+  echo ""
+fi
+
 if [[ "$GATE" == "G7" ]]; then
   echo "[helix-gate] デプロイ前チェックリスト:"
   echo "  □ staging 環境でのスモークテスト完了"

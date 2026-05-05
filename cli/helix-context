@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-context: context / memory guardrail checks.
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+if [[ $# -eq 0 || "${1:-}" == "--json" ]]; then
+  set -- check "$@"
+fi
+
+case "$1" in
+  --help|-h|help)
+    cat <<'USAGE'
+使い方: helix context <check|bundle|remind> [--json]
+
+サブコマンド:
+  check [--json]   AGENTS/CLAUDE/hooks/memory の強制導線を検査
+  bundle [--json]  SessionStart 等へ注入する短い context bundle を生成
+  remind [--json]  bundle と同じ内容を人間/AI 向けリマインダーとして出力
+USAGE
+    ;;
+  check|bundle|remind)
+    exec python3 "$SCRIPT_DIR/lib/context_guard.py" --root "$PROJECT_ROOT" "$@"
+    ;;
+  *)
+    echo "エラー: 不明な context subcommand: $1" >&2
+    exit 2
+    ;;
+esac

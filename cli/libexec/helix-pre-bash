@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-pre-bash: Claude Code PreToolUse payload wrapper for Bash.
+# raw LLM CLI execution must go through HELIX harness commands unless explicit evidence is supplied.
+
+CLI_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+exec python3 "$CLI_DIR/lib/llm_guard.py" check-bash

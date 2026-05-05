@@ -254,6 +254,40 @@ class TeamRunnerTest(unittest.TestCase):
             self.assertEqual(payload["strategy"], "sequential")
             self.assertEqual(payload["members"][0]["status"], "completed")
 
+    def test_main_rejects_invalid_team_policy_before_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp_path = Path(td)
+            definition_path = tmp_path / "team.yaml"
+            definition_path.write_text(
+                "name: bad\n"
+                "strategy: sequential\n"
+                "members:\n"
+                "  - role: se\n"
+                "    engine: codex\n"
+                "    task: Web検索でSDKを調査\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(team_runner, "run_sequential") as run_sequential:
+                with patch.object(
+                    sys,
+                    "argv",
+                    [
+                        "team_runner.py",
+                        "--definition",
+                        str(definition_path),
+                        "--project-root",
+                        str(tmp_path),
+                        "--helix-home",
+                        "/helix-home",
+                    ],
+                ):
+                    with self.assertRaises(SystemExit) as raised:
+                        team_runner.main()
+
+            self.assertEqual(raised.exception.code, 1)
+            run_sequential.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

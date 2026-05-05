@@ -32,7 +32,51 @@ resolve_real_codex() {
 
 cmd="${1:-}"
 
-if [[ "$cmd" == "exec" && "${HELIX_CODEX_INTERNAL:-0}" != "1" && "${HELIX_ALLOW_RAW_CODEX:-0}" != "1" ]]; then
+is_raw_codex_exec() {
+  local args=("$@")
+  local i=0
+  local token
+  while [[ "$i" -lt "${#args[@]}" ]]; do
+    token="${args[$i]}"
+    case "$token" in
+      exec|e)
+        return 0
+        ;;
+      --)
+        i=$((i + 1))
+        [[ "${args[$i]:-}" == "exec" || "${args[$i]:-}" == "e" ]] && return 0
+        return 1
+        ;;
+      -c|--config|--enable|--disable|--remote|--remote-auth-token-env|-i|--image|-m|--model|--local-provider|-p|--profile|-s|--sandbox|-C|--cd|--add-dir|-a|--ask-for-approval|--color|-o|--output-last-message)
+        i=$((i + 2))
+        ;;
+      --config=*|--remote=*|--remote-auth-token-env=*|--image=*|--model=*|--local-provider=*|--profile=*|--sandbox=*|--cd=*|--add-dir=*|--ask-for-approval=*|--color=*|--output-last-message=*)
+        i=$((i + 1))
+        ;;
+      --dangerously-bypass-approvals-and-sandbox|--full-auto|--no-alt-screen|--oss|--search|--skip-git-repo-check)
+        i=$((i + 1))
+        ;;
+      -*)
+        i=$((i + 1))
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+  return 1
+}
+
+if is_raw_codex_exec "$@" && [[ "${HELIX_CODEX_INTERNAL:-0}" != "1" ]]; then
+  raw_codex_reason="${HELIX_RAW_CODEX_REASON:-}"
+  if [[ "${HELIX_ALLOW_RAW_CODEX:-0}" == "1" && -n "${raw_codex_reason//[[:space:]]/}" ]]; then
+    real_codex="$(resolve_real_codex || true)"
+    if [[ -z "$real_codex" ]]; then
+      echo "エラー: 実体の codex バイナリが見つかりません" >&2
+      exit 127
+    fi
+    exec "$real_codex" "$@"
+  fi
   cat >&2 <<'EOF'
 エラー: raw `codex exec` は HELIX discipline が効かないためブロックしました。
 
@@ -41,7 +85,7 @@ if [[ "$cmd" == "exec" && "${HELIX_CODEX_INTERNAL:-0}" != "1" && "${HELIX_ALLOW_
   helix codex --role <role> --task "..." --approved --plan-id PLAN-001 --wbs-id WBS-003
 
 どうしても raw Codex が必要な場合のみ、理由を evidence に残した上で:
-  HELIX_ALLOW_RAW_CODEX=1 codex exec ...
+  HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...
 EOF
   exit 2
 fi

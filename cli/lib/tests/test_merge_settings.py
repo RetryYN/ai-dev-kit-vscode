@@ -86,6 +86,22 @@ def test_main_exits_one_when_no_change(
     assert exc.value.code == 1
 
 
+def test_main_exits_three_when_settings_json_is_invalid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text("{bad", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["merge_settings.py", str(settings_path)])
+
+    with pytest.raises(SystemExit) as exc:
+        merge_settings.main()
+
+    assert exc.value.code == 3
+    assert "設定マージに失敗" in capsys.readouterr().err
+
+
 def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
     entry = merge_settings.HELIX_HOOKS["PostToolUse"][0]
     hook = merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]
@@ -94,6 +110,16 @@ def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
     assert "|| true" not in command
     assert command == "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
     assert entry["matcher"] == "Edit|Write|MultiEdit"
+    assert hook["blockOnFailure"] is True
+
+
+def test_pre_tool_use_bash_guard_is_registered() -> None:
+    entries = merge_settings.HELIX_HOOKS["PreToolUse"]
+    bash_entries = [entry for entry in entries if entry.get("matcher") == "Bash"]
+
+    assert len(bash_entries) == 1
+    hook = bash_entries[0]["hooks"][0]
+    assert hook["command"] == "~/ai-dev-kit-vscode/cli/libexec/helix-pre-bash"
     assert hook["blockOnFailure"] is True
 
 

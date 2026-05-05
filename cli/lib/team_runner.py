@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml_parser
+from agent_policy_guard import validate_team_definition
 
 
 def _strip_quotes(value: str) -> str:
@@ -256,6 +257,14 @@ def main() -> None:
     name = definition.get("name", "unnamed")
     strategy = definition.get("strategy", "sequential")
     members = definition.get("members", [])
+
+    policy_errors = validate_team_definition(definition)
+    if policy_errors:
+        print("エラー: チーム定義が HELIX 委譲ポリシーに違反しています", file=sys.stderr)
+        for finding in policy_errors:
+            suffix = f" member={finding.member}" if finding.member is not None else ""
+            print(f"  - {finding.code}: {finding.message}{suffix}", file=sys.stderr)
+        sys.exit(1)
 
     print(f"チーム: {name}")
     print(f"戦略: {strategy}")
