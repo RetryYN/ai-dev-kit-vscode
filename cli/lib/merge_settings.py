@@ -11,6 +11,7 @@ Usage:
 import json
 import os
 import sys
+import copy
 
 HELIX_HOOKS = {
     "SessionStart": [
@@ -112,13 +113,13 @@ def _has_helix_hook(entries):
     return False
 
 
-def merge(settings):
+def _merge_hooks(settings, hooks_to_install):
     """HELIX hooks を追加・正規化する。変更があったか返す"""
     if "hooks" not in settings:
         settings["hooks"] = {}
 
     changed = False
-    for event, helix_entries in HELIX_HOOKS.items():
+    for event, helix_entries in hooks_to_install.items():
         existing = settings["hooks"].get(event, [])
         non_helix_entries = [entry for entry in existing if not _is_helix_hook(entry)]
         current_helix_entries = [entry for entry in existing if _is_helix_hook(entry)]
@@ -127,6 +128,27 @@ def merge(settings):
             changed = True
 
     return changed
+
+
+def merge(settings):
+    """HELIX hooks を追加・正規化する。変更があったか返す"""
+    return _merge_hooks(settings, HELIX_HOOKS)
+
+
+def merge_settings_for_migrate(current, hooks_to_install):
+    """migrate.py から使う非破壊 API。
+
+    current は JSON decode 済み dict に限定する。invalid JSON の fail-close は
+    呼び出し側で decode 時に止める。
+    """
+    if not isinstance(current, dict):
+        raise ValueError("settings root must be object")
+    if not isinstance(hooks_to_install, dict):
+        raise ValueError("hooks_to_install must be object")
+
+    merged = copy.deepcopy(current)
+    _merge_hooks(merged, copy.deepcopy(hooks_to_install))
+    return merged
 
 
 def remove(settings):

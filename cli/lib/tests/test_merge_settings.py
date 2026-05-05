@@ -153,3 +153,20 @@ def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
         {"hooks": [{"command": "custom-post"}]},
         merge_settings.HELIX_HOOKS["PostToolUse"][0],
     ]
+
+
+def test_merge_settings_for_migrate_returns_merged_copy() -> None:
+    current = {
+        "hooks": {
+            "Stop": [
+                {"hooks": [{"command": "custom-stop"}]},
+            ]
+        }
+    }
+
+    merged = merge_settings.merge_settings_for_migrate(current, merge_settings.HELIX_HOOKS)
+
+    assert merged is not current
+    assert current == {"hooks": {"Stop": [{"hooks": [{"command": "custom-stop"}]}]}}
+    assert merged["hooks"]["Stop"][0] == {"hooks": [{"command": "custom-stop"}]}
+    assert merged["hooks"]["Stop"][1] == merge_settings.HELIX_HOOKS["Stop"][0]
