@@ -241,8 +241,12 @@ def yaml_collection_count(path: Path, key: str) -> int:
 
 def artifact_summary() -> dict[str, Any]:
     design_dir = project_root / "docs" / "design"
+    features_dir = project_root / "docs" / "features"
+    design_count = len(list(design_dir.glob("*"))) if design_dir.is_dir() else 0
+    if features_dir.is_dir():
+        design_count += sum(1 for p in features_dir.glob("*/D-*") if p.is_dir())
     return {
-        "design_docs": len(list(design_dir.glob("*"))) if design_dir.is_dir() else 0,
+        "design_docs": design_count,
         "retros": len(list((helix_dir / "retros").glob("*.md"))) if (helix_dir / "retros").is_dir() else 0,
         "session_summaries": len(list((helix_dir / "session-summaries").glob("*.md"))) if (helix_dir / "session-summaries").is_dir() else 0,
         "handover": 1 if (helix_dir / "handover" / "CURRENT.md").exists() else 0,
