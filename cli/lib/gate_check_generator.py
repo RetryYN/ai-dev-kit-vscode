@@ -37,8 +37,10 @@ def _resolved_capture(resolved: Any) -> list[str]:
     return [str(item) for item in raw if isinstance(item, str)]
 
 
-def _build_static_check(name: str, cmd: str) -> dict[str, str]:
-    return {"name": name, "cmd": cmd}
+def _build_static_check(name: str, cmd: str, level: str = "advisory") -> dict[str, str]:
+    if level not in {"mandatory", "advisory"}:
+        level = "advisory"
+    return {"name": name, "cmd": cmd, "level": level}
 
 
 def _build_ai_check(role: str, task: str) -> dict[str, str]:
@@ -242,6 +244,27 @@ def _build_policy_g4_checks() -> list[dict[str, str]]:
             "! rg -n 'z-index:\\s*[0-9]{3,}' src/ --type css 2>/dev/null | head -1",
         ),
     ]
+
+
+def _build_policy_g2_checks() -> list[dict[str, str]]:
+    return [
+        _build_static_check(
+            "PLAN D-shard/reference 最低証跡",
+            'python3 "$HELIX_HOME/cli/lib/plan_schema.py" g2-check --project-root .',
+            "mandatory",
+        )
+    ]
+
+
+def _apply_g2_plan_schema_checks(gates: dict[str, dict[str, Any]], static_seen: dict[str, set[str]]) -> None:
+    g2_bucket = gates.setdefault("G2", {"name": _gate_name("G2"), "static": [], "ai": []})
+    static_seen.setdefault("G2", set())
+    for check in _build_policy_g2_checks():
+        cmd = check.get("cmd", "")
+        if cmd in static_seen["G2"]:
+            continue
+        static_seen["G2"].add(cmd)
+        g2_bucket["static"].append(check)
 
 
 def _apply_security_checks(gates: dict[str, dict[str, Any]], static_seen: dict[str, set[str]]) -> None:
@@ -512,6 +535,7 @@ def _generate_gate_checks(
                     static_seen[gate].add(cmd_key)
                     bucket["static"].append(_build_static_check(f"{feature_id} {did_raw} file", cmd))
 
+    _apply_g2_plan_schema_checks(gates, static_seen)
     _apply_security_checks(gates, static_seen)
     _apply_framework_checks(gates, static_seen, framework)
     _apply_fe_checks(gates, static_seen, matrix)
@@ -586,8 +610,12 @@ def dump_gate_checks_yaml(gate_checks: dict[str, Any], helix_template_version: i
                     continue
                 static_name = _escape_yaml_double(str(static.get("name", "unnamed")))
                 static_cmd = _escape_yaml_double(str(static.get("cmd", "true")))
+                static_level = str(static.get("level", "advisory"))
+                if static_level not in {"mandatory", "advisory"}:
+                    static_level = "advisory"
                 lines.append(f'    - name: "{static_name}"')
                 lines.append(f'      cmd: "{static_cmd}"')
+                lines.append(f"      level: {static_level}")
 
         ai_items = entry.get("ai", [])
         if not isinstance(ai_items, list) or not ai_items:

@@ -17,7 +17,7 @@ Usage: helix plan <subcommand> [options]
 
 Subcommands:
   draft      プラン下書きを作成
-             Options: --title <title> [--file <path>]
+             Options: --title <title> [--file <path>] [--plan-id <PLAN-NNN>]
   review     TL レビューを実行し結果を保存
              Options: --id <PLAN-NNN>
   finalize   approve 済みプランを確定
@@ -48,6 +48,33 @@ validate_plan_id() {
     echo "エラー: 不正な plan id です: $id (例: PLAN-001)" >&2
     exit 1
   fi
+}
+
+create_design_skeleton() {
+  local plan_id="$1"
+  local title="$2"
+  python3 - <<'PY' "$PROJECT_ROOT" "$plan_id" "$title"
+import sys
+from pathlib import Path
+
+project_root = Path(sys.argv[1])
+plan_id = sys.argv[2]
+title = sys.argv[3]
+
+for shard in ("D-API", "D-DB", "D-ARCH", "D-TEST"):
+    shard_dir = project_root / "docs" / "features" / plan_id / shard
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    readme = shard_dir / "README.md"
+    if readme.exists():
+        continue
+    readme.write_text(
+        f"> 目的: {title} の {shard} 設計\n\n"
+        "## Overview\n\n"
+        "## Decisions\n\n"
+        "## Acceptance\n",
+        encoding="utf-8",
+    )
+PY
 }
 
 plan_file_path() {
@@ -308,6 +335,7 @@ PY
 cmd_draft() {
   local title=""
   local source_file=""
+  local requested_plan_id=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --title)
@@ -316,6 +344,10 @@ cmd_draft() {
         ;;
       --file)
         source_file="$2"
+        shift 2
+        ;;
+      --plan-id)
+        requested_plan_id="$2"
         shift 2
         ;;
       --help|-h)
@@ -337,8 +369,17 @@ cmd_draft() {
   ensure_dirs
 
   local plan_id plan_file created_at
-  plan_id="$(next_plan_id)"
+  if [[ -n "$requested_plan_id" ]]; then
+    validate_plan_id "$requested_plan_id"
+    plan_id="$requested_plan_id"
+  else
+    plan_id="$(next_plan_id)"
+  fi
   plan_file="$PLAN_DIR/$plan_id.yaml"
+  if [[ -e "$plan_file" ]]; then
+    echo "エラー: プランは既に存在します: $plan_id" >&2
+    exit 1
+  fi
   created_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
   python3 - <<'PY' "$plan_file" "$plan_id" "$title" "$created_at" "$source_file"
@@ -362,6 +403,8 @@ title: {q(title)}
 status: draft
 created_at: {q(created_at)}
 source_file: {source_line}
+references: []
+artifacts: []
 finalized_at: null
 review:
   status: pending
@@ -372,8 +415,11 @@ plan_file.parent.mkdir(parents=True, exist_ok=True)
 plan_file.write_text(content, encoding="utf-8")
 PY
 
+  create_design_skeleton "$plan_id" "$title"
+
   echo "作成: ${plan_file#$PROJECT_ROOT/}"
   echo "ID: $plan_id"
+  echo "D-shard skeleton: docs/features/$plan_id/"
 }
 
 cmd_review() {

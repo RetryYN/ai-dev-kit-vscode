@@ -191,6 +191,22 @@ def test_build_gate_checks_adds_framework_and_policy_checks() -> None:
     assert "技術負債台帳の存在" in g4_names
 
 
+def test_build_gate_checks_adds_g2_plan_schema_mandatory_check() -> None:
+    gate_checks = gate_check_generator.build_gate_checks(
+        _matrix(),
+        _deliverables_rules(),
+        {},
+        catalog_index=_catalog_index,
+        resolve_paths=_resolve_paths,
+        d_contract_doc_pattern=_d_contract_pattern,
+    )
+
+    g2_static = gate_checks["G2"]["static"]
+    check = next(item for item in g2_static if item["name"] == "PLAN D-shard/reference 最低証跡")
+    assert "plan_schema.py" in check["cmd"]
+    assert check["level"] == "mandatory"
+
+
 def test_dump_yaml_outputs_escape_quotes_and_task_blocks() -> None:
     doc_map_yaml = gate_check_generator.dump_doc_map_yaml(
         {"triggers": [{"pattern": 'docs/"quoted".md', "phase": "L2", "on_write": "gate_ready", "gate": "G2"}]}
@@ -207,5 +223,6 @@ def test_dump_yaml_outputs_escape_quotes_and_task_blocks() -> None:
 
     assert 'pattern: "docs/\\"quoted\\".md"' in doc_map_yaml
     assert 'name: "name \\"quoted\\""' in gate_yaml
+    assert "      level: advisory" in gate_yaml
     assert "      task: |" in gate_yaml
     assert "        line2" in gate_yaml

@@ -22,6 +22,7 @@ GATE_CHECKS="$HELIX_DIR/gate-checks.yaml"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
+PLAN_SCHEMA="$SCRIPT_DIR/lib/plan_schema.py"
 
 # --- 引数パース ---
 GATE=""
@@ -1081,6 +1082,22 @@ PY
 
   if [[ "$gate" == "G2" ]]; then
     check_adversarial_requirement_runtime
+  fi
+
+  if [[ "$gate" == "G2" ]]; then
+    local g2_design_output=""
+    local g2_design_status=0
+    set +e
+    g2_design_output=$(python3 "$PLAN_SCHEMA" g2-check --project-root "$PROJECT_ROOT" 2>&1)
+    g2_design_status=$?
+    set -e
+    if [[ $g2_design_status -eq 0 ]]; then
+      echo "$g2_design_output"
+    else
+      echo "$g2_design_output" >&2
+      mandatory_fail=$((mandatory_fail + 1))
+      add_fail_reason "g2-design-evidence"
+    fi
   fi
 
   if [[ "$gate" == "G2" ]] && is_fe_driven_gate; then
