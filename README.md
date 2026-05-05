@@ -9,6 +9,8 @@
 - **成果物駆動**: Deliverable Matrix で設計と実装を 1:1 対応
 - **自己改善**: Learning Engine で成功/失敗パターンを蓄積・昇格
 - **マルチモデル制御**: TL/SE/PG/FE の役割別委譲（thinking level 最適化）
+- **設計駆動強制**: PLAN draft 時に D-shard 5 種（D-API / D-DB / D-ARCH / D-TEST / D-THREAT）の skeleton を自動生成、G2 で設計証跡 3 件以上 mandatory
+- **委譲 Codex コミット禁止**: `helix codex` 経由の委譲先は git commit を実行しない（PM/TL がコミット判断）
 - **5 駆動タイプ**: be/fe/db/fullstack/agent
 - **105 スキル**: 開発・ライティング・デザイン・ブラウザ操作・エージェント運用
 - **8 ビルダー**: エージェント開発の検証済みパーツ
@@ -30,6 +32,8 @@ bash ~/ai-dev-kit-vscode/setup.sh
 | Codex CLI | スキル symlink + `~/.codex/AGENTS.md` コピー（codex がある場合のみ） |
 
 何度実行しても安全（冪等）。アンインストール: `bash ~/ai-dev-kit-vscode/setup.sh --uninstall`
+
+> **配布物の境界**: 本リポジトリの `.helix/` 配下は git untracked（PLAN-021 で完全分離済）。clone 時には HELIX framework 本体（cli / skills / docs / templates）のみが降ります。各プロジェクトでは `helix init` で `.helix/` を初期化して使ってください。
 
 このリポジトリ自体のエージェント向け project rules は [CLAUDE.md](CLAUDE.md) と [AGENTS.md](AGENTS.md) が正本です。個人差分は `CLAUDE.local.md` / `AGENTS.override.md` に置きます。
 
@@ -226,6 +230,15 @@ HELIX の入口は 6 領域に分けて使う。全コマンドの索引は [doc
 2. **ガードレール**: Phase Guard + Deliverable Gate + Plan Review
 3. **モニタリング**: Advisory Hook + Freeze-break 検知
 4. **監査**: SQLite ログ + ミニレトロ + Learning Engine
+
+## Runbook（運用手順）
+
+主要 CLI の障害対応・復旧手順は [docs/runbook/](docs/runbook/) を参照。
+
+- [helix-codex.md](docs/runbook/helix-codex.md) — 委譲 Codex の hang / plan-only guard / 勝手 commit 対応
+- [helix-plan.md](docs/runbook/helix-plan.md) — PLAN draft / G2 fail / plan id 衝突対応
+- [helix-migrate.md](docs/runbook/helix-migrate.md) — テンプレ移行の dry-run / apply / rollback / invalid JSON 対応
+- [helix-handover.md](docs/runbook/helix-handover.md) — Opus ↔ Codex handover の stale 検知 / ESCALATION / resume 復旧
 
 ## ADR（設計判断記録）
 
