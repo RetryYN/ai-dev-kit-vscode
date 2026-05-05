@@ -126,12 +126,24 @@ setup_settings() {
         _ok "Backup → ${CLAUDE_SETTINGS}.bak"
     fi
 
-    # マージ（merge_settings.py の終了コード: 0=変更あり, 1=変更なし）
-    if python3 "$MERGE_SCRIPT" "$CLAUDE_SETTINGS"; then
-        _ok "HELIX hooks merged into $CLAUDE_SETTINGS"
-    else
-        _skip "HELIX hooks already present in $CLAUDE_SETTINGS"
-    fi
+    # マージ（merge_settings.py の終了コード: 0=変更あり, 1=変更なし, 3=失敗）
+    set +e
+    local merge_output
+    merge_output="$(python3 "$MERGE_SCRIPT" "$CLAUDE_SETTINGS" 2>&1)"
+    local merge_rc=$?
+    set -e
+    case "$merge_rc" in
+        0)
+            _ok "HELIX hooks merged into $CLAUDE_SETTINGS"
+            ;;
+        1)
+            _skip "HELIX hooks already present in $CLAUDE_SETTINGS"
+            ;;
+        *)
+            [[ -n "$merge_output" ]] && echo "$merge_output" >&2
+            _fail "HELIX hooks merge failed for $CLAUDE_SETTINGS"
+            ;;
+    esac
 
     echo ""
 }
@@ -245,11 +257,23 @@ uninstall() {
     # settings.json から HELIX hooks を除去
     if [[ -f "$CLAUDE_SETTINGS" ]]; then
         cp "$CLAUDE_SETTINGS" "${CLAUDE_SETTINGS}.bak"
-        if python3 "$MERGE_SCRIPT" "$CLAUDE_SETTINGS" --remove; then
-            _ok "Removed HELIX hooks from $CLAUDE_SETTINGS"
-        else
-            _skip "No HELIX hooks found in $CLAUDE_SETTINGS"
-        fi
+        set +e
+        local remove_output
+        remove_output="$(python3 "$MERGE_SCRIPT" "$CLAUDE_SETTINGS" --remove 2>&1)"
+        local remove_rc=$?
+        set -e
+        case "$remove_rc" in
+            0)
+                _ok "Removed HELIX hooks from $CLAUDE_SETTINGS"
+                ;;
+            1)
+                _skip "No HELIX hooks found in $CLAUDE_SETTINGS"
+                ;;
+            *)
+                [[ -n "$remove_output" ]] && echo "$remove_output" >&2
+                _fail "HELIX hooks removal failed for $CLAUDE_SETTINGS"
+                ;;
+        esac
     else
         _skip "$CLAUDE_SETTINGS not found"
     fi
@@ -303,6 +327,7 @@ summary() {
     if [[ $fail -gt 0 ]]; then
         echo "  Setup completed with errors ($fail failure(s))."
         echo "  Fix the issues above and re-run: bash $HELIX_HOME/setup.sh"
+        return 1
     else
         echo "  HELIX setup complete!"
         echo "    Claude Code: ready (hooks installed)"
@@ -316,6 +341,7 @@ summary() {
     fi
 
     echo ""
+    return 0
 }
 
 # --- メイン ---
@@ -327,8 +353,10 @@ main() {
 
     if [[ "${1:-}" == "--uninstall" ]]; then
         uninstall
-        summary
-        exit 0
+        if summary; then
+            exit 0
+        fi
+        exit 1
     fi
 
     if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then

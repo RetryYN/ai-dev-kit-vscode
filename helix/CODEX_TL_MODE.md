@@ -38,8 +38,9 @@ Codex 実装委譲は原則 `helix codex` 経由にする。`helix codex` は以
 - `--plan-id` / `--task-id` / `--wbs-id` / `--l4-sprint` / `--acceptance` / `--reference-doc` / `--allowed-files`: 工程表文脈をプロンプトへ注入する
 - `HELIX_CODEX_REQUIRE_APPROVED=1`: write 実行に `--approved` を必須化する
 - `cli/codex` shim: PATH 上で raw `codex exec` を捕捉し、`helix codex` へ誘導する
+- `cli/claude` shim: PATH 上で raw `claude` を捕捉し、`helix claude --dry-run` へ誘導する
 
-素の `codex exec` は上記 hard guard が効かないため、TL モードではブロック対象。どうしても必要な場合のみ `HELIX_ALLOW_RAW_CODEX=1 codex exec ...` とし、理由と代替不能性を evidence に残す。
+素の `codex exec` / `claude` は上記 hard guard が効かないため、TL モードではブロック対象。どうしても必要な場合のみ Codex は `HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...`、Claude は `HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...` とし、理由と代替不能性を evidence に残す。
 
 ## 役割の読み替え
 

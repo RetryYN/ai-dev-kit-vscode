@@ -183,6 +183,29 @@ else
 fi
 echo ""
 
+# --- Claude Code hooks ---
+echo "[.claude/settings.json]"
+mkdir -p "$PROJECT_ROOT/.claude"
+PROJECT_CLAUDE_SETTINGS="$PROJECT_ROOT/.claude/settings.json"
+set +e
+merge_output="$(python3 "$SCRIPT_DIR/lib/merge_settings.py" "$PROJECT_CLAUDE_SETTINGS" 2>&1)"
+merge_rc=$?
+set -e
+case "$merge_rc" in
+  0)
+    echo "  created/updated: .claude/settings.json"
+    ;;
+  1)
+    echo "  skip: .claude/settings.json (HELIX hooks already present)"
+    ;;
+  *)
+    printf '%s\n' "$merge_output" >&2
+    echo "  error: .claude/settings.json の HELIX hook 設定に失敗しました" >&2
+    exit "$merge_rc"
+    ;;
+esac
+echo ""
+
 # --- .gitignore ---
 echo "[.gitignore]"
 GITIGNORE="$PROJECT_ROOT/.gitignore"
@@ -204,6 +227,7 @@ add_gitignore() {
 add_gitignore "CLAUDE.local.md"
 add_gitignore "AGENTS.override.md"
 add_gitignore ".claude/settings.local.json"
+add_gitignore ".claude/agent-memory/"
 add_gitignore ".claude/scheduled_tasks.lock"
 add_gitignore ".env"
 add_gitignore ".env.*"

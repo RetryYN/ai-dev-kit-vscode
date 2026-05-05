@@ -31,6 +31,28 @@ def test_cache_key_includes_catalog_fingerprint() -> None:
     assert first != base
 
 
+def test_cache_key_includes_bucket() -> None:
+    first = code_recommender._cache_key("frontmatter parser", 3, "fp-123", bucket="coverage_eligible")
+    second = code_recommender._cache_key("frontmatter parser", 3, "fp-123", bucket="private_helper")
+
+    assert first != second
+
+
+def test_find_code_default_bucket_is_coverage_eligible(monkeypatch, tmp_path: Path) -> None:
+    called = {}
+
+    def _fetch_entries(bucket: str = "coverage_eligible") -> list[dict]:
+        called["bucket"] = bucket
+        return []
+
+    monkeypatch.setattr(code_recommender, "_fetch_entries", _fetch_entries)
+    monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: tmp_path / "cache")
+    monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: tmp_path / "missing.jsonl")
+
+    assert code_recommender.find_code("scan file", n=1) == []
+    assert called["bucket"] == "coverage_eligible"
+
+
 def test_cache_is_fresh_detects_missing_and_ttl() -> None:
     cache_file = Path("/tmp/code-recommender-cache-test.json")
     if cache_file.exists():
@@ -118,7 +140,7 @@ def test_find_code_uses_cache_without_running_recommender(monkeypatch, tmp_path:
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: tmp_path / "no-catalog.jsonl")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
-    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda: _fetch_entries())
+    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": _fetch_entries())
 
     results = code_recommender.find_code(query, n=1)
 
@@ -201,7 +223,7 @@ def test_find_code_misses_cache_when_catalog_fingerprint_changes(monkeypatch, tm
 
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: jsonl_path)
-    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda: entries)
+    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
     monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
 
@@ -234,7 +256,7 @@ def test_find_code_local_fallback_when_llm_unavailable(monkeypatch, tmp_path: Pa
 
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: tmp_path / "missing.jsonl")
-    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda: entries)
+    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
     monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _unavailable)
 
@@ -277,7 +299,7 @@ def test_find_code_writes_normalized_cache_only(monkeypatch, tmp_path: Path) -> 
 
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: jsonl_path)
-    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda: entries)
+    monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
     monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
 

@@ -79,8 +79,8 @@ def _safe_text(value: Any) -> str:
     return str(value)
 
 
-def _cache_key(query: str, top_n: int, catalog_fingerprint: str = "") -> str:
-    payload = {"query": query, "n": top_n, "catalog_fingerprint": catalog_fingerprint}
+def _cache_key(query: str, top_n: int, catalog_fingerprint: str = "", bucket: str = "coverage_eligible") -> str:
+    payload = {"query": query, "n": top_n, "catalog_fingerprint": catalog_fingerprint, "bucket": bucket}
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
@@ -104,20 +104,26 @@ def _gc_expired_cache(cache_dir: Path, ttl_seconds: int = CACHE_TTL_SECONDS) -> 
     return removed
 
 
-def _fetch_entries(db_path: str | Path | None = None) -> list[dict[str, Any]]:
+def _fetch_entries(db_path: str | Path | None = None, *, bucket: str = "coverage_eligible") -> list[dict[str, Any]]:
+    if bucket not in {"coverage_eligible", "private_helper", "excluded", "all"}:
+        raise CodeRecommenderError(2, f"unsupported bucket: {bucket}")
+
     resolved_db_path = str(db_path or helix_db.resolve_default_db_path())
     helix_db._prepare_db_path(resolved_db_path)
     conn = helix_db._connect(resolved_db_path)
     helix_db._ensure_schema(conn)
     conn.row_factory = sqlite3.Row
     try:
-        rows = conn.execute(
-            """
-            SELECT id, domain, summary, path, line_no, since, related
+        sql = """
+            SELECT id, domain, summary, path, line_no, since, related, bucket
             FROM code_index
-            ORDER BY id
-            """
-        ).fetchall()
+        """
+        params: list[str] = []
+        if bucket != "all":
+            sql += " WHERE bucket = ?"
+            params.append(bucket)
+        sql += " ORDER BY id"
+        rows = conn.execute(sql, params).fetchall()
     finally:
         conn.close()
     return [dict(row) for row in rows]
@@ -309,20 +315,20 @@ def _write_cache(cache_file: Path, normalized: list[dict[str, Any]]) -> None:
 
 
 # @helix:index id=code-recommender.find-code domain=cli/lib summary=codeを検索する
-def find_code(query: str, n: int = 5) -> list[dict[str, Any]]:
+def find_code(query: str, n: int = 5, *, bucket: str = "coverage_eligible") -> list[dict[str, Any]]:
     """query に合う code_index entry を上位 n 件返す。"""
     query_text = query.strip()
     top_n = max(1, int(n))
     if not query_text:
         raise CodeRecommenderError(2, "query が空です。")
 
-    entries = _fetch_entries()
+    entries = _fetch_entries(bucket=bucket)
     if not entries:
         return []
 
     cache_dir = _default_cache_dir()
     catalog_fingerprint = _catalog_fingerprint(_default_catalog_jsonl_path())
-    cache_key = _cache_key(query_text, top_n, catalog_fingerprint)
+    cache_key = _cache_key(query_text, top_n, catalog_fingerprint, bucket=bucket)
     cache_file = cache_dir / f"{cache_key}.json"
     cached_results = _load_fresh_cache(cache_file, top_n, entries)
     if cached_results is not None:
@@ -354,6 +360,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="HELIX code index 推挙 CLI")
     parser.add_argument("query", help="検索クエリ")
     parser.add_argument("-n", "--top-n", type=int, default=5, help="上位候補数")
+    parser.add_argument(
+        "--bucket",
+        choices=["coverage_eligible", "private_helper", "excluded", "all"],
+        default="coverage_eligible",
+        help="code_index bucket で候補を絞り込む",
+    )
     parser.add_argument("--json", action="store_true", help="JSON のみ出力")
     return parser
 
@@ -362,7 +374,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
-        results = find_code(args.query, n=max(1, args.top_n))
+        results = find_code(args.query, n=max(1, args.top_n), bucket=args.bucket)
     except CodeRecommenderError as exc:
         print(f"エラー: {exc}", file=sys.stderr)
         return exc.code

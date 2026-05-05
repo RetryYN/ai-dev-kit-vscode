@@ -17,7 +17,8 @@ Subcommands:
   build                         tracked files を走査して JSONL + DB を同期
   list [--domain NAME] [--json] code_index 一覧を表示
   show <id>                     code_index の詳細を表示
-  find <query> [-n 5]           query に近い流用候補を推挙
+  find <query> [-n 5] [--bucket coverage_eligible|private_helper|excluded|all]
+                                query に近い流用候補を推挙
   dup [--threshold 0.85] [--domain NAME]
                                 summary 類似の duplicate 候補を検出
   stats [--by domain|since]     code_index の件数を集計
@@ -161,19 +162,21 @@ PY
 find_entries() {
   local query="$1"
   local top_n="$2"
+  local bucket="$3"
 
-  python3 - "$LIB_DIR" "$query" "$top_n" <<'PY'
+  python3 - "$LIB_DIR" "$query" "$top_n" "$bucket" <<'PY'
 import sys
 from pathlib import Path
 
 lib_dir = Path(sys.argv[1])
 query = sys.argv[2]
 top_n = int(sys.argv[3])
+bucket = sys.argv[4]
 
 sys.path.insert(0, str(lib_dir))
 import code_recommender  # type: ignore
 
-results = code_recommender.find_code(query, n=top_n)
+results = code_recommender.find_code(query, n=top_n, bucket=bucket)
 for item in results:
     print(
         f"{item.get('id', '')}  {item.get('domain', '')}  "
@@ -419,6 +422,7 @@ USAGE
       ;;
     find)
       local top_n="5"
+      local bucket="coverage_eligible"
       local query_parts=()
       while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -427,9 +431,17 @@ USAGE
             top_n="$2"
             shift 2
             ;;
+          --bucket)
+            [[ $# -ge 2 ]] || { echo "エラー: --bucket には値が必要です" >&2; return 64; }
+            case "$2" in
+              coverage_eligible|private_helper|excluded|all) bucket="$2" ;;
+              *) echo "エラー: --bucket は coverage_eligible/private_helper/excluded/all のいずれかです: $2" >&2; return 64 ;;
+            esac
+            shift 2
+            ;;
           --help|-h)
             cat <<'USAGE'
-使い方: helix code find <query> [-n 5]
+使い方: helix code find <query> [-n 5] [--bucket coverage_eligible|private_helper|excluded|all]
 USAGE
             return 0
             ;;
@@ -444,7 +456,7 @@ USAGE
         esac
       done
       [[ "${#query_parts[@]}" -gt 0 ]] || { echo "エラー: find には query が必要です" >&2; return 64; }
-      find_entries "${query_parts[*]}" "$top_n"
+      find_entries "${query_parts[*]}" "$top_n" "$bucket"
       return $?
       ;;
     dup)

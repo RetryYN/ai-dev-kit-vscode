@@ -1,7 +1,7 @@
 # HELIX Completion Memory Update
 
 Date: 2026-05-04
-Scope: PLAN-001 through PLAN-016 completion cleanup
+Scope: PLAN-001 through PLAN-017 completion cleanup
 
 ## Summary
 
@@ -30,6 +30,9 @@ shareable, non-secret memory update.
 - 2026-05-04 final verification passed: `python3 -m pytest cli/lib/tests/`
   706 passed, `helix test --no-pytest --bats-only` 242 Bats passed and 5 shell
   checks passed.
+- 2026-05-05 follow-up verification passed: `python3 -m pytest cli/lib/tests/`
+  783 passed, `helix test --no-pytest --bats-only` 259 Bats passed and 5 shell
+  checks passed.
 
 ## Builder System
 
@@ -52,6 +55,33 @@ shareable, non-secret memory update.
   routing to a Codex role.
 - Skill usage telemetry exists through `helix skill stats --json`; long-running
   operational learning remains staged rather than an active blocker.
+
+## LLM Guard and Context Budget
+
+- Raw LLM CLI bypass is guarded in two layers:
+  `cli/libexec/helix-pre-bash` for Claude Code Bash PreToolUse and PATH shims
+  (`cli/codex`, `cli/claude`).
+- `cli/lib/llm_guard.py` is the shared raw LLM command detector. It allows
+  HELIX harness commands such as `helix codex --plan-only`,
+  `helix codex --approved`, and `helix claude --dry-run`, and blocks
+  unapproved raw Codex / Claude execution.
+- `cli/helix-context` / `cli/lib/context_guard.py` provide repository-local
+  context budget checks for AGENTS / CLAUDE / hook docs.
+- `helix context check --json` passes with zero errors and zero warnings; the
+  local raw LLM allowlist is reported as informational because Bash
+  PreToolUse is configured as block-on-failure.
+
+## PLAN-017 Coverage Closure
+
+- `docs/plans/PLAN-017-bats-coverage-core-cli.md` was updated from initial
+  assumptions to draft v1 reality: handover / gate already had meaningful
+  Bats coverage, while plan / codex needed focused additions.
+- Added `cli/tests/test-helix-plan.bats` for plan lifecycle contracts:
+  help, empty list, draft creation, ID increment, status, finalize guard, and
+  invalid ID rejection.
+- Added `cli/tests/test-helix-codex.bats` for Codex harness safety contracts:
+  help, required args, role validation, plan-only dry-run, execution context
+  injection, missing reference docs, and require-approved guard.
 
 ## Remaining Non-Repo Decisions
 
