@@ -1,7 +1,0 @@
-id: PLAN-005
-title: "運用自動化スキル群 (scheduler/job-queue/lock/init-setup/observability の 5 shared infra skills)"
-status: finalized
-created_at: 2026-04-29T15:53:13Z
-source_file: docs/plans/PLAN-005-ops-automation-skills.md
-finalized_at: 2026-04-29T16:10:29Z
-review: { status: approve, reviewed_at: 2026-04-29T16:09:49Z, review_file: ".helix/reviews/plans/PLAN-005.json" }

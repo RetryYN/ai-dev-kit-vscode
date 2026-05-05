@@ -1,7 +1,0 @@
-id: PLAN-014
-title: "Stop hook idempotency — session-summary 重複行抑制"
-status: finalized
-created_at: 2026-05-03T06:28:10Z
-source_file: docs/plans/PLAN-014-stop-hook-idempotency.md
-finalized_at: 2026-05-03T07:55:36Z
-review: { status: approve, reviewed_at: 2026-05-03T06:34:07Z, review_file: ".helix/reviews/plans/PLAN-014.json" }
