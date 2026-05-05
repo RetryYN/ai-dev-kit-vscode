@@ -1,0 +1,7 @@
+id: PLAN-019
+title: "helix-migrate 対象拡張 (CLAUDE.md / AGENTS.md / .claude/settings.json + 配布戦略明文化)"
+status: finalized
+created_at: 2026-05-05T06:43:34Z
+source_file: docs/plans/PLAN-019-helix-migrate-target-expansion.md
+finalized_at: 2026-05-05T07:32:32Z
+review: { status: approve, reviewed_at: 2026-05-05T07:18:49Z, review_file: ".helix/reviews/plans/PLAN-019.json" }

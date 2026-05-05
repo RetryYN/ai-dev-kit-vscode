@@ -1,0 +1,107 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass。P0=0/P1=0/P2=3/P3=0。approve 判定の根拠: PLAN-019 は source_file 本文が未検出で詳細密度は不足するが、対象拡張先（CLAUDE.md / AGENTS.md / .claude/settings.json）と配布戦略明文化という主要方向は特定されており、現時点で構造的矛盾・スコープ越境・致命的セキュリティ欠陥は確認されない。工程表: .helix/plans/PLAN-019.yaml を正本として確認、.helix/task-plan.yaml は PLAN-013 完了分のみで対象外。HELIX command: ./cli/helix plan status --id PLAN-019, ./cli/helix plan list。テストは plan-only/read-only の設計レビューのため未実行。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 2,
+      "comment": "PLAN 本文が未検出で、判断材料は .helix/plans のメタ情報とタイトルに限定される。"
+    },
+    {
+      "dimension": "depth",
+      "level": 2,
+      "comment": "移行方式、競合解決、rollback、settings merge の詳細判断はまだ掘れていない。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 3,
+      "comment": "対象ファイル種別と配布戦略は射程に入っているが、バックアップ境界とローカル設定の扱いが未明文化。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 3,
+      "comment": "現行 helix-migrate の制約と整合する方向だが、root/.claude 配下を扱う契約は未確定。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 3,
+      "comment": "対象拡張は妥当だが、現在の hardcoded TARGETS から registry 化しないと拡張時の分岐が増える。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "[P2] PLAN 本文が未作成でレビュー密度が不足している",
+      "body": "PLAN-019 の source_file は docs/plans/PLAN-019-helix-migrate-target-expansion.md を指しているが、リポジトリ上では未検出だった。タイトルベースでは approve 可能だが、finalize 前に対象、非対象、移行方式、rollback、配布先、受入条件を本文に落とさないと G2/G3 で判断が不安定になる。",
+      "file": ".helix/plans/PLAN-019.yaml",
+      "line_start": 5,
+      "line_end": 5,
+      "confidence": 0.96,
+      "recommendation": "docs/plans/PLAN-019-helix-migrate-target-expansion.md を作成し、target matrix、non-goals、migration/rollback policy、test acceptance を記載してから finalize する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "density",
+          "level": 2,
+          "comment": "本文欠落により網羅性を確認できない。"
+        },
+        {
+          "dimension": "depth",
+          "level": 2,
+          "comment": "技術判断の詳細が未提示。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "[P2] helix-migrate の対象拡張は path/backup/rollback 契約を先に固定する必要がある",
+      "body": "現行 migrate.py は TARGETS を .helix ディレクトリ相対の YAML 群として扱う設計になっている。CLAUDE.md、AGENTS.md、.claude/settings.json は project root / .claude 配下であり、同じ前提のまま拡張すると backup/rollback の保存位置、相対パス復元、dry-run 表示、存在しないファイル作成の扱いが曖昧になる。",
+      "file": "cli/lib/migrate.py",
+      "line_start": 28,
+      "line_end": 34,
+      "confidence": 0.9,
+      "recommendation": "L2 で target registry を導入する方針を明記し、各 target に root、path、template、merge_strategy、backup_policy、rollback_policy、tracked/local 区分を持たせる。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "現行対象は .helix YAML 前提で、拡張対象のパス契約と一致しない。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "registry 化なしでは対象追加ごとに個別分岐が増える。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "[P2] .claude/settings.json は YAML merge ではなく専用 JSON merge 戦略を明記する必要がある",
+      "body": "settings.json には既存 hook を保持しつつ HELIX hook を正規化する専用実装が既にある。PLAN-019 で .claude/settings.json を helix-migrate 対象に含めるなら、汎用 YAML merge と同列に扱わず、merge_settings.py の責務再利用、invalid JSON 時の fail-close、非 HELIX hook 保持、secret/PII を backup に含める場合の扱いを明記する必要がある。",
+      "file": "cli/lib/merge_settings.py",
+      "line_start": 115,
+      "line_end": 127,
+      "confidence": 0.88,
+      "recommendation": "settings.json target は merge_strategy=json_hooks として設計し、merge_settings.py の API 化または migrate からの安全な呼び出しに限定する。invalid JSON、既存 non-HELIX hook、remove/rollback のテストケースも受入条件に含める。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "breadth",
+          "level": 3,
+          "comment": "既存 hook、invalid JSON、backup、secret/PII の考慮が必要。"
+        },
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "JSON hook 設定の構造契約を YAML merge と混同しない指定が必要。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "PLAN-019 本文を作成し、target registry と merge_strategy の方針を L2 レベルで明文化する。",
+    "G2 前に backup/rollback の対象範囲と secret/PII を含む可能性のある settings backup の扱いを決める。",
+    "G3 では cli/lib/migrate.py、cli/helix-migrate、cli/lib/merge_settings.py、対象 Bats/pytest の受入条件を WBS 化する。"
+  ]
+}
