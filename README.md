@@ -35,6 +35,49 @@ bash ~/ai-dev-kit-vscode/setup.sh
 
 > **配布物の境界**: 本リポジトリの `.helix/` 配下は git untracked（PLAN-021 で完全分離済）。clone 時には HELIX framework 本体（cli / skills / docs / templates）のみが降ります。各プロジェクトでは `helix init` で `.helix/` を初期化して使ってください。
 
+## プロジェクトでの使い方（3 段階セットアップ）
+
+`setup.sh` はホスト環境（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md` / グローバル hook）の設定だけを行います。**各プロジェクトの `CLAUDE.md` / `AGENTS.md` / `.claude/settings.json` の生成・追従は `helix init` と `helix migrate` で行います**。
+
+### Step 1: ホスト環境セットアップ（一度だけ）
+
+```bash
+git clone https://github.com/RetryYN/ai-dev-kit-vscode.git ~/ai-dev-kit-vscode
+bash ~/ai-dev-kit-vscode/setup.sh
+```
+
+### Step 2: 新規プロジェクトで HELIX を有効化
+
+```bash
+cd /path/to/new-project
+helix init
+# → CLAUDE.md / AGENTS.md / .claude/settings.json + .helix/ skeleton を生成
+# → CLAUDE.md / AGENTS.md は HELIX-MANAGED-START/END マーカーで HELIX 管理範囲を明示
+```
+
+### Step 3: 既存プロジェクトを最新テンプレに追従（テンプレ更新時）
+
+HELIX 本体を更新した後、各プロジェクトで:
+
+```bash
+cd /path/to/existing-project
+helix migrate --dry-run    # 差分確認 (CLAUDE.md / AGENTS.md / .claude/settings.json)
+helix migrate --yes        # 適用 (.helix/migrate-backups/<timestamp>/ に自動 backup)
+helix migrate --rollback   # 直前の backup から戻す
+```
+
+`helix migrate` は冪等です。HELIX-MANAGED-START/END マーカー範囲内のみ最新版に置換し、マーカー外のユーザー記述は保持します。何度実行しても二重化しません。
+本リポジトリ（HELIX framework 本体）自身で `helix migrate` を走らせた場合は self-host detection で `claude_md` / `agents_md` / `claude_settings` が skip されます（本体ドキュメントを壊さないため）。
+
+### トラブルシューティング
+
+| 症状 | 原因 / 対応 |
+|---|---|
+| `helix migrate` で CLAUDE.md / AGENTS.md が二重追記される | template が古い HELIX 版（マーカーなし）。`helix migrate --rollback` → HELIX 本体を最新化 → 再度 `helix migrate --yes` |
+| `.claude/settings.json` が invalid JSON で fail-close | 手動で構文修正後に再実行。fail-close なので破壊はない |
+| `.helix/handover/CURRENT.json` が stale | [docs/runbook/helix-handover.md](docs/runbook/helix-handover.md) 参照 |
+| Codex 委譲が hang | [docs/runbook/helix-codex.md](docs/runbook/helix-codex.md) 参照 |
+
 このリポジトリ自体のエージェント向け project rules は [CLAUDE.md](CLAUDE.md) と [AGENTS.md](AGENTS.md) が正本です。個人差分は `CLAUDE.local.md` / `AGENTS.override.md` に置きます。
 
 このリポジトリへ clone した後は、Git hook を有効化するために `bash scripts/install-git-hooks.sh` を追加で実行してください。  
