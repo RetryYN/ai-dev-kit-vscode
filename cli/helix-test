@@ -63,6 +63,8 @@ BATS_FAIL=0
 BATS_SKIP=0
 BATS_STATUS="not-run"
 
+# run_test* helpers: $cmd は本ファイル内で定義した固定テストケース文字列のみ。
+# 外部入力は通らないため eval 注入リスクなし (CLAUDE.md コーディング規約)。
 run_test() {
   local name="$1"
   local cmd="$2"
@@ -512,13 +514,16 @@ run_test "codex require approval evidence rejects missing evidence" "HELIX_CODEX
 run_test "codex approval evidence accepts approval file" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix/approvals; printf 'ok\n' > .helix/approvals/PLAN-TEST.approved; HELIX_PROJECT_ROOT=\"\$D\" HELIX_CODEX_REQUIRE_APPROVAL_EVIDENCE=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --plan-id PLAN-TEST >/dev/null; rc=\$?; rm -rf \"\$D\"; exit \$rc"
 run_test "codex WBS validation rejects missing WBS" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix docs/design; printf '| WBS ID | L4 Sprint |\n|---|---|\n| WBS-001 | .1a |\n' > docs/design/L3-schedule-wbs.md; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/helix-codex --role pg --task 'WBS 実装' --approved --wbs-id WBS-999 --l4-sprint .2 --reference-doc docs/design/L3-schedule-wbs.md --dry-run >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
 run_test "raw codex exec shim blocks" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex exec 'raw blocked' >/dev/null 2>&1" 2
+run_test "raw codex exec shim blocks global-option form" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex -m gpt-5 exec 'raw blocked' >/dev/null 2>&1" 2
+run_test "raw codex exec shim blocks alias with global option" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex --full-auto e 'raw blocked' >/dev/null 2>&1" 2
 cat > "$TEST_DIR/codex" << 'EOF'
 #!/bin/bash
 echo "real-codex-pass: $*"
 EOF
 chmod +x "$TEST_DIR/codex"
 run_test_contains "codex shim passes non-exec through" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" $SCRIPT_DIR/codex --version 2>&1" "real-codex-pass"
-run_test_contains "codex shim allows explicit raw override" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" HELIX_ALLOW_RAW_CODEX=1 $SCRIPT_DIR/codex exec raw 2>&1" "real-codex-pass"
+run_test_contains "codex shim allows explicit raw override" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=test $SCRIPT_DIR/codex exec raw 2>&1" "real-codex-pass"
+run_test_contains "codex shim allows explicit raw override with global option" "PATH=\"$SCRIPT_DIR:$TEST_DIR:$PATH\" HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=test $SCRIPT_DIR/codex -m gpt-5 exec raw 2>&1" "real-codex-pass"
 cat > "$TEST_DIR/mock-codex-write-bad" << 'EOF'
 #!/bin/bash
 echo bad > "$HELIX_PROJECT_ROOT/notallowed.txt"

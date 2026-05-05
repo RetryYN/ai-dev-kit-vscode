@@ -53,6 +53,10 @@ PY
   run "$HELIX_ROOT/cli/helix" session-start --help
   [ "$status" -eq 0 ]
 
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" "$HELIX_ROOT/cli/helix" context --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+
   run "$HELIX_ROOT/cli/helix" claude --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"Claude Code 用"* ]]
@@ -88,7 +92,7 @@ PY
   for cmd in \
     init status dashboard mode doctor migrate commands setup test test-debug debug bench \
     size plan meta-phase matrix gate gate-api-check readiness sprint task interrupt handover pr retro debt drift-check \
-    codex claude team review skill budget hook check-claudemd session-start session-summary \
+    codex claude team review skill budget hook check-claudemd context session-start session-summary \
     reverse scrum verify-all verify-agent \
     log recipe learn promote discover builder code audit \
     scheduler job lock observe; do
@@ -196,11 +200,54 @@ PY
 
   [ -f "$NEW_ROOT/CLAUDE.md" ]
   [ -f "$NEW_ROOT/AGENTS.md" ]
+  [ -f "$NEW_ROOT/.claude/settings.json" ]
   grep -q "# template-app" "$NEW_ROOT/CLAUDE.md"
   grep -q "# Codex CLI — template-app" "$NEW_ROOT/AGENTS.md"
+  grep -q "helix-pre-bash" "$NEW_ROOT/.claude/settings.json"
   grep -q "AGENTS.override.md" "$NEW_ROOT/.gitignore"
+  grep -q ".claude/agent-memory/" "$NEW_ROOT/.gitignore"
   grep -q "helix claude" "$NEW_ROOT/CLAUDE.md"
   grep -q "helix claude" "$NEW_ROOT/AGENTS.md"
+
+  run env HELIX_PROJECT_ROOT="$NEW_ROOT" "$HELIX_ROOT/cli/helix" context --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+}
+
+@test "helix init fails when existing claude settings is invalid" {
+  NEW_ROOT="$TMP_ROOT/init-invalid-settings"
+  mkdir -p "$NEW_ROOT/.claude"
+  cd "$NEW_ROOT"
+  git init >/dev/null 2>&1
+  printf '{bad' > "$NEW_ROOT/.claude/settings.json"
+
+  run env HELIX_PROJECT_ROOT="$NEW_ROOT" HELIX_SKIP_HOOK_INSTALL=1 \
+    "$HELIX_ROOT/cli/helix" init --project-name invalid-settings
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"設定マージに失敗"* ]]
+}
+
+@test "setup fails when user claude settings merge fails" {
+  mkdir -p "$HOME/.claude"
+  printf '{bad' > "$HOME/.claude/settings.json"
+
+  run env HOME="$HOME" HELIX_HOME="$HELIX_ROOT" CODEX_BIN="" bash "$HELIX_ROOT/setup.sh"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"HELIX hooks merge failed"* ]]
+  [[ "$output" == *"Setup completed with errors"* ]]
+}
+
+@test "setup uninstall fails when user claude settings removal fails" {
+  mkdir -p "$HOME/.claude"
+  printf '{bad' > "$HOME/.claude/settings.json"
+
+  run env HOME="$HOME" HELIX_HOME="$HELIX_ROOT" CODEX_BIN="" bash "$HELIX_ROOT/setup.sh" --uninstall
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"HELIX hooks removal failed"* ]]
+  [[ "$output" == *"Setup completed with errors"* ]]
 }
 
 @test "management document templates are current and L3 schedule is generated" {
