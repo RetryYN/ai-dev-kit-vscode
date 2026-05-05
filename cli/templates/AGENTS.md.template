@@ -1,3 +1,5 @@
+<!-- helix_template_version: 5 -->
+<!-- HELIX-MANAGED-START -->
 # Codex CLI — プロジェクト名
 
 このファイルは Codex CLI 向けの project rules。Claude Code 側の project context は `CLAUDE.md`、Claude runtime / hook の詳細は `.claude/CLAUDE.md` を参照する。
@@ -74,3 +76,5 @@ Codex と Claude Code は API 直叩きではなく、契約プラン + ロー�
 ## Local Overrides
 
 個人差分は `AGENTS.override.md` に書く。`AGENTS.override.md` は Git 追跡しない。
+<!-- HELIX-MANAGED-END -->
+

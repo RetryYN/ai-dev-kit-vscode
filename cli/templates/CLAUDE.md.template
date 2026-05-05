@@ -1,4 +1,5 @@
 <!-- helix_template_version: 5 -->
+<!-- HELIX-MANAGED-START -->
 # プロジェクト名
 
 @~/ai-dev-kit-vscode/skills/SKILL_MAP.md
@@ -70,3 +71,5 @@ docs/
 - 個人差分: `CLAUDE.local.md` / `AGENTS.override.md`
 
 詳細は `docs/commands/index.md` と `docs/commands/ai-harness.md` を参照。
+<!-- HELIX-MANAGED-END -->
+

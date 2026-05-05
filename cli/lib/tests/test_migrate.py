@@ -381,3 +381,57 @@ def test_helix_migrate_cli_dry_run_apply_and_rollback(tmp_path: Path) -> None:
     assert not (project_root / "CLAUDE.md").exists()
     assert not (project_root / "AGENTS.md").exists()
     assert not (project_root / ".claude/settings.json").exists()
+
+
+def test_self_host_skips_project_targets(tmp_path: Path) -> None:
+    project_root = tmp_path
+    helix_dir = project_root / ".helix"
+    templates_dir = project_root / "cli" / "templates"
+    _write_templates(templates_dir)
+    _write_current_yaml_files(helix_dir)
+    (project_root / "skills").mkdir()
+    (project_root / "skills" / "SKILL_MAP.md").write_text("# SKILL_MAP\n", encoding="utf-8")
+
+    assert migrate.is_helix_self_repo(project_root, templates_dir) is True
+
+    result = migrate.do_merge(helix_dir, templates_dir, apply=True, project_root=project_root)
+    assert result == 0
+    assert not (project_root / "CLAUDE.md").exists()
+    assert not (project_root / "AGENTS.md").exists()
+    assert not (project_root / ".claude" / "settings.json").exists()
+
+
+def test_idempotent_text_append_with_managed_markers(tmp_path: Path) -> None:
+    project_root = tmp_path
+    helix_dir = project_root / ".helix"
+    templates_dir = tmp_path / "templates"
+    _write_templates(templates_dir)
+    (templates_dir / "CLAUDE.md.template").write_text(
+        "<!-- helix_template_version: 3 -->\n"
+        "<!-- HELIX-MANAGED-START -->\n"
+        "# CLAUDE template v3\nrules\n"
+        "<!-- HELIX-MANAGED-END -->\n",
+        encoding="utf-8",
+    )
+    _write_current_yaml_files(helix_dir)
+    (project_root / "CLAUDE.md").write_text(
+        "<!-- helix_template_version: 2 -->\n"
+        "<!-- HELIX-MANAGED-START -->\n"
+        "# CLAUDE template v2\nold rules\n"
+        "<!-- HELIX-MANAGED-END -->\n"
+        "\nuser custom\n",
+        encoding="utf-8",
+    )
+    (project_root / "AGENTS.md").write_text(
+        "<!-- helix_template_version: 3 -->\nplaceholder\n", encoding="utf-8"
+    )
+
+    assert migrate.do_merge(helix_dir, templates_dir, apply=True, project_root=project_root) == 0
+    after_first = (project_root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "v3" in after_first
+    assert "user custom" in after_first
+    assert after_first.count("HELIX-MANAGED-START") == 1
+
+    assert migrate.do_merge(helix_dir, templates_dir, apply=True, project_root=project_root) == 0
+    after_second = (project_root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert after_first == after_second

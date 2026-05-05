@@ -198,7 +198,16 @@ def _target_label(target: dict[str, Any]) -> str:
 
 
 def _managed_block(template_text: str) -> str:
-    return f"{MANAGED_START}\n{template_text.rstrip()}\n{MANAGED_END}\n"
+    inner = template_text
+    if MANAGED_START in inner and MANAGED_END in inner:
+        match = re.search(
+            rf"{re.escape(MANAGED_START)}\n?(.*?)\n?{re.escape(MANAGED_END)}",
+            inner,
+            re.DOTALL,
+        )
+        if match:
+            inner = match.group(1)
+    return f"{MANAGED_START}\n{inner.rstrip()}\n{MANAGED_END}\n"
 
 
 def merge_text_append(existing_text: str, template_text: str) -> str:
@@ -559,6 +568,28 @@ def _merge_target(
     raise ValueError(f"unknown merge strategy: {strategy}")
 
 
+SELF_HOST_SKIP_TARGET_IDS = {"claude_md", "agents_md", "claude_settings"}
+
+
+def is_helix_self_repo(project_root: Path, templates_dir: Path) -> bool:
+    """Detect HELIX framework repo itself.
+
+    本リポジトリ (cli/templates と skills/SKILL_MAP.md を持つ HELIX 本体) で migrate を
+    走らせると、自身の CLAUDE.md / AGENTS.md に template が二重追記されてしまうため、
+    project_root の claude_md / agents_md / claude_settings target を skip する。
+    """
+    try:
+        templates_resolved = templates_dir.resolve()
+        repo_templates = (project_root / "cli" / "templates").resolve()
+    except (OSError, RuntimeError):
+        return False
+    return (
+        (project_root / "cli" / "templates" / "CLAUDE.md.template").exists()
+        and (project_root / "skills" / "SKILL_MAP.md").exists()
+        and templates_resolved == repo_templates
+    )
+
+
 def do_merge(
     helix_dir: Path,
     templates_dir: Path,
@@ -566,8 +597,17 @@ def do_merge(
     project_root: Path | None = None,
 ) -> int:
     project_root = resolve_project_root(helix_dir, project_root)
+    self_repo = is_helix_self_repo(project_root, templates_dir)
+    if self_repo:
+        print(
+            "[helix migrate] self-host detected: HELIX framework repo 自身では "
+            "claude_md / agents_md / claude_settings の merge を skip します",
+            file=sys.stderr,
+        )
     changes = []
     for target in TARGET_REGISTRY:
+        if self_repo and target["id"] in SELF_HOST_SKIP_TARGET_IDS:
+            continue
         label = _target_label(target)
         current_path = resolve_target_path(target, helix_dir, project_root)
         template_path = resolve_template_path(target, templates_dir)
