@@ -924,6 +924,12 @@ Codex は工程表とユーザー承認を無視して実装してはいけな�
 
 4. Output Evidence
    - 最終出力には、守った工程表行、使った HELIX command / delegation、テスト・レビュー結果、未実行理由を簡潔に含める。
+
+5. No Commit (委譲 Codex 限定ルール)
+   - `helix codex` / `codex exec` で呼ばれた**委譲 Codex** は `git add` / `git stage` / `git commit` / `git push` を一切実行しない。
+   - コードを編集してファイルへ保存するところまでが責務。コミット判断・粒度・メッセージは Opus (PM) が成果物検証後に行う。
+   - 最終出力で「変更ファイル一覧」「テスト結果」「未消化事項」を report するだけ。勝手に commit すると Opus 側で `git reset --soft` で巻き戻されるため作業が無駄になる。
+   - チャット (TL モード) Codex はこのルールの対象外（TL Codex はユーザーと直接対話する側で、コミットを担当する）。
 EOF
 )
 REVIEW_TEMPLATE_SECTION=""
