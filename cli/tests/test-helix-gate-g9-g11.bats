@@ -51,6 +51,24 @@ YAML
   [[ "$output" != *"無効なゲート"* ]]
 }
 
+@test "helix gate G1R --ai-only still enforces research evidence guard" {
+  cat > "$PROJECT_ROOT/.helix/phase.yaml" <<'YAML'
+project: gate-g1r-test
+current_phase: L1
+sprint:
+  drive: be
+  ui: false
+gates:
+  G1R:
+    status: pending
+YAML
+
+  run "$HELIX_ROOT/cli/helix" gate G1R --ai-only --dry-run --json
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"[G1R] research evidence guard"* ]]
+  [[ "$output" == *"missing_research_report"* ]]
+}
+
 @test "helix gate G10 --dry-run is accepted" {
   write_phase passed passed pending
 

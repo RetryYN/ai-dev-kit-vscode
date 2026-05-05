@@ -90,6 +90,19 @@ teardown() {
   [[ "$output" == *"--reference-doc が見つかりません: docs/missing.md"* ]]
 }
 
+@test "helix-codex routes web research tasks to research role" {
+  run "$HELIX_ROOT/cli/helix-codex" --role se --task "Web検索でSDKを調査" --dry-run
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"HELIX agent policy に違反"* ]]
+  [[ "$output" == *"research_task_wrong_role"* ]]
+}
+
+@test "helix-codex allows implementation code investigation wording" {
+  run "$HELIX_ROOT/cli/helix-codex" --role se --task "影響範囲調査" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Role:      se"* ]]
+}
+
 @test "helix-codex require-approved blocks write execution without consent" {
   HELIX_CODEX_REQUIRE_APPROVED=1 run "$HELIX_ROOT/cli/helix-codex" --role docs --task "実装して"
   [ "$status" -ne 0 ]

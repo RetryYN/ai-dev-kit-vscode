@@ -150,8 +150,8 @@ src/
 
 ```
 【設計】Opus が言語化 → Codex 5.4 がレビュー → 合意
-            ↓ ← codex exec -m gpt-5.4（設計レビュー）: G2（設計凍結）
-            ↓ ← codex exec -m gpt-5.4（API契約レビュー）: G3（実装着手 / API契約レビュー）
+            ↓ ← helix codex --role tl（設計レビュー）: G2（設計凍結）
+            ↓ ← helix codex --role tl（API契約レビュー）: G3（実装着手 / API契約レビュー）
 【実装】Codex 5.3 が設計から実装まで一気通貫で実行
             │ ← helix review（軽量: Critical/High のみ）: 実装.2（5.4 レビュー）
             │ ← helix review（フル品質）: 実装.5（5.4 レビュー）
@@ -210,18 +210,18 @@ src/
 ### 呼び出し方
 
 ```bash
-# Codex 5.4: 設計レビュー・コードレビュー・品質アップ・トラブルシュート
-codex exec "レビュー: X feature の設計書" -m gpt-5.4
+# Codex TL: 設計レビュー・コードレビュー・品質アップ・トラブルシュート
+helix codex --role tl --task "レビュー: X feature の設計書"
 helix review --uncommitted      # コードレビュー
 
 # Codex 5.3: 実装メイン（スコア4+）
-codex exec "Implement X feature based on design docs" -m gpt-5.3-codex
+helix codex --role se --task "Implement X feature based on design docs"
 
 # Codex 5.3 Spark: 軽量実装・軽微修正
-codex exec "Fix lint errors in src/..." -m gpt-5.3-codex-spark
+helix codex --role pg --task "Fix lint errors in src/..."
 
 # Codex 5.2: 大規模コード精読・スキャン
-codex exec "精読: src/ 配下の認証関連コードを列挙" -m gpt-5.2-codex
+helix codex --role legacy --task "精読: src/ 配下の認証関連コードを列挙"
 
 # Sonnet: テスト・ドキュメント
 Task(model: "sonnet", prompt: "Write tests for ...")
@@ -236,16 +236,16 @@ Task(model: "haiku", prompt: "Search for ... and summarize")
 ```
 タスクの種類は？
 ├── 設計を詰める → Opus（言語化）+ Codex 5.4（エンジニアレビュー）
-├── 設計書・仕様書をレビューする → Codex 5.4（codex exec "レビュー"）
-├── コード実装（スコア4+）→ Codex 5.3（codex exec -m gpt-5.3-codex）
-├── 軽量実装・軽微修正（スコア1-3）→ Codex 5.3 Spark（codex exec -m gpt-5.3-codex-spark）
+├── 設計書・仕様書をレビューする → Codex TL（helix codex --role tl --task "レビュー: ..."）
+├── コード実装（スコア4+）→ Codex SE（helix codex --role se）
+├── 軽量実装・軽微修正（スコア1-3）→ Codex PG（helix codex --role pg）
 │   └── エラー多発 → Codex 5.3 にエスカレ → さらに多発なら 5.4
-├── 大規模コード精読・スキャン → Codex 5.2（codex exec -m gpt-5.2-codex）
+├── 大規模コード精読・スキャン → Codex legacy（helix codex --role legacy）
 ├── コードをレビューする → Codex 5.4（helix review --uncommitted）
 │   └── 低リスク（S + セキュリティゲート非該当）→ Codex 5.3 が一次レビュー可
-├── 品質アップ（リファクタ・清書）→ Codex 5.4（codex exec -m gpt-5.4）
+├── 品質アップ（リファクタ・清書）→ Codex TL（helix codex --role tl）
 ├── トラブルシューティング → Codex 5.4（常に。1Mコンテキストで最強）
-├── プラン・方針を壁打ちする → Codex 5.4（codex exec "TL壁打ち"）
+├── プラン・方針を壁打ちする → Codex TL（helix codex --role tl --task "TL壁打ち: ..."）
 ├── FEデザイン → Sonnet（初稿）→ Codex 5.4（清書）
 ├── テストを書く → Sonnet（Task tool）
 ├── ドキュメントを更新する → Sonnet（Task tool）

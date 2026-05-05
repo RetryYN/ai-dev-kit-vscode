@@ -29,6 +29,7 @@ FRAMEWORK_CONTEXT_FILES = [
 REQUIRED_CONTEXT_FILES = PROJECT_CONTEXT_FILES + FRAMEWORK_CONTEXT_FILES
 FRAMEWORK_GUARD_FILES = [
     "cli/lib/research_guard.py",
+    "cli/lib/research_tool_guard.py",
     "cli/lib/agent_policy_guard.py",
 ]
 
@@ -211,8 +212,14 @@ def check_context(root: Path) -> dict[str, Any]:
                 findings.append(Finding("error", "missing_guard_file", f"required guard file missing: {rel}"))
 
     stale_team_command = "helix team <team>"
-    for rel in ("README.md", "AGENTS.md", "helix/AGENTS.md.example", "cli/templates/AGENTS.md.template"):
-        path = framework_root / rel
+    stale_doc_targets = [
+        (root, "README.md"),
+        (root, "AGENTS.md"),
+        (framework_root, "helix/AGENTS.md.example"),
+        (framework_root, "cli/templates/AGENTS.md.template"),
+    ]
+    for base_dir, rel in stale_doc_targets:
+        path = base_dir / rel
         if path.is_file() and stale_team_command in path.read_text(encoding="utf-8", errors="replace"):
             findings.append(
                 Finding(
@@ -230,6 +237,7 @@ def check_context(root: Path) -> dict[str, Any]:
             ("SessionStart", "helix-session-start", ""),
             ("PreToolUse", "helix-check-claudemd", "Write"),
             ("PreToolUse", "helix-pre-bash", "Bash"),
+            ("PreToolUse", "helix-pre-research", "WebSearch|WebFetch"),
             ("PostToolUse", "helix-post-tool-use", "Edit|Write|MultiEdit"),
             ("Stop", "helix-session-summary", ""),
         ]
@@ -245,6 +253,21 @@ def check_context(root: Path) -> dict[str, Any]:
                     "error",
                     "non_blocking_hook",
                     "PreToolUse Bash hook helix-pre-bash must set blockOnFailure=true",
+                )
+            )
+        research_hook_matcher = "WebSearch|WebFetch"
+        research_guard_blocks = _has_blocking_hook(
+            project_settings, "PreToolUse", "helix-pre-research", research_hook_matcher
+        )
+        if (
+            _has_hook(project_settings, "PreToolUse", "helix-pre-research", research_hook_matcher)
+            and not research_guard_blocks
+        ):
+            findings.append(
+                Finding(
+                    "error",
+                    "non_blocking_hook",
+                    "PreToolUse research hook helix-pre-research must set blockOnFailure=true",
                 )
             )
 

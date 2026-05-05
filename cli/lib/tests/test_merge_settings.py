@@ -123,6 +123,16 @@ def test_pre_tool_use_bash_guard_is_registered() -> None:
     assert hook["blockOnFailure"] is True
 
 
+def test_pre_tool_use_research_guard_is_registered() -> None:
+    entries = merge_settings.HELIX_HOOKS["PreToolUse"]
+    research_entries = [entry for entry in entries if entry.get("matcher") == "WebSearch|WebFetch"]
+
+    assert len(research_entries) == 1
+    hook = research_entries[0]["hooks"][0]
+    assert hook["command"] == "~/ai-dev-kit-vscode/cli/libexec/helix-pre-research"
+    assert hook["blockOnFailure"] is True
+
+
 def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
     settings = {
         "hooks": {

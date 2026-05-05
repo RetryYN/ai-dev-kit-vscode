@@ -56,6 +56,17 @@ def _write_settings(root: Path, include_bash_guard: bool = True, bash_guard_bloc
                 ],
             }
         )
+    pretool.append(
+        {
+            "matcher": "WebSearch|WebFetch",
+            "hooks": [
+                {
+                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-pre-research",
+                    "blockOnFailure": True,
+                }
+            ],
+        }
+    )
     payload = {
         "hooks": {
             "SessionStart": [{"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-session-start"}]}],
@@ -83,6 +94,22 @@ def test_check_context_fails_when_bash_guard_missing(tmp_path: Path) -> None:
 
     assert payload["ok"] is False
     assert any(item["code"] == "missing_hook" and "helix-pre-bash" in item["message"] for item in payload["errors"])
+
+
+def test_check_context_fails_when_research_tool_guard_missing(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    _write_settings(tmp_path)
+    (tmp_path / "docs" / "memory").mkdir(parents=True)
+    settings = json.loads((tmp_path / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    settings["hooks"]["PreToolUse"] = [
+        entry for entry in settings["hooks"]["PreToolUse"] if entry.get("matcher") != "WebSearch|WebFetch"
+    ]
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps(settings), encoding="utf-8")
+
+    payload = context_guard.check_context(tmp_path)
+
+    assert payload["ok"] is False
+    assert any(item["code"] == "missing_hook" and "helix-pre-research" in item["message"] for item in payload["errors"])
 
 
 def test_check_context_passes_with_required_files_and_hooks(tmp_path: Path) -> None:
@@ -157,6 +184,27 @@ def test_check_context_fails_when_bash_guard_is_non_blocking(tmp_path: Path) -> 
 
     assert payload["ok"] is False
     assert any(item["code"] == "non_blocking_hook" for item in payload["errors"])
+
+
+def test_check_context_fails_when_research_guard_is_non_blocking(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    _write_settings(tmp_path)
+    (tmp_path / "docs" / "memory").mkdir(parents=True)
+    settings_path = tmp_path / ".claude" / "settings.json"
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    for entry in settings["hooks"]["PreToolUse"]:
+        if entry.get("matcher") == "WebSearch|WebFetch":
+            for hook in entry["hooks"]:
+                hook["blockOnFailure"] = False
+    settings_path.write_text(json.dumps(settings), encoding="utf-8")
+
+    payload = context_guard.check_context(tmp_path)
+
+    assert payload["ok"] is False
+    assert any(
+        item["code"] == "non_blocking_hook" and "helix-pre-research" in item["message"]
+        for item in payload["errors"]
+    )
 
 
 def test_context_bundle_is_compact(tmp_path: Path) -> None:

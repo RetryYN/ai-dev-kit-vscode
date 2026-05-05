@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-pre-research: Claude Code PreToolUse payload wrapper for WebSearch/WebFetch.
+# G1R research completeness is enforced by research_guard.py at gate time.
+
+CLI_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+exec python3 "$CLI_DIR/lib/research_tool_guard.py" check-tool

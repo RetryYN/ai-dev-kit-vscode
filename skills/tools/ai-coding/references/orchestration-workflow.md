@@ -40,7 +40,7 @@ Opus (Orchestrator)
   │     - status: partial → artifacts を取り込み、残作業をタスク分割して工程表に追記→再配送
   │     ⚠️ フェーズ遷移時は Codex レビュー必須（使い分け）:
   │       - コード差分 → `helix review --uncommitted`
-  │       - 設計書・仕様書 → `codex exec "レビュー"`
+  │       - 設計書・仕様書 → `helix codex --role tl --task "レビュー: ..."`
   │
   └─ 6. 次タスクの入力に変換
         - 前タスクの artifacts を次タスクの context に注入
@@ -146,14 +146,14 @@ decisions:
 
 | 作業 | 委譲先 |
 |------|--------|
-| コード実装 | Codex 5.3 / Codex 5.3 Spark (codex exec) |
-| レビュー・品質アップ | Codex 5.4 (helix review / codex exec) |
-| 大規模コード精読 | Codex 5.2 (codex exec) |
+| コード実装 | Codex SE / PG (`helix codex --role se|pg`) |
+| レビュー・品質アップ | Codex TL (`helix review` / `helix codex --role tl`) |
+| 大規模コード精読 | Codex legacy (`helix codex --role legacy`) |
 | テスト作成 | Sonnet (Task tool) |
 | ドキュメント作成 | Sonnet (Task tool) |
 | 調査・検索 | Haiku 4.5 (Task tool) |
 | コードレビュー | Codex 5.4 (helix review --uncommitted) |
-| 設計・仕様レビュー | Codex 5.4 (codex exec "レビュー") |
+| 設計・仕様レビュー | Codex TL (`helix codex --role tl --task "レビュー: ..."`) |
 
 **常時すべて委譲**。唯一の例外: MCP検証などツール動作確認と**フロント（デザイン含む）設計**のみ自分で実行可。
 

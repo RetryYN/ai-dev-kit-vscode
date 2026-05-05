@@ -1,7 +1,7 @@
 # HELIX Completion Memory Update
 
 Date: 2026-05-04
-Scope: PLAN-001 through PLAN-017 completion cleanup
+Scope: PLAN-001 through PLAN-018 completion cleanup
 
 ## Summary
 
@@ -11,7 +11,7 @@ shareable, non-secret memory update.
 
 ## Current Facts
 
-- PLAN-002 through PLAN-016 are finalized and reviewed.
+- PLAN-002 through PLAN-018 are finalized and reviewed.
 - PLAN-001 remains `draft` in PLAN YAML by design because the original source
   file `/tmp/helix-plan-source-poc.txt` is unavailable.
 - PLAN-001 now has a tracked fallback reference:
@@ -33,6 +33,12 @@ shareable, non-secret memory update.
 - 2026-05-05 follow-up verification passed: `python3 -m pytest cli/lib/tests/`
   783 passed, `helix test --no-pytest --bats-only` 259 Bats passed and 5 shell
   checks passed.
+- 2026-05-05 T2/PLAN-017 remediation: PLAN-017 was finalized retroactively,
+  and PLAN-018 was created as the retroactive source of truth for the LLM Guard
+  / research guard / agent policy hardening work that had previously landed
+  without a PLAN.
+- 2026-05-05 final remediation verification passed: `./cli/helix test` reported
+  shell 609 passed / Bats 267 passed / pytest 826 passed.
 
 ## Builder System
 
@@ -82,6 +88,24 @@ shareable, non-secret memory update.
 - Added `cli/tests/test-helix-codex.bats` for Codex harness safety contracts:
   help, required args, role validation, plan-only dry-run, execution context
   injection, missing reference docs, and require-approved guard.
+- 2026-05-05 retro: PLAN-017 status is now `finalized`. The implementation
+  commit happened while the plan still said `draft`; this is recorded as a
+  process violation and closed by retro review, memory update, and regression
+  verification.
+
+## PLAN-018 LLM Guard Retroactive Closure
+
+- `docs/plans/PLAN-018-llm-guard-retroactive-hardening.md` formalizes the T2
+  LLM Guard work after the fact because commit `761e2d3` added a large guard
+  surface without a PLAN.
+- G2/G3/G4 were evaluated retroactively with `--static-only --dry-run
+  --readiness-mode skip` and passed.
+- The guard surface now covers raw Codex / Claude shims, Claude Bash
+  PreToolUse, WebSearch / WebFetch PreToolUse, role policy, context guard,
+  and merge settings canonical hook coverage.
+- A regression bug was found during remediation: `helix-gate` static checks ran
+  without `pipefail`, so `! rg ... | head` absence checks could false-fail.
+  `cli/helix-gate` now runs static checks with `bash -o pipefail -c`.
 
 ## Remaining Non-Repo Decisions
 

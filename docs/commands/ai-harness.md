@@ -116,7 +116,7 @@ helix claude --role pg --task-file .helix/tasks/WBS-003.md --dry-run
 
 Claude Code の PostToolUse は `Edit|Write|MultiEdit` を対象にし、settings からは `cli/libexec/helix-post-tool-use` を呼ぶ。wrapper が Claude Code の hook payload から安全な変更ファイルパスだけを抽出し、ファイルごとに `helix hook` の doc-map / freeze / drift advisory を実行する。
 
-Claude Code の PreToolUse は `Write` で `helix check-claudemd` を呼び、`Bash` で `cli/libexec/helix-pre-bash` を呼ぶ。`helix-pre-bash` は raw `codex exec` / `npx codex exec` と raw `claude` をブロックし、`helix codex` または `helix claude --dry-run` 経由へ寄せる。例外的に raw CLI が必要な場合は、同じ Bash command に対象別の証跡 env を含め、final / evidence に代替不能性を残す。
+Claude Code の PreToolUse は `Write` で `helix check-claudemd`、`Bash` で `cli/libexec/helix-pre-bash`、`WebSearch|WebFetch` で `cli/libexec/helix-pre-research` を呼ぶ。`helix-pre-bash` は raw `codex exec` / `npx codex exec` と raw `claude` をブロックし、`helix codex` または `helix claude --dry-run` 経由へ寄せる。G1R の調査証跡は `research_guard.py` が gate 時に fail-close で検査する。例外的に raw CLI が必要な場合は、同じ Bash command に対象別の証跡 env を含め、final / evidence に代替不能性を残す。
 
 ```bash
 # Codex 例外

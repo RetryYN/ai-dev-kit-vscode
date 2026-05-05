@@ -95,7 +95,7 @@ compatibility:
 
 ### 議長が提案者を兼ねる場合
 
-1. 別インスタンスを起動（Task tool / codex exec）
+1. 別インスタンスを起動（Task tool / helix codex）
 2. 両提案者へのプロンプトは**同一文面**
 3. 結果の要約は**引用ベース**（言い換え禁止）
 

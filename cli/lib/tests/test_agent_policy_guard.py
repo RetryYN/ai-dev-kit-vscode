@@ -49,6 +49,21 @@ def test_research_task_must_route_to_research_role() -> None:
     assert any(item["code"] == "research_task_wrong_role" for item in payload["errors"])
 
 
+def test_code_investigation_can_use_execution_role() -> None:
+    payload = agent_policy_guard.check_team_definition(
+        {"strategy": "sequential", "members": [{"role": "se", "engine": "codex", "task": "影響範囲調査"}]}
+    )
+
+    assert payload["ok"] is True
+
+
+def test_single_member_policy_blocks_research_task() -> None:
+    payload = agent_policy_guard.check_member("se", "codex", "Web検索でSDKを調査")
+
+    assert payload["ok"] is False
+    assert any(item["code"] == "research_task_wrong_role" for item in payload["errors"])
+
+
 def test_execution_roles_cannot_pin_tl_class_model() -> None:
     payload = agent_policy_guard.check_team_definition(
         {"strategy": "sequential", "members": [{"role": "pg", "engine": "codex", "model": "gpt-5.4", "task": "実装"}]}

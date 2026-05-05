@@ -50,6 +50,18 @@ HELIX_HOOKS = {
                     "blockOnFailure": True,
                 }
             ]
+        },
+        {
+            "matcher": "WebSearch|WebFetch",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-pre-research",
+                    "timeout": 5,
+                    "statusMessage": "Checking HELIX research tool guard...",
+                    "blockOnFailure": True,
+                }
+            ]
         }
     ],
     "PostToolUse": [

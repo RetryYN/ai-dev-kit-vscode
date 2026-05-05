@@ -643,6 +643,8 @@ run_test "disable deliverable gate artifacts" "rm -f .helix/runtime/index.json .
 # G2 の前提ゲート（G0.5, G1）を passed に
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G0.5.status" "passed" 2>/dev/null || true
 python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "gates.G1.status" "passed" 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "sprint.drive" "be" 2>/dev/null || true
+python3 "$SCRIPT_DIR/lib/yaml_parser.py" write .helix/phase.yaml "sprint.ui" "false" 2>/dev/null || true
 mkdir -p docs/design && printf '# L2 Architecture\n\n## セキュリティ\n\nSTRIDE 脅威分析済み\n' > docs/design/L2-architecture.md
 run_test "prepare adversarial-review evidence for baseline G2" "mkdir -p .helix/adversarial-review; printf '# review\nReviewer: tl\n' > .helix/adversarial-review/baseline-G2.md"
 run_test "G2 static-only" "$SCRIPT_DIR/helix-gate G2 --static-only"

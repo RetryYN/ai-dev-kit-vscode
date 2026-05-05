@@ -622,7 +622,7 @@ echo ""
 echo "=== $GATE: $gate_name ==="
 echo ""
 
-if [[ "$GATE" == "G1R" && "$AI_ONLY" != true ]]; then
+if [[ "$GATE" == "G1R" ]]; then
   echo "[G1R] research evidence guard"
   if ! python3 "$SCRIPT_DIR/lib/research_guard.py" --root "$PROJECT_ROOT"; then
     if [[ -f "$PHASE_FILE" && "$DRY_RUN" != true ]]; then
@@ -1180,7 +1180,7 @@ PY
         return
       fi
 
-      if (cd "$PROJECT_ROOT" && bash -c "$check_cmd") >/dev/null 2>&1; then
+      if (cd "$PROJECT_ROOT" && bash -o pipefail -c "$check_cmd") >/dev/null 2>&1; then
         passed=true
       fi
 

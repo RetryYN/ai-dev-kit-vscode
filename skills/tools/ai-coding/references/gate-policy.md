@@ -165,7 +165,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
 | Fail | L2 差戻し、要件曖昧なら L1。ADR/境界変更が入ったら G3 以降無効 |
-| レビュー | `codex exec "レビュー"` — Codex 5.4 |
+| レビュー | `helix codex --role tl --task "レビュー: ..."` |
 
 **担当スキル**:
 - adversarial-review（批判レビュー）
@@ -183,7 +183,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 | 判定形式 | ハイブリッド（API/DB 変更なしなら明示会議省略可） |
 | 中規模 skip | 会議省略可 |
 | Fail | L3 差戻し、設計矛盾なら L2。契約/スキーマ変更時は G4 以降無効 |
-| レビュー | `codex exec "レビュー"` — Codex 5.4 |
+| レビュー | `helix codex --role tl --task "レビュー: ..."` |
 
 **担当スキル**:
 - schedule-wbs（工程表/WBS、2026-04-17 追加）
@@ -343,8 +343,8 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 
 | 遷移 | 手段 | 担当 |
 |------|------|------|
-| G2（設計凍結） | `codex exec "レビュー"` | Codex 5.4 |
-| G3（実装着手） | `codex exec "レビュー"` | Codex 5.4 |
+| G2（設計凍結） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| G3（実装着手） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
 | L4 実装.2（軽量） | `helix review --uncommitted` | Codex 5.4（Critical/High のみ） |
 | L4 実装.5（フル品質） | `helix review --uncommitted` | Codex 5.4（全 severity） |
 | G4（実装凍結） | `helix review --uncommitted` | Codex 5.4 |

@@ -93,7 +93,7 @@
 【Phase 1: 探索】→【Phase 2: 設計】→【Phase 3: TL壁打ち】→【Phase 4: PO確認】→【Phase 5: ExitPlanMode】
 ```
 
-- **Phase 3（TL壁打ち）**: `codex exec` で TL に設計案をレビュー依頼
+- **Phase 3（TL壁打ち）**: `helix codex --role tl` で TL に設計案をレビュー依頼
   - 技術的妥当性、代替案の有無、PO に聞くべき質問の精査
   - TL フィードバックを反映してからプランを確定する
 
@@ -129,8 +129,8 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 | 成果物 | コマンド | 用途 |
 |--------|---------|------|
 | コード差分 | `helix review --uncommitted` | L4 実装ゲート(.2/.5)、G4（実装凍結）、G5（デザイン凍結） |
-| 設計書・仕様書 | `codex exec "レビュー: [対象]"` | G2（設計凍結）、G3（実装着手 / API契約レビュー） |
-| プラン・方針 | `codex exec "TL壁打ち: [内容]"` | プランモード Phase 3 |
+| 設計書・仕様書 | `helix codex --role tl --task "レビュー: [対象]"` | G2（設計凍結）、G3（実装着手 / API契約レビュー） |
+| プラン・方針 | `helix codex --role tl --task "TL壁打ち: [内容]"` | プランモード Phase 3 |
 
 ## Agent 並列実行ルール
 

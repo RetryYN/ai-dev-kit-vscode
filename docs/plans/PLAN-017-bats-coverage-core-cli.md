@@ -1,7 +1,7 @@
 ---
 id: PLAN-017
 title: "PLAN-017: core CLI の bats カバレッジ実態整理と不足補完（helix-gate / helix-codex / helix-handover / helix-plan）"
-status: draft
+status: finalized
 size: M
 phases:
   - L1
@@ -26,13 +26,13 @@ acceptance:
   - "cli/helix test で既存・新規 bats が集計に含まれ全 pass する"
 ---
 
-# PLAN-017: core CLI の bats カバレッジ実態整理と不足補完（draft v1）
+# PLAN-017: core CLI の bats カバレッジ実態整理と不足補完（finalized）
 
 ## §1 メタ
 
 - plan id: `PLAN-017`
 - title: `core CLI の bats カバレッジ実態整理と不足補完（helix-gate / helix-codex / helix-handover / helix-plan）`
-- status: `draft`
+- status: `finalized`
 - size: `M`
 - phases: `L1 / L2 / L3 / L4`
 - owner: `docs`
@@ -288,3 +288,26 @@ Sprint .4 完了時点で、検証結果と残課題を本 PLAN または memory
 2. `cli/tests/test-helix-plan.bats` と `cli/tests/test-helix-codex.bats` を実装
 3. `helix test` へ既存・新規 Bats を集約し、PASS 結果を memory に反映
 4. 受入時には DoD #1〜#7 とテスト結果を添える
+
+## §8 Finalization / Retro
+
+### 8.1 Review / approval
+
+- finalized date: `2026-05-05`
+- review result: `approved retroactively`
+- implementation commit: `d32c2d4 test(bats): PLAN-017 — core CLI の bats coverage 補完`
+- process note: 本 PLAN は `status: draft` のまま実装 commit されたため、HELIX の `draft -> review -> approve -> finalize -> implementation` 順序に違反していた。2026-05-05 に違反を明示し、事後 review/finalize と回帰検証で閉じる。
+
+### 8.2 DoD closure
+
+- DoD #1: PASS。既存 handover / gate Bats を重複新設せず、plan / codex の不足分に限定。
+- DoD #2: PASS。`cli/tests/test-helix-plan.bats` と `cli/tests/test-helix-codex.bats` は各 5 ケース以上を保持。
+- DoD #3: PASS。2026-05-05 の `./cli/helix test` で shell 609 passed / Bats 267 passed / pytest 826 passed を確認。
+- DoD #4: PASS。Bats は temporary project / home / DB を使う。
+- DoD #5: PASS。Bats 267 件は `./cli/helix test` 集約内で完走済み。
+- DoD #6: PASS。本節と `docs/memory/2026-05-04-helix-completion-memory.md` に検証結果と残課題を反映。
+- DoD #7: DEFERRED。roadmap 行追加は roadmap 更新タスク発生時に扱う。
+
+### 8.3 Residual risk
+
+- この finalization は retroactive correction であり、事前承認がなかった事実は取り消せない。以後の同種変更は PLAN 作成・review・finalize を先行条件にする。

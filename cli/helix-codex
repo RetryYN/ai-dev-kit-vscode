@@ -355,6 +355,19 @@ apply_consent_guard() {
   fi
 }
 
+validate_agent_policy() {
+  local policy_output
+  if ! policy_output=$(python3 "$SCRIPT_DIR/lib/agent_policy_guard.py" \
+    --role "$ROLE" \
+    --engine codex \
+    --task "$TASK" \
+    --json 2>&1); then
+    echo "エラー: HELIX agent policy に違反しています" >&2
+    echo "$policy_output" >&2
+    exit 1
+  fi
+}
+
 validate_reference_docs() {
   local ref
   local ref_real
@@ -558,6 +571,7 @@ if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
 fi
 
 validate_sandbox_mode "$SANDBOX" || exit 1
+validate_agent_policy
 apply_consent_guard
 validate_sandbox_mode "$SANDBOX" || exit 1
 guard_danger_sandbox || exit 1

@@ -40,7 +40,7 @@ Task tool 経由の Claude サブエージェント（Sonnet / Haiku）に適用
 | 8-10点 | medium | 複雑タスク |
 | 11-14点 | high | 最高難度タスク |
 
-> **Codex 系モデルとの関係**: Codex 系（5.4/5.3/5.3 Spark/5.2）は `codex exec` 経由で実行し、`model_reasoning_effort = "xhigh"` 固定（CLAUDE.md 参照）。上記の難易度別設定は適用しない。
+> **Codex 系モデルとの関係**: Codex 系（5.4/5.3/5.3 Spark/5.2）は `helix codex` 経由で実行し、HELIX の role / guard / evidence 注入を通す。上記の難易度別設定は適用しない。
 > モデル割当の正本は `workflow-core.md §モデル割当テーブル`。
 
 ## スキル自動推論ルール
