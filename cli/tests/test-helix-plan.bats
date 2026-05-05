@@ -62,7 +62,7 @@ teardown() {
   grep -q '^references: \[\]$' "$PROJECT_ROOT/.helix/plans/PLAN-042.yaml"
   grep -q '^artifacts: \[\]$' "$PROJECT_ROOT/.helix/plans/PLAN-042.yaml"
 
-  for shard in D-API D-DB D-ARCH D-TEST; do
+  for shard in D-API D-DB D-ARCH D-TEST D-THREAT; do
     readme="$PROJECT_ROOT/docs/features/PLAN-042/$shard/README.md"
     [ -f "$readme" ]
     head -n 1 "$readme" | grep -q "> 目的: Explicit Skeleton Plan の $shard 設計"

@@ -14,7 +14,7 @@ import yaml_parser
 
 
 PLAN_ID_RE = re.compile(r"^PLAN-[0-9]{3,}$")
-DESIGN_SHARD_DIRS = ("D-API", "D-DB", "D-ARCH", "D-TEST")
+DESIGN_SHARD_DIRS = ("D-API", "D-DB", "D-ARCH", "D-TEST", "D-THREAT")
 
 
 def _plan_sort_key(path: Path) -> tuple[int, str]:

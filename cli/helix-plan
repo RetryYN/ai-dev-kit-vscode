@@ -61,7 +61,7 @@ project_root = Path(sys.argv[1])
 plan_id = sys.argv[2]
 title = sys.argv[3]
 
-for shard in ("D-API", "D-DB", "D-ARCH", "D-TEST"):
+for shard in ("D-API", "D-DB", "D-ARCH", "D-TEST", "D-THREAT"):
     shard_dir = project_root / "docs" / "features" / plan_id / shard
     shard_dir.mkdir(parents=True, exist_ok=True)
     readme = shard_dir / "README.md"
