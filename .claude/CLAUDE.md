@@ -18,15 +18,19 @@
 | 委譲先 | 役割 | 担当 |
 |--------|------|------|
 | Opus（自身） | PM | 言語化・タスク分解・外注指示・出力レビュー・統合・エスカレーション判断・**フロント設計** |
-| Codex 5.4 | TL | 設計（L2-L3）・技術的難易度評価（L3工程表）・レビュー・品質向上・フロントコード品質担保 |
-| Codex 5.3 | SE | 設計レビュー・上級実装（スコア4+） |
-| Codex 5.3 Spark | PG | 通常以下実装（スコア1-3） |
-| Codex 5.2 | — | 大規模コード精読・スキャン |
+| Codex 5.5 | TL / SE / QA | 設計（L2-L3）・技術的難易度評価・レビュー・上級実装・テスト設計 |
+| Codex 5.3 Spark | PG / docs | 通常以下実装（スコア1-3）・ドキュメント起草 |
+| Codex 5.4 | Legacy / FE 専門 | レガシー対応・fe-design / fe-component / fe-style / fe-a11y / fe-test |
+| Codex 5.3 | Security / DBA / DevOps / Perf | セキュリティ監査・DB スキーマ・インフラ・性能 |
+| Codex 5.2 | Research | 大規模コード精読・スキャン |
+| Codex 5.4-mini | Recommender / Classifier | スキル推挙・タスク分類 |
 | Sonnet | FE実装 | フロント実装・FEデザイン初稿・テスト・ドキュメント |
 | Haiku 4.5 | リサーチ | Web検索・先行事例調査 |
 
+> 真実は `cli/config/models.yaml` の `roles:`。本表が乖離した場合は **実装側を正** とする。
+
 - 自分でコード実装しない → Codex / Sonnet へ委譲
-- 技術判断を独断しない → TL（Codex 5.4）と壁打ち（`skills/tools/ai-coding/references/workflow-core.md §PM→TL相談`参照）
+- 技術判断を独断しない → TL（Codex 5.5）と壁打ち（`skills/tools/ai-coding/references/workflow-core.md §PM→TL相談`参照）
 - 工程表作成後は自律実行（`skills/tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
 - モデル割当テーブル・並列実行ルール・ADR → `skills/tools/ai-coding/references/workflow-core.md` 参照
 
