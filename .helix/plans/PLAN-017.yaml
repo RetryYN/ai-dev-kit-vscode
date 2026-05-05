@@ -1,0 +1,7 @@
+id: PLAN-017
+title: "core CLI の bats カバレッジ実態整理と不足補完"
+status: finalized
+created_at: 2026-05-04T00:00:00Z
+source_file: docs/plans/PLAN-017-bats-coverage-core-cli.md
+finalized_at: 2026-05-05T06:53:37Z
+review: { status: approve, reviewed_at: 2026-05-05T06:53:37Z, review_file: ".helix/reviews/plans/PLAN-017.json" }

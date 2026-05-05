@@ -27,8 +27,14 @@ credentials.json
 !**/.helix/research/**
 !**/.helix/patterns/
 !**/.helix/patterns/**
+!**/.helix/plans/
+!**/.helix/plans/PLAN-*.yaml
+!**/.helix/reviews/
+!**/.helix/reviews/plans/
+!**/.helix/reviews/plans/PLAN-*.json
 
 .helix/budget/
+.helix/plans/*.lock
 
 # Codex CLI 副産物 (空ファイルが生成される)
 .codex

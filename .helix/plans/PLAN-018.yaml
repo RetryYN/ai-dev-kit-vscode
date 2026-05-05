@@ -1,0 +1,7 @@
+id: PLAN-018
+title: "LLM Guard / agent policy / research guard の事後正式化と強制導線強化"
+status: finalized
+created_at: 2026-05-05T00:00:00Z
+source_file: docs/plans/PLAN-018-llm-guard-retroactive-hardening.md
+finalized_at: 2026-05-05T06:53:37Z
+review: { status: approve, reviewed_at: 2026-05-05T06:53:37Z, review_file: ".helix/reviews/plans/PLAN-018.json" }

@@ -1,0 +1,35 @@
+{
+  "verdict": "approve",
+  "summary": "Retroactive approval. PLAN-017 was implemented while the markdown plan still said draft; this review records the violation and accepts the remediation because the plan is now finalized, DoD closure is documented, memory is updated, and ./cli/helix test passed with shell 609, Bats 267, pytest 826.",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "Scope, DoD, coverage targets, and retro closure are documented."
+    },
+    {
+      "dimension": "depth",
+      "level": 3,
+      "comment": "Sufficient for test coverage closure; retroactive nature remains a process risk."
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "Plan/codex/handover/gate coverage and full regression are covered."
+    },
+    {
+      "dimension": "accuracy",
+      "level": 4,
+      "comment": "Final evidence matches current helix test output."
+    },
+    {
+      "dimension": "maintainability",
+      "level": 4,
+      "comment": "Coverage additions are focused and integrated into existing test flow."
+    }
+  ],
+  "findings": [],
+  "next_steps": [
+    "Do not repeat draft-state implementation; future PLAN work must create and finalize .helix/plans/PLAN-*.yaml before implementation."
+  ]
+}
