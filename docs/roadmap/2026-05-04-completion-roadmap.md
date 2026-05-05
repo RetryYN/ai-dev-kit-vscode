@@ -141,6 +141,10 @@
 | PLAN-014 | Stop hook idempotency — session-summary 重複行抑制 | finalized | 2 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-014-stop-hook-idempotency.md` |
 | PLAN-015 | Stop hook test guard hack 解消 (DoD #3 fixture redesign) | finalized | 2 | yes | 0 | 0 | ✅ | 起草: `docs/plans/PLAN-015-stop-hook-test-guard-hack.md` |
 | PLAN-016 | session-summary md 廃止 — helix log report session 化 | finalized | 1 | yes | 0 | 0 | ✅ | `cli/helix-session-summary` を 153 → 39 行のシム化（stdout/stderr 完全静音 + cost_log INSERT のみ）、`cli/tests/test-helix-session-summary.bats` を 8 ケースで全面再設計、retro 追加 |
+| PLAN-017 | bats coverage core CLI 補完 | finalized (retroactive) | 1 | no | 0 | 0 | 🟡 | 起草前に実装着手 (commit `d32c2d4` で spec+実装+テスト同時化)、retro 未作成 |
+| PLAN-018 | LLM Guard 事後ハードニング | finalized (retroactive) | 1 | no | 0 | 0 | 🟡 | PLAN 不在状態で実装 (`3f703b7`) → 事後 PLAN 作成、retro 未作成 |
+| PLAN-019 | helix-migrate target 拡張 (CLAUDE.md / AGENTS.md / .claude/settings.json) | finalized | 1 (impl: PLAN-020 Sprint .4) | no | 0 | 0 | ✅ | finalize は 2026-05-05、実装は PLAN-020 Sprint .4 で吸収 (commit `5185fb8`)、P2 finding 3 件全消化 |
+| PLAN-020 | HELIX 最新基準適合化整備 (gpt-5.5 追従 / 委譲 Codex コミット禁止 / D-shard auto-skeleton + G2 / PLAN-019 実装) | finalized | 6 | no | 0 | 0 | ✅ | review round trip 省略 (skipped_by_user_directive)、Sprint .1〜.4 完走 (commits `2d1e96d` `2915757` `a97a37e` `5185fb8` `7f1d785` `fff7666`)、pytest 847 + bats 270 全 PASS |
 
 ### 1.2 構想2件（実態を反映）
 
