@@ -181,7 +181,7 @@ check_template_version() {
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
-check "bash 4+" "bash --version | grep -qE 'version [4-9]'"
+check "bash 4+" "LC_ALL=C bash --version | grep -qE 'version [4-9]'"
 check "git" "command -v git"
 
 PACKAGE_MANAGER="$(detect_package_manager)"
