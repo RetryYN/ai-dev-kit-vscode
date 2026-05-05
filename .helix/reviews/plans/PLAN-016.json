@@ -1,0 +1,107 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass / approve。P0:0件、P1:0件、P2:2件、P3:1件。P0/P1相当の構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥はなく、Stop hook をDB記録のみへ縮退し、表示責務を `helix log report session` へ移す方向性はPLAN-014/015の後続として妥当。approve判定の根拠は、主要リスク、移行方針、DoD、回帰テスト方針がPLAN着手判断に十分な粒度で整理されているため。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、スコープ、DoD、移行案、リスクは概ね網羅されているが、CLI引数境界とhelp更新対象に補足余地あり。"
+    },
+    {
+      "dimension": "depth",
+      "level": 3,
+      "comment": "PLANレベルとしては十分だが、`--date` の伝播契約とG4/PLAN承認の切り分けはG3/G4前に深掘りが必要。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "Stop hook、DB、report、migration、docs、testsまで目配りできている。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 3,
+      "comment": "`report --date` の既存エラーパターン前提が現行実装と合わないため減点。ただし方向性を崩す問題ではない。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 4,
+      "comment": "md生成責務をhookから外し、再集計可能なreportへ寄せる設計は保守性を改善する。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "`--date` のCLI/DB境界契約がPLAN内で未固定",
+      "body": "§3.4.1 は `helix log report session --date <YYYY-MM-DD>` を固定している一方で、`report` サブコマンドの既存 `--date` エラーパターンに準拠するとしている。しかし現行の `cli/helix-log` は report type だけを `helix_db.report(db_path, report_type)` に渡す構造で、既存の `--date` parse/validation 経路は確認できない。P2。PLAN方向性は妥当だが、G3/G4前にCLI parse、日付validation、既定today、DB helper signatureまたは専用関数を明記しないとPG実装で解釈が割れる。",
+      "file": "docs/plans/PLAN-016-session-summary-helix-log-report.md",
+      "line_start": 99,
+      "line_end": 102,
+      "confidence": 0.91,
+      "recommendation": "G3/G4前に `helix-log` の引数parse仕様、無効日付時のエラー、`helix_db.py` 側の `report_session(db_path, date)` または `report(..., date=None)` 契約をPLANへ追記し、batsで `--date` 指定/省略/不正値を固定する。",
+      "helix_phase": "PLAN_REVIEW",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 2,
+          "comment": "現行実装にない `--date` 既存パターンを前提化している。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "CLI層とDB集計層の責務境界が暗黙のため変更時にぶれやすい。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "PLAN承認とG4判定が同じ節で扱われている",
+      "body": "§4.3 が `G4 ゲート判定基準（PLAN 承認）` となっており、PLANレベルの方向性承認と実装後のG4実装凍結条件が混在している。DoD #1〜#7、`helix-codex review --uncommitted`、accuracy_score deferred増分なしは有用なG4出口条件だが、PLAN承認基準そのものではない。P2。approve阻害ではないが、後続ゲート運用の誤読を招く。",
+      "file": "docs/plans/PLAN-016-session-summary-helix-log-report.md",
+      "line_start": 170,
+      "line_end": 174,
+      "confidence": 0.88,
+      "recommendation": "§4.3 を `実装後G4判定基準` に改名し、別途 `PLAN承認基準` として `P0/P1なし、方向性妥当、主要リスク特定済み` を明記する。",
+      "helix_phase": "PLAN_REVIEW",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "ゲート名と承認対象の対応が不正確。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "後続担当がPLAN reviewとG4 reviewを混同しやすい。"
+        }
+      ]
+    },
+    {
+      "severity": "low",
+      "title": "CLI help/usage更新のDoDが明示不足",
+      "body": "§5.1 はREADME、D-HOOK-SPEC、ADRの更新候補を挙げているが、ユーザーが直接見る `cli/helix-session-summary --help` と `cli/helix-log help` の更新がDoDとして明示されていない。現行helpがmd生成を説明したままだと、実装後にCLI契約と実動作がずれる。P3。",
+      "file": "docs/plans/PLAN-016-session-summary-helix-log-report.md",
+      "line_start": 180,
+      "line_end": 193,
+      "confidence": 0.78,
+      "recommendation": "DoDまたは§5.1に `cli/helix-session-summary --help` のDB INSERT shim化説明、`cli/helix-log help` の `report session --date` 追記を含める。",
+      "helix_phase": "PLAN_REVIEW",
+      "dimension_scores": [
+        {
+          "dimension": "density",
+          "level": 3,
+          "comment": "ドキュメント更新候補はあるがCLI内helpが抜けている。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "ユーザー向け契約文言が残ると後続保守で混乱する。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "P2: G3前に `helix log report session --date` のparse/validation/DB helper契約をPLANへ追記する。",
+    "P2: §4.3を実装後G4基準として分離し、PLAN承認基準を別記する。",
+    "P3: CLI help/usage更新をDoDまたは参照更新候補に追加する。"
+  ]
+}

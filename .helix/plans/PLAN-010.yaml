@@ -1,0 +1,18 @@
+id: PLAN-010
+title: "検証ツール選定 + 検証方法設計エージェント (実装検証・PoC 用ツール拾い + verify 設計)"
+status: finalized
+created_at: 2026-04-30T16:50:19Z
+source_file: null
+finalized_at: 2026-05-02T07:17:50Z
+review: { status: approve, reviewed_at: 2026-05-02T07:17:32Z, review_file: ".helix/reviews/plans/PLAN-010.json" }
+revision_history:
+  - revision: 1
+    action: plan_reset
+    from_status: finalized
+    to_status: draft
+    reset_at: 2026-05-02T06:58:49Z
+    reason: "v3 改訂: P2×3 (P4 severity 整理 / verify-tools.yaml 正本化 / G1R 証跡強化) + P3×1 (D-DB 表現修正) 解消"
+    reviewed_at: 2026-04-30T16:54:56Z
+    verdict: approve
+    review_file: ".helix/reviews/plans/PLAN-010.json"
+    finalized_at: 2026-04-30T16:55:08Z

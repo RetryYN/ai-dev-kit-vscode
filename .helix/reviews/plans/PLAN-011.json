@@ -1,0 +1,131 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass / approve。P0=0、P1=0、P2=3、P3=1。構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥は見当たらないため、PLAN レベルではこの方向性で実装着手してよい。主要方針として、コメントベース metadata、JSONL 正本 + DB 派生キャッシュ、dispatcher 統合、PoC seed、redaction、pytest/bats 受入条件が揃っている。残件は G3 Schema/API Freeze または G4 実装凍結までに詰めるべき詳細であり、approve 阻害要因ではない。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、scope、CLI、DB/JSONL、redaction、受入条件まで主要事項は網羅されている。cache invalidation と外部 LLM 利用リスクの明記が残る。"
+    },
+    {
+      "dimension": "depth",
+      "level": 4,
+      "comment": "二層 catalog と redaction は PLAN レベルとして十分具体化されている。parser grammar と find cache の契約は G3 で深掘りが必要。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "API/DB/CLI/test/docs/future scope まで目配りできている。外部 API/LLM data egress と cache stale の観点が不足。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 4,
+      "comment": "計画方向の正確性は高く、明確な破綻はない。summary grammar と recommendation cache の扱いに実装時の誤解余地がある。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 4,
+      "comment": "既存 skill_catalog/skill_recommender 流用方針と self-host seed は保守性に寄与する。共通 parser 抽出判断は G3 で固定するのがよい。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "P2: find cache が catalog 世代に紐付かず stale entry を返す余地がある",
+      "body": "find 結果は `.helix/cache/recommendations/code/<sha256>.json` に 1 時間キャッシュするとされているが、cache key が query のみだと、metadata 削除後の rebuild/prune 後も古い id/path を返す可能性がある。これは PLAN の方向性を壊すものではないが、§3.2 の stale prune 方針と §5 の prune 受入条件を find 経路にも反映する必要がある。",
+      "file": "docs/plans/PLAN-011-code-index-system.md",
+      "line_start": 124,
+      "line_end": 126,
+      "confidence": 0.88,
+      "recommendation": "G3 で cache key に catalog fingerprint / DB updated_at max / JSONL source hash を含めるか、cache hit 時に id を DB で再検証する契約を凍結する。metadata 削除後に cached find が stale entry を返さないテストを追加する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "build prune と find cache の整合条件が未凍結。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "cache invalidation ルールが曖昧だと後続修正が分散しやすい。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "P2: LLM 推挙に伴う data egress / availability リスクがリスク表にない",
+      "body": "find は gpt-5.4-mini と skill_recommender の枠組みを流用する方針だが、§4 のリスク表では LLM コストのみ扱っており、外部 API 送信対象、redaction 後の送信保証、API 不可時の挙動、cache 内容の扱いが明示されていない。PLAN レベルでは approve 可だが、G3 までに実装契約として固定すべき主要リスクである。",
+      "file": "docs/plans/PLAN-011-code-index-system.md",
+      "line_start": 180,
+      "line_end": 187,
+      "confidence": 0.84,
+      "recommendation": "G3 で LLM に送るフィールドを id/domain/summary/path:line_no 等に限定し、コード本文を送らないこと、redaction 後の corpus のみを使うこと、API 失敗時の fallback、cache 保持方針を明記する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "breadth",
+          "level": 3,
+          "comment": "外部 API / security リスクの棚卸しが不足。"
+        },
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "find 実行時のデータ境界が未確定。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "P2: key=value metadata grammar が summary の空白と optional fields で曖昧",
+      "body": "例では `summary=YAML frontmatter を Python dict に展開する` のように空白を含む値を unquoted で書いている一方、since/related も同じ行の optional field として定義されている。単純な空白区切り parser では summary が途中で切れるため、G3 で canonical input を固定する必要がある。",
+      "file": "docs/plans/PLAN-011-code-index-system.md",
+      "line_start": 47,
+      "line_end": 69,
+      "confidence": 0.9,
+      "recommendation": "G3 で `summary` は行末までを値にする、または `summary=\"...\"` の quoting を必須にするなど parser contract を固定し、since/related との併用例と pytest を追加する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "入力仕様の曖昧さが parser 実装差につながる。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "metadata 記法が揺れると catalog 保守コストが増える。"
+        }
+      ]
+    },
+    {
+      "severity": "low",
+      "title": "P3: `stats --uncovered` skeleton の受入条件が未定義",
+      "body": "§3.6 では `helix code stats --uncovered` の skeleton を本 PLAN に含めるように読めるが、§3.3 の CLI 設計と §5 の受入条件には `--uncovered` がない。将来拡張扱いなら scope 外へ明確に寄せるか、skeleton としての期待動作を最小受入条件に入れると実装時の解釈が安定する。",
+      "file": "docs/plans/PLAN-011-code-index-system.md",
+      "line_start": 172,
+      "line_end": 176,
+      "confidence": 0.78,
+      "recommendation": "`--uncovered` は PLAN-011.1 へ完全 deferred と明記するか、本 PLAN では help に表示される no-op/未実装メッセージまでを受入条件に追加する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "density",
+          "level": 3,
+          "comment": "scope と acceptance の対応が一部不足。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 4,
+          "comment": "低リスクだが工程中の解釈ぶれを減らせる。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "PLAN レベルは approve とし、v1.1 の方向性で finalize してよい。",
+    "G3 で find cache invalidation、LLM data boundary、metadata grammar を契約として凍結する。",
+    "共通 parser は import-first 方針で開始し、循環依存または責務混在が見えた場合のみ `_yaml_parser.py` 相当に抽出する。",
+    "L4 着手前にユーザー承認を取り、実装では PLAN の受入条件に加えて cached find stale 回避テストを追加する。"
+  ]
+}

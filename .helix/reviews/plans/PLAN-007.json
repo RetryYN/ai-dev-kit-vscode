@@ -1,0 +1,56 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass（verdict=approve）。P0/P1/P2/P3 の件数: 0/0/0/1。既存 S0-S4 を PoC Scrum として保持する互換方針、5 種 Scrum、Q5 差し込み条件、G2/G3 review・CLI・helix.db 蓄積の通知中核、保存 allowlist/redaction/retention/lifecycle/重複抑止/4 象限評価が PLAN レベルで特定されている。構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥はなく、approve を阻害する要因はない。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、スコープ、5 種定義、差し込み条件、通知経路、保存境界、lifecycle、重複抑止、Sprint 概要が揃っている。"
+    },
+    {
+      "dimension": "depth",
+      "level": 4,
+      "comment": "PLAN レベルとして必要なリスク境界と運用抑止策まで掘られている。DDL/API 詳細は G3 事項として未凍結で妥当。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "UI/Unit/Sprint/Post-deploy、G2/G3 hook、review JSON、CLI、DB、PLAN-006/009/010 連携まで目配りがある。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 4,
+      "comment": "既存 Scrum 互換、候補化のみで即時停止しない運用、raw body 非保存、PM 承認境界が整合している。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 4,
+      "comment": "lifecycle、dedup key、TTL、Sprint 上限、retention が明記され、後続 L2/L3 で実装設計へ落とし込みやすい。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "low",
+      "title": "[P3] Scrum 表記が一箇所だけ Scrim になっている",
+      "body": "差し込み先の種別説明で `対象 Scrim 種別` と記載されており、本文全体の `Scrum` 表記と揺れている。設計判断や実装可能性への影響はないが、用語検索や後続ドキュメント参照で小さなノイズになる。",
+      "file": "docs/plans/PLAN-007-scrum-multitype-trigger.md",
+      "line_start": 76,
+      "line_end": 76,
+      "confidence": 0.98,
+      "recommendation": "`対象 Scrum 種別` に修正する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "maintainability",
+          "level": 4,
+          "comment": "用語揺れのみで保守性への影響は軽微。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "P3 の表記揺れを任意で修正する。",
+    "L2 では `--scrum-suggest` と `helix scrum trigger detect` の入出力契約、helix.db 追加テーブル、redaction 失敗時の監査イベントを詳細化する。",
+    "G3 では API/DB/CLI 契約、migration、retention 削除ジョブ、権限別 export 仕様を freeze 対象としてレビューする。"
+  ]
+}

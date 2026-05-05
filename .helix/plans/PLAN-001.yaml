@@ -1,0 +1,10 @@
+id: PLAN-001
+title: "poc"
+status: draft
+created_at: "2026-04-04T15:25:09Z"
+source_file: "docs/plans/PLAN-001-poc-skill.md"
+finalized_at: null
+review:
+  status: pending
+  reviewed_at: null
+  review_file: null

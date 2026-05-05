@@ -1,0 +1,83 @@
+{
+  "verdict": "approve",
+  "summary": "P0=0 / P1=0 / P2=2 / P3=0。approve 判定の根拠: PLAN レベルとして harvest/design/cross-check の主要判断、OSS 候補の証跡・承認境界、fallback/fail-close、drift severity ルーティングが特定されており、構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥は確認されない。残件は L2/L3 詳細化前に解消すべき参照先と schema 命名の不整合に限定される。判定: pass。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、スコープ、入力、出力、リスク、Sprint 計画が PLAN レベルとして十分に整理されている。"
+    },
+    {
+      "dimension": "depth",
+      "level": 4,
+      "comment": "OSS 証跡、PM 承認、fallback、fail-close、drift ルーティングまで踏み込めている。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "PLAN-006/007/008/009、PoC、verification、research、Run 連携まで広く接続している。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 3,
+      "comment": "主要方針は妥当だが、PLAN-001 参照先と drift report schema の命名に未解消の不整合がある。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 3,
+      "comment": "全体構造は追えるが、参照先とフィールド名の揺れは後続実装の解釈コストになる。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "P2: PLAN-001 の参照先が実在する canonical artifact と一致していない",
+      "body": "§4 は `docs/plans/PLAN-001-poc-skill.md` を関連 PLAN として参照しているが、現リポジトリには同ファイルが存在せず、実在する状態ファイルは `.helix/plans/PLAN-001.yaml` で draft のままになっている。fallback として `skills/workflow/poc/SKILL.md` を使う方針は妥当だが、存在しない docs path を canonical 参照にすると L2/L3 のリンク検証や cross-plan 解決で欠測扱いになる。",
+      "file": "docs/plans/PLAN-010-verification-agent.md",
+      "line_start": 188,
+      "line_end": 188,
+      "confidence": 0.92,
+      "recommendation": "PLAN-001 の現状態参照を `.helix/plans/PLAN-001.yaml` に正し、canonical docs plan が作成または finalize されるまでは `skills/workflow/poc/SKILL.md` を正規 fallback として扱うことを明記する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "関連 PLAN の参照先が実在 artifact と一致していない。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "後続のリンク検証と cross-plan 解決で欠測分岐が増える。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "P2: drift report の重大度フィールド名が `drift_severity` と `severity` で揺れている",
+      "body": "§3.4.3 では cross-check report の必須フィールドを `drift_severity` として固定している一方、§3.5 のレポート出力例は `severity` を使っている。PLAN レベルの方向性は成立するが、L3 で schema/API Freeze する前に canonical field を 1 つに決めないと、cross-check と汎用失敗レポートで validation 実装が分岐する。",
+      "file": "docs/plans/PLAN-010-verification-agent.md",
+      "line_start": 174,
+      "line_end": 184,
+      "confidence": 0.86,
+      "recommendation": "cross-check 用 report schema は `drift_severity` を canonical に固定し、汎用失敗レポートで `severity` を使う場合は別フィールドとして用途差を明記する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "保存 schema と出力例のフィールド名が一致していない。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "実装時に alias または二重 schema が必要になりやすい。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "P2: PLAN-001 の参照を実在 artifact に合わせ、PoC fallback の canonical source を明記する。",
+    "P2: L3 詳細設計前に cross-check report の重大度フィールド名を `drift_severity` へ統一するか、`severity` との用途差を schema に分離する。"
+  ]
+}

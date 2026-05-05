@@ -1,0 +1,18 @@
+id: PLAN-008
+title: "Reverse 5 系統化 (Code / Upgrade / Normalization / Fullback / Design)"
+status: finalized
+created_at: 2026-04-30T15:22:23Z
+source_file: null
+finalized_at: 2026-05-01T14:56:56Z
+review: { status: approve, reviewed_at: 2026-05-01T14:56:35Z, review_file: ".helix/reviews/plans/PLAN-008.json" }
+revision_history:
+  - revision: 1
+    action: plan_reset
+    from_status: finalized
+    to_status: draft
+    reset_at: 2026-05-01T14:36:26Z
+    reason: "v3 改訂: P1×2 (gate mapping + fullback redaction) + P2×2 (CLI grammar + upgrade scope) + P3×1 (PLAN-009 traceability) 解消"
+    reviewed_at: 2026-04-30T15:57:16Z
+    verdict: approve
+    review_file: ".helix/reviews/plans/PLAN-008.json"
+    finalized_at: 2026-04-30T15:57:34Z

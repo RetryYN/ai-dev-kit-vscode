@@ -1,0 +1,7 @@
+id: PLAN-013
+title: "PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract"
+status: finalized
+created_at: 2026-05-02T20:40:27Z
+source_file: docs/plans/PLAN-013-code-index-eligibility-taxonomy.md
+finalized_at: 2026-05-02T21:09:52Z
+review: { status: approve, reviewed_at: 2026-05-02T21:08:53Z, review_file: ".helix/reviews/plans/PLAN-013.json" }

@@ -1,0 +1,107 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass。P0=0 / P1=0 / P2=2 / P3=1。approve 判定の根拠: L-1 を L1 内メタ工程として扱う方針、DAG / priority matrix、リサーチ 6 ルート、OSS 承認境界、pattern.yaml 最小契約と競合解決が特定されており、PLAN レベルの方向性凍結を阻害する構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥はない。指摘は G2/G3 までに収束可能な契約詳細。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、スコープ、L1 接続、研究ルート、OSS 承認、pattern 契約、リスク、Sprint 概要が揃っている。"
+    },
+    {
+      "dimension": "depth",
+      "level": 4,
+      "comment": "過去 finding は概ね具体化済み。gate/lint 契約に細部の残差がある。"
+    },
+    {
+      "dimension": "breadth",
+      "level": 3,
+      "comment": "OSS・移行・外部依存は見ているが、認証/PII/secret/security research の明示が弱い。"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 3,
+      "comment": "L-1 を独立 phase にしない判断は正確。P0 deferred の表現は HELIX carry rule と不整合になり得る。"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 4,
+      "comment": "DAG、evidence path、audit log、lint reject、競合解決規則により運用可能性は高い。"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "P2: blocking=false で P0 を deferred_level に設定できてしまう",
+      "body": "priority matrix は `blocking=false` のとき `deferred_level` を P0/P1/P2/P3 としているが、HELIX carry rule では P0 は gate stop であり deferred/carry できない。PLAN 方向性は妥当だが、このままだと lint 実装時に P0 の扱いが分岐する。",
+      "file": "docs/plans/PLAN-006-upstream-meta-phase.md",
+      "line_start": 64,
+      "line_end": 75,
+      "confidence": 0.86,
+      "recommendation": "`blocking=false` の `deferred_level` は P1/P2/P3 に限定し、P1 は PM 承認必須、P0 は `blocking=true` または即時 fail として lint reject する規則を明記する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "P0 の stop semantics と deferred 可の契約が衝突し得る。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "lint 条件を固定すれば readiness 実装の分岐を避けられる。"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "P2: security/auth/PII を研究ルートの必須 trigger として明示していない",
+      "body": "リサーチ 6 ルートは機能・市場・技術・OSS・マーケ・検証方式を定義しているが、認証/認可、PII、secret、外部 API の安全性など、HELIX のエスカレーション境界に直結する security/compliance 系 trigger が表に現れていない。G2 threat model で扱えるため approve は阻害しないが、L-1 の優先順位付けから漏れる可能性がある。",
+      "file": "docs/plans/PLAN-006-upstream-meta-phase.md",
+      "line_start": 95,
+      "line_end": 116,
+      "confidence": 0.78,
+      "recommendation": "security/compliance ルートを追加するか、技術/OSS/検証方式ルートの trigger に `auth`, `authorization`, `PII`, `secret`, `external API security`, `compliance` を必須条件として追加し、G1R と G2 threat model への反映先を明記する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "breadth",
+          "level": 3,
+          "comment": "主要な技術調査はあるがセキュリティ境界の明示が不足。"
+        },
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "既存 HELIX エスカレーション境界との接続を補強する必要がある。"
+        }
+      ]
+    },
+    {
+      "severity": "low",
+      "title": "P3: research evidence 全体の redaction policy が局所的",
+      "body": "OSS approval と pattern audit では redaction に触れているが、`.helix/research/<id>/` 配下に保存する市場・技術・外部依存調査 evidence 全体に対する共通 redaction policy が明示されていない。secret や PII を保存しない前提を固定すると監査性が上がる。",
+      "file": "docs/plans/PLAN-006-upstream-meta-phase.md",
+      "line_start": 109,
+      "line_end": 120,
+      "confidence": 0.72,
+      "recommendation": "`.helix/research/<id>/` 配下の全 evidence に対し、secret / credential / PII / 未公開顧客情報を保存しない、必要時は redaction 済み参照のみ残す、という共通方針を追加する。",
+      "helix_phase": "L1",
+      "dimension_scores": [
+        {
+          "dimension": "breadth",
+          "level": 3,
+          "comment": "監査ログ以外の research evidence まで安全方針を広げる余地がある。"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 4,
+          "comment": "共通方針化により evidence ファイルごとの判断を減らせる。"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "P2: priority matrix の `deferred_level` から P0 carry を排除し、lint reject 条件を明文化する。",
+    "P2: security/auth/PII/secret/external API security を L-1 research trigger と G1R/G2 反映先に接続する。",
+    "P3: `.helix/research/<id>/` 全体の redaction policy を追加する。"
+  ]
+}

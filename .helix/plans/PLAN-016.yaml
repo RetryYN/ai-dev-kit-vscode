@@ -1,0 +1,7 @@
+id: PLAN-016
+title: "session-summary md 廃止 — helix log report session 化"
+status: finalized
+created_at: 2026-05-03T08:31:24Z
+source_file: docs/plans/PLAN-016-session-summary-helix-log-report.md
+finalized_at: 2026-05-03T08:35:25Z
+review: { status: approve, reviewed_at: 2026-05-03T08:34:49Z, review_file: ".helix/reviews/plans/PLAN-016.json" }

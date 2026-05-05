@@ -1,0 +1,18 @@
+id: PLAN-007
+title: "Scrum 5 種化 (差し込みトリガー検出 + 通知中核 / PoC・UI・ユニット・スプリント・デプロイ後)"
+status: finalized
+created_at: 2026-04-30T15:17:52Z
+source_file: null
+finalized_at: 2026-05-01T14:31:54Z
+review: { status: approve, reviewed_at: 2026-05-01T14:31:25Z, review_file: ".helix/reviews/plans/PLAN-007.json" }
+revision_history:
+  - revision: 1
+    action: plan_reset
+    from_status: finalized
+    to_status: draft
+    reset_at: 2026-05-01T14:25:39Z
+    reason: "v3 改訂: P1×1 (helix.db redaction/retention) + P2×3 (lifecycle/dedup, 4象限軸閾値, traceability) 解消"
+    reviewed_at: 2026-04-30T15:21:41Z
+    verdict: approve
+    review_file: ".helix/reviews/plans/PLAN-007.json"
+    finalized_at: 2026-04-30T15:22:05Z

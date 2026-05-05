@@ -1,0 +1,97 @@
+{
+  "verdict": "approve",
+  "summary": "判定: pass / approve。P0=0, P1=0, P2=2, P3=1。approve 根拠: PLAN レベルでは eligible symbol、出力形式、exit code、DB/schema 非変更、metadata 付与対象が主要判断として特定されており、構造的矛盾・スコープ越境・致命的セキュリティ欠陥はない。阻害要因なし。ただし G3 までに coverage 判定スコープ、covered 判定の隣接規則、id 命名規則を凍結すること。",
+  "overall_scores": [
+    {
+      "dimension": "density",
+      "level": 4,
+      "comment": "目的、scope、出力、exit code、受入条件、工程が揃っている"
+    },
+    {
+      "dimension": "depth",
+      "level": 4,
+      "comment": "母数実測とリスク対応まで掘れているが、covered 判定の細部は未凍結"
+    },
+    {
+      "dimension": "breadth",
+      "level": 4,
+      "comment": "CLI、DB、CI、ignore、metadata 運用を確認している"
+    },
+    {
+      "dimension": "accuracy",
+      "level": 3,
+      "comment": "主要契約は妥当だが、global coverage と pilot coverage の境界が曖昧"
+    },
+    {
+      "dimension": "maintainability",
+      "level": 3,
+      "comment": "段階導入方針は妥当だが、id 命名の一貫性を整える必要がある"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "medium",
+      "title": "P2: `--uncovered` の全体母数と core 5 の 80% ゲートが分離されていない",
+      "body": "§3.1 は `stats --uncovered` を tracked `.py/.sh` 全体の動作仕様として定義しつつ、本 PLAN の coverage 目標は core 5 files / 55 symbols の 80% に限定している。global coverage と pilot coverage のどちらを `--fail-under` や受入判定に使うのかが未分離のため、CI gate の誤用や acceptance の曖昧化が起き得る。",
+      "file": "docs/plans/PLAN-012-code-index-coverage.md",
+      "line_start": 60,
+      "line_end": 75,
+      "confidence": 0.86,
+      "recommendation": "`--uncovered` summary は global scope と明記し、core 5 coverage は allowlist report 等の別 verification で判定するか、G3 で明示的な scope option / 設定を凍結すること。",
+      "helix_phase": "L1/PLAN",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "coverage 分母と gate 対象の対応が未分離"
+        }
+      ]
+    },
+    {
+      "severity": "medium",
+      "title": "P2: covered 判定の docstring 隣接規則が曖昧",
+      "body": "covered 判定で「symbol 直前」または「同 symbol 直前の docstring の直前」としているが、Python の関数・クラス docstring は `def/class` の内側に置かれるため、どの行を marker として関連付けるかが曖昧。decorator 付き symbol の扱いも未定義で、実装時に false positive / false negative が発生し得る。",
+      "file": "docs/plans/PLAN-012-code-index-coverage.md",
+      "line_start": 88,
+      "line_end": 92,
+      "confidence": 0.82,
+      "recommendation": "marker は top-level の first decorator または `def/class` 直前に置く、indented body 内 marker は coverage 対象外にする等、AST association ルールを G3 で凍結し、decorator/docstring ケースをテストに追加すること。",
+      "helix_phase": "L1/PLAN",
+      "dimension_scores": [
+        {
+          "dimension": "accuracy",
+          "level": 3,
+          "comment": "symbol 関連付け規則が未凍結"
+        },
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "後続実装者が解釈を分岐させる余地がある"
+        }
+      ]
+    },
+    {
+      "severity": "low",
+      "title": "P3: metadata id 命名規則が既存 seed と揃っていない",
+      "body": "PLAN-011 由来の既存 seed は `code-catalog.parse-helix-index-comment` / `skill-catalog.*` のような kebab 系 id を使っている一方、本 PLAN は `<module>.<symbol>` と `helix_db.init_db` 例を提示している。parser 上は許容されても、catalog の検索・重複検出・運用上の一貫性が落ちる。",
+      "file": "docs/plans/PLAN-012-code-index-coverage.md",
+      "line_start": 187,
+      "line_end": 188,
+      "confidence": 0.9,
+      "recommendation": "既存 seed に合わせて kebab 系へ統一するか、underscore/dot 形式へ移行するなら既存 10 件の扱いと migration 方針を明記すること。",
+      "helix_phase": "L1/PLAN",
+      "dimension_scores": [
+        {
+          "dimension": "maintainability",
+          "level": 3,
+          "comment": "命名体系の混在リスク"
+        }
+      ]
+    }
+  ],
+  "next_steps": [
+    "G3 で global coverage と core 5 pilot coverage の判定経路を分離して凍結する",
+    "covered 判定の AST association ルールを decorator/docstring ケース込みで明文化する",
+    "metadata id 命名規則を既存 seed と整合させてから metadata 付与に入る"
+  ]
+}
