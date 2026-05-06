@@ -12,7 +12,23 @@ from pathlib import Path
 from typing import Any
 
 
-ALLOWED_ROLES = {"tl", "se", "pg", "fe", "qa", "security", "dba", "devops", "docs", "research", "legacy", "perf"}
+ALLOWED_ROLES = {
+    "tl",
+    "se",
+    "pg",
+    "fe",
+    "qa",
+    "security",
+    "dba",
+    "devops",
+    "docs",
+    "research",
+    "legacy",
+    "perf",
+    "recommender",
+    "classifier",
+    "effort-classifier",
+}
 ALLOWED_ENGINES = {"codex", "claude"}
 ALLOWED_STRATEGIES = {"sequential", "pipeline", "parallel", "twin"}
 BLOCKED_SELF_DELEGATION = {"opus", "orchestrator", "pm", "po"}

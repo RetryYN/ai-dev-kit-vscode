@@ -121,3 +121,16 @@ def test_execution_roles_cannot_pin_tl_class_model() -> None:
 
     assert payload["ok"] is False
     assert any(item["code"] == "overpowered_execution_model" for item in payload["errors"])
+
+
+def test_allowed_roles_includes_internal() -> None:
+    assert "recommender" in agent_policy_guard.ALLOWED_ROLES
+    assert "classifier" in agent_policy_guard.ALLOWED_ROLES
+    assert "effort-classifier" in agent_policy_guard.ALLOWED_ROLES
+
+
+def test_recommender_passes_check() -> None:
+    payload = agent_policy_guard.check_member("recommender", "codex", "task description")
+
+    assert payload["ok"] is True
+    assert not any(item["code"] == "invalid_role" for item in payload["errors"])
