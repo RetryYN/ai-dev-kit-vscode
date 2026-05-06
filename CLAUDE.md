@@ -116,6 +116,16 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 
 並列投入前に「衝突するファイル」「後段依存」を 1 行で書き出して根拠を残す。
 
+## タスク受領時の skill 推挙呼び出し (必須)
+
+新規タスク受領時、実装着手前に必ず以下を実行する:
+
+1. `helix skill chain "<タスク記述>"` を呼び、上位スキルと推奨 agent を確認する
+2. 推挙された skill / agent に従って委譲先を決定し、Opus 自身が直接実装しない原則を優先する
+3. skip する場合は、自明な小修正または既知 skill のみ使用である理由を会話または final report に記録する
+
+これは PLAN-022 で確立されたランタイム原則である。skill 推挙は gpt-5.4-mini 経由で 1 時間キャッシュされるため、コスト負担はほぼない。
+
 ## 委譲 Codex のコミット禁止
 
 `helix codex` / `codex exec` で呼ぶ **委譲 Codex** は `git add` / `git commit` / `git push` を一切しない。Opus (PM) が成果物検証後に commit する。チャット (TL モード) Codex は対象外。

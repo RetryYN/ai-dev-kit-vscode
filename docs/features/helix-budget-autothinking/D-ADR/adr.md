@@ -162,16 +162,18 @@ Codex の内部 API `chatgpt.com/backend-api/wham/usage` を使えば公式に�
 
 ### Context
 
-既に Phase A (サブエージェント frontmatter `effort`) が完了 (2026-04-21 0af8e8b)。Phase B (タスク難度自動判定) は Codex ロール向け。
+Phase A は「完了」ではなく、警告フック限定の部分実装として扱う。Claude subagent `.claude/agents/*.md` には effort field を付与済みだが、Claude Code 公式仕様では frontmatter `effort` を thinking budget として解釈しないため、thinking budget への自動伝搬は未実装である。
 
 ### Decision
 
 Phase A + B は**責務分離**。
 
-- Phase A: Claude サブエージェント (fe-*, be-*, qa-*, security-*, db-*, devops-*) の固定 effort
+- Phase A: Claude subagent の effort field は警告フック限定で利用し、`cli/lib/skill_dispatcher.py` の `_warn_s_task_high_effort_agent()` で `effort=high` の S タスク誤指定を検知する
+- Phase A: 2026-05-06 時点で `.claude/agents/` の 12 件に effort field を付与済み。なお `~/.claude/agents/` の 5 件 (fe-*) は PLAN-022 W-P0-5 で削除し、project 配下へ一本化済み
 - Phase B: Codex ロール (tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf) の動的 effort
+- ADR-007 で thinking budget への代替設計を議論予定
 
-`helix skill use` は recommender が agent を決めた後、Codex ロールなら Phase B classifier を呼び、Claude subagent なら Phase A frontmatter を使う。
+`helix skill use` は recommender が agent を決めた後、Codex ロールなら Phase B classifier を呼び、Claude subagent なら Phase A frontmatter を使う。Phase A の警告フック限定運用は ADR-007 で見直す前提である。
 
 ---
 

@@ -101,6 +101,7 @@ Opus 週間残量が少ない時は委譲を強化（探索・長文 Read を 10
 
 タスク受領時、以下の順で評価:
 
+0. **タスク内容のスキル推挙呼び出し (PLAN-022 必須)**: `helix skill chain "<タスク記述>"` を実行し、gpt-5.4-mini が選定した上位 skill と推奨 agent を確認する。推挙結果に従って Step 1-9 の判定を行う。skip する場合 (自明な小修正・既知 skill のみ使用・調査読み取りのみ等) は会話または final report に skip 理由を記録する。推挙は 1 時間 TTL キャッシュ済 (`.helix/cache/recommendations/`) なのでコスト負担はほぼない。
 1. BE実装/DB/インフラ → `helix-codex --role (se|pg|dba|devops)`
 2. 設計・レビュー → `helix-codex --role tl`
 3. セキュリティ → `helix-codex --role security`
