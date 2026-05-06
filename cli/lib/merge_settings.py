@@ -8,91 +8,107 @@ Usage:
     python3 merge_settings.py <settings.json> --remove   # HELIX hooks を除去
 """
 
+import copy
 import json
 import os
 import sys
-import copy
 
-HELIX_HOOKS = {
-    "SessionStart": [
-        {
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
-                    "timeout": 5,
-                    "statusMessage": "Loading HELIX framework...",
-                    "blockOnFailure": True,
-                }
-            ]
-        }
-    ],
-    "PreToolUse": [
-        {
-            "matcher": "Write",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/helix-check-claudemd",
-                    "timeout": 5,
-                    "statusMessage": "Checking CLAUDE.md template...",
-                    "blockOnFailure": True,
-                }
-            ]
-        },
-        {
-            "matcher": "Bash",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-pre-bash",
-                    "timeout": 5,
-                    "statusMessage": "Checking HELIX LLM execution guard...",
-                    "blockOnFailure": True,
-                }
-            ]
-        },
-        {
-            "matcher": "WebSearch|WebFetch",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-pre-research",
-                    "timeout": 5,
-                    "statusMessage": "Checking HELIX research tool guard...",
-                    "blockOnFailure": True,
-                }
-            ]
-        }
-    ],
-    "PostToolUse": [
-        {
-            "matcher": "Edit|Write|MultiEdit",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use",
-                    "timeout": 10,
-                    "statusMessage": "HELIX design sync check...",
-                    "blockOnFailure": True,
-                }
-            ]
-        }
-    ],
-    "Stop": [
-        {
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/ai-dev-kit-vscode/cli/helix-session-summary",
-                    "timeout": 8,
-                    "statusMessage": "Generating session summary...",
-                    "blockOnFailure": False,
-                }
-            ]
-        }
-    ]
-}
+
+def _resolve_helix_home():
+    """HELIX_HOME を絶対パスとして解決する。未設定時は self-host 既定値を使う。"""
+    raw_home = os.environ.get("HELIX_HOME") or os.path.expanduser("~/ai-dev-kit-vscode")
+    return os.path.abspath(os.path.expanduser(raw_home))
+
+
+def _hook_command(helix_home, relative_path):
+    return os.path.join(helix_home, *relative_path.split("/"))
+
+
+def _build_hooks():
+    helix_home = _resolve_helix_home()
+    return {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/helix-session-start"),
+                        "timeout": 5,
+                        "statusMessage": "Loading HELIX framework...",
+                        "blockOnFailure": True,
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/helix-check-claudemd"),
+                        "timeout": 5,
+                        "statusMessage": "Checking CLAUDE.md template...",
+                        "blockOnFailure": True,
+                    }
+                ]
+            },
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/libexec/helix-pre-bash"),
+                        "timeout": 5,
+                        "statusMessage": "Checking HELIX LLM execution guard...",
+                        "blockOnFailure": True,
+                    }
+                ]
+            },
+            {
+                "matcher": "WebSearch|WebFetch",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/libexec/helix-pre-research"),
+                        "timeout": 5,
+                        "statusMessage": "Checking HELIX research tool guard...",
+                        "blockOnFailure": True,
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/libexec/helix-post-tool-use"),
+                        "timeout": 10,
+                        "statusMessage": "HELIX design sync check...",
+                        "blockOnFailure": True,
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/helix-session-summary"),
+                        "timeout": 8,
+                        "statusMessage": "Generating session summary...",
+                        "blockOnFailure": False,
+                    }
+                ]
+            }
+        ]
+    }
+
+
+HELIX_HOOKS = _build_hooks()
 
 
 def _is_helix_hook(entry):

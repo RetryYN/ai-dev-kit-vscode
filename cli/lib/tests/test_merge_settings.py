@@ -17,6 +17,10 @@ import merge_settings
 MODULE_PATH = LIB_DIR / "merge_settings.py"
 
 
+def _first_hook_command(hooks: dict, event: str) -> str:
+    return hooks[event][0]["hooks"][0]["command"]
+
+
 def test_module_py_compile() -> None:
     py_compile.compile(str(MODULE_PATH), doraise=True)
 
@@ -108,7 +112,9 @@ def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
     command = hook["command"]
 
     assert "|| true" not in command
-    assert command == "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
+    assert command == str(
+        Path(merge_settings._resolve_helix_home()) / "cli" / "libexec" / "helix-post-tool-use"
+    )
     assert entry["matcher"] == "Edit|Write|MultiEdit"
     assert hook["blockOnFailure"] is True
 
@@ -119,7 +125,9 @@ def test_pre_tool_use_bash_guard_is_registered() -> None:
 
     assert len(bash_entries) == 1
     hook = bash_entries[0]["hooks"][0]
-    assert hook["command"] == "~/ai-dev-kit-vscode/cli/libexec/helix-pre-bash"
+    assert hook["command"] == str(
+        Path(merge_settings._resolve_helix_home()) / "cli" / "libexec" / "helix-pre-bash"
+    )
     assert hook["blockOnFailure"] is True
 
 
@@ -129,8 +137,50 @@ def test_pre_tool_use_research_guard_is_registered() -> None:
 
     assert len(research_entries) == 1
     hook = research_entries[0]["hooks"][0]
-    assert hook["command"] == "~/ai-dev-kit-vscode/cli/libexec/helix-pre-research"
+    assert hook["command"] == str(
+        Path(merge_settings._resolve_helix_home()) / "cli" / "libexec" / "helix-pre-research"
+    )
     assert hook["blockOnFailure"] is True
+
+
+def test_build_hooks_uses_default_helix_home_when_env_is_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HELIX_HOME", raising=False)
+
+    hooks = merge_settings._build_hooks()
+    command = _first_hook_command(hooks, "SessionStart")
+
+    assert command == str(
+        Path.home() / "ai-dev-kit-vscode" / "cli" / "helix-session-start"
+    )
+    assert Path(command).is_absolute()
+
+
+def test_build_hooks_uses_helix_home_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HELIX_HOME", "/tmp/x")
+
+    hooks = merge_settings._build_hooks()
+
+    assert _first_hook_command(hooks, "SessionStart") == "/tmp/x/cli/helix-session-start"
+    assert (
+        _first_hook_command(hooks, "PostToolUse")
+        == "/tmp/x/cli/libexec/helix-post-tool-use"
+    )
+
+
+def test_build_hooks_expands_tilde_in_helix_home(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HELIX_HOME", "~/foo")
+
+    hooks = merge_settings._build_hooks()
+
+    assert _first_hook_command(hooks, "Stop") == str(
+        Path.home() / "foo" / "cli" / "helix-session-summary"
+    )
 
 
 def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
