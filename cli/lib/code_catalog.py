@@ -40,6 +40,7 @@ _CORE5_PATHS = {
     "cli/lib/skill_dispatcher.py",
 }
 _BUCKETS = ("coverage_eligible", "private_helper", "excluded")
+_QUALITY_DIMS = ("density", "depth", "breadth", "accuracy", "maintainability")
 _NON_INDEXABLE_PATH_PARTS = {"tests", "fixture", "fixtures", "generated", "vendor"}
 _SH_FUNCTION_RE = re.compile(r"^(?:function\s+)?([A-Za-z][A-Za-z0-9_]*)\s*(?:\(\s*\))?\s*\{")
 
@@ -810,6 +811,18 @@ def write_jsonl(entries: list[dict], jsonl_path: Path) -> None:
     os.replace(tmp_path, jsonl_path)
 
 
+def _entries_metadata_default() -> str:
+    return json.dumps(
+        {
+            "quality": {dim: None for dim in _QUALITY_DIMS},
+            "few_shot_ids": [],
+            "drift_checked_at": None,
+            "notes": "",
+        },
+        ensure_ascii=False,
+    )
+
+
 # @helix:index id=code-catalog.sync-to-db domain=cli/lib summary=索引項目をSQLite派生キャッシュへ同期する
 def sync_to_db(entries: list[dict], db_path: Path) -> None:
     helix_db._prepare_db_path(str(db_path))
@@ -821,9 +834,17 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
             conn.executemany(
                 """
                 INSERT OR REPLACE INTO code_index
-                    (id, domain, summary, path, line_no, symbol_line, since, related, source_hash, bucket, updated_at)
+                    (
+                        id, domain, summary, path, line_no, symbol_line, since, related,
+                        source_hash, bucket, updated_at, axis, stack, lifecycle,
+                        parent_entry_id, sprint_id, agent_actor
+                    )
                 VALUES
-                    (:id, :domain, :summary, :path, :line_no, :symbol_line, :since, :related, :source_hash, :bucket, :updated_at)
+                    (
+                        :id, :domain, :summary, :path, :line_no, :symbol_line, :since, :related,
+                        :source_hash, :bucket, :updated_at, :axis, :stack, :lifecycle,
+                        :parent_entry_id, :sprint_id, :agent_actor
+                    )
                 """,
                 [
                     {
@@ -837,6 +858,36 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
                         "related": json.dumps(entry.get("related", []), ensure_ascii=False),
                         "source_hash": entry.get("source_hash"),
                         "bucket": entry.get("bucket", "coverage_eligible"),
+                        "updated_at": entry.get("updated_at"),
+                        "axis": entry.get("axis"),
+                        "stack": entry.get("stack"),
+                        "lifecycle": entry.get("lifecycle"),
+                        "parent_entry_id": entry.get("parent"),
+                        "sprint_id": entry.get("sprint"),
+                        "agent_actor": entry.get("agent"),
+                    }
+                    for entry in entries
+                ],
+            )
+            conn.executemany(
+                """
+                INSERT OR IGNORE INTO entries
+                    (id, axis, stack, lifecycle, ref, agent_actor, sprint_id, metadata, updated_at)
+                VALUES
+                    (
+                        :id, 'code', :stack, COALESCE(:lifecycle, 'initial'), :ref,
+                        :agent_actor, :sprint_id, :metadata, :updated_at
+                    )
+                """,
+                [
+                    {
+                        "id": entry["id"],
+                        "stack": entry.get("stack"),
+                        "lifecycle": entry.get("lifecycle"),
+                        "ref": entry["path"],
+                        "agent_actor": entry.get("agent"),
+                        "sprint_id": entry.get("sprint"),
+                        "metadata": _entries_metadata_default(),
                         "updated_at": entry.get("updated_at"),
                     }
                     for entry in entries

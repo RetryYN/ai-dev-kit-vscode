@@ -1,4 +1,5 @@
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -10,11 +11,24 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import helix_db
+import code_catalog
 
 
 def _init_db(tmp_path: Path) -> Path:
     db_path = tmp_path / "helix.db"
     helix_db.init_db(db_path)
+    return db_path
+
+
+def _git_add(root: Path, *paths: str) -> None:
+    subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "add", *paths], cwd=root, check=True, capture_output=True)
+
+
+def _rebuild_catalog(root: Path) -> Path:
+    db_path = root / ".helix" / "helix.db"
+    jsonl_path = root / ".helix" / "cache" / "code-catalog.jsonl"
+    code_catalog.rebuild_catalog(root, jsonl_path, db_path)
     return db_path
 
 
@@ -147,3 +161,46 @@ def test_migrate_v17_to_v18_is_idempotent(tmp_path: Path) -> None:
 
     assert version_row["count"] == 1
     assert len(code_index_cols) == 17
+
+
+def test_sync_to_db_populates_entries_for_code_axis(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=foo.bar domain=cli/lib summary=test\n"
+        "def foo():\n"
+        "    return 1\n",
+        encoding="utf-8",
+    )
+    _git_add(tmp_path, "sample.py")
+
+    db_path = _rebuild_catalog(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        code_row = conn.execute("SELECT COUNT(*) AS count FROM code_index WHERE id = 'foo.bar'").fetchone()
+        entry_row = conn.execute("SELECT axis, lifecycle FROM entries WHERE id = 'foo.bar'").fetchone()
+    finally:
+        conn.close()
+
+    assert code_row["count"] == 1
+    assert entry_row["axis"] == "code"
+    assert entry_row["lifecycle"] == "initial"
+
+
+def test_sync_to_db_respects_lifecycle_field(tmp_path: Path) -> None:
+    source = tmp_path / "sample.py"
+    source.write_text(
+        "# @helix:index id=foo.baz domain=cli/lib summary=test lifecycle=addition\n"
+        "def foo():\n"
+        "    return 1\n",
+        encoding="utf-8",
+    )
+    _git_add(tmp_path, "sample.py")
+
+    db_path = _rebuild_catalog(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        entry_row = conn.execute("SELECT lifecycle FROM entries WHERE id = 'foo.baz'").fetchone()
+    finally:
+        conn.close()
+
+    assert entry_row["lifecycle"] == "addition"
