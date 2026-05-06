@@ -14,6 +14,9 @@ if str(LIB_DIR) not in sys.path:
 import helix_db
 import code_catalog
 import entry_helper
+import effort_classifier
+import skill_classifier
+from skill_recommender import SkillRecommender
 
 
 def _init_db(tmp_path: Path) -> Path:
@@ -292,3 +295,119 @@ def test_entry_helper_coverage_triplet(
     assert rows[("code", "back", "modification")]["ratio"] == pytest.approx(0.25)
     assert rows[("test", "n/a", "addition")]["count"] == 1
     assert rows[("test", "n/a", "addition")]["ratio"] == pytest.approx(0.25)
+
+
+def _w2d_fetch_metadata(db_path: Path, classifier_name: str) -> dict:
+    conn = helix_db.get_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT metadata FROM entries WHERE id LIKE ?",
+            (f"{classifier_name}.%",),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert row is not None
+    return json.loads(row["metadata"])
+
+
+def _w2d_recommender(tmp_path: Path, db_path: Path) -> SkillRecommender:
+    classifier = SkillRecommender(db_path=db_path)
+    classifier.cache_dir = tmp_path / "recommend-cache"
+    classifier._top_n = 1
+    classifier._task_text = "entries test"
+    return classifier
+
+
+def _w2d_recommendation_json(skill_id: str = "common/testing") -> str:
+    return json.dumps(
+        {
+            "recommendations": [
+                {
+                    "skill_id": skill_id,
+                    "score": 0.91,
+                    "reason": "entries integration",
+                    "recommended_agent": "qa",
+                }
+            ]
+        },
+        ensure_ascii=False,
+    )
+
+
+def test_classifiers_records_metadata_contains_query_and_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db_path = _init_db(tmp_path)
+
+    recommender = _w2d_recommender(tmp_path, db_path)
+    monkeypatch.setattr(recommender, "_invoke_codex", lambda query, context: _w2d_recommendation_json())
+    recommender.classify("entries recommender", {"prompt": "p", "top_n": 1})
+
+    effort = effort_classifier.EffortClassifier(db_path=db_path)
+    effort.cache_dir = tmp_path / "effort-cache"
+    effort.classify("entries effort", role="qa", size="S", files=1, lines=1, use_llm=False)
+
+    classifier = skill_classifier.SkillClassifier(db_path=db_path)
+    classifier.cache_dir = tmp_path / "skill-classifier-cache"
+    monkeypatch.setattr(
+        classifier,
+        "_invoke_codex",
+        lambda query, context: (
+            '{"phases":["L2"],"tasks":["design-api"],"triggers":["API"],'
+            '"anti_triggers":[],"agent":"tl","similar":[],"confidence":0.8}'
+        ),
+    )
+    classifier.classify_skill(
+        "common/security",
+        "# SKILL",
+        known_task_ids={"design-api"},
+        allowed_agents={"tl"},
+        allowed_phases={"L2"},
+    )
+
+    expectations = {
+        "skill_recommender": "entries recommender",
+        "effort_classifier": "entries effort",
+        "skill_classifier": "common/security",
+    }
+    for classifier_name, query in expectations.items():
+        metadata = _w2d_fetch_metadata(db_path, classifier_name)
+        assert metadata["query"] == query
+        assert isinstance(metadata["result"], dict)
+        assert metadata["source"] in {"codex", "rule"}
+
+
+def test_classifier_cache_hit_skips_codex_invocation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db_path = _init_db(tmp_path)
+    classifier = _w2d_recommender(tmp_path, db_path)
+    calls = {"invoke": 0}
+
+    def _fake_invoke(query: str, context: dict | None) -> str:
+        calls["invoke"] += 1
+        return _w2d_recommendation_json()
+
+    monkeypatch.setattr(classifier, "_invoke_codex", _fake_invoke)
+
+    first = classifier.classify("same query", {"prompt": "p", "top_n": 1})
+    second = classifier.classify("same query", {"prompt": "p", "top_n": 1})
+
+    assert first == second
+    assert calls["invoke"] == 1
+
+
+def test_classifier_cache_miss_invokes_codex(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db_path = _init_db(tmp_path)
+    classifier = _w2d_recommender(tmp_path, db_path)
+    calls = {"invoke": 0}
+
+    def _fake_invoke(query: str, context: dict | None) -> str:
+        calls["invoke"] += 1
+        return _w2d_recommendation_json(f"common/testing-{calls['invoke']}")
+
+    monkeypatch.setattr(classifier, "_invoke_codex", _fake_invoke)
+
+    classifier.classify("query one", {"prompt": "p", "top_n": 1})
+    classifier.classify("query two", {"prompt": "p", "top_n": 1})
+
+    assert calls["invoke"] == 2

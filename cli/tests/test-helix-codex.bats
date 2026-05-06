@@ -96,6 +96,24 @@ teardown() {
   [[ "$output" == *"allowed_files: cli/tests/test-helix-*.bats"* ]]
 }
 
+@test "PLAN-024 W-2d: helix-codex --thinking xhigh injects xhigh" {
+  run "$HELIX_ROOT/cli/helix-codex" --role qa --task "W-2d tests" --thinking xhigh --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Thinking:  xhigh"* ]]
+}
+
+@test "PLAN-024 W-2d: helix-codex --auto-thinking resolves from task" {
+  run "$HELIX_ROOT/cli/helix-codex" --role se --task "API migration refactor test" --auto-thinking --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Thinking:  high"* ]]
+}
+
+@test "PLAN-024 W-2d: helix-codex uses role default thinking without override" {
+  run "$HELIX_ROOT/cli/helix-codex" --role pg --task "tiny" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Thinking:  low"* ]]
+}
+
 @test "helix-codex rejects missing reference doc" {
   run "$HELIX_ROOT/cli/helix-codex" --role docs --task "x" --dry-run --reference-doc docs/missing.md
   [ "$status" -ne 0 ]

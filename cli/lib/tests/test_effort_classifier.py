@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -9,6 +10,14 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import effort_classifier
+import helix_db
+from llm_classifier_base import LLMClassifierBase
+
+
+def _init_db(tmp_path: Path) -> Path:
+    db_path = tmp_path / "helix.db"
+    helix_db.init_db(db_path)
+    return db_path
 
 
 def test_files_score_boundary_values() -> None:
@@ -88,3 +97,48 @@ def test_classify_returns_cached_result_on_second_call(
     assert first["cached"] is False
     assert second["cached"] is True
     assert second["effort"] == first["effort"]
+
+
+def test_effort_classifier_uses_base_class() -> None:
+    assert isinstance(effort_classifier.EffortClassifier(), LLMClassifierBase)
+
+
+def test_effort_classifier_records_to_entries(tmp_path: Path) -> None:
+    classifier = effort_classifier.EffortClassifier(db_path=_init_db(tmp_path))
+    classifier.cache_dir = tmp_path / "effort-cache"
+
+    result = classifier.classify("small bug fix", role="qa", size="S", files=1, lines=8, use_llm=False)
+
+    conn = helix_db.get_connection(classifier.db_path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM entries WHERE id LIKE 'effort_classifier.%'",
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert result["effort"] == "medium"
+    assert row is not None
+    assert row["axis"] == "evidence"
+    metadata = json.loads(row["metadata"])
+    assert metadata["query"] == "small bug fix"
+    assert metadata["source"] == "rule"
+    assert metadata["result"]["effort"] == "medium"
+
+
+def test_effort_classify_returns_dict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db_path = _init_db(tmp_path)
+    monkeypatch.setenv("HELIX_DB_PATH", str(db_path))
+    monkeypatch.setattr(effort_classifier, "CACHE_DIR", tmp_path / "effort-cache")
+
+    result = effort_classifier.effort_classify(
+        "API migration refactor test",
+        role="qa",
+        size="M",
+        files=4,
+        lines=100,
+        use_llm=False,
+    )
+
+    assert isinstance(result, dict)
+    assert {"effort", "score", "recommended_thinking", "cached"} <= set(result)

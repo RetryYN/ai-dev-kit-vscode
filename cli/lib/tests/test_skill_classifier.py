@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,8 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import skill_classifier
+import helix_db
+from llm_classifier_base import LLMClassifierBase
 
 
 def _template_file(tmp_path: Path) -> Path:
@@ -298,3 +301,66 @@ def test_validate_classification_checks_phase_task_and_agent() -> None:
             allowed_agents={"tl"},
             allowed_phases={"L2"},
         )
+
+
+def test_skill_classifier_uses_base_class() -> None:
+    assert isinstance(skill_classifier.SkillClassifier(), LLMClassifierBase)
+
+
+def test_skill_classifier_records_to_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db_path = tmp_path / "helix.db"
+    helix_db.init_db(db_path)
+    classifier = skill_classifier.SkillClassifier(db_path=db_path)
+    classifier.cache_dir = tmp_path / "skill-classifier-cache"
+    monkeypatch.setattr(classifier, "_invoke_codex", lambda query, context: _ok_payload())
+
+    result = classifier.classify_skill(
+        "common/security",
+        "# SKILL",
+        known_task_ids={"design-api"},
+        allowed_agents={"tl"},
+        allowed_phases={"L2"},
+    )
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        row = conn.execute("SELECT * FROM entries WHERE id LIKE 'skill_classifier.%'").fetchone()
+    finally:
+        conn.close()
+
+    assert result["agent"] == "tl"
+    assert row is not None
+    assert row["axis"] == "evidence"
+    metadata = json.loads(row["metadata"])
+    assert metadata["query"] == "common/security"
+    assert metadata["source"] == "codex"
+    assert metadata["result"]["tasks"] == ["design-api"]
+
+
+def test_skill_classify_returns_dict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    tpl = _template_file(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+    helix_db.init_db(db_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HELIX_DB_PATH", str(db_path))
+    monkeypatch.setattr(
+        skill_classifier.subprocess,
+        "run",
+        lambda cmd, capture_output, text, timeout, check: subprocess.CompletedProcess(
+            cmd, 0, stdout=_ok_payload(), stderr=""
+        ),
+    )
+
+    result = skill_classifier.skill_classify(
+        "common/security-alias",
+        "# SKILL alias",
+        known_task_ids={"design-api"},
+        allowed_agents={"tl"},
+        allowed_phases={"L2"},
+        template_path=tpl,
+        helix_codex_path="helix-codex",
+    )
+
+    assert isinstance(result, dict)
+    assert result["agent"] == "tl"
+    assert result["confidence"] == 0.9
