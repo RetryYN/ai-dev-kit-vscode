@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 16
+CURRENT_SCHEMA_VERSION = 17
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -540,6 +540,44 @@ CREATE INDEX IF NOT EXISTS idx_code_index_bucket ON code_index(bucket);
 """
 
 
+ENTRIES_LINKS_SCHEMA_V17 = """
+CREATE TABLE IF NOT EXISTS entries (
+    id              TEXT PRIMARY KEY,
+    axis            TEXT NOT NULL
+                    CHECK(axis IN ('design','plan','code','schema','test','review','evidence')),
+    stack           TEXT
+                    CHECK(stack IS NULL OR stack IN ('front','back','contract','fullstack','infra','n/a')),
+    lifecycle       TEXT NOT NULL
+                    CHECK(lifecycle IN ('initial','addition','modification','migration','deprecation','removed')),
+    parent_entry_id TEXT,
+    sprint_id       TEXT,
+    agent_actor     TEXT,
+    ref             TEXT NOT NULL,
+    version         TEXT,
+    metadata        TEXT,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_entry_id) REFERENCES entries(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS links (
+    from_id  TEXT NOT NULL,
+    to_id    TEXT NOT NULL,
+    kind     TEXT NOT NULL
+             CHECK(kind IN ('uses','covers','reviews','implements','derives_from','supersedes')),
+    metadata TEXT,
+    PRIMARY KEY (from_id, to_id, kind),
+    FOREIGN KEY (from_id) REFERENCES entries(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_id)   REFERENCES entries(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_entries_axis      ON entries(axis);
+CREATE INDEX IF NOT EXISTS idx_entries_stack     ON entries(stack)       WHERE stack IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_entries_sprint    ON entries(sprint_id)   WHERE sprint_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_entries_agent     ON entries(agent_actor) WHERE agent_actor IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_entries_lifecycle ON entries(lifecycle);
+CREATE INDEX IF NOT EXISTS idx_links_kind        ON links(kind);
+"""
+
+
 def _prepare_db_path(db_path):
     parent_dir = os.path.dirname(os.path.abspath(db_path))
     if parent_dir:
@@ -728,6 +766,11 @@ def _migrate_v15_to_v16(conn):
         "CREATE INDEX IF NOT EXISTS idx_skill_usage_session ON skill_usage(session_id) "
         "WHERE session_id IS NOT NULL"
     )
+
+
+def _migrate_v16_to_v17(conn):
+    """v17: entries + links テーブル新設 (PLAN-027 Sprint .3 W-3a)"""
+    conn.executescript(ENTRIES_LINKS_SCHEMA_V17)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -1008,6 +1051,11 @@ def migrate(conn):
             _migrate_v15_to_v16(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (16, datetime('now'))"
+            )
+        if current < 17:
+            _migrate_v16_to_v17(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (17, datetime('now'))"
             )
         conn.commit()
 
