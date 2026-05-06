@@ -551,3 +551,54 @@ def test_compute_uncovered_summary_and_duplicate_id_warning(tmp_path: Path, caps
         ("third", "function"),
     ]
     assert "重複した @helix:index id" in capsys.readouterr().err
+
+
+def test_parse_helix_index_comment_axis_field() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.bar domain=cli/lib summary=test axis=code"
+    )
+
+    assert entry is not None
+    assert entry["axis"] == "code"
+
+
+def test_parse_helix_index_comment_stack_field() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.bar domain=cli/lib summary=test stack=back"
+    )
+
+    assert entry is not None
+    assert entry["stack"] == "back"
+
+
+def test_parse_helix_index_comment_lifecycle_field() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.bar domain=cli/lib summary=test lifecycle=addition"
+    )
+
+    assert entry is not None
+    assert entry["lifecycle"] == "addition"
+
+
+def test_parse_helix_index_comment_parent_sprint_agent_combo() -> None:
+    entry = code_catalog.parse_helix_index_comment(
+        "# @helix:index id=foo.bar domain=cli/lib summary=test "
+        "parent=foo.parent sprint=PLAN-027.W-3b agent=codex-se"
+    )
+
+    assert entry is not None
+    assert entry["parent"] == "foo.parent"
+    assert entry["sprint"] == "PLAN-027.W-3b"
+    assert entry["agent"] == "codex-se"
+
+
+def test_parse_helix_index_comment_backward_compat() -> None:
+    entry = code_catalog.parse_helix_index_comment("# @helix:index id=foo.bar domain=cli/lib summary=test")
+
+    assert entry is not None
+    assert entry["axis"] is None
+    assert entry["stack"] is None
+    assert entry["lifecycle"] is None
+    assert entry["parent"] is None
+    assert entry["sprint"] is None
+    assert entry["agent"] is None

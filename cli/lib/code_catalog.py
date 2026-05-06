@@ -24,7 +24,10 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 
 _INDEX_MARKER = "@helix:index"
-_FIELD_RE = re.compile(r"(?<!\S)(id|domain|summary|since|related|seed_candidate|seed_promotable)=")
+_FIELD_RE = re.compile(
+    r"(?<!\S)(id|domain|summary|since|related|seed_candidate|seed_promotable"
+    r"|axis|stack|lifecycle|parent|sprint|agent)="
+)
 # PLAN-011 v1.2: .md と .bats は heredoc / 文字列内の marker を構文判定で除外できないため走査対象外
 # (Python は tokenize.COMMENT、bash は #-行頭コメントで構文判定可能)
 _TRACKED_SUFFIXES = {".py", ".sh"}
@@ -327,6 +330,12 @@ def parse_helix_index_comment(line: str) -> dict[str, Any] | None:
         "summary": fields["summary"],
         "since": fields.get("since"),
         "related": related,
+        "axis": fields.get("axis"),
+        "stack": fields.get("stack"),
+        "lifecycle": fields.get("lifecycle"),
+        "parent": fields.get("parent"),
+        "sprint": fields.get("sprint"),
+        "agent": fields.get("agent"),
     }
 
 
@@ -515,6 +524,12 @@ def _flatten_catalog_entry(entry: dict[str, Any], root: Path) -> dict[str, Any] 
         "summary": entry.get("summary"),
         "since": entry.get("since"),
         "related": entry.get("related", []),
+        "axis": entry.get("axis"),
+        "stack": entry.get("stack"),
+        "lifecycle": entry.get("lifecycle"),
+        "parent": entry.get("parent"),
+        "sprint": entry.get("sprint"),
+        "agent": entry.get("agent"),
         "path": rel_path.as_posix(),
         "line": int(entry.get("line_no") or symbol_line),
         "line_no": int(entry.get("line_no") or symbol_line),
