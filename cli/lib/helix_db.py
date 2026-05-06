@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 17
+CURRENT_SCHEMA_VERSION = 18
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -773,6 +773,20 @@ def _migrate_v16_to_v17(conn):
     conn.executescript(ENTRIES_LINKS_SCHEMA_V17)
 
 
+def _migrate_v17_to_v18(conn):
+    """v18: code_index に 6 列追加 (PLAN-027 Sprint .3 W-3c) — entries 軸との対応"""
+    for column, sql_type in [
+        ("axis", "TEXT"),
+        ("stack", "TEXT"),
+        ("lifecycle", "TEXT"),
+        ("parent_entry_id", "TEXT"),
+        ("sprint_id", "TEXT"),
+        ("agent_actor", "TEXT"),
+    ]:
+        if not _has_column(conn, "code_index", column):
+            conn.execute(f"ALTER TABLE code_index ADD COLUMN {column} {sql_type}")
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1056,6 +1070,11 @@ def migrate(conn):
             _migrate_v16_to_v17(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (17, datetime('now'))"
+            )
+        if current < 18:
+            _migrate_v17_to_v18(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (18, datetime('now'))"
             )
         conn.commit()
 

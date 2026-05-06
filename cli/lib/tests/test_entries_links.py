@@ -102,3 +102,48 @@ def test_links_fk_cascade_on_entry_delete(tmp_path: Path) -> None:
         conn.close()
 
     assert row["count"] == 0
+
+
+def test_migrate_v17_to_v18_extends_code_index(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        code_index_cols = [row["name"] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()]
+    finally:
+        conn.close()
+
+    assert code_index_cols == [
+        "id",
+        "domain",
+        "summary",
+        "path",
+        "line_no",
+        "symbol_line",
+        "since",
+        "related",
+        "source_hash",
+        "bucket",
+        "updated_at",
+        "axis",
+        "stack",
+        "lifecycle",
+        "parent_entry_id",
+        "sprint_id",
+        "agent_actor",
+    ]
+
+
+def test_migrate_v17_to_v18_is_idempotent(tmp_path: Path) -> None:
+    db_path = tmp_path / "helix.db"
+    helix_db.init_db(db_path)
+    helix_db.init_db(db_path)
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        version_row = conn.execute("SELECT COUNT(*) AS count FROM schema_version WHERE version = 18").fetchone()
+        code_index_cols = [row["name"] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()]
+    finally:
+        conn.close()
+
+    assert version_row["count"] == 1
+    assert len(code_index_cols) == 17
