@@ -23,6 +23,13 @@ RESEARCH_TASK_RE = re.compile(
     r"OSS.*比較|検索.*(公式|外部|SDK|ライブラリ|最新)",
     re.IGNORECASE,
 )
+# PLAN-023 W-1: 実装意図キーワードがあれば research 誤判定を上書き。
+# detect_plan_only_task() の execute_pattern と同じ 2 段階構造に揃える。
+IMPL_TASK_RE = re.compile(
+    r"実装|修正|削除|編集|変更|追加|適用|作成|"
+    r"implement|edit|delete|remove|fix|apply|modify|update|create",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -67,7 +74,12 @@ def validate_member(member: dict[str, Any], index: int | None = None) -> list[Po
                 index,
             )
         )
-    if task and RESEARCH_TASK_RE.search(task) and role in RESEARCH_GUARD_TARGET_ROLES:
+    if (
+        task
+        and RESEARCH_TASK_RE.search(task)
+        and not IMPL_TASK_RE.search(task)  # PLAN-023 W-1: 実装意図があれば緩和
+        and role in RESEARCH_GUARD_TARGET_ROLES
+    ):
         findings.append(
             PolicyFinding(
                 "research_task_wrong_role",

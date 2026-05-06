@@ -64,6 +64,56 @@ def test_single_member_policy_blocks_research_task() -> None:
     assert any(item["code"] == "research_task_wrong_role" for item in payload["errors"])
 
 
+def test_plan023_impl_keyword_overrides_research_misjudgment() -> None:
+    """PLAN-023 W-1: 実装系キーワードがあれば research 誤判定を緩和。
+
+    W-P2-1a/W-P2-1b で発生した false positive (機械的な conf 編集タスクが
+    research と誤判定されたケース) の再現と解消確認。
+    """
+    payload = agent_policy_guard.check_team_definition(
+        {
+            "strategy": "sequential",
+            "members": [
+                {
+                    "role": "pg",
+                    "engine": "codex",
+                    "task": "以下のファイルを Read してから conf を編集して codex_thinking を追加",
+                }
+            ],
+        }
+    )
+
+    assert payload["ok"] is True
+    assert not any(
+        item["code"] == "research_task_wrong_role" for item in payload["errors"]
+    )
+
+
+def test_plan023_pure_research_still_blocked() -> None:
+    """PLAN-023 W-1: 純 research タスクは引き続き block (回帰なし)。
+
+    実装系キーワードを含まない investigate / 比較系タスクは従来通り
+    research 役割への誘導が必要。
+    """
+    payload = agent_policy_guard.check_team_definition(
+        {
+            "strategy": "sequential",
+            "members": [
+                {
+                    "role": "pg",
+                    "engine": "codex",
+                    "task": "React の最新 SDK を investigate して比較",
+                }
+            ],
+        }
+    )
+
+    assert payload["ok"] is False
+    assert any(
+        item["code"] == "research_task_wrong_role" for item in payload["errors"]
+    )
+
+
 def test_execution_roles_cannot_pin_tl_class_model() -> None:
     payload = agent_policy_guard.check_team_definition(
         {"strategy": "sequential", "members": [{"role": "pg", "engine": "codex", "model": "gpt-5.4", "task": "実装"}]}
