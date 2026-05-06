@@ -118,6 +118,21 @@ def _load_agent_effort(project_root: Path, agent_name: str) -> str:
     return ""
 
 
+def _effort_prefix(effort: str) -> str:
+    """PLAN-023 ADR-007 Option A: effort 値を prompt prefix へ変換する。"""
+    if not effort:
+        return ""
+    table = {
+        "high": (
+            "[effort=high] このタスクは詳細な深い分析・厳密な仕様確認を要する。"
+            "表層的な対応を避け、依存関係や副作用を必ず確認すること。"
+        ),
+        "medium": "[effort=medium] 標準的な精度で進めること。",
+        "low": "[effort=low] このタスクは軽量・自明系。簡潔・最小限で進め、過剰な分析を避けること。",
+    }
+    return table.get(effort.lower(), "")
+
+
 def _warn_s_task_high_effort_agent(project_root: Path, agent: dict[str, Any]) -> None:
     if agent.get("type") != "subagent":
         return
@@ -395,14 +410,25 @@ def dispatch(
     usage_id = _insert_usage(db_path, row)
 
     if agent["is_claude_native"]:
-        hint = (
-            f"Claude Code のネイティブサブエージェントのため、次のメッセージで\n"
-            f"  {agent['invoke']}\n"
-            f"を呼び出してください。\n\n"
-            f"スキル: {skill_id}\n"
-            f"タスク: {task_text}\n"
-            f"skill_usage に usage_id={usage_id} を記録しました。"
-        )
+        # PLAN-023 ADR-007 Option A: effort 由来 prefix を inject + bundle 同梱。
+        effort = _load_agent_effort(_repo_root(), str(agent.get("name", "")))
+        effort_directive = _effort_prefix(effort)
+
+        hint_parts: list[str] = []
+        if effort_directive:
+            hint_parts.append(effort_directive)
+            hint_parts.append("")
+        hint_parts.append("# Skill Context Bundle")
+        hint_parts.append(bundle)
+        hint_parts.append("")
+        hint_parts.append("Claude Code のネイティブサブエージェントのため、次のメッセージで")
+        hint_parts.append(f"  {agent['invoke']}")
+        hint_parts.append("を呼び出してください。")
+        hint_parts.append("")
+        hint_parts.append(f"スキル: {skill_id}")
+        hint_parts.append(f"タスク: {task_text}")
+        hint_parts.append(f"skill_usage に usage_id={usage_id} を記録しました。")
+        hint = "\n".join(hint_parts)
         _update_usage(db_path, usage_id, {
             "outcome": "delegated_via_mention",
             "completed_at": datetime.now().isoformat(),

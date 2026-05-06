@@ -2,7 +2,7 @@
 
 **Feature**: helix-effort-agent-adr
 **Date**: 2026-05-06
-**Status**: Draft (2026-05-06 起票、PLAN-022 W-P2-3)
+**Status**: Accepted (2026-05-06 起票・同日 Decision 確定、PLAN-022 W-P2-3 → PLAN-023 W-3a/W-4)
 
 ---
 
@@ -44,24 +44,30 @@ Agent tool を直接呼ばず、`helix invoke-agent --name fe-design --task "...
 
 欠点: Claude Code 公式 Agent tool との二重メンテになり、利用者の学習コストも増える。
 
-### 推奨案
+### 確定 (2026-05-06)
 
-執筆時点では **Option A を推奨**する。Option B は外的依存で待ち時間が不確実であり、Option C は二重メンテの負担が大きく現実的でないためである。なお、Draft 段階であり最終決定は別途行う。
+**Option A (prompt inject) を採用**する。Option B は外的依存で待ち時間が不確実であり、Option C は二重メンテの負担が大きく現実的でないためである。実装は PLAN-023 W-3a として `cli/lib/skill_dispatcher.py` の `is_claude_native=True` 経路 (行 397-418) に effort prefix と Skill Context Bundle を inject する形で行う。
 
 ## Consequences
 
-- Option A 採用時は `cli/lib/skill_dispatcher.py` に prompt inject ロジックを追加する想定となる
-- Phase A の警告フックは現状維持とし、既存の誤指定検知は継続する
+- `cli/lib/skill_dispatcher.py` に `_effort_prefix()` 関数を新設し、`dispatch()` の `is_claude_native=True` 経路で `_load_agent_effort()` の戻り値を hint に prefix として inject する (PLAN-023 W-3a)
+- Phase A の警告フック (`_warn_s_task_high_effort_agent()`) は現状維持とし、既存の S × high 誤指定検知は継続する
+- effort 値ごとの prefix 文言:
+  - `high`: 「[effort=high] このタスクは詳細な深い分析・厳密な仕様確認を要する。表層的な対応を避け、依存関係や副作用を必ず確認すること。」
+  - `medium`: 「[effort=medium] 標準的な精度で進めること。」
+  - `low`: 「[effort=low] このタスクは軽量・自明系。簡潔・最小限で進め、過剰な分析を避けること。」
+  - 未定義 / 空: prefix なし (退行なし)
 - ADR-006 から本 ADR への明示的リンクを追加し、循環参照を避ける
+- Bypass: 環境変数 `HELIX_DISABLE_EFFORT_INJECT=1` で機能 OFF (バックアウト用)
 
-## Open Questions
+## Open Questions (将来 carry)
 
-1. prompt inject の具体的文言をどう分岐するか
-2. Claude API extended_thinking が SDK 経由で渡る仕様の調査をいつ実施するか
-3. `effort=medium` と未指定の差別化基準をどう定義するか
+1. Claude API `extended_thinking` が SDK 経由で渡る仕様化のタイミング (Q3 2026 目処の再評価)。仕様化されれば Option A から Option B へマイグレーション検討
+2. prompt prefix 文言の効果計測 (Sonnet 行動傾向が effort で実際に変化するかの A/B 評価) — `helix skill stats` の hit_rate と合わせ運用 1 ヶ月後にレビュー
 
 ## Related
 
 - [ADR-006 (Phase A/B 共存)](/home/tenni/ai-dev-kit-vscode/docs/features/helix-budget-autothinking/D-ADR/adr.md) - 本 ADR は ADR-006 の Phase A 制約を解消する代替検討
 - PLAN-022 (HELIX オーケストレーション層実機能化) - 上位計画
+- PLAN-023 (PLAN-022 残課題 3 件の同時解消) - 本 ADR の Decision を実装する PLAN
 - [docs/features/helix-budget-autothinking/D-ADR/adr.md](/home/tenni/ai-dev-kit-vscode/docs/features/helix-budget-autothinking/D-ADR/adr.md) - ADR-006 本体
