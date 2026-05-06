@@ -565,6 +565,7 @@ def _empty_stats(total_skills: int, total_categories: int) -> dict[str, Any]:
         "total": 0,
         "success_rate": 0.0,
         "avg_score": 0.0,
+        "hit_rate": 0.0,
         "top_skills": [],
         "by_category": {},
         "diversity": {
@@ -606,6 +607,15 @@ def stats(
 
         if total == 0:
             return _empty_stats(total_skills, total_categories)
+
+        # 直近 N 日の session 単位追跡がこの DB では取れないため、
+        # hit_rate は「skill_usage が発生した日数 / N」の日単位代替で計測する。
+        hit_row = conn.execute(
+            f"SELECT COUNT(DISTINCT DATE(created_at)) AS active_days FROM skill_usage "
+            f"WHERE created_at >= {cutoff}"
+        ).fetchone()
+        active_days = int(hit_row["active_days"] or 0)
+        hit_rate = (active_days / days * 100.0) if days > 0 else 0.0
 
         success_row = conn.execute(
             f"SELECT COUNT(*) AS n FROM skill_usage "
@@ -655,6 +665,7 @@ def stats(
             "total": total,
             "success_rate": success / total if total else 0.0,
             "avg_score": avg_score,
+            "hit_rate": hit_rate,
             "top_skills": top,
             "by_category": by_cat,
             "diversity": {
@@ -755,6 +766,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  total: {result['total']}")
                 print(f"  success_rate: {result['success_rate']:.2%}")
                 print(f"  avg_score: {result['avg_score']:.2f}")
+                print(f"  hit_rate: {result['hit_rate']:.2%}")
                 if result["top_skills"]:
                     print(f"  top skills:")
                     for s in result["top_skills"]:

@@ -110,6 +110,7 @@ def test_stats_includes_diversity_metrics(tmp_path: Path) -> None:
     assert diversity["total_categories"] == 3
     assert round(diversity["gini_coefficient"], 3) == 0.65
     assert diversity["gini_label"] == "偏り大"
+    assert result["hit_rate"] == (1 / 30 * 100)
 
 
 def test_stats_empty_db_returns_zeroed_diversity(tmp_path: Path) -> None:
@@ -137,3 +138,24 @@ def test_stats_empty_db_returns_zeroed_diversity(tmp_path: Path) -> None:
     assert diversity["top_skill_id"] == ""
     assert diversity["category_count"] == 0
     assert diversity["total_categories"] == 3
+    assert result["hit_rate"] == 0.0
+
+
+def test_stats_includes_hit_rate(tmp_path: Path) -> None:
+    skills_root, catalog_path = _write_catalog(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    _insert_usage(db_path, "common/code-review", "delegated", "2026-04-19 00:00:00")
+    _insert_usage(db_path, "common/testing", "delegated", "2026-04-20 00:00:00")
+
+    result = skill_dispatcher.stats(
+        db_path=db_path,
+        days=30,
+        catalog_path=catalog_path,
+        skills_root=skills_root,
+    )
+
+    assert "hit_rate" in result
+    assert isinstance(result["hit_rate"], (int, float))
+    assert 0.0 <= result["hit_rate"] <= 100.0
+    assert round(result["hit_rate"], 2) == round((2 / 30) * 100, 2)
