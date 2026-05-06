@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 15
+CURRENT_SCHEMA_VERSION = 16
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -708,6 +708,28 @@ def _migrate_v14_to_v15(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_code_index_bucket ON code_index(bucket)")
 
 
+def _migrate_v15_to_v16(conn):
+    """v16: sessions テーブル新設 + skill_usage.session_id 追加 (PLAN-023 W-2a)"""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            id TEXT PRIMARY KEY,
+            started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            cwd TEXT,
+            claude_session_id TEXT,
+            metadata TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at);
+        """
+    )
+    if not _has_column(conn, "skill_usage", "session_id"):
+        conn.execute("ALTER TABLE skill_usage ADD COLUMN session_id TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_skill_usage_session ON skill_usage(session_id) "
+        "WHERE session_id IS NOT NULL"
+    )
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -980,6 +1002,12 @@ def migrate(conn):
             _migrate_v14_to_v15(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (15, datetime('now'))"
+            )
+        # v15→v16: sessions table + skill_usage.session_id (PLAN-023 W-2a)
+        if current < 16:
+            _migrate_v15_to_v16(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (16, datetime('now'))"
             )
         conn.commit()
 

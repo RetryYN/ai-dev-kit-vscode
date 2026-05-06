@@ -1074,7 +1074,7 @@ run_codex_once() {
     --skip-git-repo-check \
     -c "model_reasoning_effort=\"$THINKING\"" \
     -c 'shell_environment_policy.inherit=none' \
-    -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","PYTHONIOENCODING"]' \
+    -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","HELIX_SESSION_ID","PYTHONIOENCODING"]' \
     ${FULL_AUTO:+$FULL_AUTO} \
     < /dev/null
   local rc=$?
