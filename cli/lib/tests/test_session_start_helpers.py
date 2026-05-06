@@ -1,4 +1,7 @@
 import json
+import os
+import re
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +12,12 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import session_start_helpers
+
+HELIX_ROOT = LIB_DIR.parents[1]
+SESSION_START = HELIX_ROOT / "cli" / "libexec" / "helix-session-start"
+UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+)
 
 
 def write_phase(
@@ -44,8 +53,126 @@ def fake_completed(stdout: str) -> subprocess.CompletedProcess[str]:
     return subprocess.CompletedProcess(args=["helix"], returncode=0, stdout=stdout, stderr="")
 
 
+def write_session_start_setup(tmp_path: Path, project_root: Path) -> dict[str, str]:
+    home = tmp_path / "home"
+    claude_dir = home / ".claude"
+    claude_dir.mkdir(parents=True)
+    (claude_dir / "CLAUDE.md").write_text(
+        "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md\n",
+        encoding="utf-8",
+    )
+    (claude_dir / "settings.json").write_text(
+        json.dumps({"hooks": {"SessionStart": [{"command": "helix-session-start"}]}}),
+        encoding="utf-8",
+    )
+    (home / ".bashrc").write_text(
+        "export PATH=$PATH:~/ai-dev-kit-vscode/cli\n",
+        encoding="utf-8",
+    )
+    tmp_dir = tmp_path / "tmp"
+    tmp_dir.mkdir()
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "HOME": str(home),
+            "HELIX_HOME": str(HELIX_ROOT),
+            "HELIX_PROJECT_ROOT": str(project_root),
+            "HELIX_SKILL_SEARCH": "0",
+            "TMPDIR": str(tmp_dir),
+        }
+    )
+    return env
+
+
+def init_sessions_db(project_root: Path) -> Path:
+    helix_dir = project_root / ".helix"
+    helix_dir.mkdir(parents=True)
+    db_path = helix_dir / "helix.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(
+        """
+        CREATE TABLE sessions (
+            id TEXT PRIMARY KEY,
+            started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            cwd TEXT,
+            claude_session_id TEXT,
+            metadata TEXT
+        );
+        """
+    )
+    conn.close()
+    return db_path
+
+
+def run_session_start(project_root: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(SESSION_START)],
+        cwd=project_root,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=5,
+        check=True,
+    )
+
+
+def fetch_sessions(db_path: Path) -> list[sqlite3.Row]:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        return conn.execute(
+            "SELECT id, cwd, claude_session_id FROM sessions ORDER BY started_at"
+        ).fetchall()
+    finally:
+        conn.close()
+
+
 def test_build_progress_block_no_helix(tmp_path: Path) -> None:
     assert session_start_helpers.build_progress_block(tmp_path) == ""
+
+
+def test_helix_session_id_export_format(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    db_path = init_sessions_db(project_root)
+    env = write_session_start_setup(tmp_path, project_root)
+
+    completed = run_session_start(project_root, env)
+
+    assert "export HELIX_SESSION_ID" in SESSION_START.read_text(encoding="utf-8")
+    payload = json.loads(completed.stdout)
+    assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+    rows = fetch_sessions(db_path)
+    assert len(rows) == 1
+    assert UUID_RE.fullmatch(rows[0]["id"])
+
+
+def test_session_disabled_when_env_set(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    db_path = init_sessions_db(project_root)
+    env = write_session_start_setup(tmp_path, project_root)
+    env["HELIX_DISABLE_SESSIONS"] = "1"
+
+    run_session_start(project_root, env)
+
+    assert fetch_sessions(db_path) == []
+
+
+def test_session_inserted_into_db(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    db_path = init_sessions_db(project_root)
+    env = write_session_start_setup(tmp_path, project_root)
+    env["CLAUDE_SESSION_ID"] = "claude-session-123"
+
+    run_session_start(project_root, env)
+
+    rows = fetch_sessions(db_path)
+    assert len(rows) == 1
+    assert rows[0]["cwd"] == str(project_root)
+    assert rows[0]["claude_session_id"] == "claude-session-123"
 
 
 def test_get_handover_task_returns_title_from_current_json(tmp_path: Path) -> None:

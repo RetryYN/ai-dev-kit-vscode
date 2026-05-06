@@ -66,16 +66,45 @@ def _insert_usage(
     skill_id: str,
     outcome: str = "delegated",
     created_at: str = "2026-04-19 00:00:00",
+    session_id: str | None = None,
 ) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:
         skill_dispatcher._ensure_db_schema(conn)  # noqa: SLF001
         conn.execute(
-            "INSERT INTO skill_usage (task_text, skill_id, outcome, created_at) VALUES (?, ?, ?, ?)",
-            ("task", skill_id, outcome, created_at),
+            "INSERT INTO skill_usage (task_text, skill_id, outcome, created_at, session_id) "
+            "VALUES (?, ?, ?, ?, ?)",
+            ("task", skill_id, outcome, created_at, session_id),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def _insert_session(
+    db_path: Path,
+    session_id: str,
+    started_at: str = "2026-04-19 00:00:00",
+) -> None:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    try:
+        skill_dispatcher._ensure_db_schema(conn)  # noqa: SLF001
+        conn.execute(
+            "INSERT INTO sessions (id, started_at) VALUES (?, ?)",
+            (session_id, started_at),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _fetch_usage(db_path: Path, usage_id: int) -> sqlite3.Row:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        return conn.execute("SELECT * FROM skill_usage WHERE id = ?", (usage_id,)).fetchone()
     finally:
         conn.close()
 
@@ -139,6 +168,8 @@ def test_stats_empty_db_returns_zeroed_diversity(tmp_path: Path) -> None:
     assert diversity["category_count"] == 0
     assert diversity["total_categories"] == 3
     assert result["hit_rate"] == 0.0
+    assert result["active_sessions"] == 0
+    assert result["total_sessions"] == 0
 
 
 def test_stats_includes_hit_rate(tmp_path: Path) -> None:
@@ -159,3 +190,72 @@ def test_stats_includes_hit_rate(tmp_path: Path) -> None:
     assert isinstance(result["hit_rate"], (int, float))
     assert 0.0 <= result["hit_rate"] <= 100.0
     assert round(result["hit_rate"], 2) == round((2 / 30) * 100, 2)
+    assert result["active_sessions"] == 0
+    assert result["total_sessions"] == 0
+
+
+def test_stats_hit_rate_sessions_based(tmp_path: Path) -> None:
+    skills_root, catalog_path = _write_catalog(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    for i in range(10):
+        _insert_session(db_path, f"session-{i}", "2026-04-19 00:00:00")
+    for i in range(3):
+        _insert_usage(
+            db_path,
+            "common/code-review",
+            "delegated",
+            "2026-04-19 00:00:00",
+            session_id=f"session-{i}",
+        )
+
+    result = skill_dispatcher.stats(
+        db_path=db_path,
+        days=30,
+        catalog_path=catalog_path,
+        skills_root=skills_root,
+    )
+
+    assert result["active_sessions"] == 3
+    assert result["total_sessions"] == 10
+    assert result["hit_rate"] == 30.0
+
+
+def test_stats_hit_rate_falls_back_to_days(tmp_path: Path) -> None:
+    skills_root, catalog_path = _write_catalog(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    _insert_usage(db_path, "common/code-review", "delegated", "2026-04-19 00:00:00")
+    _insert_usage(db_path, "common/testing", "delegated", "2026-04-20 00:00:00")
+
+    result = skill_dispatcher.stats(
+        db_path=db_path,
+        days=30,
+        catalog_path=catalog_path,
+        skills_root=skills_root,
+    )
+
+    assert result["active_sessions"] == 0
+    assert result["total_sessions"] == 0
+    assert round(result["hit_rate"], 2) == round((2 / 30) * 100, 2)
+
+
+def test_stats_records_session_id_when_env_set(monkeypatch, tmp_path: Path) -> None:
+    skills_root, catalog_path = _write_catalog(tmp_path)
+    db_path = tmp_path / ".helix" / "helix.db"
+
+    monkeypatch.setenv("HELIX_SESSION_ID", "session-from-env")
+
+    result = skill_dispatcher.dispatch(
+        skill_id="common/testing",
+        task_text="native task",
+        recommended_agent="@be-api",
+        references=[],
+        catalog_path=catalog_path,
+        skills_root=skills_root,
+        db_path=db_path,
+        dry_run=False,
+    )
+
+    row = _fetch_usage(db_path, int(result["usage_id"]))
+    assert row["session_id"] == "session-from-env"
