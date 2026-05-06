@@ -615,49 +615,15 @@ if [[ -z "$FALLBACK_MODEL" && -n "$registry_default_fallback" && "$registry_defa
   FALLBACK_MODEL="$registry_default_fallback"
 fi
 
-# --- THINKING 決定 (CLI --thinking > conf の codex_thinking。PLAN-022 W-P2-1b で必須化) ---
-if [[ -z "$THINKING" ]]; then
-  if [[ -n "$codex_thinking" ]]; then
-    THINKING="$codex_thinking"
-  else
-    echo "エラー: ロール '$ROLE' の codex_thinking が cli/roles/${ROLE}.conf に未定義です" >&2
-    echo "  PLAN-022 W-P2-1 で全 conf に codex_thinking が必須化されました" >&2
-    echo "  --thinking <level> で明示指定するか、cli/roles/${ROLE}.conf に codex_thinking= を追加してください" >&2
-    exit 1
-  fi
+# --- THINKING 決定 (CLI explicit > auto-thinking > role conf) ---
+THINKING_ARGS=(--role "$ROLE" --task "$TASK")
+if [[ "$THINKING_EXPLICIT" == true ]]; then
+  THINKING_ARGS+=(--cli-explicit "$THINKING")
 fi
-
-# --- auto-thinking: タスク難度から thinking を自動推定 ---
 if [[ "$AUTO_THINKING" == true ]]; then
-  AUTO_RESULT=$(HELIX_AUTO_TASK="$TASK" HELIX_AUTO_ROLE="$ROLE" HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' 2>/dev/null || echo ""
-import sys
-import os
-sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
-from effort_classifier import classify
-r = classify(
-    os.environ["HELIX_AUTO_TASK"],
-    role=os.environ["HELIX_AUTO_ROLE"],
-    size=None,
-    files=None,
-    lines=None,
-    use_llm=False,
-)
-print(f"{r['recommended_thinking']}|effort={r['effort']}|score={r['score']}")
-PY
-)
-  if [[ -n "$AUTO_RESULT" ]]; then
-    AUTO_THINKING_LEVEL="${AUTO_RESULT%%|*}"
-    AUTO_DETAILS="${AUTO_RESULT#*|}"
-    if [[ "$THINKING_EXPLICIT" == true && "$THINKING" != "$AUTO_THINKING_LEVEL" ]]; then
-      echo "[auto-thinking] 手動 --thinking=$THINKING 優先 (自動推定=$AUTO_THINKING_LEVEL, $AUTO_DETAILS)" >&2
-    else
-      echo "[auto-thinking] thinking=$AUTO_THINKING_LEVEL ($AUTO_DETAILS)" >&2
-      THINKING="$AUTO_THINKING_LEVEL"
-    fi
-  else
-    echo "[auto-thinking] warning: classifier 失敗、ロール既定 thinking=$THINKING 使用" >&2
-  fi
+  THINKING_ARGS+=(--auto-thinking)
 fi
+THINKING="$(python3 "$SCRIPT_DIR/lib/codex_thinking.py" "${THINKING_ARGS[@]}")"
 
 # --- 配列抽出関数 ---
 parse_array() {

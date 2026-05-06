@@ -1,3 +1,4 @@
+{{include _prompt-skeleton.md}}
 # Skill Classify Prompt Template
 
 > gpt-5.4-mini（thinking=low）で SKILL.md を分類し、JSONL entry 用の classification を生成するプロンプトテンプレート。
