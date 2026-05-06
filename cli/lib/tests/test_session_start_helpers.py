@@ -48,6 +48,29 @@ def test_build_progress_block_no_helix(tmp_path: Path) -> None:
     assert session_start_helpers.build_progress_block(tmp_path) == ""
 
 
+def test_get_handover_task_returns_title_from_current_json(tmp_path: Path) -> None:
+    handover_dir = tmp_path / ".helix" / "handover"
+    handover_dir.mkdir(parents=True)
+    (handover_dir / "CURRENT.json").write_text(
+        json.dumps({"task_title": "Sample Task"}),
+        encoding="utf-8",
+    )
+
+    assert session_start_helpers.get_handover_task(tmp_path) == "Sample Task"
+
+
+def test_get_handover_task_returns_empty_when_missing(tmp_path: Path) -> None:
+    assert session_start_helpers.get_handover_task(tmp_path) == ""
+
+
+def test_get_handover_task_returns_empty_on_malformed_json(tmp_path: Path) -> None:
+    handover_dir = tmp_path / ".helix" / "handover"
+    handover_dir.mkdir(parents=True)
+    (handover_dir / "CURRENT.json").write_text("{not-json", encoding="utf-8")
+
+    assert session_start_helpers.get_handover_task(tmp_path) == ""
+
+
 def test_build_progress_block_basic(tmp_path: Path) -> None:
     write_phase(tmp_path)
 

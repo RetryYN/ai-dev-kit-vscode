@@ -93,13 +93,59 @@ SETUP_NEEDED
 fi
 
 # 進捗サマリを生成する。失敗しても SessionStart hook は止めない。
+helix_progress=""
 helix_progress_escaped=""
 if [[ -f "$PROJECT_ROOT/.helix/phase.yaml" ]]; then
   helix_progress="$(python3 "$SCRIPT_DIR/lib/session_start_helpers.py" progress "$PROJECT_ROOT" 2>/dev/null || true)"
-  if [[ -n "$helix_progress" ]]; then
-    helix_progress_escaped="$(printf '%s' "$helix_progress" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(), ensure_ascii=False)[1:-1])')"
-    helix_progress_escaped="${helix_progress_escaped}\\n\\n"
+fi
+
+# PLAN-022 W-P1-1b: handover task → skill 推挙ヒント
+HELIX_SKILL_HINT=""
+if [[ "${HELIX_SKILL_SEARCH:-1}" == "1" ]]; then
+  handover_task="$(python3 -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+from session_start_helpers import get_handover_task
+print(get_handover_task(sys.argv[2]))
+' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" 2>/dev/null || echo "")"
+  if [[ -n "$handover_task" ]]; then
+    skill_hint="$(timeout 5 python3 "$SCRIPT_DIR/lib/skill_recommender.py" \
+      --task "$handover_task" --json --top-n 1 2>/dev/null || echo "")"
+    if [[ -n "$skill_hint" ]]; then
+      HELIX_SKILL_HINT="$(python3 -c '
+import json
+import sys
+
+try:
+    data = json.loads(sys.argv[1])
+    candidates = data.get("candidates", [])
+    if candidates:
+        candidate = candidates[0]
+        skill_id = candidate.get("skill_id", "?")
+        agent = candidate.get("recommended_agent", "?")
+        print(f"推奨スキル: {skill_id} / 推奨 agent: {agent}")
+except Exception:
+    pass
+' "$skill_hint" 2>/dev/null || echo "")"
+    fi
   fi
+fi
+
+if [[ -n "$HELIX_SKILL_HINT" ]]; then
+  if [[ -n "$helix_progress" ]]; then
+    helix_progress="${helix_progress}
+
+### タスク推挙ヒント (PLAN-022 自動発火)
+${HELIX_SKILL_HINT}"
+  else
+    helix_progress="### タスク推挙ヒント (PLAN-022 自動発火)
+${HELIX_SKILL_HINT}"
+  fi
+fi
+
+if [[ -n "$helix_progress" ]]; then
+  helix_progress_escaped="$(printf '%s' "$helix_progress" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read(), ensure_ascii=False)[1:-1])')"
+  helix_progress_escaped="${helix_progress_escaped}\\n\\n"
 fi
 
 # --- 完了: 通常の HELIX コンテキスト ---

@@ -17,6 +17,32 @@ if str(SCRIPT_DIR) not in sys.path:
 from yaml_parser import get_nested, parse_yaml  # noqa: E402
 
 
+def get_handover_task(project_root: Path | str | None = None) -> str:
+    """
+    .helix/handover/CURRENT.json から task_title を取得して返す。
+
+    ファイル不在、JSON parse 失敗、task_title キー不在の場合は空文字列を返す。
+    """
+    import os
+
+    root = Path(project_root or os.getcwd())
+    handover = root / ".helix" / "handover" / "CURRENT.json"
+    if not handover.is_file():
+        return ""
+
+    try:
+        data = json.loads(handover.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            if "task_title" in data:
+                return str(data["task_title"]).strip()
+            task = data.get("task")
+            if isinstance(task, dict) and "title" in task:
+                return str(task["title"]).strip()
+        return ""
+    except (json.JSONDecodeError, OSError):
+        return ""
+
+
 def build_progress_block(project_root: Path) -> str:
     """phase.yaml + interrupt + handover を読んで AI 向けサマリを生成する。"""
     phase_file = project_root / ".helix" / "phase.yaml"
