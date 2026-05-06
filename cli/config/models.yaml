@@ -7,14 +7,14 @@ roles:
   se: gpt-5.5
   pg: gpt-5.3-codex-spark
   qa: gpt-5.5
-  security: gpt-5.3-codex
+  security: gpt-5.4
   dba: gpt-5.3-codex
   devops: gpt-5.3-codex
   docs: gpt-5.3-codex-spark
   research: gpt-5.2-codex
   legacy: gpt-5.4
-  perf: gpt-5.3-codex
-  fe: gpt-5.3-codex
+  perf: gpt-5.4
+  fe: gpt-5.4
   fe-design: gpt-5.4
   fe-component: gpt-5.4
   fe-style: gpt-5.4

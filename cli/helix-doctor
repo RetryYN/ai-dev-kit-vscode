@@ -178,6 +178,48 @@ check_template_version() {
   fi
 }
 
+check_role_config_consistency() {
+  local roles_file="${HELIX_HOME}/cli/config/models.yaml"
+  local roles_dir="${HELIX_HOME}/cli/roles"
+
+  if [[ ! -f "$roles_file" || ! -d "$roles_dir" ]]; then
+    echo "  ✗ role config consistency (required files missing)"
+    FAIL=$((FAIL + 1))
+    return
+  fi
+
+  local mismatch=0
+  local conf_path
+  local role
+  local conf_model
+  local yaml_model
+  for conf_path in "$roles_dir"/*.conf; do
+    role="$(basename "$conf_path" .conf)"
+    conf_model="$(sed -n 's/^codex_model=//p' "$conf_path" | head -n1)"
+    yaml_model="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
+
+    if [[ -z "$conf_model" || -z "$yaml_model" ]]; then
+      echo "WARNING: role $role: conf=${conf_model:-missing}, yaml=${yaml_model:-missing} (mismatch)"
+      mismatch=$((mismatch + 1))
+      continue
+    fi
+
+    if [[ "$conf_model" != "$yaml_model" ]]; then
+      echo "WARNING: role $role: conf=$conf_model, yaml=$yaml_model (mismatch)"
+      mismatch=$((mismatch + 1))
+    fi
+  done
+
+  if [[ $mismatch -eq 0 ]]; then
+    echo "  ✓ role config consistency"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  WARN=$((WARN + 1))
+  return
+}
+
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
@@ -214,6 +256,10 @@ echo "[テンプレート版数]"
 check_template_version "$HELIX_DIR/phase.yaml" "$HELIX_HOME/cli/templates/phase.yaml" "phase.yaml"
 check_template_version "$HELIX_DIR/gate-checks.yaml" "$HELIX_HOME/cli/templates/gate-checks.yaml" "gate-checks.yaml"
 check_template_version "$HELIX_DIR/doc-map.yaml" "$HELIX_HOME/cli/templates/doc-map.yaml" "doc-map.yaml"
+
+echo ""
+echo "[ロール設定]"
+check_role_config_consistency
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"
