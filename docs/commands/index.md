@@ -77,6 +77,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix discover` | 旧 recipe discover 入口 |
 | `helix builder` | 成果物 builder |
 | `helix code` | code index 検索・重複検出・統計 |
+| `helix entry` | entries/links 中央 DB の CRUD + N 軸 coverage (PLAN-027) |
 | `helix audit` | A1 audit decisions 同期・検証 |
 
 ## 6. 補助・運用

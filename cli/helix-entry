@@ -1,0 +1,71 @@
+#!/bin/bash
+set -euo pipefail
+
+HELIX_ENTRY_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HELIX_ENTRY_DIR/lib/helix-common.sh"
+LIB_DIR="$HELIX_ENTRY_DIR/lib"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix entry <subcommand>
+
+  show <id>                                単体エントリ表示 (7 軸 + 関連 link)
+  list [--axis A] [--stack S]              一覧 (フィルタ可)
+       [--lifecycle L] [--sprint X]
+       [--agent G] [--json]
+  add  --id ID --axis A --ref R            手動追加
+       [--stack S] [--lifecycle L]
+       [--sprint X] [--agent G]
+       [--parent P] [--metadata JSON]
+  update <id> [--lifecycle L]              更新
+                [--metadata JSON]
+                [--stack S] [--sprint X] [--agent G]
+  link <from> <to> --kind K                links 追加
+       [--metadata JSON]
+  unlink <from> <to> --kind K              links 削除
+  coverage --triplet                       N 軸網羅率 (axis × stack × lifecycle)
+           [--axis] [--stack] [--lifecycle]
+           [--sprint] [--agent] [--json]
+
+  --help               このヘルプ
+USAGE
+}
+
+main() {
+  local cmd="${1:---help}"
+  shift || true
+  case "$cmd" in
+    --help|-h|help)
+      usage
+      return 0
+      ;;
+    show)
+      [[ $# -ge 1 ]] || { echo "エラー: show には id が必要です" >&2; return 64; }
+      python3 - "$LIB_DIR" "$1" <<'PY'
+import sys
+
+sys.path.insert(0, sys.argv[1])
+from entry_helper import cmd_show
+
+sys.exit(cmd_show(sys.argv[2]))
+PY
+      ;;
+    list|add|update|link|unlink|coverage)
+      python3 - "$LIB_DIR" "$cmd" "$@" <<'PY'
+import sys
+
+sys.path.insert(0, sys.argv[1])
+from entry_helper import dispatch
+
+sys.exit(dispatch(sys.argv[2], sys.argv[3:]))
+PY
+      ;;
+    *)
+      echo "エラー: 不明なサブコマンドです: $cmd" >&2
+      usage >&2
+      return 64
+      ;;
+  esac
+}
+
+main "$@"

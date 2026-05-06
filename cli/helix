@@ -18,6 +18,7 @@ case "$CMD" in
   gate-api-check) exec "$SCRIPT_DIR/helix-gate-api-check" "$@" ;;
   size)     exec "$SCRIPT_DIR/helix-size" "$@" ;;
   sprint)   exec "$SCRIPT_DIR/helix-sprint" "$@" ;;
+  entry)    exec "$SCRIPT_DIR/helix-entry" "$@" ;;
   pr)       exec "$SCRIPT_DIR/helix-pr" "$@" ;;
   reverse)  exec "$SCRIPT_DIR/helix-reverse" "$@" ;;
   mode)     exec "$SCRIPT_DIR/helix-mode" "$@" ;;
@@ -142,6 +143,7 @@ Reverse / Scrum / 検証:
   discover    パターン検索 (deprecated: helix recipe discover)
   builder     成果物ビルダー
   code        コードインデックス検索/重複検出/統計
+  entry       entries/links 中央 DB の CRUD + N 軸 coverage (PLAN-027)
   audit       A1 audit decisions 同期・検証
 
 補助・運用:
