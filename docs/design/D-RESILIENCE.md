@@ -94,7 +94,7 @@ other -> backoff 1s
 
 ```bash
 helix codex --role pg --task "..." \
-  --fallback-model gpt-5.2-codex \        # Layer 2 の代替モデル指定
+  --fallback-model gpt-5.3-codex \        # Layer 2 の代替モデル指定
   --fallback-provider claude-code \        # Layer 3 の Claude Code harness 指定
   --max-retries 3 \                        # 最大リトライ回数（デフォルト 2）
   --timeout 600                            # タイムアウト秒数（デフォルト 1800）

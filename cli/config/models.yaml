@@ -11,7 +11,7 @@ roles:
   dba: gpt-5.3-codex
   devops: gpt-5.3-codex
   docs: gpt-5.3-codex-spark
-  research: gpt-5.2-codex
+  research: gpt-5.4
   legacy: gpt-5.4
   perf: gpt-5.4
   fe: gpt-5.4
