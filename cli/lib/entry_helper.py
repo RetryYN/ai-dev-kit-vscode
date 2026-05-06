@@ -366,6 +366,10 @@ def _coverage(argv: list[str]) -> int:
         print("エラー: coverage には --triplet が必要です", file=sys.stderr)
         return EXIT_USAGE
 
+    AXES = ("design", "plan", "code", "schema", "test", "review", "evidence")
+    STACKS = ("front", "back", "contract", "fullstack", "infra", "n/a")
+    LIFECYCLES = ("initial", "addition", "modification", "migration", "deprecation", "removed")
+
     conn = _connect()
     try:
         total = conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
@@ -374,24 +378,26 @@ def _coverage(argv: list[str]) -> int:
             SELECT axis, COALESCE(stack, 'n/a') AS stack, lifecycle, COUNT(*) AS count
             FROM entries
             GROUP BY axis, COALESCE(stack, 'n/a'), lifecycle
-            ORDER BY axis, stack, lifecycle
             """
         ).fetchall()
     finally:
         conn.close()
 
+    counts = {(row["axis"], row["stack"], row["lifecycle"]): int(row["count"]) for row in rows}
     triplet = []
-    for row in rows:
-        count = int(row["count"])
-        triplet.append(
-            {
-                "axis": row["axis"],
-                "stack": row["stack"],
-                "lifecycle": row["lifecycle"],
-                "count": count,
-                "ratio": (count / total) if total else 0.0,
-            }
-        )
+    for axis in AXES:
+        for stack in STACKS:
+            for lifecycle in LIFECYCLES:
+                count = counts.get((axis, stack, lifecycle), 0)
+                triplet.append(
+                    {
+                        "axis": axis,
+                        "stack": stack,
+                        "lifecycle": lifecycle,
+                        "count": count,
+                        "ratio": (count / total) if total else 0.0,
+                    }
+                )
 
     if args.as_json:
         print(json.dumps({"triplet": triplet}, ensure_ascii=False, indent=2))

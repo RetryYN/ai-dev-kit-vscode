@@ -29,6 +29,37 @@ entry_add_foo() {
   "$HELIX_ROOT/cli/helix" entry add --id=foo.bar --axis=test --ref=tests/foo.py --lifecycle=initial
 }
 
+assert_entries_json_parseable() {
+  local json_path="$1"
+  if command -v jq >/dev/null 2>&1; then
+    jq -e '.entries | type == "array"' "$json_path" >/dev/null || exit 1
+  else
+    python3 -c 'import json, sys; payload = json.load(open(sys.argv[1])); assert isinstance(payload.get("entries"), list)' "$json_path" || exit 1
+  fi
+}
+
+assert_complete_triplet_matrix() {
+  local json_path="$1"
+  python3 -c '
+import json
+import sys
+
+axes = {"design", "plan", "code", "schema", "test", "review", "evidence"}
+stacks = {"front", "back", "contract", "fullstack", "infra", "n/a"}
+lifecycles = {"initial", "addition", "modification", "migration", "deprecation", "removed"}
+payload = json.load(open(sys.argv[1]))
+triplet = payload["triplet"]
+actual = {(row["axis"], row["stack"], row["lifecycle"]) for row in triplet}
+expected = {(axis, stack, lifecycle) for axis in axes for stack in stacks for lifecycle in lifecycles}
+missing = sorted(expected - actual)
+assert len(triplet) == len(expected), f"triplet count {len(triplet)} != {len(expected)}; missing={missing[:5]}"
+assert not missing
+for row in triplet:
+    assert row["count"] >= 0
+    assert row["ratio"] >= 0
+' "$json_path" || exit 1
+}
+
 @test "helix entry --help displays usage" {
   run "$HELIX_ROOT/cli/helix" entry --help
   [ "$status" -eq 0 ]
@@ -130,15 +161,17 @@ PY
 
   run "$HELIX_ROOT/cli/helix" entry coverage --triplet --json
   [ "$status" -eq 0 ]
-  run python3 - <<'PY' <<<"$output"
+  json_file="$TMP_ROOT/coverage-parseable.json"
+  printf '%s\n' "$output" > "$json_file"
+  python3 - "$json_file" <<'PY'
 import json
 import sys
 
-payload = json.load(sys.stdin)
+payload = json.load(open(sys.argv[1]))
 assert "triplet" in payload
 assert isinstance(payload["triplet"], list)
 PY
-  [ "$status" -eq 0 ]
+  [ "$?" -eq 0 ] || exit 1
 }
 
 @test "helix entry list filters by axis" {
@@ -149,4 +182,35 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == *"foo.bar"* ]]
   [[ "$output" != *"code.entry"* ]]
+}
+
+@test "helix entry list --json emits valid JSON" {
+  entry_add_foo
+
+  run "$HELIX_ROOT/cli/helix" entry list --json
+  [ "$status" -eq 0 ]
+
+  json_file="$TMP_ROOT/entries.json"
+  printf '%s\n' "$output" > "$json_file"
+  assert_entries_json_parseable "$json_file"
+}
+
+@test "helix entry coverage triplet returns complete matrix" {
+  entry_add_foo
+
+  run "$HELIX_ROOT/cli/helix" entry coverage --triplet --json
+  [ "$status" -eq 0 ]
+
+  json_file="$TMP_ROOT/coverage.json"
+  printf '%s\n' "$output" > "$json_file"
+  assert_complete_triplet_matrix "$json_file"
+}
+
+@test "helix entry link invalid kind exits 64" {
+  entry_add_foo
+  "$HELIX_ROOT/cli/helix" entry add --id=cov.entry --axis=code --ref=src/c.py --lifecycle=initial
+
+  run "$HELIX_ROOT/cli/helix" entry link foo.bar cov.entry --kind=invalid
+  [ "$status" -eq 64 ]
+  [[ "$output" == *"kind=invalid"* || "$output" == *"CHECK constraint failed"* ]]
 }

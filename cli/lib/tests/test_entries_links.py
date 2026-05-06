@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import subprocess
 import sys
@@ -12,6 +13,7 @@ if str(LIB_DIR) not in sys.path:
 
 import helix_db
 import code_catalog
+import entry_helper
 
 
 def _init_db(tmp_path: Path) -> Path:
@@ -118,6 +120,49 @@ def test_links_fk_cascade_on_entry_delete(tmp_path: Path) -> None:
     assert row["count"] == 0
 
 
+def test_entries_lifecycle_check_constraint(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO entries (id, axis, lifecycle, ref) VALUES ('x', 'code', 'unknown', 'r')"
+            )
+    finally:
+        conn.close()
+
+
+def test_links_kind_check_constraint(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        conn.execute("INSERT INTO entries (id, axis, lifecycle, ref) VALUES ('from_x', 'code', 'initial', 'rf')")
+        conn.execute("INSERT INTO entries (id, axis, lifecycle, ref) VALUES ('to_x', 'code', 'initial', 'rt')")
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO links (from_id, to_id, kind) VALUES ('from_x', 'to_x', 'invalid')")
+    finally:
+        conn.close()
+
+
+def test_entries_parent_fk_set_null_on_delete(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    conn = helix_db.get_connection(db_path)
+    try:
+        conn.execute("INSERT INTO entries (id, axis, lifecycle, ref) VALUES ('parent_x', 'design', 'initial', 'rp')")
+        conn.execute(
+            """
+            INSERT INTO entries (id, axis, lifecycle, parent_entry_id, ref)
+            VALUES ('child_x', 'design', 'addition', 'parent_x', 'rc')
+            """
+        )
+        conn.execute("DELETE FROM entries WHERE id = 'parent_x'")
+        row = conn.execute("SELECT parent_entry_id FROM entries WHERE id = 'child_x'").fetchone()
+    finally:
+        conn.close()
+
+    assert row["parent_entry_id"] is None
+
+
 def test_migrate_v17_to_v18_extends_code_index(tmp_path: Path) -> None:
     db_path = _init_db(tmp_path)
     conn = helix_db.get_connection(db_path)
@@ -204,3 +249,46 @@ def test_sync_to_db_respects_lifecycle_field(tmp_path: Path) -> None:
         conn.close()
 
     assert entry_row["lifecycle"] == "addition"
+
+
+def test_entry_helper_coverage_triplet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    db_path = tmp_path / ".helix" / "helix.db"
+    helix_db.init_db(db_path)
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        conn.executemany(
+            """
+            INSERT INTO entries (id, axis, stack, lifecycle, ref)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                ("design.initial.1", "design", "front", "initial", "docs/design-1.md"),
+                ("design.initial.2", "design", "front", "initial", "docs/design-2.md"),
+                ("code.modified", "code", "back", "modification", "cli/lib/foo.py"),
+                ("test.added", "test", None, "addition", "cli/lib/tests/test_foo.py"),
+            ],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    capsys.readouterr()
+    assert entry_helper.dispatch("coverage", ["--triplet", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    rows = {
+        (item["axis"], item["stack"], item["lifecycle"]): item
+        for item in payload["triplet"]
+    }
+    assert rows[("design", "front", "initial")]["count"] == 2
+    assert rows[("design", "front", "initial")]["ratio"] == pytest.approx(0.5)
+    assert rows[("code", "back", "modification")]["count"] == 1
+    assert rows[("code", "back", "modification")]["ratio"] == pytest.approx(0.25)
+    assert rows[("test", "n/a", "addition")]["count"] == 1
+    assert rows[("test", "n/a", "addition")]["ratio"] == pytest.approx(0.25)
