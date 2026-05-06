@@ -236,18 +236,9 @@ if [[ -n "$THINKING" ]]; then
   esac
 fi
 
-# --thinking 未指定時のロール別デフォルト
-get_default_thinking() {
-  local role="$1"
-  case "$role" in
-    tl|security)   echo "xhigh" ;;
-    se|fe|qa|perf) echo "high" ;;
-    pg|dba|devops) echo "medium" ;;
-    docs|research) echo "low" ;;
-    legacy)        echo "xhigh" ;;
-    *)             echo "high" ;;
-  esac
-}
+# PLAN-022 W-P2-1b: get_default_thinking() は廃止。
+# 全ロール conf に codex_thinking= が必須化された (W-P2-1a)。
+# --thinking 未指定 + conf 未定義 の組み合わせは下流で exit 1 する。
 
 validate_sandbox_mode() {
   local sandbox="$1"
@@ -624,12 +615,15 @@ if [[ -z "$FALLBACK_MODEL" && -n "$registry_default_fallback" && "$registry_defa
   FALLBACK_MODEL="$registry_default_fallback"
 fi
 
-# --- THINKING 決定 (CLI --thinking > conf の codex_thinking > ロール別デフォルト) ---
+# --- THINKING 決定 (CLI --thinking > conf の codex_thinking。PLAN-022 W-P2-1b で必須化) ---
 if [[ -z "$THINKING" ]]; then
   if [[ -n "$codex_thinking" ]]; then
     THINKING="$codex_thinking"
   else
-    THINKING="$(get_default_thinking "$ROLE")"
+    echo "エラー: ロール '$ROLE' の codex_thinking が cli/roles/${ROLE}.conf に未定義です" >&2
+    echo "  PLAN-022 W-P2-1 で全 conf に codex_thinking が必須化されました" >&2
+    echo "  --thinking <level> で明示指定するか、cli/roles/${ROLE}.conf に codex_thinking= を追加してください" >&2
+    exit 1
   fi
 fi
 
@@ -813,6 +807,39 @@ while IFS= read -r skill; do
     echo "警告: スキルが見つかりません（overlay/global 検索順）: $skill" >&2
   fi
 done < <(parse_array "skills" "$ROLE_FILE_REAL")
+
+# PLAN-022 W-P1-2: 動的 skill 推挙 → SKILL_PATHS マージ
+if [[ "${HELIX_DYNAMIC_SKILLS:-1}" == "1" && -n "$TASK" && "${HELIX_DYNAMIC_SKILL_RECOMMENDER_ACTIVE:-0}" != "1" ]]; then
+  DYNAMIC_SKILL_JSON=$(HELIX_DYNAMIC_SKILL_RECOMMENDER_ACTIVE=1 timeout 5 python3 "$SCRIPT_DIR/lib/skill_recommender.py" \
+    --task "$TASK" --json --top-n 1 2>/dev/null || echo "")
+  if [[ -n "$DYNAMIC_SKILL_JSON" ]]; then
+    DYNAMIC_SKILL_ID=$(
+      python3 - "$DYNAMIC_SKILL_JSON" 2>/dev/null <<'PY' || echo ""
+import json
+import sys
+
+try:
+    data = json.loads(sys.argv[1])
+    candidates = data.get("candidates", [])
+    if candidates:
+        print(candidates[0].get("skill_id", ""))
+except Exception:
+    pass
+PY
+)
+    if [[ -n "$DYNAMIC_SKILL_ID" ]]; then
+      DYNAMIC_SKILL_PATH=$(resolve_skill_file "$DYNAMIC_SKILL_ID" 2>/dev/null || echo "")
+      if [[ -n "$DYNAMIC_SKILL_PATH" && -f "$DYNAMIC_SKILL_PATH" ]]; then
+        if ! grep -Fxq -- "- $DYNAMIC_SKILL_PATH" <<< "$SKILL_PATHS"; then
+          SKILL_PATHS+="- $DYNAMIC_SKILL_PATH
+"
+          LOADED_SKILLS+=("$DYNAMIC_SKILL_ID")
+          echo "[helix-codex] 動的 skill 推挙: $DYNAMIC_SKILL_ID (PLAN-022)" >&2
+        fi
+      fi
+    fi
+  fi
+fi
 
 # --- 共通ドキュメントパス一覧を構築 ---
 COMMON_DOC_PATHS=""

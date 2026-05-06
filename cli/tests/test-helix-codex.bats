@@ -3,12 +3,23 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   export HELIX_HOME="$HELIX_ROOT"
-  export PATH="$HELIX_ROOT/cli:$PATH"
 
   TMP_ROOT="$(mktemp -d)"
   PROJECT_ROOT="$TMP_ROOT/project"
   HOME_DIR="$TMP_ROOT/home"
-  mkdir -p "$PROJECT_ROOT/docs" "$HOME_DIR"
+  BIN_DIR="$TMP_ROOT/bin"
+  REAL_PYTHON="$(command -v python3)"
+  mkdir -p "$PROJECT_ROOT/docs" "$HOME_DIR" "$BIN_DIR"
+  cat > "$BIN_DIR/python3" <<SH
+#!/bin/sh
+if [ "\$1" = "$HELIX_ROOT/cli/lib/skill_recommender.py" ]; then
+  skill_id="\${HELIX_TEST_DYNAMIC_SKILL_ID:-project/ui}"
+  printf '{"candidates":[{"skill_id":"%s","score":0.99,"reason":"test"}]}\n' "\$skill_id"
+  exit 0
+fi
+exec "$REAL_PYTHON" "\$@"
+SH
+  chmod +x "$BIN_DIR/python3"
   cat > "$PROJECT_ROOT/docs/ref.md" <<'DOC'
 # Reference
 
@@ -17,6 +28,7 @@ DOC
   cd "$PROJECT_ROOT"
   export HELIX_PROJECT_ROOT="$PROJECT_ROOT"
   export HOME="$HOME_DIR"
+  export PATH="$BIN_DIR:$HELIX_ROOT/cli:$PATH"
 }
 
 teardown() {
@@ -101,6 +113,29 @@ teardown() {
   run "$HELIX_ROOT/cli/helix-codex" --role se --task "影響範囲調査" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" == *"Role:      se"* ]]
+}
+
+@test "PLAN-022 W-P1-2: helix-codex SKILL_PATHS に動的 skill が追加される" {
+  HELIX_TEST_DYNAMIC_SKILL_ID=project/ui run "$HELIX_ROOT/cli/helix-codex" --role pg --task "React component の追加" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"動的 skill 推挙: project/ui (PLAN-022)"* ]]
+  [[ "$output" == *"Skills:    common/coding common/testing common/git project/ui"* ]]
+  [[ "$output" == *"$HELIX_ROOT/skills/project/ui/SKILL.md"* ]]
+}
+
+@test "PLAN-022 W-P1-2: HELIX_DYNAMIC_SKILLS=0 で動的マージが OFF" {
+  HELIX_DYNAMIC_SKILLS=0 HELIX_TEST_DYNAMIC_SKILL_ID=project/ui run "$HELIX_ROOT/cli/helix-codex" --role pg --task "React component の追加" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"動的 skill 推挙"* ]]
+  [[ "$output" == *"Skills:    common/coding common/testing common/git"* ]]
+  [[ "$output" != *"project/ui"* ]]
+}
+
+@test "PLAN-022 W-P1-2: 既存 skill と同一なら二重追加しない" {
+  HELIX_TEST_DYNAMIC_SKILL_ID=common/coding run "$HELIX_ROOT/cli/helix-codex" --role pg --task "coding task" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"動的 skill 推挙"* ]]
+  [[ "$output" == *"Skills:    common/coding common/testing common/git"* ]]
 }
 
 @test "helix-codex require-approved blocks write execution without consent" {
