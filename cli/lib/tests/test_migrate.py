@@ -383,16 +383,58 @@ def test_helix_migrate_cli_dry_run_apply_and_rollback(tmp_path: Path) -> None:
     assert not (project_root / ".claude/settings.json").exists()
 
 
-def test_self_host_skips_project_targets(tmp_path: Path) -> None:
+def test_is_helix_self_repo_matches_default_home_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home = tmp_path / "home"
+    project_root = home / "ai-dev-kit-vscode"
+    project_root.mkdir(parents=True)
+    monkeypatch.delenv("HELIX_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(home))
+
+    assert migrate.is_helix_self_repo(project_root) is True
+
+
+def test_is_helix_self_repo_does_not_treat_fresh_clone_as_self(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home = tmp_path / "home"
+    project_root = tmp_path / "work" / "ai-dev-kit-vscode"
+    templates_dir = project_root / "cli" / "templates"
+    _write_templates(templates_dir)
+    (project_root / "skills").mkdir(parents=True)
+    (project_root / "skills" / "SKILL_MAP.md").write_text("# SKILL_MAP\n", encoding="utf-8")
+    monkeypatch.delenv("HELIX_HOME", raising=False)
+    monkeypatch.setenv("HOME", str(home))
+
+    assert migrate.is_helix_self_repo(project_root) is False
+
+
+def test_is_helix_self_repo_matches_helix_home_override(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = tmp_path / "custom-helix"
+    project_root.mkdir()
+    monkeypatch.setenv("HELIX_HOME", str(project_root))
+
+    assert migrate.is_helix_self_repo(project_root) is True
+
+
+def test_self_host_skips_project_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     project_root = tmp_path
     helix_dir = project_root / ".helix"
     templates_dir = project_root / "cli" / "templates"
     _write_templates(templates_dir)
     _write_current_yaml_files(helix_dir)
-    (project_root / "skills").mkdir()
-    (project_root / "skills" / "SKILL_MAP.md").write_text("# SKILL_MAP\n", encoding="utf-8")
+    monkeypatch.setenv("HELIX_HOME", str(project_root))
 
-    assert migrate.is_helix_self_repo(project_root, templates_dir) is True
+    assert migrate.is_helix_self_repo(project_root) is True
 
     result = migrate.do_merge(helix_dir, templates_dir, apply=True, project_root=project_root)
     assert result == 0

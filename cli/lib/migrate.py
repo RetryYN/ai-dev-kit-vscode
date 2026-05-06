@@ -13,6 +13,7 @@ import argparse
 import datetime as dt
 import difflib
 import json
+import os
 import re
 import shutil
 import sys
@@ -571,23 +572,15 @@ def _merge_target(
 SELF_HOST_SKIP_TARGET_IDS = {"claude_md", "agents_md", "claude_settings"}
 
 
-def is_helix_self_repo(project_root: Path, templates_dir: Path) -> bool:
+def is_helix_self_repo(project_root: Path) -> bool:
     """Detect HELIX framework repo itself.
 
-    本リポジトリ (cli/templates と skills/SKILL_MAP.md を持つ HELIX 本体) で migrate を
-    走らせると、自身の CLAUDE.md / AGENTS.md に template が二重追記されてしまうため、
+    HELIX_HOME または既定の ~/ai-dev-kit-vscode で migrate を走らせると、
+    自身の CLAUDE.md / AGENTS.md に template が二重追記されてしまうため、
     project_root の claude_md / agents_md / claude_settings target を skip する。
     """
-    try:
-        templates_resolved = templates_dir.resolve()
-        repo_templates = (project_root / "cli" / "templates").resolve()
-    except (OSError, RuntimeError):
-        return False
-    return (
-        (project_root / "cli" / "templates" / "CLAUDE.md.template").exists()
-        and (project_root / "skills" / "SKILL_MAP.md").exists()
-        and templates_resolved == repo_templates
-    )
+    helix_home = os.environ.get("HELIX_HOME") or os.path.expanduser("~/ai-dev-kit-vscode")
+    return os.path.realpath(project_root) == os.path.realpath(helix_home)
 
 
 def do_merge(
@@ -597,7 +590,7 @@ def do_merge(
     project_root: Path | None = None,
 ) -> int:
     project_root = resolve_project_root(helix_dir, project_root)
-    self_repo = is_helix_self_repo(project_root, templates_dir)
+    self_repo = is_helix_self_repo(project_root)
     if self_repo:
         print(
             "[helix migrate] self-host detected: HELIX framework repo 自身では "
