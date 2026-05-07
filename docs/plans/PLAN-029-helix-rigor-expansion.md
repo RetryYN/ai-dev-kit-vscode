@@ -4,7 +4,7 @@
 
 - id: PLAN-029
 - title: HELIX 11 軸厳格化拡張 (デザイン後置 / Sprint 厳格化 / フェーズゲート / デプロイ前 3 フェーズ / 大規模 agent 2 段設計 / Scrum 拡張 / L1-L3 設計厳格化 / 追加実装流れ / Reverse 厳格化 / 拡張性 × 制約性 / docs+helix.db 強化)
-- status: draft
+- status: draft (research integrated 2026-05-08, awaiting TL review)
 - priority: high
 - created: 2026-05-08
 - owners: PM, TL
@@ -59,6 +59,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **L5b**: Visual Production（配色、画像、アニメーション、最終見た目を L6.x 以降と整合）
 - Sprint 反映: W-1 を中核に、W-10 で KPI 監査へ接続。
 - 追記ルール: WIP の mock 版は承認前実装に使わず、W4 以降で L5b 固定。
+- **参考**: §4.2 Top 10 #1 (https://docs.cursor.com/en/bugbot) / Sprint 10（design debt KPI での観測設計）
 
 ### 2.2 要件 1.2: Sprint 単位の厳格化
 
@@ -70,6 +71,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - Sprint-level 完走の定義を W-2 で制度化し、`helix sprint complete` の Hook 化を検討。
 - 成果物は 1) WBS、2) gate 証跡、3) 変更差分、4) テスト要約を最小セットで記録。
 - 失敗時は次 Sprint を blocked とし、carry または rework を明文化。
+- **参考**: §4.2 Top 10 #1 (https://aider.chat/docs/usage/lint-test.html), Top 10 #2 (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) / Sprint 2
 
 ### 2.3 要件 1.3: フェーズ単位ゲート + スプリント横断レビュー
 
@@ -80,6 +82,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - 実装品質: テスト/レビュー証跡の完全性
   - デグレ有無: 既存 plan 参照との矛盾チェック
 - `helix gate --cross-sprint` を追加して、`Gx` 横断を CLI フラグ化。
+- **参考**: §4.2 Top 10 #3 (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches), Top 10 #4 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 3
 
 ### 2.4 要件 1.4: デプロイ前 3 フェーズ追加
 
@@ -90,6 +93,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **L7**: 既存デプロイ工程
 - Gate 追加: G6.5 / G6.7 / G6.9 を新設し、失敗時は L6 系に carry。
 - この変更は run-phase（L9-L11）への接続を容易化し、受入前の「最後の手戻り」を減らす。
+- **参考**: §4.2 Top 10 #10 (https://github.com/langfuse/langfuse, https://arize.com/docs/phoenix) / Sprint 4
 
 ### 2.5 要件 1.5: 大規模 agent 2 段設計
 
@@ -99,6 +103,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **エージェント層設計**: ツール定義、プロンプト、decision tree、失敗復帰を固定。
 - 規模自動判定: `helix size --agent --large` で 2 段化を強制し、通常規模では既存 1 段まま。
 - 変更は D-AGENT-INFRA / D-AGENT-EXEC で明示し、WIP の責務混線を防ぐ。
+- **参考**: §4.2 Top 10 #6 (https://reference.langchain.com/javascript/modules/_langchain_langgraph-supervisor.html) / Sprint 5
 
 ### 2.6 要件 1.6: Scrum フェーズ拡張
 
@@ -107,6 +112,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - S2 は PoC 検証設計を明示してから実装へ進める。
 - コマンド候補: `helix scrum web-search`（検索事例収集）および `helix scrum acceptance-design`（受入条件設計）を新設。
 - 効果: 要件不確実時に PoC の成功条件を先に凍結し、後追い追加の乱立を抑制。
+- **参考**: §4.2 Top 10 #5 (https://www.lean.org/lexicon-terms/lean-startup/) / Sprint 6
 
 ### 2.7 要件 1.7: L1-L3 設計フェーズ厳格化
 
@@ -121,6 +127,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - 各 shard 間ドリフトを drift-check で確認。
   - lint/formatter 方針は L3 で事前確定。
 - G1.5 / G2 / G3 は整合性チェック項目を増やす。
+- **参考**: §4.2 Top 10 #7 (https://github.com/phillduffy/architecture_decision_record, https://c4model.com/) / Sprint 7
 
 ### 2.8 要件 1.8: 追加実装の流れ整備
 
@@ -128,6 +135,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - mini-PLAN 最低 4 フェーズ: L1 → L2 → L4 → L6。
 - 親 PLAN と dependency を Helix DB に登録し、並列 Sprint の影響追跡対象とする。
 - 目的は「小さな追加を本筋に埋めない」ための明示的ルート化。
+- **参考**: §4.2 Top 10 #7 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 8
 
 ### 2.9 要件 1.9: Reverse 逆引き順序 + レビュー厳格化
 
@@ -135,6 +143,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - 各 R フェーズの完了条件に「レビュー記録」「引継ぎ資料」を必須化。
 - `helix reverse rgc` に強化版オプションを追加し、閉塞状態を明示。
 - Forward へ返す引継ぎは必須ドキュメント化し、未接続のまま次 L4 へ進まない。
+- **参考**: §4.2 Top 10 #8 (https://martinfowler.com/bliki/StranglerFigApplication.html), Top 10 #4 (https://www.svpg.com/continuous-discovery/) / Sprint 9
 
 ### 2.10 要件 1.10: 拡張性 × 制約性両軸見直し
 
@@ -151,6 +160,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - design drift 0 件
   - Sprint 完遂時間の上限監視
 - 実装では「新機能拡張を許可」しつつ「逸脱は即時検知」を両立。
+- **参考**: §4.2 Top 10 #9 (https://code.visualstudio.com/api/extension-capabilities/overview), Top 10 #4 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 10
 
 ### 2.11 要件 1.11: README + docs + helix.db 強化
 
@@ -158,6 +168,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - docs 構造を再構成し、architecture / adr / plans / research / runbook を明確化。
 - helix.db schema migration を追加し、axis や design_decision / qa_result / security_audit を記録できるようにする。
 - helix doctor を更新して、docs と DB の整合を自動チェック対象に追加。
+- **参考**: §4.2 Top 10 #10 (https://www.martinfowler.com/eaaDev/EventSourcing.html), Top 10 #3 (https://code.claude.com/docs/en/best-practices) / Sprint 11
 
 ## 3. Sprint 分割（12 Sprint）
 
@@ -211,21 +222,74 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - Axis 1.8, 1.9 は W-8〜W-10 で運用移行。
 - Axis 1.10, 1.11 は W-10〜W-11 で評価・保存基盤へ反映。
 
-## 5. 関連調査（research integration ストブ）
+## 4. 関連調査 (research integration、2026-05-08 完了)
 
-本 outline は research dispatch 並行成果を取り込む前提として、以下を `TBD` stub で残す。
+詳細は `docs/research/PLAN-029-research-findings.md` (391 行) 参照。本セクションは HELIX への取り入れ判断と Top 10 パターンを要約する。
 
-- A. Sprint-level rigorous review: TBD
-- B. Phase gate enforcement: TBD
-- C. Multi-stage agent system 2-tier: TBD
-- D. Scrum hypothesis validation: TBD
-- E. L1-L3 design rigor: TBD
-- F. Reverse engineering review: TBD
-- G. 拡張性×制約性: TBD
-- H. agent observability: TBD
-- I. helix.db / event log: TBD
-- J. design drift detection: TBD
-- K. AI-driven development best practice 2026: TBD
+### 4.1 軸別 Top 1-2 事例 (要約)
+
+- **A. Sprint-level rigorous review** (要件 1.2 関連): Cursor Bugbot（Diff レビューの AI 自動検出）  
+  URL: https://docs.cursor.com/en/bugbot, 公開日: 不明（GitHub changelog: 2026-02-26）。  
+  例として aider の auto-lint/auto-test は L4 での編集後検証ループを標準化し、lint/test 失敗時の再実行を加速する。
+- **B. Phase gate enforcement** (要件 1.3 関連): Stage-Gate の go/kill/hold/recycle 概念でフェーズ停止・保留を機械化。  
+  URL: https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/, 公開日: 不明（overview: 2026 初頭）。  
+  GitHub の protected branches/required checks を merge 前 gate へ接続し、最終投入前に SCM enforcement を担保する。
+- **C. Multi-stage agent system 2-tier** (要件 1.5 関連): LangGraph Supervisor は上位制御層と実行層を分離し、role 専門化と監査しやすさを高める。  
+  URL: https://reference.langchain.com/javascript/modules/_langchain_langgraph-supervisor.html, 公開日: 不明。  
+  補助として AutoGen Core / CrewAI は manager-validation 構造を示すが、採用は原理レベルに限定する。
+- **D. Scrum hypothesis validation** (要件 1.6 関連): Lean Startup の Build-Measure-Learn で仮説→PoC→測定→判断を明文化。  
+  URL: https://www.lean.org/lexicon-terms/lean-startup/, 公開日: 不明。  
+  Scrum.org spike 時間制約と終了条件を組み合わせ、無目的な調査を防止する。
+- **E. L1-L3 design rigor** (要件 1.7 関連): ADR は設計判断の意図・代替案・結果の必須化を担保。C4 は設計階層を共通言語化。  
+  URL: https://github.com/phillduffy/architecture_decision_record（公開日不明）,  
+  https://c4model.com/（公開日不明）。  
+  技術選定は Thoughtworks Radar の ring を参照し、採用/保留の透明性を上げる（https://www.thoughtworks.com/en-us/radar）。
+- **F. Reverse engineering review** (要件 1.9 関連): Strangler Fig / 7Rs は段階的移行の経路を提示し、R4 から Forward へ安全に戻す。  
+  URL: https://martinfowler.com/bliki/StranglerFigApplication.html, 公開日: 2024-08-22（原著: 2004-06-29）。  
+  補助に characterization tests（Feathers）で現状挙動を固定する前提を加える。
+- **G. 拡張性 × 制約性** (要件 1.10 関連): VS Code Extension API / IntelliJ extension point を参照し、拡張点と制約条件を明示的に定義。  
+  URL: https://code.visualstudio.com/api/extension-capabilities/overview, 公開日: 2026-04-15。  
+  併せて Boehm Spiral / PMI DAD でリスク優先度と移行順序を整理する。
+- **H. agent observability** (要件 1.4 / 1.5 関連): Langfuse と Arize Phoenix は agent span / eval / metrics を一元可視化。  
+  URL: https://langfuse.com/docs, 公開日: 不明。  
+  OpenAI Agents SDK tracing/guardrails は handoff / tool call の停止条件を明示し、HELIX guard と整合しやすい。
+- **I. helix.db / event log** (要件 1.11 関連): Event Sourcing により状態変化を append-only で追跡し、監査と再現を両立。  
+  URL: https://www.martinfowler.com/eaaDev/EventSourcing.html, 公開日: 2005-12-12。  
+  PostgreSQL audit trigger の考え方を SQLite 方針に取り込みつつ限界（DDL/SELECT 系）を明記する。
+- **J. 設計デグレ防止** (要件 1.2 / 1.3 関連): Architectural fitness function は設計健全性を継続検査として機械化。  
+  URL: https://www.oreilly.com/library/view/building-evolutionary-architectures/9781491986356/, 公開日: 2017。  
+  ArchUnit / dependency-cruiser は特定言語や依存方向での逸脱検知を補強する。
+- **K. AI 駆動開発 2026 ベストプラクティス** (全要件): Claude Code best practices と Codex full-auto/approval モデルを context discipline / handover と同期。  
+  URL: https://code.claude.com/docs/en/best-practices, 公開日: 不明。  
+  OpenAI Codex CLI の approval モードは HELIX の consent と approved 運用に直接寄与する。
+
+### 4.2 取り入れる Top 10 パターン (research §統合観点 抜粋)
+
+1. Project-specific AI review rules → 要件 1.2 / Sprint 2（AGENTS/skill/gate への導入ルール）
+2. Edit-test repair loop → 要件 1.2 / Sprint 2（L4 実行ループの標準化）
+3. SCM enforcement → 要件 1.3 / Sprint 3（merge 条件としての gate fail-close）
+4. Gate state vocabulary → 要件 1.10 / Sprint 10（go/kill/hold の状態語彙）
+5. Risk-first research gate → 要件 1.6 / Sprint 6（G1R/G1.5 発火条件）
+6. Two-tier agent architecture → 要件 1.5 / Sprint 5（TL/実行層分離）
+7. ADR + C4 design freeze → 要件 1.7 / Sprint 7（設計凍結成果物）
+8. Characterization-before-change → 要件 1.9 / Sprint 9（Reverse から Forward 接続の安全化）
+9. Extension point with constraints → 要件 1.10 / Sprint 10（plugin/skill 拡張設計）
+10. Trace/span + event sourcing → 要件 1.11 / Sprint 11（helix.db event schema 強化）
+
+### 4.3 取り入れない / 慎重なパターン (理由付き)
+
+- AutoGen 本体依存: maintenance mode で将来保守リスクが高いため、実装依存ではなく参照パターンとして採用抑制。
+- SaaS AI review 全面依存: ネットワーク・権限境界が HELIX のローカル fail-close 方針と衝突するため、必須機能にはしない。
+- Spike の乱用: Scrum spikes は終了条件を付けないと出荷を遅らせるだけの工数消費になるため、timebox と問いの明確化が必要。
+- DORA 単独評価: 品質監査を DORA のみで代替すると設計整合・agent 安全性を見落とすため補助指標に限定。
+- In-database audit 直下の監査一本化: SELECT / DDL / superuser tampering を捕捉できず、OS / Git / 追加ログと併用しないと監査欠落になる。
+
+### 4.4 HELIX 独自で設計する空白領域
+
+- LLM 用 phase gate schema: tool call / handoff / context exhaustion といった LLM 実行状態を扱う状態機械は OSS には未整備。HELIX 独自のイベント仕様が必要。
+- docs/code/db 三位一体監査: ADR/C4/depcheck + helix.db/drift を同じ gate-trace で証跡化する一体型ルールは既存 OSS で未成熟。
+- Role delegation audit: allowed_files / 分担責任 / 承認境界を runtime で追跡するスキーマとレポートの標準化。
+- Reverse to Forward の接続 DSL: R0-R4 の証跡を forward の §3/§4 に自動接続するルーティング DSL は独自実装対象。
 
 ## 6. リスクと回避策
 
