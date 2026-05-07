@@ -236,7 +236,7 @@ fullstack 追加条件:
 | project/ | ui, api, db, **fe-design**, **fe-component**, **fe-style**, **fe-a11y**, **fe-test** |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
-| integration/ | agent-teams |
+| integration/ | agent-teams, **agent-design** |
 | writing/ | japanese, explain, story, presentation, social |
 | design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize, scheduler, job-queue, lock, init-setup, observability |
@@ -255,6 +255,9 @@ fullstack 追加条件:
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
+
+**2026-05-08 追加分** (1スキル、ユーザー自作):
+- integration/: **agent-design** (AIエージェント設計の判断軸 11 本 = 要素・骨格・思考指定・出力指定・スキーマ・前段制約・後段責務の連鎖、`型 = 要素定義 + フレーム化` の還元式と縛りの 3 階層を中核とする L2/L3 設計概論)
 
 ### 責務境界クリア化（テスト・検証・品質系の使い分け）
 
