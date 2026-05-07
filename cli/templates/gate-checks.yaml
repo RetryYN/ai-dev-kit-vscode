@@ -297,6 +297,45 @@ G6:
         G6 最終セキュリティチェック:
         RC としてリリース可能か、脆弱性スキャン結果を評価せよ
 
+G6.5:
+  name: "セキュリティ監査ゲート"
+  static:
+    - name: "G6.5 smoke"
+      cmd: "echo 'SKIP: G6.5 smoke (追加実装時は要確認)'"
+      level: advisory
+  ai:
+    - role: security
+      task: |
+        G6.5 監査:
+        1. Security/脅威モデル更新の有無を確認せよ
+        2. L6.5 チェックに基づくリスク是正アクションをレビューせよ
+
+G6.7:
+  name: "運用準備ゲート"
+  static:
+    - name: "G6.7 smoke"
+      cmd: "echo 'SKIP: G6.7 smoke (追加実装時は要確認)'"
+      level: advisory
+  ai:
+    - role: devops
+      task: |
+        G6.7 運用準備:
+        1. cron / scheduler / 運用ログ / リソース管理 / 開発者向け運用画面の準備を確認せよ
+        2. 運用移行時の欠落点がないことを評価せよ
+
+G6.9:
+  name: "Visual Productionゲート"
+  static:
+    - name: "G6.9 smoke"
+      cmd: "echo 'SKIP: G6.9 smoke (追加実装時は要確認)'"
+      level: advisory
+  ai:
+    - role: fe
+      task: |
+        G6.9 Visual Production:
+        1. 配色・画像・アニメーションの最終実装反映を確認せよ
+        2. 受け入れ品質と UX ガイダンスとの乖離を確認せよ
+
 G7:
   name: "安定性ゲート"
   static:

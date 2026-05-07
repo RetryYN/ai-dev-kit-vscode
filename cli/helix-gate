@@ -125,7 +125,7 @@ while [[ $# -gt 0 ]]; do
     --help|-h)
       echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
       echo ""
-      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7, G9, G10, G11"
+      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11"
       echo ""
       echo "Options:"
       echo "  --cross-sprint"
@@ -154,12 +154,12 @@ if [[ "$JSON_OUTPUT" == true ]]; then
 fi
 
 if [[ -z "$GATE" ]]; then
-  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7, G9, G10, G11）" >&2
+  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
-if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|[2-7]|9|10|11)$ ]]; then
-  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7, G9-G11 を指定してください）" >&2
+if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|2|3|4|5|6|6\.[579]|7|9|10|11)$ ]]; then
+  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7, G6.5/G6.7/G6.9, G9-G11 を指定してください）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
@@ -388,6 +388,9 @@ _gate_to_l() {
     G4) echo "L4" ;;
     G5) echo "L5" ;;
     G6) echo "L6" ;;
+    G6.5) echo "L6" ;;
+    G6.7) echo "L6" ;;
+    G6.9) echo "L6" ;;
     G7) echo "L7" ;;
     G9) echo "L9" ;;
     G10) echo "L10" ;;
@@ -1948,8 +1951,17 @@ PY
 
         echo "  helix promote --auto で昇格候補を確認"
         echo "  helix bench で品質推移を確認"
-        echo "次のアクション: helix gate G5 または helix gate G6 に進んでください"
-        echo "[helix-gate] ヒント: 'helix promote --auto' で昇格候補を確認できます"
+      echo "次のアクション: helix gate G5 または helix gate G6 に進んでください"
+      echo "[helix-gate] ヒント: 'helix promote --auto' で昇格候補を確認できます"
+      ;;
+      G6.5)
+        echo "次のアクション: helix gate G6.7 に進んでください"
+        ;;
+      G6.7)
+        echo "次のアクション: helix gate G6.9 に進んでください"
+        ;;
+      G6.9)
+        echo "次のアクション: helix gate G7 に進んでください"
         ;;
       G6)
         echo "[helix-gate] ヒント: E2E テストを実行してください"
