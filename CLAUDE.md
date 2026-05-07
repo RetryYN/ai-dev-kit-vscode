@@ -22,6 +22,7 @@ HELIX は、AI エージェントを `plan` / `task` / `role` / `gate` / `handov
 - `skills/`: HELIX skill と skill map
 - `docs/commands/`: CLI 利用導線の正本
 - `.claude/`: Claude Code hook / command / agent runtime 設定
+- 詳細レイアウトマップ: [docs/architecture/cli-layout.md](docs/architecture/cli-layout.md)
 
 ## コーディング規約
 - 既存 CLI の Bash/Python 分担に合わせる。単純な CLI glue は Bash、状態集計や構造化処理は Python helper に寄せる。
