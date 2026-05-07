@@ -4,7 +4,7 @@
 
 - id: PLAN-028
 - title: HELIX v2 orchestration 移行 (PM 実装禁止 + PMO 新設 + ロール再配置)
-- status: draft
+- status: finalized (2026-05-08, TL 3 ラウンド approve / PM finalize)
 - priority: high
 - created: 2026-05-08
 - owners: PM, TL
