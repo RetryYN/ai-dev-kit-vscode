@@ -4,7 +4,7 @@
 
 - id: PLAN-029
 - title: HELIX 11 軸厳格化拡張 (デザイン後置 / Sprint 厳格化 / フェーズゲート / デプロイ前 3 フェーズ / 大規模 agent 2 段設計 / Scrum 拡張 / L1-L3 設計厳格化 / 追加実装流れ / Reverse 厳格化 / 拡張性 × 制約性 / docs+helix.db 強化)
-- status: draft (TL レビュー反映 2026-05-08、6 findings 解消、awaiting PM finalize)
+- status: finalized (2026-05-08, TL 3 ラウンド approve / PM finalize、v19 migration 既存パターン準拠)
 - priority: high
 - created: 2026-05-08
 - owners: PM, TL
@@ -173,38 +173,64 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 ### 2.11.1 helix.db v18 → v19 migration 詳細
 
 - 目的: axis・ADR・監査結果を `entries` / 新規観測テーブルへ集約し、後段 DoD/retrospective で数値評価できるようにする（additive, idempotent, forward-only）。
-- SQL（migration `cli/lib/db/migrations/` に配置）:
+- **既存実装パターンに準拠**: `cli/lib/helix_db.py` の `_migrate_v17_to_v18(conn)` 形式で `_migrate_v18_to_v19(conn)` を新設、`_has_column()` で冪等性を担保 (新規ディレクトリ `cli/lib/db/migrations/` は作成しない)
+- 実装スケッチ:
 
-```sql
--- v19 で追加 (additive、既存 data 影響なし、idempotent)
-ALTER TABLE entries ADD COLUMN qa_result TEXT;       -- W-12 統合検証結果
-ALTER TABLE entries ADD COLUMN security_audit TEXT;  -- W-4 L6.5 セキュリティ監査結果
-ALTER TABLE entries ADD COLUMN design_decision TEXT; -- W-7 L2-L3 ADR 記録
+```python
+# cli/lib/helix_db.py に追記 (CURRENT_SCHEMA_VERSION = 18 → 19 へ更新)
 
-CREATE TABLE IF NOT EXISTS sprint_metrics (
-  sprint_id TEXT PRIMARY KEY,
-  test_pass_rate REAL,
-  drift_count INTEGER,
-  duration_minutes INTEGER,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+def _migrate_v18_to_v19(conn):
+    """v19: entries に 3 列追加 + sprint_metrics + phase_gate_runs テーブル新設
 
-CREATE TABLE IF NOT EXISTS phase_gate_runs (
-  gate_id TEXT,
-  phase TEXT,
-  result TEXT CHECK(result IN ('passed','failed','blocked','interrupted')),
-  ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (gate_id, ran_at)
-);
+    PLAN-029 §2.11.1: axis / ADR / 監査結果集約。additive only, idempotent.
+    """
+    # entries への列追加 (重複追加を _has_column でガード = 冪等)
+    for column, sql_type in [
+        ("qa_result", "TEXT"),
+        ("security_audit", "TEXT"),
+        ("design_decision", "TEXT"),
+    ]:
+        if not _has_column(conn, "entries", column):
+            conn.execute(f"ALTER TABLE entries ADD COLUMN {column} {sql_type}")
 
-CREATE INDEX IF NOT EXISTS idx_sprint_metrics_sprint ON sprint_metrics(sprint_id);
+    # 観測テーブル (CREATE IF NOT EXISTS で冪等)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sprint_metrics (
+            sprint_id TEXT PRIMARY KEY,
+            test_pass_rate REAL,
+            drift_count INTEGER,
+            duration_minutes INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS phase_gate_runs (
+            gate_id TEXT,
+            phase TEXT,
+            result TEXT CHECK(result IN ('passed','failed','blocked','interrupted')),
+            ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (gate_id, ran_at)
+        )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sprint_metrics_sprint ON sprint_metrics(sprint_id)"
+    )
+
+
+# migrate() 内のディスパッチに以下追加 (v17→v18 の直後)
+if current < 19:
+    _migrate_v18_to_v19(conn)
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_version (version, applied_at) "
+        "VALUES (19, datetime('now'))"
+    )
 ```
 
-- migration テスト方針（`pytest cli/lib/tests/test_helix_db_v19.py`）:
-  - 冪等性: 同一 migration の再実行で既存 `entries` 件数不変、追加列重複作成エラーなし
-  - 既存 data 移行: `entries` 既存行数が移行前後で不変
-  - 監査テーブル整合: `sprint_metrics / phase_gate_runs` が存在し、再作成でも成功
-  - rollback: `v19 -> v18` は未対応（forward-only）を明示
+- migration テスト方針 (`pytest cli/lib/tests/test_helix_db_v19.py`):
+  - 冪等性: `init_db` を 2 回呼んで `schema_version` の v19 行が 1 件のみ + `PRAGMA table_info(entries)` の qa_result/security_audit/design_decision が各 1 件のみ
+  - 既存 data 不変: v18 で entries に N 行 INSERT → v19 migration → SELECT count(*) = N
+  - 観測テーブル整合: `sprint_metrics` / `phase_gate_runs` が存在し、CHECK 制約 (kind='invalid' 等) で IntegrityError
+  - rollback: `v19 → v18` は未対応 (forward-only)、test では migration スキップ確認のみ
 
 ## 3. Sprint 分割（12 Sprint）
 
@@ -298,7 +324,7 @@ CREATE INDEX IF NOT EXISTS idx_sprint_metrics_sprint ON sprint_metrics(sprint_id
 
 - [ ] `README.md` の大幅更新（見出し構成・Quick Start・運用導線・コマンド一覧が含まれること）。
 - [ ] `docs` 配下で `architecture / adr / plans / research / runbook` の 5 ディレクトリ構成が成立（`find docs -maxdepth 1 -type d | grep -E "architecture|adr|plans|research|runbook"` で 5 件以上）。
-- [ ] `cli/lib/db/migrations/` 配下に `v19` migration（`*v19*.sql`）を追加。
+- [ ] `cli/lib/helix_db.py` に `_migrate_v18_to_v19(conn)` 関数を追加し、`CURRENT_SCHEMA_VERSION = 18 → 19` に更新。`_has_column()` で冪等性を担保（既存 `_migrate_v17_to_v18` 形式準拠、§2.11.1 参照）。
 - [ ] `pytest cli/lib/tests/test_helix_db_v19.py` が 3 方向（idempotency / data migration / forward-only）で実行できる。
 
 ### 5.12 W-12 統合検証 + retrospective
