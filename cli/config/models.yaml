@@ -4,14 +4,14 @@ default_fallback: gpt-5.4-mini
 
 roles:
   tl: gpt-5.5
-  se: gpt-5.5
+  se: gpt-5.4
   pg: gpt-5.3-codex-spark
   qa: gpt-5.5
   security: gpt-5.4
   dba: gpt-5.3-codex
   devops: gpt-5.3-codex
   docs: gpt-5.3-codex-spark
-  research: gpt-5.4
+  research: gpt-5.5
   legacy: gpt-5.4
   perf: gpt-5.4
   fe: gpt-5.4
@@ -23,3 +23,17 @@ roles:
   recommender: gpt-5.4-mini
   classifier: gpt-5.4-mini
   effort-classifier: gpt-5.4-mini
+  pmo-sonnet: claude-sonnet-4-6
+  pmo-haiku: claude-haiku-4-5-20251001
+
+role_metadata:
+  pmo-sonnet:
+    provider: claude_code
+    thinking: medium
+    permission_mode: plan
+    disallowed_tools: "Edit,Write,NotebookEdit"
+  pmo-haiku:
+    provider: claude_code
+    thinking: low
+    permission_mode: acceptEdits
+    allow_paths: "docs/**,skills/**"
