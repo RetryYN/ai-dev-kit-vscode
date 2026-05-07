@@ -12,6 +12,8 @@ LINES=0
 HAS_API=false
 HAS_DB=false
 HAS_UI=false
+FORCE_AGENT=false
+FORCE_LARGE=false
 UNCERTAIN=false
 TASK_TYPE=""
 DRIVE=""
@@ -159,6 +161,16 @@ while [[ $# -gt 0 ]]; do
     --api)       HAS_API=true; shift ;;
     --db)        HAS_DB=true; shift ;;
     --ui)        HAS_UI=true; shift ;;
+    --agent)
+      FORCE_AGENT=true
+      DRIVE="agent"
+      DRIVE_SET=true
+      shift
+      ;;
+    --large)
+      FORCE_LARGE=true
+      shift
+      ;;
     --uncertain) UNCERTAIN=true; shift ;;
     --type)
       require_opt_arg "$1" "${2-}"
@@ -186,6 +198,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --api         API変更あり"
       echo "  --db          DB変更あり"
       echo "  --ui          UI変更あり"
+      echo "  --agent       エージェント駆動（--drive agent の短縮形）"
+      echo "  --large       大規模案件として扱う（agent では 2 段設計推奨）"
       echo "  --uncertain   要件不確実 (仮説検証が必要) → scrum (検証駆動) を推奨"
       echo "  --type TYPE   タスク種別:"
       echo "                  bugfix, refactor, new-feature, ui-change, doc, new-module"
@@ -211,7 +225,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$FILES_SET" != true || "$LINES_SET" != true ]]; then
+if [[ "$FORCE_LARGE" != true && ( "$FILES_SET" != true || "$LINES_SET" != true ) ]]; then
   echo "エラー: 必須オプション --files と --lines を指定してください" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
@@ -273,6 +287,21 @@ case "$DRIVE" in
   be|fe|db|fullstack|agent|scrum) ;;
   *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent, scrum を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
 esac
+
+if [[ "$FORCE_LARGE" == true ]]; then
+  if [[ "$DRIVE" != "agent" ]]; then
+    echo "エラー: --large は --agent または --drive agent と組み合わせてください" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  FILES=11
+  LINES=501
+  FILES_SET=true
+  LINES_SET=true
+fi
+
+if [[ "$FORCE_AGENT" == true && "$FORCE_LARGE" == true ]]; then
+  echo "[agent-large] 2 段設計推奨: D-AGENT-INFRA と D-AGENT-EXEC を分離してください" >&2
+fi
 
 # --- サイジング ---
 size_from_files() {
@@ -394,8 +423,13 @@ case "$DRIVE" in
     G3_DESC="API/Schema/UI/Contract 全凍結"
     ;;
   agent)
-    L2_DESC="ツール定義・プロンプト設計・オーケストレーション"
-    L3_DESC="ツール契約 + 統合テスト設計 + 工程表"
+    if [[ "$FINAL_SIZE" == "L" ]]; then
+      L2_DESC="2 段設計: runtime/state/orchestrator/observability + tool/prompt/decision tree"
+      L3_DESC="D-AGENT-INFRA + D-AGENT-EXEC + 統合テスト設計 + 工程表"
+    else
+      L2_DESC="ツール定義・プロンプト設計・オーケストレーション"
+      L3_DESC="ツール契約 + 統合テスト設計 + 工程表"
+    fi
     L4_DESC="ツール → オーケストレーション → UI"
     L5_DESC="会話UI/デモ確認"
     G2_DESC="ツール定義凍結"
@@ -510,6 +544,9 @@ case "$DRIVE" in
     ;;
   agent)
     NOTES="${NOTES:+$NOTES / }L2はツール/プロンプト設計起点。L5は会話UI/デモ確認"
+    if [[ "$FINAL_SIZE" == "L" ]]; then
+      NOTES="${NOTES:+$NOTES / }2 段設計推奨: D-AGENT-INFRA と D-AGENT-EXEC を分離"
+    fi
     ;;
 esac
 
