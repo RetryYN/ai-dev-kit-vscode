@@ -21,7 +21,16 @@ EXIT_INTERNAL_ERROR = 127
 
 ALLOWED_OWNER = {"opus", "codex"}
 ALLOWED_SCOPE = {"backend"}
-ALLOWED_MODE = {"pm-to-tl", "tl-to-pm", "be-implementation"}
+ALLOWED_MODE = {
+    "pm-to-tl",
+    "tl-to-pm",
+    "be-implementation",
+    "reverse-r0",
+    "reverse-r1",
+    "reverse-r2",
+    "reverse-r3",
+    "reverse-r4",
+}
 ALLOWED_PHASE = {f"L{i}" for i in range(1, 12)}
 ALLOWED_SPRINT = {".1a", ".1b", ".2", ".3", ".4", ".5"}
 ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}

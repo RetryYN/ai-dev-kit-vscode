@@ -21,6 +21,7 @@ TYPE="code"
 SUBCOMMAND=""
 TARGET=""
 DRY_RUN=false
+REVIEW=false
 INVALIDATE_FORWARD=false
 JSON_OUTPUT=false
 LAST_FAILED=false
@@ -60,6 +61,12 @@ Options:
   --json                      status only
   --last-failed               retry only
   --dry-run                   Print delegated helix codex task without running it
+  --review                    code only; save stage review JSON under .helix/reverse/r{0..4}/
+                              R0 --review
+                              R1 --review
+                              R2 --review
+                              R3 --review
+                              R4 --review
 
 Design options:
   --plans <path>              default: docs/plans/
@@ -215,6 +222,10 @@ parse_args() {
         DRY_RUN=true
         shift
         ;;
+      --review)
+        REVIEW=true
+        shift
+        ;;
       --invalidate-forward)
         INVALIDATE_FORWARD=true
         shift
@@ -257,6 +268,20 @@ validate_args() {
   if [[ "$LAST_FAILED" == true && "$SUBCOMMAND" != "retry" ]]; then
     echo "Error: --last-failed is valid only with retry" >&2
     exit "$EXIT_INPUT_ERROR"
+  fi
+
+  if [[ "$REVIEW" == true ]]; then
+    if [[ "$TYPE" != "code" ]]; then
+      echo "Error: --review is valid only for reverse type 'code'" >&2
+      exit "$EXIT_INPUT_ERROR"
+    fi
+    case "$SUBCOMMAND" in
+      run|retry|R[0-4]) ;;
+      *)
+        echo "Error: --review is valid only for code run/retry or R0/R1/R2/R3/R4" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
   fi
 
   if [[ "$INVALIDATE_FORWARD" == true ]]; then
@@ -493,6 +518,49 @@ stage_output() {
     fullback:R4) echo "F4-fullback-routing.md" ;;
     *) echo "Error: unsupported output mapping $type $stage" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
+}
+
+review_stage_dir() {
+  local stage="$1"
+  echo "$CODE_REVERSE_DIR/${stage,,}"
+}
+
+review_output_hint() {
+  local stage="$1"
+  echo "$(review_stage_dir "$stage")/<YYYYmmddTHHMMSS>.json"
+}
+
+write_review_artifact() {
+  local stage="$1"
+  local rgate="$2"
+  local output_file="$3"
+  local log_file="$4"
+  local review_dir review_file timestamp
+  review_dir=$(review_stage_dir "$stage")
+  mkdir -p "$review_dir"
+  timestamp="$(date '+%Y%m%dT%H%M%S')"
+  review_file="$review_dir/${timestamp}.json"
+
+  python3 - "$review_file" "$TYPE" "$stage" "$rgate" "$target_desc" "$output_file" "$log_file" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+review_file = Path(sys.argv[1])
+payload = {
+    "generated_at": datetime.now(timezone.utc).astimezone().replace(microsecond=0).isoformat(),
+    "reverse_type": sys.argv[2],
+    "stage": sys.argv[3],
+    "gate": sys.argv[4],
+    "target": sys.argv[5],
+    "output_artifact": sys.argv[6],
+    "log_file": sys.argv[7],
+    "status": "passed",
+}
+review_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+  echo "$review_file"
 }
 
 resolve_output_file() {
@@ -895,11 +963,17 @@ run_stage() {
   echo "Role:   $role"
   echo "Target: $target_desc"
   echo "Output: $output_file"
+  if [[ "$REVIEW" == true ]]; then
+    echo "Review: $(review_output_hint "$stage")"
+  fi
   echo ""
 
   if [[ "$DRY_RUN" == true ]]; then
     echo "[dry-run] helix codex --role $role --task:"
     echo "$task"
+    if [[ "$REVIEW" == true ]]; then
+      echo "[dry-run] --review: review JSON を $(review_output_hint "$stage") に保存します"
+    fi
     if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
       echo "[dry-run] --invalidate-forward: Forward gates (G2-G11) を invalidated に更新します"
     fi
@@ -960,6 +1034,11 @@ conn.close()
   if [[ -f "$output_file" ]] && validate_stage_output "$output_file"; then
     set_rgate_status "$TYPE" "$rgate" "passed"
     echo "[helix-reverse] $rgate passed — 成果物: $output_file"
+    if [[ "$REVIEW" == true ]]; then
+      local review_file
+      review_file=$(write_review_artifact "$stage" "$rgate" "$output_file" "$log_file")
+      echo "[helix-reverse] review saved: $review_file"
+    fi
     if [[ "$INVALIDATE_FORWARD" == true && "$stage" =~ ^R[2-4]$ ]]; then
       invalidate_forward_gates
     fi
