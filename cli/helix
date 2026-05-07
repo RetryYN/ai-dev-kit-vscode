@@ -35,6 +35,7 @@ case "$CMD" in
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
+  research) exec "$SCRIPT_DIR/helix-research" "$@" ;;
   meta-phase) exec "$SCRIPT_DIR/helix-meta-phase" "$@" ;;
   readiness) exec "$SCRIPT_DIR/helix-readiness" "$@" ;;
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
@@ -102,6 +103,7 @@ HELIX 全体管理:
 HELIX プロジェクト管理:
   size        タスクサイジング
   plan        設計計画
+  research    L1-L3 向けの調査テーマ生成と dry-run
   meta-phase  PLAN-006 L1 メタ工程の pattern 契約検証
   matrix      成果物マトリクス管理
   gate        ゲート自動検証

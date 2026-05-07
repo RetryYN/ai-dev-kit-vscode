@@ -25,6 +25,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 |---|---|
 | `helix size` | size / drive / phase skip 判定 |
 | `helix plan` | 設計計画 draft / review / finalize |
+| `helix research` | L2 / L3 設計向けの調査テーマ生成と dry-run |
 | `helix meta-phase` | PLAN-006 L1 メタ工程の pattern 契約検証 |
 | `helix matrix` | 成果物対照表と gate-checks の生成 |
 | `helix gate` | G0.5-G11 のゲート検証 |

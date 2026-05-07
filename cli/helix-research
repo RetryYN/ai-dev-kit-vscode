@@ -1,0 +1,103 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix research --layer <L2|L3> [--auto] [--dry-run]
+
+L1-L3 設計厳格化向けに、層別の調査テーマを生成する。
+
+オプション:
+  --layer <L2|L3>  調査対象レイヤ
+  --auto           HELIX 推奨テーマを自動選択
+  --dry-run        実検索せず、生成内容だけ表示
+  -h, --help       このヘルプを表示
+USAGE
+}
+
+LAYER=""
+AUTO=0
+DRY_RUN=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --layer)
+      [[ $# -ge 2 ]] || { echo "エラー: --layer には値が必要です" >&2; exit 64; }
+      LAYER="$2"
+      shift 2
+      ;;
+    --auto)
+      AUTO=1
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -h|--help|help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "エラー: 不明なオプションです: $1" >&2
+      usage >&2
+      exit 64
+      ;;
+  esac
+done
+
+[[ -n "$LAYER" ]] || { echo "エラー: --layer は必須です" >&2; usage >&2; exit 64; }
+case "$LAYER" in
+  L2|L3) ;;
+  *)
+    echo "エラー: --layer は L2 または L3 を指定してください" >&2
+    exit 64
+    ;;
+esac
+
+if [[ "$AUTO" -ne 1 ]]; then
+  echo "エラー: 現在は --auto のみ対応しています" >&2
+  exit 64
+fi
+
+print_l2() {
+  cat <<'EOF'
+layer: L2
+- 技術スタック候補の比較: framework, runtime, package manager, test runner
+- ライブラリ選定観点: 維持状況, license, 型安全性, migration cost
+- インフラ前提の確認: hosting, database, observability, CI/CD
+- ADR 化判断: 候補差が大きい項目は ADR-template に記録
+- D-TECH-STACK 更新対象: 候補表 / 選定理由 / リスク / ADR 化フラグ
+EOF
+}
+
+print_l3() {
+  cat <<'EOF'
+layer: L3
+- D-shard 順序の確認: D-API -> D-DB -> D-CONTRACT -> D-UI
+- lint/formatter/type-check 方針の固定
+- 契約ドリフト検出の確認: schema, error contract, backward compatibility
+- 実装前検証: test strategy, smoke path, review checkpoints
+- ADR 参照の確定: 関連 decision と references を D-shard へ接続
+EOF
+}
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "=== HELIX Research Dry Run ==="
+  echo "layer: $LAYER"
+  echo "mode: auto"
+  echo "project_root: $PROJECT_ROOT"
+  case "$LAYER" in
+    L2) print_l2 ;;
+    L3) print_l3 ;;
+  esac
+  exit 0
+fi
+
+case "$LAYER" in
+  L2) print_l2 ;;
+  L3) print_l3 ;;
+esac
