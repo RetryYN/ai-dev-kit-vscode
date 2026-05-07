@@ -59,6 +59,9 @@ def test_migrate_v16_to_v17_creates_entries_links_tables(tmp_path: Path) -> None
         "metadata",
         "created_at",
         "updated_at",
+        "qa_result",
+        "security_audit",
+        "design_decision",
     ]
     assert link_cols == ["from_id", "to_id", "kind", "metadata"]
 

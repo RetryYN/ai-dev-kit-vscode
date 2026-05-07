@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 18
+CURRENT_SCHEMA_VERSION = 19
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -787,6 +787,43 @@ def _migrate_v17_to_v18(conn):
             conn.execute(f"ALTER TABLE code_index ADD COLUMN {column} {sql_type}")
 
 
+def _migrate_v18_to_v19(conn):
+    """v19: entries に 3 列追加 + sprint_metrics / phase_gate_runs を追加する。"""
+    for column, sql_type in [
+        ("qa_result", "TEXT"),
+        ("security_audit", "TEXT"),
+        ("design_decision", "TEXT"),
+    ]:
+        if not _has_column(conn, "entries", column):
+            conn.execute(f"ALTER TABLE entries ADD COLUMN {column} {sql_type}")
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sprint_metrics (
+            sprint_id TEXT PRIMARY KEY,
+            test_pass_rate REAL,
+            drift_count INTEGER,
+            duration_minutes INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS phase_gate_runs (
+            gate_id TEXT,
+            phase TEXT,
+            result TEXT CHECK(result IN ('passed','failed','blocked','interrupted')),
+            ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (gate_id, ran_at)
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sprint_metrics_sprint ON sprint_metrics(sprint_id)"
+    )
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1075,6 +1112,11 @@ def migrate(conn):
             _migrate_v17_to_v18(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (18, datetime('now'))"
+            )
+        if current < 19:
+            _migrate_v18_to_v19(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (19, datetime('now'))"
             )
         conn.commit()
 
