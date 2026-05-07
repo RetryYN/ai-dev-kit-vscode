@@ -72,7 +72,12 @@ v2 では PM 責務を「プロジェクト管理 (工程・ドキュメント�
 - **最新モデルを PM/TL を最上位として 3 世代まで** Claude / GPT 系列を更新
 - Claude = Opus + Sonnet + Haiku の 3 階層、各最新版
 - GPT = 5.5 / 5.4 / 5.3 + 派生 (spark / mini)
-- **実装の正本**: `cli/config/models.yaml` (本表との乖離時は実装側を正)
+- **実装の正本順序** (ADR-014 準拠):
+  1. **`cli/roles/*.conf`** が **唯一の実行正本** (helix-codex / helix-claude が直接読む)
+  2. `cli/config/models.yaml` は **同期カタログ + helix doctor 整合チェック基準** (周知用途)
+  3. CLAUDE.md / AGENTS.md / 本 PLAN-028 の表は **周知用**
+- **食い違い時は conf を正**、yaml/Markdown は後追い同期 (ADR-014 確定方針)
+- W-2 の作業順: **conf 作成・更新 → models.yaml 同期 → helix doctor 整合確認**
 
 ## 3. 引継ぎプロトコル拡張
 
@@ -84,16 +89,35 @@ PM ↔ TL モード切替時の引継ぎドキュメント生成義務:
 
 ## 4. PMO 起動経路 (CLI 拡張仕様)
 
-`helix codex` と対称な `helix claude` シムを拡張:
+既存 `cli/helix-claude` は **prompt 生成 harness** として動作している (docs/commands/ai-harness.md
+参照、API/SDK 直叩きはしない方針)。本 PLAN-028 では `helix claude` に **実行モード** を追加する。
+
+### 4.1 CLI シグネチャ (W-3 で実装)
 
 ```bash
-helix claude --role pmo --model sonnet --task "実装現状把握: ..." [--thinking medium]
-helix claude --role pmo --model haiku  --task "Web 検索: ..."
+# プロンプト生成のみ (既存挙動、デフォルト)
+helix claude --role pmo --model sonnet --task "..." --dry-run
+
+# 実行モード (新設)
+helix claude --role pmo --model sonnet --task "..." --execute [--thinking medium]
+helix claude --role pmo --model haiku  --task "Web 検索: ..." --execute
 ```
 
-- 内部実装: `claude --print --model <claude-sonnet-4-6 | claude-haiku-4-5> -p "..."`
-- Windows/WSL2 親和性◎ (helix CLI は bash、claude CLI はクロスプラットフォーム)
-- 既存 `cli/helix-claude` shim を改修 (Sprint W-3)
+### 4.2 実行モード契約 (W-3 DoD)
+
+- **デフォルト**: `--dry-run` (prompt 生成のみ、既存互換)
+- **--execute** 指定時:
+  - 内部実装: `claude --print --model <claude-sonnet-4-6 | claude-haiku-4-5> -p "..."`
+  - **auth 前提**: `~/.claude/auth` 既存セッション or 環境変数で claude CLI が認証済み
+  - **timeout**: 300 秒デフォルト (`--timeout` で上書き可)
+  - **ログ**: `.helix/cache/pmo/<timestamp>-<sha>.log` に stdout/stderr を保存
+  - **失敗コード**: claude CLI の exit code を踏襲 (auth fail = 2、timeout = 124 等)
+  - **no-write policy**: PMO は読み取り + 報告のみ。`--execute` 時も Edit/Write 系 tool を制限する
+    プロンプト前提を `cli/templates/prompts/pmo-base.md` で固定
+  - **human approval 条件**: 本番影響 / 認証 / PII / 決済を含むタスクは `--require-approval` で
+    人間確認を要求 (helix-codex の --approved と対称)
+- Windows/WSL2 親和性: helix CLI は bash、claude CLI はクロスプラットフォーム
+- ADR-015 で「helix-claude を実行モード対応 harness に拡張する決定」を明文化
 
 ## 5. 影響範囲 (15+ ファイル)
 
@@ -139,16 +163,20 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..."
 | Sprint | 内容 | 担当 | 依存 | セッション数 |
 |--------|------|------|------|--------------|
 | **W-1** | PLAN-028 spec finalize + ADR-015 起票 + index.md 追記 | docs | なし | 1.0 |
-| **W-2** | `cli/config/models.yaml` + `cli/roles/*.conf` 再定義 (TL/SE/PE/PMO/recommender 役割明示) | SE | W-1 | 1.0 |
-| **W-3** | `helix-claude` 拡張 (`--role pmo` / `--model sonnet|haiku`) + `helix-handover` mode フィールド追加 | SE | W-2 | 1.5 |
+| **W-2** | `cli/roles/*.conf` 再定義 (conf 正本、TL/SE/PE/PMO/recommender 役割明示) → `cli/config/models.yaml` 同期 → helix doctor 整合確認 | SE | W-1 | 1.0 |
+| **W-3** | `helix-claude` 拡張 (`--role pmo` / `--model sonnet\|haiku` / `--execute` / `--dry-run` / auth/log/timeout/no-write 契約) + `helix-handover` mode フィールド追加 | SE | W-1 (PMO contract spec を W-1 で固定済) | 1.5 |
 | **W-4** | 主要 docs 一括更新 (CLAUDE.md / SKILL_MAP / HELIX_CORE / CODEX_TL_MODE / ROLE_MAP / AGENTS) | docs | W-2 | 2.0 |
-| **W-5** | `.claude/agents/fe-*.md` 廃止 + 関連スキル参照削除 | docs | W-4 | 1.0 |
+| **W-5a** | `.claude/agents/fe-*.md` + `cli/templates/agents/fe-*.md` (配布元) 廃止 — docs 系参照に依存しない物理削除 | docs | W-1 | 0.5 |
+| **W-5b** | 関連スキル/SKILL_MAP 参照削除 (W-4 の表記更新と整合) | docs | W-4 | 0.5 |
 | **W-6** | 統合検証 (helix doctor / helix test / 主要 CLI smoke) + retrospective | qa | W-2..W-5 | 1.0 |
 
 ### 6.1 並列性
 
-- W-2 ‖ W-3 (config と CLI 新設は独立、ファイル衝突なし、後段依存なし)
-- W-4 ‖ W-5 (docs 更新と agents 廃止は別ファイル群)
+- **W-2 ‖ W-3**: PMO 契約を W-1 で先に固定するため、W-3 は W-2 の conf 結果に依存しない
+  (PMO role 名 / model 指定のみ依存、これらは W-1 spec で確定)。config と CLI 新設は独立、
+  ファイル衝突なし
+- **W-2 ‖ W-5a**: agents 物理削除は config 変更に依存しない (別ファイル群、後段依存なし)
+- **W-4 → W-5b 直列**: W-5b は W-4 で確定した v2 docs 表記と整合させる必要があるため直列
 - W-6 は最後の検証フェーズ
 
 ## 7. 移行戦略 (リスク管理)
@@ -163,8 +191,12 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..."
 ### 7.2 transitional rule (W-1 ~ W-3 期間中)
 
 - W-3 (helix-claude 拡張) 完了まで PMO 経路がない
-- 暫定対応: PM が PMO 業務 (status check / docs review) を Codex docs role で代替実行可
+- **暫定対応 (read-only 限定)**:
+  - PM の PMO 業務代替は **`helix codex --role docs --read-only --plan-only` 相当のレビュー機能のみ** に限定
+  - **Edit / Write が必要な作業は移行期でも TL / SE / PE の承認済み WBS に切り出す** (PM 実装禁止と整合)
+  - status check / docs review (読み取り) のみ Codex docs role で代替可
 - W-3 完了後にこの transitional rule を破棄
+- **抜け道防止**: 移行期の例外を恒常運用に持ち込まない。W-3 DoD で transitional rule 破棄を明示確認
 
 ### 7.3 既存タスク互換
 
@@ -173,13 +205,44 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..."
 
 ## 8. 完了条件
 
-1. PLAN-028 finalize + ADR-015 finalize (W-1)
-2. `helix doctor` で v2 ロール × モデル整合性 PASS (W-2 完了時点)
-3. `helix claude --role pmo --task "ping"` smoke で Sonnet 起動確認 (W-3)
-4. 主要 docs 7 件で v2 表記が一貫 (W-4)
-5. `.claude/agents/fe-*.md` が 0 件 + `skills/SKILL_MAP` §責務境界の FE 5 種言及が削除 (W-5)
-6. `helix test` 全 PASS + helix gate G2/G4 PASS (W-6)
-7. 全 commit push 済 (5-7 commits 想定)
+### W-1 DoD
+- `docs/plans/PLAN-028-helix-v2-orchestration.md` finalize (TL approve)
+- `docs/adr/ADR-015-helix-v2-orchestration.md` 起票 + `docs/adr/index.md` 追記
+- `helix plan draft --plan-id PLAN-028 --file docs/plans/PLAN-028-helix-v2-orchestration.md` 相当の登録 (運用 task tracker への反映、または該当機構がない場合は本 PLAN 内に登録要否を判定して記録)
+
+### W-2 DoD
+- `cli/roles/*.conf` (TL/SE/PE/PMO/recommender) を v2 役割で更新 (conf 正本)
+- `cli/config/models.yaml` を conf に同期 (周知カタログとして整合)
+- `helix doctor` が **全 codex roles の conf ↔ models.yaml 不整合を検出** (PASS = 不整合 0 件)
+- PMO は `pmo-sonnet` / `pmo-haiku` の 2 系統を別 role として登録、または models.yaml schema を `model_variants` 拡張で表現
+
+### W-3 DoD
+- `helix claude --role pmo --model sonnet --task "ping" --execute` smoke で Sonnet 起動 + 出力ログ生成確認
+- `helix claude --role pmo --model haiku --task "ping" --execute` smoke で Haiku 起動確認
+- `--dry-run` 既存挙動が後方互換 (regress 0)
+- auth fail / timeout / no-write 違反の各失敗ケースで適切な exit code を返す
+- `helix-handover` の `--mode` フィールドが `pm-to-tl / tl-to-pm / be-implementation` の 3 値を受け取り、JSON にシリアライズされる
+- `cli/templates/prompts/pmo-base.md` で no-write policy の prompt 固定
+- transitional rule 破棄宣言を本 PLAN-028 内に追記
+
+### W-4 DoD
+- 主要 docs **8 件** (`~/.claude/CLAUDE.md` (user global) / `CLAUDE.md` / `AGENTS.md` / `helix/HELIX_CORE.md` / `helix/CODEX_TL_MODE.md` / `skills/SKILL_MAP.md` / `cli/ROLE_MAP.md` / `docs/architecture/cli-layout.md`) で v2 表記が一貫
+  - 注: 5.1 の docs 件数を 8 件に統一済 (本 DoD で参照件数を一致させる)
+
+### W-5a / W-5b DoD
+- W-5a: `.claude/agents/fe-*.md` (5 件) + `cli/templates/agents/fe-*.md` (配布元) が 0 件
+- W-5b: `skills/SKILL_MAP.md` §責務境界の FE 5 種言及 + 関連スキルの fe-* 言及が削除
+- `helix-init` の agents/ コピー処理が fe-* を含まない (新規プロジェクトに廃止 agent が再配布されない)
+
+### W-6 DoD
+- `helix test` 全 PASS (pytest + bats、regress 0)
+- `helix gate G2` PASS (設計凍結、v2 表記の整合)
+- `helix gate G4` PASS (実装凍結、PMO smoke 含む)
+- `helix doctor` 全 PASS
+- retrospective 記録を `.helix/retros/PLAN-028.md` に保存
+
+### 全体
+- 全 commit push 済 (W-1 ~ W-6 で 6-8 commits 想定)
 
 ## 9. リスクと回避策
 
@@ -191,6 +254,8 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..."
 | 60% フォールバック判定基準 (週間上限) の自動化 | 中 | helix budget status の ccusage ロジックを拡張、W-3 で `helix budget should-fallback-to` を追加 |
 | 移行中に既存タスク (PLAN-024 残 / PLAN-027 残) が v1/v2 混在 | 中 | PLAN-028 完了まで既存タスクは v1 ルールで継続、新タスクのみ v2 適用 |
 | ADR/SKILL/docs の参照 path 不整合 (大小文字 ADR/adr 等) | 中 | 既存 `rg` で path 確認、W-4 で一括 path 修正 |
+| **PM 禁止事項 (Edit/Write/Agent) が文書だけで enforcement されない** | **高** | W-6 で hook ベースの guard を検討 (PreToolUse hook で Opus セッションの subagent_type 検出 → block / 警告)。当面はレビュー時の人間確認を必須化、helix doctor で「Opus セッション履歴に subagent 呼び出し有無」を warning レベルで報告 |
+| **`cli/templates/agents/` から廃止 agent が再配布される** | **高** | W-5a で `cli/templates/agents/fe-*.md` の物理削除を含める (helix-init の copy 処理は fe-* 不在で正常動作する設計)。W-5a DoD で配布元と参照先の両方が 0 件確認 |
 
 ## 10. 残課題 (PLAN-028 完了後の次フェーズ)
 
