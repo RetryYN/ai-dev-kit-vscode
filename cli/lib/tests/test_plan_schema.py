@@ -98,3 +98,44 @@ def test_evaluate_g2_design_evidence_fails_new_plan_without_evidence(tmp_path: P
 
     assert result["ok"] is False
     assert result["reason"] == "insufficient_g2_design_evidence"
+
+
+def test_next_mini_plan_id_uses_mini_plan_sequence(tmp_path: Path) -> None:
+    mini_dir = tmp_path / ".helix" / "mini-plans"
+    mini_dir.mkdir(parents=True)
+    (mini_dir / "MPLAN-002.yaml").write_text("id: MPLAN-002\n", encoding="utf-8")
+    (mini_dir / "MPLAN-010.yaml").write_text("id: MPLAN-010\n", encoding="utf-8")
+
+    assert plan_schema.next_mini_plan_id(mini_dir) == "MPLAN-011"
+
+
+def test_detect_mini_plan_cycle_rejects_self_parent() -> None:
+    result = plan_schema.detect_mini_plan_cycle(Path("."), "MPLAN-001", "MPLAN-001")
+
+    assert result == ["MPLAN-001", "MPLAN-001"]
+
+
+def test_detect_mini_plan_cycle_follows_existing_parent_chain(tmp_path: Path) -> None:
+    mini_dir = tmp_path / ".helix" / "mini-plans"
+    mini_dir.mkdir(parents=True)
+    (mini_dir / "MPLAN-010.yaml").write_text(
+        "id: MPLAN-010\ntitle: child\nparent_plan_id: MPLAN-001\n",
+        encoding="utf-8",
+    )
+
+    result = plan_schema.detect_mini_plan_cycle(tmp_path, "MPLAN-001", "MPLAN-010")
+
+    assert result == ["MPLAN-001", "MPLAN-010", "MPLAN-001"]
+
+
+def test_detect_mini_plan_cycle_allows_non_cyclic_parent_chain(tmp_path: Path) -> None:
+    mini_dir = tmp_path / ".helix" / "mini-plans"
+    mini_dir.mkdir(parents=True)
+    (mini_dir / "MPLAN-010.yaml").write_text(
+        "id: MPLAN-010\ntitle: child\nparent_plan_id: PLAN-001\n",
+        encoding="utf-8",
+    )
+
+    result = plan_schema.detect_mini_plan_cycle(tmp_path, "MPLAN-001", "MPLAN-010")
+
+    assert result == []

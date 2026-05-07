@@ -14,7 +14,9 @@ import yaml_parser
 
 
 PLAN_ID_RE = re.compile(r"^PLAN-[0-9]{3,}$")
+MINI_PLAN_ID_RE = re.compile(r"^MPLAN-[0-9]{3,}$")
 DESIGN_SHARD_DIRS = ("D-API", "D-DB", "D-ARCH", "D-TEST", "D-THREAT")
+MINI_PLAN_PHASES = ("L1", "L2", "L4", "L6")
 
 
 def _plan_sort_key(path: Path) -> tuple[int, str]:
@@ -24,8 +26,79 @@ def _plan_sort_key(path: Path) -> tuple[int, str]:
     return (int(match.group(1)), path.stem)
 
 
+def _mini_plan_sort_key(path: Path) -> tuple[int, str]:
+    match = re.fullmatch(r"MPLAN-([0-9]+)", path.stem)
+    if not match:
+        return (-1, path.stem)
+    return (int(match.group(1)), path.stem)
+
+
 def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+def validate_plan_id(plan_id: str) -> str:
+    if not PLAN_ID_RE.fullmatch(plan_id):
+        raise ValueError(f"invalid plan id: {plan_id}")
+    return plan_id
+
+
+def validate_mini_plan_id(plan_id: str) -> str:
+    if not MINI_PLAN_ID_RE.fullmatch(plan_id):
+        raise ValueError(f"invalid mini plan id: {plan_id}")
+    return plan_id
+
+
+def validate_parent_plan_id(plan_id: str) -> str:
+    if PLAN_ID_RE.fullmatch(plan_id) or MINI_PLAN_ID_RE.fullmatch(plan_id):
+        return plan_id
+    raise ValueError(f"invalid parent plan id: {plan_id}")
+
+
+def next_mini_plan_id(mini_plans_dir: Path) -> str:
+    max_num = 0
+    for candidate in sorted(mini_plans_dir.glob("MPLAN-*.yaml"), key=_mini_plan_sort_key):
+        match = MINI_PLAN_ID_RE.fullmatch(candidate.stem)
+        if not match:
+            continue
+        max_num = max(max_num, int(candidate.stem.split("-", 1)[1]))
+    return f"MPLAN-{max_num + 1:03d}"
+
+
+def resolve_mini_plan_file(project_root: Path, plan_id: str) -> Path:
+    validate_mini_plan_id(plan_id)
+    return project_root / ".helix" / "mini-plans" / f"{plan_id}.yaml"
+
+
+def detect_mini_plan_cycle(project_root: Path, child_plan_id: str, parent_plan_id: str) -> list[str]:
+    validate_mini_plan_id(child_plan_id)
+    validate_parent_plan_id(parent_plan_id)
+    if child_plan_id == parent_plan_id:
+        return [child_plan_id, parent_plan_id]
+
+    chain = [child_plan_id, parent_plan_id]
+    visited = {child_plan_id}
+    current = parent_plan_id
+
+    while MINI_PLAN_ID_RE.fullmatch(current):
+        if current in visited:
+            chain.append(current)
+            return chain
+        visited.add(current)
+        plan_file = resolve_mini_plan_file(project_root, current)
+        if not plan_file.is_file():
+            return []
+        data = load_plan(plan_file)
+        next_parent = data.get("parent_plan_id")
+        if not isinstance(next_parent, str):
+            return []
+        validate_parent_plan_id(next_parent)
+        chain.append(next_parent)
+        if next_parent == child_plan_id:
+            return chain
+        current = next_parent
+
+    return []
 
 
 def normalize_plan(yaml_dict: dict[str, Any]) -> dict[str, Any]:
