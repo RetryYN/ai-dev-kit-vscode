@@ -31,6 +31,7 @@ AI_ONLY=false
 DRY_RUN=false
 UNDO=false
 JSON_OUTPUT=false
+CROSS_SPRINT=false
 READINESS_MODE_FLAG=""
 G5_PHASE=""
 G10_OUTCOME=""
@@ -46,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run)     DRY_RUN=true; shift ;;
     --undo)        UNDO=true; shift ;;
     --json)        JSON_OUTPUT=true; shift ;;
+    --cross-sprint) CROSS_SPRINT=true; shift ;;
     --readiness-mode)
       if [[ -z "${2:-}" ]]; then
         echo "エラー: --readiness-mode には warning|enforce|skip が必要です" >&2
@@ -121,11 +123,13 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--readiness-mode <warning|enforce|skip>]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
       echo ""
       echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G7, G9, G10, G11"
       echo ""
       echo "Options:"
+      echo "  --cross-sprint"
+      echo "      直近完了 Sprint を helix.db から推定し、横断レビュー証跡を .helix/cross-sprint-reviews/ に保存"
       echo "  --readiness-mode <warning|enforce|skip>"
       echo "      readiness exit の AND 条件モード (default: warning)"
       echo "  --outcome <pass|watch-continue|blocked|failed>"
@@ -541,6 +545,280 @@ _emit_feedback() {
     --gate "$gate" \
     --gate-name "$gate_display_name" \
     --summary "$summary" || true
+}
+
+run_cross_sprint_review() {
+  local gate="$1"
+  local review_output_file
+  review_output_file=$(mktemp "${TMPDIR:-/tmp}/helix-cross-sprint-${gate}-XXXXXX")
+
+  HELIX_GATE="$gate" \
+  HELIX_DRY_RUN="$DRY_RUN" \
+  HELIX_DB_PATH="$DB_PATH" \
+  HELIX_DIR_PATH="$HELIX_DIR" \
+  PHASE_FILE_PATH="$PHASE_FILE" \
+  python3 - <<'PY' >"$review_output_file"
+import datetime as dt
+import json
+import os
+import re
+import sqlite3
+from pathlib import Path
+
+
+def table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
+def latest_accuracy_sprint(conn: sqlite3.Connection):
+    if not table_exists(conn, "accuracy_score"):
+        return None
+    row = conn.execute(
+        """
+        SELECT sprint, recorded_at
+        FROM accuracy_score
+        WHERE sprint IS NOT NULL AND TRIM(sprint) != ''
+        ORDER BY recorded_at DESC, id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "value": str(row["sprint"]).strip(),
+        "source": "accuracy_score",
+        "recorded_at": str(row["recorded_at"] or ""),
+    }
+
+
+def latest_entry_sprint(conn: sqlite3.Connection):
+    if not table_exists(conn, "entries"):
+        return None
+    row = conn.execute(
+        """
+        SELECT sprint_id, updated_at, created_at
+        FROM entries
+        WHERE sprint_id IS NOT NULL AND TRIM(sprint_id) != ''
+        ORDER BY updated_at DESC, created_at DESC, id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "value": str(row["sprint_id"]).strip(),
+        "source": "entries",
+        "recorded_at": str(row["updated_at"] or row["created_at"] or ""),
+    }
+
+
+SPRINT_PATTERNS = (
+    re.compile(r"(?:Sprint|sprint)\s+([.][1-5](?:[ab])?)"),
+    re.compile(r"(^|[\s:(-])([.][1-5](?:[ab])?)(?=$|[\s),:-])"),
+    re.compile(r"(PLAN-\d+[._-]W-\d+[a-z]?)", re.IGNORECASE),
+)
+
+
+def extract_sprint_token(text: str):
+    if not text:
+        return None
+    for pattern in SPRINT_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        value = match.group(2) if pattern.groups >= 2 else match.group(1)
+        value = str(value or "").strip()
+        if value:
+            return value
+    return None
+
+
+def latest_task_run_sprint(conn: sqlite3.Connection):
+    if not table_exists(conn, "task_runs"):
+        return None
+    rows = conn.execute(
+        """
+        SELECT task_id, task_type, plan_goal, output_log, completed_at, created_at
+        FROM task_runs
+        WHERE status = 'completed'
+        ORDER BY COALESCE(completed_at, created_at) DESC, id DESC
+        LIMIT 25
+        """
+    ).fetchall()
+    for row in rows:
+        for field in ("plan_goal", "output_log", "task_id", "task_type"):
+            value = extract_sprint_token(str(row[field] or ""))
+            if value:
+                return {
+                    "value": value,
+                    "source": f"task_runs.{field}",
+                    "recorded_at": str(row["completed_at"] or row["created_at"] or ""),
+                }
+    return None
+
+
+def resolve_latest_completed_sprint(conn: sqlite3.Connection):
+    for resolver in (latest_accuracy_sprint, latest_entry_sprint, latest_task_run_sprint):
+        resolved = resolver(conn)
+        if resolved:
+            return resolved
+    return {
+        "value": None,
+        "source": "helix.db",
+        "recorded_at": "",
+        "note": "completed sprint not found in helix.db",
+    }
+
+
+def build_review(conn: sqlite3.Connection, latest_sprint: dict):
+    checks = []
+
+    drift_count = 0
+    if table_exists(conn, "deferred_findings"):
+        row = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM deferred_findings
+            WHERE status IN ('open', 'carried')
+              AND (
+                phase IN ('L2', 'L3', 'G2', 'G3')
+                OR LOWER(COALESCE(source, '')) LIKE '%review%'
+                OR LOWER(COALESCE(source, '')) LIKE '%design%'
+              )
+            """
+        ).fetchone()
+        drift_count = int(row[0] or 0)
+    checks.append(
+        {
+            "name": "design_drift",
+            "status": "pass" if drift_count == 0 else "attention",
+            "count": drift_count,
+            "detail": "open/carried の設計・契約ドリフト系 finding 件数",
+        }
+    )
+
+    regress_count = 0
+    latest_token = str(latest_sprint.get("value") or "").strip()
+    if table_exists(conn, "task_runs"):
+        rows = conn.execute(
+            """
+            SELECT task_id, task_type, plan_goal, output_log, status
+            FROM task_runs
+            ORDER BY COALESCE(completed_at, created_at) DESC, id DESC
+            LIMIT 100
+            """
+        ).fetchall()
+        test_words = ("test", "pytest", "bats", "regress", "回帰")
+        for row in rows:
+            haystack = "\n".join(
+                str(row[key] or "") for key in ("task_id", "task_type", "plan_goal", "output_log")
+            ).lower()
+            if not any(word in haystack for word in test_words):
+                continue
+            token = extract_sprint_token(
+                "\n".join(str(row[key] or "") for key in ("plan_goal", "output_log", "task_id"))
+            )
+            if latest_token and token and token != latest_token:
+                continue
+            if str(row["status"] or "").lower() != "completed":
+                regress_count += 1
+    checks.append(
+        {
+            "name": "test_regress",
+            "status": "pass" if regress_count == 0 else "attention",
+            "count": regress_count,
+            "detail": "直近 sprint に紐づく失敗 test/regression task_runs 件数",
+        }
+    )
+
+    broken_links = 0
+    if table_exists(conn, "entries") and table_exists(conn, "links"):
+        row = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM links l
+            LEFT JOIN entries src ON src.id = l.from_id
+            LEFT JOIN entries dst ON dst.id = l.to_id
+            WHERE src.id IS NULL OR dst.id IS NULL
+            """
+        ).fetchone()
+        broken_links = int(row[0] or 0)
+    checks.append(
+        {
+            "name": "dependency_consistency",
+            "status": "pass" if broken_links == 0 else "attention",
+            "count": broken_links,
+            "detail": "entries/links 間の孤立リンク件数",
+        }
+    )
+
+    verdict = "pass" if all(item["status"] == "pass" for item in checks) else "attention"
+    return verdict, checks
+
+
+db_path = Path(os.environ["HELIX_DB_PATH"])
+helix_dir = Path(os.environ["HELIX_DIR_PATH"])
+phase_file = Path(os.environ["PHASE_FILE_PATH"])
+gate = os.environ["HELIX_GATE"]
+dry_run = os.environ.get("HELIX_DRY_RUN", "false") == "true"
+
+review_dir = helix_dir / "cross-sprint-reviews"
+review_dir.mkdir(parents=True, exist_ok=True)
+timestamp = dt.datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S-%f")
+review_file = review_dir / f"{timestamp}.json"
+
+conn = sqlite3.connect(str(db_path)) if db_path.exists() else sqlite3.connect(":memory:")
+conn.row_factory = sqlite3.Row
+try:
+    latest_sprint = resolve_latest_completed_sprint(conn)
+    verdict, checks = build_review(conn, latest_sprint)
+finally:
+    conn.close()
+
+payload = {
+    "generated_at": dt.datetime.now().astimezone().isoformat(),
+    "gate": gate,
+    "dry_run": dry_run,
+    "review_type": "cross-sprint",
+    "latest_completed_sprint": latest_sprint,
+    "checks": checks,
+    "summary": {
+        "verdict": verdict,
+        "attention_count": sum(1 for item in checks if item["status"] != "pass"),
+    },
+    "db_path": str(db_path),
+    "phase_file": str(phase_file),
+}
+review_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+print(json.dumps({"review_file": str(review_file), "payload": payload}, ensure_ascii=False))
+PY
+
+  python3 - <<'PY' "$review_output_file"
+import json
+import sys
+from pathlib import Path
+
+raw = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+payload = raw["payload"]
+review_file = Path(raw["review_file"])
+latest = payload.get("latest_completed_sprint", {})
+print("[helix-gate] cross-sprint review")
+print(f"  file: {review_file}")
+print(
+    "  latest sprint: "
+    f"{latest.get('value') or 'unknown'}"
+    f" (source: {latest.get('source', 'unknown')})"
+)
+for check in payload.get("checks", []):
+    print(f"  {check['name']}: {check['status']} ({check.get('count', 0)})")
+PY
+
+  rm -f "$review_output_file"
 }
 
 record_ai_review_scores() {
@@ -1541,6 +1819,11 @@ PY
     else
       echo "  ai: $ai_pass pass, $ai_fail fail"
     fi
+  fi
+
+  if [[ "$CROSS_SPRINT" == true ]]; then
+    run_cross_sprint_review "$gate"
+    echo ""
   fi
 
   # --- Readiness exit check ---
