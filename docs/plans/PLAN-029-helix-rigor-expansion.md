@@ -4,13 +4,13 @@
 
 - id: PLAN-029
 - title: HELIX 11 軸厳格化拡張 (デザイン後置 / Sprint 厳格化 / フェーズゲート / デプロイ前 3 フェーズ / 大規模 agent 2 段設計 / Scrum 拡張 / L1-L3 設計厳格化 / 追加実装流れ / Reverse 厳格化 / 拡張性 × 制約性 / docs+helix.db 強化)
-- status: draft (research integrated 2026-05-08, awaiting TL review)
+- status: draft (TL レビュー反映 2026-05-08、6 findings 解消、awaiting PM finalize)
 - priority: high
 - created: 2026-05-08
 - owners: PM, TL
 - related: [PLAN-028, ADR-014, ADR-015]
 - plan_id: PLAN-029
-- task_id: W-0-outline
+- task_id: W-0-fix
 - sprints: W-1..W-12
 - acceptance: 11 軸×12 Sprint の明示、Sprint 概要と DoD 抜粋、関連調査 stub、関連リンク整合
 
@@ -59,7 +59,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **L5b**: Visual Production（配色、画像、アニメーション、最終見た目を L6.x 以降と整合）
 - Sprint 反映: W-1 を中核に、W-10 で KPI 監査へ接続。
 - 追記ルール: WIP の mock 版は承認前実装に使わず、W4 以降で L5b 固定。
-- **参考**: §4.2 Top 10 #1 (https://docs.cursor.com/en/bugbot) / Sprint 10（design debt KPI での観測設計）
+- **参考**: §4 各事例参照（§4.2 Top 10 で直接対応する要件は未整理）
 
 ### 2.2 要件 1.2: Sprint 単位の厳格化
 
@@ -71,7 +71,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - Sprint-level 完走の定義を W-2 で制度化し、`helix sprint complete` の Hook 化を検討。
 - 成果物は 1) WBS、2) gate 証跡、3) 変更差分、4) テスト要約を最小セットで記録。
 - 失敗時は次 Sprint を blocked とし、carry または rework を明文化。
-- **参考**: §4.2 Top 10 #1 (https://aider.chat/docs/usage/lint-test.html), Top 10 #2 (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) / Sprint 2
+- **参考**: §4.2 Top 10 #1 (Project-specific AI review rules), §4.2 Top 10 #2 (Edit-test repair loop) / Sprint 2
 
 ### 2.3 要件 1.3: フェーズ単位ゲート + スプリント横断レビュー
 
@@ -82,7 +82,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - 実装品質: テスト/レビュー証跡の完全性
   - デグレ有無: 既存 plan 参照との矛盾チェック
 - `helix gate --cross-sprint` を追加して、`Gx` 横断を CLI フラグ化。
-- **参考**: §4.2 Top 10 #3 (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches), Top 10 #4 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 3
+- **参考**: §4.2 Top 10 #3 (SCM enforcement) / Sprint 3
 
 ### 2.4 要件 1.4: デプロイ前 3 フェーズ追加
 
@@ -93,7 +93,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **L7**: 既存デプロイ工程
 - Gate 追加: G6.5 / G6.7 / G6.9 を新設し、失敗時は L6 系に carry。
 - この変更は run-phase（L9-L11）への接続を容易化し、受入前の「最後の手戻り」を減らす。
-- **参考**: §4.2 Top 10 #10 (https://github.com/langfuse/langfuse, https://arize.com/docs/phoenix) / Sprint 4
+- **参考**: §4 各事例参照（§4.2 Top 10 で直接対応する要件は未整理）
 
 ### 2.5 要件 1.5: 大規模 agent 2 段設計
 
@@ -103,7 +103,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - **エージェント層設計**: ツール定義、プロンプト、decision tree、失敗復帰を固定。
 - 規模自動判定: `helix size --agent --large` で 2 段化を強制し、通常規模では既存 1 段まま。
 - 変更は D-AGENT-INFRA / D-AGENT-EXEC で明示し、WIP の責務混線を防ぐ。
-- **参考**: §4.2 Top 10 #6 (https://reference.langchain.com/javascript/modules/_langchain_langgraph-supervisor.html) / Sprint 5
+- **参考**: §4.2 Top 10 #6 (Two-tier agent architecture) / Sprint 5
 
 ### 2.6 要件 1.6: Scrum フェーズ拡張
 
@@ -112,7 +112,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - S2 は PoC 検証設計を明示してから実装へ進める。
 - コマンド候補: `helix scrum web-search`（検索事例収集）および `helix scrum acceptance-design`（受入条件設計）を新設。
 - 効果: 要件不確実時に PoC の成功条件を先に凍結し、後追い追加の乱立を抑制。
-- **参考**: §4.2 Top 10 #5 (https://www.lean.org/lexicon-terms/lean-startup/) / Sprint 6
+- **参考**: §4.2 Top 10 #5 (Risk-first research gate) / Sprint 6
 
 ### 2.7 要件 1.7: L1-L3 設計フェーズ厳格化
 
@@ -127,7 +127,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - 各 shard 間ドリフトを drift-check で確認。
   - lint/formatter 方針は L3 で事前確定。
 - G1.5 / G2 / G3 は整合性チェック項目を増やす。
-- **参考**: §4.2 Top 10 #7 (https://github.com/phillduffy/architecture_decision_record, https://c4model.com/) / Sprint 7
+- **参考**: §4.2 Top 10 #7 (ADR + C4 design freeze) / Sprint 7
 
 ### 2.8 要件 1.8: 追加実装の流れ整備
 
@@ -135,7 +135,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - mini-PLAN 最低 4 フェーズ: L1 → L2 → L4 → L6。
 - 親 PLAN と dependency を Helix DB に登録し、並列 Sprint の影響追跡対象とする。
 - 目的は「小さな追加を本筋に埋めない」ための明示的ルート化。
-- **参考**: §4.2 Top 10 #7 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 8
+- **参考**: §4 各事例参照（§4.2 Top 10 で直接対応する要件は未整理）
 
 ### 2.9 要件 1.9: Reverse 逆引き順序 + レビュー厳格化
 
@@ -143,7 +143,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - 各 R フェーズの完了条件に「レビュー記録」「引継ぎ資料」を必須化。
 - `helix reverse rgc` に強化版オプションを追加し、閉塞状態を明示。
 - Forward へ返す引継ぎは必須ドキュメント化し、未接続のまま次 L4 へ進まない。
-- **参考**: §4.2 Top 10 #8 (https://martinfowler.com/bliki/StranglerFigApplication.html), Top 10 #4 (https://www.svpg.com/continuous-discovery/) / Sprint 9
+- **参考**: §4.2 Top 10 #8 (Characterization-before-change) / Sprint 9
 
 ### 2.10 要件 1.10: 拡張性 × 制約性両軸見直し
 
@@ -160,7 +160,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
   - design drift 0 件
   - Sprint 完遂時間の上限監視
 - 実装では「新機能拡張を許可」しつつ「逸脱は即時検知」を両立。
-- **参考**: §4.2 Top 10 #9 (https://code.visualstudio.com/api/extension-capabilities/overview), Top 10 #4 (https://www.stage-gate.com/about/stage-gate-innovation-performance-framework/discovery-to-launch-process/) / Sprint 10
+- **参考**: §4.2 Top 10 #4 (Gate state vocabulary), §4.2 Top 10 #9 (Extension point with constraints) / Sprint 10
 
 ### 2.11 要件 1.11: README + docs + helix.db 強化
 
@@ -168,7 +168,43 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - docs 構造を再構成し、architecture / adr / plans / research / runbook を明確化。
 - helix.db schema migration を追加し、axis や design_decision / qa_result / security_audit を記録できるようにする。
 - helix doctor を更新して、docs と DB の整合を自動チェック対象に追加。
-- **参考**: §4.2 Top 10 #10 (https://www.martinfowler.com/eaaDev/EventSourcing.html), Top 10 #3 (https://code.claude.com/docs/en/best-practices) / Sprint 11
+- **参考**: §4.2 Top 10 #10 (Trace/span + event sourcing) / Sprint 11
+
+### 2.11.1 helix.db v18 → v19 migration 詳細
+
+- 目的: axis・ADR・監査結果を `entries` / 新規観測テーブルへ集約し、後段 DoD/retrospective で数値評価できるようにする（additive, idempotent, forward-only）。
+- SQL（migration `cli/lib/db/migrations/` に配置）:
+
+```sql
+-- v19 で追加 (additive、既存 data 影響なし、idempotent)
+ALTER TABLE entries ADD COLUMN qa_result TEXT;       -- W-12 統合検証結果
+ALTER TABLE entries ADD COLUMN security_audit TEXT;  -- W-4 L6.5 セキュリティ監査結果
+ALTER TABLE entries ADD COLUMN design_decision TEXT; -- W-7 L2-L3 ADR 記録
+
+CREATE TABLE IF NOT EXISTS sprint_metrics (
+  sprint_id TEXT PRIMARY KEY,
+  test_pass_rate REAL,
+  drift_count INTEGER,
+  duration_minutes INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS phase_gate_runs (
+  gate_id TEXT,
+  phase TEXT,
+  result TEXT CHECK(result IN ('passed','failed','blocked','interrupted')),
+  ran_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (gate_id, ran_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sprint_metrics_sprint ON sprint_metrics(sprint_id);
+```
+
+- migration テスト方針（`pytest cli/lib/tests/test_helix_db_v19.py`）:
+  - 冪等性: 同一 migration の再実行で既存 `entries` 件数不変、追加列重複作成エラーなし
+  - 既存 data 移行: `entries` 既存行数が移行前後で不変
+  - 監査テーブル整合: `sprint_metrics / phase_gate_runs` が存在し、再作成でも成功
+  - rollback: `v19 -> v18` は未対応（forward-only）を明示
 
 ## 3. Sprint 分割（12 Sprint）
 
@@ -183,38 +219,95 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 | W-7 | L1-L3 設計厳格化 | docs+SE | 単独 | 同上 | D-shard順と ADR 化を設計フェーズに埋め込む |
 | W-8 | 追加実装流れ整備 | docs | W-2 | — | mini-PLAN を helix plan 構文として公式化し、依存追跡を追加 |
 | W-9 | Reverse 厳格化 | docs | 単独 | ‖ W-1..W-7 | R0-R4 関係の sprint-review と handover 義務を追加 |
-| W-10 | 拡張性×制約性（集約） | TL | W-2..W-9 | — | KPI 設計と gate 運用を集約し観測基準を確定 |
-| W-11 | README/docs/helix.db 強化 | docs+SE | 全完了後 | — | docs 構造再整理と schema migration で基盤整合 |
-| W-12 | 統合検証 + retrospective | qa | 全完了後 | — | 全 Gate/全セキュリティ/全レビューを統合して retrospective を保存 |
+| W-10 | 拡張性×制約性（集約） | TL | W-2..W-9 完了後 [集約] | — | KPI 設計と gate 運用を集約し観測基準を確定 |
+| W-11 | README/docs/helix.db 強化 | docs+SE | W-10 完了後 [集約] | — | docs 構造再整理と schema migration で基盤整合 |
+| W-12 | 統合検証 + retrospective | qa | W-11 完了後 [集約] | — | 全 Gate/全セキュリティ/全レビューを統合して retrospective を保存 |
 
 ### 3.1 並列性計画
 
 - 第 1 波: W-1, W-2, W-5, W-6, W-7, W-9（6 Sprint）
 - 第 2 波: W-3, W-8（W-2 以降）
 - 第 3 波: W-4（W-3 以降）
-- 第 4 波: W-10, W-11, W-12（全完了後）
+- 第 4 波: W-10 → W-11 → W-12（集約 (W-10 → W-11 → W-12) 直列固定）
 
 ### 3.2 総セッション想定
 
 - 12-15 セッション（短集中で前半 4 波、後半 3 波）
 - 1-2 週間を標準幅として見積るが、risk register を見ながら 1 波目を短縮も可。
 
-## 4. 11 軸 × 12 Sprint 受入 DoD 概要（outline）
+## 5. 11 軸 × 12 Sprint 受入 DoD（実装条件）
 
-- W-1 DoD 概要: L5 を L5a/L5b に明確分割し、phase.yaml 拡張と G5 追加要件を draft。
-- W-2 DoD 概要: `helix sprint complete` で lint/test/build/drift-check の自動実行を確認する設計。
-- W-3 DoD 概要: `helix gate --cross-sprint` を実装し、デグレ検知チェックを明示。
-- W-4 DoD 概要: phase.yaml に L6.5/L6.7/L6.9 を追加、各 G6 新設で fail-close 設計。
-- W-5 DoD 概要: D-AGENT-INFRA / D-AGENT-EXEC を 2 段化し、`helix size --agent --large` 連動を確認。
-- W-6 DoD 概要: `helix scrum web-search` と `acceptance-design` subcommand の stub 実装に必要項目を整理。
-- W-7 DoD 概要: 研究連動・tech-stack ADR・D-shard 順序の L3 固定を設計 DoD として確立。
-- W-8 DoD 概要: mini-PLAN を親 PLAN 依存追跡付きで helix plan 拡張。
-- W-9 DoD 概要: 逆引き各 R の sprint review 追加と handover 義務化。
-- W-10 DoD 概要: 拡張性 KPI と制約性 KPI の観測設計を ADR 化。
-- W-11 DoD 概要: README 改稿、docs 再編、helix.db migration を確定方針化。
-- W-12 DoD 概要: 全 gate pass + full test + retrospective 記録。
+### 5.1 W-1 デザイン後置
 
-### 4.1 依存/整合の軸チェック
+- [ ] `phase.yaml` に L5a/L5b を追加する（`grep -c "L5a" .helix/phase.yaml` と `grep -c "L5b" .helix/phase.yaml` が各 `1` 以上）。
+- [ ] `helix gate G5` が `L5a` と `L5b` の両方で判定を実行（`helix gate G5 --phase L5a` / `helix gate G5 --phase L5b`）。
+- [ ] `test-helix-phase-l5b.bats` を追加し、ケース件数が `1` 件以上。
+
+### 5.2 W-2 Sprint 厳格化
+
+- [ ] `helix-sprint` の `complete` hook に `drift-check` が紐付く（`grep -c "drift-check" cli/helix-sprint` が `1` 以上）。
+- [ ] `test-helix-sprint-strict.bats` を追加し、ケース件数が `4` 件以上。
+- [ ] `helix sprint complete` 実行時、`lint/test/build/drift-check` の 3 項目ログが出ること。
+
+### 5.3 W-3 フェーズゲート + 横断レビュー
+
+- [ ] `helix gate --cross-sprint` が実装され、`helix gate G2 --cross-sprint --dry-run` が成功（smoke 条件成立）。
+- [ ] 横断レビュー結果をログ化し、再実行用の証跡が 1 件以上保存される。
+
+### 5.4 W-4 デプロイ前 3 フェーズ追加
+
+- [ ] `phase.yaml` に `L6.5 / L6.7 / L6.9` の 3 項目を追加（`grep -c "L6\\.[579]" .helix/phase.yaml` が `3` 以上）。
+- [ ] `helix-gate` に `G6.5 / G6.7 / G6.9` を追加。
+- [ ] `test-helix-phase-deploy-3stages.bats` を追加し、ケース件数が `6` 件以上。
+
+### 5.5 W-5 大規模 agent 2 段
+
+- [ ] `cli/templates/D-AGENT-INFRA.md` と `cli/templates/D-AGENT-EXEC.md` を追加（ファイル存在: 各 1 件以上）。
+- [ ] `helix-size --agent --large` で 2 段化判定が行われる（`grep -c "2 段"` などの判定ログが 1 件以上）。
+- [ ] `test-helix-size-agent.bats` を追加し、ケース件数が `1` 件以上。
+
+### 5.6 W-6 Scrum 拡張
+
+- [ ] `helix scrum web-search` と `helix scrum acceptance-design` の subcommand が追加。
+- [ ] `helix scrum web-search --query` 実行時に 1 件以上の reference 結果を保存。
+- [ ] `test-helix-scrum-extended.bats` を追加し、ケース件数が `1` 件以上。
+
+### 5.7 W-7 L1-L3 設計厳格化
+
+- [ ] `cli/templates/D-TECH-STACK.md` と ADR テンプレが拡張される。
+- [ ] `helix research --layer L2 --auto` 実行時、要件 1.7 の対象項目が自動連動（`grep -c "layer: L2" cli/helix-research` が `1` 以上）。
+
+### 5.8 W-8 追加実装流れ整備
+
+- [ ] `helix plan` の `--mini` オプションが追加され、mini-PLAN 作成が実行可能。
+- [ ] `helix.db` の `entries` に parent_plan_id / child_plan_id を持つレコードが 1 件以上。
+- [ ] 依存ループ防止チェック（`grep -n "cycle"`）で循環を検知し、`false` 条件を満たすこと。
+
+### 5.9 W-9 Reverse 厳格化
+
+- [ ] `helix-reverse` の各 R で `--review` オプションを追加（`grep -c "r[0-9] --review" cli/helix-reverse` が 5 件以上）。
+- [ ] `handover --mode reverse-r{0,1,2,3,4}` が実行可能（各モード 1 回以上）。
+- [ ] `test-helix-reverse-review.bats` を追加し、ケース件数が `1` 件以上。
+
+### 5.10 W-10 拡張性 × 制約性（集約）
+
+- [ ] `docs/architecture/helix-flexibility-constraint.md` を新規作成（ファイル存在 1 件以上）。
+- [ ] KPI ダッシュボード仕様（KPI schema）は W-11 で DB 仕様化する前提で、項目定義数が 2 軸分以上あること。
+
+### 5.11 W-11 README/docs/helix.db 強化
+
+- [ ] `README.md` の大幅更新（見出し構成・Quick Start・運用導線・コマンド一覧が含まれること）。
+- [ ] `docs` 配下で `architecture / adr / plans / research / runbook` の 5 ディレクトリ構成が成立（`find docs -maxdepth 1 -type d | grep -E "architecture|adr|plans|research|runbook"` で 5 件以上）。
+- [ ] `cli/lib/db/migrations/` 配下に `v19` migration（`*v19*.sql`）を追加。
+- [ ] `pytest cli/lib/tests/test_helix_db_v19.py` が 3 方向（idempotency / data migration / forward-only）で実行できる。
+
+### 5.12 W-12 統合検証 + retrospective
+
+- [ ] `helix doctor` 実行が pass（最終状態で fail 件数 0）。
+- [ ] `helix test` 実行が pass（コマンド失敗 0、全件 green）。
+- [ ] retrospective 記録（例: `.helix/retro/W-12.md`）が 1 件以上保存。
+
+### 5.13 依存/整合の軸チェック
 
 - Axis 1.1, 1.2, 1.3 は W-1〜W-4 で連続検証。
 - Axis 1.4, 1.5 は W-4〜W-5 で設計-実装接続。
@@ -224,7 +317,7 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 
 ## 4. 関連調査 (research integration、2026-05-08 完了)
 
-詳細は `docs/research/PLAN-029-research-findings.md` (391 行) 参照。本セクションは HELIX への取り入れ判断と Top 10 パターンを要約する。
+詳細は `../research/PLAN-029-research-findings.md` (391 行) 参照。本セクションは HELIX への取り入れ判断と Top 10 パターンを要約する。
 
 ### 4.1 軸別 Top 1-2 事例 (要約)
 
@@ -293,14 +386,19 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 
 ## 6. リスクと回避策
 
-| リスク | 影響 | 回避策 |
-|---|---|---|
-| 12 Sprint が 1-2 週間で収束しない | ユーザー期待と進捗乖離 | W-1〜W-7 を優先実行し、W-3〜W-4 と W-10〜W-12 は次 PLAN へ分離する判断条件を事前明記 |
-| L5b / L6.5 / L6.7 / L6.9 の追加で既存 PLAN と衝突 | 既存ルールとの互換崩れ | phase.yaml semver bump と既存運用 v1 対応を並走。新規 PLAN のみ新フェーズ適用 |
-| migration 増加による破壊的変更 | DB 整合破壊 | v18→v19 migration を W-11 で分離実行し、既存 entries 互換移行手順を事前公開 |
-| research と spec の食い違い | 仕様の先行誤差 | research 完了後に §4 を refreshする追加 pass を W-12 前提条件に加える |
-| 要件解釈の個別差 | 承認遅延・rework 増 | axis 1.10 の指標と受入言語を user-facing 言語で確認し、W-10 で最終合意 |
-| 実装を要する task への過剰拡張 | スコープ拡大 | PLAN-029 は outline とし、詳細は W-11 以降で個別 Sprint spec 化 |
+| 要件軸 | リスク | 影響 | 回避策 |
+|---|---|---|---|
+| 1.1 | L5b 判定が L5a に混線し、表示後置の意図が薄れる | L4 早期実装との混在で品質低下 | `grep -c "L5a"`, `grep -c "L5b"` と 2 段階レビューを必須化 |
+| 1.2 | Sprint 合格条件が `drift-check` 前提ではなく省略される | テスト抜け・再work の増加 | W-2 で hook / bats / grep 条件を全件必須化 |
+| 1.3 | cross-sprint option 未実装で横断レビューが形骸化 | フェーズ越えの不整合検知漏れ | `helix gate --cross-sprint` 未成功を 0 でない合否として受理禁止 |
+| 1.4 | L6.5/L6.7/L6.9 が追加後に実行順序を崩す | run 前提品質の監査漏れ | 3段階で順序固定し、順序違反時に `helix gate G6.9` を stop |
+| 1.5 | D-AGENT-INFRA と D-AGENT-EXEC の責務境界が曖昧化 | 2 段化設計の監査不能、責務衝突 | 企画要件に責務マトリクスを必須化（`1` つ以上の責務別項目を添付） |
+| 1.6 | web-search hook が信頼できない URL 由来 | 仕様誤導で手戻り増 | URL 検証 hook を追加し、`http_status` 400 以上は除外 |
+| 1.7 | L1-L3 設計順序監査の不足 | 設計軸で D-API/D-DB/D-CONTRACT/D-UI が錯綜 | 逆順参照を検知し、L3 で必須レビューを固定化 |
+| 1.8 | mini-PLAN と親 PLAN の関連付けが省略 | 追加実装が親子分離不能 | `--mini` は parent_plan_id 必須で受入条件化 |
+| 1.9 | Reverse→Forward 接続モード未定義 | 受入時に仕様ロスト | `handover --mode reverse-to-forward` を W-12 で必須化 |
+| 1.10 | KPI gaming（hit_rate 操作、skill 偏り） | 指標品質悪化・監査不全 | 推奨 audit log と role 多様性 KPI の二軸評価 |
+| 1.11 | README/docs/helix.db のリンク drift | 実行手順や依存参照が壊れる | `helix doctor` の link integrity check を追加し、broken link=0 を必須化 |
 
 ### 6.1 エスカレーション基準
 
@@ -309,11 +407,11 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 
 ## 7. 関連ドキュメント
 
-- [PLAN-028-helix-v2-orchestration.md](docs/plans/PLAN-028-helix-v2-orchestration.md)
-- [ADR-014-roles-config-format.md](docs/adr/ADR-014-roles-config-format.md)
-- [ADR-015-helix-v2-orchestration.md](docs/adr/ADR-015-helix-v2-orchestration.md)
+- [PLAN-028-helix-v2-orchestration.md](PLAN-028-helix-v2-orchestration.md)
+- [ADR-014-roles-config-format.md](../adr/ADR-014-roles-config-format.md)
+- [ADR-015-helix-v2-orchestration.md](../adr/ADR-015-helix-v2-orchestration.md)
 - メモ: `~/.claude/projects/-home-tenni-ai-dev-kit-vscode/memory/project_2026_05_08_plan029_helix_rigor.md`
-- 研究結果: `docs/research/PLAN-029-research-findings.md`（並行作成、後で integrate）
+- 研究結果: `../research/PLAN-029-research-findings.md`（並行作成、後で integrate）
 
 ---
 
@@ -323,18 +421,18 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 - 1. 背景・動機
 - 2. 厳格化 11 軸の対応設計
 - 3. Sprint 分割（12 Sprint）
-- 4. 11 軸 × 12 Sprint 受入 DoD 概要
-- 5. 関連調査（research integration stub）
+- 4. 関連調査（research integration）
+- 5. 11 軸 × 12 Sprint 受入 DoD（実装条件）
 - 6. リスクと回避策
 - 7. 関連ドキュメント
 
 ## 9. 進捗検証用サマリ（アウトライン）
 
-- 作成済み: `docs/plans/PLAN-029-helix-rigor-expansion.md`
-- 想定行数: 約 340-360 行
+- 作成済み: `PLAN-029-helix-rigor-expansion.md`
+- 想定行数: 約 450-500 行
 - Sprint 数: 12（W-1〜W-12）
 - 11 軸: 2.1〜2.11 で明示
-- research 統合: §5 を stub のまま維持
+- research 統合: §4 を参照し、要件 1.1〜1.11 の反映を更新
 - TODO/FIXME: 本稿では `TBD` を研究未確定プレースホルダとして使用。`TODO`/`FIXME` は本文に未使用
 
 ## 10. 11 軸 × Sprint 参照マップ（詳細）
@@ -385,12 +483,12 @@ PLAN-029 は「品質側の厳格化拡張」を前提に、11 軸を横断し�
 ## 11. 受入チェックテンプレ（レビュー/Docs向け）
 
 - 作成済みか: ファイル存在有無
-- 章構成: Metadata + 7 章相当 + 11 軸 + Sprint 12件 + 研究 stub
+- 章構成: Metadata + 7 章相当 + 11 軸 + Sprint 12件 + 研究反映
 - 11 軸: 2.1〜2.11 を確認
 - Sprint: W-1〜W-12 の全行が存在
 - 参照: PLAN-028, ADR-014, ADR-015 のリンク整備
-- 依存: research stub が §5 に残っていること
-- 行数: 350行前後（本文規模で 1 パス読了が可能）
+- 依存: 研究反映が §4 と一致していること
+- 行数: 450-500行前後（本文規模で 1 パス読了が可能）
 
 ## 12. 追加メモ（実装方針）
 
