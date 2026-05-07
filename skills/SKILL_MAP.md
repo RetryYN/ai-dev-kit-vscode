@@ -348,7 +348,7 @@ helix handover resume
 ### 推挙の仕組み
 - catalog: `.helix/cache/skill-catalog.json`（SKILL.md frontmatter + references 冒頭 `> 目的:` blockquote を機械抽出）
 - エンジン: `gpt-5.4-mini` (`cli/roles/recommender.conf`、thinking=low)
-- プロンプト: `cli/templates/skill-search-prompt.md`（9種の agent 決定マッピング含む）
+- プロンプト: `cli/templates/prompts/skill-search.md`（9種の agent 決定マッピング含む）
 - キャッシュ: `.helix/cache/recommendations/<sha256>.json` で 1 時間保存
 - 使用履歴: `helix.db` (v5) の `skill_usage` テーブル
 
@@ -363,7 +363,7 @@ helix handover resume
 - `cli/lib/skill_dispatcher.py` — context bundle 作成・委譲・DB 記録・stats
 - `cli/helix-skill` — bash ディスパッチャ (list/show/catalog/search/use/chain/stats)
 - `cli/roles/recommender.conf` — gpt-5.4-mini ロール定義
-- `cli/templates/skill-search-prompt.md` — LLM プロンプトテンプレート
+- `cli/templates/prompts/skill-search.md` — LLM プロンプトテンプレート
 
 ## コードインデックス（PLAN-011 + PLAN-012 + PLAN-013）
 

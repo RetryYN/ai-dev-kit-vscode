@@ -85,7 +85,7 @@ cli/
 │   └── effort-classifier.conf   (新規 — gpt-5.4-mini ロール定義)
 │
 └── templates/
-    └── effort-classify-prompt.md (新規 — LLM プロンプト)
+    └── prompts/effort-classify.md (新規 — LLM プロンプト)
 ```
 
 ---

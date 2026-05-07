@@ -132,7 +132,7 @@ helix code --help             # サブコマンド一覧 (cli/helix dispatcher �
 
 #### find の振る舞い
 
-- `cli/templates/skill-search-prompt.md` 相当のプロンプトテンプレートを `cli/templates/code-search-prompt.md` として新設
+- `cli/templates/prompts/skill-search.md` 相当のプロンプトテンプレートを `cli/templates/prompts/code-search.md` として新設
 - 推挙結果は `.helix/cache/recommendations/code/<sha256>.json` に 1 時間キャッシュ
 - 出力: id / domain / summary / path:line_no / score / 推挙理由
 

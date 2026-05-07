@@ -74,7 +74,7 @@
 
 ### 2.2.1 agent 正規化と search prompt 契約
 
-現行 `cli/templates/skill-search-prompt.md` は `recommended_agent` に `fe-design` 等の短縮名と `helix codex --role security` 形式を混在で返す仕様。JSONL 導入に伴い以下に統一する:
+現行 `cli/templates/prompts/skill-search.md` は `recommended_agent` に `fe-design` 等の短縮名と `helix codex --role security` 形式を混在で返す仕様。JSONL 導入に伴い以下に統一する:
 
 - JSONL の `agent` フィールドは常に**正規化済み短縮名**（裸ロール名 or `fe-*`）
 - 改訂後の search prompt は `recommended_agent` として JSONL の `agent` 値をそのまま返す
@@ -161,7 +161,7 @@
 
 - モデル: `gpt-5.4-mini`（`cli/roles/recommender.conf` を流用 or 別途 `classifier.conf`）
 - thinking: `low`（コスト最小化）
-- プロンプト: `cli/templates/skill-classify-prompt.md`（新規）
+- プロンプト: `cli/templates/prompts/skill-classify.md`（新規）
 - キャッシュ: `source_hash` が同じなら再分類スキップ
 
 ### 3.4 承認引継ぎロジック
@@ -204,8 +204,8 @@ rebuild 時:
 | `cli/lib/skill_classifier.py` | **新規** | Codex 呼び出し、スキーマ検証、類似検出 |
 | `cli/lib/skill_dispatcher.py` | 変更なし | agent フィールドは JSONL 側で事前解決済み |
 | `cli/helix-skill` | 拡張 | `classify` / `review-pending` / `approve` サブコマンド追加 |
-| `cli/templates/skill-search-prompt.md` | 改訂 | JSONL 前提に簡略化、phase 絞込後の入力形式を反映 |
-| `cli/templates/skill-classify-prompt.md` | **新規** | 分類用プロンプト |
+| `cli/templates/prompts/skill-search.md` | 改訂 | JSONL 前提に簡略化、phase 絞込後の入力形式を反映 |
+| `cli/templates/prompts/skill-classify.md` | **新規** | 分類用プロンプト |
 
 ### 4.2 データフロー
 
@@ -277,11 +277,11 @@ SKILL.md (55件)
 |----|-------|--------|-------|------|
 | T1 | JSONL スキーマ定義 + バリデータ実装 | pg | S | — |
 | T2 | `skill_catalog.build_jsonl_catalog()` 実装 | pg | M | T1 |
-| T3 | `cli/templates/skill-classify-prompt.md` 作成 | docs/pg | S | T1 |
+| T3 | `cli/templates/prompts/skill-classify.md` 作成 | docs/pg | S | T1 |
 | T4 | `skill_classifier.py` 実装（Codex 呼び出し） | se | M | T1, T3 |
 | T5 | `helix skill classify` サブコマンド実装 | pg | S | T4 |
 | T6 | `helix skill review-pending / approve` 実装 | pg | S | T2 |
-| T8 | `cli/templates/skill-search-prompt.md` 改訂（契約確定） | docs | S | T1 |
+| T8 | `cli/templates/prompts/skill-search.md` 改訂（契約確定） | docs | S | T1 |
 | T7 | `skill_recommender.py` を JSONL 優先に改修 | se | M | T2, T8 |
 | T9 | 単体テスト（schema/catalog/classifier/recommender/fallback） | qa | M | T2-T7 |
 | T10 | 統合テスト（55件一括分類 + search 精度計測、Codex は mock） | qa | M | T9 |
@@ -372,7 +372,7 @@ T8 は T7 の入力契約を決めるため T7 より先行 or 同時に進め�
 
 - [x] 設計書（本ファイル）
 - [ ] `skill-catalog-jsonl-sample.jsonl`（PoC 5件、T1 完了時に追加）
-- [ ] `skill-classify-prompt.md`（T3）
+- [ ] `prompts/skill-classify.md`（T3）
 
 ---
 

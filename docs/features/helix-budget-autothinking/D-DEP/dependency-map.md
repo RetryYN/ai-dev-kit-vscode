@@ -14,7 +14,7 @@
 | `cli/lib/budget_cli.py` | `cli/lib/model_fallback.py` | import | 降格 |
 | `cli/lib/budget.py` | `cli/lib/helix_db.py` (既存) | import | helix.db アクセス |
 | `cli/lib/effort_classifier.py` | `cli/roles/effort-classifier.conf` | read | gpt-5.4-mini ロール設定 |
-| `cli/lib/effort_classifier.py` | `cli/templates/effort-classify-prompt.md` | read | LLM プロンプト |
+| `cli/lib/effort_classifier.py` | `cli/templates/prompts/effort-classify.md` | read | LLM プロンプト |
 | `cli/lib/model_fallback.py` | `cli/config/model-fallback.yaml` | read | 降格ルール |
 | `cli/lib/model_fallback.py` | `cli/config/plan-limits.yaml` | read | プラン別上限 |
 | `cli/helix-budget-hook` | `cli/lib/budget_cli.py` | subprocess | SessionStart |

@@ -36,7 +36,7 @@
 | 1a-01 | `cli/config/model-fallback.yaml` 作成 (デフォルトルール) | Codex PG | — | 15 分 |
 | 1a-02 | `cli/config/plan-limits.yaml` 作成 | Codex PG | — | 15 分 |
 | 1a-03 | `cli/roles/effort-classifier.conf` 作成 | Codex docs | — | 10 分 |
-| 1a-04 | `cli/templates/effort-classify-prompt.md` 作成 | Codex docs | — | 20 分 |
+| 1a-04 | `cli/templates/prompts/effort-classify.md` 作成 | Codex docs | — | 20 分 |
 | 1a-05 | `.gitignore` に `.helix/budget/` 追加 | PM | — | 5 分 |
 
 ### Sprint 1b: DB マイグレーション

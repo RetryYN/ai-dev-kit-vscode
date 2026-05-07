@@ -23,9 +23,9 @@ HELIX の Hook システム（Claude Code hooks + Git hooks + doc-map triggers�
 | **PreToolUse(Bash)** | Bash ツール呼び出し直前 | `cli/libexec/helix-pre-bash` | < 2秒 |
 | **PostToolUse** | Edit/Write/MultiEdit ツール呼び出し直後 | `cli/libexec/helix-post-tool-use` → `helix hook` | < 10秒 |
 | **Stop** | Claude Code セッション終了時 | `helix session-summary` | < 8秒 |
-| **Git pre-commit** | `git commit` 実行直前 | `cli/templates/pre-commit-hook` | < 30秒 |
-| **Git commit-msg** | コミットメッセージ作成時 | `cli/templates/commit-msg-hook` | < 2秒 |
-| **Git post-merge** | `git merge` 完了後 | `cli/templates/post-merge-hook` | < 5秒 |
+| **Git pre-commit** | `git commit` 実行直前 | `cli/templates/hooks/pre-commit` | < 30秒 |
+| **Git commit-msg** | コミットメッセージ作成時 | `cli/templates/hooks/commit-msg` | < 2秒 |
+| **Git post-merge** | `git merge` 完了後 | `cli/templates/hooks/post-merge` | < 5秒 |
 
 ### 2.2 Hook チェーン例（ファイル編集時）
 
@@ -228,4 +228,4 @@ CREATE TABLE hook_events (
 - `cli/helix-session-start` / `helix-session-summary`
 - `cli/lib/doc_map_matcher.py` (マッチングロジック)
 - `cli/templates/doc-map.yaml` (トリガー定義テンプレート)
-- `cli/templates/pre-commit-hook` / `commit-msg-hook` / `post-merge-hook`
+- `cli/templates/hooks/pre-commit` / `cli/templates/hooks/commit-msg` / `cli/templates/hooks/post-merge`

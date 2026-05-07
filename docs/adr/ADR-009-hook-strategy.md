@@ -61,7 +61,7 @@ triggers:
 - PostToolUse(Edit/Write/MultiEdit) → `helix-post-tool-use` → `helix hook` (payload 抽出、doc-map トリガー、drift-check、advisory)
 - Stop → `helix session-summary` (セッションサマリ生成)
 
-**Git hooks** (`cli/templates/pre-commit-hook` 等):
+**Git hooks** (`cli/templates/hooks/pre-commit` 等):
 - pre-commit → フェーズガード確認、大きすぎるファイル警告
 - commit-msg → Conventional Commits 形式検証
 - post-merge → 依存関係更新の検出
@@ -134,7 +134,7 @@ triggers:
 - `cli/helix-session-start` (SessionStart フック)
 - `cli/helix-session-summary` (Stop フック)
 - `cli/templates/doc-map.yaml` (トリガー定義テンプレート)
-- `cli/templates/pre-commit-hook` / `commit-msg-hook` / `post-merge-hook` (Git フック)
+- `cli/templates/hooks/pre-commit` / `cli/templates/hooks/commit-msg` / `cli/templates/hooks/post-merge` (Git フック)
 - `cli/lib/doc_map_matcher.py` (マッチングロジック)
 - `cli/lib/phase_guard.py` (フェーズガード実装)
 - ADR-004: Bash-Python Hybrid（実装方針）

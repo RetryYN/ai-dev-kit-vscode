@@ -47,9 +47,9 @@ HELIX CLI はプロジェクト初期化時に複数の設定ファイル・状�
 | `docs/L5-visual-design.md` | `docs/design/L5-visual-design.md` | `helix size` が対象 phase で cp |
 | `docs/PLAN.md.template` | `docs/plans/PLAN-XXX-*.md` | 参照テンプレート |
 | `docs/project-status.md.template` | `docs/status/project-status.md` | 参照テンプレート |
-| `pre-commit-hook` | `.git/hooks/pre-commit` | cp + chmod +x |
-| `commit-msg-hook` | `.git/hooks/commit-msg` | cp + chmod +x |
-| `post-merge-hook` | `.git/hooks/post-merge` | cp + chmod +x |
+| `hooks/pre-commit` | `.git/hooks/pre-commit` | cp + chmod +x |
+| `hooks/commit-msg` | `.git/hooks/commit-msg` | cp + chmod +x |
+| `hooks/post-merge` | `.git/hooks/post-merge` | cp + chmod +x |
 
 ### 派生生成（matrix_compiler.py）
 
