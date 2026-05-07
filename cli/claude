@@ -40,6 +40,12 @@ if [[ "${HELIX_CLAUDE_INTERNAL:-0}" != "1" ]]; then
     fi
     exec "$real_claude" "$@"
   fi
+
+  if [[ "${HELIX_ALLOW_RAW_CLAUDE:-0}" != "1" ]]; then
+    echo "[helix] raw claude is blocked. Use 'helix claude --role <role> ...' instead." >&2
+    exit 64
+  fi
+
   cat >&2 <<'EOF'
 エラー: raw `claude` は HELIX discipline が効かないためブロックしました。
 

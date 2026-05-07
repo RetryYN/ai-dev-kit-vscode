@@ -14,37 +14,58 @@ PLAN_ID=""
 HANDOVER=false
 OUTPUT_PATH=""
 DRY_RUN=false
+EXECUTE=false
+MODEL_ALIAS=""
+ALLOW_PATHS=""
+TIMEOUT_SECONDS=300
+REQUIRE_APPROVAL=false
+THINKING_OVERRIDE=""
 
 usage() {
   cat <<'USAGE'
 使い方: helix claude --role <role> (--task "..." | --task-file <path>) [options]
 
 Claude Code 用のローカル委譲 prompt を生成します。API/SDK は使用しません。
+既定は --dry-run 相当の prompt 生成です。--execute は PMO role のみ Claude CLI を実行します。
 
 Options:
   --role <role>       ロール（tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）
+  --model <name>      PMO モデル alias（sonnet/haiku）
   --task "..."        タスク内容
   --task-file <path>  タスク内容をファイルから読む
   --plan-id <id>      HELIX plan id を明示
   --handover          .helix/handover/CURRENT.md があれば参照指示を含める
   --output <path>     生成 prompt を保存（プロジェクト配下のみ）
   --dry-run           実行せず prompt を表示
+  --execute           PMO prompt を claude CLI で実行
+  --allow-paths <glob> Haiku docs 編集モードの path whitelist
+  --timeout <seconds> execute timeout（default: 300）
+  --require-approval  人間承認が必要な作業であることを prompt に固定
+  --thinking <level>  thinking hint（未指定時は role conf）
 
 Examples:
   helix claude --role pg --task "UI修正" --plan-id PLAN-001 --dry-run
   helix claude --role docs --task-file .helix/tasks/T001.md --output .helix/tasks/T001.claude.md
+  helix claude --role pmo --model sonnet --task "ping" --execute
+  helix claude --role pmo --model haiku --task "docs確認" --execute --allow-paths "docs/**"
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --role) ROLE="${2:-}"; shift 2 ;;
+    --model) MODEL_ALIAS="${2:-}"; shift 2 ;;
     --task) TASK="${2:-}"; shift 2 ;;
     --task-file) TASK_FILE="${2:-}"; shift 2 ;;
     --plan-id) PLAN_ID="${2:-}"; shift 2 ;;
     --handover) HANDOVER=true; shift ;;
     --output) OUTPUT_PATH="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --execute) EXECUTE=true; shift ;;
+    --allow-paths) ALLOW_PATHS="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
+    --require-approval) REQUIRE_APPROVAL=true; shift ;;
+    --thinking) THINKING_OVERRIDE="${2:-}"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "エラー: 不明なオプションです: $1" >&2; exit "$EXIT_INPUT_ERROR" ;;
   esac
@@ -66,6 +87,36 @@ if [[ -z "$TASK" && -z "$TASK_FILE" ]]; then
   echo "エラー: --task または --task-file が必要です" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
+if [[ "$DRY_RUN" == true && "$EXECUTE" == true ]]; then
+  echo "エラー: --dry-run と --execute は同時指定できません" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ ! "$TIMEOUT_SECONDS" =~ ^[0-9]+$ || "$TIMEOUT_SECONDS" -lt 1 ]]; then
+  echo "エラー: --timeout は 1 以上の整数で指定してください" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ -n "$MODEL_ALIAS" && ! "$MODEL_ALIAS" =~ ^[a-z0-9_-]+$ ]]; then
+  echo "エラー: 無効な --model 値です: $MODEL_ALIAS" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ -n "$ALLOW_PATHS" && "$ROLE" != "pmo" ]]; then
+  echo "エラー: --allow-paths は --role pmo でのみ使用できます" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ "$EXECUTE" == true && "$ROLE" != "pmo" ]]; then
+  echo "エラー: --execute は --role pmo でのみ使用できます" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
+if [[ "$ROLE" == "pmo" ]]; then
+  MODEL_ALIAS="${MODEL_ALIAS:-sonnet}"
+  if [[ "$MODEL_ALIAS" != "sonnet" && "$MODEL_ALIAS" != "haiku" ]]; then
+    echo "エラー: PMO の --model は sonnet または haiku のみ指定できます: $MODEL_ALIAS" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+elif [[ -n "$MODEL_ALIAS" ]]; then
+  echo "エラー: --model は --role pmo でのみ使用できます" >&2
+  exit "$EXIT_INPUT_ERROR"
+fi
 
 PROJECT_ROOT_REAL="$(realpath "$PROJECT_ROOT")"
 HELIX_HOME_REAL="$(realpath "$HELIX_HOME")"
@@ -73,9 +124,14 @@ HOME_HELIX_REAL="$(realpath -m "$HOME/.helix")"
 ROLES_DIR_REAL="$(realpath "$ROLES_DIR")"
 
 ROLE_FILE_REAL="$(realpath -m "$ROLES_DIR/$ROLE.conf")"
+ROLE_CONF_NAME="$ROLE"
+if [[ "$ROLE" == "pmo" ]]; then
+  ROLE_CONF_NAME="pmo-$MODEL_ALIAS"
+  ROLE_FILE_REAL="$(realpath -m "$ROLES_DIR/$ROLE_CONF_NAME.conf")"
+fi
 ensure_within_dir "$ROLE_FILE_REAL" "$ROLES_DIR_REAL" "role file"
 if [[ ! -f "$ROLE_FILE_REAL" ]]; then
-  echo "エラー: ロールが見つかりません: $ROLE" >&2
+  echo "エラー: ロールが見つかりません: $ROLE_CONF_NAME" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
@@ -107,9 +163,25 @@ parse_array() {
   done < "$file"
 }
 
+conf_value() {
+  local key="$1"
+  local file="$2"
+  local value
+  value="$(grep -E "^${key}=" "$file" | head -n 1 | sed -E "s/^${key}=//" || true)"
+  value="${value%\"}"
+  value="${value#\"}"
+  printf "%s" "$value"
+}
+
 system_prompt=$(grep '^system_prompt=' "$ROLE_FILE_REAL" | sed 's/^system_prompt="//' | sed 's/"$//' || true)
 skills_list=$(parse_array "skills" "$ROLE_FILE_REAL" | sed '/^$/d' || true)
 common_docs=$(parse_array "common_docs" "$ROLE_FILE_REAL" | sed '/^$/d' || true)
+claude_model_id="$(conf_value "claude_model" "$ROLE_FILE_REAL")"
+claude_thinking="$(conf_value "claude_thinking" "$ROLE_FILE_REAL")"
+claude_permission_mode="$(conf_value "claude_permission_mode" "$ROLE_FILE_REAL")"
+claude_disallowed_tools="$(conf_value "claude_disallowed_tools" "$ROLE_FILE_REAL")"
+claude_allow_paths="$(conf_value "claude_allow_paths" "$ROLE_FILE_REAL")"
+thinking_value="${THINKING_OVERRIDE:-$claude_thinking}"
 
 if [[ -z "$PLAN_ID" && -f "$HELIX_DIR/phase.yaml" ]]; then
   PLAN_ID="$(python3 "$YAML_PARSER" read "$HELIX_DIR/phase.yaml" plan_id 2>/dev/null || true)"
@@ -125,7 +197,56 @@ if [[ "$HANDOVER" == true ]]; then
   fi
 fi
 
-PROMPT=$(
+if [[ "$ROLE" == "pmo" ]]; then
+  if [[ -z "$claude_model_id" ]]; then
+    echo "エラー: $ROLE_CONF_NAME.conf に claude_model がありません" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  if [[ -n "$ALLOW_PATHS" && "$MODEL_ALIAS" != "haiku" ]]; then
+    echo "エラー: --allow-paths は PMO Haiku のみ指定できます" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  if [[ -n "$ALLOW_PATHS" ]]; then
+    permission_mode="${claude_permission_mode:-acceptEdits}"
+    disallowed_tools=""
+  else
+    permission_mode="plan"
+    disallowed_tools="${claude_disallowed_tools:-Edit,Write,NotebookEdit}"
+  fi
+
+  prompt_template="$SCRIPT_DIR/templates/prompts/pmo-base.md"
+  if [[ ! -f "$prompt_template" ]]; then
+    echo "エラー: PMO prompt template が見つかりません: $prompt_template" >&2
+    exit "$EXIT_INTERNAL_ERROR"
+  fi
+
+  PROMPT=$(
+    HELIX_PMO_TEMPLATE="$prompt_template" \
+    HELIX_TASK="$TASK" \
+    HELIX_ROLE="$ROLE_CONF_NAME" \
+    HELIX_ALLOW_PATHS="${ALLOW_PATHS:-none}" \
+    HELIX_THINKING="${thinking_value:-none}" \
+    HELIX_REQUIRE_APPROVAL="$REQUIRE_APPROVAL" \
+    python3 - <<'PY'
+import os
+from pathlib import Path
+
+template = Path(os.environ["HELIX_PMO_TEMPLATE"]).read_text(encoding="utf-8")
+allow_paths = os.environ.get("HELIX_ALLOW_PATHS", "none")
+rendered = (
+    template.replace("{{TASK}}", os.environ.get("HELIX_TASK", ""))
+    .replace("{{ROLE}}", os.environ.get("HELIX_ROLE", ""))
+    .replace("{{ALLOW_PATHS}}", allow_paths)
+    .replace("{{THINKING}}", os.environ.get("HELIX_THINKING", "none"))
+)
+if os.environ.get("HELIX_REQUIRE_APPROVAL") == "true":
+    rendered += "\n\n## 人間承認\n\nこのタスクは --require-approval 指定です。判断が必要な変更は実行せず、承認待ちとして報告してください。\n"
+print(rendered.rstrip())
+PY
+  )
+else
+  PROMPT=$(
   HELIX_ROLE="$ROLE" \
   HELIX_PLAN_ID="${PLAN_ID:-none}" \
   HELIX_SYSTEM_PROMPT="$system_prompt" \
@@ -169,7 +290,8 @@ print("---TASK_INPUT_START---")
 print(os.environ.get("HELIX_TASK", ""))
 print("---TASK_INPUT_END---")
 PY
-)
+  )
+fi
 
 if [[ -n "$OUTPUT_PATH" ]]; then
   OUTPUT_REAL="$(realpath -m "$OUTPUT_PATH")"
@@ -179,11 +301,32 @@ if [[ -n "$OUTPUT_PATH" ]]; then
   echo "[helix-claude] prompt written: ${OUTPUT_REAL#$PROJECT_ROOT_REAL/}"
 fi
 
+if [[ "$EXECUTE" == true ]]; then
+  log_dir="$PROJECT_ROOT_REAL/.helix/cache/pmo"
+  mkdir -p "$log_dir"
+  task_sha="$(printf "%s" "$TASK" | sha256sum | cut -c1-8)"
+  log_file="$log_dir/$(date +%Y%m%dT%H%M%S)-$task_sha.log"
+
+  cmd=(timeout "$TIMEOUT_SECONDS" "$SCRIPT_DIR/claude" --print --model "$claude_model_id" --permission-mode "$permission_mode" --disallowedTools "$disallowed_tools" -p "$PROMPT")
+
+  set +e
+  HELIX_CLAUDE_INTERNAL=1 "${cmd[@]}" > "$log_file" 2>&1
+  status=$?
+  set -e
+
+  echo "[helix-claude] execute log: ${log_file#$PROJECT_ROOT_REAL/}"
+  exit "$status"
+fi
+
 if [[ "$DRY_RUN" == true || -z "$OUTPUT_PATH" ]]; then
   echo "=== helix-claude dry-run ==="
-  echo "Role:    $ROLE"
+  echo "Role:    $ROLE_CONF_NAME"
   echo "Plan:    ${PLAN_ID:-none}"
   echo "Output:  ${OUTPUT_PATH:-stdout}"
+  if [[ "$ROLE" == "pmo" ]]; then
+    echo "Model:   $claude_model_id"
+    echo "Mode:    ${permission_mode:-plan}"
+  fi
   echo "Prompt:  $(printf "%s" "$PROMPT" | wc -c) bytes"
   echo "=== Full prompt ==="
   echo "$PROMPT"

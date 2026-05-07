@@ -21,6 +21,7 @@ EXIT_INTERNAL_ERROR = 127
 
 ALLOWED_OWNER = {"opus", "codex"}
 ALLOWED_SCOPE = {"backend"}
+ALLOWED_MODE = {"pm-to-tl", "tl-to-pm", "be-implementation"}
 ALLOWED_PHASE = {f"L{i}" for i in range(1, 12)}
 ALLOWED_SPRINT = {".1a", ".1b", ".2", ".3", ".4", ".5"}
 ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}
@@ -305,6 +306,10 @@ def validate_state(state):
     if scope not in ALLOWED_SCOPE:
         raise HandoverError(f"scope は backend のみ許可されています: {scope}", EXIT_INPUT_ERROR)
 
+    mode = state.get("mode", "be-implementation")
+    if mode not in ALLOWED_MODE:
+        raise HandoverError(f"mode は {sorted(ALLOWED_MODE)} のいずれかである必要があります: {mode}", EXIT_INPUT_ERROR)
+
     phase = state.get("phase")
     validate_phase(phase)
 
@@ -575,11 +580,17 @@ def build_dump_state(args):
     validate_phase(args.phase)
     if args.scope not in ALLOWED_SCOPE:
         raise HandoverError("scope は backend のみ対応です", EXIT_INPUT_ERROR)
+    if args.mode not in ALLOWED_MODE:
+        raise HandoverError(f"mode は {sorted(ALLOWED_MODE)} のいずれかである必要があります: {args.mode}", EXIT_INPUT_ERROR)
 
     sprint = args.sprint or args.phase_sprint
     if not sprint:
         raise HandoverError("phase.yaml の sprint.current_step が null のため --sprint が必須です", EXIT_INPUT_ERROR)
     validate_sprint(sprint)
+
+    if args.mode != "be-implementation":
+        args.task_id = args.task_id or args.mode
+        args.task_title = args.task_title or f"HELIX mode transition: {args.mode}"
 
     if not args.task_id or not args.task_title:
         raise HandoverError("dump には --task-id と --task-title が必要です", EXIT_INPUT_ERROR)
@@ -608,6 +619,7 @@ def build_dump_state(args):
         "revision": 1,
         "owner": "opus",
         "scope": args.scope,
+        "mode": args.mode,
         "git": {
             "branch": branch,
             "head_sha": head_sha,
@@ -630,7 +642,9 @@ def build_dump_state(args):
         "tests": parse_tests(args.tests),
     }
     validate_state(state)
-    return render_json_template(state)
+    rendered = render_json_template(state)
+    rendered["mode"] = state["mode"]
+    return rendered
 
 
 def cmd_dump(args):
@@ -665,6 +679,7 @@ def build_status_payload(state, args, stale, stale_reasons):
         "revision": state.get("revision"),
         "owner": state.get("owner"),
         "scope": state.get("scope"),
+        "mode": state.get("mode", "be-implementation"),
         "task": state.get("task"),
         "phase": state.get("phase"),
         "sprint": state.get("sprint"),
@@ -1152,8 +1167,9 @@ def parse_args(argv):
     sub = parser.add_subparsers(dest="subcommand", required=True)
 
     dump_p = sub.add_parser("dump", help="CURRENT を生成")
-    dump_p.add_argument("--task-id", required=True)
-    dump_p.add_argument("--task-title", required=True)
+    dump_p.add_argument("--task-id", default="")
+    dump_p.add_argument("--task-title", default="")
+    dump_p.add_argument("--mode", choices=sorted(ALLOWED_MODE), default="be-implementation")
     dump_p.add_argument("--files", default="")
     dump_p.add_argument("--pending", default="")
     dump_p.add_argument("--tests", action="append", default=[])
