@@ -27,7 +27,7 @@ class ClassifierError(RuntimeError):
 
 
 def _template_path(template_path: Path | None) -> Path:
-    return template_path or Path(__file__).resolve().parents[1] / "templates" / "skill-classify-prompt.md"
+    return template_path or Path(__file__).resolve().parents[1] / "templates" / "prompts" / "skill-classify.md"
 
 
 def _helix_codex_path(helix_codex_path: str | None) -> str:

@@ -1,4 +1,4 @@
-{{include _prompt-skeleton.md}}
+{{include _skeleton.md}}
 # Skill Search Prompt Template
 
 > Codex 5.4 mini に渡すスキル推挙プロンプト。`helix skill search` が `skill_recommender.py` から動的に組み立てる。

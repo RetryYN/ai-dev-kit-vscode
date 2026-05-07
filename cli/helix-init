@@ -252,25 +252,25 @@ echo ""
 echo "[git hooks]"
 HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
 if [[ -d "$HOOKS_DIR" ]]; then
-  if [[ -f "$TEMPLATES_DIR/pre-commit-hook" ]]; then
-    copy_template "$TEMPLATES_DIR/pre-commit-hook" "$HOOKS_DIR/pre-commit"
+  if [[ -f "$TEMPLATES_DIR/hooks/pre-commit" ]]; then
+    copy_template "$TEMPLATES_DIR/hooks/pre-commit" "$HOOKS_DIR/pre-commit"
     chmod +x "$HOOKS_DIR/pre-commit" 2>/dev/null || true
   else
-    echo "  skip: pre-commit-hook template not found"
+    echo "  skip: hooks/pre-commit template not found"
   fi
 
-  if [[ -f "$TEMPLATES_DIR/commit-msg-hook" ]]; then
-    copy_template "$TEMPLATES_DIR/commit-msg-hook" "$HOOKS_DIR/commit-msg"
+  if [[ -f "$TEMPLATES_DIR/hooks/commit-msg" ]]; then
+    copy_template "$TEMPLATES_DIR/hooks/commit-msg" "$HOOKS_DIR/commit-msg"
     chmod +x "$HOOKS_DIR/commit-msg" 2>/dev/null || true
   else
-    echo "  skip: commit-msg-hook template not found"
+    echo "  skip: hooks/commit-msg template not found"
   fi
 
-  if [[ -f "$TEMPLATES_DIR/post-merge-hook" ]]; then
-    copy_template "$TEMPLATES_DIR/post-merge-hook" "$HOOKS_DIR/post-merge"
+  if [[ -f "$TEMPLATES_DIR/hooks/post-merge" ]]; then
+    copy_template "$TEMPLATES_DIR/hooks/post-merge" "$HOOKS_DIR/post-merge"
     chmod +x "$HOOKS_DIR/post-merge" 2>/dev/null || true
   else
-    echo "  skip: post-merge-hook template not found"
+    echo "  skip: hooks/post-merge template not found"
   fi
 else
   echo "  skip: .git/hooks not found"

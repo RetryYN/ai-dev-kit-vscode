@@ -298,8 +298,8 @@ run_test_contains "gate-checks has D-DB static check" "grep -n 'DB スキーマ�
 run_test_contains "gate-checks has D-MIG-PLAN static check" "grep -n 'DB マイグレーション計画存在（D-MIG-PLAN）' $SCRIPT_DIR/templates/gate-checks.yaml" "DB マイグレーション計画存在（D-MIG-PLAN）"
 run_test_contains "task-catalog has triage category" "grep -n '^triage:' $SCRIPT_DIR/templates/task-catalog.yaml" "triage:"
 run_test_contains "action-types has classify" "grep -n '^classify:' $SCRIPT_DIR/templates/action-types.yaml" "classify:"
-run_test_contains "commit-msg hook template exists" "test -f $SCRIPT_DIR/templates/commit-msg-hook && echo OK" "OK"
-run_test_contains "post-merge hook template exists" "test -f $SCRIPT_DIR/templates/post-merge-hook && echo OK" "OK"
+run_test_contains "commit-msg hook template exists" "test -f $SCRIPT_DIR/templates/hooks/commit-msg && echo OK" "OK"
+run_test_contains "post-merge hook template exists" "test -f $SCRIPT_DIR/templates/hooks/post-merge && echo OK" "OK"
 echo ""
 
 echo "[setup scripts]"
@@ -897,8 +897,8 @@ run_test "drift-check no arg exits ok" "$SCRIPT_DIR/helix-drift-check"
 run_test_contains "drift-check D-CONTRACT warns for empty contract" "D=\$(mktemp -d); cd \"\$D\"; git init -q 2>/dev/null || true; mkdir -p D-CONTRACT .helix; touch .helix/doc-map.yaml; touch D-CONTRACT/empty.json; out=\$($SCRIPT_DIR/helix-drift-check D-CONTRACT/empty.json 2>&1 || true); rm -rf \"\$D\"; echo \"\$out\"" "D-CONTRACT"
 
 # pre-commit hook テンプレート（GAP-034）
-run_test_contains "pre-commit hook template mentions drift-check" "cat $SCRIPT_DIR/templates/pre-commit-hook" "helix-drift-check"
-run_test "pre-commit hook syntax valid" "bash -n $SCRIPT_DIR/templates/pre-commit-hook"
+run_test_contains "pre-commit hook template mentions drift-check" "cat $SCRIPT_DIR/templates/hooks/pre-commit" "helix-drift-check"
+run_test "pre-commit hook syntax valid" "bash -n $SCRIPT_DIR/templates/hooks/pre-commit"
 echo ""
 
 echo "[helix-log / helix_db]"

@@ -84,9 +84,9 @@ class EffortClassifier(LLMClassifierBase):
             pass
 
     def _build_prompt(self, query: str, context: dict | None) -> str:
-        prompt_path = Path(__file__).resolve().parent.parent / "templates" / "effort-classify-prompt.md"
+        prompt_path = Path(__file__).resolve().parent.parent / "templates" / "prompts" / "effort-classify.md"
         if not prompt_path.exists():
-            raise CodexInvocationError("effort-classify-prompt.md not found")
+            raise CodexInvocationError("prompts/effort-classify.md not found")
         payload = {"task": query[:2000], **(context or {})}
         return self._render_prompt(prompt_path, {}) + "\n\n## 入力\n```json\n" + json.dumps(payload, ensure_ascii=False) + "\n```\n\n## 出力\nJSON のみを出力 ({\"effort\": \"...\", \"score\": N, ...})。"
 

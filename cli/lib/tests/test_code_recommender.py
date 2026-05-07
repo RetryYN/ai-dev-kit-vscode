@@ -224,7 +224,7 @@ def test_find_code_misses_cache_when_catalog_fingerprint_changes(monkeypatch, tm
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: jsonl_path)
     monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
-    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
+    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "prompts" / "code-search.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
 
     results = code_recommender.find_code("scan file", n=1)
@@ -257,7 +257,7 @@ def test_find_code_local_fallback_when_llm_unavailable(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: tmp_path / "cache")
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: tmp_path / "missing.jsonl")
     monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
-    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
+    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "prompts" / "code-search.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _unavailable)
 
     results = code_recommender.find_code("scan file", n=1)
@@ -300,7 +300,7 @@ def test_find_code_writes_normalized_cache_only(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr(code_recommender, "_default_cache_dir", lambda: cache_dir)
     monkeypatch.setattr(code_recommender, "_default_catalog_jsonl_path", lambda: jsonl_path)
     monkeypatch.setattr(code_recommender, "_fetch_entries", lambda bucket="all": entries)
-    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "code-search-prompt.md")
+    monkeypatch.setattr(code_recommender, "_template_path", lambda: REPO_ROOT / "cli" / "templates" / "prompts" / "code-search.md")
     monkeypatch.setattr(code_recommender, "_run_recommender", _fake_run)
 
     results = code_recommender.find_code("scan file", n=1)

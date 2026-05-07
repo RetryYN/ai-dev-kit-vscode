@@ -18,7 +18,8 @@ from llm_classifier_base import LLMClassifierBase
 
 
 def _template_file(tmp_path: Path) -> Path:
-    path = tmp_path / "skill-classify-prompt.md"
+    path = tmp_path / "prompts" / "skill-classify.md"
+    path.parent.mkdir()
     path.write_text(
         "\n".join(
             [

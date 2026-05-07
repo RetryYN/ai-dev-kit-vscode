@@ -19,7 +19,7 @@ teardown() {
 @test "helix-codex dry-run prepends common review template" {
   run "$HELIX_ROOT/cli/helix-codex" --role tl --task "レビューしてください" --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Review Template: cli/templates/codex-review-prompt.md"* ]]
+  [[ "$output" == *"Review Template: cli/templates/prompts/codex-review.md"* ]]
   [[ "$output" == *"HELIX レビュー prompt template"* ]]
   [[ "$output" == *"overall_scores"* ]]
   [[ "$output" == *"dimension_scores"* ]]

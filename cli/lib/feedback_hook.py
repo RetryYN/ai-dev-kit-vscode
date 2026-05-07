@@ -286,7 +286,7 @@ def emit_feedback(
         print("[helix-gate] feedback hook skip: plan_id が不明です", file=stderr)
         return False
 
-    template = template_path or (Path(__file__).resolve().parents[1] / "templates" / "feedback-prompt.md")
+    template = template_path or (Path(__file__).resolve().parents[1] / "templates" / "prompts" / "feedback.md")
     db = db_path or (helix_dir / "helix.db")
     codex = codex_cmd or [str(Path(__file__).resolve().parents[1] / "helix-codex")]
 

@@ -52,7 +52,7 @@ def _default_cache_dir() -> Path:
 
 
 def _template_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "templates" / "code-search-prompt.md"
+    return Path(__file__).resolve().parents[1] / "templates" / "prompts" / "code-search.md"
 
 
 def _helix_codex_path() -> str:

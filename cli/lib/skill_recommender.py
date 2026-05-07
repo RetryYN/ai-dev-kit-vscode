@@ -52,7 +52,7 @@ def _default_skills_root() -> Path:
 
 
 def _template_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "templates" / "skill-search-prompt.md"
+    return Path(__file__).resolve().parents[1] / "templates" / "prompts" / "skill-search.md"
 
 
 def _helix_codex_path() -> str:

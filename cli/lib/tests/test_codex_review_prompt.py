@@ -13,7 +13,7 @@ import review_output
 
 
 SCHEMA_PATH = REPO_ROOT / "cli" / "schemas" / "review-output.schema.json"
-TEMPLATE_PATH = REPO_ROOT / "cli" / "templates" / "codex-review-prompt.md"
+TEMPLATE_PATH = REPO_ROOT / "cli" / "templates" / "prompts" / "codex-review.md"
 REVIEW_ROLES = ("tl", "se", "pg", "qa", "security", "dba", "devops", "docs")
 
 
@@ -52,7 +52,7 @@ def test_prompt_template_contains_5_dimensions() -> None:
 def test_role_conf_loads_template_path() -> None:
     for role in REVIEW_ROLES:
         conf = (REPO_ROOT / "cli" / "roles" / f"{role}.conf").read_text(encoding="utf-8")
-        assert "review_template_path=cli/templates/codex-review-prompt.md" in conf
+        assert "review_template_path=cli/templates/prompts/codex-review.md" in conf
 
 
 def test_review_schema_validates_overall_scores() -> None:
@@ -117,6 +117,6 @@ def test_helix_codex_dry_run_prepends_review_template(tmp_path: Path) -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "Review Template: cli/templates/codex-review-prompt.md" in result.stdout
+    assert "Review Template: cli/templates/prompts/codex-review.md" in result.stdout
     assert "HELIX レビュー prompt template" in result.stdout
     assert "role=tl" in result.stdout

@@ -1,4 +1,4 @@
-{{include _prompt-skeleton.md}}
+{{include _skeleton.md}}
 # タスク難度分類
 
 入力されたタスクを 5 軸で評価し effort (low/medium/high/xhigh) を返す。
