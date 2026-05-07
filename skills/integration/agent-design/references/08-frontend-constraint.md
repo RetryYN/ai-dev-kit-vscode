@@ -1,4 +1,4 @@
-> 目的: スキーマをLLM生成段階で強制する手段（Structured Outputs / Tool Use / Constrained Decoding等）を選択・実装し、後段バリデーション依存を排除する。
+> 目的: L3-L4 で「schema を LLM 生成段階から強制する手段 (Structured Outputs / Tool Use / Constrained Decoding) をどれにするか」で迷うときに開く。後段バリデーション依存を排除する判断軸。
 
 # [08] 前段の生成制約
 

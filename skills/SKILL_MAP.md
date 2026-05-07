@@ -274,6 +274,22 @@ fullstack 追加条件:
 - **テスト品質の合否判定**: `workflow/quality-lv5` (G4/G6 ゲート時)
 - **成果物 ↔ 要件の突合検証**: `workflow/verification` (L1 受入条件 / L8 受入 / Reverse ゲート)
 
+### 責務境界クリア化 (AIエージェント設計系の使い分け)
+
+近接する 3 スキルがあるが層が異なる。**判断に迷ったときに開く reference** という共通機能を持つので境界を明示:
+
+| スキル | 守備範囲 | 利用タイミング |
+|--------|---------|---------------|
+| `integration/agent-design` | **個別 LLM agent / task** の structural design (要素・骨格・前段制約・後段責務) | L2 ADR / L3 D-API / L4 実装で **判断に迷ったとき** 該当 axis を開く |
+| `integration/agent-teams` | **複数 agent の協調・分業** | agent-design で個別設計後、複数 agent をチーム化するとき |
+| `agent-skills/spec-driven-development` | **仕様駆動開発全般** (LLM 限定なし) | spec → 実装の上位プロセス。agent-design はその LLM 特化版 |
+
+使い分けルール:
+- **個別 LLM agent の設計判断で迷う**: `integration/agent-design` (axis 11 本から該当を引く)
+- **複数 agent の協調設計**: `integration/agent-teams`
+- **LLM agent 以外も含む仕様駆動**: `agent-skills/spec-driven-development`
+- **D-API / D-CONTRACT の HELIX 正本**: `workflow/api-contract` (agent-design axis 07 から接続)
+
 ### 既存スキル強化メモ（description 更新）
 
 ```yaml

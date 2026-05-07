@@ -1,4 +1,4 @@
-> 目的: 骨格と特徴定義から機械可読スキーマ（JSON Schema / Pydantic / Zod等）を導出し、前段・後段の型契約を単一ソースで共有する。
+> 目的: L3 D-API / D-CONTRACT 凍結時に「骨格をどう機械可読 schema (JSON Schema / Pydantic / Zod) に落とすか」で迷うときに開く。前段・後段の型契約を単一ソースに揃える起点。
 
 # [07] スキーマ導出
 
