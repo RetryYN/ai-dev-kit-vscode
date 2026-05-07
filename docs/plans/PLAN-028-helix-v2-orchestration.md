@@ -29,9 +29,22 @@ v2 では PM 責務を「プロジェクト管理 (工程・ドキュメント�
 
 ### 2.2 PMO = Sonnet (判断伴う) / Haiku (軽作業) — 新設ロール
 
-- **判断伴う作業** → Sonnet: 実装現状把握 / ドキュメントチェック / 簡易レビュー
+- **判断伴う作業** → Sonnet: 実装現状把握 / ドキュメントチェック / 簡易レビュー (read-only、報告のみ)
 - **軽作業** → Haiku: Web 検索 / 軽量ドキュメント更新
 - **60% 超フォールバック** → GPT-5.4-mini (Claude 週間上限到達時)
+
+### 2.2.1 PMO 権限境界 (§4.2 と整合)
+
+| サブロール | code 編集 | docs/ 編集 | Web 検索 | 報告 | 用途例 |
+|----------|---------|----------|---------|------|------|
+| Sonnet (判断伴う) | ❌禁止 | ❌禁止 (read-only) | ✅ | ✅ | 実装現状把握、docs チェック、簡易レビュー |
+| Haiku (軽作業) | ❌禁止 | ✅許可 (docs/* のみ、対象 path 明示時) | ✅ | ✅ | Web 検索、軽量 docs 更新 (typo 修正、リンク追加など) |
+
+- **共通制約**: コード (`cli/`、`tests/`、`scripts/`、その他 code 系) への Edit/Write は **両者とも禁止**
+- **Haiku の docs 編集**: `--allow-paths "docs/**,skills/**"` で対象 glob を明示的に許可した時のみ。
+  デフォルトは read-only。コード編集が必要な作業は TL/SE/PE に切り出す
+- **実装の正本**: `cli/templates/prompts/pmo-base.md` (W-3 で作成) で no-write policy + path
+  whitelist を prompt と CLI option (`--permission-mode plan` / `--disallowedTools`) の二段階で固定
 
 ### 2.3 TL = GPT-5.5
 
@@ -107,13 +120,16 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..." --execute
 
 - **デフォルト**: `--dry-run` (prompt 生成のみ、既存互換)
 - **--execute** 指定時:
-  - 内部実装: `claude --print --model <claude-sonnet-4-6 | claude-haiku-4-5> -p "..."`
+  - 内部実装: `HELIX_CLAUDE_INTERNAL=1 claude --print --model <id> --permission-mode plan --disallowedTools "Edit,Write,NotebookEdit" -p "..."`
+  - **shim 整合**: `cli/claude` は raw claude を通常ブロックする shim。helix-claude 内部呼び出しは `HELIX_CLAUDE_INTERNAL=1` を必須化 (raw 抜け道防止)
+  - **permission-mode**: 既定 `plan` (read-only equivalent、§2.2.1 Sonnet)。Haiku の docs 編集モードは別オプション (下記)
+  - **disallowedTools**: 既定 `"Edit,Write,NotebookEdit"` で固定。tool 制限は **prompt + CLI 二段階** で強制 (prompt 単独ではなく Claude Code CLI 仕様で fail-close)
+  - **--allow-paths `<glob,...>`**: Haiku の docs 編集時のみ指定。指定時は permission-mode を `acceptEdits` に切替え + disallowedTools を `"Edit,Write" 以外に` 緩和、ただし `--allow-paths` で path whitelist を強制
+  - **モデル ID**: `claude-sonnet-4-6` / `claude-haiku-4-5-20251001` (cli/config/models.yaml と同期、conf 正本)
   - **auth 前提**: `~/.claude/auth` 既存セッション or 環境変数で claude CLI が認証済み
   - **timeout**: 300 秒デフォルト (`--timeout` で上書き可)
   - **ログ**: `.helix/cache/pmo/<timestamp>-<sha>.log` に stdout/stderr を保存
-  - **失敗コード**: claude CLI の exit code を踏襲 (auth fail = 2、timeout = 124 等)
-  - **no-write policy**: PMO は読み取り + 報告のみ。`--execute` 時も Edit/Write 系 tool を制限する
-    プロンプト前提を `cli/templates/prompts/pmo-base.md` で固定
+  - **失敗コード**: claude CLI の exit code を踏襲 (auth fail = 2、timeout = 124、tool denied = 4 等)
   - **human approval 条件**: 本番影響 / 認証 / PII / 決済を含むタスクは `--require-approval` で
     人間確認を要求 (helix-codex の --approved と対称)
 - Windows/WSL2 親和性: helix CLI は bash、claude CLI はクロスプラットフォーム
@@ -231,8 +247,15 @@ helix claude --role pmo --model haiku  --task "Web 検索: ..." --execute
 
 ### W-5a / W-5b DoD
 - W-5a: `.claude/agents/fe-*.md` (5 件) + `cli/templates/agents/fe-*.md` (配布元) が 0 件
-- W-5b: `skills/SKILL_MAP.md` §責務境界の FE 5 種言及 + 関連スキルの fe-* 言及が削除
+- W-5b: 以下の **runtime routing / test / template catalog / SKILL_MAP** から fe-* 参照が削除:
+  - `cli/helix-task` / `cli/helix-skill` / `cli/lib/skill_dispatcher.py`
+  - `cli/libexec/helix-session-start`
+  - `cli/templates/task-catalog.yaml`
+  - `cli/helix-test`
+  - `skills/SKILL_MAP.md` §責務境界の FE 5 種言及 + 関連スキルの fe-* 言及
+  - 上記以外で fe-* を参照する箇所が `rg "fe-(design|component|style|a11y|test)"` で 0 件
 - `helix-init` の agents/ コピー処理が fe-* を含まない (新規プロジェクトに廃止 agent が再配布されない)
+- W-5b 開始前に `rg` で全参照リストを生成し、漏れなく更新する
 
 ### W-6 DoD
 - `helix test` 全 PASS (pytest + bats、regress 0)
