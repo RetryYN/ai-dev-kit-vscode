@@ -16,6 +16,16 @@ HELIX_CODEX="$SCRIPT_DIR/helix-codex"
 CMD="${1:-help}"
 shift 2>/dev/null || true
 
+scrum_lookup_field() {
+  local hid="$1"
+  local field="$2"
+  python3 "$YP" read "$BACKLOG" "hypotheses.${hid}.${field}" 2>/dev/null || true
+}
+
+scrum_timestamp() {
+  date '+%Y%m%d-%H%M%S'
+}
+
 # ============================
 # init: Scrum モード初期化
 # ============================
@@ -626,6 +636,147 @@ cmd_trigger() {
 }
 
 # ============================
+# web-search: 事例検索結果の記録
+# ============================
+cmd_web_search() {
+  local query="" hid=""
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --query) query="$2"; shift 2 ;;
+      --hypothesis) hid="$2"; shift 2 ;;
+      --help|-h)
+        cat <<'USAGE'
+Usage: helix scrum web-search --query "..." --hypothesis H001
+
+Scrum 向けの検索事例メモを mock/placeholder で保存します。
+
+Options:
+  --query         検索クエリ
+  --hypothesis    仮説 ID (例: H001)
+  --help, -h      この help を表示
+USAGE
+        return 0
+        ;;
+      *)
+        echo "Usage: helix scrum web-search --query \"...\" --hypothesis H001" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  if [[ -z "$query" || -z "$hid" ]]; then
+    echo "Usage: helix scrum web-search --query \"...\" --hypothesis H001" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  local research_dir timestamp research_file title question
+  research_dir="$SCRUM_DIR/research/$hid"
+  timestamp="$(scrum_timestamp)"
+  research_file="$research_dir/${timestamp}.md"
+  mkdir -p "$research_dir"
+
+  title="$(scrum_lookup_field "$hid" "title")"
+  question="$(scrum_lookup_field "$hid" "question")"
+  [[ -z "$title" || "$title" == "null" ]] && title="(backlog 未登録)"
+  [[ -z "$question" || "$question" == "null" ]] && question="(未設定)"
+
+  cat > "$research_file" <<EOF
+# Web Search Research: $hid
+
+- Timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')
+- Query: $query
+- Mode: mock-placeholder
+- Hypothesis: $hid
+- Title: $title
+- Question: $question
+
+## Results
+
+1. Reference URL: https://example.com/search?q=$(printf '%s' "$query" | tr ' ' '+')
+   Summary: "$query" に関する一次調査の placeholder 結果。実 Web API 統合前の smoke 用エントリで、S0.5 の参照 URL と要約保存フローを固定する。
+EOF
+
+  echo "[scrum] web-search saved: ${research_file#$PROJECT_ROOT/}"
+  echo "  references: 1"
+}
+
+# ============================
+# acceptance-design: 受入条件テンプレ生成
+# ============================
+cmd_acceptance_design() {
+  local hid=""
+
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --hypothesis) hid="$2"; shift 2 ;;
+      --help|-h)
+        cat <<'USAGE'
+Usage: helix scrum acceptance-design --hypothesis H001
+
+Scrum 仮説向けの受入条件テンプレートを生成します。
+
+Options:
+  --hypothesis    仮説 ID (例: H001)
+  --help, -h      この help を表示
+USAGE
+        return 0
+        ;;
+      *)
+        echo "Usage: helix scrum acceptance-design --hypothesis H001" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  if [[ -z "$hid" ]]; then
+    echo "Usage: helix scrum acceptance-design --hypothesis H001" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  local acceptance_dir acceptance_file title question acceptance
+  acceptance_dir="$SCRUM_DIR/acceptance"
+  acceptance_file="$acceptance_dir/$hid.md"
+  mkdir -p "$acceptance_dir"
+
+  title="$(scrum_lookup_field "$hid" "title")"
+  question="$(scrum_lookup_field "$hid" "question")"
+  acceptance="$(scrum_lookup_field "$hid" "acceptance")"
+  [[ -z "$title" || "$title" == "null" ]] && title="(backlog 未登録)"
+  [[ -z "$question" || "$question" == "null" ]] && question="(未設定)"
+  [[ -z "$acceptance" || "$acceptance" == "null" ]] && acceptance="(未設定)"
+
+  cat > "$acceptance_file" <<EOF
+# Acceptance Design: $hid
+
+## Hypothesis
+- ID: $hid
+- Title: $title
+- Question: $question
+
+## Baseline Acceptance
+$acceptance
+
+## PoC Acceptance Criteria
+- [ ] 正常系の成功条件が定量または観測可能な文で 1 件以上定義されている
+- [ ] 失敗条件 / reject 条件が 1 件以上定義されている
+- [ ] verify で再現可能な検証方法が記載されている
+- [ ] 必要な入力データ / mock 前提が明記されている
+
+## Verification Design
+- Metric:
+- Threshold:
+- Evidence Path:
+- Verify Script:
+
+## Notes
+- 本テンプレートは PLAN-029 W-6 の acceptance-design smoke 用です。
+EOF
+
+  echo "[scrum] acceptance-design saved: ${acceptance_file#$PROJECT_ROOT/}"
+}
+
+# ============================
 # メインディスパッチ
 # ============================
 case "$CMD" in
@@ -638,6 +789,8 @@ case "$CMD" in
   review)  cmd_review "$@" ;;
   status)  cmd_status "$@" ;;
   trigger) cmd_trigger "$@" ;;
+  web-search) cmd_web_search "$@" ;;
+  acceptance-design) cmd_acceptance_design "$@" ;;
   help|-h|--help)
     cat <<'USAGE'
 Usage: helix scrum <command> [args...]
@@ -656,6 +809,8 @@ Commands:
                           --strict-promote を指定すると昇格推奨チェックを追加
   review                  スプリントレビュー + レトロ（検証失敗時は fail-close、例外時のみ --force-complete）
   status                  現在の状態表示
+  web-search              検索事例メモ保存 (--query --hypothesis)
+  acceptance-design       受入条件テンプレ生成 (--hypothesis)
   trigger detect          差し込み候補を検出 (--scan PATH [--save] [--json])
   trigger list            差し込み候補一覧 (--status ... --type ... [--json])
   trigger transition      状態遷移 (--id ST-... --status ... --owner ...)
