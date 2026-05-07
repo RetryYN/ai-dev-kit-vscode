@@ -62,8 +62,8 @@ compatibility:
 | D-API | `docs/features/{id}/D-API/` | api |
 | D-DB | `docs/features/{id}/D-DB/` | db |
 | DESIGNER.md | `DESIGNER.md`（プロジェクトルート） | visual-design ⑤ |
-| D-IA | `docs/fe/` | fe-design / visual-design ① |
-| D-UX-FLOW | `docs/fe/` | fe-design / visual-design ③ |
+| D-IA | `docs/fe/` | UI 情報設計 / visual-design ① |
+| D-UX-FLOW | `docs/fe/` | UI 情報設計 / visual-design ③ |
 
 ---
 

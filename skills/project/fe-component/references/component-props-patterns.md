@@ -1,6 +1,6 @@
 # コンポーネント Props パターンカタログ
 
-> 目的: TypeScript + React における代表的な Props 設計パターン（Compound / Render Props / forwardRef / Discriminated Union / 状態管理分離）を実例とともに整理し、fe-component での型定義時の判断基準を提供する
+> 目的: TypeScript + React における代表的な Props 設計パターン（Compound / Render Props / forwardRef / Discriminated Union / 状態管理分離）を実例とともに整理し、FE コンポーネント実装時の型定義判断を支援する
 
 ---
 

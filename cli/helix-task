@@ -30,14 +30,7 @@ resolve_model_for_role() {
   fi
 
   if [[ -z "$model" ]]; then
-    case "$role" in
-      fe-design|fe-component|fe-style|fe-a11y|fe-test)
-        model="claude-subagent"
-        ;;
-      *)
-        model="unknown-model"
-        ;;
-    esac
+    model="unknown-model"
   fi
 
   echo "$model"
@@ -464,9 +457,9 @@ PY
 指摘がなければ「問題なし」と明記。
 最後に判定: approved / needs-fix を出力。"
 
-      echo "[helix-task] @fe-design にスクショレビューを委譲してください:"
+      echo "[helix-task] PMO Sonnet でスクショレビューを実行してください:"
       echo ""
-      echo "  @fe-design $review_prompt"
+      echo "  helix claude --role pmo --model sonnet --task-file \"$LOG_FILE\" --execute"
       echo ""
       echo "$review_prompt" > "$LOG_FILE"
 
@@ -479,11 +472,8 @@ PY
       done
       echo "[helix-task] 確認記録を reviewing に更新"
       echo "  → レビュー結果に基づき approved / needs-fix に変更してください"
+      echo "[agent-delegation] helix claude --role pmo --model sonnet --task-file $LOG_FILE --execute" > "$LOG_FILE"
     fi
-  elif [[ "$role" == fe-design || "$role" == fe-component || "$role" == fe-style || "$role" == fe-a11y || "$role" == fe-test ]]; then
-    echo "[helix-task] Claude サブエージェント @$role に委譲してください"
-    echo "  @$role $name"
-    echo "[agent-delegation] @$role $name" > "$LOG_FILE"
   else
     echo "[helix-task] helix codex --role $role に委譲"
     set +e

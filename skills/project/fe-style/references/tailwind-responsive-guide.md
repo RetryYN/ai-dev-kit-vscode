@@ -1,6 +1,6 @@
 # Tailwind レスポンシブ設計ガイド
 
-> 目的: mobile-first のブレークポイント戦略・Container Query・ダークモード（class vs media）・CSS カスタムプロパティとのデザイントークン連携を体系化し、fe-style でのスタイリング判断を支援する
+> 目的: mobile-first のブレークポイント戦略・Container Query・ダークモード（class vs media）・CSS カスタムプロパティとのデザイントークン連携を体系化し、FE スタイル実装時の判断を支援する
 
 ---
 
@@ -253,7 +253,7 @@ theme: {
 
 ### 3 層トークンと CSS 変数のマッピング
 
-fe-style の「デザイントークン 3 層構造」と CSS カスタムプロパティの接続を確認する。
+スタイル実装スキルの「デザイントークン 3 層構造」と CSS カスタムプロパティの接続を確認する。
 
 ```
 Layer 1: Primitive（tokens.json の原始値）

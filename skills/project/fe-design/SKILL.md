@@ -1,8 +1,9 @@
 ---
-name: fe-design
+name: frontend-information-architecture
 description: FE 情報アーキテクチャ (D-IA) 設計スキル。ページマップ・ナビゲーション階層・ラベル定義を行い、visual-design §①information の具体実装を担当する
 metadata:
   helix_layer: L2
+  recommended_agent: tl
   triggers:
     - "L2 IA 設計時"
     - "L5 情報階層確認時"
@@ -32,16 +33,16 @@ compatibility:
 ## visual-design との関係
 
 visual-design スキルの **①information** ステップの具体実装を担当する。
-visual-design が「何を決めるか」を定義し、fe-design が「どう文書化するか」を実行する。
+visual-design が「何を決めるか」を定義し、このスキルが「どう文書化するか」を実行する。
 また、fe 駆動時は L2 で動くモックと状態・イベント定義までを出力し、L3 の API 契約導出入力を担保する。
 
 ```
 visual-design §①information（方針）
   ↓
-fe-design（D-IA 具体化）
+情報設計スキル（D-IA 具体化）
   ↓ D-IA ファイル: docs/fe/D-IA.md
   ↓
-fe-component（コンポーネントツリーへ）
+コンポーネント実装スキル（コンポーネントツリーへ）
 ```
 
 ---

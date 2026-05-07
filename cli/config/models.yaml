@@ -15,11 +15,6 @@ roles:
   legacy: gpt-5.4
   perf: gpt-5.4
   fe: gpt-5.4
-  fe-design: gpt-5.4
-  fe-component: gpt-5.4
-  fe-style: gpt-5.4
-  fe-a11y: gpt-5.4
-  fe-test: gpt-5.4
   recommender: gpt-5.4-mini
   classifier: gpt-5.4-mini
   effort-classifier: gpt-5.4-mini

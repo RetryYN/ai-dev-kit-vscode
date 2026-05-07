@@ -107,7 +107,7 @@ def test_claude_native_hint_includes_medium_effort_prefix(monkeypatch, tmp_path:
     result = _dispatch_to_native_agent(
         monkeypatch,
         tmp_path,
-        agent_name="fe-test",
+        agent_name="ui-review",
         effort="medium",
     )
 

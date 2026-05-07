@@ -8,13 +8,13 @@
 
 ## Context
 
-ADR-006 で Phase A (Claude subagent の effort field) は「警告フック限定の部分実装」と認められた。背景は以下の通り。
+ADR-006 で Phase A (Claude native subagent の effort field) は「警告フック限定の部分実装」と認められた。背景は以下の通り。
 
 1. `.claude/agents/*.md` frontmatter の `effort: high/medium` は HELIX 独自拡張である
 2. Claude Code 公式仕様 (name/description/tools/model/memory/maxTurns) は `effort` を解釈しない
 3. `cli/lib/skill_dispatcher.py` の `_warn_s_task_high_effort_agent()` は警告のみを行う
 4. Claude Code の Agent tool 呼び出し時、subagent の thinking budget は親 (Opus) 設定が継承される
-5. その結果、`fe-design` (effort:high) と `fe-test` (effort:medium) は現状同じ thinking で動作する
+5. その結果、旧 FE 専用 native subagent 群でも effort 差を実運用へ十分反映できなかった
 
 このため、Phase A の frontmatter だけでは effort の意図を実運用へ反映できない。ADR-007 では、Claude Code Agent tool への effort / thinking budget 伝搬をどう代替するかを検討する。
 
@@ -38,7 +38,7 @@ Claude API の extended_thinking (`/v1/messages` の thinking パラメータ) �
 
 ### Option C: HELIX 独自 wrapper 経路
 
-Agent tool を直接呼ばず、`helix invoke-agent --name fe-design --task "..."` のような wrapper を経由し、wrapper 内で effort → API パラメータ変換を行う。
+Agent tool を直接呼ばず、`helix claude --role pmo --model sonnet --task "..."` のような wrapper を経由し、wrapper 内で effort → API パラメータ変換を行う。
 
 利点: 制御を HELIX 側に集約できる。
 

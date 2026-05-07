@@ -18,11 +18,6 @@ ALLOWED_AGENTS = {
     "research",
     "legacy",
     "perf",
-    "fe-design",
-    "fe-component",
-    "fe-style",
-    "fe-test",
-    "fe-a11y",
 }
 ALLOWED_PHASES = {
     "L1",

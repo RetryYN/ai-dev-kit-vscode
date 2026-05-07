@@ -43,7 +43,7 @@ CATEGORY_COMMANDS = {
     "common/code-review": ["code-reviewer"],
     "project/api": ["helix-drift-check"],
     "project/db": ["helix-drift-check", "helix-migrate"],
-    "project/fe-design": ["fe-design", "fe-component"],
+    "project/ui": ["helix-codex --role tl", "helix-claude --role pmo --model sonnet"],
     "workflow/deploy": ["helix-pr", "/ship"],
     "workflow/debt-register": ["helix-debt"],
     "workflow/reverse-analysis": ["helix-reverse"],

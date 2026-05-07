@@ -57,7 +57,7 @@
 | `tasks` | string[] | ✅ | Task OS の 63 タスク ID 配列（例: `design-api`） |
 | `triggers` | string[] | ✅ | マッチングキーワード（名詞・動詞・略語） |
 | `anti_triggers` | string[] |  | 除外キーワード（紛らわしいが違う用途） |
-| `agent` | string | ✅ | 委譲先（**正規化済み短縮名固定**）: `tl/se/pg/qa/security/dba/devops/docs/research/legacy/perf/fe-design/fe-component/fe-style/fe-test/fe-a11y` |
+| `agent` | string | ✅ | 委譲先（**正規化済み短縮名固定**）: `tl/se/pg/qa/security/dba/devops/docs/research/legacy/perf` |
 | `similar` | string[] |  | 類似・関連スキル ID 配列 |
 | `references` | object[] |  | 参考資料（JSONL 検索時に recommender が選定する候補）: `[{path, title, summary?}]` |
 | `source_hash` | string | ✅ | 元 SKILL.md の SHA256（64 hex、承認引継ぎ判定用） |
@@ -74,9 +74,9 @@
 
 ### 2.2.1 agent 正規化と search prompt 契約
 
-現行 `cli/templates/prompts/skill-search.md` は `recommended_agent` に `fe-design` 等の短縮名と `helix codex --role security` 形式を混在で返す仕様。JSONL 導入に伴い以下に統一する:
+旧 `cli/templates/prompts/skill-search.md` は `recommended_agent` に FE 専用短縮名と `helix codex --role security` 形式を混在で返していた。JSONL 導入に伴い以下に統一する:
 
-- JSONL の `agent` フィールドは常に**正規化済み短縮名**（裸ロール名 or `fe-*`）
+- JSONL の `agent` フィールドは常に**正規化済み短縮名**（裸ロール名）
 - 改訂後の search prompt は `recommended_agent` として JSONL の `agent` 値をそのまま返す
 - dispatcher 側の `helix codex --role X` 形式の受付は後方互換として維持（将来非推奨判断）
 
@@ -91,7 +91,7 @@
 
 ```jsonl
 {"id":"common/security","title":"セキュリティ","summary":"脆弱性対策・秘密情報スキャン・認証認可実装","phases":["L2","L4","L6"],"tasks":["design-security","implement-auth","verify-security-scan","review-security","fix-security"],"triggers":["認証","認可","脆弱性","OWASP","秘密情報","セキュリティ"],"anti_triggers":["UI","デザイン"],"agent":"security","similar":["workflow/compliance"],"source_hash":"a1b2c3...","classification":{"status":"approved","classified_at":"2026-04-16T03:00:00Z","classifier_model":"gpt-5.4-mini","confidence":0.92}}
-{"id":"common/visual-design","title":"ビジュアル設計","summary":"ブランドDESIGN.md・IA・モーション・a11y・データViz","phases":["L2","L5"],"tasks":["design-ui","review-visual","review-usability"],"triggers":["デザイン","ブランド","色","タイポグラフィ","UI/UX","Visual"],"anti_triggers":["API","DB"],"agent":"fe-design","similar":["design-tools/web-system"],"source_hash":"d4e5f6...","classification":{"status":"approved","classified_at":"2026-04-16T03:00:00Z","classifier_model":"gpt-5.4-mini","confidence":0.95}}
+{"id":"common/visual-design","title":"ビジュアル設計","summary":"ブランドDESIGN.md・IA・モーション・a11y・データViz","phases":["L2","L5"],"tasks":["design-ui","review-visual","review-usability"],"triggers":["デザイン","ブランド","色","タイポグラフィ","UI/UX","Visual"],"anti_triggers":["API","DB"],"agent":"tl","similar":["design-tools/web-system"],"source_hash":"d4e5f6...","classification":{"status":"approved","classified_at":"2026-04-16T03:00:00Z","classifier_model":"gpt-5.4-mini","confidence":0.95}}
 {"id":"common/error-fix","title":"エラー修正","summary":"デバッグ手順・失敗パターン・危険コマンドガード","phases":["L4","L6"],"tasks":["fix-bug","verify-regression"],"triggers":["バグ","エラー","デバッグ","修正","トラブルシュート"],"anti_triggers":[],"agent":"se","similar":["common/testing"],"source_hash":"789abc...","classification":{"status":"pending","classified_at":"2026-04-16T03:00:00Z","classifier_model":"gpt-5.4-mini","confidence":0.81}}
 ```
 
@@ -330,7 +330,7 @@ T8 は T7 の入力契約を決めるため T7 より先行 or 同時に進め�
 | ID | 理由 |
 |----|------|
 | `common/security` | phase 跨ぎ（L2, L4, L6）・agent=security の代表 |
-| `common/visual-design` | agent=fe-design、フロント領域の代表 |
+| `common/visual-design` | agent=tl、フロント設計領域の代表 |
 | `common/error-fix` | 頻度高い、L4 実装系 |
 | `workflow/design-doc` | L2 専用、文書系 |
 | `tools/ai-coding` | 横断スキル、triggers 広範 |

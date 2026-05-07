@@ -1,8 +1,9 @@
 ---
-name: fe-component
+name: frontend-component-implementation
 description: FE コンポーネント実装スキル。Atomic Design に基づくコンポーネントツリー設計と TypeScript Props 型定義を行い、project/ui スキルの実装担当層として機能する
 metadata:
   helix_layer: L4
+  recommended_agent: pmo-sonnet
   triggers:
     - "L4 コンポーネント実装時"
     - "Atomic Design 適用時"
@@ -21,17 +22,17 @@ compatibility:
 
 ## project/ui との関係
 
-project/ui が「コンポーネント設計の原則・パターンカタログ」、fe-component が「実装時の具体的な型定義・ツリー構築手順」を担当する。
+project/ui が「コンポーネント設計の原則・パターンカタログ」、このスキルが「実装時の具体的な型定義・ツリー構築手順」を担当する。
 
 ```
 project/ui（設計原則・パターン）
   ↓
-fe-component（コンポーネントツリー + Props 型定義の具体化）
+コンポーネント実装スキル（コンポーネントツリー + Props 型定義の具体化）
   ↓ 成果物: docs/fe/D-COMPONENT.md
   ↓
-fe-style（スタイル実装）
-fe-a11y（a11y 実装）
-fe-test（テスト実装）
+スタイル実装スキル
+アクセシビリティ検証スキル
+UI テストスキル
 ```
 
 ---

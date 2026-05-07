@@ -123,7 +123,7 @@ S案件は 5行以内の最小版コンテンツマップで可。
 - SNS画像・バナー・LP・プレゼン資料の制作時
 - 既存デザインの改善点を指摘する時
 
-**補完スキル:** UI/UX心理学・ブランディングは `design`、IA・情報設計は `project/fe-design`、コンポーネント実装は `project/fe-component`、スタイル/トークンは `project/fe-style`、a11y は `project/fe-a11y`、テストは `project/fe-test` を参照。
+**補完スキル:** UI/UX心理学・ブランディングは `design`、IA・情報設計は FE 情報設計知識、コンポーネント実装は FE コンポーネント知識、スタイル/トークンは FE スタイル知識、a11y は FE アクセシビリティ知識、テストは FE UI テスト知識を参照。
 
 ---
 

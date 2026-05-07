@@ -1,8 +1,9 @@
 ---
-name: fe-test
+name: frontend-ui-testing
 description: FE テストスキル。Storybook / Playwright E2E / VRT (Visual Regression Test) の設計と実装を担い、common/testing スキルの FE 特化版として機能する
 metadata:
   helix_layer: L4
+  recommended_agent: pmo-sonnet
   triggers:
     - "L4 FE テスト実装時"
     - "L6 FE E2E 時"
@@ -21,7 +22,7 @@ compatibility:
 
 ## common/testing との差分
 
-common/testing は BE/FE 共通のテスト戦略全体を扱う。fe-test は FE に特化した以下の 3 領域を担当する:
+common/testing は BE/FE 共通のテスト戦略全体を扱う。このスキルは FE に特化した以下の 3 領域を担当する:
 
 - Storybook によるコンポーネントカタログ + 単体確認
 - Playwright E2E によるユーザーフロー検証
@@ -30,7 +31,7 @@ common/testing は BE/FE 共通のテスト戦略全体を扱う。fe-test は F
 ```
 common/testing（全体テスト戦略・TDD・ユニットテスト原則）
   ↓
-fe-test（FE 特化: Storybook / E2E / VRT）
+UI テストスキル（FE 特化: Storybook / E2E / VRT）
 ```
 
 ---
@@ -180,6 +181,6 @@ L6 フェーズでは以下を追加実行する:
 [ ] 主要フロー（P0）の E2E テストが pass しているか
 [ ] VRT baseline が main ブランチに commit されているか
 [ ] CI で Storybook build と E2E が自動実行されているか
-[ ] axe-core a11y 検証が E2E に組み込まれているか (fe-a11y 参照)
+[ ] axe-core a11y 検証が E2E に組み込まれているか (アクセシビリティ検証スキル参照)
 [ ] 各テストの役割分担が明確か (Unit / Storybook / E2E / VRT)
 ```

@@ -1,6 +1,6 @@
 ---
 name: ui
-description: FE サブエージェント 5種のインデックス。タスク内容に応じ fe-design / fe-component / fe-style / fe-a11y / fe-test へルーティング
+description: FE 設計知識群のインデックス。タスク内容に応じて情報設計・コンポーネント・スタイル・a11y・テストの各知識へ接続する
 metadata:
   helix_layer: L2
   triggers:
@@ -8,33 +8,33 @@ metadata:
     - FE 領域の役割分担判断時
     - UI 設計 / コンポーネント / スタイル / a11y / テストの開始時
   verification:
-    - "タスクに応じた fe-* 専用スキルが選択できていること"
+    - "タスクに応じた FE 専用知識が選択できていること"
 compatibility:
   claude: true
   codex: true
 ---
 
-# FE 5種インデックス（ルーター）
+# FE 知識インデックス
 
 ## 役割
 
-このスキルは FE タスクの入口です。実装や検証を直接抱えず、タスク内容に応じて `fe-*` 専用スキルへ委譲します。
+このスキルは FE タスクの入口です。実装や検証を直接抱えず、タスク内容に応じて専用知識へ接続します。
 
 - 目的: FE 駆動での役割分担を明確化する
-- 境界: 方針レベルの振り分けのみ行い、実装詳細は各 `fe-*` で扱う
-- 出力: 選択した委譲先スキル名と理由
+- 境界: 方針レベルの振り分けのみ行い、実装詳細は TL / Codex / Sonnet の担当フローへ渡す
+- 出力: 選択した知識領域と理由
 
 ---
 
 ## ルーティング表
 
-| 用途 | 委譲先 | パス |
+| 用途 | 主担当 | 補助 |
 |------|-------|------|
-| 情報アーキテクチャ・画面構成 (L2) | fe-design | skills/project/fe-design/SKILL.md |
-| コンポーネント実装 (L4) | fe-component | skills/project/fe-component/SKILL.md |
-| スタイル・デザイントークン (L4/L5) | fe-style | skills/project/fe-style/SKILL.md |
-| アクセシビリティ (L4/L5/L6) | fe-a11y | skills/project/fe-a11y/SKILL.md |
-| FE テスト (L4/L6) | fe-test | skills/project/fe-test/SKILL.md |
+| 情報アーキテクチャ・画面構成 (L2) | TL | visual-design / 情報設計スキル |
+| コンポーネント実装 (L4) | Codex 実装 role | コンポーネント実装スキル |
+| スタイル・デザイントークン (L4/L5) | Codex 実装 role | スタイル実装スキル |
+| アクセシビリティ (L4/L5/L6) | QA / Codex 実装 role | アクセシビリティ検証スキル |
+| FE テスト (L4/L6) | QA | UI テストスキル |
 
 ---
 
@@ -42,36 +42,36 @@ compatibility:
 
 1. Opus PM が FE タスクを受領する
 2. タスクの主目的を上表に照合する
-3. 該当スキルを `@fe-<name>` で呼び出す
-4. 複合タスク時は主担当を1つ決め、必要に応じて副次スキルを追加する
+3. TL が該当知識を選び、必要なら `helix claude --role pmo --model sonnet` で read-only レビューを補助に使う
+4. 複合タスク時は主担当を1つ決め、必要に応じて副次知識を追加する
 
 ### 呼び出し例
 
-- 画面遷移と情報優先度の設計: `@fe-design`
-- ボタン/フォームの実装: `@fe-component`
-- トークン定義とテーマ調整: `@fe-style`
-- キーボード操作・読み上げ配慮: `@fe-a11y`
-- UI の単体/統合/E2E テスト: `@fe-test`
+- 画面遷移と情報優先度の設計: TL が情報設計知識を参照
+- ボタン/フォームの実装: Codex 実装 role がコンポーネント実装知識を参照
+- トークン定義とテーマ調整: Codex 実装 role がスタイル実装知識を参照
+- キーボード操作・読み上げ配慮: QA または Codex 実装 role が a11y 知識を参照
+- UI の単体/統合/E2E テスト: QA が UI テスト知識を参照
 
 ---
 
 ## visual-design との関係
 
 - `common/visual-design`: L2 方針と L5 仕上げの概念、見せ方の原則、審美性の判断基準
-- `project/fe-*`: 上記方針をコード・構造・検証へ具体化する実装系スキル
+- FE 専用知識群: 上記方針をコード・構造・検証へ具体化する実装系スキル
 
-使い分けの基本は「概念と判断は visual-design、実装と検証は fe-*」です。
+使い分けの基本は「概念と判断は visual-design、実装と検証は FE 専用知識群」です。
 
 ---
 
 ## 移管メモ（旧 ui スキルからの変更）
 
-旧 `project/ui` に含まれていた以下の実装内容は各専用スキルへ移管済みです。
+旧 `project/ui` に含まれていた以下の実装内容は各専用知識へ移管済みです。
 
-- Atomic Design ベースの分割指針 → `fe-design` / `fe-component`
-- Props 設計と実装パターン → `fe-component`
-- スタイル・デザイントークン運用 → `fe-style`
-- a11y チェック（axe-core 等） → `fe-a11y`
-- FE テスト設計と実装 → `fe-test`
+- Atomic Design ベースの分割指針 → 情報設計 / コンポーネント実装知識
+- Props 設計と実装パターン → コンポーネント実装知識
+- スタイル・デザイントークン運用 → スタイル実装知識
+- a11y チェック（axe-core 等） → アクセシビリティ検証知識
+- FE テスト設計と実装 → UI テスト知識
 
-この `ui` は後方互換のため残しつつ、FE 5種へのインデックスとして運用します。
+この `ui` は後方互換のため残しつつ、TL / Sonnet フローで FE 知識群へ接続するインデックスとして運用します。

@@ -135,9 +135,9 @@ design:
 
   design-ui:
     name: "UI/UX 設計"
-    role: fe-design
+    role: tl
     estimate: 30
-    skill: project/fe-design
+    skill: project/ui
     actions:
       - { type: analyze, desc: "画面フロー定義" }
       - { type: search-external, desc: "UI パターン・デザインシステム調査" }
@@ -324,9 +324,9 @@ review:
 
   review-accessibility:
     name: "アクセシビリティレビュー"
-    role: fe-a11y
+    role: qa
     estimate: 20
-    skill: project/fe-a11y
+    skill: project/ui
     actions:
       - { type: review-checklist, desc: "WCAG 2.1 AA チェックリスト照合" }
       - { type: search-internal, desc: "aria 属性・alt 属性の確認" }
@@ -336,9 +336,9 @@ review:
 
   review-usability:
     name: "ユーザビリティレビュー"
-    role: fe-design
+    role: tl
     estimate: 20
-    skill: project/fe-design
+    skill: project/ui
     actions:
       - { type: review-checklist, desc: "ニールセンのヒューリスティック評価" }
       - { type: analyze, desc: "ユーザーフロー分析" }
@@ -347,9 +347,9 @@ review:
 
   review-visual:
     name: "ビジュアルレビュー"
-    role: fe-design
+    role: tl
     estimate: 20
-    skill: project/fe-design
+    skill: project/ui
     actions:
       - { type: read-code, desc: "デザイン仕様（DESIGNER.md / デザイントークン）確認" }
       - { type: review-checklist, desc: "スクショ目視: デザインカンプとの一致" }
@@ -464,9 +464,9 @@ implement:
 
   implement-ui-component:
     name: "UI コンポーネント実装"
-    role: fe-component
+    role: pg
     estimate: 30
-    skill: project/fe-component
+    skill: project/ui
     actions:
       - { type: read-code, desc: "UI 設計・デザイントークン確認" }
       - { type: write-code, desc: "コンポーネント実装" }
@@ -476,9 +476,9 @@ implement:
 
   implement-style:
     name: "スタイリング実装"
-    role: fe-style
+    role: pg
     estimate: 25
-    skill: project/fe-style
+    skill: project/ui
     actions:
       - { type: read-code, desc: "デザイン仕様確認" }
       - { type: write-code, desc: "CSS / Tailwind 実装" }
@@ -605,9 +605,9 @@ verify:
 
   verify-accessibility:
     name: "アクセシビリティ検証"
-    role: fe-a11y
+    role: qa
     estimate: 10
-    skill: project/fe-a11y
+    skill: project/ui
     actions:
       - { type: execute-command, desc: "axe-core / Lighthouse 実行" }
       - { type: analyze, desc: "スコア評価（目標 ≥90）" }
@@ -656,9 +656,9 @@ fix:
 
   fix-accessibility:
     name: "アクセシビリティ修正"
-    role: fe-a11y
+    role: pg
     estimate: 20
-    skill: project/fe-a11y
+    skill: project/ui
     actions:
       - { type: read-code, desc: "違反リストの確認" }
       - { type: write-code, desc: "修正実装" }

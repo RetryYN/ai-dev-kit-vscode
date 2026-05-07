@@ -315,6 +315,6 @@ LOG レベル:
   - `debugging-and-error-recovery` (ブラウザで再現したエラーの修正)
   - `performance-optimization` (Core Web Vitals 計測)
   - `frontend-ui-engineering` (UI 実装連携)
-  - HELIX 本体 `project/fe-test` (Playwright + a11y 自動化)
+  - HELIX 本体 UI テスト知識 (Playwright + a11y 自動化)
   - HELIX 本体 `automation/browser-script` (操作記録)
 - Chrome DevTools MCP サーバ連携を前提 (MCP セットアップ必要)

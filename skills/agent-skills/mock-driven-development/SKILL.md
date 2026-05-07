@@ -5,7 +5,7 @@ helix_layer: [L2, L3, L4]
 helix_gate: [G2, G4, G6]
 codex_role: fe
 tier: 1
-upstream: helix (ai-dev-kit-vscode/skills/project/fe-design/references/fe-drive-flow.md)
+upstream: helix (ai-dev-kit-vscode/skills/project/ui/SKILL.md)
 ---
 
 # Mock-Driven Development (モック駆動設計)
@@ -55,7 +55,7 @@ flowchart LR
 
 ## L2 設計 (モック策定)
 
-L2 では fe-design 主導で、以下の成果物を作成します。
+L2 では TL 主導で、以下の成果物を作成します。
 
 - デザイントークン
 - `mock.html`（Tailwind CDN 使用）
@@ -66,10 +66,10 @@ L2 では fe-design 主導で、以下の成果物を作成します。
 
 | Step | 担当 | 成果物 | 要件 |
 |---|---|---|---|
-| 2.1 | fe-design | ブランド方針 + デザイントークン | visual-design の information 具体化 |
-| 2.2 | fe-design | 情報アーキテクチャ | 画面/導線の整理 |
-| 2.3 | fe-design | `.helix/mock/<feature>/mock.html` | HTML + Tailwind CDN、Alpine.js 任意 |
-| 2.4 | fe-design | `state-events.md` | 状態・イベント・遷移図・BE契約導出メモ |
+| 2.1 | TL | ブランド方針 + デザイントークン | visual-design の information 具体化 |
+| 2.2 | TL | 情報アーキテクチャ | 画面/導線の整理 |
+| 2.3 | TL | `.helix/mock/<feature>/mock.html` | HTML + Tailwind CDN、Alpine.js 任意 |
+| 2.4 | TL | `state-events.md` | 状態・イベント・遷移図・BE契約導出メモ |
 | 2.5 | PM+PO | UX 承認 | G2 通過の必須入力 |
 
 ### mock.html テンプレート (Tailwind CDN)
@@ -252,7 +252,7 @@ G2 通過時に `helix gate G2` が `sprint.drive = fe|fullstack` を検出す�
 | 役割 | L2 | L3 | L4 | L6 |
 |---|---|---|---|---|
 | PM | 駆動タイプ選定 | 要件整理 | 統合判断 | 最終承認 |
-| fe-design (Designer) | mock.html + tokens | state-events 協議 | mock 昇格ガイド | — |
+| TL (Design Lead) | mock.html + tokens | state-events 協議 | mock 昇格ガイド | — |
 | TL | UX 承認 | **API 契約導出** | 全体監督 | MOCK-DERIVED-CONTRACT レビュー |
 | BE (SE) | — | D-API 受領 | 実装 | — |
 | FE (SE) | — | contract 受領 | mock 昇格実装 | — |

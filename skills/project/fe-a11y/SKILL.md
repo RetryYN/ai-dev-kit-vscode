@@ -1,8 +1,9 @@
 ---
-name: fe-a11y
+name: frontend-accessibility
 description: FE アクセシビリティスキル。axe-core 検証と WCAG 2.1 AA 準拠チェックリストを提供し、visual-design の accessibility-design.md 参照と project/ui §6 a11y 項目を統合する
 metadata:
   helix_layer: L4
+  recommended_agent: pmo-sonnet
   triggers:
     - "L4 a11y 実装時"
     - "L5 a11y 確認時"
@@ -24,7 +25,7 @@ compatibility:
 ```
 visual-design/references/accessibility-design.md（WCAG 理論・認知 a11y・日本語テキスト）
   ↓
-fe-a11y（実装検証・修正手順）
+アクセシビリティ検証スキル（実装検証・修正手順）
   ↓ 成果物: axe-core レポート / a11y チェックリスト
   ↓
 project/ui §6（a11y コード実装パターン参照）

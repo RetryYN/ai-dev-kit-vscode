@@ -16,14 +16,14 @@
 - UX 期待値（ペルソナ・デバイス・a11y・i18n）
 - 成功指標（CV・離脱率等、UX KPI を含む場合）
 
-### L2 モック駆動設計（fe-design サブエージェント主導）
+### L2 モック駆動設計（TL 主導）
 
 | Step | 担当 | 成果物 | 備考 |
 |------|------|--------|------|
-| 2.1 | fe-design | ブランド方針 + デザイントークン | visual-design §①information の具体化 |
-| 2.2 | fe-design | 情報アーキテクチャ（IA） | `docs/fe/D-IA.md` |
-| 2.3 | fe-design | **モック** `.helix/mock/<feature>/mock.html` | HTML + Tailwind CDN、Alpine.js 任意。`src/` から import 禁止 |
-| 2.4 | fe-design | **状態・イベント定義** `state-events.md` | 画面状態・イベント・遷移図（mermaid）・BE契約導出メモ |
+| 2.1 | TL | ブランド方針 + デザイントークン | visual-design §①information の具体化 |
+| 2.2 | TL | 情報アーキテクチャ（IA） | `docs/fe/D-IA.md` |
+| 2.3 | TL | **モック** `.helix/mock/<feature>/mock.html` | HTML + Tailwind CDN、Alpine.js 任意。`src/` から import 禁止 |
+| 2.4 | TL | **状態・イベント定義** `state-events.md` | 画面状態・イベント・遷移図（mermaid）・BE契約導出メモ |
 | 2.5 | PM+PO | UX 承認（モックを触って確認） | G2 の必須入力 |
 
 **G2 通過時の自動処理**:
@@ -57,10 +57,10 @@ Phase A (並列):
   BE Sprint (.1a → .1b → .2 → .3 → .4 → .5): TL 契約ベース実装
   FE Sprint (.1a → .1b → .2 → .3 → .4 → .5): モック UI を本実装化
     └─ .1a: mock.html のコンポーネント分解・Props 設計
-    └─ .1b: fe-component が本実装（Vue/React/Svelte 等）に移植
-    └─ .2:  fe-style が Tailwind/CSS 統合
+    └─ .1b: コンポーネント実装フローで本実装（Vue/React/Svelte 等）に移植
+    └─ .2:  スタイル実装フローで Tailwind/CSS 統合
     └─ .3:  セキュリティチェック（モックハードコード除去 ⇒ MOCK-HARDCODE 消化着手）
-    └─ .4:  fe-test が unit/integration 追加
+    └─ .4:  QA フローで unit/integration 追加
     └─ .5:  API 結合（モックデータ ⇒ 実 API に置換）
 
 Phase B: L4.5 結合テスト（Contract CI pass 必須）
@@ -74,7 +74,7 @@ Phase B: L4.5 結合テスト（Contract CI pass 必須）
 
 - モック時の UX を本実装でも再現できているか
 - デザイントークンの一貫性
-- a11y（fe-a11y が監査）
+- a11y（QA / TL が監査）
 
 ### L6 統合検証
 
@@ -87,11 +87,9 @@ Phase B: L4.5 結合テスト（Contract CI pass 必須）
 
 | ロール | 担当 | L2 | L3 | L4 | L5 | L6 |
 |-------|------|----|----|----|----|-----|
-| fe-design | サブエージェント | **モック + state-events** | — | .1a (Props 分解) | — | — |
-| fe-component | サブエージェント | — | — | .1b (本実装移植) | — | — |
-| fe-style | サブエージェント | — | — | .2 | リファイン | — |
-| fe-a11y | サブエージェント | — | — | — | 監査 | 監査 |
-| fe-test | サブエージェント | — | テスト設計 | .4 | — | — |
+| TL | リード | **モック + state-events** | 契約導出 | .1a (Props 分解) | — | — |
+| Codex 実装 role | 実装 | — | — | .1b / .2 | リファイン | — |
+| QA | テスト / a11y | — | テスト設計 | .4 | 監査 | 監査 |
 | TL (Codex 5.4) | 契約導出 + レビュー | G2 レビュー | **契約導出** | Sprint レビュー | — | MOCK-DERIVED-CONTRACT 消化 |
 | SE (Codex 5.3) | BE 上級実装 | — | — | BE Sprint | — | — |
 | PG (Codex 5.3 Spark) | BE 通常実装 | — | — | BE Sprint | — | — |
@@ -115,8 +113,8 @@ Phase B: L4.5 結合テスト（Contract CI pass 必須）
 
 | アンチパターン | 回避策 |
 |-------------|-------|
-| モック作成を飛ばして L3 に進む | fe-design が G2 で mock.html + state-events.md を必須化している |
-| モックのコードを本実装にコピペ | L4.1b で fe-component が「分解 → 移植」する。.helix/mock/ は throw-away |
+| モック作成を飛ばして L3 に進む | TL が G2 で mock.html + state-events.md を必須化している |
+| モックのコードを本実装にコピペ | L4.1b で実装フローが「分解 → 移植」する。.helix/mock/ は throw-away |
 | state-events.md を書かずに API 契約を書く | TL が L3 で state-events.md 読めないと契約導出不可 |
 | モック時のハードコード値（URL / トークン / テストデータ）が本番に残る | G4 で MOCK-HARDCODE が fail-close |
 | `import from "../../.helix/mock/..."` | G4 で MOCK-CODE-LEAK が fail-close |
@@ -128,7 +126,7 @@ Phase B: L4.5 結合テスト（Contract CI pass 必須）
 
 - 駆動タイプ別 L2〜L5 テーブル: `skills/SKILL_MAP.md §駆動タイプ別 L2〜L5`
 - ゲート通過条件: `skills/tools/ai-coding/references/gate-policy.md`
-- fe-design スキル本体: `skills/project/fe-design/SKILL.md`
-- モックテンプレート: `skills/project/fe-design/references/mock-template.md`
+- 情報設計スキル本体: `skills/project/ui/SKILL.md`
+- モックテンプレート: `skills/project/ui` 配下の参照資料
 - visual-design: `skills/common/visual-design/SKILL.md`
 - 実装設計案（history）: `.helix/design-proposals/fe-drive-and-drift-check-expansion.md`

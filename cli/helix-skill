@@ -317,7 +317,7 @@ if is_codex:
     raise SystemExit(0)
 
 if agent_invoke:
-    # agent_invoke は既に "@fe-design" または "helix-codex --role X" 形式で渡ってくる
+    # agent_invoke は既に "helix-codex --role X" 等の実行表現に正規化されている
     print(f"{agent_invoke} を呼び出してください")
 else:
     print("@subagent を呼び出してください")

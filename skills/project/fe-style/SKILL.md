@@ -1,8 +1,9 @@
 ---
-name: fe-style
+name: frontend-style-system
 description: FE スタイル実装スキル。デザイントークン 3 層定義 (primitive/semantic/component) と CSS/Tailwind の実装方針を担い、visual-design §⑤design の実装層として機能する
 metadata:
   helix_layer: L4
+  recommended_agent: pmo-sonnet
   triggers:
     - "L4 スタイル実装時"
     - "L5 Visual Refinement 実装時"
@@ -24,7 +25,7 @@ compatibility:
 ```
 visual-design §⑤design（配色・タイポ・質感の方針）
   ↓
-fe-style（デザイントークン実装 + スタイリング）
+スタイル実装スキル（デザイントークン実装 + スタイリング）
   ↓ 成果物: tokens.json / tailwind.config.ts
   ↓
 design-tools/web-system（shadcn/ui 等のデザインシステム構築）
@@ -151,7 +152,7 @@ L5 入場後にスタイル修正が発生した場合の分類:
 | 変更種別 | 定義 | 対応 |
 |---------|------|------|
 | V0 | 見た目のみ（色・余白・フォントサイズ調整） | トークン値の変更のみで対応 |
-| V1 | UI 構造変更（コンポーネント追加・削除） | fe-component と連携 |
+| V1 | UI 構造変更（コンポーネント追加・削除） | コンポーネント実装スキルと連携 |
 | V2 | API・契約影響（データ構造変更が必要） | TL へエスカレーション |
 
 ---

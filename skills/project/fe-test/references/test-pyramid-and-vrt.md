@@ -1,6 +1,6 @@
 # FE テストピラミッドと VRT ガイド
 
-> 目的: Unit / Integration / E2E / VRT の比率目安・Storybook play function の活用パターン・Playwright による VRT・axe-core の自動化手順を整理し、fe-test での実装判断を支援する
+> 目的: Unit / Integration / E2E / VRT の比率目安・Storybook play function の活用パターン・Playwright による VRT・axe-core の自動化手順を整理し、FE UI テスト実装の判断を支援する
 
 ---
 
@@ -390,7 +390,7 @@ npx playwright test e2e/visual.spec.ts
 
 ## 6. axe-core の E2E への統合
 
-fe-a11y の Playwright + axe-core 設定を E2E テストに組み込む。
+アクセシビリティ検証フローの Playwright + axe-core 設定を E2E テストに組み込む。
 
 ```typescript
 // e2e/a11y.spec.ts
@@ -426,7 +426,7 @@ for (const { name, url } of PAGES_TO_TEST) {
 ## 7. CI 統合の全体像
 
 ```yaml
-# .github/workflows/fe-test.yml（概要）
+# .github/workflows/ui-test.yml（概要）
 jobs:
   unit:
     # Vitest: utility / hooks

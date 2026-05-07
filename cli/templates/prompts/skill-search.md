@@ -83,11 +83,6 @@
   - `research`
   - `legacy`
   - `perf`
-  - `fe-design`
-  - `fe-component`
-  - `fe-style`
-  - `fe-test`
-  - `fe-a11y`
 
 ### mode 別ルール
 

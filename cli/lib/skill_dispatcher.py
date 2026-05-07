@@ -34,13 +34,7 @@ def _dispatch_timeout_seconds() -> int:
         return 300
     return max(1, value)
 
-CLAUDE_NATIVE_AGENTS = {
-    "fe-design",
-    "fe-component",
-    "fe-style",
-    "fe-test",
-    "fe-a11y",
-}
+CLAUDE_NATIVE_AGENTS = set()
 
 CODEX_ROLES = {
     "tl", "se", "pg", "fe", "qa", "security", "dba", "devops",
@@ -231,9 +225,9 @@ def determine_agent(skill: dict, recommended_agent: str | None = None) -> dict:
     category = skill.get("category", "") or ""
 
     if "visual-design" in skill_id or skill_id == "design-tools/web-system":
-        return _normalize_agent("fe-design")
+        return _normalize_agent("helix-codex --role tl")
     if skill_id in ("project/ui", "common/design"):
-        return _normalize_agent("fe-component")
+        return _normalize_agent("helix-codex --role tl")
     if skill_id == "common/security" or "security" in skill_id:
         return _normalize_agent("helix-codex --role security")
     if skill_id in ("workflow/verification", "common/testing"):

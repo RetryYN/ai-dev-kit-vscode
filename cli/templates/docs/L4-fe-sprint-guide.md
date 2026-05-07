@@ -13,46 +13,46 @@
 ### .1b 変更計画
 - コンポーネントツリー設計（Atomic Design レベル割当）
 - 新規/既存コンポーネントの判定
-- @fe-design にデザイン方針確認を委譲
+- TL がデザイン方針と情報階層を確認
 - Props 設計（型定義・デフォルト値・バリアント）
 
 ### .2 最小実装
 - Atom → Molecule → Organism の順で実装
 - デザイントークン適用（CSS変数 / Tailwind config）
-- @fe-component に実装委譲
-- @fe-style にスタイリング委譲
+- Codex 実装 role がコンポーネントを実装
+- 必要に応じて PMO Sonnet に read-only レビューを依頼
 - Storybook story 同時作成
 
 ### .3 安全性
-- @fe-a11y にアクセシビリティ監査委譲
+- QA または TL がアクセシビリティ観点を確認
 - WCAG AA 準拠確認（コントラスト/フォーカス/キーボード）
-- @fe-style にレスポンシブ確認（mobile/tablet/desktop）
+- レスポンシブ確認（mobile/tablet/desktop）
 - パフォーマンス確認（バンドルサイズ/レンダリング）
 
 ### .4 テスト
-- @fe-test にテスト作成委譲
+- QA がテスト観点を整理し実装を補助
 - コンポーネントテスト（Testing Library）
 - Storybook ビジュアルリグレッション
 - E2E テスト（Playwright）
 - a11y 自動テスト（axe-core）
 
 ### .5 仕上げ
-- @fe-design に L5 Visual Refinement 委譲
+- TL が L5 Visual Refinement の差分を確認
 - デザインカンプとの差異チェック（ピクセル単位）
 - デザイントークンのハードコード残存チェック
 - G5 ゲート準備（スクリーンショット3枚: desktop/tablet/mobile）
 
-## サブエージェント委譲マップ
+## 役割マップ
 
 | ステップ | 委譲先 | 作業内容 | 出力 |
 |---------|--------|---------|------|
-| .1b | @fe-design | デザイン方針確認 | トークン定義 YAML |
-| .2 | @fe-component | コンポーネント実装 | .tsx + Props 型 |
-| .2 | @fe-style | スタイリング | CSS/Tailwind |
-| .3 | @fe-a11y | アクセシビリティ監査 | 指摘リスト |
-| .3 | @fe-style | レスポンシブ確認 | 修正パッチ |
-| .4 | @fe-test | テスト作成 | .test.tsx + .stories.tsx |
-| .5 | @fe-design | Visual Refinement | レビュー結果 |
+| .1b | TL | デザイン方針確認 | トークン定義 YAML |
+| .2 | Codex 実装 role | コンポーネント実装 | .tsx + Props 型 |
+| .2 | Codex 実装 role | スタイリング | CSS/Tailwind |
+| .3 | QA / TL | アクセシビリティ監査 | 指摘リスト |
+| .3 | Codex 実装 role | レスポンシブ確認 | 修正パッチ |
+| .4 | QA | テスト作成 | .test.tsx + .stories.tsx |
+| .5 | TL | Visual Refinement | レビュー結果 |
 
 ## fullstack 駆動の場合
 

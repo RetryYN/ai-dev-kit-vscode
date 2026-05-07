@@ -13,14 +13,14 @@ D-IA（ページマップ・ナビゲーション設計）と DESIGN.md（ブラ
 ### D-IA → デザインシステム → コンポーネント実装の接続
 
 ```
-D-IA（fe-design で作成）
+D-IA（TL が作成）
   ↓ ページ一覧・ナビゲーション構造が確定
 DESIGN.md §Concept（visual-design で策定）
   ↓ デザインコンセプト・アンチパターンが確定
 デザインシステム（本チェックリスト）
   ↓ トークン・タイポ・コンポーネント仕様が確定
-D-COMPONENT（fe-component で実装）
-  → fe-style でトークン実装
+D-COMPONENT（実装フローで作成）
+  → スタイル実装フローでトークン実装
 ```
 
 ---
@@ -239,9 +239,9 @@ D-COMPONENT（fe-component で実装）
 | §3 Typography | 本チェックリスト §3（タイポグラフィ） |
 | §4 Spacing / Layout | 本チェックリスト §4（スペーシング） |
 | §5 Component System | 本チェックリスト §5（コンポーネント仕様） |
-| §6 Motion / Animation | fe-style での animation-duration トークン定義 |
+| §6 Motion / Animation | スタイル実装フローでの animation-duration トークン定義 |
 | §7 Iconography | アイコンセット選定・サイズ定義 |
-| §8 Accessibility | fe-a11y での WCAG AA 準拠確認 |
+| §8 Accessibility | アクセシビリティ検証フローでの WCAG AA 準拠確認 |
 | §9 Voice & Tone | ラベル文言・エラーメッセージの口調統一 |
 
 ```
