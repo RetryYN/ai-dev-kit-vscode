@@ -1,0 +1,9 @@
+# Sprint .3 W-3a: LLM 分類器系のリテラル設定の一元化
+# 各値の正本はここ。各 lib は cli/lib/defaults_loader.py 経由で読む
+classifier:
+  cache_ttl_sec: 3600
+  llm_timeout_sec: 10
+  boundary_scores: [3, 4, 7, 8, 12, 13]
+recommender:
+  cache_ttl_sec: 3600
+  default_top_n: 5

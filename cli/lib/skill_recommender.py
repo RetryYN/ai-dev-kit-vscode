@@ -11,12 +11,15 @@ from model_registry import resolve_role_model
 from skill_jsonl_schema import ALLOWED_AGENTS, JsonlSchemaError, validate_entry
 
 try:
+    from .defaults_loader import load_defaults
     from .llm_classifier_base import CodexResponseError, LLMClassifierBase
 except ImportError:  # pragma: no cover
+    from defaults_loader import load_defaults
     from llm_classifier_base import CodexResponseError, LLMClassifierBase
 
 MODEL_NAME = resolve_role_model("recommender", default="gpt-5.4-mini")
-CACHE_TTL_SECONDS = 3600
+_DEFAULTS = load_defaults()
+CACHE_TTL_SECONDS = _DEFAULTS["recommender"]["cache_ttl_sec"]
 NETWORK_EXIT_CODES = {7, 8, 28, 124}
 
 

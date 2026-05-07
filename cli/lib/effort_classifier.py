@@ -6,16 +6,19 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .defaults_loader import load_defaults
     from .llm_classifier_base import CodexInvocationError, CodexResponseError, LLMClassifierBase
     from .model_registry import resolve_role_model
 except ImportError:  # pragma: no cover
+    from defaults_loader import load_defaults
     from llm_classifier_base import CodexInvocationError, CodexResponseError, LLMClassifierBase
     from model_registry import resolve_role_model
 
+_DEFAULTS = load_defaults()
 CACHE_DIR = Path(".helix/budget/cache/classify")
-CACHE_TTL_SEC = 3600
-BOUNDARY_SCORES = {3, 4, 7, 8, 12, 13}
-LLM_TIMEOUT_SEC = 10
+CACHE_TTL_SEC = _DEFAULTS["classifier"]["cache_ttl_sec"]
+BOUNDARY_SCORES = set(_DEFAULTS["classifier"]["boundary_scores"])
+LLM_TIMEOUT_SEC = _DEFAULTS["classifier"]["llm_timeout_sec"]
 LEVELS = ["low", "medium", "high", "xhigh"]
 ROLE_DEFAULT_THINKING = {
     "tl": "high", "se": "high", "pg": "medium", "fe": "medium", "qa": "medium",
