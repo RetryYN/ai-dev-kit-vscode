@@ -85,7 +85,23 @@ class EffortClassifier(LLMClassifierBase):
         if not prompt_path.exists():
             raise CodexInvocationError("effort-classify-prompt.md not found")
         payload = {"task": query[:2000], **(context or {})}
-        return prompt_path.read_text(encoding="utf-8", errors="ignore") + "\n\n## 入力\n```json\n" + json.dumps(payload, ensure_ascii=False) + "\n```\n\n## 出力\nJSON のみを出力 ({\"effort\": \"...\", \"score\": N, ...})。"
+        return self._render_prompt(prompt_path, {}) + "\n\n## 入力\n```json\n" + json.dumps(payload, ensure_ascii=False) + "\n```\n\n## 出力\nJSON のみを出力 ({\"effort\": \"...\", \"score\": N, ...})。"
+
+    def _invoke_codex(self, query: str, context: dict | None) -> str:
+        self._llm_failed = False
+        try:
+            return super()._invoke_codex(query, context)
+        except (CodexInvocationError, OSError):
+            self._llm_failed = True
+            scored = getattr(self, "_last_scored", None) or self._score(query, context)
+            return json.dumps(
+                {
+                    "effort": map_to_effort(scored["score"]),
+                    "score": scored["score"],
+                    "breakdown": scored["breakdown"],
+                },
+                ensure_ascii=False,
+            )
 
     def _parse_response(self, raw: str) -> dict:
         parsed = super()._parse_response(raw)
@@ -93,43 +109,74 @@ class EffortClassifier(LLMClassifierBase):
             raise CodexResponseError("effort must be low/medium/high/xhigh")
         return parsed
 
-    def classify(self, task_text: str, role: str | None = None, size: str | None = None, files: int | None = None, lines: int | None = None, use_llm: bool = True) -> dict[str, Any]:
-        context = {"role": role, "size": size, "files": files, "lines": lines}
-        key = self._cache_key(task_text, context)
-        cached = self._cache_lookup(key)
-        if cached is not None:
-            cached["cached"] = True
-            self._last_cache_key = key
-            self._record_decision(task_text, cached, source="cache")
-            return cached
+    def _score(self, task_text: str, context: dict | None) -> dict[str, Any]:
+        context = context or {}
+        return score_task(
+            task_text,
+            context.get("role"),
+            context.get("size"),
+            context.get("files"),
+            context.get("lines"),
+        )
 
-        scored = score_task(task_text, role, size, files, lines)
-        effort, llm_used = map_to_effort(scored["score"]), False
-        if use_llm and scored["score"] in BOUNDARY_SCORES:
-            llm_result = call_classifier(task_text, role, size, files, lines)
-            if llm_result is not None:
-                effort, llm_used = LEVELS[max(LEVELS.index(effort), LEVELS.index(llm_result["effort"]))], True
+    def _classify_from_rules(self, task_text: str, context: dict | None) -> dict | None:
+        context = context or {}
+        scored = self._score(task_text, context)
+        self._last_scored = scored
+        self._last_context = context
+        if context.get("use_llm", True) and scored["score"] in BOUNDARY_SCORES:
+            return None
+        return {
+            "effort": map_to_effort(scored["score"]),
+            "score": scored["score"],
+            "breakdown": scored["breakdown"],
+            "source": "rule",
+        }
 
-        role_default = ROLE_DEFAULT_THINKING.get(role or "", "medium")
+    def _decorate_result(self, parsed: dict, *, llm_used: bool) -> dict:
+        context = getattr(self, "_last_context", {}) or {}
+        scored = getattr(self, "_last_scored", None) or {
+            "score": int(parsed.get("score", 0)),
+            "breakdown": parsed.get("breakdown", {}),
+        }
+        score = int(scored["score"])
+        breakdown = dict(scored["breakdown"])
+        base_effort = map_to_effort(score)
+        parsed_effort = parsed.get("effort") if parsed.get("effort") in LEVELS else base_effort
+        effective_llm_used = bool(llm_used and not getattr(self, "_llm_failed", False))
+        effort = (
+            LEVELS[max(LEVELS.index(base_effort), LEVELS.index(parsed_effort))]
+            if effective_llm_used
+            else parsed_effort
+        )
+        role_default = ROLE_DEFAULT_THINKING.get(context.get("role") or "", "medium")
         recommended = "medium" if effort == "low" and role_default in ("high", "xhigh") else ("low" if effort == "low" else effort)
-        b, split = scored["breakdown"], effort == "xhigh" and size == "S"
+        split = effort == "xhigh" and context.get("size") == "S"
         reason_bits = (
-            ([f"side_effect={b['side_effect']}"] if b["side_effect"] >= 2 else [])
-            + (["新規設計系"] if b["spec_understanding"] >= 3 else [])
-            + ([f"ファイル数 score={b['files']}"] if b["files"] >= 3 else [])
+            ([f"side_effect={breakdown['side_effect']}"] if breakdown.get("side_effect", 0) >= 2 else [])
+            + (["新規設計系"] if breakdown.get("spec_understanding", 0) >= 3 else [])
+            + ([f"ファイル数 score={breakdown['files']}"] if breakdown.get("files", 0) >= 3 else [])
             + (["S サイズに xhigh → 分割推奨"] if split else [])
-            + (["LLM 境界値判定"] if llm_used else [])
+            + (["LLM 境界値判定"] if effective_llm_used else [])
         )
         result = {
-            "effort": effort, "score": scored["score"], "breakdown": b,
+            "effort": effort,
+            "score": score,
+            "breakdown": breakdown,
             "reason": " / ".join(reason_bits) if reason_bits else "標準難度",
-            "recommended_thinking": recommended, "split_recommended": split,
-            "role_default_thinking": role_default, "llm_used": llm_used, "cached": False,
+            "recommended_thinking": recommended,
+            "split_recommended": split,
+            "role_default_thinking": role_default,
+            "llm_used": effective_llm_used,
+            "cached": False,
         }
-        self._last_cache_key = key
-        self._cache_store(key, result)
-        self._record_decision(task_text, result, source="codex" if llm_used else "rule")
+        if llm_used and not effective_llm_used:
+            result["_record_source"] = "rule"
         return result
+
+    def classify(self, task_text: str, role: str | None = None, size: str | None = None, files: int | None = None, lines: int | None = None, use_llm: bool = True) -> dict[str, Any]:
+        context = {"role": role, "size": size, "files": files, "lines": lines, "use_llm": use_llm}
+        return super().classify(task_text, context)
 
 
 def call_classifier(task_text: str, role: str | None = None, size: str | None = None, files: int | None = None, lines: int | None = None) -> dict[str, Any] | None:

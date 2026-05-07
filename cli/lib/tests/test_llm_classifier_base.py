@@ -22,6 +22,13 @@ class DummyClassifier(LLMClassifierBase):
     classifier_name = "dummy_classifier"
 
 
+class RuleClassifier(DummyClassifier):
+    classifier_name = "rule_classifier"
+
+    def _classify_from_rules(self, query: str, context: dict | None) -> dict | None:
+        return {"decision": "rule", "query": query, "context": context or {}}
+
+
 def _classifier(tmp_path: Path) -> DummyClassifier:
     db_path = tmp_path / ".helix" / "helix.db"
     helix_db.init_db(db_path)
@@ -67,6 +74,38 @@ def test_cache_ttl_expires(tmp_path: Path) -> None:
     assert classifier._cache_lookup("cache-key") is None
 
 
+def test_render_prompt_expands_one_level_include(tmp_path: Path) -> None:
+    classifier = _classifier(tmp_path)
+    (tmp_path / "foo.md").write_text("included {{include nested.md}}\n", encoding="utf-8")
+    (tmp_path / "nested.md").write_text("nested\n", encoding="utf-8")
+    template = tmp_path / "prompt.md"
+    template.write_text("start\n{{include foo.md}}end\n", encoding="utf-8")
+
+    rendered = classifier._render_prompt(template, {})
+
+    assert rendered == "start\nincluded {{include nested.md}}\nend\n"
+
+
+def test_render_prompt_missing_include_raises(tmp_path: Path) -> None:
+    classifier = _classifier(tmp_path)
+    template = tmp_path / "prompt.md"
+    template.write_text("{{include missing.md}}\n", encoding="utf-8")
+
+    with pytest.raises(FileNotFoundError):
+        classifier._render_prompt(template, {})
+
+
+def test_render_prompt_expands_include_and_variables(tmp_path: Path) -> None:
+    classifier = _classifier(tmp_path)
+    (tmp_path / "header.md").write_text("hello {{name}}\n", encoding="utf-8")
+    template = tmp_path / "prompt.md"
+    template.write_text("{{include header.md}}task={{task}}\n", encoding="utf-8")
+
+    rendered = classifier._render_prompt(template, {"name": "HELIX", "task": "review"})
+
+    assert rendered == "hello HELIX\ntask=review\n"
+
+
 def test_invoke_codex_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     classifier = _classifier(tmp_path)
 
@@ -108,6 +147,37 @@ def test_record_decision_inserts_evidence_entry(tmp_path: Path) -> None:
     assert row["ref"] == f"{classifier.classifier_name}/{cache_key}"
     assert row["agent_actor"] == "codex-gpt-5.4-mini"
     assert json.loads(row["metadata"]) == {"query": query, "result": result, "source": "codex"}
+
+
+def test_classify_rule_hook_skips_codex_and_records_rule_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".helix" / "helix.db"
+    helix_db.init_db(db_path)
+    classifier = RuleClassifier(db_path=db_path)
+    classifier.cache_dir = tmp_path / ".helix" / "cache" / classifier.classifier_name
+    calls = {"invoke": 0}
+
+    def fake_invoke(query: str, context: dict | None) -> str:
+        calls["invoke"] += 1
+        return '{"decision": "codex"}'
+
+    monkeypatch.setattr(classifier, "_invoke_codex", fake_invoke)
+
+    result = classifier.classify("rule query", {"phase": "L4"})
+
+    assert result == {"decision": "rule", "query": "rule query", "context": {"phase": "L4"}}
+    assert calls["invoke"] == 0
+    conn = helix_db.get_connection(classifier.db_path)
+    try:
+        row = conn.execute(
+            "SELECT metadata FROM entries WHERE id LIKE 'rule_classifier.%'",
+        ).fetchone()
+    finally:
+        conn.close()
+    assert row is not None
+    assert json.loads(row["metadata"])["source"] == "rule"
 
 
 def test_classify_full_flow_with_mock(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

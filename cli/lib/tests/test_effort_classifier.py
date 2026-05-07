@@ -64,9 +64,9 @@ def test_classify_uses_llm_result_on_boundary_score(
         },
     )
     monkeypatch.setattr(
-        effort_classifier,
-        "call_classifier",
-        lambda *args, **kwargs: {"effort": "xhigh", "score": 13},
+        effort_classifier.EffortClassifier,
+        "_invoke_codex",
+        lambda self, query, context: '{"effort": "xhigh", "score": 13}',
     )
 
     result = effort_classifier.classify(
@@ -83,6 +83,75 @@ def test_classify_uses_llm_result_on_boundary_score(
     assert result["split_recommended"] is True
     assert result["llm_used"] is True
     assert result["recommended_thinking"] == "xhigh"
+
+
+def test_classify_skips_llm_for_non_boundary_score(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(effort_classifier, "CACHE_DIR", tmp_path)
+
+    def _fail_invoke(self, query, context):
+        raise AssertionError("LLM should not be called for non-boundary scores")
+
+    monkeypatch.setattr(effort_classifier.EffortClassifier, "_invoke_codex", _fail_invoke)
+
+    result = effort_classifier.classify(
+        "small maintenance",
+        role="qa",
+        size="M",
+        files=1,
+        lines=10,
+        use_llm=True,
+    )
+
+    assert result["score"] == 5
+    assert result["effort"] == "medium"
+    assert result["llm_used"] is False
+    assert result["cached"] is False
+
+
+def test_classify_calls_llm_for_boundary_score(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(effort_classifier, "CACHE_DIR", tmp_path)
+    calls = {"invoke": 0}
+
+    monkeypatch.setattr(
+        effort_classifier,
+        "score_task",
+        lambda *args, **kwargs: {
+            "score": 12,
+            "breakdown": {
+                "files": 3,
+                "cross_module": 2,
+                "spec_understanding": 2,
+                "side_effect": 4,
+                "test_complexity": 1,
+            },
+        },
+    )
+
+    def _fake_invoke(self, query, context):
+        calls["invoke"] += 1
+        return '{"effort": "xhigh", "score": 13}'
+
+    monkeypatch.setattr(effort_classifier.EffortClassifier, "_invoke_codex", _fake_invoke)
+
+    result = effort_classifier.classify(
+        "API migration test",
+        role="qa",
+        size="S",
+        files=1,
+        lines=10,
+        use_llm=True,
+    )
+
+    assert calls["invoke"] == 1
+    assert result["score"] == 12
+    assert result["effort"] == "xhigh"
+    assert result["llm_used"] is True
 
 
 def test_classify_returns_cached_result_on_second_call(

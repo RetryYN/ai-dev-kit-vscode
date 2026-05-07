@@ -241,9 +241,10 @@ def test_classify_skill_retries_on_unknown_task_id(tmp_path: Path, monkeypatch: 
     assert calls["n"] == skill_classifier.CLASSIFIER_RETRY_COUNT
 
 
-def test_render_prompt_replaces_template_variables() -> None:
-    template = "A={{skill_id}} B={{allowed_agents}} C={{missing}}"
-    rendered = skill_classifier._render_prompt(
+def test_render_prompt_replaces_template_variables(tmp_path: Path) -> None:
+    template = tmp_path / "prompt.md"
+    template.write_text("A={{skill_id}} B={{allowed_agents}} C={{missing}}", encoding="utf-8")
+    rendered = skill_classifier.SkillClassifier()._render_prompt(
         template,
         {"skill_id": "common/security", "allowed_agents": "tl,se"},
     )

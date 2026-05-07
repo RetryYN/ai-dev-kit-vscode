@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -15,6 +16,7 @@ import helix_db
 
 
 logger = logging.getLogger(__name__)
+_INCLUDE_PATTERN = re.compile(r"{{\s*include\s+([^{}]+?)\s*}}")
 
 
 class CodexInvocationError(RuntimeError):
@@ -40,18 +42,29 @@ class LLMClassifierBase:
         self._validate_config()
 
     def classify(self, query: str, context: dict | None = None) -> dict:
-        """Run cache lookup -> Codex invocation -> parse -> cache store -> DB record."""
+        """Run cache/rule/Codex classification flow and record the decision."""
         cache_key = self._cache_key(query, context)
         self._last_cache_key = cache_key
         cached = self._cache_lookup(cache_key)
         if cached is not None:
+            cached = dict(cached)
+            if "cached" in cached:
+                cached["cached"] = True
             self._record_decision(query, cached, source="cache")
             return cached
 
+        rule_result = self._classify_from_rules(query, context)
+        if rule_result is not None:
+            parsed = self._decorate_result(rule_result, llm_used=False)
+            self._cache_store(cache_key, parsed)
+            self._record_decision(query, parsed, source="rule")
+            return parsed
+
         raw = self._invoke_codex(query, context)
-        parsed = self._parse_response(raw)
+        parsed = self._decorate_result(self._parse_response(raw), llm_used=True)
+        record_source = str(parsed.pop("_record_source", "codex"))
         self._cache_store(cache_key, parsed)
-        self._record_decision(query, parsed, source="codex")
+        self._record_decision(query, parsed, source=record_source)
         return parsed
 
     def _validate_config(self) -> None:
@@ -120,6 +133,30 @@ class LLMClassifierBase:
             "Classify the following HELIX input. Return JSON only.\n\n"
             + json.dumps(payload, ensure_ascii=False, indent=2)
         )
+
+    def _render_prompt(self, template_path: Path, vars: dict[str, str]) -> str:
+        """Render a prompt file with one-level relative include expansion."""
+        template_path = Path(template_path).resolve()
+        template = template_path.read_text(encoding="utf-8")
+
+        def replace_include(match: re.Match[str]) -> str:
+            include_path = (template_path.parent / match.group(1).strip()).resolve()
+            if include_path == template_path:
+                raise ValueError(f"prompt include cycle is not allowed: {include_path}")
+            if not include_path.is_file():
+                raise FileNotFoundError(include_path)
+            return include_path.read_text(encoding="utf-8")
+
+        rendered = _INCLUDE_PATTERN.sub(replace_include, template)
+        for key, value in vars.items():
+            rendered = rendered.replace("{{" + key + "}}", "" if value is None else str(value))
+        return rendered
+
+    def _classify_from_rules(self, query: str, context: dict | None) -> dict | None:
+        return None
+
+    def _decorate_result(self, parsed: dict, *, llm_used: bool) -> dict:
+        return parsed
 
     def _parse_response(self, raw: str) -> dict:
         text = raw.strip()

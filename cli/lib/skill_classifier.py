@@ -38,12 +38,6 @@ def _to_csv(values: set[str]) -> str:
     return ", ".join(sorted(values))
 
 
-def _render_prompt(template: str, variables: dict[str, Any]) -> str:
-    for key, value in variables.items():
-        template = template.replace("{{" + key + "}}", "" if value is None else str(value))
-    return template
-
-
 def _extract_json_block(text: str) -> dict[str, Any] | None:
     if not text or not text.strip():
         return None
@@ -118,8 +112,7 @@ class SkillClassifier(LLMClassifierBase):
         context = context or {}
         if context.get("prompt") is not None:
             return str(context["prompt"])
-        template = _template_path(context.get("template_path")).read_text(encoding="utf-8")
-        return _render_prompt(template, {
+        return self._render_prompt(_template_path(context.get("template_path")), {
             "skill_id": query, "skill_md_content": context.get("skill_md_content", ""),
             "allowed_phases": _to_csv(set(context.get("allowed_phases", ALLOWED_PHASES))),
             "allowed_agents": _to_csv(set(context.get("allowed_agents", ALLOWED_AGENTS))),

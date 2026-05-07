@@ -60,12 +60,6 @@ def _safe_text(value: Any) -> str:
     return "" if value is None else str(value)
 
 
-def _render_prompt(template: str, vars: dict[str, Any]) -> str:
-    for key, value in vars.items():
-        template = template.replace("{{" + key + "}}", "null" if value is None else str(value))
-    return template
-
-
 def _extract_json(text: str) -> dict[str, Any] | None:
     if not text:
         return None
@@ -277,13 +271,15 @@ def recommend(task_text: str, top_n: int = 5, layer_filter: str | None = None, c
     is_jsonl_mode = jsonl_candidates is not None and fallback_reason is None
     if fallback_reason and fallback_reason != "jsonl_disabled":
         print(f"[skill_recommender] debug: JSONL fallback reason={fallback_reason}", file=sys.stderr)
-    prompt = _render_prompt(_template_path().read_text(encoding="utf-8"), {
-        "TASK_TEXT": task_text, "TOP_N": top_n, "LAYER_FILTER": layer_filter, "CATEGORY_FILTER": category_filter,
+    classifier = SkillRecommender()
+    prompt = classifier._render_prompt(_template_path(), {
+        "TASK_TEXT": task_text, "TOP_N": str(top_n),
+        "LAYER_FILTER": "null" if layer_filter is None else layer_filter,
+        "CATEGORY_FILTER": "null" if category_filter is None else category_filter,
         "jsonl_candidates": _jsonl_prompt_lines(jsonl_candidates or []) if is_jsonl_mode else "",
         "skill_catalog": "" if is_jsonl_mode else json.dumps(filtered_catalog, ensure_ascii=False, separators=(",", ":")),
         "CATALOG_JSON": json.dumps(filtered_catalog, ensure_ascii=False, separators=(",", ":")),
     })
-    classifier = SkillRecommender()
     classifier.cache_dir = resolved_cache_dir
     classifier.cache_ttl_sec = -1 if force_refresh else CACHE_TTL_SECONDS
     classifier._top_n, classifier._task_text = top_n, task_text
