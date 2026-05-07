@@ -33,6 +33,11 @@ sprint:
   drive: null
   tracks: null
   phase: null
+  visual_phase:
+    current: null
+    stages:
+      L5a: { status: pending }  # Visual Refinement
+      L5b: { status: pending }  # Visual Production
   phase_b:
     current_step: null
     status: pending

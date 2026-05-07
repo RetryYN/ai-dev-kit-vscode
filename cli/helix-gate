@@ -32,6 +32,7 @@ DRY_RUN=false
 UNDO=false
 JSON_OUTPUT=false
 READINESS_MODE_FLAG=""
+G5_PHASE=""
 G10_OUTCOME=""
 G10_OUTCOME_OWNER=""
 G10_OUTCOME_ETA=""
@@ -55,6 +56,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --readiness-mode=*)
       READINESS_MODE_FLAG="${1#--readiness-mode=}"
+      shift
+      ;;
+    --phase)
+      if [[ -z "${2:-}" ]]; then
+        echo "エラー: --phase には phase 名が必要です" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+      G5_PHASE="$2"
+      shift 2
+      ;;
+    --phase=*)
+      G5_PHASE="${1#--phase=}"
       shift
       ;;
     --outcome)
@@ -151,6 +164,20 @@ if [[ "$GATE" != "G10" ]]; then
     echo "エラー: --outcome/--outcome-owner/--outcome-eta/--outcome-reason は G10 専用です" >&2
     exit "$EXIT_INPUT_ERROR"
   fi
+fi
+
+if [[ -n "$G5_PHASE" ]]; then
+  if [[ "$GATE" != "G5" ]]; then
+    echo "エラー: --phase は G5 専用です" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  case "$G5_PHASE" in
+    L5|L5a|L5b) ;;
+    *)
+      echo "エラー: 無効な phase です: $G5_PHASE（L5|L5a|L5b を指定してください）" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
 fi
 
 if [[ "$GATE" == "G10" && -n "$G10_OUTCOME" ]]; then
@@ -365,6 +392,22 @@ _gate_to_l() {
   esac
 }
 
+_g5_effective_phase() {
+  if [[ -n "$G5_PHASE" ]]; then
+    echo "$G5_PHASE"
+  else
+    echo "L5"
+  fi
+}
+
+_phase_to_readiness_phase() {
+  local phase="$1"
+  case "$phase" in
+    L5a|L5b) echo "L5" ;;
+    *) echo "$phase" ;;
+  esac
+}
+
 declare -A GATE_PREREQS
 while IFS=: read -r gate prereq; do
   GATE_PREREQS["$gate"]="$prereq"
@@ -395,7 +438,8 @@ if [[ "$GATE" == "G5" && -f "$PHASE_FILE" ]]; then
   auto_drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
   ui_flag=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.ui" 2>/dev/null || echo "")
   if [[ ("$auto_drive" == "be" || "$auto_drive" == "db") && "$ui_flag" != "true" ]]; then
-    echo "=== G5: drive=$auto_drive + ui=false, skip (L5/G5 不要、auto-skipped) ==="
+    g5_target_phase=$(_g5_effective_phase)
+    echo "=== G5: phase=$g5_target_phase, drive=$auto_drive + ui=false, skip (L5/G5 不要、auto-skipped) ==="
     python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.G5.status" skipped 2>/dev/null || true
     python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.G5.note" "auto-skipped: drive=${auto_drive}, no UI" 2>/dev/null || true
     if [[ "$JSON_OUTPUT" == true ]]; then
@@ -1502,6 +1546,10 @@ PY
   # --- Readiness exit check ---
   local mapped_l readiness_mode readiness_output_file
   mapped_l=$(_gate_to_l "$gate")
+  mapped_l=$(_phase_to_readiness_phase "$mapped_l")
+  if [[ "$gate" == "G5" ]]; then
+    mapped_l=$(_phase_to_readiness_phase "$(_g5_effective_phase)")
+  fi
   readiness_mode=$(parse_readiness_mode "${READINESS_MODE_FLAG:-}")
   if [[ "$readiness_mode" != "skip" ]]; then
     readiness_output_file=$(mktemp "${TMPDIR:-/tmp}/helix-readiness-${gate}-XXXXXX")
