@@ -16,3 +16,4 @@
 | ADR-012-g1-gate-design | ADR-012: G1 ゲート運用方針 | — | 2026-04-14 |
 | ADR-013-r4-gate-design | ADR-013: R4 専用ゲートの要否 | — | 2026-04-14 |
 | ADR-014-roles-config-format | ADR-014: cli/roles/*.conf を正本とする決定 (conf vs yaml 二重管理の整理) | Accepted | 2026-05-08 |
+| ADR-015-helix-v2-orchestration | ADR-015: HELIX v2 orchestration (PM 実装禁止 + PMO 新設 + ロール再配置) | Accepted | 2026-05-08 |
