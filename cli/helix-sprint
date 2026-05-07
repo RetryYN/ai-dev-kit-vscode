@@ -277,6 +277,180 @@ run_g4_static_check() {
   fi
 }
 
+yaml_read_from_file() {
+  local file_path="$1"
+  local path="$2"
+  python3 "$YP" read "$file_path" "$path" 2>/dev/null || true
+}
+
+get_framework_detected() {
+  local framework_file="$HELIX_DIR/framework.yaml"
+  if [[ ! -f "$framework_file" ]]; then
+    echo ""
+    return
+  fi
+  yaml_read_from_file "$framework_file" "detected"
+}
+
+get_framework_tool() {
+  local tool_name="$1"
+  local framework_file="$HELIX_DIR/framework.yaml"
+  if [[ ! -f "$framework_file" ]]; then
+    echo ""
+    return
+  fi
+  yaml_read_from_file "$framework_file" "tools.${tool_name}"
+}
+
+get_default_build_command() {
+  local framework_build detected
+  framework_build="$(get_framework_tool build)"
+  if [[ -n "$framework_build" ]]; then
+    echo "$framework_build"
+    return
+  fi
+
+  detected="$(get_framework_detected)"
+  case "$detected" in
+    node) echo "npm run build" ;;
+    go) echo "go build ./..." ;;
+    rust) echo "cargo build" ;;
+    *) echo "" ;;
+  esac
+}
+
+resolve_strict_command() {
+  local check_name="$1"
+  case "$check_name" in
+    lint)
+      echo "${HELIX_SPRINT_LINT_CMD:-$(get_framework_tool lint)}"
+      ;;
+    test)
+      echo "${HELIX_SPRINT_TEST_CMD:-$(get_framework_tool test)}"
+      ;;
+    build)
+      if [[ -n "${HELIX_SPRINT_BUILD_CMD:-}" ]]; then
+        echo "$HELIX_SPRINT_BUILD_CMD"
+      else
+        echo "$(get_default_build_command)"
+      fi
+      ;;
+    *)
+      echo ""
+      ;;
+  esac
+}
+
+print_strict_detail() {
+  local output="$1"
+  [[ -z "$output" ]] && return 0
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    echo "[strict][detail] $line" >&2
+  done <<< "$output"
+}
+
+run_named_strict_check() {
+  local check_name="$1"
+  local command_text output rc
+  command_text="$(resolve_strict_command "$check_name")"
+
+  if [[ -z "$command_text" ]]; then
+    echo "[strict] ${check_name}: ok (no command configured)"
+    return 0
+  fi
+
+  set +e
+  output="$(bash -lc "$command_text" 2>&1)"
+  rc=$?
+  set -e
+
+  if [[ $rc -eq 0 ]]; then
+    echo "[strict] ${check_name}: ok"
+    return 0
+  fi
+
+  echo "[strict] ${check_name}: failed"
+  print_strict_detail "$output"
+  return 1
+}
+
+list_changed_design_files() {
+  if ! command -v git >/dev/null 2>&1; then
+    return 0
+  fi
+
+  declare -A seen=()
+  local line rel_path abs_path
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    rel_path="${line:3}"
+    if [[ "$rel_path" == *" -> "* ]]; then
+      rel_path="${rel_path##* -> }"
+    fi
+    case "$rel_path" in
+      *D-API/*|*D-CONTRACT/*|*D-DB/*|*D-[A-Z0-9-]*/*)
+        abs_path="$PROJECT_ROOT/$rel_path"
+        if [[ -f "$abs_path" && -z "${seen[$abs_path]:-}" ]]; then
+          seen["$abs_path"]=1
+          printf '%s\n' "$abs_path"
+        fi
+        ;;
+    esac
+  done < <(git -C "$PROJECT_ROOT" status --porcelain --untracked-files=all 2>/dev/null || true)
+}
+
+drift_output_is_blocking() {
+  local output="$1"
+  [[ "$output" == *"WARN:"* ]] && return 0
+  [[ "$output" == *"unknown deliverable"* ]] && return 0
+  [[ "$output" == *"frozen deliverable update detected"* ]] && return 0
+  return 1
+}
+
+run_strict_drift_check() {
+  local files=()
+  local file output rc
+  while IFS= read -r file; do
+    [[ -n "$file" ]] && files+=("$file")
+  done < <(list_changed_design_files)
+
+  if [[ ${#files[@]} -eq 0 ]]; then
+    echo "[strict] drift-check: ok"
+    return 0
+  fi
+
+  for file in "${files[@]}"; do
+    set +e
+    output="$("$SCRIPT_DIR/helix-drift-check" "$file" 2>&1)"
+    rc=$?
+    set -e
+
+    if [[ $rc -ne 0 ]]; then
+      echo "[strict] drift-check: failed"
+      print_strict_detail "$output"
+      return 1
+    fi
+
+    if drift_output_is_blocking "$output"; then
+      echo "[strict] drift-check: failed"
+      print_strict_detail "$output"
+      return 1
+    fi
+  done
+
+  echo "[strict] drift-check: ok"
+  return 0
+}
+
+run_sprint_strict_checks() {
+  run_named_strict_check lint || return 1
+  run_named_strict_check test || return 1
+  run_named_strict_check build || return 1
+  run_strict_drift_check || return 1
+  return 0
+}
+
 log_sprint_step() {
   local step="$1" next="$2"
   if [[ -f "$HELIX_DIR/helix.db" ]]; then
@@ -691,9 +865,18 @@ command_complete() {
     echo "Error: 完了するステップがありません" >&2
     exit 1
   fi
+
+  if [[ "$current" == ".5" ]]; then
+    if ! run_sprint_strict_checks; then
+      echo "[helix-sprint] strict checks failed. Sprint は未完了のままです" >&2
+      exit 1
+    fi
+  fi
+
   mark_step_done "$current"
   echo "[helix-sprint] $current 完了"
   echo ""
+
   if [[ "$current" == ".5" ]]; then
     set_sprint_step "completed"
     run_g4_static_check
