@@ -13,19 +13,18 @@
 
 ```
 Phase 1 計画:  L1(要件)→PM  L2(設計)→TL  L3(詳細設計+工程表)→TL
-Phase 2 実装:  L4 → SE(スコア4+) / PG(スコア1-3) / FE(UI)
-Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  L8(受入)→PM
-横断:          Security / DBA / Perf / Docs / Research / Legacy
+Phase 2 実装:  L4 → SE(スコア4+) / PE(スコア1-3)
+Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  L8(受入)→PM
+横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
 ## ロール一覧 (13)
 
 | ロール | model | 担当フェーズ | 説明 |
 |--------|-------|-------------|------|
-| tl | gpt-5.4 | L2/L3/G2-G5 | 設計・レビュー・ゲート判定 |
-| se | gpt-5.3-codex | L4 | 上級実装（スコア4+、full-auto eligible） |
-| pg | gpt-5.3-codex-spark | L4 | 通常実装（スコア1-3、full-auto eligible） |
-| fe | gpt-5.4 | L4/L5 | フロントエンド実装・Visual |
+| tl | gpt-5.5 | L2/L3/G2-G5 | 設計・レビュー・ゲート判定 |
+| se | gpt-5.4 | L4 | 上級実装・契約・リファクタリング |
+| pe | gpt-5.3-codex-spark / gpt-5.3-codex | L4/L5 | 単機能・速度重視実装 |
 | qa | gpt-5.4 | L6/G4/G6 | テスト・検証・品質ゲート |
 | security | gpt-5.4 | G2/G4/G6/G7 | セキュリティ監査・脆弱性診断 |
 | dba | gpt-5.3-codex | L3/L4 | DB設計・マイグレーション・最適化 |
@@ -34,13 +33,9 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | research | gpt-5.4 | L1/G1R | 技術調査・先行事例・比較 |
 | legacy | gpt-5.4 | R0-R4 | レガシー分析・Reverse HELIX |
 | perf | gpt-5.4 | L4/L6 | パフォーマンス計測・最適化 |
-| recommender | gpt-5.4-mini | 全フェーズ | スキル自動推挙（`helix skill search` 専用、軽量・高速） |
-| classifier | gpt-5.4-mini | 内部 | スキル分類（`helix skill catalog classify` 専用、LLM 最適化 JSONL 生成） |
-| fe-design | gpt-5.4 | L2 | 情報アーキテクチャ・D-IA・コンテンツマップ担当 |
-| fe-component | gpt-5.4 | L4 | Atomic Design コンポーネント実装・Props 型定義 |
-| fe-style | gpt-5.4 | L4/L5 | デザイントークン・Tailwind/styled-components 実装 |
-| fe-a11y | gpt-5.4 | L4/L5/L6 | WCAG 2.1 AA 準拠・axe-core 検証 |
-| fe-test | gpt-5.4 | L4/L6 | Storybook・E2E (Playwright)・VRT 設計 |
+| recommender | gpt-5.4-mini | 全フェーズ | スキル自動推挙（`helix skill search` 専用） |
+| pmo-sonnet | claude-sonnet-4-6 | 横断 | PMO 状況把握・判定サポート |
+| pmo-haiku | claude-haiku-4-5-20251001 | 横断 | PMO 軽作業（docs 系、Web 検索） |
 
 ## 共通ルール
 
@@ -62,6 +57,6 @@ Phase 3 仕上げ: L5(Visual)→FE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | G2 | TL | Security |
 | G3 | TL | PM |
 | G4 | TL | QA, Security |
-| G5 | TL | FE |
+| G5 | TL | PE |
 | G6 | PM+TL | QA, Security |
 | G7 | DevOps | Security |

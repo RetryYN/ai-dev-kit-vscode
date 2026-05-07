@@ -58,6 +58,15 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 - 工程表外の変更が必要になったら、先に工程表更新またはユーザー確認へ戻る。
 - 工程表が必要な規模なのに存在しない場合は、最小工程表または task-plan を作ってから実装する。
 
+## PM/実装分担（v2）
+
+- PM（Opus / Claude Code）はチャットのみ。コード編集・設定変更・ドキュメント更新は行わない。
+- TL / SE / PE は実装を担う。PMO は状況把握、read-only 検査、必要最小限のドキュメント起草を担当。
+- handover は `pm-to-tl` / `tl-to-pm` を明示運用:
+  - PM から TL 継承: `helix handover update --mode pm-to-tl`
+  - TL から PM 逆戻し: `helix handover update --mode tl-to-pm`
+- 進行中の `--mode pm-to-tl` / `--mode tl-to-pm` 状態は `Next Action` と分担範囲に反映する。
+
 ## HELIX Workflow
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`

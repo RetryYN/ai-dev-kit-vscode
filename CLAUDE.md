@@ -83,21 +83,29 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 
 | 委譲先 | ロール | 主な担当 |
 |--------|------|---------|
-| Opus (自身) | PM | 言語化・タスク分解・統合・エスカレーション判断・フロント設計 |
-| Codex 5.5 | TL / SE / QA | 設計・技術判断・上級実装・テスト設計 |
-| Codex 5.3 Spark | PG / docs | 通常以下実装・ドキュメント起草 |
-| Codex 5.4 | Legacy / FE 専門 | レガシー対応・fe-* サブエージェント |
+| Opus (自身) | PM | チャットのみ。言語化・タスク分解・統合・エスカレーション判断。コード編集禁止 |
+| Codex 5.5 | TL | 設計・技術判断・レビュー・高度実装・検証 |
+| Codex 5.3-codex-spark | PE | 単機能実装・速度重視実装 |
+| Codex 5.4 | SE | 契約・複雑実装・リファクタリング |
 | Codex 5.3 | Security / DBA / DevOps / Perf | セキュリティ監査・DB・インフラ・性能 |
 | Codex 5.4-mini | Recommender / Classifier | スキル推挙・タスク分類 |
-| Sonnet | FE 実装 | フロント実装・テスト・ドキュメント |
-| Haiku 4.5 | Research | Web 検索・先行事例調査 |
+| Sonnet | PMO（判断伴う） | 構造化チェック、ドキュメント状況把握（read-only） |
+| Haiku 4.5 | PMO（軽作業） | Web 検索・`docs/**` 限定軽作業（read-write） |
 
 - ドキュメントと実装が乖離した場合は **実装 (`cli/config/models.yaml`) を正** とする。本表は周知用。
 - ロール定義の正本は [cli/ROLE_MAP.md](cli/ROLE_MAP.md)。
 
-## Agent tool コスト制御（必須）
+## Agent tool 完全禁止（v2）
 
-- Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略すると Opus→Opus になりコスト爆発。
+特定指定付きの Agent tool 呼び出しを含む実行は原則禁止。PMO の read-only・軽作業は `helix claude --role pmo --execute` 経由に統一する。
+
+実行例:
+
+```bash
+helix claude --role pmo --model sonnet --task "docs チェック" --execute
+helix claude --role pmo --model haiku --task "docs minor fix" --execute
+```
+
 - 委譲必須の判定基準:
   - 同一タスクで Read 合計が 200 行を超える見込み
   - Grep / Glob が 3 回以上必要

@@ -12,8 +12,9 @@
 ## 基本原則
 
 - HELIX のフェーズとゲートは維持し、役割だけを Codex 単体向けに圧縮する
-- 共通スキルに `PM/TL/SE/QA` の分業記述があっても、Codex 単体では自分の内面化された役割として処理する
-- 共有スキルを Codex 用に書き換えず、この文書で読み替える
+- v2 分担に合わせ、TL は `gpt-5.5` を中核、SE は `gpt-5.4`、PE は `gpt-5.3-codex-spark` を使い分ける
+- PMO 系は `helix claude --role pmo --model sonnet/haiku --execute` を経由する
+- 共有スキルを Codex 用に無理に書き換えず、この文書で読み替える
 - 自動通過は会議省略を意味し、証跡省略を意味しない
 - **工程表を正とする**。実装順、担当 role、依存、受入条件、参照ドキュメントは L3 工程表 / `.helix/task-plan.yaml` / handover Next Action に従う
 - **計画提示後は承認待ち**。Codex がユーザーに計画・実装順・整理案を提示した場合、明示承認があるまでファイル編集や外部状態変更へ進まない
@@ -46,10 +47,12 @@ Codex 実装委譲は原則 `helix codex` 経由にする。`helix codex` は以
 
 | 元の役割 | Codex TL モードでの扱い |
 |---------|-------------------------|
-| PM | タスクサイジング、フェーズ選択、進行管理として Codex が内面化して実施 |
-| TL | Codex 自身。設計判断、技術的優先度、ゲート判定を担当 |
-| SE / PG | 必要時のモデル切替先。単体セッションでは Codex が実装まで行ってよい |
-| QA / ドキュメント担当 / 調査担当 | 利用可能なら補助モデルへ委譲可。未利用でも Codex が自分で実施してよい |
+| PM | ユーザー（Opus）。チャットのみ。実装承認・受入承認・最終判断を担当 |
+| TL | Codex TL（gpt-5.5, high）。設計判断、技術的優先度、ゲート判定、レビュー・セキュリティを担当 |
+| SE | Codex（gpt-5.4, high）。高度実装・契約判断・リファクタリングを担当 |
+| PE | Codex（gpt-5.3-codex-spark / gpt-5.3-codex）。単機能の速度重視実装を担当 |
+| PMO Sonnet | `helix claude --role pmo --model sonnet --execute`。read-only / 軽実装判断支援を担当 |
+| PMO Haiku | `helix claude --role pmo --model haiku --execute --allow-paths "docs/**"`。Web 検索・`docs/**` 級軽作業を担当 |
 | PO | ユーザー。スコープ、受入、ビジネス判断、人間承認の所有者 |
 
 ## 共有文書の読み方
@@ -62,8 +65,8 @@ Codex 実装委譲は原則 `helix codex` 経由にする。`helix codex` は以
 
 ### 他モデル前提の記述
 
-- Sonnet / Haiku / 別 Codex / Claude Code への委譲は、工程表の role と作業種別に従って判断する
-- 工程表または task-plan で role が分かれている場合、TL が全作業を抱え込まず、`helix codex` / `helix claude --dry-run` / `helix team` / 利用可能なサブエージェントで委譲する
+- Sonnet / Haiku へ寄る PMO 作業は `helix claude --role pmo` で固定する
+- 工程表または task-plan で role が分かれている場合、TL が全作業を抱え込まず、`helix codex` / `helix claude --execute` / `helix team` / 利用可能なサブエージェントで委譲する
 - 利用できない場合も、テスト・ドキュメント・調査は省略せず自分で実施し、委譲できなかった理由を final の evidence に残す
 - `helix review` や別モデルレビューを起動しない場合でも、**レビュー工程そのものは必須**
 
@@ -128,7 +131,7 @@ TL モードは「自分で全部やる」モードではなく、HELIX の管�
 - 実装前調査: `helix code find "<keyword>"` と必要に応じて `helix code stats`
 - 計画・タスク: `helix plan` / `helix task` / `helix sprint`
 - Codex 委譲: `helix codex --role <role> --task ...`
-- Claude Code 委譲: `helix claude --role <role> --task ... --dry-run`
+- PMO 委譲: `helix claude --role pmo --model sonnet --execute --task "..."` / `helix claude --role pmo --model haiku --execute --allow-paths "docs/**" --task "..."`
 - 複数 role: `helix team run --definition ...`
 - 差分レビュー: `helix review --uncommitted`
 - 引継ぎ: `helix handover status --json` / `helix handover update`
@@ -214,6 +217,7 @@ TL モードは「自分で全部やる」モードではなく、HELIX の管�
 - **Next Action にないファイルへの変更は事前確認** (それ自体がエスカレーション対象)
 - **契約 (D-API / D-DB / D-CONTRACT) の変更が必要と判断したら escalate**。単独確定しない
 - **clear コマンドは Codex 実行禁止**。完了判定は Opus が行う
+- PM→TL / TL→PM 移行時は明示的に `helix handover update --mode pm-to-tl` または `--mode tl-to-pm` を使う
 
 ### Handover 特有のエスカレーション追加条件
 

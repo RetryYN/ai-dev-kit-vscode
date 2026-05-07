@@ -6,6 +6,23 @@
 - **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
+## モデル割当（真実は `cli/config/models.yaml`）
+
+| ロール | モデル | thinking |
+|--------|--------|--------|
+| PM | Opus (Claude Code) | — |
+| PMO Sonnet | claude-sonnet-4-6 | medium |
+| PMO Haiku | claude-haiku-4-5-20251001 | low |
+| TL | gpt-5.5 | high |
+| SE | gpt-5.4 | high |
+| PE | gpt-5.3-codex-spark / gpt-5.3-codex | low-medium |
+
+## 参考正本（ADR / PLAN）
+
+- `docs/adr/ADR-014-roles-config-format.md`
+- `docs/adr/ADR-015-helix-v2-orchestration.md`
+- `docs/plans/PLAN-028-helix-v2-orchestration.md`
+
 ## 4フェーズ思想
 
 ```
@@ -178,7 +195,7 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 | G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
 | G6 追加条件 | — | **MOCK-DERIVED-CONTRACT resolved 必須** | — | 同左（fe同等） | — |
 
-> **fe / fullstack の詳細フロー**（L2 ステップ内訳 / TL 契約導出手順 / モック由来 debt ライフサイクル / 責務分担表 / アンチパターン）→ `skills/project/fe-design/references/fe-drive-flow.md` 参照
+> **UI / fullstack の詳細フロー**（L2 ステップ内訳 / TL 契約導出手順 / モック由来 debt ライフサイクル / 責務分担表 / アンチパターン）→ `skills/project/ui/references` 配下を参照
 
 ### L5 要否の判定
 
@@ -233,7 +250,7 @@ fullstack 追加条件:
 |---------|--------|
 | workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc** |
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
-| project/ | ui, api, db, **fe-design**, **fe-component**, **fe-style**, **fe-a11y**, **fe-test** |
+| project/ | ui, api, db |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
 | integration/ | agent-teams, **agent-design** |
@@ -244,7 +261,7 @@ fullstack 追加条件:
 
 **2026-04-17 追加分** (20スキル):
 - workflow/: research (G1R)・poc (G1.5)・gate-planning (G0.5/G1.5)・schedule-wbs (L3)・threat-model (G2)・runbook (L6)・debt-register (G4)・reverse-r0〜r4 + reverse-rgc (R0-R4 + RGC)
-- project/: fe-design・fe-component・fe-style・fe-a11y・fe-test (FE サブエージェント 5種)
+- project/: ui/design-doc を経由する経路を継続し、FE 系サブエージェント個別運用は v2 方針で停止
 - tools/: web-search (native WebSearch + WebFetch)・ai-search (Haiku 4.5 委譲)
 
 **2026-04-22 追加分** (25スキル、agent-skills/ カテゴリ新設):
@@ -254,7 +271,7 @@ fullstack 追加条件:
 - 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 12 エージェント構成）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
-既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は FE 5種のインデックスとして残存。
+既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は UI 参照インデックスとして残存。
 
 **2026-05-08 追加分** (1スキル、ユーザー自作):
 - integration/: **agent-design** (AIエージェント設計の判断軸 11 本 = 要素・骨格・思考指定・出力指定・スキーマ・前段制約・後段責務の連鎖、`型 = 要素定義 + フレーム化` の還元式と縛りの 3 階層を中核とする L2/L3 設計概論)
@@ -354,8 +371,8 @@ helix handover resume
 
 ### 委譲の自動化
 `helix skill use` は recommender が選んだ agent へ委譲する:
-- `fe-design` / `fe-component` / `fe-style` / `fe-test` / `fe-a11y` はネイティブサブエージェント（`@` mention 指示）
-- `tl` / `se` / `pg` / `qa` / `security` / `dba` / `devops` / `docs` / `research` / `legacy` / `perf` は Codex ロール（`helix codex --role X --task "<bundle>\n\n<task>"` で自動実行）
+- `tl` / `se` / `pe` / `qa` / `security` / `dba` / `devops` / `docs` / `research` / `legacy` / `perf` は Codex ロール（`helix codex --role X --task "<bundle>\n\n<task>"` で自動実行）
+- PMO 系は `helix claude --role pmo` 系へ委譲し、FE 設計は TL→PM チェック後に PMO 経由の整合運用へ回す
 
 ### 実装ファイル
 - `cli/lib/skill_catalog.py` — catalog 生成・読み込み（SKILL.md + references parser）

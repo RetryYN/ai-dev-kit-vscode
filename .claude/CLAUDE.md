@@ -9,23 +9,23 @@
 
 - **Edit 前に Read**: 未読ファイルの Edit は失敗する
 
-### Opus = オーケストレーター + フロント設計
+### PM = Opus（実装禁止・チャットのみ）
 
-**常時すべて委譲**。例外は MCP検証などツール動作確認と**フロント（デザイン含む）設計**。
+**すべて委譲**。例外は MCP 検証などツール動作確認のみ。
 
 > 正本: `skills/tools/ai-coding/references/workflow-core.md §モデル割当テーブル`
 
 | 委譲先 | 役割 | 担当 |
 |--------|------|------|
-| Opus（自身） | PM | 言語化・タスク分解・外注指示・出力レビュー・統合・エスカレーション判断・**フロント設計** |
-| Codex 5.5 | TL / SE / QA | 設計（L2-L3）・技術的難易度評価・レビュー・上級実装・テスト設計 |
-| Codex 5.3 Spark | PG / docs | 通常以下実装（スコア1-3）・ドキュメント起草 |
-| Codex 5.4 | Legacy / FE 専門 | レガシー対応・fe-design / fe-component / fe-style / fe-a11y / fe-test |
+| Opus（自身） | PM | 言語化・タスク分解・外注指示・出力レビュー・統合・エスカレーション判断・実装承認 |
+| Codex 5.5 | TL | 設計・レビュー・高度実装・検証・セキュリティ |
+| Codex 5.3-codex-spark | PE | 単機能・速度重視実装 |
+| Codex 5.4 | SE | 契約・高度実装・リファクタリング |
 | Codex 5.3 | Security / DBA / DevOps / Perf | セキュリティ監査・DB スキーマ・インフラ・性能 |
 | Codex 5.2 | Research | 大規模コード精読・スキャン |
 | Codex 5.4-mini | Recommender / Classifier | スキル推挙・タスク分類 |
-| Sonnet | FE実装 | フロント実装・FEデザイン初稿・テスト・ドキュメント |
-| Haiku 4.5 | リサーチ | Web検索・先行事例調査 |
+| Claude Sonnet 4.6 | PMO（read-only） | 状況把握・ドキュメントチェック・判断伴う read-only 作業 |
+| Haiku 4.5 | PMO（light） | Web検索・`docs/**` 限定軽作業 |
 
 > 真実は `cli/config/models.yaml` の `roles:`。本表が乖離した場合は **実装側を正** とする。
 
@@ -49,28 +49,28 @@
 - どちらが先に終わってもよい場合は独立に進行・独立にコミット
 - 並列投入前に「衝突するファイル」「後段依存」を 1 行で書き出して根拠を残す
 
-例: BE 実装 (Codex SE) ∥ FE 実装 (@fe-component) ∥ docs 起草 (Codex docs) / 異なる Sprint で独立ファイル群を編集する Codex 同時投入 / 完了済み Sprint の commit と次 Sprint の委譲を並走
+例: BE 実装 (Codex SE) ∥ docs 起草 (PMO/Codex 協働) / 異なる Sprint で独立ファイル群を編集する Codex 同時投入 / 完了済み Sprint の commit と次 Sprint の委譲を並走
 
 **禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
 
-### Agent tool コスト制御（必須）
+### Agent tool 完全禁止（必須）
 
-Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略すると Opus→Opus になりコスト爆発。
+Agent tool 呼び出しは原則行わない。必要時は PMO を経由した `helix claude --role pmo --execute` で実施する。
 
 | 用途 | 委譲先 | 根拠 |
 |------|--------|------|
 | コード探索 (1 回の Grep/Glob/Read で完結) | 自分で直接 (Bash/Read) | オーバーヘッド回避 |
-| コード探索 (2 ステップ以上、複数ファイル横断) | Agent(model: "sonnet", subagent_type: "Explore") | Opus context 保護 |
-| 長文 Read (≥100 行 / review.json / PLAN.md 全体) | Agent(model: "sonnet") + 要約受領 | Opus トークン削減 |
+| コード探索 (2 ステップ以上、複数ファイル横断) | helix claude --role pmo --model sonnet --execute | Opus context 保護 |
+| 長文 Read (≥100 行 / review.json / PLAN.md 全体) | PMO Sonnet | Opus トークン削減 |
 | 設計計画 | helix-codex --role tl | Codex TL が適切 |
-| BE実装・レビュー・テスト | helix-codex --role (se/pg/qa) | Codex が主力 |
-| FE実装・デザイン | @fe-design / @fe-component 等 | 既に Sonnet |
+| BE実装・レビュー・テスト | helix-codex --role (se/pe/qa) | Codex が主力 |
+| ドキュメント本文起草 (>100 行) | helix claude --role pmo --model sonnet --execute | PM は要件提示と finalize のみ |
 | PM判断・統合・返答 | Opus（自分） | 委譲しない |
 | ドキュメント本文起草 (>100 行) | helix-codex --role docs | PM は要件提示と finalize のみ |
 
 #### 委譲必須の判定基準（厳格化、2026-05-03 改訂）
 
-以下のいずれかに該当 → **Opus 自身でやらず Sonnet/Codex 委譲を必須化**:
+以下のいずれかに該当 → **Opus 自身でやらず PMO/Codex 委譲を必須化**:
 
 - 同一タスクで Read 合計が 200 行を超える見込み
 - Grep / Glob が 3 回以上必要
@@ -85,6 +85,7 @@ Agent tool 呼び出し時は **必ず `model: "sonnet"` を指定**。省略す
 **禁止**: Agent tool を model 指定なしで呼ぶこと
 **禁止**: Opus がバックエンドコードを直接 Edit/Write すること
 **禁止**: Opus が「自分でやった方が早い」を理由に委譲基準を超えた直接実行をすること
+**禁止**: Agent tool の特定指定付き呼び出しを含む実行
 
 #### Budget 可視化（Opus 残使用量の把握）
 
@@ -102,17 +103,17 @@ Opus 週間残量が少ない時は委譲を強化（探索・長文 Read を 10
 タスク受領時、以下の順で評価:
 
 0. **タスク内容のスキル推挙呼び出し (PLAN-022 必須)**: `helix skill chain "<タスク記述>"` を実行し、gpt-5.4-mini が選定した上位 skill と推奨 agent を確認する。推挙結果に従って Step 1-9 の判定を行う。skip する場合 (自明な小修正・既知 skill のみ使用・調査読み取りのみ等) は会話または final report に skip 理由を記録する。推挙は 1 時間 TTL キャッシュ済 (`.helix/cache/recommendations/`) なのでコスト負担はほぼない。
-1. BE実装/DB/インフラ → `helix-codex --role (se|pg|dba|devops)`
+1. BE実装/DB/インフラ → `helix-codex --role (se|pe|dba|devops)`
 2. 設計・レビュー → `helix-codex --role tl`
 3. セキュリティ → `helix-codex --role security`
-4. FE実装 → `@fe-component` / `@fe-style`
-5. FE設計 → `@fe-design`
+4. 単機能（速度重視）実装 → `helix-codex --role pe`
+5. FE設計 → TL→PM チェック後、PMO Sonnet で整合確認
 6. テスト(BE) → `helix-codex --role qa`
-7. テスト(FE) → `@fe-test`
+7. テスト(FE) → `helix-codex --role qa`
 8a. コード調査（単発・< 100 行 Read 1 回 / Grep 1 回で完結）→ 自分で直接ツール使用
-8b. コード調査（複数ステップ・複数ファイル横断・長文 Read）→ Agent(model: "sonnet", subagent_type: "Explore")
-8c. ドキュメント長文解析（PLAN/review.json 全体）→ Agent(model: "sonnet") で要約受領
-8d. ドキュメント本文起草（PLAN/SKILL.md > 100 行）→ `helix-codex --role docs`
+8b. コード調査（複数ステップ・複数ファイル横断・長文 Read）→ `helix claude --role pmo --model sonnet --execute`
+8c. ドキュメント長文解析（PLAN/review.json 全体）→ PMO Sonnet で要約受領
+8d. ドキュメント本文起草（PLAN/SKILL.md > 100 行）→ `helix claude --role pmo --model sonnet --execute`
 9. PM判断・統合・finalize 判断 → 自分で対応
 
 ### 思考レベル制御 (effort)
@@ -125,8 +126,8 @@ Opus 週間残量が少ない時は委譲を強化（探索・長文 Read を 10
 
 | effort | エージェント |
 |--------|------------|
-| **high** | be-api / be-logic / code-reviewer / db-schema / devops-deploy / fe-design / security-audit |
-| **medium** | fe-component / fe-style / fe-a11y / fe-test / qa-test |
+| **high** | be-api / be-logic / code-reviewer / db-schema / devops-deploy / security-audit |
+| **medium** | qa-test / legacy / perf |
 
 責務ベースで設定済み。設計責任重 → high、実装・検査中心 → medium。
 
@@ -135,8 +136,8 @@ Opus 週間残量が少ない時は委譲を強化（探索・長文 Read を 10
 |--------|---------|------|
 | Critical | アーキテクチャ判断・セキュリティ設計 | Opus 自身が対応（委譲しない） |
 | High | 複雑な実装・複数モジュール横断 | Codex `--thinking high` or effort high サブエージェント |
-| Medium | 標準的な修正・FE実装 | Sonnet サブエージェント (effort medium) |
-| Low | ドキュメント・単純修正 | Sonnet or Codex `--thinking low` |
+| Medium | 標準的な修正・単機能実装 | PE（effort medium） |
+| Low | ドキュメント・単純修正 | PMO/ Codex `--thinking low` |
 
 Critical は委譲せず自分で判断。High 以下は必ず委譲。
 
@@ -150,7 +151,7 @@ Critical は委譲せず自分で判断。High 以下は必ず委譲。
 ~/ai-dev-kit-vscode/cli/helix-codex --role <role> --task "タスク内容"
 ```
 
-ロール選択は `~/ai-dev-kit-vscode/cli/ROLE_MAP.md` を参照（12ロール: tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf）。
+ロール選択は `~/ai-dev-kit-vscode/cli/ROLE_MAP.md` を参照（tl/se/pe/qa/security/dba/devops/docs/research/legacy/perf と PMO）。
 
 **直接 codex exec を使う場合**（helix-codex で対応できないとき）:
 - `codex exec "プロンプト" -m gpt-5.3-codex`（軽量: `-m gpt-5.3-codex-spark`）

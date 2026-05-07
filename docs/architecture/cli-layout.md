@@ -68,8 +68,9 @@ cli/
 - Python リテラル定数の埋め込みは禁止方向（Sprint .3 W-3a 方針）。
 - プロンプトと hook は `templates/prompts` / `templates/hooks` に分離配置。
 - `templates/` 直置きの prompt/hook（`*-prompt` / `*-hook`）は原則廃止。
-- `templates/agents` は FE サブエージェント定義を扱い、Core 実装とは分離。
+- `templates/agents` は AI エージェント定義を扱い、Core 実装とは分離。
 - `lib/*` は import 可能な再利用可能単位を意識し、`helix` で直接 import しない。
+- PMO 起票/状態確認系は `helix claude --role pmo --model sonnet|haiku --execute` を経由。
 
 ## 4. 命名規約
 
@@ -86,6 +87,7 @@ cli/
   - `-hook` サフィックスは不要
 - 設定: `snake_case` + 役割別接頭辞（例: `models.yaml`, `defaults.yaml`）
 - テストファイル: `test-*.bats`（bats）または `test_*.py`（pytest）
+- `helix-claude`: `helix-claude --role <role> --model <model> --task \"<task>\" --execute [--allow-paths \"docs/**\"]`
 
 ## 5. 横断ルール
 

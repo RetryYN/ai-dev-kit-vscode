@@ -15,6 +15,17 @@
 - triggers 該当時は自発的に Read。全スキル一括読み込み禁止
 - コンテキスト管理: `context-memory` スキル参照
 
+## モデル割当（真実は `cli/config/models.yaml`）
+
+| ロール | モデル | thinking |
+|------|--------|--------|
+| PM | Opus (Claude Code) | — |
+| PMO Sonnet | claude-sonnet-4-6 | medium |
+| PMO Haiku | claude-haiku-4-5-20251001 | low |
+| TL | gpt-5.5 | high |
+| SE | gpt-5.4 | high |
+| PE | gpt-5.3-codex-spark / gpt-5.3-codex | low-medium |
+
 ## タスク受領
 
 1. サイジング S/M/L（SKILL_MAP.md §タスクサイジング）
@@ -25,7 +36,13 @@
   - 公開 API / 再利用候補は `--bucket coverage_eligible`（default）で確認
   - private helper の再利用/PoC seed 探索は `--bucket private_helper` を併用する
   - 非公開 → 公開昇格候補（seed candidate）を `--seed-promotable true` で抽出する
-4.7 タスク内容に応じたスキル推挙: `helix skill chain "<タスク記述>"` を実行し、gpt-5.4-mini が選定した上位スキルと推奨 agent を確認する。skip 理由がある場合は会話または final report に記録する（例: 自明な小修正、既知 skill のみ使用 等）
+4.6 v2 ディスパッチ: タスク性質で必須委譲先を優先決定
+- BE 実装/DB/インフラ: `helix codex --role se`
+- 設計・レビュー・デバッグ: `helix codex --role tl`
+- 速度重視単機能実装: `helix codex --role pe`
+- 状況把握 / docs チェック: `helix claude --role pmo --model sonnet --execute`
+- 軽文書チェック / docs/**: `helix claude --role pmo --model haiku --execute --allow-paths "docs/**"`
+4.7 スキル推奨: `helix skill chain "<タスク記述>"` を任意で実施。skip 理由がある場合は会話または final report に記録する（例: 自明な小修正、既知 skill のみ使用 等）
 
 L4 implementation / build / G4 補足（PLAN-013）:
 - L4 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
