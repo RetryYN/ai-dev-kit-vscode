@@ -90,6 +90,16 @@ carry 件数は 5 件で、現時点で個別 PLAN に再分配すると粒度�
 - W-5 の役割: memory 記録上の三重乖離を再検証し、`resolved` (既に整合) か `partial` (CLAUDE.md / docs 側に残存) かを判定する判断 sprint。実ファイル更新は別 commit に分離。
 - 影響: 本 carry は仕様変更ではなく **memory / docs 側の表記更新** に縮退する見込み。
 
+##### W-5 判定 (2026-05-09 完了)
+
+- **判定: resolved (両ソース整合済)**
+- 検証範囲:
+  - `cli/roles/research.conf:1` = `codex_model=gpt-5.5` ✓
+  - `cli/config/models.yaml:14` = `research: gpt-5.5` ✓
+  - `CLAUDE.md` / `AGENTS.md` / `helix/HELIX_CORE.md` に research.conf 関連の記述なし (古い乖離記録は反映されていない)
+- 結論: PLAN-024 Sprint .1 (2026-05-06) 起源の三重乖離 (research.conf=5.4 / models.yaml=5.2-codex / CLAUDE.md=5.2) は **PLAN-028 W-2 (cli/roles + models.yaml v2 役割再配置) で実質的に解消**された。memory 側の古い記録 (`project_2026_05_06_plan024_sprint1.md` 等) のみが stale。
+- 後処理: 別 commit で memory carry 記述の整理 (Opus 直接更新)。実装 / 設定変更は不要。
+
 #### 除外 carry: raw claude shim HELIX_CLAUDE_INTERNAL guard
 
 - 出典: `.helix/retros/PLAN-028.md:58` の Try「raw claude shim の HELIX_CLAUDE_INTERNAL guard 強化テスト」。
