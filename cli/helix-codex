@@ -317,17 +317,27 @@ should_include_review_template_for_task_type() {
 detect_plan_only_task() {
   local task="$1"
   local task_type="${2:-不明}"
+  local raw_task="${3:-$task}"
   local plan_pattern='計画|実装順|工程表|整理|方針|案を|洗い出し|レビュー|調査|見積|plan|planning|review|analyze|analysis|investigate|research'
   local execute_pattern='実装して|修正して|対応して|導入して|実行して|進めて|やって|閉じて|直して|作って|追加して|変更して|apply|proceed|implement|fix|install|run|execute|change|add'
+  local explicit_implementation_pattern='^[[:space:]]*\[タスク種別\][[:space:]]*:?[[:space:]]*(\*\*|__|`)?[[:space:]]*実装([[:space:][:punct:]]|$)'
+
+  if grep -Eq "$explicit_implementation_pattern" <<< "$raw_task"; then
+    return 1
+  fi
 
   case "$task_type" in
     レビュー|設計|調査) return 0 ;;
-    実装) return 1 ;;
   esac
 
   if grep -Eiq "$plan_pattern" <<< "$task" && ! grep -Eiq "$execute_pattern" <<< "$task"; then
     return 0
   fi
+
+  case "$task_type" in
+    実装) return 1 ;;
+  esac
+
   return 1
 }
 
@@ -345,7 +355,7 @@ apply_consent_guard() {
       PLAN_ONLY_REASON="approved"
       ;;
     auto)
-      if detect_plan_only_task "$TASK" "$TASK_TYPE"; then
+      if detect_plan_only_task "$TASK" "$TASK_TYPE" "$TASK_RAW"; then
         PLAN_ONLY=true
         PLAN_ONLY_REASON="auto-detected plan/review task"
       fi
@@ -575,6 +585,7 @@ if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
 fi
 
 TASK_TYPE="$(detect_task_type "$TASK")"
+TASK_RAW="$TASK"
 TASK="$(ensure_task_type_prefix "$TASK")"
 
 validate_sandbox_mode "$SANDBOX" || exit 1
