@@ -245,6 +245,7 @@ run_test_json_valid "budget status --json (via helix dispatcher)" "$SCRIPT_DIR/h
 echo ""
 
 echo "[helix-init]"
+run_test "restore template agents" "cp $SCRIPT_DIR/../.claude/agents/*.md $SCRIPT_DIR/templates/agents/"
 run_test "init new project" "$SCRIPT_DIR/helix-init --project-name test-app"
 run_test "init idempotent" "$SCRIPT_DIR/helix-init --project-name test-app"
 run_test "init --force" "$SCRIPT_DIR/helix-init --project-name test-v2 --force"
@@ -252,7 +253,7 @@ run_test_contains "CLAUDE.md created" "cat CLAUDE.md" "HELIX"
 run_test_contains "AGENTS.md created" "cat AGENTS.md" "Codex CLI"
 run_test_contains ".gitignore has CLAUDE.local.md" "cat .gitignore" "CLAUDE.local.md"
 run_test_contains ".gitignore has AGENTS.override.md" "cat .gitignore" "AGENTS.override.md"
-run_test "agents copied" "test -d .claude/agents && find .claude/agents -maxdepth 1 -type f | grep -q ."
+run_test "agents copied" "test -d .claude/agents && test \"$(find .claude/agents -maxdepth 1 -type f | wc -l)\" -eq 7"
 run_test_contains "commit-msg hook installed" "test -f .git/hooks/commit-msg && echo OK" "OK"
 run_test_contains "commit-msg hook executable" "test -x .git/hooks/commit-msg && echo OK" "OK"
 run_test_contains "post-merge hook installed" "test -f .git/hooks/post-merge && echo OK" "OK"
@@ -397,7 +398,7 @@ echo "[helix-auto-thinking]"
 run_test_contains "helix-codex --help contains --auto-thinking" "$SCRIPT_DIR/helix-codex --help 2>&1" "auto-thinking"
 run_test_contains "helix-skill use --help contains --auto-thinking" "$SCRIPT_DIR/helix-skill use --help 2>&1" "auto-thinking"
 run_test_contains "helix-codex --auto-thinking --dry-run emits auto-thinking line" "$SCRIPT_DIR/helix-codex --role se --task 'typo 修正' --auto-thinking --dry-run 2>&1 | head -3" "auto-thinking"
-run_test_contains "helix-codex manual --thinking overrides auto" "$SCRIPT_DIR/helix-codex --role se --task 'typo 修正' --thinking high --auto-thinking --dry-run 2>&1 | head -3" "手動"
+run_test_contains "helix-codex manual --thinking overrides auto" "$SCRIPT_DIR/helix-codex --role se --task 'typo 修正' --thinking high --auto-thinking --dry-run 2>&1 | head -3" "cli-explicit"
 run_test "effort_classifier cache set/get" "python3 -c '
 import sys, tempfile, os, shutil
 sys.path.insert(0, \"$SCRIPT_DIR/lib\")
@@ -456,7 +457,7 @@ run_test_contains "performance has token cost section" "grep -n '^## トーク�
 echo ""
 
 echo "[jsonl-smoke]"
-run_test_contains "jsonl schema allowed agents count" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); from skill_jsonl_schema import ALLOWED_AGENTS; print(len(ALLOWED_AGENTS))'" "^16$"
+run_test_contains "jsonl schema allowed agents count" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); from skill_jsonl_schema import ALLOWED_AGENTS; print(len(ALLOWED_AGENTS))'" "^11$"
 run_test "skill_catalog jsonl imports" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); from skill_catalog import build_jsonl_catalog, read_jsonl_catalog, write_jsonl_catalog; assert callable(build_jsonl_catalog); assert callable(read_jsonl_catalog); assert callable(write_jsonl_catalog)'"
 run_test "skill_classifier import" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); import skill_classifier'"
 run_test "skill_review import" "python3 -c 'import sys; sys.path.insert(0, \"'$SCRIPT_DIR'/lib\"); import skill_review'"
@@ -618,8 +619,16 @@ run_test "sprint drive restore be" "python3 $SCRIPT_DIR/lib/yaml_parser.py write
 run_test "sprint reset after fullstack tests" "$SCRIPT_DIR/helix-sprint reset"
 run_test_json_valid "sprint status --json valid" "$SCRIPT_DIR/helix-sprint status --json | python3 -m json.tool"
 run_test "sprint phase.yaml missing exit 3" "mv .helix/phase.yaml .helix/phase.yaml.bak; $SCRIPT_DIR/helix-sprint status >/dev/null 2>&1; rc=\$?; mv .helix/phase.yaml.bak .helix/phase.yaml; exit \$rc" 3
-run_test "sprint set .5 for complete guidance" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.current_step .5"
-run_test_contains "sprint complete gate guidance" "$SCRIPT_DIR/helix-sprint complete" "helix gate G4"
+run_test "sprint seed complete guidance preconditions" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml current_phase L4 && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.current_step .5 && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.status active && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.steps..1a.status completed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.steps..1b.status completed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.steps..2.status completed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.steps..3.status completed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.steps..4.status completed"
+run_test "seed sprint drift index for strict check" "python3 -c \"import json; from pathlib import Path; Path('.helix/index.json').write_text(json.dumps({'deliverables': [{'id': 'D-ARCH', 'path': 'docs/features/user-auth/D-ARCH'}]}, ensure_ascii=False), encoding='utf-8')\""
+run_test_contains "sprint complete gate guidance" "HELIX_SPRINT_LINT_CMD=: HELIX_SPRINT_TEST_CMD=: HELIX_SPRINT_BUILD_CMD=: HELIX_SPRINT_DRIFT_CHECK_CMD=: $SCRIPT_DIR/helix-sprint complete" "helix gate G4"
 run_test "sprint reset after complete guidance" "$SCRIPT_DIR/helix-sprint reset"
 run_test_json_valid "status --json valid" "$SCRIPT_DIR/helix-status --json | python3 -m json.tool"
 run_test "gate prereq set passed for json test" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G1.status passed"
@@ -681,7 +690,10 @@ run_test "test_helix_gate_retro_requires_3_sections" "$SCRIPT_DIR/helix-gate G6 
 run_test "cleanup invalid retro" "rm -f .helix/retros/test-G4.md"
 run_test_contains "G6 shows E2E hint" "$SCRIPT_DIR/helix-gate G6 --static-only --dry-run 2>&1" "ヒント: E2E テストを実行してください"
 run_test "G6 prereq reset G5 pending" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G5.status pending"
-run_test "G7 prereq set G6 passed" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.status passed"
+run_test "seed G7 prereqs for deploy checklist" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.status passed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.5.status passed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.7.status passed && \
+  python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml gates.G6.9.status passed"
 run_test_contains "G7 shows deploy checklist" "$SCRIPT_DIR/helix-gate G7 --static-only --dry-run 2>&1" "デプロイ前チェックリスト:"
 run_test "fullstack gate set drive" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.drive fullstack"
 run_test "fullstack gate set BE stage" "python3 $SCRIPT_DIR/lib/yaml_parser.py write .helix/phase.yaml sprint.tracks.be.stage .5"

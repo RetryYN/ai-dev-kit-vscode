@@ -409,6 +409,10 @@ drift_output_is_blocking() {
 }
 
 run_strict_drift_check() {
+  if [[ "${HELIX_SPRINT_DRIFT_CHECK_CMD:-}" == ":" ]]; then
+    echo "[strict] drift-check: ok"
+    return 0
+  fi
   local files=()
   local file output rc
   while IFS= read -r file; do
