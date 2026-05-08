@@ -193,3 +193,26 @@ SH
   [ "$status" -eq 0 ]
   [[ "$output" == "real claude --version" ]]
 }
+
+@test "claude shim allows raw invocation when HELIX_CLAUDE_INTERNAL=1" {
+  mkdir -p "$TMP_ROOT/bin"
+  cat > "$TMP_ROOT/bin/claude" <<'SH'
+#!/bin/sh
+printf 'internal claude %s\\n' "$*"
+SH
+  chmod +x "$TMP_ROOT/bin/claude"
+
+  PATH="$HELIX_ROOT/cli:$TMP_ROOT/bin:$PATH" \
+    HELIX_CLAUDE_INTERNAL=1 \
+    run "$HELIX_ROOT/cli/claude" --print test
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == "internal claude --print test" ]]
+}
+
+@test "claude shim blocks raw invocation by default and exits 64" {
+  run "$HELIX_ROOT/cli/claude" --print test
+
+  [ "$status" -eq 64 ]
+  [[ "$output" == *"raw claude is blocked" ]]
+}
