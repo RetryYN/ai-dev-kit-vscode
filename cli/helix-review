@@ -18,6 +18,11 @@ case "${1:-}" in
     ;;
 esac
 
+if [[ -n "${HELIX_CODEX_INTERNAL:-}" ]]; then
+  echo '[helix-review] skipped: nested review unsupported in read-only sandbox' >&2
+  exit 0
+fi
+
 UNCOMMITTED=false
 BACKGROUND=false
 
