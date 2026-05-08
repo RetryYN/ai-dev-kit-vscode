@@ -15,17 +15,23 @@ def read_snapshot(path: Path) -> set[str]:
     }
 
 
-def load_newer_baselines(baseline_dir: Path, own_baseline: Path) -> list[set[str]]:
+def load_newer_baselines(
+    baseline_dir: Path,
+    own_baseline: Path,
+    *,
+    window_seconds: float = 60.0,
+) -> list[set[str]]:
     if not baseline_dir.is_dir() or not own_baseline.exists():
         return []
 
-    own_stat = own_baseline.stat()
+    own_mtime_ns = own_baseline.stat().st_mtime_ns
+    window_ns = int(window_seconds * 1_000_000_000)
     baselines: list[set[str]] = []
     for candidate in sorted(baseline_dir.glob("codex-baseline-*.txt")):
         if candidate == own_baseline or not candidate.is_file():
             continue
         try:
-            if candidate.stat().st_mtime_ns < own_stat.st_mtime_ns:
+            if abs(candidate.stat().st_mtime_ns - own_mtime_ns) > window_ns:
                 continue
             baselines.append(read_snapshot(candidate))
         except FileNotFoundError:
