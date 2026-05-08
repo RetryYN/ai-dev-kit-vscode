@@ -115,8 +115,11 @@ def _filter_catalog(catalog: dict[str, Any], layer_filter: str | None, category_
 
 def _run_recommender(prompt: str) -> str:
     cmd = [_helix_codex_path(), "--role", "recommender", "--task", prompt]
+    env = os.environ.copy()
+    # recommender は書き込みを行わないため、親の CODEX_BIN を子 helix-codex へ引き継がない。
+    env.pop("CODEX_BIN", None)
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False, env=env)
     except subprocess.TimeoutExpired as exc:
         raise RecommenderError(5, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
     except OSError as exc:
