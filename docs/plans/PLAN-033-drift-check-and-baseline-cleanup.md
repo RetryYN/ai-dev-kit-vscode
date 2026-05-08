@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-033
 title: HELIX v2/32 carry 解消 (drift-check jq 解消 + baseline PID-aware cleanup + tests 役割明示)
-status: finalized
+status: completed
 created: 2026-05-09
 finalized: 2026-05-09
+completed: 2026-05-09
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4→L6
@@ -231,3 +232,5 @@ PLAN-032 の未完了 carry 3 件（W-1/W-2/W-3）を PLAN-033 として再集�
 - 2026-05-09: TL Round 1 → P2 2 件 + P3 1 件 (§6 4 系列再掲、§5 R-2 旧表現、§9 Retro 旧表現、W-1 index_lookup 過剰抽象)、Opus が反映
 - 2026-05-09: TL Round 2 → P2 1 件 + P3 1 件 (line 128 backward compat 表現整合、line 219 baseline 命名→管理)、Opus が反映
 - 2026-05-09: status finalized (W-1/W-2/W-3 並列実装着手準備完了)
+- 2026-05-09: W-1 (commit 3ee1ecd) / W-2 (commit 5c4d281) / W-3 (commit ab9f9cf) 完了、統合検証 611/969/339/23 全 PASS
+- 2026-05-09: status completed (W-4 retro + 統合検証で carry resolved 確定、retro は `.helix/retros/PLAN-033.md`)
