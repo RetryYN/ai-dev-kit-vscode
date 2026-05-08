@@ -178,9 +178,27 @@ check_template_version() {
   fi
 }
 
+get_conf_value() {
+  local conf_path="$1"
+  local key="$2"
+  local value
+  value="$(sed -n "s/^${key}=//p" "$conf_path" | head -n1)"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+  printf '%s' "$value"
+}
+
 check_role_config_consistency() {
   local roles_file="${HELIX_HOME}/cli/config/models.yaml"
   local roles_dir="${HELIX_HOME}/cli/roles"
+  local codex_mismatch=0
+  local pmo_mismatch=0
+  local conf_path
+  local role
+  local conf_value
+  local yaml_value
 
   if [[ ! -f "$roles_file" || ! -d "$roles_dir" ]]; then
     echo "  ✗ role config consistency (required files missing)"
@@ -188,36 +206,80 @@ check_role_config_consistency() {
     return
   fi
 
-  local mismatch=0
-  local conf_path
-  local role
-  local conf_model
-  local yaml_model
   for conf_path in "$roles_dir"/*.conf; do
     role="$(basename "$conf_path" .conf)"
-    conf_model="$(sed -n 's/^codex_model=//p' "$conf_path" | head -n1)"
-    yaml_model="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
 
-    if [[ -z "$conf_model" || -z "$yaml_model" ]]; then
-      echo "WARNING: role $role: conf=${conf_model:-missing}, yaml=${yaml_model:-missing} (mismatch)"
-      mismatch=$((mismatch + 1))
+    if [[ "$role" == pmo-* ]]; then
+      conf_value="$(get_conf_value "$conf_path" "claude_model")"
+      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
+      if [[ "$conf_value" != "$yaml_value" ]]; then
+        echo "WARNING: pmo role $role: claude_model conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+        pmo_mismatch=$((pmo_mismatch + 1))
+      fi
+
+      conf_value="$(get_conf_value "$conf_path" "claude_thinking")"
+      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.thinking" 2>/dev/null || true)"
+      if [[ "$conf_value" != "$yaml_value" ]]; then
+        echo "WARNING: pmo role $role: claude_thinking conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+        pmo_mismatch=$((pmo_mismatch + 1))
+      fi
+
+      conf_value="$(get_conf_value "$conf_path" "claude_permission_mode")"
+      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.permission_mode" 2>/dev/null || true)"
+      if [[ "$conf_value" != "$yaml_value" ]]; then
+        echo "WARNING: pmo role $role: claude_permission_mode conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+        pmo_mismatch=$((pmo_mismatch + 1))
+      fi
+
+      conf_value="$(get_conf_value "$conf_path" "claude_disallowed_tools")"
+      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.disallowed_tools" 2>/dev/null || true)"
+      if [[ "$conf_value" != "$yaml_value" ]]; then
+        echo "WARNING: pmo role $role: claude_disallowed_tools conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+        pmo_mismatch=$((pmo_mismatch + 1))
+      fi
+
+      if [[ "$role" == "pmo-haiku" ]]; then
+        conf_value="$(get_conf_value "$conf_path" "claude_allow_paths")"
+        yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.allow_paths" 2>/dev/null || true)"
+        if [[ "$conf_value" != "$yaml_value" ]]; then
+          echo "WARNING: pmo role $role: claude_allow_paths conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+          pmo_mismatch=$((pmo_mismatch + 1))
+        fi
+      fi
+
       continue
     fi
 
-    if [[ "$conf_model" != "$yaml_model" ]]; then
-      echo "WARNING: role $role: conf=$conf_model, yaml=$yaml_model (mismatch)"
-      mismatch=$((mismatch + 1))
+    conf_value="$(get_conf_value "$conf_path" "codex_model")"
+    yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
+
+    if [[ -z "$conf_value" || -z "$yaml_value" ]]; then
+      echo "WARNING: role $role: conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+      codex_mismatch=$((codex_mismatch + 1))
+      continue
+    fi
+
+    if [[ "$conf_value" != "$yaml_value" ]]; then
+      echo "WARNING: role $role: conf=$conf_value, yaml=$yaml_value (mismatch)"
+      codex_mismatch=$((codex_mismatch + 1))
     fi
   done
 
-  if [[ $mismatch -eq 0 ]]; then
+  if [[ $codex_mismatch -eq 0 ]]; then
     echo "  ✓ role config consistency"
     PASS=$((PASS + 1))
-    return
+  else
+    echo "  △ role config consistency"
+    WARN=$((WARN + 1))
   fi
 
-  WARN=$((WARN + 1))
-  return
+  if [[ $pmo_mismatch -eq 0 ]]; then
+    echo "  ✓ pmo role consistency"
+    PASS=$((PASS + 1))
+  else
+    echo "  △ pmo role consistency"
+    WARN=$((WARN + 1))
+  fi
 }
 
 echo ""
