@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-035
 title: PLAN-035（helix review read-only fix + bats teardown 堅牢化 + Codex 完了報告信頼性強化）
-status: finalized
+status: completed
 created: 2026-05-09
 finalized: 2026-05-09
+completed: 2026-05-09
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
