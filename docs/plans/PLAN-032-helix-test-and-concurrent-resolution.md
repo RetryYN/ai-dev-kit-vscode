@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-032
 title: HELIX v2/31 carry 解消 (helix-test self-test + 並列誤検出 + tests 統合)
-status: draft
+status: completed
 created: 2026-05-09
 author: Opus (PM)
 size: M
