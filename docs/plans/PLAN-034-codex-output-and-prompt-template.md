@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-034
 title: helix-codex output tee + 委譲プロンプト共通フッタ（PLAN-033 retro 3 件 carry 集約）
-status: finalized
+status: completed
 created: 2026-05-09
 finalized: 2026-05-09
+completed: 2026-05-09
 author: Opus (PM) / Codex Docs
 size: M
 phases: L2→L3→L4
