@@ -495,8 +495,8 @@ export CODEX_BIN="$TEST_DIR/mock-codex-cli"
 
 run_test_contains "codex accepts --thinking xhigh" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'thinking test explicit' --thinking xhigh" "model_reasoning_effort=\"xhigh\""
 run_test_contains "codex accepts --timeout" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'timeout test explicit' --timeout 1" "mock-codex args:"
-run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl --task 'thinking test tl default' --dry-run" "Thinking:  xhigh"
-run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  medium"
+run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl --task 'thinking test tl default' --dry-run" "Thinking:  high"
+run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  low"
 run_test "codex rejects invalid thinking" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra" 1
 run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra 2>&1 || true" "無効な --thinking 値"
 # GAP-038: リジリエンス強化オプション
@@ -539,10 +539,10 @@ run_test "codex allowed-files accepts scoped new file" "D=\$(mktemp -d); cd \"\$
 run_test "codex rejects invalid --max-retries" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries abc" 1
 run_test "codex rejects --max-retries over 10" "$SCRIPT_DIR/helix-codex --role pg --task 'retry test' --max-retries 11" 1
 run_test "codex accepts --max-retries 0" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'no retry' --max-retries 0"
-run_test "codex accepts --fallback-model" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'fallback test' --fallback-model gpt-5.2-codex"
+run_test "codex accepts --fallback-model" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'fallback test' --fallback-model gpt-5.4-mini"
 run_test "codex rejects claude fallback for tl" "$SCRIPT_DIR/helix-codex --role tl --task 'claude fallback denied' --fallback-provider claude-code --dry-run" 1
-run_test "codex rejects fallback model outside allow-list" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model evil-model; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
-run_test "codex accepts allow-listed fallback model" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.2-codex' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model gpt-5.2-codex; rc=\$?; rm -rf \"\$D\"; exit \$rc"
+run_test "codex rejects fallback model outside allow-list" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.4-mini' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model evil-model; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
+run_test "codex accepts allow-listed fallback model" "D=\$(mktemp -d); cp -R \"$HELIX_HOME/cli\" \"\$D/cli\"; mkdir -p \"\$D/cli/config\"; printf '%s\n' 'roles:' '  pg:' '    primary: gpt-5.3-codex' '    fallback: gpt-5.4-mini' > \"\$D/cli/config/models.yaml\"; HELIX_HOME=\"\$D\" HELIX_PROJECT_ROOT=\"$TEST_DIR\" CODEX_BIN=$TEST_DIR/mock-codex-cli \"\$D/cli/helix-codex\" --role pg --task 'allow list test' --fallback-model gpt-5.4-mini; rc=\$?; rm -rf \"\$D\"; exit \$rc"
 cat > "$TEST_DIR/mock-codex-cli-fail" << 'EOF'
 #!/bin/bash
 echo "mock-codex failing: $*" >&2
