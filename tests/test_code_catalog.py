@@ -1,3 +1,6 @@
+# E2E test for code-catalog: subprocess + git init で catalog 構築を end-to-end 検証
+# 単体 (parse_helix_index_comment 等) は cli/lib/tests/test_code_catalog.py を参照
+
 import json
 import sqlite3
 import subprocess

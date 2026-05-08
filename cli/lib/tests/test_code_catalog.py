@@ -1,3 +1,6 @@
+# Unit test for code-catalog: parse_helix_index_comment / classify_bucket 等の helper 単体検証
+# E2E (catalog 構築 + helix.db migration) は tests/test_code_catalog.py を参照
+
 from __future__ import annotations
 
 import sys

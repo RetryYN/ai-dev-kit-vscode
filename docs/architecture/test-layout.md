@@ -21,9 +21,18 @@ HELIX のテストは 2 ディレクトリ構成:
 - 件数: 963 (PLAN-031 W-3 完遂時点)
 - 実行: `python3 -m pytest cli/lib/tests/ -q`
 
-## 重複 (将来整理対象)
+## 役割分担: test_code_catalog.py の二重配置
 
-`tests/test_code_catalog.py` と `cli/lib/tests/test_code_catalog.py` の整合性は PLAN-013 で確立。物理重複の整理は PLAN-033 以降で扱う。
+`tests/test_code_catalog.py` と `cli/lib/tests/test_code_catalog.py` は **同名だが役割が異なる**:
+
+| ファイル | 役割 | 手段 |
+|---------|------|------|
+| `tests/test_code_catalog.py` | E2E (catalog 公開挙動 + helix.db migration) | `subprocess + git init` で実 git repo を構築し、catalog 構築フローを end-to-end で検証 |
+| `cli/lib/tests/test_code_catalog.py` | unit (parse / classify_bucket 単体) | 直 import で `parse_helix_index_comment` 等の helper 関数を単独検証 |
+
+PLAN-013 で integration の役割境界 (3-bucket taxonomy 検証) を確立しており、両者は **物理削除対象ではなく役割分担として保持する**。
+
+過去 PLAN-032 W-5 で「物理整理は PLAN-033 以降」と書かれたが、PLAN-033 W-3 でこの方針 (役割分担保持) を確定した。
 
 ## bats テスト
 
