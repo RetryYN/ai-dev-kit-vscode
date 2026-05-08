@@ -209,12 +209,22 @@ else
         exit 0
       fi
 
-      deliverable_meta=""
-      if command -v jq >/dev/null 2>&1; then
-        deliverable_meta=$(jq -c --arg id "$deliverable_id" \
-          '((.deliverables // .rules.deliverables // []) | map(select(.id == $id)) | .[0]) // empty' \
-          "$index_file" 2>/dev/null || true)
-      fi
+      deliverable_meta=$(python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1], encoding="utf-8") as f:
+        data = json.load(f)
+    deliverables = data.get("deliverables")
+    if deliverables is None:
+        deliverables = (data.get("rules") or {}).get("deliverables") or []
+    target_id = sys.argv[2]
+    for d in deliverables:
+        if d.get("id") == target_id:
+            print(json.dumps(d, separators=(",", ":"), ensure_ascii=False))
+            sys.exit(0)
+except Exception:
+    pass
+' "$index_file" "$deliverable_id" 2>/dev/null || true)
 
       if [[ -n "$deliverable_meta" ]]; then
         echo "[drift-check] generic deliverable change: $deliverable_id at $REL_PATH" >&2
