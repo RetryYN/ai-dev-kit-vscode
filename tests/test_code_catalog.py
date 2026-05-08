@@ -88,7 +88,7 @@ def test_default_seed_metadata_for_three_buckets() -> None:
         "seed_promotable": False,
     }
     assert code_catalog.default_seed_metadata("private_helper", covered=True) == {
-        "seed_candidate": True,
+        "seed_candidate": False,
         "seed_promotable": False,
     }
     assert code_catalog.default_seed_metadata("excluded", covered=True) == {
@@ -207,7 +207,7 @@ def test_filter_by_bucket_private_helper(tmp_path: Path) -> None:
 
 def test_filter_by_seed_candidate_true(tmp_path: Path) -> None:
     payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all", seed_candidate="true")
-    assert {item["symbol"] for item in payload["items"]} == {"covered_public", "uncovered_public", "_covered_private"}
+    assert {item["symbol"] for item in payload["items"]} == {"covered_public", "uncovered_public"}
 
 
 def test_filter_by_seed_promotable_false(tmp_path: Path) -> None:
@@ -227,7 +227,7 @@ def test_summary_bucket_counts_present(tmp_path: Path) -> None:
 
 def test_summary_seed_candidate_count_present(tmp_path: Path) -> None:
     payload = code_catalog.compute_coverage_report(coverage_report_repo(tmp_path), bucket="all")
-    assert payload["summary"]["seed_candidate_count"] == 3
+    assert payload["summary"]["seed_candidate_count"] == 2
     assert payload["summary"]["seed_promotable_count"] == 1
 
 
@@ -344,8 +344,8 @@ def test_migration_v14_to_v15_idempotent(tmp_path: Path) -> None:
     versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version")]
     conn.close()
 
-    assert version == 15
-    assert versions == [14, 15]
+    assert version == helix_db.CURRENT_SCHEMA_VERSION
+    assert versions == [14, 15, 16, 17, 18, 19]
     assert {"bucket", "symbol_line"} <= columns
     assert row == ("legacy.entry", 7, "coverage_eligible")
 

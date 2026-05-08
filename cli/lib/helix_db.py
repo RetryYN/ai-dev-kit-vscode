@@ -760,6 +760,7 @@ def _migrate_v15_to_v16(conn):
         CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions(started_at);
         """
     )
+    _ensure_skill_usage_table(conn)
     if not _has_column(conn, "skill_usage", "session_id"):
         conn.execute("ALTER TABLE skill_usage ADD COLUMN session_id TEXT")
     conn.execute(
@@ -832,6 +833,16 @@ def _has_column(conn, table_name, column_name):
         raise ValueError(f"invalid table name: {table_name!r}")
     rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
     return any(row[1] == column_name for row in rows)
+
+
+def _has_table(conn, table_name):
+    if not _IDENTIFIER_RE.match(str(table_name)):
+        raise ValueError(f"invalid table name: {table_name!r}")
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
 
 
 def _migrate_gate_runs_v4(conn):
@@ -944,7 +955,15 @@ def _migrate_skill_usage_v5(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome)")
 
 
+def _ensure_skill_usage_table(conn):
+    # project-root tests cover catalog public behavior + migration end-to-end,
+    # while cli/lib/tests keep helper-level unit coverage.
+    if not _has_table(conn, "skill_usage"):
+        _migrate_skill_usage_v5(conn)
+
+
 def _migrate_skill_usage_stdout_v6(conn):
+    _ensure_skill_usage_table(conn)
     if not _has_column(conn, "skill_usage", "result_stdout"):
         conn.execute("ALTER TABLE skill_usage ADD COLUMN result_stdout TEXT")
     if not _has_column(conn, "skill_usage", "result_stderr"):
@@ -952,6 +971,7 @@ def _migrate_skill_usage_stdout_v6(conn):
 
 
 def _migrate_skill_usage_v7(conn):
+    _ensure_skill_usage_table(conn)
     if not _has_column(conn, "skill_usage", "effort_estimated"):
         conn.execute("ALTER TABLE skill_usage ADD COLUMN effort_estimated TEXT")
     if not _has_column(conn, "skill_usage", "effort_actual"):
