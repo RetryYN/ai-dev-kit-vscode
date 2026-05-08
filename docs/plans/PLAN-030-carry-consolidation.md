@@ -4,7 +4,7 @@
 
 - id: PLAN-030
 - title: HELIX v2/29 carry 集約 - self-test 値追従 / 並列 allowed-files 改修 / Codex 役割誤判定改善 / doctor PMO 整合 / research.conf 乖離整理
-- status: finalized (TL 3 ラウンドレビュー approve、2026-05-08)
+- status: completed (2026-05-09, W-6 統合検証 + retrospective、5 + 1 Sprint 完遂)
 - priority: medium
 - created: 2026-05-08
 - owners: PM, TL
