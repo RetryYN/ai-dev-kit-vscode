@@ -104,6 +104,75 @@ def test_load_newer_baselines_ignores_old_baseline(tmp_path: Path) -> None:
     assert baselines == [{"tracked-recent.txt"}]
 
 
+def test_extract_pid_reads_pid_and_rejects_legacy_fake_name() -> None:
+    assert (
+        codex_post_validation._extract_pid(Path("codex-baseline-12345-67890.txt"))
+        == 12345
+    )
+    assert codex_post_validation._extract_pid(Path("codex-baseline-1-older.txt")) is None
+
+
+def test_load_newer_baselines_includes_alive_pid_outside_window(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    own = baseline_dir / "codex-baseline-2-own.txt"
+    alive = baseline_dir / f"codex-baseline-{os.getpid()}-999999999.txt"
+
+    base_time = 1_700_000_000_000_000_000
+    write_baseline(own, "tracked-own.txt\n", base_time)
+    write_baseline(alive, "tracked-alive.txt\n", base_time - 5_000_000_000)
+
+    baselines = codex_post_validation.load_newer_baselines(
+        baseline_dir,
+        own,
+        window_seconds=1.0,
+    )
+
+    assert baselines == [{"tracked-alive.txt"}]
+
+
+def test_load_newer_baselines_cleans_up_dead_pid_outside_window(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    own = baseline_dir / "codex-baseline-2-own.txt"
+    stale = baseline_dir / "codex-baseline-999999999-123456789.txt"
+
+    base_time = 1_700_000_000_000_000_000
+    write_baseline(own, "tracked-own.txt\n", base_time)
+    write_baseline(stale, "tracked-stale.txt\n", base_time - 5_000_000_000)
+
+    baselines = codex_post_validation.load_newer_baselines(
+        baseline_dir,
+        own,
+        window_seconds=1.0,
+    )
+
+    assert baselines == []
+    assert not stale.exists()
+
+
+def test_load_newer_baselines_keeps_legacy_fake_name_window_only(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    own = baseline_dir / "codex-baseline-2-own.txt"
+    legacy_recent = baseline_dir / "codex-baseline-1-older.txt"
+    legacy_stale = baseline_dir / "codex-baseline-1-stale.txt"
+
+    base_time = 1_700_000_000_000_000_000
+    write_baseline(own, "tracked-own.txt\n", base_time)
+    write_baseline(legacy_recent, "tracked-recent.txt\n", base_time - 500_000_000)
+    write_baseline(legacy_stale, "tracked-stale.txt\n", base_time - 5_000_000_000)
+
+    baselines = codex_post_validation.load_newer_baselines(
+        baseline_dir,
+        own,
+        window_seconds=1.0,
+    )
+
+    assert baselines == [{"tracked-recent.txt"}]
+    assert legacy_stale.exists()
+
+
 def test_find_violations_rejects_new_untracked_with_concurrent_baseline() -> None:
     violations = codex_post_validation.find_allowed_files_violations(
         before_paths=set(),

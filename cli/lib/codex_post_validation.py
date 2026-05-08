@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import os
 from pathlib import Path
+import re
+
+
+_BASELINE_PID_RE = re.compile(r"^codex-baseline-(\d+)-(\d+)\.txt$")
 
 
 def read_snapshot(path: Path) -> set[str]:
@@ -13,6 +18,23 @@ def read_snapshot(path: Path) -> set[str]:
         for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
         if line.strip()
     }
+
+
+def _extract_pid(path: Path) -> int | None:
+    match = _BASELINE_PID_RE.match(path.name)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+def _is_pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
 
 
 def load_newer_baselines(
@@ -31,9 +53,22 @@ def load_newer_baselines(
         if candidate == own_baseline or not candidate.is_file():
             continue
         try:
-            if abs(candidate.stat().st_mtime_ns - own_mtime_ns) > window_ns:
+            mtime_ns = candidate.stat().st_mtime_ns
+            in_window = abs(mtime_ns - own_mtime_ns) <= window_ns
+            pid = _extract_pid(candidate)
+            if pid is None:
+                if in_window:
+                    baselines.append(read_snapshot(candidate))
                 continue
-            baselines.append(read_snapshot(candidate))
+
+            if in_window or _is_pid_alive(pid):
+                baselines.append(read_snapshot(candidate))
+                continue
+
+            try:
+                candidate.unlink()
+            except OSError:
+                pass
         except FileNotFoundError:
             continue
     return baselines
