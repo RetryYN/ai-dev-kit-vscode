@@ -32,7 +32,7 @@ DOC
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "helix-codex help documents consent and approval guards" {

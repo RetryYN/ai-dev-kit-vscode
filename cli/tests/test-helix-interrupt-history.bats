@@ -19,7 +19,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "helix interrupt history aggregates local records" {

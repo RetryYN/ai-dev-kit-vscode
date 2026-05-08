@@ -53,7 +53,7 @@ PY
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "helix gate G2 --cross-sprint --dry-run saves cross-sprint review" {

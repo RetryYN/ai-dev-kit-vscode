@@ -10,7 +10,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "未記入 retro は debt 登録される" {

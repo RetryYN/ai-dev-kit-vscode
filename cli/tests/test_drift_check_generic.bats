@@ -10,7 +10,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "generic deliverable は index.json から検出されれば generic deliverable change になる" {

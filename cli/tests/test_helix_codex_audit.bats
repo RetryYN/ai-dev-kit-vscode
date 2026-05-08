@@ -34,7 +34,7 @@ SH
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "helix-codex archives codex stdout under .helix/audit/codex-runs" {

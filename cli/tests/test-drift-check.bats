@@ -40,7 +40,7 @@ JQEOF
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "D-PERF/custom.md は汎用 drift メッセージを stderr に出す" {

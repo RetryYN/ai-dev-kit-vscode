@@ -9,7 +9,7 @@ setup() {
 }
 
 teardown() {
-  rm -rf "$HELIX_TEST_TMPDIR"
+  rm -rf "$HELIX_TEST_TMPDIR" 2>/dev/null || true
 }
 
 @test "helix doctor shows pmo role consistency" {

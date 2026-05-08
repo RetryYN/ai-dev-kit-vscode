@@ -25,7 +25,7 @@ YAML
 }
 
 teardown() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
 @test "helix gate G5 accepts L5a and L5b phase override in dry-run smoke" {
