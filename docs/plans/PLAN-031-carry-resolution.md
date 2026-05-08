@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-031
 title: HELIX v2/30 carry 解消
-status: draft
+status: completed
 created: 2026-05-09
 author: Opus (PM)
 size: M
