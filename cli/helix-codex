@@ -302,10 +302,28 @@ env_or_config_bool() {
   esac
 }
 
+detect_task_type() {
+  python3 "$SCRIPT_DIR/lib/task_type_inference.py" --mode detect --task "$1"
+}
+
+ensure_task_type_prefix() {
+  python3 "$SCRIPT_DIR/lib/task_type_inference.py" --mode prefix --task "$1"
+}
+
+should_include_review_template_for_task_type() {
+  [[ "$(python3 "$SCRIPT_DIR/lib/task_type_inference.py" --mode review-template --task-type "$1")" == "true" ]]
+}
+
 detect_plan_only_task() {
   local task="$1"
+  local task_type="${2:-不明}"
   local plan_pattern='計画|実装順|工程表|整理|方針|案を|洗い出し|レビュー|調査|見積|plan|planning|review|analyze|analysis|investigate|research'
   local execute_pattern='実装して|修正して|対応して|導入して|実行して|進めて|やって|閉じて|直して|作って|追加して|変更して|apply|proceed|implement|fix|install|run|execute|change|add'
+
+  case "$task_type" in
+    レビュー|設計|調査) return 0 ;;
+    実装) return 1 ;;
+  esac
 
   if grep -Eiq "$plan_pattern" <<< "$task" && ! grep -Eiq "$execute_pattern" <<< "$task"; then
     return 0
@@ -327,7 +345,7 @@ apply_consent_guard() {
       PLAN_ONLY_REASON="approved"
       ;;
     auto)
-      if detect_plan_only_task "$TASK"; then
+      if detect_plan_only_task "$TASK" "$TASK_TYPE"; then
         PLAN_ONLY=true
         PLAN_ONLY_REASON="auto-detected plan/review task"
       fi
@@ -555,6 +573,9 @@ if [[ ! "$TIMEOUT" =~ ^[0-9]+$ || "$TIMEOUT" -le 0 ]]; then
   echo "エラー: 無効な --timeout 値です: '$TIMEOUT'（正の整数秒を指定）" >&2
   exit 1
 fi
+
+TASK_TYPE="$(detect_task_type "$TASK")"
+TASK="$(ensure_task_type_prefix "$TASK")"
 
 validate_sandbox_mode "$SANDBOX" || exit 1
 validate_agent_policy
@@ -822,7 +843,7 @@ done < <(parse_array "common_docs" "$ROLE_FILE_REAL")
 # --- Review template を構築 ---
 REVIEW_TEMPLATE_PROMPT=""
 LOADED_REVIEW_TEMPLATE=""
-if [[ -n "$review_template_path_conf" ]]; then
+if [[ -n "$review_template_path_conf" ]] && should_include_review_template_for_task_type "$TASK_TYPE"; then
   review_template_file="$review_template_path_conf"
   if [[ "$review_template_file" != /* ]]; then
     review_template_file="$HELIX_HOME/$review_template_file"
@@ -875,6 +896,7 @@ CODEX_EXEC_CONTEXT=$(
     echo "- plan_only_reason: ${PLAN_ONLY_REASON:-none}"
     echo "- sandbox: $SANDBOX"
     echo "- full_auto: ${FULL_AUTO:-off}"
+    echo "- task_type: $TASK_TYPE"
     [[ -n "$PLAN_ID" ]] && echo "- plan_id: $PLAN_ID"
     [[ -n "$TASK_ID" ]] && echo "- task_id: $TASK_ID"
     [[ -n "$WBS_ID" ]] && echo "- wbs_id: $WBS_ID"
@@ -945,6 +967,7 @@ if [[ "$DRY_RUN" == true ]]; then
   echo "Full-Auto: ${FULL_AUTO:-off}"
   echo "Consent:   $CONSENT_MODE"
   echo "Plan-Only: $PLAN_ONLY (${PLAN_ONLY_REASON:-none})"
+  echo "Task Type: $TASK_TYPE"
   [[ -n "$PLAN_ID" ]] && echo "Plan ID:   $PLAN_ID"
   [[ -n "$TASK_ID" ]] && echo "Task ID:   $TASK_ID"
   [[ -n "$WBS_ID" ]] && echo "WBS ID:    $WBS_ID"
