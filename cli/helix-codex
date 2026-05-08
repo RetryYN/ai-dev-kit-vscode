@@ -506,35 +506,30 @@ write_git_change_snapshot() {
   ) | LC_ALL=C sort -u > "$out_file" 2>/dev/null || true
 }
 
+write_git_untracked_snapshot() {
+  local out_file="$1"
+  (
+    cd "$PROJECT_ROOT"
+    git ls-files --others --exclude-standard
+  ) | LC_ALL=C sort -u > "$out_file" 2>/dev/null || true
+}
+
 check_allowed_files_delta() {
   local before_file="$1"
   local after_file="$2"
+  local untracked_after_file="$3"
+  local baseline_dir="$4"
 
   [[ -n "$ALLOWED_FILES" ]] || return 0
   [[ "$SANDBOX" != "read-only" ]] || return 0
 
-  HELIX_ALLOWED_FILES="$ALLOWED_FILES" python3 - "$before_file" "$after_file" <<'PY'
-import fnmatch
-import os
-import sys
-from pathlib import Path
-
-before = set(Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines())
-after = set(Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines())
-patterns = [p.strip() for p in os.environ.get("HELIX_ALLOWED_FILES", "").split(",") if p.strip()]
-
-violations = []
-for path in sorted(after - before):
-    if not any(fnmatch.fnmatch(path, pattern) for pattern in patterns):
-        violations.append(path)
-
-if violations:
-    print("エラー: --allowed-files 外の変更を検出しました", file=sys.stderr)
-    print("allowed: " + ", ".join(patterns), file=sys.stderr)
-    for path in violations:
-        print(f"  - {path}", file=sys.stderr)
-    raise SystemExit(1)
-PY
+  python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
+    --before "$before_file" \
+    --after "$after_file" \
+    --untracked-after "$untracked_after_file" \
+    --allowed-files "$ALLOWED_FILES" \
+    --baseline-dir "$baseline_dir" \
+    --own-baseline "$before_file"
 }
 
 # models.yaml から role モデルと default_fallback を読み込む
@@ -996,9 +991,15 @@ fi
 
 DIFF_BEFORE=""
 DIFF_AFTER=""
+UNTRACKED_AFTER=""
+BASELINE_DIR=""
 if [[ -n "$ALLOWED_FILES" && "$SANDBOX" != "read-only" ]]; then
-  DIFF_BEFORE=$(mktemp "${TMPDIR:-/tmp}/helix-codex-before.XXXXXX")
-  DIFF_AFTER=$(mktemp "${TMPDIR:-/tmp}/helix-codex-after.XXXXXX")
+  BASELINE_DIR="$PROJECT_ROOT/.helix/tmp"
+  mkdir -p "$BASELINE_DIR"
+  baseline_stamp="$(date +%s%N)"
+  DIFF_BEFORE="$BASELINE_DIR/codex-baseline-$$-$baseline_stamp.txt"
+  DIFF_AFTER=$(mktemp "$BASELINE_DIR/codex-after-$$.XXXXXX")
+  UNTRACKED_AFTER=$(mktemp "$BASELINE_DIR/codex-untracked-after-$$.XXXXXX")
   write_git_change_snapshot "$DIFF_BEFORE"
 fi
 
@@ -1111,12 +1112,13 @@ if [[ $codex_exit -ne 0 ]] && [[ "$FALLBACK_PROVIDER" == "claude-code" ]]; then
   fi
 fi
 
-if [[ -n "$DIFF_BEFORE" && -n "$DIFF_AFTER" ]]; then
+if [[ -n "$DIFF_BEFORE" && -n "$DIFF_AFTER" && -n "$UNTRACKED_AFTER" ]]; then
   write_git_change_snapshot "$DIFF_AFTER"
-  if ! check_allowed_files_delta "$DIFF_BEFORE" "$DIFF_AFTER"; then
+  write_git_untracked_snapshot "$UNTRACKED_AFTER"
+  if ! check_allowed_files_delta "$DIFF_BEFORE" "$DIFF_AFTER" "$UNTRACKED_AFTER" "$BASELINE_DIR"; then
     codex_exit=1
   fi
-  rm -f "$DIFF_BEFORE" "$DIFF_AFTER" 2>/dev/null || true
+  rm -f "$DIFF_BEFORE" "$DIFF_AFTER" "$UNTRACKED_AFTER" 2>/dev/null || true
 fi
 
 # コスト記録（バックグラウンド）

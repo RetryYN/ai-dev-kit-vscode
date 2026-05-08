@@ -1,0 +1,103 @@
+from __future__ import annotations
+
+import argparse
+import fnmatch
+from pathlib import Path
+
+
+def read_snapshot(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    return {
+        line.strip()
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+        if line.strip()
+    }
+
+
+def load_newer_baselines(baseline_dir: Path, own_baseline: Path) -> list[set[str]]:
+    if not baseline_dir.is_dir() or not own_baseline.exists():
+        return []
+
+    own_stat = own_baseline.stat()
+    baselines: list[set[str]] = []
+    for candidate in sorted(baseline_dir.glob("codex-baseline-*.txt")):
+        if candidate == own_baseline or not candidate.is_file():
+            continue
+        try:
+            if candidate.stat().st_mtime_ns < own_stat.st_mtime_ns:
+                continue
+            baselines.append(read_snapshot(candidate))
+        except FileNotFoundError:
+            continue
+    return baselines
+
+
+def find_allowed_files_violations(
+    *,
+    before_paths: set[str],
+    after_paths: set[str],
+    untracked_after_paths: set[str],
+    allowed_patterns: list[str],
+    concurrent_baselines: list[set[str]] | None = None,
+) -> list[str]:
+    if not allowed_patterns:
+        return []
+
+    candidates = after_paths - before_paths
+    new_untracked = (candidates & untracked_after_paths) - before_paths
+
+    ambiguous_tracked: set[str] = set()
+    for other_before in concurrent_baselines or []:
+        ambiguous_tracked.update((after_paths - other_before) - new_untracked)
+
+    violations: list[str] = []
+    for path in sorted(candidates):
+        if any(fnmatch.fnmatch(path, pattern) for pattern in allowed_patterns):
+            continue
+        if path in new_untracked:
+            violations.append(path)
+            continue
+        if path in ambiguous_tracked:
+            continue
+        violations.append(path)
+
+    return violations
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Validate helix-codex allowed-files deltas.")
+    parser.add_argument("--before", required=True)
+    parser.add_argument("--after", required=True)
+    parser.add_argument("--untracked-after", required=True)
+    parser.add_argument("--allowed-files", required=True)
+    parser.add_argument("--baseline-dir", required=True)
+    parser.add_argument("--own-baseline", required=True)
+    args = parser.parse_args()
+
+    before_path = Path(args.before)
+    after_path = Path(args.after)
+    untracked_after_path = Path(args.untracked_after)
+    baseline_dir = Path(args.baseline_dir)
+    own_baseline_path = Path(args.own_baseline)
+    patterns = [item.strip() for item in args.allowed_files.split(",") if item.strip()]
+
+    violations = find_allowed_files_violations(
+        before_paths=read_snapshot(before_path),
+        after_paths=read_snapshot(after_path),
+        untracked_after_paths=read_snapshot(untracked_after_path),
+        allowed_patterns=patterns,
+        concurrent_baselines=load_newer_baselines(baseline_dir, own_baseline_path),
+    )
+
+    if violations:
+        print("エラー: --allowed-files 外の変更を検出しました")
+        print("allowed: " + ", ".join(patterns))
+        for path in violations:
+            print(f"  - {path}")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
