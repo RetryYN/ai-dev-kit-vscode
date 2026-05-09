@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-036
 title: PLAN-036（helix-codex concurrent diff 取り込み + PLAN テンプレート統一 + bats /tmp 監査）
-status: finalized
+status: completed
 created: 2026-05-09
 finalized: 2026-05-09
+completed: 2026-05-09
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
