@@ -1,3 +1,12 @@
+---
+plan_id: PLAN-001
+title: "PLAN-001: PoC Skill Canonical Fallback"
+status: draft
+created: 2026-05-04
+finalized: null
+author: Opus (PM)
+related: []
+---
 # PLAN-001: PoC Skill Canonical Fallback
 
 Status: superseded archival draft / not finalized

@@ -1,3 +1,12 @@
+---
+plan_id: PLAN-003
+title: "PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v3)"
+status: draft
+created: null
+finalized: null
+author: Opus (PM)
+related: [PLAN-002]
+---
 # PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v3)
 
 ## 1. 目的

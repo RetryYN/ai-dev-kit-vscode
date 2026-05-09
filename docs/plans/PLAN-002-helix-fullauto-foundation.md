@@ -1,3 +1,12 @@
+---
+plan_id: PLAN-002
+title: "PLAN-002: HELIX フルオート化基盤 (v34)"
+status: draft
+created: null
+finalized: null
+author: Opus (PM)
+related: []
+---
 # PLAN-002: HELIX フルオート化基盤 (v34)
 
 > サイズ: L (be駆動) / 推奨フェーズ: **[Phase 0 preflight]→Phase 0**→L1→G1→**[Phase 1.4: waiver]→G1R(B+D)→G1.5(B+D 結合 PoC)→L2→L3→[A1 分類 100% classified or 再ベースライン]**→**L4 Sprint 1-6**→L6→L7→L8 (L5 skip)

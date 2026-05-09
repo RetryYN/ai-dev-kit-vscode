@@ -1,3 +1,4 @@
+import hashlib
 import sys
 from pathlib import Path
 
@@ -5,11 +6,20 @@ import pytest
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import plan_frontmatter
 import yaml_parser
+
+
+def _body_hash(text: str) -> str:
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end != -1:
+            text = text[end + 5 :]
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _write_plan_pair(tmp_path: Path, *, plan_id: str = "PLAN-101", source_file: str | None = None) -> tuple[Path, Path]:
@@ -121,3 +131,28 @@ def test_finalize_plan_files_rolls_back_when_docs_replace_fails(
 
     assert plan_path.read_text(encoding="utf-8") == original_plan
     assert docs_path.read_text(encoding="utf-8") == original_docs
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "expected_hash"),
+    [
+        (
+            "docs/plans/PLAN-001-poc-skill.md",
+            "8c274a294fd011490f5b4f3d7ec1f8cce7146fa7fbda5277221a52edd4c09e6a",
+        ),
+        (
+            "docs/plans/PLAN-002-helix-fullauto-foundation.md",
+            "13112fd62ad47b6691fc01f4390876b951074671193e2e4b926998f880bbcb5b",
+        ),
+        (
+            "docs/plans/PLAN-003-auto-restart-foundation.md",
+            "4f6f5e7b1bd2530bce9a1ee5ff628a009def70e52f844cd2c5e037e29634305e",
+        ),
+    ],
+)
+def test_legacy_plan_body_hash_is_preserved(
+    relative_path: str,
+    expected_hash: str,
+) -> None:
+    text = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+    assert _body_hash(text) == expected_hash
