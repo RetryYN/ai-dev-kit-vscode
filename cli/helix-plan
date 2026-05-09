@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
-# Usage: helix plan <draft|review|finalize|reset|list|status> [options]
+# Usage: helix plan <draft|review|finalize|reset|list|status|lint> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PLAN_DIR="$HELIX_DIR/plans"
@@ -11,6 +11,7 @@ REVIEW_DIR="$HELIX_DIR/reviews/plans"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
 HELIX_CODEX="${HELIX_CODEX:-$SCRIPT_DIR/helix-codex}"
 REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
+PLAN_LINT="$SCRIPT_DIR/lib/plan_lint.py"
 
 usage() {
   cat <<'USAGE'
@@ -33,6 +34,8 @@ Subcommands:
   list       プラン一覧を表示
   status     プラン詳細を表示
              Options: --id <PLAN-NNN>
+  lint       PLAN markdown の status 整合を検査
+             Usage: helix plan lint <plan-file>
 
 Examples:
   helix plan draft --title "ユーザー認証のAPI設計" --file docs/features/user-auth/D-ARCH/architecture.md
@@ -42,6 +45,7 @@ Examples:
   helix plan reset --id PLAN-001 --to draft --reason "v2 改訂"
   helix plan list
   helix plan status --id PLAN-001
+  helix plan lint docs/plans/PLAN-036-example.md
 USAGE
 }
 
@@ -1017,6 +1021,37 @@ cmd_status() {
   echo "  Review File: $(yaml_read "$plan_file" "review.review_file")"
 }
 
+cmd_lint() {
+  local plan_file=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      -*)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+      *)
+        if [[ -n "$plan_file" ]]; then
+          echo "エラー: plan-file は 1 つだけ指定できます" >&2
+          exit 1
+        fi
+        plan_file="$1"
+        shift
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_file" ]]; then
+    echo "エラー: plan-file は必須です" >&2
+    exit 1
+  fi
+
+  python3 "$PLAN_LINT" "$plan_file"
+}
+
 CMD="${1:-help}"
 shift 2>/dev/null || true
 
@@ -1028,6 +1063,7 @@ case "$CMD" in
   reset) cmd_reset "$@" ;;
   list) cmd_list "$@" ;;
   status) cmd_status "$@" ;;
+  lint) cmd_lint "$@" ;;
   help|-h|--help) usage ;;
   *)
     echo "エラー: 不明なサブコマンドです: $CMD" >&2
