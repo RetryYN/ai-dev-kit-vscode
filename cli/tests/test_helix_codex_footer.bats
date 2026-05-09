@@ -117,6 +117,7 @@ run_runtime_case() {
   run "$HELIX_ROOT/cli/helix-codex" --role pg --task "footer contents" --dry-run
 
   [ "$status" -eq 0 ]
+  [[ "$output" == *$'## 出力フォーマット (helix-codex 自動付加、上書き禁止)\n\n**重要 (最優先)**: 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で必ず囲むこと。'* ]]
   [[ "$output" == *"---SUMMARY_START---"* ]]
   [[ "$output" == *"---SUMMARY_END---"* ]]
   [[ "$output" == *"summary は 5 行以内で末尾に置く"* ]]
@@ -131,6 +132,18 @@ run_runtime_case() {
   [[ "$output" == *"tests: は clean checkout 後"* ]]
   [[ "$output" == *"intermediate_errors:"* ]]
   [[ "$output" == *"dirty workspace 由来 fail"* ]]
+}
+
+@test "helix-codex footer includes concrete summary output example" {
+  run "$HELIX_ROOT/cli/helix-codex" --role pg --task "footer example" --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"### 出力例 (これに従う)"* ]]
+  [[ "$output" == *"(作業内容の自由記述、進行ログ、差分等はここに書く)"* ]]
+  [[ "$output" == *"files: cli/helix-codex, cli/tests/test_helix_codex_footer.bats"* ]]
+  [[ "$output" == *"tests: clean checkout 後 bats 7/7 PASS"* ]]
+  [[ "$output" == *"intermediate_errors: なし"* ]]
+  [[ "$output" == *"remaining: なし"* ]]
 }
 
 @test "helix-codex dry-run shows both discipline prompt and output footer" {

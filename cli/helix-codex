@@ -1145,7 +1145,27 @@ if [[ "${HELIX_CODEX_NO_FOOTER:-}" != "1" ]]; then
 
 ## 出力フォーマット (helix-codex 自動付加、上書き禁止)
 
-- 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で囲む
+**重要 (最優先)**: 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で必ず囲むこと。filter がこの marker block のみを parent stdout に emit する仕組みのため、marker がないと末尾 30 行 fallback で意図しない中間 echo が混入する。
+
+### 出力例 (これに従う、実際の出力では `{{` `}}` を `---` に置換すること)
+
+```text
+(作業内容の自由記述、進行ログ、差分等はここに書く)
+...
+
+{{SUMMARY_START}}
+decision: passed
+files: cli/helix-codex, cli/tests/test_helix_codex_footer.bats
+tests: clean checkout 後 bats 7/7 PASS
+intermediate_errors: なし
+remaining: なし
+{{SUMMARY_END}}
+```
+
+**重要**: 上記の例は説明用に `{{SUMMARY_START}}` / `{{SUMMARY_END}}` のプレースホルダで示している。実際の出力では `---SUMMARY_START---` / `---SUMMARY_END---` (ハイフン 3 連) を使うこと。filter は literal な `---SUMMARY_START---` / `---SUMMARY_END---` のみ認識する。
+
+### フィールド定義
+
 - 最終 summary は 5 行以内で末尾に置く
 - decision (passed/failed/blocked/changes_required) は最終 summary の冒頭 1 行目に必ず明示
 - 変更ファイル一覧と検証結果を末尾 30 行に固定し、tail -30 で取得可能にする
