@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-042
 title: 'PLAN-042（filter design 原則 + legacy frontmatter progressive (3 件) + concurrent reader lock 機構 PoC）'
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
+completed: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
