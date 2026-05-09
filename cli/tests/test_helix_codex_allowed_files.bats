@@ -60,38 +60,134 @@ SH
 }
 
 teardown() {
+  stop_alive_process
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
-@test "parallel helix-codex tracked change does not trigger false positive" {
-  HELIX_TEST_POST_SLEEP=0.3 \
+start_alive_process() {
+  sleep 10 &
+  ALIVE_PID=$!
+}
+
+stop_alive_process() {
+  if [ -n "${ALIVE_PID:-}" ]; then
+    kill "$ALIVE_PID" 2>/dev/null || true
+    wait "$ALIVE_PID" 2>/dev/null || true
+    ALIVE_PID=""
+  fi
+}
+
+write_plan_baseline() {
+  local baseline_path="$1"
+  local plan_id="$2"
+
+  mkdir -p "$(dirname "$baseline_path")"
+  cat > "$baseline_path" <<EOF
+# plan_id: $plan_id
+tracked-a.txt
+EOF
+}
+
+write_same_plan_audit_log() {
+  local plan_id="$1"
+  local label="$2"
+  local pid="${3:-${ALIVE_PID:-$$}}"
+
+  mkdir -p "$PROJECT_ROOT/.helix/audit/codex-runs"
+  cat > "$PROJECT_ROOT/.helix/audit/codex-runs/20260510-010203-docs-${plan_id}-${label}.log" <<EOF
+# pid: $pid
+# plan_id: $plan_id
+other process for $plan_id
+EOF
+}
+
+run_tracked_b_change_case() {
+  local expected_status="$1"
+  shift
+
+  run env \
+    HELIX_TEST_TOUCH=tracked-b.txt \
+    HELIX_TEST_TOUCH_CONTENT=changed \
     "$HELIX_ROOT/cli/helix-codex" \
     --role docs \
-    --task "A task" \
+    --task "concurrent case" \
     --approved \
     --allowed-files "tracked-a.txt" \
-    >"$TMP_ROOT/a.out" 2>&1 &
-  pid_a=$!
+    "$@"
 
-  sleep 0.05
+  [ "$status" -eq "$expected_status" ]
+}
 
-  HELIX_TEST_TOUCH=tracked-b.txt \
-    HELIX_TEST_POST_SLEEP=0.5 \
-    "$HELIX_ROOT/cli/helix-codex" \
-    --role docs \
-    --task "B task" \
-    --approved \
-    --allowed-files "tracked-b.txt" \
-    >"$TMP_ROOT/b.out" 2>&1 &
-  pid_b=$!
+@test "same plan positive auto-adds trusted concurrent baseline" {
+  start_alive_process
+  write_same_plan_audit_log "PLAN-039" "peer"
+  write_plan_baseline \
+    "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt" \
+    "PLAN-039"
 
-  wait "$pid_a"
-  status_a=$?
-  wait "$pid_b"
-  status_b=$?
+  run_tracked_b_change_case 0 --plan-id PLAN-039
+  [[ "$output" == *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
+}
 
-  [ "$status_a" -eq 0 ]
-  [ "$status_b" -eq 0 ]
+@test "different plan negative does not auto-add baseline" {
+  start_alive_process
+  write_same_plan_audit_log "PLAN-OTHER" "peer"
+  write_plan_baseline \
+    "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt" \
+    "PLAN-OTHER"
+
+  run_tracked_b_change_case 1 --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
+  [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
+}
+
+@test "no plan-id negative skips auto-detect" {
+  start_alive_process
+  write_same_plan_audit_log "PLAN-039" "peer"
+  write_plan_baseline \
+    "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt" \
+    "PLAN-039"
+
+  run_tracked_b_change_case 1
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
+  [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
+}
+
+@test "stale pid negative rejects dead baseline candidate" {
+  write_same_plan_audit_log "PLAN-039" "peer" "999999"
+  write_plan_baseline \
+    "$PROJECT_ROOT/.helix/tmp/codex-baseline-999999-111111111.txt" \
+    "PLAN-039"
+
+  run_tracked_b_change_case 1 --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
+  [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
+}
+
+@test "forged baseline reject ignores outside trust boundary" {
+  start_alive_process
+  write_same_plan_audit_log "PLAN-039" "peer"
+  mkdir -p "$TMP_ROOT/forged"
+  write_plan_baseline \
+    "$TMP_ROOT/forged/codex-baseline-${ALIVE_PID}-111111111.txt" \
+    "PLAN-039"
+
+  run_tracked_b_change_case 1 --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
+  [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
+}
+
+@test "symlink reject ignores linked baseline candidate" {
+  start_alive_process
+  write_same_plan_audit_log "PLAN-039" "peer"
+  write_plan_baseline "$TMP_ROOT/target-baseline.txt" "PLAN-039"
+  mkdir -p "$PROJECT_ROOT/.helix/tmp"
+  ln -s "$TMP_ROOT/target-baseline.txt" \
+    "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt"
+
+  run_tracked_b_change_case 1 --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
+  [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
 @test "codex allowed-files rejects out-of-scope new file" {

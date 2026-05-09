@@ -201,6 +201,31 @@ run_bats_tests() {
   return 0
 }
 
+run_bats_cleanup_post_run_hook() {
+  [[ "$RUN_BATS_TESTS" -eq 1 ]] || return 0
+  [[ -x "$SCRIPT_DIR/helix" ]] || return 0
+  [[ "${RUN_BATS_CLEANUP_POST_RUN_DONE:-0}" -eq 0 ]] || return 0
+  RUN_BATS_CLEANUP_POST_RUN_DONE=1
+
+  local cleanup_output cleanup_rc cleanup_count
+  set +e
+  cleanup_output="$("$SCRIPT_DIR/helix" bats-cleanup --list 2>&1)"
+  cleanup_rc=$?
+  set -e
+
+  if [[ "$cleanup_rc" -ne 0 ]]; then
+    echo "[helix-test] WARN: bats-cleanup post-run hook failed: $cleanup_output" >&2
+    return 0
+  fi
+
+  cleanup_count=$(printf '%s\n' "$cleanup_output" | grep -Ec '^/tmp/bats-(run|test)-' || true)
+  if [[ "$cleanup_count" -ge 5 ]]; then
+    echo "[helix-test] WARNING: bats cleanup candidates remain (${cleanup_count})."
+    echo "[helix-test] Review 'helix bats-cleanup --list', then run 'helix bats-cleanup --delete --older-than <N>' only for confirmed targets."
+    echo "[helix-test] See docs/runbook/bats-cleanup-routine.md"
+  fi
+}
+
 echo "=== HELIX CLI Self-Test ==="
 echo ""
 
@@ -2040,24 +2065,6 @@ if [[ "$RUN_PYTEST_TESTS" -eq 1 ]]; then
   echo ""
 fi
 
-# --- 結果 ---
-TOTAL_FAIL=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
-echo "==================================="
-echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"
-echo "pytest: $PYTEST_PASS passed, $PYTEST_FAIL failed, $PYTEST_SKIP skipped ($PYTEST_STATUS)"
-echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
-echo "==================================="
-
-if [[ $TOTAL_FAIL -gt 0 ]]; then
-  echo ""
-  echo "Failures:"
-  for err in "${ERRORS[@]}"; do
-    echo "  - $err" | head -c 200
-    echo ""
-  done
-  exit 1
-fi
-
 echo ""
 echo "[helix-init --start-phase]"
 run_test "init --start-phase L4 works" "\
@@ -2083,6 +2090,9 @@ echo "[helix-session-start progress inject]"
 run_test_not_contains "session-start no helix no progress" "D=\$(mktemp -d); cd \"\$D\"; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/libexec/helix-session-start; rc=\$?; rm -rf \"\$D\"; exit \$rc" "HELIX 現在の進捗"
 run_test_contains "session-start with phase.yaml emits progress" "HELIX_PROJECT_ROOT=\"\$PWD\" $SCRIPT_DIR/libexec/helix-session-start" "HELIX 現在の進捗"
 
+run_bats_cleanup_post_run_hook
+
+# --- 結果 ---
 TOTAL_FAIL=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
 echo "==================================="
 echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"

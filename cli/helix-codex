@@ -530,12 +530,17 @@ PY
 
 write_git_change_snapshot() {
   local out_file="$1"
-  (
-    cd "$PROJECT_ROOT"
-    git diff --name-only
-    git diff --name-only --cached
-    git ls-files --others --exclude-standard
-  ) | LC_ALL=C sort -u | grep -vE '^\.helix/audit/' > "$out_file" 2>/dev/null || true
+  {
+    if [[ -n "${PLAN_ID:-}" ]] && [[ "$(basename "$out_file")" =~ ^codex-baseline-[0-9]+-[0-9]+\.txt$ ]]; then
+      printf '# plan_id: %s\n' "$PLAN_ID"
+    fi
+    (
+      cd "$PROJECT_ROOT"
+      git diff --name-only
+      git diff --name-only --cached
+      git ls-files --others --exclude-standard
+    ) | LC_ALL=C sort -u | grep -vE '^\.helix/audit/' || true
+  } > "$out_file" 2>/dev/null
 }
 
 write_git_untracked_snapshot() {
@@ -546,11 +551,106 @@ write_git_untracked_snapshot() {
   ) | LC_ALL=C sort -u | grep -vE '^\.helix/audit/' > "$out_file" 2>/dev/null || true
 }
 
+concurrent_from_contains() {
+  local candidate="$1"
+  local existing=""
+  for existing in "${CONCURRENT_FROM_FILES[@]:-}"; do
+    [[ "$existing" == "$candidate" ]] && return 0
+  done
+  return 1
+}
+
+extract_baseline_plan_id() {
+  local baseline_file="$1"
+  sed -n 's/^# plan_id: //p' "$baseline_file" 2>/dev/null | head -n 1
+}
+
+extract_audit_pid() {
+  local audit_file="$1"
+  sed -n 's/^# pid: //p' "$audit_file" 2>/dev/null | head -n 1
+}
+
+is_pid_alive_shell() {
+  local pid="$1"
+  kill -0 "$pid" 2>/dev/null
+}
+
+has_matching_same_plan_audit_log() {
+  local audit_dir="$1"
+  local candidate_pid="$2"
+  local candidate=""
+  local logged_pid=""
+
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    logged_pid="$(extract_audit_pid "$candidate")"
+    [[ "$logged_pid" == "$candidate_pid" ]] && return 0
+  done < <(
+    find "$audit_dir" -maxdepth 1 -type f -name "*-${PLAN_ID}-*.log" ! -name "*-stderr.log" -print 2>/dev/null \
+      | LC_ALL=C sort
+  )
+
+  return 1
+}
+
+auto_detect_concurrent_baselines() {
+  local before_file="$1"
+  local baseline_dir="$2"
+  local audit_dir="$PROJECT_ROOT/.helix/audit/codex-runs"
+  local baseline_root_real=""
+  local candidate=""
+  local candidate_real=""
+  local candidate_pid=""
+  local candidate_plan_id=""
+  local auto_added=0
+
+  [[ -n "${PLAN_ID:-}" ]] || return 0
+  [[ -d "$audit_dir" && -d "$baseline_dir" && -f "$before_file" ]] || return 0
+
+  baseline_root_real="$(realpath "$baseline_dir" 2>/dev/null || true)"
+  [[ -n "$baseline_root_real" ]] || return 0
+
+  shopt -s nullglob
+  for candidate in "$baseline_dir"/codex-baseline-*.txt; do
+    [[ "$candidate" == "$before_file" ]] && continue
+    [[ -L "$candidate" || ! -f "$candidate" ]] && continue
+
+    candidate_real="$(realpath "$candidate" 2>/dev/null || true)"
+    [[ -n "$candidate_real" ]] || continue
+    case "$candidate_real" in
+      "$baseline_root_real"/*) ;;
+      *) continue ;;
+    esac
+
+    if [[ ! "$(basename "$candidate_real")" =~ ^codex-baseline-([0-9]+)-([0-9]+)\.txt$ ]]; then
+      continue
+    fi
+    candidate_pid="${BASH_REMATCH[1]}"
+    [[ "$candidate_pid" != "$$" ]] || continue
+    is_pid_alive_shell "$candidate_pid" || continue
+    has_matching_same_plan_audit_log "$audit_dir" "$candidate_pid" || continue
+
+    candidate_plan_id="$(extract_baseline_plan_id "$candidate_real")"
+    [[ "$candidate_plan_id" == "$PLAN_ID" ]] || continue
+
+    if ! concurrent_from_contains "$candidate_real"; then
+      CONCURRENT_FROM_FILES+=("$candidate_real")
+      auto_added=$((auto_added + 1))
+    fi
+  done
+  shopt -u nullglob
+
+  if [[ "$auto_added" -gt 0 ]]; then
+    echo "[helix-codex] auto-detect: plan=$PLAN_ID baseline=$auto_added file(s)" >&2
+  fi
+}
+
 check_allowed_files_delta() {
   local before_file="$1"
   local after_file="$2"
   local untracked_after_file="$3"
   local baseline_dir="$4"
+  local validation_baseline_dir=""
   local extra_args=()
   local f
 
@@ -561,14 +661,23 @@ check_allowed_files_delta() {
     [[ -n "$f" ]] && extra_args+=(--concurrent-from "$f")
   done
 
+  validation_baseline_dir="$(mktemp -d "$baseline_dir/codex-post-validation-$$.XXXXXX")"
+  if [[ -z "$validation_baseline_dir" || ! -d "$validation_baseline_dir" ]]; then
+    echo "エラー: post-validation 用 baseline dir を作成できませんでした" >&2
+    return 1
+  fi
+
   python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
     --before "$before_file" \
     --after "$after_file" \
     --untracked-after "$untracked_after_file" \
     --allowed-files "$ALLOWED_FILES" \
-    --baseline-dir "$baseline_dir" \
+    --baseline-dir "$validation_baseline_dir" \
     --own-baseline "$before_file" \
     "${extra_args[@]}"
+  local rc=$?
+  rm -rf "$validation_baseline_dir" 2>/dev/null || true
+  return "$rc"
 }
 
 # models.yaml から role モデルと default_fallback を読み込む
@@ -1225,6 +1334,16 @@ run_codex_once() {
   LAST_STDERR_FILE="$STDERR_FILE"
   LAST_RUN_ROLE="$run_role"
   LAST_RUN_MODEL="$model"
+  if [[ -n "$AUDIT_FILE" ]]; then
+    {
+      printf '# pid: %s\n' "$$"
+      printf '# role: %s\n' "$run_role"
+      printf '# model: %s\n' "$model"
+      [[ -n "${PLAN_ID:-}" ]] && printf '# plan_id: %s\n' "$PLAN_ID"
+      [[ -n "${TASK_ID:-}" ]] && printf '# task_id: %s\n' "$TASK_ID"
+    } > "$AUDIT_FILE"
+    : > "$STDERR_FILE"
+  fi
   # stdin を /dev/null に固定: Codex CLI が tty 不在時に "Reading additional input from stdin..."
   # で hang する問題を防ぐ (run_in_background / 別シェル経由呼び出しで再現)
   if [[ -n "$AUDIT_FILE" ]]; then
@@ -1327,6 +1446,7 @@ fi
 if [[ -n "$DIFF_BEFORE" && -n "$DIFF_AFTER" && -n "$UNTRACKED_AFTER" ]]; then
   write_git_change_snapshot "$DIFF_AFTER"
   write_git_untracked_snapshot "$UNTRACKED_AFTER"
+  auto_detect_concurrent_baselines "$DIFF_BEFORE" "$BASELINE_DIR"
   if ! check_allowed_files_delta "$DIFF_BEFORE" "$DIFF_AFTER" "$UNTRACKED_AFTER" "$BASELINE_DIR"; then
     codex_exit=1
   fi
