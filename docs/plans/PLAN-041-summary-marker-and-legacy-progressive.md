@@ -1,14 +1,14 @@
 ---
 plan_id: PLAN-041
 title: PLAN-041（SUMMARY marker prompt 強化 + legacy frontmatter progressive migration + Codex bats bootstrap runbook）
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
-completed: null
+completed: 2026-05-10
 acceptance:
   - W-1: 本 PLAN の Codex 委譲で SUMMARY marker 採用率 ≥ 50% 達成、未達なら案 B (諦め) を PLAN-042 に carry。
   - W-23: PLAN-001-poc-skill.md 含む 3 件以内の legacy PLAN に frontmatter 後付け、body-preservation hash 検証 PASS。
