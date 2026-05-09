@@ -976,6 +976,9 @@ if [[ "${HELIX_CODEX_NO_FOOTER:-}" != "1" ]]; then
 - 最終 summary は 5 行以内で末尾に置く
 - decision (passed/failed/blocked/changes_required) は最終 summary の冒頭 1 行目に必ず明示
 - 変更ファイル一覧と検証結果を末尾 30 行に固定し、tail -30 で取得可能にする
+- tests: は clean checkout 後 (作業 commit 前提) の最終確認結果のみを記述する。作業途中の verification ループで発生したエラー (Bash syntax / unbound variable / mock 失敗 / dirty workspace 由来 fail 等) は tests: に含めず、独立フィールド intermediate_errors: に分離記録する
+- intermediate_errors: は必須欄とし、空でも明示する。並列実装中の dirty workspace 由来 fail や中間状態の警告は intermediate_errors: に分離する
+- decision: は clean checkout 後の最終確認結果に基づいて判定する。intermediate_errors のみで passed から changes_required へ降格しない
 FOOTEREOF
 )
 fi

@@ -44,6 +44,15 @@ teardown() {
   [[ "$output" == *"tail -30"* ]]
 }
 
+@test "helix-codex footer includes clean checkout and intermediate error guidance" {
+  run "$HELIX_ROOT/cli/helix-codex" --role pg --task "footer verification guidance" --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"tests: は clean checkout 後"* ]]
+  [[ "$output" == *"intermediate_errors:"* ]]
+  [[ "$output" == *"dirty workspace 由来 fail"* ]]
+}
+
 @test "helix-codex dry-run shows both discipline prompt and output footer" {
   run "$HELIX_ROOT/cli/helix-codex" --role pg --task "footer coexist" --dry-run
 
