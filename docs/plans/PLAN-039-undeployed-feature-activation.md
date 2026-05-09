@@ -1,14 +1,14 @@
 ---
 plan_id: PLAN-039
 title: PLAN-039（未発動機能の運用化 + auto-fallback 発火条件改善）
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
-completed: null
+completed: 2026-05-10
 acceptance:
   - W-1: HELIX_CODEX_AUTO_FALLBACK Layer 2 が usage_limit 検知時に発火可能であること (Layer 0/1 fallback と統合判定)。
   - W-23: helix plan finalize が lint --duplicates を auto-run し、duplicate 検出時に finalize を block 可能であること。
