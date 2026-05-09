@@ -1,13 +1,13 @@
 ---
 plan_id: PLAN-037
 title: PLAN-037（helix-codex usage limit fallback + PLAN lint 拡張 + bats marker 一括適用）
-status: draft
+status: finalized
 created: 2026-05-10
+finalized: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
-finalized: null
 completed: null
 acceptance:
   - W-0: PLAN-036 retro carry 4 件を PLAN-037 の Sprint 構成へ再配線し、相互依存と担当分離が明確であること。
