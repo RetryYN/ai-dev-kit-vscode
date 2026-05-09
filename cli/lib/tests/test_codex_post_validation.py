@@ -26,6 +26,39 @@ def write_baseline(path: Path, content: str, mtime_ns: int) -> None:
     os.utime(path, ns=(mtime_ns, mtime_ns))
 
 
+def write_snapshot(path: Path, *lines: str) -> None:
+    path.write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
+
+
+def make_main_argv(
+    before: Path,
+    after: Path,
+    untracked_after: Path,
+    allowed_files: str,
+    baseline_dir: Path,
+    own_baseline: Path,
+    *concurrent_from: Path,
+) -> list[str]:
+    argv = [
+        "codex_post_validation.py",
+        "--before",
+        str(before),
+        "--after",
+        str(after),
+        "--untracked-after",
+        str(untracked_after),
+        "--allowed-files",
+        allowed_files,
+        "--baseline-dir",
+        str(baseline_dir),
+        "--own-baseline",
+        str(own_baseline),
+    ]
+    for path in concurrent_from:
+        argv.extend(["--concurrent-from", str(path)])
+    return argv
+
+
 def test_find_allowed_files_violations_excludes_concurrent_tracked_change() -> None:
     violations = codex_post_validation.find_allowed_files_violations(
         before_paths={"tracked-a.txt"},
@@ -183,3 +216,204 @@ def test_find_violations_rejects_new_untracked_with_concurrent_baseline() -> Non
     )
 
     assert violations == ["rogue.txt"]
+
+
+def test_main_accepts_valid_concurrent_baseline_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = tmp_path / "project"
+    baseline_dir = project_root / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    before = baseline_dir / "codex-baseline-22222-33333.txt"
+    after = baseline_dir / "after.txt"
+    untracked_after = baseline_dir / "untracked-after.txt"
+    concurrent = baseline_dir / "codex-baseline-12345-67890.txt"
+
+    write_snapshot(before, "tracked-a.txt")
+    write_snapshot(after, "tracked-a.txt", "tracked-b.txt")
+    write_snapshot(untracked_after)
+    write_snapshot(concurrent, "tracked-a.txt")
+
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        make_main_argv(
+            before,
+            after,
+            untracked_after,
+            "tracked-a.txt",
+            baseline_dir,
+            before,
+            concurrent,
+        ),
+    )
+
+    assert codex_post_validation.main() == 0
+
+
+def test_main_rejects_concurrent_baseline_outside_project_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project_root = tmp_path / "project"
+    baseline_dir = project_root / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    before = baseline_dir / "codex-baseline-22222-33333.txt"
+    after = baseline_dir / "after.txt"
+    untracked_after = baseline_dir / "untracked-after.txt"
+    outside = tmp_path / "outside" / "codex-baseline-1-1.txt"
+    outside.parent.mkdir()
+
+    write_snapshot(before, "tracked-a.txt")
+    write_snapshot(after, "tracked-a.txt")
+    write_snapshot(untracked_after)
+    write_snapshot(outside, "tracked-a.txt")
+
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        make_main_argv(
+            before,
+            after,
+            untracked_after,
+            "tracked-a.txt",
+            baseline_dir,
+            before,
+            outside,
+        ),
+    )
+
+    assert codex_post_validation.main() == 1
+    assert _read_stdout(capsys) == (
+        "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
+        f"codex-baseline-<pid>-<stamp>.txt format, got: {outside}"
+    )
+
+
+def test_main_rejects_concurrent_baseline_with_invalid_name(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project_root = tmp_path / "project"
+    baseline_dir = project_root / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    before = baseline_dir / "codex-baseline-22222-33333.txt"
+    after = baseline_dir / "after.txt"
+    untracked_after = baseline_dir / "untracked-after.txt"
+    invalid_name = baseline_dir / "foo.txt"
+
+    write_snapshot(before, "tracked-a.txt")
+    write_snapshot(after, "tracked-a.txt")
+    write_snapshot(untracked_after)
+    write_snapshot(invalid_name, "tracked-a.txt")
+
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        make_main_argv(
+            before,
+            after,
+            untracked_after,
+            "tracked-a.txt",
+            baseline_dir,
+            before,
+            invalid_name,
+        ),
+    )
+
+    assert codex_post_validation.main() == 1
+    assert _read_stdout(capsys) == (
+        "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
+        f"codex-baseline-<pid>-<stamp>.txt format, got: {invalid_name}"
+    )
+
+
+def test_main_rejects_concurrent_baseline_symlink(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project_root = tmp_path / "project"
+    baseline_dir = project_root / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    before = baseline_dir / "codex-baseline-22222-33333.txt"
+    after = baseline_dir / "after.txt"
+    untracked_after = baseline_dir / "untracked-after.txt"
+    target = baseline_dir / "codex-baseline-9-9.txt"
+    symlink_path = baseline_dir / "codex-baseline-1-1.txt"
+
+    write_snapshot(before, "tracked-a.txt")
+    write_snapshot(after, "tracked-a.txt")
+    write_snapshot(untracked_after)
+    write_snapshot(target, "tracked-a.txt")
+    symlink_path.symlink_to(target)
+
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        make_main_argv(
+            before,
+            after,
+            untracked_after,
+            "tracked-a.txt",
+            baseline_dir,
+            before,
+            symlink_path,
+        ),
+    )
+
+    assert codex_post_validation.main() == 1
+    assert _read_stdout(capsys) == (
+        "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
+        f"codex-baseline-<pid>-<stamp>.txt format, got: {symlink_path}"
+    )
+
+
+def test_main_rejects_missing_concurrent_baseline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project_root = tmp_path / "project"
+    baseline_dir = project_root / ".helix" / "tmp"
+    baseline_dir.mkdir(parents=True)
+    before = baseline_dir / "codex-baseline-22222-33333.txt"
+    after = baseline_dir / "after.txt"
+    untracked_after = baseline_dir / "untracked-after.txt"
+    missing = baseline_dir / "codex-baseline-1-1.txt"
+
+    write_snapshot(before, "tracked-a.txt")
+    write_snapshot(after, "tracked-a.txt")
+    write_snapshot(untracked_after)
+
+    monkeypatch.setenv("PROJECT_ROOT", str(project_root))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        make_main_argv(
+            before,
+            after,
+            untracked_after,
+            "tracked-a.txt",
+            baseline_dir,
+            before,
+            missing,
+        ),
+    )
+
+    assert codex_post_validation.main() == 1
+    assert _read_stdout(capsys) == (
+        "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
+        f"codex-baseline-<pid>-<stamp>.txt format, got: {missing}"
+    )
+
+
+def _read_stdout(capsys: pytest.CaptureFixture[str]) -> str:
+    return capsys.readouterr().out.strip()

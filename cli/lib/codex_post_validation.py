@@ -8,6 +8,10 @@ import re
 
 
 _BASELINE_PID_RE = re.compile(r"^codex-baseline-(\d+)-(\d+)\.txt$")
+_CONCURRENT_BASELINE_ERROR = (
+    "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
+    "codex-baseline-<pid>-<stamp>.txt format, got: {path}"
+)
 
 
 def read_snapshot(path: Path) -> set[str]:
@@ -35,6 +39,31 @@ def _is_pid_alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
+
+
+def _project_root() -> Path:
+    return Path(
+        os.environ.get("PROJECT_ROOT")
+        or os.environ.get("HELIX_PROJECT_ROOT")
+        or os.getcwd()
+    ).resolve()
+
+
+def validate_concurrent_baseline_path(raw_path: str) -> Path:
+    path = Path(raw_path)
+    realpath = path.resolve()
+    baseline_root = _project_root() / ".helix" / "tmp"
+
+    if (
+        path.is_symlink()
+        or path != realpath
+        or not realpath.is_relative_to(baseline_root)
+        or _BASELINE_PID_RE.match(realpath.name) is None
+        or not realpath.is_file()
+    ):
+        raise ValueError(_CONCURRENT_BASELINE_ERROR.format(path=raw_path))
+
+    return realpath
 
 
 def load_newer_baselines(
@@ -114,6 +143,7 @@ def main() -> int:
     parser.add_argument("--allowed-files", required=True)
     parser.add_argument("--baseline-dir", required=True)
     parser.add_argument("--own-baseline", required=True)
+    parser.add_argument("--concurrent-from", action="append", default=[])
     args = parser.parse_args()
 
     before_path = Path(args.before)
@@ -122,13 +152,23 @@ def main() -> int:
     baseline_dir = Path(args.baseline_dir)
     own_baseline_path = Path(args.own_baseline)
     patterns = [item.strip() for item in args.allowed_files.split(",") if item.strip()]
+    concurrent_baselines = load_newer_baselines(baseline_dir, own_baseline_path)
+
+    try:
+        for raw_path in args.concurrent_from:
+            concurrent_baselines.append(
+                read_snapshot(validate_concurrent_baseline_path(raw_path))
+            )
+    except ValueError as exc:
+        print(str(exc))
+        return 1
 
     violations = find_allowed_files_violations(
         before_paths=read_snapshot(before_path),
         after_paths=read_snapshot(after_path),
         untracked_after_paths=read_snapshot(untracked_after_path),
         allowed_patterns=patterns,
-        concurrent_baselines=load_newer_baselines(baseline_dir, own_baseline_path),
+        concurrent_baselines=concurrent_baselines,
     )
 
     if violations:

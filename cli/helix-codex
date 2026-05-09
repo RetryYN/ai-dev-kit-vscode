@@ -79,6 +79,7 @@ L4_SPRINT=""
 ACCEPTANCE_ITEMS=()
 REFERENCE_DOCS=()
 ALLOWED_FILES=""
+CONCURRENT_FROM_FILES=()
 APPROVAL_ID=""
 APPROVAL_FILE=""
 TIMEOUT=1800
@@ -111,6 +112,7 @@ while [[ $# -gt 0 ]]; do
     --acceptance)      ACCEPTANCE_ITEMS+=("$2"); shift 2 ;;
     --reference-doc)   REFERENCE_DOCS+=("$2"); shift 2 ;;
     --allowed-files)   ALLOWED_FILES="$2"; shift 2 ;;
+    --concurrent-from) CONCURRENT_FROM_FILES+=("$2"); shift 2 ;;
     --approval-id)     APPROVAL_ID="$2"; shift 2 ;;
     --approval-file)   APPROVAL_FILE="$2"; shift 2 ;;
     --dry-run)         DRY_RUN=true; shift ;;
@@ -144,6 +146,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --acceptance <text>  受入条件を追加（複数可）"
       echo "  --reference-doc <p>  参照ドキュメントを追加（複数可）"
       echo "  --allowed-files <g>  編集許可ファイル/グロブを注入"
+      echo "  --concurrent-from <p> 並列 baseline を post-validation へ追加（複数可）"
       echo "  --approval-id <id>   承認証跡 ID（.helix/approvals/<id>.* を検証）"
       echo "  --approval-file <p>  承認証跡ファイルを明示"
       echo "  HELIX_CODEX_REQUIRE_APPROVED=1          write 実行に --approved を必須化"
@@ -547,9 +550,15 @@ check_allowed_files_delta() {
   local after_file="$2"
   local untracked_after_file="$3"
   local baseline_dir="$4"
+  local extra_args=()
+  local f
 
   [[ -n "$ALLOWED_FILES" ]] || return 0
   [[ "$SANDBOX" != "read-only" ]] || return 0
+
+  for f in "${CONCURRENT_FROM_FILES[@]:-}"; do
+    [[ -n "$f" ]] && extra_args+=(--concurrent-from "$f")
+  done
 
   python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
     --before "$before_file" \
@@ -557,7 +566,8 @@ check_allowed_files_delta() {
     --untracked-after "$untracked_after_file" \
     --allowed-files "$ALLOWED_FILES" \
     --baseline-dir "$baseline_dir" \
-    --own-baseline "$before_file"
+    --own-baseline "$before_file" \
+    "${extra_args[@]}"
 }
 
 # models.yaml から role モデルと default_fallback を読み込む
