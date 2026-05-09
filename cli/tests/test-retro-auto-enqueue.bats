@@ -4,6 +4,8 @@ setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   CLI="$HELIX_ROOT/cli/helix-retro"
   TMP_ROOT="$(mktemp -d)"
+  source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
+  helix_bats_mark "$TMP_ROOT"
   PROJ="$TMP_ROOT/proj"
 
   mkdir -p "$PROJ/.helix/retros"

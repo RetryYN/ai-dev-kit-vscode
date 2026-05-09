@@ -3,6 +3,8 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   TMP_ROOT="$(mktemp -d)"
+  source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
+  helix_bats_mark "$TMP_ROOT"
   PROJECT_ROOT="$TMP_ROOT/project"
   HOME_DIR="$TMP_ROOT/home"
   HELIX_TMP_HOME="$TMP_ROOT/helix-home"

@@ -3,6 +3,8 @@
 setup() {
   REPO_ROOT="/home/tenni/ai-dev-kit-vscode"
   TMP_ROOT="$(mktemp -d)"
+  source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
+  helix_bats_mark "$TMP_ROOT"
   DB_PATH="$TMP_ROOT/legacy-v6.db"
 }
 

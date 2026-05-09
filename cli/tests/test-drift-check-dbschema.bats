@@ -4,6 +4,8 @@ setup() {
   REPO_ROOT="/home/tenni/ai-dev-kit-vscode"
   CLI="$REPO_ROOT/cli/helix-drift-check"
   TMP_ROOT="$(mktemp -d)"
+  source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
+  helix_bats_mark "$TMP_ROOT"
   PROJ="$TMP_ROOT/proj"
 
   mkdir -p "$PROJ/.helix" "$PROJ/docs/D-DB"
