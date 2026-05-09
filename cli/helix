@@ -74,6 +74,7 @@ case "$CMD" in
   test-debug) exec "$SCRIPT_DIR/helix-test-debug" "$@" ;;
   retro)    exec "$SCRIPT_DIR/helix-retro" "$@" ;;
   debt)     exec "$SCRIPT_DIR/helix-debt" "$@" ;;
+  bats-cleanup) exec "$SCRIPT_DIR/helix-bats-cleanup" "$@" ;;
   review)   exec "$SCRIPT_DIR/helix-review" "$@" ;;
   drift-check) exec "$SCRIPT_DIR/helix-drift-check" "$@" ;;
   session-start) exec "$SCRIPT_DIR/helix-session-start" "$@" ;;
@@ -116,6 +117,7 @@ HELIX プロジェクト管理:
   pr          PR 自動生成
   retro       レトロスペクティブ
   debt        技術負債管理
+  bats-cleanup バッチ実行用一時ディレクトリ監査
   drift-check 契約ドリフト検知
 
 Codex / Claude Code 管理 harness:

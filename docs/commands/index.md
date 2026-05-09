@@ -39,6 +39,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix retro` | ミニレトロ |
 | `helix debt` | 技術負債管理 |
 | `helix drift-check` | D-API / D-CONTRACT / D-DB drift 検知 |
+| `helix bats-cleanup` | bats 由来 /tmp 残存 dir の監査・削除 (HELIX marker file 必須) |
 
 ## 3. Codex / Claude Code 管理 harness
 

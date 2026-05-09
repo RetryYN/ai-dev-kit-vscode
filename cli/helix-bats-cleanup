@@ -1,0 +1,150 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix bats-cleanup [options]
+
+オプション:
+  --list                 /tmp/bats-run-* と /tmp/bats-test-* を一覧表示（既定）
+  --delete               削除を実行する
+  --dry-run              削除候補を表示するが実行しない
+  --older-than <N>       --delete / --dry-run 時に N 日以上前を対象とする
+  --help                 このヘルプを表示
+USAGE
+}
+
+require_non_negative_int() {
+  local value="$1"
+  local label="$2"
+  if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+    echo "${label} は 0 以上の整数で指定してください" >&2
+    exit 2
+  fi
+}
+
+collect_candidates() {
+  local -a out=()
+  local path pattern
+  shopt -s nullglob
+  for pattern in /tmp/bats-run-* /tmp/bats-test-*; do
+    for path in $pattern; do
+      [[ -d "$path" ]] && out+=("$path")
+    done
+  done
+  printf '%s\n' "${out[@]}" | sort
+}
+
+candidate_row() {
+  local dir="$1"
+  local created_epoch created_at size marker
+
+  created_epoch=$(stat -c '%Y' "$dir" 2>/dev/null || date +%s)
+  created_at=$(date -u -d "@${created_epoch}" +"%F %T" 2>/dev/null || date -u -r "${created_epoch}" +"%F %T")
+  size=$(du -sb "$dir" | awk '{ print $1 }')
+  if [[ -f "$dir/.bats-helix-marker" ]]; then
+    marker=YES
+  else
+    marker=NO
+  fi
+
+  printf '%s\t%s\t%s\t%s\n' "$dir" "$created_at" "$marker" "$size"
+}
+
+run_collect_mode() {
+  local mode="list"
+  local older_than=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --list)
+        mode="list"
+        shift
+        ;;
+      --delete)
+        mode="delete"
+        shift
+        ;;
+      --dry-run)
+        mode="dry_run"
+        shift
+        ;;
+      --older-than)
+        require_non_negative_int "${2:-}" "--older-than"
+        older_than="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        usage >&2
+        exit 2
+        ;;
+    esac
+  done
+
+  if [[ "$mode" != "list" ]] && [[ -z "$older_than" ]]; then
+    echo "--${mode} requires --older-than <N>" >&2
+    exit 2
+  fi
+
+  local candidate_dir
+  local now epoch_threshold age_days
+  local deleted_count=0
+  local skip_count=0
+  local -a rows=()
+  now=$(date +%s)
+
+  while IFS=$'\t' read -r candidate created_at marker size; do
+    [[ -z "$candidate" ]] && continue
+    [[ "$mode" == list ]] && rows+=("$candidate\t$created_at\t$marker\t$size") && continue
+
+    if [[ -n "$older_than" ]]; then
+      local candidate_epoch
+      epoch_threshold=$(( older_than * 86400 ))
+      candidate_epoch=$(stat -c '%Y' "$candidate" 2>/dev/null || printf '%s\n' "$now")
+      age_days=$(( (now - candidate_epoch) ))
+      if (( age_days < epoch_threshold )); then
+        skip_count=$((skip_count + 1))
+        continue
+      fi
+    fi
+
+    if [[ ! -f "$candidate/.bats-helix-marker" ]]; then
+      skip_count=$((skip_count + 1))
+      echo "skip (no HELIX marker): $candidate"
+      continue
+    fi
+
+    echo "delete target: $candidate"
+    if [[ "$mode" == "delete" ]]; then
+      rm -rf "$candidate"
+      deleted_count=$((deleted_count + 1))
+    fi
+  done < <(collect_candidates)
+
+  if [[ "$mode" == "list" ]]; then
+    local out
+    for out in "${rows[@]}"; do
+      local out_dir out_created out_marker out_size
+      IFS=$'\t' read -r out_dir out_created out_marker out_size <<<"$out"
+      printf '%s  %s  marker=%s  size=%s\n' "$out_dir" "$out_created" "$out_marker" "$out_size"
+    done
+    return 0
+  fi
+
+  echo "deleted_count=${deleted_count} skip_count=${skip_count}"
+}
+
+if [[ $# -eq 0 ]]; then
+  run_collect_mode --list
+  exit 0
+fi
+
+run_collect_mode "$@"
