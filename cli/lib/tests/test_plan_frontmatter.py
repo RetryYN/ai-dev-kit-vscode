@@ -148,6 +148,18 @@ def test_finalize_plan_files_rolls_back_when_docs_replace_fails(
             "docs/plans/PLAN-003-auto-restart-foundation.md",
             "4f6f5e7b1bd2530bce9a1ee5ff628a009def70e52f844cd2c5e037e29634305e",
         ),
+        (
+            "docs/plans/PLAN-004-pm-reward-design.md",
+            "aa98e2f8b758b1befd7447145bbd934fcbe18dc5f77a74605af509d13f4c7129",
+        ),
+        (
+            "docs/plans/PLAN-005-ops-automation-skills.md",
+            "0dfd9168fa81ef11b9078bda38b8a2730b561d296c59b84de24b63eda5ca13a9",
+        ),
+        (
+            "docs/plans/PLAN-006-upstream-meta-phase.md",
+            "b16f9c3982eba63cb5cc049c408dbc75115f833ae2190ff5b29cadffbf93cd94",
+        ),
     ],
 )
 def test_legacy_plan_body_hash_is_preserved(

@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-005
+title: 'PLAN-005: 運用自動化スキル群（scheduler/job-queue/lock/init-setup/observability）'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - 本文を一切変更せず frontmatter のみを後付けする。
+  - body-preservation hash が migration 前後で一致する。
+related: []
+---
+
 # PLAN-005: 運用自動化スキル群（scheduler/job-queue/lock/init-setup/observability）
 
 ## 1. 目的

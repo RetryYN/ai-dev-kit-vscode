@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-004
+title: 'PLAN-004: PM 報奨設計 + Implementation Readiness Framework + Deliverable Abstraction + Research/Review Embed (v5)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - 本文を一切変更せず frontmatter のみを後付けする。
+  - body-preservation hash が migration 前後で一致する。
+related: []
+---
+
 # PLAN-004: PM 報奨設計 + Implementation Readiness Framework + Deliverable Abstraction + Research/Review Embed (v5)
 
 ## §1 目的
