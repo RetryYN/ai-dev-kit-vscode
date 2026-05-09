@@ -18,13 +18,15 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
-## ロール一覧 (13)
+## ロール一覧 (14)
+
+> CLI 引数 (`--role`) は本表の「ロール」列に従う。team naming で「PE」と表記される責務は CLI 上では `pg` を使う (PE = `--role pg`)。
 
 | ロール | model | 担当フェーズ | 説明 |
 |--------|-------|-------------|------|
 | tl | gpt-5.5 | L2/L3/G2-G5 | 設計・レビュー・ゲート判定 |
 | se | gpt-5.4 | L4 | 上級実装・契約・リファクタリング |
-| pe | gpt-5.3-codex-spark / gpt-5.3-codex | L4/L5 | 単機能・速度重視実装 |
+| pg | gpt-5.3-codex-spark / gpt-5.3-codex | L4/L5 | 単機能・速度重視実装 (team naming: PE) |
 | qa | gpt-5.4 | L6/G4/G6 | テスト・検証・品質ゲート |
 | security | gpt-5.4 | G2/G4/G6/G7 | セキュリティ監査・脆弱性診断 |
 | dba | gpt-5.3-codex | L3/L4 | DB設計・マイグレーション・最適化 |
