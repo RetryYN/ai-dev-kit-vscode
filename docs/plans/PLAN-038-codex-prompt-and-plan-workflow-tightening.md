@@ -1,14 +1,14 @@
 ---
 plan_id: PLAN-038
 title: PLAN-038（Codex prompt 最終確認 + plan finalize 運用強化 + lint 閾値観察）
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
-completed: null
+completed: 2026-05-10
 acceptance:
   - W-1: `helix plan finalize` が `docs/plans/PLAN-NNN.md` frontmatter (`status` / `finalized`) と `.helix/plans/PLAN-NNN.yaml` (`status` / `finalized_at`) を 1 transaction で同期更新可能であること。
   - W-23: Codex prompt template に `tests: clean checkout` 必須化 + `intermediate_errors` 分離が反映されていること。
