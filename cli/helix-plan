@@ -9,6 +9,7 @@ PLAN_DIR="$HELIX_DIR/plans"
 MINI_PLAN_DIR="$HELIX_DIR/mini-plans"
 REVIEW_DIR="$HELIX_DIR/reviews/plans"
 YAML_PARSER="$SCRIPT_DIR/lib/yaml_parser.py"
+PLAN_FRONTMATTER="$SCRIPT_DIR/lib/plan_frontmatter.py"
 HELIX_CODEX="${HELIX_CODEX:-$SCRIPT_DIR/helix-codex}"
 REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
 PLAN_LINT="$SCRIPT_DIR/lib/plan_lint.py"
@@ -35,7 +36,7 @@ Subcommands:
   status     プラン詳細を表示
              Options: --id <PLAN-NNN>
   lint       PLAN markdown の status 整合を検査
-             Usage: helix plan lint <plan-file>
+             Usage: helix plan lint [--duplicates] <plan-file>
 
 Examples:
   helix plan draft --title "ユーザー認証のAPI設計" --file docs/features/user-auth/D-ARCH/architecture.md
@@ -46,6 +47,7 @@ Examples:
   helix plan list
   helix plan status --id PLAN-001
   helix plan lint docs/plans/PLAN-036-example.md
+  helix plan lint --duplicates docs/plans/PLAN-036-example.md
 USAGE
 }
 
@@ -801,10 +803,9 @@ cmd_finalize() {
     exit 1
   fi
 
-  local finalized_at
-  finalized_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  yaml_write "$plan_file" "status" "finalized"
-  yaml_write "$plan_file" "finalized_at" "$finalized_at"
+  local finalized_on
+  finalized_on="$(date -u +"%Y-%m-%d")"
+  python3 "$PLAN_FRONTMATTER" finalize "$plan_file" "$finalized_on"
 
   echo "finalize 完了: $plan_id"
 }
@@ -1022,12 +1023,17 @@ cmd_status() {
 }
 
 cmd_lint() {
+  local duplicates=0
   local plan_file=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --help|-h)
         usage
         exit 0
+        ;;
+      --duplicates)
+        duplicates=1
+        shift
         ;;
       -*)
         echo "エラー: 不明なオプションです: $1" >&2
@@ -1047,6 +1053,11 @@ cmd_lint() {
   if [[ -z "$plan_file" ]]; then
     echo "エラー: plan-file は必須です" >&2
     exit 1
+  fi
+
+  if [[ "$duplicates" -eq 1 ]]; then
+    python3 "$PLAN_LINT" --duplicates "$plan_file"
+    return
   fi
 
   python3 "$PLAN_LINT" "$plan_file"
