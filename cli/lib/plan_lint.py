@@ -34,6 +34,7 @@ KIND_NAMES = {
     "実装方針": "実装方針",
 }
 WARN_SIMILARITY = 0.4
+HIGHLIGHT_SIMILARITY = 0.7
 
 
 @dataclass(frozen=True)
@@ -55,10 +56,12 @@ class DuplicateCandidate:
 
 @dataclass(frozen=True)
 class DuplicateWarning:
-    line_no: int
     work_id: str
     kind: str
-    section_label: str
+    scope_section_label: str
+    scope_line_no: int
+    sprint_section_label: str
+    sprint_line_no: int
     similarity: float
 
 
@@ -66,6 +69,11 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="helix plan lint",
         description="Lint PLAN markdown status assertions against frontmatter.status",
+    )
+    parser.add_argument(
+        "--duplicates",
+        action="store_true",
+        help="duplicate-only モードで markdown table を stdout に出力する",
     )
     parser.add_argument("plan_file", help="PLAN markdown file")
     return parser.parse_args()
@@ -272,23 +280,49 @@ def _find_duplicate_warnings(lines: list[str], body_start_idx: int) -> list[Dupl
         if not scope_entries:
             continue
         for sprint_entry in sprint_entries:
-            best_similarity = max(
-                _jaccard_similarity(scope_entry.text, sprint_entry.text) for scope_entry in scope_entries
-            )
+            best_scope_entry: DuplicateCandidate | None = None
+            best_similarity = 0.0
+            for scope_entry in scope_entries:
+                similarity = _jaccard_similarity(scope_entry.text, sprint_entry.text)
+                if similarity <= best_similarity:
+                    continue
+                best_similarity = similarity
+                best_scope_entry = scope_entry
             if best_similarity < WARN_SIMILARITY:
+                continue
+            if best_scope_entry is None:
                 continue
             warnings.append(
                 DuplicateWarning(
-                    line_no=sprint_entry.line_no,
                     work_id=sprint_entry.work_id,
                     kind=sprint_entry.kind,
-                    section_label=sprint_entry.section_label,
+                    scope_section_label=best_scope_entry.section_label,
+                    scope_line_no=best_scope_entry.line_no,
+                    sprint_section_label=sprint_entry.section_label,
+                    sprint_line_no=sprint_entry.line_no,
                     similarity=best_similarity,
                 )
             )
 
-    warnings.sort(key=lambda warning: (warning.line_no, warning.kind))
+    warnings.sort(key=lambda warning: (warning.sprint_line_no, warning.kind))
     return warnings
+
+
+def _duplicate_level(similarity: float) -> str:
+    if similarity >= HIGHLIGHT_SIMILARITY:
+        return "highlight"
+    return "warn"
+
+
+def _render_duplicate_report(warnings: list[DuplicateWarning]) -> None:
+    print("| section_a | line_a | section_b | line_b | jaccard | level |")
+    print("|---|---|---|---|---|---|")
+    for warning in warnings:
+        print(
+            f"| §{warning.scope_section_label} | {warning.scope_line_no} | "
+            f"§{warning.sprint_section_label} W-{warning.work_id} | {warning.sprint_line_no} | "
+            f"{warning.similarity:.2f} | {_duplicate_level(warning.similarity)} |"
+        )
 
 
 def _find_mismatches(
@@ -340,7 +374,7 @@ def _find_mismatches(
     return findings
 
 
-def _lint_plan(path: Path) -> int:
+def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except FileNotFoundError:
@@ -355,18 +389,22 @@ def _lint_plan(path: Path) -> int:
         return 1
 
     plan_number = _resolve_plan_number(path, frontmatter_plan_id)
-    if plan_number is not None and plan_number < 36:
+    if not duplicates_only and plan_number is not None and plan_number < 36:
         print(f"PASS: lint skipped for PLAN-{plan_number:03d} (retroactive 対象外)")
         return 0
 
     lint_self_reference = lint_self_reference or plan_number in SELF_REFERENCE_PLAN_NUMBERS
     duplicate_warnings = _find_duplicate_warnings(lines, body_start_idx)
+    if duplicates_only:
+        _render_duplicate_report(duplicate_warnings)
+        return 0
+
     findings = _find_mismatches(lines, body_start_idx, expected_status, lint_self_reference)
 
     for warning in duplicate_warnings:
         print(
-            f"{path}:{warning.line_no}: WARN: W-{warning.work_id} '{warning.kind}' "
-            f"duplicated with §{warning.section_label} (similarity={warning.similarity:.2f})",
+            f"{path}:{warning.sprint_line_no}: WARN: W-{warning.work_id} '{warning.kind}' "
+            f"duplicated with §{warning.sprint_section_label} (similarity={warning.similarity:.2f})",
             file=sys.stderr,
         )
 
@@ -386,7 +424,7 @@ def _lint_plan(path: Path) -> int:
 
 def main() -> int:
     args = _parse_args()
-    return _lint_plan(Path(args.plan_file))
+    return _lint_plan(Path(args.plan_file), duplicates_only=args.duplicates)
 
 
 if __name__ == "__main__":

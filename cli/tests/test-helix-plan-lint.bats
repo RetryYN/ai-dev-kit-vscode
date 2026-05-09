@@ -140,6 +140,59 @@ EOF
   [[ "$output" != *"WARN: W-23"* ]]
 }
 
+@test "helix plan lint --duplicates prints markdown report for duplicate rows" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/PLAN-050-duplicate-report.md" \
+    "PLAN-050" \
+    "draft" \
+    $'### §2.1 対象範囲\n- W-23: PLAN lint 拡張\n  - DoD:\n    - 既存の status lint を壊さない\n\n### §4.4 W-23\n- DoD:\n  - 既存の status lint を壊さない'
+
+  run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-050-duplicate-report.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"| section_a | line_a | section_b | line_b | jaccard | level |"* ]]
+  [[ "$output" == *"| §2.1 | 9 | §4.4 W-23 | 12 | 1.00 | highlight |"* ]]
+}
+
+@test "helix plan lint --duplicates ignores contradictory status assertions and keeps exit 0" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/PLAN-051-duplicates-only.md" \
+    "PLAN-051" \
+    "draft" \
+    $'## 実施状況\n現在の status は completed です'
+
+  run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-051-duplicates-only.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"| section_a | line_a | section_b | line_b | jaccard | level |"* ]]
+  [[ "$output" != *"frontmatter.status=draft but body asserts completed"* ]]
+}
+
+@test "helix plan lint --duplicates observes retroactive plans too" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/PLAN-035-duplicate-report.md" \
+    "PLAN-035" \
+    "draft" \
+    $'### §2.1 対象範囲\n- W-4: duplicate 観測\n  - Test Plan:\n    - PLAN lint の duplicate-only 出力を確認する\n\n### §4.4 W-4\n- Test Plan:\n  - PLAN lint の duplicate-only 出力を確認する'
+
+  run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-035-duplicate-report.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"| §2.1 | 9 | §4.4 W-4 | 12 | 1.00 | highlight |"* ]]
+  [[ "$output" != *"retroactive 対象外"* ]]
+}
+
+@test "helix plan lint --duplicates keeps W-section allowlist scoped to status lint only" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/PLAN-052-allowlist-duplicates.md" \
+    "PLAN-052" \
+    "draft" \
+    $'### §2.1 対象範囲\n- W-23: PLAN lint 拡張\n  - 実装方針:\n    - 既存の status lint を壊さない\n\n### §4.4 W-23\n- 実装方針:\n  - 既存の status lint を壊さない\n  - 現在の status は completed です' \
+    "lint_self_reference: true"
+
+  run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-052-allowlist-duplicates.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"| §2.1 | 9 | §4.4 W-23 | 12 | 1.00 | highlight |"* ]]
+  [[ "$output" != *"frontmatter.status=draft but body asserts completed"* ]]
+}
+
 @test "helix plan lint skips assertive status checks under self-reference W sections" {
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-047-self-reference-w.md" \
