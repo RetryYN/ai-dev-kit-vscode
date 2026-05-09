@@ -58,7 +58,9 @@ teardown() {
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
-run_case() {
+run_case_for_role() {
+  local role="$1"
+  shift
   INVOCATIONS_FILE="$TMP_ROOT/invocations.txt"
   ARGS_FILE="$TMP_ROOT/args.log"
   local task="$1"
@@ -87,15 +89,32 @@ run_case() {
     HELIX_TEST_ARGS_FILE="$ARGS_FILE" \
     "${env_args[@]}" \
     "$HELIX_ROOT/cli/helix-codex" \
-    --role pg \
+    --role "$role" \
     --task "$task" \
     --approved \
     --max-retries 0 \
     "${cli_args[@]}"
 }
 
+run_case() {
+  run_case_for_role pg "$@"
+}
+
 args_log() {
   cat "$ARGS_FILE"
+}
+
+summary_block() {
+  cat <<'EOF'
+---SUMMARY_START---
+decision: passed
+files:
+- cli/helix-codex
+tests: bats
+intermediate_errors: none
+remaining: none
+---SUMMARY_END---
+EOF
 }
 
 @test "usage_limit + AUTO_FALLBACK=1 + --fallback-model では Layer 0 が最優先" {
@@ -191,4 +210,50 @@ args_log() {
   [[ "$(args_log)" == *"call=2 model=gpt-5.3-codex"* ]]
   [[ "$(args_log)" == *"call=3 model=gpt-5.4"* ]]
   [[ "$(args_log)" == *"call=4 model=gpt-5.4-mini"* ]]
+}
+
+@test "HELIX_DISABLE_SPARK=1 + docs role dry-run では spark が一度も出ない" {
+  run env HELIX_DYNAMIC_SKILLS=0 HELIX_DISABLE_SPARK=1 \
+    "$HELIX_ROOT/cli/helix-codex" \
+    --role docs \
+    --task "docs dry-run disable spark" \
+    --dry-run
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Model:     gpt-5.3-codex"* ]]
+  [[ "$output" != *"gpt-5.3-codex-spark"* ]]
+}
+
+@test "HELIX_DISABLE_SPARK=1 + HELIX_MODEL_OVERRIDE=spark では warning を出して spark を優先する" {
+  local summary
+  summary="$(summary_block)"
+
+  run_case "override beats disable spark" \
+    HELIX_DISABLE_SPARK=1 \
+    HELIX_MODEL_OVERRIDE=spark \
+    "HELIX_TEST_STDOUT_1=$summary"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"HELIX_DISABLE_SPARK=1"* ]]
+  [[ "$output" == *"gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+}
+
+@test "HELIX_DISABLE_SPARK=1 + auto_fallback usage_limit では chain でも spark を試行しない" {
+  local summary
+  summary="$(summary_block)"
+
+  run_case "disable spark skips spark in auto fallback" \
+    HELIX_DISABLE_SPARK=1 \
+    HELIX_CODEX_AUTO_FALLBACK=1 \
+    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
+    HELIX_TEST_CODEX_EXIT_1=1 \
+    "HELIX_TEST_STDOUT_2=$summary"
+
+  [ "$status" -eq 0 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 2 ]
+  [[ "$output" == *"auto-fallback: role pg -> se (model=gpt-5.4)"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.4"* ]]
+  [[ "$(args_log)" != *"gpt-5.3-codex-spark"* ]]
 }

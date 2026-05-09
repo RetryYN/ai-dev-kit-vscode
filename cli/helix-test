@@ -514,7 +514,13 @@ echo ""
 echo "[helix-codex]"
 cat > "$TEST_DIR/mock-codex-cli" << 'EOF'
 #!/bin/bash
+echo "---SUMMARY_START---"
 echo "mock-codex args: $*"
+echo "decision: passed"
+echo "summary: mock test"
+echo "tests: clean checkout PASS"
+echo "intermediate_errors: none"
+echo "---SUMMARY_END---"
 EOF
 chmod +x "$TEST_DIR/mock-codex-cli"
 export CODEX_BIN="$TEST_DIR/mock-codex-cli"

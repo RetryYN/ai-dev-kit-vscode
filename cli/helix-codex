@@ -87,6 +87,12 @@ MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
 FALLBACK_MODEL=""    # Layer 0/1: 明示または default_fallback の代替モデル
 CLI_FALLBACK_MODEL="" # Layer 0: --fallback-model で明示指定された代替モデル
 FALLBACK_PROVIDER="" # GAP-038 Phase 3: Layer 3 ローカル委譲先
+MODEL_OVERRIDE_NORMALIZED=""
+SUMMARY_START_MARKER="---SUMMARY_START---"
+SUMMARY_END_MARKER="---SUMMARY_END---"
+SUMMARY_MISSING_WARNING="[helix-codex] WARNING: summary marker missing, falling back to last 30 lines"
+SPARK_MODEL_ID="gpt-5.3-codex-spark"
+SPARK_DISABLED_MODEL_ID="gpt-5.3-codex"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -273,6 +279,47 @@ guard_danger_sandbox() {
   elif [[ "${HELIX_ALLOW_DANGER_SANDBOX:-}" != "1" ]]; then
     echo "エラー: 非対話環境で --sandbox danger-full-access を使うには HELIX_ALLOW_DANGER_SANDBOX=1 が必要です" >&2
     return 1
+  fi
+}
+
+normalize_model_alias() {
+  case "$1" in
+    spark) printf '%s\n' "$SPARK_MODEL_ID" ;;
+    codex) printf '%s\n' "$SPARK_DISABLED_MODEL_ID" ;;
+    *)     printf '%s\n' "$1" ;;
+  esac
+}
+
+disable_spark_enabled() {
+  [[ "${HELIX_DISABLE_SPARK:-0}" == "1" ]]
+}
+
+is_spark_model() {
+  [[ "$1" == "$SPARK_MODEL_ID" ]]
+}
+
+spark_rewrite_applies_to_role() {
+  case "$1" in
+    docs|pg) return 0 ;;
+    *)       return 1 ;;
+  esac
+}
+
+rewrite_spark_model_if_disabled() {
+  local model="$1"
+  local role="${2:-}"
+  if disable_spark_enabled && spark_rewrite_applies_to_role "$role" && is_spark_model "$model"; then
+    printf '%s\n' "$SPARK_DISABLED_MODEL_ID"
+  else
+    printf '%s\n' "$model"
+  fi
+}
+
+warn_disable_spark_override() {
+  local source_label="$1"
+  local model="$2"
+  if disable_spark_enabled && is_spark_model "$model"; then
+    echo "[helix-codex] WARNING: HELIX_DISABLE_SPARK=1 ですが ${source_label} が ${SPARK_MODEL_ID} を明示指定したため、その指定を優先します" >&2
   fi
 }
 
@@ -707,6 +754,9 @@ fi
 TASK_TYPE="$(detect_task_type "$TASK")"
 TASK_RAW="$TASK"
 TASK="$(ensure_task_type_prefix "$TASK")"
+CLI_FALLBACK_MODEL="$(normalize_model_alias "$CLI_FALLBACK_MODEL")"
+FALLBACK_MODEL="$CLI_FALLBACK_MODEL"
+MODEL_OVERRIDE_NORMALIZED="$(normalize_model_alias "${HELIX_MODEL_OVERRIDE:-}")"
 
 validate_sandbox_mode "$SANDBOX" || exit 1
 validate_agent_policy
@@ -747,10 +797,14 @@ if mapfile -t model_registry_values < <(resolve_models_from_registry "$ROLE"); t
   registry_default_fallback="${model_registry_values[1]:-}"
 fi
 
-if [[ -n "${HELIX_MODEL_OVERRIDE:-}" ]]; then
-  codex_model="$HELIX_MODEL_OVERRIDE"
+if [[ -n "$MODEL_OVERRIDE_NORMALIZED" ]]; then
+  codex_model="$MODEL_OVERRIDE_NORMALIZED"
 elif [[ -n "$registry_model" ]]; then
   codex_model="$registry_model"
+fi
+
+if [[ -z "$MODEL_OVERRIDE_NORMALIZED" ]]; then
+  codex_model="$(rewrite_spark_model_if_disabled "$codex_model" "$ROLE")"
 fi
 
 if [[ -z "$codex_model" ]]; then
@@ -760,6 +814,14 @@ fi
 
 if [[ -z "$FALLBACK_MODEL" && -n "$registry_default_fallback" && "$registry_default_fallback" != "$codex_model" ]]; then
   FALLBACK_MODEL="$registry_default_fallback"
+fi
+if [[ -z "$CLI_FALLBACK_MODEL" ]]; then
+  FALLBACK_MODEL="$(rewrite_spark_model_if_disabled "$FALLBACK_MODEL" "$ROLE")"
+else
+  warn_disable_spark_override "--fallback-model" "$CLI_FALLBACK_MODEL"
+fi
+if [[ -n "$MODEL_OVERRIDE_NORMALIZED" ]]; then
+  warn_disable_spark_override "HELIX_MODEL_OVERRIDE" "$MODEL_OVERRIDE_NORMALIZED"
 fi
 
 # --- THINKING 決定 (CLI explicit > auto-thinking > role conf) ---
@@ -868,7 +930,7 @@ PY
   fi
 }
 
-if [[ -z "${HELIX_MODEL_OVERRIDE:-}" ]]; then
+if [[ -z "$MODEL_OVERRIDE_NORMALIZED" ]]; then
   validate_model_id "$codex_model" || exit 1
 fi
 validate_model_id "$FALLBACK_MODEL" || exit 1
@@ -1083,6 +1145,7 @@ if [[ "${HELIX_CODEX_NO_FOOTER:-}" != "1" ]]; then
 
 ## 出力フォーマット (helix-codex 自動付加、上書き禁止)
 
+- 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で囲む
 - 最終 summary は 5 行以内で末尾に置く
 - decision (passed/failed/blocked/changes_required) は最終 summary の冒頭 1 行目に必ず明示
 - 変更ファイル一覧と検証結果を末尾 30 行に固定し、tail -30 で取得可能にする
@@ -1208,7 +1271,7 @@ resolve_role_primary_model() {
   local role="$1"
   local values=()
   if mapfile -t values < <(resolve_models_from_registry "$role"); then
-    printf '%s\n' "${values[0]:-}"
+    rewrite_spark_model_if_disabled "${values[0]:-}" "$role"
   fi
 }
 
@@ -1309,12 +1372,47 @@ run_model_fallback() {
   fi
 }
 
+emit_summary_from_capture() {
+  local stdout_file="$1"
+  [[ -f "$stdout_file" ]] || return 0
+  [[ -s "$stdout_file" ]] || return 0
+
+  local summary_block=""
+  summary_block="$(
+    awk -v start="$SUMMARY_START_MARKER" -v end="$SUMMARY_END_MARKER" '
+      $0 == start {
+        capture = 1
+        block = $0 ORS
+        next
+      }
+      capture {
+        block = block $0 ORS
+        if ($0 == end) {
+          last = block
+          capture = 0
+          block = ""
+        }
+      }
+      END { printf "%s", last }
+    ' "$stdout_file"
+  )"
+
+  if [[ -n "$summary_block" ]]; then
+    printf '%s' "$summary_block"
+    return 0
+  fi
+
+  echo "$SUMMARY_MISSING_WARNING" >&2
+  tail -n 30 "$stdout_file"
+}
+
 run_codex_once() {
   local model="$1"
   local run_role="${2:-$ROLE}"
   local AUDIT_DIR=""
   local AUDIT_FILE=""
   local STDERR_FILE=""
+  local STDOUT_FILE=""
   local audit_basename=""
   local ts=""
   set +e
@@ -1329,6 +1427,9 @@ run_codex_once() {
     [[ -n "${TASK_ID:-}" ]] && audit_basename="${audit_basename}-${TASK_ID}"
     AUDIT_FILE="$AUDIT_DIR/${audit_basename}.log"
     STDERR_FILE="$AUDIT_DIR/${audit_basename}-stderr.log"
+    STDOUT_FILE="$(mktemp "$AUDIT_DIR/${audit_basename}-stdout.XXXXXX")"
+  else
+    STDOUT_FILE="$(mktemp "${TMPDIR:-/tmp}/helix-codex-stdout.XXXXXX")"
   fi
   LAST_AUDIT_FILE="$AUDIT_FILE"
   LAST_STDERR_FILE="$STDERR_FILE"
@@ -1353,7 +1454,7 @@ run_codex_once() {
       -c 'shell_environment_policy.inherit=none' \
       -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","HELIX_SESSION_ID","PYTHONIOENCODING"]' \
       ${FULL_AUTO:+$FULL_AUTO} \
-      < /dev/null > >(tee -a "$AUDIT_FILE") 2> >(tee -a "$STDERR_FILE" >&2)
+      < /dev/null > >(tee -a "$AUDIT_FILE" "$STDOUT_FILE" >/dev/null) 2> >(tee -a "$STDERR_FILE" >&2)
   else
     timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$model" -s "$SANDBOX" \
       --skip-git-repo-check \
@@ -1361,9 +1462,11 @@ run_codex_once() {
       -c 'shell_environment_policy.inherit=none' \
       -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","HELIX_SESSION_ID","PYTHONIOENCODING"]' \
       ${FULL_AUTO:+$FULL_AUTO} \
-      < /dev/null
+      < /dev/null > "$STDOUT_FILE"
   fi
   local rc=$?
+  emit_summary_from_capture "$STDOUT_FILE"
+  rm -f "$STDOUT_FILE" 2>/dev/null || true
   return $rc
 }
 
