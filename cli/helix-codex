@@ -84,7 +84,7 @@ APPROVAL_ID=""
 APPROVAL_FILE=""
 TIMEOUT=1800
 MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
-FALLBACK_MODEL=""    # GAP-038 Phase 2: Layer 2 代替モデル
+FALLBACK_MODEL=""    # Layer 0/1: 明示または default_fallback の代替モデル
 FALLBACK_PROVIDER="" # GAP-038 Phase 3: Layer 3 ローカル委譲先
 
 while [[ $# -gt 0 ]]; do
@@ -1069,6 +1069,11 @@ echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SA
 #   - その他                : 標準バックオフ（1秒）
 classify_codex_error() {
   local code="$1"
+  local stderr_file="${2:-}"
+  if [[ -n "$stderr_file" && -f "$stderr_file" ]] && grep -qi 'hit your usage limit' "$stderr_file"; then
+    echo "usage_limit"
+    return 0
+  fi
   case "$code" in
     124)     echo "timeout" ;;
     7|8|28)  echo "network" ;;  # curl-style exit codes
@@ -1086,10 +1091,98 @@ calculate_backoff() {
   esac
 }
 
+resolve_role_primary_model() {
+  local role="$1"
+  local values=()
+  if mapfile -t values < <(resolve_models_from_registry "$role"); then
+    printf '%s\n' "${values[0]:-}"
+  fi
+}
+
+auto_fallback_roles_for() {
+  local role="$1"
+  case "$role" in
+    pg) printf '%s\n' pe se ;;
+    pe) printf '%s\n' pg se ;;
+    se) printf '%s\n' tl ;;
+    qa) printf '%s\n' se ;;
+    tl) ;;
+  esac
+}
+
+TRIED_MODELS=()
+
+record_tried_model() {
+  local model="$1"
+  [[ -n "$model" ]] || return 0
+  TRIED_MODELS+=("$model")
+}
+
+model_was_tried() {
+  local model="$1"
+  local tried=""
+  for tried in "${TRIED_MODELS[@]:-}"; do
+    [[ "$tried" == "$model" ]] && return 0
+  done
+  return 1
+}
+
+LAST_AUDIT_FILE=""
+LAST_STDERR_FILE=""
+LAST_RUN_ROLE=""
+LAST_RUN_MODEL=""
+
+run_auto_role_fallback_chain() {
+  local source_role="$1"
+  local chain_role=""
+  local chain_model=""
+  local error_type=""
+  local attempted=false
+
+  while IFS= read -r chain_role; do
+    [[ -n "$chain_role" ]] || continue
+    chain_model="$(resolve_role_primary_model "$chain_role")"
+    if [[ -z "$chain_model" ]]; then
+      echo "[helix-codex] auto-fallback をスキップ: role $chain_role の primary model を解決できません" >&2
+      continue
+    fi
+    if model_was_tried "$chain_model"; then
+      echo "[helix-codex] auto-fallback をスキップ: role $chain_role の primary model は既試行です ($chain_model)" >&2
+      continue
+    fi
+
+    attempted=true
+    active_role="$chain_role"
+    active_model="$chain_model"
+    record_tried_model "$chain_model"
+    echo "[helix-codex] usage limit 検知。auto-fallback: role $source_role -> $active_role (model=$active_model)" >&2
+
+    set +e
+    run_codex_once "$active_model" "$active_role"
+    codex_exit=$?
+    set -e
+
+    if [[ $codex_exit -eq 0 ]]; then
+      echo "[helix-codex] auto-fallback 成功: role $active_role (model=$active_model)" >&2
+      return 0
+    fi
+
+    error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
+    echo "[helix-codex] auto-fallback 失敗: role $active_role (model=$active_model, error=$error_type, exit=$codex_exit)" >&2
+  done < <(auto_fallback_roles_for "$source_role")
+
+  if [[ "$attempted" == false ]]; then
+    echo "[helix-codex] auto-fallback chain 定義なし: role $source_role" >&2
+  fi
+  return "$codex_exit"
+}
+
 run_codex_once() {
   local model="$1"
+  local run_role="${2:-$ROLE}"
   local AUDIT_DIR=""
   local AUDIT_FILE=""
+  local STDERR_FILE=""
   local audit_basename=""
   local ts=""
   set +e
@@ -1099,11 +1192,16 @@ run_codex_once() {
   AUDIT_DIR="$PROJECT_ROOT/.helix/audit/codex-runs"
   if mkdir -p "$AUDIT_DIR" 2>/dev/null; then
     ts="$(date +%Y%m%d-%H%M%S)"
-    audit_basename="${ts}-${ROLE}"
+    audit_basename="${ts}-${run_role}"
     [[ -n "${PLAN_ID:-}" ]] && audit_basename="${audit_basename}-${PLAN_ID}"
     [[ -n "${TASK_ID:-}" ]] && audit_basename="${audit_basename}-${TASK_ID}"
     AUDIT_FILE="$AUDIT_DIR/${audit_basename}.log"
+    STDERR_FILE="$AUDIT_DIR/${audit_basename}-stderr.log"
   fi
+  LAST_AUDIT_FILE="$AUDIT_FILE"
+  LAST_STDERR_FILE="$STDERR_FILE"
+  LAST_RUN_ROLE="$run_role"
+  LAST_RUN_MODEL="$model"
   # stdin を /dev/null に固定: Codex CLI が tty 不在時に "Reading additional input from stdin..."
   # で hang する問題を防ぐ (run_in_background / 別シェル経由呼び出しで再現)
   if [[ -n "$AUDIT_FILE" ]]; then
@@ -1113,7 +1211,7 @@ run_codex_once() {
       -c 'shell_environment_policy.inherit=none' \
       -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","HELIX_SESSION_ID","PYTHONIOENCODING"]' \
       ${FULL_AUTO:+$FULL_AUTO} \
-      < /dev/null > >(tee -a "$AUDIT_FILE")
+      < /dev/null > >(tee -a "$AUDIT_FILE") 2> >(tee -a "$STDERR_FILE" >&2)
   else
     timeout "$TIMEOUT" "$CODEX_BIN" exec "$PROMPT" -m "$model" -s "$SANDBOX" \
       --skip-git-repo-check \
@@ -1131,10 +1229,14 @@ run_codex_once() {
 retry=0
 codex_exit=1
 active_model="$codex_model"
+active_role="$ROLE"
+last_error_type="other"
+TRIED_MODELS=()
+record_tried_model "$codex_model"
 
 while [[ $retry -le $MAX_RETRY ]]; do
   set +e
-  run_codex_once "$active_model"
+  run_codex_once "$active_model" "$active_role"
   codex_exit=$?
   set -e
 
@@ -1144,28 +1246,40 @@ while [[ $retry -le $MAX_RETRY ]]; do
 
   retry=$((retry + 1))
   if [[ $retry -le $MAX_RETRY ]]; then
-    error_type=$(classify_codex_error "$codex_exit")
-    backoff=$(calculate_backoff "$error_type" "$retry")
-    echo "[helix-codex] リトライ ($retry/$MAX_RETRY, error=$error_type, backoff=${backoff}s)..." >&2
+    last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
+    backoff=$(calculate_backoff "$last_error_type" "$retry")
+    echo "[helix-codex] リトライ ($retry/$MAX_RETRY, error=$last_error_type, backoff=${backoff}s)..." >&2
     if [[ $backoff -gt 0 ]]; then
       sleep "$backoff" 2>/dev/null || true
     fi
   fi
 done
 
-# --- Layer 2 フォールバック: Primary 失敗時に代替モデルで1回だけ再試行 ---
+if [[ $codex_exit -ne 0 ]]; then
+  last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
+fi
+
+# --- Layer 0/1 フォールバック: Primary 失敗時に代替モデルで1回だけ再試行 ---
 if [[ $codex_exit -ne 0 ]] && [[ -n "$FALLBACK_MODEL" ]]; then
   echo "[helix-codex] Primary ($codex_model) 失敗。フォールバック: $FALLBACK_MODEL で再試行" >&2
   active_model="$FALLBACK_MODEL"
+  active_role="$ROLE"
+  record_tried_model "$active_model"
   set +e
-  run_codex_once "$active_model"
+  run_codex_once "$active_model" "$active_role"
   codex_exit=$?
   set -e
+  last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
   if [[ $codex_exit -eq 0 ]]; then
     echo "[helix-codex] フォールバック成功: $FALLBACK_MODEL" >&2
   else
     echo "[helix-codex] フォールバックも失敗: $FALLBACK_MODEL (exit=$codex_exit)" >&2
   fi
+fi
+
+# --- Layer 2 フォールバック: usage limit 検知時に role chain を試行 ---
+if [[ $codex_exit -ne 0 ]] && [[ "${HELIX_CODEX_AUTO_FALLBACK:-0}" == "1" ]] && [[ "$last_error_type" == "usage_limit" ]]; then
+  run_auto_role_fallback_chain "$ROLE" || true
 fi
 
 # --- Layer 3 フォールバック: Claude Code 用 prompt をローカル生成 ---
@@ -1203,9 +1317,9 @@ fi
 # コスト記録（バックグラウンド）
 cost_bg_pid=""
 if [[ -f "$HELIX_DIR/helix.db" ]]; then
-  # active_model は Primary または Fallback のどちらが最終的に使われたか
+  # active_model / active_role は最後に試行した実行コンテキストを表す
   HELIX_DB_PATH="$HELIX_DIR/helix.db" python3 "$SCRIPT_DIR/lib/helix_db.py" insert cost_log \
-    "{\"role\":\"$ROLE\",\"model\":\"$active_model\",\"thinking\":\"$THINKING\",\"retries\":$retry,\"exit_code\":$codex_exit}" 2>/dev/null &
+    "{\"role\":\"$active_role\",\"model\":\"$active_model\",\"thinking\":\"$THINKING\",\"retries\":$retry,\"exit_code\":$codex_exit}" 2>/dev/null &
   cost_bg_pid=$!
 fi
 
