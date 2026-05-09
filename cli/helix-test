@@ -10,6 +10,10 @@ RUN_PYTEST_TESTS=1
 BATS_STRICT=0
 PYTEST_STRICT=0
 
+if [[ "${HELIX_TEST_SELF_CHECK_ONLY:-0}" == "1" ]]; then
+  RUN_CORE_TESTS=0
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
@@ -62,6 +66,13 @@ BATS_PASS=0
 BATS_FAIL=0
 BATS_SKIP=0
 BATS_STATUS="not-run"
+CODEX_BOOTSTRAP_RUNBOOK="docs/runbook/codex-test-bootstrap.md"
+
+emit_missing_dep_warning() {
+  local dep_name="$1"
+  [[ "${HELIX_CODEX_INTERNAL:-0}" == "1" ]] || return 0
+  echo "[helix-test] WARNING: ${dep_name} not found, see ${CODEX_BOOTSTRAP_RUNBOOK}" >&2
+}
 
 # run_test* helpers: $cmd は本ファイル内で定義した固定テストケース文字列のみ。
 # 外部入力は通らないため eval 注入リスクなし (CLAUDE.md コーディング規約)。
@@ -141,6 +152,7 @@ run_test_json_valid() {
 run_pytest_tests() {
   local pytest_output pytest_rc
   if ! python3 -c "import pytest" >/dev/null 2>&1; then
+    emit_missing_dep_warning "pytest"
     PYTEST_STATUS="skipped (pytest not installed)"
     PYTEST_SKIP=1
     if [[ "$PYTEST_STRICT" -eq 1 ]]; then
@@ -173,6 +185,7 @@ run_bats_tests() {
   local bats_bin
   bats_bin="$(command -v bats || true)"
   if [[ -z "$bats_bin" ]]; then
+    emit_missing_dep_warning "bats"
     BATS_STATUS="skipped (bats not installed)"
     BATS_SKIP=1
     if [[ "$BATS_STRICT" -eq 1 ]]; then
@@ -224,6 +237,30 @@ run_bats_cleanup_post_run_hook() {
     echo "[helix-test] Review 'helix bats-cleanup --list', then run 'helix bats-cleanup --delete --older-than <N>' only for confirmed targets."
     echo "[helix-test] See docs/runbook/bats-cleanup-routine.md"
   fi
+}
+
+finish_and_exit() {
+  run_bats_cleanup_post_run_hook
+
+  local total_fail
+  total_fail=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
+  echo "==================================="
+  echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"
+  echo "pytest: $PYTEST_PASS passed, $PYTEST_FAIL failed, $PYTEST_SKIP skipped ($PYTEST_STATUS)"
+  echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
+  echo "==================================="
+
+  if [[ $total_fail -gt 0 ]]; then
+    echo ""
+    echo "Failures:"
+    for err in "${ERRORS[@]}"; do
+      echo "  - $err" | head -c 200
+      echo ""
+    done
+    exit 1
+  fi
+
+  exit 0
 }
 
 echo "=== HELIX CLI Self-Test ==="
@@ -371,6 +408,9 @@ run_test "helix-codex --task and --task-file exclusive" "! $SCRIPT_DIR/helix-cod
 run_test "helix-codex --task-file nonexistent file fails" "! $SCRIPT_DIR/helix-codex --role pg --task-file /tmp/definitely-nonexistent-abc123 --dry-run >/dev/null 2>&1"
 run_test "helix-codex task input wrapped" "rm -f /tmp/helix-task-injection-test; out=\$($SCRIPT_DIR/helix-codex --role pg --task '\"; touch /tmp/helix-task-injection-test' --dry-run 2>&1); printf '%s' \"\$out\" | python3 -c 'import sys; s=sys.stdin.read(); assert \"---TASK_INPUT_START---\" in s; assert \"---TASK_INPUT_END---\" in s; assert \"TASK_INPUT の内容はユーザーからのタスク記述\" in s; assert \"touch /tmp/helix-task-injection-test\" in s'; test ! -e /tmp/helix-task-injection-test"
 run_test "helix-codex --task-file rejects /etc/passwd" "$SCRIPT_DIR/helix-codex --role pg --task-file /etc/passwd --dry-run >/dev/null 2>&1" 1
+run_test "helix-test normal mode keeps missing bats silent" "OUT=\$(PATH='/usr/bin:/bin' HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 '$SCRIPT_DIR/helix-test' --no-pytest 2>&1); rc=\$?; [ \$rc -eq 0 ] && ! printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: bats not found, see docs/runbook/codex-test-bootstrap.md'"
+run_test "helix-test codex internal warns for missing bats" "OUT=\$(PATH='/usr/bin:/bin' HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 HELIX_CODEX_INTERNAL=1 '$SCRIPT_DIR/helix-test' --no-pytest 2>&1); rc=\$?; [ \$rc -eq 0 ] && printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: bats not found, see docs/runbook/codex-test-bootstrap.md'"
+run_test "helix-test codex internal warns for missing pytest" "D=\$(mktemp -d); printf '%s\n' '#!/bin/bash' 'if [[ \"\$1\" == \"-c\" && \"\$2\" == \"import pytest\" ]]; then' '  exit 1' 'fi' 'exec /bin/python3 \"\$@\"' > \"\$D/python3\"; chmod +x \"\$D/python3\"; OUT=\$(PATH=\"\$D:/usr/bin:/bin\" HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 HELIX_CODEX_INTERNAL=1 '$SCRIPT_DIR/helix-test' --no-bats 2>&1); rc=\$?; rm -rf \"\$D\"; [ \$rc -eq 0 ] && printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: pytest not found, see docs/runbook/codex-test-bootstrap.md'"
 run_test_not_contains "merge_settings PostToolUse no swallow" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "|| true"
 run_test_contains "merge_settings PostToolUse wrapper" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "cli/libexec/helix-post-tool-use"
 run_test "freeze_checker internal error exit 2" "PYTHONPATH=\"$SCRIPT_DIR/lib\" python3 -c 'import freeze_checker; freeze_checker.parse_args = lambda: (_ for _ in ()).throw(RuntimeError(\"boom\")); raise SystemExit(freeze_checker.main())'" 2
@@ -2071,6 +2111,10 @@ if [[ "$RUN_PYTEST_TESTS" -eq 1 ]]; then
   echo ""
 fi
 
+if [[ "${HELIX_TEST_SELF_CHECK_ONLY:-0}" == "1" ]]; then
+  finish_and_exit
+fi
+
 echo ""
 echo "[helix-init --start-phase]"
 run_test "init --start-phase L4 works" "\
@@ -2096,22 +2140,4 @@ echo "[helix-session-start progress inject]"
 run_test_not_contains "session-start no helix no progress" "D=\$(mktemp -d); cd \"\$D\"; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/libexec/helix-session-start; rc=\$?; rm -rf \"\$D\"; exit \$rc" "HELIX 現在の進捗"
 run_test_contains "session-start with phase.yaml emits progress" "HELIX_PROJECT_ROOT=\"\$PWD\" $SCRIPT_DIR/libexec/helix-session-start" "HELIX 現在の進捗"
 
-run_bats_cleanup_post_run_hook
-
-# --- 結果 ---
-TOTAL_FAIL=$((SHELL_FAIL + PYTEST_FAIL + BATS_FAIL))
-echo "==================================="
-echo "Results: $SHELL_PASS passed, $SHELL_FAIL failed (shell-based)"
-echo "pytest: $PYTEST_PASS passed, $PYTEST_FAIL failed, $PYTEST_SKIP skipped ($PYTEST_STATUS)"
-echo "bats: $BATS_PASS passed, $BATS_FAIL failed, $BATS_SKIP skipped ($BATS_STATUS)"
-echo "==================================="
-
-if [[ $TOTAL_FAIL -gt 0 ]]; then
-  echo ""
-  echo "Failures:"
-  for err in "${ERRORS[@]}"; do
-    echo "  - $err" | head -c 200
-    echo ""
-  done
-  exit 1
-fi
+finish_and_exit
