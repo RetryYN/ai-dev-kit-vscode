@@ -58,117 +58,137 @@ teardown() {
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
-@test "usage limit は layer 1 枯渇後に auto-fallback role chain へ進む" {
-  invocations="$TMP_ROOT/invocations.txt"
-  args_file="$TMP_ROOT/args.log"
+run_case() {
+  INVOCATIONS_FILE="$TMP_ROOT/invocations.txt"
+  ARGS_FILE="$TMP_ROOT/args.log"
+  local task="$1"
+  local env_args=()
+  local cli_args=()
+  local parsing_env=true
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "--" ]]; then
+      parsing_env=false
+      shift
+      continue
+    fi
+    if [[ "$parsing_env" == true ]]; then
+      env_args+=("$1")
+    else
+      cli_args+=("$1")
+    fi
+    shift
+  done
 
   run env \
-    HELIX_CODEX_AUTO_FALLBACK=1 \
-    HELIX_TEST_INVOCATIONS_FILE="$invocations" \
-    HELIX_TEST_ARGS_FILE="$args_file" \
-    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
-    HELIX_TEST_CODEX_EXIT_1=1 \
-    HELIX_TEST_STDERR_2="hit your usage limit on default fallback" \
-    HELIX_TEST_CODEX_EXIT_2=1 \
-    HELIX_TEST_STDERR_3="hit your usage limit on pe primary" \
-    HELIX_TEST_CODEX_EXIT_3=1 \
-    HELIX_TEST_STDOUT_4="se primary succeeded" \
-    HELIX_TEST_CODEX_EXIT_4=0 \
+    HELIX_DYNAMIC_SKILLS=0 \
+    HELIX_TEST_INVOCATIONS_FILE="$INVOCATIONS_FILE" \
+    HELIX_TEST_ARGS_FILE="$ARGS_FILE" \
+    "${env_args[@]}" \
     "$HELIX_ROOT/cli/helix-codex" \
     --role pg \
-    --task "usage limit auto fallback" \
+    --task "$task" \
     --approved \
-    --max-retries 0
-
-  [ "$status" -eq 0 ]
-  [ "$(cat "$invocations")" -eq 4 ]
-  [[ "$output" == *"Primary (gpt-5.3-codex-spark) 失敗。フォールバック: gpt-5.4-mini で再試行"* ]]
-  [[ "$output" == *"auto-fallback: role pg -> pe (model=gpt-5.3-codex)"* ]]
-  [[ "$output" == *"auto-fallback: role pg -> se (model=gpt-5.4)"* ]]
-  [[ "$output" == *"auto-fallback 成功: role se (model=gpt-5.4)"* ]]
-  [[ "$(cat "$args_file")" == *"call=1 model=gpt-5.3-codex-spark"* ]]
-  [[ "$(cat "$args_file")" == *"call=2 model=gpt-5.4-mini"* ]]
-  [[ "$(cat "$args_file")" == *"call=3 model=gpt-5.3-codex"* ]]
-  [[ "$(cat "$args_file")" == *"call=4 model=gpt-5.4"* ]]
-  grep -Rqi "hit your usage limit" "$PROJECT_ROOT/.helix/audit/codex-runs"
+    --max-retries 0 \
+    "${cli_args[@]}"
 }
 
-@test "AUTO_FALLBACK 未設定では usage limit でも layer 2 は発火しない" {
-  invocations="$TMP_ROOT/invocations.txt"
-  args_file="$TMP_ROOT/args.log"
-
-  run env \
-    HELIX_TEST_INVOCATIONS_FILE="$invocations" \
-    HELIX_TEST_ARGS_FILE="$args_file" \
-    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
-    HELIX_TEST_CODEX_EXIT_1=1 \
-    HELIX_TEST_STDERR_2="hit your usage limit on default fallback" \
-    HELIX_TEST_CODEX_EXIT_2=1 \
-    "$HELIX_ROOT/cli/helix-codex" \
-    --role pg \
-    --task "usage limit without auto fallback" \
-    --approved \
-    --max-retries 0
-
-  [ "$status" -eq 1 ]
-  [ "$(cat "$invocations")" -eq 2 ]
-  [[ "$output" != *"auto-fallback:"* ]]
-  [[ "$(cat "$args_file")" == *"call=1 model=gpt-5.3-codex-spark"* ]]
-  [[ "$(cat "$args_file")" == *"call=2 model=gpt-5.4-mini"* ]]
+args_log() {
+  cat "$ARGS_FILE"
 }
 
-@test "usage limit 以外のエラーでは AUTO_FALLBACK=1 でも layer 2 を試さない" {
-  invocations="$TMP_ROOT/invocations.txt"
-  args_file="$TMP_ROOT/args.log"
-
-  run env \
+@test "usage_limit + AUTO_FALLBACK=1 + --fallback-model では Layer 0 が最優先" {
+  run_case "explicit fallback precedes layer2" \
     HELIX_CODEX_AUTO_FALLBACK=1 \
-    HELIX_TEST_INVOCATIONS_FILE="$invocations" \
-    HELIX_TEST_ARGS_FILE="$args_file" \
-    HELIX_TEST_STDERR_1="backend exploded" \
-    HELIX_TEST_CODEX_EXIT_1=1 \
-    HELIX_TEST_STDERR_2="still not usage limit" \
-    HELIX_TEST_CODEX_EXIT_2=1 \
-    "$HELIX_ROOT/cli/helix-codex" \
-    --role pg \
-    --task "non usage limit error" \
-    --approved \
-    --max-retries 0
-
-  [ "$status" -eq 1 ]
-  [ "$(cat "$invocations")" -eq 2 ]
-  [[ "$output" != *"auto-fallback:"* ]]
-  [[ "$(cat "$args_file")" == *"call=1 model=gpt-5.3-codex-spark"* ]]
-  [[ "$(cat "$args_file")" == *"call=2 model=gpt-5.4-mini"* ]]
-}
-
-@test "--fallback-model 明示時は layer 0 を優先し、枯渇後に layer 2 へ進む" {
-  invocations="$TMP_ROOT/invocations.txt"
-  args_file="$TMP_ROOT/args.log"
-
-  run env \
-    HELIX_CODEX_AUTO_FALLBACK=1 \
-    HELIX_TEST_INVOCATIONS_FILE="$invocations" \
-    HELIX_TEST_ARGS_FILE="$args_file" \
     HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
     HELIX_TEST_CODEX_EXIT_1=1 \
     HELIX_TEST_STDERR_2="hit your usage limit on explicit fallback" \
     HELIX_TEST_CODEX_EXIT_2=1 \
     HELIX_TEST_STDOUT_3="pe primary succeeded" \
     HELIX_TEST_CODEX_EXIT_3=0 \
-    "$HELIX_ROOT/cli/helix-codex" \
-    --role pg \
-    --task "explicit fallback model wins" \
-    --approved \
-    --max-retries 0 \
+    -- \
     --fallback-model gpt-5.5
 
   [ "$status" -eq 0 ]
-  [ "$(cat "$invocations")" -eq 3 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 3 ]
   [[ "$output" == *"フォールバック: gpt-5.5 で再試行"* ]]
   [[ "$output" == *"auto-fallback: role pg -> pe (model=gpt-5.3-codex)"* ]]
-  [[ "$(cat "$args_file")" == *"call=1 model=gpt-5.3-codex-spark"* ]]
-  [[ "$(cat "$args_file")" == *"call=2 model=gpt-5.5"* ]]
-  [[ "$(cat "$args_file")" == *"call=3 model=gpt-5.3-codex"* ]]
-  [[ "$(cat "$args_file")" != *"gpt-5.4-mini"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.5"* ]]
+  [[ "$(args_log)" == *"call=3 model=gpt-5.3-codex"* ]]
+  [[ "$(args_log)" != *"gpt-5.4-mini"* ]]
+}
+
+@test "usage_limit + AUTO_FALLBACK=1 では Layer 2 が Layer 1 より先に発火する" {
+  run_case "usage limit auto fallback" \
+    HELIX_CODEX_AUTO_FALLBACK=1 \
+    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
+    HELIX_TEST_CODEX_EXIT_1=1 \
+    HELIX_TEST_STDERR_2="hit your usage limit on pe primary" \
+    HELIX_TEST_CODEX_EXIT_2=1 \
+    HELIX_TEST_STDOUT_3="se primary succeeded" \
+    HELIX_TEST_CODEX_EXIT_3=0
+
+  [ "$status" -eq 0 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 3 ]
+  [[ "$output" == *"auto-fallback: role pg -> pe (model=gpt-5.3-codex)"* ]]
+  [[ "$output" == *"auto-fallback 成功: role se (model=gpt-5.4)"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.3-codex"* ]]
+  [[ "$(args_log)" == *"call=3 model=gpt-5.4"* ]]
+  [[ "$(args_log)" != *"gpt-5.4-mini"* ]]
+  grep -Rqi "hit your usage limit" "$PROJECT_ROOT/.helix/audit/codex-runs"
+}
+
+@test "usage_limit + AUTO_FALLBACK=0 では Layer 1 だけが発火する" {
+  run_case "usage limit without auto fallback" \
+    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
+    HELIX_TEST_CODEX_EXIT_1=1 \
+    HELIX_TEST_STDERR_2="hit your usage limit on default fallback" \
+    HELIX_TEST_CODEX_EXIT_2=1
+
+  [ "$status" -eq 1 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 2 ]
+  [[ "$output" != *"auto-fallback:"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.4-mini"* ]]
+}
+
+@test "rate_limit + AUTO_FALLBACK=1 では Layer 2 を試さず Layer 1 へ進む" {
+  run_case "rate limit skips auto fallback" \
+    HELIX_CODEX_AUTO_FALLBACK=1 \
+    HELIX_TEST_STDERR_1="rate limit exceeded on pg primary" \
+    HELIX_TEST_CODEX_EXIT_1=1 \
+    HELIX_TEST_STDERR_2="rate limit exceeded on default fallback" \
+    HELIX_TEST_CODEX_EXIT_2=1
+
+  [ "$status" -eq 1 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 2 ]
+  [[ "$output" != *"auto-fallback:"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.4-mini"* ]]
+}
+
+@test "Layer 2 chain 全失敗時は Layer 1 default_fallback に復帰する" {
+  run_case "auto fallback falls back to registry default" \
+    HELIX_CODEX_AUTO_FALLBACK=1 \
+    HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
+    HELIX_TEST_CODEX_EXIT_1=1 \
+    HELIX_TEST_STDERR_2="hit your usage limit on pe primary" \
+    HELIX_TEST_CODEX_EXIT_2=1 \
+    HELIX_TEST_STDERR_3="hit your usage limit on se primary" \
+    HELIX_TEST_CODEX_EXIT_3=1 \
+    HELIX_TEST_STDERR_4="hit your usage limit on default fallback" \
+    HELIX_TEST_CODEX_EXIT_4=1
+
+  [ "$status" -eq 1 ]
+  [ "$(cat "$INVOCATIONS_FILE")" -eq 4 ]
+  [[ "$output" == *"auto-fallback: role pg -> pe (model=gpt-5.3-codex)"* ]]
+  [[ "$output" == *"auto-fallback: role pg -> se (model=gpt-5.4)"* ]]
+  [[ "$output" == *"フォールバック: gpt-5.4-mini で再試行"* ]]
+  [[ "$(args_log)" == *"call=1 model=gpt-5.3-codex-spark"* ]]
+  [[ "$(args_log)" == *"call=2 model=gpt-5.3-codex"* ]]
+  [[ "$(args_log)" == *"call=3 model=gpt-5.4"* ]]
+  [[ "$(args_log)" == *"call=4 model=gpt-5.4-mini"* ]]
 }

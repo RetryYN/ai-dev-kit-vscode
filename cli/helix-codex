@@ -85,6 +85,7 @@ APPROVAL_FILE=""
 TIMEOUT=1800
 MAX_RETRY=2          # GAP-038: デフォルトはロール別後続で上書き
 FALLBACK_MODEL=""    # Layer 0/1: 明示または default_fallback の代替モデル
+CLI_FALLBACK_MODEL="" # Layer 0: --fallback-model で明示指定された代替モデル
 FALLBACK_PROVIDER="" # GAP-038 Phase 3: Layer 3 ローカル委譲先
 
 while [[ $# -gt 0 ]]; do
@@ -96,7 +97,7 @@ while [[ $# -gt 0 ]]; do
     --auto-thinking)   AUTO_THINKING=true; shift ;;
     --timeout)         TIMEOUT="$2"; shift 2 ;;
     --max-retries)     MAX_RETRY="$2"; shift 2 ;;
-    --fallback-model)  FALLBACK_MODEL="$2"; shift 2 ;;
+    --fallback-model)  CLI_FALLBACK_MODEL="$2"; FALLBACK_MODEL="$2"; shift 2 ;;
     --fallback-provider) FALLBACK_PROVIDER="$2"; shift 2 ;;
     --sandbox)         SANDBOX="$2"; SANDBOX_EXPLICIT=true; shift 2 ;;
     --read-only)       SANDBOX="read-only"; SANDBOX_EXPLICIT=true; shift ;;
@@ -1180,6 +1181,25 @@ run_auto_role_fallback_chain() {
   return "$codex_exit"
 }
 
+run_model_fallback() {
+  local fallback_model="$1"
+
+  echo "[helix-codex] Primary ($codex_model) 失敗。フォールバック: $fallback_model で再試行" >&2
+  active_model="$fallback_model"
+  active_role="$ROLE"
+  record_tried_model "$active_model"
+  set +e
+  run_codex_once "$active_model" "$active_role"
+  codex_exit=$?
+  set -e
+  last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
+  if [[ $codex_exit -eq 0 ]]; then
+    echo "[helix-codex] フォールバック成功: $fallback_model" >&2
+  else
+    echo "[helix-codex] フォールバックも失敗: $fallback_model (exit=$codex_exit)" >&2
+  fi
+}
+
 run_codex_once() {
   local model="$1"
   local run_role="${2:-$ROLE}"
@@ -1262,27 +1282,23 @@ if [[ $codex_exit -ne 0 ]]; then
   last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
 fi
 
-# --- Layer 0/1 フォールバック: Primary 失敗時に代替モデルで1回だけ再試行 ---
-if [[ $codex_exit -ne 0 ]] && [[ -n "$FALLBACK_MODEL" ]]; then
-  echo "[helix-codex] Primary ($codex_model) 失敗。フォールバック: $FALLBACK_MODEL で再試行" >&2
-  active_model="$FALLBACK_MODEL"
-  active_role="$ROLE"
-  record_tried_model "$active_model"
-  set +e
-  run_codex_once "$active_model" "$active_role"
-  codex_exit=$?
-  set -e
-  last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
-  if [[ $codex_exit -eq 0 ]]; then
-    echo "[helix-codex] フォールバック成功: $FALLBACK_MODEL" >&2
-  else
-    echo "[helix-codex] フォールバックも失敗: $FALLBACK_MODEL (exit=$codex_exit)" >&2
+# --- Layer 0/1/2 フォールバック: usage_limit 時のみ Layer 2 を Layer 1 より先に試行 ---
+if [[ $codex_exit -ne 0 ]]; then
+  if [[ -n "$CLI_FALLBACK_MODEL" ]]; then
+    run_model_fallback "$CLI_FALLBACK_MODEL"
   fi
-fi
 
-# --- Layer 2 フォールバック: usage limit 検知時に role chain を試行 ---
-if [[ $codex_exit -ne 0 ]] && [[ "${HELIX_CODEX_AUTO_FALLBACK:-0}" == "1" ]] && [[ "$last_error_type" == "usage_limit" ]]; then
-  run_auto_role_fallback_chain "$ROLE" || true
+  if [[ $codex_exit -ne 0 ]]; then
+    last_error_type=$(classify_codex_error "$codex_exit" "$LAST_STDERR_FILE")
+    if [[ "$last_error_type" == "usage_limit" ]] && [[ "${HELIX_CODEX_AUTO_FALLBACK:-0}" == "1" ]]; then
+      run_auto_role_fallback_chain "$ROLE" || true
+      if [[ $codex_exit -ne 0 ]] && [[ -n "$registry_default_fallback" ]] && ! model_was_tried "$registry_default_fallback"; then
+        run_model_fallback "$registry_default_fallback"
+      fi
+    elif [[ -z "$CLI_FALLBACK_MODEL" ]] && [[ -n "$FALLBACK_MODEL" ]]; then
+      run_model_fallback "$FALLBACK_MODEL"
+    fi
+  fi
 fi
 
 # --- Layer 3 フォールバック: Claude Code 用 prompt をローカル生成 ---
