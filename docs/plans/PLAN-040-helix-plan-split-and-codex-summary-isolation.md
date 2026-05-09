@@ -1,14 +1,14 @@
 ---
 plan_id: PLAN-040
 title: PLAN-040（cli/helix-plan subcommand 分割 + Codex summary 完全分離 + legacy frontmatter migration + spark primary 一時切替）
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
 author: Opus (PM)
 size: L
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
-completed: null
+completed: 2026-05-10
 acceptance:
   - W-1: cli/helix-plan が 100 行以下の dispatcher になり、各 subcommand が別ファイルで管理されること。
   - W-23: helix-codex 完了報告 stdout に中間 bash error が混入せず、HELIX_DISABLE_SPARK=1 で primary が一時切替可能であること。
