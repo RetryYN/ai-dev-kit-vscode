@@ -48,9 +48,9 @@ def test_resolve_thinking_env_inject(monkeypatch: pytest.MonkeyPatch, caplog: py
 
 def test_resolve_thinking_logs_decision(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.INFO, logger=codex_thinking.__name__):
-        assert codex_thinking.resolve_thinking("pg") == "low"
+        assert codex_thinking.resolve_thinking("pg") == "medium"
 
-    assert "resolved thinking=low" in caplog.text
+    assert "resolved thinking=medium" in caplog.text
     assert "source=role-default" in caplog.text
 
 
@@ -78,8 +78,8 @@ def test_helix_codex_thinking_uses_resolve_function(tmp_path: Path) -> None:
     )
 
     assert proc.returncode == 0
-    assert "[codex-thinking] resolved thinking=low source=role-default role=pg" in proc.stderr
-    assert "Thinking:  low" in proc.stdout
+    assert "[codex-thinking] resolved thinking=medium source=role-default role=pg" in proc.stderr
+    assert "Thinking:  medium" in proc.stdout
 
 
 def test_codex_thinking_priority_full(monkeypatch: pytest.MonkeyPatch) -> None:
