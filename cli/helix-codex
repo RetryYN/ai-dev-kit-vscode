@@ -1426,6 +1426,37 @@ emit_summary_from_capture() {
   tail -n 30 "$stdout_file"
 }
 
+run_codex_post_hook() {
+  local stdout_file="$1"
+  local audit_file="$2"
+  local run_role="$3"
+  local run_id=""
+  local hook_args=()
+
+  [[ "$ROLE" == "tl" ]] || return 0
+  [[ "$run_role" == "tl" ]] || return 0
+  [[ -n "${PLAN_ID:-}" ]] || return 0
+  [[ -f "$HELIX_DIR/helix.db" ]] || return 0
+
+  if [[ -n "$audit_file" ]]; then
+    run_id="$(basename "$audit_file" .log)"
+  else
+    run_id="$(basename "$stdout_file")"
+  fi
+
+  hook_args=(
+    --db "$HELIX_DIR/helix.db"
+    --plan-id "$PLAN_ID"
+    --run-id "$run_id"
+    --stdout-file "$stdout_file"
+  )
+  if [[ -n "$audit_file" ]]; then
+    hook_args+=(--audit-log "$audit_file")
+  fi
+
+  python3 "$SCRIPT_DIR/lib/codex_post_hook.py" "${hook_args[@]}" >/dev/null || true
+}
+
 run_codex_once() {
   local model="$1"
   local run_role="${2:-$ROLE}"
@@ -1486,6 +1517,9 @@ run_codex_once() {
   fi
   local rc=$?
   emit_summary_from_capture "$STDOUT_FILE"
+  if [[ $rc -eq 0 ]]; then
+    run_codex_post_hook "$STDOUT_FILE" "$AUDIT_FILE" "$run_role"
+  fi
   rm -f "$STDOUT_FILE" 2>/dev/null || true
   return $rc
 }

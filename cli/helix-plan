@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
-# Usage: helix plan <draft|review|finalize|reset|list|status|lint> [options]
+# Usage: helix plan <draft|review|finalize|reset|list|status|lint|import> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PLAN_CMDS_DIR="$SCRIPT_DIR/helix-plan-cmds"
@@ -30,6 +30,8 @@ Subcommands:
              Options: --id <PLAN-NNN>
   lint       PLAN markdown の status 整合を検査
              Usage: helix plan lint [--duplicates] <plan-file>
+  import     PLAN markdown frontmatter から YAML を再生成
+             Usage: helix plan import [--from-frontmatter] [--dry-run] [--force]
 
 Examples:
   helix plan draft --title "ユーザー認証のAPI設計" --file docs/features/user-auth/D-ARCH/architecture.md
@@ -41,6 +43,7 @@ Examples:
   helix plan status --id PLAN-001
   helix plan lint docs/plans/PLAN-036-example.md
   helix plan lint --duplicates docs/plans/PLAN-036-example.md
+  helix plan import --from-frontmatter --dry-run
 USAGE
 }
 
@@ -53,6 +56,7 @@ source "$PLAN_CMDS_DIR/reset.sh"
 source "$PLAN_CMDS_DIR/list.sh"
 source "$PLAN_CMDS_DIR/status.sh"
 source "$PLAN_CMDS_DIR/lint.sh"
+source "$PLAN_CMDS_DIR/import.sh"
 
 CMD="${1:-help}"
 if [[ $# -gt 0 ]]; then
@@ -68,6 +72,7 @@ case "$CMD" in
   list) cmd_list "$@" ;;
   status) cmd_status "$@" ;;
   lint) cmd_lint "$@" ;;
+  import) cmd_import "$@" ;;
   help|-h|--help) usage ;;
   *)
     echo "エラー: 不明なサブコマンドです: $CMD" >&2

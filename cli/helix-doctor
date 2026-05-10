@@ -282,6 +282,70 @@ check_role_config_consistency() {
   fi
 }
 
+extract_declared_count() {
+  local file="$1"
+  local pattern="$2"
+  python3 - <<'PY' "$file" "$pattern"
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+match = re.search(sys.argv[2], text)
+if not match:
+    raise SystemExit(1)
+print(match.group(1))
+PY
+}
+
+check_drift_count() {
+  local name="$1"
+  local measured="$2"
+  local declared="$3"
+  if [[ -n "$declared" && "$measured" == "$declared" ]]; then
+    echo "  ✓ $name"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ $name"
+  echo "    実測 ${measured:-unknown} / 文書記述 ${declared:-unknown}、SKILL_MAP.md / ROLE_MAP.md を更新してください"
+  WARN=$((WARN + 1))
+}
+
+check_document_drift() {
+  local skill_map="$PROJECT_ROOT/skills/SKILL_MAP.md"
+  local role_map="$PROJECT_ROOT/cli/ROLE_MAP.md"
+  local skills_count agents_count roles_count
+  local declared_skills="" declared_agents="" declared_roles=""
+
+  if [[ -d "$PROJECT_ROOT/skills" ]]; then
+    skills_count="$(find "$PROJECT_ROOT/skills" -name SKILL.md | wc -l | tr -d '[:space:]')"
+  else
+    skills_count="0"
+  fi
+
+  if [[ -d "$PROJECT_ROOT/.claude/agents" ]]; then
+    agents_count="$(find "$PROJECT_ROOT/.claude/agents" -maxdepth 1 -type f -name '*.md' | wc -l | tr -d '[:space:]')"
+  else
+    agents_count="0"
+  fi
+
+  if [[ -d "$PROJECT_ROOT/cli/roles" ]]; then
+    roles_count="$(find "$PROJECT_ROOT/cli/roles" -maxdepth 1 -type f -name '*.conf' | wc -l | tr -d '[:space:]')"
+  else
+    roles_count="0"
+  fi
+
+  declared_skills="$(extract_declared_count "$skill_map" 'スキル群配置（([0-9]+)スキル）' 2>/dev/null || true)"
+  declared_agents="$(extract_declared_count "$skill_map" '\.claude/agents/ は ([0-9]+) エージェント構成' 2>/dev/null || true)"
+  declared_roles="$(extract_declared_count "$role_map" 'ロール一覧 \(([0-9]+)\)' 2>/dev/null || true)"
+
+  check_drift_count "skills count drift" "$skills_count" "$declared_skills"
+  check_drift_count ".claude/agents count drift" "$agents_count" "$declared_agents"
+  check_drift_count "cli/roles count drift" "$roles_count" "$declared_roles"
+}
+
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
@@ -322,6 +386,10 @@ check_template_version "$HELIX_DIR/doc-map.yaml" "$HELIX_HOME/cli/templates/doc-
 echo ""
 echo "[ロール設定]"
 check_role_config_consistency
+
+echo ""
+echo "[drift]"
+check_document_drift
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"
