@@ -518,3 +518,43 @@ def test_diff_lines_match_silent() -> None:
 
 def _read_stdout(capsys: pytest.CaptureFixture[str]) -> str:
     return capsys.readouterr().out.strip()
+
+
+def test_modified_file_counted_as_actual() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=(
+            "---SUMMARY_START---\n"
+            "decision: passed\n"
+            "files: a.py\n"
+            "diff_lines: 5\n"
+            "---SUMMARY_END---"
+        ),
+        before_paths={"a.py", "b.py"},
+        after_paths={"a.py", "b.py"},
+        untracked_after_paths=set(),
+        git_diff_paths={"a.py"},
+    )
+
+    audit_only_warnings = [w for w in warnings if "audit-only failure suspected" in w]
+    assert audit_only_warnings == []
+
+
+def test_actual_modified_zero_warns_only_if_truly_no_changes() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=(
+            "---SUMMARY_START---\n"
+            "decision: passed\n"
+            "files: none\n"
+            "diff_lines: 0\n"
+            "---SUMMARY_END---"
+        ),
+        before_paths={"a.py"},
+        after_paths={"a.py"},
+        untracked_after_paths=set(),
+        git_diff_paths=set(),
+    )
+
+    audit_only_warnings = [w for w in warnings if "audit-only failure suspected" in w]
+    assert len(audit_only_warnings) >= 1

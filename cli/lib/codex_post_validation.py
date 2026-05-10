@@ -5,6 +5,7 @@ import fnmatch
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -62,13 +63,46 @@ def parse_summary_diff_lines(stdout: str) -> tuple[int | None, str]:
         return None, "invalid"
 
 
+def count_actual_diff_files(
+    *,
+    before_paths: set[str],
+    after_paths: set[str],
+    untracked_after_paths: set[str],
+    git_diff_paths: set[str] | None = None,
+) -> int:
+    new_files = after_paths - before_paths
+    modified_files = git_diff_paths or set()
+    return len(new_files | untracked_after_paths | modified_files)
+
+
 def count_actual_diff_lines(
     before_paths: set[str],
     after_paths: set[str],
     untracked_after_paths: set[str],
 ) -> int:
-    actual_files = (after_paths - before_paths) | untracked_after_paths
-    return len(actual_files)
+    return count_actual_diff_files(
+        before_paths=before_paths,
+        after_paths=after_paths,
+        untracked_after_paths=untracked_after_paths,
+    )
+
+
+def get_git_diff_paths(repo_root: Path) -> set[str]:
+    """Return paths of modified tracked files via git diff --name-only."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "diff", "--name-only"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (FileNotFoundError, OSError):
+        return set()
+
+    if result.returncode != 0:
+        return set()
+
+    return {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
 def check_write_expected(
@@ -78,15 +112,21 @@ def check_write_expected(
     before_paths: set[str],
     after_paths: set[str],
     untracked_after_paths: set[str],
+    git_diff_paths: set[str] | None = None,
 ) -> list[str]:
     if task_type != "実装":
         return []
 
-    actual_files = (after_paths - before_paths) | untracked_after_paths
-    actual_count = count_actual_diff_lines(
-        before_paths,
-        after_paths,
-        untracked_after_paths,
+    actual_files = (
+        (after_paths - before_paths)
+        | untracked_after_paths
+        | (git_diff_paths or set())
+    )
+    actual_count = count_actual_diff_files(
+        before_paths=before_paths,
+        after_paths=after_paths,
+        untracked_after_paths=untracked_after_paths,
+        git_diff_paths=git_diff_paths,
     )
     parsed_diff_lines, status = parse_summary_diff_lines(summary_stdout)
     warnings: list[str] = []
@@ -245,6 +285,8 @@ def main() -> int:
     untracked_after_paths = read_snapshot(untracked_after_path)
 
     if args.check_write_expected:
+        repo_root = _project_root()
+        git_diff_paths = get_git_diff_paths(repo_root)
         summary_stdout = ""
         if args.summary_stdout:
             summary_path = Path(args.summary_stdout)
@@ -259,6 +301,7 @@ def main() -> int:
             before_paths=before_paths,
             after_paths=after_paths,
             untracked_after_paths=untracked_after_paths,
+            git_diff_paths=git_diff_paths,
         ):
             print(f"WARNING: {warning}", file=sys.stderr)
 
