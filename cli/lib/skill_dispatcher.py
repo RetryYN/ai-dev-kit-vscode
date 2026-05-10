@@ -157,15 +157,19 @@ def _safe_reference_path(skill_dir: Path, ref: str) -> Path | None:
         return None
     try:
         base = skill_dir.resolve()
-        candidate = (skill_dir / ref).resolve()
+        repo_root = base.parents[2]
+        if ref.startswith("skills/"):
+            candidate = (repo_root / ref).resolve()
+        else:
+            candidate = (skill_dir / ref).resolve()
     except (OSError, RuntimeError) as e:
         sys.stderr.write(f"警告: reference パス解決失敗: {ref} ({e})\n")
         return None
     try:
-        candidate.relative_to(base)
+        candidate.relative_to(repo_root)
     except ValueError:
         sys.stderr.write(
-            f"警告: reference が skill ディレクトリ外を指しているため拒否しました: {ref}\n"
+            f"警告: reference が repo root 外を指しているため拒否しました: {ref}\n"
         )
         return None
     return candidate

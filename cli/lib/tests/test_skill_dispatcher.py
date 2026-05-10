@@ -138,3 +138,30 @@ def test_claude_native_hint_omits_effort_prefix_when_effort_is_undefined(
 
     assert "[effort=" not in result["stdout"]
     assert "# Skill Context Bundle" in result["stdout"]
+
+
+def test_safe_reference_path_handles_repo_relative_no_double_concat(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    skill_dir = repo_root / "skills" / "common" / "testing"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+
+    resolved = skill_dispatcher._safe_reference_path(  # noqa: SLF001
+        skill_dir,
+        "skills/common/testing/SKILL.md",
+    )
+
+    expected = repo_root / "skills" / "common" / "testing" / "SKILL.md"
+    assert resolved == expected
+
+
+def test_safe_reference_path_rejects_traversal_outside_repo_root(tmp_path: Path) -> None:
+    repo_root = tmp_path
+    skill_dir = repo_root / "skills" / "common" / "testing"
+    skill_dir.mkdir(parents=True, exist_ok=True)
+
+    resolved = skill_dispatcher._safe_reference_path(  # noqa: SLF001
+        skill_dir,
+        "../../../../etc/passwd",
+    )
+
+    assert resolved is None
