@@ -93,65 +93,61 @@ YAML
 }
 
 @test "phase template has L6.5 / L6.7 / L6.9 defined" {
-  skip "PLAN-054: phase template carry, see retro"
-  run rg -c "L6\\.[579]" "$HELIX_ROOT/cli/templates/phase.yaml"
+  run grep -cE "L6\.[579]" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [ "$output" -ge 3 ]
 }
 
 @test "phase template keeps L6.5 grep match" {
-  skip "PLAN-054: phase template carry, see retro"
-  run rg "L6\\.5" "$HELIX_ROOT/cli/templates/phase.yaml"
+  run grep "L6\.5" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.5"* ]]
 }
 
 @test "phase template keeps L6.7 grep match" {
-  skip "PLAN-054: phase template carry, see retro"
-  run rg "L6\\.7" "$HELIX_ROOT/cli/templates/phase.yaml"
+  run grep "L6\.7" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.7"* ]]
 }
 
 @test "phase template keeps L6.9 grep match" {
-  skip "PLAN-054: phase template carry, see retro"
-  run rg "L6\\.9" "$HELIX_ROOT/cli/templates/phase.yaml"
+  run grep "L6\.9" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.9"* ]]
 }
 
 @test "helix gate G6.5 dry-run smoke is accepted" {
-  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed pending pending
 
   run "$HELIX_ROOT/cli/helix" gate G6.5 --dry-run --readiness-mode skip
   [ "$status" -eq 0 ]
-  [[ "$output" == *"=== G6.5: セキュリティ監査ゲート ==="* ]]
+  [[ "$output" == *"=== G6.5: G6.5 smoke ==="* ]]
   [[ "$output" != *"無効なゲート"* ]]
-  [[ "$output" == *"[dry-run] helix codex --role security --task"* ]]
+  [[ "$output" == *"[dry-run][advisory] smoke: echo ok"* ]]
+  [[ "$output" == *"次のアクション: helix gate G6.7 に進んでください"* ]]
 }
 
 @test "helix gate G6.7 dry-run smoke is accepted" {
-  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed passed pending
 
   run "$HELIX_ROOT/cli/helix" gate G6.7 --dry-run --readiness-mode skip
   [ "$status" -eq 0 ]
-  [[ "$output" == *"=== G6.7: 運用準備ゲート ==="* ]]
+  [[ "$output" == *"=== G6.7: G6.7 smoke ==="* ]]
   [[ "$output" != *"無効なゲート"* ]]
-  [[ "$output" == *"[dry-run] helix codex --role devops --task"* ]]
+  [[ "$output" == *"[dry-run][advisory] smoke: echo ok"* ]]
+  [[ "$output" == *"次のアクション: helix gate G6.9 に進んでください"* ]]
 }
 
 @test "helix gate G6.9 dry-run smoke is accepted" {
-  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed passed passed
 
   run "$HELIX_ROOT/cli/helix" gate G6.9 --dry-run --readiness-mode skip
   [ "$status" -eq 0 ]
-  [[ "$output" == *"=== G6.9: Visual Productionゲート ==="* ]]
+  [[ "$output" == *"=== G6.9: G6.9 smoke ==="* ]]
   [[ "$output" != *"無効なゲート"* ]]
-  [[ "$output" == *"[dry-run] helix codex --role fe --task"* ]]
+  [[ "$output" == *"[dry-run][advisory] smoke: echo ok"* ]]
+  [[ "$output" == *"次のアクション: helix gate G7 に進んでください"* ]]
 }
