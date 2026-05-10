@@ -248,3 +248,27 @@ R1 で観測契約を抽出するための具体ツール選択肢。
 ### 制約
 - 機械抽出は public な signature 中心。internal helper / runtime-only 契約は別手段 (R2 で人手補完)
 - 抽出結果と実行時挙動の不一致は `r1_gaps` に記録 (RG1 通過条件)
+
+## helix code 連携
+
+R1 observed_contracts の補完と矛盾検出に helix code を活用する。
+
+### 利用パターン
+
+| コマンド | 目的 | R1 での使い方 |
+|---|---|---|
+| `helix code find "<keyword>"` | 類似実装検索 | observed_contracts への evidence link 補強 |
+| `helix code dup --threshold 0.85` | 重複検出 | 同一契約の重複定義を r1_gaps として事前検出 |
+| `helix code show <id>` | symbol 詳細表示 | API endpoint / DB column の実装位置確認 |
+| `helix code stats --by since` | 変更頻度分布 | 直近変更が多い契約を high-risk としてマーク |
+
+### 制約
+- `helix code find` は keyword match、意味的類似性は別途人手で確認
+- monorepo の場合は `--domain` 指定で範囲を絞る
+- 抽出済 OpenAPI spec があるなら spec を正本に、helix code は補完用
+
+### 例: API endpoint 抽出後の補強
+```bash
+helix code find "login"        # auth 関連 symbol を列挙
+helix code dup --threshold 0.85 --domain api/auth   # 重複定義の検出
+```

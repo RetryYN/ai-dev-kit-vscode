@@ -228,3 +228,28 @@ R0 の完了条件は「読んだ量」ではなく、
 | upgrade | 既存版 manifest + 新版 release notes の version diff | RG0 必須 |
 | normalization | 設計 drift evidence (実装 vs ADR の差分) | RG0 必須 |
 | fullback | 実装完遂後の commit 履歴 + デプロイ実績 | RG0 必須 |
+
+## helix code 連携
+
+R0 evidence 収集を機械化するために helix code (PLAN-011/012/013) を活用する。
+
+### 利用パターン
+
+| コマンド | 目的 | R0 での使い方 |
+|---|---|---|
+| `helix code build` | initial catalog 生成 | 対象 repo 全体の symbol を抽出、evidence_map のベース |
+| `helix code stats --by domain` | domain 別 entry 数集計 | coverage 推定 (domain ごとに証拠が網羅されているか) |
+| `helix code stats --uncovered --scope core5` | coverage gate 母集団 | core 5 ファイルの coverage 80% gate 確認 (G4 補助) |
+| `helix code list --domain <name>` | 特定領域の symbol 列挙 | runtime_topology の component 抽出 |
+
+### 制約
+- helix code は public symbol 中心 (`coverage_eligible` bucket)
+- private helper / runtime-only 契約は `private_helper` bucket、別手段で補完
+- 非公開 → 公開昇格候補は `helix code stats --seed-promotable true` で抽出
+
+### 例: legacy CRUD app (1k LOC) の R0
+```bash
+helix code build
+helix code stats --by domain                  # domain 別証拠数
+helix code stats --uncovered --scope core5    # 重要 5 ファイルの coverage
+```
