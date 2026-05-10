@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-051
 title: "PLAN-051（bats-lite errexit fix + 58 件 hidden failure 一斉対処 - CI integrity 最優先）"
-status: finalize
+status: completed
+completed: 2026-05-11
 created: 2026-05-11
 author: "PM (Opus)"
 priority: critical
