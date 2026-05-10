@@ -355,6 +355,51 @@ check_role_effort_consistency() {
   fi
 }
 
+check_mode_phase_consistency() {
+  local phase_yaml="$PROJECT_ROOT/.helix/phase.yaml"
+  if [[ ! -f "$phase_yaml" ]]; then
+    return 0
+  fi
+
+  local current_mode current_phase
+  current_mode=$(grep -E '^current_mode:' "$phase_yaml" | sed 's/^current_mode: *//' | tr -d "\"'" | tr -d ' ')
+  current_phase=$(grep -E '^current_phase:' "$phase_yaml" | sed 's/^current_phase: *//' | tr -d "\"'" | tr -d ' ')
+  if [[ -z "$current_mode" || -z "$current_phase" ]]; then
+    return 0
+  fi
+
+  case "$current_mode" in
+    forward)
+      if ! [[ "$current_phase" =~ ^L([1-9]|1[01])$ ]]; then
+        echo "  ⚠ phase_mode_consistency: mode=forward だが phase=$current_phase (L1-L11 期待)"
+        WARN=$((WARN + 1))
+      else
+        echo "  ✓ phase_mode_consistency: forward + $current_phase"
+      fi
+      ;;
+    reverse)
+      if ! [[ "$current_phase" =~ ^(R[0-4]|RGC)$ ]]; then
+        echo "  ⚠ phase_mode_consistency: mode=reverse だが phase=$current_phase (R0-R4/RGC 期待)"
+        WARN=$((WARN + 1))
+      else
+        echo "  ✓ phase_mode_consistency: reverse + $current_phase"
+      fi
+      ;;
+    scrum)
+      if ! [[ "$current_phase" =~ ^S[0-4]$ ]]; then
+        echo "  ⚠ phase_mode_consistency: mode=scrum だが phase=$current_phase (S0-S4 期待)"
+        WARN=$((WARN + 1))
+      else
+        echo "  ✓ phase_mode_consistency: scrum + $current_phase"
+      fi
+      ;;
+    *)
+      echo "  ⚠ phase_mode_consistency: 未知 mode=$current_mode"
+      WARN=$((WARN + 1))
+      ;;
+  esac
+}
+
 extract_declared_count() {
   local file="$1"
   local pattern="$2"
@@ -545,6 +590,10 @@ check_role_config_consistency
 echo ""
 echo "[role effort 整合性]"
 check_role_effort_consistency
+
+echo ""
+echo "[mode/phase 整合性]"
+check_mode_phase_consistency
 
 echo ""
 echo "[drift]"
