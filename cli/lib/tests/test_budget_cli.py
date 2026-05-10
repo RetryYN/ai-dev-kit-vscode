@@ -85,8 +85,44 @@ def test_format_with_block_info() -> None:
         "Claude (weekly ref $200): 60% used / 40% remaining ($120.37 of $200, source: ccusage)",
         "Claude (5h block):        $9.17 used | burn $9.45/h | proj $47.21 | 4h0m remaining (source: ccusage blocks)",
         "  [note] $200 weekly は helix の reference budget。Anthropic 公式 weekly quota とは異なる",
+        "  [note] ccusage cost と Anthropic UI 表示は別 metric (cache/session weight 差)、UI 値は console.anthropic.com で確認",
         "Codex  (max): 42% (5h) / 67% (weekly)  (source: state.db)",
     ]
+
+
+def test_format_with_block_info_includes_ui_divergence_note() -> None:
+    result = {
+        "claude": {
+            "plan": "max",
+            "weekly_used_pct": 60,
+            "weekly_remaining_pct": 40,
+            "weekly_cost_usd": 120.37,
+            "weekly_budget_usd": 200,
+            "source": "ccusage",
+            "block_cost_usd": 9.17,
+            "block_burn_per_hour": 9.45,
+            "block_projected_cost": 47.21,
+            "block_remaining_minutes": 240,
+            "block_end_time": "2025-05-10T15:00:00Z",
+        },
+        "codex": {
+            "plan": "max",
+            "five_hour_used_pct": 42,
+            "weekly_used_pct": 67,
+            "source": "state.db",
+        },
+        "recommendations": [],
+    }
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=False)
+
+    lines = buf.getvalue().splitlines()
+    assert any(
+        "console.anthropic.com" in line or "UI 値は" in line
+        for line in lines
+    )
 
 
 def test_format_without_block_info() -> None:

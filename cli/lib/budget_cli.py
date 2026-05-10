@@ -44,6 +44,10 @@ def _print_claude_budget(c: dict[str, Any]) -> None:
             "  [note] $200 weekly は helix の reference budget。"
             "Anthropic 公式 weekly quota とは異なる"
         )
+        print(
+            "  [note] ccusage cost と Anthropic UI 表示は別 metric "
+            "(cache/session weight 差)、UI 値は console.anthropic.com で確認"
+        )
 
 
 def _print_status(result: dict[str, Any], as_json: bool) -> None:
