@@ -37,7 +37,11 @@ def test_budget_cache_expires_old_entries(tmp_path: Path) -> None:
     assert cache.get("status") is None
 
 
-def test_claude_budget_uses_jsonl_fallback(tmp_path: Path) -> None:
+def test_claude_budget_uses_jsonl_fallback(tmp_path: Path, monkeypatch) -> None:
+    # ccusage が PATH にあると ccusage source が優先される
+    # (本テストは ccusage 不在時の jsonl-fallback 経路を検証する目的)
+    monkeypatch.setattr(budget.shutil, "which", lambda _: None)
+
     projects_dir = tmp_path / ".claude" / "projects" / "sample"
     projects_dir.mkdir(parents=True)
     (projects_dir / "usage.jsonl").write_text("one\ntwo\nthree\n", encoding="utf-8")

@@ -46,6 +46,10 @@ class BudgetCache:
 
 
 class ClaudeBudget:
+    # Max plan の週次予算閾値 (USD)。HELIX_CLAUDE_WEEKLY_BUDGET で上書き可
+    # default $200/week は Max 5x plan の概算閾値。実プランに合わせて調整推奨
+    DEFAULT_WEEKLY_BUDGET_USD = 200.0
+
     @staticmethod
     def get(home: Path | None = None) -> dict[str, Any]:
         home = home or Path(os.environ.get("HOME", "/tmp"))
@@ -53,18 +57,33 @@ class ClaudeBudget:
         if ccusage:
             try:
                 result = subprocess.run(
-                    [ccusage, "--json"],
-                    capture_output=True, text=True, timeout=10,
+                    [ccusage, "weekly", "--json"],
+                    capture_output=True, text=True, timeout=15,
                 )
                 if result.returncode == 0:
                     data = json.loads(result.stdout)
-                    return {
-                        "plan": "max",
-                        "weekly_used_pct": int(data.get("weekly_usage_pct", 0)),
-                        "weekly_remaining_pct": 100 - int(data.get("weekly_usage_pct", 0)),
-                        "source": "ccusage",
-                    }
-            except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+                    weekly_list = data.get("weekly", []) if isinstance(data, dict) else []
+                    if weekly_list:
+                        latest = weekly_list[-1]  # 最新週
+                        cost = float(latest.get("totalCost", 0.0))
+                        tokens = int(latest.get("totalTokens", 0))
+                        budget_usd = float(
+                            os.environ.get(
+                                "HELIX_CLAUDE_WEEKLY_BUDGET",
+                                ClaudeBudget.DEFAULT_WEEKLY_BUDGET_USD,
+                            )
+                        )
+                        pct = min(100, int(cost / budget_usd * 100)) if budget_usd > 0 else 0
+                        return {
+                            "plan": "max",
+                            "weekly_used_pct": pct,
+                            "weekly_remaining_pct": 100 - pct,
+                            "weekly_cost_usd": round(cost, 2),
+                            "weekly_tokens": tokens,
+                            "weekly_budget_usd": budget_usd,
+                            "source": "ccusage",
+                        }
+            except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError, ValueError):
                 pass
 
         projects_dir = home / ".claude" / "projects"
