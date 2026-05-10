@@ -19,13 +19,12 @@ teardown() {
 }
 
 @test "docs role implementation skips review template" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run "$HELIX_ROOT/cli/helix-codex" --role docs --task "[タスク種別] 実装
 README を更新してください" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" == *"Task Type: 実装"* ]]
   [[ "$output" == *"Review Template: none"* ]]
-  [[ "$output" == *"文書実装を直接出力してよい（apply_patch / Edit OK）"* ]]
+  [[ "$output" == *"必ず apply_patch または Edit で実ファイル編集を実施する"* ]]
   [[ "$output" != *"HELIX レビュー prompt template"* ]]
 }
 

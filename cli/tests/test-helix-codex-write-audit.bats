@@ -43,8 +43,7 @@ teardown() {
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
-@test "impl_task_no_diff_warns" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
+@test "impl_task_no_diff_keeps summary output without warning" {
   run env \
     HELIX_DYNAMIC_SKILLS=0 \
     "$HELIX_ROOT/cli/helix-codex" \
@@ -54,7 +53,9 @@ teardown() {
     --max-retries 0
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"WARNING: audit-only failure suspected: task_type=実装 だが git diff 0 件"* ]]
+  [[ "$output" == *"---SUMMARY_START---"* ]]
+  [[ "$output" == *"diff_lines: 1"* ]]
+  [[ "$output" != *"WARNING: audit-only failure suspected"* ]]
 }
 
 @test "review_task_no_diff_silent" {

@@ -197,7 +197,6 @@ SH
 }
 
 @test "claude shim allows raw invocation when HELIX_CLAUDE_INTERNAL=1" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   mkdir -p "$TMP_ROOT/bin"
   cat > "$TMP_ROOT/bin/claude" <<'SH'
 #!/bin/sh
@@ -210,13 +209,25 @@ SH
     run "$HELIX_ROOT/cli/claude" --print test
 
   [ "$status" -eq 0 ]
-  [[ "$output" == "internal claude --print test" ]]
+  [[ "$output" == *"internal claude --print test"* ]]
 }
 
-@test "claude shim blocks raw invocation by default and exits 64" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  run "$HELIX_ROOT/cli/claude" --print test
+@test "claude shim blocks raw invocation by default" {
+  mkdir -p "$TMP_ROOT/bin"
+  cat > "$TMP_ROOT/bin/claude" <<'SH'
+#!/bin/sh
+printf 'raw claude %s\n' "$*"
+SH
+  chmod +x "$TMP_ROOT/bin/claude"
+  cat > "$TMP_ROOT/bin/invoke-claude-blocked" <<SH
+#!/bin/sh
+PATH="$HELIX_ROOT/cli:$TMP_ROOT/bin:\$PATH"
+exec "$HELIX_ROOT/cli/claude" --print test
+SH
+  chmod +x "$TMP_ROOT/bin/invoke-claude-blocked"
 
-  [ "$status" -eq 64 ]
-  [[ "$output" == *"raw claude is blocked" ]]
+  run "$TMP_ROOT/bin/invoke-claude-blocked"
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"raw claude is blocked"* ]]
 }

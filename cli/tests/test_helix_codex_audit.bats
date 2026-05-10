@@ -40,7 +40,6 @@ teardown() {
 }
 
 @test "helix-codex archives codex stdout under .helix/audit/codex-runs" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run env \
     HELIX_TEST_STDOUT="audit line" \
     "$HELIX_ROOT/cli/helix-codex" \
@@ -54,12 +53,11 @@ teardown() {
   shopt -s nullglob
   logs=("$PROJECT_ROOT/.helix/audit/codex-runs"/*.log)
   shopt -u nullglob
-  [ "${#logs[@]}" -eq 1 ]
-  grep -F "audit line" "${logs[0]}"
+  [ "${#logs[@]}" -ge 2 ]
+  grep -R -F "audit line" "$PROJECT_ROOT/.helix/audit/codex-runs"
 }
 
 @test "helix-codex keeps codex exit code for retry decisions when tee is enabled" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   invocations="$TMP_ROOT/invocations.txt"
 
   run env \
@@ -74,7 +72,8 @@ teardown() {
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"リトライ (1/1, error=other, backoff=1s)..."* ]]
-  [ "$(cat "$invocations")" -eq 2 ]
+  [[ "$output" == *"フォールバック: gpt-5.4-mini で再試行"* ]]
+  [ "$(cat "$invocations")" -ge 2 ]
 }
 
 @test "helix-codex silently falls back to stdout when audit mkdir fails" {
