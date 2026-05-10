@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-010
+title: 'PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v3.3)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - 検証ツール収集と設計方針を PLAN 横断で整理する。
+  - Scrum / Reverse / Run への接続方針を定義する。
+related: []
+---
+
 # PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v3.3)
 
 ## §1. 目的 / Why

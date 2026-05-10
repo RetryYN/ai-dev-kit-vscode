@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-009
+title: 'PLAN-009: Run 工程（L9-L11）(v3.3)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - L9-L11 の役割、入力/出力、ゲートを定義する。
+  - PLAN-004/005/007/008 との接続方針を明文化する。
+related: []
+---
+
 # PLAN-009: Run 工程（L9-L11）(v3.3)
 
 ## 1. 目的 / Why

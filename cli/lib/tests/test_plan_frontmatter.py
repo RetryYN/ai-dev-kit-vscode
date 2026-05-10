@@ -160,6 +160,26 @@ def test_finalize_plan_files_rolls_back_when_docs_replace_fails(
             "docs/plans/PLAN-006-upstream-meta-phase.md",
             "b16f9c3982eba63cb5cc049c408dbc75115f833ae2190ff5b29cadffbf93cd94",
         ),
+        (
+            "docs/plans/PLAN-007-scrum-multitype-trigger.md",
+            "54dc289cd3ed1f70f06110e132ae451830e120bf1b85b06122271f510e193fca",
+        ),
+        (
+            "docs/plans/PLAN-008-reverse-multitype.md",
+            "037f226d132b311082b967248c1609e01ce1f23342a8ad60c9c87133b16f2349",
+        ),
+        (
+            "docs/plans/PLAN-009-run-phase-l9-l11.md",
+            "7b95356501deecea682826cd65d8f191c378123e9693c7ac1d1a422bec5ee63f",
+        ),
+        (
+            "docs/plans/PLAN-010-verification-agent.md",
+            "51cc01d52bee42d953364b11c1883113bbaa05efcaa655c27c4b2418afa9841f",
+        ),
+        (
+            "docs/plans/PLAN-011-code-index-system.md",
+            "1721a90d7154a3f4d235e708c116b514b40fa7a41a25ff701f6c67960260dfb0",
+        ),
     ],
 )
 def test_legacy_plan_body_hash_is_preserved(

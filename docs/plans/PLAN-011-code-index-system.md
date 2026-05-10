@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-011
+title: 'PLAN-011: コード index 登録システム (v1.3)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - コード index のメタデータ規約と検索機能を定義する。
+  - cli dispatcher 連携とテスト方針を明文化する。
+related: []
+---
+
 # PLAN-011: コード index 登録システム (v1.3)
 
 ## §1. 目的 / Why

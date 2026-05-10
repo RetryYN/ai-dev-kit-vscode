@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-008
+title: 'PLAN-008: Reverse 5系統化（フルバック追加・設計 Reverse） (v3.3)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - Reverse を 5 系統に整理し、各系統の入力/出力/成功条件を定義する。
+  - Forward と RGC への接続方針を明文化する。
+related: []
+---
+
 # PLAN-008: Reverse 5系統化（フルバック追加・設計 Reverse） (v3.3)
 
 ## 1. 目的 / Why

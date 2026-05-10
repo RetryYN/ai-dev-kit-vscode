@@ -1,3 +1,18 @@
+---
+plan_id: PLAN-007
+title: 'PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v3)'
+status: completed
+created: 2026-04-15
+author: Unknown (legacy)
+size: M
+phases: [L1, L2, L3, L4]
+gates: []
+acceptance:
+  - 5 種 Scrum と差し込みトリガーの適用条件を定義する。
+  - PLAN-009 へ接続できる運用方針と通知フローを明文化する。
+related: []
+---
+
 # PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v3)
 
 ## 1. 目的 / Why
