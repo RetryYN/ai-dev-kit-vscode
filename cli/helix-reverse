@@ -82,6 +82,148 @@ Type-specific options:
 USAGE
 }
 
+usage_type_stage() {
+  local type="$1"
+  local stage="$2"
+  local next_stage="通常 R0→R1→R2→R3→R4→Forward→RGC"
+  local output_hint="TODO: type/stage 仕様確定中"
+  local skip_note="なし"
+  local stage_behavior="TODO: type/stage 仕様確定中"
+  local stage_summary=""
+
+  case "$type:$stage" in
+    code:R0)
+      stage_behavior="Legacy code reverse の証拠収集。コード・DB・設定・外部APIを起点に観測事実を集める。"
+      output_hint=".helix/reverse/code/R0-evidence-map.yaml"
+      ;;
+    code:R1)
+      stage_behavior="観測契約の抽出。API/DB/型の機械抽出と characterization test 候補を整理する。"
+      output_hint=".helix/reverse/code/R1-observed-contracts.yaml"
+      ;;
+    code:R2)
+      stage_behavior="As-Is 設計復元。アーキテクチャ、依存関係、ADR 仮説をまとめる。"
+      output_hint=".helix/reverse/code/R2-as-is-design.md"
+      ;;
+    code:R3)
+      stage_behavior="Intent 仮説化。PO 検証用質問と要件仮説を整理する。"
+      output_hint=".helix/reverse/code/R3-intent-hypotheses.md"
+      ;;
+    code:R4)
+      stage_behavior="Gap 集約と Forward 接続。差分を L1-L4 に路由する。"
+      output_hint=".helix/reverse/code/R4-gap-register.yaml"
+      ;;
+    design:R0)
+      stage_behavior="設計資産の evidence map を作る。plans / design / features を横断して参照元を記録する。"
+      output_hint=".helix/reverse/design/D0-design-evidence-map.yaml"
+      ;;
+    design:R1)
+      stage_behavior="design は R1 を実行しない。RG1 と矛盾するため code 以外では skip。"
+      skip_note="design は R1 を skip。RG1 と矛盾するため実行しない。"
+      output_hint="出力なし"
+      ;;
+    design:R2)
+      stage_behavior="設計 DAG を抽出し、依存と循環と不明点を可視化する。"
+      output_hint=".helix/reverse/design/D2-design-dag.yaml"
+      ;;
+    design:R3)
+      stage_behavior="DAG から実装順序を導出し、並列実行グループも提示する。"
+      output_hint=".helix/reverse/design/D3-impl-order.yaml"
+      ;;
+    design:R4)
+      stage_behavior="Forward HELIX への routing を定義し、未接続設計を洗い出す。"
+      output_hint=".helix/reverse/design/D4-design-routing.yaml"
+      ;;
+    upgrade:R0)
+      stage_behavior="現行実装と制約を収集し、upgrade context を作る。"
+      output_hint=".helix/reverse/upgrade/U0-upgrade-context.yaml"
+      ;;
+    upgrade:R1)
+      stage_behavior="互換/保守/破壊変更候補を分類し、契約を整理する。"
+      output_hint=".helix/reverse/upgrade/U1-upgrade-contracts.yaml"
+      ;;
+    upgrade:R2)
+      stage_behavior="変更影響と rollback 注意点を集約し、検証条件を整理する。"
+      output_hint=".helix/reverse/upgrade/U2-assessment-impact.yaml"
+      ;;
+    upgrade:R3)
+      stage_behavior="移行シナリオ仮説と確認質問をまとめる。"
+      output_hint=".helix/reverse/upgrade/U3-upgrade-hypotheses.md"
+      ;;
+    upgrade:R4)
+      stage_behavior="Forward 接続用の routing を作り、freeze pending を明示する。"
+      output_hint=".helix/reverse/upgrade/U4-upgrade-routing.md"
+      ;;
+    normalization:R0)
+      stage_behavior="実装と文書の drift 証拠を収集し、正規化の起点を作る。"
+      output_hint=".helix/reverse/normalization/N0-drift-evidence.yaml"
+      ;;
+    normalization:R1)
+      stage_behavior="normalization は R1 を実行しない。design drift normalization の流れでは skip。"
+      skip_note="normalization は R1 を skip。design drift normalization では R1 を使わない。"
+      output_hint="出力なし"
+      ;;
+    normalization:R2)
+      stage_behavior="drift を設計再正規化単位に分解し、更新対象を整理する。"
+      output_hint=".helix/reverse/normalization/N2-normalization-drift.yaml"
+      ;;
+    normalization:R3)
+      stage_behavior="設計更新仮説と再発防止観点をまとめる。"
+      output_hint=".helix/reverse/normalization/N3-normalization-hypotheses.md"
+      ;;
+    normalization:R4)
+      stage_behavior="gap register を作り、Forward への routing を確定する。"
+      output_hint=".helix/reverse/normalization/N4-normalization-gap-register.yaml"
+      ;;
+    fullback:R0)
+      stage_behavior="完了実装と設計 doc、変更履歴の evidence を集める。"
+      output_hint=".helix/reverse/fullback/F0-fullback-evidence.yaml"
+      ;;
+    fullback:R1)
+      stage_behavior="PLAN / D-API / D-CONTRACT / ADR と実装状態の差分契約を整理する。"
+      output_hint=".helix/reverse/fullback/F1-fullback-contracts.yaml"
+      ;;
+    fullback:R2)
+      stage_behavior="完了実装と管理文書の整合レビューを行う。"
+      output_hint=".helix/reverse/fullback/F2-fullback-as-is-review.md"
+      ;;
+    fullback:R3)
+      stage_behavior="受入・運用学習・引継ぎのチェックリストを作る。"
+      output_hint=".helix/reverse/fullback/F3-fullback-handover-checklist.yaml"
+      ;;
+    fullback:R4)
+      stage_behavior="最終文書整合の routing を作り、RGC 条件を明示する。"
+      output_hint=".helix/reverse/fullback/F4-fullback-routing.md"
+      ;;
+  esac
+
+  case "$type" in
+    code) stage_summary="code は全 stage 該当、レガシーコードの逆引き設計を扱う。" ;;
+    design) stage_summary="design は R1 を skip し、R0/R2/R3/R4 で設計復元と routing を扱う。" ;;
+    upgrade) stage_summary="upgrade は R0/R1/R2/R3/R4 で version diff と影響分析を扱う。RGC は skip。" ;;
+    normalization) stage_summary="normalization は R1 を skip し、design drift normalization に focus する。" ;;
+    fullback) stage_summary="fullback は全 stage 該当、実装完遂後の文書 alignment を扱う。" ;;
+  esac
+
+  cat <<USAGE
+Usage:
+  helix reverse ${type} ${stage} [options]
+
+## ${type} ${stage} 動作
+${stage_behavior}
+
+## skip 条件
+${skip_note}
+
+## 出力先
+${output_hint}
+
+## 次の stage
+${next_stage}
+
+${stage_summary}
+USAGE
+}
+
 usage_type() {
   local type="$1"
   case "$type" in
@@ -145,6 +287,10 @@ parse_args() {
   if is_type "$1"; then
     TYPE="$1"
     shift
+    if is_stage "${1:-}" && [[ "${2:-}" == "--help" || "${2:-}" == "-h" ]]; then
+      usage_type_stage "$TYPE" "$1"
+      exit "$EXIT_SUCCESS"
+    fi
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
       usage_type "$TYPE"
       exit "$EXIT_SUCCESS"
