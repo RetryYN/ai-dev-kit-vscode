@@ -568,7 +568,7 @@ export CODEX_BIN="$TEST_DIR/mock-codex-cli"
 run_test_contains "codex accepts --thinking xhigh" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'thinking test explicit' --thinking xhigh" "model_reasoning_effort=\"xhigh\""
 run_test_contains "codex accepts --timeout" "CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task 'timeout test explicit' --timeout 1" "mock-codex args:"
 run_test_contains "codex default thinking tl" "$SCRIPT_DIR/helix-codex --role tl --task 'thinking test tl default' --dry-run" "Thinking:  high"
-run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  low"
+run_test_contains "codex default thinking pg" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test pg default' --dry-run" "Thinking:  medium"
 run_test "codex rejects invalid thinking" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra" 1
 run_test_contains "codex invalid thinking message" "$SCRIPT_DIR/helix-codex --role pg --task 'thinking test invalid' --thinking ultra 2>&1 || true" "無効な --thinking 値"
 # GAP-038: リジリエンス強化オプション

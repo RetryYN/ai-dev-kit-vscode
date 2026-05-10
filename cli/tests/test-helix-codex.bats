@@ -113,7 +113,7 @@ teardown() {
 @test "PLAN-024 W-2d: helix-codex uses role default thinking without override" {
   run "$HELIX_ROOT/cli/helix-codex" --role pg --task "tiny" --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Thinking:  low"* ]]
+  [[ "$output" == *"Thinking:  medium"* ]]
 }
 
 @test "helix-codex rejects missing reference doc" {
