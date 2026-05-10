@@ -644,7 +644,7 @@ PY
 }
 
 @test "helix.db v14 → v15 migration is up-only and re-build regenerates JSONL with bucket/symbol_line" {
-  python3 - "$HELIX_ROOT/cli/lib" "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+  run python3 - "$HELIX_ROOT/cli/lib" "$PROJECT_ROOT/.helix/helix.db" <<'PY'
 import sqlite3
 import sys
 from pathlib import Path
@@ -679,7 +679,7 @@ helix_db._ensure_schema(conn)
 columns = {row[1] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()}
 version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
 row = conn.execute("SELECT symbol_line, bucket FROM code_index WHERE id = 'legacy.entry'").fetchone()
-assert version == 15
+assert version == helix_db.CURRENT_SCHEMA_VERSION, f"expected {helix_db.CURRENT_SCHEMA_VERSION}, got {version}"
 assert {"bucket", "symbol_line"} <= columns
 assert row == (7, "coverage_eligible")
 conn.close()
