@@ -207,6 +207,22 @@ check_role_config_consistency() {
 
   runtime_yaml_parser="$(cd "$(dirname "$0")" && pwd)/lib/yaml_parser.py"
 
+  check_pmo_mirror() {
+    local conf_path="$1"
+    local conf_key="$2"
+    local yaml_key="$3"
+    local label="$4"
+    local conf_value
+    local yaml_value
+
+    conf_value="$(get_conf_value "$conf_path" "$conf_key")"
+    yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "$yaml_key" 2>/dev/null || true)"
+    if [[ "$conf_value" != "$yaml_value" ]]; then
+      echo "WARNING: pmo role $(basename "$conf_path" .conf): ${label} conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+      pmo_mismatch=$((pmo_mismatch + 1))
+    fi
+  }
+
   if [[ ! -f "$roles_file" || ! -d "$roles_dir" ]]; then
     echo "  ✗ role config consistency (required files missing)"
     FAIL=$((FAIL + 1))
@@ -245,12 +261,26 @@ check_role_config_consistency() {
         pmo_mismatch=$((pmo_mismatch + 1))
       fi
 
+      if [[ "$(get_conf_value "$conf_path" "codex_thinking")" != "" || "$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.codex_thinking" 2>/dev/null || true)" != "" ]]; then
+        check_pmo_mirror "$conf_path" "codex_thinking" "role_metadata.$role.codex_thinking" "codex_thinking"
+      fi
+      if [[ "$(get_conf_value "$conf_path" "codex_permission_mode")" != "" || "$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.codex_permission_mode" 2>/dev/null || true)" != "" ]]; then
+        check_pmo_mirror "$conf_path" "codex_permission_mode" "role_metadata.$role.codex_permission_mode" "codex_permission_mode"
+      fi
+      if [[ "$(get_conf_value "$conf_path" "codex_disallowed_tools")" != "" || "$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.codex_disallowed_tools" 2>/dev/null || true)" != "" ]]; then
+        check_pmo_mirror "$conf_path" "codex_disallowed_tools" "role_metadata.$role.codex_disallowed_tools" "codex_disallowed_tools"
+      fi
+
       if [[ "$role" == "pmo-haiku" ]]; then
         conf_value="$(get_conf_value "$conf_path" "claude_allow_paths")"
         yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.allow_paths" 2>/dev/null || true)"
         if [[ "$conf_value" != "$yaml_value" ]]; then
           echo "WARNING: pmo role $role: claude_allow_paths conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
           pmo_mismatch=$((pmo_mismatch + 1))
+        fi
+
+        if [[ "$(get_conf_value "$conf_path" "codex_allow_paths")" != "" || "$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.codex_allow_paths" 2>/dev/null || true)" != "" ]]; then
+          check_pmo_mirror "$conf_path" "codex_allow_paths" "role_metadata.$role.codex_allow_paths" "codex_allow_paths"
         fi
       fi
 
