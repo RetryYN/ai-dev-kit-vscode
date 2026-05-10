@@ -79,6 +79,12 @@ L4_SPRINT=""
 ACCEPTANCE_ITEMS=()
 REFERENCE_DOCS=()
 ALLOWED_FILES=""
+AUTO_ALLOWED_FILES=false
+AUTO_ALLOWED_FILES_THRESHOLD="${HELIX_CODEX_AUTO_ALLOWED_FILES_THRESHOLD:-0.5}"
+AUTO_ALLOWED_FILES_CONFIDENCE="0.000"
+AUTO_ALLOWED_FILES_LOW_CONFIDENCE=true
+AUTO_ALLOWED_FILES_CANDIDATES=()
+AUTO_ALLOWED_FILES_MODE="disabled"
 CONCURRENT_FROM_FILES=()
 APPROVAL_ID=""
 APPROVAL_FILE=""
@@ -119,6 +125,7 @@ while [[ $# -gt 0 ]]; do
     --acceptance)      ACCEPTANCE_ITEMS+=("$2"); shift 2 ;;
     --reference-doc)   REFERENCE_DOCS+=("$2"); shift 2 ;;
     --allowed-files)   ALLOWED_FILES="$2"; shift 2 ;;
+    --auto-allowed-files) AUTO_ALLOWED_FILES=true; shift ;;
     --concurrent-from) CONCURRENT_FROM_FILES+=("$2"); shift 2 ;;
     --approval-id)     APPROVAL_ID="$2"; shift 2 ;;
     --approval-file)   APPROVAL_FILE="$2"; shift 2 ;;
@@ -153,6 +160,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --acceptance <text>  受入条件を追加（複数可）"
       echo "  --reference-doc <p>  参照ドキュメントを追加（複数可）"
       echo "  --allowed-files <g>  編集許可ファイル/グロブを注入"
+      echo "  --auto-allowed-files task description から allowed_files 候補を自動推定"
       echo "  --concurrent-from <p> 並列 baseline を post-validation へ追加（複数可）"
       echo "  --approval-id <id>   承認証跡 ID（.helix/approvals/<id>.* を検証）"
       echo "  --approval-file <p>  承認証跡ファイルを明示"
@@ -173,6 +181,11 @@ done
 # --- --task と --task-file の排他チェック ---
 if [[ -n "$TASK" && -n "$TASK_FILE" ]]; then
   echo "エラー: --task と --task-file は同時指定できません" >&2
+  exit 1
+fi
+
+if [[ -n "$ALLOWED_FILES" && "$AUTO_ALLOWED_FILES" == true ]]; then
+  echo "エラー: --allowed-files と --auto-allowed-files は同時指定できません" >&2
   exit 1
 fi
 
@@ -355,6 +368,79 @@ env_or_config_bool() {
 
 detect_task_type() {
   python3 "$SCRIPT_DIR/lib/task_type_inference.py" --mode detect --task "$1"
+}
+
+estimate_allowed_files_from_task() {
+  local estimator_output=""
+  local path=""
+  local joined_candidates=""
+
+  [[ "$AUTO_ALLOWED_FILES" == true ]] || return 0
+
+  estimator_output="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" \
+    HELIX_ESTIMATOR_TASK="$TASK_RAW" \
+    HELIX_ESTIMATOR_REPO_ROOT="$PROJECT_ROOT" \
+    HELIX_ESTIMATOR_THRESHOLD="$AUTO_ALLOWED_FILES_THRESHOLD" \
+    python3 - <<'PY'
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+from allowed_files_estimator import estimate_allowed_files, extract_keywords, find_matching_files
+
+task = os.environ["HELIX_ESTIMATOR_TASK"]
+repo_root = Path(os.environ["HELIX_ESTIMATOR_REPO_ROOT"])
+threshold = float(os.environ["HELIX_ESTIMATOR_THRESHOLD"])
+
+candidates, confidence, low_confidence = estimate_allowed_files(task, repo_root, threshold)
+if low_confidence:
+    candidates = find_matching_files(extract_keywords(task), repo_root)
+
+print(f"confidence={confidence:.3f}")
+print(f"low_confidence={'1' if low_confidence else '0'}")
+for path in candidates:
+    print(path.as_posix())
+PY
+  )" || {
+    echo "エラー: --auto-allowed-files の候補推定に失敗しました" >&2
+    exit 1
+  }
+
+  AUTO_ALLOWED_FILES_CONFIDENCE="$(sed -n 's/^confidence=//p' <<< "$estimator_output" | head -n 1)"
+  if [[ "$(sed -n 's/^low_confidence=//p' <<< "$estimator_output" | head -n 1)" == "1" ]]; then
+    AUTO_ALLOWED_FILES_LOW_CONFIDENCE=true
+  else
+    AUTO_ALLOWED_FILES_LOW_CONFIDENCE=false
+  fi
+
+  AUTO_ALLOWED_FILES_CANDIDATES=()
+  while IFS= read -r path; do
+    [[ -n "$path" ]] && AUTO_ALLOWED_FILES_CANDIDATES+=("$path")
+  done < <(sed -n '3,$p' <<< "$estimator_output")
+
+  if [[ ${#AUTO_ALLOWED_FILES_CANDIDATES[@]} -gt 0 ]]; then
+    joined_candidates="$(IFS=,; echo "${AUTO_ALLOWED_FILES_CANDIDATES[*]}")"
+  fi
+
+  if [[ "$DRY_RUN" == true || "$SANDBOX" == "read-only" ]]; then
+    AUTO_ALLOWED_FILES_MODE="dry-run"
+    return 0
+  fi
+
+  if [[ "$AUTO_ALLOWED_FILES_LOW_CONFIDENCE" == true ]]; then
+    AUTO_ALLOWED_FILES_MODE="suggestion"
+    if [[ -n "$joined_candidates" ]]; then
+      echo "[helix-codex] WARNING: auto-allowed-files low confidence=${AUTO_ALLOWED_FILES_CONFIDENCE}; not enforcing. suggestion: $joined_candidates" >&2
+    else
+      echo "[helix-codex] WARNING: auto-allowed-files low confidence=${AUTO_ALLOWED_FILES_CONFIDENCE}; suggestion なし。manual --allowed-files を推奨します" >&2
+    fi
+    return 0
+  fi
+
+  ALLOWED_FILES="$joined_candidates"
+  AUTO_ALLOWED_FILES_MODE="applied"
+  echo "[helix-codex] auto-allowed-files applied (confidence=${AUTO_ALLOWED_FILES_CONFIDENCE}): $ALLOWED_FILES" >&2
 }
 
 ensure_task_type_prefix() {
@@ -766,6 +852,7 @@ guard_danger_sandbox || exit 1
 validate_reference_docs
 validate_wbs_context
 validate_approval_evidence
+estimate_allowed_files_from_task
 
 # --- ロール設定読み込み ---
 ROLE_FILE="$ROLES_DIR/${ROLE}.conf"
@@ -1203,6 +1290,16 @@ if [[ "$DRY_RUN" == true ]]; then
   [[ -n "$WBS_ID" ]] && echo "WBS ID:    $WBS_ID"
   [[ -n "$L4_SPRINT" ]] && echo "L4 Sprint: $L4_SPRINT"
   echo "Fallback Provider: ${FALLBACK_PROVIDER:-none}"
+  if [[ "$AUTO_ALLOWED_FILES" == true ]]; then
+    echo "Auto Allowed Files: enabled"
+    echo "Auto Allowed Files Mode: $AUTO_ALLOWED_FILES_MODE"
+    echo "Auto Allowed Files Confidence: ${AUTO_ALLOWED_FILES_CONFIDENCE:-0.000}"
+    if [[ ${#AUTO_ALLOWED_FILES_CANDIDATES[@]} -gt 0 ]]; then
+      echo "Auto Allowed Files Candidates: $(IFS=,; echo "${AUTO_ALLOWED_FILES_CANDIDATES[*]}")"
+    else
+      echo "Auto Allowed Files Candidates: none"
+    fi
+  fi
   echo "Skills:    ${LOADED_SKILLS[*]:-none}"
   echo "Docs:      ${LOADED_DOCS[*]:-none}"
   echo "Review Template: ${LOADED_REVIEW_TEMPLATE:-none}"
