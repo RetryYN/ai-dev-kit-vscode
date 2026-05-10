@@ -197,4 +197,14 @@ R3 に渡す最小セット。
 [ ] M/L の場合 adversarial-review 実施済み
 [ ] RG2 判定結果を記録済み
 [ ] R3 へ引き渡し済み
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | アーキテクチャ復元 + ADR 仮説 | RG2 必須 |
+| design | 画面 / コンポーネント / 導線の DAG 復元 | RG2 必須 |
+| upgrade | 設計差分 + 影響範囲 mapping | RG2 必須 |
+| normalization | drift map + normalize 設計案 | RG2 必須 |
+| fullback | 実装 vs 文書の alignment 設計 | RG2 必須 |
 ```

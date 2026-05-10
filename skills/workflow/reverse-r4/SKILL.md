@@ -215,3 +215,13 @@ R4 を `done` とする条件:
 - 全 gap に `routing先(L1-L4)` が記載
 - Forward HELIX の入場レイヤーが宣言済み
 - RGC で使う closure 期待値が記載済み
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | gap_register → Forward L1-L4 (primary_routing) | RG4 不要 |
+| design | DAG / 実装順 → Forward L1-L4 | RG4 不要 |
+| upgrade | impact / risk → Forward L1-L4 | RG4 不要、RGC skip |
+| normalization | normalize 設計 → Forward L1-L4 | RG4 不要 |
+| fullback | alignment routing → Forward L1-L4 | RG4 不要 |

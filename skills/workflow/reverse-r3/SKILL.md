@@ -181,4 +181,14 @@ R3 から R4 に渡す最小セット。
 [ ] PM+PO+TL 合意の記録あり
 [ ] RG3 判定結果を記録済み
 [ ] R4 引き渡しパッケージを作成済み
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | intent 仮説の PO 検証 | RG3 必須 |
+| design | 画面遷移の PO 検証 | RG3 必須 |
+| upgrade | risk 評価 + migration plan の PO 検証 | RG3 必須 |
+| normalization | normalize 設計案の PO 確認 | RG3 必須 |
+| fullback | alignment 結果の PO 確認 | RG3 必須 |
 ```

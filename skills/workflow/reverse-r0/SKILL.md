@@ -218,3 +218,13 @@ API/DB/型の観測契約抽出へ進む。
 
 R0 の完了条件は「読んだ量」ではなく、
 「証拠網羅を再現可能な形で残せたか」。
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | source / dependency / DB / config / ops の 4 軸証拠 | RG0 必須 |
+| design | figma / sketch / プロト UI 資産を収集 | RG0 必須、code 4 軸は不要 |
+| upgrade | 既存版 manifest + 新版 release notes の version diff | RG0 必須 |
+| normalization | 設計 drift evidence (実装 vs ADR の差分) | RG0 必須 |
+| fullback | 実装完遂後の commit 履歴 + デプロイ実績 | RG0 必須 |

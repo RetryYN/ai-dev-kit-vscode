@@ -202,3 +202,13 @@ RGC を `done` とする条件:
 - 全 gap に `closure_evidence` が記載
 - open_gap は次 routing と owner が設定済み
 - L8 受入参照が記録済み
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | gap closure を Forward 完了後に検証 | 全 gap closed で RGC pass |
+| design | UX/UI の閉塞検証 | 全 gap closed で RGC pass |
+| upgrade | (RGC skip) | upgrade 完了で代替判定 |
+| normalization | drift normalize 後の閉塞検証 | normalize 反映で RGC pass |
+| fullback | 文書 alignment 完了の閉塞検証 | 文書整合で RGC pass |
