@@ -186,7 +186,7 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 - R1 Observed Contracts: **担当スキル** `reverse-r1`（2026-04-17 追加）
 - R2 As-Is Design: **担当スキル** `reverse-r2`（2026-04-17 追加）
 - R3 Intent Hypotheses: **担当スキル** `reverse-r3`（2026-04-17 追加）
-- R4 Gap & Routing: **担当スキル** `reverse-r4`（2026-04-17 追加）
+- R4 Gap & Routing: **担当スキル** `reverse-r4`（2026-04-17 追加。RG4 は R4 stage 内 routing）
 
 ### ゲート（追加参照）
 
@@ -201,5 +201,5 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 - RG1 契約検証: **担当スキル** `reverse-r1`（2026-04-17 追加）
 - RG2 設計検証: **担当スキル** `reverse-r2`（2026-04-17 追加）
 - RG3 仮説検証: **担当スキル** `reverse-r3`（2026-04-17 追加）
-- RG4 Gap & Routing: **担当スキル** `reverse-r4`（2026-04-17 追加）
+- RG4 Gap & Routing: **担当スキル** `reverse-r4`（2026-04-17 追加。RG4 は独立 gate ではなく R4 stage 内 routing）
 - RGC Gap Closure: **担当スキル** `reverse-rgc`（2026-04-17 追加）

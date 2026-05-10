@@ -278,6 +278,14 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 | Fail | 即 rollback → 原因に応じ L6/L4/L3 差戻し。ビルド/設定/infra 変更なら G6 から |
 | 人間承認条件 | 初回デプロイ / 認証・決済・PII / 破壊的 DB マイグレ / 外部 API 変更 / エラーバジェット 75%超 / インフラ構成変更 |
 
+## L8 受入 (no gate)
+
+L8 は受入 phase であり、独立 gate (G8) は存在しない。
+G7 (安定性ゲート) 通過後、PM/PO が L1 D-ACC (受入条件) との突合で受入承認を行い、
+L9 (デプロイ検証) へ移行する。L8 完了の機械的判定は無く、ユーザー承認が前提。
+
+evidence: 受入承認の記録 (PM/PO の OK 判断、PR コメント、handover ESCALATION 等)
+
 ### G9 デプロイ安定性ゲート（L9 出口）
 
 | 項目 | 内容 |
