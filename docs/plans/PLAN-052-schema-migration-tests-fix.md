@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-052
 title: "PLAN-052（Category B: schema migration tests 修正、PLAN-051 carry）"
-status: finalized
+status: completed
+completed: 2026-05-11
 created: 2026-05-11
 finalized: 2026-05-10
 author: "PM (Opus)"
