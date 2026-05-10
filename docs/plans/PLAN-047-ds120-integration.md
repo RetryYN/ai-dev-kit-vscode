@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-047
 title: 'PLAN-047（DS-120 デジタル・ガバメント推進標準ガイドライン実践ガイドブックの HELIX 取り込み）'
-status: draft
+status: completed
+completed: 2026-05-10
 created: 2026-05-10
 author: 'Docs (Codex)'
 priority: medium
