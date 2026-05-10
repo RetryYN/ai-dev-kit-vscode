@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: 基本設計・詳細設計の設計書テンプレートとレビュー基準を提供
+description: HELIX L2 全体設計 / L3 詳細設計の設計書 SKILL。D-API / D-DB / D-CONTRACT / D-STATE テンプレートと G2 設計凍結ゲート / G3 実装着手ゲートのレビュー基準・ADR 連携・workflow/adversarial-review 統合手順を提供
 metadata:
   helix_layer: L2
   triggers:

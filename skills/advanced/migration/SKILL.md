@@ -1,6 +1,6 @@
 ---
 name: migration
-description: システム移行でETLスクリプト・データ検証手順・Strangler Figパターンの実装手順を提供
+description: HELIX L4 実装 / L7 デプロイ連携のシステム移行 SKILL。ETL スクリプト・データ整合性検証手順 (件数 + checksum) ・Strangler Fig パターン・up/rollback 双方向テスト・段階的移行計画 + G7 安定性ゲート連携を提供
 metadata:
   helix_layer: L4
   triggers:

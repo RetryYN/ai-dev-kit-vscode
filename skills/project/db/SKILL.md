@@ -1,6 +1,6 @@
 ---
 name: db
-description: データベース設計でスキーマテンプレート・インデックス設計ルール・マイグレーション安全手順を提供
+description: HELIX L2 全体設計 / L3 詳細設計の DB 専用 SKILL。スキーマテンプレート (D-DB) ・インデックス設計ルール・マイグレーション安全手順 (up/down 双方向) ・G3 Schema Freeze 連携・db 駆動タイプ起点設計フローを提供
 metadata:
   helix_layer: L2
   triggers:

@@ -1,6 +1,6 @@
 ---
 name: reverse-analysis
-description: Reverse フロー全体のルーター
+description: HELIX Reverse Phase R 全体のルーター SKILL。R0 (証拠収集) → R1 (契約抽出) → R2 (設計復元) → R3 (仮説検証) → R4 (Gap routing) + RGC (Gap Closure) を統括し、reverse-r0/r1/r2/r3/r4/rgc 各 SKILL へ振り分け。code/design/upgrade/normalization/fullback の 5 type 起点判定を担当
 metadata:
   helix_layer: R0
   triggers:

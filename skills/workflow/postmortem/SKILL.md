@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: 障害分析と再発防止アクションをまとめるポストモーテムテンプレートを提供
+description: HELIX L6 統合検証 / L11 運用学習 / G11 運用学習完了ゲート連携のポストモーテム SKILL。5 Whys 分析テンプレート・再発防止アクションアイテム・タイムライン記録・workflow/incident 連携・workflow/debt-register への carry 手順を提供
 metadata:
   helix_layer: L6
   triggers:

@@ -1,6 +1,6 @@
 ---
 name: incident
-description: 障害対応での重要度判定・対応手順・連絡テンプレートを提供
+description: HELIX L6 統合検証 / L9 デプロイ検証 / L10 観測 / G10 観測完了ゲート連携の障害対応 SKILL。重要度判定 (P0-P3) ・対応手順・連絡テンプレート・workflow/runbook + workflow/postmortem 連携・SLO 達成率検証手順を提供
 metadata:
   helix_layer: L6
   triggers:

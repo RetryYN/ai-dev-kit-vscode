@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: デプロイ・リリース・ロールバックのBlue/Green戦略と実行チェックリストを提供
+description: HELIX L7 デプロイ / L9 デプロイ検証 / G7 安定性ゲート / G9 デプロイ安定性ゲート連携の SKILL。Blue/Green デプロイ戦略・実行チェックリスト・ロールバック手順・smoke test・G6.9 Pre-Release 本番直前確認連携を提供
 metadata:
   helix_layer: L7
   triggers:

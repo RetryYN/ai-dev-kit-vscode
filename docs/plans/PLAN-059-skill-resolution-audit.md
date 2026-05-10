@@ -1,8 +1,9 @@
 ---
 plan_id: PLAN-059
 title: "PLAN-059（リファクタリング B: skill 解像度監査 + brush up）"
-status: finalized
+status: completed
 created: 2026-05-11
+completed: 2026-05-11
 author: "PM (Opus)"
 priority: medium
 size: L

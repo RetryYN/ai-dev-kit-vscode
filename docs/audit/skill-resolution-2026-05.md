@@ -25,19 +25,25 @@ description / triggers / references / 外部参照 / HELIX キーワードを評
 
 外部参照 (ext) が多いのに低解像度な skill = 重要だが説明不足、優先 brush up:
 
-| skill | score | desc_len | trg | ref | ext | kw |
+| skill | score (before/after) | desc_len (before/after) | trg | ref | ext | kw (before/after) |
 |---|---|---|---|---|---|---|
-| `common/testing` | 2 | 45 | 3 | 0 | 9 | 1 |
-| `common/coding` | 2 | 34 | 3 | 0 | 8 | 0 |
-| `workflow/reverse-analysis` | 2 | 18 | 5 | 0 | 6 | 1 |
-| `workflow/design-doc` | 2 | 29 | 3 | 0 | 5 | 1 |
-| `workflow/incident` | 2 | 28 | 3 | 0 | 5 | 0 |
-| `project/db` | 2 | 47 | 3 | 0 | 4 | 1 |
-| `workflow/deploy` | 2 | 42 | 3 | 0 | 4 | 1 |
-| `workflow/postmortem` | 2 | 35 | 4 | 0 | 4 | 0 |
-| `common/code-review` | 2 | 50 | 3 | 0 | 3 | 1 |
-| `advanced/migration` | 2 | 49 | 3 | 0 | 3 | 1 |
-| `common/error-fix` | 2 | 36 | 3 | 0 | 3 | 2 |
+| `common/testing` | 2→4 | 45→175 | 3 | 0 | 9 | 1→6 |
+| `common/coding` | 2→4 | 34→158 | 3 | 0 | 8 | 0→3 |
+| `workflow/reverse-analysis` | 2→4 | 18→226 | 5 | 0 | 6 | 1→5 (Reverse) |
+| `workflow/design-doc` | 2→4 | 29→151 | 3 | 0 | 5 | 1→11 |
+| `workflow/incident` | 2→4 | 28→147 | 3 | 0 | 5 | 0→7 |
+| `project/db` | 2→4 | 47→134 | 3 | 0 | 4 | 1→5 |
+| `workflow/deploy` | 2→4 | 42→139 | 3 | 0 | 4 | 1→6 |
+| `workflow/postmortem` | 2→4 | 35→154 | 4 | 0 | 4 | 0→6 |
+| `common/code-review` | 2→4 | 50→147 | 3 | 0 | 3 | 1→4 |
+| `advanced/migration` | 2→4 | 49→137 | 3 | 0 | 3 | 1→4 |
+| `common/error-fix` | 2→4 | 36→124 | 3 | 0 | 3 | 2→4 |
+
+**W-2 brush up 結果**:
+- 全 11 件 score 2 → 4 (desc_len +2 / kw +1) - HELIX 統合キーワード明示で監査盲点解消
+- desc_len 中央値: 36 → 147 (+311%)
+- HELIX kw 平均: 1.0 → 5.5 (+450%)
+- Low 解像度件数: 63 → 52 (-11、約 17% 改善)
 
 ## 全 SKILL 評価表
 

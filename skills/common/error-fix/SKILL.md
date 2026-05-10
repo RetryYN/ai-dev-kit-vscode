@@ -1,6 +1,6 @@
 ---
 name: error-fix
-description: エラー修正で原因特定フロー・デバッグ手順・再現テストと修正パターンを提供
+description: HELIX L4 実装 / L6 統合検証 / R0 Reverse 証拠収集連携のエラー修正 SKILL。原因特定フロー・デバッグ手順・再現テスト・失敗パターンレジストリ運用・workflow/debt-register 連携の修正パターンを提供
 metadata:
   helix_layer: L4
   triggers:

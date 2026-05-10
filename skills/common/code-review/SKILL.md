@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: コードレビューでセキュリティ・パフォーマンス・設計の観点チェックリストと建設的フィードバック例を提供
+description: HELIX L4 実装 / G4 実装凍結ゲート連携のコードレビュー SKILL。セキュリティ (OWASP) ・パフォーマンス・設計観点チェックリスト・workflow/adversarial-review 統合・Critical/High 指摘 0 件達成基準・建設的フィードバック例を提供
 metadata:
   helix_layer: L4
   triggers:

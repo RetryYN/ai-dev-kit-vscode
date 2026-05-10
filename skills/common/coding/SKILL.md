@@ -1,6 +1,6 @@
 ---
 name: coding
-description: コード品質改善(命名・構造・型安全性)のチェック観点と改善手順を提供
+description: HELIX L2/L4 全 BE/FE 実装で共通参照するコード品質指針 SKILL。命名・構造・型安全性のチェック観点 + eslint/ruff/tsc/mypy 連携の改善手順。cli/roles/{fe,pg,se}.conf の additional_skills 経由で HELIX 全実装ロールから参照
 metadata:
   helix_layer: L2
   triggers:

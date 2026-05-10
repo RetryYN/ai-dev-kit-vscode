@@ -1,6 +1,6 @@
 ---
 name: testing
-description: テスト戦略策定でユニット/統合/E2Eテストのテンプレートとカバレッジ目標の検証手順を提供
+description: HELIX L4 実装 / L6 統合検証のテストピラミッド戦略 SKILL。ユニット/統合/E2E テンプレート + G4 実装凍結ゲート / G6 RC 判定ゲートのカバレッジ目標 (Unit ≥80% / Integration 主要フロー / E2E クリティカルパス) と workflow/quality-lv5 連携の品質検証手順を提供
 metadata:
   helix_layer: L4
   triggers:
