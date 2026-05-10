@@ -1,5 +1,7 @@
+import io
 import sys
 from pathlib import Path
+from contextlib import redirect_stdout
 
 import pytest
 
@@ -49,3 +51,68 @@ def test_main_exits_non_zero_for_invalid_args() -> None:
         budget_cli.main(["set-limit"])
 
     assert exc_info.value.code == 2
+
+
+def test_format_with_block_info() -> None:
+    result = {
+        "claude": {
+            "plan": "max",
+            "weekly_used_pct": 60,
+            "weekly_remaining_pct": 40,
+            "weekly_cost_usd": 120.37,
+            "weekly_budget_usd": 200,
+            "source": "ccusage",
+            "block_cost_usd": 9.17,
+            "block_burn_per_hour": 9.45,
+            "block_projected_cost": 47.21,
+            "block_remaining_minutes": 240,
+            "block_end_time": "2025-05-10T15:00:00Z",
+        },
+        "codex": {
+            "plan": "max",
+            "five_hour_used_pct": 42,
+            "weekly_used_pct": 67,
+            "source": "state.db",
+        },
+        "recommendations": [],
+    }
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=False)
+
+    assert buf.getvalue().splitlines() == [
+        "Claude (weekly ref $200): 60% used / 40% remaining ($120.37 of $200, source: ccusage)",
+        "Claude (5h block):        $9.17 used | burn $9.45/h | proj $47.21 | 4h0m remaining (source: ccusage blocks)",
+        "  [note] $200 weekly は helix の reference budget。Anthropic 公式 weekly quota とは異なる",
+        "Codex  (max): 42% (5h) / 67% (weekly)  (source: state.db)",
+    ]
+
+
+def test_format_without_block_info() -> None:
+    result = {
+        "claude": {
+            "plan": "max",
+            "weekly_used_pct": 57,
+            "weekly_remaining_pct": 43,
+            "weekly_cost_usd": 114.0,
+            "weekly_budget_usd": 200,
+            "source": "ccusage",
+        },
+        "codex": {
+            "plan": "max",
+            "five_hour_used_pct": 42,
+            "weekly_used_pct": 67,
+            "source": "state.db",
+        },
+        "recommendations": [],
+    }
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=False)
+
+    assert buf.getvalue().splitlines() == [
+        "Claude (weekly ref $200): 57% used / 43% remaining ($114.00 of $200, source: ccusage)",
+        "Codex  (max): 42% (5h) / 67% (weekly)  (source: state.db)",
+    ]

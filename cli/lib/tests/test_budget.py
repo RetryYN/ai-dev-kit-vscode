@@ -15,6 +15,23 @@ if str(LIB_DIR) not in sys.path:
 import budget
 
 
+class _RunResult:
+    def __init__(self, returncode: int, stdout: str) -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+def _weekly_payload(cost: float = 120.37, tokens: int = 12345) -> str:
+    return json.dumps({
+        "weekly": [
+            {
+                "totalCost": cost,
+                "totalTokens": tokens,
+            }
+        ]
+    })
+
+
 def test_budget_cache_round_trip_with_filesystem(tmp_path: Path) -> None:
     cache = budget.BudgetCache(tmp_path / "cache", ttl_sec=60)
 
@@ -52,6 +69,72 @@ def test_claude_budget_uses_jsonl_fallback(tmp_path: Path, monkeypatch) -> None:
     assert result["approx_line_count"] == 3
     assert result["weekly_used_pct"] == 0
     assert result["weekly_remaining_pct"] == 100
+
+
+def test_block_info_parsed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(budget.shutil, "which", lambda _: "/usr/bin/ccusage")
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, capture_output, text, timeout):  # noqa: ANN001
+        calls.append(cmd)
+        if cmd[1] == "weekly":
+            return _RunResult(0, _weekly_payload())
+        if cmd[1] == "blocks":
+            return _RunResult(0, json.dumps({
+                "blocks": [
+                    {"isActive": False},
+                    {
+                        "isActive": True,
+                        "costUSD": 9.174,
+                        "burnRate": {"costPerHour": 9.445},
+                        "projection": {"totalCost": 47.214, "remainingMinutes": 240},
+                        "endTime": "2025-05-10T15:00:00Z",
+                    },
+                ]
+            }))
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(budget.subprocess, "run", fake_run)
+
+    result = budget.ClaudeBudget.get(home=Path("/tmp"))
+
+    assert calls == [["/usr/bin/ccusage", "weekly", "--json"], ["/usr/bin/ccusage", "blocks", "--json"]]
+    assert result["weekly_used_pct"] == 60
+    assert result["weekly_remaining_pct"] == 40
+    assert result["weekly_cost_usd"] == 120.37
+    assert result["block_cost_usd"] == 9.17
+    assert result["block_burn_per_hour"] == 9.45
+    assert result["block_projected_cost"] == 47.21
+    assert result["block_remaining_minutes"] == 240
+    assert result["block_end_time"] == "2025-05-10T15:00:00Z"
+
+
+def test_block_info_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(budget.shutil, "which", lambda _: "/usr/bin/ccusage")
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, capture_output, text, timeout):  # noqa: ANN001
+        calls.append(cmd)
+        if cmd[1] == "weekly":
+            return _RunResult(0, _weekly_payload())
+        if cmd[1] == "blocks":
+            return _RunResult(1, "")
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(budget.subprocess, "run", fake_run)
+
+    result = budget.ClaudeBudget.get(home=Path("/tmp"))
+
+    assert calls == [["/usr/bin/ccusage", "weekly", "--json"], ["/usr/bin/ccusage", "blocks", "--json"]]
+    assert result["weekly_used_pct"] == 60
+    assert result["weekly_remaining_pct"] == 40
+    assert "block_cost_usd" not in result
+    assert "block_burn_per_hour" not in result
+    assert "block_projected_cost" not in result
+    assert "block_remaining_minutes" not in result
+    assert "block_end_time" not in result
 
 
 def test_codex_budget_reads_rollout_state_from_sqlite(tmp_path: Path) -> None:

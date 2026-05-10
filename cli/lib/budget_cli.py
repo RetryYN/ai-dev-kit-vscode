@@ -11,14 +11,48 @@ from effort_classifier import classify
 from model_fallback import suggest_model
 
 
+def _format_minutes_to_hours_minutes(minutes: int) -> str:
+    minutes = max(0, int(minutes))
+    hours, rem_minutes = divmod(minutes, 60)
+    return f"{hours}h{rem_minutes}m"
+
+
+def _print_claude_budget(c: dict[str, Any]) -> None:
+    weekly_cost = c.get("weekly_cost_usd", 0)
+    weekly_budget = c.get("weekly_budget_usd", 0)
+    print(
+        f"Claude (weekly ref $200): {c.get('weekly_used_pct', 0)}% used "
+        f"/ {c.get('weekly_remaining_pct', 0)}% remaining "
+        f"(${weekly_cost:.2f} of ${weekly_budget:.0f}, source: {c.get('source', '?')})"
+    )
+    if all(key in c for key in (
+        "block_cost_usd",
+        "block_burn_per_hour",
+        "block_projected_cost",
+        "block_remaining_minutes",
+        "block_end_time",
+    )):
+        print(
+            "Claude (5h block):        "
+            f"${c['block_cost_usd']:.2f} used | "
+            f"burn ${c['block_burn_per_hour']:.2f}/h | "
+            f"proj ${c['block_projected_cost']:.2f} | "
+            f"{_format_minutes_to_hours_minutes(c['block_remaining_minutes'])} remaining "
+            f"(source: ccusage blocks)"
+        )
+        print(
+            "  [note] $200 weekly は helix の reference budget。"
+            "Anthropic 公式 weekly quota とは異なる"
+        )
+
+
 def _print_status(result: dict[str, Any], as_json: bool) -> None:
     if as_json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
     c = result.get("claude", {})
     x = result.get("codex", {})
-    print(f"Claude ({c.get('plan', '?')}): {c.get('weekly_used_pct', 0)}% used "
-          f"/ {c.get('weekly_remaining_pct', 0)}% remaining  (source: {c.get('source', '?')})")
+    _print_claude_budget(c)
     print(f"Codex  ({x.get('plan', '?')}): {x.get('five_hour_used_pct', 0)}% (5h) "
           f"/ {x.get('weekly_used_pct', 0)}% (weekly)  (source: {x.get('source', '?')})")
     for rec in result.get("recommendations", []):

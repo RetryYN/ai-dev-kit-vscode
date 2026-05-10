@@ -51,11 +51,42 @@ class ClaudeBudget:
     DEFAULT_WEEKLY_BUDGET_USD = 200.0
 
     @staticmethod
+    def _round_float(value: Any, digits: int = 2) -> float:
+        try:
+            return round(float(value), digits)
+        except (TypeError, ValueError):
+            return round(0.0, digits)
+
+    @staticmethod
+    def _format_block_summary(block: dict[str, Any]) -> dict[str, Any]:
+        burn_rate = block.get("burnRate", {}) if isinstance(block, dict) else {}
+        projection = block.get("projection", {}) if isinstance(block, dict) else {}
+        block_cost = ClaudeBudget._round_float(block.get("costUSD", 0.0))
+        burn_per_hour = ClaudeBudget._round_float(burn_rate.get("costPerHour", 0.0))
+        projected_cost = ClaudeBudget._round_float(projection.get("totalCost", 0.0))
+        remaining_minutes = int(ClaudeBudget._round_float(projection.get("remainingMinutes", 0.0), 0))
+        end_time = block.get("endTime", "") if isinstance(block, dict) else ""
+        return {
+            "block_cost_usd": block_cost,
+            "block_burn_per_hour": burn_per_hour,
+            "block_projected_cost": projected_cost,
+            "block_remaining_minutes": remaining_minutes,
+            "block_end_time": end_time,
+        }
+
+    @staticmethod
     def get(home: Path | None = None) -> dict[str, Any]:
         home = home or Path(os.environ.get("HOME", "/tmp"))
         ccusage = shutil.which("ccusage")
         if ccusage:
             try:
+                weekly_result: dict[str, Any] | None = None
+                budget_usd = float(
+                    os.environ.get(
+                        "HELIX_CLAUDE_WEEKLY_BUDGET",
+                        ClaudeBudget.DEFAULT_WEEKLY_BUDGET_USD,
+                    )
+                )
                 result = subprocess.run(
                     [ccusage, "weekly", "--json"],
                     capture_output=True, text=True, timeout=15,
@@ -67,14 +98,8 @@ class ClaudeBudget:
                         latest = weekly_list[-1]  # 最新週
                         cost = float(latest.get("totalCost", 0.0))
                         tokens = int(latest.get("totalTokens", 0))
-                        budget_usd = float(
-                            os.environ.get(
-                                "HELIX_CLAUDE_WEEKLY_BUDGET",
-                                ClaudeBudget.DEFAULT_WEEKLY_BUDGET_USD,
-                            )
-                        )
                         pct = min(100, int(cost / budget_usd * 100)) if budget_usd > 0 else 0
-                        return {
+                        weekly_result = {
                             "plan": "max",
                             "weekly_used_pct": pct,
                             "weekly_remaining_pct": 100 - pct,
@@ -83,6 +108,30 @@ class ClaudeBudget:
                             "weekly_budget_usd": budget_usd,
                             "source": "ccusage",
                         }
+                result_blocks = subprocess.run(
+                    [ccusage, "blocks", "--json"],
+                    capture_output=True, text=True, timeout=15,
+                )
+                if result_blocks.returncode == 0:
+                    blocks_data = json.loads(result_blocks.stdout)
+                    blocks = blocks_data.get("blocks", []) if isinstance(blocks_data, dict) else []
+                    active_block = next((b for b in blocks if isinstance(b, dict) and b.get("isActive")), None)
+                    if active_block:
+                        block_result = ClaudeBudget._format_block_summary(active_block)
+                        if weekly_result is None:
+                            weekly_result = {
+                                "plan": "max",
+                                "weekly_used_pct": 0,
+                                "weekly_remaining_pct": 100,
+                                "weekly_cost_usd": 0.0,
+                                "weekly_tokens": 0,
+                                "weekly_budget_usd": budget_usd,
+                                "source": "ccusage",
+                            }
+                        weekly_result.update(block_result)
+                        return weekly_result
+                if weekly_result is not None:
+                    return weekly_result
             except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError, ValueError):
                 pass
 
