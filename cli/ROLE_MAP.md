@@ -44,6 +44,9 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 
 ## 共通ルール
 
+> 注記: `helix codex --auto-thinking` は **opt-in flag**。default は role conf の `codex_thinking` を参照。`--auto-thinking` は task description から effort を動的推定する option（明示時のみ有効）。
+> role effort map: tl/high, se/high, pg/medium, fe/high, qa/high, security/xhigh, dba/medium, devops/medium, docs/low, research/low, legacy/xhigh, perf/high, classifier/low, recommender/low, effort-classifier/low.
+
 1. 作業前に「参照スキル」に記載されたファイルを必ず Read する
 2. 自分の担当外の作業は行わない（PM に差し戻す）
 3. 結果は構造化して返す（判定・根拠・変更一覧・残課題）

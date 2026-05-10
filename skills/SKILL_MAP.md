@@ -223,6 +223,8 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 | G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
 | G6 追加条件 | — | **MOCK-DERIVED-CONTRACT resolved 必須** | — | 同左（fe同等） | — |
 
+auto-thinking は opt-in flag、default は role conf の `codex_thinking`。
+
 > **UI / fullstack の詳細フロー**（L2 ステップ内訳 / TL 契約導出手順 / モック由来 debt ライフサイクル / 責務分担表 / アンチパターン）→ `skills/project/ui/references` 配下を参照
 
 ### L5 要否の判定

@@ -289,6 +289,42 @@ check_role_config_consistency() {
   fi
 }
 
+check_role_effort_consistency() {
+  local roles_dir="$PROJECT_ROOT/cli/roles"
+  local effort_drift_count=0
+  local role_confs=()
+  local role_conf
+  local role_name
+  local conf_effort
+
+  shopt -s nullglob
+  role_confs=("$roles_dir"/*.conf)
+  shopt -u nullglob
+
+  for role_conf in "${role_confs[@]}"; do
+    role_name="$(basename "$role_conf" .conf)"
+    conf_effort="$(grep '^codex_thinking=' "$role_conf" 2>/dev/null | cut -d= -f2 || true)"
+    if [[ -n "$conf_effort" ]]; then
+      if grep -qE "${role_name}.*${conf_effort}|${conf_effort}.*${role_name}" \
+        "$PROJECT_ROOT/skills/SKILL_MAP.md" \
+        "$PROJECT_ROOT/cli/ROLE_MAP.md" 2>/dev/null; then
+        :
+      else
+        effort_drift_count=$((effort_drift_count + 1))
+      fi
+    fi
+  done
+
+  if [[ $effort_drift_count -gt 0 ]]; then
+    echo "    △ role effort drift: $effort_drift_count 件"
+    echo "      role conf vs CLAUDE.md / SKILL_MAP / ROLE_MAP の effort 表記乖離あり"
+    WARN=$((WARN + 1))
+  else
+    echo "    ✓ role effort 整合性"
+    PASS=$((PASS + 1))
+  fi
+}
+
 extract_declared_count() {
   local file="$1"
   local pattern="$2"
@@ -475,6 +511,10 @@ check_template_version "$HELIX_DIR/doc-map.yaml" "$HELIX_HOME/cli/templates/doc-
 echo ""
 echo "[ロール設定]"
 check_role_config_consistency
+
+echo ""
+echo "[role effort 整合性]"
+check_role_effort_consistency
 
 echo ""
 echo "[drift]"
