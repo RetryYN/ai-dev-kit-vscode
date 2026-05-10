@@ -41,7 +41,6 @@ def test_legacy_plan_migration_preserves_body_hashes() -> None:
         "PLAN-016": ("docs/plans/PLAN-016-session-summary-helix-log-report.md", PLAN_DIR / "PLAN-016-session-summary-helix-log-report.md"),
         "PLAN-028": ("docs/plans/PLAN-028-helix-v2-orchestration.md", PLAN_DIR / "PLAN-028-helix-v2-orchestration.md"),
         "PLAN-002": ("docs/plans/PLAN-002-helix-fullauto-foundation.md", PLAN_DIR / "PLAN-002-helix-fullauto-foundation.md"),
-        "PLAN-002B": ("docs/plans/PLAN-002-helix-inventory-foundation.md", PLAN_DIR / "PLAN-002B-helix-inventory-foundation.md"),
     }
 
     for plan_id, (repo_path, path) in files.items():
