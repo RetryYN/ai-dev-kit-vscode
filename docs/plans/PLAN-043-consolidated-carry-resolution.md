@@ -1,9 +1,10 @@
 ---
 plan_id: PLAN-043
 title: 'PLAN-043（PLAN-042 retro carry 9 件集約解消 - small bug fixes + legacy progressive + lock critical path 接続 + 機能追加）'
-status: finalized
+status: completed
 created: 2026-05-10
 finalized: 2026-05-10
+completed: 2026-05-10
 author: Opus (PM)
 size: M
 phases: L1→L2→L3→L4
