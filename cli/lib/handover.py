@@ -3,7 +3,6 @@
 
 import argparse
 import datetime
-import fcntl
 import json
 import os
 import re
@@ -11,7 +10,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
+
+from concurrent_lock import file_lock
 
 EXIT_SUCCESS = 0
 EXIT_CHECK_FAILED = 1
@@ -36,6 +38,7 @@ ALLOWED_SPRINT = {".1a", ".1b", ".2", ".3", ".4", ".5"}
 ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}
 ALLOWED_STATUS_UPDATE = {"in_progress", "blocked", "ready_for_review"}
 SHA40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+HANDOVER_LOCK_NAME = "handover-current"
 
 
 class HandoverError(Exception):
@@ -274,18 +277,15 @@ def _write_auto_escalation(escalation_path, state, fe_files):
         write_text(escalation_path, block)
 
 
-def lock_open(lock_path):
-    ensure_dir(lock_path.parent)
-    fh = lock_path.open("a+", encoding="utf-8")
-    fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-    return fh
-
-
-def lock_close(lock_fh):
+@contextmanager
+def lock_open(project_root):
+    original_cwd = Path.cwd()
+    os.chdir(project_root)
     try:
-        fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+        with file_lock(HANDOVER_LOCK_NAME):
+            yield
     finally:
-        lock_fh.close()
+        os.chdir(original_cwd)
 
 
 def validate_sprint(value, field_name="sprint"):
@@ -659,8 +659,7 @@ def build_dump_state(args):
 def cmd_dump(args):
     paths = current_paths(args.handover_dir)
     ensure_dir(args.handover_dir)
-    lock_fh = lock_open(paths["lock"])
-    try:
+    with lock_open(args.project_root):
         if paths["json"].exists():
             if not args.force:
                 raise HandoverError("CURRENT.json が既に存在します。--force で archive 後に再生成してください", EXIT_CHECK_FAILED)
@@ -672,8 +671,6 @@ def cmd_dump(args):
         next_action = args.next.strip() if args.next else default_next_action(state)
         dump_note = args.note.strip() if args.note else "初期 dump"
         write_text(paths["md"], render_md_template(state, next_action, dump_note))
-    finally:
-        lock_close(lock_fh)
 
     print("handover dump completed")
 
@@ -750,8 +747,7 @@ def cmd_update(args):
         raise HandoverError("--status と --blocker/--unblock の同時指定はできません", EXIT_INPUT_ERROR)
 
     paths = current_paths(args.handover_dir)
-    lock_fh = lock_open(paths["lock"])
-    try:
+    with lock_open(args.project_root):
         if not paths["json"].exists():
             raise HandoverError("CURRENT.json が存在しません", EXIT_PREREQ_ERROR)
 
@@ -890,16 +886,13 @@ def cmd_update(args):
                     "\n".join(fe_drift),
                     status="ready_for_review",
                 )
-    finally:
-        lock_close(lock_fh)
 
     print("handover update completed")
 
 
 def cmd_clear(args):
     paths = current_paths(args.handover_dir)
-    lock_fh = lock_open(paths["lock"])
-    try:
+    with lock_open(args.project_root):
         if not paths["json"].exists():
             raise HandoverError("CURRENT.json が存在しません", EXIT_PREREQ_ERROR)
 
@@ -915,16 +908,13 @@ def cmd_clear(args):
             raise HandoverError("clear --reason abandoned には --force が必要です", EXIT_INPUT_ERROR)
 
         archived = archive_current(paths)
-    finally:
-        lock_close(lock_fh)
 
     print(f"handover cleared: {archived}")
 
 
 def cmd_escalate(args):
     paths = current_paths(args.handover_dir)
-    lock_fh = lock_open(paths["lock"])
-    try:
+    with lock_open(args.project_root):
         if not paths["json"].exists():
             raise HandoverError("CURRENT.json が存在しません", EXIT_PREREQ_ERROR)
 
@@ -970,8 +960,6 @@ def cmd_escalate(args):
             "```\n"
         )
         write_text(paths["escalation"], escalation)
-    finally:
-        lock_close(lock_fh)
 
     print("handover escalated")
 
@@ -1061,8 +1049,7 @@ def render_resume_md(
 
 def cmd_resume(args):
     paths = current_paths(args.handover_dir)
-    lock_fh = lock_open(paths["lock"])
-    try:
+    with lock_open(args.project_root):
         if not paths["json"].exists():
             raise HandoverError(
                 "CURRENT.json が存在しません。先に helix handover dump を実行してください",
@@ -1162,8 +1149,6 @@ def cmd_resume(args):
             "\n".join(body_lines),
             status=updated["task"]["status"],
         )
-    finally:
-        lock_close(lock_fh)
 
     print("handover resumed -> .helix/handover/RESUME.md")
 

@@ -1,8 +1,10 @@
 import json
+import os
 import subprocess
 import sys
 import threading
 import time
+import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +15,41 @@ LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
+import concurrent_lock
 import handover
+
+
+PYTHON = sys.executable
+HANDOVER_WORKER_SCRIPT = textwrap.dedent(
+    """
+    import os
+    import sys
+    from pathlib import Path
+
+    lib_dir = Path(sys.argv[1])
+    repo = Path(sys.argv[2])
+    handover_dir = Path(sys.argv[3])
+    sleep_sec = sys.argv[4]
+    command = sys.argv[5:]
+
+    sys.path.insert(0, str(lib_dir))
+    import handover
+
+    os.chdir(repo)
+    if sleep_sec != "0":
+        os.environ["HELIX_HANDOVER_TEST_SLEEP_SEC"] = sleep_sec
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            *command,
+        ]
+    )
+    """
+)
 
 
 def _init_repo(tmp_path: Path) -> Path:
@@ -96,6 +132,33 @@ def _update_ready_for_review(repo: Path, capsys: pytest.CaptureFixture[str]) -> 
         ]
     )
     capsys.readouterr()
+
+
+def _run_handover_worker(
+    repo: Path,
+    handover_dir: Path,
+    command: list[str],
+    *,
+    sleep_sec: float = 0.0,
+) -> subprocess.Popen[str]:
+    env = os.environ.copy()
+    return subprocess.Popen(
+        [
+            PYTHON,
+            "-c",
+            HANDOVER_WORKER_SCRIPT,
+            str(LIB_DIR),
+            str(repo),
+            str(handover_dir),
+            str(sleep_sec),
+            *command,
+        ],
+        cwd=repo,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
 
 def test_dump_update_and_clear_completed_e2e(
@@ -670,3 +733,75 @@ def test_archive_current_no_staged_when_nothing_exists(tmp_path: Path) -> None:
     assert list(paths["archive"].glob("*/CURRENT.json")) == []
     assert list(paths["archive"].glob("*/CURRENT.md")) == []
     assert list(paths["archive"].glob("*/ESCALATION.md")) == []
+
+
+def test_handover_concurrent_write_protected_by_lock(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+
+    first = _run_handover_worker(
+        repo,
+        handover_dir,
+        ["update", "--owner", "codex", "--note", "first"],
+        sleep_sec=0.3,
+    )
+    lock_file = repo / ".helix" / "locks" / "handover-current.lock"
+    deadline = time.monotonic() + 2.0
+    while not lock_file.exists():
+        if time.monotonic() >= deadline:
+            pytest.fail("handover lock file was not created in time")
+        time.sleep(0.01)
+
+    second_start = time.monotonic()
+    second = _run_handover_worker(
+        repo,
+        handover_dir,
+        ["update", "--sprint", ".2", "--note", "second"],
+    )
+
+    first_stdout, first_stderr = first.communicate(timeout=5)
+    second_stdout, second_stderr = second.communicate(timeout=5)
+    second_elapsed = time.monotonic() - second_start
+
+    assert first.returncode == 0, first_stderr
+    assert second.returncode == 0, second_stderr
+    assert "handover update completed" in first_stdout
+    assert "handover update completed" in second_stdout
+    assert second_elapsed >= 0.25
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    assert current["owner"] == "codex"
+    assert current["sprint"] == ".2"
+    assert current["revision"] == 3
+    assert lock_file.exists()
+
+
+def test_handover_lock_release_on_exception(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = _init_repo(tmp_path)
+    monkeypatch.chdir(repo)
+    args = handover.parse_args(
+        [
+            "--handover-dir",
+            str(_handover_dir(repo)),
+            "--project-root",
+            str(repo),
+            "update",
+            "--owner",
+            "codex",
+        ]
+    )
+
+    with pytest.raises(handover.HandoverError) as exc_info:
+        handover.cmd_update(args)
+
+    assert exc_info.value.exit_code == handover.EXIT_PREREQ_ERROR
+
+    fd = concurrent_lock.acquire("handover-current", timeout=0)
+    concurrent_lock.release(fd)
+    assert (repo / ".helix" / "locks" / "handover-current.lock").exists()
