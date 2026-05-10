@@ -198,3 +198,53 @@ R2 に渡す最小セット。
 [ ] RG1 判定結果を記録済み
 [ ] R2 引き渡しパッケージを作成済み
 ```
+
+## type 別 operational notes
+
+| type | phase-specific action | skip / gate note |
+|---|---|---|
+| code | OpenAPI/DB 抽出を実施 | RG1 必須 |
+| design | (skip) | RG1 不要、R2 へ直行 |
+| upgrade | version diff の影響分析 | RG1 必須 |
+| normalization | (skip) | RG1 不要、R2 で drift map |
+| fullback | 文書 gap の抽出 | RG1 必須 |
+
+## 機械抽出ツールチェーン
+
+R1 で観測契約を抽出するための具体ツール選択肢。
+
+### API 抽出
+- FastAPI / Express / Spring などフレームワーク内蔵の OpenAPI generator
+- 既存 swagger / OpenAPI spec があればそれを正本に補完
+- swagger-jsdoc (Express)、drf-yasg (Django REST)、springdoc-openapi (Spring)
+
+### DB 抽出
+- PostgreSQL: `psql -d <db> -c '\d+'`
+- MySQL: `SELECT * FROM INFORMATION_SCHEMA.COLUMNS`
+- SQLite: `sqlite3 <db> '.schema'`
+- ORM introspection: SQLAlchemy reflect、Prisma db pull、Sequelize sequelize-auto
+
+### 型抽出
+- TypeScript: `tsc --emitDeclarationOnly --outDir types/`
+- Python: pyright (型情報抽出 JSON)、`mypy --reveal-locals`
+- Java: javadoc / JSON Schema generator
+- Rust: `cargo expand` / `rustdoc --output-format json`
+- Go: `go doc -all <package>`
+
+### 選択基準 (decision tree)
+
+```text
+既存の OpenAPI / Swagger spec がある?
+├─ YES → spec を正本にして observed_contracts へ写経
+└─ NO
+   └─ monorepo か?
+      ├─ YES → 言語別 extractor を順次実行 (API は OpenAPI、DB は ORM、型は言語別)
+      └─ NO
+         └─ 言語混在?
+            ├─ YES → API は OpenAPI、型は言語別
+            └─ NO → 単一言語の標準 introspection (例: TypeScript なら tsc)
+```
+
+### 制約
+- 機械抽出は public な signature 中心。internal helper / runtime-only 契約は別手段 (R2 で人手補完)
+- 抽出結果と実行時挙動の不一致は `r1_gaps` に記録 (RG1 通過条件)
