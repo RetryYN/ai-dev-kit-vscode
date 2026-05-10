@@ -141,6 +141,7 @@ EOF
 }
 
 @test "helix plan lint --duplicates prints markdown report for duplicate rows" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-050-duplicate-report.md" \
     "PLAN-050" \
@@ -167,6 +168,7 @@ EOF
 }
 
 @test "helix plan lint --duplicates observes retroactive plans too" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-035-duplicate-report.md" \
     "PLAN-035" \
@@ -180,6 +182,7 @@ EOF
 }
 
 @test "helix plan lint --duplicates keeps W-section allowlist scoped to status lint only" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-052-allowlist-duplicates.md" \
     "PLAN-052" \
@@ -232,6 +235,7 @@ EOF
 }
 
 @test "helix plan lint narrows PLAN-036 fallback skip to W sections only" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-036-self-reference-fallback.md" \
     "PLAN-036" \

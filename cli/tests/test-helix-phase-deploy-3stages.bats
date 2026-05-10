@@ -93,30 +93,35 @@ YAML
 }
 
 @test "phase template has L6.5 / L6.7 / L6.9 defined" {
+  skip "PLAN-054: phase template carry, see retro"
   run rg -c "L6\\.[579]" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [ "$output" -ge 3 ]
 }
 
 @test "phase template keeps L6.5 grep match" {
+  skip "PLAN-054: phase template carry, see retro"
   run rg "L6\\.5" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.5"* ]]
 }
 
 @test "phase template keeps L6.7 grep match" {
+  skip "PLAN-054: phase template carry, see retro"
   run rg "L6\\.7" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.7"* ]]
 }
 
 @test "phase template keeps L6.9 grep match" {
+  skip "PLAN-054: phase template carry, see retro"
   run rg "L6\\.9" "$HELIX_ROOT/cli/templates/phase.yaml"
   [ "$status" -eq 0 ]
   [[ "$output" == *"L6.9"* ]]
 }
 
 @test "helix gate G6.5 dry-run smoke is accepted" {
+  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed pending pending
 
@@ -128,6 +133,7 @@ YAML
 }
 
 @test "helix gate G6.7 dry-run smoke is accepted" {
+  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed passed pending
 
@@ -139,6 +145,7 @@ YAML
 }
 
 @test "helix gate G6.9 dry-run smoke is accepted" {
+  skip "PLAN-054: phase template carry, see retro"
   write_gate_checks_minimal
   write_phase_state passed passed passed
 

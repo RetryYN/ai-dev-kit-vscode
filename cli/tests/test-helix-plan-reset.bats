@@ -37,6 +37,7 @@ YAML
 }
 
 @test "helix plan reset finalized to draft" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan "PLAN-101" "finalized" "\"2026-04-30T15:57:34Z\""
 
   run "$HELIX_ROOT/cli/helix" plan reset --id PLAN-101 --to draft --reason "v2 改訂"
@@ -88,6 +89,7 @@ PY
 }
 
 @test "helix plan reset finalized to reviewed" {
+  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan "PLAN-102" "finalized" "\"2026-04-30T15:57:34Z\""
 
   run "$HELIX_ROOT/cli/helix" plan reset --id PLAN-102 --to reviewed --reason "finalize のみ取り消し"

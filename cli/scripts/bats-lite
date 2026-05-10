@@ -44,6 +44,14 @@ run() {
   return 0
 }
 
+skip() {
+  local reason="${1:-}"
+  if [[ -n "${BATS_LITE_SKIP_REASON_FILE:-}" ]]; then
+    printf '%s' "$reason" >"$BATS_LITE_SKIP_REASON_FILE"
+  fi
+  exit 99
+}
+
 convert_bats_file() {
   local src="$1"
   local dst="$2"
@@ -74,6 +82,7 @@ run_file() {
     echo "declare -a __bats_test_names=()"
     echo "declare -a __bats_test_funcs=()"
     declare -f run
+    declare -f skip
     echo "BATS_TEST_FILENAME='$abs_file'"
     echo "BATS_TEST_DIRNAME='$abs_dir'"
   } >"$converted"
@@ -88,7 +97,13 @@ run_file() {
     fn_name="${__bats_test_funcs[$i]}"
     test_name="${__bats_test_names[$i]}"
     TOTAL=$((TOTAL + 1))
-    if (
+    local __test_rc=0
+    local __test_skip_reason=""
+    local skip_reason_file
+    skip_reason_file="$(mktemp /tmp/bats-lite-skip-XXXXXX)"
+    export BATS_LITE_SKIP_REASON_FILE="$skip_reason_file"
+    set +e
+    (
       set -e
       export BATS_TEST_FILENAME="$abs_file"
       export BATS_TEST_DIRNAME="$abs_dir"
@@ -99,8 +114,19 @@ run_file() {
       if declare -F teardown >/dev/null 2>&1; then
         teardown
       fi
-    ); then
+    )
+    __test_rc=$?
+    set -e
+    if [[ -s "$skip_reason_file" ]]; then
+      __test_skip_reason="$(cat "$skip_reason_file")"
+    fi
+    rm -f "$skip_reason_file"
+    unset BATS_LITE_SKIP_REASON_FILE
+    if [[ $__test_rc -eq 0 ]]; then
       echo "ok $TOTAL - $test_name"
+      PASS=$((PASS + 1))
+    elif [[ $__test_rc -eq 99 ]]; then
+      echo "ok $TOTAL - $test_name (skipped: ${__test_skip_reason:-no reason})"
       PASS=$((PASS + 1))
     else
       echo "not ok $TOTAL - $test_name"

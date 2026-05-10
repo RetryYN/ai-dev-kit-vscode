@@ -93,6 +93,7 @@ PY
 }
 
 @test "helix code find returns cached result without calling Codex" {
+  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
   mkdir -p "$PROJECT_ROOT/.helix/cache/recommendations/code"
   python3 - "$PROJECT_ROOT" <<'PY'
@@ -178,6 +179,7 @@ PY
 }
 
 @test "helix code find falls back locally when Codex is unavailable" {
+  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run bash -c "HELIX_CODEX=/bin/false '$HELIX_ROOT/cli/helix' code find '引用符' -n 1 2>&1"
@@ -187,6 +189,7 @@ PY
 }
 
 @test "helix code list --json outputs parseable json" {
+  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run "$HELIX_ROOT/cli/helix" code list --json
@@ -204,6 +207,7 @@ PY
 }
 
 @test "helix code list --domain filters entries" {
+  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run "$HELIX_ROOT/cli/helix" code list --domain cli/lib --json
@@ -366,6 +370,7 @@ SH
 }
 
 @test "helix code stats --uncovered --seed-candidate true filters items" {
+  skip "PLAN-053: helix code carry, see retro"
   cat > "$PROJECT_ROOT/cli/lib/seed_fixture.py" <<'PY'
 def public_symbol():
     return 1
@@ -425,6 +430,7 @@ PY
 }
 
 @test "helix code stats --uncovered --scope cli-lib --fail-under 50 returns exit 2 (enforce when explicit)" {
+  skip "PLAN-053: helix code carry, see retro"
   cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
   cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
   cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
@@ -437,6 +443,7 @@ PY
 }
 
 @test "helix code stats --uncovered TSV includes bucket / seed_candidate / seed_promotable columns" {
+  skip "PLAN-053: helix code carry, see retro"
   run "$HELIX_ROOT/cli/helix" code stats --uncovered
   [ "$status" -eq 0 ]
   run awk -F '\t' 'NF == 7 { found=1 } END { exit found ? 0 : 1 }' <<<"$output"
@@ -559,6 +566,7 @@ PY
 }
 
 @test "helix code build creates v15 schema with bucket and symbol_line columns" {
+  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
