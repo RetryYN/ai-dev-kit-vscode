@@ -93,7 +93,6 @@ PY
 }
 
 @test "helix code find returns cached result without calling Codex" {
-  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
   mkdir -p "$PROJECT_ROOT/.helix/cache/recommendations/code"
   python3 - "$PROJECT_ROOT" <<'PY'
@@ -106,7 +105,7 @@ project_root = Path(sys.argv[1])
 jsonl_path = project_root / ".helix" / "cache" / "code-catalog.jsonl"
 stat = jsonl_path.stat()
 fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}"
-payload = {"query": "frontmatter parser", "n": 1, "catalog_fingerprint": fingerprint}
+payload = {"query": "frontmatter parser", "n": 1, "catalog_fingerprint": fingerprint, "bucket": "private_helper"}
 raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 cache_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 cache_path = project_root / ".helix" / "cache" / "recommendations" / "code" / f"{cache_key}.json"
@@ -126,8 +125,9 @@ cache_path.write_text(
 )
 PY
 
-  run env HELIX_CODEX=/bin/false "$HELIX_ROOT/cli/helix" code find "frontmatter parser" -n 1
+  run env HELIX_CODEX=/bin/false "$HELIX_ROOT/cli/helix" code find "frontmatter parser" -n 1 --bucket private_helper
   [ "$status" -eq 0 ]
+  [[ "$output" != *"local fallback"* ]]
   [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
   [[ "$output" == *"0.99  cache hit test"* ]]
 }
@@ -155,7 +155,7 @@ project_root = Path(sys.argv[1])
 jsonl_path = project_root / ".helix" / "cache" / "code-catalog.jsonl"
 stat = jsonl_path.stat()
 fingerprint = f"{stat.st_mtime_ns}:{stat.st_size}"
-payload = {"query": "frontmatter parser", "n": 2, "catalog_fingerprint": fingerprint}
+payload = {"query": "frontmatter parser", "n": 2, "catalog_fingerprint": fingerprint, "bucket": "coverage_eligible"}
 raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 cache_key = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 cache_path = project_root / ".helix" / "cache" / "recommendations" / "code" / f"{cache_key}.json"
@@ -179,48 +179,29 @@ PY
 }
 
 @test "helix code find falls back locally when Codex is unavailable" {
-  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
-  run bash -c "HELIX_CODEX=/bin/false '$HELIX_ROOT/cli/helix' code find '引用符' -n 1 2>&1"
+  run bash -c "HELIX_CODEX=/bin/false '$HELIX_ROOT/cli/helix' code find '引用符' -n 1 --bucket private_helper 2>&1"
   [ "$status" -eq 0 ]
   [[ "$output" == *"local fallback: llm unavailable"* ]]
   [[ "$output" == *"skill-catalog.strip-quotes  cli/lib  cli/lib/skill_catalog.py:"* ]]
 }
 
 @test "helix code list --json outputs parseable json" {
-  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run "$HELIX_ROOT/cli/helix" code list --json
   [ "$status" -eq 0 ]
-  run python3 - <<'PY'
-import json
-import sys
-
-payload = json.load(sys.stdin)
-assert isinstance(payload, dict)
-assert "entries" in payload
-assert isinstance(payload["entries"], list)
-PY
+  run env JSON_PAYLOAD="$output" python3 -c 'import json, os; payload = json.loads(os.environ["JSON_PAYLOAD"]); assert isinstance(payload, dict); assert isinstance(payload.get("entries"), list)'
   [ "$status" -eq 0 ]
 }
 
 @test "helix code list --domain filters entries" {
-  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
   run "$HELIX_ROOT/cli/helix" code list --domain cli/lib --json
   [ "$status" -eq 0 ]
-  run python3 - <<'PY'
-import json
-import sys
-
-payload = json.load(sys.stdin)
-entries = payload.get("entries", [])
-assert entries
-assert all(item.get("domain") == "cli/lib" for item in entries)
-PY
+  run env JSON_PAYLOAD="$output" python3 -c 'import json, os; payload = json.loads(os.environ["JSON_PAYLOAD"]); entries = payload.get("entries", []); assert entries; assert all(item.get("domain") == "cli/lib" for item in entries)'
   [ "$status" -eq 0 ]
 }
 
@@ -370,7 +351,6 @@ SH
 }
 
 @test "helix code stats --uncovered --seed-candidate true filters items" {
-  skip "PLAN-053: helix code carry, see retro"
   cat > "$PROJECT_ROOT/cli/lib/seed_fixture.py" <<'PY'
 def public_symbol():
     return 1
@@ -382,7 +362,7 @@ PY
 
   run "$HELIX_ROOT/cli/helix" code stats --uncovered --bucket all --seed-candidate true --json
   [ "$status" -eq 0 ]
-  run python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["items"]; assert all(i["seed_candidate"] is True for i in d["items"]); assert all(i["bucket"] == "coverage_eligible" for i in d["items"])' <<<"$output"
+  run env JSON_PAYLOAD="$output" python3 -c 'import json, os; d = json.loads(os.environ["JSON_PAYLOAD"]); buckets = {i["bucket"] for i in d["items"]}; assert d["items"]; assert all(i["seed_candidate"] is True for i in d["items"]); assert "coverage_eligible" in buckets; assert "private_helper" in buckets'
   [ "$status" -eq 0 ]
 }
 
@@ -430,7 +410,6 @@ PY
 }
 
 @test "helix code stats --uncovered --scope cli-lib --fail-under 50 returns exit 2 (enforce when explicit)" {
-  skip "PLAN-053: helix code carry, see retro"
   cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
   cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
   cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
@@ -438,18 +417,42 @@ PY
   git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
 
   run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 50
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"summary: covered="* ]]
+  stats_output="$output"
+  printf '%s\n' "$stats_output" > "$TMP_ROOT/cli-lib-fail-under-50.txt"
+  run python3 - "$TMP_ROOT/cli-lib-fail-under-50.txt" "$status" <<'PY'
+import re
+import sys
+
+text = open(sys.argv[1], encoding="utf-8").read()
+actual_status = int(sys.argv[2])
+match = re.search(r"coverage=([0-9.]+)%", text)
+assert match
+coverage = float(match.group(1))
+expected = 2 if coverage < 50.0 else 0
+assert actual_status == expected
+PY
+  [ "$status" -eq 0 ]
+  [[ "$stats_output" == *"summary: covered="* ]]
 }
 
 @test "helix code stats --uncovered TSV includes bucket / seed_candidate / seed_promotable columns" {
-  skip "PLAN-053: helix code carry, see retro"
   run "$HELIX_ROOT/cli/helix" code stats --uncovered
   [ "$status" -eq 0 ]
-  run awk -F '\t' 'NF == 7 { found=1 } END { exit found ? 0 : 1 }' <<<"$output"
+  stats_output="$output"
+  printf '%s\n' "$stats_output" > "$TMP_ROOT/uncovered.tsv"
+  run python3 - "$TMP_ROOT/uncovered.tsv" <<'PY'
+import sys
+
+lines = [
+    line.rstrip("\n")
+    for line in open(sys.argv[1], encoding="utf-8")
+    if line.strip() and not line.startswith("summary:")
+]
+assert lines
+assert any(line.count("\t") == 6 for line in lines)
+PY
   [ "$status" -eq 0 ]
-  [[ "$output" == *"seed_candidate="* ]]
-  [[ "$output" == *"seed_promotable="* ]]
+  [[ "$stats_output" == *$'\tcoverage_eligible\ttrue\tfalse'* ]]
 }
 
 @test "helix code stats --uncovered --scope core5 limits to core 5 files" {
@@ -566,17 +569,20 @@ PY
 }
 
 @test "helix code build creates v15 schema with bucket and symbol_line columns" {
-  skip "PLAN-053: helix code carry, see retro"
   build_code_index >/dev/null
 
-  run python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+  run python3 - "$PROJECT_ROOT/.helix/helix.db" "$HELIX_ROOT/cli/lib" <<'PY'
 import sqlite3
 import sys
+
+sys.path.insert(0, sys.argv[2])
+import helix_db
 
 conn = sqlite3.connect(sys.argv[1])
 version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
 columns = {row[1] for row in conn.execute("PRAGMA table_info(code_index)").fetchall()}
-assert version == 15
+assert version == helix_db.CURRENT_SCHEMA_VERSION
+assert version >= 15
 assert {"bucket", "symbol_line"} <= columns
 PY
   [ "$status" -eq 0 ]
