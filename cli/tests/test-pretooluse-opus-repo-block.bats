@@ -28,15 +28,13 @@ run_hook() {
 }
 
 @test "test_block_repo_python_edit" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  run run_hook '{"tool_name":"Edit","tool_input":{"file_path":"cli/lib/budget.py"}}'
+  run run_hook "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$HELIX_ROOT/cli/lib/budget.py\"}}"
   [ "$status" -eq 2 ]
   [[ "$output" == *"block"* ]]
 }
 
 @test "test_block_repo_docs_edit" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  run run_hook '{"tool_name":"Write","tool_input":{"file_path":"docs/architecture/x.md"}}'
+  run run_hook "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"$HELIX_ROOT/docs/architecture/x.md\"}}"
   [ "$status" -eq 2 ]
 }
 

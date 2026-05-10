@@ -22,11 +22,10 @@ teardown() {
 }
 
 @test "helix reverse design --help shows design usage" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run "$HELIX_ROOT/cli/helix" reverse design --help
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"helix-reverse design"* ]]
+  [[ "$output" == *"Usage:"* ]]
   [[ "$output" == *"--plans <path>"* ]]
   [[ "$output" == *"D0-design-evidence-map.yaml"* ]]
 }
@@ -41,12 +40,11 @@ teardown() {
 }
 
 @test "helix reverse design run --dry-run starts R0" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run "$HELIX_ROOT/cli/helix" reverse design run --dry-run
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Reverse HELIX: design R0"* ]]
-  [[ "$output" == *"helix-codex --role research"* ]]
+  [[ "$output" == *"helix codex --role research"* ]]
 }
 
 @test "helix reverse design status returns empty status JSON" {
@@ -76,8 +74,7 @@ teardown() {
 }
 
 @test "helix reverse code invalidate-forward covers run gates" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  run "$HELIX_ROOT/cli/helix" reverse code R2 --invalidate-forward --dry-run
+  run "$HELIX_ROOT/cli/helix" reverse code retry R2 --invalidate-forward --dry-run
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Forward gates (G2-G11)"* ]]

@@ -96,7 +96,8 @@ PY
 }
 
 @test "helix gate G6 accepts retro headings with Japanese suffixes" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
+  python3 "$HELIX_ROOT/cli/lib/yaml_parser.py" write "$PROJECT_ROOT/.helix/phase.yaml" "current_phase" "L5" >/dev/null
+  python3 "$HELIX_ROOT/cli/lib/yaml_parser.py" write "$PROJECT_ROOT/.helix/phase.yaml" "gates.G5.status" "passed" >/dev/null
   mkdir -p "$PROJECT_ROOT/.helix/retros" "$PROJECT_ROOT/docs/security-review"
   cat > "$PROJECT_ROOT/.helix/gate-checks.yaml" <<'YAML'
 G6:

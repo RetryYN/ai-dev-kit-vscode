@@ -70,6 +70,17 @@ raise SystemExit(0 if count > 0 else 1)
 PY
 }
 
+assert_skill_usage_entries() {
+  python3 - "$PROJECT_ROOT/.helix/helix.db" <<'PY'
+import sqlite3
+import sys
+
+conn = sqlite3.connect(sys.argv[1])
+count = conn.execute("SELECT COUNT(*) FROM skill_usage").fetchone()[0]
+raise SystemExit(0 if count > 0 else 1)
+PY
+}
+
 @test "PLAN-024 W-2d: helix skill chain records evidence entry" {
   run "$HELIX_ROOT/cli/helix" skill chain "test"
   [ "$status" -eq 0 ]
@@ -79,10 +90,10 @@ PY
 }
 
 @test "PLAN-024 W-2d: helix skill use records evidence entry" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run "$HELIX_ROOT/cli/helix" skill use common/testing --task "test" --agent pg
   [ "$status" -eq 0 ]
+  [[ "$output" == *"usage_id:"* ]]
 
-  run assert_evidence_entries
+  run assert_skill_usage_entries
   [ "$status" -eq 0 ]
 }

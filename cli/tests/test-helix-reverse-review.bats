@@ -11,6 +11,12 @@ setup() {
   PROJECT_ROOT="$TMP_ROOT/project"
   mkdir -p "$PROJECT_ROOT/.helix"
   cd "$PROJECT_ROOT"
+  git init -q
+  git config user.email "test@example.com"
+  git config user.name "Test User"
+  echo init > README.md
+  git add README.md
+  git commit -q -m "init"
   export HELIX_PROJECT_ROOT="$PROJECT_ROOT"
 
   cat > "$PROJECT_ROOT/.helix/phase.yaml" <<'YAML'
@@ -76,12 +82,11 @@ PY
 }
 
 @test "helix handover dump accepts reverse-r0..r4 modes" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   run bash -lc '
     set -euo pipefail
     for mode in reverse-r0 reverse-r1 reverse-r2 reverse-r3 reverse-r4; do
       rm -rf .helix/handover
-      "'"$HELIX_ROOT"'/cli/helix" handover dump --mode "$mode" --note "test" >/dev/null
+      "'"$HELIX_ROOT"'/cli/helix" handover dump --mode "$mode" --sprint .2 --note "test" >/dev/null
       python3 - <<'"'"'PY'"'"' "$mode"
 import json
 import sys

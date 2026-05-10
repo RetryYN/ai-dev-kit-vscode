@@ -26,8 +26,7 @@ teardown() {
 }
 
 @test "Without HELIX_CODEX_INTERNAL and no codex, it fails with codex missing error" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  PATH="" run "$HELIX_ROOT/cli/helix-review"
+  HELIX_CODEX_INTERNAL="" PATH="/usr/bin:/bin" run "$HELIX_ROOT/cli/helix-review"
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"エラー: codex が見つかりません" ]]

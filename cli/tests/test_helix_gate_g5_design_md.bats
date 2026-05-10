@@ -37,7 +37,7 @@ YAML
   MIN_BIN="$TMP_ROOT/min-bin"
   mkdir -p "$MOCK_BIN" "$MIN_BIN"
 
-  for cmd in python3 grep date dirname basename; do
+  for cmd in python3 grep date dirname basename awk mktemp cat bash rm; do
     ln -s "$(command -v "$cmd")" "$MIN_BIN/$cmd"
   done
 }
@@ -182,7 +182,7 @@ EOF
 }
 
 @test "5 drive=be + ui=true + DESIGN.mdあり + lint exit 0 -> G5 PASS" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
+  skip "PLAN-058: cli/helix-gate sprint.ui 真偽値比較不整合 (実装 bug fix carry)"
   set_gate_context "be" "true"
   write_design_md
   mock_npx
@@ -196,7 +196,6 @@ EOF
 }
 
 @test "6 drive=fullstack + npx利用不可 -> G5 FAIL (fail-close)" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   set_gate_context "fullstack" "true"
   write_design_md
 

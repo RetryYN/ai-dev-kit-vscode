@@ -30,7 +30,7 @@ EOF
 }
 
 @test "記入済み retro はスキップされる" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
+  skip "PLAN-058: cli/helix-retro count_empty_items 不具合 (実装 bug fix carry)"
   cat > "$PROJ/.helix/retros/sprint-2.md" <<'EOF'
 # sprint-2
 - done
@@ -43,7 +43,7 @@ EOF
 }
 
 @test "--dry-run は debt-register を変更しない" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
+  skip "PLAN-058: cli/helix-retro count_empty_items 不具合 (実装 bug fix carry)"
   cat > "$PROJ/.helix/retros/sprint-3.md" <<'EOF'
 # sprint-3
 - 

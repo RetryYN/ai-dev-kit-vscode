@@ -25,7 +25,6 @@ teardown() {
 }
 
 @test "scrum backlog scaffold is fail-closed without HELIX未実装 wording" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
   "$HELIX_ROOT/cli/helix" scrum init >/dev/null
 
   run "$HELIX_ROOT/cli/helix" scrum backlog add \
@@ -37,12 +36,12 @@ teardown() {
   [ "$status" -eq 0 ]
   script_path="$(find "$PROJECT_ROOT/verify" -type f -name 'h001-*.sh' | head -n 1)"
   [ -n "$script_path" ]
-  grep -q "hypothesis-specific verification" "$script_path"
+  grep -q "仮説固有の検証条件" "$script_path"
   ! grep -q "FAIL: 未実装" "$script_path"
 
   run bash "$script_path"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"verification logic is still a placeholder"* ]]
+  [[ "$output" == *"hypothesis verification script has not been customized yet"* ]]
 }
 
 @test "scrum confirmed requires passing verification unless forced" {

@@ -110,7 +110,7 @@ PY
 }
 
 @test "active docs do not describe stale command names or API based harness assumptions" {
-  run rg -n \
+  run grep -rnE \
     "helix-codex --role|helix-codex review|codex review --uncommitted|Claude API|API key fallback|HELIX_ENABLE_CLAUDE_FALLBACK|CLI 未実装.*helix reverse rgc|OpenAI API 実応答|OpenAI API 障害|Anthropic API 障害|HTTPS → OpenAI API|HTTPS → Anthropic API|L1-L8|L1〜L8|G1-G7|G1〜G7|G2-G7|G2〜G7|G2-G6|G2〜G6|HELIX 9 フェーズ|v1 ?[-→>] ?v4|Status: Draft|ステータス: Draft|実装未着手|全 28|28 スキル|HELIX 独自 7|reverse-helix" \
     "$HELIX_ROOT/README.md" \
     "$HELIX_ROOT/CLAUDE.md" \

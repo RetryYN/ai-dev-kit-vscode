@@ -112,8 +112,6 @@ EOF
 }
 
 @test "D-DB: 完全一致なら WARN なしで問題なしを出力" {
-  skip "PLAN-055: misc hidden failure carry, see retro"
-  create_db
   python3 - "$PROJ/.helix/helix.db" <<'PY'
 import sqlite3
 import sys
