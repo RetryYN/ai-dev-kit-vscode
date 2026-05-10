@@ -59,6 +59,21 @@ class TestEvaluateGateBasic:
             assert result["result"] == "pass"
             assert result["gate"] == gate
 
+    @pytest.mark.parametrize(
+        "gate, expected_layers",
+        [
+            ("G6.5", ["L7"]),
+            ("G6.7", ["L7"]),
+            ("G6.9", ["L7"]),
+        ],
+    )
+    def test_pre_release_gates_target_l7(self, gate: str, expected_layers: list[str]) -> None:
+        result = deliverable_gate.evaluate_gate(_make_index({}), _make_state({}), gate)
+
+        assert result["result"] == "pass"
+        assert result["gate"] == gate
+        assert result["layers"] == expected_layers
+
     def test_g1r_gate_is_supported(self) -> None:
         result = deliverable_gate.evaluate_gate(_make_index({}), _make_state({}), "G1R")
 

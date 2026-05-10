@@ -24,7 +24,7 @@ import yaml_parser  # noqa: E402
 
 
 VALID_PHASES = {f"L{i}" for i in range(1, 12)}
-VALID_GATES = {"G0.5", "G1", "G1R", "G1.5", "G2", "G3", "G4", "G5", "G6", "G7", "G9", "G10", "G11"}
+VALID_GATES = {"G0.5", "G1", "G1R", "G1.5", "G2", "G3", "G4", "G5", "G6", "G6.5", "G6.7", "G6.9", "G7", "G9", "G10", "G11"}
 VALID_LAYERS = {"Plan", "Architecture", "Contract"}
 VALID_CONFLICT_RESOLUTION = {"priority", "first-match", "merge", "exception"}
 VALID_PATTERN_ID = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")

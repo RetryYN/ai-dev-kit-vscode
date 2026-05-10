@@ -13,6 +13,11 @@ def test_check_patterns_accepts_repo_pattern_contract() -> None:
     assert not status.errors
 
 
+def test_valid_gates_include_pre_release_gates() -> None:
+    for gate in ("G6.5", "G6.7", "G6.9"):
+        assert gate in meta_phase.VALID_GATES
+
+
 def test_check_patterns_rejects_gate_in_phase(tmp_path: Path) -> None:
     pattern_dir = tmp_path / ".helix" / "patterns"
     pattern_dir.mkdir(parents=True)
