@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-046
 title: 'PLAN-046（runtime quality 5 件集約解消 - PLAN-045 retro carry 4 件 + W-5）'
-status: draft
+status: completed
+completed: 2026-05-10
 created: 2026-05-10
 author: Docs (Codex)
 priority: medium
