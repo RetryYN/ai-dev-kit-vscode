@@ -39,7 +39,7 @@
 4.6 v2 ディスパッチ: タスク性質で必須委譲先を優先決定
 - BE 実装/DB/インフラ: `helix codex --role se`
 - 設計・レビュー・デバッグ: `helix codex --role tl`
-- 速度重視単機能実装: `helix codex --role pe`
+- 速度重視単機能実装: `helix codex --role pg`
 - 状況把握 / docs チェック: `helix claude --role pmo --model sonnet --execute`
 - 軽文書チェック / docs/**: `helix claude --role pmo --model haiku --execute --allow-paths "docs/**"`
 4.7 スキル推奨: `helix skill chain "<タスク記述>"` を任意で実施。skip 理由がある場合は会話または final report に記録する（例: 自明な小修正、既知 skill のみ使用 等）
@@ -48,7 +48,7 @@ L4 implementation / build / G4 補足（PLAN-013）:
 - L4 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
 - L4 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類する
 - L4 build: `helix code build` で catalog を再生成し、`bucket` / `symbol_line` / metadata を自動付与する
-- G4: `helix code stats --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
+- G4: `helix code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
 5. 実行開始
 6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 7. readiness exit 条件確認 → 該当スキル Read
