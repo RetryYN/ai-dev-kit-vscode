@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-013
+title: "PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract"
+status: completed
+created: 2026-05-03
+author: Legacy migration
+---
 # PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract
 
 ## §1. 目的 / position

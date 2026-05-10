@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-012
+title: "PLAN-012: コード index 未カバレッジ計測 (v1.4)"
+status: completed
+created: 2026-05-03
+author: Legacy migration
+---
 # PLAN-012: コード index 未カバレッジ計測 (v1.4)
 
 ## §1. 目的 / position

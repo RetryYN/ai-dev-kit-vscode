@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-015
+title: "PLAN-015: DoD #3 test guard hack 解消 — fixture 0 件 + N=1 化"
+status: completed
+created: 2026-05-03
+author: Legacy migration
+---
 # PLAN-015: DoD #3 test guard hack 解消 — fixture 0 件 + N=1 化
 
 ## §1. 目的 / position

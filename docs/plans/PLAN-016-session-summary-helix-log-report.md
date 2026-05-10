@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-016
+title: "PLAN-016: session-summary の md 廃止 — Stop hook を helix log report session 化"
+status: completed
+created: 2026-05-03
+author: Legacy migration
+---
 # PLAN-016: session-summary の md 廃止 — Stop hook を helix log report session 化
 
 ## §1. 目的 / position

@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-002B
+title: "PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)"
+status: draft
+created: 2026-04-30
+author: Legacy migration
+---
 # PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)
 
 ## 1. 目的

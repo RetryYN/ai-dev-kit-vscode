@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-028
+title: "PLAN-028: HELIX v2 orchestration 移行"
+status: completed
+created: 2026-05-08
+author: Legacy migration
+---
 # PLAN-028: HELIX v2 orchestration 移行
 
 ## メタデータ

@@ -1,3 +1,10 @@
+---
+plan_id: PLAN-014
+title: "PLAN-014: Stop hook idempotency — session-summary 重複行抑制 (v1.1 reviewed)"
+status: completed
+created: 2026-05-03
+author: Legacy migration
+---
 # PLAN-014: Stop hook idempotency — session-summary 重複行抑制 (v1.1 reviewed)
 
 ## §1. 目的 / position
