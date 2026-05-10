@@ -32,6 +32,9 @@ def test_load_accuracy_weights_parses_all_gates() -> None:
         "G4",
         "G5",
         "G6",
+        "G6.5",
+        "G6.7",
+        "G6.9",
         "G7",
     }
 

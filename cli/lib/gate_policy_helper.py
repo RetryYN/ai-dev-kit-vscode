@@ -10,7 +10,7 @@ from typing import Any
 
 WEIGHT_PATTERN = re.compile(r"\|\s*accuracy_weight\s*\|\s*([0-9.]+)\s*\|")
 SECTION_PATTERN = re.compile(
-    r"^#{2,3}\s+(G0\.5|G1\.5|G1R|G[1-7]|L8)[\s　].*?$",
+    r"^#{2,3}\s+(G0\.5|G1\.5|G1R|G[1-7](?:\.\d+)?)(?=[\s　]).*?$",
     re.MULTILINE,
 )
 
@@ -31,11 +31,18 @@ def load_accuracy_weights(policy_path: Path) -> dict[str, float]:
     sections = list(SECTION_PATTERN.finditer(text))
     for index, match in enumerate(sections):
         gate_name = match.group(1).strip()
+        if re.fullmatch(r"L\d+", gate_name):
+            continue
         start = match.end()
         end = sections[index + 1].start() if index + 1 < len(sections) else len(text)
         weight_match = WEIGHT_PATTERN.search(text[start:end])
         if weight_match:
             weights[gate_name] = float(weight_match.group(1))
+            continue
+
+        base_match = re.fullmatch(r"(G[1-7])\.\d+", gate_name)
+        if base_match and base_match.group(1) in weights:
+            weights[gate_name] = weights[base_match.group(1)]
     return weights
 
 
