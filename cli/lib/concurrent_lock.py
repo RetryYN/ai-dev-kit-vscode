@@ -29,6 +29,12 @@ def _lock_path(name: str, lock_dir: Path | None = None) -> Path:
     return base_dir / f"{key}.lock"
 
 
+def _lock_file_path(name: str, lock_dir: Path | None = None) -> Path:
+    key = _validate_name(name)
+    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    return base_dir / f"{key}.lock"
+
+
 def _flock_with_timeout(fd: int, name: str, timeout: float) -> None:
     deadline = time.monotonic() + timeout
     while True:
@@ -54,20 +60,90 @@ def _write_lockfile_metadata(fd: int, name: str) -> None:
     os.fsync(fd)
 
 
+def _is_valid_lockfile_metadata(metadata: object, name: str) -> bool:
+    if not isinstance(metadata, dict):
+        return False
+    if metadata.get("version") != LOCKFILE_METADATA_VERSION:
+        return False
+    pid = metadata.get("pid")
+    if type(pid) is not int or pid <= 0:
+        return False
+    acquired_at = metadata.get("acquired_at")
+    if not isinstance(acquired_at, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(acquired_at)
+    except ValueError:
+        return False
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        return False
+    return metadata.get("name") == name
+
+
+def _parse_lockfile_metadata(raw: str, name: str) -> dict | None:
+    try:
+        metadata = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not _is_valid_lockfile_metadata(metadata, name):
+        return None
+    return metadata
+
+
+def _read_lockfile_metadata_from_fd(fd: int, name: str) -> dict | None:
+    os.lseek(fd, 0, os.SEEK_SET)
+    chunks: list[bytes] = []
+    while True:
+        chunk = os.read(fd, 4096)
+        if not chunk:
+            break
+        chunks.append(chunk)
+    return _parse_lockfile_metadata(b"".join(chunks).decode("utf-8"), name)
+
+
+def _path_matches_fd(lock_path: Path, fd: int) -> bool:
+    try:
+        path_stat = lock_path.stat()
+    except FileNotFoundError:
+        return False
+    fd_stat = os.fstat(fd)
+    return (path_stat.st_dev, path_stat.st_ino) == (fd_stat.st_dev, fd_stat.st_ino)
+
+
+def _pid_is_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def acquire(name: str, timeout: float = LOCK_TIMEOUT_SECONDS, lock_dir: Path | None = None) -> int:
     if timeout < 0:
         raise ValueError("timeout must be non-negative")
 
     lock_path = _lock_path(name, lock_dir=lock_dir)
-    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    deadline = time.monotonic() + timeout
 
-    try:
-        _flock_with_timeout(fd, name, timeout)
-        _write_lockfile_metadata(fd, name)
-        return fd
-    except Exception:
+    while True:
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            remaining = max(0.0, deadline - time.monotonic())
+            _flock_with_timeout(fd, name, remaining)
+            if _path_matches_fd(lock_path, fd):
+                _write_lockfile_metadata(fd, name)
+                return fd
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        except Exception:
+            os.close(fd)
+            raise
+
         os.close(fd)
-        raise
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"lock not acquired within {timeout:.1f}s: {name}")
+        time.sleep(min(LOCK_RETRY_INTERVAL, max(0.0, deadline - time.monotonic())))
 
 
 def release(fd: int) -> None:
@@ -87,10 +163,84 @@ def file_lock(name: str, timeout: float = LOCK_TIMEOUT_SECONDS, lock_dir: Path |
 
 
 def read_lockfile_metadata(name: str, lock_dir: Path | None = None) -> dict | None:
-    lock_path = _lock_path(name, lock_dir=lock_dir)
+    lock_path = _lock_file_path(name, lock_dir=lock_dir)
     if not lock_path.exists():
         return None
     try:
-        return json.loads(lock_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+        return _parse_lockfile_metadata(lock_path.read_text(encoding="utf-8"), name)
+    except OSError:
         return None
+
+
+def inspect_stale_locks(lock_dir: Path | None = None) -> dict[str, list[str]]:
+    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    if not base_dir.exists():
+        return {"stale": [], "alive_skipped": [], "errors": []}
+
+    stale: list[str] = []
+    alive_skipped: list[str] = []
+    errors: list[str] = []
+
+    for lock_file in sorted(base_dir.glob("*.lock")):
+        try:
+            metadata = read_lockfile_metadata(lock_file.stem, lock_dir=base_dir)
+            if metadata is None:
+                continue
+            if _pid_is_alive(metadata["pid"]):
+                alive_skipped.append(lock_file.name)
+            else:
+                stale.append(lock_file.name)
+        except OSError as exc:
+            errors.append(f"{lock_file.name}: {exc}")
+
+    return {"stale": stale, "alive_skipped": alive_skipped, "errors": errors}
+
+
+def cleanup_stale(lock_dir: Path | None = None) -> dict[str, list[str]]:
+    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    if not base_dir.exists():
+        return {"cleaned": [], "alive_skipped": [], "errors": []}
+
+    cleaned: list[str] = []
+    alive_skipped: list[str] = []
+    errors: list[str] = []
+
+    for lock_file in sorted(base_dir.glob("*.lock")):
+        try:
+            metadata = read_lockfile_metadata(lock_file.stem, lock_dir=base_dir)
+            if metadata is None:
+                continue
+            if _pid_is_alive(metadata["pid"]):
+                alive_skipped.append(lock_file.name)
+                continue
+
+            try:
+                fd = os.open(lock_file, os.O_RDWR)
+            except FileNotFoundError:
+                continue
+
+            try:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    continue
+                if not _path_matches_fd(lock_file, fd):
+                    continue
+                current = _read_lockfile_metadata_from_fd(fd, lock_file.stem)
+                if current != metadata:
+                    continue
+                if _pid_is_alive(current["pid"]):
+                    alive_skipped.append(lock_file.name)
+                    continue
+                try:
+                    lock_file.unlink()
+                except FileNotFoundError:
+                    continue
+                cleaned.append(lock_file.name)
+            finally:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
+        except OSError as exc:
+            errors.append(f"{lock_file.name}: {exc}")
+
+    return {"cleaned": cleaned, "alive_skipped": alive_skipped, "errors": errors}

@@ -67,6 +67,27 @@ def _run_worker(project_dir: Path, name: str, timeout: float, hold: float) -> su
     )
 
 
+def _seed_stale_lock(project_dir: Path, name: str) -> None:
+    result = subprocess.run(
+        [
+            PYTHON,
+            "-c",
+            WORKER_SCRIPT,
+            str(LIB_DIR),
+            str(project_dir),
+            "lock",
+            name,
+            "1.0",
+            "0.0",
+        ],
+        cwd=project_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_acquire_release_basic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -142,3 +163,33 @@ def test_invalid_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(ValueError):
         concurrent_lock.acquire("../escape")
+
+
+def test_cleanup_stale_skips_alive_pid(tmp_path: Path) -> None:
+    holder = _run_worker(tmp_path, "alive-cleanup", timeout=1.0, hold=1.0)
+    assert holder.stdout is not None
+    assert holder.stdout.readline().strip() == "acquired"
+
+    result = concurrent_lock.cleanup_stale(tmp_path / ".helix" / "locks")
+
+    _stdout, stderr = holder.communicate(timeout=5)
+    assert holder.returncode == 0, stderr
+    assert result == {
+        "cleaned": [],
+        "alive_skipped": ["alive-cleanup.lock"],
+        "errors": [],
+    }
+
+
+def test_cleanup_stale_removes_dead_pid_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    _seed_stale_lock(tmp_path, "dead-cleanup")
+
+    result = concurrent_lock.cleanup_stale(tmp_path / ".helix" / "locks")
+
+    assert result == {
+        "cleaned": ["dead-cleanup.lock"],
+        "alive_skipped": [],
+        "errors": [],
+    }
+    assert concurrent_lock.read_lockfile_metadata("dead-cleanup") is None

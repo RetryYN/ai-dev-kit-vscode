@@ -1,28 +1,32 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [--fix]
+# Usage: helix doctor [--fix] [--cleanup-stale-locks]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
+CLEANUP_STALE_LOCKS=false
 
-case "${1:-}" in
-  --fix) FIX=true ;;
-  --help|-h)
-    echo "使い方: helix doctor [--fix]"
-    echo ""
-    echo "環境と .helix/ の整合性をチェックします。"
-    exit 0
-    ;;
-  "")
-    ;;
-  *)
-    echo "エラー: 不明なオプション: $1" >&2
-    echo "使い方: helix doctor [--fix]" >&2
-    exit 1
-    ;;
-esac
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --fix) FIX=true ;;
+    --cleanup-stale-locks) CLEANUP_STALE_LOCKS=true ;;
+    --help|-h)
+      echo "使い方: helix doctor [--fix] [--cleanup-stale-locks]"
+      echo ""
+      echo "環境と .helix/ の整合性をチェックします。"
+      echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
+      exit 0
+      ;;
+    *)
+      echo "エラー: 不明なオプション: $1" >&2
+      echo "使い方: helix doctor [--fix] [--cleanup-stale-locks]" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
 
 echo "=== HELIX Doctor ==="
 PASS=0
@@ -193,12 +197,15 @@ get_conf_value() {
 check_role_config_consistency() {
   local roles_file="${HELIX_HOME}/cli/config/models.yaml"
   local roles_dir="${HELIX_HOME}/cli/roles"
+  local runtime_yaml_parser
   local codex_mismatch=0
   local pmo_mismatch=0
   local conf_path
   local role
   local conf_value
   local yaml_value
+
+  runtime_yaml_parser="$(cd "$(dirname "$0")" && pwd)/lib/yaml_parser.py"
 
   if [[ ! -f "$roles_file" || ! -d "$roles_dir" ]]; then
     echo "  ✗ role config consistency (required files missing)"
@@ -211,28 +218,28 @@ check_role_config_consistency() {
 
     if [[ "$role" == pmo-* ]]; then
       conf_value="$(get_conf_value "$conf_path" "claude_model")"
-      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
+      yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "roles.$role" 2>/dev/null || true)"
       if [[ "$conf_value" != "$yaml_value" ]]; then
         echo "WARNING: pmo role $role: claude_model conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
         pmo_mismatch=$((pmo_mismatch + 1))
       fi
 
       conf_value="$(get_conf_value "$conf_path" "claude_thinking")"
-      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.thinking" 2>/dev/null || true)"
+      yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.thinking" 2>/dev/null || true)"
       if [[ "$conf_value" != "$yaml_value" ]]; then
         echo "WARNING: pmo role $role: claude_thinking conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
         pmo_mismatch=$((pmo_mismatch + 1))
       fi
 
       conf_value="$(get_conf_value "$conf_path" "claude_permission_mode")"
-      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.permission_mode" 2>/dev/null || true)"
+      yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.permission_mode" 2>/dev/null || true)"
       if [[ "$conf_value" != "$yaml_value" ]]; then
         echo "WARNING: pmo role $role: claude_permission_mode conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
         pmo_mismatch=$((pmo_mismatch + 1))
       fi
 
       conf_value="$(get_conf_value "$conf_path" "claude_disallowed_tools")"
-      yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.disallowed_tools" 2>/dev/null || true)"
+      yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.disallowed_tools" 2>/dev/null || true)"
       if [[ "$conf_value" != "$yaml_value" ]]; then
         echo "WARNING: pmo role $role: claude_disallowed_tools conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
         pmo_mismatch=$((pmo_mismatch + 1))
@@ -240,7 +247,7 @@ check_role_config_consistency() {
 
       if [[ "$role" == "pmo-haiku" ]]; then
         conf_value="$(get_conf_value "$conf_path" "claude_allow_paths")"
-        yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "role_metadata.$role.allow_paths" 2>/dev/null || true)"
+        yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "role_metadata.$role.allow_paths" 2>/dev/null || true)"
         if [[ "$conf_value" != "$yaml_value" ]]; then
           echo "WARNING: pmo role $role: claude_allow_paths conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
           pmo_mismatch=$((pmo_mismatch + 1))
@@ -251,7 +258,7 @@ check_role_config_consistency() {
     fi
 
     conf_value="$(get_conf_value "$conf_path" "codex_model")"
-    yaml_value="$(python3 "$YAML_PARSER" read "$roles_file" "roles.$role" 2>/dev/null || true)"
+    yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "roles.$role" 2>/dev/null || true)"
 
     if [[ -z "$conf_value" || -z "$yaml_value" ]]; then
       echo "WARNING: role $role: conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
@@ -346,6 +353,88 @@ check_document_drift() {
   check_drift_count "cli/roles count drift" "$roles_count" "$declared_roles"
 }
 
+collect_stale_lock_report() {
+  local runtime_lib_dir
+  runtime_lib_dir="$(cd "$(dirname "$0")" && pwd)/lib"
+  python3 - <<'PY' "$runtime_lib_dir" "$CLEANUP_STALE_LOCKS"
+import json
+import sys
+from pathlib import Path
+
+runtime_lib_dir = Path(sys.argv[1])
+cleanup = sys.argv[2] == "true"
+sys.path.insert(0, str(runtime_lib_dir))
+
+import concurrent_lock
+
+if cleanup:
+    report = concurrent_lock.cleanup_stale()
+else:
+    report = concurrent_lock.inspect_stale_locks()
+
+print(json.dumps(report))
+PY
+}
+
+check_stale_locks() {
+  local report_json
+  report_json="$(collect_stale_lock_report)"
+
+  eval "$(python3 - <<'PY' "$report_json"
+import json
+import shlex
+import sys
+
+report = json.loads(sys.argv[1])
+for key in ("stale", "cleaned", "alive_skipped", "errors"):
+    values = report.get(key, [])
+    print(f"{key.upper()}_COUNT={len(values)}")
+    print(f"{key.upper()}_VALUES={shlex.quote(', '.join(values))}")
+PY
+)"
+
+  if [[ "$CLEANUP_STALE_LOCKS" == true ]]; then
+    if [[ $ERRORS_COUNT -gt 0 ]]; then
+      echo "  △ stale lock cleanup"
+      echo "    cleaned: ${CLEANED_VALUES:-none}"
+      echo "    alive skipped: ${ALIVE_SKIPPED_VALUES:-none}"
+      echo "    errors: $ERRORS_VALUES"
+      WARN=$((WARN + 1))
+      return
+    fi
+
+    if [[ $CLEANED_COUNT -eq 0 && $ALIVE_SKIPPED_COUNT -eq 0 ]]; then
+      echo "  ✓ stale lock cleanup (対象なし)"
+      PASS=$((PASS + 1))
+      return
+    fi
+
+    echo "  △ stale lock cleanup"
+    echo "    cleaned: ${CLEANED_VALUES:-none}"
+    echo "    alive skipped: ${ALIVE_SKIPPED_VALUES:-none}"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if [[ $ERRORS_COUNT -gt 0 ]]; then
+    echo "  △ stale lock check"
+    echo "    errors: $ERRORS_VALUES"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if [[ $STALE_COUNT -eq 0 && $ALIVE_SKIPPED_COUNT -eq 0 ]]; then
+    echo "  ✓ stale lock check"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ stale lock check"
+  echo "    dead: ${STALE_VALUES:-none}"
+  echo "    alive skipped: ${ALIVE_SKIPPED_VALUES:-none}"
+  WARN=$((WARN + 1))
+}
+
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
@@ -390,6 +479,10 @@ check_role_config_consistency
 echo ""
 echo "[drift]"
 check_document_drift
+
+echo ""
+echo "[stale locks]"
+check_stale_locks
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"
