@@ -225,3 +225,38 @@ R4 を `done` とする条件:
 | upgrade | impact / risk → Forward L1-L4 | RG4 不要、RGC skip |
 | normalization | normalize 設計 → Forward L1-L4 | RG4 不要 |
 | fullback | alignment routing → Forward L1-L4 | RG4 不要 |
+
+## routing 判定基準 (severity × routing target)
+
+R4 で gap を Forward HELIX に振り分ける際の判断基準。
+**primary_routing** は gap_register の単一値 (L1/L2/L3/L4)、
+**post_forward_action** は Forward 完遂後の追加 action (optional)。
+
+| severity | gap kind | primary_routing | post_forward_action | 理由 |
+|---|---|---|---|---|
+| critical | 要件未定義 | L1 | - | PO 合意必須、L2 以降では覆せない |
+| critical | 設計矛盾 | L2 | - | ADR 起こし、影響波及確認 |
+| critical | 契約不整合 | L3 | - | API/DB Freeze 前 |
+| high | 実装欠落 | L4 | - | Sprint で実装 |
+| high | 受入条件未定 | L1 | - | acceptance に追加 |
+| medium | 文書不足 | L2 | runbook (L11) | ADR + runbook |
+| medium | 運用ギャップ | L4 | observability (L10) | 実装 + 観測 |
+| low | 命名・整合性 | L4 | debt_register | 次サイクルへ carry |
+
+### severity 判定基準 (impact × likelihood × reversibility)
+
+3 軸 1-5 採点で総合スコア:
+- **impact**: gap が放置された場合の業務影響 (1=軽微、5=致命的)
+- **likelihood**: gap が顕在化する確率 (1=稀、5=確実)
+- **reversibility**: 後段で覆せるか (1=完全 reversible、5=完全 irreversible)
+
+総合スコア = impact × likelihood × reversibility / 5。
+- 75-125: critical
+- 25-75: high
+- 5-25: medium
+- < 5: low
+
+### 列の意味
+- **primary_routing**: gap_register の routing 列に記載する単一値 (L1/L2/L3/L4)
+- **post_forward_action**: Forward L1-L4 完遂後の追加対応 (L8-L11 の plan / debt_register への登録)、optional 列
+- 既存契約 (gap_register の routing 単一値) を破壊しない、post_forward_action は補助情報
