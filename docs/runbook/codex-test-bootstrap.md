@@ -70,3 +70,13 @@ HELIX_CODEX_ENV='TMPDIR=$HOME/.cache/helix-tmp' helix codex --role pg --task '..
 - PLAN-041 W-4: codex-test-bootstrap 起票 (bats / pytest 不在時 warning)
 - PLAN-042 W-23: pytest /tmp 制約事象を実観測
 - PLAN-043 W-1.C: 本拡張 (TMPDIR 注入手順)
+
+## helix code find の前提
+
+`helix code find` および関連コマンド (`helix code build`, `helix code stats`, etc.) は SQLite cache (`.helix/cache/code-catalog/`) を作成・読み書きするため、**writable な `.helix/` ディレクトリが必要** です。
+
+read-only sandbox 環境 (codex-test など) では SQLite 接続失敗で OperationalError になります。代替手段:
+
+- read-only env で実行する場合は `--no-cache` フラグ (もしあれば) を使う
+- TMPDIR を writable path に設定し `HELIX_CACHE_DIR=$TMPDIR/helix-cache` を export
+- 単純な grep で代替 (`rg "<keyword>" cli/`)
