@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-048
 title: 'PLAN-048（Codex docs/PG 委譲 prompt template に write 必須要求 default 化 + audit-only failure 機械検知）'
-status: finalize
+status: completed
+completed: 2026-05-10
 created: 2026-05-10
 finalized: 2026-05-10
 author: 'PM (Opus)'
