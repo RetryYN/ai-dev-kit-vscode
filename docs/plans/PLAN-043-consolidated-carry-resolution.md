@@ -13,6 +13,7 @@ acceptance:
   - W-2: legacy PLAN frontmatter migration 5 件追加 (PLAN-007〜011 progressive)
   - W-3: lock 機構 critical path 接続 (handover.py を concurrent_lock module へ移行)、lockfile cleanup は split-lock 回避のため本 PLAN scope 外
   - W-4: helix plan import コマンド追加 + helix doctor 文書 drift 検知拡張 + accuracy_score 経路修復
+  - W-6: PreToolUse hook で Opus の repo Edit/Write を mechanical block、5 ケース bats test PASS
 related: [PLAN-042, PLAN-041, PLAN-040, PLAN-038, ADR-014, ADR-015, ADR-016]
 ---
 
@@ -203,6 +204,50 @@ PLAN-042 retro #9 stale lock cleanup automation はこの理由で **本 PLAN �
 
 ### §3.5 W-5: 統合検証 + retrospective + push
 
+### §3.6 W-6: orchestration enforcement (PreToolUse hook)
+
+起源は本セッション (2026-05-10) で観測した複数の Opus 直接 Edit 違反である。policy は CLAUDE.md / memory feedback で明文化されているが、mechanical enforcement が存在しないため、PreToolUse hook で repo 直接編集を block する。
+
+#### 既存実装の現状
+
+- `.claude/hooks/` ディレクトリは存在し、PreToolUse / PostToolUse / SessionStart 等の hook 配備済みである。
+- Opus の Edit / Write / MultiEdit 呼出を block する hook は未存在である。
+- 現状の予防策は Opus 自身の self-discipline のみであり、本セッションで複数回スリップが確認されている。
+
+#### 実装内容
+
+1. 新規 hook script: `.claude/hooks/pretooluse-opus-repo-block.sh`
+   - PreToolUse hook として Edit / Write / MultiEdit ツール呼出時に発火する。
+   - `tool_input` から `file_path` を抽出する。
+   - `file_path` が repo root (`$HELIX_ROOT`) 以下かをチェックする。
+   - 以下に該当する場合は block する。
+     - `file_path` が repo root 内
+     - かつ memory dir (`~/.claude/projects/.../memory/`) 外
+     - かつ exception path にマッチしない
+   - block 時メッセージ: `PM (Opus) は repo file を直接 Edit/Write できません。helix codex --role <pg|se|docs> --task ... で委譲してください`
+
+2. exception paths (許可される Opus 直接 Edit)
+   - `docs/plans/PLAN-*.md` (PLAN draft TL review followup small fix、`HELIX_ALLOW_OPUS_PLAN_FIX=1` で許可、ただし 30 行超の編集は block)
+   - `.helix/` (gitignored runtime state)
+   - 一時的 escape hatch: `HELIX_ALLOW_OPUS_REPO_EDIT=1` + `HELIX_OPUS_EDIT_REASON='<reason>'` 必須
+
+3. `settings.json` 登録: `.claude/settings.json` の `hooks.PreToolUse` セクションに登録し、既存 hook 群と並列に動作させる。
+
+4. test: `cli/tests/test-pretooluse-opus-repo-block.bats` (新規)
+   - `test_block_repo_python_edit`: `Edit cli/lib/budget.py` が block される。
+   - `test_block_repo_docs_edit`: `Edit docs/architecture/x.md` が block される。
+   - `test_allow_memory_dir`: `Edit ~/.claude/.../memory/x.md` が許可される。
+   - `test_allow_plan_md_with_env`: `Edit docs/plans/PLAN-NNN-*.md` が `HELIX_ALLOW_OPUS_PLAN_FIX=1` で許可される。
+   - `test_escape_hatch`: `HELIX_ALLOW_OPUS_REPO_EDIT=1` + reason 設定で許可される。
+
+#### 受入条件
+
+- `.claude/hooks/pretooluse-opus-repo-block.sh` が新規追加され、`bash -n` を通過する。
+- `.claude/settings.json` に hook 登録され、JSON valid である。
+- bats test 5 ケース PASS。
+- 既存 hook (他の PreToolUse / PostToolUse 等) を破壊しない。
+- `HELIX_SUPPRESS_HOOK=1` で hook を一時無効化できる。
+
 役割境界は HELIX v2 ルールに準拠する。
 
 - Codex SE / docs は変更ファイルとテスト結果の報告までに限定する。`git add` / `git commit` / `git push` は禁止する。
@@ -215,13 +260,19 @@ W-5 の作業内容:
 - `bats cli/tests` の全 PASS を確認する。
 - `.helix/retros/PLAN-043.md` を起票する。
 
+W-6 は以下を満たす。
+
+- Opus の repo Edit / Write / MultiEdit を mechanical block する。
+- 5 ケース bats test を追加し、全 PASS を確認する。
+- 既存 hook chain と干渉しない。
+
 ## §4 Sprint 構成
 
 W-0（本 draft）→ TL Round 1 → 修正 → TL Round 2 → 修正 → Opus finalize commit → W-1 / W-2 / W-3 / W-4 並列実装 → W-5 統合検証 + retro + push。
 
 ## §5 ゲート
 
-- G1: §3.1〜§3.4 各 W の受入条件が draft で網羅されている。
+- G1: §3.1〜§3.6 各 W の受入条件が draft で網羅されている。
 - G2: TL 2 ラウンドで approve、設計凍結。
 - G3: 各 W の対象ファイルと test ケースが特定されている。
 - G4: W-5 統合検証で 0 failed、retrospective 起票。
@@ -235,12 +286,15 @@ W-0（本 draft）→ TL Round 1 → 修正 → TL Round 2 → 修正 → Opus f
 - W-3: `pytest test_handover.py` PASS (既存 31 + 新規 race condition 2 ケース)、`test_concurrent_lock.py` 5 ケース PASS 維持
 - W-4: plan import / doctor / accuracy_score の smoke test PASS、test_helix_plan_import.py 独立確認
 - W-5: 統合 PASS + retro + push。
+- W-6: PreToolUse hook の mechanical block と 5 ケース bats PASS。
 
 ## §7 risks
 
 - W-3 の lock 統合が想定より複雑化する場合は、`cli/lib/handover.py` の移行を縮小し、共通 primitive と race 回帰の安定化を優先する。
 - legacy frontmatter migration で plan_id 衝突または致命的問題が発生した場合は、W-2 を `blocked` とし、該当 1 件を explicit に PLAN-044 へ carry する。
 - W-4 の `accuracy_score` 経路が `helix codex` post-hook 改修で本体動作に副作用を起こす場合は、fail-open に倒し記録機能を skip 可能にする。過去 backfill は audit 不在で永久不能。
+- W-6 hook が誤検出で正当な Opus 直接 Edit を過剰 block するリスクは、exception path の網羅と escape hatch (`HELIX_ALLOW_*`) で緩和する。
+- W-6 hook が他の PreToolUse hook (既存 secrets scan 等) と干渉するリスクは、exit code 2 で permission denied とし、他 hook は別 chain で動作させる。
 - **PLAN-002 duplicate ID 問題** (`PLAN-002-helix-fullauto-foundation.md` migrated 済 vs `PLAN-002-helix-inventory-foundation.md` legacy): 本 PLAN scope 外。PLAN-044+ で plan_id 衝突解決込みで扱う (PLAN-042 §7 から継続 carry)。
 
 ## §8 carry rule
@@ -248,4 +302,5 @@ W-0（本 draft）→ TL Round 1 → 修正 → TL Round 2 → 修正 → Opus f
 - W-3 critical path 接続で `.helix/handover/CURRENT.json` 以外の対象に lock 必要性が広がる場合は、対象を一覧化して PLAN-044 へ carry する。
 - legacy migration 残 7 件は PLAN-044+ で progressive 継続する。
 - `helix.db` / `.helix/phase.yaml` への共通 module 適用は PLAN-044 carry とする。
+- W-6 で block 検出された Opus 直接 Edit 試行は audit log に記録 (`.helix/audit/opus-block-events.log`) し、後続 PLAN で振り返る。
 - `docs/plans/PLAN-012-*.md` 以降の追加 frontmatter は本 PLAN で扱わない。

@@ -49,6 +49,15 @@
             "blockOnFailure": true
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HELIX_ROOT/.claude/hooks/pretooluse-opus-repo-block.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
