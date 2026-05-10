@@ -232,6 +232,39 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 **担当スキル**:
 - runbook（運用手順、2026-04-17 追加）
 
+### G6.5 Pre-Release 静的検証
+
+| 項目 | 内容 |
+|------|------|
+| 目的 | RC 後、リリース直前の静的整合を固めるための Pre-Release 検証。template/state-machine validation、smoke test、破壊変更チェックをまとめて確認する。 |
+| タイミング | G6 と G7 の間 |
+| fail-close | state-machine / template の検証失敗、smoke test 失敗、破壊変更チェック未完了、未解決の差分 drift が 1 件でもある場合は passed 不可。 |
+| exit | `cli/templates/state-machine.yaml` / `.helix/state-machine.yaml` / gate-policy の参照整合が確認済み、smoke test pass、破壊変更なし、evidence 生成済み。 |
+| evidence | `.helix/audit/g6.5-pre-release-static.yaml` または phase.yaml に、検証対象、diff 要約、破壊変更判定、結果、担当者、タイムスタンプを記録。 |
+| 責任者 | TL（AI 判定可: `helix-codex --role tl`）、最終承認は人間 |
+
+### G6.7 Pre-Release 動的検証
+
+| 項目 | 内容 |
+|------|------|
+| 目的 | staging 上での E2E、performance benchmark、security scan を通し、リリース候補の動的品質を確認する。 |
+| タイミング | G6.5 通過後、G7 前 |
+| fail-close | staging E2E 失敗、性能ベンチ未達、security scan 失敗、重大な再現不良、証跡不足のいずれかで passed 不可。 |
+| exit | staging E2E pass、ベンチマークが閾値内、security scan pass、主要障害 0、evidence 完備。 |
+| evidence | `.helix/audit/g6.7-pre-release-dynamic.yaml` または phase.yaml に、実行環境、E2E 結果、性能指標、security scan 結果、再現性、担当者を記録。 |
+| 責任者 | TL（AI 判定可: `helix-codex --role tl`）、人間最終承認 |
+
+### G6.9 Pre-Release 本番直前確認
+
+| 項目 | 内容 |
+|------|------|
+| 目的 | 本番投入直前に、rollback plan、monitoring alert、on-call 体制を整え、運用開始の最後の前提を確認する。 |
+| タイミング | G6.7 通過後、G7 前 |
+| fail-close | rollback 手順未確認、監視アラート未整備、on-call 連絡線未確立、リリース手順の責任分界が曖昧、証跡未記録なら passed 不可。 |
+| exit | rollback plan 承認済み、monitoring alert 整備済み、on-call 体制確認済み、リリース窓の責任者明確、evidence 完備。 |
+| evidence | `.helix/audit/g6.9-pre-release-readiness.yaml` または phase.yaml に、rollback 内容、監視/通知設定、on-call 名簿、承認者、タイムスタンプを記録。 |
+| 責任者 | TL と PM。AI 判定は `helix-codex --role tl` で補助可、最終承認は人間 |
+
 ### G7 安定性ゲート（L7 出口）
 
 | 項目 | 内容 |

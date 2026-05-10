@@ -62,6 +62,9 @@ G5 デザイン凍結ゲート:
   ↓ → verification, testing, quality-lv5
 L6  統合検証（E2E・性能・セキュリティ・運用準備）
   ↓ G6   RC判定ゲート（Release Candidate）  [PM+TL+PO]  ★セキュリティ③
+  ↓ G6.5 Pre-Release 静的検証     [TL]       ★template/破壊変更チェック
+  ↓ G6.7 Pre-Release 動的検証     [TL]       ★E2E/perf/security
+  ↓ G6.9 Pre-Release 本番直前確認 [TL+PM]    ★rollback/monitoring/on-call
   ↓ → deploy, infrastructure, observability-sre
 L7  デプロイ（staging → 本番 → watch）
   ↓ G7   安定性ゲート          [自動/PM]    ★セキュリティ④
@@ -96,6 +99,24 @@ R4  Gap & Routing（差分集約 → Forward HELIX に接続）
   ↓
 Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 ```
+
+#### Reverse type matrix
+
+| Type | 起点 | R0 | R1 | R2 | R3 | R4 | RGC |
+|------|------|----|----|----|----|----|-----|
+| code | レガシーコード | 証拠収集 | 契約抽出 | 設計復元 | 仮説検証 | Gap → Forward | 閉塞検証 |
+| design | デザイン資産 | 資産収集 | skip | DAG/順序 | PO 検証 | Forward routing | 閉塞検証 |
+| upgrade | 既存 system + 新版 | version diff | 影響分析 | 設計差分 | risk 評価 | Forward routing | upgrade RGC skip |
+| normalization | 設計 drift | drift 検出 | skip | normalize 設計 | PO 確認 | Forward routing | 閉塞検証 |
+| fullback | 実装完遂後 | 実装証拠 | 文書 gap 抽出 | alignment 設計 | 文書 PO 確認 | Forward routing | 閉塞検証 |
+
+#### Reverse type notes
+
+- code: 既存コード・DB・設定・運用実態を起点に、観測契約から設計と意図を復元する。R1 の契約抽出が中核で、既存 code 型の標準経路は維持する。
+- design: デザイン資産起点。R1 の既存コード契約抽出は行わず skip し、R2 で DAG/実装順を起こして R3 で PO 検証へ進む。
+- upgrade: 既存版と新版の差分が起点。R0 で version diff を取り、R2 で設計差分、R4 で Forward 案件を決める。gap closure は upgrade 完了として Forward 側で評価するため RGC は skip。
+- normalization: 設計 drift の正規化が起点。R1 は skip し、R2 で normalize 設計、R3 で PO 確認、R4 で Forward routing に接続する。
+- fullback: 実装完遂後の文書整合が起点。R0 で実装証拠、R1 で文書 gap、R2 で alignment 設計、R3 で文書 PO 確認、R4 で closure routing を行う。
 
 **Reverse ゲート詳細** → `skills/tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
 **Reverse フロー詳細** → `workflow/reverse-analysis/SKILL.md` 参照
