@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-050
 title: 'PLAN-050（Codex review findings 解消 - bats hidden failure + HELIX_CORE.md ドリフト + phase.yaml mode 整合性 + audit 精緻化）'
-status: finalize
+status: completed
+completed: 2026-05-11
 created: 2026-05-10
 finalized: 2026-05-10
 author: 'PM (Opus)'
