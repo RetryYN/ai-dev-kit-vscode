@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-049
 title: 'PLAN-049（Reverse HELIX ドキュメント強化 - 5 axis 集約）'
-status: finalize
+status: completed
+completed: 2026-05-10
 created: 2026-05-10
 finalized: 2026-05-10
 author: 'PM (Opus)'
