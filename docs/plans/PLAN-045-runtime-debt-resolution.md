@@ -1,34 +1,37 @@
 ---
 plan_id: PLAN-045
-title: 'PLAN-045（runtime debt 4 件集約解消 - PLAN-044 retro carry 全件）'
+title: 'PLAN-045（runtime debt 4 件集約解消 - PLAN-044 retro carry 4 件）'
 status: draft
 created: 2026-05-10
 author: Docs (Codex)
 priority: medium
 size: M-L
-phases_affected: cli/lib (lock module + helix_db + phase_yaml), docs/plans (legacy migration), docs/runbook (D-009 note)
+phases_affected: cli/lib (lock module + helix_db + yaml_parser), docs/plans (legacy migration), docs/runbook (D-009 note)
 parent_plan: PLAN-044
 gates: G1, G2, G3, G4
 acceptance:
-  - legacy_migration_count: 7 (PLAN-012〜016 + PLAN-028 + PLAN-002 duplicate 解消)
+  - legacy_migration_count: 6 (PLAN-012〜016 + PLAN-028)
+  - legacy_plan_002_duplicate_resolved: 1 (PLAN-002 → 002A/002B 整理)
   - lock_critical_path_complete: true (handover + helix_db + phase.yaml)
   - stale_cleanup_automation: true (cli/lib/concurrent_lock.py cleanup_stale 実装)
-  - d009_env_note: true (docs/runbook or cli/helix-code README に追記)
+  - d009_env_note: true (docs/runbook/codex-test-bootstrap.md に追記)
   - tests_all_pass: true
   - branch_minimal_footprint: true
 verification_commands:
   legacy_migration_count:
-    command: "ls docs/plans/PLAN-{012,013,014,015,016,028}*.md | wc -l + PLAN-002 duplicate 解消確認"
-    expected: "6 + 1 件 (PLAN-002 duplicate 1 件)"
+    command: "for f in docs/plans/PLAN-{012,013,014,015,016,028}*.md; do head -1 \"$f\" | grep -c '^---'; done | grep -c 1"
+    expected: "6 (全 6 件で frontmatter 存在)"
   lock_critical_path_complete:
-    command: "rg -l 'file_lock' cli/lib/handover.py cli/lib/helix_db.py cli/lib/phase_yaml.py 2>/dev/null | wc -l"
-    expected: "3"
+    command: "rg -l '^from concurrent_lock import\\|^import concurrent_lock' cli/lib/helix_db.py cli/lib/yaml_parser.py 2>/dev/null | wc -l"
+    expected: "2 (helix_db + yaml_parser)"
   stale_cleanup_automation:
-    command: "rg -c 'cleanup_stale|stale_lock' cli/lib/concurrent_lock.py"
+    command: "rg -c 'def cleanup_stale\\|def stale_lock_cleanup' cli/lib/concurrent_lock.py"
     expected: "1 以上"
   d009_env_note:
-    command: "rg 'writable.*\\.helix' docs/runbook cli 2>/dev/null | wc -l"
-    expected: "1 以上"
+    command: "rg -l 'writable.*\\.helix' docs/runbook/codex-test-bootstrap.md 2>/dev/null | wc -l"
+    expected: "1"
+  allowed_files_scope:
+    note: "allowed_files 自動推定 (PLAN-044 carry #4) は PLAN-046+ 候補、本 PLAN scope 外"
   tests_all_pass:
     command: "cli/helix test && python3 -m pytest cli/lib/tests/ tests/ -q"
     expected: "helix-test 614+, pytest cli/lib/ 1017+, pytest tests/ 23 全 PASS"
@@ -48,6 +51,7 @@ PLAN-044 完遂時に carry された runtime debt 4 件を、本 PLAN で集約
 4. D-009 として、`helix code find` が writable `.helix/` を前提とする環境条件を明文化する。
 
 本 PLAN は framework drift の解消ではなく、PLAN-044 で見つかった runtime debt を収束させることに特化する。
+PLAN-002 duplicate の方針と lock critical path の適用先は draft 内で事前固定し、W-1/W-2 の着手前判断を不要にする。
 
 ## §2 全体方針
 
@@ -55,9 +59,9 @@ PLAN-044 完遂時に carry された runtime debt 4 件を、本 PLAN で集約
 
 - W-0 は draft 起草専任とし、実装ファイルの変更は行わない。
 - W-1 は legacy migration の progressive 整備であり、frontmatter と duplicate ID の正規化に限定する。
-- W-2 は lock critical path の接続であり、`cli/lib/concurrent_lock.py` を既存 critical path へ適用する。
-- W-3 は stale cleanup の safe design と実装であり、PID liveness check と atomic unlink-with-flock を採用する。
-- W-4 は D-009 の環境前提明文化であり、runbook か `cli/helix-code` README に 1 行追記する。
+- W-2 は lock critical path の接続であり、`cli/lib/concurrent_lock.py` を既存 critical path へ適用する。file_lock API と lockfile metadata contract を先に凍結し、W-3 はその確定版を base に積む。
+- W-3 は W-2 完了後の stale cleanup であり、PID liveness check と atomic unlink-with-flock を採用する。
+- W-4 は D-009 の環境前提明文化であり、`docs/runbook/codex-test-bootstrap.md` に 1 行追記する。
 - W-final は統合検証、retro、push を担う。
 - 工程表外の変更が必要になった場合は、interrupted / blocked として戻す。
 
@@ -77,9 +81,10 @@ PLAN-044 完遂時に carry された runtime debt 4 件を、本 PLAN で集約
 #### W-2: lock 機構 critical path 接続
 
 - 対象: `cli/lib/helix_db.py`
-- 対象: `cli/lib/phase_yaml.py` または同等の phase writer
+- 対象: `cli/lib/yaml_parser.py` (phase.yaml writer 該当箇所)
 - 対象: `cli/lib/concurrent_lock.py`
 - 追加内容: write transaction / file write を file_lock context manager 経由化
+- 事前固定: file_lock API と lockfile metadata contract を W-2 で凍結し、W-3 はこの contract を変更せずに cleanup を追加する。
 
 #### W-3: stale lock cleanup automation
 
@@ -89,7 +94,7 @@ PLAN-044 完遂時に carry された runtime debt 4 件を、本 PLAN で集約
 
 #### W-4: D-009 env note
 
-- 対象: `docs/runbook/codex-test-bootstrap.md` または `cli/helix-code` README
+- 対象: `docs/runbook/codex-test-bootstrap.md`
 - 追加内容: 「helix code find は writable `.helix/` が必要」の 1 行明文化
 
 #### W-final: 統合検証 + retro + push
@@ -132,6 +137,10 @@ PLAN-043 で 5 件が進んだ後に残った 7 件を、frontmatter progressive
 - 方針は W-1 の開始時に TL 判断で固定する。
 - 選択肢は rename / split / merge のいずれかだが、本文の意味と参照整合を壊さない案を優先する。
 - duplicate 解消後の参照先変更も body-preservation と合わせて検証する。
+- 本 PLAN では進行モデルの曖昧さを残さず、W-1 の開始前に対象を固定する。
+- 正本は `PLAN-002-helix-fullauto-foundation.md` とし、派生側は `PLAN-002-helix-inventory-foundation.md` を `PLAN-002B-helix-inventory-foundation.md` へ rename する。
+- これにより、既存の PLAN-002 ID を維持しつつ、inventory 側を新規 ID として扱える。
+- 参照整合の確認では、rename 後のリンク切れがないことと、body-preservation hash が維持されることを重視する。
 
 受入条件は次の通り。
 
@@ -149,9 +158,9 @@ PLAN-042 / PLAN-043 で確立した concurrent lock primitive を、残 critical
 - write 範囲と lock 範囲の境界を明示し、長時間保持を避ける。
 - 既存の read path には影響を与えない。
 
-#### 対象 2: `cli/lib/phase_yaml.py`
+#### 対象 2: `cli/lib/yaml_parser.py`
 
-- phase.yaml write を file_lock で保護する。
+- phase.yaml writer の該当箇所を file_lock で保護する。
 - atomic write の既存方式と lock の責務を分離する。
 - handover 接続と同じ primitive を使い、規律を統一する。
 
@@ -159,10 +168,12 @@ PLAN-042 / PLAN-043 で確立した concurrent lock primitive を、残 critical
 
 - 既存の lock primitive を再利用し、file critical path を共通化する。
 - interface 変更は避け、呼び出し側の適用に集中する。
+- metadata contract の writer / reader は同一形式を使い、W-2 と W-3 で解釈差を作らない。
+- lockfile の inode 比較や unlink 後再取得の判定は、このファイルの primitive に寄せる。
 
 受入条件は次の通り。
 
-- `helix.db` と `phase.yaml` の write path が共通 lock を通る。
+- `helix.db` と `yaml_parser.py` の write path が共通 lock を通る。
 - handover を含めた critical path 3/3 が揃う。
 - 既存 test が回帰しない。
 
@@ -177,31 +188,46 @@ PLAN-042 / PLAN-043 で未収束だった cleanup を、本 PLAN で safe design
 3. dead PID の場合に stale 判定し、flock 保護下で unlink する。
 4. unlink の競合を避けるため、split-lock を起こさない atomic unlink-with-flock を採用する。
 5. cleanup 実行後は orphan lock の報告を残す。
+6. lockfile metadata の検証は cleanup 側だけでなく acquire 側でも再利用し、破損した metadata を早期に検出する。
+7. `ps -p` の結果は stale 判定の唯一の根拠にせず、lockfile metadata と組み合わせて判定する。
 
 #### 実装範囲
 
 - `cli/lib/concurrent_lock.py` に `cleanup_stale()` を追加する。
 - 必要なら `cli/helix-doctor` か新規 `cli/helix-cleanup` に統合する。
 - alive PID は skip、dead PID は cleanup の分岐を test で固定する。
+- cleanup ロジックは acquire ロジックと同じ metadata parser を共有し、重複実装を避ける。
+- orphan report は machine-readable な形式を保ち、次回 run で追跡しやすくする。
+- 契約:
+  1. lockfile metadata 契約: lock file には PID と ISO timestamp を記録する。W-2 で metadata writer を凍結する。
+  2. stale 判定契約: PID が `ps -p` で alive なら skip、dead なら stale 候補とする。
+  3. atomic unlink 契約: cleanup 中は同 inode の fd を flock `LOCK_EX` した状態で metadata 検証後に unlink し、待機中の acquire は acquire 後に metadata 不一致を検出して再 acquire する。
+  4. split-lock 予防契約: cleanup 側は unlink 前に metadata を再検証し、待機側は acquire 後に inode / metadata の再比較を行う。
+  5. orphan report 契約: cleanup 後の orphan lock は report に残し、次回診断で追跡可能にする。
 
 受入条件は次の通り。
 
 - alive PID skip と dead PID cleanup の test が PASS する。
 - cleanup 中の他 acquire が待機する split-lock 回避 test が PASS する。
+- holder (acquire) ∥ cleanup (stale 判定 + unlink) ∥ waiter (acquire 待機) の 3 thread race test が deadlock なく PASS する。
 - orphan lock 検出と報告が動作する。
+- lockfile metadata の PID/timestamp が test fixture で検証される。
+- cleanup 実行後に再 acquire した waiter が stale metadata を見て再取得できる。
+- cleanup 中に wait 側が stale metadata を見て再 acquire へ遷移することを確認する。
+- acquire と cleanup が同じ lockfile を見ても split-lock が起きないことを確認する。
 
 ### §3.4 W-4: D-009 env note
 
 `helix code find` の前提を明確にし、read-only 環境での誤解を防ぐ。
 
-- 追記先は `docs/runbook/codex-test-bootstrap.md` か `cli/helix-code` README のどちらかに限定する。
+- 追記先は `docs/runbook/codex-test-bootstrap.md` に限定する。
 - 追記文は 1 行でよいが、「writable `.helix/` が必要」であることを明記する。
 - 実行要件の補足であり、機能変更ではない。
 
 受入条件は次の通り。
 
 - `writable.*\.helix` の検索で 1 件以上ヒットする。
-- runbook か README のどちらかで環境前提が読める。
+- `docs/runbook/codex-test-bootstrap.md` だけで環境前提が読める。
 
 ### §3.5 W-final: 統合検証 + retrospective + push
 
@@ -231,23 +257,22 @@ W-0（draft）→ TL Round 1 → 修正 → TL Round 2 → 修正 → finalize �
 ## §6 検証戦略
 
 - W-1: frontmatter と body-preservation hash を確認する。
-- W-2: `helix.db` / `phase.yaml` の write path に `file_lock` が通ることを確認する。
-- W-3: stale 判定と split-lock 回避の test を確認する。
-- W-4: `writable.*\.helix` の 1 hit 以上を確認する。
+- W-2: `helix.db` / `yaml_parser.py` の write path に `file_lock` が通ることを確認する。
+- W-3: stale 判定と split-lock 回避の 3 thread race test を確認する。
+- W-4: `docs/runbook/codex-test-bootstrap.md` の `writable.*\.helix` 1 hit 以上を確認する。
 - W-final: 統合 PASS + retro + status completed を確認する。
 
 ## §7 risks
 
 - PLAN-002 duplicate ID の方針が TL で合意できない場合は、W-1 を blocked にして別途判断を仰ぐ。
-- W-2 / W-3 の並行実装で `cli/lib/concurrent_lock.py` の interface が揺れる場合は、呼び出し側ではなく primitive 側の変更を優先して整える。
+- W-2 / W-3 の並行実装は行わず、W-2 で lockfile metadata contract を凍結した後に W-3 を投入する。
 - stale cleanup の設計が split-lock 回避要件を満たせない場合は、cleanup を縮退し、失敗条件を明示した上で再設計する。
-- D-009 は軽量タスクだが、runbook と README のどちらに追記するかで文脈が変わるため、W-4 開始時に 1 つへ固定する。
+- D-009 は軽量タスクだが、追記先は `docs/runbook/codex-test-bootstrap.md` に固定する。
 
 ## §8 carry rule
 
 - legacy migration 7 件のうち一部が body-preservation で失敗した場合は、該当 plan を個別 carry として残す。
-- PLAN-002 duplicate ID 解消方針が決まらない場合は、W-1 の冒頭で停止し、他 W へ進まない。
-- W-2 で `helix.db` か `phase.yaml` の片方だけ接続できた場合は、critical path 未完了として carry する。
+- PLAN-002 duplicate ID 解消方針は `PLAN-002-helix-fullauto-foundation.md` を正本、`PLAN-002-helix-inventory-foundation.md` を `PLAN-002B-helix-inventory-foundation.md` へリネームする前提で固定する。
+- W-2 で `helix.db` か `yaml_parser.py` の片方だけ接続できた場合は、critical path 未完了として carry する。
 - W-3 の stale cleanup が safe design を満たさない場合は、cleanup のみ blocked にして lock critical path とは切り分ける。
-- W-4 の追記先が見つからない場合は、最小変更で runbook 側に寄せる。
-
+- W-4 の追記先が見つからない場合は、実装前に runbook へ追記先を固定し直すのではなく、本 PLAN の scope 外として戻す。
