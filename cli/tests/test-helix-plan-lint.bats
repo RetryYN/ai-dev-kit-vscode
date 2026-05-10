@@ -141,7 +141,6 @@ EOF
 }
 
 @test "helix plan lint --duplicates prints markdown report for duplicate rows" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-050-duplicate-report.md" \
     "PLAN-050" \
@@ -151,7 +150,7 @@ EOF
   run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-050-duplicate-report.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"| section_a | line_a | section_b | line_b | jaccard | level |"* ]]
-  [[ "$output" == *"| §2.1 | 9 | §4.4 W-23 | 12 | 1.00 | highlight |"* ]]
+  [[ "$output" == *"| §2.1 | 12 | §4.4 W-23 | 16 | 1.00 | highlight |"* ]]
 }
 
 @test "helix plan lint --duplicates ignores contradictory status assertions and keeps exit 0" {
@@ -168,7 +167,6 @@ EOF
 }
 
 @test "helix plan lint --duplicates observes retroactive plans too" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-035-duplicate-report.md" \
     "PLAN-035" \
@@ -177,12 +175,11 @@ EOF
 
   run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-035-duplicate-report.md
   [ "$status" -eq 0 ]
-  [[ "$output" == *"| §2.1 | 9 | §4.4 W-4 | 12 | 1.00 | highlight |"* ]]
+  [[ "$output" == *"| §2.1 | 12 | §4.4 W-4 | 16 | 1.00 | highlight |"* ]]
   [[ "$output" != *"retroactive 対象外"* ]]
 }
 
 @test "helix plan lint --duplicates keeps W-section allowlist scoped to status lint only" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-052-allowlist-duplicates.md" \
     "PLAN-052" \
@@ -192,7 +189,7 @@ EOF
 
   run "$HELIX_ROOT/cli/helix" plan lint --duplicates docs/plans/PLAN-052-allowlist-duplicates.md
   [ "$status" -eq 0 ]
-  [[ "$output" == *"| §2.1 | 9 | §4.4 W-23 | 12 | 1.00 | highlight |"* ]]
+  [[ "$output" == *"| §2.1 | 12 | §4.4 W-23 | 16 | 1.00 | highlight |"* ]]
   [[ "$output" != *"frontmatter.status=draft but body asserts completed"* ]]
 }
 
@@ -235,7 +232,6 @@ EOF
 }
 
 @test "helix plan lint narrows PLAN-036 fallback skip to W sections only" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan_md \
     "$PROJECT_ROOT/docs/plans/PLAN-036-self-reference-fallback.md" \
     "PLAN-036" \
@@ -244,6 +240,6 @@ EOF
 
   run "$HELIX_ROOT/cli/helix" plan lint docs/plans/PLAN-036-self-reference-fallback.md
   [ "$status" -eq 1 ]
-  [[ "$output" == *"docs/plans/PLAN-036-self-reference-fallback.md:9: frontmatter.status=draft but body asserts completed"* ]]
+  [[ "$output" == *"docs/plans/PLAN-036-self-reference-fallback.md:12: frontmatter.status=draft but body asserts completed"* ]]
   [[ "$output" != *"body asserts finalized"* ]]
 }

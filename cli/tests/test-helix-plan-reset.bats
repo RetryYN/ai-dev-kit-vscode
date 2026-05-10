@@ -37,7 +37,6 @@ YAML
 }
 
 @test "helix plan reset finalized to draft" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan "PLAN-101" "finalized" "\"2026-04-30T15:57:34Z\""
 
   run "$HELIX_ROOT/cli/helix" plan reset --id PLAN-101 --to draft --reason "v2 改訂"
@@ -57,6 +56,11 @@ from pathlib import Path
 
 import yaml
 
+def normalize_timestamp(value):
+    if hasattr(value, "isoformat"):
+        return value.isoformat().replace("+00:00", "Z")
+    return value
+
 data = yaml.safe_load(Path(".helix/plans/PLAN-101.yaml").read_text(encoding="utf-8"))
 assert data["status"] == "draft", data
 assert data["finalized_at"] is None, data
@@ -68,10 +72,10 @@ assert entry["revision"] == 1, entry
 assert entry["from_status"] == "finalized", entry
 assert entry["to_status"] == "draft", entry
 assert entry["reason"] == "v2 改訂", entry
-assert entry["reviewed_at"] == "2026-04-30T15:57:16Z", entry
+assert normalize_timestamp(entry["reviewed_at"]) == "2026-04-30T15:57:16Z", entry
 assert entry["verdict"] == "approve", entry
 assert entry["review_file"] == ".helix/reviews/plans/PLAN-101.json", entry
-assert entry["finalized_at"] == "2026-04-30T15:57:34Z", entry
+assert normalize_timestamp(entry["finalized_at"]) == "2026-04-30T15:57:34Z", entry
 
 conn = sqlite3.connect(".helix/helix.db")
 row = conn.execute("SELECT data_json FROM events WHERE event_name = 'plan_reset'").fetchone()
@@ -89,7 +93,6 @@ PY
 }
 
 @test "helix plan reset finalized to reviewed" {
-  skip "PLAN-055: plan lint/reset carry, see retro"
   write_plan "PLAN-102" "finalized" "\"2026-04-30T15:57:34Z\""
 
   run "$HELIX_ROOT/cli/helix" plan reset --id PLAN-102 --to reviewed --reason "finalize のみ取り消し"
@@ -101,6 +104,11 @@ from pathlib import Path
 
 import yaml
 
+def normalize_timestamp(value):
+    if hasattr(value, "isoformat"):
+        return value.isoformat().replace("+00:00", "Z")
+    return value
+
 data = yaml.safe_load(Path(".helix/plans/PLAN-102.yaml").read_text(encoding="utf-8"))
 assert data["status"] == "reviewed", data
 assert data["finalized_at"] is None, data
@@ -109,7 +117,7 @@ entry = data["revision_history"][0]
 assert entry["from_status"] == "finalized", entry
 assert entry["to_status"] == "reviewed", entry
 assert entry["verdict"] == "approve", entry
-assert entry["finalized_at"] == "2026-04-30T15:57:34Z", entry
+assert normalize_timestamp(entry["finalized_at"]) == "2026-04-30T15:57:34Z", entry
 PY
   [ "$status" -eq 0 ]
 }

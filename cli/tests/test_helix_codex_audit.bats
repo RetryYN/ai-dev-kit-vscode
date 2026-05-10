@@ -78,7 +78,6 @@ teardown() {
 }
 
 @test "helix-codex silently falls back to stdout when audit mkdir fails" {
-  skip "PLAN-055: env-dependent failure (cli/helix test 経由でのみ fail)、CI 緑化のため carry"
   printf 'not-a-directory\n' > "$PROJECT_ROOT/.helix"
 
   run env \

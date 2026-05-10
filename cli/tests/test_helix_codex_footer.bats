@@ -157,7 +157,6 @@ run_runtime_case() {
 }
 
 @test "marker 付き summary block のみを parent stdout に出す" {
-  skip "PLAN-055: env-dependent failure (cli/helix test 経由でのみ fail)、CI 緑化のため carry"
   run_runtime_case "summary marker runtime" \
     HELIX_TEST_STDOUT_1=$'progress line\n---SUMMARY_START---\ndecision: passed\nfiles:\n- cli/helix-codex\ntests: bats\nintermediate_errors: none\nremaining: none\n---SUMMARY_END---\n' \
     HELIX_TEST_STDERR_1=$'wrapper stderr\n'
