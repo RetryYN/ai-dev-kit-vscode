@@ -3,6 +3,11 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   export HELIX_HOME="$HELIX_ROOT"
+  while IFS='=' read -r name _; do
+    [[ "$name" == HELIX_TEST_* ]] && unset "$name"
+  done < <(env)
+  unset CODEX_BIN HELIX_CODEX_BIN HELIX_CODEX_AUTO_FALLBACK HELIX_CODEX_NO_FOOTER
+  unset HELIX_CODEX_INTERNAL HELIX_DISABLE_SPARK HELIX_MODEL_OVERRIDE
 
   TMP_ROOT="$(mktemp -d)"
   PROJECT_ROOT="$TMP_ROOT/project"
@@ -118,7 +123,6 @@ EOF
 }
 
 @test "usage_limit + AUTO_FALLBACK=1 + --fallback-model では Layer 0 が最優先" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_case "explicit fallback precedes layer2" \
     HELIX_CODEX_AUTO_FALLBACK=1 \
     HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
@@ -141,7 +145,6 @@ EOF
 }
 
 @test "usage_limit + AUTO_FALLBACK=1 では Layer 2 が Layer 1 より先に発火する" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_case "usage limit auto fallback" \
     HELIX_CODEX_AUTO_FALLBACK=1 \
     HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
@@ -163,7 +166,6 @@ EOF
 }
 
 @test "usage_limit + AUTO_FALLBACK=0 では Layer 1 だけが発火する" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_case "usage limit without auto fallback" \
     HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
     HELIX_TEST_CODEX_EXIT_1=1 \
@@ -178,7 +180,6 @@ EOF
 }
 
 @test "rate_limit + AUTO_FALLBACK=1 では Layer 2 を試さず Layer 1 へ進む" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_case "rate limit skips auto fallback" \
     HELIX_CODEX_AUTO_FALLBACK=1 \
     HELIX_TEST_STDERR_1="rate limit exceeded on pg primary" \
@@ -194,7 +195,6 @@ EOF
 }
 
 @test "Layer 2 chain 全失敗時は Layer 1 default_fallback に復帰する" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_case "auto fallback falls back to registry default" \
     HELIX_CODEX_AUTO_FALLBACK=1 \
     HELIX_TEST_STDERR_1="hit your usage limit on pg primary" \
@@ -230,7 +230,6 @@ EOF
 }
 
 @test "HELIX_DISABLE_SPARK=1 + HELIX_MODEL_OVERRIDE=spark では warning を出して spark を優先する" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   local summary
   summary="$(summary_block)"
 
@@ -246,7 +245,6 @@ EOF
 }
 
 @test "HELIX_DISABLE_SPARK=1 + auto_fallback usage_limit では chain でも spark を試行しない" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   local summary
   summary="$(summary_block)"
 

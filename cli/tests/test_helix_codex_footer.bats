@@ -3,6 +3,12 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   export HELIX_HOME="$HELIX_ROOT"
+  while IFS='=' read -r name _; do
+    [[ "$name" == HELIX_TEST_* ]] && unset "$name"
+  done < <(env)
+  unset CODEX_BIN HELIX_CODEX_BIN HELIX_CODEX_AUTO_FALLBACK HELIX_CODEX_NO_FOOTER
+  unset HELIX_CODEX_INTERNAL HELIX_DISABLE_SPARK HELIX_MODEL_OVERRIDE
+  unset HELIX_STDOUT_FILE HELIX_STDERR_FILE
 
   TMP_ROOT="$(mktemp -d)"
   source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
@@ -156,7 +162,6 @@ run_runtime_case() {
 }
 
 @test "marker 付き summary block のみを parent stdout に出す" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run_runtime_case "summary marker runtime" \
     HELIX_TEST_STDOUT_1=$'progress line\n---SUMMARY_START---\ndecision: passed\nfiles:\n- cli/helix-codex\ntests: bats\nintermediate_errors: none\nremaining: none\n---SUMMARY_END---\n' \
     HELIX_TEST_STDERR_1=$'wrapper stderr\n'
@@ -171,7 +176,6 @@ run_runtime_case() {
 }
 
 @test "summary marker 欠落時は末尾30行へ fallback して warning を stderr に出す" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   local payload=""
   local i
   for i in $(seq 1 35); do

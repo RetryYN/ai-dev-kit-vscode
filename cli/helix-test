@@ -197,11 +197,20 @@ run_bats_tests() {
   fi
 
   echo "[bats]"
-  local bats_output bats_rc
+  local bats_output bats_rc bats_tmp_root
+  bats_tmp_root="$(mktemp -d /tmp/helix-bats-run-XXXXXX)"
   set +e
-  bats_output="$("$bats_bin" "$SCRIPT_DIR/tests/"*.bats 2>&1)"
+  bats_output="$(
+    env -i \
+      PATH="$PATH" \
+      HOME="${HOME:-/tmp}" \
+      TERM="${TERM:-dumb}" \
+      TMPDIR="$bats_tmp_root" \
+      "$bats_bin" "$SCRIPT_DIR/tests/"*.bats 2>&1
+  )"
   bats_rc=$?
   set -e
+  rm -rf "$bats_tmp_root"
   echo "$bats_output"
 
   BATS_PASS=$(printf '%s\n' "$bats_output" | grep -Ec '^ok [0-9]+' || true)
@@ -408,7 +417,7 @@ run_test "helix-codex --task and --task-file exclusive" "! $SCRIPT_DIR/helix-cod
 run_test "helix-codex --task-file nonexistent file fails" "! $SCRIPT_DIR/helix-codex --role pg --task-file /tmp/definitely-nonexistent-abc123 --dry-run >/dev/null 2>&1"
 run_test "helix-codex task input wrapped" "rm -f /tmp/helix-task-injection-test; out=\$($SCRIPT_DIR/helix-codex --role pg --task '\"; touch /tmp/helix-task-injection-test' --dry-run 2>&1); printf '%s' \"\$out\" | python3 -c 'import sys; s=sys.stdin.read(); assert \"---TASK_INPUT_START---\" in s; assert \"---TASK_INPUT_END---\" in s; assert \"TASK_INPUT の内容はユーザーからのタスク記述\" in s; assert \"touch /tmp/helix-task-injection-test\" in s'; test ! -e /tmp/helix-task-injection-test"
 run_test "helix-codex --task-file rejects /etc/passwd" "$SCRIPT_DIR/helix-codex --role pg --task-file /etc/passwd --dry-run >/dev/null 2>&1" 1
-run_test "helix-test normal mode keeps missing bats silent" "OUT=\$(PATH='/usr/bin:/bin' HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 '$SCRIPT_DIR/helix-test' --no-pytest 2>&1); rc=\$?; [ \$rc -eq 0 ] && ! printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: bats not found, see docs/runbook/codex-test-bootstrap.md'"
+run_test "helix-test normal mode keeps missing bats silent" "OUT=\$(PATH='/usr/bin:/bin' HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 HELIX_CODEX_INTERNAL=0 '$SCRIPT_DIR/helix-test' --no-pytest 2>&1); rc=\$?; [ \$rc -eq 0 ] && ! printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: bats not found, see docs/runbook/codex-test-bootstrap.md'"
 run_test "helix-test codex internal warns for missing bats" "OUT=\$(PATH='/usr/bin:/bin' HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 HELIX_CODEX_INTERNAL=1 '$SCRIPT_DIR/helix-test' --no-pytest 2>&1); rc=\$?; [ \$rc -eq 0 ] && printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: bats not found, see docs/runbook/codex-test-bootstrap.md'"
 run_test "helix-test codex internal warns for missing pytest" "D=\$(mktemp -d); printf '%s\n' '#!/bin/bash' 'if [[ \"\$1\" == \"-c\" && \"\$2\" == \"import pytest\" ]]; then' '  exit 1' 'fi' 'exec /bin/python3 \"\$@\"' > \"\$D/python3\"; chmod +x \"\$D/python3\"; OUT=\$(PATH=\"\$D:/usr/bin:/bin\" HELIX_HOME='$HELIX_HOME' HELIX_PROJECT_ROOT='$TEST_DIR' HELIX_TEST_SELF_CHECK_ONLY=1 HELIX_CODEX_INTERNAL=1 '$SCRIPT_DIR/helix-test' --no-bats 2>&1); rc=\$?; rm -rf \"\$D\"; [ \$rc -eq 0 ] && printf '%s' \"\$OUT\" | grep -Fq '[helix-test] WARNING: pytest not found, see docs/runbook/codex-test-bootstrap.md'"
 run_test_not_contains "merge_settings PostToolUse no swallow" "python3 -c 'import sys; sys.path.insert(0, \"$SCRIPT_DIR/lib\"); import merge_settings; print(merge_settings.HELIX_HOOKS[\"PostToolUse\"][0][\"hooks\"][0][\"command\"])'" "|| true"
@@ -585,9 +594,9 @@ run_test "codex require approved env rejects write without approval" "HELIX_CODE
 run_test "codex require approval evidence rejects missing evidence" "HELIX_CODEX_REQUIRE_APPROVAL_EVIDENCE=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --plan-id PLAN-TEST" 1
 run_test "codex approval evidence accepts approval file" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix/approvals; printf 'ok\n' > .helix/approvals/PLAN-TEST.approved; HELIX_PROJECT_ROOT=\"\$D\" HELIX_CODEX_REQUIRE_APPROVAL_EVIDENCE=1 CODEX_BIN=$TEST_DIR/mock-codex-cli $SCRIPT_DIR/helix-codex --role pg --task '実装して' --approved --plan-id PLAN-TEST >/dev/null; rc=\$?; rm -rf \"\$D\"; exit \$rc"
 run_test "codex WBS validation rejects missing WBS" "D=\$(mktemp -d); cd \"\$D\"; git init -q; mkdir -p .helix docs/design; printf '| WBS ID | L4 Sprint |\n|---|---|\n| WBS-001 | .1a |\n' > docs/design/L3-schedule-wbs.md; HELIX_PROJECT_ROOT=\"\$D\" $SCRIPT_DIR/helix-codex --role pg --task 'WBS 実装' --approved --wbs-id WBS-999 --l4-sprint .2 --reference-doc docs/design/L3-schedule-wbs.md --dry-run >/dev/null 2>&1; rc=\$?; rm -rf \"\$D\"; exit \$rc" 1
-run_test "raw codex exec shim blocks" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex exec 'raw blocked' >/dev/null 2>&1" 2
-run_test "raw codex exec shim blocks global-option form" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex -m gpt-5 exec 'raw blocked' >/dev/null 2>&1" 2
-run_test "raw codex exec shim blocks alias with global option" "PATH=\"$SCRIPT_DIR:$PATH\" $SCRIPT_DIR/codex --full-auto e 'raw blocked' >/dev/null 2>&1" 2
+run_test "raw codex exec shim blocks" "PATH=\"$SCRIPT_DIR:$PATH\" HELIX_CODEX_INTERNAL=0 $SCRIPT_DIR/codex exec 'raw blocked' >/dev/null 2>&1" 2
+run_test "raw codex exec shim blocks global-option form" "PATH=\"$SCRIPT_DIR:$PATH\" HELIX_CODEX_INTERNAL=0 $SCRIPT_DIR/codex -m gpt-5 exec 'raw blocked' >/dev/null 2>&1" 2
+run_test "raw codex exec shim blocks alias with global option" "PATH=\"$SCRIPT_DIR:$PATH\" HELIX_CODEX_INTERNAL=0 $SCRIPT_DIR/codex --full-auto e 'raw blocked' >/dev/null 2>&1" 2
 cat > "$TEST_DIR/codex" << 'EOF'
 #!/bin/bash
 echo "real-codex-pass: $*"

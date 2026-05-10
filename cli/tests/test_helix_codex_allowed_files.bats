@@ -3,6 +3,11 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   export HELIX_HOME="$HELIX_ROOT"
+  while IFS='=' read -r name _; do
+    [[ "$name" == HELIX_TEST_* ]] && unset "$name"
+  done < <(env)
+  unset CODEX_BIN HELIX_CODEX_BIN HELIX_CODEX_AUTO_FALLBACK HELIX_CODEX_NO_FOOTER
+  unset HELIX_CODEX_INTERNAL HELIX_DISABLE_SPARK HELIX_MODEL_OVERRIDE
 
   TMP_ROOT="$(mktemp -d)"
   source "$BATS_TEST_DIRNAME/_helix-bats-helper.bash"
@@ -191,7 +196,6 @@ run_tracked_b_change_case() {
 }
 
 @test "codex allowed-files new file case completes without auto-detect hint" {
-  skip "PLAN-058D: env-dependent (cli/helix test pytest 後 bats 経由でのみ fail)"
   run env \
     HELIX_TEST_TOUCH=rogue.txt \
     "$HELIX_ROOT/cli/helix-codex" \

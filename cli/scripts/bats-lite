@@ -73,10 +73,11 @@ convert_bats_file() {
 
 run_file() {
   local file="$1"
-  local abs_file abs_dir converted
+  local abs_file abs_dir converted skip_reason_file tmp_root
   abs_file="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
   abs_dir="$(dirname "$abs_file")"
-  converted="$(mktemp /tmp/bats-lite-XXXXXX.sh)"
+  tmp_root="${TMPDIR:-/tmp}"
+  converted="$(mktemp "$tmp_root/bats-lite-XXXXXX.sh")"
 
   {
     echo "declare -a __bats_test_names=()"
@@ -99,8 +100,7 @@ run_file() {
     TOTAL=$((TOTAL + 1))
     local __test_rc=0
     local __test_skip_reason=""
-    local skip_reason_file
-    skip_reason_file="$(mktemp /tmp/bats-lite-skip-XXXXXX)"
+    skip_reason_file="$(mktemp "$tmp_root/bats-lite-skip-XXXXXX")"
     export BATS_LITE_SKIP_REASON_FILE="$skip_reason_file"
     set +e
     (
