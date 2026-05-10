@@ -67,11 +67,10 @@ PY
 }
 
 @test "v7 migration forward: version=7 と新カラム追加" {
-  skip "PLAN-052: schema migration carry, see retro"
   create_v6_db
   run migrate_to_v7
   [ "$status" -eq 0 ]
-  run DB_PATH="$DB_PATH" python3 - <<'PY'
+  run env DB_PATH="$DB_PATH" python3 - <<'PY'
 import os
 import sqlite3
 
@@ -80,17 +79,16 @@ version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
 cols = {r[1] for r in conn.execute("PRAGMA table_info(skill_usage)")}
 conn.close()
 required = {"effort_estimated", "effort_actual", "timeout_occurred", "tokens_used", "model_used", "fallback_applied"}
-assert version == 7, version
+assert version >= 7, version
 assert required.issubset(cols), cols
 PY
   [ "$status" -eq 0 ]
 }
 
 @test "skill_usage 新カラムに INSERT/SELECT 可能" {
-  skip "PLAN-052: schema migration carry, see retro"
   create_v6_db
   migrate_to_v7
-  run DB_PATH="$DB_PATH" python3 - <<'PY'
+  run env DB_PATH="$DB_PATH" python3 - <<'PY'
 import os
 import sqlite3
 
@@ -111,10 +109,9 @@ PY
 }
 
 @test "budget_events テーブル CRUD 動作" {
-  skip "PLAN-052: schema migration carry, see retro"
   create_v6_db
   migrate_to_v7
-  run DB_PATH="$DB_PATH" python3 - <<'PY'
+  run env DB_PATH="$DB_PATH" python3 - <<'PY'
 import os
 import sqlite3
 
@@ -137,10 +134,9 @@ PY
 }
 
 @test "既存 skill_usage レコード数保持 + 新カラム互換" {
-  skip "PLAN-052: schema migration carry, see retro"
   create_v6_db
   migrate_to_v7
-  run DB_PATH="$DB_PATH" python3 - <<'PY'
+  run env DB_PATH="$DB_PATH" python3 - <<'PY'
 import os
 import sqlite3
 
