@@ -1,7 +1,8 @@
 ---
 plan_id: PLAN-045
 title: 'PLAN-045（runtime debt 4 件集約解消 - PLAN-044 retro carry 4 件）'
-status: draft
+status: completed
+completed: 2026-05-10
 created: 2026-05-10
 author: Docs (Codex)
 priority: medium
