@@ -415,5 +415,106 @@ def test_main_rejects_missing_concurrent_baseline(
     )
 
 
+def make_summary(diff_lines: str | None) -> str:
+    body = ["decision: passed", "files: cli/lib/codex_post_validation.py"]
+    if diff_lines is not None:
+        body.append(f"diff_lines: {diff_lines}")
+    body.extend(
+        [
+            "tests: pytest PASS",
+            "intermediate_errors: なし",
+            "remaining: なし",
+        ]
+    )
+    return "---SUMMARY_START---\n" + "\n".join(body) + "\n---SUMMARY_END---\n"
+
+
+def test_write_expected_diff_zero_warns() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary("1"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert "audit-only failure suspected: task_type=実装 だが git diff 0 件" in warnings
+
+
+def test_write_expected_diff_positive_silent() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary("2"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt", "changed.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert warnings == []
+
+
+def test_write_expected_readonly_silent() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="レビュー",
+        summary_stdout=make_summary("0"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert warnings == []
+
+
+def test_diff_lines_missing_warns() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary(None),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt", "changed.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert warnings == ["self-report missing diff_lines"]
+
+
+def test_diff_lines_zero_warns() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary("0"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt", "changed.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert warnings == ["self-report claims zero diff but actual=1 files"]
+
+
+def test_diff_lines_mismatch_warns() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary("5"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt"},
+        untracked_after_paths=set(),
+    )
+
+    assert warnings == [
+        "audit-only failure suspected: task_type=実装 だが git diff 0 件",
+        "self-report mismatches actual: claimed=5, actual=0",
+    ]
+
+
+def test_diff_lines_match_silent() -> None:
+    warnings = codex_post_validation.check_write_expected(
+        task_type="実装",
+        summary_stdout=make_summary("3"),
+        before_paths={"tracked.txt"},
+        after_paths={"tracked.txt"},
+        untracked_after_paths={"new-untracked.txt"},
+    )
+
+    assert warnings == []
+
+
 def _read_stdout(capsys: pytest.CaptureFixture[str]) -> str:
     return capsys.readouterr().out.strip()

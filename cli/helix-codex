@@ -813,6 +813,21 @@ check_allowed_files_delta() {
   return "$rc"
 }
 
+check_write_expected_delta() {
+  local stdout_file="$1"
+
+  [[ "$TASK_TYPE" == "実装" ]] || return 0
+  [[ -f "$stdout_file" ]] || return 0
+
+  python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
+    --check-write-expected \
+    --task-type "$TASK_TYPE" \
+    --before "$DIFF_BEFORE" \
+    --after "$DIFF_AFTER" \
+    --untracked-after "$UNTRACKED_AFTER" \
+    --summary-stdout "$stdout_file"
+}
+
 # models.yaml から role モデルと default_fallback を読み込む
 resolve_models_from_registry() {
   local role="$1"
@@ -1615,6 +1630,9 @@ run_codex_once() {
       < /dev/null > "$STDOUT_FILE"
   fi
   local rc=$?
+  if [[ $rc -eq 0 ]]; then
+    check_write_expected_delta "$STDOUT_FILE" || true
+  fi
   emit_summary_from_capture "$STDOUT_FILE"
   if [[ $rc -eq 0 ]]; then
     run_codex_post_hook "$STDOUT_FILE" "$AUDIT_FILE" "$run_role"
