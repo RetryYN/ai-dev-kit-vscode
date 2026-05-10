@@ -1232,7 +1232,7 @@ if [[ "${HELIX_CODEX_NO_FOOTER:-}" != "1" ]]; then
 
 ## 出力フォーマット (helix-codex 自動付加、上書き禁止)
 
-**重要 (最優先)**: 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で必ず囲むこと。filter がこの marker block のみを parent stdout に emit する仕組みのため、marker がないと末尾 30 行 fallback で意図しない中間 echo が混入する。
+**重要 (最優先)**: 最終 summary block 全体を `---SUMMARY_START---` / `---SUMMARY_END---` で必ず囲むこと。filter がこの marker block のみを parent stdout に emit する仕組みのため、marker がないと末尾 30 行 fallback で意図しない中間 echo が混入する。task_type=実装 では diff_lines: 必須 (audit-only failure 検知用)。
 
 ### 出力例 (これに従う、実際の出力では `{{` `}}` を `---` に置換すること)
 
@@ -1243,6 +1243,7 @@ if [[ "${HELIX_CODEX_NO_FOOTER:-}" != "1" ]]; then
 {{SUMMARY_START}}
 decision: passed
 files: cli/helix-codex, cli/tests/test_helix_codex_footer.bats
+diff_lines: 42
 tests: clean checkout 後 bats 7/7 PASS
 intermediate_errors: なし
 remaining: なし
@@ -1255,6 +1256,7 @@ remaining: なし
 
 - 最終 summary は 5 行以内で末尾に置く
 - decision (passed/failed/blocked/changes_required) は最終 summary の冒頭 1 行目に必ず明示
+- diff_lines: は task_type=実装 の場合の必須欄。git diff 行数 (本作業で追加・削除した行の合計) を整数で記述する。task_type=レビュー / 調査 / 設計 など read-only タスクでは 0 または '-' を記述してよい。audit-only failure (実装タスクで write 0) を機械検知するための自己申告フィールド。
 - 変更ファイル一覧と検証結果を末尾 30 行に固定し、tail -30 で取得可能にする
 - tests: は clean checkout 後 (作業 commit 前提) の最終確認結果のみを記述する。作業途中の verification ループで発生したエラー (Bash syntax / unbound variable / mock 失敗 / dirty workspace 由来 fail 等) は tests: に含めず、独立フィールド intermediate_errors: に分離記録する
 - intermediate_errors: は必須欄とし、空でも明示する。並列実装中の dirty workspace 由来 fail や中間状態の警告は intermediate_errors: に分離する
