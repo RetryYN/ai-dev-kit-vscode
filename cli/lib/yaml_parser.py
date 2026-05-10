@@ -59,6 +59,7 @@ import re
 import fcntl
 from pathlib import Path
 
+from concurrent_lock import file_lock
 
 def _split_inline_pairs(text):
     """インライン dict の `k:v, k2:v2` をトップレベルカンマで分割する。"""
@@ -513,18 +514,20 @@ def _lock_close(lock_fh):
 
 def write_yaml_safe(filepath, dotpath, value):
     """排他ロック + atomic rename で YAML を安全に更新する。"""
-    lock_path = filepath + ".lock"
-    lock_fh = _lock_open(lock_path)
+    path = Path(filepath)
+    lock_name = f"yaml-{path.stem}"
+    legacy_lock_fh = _lock_open(filepath + ".lock")
     try:
-        text = Path(filepath).read_text(encoding='utf-8')
-        data = parse_yaml(text)
-        set_nested(data, dotpath, value)
-        output = _build_output_with_header(text, data)
-        tmp_path = f"{filepath}.tmp.{os.getpid()}"
-        Path(tmp_path).write_text(output, encoding='utf-8')
-        os.replace(tmp_path, filepath)
+        with file_lock(lock_name):
+            text = Path(filepath).read_text(encoding='utf-8')
+            data = parse_yaml(text)
+            set_nested(data, dotpath, value)
+            output = _build_output_with_header(text, data)
+            tmp_path = f"{filepath}.tmp.{os.getpid()}"
+            Path(tmp_path).write_text(output, encoding='utf-8')
+            os.replace(tmp_path, filepath)
     finally:
-        _lock_close(lock_fh)
+        _lock_close(legacy_lock_fh)
 
 
 def main():

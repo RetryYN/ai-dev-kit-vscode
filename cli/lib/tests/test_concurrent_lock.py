@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -90,6 +91,21 @@ def test_context_manager(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Non
 
     reopened = concurrent_lock.acquire("context", timeout=0)
     concurrent_lock.release(reopened)
+
+
+def test_lockfile_metadata_round_trip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    with concurrent_lock.file_lock("metadata") as fd:
+        assert fd >= 0
+        metadata = concurrent_lock.read_lockfile_metadata("metadata")
+
+    assert metadata is not None
+    assert metadata["version"] == concurrent_lock.LOCKFILE_METADATA_VERSION
+    assert metadata["pid"] == os.getpid()
+    assert metadata["name"] == "metadata"
+    acquired_at = datetime.fromisoformat(metadata["acquired_at"])
+    assert acquired_at.tzinfo == timezone.utc
 
 
 def test_race_condition(tmp_path: Path) -> None:

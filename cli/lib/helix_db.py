@@ -23,8 +23,11 @@ import sqlite3
 import sys
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+
+from concurrent_lock import file_lock
 
 
 SCHEMA = """
@@ -224,6 +227,7 @@ PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
 CURRENT_SCHEMA_VERSION = 19
+HELIX_DB_LOCK_NAME = "helix-db"
 
 
 SCHEMA_VERSION_SCHEMA = """
@@ -598,6 +602,28 @@ def get_connection(db_path: str | Path | None = None, timeout: float = DEFAULT_S
 
 def _connect(db_path):
     return get_connection(db_path=db_path, timeout=DEFAULT_SQLITE_TIMEOUT_SEC)
+
+
+def _resolve_db_path(db_path: str | Path | None) -> str:
+    return resolve_default_db_path() if db_path is None else str(db_path)
+
+
+@contextmanager
+def _write_connection(db_path: str | Path | None, ensure_schema: bool = True):
+    target_path = _resolve_db_path(db_path)
+    _prepare_db_path(target_path)
+    with file_lock(HELIX_DB_LOCK_NAME):
+        conn = _connect(target_path)
+        try:
+            if ensure_schema:
+                _ensure_schema(conn)
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
 
 def _create_requirements_tables(conn):
@@ -1150,12 +1176,9 @@ def _ensure_schema(conn):
 
 # @helix:index id=helix-db.init-db domain=cli/lib summary=dbを初期化する
 def init_db(db_path):
-    _prepare_db_path(db_path)
-    conn = _connect(db_path)
-    conn.execute("PRAGMA foreign_keys = ON")
-    _ensure_schema(conn)
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path, ensure_schema=False) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        _ensure_schema(conn)
     print(f"DB initialized: {db_path}")
 
 
@@ -1177,101 +1200,85 @@ def insert_row(db_path, table, data):
     if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', table):
         raise ValueError(f'invalid table name: {table}')
 
-    _prepare_db_path(db_path)
-    conn = _connect(db_path)
-    _ensure_schema(conn)
+    with _write_connection(db_path) as conn:
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+        if not rows:
+            raise ValueError(f'unknown table: {table}')
 
-    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
-    if not rows:
-        conn.close()
-        raise ValueError(f'unknown table: {table}')
+        valid_columns = {row[1] for row in rows}
+        payload = dict(data)
+        if 'created_at' in valid_columns and 'created_at' not in payload:
+            payload['created_at'] = datetime.now().isoformat()
 
-    valid_columns = {row[1] for row in rows}
-    payload = dict(data)
-    if 'created_at' in valid_columns and 'created_at' not in payload:
-        payload['created_at'] = datetime.now().isoformat()
+        if not payload:
+            raise ValueError('insert payload is empty')
 
-    if not payload:
-        conn.close()
-        raise ValueError('insert payload is empty')
+        for key in payload:
+            if key not in valid_columns:
+                raise KeyError(f'unknown column: {table}.{key}')
 
-    for key in payload:
-        if key not in valid_columns:
-            conn.close()
-            raise KeyError(f'unknown column: {table}.{key}')
-
-    columns = list(payload.keys())
-    values = [payload[col] for col in columns]
-    placeholders = ', '.join(['?'] * len(columns))
-    sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
-    conn.execute(sql, values)
-    row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.commit()
-    conn.close()
+        columns = list(payload.keys())
+        values = [payload[col] for col in columns]
+        placeholders = ', '.join(['?'] * len(columns))
+        sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
+        conn.execute(sql, values)
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     print(row_id)
 
 
 # @helix:index id=helix-db.record-task domain=cli/lib summary=taskを記録する
 def record_task(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, output_log) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (data['task_id'], data['task_type'], data.get('plan_goal', ''),
-         data['role'], data.get('status', 'running'),
-         data.get('started_at', datetime.now().isoformat()),
-         data.get('output_log', ''))
-    )
-    run_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO task_runs (task_id, task_type, plan_goal, role, status, started_at, output_log) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (data['task_id'], data['task_type'], data.get('plan_goal', ''),
+             data['role'], data.get('status', 'running'),
+             data.get('started_at', datetime.now().isoformat()),
+             data.get('output_log', ''))
+        )
+        run_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     print(run_id)
 
 
 # @helix:index id=helix-db.record-action domain=cli/lib summary=actionを記録する
 def record_action(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (data['task_run_id'], data['action_index'], data['action_type'],
-         data.get('action_desc', ''), data.get('status', 'pending'),
-         data.get('evidence', ''))
-    )
-    action_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO action_logs (task_run_id, action_index, action_type, action_desc, status, evidence) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (data['task_run_id'], data['action_index'], data['action_type'],
+             data.get('action_desc', ''), data.get('status', 'pending'),
+             data.get('evidence', ''))
+        )
+        action_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     print(action_id)
 
 
 # @helix:index id=helix-db.record-observation domain=cli/lib summary=observationを記録する
 def record_observation(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "INSERT INTO observations (task_run_id, action_log_id, action_type, "
-        "expected_keywords, matched_keywords, passed, reason) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (data['task_run_id'], data.get('action_log_id'),
-         data['action_type'], json.dumps(data.get('expected_keywords', [])),
-         json.dumps(data.get('matched_keywords', [])),
-         1 if data.get('passed') else 0, data.get('reason', ''))
-    )
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO observations (task_run_id, action_log_id, action_type, "
+            "expected_keywords, matched_keywords, passed, reason) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (data['task_run_id'], data.get('action_log_id'),
+             data['action_type'], json.dumps(data.get('expected_keywords', [])),
+             json.dumps(data.get('matched_keywords', [])),
+             1 if data.get('passed') else 0, data.get('reason', ''))
+        )
 
 
 # @helix:index id=helix-db.record-feedback domain=cli/lib summary=feedbackを記録する
 def record_feedback(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "INSERT INTO feedback (task_run_id, feedback_type, category, description, impact, resolution) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (data.get('task_run_id'), data['feedback_type'],
-         data.get('category', ''), data['description'],
-         data.get('impact', 'medium'), data.get('resolution', ''))
-    )
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO feedback (task_run_id, feedback_type, category, description, impact, resolution) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (data.get('task_run_id'), data['feedback_type'],
+             data.get('category', ''), data['description'],
+             data.get('impact', 'medium'), data.get('resolution', ''))
+        )
     print("Feedback recorded")
 
 
@@ -1342,10 +1349,7 @@ def record_accuracy_score(
     if type(level) is not int or not 1 <= level <= 5:
         raise ValueError("level must be an integer between 1 and 5")
 
-    _prepare_db_path(db_path)
-    conn = _connect(db_path)
-    try:
-        _ensure_schema(conn)
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO accuracy_score "
             "(plan_id, gate, dimension, level, comment, evidence, recorded_at, sprint, reviewer) "
@@ -1363,10 +1367,7 @@ def record_accuracy_score(
             ),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        conn.commit()
         return row_id
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.query-accuracy-history domain=cli/lib summary=query accuracy historyを実行する
@@ -1468,17 +1469,13 @@ def insert_import_run(db_path, run_id, source_hash, scope_hash, status="started"
     status = _validate_choice(status, "status", IMPORT_RUN_STATUSES_V10)
     started_at = _epoch_now()
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO import_runs (id, started_at, source_hash, scope_hash, status) "
             "VALUES (?, ?, ?, ?, ?)",
             (run_id, started_at, source_hash, scope_hash, status),
         )
-        conn.commit()
         return run_id
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.update-import-run domain=cli/lib summary=import runを更新する
@@ -1493,17 +1490,13 @@ def update_import_run(db_path, run_id, status, completed_at=None, imported_rows=
     if imported_rows < 0:
         raise ValueError("imported_rows must be non-negative")
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         cur = conn.execute(
             "UPDATE import_runs SET status = ?, completed_at = ?, imported_rows = ?, error_summary = ? "
             "WHERE id = ?",
             (status, completed_at, imported_rows, error_summary, run_id),
         )
-        conn.commit()
         return cur.rowcount == 1
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.insert-audit-decision domain=cli/lib summary=audit decisionを挿入する
@@ -1540,8 +1533,7 @@ def insert_audit_decision(
     decision_hash = _require_non_empty(decision_hash, "decision_hash")
     imported_at = int(imported_at or _epoch_now())
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO audit_decisions "
             "(candidate_id, schema_version, scope_hash, decision, evidence, rationale, "
@@ -1565,10 +1557,7 @@ def insert_audit_decision(
             ),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        conn.commit()
         return row_id
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.historical-to-active-audit-decision domain=cli/lib summary=historical to active audit decisionを実行する
@@ -1579,17 +1568,13 @@ def historical_to_active_audit_decision(db_path, candidate_id, schema_version, s
     _require_non_empty(scope_hash, "scope_hash")
     updated_at = _epoch_now()
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         cur = conn.execute(
             "UPDATE audit_decisions SET status = 'historical', updated_at = ? "
             "WHERE candidate_id = ? AND schema_version = ? AND status = 'active'",
             (updated_at, candidate_id, schema_version),
         )
-        conn.commit()
         return cur.rowcount
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.query-active-audit-decisions domain=cli/lib summary=query active audit decisionsを実行する
@@ -1637,18 +1622,14 @@ def insert_event(db_path, event_name, data, **kwargs):
     if source is not None:
         source = _require_non_empty(source, "source")
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO events (event_name, occurred_at, data_json, source, severity) "
             "VALUES (?, ?, ?, ?, ?)",
             (event_name, occurred_at, data_json, source, severity),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        conn.commit()
         return row_id
-    finally:
-        conn.close()
 
 
 # @helix:index id=helix-db.insert-metric domain=cli/lib summary=metricを挿入する
@@ -1660,17 +1641,13 @@ def insert_metric(db_path, metric_name, value, tags=None):
         raise ValueError("tags must be a JSON object or JSON string")
     recorded_at = int(_epoch_now())
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO metrics (metric_name, value, tags_json, recorded_at) VALUES (?, ?, ?, ?)",
             (metric_name, metric_value, _json_text(tags, {}), recorded_at),
         )
         row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        conn.commit()
         return row_id
-    finally:
-        conn.close()
 
 
 def acquire_db_lock(
@@ -1697,8 +1674,7 @@ def acquire_db_lock(
     if expires_at is not None:
         expires_at = int(expires_at)
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             """
             INSERT INTO locks (name, pid, acquired_at, expires_at, scope)
@@ -1711,23 +1687,16 @@ def acquire_db_lock(
             """,
             (name, int(pid), acquired_at, expires_at, scope),
         )
-        conn.commit()
         return True
-    finally:
-        conn.close()
 
 
 def release_db_lock(db_path, name, pid):
     """PLAN-005 lock release API。pid 一致時のみ解放する。"""
     name = _require_non_empty(name, "name")
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         cur = conn.execute("DELETE FROM locks WHERE name = ? AND pid = ?", (name, int(pid)))
-        conn.commit()
         return cur.rowcount == 1
-    finally:
-        conn.close()
 
 
 def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
@@ -1737,8 +1706,7 @@ def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
     job_id = kwargs.get("job_id") or kwargs.get("id") or str(uuid.uuid4())
     created_at = int(kwargs.get("created_at") or _epoch_now())
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO jobs "
             "(id, task_type, task_payload, priority, status, created_at, max_retries, delay_until) "
@@ -1754,10 +1722,7 @@ def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
                 kwargs.get("delay_until"),
             ),
         )
-        conn.commit()
         return job_id
-    finally:
-        conn.close()
 
 
 def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
@@ -1768,8 +1733,7 @@ def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
     schedule_id = kwargs.get("schedule_id") or kwargs.get("id") or str(uuid.uuid4())
     now = int(kwargs.get("created_at") or _epoch_now())
 
-    conn = _automation_conn(db_path)
-    try:
+    with _write_connection(db_path) as conn:
         conn.execute(
             "INSERT INTO schedules "
             "(id, schedule_expr, task_type, task_payload, status, next_run_at, created_at, updated_at) "
@@ -1785,10 +1749,7 @@ def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
                 int(kwargs.get("updated_at") or now),
             ),
         )
-        conn.commit()
         return schedule_id
-    finally:
-        conn.close()
 
 
 def latest_task_run_id(db_path, task_id):
@@ -1802,34 +1763,30 @@ def latest_task_run_id(db_path, task_id):
 
 
 def record_selection(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "INSERT INTO task_selections (plan_id, plan_goal, selected_tasks, "
-        "available_tasks, selection_rationale, review_status) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (data['plan_id'], data['plan_goal'],
-         json.dumps(data.get('selected_tasks', [])),
-         json.dumps(data.get('available_tasks', [])),
-         data.get('selection_rationale', ''),
-         'pending')
-    )
-    sel_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO task_selections (plan_id, plan_goal, selected_tasks, "
+            "available_tasks, selection_rationale, review_status) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (data['plan_id'], data['plan_goal'],
+             json.dumps(data.get('selected_tasks', [])),
+             json.dumps(data.get('available_tasks', [])),
+             data.get('selection_rationale', ''),
+             'pending')
+        )
+        sel_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     print(sel_id)
 
 
 # @helix:index id=helix-db.update-review domain=cli/lib summary=reviewを更新する
 def update_review(db_path, data):
-    conn = _connect(db_path)
-    conn.execute(
-        "UPDATE task_selections SET review_status=?, review_result=?, review_suggestions=? "
-        "WHERE id=?",
-        (data['review_status'], data.get('review_result', ''),
-         data.get('review_suggestions', ''), data['selection_id'])
-    )
-    conn.commit()
-    conn.close()
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "UPDATE task_selections SET review_status=?, review_result=?, review_suggestions=? "
+            "WHERE id=?",
+            (data['review_status'], data.get('review_result', ''),
+             data.get('review_suggestions', ''), data['selection_id'])
+        )
 
 
 def report(db_path, report_type='summary', report_date=None):

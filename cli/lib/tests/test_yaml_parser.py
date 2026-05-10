@@ -149,29 +149,43 @@ def test_build_output_with_header_preserves_comment_block() -> None:
     assert "a: 2" in output
 
 
-def test_write_yaml_safe_updates_file_and_keeps_lock(tmp_path: Path) -> None:
+def test_write_yaml_safe_updates_file_and_keeps_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
     yaml_path = tmp_path / "phase.yaml"
     yaml_path.write_text("# header\na:\n  b: old\n", encoding="utf-8")
 
     yaml_parser.write_yaml_safe(str(yaml_path), "a.b", "new")
 
     assert "b: new" in yaml_path.read_text(encoding="utf-8")
-    assert yaml_path.with_name("phase.yaml.lock").exists()
+    assert (tmp_path / ".helix" / "locks" / "yaml-phase.lock").exists()
 
 
 def test_write_yaml_safe_uses_file_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     yaml_path = tmp_path / "phase.yaml"
     yaml_path.write_text("a: 1\n", encoding="utf-8")
-    calls: list[int] = []
+    calls: list[str] = []
 
-    def fake_flock(_file, operation: int) -> None:
-        calls.append(operation)
+    class DummyLock:
+        def __enter__(self):
+            calls.append("enter")
+            return 0
 
-    monkeypatch.setattr(yaml_parser.fcntl, "flock", fake_flock)
+        def __exit__(self, exc_type, exc, tb):
+            calls.append("exit")
+            return False
+
+    def fake_file_lock(name: str, timeout: float = 5.0, lock_dir=None):
+        assert name == "yaml-phase"
+        return DummyLock()
+
+    monkeypatch.setattr(yaml_parser, "file_lock", fake_file_lock)
 
     yaml_parser.write_yaml_safe(str(yaml_path), "a", "2")
 
-    assert calls == [yaml_parser.fcntl.LOCK_EX, yaml_parser.fcntl.LOCK_UN]
+    assert calls == ["enter", "exit"]
 
 
 def test_write_yaml_safe_parallel_processes_smoke(tmp_path: Path) -> None:
