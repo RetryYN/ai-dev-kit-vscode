@@ -169,7 +169,6 @@ HELIX 独自スキル (4 本):
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
 | [code-review-and-quality](skills/code-review-and-quality/SKILL.md) | 5 軸レビュー、変更サイズ目安（約 100 行）、重要度ラベル（Nit/Optional/FYI）、レビュー速度基準、分割方針を適用する | 変更をマージする前 |
-| [code-simplification](skills/code-simplification/SKILL.md) | Chesterton's Fence と Rule of 500 に基づき、挙動を維持したまま複雑さを削減する | 動くが読みづらく保守しにくいコードを改善したいとき |
 | [security-and-hardening](skills/security-and-hardening/SKILL.md) | OWASP Top 10 対策、認証パターン、秘密情報管理、依存監査、三層境界モデルを適用する | 入力処理、認証、データ保存、外部連携を扱うとき |
 | [performance-optimization](skills/performance-optimization/SKILL.md) | 計測先行で Core Web Vitals 目標、プロファイリング、バンドル分析、アンチパターン検知を行う | 性能要件がある、または性能劣化が疑われるとき |
 
@@ -177,7 +176,6 @@ HELIX 独自スキル (4 本):
 
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
-| [git-workflow-and-versioning](skills/git-workflow-and-versioning/SKILL.md) | Trunk-based development、atomic commit、変更サイズ目安（約 100 行）、commit-as-save-point を適用する | すべてのコード変更時（常時） |
 | [ci-cd-and-automation](skills/ci-cd-and-automation/SKILL.md) | Shift Left、Faster is Safer、feature flag、品質ゲートパイプライン、失敗フィードバックループを構築する | ビルド/デプロイパイプラインを新設・変更するとき |
 | [deprecation-and-migration](skills/deprecation-and-migration/SKILL.md) | Code-as-liability の観点で、必須/推奨の廃止戦略、移行パターン、zombie code 除去を行う | 旧システム削除、ユーザー移行、機能廃止を行うとき |
 | [documentation-and-adrs](skills/documentation-and-adrs/SKILL.md) | ADR、API ドキュメント、インライン文書規約を整備し、設計判断の「なぜ」を記録する | アーキテクチャ判断、API 変更、機能出荷時 |
@@ -282,10 +280,8 @@ agent-skills/
 │   ├── browser-testing-with-devtools/ #   L6 検証
 │   ├── debugging-and-error-recovery/  #   L6 検証
 │   ├── code-review-and-quality/       #   G2-G11 レビュー
-│   ├── code-simplification/           #   G2-G11 レビュー
 │   ├── security-and-hardening/        #   G2-G11 レビュー
 │   ├── performance-optimization/      #   G2-G11 レビュー
-│   ├── git-workflow-and-versioning/   #   L7 出荷
 │   ├── ci-cd-and-automation/          #   L7 出荷
 │   ├── deprecation-and-migration/     #   L7 出荷
 │   ├── documentation-and-adrs/        #   L7 出荷
