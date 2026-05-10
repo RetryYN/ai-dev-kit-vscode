@@ -17,6 +17,13 @@
 | SE | gpt-5.4 | high |
 | PE | gpt-5.3-codex-spark / gpt-5.3-codex | low-medium |
 
+## CLI ロール補足（17）
+
+- CLI ロール数は 17 件: `tl`, `se`, `pg`, `qa`, `security`, `dba`, `devops`, `docs`, `research`, `legacy`, `perf`, `fe`, `recommender`, `classifier`, `effort-classifier`, `pmo-sonnet`, `pmo-haiku`
+- `classifier`: タスク記述を分類し、適切なロールや処理系への振り分けを補助する軽量分類ロール
+- `recommender`: スキル候補を JSON で返す軽量推挙ロール（`helix skill search` の中核）
+- `effort-classifier`: 工数・難易度・規模を分類して見積もりや実行方針の初期判定を補助するロール
+
 ## 参考正本（ADR / PLAN）
 
 - `docs/adr/ADR-014-roles-config-format.md`
