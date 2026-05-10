@@ -1,26 +1,21 @@
 ---
 plan_id: PLAN-058
-title: 'PLAN-058（リファクタリング A: dead code 検出/削除 + 実装 bug fix 4 件 + env-dependent 15 件 carry 解消）'
-status: draft
+title: "PLAN-058（リファクタリング A: dead code 検出/削除 + 実装 bug fix 4 件 + env-dependent 15 件 carry 解消）"
+status: finalized
 created: 2026-05-11
-author: 'PM (Opus)'
+author: "PM (Opus)"
 priority: medium
 size: M
-phases_affected: cli/lib/* / cli/helix-* / cli/tests/* (carry test 解消)
+phases_affected: "cli/lib/* / cli/helix-* / cli/tests/* (carry test 解消)"
 parent_plan: PLAN-057
 acceptance:
   dead_code_removed:
-    verification_commands:
-      command: "helix code stats --uncovered --bucket private_helper --seed-promotable false --json | jq '.items | length'"
-      expected: "減少 (削除候補のうち合意済みは反映)"
+    verification_commands: { command: "helix code stats --uncovered --bucket private_helper --seed-promotable false --json | jq '.items | length", expected: "減少 (削除候補のうち合意済みは反映)" }
   impl_bugs_fixed:
-    verification_commands:
-      command: "grep -rc 'PLAN-058[A-D]' cli/tests/ | awk -F: '{s+=$2} END {print s}'"
-      expected: "0 (PLAN-058A〜D 全 carry 解消)"
+    verification_commands: { command: "grep -rc 'PLAN-058[A-D]' cli/tests/ | awk -F: '{s+=$2} END {print s}", expected: "0 (PLAN-058A〜D 全 carry 解消)" }
   tests_pass_full:
-    verification_commands:
-      command: "cli/helix test"
-      expected: "exit 0 / 全 PASS (614 shell + 1055 pytest + 420 bats)"
+    verification_commands: { command: "cli/helix test", expected: "exit 0 / 全 PASS (614 shell + 1055 pytest + 420 bats)" }
+finalized: 2026-05-10
 ---
 
 # PLAN-058: リファクタリング A - dead code + 実装 bug fix + env-dependent 解消

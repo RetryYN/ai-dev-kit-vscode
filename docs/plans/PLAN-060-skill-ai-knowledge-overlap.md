@@ -1,22 +1,19 @@
 ---
 plan_id: PLAN-060
-title: 'PLAN-060（リファクタリング C: AI knowledge 重複検証 + skill 廃止判定）'
-status: draft
+title: "PLAN-060（リファクタリング C: AI knowledge 重複検証 + skill 廃止判定）"
+status: finalized
 created: 2026-05-11
-author: 'PM (Opus)'
+author: "PM (Opus)"
 priority: medium
 size: M
-phases_affected: skills/**/SKILL.md / SKILL_MAP.md
+phases_affected: "skills/**/SKILL.md / SKILL_MAP.md"
 parent_plan: PLAN-058
 acceptance:
   overlap_score_table:
-    verification_commands:
-      command: "test -f docs/audit/ai-knowledge-overlap-2026-05.md"
-      expected: "exists (Sonnet/Opus 自己判定の冗長度スコア表生成済)"
+    verification_commands: { command: "test -f docs/audit/ai-knowledge-overlap-2026-05.md", expected: "exists (Sonnet/Opus 自己判定の冗長度スコア表生成済)" }
   redundant_skills_removed:
-    verification_commands:
-      command: "before_count - after_count"
-      expected: ">= 5 (HELIX 固有付加価値ゼロと判定された skill を 5 件以上廃止)"
+    verification_commands: { command: "before_count - after_count", expected: ">= 5 (HELIX 固有付加価値ゼロと判定された skill を 5 件以上廃止)" }
+finalized: 2026-05-10
 ---
 
 # PLAN-060: リファクタリング C - AI knowledge 重複検証 + skill 廃止判定

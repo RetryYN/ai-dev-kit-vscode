@@ -1,22 +1,19 @@
 ---
 plan_id: PLAN-059
-title: 'PLAN-059（リファクタリング B: skill 解像度監査 + brush up）'
-status: draft
+title: "PLAN-059（リファクタリング B: skill 解像度監査 + brush up）"
+status: finalized
 created: 2026-05-11
-author: 'PM (Opus)'
+author: "PM (Opus)"
 priority: medium
 size: L
-phases_affected: skills/**/SKILL.md / SKILL_MAP.md
+phases_affected: "skills/**/SKILL.md / SKILL_MAP.md"
 parent_plan: PLAN-058
 acceptance:
   audit_table_generated:
-    verification_commands:
-      command: "test -f docs/audit/skill-resolution-2026-05.md && wc -l docs/audit/skill-resolution-2026-05.md | awk '{print $1}'"
-      expected: ">= 100 (全 skill の解像度評価表が生成済)"
+    verification_commands: { command: "test -f docs/audit/skill-resolution-2026-05.md && wc -l docs/audit/skill-resolution-2026-05.md | awk '{print $1}", expected: ">= 100 (全 skill の解像度評価表が生成済)" }
   low_resolution_brushed:
-    verification_commands:
-      command: "low_resolution_count_after - low_resolution_count_before"
-      expected: "減少 (低解像度判定 skill の半数以上を brush up または廃止)"
+    verification_commands: { command: "low_resolution_count_after - low_resolution_count_before", expected: "減少 (低解像度判定 skill の半数以上を brush up または廃止)" }
+finalized: 2026-05-10
 ---
 
 # PLAN-059: リファクタリング B - skill 解像度監査 + brush up
