@@ -98,3 +98,74 @@ helix reverse fullback rgc
 ```
 
 RGC は「Reverse で見つけた gap が Forward 側で閉じたか」を確認する閉塞チェックです。open が残る場合は `debt`、`readiness defer`、または新しい `plan` に戻します。
+
+---
+
+## Worked Example: legacy CRUD アプリ → Forward L4
+
+設計書なし legacy CRUD アプリ（Express + PostgreSQL + 1k LOC）を Reverse → Forward に接続する完走シナリオ。
+
+### シナリオ概要
+
+- 対象: Express + PostgreSQL + 単一テナント CRUD
+- 規模: 1k LOC / 20 endpoints / 12 tables
+- 完走時間目安: 4-8h (small)、10k LOC なら 1-2 day (medium)
+
+### R0: Evidence Acquisition (1-2h)
+
+```bash
+helix code build
+helix code stats --by domain
+helix reverse code R0 --target src/
+```
+
+成果物: `docs/reverse/R0-evidence-map.yaml`（modules / db_schema / runtime_topology / unknowns）
+
+### R1: Observed Contracts (1-2h)
+
+```bash
+swagger-jsdoc -d swaggerDef.js src/routes/*.js > openapi.yaml
+psql -d app_db -c '\d+' > db-schema.txt
+tsc --emitDeclarationOnly --outDir types/
+helix reverse code R1
+```
+
+成果物: `docs/reverse/R1-observed-contracts.yaml`（api / db / types）
+
+### R2: As-Is Design (1h)
+
+ADR 仮説を 3 件起票: ADR-101 draft-reverse（session-cookie based auth）、ADR-102 draft-reverse（cache layer なし）、ADR-103 draft-reverse（error handling は middleware 集約）。
+
+成果物: `docs/reverse/R2-as-is-design.md`
+
+### R3: Intent Hypotheses (1h、PO 検証)
+
+PO 検証で 5 intent / 2 accidental / 1 unknown を確定。例: マルチテナント未対応は意図的、cache 層欠落は偶発、rate limit ポリシーは PO 要確認。
+
+### R4: Gap & Routing (30min)
+
+gap_register 4 件:
+
+| gap_id | severity | gap kind | primary_routing | post_forward_action |
+|---|---|---|---|---|
+| GAP-001 | critical | rate limit 要件未定義 | L1 | - |
+| GAP-002 | high | cache 層実装欠落 | L4 | observability (L10) |
+| GAP-003 | high | マルチテナント受入条件 | L1 | - |
+| GAP-004 | medium | error log 仕様不足 | L2 | runbook (L11) |
+
+### Forward 接続 (5min)
+
+```bash
+helix plan draft --title 'rate limit 要件定義 (GAP-001)' --plan-id PLAN-NNN
+helix sprint next --task 'cache layer 実装 (GAP-002)'
+```
+
+critical gap（L1）は Forward で要件定義へ、high gap（L4）は sprint へ投入する。
+
+### 完走後
+
+```bash
+helix reverse code rgc
+```
+
+primary_routing で投入した gap が Forward 側で closed / partial / open のどれになったかを集計し、post_forward_action は L8-L11 の plan / debt_register に carry する。
