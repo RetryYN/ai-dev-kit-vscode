@@ -354,6 +354,28 @@ read_config_readiness_mode() {
   ' "$config_file"
 }
 
+trim_value() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+is_truthy() {
+  local value
+  value="$(trim_value "$1")"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  case "${value,,}" in
+    true|1|yes|on)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 parse_readiness_mode() {
   local flag_value="${1:-}"
   local mode=""
@@ -444,7 +466,7 @@ fi
 if [[ "$GATE" == "G5" && -f "$PHASE_FILE" ]]; then
   auto_drive=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "")
   ui_flag=$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.ui" 2>/dev/null || echo "")
-  if [[ ("$auto_drive" == "be" || "$auto_drive" == "db") && "$ui_flag" != "true" ]]; then
+  if [[ "$auto_drive" == "be" || "$auto_drive" == "db" ]] && ! is_truthy "$ui_flag"; then
     g5_target_phase=$(_g5_effective_phase)
     echo "=== G5: phase=$g5_target_phase, drive=$auto_drive + ui=false, skip (L5/G5 不要、auto-skipped) ==="
     python3 "$YAML_PARSER" write "$PHASE_FILE" "gates.G5.status" skipped 2>/dev/null || true
@@ -1021,7 +1043,7 @@ run_checks() {
         return 0
         ;;
       agent|be|db)
-        [[ "$ui_value" == "true" ]]
+        is_truthy "$ui_value"
         return $?
         ;;
       *)

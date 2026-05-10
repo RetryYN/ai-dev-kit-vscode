@@ -182,7 +182,6 @@ EOF
 }
 
 @test "5 drive=be + ui=true + DESIGN.mdあり + lint exit 0 -> G5 PASS" {
-  skip "PLAN-058: cli/helix-gate sprint.ui 真偽値比較不整合 (実装 bug fix carry)"
   set_gate_context "be" "true"
   write_design_md
   mock_npx

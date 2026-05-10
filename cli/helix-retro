@@ -9,7 +9,10 @@ REGISTER="$HELIX_DIR/debt-register.yaml"
 
 count_empty_items() {
   local file="$1"
-  grep -cE '^\s*-\s*$' "$file" 2>/dev/null || echo 0
+  awk '
+    /^[[:space:]]*-[[:space:]]*$/ { count++ }
+    END { print count + 0 }
+  ' "$file" 2>/dev/null || echo 0
 }
 
 slugify_name() {
@@ -42,7 +45,7 @@ case "${1:-help}" in
     echo "=== ミニレトロ一覧 ==="
     for f in "$RETRO_DIR"/*.md; do
       name=$(basename "$f" .md)
-      empty=$(grep -cE '^\s*-\s*$' "$f" 2>/dev/null || echo 0)
+      empty="$(count_empty_items "$f")"
       if [[ $empty -gt 0 ]]; then
         echo "  ⚠ $name（未記入項目あり）"
       else
@@ -62,10 +65,10 @@ case "${1:-help}" in
     found=0
     for f in "$RETRO_DIR"/*.md; do
       [[ -f "$f" ]] || continue
-      empty=$(grep -cE '^\s*-\s*$' "$f" 2>/dev/null || echo 0)
+      empty="$(count_empty_items "$f")"
       if [[ $empty -gt 0 ]]; then
         echo "⚠ 未記入: $(basename "$f" .md)"
-        grep -n '^\s*-\s*$' "$f" | head -3
+        grep -nE '^[[:space:]]*-[[:space:]]*$' "$f" | head -3
         found=1
       fi
     done
