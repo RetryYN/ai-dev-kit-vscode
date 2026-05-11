@@ -9,6 +9,7 @@ Usage:
   python3 helix_db.py record-action <db> <json>
   python3 helix_db.py record-observation <db> <json>
   python3 helix_db.py record-feedback <db> <json>
+  python3 helix_db.py record-invocation <db> <json>
   python3 helix_db.py record-feedback-argv <db> <task_run_id_or_0> <type> <category> <desc> [impact] [resolution]
   python3 helix_db.py latest-task-run <db> <task_id>
   python3 helix_db.py report <db> [summary|tasks|actions|feedback|quality|session] [date]
@@ -582,6 +583,46 @@ CREATE INDEX IF NOT EXISTS idx_links_kind        ON links(kind);
 """
 
 
+INVOCATION_LOG_SCHEMA = """
+CREATE TABLE IF NOT EXISTS invocation_log (
+    id INTEGER PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    type TEXT NOT NULL,
+    role TEXT,
+    model TEXT,
+    task_id TEXT,
+    plan_id TEXT,
+    sprint TEXT,
+    input_bytes INTEGER,
+    output_bytes INTEGER,
+    duration_ms INTEGER,
+    decision TEXT,
+    cost_cents REAL,
+    parent_invocation_id INTEGER,
+    raw_meta TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_invocation_plan ON invocation_log(plan_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_invocation_timestamp ON invocation_log(timestamp);
+"""
+
+
+INVOCATION_META_ALLOWLIST = (
+    "role",
+    "model",
+    "task_id",
+    "plan_id",
+    "sprint",
+    "decision",
+    "cost_cents",
+    "duration_ms",
+)
+INVOCATION_REDACTION_PATTERNS = (
+    re.compile(r"sk-[A-Za-z0-9]{20,}"),
+    re.compile(r"Bearer\s+\S+"),
+    re.compile(r"token=\S+"),
+)
+
+
 def _prepare_db_path(db_path):
     parent_dir = os.path.dirname(os.path.abspath(db_path))
     if parent_dir:
@@ -636,6 +677,38 @@ def _create_accuracy_score_table(conn):
 
 def _create_infra_tables_v9(conn):
     conn.executescript(INFRA_SCHEMA_V9)
+
+
+def _ensure_invocation_log_table(conn):
+    conn.executescript(INVOCATION_LOG_SCHEMA)
+
+
+def _redact_meta_value(value):
+    if isinstance(value, str):
+        redacted = value
+        for pattern in INVOCATION_REDACTION_PATTERNS:
+            redacted = pattern.sub("[REDACTED]", redacted)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_meta_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _redact_meta_value(item) for key, item in value.items()}
+    return value
+
+
+def _redact_meta(meta):
+    if not isinstance(meta, dict):
+        return {}
+
+    redacted = {}
+    for key in INVOCATION_META_ALLOWLIST:
+        if key not in meta:
+            continue
+        value = meta[key]
+        if value is None:
+            continue
+        redacted[key] = _redact_meta_value(value)
+    return redacted
 
 
 def _ensure_setup_tables(conn):
@@ -793,6 +866,7 @@ def _migrate_v15_to_v16(conn):
         "CREATE INDEX IF NOT EXISTS idx_skill_usage_session ON skill_usage(session_id) "
         "WHERE session_id IS NOT NULL"
     )
+    _ensure_invocation_log_table(conn)
 
 
 def _migrate_v16_to_v17(conn):
@@ -1171,6 +1245,7 @@ def _ensure_schema(conn):
     conn.executescript(SCHEMA)
     conn.executescript(SCHEMA_VERSION_SCHEMA)
     migrate(conn)
+    _ensure_invocation_log_table(conn)
     _ensure_setup_tables(conn)
 
 
@@ -1311,6 +1386,37 @@ def record_feedback_argv(
             'resolution': resolution,
         },
     )
+
+
+# @helix:index id=helix-db.record-invocation domain=cli/lib summary=invocation telemetryを記録する
+def record_invocation(db_path, data):
+    raw_meta = _redact_meta(data.get("raw_meta", {}))
+
+    with _write_connection(db_path) as conn:
+        conn.execute(
+            "INSERT INTO invocation_log "
+            "(timestamp, type, role, model, task_id, plan_id, sprint, input_bytes, output_bytes, "
+            "duration_ms, decision, cost_cents, parent_invocation_id, raw_meta) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                data.get("timestamp", datetime.now().isoformat()),
+                data["type"],
+                data.get("role"),
+                data.get("model"),
+                data.get("task_id"),
+                data.get("plan_id"),
+                data.get("sprint"),
+                data.get("input_bytes"),
+                data.get("output_bytes"),
+                data.get("duration_ms"),
+                data.get("decision"),
+                data.get("cost_cents"),
+                data.get("parent_invocation_id"),
+                json.dumps(raw_meta, ensure_ascii=False),
+            ),
+        )
+        row_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    print(row_id)
 
 
 # @helix:index id=helix-db.record-accuracy-score domain=cli/lib summary=accuracy scoreを記録する
@@ -2047,6 +2153,8 @@ def main():
                 record_observation(db_path, json.loads(sys.argv[3]))
             elif cmd == 'record-feedback':
                 record_feedback(db_path, json.loads(sys.argv[3]))
+            elif cmd == 'record-invocation':
+                record_invocation(db_path, json.loads(sys.argv[3]))
             elif cmd == 'record-feedback-argv':
                 record_feedback_argv(
                     db_path,

@@ -99,6 +99,15 @@ SUMMARY_END_MARKER="---SUMMARY_END---"
 SUMMARY_MISSING_WARNING="[helix-codex] WARNING: summary marker missing, falling back to last 30 lines"
 SPARK_MODEL_ID="gpt-5.3-codex-spark"
 SPARK_DISABLED_MODEL_ID="gpt-5.3-codex"
+RUN_STARTED_AT_MS="$(python3 - <<'PY'
+import time
+print(int(time.time() * 1000))
+PY
+)"
+PROMPT_BYTES=0
+LAST_SUMMARY_DECISION=""
+LAST_SUMMARY_COST_CENTS=""
+LAST_OUTPUT_BYTES=0
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -1290,6 +1299,7 @@ printf -v PROMPT '%s%s\n\n%s\n\n%s\n\n%s\n\n## 共通参照（作業前に必ず
   "$SKILL_PATHS" \
   "$TASK" \
   "$HELIX_CODEX_OUTPUT_FOOTER"
+PROMPT_BYTES="$(printf '%s' "$PROMPT" | wc -c | tr -d '[:space:]')"
 
 # --- 実行 ---
 if [[ "$DRY_RUN" == true ]]; then
@@ -1541,6 +1551,22 @@ emit_summary_from_capture() {
   tail -n 30 "$stdout_file"
 }
 
+extract_summary_field_from_file() {
+  local stdout_file="$1"
+  local field_name="$2"
+  [[ -f "$stdout_file" ]] || return 0
+
+  awk -v start="$SUMMARY_START_MARKER" -v end="$SUMMARY_END_MARKER" -v field="$field_name" '
+    $0 == start { capture = 1; next }
+    $0 == end { capture = 0 }
+    capture && $0 ~ ("^" field ":") {
+      sub("^" field ":[[:space:]]*", "", $0)
+      print
+      exit
+    }
+  ' "$stdout_file"
+}
+
 run_codex_post_hook() {
   local stdout_file="$1"
   local audit_file="$2"
@@ -1634,12 +1660,111 @@ run_codex_once() {
   if [[ $rc -eq 0 ]]; then
     check_write_expected_delta "$STDOUT_FILE" || true
   fi
+  LAST_OUTPUT_BYTES="$(wc -c < "$STDOUT_FILE" | tr -d '[:space:]')"
+  LAST_SUMMARY_DECISION="$(extract_summary_field_from_file "$STDOUT_FILE" "decision")"
+  LAST_SUMMARY_COST_CENTS="$(extract_summary_field_from_file "$STDOUT_FILE" "cost_cents")"
   emit_summary_from_capture "$STDOUT_FILE"
   if [[ $rc -eq 0 ]]; then
     run_codex_post_hook "$STDOUT_FILE" "$AUDIT_FILE" "$run_role"
   fi
   rm -f "$STDOUT_FILE" 2>/dev/null || true
   return $rc
+}
+
+record_invocation_telemetry() {
+  local db_path="${HELIX_DIR}/helix.db"
+  local ended_at_ms=""
+  local duration_ms=0
+  local decision="${LAST_SUMMARY_DECISION:-}"
+  local parent_invocation_id=""
+  local payload=""
+
+  ended_at_ms="$(python3 - <<'PY'
+import time
+print(int(time.time() * 1000))
+PY
+)"
+  if [[ "$RUN_STARTED_AT_MS" =~ ^[0-9]+$ && "$ended_at_ms" =~ ^[0-9]+$ ]]; then
+    duration_ms=$((ended_at_ms - RUN_STARTED_AT_MS))
+    if (( duration_ms < 0 )); then
+      duration_ms=0
+    fi
+  fi
+
+  if [[ -z "$decision" ]]; then
+    if [[ $codex_exit -eq 0 ]]; then
+      decision="passed"
+    else
+      decision="failed"
+    fi
+  fi
+
+  if [[ "${HELIX_PARENT_INVOCATION_ID:-}" =~ ^[0-9]+$ ]]; then
+    parent_invocation_id="${HELIX_PARENT_INVOCATION_ID}"
+  fi
+
+  payload="$(
+    HELIX_INVOCATION_TYPE="codex" \
+    HELIX_INVOCATION_ROLE="$ROLE" \
+    HELIX_INVOCATION_MODEL="$codex_model" \
+    HELIX_INVOCATION_TASK_ID="$TASK_ID" \
+    HELIX_INVOCATION_PLAN_ID="$PLAN_ID" \
+    HELIX_INVOCATION_SPRINT="$L4_SPRINT" \
+    HELIX_INVOCATION_INPUT_BYTES="$PROMPT_BYTES" \
+    HELIX_INVOCATION_OUTPUT_BYTES="$LAST_OUTPUT_BYTES" \
+    HELIX_INVOCATION_DURATION_MS="$duration_ms" \
+    HELIX_INVOCATION_DECISION="$decision" \
+    HELIX_INVOCATION_COST_CENTS="${LAST_SUMMARY_COST_CENTS:-}" \
+    HELIX_INVOCATION_PARENT_ID="$parent_invocation_id" \
+    python3 - <<'PY'
+import json
+import os
+
+
+def _int_env(name):
+    value = os.environ.get(name, "").strip()
+    return int(value) if value.isdigit() else None
+
+
+def _float_env(name):
+    value = os.environ.get(name, "").strip()
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+payload = {
+    "type": os.environ["HELIX_INVOCATION_TYPE"],
+    "role": os.environ.get("HELIX_INVOCATION_ROLE") or None,
+    "model": os.environ.get("HELIX_INVOCATION_MODEL") or None,
+    "task_id": os.environ.get("HELIX_INVOCATION_TASK_ID") or None,
+    "plan_id": os.environ.get("HELIX_INVOCATION_PLAN_ID") or None,
+    "sprint": os.environ.get("HELIX_INVOCATION_SPRINT") or None,
+    "input_bytes": _int_env("HELIX_INVOCATION_INPUT_BYTES"),
+    "output_bytes": _int_env("HELIX_INVOCATION_OUTPUT_BYTES"),
+    "duration_ms": _int_env("HELIX_INVOCATION_DURATION_MS"),
+    "decision": os.environ.get("HELIX_INVOCATION_DECISION") or None,
+    "cost_cents": _float_env("HELIX_INVOCATION_COST_CENTS"),
+    "parent_invocation_id": _int_env("HELIX_INVOCATION_PARENT_ID"),
+}
+payload["raw_meta"] = {
+    "role": payload["role"],
+    "model": payload["model"],
+    "task_id": payload["task_id"],
+    "plan_id": payload["plan_id"],
+    "sprint": payload["sprint"],
+    "decision": payload["decision"],
+    "duration_ms": payload["duration_ms"],
+    "cost_cents": payload["cost_cents"],
+}
+print(json.dumps(payload, ensure_ascii=False))
+PY
+  )" || return 0
+
+  python3 "$SCRIPT_DIR/lib/helix_db.py" record-invocation "$db_path" "$payload" >/dev/null 2>&1 || true
 }
 
 # Primary model リトライループ
@@ -1727,6 +1852,8 @@ if [[ -n "$DIFF_BEFORE" && -n "$DIFF_AFTER" && -n "$UNTRACKED_AFTER" ]]; then
   fi
   rm -f "$DIFF_BEFORE" "$DIFF_AFTER" "$UNTRACKED_AFTER" 2>/dev/null || true
 fi
+
+record_invocation_telemetry || true
 
 # コスト記録（バックグラウンド）
 cost_bg_pid=""
