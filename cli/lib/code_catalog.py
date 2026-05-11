@@ -276,6 +276,7 @@ def _symbol_at_line(path: Path, symbol_line: int) -> tuple[str, str]:
 
 # @helix:index id=code-catalog.write-rejection-log domain=cli/lib summary=rejection logを書込する
 def write_rejection_log(reject_dir: Path, path: str, line_no: int, pattern_name: str, reason: str) -> None:
+    """redaction により除外した marker を rejection log に記録する。"""
     reject_dir.mkdir(parents=True, exist_ok=True)
     log_path = reject_dir / _REJECTION_LOG
     with log_path.open("a", encoding="utf-8", newline="\n") as fp:
@@ -286,7 +287,9 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# @helix:index id=code-catalog.should-redact domain=cli/lib summary=summaryのredaction要否を判定する
 def should_redact(summary: str) -> tuple[bool, str | None]:
+    """summary が秘匿規則に触れるかを判定する。"""
     lowered = summary.lower()
     if lowered in _SAFE_WORDS:
         return False, None

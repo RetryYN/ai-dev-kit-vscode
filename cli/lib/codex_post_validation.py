@@ -22,7 +22,7 @@ _CONCURRENT_BASELINE_ERROR = (
 
 
 def read_snapshot(path: Path) -> set[str]:
-    if not path.exists():
+    if path.is_dir() or not path.exists():
         return set()
     return {
         line.strip()

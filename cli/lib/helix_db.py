@@ -1650,6 +1650,7 @@ def insert_metric(db_path, metric_name, value, tags=None):
         return row_id
 
 
+# @helix:index id=helix-db.acquire-db-lock domain=cli/lib summary=lockを取得または更新する
 def acquire_db_lock(
     db_path,
     name,
@@ -1690,6 +1691,7 @@ def acquire_db_lock(
         return True
 
 
+# @helix:index id=helix-db.release-db-lock domain=cli/lib summary=lockを解放する
 def release_db_lock(db_path, name, pid):
     """PLAN-005 lock release API。pid 一致時のみ解放する。"""
     name = _require_non_empty(name, "name")
@@ -1699,6 +1701,7 @@ def release_db_lock(db_path, name, pid):
         return cur.rowcount == 1
 
 
+# @helix:index id=helix-db.enqueue-job domain=cli/lib summary=jobをenqueueする
 def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
     """PLAN-005 job-queue enqueue API。worker 実行は job_queue_helper が担当する。"""
     task_type = _validate_choice(task_type, "task_type", TASK_TYPES_V9)
@@ -1725,6 +1728,7 @@ def enqueue_job(db_path, task_type, task_payload, priority=5, **kwargs):
         return job_id
 
 
+# @helix:index id=helix-db.add-schedule domain=cli/lib summary=scheduleを追加する
 def add_schedule(db_path, schedule_expr, task_type, task_payload, **kwargs):
     """PLAN-005 scheduler add API。next_run_at 計算は scheduler_helper が担当する。"""
     schedule_expr = _require_non_empty(schedule_expr, "schedule_expr")

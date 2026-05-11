@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -29,6 +30,7 @@ MODEL_NAME = resolve_role_model("recommender", default="gpt-5.4-mini")
 _DEFAULTS = load_defaults()
 CACHE_TTL_SECONDS = _DEFAULTS["recommender"]["cache_ttl_sec"]
 NETWORK_EXIT_CODES = {7, 8, 28, 124}
+_ENTRYPOINT_GUARD_RE = re.compile(r"if\s+__name__\s*==\s*(['\"])__main__\1")
 
 
 # @helix:index id=code-recommender.code-recommender-error domain=cli/lib summary=CodeRecommenderErrorクラス
@@ -82,6 +84,70 @@ def _safe_text(value: Any) -> str:
     return str(value)
 
 
+def _repo_relative_path(entry: dict[str, Any]) -> Path:
+    return Path(_safe_text(entry.get("path")).strip())
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def _module_name_for_path(path: Path) -> str:
+    return ".".join(path.with_suffix("").parts)
+
+
+def _symbol_at_line(path: Path, line_no: int) -> tuple[str, str]:
+    if line_no <= 0:
+        return "", ""
+    text = _read_text(path)
+    if not text:
+        return "", ""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return "", ""
+
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if node.lineno != line_no:
+            continue
+        kind = "class" if isinstance(node, ast.ClassDef) else "function"
+        return node.name, kind
+
+    return "", ""
+
+
+def _has_entrypoint_guard(path: Path) -> bool:
+    text = _read_text(path)
+    return bool(text and _ENTRYPOINT_GUARD_RE.search(text))
+
+
+def _is_entrypoint_main(entry: dict[str, Any]) -> bool:
+    rel_path = _repo_relative_path(entry)
+    if not rel_path.as_posix():
+        return False
+
+    symbol_line = 0
+    try:
+        symbol_line = int(entry.get("symbol_line") or entry.get("line_no") or 0)
+    except (TypeError, ValueError):
+        symbol_line = 0
+
+    if symbol_line <= 0:
+        return False
+
+    symbol_name, kind = _symbol_at_line(_repo_root() / rel_path, symbol_line)
+    if symbol_name != "main" or kind != "function":
+        return False
+
+    module_name = _module_name_for_path(rel_path)
+    return module_name.endswith("__main__") or _has_entrypoint_guard(_repo_root() / rel_path)
+
+
 def _cache_key(query: str, top_n: int, catalog_fingerprint: str = "", bucket: str = "coverage_eligible") -> str:
     payload = {"query": query, "n": top_n, "catalog_fingerprint": catalog_fingerprint, "bucket": bucket}
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -118,7 +184,7 @@ def _fetch_entries(db_path: str | Path | None = None, *, bucket: str = "coverage
     conn.row_factory = sqlite3.Row
     try:
         sql = """
-            SELECT id, domain, summary, path, line_no, since, related, bucket
+            SELECT id, domain, summary, path, line_no, symbol_line, since, related, bucket
             FROM code_index
         """
         params: list[str] = []
@@ -130,6 +196,10 @@ def _fetch_entries(db_path: str | Path | None = None, *, bucket: str = "coverage
     finally:
         conn.close()
     return [dict(row) for row in rows]
+
+
+def _summary_tokens(summary: str) -> set[str]:
+    return {part for part in re.split(r"[\s_\-./()]+", summary.lower()) if part}
 
 
 def _entry_lines(entries: list[dict[str, Any]]) -> str:
@@ -393,6 +463,48 @@ def main(argv: list[str] | None = None) -> int:
             f"{float(item.get('score', 0.0)):.2f}\t{item.get('reason', '')}"
         )
     return 0
+
+
+def find_duplicates(
+    threshold: float = 0.85,
+    *,
+    domain: str = "",
+    include_entrypoints: bool = False,
+) -> list[dict[str, Any]]:
+    entries = _fetch_entries(bucket="all")
+    if domain:
+        entries = [entry for entry in entries if _safe_text(entry.get("domain")).strip() == domain]
+
+    by_domain: dict[str, list[dict[str, Any]]] = {}
+    for entry in entries:
+        by_domain.setdefault(_safe_text(entry.get("domain")).strip(), []).append(entry)
+
+    matches: list[dict[str, Any]] = []
+    for domain_name, grouped_entries in by_domain.items():
+        for index, left in enumerate(grouped_entries):
+            left_summary = _safe_text(left.get("summary"))
+            left_tokens = _summary_tokens(left_summary)
+            for right in grouped_entries[index + 1 :]:
+                right_tokens = _summary_tokens(_safe_text(right.get("summary")))
+                union = left_tokens | right_tokens
+                score = 0.0 if not union else len(left_tokens & right_tokens) / len(union)
+                if score < threshold:
+                    continue
+                if not include_entrypoints and (_is_entrypoint_main(left) or _is_entrypoint_main(right)):
+                    continue
+                matches.append(
+                    {
+                        "left_id": _safe_text(left.get("id")).strip(),
+                        "right_id": _safe_text(right.get("id")).strip(),
+                        "score": score,
+                        "domain": domain_name,
+                    }
+                )
+
+    return sorted(
+        matches,
+        key=lambda item: (-float(item.get("score", 0.0)), _safe_text(item.get("domain")), _safe_text(item.get("left_id")), _safe_text(item.get("right_id"))),
+    )
 
 
 if __name__ == "__main__":

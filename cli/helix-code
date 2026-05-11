@@ -19,7 +19,7 @@ Subcommands:
   show <id>                     code_index の詳細を表示
   find <query> [-n 5] [--bucket coverage_eligible|private_helper|excluded|all]
                                 query に近い流用候補を推挙
-  dup [--threshold 0.85] [--domain NAME]
+  dup [--threshold 0.85] [--domain NAME] [--include-entrypoints]
                                 summary 類似の duplicate 候補を検出
   stats [--by domain|since]     code_index の件数を集計
   stats --uncovered [--scope all|core5] [--fail-under N] [--json]
@@ -189,58 +189,30 @@ PY
 dup_entries() {
   local threshold="$1"
   local domain="$2"
+  local include_entrypoints="$3"
 
-  python3 - "$LIB_DIR" "$threshold" "$domain" <<'PY'
-import itertools
-import re
-import sqlite3
+  python3 - "$LIB_DIR" "$threshold" "$domain" "$include_entrypoints" <<'PY'
 import sys
 from pathlib import Path
 
 lib_dir = Path(sys.argv[1])
 threshold = float(sys.argv[2])
 domain_filter = sys.argv[3]
+include_entrypoints = sys.argv[4] == "true"
 
 sys.path.insert(0, str(lib_dir))
-import helix_db  # type: ignore
+import code_recommender  # type: ignore
 
-
-def tokenize(summary: str) -> set[str]:
-    return {part for part in re.split(r"[\s_\-./()]+", summary.lower()) if part}
-
-
-db_path = helix_db.resolve_default_db_path()
-helix_db._prepare_db_path(db_path)
-conn = helix_db._connect(db_path)
-helix_db._ensure_schema(conn)
-conn.row_factory = sqlite3.Row
-try:
-    sql = "SELECT id, domain, summary FROM code_index"
-    params = []
-    if domain_filter:
-        sql += " WHERE domain = ?"
-        params.append(domain_filter)
-    sql += " ORDER BY domain, id"
-    rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
-finally:
-    conn.close()
-
-by_domain: dict[str, list[dict]] = {}
-for row in rows:
-    by_domain.setdefault(str(row.get("domain") or ""), []).append(row)
-
-matches: list[tuple[float, str, str, str]] = []
-for domain, entries in by_domain.items():
-    for left, right in itertools.combinations(entries, 2):
-        left_tokens = tokenize(str(left.get("summary") or ""))
-        right_tokens = tokenize(str(right.get("summary") or ""))
-        union = left_tokens | right_tokens
-        score = 0.0 if not union else len(left_tokens & right_tokens) / len(union)
-        if score >= threshold:
-            matches.append((score, str(left.get("id") or ""), str(right.get("id") or ""), domain))
-
-for score, left_id, right_id, domain in sorted(matches, key=lambda item: (-item[0], item[3], item[1], item[2])):
-    print(f"{left_id}  {right_id}  {score:.3f}  {domain}")
+results = code_recommender.find_duplicates(
+    threshold,
+    domain=domain_filter,
+    include_entrypoints=include_entrypoints,
+)
+for item in results:
+    print(
+        f"{item.get('left_id', '')}  {item.get('right_id', '')}  "
+        f"{float(item.get('score', 0.0)):.3f}  {item.get('domain', '')}"
+    )
 PY
 }
 
@@ -462,6 +434,7 @@ USAGE
     dup)
       local threshold="0.85"
       local domain=""
+      local include_entrypoints="false"
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --threshold)
@@ -474,9 +447,13 @@ USAGE
             domain="$2"
             shift 2
             ;;
+          --include-entrypoints)
+            include_entrypoints="true"
+            shift
+            ;;
           --help|-h)
             cat <<'USAGE'
-使い方: helix code dup [--threshold 0.85] [--domain NAME]
+使い方: helix code dup [--threshold 0.85] [--domain NAME] [--include-entrypoints]
 USAGE
             return 0
             ;;
@@ -486,7 +463,7 @@ USAGE
             ;;
         esac
       done
-      dup_entries "$threshold" "$domain"
+      dup_entries "$threshold" "$domain" "$include_entrypoints"
       return $?
       ;;
     stats)

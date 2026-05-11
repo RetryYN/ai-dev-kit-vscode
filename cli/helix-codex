@@ -817,6 +817,7 @@ check_write_expected_delta() {
   local stdout_file="$1"
 
   [[ "$TASK_TYPE" == "実装" ]] || return 0
+  [[ -n "$DIFF_BEFORE" ]] || return 0
   [[ -f "$stdout_file" ]] || return 0
 
   python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
