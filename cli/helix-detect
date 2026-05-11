@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-detect: PLAN-063 detector router entrypoint
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+exec python3 "$SCRIPT_DIR/lib/detectors/registry.py" "$@"
