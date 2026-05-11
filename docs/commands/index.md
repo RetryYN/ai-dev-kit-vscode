@@ -6,6 +6,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 
 | コマンド | 役割 |
 |---|---|
+| `helix asset` | 画像 asset preset 生成 |
 | `helix init` | `.helix/` とプロジェクト設定を初期化し、meta-phase pattern 契約テンプレートを配置 |
 | `helix status` | 現在 phase / gate / next action を表示 |
 | `helix dashboard` | 静的な読み取り専用 snapshot を表示（Dashboard 構想管理の対象外） |

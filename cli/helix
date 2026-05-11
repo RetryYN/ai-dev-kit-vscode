@@ -68,6 +68,7 @@ case "$CMD" in
     ;;
   skill)    exec "$SCRIPT_DIR/helix-skill" "$@" ;;
   code)     exec "$SCRIPT_DIR/helix-code" "$@" ;;
+  asset)    exec "$SCRIPT_DIR/helix-asset" "$@" ;;
   bench)    exec "$SCRIPT_DIR/helix-bench" "$@" ;;
   status)   exec "$SCRIPT_DIR/helix-status" "$@" ;;
   test)     exec "$SCRIPT_DIR/helix-test" "$@" ;;
@@ -147,6 +148,7 @@ Reverse / Scrum / 検証:
   discover    パターン検索 (deprecated: helix recipe discover)
   builder     成果物ビルダー
   code        コードインデックス検索/重複検出/統計
+  asset       画像 asset preset 生成
   entry       entries/links 中央 DB の CRUD + N 軸 coverage (PLAN-027)
   audit       A1 audit decisions 同期・検証
 

@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix asset <preset> [opts]
+
+Presets:
+  banner   1200x400  GitHub README / OG banner
+  logo     512x512   brand mark
+  hero     1920x1080 LP hero section
+  card     800x600   service / feature card
+  thumb    1200x630  blog / article thumbnail (OG)
+  icon     256x256   UI icon set
+  bg       1920x1080 background pattern (tileable)
+
+Common options:
+  --style <minimal|tech|playful|corp>  base style (default: minimal)
+  --palette <hex,hex,hex>              color palette
+  --motif <text>                       motif description (free text)
+  --text <text>                        text overlay
+  --out <path>                         output path (default: docs/assets/<preset>-<timestamp>.png)
+  --variants N                         generate N variants (default: 1, max 8)
+  --model <model>                      override model (default: gpt-5.4-mini)
+  --dry-run                            show resolved prompt without invoking codex
+  -h, --help                           show this help
+USAGE
+}
+
+die() {
+  echo "エラー: $1" >&2
+  exit "${2:-1}"
+}
+
+is_known_preset() {
+  case "$1" in
+    banner|logo|hero|card|thumb|icon|bg) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_size() {
+  case "$1" in
+    banner) echo "1200x400" ;;
+    logo) echo "512x512" ;;
+    hero) echo "1920x1080" ;;
+    card) echo "800x600" ;;
+    thumb) echo "1200x630" ;;
+    icon) echo "256x256" ;;
+    bg) echo "1920x1080" ;;
+  esac
+}
+
+escape_text() {
+  local value="${1:-}"
+  value="${value//$'\r'/ }"
+  value="${value//$'\n'/ }"
+  value="${value//$'\t'/ }"
+  printf '%s' "${value:0:256}"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+preset="${1:-}"
+if [[ -z "${preset}" ]]; then
+  usage
+  exit 1
+fi
+shift || true
+
+style="minimal"
+palette=""
+motif=""
+text=""
+out=""
+variants="1"
+model="gpt-5.4-mini"
+dry_run="0"
+
+while (($#)); do
+  case "$1" in
+    --style) style="${2:-}"; shift 2 ;;
+    --palette) palette="${2:-}"; shift 2 ;;
+    --motif) motif="${2:-}"; shift 2 ;;
+    --text) text="${2:-}"; shift 2 ;;
+    --out) out="${2:-}"; shift 2 ;;
+    --variants) variants="${2:-}"; shift 2 ;;
+    --model) model="${2:-}"; shift 2 ;;
+    --dry-run) dry_run="1"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) die "不明なオプション: $1" 2 ;;
+  esac
+done
+
+if ! is_known_preset "$preset"; then
+  die "unknown preset: $preset" 2
+fi
+
+if ! [[ "$variants" =~ ^[0-9]+$ ]] || (( variants < 1 || variants > 8 )); then
+  die "--variants は 1-8 の範囲で指定してください" 2
+fi
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+if [[ -z "$out" ]]; then
+  out="docs/assets/${preset}-${timestamp}.png"
+fi
+size="$(resolve_size "$preset")"
+
+prompt_template_path="cli/templates/assets/${preset}.md"
+template=""
+if [[ -f "$prompt_template_path" ]]; then
+  template="$(cat "$prompt_template_path")"
+fi
+
+resolved_prompt="$template"
+resolved_prompt="${resolved_prompt//\{\{preset\}\}/$preset}"
+resolved_prompt="${resolved_prompt//\{\{size\}\}/$size}"
+resolved_prompt="${resolved_prompt//\{\{style\}\}/$(escape_text "$style")}"
+resolved_prompt="${resolved_prompt//\{\{palette\}\}/$(escape_text "$palette")}"
+resolved_prompt="${resolved_prompt//\{\{motif\}\}/$(escape_text "$motif")}"
+resolved_prompt="${resolved_prompt//\{\{text\}\}/$(escape_text "$text")}"
+resolved_prompt="${resolved_prompt//\{\{out\}\}/$(escape_text "$out")}"
+resolved_prompt="${resolved_prompt//\{\{out_path\}\}/$(escape_text "$out")}"
+resolved_prompt="${resolved_prompt//\{\{variants\}\}/$variants}"
+
+if [[ -z "$resolved_prompt" ]]; then
+  resolved_prompt=$(cat <<EOF
+Create a ${preset} asset at ${size}.
+Style: ${style}
+Palette: ${palette:-none}
+Motif: ${motif:-none}
+Text: ${text:-none}
+Output: ${out}
+Variants: ${variants}
+EOF
+)
+fi
+
+if [[ "$dry_run" == "1" ]]; then
+  printf '%s\n' "$resolved_prompt"
+  printf 'output: %s\n' "$out"
+  printf 'model: %s\n' "$model"
+  printf 'variants: %s\n' "$variants"
+  exit 0
+fi
+
+task_text=$(cat <<EOF
+${resolved_prompt}
+
+Generate ${variants} variant(s) for preset '${preset}' and write the PNG output to '${out}'.
+EOF
+)
+
+exec "$SCRIPT_DIR/helix-codex" --role pg --thinking low --task "$task_text"
