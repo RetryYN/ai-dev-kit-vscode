@@ -1,8 +1,9 @@
 ---
 plan_id: PLAN-062
 title: "PLAN-062（helix code DB 実用化で発見した 3 件 fix）"
-status: finalized
+status: completed
 created: 2026-05-11
+completed: 2026-05-12
 author: "PM (Opus)"
 priority: medium
 size: S
