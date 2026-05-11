@@ -16,8 +16,11 @@ acceptance:
   detector_coverage:
     verification_commands: { command: "cli/helix detect --list", expected: "15 軸 (軸 0+14) すべてが implemented で表示、未実装 0 件" }
     mvp_scope: "本 PLAN-063 のスコープは 15 軸完全実装。11 軸 MVP / 4 軸 carry の分割は採用しない (PLAN-064 以降は別 PLAN として独立スコープで切る)。"
+  contract_guard_early:
+    verification_commands: { command: "cli/helix gate G2 --contract-only", expected: "W-2pre 完了時点で contract_entries.schema_hash 変更検知 → breaking_change_flag=1 caller 列挙 PR comment 自動生成。caller >0 ある breaking change で G2 fail-close" }
+    deliverable_3: "(1) contract registry init (D-API/*.yaml bulk scan + schema_hash 計算)、(2) edge extractor init (cli/lib/*.py AST → code_edges)、(3) G2 contract guard 雛形 (PR diff 検知 + caller 列挙)。W-2pre 完了時点で G2 guard が動作開始。"
   gate_integration:
-    g2_verification: { command: "cli/helix gate G2 --static-only", expected: "軸 6,7,9-A,9-B,12-A,12-E を fail-close 評価 (設計凍結時)" }
+    g2_verification: { command: "cli/helix gate G2 --static-only", expected: "軸 6,7,9-A,9-B,12-A,12-E,12-G を fail-close 評価 (設計凍結時、12-G = 契約破壊検知 W-2pre 由来)" }
     g4_verification: { command: "cli/helix gate G4 --static-only", expected: "軸 1,2,3,4,11,12-B,12-D,12-F を fail-close 評価 (実装凍結時)" }
     g6_verification: { command: "cli/helix gate G6 --static-only", expected: "軸 5,9-E,11-D を fail-close 評価 (RC 判定時)" }
   dashboard:
@@ -136,13 +139,29 @@ CREATE TABLE code_edges (
 
 **軸 10 拡張**: code_edges を mermaid edge として出力。contract / impl / test / db / PLAN の 5 軸が単一 graph で見える dashboard 統合。
 
-## §3 Sprint 構成 (11 Sprint、size=L)
+## §2.7 契約 registry 前倒し戦略 (ユーザー指示 2026-05-12)
+
+接続漏れの **70% は契約系** (型 / スキーマ / 関数 signature mismatch) という分析に基づき、契約レジストリを後段 W-10 ではなく **W-2pre として前倒し** する。これにより:
+
+- 後段 detector (軸 7 Doc drift / 軸 12 Connection / 軸 10 Relation) が contract_entries / code_edges を前提として実装できる
+- G2 contract guard を最速 W-2pre 完了時点で動作可能化 → PR ごとに「壊れる caller 列挙」を自動提示できる状態を早期確立
+- 5 種 extractor のうち契約系 3 種 (Python AST / SQL grep / YAML schema) を最優先実装、残り 2 種 (Bash trace / Hook config) は W-10 で吸収
+
+W-2pre の deliverable 3 件:
+1. **contract registry init**: 既存 `docs/features/*/D-API/*.yaml` を bulk scan → contract_entries 投入 + 初期 schema_hash 計算
+2. **edge extractor init**: 既存 `cli/lib/*.py` の AST から code_edges bulk insert (import / call / sql_query 3 edge type)
+3. **G2 contract guard**: PR diff で contract_entries.schema_hash 変更検知 → `breaking_change_flag=1` 自動付与 → code_edges join で caller 列挙 → `helix gate G2` fail-close で表示
+
+## §3 Sprint 構成 (12 Sprint、size=L)
 
 | Sprint | 内容 | 委譲先 | 並列性 |
 |---|---|---|---|
-| W-0 | draft + TL R1-R2 + finalize | PM | - |
-| W-1 | 軸 0 telemetry 基盤 (db schema v16 + 5 entrypoint instrumentation) | SE | (前提) |
-| W-2 | router `helix detect` CLI + 各 detector skeleton + `D-DETECTORS/*.md` 雛形 | PG | W-1 後 |
+| W-0 | draft + TL R1-R2 + finalize (再 review 含む) | PM | - |
+| W-1a | 軸 0 telemetry 基盤 (db schema v16 invocation_log + helix-codex 1 entrypoint instrumentation + redaction-rules.md fixture) | SE | (前提) |
+| W-1b | 残 4 entrypoint instrumentation (helix-claude / helix-skill / hooks/* / bash classifier) | SE | W-1a 後 並列可 |
+| W-1c | redaction extension + invocation_log 集計 helper + tests | SE | W-1a 後 並列可 |
+| **W-2pre** | **契約 registry 前倒し: db schema v17 (contract_entries + code_edges) + 3 種 extractor (Python AST / SQL grep / YAML schema) + G2 contract guard 雛形** | **SE** | **W-1a 後 並列可** |
+| W-2 | router `helix detect` CLI + 各 detector skeleton + `D-DETECTORS/*.md` 雛形 | PG | W-1a + W-2pre 後 |
 | W-3 | 軸 1,2 dead+coverage detector | PG | W-2 後 並列 |
 | W-4 | 軸 3,9 dup+refactor 静的 detector | PG | W-2 後 並列 |
 | W-5 | 軸 4,6 skill decay+naming detector | PG | W-2 後 並列 |
@@ -150,14 +169,15 @@ CREATE TABLE code_edges (
 | W-7 | 軸 5,11 PLAN debt loop+regression detector | SE | W-1 + W-2 後 並列 |
 | W-8 | 軸 13 model&skill analytics (-A〜-F) | SE | W-1 + W-2 後 並列 |
 | W-9 | 軸 14 orchestration integrity detector | SE | W-1 + W-2 後 並列 |
-| W-10 | 軸 10 relation graph (Stage1+2 cross-ref 抽出 + mermaid 出力) | SE | W-3〜W-9 全完了後 |
+| W-10 | 軸 10 relation graph (Bash trace + Hook config extractor 追加 + mermaid 出力。contract_entries / code_edges は W-2pre で投入済を前提) | SE | W-3〜W-9 全完了後 |
 | W-11 | gate 統合 (G2/G4/G6 fail-close) + session-start dashboard + `helix detect dashboard` 集約 view (全 DB テーブル統合: invocation_log + code_entries + observe_* + accuracy_score + skill_usage + routing_decisions + detector_runs) | PG | W-10 後 |
 | W-final | 統合検証 + retro + push | Opus | - |
 
 ### 並列可否 detail
 
-- W-1 (telemetry) は全 detector の前提 → 直列必須
-- W-2 (router skeleton) も全 detector の前提 → 直列必須
+- W-1a (telemetry schema v16 + helix-codex instrumentation) は全 detector の前提 → 直列必須
+- W-1b / W-1c / W-2pre は W-1a 後に 3 並列実行可能 (異なる allowed_files、schema migration は W-1a の v16 / W-2pre の v17 を順次積上げ。W-2pre は v16 を破壊せず CREATE TABLE のみ追加)
+- W-2 (router skeleton) は W-1a + W-2pre 両方の依存後に着手 → 直列必須
 - W-3, W-4, W-5, W-6 は別 detector ファイル → 完全並列 (4 ワーカー)
 - W-7, W-8, W-9 は telemetry (W-1) + router skeleton (W-2) 両方の依存後、別 detector ファイル → 完全並列 (3 ワーカー)。W-2 を飛ばして先行できる先行設計タスクは無いため必ず W-2 後に着手する
 - W-10 は全 detector の verdict を集約 → 直列
