@@ -103,8 +103,8 @@ if [[ -n "$ALLOW_PATHS" && "$ROLE" != "pmo" ]]; then
   echo "エラー: --allow-paths は --role pmo でのみ使用できます" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
-if [[ "$EXECUTE" == true && "$ROLE" != "pmo" ]]; then
-  echo "エラー: --execute は --role pmo でのみ使用できます" >&2
+if [[ "$EXECUTE" == true && "$ROLE" != "pmo" && "$ROLE" != "impl-sonnet" ]]; then
+  echo "エラー: --execute は --role pmo または impl-sonnet でのみ使用できます" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 if [[ "$ROLE" == "pmo" ]]; then
@@ -261,6 +261,15 @@ PY
 
   python3 "$SCRIPT_DIR/lib/helix_db.py" record-invocation "$db_path" "$payload" >/dev/null 2>&1 || true
 }
+
+if [[ "$ROLE" == "impl-sonnet" ]]; then
+  if [[ -z "$claude_model_id" ]]; then
+    echo "エラー: $ROLE_CONF_NAME.conf に claude_model がありません" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  permission_mode="${claude_permission_mode:-acceptEdits}"
+  disallowed_tools=""
+fi
 
 if [[ "$ROLE" == "pmo" ]]; then
   if [[ -z "$claude_model_id" ]]; then
