@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-063
 title: "PLAN-063（helix DB 強化: 15 軸 detector + telemetry 基盤）"
-status: draft
+status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
 priority: high
@@ -10,13 +10,19 @@ phases_affected: "cli/helix-detect (新規) / cli/lib/* / helix.db v16 / G2/G4/G
 parent_plan: PLAN-062
 acceptance:
   telemetry_foundation:
-    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT COUNT(*) FROM invocation_log WHERE timestamp >= date(\"now\", \"-7 days\")'", expected: "≥ 1 (helix codex / claude / skill 各経路で 1 件以上記録)" }
+    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT type, COUNT(*) FROM invocation_log WHERE timestamp >= date(\"now\", \"-7 days\") GROUP BY type", expected: "5 entrypoint (codex / claude / skill / hook / bash) すべてで ≥1 件記録" }
+    entrypoint_list: "5 entrypoint = (1) cli/helix-codex / (2) cli/helix-claude / (3) cli/helix-skill / (4) .claude/hooks/* (PreToolUse/PostToolUse/Stop) / (5) PreToolUse bash auto-mode classifier。subagent type は (4) hook 経路に統合 (Agent tool 自体は v2 で banned のため独立 entrypoint としない)。"
+    raw_meta_contract: "raw_meta JSON の保存規約: (a) allowlist 方式で role/model/task_id/plan_id/sprint/decision/cost_cents/duration_ms のみ確実に保存、(b) 任意 free-text フィールドは含めない、(c) prompt 本文 / API key / file content / user secret は禁止フィールドとして必ず redaction (パターン: sk-[a-zA-Z0-9]{20+} / Bearer\\s.+ / token=.+ を regex 削除)、(d) input_bytes/output_bytes はサイズのみ記録し本文は保存しない、(e) G3 までに D-TELEMETRY/redaction-rules.md で詳細仕様 + テスト fixture を凍結。"
   detector_coverage:
-    verification_commands: { command: "cli/helix detect --list", expected: "15 軸 (軸 0+14) のうち最低 11 軸が implemented で表示" }
+    verification_commands: { command: "cli/helix detect --list", expected: "15 軸 (軸 0+14) すべてが implemented で表示、未実装 0 件" }
+    mvp_scope: "本 PLAN-063 のスコープは 15 軸完全実装。11 軸 MVP / 4 軸 carry の分割は採用しない (PLAN-064 以降は別 PLAN として独立スコープで切る)。"
   gate_integration:
-    verification_commands: { command: "cli/helix gate G4 --static-only", expected: "軸 1,2,9,11 を fail-close 評価" }
+    g2_verification: { command: "cli/helix gate G2 --static-only", expected: "軸 6,7,9-A,9-B,12-A,12-E を fail-close 評価 (設計凍結時)" }
+    g4_verification: { command: "cli/helix gate G4 --static-only", expected: "軸 1,2,3,4,11,12-B,12-D,12-F を fail-close 評価 (実装凍結時)" }
+    g6_verification: { command: "cli/helix gate G6 --static-only", expected: "軸 5,9-E,11-D を fail-close 評価 (RC 判定時)" }
   dashboard:
-    verification_commands: { command: "cli/helix detect dashboard --format mermaid", expected: "mermaid 図出力、各 detector の verdict 色分け" }
+    verification_commands: { command: "cli/helix detect dashboard --format mermaid", expected: "mermaid 図出力、15 軸 detector の verdict 色分け + invocation_log/code_entries/observe_*/accuracy_score/skill_usage/routing_decisions/detector_runs の 7 テーブル統合 view を表示" }
+finalized: 2026-05-11
 ---
 
 # PLAN-063: helix DB 強化 — 15 軸 detector + telemetry 基盤
@@ -84,6 +90,52 @@ CREATE INDEX idx_invocation_timestamp ON invocation_log(timestamp);
 
 → dashboard は単一エンドポイントで HELIX 全体状態を可視化する **正本集約 view**。
 
+## §2.6 契約 + コード間接続表記の取り込み (軸 10 / 12 deep dive)
+
+helix.db v17 で 2 テーブル追加し、契約レジストリと code edges を統一管理:
+
+```sql
+CREATE TABLE contract_entries (
+  id INTEGER PRIMARY KEY,
+  contract_type TEXT NOT NULL,   -- api | db | type | signature | event
+  source_path TEXT NOT NULL,
+  symbol_id TEXT,                -- code_entries.id への soft link
+  version TEXT,
+  schema_hash TEXT,
+  breaking_change_flag INTEGER DEFAULT 0,
+  introduced_plan TEXT,
+  raw_spec JSON
+);
+
+CREATE TABLE code_edges (
+  id INTEGER PRIMARY KEY,
+  from_entry_id INTEGER NOT NULL,
+  to_entry_id INTEGER,
+  to_external_ref TEXT,
+  edge_type TEXT NOT NULL,       -- import | call | inherit | sql_query | hook_invoke | event_dispatch | yaml_ref | bash_call
+  weight INTEGER DEFAULT 1,
+  source_line INTEGER,
+  raw_meta JSON
+);
+```
+
+**5 種 extractor (W-10 内で実装)**
+
+| extractor | 入力 | 出力 edge type |
+|---|---|---|
+| Python AST | cli/lib/*.py | import / call / inherit |
+| Bash trace | cli/helix-* | bash_call / yaml_ref |
+| SQL grep | cursor.execute literal | sql_query (table 名) |
+| YAML schema | D-API yaml / models.yaml | api endpoint / type signature |
+| Hook config | .claude/settings.json + hooks/*.sh | hook_invoke |
+
+**軸 12 拡張 sub** (PLAN-063 既存軸を強化):
+- **12-A2 dead edge**: code_edges の to が実在しない (削除済 module への参照)
+- **12-B2 contract drift**: contract_entries.schema_hash 変更 vs code_edges.sql_query の table 集合差
+- **12-G 契約破壊検知**: contract_entries.breaking_change_flag=1 で caller > 0 検出 → G2 fail-close
+
+**軸 10 拡張**: code_edges を mermaid edge として出力。contract / impl / test / db / PLAN の 5 軸が単一 graph で見える dashboard 統合。
+
 ## §3 Sprint 構成 (11 Sprint、size=L)
 
 | Sprint | 内容 | 委譲先 | 並列性 |
@@ -95,9 +147,9 @@ CREATE INDEX idx_invocation_timestamp ON invocation_log(timestamp);
 | W-4 | 軸 3,9 dup+refactor 静的 detector | PG | W-2 後 並列 |
 | W-5 | 軸 4,6 skill decay+naming detector | PG | W-2 後 並列 |
 | W-6 | 軸 7,8,12 doc drift+plan integrity+connection detector | PG | W-2 後 並列 |
-| W-7 | 軸 5,11 PLAN debt loop+regression detector | SE | W-1 直列依存 後 並列 |
-| W-8 | 軸 13 model&skill analytics (-A〜-F) | SE | W-1 直列依存 後 並列 |
-| W-9 | 軸 14 orchestration integrity detector | SE | W-1 直列依存 後 並列 |
+| W-7 | 軸 5,11 PLAN debt loop+regression detector | SE | W-1 + W-2 後 並列 |
+| W-8 | 軸 13 model&skill analytics (-A〜-F) | SE | W-1 + W-2 後 並列 |
+| W-9 | 軸 14 orchestration integrity detector | SE | W-1 + W-2 後 並列 |
 | W-10 | 軸 10 relation graph (Stage1+2 cross-ref 抽出 + mermaid 出力) | SE | W-3〜W-9 全完了後 |
 | W-11 | gate 統合 (G2/G4/G6 fail-close) + session-start dashboard + `helix detect dashboard` 集約 view (全 DB テーブル統合: invocation_log + code_entries + observe_* + accuracy_score + skill_usage + routing_decisions + detector_runs) | PG | W-10 後 |
 | W-final | 統合検証 + retro + push | Opus | - |
@@ -107,7 +159,7 @@ CREATE INDEX idx_invocation_timestamp ON invocation_log(timestamp);
 - W-1 (telemetry) は全 detector の前提 → 直列必須
 - W-2 (router skeleton) も全 detector の前提 → 直列必須
 - W-3, W-4, W-5, W-6 は別 detector ファイル → 完全並列 (4 ワーカー)
-- W-7, W-8, W-9 は telemetry 依存だが別 detector ファイル → 完全並列 (3 ワーカー)
+- W-7, W-8, W-9 は telemetry (W-1) + router skeleton (W-2) 両方の依存後、別 detector ファイル → 完全並列 (3 ワーカー)。W-2 を飛ばして先行できる先行設計タスクは無いため必ず W-2 後に着手する
 - W-10 は全 detector の verdict を集約 → 直列
 - W-11 は gate config に触る → 直列
 
