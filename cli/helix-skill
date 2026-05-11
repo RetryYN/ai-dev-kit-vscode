@@ -16,6 +16,11 @@ JSONL_CACHE_PATH="$PROJECT_ROOT/.helix/cache/skill-catalog.jsonl"
 RECOMMEND_CACHE_DIR="$PROJECT_ROOT/.helix/cache/recommendations"
 SKILLS_ROOT="${HELIX_SKILLS_ROOT:-${HELIX_HOME:-$HOME/ai-dev-kit-vscode}/skills}"
 TASK_CATALOG_PATH="$HELIX_SKILL_DIR/templates/task-catalog.yaml"
+SKILL_TELEMETRY_SUBCOMMAND=""
+SKILL_TELEMETRY_TASK_ID=""
+SKILL_TELEMETRY_SKILL_ID=""
+SKILL_TELEMETRY_DRY_RUN="false"
+SKILL_TELEMETRY_FORCE_AGENT=""
 
 # bash↔Python 境界で巨大 JSON を受け渡すヘルパー。
 # 使用例:
@@ -173,7 +178,11 @@ run_dispatcher_dispatch() {
     return 3
   fi
 
-  local -a cmd=(
+  local -a cmd=()
+  if [[ -n "${HELIX_PARENT_INVOCATION_ID:-}" ]]; then
+    cmd+=(env "HELIX_PARENT_INVOCATION_ID=${HELIX_PARENT_INVOCATION_ID}")
+  fi
+  cmd+=(
     python3 -m "$DISPATCHER_MODULE"
     --mode dispatch
     --skill-id "$skill_id"
@@ -213,6 +222,69 @@ run_dispatcher_dispatch() {
   fi
 
   printf '%s\n' "$output"
+}
+
+record_invocation_telemetry() {
+  local exit_code="$1"
+  local db_path="${HELIX_DIR}/helix.db"
+  local parent_invocation_id=""
+  local decision="failed"
+  local payload=""
+  local task_id="${SKILL_TELEMETRY_TASK_ID:-${SKILL_TELEMETRY_SUBCOMMAND:-skill}}"
+  local skill_id="${SKILL_TELEMETRY_SKILL_ID:-}"
+  local subcommand="${SKILL_TELEMETRY_SUBCOMMAND:-}"
+
+  if [[ $exit_code -eq 0 ]]; then
+    decision="passed"
+  fi
+  if [[ "${HELIX_PARENT_INVOCATION_ID:-}" =~ ^[0-9]+$ ]]; then
+    parent_invocation_id="${HELIX_PARENT_INVOCATION_ID}"
+  fi
+
+  payload="$(
+    HELIX_INVOCATION_TYPE="skill" \
+    HELIX_INVOCATION_ROLE="recommender" \
+    HELIX_INVOCATION_MODEL="" \
+    HELIX_INVOCATION_TASK_ID="$task_id" \
+    HELIX_INVOCATION_DECISION="$decision" \
+    HELIX_INVOCATION_PARENT_ID="$parent_invocation_id" \
+    HELIX_INVOCATION_SKILL_ID="$skill_id" \
+    HELIX_INVOCATION_SUBCOMMAND="$subcommand" \
+    HELIX_INVOCATION_DRY_RUN="${SKILL_TELEMETRY_DRY_RUN:-false}" \
+    HELIX_INVOCATION_FORCE_AGENT="${SKILL_TELEMETRY_FORCE_AGENT:-}" \
+    python3 - <<'PY'
+import json
+import os
+
+
+def _bool_env(name):
+    return os.environ.get(name, "").lower() == "true"
+
+
+payload = {
+    "type": os.environ["HELIX_INVOCATION_TYPE"],
+    "role": os.environ.get("HELIX_INVOCATION_ROLE") or None,
+    "model": os.environ.get("HELIX_INVOCATION_MODEL") or None,
+    "task_id": os.environ.get("HELIX_INVOCATION_TASK_ID") or None,
+    "decision": os.environ.get("HELIX_INVOCATION_DECISION") or None,
+    "parent_invocation_id": int(os.environ["HELIX_INVOCATION_PARENT_ID"])
+    if os.environ.get("HELIX_INVOCATION_PARENT_ID", "").isdigit()
+    else None,
+}
+payload["raw_meta"] = {
+    "role": payload["role"],
+    "model": payload["model"],
+    "task_id": payload["task_id"],
+    "skill_id": os.environ.get("HELIX_INVOCATION_SKILL_ID") or None,
+    "subcommand": os.environ.get("HELIX_INVOCATION_SUBCOMMAND") or None,
+    "dry_run": _bool_env("HELIX_INVOCATION_DRY_RUN"),
+    "force_agent": os.environ.get("HELIX_INVOCATION_FORCE_AGENT") or None,
+}
+print(json.dumps(payload, ensure_ascii=False))
+PY
+  )" || return 0
+
+  python3 "$HELIX_SKILL_DIR/lib/helix_db.py" record-invocation "$db_path" "$payload" >/dev/null 2>&1 || true
 }
 
 print_dispatch_dry_run() {
@@ -367,6 +439,12 @@ use_skill() {
     force_references="${force_references%,}"
   fi
 
+  SKILL_TELEMETRY_SUBCOMMAND="use"
+  SKILL_TELEMETRY_TASK_ID="$skill_id"
+  SKILL_TELEMETRY_SKILL_ID="$skill_id"
+  SKILL_TELEMETRY_DRY_RUN="$dry_run"
+  SKILL_TELEMETRY_FORCE_AGENT="$force_agent"
+
   local dispatch_json
   dispatch_json=$(run_dispatcher_dispatch "$skill_id" "$task" "$dry_run" "$force_agent" "$force_references") || return $?
 
@@ -390,7 +468,17 @@ chain_skill() {
   local layer="$5"
   local category="$6"
 
-  local -a rec_cmd=(python3 "$RECOMMENDER_PY" --task "$task" --top-n "$top_n" --json)
+  SKILL_TELEMETRY_SUBCOMMAND="chain"
+  SKILL_TELEMETRY_TASK_ID="chain"
+  SKILL_TELEMETRY_SKILL_ID=""
+  SKILL_TELEMETRY_DRY_RUN="$dry_run"
+  SKILL_TELEMETRY_FORCE_AGENT="$force_agent"
+
+  local -a rec_cmd=()
+  if [[ -n "${HELIX_PARENT_INVOCATION_ID:-}" ]]; then
+    rec_cmd+=(env "HELIX_PARENT_INVOCATION_ID=${HELIX_PARENT_INVOCATION_ID}")
+  fi
+  rec_cmd+=(python3 "$RECOMMENDER_PY" --task "$task" --top-n "$top_n" --json)
   if [[ -n "$layer" ]]; then
     rec_cmd+=(--layer "$layer")
   fi
@@ -1042,6 +1130,9 @@ PY
 main() {
   local cmd="${1:---help}"
   shift || true
+  SKILL_TELEMETRY_SUBCOMMAND="$cmd"
+  SKILL_TELEMETRY_TASK_ID="$cmd"
+  SKILL_TELEMETRY_SKILL_ID=""
 
   case "$cmd" in
     --help|-h|help)
@@ -1214,6 +1305,8 @@ main() {
       [[ $# -ge 1 ]] || { echo "エラー: use には skill-id が必要です" >&2; use_usage >&2; return 64; }
       local skill_id="$1"
       shift
+      SKILL_TELEMETRY_TASK_ID="$skill_id"
+      SKILL_TELEMETRY_SKILL_ID="$skill_id"
       local task=""
       local dry_run="false"
       local as_json="false"
@@ -1333,6 +1426,8 @@ main() {
       [[ $# -ge 1 ]] || { echo "エラー: classify には skill-id が必要です" >&2; classify_usage >&2; return 64; }
       local skill_id="$1"
       shift
+      SKILL_TELEMETRY_TASK_ID="$skill_id"
+      SKILL_TELEMETRY_SKILL_ID="$skill_id"
       local approve="false"
       local dry_run="false"
       while [[ $# -gt 0 ]]; do
@@ -1414,6 +1509,10 @@ main() {
             ;;
         esac
       done
+      if [[ -n "$skill_id" ]]; then
+        SKILL_TELEMETRY_TASK_ID="$skill_id"
+        SKILL_TELEMETRY_SKILL_ID="$skill_id"
+      fi
       if [[ "$all_pending" == "true" && -n "$skill_id" ]]; then
         echo "エラー: --all-pending と skill-id は同時指定できません" >&2
         approve_usage >&2
@@ -1475,3 +1574,6 @@ USAGE
 }
 
 main "$@"
+status=$?
+record_invocation_telemetry "$status"
+exit "$status"

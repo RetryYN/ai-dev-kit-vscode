@@ -197,6 +197,71 @@ if [[ "$HANDOVER" == true ]]; then
   fi
 fi
 
+record_invocation_telemetry() {
+  local exit_code="$1"
+  local db_path="${HELIX_DIR}/helix.db"
+  local parent_invocation_id=""
+  local decision="failed"
+  local payload=""
+
+  if [[ $exit_code -eq 0 ]]; then
+    decision="passed"
+  fi
+
+  if [[ "${HELIX_PARENT_INVOCATION_ID:-}" =~ ^[0-9]+$ ]]; then
+    parent_invocation_id="${HELIX_PARENT_INVOCATION_ID}"
+  fi
+
+  payload="$(
+    HELIX_INVOCATION_TYPE="claude" \
+    HELIX_INVOCATION_ROLE="$ROLE" \
+    HELIX_INVOCATION_MODEL="$claude_model_id" \
+    HELIX_INVOCATION_TASK_ID="$ROLE_CONF_NAME" \
+    HELIX_INVOCATION_PLAN_ID="${PLAN_ID:-}" \
+    HELIX_INVOCATION_DECISION="$decision" \
+    HELIX_INVOCATION_PARENT_ID="$parent_invocation_id" \
+    HELIX_INVOCATION_PERMISSION_MODE="${permission_mode:-}" \
+    HELIX_INVOCATION_ALLOW_PATHS="${ALLOW_PATHS:-}" \
+    HELIX_INVOCATION_EXECUTE="${EXECUTE}" \
+    HELIX_INVOCATION_HANDOVER="${HANDOVER}" \
+    python3 - <<'PY'
+import json
+import os
+
+
+def _bool_env(name):
+    return os.environ.get(name, "").lower() == "true"
+
+
+payload = {
+    "type": os.environ["HELIX_INVOCATION_TYPE"],
+    "role": os.environ.get("HELIX_INVOCATION_ROLE") or None,
+    "model": os.environ.get("HELIX_INVOCATION_MODEL") or None,
+    "task_id": os.environ.get("HELIX_INVOCATION_TASK_ID") or None,
+    "plan_id": os.environ.get("HELIX_INVOCATION_PLAN_ID") or None,
+    "decision": os.environ.get("HELIX_INVOCATION_DECISION") or None,
+    "parent_invocation_id": int(os.environ["HELIX_INVOCATION_PARENT_ID"])
+    if os.environ.get("HELIX_INVOCATION_PARENT_ID", "").isdigit()
+    else None,
+}
+payload["raw_meta"] = {
+    "role": payload["role"],
+    "role_conf": os.environ.get("HELIX_INVOCATION_TASK_ID") or None,
+    "model": payload["model"],
+    "plan_id": payload["plan_id"],
+    "decision": payload["decision"],
+    "permission_mode": os.environ.get("HELIX_INVOCATION_PERMISSION_MODE") or None,
+    "allow_paths": os.environ.get("HELIX_INVOCATION_ALLOW_PATHS") or None,
+    "execute": _bool_env("HELIX_INVOCATION_EXECUTE"),
+    "handover": _bool_env("HELIX_INVOCATION_HANDOVER"),
+}
+print(json.dumps(payload, ensure_ascii=False))
+PY
+  )" || return 0
+
+  python3 "$SCRIPT_DIR/lib/helix_db.py" record-invocation "$db_path" "$payload" >/dev/null 2>&1 || true
+}
+
 if [[ "$ROLE" == "pmo" ]]; then
   if [[ -z "$claude_model_id" ]]; then
     echo "エラー: $ROLE_CONF_NAME.conf に claude_model がありません" >&2
@@ -308,12 +373,16 @@ if [[ "$EXECUTE" == true ]]; then
   log_file="$log_dir/$(date +%Y%m%dT%H%M%S)-$task_sha.log"
 
   cmd=(timeout "$TIMEOUT_SECONDS" "$SCRIPT_DIR/claude" --print --model "$claude_model_id" --permission-mode "$permission_mode" --disallowedTools "$disallowed_tools" -p "$PROMPT")
+  if [[ -n "${HELIX_PARENT_INVOCATION_ID:-}" ]]; then
+    cmd=(env "HELIX_PARENT_INVOCATION_ID=${HELIX_PARENT_INVOCATION_ID}" "${cmd[@]}")
+  fi
 
   set +e
   HELIX_CLAUDE_INTERNAL=1 "${cmd[@]}" > "$log_file" 2>&1
   status=$?
   set -e
 
+  record_invocation_telemetry "$status"
   echo "[helix-claude] execute log: ${log_file#$PROJECT_ROOT_REAL/}"
   exit "$status"
 fi
@@ -331,3 +400,5 @@ if [[ "$DRY_RUN" == true || -z "$OUTPUT_PATH" ]]; then
   echo "=== Full prompt ==="
   echo "$PROMPT"
 fi
+
+record_invocation_telemetry 0
