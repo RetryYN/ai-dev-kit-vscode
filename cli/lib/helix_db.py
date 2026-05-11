@@ -583,6 +583,35 @@ CREATE INDEX IF NOT EXISTS idx_links_kind        ON links(kind);
 """
 
 
+CONTRACT_REGISTRY_SCHEMA_V17 = """
+CREATE TABLE IF NOT EXISTS contract_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contract_type TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    symbol_id TEXT,
+    version TEXT,
+    schema_hash TEXT,
+    breaking_change_flag INTEGER DEFAULT 0,
+    introduced_plan TEXT,
+    raw_spec TEXT
+);
+CREATE TABLE IF NOT EXISTS code_edges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_entry_id INTEGER NOT NULL,
+    to_entry_id INTEGER,
+    to_external_ref TEXT,
+    edge_type TEXT NOT NULL,
+    weight INTEGER DEFAULT 1,
+    source_line INTEGER,
+    raw_meta TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_contract_type ON contract_entries(contract_type);
+CREATE INDEX IF NOT EXISTS idx_contract_breaking ON contract_entries(breaking_change_flag);
+CREATE INDEX IF NOT EXISTS idx_edges_from ON code_edges(from_entry_id, edge_type);
+CREATE INDEX IF NOT EXISTS idx_edges_to ON code_edges(to_entry_id, edge_type);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -870,8 +899,9 @@ def _migrate_v15_to_v16(conn):
 
 
 def _migrate_v16_to_v17(conn):
-    """v17: entries + links テーブル新設 (PLAN-027 Sprint .3 W-3a)"""
+    """v17: entries/links + contract registry tables を追加する。"""
     conn.executescript(ENTRIES_LINKS_SCHEMA_V17)
+    conn.executescript(CONTRACT_REGISTRY_SCHEMA_V17)
 
 
 def _migrate_v17_to_v18(conn):
