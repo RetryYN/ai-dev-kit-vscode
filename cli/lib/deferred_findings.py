@@ -240,40 +240,6 @@ def _db_row_from_finding(finding: dict[str, Any], synced_at: str) -> dict[str, A
     }
 
 
-def _finding_from_db_row(row: dict[str, Any], existing: dict[str, Any] | None = None) -> dict[str, Any]:
-    finding = dict(existing or {})
-    finding.update(
-        {
-            "id": row["id"],
-            "plan_id": row["plan_id"],
-            "origin": {"plan_id": row["origin_plan_id"], "phase": row["origin_phase"]},
-            "current": {"plan_id": row["current_plan_id"], "phase": row["current_phase"]},
-            "target": {"plan_id": row["target_plan_id"], "phase": row["target_phase"]},
-            "level": row["level"],
-            "carry_rule": row["carry_rule"],
-            "phase": row["phase"],
-            "source": row["source"],
-            "severity": row["severity"],
-            "status": row["status"],
-            "created_at": row["created_at"],
-            "resolved_at": row["resolved_at"],
-            "accuracy_impact_weight": row["weight"],
-            "pm_approval": {
-                "required": row["level"] in ("P0", "P1"),
-                "approved_by": row["pm_approved_by"],
-                "approved_at": row["pm_approved_at"],
-                "reason": row["pm_reason"],
-            },
-        }
-    )
-    finding.setdefault("title", "")
-    finding.setdefault("body", "")
-    finding.setdefault("recommendation", "")
-    finding.setdefault("dimension_scores", [])
-    finding.setdefault("carry_chain", [])
-    return finding
-
-
 def load_findings(yaml_path: Path) -> dict[str, Any]:
     path = Path(yaml_path)
     if not path.exists():
@@ -490,40 +456,6 @@ def sync_yaml_to_db(yaml_path: Path, db_path: Path) -> dict[str, int]:
         return stats
     finally:
         conn.close()
-
-
-def sync_db_to_yaml(db_path: Path, yaml_path: Path) -> dict[str, int]:
-    payload = load_findings(Path(yaml_path))
-    existing_by_id = {finding.get("id"): finding for finding in payload["findings"]}
-    stats = {"inserted": 0, "updated": 0, "unchanged": 0}
-    conn = _db_connect(db_path)
-    try:
-        rows = [
-            dict(row)
-            for row in conn.execute("SELECT * FROM deferred_findings ORDER BY created_at, id").fetchall()
-        ]
-    finally:
-        conn.close()
-
-    merged: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for row in rows:
-        current = existing_by_id.get(row["id"])
-        updated = _finding_from_db_row(row, current)
-        merged.append(updated)
-        seen.add(row["id"])
-        if current is None:
-            stats["inserted"] += 1
-        elif current == updated:
-            stats["unchanged"] += 1
-        else:
-            stats["updated"] += 1
-    for finding in payload["findings"]:
-        if finding.get("id") not in seen:
-            merged.append(finding)
-    payload["findings"] = merged
-    save_findings(Path(yaml_path), payload)
-    return stats
 
 
 def adjust_score(

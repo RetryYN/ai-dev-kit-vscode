@@ -260,13 +260,8 @@ def _resolve_symbol_line(path: Path, marker_line: int) -> int:
     return marker_line
 
 
-is_non_indexable_path = _is_non_indexable_path
-is_excluded_path = _is_excluded_path
 classify_bucket = _classify_bucket
-default_seed_metadata = _default_seed_metadata
 seed_metadata_from_fields = _seed_metadata_from_fields
-extract_top_level_symbols = _extract_top_level_symbols
-resolve_symbol_line = _resolve_symbol_line
 
 
 def _symbol_at_line(path: Path, symbol_line: int) -> tuple[str, str]:
@@ -724,7 +719,6 @@ def _compute_coverage_report(
     }
 
 
-filter_coverage_items = _filter_coverage_items
 compute_coverage_report = _compute_coverage_report
 
 

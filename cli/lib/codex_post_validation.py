@@ -75,18 +75,6 @@ def count_actual_diff_files(
     return len(new_files | untracked_after_paths | modified_files)
 
 
-def count_actual_diff_lines(
-    before_paths: set[str],
-    after_paths: set[str],
-    untracked_after_paths: set[str],
-) -> int:
-    return count_actual_diff_files(
-        before_paths=before_paths,
-        after_paths=after_paths,
-        untracked_after_paths=untracked_after_paths,
-    )
-
-
 def get_git_diff_paths(repo_root: Path) -> set[str]:
     """Return paths of modified tracked files via git diff --name-only."""
     try:

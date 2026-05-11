@@ -148,10 +148,6 @@ class SkillClassifier(LLMClassifierBase):
         })
 
 
-def _run_classifier(prompt: str, *, helix_codex_path: str) -> str:
-    return SkillClassifier()._invoke_codex("", {"helix_codex_path": helix_codex_path, "prompt": prompt})
-
-
 def classify_skill(skill_id: str, skill_md_content: str, *, known_task_ids: set[str], allowed_agents: set[str] = ALLOWED_AGENTS, allowed_phases: set[str] = ALLOWED_PHASES, template_path: Path | None = None, helix_codex_path: str | None = None) -> dict:
     last_error: Exception | None = None
     for _ in range(CLASSIFIER_RETRY_COUNT):

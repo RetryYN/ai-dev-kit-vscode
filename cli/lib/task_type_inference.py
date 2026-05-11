@@ -4,7 +4,6 @@ import argparse
 import re
 
 
-KNOWN_TASK_TYPES = ("実装", "レビュー", "設計", "調査", "不明")
 _EXPLICIT_MARKER_RE = re.compile(r"^\s*\[タスク種別\]", re.MULTILINE)
 _EXPLICIT_KNOWN_RE = re.compile(
     r"^\s*\[タスク種別\]\s*:?\s*(?:\*\*|__|`)?\s*(実装|レビュー|設計|調査|不明)\b",

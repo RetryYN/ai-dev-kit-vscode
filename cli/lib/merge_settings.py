@@ -121,14 +121,6 @@ def _is_helix_hook(entry):
     return False
 
 
-def _has_helix_hook(entries):
-    """リスト内に HELIX hook が既にあるか"""
-    for entry in entries:
-        if _is_helix_hook(entry):
-            return True
-    return False
-
-
 def _merge_hooks(settings, hooks_to_install):
     """HELIX hooks を追加・正規化する。変更があったか返す"""
     if "hooks" not in settings:

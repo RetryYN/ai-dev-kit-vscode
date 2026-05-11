@@ -46,12 +46,6 @@ def _clean_model(value: Any) -> str:
     return value.strip()
 
 
-def get_default_primary(*, default: str = "") -> str:
-    config = load_models_config()
-    primary = _clean_model(config.get("default_primary"))
-    return primary or default
-
-
 def get_default_fallback(*, default: str = "") -> str:
     config = load_models_config()
     fallback = _clean_model(config.get("default_fallback"))

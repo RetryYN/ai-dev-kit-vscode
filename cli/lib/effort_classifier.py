@@ -182,14 +182,6 @@ class EffortClassifier(LLMClassifierBase):
         return super().classify(task_text, context)
 
 
-def call_classifier(task_text: str, role: str | None = None, size: str | None = None, files: int | None = None, lines: int | None = None) -> dict[str, Any] | None:
-    classifier = EffortClassifier()
-    try:
-        return classifier._parse_response(classifier._invoke_codex(task_text, {"role": role, "size": size, "files": files, "lines": lines}))
-    except (CodexInvocationError, CodexResponseError, OSError):
-        return None
-
-
 def classify(task_text: str, role: str | None = None, size: str | None = None, files: int | None = None, lines: int | None = None, use_llm: bool = True) -> dict[str, Any]:
     return EffortClassifier().classify(task_text, role, size, files, lines, use_llm)
 

@@ -16,7 +16,6 @@ import yaml_parser
 PLAN_ID_RE = re.compile(r"^PLAN-[0-9]{3,}$")
 MINI_PLAN_ID_RE = re.compile(r"^MPLAN-[0-9]{3,}$")
 DESIGN_SHARD_DIRS = ("D-API", "D-DB", "D-ARCH", "D-TEST", "D-THREAT")
-MINI_PLAN_PHASES = ("L1", "L2", "L4", "L6")
 
 
 def _plan_sort_key(path: Path) -> tuple[int, str]:

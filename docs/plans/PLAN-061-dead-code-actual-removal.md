@@ -1,22 +1,20 @@
 ---
 plan_id: PLAN-061
-title: 'PLAN-061（dead code 実削除、PLAN-058 W-3 carry）'
-status: draft
+title: "PLAN-061（dead code 実削除、PLAN-058 W-3 carry）"
+status: completed
 created: 2026-05-11
-author: 'PM (Opus)'
+completed: 2026-05-11
+author: "PM (Opus)"
 priority: low
 size: L
-phases_affected: cli/lib/* / cli/helix-* / 関連 test
+phases_affected: "cli/lib/* / cli/helix-* / 関連 test"
 parent_plan: PLAN-058
 acceptance:
   audit_review_complete:
-    verification_commands:
-      command: "test -f docs/audit/dead-code-final-2026-05.md"
-      expected: "exists (PLAN-058 audit doc を 1 件ずつ精査した最終リスト)"
+    verification_commands: { command: "test -f docs/audit/dead-code-final-2026-05.md", expected: "exists (PLAN-058 audit doc を 1 件ずつ精査した最終リスト)" }
   removal_safe:
-    verification_commands:
-      command: "cli/helix test"
-      expected: "exit 0 / 削除後も全 PASS"
+    verification_commands: { command: "cli/helix test", expected: "exit 0 / 削除後も全 PASS" }
+finalized: 2026-05-10
 ---
 
 # PLAN-061: dead code 実削除 (PLAN-058 W-3 carry)

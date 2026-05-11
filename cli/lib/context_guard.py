@@ -26,7 +26,6 @@ FRAMEWORK_CONTEXT_FILES = [
     "docs/commands/ai-harness.md",
 ]
 
-REQUIRED_CONTEXT_FILES = PROJECT_CONTEXT_FILES + FRAMEWORK_CONTEXT_FILES
 FRAMEWORK_GUARD_FILES = [
     "cli/lib/research_guard.py",
     "cli/lib/research_tool_guard.py",

@@ -258,32 +258,6 @@ def extract_bash_command(payload: dict[str, Any]) -> str:
     return command if isinstance(command, str) else ""
 
 
-def _without_quoted_strings(command: str) -> str:
-    out: list[str] = []
-    quote = ""
-    escaped = False
-    for char in command:
-        if escaped:
-            escaped = False
-            if not quote:
-                out.append(char)
-            continue
-        if char == "\\":
-            escaped = True
-            if not quote:
-                out.append(char)
-            continue
-        if quote:
-            if char == quote:
-                quote = ""
-            continue
-        if char in {"'", '"'}:
-            quote = char
-            continue
-        out.append(char)
-    return "".join(out)
-
-
 def _read_dollar_paren_body(text: str, start: int) -> tuple[str, int] | None:
     depth = 1
     quote = ""
@@ -3457,14 +3431,6 @@ def _segment_uses_claude_function(segment: str, functions: dict[str, list[str]])
         )
     expanded = [*prefix, *tokens[1:]]
     return _segment_has_raw_claude_cli(" ".join(shlex.quote(token) for token in expanded))
-
-
-def has_raw_codex_exec(command: str) -> bool:
-    return bool(raw_codex_segments(command))
-
-
-def has_raw_claude_cli(command: str) -> bool:
-    return bool(raw_claude_segments(command))
 
 
 def has_raw_codex_evidence(segment: str) -> bool:

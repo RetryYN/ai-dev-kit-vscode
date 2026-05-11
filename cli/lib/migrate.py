@@ -110,8 +110,6 @@ TARGET_REGISTRY: list[dict[str, Any]] = [
     },
 ]
 
-TARGETS = {target["path"]: target["template"] for target in TARGET_REGISTRY}
-
 VERSION_RE = re.compile(r"helix_template_version:\s*(\d+)")
 FRAMEWORK_TEMPLATE_FALLBACK = """# helix_template_version: 3
 detected: unknown
