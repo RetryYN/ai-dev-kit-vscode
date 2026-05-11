@@ -25,6 +25,7 @@ ALLOWED_ROLES = {
     "research",
     "legacy",
     "perf",
+    "impl-sonnet",
     "recommender",
     "classifier",
     "effort-classifier",

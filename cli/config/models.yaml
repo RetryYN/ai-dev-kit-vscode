@@ -15,6 +15,7 @@ roles:
   legacy: gpt-5.4
   perf: gpt-5.4
   fe: gpt-5.4
+  impl-sonnet: claude-sonnet-4-6
   recommender: gpt-5.4-mini
   classifier: gpt-5.4-mini
   effort-classifier: gpt-5.4-mini
@@ -30,6 +31,14 @@ role_metadata:
     permission_mode: plan
     codex_disallowed_tools: "Edit,Write,NotebookEdit"
     disallowed_tools: "Edit,Write,NotebookEdit"
+  impl-sonnet:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
   pmo-haiku:
     provider: claude_code
     codex_thinking: low
