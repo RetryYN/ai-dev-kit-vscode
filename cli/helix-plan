@@ -20,7 +20,7 @@ Subcommands:
   draft      プラン下書きを作成
              Options: --title <title> [--file <path>] [--plan-id <PLAN-NNN>]
   review     TL レビューを実行し結果を保存
-             Options: --id <PLAN-NNN>
+             Options: --id <PLAN-NNN> [--reviewer tl|qa|both]
   finalize   approve 済みプランを確定
              Options: --id <PLAN-NNN> [--no-lint]
   reset      finalized/reviewed プランを draft/reviewed に戻す
@@ -57,6 +57,397 @@ source "$PLAN_CMDS_DIR/list.sh"
 source "$PLAN_CMDS_DIR/status.sh"
 source "$PLAN_CMDS_DIR/lint.sh"
 source "$PLAN_CMDS_DIR/import.sh"
+
+review_output_path_for_reviewer() {
+  local plan_id="$1"
+  local reviewer="$2"
+  if [[ "$reviewer" == "qa" ]]; then
+    echo "$REVIEW_DIR/$plan_id-qa.json"
+  else
+    echo "$REVIEW_DIR/$plan_id.json"
+  fi
+}
+
+review_invocation_type_for_reviewer() {
+  local reviewer="$1"
+  case "$reviewer" in
+    qa) echo "plan_review_qa" ;;
+    tl) echo "plan_review_tl" ;;
+    *)
+      echo "plan_review_tl"
+      ;;
+  esac
+}
+
+record_plan_review_invocation() {
+  local plan_id="$1"
+  local reviewer="$2"
+  local verdict="$3"
+  local duration_ms="$4"
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$HELIX_DIR/helix.db" "$plan_id" "$reviewer" "$verdict" "$duration_ms"
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = sys.argv[2]
+plan_id = sys.argv[3]
+reviewer = sys.argv[4]
+verdict = sys.argv[5]
+duration_ms = int(sys.argv[6])
+
+sys.path.insert(0, str(lib_dir))
+import helix_db
+
+helix_db.record_invocation(
+    db_path,
+    {
+        "type": {
+            "qa": "plan_review_qa",
+            "tl": "plan_review_tl",
+        }.get(reviewer, "plan_review_tl"),
+        "role": reviewer,
+        "model": "gpt-5.5",
+        "task_id": f"plan-review:{reviewer}",
+        "plan_id": plan_id,
+        "decision": verdict,
+        "duration_ms": duration_ms,
+        "raw_meta": {
+            "role": reviewer,
+            "model": "gpt-5.5",
+            "plan_id": plan_id,
+            "decision": verdict,
+            "duration_ms": duration_ms,
+        },
+    },
+)
+PY
+}
+
+record_plan_review_scores_for_reviewer() {
+  local plan_id="$1"
+  local review_file="$2"
+  local reviewer="$3"
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$HELIX_DIR/helix.db" "$plan_id" "$review_file" "$reviewer" || true
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = Path(sys.argv[2])
+plan_id = sys.argv[3]
+review_file = Path(sys.argv[4])
+reviewer = sys.argv[5]
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+
+payload = json.loads(review_file.read_text(encoding="utf-8"))
+evidence = f"source=helix-plan review\nreview_file={review_file}\nreviewer={reviewer}"
+reviewer_tag = f"codex-review:{reviewer}"
+conn = helix_db._connect(str(db_path))
+try:
+    helix_db._ensure_schema(conn)
+    conn.execute(
+        "DELETE FROM accuracy_score WHERE plan_id = ? AND gate = ? AND reviewer = ?",
+        (plan_id, "PLAN_REVIEW", reviewer_tag),
+    )
+    conn.commit()
+finally:
+    conn.close()
+
+for score in payload.get("overall_scores", []):
+    helix_db.record_accuracy_score(
+        str(db_path),
+        plan_id=plan_id,
+        gate="PLAN_REVIEW",
+        dimension=score["dimension"],
+        level=score["level"],
+        comment=score.get("comment", ""),
+        evidence=evidence,
+        reviewer=reviewer_tag,
+    )
+PY
+}
+
+build_review_prompt() {
+  local plan_id="$1"
+  local title="$2"
+  local source_file="$3"
+  local reviewer="${4:-tl}"
+  local source_preview=""
+
+  if [[ -n "$source_file" && "$source_file" != "null" ]]; then
+    local source_path="$source_file"
+    if [[ "$source_path" != /* ]]; then
+      source_path="$PROJECT_ROOT/$source_path"
+    fi
+    if [[ -f "$source_path" ]]; then
+      source_preview="$(python3 - <<'PY' "$source_path"
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="replace")
+limit = 24000
+print(text[:limit])
+PY
+)"
+    fi
+  fi
+
+  if [[ "$reviewer" == "qa" ]]; then
+    cat <<EOF
+QA レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+- source_file: ${source_file:-"(none)"}
+
+【PLAN レビューの位置づけ】
+本レビューは PLAN レベルの QA critique を対象とする。TL の方向性評価ではなく、テスト規律・検証計画の厳格性を点検する。
+
+評価観点:
+- acceptance に test pyramid 比率 (Unit/Integration/E2E) があるか
+- coverage 目標値 (≥80% など) が明示されているか
+- regression baseline 接続が明記されているか
+- skip annotation の discipline が遵守されているか
+- E2E critical path が定義されているか
+
+判定基準:
+- approve: 上記観点で重大な欠落がなく、QA 観点で実装前提のテスト設計として妥当
+- needs-attention: 上記観点のいずれかに重大な欠落や不整合がある
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+- summary に「P0/P1/P2/P3 の件数」と「approve 判定の根拠 or 阻害要因」を明記
+
+設計案本文:
+${source_preview:-"(source_file 未検出のため本文省略)"}
+EOF
+  else
+    if [[ -n "$source_preview" ]]; then
+      cat <<EOF
+設計提案レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+- source_file: $source_file
+
+【PLAN レビューの位置づけ】
+本レビューは PLAN レベル (実装計画の方向性凍結) を対象とする。Schema/API Freeze (G3) や Implementation Freeze (G4) ではない。
+G3/G4 は別途 helix-gate G3/G4 で評価される。PLAN レビューでは「この計画の方向性で実装着手して良いか」を判定する。
+
+評価観点:
+- 技術妥当性 (採用技術・アーキテクチャ方針が妥当か)
+- リスク特定 (API/DB/認証/外部API/移行/セキュリティの主要リスクが洗い出されているか)
+- 実装可能性 (致命的な実現不可項目や前提崩壊がないか)
+- スコープ整合 (PLAN タイトル・目的とスコープが一致しているか)
+
+【判定基準】
+- approve: 以下を全て満たす場合
+  - 構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥がない (= P0 ゼロ)
+  - 主要な技術判断とリスクが特定されている
+  - 計画の方向性で実装着手して良い
+- needs-attention: 以下のいずれかを満たす場合のみ
+  - 構造的矛盾 (本文内の記述が互いに両立しない、後段成果物の前提を満たせない)
+  - 計画の前提崩壊 (依存する事実が誤っている、未確定事項が中核に残っている)
+  - スコープ越境 (PLAN タイトル・目的と実体が一致しない)
+  - 致命的セキュリティ欠陥 (秘匿情報漏洩経路、認証バイパスなど)
+
+【findings の severity 区分】
+- high (P1): approve を阻害する構造的問題。P1 ありなら needs-attention。
+- medium (P2): G3/G4 までに解決すべき重要事項。P2 のみなら approve 可 (P0/P1 ゼロが前提)。
+- low (P3): G3/G4 までに解決すべき推奨事項。
+- info: 軽微な改善提案。
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+- summary に「P0/P1/P2/P3 の件数」と「approve 判定の根拠 or 阻害要因」を明記
+
+設計案本文:
+$source_preview
+EOF
+    else
+      cat <<EOF
+設計提案レビューを実施せよ。出力は review-output.schema.json 準拠の JSON のみとする。
+
+対象プラン:
+- id: $plan_id
+- title: $title
+- source_file: $source_file (ファイル未検出のためタイトルベースで判断)
+
+【PLAN レビューの位置づけ】
+本レビューは PLAN レベル (実装計画の方向性凍結) を対象とする。Schema/API Freeze (G3) ではない。
+
+評価観点:
+- 技術妥当性
+- リスク（API/DB/認証/外部API/移行/セキュリティ）
+- 実装可能性と欠落事項
+
+【判定基準】
+- approve: 構造的矛盾・前提崩壊・スコープ越境・致命的セキュリティ欠陥がなく (P0 ゼロ)、主要な技術判断が特定されている。
+- needs-attention: 上記いずれかが該当する場合のみ。詳細仕様の未凍結 (G3 で扱う事項) は P2/P3 として approve を阻害しない。
+
+返却要件:
+- JSON オブジェクトのみ
+- verdict は approve または needs-attention
+- findings は file/line_start/line_end/confidence/recommendation を含める
+- summary に「P0/P1/P2/P3 の件数」と「approve 判定の根拠 or 阻害要因」を明記
+EOF
+    fi
+  fi
+}
+
+run_plan_review_for_reviewer() {
+  local plan_id="$1"
+  local reviewer="$2"
+  local title="$3"
+  local source_file="$4"
+  local plan_file="$5"
+  local update_plan_status="$6"
+
+  local review_prompt raw_output_file review_output review_file review_rel verdict reviewed_at start_ms end_ms duration_ms
+  review_prompt="$(build_review_prompt "$plan_id" "$title" "$source_file" "$reviewer")"
+  raw_output_file="$(mktemp /tmp/helix-plan-review-XXXXXX.log)"
+
+  start_ms="$(python3 - <<'PY'
+from time import time_ns
+print(time_ns() // 1_000_000)
+PY
+)"
+
+  case "$reviewer" in
+    qa)
+      echo "[helix-plan] QA レビュー委譲（Codex 5.5 / qa.conf）"
+      ;;
+    tl)
+      echo "[helix-plan] PM → TL レビュー委譲（Codex 5.5）"
+      ;;
+  esac
+
+  set +e
+  review_output=$("$HELIX_CODEX" --role "$reviewer" --task "$review_prompt" 2>&1)
+  local cmd_exit=$?
+  set -e
+  printf "%s\n" "$review_output" > "$raw_output_file"
+
+  if [[ $cmd_exit -ne 0 ]]; then
+    if [[ "$reviewer" == "qa" ]]; then
+      echo "エラー: QA review の実行に失敗しました (exit=$cmd_exit)" >&2
+    else
+      echo "エラー: TL review の実行に失敗しました (exit=$cmd_exit)" >&2
+    fi
+    tail -n 20 "$raw_output_file" >&2
+    rm -f "$raw_output_file"
+    exit $cmd_exit
+  fi
+
+  review_file="$(review_output_path_for_reviewer "$plan_id" "$reviewer")"
+  review_rel=".helix/reviews/plans/$(basename "$review_file")"
+  verdict="$(extract_and_validate_review_json "$raw_output_file" "$review_file")"
+  record_plan_review_scores_for_reviewer "$plan_id" "$review_file" "$reviewer"
+  reviewed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  if [[ "$reviewer" == "tl" && "$update_plan_status" == "true" ]]; then
+    yaml_write "$plan_file" "review.status" "$verdict"
+    yaml_write "$plan_file" "review.reviewed_at" "$reviewed_at"
+    yaml_write "$plan_file" "review.review_file" "$review_rel"
+
+    if [[ "$verdict" == "approve" ]]; then
+      yaml_write "$plan_file" "status" "reviewed"
+    else
+      yaml_write "$plan_file" "status" "rejected"
+    fi
+
+    echo "レビュー完了: $plan_id ($verdict)"
+    echo "保存: ${review_file#$PROJECT_ROOT/}"
+  else
+    echo "QAレビュー完了: $plan_id ($verdict)"
+    echo "保存: ${review_file#$PROJECT_ROOT/}"
+  fi
+
+  end_ms="$(python3 - <<'PY'
+from time import time_ns
+print(time_ns() // 1_000_000)
+PY
+)"
+  duration_ms=$((end_ms - start_ms))
+  record_plan_review_invocation "$plan_id" "$reviewer" "$verdict" "$duration_ms"
+  rm -f "$raw_output_file"
+}
+
+cmd_review() {
+  local plan_id=""
+  local reviewer="tl"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --id)
+        plan_id="$2"
+        shift 2
+        ;;
+      --reviewer)
+        reviewer="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_id" ]]; then
+    echo "エラー: --id は必須です" >&2
+    exit 1
+  fi
+
+  case "$reviewer" in
+    tl|qa|both) ;;
+    *)
+      echo "エラー: --reviewer は tl / qa / both のみ指定できます (現在: $reviewer)" >&2
+      exit 1
+      ;;
+  esac
+
+  validate_plan_id "$plan_id"
+  ensure_plan_exists "$plan_id"
+  ensure_dirs
+
+  local plan_file current_status title source_file
+  plan_file="$(plan_file_path "$plan_id")"
+  current_status="$(yaml_read "$plan_file" "status")"
+  if [[ "$current_status" != "draft" && "$current_status" != "reviewed" && "$current_status" != "rejected" ]]; then
+    echo "エラー: review 可能な status は draft/reviewed/rejected のみです (現在: $current_status)" >&2
+    exit 1
+  fi
+
+  title="$(yaml_read "$plan_file" "title")"
+  source_file="$(yaml_read "$plan_file" "source_file")"
+
+  case "$reviewer" in
+    tl)
+      run_plan_review_for_reviewer "$plan_id" "tl" "$title" "$source_file" "$plan_file" "true"
+      ;;
+    qa)
+      run_plan_review_for_reviewer "$plan_id" "qa" "$title" "$source_file" "$plan_file" "false"
+      ;;
+    both)
+      run_plan_review_for_reviewer "$plan_id" "tl" "$title" "$source_file" "$plan_file" "true"
+      run_plan_review_for_reviewer "$plan_id" "qa" "$title" "$source_file" "$plan_file" "false"
+      ;;
+  esac
+}
 
 CMD="${1:-help}"
 if [[ $# -gt 0 ]]; then
