@@ -29,12 +29,17 @@ def test_list_detectors_returns_fifteen_axes_in_order() -> None:
     assert detectors[-1]["axis_id"] == "axis-14"
     axis_kinds = {item["axis_id"]: item["kind"] for item in detectors}
     assert axis_kinds["axis-04"] == "detector"
+    assert axis_kinds["axis-05"] == "detector"
     assert axis_kinds["axis-06"] == "detector"
     assert axis_kinds["axis-03"] == "detector"
     assert axis_kinds["axis-09"] == "detector"
+    assert axis_kinds["axis-10"] == "detector"
+    assert axis_kinds["axis-11"] == "detector"
     assert axis_kinds["axis-07"] == "detector"
     assert axis_kinds["axis-08"] == "detector"
     assert axis_kinds["axis-12"] == "detector"
+    assert axis_kinds["axis-13"] == "detector"
+    assert axis_kinds["axis-14"] == "detector"
 
 
 def test_run_detector_axis_00_returns_blocked_stub_and_records_run(tmp_path: Path) -> None:
