@@ -24,6 +24,8 @@ from detectors.base import (  # noqa: E402
 from detectors.axis_01_dead import Axis01DeadCodeDrift  # noqa: E402
 from detectors.axis_02_coverage import Axis02CoverageErosion  # noqa: E402
 from detectors.axis_03_dup import Axis03RealDuplicate  # noqa: E402
+from detectors.axis_04_skill_decay import Axis04SkillDecay  # noqa: E402
+from detectors.axis_06_naming import Axis06NamingConfusion  # noqa: E402
 from detectors.axis_09_refactor import Axis09RefactorOpportunity  # noqa: E402
 import helix_db  # noqa: E402
 
@@ -77,9 +79,7 @@ def _make_stub_detector(axis_id: str, name: str, phase_gate: str | None) -> type
     return _StubDetector
 
 
-Axis04SkillDecay = _make_stub_detector("axis-04", "skill resolution decay", None)
 Axis05PlanDebtLoop = _make_stub_detector("axis-05", "plan debt loop", "G6")
-Axis06NamingConfusion = _make_stub_detector("axis-06", "naming confusion", "G2")
 Axis07DocDrift = _make_stub_detector("axis-07", "doc expression drift", "G2")
 Axis08PlanIntegrity = _make_stub_detector("axis-08", "plan-retro integrity", "G6")
 Axis10RelationGraph = _make_stub_detector("axis-10", "relation graph", None)
