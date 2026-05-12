@@ -261,6 +261,9 @@ def _resolve_symbol_line(path: Path, marker_line: int) -> int:
 
 
 classify_bucket = _classify_bucket
+is_non_indexable_path = _is_non_indexable_path
+resolve_symbol_line = _resolve_symbol_line
+default_seed_metadata = _default_seed_metadata
 seed_metadata_from_fields = _seed_metadata_from_fields
 
 
