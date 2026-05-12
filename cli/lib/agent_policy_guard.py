@@ -26,6 +26,8 @@ ALLOWED_ROLES = {
     "legacy",
     "perf",
     "impl-sonnet",
+    "pm-advisor",
+    "tl-advisor",
     "recommender",
     "classifier",
     "effort-classifier",

@@ -21,6 +21,8 @@ roles:
   effort-classifier: gpt-5.4-mini
   pmo-sonnet: claude-sonnet-4-6
   pmo-haiku: claude-haiku-4-5-20251001
+  pm-advisor: claude-opus-4-7
+  tl-advisor: gpt-5.5
 
 role_metadata:
   pmo-sonnet:
@@ -47,3 +49,19 @@ role_metadata:
     permission_mode: acceptEdits
     codex_allow_paths: "docs/**,skills/**"
     allow_paths: "docs/**,skills/**"
+  pm-advisor:
+    provider: claude_code
+    codex_thinking: high
+    thinking: high
+    codex_permission_mode: plan
+    permission_mode: plan
+    codex_disallowed_tools: "Edit,Write,NotebookEdit"
+    disallowed_tools: "Edit,Write,NotebookEdit"
+  tl-advisor:
+    provider: codex
+    codex_thinking: high
+    thinking: high
+    codex_permission_mode: read-only
+    permission_mode: plan
+    codex_disallowed_tools: "Edit,Write,NotebookEdit"
+    disallowed_tools: "Edit,Write,NotebookEdit"

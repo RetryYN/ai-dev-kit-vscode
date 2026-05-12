@@ -103,8 +103,8 @@ if [[ -n "$ALLOW_PATHS" && "$ROLE" != "pmo" ]]; then
   echo "エラー: --allow-paths は --role pmo でのみ使用できます" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
-if [[ "$EXECUTE" == true && "$ROLE" != "pmo" && "$ROLE" != "impl-sonnet" ]]; then
-  echo "エラー: --execute は --role pmo または impl-sonnet でのみ使用できます" >&2
+if [[ "$EXECUTE" == true && "$ROLE" != "pmo" && "$ROLE" != "impl-sonnet" && "$ROLE" != "pm-advisor" && "$ROLE" != "tl-advisor" ]]; then
+  echo "エラー: --execute は --role pmo / impl-sonnet / pm-advisor / tl-advisor でのみ使用できます" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 if [[ "$ROLE" == "pmo" ]]; then
@@ -269,6 +269,15 @@ if [[ "$ROLE" == "impl-sonnet" ]]; then
   fi
   permission_mode="${claude_permission_mode:-acceptEdits}"
   disallowed_tools=""
+fi
+
+if [[ "$ROLE" == "pm-advisor" || "$ROLE" == "tl-advisor" ]]; then
+  if [[ -z "$claude_model_id" ]]; then
+    echo "エラー: $ROLE_CONF_NAME.conf に claude_model がありません" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  permission_mode="${claude_permission_mode:-plan}"
+  disallowed_tools="${claude_disallowed_tools:-Edit,Write,NotebookEdit}"
 fi
 
 if [[ "$ROLE" == "pmo" ]]; then

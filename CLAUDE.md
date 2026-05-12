@@ -95,6 +95,22 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 - ドキュメントと実装が乖離した場合は **実装 (`cli/config/models.yaml`) を正** とする。本表は周知用。
 - ロール定義の正本は [cli/ROLE_MAP.md](cli/ROLE_MAP.md)。
 
+## Advisor 召喚ルール（運用）
+
+チャット PM (Opus / Sonnet いずれも) と実装担当が **大局判断 / 技術選択で迷ったとき** は、自前で結論を出す前にアドバイザーを召喚する。最終判断は呼び出し側 (PM またはユーザー) が下す。
+
+| アドバイザー | model | 召喚コマンド | 召喚タイミング |
+|---|---|---|---|
+| **pm-advisor** | claude-opus-4-7 (read-only) | `helix claude --role pm-advisor --execute --task "..."` | スコープ / 優先度 / 大局リスク / HELIX フェーズ整合 / 委譲先選択 で迷う |
+| **tl-advisor** | gpt-5.5 high (read-only) | `helix codex --role tl-advisor --task "..."` | 設計選択 / 契約・API 妥当性 / テスト戦略 / リファクタ判断 で迷う |
+
+運用原則:
+- **PM が Sonnet で動いているチャット** では、難判断に当たったら必ず pm-advisor (Opus) に相談する。Sonnet 単独で大局判断を確定させない
+- **PM が Opus でも**、自分の判断に確信が持てない技術判断は tl-advisor を呼んで反論を取る (adversarial check)
+- 実装担当 (Sonnet / Codex) は契約や設計で迷ったら tl-advisor、スコープで迷ったら pm-advisor を呼ぶ
+- アドバイザーは read-only。コード編集や状態変更は行わない (構造化助言のみ返す)
+- 呼び出した task / 助言内容は会話または final report に残し、判断トレースを失わない
+
 ## Agent tool 完全禁止（v2）
 
 特定指定付きの Agent tool 呼び出しを含む実行は原則禁止。PMO の read-only・軽作業は `helix claude --role pmo --execute` 経由に統一する。

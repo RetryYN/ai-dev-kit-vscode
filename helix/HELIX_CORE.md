@@ -62,6 +62,19 @@ L4 implementation / build / G4 補足（PLAN-013）:
 - TL approve なしで finalize 不可
 - 詳細は `workflow-core.md §設計提案レビュー` 参照
 
+## Advisor 召喚（PM / TL 難判断）
+
+チャット PM (Opus / Sonnet 問わず) と実装担当が大局判断・技術選択で迷ったとき、自前で結論を出す前にアドバイザーを呼ぶ。アドバイザーは read-only で構造化助言のみ返し、最終判断は呼び出し側が下す。
+
+- `helix claude --role pm-advisor --execute --task "..."` — PM 級判断 (スコープ / 優先度 / 大局リスク / フェーズ整合 / 委譲先) を Opus 4.7 に相談
+- `helix codex --role tl-advisor --task "..."` — TL 級判断 (設計 / 契約 / 技術選択 / テスト戦略 / リファクタ) を gpt-5.5 high に相談
+
+運用原則:
+- PM が Sonnet で動くチャットでは難判断を Sonnet 単独で確定させず、必ず pm-advisor (Opus) に相談する
+- PM が Opus でも技術判断の adversarial check として tl-advisor を呼ぶ運用は推奨
+- 実装担当 (Sonnet / Codex) は契約・設計で迷えば tl-advisor、スコープで迷えば pm-advisor を呼ぶ
+- 呼び出した task / 助言内容は会話または final report に残し、判断トレースを保つ
+
 ## 工程表・承認・委譲
 
 - 実装は L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を正とする。

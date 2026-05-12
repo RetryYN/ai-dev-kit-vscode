@@ -67,6 +67,15 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
   - TL から PM 逆戻し: `helix handover update --mode tl-to-pm`
 - 進行中の `--mode pm-to-tl` / `--mode tl-to-pm` 状態は `Next Action` と分担範囲に反映する。
 
+## Advisor 召喚（PM / TL 難判断）
+
+チャット PM (Opus / Sonnet) と TL / 実装担当が大局判断・技術選択で迷ったとき、自前で結論を出す前にアドバイザーを呼ぶ (read-only)。
+
+- `helix claude --role pm-advisor --execute --task "..."` — Opus 4.7、PM 級判断 (スコープ / 優先度 / 大局リスク)
+- `helix codex --role tl-advisor --task "..."` — gpt-5.5 high、TL 級判断 (設計 / 契約 / 技術選択 / テスト戦略)
+
+最終判断は呼び出し側。助言内容は会話または final report に残す。
+
 ## HELIX Workflow
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`
