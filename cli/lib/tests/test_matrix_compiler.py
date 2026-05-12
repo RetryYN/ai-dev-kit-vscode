@@ -57,7 +57,7 @@ def _setup_project(tmp_path: Path) -> Path:
 def _repo_rules_dir() -> Path:
     rules_dir = Path(__file__).resolve().parents[2] / "templates" / "rules"
     if not rules_dir.exists():
-        pytest.skip("cli/templates/rules が存在しない")
+        pytest.skip("HELIX-SKIP: env_dependent | PLAN-053 | due_date: 2026-06-30")
     return rules_dir
 
 
