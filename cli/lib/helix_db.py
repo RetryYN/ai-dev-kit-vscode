@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 19
+CURRENT_SCHEMA_VERSION = 20
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -593,7 +593,9 @@ CREATE TABLE IF NOT EXISTS contract_entries (
     schema_hash TEXT,
     breaking_change_flag INTEGER DEFAULT 0,
     introduced_plan TEXT,
-    raw_spec TEXT
+    raw_spec TEXT,
+    design_level TEXT NOT NULL DEFAULT 'detailed'
+        CHECK (design_level IN ('planning','requirement','architecture','detailed','functional'))
 );
 CREATE TABLE IF NOT EXISTS code_edges (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -607,8 +609,69 @@ CREATE TABLE IF NOT EXISTS code_edges (
 );
 CREATE INDEX IF NOT EXISTS idx_contract_type ON contract_entries(contract_type);
 CREATE INDEX IF NOT EXISTS idx_contract_breaking ON contract_entries(breaking_change_flag);
+CREATE INDEX IF NOT EXISTS idx_contract_design_level ON contract_entries(design_level);
 CREATE INDEX IF NOT EXISTS idx_edges_from ON code_edges(from_entry_id, edge_type);
 CREATE INDEX IF NOT EXISTS idx_edges_to ON code_edges(to_entry_id, edge_type);
+"""
+
+
+TEST_BASELINE_SCHEMA_V20 = """
+CREATE TABLE IF NOT EXISTS test_baseline (
+    id INTEGER PRIMARY KEY,
+    commit_sha TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    suite TEXT NOT NULL,
+    test_name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    duration_ms INTEGER,
+    skip_reason TEXT,
+    code_entry_id INTEGER,
+    test_design_id INTEGER,
+    UNIQUE (commit_sha, suite, test_name)
+);
+CREATE INDEX IF NOT EXISTS idx_baseline_suite_name ON test_baseline(suite, test_name);
+CREATE INDEX IF NOT EXISTS idx_baseline_commit ON test_baseline(commit_sha);
+CREATE INDEX IF NOT EXISTS idx_baseline_code_entry ON test_baseline(code_entry_id);
+CREATE INDEX IF NOT EXISTS idx_baseline_test_design ON test_baseline(test_design_id);
+"""
+
+
+TEST_DESIGN_ENTRIES_SCHEMA_V20 = """
+CREATE TABLE IF NOT EXISTS test_design_entries (
+    id INTEGER PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    acceptance_key TEXT NOT NULL,
+    contract_id INTEGER,
+    test_level TEXT NOT NULL CHECK (test_level IN
+        ('operational','acceptance','system_integration','integration','unit')),
+    paired_design_level TEXT NOT NULL CHECK (paired_design_level IN
+        ('planning','requirement','architecture','detailed','functional')),
+    pyramid_layer TEXT NOT NULL,
+    test_target TEXT,
+    expected_status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (plan_id, acceptance_key, test_level)
+);
+CREATE INDEX IF NOT EXISTS idx_test_design_plan ON test_design_entries(plan_id);
+CREATE INDEX IF NOT EXISTS idx_test_design_contract ON test_design_entries(contract_id);
+CREATE INDEX IF NOT EXISTS idx_test_design_levels ON test_design_entries(test_level, paired_design_level);
+"""
+
+
+DESIGN_REVIEW_SCHEMA_V20 = """
+CREATE TABLE IF NOT EXISTS design_review (
+    id INTEGER PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    layer TEXT NOT NULL,
+    review_axis TEXT NOT NULL,
+    source_layer TEXT,
+    target_id INTEGER,
+    reviewed_at TEXT NOT NULL,
+    reviewer TEXT NOT NULL,
+    verdict TEXT NOT NULL,
+    raw_findings TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_design_review_plan ON design_review(plan_id, layer, review_axis);
 """
 
 
@@ -955,6 +1018,59 @@ def _migrate_v18_to_v19(conn):
     )
 
 
+def _migrate_v19_to_v20(conn):
+    """v20: QA baseline/V-model 用テーブル追加 + contract_entries.design_level 追加。"""
+    if not _has_table(conn, "test_baseline"):
+        conn.executescript(TEST_BASELINE_SCHEMA_V20)
+    else:
+        if not _has_column(conn, "test_baseline", "code_entry_id"):
+            conn.execute("ALTER TABLE test_baseline ADD COLUMN code_entry_id INTEGER")
+        if not _has_column(conn, "test_baseline", "test_design_id"):
+            conn.execute("ALTER TABLE test_baseline ADD COLUMN test_design_id INTEGER")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_baseline_suite_name ON test_baseline(suite, test_name)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_baseline_commit ON test_baseline(commit_sha)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_baseline_code_entry ON test_baseline(code_entry_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_baseline_test_design ON test_baseline(test_design_id)"
+        )
+
+    if not _has_table(conn, "test_design_entries"):
+        conn.executescript(TEST_DESIGN_ENTRIES_SCHEMA_V20)
+    else:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_test_design_plan ON test_design_entries(plan_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_test_design_contract ON test_design_entries(contract_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_test_design_levels ON test_design_entries(test_level, paired_design_level)"
+        )
+
+    if not _has_table(conn, "design_review"):
+        conn.executescript(DESIGN_REVIEW_SCHEMA_V20)
+    else:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_design_review_plan ON design_review(plan_id, layer, review_axis)"
+        )
+
+    if not _has_table(conn, "contract_entries"):
+        conn.executescript(CONTRACT_REGISTRY_SCHEMA_V17)
+        return
+
+    if not _has_column(conn, "contract_entries", "design_level"):
+        conn.execute(
+            "ALTER TABLE contract_entries ADD COLUMN design_level TEXT NOT NULL DEFAULT 'detailed'"
+        )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_contract_design_level ON contract_entries(design_level)")
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1267,6 +1383,11 @@ def migrate(conn):
             _migrate_v18_to_v19(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (19, datetime('now'))"
+            )
+        if current < 20:
+            _migrate_v19_to_v20(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (20, datetime('now'))"
             )
         conn.commit()
 
