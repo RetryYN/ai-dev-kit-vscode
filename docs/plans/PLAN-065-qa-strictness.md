@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-065
 title: "PLAN-065（QA 強化: test 厳格化 + reviewer 切替 + regression baseline）"
-status: draft
+status: finalized
 created: 2026-05-12
 author: "PM (Opus)"
 priority: high
@@ -12,16 +12,16 @@ acceptance:
   qa_reviewer:
     verification_commands: { command: "cli/helix plan review --id PLAN-063 --reviewer qa", expected: "exit 0、QA 観点 critique (test pyramid / coverage / regression baseline) を出力" }
   regression_baseline:
-    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT COUNT(*) FROM test_baseline WHERE status=\"PASS\"'", expected: "≥ 1500 (shell 614 + pytest 1071 + bats 420 規模の baseline 取得)" }
+    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT COUNT(*) FROM test_baseline WHERE status=\"PASS\", expected: "≥ 1500 (shell 614 + pytest 1071 + bats 420 規模の baseline 取得)" }
   acceptance_template:
     verification_commands: { command: "grep -E 'test_pyramid|coverage_target|regression_baseline' cli/templates/plan/acceptance.yaml", expected: "3 必須 field が template 化されている" }
   criteria_doc:
     verification_commands: { command: "test -f docs/qa/criteria-2026.md && wc -l docs/qa/criteria-2026.md", expected: "200 行以上、QA gate / pyramid / coverage / regression baseline / skip discipline の 5 軸明文化" }
   v_model:
-    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT name FROM sqlite_master WHERE type=\"table\" AND name IN (\"contract_entries\",\"code_index\",\"test_design_entries\",\"test_baseline\",\"design_review\")'", expected: "5 table すべて存在 (V-model 4 layer + design_review)、PLAN ごとに gap query が動作" }
+    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT name FROM sqlite_master WHERE type=\"table\" AND name IN (\"contract_entries\",\"code_index\",\"test_design_entries\",\"test_baseline\",\"design_review\")", expected: "5 table すべて存在 (V-model 4 layer + design_review)、PLAN ごとに gap query が動作" }
   design_review_pair_check:
-    verification_commands: { command: "cli/helix gate G2 --pair-check architecture --plan-id PLAN-063", expected: "exit 0 (architecture layer の縦 + 横 review 両方 passed 確認)" }
-    layers_covered: "G1 requirement / G2 architecture / G3 detailed / G4 functional + L4 code review apex / G11 planning の 5 phase で縦 + 横 review 個別 check 動作"
+    verification_commands: { command: "cli/helix gate G1 --pair-check requirement --plan-id PLAN-063 && cli/helix gate G2 --pair-check architecture --plan-id PLAN-063 && cli/helix gate G3 --pair-check detailed --plan-id PLAN-063 && cli/helix gate G4 --pair-check functional --plan-id PLAN-063", expected: "すべて exit 0 (G1/G2/G3/G4 各 layer の縦 + 横 review 両方 passed を機械確認)" }
+finalized: 2026-05-12
 ---
 
 # PLAN-065: QA 強化 — test 厳格化 + reviewer 切替 + regression baseline
@@ -71,12 +71,12 @@ acceptance:
     modified_files: "前回比 ≥ 0pt (低下禁止)"
   regression_baseline:        # NEW
     previous_pass_count: "(自動取得: 前 commit の baseline)"
-    current_fail_tolerance: "PASS→FAIL は判定 (a) 単発 fail (連続 < 3 回) かつ flaky 履歴あり (test_baseline で過去 3 回中 1 回以上 FAIL あり) → warning、(b) 連続 3 回 FAIL or 非 flaky → G4 fail-close。flaky 判定は test_baseline 直近 5 件で 1 件以上 FAIL を flaky 扱い"
+    current_fail_tolerance: "PASS→FAIL は判定 (a) 単発 fail (連続 < 3 回) かつ flaky 履歴あり (test_baseline 直近 5 件で 1 件以上 FAIL あり) → warning、(b) 連続 3 回 FAIL or 非 flaky → G4 fail-close。flaky 判定 = 直近 5 件で 1 件以上 FAIL (窓は全判定で統一)"
 ```
 
 新規 PLAN draft 起票時、これら 3 field の存在を `helix plan lint` で機械検証。
 
-### 軸 C: regression baseline DB (helix.db v18)
+### 軸 C: regression baseline DB (helix.db v20)
 
 `test_baseline` テーブル新設:
 
@@ -278,7 +278,7 @@ SELECT c.id, c.source_path FROM contract_entries c
   WHERE t.id IS NULL;
 
 -- 実装はあるがカバレッジが無い symbol (左下 → 右下のギャップ)
-SELECT e.id, e.path, e.line_start FROM code_index e
+SELECT e.id, e.path, e.symbol_line FROM code_index e
   LEFT JOIN test_baseline b ON b.code_entry_id = e.id
   WHERE b.id IS NULL AND e.bucket = 'coverage_eligible';
 
@@ -314,7 +314,7 @@ PLAN-063 軸 10 relation graph はこの V-model を mermaid で可視化する 
 |---|---|---|
 | W-0 | draft + TL R1 + QA R1 + finalize | PM |
 | W-1 | 軸 A: `helix plan review --reviewer qa` 実装 | PG medium |
-| W-2 | 軸 C: helix.db v18 test_baseline + **test_design_entries** schema (V-model 統合) + record hook + diff CLI | SE high |
+| W-2 | 軸 C: helix.db v20 test_baseline + **test_design_entries** schema (V-model 統合) + record hook + diff CLI | SE high |
 | W-3 | 軸 D: skip annotation linter + acceptance.yaml template 強化 | PG medium |
 | W-4 | 軸 E: docs/qa/criteria-2026.md 起草 (200+ 行) | docs / 5.4 |
 | **W-5** | **§2.5 V-model 中核実装: design_review table 新規 + `helix gate G<N> --pair-check <layer>` 5 phase 縦/横 record + L4 code review apex (impl + test dual-target)** | **SE high** |
@@ -322,10 +322,10 @@ PLAN-063 軸 10 relation graph はこの V-model を mermaid で可視化する 
 
 **並列可否 (W-2 schema が前提依存元)**:
 - W-1 (reviewer CLI、QA conf 利用): W-2 非依存、W-0 finalize 後即可
-- W-2 (helix.db v18 schema): 全 V-model 関連 Sprint の前提、最優先
+- W-2 (helix.db v20 schema): 全 V-model 関連 Sprint の前提、最優先
 - W-4 (criteria 文書): W-2 非依存、W-0 finalize 後即可
-- W-3 (skip linter + acceptance template): W-2 後 (acceptance template が v18 schema 由来 field を含むため)
-- W-5 (design_review table + pair-check): W-2 後 (design_review schema を v18 に統合するため)
+- W-3 (skip linter + acceptance template): W-2 後 (acceptance template が v20 schema 由来 field を含むため)
+- W-5 (design_review table + pair-check): W-2 後 (design_review schema を v20 に統合するため)
 
 正確な依存:
 - W-0 完了後: W-1 ∥ W-2 ∥ W-4 (3 並列)
