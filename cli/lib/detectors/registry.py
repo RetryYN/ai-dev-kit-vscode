@@ -21,6 +21,8 @@ from detectors.base import (  # noqa: E402
     load_config,
     record_detector_run,
 )
+from detectors.axis_01_dead import Axis01DeadCodeDrift  # noqa: E402
+from detectors.axis_02_coverage import Axis02CoverageErosion  # noqa: E402
 import helix_db  # noqa: E402
 
 
@@ -73,8 +75,6 @@ def _make_stub_detector(axis_id: str, name: str, phase_gate: str | None) -> type
     return _StubDetector
 
 
-Axis01DeadCodeDrift = _make_stub_detector("axis-01", "dead code drift", "G4")
-Axis02CoverageErosion = _make_stub_detector("axis-02", "coverage erosion", "G4")
 Axis03RealDuplicate = _make_stub_detector("axis-03", "real duplicate", "G4")
 Axis04SkillDecay = _make_stub_detector("axis-04", "skill resolution decay", None)
 Axis05PlanDebtLoop = _make_stub_detector("axis-05", "plan debt loop", "G6")
@@ -117,6 +117,11 @@ def _descriptor(detector: type[BaseDetector]) -> DetectorDescriptor:
     )
 
 
+def _detector_status(detector: BaseDetector) -> str:
+    kind = getattr(detector, "kind", "stub")
+    return "baseline" if kind == "baseline" else kind
+
+
 def list_detectors() -> list[dict[str, Any]]:
     return [
         {
@@ -124,7 +129,7 @@ def list_detectors() -> list[dict[str, Any]]:
             "name": descriptor.name,
             "phase_gate": descriptor.phase_gate,
             "kind": descriptor.kind,
-            "status": "stub" if descriptor.kind != "baseline" else "baseline",
+            "status": "baseline" if descriptor.kind == "baseline" else descriptor.kind,
         }
         for descriptor in (_descriptor(REGISTRY[axis_id]) for axis_id in sorted(REGISTRY.keys()))
     ]
@@ -165,9 +170,9 @@ def _detector_payload(axis_id: str, detector: BaseDetector, result: DetectorResu
     }
     if result is not None:
         payload.update(result.to_dict())
-        payload["status"] = "stub" if result.raw.get("reason") == STUB_REASON else result.verdict
+        payload["status"] = "stub" if result.raw.get("reason") == STUB_REASON else _detector_status(detector)
     else:
-        payload["status"] = "stub" if getattr(detector, "kind", "stub") != "baseline" else "baseline"
+        payload["status"] = _detector_status(detector)
     return payload
 
 
