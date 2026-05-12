@@ -7,7 +7,7 @@ fi
 set -euo pipefail
 
 # helix-gate: HELIX ゲート自動検証
-# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run] [--readiness-mode warning|enforce|skip]
+# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--readiness-mode warning|enforce|skip]
 #
 # 責務分離:
 #   1. 前提条件チェック（prereq gate）      → check_prerequisites()
@@ -39,6 +39,8 @@ G10_OUTCOME_OWNER=""
 G10_OUTCOME_ETA=""
 G10_OUTCOME_REASON=""
 G10_OUTCOME_EXPLICIT=false
+PAIR_CHECK_LAYER=""
+PAIR_CHECK_PLAN_ID=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -122,12 +124,40 @@ while [[ $# -gt 0 ]]; do
       G10_OUTCOME_REASON="${1#--outcome-reason=}"
       shift
       ;;
+    --pair-check)
+      if [[ -z "${2:-}" ]]; then
+        echo "エラー: --pair-check には requirement|architecture|detailed|functional|planning が必要です" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+      PAIR_CHECK_LAYER="$2"
+      shift 2
+      ;;
+    --pair-check=*)
+      PAIR_CHECK_LAYER="${1#--pair-check=}"
+      shift
+      ;;
+    --plan-id)
+      if [[ -z "${2:-}" ]]; then
+        echo "エラー: --plan-id には PLAN-数字3桁 が必要です" >&2
+        exit "$EXIT_INPUT_ERROR"
+      fi
+      PAIR_CHECK_PLAN_ID="$2"
+      shift 2
+      ;;
+    --plan-id=*)
+      PAIR_CHECK_PLAN_ID="${1#--plan-id=}"
+      shift
+      ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
       echo ""
       echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11"
       echo ""
       echo "Options:"
+      echo "  --pair-check <layer>"
+      echo "      design_review の vertical/horizontal 両 passed を機械確認"
+      echo "  --plan-id <PLAN-NNN>"
+      echo "      --pair-check と併用して design_review を評価する plan_id"
       echo "  --cross-sprint"
       echo "      直近完了 Sprint を helix.db から推定し、横断レビュー証跡を .helix/cross-sprint-reviews/ に保存"
       echo "  --readiness-mode <warning|enforce|skip>"
@@ -238,6 +268,80 @@ if [[ "$GATE" == "G10" ]]; then
   if [[ -n "$G10_OUTCOME_ETA" ]] && ! validate_iso_date "$G10_OUTCOME_ETA"; then
     echo "エラー: --outcome-eta は YYYY-MM-DD の実在日で指定してください: $G10_OUTCOME_ETA" >&2
     exit "$EXIT_INPUT_ERROR"
+  fi
+fi
+
+if [[ -n "$PAIR_CHECK_LAYER" || -n "$PAIR_CHECK_PLAN_ID" ]]; then
+  if [[ -z "$PAIR_CHECK_LAYER" || -z "$PAIR_CHECK_PLAN_ID" ]]; then
+    echo "エラー: --pair-check と --plan-id は同時指定が必要です" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+  case "$PAIR_CHECK_LAYER" in
+    requirement|architecture|detailed|functional|planning) ;;
+    *)
+      echo "エラー: --pair-check には requirement|architecture|detailed|functional|planning を指定してください: $PAIR_CHECK_LAYER" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+  if [[ ! "$PAIR_CHECK_PLAN_ID" =~ ^PLAN-[0-9]{3}$ ]]; then
+    echo "エラー: --plan-id は PLAN-数字3桁 で指定してください: $PAIR_CHECK_PLAN_ID" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+fi
+
+run_pair_check() {
+  local gate="$1"
+  local layer="$2"
+  local plan_id="$3"
+
+  if [[ ! -f "$DB_PATH" ]]; then
+    echo "$gate fail: .helix/helix.db が見つかりません" >&2
+    return 1
+  fi
+
+  python3 - "$SCRIPT_DIR/lib" "$DB_PATH" "$plan_id" "$layer" "$gate" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = Path(sys.argv[2])
+plan_id = sys.argv[3]
+layer = sys.argv[4]
+gate = sys.argv[5]
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+
+try:
+    result = helix_db.query_design_review_pair(db_path, plan_id=plan_id, layer=layer)
+except Exception as exc:
+    print(f"{gate} fail: design_review query failed: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+vertical_passed = bool(result.get("vertical_passed"))
+horizontal_passed = bool(result.get("horizontal_passed"))
+print(
+    f"[pair-check] gate={gate} plan_id={plan_id} layer={layer} "
+    f"vertical_passed={vertical_passed} horizontal_passed={horizontal_passed}"
+)
+if vertical_passed and horizontal_passed:
+    raise SystemExit(0)
+
+print(
+    f"{gate} fail: design_review pair missing "
+    f"(vertical_passed={vertical_passed}, horizontal_passed={horizontal_passed})",
+    file=sys.stderr,
+)
+raise SystemExit(1)
+PY
+}
+
+if [[ -n "$PAIR_CHECK_LAYER" ]]; then
+  if run_pair_check "$GATE" "$PAIR_CHECK_LAYER" "$PAIR_CHECK_PLAN_ID"; then
+    exit "$EXIT_SUCCESS"
+  else
+    pair_check_status=$?
+    exit "$pair_check_status"
   fi
 fi
 

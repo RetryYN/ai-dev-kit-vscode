@@ -2266,6 +2266,23 @@ def export_json(db_path, output_path):
     print(f"Exported: {output_path}")
 
 
+def query_design_review_pair(db_path, plan_id: str, layer: str) -> dict:
+    """Return dict with vertical_passed and horizontal_passed bools."""
+    conn = get_connection(db_path)
+    try:
+        vertical_row = conn.execute(
+            "SELECT 1 FROM design_review WHERE plan_id=? AND layer=? AND review_axis='vertical' AND verdict='passed' LIMIT 1",
+            (plan_id, layer),
+        ).fetchone()
+        horizontal_row = conn.execute(
+            "SELECT 1 FROM design_review WHERE plan_id=? AND layer=? AND review_axis='horizontal' AND verdict='passed' LIMIT 1",
+            (plan_id, layer),
+        ).fetchone()
+        return {"vertical_passed": vertical_row is not None, "horizontal_passed": horizontal_row is not None}
+    finally:
+        conn.close()
+
+
 # @helix:index id=helix-db.main domain=cli/lib summary=mainを実行する
 def main():
     if len(sys.argv) < 2:
