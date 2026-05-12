@@ -25,8 +25,11 @@ from detectors.axis_01_dead import Axis01DeadCodeDrift  # noqa: E402
 from detectors.axis_02_coverage import Axis02CoverageErosion  # noqa: E402
 from detectors.axis_03_dup import Axis03RealDuplicate  # noqa: E402
 from detectors.axis_04_skill_decay import Axis04SkillDecay  # noqa: E402
+from detectors.axis_07_doc_drift import Axis07DocDrift  # noqa: E402
+from detectors.axis_08_plan_integrity import Axis08PlanIntegrity  # noqa: E402
 from detectors.axis_06_naming import Axis06NamingConfusion  # noqa: E402
 from detectors.axis_09_refactor import Axis09RefactorOpportunity  # noqa: E402
+from detectors.axis_12_connection import Axis12ConnectionDeficiency  # noqa: E402
 import helix_db  # noqa: E402
 
 
@@ -80,11 +83,8 @@ def _make_stub_detector(axis_id: str, name: str, phase_gate: str | None) -> type
 
 
 Axis05PlanDebtLoop = _make_stub_detector("axis-05", "plan debt loop", "G6")
-Axis07DocDrift = _make_stub_detector("axis-07", "doc expression drift", "G2")
-Axis08PlanIntegrity = _make_stub_detector("axis-08", "plan-retro integrity", "G6")
 Axis10RelationGraph = _make_stub_detector("axis-10", "relation graph", None)
 Axis11RegressionDetection = _make_stub_detector("axis-11", "regression detection", "G6")
-Axis12ConnectionDeficiency = _make_stub_detector("axis-12", "connection deficiency", "G2")
 Axis13ModelSkillAnalytics = _make_stub_detector("axis-13", "model & skill analytics", None)
 Axis14OrchestrationIntegrity = _make_stub_detector("axis-14", "orchestration integrity", "G4")
 
