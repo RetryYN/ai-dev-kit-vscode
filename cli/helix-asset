@@ -21,7 +21,7 @@ Common options:
   --palette <hex,hex,hex>              color palette
   --motif <text>                       motif description (free text)
   --text <text>                        text overlay
-  --out <path>                         output path (default: docs/assets/<preset>-<timestamp>.png)
+  --out <path> / --output <path>       output path (default: docs/assets/<preset>-<timestamp>.png)
   --variants N                         generate N variants (default: 1, max 8)
   --model <model>                      override model (default: gpt-5.4-mini)
   --dry-run                            show resolved prompt without invoking codex
@@ -39,6 +39,31 @@ is_known_preset() {
     banner|logo|hero|card|thumb|icon|bg) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+validate_plain_text() {
+  local label="$1"
+  local value="$2"
+
+  if (( ${#value} > 256 )); then
+    die "$label は 256 文字以内で指定してください" 1
+  fi
+
+  if [[ "$value" =~ [[:cntrl:]] ]]; then
+    die "$label には制御文字を含められません" 1
+  fi
+}
+
+validate_output_path() {
+  local value="$1"
+
+  if [[ -z "$value" ]]; then
+    die "--out/--output には値が必要です" 1
+  fi
+
+  if [[ "$value" =~ [[:cntrl:]] ]]; then
+    die "--out/--output には制御文字を含められません" 1
+  fi
 }
 
 resolve_size() {
@@ -78,6 +103,7 @@ palette=""
 motif=""
 text=""
 out=""
+out_specified="0"
 variants="1"
 model="gpt-5.4-mini"
 dry_run="0"
@@ -88,7 +114,7 @@ while (($#)); do
     --palette) palette="${2:-}"; shift 2 ;;
     --motif) motif="${2:-}"; shift 2 ;;
     --text) text="${2:-}"; shift 2 ;;
-    --out) out="${2:-}"; shift 2 ;;
+    --out|--output) out="${2:-}"; out_specified="1"; shift 2 ;;
     --variants) variants="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
     --dry-run) dry_run="1"; shift ;;
@@ -97,12 +123,21 @@ while (($#)); do
   esac
 done
 
+if [[ "${HELIX_ASSET_DRY_RUN:-0}" == "1" ]]; then
+  dry_run="1"
+fi
+
 if ! is_known_preset "$preset"; then
-  die "unknown preset: $preset" 2
+  die "unknown preset: $preset" 1
 fi
 
 if ! [[ "$variants" =~ ^[0-9]+$ ]] || (( variants < 1 || variants > 8 )); then
   die "--variants は 1-8 の範囲で指定してください" 2
+fi
+
+validate_plain_text "--motif" "$motif"
+if [[ "$out_specified" == "1" ]]; then
+  validate_output_path "$out"
 fi
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
