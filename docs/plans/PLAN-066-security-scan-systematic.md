@@ -181,14 +181,16 @@ size = L, 8 Sprint 構成とする。
 | Sprint | 内容 | 主担当 |
 |---|---|---|
 | W-0 | draft + TL R1 + finalize | Docs / TL |
-| W-1 | 軸 A G2 threat-model integration | Security |
-| W-2 | 軸 B G4 static scan wrapper | Security / SE |
-| W-3 | 軸 C G6 dynamic test wrapper | Security / QA |
-| W-4 | 軸 D 依存脆弱性 cron + table | Security / DBA |
-| W-5 | 軸 E 秘密情報 pre-commit hook | Security / DevOps |
-| W-6 | helix.db schema v21 security_findings + dep_vulnerabilities | DBA |
+| **W-1** | **helix.db schema v21: security_findings + dep_vulnerabilities (前提依存全 sprint の最優先)** | **DBA** |
+| W-2 | 軸 A G2 threat-model integration | Security |
+| W-3 | 軸 B G4 static scan wrapper (security_findings 利用) | Security / SE |
+| W-4 | 軸 C G6 dynamic test wrapper (security_findings 利用) | Security / QA |
+| W-5 | 軸 D 依存脆弱性 cron + table (dep_vulnerabilities 利用) | Security / DBA |
+| W-6 | 軸 E 秘密情報 pre-commit hook | Security / DevOps |
 | W-7 | gate 統合 + dashboard | TL / QA |
 | W-final | 統合検証 + retro | TL / QA |
+
+依存順序の根拠 (R1 P1 修正): W-3/W-4/W-5 はそれぞれ helix.db の security_findings / dep_vulnerabilities テーブルを INSERT 対象とするため、schema 作成 (W-1) を最優先する。W-1 完了後は W-2/W-3/W-4/W-5/W-6 が並列実行可能。
 
 Sprint 間の依存:
 
