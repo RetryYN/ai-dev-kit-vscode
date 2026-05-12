@@ -2,6 +2,7 @@
 """SessionStart hook 用の進捗サマリ生成。"""
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -67,6 +68,10 @@ def build_progress_block(project_root: Path) -> str:
         lines.append(f"- Drive: {drive}")
     lines.append("")
 
+    dashboard_block = _load_detect_dashboard_block(project_root)
+    if dashboard_block:
+        lines.append(dashboard_block)
+
     if sprint_status == "interrupted":
         interrupt_info = _load_interrupt_status(project_root)
         open_interrupts = [
@@ -99,6 +104,28 @@ def build_progress_block(project_root: Path) -> str:
             lines.append("")
 
     return "\n".join(lines).rstrip()
+
+
+def _load_detect_dashboard_block(project_root: Path) -> str:
+    dashboard_text = _run_helix_text(project_root, ["detect", "dashboard", "--format", "text"], timeout=1.0)
+    if not dashboard_text.strip():
+        return ""
+
+    detector_lines = [
+        re.sub(r"^-\s*", "", line.strip())
+        for line in dashboard_text.splitlines()
+        if re.search(r"axis-(?:0[1-9]|1[0-4])\b", line)
+    ]
+    if not detector_lines:
+        return ""
+
+    return "\n".join(
+        [
+            "## HELIX Detect Dashboard",
+            *detector_lines[:14],
+            "",
+        ]
+    )
 
 
 def _load_interrupt_status(project_root: Path) -> list[dict[str, Any]]:
@@ -135,6 +162,23 @@ def _run_helix_json(project_root: Path, args: list[str], fallback: Any) -> Any:
     except Exception:
         pass
     return fallback
+
+
+def _run_helix_text(project_root: Path, args: list[str], *, timeout: float = 5.0) -> str:
+    try:
+        res = subprocess.run(
+            [str(HELIX_BIN), *args],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        if res.returncode == 0:
+            return res.stdout
+    except Exception:
+        pass
+    return ""
 
 
 def main() -> int:

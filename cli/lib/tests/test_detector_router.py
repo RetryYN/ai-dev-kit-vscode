@@ -77,8 +77,10 @@ def test_dashboard_data_returns_dict_with_each_axis_verdict(
 
     assert isinstance(data, dict)
     assert data["total"] == 15
-    assert data["counts"]["blocked"] == 15
+    assert data["counts"]["passed"] == 1
+    assert data["counts"]["blocked"] == 14
     assert data["axes"][0]["axis_id"] == "axis-00"
+    assert any(axis["axis_id"] == "axis-10" and axis["verdict"] == "passed" for axis in data["axes"])
     assert all("verdict" in axis for axis in data["axes"])
     assert "graph TD" in data["mermaid"]
 

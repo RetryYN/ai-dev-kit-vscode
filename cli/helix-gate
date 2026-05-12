@@ -7,7 +7,7 @@ fi
 set -euo pipefail
 
 # helix-gate: HELIX ゲート自動検証
-# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--readiness-mode warning|enforce|skip]
+# Usage: helix-gate <gate-name> [--static-only] [--ai-only] [--dry-run] [--skip-detectors] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--readiness-mode warning|enforce|skip]
 #
 # 責務分離:
 #   1. 前提条件チェック（prereq gate）      → check_prerequisites()
@@ -32,6 +32,7 @@ DRY_RUN=false
 UNDO=false
 JSON_OUTPUT=false
 CROSS_SPRINT=false
+SKIP_DETECTORS=false
 READINESS_MODE_FLAG=""
 G5_PHASE=""
 G10_OUTCOME=""
@@ -50,6 +51,7 @@ while [[ $# -gt 0 ]]; do
     --undo)        UNDO=true; shift ;;
     --json)        JSON_OUTPUT=true; shift ;;
     --cross-sprint) CROSS_SPRINT=true; shift ;;
+    --skip-detectors) SKIP_DETECTORS=true; shift ;;
     --readiness-mode)
       if [[ -z "${2:-}" ]]; then
         echo "エラー: --readiness-mode には warning|enforce|skip が必要です" >&2
@@ -149,7 +151,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --help|-h)
-      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
+      echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--skip-detectors] [--pair-check <layer>] [--plan-id <PLAN-NNN>] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
       echo ""
       echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11"
       echo ""
@@ -160,6 +162,8 @@ while [[ $# -gt 0 ]]; do
       echo "      --pair-check と併用して design_review を評価する plan_id"
       echo "  --cross-sprint"
       echo "      直近完了 Sprint を helix.db から推定し、横断レビュー証跡を .helix/cross-sprint-reviews/ に保存"
+      echo "  --skip-detectors"
+      echo "      G2/G4/G6 の auto-run detector をスキップする (debug 用)"
       echo "  --readiness-mode <warning|enforce|skip>"
       echo "      readiness exit の AND 条件モード (default: warning)"
       echo "  --outcome <pass|watch-continue|blocked|failed>"
@@ -1114,6 +1118,8 @@ run_checks() {
   local ai_pass=0
   local ai_fail=0
   local readiness_fail=0
+  local detector_fail=0
+  local detector_warn=0
   local drive=""
   local ui_flag=""
   local extra_fail_reasons=""
@@ -1137,6 +1143,79 @@ run_checks() {
     else
       extra_fail_reasons="$reason"
     fi
+  }
+
+  gate_detector_axes() {
+    local gate_name="$1"
+    case "$gate_name" in
+      G2) echo "axis-06 axis-07 axis-12" ;;
+      G4) echo "axis-01 axis-02 axis-03 axis-09 axis-14" ;;
+      G6) echo "axis-05 axis-08 axis-11" ;;
+      *) echo "" ;;
+    esac
+  }
+
+  run_gate_detector_auto_checks() {
+    local gate_name="$1"
+    local axes
+    axes="$(gate_detector_axes "$gate_name")"
+    if [[ -z "$axes" ]]; then
+      return 0
+    fi
+
+    echo "[helix-gate] detector auto-run: $gate_name"
+    local axis tmp rc summary
+    detector_fail=0
+    detector_warn=0
+
+    for axis in $axes; do
+      tmp="$(mktemp "${TMPDIR:-/tmp}/helix-gate-detector-${gate_name}-${axis}-XXXXXX")"
+      set +e
+      "$SCRIPT_DIR/helix-detect" run "$axis" --json >"$tmp" 2>&1
+      rc=$?
+      set -e
+
+      summary="$(python3 - "$tmp" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+try:
+    payload = json.loads(text)
+except Exception:
+    print("unparsed detector output")
+    raise SystemExit(0)
+
+detector = payload.get("detector", {})
+result = payload.get("result", {})
+print(
+    f"{detector.get('name', '?')} verdict={result.get('verdict', '?')} "
+    f"cost_ms={result.get('cost_ms', '?')}"
+)
+PY
+)"
+
+      case "$rc" in
+        0)
+          echo "  PASS [$axis] $summary"
+          ;;
+        1)
+          echo "  FAIL [$axis] $summary"
+          detector_fail=$((detector_fail + 1))
+          ;;
+        2)
+          echo "  WARN [$axis] $summary"
+          detector_warn=$((detector_warn + 1))
+          ;;
+        *)
+          echo "  WARN [$axis] detector exited rc=$rc: $summary"
+          detector_warn=$((detector_warn + 1))
+          ;;
+      esac
+      rm -f "$tmp"
+    done
+    echo "  detector summary: fail=$detector_fail warn=$detector_warn"
   }
 
   requires_design_md_lint() {
@@ -1979,8 +2058,20 @@ PY
     rm -f "$readiness_output_file"
   fi
 
-  # --- 総合判定 ---
   local total_fail=$((deliv_fail + mandatory_fail + ai_fail + readiness_fail))
+  if [[ "$gate" =~ ^G(2|4|6)$ ]]; then
+    if [[ "$SKIP_DETECTORS" == true ]]; then
+      echo "[helix-gate] detector auto-run skipped (--skip-detectors)"
+    elif [[ $total_fail -eq 0 ]]; then
+      run_gate_detector_auto_checks "$gate"
+      if [[ $detector_fail -gt 0 ]]; then
+        add_fail_reason "detectors"
+      fi
+    fi
+  fi
+
+  # --- 総合判定 ---
+  total_fail=$((total_fail + detector_fail))
   local g10_effective_outcome=""
   local g10_effective_status=""
   local g10_base_fail=$((deliv_fail + mandatory_fail + readiness_fail))
@@ -2020,7 +2111,11 @@ PY
     if [[ "$readiness_fail" -gt 0 ]]; then
       readiness_summary=", readiness: $readiness_fail fail"
     fi
-    echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail${readiness_summary}) ==="
+    local detector_fail_summary=""
+    if [[ "$detector_fail" -gt 0 ]]; then
+      detector_fail_summary=", detector: $detector_fail fail"
+    fi
+    echo "=== $gate FAIL (deliverable: $deliv_fail fail, mandatory: $mandatory_fail fail, advisory: $advisory_fail fail, ai: $ai_fail fail${readiness_summary}${detector_fail_summary}) ==="
     if [[ "$DRY_RUN" != true ]]; then
       log_gate_summary "$gate" "$result" "$deliv_fail" "$static_fail" "$ai_fail"
     fi

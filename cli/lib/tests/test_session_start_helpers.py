@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
@@ -206,6 +208,29 @@ def test_build_progress_block_basic(tmp_path: Path) -> None:
     assert "## HELIX 現在の進捗" in block
     assert "Phase: L3 / Sprint: .2 / Mode: forward" in block
     assert "Drive: be" in block
+
+
+def test_build_progress_block_includes_detect_dashboard(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    write_phase(tmp_path)
+
+    def fake_run(cmd, *args, **kwargs):
+        if "detect" in cmd and "dashboard" in cmd:
+            return fake_completed(
+                "helix detect dashboard\n"
+                "axis-00\ttelemetry baseline\t-\tblocked\n"
+                "axis-01\tdead code drift\tG4\tfailed\n"
+                "axis-14\torchestration integrity\tG6\tpassed\n"
+            )
+        return fake_completed("")
+
+    monkeypatch.setattr(session_start_helpers.subprocess, "run", fake_run)
+
+    block = session_start_helpers.build_progress_block(tmp_path)
+
+    assert "## HELIX Detect Dashboard" in block
+    assert "axis-01\tdead code drift\tG4\tfailed" in block
+    assert "axis-14\torchestration integrity\tG6\tpassed" in block
+    assert "axis-00\ttelemetry baseline" not in block
 
 
 def test_build_progress_block_with_interrupted(tmp_path: Path, monkeypatch) -> None:

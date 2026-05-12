@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
-from datetime import datetime, timezone
+from collections import Counter
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -85,6 +87,265 @@ def _make_stub_detector(axis_id: str, name: str, phase_gate: str | None) -> type
 
     _StubDetector.__name__ = "Detector" + axis_id.replace("-", "_").replace("axis_", "Axis")
     return _StubDetector
+
+
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {str(row[1]) for row in rows}
+
+
+def _existing_table(conn: sqlite3.Connection, names: Iterable[str]) -> str | None:
+    for table_name in names:
+        if _table_exists(conn, table_name):
+            return table_name
+    return None
+
+
+def _count_rows(conn: sqlite3.Connection, table_name: str) -> int:
+    row = conn.execute(f"SELECT COUNT(*) AS count FROM {table_name}").fetchone()
+    return int(row["count"] if row is not None else 0)
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _verdict_color(verdict: str) -> str:
+    return {
+        "passed": "green",
+        "failed": "red",
+        "blocked": "gray",
+    }.get(verdict, "gray")
+
+
+def _format_percent(value: float) -> str:
+    return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def _fetch_detector_run_rows(conn: sqlite3.Connection, limit: int = 14) -> list[dict[str, Any]]:
+    if not _table_exists(conn, "detector_runs"):
+        return []
+    rows = conn.execute(
+        """
+        SELECT run_id, recorded_at, axis_id, detector_name, phase_gate, verdict,
+               findings_json, cost_ms, raw_json, config_json, command, db_path
+        FROM detector_runs
+        WHERE axis_id != 'axis-00'
+        ORDER BY recorded_at DESC, run_id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        findings_json = str(row["findings_json"] or "[]")
+        try:
+            findings = json.loads(findings_json)
+        except Exception:
+            findings = []
+        items.append(
+            {
+                "run_id": int(row["run_id"]),
+                "recorded_at": str(row["recorded_at"] or ""),
+                "axis_id": str(row["axis_id"] or ""),
+                "detector_name": str(row["detector_name"] or ""),
+                "phase_gate": str(row["phase_gate"] or "") or None,
+                "verdict": str(row["verdict"] or ""),
+                "verdict_color": _verdict_color(str(row["verdict"] or "")),
+                "findings_count": len(findings) if isinstance(findings, list) else 0,
+                "cost_ms": int(row["cost_ms"] or 0),
+                "command": str(row["command"] or ""),
+            }
+        )
+    return items
+
+
+def _aggregate_invocation_log(conn: sqlite3.Connection) -> dict[str, Any]:
+    if not _table_exists(conn, "invocation_log"):
+        return {"window_hours": 1, "total": 0, "by_role": [], "by_model": []}
+
+    threshold = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    rows = conn.execute(
+        """
+        SELECT role, model, timestamp
+        FROM invocation_log
+        WHERE timestamp >= ?
+        ORDER BY timestamp DESC, id DESC
+        """,
+        (threshold,),
+    ).fetchall()
+    role_counts: Counter[str] = Counter()
+    model_counts: Counter[str] = Counter()
+    for row in rows:
+        role = str(row["role"] or "").strip() or "-"
+        model = str(row["model"] or "").strip() or "-"
+        role_counts[role] += 1
+        model_counts[model] += 1
+
+    def _items(counter: Counter[str]) -> list[dict[str, Any]]:
+        return [
+            {"label": label, "count": count}
+            for label, count in sorted(counter.items(), key=lambda item: (-item[1], item[0]))[:5]
+        ]
+
+    return {
+        "window_hours": 1,
+        "total": len(rows),
+        "by_role": _items(role_counts),
+        "by_model": _items(model_counts),
+    }
+
+
+def _aggregate_code_entries(conn: sqlite3.Connection) -> dict[str, Any]:
+    table_name = _existing_table(conn, ("code_entries", "code_index"))
+    if table_name is None:
+        return {
+            "source_table": None,
+            "total": 0,
+            "coverage_eligible": 0,
+            "uncovered_pct": 0.0,
+        }
+
+    total = _count_rows(conn, table_name)
+    columns = _table_columns(conn, table_name)
+    eligible = total
+    if "bucket" in columns:
+        row = conn.execute(
+            f"SELECT COUNT(*) AS count FROM {table_name} WHERE bucket = ?",
+            ("coverage_eligible",),
+        ).fetchone()
+        eligible = int(row["count"] if row is not None else 0)
+
+    uncovered_pct = 0.0
+    if total > 0:
+        uncovered_pct = round(((total - eligible) / total) * 100.0, 1)
+
+    return {
+        "source_table": table_name,
+        "total": total,
+        "coverage_eligible": eligible,
+        "uncovered_pct": uncovered_pct,
+    }
+
+
+def _aggregate_observe_tables(conn: sqlite3.Connection) -> dict[str, Any]:
+    rows = conn.execute(
+        """
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table' AND name LIKE 'observe_%'
+        ORDER BY name
+        """
+    ).fetchall()
+    tables: list[dict[str, Any]] = []
+    for row in rows:
+        table_name = str(row["name"])
+        columns = _table_columns(conn, table_name)
+        summary: dict[str, Any] = {
+            "table": table_name,
+            "rows": _count_rows(conn, table_name),
+        }
+        latest = conn.execute(f"SELECT * FROM {table_name} ORDER BY rowid DESC LIMIT 1").fetchone()
+        if latest is not None:
+            if "accuracy_score" in columns:
+                summary["accuracy_score"] = latest["accuracy_score"]
+            elif "score" in columns:
+                summary["score"] = latest["score"]
+            if "verdict" in columns:
+                summary["verdict"] = latest["verdict"]
+        tables.append(summary)
+    return {"tables": tables}
+
+
+def _aggregate_skill_usage(conn: sqlite3.Connection) -> dict[str, Any]:
+    if not _table_exists(conn, "skill_usage"):
+        return {"window_days": 7, "top": []}
+
+    threshold = datetime.now(timezone.utc) - timedelta(days=7)
+    rows = conn.execute(
+        """
+        SELECT skill_id, created_at, completed_at
+        FROM skill_usage
+        ORDER BY created_at DESC, id DESC
+        """
+    ).fetchall()
+    counts: Counter[str] = Counter()
+    for row in rows:
+        created_at = _parse_iso_datetime(row["created_at"]) or _parse_iso_datetime(row["completed_at"])
+        if created_at is None or created_at < threshold:
+            continue
+        skill_id = str(row["skill_id"] or "").strip() or "-"
+        counts[skill_id] += 1
+    top = [
+        {"skill_id": skill_id, "count": count}
+        for skill_id, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:5]
+    ]
+    return {"window_days": 7, "top": top}
+
+
+def _aggregate_routing_decisions(conn: sqlite3.Connection) -> dict[str, Any]:
+    if not _table_exists(conn, "routing_decisions"):
+        return {"total": 0, "carry": 0, "debt": 0, "other": 0}
+
+    rows = conn.execute("SELECT * FROM routing_decisions ORDER BY rowid DESC").fetchall()
+    carry = debt = other = 0
+    for row in rows:
+        values = [
+            str(row[key] or "")
+            for key in row.keys()
+            if key in {"decision", "detail", "source", "path", "title", "kind", "status", "comment"}
+        ]
+        blob = " ".join(values).lower()
+        if "carry" in blob:
+            carry += 1
+        elif "debt" in blob:
+            debt += 1
+        else:
+            other += 1
+    return {"total": len(rows), "carry": carry, "debt": debt, "other": other}
+
+
+def _render_detector_runs_text(items: list[dict[str, Any]]) -> list[str]:
+    lines = ["detector_runs (latest 14)"]
+    if not items:
+        lines.append("  - none")
+        return lines
+    for item in items:
+        lines.append(
+            f"  - {item['axis_id']} [{item['verdict']}] {item['detector_name']} "
+            f"findings={item['findings_count']} cost_ms={item['cost_ms']}"
+        )
+    return lines
+
+
+def _render_table_list_text(title: str, items: list[dict[str, Any]]) -> list[str]:
+    lines = [title]
+    if not items:
+        lines.append("  - none")
+        return lines
+    for item in items:
+        parts = [f"{key}={value}" for key, value in item.items()]
+        lines.append("  - " + " ".join(parts))
+    return lines
 
 
 
@@ -188,7 +449,18 @@ def dashboard_data(db_path: str | Path | None = None) -> dict[str, Any]:
         axes.append(payload)
         counts[result.verdict] += 1
 
-    mermaid = _render_mermaid(axes, counts)
+    conn = helix_db.get_connection(target_db)
+    try:
+        detector_runs = _fetch_detector_run_rows(conn, limit=14)
+        invocation_log = _aggregate_invocation_log(conn)
+        code_entries = _aggregate_code_entries(conn)
+        observe_tables = _aggregate_observe_tables(conn)
+        skill_usage = _aggregate_skill_usage(conn)
+        routing_decisions = _aggregate_routing_decisions(conn)
+    finally:
+        conn.close()
+
+    mermaid = _render_mermaid(axes, counts, detector_runs, invocation_log, code_entries, observe_tables, skill_usage, routing_decisions)
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total": len(axes),
@@ -196,6 +468,12 @@ def dashboard_data(db_path: str | Path | None = None) -> dict[str, Any]:
         "passed_axes": [item["axis_id"] for item in axes if item["verdict"] == "passed"],
         "blocked_axes": [item["axis_id"] for item in axes if item["verdict"] == "blocked"],
         "axes": axes,
+        "detector_runs": detector_runs,
+        "invocation_log": invocation_log,
+        "code_entries": code_entries,
+        "observe_tables": observe_tables,
+        "skill_usage": skill_usage,
+        "routing_decisions": routing_decisions,
         "mermaid": mermaid,
     }
 
@@ -208,23 +486,66 @@ def _verdict_color(verdict: str) -> str:
     }.get(verdict, "fill:#e5e7eb,stroke:#6b7280,color:#111827")
 
 
-def _render_mermaid(axes: Iterable[dict[str, Any]], counts: dict[str, int]) -> str:
+def _render_mermaid(
+    axes: Iterable[dict[str, Any]],
+    counts: dict[str, int],
+    detector_runs: list[dict[str, Any]],
+    invocation_log: dict[str, Any],
+    code_entries: dict[str, Any],
+    observe_tables: dict[str, Any],
+    skill_usage: dict[str, Any],
+    routing_decisions: dict[str, Any],
+) -> str:
     lines = ["graph TD", "  %% PLAN-063 detector dashboard"]
+
+    summary = "  summary[[passed={passed} blocked={blocked} failed={failed}]]".format(
+        passed=counts.get("passed", 0),
+        blocked=counts.get("blocked", 0),
+        failed=counts.get("failed", 0),
+    )
+    lines.append(summary)
+
+    section_nodes = {
+        "detector_runs": f"detector_runs[[detector_runs<br/>latest={len(detector_runs)}]]",
+        "invocation_log": f"invocation_log[[invocation_log<br/>1h={invocation_log.get('total', 0)}]]",
+        "code_entries": (
+            "code_entries[[code_entries<br/>coverage_eligible={coverage}<br/>uncovered%={percent}]]".format(
+                coverage=code_entries.get("coverage_eligible", 0),
+                percent=_format_percent(float(code_entries.get("uncovered_pct", 0.0))),
+            )
+        ),
+        "observe_tables": f"observe_tables[[observe_*<br/>tables={len(observe_tables.get('tables', []))}]]",
+        "skill_usage": f"skill_usage[[skill_usage<br/>top={len(skill_usage.get('top', []))}]]",
+        "routing_decisions": (
+            "routing_decisions[[routing_decisions<br/>carry={carry}<br/>debt={debt}]]".format(
+                carry=routing_decisions.get("carry", 0),
+                debt=routing_decisions.get("debt", 0),
+            )
+        ),
+    }
+    for node in section_nodes.values():
+        lines.append(f"  {node}")
+    for section_name in section_nodes:
+        lines.append(f"  summary --> {section_name}")
+
     for item in axes:
         axis_id = item["axis_id"]
         label = f"{axis_id}<br/>{item['name']}<br/>{item['verdict']}"
         node_name = axis_id.replace("-", "_")
         lines.append(f'  {node_name}["{label}"]')
         lines.append(f"  style {node_name} {_verdict_color(item['verdict'])}")
-    lines.append(
-        "  summary[[passed={passed} blocked={blocked} failed={failed}]]".format(
-            passed=counts.get("passed", 0),
-            blocked=counts.get("blocked", 0),
-            failed=counts.get("failed", 0),
+        lines.append(f"  summary --> {node_name}")
+
+    for run in detector_runs:
+        node_name = f"run_{run['run_id']}"
+        label = (
+            f"{run['axis_id']}<br/>{run['verdict']}<br/>{run['detector_name']}<br/>"
+            f"findings={run['findings_count']}"
         )
-    )
-    for item in axes:
-        lines.append(f"  summary --> {item['axis_id'].replace('-', '_')}")
+        lines.append(f'  {node_name}["{label}"]')
+        lines.append(f"  style {node_name} {_verdict_color(run['verdict'])}")
+        lines.append(f"  detector_runs --> {node_name}")
+
     return "\n".join(lines)
 
 
@@ -251,11 +572,64 @@ def _render_run_text(axis_id: str, result: DetectorResult) -> str:
 def _render_dashboard_text(data: dict[str, Any]) -> str:
     lines = [
         "helix detect dashboard",
-        f"total={data['total']} passed={data['counts']['passed']} failed={data['counts']['failed']} blocked={data['counts']['blocked']}",
+        f"generated_at={data['generated_at']}",
+        f"detectors total={data['total']} passed={data['counts']['passed']} failed={data['counts']['failed']} blocked={data['counts']['blocked']}",
+        "",
     ]
+    lines.append("detectors (latest verdicts)")
     for item in data["axes"]:
         gate = item["phase_gate"] or "-"
-        lines.append(f"{item['axis_id']}\t{item['name']}\t{gate}\t{item['verdict']}")
+        lines.append(f"  - {item['axis_id']}\t{item['name']}\t{gate}\t{item['verdict']}")
+    lines.append("")
+    lines.extend(_render_detector_runs_text(data.get("detector_runs", [])))
+    lines.append("")
+    lines.append(
+        "invocation_log (last 1h) total={total}".format(total=data["invocation_log"].get("total", 0))
+    )
+    for item in data["invocation_log"].get("by_role", []):
+        lines.append(f"  role {item['label']}={item['count']}")
+    for item in data["invocation_log"].get("by_model", []):
+        lines.append(f"  model {item['label']}={item['count']}")
+    lines.append("")
+    code_entries = data["code_entries"]
+    lines.append(
+        "code_entries source={source} coverage_eligible={eligible} uncovered%={percent}".format(
+            source=code_entries.get("source_table") or "-",
+            eligible=code_entries.get("coverage_eligible", 0),
+            percent=_format_percent(float(code_entries.get("uncovered_pct", 0.0))),
+        )
+    )
+    lines.append("")
+    lines.append("observe_*")
+    observe_tables = data.get("observe_tables", {}).get("tables", [])
+    if observe_tables:
+        for item in observe_tables:
+            extras = [f"rows={item['rows']}"]
+            if "accuracy_score" in item:
+                extras.append(f"accuracy_score={item['accuracy_score']}")
+            if "score" in item:
+                extras.append(f"score={item['score']}")
+            if "verdict" in item:
+                extras.append(f"verdict={item['verdict']}")
+            lines.append(f"  - {item['table']} " + " ".join(extras))
+    else:
+        lines.append("  - none")
+    lines.append("")
+    lines.append("skill_usage (last 7d top 5)")
+    if data.get("skill_usage", {}).get("top"):
+        for item in data["skill_usage"]["top"]:
+            lines.append(f"  - {item['skill_id']}={item['count']}")
+    else:
+        lines.append("  - none")
+    lines.append("")
+    routing = data.get("routing_decisions", {})
+    lines.append(
+        "routing_decisions carry={carry} debt={debt} total={total}".format(
+            carry=routing.get("carry", 0),
+            debt=routing.get("debt", 0),
+            total=routing.get("total", 0),
+        )
+    )
     return "\n".join(lines)
 
 
@@ -318,7 +692,7 @@ def _usage() -> str:
         "\nOptions:\n"
         "  --json                  JSON で structured output を出力\n"
         "  --fail-under N          passed 数の下限を指定\n"
-        "  --format text|mermaid   dashboard の表示形式\n"
+        "  --format text|mermaid|json   dashboard の表示形式\n"
     )
 
 
