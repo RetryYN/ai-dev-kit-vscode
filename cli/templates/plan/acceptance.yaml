@@ -1,0 +1,15 @@
+acceptance:
+  feature_X:
+    verification_commands:
+      command: "..."
+      expected: "..."
+  test_pyramid:
+    unit_target: "≥80%"
+    integration_target: "主要フロー全カバー"
+    e2e_target: "critical path 100%"
+  coverage_target:
+    new_files: "≥85%"
+    modified_files: "前回比 ≥ 0pt (低下禁止)"
+  regression_baseline:
+    previous_pass_count: "(自動取得: 前 commit の baseline)"
+    current_fail_tolerance: "PASS→FAIL は判定 (a) 単発 fail かつ flaky 履歴 → warning、(b) 連続 3 回 FAIL or 非 flaky → G4 fail-close"
