@@ -283,7 +283,7 @@ fullstack 追加条件:
 | project/ | ui, api, db |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
-| integration/ | agent-teams, **agent-design** |
+| integration/ | agent-teams, **agent-design**, **agent-cost-design** |
 | writing/ | japanese, explain, story, presentation, social |
 | design-tools/ | diagram, web-system, pptx, graphic, character |
 | automation/ | site-mapping, browser-script, flow-optimize, scheduler, job-queue, lock, init-setup, observability |
@@ -306,6 +306,9 @@ fullstack 追加条件:
 **2026-05-08 追加分** (1スキル、ユーザー自作):
 - integration/: **agent-design** (AIエージェント設計の判断軸 11 本 = 要素・骨格・思考指定・出力指定・スキーマ・前段制約・後段責務の連鎖、`型 = 要素定義 + フレーム化` の還元式と縛りの 3 階層を中核とする L2/L3 設計概論)
 
+**2026-05-13 追加分** (1スキル、ユーザー自作):
+- integration/: **agent-cost-design** (AIエージェント構築のコスト予算・ガードレール確定スキル。8 references = multi-vendor / fallback-policy / retry-design / flow-design / cost-estimation / test-budget / guardrail-impl / budget-monitoring を Phase 0-5 順序で参照。1.2 倍上振れ係数固定、80% 到達で追加予算申請、ハードリミットはラッパー層実装が中核原則。L1/L2/L3 エージェント設計の前段必須)
+
 ### 責務境界クリア化（テスト・検証・品質系の使い分け）
 
 3スキルが近接領域だが層が異なる。発火順に整理:
@@ -323,19 +326,23 @@ fullstack 追加条件:
 
 ### 責務境界クリア化 (AIエージェント設計系の使い分け)
 
-近接する 3 スキルがあるが層が異なる。**判断に迷ったときに開く reference** という共通機能を持つので境界を明示:
+近接する 4 スキルがあるが層が異なる。**判断に迷ったときに開く reference** という共通機能を持つので境界を明示:
 
 | スキル | 守備範囲 | 利用タイミング |
 |--------|---------|---------------|
+| `integration/agent-cost-design` | **エージェント着手前のコスト予算・ガードレール確定** (生成フロー / マルチベンダー / コスト見積 / 予算監視) | L1 受領直後〜L2 設計前。**設計・実装に着手する前に必ず** 通る前段ゲート |
 | `integration/agent-design` | **個別 LLM agent / task** の structural design (要素・骨格・前段制約・後段責務) | L2 ADR / L3 D-API / L4 実装で **判断に迷ったとき** 該当 axis を開く |
 | `integration/agent-teams` | **複数 agent の協調・分業** | agent-design で個別設計後、複数 agent をチーム化するとき |
 | `agent-skills/spec-driven-development` | **仕様駆動開発全般** (LLM 限定なし) | spec → 実装の上位プロセス。agent-design はその LLM 特化版 |
 
 使い分けルール:
+- **エージェント構築タスク受領 → 着手前**: `integration/agent-cost-design` (Phase 0-5 でコスト/予算/ガードレール確定が最優先)
 - **個別 LLM agent の設計判断で迷う**: `integration/agent-design` (axis 11 本から該当を引く)
 - **複数 agent の協調設計**: `integration/agent-teams`
 - **LLM agent 以外も含む仕様駆動**: `agent-skills/spec-driven-development`
 - **D-API / D-CONTRACT の HELIX 正本**: `workflow/api-contract` (agent-design axis 07 から接続)
+
+エージェント構築の標準フロー: **agent-cost-design (前段) → agent-design (個別構造) → agent-teams (協調)**。コストガードを通さずに structural design へ進まない。
 
 ### 既存スキル強化メモ（description 更新）
 
