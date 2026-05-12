@@ -151,6 +151,32 @@ def test_unstructured_skip_reason_emits_warning(tmp_path: Path) -> None:
     assert finding.severity == "warning"
 
 
+def test_plain_string_literals_and_helper_calls_are_ignored(tmp_path: Path) -> None:
+    file_path = _write_module(
+        tmp_path,
+        """
+        import re
+
+        HELIX_SKIP_RE = re.compile(r"^HELIX-SKIP: env_dependent | PLAN-065 | due_date: 2026-06-01$")
+
+        def _maybe_record_skip(value):
+            return value
+
+        def build_message():
+            return "HELIX-SKIP: env_dependent | PLAN-065 | due_date: 2026-06-01"
+
+        def test_sample():
+            _maybe_record_skip("temporary")
+            assert build_message().startswith("HELIX-SKIP:")
+        """,
+    )
+
+    result = skip_annotation_linter.lint_skip_annotations([file_path], today=date(2026, 5, 13))
+
+    assert result.exit_code == 0
+    assert result.findings == ()
+
+
 def test_cli_json_format_is_executable(tmp_path: Path) -> None:
     file_path = _write_module(
         tmp_path,

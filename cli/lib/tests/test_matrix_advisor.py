@@ -111,6 +111,7 @@ def test_run_advisory_warns_phase_skip_for_l4_change(tmp_path: Path, capsys) -> 
     output = capsys.readouterr().out
 
     assert "フェーズ飛ばし" in output
+    assert "HELIX-SKIP: phase_skip" in output
     assert "D-ARCH(pending)" in output
 
 

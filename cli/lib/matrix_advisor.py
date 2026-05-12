@@ -266,12 +266,19 @@ def _warn_missing_docs(scope_id: str, deliverable_id: str, suggested_path: str) 
     print(f"[helix-advisory]   {suggested_path} を作成してください")
 
 
-def _warn_phase_skip(scope_id: str, incomplete: list[tuple[str, str]]) -> None:
+def _format_phase_skip_reason(scope_id: str, incomplete: list[tuple[str, str]]) -> str:
     preview = incomplete[:8]
     summary = ", ".join(f"{did}({status})" for did, status in preview)
     if len(incomplete) > len(preview):
         summary += f", ... +{len(incomplete) - len(preview)}"
+    return f"HELIX-SKIP: phase_skip | {scope_id} | {summary}"
+
+
+def _warn_phase_skip_notice(scope_id: str, incomplete: list[tuple[str, str]]) -> None:
+    phase_skip_reason = _format_phase_skip_reason(scope_id, incomplete)
+    summary = phase_skip_reason.rsplit(" | ", 1)[-1]
     print(f"[helix-advisory] ⚠ フェーズ飛ばし: {scope_id} の L3 成果物が未完了です")
+    print(f"[helix-advisory]   {phase_skip_reason}")
     print(f"[helix-advisory]   未完了: {summary}")
     print("[helix-advisory]   L3 を完了してから実装に進むことを推奨します")
 
@@ -414,7 +421,7 @@ def run_advisory(
         if _is_l4_change(path_info, feature):
             incomplete = _detect_phase_skip(path_info.scope_id, feature, state_payload)
             if incomplete:
-                _warn_phase_skip(path_info.scope_id, incomplete)
+                _warn_phase_skip_notice(path_info.scope_id, incomplete)
 
 
 def parse_args() -> argparse.Namespace:

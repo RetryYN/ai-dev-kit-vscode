@@ -22,6 +22,15 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 HELIX_SKIP_RE = re.compile(
     r"^HELIX-SKIP:\s*(?P<category>[^|]+?)\s*\|\s*(?P<plan_id>[^|]+?)\s*\|\s*due_date:\s*(?P<due_date>.+?)\s*$"
 )
+SUPPORTED_SKIP_CALLS = {
+    "pytest.skip",
+    "pytest.mark.skip",
+    "pytest.mark.skipif",
+    "unittest.skip",
+    "unittest.skipif",
+    "skip",
+    "skipif",
+}
 SKIP_MARKER_SUFFIXES = (
     ("pytest", "mark", "skip"),
     ("pytest", "mark", "skipif"),
@@ -119,6 +128,11 @@ def _is_skip_marker(marker: str) -> bool:
     return any(lowered.endswith(".".join(parts)) for parts in SKIP_MARKER_SUFFIXES)
 
 
+def _is_supported_skip_call(call: ast.Call) -> bool:
+    marker = _extract_marker_name(call)
+    return marker is not None and marker.lower() in SUPPORTED_SKIP_CALLS
+
+
 def _extract_marker_name(node: ast.AST) -> str | None:
     if isinstance(node, ast.Call):
         return _dotted_name(node.func)
@@ -132,6 +146,7 @@ def _string_constant(node: ast.AST) -> str | None:
 
 
 def _extract_reason_from_call(marker: str, call: ast.Call) -> str | None:
+    marker_lower = marker.lower()
     for keyword in call.keywords:
         if keyword.arg == "reason":
             reason = _string_constant(keyword.value)
@@ -139,13 +154,12 @@ def _extract_reason_from_call(marker: str, call: ast.Call) -> str | None:
                 return reason
             return None
 
-    skipif_like = marker.lower().endswith("skipif") or marker.lower().endswith("skipif")
-    if skipif_like:
+    if marker_lower in {"pytest.mark.skipif", "unittest.skipif", "skipif"}:
         if len(call.args) >= 2:
             return _string_constant(call.args[1])
         return None
 
-    if call.args:
+    if marker_lower in {"pytest.skip", "pytest.mark.skip", "unittest.skip", "skip"} and call.args:
         return _string_constant(call.args[0])
     return None
 
@@ -258,27 +272,29 @@ class _SkipAnnotationVisitor(ast.NodeVisitor):
             self.visit(stmt)
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
-        self._maybe_record_skip(node, node.lineno, node.col_offset, from_decorator=False)
+        if _is_supported_skip_call(node):
+            self._maybe_record_skip(node, node.lineno, node.col_offset, from_decorator=False)
         self.generic_visit(node)
 
     def _visit_decorators(self, decorators: list[ast.expr], node: ast.AST) -> None:
         for decorator in decorators:
-            self._maybe_record_skip(
-                decorator,
-                getattr(decorator, "lineno", getattr(node, "lineno", 1)),
-                getattr(decorator, "col_offset", getattr(node, "col_offset", 0)),
-                from_decorator=True,
-            )
+            if isinstance(decorator, ast.Call) and _is_supported_skip_call(decorator):
+                self._maybe_record_skip(
+                    decorator,
+                    getattr(decorator, "lineno", getattr(node, "lineno", 1)),
+                    getattr(decorator, "col_offset", getattr(node, "col_offset", 0)),
+                    from_decorator=True,
+                )
 
     def _maybe_record_skip(self, expr: ast.AST, line: int, column: int, *, from_decorator: bool) -> None:
-        marker = _extract_marker_name(expr)
-        if marker is None or not _is_skip_marker(marker):
+        if not isinstance(expr, ast.Call):
             return
 
-        if isinstance(expr, ast.Call):
-            reason = _extract_reason_from_call(marker, expr)
-        else:
-            reason = None
+        marker = _extract_marker_name(expr)
+        if marker is None or not _is_supported_skip_call(expr):
+            return
+
+        reason = _extract_reason_from_call(marker, expr)
 
         if reason is None or not reason.strip():
             self.findings.append(_build_unstructured_finding(self.path, line, column, marker, reason))
