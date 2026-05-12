@@ -25,6 +25,9 @@ def test_list_detectors_returns_fifteen_axes_in_order() -> None:
     assert [item["axis_id"] for item in detectors] == [f"axis-{idx:02d}" for idx in range(15)]
     assert detectors[0]["kind"] == "baseline"
     assert detectors[-1]["axis_id"] == "axis-14"
+    axis_kinds = {item["axis_id"]: item["kind"] for item in detectors}
+    assert axis_kinds["axis-03"] == "detector"
+    assert axis_kinds["axis-09"] == "detector"
 
 
 def test_run_detector_axis_00_returns_blocked_stub_and_records_run(tmp_path: Path) -> None:
