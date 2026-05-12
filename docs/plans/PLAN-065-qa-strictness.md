@@ -18,7 +18,10 @@ acceptance:
   criteria_doc:
     verification_commands: { command: "test -f docs/qa/criteria-2026.md && wc -l docs/qa/criteria-2026.md", expected: "200 行以上、QA gate / pyramid / coverage / regression baseline / skip discipline の 5 軸明文化" }
   v_model:
-    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT name FROM sqlite_master WHERE type=\"table\" AND name IN (\"contract_entries\",\"code_index\",\"test_design_entries\",\"test_baseline\")'", expected: "4 table すべて存在 (V-model 4 layer)、PLAN ごとに gap query が動作" }
+    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT name FROM sqlite_master WHERE type=\"table\" AND name IN (\"contract_entries\",\"code_index\",\"test_design_entries\",\"test_baseline\",\"design_review\")'", expected: "5 table すべて存在 (V-model 4 layer + design_review)、PLAN ごとに gap query が動作" }
+  design_review_pair_check:
+    verification_commands: { command: "cli/helix gate G2 --pair-check architecture --plan-id PLAN-063", expected: "exit 0 (architecture layer の縦 + 横 review 両方 passed 確認)" }
+    layers_covered: "G1 requirement / G2 architecture / G3 detailed / G4 functional + L4 code review apex / G11 planning の 5 phase で縦 + 横 review 個別 check 動作"
 ---
 
 # PLAN-065: QA 強化 — test 厳格化 + reviewer 切替 + regression baseline
@@ -96,10 +99,12 @@ CREATE INDEX idx_baseline_commit ON test_baseline(commit_sha);
 実装:
 - `cli/helix test` 完了時に hook で test_baseline に bulk insert (test 名 + status)
 - 次回実行時、前回 baseline と diff:
-  - PASS → FAIL: regression、G4 fail-close
+  - PASS → FAIL: `current_fail_tolerance` ロジックで判定 (flaky 履歴は warning、3 連続 FAIL or 非 flaky のみ G4 fail-close)
   - FAIL → PASS: improvement、ログのみ
   - 新規 PASS: ベースライン追加
 - `helix qa baseline diff --base HEAD~1` で前回比表示
+
+**regression 判定ルールは current_fail_tolerance (line 71) の 1 箇所に統一**。本 PLAN 内に「即時 fail-close」記述は他にない。
 
 ### 軸 D: skip annotation discipline
 
@@ -219,23 +224,40 @@ SELECT
 
 contract_entries / code_index / test_design_entries / test_baseline の 4 table を統一スキーマで結合し、SQL 1 発で**工程ごとのテスト整合**を網羅検査する。
 
-### 新規 table: test_design_entries
+### 新規 table: test_design_entries (V-model 5-level 対応)
 
 ```sql
 CREATE TABLE test_design_entries (
   id INTEGER PRIMARY KEY,
   plan_id TEXT NOT NULL,
-  acceptance_key TEXT NOT NULL,     -- PLAN.yaml の acceptance.<key>
-  contract_id INTEGER,              -- FK -> contract_entries.id (横軸 link)
-  pyramid_layer TEXT NOT NULL,      -- unit / integration / e2e
-  test_target TEXT,                 -- 想定テスト名 or pattern
-  expected_status TEXT NOT NULL,    -- required / optional / skip-ok
+  acceptance_key TEXT NOT NULL,                                                  -- PLAN.yaml の acceptance.<key>
+  contract_id INTEGER,                                                            -- FK -> contract_entries.id (横軸 link)
+  test_level TEXT NOT NULL CHECK (test_level IN
+    ('operational','acceptance','system_integration','integration','unit')),     -- V-model 5 値
+  paired_design_level TEXT NOT NULL CHECK (paired_design_level IN
+    ('planning','requirement','architecture','detailed','functional')),          -- 横レビュー対ペア (1:1)
+  pyramid_layer TEXT NOT NULL,                                                    -- unit / integration / e2e (test pyramid 比率算出用)
+  test_target TEXT,                                                               -- 想定テスト名 or pattern
+  expected_status TEXT NOT NULL,                                                  -- required / optional / skip-ok
   created_at TEXT NOT NULL,
-  UNIQUE (plan_id, acceptance_key, pyramid_layer)
+  UNIQUE (plan_id, acceptance_key, test_level)
 );
 CREATE INDEX idx_test_design_plan ON test_design_entries(plan_id);
 CREATE INDEX idx_test_design_contract ON test_design_entries(contract_id);
+CREATE INDEX idx_test_design_levels ON test_design_entries(test_level, paired_design_level);
+
+-- contract_entries に design_level を追加 (V-model 5-level の左脚)
+ALTER TABLE contract_entries ADD COLUMN design_level TEXT NOT NULL DEFAULT 'detailed'
+  CHECK (design_level IN ('planning','requirement','architecture','detailed','functional'));
+CREATE INDEX idx_contract_design_level ON contract_entries(design_level);
 ```
+
+paired_design_level ↔ test_level の 5 ペア:
+- planning ↔ operational
+- requirement ↔ acceptance
+- architecture ↔ system_integration
+- detailed ↔ integration
+- functional ↔ unit
 
 ### 軸 C test_baseline schema 拡張
 
@@ -281,12 +303,12 @@ SELECT c.source_path, e.path, td.acceptance_key, b.status
 - **実装欠落検知 (G4)**: contract_entries 定義済だが code_index に該当 symbol 無し → G4 (実装凍結) fail-close。G3 時点は実装未着手前提なので fail-close 対象外
 - **カバレッジ欠落検知 (G4)**: code_index (coverage_eligible) だが test_baseline で実行履歴無し → G4 fail-close
 - **回帰検知 (G4)**: 軸 C current_fail_tolerance のロジックに従い、(a) 単発 fail + flaky 履歴 → warning、(b) 3 連続 FAIL or 非 flaky → G4 fail-close。即時 fail-close 条件は記述しない
-- **カバレッジ低下検知**: test_baseline.status が前 commit PASS → 今 commit FAIL → G4 fail-close
+- **カバレッジ低下検知**: 前 commit と比較し coverage% が -1pt 以上低下 (test status 変化ではなく coverage 値 diff) → G4 fail-close。regression (status 変化) は別判定 (current_fail_tolerance)
 - **PLAN ごとの V-model 整合度スコア化**: 4 layer すべて埋まっている率 = QA 健全性 KPI
 
 PLAN-063 軸 10 relation graph はこの V-model を mermaid で可視化する dashboard を提供する。
 
-## §3 Sprint 構成 (6 Sprint、size=M)
+## §3 Sprint 構成 (7 Sprint、size=M)
 
 | Sprint | 内容 | 委譲先 |
 |---|---|---|
@@ -295,13 +317,20 @@ PLAN-063 軸 10 relation graph はこの V-model を mermaid で可視化する 
 | W-2 | 軸 C: helix.db v18 test_baseline + **test_design_entries** schema (V-model 統合) + record hook + diff CLI | SE high |
 | W-3 | 軸 D: skip annotation linter + acceptance.yaml template 強化 | PG medium |
 | W-4 | 軸 E: docs/qa/criteria-2026.md 起草 (200+ 行) | docs / 5.4 |
+| **W-5** | **§2.5 V-model 中核実装: design_review table 新規 + `helix gate G<N> --pair-check <layer>` 5 phase 縦/横 record + L4 code review apex (impl + test dual-target)** | **SE high** |
 | W-final | 統合検証 + retro + push | Opus |
 
-**並列可否**: W-2 (helix.db v18 schema 変更) が他 Sprint の前提条件。W-1 (reviewer CLI、QA conf 利用) と W-2 (schema) と W-4 (criteria 文書) は独立で並列可能、W-3 (skip linter + acceptance template) は W-2 後に着手 (acceptance.yaml に schema 由来 field 追加するため)。
+**並列可否 (W-2 schema が前提依存元)**:
+- W-1 (reviewer CLI、QA conf 利用): W-2 非依存、W-0 finalize 後即可
+- W-2 (helix.db v18 schema): 全 V-model 関連 Sprint の前提、最優先
+- W-4 (criteria 文書): W-2 非依存、W-0 finalize 後即可
+- W-3 (skip linter + acceptance template): W-2 後 (acceptance template が v18 schema 由来 field を含むため)
+- W-5 (design_review table + pair-check): W-2 後 (design_review schema を v18 に統合するため)
 
 正確な依存:
-- W-1 ∥ W-2 ∥ W-4 (3 並列、W-0 finalize 後即可)
-- W-3 は W-2 完了後 (acceptance template が V-model schema field を含むため)
+- W-0 完了後: W-1 ∥ W-2 ∥ W-4 (3 並列)
+- W-2 完了後: W-3 ∥ W-5 (2 並列)
+- 全完了後 W-final 統合
 
 ## §4 PLAN-063 軸 11 との関係
 
