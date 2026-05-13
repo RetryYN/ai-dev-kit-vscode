@@ -169,6 +169,12 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **FR-GR05** | 5 層介入機構 | PM / Orchestration / Command / Skill / Verify 各層が agent に介入できる hook 機構を要件化 (PM 層 = handover escalation / Orchestration 層 = routing 修正 / Command 層 = CLI guard / Skill 層 = skill 推挙 reroute / Verify 層 = detector fail-close) |
 | **FR-GR06** | 検出 → feedback → stop の閉ループ | record → detect → feedback → stop の経路が 1 セッション内で完結、agent が同じ違反を 2 回繰り返す前に介入が発火 |
 | **FR-GR07** | guardrail 暴走防止 | false positive threshold / opt-out flag / dry-run mode / 80%-100% cost guard 連動 |
+| **FR-GR08** | **doc artifact registry** | `helix doc register --path <path>` で helix.db `doc_artifacts` table に登録、PostToolUse hook で write 完了時に auto-register、期待 doc list vs 実体 file の差分検出 (Codex completion ≠ 実体出力 問題への構造的解決) |
+| **FR-GR09** | **lint / formatter ecosystem 統合** | markdownlint (docs/*.md) / vale (prose) / shellcheck (cli/helix-*) / ruff + black (cli/lib/*.py) / yamllint (cli/config/*.yaml) / sqlfluff (migration *.sql) を pre-commit + Gate runner 連動、各 lint failure を `detector_runs` に record |
+| **FR-GR10** | **artifact 期待値仕様** | PLAN/Sprint ごとの「期待される artifact 一覧」を `expected_artifacts.yaml` で定義可、不在検出で gate fail-close (FR-GR08 と連動) |
+| **FR-GR11** | **fail_fix_log table** (穴を埋める原則の構造化) | helix.db に `fail_fix_log` table 新設 (event_kind / context_json / root_cause / mitigation_kind / mitigation_ref / status / created_at / resolved_at)。失敗事象を自動 / 手動で log、対策の構造化を強制。`helix incident log` / `helix incident list` CLI、PostToolUse hook で auto-log、memory feedback と双方向連携 |
+| **FR-GR12** | **scan tool ecosystem** (FR-GR09 の補完) | gitleaks (secret scan) / trufflehog (credential leak) / semgrep (静的セキュリティ) を pre-commit / G2 / G4 / G6 で連動、結果を `fail_fix_log` + `detector_runs` に record |
+| **FR-GR13** | **推挙システム経由 dispatch 必須化** | Opus が `helix codex --role X` を直書きするのを禁止、`helix skill chain "<task>"` 経由で recommender (gpt-5.4-mini) + effort-classifier が role/effort/skill を自動推挙 → dispatcher が codex 実行。例外条件 (推挙キャッシュ更新 cost 高 / 単発極小修正 / 明確 override) は理由を `fail_fix_log` に record |
 
 ### 3.5 自動化 (Phase 5、旧 §3.2)
 

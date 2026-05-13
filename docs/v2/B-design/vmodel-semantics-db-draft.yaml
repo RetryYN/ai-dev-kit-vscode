@@ -1,0 +1,357 @@
+schema_version: 1
+fixture_kind: regression_corpus
+status: draft_design_spike
+drive: db
+description: "DB drive reference fixture for V-model semantic pairs."
+
+metadata:
+  phase: "V2 Phase 2"
+  source_phase: "Phase A audit"
+  implementation_status: "draft_only"
+  spine_ref: docs/v2/B-design/vmodel-semantics-spine.yaml
+  constraints:
+    cli_implementation: false
+    db_migration: false
+    config_placement: false
+    promotion_for_db: null
+    requires_functional_freeze_for_db: true
+    migration_apply_append_only: true
+    destructive_drop_requires_approval: true
+
+drives:
+  db:
+    description: "Database/model first drive for master-data, ERP, and data-platform work."
+    source_refs:
+      - docs/v2/A-audit/db-schema-current.md
+      - docs/v2/A-audit/audit-summary.md
+      - docs/v2/A-audit/reverse-scrum-audit.md
+      - docs/v2/A-audit/test-coverage-audit.md
+      - docs/plans/PLAN-065-qa-strictness.md
+    layers:
+      planning:
+        design:
+          artifacts:
+            - data_governance
+            - data_lineage_goal
+            - scope_boundary
+            - phase_strategy
+          review_unit: data_program
+          review_axes: [vertical, horizontal]
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-14-orchestration-integrity
+          expected_skills:
+            - design-doc
+            - db
+          owner_role: tl
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+            - docs/v2/A-audit/accumulated-knowledge.md
+          command_hints:
+            - "helix gate G0.5 --pair-check planning --drive db"
+            - "helix gate G11 --pair-check planning --drive db"
+          examples:
+            - id: example-db-inventory
+              path: docs/v2/A-audit/db-schema-current.md
+        test:
+          test_level: operational
+          artifacts:
+            - operational_recovery_checklist
+            - lineage_observability_plan
+            - migration_runbook_acceptance
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-11-regression
+            - axis-12-migration-safety
+            - axis-14-orchestration-integrity
+          expected_skills:
+            - testing
+            - verification
+          owner_role: qa
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/test-coverage-audit.md
+            - docs/plans/PLAN-065-qa-strictness.md
+          command_hints:
+            - "helix gate G11 --pair-check planning --drive db"
+          examples:
+            - id: example-regression-detector
+              path: cli/lib/tests/test_axis_11_regression.py
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.10
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: "Required when the DB drive advances to migration planning or operational rollout; advisory for draft-only semantic spikes."
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+
+      requirement:
+        design:
+          artifacts:
+            - data_model_requirements
+            - referential_integrity_requirements
+            - cardinality_constraints
+            - retention_access_constraints
+          review_unit: data_domain
+          review_axes: [vertical, horizontal]
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-12-migration-safety
+          expected_skills:
+            - requirements-handover
+            - db
+          owner_role: tl
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+          command_hints:
+            - "helix gate G1 --pair-check requirement --drive db"
+          examples:
+            - id: example-db-requirement-source
+              path: docs/v2/A-audit/audit-summary.md
+        test:
+          test_level: acceptance
+          artifacts:
+            - acceptance_data_scenarios
+            - reference_data_set
+            - referential_integrity_acceptance
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-migration-safety
+          expected_skills:
+            - testing
+            - quality-lv5
+          owner_role: qa
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/test-coverage-audit.md
+            - docs/plans/PLAN-065-qa-strictness.md
+          command_hints:
+            - "helix gate G1 --pair-check requirement --drive db"
+          examples:
+            - id: example-golden-fixture-policy
+              path: docs/plans/PLAN-065-qa-strictness.md
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.20
+          promotion: null
+          requires_functional_freeze: true
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+
+      architecture:
+        design:
+          artifacts:
+            - er_diagram
+            - schema_version_plan
+            - migration_strategy
+            - data_boundary_map
+          review_unit: schema_subsystem
+          review_axes: [vertical, horizontal]
+          detectors:
+            - axis-07-contract-drift
+            - axis-10-relation-graph
+            - axis-12-migration-safety
+          expected_skills:
+            - design-doc
+            - db
+          owner_role: tl
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+          command_hints:
+            - "helix gate G2 --pair-check architecture --drive db"
+          examples:
+            - id: example-er-diagram-source
+              path: docs/v2/A-audit/db-schema-current.md
+        test:
+          test_level: system_integration
+          artifacts:
+            - cross_table_referential_integrity
+            - migration_rollback_test
+            - system_test_plan
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-migration-safety
+          expected_skills:
+            - testing
+            - verification
+          owner_role: qa
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/test-coverage-audit.md
+            - docs/plans/PLAN-065-qa-strictness.md
+          command_hints:
+            - "helix gate G2 --pair-check architecture --drive db"
+          examples:
+            - id: example-pair-check
+              path: cli/lib/tests/test_design_review_pair_check.py
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+
+      detailed:
+        design:
+          artifacts:
+            - table_schema
+            - column_definitions
+            - index_strategy
+            - migration_script
+          review_unit: table
+          review_axes: [vertical, horizontal]
+          detectors:
+            - axis-06-naming-confusion
+            - axis-07-contract-drift
+            - axis-12-migration-safety
+          expected_skills:
+            - api-contract
+            - db
+          owner_role: dba
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+            - docs/v2/A-audit/test-coverage-audit.md
+          command_hints:
+            - "helix gate G3 --pair-check detailed --drive db"
+            - "helix gate G3 --subgate functional_freeze --drive db"
+          examples:
+            - id: example-db-schema-test
+              path: cli/lib/tests/test_helix_db_v20.py
+        test:
+          test_level: integration
+          artifacts:
+            - migration_apply_test
+            - data_lineage_test
+            - integration_fixture_set
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-07-contract-drift
+            - axis-09-test-quality
+            - axis-12-migration-safety
+          expected_skills:
+            - testing
+            - db
+          owner_role: dba
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/test-coverage-audit.md
+            - docs/plans/PLAN-065-qa-strictness.md
+          command_hints:
+            - "helix gate G3 --pair-check detailed --drive db"
+          examples:
+            - id: example-gate-detector-integration
+              path: cli/lib/tests/test_gate_detector_integration.py
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.20
+          promotion: null
+          requires_functional_freeze: true
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+
+      functional:
+        design:
+          artifacts:
+            - stored_procedure_spec
+            - view_definition
+            - trigger_spec
+            - constraint_enforcement_rule
+          review_unit: db_object
+          review_axes: [vertical, horizontal]
+          detectors:
+            - axis-07-contract-drift
+            - axis-09-refactor-opportunity
+            - axis-12-migration-safety
+          expected_skills:
+            - coding
+            - db
+          owner_role: dba
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/audit-summary.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+          command_hints:
+            - "helix gate G3 --subgate functional_freeze --drive db"
+            - "helix gate G4 --pair-check functional --drive db"
+          examples:
+            - id: example-full-flow-baseline
+              path: verify/h401-full-flow-integration.sh
+        test:
+          test_level: unit
+          artifacts:
+            - column_constraint_test
+            - index_uniqueness_test
+            - trigger_side_effect_test
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-12-migration-safety
+          expected_skills:
+            - testing
+            - quality-lv5
+          owner_role: dba
+          source_refs:
+            - docs/v2/A-audit/db-schema-current.md
+            - docs/v2/A-audit/test-coverage-audit.md
+            - docs/plans/PLAN-065-qa-strictness.md
+          command_hints:
+            - "helix gate G4 --pair-check functional --drive db"
+          examples:
+            - id: example-contract-registry-test
+              path: cli/lib/tests/test_contract_registry.py
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+          source_refs:
+            - docs/plans/PLAN-065-qa-strictness.md
+            - docs/v2/A-audit/accumulated-knowledge.md
+            - docs/v2/A-audit/reverse-scrum-audit.md
+
+score:
+  formula: "100 - 15*missing_test_design - 10*missing_baseline - 20*failing_baseline"
+  layer_weights:
+    planning_operational: 0.10
+    requirement_acceptance: 0.20
+    architecture_system_integration: 0.25
+    detailed_integration: 0.20
+    functional_unit: 0.25
+  chain_break_penalty: true
+
+source_refs:
+  - docs/plans/PLAN-065-qa-strictness.md
+  - docs/v2/A-audit/accumulated-knowledge.md
+  - docs/v2/A-audit/audit-summary.md
+  - docs/v2/A-audit/db-schema-current.md
+  - docs/v2/A-audit/reverse-scrum-audit.md
+  - docs/v2/A-audit/test-coverage-audit.md
