@@ -27,8 +27,34 @@ bash setup.sh
 | SE | GPT-5.4 | 難易度の高い実装、契約判断、リファクタリング |
 | PE | GPT-5.3-codex-spark / GPT-5.3-codex | 速度重視の実装、定型修正 |
 | Recommender | GPT-5.4-mini | スキル推挙、軽量分類 |
+| pdm-tech-innovation | Opus | 技術思想翻案、技術検討の早期提案 |
+| pdm-marketing-innovation | Opus | 海外マーケ知見翻案と GTM 仮説 |
+| pdm-innovation-manager | Opus | PdM 統合、意思決定、L1 接続 |
 
 正本は `cli/config/models.yaml` と `cli/roles/*.conf` です。
+
+## V2 Phase 2 拡張 (2026-05-15)
+
+### V-model 強化
+
+- `helix vmodel show <drive> <layer>`
+- `helix gate --subgate functional_freeze --drive <DRIVE>`
+- 詳細: [docs/operations/v2-operations-guide.md](docs/operations/v2-operations-guide.md)
+
+### 停滞防止システム
+
+- `helix push --gate` (6 ゲート機械検証 + auto-push)
+- `helix pr --gate --auto-merge`
+- 詳細: [docs/operations/stop-prevention.md](docs/operations/stop-prevention.md)
+
+### PdM Innovation team
+
+- `/innovation-tech`, `/innovation-marketing`, `/innovation-synthesize`
+- 詳細: [docs/operations/pdm-innovation-workflow.md](docs/operations/pdm-innovation-workflow.md)
+
+### PMO 9 ロール
+
+- 詳細: [docs/operations/pmo-roster.md](docs/operations/pmo-roster.md)
 
 ## フロー概要
 

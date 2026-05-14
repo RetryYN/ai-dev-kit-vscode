@@ -133,7 +133,27 @@ def run_gate_catalog() -> dict:
 
 def run_gate_secret() -> dict:
     repo_root = _repo_root()
-    proc = _run_command(SECRET_CMD, cwd=repo_root)
+    try:
+        proc = _run_command(SECRET_CMD, cwd=repo_root)
+    except FileNotFoundError:
+        # pre-commit 不在: scripts/git-hooks/pre-commit (in-repo gitleaks) を直接呼ぶ
+        in_repo_hook = repo_root / "scripts" / "git-hooks" / "pre-commit"
+        if in_repo_hook.exists():
+            proc = _run_command(["bash", str(in_repo_hook)], cwd=repo_root)
+            if proc.returncode != 0:
+                return _result(
+                    "G-secret",
+                    False,
+                    f"in-repo pre-commit hook FAIL: {_format_failure(proc)}",
+                    "secret detected、staged change を確認",
+                )
+            return _result("G-secret", True, "in-repo pre-commit hook PASS", "なし")
+        return _result(
+            "G-secret",
+            True,
+            "pre-commit / in-repo hook 不在 → skip (warning)",
+            "pre-commit インストール推奨: pip install pre-commit",
+        )
     if proc.returncode != 0:
         return _result(
             "G-secret",
