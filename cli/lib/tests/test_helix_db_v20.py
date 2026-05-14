@@ -27,7 +27,7 @@ CREATE INDEX idx_contract_breaking ON contract_entries(breaking_change_flag);
 """
 
 
-def test_migrate_v19_to_v20_creates_qa_tables_and_contract_design_level(tmp_path: Path) -> None:
+def test_migrate_v19_to_current_creates_qa_tables_and_contract_design_level(tmp_path: Path) -> None:
     db_path = tmp_path / "legacy-v19.db"
     conn = sqlite3.connect(str(db_path))
     conn.executescript(helix_db.SCHEMA)
@@ -77,7 +77,7 @@ def test_migrate_v19_to_v20_creates_qa_tables_and_contract_design_level(tmp_path
 
     assert tables == {"test_baseline", "test_design_entries", "design_review"}
     assert contract_columns["design_level"] == "'detailed'"
-    assert version_rows == [19, 20, 21, 22]
+    assert version_rows == [19, 20, 21, 22, 23]
     assert design_level == "detailed"
 
 

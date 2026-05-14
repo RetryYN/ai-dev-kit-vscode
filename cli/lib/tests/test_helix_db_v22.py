@@ -42,7 +42,7 @@ def _build_legacy_v21_db(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def test_migrate_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
+def test_migrate_v21_to_current_adds_drive_switch_and_correction_columns(tmp_path: Path) -> None:
     conn = _build_legacy_v21_db(tmp_path / "legacy-v21.db")
     try:
         helix_db.migrate(conn)
@@ -61,8 +61,11 @@ def test_migrate_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
     assert columns["previous_drive"] is None
     assert columns["drive_switch_reason"] is None
     assert columns["status_on_switch"] is None
+    assert columns["supersedes_entry_id"] is None
+    assert columns["correction_reason"] is None
+    assert columns["voided_at"] is None
     assert row == (None, None, None)
-    assert versions == [21, 22]
+    assert versions == [21, 22, 23]
 
 
 def test_migrate_v21_to_v22_is_idempotent(tmp_path: Path) -> None:
@@ -83,5 +86,5 @@ def test_migrate_v21_to_v22_is_idempotent(tmp_path: Path) -> None:
     assert columns.count("status_on_switch") == 1
 
 
-def test_current_schema_version_is_22() -> None:
-    assert helix_db.CURRENT_SCHEMA_VERSION == 22
+def test_current_schema_version_is_23() -> None:
+    assert helix_db.CURRENT_SCHEMA_VERSION == 23
