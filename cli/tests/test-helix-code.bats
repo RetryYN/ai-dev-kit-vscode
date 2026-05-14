@@ -409,30 +409,78 @@ PY
   [[ "$output" == *"summary: covered="* ]]
 }
 
-@test "helix code stats --uncovered --scope cli-lib --fail-under 50 returns exit 2 (enforce when explicit)" {
-  cp "$HELIX_ROOT/cli/lib/code_catalog.py" "$PROJECT_ROOT/cli/lib/code_catalog.py"
-  cp "$HELIX_ROOT/cli/lib/code_recommender.py" "$PROJECT_ROOT/cli/lib/code_recommender.py"
-  cp "$HELIX_ROOT/cli/lib/helix_db.py" "$PROJECT_ROOT/cli/lib/helix_db.py"
-  cp "$HELIX_ROOT/cli/lib/skill_dispatcher.py" "$PROJECT_ROOT/cli/lib/skill_dispatcher.py"
-  git add cli/lib/code_catalog.py cli/lib/code_recommender.py cli/lib/helix_db.py cli/lib/skill_dispatcher.py >/dev/null 2>&1
+@test "helix code stats --uncovered --scope cli-lib --fail-under 50 exits 0 at boundary" {
+  cat > "$PROJECT_ROOT/cli/lib/code_catalog.py" <<'PY'
+# @helix:index id=fixture.covered domain=cli/lib summary=coverage boundary pass
+def covered():
+    return 1
+
+def uncovered():
+    return 2
+PY
+  git add cli/lib/code_catalog.py >/dev/null 2>&1
+  rm -f "$PROJECT_ROOT/cli/lib/skill_catalog.py"
+  git add -A cli/lib >/dev/null 2>&1
 
   run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 50
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"summary: covered=1"* ]]
+  [[ "$output" == *"coverage=50.0%"* ]]
+}
+
+@test "helix code stats --uncovered --fail-under 81 returns exit 1 when coverage is below threshold" {
+  cat > "$PROJECT_ROOT/cli/lib/code_catalog.py" <<'PY'
+# @helix:index id=fixture.covered domain=cli/lib summary=coverage under test
+def covered():
+    return 1
+
+def uncovered():
+    return 2
+PY
+  git add cli/lib/code_catalog.py >/dev/null 2>&1
+  rm -f "$PROJECT_ROOT/cli/lib/skill_catalog.py"
+  git add -A cli/lib >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 81
   stats_output="$output"
-  printf '%s\n' "$stats_output" > "$TMP_ROOT/cli-lib-fail-under-50.txt"
-  run python3 - "$TMP_ROOT/cli-lib-fail-under-50.txt" "$status" <<'PY'
+  status_under="$status"
+  run python3 - "$status_under" <<'PY'
 import re
 import sys
 
-text = open(sys.argv[1], encoding="utf-8").read()
-actual_status = int(sys.argv[2])
-match = re.search(r"coverage=([0-9.]+)%", text)
-assert match
-coverage = float(match.group(1))
-expected = 2 if coverage < 50.0 else 0
-assert actual_status == expected
+status = int(sys.argv[1])
+assert status == 1
 PY
   [ "$status" -eq 0 ]
   [[ "$stats_output" == *"summary: covered="* ]]
+  [[ "$stats_output" == *"coverage=50.0%"* ]]
+}
+
+@test "helix code stats --uncovered --fail-under uses precise ratio instead of rounded coverage_pct" {
+  rm -f "$PROJECT_ROOT/cli/lib/"*.py
+  mkdir -p "$PROJECT_ROOT/cli/lib"
+  python3 - "$PROJECT_ROOT" <<'PY'
+import pathlib
+
+root = pathlib.Path(__import__("sys").argv[1])
+path = root / "cli" / "lib" / "bulk_coverage_fixture.py"
+lines = []
+for idx in range(1, 1600):
+    lines.append(f"# @helix:index id=fixture.covered.{idx} domain=cli/lib summary=precision coverage fixture")
+    lines.append(f"def covered_{idx}():")
+    lines.append("    return 1")
+for idx in range(1600, 2001):
+    lines.append(f"def uncovered_{idx}():")
+    lines.append("    return 1")
+path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY
+  git add cli/lib/bulk_coverage_fixture.py >/dev/null 2>&1
+  git add -A cli/lib >/dev/null 2>&1
+
+  run "$HELIX_ROOT/cli/helix" code stats --uncovered --scope cli-lib --bucket coverage_eligible --fail-under 80
+  [[ "$status" -eq 1 ]]
+  [[ "$output" == *"summary: covered=1599 eligible=2000 "* ]]
+  [[ "$output" == *"coverage=80.0%"* ]]
 }
 
 @test "helix code stats --uncovered TSV includes bucket / seed_candidate / seed_promotable columns" {
@@ -470,7 +518,7 @@ PY
 
 @test "helix code stats --uncovered --fail-under 100 returns exit 2 when coverage is low" {
   run "$HELIX_ROOT/cli/helix" code stats --uncovered --fail-under 100
-  [ "$status" -eq 2 ]
+  [ "$status" -eq 1 ]
   [[ "$output" == *"summary: covered="* ]]
 }
 

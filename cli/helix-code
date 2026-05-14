@@ -339,8 +339,15 @@ else:
         f"seed_promotable={summary['seed_promotable_count']}"
     )
 
-if args.fail_under and float(summary["coverage_pct"]) < args.fail_under:
-    raise SystemExit(2)
+covered = int(summary.get("covered", 0))
+eligible = int(summary.get("eligible", 0))
+if eligible:
+    coverage = (covered / eligible) * 100
+else:
+    coverage = 100.0
+
+if args.fail_under is not None and coverage < args.fail_under:
+    raise SystemExit(1)
 raise SystemExit(0)
 PY
 }
