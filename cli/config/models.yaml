@@ -21,6 +21,13 @@ roles:
   effort-classifier: gpt-5.4-mini
   pmo-sonnet: claude-sonnet-4-6
   pmo-haiku: claude-haiku-4-5-20251001
+  pmo-tech-fork: claude-sonnet-4-6
+  pmo-tech-docs: claude-sonnet-4-6
+  pmo-tech-news: claude-sonnet-4-6
+  pmo-helix-explorer: claude-sonnet-4-6
+  pmo-project-explorer: claude-sonnet-4-6
+  pmo-helix-scout: claude-haiku-4-5-20251001
+  pmo-project-scout: claude-haiku-4-5-20251001
   pm-advisor: claude-opus-4-7
   tl-advisor: gpt-5.5
 
@@ -49,6 +56,62 @@ role_metadata:
     permission_mode: acceptEdits
     codex_allow_paths: "docs/**,skills/**"
     allow_paths: "docs/**,skills/**"
+  pmo-tech-fork:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
+  pmo-tech-docs:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
+  pmo-tech-news:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
+  pmo-helix-explorer:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
+  pmo-project-explorer:
+    provider: claude_code
+    codex_thinking: medium
+    thinking: medium
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
+  pmo-helix-scout:
+    provider: claude_code
+    codex_thinking: low
+    thinking: low
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "skills/**,cli/**,docs/**,templates/**,config/**"
+    allow_paths: "skills/**,cli/**,docs/**,templates/**,config/**"
+  pmo-project-scout:
+    provider: claude_code
+    codex_thinking: low
+    thinking: low
+    codex_permission_mode: acceptEdits
+    permission_mode: acceptEdits
+    codex_allow_paths: "**"
+    allow_paths: "**"
   pm-advisor:
     provider: claude_code
     codex_thinking: high

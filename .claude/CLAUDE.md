@@ -64,10 +64,17 @@ PMO 経路の変更:
 
 | 用途 | 委譲先 | 根拠 |
 |------|--------|------|
+| HELIX 内目星付け (skills/templates/cli 軽量検索) | Agent({subagent_type: "pmo-helix-scout"}) | 候補列挙 |
+| project 内目星付け (code/docs 軽量検索) | Agent({subagent_type: "pmo-project-scout"}) | 候補列挙 |
 | コード探索 (1 回の Grep/Glob/Read で完結) | 自分で直接 (Bash/Read) | オーバーヘッド回避 |
 | コード探索 (2 ステップ以上、複数ファイル横断) | Agent({subagent_type: "pmo-sonnet"}) | Opus context 保護 |
 | 長文 Read (≥100 行 / review.json / PLAN.md 全体) | pmo-sonnet | Opus トークン削減 |
-| docs/** scope の軽修正・Web 検索 | Agent({subagent_type: "pmo-haiku"}) | コスト重視 |
+| docs/** scope の軽修正・Web 検索 | Agent({subagent_type: "pmo-haiku"}) | Web 検索目星付け（初期 sweep）/短文回答 |
+| OSS/plugin 探索・転用判断 | Agent({subagent_type: "pmo-tech-fork"}) | 外部 GitHub 探索 |
+| 設計手法/概念の外部精読 | Agent({subagent_type: "pmo-tech-docs"}) | 外部 doc 精読 |
+| 最新 Tech 動向 sweep (週次想定) | Agent({subagent_type: "pmo-tech-news"}) | 時事収集 |
+| HELIX framework 内資産探索 (skills/templates/cli/docs) | Agent({subagent_type: "pmo-helix-explorer"}) | 詳細探索 |
+| 現在 project 内資産探索 (code/docs/config) | Agent({subagent_type: "pmo-project-explorer"}) | 設計整合 |
 | 設計計画 | helix-codex --role tl | Codex TL が適切 |
 | BE実装・レビュー・テスト | helix-codex --role (se/pe/qa) | Codex が主力 |
 | ドキュメント本文起草 (>100 行) | helix-codex --role docs | PM は要件提示と finalize のみ |

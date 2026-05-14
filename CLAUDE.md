@@ -121,9 +121,19 @@ Agent tool 呼び出しは原則 PMO subagent (`pmo-sonnet` / `pmo-haiku`) の�
 - 他 subagent 禁止: 過去 v2 規約継続。Codex / Opus 直接で対応
 - 判断基準は変更なし: 同一タスク Read 200+ 行 / Grep 3+ / 複数視点 / 長文 doc 全体 Read で委譲必須
 
+| 活用領域 | Agent | 補足 |
+|---|---|---|
+| HELIX 内目星付け (skills/templates/cli 軽量検索) | Agent({subagent_type: "pmo-helix-scout"}) | 候補列挙 |
+| project 内目星付け (code/docs 軽量検索) | Agent({subagent_type: "pmo-project-scout"}) | 候補列挙 |
+| OSS/plugin 探索・転用判断 | Agent({subagent_type: "pmo-tech-fork"}) | 外部 GitHub 探索 |
+| 設計手法/概念の外部精読 | Agent({subagent_type: "pmo-tech-docs"}) | 外部 doc 精読 |
+| 最新 Tech 動向 sweep (週次想定) | Agent({subagent_type: "pmo-tech-news"}) | 時事収集 |
+| HELIX framework 内資産探索 (skills/templates/cli/docs) | Agent({subagent_type: "pmo-helix-explorer"}) | 詳細探索 |
+| 現在 project 内資産探索 (code/docs/config) | Agent({subagent_type: "pmo-project-explorer"}) | 設計整合 |
+
 PMO subagent (pmo-sonnet / pmo-haiku) の使い分け:
 - pmo-sonnet: 判断伴う read-only / docs/PLAN 構造化チェック / 長文解析
-- pmo-haiku: docs/** scope 限定軽修正 / Web 検索 / コスト重視軽作業
+- pmo-haiku: Web 検索目星付け（初期 sweep） / docs/** 軽修正 / コスト重視軽作業
 
 helix-claude --role pmo は deprecated。新規呼び出しは `Agent({subagent_type: "pmo-sonnet"})` または `Agent({subagent_type: "pmo-haiku"})` 推奨。既存 dispatch は段階的に移行。
 
