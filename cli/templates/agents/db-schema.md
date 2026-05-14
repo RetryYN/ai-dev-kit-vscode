@@ -2,7 +2,7 @@
 name: db-schema
 description: DBスキーマ設計・マイグレーション。ER図・テーブル設計・インデックス・FK・マイグレーション手順。L3/L4 DB設計時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
-model: sonnet
+model: claude-sonnet-4-6
 effort: high
 memory: project
 maxTurns: 25
