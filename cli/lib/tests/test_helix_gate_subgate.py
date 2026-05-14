@@ -152,6 +152,70 @@ def test_query_functional_freeze_status_returns_failed_when_failed(tmp_path: Pat
     assert result["verdict"] == "failed"
 
 
+def test_subgate_multi_drive_query_be_fe_db_sequential(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    _seed_functional_entries(db_path, "be", ["paired"])
+    _seed_functional_entries(db_path, "fe", ["paired", "pending"])
+    _seed_functional_entries(db_path, "db", ["failed"])
+
+    be_result = _query_status(db_path, "be")
+    fe_result = _query_status(db_path, "fe")
+    db_result = _query_status(db_path, "db")
+
+    assert [
+        (be_result["drive"], be_result["functional_pair_count"], be_result["paired_count"], be_result["verdict"]),
+        (fe_result["drive"], fe_result["functional_pair_count"], fe_result["pending_count"], fe_result["verdict"]),
+        (db_result["drive"], db_result["functional_pair_count"], db_result["failed_count"], db_result["verdict"]),
+    ] == [
+        ("be", 1, 1, "passed"),
+        ("fe", 2, 1, "failed"),
+        ("db", 1, 1, "failed"),
+    ]
+
+
+def test_subgate_drive_switch_via_v22_api(tmp_path: Path) -> None:
+    db_path = _init_db(tmp_path)
+    _seed_functional_entries(db_path, "be", ["paired"])
+
+    new_entry_id = helix_db.switch_drive_for_sprint(
+        str(db_path),
+        plan_id="PLAN-100",
+        sprint_type="functional",
+        layer="functional",
+        old_drive="be",
+        new_drive="fe",
+        reason="switch to frontend validation",
+        status_on_switch="preserved",
+    )
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT id, drive, pair_status, previous_drive, status_on_switch
+            FROM design_sprint_entries
+            WHERE plan_id = ?
+            ORDER BY id
+            """,
+            ("PLAN-100",),
+        ).fetchall()
+        be_result = helix_db.query_functional_freeze_status(conn, "PLAN-100", "be")
+        fe_result = helix_db.query_functional_freeze_status(conn, "PLAN-100", "fe")
+    finally:
+        conn.close()
+
+    assert [
+        (row["id"], row["drive"], row["previous_drive"], row["status_on_switch"], row["pair_status"])
+        for row in rows
+    ] == [
+        (rows[0]["id"], "be", None, "preserved", "paired"),
+        (new_entry_id, "fe", "be", None, "pending"),
+    ]
+    assert be_result["verdict"] == "passed"
+    assert fe_result["pending_count"] == 1
+    assert fe_result["verdict"] == "failed"
+
+
 def test_subgate_resolves_drive_from_phase_yaml(tmp_path: Path) -> None:
     project = _init_cli_project(tmp_path)
     _write_phase_drive(project, "fe")

@@ -177,7 +177,7 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
 
 @pytest.mark.parametrize("status_on_switch", ["preserved", "waived", "failed"])
@@ -259,6 +259,95 @@ def test_switch_drive_for_sprint_rejects_duplicate_target_drive(tmp_path: Path, 
     assert rows[1]["drive"] == "fe"
     assert rows[1]["previous_drive"] == "be"
     assert rows[1]["status_on_switch"] is None
+
+
+def test_switch_drive_for_sprint_atomic_rollback_on_failure(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    old_entry_id = _insert_design_sprint_entry(db_path, drive="be", pair_status="paired")
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TRIGGER fail_drive_switch_insert
+            BEFORE INSERT ON design_sprint_entries
+            WHEN NEW.previous_drive IS NOT NULL
+            BEGIN
+                SELECT RAISE(ABORT, 'injected switch insert failure');
+            END
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="injected switch insert failure"):
+        helix_db.switch_drive_for_sprint(
+            str(db_path),
+            plan_id="PLAN-TEST",
+            sprint_type="functional",
+            layer="functional",
+            old_drive="be",
+            new_drive="fe",
+            reason="scope change",
+            status_on_switch="preserved",
+        )
+
+    rows = _fetch_all(
+        db_path,
+        "SELECT id, drive, status_on_switch FROM design_sprint_entries WHERE plan_id = ? ORDER BY id",
+        ("PLAN-TEST",),
+    )
+
+    assert [(row["id"], row["drive"], row["status_on_switch"]) for row in rows] == [(old_entry_id, "be", None)]
+
+
+def test_void_entry_with_correction_atomic_rollback_on_failure(
+    tmp_path: Path,
+    capsys,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db_path = _init_db(tmp_path)
+    capsys.readouterr()
+    old_entry_id = _insert_design_sprint_entry(db_path, drive="be", pair_status="design_only")
+
+    def fail_insert(_conn: sqlite3.Connection, _payload: dict) -> int:
+        raise sqlite3.OperationalError("injected correction insert failure")
+
+    monkeypatch.setattr(helix_db, "_insert_design_sprint_entry_row", fail_insert)
+
+    conn = helix_db.get_connection(db_path)
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="injected correction insert failure"):
+            helix_db.void_entry_with_correction(
+                conn,
+                old_entry_id,
+                {"drive": "fe", "pair_status": "paired"},
+                "correct wrong drive",
+            )
+        rows = conn.execute(
+            """
+            SELECT id, drive, pair_status, supersedes_entry_id, correction_reason, voided_at
+            FROM design_sprint_entries
+            WHERE plan_id = ?
+            ORDER BY id
+            """,
+            ("PLAN-TEST",),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    assert len(rows) == 1
+    assert rows[0]["id"] == old_entry_id
+    assert rows[0]["drive"] == "be"
+    assert rows[0]["pair_status"] == "design_only"
+    assert rows[0]["supersedes_entry_id"] is None
+    assert rows[0]["correction_reason"] is None
+    assert rows[0]["voided_at"] is None
 
 
 def test_record_task_persists_json_payload(tmp_path: Path, capsys) -> None:
@@ -465,7 +554,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -559,7 +648,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -596,7 +685,7 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
 
@@ -627,7 +716,7 @@ def test_migrate_v7_to_v8_creates_accuracy_score_table(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert table is not None
     assert {"idx_accuracy_score_plan_gate", "idx_accuracy_score_recorded_at"} <= indexes
 
@@ -657,7 +746,7 @@ def test_migrate_v8_to_v9_creates_infra_tables(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert names == {"events", "metrics", "schedules", "jobs", "locks"}
 
 
@@ -696,7 +785,7 @@ def test_migrate_v9_to_v10_creates_audit_decisions_and_import_runs(tmp_path: Pat
     }
     conn.close()
 
-    assert versions == [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert names == {"audit_decisions", "import_runs"}
     assert set(indexes) == {"idx_audit_decisions_active_unique", "idx_audit_decisions_event_unique"}
     assert indexes["idx_audit_decisions_active_unique"][0] == 1
@@ -1031,7 +1120,7 @@ def test_migrate_v7_to_v10_sequential(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert names == {
         "accuracy_score",
         "events",
@@ -1073,7 +1162,7 @@ def test_migrate_v10_to_v11_creates_deferred_findings_adjustments_and_view(tmp_p
     }
     conn.close()
 
-    assert versions == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert names == {"deferred_findings", "accuracy_score_adjustments", "accuracy_score_effective"}
 
 
@@ -1103,7 +1192,7 @@ def test_migrate_v11_to_v12_creates_scrum_trigger_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(scrum_trigger)").fetchall()}
     conn.close()
 
-    assert versions == [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert table is not None
     assert {
         "trigger_id",
@@ -1144,7 +1233,7 @@ def test_migrate_v12_to_v13_creates_verify_runs_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(verify_runs)").fetchall()}
     conn.close()
 
-    assert versions == [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert table is not None
     assert {
         "run_id",
@@ -1187,7 +1276,7 @@ def test_migrate_v13_to_v14_creates_code_index_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(code_index)").fetchall()}
     conn.close()
 
-    assert versions == [13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+    assert versions == [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     assert table is not None
     assert {
         "id",

@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 22
+CURRENT_SCHEMA_VERSION = 23
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -705,6 +705,13 @@ CREATE INDEX IF NOT EXISTS idx_design_sprint_plan_drive_layer
 
 
 DESIGN_SPRINT_SWITCH_STATUSES = ("preserved", "waived", "failed")
+DESIGN_SPRINT_TYPES = ("architecture", "detailed", "functional", "impl")
+DESIGN_SPRINT_LAYERS = ("architecture", "detailed", "functional")
+DESIGN_SPRINT_DRIVES = ("be", "fe", "db", "fullstack")
+DESIGN_SPRINT_TRACKS = ("be", "fe", "db", "contract", "shared")
+DESIGN_SPRINT_PAIR_STATUSES = ("pending", "design_only", "test_only", "paired", "waived", "failed")
+DESIGN_SPRINT_ARTIFACT_KINDS = ("design", "test_design", "review", "baseline")
+DESIGN_SPRINT_ARTIFACT_LINK_KINDS = ("covers", "derives_from", "reviews", "implements")
 
 
 VIEW_VMODEL_INTEGRITY_V21 = """
@@ -1200,6 +1207,26 @@ def _migrate_v21_to_v22(conn):
         )
 
 
+def _migrate_v22_to_v23(conn):
+    """v23: append-only 訂正イベント列を追加する。"""
+    if not _has_table(conn, "design_sprint_entries"):
+        conn.executescript(DESIGN_SPRINT_ENTRIES_SCHEMA_V21)
+        _migrate_v21_to_v22(conn)
+    if not _has_table(conn, "design_sprint_artifact_links"):
+        conn.executescript(DESIGN_SPRINT_ARTIFACT_LINKS_SCHEMA_V21)
+
+    for table_name in ("design_sprint_entries", "design_sprint_artifact_links"):
+        if not _has_column(conn, table_name, "supersedes_entry_id"):
+            conn.execute(
+                f"ALTER TABLE {table_name} "
+                "ADD COLUMN supersedes_entry_id INTEGER REFERENCES design_sprint_entries(id)"
+            )
+        if not _has_column(conn, table_name, "correction_reason"):
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN correction_reason TEXT")
+        if not _has_column(conn, table_name, "voided_at"):
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN voided_at TEXT")
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1528,6 +1555,11 @@ def migrate(conn):
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (22, datetime('now'))"
             )
+        if current < 23:
+            _migrate_v22_to_v23(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (23, datetime('now'))"
+            )
         conn.commit()
 
 
@@ -1854,6 +1886,160 @@ def _validate_positive_int(value, field_name):
     if type(value) is not int or value < 1:
         raise ValueError(f"{field_name} must be a positive integer")
     return value
+
+
+def _validate_optional_choice(value, field_name, allowed_values):
+    if value is None:
+        return None
+    return _validate_choice(value, field_name, allowed_values)
+
+
+def _validate_dict_payload(value, field_name):
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be a dict")
+    return value
+
+
+def _savepoint_name(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex}"
+
+
+def _insert_design_sprint_entry_row(conn, payload: dict) -> int:
+    columns = (
+        "plan_id",
+        "sprint_id",
+        "sprint_type",
+        "layer",
+        "drive",
+        "track",
+        "pair_status",
+        "freeze_gate",
+        "subgate",
+        "frozen_at",
+        "raw_meta",
+        "previous_drive",
+        "drive_switch_reason",
+        "status_on_switch",
+        "supersedes_entry_id",
+        "correction_reason",
+    )
+    conn.execute(
+        f"INSERT INTO design_sprint_entries ({', '.join(columns)}) "
+        f"VALUES ({', '.join(['?'] * len(columns))})",
+        tuple(payload.get(column) for column in columns),
+    )
+    return int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+
+def _insert_design_sprint_artifact_link_row(conn, payload: dict) -> int:
+    columns = (
+        "sprint_entry_id",
+        "artifact_kind",
+        "artifact_ref",
+        "link_kind",
+        "supersedes_entry_id",
+        "correction_reason",
+    )
+    conn.execute(
+        f"INSERT INTO design_sprint_artifact_links ({', '.join(columns)}) "
+        f"VALUES ({', '.join(['?'] * len(columns))})",
+        tuple(payload.get(column) for column in columns),
+    )
+    return int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+
+def _build_corrected_entry_payload(old_entry: sqlite3.Row, new_data: dict, correction_reason: str) -> dict:
+    allowed_keys = {
+        "plan_id",
+        "sprint_id",
+        "sprint_type",
+        "layer",
+        "drive",
+        "track",
+        "pair_status",
+        "freeze_gate",
+        "subgate",
+        "frozen_at",
+        "raw_meta",
+        "previous_drive",
+        "drive_switch_reason",
+        "status_on_switch",
+    }
+    unknown_keys = set(new_data) - allowed_keys
+    if unknown_keys:
+        raise KeyError(f"unknown entry fields: {sorted(unknown_keys)!r}")
+
+    payload = {
+        "plan_id": _require_non_empty(new_data.get("plan_id", old_entry["plan_id"]), "plan_id"),
+        "sprint_id": new_data.get("sprint_id", old_entry["sprint_id"]),
+        "sprint_type": _validate_choice(
+            _require_non_empty(new_data.get("sprint_type", old_entry["sprint_type"]), "sprint_type"),
+            "sprint_type",
+            DESIGN_SPRINT_TYPES,
+        ),
+        "layer": _validate_choice(
+            _require_non_empty(new_data.get("layer", old_entry["layer"]), "layer"),
+            "layer",
+            DESIGN_SPRINT_LAYERS,
+        ),
+        "drive": _validate_choice(
+            _require_non_empty(new_data.get("drive", old_entry["drive"]), "drive"),
+            "drive",
+            DESIGN_SPRINT_DRIVES,
+        ),
+        "track": _validate_optional_choice(new_data.get("track", old_entry["track"]), "track", DESIGN_SPRINT_TRACKS),
+        "pair_status": _validate_choice(
+            _require_non_empty(new_data.get("pair_status", old_entry["pair_status"]), "pair_status"),
+            "pair_status",
+            DESIGN_SPRINT_PAIR_STATUSES,
+        ),
+        "freeze_gate": new_data.get("freeze_gate", old_entry["freeze_gate"]),
+        "subgate": new_data.get("subgate", old_entry["subgate"]),
+        "frozen_at": new_data.get("frozen_at", old_entry["frozen_at"]),
+        "raw_meta": new_data.get("raw_meta", old_entry["raw_meta"]),
+        "previous_drive": new_data.get("previous_drive", old_entry["previous_drive"]),
+        "drive_switch_reason": new_data.get("drive_switch_reason", old_entry["drive_switch_reason"]),
+        "status_on_switch": _validate_optional_choice(
+            new_data.get("status_on_switch", old_entry["status_on_switch"]),
+            "status_on_switch",
+            DESIGN_SPRINT_SWITCH_STATUSES,
+        ),
+        "supersedes_entry_id": int(old_entry["id"]),
+        "correction_reason": correction_reason,
+    }
+    return payload
+
+
+def _build_corrected_artifact_link_payload(
+    old_link: sqlite3.Row,
+    new_data: dict,
+    correction_reason: str,
+) -> dict:
+    allowed_keys = {"sprint_entry_id", "artifact_kind", "artifact_ref", "link_kind"}
+    unknown_keys = set(new_data) - allowed_keys
+    if unknown_keys:
+        raise KeyError(f"unknown artifact link fields: {sorted(unknown_keys)!r}")
+
+    payload = {
+        "sprint_entry_id": _validate_positive_int(
+            new_data.get("sprint_entry_id", old_link["sprint_entry_id"]),
+            "sprint_entry_id",
+        ),
+        "artifact_kind": _validate_choice(
+            _require_non_empty(new_data.get("artifact_kind", old_link["artifact_kind"]), "artifact_kind"),
+            "artifact_kind",
+            DESIGN_SPRINT_ARTIFACT_KINDS,
+        ),
+        "artifact_ref": _require_non_empty(new_data.get("artifact_ref", old_link["artifact_ref"]), "artifact_ref"),
+        "link_kind": _validate_choice(
+            _require_non_empty(new_data.get("link_kind", old_link["link_kind"]), "link_kind"),
+            "link_kind",
+            DESIGN_SPRINT_ARTIFACT_LINK_KINDS,
+        ),
+        "supersedes_entry_id": int(old_link["sprint_entry_id"]),
+        "correction_reason": correction_reason,
+    }
+    return payload
 
 
 # @helix:index id=helix-db.insert-import-run domain=cli/lib summary=import runを挿入する
@@ -2513,6 +2699,94 @@ def switch_drive_for_sprint(
             ),
         )
         return conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+
+def void_entry_with_correction(conn, old_entry_id, new_data, correction_reason):
+    """旧 entry を void し、訂正内容を append-only で追加する。"""
+    old_entry_id = _validate_positive_int(old_entry_id, "old_entry_id")
+    new_data = _validate_dict_payload(new_data, "new_data")
+    correction_reason = _require_non_empty(correction_reason, "correction_reason")
+
+    savepoint = _savepoint_name("void_entry")
+    conn.execute(f"SAVEPOINT {savepoint}")
+    try:
+        old_entry = conn.execute(
+            "SELECT * FROM design_sprint_entries WHERE id = ?",
+            (old_entry_id,),
+        ).fetchone()
+        if old_entry is None:
+            raise ValueError("old_entry_id does not exist")
+        if old_entry["voided_at"] is not None:
+            raise ValueError("old entry is already voided")
+
+        payload = _build_corrected_entry_payload(old_entry, new_data, correction_reason)
+        conn.execute(
+            "UPDATE design_sprint_entries SET voided_at = datetime('now') WHERE id = ?",
+            (old_entry_id,),
+        )
+        new_entry_id = _insert_design_sprint_entry_row(conn, payload)
+        conn.execute(f"RELEASE SAVEPOINT {savepoint}")
+        return new_entry_id
+    except Exception:
+        conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+        conn.execute(f"RELEASE SAVEPOINT {savepoint}")
+        raise
+
+
+def void_artifact_link_with_correction(conn, old_link_rowid, new_data, correction_reason):
+    """旧 artifact link を void し、訂正内容を append-only で追加する。"""
+    old_link_rowid = _validate_positive_int(old_link_rowid, "old_link_rowid")
+    new_data = _validate_dict_payload(new_data, "new_data")
+    correction_reason = _require_non_empty(correction_reason, "correction_reason")
+
+    savepoint = _savepoint_name("void_artifact_link")
+    conn.execute(f"SAVEPOINT {savepoint}")
+    try:
+        old_link = conn.execute(
+            "SELECT rowid AS link_rowid, * FROM design_sprint_artifact_links WHERE rowid = ?",
+            (old_link_rowid,),
+        ).fetchone()
+        if old_link is None:
+            raise ValueError("old_link_rowid does not exist")
+        if old_link["voided_at"] is not None:
+            raise ValueError("old artifact link is already voided")
+
+        payload = _build_corrected_artifact_link_payload(old_link, new_data, correction_reason)
+        conn.execute(
+            "UPDATE design_sprint_artifact_links SET voided_at = datetime('now') WHERE rowid = ?",
+            (old_link_rowid,),
+        )
+        new_link_rowid = _insert_design_sprint_artifact_link_row(conn, payload)
+        conn.execute(f"RELEASE SAVEPOINT {savepoint}")
+        return new_link_rowid
+    except Exception:
+        conn.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+        conn.execute(f"RELEASE SAVEPOINT {savepoint}")
+        raise
+
+
+def list_active_entries(conn, plan_id, sprint_type, layer):
+    """void されていない design sprint entry を返す。"""
+    plan_id = _require_non_empty(plan_id, "plan_id")
+    sprint_type = _validate_choice(
+        _require_non_empty(sprint_type, "sprint_type"),
+        "sprint_type",
+        DESIGN_SPRINT_TYPES,
+    )
+    layer = _validate_choice(
+        _require_non_empty(layer, "layer"),
+        "layer",
+        DESIGN_SPRINT_LAYERS,
+    )
+    return conn.execute(
+        """
+        SELECT *
+        FROM design_sprint_entries
+        WHERE plan_id = ? AND sprint_type = ? AND layer = ? AND voided_at IS NULL
+        ORDER BY id
+        """,
+        (plan_id, sprint_type, layer),
+    ).fetchall()
 
 
 def query_functional_freeze_status(conn, plan_id: str, drive: str) -> dict:

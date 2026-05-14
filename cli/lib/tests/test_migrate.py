@@ -538,6 +538,13 @@ def _column_default(conn: sqlite3.Connection, table: str, column: str) -> str:
     return defaults[column]
 
 
+def _column_signature(conn: sqlite3.Connection, table: str) -> list[tuple]:
+    return [
+        (row[1], row[2], row[3], row[4], row[5])
+        for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+    ]
+
+
 def test_v20_to_v21_adds_drive_column(tmp_path: Path) -> None:
     conn = _build_legacy_v20_db(tmp_path / "legacy-v20-drive.db")
     try:
@@ -632,7 +639,7 @@ def test_v21_sprint_type_impl_requires_layer_functional(tmp_path: Path) -> None:
         conn.close()
 
 
-def test_migrate_is_idempotent_at_v22(tmp_path: Path) -> None:
+def test_migrate_is_idempotent_at_v23(tmp_path: Path) -> None:
     db_path = tmp_path / "v21-idempotent.db"
     helix_db.init_db(str(db_path))
     helix_db.init_db(str(db_path))
@@ -640,9 +647,12 @@ def test_migrate_is_idempotent_at_v22(tmp_path: Path) -> None:
     try:
         columns = [row["name"] for row in conn.execute("PRAGMA table_info(contract_entries)").fetchall()]
         versions = conn.execute(
-            "SELECT version FROM schema_version WHERE version = 22"
+            "SELECT version FROM schema_version WHERE version = 23"
         ).fetchall()
         sprint_columns = [row["name"] for row in conn.execute("PRAGMA table_info(design_sprint_entries)").fetchall()]
+        artifact_link_columns = [
+            row["name"] for row in conn.execute("PRAGMA table_info(design_sprint_artifact_links)").fetchall()
+        ]
     finally:
         conn.close()
     assert columns.count("drive") == 1
@@ -651,7 +661,79 @@ def test_migrate_is_idempotent_at_v22(tmp_path: Path) -> None:
     assert sprint_columns.count("previous_drive") == 1
     assert sprint_columns.count("drive_switch_reason") == 1
     assert sprint_columns.count("status_on_switch") == 1
+    assert sprint_columns.count("supersedes_entry_id") == 1
+    assert sprint_columns.count("correction_reason") == 1
+    assert sprint_columns.count("voided_at") == 1
+    assert artifact_link_columns.count("supersedes_entry_id") == 1
+    assert artifact_link_columns.count("correction_reason") == 1
+    assert artifact_link_columns.count("voided_at") == 1
     assert len(versions) == 1
+
+
+def test_migrate_idempotent_v20_to_v23(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-to-v23-idempotent.db")
+    try:
+        helix_db.migrate(conn)
+        helix_db.migrate(conn)
+        versions = [row[0] for row in conn.execute("SELECT version FROM schema_version ORDER BY version").fetchall()]
+        max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+        entry_columns = [row[1] for row in conn.execute("PRAGMA table_info(design_sprint_entries)").fetchall()]
+        link_columns = [
+            row[1] for row in conn.execute("PRAGMA table_info(design_sprint_artifact_links)").fetchall()
+        ]
+    finally:
+        conn.close()
+
+    assert max_version == 23
+    assert versions.count(21) == 1
+    assert versions.count(22) == 1
+    assert versions.count(23) == 1
+    assert entry_columns.count("previous_drive") == 1
+    assert entry_columns.count("supersedes_entry_id") == 1
+    assert link_columns.count("supersedes_entry_id") == 1
+
+
+def test_migrate_idempotent_individual_versions(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-individual-idempotent.db")
+    try:
+        helix_db._migrate_v20_to_v21(conn)
+        v21_first = {
+            "contract_entries": _column_signature(conn, "contract_entries"),
+            "design_sprint_entries": _column_signature(conn, "design_sprint_entries"),
+            "design_sprint_artifact_links": _column_signature(conn, "design_sprint_artifact_links"),
+        }
+        helix_db._migrate_v20_to_v21(conn)
+        v21_second = {
+            "contract_entries": _column_signature(conn, "contract_entries"),
+            "design_sprint_entries": _column_signature(conn, "design_sprint_entries"),
+            "design_sprint_artifact_links": _column_signature(conn, "design_sprint_artifact_links"),
+        }
+
+        helix_db._migrate_v21_to_v22(conn)
+        v22_first = _column_signature(conn, "design_sprint_entries")
+        helix_db._migrate_v21_to_v22(conn)
+        v22_second = _column_signature(conn, "design_sprint_entries")
+
+        helix_db._migrate_v22_to_v23(conn)
+        v23_first = {
+            "design_sprint_entries": _column_signature(conn, "design_sprint_entries"),
+            "design_sprint_artifact_links": _column_signature(conn, "design_sprint_artifact_links"),
+        }
+        helix_db._migrate_v22_to_v23(conn)
+        v23_second = {
+            "design_sprint_entries": _column_signature(conn, "design_sprint_entries"),
+            "design_sprint_artifact_links": _column_signature(conn, "design_sprint_artifact_links"),
+        }
+    finally:
+        conn.close()
+
+    assert v21_first == v21_second
+    assert v22_first == v22_second
+    assert v23_first == v23_second
+    assert [column[0] for column in v21_second["contract_entries"]].count("drive") == 1
+    assert [column[0] for column in v22_second].count("status_on_switch") == 1
+    assert [column[0] for column in v23_second["design_sprint_entries"]].count("voided_at") == 1
+    assert [column[0] for column in v23_second["design_sprint_artifact_links"]].count("voided_at") == 1
 
 
 def test_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
@@ -669,14 +751,14 @@ def test_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
         conn.close()
 
     assert {"previous_drive", "drive_switch_reason", "status_on_switch"} <= columns
-    assert max_version == 22
+    assert max_version == 23
 
 
-def test_schema_version_advances_to_22(tmp_path: Path) -> None:
+def test_schema_version_advances_to_23(tmp_path: Path) -> None:
     conn = _build_legacy_v20_db(tmp_path / "legacy-v20-version.db")
     try:
         helix_db.migrate(conn)
         max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
-        assert max_version == 22
+        assert max_version == 23
     finally:
         conn.close()
