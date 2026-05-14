@@ -1,4 +1,8 @@
 # V-model semantic contract normalized from the Phase 2 spine and drive drafts.
+# Reference implementation for docs/v2/L1-REQUIREMENTS.md FR-VS03/05/07.
+# If this file conflicts with L1-REQUIREMENTS.md, L1 is the master source of truth.
+# Final functional_freeze enforcement comes from L1 FR-VS03:
+# `size=L AND drive in (fe/fullstack/db)`. `requires_functional_freeze` below is finer-grained guidance only.
 # Cross-drive normalization applied:
 # - FE architecture artifact `state-events.md` -> `state_events`
 # - fullstack promotion schema -> FE-style canonical append-only shape
@@ -79,6 +83,17 @@ lifecycle:
   direction:
     - forward
     - reverse
+  origin_mode_transitions:
+    reverse_to_forward:
+      trigger: 'RG4 (Gap & Routing) 完了時'
+      automatic: true
+      notes: 'RG3 (Intent Hypotheses) で PO 承認後の confirmed evidence が前提'
+  evidence_status_transitions:
+    observed_to_inferred: 'R1/R2 で契約と設計が抽出された時点'
+    inferred_to_confirmed: 'R3 PO 承認時のみ'
+  functional_freeze_applicability:
+    reverse_mode: 'skip (forward 接続前)'
+    forward_mode: 'apply (origin_mode=forward 後の sprint)'
 promotion_kinds:
   mock_to_implementation:
     from_artifact_kind: mock
@@ -289,7 +304,7 @@ drives:
           vertical_to: requirement
           score_weight: 0.1
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Required once FE work commits to the 5-stage wire/mockup/judgment/implementation/review pipeline.
       requirement:
         design:
@@ -323,7 +338,7 @@ drives:
           vertical_to: architecture
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       architecture:
         design:
           artifacts:
@@ -363,7 +378,7 @@ drives:
             link_kind: derives_from
             append_only: true
             g2_evidence_preserved: true
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Activation begins once G2 freezes the mock; later component_impl rows append promoted evidence without mutating mock_frozen records.
           lifecycle_overrides:
             architecture_status: mock_frozen
@@ -407,7 +422,7 @@ drives:
           vertical_to: functional
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       functional:
         design:
           artifacts:
@@ -443,7 +458,7 @@ drives:
           vertical_to: null
           score_weight: 0.25
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
   db:
     description: Database/model first drive for master-data, ERP, and data-platform work.
     layers:
@@ -479,7 +494,7 @@ drives:
           vertical_to: requirement
           score_weight: 0.1
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Required when the DB drive advances to migration planning or operational rollout; advisory for draft-only semantic spikes.
       requirement:
         design:
@@ -513,7 +528,7 @@ drives:
           vertical_to: architecture
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       architecture:
         design:
           artifacts:
@@ -546,7 +561,7 @@ drives:
           vertical_to: detailed
           score_weight: 0.25
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       detailed:
         design:
           artifacts:
@@ -579,7 +594,7 @@ drives:
           vertical_to: functional
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       functional:
         design:
           artifacts:
@@ -612,7 +627,7 @@ drives:
           vertical_to: null
           score_weight: 0.25
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
   fullstack:
     description: Backend + frontend + contract tracks advance in parallel and merge at L4.5.
     layers:
@@ -647,7 +662,7 @@ drives:
           vertical_to: requirement
           score_weight: 0.1
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Fullstack planning is fail-close when be/fe/contract/shared do not agree on Phase A/B entry criteria.
       requirement:
         design:
@@ -681,7 +696,7 @@ drives:
           vertical_to: architecture
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
       architecture:
         design:
           artifacts:
@@ -723,7 +738,7 @@ drives:
             link_kind: derives_from
             append_only: true
             g2_evidence_preserved: true
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: D-CONTRACT and state-events must freeze together; be/fe split without contract freeze is a P1 risk.
           lifecycle_overrides:
             phase_a_tracks:
@@ -766,7 +781,7 @@ drives:
           vertical_to: functional
           score_weight: 0.2
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Phase A closes only after be/fe/contract detailed designs and integration tests are all paired.
       functional:
         design:
@@ -805,7 +820,7 @@ drives:
           vertical_to: null
           score_weight: 0.25
           promotion: null
-          requires_functional_freeze: true
+          requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: G4 stays closed until be .5, fe .5, and L4.5 e2e/contract_test readiness all pass together.
           lifecycle_overrides:
             phase_b_sequence:

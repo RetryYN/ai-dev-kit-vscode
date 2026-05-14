@@ -20,6 +20,12 @@ def _require_string_list(value: Any, field_path: str, *, allow_empty: bool = Fal
     return value
 
 
+def _require_non_empty_string(value: Any, field_path: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field_path} must be a non-empty string")
+    return value
+
+
 class VModelSemantics:
     def __init__(self, data: dict[str, Any]):
         if not isinstance(data, dict):
@@ -64,11 +70,7 @@ class VModelSemantics:
         pair_test_levels = self._pair_test_levels()
         allowed_values = self._allowed_values()
 
-        try:
-            _require_string_list(self.lifecycle.get("origin_mode"), "lifecycle.origin_mode")
-            _require_string_list(self.lifecycle.get("evidence_status"), "lifecycle.evidence_status")
-        except ValueError as exc:
-            errors.append(str(exc))
+        self._validate_lifecycle(errors)
 
         actual_drives = set(self.drives.keys())
         expected_drives = set(allowed_drives)
@@ -224,6 +226,65 @@ class VModelSemantics:
             "horizontal_rule": horizontal_rule,
             "score_weight": (float(minimum), float(maximum)),
         }
+
+    def _validate_lifecycle(self, errors: list[str]) -> None:
+        try:
+            _require_string_list(self.lifecycle.get("origin_mode"), "lifecycle.origin_mode")
+            _require_string_list(self.lifecycle.get("evidence_status"), "lifecycle.evidence_status")
+            _require_string_list(self.lifecycle.get("direction"), "lifecycle.direction")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+        origin_mode_transitions = self.lifecycle.get("origin_mode_transitions")
+        if not isinstance(origin_mode_transitions, dict):
+            errors.append("lifecycle.origin_mode_transitions must be a mapping")
+        else:
+            reverse_to_forward = origin_mode_transitions.get("reverse_to_forward")
+            if not isinstance(reverse_to_forward, dict):
+                errors.append("lifecycle.origin_mode_transitions.reverse_to_forward must be a mapping")
+            else:
+                try:
+                    _require_non_empty_string(
+                        reverse_to_forward.get("trigger"),
+                        "lifecycle.origin_mode_transitions.reverse_to_forward.trigger",
+                    )
+                    _require_non_empty_string(
+                        reverse_to_forward.get("notes"),
+                        "lifecycle.origin_mode_transitions.reverse_to_forward.notes",
+                    )
+                except ValueError as exc:
+                    errors.append(str(exc))
+                automatic = reverse_to_forward.get("automatic")
+                if not isinstance(automatic, bool):
+                    errors.append(
+                        "lifecycle.origin_mode_transitions.reverse_to_forward.automatic must be a boolean"
+                    )
+
+        evidence_status_transitions = self.lifecycle.get("evidence_status_transitions")
+        if not isinstance(evidence_status_transitions, dict):
+            errors.append("lifecycle.evidence_status_transitions must be a mapping")
+        else:
+            for key in ("observed_to_inferred", "inferred_to_confirmed"):
+                try:
+                    _require_non_empty_string(
+                        evidence_status_transitions.get(key),
+                        f"lifecycle.evidence_status_transitions.{key}",
+                    )
+                except ValueError as exc:
+                    errors.append(str(exc))
+
+        functional_freeze_applicability = self.lifecycle.get("functional_freeze_applicability")
+        if not isinstance(functional_freeze_applicability, dict):
+            errors.append("lifecycle.functional_freeze_applicability must be a mapping")
+        else:
+            for key in ("reverse_mode", "forward_mode"):
+                try:
+                    _require_non_empty_string(
+                        functional_freeze_applicability.get(key),
+                        f"lifecycle.functional_freeze_applicability.{key}",
+                    )
+                except ValueError as exc:
+                    errors.append(str(exc))
 
     @staticmethod
     def _validate_required_keys(errors: list[str], field_path: str, data: dict[str, Any], required_keys: list[str]) -> None:
