@@ -3,10 +3,41 @@ acceptance:
     verification_commands:
       command: "..."
       expected: "..."
+  pair_status:
+    architecture:
+      required_status: paired
+      enforced_gate: G2
+      required_when:
+        - drive: be
+        - drive: fe
+        - drive: db
+        - drive: fullstack
+    detailed:
+      required_status: paired
+      enforced_gate: G3
+    functional:
+      required_status: paired
+      enforced_gate: G3
+      condition_subgate: functional_freeze
+    impl:
+      required_status: paired
+      enforced_gate: G4
   test_pyramid:
     unit_target: "≥80%"
     integration_target: "主要フロー全カバー"
     e2e_target: "critical path 100%"
+  vmodel_score:
+    target:
+      default: 80
+      formula: "100 - 15*missing_test_design - 10*missing_baseline - 20*failing_baseline"
+  functional_freeze:
+    gate: "G3.functional_freeze"
+    required_for:
+      size: L
+      drive:
+        - fe
+        - fullstack
+        - db
   coverage_target:
     new_files: "≥85%"
     modified_files: "前回比 ≥ 0pt (低下禁止)"

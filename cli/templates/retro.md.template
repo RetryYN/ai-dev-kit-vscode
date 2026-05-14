@@ -13,3 +13,17 @@
 
 ### メモ
 -
+
+## V-model 付加項目
+
+### Keep
+- pair_status: ペア状態が明確な場合
+- vmodel_score: 現在値の更新
+
+### Problem
+- pair_status の未遷移（pending / design_only / test_only の残存）
+- vmodel_score 低下の原因
+
+### Try
+- pair_status を次回 Sprint 開始時に再定義し、必要時 waive を明記
+- vmodel_score を functional と test baseline で回復する施策を追加

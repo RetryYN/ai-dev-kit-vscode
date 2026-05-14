@@ -1,0 +1,40 @@
+{
+  "plan_id": "PLAN-NNN",
+  "drive": "be",
+  "schema_version": 1,
+  "layers": {
+    "planning": {
+      "design": { "review_unit": "plan", "frozen": false },
+      "test": { "test_level": "operational", "baseline": null },
+      "pair_status": "pending"
+    },
+    "architecture": {
+      "design": { "frozen": false },
+      "test": { "frozen": false },
+      "pair_status": "pending",
+      "freeze_gate": "G2"
+    },
+    "detailed": {
+      "design": { "frozen": false },
+      "test": { "frozen": false },
+      "pair_status": "pending",
+      "freeze_gate": "G3"
+    },
+    "functional": {
+      "design": { "frozen": false },
+      "test": { "frozen": false },
+      "pair_status": "pending",
+      "freeze_gate": "G3",
+      "subgate": "functional_freeze"
+    },
+    "impl": {
+      "design": { "frozen": false },
+      "test": { "frozen": false },
+      "pair_status": "pending",
+      "freeze_gate": "G4",
+      "_note": "sprint_type='impl' の時は layer='functional' に紐付く"
+    }
+  },
+  "vmodel_score": null,
+  "score_formula": "100 - 15*missing_test_design - 10*missing_baseline - 20*failing_baseline"
+}

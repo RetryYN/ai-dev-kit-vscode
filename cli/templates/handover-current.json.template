@@ -12,6 +12,12 @@
   },
   "phase": __PHASE__,
   "sprint": __SPRINT__,
+  "sprint_type": __SPRINT_TYPE__,
+  "pair_status": __PAIR_STATUS__,
+  "drive": __DRIVE__,
+  "origin_mode": __ORIGIN_MODE__,
+  "evidence_status": __EVIDENCE_STATUS__,
+  "vmodel_score": __VMODEL_SCORE__,
   "project": __PROJECT__,
   "task": {
     "id": __TASK_ID__,

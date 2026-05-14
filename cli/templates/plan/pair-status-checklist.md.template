@@ -1,0 +1,48 @@
+# Pair Status Checklist — {{PLAN_ID}}
+
+## 目的
+
+design + test_design の pair_status を tracking する。
+
+## drive: {{DRIVE}}
+
+### Layer: architecture (G2 凍結)
+- [ ] design artifact 起票
+- [ ] test_design artifact 起票
+- [ ] design 1st review (axes 5/5 passed)
+- [ ] test_design 1st review (axes 5/5 passed)
+- [ ] pair_status='paired' に更新
+- [ ] freeze_gate='G2' で frozen
+
+### Layer: detailed (G3 凍結)
+- [ ] design artifact 起票
+- [ ] test_design artifact 起票
+- [ ] design 1st review (axes 5/5 passed)
+- [ ] test_design 1st review (axes 5/5 passed)
+- [ ] pair_status='paired' に更新
+- [ ] freeze_gate='G3' で frozen
+
+### Layer: functional (G3.functional_freeze 凍結)
+- [ ] design artifact 起票
+- [ ] test_design artifact 起票
+- [ ] design 1st review (axes 5/5 passed)
+- [ ] test_design 1st review (axes 5/5 passed)
+- [ ] pair review passed
+- [ ] pair_status='paired'
+- [ ] freeze_gate='G3' / subgate='functional_freeze'
+
+### sprint_type='impl' (G4 凍結、layer='functional' 必須)
+- [ ] implementation artifact 起票
+- [ ] baseline artifact (実テスト)
+- [ ] pair_status='paired'
+- [ ] freeze_gate='G4'
+
+## 6 pair_status 遷移
+- pending → design_only / test_only
+- design_only / test_only → paired
+- paired → failed / waived
+- waived は例外のみ。理由・承認者・再起票日を記載
+
+## 監査
+- `helix gate G3 --subgate functional_freeze --plan-id {{PLAN_ID}} --drive {{DRIVE}}`
+- `.helix/phase.yaml` の `sprint.current_pair_status` へ反映

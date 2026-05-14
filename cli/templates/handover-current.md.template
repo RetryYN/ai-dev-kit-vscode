@@ -9,6 +9,11 @@ __TASK_LINE__
 ## Next Action (Codex 向け)
 __NEXT_ACTION__
 
+## Functional Freeze 進捗
+- Subgate: G3.functional_freeze
+- status: __FUNCTIONAL_FREEZE_STATUS__
+- blockers: __FUNCTIONAL_FREEZE_BLOCKERS__
+
 ## イベントログ
 
 ### [__TIMESTAMP__] dump (owner: __OWNER__, status: __STATUS__)

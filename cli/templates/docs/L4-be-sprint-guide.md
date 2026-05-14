@@ -4,6 +4,11 @@
 
 ## スプリント手順（BE 駆動）
 
+### L4.1~L4.5（micro sprint）メタ情報
+
+- sprint_type: impl
+- functional layer: functional
+
 ### .1a コード調査
 - 既存 API エンドポイント棚卸し（ルーティング定義の一覧化）
 - ビジネスロジック層の構造確認（Service / UseCase / Repository パターン）
@@ -54,6 +59,16 @@
 - D-API との差異チェック（契約 vs 実装）
 - パフォーマンス確認（N+1 クエリ検出・スロークエリログ）
 - G4 ゲート準備（実装凍結チェックリスト）
+
+## V-model 拡張（BE）
+
+- pair_status 遷移: pending → paired
+- `design_sprint_entries`（track: be）で以下を記録
+  - sprint_type: impl
+  - layer: functional
+  - drive: be
+  - pair_status: pending / design_only / test_only / paired
+- G4 通過条件に `evidence_status='confirmed'` を追加
 
 ## Codex ロール委譲マップ
 

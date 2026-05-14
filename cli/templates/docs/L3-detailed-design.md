@@ -222,3 +222,34 @@ sequenceDiagram
 | クリティカルパス | |
 | 合計見積 | |
 | high risk WBS | |
+
+## V-model メタデータ（detailed layer）
+
+- sprint_type: detailed
+- layer: detailed
+- track: be / fe / db / fullstack / shared
+- pair_status: pending
+- drive: be
+- origin_mode: forward
+- evidence_status: inferred
+
+### design_sprint_entries 記録
+
+- sprint_type: detailed
+- layer: detailed
+- track: be / fe / db / fullstack / shared
+- drive: be / fe / db / fullstack
+- pair_status: pending / design_only / test_only / paired
+- freeze_gate: G3
+
+### G3 通過条件（detailed）
+
+- API/Schema Freeze が同時に完了していること（既存 section 記載を維持）
+- `pair_status == paired`
+- design / test_design の対応付けを architecture/detailed chain に追加
+
+### API/Schema Freeze 時の記録項目
+
+- `layer: detailed`
+- `sprint_type: detailed`
+- `freeze_gate: G3`

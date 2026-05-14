@@ -1,0 +1,60 @@
+# design-sprint.yaml.template
+# Purpose: 1:1 mapping to design_sprint_entries table rows for PLAN design sprints
+#
+# machine + human readable template for one design sprint entry
+plan_id: "PLAN-NNN"
+sprint_id: "SPRINT-NN"
+
+# CHECK constraints (helix.db v21)
+sprint_type: functional
+layer: functional
+
+# drive/track: fullstack split can use shared/contract tracks in append-only model
+drive: be
+track: shared
+
+# pair_status states design + test_design simultaneous freeze
+pair_status: pending
+
+# Freeze metadata
+freeze_gate: G3
+# NULL when not subgate-targeting; G3.functional_freeze uses 'functional_freeze'
+subgate: null
+
+# artifact links expanded into design_sprint_artifact_links
+artifacts:
+  design:
+    - path: docs/features/<feature-id>/architecture/design.md
+      kind: design
+    - path: docs/features/<feature-id>/detailed/design.md
+      kind: design
+    - path: docs/features/<feature-id>/functional/design.md
+      kind: design
+  test_design:
+    - path: docs/features/<feature-id>/architecture/test-design.md
+      kind: test_design
+    - path: docs/features/<feature-id>/detailed/test-design.md
+      kind: test_design
+    - path: docs/features/<feature-id>/functional/test-design.md
+      kind: test_design
+  review:
+    - path: .helix/reviews/<feature-id>/design-review.json
+      kind: review
+  baseline:
+    - path: tests/<feature-id>/test_X.py
+      kind: baseline
+
+acceptance:
+  # pair_status 'paired' は design + test_design 両 artifact が review で凍結済みを示す
+  pair_complete: true
+  detector_passed: true
+  review_axes_passed: "5/5"
+
+raw_meta:
+  # helix_db constraints: forward/reverse/scrum origin mode
+  origin_mode: forward
+  # observed / inferred / confirmed
+  evidence_status: confirmed
+  # optional: keep optional plan metadata for audit traceability
+  note: "Fill in during sprint creation"
+  score_hint: 100

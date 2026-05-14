@@ -65,3 +65,27 @@ Phase B (L4.5 結合):
 - FE → BE の API 繋ぎ込み
 - MSW モック → 実 API への切替
 - E2E テストで結合確認
+
+## FE mock_to_implementation lifecycle
+
+- L2 で mock を freeze し、`state-events.md` から TL が契約導出を完了する
+- L4 で本実装へ昇格は append-only を守り、`g2_evidence_preserved` を維持する
+- `evidence_status='inferred'` を起点に、G4/G6 で `confirmed` を目指す
+
+### ペア状態
+
+- FE の開始時は `pending`
+- mock 凍結時は `design_only` / `test_only`
+- 本実装完了時は `paired`
+- 失敗回収時は `failed`、代替ルート時は `waived`
+
+### G4 / G6 追加条件
+
+- G4: `MOCK-HARDCODE` と `MOCK-CODE-LEAK` が resolved
+- G6: `MOCK-DERIVED-CONTRACT` が resolved
+
+### mock 制御（2026 更新）
+
+- data contract を先に固定（ISO 8601 / nullability / type 一致）
+- error case mock を明記（timeout, 429, 401, 500）
+- production code と同等の規律で mock 管理を実施

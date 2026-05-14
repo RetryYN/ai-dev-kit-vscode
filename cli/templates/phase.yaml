@@ -1,5 +1,5 @@
 # phase.yaml — プロジェクトのフェーズ状態追跡
-# helix_template_version: 3
+# helix_template_version: 4
 # プロジェクトルートの .helix/phase.yaml にコピーして使う
 # helix size / helix gate / helix sprint が自動更新する
 
@@ -20,7 +20,14 @@ gates:
   G1.5: { status: skipped }
   G1R: { status: skipped }
   G2:  { status: pending }
-  G3:  { status: pending }
+  G3:
+    status: pending
+    subgates:
+      functional_freeze:
+        status: pending
+        drive: null
+        verdict: null
+        enforced: false
   G4:  { status: pending }
   G5:  { status: pending }
   G6:  { status: pending }
@@ -40,6 +47,11 @@ sprint:
   drive: null
   tracks: null
   phase: null
+  current_sprint_type: null
+  current_layer: null
+  current_pair_status: null
+  origin_mode: forward
+  evidence_status: confirmed
   visual_phase:
     current: null
     stages:

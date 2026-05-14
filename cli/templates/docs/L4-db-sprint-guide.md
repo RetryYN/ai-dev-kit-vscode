@@ -4,6 +4,8 @@
 
 ## スプリント手順（DB 駆動）
 
+> migration + CRUD + API を順次接続し、pair_status を明記
+
 ### .1a 既存スキーマ調査
 - テーブル定義一覧の取得（カラム名・型・制約）
 - インデックス一覧の確認（主キー・ユニーク・複合インデックス）
@@ -57,6 +59,20 @@
 - マイグレーション手順書の整備（本番適用手順 + ロールバック手順）
 - D-DB ドキュメントとの整合確認
 - G4 ゲート準備（実装凍結チェックリスト）
+
+## V-model 拡張（DB）
+
+- `migration -> CRUD -> API` の順を `design_sprint_entries` に記録
+- sprint_type: impl
+- layer: functional
+- track: db
+- pair_status: pending / design_only / test_only / paired
+- drive: db
+
+### G3 Migration Freeze
+
+- G3 で `design_sprint_entries` `drive='db'` を記録
+- API / schema が整合していることを確認
 
 ## Codex ロール委譲マップ
 

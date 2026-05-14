@@ -3,6 +3,11 @@
 #
 # status: queued → testing → confirmed / rejected / pivot
 # sprint: どのスプリントで検証するか（null = 未割当）
+# origin_mode: scrum
+# evidence_status: inferred | confirmed
+
+# 事後接続例:
+# confirmed の場合は Forward へ promote する。
 
 hypotheses:
   # H001:
@@ -11,6 +16,11 @@ hypotheses:
   #   acceptance: "どうなったら成功か？"
   #   verify_script: "verify/001-hypothesis-name.sh"
   #   status: queued
+  #   origin_mode: scrum
+  #   evidence_status: inferred
+  #   evidence_lifecycle:
+  #     - inferred
+  #     - confirmed
   #   sprint: null
   #   result: null
   #   learnings: ""

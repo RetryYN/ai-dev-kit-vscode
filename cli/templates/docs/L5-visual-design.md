@@ -258,6 +258,33 @@
 | ヒーロー | 16:9 | 500KB | WebP | JPEG |
 | アバター | 1:1 | 100KB | WebP | PNG |
 
+## L5b Visual Production（追加）
+
+### ペア条件
+
+- pair_status: pending / design_only / test_only / paired
+- L5b では `pair_status='paired'` を最終確認とする
+
+### review axes（5 axis）
+
+- design axis
+  - visual grammar
+  - brand consistency
+- test_design axis
+  - accessibility (a11y)
+  - responsiveness
+  - motion and transition
+  - render consistency
+
+### 進行記録
+
+- `design_sprint_entries` 対応
+  - sprint_type: functional
+  - layer: visual
+  - track: fe
+  - drive: fe / fullstack
+  - pair_status: pending / design_only / test_only / paired
+
 ## 8. モーション・アニメーション設計
 ### 8.1 アニメーション原則
 - 目的のあるアニメーションのみ使用（装飾的アニメーション禁止）

@@ -123,3 +123,14 @@ Phase A の BE .4 / FE .4 が完了した後に実施。
 - Contract CI で不整合が見つかったら Phase A 中に即修正
 - Phase B は BE .4 / FE .4 の両方が完了してから開始
 - L5 は常に必要（結合後の Visual Refinement が Fullstack 駆動の仕上げ）
+
+## Fullstack 追加（V-model）
+
+- `track` を `be / fe / contract / shared` で design_sprint_entries に必ず記録
+- `design_sprint_entries.drive='fullstack'` を Phase A と B で共通化
+- L4.5 結合時点で FE 側 mock_to_implementation lifecycle を継承し、全 pair_status が paired へ遷移
+
+## L4.5 Pair 条件
+
+- Phase B 終了時の `pair_status` は `paired` 必須
+- `design_sprint_entries.track` の未完了がある場合は `functional_freeze` として戻し

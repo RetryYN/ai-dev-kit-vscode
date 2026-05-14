@@ -184,3 +184,41 @@ graph LR
 | db | §2,4,5,8 | ER図・スキーマ・マイグレーション | §6 画面 |
 | fullstack | 全セクション | BE+FE接続契約 | なし |
 | agent | §2,3,5,7 | ツール定義・プロンプト設計 | §6 画面 |
+
+## V-model メタデータ（architecture layer）
+
+- sprint_type: architecture
+- layer: architecture
+- track: be / fe / db / fullstack
+- pair_status: pending
+- drive: be
+- origin_mode: forward
+- evidence_status: inferred
+
+### review_axes（5 axis）
+
+- vertical
+- horizontal
+- API-contract integrity
+- state consistency
+- operational readiness
+
+### pair_status 遷移ルール
+
+- architecture 設計凍結（G2）時は `pair_status='paired'` が必須
+- 初期: pending → design_only / test_only（要件に応じて）→ paired
+
+### 設計凍結時の design_sprint_entries 記録
+
+- sprint_type: architecture
+- layer: architecture
+- track: be / fe / db / fullstack / shared
+- drive: be / fe / db / fullstack
+- pair_status: pending / design_only / test_only / paired
+- freeze_gate: G2
+- subgate: architecture_freeze
+
+### G2 通過条件（architecture）
+
+- API/構成説明の合意（既存 section）
+- `pair_status == paired`

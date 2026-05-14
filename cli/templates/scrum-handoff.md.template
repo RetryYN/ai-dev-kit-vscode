@@ -14,6 +14,19 @@
 - [ ] L3: 詳細設計・契約凍結（G3）
 - [ ] L4: 本実装・検証（G4）
 
+## Origin / Evidence Lifecycle
+
+- origin_mode: scrum
+- evidence_status lifecycle:
+  - observed
+  - inferred
+  - confirmed
+- `confirmed` 後に Forward へ `forward` promote
+
+### 追加確認
+- L4 sprint 開始時: `origin_mode='forward'` へ promote 済みであること
+- FE mock 由来契約がある場合は `pair_status='paired'` を確認
+
 ## Verification Assets
 - `.helix/scrum/verify/{{HYPOTHESIS_ID}}/*.sh`
 - `verify/*.sh`（必要に応じて）

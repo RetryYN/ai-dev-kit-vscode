@@ -1,0 +1,70 @@
+# G3 functional_freeze Report — {{PLAN_ID}} ({{DRIVE}})
+
+- date: {{DATE}}
+- plan_id: {{PLAN_ID}}
+- drive: {{DRIVE}}
+- size: {{SIZE}}
+- verdict: {{VERDICT}}
+- enforced: {{ENFORCED}}
+
+## Summary
+
+- plan_reference: `{{PLAN_ID}}`
+- total_sprints: {{TOTAL_COUNT}}
+- sprint_type_coverage:
+  - architecture: architecture
+  - detailed: detailed
+  - functional: functional
+  - impl: impl
+- required_subgate: `functional_freeze`
+- source_mode: forward / reverse / scrum
+
+## 集計
+
+| 状態 | 件数 |
+|---|---|
+| paired | {{PAIRED_COUNT}} |
+| pending | {{PENDING_COUNT}} |
+| failed | {{FAILED_COUNT}} |
+| waived | {{WAIVED_COUNT}} |
+| total | {{TOTAL_COUNT}} |
+
+## 判定条件
+
+- ペア凍結条件: `pair_status='paired'` のレコードのみ pass 扱い
+- enforce 条件:
+  - plan size が L のときは全体 enforce
+  - drive が `fe`/`fullstack`/`db` のときは enforce
+- verdict 計算:
+  - `paired == total` かつ (enforced ? failed == 0 : true) なら passed
+  - 例外: pair_status が `waived` の場合は該当 sprint を除外し、理由を reason 列へ記録
+
+## 詳細 (failed / pending entries)
+
+> failed または pending の sprint のみ列挙
+
+| sprint_id | sprint_type | layer | pair_status | reason |
+|---|---|---|---|---|
+| {{SPRINT_ID_1}} | functional | functional | pending | test_design 未起票 |
+| {{SPRINT_ID_2}} | {{SPRINT_TYPE_2}} | {{LAYER_2}} | failed | baseline 失敗 |
+
+## 判定ログ
+
+- last_gate_cmd: `helix gate G3 --subgate functional_freeze --plan-id {{PLAN_ID}} --drive {{DRIVE}}`
+- requested_at: {{DATE}}
+- checked_by: {{OWNER}}
+- evidence:
+  - `{{REPORT_FILE}}`
+  - `{{ARTIFACT_INDEX_FILE}}`
+
+## 次アクション
+
+- {{NEXT_ACTION_1}}
+- {{NEXT_ACTION_2}}
+- 必要なら `helix gate G3 --subgate functional_freeze --plan-id {{PLAN_ID}} --drive {{DRIVE}}` を再実行
+
+## 補足
+
+- missing_test_design: `pair_status IN ('pending','design_only','test_only')` を除外して集計
+- failing_baseline: baseline status not in (`passed`,`pass`,`ok`)
+- score_formula: `100 - 15*missing_test_design - 10*missing_baseline - 20*failing_baseline`
