@@ -89,8 +89,8 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 | Codex 5.4 | SE | 契約・複雑実装・リファクタリング |
 | Codex 5.3 | Security / DBA / DevOps / Perf | セキュリティ監査・DB・インフラ・性能 |
 | Codex 5.4-mini | Recommender / Classifier | スキル推挙・タスク分類 |
-| Sonnet | PMO（判断伴う） | 構造化チェック、ドキュメント状況把握（read-only） |
-| Haiku 4.5 | PMO（軽作業） | Web 検索・`docs/**` 限定軽作業（read-write） |
+| Sonnet | PMO（判断伴う） | 構造化チェック、ドキュメント状況把握（read-only）。`.claude/agents/pmo-sonnet` (sonnet) 経由 |
+| Haiku 4.5 | PMO（軽作業） | Web 検索・`docs/**` 限定軽作業（read-write）。`.claude/agents/pmo-haiku` (haiku) 経由 |
 
 - ドキュメントと実装が乖離した場合は **実装 (`cli/config/models.yaml`) を正** とする。本表は周知用。
 - ロール定義の正本は [cli/ROLE_MAP.md](cli/ROLE_MAP.md)。
@@ -111,24 +111,34 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 - アドバイザーは read-only。コード編集や状態変更は行わない (構造化助言のみ返す)
 - 呼び出した task / 助言内容は会話または final report に残し、判断トレースを失わない
 
-## Agent tool 完全禁止（v2）
+## Agent tool は PMO 限定許可 (v2.1)
 
-特定指定付きの Agent tool 呼び出しを含む実行は原則禁止。PMO の read-only・軽作業は `helix claude --role pmo --execute` 経由に統一する。
+Agent tool 呼び出しは原則 PMO subagent (`pmo-sonnet` / `pmo-haiku`) のみ許可。
+それ以外の subagent (`be-api` / `be-logic` / `db-schema` / `qa-test` / `security-audit` / `code-reviewer` / `devops-deploy`) は引き続き禁止する。Codex 委譲または Opus 直接で対応する。
 
-実行例:
+判定:
+- PMO subagent OK: `Agent({ subagent_type: "pmo-sonnet", ... })` または `pmo-haiku`
+- 他 subagent 禁止: 過去 v2 規約継続。Codex / Opus 直接で対応
+- 判断基準は変更なし: 同一タスク Read 200+ 行 / Grep 3+ / 複数視点 / 長文 doc 全体 Read で委譲必須
 
-```bash
-helix claude --role pmo --model sonnet --task "docs チェック" --execute
-helix claude --role pmo --model haiku --task "docs minor fix" --execute
-```
+PMO subagent (pmo-sonnet / pmo-haiku) の使い分け:
+- pmo-sonnet: 判断伴う read-only / docs/PLAN 構造化チェック / 長文解析
+- pmo-haiku: docs/** scope 限定軽修正 / Web 検索 / コスト重視軽作業
 
-- 委譲必須の判定基準:
-  - 同一タスクで Read 合計が 200 行を超える見込み
-  - Grep / Glob が 3 回以上必要
-  - 同じファイルを複数視点で見る
-  - 長文ドキュメント (PLAN.md / review.json / SKILL.md / CURRENT.md) の全体 Read
-- Opus 直接 Read してよい範囲: handover status / phase.yaml / 単発短ファイル (< 100 行) / Edit 直前の対象箇所 / ユーザー明示指定の 1 ファイル
-- **禁止**: Agent tool を model 指定なしで呼ぶ / Opus がバックエンドコードを直接 Edit/Write する / 「自分でやった方が早い」を理由に委譲基準を超える
+helix-claude --role pmo は deprecated。新規呼び出しは `Agent({subagent_type: "pmo-sonnet"})` または `Agent({subagent_type: "pmo-haiku"})` 推奨。既存 dispatch は段階的に移行。
+
+委譲必須の判定基準 (変更なし):
+- 同一タスクで Read 合計が 200 行を超える見込み
+- Grep / Glob が 3 回以上必要
+- 同じファイルを複数視点で見る
+- 長文ドキュメント (PLAN.md / review.json / SKILL.md / CURRENT.md) の全体 Read
+
+Opus 直接 Read してよい範囲:
+- handover status / phase.yaml / 単発短ファイル (< 100 行)
+- Edit 直前の対象箇所
+- ユーザー明示指定の 1 ファイル
+
+**禁止**: PMO 以外の subagent 呼び出し / Opus がバックエンドコード直接 Edit / 「自分でやった方が早い」を理由とする委譲基準超え
 
 ## 並列実行ルール（必須）
 

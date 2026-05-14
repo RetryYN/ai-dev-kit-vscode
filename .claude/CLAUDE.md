@@ -53,20 +53,25 @@
 
 **禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
 
-### Agent tool 完全禁止（必須）
+### Agent tool は PMO 限定許可（v2.1、2026-05-15 改訂）
 
-Agent tool 呼び出しは原則行わない。必要時は PMO を経由した `helix claude --role pmo --execute` で実施する。
+Agent tool 呼び出しは **PMO subagent (pmo-sonnet / pmo-haiku) のみ許可**。それ以外の subagent (be-api / be-logic / db-schema / qa-test / security-audit / code-reviewer / devops-deploy) は引き続き禁止。Codex 委譲または Opus 直接で対応する。
+
+PMO 経路の変更:
+- 旧: `helix claude --role pmo --model sonnet --execute` (Claude CLI 経由、起動エラー多発)
+- 新: `Agent({ subagent_type: "pmo-sonnet" | "pmo-haiku", ... })` (Claude Code subagent、安定)
+- helix-claude --role pmo --execute は deprecated。`--dry-run` の prompt 生成は引き続き OK
 
 | 用途 | 委譲先 | 根拠 |
 |------|--------|------|
 | コード探索 (1 回の Grep/Glob/Read で完結) | 自分で直接 (Bash/Read) | オーバーヘッド回避 |
-| コード探索 (2 ステップ以上、複数ファイル横断) | helix claude --role pmo --model sonnet --execute | Opus context 保護 |
-| 長文 Read (≥100 行 / review.json / PLAN.md 全体) | PMO Sonnet | Opus トークン削減 |
+| コード探索 (2 ステップ以上、複数ファイル横断) | Agent({subagent_type: "pmo-sonnet"}) | Opus context 保護 |
+| 長文 Read (≥100 行 / review.json / PLAN.md 全体) | pmo-sonnet | Opus トークン削減 |
+| docs/** scope の軽修正・Web 検索 | Agent({subagent_type: "pmo-haiku"}) | コスト重視 |
 | 設計計画 | helix-codex --role tl | Codex TL が適切 |
 | BE実装・レビュー・テスト | helix-codex --role (se/pe/qa) | Codex が主力 |
-| ドキュメント本文起草 (>100 行) | helix claude --role pmo --model sonnet --execute | PM は要件提示と finalize のみ |
-| PM判断・統合・返答 | Opus（自分） | 委譲しない |
 | ドキュメント本文起草 (>100 行) | helix-codex --role docs | PM は要件提示と finalize のみ |
+| PM判断・統合・返答 | Opus（自分） | 委譲しない |
 
 #### 委譲必須の判定基準（厳格化、2026-05-03 改訂）
 
