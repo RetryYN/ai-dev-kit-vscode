@@ -2608,6 +2608,7 @@ def query_design_review_pair(db_path, plan_id: str, layer: str) -> dict:
         conn.close()
 
 
+# @helix:index id=helix-db.switch-drive-for-sprint domain=cli/lib summary=drive切替をappend-onlyで記録する
 def switch_drive_for_sprint(
     db_path,
     plan_id,
@@ -2701,6 +2702,7 @@ def switch_drive_for_sprint(
         return conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
 
+# @helix:index id=helix-db.void-entry-with-correction domain=cli/lib summary=design sprint entry訂正をappend-onlyで追加する
 def void_entry_with_correction(conn, old_entry_id, new_data, correction_reason):
     """旧 entry を void し、訂正内容を append-only で追加する。"""
     old_entry_id = _validate_positive_int(old_entry_id, "old_entry_id")
@@ -2733,6 +2735,7 @@ def void_entry_with_correction(conn, old_entry_id, new_data, correction_reason):
         raise
 
 
+# @helix:index id=helix-db.void-artifact-link-with-correction domain=cli/lib summary=artifact link訂正をappend-onlyで追加する
 def void_artifact_link_with_correction(conn, old_link_rowid, new_data, correction_reason):
     """旧 artifact link を void し、訂正内容を append-only で追加する。"""
     old_link_rowid = _validate_positive_int(old_link_rowid, "old_link_rowid")
@@ -2765,6 +2768,7 @@ def void_artifact_link_with_correction(conn, old_link_rowid, new_data, correctio
         raise
 
 
+# @helix:index id=helix-db.list-active-entries domain=cli/lib summary=active design sprint entryを一覧する
 def list_active_entries(conn, plan_id, sprint_type, layer):
     """void されていない design sprint entry を返す。"""
     plan_id = _require_non_empty(plan_id, "plan_id")
@@ -2789,6 +2793,7 @@ def list_active_entries(conn, plan_id, sprint_type, layer):
     ).fetchall()
 
 
+# @helix:index id=helix-db.query-functional-freeze-status domain=cli/lib summary=functional freeze状態を集計する
 def query_functional_freeze_status(conn, plan_id: str, drive: str) -> dict:
     """指定 (plan_id, drive) の functional_freeze 状態を返す。"""
     rows = conn.execute(
