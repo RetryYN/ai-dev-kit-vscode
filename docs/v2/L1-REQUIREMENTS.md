@@ -285,11 +285,12 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 |---|---|---|
 | **FR-VS01** | `design_sprint_entries` table 新設 | sprint_type (architecture/detailed/functional/impl) × layer × drive × track × pair_status |
 | **FR-VS02** | `design_sprint_artifact_links` table 新設 | sprint_entry_id × artifact_kind (design/test_design/review/baseline) × link_kind (covers/derives_from/reviews/implements) |
-| **FR-VS03** | G3 サブゲート `functional_freeze` 実装 | `helix gate G3 --subgate functional_freeze` で pair_status='paired' 確認、size=L / drive in (fe/fullstack/db) で必須 |
+| **FR-VS03** | G3 サブゲート `functional_freeze` 判定実装（master） | 判定式 `size=L AND drive in (fe/fullstack/db)` が成り立つ場合、`helix gate G3 --subgate functional_freeze` で pair_status='paired' を要求。L1 を master とし、`vmodel-semantics.yaml` の `requires_functional_freeze` は**要件準拠の補助情報**として反映 |
 | **FR-VS04** | スプリント粒度の size 別判定 | `helix sprint plan --size <S/M/L> --drive <drive>` で必須 sprint_type 列挙 |
 | **FR-VS05** | fullstack track 並列管理 | 同一 sprint_id で track=be / fe / contract が独立進行、片 track 未完了で G3/G4 fail-close |
-| **FR-VS06** | pair_status 遷移管理 | pending → design_only / test_only → paired → (waived / failed) の状態遷移検証 |
-| **FR-VS07** | Reverse / Scrum モード対応 | Reverse: RG2/RG3 後の Forward 接続で必要な gap のみ functional_freeze 要求。Scrum: confirmed まで対象外、confirmed 後に Forward contract 生成と同時に sprint 開始 |
+| **FR-VS06** | pair_status 遷移管理（初期値含む） | 新規 `design_sprint_entries` は初期値 `pending`。遷移は `pending -> design_only / test_only -> paired` または `pending -> failed`、または `pending -> waived`（例外）を許容。`waived` は PM 明示承認が必要 |
+| **FR-VS06.4** | pair_status waived 遷移運用 | `waived` は PM の明示承認（`approved` 判定）でのみ付与可。承認文脈は design_sprint_entry / plan / sprint_id と紐付けて記録 |
+| **FR-VS07** | Reverse / Scrum モード対応（lifecycle 明文化） | 1) Reverse: RG4 (Gap & Routing) 完了時に `origin_mode` を `forward` へ自動遷移。2) `observed` / `inferred` は保持し、`observed`→`inferred`→`confirmed` の順で遷移。`confirmed` 遷移は RG3（Intent Hypotheses）完了後の PO 承認時のみ。3) Scrum: `confirmed` まで対象外、confirmed 後に Forward contract 生成と同時に sprint 開始 |
 
 ---
 
@@ -375,9 +376,118 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **AC-12** | テスト suite PASS 維持 | pytest 1138+ / bats 433+ / shell 614+ |
 | **AC-13** | PMO 5 role conf 完備 | pmo-sonnet / pmo-haiku / pm-advisor / tl-advisor / impl-sonnet |
 | **AC-14** | dogfood 確認 | V2 完了後の HELIX 改修が V2 framework で完結 |
-| **AC-15** | 工程転換 (V-model スプリント化) 稼働 | `design_sprint_entries` table 存在、size 別必須 sprint_type 列挙 CLI 動作、fullstack の track 並列管理動作 |
-| **AC-16** | G3 functional_freeze サブゲート動作 | `helix gate G3 --subgate functional_freeze --plan-id <id>` で pair_status='paired' 確認、size=L / drive in (fe/fullstack/db) で必須 enforce |
+| **AC-15** | 工程転換 (V-model スプリント化) 稼働 | **L4.5 Phase A**: 同一上位 sprint 内で `BE Sprint ∥ FE Sprint ∥ Contract Sprint` を同時進行。**L4.5 Phase B**: ① 3 track の成果物差分突合（設計 / テスト設計 / 実装 / review）。② 契約整合（contract と forward 接続）。③ 回帰テスト実行。`design_sprint_entries` table 存在、size 別必須 sprint_type CLI、fullstack track 並列管理、Phase B 完了時に G4 entry 条件を満たす |
+| **AC-16** | G3 functional_freeze サブゲート動作 | `helix gate G3 --subgate functional_freeze --plan-id <id>` で pair_status='paired' 確認。判定式は `size=L AND drive in (fe/fullstack/db)`（L1 master）。vmodel-semantics.yaml は次 sprint で補助情報を同期。矛盾時は L1 を先行適用 |
 | **AC-17** | origin_mode / evidence_status / direction 3 列追加 | `PRAGMA table_info` で contract_entries / design_review に該当列存在 |
+
+### L4.5 phase B 補完定義
+
+#### P2-4: Phase B 詳細（追加定義）
+
+- **Phase A（L4.5 前半）**: `drive=fullstack` では `BE Sprint ∥ FE Sprint ∥ Contract Sprint` の 3 track を同一上位 sprint 内で並列実行する。  
+  - 並列開始条件:
+    - `design_sprint_entries` で 3 track それぞれの `sprint_id` を揃える
+    - `track=be` / `track=fe` / `track=contract` の依存を `design_sprint_artifact_links` へ明示登録
+    - pair_status は `pending` で初期化し、PM が waived 条件を申請していない状態を確認
+- **Phase B（L4.5 後半）**: 下記を同一 sprint 内で実施してから G4 entry 判定に進む。
+  - 3 track の成果物差分突合（設計差分、テスト差分、実装差分）を `design_sprint_artifact_links` の関連証跡として保存
+  - 起点 contract / Forward contract への契約整合性照合（未整合時は G4 entry 条件不成立）
+  - 回帰テスト実行、失敗時は該当 track の `pair_status` を `failed` に更新し再計画
+  - 契約整合結果を forward 接続時に再検査し、差分未解決は hold へ戻す
+- **完了条件**: 上記完了時点を L4.5 Phase B 完了条件とし、次の G4 entry 可能条件は `all_track_status=done ∧ pair_status in (paired, waived)`。
+- **size 別 sprint 粒度**: S=1 sprint、M=2 sprint、L=3 sprint。L が 3 sprint の場合は最終 sprint で Phase A/B を明示的に閉じる。
+
+#### P2-5: functional_freeze 判定優先順位
+
+- **master 宣言**: `size=L AND drive in (fe/fullstack/db)` の判定は本 L1（§5 AC-16）を優先する。
+- **補助参照**: `cli/config/vmodel-semantics.yaml` の `requires_functional_freeze` は L1 判定結果を再現するための実装ガイド。
+- **矛盾時の扱い**: 判定が競合した場合は本 L1 を正とし、yaml 側は次 sprint の再同期対象として backlog 化。
+
+#### P2-7: Reverse → Forward lifecycle 明文化
+
+- `origin_mode='reverse'` の場合、`RG4`（Gap & Routing）完了後に `forward` へ自動遷移し、`functional_freeze` は forward 接続後 sprint から評価。
+- `origin_mode` と `evidence_status` は同一 entry 上でトレース可能に保持し、`evidence_status` は `observed -> inferred -> confirmed` として遷移。
+- `observed / inferred` から `confirmed` への遷移タイミングは **RG3 終了後の PO 承認**。その後 `RG4` を経て forward 接続を実行。
+- 逆方向の再接続時は Reverse 側の `functional_freeze` を skip（forward 側にのみ適用）。
+
+#### P2-6: pair_status 遷移図（明確化）
+
+| step | from | to | 前提 |
+|---|---|---|---|
+| 1 | pending | design_only | architecture / detailed の設計側作業のみ完了 |
+| 2 | pending | test_only | 対応テスト側の設計・実装のみ完了 |
+| 3 | design_only | paired | テスト側の対応が完了し、pairing 条件を満たす |
+| 4 | test_only | paired | 設計側の対応が完了し、pairing 条件を満たす |
+| 5 | pending | failed | 重大阻害（再計画が必要） |
+| 6 | pending | waived | PM approved を満たし、pairing 例外申請を受理 |
+
+- `waived` からの復帰は同一 sprint 中は原則不可。`waived` は監査上 "承認付き未ペア" として独立管理し、再開条件は次 sprint の再起動時点で再評価。
+
+#### P2-4 補遺: L4.5 受入チェックリスト
+
+- Phase A 完了チェック:
+  - 3 track の sprint_id 粒度が一致
+  - `design_sprint_entries` に be/fe/contract の track レコードが揃っている
+  - 3 track 合意の依存順が sprint 設計図（artifact links）に反映されている
+- Phase B 完了チェック:
+  - diff 突合の照合結果が全 track で "pass"
+  - forward contract 生成前に整合失敗を 0 件化
+  - 回帰テストの再実行結果が G4 前提として pass
+- G4 entry 条件:
+  - `all_track_status=done`
+  - `forward_ready=true`
+  - `pair_status in (paired, waived)`
+- `vmodel-semantics.yaml` の lifecycle 更新は本 L1 受入条件後、W-5 で追加実装する（本 W-4 は文言明文化のみ）。
+
+#### P2-4 補助: Phase B 運用シナリオ
+
+1. **正常系**:  
+   1. Track 3 本が設計完了 `paired` を達成  
+   2. 差分突合結果が全 track pass  
+   3. 契約整合チェックを通過  
+   4. 回帰 test が green  
+   5. G4 entry 条件で承認し次 sprint へ進行
+2. **再試行系**:  
+   1. 差分突合 fail の track は `failed` に変更  
+   2. 監査ログへ再試行計画を記載  
+   3. track 側修正後、`pending` を経由して再遷移可能
+3. **waived 系**:  
+   1. 既存要件を満たせない場合のみ `waived` 申請  
+   2. PM 承認で例外扱い、`pair_status in (paired, waived)` 判定を引き続き成立
+
+#### P2-5 補助: 受入時の判定照合
+
+- 判定対象項目:
+  - `size` が L かどうか
+  - `drive` が fe/fullstack/db のいずれかか
+  - 実際の `requires_functional_freeze` 設定値
+- 運用時ルール:
+  - L1 判定が true であれば、yaml の値が false でも WIP ではなく **実行上は強制 true** と扱う
+  - yaml の値だけで true が立つ場合は次 sprint backlog として `yaml_sync_backlog` に起票
+  - 競合解消後は AC-16 で示した優先順位に従って再判定
+
+#### P2-6 補助: 監査トレース定義
+
+| フィールド | 必須 | 説明 |
+|---|---|---|
+| `pair_status` | ○ | pending / design_only / test_only / paired / waived / failed |
+| `evidence_status` | ○ | observed / inferred / confirmed |
+| `origin_mode` | ○ | reverse / forward |
+| `track` | ○ | be / fe / contract / shared |
+| `actor` | ○ | 申請者 / 承認者識別子 |
+| `approved_by` | × | waived 申請の場合のみ必須 |
+
+- 監査上の invalid 遷移例:
+  - `paired -> waived`
+  - `failed -> waived`
+  - `design_only -> test_only`（中間ステータス飛び越え）
+
+#### P2-7 補助: Reverse → Forward 証跡の保存方針
+
+- Reverse 完了時 (`origin_mode=reverse`) は evidence を保持したまま保留状態とする
+- RG3 で PO 承認を受けて `confirmed` を確定してから RG4 実施
+- RG4 完了後、`origin_mode` を forward に更新し、forward 側にのみ functional_freeze を適用
+- この仕様は `audit-summary.md DR-014` の「Reverse の R3 後 Forward 接続」に整合
 
 ---
 
