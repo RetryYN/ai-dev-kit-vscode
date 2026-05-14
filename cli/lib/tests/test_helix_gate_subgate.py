@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
+import subprocess
 import sys
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+HELIX_BIN = REPO_ROOT / "cli" / "helix"
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
@@ -38,6 +42,59 @@ def _query_status(db_path: Path, drive: str) -> dict:
         return helix_db.query_functional_freeze_status(conn, "PLAN-100", drive)
     finally:
         conn.close()
+
+
+def _init_cli_project(tmp_path: Path) -> Path:
+    project = tmp_path / "project"
+    (project / ".helix").mkdir(parents=True)
+    (project / "home").mkdir()
+    helix_db.init_db(str(project / ".helix" / "helix.db"))
+    return project
+
+
+def _run_subgate(project: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "HELIX_HOME": str(REPO_ROOT),
+            "HELIX_PROJECT_ROOT": str(project),
+            "HELIX_DISABLE_FEEDBACK": "1",
+            "HOME": str(project / "home"),
+            "PATH": f"{REPO_ROOT / 'cli'}:/usr/bin:/bin",
+        }
+    )
+    return subprocess.run(
+        [str(HELIX_BIN), "gate", "G3", "--subgate", "functional_freeze", *args],
+        cwd=project,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _write_phase_drive(project: Path, drive: str) -> None:
+    (project / ".helix" / "phase.yaml").write_text(
+        f"current_phase: L3\nsprint:\n  drive: {drive}\n",
+        encoding="utf-8",
+    )
+
+
+def _write_plan_frontmatter(project: Path, drive: str) -> None:
+    plan_dir = project / ".helix" / "plans"
+    docs_dir = project / "docs" / "plans"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "PLAN-100.yaml").write_text(
+        'id: PLAN-100\ntitle: "Sample Plan"\nstatus: draft\ncreated_at: "2026-05-15T00:00:00Z"\n'
+        'source_file: "docs/plans/PLAN-100-sample.md"\nreferences: []\nartifacts: []\nfinalized_at: null\n'
+        'review:\n  status: approve\n  reviewed_at: "2026-05-15T00:00:00Z"\n  review_file: null\n',
+        encoding="utf-8",
+    )
+    (docs_dir / "PLAN-100-sample.md").write_text(
+        f"---\nplan_id: PLAN-100\ntitle: Sample Plan\nstatus: draft\ncreated: 2026-05-15\ndrive: {drive}\n---\n\nbody\n",
+        encoding="utf-8",
+    )
 
 
 def test_query_functional_freeze_status_returns_missing_when_empty(tmp_path: Path) -> None:
@@ -93,3 +150,35 @@ def test_query_functional_freeze_status_returns_failed_when_failed(tmp_path: Pat
     assert result["pending_count"] == 0
     assert result["failed_count"] == 1
     assert result["verdict"] == "failed"
+
+
+def test_subgate_resolves_drive_from_phase_yaml(tmp_path: Path) -> None:
+    project = _init_cli_project(tmp_path)
+    _write_phase_drive(project, "fe")
+    _seed_functional_entries(project / ".helix" / "helix.db", "fe", ["paired"])
+
+    proc = _run_subgate(project, "--plan-id", "PLAN-100")
+
+    assert proc.returncode == 0, proc.stderr
+    assert '"drive": "fe"' in proc.stdout
+    assert "override" not in proc.stderr
+
+
+def test_subgate_resolves_drive_from_plan_frontmatter(tmp_path: Path) -> None:
+    project = _init_cli_project(tmp_path)
+    _write_plan_frontmatter(project, "fullstack")
+    _seed_functional_entries(project / ".helix" / "helix.db", "fullstack", ["paired"])
+
+    proc = _run_subgate(project, "--plan-id", "PLAN-100")
+
+    assert proc.returncode == 0, proc.stderr
+    assert '"drive": "fullstack"' in proc.stdout
+
+
+def test_subgate_fails_closed_when_drive_cannot_be_resolved(tmp_path: Path) -> None:
+    project = _init_cli_project(tmp_path)
+
+    proc = _run_subgate(project, "--plan-id", "PLAN-100")
+
+    assert proc.returncode == 1
+    assert "--drive を指定してください" in proc.stderr

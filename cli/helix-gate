@@ -189,7 +189,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --plan-id <PLAN-NNN>"
       echo "      --pair-check / --subgate と併用して対象 plan_id を評価する"
       echo "  --drive <DRIVE>"
-      echo "      be|fe|db|fullstack、--subgate と併用"
+      echo "      be|fe|db|fullstack。--subgate では override、省略時は phase/plan から解決"
       echo "  --cross-sprint"
       echo "      直近完了 Sprint を helix.db から推定し、横断レビュー証跡を .helix/cross-sprint-reviews/ に保存"
       echo "  --skip-detectors"
@@ -285,6 +285,124 @@ print((dt.date.today() + dt.timedelta(days=days)).isoformat())
 PY
 }
 
+normalize_optional_scalar() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  case "$value" in
+    ""|null|[]|{}) printf '' ;;
+    *) printf '%s' "$value" ;;
+  esac
+}
+
+vmodel_drive_list() {
+  python3 - "$SCRIPT_DIR/lib" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+import vmodel_loader
+
+print("|".join(vmodel_loader.load_default().list_drives()))
+PY
+}
+
+drive_in_vmodel() {
+  local drive="$1"
+  python3 - "$SCRIPT_DIR/lib" "$drive" <<'PY' >/dev/null 2>&1
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import vmodel_loader
+
+raise SystemExit(0 if sys.argv[2] in vmodel_loader.load_default().list_drives() else 1)
+PY
+}
+
+resolve_plan_metadata_drive() {
+  local plan_id="$1"
+  python3 - "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$plan_id" <<'PY'
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+project_root = Path(sys.argv[2])
+plan_id = sys.argv[3]
+sys.path.insert(0, str(lib_dir))
+
+import plan_frontmatter
+import yaml_parser
+
+plan_path = project_root / ".helix" / "plans" / f"{plan_id}.yaml"
+if not plan_path.is_file():
+    raise SystemExit(0)
+
+plan_data = yaml_parser.parse_yaml(plan_path.read_text(encoding="utf-8"))
+if not isinstance(plan_data, dict):
+    raise SystemExit(0)
+
+try:
+    docs_path = plan_frontmatter.resolve_plan_doc_path(plan_path, plan_data)
+    frontmatter, _body = plan_frontmatter._parse_frontmatter(docs_path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+drive = frontmatter.get("drive")
+if isinstance(drive, str) and drive.strip():
+    print(drive.strip())
+PY
+}
+
+resolve_subgate_drive() {
+  local plan_id="$1"
+  local explicit_drive="${2:-}"
+  local allowed
+  local phase_drive=""
+  local plan_drive=""
+  local resolved=""
+  allowed="$(vmodel_drive_list)"
+
+  if [[ -f "$PHASE_FILE" ]]; then
+    phase_drive="$(normalize_optional_scalar "$(python3 "$YAML_PARSER" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || true)")"
+    if [[ -n "$phase_drive" ]]; then
+      if drive_in_vmodel "$phase_drive"; then
+        resolved="$phase_drive"
+      else
+        echo "警告: phase.yaml の sprint.drive が無効なため無視します: $phase_drive (allowed: $allowed)" >&2
+      fi
+    fi
+  fi
+
+  if [[ -z "$resolved" ]]; then
+    plan_drive="$(normalize_optional_scalar "$(resolve_plan_metadata_drive "$plan_id")")"
+    if [[ -n "$plan_drive" ]]; then
+      if drive_in_vmodel "$plan_drive"; then
+        resolved="$plan_drive"
+      else
+        echo "警告: plan metadata の drive が無効なため無視します: $plan_drive (allowed: $allowed)" >&2
+      fi
+    fi
+  fi
+
+  if [[ -n "$explicit_drive" ]]; then
+    if [[ -n "$resolved" ]]; then
+      echo "警告: functional_freeze drive override (auto-resolved=$resolved, override=$explicit_drive)" >&2
+    fi
+    resolved="$explicit_drive"
+  fi
+
+  if [[ -z "$resolved" ]]; then
+    echo "エラー: functional_freeze の drive を解決できませんでした。--drive を指定してください（phase.yaml の sprint.drive / plan metadata の drive を確認）" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$resolved"
+}
+
 if [[ "$GATE" == "G10" ]]; then
   if [[ "$G10_OUTCOME" == "watch-continue" || "$G10_OUTCOME" == "blocked" ]]; then
     if [[ -z "$G10_OUTCOME_OWNER" ]]; then
@@ -335,21 +453,18 @@ if [[ -n "$SUBGATE" ]]; then
       exit "$EXIT_INPUT_ERROR"
       ;;
   esac
-  if [[ -z "$PAIR_CHECK_PLAN_ID" || -z "$DRIVE" ]]; then
-    echo "エラー: --subgate は --plan-id と --drive を必須" >&2
+  if [[ -z "$PAIR_CHECK_PLAN_ID" ]]; then
+    echo "エラー: --subgate は --plan-id を必須" >&2
     exit "$EXIT_INPUT_ERROR"
   fi
   if [[ ! "$PAIR_CHECK_PLAN_ID" =~ ^PLAN-[0-9]{3}$ ]]; then
     echo "エラー: --plan-id は PLAN-数字3桁 で指定してください: $PAIR_CHECK_PLAN_ID" >&2
     exit "$EXIT_INPUT_ERROR"
   fi
-  case "$DRIVE" in
-    be|fe|db|fullstack) ;;
-    *)
-      echo "エラー: --drive は be|fe|db|fullstack: $DRIVE" >&2
-      exit "$EXIT_INPUT_ERROR"
-      ;;
-  esac
+  if [[ -n "$DRIVE" ]] && ! drive_in_vmodel "$DRIVE"; then
+    echo "エラー: --drive は $(vmodel_drive_list): $DRIVE" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
 elif [[ -n "$DRIVE" ]]; then
   echo "警告: --drive は現状 --subgate と併用した場合のみ評価されます" >&2
 fi
@@ -450,7 +565,8 @@ PY
 }
 
 if [[ -n "$SUBGATE" ]]; then
-  if run_functional_freeze "$GATE" "$PAIR_CHECK_PLAN_ID" "$DRIVE" "$EXIT_CHECK_FAILED"; then
+  RESOLVED_DRIVE="$(resolve_subgate_drive "$PAIR_CHECK_PLAN_ID" "$DRIVE")" || exit "$EXIT_CHECK_FAILED"
+  if run_functional_freeze "$GATE" "$PAIR_CHECK_PLAN_ID" "$RESOLVED_DRIVE" "$EXIT_CHECK_FAILED"; then
     exit "$EXIT_SUCCESS"
   else
     subgate_status=$?

@@ -56,6 +56,45 @@ finally:
 PY
 }
 
+write_phase_drive() {
+  local drive="$1"
+  cat > "$PROJECT_ROOT/.helix/phase.yaml" <<YAML
+current_phase: L3
+sprint:
+  drive: $drive
+YAML
+}
+
+write_plan_frontmatter() {
+  local drive="$1"
+  mkdir -p "$PROJECT_ROOT/.helix/plans" "$PROJECT_ROOT/docs/plans"
+  cat > "$PROJECT_ROOT/.helix/plans/PLAN-100.yaml" <<'YAML'
+id: PLAN-100
+title: "Sample Plan"
+status: draft
+created_at: "2026-05-15T00:00:00Z"
+source_file: "docs/plans/PLAN-100-sample.md"
+references: []
+artifacts: []
+finalized_at: null
+review:
+  status: approve
+  reviewed_at: "2026-05-15T00:00:00Z"
+  review_file: null
+YAML
+  cat > "$PROJECT_ROOT/docs/plans/PLAN-100-sample.md" <<YAML
+---
+plan_id: PLAN-100
+title: Sample Plan
+status: draft
+created: 2026-05-15
+drive: $drive
+---
+
+body
+YAML
+}
+
 @test "test_subgate_functional_freeze_missing_data_returns_warning_for_be" {
   run "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --plan-id PLAN-100 --drive be
   [ "$status" -eq 0 ]
@@ -71,12 +110,14 @@ PY
 }
 
 @test "test_subgate_functional_freeze_paired_passes" {
+  write_phase_drive "be"
   seed_functional_freeze "fe" "paired"
 
   run env HELIX_SIZE=L "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --plan-id PLAN-100 --drive fe
   [ "$status" -eq 0 ]
   [[ "$output" == *'"verdict": "passed"'* ]]
   [[ "$output" == *'"paired_count": 1'* ]]
+  [[ "$output" == *"auto-resolved=be, override=fe"* ]]
 }
 
 @test "test_subgate_functional_freeze_pending_fails" {
@@ -91,13 +132,31 @@ PY
 @test "test_subgate_requires_plan_id" {
   run "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --drive fe
   [ "$status" -eq 2 ]
-  [[ "$output" == *"エラー: --subgate は --plan-id と --drive を必須"* ]]
+  [[ "$output" == *"エラー: --subgate は --plan-id を必須"* ]]
 }
 
-@test "test_subgate_requires_drive" {
+@test "test_subgate_resolves_drive_from_phase_yaml" {
+  write_phase_drive "fe"
+  seed_functional_freeze "fe" "paired"
+
   run "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --plan-id PLAN-100
-  [ "$status" -eq 2 ]
-  [[ "$output" == *"エラー: --subgate は --plan-id と --drive を必須"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"drive": "fe"'* ]]
+}
+
+@test "test_subgate_resolves_drive_from_plan_frontmatter" {
+  write_plan_frontmatter "fullstack"
+  seed_functional_freeze "fullstack" "paired"
+
+  run "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --plan-id PLAN-100
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"drive": "fullstack"'* ]]
+}
+
+@test "test_subgate_requires_drive_only_when_auto_resolution_fails" {
+  run "$HELIX_ROOT/cli/helix" gate G3 --subgate functional_freeze --plan-id PLAN-100
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"エラー: functional_freeze の drive を解決できませんでした。--drive を指定してください"* ]]
 }
 
 @test "test_subgate_invalid_value_rejects" {
