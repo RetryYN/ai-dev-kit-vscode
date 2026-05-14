@@ -32,6 +32,7 @@ case "$CMD" in
   debug)    exec "$SCRIPT_DIR/helix-debug" "$@" ;;
   verify-all) exec "$SCRIPT_DIR/helix-verify-all" "$@" ;;
   verify-agent) exec "$SCRIPT_DIR/helix-verify-agent" "$@" ;;
+  vmodel)   exec "$SCRIPT_DIR/helix-vmodel" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
@@ -110,6 +111,7 @@ HELIX プロジェクト管理:
   matrix      成果物マトリクス管理
   gate        ゲート自動検証
   gate-api-check API エンドポイント整合チェック
+  vmodel      V-model semantics 表示・検証 (drive/layer/test/pair)
   readiness   readiness exit 判定 / deferred-finding 操作
   sprint      L4 マイクロスプリント
   task        タスクオペレーティングシステム

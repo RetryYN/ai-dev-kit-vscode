@@ -31,6 +31,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix matrix` | 成果物対照表と gate-checks の生成 |
 | `helix gate` | G0.5-G11 のゲート検証 |
 | `helix gate-api-check` | D-API と実装 endpoint の整合検証 |
+| `helix vmodel` | V-model semantics 表示・検証 (drive/layer/test/pair) |
 | `helix readiness` | readiness exit と deferred finding 管理 |
 | `helix sprint` | L4 マイクロスプリント |
 | `helix task` | タスク OS |

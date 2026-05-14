@@ -1,0 +1,823 @@
+# V-model semantic contract normalized from the Phase 2 spine and drive drafts.
+# Cross-drive normalization applied:
+# - FE architecture artifact `state-events.md` -> `state_events`
+# - fullstack promotion schema -> FE-style canonical append-only shape
+schema_version: 1
+spine:
+  drives:
+    allowed:
+      - be
+      - fe
+      - db
+      - fullstack
+    description: HELIX drive type. Scrum and Reverse are origin modes, not drive values in this spine.
+  layers:
+    allowed:
+      - planning
+      - requirement
+      - architecture
+      - detailed
+      - functional
+    pair_test_levels:
+      planning: operational
+      requirement: acceptance
+      architecture: system_integration
+      detailed: integration
+      functional: unit
+  design_required:
+    - artifacts
+    - review_unit
+    - review_axes
+    - detectors
+  test_required:
+    - test_level
+    - artifacts
+    - baseline_policy
+    - detectors
+  pair_required:
+    - horizontal_rule
+    - vertical_from
+    - vertical_to
+    - score_weight
+    - promotion
+  allowed_values:
+    review_axes:
+      - vertical
+      - horizontal
+    owner_role:
+      - tl
+      - se
+      - pg
+      - fe
+      - qa
+      - security
+      - dba
+      - devops
+      - docs
+      - research
+    baseline_policy:
+      - snapshot
+      - regression_corpus
+      - golden_fixture
+      - manual_only
+    horizontal_rule:
+      - required
+      - optional
+      - conditional
+    score_weight:
+      min: 0.1
+      max: 0.25
+lifecycle:
+  origin_mode:
+    - forward
+    - reverse
+    - scrum
+  evidence_status:
+    - observed
+    - inferred
+    - confirmed
+  direction:
+    - forward
+    - reverse
+promotion_kinds:
+  mock_to_implementation:
+    from_artifact_kind: mock
+    to_artifact_kind: component_impl
+    link_kind: derives_from
+    append_only: true
+    g2_evidence_preserved: true
+drives:
+  be:
+    description: Backend/API/logic first drive.
+    layers:
+      planning:
+        design:
+          artifacts:
+            - plan_goal
+            - drive_decision
+            - scope_boundary
+            - phase_strategy
+          review_unit: plan
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-08-plan-integrity
+            - axis-14-orchestration-integrity
+        test:
+          test_level: operational
+          artifacts:
+            - operational_test_outline
+            - runbook_acceptance
+            - learning_metric_plan
+          baseline_policy: manual_only
+          detectors:
+            - axis-11-regression
+            - axis-14-orchestration-integrity
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.1
+          promotion: null
+          requires_functional_freeze: false
+          conditional_rule: Required for production-facing or Run-phase BE work; advisory for draft-only design spikes.
+      requirement:
+        design:
+          artifacts:
+            - l1_requirements
+            - acceptance_criteria
+            - api_capability_map
+            - risk_constraints
+          review_unit: capability
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-12-connection-deficiency
+        test:
+          test_level: acceptance
+          artifacts:
+            - acceptance_test_design
+            - user_visible_scenarios
+            - api_acceptance_matrix
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: false
+      architecture:
+        design:
+          artifacts:
+            - architecture_decision_record
+            - api_overview
+            - sequence_diagram
+            - component_diagram
+          review_unit: api_subsystem
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-07-contract-drift
+            - axis-10-relation-graph
+        test:
+          test_level: system_integration
+          artifacts:
+            - integration_scenarios
+            - system_test_plan
+            - contract_test_design
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: false
+      detailed:
+        design:
+          artifacts:
+            - api_contract
+            - service_flow
+            - error_contract
+            - persistence_boundary
+          review_unit: api_endpoint
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-06-naming-confusion
+            - axis-07-contract-drift
+            - axis-12-connection-deficiency
+        test:
+          test_level: integration
+          artifacts:
+            - integration_test_design
+            - contract_fixture_set
+            - error_path_test_matrix
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: false
+      functional:
+        design:
+          artifacts:
+            - function_contract
+            - code_symbol_map
+            - edge_case_matrix
+            - code_review_plan
+          review_unit: function
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-01-dead-code-drift
+            - axis-02-coverage-erosion
+            - axis-09-refactor-opportunity
+        test:
+          test_level: unit
+          artifacts:
+            - unit_test_design
+            - baseline_result
+            - coverage_target
+            - regression_guard
+          baseline_policy: snapshot
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: false
+  fe:
+    description: Frontend/mock-driven first drive.
+    layers:
+      planning:
+        design:
+          artifacts:
+            - information_architecture
+            - wireframe_lo_fi
+            - drive_decision
+            - phase_strategy
+          review_unit: journey_map
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-08-plan-integrity
+            - axis-14-orchestration-integrity
+            - axis-19-state-transition-drift
+        test:
+          test_level: operational
+          artifacts:
+            - wire_review_checklist
+            - mockup_handoff_record
+            - pipeline_scorecard
+          baseline_policy: manual_only
+          detectors:
+            - axis-11-regression
+            - axis-14-orchestration-integrity
+            - axis-19-state-transition-drift
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.1
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: Required once FE work commits to the 5-stage wire/mockup/judgment/implementation/review pipeline.
+      requirement:
+        design:
+          artifacts:
+            - user_journey
+            - screen_inventory
+            - state_events
+            - acceptance_criteria
+          review_unit: screen_flow
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-08-plan-integrity
+            - axis-17-a11y-regression
+            - axis-19-state-transition-drift
+        test:
+          test_level: acceptance
+          artifacts:
+            - journey_acceptance_matrix
+            - screen_inventory_checklist
+            - state_event_acceptance_cases
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-17-a11y-regression
+            - axis-19-state-transition-drift
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+      architecture:
+        design:
+          artifacts:
+            - mock_html
+            - design_tokens
+            - state_events
+            - wireframe_hi_fi
+          review_unit: approved_mock
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-15-mock-promotion
+            - axis-16-design-token-drift
+            - axis-19-state-transition-drift
+        test:
+          test_level: system_integration
+          artifacts:
+            - mock_promotion_audit
+            - visual_regression_plan
+            - design_token_baseline
+            - state_transition_system_scenarios
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-15-mock-promotion
+            - axis-18-visual-regression
+            - axis-19-state-transition-drift
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion:
+            from_layer: architecture
+            from_artifact_kind: mock
+            to_artifact_kind: component_impl
+            link_kind: derives_from
+            append_only: true
+            g2_evidence_preserved: true
+          requires_functional_freeze: true
+          conditional_rule: Activation begins once G2 freezes the mock; later component_impl rows append promoted evidence without mutating mock_frozen records.
+          lifecycle_overrides:
+            architecture_status: mock_frozen
+            functional_status: promoted
+            evidence_preservation: g2_append_only
+            debt_resolution_gates:
+              - G4: MOCK-HARDCODE
+              - G4: MOCK-CODE-LEAK
+              - G6: MOCK-DERIVED-CONTRACT
+      detailed:
+        design:
+          artifacts:
+            - component_props
+            - props_contract
+            - a11y_requirement
+            - screen_transition
+          review_unit: component_surface
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-06-naming-confusion
+            - axis-16-design-token-drift
+            - axis-17-a11y-regression
+            - axis-19-state-transition-drift
+        test:
+          test_level: integration
+          artifacts:
+            - props_contract_integration_tests
+            - a11y_scenario_matrix
+            - playwright_state_transition_suite
+            - token_drift_regression_set
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-17-a11y-regression
+            - axis-19-state-transition-drift
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+      functional:
+        design:
+          artifacts:
+            - component_impl
+            - snapshot_fixture
+            - visual_baseline
+            - state_transition_trace
+          review_unit: component_impl
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-15-mock-promotion
+            - axis-17-a11y-regression
+            - axis-18-visual-regression
+            - axis-09-refactor-opportunity
+        test:
+          test_level: unit
+          artifacts:
+            - snapshot_fixture
+            - visual_baseline
+            - playwright_journey_suite
+            - axe_a11y_report
+          baseline_policy: snapshot
+          detectors:
+            - axis-15-mock-promotion
+            - axis-17-a11y-regression
+            - axis-18-visual-regression
+            - axis-19-state-transition-drift
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+  db:
+    description: Database/model first drive for master-data, ERP, and data-platform work.
+    layers:
+      planning:
+        design:
+          artifacts:
+            - data_governance
+            - data_lineage_goal
+            - scope_boundary
+            - phase_strategy
+          review_unit: data_program
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-14-orchestration-integrity
+        test:
+          test_level: operational
+          artifacts:
+            - operational_recovery_checklist
+            - lineage_observability_plan
+            - migration_runbook_acceptance
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-11-regression
+            - axis-12-migration-safety
+            - axis-14-orchestration-integrity
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.1
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: Required when the DB drive advances to migration planning or operational rollout; advisory for draft-only semantic spikes.
+      requirement:
+        design:
+          artifacts:
+            - data_model_requirements
+            - referential_integrity_requirements
+            - cardinality_constraints
+            - retention_access_constraints
+          review_unit: data_domain
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-12-migration-safety
+        test:
+          test_level: acceptance
+          artifacts:
+            - acceptance_data_scenarios
+            - reference_data_set
+            - referential_integrity_acceptance
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-migration-safety
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+      architecture:
+        design:
+          artifacts:
+            - er_diagram
+            - schema_version_plan
+            - migration_strategy
+            - data_boundary_map
+          review_unit: schema_subsystem
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-10-relation-graph
+            - axis-12-migration-safety
+        test:
+          test_level: system_integration
+          artifacts:
+            - cross_table_referential_integrity
+            - migration_rollback_test
+            - system_test_plan
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-migration-safety
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+      detailed:
+        design:
+          artifacts:
+            - table_schema
+            - column_definitions
+            - index_strategy
+            - migration_script
+          review_unit: table
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-06-naming-confusion
+            - axis-07-contract-drift
+            - axis-12-migration-safety
+        test:
+          test_level: integration
+          artifacts:
+            - migration_apply_test
+            - data_lineage_test
+            - integration_fixture_set
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-07-contract-drift
+            - axis-09-test-quality
+            - axis-12-migration-safety
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+      functional:
+        design:
+          artifacts:
+            - stored_procedure_spec
+            - view_definition
+            - trigger_spec
+            - constraint_enforcement_rule
+          review_unit: db_object
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-09-refactor-opportunity
+            - axis-12-migration-safety
+        test:
+          test_level: unit
+          artifacts:
+            - column_constraint_test
+            - index_uniqueness_test
+            - trigger_side_effect_test
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-12-migration-safety
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+  fullstack:
+    description: Backend + frontend + contract tracks advance in parallel and merge at L4.5.
+    layers:
+      planning:
+        design:
+          artifacts:
+            - plan_goal
+            - drive_decision
+            - twin_track_strategy
+            - contract_sync_policy
+          review_unit: plan
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-08-plan-integrity
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: operational
+          artifacts:
+            - operational_test_outline
+            - runbook_acceptance
+            - phase_transition_checklist
+          baseline_policy: manual_only
+          detectors:
+            - axis-11-regression
+            - axis-14-orchestration-integrity
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.1
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: Fullstack planning is fail-close when be/fe/contract/shared do not agree on Phase A/B entry criteria.
+      requirement:
+        design:
+          artifacts:
+            - l1_requirements
+            - acceptance_criteria
+            - api_capability_map
+            - state_event_scope
+          review_unit: capability
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-12-connection-deficiency
+        test:
+          test_level: acceptance
+          artifacts:
+            - acceptance_test_design
+            - user_visible_scenarios
+            - cross_track_acceptance_matrix
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+      architecture:
+        design:
+          artifacts:
+            - architecture_decision_record
+            - api_overview
+            - state_events
+            - d_contract_overview
+          review_unit: feature_slice
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-10-relation-graph
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: system_integration
+          artifacts:
+            - integration_scenarios
+            - contract_test_design
+            - visual_regression_plan
+            - l45_phase_b_plan
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+            - axis-18-visual-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion:
+            from_layer: architecture
+            from_artifact_kind: mock
+            to_artifact_kind: component_impl
+            link_kind: derives_from
+            append_only: true
+            g2_evidence_preserved: true
+          requires_functional_freeze: true
+          conditional_rule: D-CONTRACT and state-events must freeze together; be/fe split without contract freeze is a P1 risk.
+          lifecycle_overrides:
+            phase_a_tracks:
+              - be
+              - fe
+              - contract
+            phase_b_join: l4.5
+      detailed:
+        design:
+          artifacts:
+            - api_contract
+            - d_contract
+            - state_boundary
+            - persistence_boundary
+          review_unit: feature_contract
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-06-naming-confusion
+            - axis-07-contract-drift
+            - axis-12-connection-deficiency
+            - axis-19-state-transition-drift
+        test:
+          test_level: integration
+          artifacts:
+            - integration_test_design
+            - api_fixture_set
+            - ui_contract_fixture_set
+            - a11y_scenario_matrix
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-17-a11y-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: Phase A closes only after be/fe/contract detailed designs and integration tests are all paired.
+      functional:
+        design:
+          artifacts:
+            - function_contract
+            - code_symbol_map
+            - component_impl_map
+            - l45_integration_readiness
+          review_unit: feature_unit
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-01-dead-code-drift
+            - axis-02-coverage-erosion
+            - axis-09-refactor-opportunity
+            - axis-15-mock-promotion
+        test:
+          test_level: unit
+          artifacts:
+            - api_unit_test_design
+            - snapshot_test_design
+            - visual_regression_suite
+            - a11y_test_suite
+            - e2e_contract_exit_suite
+          baseline_policy: snapshot
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-17-a11y-regression
+            - axis-18-visual-regression
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: true
+          conditional_rule: G4 stays closed until be .5, fe .5, and L4.5 e2e/contract_test readiness all pass together.
+          lifecycle_overrides:
+            phase_b_sequence:
+              - .b1
+              - .b2
+              - .b3
+            expected_tests:
+              - api_unit
+              - integration
+              - system_integration
+              - snapshot
+              - visual_regression
+              - a11y
+              - e2e
+              - contract_test

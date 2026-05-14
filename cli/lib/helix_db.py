@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 20
+CURRENT_SCHEMA_VERSION = 21
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -675,6 +675,86 @@ CREATE INDEX IF NOT EXISTS idx_design_review_plan ON design_review(plan_id, laye
 """
 
 
+DESIGN_SPRINT_ENTRIES_SCHEMA_V21 = """
+CREATE TABLE IF NOT EXISTS design_sprint_entries (
+    id INTEGER PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    sprint_id TEXT,
+    sprint_type TEXT NOT NULL CHECK (sprint_type IN ('architecture','detailed','functional','impl')),
+    layer TEXT NOT NULL CHECK (layer IN ('architecture','detailed','functional')),
+    drive TEXT NOT NULL CHECK (drive IN ('be','fe','db','fullstack')),
+    track TEXT CHECK (track IN ('be','fe','db','contract','shared')),
+    pair_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (pair_status IN ('pending','design_only','test_only','paired','waived','failed')),
+    freeze_gate TEXT,
+    subgate TEXT,
+    frozen_at TEXT,
+    raw_meta TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (
+        (sprint_type = 'architecture' AND layer = 'architecture') OR
+        (sprint_type = 'detailed' AND layer = 'detailed') OR
+        (sprint_type = 'functional' AND layer = 'functional') OR
+        (sprint_type = 'impl' AND layer = 'functional')
+    )
+);
+CREATE INDEX IF NOT EXISTS idx_design_sprint_plan_drive_layer
+    ON design_sprint_entries(plan_id, drive, layer, sprint_type, pair_status);
+"""
+
+
+VIEW_VMODEL_INTEGRITY_V21 = """
+CREATE VIEW IF NOT EXISTS view_vmodel_integrity AS
+SELECT
+    c.id AS contract_id,
+    c.introduced_plan AS plan_id,
+    c.drive AS drive,
+    c.design_level AS design_level,
+    c.origin_mode AS origin_mode,
+    c.evidence_status AS evidence_status,
+    ci.id AS code_index_id,
+    td.id AS test_design_id,
+    td.test_level AS test_level,
+    tb.id AS baseline_id,
+    tb.status AS baseline_status,
+    CASE WHEN td.id IS NULL THEN 1 ELSE 0 END AS missing_test_design,
+    CASE WHEN tb.id IS NULL THEN 1 ELSE 0 END AS missing_baseline,
+    CASE WHEN tb.status IS NOT NULL AND tb.status NOT IN ('passed','pass','ok') THEN 1 ELSE 0 END AS failing_baseline,
+    SUM(CASE WHEN td.id IS NULL THEN 1 ELSE 0 END) OVER (PARTITION BY c.introduced_plan) AS missing_test_design_count,
+    SUM(CASE WHEN tb.id IS NULL THEN 1 ELSE 0 END) OVER (PARTITION BY c.introduced_plan) AS missing_baseline_count,
+    SUM(CASE WHEN tb.status IS NOT NULL AND tb.status NOT IN ('passed','pass','ok') THEN 1 ELSE 0 END)
+        OVER (PARTITION BY c.introduced_plan) AS failing_baseline_count,
+    COUNT(*) OVER (PARTITION BY c.introduced_plan) AS plan_contract_count
+FROM contract_entries c
+LEFT JOIN code_edges ce
+    ON ce.from_entry_id = c.id
+   AND ce.edge_type IN ('implements','derives_from','covers','reviews')
+LEFT JOIN code_index ci
+    ON ci.id = CAST(ce.to_entry_id AS TEXT)
+LEFT JOIN test_design_entries td
+    ON td.contract_id = c.id
+   AND td.plan_id = c.introduced_plan
+LEFT JOIN test_baseline tb
+    ON tb.test_design_id = td.id;
+"""
+
+
+DESIGN_SPRINT_ARTIFACT_LINKS_SCHEMA_V21 = """
+CREATE TABLE IF NOT EXISTS design_sprint_artifact_links (
+    sprint_entry_id INTEGER NOT NULL,
+    artifact_kind TEXT NOT NULL
+        CHECK (artifact_kind IN ('design','test_design','review','baseline')),
+    artifact_ref TEXT NOT NULL,
+    link_kind TEXT NOT NULL
+        CHECK (link_kind IN ('covers','derives_from','reviews','implements')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (sprint_entry_id, artifact_kind, artifact_ref, link_kind),
+    FOREIGN KEY (sprint_entry_id) REFERENCES design_sprint_entries(id) ON DELETE CASCADE
+);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1071,6 +1151,35 @@ def _migrate_v19_to_v20(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_contract_design_level ON contract_entries(design_level)")
 
 
+def _migrate_v20_to_v21(conn):
+    """v21: contract_entries semantic columns + design_sprint_* tables (additive/idempotent)."""
+    if not _has_table(conn, "contract_entries"):
+        conn.executescript(CONTRACT_REGISTRY_SCHEMA_V17)
+
+    # SQLite version compatibility: CHECK on ADD COLUMN can vary across runtimes,
+    # so we use additive NOT NULL DEFAULT and rely on app-level semantic validation.
+    if not _has_column(conn, "contract_entries", "drive"):
+        conn.execute("ALTER TABLE contract_entries ADD COLUMN drive TEXT NOT NULL DEFAULT 'be'")
+    if not _has_column(conn, "contract_entries", "origin_mode"):
+        conn.execute("ALTER TABLE contract_entries ADD COLUMN origin_mode TEXT NOT NULL DEFAULT 'forward'")
+    if not _has_column(conn, "contract_entries", "evidence_status"):
+        conn.execute(
+            "ALTER TABLE contract_entries ADD COLUMN evidence_status TEXT NOT NULL DEFAULT 'confirmed'"
+        )
+
+    if not _has_table(conn, "design_sprint_entries"):
+        conn.executescript(DESIGN_SPRINT_ENTRIES_SCHEMA_V21)
+    else:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_design_sprint_plan_drive_layer "
+            "ON design_sprint_entries(plan_id, drive, layer, sprint_type, pair_status)"
+        )
+
+    if not _has_table(conn, "design_sprint_artifact_links"):
+        conn.executescript(DESIGN_SPRINT_ARTIFACT_LINKS_SCHEMA_V21)
+    conn.executescript(VIEW_VMODEL_INTEGRITY_V21)
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1388,6 +1497,11 @@ def migrate(conn):
             _migrate_v19_to_v20(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (20, datetime('now'))"
+            )
+        if current < 21:
+            _migrate_v20_to_v21(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (21, datetime('now'))"
             )
         conn.commit()
 
@@ -2281,6 +2395,43 @@ def query_design_review_pair(db_path, plan_id: str, layer: str) -> dict:
         return {"vertical_passed": vertical_row is not None, "horizontal_passed": horizontal_row is not None}
     finally:
         conn.close()
+
+
+def query_functional_freeze_status(conn, plan_id: str, drive: str) -> dict:
+    """指定 (plan_id, drive) の functional_freeze 状態を返す。"""
+    rows = conn.execute(
+        """
+        SELECT pair_status, COUNT(*) AS cnt
+        FROM design_sprint_entries
+        WHERE plan_id = ? AND drive = ?
+          AND sprint_type = 'functional' AND layer = 'functional'
+        GROUP BY pair_status
+        """,
+        (plan_id, drive),
+    ).fetchall()
+
+    counts = {str(row["pair_status"]): int(row["cnt"]) for row in rows}
+    total = sum(counts.values())
+    paired = counts.get("paired", 0)
+    pending = counts.get("pending", 0) + counts.get("design_only", 0) + counts.get("test_only", 0)
+    failed = counts.get("failed", 0)
+
+    if total == 0:
+        verdict = "missing"
+    elif failed > 0 or pending > 0:
+        verdict = "failed"
+    else:
+        verdict = "passed"
+
+    return {
+        "plan_id": plan_id,
+        "drive": drive,
+        "functional_pair_count": total,
+        "paired_count": paired,
+        "pending_count": pending,
+        "failed_count": failed,
+        "verdict": verdict,
+    }
 
 
 # @helix:index id=helix-db.main domain=cli/lib summary=mainを実行する

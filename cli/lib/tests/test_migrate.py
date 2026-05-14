@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import migrate
+import helix_db
 
 
 def _write_templates(templates_dir: Path) -> None:
@@ -477,3 +479,182 @@ def test_idempotent_text_append_with_managed_markers(tmp_path: Path) -> None:
     assert migrate.do_merge(helix_dir, templates_dir, apply=True, project_root=project_root) == 0
     after_second = (project_root / "CLAUDE.md").read_text(encoding="utf-8")
     assert after_first == after_second
+
+
+LEGACY_CONTRACT_ENTRIES_SCHEMA_V20 = """
+CREATE TABLE contract_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contract_type TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    symbol_id TEXT,
+    version TEXT,
+    schema_hash TEXT,
+    breaking_change_flag INTEGER DEFAULT 0,
+    introduced_plan TEXT,
+    raw_spec TEXT,
+    design_level TEXT NOT NULL DEFAULT 'detailed'
+        CHECK (design_level IN ('planning','requirement','architecture','detailed','functional'))
+);
+CREATE INDEX idx_contract_type ON contract_entries(contract_type);
+CREATE INDEX idx_contract_breaking ON contract_entries(breaking_change_flag);
+CREATE INDEX idx_contract_design_level ON contract_entries(design_level);
+"""
+
+
+def _build_legacy_v20_db(db_path: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(helix_db.SCHEMA)
+    conn.executescript(helix_db.SCHEMA_VERSION_SCHEMA)
+    conn.executescript(helix_db.ACCURACY_SCORE_SCHEMA)
+    conn.executescript(helix_db.INFRA_SCHEMA_V9)
+    conn.executescript(helix_db.AUDIT_DECISIONS_SCHEMA_V10)
+    helix_db._migrate_v10_to_v11(conn)
+    helix_db._migrate_v11_to_v12(conn)
+    helix_db._migrate_v12_to_v13(conn)
+    helix_db._migrate_v13_to_v14(conn)
+    helix_db._migrate_v14_to_v15(conn)
+    helix_db._migrate_v15_to_v16(conn)
+    helix_db._migrate_v16_to_v17(conn)
+    helix_db._migrate_v17_to_v18(conn)
+    helix_db._migrate_v18_to_v19(conn)
+    helix_db._migrate_v19_to_v20(conn)
+    conn.execute("DROP TABLE IF EXISTS contract_entries")
+    conn.executescript(LEGACY_CONTRACT_ENTRIES_SCHEMA_V20)
+    conn.execute(
+        "INSERT INTO contract_entries (contract_type, source_path, raw_spec) VALUES (?, ?, ?)",
+        ("cli-contract", "docs/features/demo/D-API/api.yaml", "{}"),
+    )
+    conn.execute("DELETE FROM schema_version")
+    conn.execute(
+        "INSERT INTO schema_version (version, applied_at) VALUES (20, '2026-05-12T00:00:00')"
+    )
+    conn.commit()
+    return conn
+
+
+def _column_default(conn: sqlite3.Connection, table: str, column: str) -> str:
+    row = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    defaults = {entry[1]: entry[4] for entry in row}
+    return defaults[column]
+
+
+def test_v20_to_v21_adds_drive_column(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-drive.db")
+    try:
+        helix_db.migrate(conn)
+        assert _column_default(conn, "contract_entries", "drive") == "'be'"
+    finally:
+        conn.close()
+
+
+def test_v20_to_v21_adds_origin_mode_column(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-origin.db")
+    try:
+        helix_db.migrate(conn)
+        assert _column_default(conn, "contract_entries", "origin_mode") == "'forward'"
+    finally:
+        conn.close()
+
+
+def test_v20_to_v21_adds_evidence_status_column(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-evidence.db")
+    try:
+        helix_db.migrate(conn)
+        assert _column_default(conn, "contract_entries", "evidence_status") == "'confirmed'"
+    finally:
+        conn.close()
+
+
+def test_v20_to_v21_creates_design_sprint_entries(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-sprint-entries.db")
+    try:
+        helix_db.migrate(conn)
+        table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'design_sprint_entries'"
+        ).fetchone()
+        assert table is not None
+    finally:
+        conn.close()
+
+
+def test_v20_to_v21_creates_design_sprint_artifact_links(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-sprint-links.db")
+    try:
+        helix_db.migrate(conn)
+        table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'design_sprint_artifact_links'"
+        ).fetchone()
+        assert table is not None
+    finally:
+        conn.close()
+
+
+def test_v20_to_v21_creates_view_vmodel_integrity(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-vmodel-view.db")
+    try:
+        helix_db.migrate(conn)
+        view = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'view' AND name = 'view_vmodel_integrity'"
+        ).fetchone()
+        assert view is not None
+    finally:
+        conn.close()
+
+
+def test_view_vmodel_integrity_joins_code_index(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-vmodel-join.db")
+    try:
+        helix_db.migrate(conn)
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'view' AND name = 'view_vmodel_integrity'"
+        ).fetchone()
+        assert row is not None
+        view_sql = row[0]
+        assert "LEFT JOIN code_index" in view_sql
+    finally:
+        conn.close()
+
+
+def test_v21_sprint_type_impl_requires_layer_functional(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-vmodel-check.db")
+    try:
+        helix_db.migrate(conn)
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                """
+                INSERT INTO design_sprint_entries
+                    (plan_id, sprint_type, layer, drive)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("PLAN-TEST", "impl", "architecture", "be"),
+            )
+    finally:
+        conn.close()
+
+
+def test_migrate_is_idempotent_at_v21(tmp_path: Path) -> None:
+    db_path = tmp_path / "v21-idempotent.db"
+    helix_db.init_db(str(db_path))
+    helix_db.init_db(str(db_path))
+    conn = helix_db.get_connection(db_path)
+    try:
+        columns = [row["name"] for row in conn.execute("PRAGMA table_info(contract_entries)").fetchall()]
+        versions = conn.execute(
+            "SELECT version FROM schema_version WHERE version = 21"
+        ).fetchall()
+    finally:
+        conn.close()
+    assert columns.count("drive") == 1
+    assert columns.count("origin_mode") == 1
+    assert columns.count("evidence_status") == 1
+    assert len(versions) == 1
+
+
+def test_schema_version_advances_to_21(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v20-version.db")
+    try:
+        helix_db.migrate(conn)
+        max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+        assert max_version == 21
+    finally:
+        conn.close()

@@ -185,6 +185,9 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 | Fail | L3 差戻し、設計矛盾なら L2。契約/スキーマ変更時は G4 以降無効 |
 | レビュー | `helix codex --role tl --task "レビュー: ..."` |
 
+`G3` の追加運用として、`helix gate G3 --subgate functional_freeze --plan-id <PLAN-NNN>` を利用可能とする。  
+このサブゲートは機能設計（`functional`）と単体テスト設計（`unit`）の `pair_status='paired'` を要求し、`pair_status` 欠落時は warning または fail-close となる。  
+
 **担当スキル**:
 - schedule-wbs（工程表/WBS、2026-04-17 追加）
 

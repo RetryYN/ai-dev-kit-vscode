@@ -1,0 +1,267 @@
+#!/bin/bash
+set -euo pipefail
+
+HELIX_VMODEL_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HELIX_VMODEL_DIR/lib/helix-common.sh"
+
+LIB_DIR="$HELIX_VMODEL_DIR/lib"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix vmodel <subcommand>
+
+Subcommands:
+  list [--drive DRIVE] [--json]       drive または layer 一覧
+  show <drive> <layer> [--json]       指定 (drive, layer) の semantics
+  validate [--config PATH] [--json]   yaml 正規化検証
+  --help                              このヘルプ
+USAGE
+}
+
+list_entries() {
+  local drive="$1"
+  local as_json="$2"
+
+  python3 - "$LIB_DIR" "$drive" "$as_json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+drive = sys.argv[2]
+as_json = sys.argv[3] == "true"
+
+sys.path.insert(0, str(lib_dir))
+from vmodel_loader import load_default
+
+try:
+    vm = load_default()
+    drives = vm.list_drives()
+    if drive:
+        if drive not in drives:
+            raise KeyError(f"unknown drive: {drive}")
+        payload = {"drive": drive, "layers": vm.list_layers()}
+    else:
+        payload = {"drives": drives, "layers": vm.list_layers()}
+except Exception as exc:
+    print(f"エラー: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+
+if as_json:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+if "drive" in payload:
+    print(f"drive: {payload['drive']}")
+    print(f"layers: {', '.join(payload['layers'])}")
+else:
+    print(f"drives: {', '.join(payload['drives'])}")
+    print(f"layers: {', '.join(payload['layers'])}")
+PY
+}
+
+show_entry() {
+  local drive="$1"
+  local layer="$2"
+  local as_json="$3"
+
+  python3 - "$LIB_DIR" "$drive" "$layer" "$as_json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+drive = sys.argv[2]
+layer = sys.argv[3]
+as_json = sys.argv[4] == "true"
+
+sys.path.insert(0, str(lib_dir))
+from vmodel_loader import load_default
+
+try:
+    vm = load_default()
+    payload = {"drive": drive, "layer": layer, **vm.get_layer(drive, layer)}
+except KeyError as exc:
+    print(f"エラー: {exc.args[0]}", file=sys.stderr)
+    raise SystemExit(2)
+except Exception as exc:
+    print(f"エラー: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+
+if as_json:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+print(f"drive: {payload['drive']}")
+print(f"layer: {payload['layer']}")
+for section_name in ("design", "test", "pair"):
+    section = payload[section_name]
+    for key, value in section.items():
+        if isinstance(value, list):
+            rendered = ", ".join(str(item) for item in value)
+        elif isinstance(value, dict):
+            rendered = json.dumps(value, ensure_ascii=False, sort_keys=False)
+        elif value is None:
+            rendered = "null"
+        else:
+            rendered = str(value)
+        print(f"{section_name}.{key}: {rendered}")
+PY
+}
+
+validate_config() {
+  local config_path="$1"
+  local as_json="$2"
+
+  python3 - "$LIB_DIR" "$config_path" "$as_json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+config_input = sys.argv[2]
+as_json = sys.argv[3] == "true"
+
+sys.path.insert(0, str(lib_dir))
+from vmodel_loader import DEFAULT_CONFIG_PATH, VModelSemantics
+
+resolved_path = Path(config_input) if config_input else DEFAULT_CONFIG_PATH
+
+try:
+    model = VModelSemantics.load(resolved_path if config_input else None)
+except Exception as exc:
+    if as_json:
+        print(
+            json.dumps(
+                {
+                    "valid": False,
+                    "config_path": str(resolved_path),
+                    "error": str(exc),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            file=sys.stderr,
+        )
+    else:
+        print(f"VALIDATION: FAILED\n{exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+payload = {
+    "valid": True,
+    "config_path": str(resolved_path),
+    "drives": model.list_drives(),
+    "layers": model.list_layers(),
+}
+
+if as_json:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+else:
+    print("VALIDATION: OK")
+    print(f"config_path: {payload['config_path']}")
+    print(f"drives: {', '.join(payload['drives'])}")
+    print(f"layers: {', '.join(payload['layers'])}")
+PY
+}
+
+main() {
+  local subcommand="${1:-}"
+  shift || true
+
+  case "$subcommand" in
+    list)
+      local drive=""
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --drive)
+            [[ $# -ge 2 ]] || { echo "エラー: --drive には値が必要です" >&2; return 64; }
+            drive="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix vmodel list [--drive DRIVE] [--json]
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      list_entries "$drive" "$as_json"
+      ;;
+    show)
+      local as_json="false"
+      local positional=()
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix vmodel show <drive> <layer> [--json]
+USAGE
+            return 0
+            ;;
+          -*)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+          *)
+            positional+=("$1")
+            shift
+            ;;
+        esac
+      done
+      [[ "${#positional[@]}" -eq 2 ]] || { echo "エラー: show には drive と layer が必要です" >&2; return 64; }
+      show_entry "${positional[0]}" "${positional[1]}" "$as_json"
+      ;;
+    validate)
+      local config_path=""
+      local as_json="false"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --config)
+            [[ $# -ge 2 ]] || { echo "エラー: --config には値が必要です" >&2; return 64; }
+            config_path="$2"
+            shift 2
+            ;;
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --help|-h)
+            cat <<'USAGE'
+使い方: helix vmodel validate [--config PATH] [--json]
+USAGE
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            return 64
+            ;;
+        esac
+      done
+      validate_config "$config_path" "$as_json"
+      ;;
+    -h|--help|"")
+      usage
+      ;;
+    *)
+      echo "エラー: 不明なサブコマンドです: $subcommand" >&2
+      usage >&2
+      return 64
+      ;;
+  esac
+}
+
+main "$@"
