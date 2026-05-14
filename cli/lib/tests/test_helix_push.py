@@ -71,7 +71,79 @@ def test_run_gate_nondestructive_detects_drop_table(monkeypatch) -> None:
     result = push_gate.run_gate_nondestructive()
 
     assert result["passed"] is False
-    assert result["detail"] == "destructive pattern: DROP TABLE"
+    assert result["detail"] == "destructive pattern: DROP TABLE in schema.sql"
+
+
+def test_run_gate_nondestructive_ignores_destructive_pattern_in_test_code(monkeypatch) -> None:
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: push_gate.Path("/tmp/repo"))
+    for path in ("cli/lib/tests/test_fixture.py", "cli/tests/push.bats", "tests/test_fixture.py"):
+        diff = f"""diff --git a/{path} b/{path}
++fixture_sql = "DROP TABLE users"
+"""
+        monkeypatch.setattr(
+            push_gate,
+            "_run_command",
+            lambda command, *, cwd=None, stdout=diff: _completed(command, 0, stdout=stdout),
+        )
+
+        result = push_gate.run_gate_nondestructive()
+
+        assert result["passed"] is True
+        assert result["detail"] == "no destructive pattern"
+
+
+def test_run_gate_nondestructive_ignores_destructive_pattern_in_docs(monkeypatch) -> None:
+    diff = """diff --git a/docs/push.md b/docs/push.md
++Use DROP TABLE only as an example in this document.
+"""
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: push_gate.Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate,
+        "_run_command",
+        lambda command, *, cwd=None: _completed(command, 0, stdout=diff),
+    )
+
+    result = push_gate.run_gate_nondestructive()
+
+    assert result["passed"] is True
+    assert result["detail"] == "no destructive pattern"
+
+
+def test_run_gate_nondestructive_ignores_destructive_pattern_in_rollback_sql(monkeypatch) -> None:
+    diff = """diff --git a/cli/migrations/rollback/001_drop_users.sql b/cli/migrations/rollback/001_drop_users.sql
++DROP TABLE users;
+"""
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: push_gate.Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate,
+        "_run_command",
+        lambda command, *, cwd=None: _completed(command, 0, stdout=diff),
+    )
+
+    result = push_gate.run_gate_nondestructive()
+
+    assert result["passed"] is True
+    assert result["detail"] == "no destructive pattern"
+
+
+def test_run_gate_nondestructive_detects_destructive_pattern_in_implementation_code(monkeypatch) -> None:
+    diff = """diff --git a/cli/lib/helix_db.py b/cli/lib/helix_db.py
++sql = "DROP TABLE temp_users"
+"""
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: push_gate.Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate,
+        "_run_command",
+        lambda command, *, cwd=None: _completed(command, 0, stdout=diff),
+    )
+
+    result = push_gate.run_gate_nondestructive()
+
+    assert result["passed"] is False
+    assert result["detail"] == "destructive pattern: DROP TABLE in cli/lib/helix_db.py"
 
 
 def test_run_gate_ff_detects_diverged_branch(monkeypatch) -> None:

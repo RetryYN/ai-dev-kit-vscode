@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from pathlib import PurePosixPath
 
 
 PYTEST_TESTS_CMD = ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]
@@ -20,6 +21,14 @@ DESTRUCTIVE_PATTERNS = [
     re.compile(r"(?:^|[^\w-])--force(?:[=\s]|$)"),
     re.compile(r"(?:^|[^\w-])--no-verify(?:[=\s]|$)"),
 ]
+DESTRUCTIVE_EXCLUDED_PREFIXES = (
+    "cli/lib/tests/",
+    "cli/tests/",
+    "tests/",
+    "docs/",
+)
+DESTRUCTIVE_ROLLBACK_PREFIX = "cli/migrations/rollback/"
+DESTRUCTIVE_DIFF_HEADER = re.compile(r"^diff --git a/(.+) b/(.+)$")
 
 
 def _repo_root() -> Path:
@@ -80,6 +89,21 @@ def _format_failure(proc: subprocess.CompletedProcess[str]) -> str:
     if not text:
         return f"exit {proc.returncode}"
     return text.splitlines()[-1]
+
+
+def _parse_diff_path(raw_line: str) -> str | None:
+    match = DESTRUCTIVE_DIFF_HEADER.match(raw_line)
+    if not match:
+        return None
+    return match.group(2)
+
+
+def _is_excluded_destructive_path(path: str) -> bool:
+    pure_path = PurePosixPath(path)
+    path_text = pure_path.as_posix()
+    if path_text.startswith(DESTRUCTIVE_EXCLUDED_PREFIXES):
+        return True
+    return path_text.startswith(DESTRUCTIVE_ROLLBACK_PREFIX) and path_text.endswith(".sql")
 
 
 def run_gate_tests() -> dict:
@@ -236,14 +260,22 @@ def run_gate_nondestructive(remote: str = "origin", branch: str = "main") -> dic
         )
 
     offenders: list[str] = []
+    current_path: str | None = None
     for raw_line in proc.stdout.splitlines():
+        parsed_path = _parse_diff_path(raw_line)
+        if parsed_path is not None:
+            current_path = parsed_path
+            continue
         if not raw_line.startswith("+") or raw_line.startswith("+++"):
+            continue
+        if current_path and _is_excluded_destructive_path(current_path):
             continue
         line = raw_line[1:]
         for pattern in DESTRUCTIVE_PATTERNS:
             match = pattern.search(line)
             if match:
-                offenders.append(match.group(0).strip())
+                path = current_path or "<unknown>"
+                offenders.append(f"{match.group(0).strip()} in {path}")
                 break
 
     if offenders:
