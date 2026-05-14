@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 21
+CURRENT_SCHEMA_VERSION = 22
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -702,6 +702,9 @@ CREATE TABLE IF NOT EXISTS design_sprint_entries (
 CREATE INDEX IF NOT EXISTS idx_design_sprint_plan_drive_layer
     ON design_sprint_entries(plan_id, drive, layer, sprint_type, pair_status);
 """
+
+
+DESIGN_SPRINT_SWITCH_STATUSES = ("preserved", "waived", "failed")
 
 
 VIEW_VMODEL_INTEGRITY_V21 = """
@@ -1180,6 +1183,23 @@ def _migrate_v20_to_v21(conn):
     conn.executescript(VIEW_VMODEL_INTEGRITY_V21)
 
 
+def _migrate_v21_to_v22(conn):
+    """v22: design_sprint_entries に drive switch 履歴列を追加する。"""
+    if not _has_table(conn, "design_sprint_entries"):
+        conn.executescript(DESIGN_SPRINT_ENTRIES_SCHEMA_V21)
+
+    if not _has_column(conn, "design_sprint_entries", "previous_drive"):
+        conn.execute("ALTER TABLE design_sprint_entries ADD COLUMN previous_drive TEXT")
+    if not _has_column(conn, "design_sprint_entries", "drive_switch_reason"):
+        conn.execute("ALTER TABLE design_sprint_entries ADD COLUMN drive_switch_reason TEXT")
+    if not _has_column(conn, "design_sprint_entries", "status_on_switch"):
+        conn.execute(
+            "ALTER TABLE design_sprint_entries "
+            "ADD COLUMN status_on_switch TEXT "
+            "CHECK (status_on_switch IN ('preserved','waived','failed') OR status_on_switch IS NULL)"
+        )
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1502,6 +1522,11 @@ def migrate(conn):
             _migrate_v20_to_v21(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (21, datetime('now'))"
+            )
+        if current < 22:
+            _migrate_v21_to_v22(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (22, datetime('now'))"
             )
         conn.commit()
 
@@ -2395,6 +2420,99 @@ def query_design_review_pair(db_path, plan_id: str, layer: str) -> dict:
         return {"vertical_passed": vertical_row is not None, "horizontal_passed": horizontal_row is not None}
     finally:
         conn.close()
+
+
+def switch_drive_for_sprint(
+    db_path,
+    plan_id,
+    sprint_type,
+    layer,
+    old_drive,
+    new_drive,
+    reason,
+    status_on_switch,
+):
+    """drive 切替を append-only で記録し、旧 entry に切替状態を残す。"""
+    plan_id = _require_non_empty(plan_id, "plan_id")
+    sprint_type = _validate_choice(
+        _require_non_empty(sprint_type, "sprint_type"),
+        "sprint_type",
+        ("architecture", "detailed", "functional", "impl"),
+    )
+    layer = _validate_choice(
+        _require_non_empty(layer, "layer"),
+        "layer",
+        ("architecture", "detailed", "functional"),
+    )
+    old_drive = _validate_choice(_require_non_empty(old_drive, "old_drive"), "old_drive", ("be", "fe", "db", "fullstack"))
+    new_drive = _validate_choice(_require_non_empty(new_drive, "new_drive"), "new_drive", ("be", "fe", "db", "fullstack"))
+    reason = _require_non_empty(reason, "reason")
+    status_on_switch = _validate_choice(
+        _require_non_empty(status_on_switch, "status_on_switch"),
+        "status_on_switch",
+        DESIGN_SPRINT_SWITCH_STATUSES,
+    )
+    if old_drive == new_drive:
+        raise ValueError("old_drive and new_drive must differ")
+
+    with _write_connection(db_path) as conn:
+        duplicate_target = conn.execute(
+            """
+            SELECT id
+            FROM design_sprint_entries
+            WHERE plan_id = ? AND sprint_type = ? AND layer = ? AND drive = ? AND status_on_switch IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (plan_id, sprint_type, layer, new_drive),
+        ).fetchone()
+        if duplicate_target is not None:
+            raise ValueError("active entry for new_drive already exists")
+
+        old_entry = conn.execute(
+            """
+            SELECT *
+            FROM design_sprint_entries
+            WHERE plan_id = ? AND sprint_type = ? AND layer = ? AND drive = ? AND status_on_switch IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (plan_id, sprint_type, layer, old_drive),
+        ).fetchone()
+        if old_entry is None:
+            raise ValueError("active entry for old_drive does not exist")
+
+        conn.execute(
+            "UPDATE design_sprint_entries SET status_on_switch = ?, updated_at = datetime('now') WHERE id = ?",
+            (status_on_switch, old_entry["id"]),
+        )
+        conn.execute(
+            """
+            INSERT INTO design_sprint_entries (
+                plan_id,
+                sprint_id,
+                sprint_type,
+                layer,
+                drive,
+                previous_drive,
+                drive_switch_reason,
+                track,
+                raw_meta
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                old_entry["plan_id"],
+                old_entry["sprint_id"],
+                old_entry["sprint_type"],
+                old_entry["layer"],
+                new_drive,
+                old_drive,
+                reason,
+                old_entry["track"],
+                old_entry["raw_meta"],
+            ),
+        )
+        return conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
 
 def query_functional_freeze_status(conn, plan_id: str, drive: str) -> dict:

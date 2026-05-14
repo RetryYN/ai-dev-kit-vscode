@@ -632,7 +632,7 @@ def test_v21_sprint_type_impl_requires_layer_functional(tmp_path: Path) -> None:
         conn.close()
 
 
-def test_migrate_is_idempotent_at_v21(tmp_path: Path) -> None:
+def test_migrate_is_idempotent_at_v22(tmp_path: Path) -> None:
     db_path = tmp_path / "v21-idempotent.db"
     helix_db.init_db(str(db_path))
     helix_db.init_db(str(db_path))
@@ -640,21 +640,43 @@ def test_migrate_is_idempotent_at_v21(tmp_path: Path) -> None:
     try:
         columns = [row["name"] for row in conn.execute("PRAGMA table_info(contract_entries)").fetchall()]
         versions = conn.execute(
-            "SELECT version FROM schema_version WHERE version = 21"
+            "SELECT version FROM schema_version WHERE version = 22"
         ).fetchall()
+        sprint_columns = [row["name"] for row in conn.execute("PRAGMA table_info(design_sprint_entries)").fetchall()]
     finally:
         conn.close()
     assert columns.count("drive") == 1
     assert columns.count("origin_mode") == 1
     assert columns.count("evidence_status") == 1
+    assert sprint_columns.count("previous_drive") == 1
+    assert sprint_columns.count("drive_switch_reason") == 1
+    assert sprint_columns.count("status_on_switch") == 1
     assert len(versions) == 1
 
 
-def test_schema_version_advances_to_21(tmp_path: Path) -> None:
+def test_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
+    conn = _build_legacy_v20_db(tmp_path / "legacy-v21-switch-columns.db")
+    try:
+        helix_db._migrate_v20_to_v21(conn)
+        conn.execute("DELETE FROM schema_version")
+        conn.execute(
+            "INSERT INTO schema_version (version, applied_at) VALUES (21, '2026-05-12T00:00:00')"
+        )
+        helix_db.migrate(conn)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(design_sprint_entries)").fetchall()}
+        max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+    finally:
+        conn.close()
+
+    assert {"previous_drive", "drive_switch_reason", "status_on_switch"} <= columns
+    assert max_version == 22
+
+
+def test_schema_version_advances_to_22(tmp_path: Path) -> None:
     conn = _build_legacy_v20_db(tmp_path / "legacy-v20-version.db")
     try:
         helix_db.migrate(conn)
         max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
-        assert max_version == 21
+        assert max_version == 22
     finally:
         conn.close()
