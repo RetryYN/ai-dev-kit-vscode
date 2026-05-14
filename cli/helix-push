@@ -1,0 +1,82 @@
+#!/bin/bash
+set -euo pipefail
+
+HELIX_PUSH_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$HELIX_PUSH_DIR/lib/helix-common.sh"
+
+LIB_DIR="$HELIX_PUSH_DIR/lib"
+HELPER="${HELIX_PUSH_HELPER:-$LIB_DIR/push_gate.py}"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH]
+
+Options:
+  --gate           6 ゲート検証を実行
+  --execute        全ゲート PASS 時のみ git push を実行
+  --remote REMOTE  push 対象 remote (default: origin)
+  --branch BRANCH  push 対象 branch (default: main)
+  --help           このヘルプ
+USAGE
+}
+
+main() {
+  local run_gate="false"
+  local execute="false"
+  local remote="origin"
+  local branch="main"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --gate)
+        run_gate="true"
+        shift
+        ;;
+      --execute)
+        execute="true"
+        shift
+        ;;
+      --remote)
+        [[ $# -ge 2 ]] || { echo "エラー: --remote には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
+        remote="$2"
+        shift 2
+        ;;
+      --branch)
+        [[ $# -ge 2 ]] || { echo "エラー: --branch には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
+        branch="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        return 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        usage >&2
+        return "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  [[ "$run_gate" == "true" ]] || {
+    echo "エラー: helix push は --gate が必須です" >&2
+    usage >&2
+    return "$EXIT_INPUT_ERROR"
+  }
+
+  [[ -x "$HELPER" ]] || {
+    echo "エラー: helper が実行できません: $HELPER" >&2
+    return "$EXIT_PREREQ_ERROR"
+  }
+
+  (
+    cd "$PROJECT_ROOT"
+    if [[ "$execute" == "true" ]]; then
+      "$HELPER" --execute --remote "$remote" --branch "$branch"
+    else
+      "$HELPER" --remote "$remote" --branch "$branch"
+    fi
+  )
+}
+
+main "$@"
