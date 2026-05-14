@@ -371,6 +371,12 @@ def render_json_template(state):
         "DIRTY": json.dumps(state["git"]["dirty"], ensure_ascii=False),
         "PHASE": json.dumps(state["phase"], ensure_ascii=False),
         "SPRINT": json.dumps(state["sprint"], ensure_ascii=False),
+        "SPRINT_TYPE": json.dumps(state.get("sprint_type"), ensure_ascii=False),
+        "PAIR_STATUS": json.dumps(state.get("pair_status"), ensure_ascii=False),
+        "DRIVE": json.dumps(state.get("drive"), ensure_ascii=False),
+        "ORIGIN_MODE": json.dumps(state.get("origin_mode"), ensure_ascii=False),
+        "EVIDENCE_STATUS": json.dumps(state.get("evidence_status"), ensure_ascii=False),
+        "VMODEL_SCORE": json.dumps(state.get("vmodel_score"), ensure_ascii=False),
         "PROJECT": json.dumps(state["project"], ensure_ascii=False),
         "TASK_ID": json.dumps(state["task"]["id"], ensure_ascii=False),
         "TASK_TITLE": json.dumps(state["task"]["title"], ensure_ascii=False),
@@ -386,7 +392,20 @@ def render_json_template(state):
     rendered = tmpl
     for key, value in mapping.items():
         rendered = rendered.replace(f"__{key}__", value)
-    return json.loads(rendered)
+    unresolved = sorted(set(re.findall(r"__[A-Z0-9_]+__", rendered)))
+    if unresolved:
+        joined = ", ".join(unresolved)
+        raise HandoverError(
+            f"CURRENT.json template placeholder が未解決です: {joined}",
+            EXIT_INTERNAL_ERROR,
+        )
+    try:
+        return json.loads(rendered)
+    except json.JSONDecodeError as exc:
+        raise HandoverError(
+            f"CURRENT.json template の JSON 解析に失敗: {exc}",
+            EXIT_INTERNAL_ERROR,
+        ) from exc
 
 
 def default_next_action(state):
@@ -404,6 +423,12 @@ def default_next_action(state):
 def render_md_template(state, next_action, dump_note):
     tmpl = load_template("handover-current.md.template")
     task_line = f"{state['task']['id']} {state['task']['title']} ({state['phase']} Sprint {state['sprint']})"
+    functional_freeze_status = state.get("functional_freeze_status") or "not-set"
+    blockers = state.get("functional_freeze_blockers")
+    if isinstance(blockers, list):
+        functional_freeze_blockers = ", ".join(str(item) for item in blockers if str(item).strip()) or "-"
+    else:
+        functional_freeze_blockers = str(blockers).strip() if blockers is not None else "-"
     replaced = (
         tmpl.replace("__TASK_LINE__", task_line)
         .replace("__NEXT_ACTION__", next_action)
@@ -411,6 +436,8 @@ def render_md_template(state, next_action, dump_note):
         .replace("__OWNER__", state["owner"])
         .replace("__STATUS__", state["task"]["status"])
         .replace("__DUMP_NOTE__", dump_note)
+        .replace("__FUNCTIONAL_FREEZE_STATUS__", functional_freeze_status)
+        .replace("__FUNCTIONAL_FREEZE_BLOCKERS__", functional_freeze_blockers)
     )
     return replaced.strip() + "\n"
 

@@ -18,7 +18,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
-## ロール一覧 (17)
+## ロール一覧 (22)
 
 > CLI 引数 (`--role`) は本表の「ロール」列に従う。team naming で「PE」と表記される責務は CLI 上では `pg` を使う (PE = `--role pg`)。
 
@@ -41,6 +41,9 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | effort-classifier | gpt-5.4-mini | 全フェーズ | 工数・難易度・規模の分類補助 |
 | pmo-sonnet | claude-sonnet-4-6 | 横断 | PMO 状況把握・判定サポート |
 | pmo-haiku | claude-haiku-4-5-20251001 | 横断 | PMO 軽作業（docs 系、Web 検索） |
+| pdm-tech-innovation | claude-opus-4-7 | 横断 | 海外技術思想翻案 |
+| pdm-marketing-innovation | claude-opus-4-7 | 横断 | 海外マーケ思想翻案 |
+| pdm-innovation-manager | claude-opus-4-7 | 横断 | 統合・意思決定 |
 | impl-sonnet | claude-sonnet-4-6 | L4 | Sonnet write-enabled 実装（Codex 上限時の代替経路） |
 | pm-advisor | claude-opus-4-7 | 全フェーズ | PM 級難判断のアドバイザー（read-only、Opus）。チャット PM (Opus / Sonnet 問わず) が大局判断で迷ったとき召喚 |
 | tl-advisor | gpt-5.5 | 全フェーズ | TL 級難判断のアドバイザー（read-only）。チャット PM / 実装担当が設計・契約・技術選択で迷ったとき召喚 |

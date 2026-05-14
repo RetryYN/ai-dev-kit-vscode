@@ -1,0 +1,70 @@
+---
+schema_version: 1
+plan_id: PLAN-NNN
+agent: pdm-tech-innovation | pdm-marketing-innovation | pdm-innovation-manager
+created_at: YYYY-MM-DDTHH:MM:SS
+
+# 企画概要 (Why / target / opportunity)
+concept_summary:
+  why: ""
+  target_users: []
+  opportunity: ""
+  scope_proposal: ""
+
+# 方向性候補
+strategic_options:
+  - id: SO-01
+    name: ""
+    description: ""
+    adoption_conditions: []
+    counter_arguments: []
+    estimated_effort: S
+    risk_level: low
+
+# 仮説
+assumptions:
+  - id: ASM-01
+    statement: ""
+    verification_method: ""
+    confirmed: false
+
+# L1 入力候補
+l1_inputs:
+  fr_candidates:
+    - id: FR-NN
+      summary: ""
+      source_so: SO-01
+  nfr_candidates:
+    - id: NFR-NN
+      category: performance
+      summary: ""
+  ac_candidates:
+    - id: AC-NN
+      verification: ""
+  out_of_scope: []
+
+# G0.5 mapping (企画 ↔ L1 trace)
+g0_5_mapping:
+  - planning_item: ""
+    l1_fr_ids: []
+    coverage: full
+
+# リスク
+risks:
+  - id: R-NN
+    level: P0
+    description: ""
+    mitigation: ""
+    owner: ""
+
+# 決定ログ
+decision_log:
+  - timestamp: YYYY-MM-DDTHH:MM:SS
+    decision_type: adopt
+    target: SO-NN
+    rationale: ""
+    decided_by: pdm-innovation-manager
+    conditions:
+      include: []
+      exclude: []
+    evidence: []

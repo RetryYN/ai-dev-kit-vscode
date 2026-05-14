@@ -111,9 +111,9 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 - アドバイザーは read-only。コード編集や状態変更は行わない (構造化助言のみ返す)
 - 呼び出した task / 助言内容は会話または final report に残し、判断トレースを失わない
 
-## Agent tool は PMO 限定許可 (v2.1)
+## Agent tool は PMO + PdM 限定許可（v2.2、2026-05-15 改訂）
 
-Agent tool 呼び出しは原則 PMO subagent (`pmo-sonnet` / `pmo-haiku`) のみ許可。
+PMO subagent (`pmo-sonnet` / `pmo-haiku`) と PdM subagent (`pdm-tech-innovation` / `pdm-marketing-innovation` / `pdm-innovation-manager`) のみ許可。
 それ以外の subagent (`be-api` / `be-logic` / `db-schema` / `qa-test` / `security-audit` / `code-reviewer` / `devops-deploy`) は引き続き禁止する。Codex 委譲または Opus 直接で対応する。
 
 判定:
@@ -125,6 +125,9 @@ Agent tool 呼び出しは原則 PMO subagent (`pmo-sonnet` / `pmo-haiku`) の�
 |---|---|---|
 | HELIX 内目星付け (skills/templates/cli 軽量検索) | Agent({subagent_type: "pmo-helix-scout"}) | 候補列挙 |
 | project 内目星付け (code/docs 軽量検索) | Agent({subagent_type: "pmo-project-scout"}) | 候補列挙 |
+| 海外技術思想翻案 (G0.5 前後) | Agent({subagent_type: "pdm-tech-innovation"}) | 翻案 |
+| 海外マーケ思想翻案 (G0.5 前後) | Agent({subagent_type: "pdm-marketing-innovation"}) | 翻案 |
+| PdM 統合・新方向性策定 (L1 接続) | Agent({subagent_type: "pdm-innovation-manager"}) | 統合判断 |
 | OSS/plugin 探索・転用判断 | Agent({subagent_type: "pmo-tech-fork"}) | 外部 GitHub 探索 |
 | 設計手法/概念の外部精読 | Agent({subagent_type: "pmo-tech-docs"}) | 外部 doc 精読 |
 | 最新 Tech 動向 sweep (週次想定) | Agent({subagent_type: "pmo-tech-news"}) | 時事収集 |

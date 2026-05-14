@@ -514,6 +514,20 @@ def test_resume_revision_bump(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     assert after == before + 1
 
 
+def test_dump_populates_optional_vmodel_fields(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    _dump_handover(repo, capsys)
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    assert current["mode"] == "be-implementation"
+    assert current["sprint_type"] is None
+    assert current["pair_status"] is None
+    assert current["drive"] is None
+    assert current["origin_mode"] is None
+    assert current["evidence_status"] is None
+    assert current["vmodel_score"] is None
+
+
 def test_update_ready_for_review_detects_fe_drift_and_writes_escalation(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -1,0 +1,40 @@
+name: pdm-innovation-team
+team_name: pdm-innovation-team
+strategy: parallel
+description: PdM Innovation team — 3 PdM + 関連 PMO 並列実行
+output_template: cli/templates/plan/innovation-output.yaml.template
+parallel_stage:
+  - role: pdm-tech-innovation
+    engine: claude
+    task: 海外技術思想翻案
+  - role: pdm-marketing-innovation
+    engine: claude
+    task: 海外マーケ思想翻案
+  - role: pmo-tech-docs
+    engine: claude
+    task: 一次情報精読 (支援)
+serial_stage:
+  - role: pmo-helix-explorer
+    engine: claude
+    task: HELIX 既存資産整合確認
+  - role: pdm-innovation-manager
+    engine: claude
+    task: 統合 + L1 接続 (parallel_stage 出力を input)
+members:
+  - role: pdm-tech-innovation
+    engine: claude
+    task: 海外技術思想翻案
+  - role: pdm-marketing-innovation
+    engine: claude
+    task: 海外マーケ思想翻案
+  - role: research
+    engine: codex
+    task: 一次情報精読 (pmo-tech-docs 支援)
+  - role: docs
+    engine: codex
+    task: HELIX 既存資産整合確認 (pmo-helix-explorer 支援)
+  - role: pdm-innovation-manager
+    engine: claude
+    task: 統合 + L1 接続 (parallel_stage 出力を input)
+output:
+  template: cli/templates/plan/innovation-output.yaml.template

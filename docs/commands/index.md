@@ -37,11 +37,12 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix task` | タスク OS |
 | `helix interrupt` | IIP / CC の開始・適用・再開・履歴集計 |
 | `helix handover` | Opus / Codex handover |
-| `helix pr` | PR 本文生成 |
+| `helix pr` | PR 自動生成 + 6 ゲート機械検証 (`--gate` / `--auto-merge`) |
 | `helix retro` | ミニレトロ |
 | `helix debt` | 技術負債管理 |
 | `helix drift-check` | D-API / D-CONTRACT / D-DB drift 検知 |
 | `helix bats-cleanup` | bats 由来 /tmp 残存 dir の監査・削除 (HELIX marker file 必須) |
+| `helix push` | 6 ゲート機械検証 + git push 自動許可 (停滞防止) |
 
 ## 3. Codex / Claude Code 管理 harness
 
@@ -92,6 +93,12 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix job` | 非同期ジョブキュー（worker 起動時に stale running を自動復旧） |
 | `helix lock` | DB lock 管理 |
 | `helix observe` | イベント・メトリクス観測 |
+
+## 7. プロダクト企画・イノベーション
+
+| コマンド | 役割 |
+|---|---|
+| `helix innovation` | PdM Tech/Marketing 翻案 + 統合 + L1 接続 (G0.5 前後) |
 
 ## 典型導線
 

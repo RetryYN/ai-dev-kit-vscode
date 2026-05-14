@@ -134,3 +134,24 @@ def test_recommender_passes_check() -> None:
 
     assert payload["ok"] is True
     assert not any(item["code"] == "invalid_role" for item in payload["errors"])
+
+
+def test_policy_allows_pdm_tech_innovation() -> None:
+    payload = agent_policy_guard.check_member("pdm-tech-innovation", "codex", "subagent 仕様同期")
+
+    assert payload["ok"] is True
+    assert not any(item["code"] == "invalid_role" for item in payload["errors"])
+
+
+def test_policy_allows_pdm_marketing_innovation() -> None:
+    payload = agent_policy_guard.check_member("pdm-marketing-innovation", "codex", "subagent 仕様同期")
+
+    assert payload["ok"] is True
+    assert not any(item["code"] == "invalid_role" for item in payload["errors"])
+
+
+def test_policy_allows_pdm_innovation_manager() -> None:
+    payload = agent_policy_guard.check_member("pdm-innovation-manager", "codex", "subagent 仕様同期")
+
+    assert payload["ok"] is True
+    assert not any(item["code"] == "invalid_role" for item in payload["errors"])

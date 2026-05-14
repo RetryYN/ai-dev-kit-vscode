@@ -53,9 +53,10 @@
 
 **禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
 
-### Agent tool は PMO 限定許可（v2.1、2026-05-15 改訂）
+### Agent tool は PMO + PdM 限定許可（v2.2、2026-05-15 改訂）
 
-Agent tool 呼び出しは **PMO subagent (pmo-sonnet / pmo-haiku) のみ許可**。それ以外の subagent (be-api / be-logic / db-schema / qa-test / security-audit / code-reviewer / devops-deploy) は引き続き禁止。Codex 委譲または Opus 直接で対応する。
+PMO subagent (`pmo-sonnet` / `pmo-haiku`) と PdM subagent (`pdm-tech-innovation` / `pdm-marketing-innovation` / `pdm-innovation-manager`) のみ許可。  
+それ以外の subagent (`be-api` / `be-logic` / `db-schema` / `qa-test` / `security-audit` / `code-reviewer` / `devops-deploy`) は引き続き禁止。Codex 委譲または Opus 直接で対応する。
 
 PMO 経路の変更:
 - 旧: `helix claude --role pmo --model sonnet --execute` (Claude CLI 経由、起動エラー多発)
@@ -66,6 +67,9 @@ PMO 経路の変更:
 |------|--------|------|
 | HELIX 内目星付け (skills/templates/cli 軽量検索) | Agent({subagent_type: "pmo-helix-scout"}) | 候補列挙 |
 | project 内目星付け (code/docs 軽量検索) | Agent({subagent_type: "pmo-project-scout"}) | 候補列挙 |
+| 海外技術思想翻案 (G0.5 前後) | Agent({subagent_type: "pdm-tech-innovation"}) | 翻案 |
+| 海外マーケ思想翻案 (G0.5 前後) | Agent({subagent_type: "pdm-marketing-innovation"}) | 翻案 |
+| PdM 統合・新方向性策定 (L1 接続) | Agent({subagent_type: "pdm-innovation-manager"}) | 統合判断 |
 | コード探索 (1 回の Grep/Glob/Read で完結) | 自分で直接 (Bash/Read) | オーバーヘッド回避 |
 | コード探索 (2 ステップ以上、複数ファイル横断) | Agent({subagent_type: "pmo-sonnet"}) | Opus context 保護 |
 | 長文 Read (≥100 行 / review.json / PLAN.md 全体) | pmo-sonnet | Opus トークン削減 |

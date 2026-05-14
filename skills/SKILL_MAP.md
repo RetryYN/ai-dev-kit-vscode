@@ -281,7 +281,7 @@ fullstack 追加条件:
 | workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc** |
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
 | project/ | ui, api, db |
-| advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy |
+| advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy, **tech-innovation**, **marketing-innovation**, **innovation-mgr** |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
 | integration/ | agent-teams, **agent-design**, **agent-cost-design** |
 | writing/ | japanese, explain, story, presentation, social |

@@ -1,0 +1,275 @@
+#!/bin/bash
+set -euo pipefail
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+TEAM_TEMPLATE="$SCRIPT_DIR/templates/teams/innovation-team.yaml"
+TEAM_TEMPLATE_REL="cli/templates/teams/innovation-team.yaml"
+OUTPUT_TEMPLATE_REL="cli/templates/plan/innovation-output.yaml.template"
+
+usage() {
+  cat <<'USAGE'
+使い方: helix innovation <subcommand> [options]
+
+Subcommands:
+  tech --task "..."                                   PdM Tech Innovation prompt を生成
+  marketing --task "..."                              PdM Marketing Innovation prompt を生成
+  synthesize --task "..." --tech-output PATH --marketing-output PATH
+                                                       2 PdM 出力を統合する prompt を生成
+  team --task "..." [--definition PATH]              team yaml 経由の実行 prompt を生成
+  --help                                              このヘルプ
+
+Options:
+  --task "..."            対象タスクまたは企画テーマ
+  --tech-output PATH      tech subagent の YAML 出力
+  --marketing-output PATH marketing subagent の YAML 出力
+  --definition PATH       team definition（default: cli/templates/teams/innovation-team.yaml）
+  --execute               Claude Code セッションでの実行推奨を強調（CLI から直接実行はしない）
+USAGE
+}
+
+error() {
+  echo "エラー: $1" >&2
+  exit "${2:-$EXIT_INPUT_ERROR}"
+}
+
+require_task() {
+  [[ -n "${TASK:-}" ]] || error "--task は必須です"
+}
+
+require_existing_file() {
+  local label="$1"
+  local path="$2"
+  [[ -n "$path" ]] || error "--${label} は必須です"
+  [[ -f "$path" ]] || error "--${label} で指定したファイルが見つかりません: $path"
+}
+
+render_agent_prompt() {
+  local mode="$1"
+  local subagent="$2"
+  local description="$3"
+  local extra_context="$4"
+
+  HELIX_INNOVATION_MODE="$mode" \
+  HELIX_INNOVATION_AGENT="$subagent" \
+  HELIX_INNOVATION_DESCRIPTION="$description" \
+  HELIX_INNOVATION_TASK="$TASK" \
+  HELIX_INNOVATION_EXTRA="$extra_context" \
+  HELIX_INNOVATION_EXECUTE="$EXECUTE" \
+  HELIX_INNOVATION_OUTPUT_TEMPLATE="$OUTPUT_TEMPLATE_REL" \
+  python3 - <<'PY'
+import json
+import os
+import textwrap
+
+mode = os.environ["HELIX_INNOVATION_MODE"]
+subagent = os.environ["HELIX_INNOVATION_AGENT"]
+description = os.environ["HELIX_INNOVATION_DESCRIPTION"]
+task = os.environ["HELIX_INNOVATION_TASK"].strip()
+extra = os.environ["HELIX_INNOVATION_EXTRA"].replace("\\n", "\n").strip()
+execute_requested = os.environ["HELIX_INNOVATION_EXECUTE"] == "true"
+template_path = os.environ["HELIX_INNOVATION_OUTPUT_TEMPLATE"]
+
+focus_map = {
+    "tech": "海外技術思想を日本向けのプロダクト企画判断へ翻案する",
+    "marketing": "海外マーケティング思想を日本市場向け仮説へ翻案する",
+    "synthesize": "tech / marketing の 2 つの出力を統合し、L1 接続可能な企画入力へ変換する",
+}
+
+prompt = textwrap.dedent(
+    f"""
+    あなたは `{subagent}` を起動するための実行 prompt を受け取っています。
+
+    目的:
+    - {focus_map[mode]}
+
+    対象タスク:
+    - {task}
+
+    実行ルール:
+    - 日本語で簡潔かつ実務向けに記述する
+    - 出力は YAML とし、 `{template_path}` の契約に合わせる
+    - 必須 keys: concept_summary, strategic_options, assumptions, l1_inputs, g0_5_mapping, risks, decision_log
+    - 企画フェーズ (G0.5 前後) でそのまま比較・レビューできる粒度まで具体化する
+    - 推測と事実を混ぜない。根拠が薄い箇所は assumptions / risks に分離する
+    """
+).strip()
+
+if extra:
+    prompt = f"{prompt}\n\n追加コンテキスト:\n{extra}"
+
+run_label = "実行指定あり。CLI から Agent tool は直接呼べないため、Claude Code セッション内で以下を実行:" if execute_requested else "推奨実行: Claude Code セッション内で以下を実行:"
+
+print(f"[helix innovation] {mode} subagent prompt 生成完了")
+print("---")
+print(run_label)
+print("  Agent({")
+print(f'    subagent_type: "{subagent}",')
+print(f"    description: {json.dumps(description, ensure_ascii=False)},")
+print(f"    prompt: {json.dumps(prompt, ensure_ascii=False)}")
+print("  })")
+print("---")
+print("出力契約:")
+print(f"  - YAML template: {template_path}")
+print("  - 必須 keys: concept_summary, strategic_options, assumptions, l1_inputs, g0_5_mapping, risks, decision_log")
+PY
+}
+
+render_team_prompt() {
+  local definition_path="$1"
+  local definition_display="$2"
+
+  [[ -f "$definition_path" ]] || error "team definition が見つかりません: $definition_path"
+
+  HELIX_INNOVATION_TASK="$TASK" \
+  HELIX_INNOVATION_TEAM_TEMPLATE="$definition_path" \
+  HELIX_INNOVATION_TEAM_TEMPLATE_REL="$definition_display" \
+  HELIX_INNOVATION_EXECUTE="$EXECUTE" \
+  HELIX_INNOVATION_OUTPUT_TEMPLATE="$OUTPUT_TEMPLATE_REL" \
+  python3 - <<'PY'
+import os
+import textwrap
+
+import yaml
+
+task = os.environ["HELIX_INNOVATION_TASK"].strip()
+template_path = os.environ["HELIX_INNOVATION_TEAM_TEMPLATE"]
+template_rel = os.environ["HELIX_INNOVATION_TEAM_TEMPLATE_REL"]
+output_template = os.environ["HELIX_INNOVATION_OUTPUT_TEMPLATE"]
+execute_requested = os.environ["HELIX_INNOVATION_EXECUTE"] == "true"
+
+with open(template_path, encoding="utf-8") as fh:
+    payload = yaml.safe_load(fh)
+
+parallel_stage = payload.get("parallel_stage", [])
+serial_stage = payload.get("serial_stage", [])
+members = payload.get("members", [])
+
+prompt = textwrap.dedent(
+    f"""
+    PdM Innovation team orchestration
+    - task: {task}
+    - team definition: {template_rel}
+    - parallel stage では tech / marketing /一次情報整理を同時に進める
+    - serial stage では HELIX 既存資産整合確認の後に manager が統合する
+    - 出力は `{output_template}` に合わせ、最終的に L1 入力へ接続できる YAML を残す
+    """
+).strip()
+
+print("[helix innovation] team prompt 生成完了")
+print("---")
+print(f"team definition: {template_rel}")
+print("parallel_stage:")
+for item in parallel_stage:
+    print(f"  - {item.get('role', 'unknown')}: {item.get('task', '')}")
+print("serial_stage:")
+for item in serial_stage:
+    print(f"  - {item.get('role', 'unknown')}: {item.get('task', '')}")
+print("members:")
+for item in members:
+    print(f"  - {item.get('role', 'unknown')} ({item.get('engine', 'codex')}): {item.get('task', '')}")
+print("---")
+if execute_requested:
+    print("実行指定あり。CLI から team 実行は代行せず、以下を Claude Code / shell で実行してください:")
+else:
+    print("推奨実行:")
+print(f"  helix team run --definition {template_rel}")
+print("---")
+print(prompt)
+PY
+}
+
+main() {
+  local subcommand="${1:-}"
+  shift || true
+
+  TASK=""
+  TECH_OUTPUT=""
+  MARKETING_OUTPUT=""
+  DEFINITION="$TEAM_TEMPLATE"
+  DEFINITION_DISPLAY="$TEAM_TEMPLATE_REL"
+  EXECUTE="false"
+
+  case "$subcommand" in
+    tech|marketing|synthesize|team)
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --task)
+            [[ $# -ge 2 ]] || error "--task には値が必要です"
+            TASK="$2"
+            shift 2
+            ;;
+          --tech-output)
+            [[ $# -ge 2 ]] || error "--tech-output には値が必要です"
+            TECH_OUTPUT="$2"
+            shift 2
+            ;;
+          --marketing-output)
+            [[ $# -ge 2 ]] || error "--marketing-output には値が必要です"
+            MARKETING_OUTPUT="$2"
+            shift 2
+            ;;
+          --definition)
+            [[ $# -ge 2 ]] || error "--definition には値が必要です"
+            DEFINITION="$2"
+            DEFINITION_DISPLAY="$2"
+            shift 2
+            ;;
+          --execute)
+            EXECUTE="true"
+            shift
+            ;;
+          --help|-h)
+            usage
+            return 0
+            ;;
+          *)
+            error "不明なオプションです: $1"
+            ;;
+        esac
+      done
+      ;;
+    ""|--help|-h|help)
+      usage
+      return 0
+      ;;
+    *)
+      error "不明なサブコマンドです: $subcommand"
+      ;;
+  esac
+
+  case "$subcommand" in
+    tech)
+      require_task
+      render_agent_prompt \
+        "tech" \
+        "pdm-tech-innovation" \
+        "海外技術思想の日本版翻案" \
+        "- 必要に応じて pmo-tech-docs の一次情報補助を使う\n- 最終方向性の断定は pdm-innovation-manager に委譲する"
+      ;;
+    marketing)
+      require_task
+      render_agent_prompt \
+        "marketing" \
+        "pdm-marketing-innovation" \
+        "海外マーケティング思想の日本市場向け翻案" \
+        "- KPI は増やしすぎず、検証順序と撤退条件を明示する\n- 技術判断が必要なら pdm-tech-innovation へエスカレーションする"
+      ;;
+    synthesize)
+      require_task
+      require_existing_file "tech-output" "$TECH_OUTPUT"
+      require_existing_file "marketing-output" "$MARKETING_OUTPUT"
+      render_agent_prompt \
+        "synthesize" \
+        "pdm-innovation-manager" \
+        "Tech / Marketing 統合による新方向性策定" \
+        "- tech_output: $TECH_OUTPUT\n- marketing_output: $MARKETING_OUTPUT\n- 2 つの YAML を比較し、矛盾を整理した上で L1 入力候補へ変換する"
+      ;;
+    team)
+      require_task
+      render_team_prompt "$DEFINITION" "$DEFINITION_DISPLAY"
+      ;;
+  esac
+}
+
+main "$@"
