@@ -84,5 +84,5 @@ def test_migrate_v18_to_v19_preserves_existing_entries(tmp_path: Path) -> None:
     assert len(rows) == 1
 
 
-def test_current_schema_version_is_23() -> None:
-    assert helix_db.CURRENT_SCHEMA_VERSION == 23
+def test_current_schema_version_is_27() -> None:
+    assert helix_db.CURRENT_SCHEMA_VERSION == 27

@@ -77,7 +77,7 @@ def test_migrate_v19_to_current_creates_qa_tables_and_contract_design_level(tmp_
 
     assert tables == {"test_baseline", "test_design_entries", "design_review"}
     assert contract_columns["design_level"] == "'detailed'"
-    assert version_rows == [19, 20, 21, 22, 23]
+    assert version_rows == list(range(19, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert design_level == "detailed"
 
 

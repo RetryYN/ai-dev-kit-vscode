@@ -252,3 +252,74 @@ def test_v27_indexes_created(v27_db: sqlite3.Connection) -> None:
     assert "idx_session_telemetry_actor" in indexes
     assert "idx_session_telemetry_started_at" in indexes
     assert "idx_session_telemetry_related_plan" in indexes
+
+
+def test_init_db_to_v27_sequential(tmp_path: Path) -> None:
+    db_path = tmp_path / "sequential.db"
+    helix_db.init_db(str(db_path))
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        versions = [
+            row["version"]
+            for row in conn.execute(
+                "SELECT version FROM schema_version ORDER BY version"
+            ).fetchall()
+        ]
+        tables = {
+            row["name"]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+        triggers = {
+            row["name"]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+            ).fetchall()
+        }
+    finally:
+        conn.close()
+
+    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION == 27
+    assert {24, 25, 26, 27}.issubset(set(versions))
+    assert "design_sprint_drive_decisions" in tables
+    assert "automation_runs" in tables
+    assert "audit_log" in tables
+    assert "session_telemetry" in tables
+    assert {
+        "automation_runs_no_delete",
+        "automation_runs_terminal_final",
+        "automation_runs_id_immutable",
+        "automation_runs_run_kind_immutable",
+        "automation_runs_started_at_immutable",
+        "audit_log_no_delete",
+        "audit_log_payload_immutable",
+    }.issubset(triggers)
+
+
+def test_migrate_v23_db_to_v27(tmp_path: Path) -> None:
+    db_path = tmp_path / "v23_to_v27.db"
+    helix_db.init_db(str(db_path))
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("DELETE FROM schema_version WHERE version >= 24")
+        conn.commit()
+
+        helix_db.migrate(conn)
+
+        versions = [
+            row["version"]
+            for row in conn.execute(
+                "SELECT version FROM schema_version ORDER BY version"
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+
+    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION == 27
+    for version in range(18, 28):
+        assert version in versions, f"version {version} missing in schema_version"

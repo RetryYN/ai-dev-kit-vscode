@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 23
+CURRENT_SCHEMA_VERSION = 27
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -1683,6 +1683,26 @@ def migrate(conn):
             _migrate_v22_to_v23(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (23, datetime('now'))"
+            )
+        if current < 24:
+            _migrate_v23_to_v24(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (24, datetime('now'))"
+            )
+        if current < 25:
+            _migrate_v24_to_v25(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (25, datetime('now'))"
+            )
+        if current < 26:
+            _migrate_v25_to_v26(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (26, datetime('now'))"
+            )
+        if current < 27:
+            _migrate_v26_to_v27(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (27, datetime('now'))"
             )
         conn.commit()
 

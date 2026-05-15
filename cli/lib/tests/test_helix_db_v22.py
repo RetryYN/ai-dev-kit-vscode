@@ -65,7 +65,7 @@ def test_migrate_v21_to_current_adds_drive_switch_and_correction_columns(tmp_pat
     assert columns["correction_reason"] is None
     assert columns["voided_at"] is None
     assert row == (None, None, None)
-    assert versions == [21, 22, 23]
+    assert versions == list(range(21, helix_db.CURRENT_SCHEMA_VERSION + 1))
 
 
 def test_migrate_v21_to_v22_is_idempotent(tmp_path: Path) -> None:
@@ -86,5 +86,5 @@ def test_migrate_v21_to_v22_is_idempotent(tmp_path: Path) -> None:
     assert columns.count("status_on_switch") == 1
 
 
-def test_current_schema_version_is_23() -> None:
-    assert helix_db.CURRENT_SCHEMA_VERSION == 23
+def test_current_schema_version_is_27() -> None:
+    assert helix_db.CURRENT_SCHEMA_VERSION == 27

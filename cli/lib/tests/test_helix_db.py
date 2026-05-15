@@ -177,7 +177,9 @@ def test_init_db_records_current_schema_version(tmp_path: Path, capsys) -> None:
 
     versions = _fetch_all(db_path, "SELECT version FROM schema_version ORDER BY version")
 
-    assert [row["version"] for row in versions] == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert [row["version"] for row in versions] == list(
+        range(2, helix_db.CURRENT_SCHEMA_VERSION + 1)
+    )
 
 
 @pytest.mark.parametrize("status_on_switch", ["preserved", "waived", "failed"])
@@ -554,7 +556,7 @@ def test_migrate_from_v1_to_v5_is_idempotent(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(1, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert {"requirements", "req_impl_map", "req_test_map", "req_changes"} <= requirement_tables
 
 
@@ -648,7 +650,7 @@ def test_migrate_from_v3_to_v5_recreates_tables_with_fk_and_keeps_data(tmp_path:
     ).fetchone()
     conn.close()
 
-    assert versions == [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(3, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert "task_run_id" in gate_runs_cols
     assert "task_run_id" in interrupts_cols
     assert {"gate_name", "gate_run_id"} <= retro_cols
@@ -685,7 +687,7 @@ def test_migrate_from_v4_to_v5_creates_skill_usage_table(tmp_path: Path) -> None
     }
     conn.close()
 
-    assert versions == [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(4, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert table is not None
     assert {"idx_skill_usage_skill", "idx_skill_usage_outcome"} <= indexes
 
@@ -716,7 +718,7 @@ def test_migrate_v7_to_v8_creates_accuracy_score_table(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(7, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert table is not None
     assert {"idx_accuracy_score_plan_gate", "idx_accuracy_score_recorded_at"} <= indexes
 
@@ -746,7 +748,7 @@ def test_migrate_v8_to_v9_creates_infra_tables(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(8, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert names == {"events", "metrics", "schedules", "jobs", "locks"}
 
 
@@ -785,7 +787,7 @@ def test_migrate_v9_to_v10_creates_audit_decisions_and_import_runs(tmp_path: Pat
     }
     conn.close()
 
-    assert versions == [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(9, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert names == {"audit_decisions", "import_runs"}
     assert set(indexes) == {"idx_audit_decisions_active_unique", "idx_audit_decisions_event_unique"}
     assert indexes["idx_audit_decisions_active_unique"][0] == 1
@@ -1120,7 +1122,7 @@ def test_migrate_v7_to_v10_sequential(tmp_path: Path) -> None:
     }
     conn.close()
 
-    assert versions == [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(7, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert names == {
         "accuracy_score",
         "events",
@@ -1162,7 +1164,7 @@ def test_migrate_v10_to_v11_creates_deferred_findings_adjustments_and_view(tmp_p
     }
     conn.close()
 
-    assert versions == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(10, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert names == {"deferred_findings", "accuracy_score_adjustments", "accuracy_score_effective"}
 
 
@@ -1192,7 +1194,7 @@ def test_migrate_v11_to_v12_creates_scrum_trigger_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(scrum_trigger)").fetchall()}
     conn.close()
 
-    assert versions == [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(11, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert table is not None
     assert {
         "trigger_id",
@@ -1233,7 +1235,7 @@ def test_migrate_v12_to_v13_creates_verify_runs_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(verify_runs)").fetchall()}
     conn.close()
 
-    assert versions == [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(12, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert table is not None
     assert {
         "run_id",
@@ -1276,7 +1278,7 @@ def test_migrate_v13_to_v14_creates_code_index_table(tmp_path: Path) -> None:
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(code_index)").fetchall()}
     conn.close()
 
-    assert versions == [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    assert versions == list(range(13, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert table is not None
     assert {
         "id",

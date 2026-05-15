@@ -90,7 +90,7 @@ def test_v22_to_v23_migrate_succeeds(tmp_path: Path) -> None:
 
     assert {"supersedes_entry_id", "correction_reason", "voided_at"} <= entry_columns
     assert {"supersedes_entry_id", "correction_reason", "voided_at"} <= link_columns
-    assert max_version == 23
+    assert max_version == helix_db.CURRENT_SCHEMA_VERSION
 
 
 def test_v23_to_v23_migrate_is_idempotent(tmp_path: Path, capsys) -> None:

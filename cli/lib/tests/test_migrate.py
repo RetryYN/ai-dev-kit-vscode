@@ -684,7 +684,7 @@ def test_migrate_idempotent_v20_to_v23(tmp_path: Path) -> None:
     finally:
         conn.close()
 
-    assert max_version == 23
+    assert max_version == helix_db.CURRENT_SCHEMA_VERSION
     assert versions.count(21) == 1
     assert versions.count(22) == 1
     assert versions.count(23) == 1
@@ -751,14 +751,14 @@ def test_v21_to_v22_adds_drive_switch_columns(tmp_path: Path) -> None:
         conn.close()
 
     assert {"previous_drive", "drive_switch_reason", "status_on_switch"} <= columns
-    assert max_version == 23
+    assert max_version == helix_db.CURRENT_SCHEMA_VERSION
 
 
-def test_schema_version_advances_to_23(tmp_path: Path) -> None:
+def test_schema_version_advances_to_27(tmp_path: Path) -> None:
     conn = _build_legacy_v20_db(tmp_path / "legacy-v20-version.db")
     try:
         helix_db.migrate(conn)
         max_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
-        assert max_version == 23
+        assert max_version == helix_db.CURRENT_SCHEMA_VERSION
     finally:
         conn.close()
