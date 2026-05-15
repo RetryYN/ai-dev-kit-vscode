@@ -113,8 +113,8 @@ response_schema:
           type: object
           required: [run_id, status, gate_results, exit_code, pair_transition]
           properties:
-            run_id: { type: string }
-            status: { type: string, enum: [queued, running, passed, failed, blocked] }
+            run_id: { type: integer }
+            status: { type: string, enum: [running, passed, failed, blocked, cancelled] }
             gate_results:
               type: array
               items:
@@ -184,8 +184,8 @@ response_schema:
           type: object
           required: [run_id, status, gate_results, exit_code]
           properties:
-            run_id: { type: string }
-            status: { type: string, enum: [queued, running, passed, failed, blocked] }
+            run_id: { type: integer }
+            status: { type: string, enum: [running, passed, failed, blocked, cancelled] }
             gate_results:
               type: array
               items:
@@ -403,6 +403,7 @@ response_schema:
 - skill 推挙 / Reverse / Scrum / code-index の残 capability
 - audit / telemetry の cross-plan 集約の可視化
 - `automation_runs` の v25+ migration 本文
+- queued status は将来の非同期 trigger 対応で再評価、本 sprint では同期作成のみのため status enum から除外。
 
 未確定事項は contract ではなく carry として明示する。
 ここでの未確定は実装の自由度ではなく、後続 PLAN の責務として扱う。
@@ -424,3 +425,4 @@ response_schema:
 - 2026-05-16: PLAN-070 SprintE / .5 の draft を起票。
 - 2026-05-16: Sprint A primitive を再利用する endpoint contract 5 本を固定。
 - 2026-05-16: hook / audit / telemetry を append-only 前提で整理。
+- 2026-05-16: H-1 push/pr trigger response.data.run_id を string → integer に修正 (D-DB §3 automation_runs.id INTEGER に統一)。H-2 push/pr trigger status enum を [queued, running, passed, failed, blocked] → [running, passed, failed, blocked, cancelled] に修正 (D-DB §3 CHECK と完全一致)。

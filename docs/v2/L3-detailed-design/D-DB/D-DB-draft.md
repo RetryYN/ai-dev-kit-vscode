@@ -104,10 +104,17 @@ PromotionLinkRef:
 
 | version | 列カテゴリ | 対象テーブル | 列名 | 由来 |
 |---|---|---|---|---|
-| v21 | semantic | contract_entries | drive, origin_mode, evidence_status | helix-db-v21-spec.md |
+| v21 | semantic (v21-spec 互換) | contract_entries | drive, origin_mode, evidence_status | helix-db-v21-spec.md (enum: pending/collected/missing/invalid) |
+| v21+ | L1 lifecycle (新規) | contract_entries | lifecycle_status, direction | L1 P2-7 (observed/inferred/confirmed) + AC-17。evidence_status とは別列。SprintB で v21 migration step に additive 追加 |
 | v22 | drive-switch | design_sprint_entries | previous_drive, drive_switch_reason, status_on_switch | cli/lib/helix_db.py:1194-1206 |
 | v23 | append-only correction | design_sprint_entries / design_sprint_artifact_links | supersedes_entry_id, correction_reason, voided_at | cli/lib/helix_db.py:1218-1227 |
 | v24 | drive-switch decision event | design_sprint_drive_decisions | source_entry_id, target_entry_id, decision, decided_by, reason, reopen_condition | L2 MASTER §8.x |
+
+**evidence_status 列の扱い (v21 互換):**
+- `evidence_status` (enum: `pending/collected/missing/invalid`) は helix-db-v21-spec.md 由来。`helix_db.py:1177` の実装 DEFAULT は `'confirmed'`。本草案の DEFAULT を `'confirmed'` に統一し、v21-spec 実装実態と整合する。
+- L1 P2-7 の lifecycle (`observed -> inferred -> confirmed`) は **新規 `lifecycle_status` 列**で管理し、既存 evidence_status を変更しない (破壊的 migration 回避)。
+- `direction` 列は AC-17 要求。NULL 許容で additive 追加。`forward_after_reverse` は Reverse→Forward 自動遷移後を示す。
+- `lifecycle_status` と `direction` の migration version は v21 拡張 step として扱い、v22 以前の DB は backfill DEFAULT で非破壊。最終 rename/統合判断は SprintD 確定事項 (§9 carry 参照)。
 
 ### 2.1 v21→v22→v23→v24 YAML
 
@@ -175,8 +182,12 @@ CREATE TABLE IF NOT EXISTS contract_entries (
       CHECK (drive IN ('be','fe','db','fullstack')),
     origin_mode TEXT NOT NULL DEFAULT 'forward'
       CHECK (origin_mode IN ('forward','reverse','scrum')),
-    evidence_status TEXT NOT NULL DEFAULT 'pending'
+    evidence_status TEXT NOT NULL DEFAULT 'confirmed'
       CHECK (evidence_status IN ('pending','collected','missing','invalid')),
+    lifecycle_status TEXT NOT NULL DEFAULT 'observed'
+      CHECK (lifecycle_status IN ('observed','inferred','confirmed')),
+    direction TEXT
+      CHECK (direction IS NULL OR direction IN ('forward','reverse','forward_after_reverse')),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK (length(source_path) > 0)
@@ -204,10 +215,27 @@ contract_entries_columns:
   - name: evidence_status
     type: TEXT
     null: false
-    default: pending
+    default: confirmed
     check: "evidence_status IN ('pending','collected','missing','invalid')"
     fk: null
     immutable: false
+    note: "v21 互換列 (helix-db-v21-spec.md 由来)。L1 P2-7 lifecycle は lifecycle_status で管理"
+  - name: lifecycle_status
+    type: TEXT
+    null: false
+    default: observed
+    check: "lifecycle_status IN ('observed','inferred','confirmed')"
+    fk: null
+    immutable: false
+    note: "L1 P2-7 master (observed -> inferred -> confirmed 遷移)。RG3 PO 承認で confirmed に遷移"
+  - name: direction
+    type: TEXT
+    null: true
+    default: null
+    check: "direction IS NULL OR direction IN ('forward','reverse','forward_after_reverse')"
+    fk: null
+    immutable: false
+    note: "AC-17 要求列。origin_mode と組み合わせて Reverse→Forward lifecycle をトレース"
 ```
 
 ### 3.3 インデックス
@@ -215,6 +243,7 @@ contract_entries_columns:
 ```sql
 CREATE INDEX IF NOT EXISTS idx_contract_design ON contract_entries(contract_type, design_level);
 CREATE INDEX IF NOT EXISTS idx_contract_drive_origin ON contract_entries(drive, origin_mode, evidence_status);
+CREATE INDEX IF NOT EXISTS idx_contract_lifecycle ON contract_entries(lifecycle_status, direction);
 CREATE INDEX IF NOT EXISTS idx_contract_plan ON contract_entries(introduced_plan);
 ```
 
@@ -461,7 +490,8 @@ SELECT
 FROM test_design_entries td;
 ```
 
-※`test_baseline` は本 sprint で v24 以降に正式定義する前提のため、サンプル SQL は実装優先の代替 SQL で示す（baseline 欠損は `evidence_status` ベース）
+※`test_baseline` は本 sprint で v24 以降に正式定義する前提のため、サンプル SQL は実装優先の代替 SQL で示す（baseline 欠損は `evidence_status` ベース）。
+※§7.2 score formula の `evidence_status IN ('missing','invalid')` は v21 互換 enum を参照している。L1 P2-7 lifecycle に基づく `lifecycle_status` 観点のスコアリング (例: `lifecycle_status != 'confirmed'` を減点対象とする再定義) は SprintD の score formula 改訂で確定する (§9 carry)。
 
 ### 7.2 score 集計（SUM/COUNT/WEIGHTED_AVG）
 
@@ -552,7 +582,9 @@ BEGIN IMMEDIATE;
 
 ## §9 carry / open questions
 
-- carry: `evidence_status` の enum/default は PLAN-070 の SprintB 内で完全確定
+- resolved (SprintB): `evidence_status` の enum は v21 互換 (`pending/collected/missing/invalid`, DEFAULT='confirmed') で固定。L1 P2-7 lifecycle は新規 `lifecycle_status` 列 (observed/inferred/confirmed) + `direction` 列 (AC-17) として additive 追加済み
+- carry (SprintD): `lifecycle_status` への score formula 移行 (§7.2 の evidence_status 参照を lifecycle_status 観点に再定義)
+- carry (SprintD): `evidence_status` の rename または `lifecycle_status` への統合の最終判断
 - carry: `reopen_condition` の正式 JSON schema は SprintC
 - carry: `test_plan_map` / `test_baseline` の実テーブル化と参照定義は v24 以降で整理
 - carry: `v_model_family` の厳密な `baseline_policy_family` 定義は次 sprint で再検証
