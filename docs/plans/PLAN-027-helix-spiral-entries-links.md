@@ -20,6 +20,8 @@ related:
   - PLAN-012-code-index-coverage
   - PLAN-013-code-index-eligibility-taxonomy
   - PLAN-024 (LLMClassifierBase に entries E2E test 追加)
+doc_completed:
+  - docs/operator/helix-spiral-operations.md (らせん式 Spiral 運用マニュアル、2026-05-16 起票)
 created: 2026-05-07
 ---
 
