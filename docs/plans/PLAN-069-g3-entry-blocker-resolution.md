@@ -1,13 +1,15 @@
 ---
 plan_id: PLAN-069
 title: "PLAN-069: G3 entry blocker 解消 (M-01〜M-04, spine 整合化 + draft.yaml 正規化)"
-status: draft
+status: completed
 size: M
 drive: be
 created: 2026-05-15
+completed: 2026-05-15
 owner: PM
 phases: L1, L2, L3, L4, L6
 gates: G2, G3
+implementation_commit: 62ac1cd
 acceptance:
   - M-01 解消: helix-db-v21-spec.md の origin_mode 値を spine.yaml の forward/reverse/scrum に揃える
   - M-02 解消: spine.yaml に allowed_detectors enum を追加し CI-006 を消す
@@ -19,7 +21,7 @@ acceptance:
 related:
   - PLAN-068-vmodel-strengthening-improvements (L4 実装連携)
   - docs/v2/L2-MASTER.md §12 (M-01〜M-04 正本記述)
-  - docs/v2/A-audit/cross-drive-integrity-check.md (CI-001〜008 識別子)
+  - docs/v2/B-design/cross-drive-integrity-check.md (CI-001〜008 識別子)
   - docs/v2/B-design/vmodel-semantics-spine.yaml (M-01/M-02 対象)
   - docs/v2/B-design/vmodel-semantics-fe-draft.yaml (M-03 正本)
   - docs/v2/B-design/vmodel-semantics-fullstack-draft.yaml (M-03/M-04 対象)

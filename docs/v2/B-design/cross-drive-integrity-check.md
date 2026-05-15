@@ -116,16 +116,16 @@ Phase 2 で起草された 4 drive draft (`be` / `fe` / `db` / `fullstack`) を 
 
 ## §3 矛盾検出 (P1/P2/P3)
 
-| ID | 軸 | drive A | drive B | 矛盾内容 | 修正案 |
-|---|---|---|---|---|---|
-| CI-001 | artifact naming | fe | fullstack | FE architecture は `state-events.md`、fullstack architecture は `state_events`、fullstack requirement は `state_event_scope`。artifact ID とファイル名と scope 名が同列に混在。 | artifact ID は snake_case に統一し、実ファイル名は `examples.path` へ退避する。requirement は `state_event_scope`、architecture は `state_events` を正本化。 |
-| CI-002 | promotion schema | fe | fullstack | FE architecture pair の `promotion` は `from_artifact_kind` / `to_artifact_kind` / `link_kind` を持つが、fullstack は `kind` / `from_layer` / `to_layer` 中心で schema が非対称。 | FE の詳細 schema を正本にし、fullstack 側へ `from_artifact_kind=mock`、`to_artifact_kind=component_impl`、`link_kind=derives_from` を追加。 |
-| CI-003 | role naming | fe/fullstack | spine/ROLE_MAP | fullstack metadata `pipelines.fe.implementation: sonnet` は ROLE_MAP の正規 role 名と一致しない。spine/role map は `pg` / `fe` / `impl-sonnet` 系。 | metadata role も ROLE_MAP の正規値に寄せる。少なくとも `sonnet` は alias ではなく CLI role 名へ置換。 |
-| CI-004 | review granularity | be | fullstack | architecture layer が `api_subsystem` vs `feature_slice`。BE track と fullstack shared layer の比較で review unit 粒度がずれる。 | fullstack architecture に `track_specific.review_unit` を導入し、be track は `api_subsystem`、shared は `feature_slice` と明示分離。 |
-| CI-005 | fixture naming | be | fullstack | detailed test artifact が `contract_fixture_set` に対し、fullstack は `api_fixture_set` / `ui_contract_fixture_set`。contract fixture の継承関係が見えない。 | `*_fixture_set` の命名規約を追加し、contract family と api/ui 派生の関係を glossary に定義。 |
-| CI-006 | detector contract | all | spine | spine が detector 名の enum を持たず、各 draft だけが事実上の許容集合になっている。CLI validator 実装時に fail-close できない。 | spine に `allowed_detectors` または `detector_catalog_ref` を追加し、番号/意味/適用 layer を凍結する。 |
-| CI-007 | layer semantics | fe | fullstack | FE requirement は `screen_flow` 中心、fullstack requirement は `capability` 中心。FE 由来要件と API 由来要件の主語が一致していない。 | fullstack requirement を `capability + screen_flow` の複合 review model とし、track_specific へ FE 主語を昇格。 |
-| CI-008 | functional baseline semantics | fe/fullstack | db | functional test は全 drive で `unit` だが、baseline policy は FE/fullstack が `snapshot`、DB が `golden_fixture`。score では同列扱いされるが baseline 性質が異質。 | baseline_policy の横比較を想定するなら `snapshot_like` / `fixture_like` の上位分類を spine に追加。 |
+| ID | 軸 | drive A | drive B | 矛盾内容 | 修正案 | status |
+|---|---|---|---|---|---|---|
+| CI-001 | artifact naming | fe | fullstack | FE architecture は `state-events.md`、fullstack architecture は `state_events`、fullstack requirement は `state_event_scope`。artifact ID とファイル名と scope 名が同列に混在。 | artifact ID は snake_case に統一し、実ファイル名は `examples.path` へ退避する。requirement は `state_event_scope`、architecture は `state_events` を正本化。 | open |
+| CI-002 | promotion schema | fe | fullstack | FE architecture pair の `promotion` は `from_artifact_kind` / `to_artifact_kind` / `link_kind` を持つが、fullstack は `kind` / `from_layer` / `to_layer` 中心で schema が非対称。 | FE の詳細 schema を正本にし、fullstack 側へ `from_artifact_kind=mock`、`to_artifact_kind=component_impl`、`link_kind=derives_from` を追加。 | **resolved (PLAN-069, commit 62ac1cd)** |
+| CI-003 | role naming | fe/fullstack | spine/ROLE_MAP | fullstack metadata `pipelines.fe.implementation: sonnet` は ROLE_MAP の正規 role 名と一致しない。spine/role map は `pg` / `fe` / `impl-sonnet` 系。 | metadata role も ROLE_MAP の正規値に寄せる。少なくとも `sonnet` は alias ではなく CLI role 名へ置換。 | **resolved (PLAN-069, commit 62ac1cd, sonnet→fe)** |
+| CI-004 | review granularity | be | fullstack | architecture layer が `api_subsystem` vs `feature_slice`。BE track と fullstack shared layer の比較で review unit 粒度がずれる。 | fullstack architecture に `track_specific.review_unit` を導入し、be track は `api_subsystem`、shared は `feature_slice` と明示分離。 | open |
+| CI-005 | fixture naming | be | fullstack | detailed test artifact が `contract_fixture_set` に対し、fullstack は `api_fixture_set` / `ui_contract_fixture_set`。contract fixture の継承関係が見えない。 | `*_fixture_set` の命名規約を追加し、contract family と api/ui 派生の関係を glossary に定義。 | open |
+| CI-006 | detector contract | all | spine | spine が detector 名の enum を持たず、各 draft だけが事実上の許容集合になっている。CLI validator 実装時に fail-close できない。 | spine に `allowed_detectors` または `detector_catalog_ref` を追加し、番号/意味/適用 layer を凍結する。 | **resolved (PLAN-069, commit 62ac1cd, 17 detector 列挙)** |
+| CI-007 | layer semantics | fe | fullstack | FE requirement は `screen_flow` 中心、fullstack requirement は `capability` 中心。FE 由来要件と API 由来要件の主語が一致していない。 | fullstack requirement を `capability + screen_flow` の複合 review model とし、track_specific へ FE 主語を昇格。 | open |
+| CI-008 | functional baseline semantics | fe/fullstack | db | functional test は全 drive で `unit` だが、baseline policy は FE/fullstack が `snapshot`、DB が `golden_fixture`。score では同列扱いされるが baseline 性質が異質。 | baseline_policy の横比較を想定するなら `snapshot_like` / `fixture_like` の上位分類を spine に追加。 | open |
 
 ### 優先度判断
 
