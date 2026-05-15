@@ -1812,12 +1812,12 @@ L2 のリスクは、遷移条件の曖昧さ、drive 切替時の証跡欠落�
 | M-04 | CI-003 | P1 | role 名不正 | fullstack-draft role 名 | ROLE_MAP 正規名へ置換 | **resolved (PLAN-069, commit 62ac1cd)** |
 | M-05 | CI-001 | P2 | artifact ID とファイル名混在 | 各 draft.yaml | snake_case に統一 | **resolved (commit 9fd9af1, fe-draft state_events 統一)** |
 | M-06 | - | P2 | horizontal_rule 型不一致 | spine.yaml / vmodel-semantics-spec.md | spine の列挙型を採用 | **resolved (commit 9fd9af1, spec.md §4.1 enum 化)** |
-| M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | spine.yaml | spine に baseline_policy_family (snapshot_like / fixture_like) を追加 | **resolved (commit pending, baseline_policy_family 追加)** |
+| M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | spine.yaml | spine に baseline_policy_family (snapshot_like / fixture_like) を追加 | **resolved (commit e6d575c, baseline_policy_family 追加)** |
 | M-08 | - | P2 | l2-master-sketch.md の DB 詳細記述 | l2-master-sketch.md §3 | 概要のみに留め詳細は Phase C 委譲 | 解消済み (本書起票で対応) |
 
 - M-01〜M-04 (P1 4 件) は PLAN-069 (commit 62ac1cd) で resolved。Phase B 末で確定済み、G3 entry blocker は解消。
 - M-05 / M-06 (P2 2 件) は L2 設計 doc 整合化として直接 resolved (commit 9fd9af1)。
-- M-07 (P3) は spine.yaml に baseline_policy_family を追加して resolved (commit pending)。M-08 は L2 起票で解消済み。
+- M-07 (P3) は spine.yaml に baseline_policy_family を追加して resolved (commit e6d575c)。M-08 は L2 起票で解消済み。
 - 全 known contradictions (M-01〜M-08) は Phase B 末で resolved。Phase C 以降は carry なし。
 - 矛盾を消すのではなく、どこで解消するかを明記する。
 
