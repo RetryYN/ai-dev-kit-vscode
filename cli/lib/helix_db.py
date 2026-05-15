@@ -789,6 +789,28 @@ CREATE INDEX IF NOT EXISTS idx_dsdd_decision ON design_sprint_drive_decisions(de
 """
 
 
+AUTOMATION_RUNS_SCHEMA_V25 = """
+CREATE TABLE IF NOT EXISTS automation_runs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_kind        TEXT NOT NULL,
+    plan_id         TEXT,
+    trigger_actor   TEXT NOT NULL,
+    started_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at        TEXT,
+    status          TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','completed','failed','cancelled')),
+    exit_code       INTEGER,
+    summary         TEXT,
+    retry_count     INTEGER NOT NULL DEFAULT 0,
+    max_retries     INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_automation_runs_kind ON automation_runs(run_kind);
+CREATE INDEX IF NOT EXISTS idx_automation_runs_status ON automation_runs(status);
+CREATE INDEX IF NOT EXISTS idx_automation_runs_started_at ON automation_runs(started_at);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1256,6 +1278,20 @@ def _migrate_v23_to_v24(conn: sqlite3.Connection) -> None:
     """v24: design_sprint_drive_decisions テーブル追加 (P0-03 hybrid + drive switch policy)"""
     if not _has_table(conn, "design_sprint_drive_decisions"):
         conn.executescript(DESIGN_SPRINT_DRIVE_DECISIONS_SCHEMA_V24)
+
+
+# @helix:index id=helix-db.migrate-v24-to-v25 domain=cli/lib summary=v25 automation_runs migration (P0-03 hybrid + lifecycle helper + 限定 trigger)
+def _migrate_v24_to_v25(conn: sqlite3.Connection) -> None:
+    """v25: automation_runs テーブル + append-only 限定 trigger (P0-03 hybrid)"""
+    if not _has_table(conn, "automation_runs"):
+        conn.executescript(AUTOMATION_RUNS_SCHEMA_V25)
+    _create_append_only_trigger(
+        conn,
+        "automation_runs",
+        immutable_columns=["id", "run_kind", "started_at"],
+        terminal_status_column="status",
+        terminal_values=["completed", "failed", "cancelled"],
+    )
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
