@@ -120,6 +120,25 @@ spine:
       min: 0.10
       max: 0.25
 
+allowed_detectors:
+  - axis-01-dead-code-drift
+  - axis-02-coverage-erosion
+  - axis-06-naming-confusion
+  - axis-07-contract-drift
+  - axis-08-plan-integrity
+  - axis-09-refactor-opportunity
+  - axis-09-test-quality
+  - axis-10-relation-graph
+  - axis-11-regression
+  - axis-12-connection-deficiency
+  - axis-12-migration-safety
+  - axis-14-orchestration-integrity
+  - axis-15-mock-promotion
+  - axis-16-design-token-drift
+  - axis-17-a11y-regression
+  - axis-18-visual-regression
+  - axis-19-state-transition-drift
+
 lifecycle:
   origin_mode:
     allowed: [forward, reverse, scrum]

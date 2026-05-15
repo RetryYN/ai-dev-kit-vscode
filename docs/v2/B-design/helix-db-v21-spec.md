@@ -28,7 +28,7 @@ DB レイヤーで正規化することを目的とする。
 | 列名 | 型 | NOT NULL | 意味 |
 | --- | --- | --- | --- |
 | `drive` | `TEXT` | はい | 対象ドライブ（`be`, `fe`, `db`, `fullstack`） |
-| `origin_mode` | `TEXT` | はい | `append` / `fork` / `rebase` 等の起源情報（実装準拠） |
+| `origin_mode` | `TEXT` | はい | `forward` / `reverse` / `scrum`（HELIXフロー起点） |
 | `evidence_status` | `TEXT` | はい | `pending` / `collected` / `missing` / `invalid` |
 
 ### 制約（提案）
@@ -36,7 +36,8 @@ DB レイヤーで正規化することを目的とする。
 本体実装は列追加のため緩い形状だが、運用上は以下を推奨:
 
 - `drive` は vmodel drives と一致する値に限定
-- `origin_mode` は enum 化して運用監査を容易化
+- `origin_mode` は enum 化して運用監査を容易化し、値は `forward` / `reverse` / `scrum` とする
+- `append` / `fork` / `rebase` は record-level 起源軸（実装準拠）として別管理し、L3 schema で再評価する
 - `evidence_status` は列挙値を固定し、監査要件に適合
 
 ### DDL（想定）
@@ -46,7 +47,7 @@ ALTER TABLE contract_entries
 ADD COLUMN drive TEXT NOT NULL DEFAULT 'be';
 
 ALTER TABLE contract_entries
-ADD COLUMN origin_mode TEXT NOT NULL DEFAULT 'append';
+ADD COLUMN origin_mode TEXT NOT NULL DEFAULT 'forward';
 
 ALTER TABLE contract_entries
 ADD COLUMN evidence_status TEXT NOT NULL DEFAULT 'pending';
@@ -175,7 +176,7 @@ GROUP BY c.plan_id, d.se_drive, d.layer;
 ```python
 def _migrate_v20_to_v21(conn):
     _safe_add_column(conn, "contract_entries", "drive", "TEXT NOT NULL DEFAULT 'be'")
-    _safe_add_column(... "origin_mode", "TEXT NOT NULL DEFAULT 'append'")
+    _safe_add_column(... "origin_mode", "TEXT NOT NULL DEFAULT 'forward'")
     _safe_add_column(... "evidence_status", "TEXT NOT NULL DEFAULT 'pending'")
     _create_table_if_not_exists("design_sprint_entries", DESIGN_SPRINT_ENTRIES_SCHEMA_V21)
     _create_table_if_not_exists("design_sprint_artifact_links", DESIGN_SPRINT_ARTIFACT_LINKS_SCHEMA_V21)

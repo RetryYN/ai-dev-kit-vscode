@@ -28,7 +28,7 @@ metadata:
       wire: tl
       mockup: tl
       judgment: pm
-      implementation: sonnet
+      implementation: fe
       review: tl
     integration:
       contract_freeze: tl
@@ -263,22 +263,23 @@ drives:
           examples:
             - id: example-system-integration
               path: verify/h401-full-flow-integration.sh
-        pair:
-          horizontal_rule: required
-          vertical_from: requirement
-          vertical_to: detailed
-          score_weight: 0.25
-          promotion:
-            kind: mock_to_implementation
-            from_layer: architecture
-            to_layer: functional
-            append_only: true
-            g2_evidence_preserved: true
-          requires_functional_freeze: true
-          lifecycle_overrides:
-            phase_a_tracks: [be, fe, contract]
-            phase_b_join: l4.5
-          conditional_rule: "D-CONTRACT and state-events must freeze together; be/fe split without contract freeze is a P1 risk."
+          pair:
+            horizontal_rule: required
+            vertical_from: requirement
+            vertical_to: detailed
+            score_weight: 0.25
+            promotion:
+              from_layer: architecture
+              from_artifact_kind: mock
+              to_artifact_kind: component_impl
+              link_kind: derives_from
+              append_only: true
+              g2_evidence_preserved: true
+            requires_functional_freeze: true
+            lifecycle_overrides:
+              phase_a_tracks: [be, fe, contract]
+              phase_b_join: l4.5
+            conditional_rule: "D-CONTRACT and state-events must freeze together; be/fe split without contract freeze is a P1 risk."
           source_refs:
             - docs/v2/L1-REQUIREMENTS.md
             - docs/v2/A-audit/accumulated-knowledge.md
