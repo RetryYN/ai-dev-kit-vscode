@@ -139,6 +139,12 @@ promotion:
 ### 4.5 `pair_test_levels`\n
 `design/test` の接続に対して許可されるテストレベル集合。\n- `unit`\n- `integration`\n- `system`\n
 未定義時は運用規約でデフォルト縮退を許可しない構成を推奨。\n\n
+
+### 4.6 `fixture_set` 命名規約\n
+`*_fixture_set` ファミリーは以下の親子関係を持つ。\n
+\n+| family | parent | 用途 |\n+|---|---|---|\n+| `contract_fixture_set` | (root) | drive 共通の契約レベル fixture |\n+| `api_fixture_set` | extends `contract_fixture_set` | BE API テスト用 contract 派生 |\n+| `ui_contract_fixture_set` | extends `contract_fixture_set` | UI 契約テスト用 contract 派生 |\n+
+派生 fixture は親 fixture の互換性を維持する。\n
+fixture 名は `<scope>_fixture_set` の snake_case 形式で揃える。\n
 ## 5. `mock_to_implementation` lifecycle\n+\n+`lifecycle` のデフォルト集合として `mock_to_implementation` がある。\n+
 この経路では:
 \n

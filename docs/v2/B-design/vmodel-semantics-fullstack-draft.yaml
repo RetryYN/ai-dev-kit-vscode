@@ -140,9 +140,11 @@ drives:
           tracks: [be, fe, contract, shared]
           track_specific:
             be:
+              review_unit: capability
               artifacts: [api_capability_map, domain_boundary]
               detectors: [axis-07-contract-drift, axis-12-connection-deficiency]
             fe:
+              review_unit: screen_flow
               artifacts: [wireframes, state_event_scope]
               detectors: [axis-12-connection-deficiency, axis-19-state-transition-drift]
             contract:
@@ -216,6 +218,7 @@ drives:
           tracks: [be, fe, contract, shared]
           track_specific:
             be:
+              review_unit: api_subsystem
               artifacts: [service_boundary, sequence_diagram]
               detectors: [axis-07-contract-drift, axis-10-relation-graph]
             fe:
@@ -225,6 +228,7 @@ drives:
               artifacts: [d_contract, api_contract, contract_freeze_record]
               detectors: [axis-07-contract-drift, axis-12-connection-deficiency]
             shared:
+              review_unit: feature_slice
               artifacts: [component_diagram, integration_boundary, phase_b_entry_criteria]
               detectors: [axis-10-relation-graph, axis-14-orchestration-integrity]
           source_refs:
@@ -332,8 +336,9 @@ drives:
           test_level: integration
           artifacts:
             - integration_test_design
-            - api_fixture_set
-            - ui_contract_fixture_set
+            - contract_fixture_set       # root fixture family for contracts
+            - api_fixture_set            # extends: contract_fixture_set
+            - ui_contract_fixture_set    # extends: contract_fixture_set
             - a11y_scenario_matrix
           baseline_policy: regression_corpus
           detectors:
