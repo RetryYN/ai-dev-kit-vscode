@@ -154,7 +154,7 @@ drives:
           artifacts:
             - mock_html
             - design_tokens
-            - state-events.md
+            - state_events
             - wireframe_hi_fi
           review_unit: approved_mock
           review_axes: [vertical, horizontal]

@@ -111,8 +111,13 @@ planning -> requirement -> architecture -> detailed -> functional
 ## 4. `pair` フィールド仕様
 \n
 ### 4.1 `horizontal_rule`\n
-Boolean として定義される。\n\n
-`true` の場合、同層の横方向連携を前提にした制約を適用。\n`false` の場合はレイヤ間の直結優先などを許容する。
+`required` / `optional` / `conditional` の 3 値 enum として定義される (`docs/v2/B-design/vmodel-semantics-spine.yaml:118` の `pair.allowed.horizontal_rule` を正本採用)。\n
+
+- `required`: 同層の横方向連携を必須化し、未接続なら fail-close
+- `optional`: 横方向連携は任意 (記録不要)
+- `conditional`: drive / size / lifecycle 等の条件付きで required になる
+
+旧版で Boolean (true/false) として記述されていた箇所は本 enum の `required` / `optional` に対応する。
 
 ### 4.2 `vertical_from` / `vertical_to`\n
 上下レイヤーの参照キー。\n\n
@@ -247,7 +252,7 @@ spine:
           id: functional_test_base
       pair:
         architecture:
-          horizontal_rule: true
+          horizontal_rule: required
           vertical_from: detailed
           vertical_to: architecture
           score_weight: 1.0

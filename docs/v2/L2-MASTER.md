@@ -1799,13 +1799,14 @@ L2 のリスクは、遷移条件の曖昧さ、drive 切替時の証跡欠落�
 | M-02 | CI-006 | P1 | detector enum 未定義 | spine.yaml detector 定義不足 | spine に allowed_detectors を追加 | **resolved (PLAN-069, commit 62ac1cd)** |
 | M-03 | CI-002 | P1 | promotion schema 非対称 | fe-draft / fullstack-draft | fe-draft を正本にして fullstack を揃える | **resolved (PLAN-069, commit 62ac1cd)** |
 | M-04 | CI-003 | P1 | role 名不正 | fullstack-draft role 名 | ROLE_MAP 正規名へ置換 | **resolved (PLAN-069, commit 62ac1cd)** |
-| M-05 | CI-001 | P2 | artifact ID とファイル名混在 | 各 draft.yaml | snake_case に統一 | Phase B/C |
-| M-06 | - | P2 | horizontal_rule 型不一致 | spine.yaml / vmodel-semantics-spec.md | spine の列挙型を採用 | Phase B |
+| M-05 | CI-001 | P2 | artifact ID とファイル名混在 | 各 draft.yaml | snake_case に統一 | **resolved (commit pending, fe-draft state_events 統一)** |
+| M-06 | - | P2 | horizontal_rule 型不一致 | spine.yaml / vmodel-semantics-spec.md | spine の列挙型を採用 | **resolved (commit pending, spec.md §4.1 enum 化)** |
 | M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | 各 draft.yaml | 上位分類を追加検討 | Phase C 以降 |
 | M-08 | - | P2 | l2-master-sketch.md の DB 詳細記述 | l2-master-sketch.md §3 | 概要のみに留め詳細は Phase C 委譲 | 解消済み (本書起票で対応) |
 
 - M-01〜M-04 (P1 4 件) は PLAN-069 (commit 62ac1cd) で resolved。Phase B 末で確定済み、G3 entry blocker は解消。P2/P3 は Phase C 以降への carry を許容する。
-- M-05〜M-08 は参照の正規化と Phase C への委譲で扱う。
+- M-05 / M-06 (P2 2 件) は L2 設計 doc 整合化として直接 resolved (commit pending)。
+- M-07 (P3) / M-08 (解消済) は Phase C 以降への carry を許容する。
 - 矛盾を消すのではなく、どこで解消するかを明記する。
 
 
