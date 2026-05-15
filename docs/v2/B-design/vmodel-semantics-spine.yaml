@@ -120,6 +120,10 @@ spine:
       min: 0.10
       max: 0.25
 
+baseline_policy_family:
+  snapshot_like: [snapshot, regression_corpus]
+  fixture_like: [golden_fixture, manual_only]
+
 allowed_detectors:
   - axis-01-dead-code-drift
   - axis-02-coverage-erosion

@@ -202,6 +202,16 @@ agent drive は spine に未定義であり、L2 G2 凍結スコープ外とし�
 
 出典: `docs/v2/B-design/vmodel-semantics-spine.yaml` の allowed_values と `docs/v2/B-design/vmodel-semantics-be-draft.yaml` / `docs/v2/B-design/vmodel-semantics-fe-draft.yaml` / `docs/v2/B-design/vmodel-semantics-db-draft.yaml` / `docs/v2/B-design/vmodel-semantics-fullstack-draft.yaml` の test.baseline_policy
 
+#### family 分類
+| baseline_policy | family | 性質 |
+|---|---|---|
+| `snapshot` | `snapshot_like` | 時点 snapshot を期待値とする |
+| `regression_corpus` | `snapshot_like` | 蓄積された corpus を履歴比較する |
+| `golden_fixture` | `fixture_like` | 事前定義された期待値と比較する |
+| `manual_only` | `fixture_like` | 事前定義 / 人手確認に依存する |
+
+出典: `docs/v2/B-design/vmodel-semantics-spine.yaml` の `baseline_policy_family`
+
 ### §3.4 promotion 定義
 | drive | promotion kind | append_only | g2 evidence preserved | 備考 |
 |---|---|---|---|---|
@@ -1553,6 +1563,7 @@ source refs: `docs/commands/twin.md` / `docs/design/D-STATE-SPEC.md` / `docs/v2/
 | agent drive | 未定義 (将来拡張) | 本書の扱い |
 | pair_test_levels | planning→operational / requirement→acceptance / architecture→system_integration / detailed→integration / functional→unit | docs/v2/B-design/vmodel-semantics-spine.yaml:32-39 |
 | baseline_policy set | manual_only / golden_fixture / regression_corpus / snapshot | docs/v2/B-design/vmodel-semantics-spine.yaml:114-121 |
+| baseline_policy family | snapshot_like (snapshot, regression_corpus) / fixture_like (golden_fixture, manual_only) | docs/v2/B-design/vmodel-semantics-spine.yaml (baseline_policy_family) |
 | promotion kind | mock_to_implementation | docs/v2/B-design/vmodel-semantics-spine.yaml:139-145 |
 
 ## §4 工程間遷移条件
@@ -1801,12 +1812,13 @@ L2 のリスクは、遷移条件の曖昧さ、drive 切替時の証跡欠落�
 | M-04 | CI-003 | P1 | role 名不正 | fullstack-draft role 名 | ROLE_MAP 正規名へ置換 | **resolved (PLAN-069, commit 62ac1cd)** |
 | M-05 | CI-001 | P2 | artifact ID とファイル名混在 | 各 draft.yaml | snake_case に統一 | **resolved (commit 9fd9af1, fe-draft state_events 統一)** |
 | M-06 | - | P2 | horizontal_rule 型不一致 | spine.yaml / vmodel-semantics-spec.md | spine の列挙型を採用 | **resolved (commit 9fd9af1, spec.md §4.1 enum 化)** |
-| M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | 各 draft.yaml | 上位分類を追加検討 | Phase C 以降 |
+| M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | spine.yaml | spine に baseline_policy_family (snapshot_like / fixture_like) を追加 | **resolved (commit pending, baseline_policy_family 追加)** |
 | M-08 | - | P2 | l2-master-sketch.md の DB 詳細記述 | l2-master-sketch.md §3 | 概要のみに留め詳細は Phase C 委譲 | 解消済み (本書起票で対応) |
 
-- M-01〜M-04 (P1 4 件) は PLAN-069 (commit 62ac1cd) で resolved。Phase B 末で確定済み、G3 entry blocker は解消。P2/P3 は Phase C 以降への carry を許容する。
+- M-01〜M-04 (P1 4 件) は PLAN-069 (commit 62ac1cd) で resolved。Phase B 末で確定済み、G3 entry blocker は解消。
 - M-05 / M-06 (P2 2 件) は L2 設計 doc 整合化として直接 resolved (commit 9fd9af1)。
-- M-07 (P3) / M-08 (解消済) は Phase C 以降への carry を許容する。
+- M-07 (P3) は spine.yaml に baseline_policy_family を追加して resolved (commit pending)。M-08 は L2 起票で解消済み。
+- 全 known contradictions (M-01〜M-08) は Phase B 末で resolved。Phase C 以降は carry なし。
 - 矛盾を消すのではなく、どこで解消するかを明記する。
 
 

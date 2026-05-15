@@ -125,15 +125,15 @@ Phase 2 で起草された 4 drive draft (`be` / `fe` / `db` / `fullstack`) を 
 | CI-005 | fixture naming | be | fullstack | detailed test artifact が `contract_fixture_set` に対し、fullstack は `api_fixture_set` / `ui_contract_fixture_set`。contract fixture の継承関係が見えない。 | `*_fixture_set` の命名規約を追加し、contract family と api/ui 派生の関係を glossary に定義。 | **resolved (commit 6b69a85, spec.md §4.6 + fullstack family 明示)** |
 | CI-006 | detector contract | all | spine | spine が detector 名の enum を持たず、各 draft だけが事実上の許容集合になっている。CLI validator 実装時に fail-close できない。 | spine に `allowed_detectors` または `detector_catalog_ref` を追加し、番号/意味/適用 layer を凍結する。 | **resolved (PLAN-069, commit 62ac1cd, 17 detector 列挙)** |
 | CI-007 | layer semantics | fe | fullstack | FE requirement は `screen_flow` 中心、fullstack requirement は `capability` 中心。FE 由来要件と API 由来要件の主語が一致していない。 | fullstack requirement を `capability + screen_flow` の複合 review model とし、track_specific へ FE 主語を昇格。 | **resolved (commit 6b69a85, track_specific.fe.review_unit=screen_flow + be.review_unit=capability)** |
-| CI-008 | functional baseline semantics | fe/fullstack | db | functional test は全 drive で `unit` だが、baseline policy は FE/fullstack が `snapshot`、DB が `golden_fixture`。score では同列扱いされるが baseline 性質が異質。 | baseline_policy の横比較を想定するなら `snapshot_like` / `fixture_like` の上位分類を spine に追加。 | open |
+| CI-008 | functional baseline semantics | fe/fullstack | db | functional test は全 drive で `unit` だが、baseline policy は FE/fullstack が `snapshot`、DB が `golden_fixture`。score では同列扱いされるが baseline 性質が異質。 | baseline_policy の横比較を想定するなら `snapshot_like` / `fixture_like` の上位分類を spine に追加。 | **resolved (commit pending, spine.yaml baseline_policy_family 追加)** |
 
 ### 優先度判断
 
-- P1: CI-002, CI-003, CI-006  
+- P1: CI-002, CI-003, CI-006 (全件 resolved)  
   理由: 後続 validator / CLI / schema 実装を直接不安定化する。
-- P2: CI-001, CI-004, CI-005, CI-007  
+- P2: CI-001, CI-004, CI-005, CI-007 (全件 resolved)  
   理由: すぐ壊れはしないが cross-drive compare の可読性を落とす。
-- P3: CI-008  
+- P3: CI-008 (resolved)  
   理由: 現状でも drive 特性として説明可能だが、score 可視化時に解釈差が残る。
 
 ---
@@ -190,9 +190,9 @@ spine required には抵触しないが、cross-drive 運用上の不足はあ�
 
 ### 修正優先順位
 
-- 先行着手: CI-002, CI-003, CI-006
-- 次点: CI-001, CI-004, CI-005
-- 後回し可: CI-007, CI-008
+- 先行着手: CI-002, CI-003, CI-006 (全件 resolved, PLAN-069 commit 62ac1cd)
+- 次点: CI-001, CI-004, CI-005 (全件 resolved, commits 9fd9af1 / 6b69a85)
+- 後回し可: CI-007, CI-008 (CI-007 resolved commit 6b69a85, CI-008 resolved commit pending)
 
 ---
 
