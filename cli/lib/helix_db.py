@@ -811,6 +811,24 @@ CREATE INDEX IF NOT EXISTS idx_automation_runs_started_at ON automation_runs(sta
 """
 
 
+AUDIT_LOG_SCHEMA_V26 = """
+CREATE TABLE IF NOT EXISTS audit_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    audit_kind      TEXT NOT NULL,
+    actor           TEXT NOT NULL,
+    run_id          INTEGER,
+    payload         TEXT NOT NULL,
+    recorded_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (run_id) REFERENCES automation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_kind ON audit_log(audit_kind);
+CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log(actor);
+CREATE INDEX IF NOT EXISTS idx_audit_log_run_id ON audit_log(run_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_recorded_at ON audit_log(recorded_at);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1291,6 +1309,18 @@ def _migrate_v24_to_v25(conn: sqlite3.Connection) -> None:
         immutable_columns=["id", "run_kind", "started_at"],
         terminal_status_column="status",
         terminal_values=["completed", "failed", "cancelled"],
+    )
+
+
+# @helix:index id=helix-db.migrate-v25-to-v26 domain=cli/lib summary=v26 audit_log migration (P0-03 hybrid 方式 B + payload immutable + no_delete)
+def _migrate_v25_to_v26(conn: sqlite3.Connection) -> None:
+    """v26: audit_log + 物理改ざん拒否 trigger (P0-03 hybrid 方式 B)"""
+    if not _has_table(conn, "audit_log"):
+        conn.executescript(AUDIT_LOG_SCHEMA_V26)
+    _create_append_only_trigger(
+        conn,
+        "audit_log",
+        immutable_columns=["payload"],
     )
 
 
