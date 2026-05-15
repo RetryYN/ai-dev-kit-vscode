@@ -1,10 +1,12 @@
 ---
 plan_id: PLAN-070
 title: "PLAN-070: L3 詳細設計 (D-API / D-DB / D-CONTRACT) Phase C 着手"
-status: draft
+status: frozen
 size: L
 drive: fullstack
 created: 2026-05-16
+frozen_at: 2026-05-16
+gate_status: G3_approved
 owner: PM
 phases: L3
 gates: G3
