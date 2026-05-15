@@ -2,7 +2,7 @@
 plan_id: PLAN-070
 title: "PLAN-070: L3 詳細設計 (D-API / D-DB / D-CONTRACT) Phase C 着手"
 status: draft
-size: M
+size: L
 drive: fullstack
 created: 2026-05-16
 owner: PM
@@ -12,11 +12,16 @@ acceptance:
   - L3 D-API draft が capability 別に role 別 endpoint contract / request-response schema / error model を網羅
   - L3 D-DB draft が helix-db v22+ migration (drive 切替記録列 / baseline_policy_family score 計算式 / artifact_links + design_sprint_entries column) を YAML / SQL 草案で示す
   - L3 D-CONTRACT draft が mock_to_implementation promotion hook + functional_freeze enforce point の CLI 契約を明文化
+  - L3 D-API 拡張 draft (Sprint .5) が push/pr trigger endpoint / hook callback / audit endpoint / Stop hook telemetry を扱う
+  - L3 D-DB 拡張 draft (Sprint .6) が push_runs / pr_runs / hook_log / audit_log / session_telemetry の v25+ migration 草案を示す
   - cross-doc 整合性チェック: spine.yaml / fe-draft / fullstack-draft / L2 MASTER §3-§10 と矛盾しないこと
   - G3 entry blocker (M-01〜M-08 + CI-001〜CI-008) の resolved 状態を引き継ぎ、本 PLAN 成果物が新規矛盾を導入しないこと
 related:
   - PLAN-068-vmodel-strengthening-improvements
   - PLAN-069-g3-entry-blocker-resolution (完遂)
+  - PLAN-065-qa-strictness
+  - PLAN-066-security-scan-systematic
+  - PLAN-067-helix-automation-layer
   - docs/v2/L2-MASTER.md (G2 凍結正本)
   - docs/v2/B-design/vmodel-semantics-spine.yaml
   - docs/v2/B-design/helix-db-v21-spec.md (v22+ への接続)
@@ -64,17 +69,19 @@ primary scope: contract / DB / API across be+fe+db+fullstack drives (frontmatter
 
 ## §3 Sprint 構成
 
-本 PLANは A/B/C/D を採用し、HELIX `.N` と対応させる（A=.1, B=.2, C=.3, D=.4）。  
-Sprint 構成は固定 4 とし、SprintD を必須 exit sprint として扱う。  
-4〜5 スプリントの例外拡張ではなく、`PLAN-069` で固定した 4 のみで進める。  
+本 PLAN は A/B/C/D/.5/.6 を採用し、HELIX `.N` と対応させる（A=.1, B=.2, C=.3, D=.4, E=.5, F=.6）。  
+Sprint 構成は既存 A/B/C/D を維持しつつ 6 スプリントへ拡張し、SprintD を必須 exit sprint として最終集約位置に置く。  
+`PLAN-069` で固定した 4 スプリント構造は破壊せず、L3 詳細設計の対象を運用機能まで明示的に広げる。  
 `helix gate G3 --subgate functional_freeze` は be 固定解決で pass 判定するのではなく、fe/fullstack/db を drive 別に評価する（be は起点であり、全体 pass 条件ではない）。
 
 | Sprint | 対象軸 | 主目的 | 成果物 |
 |---|---|---|---|
-| M3-SprintA | D-API | capability 別 contract draft 固定 | endpoint contract / schema / error model の表 |
-| M3-SprintB | D-DB | helix-db v22+ migration 草案 | migration YAML + SQL（draft） |
-| M3-SprintC | D-CONTRACT | promotion + functional_freeze 契約固定 | CLI 契約表 + サンプル実行条件 |
-| M3-SprintD（必須 exit sprint） | 横断 | spine/fn-draft/cross-check 集約 | 検証表 + adversarial review 纏め |
+| M3-SprintA | .1 | D-API | capability 別 contract draft 固定 | endpoint contract / schema / error model の表 |
+| M3-SprintB | .2 | D-DB | helix-db v22+ migration 草案 | migration YAML + SQL（draft） |
+| M3-SprintC | .3 | D-CONTRACT | promotion + functional_freeze 契約固定 | CLI 契約表 + サンプル実行条件 |
+| M3-SprintD（必須 exit sprint） | .4 | 横断 | spine/fn-draft/cross-check 集約 | 検証表 + adversarial review 纏め |
+| M3-SprintE | .5 | D-API 拡張 | 運用機能 endpoint contract 固定 | push/pr/hook/audit/telemetry contract draft |
+| M3-SprintF | .6 | D-DB 拡張 | 運用機能 schema migration v25+ 固定 | automation_runs / audit_log / session_telemetry draft |
 
 ### SprintA（D-API draft）
 
@@ -100,6 +107,48 @@ Sprint 構成は固定 4 とし、SprintD を必須 exit sprint として扱う�
 - `L1-REQUIREMENTS`（AC-15〜AC-16/17, FR-VS01〜VS06.4, P2-4/P2-5/P2-7）および `G3 エントリ前提` と突合し、G3 entry artifact（検証表）を作成する。  
 - `spine / fe-draft / fullstack-draft / v2-gate-overlay / DB migration / CLI 契約` を exit sprint で再確認する。  
 - 新規矛盾が見つかった場合は carry-forward を明示し、受入条件一覧へ再起票要件を記載し adversarial review 用に集約する。  
+
+### M3-SprintE（D-API 拡張）／§3.E
+
+- `cli/helix-push` と `cli/helix-pr` の起点となる運用 endpoint contract を明文化する。  
+- `PreToolUse` / `PostToolUse` / `Stop` hook の callback 契約を endpoint レベルで固定し、hook 実行内部には踏み込まない。  
+- `helix-codex audit/footer` の出力を受ける audit endpoint を定義し、role 別の traceability を保持する。  
+- Stop hook telemetry は session 単位の終了情報を保持し、既存 primitive を再利用する。  
+- 受入は SprintA の primitive（Envelope / ErrorModel / DetectorRef / PairStatusTransition / PromotionHookRef）に参照を固定する。  
+- Non-goals は hook 実装ロジック、CLI parsing 内部、Codex CLI exec wrapper 実装とする。  
+
+#### SprintE endpoint contract
+
+| Method | Path | 用途 | 参照 primitive |
+|---|---|---|---|
+| POST | `/api/v1/automation/push/{plan_id}/trigger` | cli/helix-push 起動 | Envelope / ErrorModel / PromotionHookRef |
+| POST | `/api/v1/automation/pr/{plan_id}/trigger` | cli/helix-pr 起動 | Envelope / ErrorModel / PromotionHookRef |
+| POST | `/api/v1/automation/hooks/{hook_kind}/callback` | PreToolUse / PostToolUse / Stop hook | DetectorRef / PairStatusTransition |
+| POST | `/api/v1/automation/audit/log` | helix-codex audit/footer 受領 | Envelope / ErrorModel |
+| POST | `/api/v1/automation/session/telemetry` | Stop hook telemetry | DetectorRef / PairStatusTransition |
+
+### M3-SprintF（D-DB 拡張）／§3.F
+
+- `push_runs` / `pr_runs` / `hook_runs` を統合する `automation_runs` の v25 提案を示す。  
+- `helix-codex audit` 出力を保持する `audit_log` の v26 提案を示す。  
+- Stop hook 由来の `session_telemetry` の v27 提案を示す。  
+- migration は additive / idempotent / 既存レコード非破壊を維持し、SprintB primitive（MigrationStep / ColumnSpec）に準拠する。  
+- `cli/lib/helix_db.py` 内部実装の詳細変更や既存 schema の rename / drop は Non-goals とする。  
+
+#### SprintF migration draft
+
+| Version | Table | 主要列 |
+|---|---|---|
+| v25 | `automation_runs` | id, run_kind, plan_id, trigger_actor, started_at, ended_at, status, exit_code, summary |
+| v26 | `audit_log` | id, run_id, audit_kind, payload, created_at |
+| v27 | `session_telemetry` | id, session_id, started_at, ended_at, tokens_used, cost_usd, model, role, related_plan_id |
+
+#### SprintF constraints
+
+- `automation_runs` は append-only で、BEFORE UPDATE/DELETE trigger により既存行の変更を禁止する。  
+- `audit_log` は `run_id` FK を持ち、audit_kind は footer / summary / diff_lines を扱う。  
+- `session_telemetry` は related_plan_id を nullable FK とし、終了時集約に再利用可能な形で保持する。  
+- 既存レコード破壊を避けるため、default 値と既存列互換を優先する。  
 
 ## §4 受入条件
 
@@ -182,6 +231,19 @@ Sprint 構成は固定 4 とし、SprintD を必須 exit sprint として扱う�
 - guard 検出器は `docs/v2/B-design/vmodel-semantics-spine.yaml` の `allowed_detectors` と一致させる。  
 - 新規登録した設計項目に `unresolved` 表記を残さず、`resolved` へ遷移してから §7 判定に入る。  
 
+### 4.6 Sprint .5 D-API 拡張受入
+
+- 運用機能 5 endpoint（push / pr / hook / audit / telemetry）の contract が draft で固定されている。  
+- 各 endpoint の path / method / request / response / error が SprintA の primitive に参照されている。  
+- L1 FR-INV01 / FR-GR04 / CON-06 と整合し、hook callback と telemetry で矛盾がない。  
+- FR-INV01 / FR-GR04 / CON-06 の定義は `docs/v2/L1-REQUIREMENTS.md` 参照
+
+### 4.7 Sprint .6 D-DB 拡張受入
+
+- v25 / v26 / v27 migration 草案が SprintB primitive（MigrationStep / ColumnSpec）を参照している。  
+- `automation_runs` / `audit_log` / `session_telemetry` の 3 テーブル DDL と trigger が揃っている。  
+- additive / idempotent / 非破壊であり、既存 `helix.db` schema の rename / drop を含まない。  
+
 ## §5 リスクと対策
 
 ### 5.1 schema migration リスク
@@ -204,10 +266,18 @@ Sprint 構成は固定 4 とし、SprintD を必須 exit sprint として扱う�
 - リスク: D-CONTRACT が hook 実装と同時に誤合体し、Phase E 接続を先取りしてしまう。  
 - 対策: 本 PLAN の非対象を明確化し、D-CONTRACT は CLI 契約（宣言）に限定。  
 
+### 5.5 capability 詳細化遅延リスク
+
+- リスク: Sprint .5 / .6 で carry capability 全量を扱えず、運用機能の数が膨らむ可能性。  
+- 対策: Sprint .5 / .6 は最頻使用 5 endpoint + 3 テーブルに絞り、残りは §7 carry に再列挙して PLAN-071（任意）で詳細化する。  
+
 ## §6 関連 PLAN
 
 - PLAN-068-vmodel-strengthening-improvements: drive / migration / pairing carry の前提として参照。  
 - PLAN-069-g3-entry-blocker-resolution (完遂): M-01〜M-08、CI-001〜CI-008 の整合状態を引き継ぐ。  
+- PLAN-065-qa-strictness: automation_runs.status 評価の参照先。  
+- PLAN-066-security-scan-systematic: audit_log の security 観点の参照先。  
+- PLAN-067-helix-automation-layer: push/pr gate / hook の起点 PLAN。 (SprintE endpoint contract の起点として参照、hook 実行内部実装は §2 Non-goals に従う)
 - L2 MASTER の Phase C / gate / score / baseline_policy 系の受け口を L3 へ転写。  
 - docs/v2/B-design/helix-db-v21-spec.md: v22 への移行条件を前工程で受けたため、v22+ 草案との接続点を明確化。  
 - v21 → v22 移行では additive かつ idempotent を原則にし、既存テーブルの既存 PK/FK を再作成しない。  
@@ -220,3 +290,4 @@ Sprint 構成は固定 4 とし、SprintD を必須 exit sprint として扱う�
 - L2 MASTER §3（5 design × 5 test layer 成果物）と §8（Phase 別責務）を前提に、L3 出力が schema 準備責務内に収まる。  
 - §4 の受入条件が全て充足され、`drive / baseline_policy_family / score / functional_freeze` が cross-doc で照合可能。  
 - `cross-doc 整合性` が未検出であり、`M-01〜M-08 + CI-001〜CI-008` の継続引継ぎが記録される。  
+- Sprint .5 / .6 完了後に SprintD (必須 exit) で全 6 sprint の最終集約検証を実施し、G3 entry 判定はその後に行う。
