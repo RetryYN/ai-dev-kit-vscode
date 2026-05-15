@@ -196,6 +196,15 @@ BEGIN
 END;
 ```
 
+<!-- P0-03 hybrid 判定確定 (Codex tl-advisor 2026-05-16):
+     trigger 方式採用。`_transition_lifecycle_status` helper は app-layer check で
+     terminal guard を実施し、trigger の一時 disable は使わない。
+     正規遷移: pending → running → completed/failed/cancelled -->
+
+<!-- _transition_lifecycle_status app-layer 要件:
+     if OLD.status NOT IN ('completed','failed','cancelled') then UPDATE else RAISE
+     trigger は lifecycle 遷移中も有効。helper が遷移 guard を持つ前提で trigger と二重防御を構成する -->
+
 ### 3.4 Index
 
 ```sql
@@ -255,6 +264,11 @@ BEGIN
     END;
 END;
 ```
+
+<!-- P0-03 hybrid 判定確定 (Codex tl-advisor 2026-05-16): trigger 方式採用。
+     rollback SQL:
+       DROP TRIGGER IF EXISTS trg_audit_log_no_mutate;
+       DROP TRIGGER IF EXISTS trg_audit_log_no_delete; -->
 
 ### 4.4 Index
 
@@ -421,6 +435,31 @@ SprintF は新しい v25/v26/v27 を別系統で積み増すだけで、v23 free
 - `plans` テーブルの正本定義は現時点で未定義であり、確定後に FK 追加を検討する
 - `automation_runs.summary` の formal schema は SprintC で確定する
 - `audit_log.payload` の formal schema は SprintC で確定する
+
+## §8.3 Phase 5 helper 仕様 (新規実装対象)
+
+P0-03 trigger 方式確定に伴い、Phase 5 (L4) で新規実装する helper のシグネチャを以下に定義する。
+
+```python
+def _create_append_only_trigger(
+    conn: sqlite3.Connection,
+    table_name: str,
+    immutable_columns: list[str] | None = None,
+    terminal_status_column: str | None = None,
+    terminal_values: list[str] | None = None,
+) -> None:
+    """
+    table_name に対し append-only 強制 trigger を生成する。
+
+    - immutable_columns: 指定した列の UPDATE を BEFORE UPDATE で拒否
+    - terminal_status_column + terminal_values: terminal status の行への UPDATE 全般を拒否
+    - 常に BEFORE DELETE を生成し、DELETE 拒否
+    - すべて CREATE TRIGGER IF NOT EXISTS で idempotent 化
+    """
+```
+
+- trigger 一時 disable (`PRAGMA`) は使わない。migration sandboxing 違反かつ HELIX append-only 不変条件に反する
+- `_transition_lifecycle_status` 内で app-layer check (terminal guard) を持ち、trigger と二重防御を構成する
 
 ## §9 carry / open questions
 

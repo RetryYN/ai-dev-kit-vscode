@@ -57,7 +57,11 @@ P0 全 9 件を Phase 5 着手前（L4 実装着手チェックリスト通過�
 - **source**: D + A
 - **title**: `_create_append_only_trigger` helper 未実装
 - **内容**: `automation_runs` (v25) および `audit_log` (v26) の append-only 保証に必要な BEFORE UPDATE / BEFORE DELETE trigger 生成 helper が存在しない。レポート A §3 により既存 trigger 実装例はゼロ。レポート A §5.3 が trigger 方式 (P1) と voided_at 方式 (推奨) を示すが、P0-03 は「trigger を使う場合の実装不在」として明示。
-- **対処方針**: TL が trigger 方式か voided_at 方式かを Phase 5 着手前に確定する。trigger 方式採用の場合は `_create_append_only_trigger(conn, table_name)` を新規実装する。voided_at 方式の場合は本 P0 は削除し P1 に格下げ。
+- **対処方針**: **TL 判定済 (2026-05-16 Codex tl-advisor): hybrid 採用**
+  - **v26 audit_log**: trigger 方式 (方式 B) で物理 UPDATE/DELETE 拒否、`CREATE TRIGGER IF NOT EXISTS` で idempotent 化
+  - **v25 automation_runs**: lifecycle helper (`_transition_lifecycle_status`) + 限定 trigger (DELETE 禁止 + immutable 列 [id, run_kind, started_at] + terminal final 強制)。terminal 遷移 (running→completed) で UPDATE 必要のため全面拒否しない
+  - **理由**: audit_log は監査証跡で物理改ざん耐性必須、automation_runs は lifecycle 遷移で UPDATE 必要のため hybrid
+  - **新規 helper**: `_create_append_only_trigger(conn, table_name, immutable_columns=None, terminal_status_column=None, terminal_values=None)` を実装。`IF NOT EXISTS` 必須 / rollback SQL 添付 / pytest `IntegrityError` 固定 (P1-04 統合)
 - **関連 file**: `cli/lib/helix_db.py` (L1210 の v23 `voided_at` pattern 参照)
 
 ### P0-04
@@ -237,11 +241,15 @@ def _migrate_v24_to_v25(conn: sqlite3.Connection) -> None:
 - `status` の CHECK は CREATE TABLE 時に埋め込む (A §5.2 P0 / v21 警告回避)
 - `retry_count / max_retries / last_error` は v9 `jobs` テーブル (A §4) から直接流用
 
-### 4.2 lifecycle 強制方法 (source: A §4 の CHECK constraint pattern)
+### 4.2 lifecycle 強制方法 (source: A §4 + P0-03 hybrid 判定 2026-05-16)
 
 - DB レベルの terminal status 強制: CHECK constraint (CREATE TABLE 時埋め込み)
 - app-layer の遷移制御: P0-02 の `_transition_lifecycle_status` helper で実装
-- BEFORE UPDATE trigger による append-only 強制: P0-03 の TL 判定に依存 (trigger 方式 or voided_at 方式)
+- **BEFORE UPDATE / DELETE trigger による append-only 強制 (hybrid 限定 trigger 採用)**:
+  - DELETE 禁止: `BEFORE DELETE ON automation_runs BEGIN SELECT RAISE(ABORT, 'automation_runs is append-only'); END`
+  - immutable 列 (id / run_kind / started_at): `BEFORE UPDATE OF id, run_kind, started_at ...`
+  - terminal final 強制: `BEFORE UPDATE WHEN OLD.status IN ('completed','failed','cancelled')` で UPDATE 拒否
+  - status `pending → running → terminal` の正規遷移は `_transition_lifecycle_status` helper 経由 (app-layer check)
 
 ### 4.3 流用 helper 関数 (source: D §4.2)
 
@@ -272,16 +280,19 @@ def _migrate_v24_to_v25(conn: sqlite3.Connection) -> None:
 
 ## 5. v26 audit_log 実装ガイド
 
-### 5.1 append-only trigger pattern (source: A §3 + §5.3)
+### 5.1 append-only trigger pattern (source: A §3 + §5.3 + P0-03 hybrid 判定 2026-05-16)
 
-既存 trigger 実装例はゼロ。選択肢は 2 つ:
+**TL 判定結果 (2026-05-16 Codex tl-advisor)**: **方式 2 (trigger 方式) 採用**
 
-**方式 1 (voided_at 方式、推奨)**: v23 の `voided_at TEXT DEFAULT NULL` + `supersedes_entry_id` FK を踏襲し、trigger は使わない。UPDATE 拒否は app-layer で保証。
+理由: audit_log は監査証跡で物理改ざん耐性必須。voided_at 方式 (論理無効化) では監査ログの物理 UPDATE を防げない。
 
-**方式 2 (trigger 方式)**: `BEFORE UPDATE OF payload ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log.payload is immutable'); END` を `_create_append_only_trigger` で生成。
-
-- **P0-03 の TL 判定で方式を確定すること**
-- trigger 方式を採用する場合は `CREATE TRIGGER IF NOT EXISTS` で idempotent に作成 (P1-04)
+**実装**:
+- `_create_append_only_trigger(conn, "audit_log", immutable_columns=["payload"])` を呼び、以下 2 trigger を生成:
+  - `BEFORE UPDATE OF payload ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log.payload is immutable'); END`
+  - `BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END`
+- `CREATE TRIGGER IF NOT EXISTS` で idempotent 化 (P1-04 統合)
+- rollback SQL: `DROP TRIGGER IF EXISTS audit_log_payload_immutable; DROP TRIGGER IF EXISTS audit_log_no_delete;`
+- pytest: `pytest.raises(sqlite3.IntegrityError, match="immutable")` で物理 UPDATE/DELETE 拒否を確認
 
 ### 5.2 既存 invocation_log との型衝突対処 (source: B §4.3 P1-1)
 
@@ -362,8 +373,8 @@ L4 実装着手前に以下の全 P0 が解消済みであることを確認す�
 
 - [ ] P0-01: `_upsert_row(conn, table, data, conflict_column)` を `helix_db.py` に新規実装済み
 - [ ] P0-02: `_transition_lifecycle_status(conn, table, row_id, from_status, to_status, allowed_transitions)` を `helix_db.py` に新規実装済み
-- [ ] P0-03: TL が trigger 方式 / voided_at 方式を確定済み。trigger 方式採用の場合は `_create_append_only_trigger(conn, table_name)` を実装済み
-- [ ] P0-04: `cli/lib/push_gate.py` を Read し `run_all_gates()` のシグネチャと戻り値型を D-API / D-CONTRACT に反映済み
+- [x] P0-03: TL 判定済 (2026-05-16): **hybrid 採用** (v26 audit_log=trigger 方式 / v25 automation_runs=lifecycle helper + 限定 trigger)。`_create_append_only_trigger(conn, table_name, immutable_columns=None, terminal_status_column=None, terminal_values=None)` を Phase 5 で新規実装する
+- [x] P0-04: `cli/lib/push_gate.py` を Read し `run_all_gates()` のシグネチャと戻り値型を D-API / D-CONTRACT に反映済み (commit-pending) — 2026-05-16
 - [ ] P0-05: `_migrate_v23_to_v24` 内に `_has_table(conn, "design_sprint_drive_decisions")` guard を配置することを委譲 prompt に明記済み
 - [ ] P0-06: `AUTOMATION_RUNS_SCHEMA_V25` 定数を定義し、CHECK constraint を CREATE TABLE DDL に直接記述することを委譲 prompt に明記済み
 - [ ] P0-07: `CURRENT_SCHEMA_VERSION` を 27 に更新する際に `test_helix_db_v19.py` / `v22.py` / `v23.py` の assert を一括更新することを委譲 prompt に明記済み

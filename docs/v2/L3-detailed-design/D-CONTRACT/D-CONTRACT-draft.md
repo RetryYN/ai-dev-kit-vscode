@@ -487,6 +487,80 @@ plan_id=PLAN-070 drive=fullstack size=L pair_status=paired approved_by=pm
 | judgment | yes | gate runner |
 | approved_by | yes | waiver path |
 
+## §4.5 push_gate_contract (P0-04 反映、2026-05-16)
+
+### 4.5.1 `run_all_gates()` 関数契約
+
+実測シグネチャ (`cli/lib/push_gate.py` L291-324 Read 確認済み):
+
+```yaml
+push_gate_run_all_gates:
+  function: run_all_gates
+  module: cli.lib.push_gate
+  arguments:
+    execute:
+      type: boolean
+      default: false
+      description: "true 時かつ全 gate PASS 時のみ git push を実行"
+    remote:
+      type: string
+      default: "origin"
+    branch:
+      type: string
+      default: "main"
+  return_type: dict
+  return_keys:
+    ok: { type: boolean, description: "全 gate PASS かつ push 成功 (execute=true 時)" }
+    failed_count: { type: integer, minimum: 0 }
+    gates:
+      type: array
+      items:
+        type: object
+        required: [id, passed, detail, fix]
+        properties:
+          id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+          passed: { type: boolean }
+          detail: { type: string }
+          fix: { type: string }
+    execute_requested: { type: boolean }
+    remote: { type: string }
+    branch: { type: string }
+    push:
+      type: object
+      required: [attempted, ok, detail]
+      properties:
+        attempted: { type: boolean }
+        ok: { type: boolean }
+        detail: { type: string }
+  side_effects:
+    helix_db_write: false
+    git_push: "execute=true かつ全 gate PASS 時のみ実行"
+    stdout: "main() 経由の _print_report() のみ。run_all_gates() 直接呼び出しでは stdout 出力なし"
+```
+
+### 4.5.2 既存 CLI 呼び出し pattern (caller signature)
+
+```yaml
+existing_cli_callers:
+  helix_push:
+    file: cli/helix-push
+    pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH]"
+    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper"
+  helix_pr:
+    file: cli/helix-pr
+    pattern: "inspect.signature(run_all_gates).parameters で動的キーワード確認後に呼び出し (L147-153)"
+    note: "Python import 経由で run_all_gates() を直接呼ぶ"
+```
+
+### 4.5.3 endpoint 呼び出しとの差分
+
+| 観点 | 既存 CLI (helix-push / helix-pr) | 新規 endpoint (push_trigger / pr_trigger) |
+|------|--------------------------------|------------------------------------------|
+| 呼び出し方式 | subprocess / Python import | endpoint がサーバー内で Python import 呼び出し |
+| helix.db 書き込み | なし | endpoint 側で automation_runs に INSERT |
+| stdout | _print_report() で表示 | レスポンス JSON に変換して返却 |
+| git push 実行 | execute フラグに従う | execute フラグに従う (同一ロジック) |
+
 ## §5 cross-doc 整合性
 
 ### 5.1 整合対象

@@ -70,6 +70,14 @@ Sprint A §2.0 の primitive を再利用し、新規 primitive は追加しな�
 - path: `/api/v1/automation/push/{plan_id}/trigger`
 - method: `POST`
 - 起源: PLAN-067 helix-automation-layer
+- 実装根拠: `cli/lib/push_gate.py` `run_all_gates()` L291-324 (Read 確認済み、2026-05-16 P0-04)
+
+**`run_all_gates()` シグネチャ (実測値)**:
+- 引数: `execute: bool = False, remote: str = "origin", branch: str = "main"` (全オプション)
+- 戻り値: `dict` — キー `ok / failed_count / gates / execute_requested / remote / branch / push`
+- `gates`: `list[{id: str, passed: bool, detail: str, fix: str}]` — id は `G-tests / G-catalog / G-secret / G-ff / G-attr / G-nondestructive`
+- `push`: `{attempted: bool, ok: bool, detail: str}`
+- side effect: `execute=True` + 全 gate PASS 時のみ `git push` を実行。helix.db 書き込みなし
 
 ```yaml
 path_schema:
@@ -93,15 +101,13 @@ header_schema:
   additionalProperties: false
 request_schema:
   type: object
-  required: [commit_sha, branch, trigger_actor, gates_requested]
+  required: [commit_sha, branch, trigger_actor, execute]
   properties:
     commit_sha: { type: string, minLength: 7, maxLength: 64 }
     branch: { type: string, minLength: 1, maxLength: 128 }
     trigger_actor: { type: string, minLength: 1, maxLength: 128 }
-    gates_requested:
-      type: array
-      items: { type: string, enum: [G2, G3, G4, G5, G6, G7] }
-      minItems: 1
+    execute: { type: boolean, default: false }
+    remote: { type: string, default: "origin" }
     promotion_hook: { $ref: '#/components/schemas/PromotionHookRef' }
   additionalProperties: false
 response_schema:
@@ -111,27 +117,38 @@ response_schema:
       properties:
         data:
           type: object
-          required: [run_id, status, gate_results, exit_code, pair_transition]
+          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, push, pair_transition]
           properties:
             run_id: { type: integer }
-            status: { type: string, enum: [running, passed, failed, blocked, cancelled] }
+            ok: { type: boolean }
+            failed_count: { type: integer, minimum: 0 }
+            execute_requested: { type: boolean }
+            remote: { type: string }
+            branch: { type: string }
             gate_results:
               type: array
+              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive"
               items:
                 type: object
-                required: [gate, verdict, detector_refs]
+                required: [id, passed, detail, fix]
                 properties:
-                  gate: { type: string }
-                  verdict: { type: string, enum: [pass, warn, fail] }
-                  detector_refs:
-                    type: array
-                    items: { $ref: '#/components/schemas/DetectorRef' }
+                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+                  passed: { type: boolean }
+                  detail: { type: string }
+                  fix: { type: string }
+            push:
+              type: object
+              required: [attempted, ok, detail]
+              properties:
+                attempted: { type: boolean }
+                ok: { type: boolean }
+                detail: { type: string }
             pair_transition: { $ref: '#/components/schemas/PairStatusTransition' }
-            exit_code: { type: integer }
       additionalProperties: false
 ```
 
 - `pair_transition` は push 実行で常時返却し、pair / gate 遷移を response data に明示する。
+- `gate_results[].id` は `run_all_gates()` 戻り値の `gates[].id` と 1:1 対応する。HELIX フェーズゲート (G2/G3...) とは別体系であることに注意。
 - error_codes: 400 / 401 / 404 / 409 / 500
 
 ### 3.2 pr trigger endpoint
@@ -139,6 +156,7 @@ response_schema:
 - path: `/api/v1/automation/pr/{plan_id}/trigger`
 - method: `POST`
 - 起源: PLAN-067 helix-automation-layer
+- 実装根拠: `cli/lib/push_gate.py` `run_all_gates()` L291-324 (Read 確認済み、2026-05-16 P0-04)。push/pr は同一 `run_all_gates()` を呼ぶ共通 gate 体系を持つ。
 
 ```yaml
 path_schema:
@@ -163,15 +181,13 @@ header_schema:
   additionalProperties: false
 request_schema:
   type: object
-  required: [commit_sha, branch, trigger_actor, gates_requested]
+  required: [commit_sha, branch, trigger_actor, execute]
   properties:
     commit_sha: { type: string, minLength: 7, maxLength: 64 }
     branch: { type: string, minLength: 1, maxLength: 128 }
     trigger_actor: { type: string, minLength: 1, maxLength: 128 }
-    gates_requested:
-      type: array
-      items: { type: string, enum: [G2, G3, G4, G5, G6, G7] }
-      minItems: 1
+    execute: { type: boolean, default: false }
+    remote: { type: string, default: "origin" }
     promotion_hook: { $ref: '#/components/schemas/PromotionHookRef' }
     pair_transition: { $ref: '#/components/schemas/PairStatusTransition' }
   additionalProperties: false
@@ -182,26 +198,37 @@ response_schema:
       properties:
         data:
           type: object
-          required: [run_id, status, gate_results, exit_code]
+          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, push]
           properties:
             run_id: { type: integer }
-            status: { type: string, enum: [running, passed, failed, blocked, cancelled] }
+            ok: { type: boolean }
+            failed_count: { type: integer, minimum: 0 }
+            execute_requested: { type: boolean }
+            remote: { type: string }
+            branch: { type: string }
             gate_results:
               type: array
+              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive"
               items:
                 type: object
-                required: [gate, verdict, detector_refs]
+                required: [id, passed, detail, fix]
                 properties:
-                  gate: { type: string }
-                  verdict: { type: string, enum: [pass, warn, fail] }
-                  detector_refs:
-                    type: array
-                    items: { $ref: '#/components/schemas/DetectorRef' }
-            exit_code: { type: integer }
+                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+                  passed: { type: boolean }
+                  detail: { type: string }
+                  fix: { type: string }
+            push:
+              type: object
+              required: [attempted, ok, detail]
+              properties:
+                attempted: { type: boolean }
+                ok: { type: boolean }
+                detail: { type: string }
       additionalProperties: false
 ```
 
-- pr trigger は query の `force` / `dry_run` / `auto_merge` と request body の `gates_requested` に分離し、`G8` は本 draft では扱わない。
+- pr trigger は query の `force` / `dry_run` / `auto_merge` と request body の `execute` / `remote` に分離し、`G8` は本 draft では扱わない。
+- `gate_results[].id` は push trigger と同一の 6-gate 体系 (G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive) である。
 - error_codes: 400 / 401 / 404 / 409 / 500
 
 ### 3.3 hook callback endpoint
