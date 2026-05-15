@@ -7,7 +7,10 @@
 | 文書種別 | L2 全体設計 正本 |
 | 対象 | HELIX V2 構造改革の V-model 強化部分 |
 | 作成日 | 2026-05-15 |
-| 状態 | draft |
+| 状態 | frozen |
+| gate_status | G2_approved |
+| frozen_at | 2026-05-16 |
+| 凍結根拠 | L2 §12 known contradictions (M-01〜M-08) + cross-drive-integrity-check (CI-001〜CI-008) 全 16 件 resolved。pmo-sonnet / Codex tl-advisor 並列 review APPROVE。 |
 | 参照正本 | CONCEPT / L1-REQUIREMENTS / v2-gate-overlay / vmodel-semantics spine + 4 draft |
 
 ## §0 スコープと前提
