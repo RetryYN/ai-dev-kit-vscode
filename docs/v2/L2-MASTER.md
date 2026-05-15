@@ -148,6 +148,24 @@ flowchart TD
 
 Phase C は DB 詳細を確定する場所ではなく、schema 準備の責務を持つ。詳細の SQL、index、migration 手順は L3 へ移す。
 
+### §2.5 Phase 期間目安
+
+| Phase | size=S 目安 | size=M 目安 | size=L 目安 | 主成果物 |
+|---|---|---|---|---|
+| Phase A (audit) | 0.5 sprint | 1 sprint | 1-2 sprint | docs/v2/A-audit/ 4 doc |
+| Phase B (design draft) | 0.5 sprint | 1-2 sprint | 2-3 sprint | spine + drafts + L2 MASTER |
+| Phase C (db extend) | 0.5 sprint | 1 sprint | 1-2 sprint | helix-db v22/v23 migration |
+| Phase D (hook impl) | 0.5 sprint | 1 sprint | 1-2 sprint | PostToolUse hook + 5 層介入 |
+| Phase E (UI) | 0.5 sprint | 1 sprint | 1-2 sprint | dashboard / monitor |
+| Phase F (verification) | 0.5 sprint | 1 sprint | 1-2 sprint | bats + pytest matrix |
+| Phase G (FE axis) | 0.5 sprint | 1 sprint | 1-2 sprint | FE 5 axis detector |
+| Phase H (agent defer) | - | - | - | Phase G 以降の拡張候補 |
+| Phase J (dogfood) | 0.5 sprint | 0.5-1 sprint | 1 sprint | G2/G3 後の最終検証 |
+
+- 上記は L2 レベルの目安であり、具体的な week 数 / sprint 内訳は L3 工程表で展開する。
+- 1 sprint = 1-2 week を標準とし、project 単位で変動する。
+- size 判定は L1 G1 通過時に確定する (`helix size` 出力)。
+
 ## §3 5 design × 5 test layer 成果物リスト
 この章は spine.yaml と 4 つの drive draft から抽出した成果物カタログである。共通骨格、drive 別 variant、baseline policy、promotion 規則を分けて記述し、最後に drive/layer ごとの抽出ログを付ける。
 
@@ -171,7 +189,7 @@ Phase C は DB 詳細を確定する場所ではなく、schema 準備の責務�
 | `detailed` | `api_contract` / `service_flow` / `error_contract` | `component_props` / `props_contract` / `a11y_requirement` | `table_schema` / `column_definitions` / `index_strategy` | `api_contract` / `service_flow` / `error_contract` | 未定義 (将来拡張) |
 | `functional` | `function_contract` / `code_symbol_map` / `edge_case_matrix` | `component_impl` / `snapshot_fixture` / `visual_baseline` | `stored_procedure_spec` / `view_definition` / `trigger_spec` | `function_contract` / `api_handler_map` / `component_impl_map` | 未定義 (将来拡張) |
 
-agent drive は spine に未定義であり、Section 2 の phase 群では Phase G 以降の拡張候補としてのみ扱う。
+agent drive は spine に未定義であり、L2 G2 凍結スコープ外として Phase H 以降に defer する。本書時点では 4 drive (be / fe / db / fullstack) を G2 凍結対象とし、agent は将来拡張候補としてのみ扱う。
 
 ### §3.3 baseline_policy 表
 | test layer | be | fe | db | fullstack |
@@ -1540,6 +1558,15 @@ source refs: `docs/commands/twin.md` / `docs/design/D-STATE-SPEC.md` / `docs/v2/
 ## §4 工程間遷移条件
 pair_status と functional_freeze の遷移は、G2/G3 の停止条件そのものとして扱う。後退は禁止し、waived は例外記録が揃った場合のみ通過扱いにする。
 
+### §4.x requires_functional_freeze の意味論
+
+`requires_functional_freeze` flag は以下の区別で扱う:
+
+- **drive-level flag** (`drive.requires_functional_freeze`): 当該 drive 全体が functional_freeze 適用対象であることを示す宣言。spine.yaml で `size=L × drive in (fe, fullstack, db)` 等を固定する。
+- **layer-level enforcement** (`pair.requires_functional_freeze`): G3 subgate `functional_freeze` の実 enforce 対象。`functional` layer の design × `unit` layer の test が `pair_status=paired` であることを検査する。
+
+G3 subgate の実 enforce 対象は **layer-level の functional/unit pair のみ**。drive-level flag は宣言であり、enforce そのものではない。実装時に両者を混同しないこと。
+
 | 状態遷移 | 可否 | 扱い | 備考 |
 |---|---|---|---|
 | pending → design_only | 可 | 通常 | 設計側だけが先行した状態 |
@@ -1548,7 +1575,7 @@ pair_status と functional_freeze の遷移は、G2/G3 の停止条件そのも�
 | test_only → paired | 可 | 通常 | 対応設計側が揃った |
 | pending → waived | 可 | 例外 | PM 承認を要する |
 | design_only/test_only → waived | 可 | 例外 | waived_reason 必須 |
-| paired → waived | 可 | 例外 | 再審時のみ、再審証跡必須 |
+| paired → waived | 可 | 例外 | 再審時のみ、再審証跡必須。L1-REQUIREMENTS.md の遷移図には未記載のため L2-only refinement として `waived_reason` を必須化する。L1 側追記は次回 L1 改訂で対応 |
 | paired → design_only/test_only | 不可 | fail-close | 後退禁止 |
 | paired → failed | 可 | fail-close | 重大阻害時のみ |
 | failed → waived | 不可 | fail-close | 再申請からやり直し |
@@ -1652,6 +1679,21 @@ drive を切り替えるときは、preserved / waived / failed のどれで扱�
 - fullstack twin_track では be track と fe track を独立した pair_status で管理し、contract_freeze を必須にする。
 - FE の mock_to_implementation は append-only のまま evidence を保全し、AC-16 の証跡条件を満たす。
 
+### §8.x drive 切替時の必須記録項目 (L3 schema 委譲)
+
+drive 切替時の append-only 証跡として、L3 schema (helix-db v22+) で以下の列を必須化する:
+
+| 列 | 型 | 用途 |
+|---|---|---|
+| `source_entry_id` | string | 切替元の design_sprint_entry ID |
+| `target_entry_id` | string | 切替後の design_sprint_entry ID (preserved/waived の場合) |
+| `decision` | enum | preserved / waived / failed |
+| `decided_by` | string | 判定者 role |
+| `reason` | string | 判定理由 (waived_reason と整合) |
+| `reopen_condition` | string | failed の場合に再開可能となる条件 (任意) |
+
+L2 では概念のみ定義し、列名・型・migration は L3 で確定する。
+
 ## §9 Reverse / Scrum 接続点
 Reverse と Scrum は Forward と異なる起源を持つが、L2 では origin_mode / evidence_status / direction を同じ枠で扱う。書き戻しの単位を固定し、確認済みのものだけが Forward の gate に接続できる。
 
@@ -1674,13 +1716,29 @@ Reverse と Scrum は Forward と異なる起源を持つが、L2 では origin_
 - Scrum は confirmed 前に Forward gate の対象とせず、confirmed 後に接続する。
 - sync は Forward / Reverse / Scrum を同型に扱うかの論点であり、L2 では課題として残す。
 
+## §9.5 guard policy 一覧
+
+G2 凍結条件 §10 が参照する閾値・policy 値の本文裏付けを以下に固定する。
+
+| guard | 対象 | 閾値 | 適用条件 |
+|---|---|---|---|
+| code coverage 80% | core5 (cli/lib 内 5 file) | `helix code stats --scope core5 --fail-under 80` | G4 通過条件 / coverage_eligible bucket のみ母集団 |
+| pair_status=paired 100% | 各 drive × 各 layer pair | functional_freeze 対象 layer は G3 entry blocker | size=L 必須、size=S/M は waived_reason 必須 |
+| score_weight 合計 1.00 | 5 layer の重み合計 | 0.10 / 0.20 / 0.25 / 0.20 / 0.25 = 1.00 | spine.yaml で固定、変更時は ADR 必須 |
+| detector enum allowed | spine.yaml detector | M-02 解消後に正本化 | G3 entry blocker (M-02 参照) |
+
+- 80% guard は coverage gate であり、coverage_eligible bucket (PLAN-013 taxonomy) のみを母集団とする。private_helper / excluded bucket は分母から除外する。
+- 100% guard は pair 凍結率であり、layer 単位の pair_status を `paired` または明示 `waived` に固定する。`pending` のまま G3 通過は不可。
+- 上記閾値は本書の正本値とし、L3 詳細設計で個別 sprint に展開する。
+
 ## §10 G2 凍結条件
 G2 は L2 設計凍結のゲートである。ここでは review item を明示し、AC-01〜17 のうち何を確認するかを固定する。
 
 | review item | 確認内容 | 通過条件 |
 |---|---|---|
 | phase dependency map | Phase A〜J の接続 | 矛盾なし |
-| 5 layer × 5 drive | role / validator / track の対応 | 定義済み |
+| 5 layer × 4 drive | role / validator / track の対応 (be/fe/db/fullstack) | 定義済み |
+| agent drive | Phase H 以降 defer | spine 未定義、G2 凍結スコープ外 |
 | 4 layer chain | contract → code → test_design → test_baseline | 一体設計 |
 | drive 列 / lifecycle 列 | 列存在の確認 | 正本と整合 |
 | auto-record / auto-detect | 接続経路 | 省略なし |
@@ -1737,16 +1795,16 @@ L2 のリスクは、遷移条件の曖昧さ、drive 切替時の証跡欠落�
 
 | ID | CI 番号 | priority | 問題 | 出典 | 採用方針 | 解消フェーズ |
 |---|---|---|---|---|---|---|
-| M-01 | - | P1 | origin_mode 値不一致 | spine.yaml / helix-db-v21-spec.md | spine の forward/reverse/scrum を正本採用 | Phase C |
-| M-02 | CI-006 | P1 | detector enum 未定義 | spine.yaml detector 定義不足 | spine に allowed_detectors を追加 | Phase B/C |
-| M-03 | CI-002 | P1 | promotion schema 非対称 | fe-draft / fullstack-draft | fe-draft を正本にして fullstack を揃える | Phase B |
-| M-04 | CI-003 | P1 | role 名不正 | fullstack-draft role 名 | ROLE_MAP 正規名へ置換 | Phase B |
+| M-01 | - | P1 | origin_mode 値不一致 | spine.yaml / helix-db-v21-spec.md | spine の forward/reverse/scrum を正本採用 | **G3 entry blocker / Phase B 末で確定** |
+| M-02 | CI-006 | P1 | detector enum 未定義 | spine.yaml detector 定義不足 | spine に allowed_detectors を追加 | **G3 entry blocker / Phase B 末で確定** |
+| M-03 | CI-002 | P1 | promotion schema 非対称 | fe-draft / fullstack-draft | fe-draft を正本にして fullstack を揃える | **G3 entry blocker / Phase B 末で確定** |
+| M-04 | CI-003 | P1 | role 名不正 | fullstack-draft role 名 | ROLE_MAP 正規名へ置換 | **G3 entry blocker / Phase B 末で確定** |
 | M-05 | CI-001 | P2 | artifact ID とファイル名混在 | 各 draft.yaml | snake_case に統一 | Phase B/C |
 | M-06 | - | P2 | horizontal_rule 型不一致 | spine.yaml / vmodel-semantics-spec.md | spine の列挙型を採用 | Phase B |
 | M-07 | CI-008 | P3 | functional baseline_policy の drive 間差 | 各 draft.yaml | 上位分類を追加検討 | Phase C 以降 |
 | M-08 | - | P2 | l2-master-sketch.md の DB 詳細記述 | l2-master-sketch.md §3 | 概要のみに留め詳細は Phase C 委譲 | 解消済み (本書起票で対応) |
 
-- M-01〜M-04 は G3 実装前に解消必須とする。
+- M-01〜M-04 (P1 4 件) は G3 entry blocker として扱う。Phase B 末までに全件 resolved にし、G3 着手前に再評価する。P2/P3 は Phase C 以降への carry を許容する。
 - M-05〜M-08 は参照の正規化と Phase C への委譲で扱う。
 - 矛盾を消すのではなく、どこで解消するかを明記する。
 
