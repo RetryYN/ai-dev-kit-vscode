@@ -1888,6 +1888,13 @@ def _validate_positive_int(value, field_name):
     return value
 
 
+def _validate_identifier(value, field_name):
+    value = _require_non_empty(value, field_name)
+    if not _IDENTIFIER_RE.fullmatch(value):
+        raise ValueError(f"invalid {field_name}: {value!r}")
+    return value
+
+
 def _validate_optional_choice(value, field_name, allowed_values):
     if value is None:
         return None
@@ -1898,6 +1905,192 @@ def _validate_dict_payload(value, field_name):
     if not isinstance(value, dict):
         raise ValueError(f"{field_name} must be a dict")
     return value
+
+
+def _table_columns(conn, table_name):
+    table_name = _validate_identifier(table_name, "table_name")
+    rows = conn.execute(f"PRAGMA table_info({_quote_identifier(table_name)})").fetchall()
+    if not rows:
+        raise ValueError(f"unknown table: {table_name}")
+    return table_name, rows
+
+
+# @helix:index id=helix-db.upsert-row domain=cli/lib summary=UPSERT helper for UNIQUE-constrained tables
+def _upsert_row(conn, table, data, conflict_column):
+    table_name, rows = _table_columns(conn, table)
+    payload = _validate_dict_payload(data, "data").copy()
+    conflict_column = _validate_identifier(conflict_column, "conflict_column")
+    if conflict_column not in payload:
+        raise ValueError(f"missing conflict column: {conflict_column}")
+    if not payload:
+        raise ValueError("upsert payload is empty")
+
+    valid_columns = {row["name"] if isinstance(row, sqlite3.Row) else row[1] for row in rows}
+    if conflict_column not in valid_columns:
+        raise ValueError(f"unknown column: {table_name}.{conflict_column}")
+
+    for key in payload:
+        _validate_identifier(key, f"{table_name} column")
+        if key not in valid_columns:
+            raise KeyError(f"unknown column: {table_name}.{key}")
+
+    columns = list(payload.keys())
+    quoted_columns = [_quote_identifier(column) for column in columns]
+    placeholders = ", ".join(["?"] * len(columns))
+    update_targets = columns if len(columns) == 1 else [column for column in columns if column != conflict_column]
+    if not update_targets:
+        update_targets = [conflict_column]
+    update_clause = ", ".join(
+        f"{_quote_identifier(column)} = excluded.{_quote_identifier(column)}"
+        for column in update_targets
+    )
+    sql = (
+        f"INSERT INTO {_quote_identifier(table_name)} ({', '.join(quoted_columns)}) "
+        f"VALUES ({placeholders}) "
+        f"ON CONFLICT({_quote_identifier(conflict_column)}) DO UPDATE SET {update_clause}"
+    )
+    values = [payload[column] for column in columns]
+    conn.execute(sql, values)
+    row = conn.execute(
+        f"SELECT rowid FROM {_quote_identifier(table_name)} "
+        f"WHERE {_quote_identifier(conflict_column)} = ?",
+        (payload[conflict_column],),
+    ).fetchone()
+    if row is None:
+        raise sqlite3.IntegrityError(f"upsert failed for {table_name}.{conflict_column}")
+    return int(row[0])
+
+
+# @helix:index id=helix-db.transition-lifecycle-status domain=cli/lib summary=lifecycle status transition helper
+def _transition_lifecycle_status(conn, table, row_id, from_status, to_status, allowed_transitions):
+    table_name, rows = _table_columns(conn, table)
+    row_id = _validate_positive_int(row_id, "row_id")
+    from_status = _require_non_empty(from_status, "from_status")
+    to_status = _require_non_empty(to_status, "to_status")
+    if not isinstance(allowed_transitions, dict):
+        raise ValueError("allowed_transitions must be a dict")
+
+    valid_columns = {row["name"] if isinstance(row, sqlite3.Row) else row[1] for row in rows}
+    if "status" not in valid_columns:
+        raise ValueError(f"unknown column: {table_name}.status")
+
+    current_row = conn.execute(
+        f"SELECT rowid, {_quote_identifier('status')} FROM {_quote_identifier(table_name)} WHERE rowid = ?",
+        (row_id,),
+    ).fetchone()
+    if current_row is None:
+        raise ValueError(f"row_id does not exist: {row_id}")
+
+    current_status = current_row["status"] if isinstance(current_row, sqlite3.Row) else current_row[1]
+    if current_status != from_status:
+        raise sqlite3.IntegrityError(
+            f"status mismatch: expected {from_status} got {current_status}"
+        )
+
+    next_statuses = allowed_transitions.get(from_status)
+    if not next_statuses or to_status not in next_statuses:
+        raise sqlite3.IntegrityError(
+            f"invalid lifecycle transition: {from_status} -> {to_status}"
+        )
+
+    assignments = ['status = ?']
+    params = [to_status]
+    if "updated_at" in valid_columns:
+        assignments.append("updated_at = ?")
+        params.append(datetime.now().isoformat())
+    params.append(row_id)
+    conn.execute(
+        f"UPDATE {_quote_identifier(table_name)} "
+        f"SET {', '.join(assignments)} "
+        f"WHERE rowid = ?",
+        params,
+    )
+    return True
+
+
+def _sql_string_literal(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+# @helix:index id=helix-db.create-append-only-trigger domain=cli/lib summary=append-only trigger helper for SQLite tables
+def _create_append_only_trigger(
+    conn,
+    table_name,
+    immutable_columns=None,
+    terminal_status_column=None,
+    terminal_values=None,
+):
+    table_name, rows = _table_columns(conn, table_name)
+    valid_columns = {row["name"] if isinstance(row, sqlite3.Row) else row[1] for row in rows}
+    immutable_columns = list(immutable_columns) if immutable_columns is not None else None
+    terminal_values = list(terminal_values) if terminal_values is not None else None
+
+    if immutable_columns == []:
+        raise ValueError("immutable_columns must not be empty")
+    if terminal_values is not None and terminal_status_column is None:
+        raise ValueError("terminal_status_column is required when terminal_values is set")
+    if terminal_values == []:
+        raise ValueError("terminal_values must not be empty")
+
+    trigger_specs = [
+        (
+            f"{table_name}_no_delete",
+            f"""
+CREATE TRIGGER IF NOT EXISTS {_quote_identifier(f"{table_name}_no_delete")}
+BEFORE DELETE ON {_quote_identifier(table_name)}
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, {_sql_string_literal(f"{table_name} is append-only")});
+END
+""".strip(),
+        )
+    ]
+
+    if immutable_columns is not None:
+        for column in immutable_columns:
+            column = _validate_identifier(column, "immutable_column")
+            if column not in valid_columns:
+                raise ValueError(f"unknown column: {table_name}.{column}")
+            trigger_name = f"{table_name}_{column}_immutable"
+            trigger_specs.append(
+                (
+                    trigger_name,
+                    f"""
+CREATE TRIGGER IF NOT EXISTS {_quote_identifier(trigger_name)}
+BEFORE UPDATE OF {_quote_identifier(column)} ON {_quote_identifier(table_name)}
+FOR EACH ROW
+WHEN OLD.{_quote_identifier(column)} IS NOT NEW.{_quote_identifier(column)}
+BEGIN
+    SELECT RAISE(ABORT, {_sql_string_literal(f"{table_name}.{column} is immutable")});
+END
+""".strip(),
+                )
+            )
+
+    if terminal_status_column is not None and terminal_values is not None:
+        terminal_status_column = _validate_identifier(terminal_status_column, "terminal_status_column")
+        if terminal_status_column not in valid_columns:
+            raise ValueError(f"unknown column: {table_name}.{terminal_status_column}")
+        validated_values = [_require_non_empty(value, "terminal_value") for value in terminal_values]
+        trigger_name = f"{table_name}_terminal_final"
+        terminal_list = ", ".join(_sql_string_literal(value) for value in validated_values)
+        trigger_specs.append(
+            (
+                trigger_name,
+                f"""
+CREATE TRIGGER IF NOT EXISTS {_quote_identifier(trigger_name)}
+BEFORE UPDATE ON {_quote_identifier(table_name)}
+FOR EACH ROW
+WHEN OLD.{_quote_identifier(terminal_status_column)} IN ({terminal_list})
+BEGIN
+    SELECT RAISE(ABORT, {_sql_string_literal(f"{table_name} terminal status is final")});
+END
+""".strip(),
+            )
+        )
+
+    for _, sql in trigger_specs:
+        conn.execute(sql)
 
 
 def _savepoint_name(prefix: str) -> str:
