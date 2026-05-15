@@ -181,7 +181,7 @@ Sprint 構成は既存 A/B/C/D を維持しつつ 6 スプリントへ拡張し�
     type: text
     constraints:
       - not null
-      - enum: [accept, defer, reject]
+      - enum: [preserved, waived, failed]  # L2 §8.x master 統一
       - immutable: true
   decided_by:
     type: text
