@@ -829,6 +829,26 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_recorded_at ON audit_log(recorded_at);
 """
 
 
+SESSION_TELEMETRY_SCHEMA_V27 = """
+CREATE TABLE IF NOT EXISTS session_telemetry (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id          TEXT NOT NULL UNIQUE,
+    started_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at            TEXT,
+    actor               TEXT NOT NULL,
+    related_plan_id     TEXT,
+    tool_uses_count     INTEGER NOT NULL DEFAULT 0,
+    tokens_total        INTEGER NOT NULL DEFAULT 0,
+    cost_usd            REAL NOT NULL DEFAULT 0.0,
+    last_updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_telemetry_actor ON session_telemetry(actor);
+CREATE INDEX IF NOT EXISTS idx_session_telemetry_started_at ON session_telemetry(started_at);
+CREATE INDEX IF NOT EXISTS idx_session_telemetry_related_plan ON session_telemetry(related_plan_id);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1322,6 +1342,13 @@ def _migrate_v25_to_v26(conn: sqlite3.Connection) -> None:
         "audit_log",
         immutable_columns=["payload"],
     )
+
+
+# @helix:index id=helix-db.migrate-v26-to-v27 domain=cli/lib summary=v27 session_telemetry migration (session_id UNIQUE + UPSERT 対応)
+def _migrate_v26_to_v27(conn: sqlite3.Connection) -> None:
+    """v27: session_telemetry テーブル (session_id UNIQUE, UPSERT 対応)"""
+    if not _has_table(conn, "session_telemetry"):
+        conn.executescript(SESSION_TELEMETRY_SCHEMA_V27)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
