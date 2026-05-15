@@ -765,6 +765,30 @@ CREATE TABLE IF NOT EXISTS design_sprint_artifact_links (
 """
 
 
+DESIGN_SPRINT_DRIVE_DECISIONS_SCHEMA_V24 = """
+CREATE TABLE IF NOT EXISTS design_sprint_drive_decisions (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_entry_id     INTEGER NOT NULL,
+    target_entry_id     INTEGER NOT NULL,
+    decision            TEXT NOT NULL CHECK(decision IN ('preserved','waived','failed')),
+    decided_by          TEXT NOT NULL,
+    reason              TEXT NOT NULL,
+    reopen_condition    TEXT,
+    lifecycle_status    TEXT NOT NULL DEFAULT 'observed'
+        CHECK(lifecycle_status IN ('observed','inferred','confirmed')),
+    direction           TEXT NOT NULL DEFAULT 'forward'
+        CHECK(direction IN ('forward','reverse','forward_after_reverse')),
+    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (source_entry_id) REFERENCES design_sprint_entries(id),
+    FOREIGN KEY (target_entry_id) REFERENCES design_sprint_entries(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dsdd_source ON design_sprint_drive_decisions(source_entry_id);
+CREATE INDEX IF NOT EXISTS idx_dsdd_target ON design_sprint_drive_decisions(target_entry_id);
+CREATE INDEX IF NOT EXISTS idx_dsdd_decision ON design_sprint_drive_decisions(decision);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1225,6 +1249,13 @@ def _migrate_v22_to_v23(conn):
             conn.execute(f"ALTER TABLE {table_name} ADD COLUMN correction_reason TEXT")
         if not _has_column(conn, table_name, "voided_at"):
             conn.execute(f"ALTER TABLE {table_name} ADD COLUMN voided_at TEXT")
+
+
+# @helix:index id=helix-db.migrate-v23-to-v24 domain=cli/lib summary=v24 design_sprint_drive_decisions migration (drive switch policy + L1 P2-7 lifecycle + AC-17 direction)
+def _migrate_v23_to_v24(conn: sqlite3.Connection) -> None:
+    """v24: design_sprint_drive_decisions テーブル追加 (P0-03 hybrid + drive switch policy)"""
+    if not _has_table(conn, "design_sprint_drive_decisions"):
+        conn.executescript(DESIGN_SPRINT_DRIVE_DECISIONS_SCHEMA_V24)
 
 
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
