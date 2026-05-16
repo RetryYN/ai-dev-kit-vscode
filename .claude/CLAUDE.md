@@ -61,6 +61,19 @@
 
 **禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
 
+### V-model 設計⇔テスト対応原則 (2026-05-17 確立、PLAN-075)
+
+設計とテスト設計は **同じ文書に書く** (V-model 1:1 対応):
+
+- L1 要件定義 ↔ 受入テスト設計
+- L2 全体設計 ↔ **総合テスト設計** (E2E / システムテスト)
+- L3 詳細設計 ↔ **結合テスト設計**
+- L3-L4 機能設計 ↔ **単体テスト設計**
+
+**禁止**: テスト設計を独立ドキュメント化すること (例: `PLAN-XXX-unit-test-design.md` を別ファイル化)
+
+詳細は `helix/HELIX_CORE.md §設計⇔テスト対応` 参照。PLAN-074 で違反発生、PLAN-075 Phase 1-5 で全体 retrofit。
+
 ### ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
 
 `Bash(run_in_background: true)` で投入した command は **harness が完了時に task-notification を自動送信** する。ScheduleWakeup を併用するな:

@@ -83,6 +83,46 @@ L4 implementation / build / G4 補足（PLAN-013）:
 - 工程表外の変更が必要になった場合は、先に工程表更新またはユーザー確認へ戻る。
 - TL は工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team`、`helix review` を使い、使えない場合は理由を証跡化する。
 
+## 設計⇔テスト対応 (V-model 原則、2026-05-17 確立)
+
+V-model の基本原則として、設計フェーズの各層と検証 (テスト) フェーズの各層は 1:1 対応する。**設計とテスト設計は同じ文書に書く** のが正本ルール。テスト設計を独立ドキュメント化することは V-model 違反とする。
+
+### 設計⇔テスト 4 層対応
+
+| HELIX 層 | 設計成果物 | 含むべきテスト設計 | テスト実装フェーズ |
+|---|---|---|---|
+| L1 要件定義 | 要件 / 受入条件 | **受入テスト設計** | L8 受入 |
+| L2 全体設計 | CONCEPT / ADR / visual-design | **総合テスト設計 (システムテスト / E2E)** | L6 統合検証 |
+| L3 詳細設計 | D-API / D-DB / D-CONTRACT | **結合テスト設計** | L4 結合テスト実装 |
+| L3-L4 機能設計 | endpoint / 関数 input/output schema、境界値 | **単体テスト設計** | L4 単体テスト実装 |
+
+### 文書構造ルール
+
+各設計文書は以下のセクションを必須で持つ:
+
+- **L2 設計文書** (`CONCEPT.md` / `ADR-XXX.md` / PLAN.md §基本設計):
+  - §機能設計 / アーキテクチャ
+  - §**総合テスト設計** (E2E シナリオ列挙、性能/セキュリティの非機能テスト)
+
+- **L3 詳細設計文書** (`D-API/*.md` / `D-DB/*.md` / `D-CONTRACT/*.md`):
+  - §X 機能/契約定義 (request_schema / response_schema / error_codes)
+  - §**機能設計 + 単体テストケース** (関数 input/output bound、境界値、例外)
+  - §**詳細設計 + 結合テストケース** (モジュール結合動作、実 DB / 実 HTTP 経由)
+
+- **L4 機能設計** (上記 L3 詳細設計内、もしくは個別 endpoint 仕様):
+  - §単体テスト設計 (case 列挙、mock 戦略、DoD)
+
+### 違反例 (してはいけない)
+
+- 単体テスト設計を独立ドキュメント (`docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md`) に切り出すこと
+- 結合テスト設計を D-API / D-DB と別ファイルに置くこと
+- 総合テスト設計を CONCEPT / ADR から欠落させること
+- test ファイルだけ存在し、設計文書側にテスト設計セクションがない状態
+
+### 既存 PLAN の retrofit
+
+V-model 違反が検出された場合、PLAN-075 (V-model 設計⇔テスト対応 framework 強化) の Phase 3-4 で retrofit する。helix doctor / G2-G4 ゲートで自動 lint を行う (PLAN-075 Phase 5)。
+
 ## readiness と carry rule
 
 PLAN-004 v5 と PLAN-009 v3 の方針として、L1-L11 を進める際は以下を適用する。

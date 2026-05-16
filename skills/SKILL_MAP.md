@@ -53,20 +53,20 @@ Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 →
 ```
 【企画】人間が要件提示
   ↓ → requirements-handover, estimation
-L1  要件定義（要件構造化 + 受入条件定義）
+L1  要件定義（要件構造化 + 受入条件定義 + ★受入テスト設計）
   ↓ G0.5 企画突合ゲート       [PM]       ★企画書の全項目が L1 に反映されているか
   ↓ G1   要件完了ゲート         [PM+PO]
   ↓ G1.5 PoC ゲート            [TL+PM]    条件付き
   ↓ G1R  事前調査ゲート         [自動/TL]  条件付き
   ↓ → design-doc, api, db, security, visual-design（方針）
-L2  全体設計（方針・アーキテクチャ・visual方針・ADR）
-  ↓ G2   設計凍結ゲート         [TL+PM]    ★adversarial-review ★ミニレトロ ★セキュリティ①
+L2  全体設計（方針・アーキテクチャ・visual方針・ADR + ★総合テスト設計）
+  ↓ G2   設計凍結ゲート         [TL+PM]    ★adversarial-review ★ミニレトロ ★セキュリティ① ★V-model 総合テスト設計
   ↓ → api-contract, dependency-map, estimation §8-10
-L3  詳細設計 + API契約 + テスト設計 + 工程表
-  ↓ G3   実装着手ゲート         [TL+PM]    ★API/Schema Freeze ★事前調査
+L3  詳細設計 + API契約 + テスト設計 + 工程表（★結合テスト設計 + ★機能設計 + ★単体テスト設計）
+  ↓ G3   実装着手ゲート         [TL+PM]    ★API/Schema Freeze ★事前調査 ★V-model 結合/単体テスト設計
   ↓ → ai-coding §4
-L4  実装（マイクロスプリント: .1a→.1b→.2→.3→.4→.5）
-  ↓ G4   実装凍結ゲート         [TL+PM]    ★セキュリティ② ★ミニレトロ
+L4  実装（マイクロスプリント: .1a→.1b→.2→.3→.4→.5）★単体/結合テスト実装
+  ↓ G4   実装凍結ゲート         [TL+PM]    ★セキュリティ② ★ミニレトロ ★V-model テスト実装網羅 (単体 + 結合)
   ↓ → visual-design
 L5  Visual Refinement（DESIGNER.md 駆動）
   ↓ G5   デザイン凍結ゲート     [TL+PM]    UIなしskip可
@@ -381,6 +381,16 @@ writing/social:
 automation/browser-script:
   description: Playwright記録からのE2E化に加えてaxe-coreによるアクセシビリティ自動検証を提供
 ```
+
+## V-model 設計⇔テスト対応 (2026-05-17 確立)
+
+詳細は `helix/HELIX_CORE.md §設計⇔テスト対応`。
+
+要点:
+- 設計とテスト設計は**同じ文書に書く** (V-model 1:1 対応)
+- L2 → 総合テスト設計、L3 → 結合 + 単体テスト設計、L1 → 受入テスト設計
+- テスト設計を独立ドキュメント化することは V-model 違反
+- G2/G3/G4 ゲートで V-model 整合性を確認 (PLAN-075 Phase 5 で自動 lint 化予定)
 
 ## メンテナンス指針
 

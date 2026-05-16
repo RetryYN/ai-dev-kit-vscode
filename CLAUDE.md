@@ -172,6 +172,23 @@ Opus 直接 Read してよい範囲:
 
 8 並列に達しないとき、必ず「依存判定で何件直列必須か」「8 まで埋められない理由」を会話に書き出す。出さずに 1-2 並列で済ませるのは禁止。
 
+## V-model 設計⇔テスト対応原則 (2026-05-17 確立、PLAN-075)
+
+設計とテスト設計は **同じ文書に書く** (V-model 1:1 対応)。テスト設計を独立ドキュメント化することは V-model 違反。
+
+| HELIX 層 | 設計成果物 | 含むべきテスト設計 |
+|---|---|---|
+| L1 要件定義 | 要件 / 受入条件 | **受入テスト設計** |
+| L2 全体設計 | CONCEPT / ADR / visual-design | **総合テスト設計 (E2E / システム)** |
+| L3 詳細設計 | D-API / D-DB / D-CONTRACT | **結合テスト設計** |
+| L3-L4 機能設計 | endpoint / 関数 input/output schema、境界値 | **単体テスト設計** |
+
+詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`。
+
+**禁止**: 単体テスト設計を独立ドキュメント (`docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md`) に切り出すこと
+
+PLAN-074 でこの違反が発生し、PLAN-075 (V-model 設計⇔テスト対応 framework 強化) で全体 retrofit 中。
+
 ## ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
 
 `Bash(run_in_background: true)` で投入した command は **harness が完了時に task-notification を自動送信** する。ScheduleWakeup を併用するな:
