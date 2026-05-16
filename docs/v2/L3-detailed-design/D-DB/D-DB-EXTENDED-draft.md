@@ -112,6 +112,10 @@ PromotionLinkRef:
 | v27 | add_index | session_telemetry | rollback_v27_indexes.sql |
 | v27 (続き) | add_view | v_automation_recent_runs, v_audit_summary_by_plan, v_session_cost_summary | rollback_v27_views.sql |
 | v27 | add_trigger | session_telemetry | rollback_v27_triggers.sql |
+| v29 | add_table | scrum_local_loops, reverse_local_loops | rollback_v29_to_v28.sql |
+| v29 | add_index | scrum_local_loops, reverse_local_loops | rollback_v29_indexes.sql |
+| v29 | add_trigger | scrum_local_loops, reverse_local_loops | rollback_v29_triggers.sql |
+| v30 | add_table | harness_check_events | rollback_v30_to_v29.sql |
 
 ### 2.3 整合ルール
 
@@ -649,3 +653,335 @@ if current < 28:
 - `audit_log` への fire / release 自動記録は PLAN-078 では強制しない
 - `session_telemetry` は session 単位の独立 table として維持する
 - `automation_runs` との連携は HTTP 経路のみ FK を使う
+
+## §11 scrum_local_loops テーブル定義（v29）
+
+### 11.1 概要
+
+`scrum_local_loops` は HELIX framework における Uncertainty Pocket Scrum (UPS) の実行履歴を記録する追加 table である。  
+目的は Forward 進行中の局所的不確実性へ scrum sub-loop を差し込み、仮説・検証・判定の履歴を helix.db に蓄積することにある。  
+PLAN-079 が UPS / SRF chain の framework 拡張、PLAN-078 が record strand の `agent_slots`、`audit_log` が監査 trace をそれぞれ補完する。  
+migration ID は v28 → v29 であり、`agent_slots` の次段として追加される。
+
+#### 11.1.1 関連 table
+
+- `agent_slots`: UPS を投入した Codex / subagent invocation の紐付け先
+- `automation_runs`: HTTP layer から起動された run trace の補助参照先
+- `audit_log`: init / poc / verify / decide の監査 trace 追跡に利用可能
+- `reverse_local_loops`: confirmed UPS から接続される子 SRF chain の起点
+
+### 11.2 schema (DDL)
+
+```sql
+CREATE TABLE IF NOT EXISTS scrum_local_loops (
+    loop_id              TEXT PRIMARY KEY,           -- H-LOCAL-XXX
+    forward_layer        TEXT NOT NULL,              -- L1-L11
+    forward_plan_id      TEXT,                       -- 親 Forward PLAN
+    hypothesis           TEXT NOT NULL,
+    acceptance           TEXT NOT NULL,
+    state                TEXT NOT NULL DEFAULT 'S0'
+                        CHECK(state IN ('S0', 'S1', 'S2', 'S3')),
+    decide_result        TEXT
+                        CHECK(decide_result IS NULL OR decide_result IN ('confirmed', 'rejected', 'pivot')),
+    started_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    decided_at           TEXT,
+    parent_loop_id       TEXT,                       -- pivot 時の親
+    related_agent_slot_id INTEGER,                   -- FK agent_slots.id (PLAN-078)
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (parent_loop_id) REFERENCES scrum_local_loops(loop_id),
+    FOREIGN KEY (related_agent_slot_id) REFERENCES agent_slots(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scrum_local_state ON scrum_local_loops(state);
+CREATE INDEX IF NOT EXISTS idx_scrum_local_layer ON scrum_local_loops(forward_layer);
+CREATE INDEX IF NOT EXISTS idx_scrum_local_plan  ON scrum_local_loops(forward_plan_id);
+
+-- Phase 1: no_delete trigger
+CREATE TRIGGER IF NOT EXISTS scrum_local_loops_no_delete
+BEFORE DELETE ON scrum_local_loops
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'scrum_local_loops is append-only');
+END;
+```
+
+### 11.3 列詳細仕様
+
+| 列名 | 型 | NULL 許可 | default | CHECK 制約 | 用途 | 関連 helper 関数 |
+|---|---|---|---|---|---|---|
+| loop_id | TEXT | いいえ | なし | なし | UPS loop の主キー、`H-LOCAL-XXX` 採番 | `init_local_loop()` |
+| forward_layer | TEXT | いいえ | なし | `L1`-`L11` を想定 | UPS を差し込んだ Forward 層 | `init_local_loop()` / `list_active_loops()` |
+| forward_plan_id | TEXT | はい | なし | なし | 親 Forward PLAN の trace | `init_local_loop()` / `get_stats()` |
+| hypothesis | TEXT | いいえ | なし | なし | 検証仮説の本文 | `init_local_loop()` |
+| acceptance | TEXT | いいえ | なし | なし | 成功条件の本文 | `init_local_loop()` / `verify_loop()` |
+| state | TEXT | いいえ | `S0` | `S0` / `S1` / `S2` / `S3` | UPS 状態 | `record_poc()` / `verify_loop()` / `decide_loop()` |
+| decide_result | TEXT | はい | なし | `confirmed` / `rejected` / `pivot` | 判定結果 | `decide_loop()` / `get_stats()` |
+| started_at | TEXT | いいえ | `datetime('now')` | なし | loop 開始時刻 | `init_local_loop()` |
+| decided_at | TEXT | はい | なし | なし | decide 完了時刻 | `decide_loop()` |
+| parent_loop_id | TEXT | はい | なし | なし | pivot 時の親 loop trace | `init_local_loop()` |
+| related_agent_slot_id | INTEGER | はい | なし | FK `agent_slots(id)` | UPS 投入 Codex / subagent の紐付け | `record_poc()` |
+| created_at | TEXT | いいえ | `datetime('now')` | なし | レコード作成時刻 | `init_local_loop()` |
+
+### 11.4 trigger 設計
+
+```sql
+-- Phase 1: no_delete trigger のみ
+CREATE TRIGGER IF NOT EXISTS scrum_local_loops_no_delete
+BEFORE DELETE ON scrum_local_loops
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'scrum_local_loops is append-only');
+END;
+```
+
+Phase 2 では `state` / `decide_result` の append-only enforcement を追加する余地があるが、本 §11 では scope 外とする。
+
+### 11.5 helper 関数
+
+`cli/lib/scrum_local.py` で実装する helper は次の通りである。
+
+- `init_local_loop(forward_layer, hypothesis, acceptance, forward_plan_id=None, parent_loop_id=None) -> str`
+- `record_poc(loop_id, commit_sha=None, agent_slot_id=None) -> None`
+- `verify_loop(loop_id, observation=None) -> None`
+- `decide_loop(loop_id, result, note=None) -> None`
+- `list_active_loops(forward_layer=None) -> list[dict]`
+- `get_stats(days=7) -> dict`
+
+### 11.6 状態遷移
+
+```text
+S0 (init) ─→ S1 (poc) ─→ S2 (verify) ─→ S3 (decide)
+                                          ├─ confirmed → Forward 続行 or SRF chain
+                                          ├─ rejected → Forward 設計戻し
+                                          └─ pivot → 新 S0 (parent_loop_id で連鎖)
+```
+
+### 11.7 関連 table との連携
+
+- **agent_slots**: `related_agent_slot_id` で UPS 投入 Codex / subagent と紐付ける
+- **automation_runs**: HTTP layer 起点の run trace を補助参照として残す
+- **audit_log**: init / poc / verify / decide の監査 trace に利用可能
+- **reverse_local_loops**: confirmed UPS から SRF chain を起動する子 table
+
+### 11.8 V-model 4 artifact 双方向 trace
+
+| Artifact | 担当層 | 想定パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §11 scrum_local_loops |
+| ② 実装コード | L4 実装 | `cli/lib/scrum_local.py` + `cli/helix-scrum` (local subcommand 追加) |
+| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-079-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-079-integration-test-design.md` |
+| ④ テストコード | L4 実装 | `cli/lib/tests/test_scrum_local*.py` + `tests/helix-scrum-local.bats` |
+
+## §12 reverse_local_loops テーブル定義（v29）
+
+### 12.1 概要
+
+`reverse_local_loops` は UPS で confirmed となった Scrum 成果物を起点に、Scrum-to-Reverse-to-Forward (SRF) chain を記録する追加 table である。  
+目的は PoC をそのまま本実装へ直結させず、Reverse で evidence / contract / As-Is / routing を明文化してから Forward に再合流させることである。  
+PLAN-079 が SRF chain の framework 拡張、`scrum_local_loops` が親起点、`agent_slots` が投入記録を補完する。  
+migration ID は v28 → v29 であり、`scrum_local_loops` と同一スキーマ世代で導入される。
+
+#### 12.1.1 関連 table
+
+- `scrum_local_loops`: parent_scrum_loop_id で接続される起点 table
+- `agent_slots`: SRF chain を起動した Codex / subagent invocation の trace 補助
+- `automation_runs`: HTTP layer からの起動 trace 補助
+- `audit_log`: reverse stage の監査 trace 記録に利用可能
+
+### 12.2 schema (DDL)
+
+```sql
+CREATE TABLE IF NOT EXISTS reverse_local_loops (
+    loop_id              TEXT PRIMARY KEY,           -- RL-LOCAL-XXX
+    parent_scrum_loop_id TEXT NOT NULL,              -- FK scrum_local_loops.loop_id (起点)
+    reverse_type          TEXT NOT NULL DEFAULT 'scrum-to-forward'
+                        CHECK(reverse_type IN ('scrum-to-forward')),
+    state                TEXT NOT NULL DEFAULT 'R0'
+                        CHECK(state IN ('R0', 'R1', 'R2', 'R3', 'R4')),
+    target_forward_plan  TEXT,                       -- R-LOCAL-4 routing 先 PLAN
+    target_forward_layer TEXT,                       -- L1 / L2 / L3 / L4
+    started_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    routed_at            TEXT,                       -- R-LOCAL-4 完了時刻
+    artifact_links       TEXT,                       -- JSON [{type: "code/design/test", path: "..."}]
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (parent_scrum_loop_id) REFERENCES scrum_local_loops(loop_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reverse_local_state ON reverse_local_loops(state);
+CREATE INDEX IF NOT EXISTS idx_reverse_local_parent ON reverse_local_loops(parent_scrum_loop_id);
+CREATE INDEX IF NOT EXISTS idx_reverse_local_plan ON reverse_local_loops(target_forward_plan);
+```
+
+### 12.3 列詳細仕様
+
+| 列名 | 型 | NULL 許可 | default | CHECK 制約 | 用途 | 関連 helper 関数 |
+|---|---|---|---|---|---|---|
+| loop_id | TEXT | いいえ | なし | なし | SRF chain loop の主キー、`RL-LOCAL-XXX` 採番 | `init_from_scrum()` |
+| parent_scrum_loop_id | TEXT | いいえ | なし | なし | 親 scrum loop の FK | `init_from_scrum()` / `list_active_loops()` |
+| reverse_type | TEXT | いいえ | `scrum-to-forward` | `scrum-to-forward` | SRF chain の type 固定値 | `init_from_scrum()` |
+| state | TEXT | いいえ | `R0` | `R0` / `R1` / `R2` / `R3` / `R4` | reverse stage 状態 | `transition_state()` / `route_to_forward()` |
+| target_forward_plan | TEXT | はい | なし | なし | Forward 再合流先 PLAN | `route_to_forward()` / `get_routing_stats()` |
+| target_forward_layer | TEXT | はい | なし | なし | Forward 再合流先層 | `route_to_forward()` / `get_routing_stats()` |
+| started_at | TEXT | いいえ | `datetime('now')` | なし | reverse 開始時刻 | `init_from_scrum()` |
+| routed_at | TEXT | はい | なし | なし | R-LOCAL-4 完了時刻 | `route_to_forward()` |
+| artifact_links | TEXT | はい | なし | なし | PoC / design / test の evidence link 群 | `route_to_forward()` |
+| created_at | TEXT | いいえ | `datetime('now')` | なし | レコード作成時刻 | `init_from_scrum()` |
+
+### 12.4 trigger 設計
+
+```sql
+-- Phase 1: no_delete trigger のみ
+CREATE TRIGGER IF NOT EXISTS reverse_local_loops_no_delete
+BEFORE DELETE ON reverse_local_loops
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'reverse_local_loops is append-only');
+END;
+```
+
+Phase 2 では `state` / `routed_at` / `artifact_links` の append-only enforcement を追加する余地があるが、本 §12 では scope 外とする。
+
+### 12.5 helper 関数
+
+`cli/lib/reverse_local.py` で実装する helper は次の通りである。
+
+- `init_from_scrum(scrum_loop_id, reverse_type='scrum-to-forward') -> str`
+- `transition_state(loop_id, new_state) -> None`
+- `route_to_forward(loop_id, target_plan, target_layer, artifact_links=None) -> None`
+- `list_active_loops() -> list[dict]`
+- `get_routing_stats(days=7) -> dict`
+
+### 12.6 状態遷移
+
+```text
+R0 (init) ─→ R1 (evidence) ─→ R2 (contracts) ─→ R3 (design) ─→ R4 (route)
+```
+
+### 12.7 関連 table との連携
+
+- **scrum_local_loops**: `parent_scrum_loop_id` で confirmed UPS loop を起点にする
+- **agent_slots**: SRF chain を起動した Codex / subagent invocation の trace に利用可能
+- **automation_runs**: HTTP layer 起動 trace を補助参照として保持する
+- **audit_log**: reverse stage の監査 trace に利用可能
+
+### 12.8 V-model 4 artifact 双方向 trace
+
+| Artifact | 担当層 | 想定パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §12 reverse_local_loops |
+| ② 実装コード | L4 実装 | `cli/lib/reverse_local.py` + `cli/helix-reverse` (from-scrum / local subcommand 追加) |
+| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-079-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-079-integration-test-design.md` |
+| ④ テストコード | L4 実装 | `cli/lib/tests/test_reverse_local*.py` |
+
+## §13 harness_check_events テーブル定義（v30）
+
+### 13.1 概要
+
+`harness_check_events` は HELIX harness (Pull / Push / Audit 3 軸) の Opus 制御 metadata inject を記録する追加 table である。  
+目的は、`helix harness status` で得る Pull、PreToolUse hook による Push、SessionStart hook による Audit を event 単位で残し、Opus の判断ループに対する dynamic monitoring の根拠を helix.db に蓄積することにある。  
+PLAN-080 が 3 軸 harness monitoring の上位設計、PLAN-078 が `agent_slots` による invocation trace、PLAN-074 が `session_telemetry` による session trace をそれぞれ提供する。  
+migration ID は v29 → v30 であり、`audit_log` の汎用 event trace とは別に、harness 専用の集計軸として独立させる。
+
+#### 13.1.1 関連 table
+
+- `audit_log`: event-level の汎用監査 trace。`harness_check_events` は harness 専用の集計軸として別管理する
+- `agent_slots`: `related_slot_id` で fire 由来 event を紐付ける
+- `session_telemetry`: `session_id` で session 単位の trace と接続する
+
+### 13.2 schema (DDL)
+
+```sql
+CREATE TABLE IF NOT EXISTS harness_check_events (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_kind      TEXT NOT NULL                    -- 'pull' | 'push' | 'audit'
+                    CHECK(event_kind IN ('pull', 'push', 'audit')),
+    check_name      TEXT NOT NULL,                   -- 'slot_count' | 'parallel_ratio' | 'wbs_id_missing_ref' | 'skill_chain_skip' | 'tool_uses_warning' 等
+    triggered_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    session_id      TEXT,                            -- HELIX_SESSION_ID (任意)
+    related_slot_id INTEGER,                         -- FK agent_slots.id (任意)
+    plan_id         TEXT,                            -- 関連 PLAN-XXX
+    severity        TEXT NOT NULL DEFAULT 'info'
+                    CHECK(severity IN ('info', 'warning', 'critical')),
+    payload         TEXT,                            -- JSON 詳細 (各 check_name の値)
+    user_visible    INTEGER NOT NULL DEFAULT 0       -- system-reminder で Opus に push したか
+                    CHECK(user_visible IN (0, 1)),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (related_slot_id) REFERENCES agent_slots(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_harness_check_kind     ON harness_check_events(event_kind);
+CREATE INDEX IF NOT EXISTS idx_harness_check_session  ON harness_check_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_harness_check_at       ON harness_check_events(triggered_at);
+CREATE INDEX IF NOT EXISTS idx_harness_check_severity ON harness_check_events(severity);
+
+-- Phase 1: no_delete trigger
+CREATE TRIGGER IF NOT EXISTS harness_check_events_no_delete
+BEFORE DELETE ON harness_check_events
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'harness_check_events is append-only');
+END;
+```
+
+### 13.3 列詳細仕様
+
+| 列名 | 型 | NULL 許可 | default | CHECK 制約 | 用途 | 関連 helper 関数 |
+|---|---|---|---|---|---|---|
+| id | INTEGER | いいえ | なし | なし | event record の主キー | `record_event()` / `list_recent_events()` |
+| event_kind | TEXT | いいえ | なし | `pull` / `push` / `audit` | harness dynamic check の種別 | `record_event()` / `get_active_status()` / `get_session_audit()` |
+| check_name | TEXT | いいえ | なし | なし | 実施した check 名 | `record_event()` / `get_active_status()` / `get_session_audit()` |
+| triggered_at | TEXT | いいえ | `datetime('now')` | なし | event 発火時刻 | `record_event()` / `list_recent_events()` |
+| session_id | TEXT | はい | なし | なし | HELIX session の trace key | `record_event()` / `get_active_status()` / `get_session_audit()` / `list_recent_events()` |
+| related_slot_id | INTEGER | はい | なし | FK `agent_slots(id)` | fire 由来 event と slot の紐付け | `record_event()` / `get_active_status()` |
+| plan_id | TEXT | はい | なし | なし | 関連 PLAN-XXX | `record_event()` / `get_active_status()` / `get_session_audit()` / `list_recent_events()` |
+| severity | TEXT | いいえ | `info` | `info` / `warning` / `critical` | event の重要度 | `record_event()` / `get_active_status()` / `get_session_audit()` / `list_recent_events()` |
+| payload | TEXT | はい | なし | なし | check 固有の JSON 詳細 | `record_event()` / `get_active_status()` / `get_session_audit()` |
+| user_visible | INTEGER | いいえ | `0` | `0` / `1` | system-reminder で Opus に push 済みか | `record_event()` / `get_active_status()` / `get_session_audit()` |
+| created_at | TEXT | いいえ | `datetime('now')` | なし | レコード作成時刻 | `record_event()` / `list_recent_events()` |
+
+### 13.4 trigger 設計
+
+```sql
+-- Phase 1: no_delete trigger のみ
+CREATE TRIGGER IF NOT EXISTS harness_check_events_no_delete
+BEFORE DELETE ON harness_check_events
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'harness_check_events is append-only');
+END;
+```
+
+Phase 2 では `severity` / `user_visible` の append-only enforcement を追加する余地があるが、本 §13 では scope 外とする。
+
+### 13.5 helper 関数
+
+`cli/lib/harness_monitor.py` で実装する helper は次の通りである。
+
+- `record_event(event_kind, check_name, *, session_id=None, related_slot_id=None, plan_id=None, severity='info', payload=None, user_visible=False) -> int`
+- `get_active_status(session_id=None) -> dict`
+- `get_session_audit(session_id) -> dict`
+- `list_recent_events(days=1, severity=None) -> list[dict]`
+
+### 13.6 状態遷移
+
+`harness_check_events` は event-based table であり、state 列を持たない append-only 記録である。  
+`severity` の判定基準は `info` → `warning` → `critical` の順で強まる event importance を表し、イベント遷移そのものは存在しない。
+
+```text
+event record (pull/push/audit) ─→ append-only persist ─→ severity 分類 ─→ pull/push/audit 集計
+```
+
+### 13.7 関連 table との連携
+
+- **agent_slots**: `related_slot_id` で fire 由来 event を紐付ける。`slot_count` や `parallel_ratio` の文脈を保持する
+- **audit_log**: 同一 event が両方に記録される場合は、`payload` で双方向参照を残し、汎用監査と専用集計を分離する
+- **session_telemetry**: `session_id` を任意列として保持し、session 単位粒度の trace と接続する
+
+### 13.8 V-model 4 artifact 双方向 trace
+
+| Artifact | 担当層 | 想定パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §13 harness_check_events |
+| ② 実装コード | L4 実装 | `cli/lib/harness_monitor.py` + `cli/helix-harness` (status subcommand 追加) + `.claude/hooks/pretooluse-codex-slot-check.sh` + `.claude/hooks/sessionstart-harness-summary.sh` |
+| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-080-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-080-integration-test-design.md` |
+| ④ テストコード | L4 実装 | `cli/lib/tests/test_harness_monitor*.py` + `tests/harness-hooks.bats` |

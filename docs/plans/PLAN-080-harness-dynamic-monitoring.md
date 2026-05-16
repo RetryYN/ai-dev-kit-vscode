@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-080
 title: "PLAN-080: Harness Dynamic Monitoring (3 軸 Pull/Push/Audit による Opus 制御 harness 強化)"
-status: draft
+status: completed
 size: M
 drive: be
 created: 2026-05-17

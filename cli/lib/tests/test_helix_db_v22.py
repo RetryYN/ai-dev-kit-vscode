@@ -86,5 +86,5 @@ def test_migrate_v21_to_v22_is_idempotent(tmp_path: Path) -> None:
     assert columns.count("status_on_switch") == 1
 
 
-def test_current_schema_version_is_27() -> None:
-    assert helix_db.CURRENT_SCHEMA_VERSION == 27
+def test_current_schema_version_is_30() -> None:
+    assert helix_db.CURRENT_SCHEMA_VERSION == 30

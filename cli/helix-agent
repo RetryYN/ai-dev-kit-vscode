@@ -1,0 +1,221 @@
+#!/bin/bash
+set -euo pipefail
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+usage() {
+  printf '%s\n' \
+    'Usage: helix agent <subcommand> [options]' \
+    '' \
+    'Subcommands:' \
+    '  fire     slot を起動記録する内部 API' \
+    '  release  slot を終了記録する内部 API' \
+    '  slots    slot 一覧を表示する' \
+    '  stats    slot 集計を表示する' \
+    '  --help   このヘルプ'
+}
+
+fire_usage() {
+  printf '%s\n' \
+    'Usage: helix agent fire --agent-kind codex|claude_subagent [options]' \
+    '' \
+    'Options:' \
+    '  --role <role>' \
+    '  --subagent-type <type>' \
+    '  --plan-id <PLAN-XXX>' \
+    '  --task-id <id>' \
+    '  --sprint <.X>' \
+    '  --session-id <id>' \
+    '  --automation-run-id <id>' \
+    '  --slot-source helix_codex|pretooluse_hook'
+}
+
+release_usage() {
+  printf '%s\n' \
+    'Usage: helix agent release --slot-id <id> --status completed|failed|cancelled [--exit-code N]'
+}
+
+slots_usage() {
+  printf '%s\n' \
+    'Usage: helix agent slots [--active|--stale|--all] [--plan-id PLAN-XXX] [--since 1h] [--json]' \
+    '' \
+    'Default: --active'
+}
+
+stats_usage() {
+  printf '%s\n' \
+    'Usage: helix agent stats [--days 7] [--by hour|role|plan_id|agent_kind] [--json]'
+}
+
+_die() {
+  echo "エラー: $*" >&2
+  exit "$EXIT_INPUT_ERROR"
+}
+
+_py() {
+  local code="$1"
+  shift
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -c "$code" "$@"
+}
+
+_print_json() {
+  local payload="$1"
+  _py $'import json\nimport sys\nprint(json.dumps(json.loads(sys.argv[1]), ensure_ascii=False, indent=2))' "$payload"
+}
+
+_print_slots_table() {
+  local payload="$1"
+  local mode="${2:-active}"
+  _py $'import json\nimport sys\nrows = json.loads(sys.argv[1])\nmode = sys.argv[2]\nif mode == "stale":\n    headers = ["ID", "AGENT", "ROLE", "STATUS", "PLAN", "SOURCE"]\n    keys = ["id", "agent_kind", "role", "status", "plan_id", "slot_source"]\nelse:\n    headers = ["ID", "AGENT", "ROLE", "STATUS", "FIRED_AT", "PLAN", "TASK", "SPRINT", "SOURCE"]\n    keys = ["id", "agent_kind", "role", "status", "fired_at", "plan_id", "task_id", "sprint", "slot_source"]\ndef value(row, key):\n    if key == "role":\n        return str(row.get("role") or row.get("subagent_type") or "-")\n    if key == "fired_at":\n        return "-"\n    return str(row.get(key) or "-")\nprint(" | ".join(headers))\nfor row in rows:\n    print(" | ".join(value(row, key) for key in keys))' "$payload" "$mode"
+}
+
+_print_stats_table() {
+  local payload="$1"
+  _py $'import json\nimport sys\nrows = json.loads(sys.argv[1])\nheaders = ["GROUP", "TOTAL", "PEAK", "AVG_S", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"]\nkeys = ["group", "total", "peak_parallel", "avg_duration_s", "running", "completed", "failed", "cancelled"]\ndef value(row, key):\n    return str(row.get(key) if row.get(key) is not None else "-")\nprint(" | ".join(headers))\nfor row in rows:\n    print(" | ".join(value(row, key) for key in keys))' "$payload"
+}
+
+cmd_fire() {
+  local agent_kind=""
+  local role=""
+  local subagent_type=""
+  local plan_id=""
+  local task_id=""
+  local sprint=""
+  local session_id=""
+  local automation_run_id=""
+  local slot_source="helix_codex"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --agent-kind) agent_kind="${2:-}"; shift 2 ;;
+      --role) role="${2:-}"; shift 2 ;;
+      --subagent-type) subagent_type="${2:-}"; shift 2 ;;
+      --plan-id) plan_id="${2:-}"; shift 2 ;;
+      --task-id) task_id="${2:-}"; shift 2 ;;
+      --sprint) sprint="${2:-}"; shift 2 ;;
+      --session-id) session_id="${2:-}"; shift 2 ;;
+      --automation-run-id) automation_run_id="${2:-}"; shift 2 ;;
+      --slot-source) slot_source="${2:-}"; shift 2 ;;
+      --help|-h) fire_usage; exit 0 ;;
+      *) _die "fire の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -n "$agent_kind" ]] || _die "fire には --agent-kind が必要です"
+
+  _py $'import sys\nfrom cli.lib import agent_slots\nnone = lambda value: value or None\nautomation_run_id = int(sys.argv[8]) if sys.argv[8] else None\nslot_id = agent_slots.fire_slot(sys.argv[1], role=none(sys.argv[2]), subagent_type=none(sys.argv[3]), plan_id=none(sys.argv[4]), task_id=none(sys.argv[5]), sprint=none(sys.argv[6]), session_id=none(sys.argv[7]), automation_run_id=automation_run_id, slot_source=sys.argv[9])\nprint(slot_id)' \
+    "$agent_kind" "$role" "$subagent_type" "$plan_id" "$task_id" "$sprint" "$session_id" "$automation_run_id" "$slot_source"
+}
+
+cmd_release() {
+  local slot_id=""
+  local status=""
+  local exit_code=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --slot-id) slot_id="${2:-}"; shift 2 ;;
+      --status) status="${2:-}"; shift 2 ;;
+      --exit-code) exit_code="${2:-}"; shift 2 ;;
+      --help|-h) release_usage; exit 0 ;;
+      *) _die "release の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -n "$slot_id" ]] || _die "release には --slot-id が必要です"
+  [[ -n "$status" ]] || _die "release には --status が必要です"
+
+  _py $'import sys\nfrom cli.lib import agent_slots\nexit_code = int(sys.argv[3]) if sys.argv[3] else None\nagent_slots.release_slot(int(sys.argv[1]), status=sys.argv[2], exit_code=exit_code)' \
+    "$slot_id" "$status" "$exit_code"
+}
+
+cmd_slots() {
+  local mode="active"
+  local plan_id=""
+  local since=""
+  local stale_threshold="${HELIX_STALE_THRESHOLD_MIN:-5}"
+  local output_json=false
+  local payload=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --active) mode="active"; shift ;;
+      --stale) mode="stale"; shift ;;
+      --all) mode="all"; shift ;;
+      --plan-id) plan_id="${2:-}"; shift 2 ;;
+      --since) since="${2:-}"; shift 2 ;;
+      --json) output_json=true; shift ;;
+      --help|-h) slots_usage; exit 0 ;;
+      *) _die "slots の不明なオプションです: $1" ;;
+    esac
+  done
+
+  payload="$(
+    _py $'import datetime\nimport json\nimport re\nimport sys\nfrom cli.lib import agent_slots, helix_db\nmode = sys.argv[1]\nplan_id = sys.argv[2] or None\nsince = sys.argv[3] or None\nstale_threshold = int(sys.argv[4])\nif mode == "active":\n    rows = agent_slots.list_active_slots()\nelif mode == "stale":\n    rows = agent_slots.list_stale_slots(threshold_minutes=stale_threshold)\nelse:\n    with helix_db._write_connection(None) as conn:\n        rows = [dict(row) for row in conn.execute("SELECT * FROM agent_slots ORDER BY fired_at DESC, id DESC").fetchall()]\nif plan_id:\n    rows = [row for row in rows if row.get("plan_id") == plan_id]\nif since:\n    match = re.fullmatch(r"(\\d+)([smhd])", since)\n    if not match:\n        raise SystemExit("invalid --since value (examples: 30m, 1h, 2d)")\n    amount = int(match.group(1))\n    seconds = amount * {"s": 1, "m": 60, "h": 3600, "d": 86400}[match.group(2)]\n    cutoff = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=seconds)\n    def parse_ts(value):\n        return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")\n    rows = [row for row in rows if row.get("fired_at") and parse_ts(row["fired_at"]) >= cutoff]\nprint(json.dumps(rows, ensure_ascii=False))' \
+      "$mode" "$plan_id" "$since" "$stale_threshold"
+  )"
+
+  if [[ "$output_json" == true ]]; then
+    _print_json "$payload"
+  else
+    _print_slots_table "$payload" "$mode"
+  fi
+}
+
+cmd_stats() {
+  local days="7"
+  local by="hour"
+  local output_json=false
+  local payload=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --days) days="${2:-}"; shift 2 ;;
+      --by) by="${2:-}"; shift 2 ;;
+      --json) output_json=true; shift ;;
+      --help|-h) stats_usage; exit 0 ;;
+      *) _die "stats の不明なオプションです: $1" ;;
+    esac
+  done
+
+  payload="$(
+    _py $'import json\nimport sys\nfrom cli.lib import agent_slots\nrows = agent_slots.get_stats(days=int(sys.argv[1]), by=sys.argv[2])\nprint(json.dumps(rows, ensure_ascii=False))' \
+      "$days" "$by"
+  )"
+
+  if [[ "$output_json" == true ]]; then
+    _print_json "$payload"
+  else
+    _print_stats_table "$payload"
+  fi
+}
+
+main() {
+  local subcommand="${1:-}"
+  case "$subcommand" in
+    fire)
+      shift || true
+      cmd_fire "$@"
+      ;;
+    release)
+      shift || true
+      cmd_release "$@"
+      ;;
+    slots)
+      shift || true
+      cmd_slots "$@"
+      ;;
+    stats)
+      shift || true
+      cmd_stats "$@"
+      ;;
+    --help|-h|"")
+      usage
+      ;;
+    *)
+      _die "不明なサブコマンドです: $subcommand"
+      ;;
+  esac
+}
+
+main "$@"

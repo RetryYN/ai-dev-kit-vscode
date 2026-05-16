@@ -26,6 +26,200 @@ scrum_timestamp() {
   date '+%Y%m%d-%H%M%S'
 }
 
+scrum_local_py() {
+  local code="$1"
+  shift
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -c "$code" "$@"
+}
+
+scrum_local_print_json() {
+  local payload="$1"
+  scrum_local_py $'import json\nimport sys\nprint(json.dumps(json.loads(sys.argv[1]), ensure_ascii=False, indent=2))' "$payload"
+}
+
+scrum_local_print_loops_table() {
+  local payload="$1"
+  scrum_local_py $'import json\nimport sys\nrows = json.loads(sys.argv[1])\nif not rows:\n    print("loop はありません。")\n    raise SystemExit(0)\nheaders = ["LOOP_ID", "LAYER", "STATE", "RESULT", "PLAN_ID", "STARTED_AT"]\nkeys = ["loop_id", "forward_layer", "state", "decide_result", "forward_plan_id", "started_at"]\nwidths = [len(header) for header in headers]\ntable = []\nfor row in rows:\n    values = [str(row.get(key) or "-") for key in keys]\n    table.append(values)\n    for index, value in enumerate(values):\n        widths[index] = max(widths[index], len(value))\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nfor row in table:\n    print(fmt.format(*row))' "$payload"
+}
+
+scrum_local_print_stats_table() {
+  local payload="$1"
+  scrum_local_py $'import json\nimport sys\nstats = json.loads(sys.argv[1])\nheaders = ["CONFIRMED", "REJECTED", "PIVOT", "TOTAL"]\nvalues = [str(stats.get("confirmed", 0)), str(stats.get("rejected", 0)), str(stats.get("pivot", 0)), str(stats.get("total", 0))]\nwidths = [max(len(header), len(value)) for header, value in zip(headers, values)]\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nprint(fmt.format(*values))' "$payload"
+}
+
+cmd_local() {
+  local subcmd="${1:-help}"
+  shift 2>/dev/null || true
+
+  case "$subcmd" in
+    init)
+      local layer="" hypothesis="" acceptance="" plan_id=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --layer) layer="${2:-}"; shift 2 ;;
+          --hypothesis) hypothesis="${2:-}"; shift 2 ;;
+          --acceptance) acceptance="${2:-}"; shift 2 ;;
+          --plan-id) plan_id="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix scrum local init --layer L4 --hypothesis \"...\" --acceptance \"...\" [--plan-id PLAN-XXX]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local init --layer L4 --hypothesis \"...\" --acceptance \"...\" [--plan-id PLAN-XXX]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$layer" && -n "$hypothesis" && -n "$acceptance" ]] || {
+        echo "Usage: helix scrum local init --layer L4 --hypothesis \"...\" --acceptance \"...\" [--plan-id PLAN-XXX]" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nprint(scrum_local.init_local_loop(sys.argv[1], sys.argv[2], sys.argv[3], forward_plan_id=(sys.argv[4] or None)))' \
+        "$layer" "$hypothesis" "$acceptance" "$plan_id"
+      ;;
+    poc)
+      local loop_id="" commit_sha="" agent_slot_id=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --loop-id) loop_id="${2:-}"; shift 2 ;;
+          --commit-sha) commit_sha="${2:-}"; shift 2 ;;
+          --agent-slot-id) agent_slot_id="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix scrum local poc --loop-id H-LOCAL-001 [--commit-sha <sha>] [--agent-slot-id N]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local poc --loop-id H-LOCAL-001 [--commit-sha <sha>] [--agent-slot-id N]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$loop_id" ]] || {
+        echo "Usage: helix scrum local poc --loop-id H-LOCAL-001 [--commit-sha <sha>] [--agent-slot-id N]" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nagent_slot_id = int(sys.argv[3]) if sys.argv[3] else None\nscrum_local.record_poc(sys.argv[1], commit_sha=(sys.argv[2] or None), agent_slot_id=agent_slot_id)' \
+        "$loop_id" "$commit_sha" "$agent_slot_id"
+      echo "[scrum] $loop_id -> S1"
+      ;;
+    verify)
+      local loop_id="" observation=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --loop-id) loop_id="${2:-}"; shift 2 ;;
+          --observation) observation="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix scrum local verify --loop-id H-LOCAL-001 [--observation \"...\"]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local verify --loop-id H-LOCAL-001 [--observation \"...\"]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$loop_id" ]] || {
+        echo "Usage: helix scrum local verify --loop-id H-LOCAL-001 [--observation \"...\"]" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nscrum_local.verify_loop(sys.argv[1], observation=(sys.argv[2] or None))' \
+        "$loop_id" "$observation"
+      echo "[scrum] $loop_id -> S2"
+      ;;
+    decide)
+      local loop_id="" result="" note=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --loop-id) loop_id="${2:-}"; shift 2 ;;
+          --result) result="${2:-}"; shift 2 ;;
+          --note) note="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix scrum local decide --loop-id H-LOCAL-001 --result confirmed|rejected|pivot [--note \"...\"]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local decide --loop-id H-LOCAL-001 --result confirmed|rejected|pivot [--note \"...\"]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$loop_id" && -n "$result" ]] || {
+        echo "Usage: helix scrum local decide --loop-id H-LOCAL-001 --result confirmed|rejected|pivot [--note \"...\"]" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nscrum_local.decide_loop(sys.argv[1], sys.argv[2], note=(sys.argv[3] or None))' \
+        "$loop_id" "$result" "$note"
+      echo "[scrum] $loop_id -> S3 ($result)"
+      ;;
+    list)
+      local layer="" output_json=false
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --layer) layer="${2:-}"; shift 2 ;;
+          --active) shift ;;
+          --json) output_json=true; shift ;;
+          --help|-h)
+            echo "Usage: helix scrum local list [--layer L4] [--active] [--json]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local list [--layer L4] [--active] [--json]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      local list_payload
+      list_payload="$(scrum_local_py $'import json\nimport sys\nfrom cli.lib import scrum_local\nrows = scrum_local.list_active_loops(forward_layer=(sys.argv[1] or None))\nprint(json.dumps(rows, ensure_ascii=False))' "$layer")"
+      if [[ "$output_json" == true ]]; then
+        scrum_local_print_json "$list_payload"
+      else
+        scrum_local_print_loops_table "$list_payload"
+      fi
+      ;;
+    stats)
+      local days="7" output_json=false
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --days) days="${2:-}"; shift 2 ;;
+          --json) output_json=true; shift ;;
+          --help|-h)
+            echo "Usage: helix scrum local stats [--days 7] [--json]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix scrum local stats [--days 7] [--json]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      local stats_payload
+      stats_payload="$(scrum_local_py $'import json\nimport sys\nfrom cli.lib import scrum_local\nprint(json.dumps(scrum_local.get_stats(days=int(sys.argv[1])), ensure_ascii=False))' "$days")"
+      if [[ "$output_json" == true ]]; then
+        scrum_local_print_json "$stats_payload"
+      else
+        scrum_local_print_stats_table "$stats_payload"
+      fi
+      ;;
+    help|-h|--help)
+      cat <<'USAGE'
+Usage: helix scrum local <subcommand> [options]
+
+Subcommands:
+  init    --layer L4 --hypothesis "..." --acceptance "..." [--plan-id PLAN-XXX]
+  poc     --loop-id H-LOCAL-001 [--commit-sha <sha>] [--agent-slot-id N]
+  verify  --loop-id H-LOCAL-001 [--observation "..."]
+  decide  --loop-id H-LOCAL-001 --result confirmed|rejected|pivot [--note "..."]
+  list    [--layer L4] [--active] [--json]
+  stats   [--days 7] [--json]
+USAGE
+      ;;
+    *)
+      echo "Error: Unknown local subcommand '$subcmd'" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
+}
+
 # ============================
 # init: Scrum モード初期化
 # ============================
@@ -782,6 +976,7 @@ EOF
 case "$CMD" in
   init)    cmd_init "$@" ;;
   backlog) cmd_backlog "$@" ;;
+  local)   cmd_local "$@" ;;
   plan)    cmd_plan "$@" ;;
   poc)     cmd_poc "$@" ;;
   verify)  cmd_verify "$@" ;;
@@ -801,6 +996,7 @@ Commands:
   init                    Scrum モード初期化
   backlog list            仮説バックログ表示
   backlog add             仮説追加 (--id --title --question --acceptance)
+  local                   Forward 内 UPS loop 管理 (init|poc|verify|decide|list|stats)
   plan                    スプリント開始 (--goal --hypotheses H001,H002)
   poc                     PoC 実装を Codex に委譲 (--hypothesis H001)
   verify [script]         検証スクリプト実行 (引数なし=全実行)

@@ -70,6 +70,7 @@ SANDBOX_EXPLICIT=false
 FULL_AUTO="--full-auto"
 FULL_AUTO_EXPLICIT=false
 CONSENT_MODE="auto"
+NO_RECORD="${NO_RECORD:-${HELIX_AGENT_NO_RECORD:-0}}"
 PLAN_ONLY=false
 PLAN_ONLY_REASON=""
 PLAN_ID=""
@@ -127,6 +128,7 @@ while [[ $# -gt 0 ]]; do
     --consent)         CONSENT_MODE="$2"; shift 2 ;;
     --plan-only)       CONSENT_MODE="plan-only"; shift ;;
     --approved)        CONSENT_MODE="approved"; shift ;;
+    --no-record)       NO_RECORD="1"; shift ;;
     --plan-id)         PLAN_ID="$2"; shift 2 ;;
     --task-id)         TASK_ID="$2"; shift 2 ;;
     --wbs-id)          WBS_ID="$2"; shift 2 ;;
@@ -162,6 +164,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --consent <mode>     plan-only|approved|auto（デフォルト: auto）"
       echo "  --plan-only          計画のみ。read-only + no-full-auto を強制"
       echo "  --approved           明示承認済みとして write 実行を許可"
+      echo "  --no-record          agent_slots への fire/release 記録を無効化"
       echo "  --plan-id <id>       HELIX plan id をプロンプトへ注入"
       echo "  --task-id <id>       HELIX task id をプロンプトへ注入"
       echo "  --wbs-id <id>        L3 WBS id をプロンプトへ注入"
@@ -223,6 +226,15 @@ if [[ -z "$ROLE" || -z "$TASK" ]]; then
   echo "エラー: --role と --task は必須です" >&2
   echo "--help で使い方を確認してください" >&2
   exit 1
+fi
+
+case "${NO_RECORD,,}" in
+  1|true|yes|on) NO_RECORD="1" ;;
+  *) NO_RECORD="0" ;;
+esac
+
+if [[ "$ROLE" == "recommender" || "${HELIX_DYNAMIC_SKILL_RECOMMENDER_ACTIVE:-0}" == "1" ]]; then
+  NO_RECORD="1"
 fi
 
 case "$CONSENT_MODE" in
@@ -1607,6 +1619,8 @@ run_codex_once() {
   local STDOUT_FILE=""
   local audit_basename=""
   local ts=""
+  local agent_slot_id=""
+  local agent_slot_status="failed"
   set +e
   export PROJECT_ROOT="$PROJECT_ROOT"
   export HELIX_PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$PROJECT_ROOT}"
@@ -1637,6 +1651,14 @@ run_codex_once() {
     } > "$AUDIT_FILE"
     : > "$STDERR_FILE"
   fi
+  if [[ "$NO_RECORD" != "1" ]]; then
+    agent_slot_id="$("$SCRIPT_DIR/helix-agent" fire --agent-kind codex --role "$run_role" ${PLAN_ID:+--plan-id "$PLAN_ID"} ${TASK_ID:+--task-id "$TASK_ID"} ${L4_SPRINT:+--sprint "$L4_SPRINT"} ${HELIX_SESSION_ID:+--session-id "$HELIX_SESSION_ID"} --slot-source helix_codex 2>/dev/null || true)"
+    [[ "$agent_slot_id" =~ ^[0-9]+$ ]] || agent_slot_id=""
+    if [[ -n "$agent_slot_id" ]]; then
+      export HELIX_AGENT_SLOT_ID="$agent_slot_id"
+      trap "[ -n \"\${HELIX_AGENT_SLOT_ID:-}\" ] && \"$SCRIPT_DIR/helix-agent\" release --slot-id \"\$HELIX_AGENT_SLOT_ID\" --status cancelled >/dev/null 2>&1 || true" INT TERM
+    fi
+  fi
   # stdin を /dev/null に固定: Codex CLI が tty 不在時に "Reading additional input from stdin..."
   # で hang する問題を防ぐ (run_in_background / 別シェル経由呼び出しで再現)
   if [[ -n "$AUDIT_FILE" ]]; then
@@ -1657,6 +1679,16 @@ run_codex_once() {
       < /dev/null > "$STDOUT_FILE"
   fi
   local rc=$?
+  if [[ -n "$agent_slot_id" ]]; then
+    if [[ $rc -eq 0 ]]; then
+      agent_slot_status="completed"
+    elif [[ $rc -eq 130 || $rc -eq 143 ]]; then
+      agent_slot_status="cancelled"
+    fi
+    "$SCRIPT_DIR/helix-agent" release --slot-id "$agent_slot_id" --status "$agent_slot_status" --exit-code "$rc" >/dev/null 2>&1 || true
+    trap - INT TERM
+    unset HELIX_AGENT_SLOT_ID
+  fi
   if [[ $rc -eq 0 ]]; then
     check_write_expected_delta "$STDOUT_FILE" || true
   fi

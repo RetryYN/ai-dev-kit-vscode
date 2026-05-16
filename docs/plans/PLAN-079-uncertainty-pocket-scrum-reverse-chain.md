@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-079
 title: "PLAN-079: Uncertainty Pocket Scrum + Scrum-to-Reverse-to-Forward chain (framework 拡張)"
-status: draft
+status: completed
 size: L
 drive: be
 created: 2026-05-17

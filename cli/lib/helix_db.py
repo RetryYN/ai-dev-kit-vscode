@@ -28,7 +28,10 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from concurrent_lock import file_lock
+try:
+    from .concurrent_lock import file_lock
+except ImportError:  # pragma: no cover
+    from concurrent_lock import file_lock
 
 
 SCHEMA = """
@@ -227,7 +230,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 27
+CURRENT_SCHEMA_VERSION = 30
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -849,6 +852,136 @@ CREATE INDEX IF NOT EXISTS idx_session_telemetry_related_plan ON session_telemet
 """
 
 
+AGENT_SLOTS_SCHEMA_V28 = """
+CREATE TABLE IF NOT EXISTS agent_slots (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_key        TEXT NOT NULL,
+    agent_kind      TEXT NOT NULL CHECK(agent_kind IN ('codex', 'claude_subagent')),
+    role            TEXT,
+    subagent_type   TEXT,
+    plan_id         TEXT,
+    task_id         TEXT,
+    sprint          TEXT,
+    session_id      TEXT,
+    automation_run_id INTEGER,
+    fired_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    released_at     TEXT,
+    status          TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running', 'completed', 'failed', 'cancelled')),
+    exit_code       INTEGER,
+    slot_source     TEXT NOT NULL DEFAULT 'helix_codex' CHECK(slot_source IN ('helix_codex', 'pretooluse_hook')),
+    FOREIGN KEY (automation_run_id) REFERENCES automation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_slots_status ON agent_slots(status);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_plan ON agent_slots(plan_id);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_fired_at ON agent_slots(fired_at);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_kind ON agent_slots(agent_kind);
+
+CREATE TRIGGER IF NOT EXISTS agent_slots_no_delete
+BEFORE DELETE ON agent_slots
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'agent_slots is append-only (no delete allowed)');
+END;
+"""
+
+
+SCRUM_LOCAL_LOOPS_SCHEMA_V29 = """
+CREATE TABLE IF NOT EXISTS scrum_local_loops (
+    loop_id              TEXT PRIMARY KEY,
+    forward_layer        TEXT NOT NULL,
+    forward_plan_id      TEXT,
+    hypothesis           TEXT NOT NULL,
+    acceptance           TEXT NOT NULL,
+    state                TEXT NOT NULL DEFAULT 'S0'
+                        CHECK(state IN ('S0', 'S1', 'S2', 'S3')),
+    decide_result        TEXT
+                        CHECK(decide_result IS NULL OR decide_result IN ('confirmed', 'rejected', 'pivot')),
+    started_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    decided_at           TEXT,
+    parent_loop_id       TEXT,
+    related_agent_slot_id INTEGER,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (parent_loop_id) REFERENCES scrum_local_loops(loop_id),
+    FOREIGN KEY (related_agent_slot_id) REFERENCES agent_slots(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scrum_local_state ON scrum_local_loops(state);
+CREATE INDEX IF NOT EXISTS idx_scrum_local_layer ON scrum_local_loops(forward_layer);
+CREATE INDEX IF NOT EXISTS idx_scrum_local_plan ON scrum_local_loops(forward_plan_id);
+
+CREATE TRIGGER IF NOT EXISTS scrum_local_loops_no_delete
+BEFORE DELETE ON scrum_local_loops
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'scrum_local_loops is append-only');
+END;
+"""
+
+
+REVERSE_LOCAL_LOOPS_SCHEMA_V29 = """
+CREATE TABLE IF NOT EXISTS reverse_local_loops (
+    loop_id              TEXT PRIMARY KEY,
+    parent_scrum_loop_id TEXT NOT NULL,
+    reverse_type         TEXT NOT NULL DEFAULT 'scrum-to-forward'
+                        CHECK(reverse_type IN ('scrum-to-forward')),
+    state                TEXT NOT NULL DEFAULT 'R0'
+                        CHECK(state IN ('R0', 'R1', 'R2', 'R3', 'R4')),
+    target_forward_plan  TEXT,
+    target_forward_layer TEXT,
+    started_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    routed_at            TEXT,
+    artifact_links       TEXT,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (parent_scrum_loop_id) REFERENCES scrum_local_loops(loop_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_reverse_local_state ON reverse_local_loops(state);
+CREATE INDEX IF NOT EXISTS idx_reverse_local_parent ON reverse_local_loops(parent_scrum_loop_id);
+CREATE INDEX IF NOT EXISTS idx_reverse_local_plan ON reverse_local_loops(target_forward_plan);
+
+CREATE TRIGGER IF NOT EXISTS reverse_local_loops_no_delete
+BEFORE DELETE ON reverse_local_loops
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'reverse_local_loops is append-only');
+END;
+"""
+
+
+HARNESS_CHECK_EVENTS_SCHEMA_V30 = """
+CREATE TABLE IF NOT EXISTS harness_check_events (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_kind      TEXT NOT NULL
+                    CHECK(event_kind IN ('pull', 'push', 'audit')),
+    check_name      TEXT NOT NULL,
+    triggered_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    session_id      TEXT,
+    related_slot_id INTEGER,
+    plan_id         TEXT,
+    severity        TEXT NOT NULL DEFAULT 'info'
+                    CHECK(severity IN ('info', 'warning', 'critical')),
+    payload         TEXT,
+    user_visible    INTEGER NOT NULL DEFAULT 0
+                    CHECK(user_visible IN (0, 1)),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (related_slot_id) REFERENCES agent_slots(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_harness_check_kind ON harness_check_events(event_kind);
+CREATE INDEX IF NOT EXISTS idx_harness_check_session ON harness_check_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_harness_check_at ON harness_check_events(triggered_at);
+CREATE INDEX IF NOT EXISTS idx_harness_check_severity ON harness_check_events(severity);
+
+CREATE TRIGGER IF NOT EXISTS harness_check_events_no_delete
+BEFORE DELETE ON harness_check_events
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'harness_check_events is append-only');
+END;
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1351,6 +1484,28 @@ def _migrate_v26_to_v27(conn: sqlite3.Connection) -> None:
         conn.executescript(SESSION_TELEMETRY_SCHEMA_V27)
 
 
+# @helix:index id=helix-db.migrate-v27-to-v28 domain=cli/lib summary=v28 agent_slots migration (invocation 単位 slot 管理)
+def _migrate_v27_to_v28(conn: sqlite3.Connection) -> None:
+    """v28: agent_slots テーブル追加。"""
+    if not _has_table(conn, "agent_slots"):
+        conn.executescript(AGENT_SLOTS_SCHEMA_V28)
+
+
+# @helix:index id=helix-db.migrate-v28-to-v29 domain=cli/lib summary=v29 scrum_local + reverse_local migration
+def _migrate_v28_to_v29(conn: sqlite3.Connection) -> None:
+    """v29: scrum_local_loops / reverse_local_loops テーブル追加。"""
+    if not _has_table(conn, "scrum_local_loops"):
+        conn.executescript(SCRUM_LOCAL_LOOPS_SCHEMA_V29)
+    if not _has_table(conn, "reverse_local_loops"):
+        conn.executescript(REVERSE_LOCAL_LOOPS_SCHEMA_V29)
+
+
+# @helix:index id=helix-db.migrate-v29-to-v30 domain=cli/lib summary=v30 harness_check_events migration
+def _migrate_v29_to_v30(conn: sqlite3.Connection) -> None:
+    """v30: harness_check_events テーブル追加。"""
+    conn.executescript(HARNESS_CHECK_EVENTS_SCHEMA_V30)
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1704,7 +1859,28 @@ def migrate(conn):
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (27, datetime('now'))"
             )
+        if current < 28:
+            _migrate_v27_to_v28(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (28, datetime('now'))"
+            )
+        if current < 29:
+            _migrate_v28_to_v29(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (29, datetime('now'))"
+            )
+        if current < 30:
+            _migrate_v29_to_v30(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (30, datetime('now'))"
+            )
         conn.commit()
+
+
+# @helix:index id=helix-db.migrate-all domain=cli/lib summary=全schema migration の互換 wrapper
+def migrate_all(conn: sqlite3.Connection) -> None:
+    """fresh DB / 既存 DB の両方で全 schema を揃える互換 wrapper。"""
+    _ensure_schema(conn)
 
 
 def _ensure_schema(conn):

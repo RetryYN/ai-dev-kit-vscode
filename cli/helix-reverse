@@ -39,6 +39,8 @@ usage() {
   cat <<'USAGE'
 Usage:
   helix reverse <type> [<subcommand>] [options]
+  helix reverse from-scrum --scrum-loop-id H-LOCAL-001 [--reverse-type scrum-to-forward]
+  helix reverse local <subcommand> [options]
   helix reverse R0|R1|R2|R3|R4|status|rgc [options]  # legacy alias for code
 
 Types:
@@ -80,6 +82,168 @@ Type-specific options:
   --to <version>              upgrade: target version/context label
   --artifact <path>           fullback: completed artifact or handoff root
 USAGE
+}
+
+reverse_local_py() {
+  local code="$1"
+  shift
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -c "$code" "$@"
+}
+
+reverse_local_print_json() {
+  local payload="$1"
+  reverse_local_py $'import json\nimport sys\nprint(json.dumps(json.loads(sys.argv[1]), ensure_ascii=False, indent=2))' "$payload"
+}
+
+reverse_local_print_loops_table() {
+  local payload="$1"
+  reverse_local_py $'import json\nimport sys\nrows = json.loads(sys.argv[1])\nif not rows:\n    print("loop はありません。")\n    raise SystemExit(0)\nheaders = ["LOOP_ID", "SCRUM_LOOP", "TYPE", "STATE", "TARGET_PLAN", "TARGET_LAYER"]\nkeys = ["loop_id", "parent_scrum_loop_id", "reverse_type", "state", "target_forward_plan", "target_forward_layer"]\nwidths = [len(header) for header in headers]\ntable = []\nfor row in rows:\n    values = [str(row.get(key) or "-") for key in keys]\n    table.append(values)\n    for index, value in enumerate(values):\n        widths[index] = max(widths[index], len(value))\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nfor row in table:\n    print(fmt.format(*row))' "$payload"
+}
+
+reverse_local_print_stats_table() {
+  local payload="$1"
+  reverse_local_py $'import json\nimport sys\nstats = json.loads(sys.argv[1])\nrows = list((stats.get("layers") or {}).items())\nif not rows:\n    print("routing stats はありません。")\n    raise SystemExit(0)\nheaders = ["LAYER", "COUNT"]\nwidths = [len(header) for header in headers]\ntable = []\nfor layer, count in rows:\n    values = [str(layer), str(count)]\n    table.append(values)\n    for index, value in enumerate(values):\n        widths[index] = max(widths[index], len(value))\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nfor row in table:\n    print(fmt.format(*row))\nprint("TOTAL: {}".format(stats.get("total", 0)))' "$payload"
+}
+
+cmd_from_scrum() {
+  local scrum_loop_id="" reverse_type="scrum-to-forward"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --scrum-loop-id) scrum_loop_id="${2:-}"; shift 2 ;;
+      --reverse-type) reverse_type="${2:-}"; shift 2 ;;
+      --help|-h)
+        echo "Usage: helix reverse from-scrum --scrum-loop-id H-LOCAL-001 [--reverse-type scrum-to-forward]"
+        return 0
+        ;;
+      *)
+        echo "Usage: helix reverse from-scrum --scrum-loop-id H-LOCAL-001 [--reverse-type scrum-to-forward]" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+  [[ -n "$scrum_loop_id" ]] || {
+    echo "Usage: helix reverse from-scrum --scrum-loop-id H-LOCAL-001 [--reverse-type scrum-to-forward]" >&2
+    exit "$EXIT_INPUT_ERROR"
+  }
+  reverse_local_py $'import sys\nfrom cli.lib import reverse_local\nprint(reverse_local.init_from_scrum(sys.argv[1], reverse_type=sys.argv[2]))' \
+    "$scrum_loop_id" "$reverse_type"
+}
+
+cmd_local() {
+  local subcmd="${1:-help}"
+  shift 2>/dev/null || true
+
+  case "$subcmd" in
+    stage)
+      local loop_id="" stage=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --loop-id) loop_id="${2:-}"; shift 2 ;;
+          --stage) stage="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix reverse local stage --loop-id RL-001 --stage R1"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix reverse local stage --loop-id RL-001 --stage R1" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$loop_id" && -n "$stage" ]] || {
+        echo "Usage: helix reverse local stage --loop-id RL-001 --stage R1" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      reverse_local_py $'import sys\nfrom cli.lib import reverse_local\nreverse_local.transition_state(sys.argv[1], sys.argv[2])' \
+        "$loop_id" "$stage"
+      echo "[reverse] $loop_id -> $stage"
+      ;;
+    route)
+      local loop_id="" target_plan="" target_layer=""
+      local artifact_links=()
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --loop-id) loop_id="${2:-}"; shift 2 ;;
+          --target-plan) target_plan="${2:-}"; shift 2 ;;
+          --target-layer) target_layer="${2:-}"; shift 2 ;;
+          --artifact-link) artifact_links+=("${2:-}"); shift 2 ;;
+          --help|-h)
+            echo "Usage: helix reverse local route --loop-id RL-001 --target-plan PLAN-XXX --target-layer L4 [--artifact-link '{\"type\":\"code\",\"path\":\"...\"}']"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix reverse local route --loop-id RL-001 --target-plan PLAN-XXX --target-layer L4 [--artifact-link '{\"type\":\"code\",\"path\":\"...\"}']" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      [[ -n "$loop_id" && -n "$target_plan" && -n "$target_layer" ]] || {
+        echo "Usage: helix reverse local route --loop-id RL-001 --target-plan PLAN-XXX --target-layer L4 [--artifact-link '{\"type\":\"code\",\"path\":\"...\"}']" >&2
+        exit "$EXIT_INPUT_ERROR"
+      }
+      reverse_local_py $'import json\nimport sys\nfrom cli.lib import reverse_local\nitems = []\nfor raw in sys.argv[4:]:\n    parsed = json.loads(raw)\n    if isinstance(parsed, list):\n        items.extend(parsed)\n    else:\n        items.append(parsed)\nreverse_local.route_to_forward(sys.argv[1], sys.argv[2], sys.argv[3], artifact_links=(items or None))' \
+        "$loop_id" "$target_plan" "$target_layer" "${artifact_links[@]}"
+      echo "[reverse] $loop_id routed -> $target_plan/$target_layer"
+      ;;
+    list)
+      local output_json=false
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --active) shift ;;
+          --json) output_json=true; shift ;;
+          --help|-h)
+            echo "Usage: helix reverse local list [--active] [--json]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix reverse local list [--active] [--json]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      local list_payload
+      list_payload="$(reverse_local_py $'import json\nfrom cli.lib import reverse_local\nprint(json.dumps(reverse_local.list_active_loops(), ensure_ascii=False))')"
+      if [[ "$output_json" == true ]]; then
+        reverse_local_print_json "$list_payload"
+      else
+        reverse_local_print_loops_table "$list_payload"
+      fi
+      ;;
+    stats)
+      local days="7"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --days) days="${2:-}"; shift 2 ;;
+          --help|-h)
+            echo "Usage: helix reverse local stats [--days 7]"
+            return 0
+            ;;
+          *)
+            echo "Usage: helix reverse local stats [--days 7]" >&2
+            exit "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+      done
+      local stats_payload
+      stats_payload="$(reverse_local_py $'import json\nimport sys\nfrom cli.lib import reverse_local\nprint(json.dumps(reverse_local.get_routing_stats(days=int(sys.argv[1])), ensure_ascii=False))' "$days")"
+      reverse_local_print_stats_table "$stats_payload"
+      ;;
+    help|-h|--help)
+      cat <<'USAGE'
+Usage: helix reverse local <subcommand> [options]
+
+Subcommands:
+  stage  --loop-id RL-001 --stage R1
+  route  --loop-id RL-001 --target-plan PLAN-XXX --target-layer L4 [--artifact-link '{"type":"code","path":"..."}']
+  list   [--active] [--json]
+  stats  [--days 7]
+USAGE
+      ;;
+    *)
+      echo "Error: Unknown local subcommand '$subcmd'" >&2
+      exit "$EXIT_INPUT_ERROR"
+      ;;
+  esac
 }
 
 usage_type_stage() {
@@ -1213,6 +1377,19 @@ conn.close()
     exit "$EXIT_CHECK_FAILED"
   fi
 }
+
+case "${1:-}" in
+  from-scrum)
+    shift || true
+    cmd_from_scrum "$@"
+    exit "$?"
+    ;;
+  local)
+    shift || true
+    cmd_local "$@"
+    exit "$?"
+    ;;
+esac
 
 parse_args "$@"
 validate_args

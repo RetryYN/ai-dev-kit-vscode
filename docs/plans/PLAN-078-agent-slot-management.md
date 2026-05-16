@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-078
 title: "PLAN-078: Agent Slot 管理 (helix.db v28 + 並列実行可視化)"
-status: draft
+status: completed
 size: M
 drive: be
 created: 2026-05-17
