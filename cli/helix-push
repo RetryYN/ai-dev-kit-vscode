@@ -167,6 +167,7 @@ PY
 
   (
     cd "$PROJECT_ROOT"
+    export HELIX_AUTOMATION_RUN_ID="$AUTOMATION_RUN_ID"
     if [[ "$execute" == "true" ]]; then
       "$HELPER" --execute --remote "$remote" --branch "$branch"
     else

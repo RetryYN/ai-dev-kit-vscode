@@ -10,64 +10,33 @@ STOP_HOOK_INPUT_FILE="$(mktemp)"
 trap 'rm -f "$STOP_HOOK_INPUT_FILE"' EXIT
 cat >"$STOP_HOOK_INPUT_FILE" || true
 
-record_invocation_telemetry() {
-  local db_path="${HELIX_DIR}/helix.db"
-  local parent_invocation_id=""
-  local payload=""
-  local row_id=""
-
-  if [[ "${HELIX_PARENT_INVOCATION_ID:-}" =~ ^[0-9]+$ ]]; then
-    parent_invocation_id="${HELIX_PARENT_INVOCATION_ID}"
-  fi
-
-  payload="$(
-    HELIX_INVOCATION_TYPE="hook" \
-    HELIX_INVOCATION_ROLE="" \
-    HELIX_INVOCATION_MODEL="" \
-    HELIX_INVOCATION_TASK_ID="$HOOK_NAME" \
-    HELIX_INVOCATION_PARENT_ID="$parent_invocation_id" \
-    HELIX_INVOCATION_HOOK_NAME="$HOOK_NAME" \
-    HELIX_INVOCATION_HOOK_PATH="$SCRIPT_DIR/stop.sh" \
-    python3 - <<'PY'
-import json
+resolve_db_path() {
+  HELIX_DB_LIB_DIR="$HELIX_HOME/cli/lib" \
+  HELIX_PROJECT_ROOT="$PROJECT_ROOT" \
+  python3 - <<'PY'
 import os
+import sys
 
+sys.path.insert(0, os.environ["HELIX_DB_LIB_DIR"])
+import helix_db  # type: ignore
 
-payload = {
-    "type": os.environ["HELIX_INVOCATION_TYPE"],
-    "role": None,
-    "model": None,
-    "task_id": os.environ.get("HELIX_INVOCATION_TASK_ID") or None,
-    "parent_invocation_id": int(os.environ["HELIX_INVOCATION_PARENT_ID"])
-    if os.environ.get("HELIX_INVOCATION_PARENT_ID", "").isdigit()
-    else None,
-}
-payload["raw_meta"] = {
-    "hook_name": os.environ.get("HELIX_INVOCATION_HOOK_NAME") or None,
-    "hook_path": os.environ.get("HELIX_INVOCATION_HOOK_PATH") or None,
-}
-print(json.dumps(payload, ensure_ascii=False))
+print(helix_db.resolve_default_db_path())
 PY
-  )" || return 0
-
-  row_id="$(python3 "$HELIX_HOME/cli/lib/helix_db.py" record-invocation "$db_path" "$payload" 2>/dev/null)" || return 0
-  if [[ "$row_id" =~ ^[0-9]+$ ]]; then
-    printf '%s\n' "$row_id"
-  fi
 }
 
 record_hook_audit() {
-  local db_path="${HELIX_DIR}/helix.db"
-  local invocation_log_id="${1:-}"
+  local db_path=""
+  local automation_run_id="${HELIX_AUTOMATION_RUN_ID:-}"
   local tool_uses="${HELIX_TOOL_USES:-${CLAUDE_TOOL_USES:-${TOOL_USES:-}}}"
   local duration_ms="${HELIX_HOOK_DURATION_MS:-${CLAUDE_HOOK_DURATION_MS:-${HOOK_DURATION_MS:-}}}"
+  db_path="$(resolve_db_path)" || return 0
 
   HELIX_AUDIT_DB_PATH="$db_path" \
   HELIX_AUDIT_ACTOR="stop.sh" \
   HELIX_AUDIT_HOOK_NAME="$HOOK_NAME" \
   HELIX_AUDIT_TOOL_USES="$tool_uses" \
   HELIX_AUDIT_DURATION_MS="$duration_ms" \
-  HELIX_AUDIT_INVOCATION_ID="$invocation_log_id" \
+  HELIX_AUDIT_RUN_ID="$automation_run_id" \
   python3 - <<'PY'
 import json
 import os
@@ -107,9 +76,7 @@ payload = {
     "tool_uses": parse_optional_value(os.environ.get("HELIX_AUDIT_TOOL_USES", "")),
     "duration_ms": parse_optional_int(os.environ.get("HELIX_AUDIT_DURATION_MS", "")),
 }
-invocation_log_id = parse_optional_int(os.environ.get("HELIX_AUDIT_INVOCATION_ID", ""))
-if invocation_log_id is not None:
-    payload["invocation_log_id"] = invocation_log_id
+run_id = parse_optional_int(os.environ.get("HELIX_AUDIT_RUN_ID", ""))
 payload = {key: value for key, value in payload.items() if value is not None}
 
 with helix_db._write_connection(os.environ["HELIX_AUDIT_DB_PATH"]) as conn:
@@ -117,17 +84,18 @@ with helix_db._write_connection(os.environ["HELIX_AUDIT_DB_PATH"]) as conn:
         conn,
         audit_kind="hook_exec",
         actor=os.environ["HELIX_AUDIT_ACTOR"],
-        run_id=None,
+        run_id=run_id,
         payload=payload,
     )
 PY
 }
 
 record_session_telemetry() {
-  local db_path="${HELIX_DIR}/helix.db"
+  local db_path=""
   local tool_uses="${HELIX_TOOL_USES:-${CLAUDE_TOOL_USES:-${TOOL_USES:-}}}"
   local tokens_total="${HELIX_TOKENS_TOTAL:-${CLAUDE_TOKENS_TOTAL:-${TOKENS_TOTAL:-}}}"
   local cost_usd="${HELIX_COST_USD:-${CLAUDE_COST_USD:-${COST_USD:-}}}"
+  db_path="$(resolve_db_path)" || return 0
 
   HELIX_SESSION_TELEMETRY_DB_PATH="$db_path" \
   HELIX_SESSION_TELEMETRY_INPUT_PATH="$STOP_HOOK_INPUT_FILE" \
@@ -291,6 +259,5 @@ except Exception as exc:
 PY
 }
 
-invocation_log_id="$(record_invocation_telemetry || true)"
-record_hook_audit "$invocation_log_id" >/dev/null 2>&1 || true
+record_hook_audit >/dev/null 2>&1 || true
 record_session_telemetry || true

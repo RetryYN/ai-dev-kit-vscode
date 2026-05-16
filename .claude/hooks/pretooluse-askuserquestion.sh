@@ -46,9 +46,14 @@ def main() -> str:
     hook_verdict = "pass"
     sys.path.insert(0, str(helix_root / "cli" / "lib"))
     import helix_db  # type: ignore
-    os.environ.pop("HELIX_DB_PATH", None)
     os.environ["HELIX_PROJECT_ROOT"] = str(project_root)
     db_path = Path(helix_db.resolve_default_db_path())
+    def parse_optional_int(raw: str) -> int | None:
+        value = (raw or "").strip()
+        if value.isdigit():
+            return int(value)
+        return None
+    run_id = parse_optional_int(os.environ.get("HELIX_AUTOMATION_RUN_ID", ""))
     now = parse_datetime(os.environ.get("HELIX_ASKUSERQUESTION_NOW", "")) or datetime.now()
     if tool_name == "AskUserQuestion":
         if not db_path.exists():
@@ -81,7 +86,7 @@ def main() -> str:
                 conn,
                 audit_kind=audit_kind,
                 actor="pretooluse-askuserquestion.sh",
-                run_id=None,
+                run_id=run_id,
                 payload=safe_payload,
             )
 

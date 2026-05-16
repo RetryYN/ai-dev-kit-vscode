@@ -54,6 +54,15 @@ sys.path.insert(0, str(helix_root / "cli" / "lib"))
 
 import helix_db  # type: ignore
 
+db_path = helix_db.resolve_default_db_path()
+
+def parse_optional_int(raw: str) -> int | None:
+    value = (raw or "").strip()
+    if value.isdigit():
+        return int(value)
+    return None
+
+run_id = parse_optional_int(os.environ.get("HELIX_AUTOMATION_RUN_ID", ""))
 
 hook_payload = {
     "hook_name": os.environ.get("HELIX_AUDIT_HOOK_NAME") or None,
@@ -70,19 +79,19 @@ if reason:
     gate_payload["reason"] = reason
 gate_payload = {key: value for key, value in gate_payload.items() if value is not None}
 
-with helix_db._write_connection(None) as conn:
+with helix_db._write_connection(db_path) as conn:
     helix_db.insert_audit_log(
         conn,
         audit_kind="hook_exec",
         actor=os.environ["HELIX_AUDIT_ACTOR"],
-        run_id=None,
+        run_id=run_id,
         payload=hook_payload,
     )
     helix_db.insert_audit_log(
         conn,
         audit_kind="gate_eval",
         actor=os.environ["HELIX_AUDIT_ACTOR"],
-        run_id=None,
+        run_id=run_id,
         payload=gate_payload,
     )
 PY
