@@ -34,9 +34,9 @@
 - 工程表作成後は自律実行（`skills/tools/ai-coding/references/workflow-core.md §工程表ベースの自律実行`）
 - モデル割当テーブル・並列実行ルール・ADR → `skills/tools/ai-coding/references/workflow-core.md` 参照
 
-### 並列実行ルール（必須）
+### 並列実行ルール（必須、default 上限 8 並列）
 
-依存関係がないタスクは **必ず並列** で投入。直列にしない。
+依存関係がないタスクは **必ず並列** で投入。直列にしない。**default 上限 = 8 並列**、これを下回る運用 (1-2 並列で済ます) は怠慢として禁止する。
 
 判定（1 つでも該当 → 直列、全て NO → 並列）:
 - 編集対象ファイルが衝突する
@@ -48,6 +48,14 @@
 - 完了通知が来た順にレビュー → コミット。一斉待ち合わせ不要
 - どちらが先に終わってもよい場合は独立に進行・独立にコミット
 - 並列投入前に「衝突するファイル」「後段依存」を 1 行で書き出して根拠を残す
+
+8 並列達成パターン:
+- **Codex 委譲 N 並列 + Opus 軽量タスク並行**: ファイル衝突しない範囲で最大化
+- **subagent (pmo-sonnet) + Codex pg/se 同時投入**: pmo は read-only/docs、Codex は code 実装
+- **前段 task 走行中の独立 followup 並走**: TL spine 凍結待ち / E2E test 待ち中でも独立タスクは並走
+- **prompt 作成は Write 並列で先行**: Codex 投入の事前に N 個の prompt file を並列 Write、その後一括投入
+
+8 並列に達しないとき、必ず「依存判定で何件直列必須か」「8 まで埋められない理由」を会話に書き出す。出さずに 1-2 並列で済ませるのは禁止。
 
 例: BE 実装 (Codex SE) ∥ docs 起草 (PMO/Codex 協働) / 異なる Sprint で独立ファイル群を編集する Codex 同時投入 / 完了済み Sprint の commit と次 Sprint の委譲を並走
 
