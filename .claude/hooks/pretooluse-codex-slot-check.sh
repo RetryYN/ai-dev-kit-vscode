@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TMP_INPUT="$(mktemp)"
 trap 'rm -f "$TMP_INPUT"' EXIT
+DB_PATH="${HELIX_DB_PATH:-$PROJECT_ROOT/.helix/helix.db}"
+export HELIX_DB_PATH="$DB_PATH"
 
 cat >"$TMP_INPUT" 2>/dev/null || true
 [[ -s "$TMP_INPUT" ]] || printf '{}' >"$TMP_INPUT"

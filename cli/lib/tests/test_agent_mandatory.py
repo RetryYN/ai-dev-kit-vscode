@@ -101,6 +101,19 @@ class TestSuggestForTask:
 
 
 class TestAuditPhase:
+    @staticmethod
+    def _insert_subagent_call(db_path: Path, subagent_type: str, session_id: str) -> None:
+        conn = sqlite3.connect(str(db_path))
+        try:
+            conn.execute(
+                "INSERT INTO agent_slots (slot_key, agent_kind, subagent_type, session_id) "
+                "VALUES (?, ?, ?, ?)",
+                (f"{session_id}:{subagent_type}", "claude_subagent", subagent_type, session_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
     def test_empty_db_all_missing(self, fresh_db: Path) -> None:
         result = agent_mandatory.audit_phase("L2")
         assert result["phase"] == "L2"
@@ -132,6 +145,34 @@ class TestAuditPhase:
         assert result["missing_count"] == 3
         called_subs = [r["subagent"] for r in result["mandatory"] if r["called"]]
         assert "pmo-helix-explorer" in called_subs
+
+    def test_audit_with_session_id_filters_by_session(self, fresh_db: Path) -> None:
+        self._insert_subagent_call(fresh_db, "pmo-tech-fork", "session-A")
+        self._insert_subagent_call(fresh_db, "pmo-helix-explorer", "session-B")
+
+        result = agent_mandatory.audit_phase("L2", session_id="session-A")
+
+        assert result["missing_count"] == 3
+        called_subs = [r["subagent"] for r in result["mandatory"] if r["called"]]
+        assert called_subs == ["pmo-tech-fork"]
+
+    def test_audit_without_session_id_returns_all_sessions(self, fresh_db: Path) -> None:
+        self._insert_subagent_call(fresh_db, "pmo-tech-fork", "session-A")
+        self._insert_subagent_call(fresh_db, "pmo-helix-explorer", "session-B")
+
+        result = agent_mandatory.audit_phase("L2")
+
+        assert result["missing_count"] == 2
+        called_subs = {r["subagent"] for r in result["mandatory"] if r["called"]}
+        assert called_subs == {"pmo-tech-fork", "pmo-helix-explorer"}
+
+    def test_audit_with_unknown_session_returns_all_missing(self, fresh_db: Path) -> None:
+        self._insert_subagent_call(fresh_db, "pmo-tech-fork", "session-A")
+
+        result = agent_mandatory.audit_phase("L2", session_id="session-Z")
+
+        assert result["missing_count"] == 4
+        assert all(r["called"] is False for r in result["mandatory"])
 
 
 class TestFireMandatoryAudit:

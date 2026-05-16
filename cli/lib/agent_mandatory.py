@@ -76,10 +76,11 @@ def list_mandatory_for_phase(phase: str) -> list[dict[str, str]]:
 
 
 # @helix:index id=agent_mandatory.audit_phase domain=cli/lib summary=現セッションで該当 phase の mandatory subagent 呼び出し audit
-def audit_phase(phase: str, *, since_hours: int = 24) -> dict[str, Any]:
+def audit_phase(phase: str, *, since_hours: int = 24, session_id: str | None = None) -> dict[str, Any]:
     """現 phase の mandatory subagent が呼ばれたか agent_slots から audit.
 
     PLAN-078 agent_slots を `agent_kind='claude_subagent'` フィルタ + `fired_at` 過去 since_hours で参照.
+    session_id 指定時は該当 session のみ対象にする.
 
     返り値: {
         "phase": str,
@@ -105,15 +106,19 @@ def audit_phase(phase: str, *, since_hours: int = 24) -> dict[str, Any]:
         conn = helix_db.get_connection()
         conn.row_factory = sqlite3.Row
         try:
+            where_clauses = ["agent_kind = 'claude_subagent'", "fired_at >= ?"]
+            params: list[object] = [threshold_iso]
+            if session_id is not None:
+                where_clauses.append("session_id = ?")
+                params.append(session_id)
             rows = conn.execute(
-                """
+                f"""
                 SELECT subagent_type, MAX(fired_at) AS last_fired
                 FROM agent_slots
-                WHERE agent_kind = 'claude_subagent'
-                  AND fired_at >= ?
+                WHERE {' AND '.join(where_clauses)}
                 GROUP BY subagent_type
                 """,
-                (threshold_iso,),
+                params,
             ).fetchall()
             for row in rows:
                 if row["subagent_type"]:
@@ -220,6 +225,7 @@ def _main_cli(argv: list[str] | None = None) -> int:
     p_audit = sub.add_parser("audit")
     p_audit.add_argument("--phase", required=True)
     p_audit.add_argument("--since-hours", type=int, default=24)
+    p_audit.add_argument("--session-id")
     p_audit.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
@@ -229,7 +235,7 @@ def _main_cli(argv: list[str] | None = None) -> int:
     elif args.cmd == "suggest":
         result = suggest_for_task(args.task)
     elif args.cmd == "audit":
-        result = audit_phase(args.phase, since_hours=args.since_hours)
+        result = audit_phase(args.phase, since_hours=args.since_hours, session_id=args.session_id)
     else:
         parser.print_help()
         return 2

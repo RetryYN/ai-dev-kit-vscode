@@ -3,14 +3,15 @@
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   TOOL_HELPER="$HELIX_ROOT/cli/tests/_helix-bats-helper.bash"
-  TMP_ROOT="$(mktemp -d)"
+  HELIX_TMP="$(mktemp -d)"
+  TMP_ROOT="$HELIX_TMP"
   source "$TOOL_HELPER"
-  helix_bats_mark "$TMP_ROOT"
+  helix_bats_mark "$HELIX_TMP"
 
   PROJECT_ROOT="$TMP_ROOT/project"
   HOME_DIR="$TMP_ROOT/home"
   BIN_DIR="$TMP_ROOT/bin"
-  DB_PATH="$PROJECT_ROOT/.helix/helix.db"
+  DB_PATH="$HELIX_TMP/test_helix.db"
 
   mkdir -p "$PROJECT_ROOT/.helix" "$HOME_DIR" "$BIN_DIR"
   cd "$PROJECT_ROOT"
@@ -30,11 +31,19 @@ setup() {
 
   python3 - "$HELIX_ROOT" "$DB_PATH" >/dev/null <<'PY'
 import sys
+import sqlite3
 
 sys.path.insert(0, sys.argv[1])
 from cli.lib import helix_db
+from cli.lib import agent_slots
 
-helix_db.init_db(sys.argv[2])
+conn = sqlite3.connect(sys.argv[2])
+helix_db.migrate_all(conn)
+conn.close()
+
+for _ in range(6):
+    slot_id = agent_slots.fire_slot(agent_kind="codex", role="pg", plan_id="PLAN-080", task_id="TASK-080")
+    agent_slots.release_slot(slot_id)
 PY
 }
 
