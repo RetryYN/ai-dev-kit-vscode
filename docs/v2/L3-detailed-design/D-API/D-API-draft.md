@@ -415,6 +415,10 @@ components:
 - layer: architecture / functional
 - pair_status 参照: `PairStatusTransition` DTO に従う (waived 時は `approved_by` および `enforce_policy` 必須)
 
+## §3.4〜§3.14 carry capability endpoint contract（PLAN-071）
+
+詳細は `D-API-CARRY-draft.md` を参照（分離理由: D-API-draft.md の §4.4 ±200 行制約遵守）。
+
 ## §4 共通 error model
 
 ### 4.1 標準形式
@@ -493,15 +497,26 @@ components:
 
 ### 7.1 carry: 未詳細化 capability
 
-- skill 推挙 / skill chain
-- Reverse HELIX
-- Scrum HELIX
-- Agent Transformation 散在
-- code-index
-- PMO / advisor role system
-- budget guard / auto-thinking
-- state-events（D-CONTRACT 連携対象）
-- これらは `capability-inventory.md` / `capability-matrix.md` と 1:1 で差分管理する。
+**PLAN-071 完了: 全 carry capability 詳細化済（2026-05-17）**
+
+PLAN-071 Sprint .1/.2 により C-01〜C-11 の endpoint contract を §3.4〜§3.14 に追記済。
+残 carry は以下のみ（次 PLAN での対応を推奨）:
+
+- state-events（D-CONTRACT 連携対象）: PLAN-072 Phase B 結合時に接続確認
+- C-10 budget guard: `cli/lib/cost_guard.py` 未実装部分は L4 実装 PLAN で確定
+
+旧 carry（すべて解消済）:
+- ~~skill 推挙 / skill chain~~ → §3.6 詳細化済
+- ~~Reverse HELIX~~ → §3.7 詳細化済
+- ~~Scrum HELIX~~ → §3.8 詳細化済
+- ~~Agent Transformation 散在~~ → §3.9 詳細化済
+- ~~code-index~~ → §3.12 詳細化済
+- ~~PMO / advisor role system~~ → §3.10 詳細化済
+- ~~budget guard / auto-thinking~~ → §3.13 詳細化済（partial done）
+- ~~V-model schema / QA baseline schema~~ → §3.4 詳細化済
+- ~~handover protocol~~ → §3.5 詳細化済
+- ~~Codex / Claude harness + PreToolUse guard~~ → §3.11 詳細化済
+- ~~code-index + contract registry 追加整合~~ → §3.14 詳細化済
 
 ### 7.2 Sprint C（D-CONTRACT） carry
 

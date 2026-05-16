@@ -1,10 +1,12 @@
 ---
 plan_id: PLAN-071
 title: "PLAN-071: PLAN-070 carry capability detail 化"
-status: draft
+status: frozen
+gate_status: G3_complete
 size: M
 drive: fullstack
 created: 2026-05-16
+completed_at: 2026-05-17
 owner: PM
 phases: L3, L4
 gates: G3
@@ -17,6 +19,7 @@ acceptance:
 related:
   - PLAN-070-l3-schema-and-contract-design (frozen 親 PLAN)
   - docs/v2/L3-detailed-design/D-API/D-API-draft.md
+  - docs/v2/L3-detailed-design/D-API/D-API-CARRY-draft.md (§3.4-§3.14 carry detail 分離ファイル、分離理由: §4.4 ±200 行制約遵守)
   - docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md
   - docs/v2/L2-MASTER.md (§3-§10 capability matrix)
 ---
@@ -268,6 +271,14 @@ PLAN-070 D-API §2.1 capability map から代表 3 を除外し、`capability-in
 
 - 本 PLAN 成果物が PLAN-070 の D-API draft (492 行) に比して ±200 行以内の追記に収まること（追加複雑度の目安）。
 - 800 行制限: 本 PLAN 自体は 400 行以内で完結すること。
+
+**[分離 refactor 完了 note — 2026-05-17]**
+
+D-API-draft.md の §3.4〜§3.14 (carry 11 capability) は `D-API-CARRY-draft.md` へ分離済み。
+- D-API-draft.md: 539 行（±200 範囲 324-724 内）
+- D-API-CARRY-draft.md: 1168 行、`status: frozen`、11 capability (C-01〜C-11) 収録
+- D-API-draft.md §3.4〜§3.14: リダイレクト参照 3 行に置換済み（行 418-420）
+- 分離理由: §4.4 ±200 行制約遵守（D-API-draft.md の可読性確保）
 
 ---
 

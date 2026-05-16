@@ -561,6 +561,54 @@ existing_cli_callers:
 | stdout | _print_report() で表示 | レスポンス JSON に変換して返却 |
 | git push 実行 | execute フラグに従う | execute フラグに従う (同一ロジック) |
 
+## §4.6 mock_to_implementation 全 capability 展開表（PLAN-071）
+
+### 4.6.1 概要
+
+本節は PLAN-070 §3 の代表 3 capability に加え、PLAN-071 で詳細化した carry 11 capability（C-01〜C-11）の mock_to_implementation hook を全 14 capability 分まとめた展開表である。
+
+全行に共通する contract constraints:
+- `append_only: true`（例外なし）
+- `g2_evidence_preserved: true`（例外なし）
+- `link_kind: derives_from`（canonical enum。mock 由来の基本リンク）
+
+### 4.6.2 全 capability 展開表
+
+| capability | from_artifact_kind | to_artifact_kind | from_layer | to_layer | link_kind | append_only | g2_evidence_preserved | 備考 |
+|---|---|---|---|---|---|---|---|---|
+| 契約 extractor / contract registry | mock_contract | implementation_contract | detailed | functional | derives_from | true | true | PLAN-070 SprintA 既存 |
+| 14 detector system | mock_detector | implementation_detector | architecture | functional | derives_from | true | true | PLAN-070 SprintA 既存 |
+| Gate runner | mock_gate | implementation_gate | architecture | functional | derives_from | true | true | PLAN-070 SprintA 既存 |
+| V-model schema / QA baseline schema (C-01) | mock_baseline_policy | implementation_baseline_policy | architecture | detailed | derives_from | true | true | PLAN-071 carry |
+| handover protocol (C-02) | mock_handover | implementation_handover | requirement | functional | derives_from | true | true | PLAN-071 carry |
+| skill 推挙 / skill chain (C-03) | mock_skill_search | implementation_skill_chain | detailed | functional | derives_from | true | true | PLAN-071 carry |
+| Reverse HELIX (C-04) | mock_reverse | implementation_reverse | architecture | functional | derives_from | true | true | PLAN-071 carry |
+| Scrum HELIX (C-05) | mock_scrum | implementation_scrum | planning | functional | derives_from | true | true | PLAN-071 carry |
+| Agent Transformation 散在 (C-06) | mock_dispatch | implementation_dispatch | architecture | functional | derives_from | true | true | PLAN-071 carry |
+| PMO / advisor role system (C-07) | mock_advisor | implementation_advisor | requirement | functional | derives_from | true | true | PLAN-071 carry |
+| Codex / Claude harness + PreToolUse guard (C-08) | mock_harness | implementation_harness | architecture | functional | derives_from | true | true | PLAN-071 carry |
+| code-index (C-09) | mock_code_index | implementation_code_index | detailed | functional | derives_from | true | true | PLAN-071 carry |
+| budget guard / auto-thinking support (C-10) | mock_budget | implementation_budget | detailed | functional | derives_from | true | true | PLAN-071 carry |
+| code-index + contract registry 追加整合 (C-11) | mock_alignment | implementation_alignment | detailed | functional | derives_from | true | true | PLAN-071 carry |
+
+### 4.6.3 from_artifact_kind / to_artifact_kind 命名ルール
+
+- `from_artifact_kind` は `mock_{capability_slug}` 形式
+- `to_artifact_kind` は `implementation_{capability_slug}` 形式
+- capability_slug は capability 名を小文字スネークケースで圧縮したもの
+- 重複がないことを本表で確保する（各行の `from_artifact_kind` はユニーク）
+
+### 4.6.4 acceptance check
+
+| check | expected | status |
+|---|---|---|
+| 全 14 capability を含む | 14 行 | pass |
+| `append_only=true` が全行 | 14/14 | pass |
+| `g2_evidence_preserved=true` が全行 | 14/14 | pass |
+| `from_artifact_kind` が全行ユニーク | 14/14 | pass |
+| `link_kind=derives_from` が全行 | 14/14 | pass |
+| PLAN-070 既存 3 件との重複なし | 0 重複 | pass |
+
 ## §5 cross-doc 整合性
 
 ### 5.1 整合対象
