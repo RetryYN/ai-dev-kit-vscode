@@ -6,6 +6,83 @@ source "$HELIX_PUSH_DIR/lib/helix-common.sh"
 
 LIB_DIR="$HELIX_PUSH_DIR/lib"
 HELPER="${HELIX_PUSH_HELPER:-$LIB_DIR/push_gate.py}"
+AUTOMATION_RUN_ID=""
+
+record_automation_run() {
+  local trigger_source="$1"
+  local run_kind="$2"
+  local metadata_json="$3"
+  local run_id=""
+
+  if ! run_id="$(
+    HELIX_AUTOMATION_LIB_DIR="$SCRIPT_DIR/lib" \
+    HELIX_AUTOMATION_TRIGGER_SOURCE="$trigger_source" \
+    HELIX_AUTOMATION_RUN_KIND="$run_kind" \
+    HELIX_AUTOMATION_METADATA_JSON="$metadata_json" \
+    HELIX_PROJECT_ROOT="$PROJECT_ROOT" \
+    python3 - <<'PY' 2>/dev/null
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
+import helix_db
+
+metadata_raw = os.environ.get("HELIX_AUTOMATION_METADATA_JSON", "").strip()
+metadata = json.loads(metadata_raw) if metadata_raw else None
+with helix_db._write_connection(None) as conn:
+    run_id = helix_db.insert_automation_run(
+        conn,
+        os.environ["HELIX_AUTOMATION_TRIGGER_SOURCE"],
+        os.environ["HELIX_AUTOMATION_RUN_KIND"],
+        metadata,
+    )
+print(run_id)
+PY
+  )"; then
+    echo "WARN: automation_runs start failed for ${trigger_source}" >&2
+    return 1
+  fi
+
+  AUTOMATION_RUN_ID="$run_id"
+}
+
+finalize_automation_run() {
+  local exit_status="${1:-0}"
+  local final_status="completed"
+  local error_text=""
+
+  [[ -n "$AUTOMATION_RUN_ID" ]] || return 0
+  if [[ "$exit_status" -ne 0 ]]; then
+    final_status="failed"
+    error_text="helix-push exited with status ${exit_status}"
+  fi
+
+  if ! HELIX_AUTOMATION_LIB_DIR="$SCRIPT_DIR/lib" \
+    HELIX_AUTOMATION_RUN_ID="$AUTOMATION_RUN_ID" \
+    HELIX_AUTOMATION_STATUS="$final_status" \
+    HELIX_AUTOMATION_ERROR="$error_text" \
+    HELIX_PROJECT_ROOT="$PROJECT_ROOT" \
+    python3 - <<'PY' 2>/dev/null
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
+import helix_db
+
+error = os.environ.get("HELIX_AUTOMATION_ERROR", "").strip() or None
+with helix_db._write_connection(None) as conn:
+    helix_db.complete_automation_run(
+        conn,
+        int(os.environ["HELIX_AUTOMATION_RUN_ID"]),
+        os.environ["HELIX_AUTOMATION_STATUS"],
+        error,
+    )
+PY
+  then
+    echo "WARN: automation_runs completion failed for helix-push" >&2
+  fi
+}
 
 usage() {
   cat <<'USAGE'
@@ -68,6 +145,25 @@ main() {
     echo "エラー: helper が実行できません: $HELPER" >&2
     return "$EXIT_PREREQ_ERROR"
   }
+
+  local automation_metadata=""
+  automation_metadata="$(
+    HELIX_AUTOMATION_REMOTE="$remote" \
+    HELIX_AUTOMATION_BRANCH="$branch" \
+    HELIX_AUTOMATION_EXECUTE="$execute" \
+    python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "remote": os.environ["HELIX_AUTOMATION_REMOTE"],
+    "branch": os.environ["HELIX_AUTOMATION_BRANCH"],
+    "execute": os.environ["HELIX_AUTOMATION_EXECUTE"] == "true",
+}, ensure_ascii=False, sort_keys=True))
+PY
+  )"
+  record_automation_run "helix-push" "push" "$automation_metadata" || true
+  trap 'finalize_automation_run "$?"' EXIT
 
   (
     cd "$PROJECT_ROOT"

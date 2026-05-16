@@ -18,6 +18,83 @@ TITLE=""
 BODY_OVERRIDE=""
 REQUIRE_GATES_RAW=""
 FORCE=false
+AUTOMATION_RUN_ID=""
+
+record_automation_run() {
+  local trigger_source="$1"
+  local run_kind="$2"
+  local metadata_json="$3"
+  local run_id=""
+
+  if ! run_id="$(
+    HELIX_AUTOMATION_LIB_DIR="$SCRIPT_DIR/lib" \
+    HELIX_AUTOMATION_TRIGGER_SOURCE="$trigger_source" \
+    HELIX_AUTOMATION_RUN_KIND="$run_kind" \
+    HELIX_AUTOMATION_METADATA_JSON="$metadata_json" \
+    HELIX_PROJECT_ROOT="$PROJECT_ROOT" \
+    python3 - <<'PY' 2>/dev/null
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
+import helix_db
+
+metadata_raw = os.environ.get("HELIX_AUTOMATION_METADATA_JSON", "").strip()
+metadata = json.loads(metadata_raw) if metadata_raw else None
+with helix_db._write_connection(None) as conn:
+    run_id = helix_db.insert_automation_run(
+        conn,
+        os.environ["HELIX_AUTOMATION_TRIGGER_SOURCE"],
+        os.environ["HELIX_AUTOMATION_RUN_KIND"],
+        metadata,
+    )
+print(run_id)
+PY
+  )"; then
+    echo "WARN: automation_runs start failed for ${trigger_source}" >&2
+    return 1
+  fi
+
+  AUTOMATION_RUN_ID="$run_id"
+}
+
+finalize_automation_run() {
+  local exit_status="${1:-0}"
+  local final_status="completed"
+  local error_text=""
+
+  [[ -n "$AUTOMATION_RUN_ID" ]] || return 0
+  if [[ "$exit_status" -ne 0 ]]; then
+    final_status="failed"
+    error_text="helix-pr exited with status ${exit_status}"
+  fi
+
+  if ! HELIX_AUTOMATION_LIB_DIR="$SCRIPT_DIR/lib" \
+    HELIX_AUTOMATION_RUN_ID="$AUTOMATION_RUN_ID" \
+    HELIX_AUTOMATION_STATUS="$final_status" \
+    HELIX_AUTOMATION_ERROR="$error_text" \
+    HELIX_PROJECT_ROOT="$PROJECT_ROOT" \
+    python3 - <<'PY' 2>/dev/null
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
+import helix_db
+
+error = os.environ.get("HELIX_AUTOMATION_ERROR", "").strip() or None
+with helix_db._write_connection(None) as conn:
+    helix_db.complete_automation_run(
+        conn,
+        int(os.environ["HELIX_AUTOMATION_RUN_ID"]),
+        os.environ["HELIX_AUTOMATION_STATUS"],
+        error,
+    )
+PY
+  then
+    echo "WARN: automation_runs completion failed for helix-pr" >&2
+  fi
+}
 
 require_opt_arg() {
   local opt_name="$1"
@@ -75,6 +152,28 @@ if [[ "$AUTO_MERGE" == true && "$GATE" != true ]]; then
   echo "Error: --auto-merge requires --gate" >&2
   exit 2
 fi
+
+automation_metadata="$(
+  HELIX_AUTOMATION_BASE="$BASE" \
+  HELIX_AUTOMATION_DRY_RUN="$DRY_RUN" \
+  HELIX_AUTOMATION_GATE="$GATE" \
+  HELIX_AUTOMATION_AUTO_MERGE="$AUTO_MERGE" \
+  HELIX_AUTOMATION_FORCE="$FORCE" \
+  python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "base": os.environ["HELIX_AUTOMATION_BASE"],
+    "dry_run": os.environ["HELIX_AUTOMATION_DRY_RUN"] == "true",
+    "gate": os.environ["HELIX_AUTOMATION_GATE"] == "true",
+    "auto_merge": os.environ["HELIX_AUTOMATION_AUTO_MERGE"] == "true",
+    "force": os.environ["HELIX_AUTOMATION_FORCE"] == "true",
+}, ensure_ascii=False, sort_keys=True))
+PY
+)"
+record_automation_run "helix-pr" "pr" "$automation_metadata" || true
+trap 'finalize_automation_run "$?"' EXIT
 
 project_size=""
 if [[ -f "$MATRIX_FILE" ]]; then
