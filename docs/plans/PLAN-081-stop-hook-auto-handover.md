@@ -76,6 +76,17 @@ Stop hook を用いて以下を半自動化:
 - Phase 4: テスト (pytest + bats、Stop hook fire 検証)
 - Phase 5: 過去 stop 機構との互換性確認 + commit
 
+## 4.5 V-model 4 artifact (PLAN-075 準拠、Phase 1 完遂版)
+
+| Artifact | 担当層 | パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | docs/v2/L3-detailed-design/D-CONCEPT.md (補完: PLAN-081 §2-§4 が機能設計を兼ねる) |
+| ② 実装コード | L4 実装 | cli/lib/handover_auto_dump.py + cli/helix-stop-hook + cli/helix-harness (recommend-compact / auto-dump subcommand) |
+| ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-081-phase4-test-design.md (Phase 4 carry) |
+| ④ テストコード | L4 実装 | cli/lib/tests/test_handover_auto_dump.py (Phase 4 carry、現状 Phase 1 完遂時は動作確認のみ) |
+
+Phase 1 完遂状態では ③ ④ は Phase 4 carry。implementation 動作確認は手動 (`cli/helix-stop-hook` 単独実行 → handover/CURRENT.json revision +1)。Phase 4 着手時に正式 V-model 4 artifact を完備する。
+
 ## 5. 受入条件
 
 - `Stop` 時に handover dump 自動実行 (失敗時も session 継続)

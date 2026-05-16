@@ -82,6 +82,17 @@ PLAN-076/077 を framework only から「機械検証 + ゲート統合」まで
 - 過去 Sprint (PLAN-072 〜 PLAN-075) で機械化 check の retrofit 確認
 - commit + push
 
+## 3.5 V-model 4 artifact (PLAN-075 準拠、Phase 5 完遂版)
+
+| Artifact | 担当層 | パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | helix/HELIX_CORE.md §工程別 subagent 起動マップ (PLAN-076) + §Sprint Plan 標準構造 (PLAN-077) + docs/v2/L3-detailed-design/D-CONCEPT.md |
+| ② 実装コード | L4 実装 | cli/lib/agent_mandatory.py + cli/lib/sprint_lint.py + cli/helix-agent (fire-mandatory/suggest/audit subcommand) + cli/helix-sprint (complete --auto-check subcommand) + cli/helix-gate (subagent_audit/sprint_completion advisory) + cli/helix-doctor (check_subagent_phase/check_sprint_completion) |
+| ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-082-unit-test-design.md (carry、Phase 6 で正式起票) |
+| ④ テストコード | L4 実装 | cli/lib/tests/test_agent_mandatory.py + cli/lib/tests/test_sprint_lint.py + tests/helix-agent-mandatory.bats + tests/helix-sprint-mechanization.bats |
+
+framework 機械化系のため設計 doc は HELIX_CORE.md (PLAN-076/077 framework) で実質代替。Phase 5 完遂状態では ③ テスト設計の正式 doc は carry (Phase 6 で起票予定)、④ テストコードは完備済 (pytest 29 + bats 13 case PASS)。
+
 ## 4. 受入条件
 
 - `helix agent fire-mandatory --phase L2` で mandatory 10 種を一括投入 (実投入 or audit のみ)

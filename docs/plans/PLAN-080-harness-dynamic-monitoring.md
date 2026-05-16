@@ -76,10 +76,10 @@ HELIX framework は「Opus を制御する harness」として設計されてい
 
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
-| ① 設計 | L3 詳細設計 | docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md §X harness_check_events |
+| ① 設計 | L3 詳細設計 | docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md §13 harness_check_events |
 | ② 実装コード | L4 実装 | cli/lib/harness_monitor.py + cli/helix-harness + .claude/hooks/pretooluse-codex-slot-check.sh + .claude/hooks/sessionstart-harness-summary.sh |
-| ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-080-{unit,integration}-test-design.md |
-| ④ テストコード | L4 実装 | cli/lib/tests/test_harness_monitor*.py |
+| ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-080-unit-test-design.md + docs/v2/L4-test-design/PLAN-080-integration-test-design.md |
+| ④ テストコード | L4 実装 | cli/lib/tests/test_harness_monitor_unit.py + cli/lib/tests/test_harness_monitor_integration.py + tests/harness-hooks.bats |
 
 ## §3 3 軸設計
 
