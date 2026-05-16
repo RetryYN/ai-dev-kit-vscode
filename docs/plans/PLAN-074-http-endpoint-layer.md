@@ -277,7 +277,7 @@ POST /api/v1/automation/session/telemetry           (telemetry.py)
 ### test 全 PASS 検証
 
 - 27/27 PASS (http_api 5 endpoint suite)
-- 全回帰: pytest 1309 / bats 479 / shell 614 PASS (PLAN-072 G4 ready 時点、Sprint .2-.5 追加分込みで再回帰中)
+- 全回帰 (2026-05-16 23:43 完遂): pytest **1319** (+10 = Sprint .2-.5 追加分) / bats **479** / shell **614** 全 PASS、0 failed / 0 skipped
 - helix doctor: 21 pass / 0 fail / 1 warn (rg のみ、env 由来 warn)
 
 ### G4 entry チェックリスト
