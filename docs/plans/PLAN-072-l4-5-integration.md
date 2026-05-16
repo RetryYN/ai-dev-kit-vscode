@@ -74,20 +74,21 @@ D-API EXT / D-CONTRACT は契約のみ凍結済み (PLAN-070 L3)。
 ### 2.4 v27 session_telemetry 結合
 
 対象テーブル: `session_telemetry`
-- `.claude/hooks/` の Stop hook で session_id 単位 UPSERT
+- `.claude/hooks/stop.sh` の Python heredoc 内で session_id 単位 UPSERT
 - `tool_uses_count` / `tokens_total` / `cost_usd` を Stop hook の環境変数 / stdout から集計
-- SessionStart hook で session 開始レコードを先行 INSERT (cost_usd=0.0 初期値)
+- `cli/libexec/helix-session-start` で session 開始レコードを先行 INSERT (cost_usd=0.0 初期値)
 - `_upsert_row('session_telemetry', {'session_id': ...}, update_fields)` を使用
+- 実装注: hooks は bash + Python heredoc 構成 (実態に合わせる)。`.py` 表記は誤り。
 
 ## §3 Sprint 構成
 
 | Sprint | 目的 | 委譲先 | 対象ファイル (主) |
 |--------|------|--------|-----------------|
 | Sprint .1 | helix-push / helix-pr に automation_runs INSERT + lifecycle 遷移統合 | Codex SE | `cli/helix-push`, `cli/helix-pr`, `cli/lib/helix_db.py` |
-| Sprint .2 | `.claude/hooks/` に audit_log 書き込み統合 (hook_exec / gate_eval kind) | Codex SE | `.claude/hooks/*.py`, `cli/lib/helix_db.py` |
-| Sprint .3 | Stop hook / SessionStart hook に session_telemetry UPSERT 統合 | Codex SE | `.claude/hooks/stop.py`, `.claude/hooks/session_start.py` |
+| Sprint .2 | `.claude/hooks/` に audit_log 書き込み統合 (hook_exec / gate_eval kind) | Codex SE | `.claude/hooks/*.sh` (Python heredoc 部), `cli/lib/helix_db.py` |
+| Sprint .3 | Stop hook / SessionStart hook に session_telemetry UPSERT 統合 | Codex SE | `.claude/hooks/stop.sh`, `cli/libexec/helix-session-start` |
 | Sprint .4 | helix-plan drive switch policy 評価フローに design_sprint_drive_decisions INSERT 結合 | Codex SE | `cli/helix-plan`, `cli/lib/helix_db.py` |
-| Sprint .5 | P1-01/02/03 一括解消 (invocation_log 責務分離 / HELIX_DIR 統一 / cost_usd validation helper) | Codex SE | `cli/lib/helix_db.py`, `.claude/hooks/*.py`, `cli/lib/validation.py` |
+| Sprint .5 | P1-01/02/03 一括解消 (invocation_log 責務分離 / HELIX_DIR 統一 / cost_usd validation helper) | Codex SE | `cli/lib/helix_db.py`, `.claude/hooks/*.sh`, `cli/lib/validation.py` |
 | Sprint .6 | E2E test: helix-push 実行 → automation_runs + audit_log + session_telemetry 3 テーブル一括書き込み確認 | Codex SE | `cli/lib/tests/test_integration_l45.py`, `cli/tests/l45_integration.bats` |
 | Sprint .7 | exit validation (cross-doc + bats + pytest + helix doctor) + G4 ready 判定 | TL/PM | — |
 
@@ -177,8 +178,8 @@ Sprint .1-.4 は相互独立 → 並列投入。Sprint .5 は .1-.4 全完了後
 
 並列投入前の衝突確認:
 - Sprint .1 (helix-push, helix-pr): ファイル衝突なし
-- Sprint .2 (.claude/hooks/*.py): ファイル衝突なし
-- Sprint .3 (.claude/hooks/stop.py, session_start.py): Sprint .2 と hooks/*.py が重複 → Sprint .2 完了後に直列
+- Sprint .2 (.claude/hooks/*.sh): ファイル衝突なし
+- Sprint .3 (.claude/hooks/stop.sh, cli/libexec/helix-session-start): Sprint .2 と hooks/*.sh が重複 → Sprint .2 完了後に直列
 - Sprint .4 (helix-plan): ファイル衝突なし
 
 修正: Sprint .1 ∥ Sprint .2 ∥ Sprint .4 を並列、Sprint .3 は Sprint .2 完了後。
