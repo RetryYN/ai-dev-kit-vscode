@@ -3450,3 +3450,52 @@ def insert_drive_decision(
         [payload[column] for column in columns],
     )
     return _validate_positive_int(int(cursor.lastrowid), "decision_id")
+
+
+# @helix:index id=helix-db.upsert-session-telemetry domain=cli/lib summary=session_telemetry を session_id 単位で UPSERT し start/stop hook から再利用する
+def upsert_session_telemetry(
+    conn,
+    session_id: str,
+    actor: str,
+    *,
+    related_plan_id: str | None = None,
+    tool_uses_count: int = 0,
+    tokens_total: int = 0,
+    cost_usd: float = 0.0,
+    ended: bool = False,
+) -> int:
+    session_id = _require_non_empty(session_id, "session_id")
+    actor = _require_non_empty(actor, "actor")
+
+    if type(tool_uses_count) is not int or tool_uses_count < 0:
+        raise ValueError("tool_uses_count must be a non-negative integer")
+    if type(tokens_total) is not int or tokens_total < 0:
+        raise ValueError("tokens_total must be a non-negative integer")
+    if isinstance(cost_usd, bool):
+        raise ValueError("cost_usd must be a non-negative number")
+    cost_usd = float(cost_usd)
+    if cost_usd < 0:
+        raise ValueError("cost_usd must be >= 0")
+
+    payload = {
+        "session_id": session_id,
+        "actor": actor,
+        "tool_uses_count": tool_uses_count,
+        "tokens_total": tokens_total,
+        "cost_usd": cost_usd,
+        "last_updated_at": datetime.now().isoformat(),
+    }
+    if related_plan_id is not None:
+        plan_id = str(related_plan_id).strip()
+        if plan_id:
+            payload["related_plan_id"] = plan_id
+    if ended:
+        payload["ended_at"] = datetime.now().isoformat()
+
+    telemetry_id = _upsert_row(
+        conn,
+        "session_telemetry",
+        payload,
+        conflict_column="session_id",
+    )
+    return _validate_positive_int(int(telemetry_id), "telemetry_id")
