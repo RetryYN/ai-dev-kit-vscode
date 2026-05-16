@@ -1,13 +1,20 @@
 ---
 plan_id: PLAN-073
 title: "PLAN-073: V-model P2-8 テスト 3 ケース追加 (PLAN-068 W-6 carry)"
-status: draft
+status: completed
 size: S
 drive: be
 created: 2026-05-16
+completed_at: 2026-05-16
 owner: PM
 phases: L4
 gates: G4
+completion_evidence: |
+  Sprint .1-.3 並列実装完了 (commit 3aab4c5):
+  - test_vmodel_multi_drive.py (2 cases PASS)
+  - test_drive_decisions_idempotent.py (2 cases PASS)
+  - test_drive_decisions_atomic.py (3 cases PASS)
+  pytest 7 cases、累積 1292 全 PASS、回帰 0。
 acceptance:
   - vmodel_loader / helix-gate の drive resolve に対する以下 3 ケースをテスト追加:
     - multi-drive: 同一 plan で be/fe/fullstack が並存する場合の drive 解決

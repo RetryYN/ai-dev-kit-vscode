@@ -1,13 +1,18 @@
 ---
 plan_id: PLAN-068
 title: "PLAN-068: V-model 強化定義 carry 改善（7件 carry）"
-status: in_progress
+status: completed
 size: M
 drive: be
 created: 2026-05-15
+completed_at: 2026-05-16
 owner: PM
 phases: L1
 gates: G3
+completion_evidence: |
+  W-1〜W-5 (P1 系 drive resolve / in-place 禁止 + P2-3〜P2-7) は L1-REQUIREMENTS / 既存実装で resolved (commit 371dc3f §8 Resolution Summary)。
+  W-6 (P2-8 multi-drive/idempotent/atomic test) は独立 PLAN-073 として吸収・完遂 (commit 3aab4c5、pytest 7 cases PASS)。
+  全 7 件 carry 解消、本 PLAN は完了。
 acceptance:
   - P1#1 の --drive 契約揺れを解消し、`helix gate G3 --subgate functional_freeze` が `plan metadata` と整合する状態にする
   - P1#2 の drive 切替ルールを schema/API と履歴ルールに分離し、in-place 変更を禁止する
