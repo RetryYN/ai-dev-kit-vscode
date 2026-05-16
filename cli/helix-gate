@@ -1452,6 +1452,38 @@ PY
     echo "  detector summary: fail=$detector_fail warn=$detector_warn"
   }
 
+  run_gate_vmodel_lint() {
+    # PLAN-075 Phase 5: V-model 4 artifact lint を G2/G3/G4 で advisory として走らせる。
+    # incomplete (non-grandfather, non-draft) があれば warning として detector_warn を増やす。
+    # gate fail にはしない (Phase 1 では soft 通知、後段 PLAN で --strict 化検討)。
+    local gate_name="$1"
+    case "$gate_name" in
+      G2|G3|G4) ;;
+      *) return 0 ;;
+    esac
+    local lint_script="$SCRIPT_DIR/lib/vmodel_lint.py"
+    if [[ ! -f "$lint_script" ]]; then
+      return 0
+    fi
+    echo "[helix-gate] vmodel_lint auto-run: $gate_name (PLAN-075 V-model 4 artifact)"
+    local tmp rc incomplete_count
+    tmp="$(mktemp "${TMPDIR:-/tmp}/helix-gate-vmodel-${gate_name}-XXXXXX")"
+    set +e
+    python3 "$lint_script" --skip-draft >"$tmp" 2>&1
+    rc=$?
+    set -e
+    incomplete_count="$(grep -c '^\[⚠\]' "$tmp" 2>/dev/null || true)"
+    [[ -z "$incomplete_count" ]] && incomplete_count=0
+    if [[ "$incomplete_count" -gt 0 ]]; then
+      echo "  WARN [vmodel_lint] incomplete=$incomplete_count PLAN (V-model 4 artifact 不完全、advisory)"
+      grep '^\[⚠\]' "$tmp" | head -5
+      detector_warn=$((detector_warn + 1))
+    else
+      echo "  PASS [vmodel_lint] V-model 4 artifact: 全 non-grandfather PLAN が complete"
+    fi
+    rm -f "$tmp"
+  }
+
   requires_design_md_lint() {
     local drive_value="$1"
     local ui_value="$2"
@@ -2302,6 +2334,11 @@ PY
         add_fail_reason "detectors"
       fi
     fi
+  fi
+
+  # PLAN-075 Phase 5: V-model 4 artifact lint (G2/G3/G4 で advisory)
+  if [[ "$gate" =~ ^G[234]$ ]] && [[ "$SKIP_DETECTORS" != true ]]; then
+    run_gate_vmodel_lint "$gate"
   fi
 
   # --- 総合判定 ---

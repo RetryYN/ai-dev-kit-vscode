@@ -205,3 +205,55 @@ def test_main_json_and_strict_exit_on_incomplete(tmp_path: Path, monkeypatch: py
     assert payload[0]["plan_id"] == "PLAN-200"
     assert payload[0]["complete"] is False
     assert payload[0]["missing"] == ["test-design", "test-code"]
+
+
+def test_lint_plan_detects_draft_status(tmp_path: Path) -> None:
+    """DoD 検証: inline U-009 frontmatter status: draft で is_draft=True、format で […] マーク"""
+    target = tmp_path / "PLAN-300-sample.md"
+    target.write_text(
+        "---\nplan_id: PLAN-300\nstatus: draft\n---\n本文\n",
+        encoding="utf-8",
+    )
+    result = lint_plan(target, set(), tmp_path)
+    assert result.is_draft is True
+
+    output = format_text([result])
+    assert "[…] PLAN-300: draft" in output
+
+
+def test_lint_all_skip_draft_excludes_and_strict_ignores_draft(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: inline U-010 skip_draft=True で draft が除外、--strict は draft 不在で exit 0"""
+    plans_dir = tmp_path / "docs" / "plans"
+    plans_dir.mkdir(parents=True)
+    # draft PLAN (incomplete だが strict 評価対象外であるべき)
+    (plans_dir / "PLAN-301-draft.md").write_text(
+        "---\nplan_id: PLAN-301\nstatus: draft\n---\n本文 (refs なし)\n",
+        encoding="utf-8",
+    )
+    # complete PLAN
+    (plans_dir / "PLAN-302-frozen.md").write_text(
+        "---\nplan_id: PLAN-302\nstatus: frozen\n---\n"
+        "D-API\ncli/lib/x.py\nL4-test-design/PLAN-302-unit-test-design.md\ncli/lib/tests/test_x.py\n",
+        encoding="utf-8",
+    )
+    deferred_path = tmp_path / ".helix" / "audit" / "deferred-findings.yaml"
+    deferred_path.parent.mkdir(parents=True)
+    deferred_path.write_text("findings: []\n", encoding="utf-8")
+
+    monkeypatch.setattr(vmodel_lint, "HELIX_ROOT", tmp_path)
+    monkeypatch.setattr(vmodel_lint, "PLANS_DIR", plans_dir)
+    monkeypatch.setattr(vmodel_lint, "DEFERRED_FINDINGS", deferred_path)
+
+    # skip_draft=False では draft も含む
+    all_results = lint_all(plans_dir=plans_dir, deferred_path=deferred_path, project_root=tmp_path)
+    assert {r.plan_id for r in all_results} == {"PLAN-301", "PLAN-302"}
+
+    # skip_draft=True では draft 除外
+    skip_results = lint_all(
+        plans_dir=plans_dir, deferred_path=deferred_path, project_root=tmp_path, skip_draft=True
+    )
+    assert {r.plan_id for r in skip_results} == {"PLAN-302"}
+
+    # --strict --skip-draft で incomplete なし (PLAN-302 complete のみ) → exit 0
+    exit_code = vmodel_lint.main(["--strict", "--skip-draft"])
+    assert exit_code == 0

@@ -45,6 +45,7 @@ class LintResult:
     test_design_ref: int = 0
     test_code_ref: int = 0
     grandfather: bool = False
+    is_draft: bool = False
     missing: list[str] = field(default_factory=list)
 
     @property
@@ -64,6 +65,7 @@ class LintResult:
             "path": self.path,
             "complete": self.complete,
             "grandfather": self.grandfather,
+            "is_draft": self.is_draft,
             "missing": list(self.missing),
             "references": {
                 "design": self.design_ref,
@@ -88,6 +90,14 @@ def _extract_plan_id(plan_path: Path, text: str) -> str:
         return file_match.group(0)
 
     return plan_path.stem.upper()
+
+
+# @helix:index id=vmodel-lint.extract-status domain=cli/lib summary=PLAN frontmatter から status を抽出 (draft 検出用)
+def _extract_status(text: str) -> str | None:
+    status_match = re.search(r"^status:\s*(\w+)\s*$", text, re.MULTILINE)
+    if status_match:
+        return status_match.group(1).lower()
+    return None
 
 
 def _display_path(path: Path, project_root: Path) -> str:
@@ -142,6 +152,7 @@ def lint_plan(plan_path: Path, grandfather: set[str], project_root: Path | None 
     root = project_root or HELIX_ROOT
     text = plan_path.read_text(encoding="utf-8", errors="replace")
     plan_id = _extract_plan_id(plan_path, text)
+    status = _extract_status(text)
     result = LintResult(
         plan_id=plan_id,
         path=_display_path(plan_path, root),
@@ -150,6 +161,7 @@ def lint_plan(plan_path: Path, grandfather: set[str], project_root: Path | None 
         test_design_ref=_count_refs(TEST_DESIGN_PATTERN, text),
         test_code_ref=_count_refs(TEST_CODE_PATTERN, text),
         grandfather=plan_id in grandfather,
+        is_draft=(status == "draft"),
     )
 
     if result.design_ref == 0:
@@ -169,6 +181,7 @@ def lint_all(
     plans_dir: Path | None = None,
     deferred_path: Path | None = None,
     project_root: Path | None = None,
+    skip_draft: bool = False,
 ) -> list[LintResult]:
     root = project_root or HELIX_ROOT
     target_plans_dir = plans_dir or PLANS_DIR
@@ -176,6 +189,8 @@ def lint_all(
     results: list[LintResult] = []
     for plan_path in sorted(target_plans_dir.glob("PLAN-*.md")):
         result = lint_plan(plan_path, grandfather, root)
+        if skip_draft and result.is_draft:
+            continue
         if _matches_plan_filter(result, plan_id_filter):
             results.append(result)
     return results
@@ -193,6 +208,9 @@ def format_text(results: list[LintResult]) -> str:
             f"(design={result.design_ref}, impl={result.impl_ref}, "
             f"test-design={result.test_design_ref}, test-code={result.test_code_ref})"
         )
+        if result.is_draft:
+            lines.append(f"[…] {result.plan_id}: draft (not yet evaluated) {counts}")
+            continue
         if result.grandfather:
             lines.append(f"[○] {result.plan_id}: grandfather (skip) {counts}")
             continue
@@ -217,7 +235,8 @@ def format_text(results: list[LintResult]) -> str:
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="V-model 4 artifact lint (PLAN-075)")
     parser.add_argument("--plan-id", help="特定 PLAN ID のみ lint")
-    parser.add_argument("--strict", action="store_true", help="incomplete (non-grandfather) があれば exit 1")
+    parser.add_argument("--strict", action="store_true", help="incomplete (non-grandfather, non-draft) があれば exit 1")
+    parser.add_argument("--skip-draft", action="store_true", help="status: draft の PLAN を結果から除外")
     parser.add_argument("--json", action="store_true", help="JSON 出力")
     return parser
 
@@ -225,13 +244,16 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 # @helix:index id=vmodel-lint.main domain=cli/lib summary=vmodel lint CLI entrypoint を実行する
 def main(argv: list[str] | None = None) -> int:
     args = _build_arg_parser().parse_args(argv)
-    results = lint_all(plan_id_filter=args.plan_id)
+    results = lint_all(plan_id_filter=args.plan_id, skip_draft=args.skip_draft)
     if args.json:
         print(json.dumps([result.to_dict() for result in results], ensure_ascii=False, indent=2))
     else:
         print(format_text(results))
 
-    if args.strict and any(not result.complete and not result.grandfather for result in results):
+    if args.strict and any(
+        not result.complete and not result.grandfather and not result.is_draft
+        for result in results
+    ):
         return 1
     return 0
 
