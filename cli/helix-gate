@@ -1484,6 +1484,65 @@ PY
     rm -f "$tmp"
   }
 
+  run_gate_subagent_audit() {
+    # PLAN-082 Phase 4: mandatory subagent audit を G2/G3/G4 で advisory として走らせる。
+    # missing > 0 なら warning として detector_warn を増やす (fail-close なし、advisory のみ)。
+    local gate_name="$1"
+    local phase_map
+    case "$gate_name" in
+      G2) phase_map="L2" ;;
+      G3) phase_map="L3" ;;
+      G4) phase_map="L4" ;;
+      *) return 0 ;;
+    esac
+    local helper="$SCRIPT_DIR/lib/agent_mandatory.py"
+    if [[ ! -f "$helper" ]]; then
+      return 0
+    fi
+    echo "[helix-gate] subagent_audit auto-run: $gate_name (PLAN-082 PLAN-076 機械化)"
+    local audit_json missing
+    audit_json="$(PYTHONPATH="$SCRIPT_DIR/.." python3 -c "
+import json
+from cli.lib import agent_mandatory
+print(json.dumps(agent_mandatory.audit_phase('$phase_map')))
+" 2>/dev/null || echo '{}')"
+    missing="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("missing_count", 0))' 2>/dev/null || echo "0")"
+    if [[ "$missing" -gt 0 ]]; then
+      echo "  WARN [subagent_audit] phase=$phase_map missing=$missing mandatory subagent 未呼び出し (advisory)"
+      detector_warn=$((detector_warn + 1))
+    else
+      echo "  PASS [subagent_audit] phase=$phase_map all mandatory subagent called"
+    fi
+  }
+
+  run_gate_sprint_completion() {
+    # PLAN-082 Phase 4: Sprint Plan 8 ステップ機械化 audit を G4 で advisory として走らせる。
+    # overall != pass なら warning として detector_warn を増やす。
+    local gate_name="$1"
+    [[ "$gate_name" != "G4" ]] && return 0
+    local helper="$SCRIPT_DIR/lib/sprint_lint.py"
+    if [[ ! -f "$helper" ]]; then
+      return 0
+    fi
+    echo "[helix-gate] sprint_completion auto-run: $gate_name (PLAN-082 PLAN-077 機械化)"
+    local audit_json overall
+    audit_json="$(PYTHONPATH="$SCRIPT_DIR/.." python3 -c "
+import json
+from cli.lib import sprint_lint
+try:
+    print(json.dumps(sprint_lint.audit_sprint_completion('unknown', '.0', skip_full_regression=True)))
+except Exception as e:
+    print(json.dumps({'overall': 'error', 'error': str(e)}))
+" 2>/dev/null || echo '{}')"
+    overall="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("overall", "unknown"))' 2>/dev/null || echo "unknown")"
+    if [[ "$overall" != "pass" ]]; then
+      echo "  WARN [sprint_completion] overall=$overall (advisory、--auto-check 推奨)"
+      detector_warn=$((detector_warn + 1))
+    else
+      echo "  PASS [sprint_completion] Sprint Exit mandatory 4 種 PASS"
+    fi
+  }
+
   requires_design_md_lint() {
     local drive_value="$1"
     local ui_value="$2"
@@ -2339,6 +2398,8 @@ PY
   # PLAN-075 Phase 5: V-model 4 artifact lint (G2/G3/G4 で advisory)
   if [[ "$gate" =~ ^G[234]$ ]] && [[ "$SKIP_DETECTORS" != true ]]; then
     run_gate_vmodel_lint "$gate"
+    run_gate_subagent_audit "$gate"
+    run_gate_sprint_completion "$gate"
   fi
 
   # --- 総合判定 ---

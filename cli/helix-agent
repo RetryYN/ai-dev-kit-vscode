@@ -8,11 +8,14 @@ usage() {
     'Usage: helix agent <subcommand> [options]' \
     '' \
     'Subcommands:' \
-    '  fire     slot を起動記録する内部 API' \
-    '  release  slot を終了記録する内部 API' \
-    '  slots    slot 一覧を表示する' \
-    '  stats    slot 集計を表示する' \
-    '  --help   このヘルプ'
+    '  fire             slot を起動記録する内部 API' \
+    '  release          slot を終了記録する内部 API' \
+    '  slots            slot 一覧を表示する' \
+    '  stats            slot 集計を表示する' \
+    '  fire-mandatory   phase 別 mandatory subagent を audit/list 出力 (PLAN-082)' \
+    '  suggest          task description から on-demand subagent を推奨 (PLAN-082)' \
+    '  audit            phase の mandatory subagent 呼び出し audit (PLAN-082)' \
+    '  --help           このヘルプ'
 }
 
 fire_usage() {
@@ -190,6 +193,73 @@ cmd_stats() {
   fi
 }
 
+cmd_fire_mandatory() {
+  local phase=""
+  local dry_run=""
+  local json_flag=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --phase) phase="${2:-}"; shift 2 ;;
+      --dry-run) dry_run="--dry-run"; shift ;;
+      --json) json_flag="--json"; shift ;;
+      --help|-h)
+        printf '%s\n' 'Usage: helix agent fire-mandatory --phase Lx [--dry-run] [--json]'
+        exit 0
+        ;;
+      *) _die "fire-mandatory の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -z "$phase" ]] && _die "--phase は必須です"
+
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli.lib.agent_mandatory fire-mandatory --phase "$phase" $dry_run $json_flag
+}
+
+cmd_suggest() {
+  local task=""
+  local json_flag=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --task) task="${2:-}"; shift 2 ;;
+      --json) json_flag="--json"; shift ;;
+      --help|-h)
+        printf '%s\n' 'Usage: helix agent suggest --task "<description>" [--json]'
+        exit 0
+        ;;
+      *) _die "suggest の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -z "$task" ]] && _die "--task は必須です"
+
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli.lib.agent_mandatory suggest --task "$task" $json_flag
+}
+
+cmd_audit() {
+  local phase=""
+  local since_hours="24"
+  local json_flag=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --phase) phase="${2:-}"; shift 2 ;;
+      --since-hours) since_hours="${2:-24}"; shift 2 ;;
+      --json) json_flag="--json"; shift ;;
+      --help|-h)
+        printf '%s\n' 'Usage: helix agent audit --phase Lx [--since-hours 24] [--json]'
+        exit 0
+        ;;
+      *) _die "audit の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -z "$phase" ]] && _die "--phase は必須です"
+
+  PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli.lib.agent_mandatory audit --phase "$phase" --since-hours "$since_hours" $json_flag
+}
+
 main() {
   local subcommand="${1:-}"
   case "$subcommand" in
@@ -208,6 +278,18 @@ main() {
     stats)
       shift || true
       cmd_stats "$@"
+      ;;
+    fire-mandatory)
+      shift || true
+      cmd_fire_mandatory "$@"
+      ;;
+    suggest)
+      shift || true
+      cmd_suggest "$@"
+      ;;
+    audit)
+      shift || true
+      cmd_audit "$@"
       ;;
     --help|-h|"")
       usage

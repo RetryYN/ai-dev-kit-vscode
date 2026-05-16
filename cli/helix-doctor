@@ -499,6 +499,66 @@ check_vmodel_4artifact() {
   PASS=$((PASS + 1))
 }
 
+check_subagent_phase() {
+  if [[ ! -f "$HELIX_HOME/cli/lib/agent_mandatory.py" ]]; then
+    return 0
+  fi
+  local cur_phase=""
+  if [[ -f "$HELIX_DIR/phase.yaml" ]]; then
+    cur_phase="$(python3 -c "
+import sys
+try:
+    import yaml
+    with open('$HELIX_DIR/phase.yaml') as f:
+        d = yaml.safe_load(f) or {}
+    print(d.get('current_phase', '') or '')
+except Exception:
+    print('')
+" 2>/dev/null || echo "")"
+  fi
+  if [[ -z "$cur_phase" ]]; then
+    return 0
+  fi
+
+  local audit_json missing
+  audit_json="$(PYTHONPATH="$HELIX_HOME" python3 -c "
+import json
+from cli.lib import agent_mandatory
+print(json.dumps(agent_mandatory.audit_phase('$cur_phase')))
+" 2>/dev/null || echo '{}')"
+  missing="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("missing_count", 0))' 2>/dev/null || echo "0")"
+  if [[ "$missing" -gt 0 ]]; then
+    echo "  △ check_subagent_phase: $missing mandatory subagent 不在 (current_phase=$cur_phase, PLAN-082 PLAN-076 機械化)"
+    WARN=$((WARN + 1))
+    return
+  fi
+  echo "  ✓ check_subagent_phase (current_phase=$cur_phase)"
+  PASS=$((PASS + 1))
+}
+
+check_sprint_completion() {
+  if [[ ! -f "$HELIX_HOME/cli/lib/sprint_lint.py" ]]; then
+    return 0
+  fi
+  local audit_json overall
+  audit_json="$(PYTHONPATH="$HELIX_HOME" python3 -c "
+import json
+from cli.lib import sprint_lint
+try:
+    print(json.dumps(sprint_lint.audit_sprint_completion('unknown', '.0', skip_full_regression=True)))
+except Exception as e:
+    print(json.dumps({'overall': 'error', 'error': str(e)}))
+" 2>/dev/null || echo '{}')"
+  overall="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("overall", "unknown"))' 2>/dev/null || echo "unknown")"
+  if [[ "$overall" != "pass" ]]; then
+    echo "  △ check_sprint_completion: overall=$overall (advisory、PLAN-082 PLAN-077 機械化)"
+    WARN=$((WARN + 1))
+    return
+  fi
+  echo "  ✓ check_sprint_completion"
+  PASS=$((PASS + 1))
+}
+
 collect_stale_lock_report() {
   local runtime_lib_dir
   runtime_lib_dir="$(cd "$(dirname "$0")" && pwd)/lib"
@@ -637,6 +697,11 @@ check_document_drift
 echo ""
 echo "[V-model 4 artifact]"
 check_vmodel_4artifact
+
+echo ""
+echo "[subagent + sprint 機械化 (PLAN-082)]"
+check_subagent_phase
+check_sprint_completion
 
 echo ""
 echo "[stale locks]"

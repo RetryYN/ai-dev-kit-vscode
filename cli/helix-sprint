@@ -27,12 +27,15 @@ declare -A STEP_NAMES=(
 )
 
 usage() {
-  echo "Usage: helix sprint <status|next|complete|reset> [--track be|fe] [--json]"
+  echo "Usage: helix sprint <status|next|complete|reset|addon> [--track be|fe] [--json]"
   echo ""
   echo "Commands:"
   echo "  status                現在のスプリント状態を表示"
   echo "  next [--track t]      次のステップに進む（fullstack Phase A は --track be|fe 必須）"
   echo "  complete              現在のステップを完了（非 fullstack 用）"
+  echo "  complete --auto-check [--plan-id PLAN-082] [--sprint .3] [--skip-full-regression] [--strict]"
+  echo "                        Sprint Exit mandatory 4 種の監査を実行"
+  echo "  addon <check>         on-demand sprint step の placeholder を追加"
   echo "  reset                 スプリントをリセット"
 }
 
@@ -853,13 +856,80 @@ command_next() {
   fi
 }
 
+run_sprint_auto_check() {
+  local plan_id="$1"
+  local sprint="$2"
+  local strict_mode="$3"
+  local skip_full_regression="$4"
+  local cmd=(python3 "$SCRIPT_DIR/lib/sprint_lint.py" --plan-id "$plan_id" --sprint "$sprint")
+  if [[ "$skip_full_regression" == true ]]; then
+    cmd+=(--skip-full-regression)
+  fi
+  if [[ "$strict_mode" == true ]]; then
+    cmd+=(--strict)
+  fi
+  if [[ "${JSON_OUTPUT:-false}" == true ]]; then
+    cmd+=(--json)
+  fi
+  "${cmd[@]}"
+}
+
 command_complete() {
+  local auto_check=false
+  local strict_mode=false
+  local skip_full_regression=false
+  local plan_id=""
+  local sprint=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --auto-check)
+        auto_check=true
+        shift
+        ;;
+      --strict)
+        strict_mode=true
+        shift
+        ;;
+      --skip-full-regression)
+        skip_full_regression=true
+        shift
+        ;;
+      --plan-id)
+        if [[ $# -lt 2 ]]; then
+          echo "Error: --plan-id には PLAN-XXX を指定してください" >&2
+          exit "$EXIT_INPUT_ERROR"
+        fi
+        plan_id="$2"
+        shift 2
+        ;;
+      --sprint)
+        if [[ $# -lt 2 ]]; then
+          echo "Error: --sprint には .3 のようなステップを指定してください" >&2
+          exit "$EXIT_INPUT_ERROR"
+        fi
+        sprint="$2"
+        shift 2
+        ;;
+      *)
+        echo "Error: Unknown option for complete: $1" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  if [[ "$auto_check" == true ]]; then
+    [[ -n "$plan_id" ]] || plan_id="${HELIX_PLAN_ID:-PLAN-UNKNOWN}"
+    [[ -n "$sprint" ]] || sprint="$(get_sprint_step)"
+    if [[ -z "$sprint" || "$sprint" == "completed" ]]; then
+      sprint="${HELIX_SPRINT_STEP:-unknown}"
+    fi
+    run_sprint_auto_check "$plan_id" "$sprint" "$strict_mode" "$skip_full_regression"
+    return
+  fi
+
   if [[ "$(get_sprint_drive)" == "fullstack" ]]; then
     echo "Error: fullstack では 'helix sprint next --track be|fe' を使用してください" >&2
-    exit 1
-  fi
-  if [[ $# -gt 0 ]]; then
-    echo "Error: complete にオプションは指定できません" >&2
     exit 1
   fi
 
@@ -888,6 +958,55 @@ command_complete() {
     echo "[helix-sprint] 次のステップへ進むには 'helix sprint next' を実行してください"
   fi
   # 自動で次へは進まない（next で明示的に進む）
+}
+
+command_addon() {
+  local check_name="${1:-}"
+  local plan_id=""
+  shift || true
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --plan-id)
+        if [[ $# -lt 2 ]]; then
+          echo "Error: --plan-id には PLAN-XXX を指定してください" >&2
+          exit "$EXIT_INPUT_ERROR"
+        fi
+        plan_id="$2"
+        shift 2
+        ;;
+      *)
+        echo "Error: Unknown option for addon: $1" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  if [[ -z "$check_name" ]]; then
+    echo "Error: addon には check 名が必要です" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  [[ -n "$plan_id" ]] || plan_id="${HELIX_PLAN_ID:-PLAN-UNKNOWN}"
+
+  if [[ "${JSON_OUTPUT:-false}" == true ]]; then
+    CHECK_NAME="$check_name" PLAN_ID="$plan_id" python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({
+    "status": "placeholder",
+    "check": os.environ["CHECK_NAME"],
+    "plan_id": os.environ["PLAN_ID"],
+    "message": "PLAN-082 Phase 3 placeholder only; actual addon check is implemented in a later PLAN.",
+}, ensure_ascii=False))
+PY
+    return
+  fi
+
+  echo "[helix-sprint] addon placeholder: $check_name"
+  echo "[helix-sprint] plan_id: $plan_id"
+  echo "[helix-sprint] Phase 3 では placeholder のみです。実 check は後続 PLAN で実装します。"
 }
 
 command_reset() {
@@ -948,6 +1067,7 @@ case "$CMD" in
   status) command_status "$@" ;;
   next) command_next "$@" ;;
   complete) command_complete "$@" ;;
+  addon) command_addon "$@" ;;
   reset) command_reset "$@" ;;
 
   --help|-h)

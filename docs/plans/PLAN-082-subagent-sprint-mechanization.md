@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-082
 title: "PLAN-082: PLAN-076/077 機械化 (subagent fire-mandatory + Sprint 標準 8 ステップ機械化)"
-status: draft
+status: completed
 size: L
 drive: be
 created: 2026-05-17
