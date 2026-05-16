@@ -12,16 +12,16 @@ related_plans:
   - PLAN-074 (HTTP endpoint 層、V-model 違反の起点)
   - PLAN-072 (L4.5 結合、carry check 対象)
 trigger: |
-  ユーザー指摘 2026-05-17 (1):「基本設計は総合テスト設計も含むんだよ？
+  ユーザー指摘 2026-05-17:「基本設計は総合テスト設計も含むんだよ？
   詳細設計は結合テスト設計も含むんだよん？機能設計は単体テスト設計も含むんだよ？」
   → PLAN-074 で 単体テスト設計を独立ドキュメント化したのが V-model 違反。
 
-  ユーザー指摘 2026-05-17 (2):「サブエージェントのイノベーションとか、
-  テックフォークとかも起動ポイントを工程に組み込んだほうがよくない？」
-  → 11 種の PdM/PMO subagent の起動タイミングが HELIX 工程に紐付いていない。
+  HELIX framework 全体で「設計⇔テストの対応関係を 1 文書に束ねる」原則を強制化する。
 
-  両指摘とも framework の trace 欠落問題。本 PLAN で V-model + subagent の双方を
-  HELIX 工程に組み込み、設計⇔テスト⇔subagent 起動の整合性を framework 化する。
+  ※ 関連 framework 強化 PLAN (2026-05-17 分離):
+  - PLAN-076: subagent 工程マッピング (mandatory / on-demand 2 分類)
+  - PLAN-077: Sprint Plan 標準化 (機械チェック / テスト / レビュー mandatory in sprint)
+  3 PLAN は同じ思想 (mandatory vs on-demand framework 化) を異なる対象に適用する相互補完。
 acceptance:
   - HELIX_CORE.md / SKILL_MAP.md / CLAUDE.md に V-model 設計⇔テスト対応原則を明文化
   - L2/L3 テンプレートに「設計 + テスト設計 2 親」を強制
@@ -79,11 +79,7 @@ acceptance:
 - `CLAUDE.md` (project + global) に V-model 原則の運用ルール追加
 - 受入: 3 文書全件に V-model 原則が明文化されている
 
-### Phase 2 — L2/L3 テンプレート + skill 責務再整理 + ★subagent 工程マッピング (size: L → XL に拡大)
-
-ユーザー指摘 2026-05-17:「サブエージェントのイノベーションとか、テックフォークとかも起動ポイントを工程に組み込んだほうがよくない？」を踏まえ、Phase 2 の scope に **subagent 工程マッピング framework 化** を統合する。
-
-#### Phase 2a — V-model テンプレート + skill 責務再整理 (旧 Phase 2)
+### Phase 2 — L2/L3 テンプレート + skill 責務再整理 (size: L)
 
 - `cli/templates/` 配下の PLAN テンプレートに「設計 + テスト設計 2 親」セクション強制
 - `skills/workflow/design-doc/SKILL.md` を update (総合テスト設計を含む)
@@ -91,77 +87,9 @@ acceptance:
 - `skills/common/testing/SKILL.md` を update (機能設計連動 / 単体テスト設計担当)
 - `skills/workflow/verification/SKILL.md` を update (V-model 突合検証の責務)
 - 既存 reference 文書 (gate-policy.md / workflow-core.md) の関連箇所 update
+- 受入: 全 skill が V-model 原則と整合、テンプレートで強制化される
 
-#### Phase 2b — subagent 2 分類設計 + 工程マッピング framework 化 (新規)
-
-現状 14 種の subagent の起動タイミングが HELIX 工程に紐付いていない。設計⇔テスト対応と同じ trace 欠落問題。
-
-ユーザー提案 2026-05-17 (3):「工程明示的サブエージェントと実行選択サブエージェントって考え方はどうだろうか？」
-
-→ subagent を **性格** で 2 分類し、扱いを変える framework 設計とする。
-
-##### ① 工程明示的サブエージェント (mandatory by phase) — 10 種
-
-- HELIX 工程で **必須** 組み込み (skip は理由要求)
-- 工程入場時に呼び出し履歴を helix.db で監査
-- helix doctor / G2-G4 ゲートで「呼ばれていない → warn / fail」自動 lint 対象
-- trace 対象、framework 化対象
-
-| Subagent | 必須工程 | 役割 |
-|---|---|---|
-| pdm-tech-innovation | **G0.5** | 海外技術思想翻案 |
-| pdm-marketing-innovation | **G0.5** | 海外マーケ思想翻案 |
-| pdm-innovation-manager | **G0.5 / L1 接続** | 統合判断 |
-| pmo-tech-fork | **L2 entry (OSS 採用判断時)** | OSS 探索 |
-| pmo-tech-docs | **L2 entry (設計手法精読時)** | 外部 doc 精読 |
-| pmo-helix-explorer | **L2-L4 entry** | HELIX 内資産探索 |
-| pmo-project-explorer | **L3-L4 entry** | project 内資産探索 |
-| pmo-project-scout | **L4 entry** | 軽量目星 (既存 CLAUDE.md §4.5) |
-| pmo-helix-scout | **L2-L4 entry** | HELIX 内軽量目星 |
-| pmo-sonnet | **G2/G4/L8 review** | 判断伴う read-only |
-
-##### ② 実行選択サブエージェント (on-demand by judgment) — 4 種
-
-- 工程に縛られず、**判断に応じて** 任意起動
-- free will、lint 対象外
-- `helix agent suggest` で候補提示のみ、強制せず
-
-| Subagent | 起動タイミング | 役割 |
-|---|---|---|
-| pmo-haiku | 軽 Web 検索 / docs/** 軽修正時 | Web 検索目星 |
-| pmo-tech-news | 週次想定 (定期 sweep) | 最新 tech 動向 |
-| pm-advisor | スコープ / 大局判断で迷う時 | adversarial check (PM 級) |
-| tl-advisor | 設計 / 技術判断で迷う時 | adversarial check (TL 級) |
-
-##### 設計上の意味
-
-| 観点 | mandatory (10 種) | on-demand (4 種) |
-|---|---|---|
-| **trace 対象** | 必須 (helix.db audit) | 任意 |
-| **強制化** | lint / ゲート | なし |
-| **CLI** | `helix agent fire-mandatory --phase L2` | `helix agent suggest --task "..."` |
-| **記録** | 呼ばれない → carry note 必須 | 呼んだ場合のみ会話記録 |
-| **失敗時** | retry / escalation | 任意判断 |
-
-##### 実装内容
-
-- `helix/HELIX_CORE.md` に §**工程別 subagent 起動マップ (mandatory / on-demand 分離)** 追加
-- `skills/SKILL_MAP.md` 各 L レイヤ説明に「mandatory subagent」明示
-- `CLAUDE.md` (project + global) に 2 分類運用ルール追加
-- `cli/helix-agent` 新規:
-  - `helix agent list [--type mandatory|on-demand]`
-  - `helix agent suggest --task "..."` (on-demand 候補提示)
-  - `helix agent fire-mandatory --phase L2 --auto` (mandatory 一括並列投入、experimental)
-  - `helix agent audit --plan-id PLAN-XXX` (mandatory 呼び出し履歴 audit)
-- helix.db に `subagent_invocations` table 追加 (phase / subagent / invoked_at / plan_id / status)
-- helix doctor に「重要工程で mandatory subagent 呼び出しが無いと warn」追加 (Phase 5 で fail-close 化)
-
-##### 受入
-
-- mandatory 10 種が HELIX 工程に紐付き、`helix agent fire-mandatory --phase Lx` で一括呼び出し可能
-- on-demand 4 種は `helix agent suggest` で判断補助のみ提供
-- helix.db に subagent 呼び出し履歴が蓄積され、G2/G4 ゲートで audit 可能
-- 全 skill が V-model 原則と整合、テンプレートで強制化される
+※ subagent 工程マッピングは PLAN-076、Sprint Plan 標準化は PLAN-077 に分離 (2026-05-17 PLAN 整理)。本 PLAN は V-model 設計⇔テスト対応のみに focus。
 
 ### Phase 3 — PLAN-074 retrofit (size: M)
 

@@ -74,6 +74,21 @@
 
 詳細は `helix/HELIX_CORE.md §設計⇔テスト対応` 参照。PLAN-074 で違反発生、PLAN-075 Phase 1-5 で全体 retrofit。
 
+### subagent 工程マッピング (2026-05-17、PLAN-076)
+
+subagent 14 種を 2 分類:
+
+- **mandatory by phase (10 種)**: 工程で必須、`helix agent fire-mandatory --phase Lx`、helix.db audit
+- **on-demand by judgment (4 種)**: 判断に応じて任意、`helix agent suggest`
+
+詳細: `helix/HELIX_CORE.md §工程別 subagent 起動マップ`。
+
+### Sprint Plan 標準構造 (2026-05-17、PLAN-077)
+
+L4 実装は標準 8 ステップ (Entry/着手前/実装/機械チェック/テスト/レビュー/commit/Exit) で進行。**mandatory in sprint** (py_compile / 該当 test / 全回帰 / レビュー) は Sprint Exit 前必須。
+
+詳細: `helix/HELIX_CORE.md §Sprint Plan 標準構造`。
+
 ### ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
 
 `Bash(run_in_background: true)` で投入した command は **harness が完了時に task-notification を自動送信** する。ScheduleWakeup を併用するな:

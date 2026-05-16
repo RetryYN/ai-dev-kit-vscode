@@ -123,6 +123,86 @@ V-model の基本原則として、設計フェーズの各層と検証 (テス�
 
 V-model 違反が検出された場合、PLAN-075 (V-model 設計⇔テスト対応 framework 強化) の Phase 3-4 で retrofit する。helix doctor / G2-G4 ゲートで自動 lint を行う (PLAN-075 Phase 5)。
 
+## 工程別 subagent 起動マップ (PLAN-076、2026-05-17 確立)
+
+subagent は **性格** で 2 分類し、扱い (lint / 強制化 / trace) を分ける。
+
+### ① 工程明示的サブエージェント (mandatory by phase) — 10 種
+
+HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / G2-G4 で「呼ばれていない → fail」自動 lint 対象 (PLAN-076 Phase 5 で fail-close 化予定)。
+
+| Subagent | 必須工程 | 役割 |
+|---|---|---|
+| pdm-tech-innovation | G0.5 | 海外技術思想翻案 |
+| pdm-marketing-innovation | G0.5 | 海外マーケ思想翻案 |
+| pdm-innovation-manager | G0.5 / L1 接続 | 統合判断 |
+| pmo-tech-fork | L2 entry (OSS 採用判断時) | OSS 探索 |
+| pmo-tech-docs | L2 entry (設計手法精読時) | 外部 doc 精読 |
+| pmo-helix-explorer | L2-L4 entry | HELIX 内資産探索 |
+| pmo-project-explorer | L3-L4 entry | project 内資産探索 |
+| pmo-project-scout | L4 entry | 軽量目星 |
+| pmo-helix-scout | L2-L4 entry | HELIX 内軽量目星 |
+| pmo-sonnet | G2/G4/L8 review | 判断伴う read-only |
+
+### ② 実行選択サブエージェント (on-demand by judgment) — 4 種
+
+工程に縛られず、判断に応じて任意起動。free will、lint 対象外。
+
+| Subagent | 起動タイミング | 役割 |
+|---|---|---|
+| pmo-haiku | 軽 Web 検索 / docs/** 軽修正 | Web 検索目星 |
+| pmo-tech-news | 週次定期 sweep | 最新 tech 動向 |
+| pm-advisor | PM 級難判断時 | adversarial check |
+| tl-advisor | TL 級難判断時 | adversarial check |
+
+### 設計上の意味
+
+| 観点 | mandatory (10 種) | on-demand (4 種) |
+|---|---|---|
+| trace 対象 | 必須 (helix.db audit) | 任意 |
+| 強制化 | lint / ゲート fail-close | なし |
+| CLI | `helix agent fire-mandatory --phase L2` | `helix agent suggest --task "..."` |
+| 記録 | 呼ばれない → carry note 必須 | 呼んだ場合のみ会話記録 |
+
+詳細: PLAN-076 (subagent 工程マッピング framework)。
+
+## Sprint Plan 標準構造 (PLAN-077、2026-05-17 確立)
+
+L4 実装中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
+
+### Sprint .X 標準 8 ステップ
+
+```
+Step 1: Entry 条件確認          (前 Sprint 完遂 / dependency)
+Step 2: 実装着手前               (helix code find / pmo-project-scout)
+Step 3: 実装                    (Codex 委譲 or Opus 直接)
+Step 4: ★機械チェック (mandatory in sprint):
+        - py_compile (Python) / bash -n (bash)
+        - shellcheck / markdownlint / yamllint
+        - helix code stats / helix doctor
+Step 5: ★テスト起動 (mandatory in sprint):
+        - 単体テスト (該当範囲、即時)
+        - 結合テスト (該当範囲)
+        - 全回帰 (Sprint Exit 前、helix test)
+Step 6: ★レビュー (mandatory in sprint):
+        - セルフレビュー
+        - pmo-sonnet review (G2/G4 時)
+        - tl-advisor (on-demand、adversarial check)
+Step 7: commit + carry note
+Step 8: Exit 条件確認 (DoD)
+```
+
+### 2 分類
+
+| ステップ性格 | mandatory in sprint | on-demand in sprint |
+|---|---|---|
+| 対象 | py_compile / 該当 test / 全回帰 / セルフレビュー / pmo-sonnet review (G2/G4) | security audit / perf test / coverage report / tl-advisor |
+| 発火 | Sprint Exit 前に必ず | 必要時のみ |
+| lint | 不在 → carry note 強制 | なし |
+| CLI | `helix sprint complete --auto-check` | `helix sprint addon <check>` |
+
+詳細: PLAN-077 (Sprint Plan 標準化 framework)。
+
 ## readiness と carry rule
 
 PLAN-004 v5 と PLAN-009 v3 の方針として、L1-L11 を進める際は以下を適用する。

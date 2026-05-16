@@ -187,7 +187,24 @@ Opus 直接 Read してよい範囲:
 
 **禁止**: 単体テスト設計を独立ドキュメント (`docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md`) に切り出すこと
 
-PLAN-074 でこの違反が発生し、PLAN-075 (V-model 設計⇔テスト対応 framework 強化) で全体 retrofit 中。
+## subagent 工程マッピング (2026-05-17、PLAN-076)
+
+subagent 14 種を 2 分類:
+
+- **mandatory by phase (10 種)**: pdm-* / pmo-tech-fork/docs/explorer/scout/sonnet。工程で必須、`helix agent fire-mandatory --phase Lx` で一括投入、helix.db で audit、G2-G4 で lint
+- **on-demand by judgment (4 種)**: pmo-haiku / pmo-tech-news / pm-advisor / tl-advisor。判断に応じて任意、`helix agent suggest`
+
+詳細: `helix/HELIX_CORE.md §工程別 subagent 起動マップ`。
+
+## Sprint Plan 標準構造 (2026-05-17、PLAN-077)
+
+L4 実装中の Sprint Plan は標準 8 ステップに固定化:
+
+- Step 1-3: Entry / 着手前調査 / 実装
+- **Step 4-6 (mandatory in sprint)**: 機械チェック (py_compile / lint) + テスト起動 (該当 test / 全回帰) + レビュー (セルフ / pmo-sonnet)
+- Step 7-8: commit + Exit 条件確認
+
+Sprint Exit 前に mandatory 全通過必須、`helix sprint complete --auto-check` で機械化。詳細: `helix/HELIX_CORE.md §Sprint Plan 標準構造`。
 
 ## ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
 

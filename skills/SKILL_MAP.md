@@ -392,6 +392,26 @@ automation/browser-script:
 - テスト設計を独立ドキュメント化することは V-model 違反
 - G2/G3/G4 ゲートで V-model 整合性を確認 (PLAN-075 Phase 5 で自動 lint 化予定)
 
+## 工程別 subagent 起動マップ (PLAN-076、2026-05-17 確立)
+
+詳細は `helix/HELIX_CORE.md §工程別 subagent 起動マップ`。
+
+要点:
+- subagent 14 種を 2 分類: **mandatory by phase (10 種)** + **on-demand by judgment (4 種)**
+- mandatory は工程必須、`helix agent fire-mandatory --phase Lx` で一括投入、helix.db で audit
+- on-demand は free will、`helix agent suggest` で候補提示
+- G2/G3/G4 ゲートで mandatory 呼び出し audit (PLAN-076 Phase 5 で fail-close)
+
+## Sprint Plan 標準構造 (PLAN-077、2026-05-17 確立)
+
+詳細は `helix/HELIX_CORE.md §Sprint Plan 標準構造`。
+
+要点:
+- L4 実装中の Sprint Plan が標準 8 ステップに固定化される
+- **mandatory in sprint**: 機械チェック (py_compile / lint) + テスト起動 (該当 test / 全回帰) + レビュー (セルフ / pmo-sonnet)
+- **on-demand in sprint**: security audit / perf test / tl-advisor 等
+- Sprint Exit 前に mandatory 全通過必須、`helix sprint complete --auto-check` で機械化
+
 ## メンテナンス指針
 
 1. スキル追加時: SKILL_MAP.md を更新。500行超 → references/ に分割
