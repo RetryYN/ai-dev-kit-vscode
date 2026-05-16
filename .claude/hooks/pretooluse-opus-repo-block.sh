@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELIX_ROOT="$(cd "$script_dir/../.." && pwd)"
+project_root="${CLAUDE_PROJECT_DIR:-$HELIX_ROOT}"
 
 tmp_input="$(mktemp)"
 trap 'rm -f "$tmp_input"' EXIT
@@ -34,8 +35,62 @@ file_path="$(read_json_field file_path)"
 is_repo_path=0
 allow_repo_state=0
 
+record_audit_events() {
+  local gate_verdict="$1"
+  HELIX_PROJECT_ROOT="$project_root" \
+  HELIX_AUDIT_ACTOR="pretooluse-opus-repo-block.sh" \
+  HELIX_AUDIT_HOOK_NAME="pretooluse-opus-repo-block" \
+  HELIX_AUDIT_TOOL_NAME="$tool_name" \
+  HELIX_AUDIT_FILE_PATH="$file_path" \
+  HELIX_AUDIT_GATE_VERDICT="$gate_verdict" \
+  HELIX_AUDIT_REASON="${reason:-}" \
+  python3 - "$HELIX_ROOT" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+helix_root = Path(sys.argv[1])
+sys.path.insert(0, str(helix_root / "cli" / "lib"))
+
+import helix_db  # type: ignore
+
+
+hook_payload = {
+    "hook_name": os.environ.get("HELIX_AUDIT_HOOK_NAME") or None,
+    "tool_name": os.environ.get("HELIX_AUDIT_TOOL_NAME") or None,
+    "file_path": os.environ.get("HELIX_AUDIT_FILE_PATH") or None,
+}
+hook_payload = {key: value for key, value in hook_payload.items() if value is not None}
+
+gate_payload = dict(hook_payload)
+gate_payload["gate_name"] = "opus_repo_edit_policy"
+gate_payload["verdict"] = os.environ.get("HELIX_AUDIT_GATE_VERDICT") or None
+reason = os.environ.get("HELIX_AUDIT_REASON") or None
+if reason:
+    gate_payload["reason"] = reason
+gate_payload = {key: value for key, value in gate_payload.items() if value is not None}
+
+with helix_db._write_connection(None) as conn:
+    helix_db.insert_audit_log(
+        conn,
+        audit_kind="hook_exec",
+        actor=os.environ["HELIX_AUDIT_ACTOR"],
+        run_id=None,
+        payload=hook_payload,
+    )
+    helix_db.insert_audit_log(
+        conn,
+        audit_kind="gate_eval",
+        actor=os.environ["HELIX_AUDIT_ACTOR"],
+        run_id=None,
+        payload=gate_payload,
+    )
+PY
+}
+
 case "${file_path:-}" in
   "$HELIX_ROOT/.helix"/*|"$HELIX_ROOT/.helix")
+    record_audit_events "bypassed" >/dev/null 2>&1 || true
     exit 0
     ;;
   "$HELIX_ROOT"/*)
@@ -44,6 +99,7 @@ case "${file_path:-}" in
   *)
     case "${file_path:-}" in
       "$HOME"/.claude/projects/*/memory/*)
+        record_audit_events "bypassed" >/dev/null 2>&1 || true
         exit 0
         ;;
     esac
@@ -51,18 +107,22 @@ case "${file_path:-}" in
 esac
 
 if [[ "${HELIX_SUPPRESS_HOOK:-0}" == "1" ]]; then
+  record_audit_events "suppressed" >/dev/null 2>&1 || true
   exit 0
 fi
 
 if [[ "${HELIX_ALLOW_OPUS_REPO_EDIT:-0}" == "1" && -n "${HELIX_OPUS_EDIT_REASON:-}" ]]; then
+  record_audit_events "allowed" >/dev/null 2>&1 || true
   exit 0
 fi
 
 if [[ "${HELIX_ALLOW_OPUS_PLAN_FIX:-0}" == "1" && "$file_path" =~ (^|/)docs/plans/PLAN-[^/]+\.md$ ]]; then
+  record_audit_events "allowed" >/dev/null 2>&1 || true
   exit 0
 fi
 
 if [[ "$is_repo_path" -eq 0 ]]; then
+  record_audit_events "bypassed" >/dev/null 2>&1 || true
   exit 0
 fi
 
@@ -87,6 +147,7 @@ with open(log_file, "a", encoding="utf-8") as fh:
     fh.write(json.dumps(event, ensure_ascii=False) + "\n")
 PY
   fi
+  record_audit_events "blocked" >/dev/null 2>&1 || true
   python3 - "$reason" <<'PY'
 import json
 import sys
@@ -98,4 +159,5 @@ PY
   exit 2
 fi
 
+record_audit_events "allowed" >/dev/null 2>&1 || true
 exit 0
