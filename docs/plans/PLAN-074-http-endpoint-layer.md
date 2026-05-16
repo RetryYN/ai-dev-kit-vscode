@@ -99,79 +99,137 @@ D-API EXT (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md §3) で凍�
 
 ---
 
-## §3 Sprint 構成
+## §3 Sprint 構成 (実態反映、2026-05-16 update)
 
-HTTP framework 選定 (Sprint .1 TL 判断) を前段に置き、その結果を受けて endpoint 実装を並列投入する。
+当初計画は Sprint .0-.5 (6 Sprint) だったが、実装段階で endpoint 単位に分割し Sprint .0-.6 (7 Sprint) で完遂した。1 Sprint = 1 endpoint の粒度を採用 (HELIX 標準 .1a/.1b/.2/.3/.4/.5 を踏襲しなかった、carry note §10 参照)。
 
-### Sprint .0 — 前提確認 + framework 候補整理 (PMO Sonnet)
+### Sprint .0 — framework 候補整理 (Codex tl-advisor)
 
 - D-API EXT 全文 Read + 5 endpoint contract 抽出
-- PLAN-072 frozen 状態確認 (helix handover status / pytest / bats)
-- framework 候補を DoD 付きで列挙: Python 標準 http.server / Flask / FastAPI
-- Sprint .0 成果物: `docs/v2/L4-sprint/PLAN-074-framework-candidates.md`
+- framework 候補比較 (Flask / FastAPI / http.server)
+- 成果: tl-advisor 結論 **Flask 推奨** (`.helix/tmp/p074-s0-tl-advisor.log`)
+- commit: `e30dfe8` (frontmatter framework=Flask 反映)
 
-### Sprint .1 — HTTP framework 選定 (TL)
+### Sprint .1 — framework setup (Codex SE → pg v2)
 
-- 候補 3 種の比較 (依存、型安全、test harness、HELIX CLI との統合コスト)
-- 既存 `cli/lib/*.py` との統合方針決定
-- 認証方式 (API key / token) の暫定決定
-- Sprint .1 成果物: framework 選定 ADR (docs/adr/) + 実装方針ドキュメント
+- `cli/lib/http_api/` 骨格: server.py / envelope.py / validation.py / auth.py
+- routes/ 4 blueprint (push_pr / hooks / audit / telemetry の空 stub)
+- auth 凍結: 127.0.0.1/::1 + Bearer Token (HELIX_HTTP_API_TOKEN env)
+- compat fallback Flask class (PEP 668 sandbox 用、本番削除 carry)
+- 公開 endpoint: `/health` + `/api/v1/_status`
+- commit: `879945b`, `883552b`
+- test: pytest 5 PASS + bats 1 PASS
 
-**判断ポイント**:
-- Python 標準 http.server: 依存 0 だが routing / validation が手書き
-- Flask 2.x: 軽量、既存 Python 環境に馴染む、Blueprint で endpoint 分離しやすい
-- FastAPI: Pydantic 型安全、OpenAPI 自動生成、依存追加コストあり
-
-**本 PLAN では決定しない。Sprint .1 で TL が選定し、選定結果を以降の Sprint に注入する。**
-
-### Sprint .2 — push / pr trigger endpoint 実装 (Codex SE)
-
-対象: endpoint #1 / #2
+### Sprint .2 — push/pr trigger endpoint (Codex pg)
 
 - `POST /api/v1/automation/push/{plan_id}/trigger`
 - `POST /api/v1/automation/pr/{plan_id}/trigger`
-- 実装内容:
-  - path_schema / query_schema / header_schema / request_schema validation
-  - `push_gate.run_all_gates()` 呼び出し (execute フラグ連動)
-  - `automation_runs` INSERT + lifecycle 遷移 (`_transition_lifecycle_status` 経由)
-  - response に `run_id` / `gate_results` / `pair_transition` を含む Envelope 返却
-  - audit_log への書き込み (run_id FK)
-- テスト: pytest (正常系 / 異常系 / 境界値) + bats (HTTP レイヤ smoke test)
+- `push_gate.run_all_gates()` 結合 + automation_runs INSERT + audit_log
+- commit: `95cb7be`
+- test: pytest 5 PASS (success / missing / unauthorized / not_found / dry_run)
 
-### Sprint .3 — hook callback / audit endpoint 実装 (Codex SE)
-
-対象: endpoint #3 / #4
+### Sprint .3 — hooks callback endpoint (Codex pg)
 
 - `POST /api/v1/automation/hooks/{hook_kind}/callback`
+- hook_kind enum [pretool, posttool, stop, session_start]
+- audit_log 連携 (hook_exec audit_kind)
+- commit: `a387f9c`
+- test: pytest 5 PASS
+
+### Sprint .4 — audit endpoint (Codex pg v2)
+
 - `POST /api/v1/automation/audit/log`
-- 実装内容:
-  - hook_kind enum 検証 (PreToolUse / PostToolUse / Stop / session_start)
-  - request body の run_id FK 解決 (404 on not found)
-  - audit_log append-only 書き込み (trigger は v26 で実装済み)
-  - P1-01 対処: invocation_log 型衝突を hook callback と invocation_log の責務分離で解消
-- テスト: pytest + bats (hook_kind ごとの分岐テスト含む)
+- HTTP audit_kind enum [footer, summary, diff_lines, security_scan, qa_check]
+- **audit_kind enum drift 解決**: HTTP 側 kind を payload.http_audit_kind に退避、helix_db.insert_audit_log には endpoint_call 固定で記録
+- commit: `2505c4a`
+- test: pytest 5 PASS
+- 注記: Sprint .4 v1 は SE/QA review_only_drift で失敗、pg role + 完全サンプル明示で v2 成功
 
-### Sprint .4 — telemetry endpoint 実装 (Codex SE)
-
-対象: endpoint #5
+### Sprint .5 — session telemetry endpoint (Codex pg)
 
 - `POST /api/v1/automation/session/telemetry`
-- 実装内容:
-  - request body の session_id / run_id 解決
-  - `session_telemetry` UPSERT (`_upsert_row` 経由、v27 実装済み)
-  - Stop hook 側との二重書き込み防止 (idempotency: session_id UNIQUE)
-  - P1-02 対処: `helix_db.resolve_default_db_path()` を HTTP server プロセスでも統一使用
-  - P1-03 対処: cost_usd float バリデーション helper を request schema validation に組込
-- テスト: pytest (UPSERT 冪等性テスト) + bats
+- session_telemetry UPSERT (session_id UNIQUE、v27)
+- tool_uses_count / tokens_total / cost_usd 累積
+- commit: `1633202`
+- test: pytest 5 PASS (success / upsert / missing / unauthorized / invalid)
 
-### Sprint .5 — 統合検証 + G4 判定 (TL + PMO Sonnet)
+### Sprint .6 — G4 ready 判定 (Opus 直接)
 
-- 5 endpoint 全件 E2E 動作確認 (helix.db 実 DB 使用)
-- PLAN-072 CLI 結合との挙動等価性確認 (push → HTTP vs push → CLI)
-- `helix doctor` / `helix test` 全 PASS 確認
-- D-API EXT 契約との差分 0 確認 (request / response / error code)
-- G4 entry 条件チェックリスト (§7) を実施
-- 残 debt を `deferred-findings.yaml` に記録
+- 27/27 PASS (http_api 5 endpoint suite)
+- 全回帰: pytest 1319 / bats 479 / shell 614 全 PASS
+- helix doctor: 21 pass / 0 fail / 1 warn (rg のみ)
+- D-API EXT 契約整合 確認
+- commit: `80a6b90`, `13de2af`
+
+---
+
+## §3.5 L6 統合検証 工程 (HELIX 標準粒度 .1a/.1b/.2/.3/.4/.5/.6 を厳守、2026-05-16 起票)
+
+L6 以降は HELIX 標準粒度を踏襲し、`.helix/task-plan.yaml` で WBS 番号 / role / acceptance / reference_docs を粒度別に管理する (§3 の反省を踏まえた構造)。
+
+### Sprint .L6.1a — entry 条件確認 + 既存 test 全 PASS 確認
+
+- Opus 直接
+- G4 ready 確認 (PLAN-074 frontmatter gate_status=G4_ready)
+- pytest 1319 / bats 479 / shell 614 全 PASS 再確認
+- 成果物: L6 entry readiness ログ
+
+### Sprint .L6.1b — Flask 本物 install + compat fallback class 削除
+
+- Codex se
+- venv / apt / pipx いずれかで Flask install (`requirements-dev.txt` 更新)
+- `cli/lib/http_api/server.py` の Blueprint shim 撤去
+- `cli/lib/http_api/routes/*.py` の `try: from flask import ...` fallback 経路削除
+- 受入: 本物 Flask で既存 27/27 PASS、Sprint .1 で残した carry note (§7 §8) 全 resolved
+
+### Sprint .L6.2 — E2E test (本物 Flask 環境で 5 endpoint curl 実証)
+
+- Codex qa
+- localhost server 起動 (`python3 -m cli.lib.http_api.server`)
+- 5 endpoint 全件 curl 動作確認:
+  - POST /api/v1/automation/push/{plan_id}/trigger (実 DB 書き込み確認)
+  - POST /api/v1/automation/pr/{plan_id}/trigger
+  - POST /api/v1/automation/hooks/{hook_kind}/callback
+  - POST /api/v1/automation/audit/log (payload.http_audit_kind 退避確認)
+  - POST /api/v1/automation/session/telemetry (UPSERT 冪等確認)
+- 401 / 403 / 404 / 409 / 500 全件 curl で再現
+- 受入: E2E 5 endpoint × 5 status code = 25 シナリオ全件 PASS
+
+### Sprint .L6.3 — perf test (latency / DB lock / timeout)
+
+- Codex perf
+- request latency 99 percentile < 500ms (push/pr endpoint は < 5s、push_gate.run_all_gates 同期実行のため)
+- 並列リクエスト下での helix.db lock 衝突確認 (10 並列 × 100 req)
+- timeout 上限設定 (default 30s)
+- 受入: latency target 達成、lock 衝突 0、timeout 動作確認
+
+### Sprint .L6.4 — security test (OWASP / Bearer 強度 / localhost bind)
+
+- Codex security
+- OWASP Top 10 静的チェック (semgrep / bandit)
+- Bearer token 漏洩経路の確認 (log / error response / audit_log)
+- localhost-only bind の検証 (外部 IP からの接続拒否確認)
+- 受入: OWASP critical 0、Bearer token 漏洩経路なし、外部 bind 拒否
+
+### Sprint .L6.5 — 運用準備 (runbook / monitoring / on-call)
+
+- Codex devops
+- runbook 起票 (`docs/runbook/PLAN-074-http-api.md`)
+  - 起動 / 停止手順、token rotation 手順、log location、emergency rollback
+- monitoring 設計 (request rate / error rate / latency / DB lock event)
+- on-call alarm 設定方針 (alert threshold)
+- 受入: runbook 完成、monitoring metric 列挙完了
+
+### Sprint .L6.6 — G6 RC 判定 + 残 debt 整理
+
+- Opus 直接
+- G6 entry 条件チェックリスト (RC 判定)
+- セキュリティ③ 確認
+- 残 debt を `.helix/audit/deferred-findings.yaml` に記録
+- L7 デプロイ判定 (本番 vs PoC 影響評価)
+- 受入: G6 passed / blocked 判定確定
+
+---
 
 ---
 
