@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-081
 title: "PLAN-081: Stop-hook auto handover + compact recommendation"
-status: draft
+status: completed_phase1
 size: M
 drive: be
 created: 2026-05-17

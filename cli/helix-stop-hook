@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Stop hook entry for auto handover dump + compact recommendation.
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT" || exit 0
+
+threshold="${HELIX_CONTEXT_COMPACT_THRESHOLD:-0.70}"
+result_json='{}'
+
+if command -v timeout >/dev/null 2>&1; then
+  result_json="$(timeout 5 python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" 2>/dev/null)" || result_json='{}'
+else
+  result_json="$(python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" 2>/dev/null)" || result_json='{}'
+fi
+
+parsed="$(
+  RESULT_JSON="$result_json" THRESHOLD="$threshold" python3 - <<'PY' 2>/dev/null
+import json
+import os
+
+try:
+    payload = json.loads(os.environ.get("RESULT_JSON", "{}"))
+except json.JSONDecodeError:
+    payload = {}
+
+threshold = os.environ.get("THRESHOLD", "0.70")
+try:
+    threshold_pct = f"{int(float(threshold) * 100)}%"
+except ValueError:
+    threshold_pct = "70%"
+
+pct = payload.get("context_pct_estimate")
+if pct is None:
+    pct_text = "?%"
+else:
+    pct_text = f"{int(float(pct) * 100)}%"
+
+print(
+    "\t".join(
+        [
+            "yes" if payload.get("compact_recommended") else "no",
+            "yes" if payload.get("ok") else "no",
+            str(payload.get("revision", "?")),
+            pct_text,
+            threshold_pct,
+        ]
+    )
+)
+PY
+)"
+
+IFS=$'\t' read -r recommend ok revision pct threshold_pct <<<"$parsed"
+
+if [[ "${ok:-no}" != "yes" ]]; then
+  echo "[HELIX] handover auto-dump skipped"
+elif [[ "${recommend:-no}" == "yes" ]]; then
+  cat <<EOF
+[HELIX] handover/CURRENT.json updated (revision ${revision:-?})
+[HELIX] 推定 context 使用率: ${pct:-?%} (threshold ${threshold_pct:-70%} 超過) - /compact を推奨します
+EOF
+else
+  echo "[HELIX] handover/CURRENT.json updated"
+fi
+
+exit 0

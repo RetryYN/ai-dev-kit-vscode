@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+使い方: helix harness <subcommand> [options]
+
+Subcommands:
+  recommend-compact   現セッション msg count から /compact 推奨可否を判定
+  auto-dump           handover/CURRENT.json を機械抽出値で update
+  status              active slot と警告イベントの現状を表示
+
+Options:
+  --json              JSON 出力
+  --threshold <float> compact 推奨 threshold (default: 0.70)
+EOF
+}
+
+cd "$REPO_ROOT" || exit 2
+
+case "${1:-}" in
+  recommend-compact)
+    shift
+    exec python3 -m cli.lib.handover_auto_dump recommend-compact "$@"
+    ;;
+  auto-dump)
+    shift
+    exec python3 -m cli.lib.handover_auto_dump auto-dump "$@"
+    ;;
+  status)
+    shift
+    exec python3 -c "$(cat <<'PY'
+import json
+import sys
+from datetime import UTC, datetime
+
+from cli.lib import agent_slots, harness_monitor
+
+json_mode = "--json" in sys.argv[1:]
+status = harness_monitor.get_active_status()
+slots = agent_slots.list_active_slots()
+events = sorted(
+    status.get("recent_criticals", []) + status.get("recent_warnings", []),
+    key=lambda item: ((item.get("triggered_at") or ""), int(item.get("id") or 0)),
+    reverse=True,
+)[:5]
+peak_parallel = int(status.get("peak_parallel_today") or 0)
+
+try:
+    harness_monitor.record_event(
+        "pull",
+        "status_viewed",
+        payload={"json": json_mode, "active_slot_count": len(slots)},
+    )
+except Exception:
+    pass
+
+if json_mode:
+    print(json.dumps(status, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+def duration_text(started_at: str | None) -> str:
+    if not started_at:
+        return "-"
+    try:
+        started = datetime.strptime(started_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC)
+    except ValueError:
+        return "?"
+    elapsed = max(0, int((datetime.now(UTC) - started).total_seconds()))
+    minutes, seconds = divmod(elapsed, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}h{minutes:02d}m"
+    if minutes:
+        return f"{minutes}m{seconds:02d}s"
+    return f"{seconds}s"
+
+print("[Active Slots]")
+if slots:
+    print("invocation_id agent_kind      role       status     duration plan/wbs")
+    for slot in slots:
+        scope = slot.get("plan_id") or "-"
+        if slot.get("task_id"):
+            scope = f"{scope}/{slot['task_id']}"
+        elif slot.get("sprint"):
+            scope = f"{scope}/{slot['sprint']}"
+        print(
+            f"{str(slot.get('id', '-')):<13} "
+            f"{str(slot.get('agent_kind') or '-'): <15}"
+            f"{str(slot.get('role') or '-'): <11}"
+            f"{str(slot.get('status') or '-'): <10}"
+            f"{duration_text(slot.get('fired_at')):<9} "
+            f"{scope}"
+        )
+else:
+    print("(none)")
+
+print("\n[Recent Warnings]")
+if events:
+    for event in events:
+        payload = event.get("payload") or {}
+        detail = payload.get("active") if isinstance(payload, dict) else None
+        suffix = f" active={detail}" if detail is not None else ""
+        print(
+            f"{event.get('triggered_at', '-')} "
+            f"{event.get('severity', '-'):>8} "
+            f"{event.get('check_name', '-')}{suffix}"
+        )
+else:
+    print("(none)")
+
+print(f"\n[Peak Parallel Today]: {peak_parallel}")
+print(f"[8 並列遵守率]: {len(slots)}/8")
+PY
+)" "$@"
+    ;;
+  -h|--help|"")
+    usage
+    ;;
+  *)
+    echo "未知のサブコマンド: $1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
