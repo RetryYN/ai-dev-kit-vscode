@@ -94,39 +94,127 @@ acceptance:
 - `CLAUDE.md` (project + global) に V-model 4 artifact 運用ルール追加
 - 受入: 3 文書全件に 4 artifact 原則が明文化されている
 
-### Phase 2 — テンプレート + skill 責務再整理 (size: L)
+### Phase 2 — テンプレート + skill 責務再整理 (size: L、estimate 60-90 min)
 
-- `cli/templates/` 配下の PLAN テンプレートに「4 artifact 双方向 reference」セクション
-- `skills/workflow/design-doc/SKILL.md` を update (① 設計、③ 総合/結合テスト設計への reference 必須)
-- `skills/workflow/api-contract/SKILL.md` を update (① 詳細設計、③ 結合テスト設計への reference)
-- `skills/common/testing/SKILL.md` を update (③ テスト設計 + ④ テストコードの責務分離)
-- `skills/workflow/verification/SKILL.md` を update (4 artifact 双方向 trace 検証)
-- 既存 reference 文書 (gate-policy.md / workflow-core.md) の関連箇所 update
-- 受入: 全 skill が 4 artifact 原則と整合、テンプレートで双方向 reference を強制化
+#### Phase 2 sub-sprint 構成 (HELIX 標準粒度準拠)
 
-### Phase 3 — PLAN-074 retrofit (size: M)
+| WBS | sub-sprint | 内容 | role | 並列 |
+|---|---|---|---|---|
+| WBS-075-P2-001 | .2.1a | 影響範囲確認 (skills/SKILL_MAP.md / workflow-core.md / gate-policy.md 読み) | pm | 単独 |
+| WBS-075-P2-002 | .2.1b | テンプレート設計 (4 artifact reference セクション構造) | pm | 単独 |
+| WBS-075-P2-003 | .2.2a | cli/templates/PLAN.md.template に 4 artifact reference セクション追加 | pm or docs | A 系 |
+| WBS-075-P2-004 | .2.2b | skills/workflow/design-doc/SKILL.md update (① 設計 + ③ 総合/結合テスト設計 reference) | docs | A 系 |
+| WBS-075-P2-005 | .2.2c | skills/workflow/api-contract/SKILL.md update (① 詳細設計 + ③ 結合テスト設計 reference) | docs | A 系 |
+| WBS-075-P2-006 | .2.2d | skills/common/testing/SKILL.md update (③ テスト設計 ↔ ④ テストコードの責務分離) | docs | B 系 |
+| WBS-075-P2-007 | .2.2e | skills/workflow/verification/SKILL.md update (4 artifact 双方向 trace 検証) | docs | B 系 |
+| WBS-075-P2-008 | .2.3 | reference 文書 (gate-policy.md / workflow-core.md) 関連箇所 update | pm | 単独 |
+| WBS-075-P2-009 | .2.4 | bash -n / py_compile / markdownlint / 全回帰 (mandatory in sprint) | pm | 単独 |
+| WBS-075-P2-010 | .2.5 | commit + push | pm | 単独 |
 
-**PLAN-074-unit-test-design.md は維持** (③ テスト設計の正しい artifact)。双方向 trace の欠落部分を補完:
+**並列性**: A 系 (.2.2a/b/c) と B 系 (.2.2d/e) は対象ファイル群が独立、並列投入可。
 
-- D-API EXT §3.1-3.5 各 endpoint に「**テスト設計ファイル**: PLAN-074-unit-test-design.md §2.X」追記 (① → ③ 参照)
-- PLAN-074-unit-test-design.md §2.X 各 module 冒頭に「**対象設計**: D-API EXT §3.X」追記 (③ → ① 参照)
-- PLAN-074 §12 (新規) に **総合テスト設計** (E2E 25 シナリオ) を新規 file `PLAN-074-system-test-design.md` で起票 (L2 全体設計対応)
-- 結合テスト設計を `PLAN-074-integration-test-design.md` で新規起票 (L3 詳細設計対応、現 integration 27 cases の設計親)
-- 単体テスト 63 cases を実装 (WBS-074-L4-008、PLAN-074-unit-test-design.md §5 ファイル構造規約に従う)
-- 各 test_*.py docstring に「DoD 検証: PLAN-074-*-design.md U-XXX-N〜M」 (④ → ③ 参照、既存 4 ノード trace に ③ を追加)
+**受入条件**:
+- cli/templates/PLAN.md.template が 4 artifact reference を強制
+- workflow/design-doc / api-contract が ① 設計 → ③ テスト設計 reference 義務
+- common/testing が ③ テスト設計 ↔ ④ テストコードの分離を明示
+- workflow/verification が 4 artifact 揃いの検証責務
+- pytest / bats 全回帰 PASS
 
-### Phase 4 — 他既存 PLAN audit + retrofit (size: M-L)
+### Phase 3 — PLAN-074 retrofit (size: M-L、estimate 90-150 min)
 
-- PLAN-067〜074 の 4 artifact 揃い + 双方向 trace audit
-- 欠落 artifact (③ テスト設計が多くで欠落見込み) を retrofit
-- 必要に応じて remedial test design 起票
+**PLAN-074-unit-test-design.md は維持** (③ テスト設計の正しい artifact)。双方向 trace の欠落部分を補完。
 
-### Phase 5 — helix doctor / G2-G4 自動 lint 追加 (size: M)
+#### Phase 3 sub-sprint 構成
 
-- helix doctor に「4 artifact 揃い check」追加:
-  - 各 PLAN で設計 / 実装 / テスト設計 / テストコードの 4 ファイル群が揃っているか
-  - 各 artifact から他 artifact への双方向 reference 存在チェック
-- G2 / G3 / G4 ゲートで上記 check を強制化 (P0 stop)
+| WBS | sub-sprint | 内容 | role | 並列 |
+|---|---|---|---|---|
+| WBS-075-P3-001 | .3.1a | 既存 ④ test 27 cases の 5 endpoint 別 分類確認 (read) | pm | 単独 |
+| WBS-075-P3-002 | .3.1b | 新規 ③ artifact 命名規約確定 (PLAN-074-system-test-design.md / PLAN-074-integration-test-design.md) | pm | 単独 |
+| WBS-075-P3-003 | .3.2a | D-API EXT §3.1-3.5 に「テスト設計ファイル」3 行追記 (① → ③、5 endpoint) | pm | 単独 |
+| WBS-075-P3-004 | .3.2b | PLAN-074-unit-test-design.md §2.X 各 module に「対象設計: D-API EXT §3.X」追記 (③ → ①) | pm | 単独 (.3.2a 完了後) |
+| WBS-075-P3-005 | .3.3a | PLAN-074-system-test-design.md 新規 (総合テスト設計、E2E 25 シナリオ) | docs | A 系 |
+| WBS-075-P3-006 | .3.3b | PLAN-074-integration-test-design.md 新規 (結合テスト設計、現 27 cases の設計親) | docs | A 系 |
+| WBS-075-P3-007 | .3.4a | 単体 test 23 cases 実装 (auth/envelope/validation/server unit) | qa | B 系 |
+| WBS-075-P3-008 | .3.4b | 単体 test 26 cases 実装 (routes/audit + telemetry unit) | qa | B 系 |
+| WBS-075-P3-009 | .3.4c | 単体 test 14 cases 実装 (routes/hooks + push_pr unit) | qa | B 系 |
+| WBS-075-P3-010 | .3.5 | test_http_api_*.py docstring に「DoD 検証: PLAN-074-*-design.md」追記 (④ → ③、5 file) | pm | 単独 |
+| WBS-075-P3-011 | .3.6 | 4 artifact 揃い検証 + 全回帰 (pytest 1319+63=1382 PASS、bats 479 PASS) | pm | 単独 |
+| WBS-075-P3-012 | .3.7 | commit + push (4 artifact retrofit + 単体 test 63 cases) | pm | 単独 |
+
+**並列性**:
+- A 系 (.3.3a/b): system-test-design / integration-test-design 同時 Write (異なるファイル)
+- B 系 (.3.4a/b/c): 3 並列 Codex qa 投入 (test ファイル独立、helix_db 経由 mock 戦略は PLAN-074-unit-test-design.md §4 で共通化済)
+
+**受入条件**:
+- D-API EXT §3.1-3.5 全件で「テスト設計ファイル」reference 存在
+- PLAN-074-unit-test-design.md / system-test-design.md / integration-test-design.md の 3 ③ artifact が揃う
+- 単体 test 63/63 PASS、結合 27/27 維持、全回帰 1382/1382 + 479 + 614 PASS
+- 5 test ファイル docstring に「DoD 検証: PLAN-074-*-design.md」reference 存在
+- grep -r "PLAN-074-unit-test-design" で 4 ノード (① 設計 + ③ テスト設計 + ④ テストコード + PLAN-074.md) ヒット
+
+### Phase 4 — 他既存 PLAN audit + retrofit (size: M-L、estimate 60-120 min)
+
+#### Phase 4 sub-sprint 構成
+
+| WBS | sub-sprint | 内容 | role | 並列 |
+|---|---|---|---|---|
+| WBS-075-P4-001 | .4.1a | audit 対象 PLAN 一覧化 (PLAN-067〜074) + 各 PLAN の 4 artifact 状況を spreadsheet 化 | pmo-sonnet (Agent 委譲) | 単独 |
+| WBS-075-P4-002 | .4.1b | audit 結果集計表 (`docs/v2/audit/plan-067-074-vmodel-audit.md` 新規) | pm | 単独 |
+| WBS-075-P4-003 | .4.2 | P0 retrofit (③ テスト設計欠落で本番影響あり) — 各 PLAN 個別 issue 化 | pm | 単独 |
+| WBS-075-P4-004 | .4.3a | PLAN-068 (V-model 強化) retrofit | docs | A 系 |
+| WBS-075-P4-005 | .4.3b | PLAN-070 (L3 schema and contract) retrofit | docs | A 系 |
+| WBS-075-P4-006 | .4.3c | PLAN-071 (carry capability detailing) retrofit | docs | A 系 |
+| WBS-075-P4-007 | .4.4 | retrofit 困難な PLAN を carry note 化 (deferred-findings.yaml 追加) | pm | 単独 |
+| WBS-075-P4-008 | .4.5 | commit + push | pm | 単独 |
+
+**audit 観点 (PLAN ごとに チェック)**:
+1. ① 設計 artifact 存在? (D-API EXT 等)
+2. ② 実装コード存在? (cli/lib/*)
+3. ③ テスト設計 artifact 存在? (docs/v2/L4-test-design/*-design.md)
+4. ④ テストコード存在? (cli/lib/tests/*)
+5. ① → ②, ① → ③, ③ → ④ の双方向 reference 存在?
+
+**並列性**: A 系 (.4.3a/b/c) は異なる PLAN なのでファイル衝突なし、3 並列可。
+
+**受入条件**:
+- docs/v2/audit/plan-067-074-vmodel-audit.md で全 PLAN の 4 artifact 状況可視化
+- P0 retrofit 完遂 (本番影響あるもの)
+- P1 以下は deferred-findings.yaml で carry 管理
+
+### Phase 5 — helix doctor / G2-G4 自動 lint 追加 (size: M、estimate 60-90 min)
+
+#### Phase 5 sub-sprint 構成
+
+| WBS | sub-sprint | 内容 | role | 並列 |
+|---|---|---|---|---|
+| WBS-075-P5-001 | .5.1a | lint 仕様設計 (4 artifact + 双方向 trace check の判定基準) | pm | 単独 |
+| WBS-075-P5-002 | .5.1b | cli/lib/doctor.py の現状確認 (既存 check 構造、整合性) | pm | 単独 |
+| WBS-075-P5-003 | .5.2 | vmodel_lint.py 新規実装 (4 artifact + reference check、PLAN frontmatter parse) | se | 単独 |
+| WBS-075-P5-004 | .5.3 | helix doctor 統合 (vmodel_lint 呼び出し追加) | se | 単独 (.5.2 完了後) |
+| WBS-075-P5-005 | .5.4 | G2 / G3 / G4 ゲートで vmodel_lint 強制 (gate-policy.md update + cli/helix-gate 拡張) | se | 単独 |
+| WBS-075-P5-006 | .5.5 | pytest unit test (vmodel_lint 単体) + bats test (helix doctor 結合) | qa | 並列 (test 設計後) |
+| WBS-075-P5-007 | .5.6 | 過去 PLAN への影響確認 (lint 走らせて fail PLAN を特定 → Phase 4 retrofit 補完) | pm | 単独 |
+| WBS-075-P5-008 | .5.7 | commit + push (vmodel_lint + helix doctor 統合 + ゲート強制) | pm | 単独 |
+
+**vmodel_lint.py の判定 logic**:
+```python
+def lint_plan(plan_id: str) -> LintResult:
+    plan_path = f"docs/plans/{plan_id}-*.md"
+    # 1. Read frontmatter from plan_path
+    # 2. Check: design_artifact (① 設計) exists?
+    # 3. Check: impl_artifact (② 実装) exists?
+    # 4. Check: test_design_artifact (③ テスト設計) exists?
+    # 5. Check: test_code_artifact (④ テストコード) exists?
+    # 6. Check: 各 artifact 内で他 3 artifact への reference 存在?
+    # 7. severity: P0 if ① + ② exist but ③ + ④ missing (= 逆ピラミッド)
+    return result
+```
+
+**受入条件**:
+- vmodel_lint.py 単体 pytest 全 PASS
+- helix doctor で「[V-model 4 artifact] PLAN-XXX 不足」を表示
+- G2 / G3 / G4 で fail-close 動作 (P0 found → block)
+- 過去 PLAN の lint 結果を Phase 4 retrofit に feed back
 
 ## §3 受入条件
 
