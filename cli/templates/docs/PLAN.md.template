@@ -18,10 +18,10 @@
 ## 2. Scope
 
 ### In
-- 
+-
 
 ### Out
-- 
+-
 
 ## 3. Assumptions
 
@@ -41,15 +41,58 @@
 |----|--------|------|--------|-------|
 | R-001 | | high / medium / low | | |
 
-## 6. Deliverables
+## 6. Deliverables (V-model 4 artifact)
 
-| ID | 成果物 | パス | Gate | 状態 |
-|----|--------|------|------|------|
-| D-REQ-F | 機能要件 | docs/features/.../D-REQ-F/ | G2 | pending |
-| D-API | API 契約 | docs/features/.../D-API/ | G3 | pending / N/A |
-| D-DB | DB 設計 | docs/features/.../D-DB/ | G3 | pending / N/A |
-| D-TEST | テスト設計 | docs/features/.../D-TEST/ | G3/G4 | pending |
-| D-PLAN | 工程表 | docs/design/L3-schedule-wbs.md | G3 | pending |
+V-model 原則により、設計フェーズと検証フェーズは **4 つの artifact** で対応する。**4 artifact は別文書として存在し、双方向 reference で trace** すること。同じ文書に統合してはいけない。
+
+```
+① 設計  ←対応→  ③ テスト設計
+   ↓                ↓
+② 実装   ←対応→  ④ テストコード
+```
+
+詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`
+
+### 6.1 ① 設計 artifact
+
+| ID | 成果物 | パス | 対応 ③ テスト設計 | Gate | 状態 |
+|----|--------|------|-------------------|------|------|
+| D-REQ-F | 機能要件 / 受入条件 (L1) | docs/features/.../D-REQ-F/ | D-TEST-DESIGN-ACC | G1 | pending |
+| D-CONCEPT | 全体設計 / ADR (L2) | docs/v2/L2-design/CONCEPT.md | D-TEST-DESIGN-SYS | G2 | pending / N/A |
+| D-API | API 契約 (L3 詳細) | docs/features/.../D-API/ | D-TEST-DESIGN-INT | G3 | pending / N/A |
+| D-DB | DB 設計 (L3 詳細) | docs/features/.../D-DB/ | D-TEST-DESIGN-INT | G3 | pending / N/A |
+| D-FUNC | 関数 / endpoint schema (L3-L4 機能) | (上記設計に内包 or 個別) | D-TEST-DESIGN-UNIT | G3 | pending |
+| D-PLAN | 工程表 | docs/design/L3-schedule-wbs.md | — | G3 | pending |
+
+### 6.2 ③ テスト設計 artifact (① 設計と別文書、双方向 reference 必須)
+
+| ID | 種類 | パス例 | 対応 ① 設計 | Gate |
+|----|------|--------|-------------|------|
+| D-TEST-DESIGN-ACC | 受入テスト設計 | docs/v2/L4-test-design/PLAN-XXX-acceptance-test-design.md | D-REQ-F | G1 |
+| D-TEST-DESIGN-SYS | 総合テスト設計 | docs/v2/L4-test-design/PLAN-XXX-system-test-design.md | D-CONCEPT | G2 |
+| D-TEST-DESIGN-INT | 結合テスト設計 | docs/v2/L4-test-design/PLAN-XXX-integration-test-design.md | D-API / D-DB | G3 |
+| D-TEST-DESIGN-UNIT | 単体テスト設計 | docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md | D-FUNC | G3 |
+
+各 ③ テスト設計には `対象設計: D-API §3.X` 等の reference を必ず記載する。
+
+### 6.3 ② 実装コード artifact (① 設計と別文書、双方向 reference 必須)
+
+| ID | パス | 対応 ① 設計 | Gate |
+|----|------|-------------|------|
+| D-IMPL | cli/lib/... / src/... | D-API §X.Y / D-DB §X.Y | G4 |
+
+実装コードの docstring / コメント冒頭に `契約: D-API §3.X` の reference を記載する。
+
+### 6.4 ④ テストコード artifact (③ テスト設計と別文書、双方向 reference 必須)
+
+| ID | 種類 | パス例 | 対応 ③ テスト設計 | Gate |
+|----|------|--------|-------------------|------|
+| D-TEST-CODE-UNIT | 単体 | cli/lib/tests/test_*.py | D-TEST-DESIGN-UNIT U-XXX-001〜N | G4 |
+| D-TEST-CODE-INT | 結合 | cli/lib/tests/test_http_api_*.py | D-TEST-DESIGN-INT I-XXX-001〜N | G4 |
+| D-TEST-CODE-SYS | 総合 / E2E | cli/lib/tests/test_e2e_*.py | D-TEST-DESIGN-SYS S-XXX-001〜N | G6 |
+| D-TEST-CODE-ACC | 受入 | scripts / 手動チェックリスト | D-TEST-DESIGN-ACC A-XXX-001〜N | L8 |
+
+各 ④ テストコードの docstring に `DoD 検証: PLAN-XXX-*-design.md U-XXX-001〜N` の reference を必ず記載する。
 
 ## 7. Implementation Schedule
 
@@ -64,22 +107,56 @@
 | .4 | 検証 | qa | .3 | テスト pass |
 | .5 | 仕上げ | docs/tl | .4 | docs / review / gate evidence 同期 |
 
-## 8. Test Plan
+## 8. Test Plan (③ ↔ ④ artifact 対応)
 
-- Shell:
-- Python:
-- Unit:
-- Integration:
-- Bats:
+③ テスト設計と ④ テストコードは別文書として作成し、双方向 reference で trace する。
+
+### 8.1 ③ テスト設計 artifact (作成済み)
+
+- 受入テスト設計 (D-TEST-DESIGN-ACC): docs/v2/L4-test-design/PLAN-XXX-acceptance-test-design.md
+- 総合テスト設計 (D-TEST-DESIGN-SYS): docs/v2/L4-test-design/PLAN-XXX-system-test-design.md
+- 結合テスト設計 (D-TEST-DESIGN-INT): docs/v2/L4-test-design/PLAN-XXX-integration-test-design.md
+- 単体テスト設計 (D-TEST-DESIGN-UNIT): docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md
+
+### 8.2 ④ テストコード artifact (実装)
+
+- 単体 (D-TEST-CODE-UNIT): cli/lib/tests/test_*.py
+- 結合 (D-TEST-CODE-INT): cli/lib/tests/test_http_api_*.py
+- 総合 / E2E (D-TEST-CODE-SYS): cli/lib/tests/test_e2e_*.py
+- 受入 (D-TEST-CODE-ACC): scripts / 手動
+
+### 8.3 実行コマンド
+
+- Shell: `cli/helix test --no-pytest --bats-only`
+- Python: `python3 -m pytest cli/lib/tests/ -q --tb=short`
+- Bats: `bats cli/tests/`
 - Manual:
 
-## 9. Review / Gate Policy
+## 9. Review / Gate Policy (V-model 4 artifact 確認)
 
 - PLAN review: `helix plan review --id PLAN-XXX`
 - finalize: `helix plan finalize --id PLAN-XXX`
-- G2:
-- G3:
-- G4:
+
+### 9.1 G2 (設計凍結)
+
+- ① 全体設計 (D-CONCEPT) 完成
+- ③ 総合テスト設計 (D-TEST-DESIGN-SYS) が **別文書** として作成済み
+- ① ↔ ③ 双方向 reference が記載されている
+
+### 9.2 G3 (実装着手)
+
+- ① 詳細設計 (D-API / D-DB) 完成
+- ① 機能設計 (D-FUNC) 完成
+- ③ 結合テスト設計 (D-TEST-DESIGN-INT) が **別文書** として作成済み
+- ③ 単体テスト設計 (D-TEST-DESIGN-UNIT) が **別文書** として作成済み
+- ① ↔ ③ 双方向 reference が記載されている
+
+### 9.3 G4 (実装凍結)
+
+- ② 実装コード (D-IMPL) 完成、docstring に ① への reference 記載
+- ④ テストコード (D-TEST-CODE-UNIT / D-TEST-CODE-INT) 完成、docstring に ③ への reference 記載
+- ③ ↔ ④ 双方向 trace 確認 (grep で 4 ノード trace 検証)
+- pytest / bats 全回帰 PASS
 
 ## 10. Open Items
 

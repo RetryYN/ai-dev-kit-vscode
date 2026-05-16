@@ -41,6 +41,23 @@ compatibility:
 実装
 ```
 
+### V-model 4 artifact 対応
+
+```
+① 設計  ←→  ③ テスト設計
+② 実装コード  ←→  ④ テストコード
+① 設計  →  ② 実装コード
+③ テスト設計  →  ④ テストコード
+```
+
+設計フェーズで作成する artifact は **① 設計のみ** とし、対応する **③ テスト設計 artifact は別文書として並行作成** する。
+
+- L2 全体設計では、対応する **総合テスト設計（D-TEST-DESIGN-SYS、③ テスト設計 artifact、別文書）** を別途作成する
+- L3 詳細設計では、対応する **結合テスト設計（D-TEST-DESIGN-INT、③ テスト設計 artifact、別文書）** と **単体テスト設計（D-TEST-DESIGN-UNIT、③ テスト設計 artifact、別文書）** を別途作成する
+- 設計書の frontmatter または冒頭には `test_design_doc: docs/v2/L4-test-design/PLAN-XXX-*-design.md` を明記し、③ テスト設計への reference を固定する
+- 詳細は `helix/HELIX_CORE.md §設計⇔テスト対応` を参照する
+- このスキルは 4 artifact を別文書・双方向 trace で扱う前提を持つ
+
 ### L2 開始条件
 
 設計を開始する前に以下を確認する:
@@ -331,6 +348,10 @@ POST /api/v1/users
 □ 非機能要件
   - 性能要件を満たせる設計か
   - セキュリティ考慮されているか
+
+□ ③ テスト設計
+  - ③ テスト設計 (D-TEST-DESIGN-INT / D-TEST-DESIGN-UNIT) が別文書として存在する
+  - 設計書から ③ テスト設計への双方向 reference が記載されている（例: テスト設計ファイル: docs/v2/L4-test-design/PLAN-XXX-integration-test-design.md）
 ```
 
 ---
@@ -389,6 +410,8 @@ POST /api/v1/users
 [ ] 全画面の仕様がある
 [ ] 処理フローが明確
 [ ] エラーケースが網羅されている
+[ ] 対応する ③ テスト設計 (結合 / 単体) が別文書として存在する
+[ ] 設計書 → ③ テスト設計 reference + ③ テスト設計 → 設計書 reference の双方向 trace 確認
 [ ] レビュー完了している
 ```
 

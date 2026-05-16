@@ -175,6 +175,13 @@ class CreateUserRequest(BaseModel):
 
 ## 5. 契約テスト
 
+### V-model 4 artifact の区別
+
+- 契約テストの仕様（どの API endpoint をどう叩いてどう検証するか）は、③ テスト設計 artifact（D-TEST-DESIGN-INT、別文書）に記載する
+- 本セクションで示すコードは、④ テストコード artifact（D-TEST-CODE-INT）の実装例である
+- ③ テスト設計と ④ テストコードは別文書とし、④ の docstring からは ③ で定義した test case ID を参照する
+- 詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`
+
 ### Consumer-Driven Contract
 
 ```typescript
@@ -359,6 +366,9 @@ DS-120 第6章の調達仕様書標準テンプレートを、API 契約レビ�
 - [ ] シード/初期データの定義
 
 ### テスト設計チェック
+- [ ] ③ 結合テスト設計 (D-TEST-DESIGN-INT) が別文書として存在する (例: docs/v2/L4-test-design/PLAN-XXX-integration-test-design.md)
+- [ ] D-API / D-CONTRACT に対応する ③ テスト設計文書パスが明記されている
+- [ ] ③ テスト設計 → D-API / D-CONTRACT への逆 reference (対象設計: D-API §X.Y) も記載されている
 - [ ] テストピラミッド比率（Unit ≥60%, Integration ≤30%, E2E ≤10%）
 - [ ] 全機能要件にテストケースが紐付き
 - [ ] エッジケース・境界値テストの設計

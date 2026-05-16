@@ -66,6 +66,8 @@ compatibility:
 - DB 凍結（スキーマ/制約/マイグレーション方針）
 - 契約凍結（FE-BE-DB 整合）
 - テスト方針（Unit/Integration/E2E の配分）
+- [ ] ③ 結合テスト設計 (D-TEST-DESIGN-INT) と単体テスト設計 (D-TEST-DESIGN-UNIT) が別文書として存在する
+- [ ] D-API / D-DB から ③ テスト設計への双方向 reference が記載されている
 
 ### L4（実装）
 
@@ -602,6 +604,16 @@ L6        統合検証 ←────────→ E2E・性能・セキュ�
 L7             デプロイ ←──→ 本番検証
 ```
 
+### 4 artifact 双方向 trace 検証責務
+
+V-model における 4 artifact（① 設計 / ② 実装コード / ③ テスト設計 / ④ テストコード）は、すべて別文書として存在する。
+verification スキルは、4 artifact の揃いと双方向 reference の trace 整合性を G2/G3/G4 ゲートで検証する責務を持つ。
+G2 では ① 全体設計 (D-CONCEPT) ↔ ③ 総合テスト設計 (D-TEST-DESIGN-SYS) の双方向 reference を確認する。
+G3 では ① 詳細設計 (D-API / D-DB) ↔ ③ 結合テスト設計 (D-TEST-DESIGN-INT) と ① 機能設計 (D-FUNC) ↔ ③ 単体テスト設計 (D-TEST-DESIGN-UNIT) の双方向 reference を確認する。
+G4 では ② 実装コード (D-IMPL) ↔ ④ テストコード (D-TEST-CODE-*) の docstring reference を確認する（`DoD 検証: PLAN-XXX-*-design.md U-XXX-001` 形式）。
+検証コマンドは `grep -rn "PLAN-XXX" docs/ cli/lib/tests/` により 4 ノード trace を確認する。
+詳細は `helix/HELIX_CORE.md §設計⇔テスト対応` を参照する。
+
 ### レイヤー内検証ループ
 
 ```
@@ -824,6 +836,10 @@ R0 完了（フルフロー時。skip 時は該当ゲートを N/A で記録）
 仕様成果物（`D-API` / `D-CONTRACT` / `D-DB`）を起点に、実装後テストを自動導出する。
 実装コードから逆算してテストを作るのではなく、仕様を正として不足を検出する。
 
+`D-API` / `D-CONTRACT` / `D-DB`（① 設計）から自動導出するテストは、③ テスト設計 artifact（`D-TEST-DESIGN-INT`）として別文書で保存する。
+生成した ③ テスト設計を実装する ④ テストコード（`test_*.py`）は、docstring から ③ への逆 reference（`DoD 検証: ...`）を必ず記載する。
+① → ③ 生成 + ③ → ④ 実装 + ④ → ③ docstring reference + ③ → ① 対象設計 reference の 4 ノード trace を確立する。
+
 ### 仕様 → テスト自動導出の基本手順
 
 1. `D-API`: エンドポイント、メソッド、期待ステータスを抽出
@@ -934,6 +950,20 @@ rg -n "contract|consumer|provider|pact|schema" tests/ contracts/ | sort > /tmp/i
 comm -23 /tmp/spec_contract.txt /tmp/impl_contract.txt
 comm -13 /tmp/spec_contract.txt /tmp/impl_contract.txt
 ```
+
+### 例4: ③ テスト設計 ↔ ④ テストコード 突合
+
+`D-TEST-DESIGN-INT` / `D-TEST-DESIGN-UNIT` の case ID を起点に、テスト設計とテストコードの双方向 trace を確認する。
+
+```bash
+# ③ artifact の case ID 抽出
+grep -nE "^[#-] U-[A-Z]+-[0-9]+" docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md
+# ④ テストコード内の docstring から逆 reference 抽出
+grep -rnE "DoD 検証: PLAN-XXX" cli/lib/tests/
+# 双方向 trace の欠落を検出
+```
+
+③ にあるが ④ にない case は未実装、④ にあるが ③ にない case は設計脱漏として扱う。
 
 ### 出力フォーマット（L8 添付）
 

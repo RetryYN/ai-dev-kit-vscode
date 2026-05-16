@@ -158,7 +158,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み。通過時に `MOCK-DERIVED-CONTRACT` / `MOCK-HARDCODE` / `MOCK-CODE-LEAK` の 3 項目が debt-register に auto-enqueue される |
+| 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録。**V-model 4 artifact**: 総合テスト設計（③ D-TEST-DESIGN-SYS、別文書）作成済み、① 全体設計（D-CONCEPT）↔ ③ 総合テスト設計の双方向 reference 記載済み（詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`）。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み。通過時に `MOCK-DERIVED-CONTRACT` / `MOCK-HARDCODE` / `MOCK-CODE-LEAK` の 3 項目が debt-register に auto-enqueue される |
 | accuracy_weight | 0.6 |
 | 根拠 | 設計凍結は方向性と主要技術判断を固定し、実装時の前提ブレを防ぐ。 |
 | 判定者 | PM（最終）、TL（必須）、PO（条件付き） |
@@ -176,7 +176,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。**fe 追加条件**: TL が `state-events.md` から API 契約導出完了、モック凍結済み。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
+| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了（**③ 結合テスト設計 D-TEST-DESIGN-INT および ③ 単体テスト設計 D-TEST-DESIGN-UNIT が別文書として存在し、① 詳細設計（D-API / D-DB）↔ ③ テスト設計の双方向 reference 記載済み**）、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。**fe 追加条件**: TL が `state-events.md` から API 契約導出完了、モック凍結済み。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
 | accuracy_weight | 0.9 |
 | 根拠 | Schema/API Freeze が成立するため、実装前検証として高精度の一致判定を求める。 |
 | 判定者 | TL（主）、PM（共同）、自動チェック補助 |
@@ -195,7 +195,7 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
+| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**V-model 4 artifact**: ② 実装コード（D-IMPL）が ① 設計への docstring reference（`契約: D-API §X.Y`）を保持、④ テストコード（D-TEST-CODE-{INT|UNIT}）が ③ テスト設計への docstring reference（`DoD 検証: PLAN-XXX-*-design.md U-XXX-001〜N`）を保持し、設計→実装、テスト設計→テストコードの双方向 trace が grep で検証可能。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
 | accuracy_weight | 0.95 |
 | 根拠 | 実装凍結直前の最終合意点であり、実装品質を確実に担保するため精度を最重要とする。 |
 | 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |

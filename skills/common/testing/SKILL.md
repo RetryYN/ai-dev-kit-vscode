@@ -26,6 +26,15 @@ compatibility:
 - 機能実装完了時
 - バグ修正時
 
+### V-model 4 artifact における本スキルの責務
+
+本スキル（common/testing）は ④ テストコード artifact の実装テンプレートを提供する。
+③ テスト設計 artifact（D-TEST-DESIGN-{ACC|SYS|INT|UNIT}）は別文書として `docs/v2/L4-test-design/` 配下で管理する。
+③ テスト設計の作成責務は `workflow/design-doc` / `workflow/api-contract` / `workflow/verification` 側にある。
+本スキルでテストコードを実装する際は、対応する ③ テスト設計の case ID を docstring に必ず記載する。
+③ と ④ は同一文書へ統合せず、双方向 reference で trace する。
+詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`
+
 ---
 
 ## テストピラミッド
@@ -132,6 +141,19 @@ it('should calculate total', () => {
   expect(total).toBe(200)
 })
 ```
+
+### docstring reference 規則
+
+テストコード（④）の関数 docstring または冒頭コメントには `DoD 検証: PLAN-XXX-unit-test-design.md U-XXX-001〜N` 形式で対応するテスト設計 case ID を記載する。
+例:
+
+```python
+def test_validate_request_envelope_missing_field():
+    """DoD 検証: PLAN-074-unit-test-design.md U-VAL-003 (必須フィールド欠落の 400 返却)"""
+    ...
+```
+
+これは G4 ゲートで 4 artifact 双方向 trace lint の対象になる。
 
 ---
 
@@ -382,7 +404,7 @@ func TestAddCommutative(t *testing.T) {
 
 ### HELIX D-TEST への統合
 
-- 各 property のテンプレートを D-TEST に含める
+- 各 property のテンプレートを D-TEST (③ テスト設計 artifact、別文書、D-TEST-DESIGN-{INT|UNIT} 等) に含める
 - G4 ゲートで property-based test の存在を検証する
 
 ### セットアップ
@@ -439,7 +461,7 @@ go-mutesting ./...
 
 - G4 ゲートで Mutation Score 70%以上を推奨基準とする
 - `quality_score` の計算に Mutation Score を組み込む
-- D-TEST に変異テスト対象範囲を明記する
+- D-TEST (③ テスト設計 artifact、別文書、D-TEST-DESIGN-{INT|UNIT} 等) に変異テスト対象範囲を明記する
 
 ---
 
