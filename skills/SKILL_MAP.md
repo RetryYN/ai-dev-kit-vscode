@@ -17,12 +17,19 @@
 | SE | gpt-5.4 | high |
 | PE | gpt-5.3-codex-spark / gpt-5.3-codex | low-medium |
 
-## CLI ロール補足（17）
+## CLI ロール補足（30）
 
-- CLI ロール数は 17 件: `tl`, `se`, `pg`, `qa`, `security`, `dba`, `devops`, `docs`, `research`, `legacy`, `perf`, `fe`, `recommender`, `classifier`, `effort-classifier`, `pmo-sonnet`, `pmo-haiku`
+- CLI ロール数は 30 件: `tl`, `se`, `pg`, `qa`, `security`, `dba`, `devops`, `docs`, `research`, `legacy`, `perf`, `fe`, `recommender`, `classifier`, `effort-classifier`, `pmo-sonnet`, `pmo-haiku`, `pdm-tech-innovation`, `pdm-marketing-innovation`, `pdm-innovation-manager`, `impl-sonnet`, `pm-advisor`, `tl-advisor`, `pmo-helix-explorer`, `pmo-helix-scout`, `pmo-project-explorer`, `pmo-project-scout`, `pmo-tech-docs`, `pmo-tech-fork`, `pmo-tech-news`
 - `classifier`: タスク記述を分類し、適切なロールや処理系への振り分けを補助する軽量分類ロール
 - `recommender`: スキル候補を JSON で返す軽量推挙ロール（`helix skill search` の中核）
 - `effort-classifier`: 工数・難易度・規模を分類して見積もりや実行方針の初期判定を補助するロール
+- `pmo-helix-explorer`: HELIX framework 内資産詳細探索（skills/templates/cli/docs）
+- `pmo-helix-scout`: HELIX 内軽量検索・候補列挙（1 hop 目）
+- `pmo-project-explorer`: プロジェクト内資産詳細探索（code/docs/config）
+- `pmo-project-scout`: プロジェクト内軽量検索・候補列挙（1 hop 目）
+- `pmo-tech-docs`: 設計手法・概念の外部精読
+- `pmo-tech-fork`: OSS/plugin 探索・転用判断
+- `pmo-tech-news`: 最新 Tech 動向 sweep（週次想定）
 
 ## 参考正本（ADR / PLAN）
 
@@ -271,7 +278,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（106スキル）
+## スキル群配置（107スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
@@ -298,7 +305,7 @@ fullstack 追加条件:
 - 上流由来 19 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / security-and-hardening / performance-optimization / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
 - HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
 - 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-analysis
-- 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 7 エージェント構成: be-api / be-logic / code-reviewer / db-schema / devops-deploy / qa-test / security-audit）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
+- 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 19 エージェント構成: be-api / be-logic / code-reviewer / db-schema / devops-deploy / qa-test / security-audit / pmo-sonnet / pmo-haiku / pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager / pmo-helix-explorer / pmo-helix-scout / pmo-project-explorer / pmo-project-scout / pmo-tech-docs / pmo-tech-fork / pmo-tech-news）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md
 
 既存 `workflow/reverse-analysis` は各 reverse-r* へのルーターに縮小。既存 `project/ui` は UI 参照インデックスとして残存。
@@ -384,7 +391,7 @@ automation/browser-script:
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 106 スキル + 121 references を LLM マッチングで自動推挙する CLI を搭載。
+全 107 スキル + 121 references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]

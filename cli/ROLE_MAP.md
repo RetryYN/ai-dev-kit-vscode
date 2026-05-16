@@ -18,7 +18,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
-## ロール一覧 (22)
+## ロール一覧 (30)
 
 > CLI 引数 (`--role`) は本表の「ロール」列に従う。team naming で「PE」と表記される責務は CLI 上では `pg` を使う (PE = `--role pg`)。
 
@@ -51,7 +51,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 ## 共通ルール
 
 > 注記: `helix codex --auto-thinking` は **opt-in flag**。default は role conf の `codex_thinking` を参照。`--auto-thinking` は task description から effort を動的推定する option（明示時のみ有効）。
-> role effort map: tl/high, se/high, pg/medium, fe/high, qa/high, security/xhigh, dba/medium, devops/medium, docs/low, research/low, legacy/xhigh, perf/high, classifier/low, recommender/low, effort-classifier/low.
+> role effort map: tl/high, se/high, pg/medium, fe/high, qa/high, security/xhigh, dba/medium, devops/medium, docs/low, research/low, legacy/xhigh, perf/high, classifier/low, recommender/low, effort-classifier/low, impl-sonnet/medium, pdm-innovation-manager/high, pdm-marketing-innovation/high, pdm-tech-innovation/high, pm-advisor/high, pmo-haiku/low, pmo-helix-explorer/medium, pmo-helix-scout/low, pmo-project-explorer/medium, pmo-project-scout/low, pmo-sonnet/medium, pmo-tech-docs/medium, pmo-tech-fork/medium, pmo-tech-news/medium, tl-advisor/high.
 
 1. 作業前に「参照スキル」に記載されたファイルを必ず Read する
 2. 自分の担当外の作業は行わない（PM に差し戻す）
