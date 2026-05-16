@@ -1,4 +1,19 @@
 # @helix:index id=http-api.routes.audit domain=cli/lib/http_api summary=audit/log endpoint (PLAN-074 Sprint .4)
+"""HELIX HTTP API — audit endpoint.
+
+契約: D-API EXT §3.4 audit endpoint
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-005 / Sprint .4 (commit 2505c4a)
+test: cli/lib/tests/test_http_api_audit.py (5 cases)
+
+責務:
+  - POST /api/v1/automation/audit/log
+  - HTTP audit_kind enum [footer, summary, diff_lines, security_scan, qa_check]
+  - audit_kind enum drift 解決:
+    HTTP 側 kind を payload.http_audit_kind に退避し、
+    helix_db.insert_audit_log には endpoint_call 固定で記録する
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

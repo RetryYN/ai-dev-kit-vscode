@@ -1,3 +1,13 @@
+"""DoD 検証: D-API EXT §3.3 hook callback
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-004 / Sprint .3
+対象実装: cli/lib/http_api/routes/hooks.py
+
+5 cases:
+  - 各 hook_kind (pretool / posttool / stop / session_start) で正常系
+  - invalid hook_kind で 400
+  - missing 必須フィールドで 400
+"""
 import sqlite3
 import sys
 from pathlib import Path

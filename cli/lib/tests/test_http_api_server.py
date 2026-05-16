@@ -1,3 +1,15 @@
+"""DoD 検証: D-API EXT §1-§2 共通 envelope + auth (HELIX HTTP API framework)
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-002 / Sprint .1
+対象実装: cli/lib/http_api/server.py + envelope.py + auth.py + validation.py
+
+5 cases:
+  - /health 公開動作
+  - /api/v1/_status 認証必須 (Bearer なしで 401/403)
+  - localhost-only bind (127.0.0.1/::1 限定)
+  - envelope 形式 (success / error の 2 形式)
+  - auth 強度 (HELIX_HTTP_API_TOKEN env 由来)
+"""
 import os
 import sys
 from pathlib import Path

@@ -71,6 +71,9 @@ Sprint A §2.0 の primitive を再利用し、新規 primitive は追加しな�
 - method: `POST`
 - 起源: PLAN-067 helix-automation-layer
 - 実装根拠: `cli/lib/push_gate.py` `run_all_gates()` L291-324 (Read 確認済み、2026-05-16 P0-04)
+- **実装ファイル**: `cli/lib/http_api/routes/push_pr.py`
+- **test ファイル**: `cli/lib/tests/test_http_api_push_pr.py` (5 cases)
+- **担当 WBS**: PLAN-074 / WBS-074-L4-003 / Sprint .2 (commit 95cb7be)
 
 **`run_all_gates()` シグネチャ (実測値)**:
 - 引数: `execute: bool = False, remote: str = "origin", branch: str = "main"` (全オプション)
@@ -157,6 +160,9 @@ response_schema:
 - method: `POST`
 - 起源: PLAN-067 helix-automation-layer
 - 実装根拠: `cli/lib/push_gate.py` `run_all_gates()` L291-324 (Read 確認済み、2026-05-16 P0-04)。push/pr は同一 `run_all_gates()` を呼ぶ共通 gate 体系を持つ。
+- **実装ファイル**: `cli/lib/http_api/routes/push_pr.py` (push と同一モジュール)
+- **test ファイル**: `cli/lib/tests/test_http_api_push_pr.py` (5 cases、push と共有)
+- **担当 WBS**: PLAN-074 / WBS-074-L4-003 / Sprint .2 (commit 95cb7be)
 
 ```yaml
 path_schema:
@@ -236,6 +242,9 @@ response_schema:
 - path: `/api/v1/automation/hooks/{hook_kind}/callback`
 - method: `POST`
 - 起源: PLAN-043 / PLAN-014 / PLAN-015 / PLAN-016
+- **実装ファイル**: `cli/lib/http_api/routes/hooks.py`
+- **test ファイル**: `cli/lib/tests/test_http_api_hooks.py` (5 cases)
+- **担当 WBS**: PLAN-074 / WBS-074-L4-004 / Sprint .3 (commit a387f9c)
 
 ```yaml
 path_schema:
@@ -283,6 +292,10 @@ response_schema:
 - path: `/api/v1/automation/audit/log`
 - method: `POST`
 - 起源: PLAN-034 / PLAN-048
+- **実装ファイル**: `cli/lib/http_api/routes/audit.py`
+- **test ファイル**: `cli/lib/tests/test_http_api_audit.py` (5 cases)
+- **担当 WBS**: PLAN-074 / WBS-074-L4-005 / Sprint .4 (commit 2505c4a)
+- **audit_kind enum drift 解決**: HTTP 側 kind (footer/summary/diff_lines/security_scan/qa_check) は `payload.http_audit_kind` に退避し、`helix_db.insert_audit_log` には `endpoint_call` 固定で記録
 
 ```yaml
 path_schema: { type: object, properties: {}, additionalProperties: false }
@@ -329,6 +342,10 @@ response_schema:
 - path: `/api/v1/automation/session/telemetry`
 - method: `POST`
 - 起源: PLAN-016
+- **実装ファイル**: `cli/lib/http_api/routes/telemetry.py`
+- **test ファイル**: `cli/lib/tests/test_http_api_telemetry.py` (5 cases)
+- **担当 WBS**: PLAN-074 / WBS-074-L4-006 / Sprint .5 (commit 1633202)
+- **UPSERT 動作**: session_id UNIQUE 制約による idempotent UPSERT (v27 schema、tool_uses_count / tokens_total / cost_usd 累積)
 
 ```yaml
 path_schema: { type: object, properties: {}, additionalProperties: false }

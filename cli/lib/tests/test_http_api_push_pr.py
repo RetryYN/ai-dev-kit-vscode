@@ -1,3 +1,15 @@
+"""DoD 検証: D-API EXT §3.1 push trigger + §3.2 pr trigger
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-003 / Sprint .2
+対象実装: cli/lib/http_api/routes/push_pr.py
+
+5 cases:
+  - success: 正常系で run_id 返却 + automation_runs INSERT + audit_log
+  - missing: 必須フィールド欠落で 400
+  - unauthorized: Bearer なしで 401/403
+  - not_found: 該当 plan_id が無いケースで 404
+  - dry_run: execute=False で実 push なし
+"""
 import json
 import sqlite3
 import sys

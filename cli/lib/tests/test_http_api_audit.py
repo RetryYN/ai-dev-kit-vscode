@@ -1,3 +1,15 @@
+"""DoD 検証: D-API EXT §3.4 audit endpoint
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-005 / Sprint .4
+対象実装: cli/lib/http_api/routes/audit.py
+
+5 cases:
+  - success: HTTP audit_kind を payload.http_audit_kind に退避、helix_db には endpoint_call
+  - missing 必須フィールドで 400
+  - invalid audit_kind (helix_db 内部 enum を HTTP では拒否) で 400
+  - run_id 未存在で 404
+  - unauthorized で 401/403
+"""
 from __future__ import annotations
 
 import json

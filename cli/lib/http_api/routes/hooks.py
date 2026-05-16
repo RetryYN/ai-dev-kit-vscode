@@ -1,3 +1,16 @@
+"""HELIX HTTP API — hook callback endpoint.
+
+契約: D-API EXT §3.3 hook callback
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-004 / Sprint .3 (commit a387f9c)
+test: cli/lib/tests/test_http_api_hooks.py (5 cases)
+
+責務:
+  - POST /api/v1/automation/hooks/{hook_kind}/callback
+  - hook_kind enum [pretool, posttool, stop, session_start]
+  - audit_log 連携 (hook_exec audit_kind)
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

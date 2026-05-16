@@ -1,3 +1,16 @@
+"""HELIX HTTP API — push / pr trigger endpoint.
+
+契約: D-API EXT §3.1 push trigger + §3.2 pr trigger
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-003 / Sprint .2 (commit 95cb7be)
+test: cli/lib/tests/test_http_api_push_pr.py (5 cases)
+
+責務:
+  - POST /api/v1/automation/push/{plan_id}/trigger
+  - POST /api/v1/automation/pr/{plan_id}/trigger
+  - push_gate.run_all_gates() 結合 + automation_runs INSERT + audit_log
+"""
+
 from __future__ import annotations
 
 import os

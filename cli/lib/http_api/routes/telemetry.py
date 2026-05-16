@@ -1,3 +1,16 @@
+"""HELIX HTTP API — session telemetry endpoint.
+
+契約: D-API EXT §3.5 Stop hook telemetry endpoint
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-006 / Sprint .5 (commit 1633202)
+test: cli/lib/tests/test_http_api_telemetry.py (5 cases)
+
+責務:
+  - POST /api/v1/automation/session/telemetry
+  - session_telemetry UPSERT (session_id UNIQUE、v27 schema)
+  - tool_uses_count / tokens_total / cost_usd 累積
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

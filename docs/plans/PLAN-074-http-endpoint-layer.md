@@ -103,62 +103,68 @@ D-API EXT (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md §3) で凍�
 
 当初計画は Sprint .0-.5 (6 Sprint) だったが、実装段階で endpoint 単位に分割し Sprint .0-.6 (7 Sprint) で完遂した。1 Sprint = 1 endpoint の粒度を採用 (HELIX 標準 .1a/.1b/.2/.3/.4/.5 を踏襲しなかった、carry note §10 参照)。
 
-### Sprint .0 — framework 候補整理 (Codex tl-advisor)
+### Sprint .0 / WBS-074-L4-001 — framework 候補整理 (Codex tl-advisor)
 
-- D-API EXT 全文 Read + 5 endpoint contract 抽出
-- framework 候補比較 (Flask / FastAPI / http.server)
+- 機能設計: framework 選定 ADR (Flask vs FastAPI vs http.server)
+- 実装ファイル: なし (調査のみ)
+- test ファイル: なし
+- 参照: D-API EXT §1-§2 共通ルール (`docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md`)
 - 成果: tl-advisor 結論 **Flask 推奨** (`.helix/tmp/p074-s0-tl-advisor.log`)
 - commit: `e30dfe8` (frontmatter framework=Flask 反映)
 
-### Sprint .1 — framework setup (Codex SE → pg v2)
+### Sprint .1 / WBS-074-L4-002 — framework setup (Codex SE → pg v2)
 
-- `cli/lib/http_api/` 骨格: server.py / envelope.py / validation.py / auth.py
-- routes/ 4 blueprint (push_pr / hooks / audit / telemetry の空 stub)
+- 機能設計: HTTP server / auth / envelope / validation の責務分離
+- 実装ファイル: `cli/lib/http_api/server.py` / `envelope.py` / `validation.py` / `auth.py` / `routes/` 5 blueprint
+- test ファイル: `cli/lib/tests/test_http_api_server.py` (5 cases) + `cli/tests/helix-http-api.bats` (1 case)
+- 参照: D-API EXT §1 共通 envelope 形式 + §2 認証方針
 - auth 凍結: 127.0.0.1/::1 + Bearer Token (HELIX_HTTP_API_TOKEN env)
-- compat fallback Flask class (PEP 668 sandbox 用、本番削除 carry)
+- compat fallback Flask class (PEP 668 sandbox 用、本番削除 carry → `.L6.1b`)
 - 公開 endpoint: `/health` + `/api/v1/_status`
 - commit: `879945b`, `883552b`
-- test: pytest 5 PASS + bats 1 PASS
 
-### Sprint .2 — push/pr trigger endpoint (Codex pg)
+### Sprint .2 / WBS-074-L4-003 — push/pr trigger endpoint (Codex pg)
 
-- `POST /api/v1/automation/push/{plan_id}/trigger`
-- `POST /api/v1/automation/pr/{plan_id}/trigger`
-- `push_gate.run_all_gates()` 結合 + automation_runs INSERT + audit_log
+- 機能設計: D-API EXT **§3.1 push trigger** + **§3.2 pr trigger**
+- 実装ファイル: `cli/lib/http_api/routes/push_pr.py`
+- test ファイル: `cli/lib/tests/test_http_api_push_pr.py` (5 cases)
+- 契約: `push_gate.run_all_gates()` 結合 + automation_runs INSERT + audit_log
+- DoD: success / missing / unauthorized / not_found / dry_run の 5 シナリオ
 - commit: `95cb7be`
-- test: pytest 5 PASS (success / missing / unauthorized / not_found / dry_run)
 
-### Sprint .3 — hooks callback endpoint (Codex pg)
+### Sprint .3 / WBS-074-L4-004 — hooks callback endpoint (Codex pg)
 
-- `POST /api/v1/automation/hooks/{hook_kind}/callback`
-- hook_kind enum [pretool, posttool, stop, session_start]
-- audit_log 連携 (hook_exec audit_kind)
+- 機能設計: D-API EXT **§3.3 hook callback**
+- 実装ファイル: `cli/lib/http_api/routes/hooks.py`
+- test ファイル: `cli/lib/tests/test_http_api_hooks.py` (5 cases)
+- 契約: hook_kind enum [pretool, posttool, stop, session_start] + audit_log 連携 (hook_exec audit_kind)
 - commit: `a387f9c`
-- test: pytest 5 PASS
 
-### Sprint .4 — audit endpoint (Codex pg v2)
+### Sprint .4 / WBS-074-L4-005 — audit endpoint (Codex pg v2)
 
-- `POST /api/v1/automation/audit/log`
-- HTTP audit_kind enum [footer, summary, diff_lines, security_scan, qa_check]
+- 機能設計: D-API EXT **§3.4 audit endpoint**
+- 実装ファイル: `cli/lib/http_api/routes/audit.py`
+- test ファイル: `cli/lib/tests/test_http_api_audit.py` (5 cases)
+- 契約: HTTP audit_kind enum [footer, summary, diff_lines, security_scan, qa_check]
 - **audit_kind enum drift 解決**: HTTP 側 kind を payload.http_audit_kind に退避、helix_db.insert_audit_log には endpoint_call 固定で記録
 - commit: `2505c4a`
-- test: pytest 5 PASS
 - 注記: Sprint .4 v1 は SE/QA review_only_drift で失敗、pg role + 完全サンプル明示で v2 成功
 
-### Sprint .5 — session telemetry endpoint (Codex pg)
+### Sprint .5 / WBS-074-L4-006 — session telemetry endpoint (Codex pg)
 
-- `POST /api/v1/automation/session/telemetry`
-- session_telemetry UPSERT (session_id UNIQUE、v27)
-- tool_uses_count / tokens_total / cost_usd 累積
+- 機能設計: D-API EXT **§3.5 Stop hook telemetry endpoint**
+- 実装ファイル: `cli/lib/http_api/routes/telemetry.py`
+- test ファイル: `cli/lib/tests/test_http_api_telemetry.py` (5 cases)
+- 契約: session_telemetry UPSERT (session_id UNIQUE、v27) + tool_uses_count / tokens_total / cost_usd 累積
+- DoD: success / upsert / missing / unauthorized / invalid の 5 シナリオ
 - commit: `1633202`
-- test: pytest 5 PASS (success / upsert / missing / unauthorized / invalid)
 
-### Sprint .6 — G4 ready 判定 (Opus 直接)
+### Sprint .6 / WBS-074-L4-007 — G4 ready 判定 (Opus 直接)
 
 - 27/27 PASS (http_api 5 endpoint suite)
 - 全回帰: pytest 1319 / bats 479 / shell 614 全 PASS
 - helix doctor: 21 pass / 0 fail / 1 warn (rg のみ)
-- D-API EXT 契約整合 確認
+- D-API EXT 契約整合 確認 (§3.1-§3.5 全件 vs routes/*.py)
 - commit: `80a6b90`, `13de2af`
 
 ---

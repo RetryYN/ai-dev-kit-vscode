@@ -1,3 +1,15 @@
+"""DoD 検証: D-API EXT §3.5 Stop hook telemetry endpoint
+  (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
+担当 WBS: PLAN-074 / WBS-074-L4-006 / Sprint .5
+対象実装: cli/lib/http_api/routes/telemetry.py
+
+5 cases:
+  - success: session_telemetry INSERT
+  - upsert: 同 session_id 2 回呼び出しで UPSERT 動作 (UNIQUE 制約活用)
+  - missing 必須フィールドで 400
+  - unauthorized で 401/403
+  - invalid: 型不正で 400
+"""
 import sqlite3
 import sys
 from pathlib import Path
