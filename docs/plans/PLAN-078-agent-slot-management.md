@@ -72,7 +72,7 @@ automation_runs は HTTP endpoint 経由の業務 run、agent_slots は Opus / C
 
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
-| ① 設計 (詳細) | L3 詳細設計 | docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md §X agent_slots |
+| ① 設計 (詳細) | L3 詳細設計 | docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md §10 agent_slots（D-DB EXT へ転記済み） |
 | ② 実装コード | L4 実装 | cli/lib/agent_slots.py + cli/helix-agent + cli/helix-codex 統合 |
 | ③ テスト設計 (結合) | L4 設計 | docs/v2/L4-test-design/PLAN-078-integration-test-design.md |
 | ③ テスト設計 (単体) | L4 設計 | docs/v2/L4-test-design/PLAN-078-unit-test-design.md |

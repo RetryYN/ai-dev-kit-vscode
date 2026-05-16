@@ -484,3 +484,168 @@ def _create_append_only_trigger(
 - append-only trigger が本文に含まれる
 - `MigrationStep` と `ColumnSpec` が参照再利用されている
 - 外部参照リンクのパスが整合している
+
+## §10 agent_slots テーブル定義（v28）
+
+### 10.1 概要
+
+`agent_slots` は agent invocation 単位の slot 管理を行う追加 table である。  
+目的は helix.db における並列実行の可視化であり、Codex / subagent / 将来の agent tool 実行を 1 行 1 invocation で記録する。  
+PLAN-078 が schema 起源、PLAN-075 が V-model 4 artifact 原則、PLAN-074 が実装境界を提供する。  
+migration ID は v27 → v28 であり、既存の automation_runs と session_telemetry を補完する。
+
+#### 10.1.1 関連 table
+
+- `automation_runs`: HTTP push / pr / hook 経由起動の run 単位
+- `session_telemetry`: session 単位の累積 telemetry
+- `agent_slots`: invocation 単位の slot 管理
+- `audit_log`: fire / release イベントの監査補助に利用可能だが、本 §10 では必須化しない
+
+### 10.2 schema (DDL)
+
+```sql
+CREATE TABLE IF NOT EXISTS agent_slots (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_key        TEXT NOT NULL,           -- 'codex:{role}' or 'subagent:{subagent_type}'
+    agent_kind      TEXT NOT NULL            -- 'codex' | 'claude_subagent'
+                    CHECK(agent_kind IN ('codex', 'claude_subagent')),
+    role            TEXT,                    -- helix-codex --role 値 (codex の場合)
+    subagent_type   TEXT,                    -- Agent tool の subagent_type (subagent の場合)
+    plan_id         TEXT,                    -- --plan-id 値 (任意)
+    task_id         TEXT,                    -- --task-id 値 (任意)
+    sprint          TEXT,                    -- --l4-sprint 値 (任意)
+    session_id      TEXT,                    -- HELIX_SESSION_ID (任意、FK なし)
+    automation_run_id INTEGER,               -- automation_runs.id FK (任意)
+    fired_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    released_at     TEXT,                    -- NULL = 実行中
+    status          TEXT NOT NULL DEFAULT 'running'
+                    CHECK(status IN ('running', 'completed', 'failed', 'cancelled')),
+    exit_code       INTEGER,                 -- codex exit code (任意)
+    slot_source     TEXT NOT NULL DEFAULT 'helix_codex'
+                    CHECK(slot_source IN ('helix_codex', 'pretooluse_hook')),
+    FOREIGN KEY (automation_run_id) REFERENCES automation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_slots_status    ON agent_slots(status);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_plan      ON agent_slots(plan_id);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_fired_at  ON agent_slots(fired_at);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_kind      ON agent_slots(agent_kind);
+```
+
+### 10.3 列詳細仕様
+
+| 列名 | 型 | NULL 許可 | default | CHECK 制約 | 用途 | 関連 helper 関数 |
+|---|---|---|---|---|---|---|
+| id | INTEGER | いいえ | なし | なし | slot の主キー | `fire_slot()` |
+| slot_key | TEXT | いいえ | なし | なし | agent 種別と role/type の検索キー | `fire_slot()` |
+| agent_kind | TEXT | いいえ | なし | `codex` / `claude_subagent` | invocation の分類 | `fire_slot()` |
+| role | TEXT | はい | なし | なし | `helix-codex --role` 値 | `fire_slot()` |
+| subagent_type | TEXT | はい | なし | なし | Agent tool の subagent_type | `fire_slot()` |
+| plan_id | TEXT | はい | なし | なし | PLAN trace | `fire_slot()` / `get_stats()` |
+| task_id | TEXT | はい | なし | なし | task trace | `fire_slot()` / `get_stats()` |
+| sprint | TEXT | はい | なし | なし | L4 sprint trace | `fire_slot()` / `get_stats()` |
+| session_id | TEXT | はい | なし | なし | HELIX session trace | `fire_slot()` / `get_stats()` |
+| automation_run_id | INTEGER | はい | なし | FK `automation_runs(id)` | HTTP 起動との連携 | `fire_slot()` |
+| fired_at | TEXT | いいえ | `datetime('now')` | なし | 起動時刻 | `fire_slot()` |
+| released_at | TEXT | はい | なし | なし | 終了時刻 | `release_slot()` |
+| status | TEXT | いいえ | `running` | `running` / `completed` / `failed` / `cancelled` | slot 状態 | `release_slot()` |
+| exit_code | INTEGER | はい | なし | なし | Codex exit code | `release_slot()` |
+| slot_source | TEXT | いいえ | `helix_codex` | `helix_codex` / `pretooluse_hook` | 記録起点 | `fire_slot()` |
+
+### 10.4 trigger 設計
+
+```sql
+-- Phase 1 (本 §10 scope): no_delete trigger のみ
+CREATE TRIGGER IF NOT EXISTS agent_slots_no_delete
+BEFORE DELETE ON agent_slots
+FOR EACH ROW
+BEGIN
+    SELECT RAISE(ABORT, 'agent_slots is append-only (no delete allowed)');
+END;
+```
+
+Phase 2 では `released_at` / `status` 遷移の append-only enforcement を追加する余地があるが、本 §10 では scope 外とする。
+
+### 10.5 helper 関数
+
+`cli/lib/agent_slots.py` で実装する helper は次の通りである。
+
+- `fire_slot(agent_kind, role=None, subagent_type=None, plan_id=None, task_id=None, sprint=None, session_id=None, automation_run_id=None) -> int`
+- `release_slot(slot_id, status='completed', exit_code=None)`
+- `list_active_slots() -> list[dict]`
+- `list_stale_slots(threshold_minutes=5) -> list[dict]`
+- `get_stats(days=7, by='hour') -> dict`
+
+### 10.6 状態遷移
+
+```text
+running ──┬─→ completed (正常終了、exit_code=0)
+          ├─→ failed (exit_code != 0)
+          ├─→ cancelled (trap SIGINT/SIGTERM)
+          └─→ (Phase 2 で timed_out 自動遷移、本 §10 scope 外)
+```
+
+### 10.7 関連 table との連携
+
+- **automation_runs**: HTTP push / pr / hook 経由起動の場合のみ FK 設定
+- **audit_log**: fire / release イベントを監査記録へ複写可能だが、本 §10 では必須化しない
+- **session_telemetry**: 粒度別軸として独立し、`session_id` 任意列で紐付け可能
+
+### 10.8 V-model 4 artifact 双方向 trace
+
+| Artifact | 担当層 | 想定パス |
+|---|---|---|
+| ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §10 agent_slots |
+| ② 実装コード | L4 実装 | `cli/lib/agent_slots.py` + `cli/helix-agent` + `cli/helix-codex` 統合 |
+| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-078-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-078-integration-test-design.md` |
+| ④ テストコード | L4 実装 | `cli/lib/tests/test_agent_slots*.py` |
+
+### 10.9 migration 手順
+
+```python
+# CURRENT_SCHEMA_VERSION = 27 -> 28 に変更する。
+
+AGENT_SLOTS_SCHEMA_V28 = """
+CREATE TABLE IF NOT EXISTS agent_slots (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_key        TEXT NOT NULL,
+    agent_kind      TEXT NOT NULL CHECK(agent_kind IN ('codex', 'claude_subagent')),
+    role            TEXT,
+    subagent_type   TEXT,
+    plan_id         TEXT,
+    task_id         TEXT,
+    sprint          TEXT,
+    session_id      TEXT,
+    automation_run_id INTEGER,
+    fired_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    released_at     TEXT,
+    status          TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running', 'completed', 'failed', 'cancelled')),
+    exit_code       INTEGER,
+    slot_source     TEXT NOT NULL DEFAULT 'helix_codex' CHECK(slot_source IN ('helix_codex', 'pretooluse_hook')),
+    FOREIGN KEY (automation_run_id) REFERENCES automation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_slots_status   ON agent_slots(status);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_plan     ON agent_slots(plan_id);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_fired_at ON agent_slots(fired_at);
+CREATE INDEX IF NOT EXISTS idx_agent_slots_kind     ON agent_slots(agent_kind);
+"""
+
+# @helix:index id=helix_db._migrate_v27_to_v28 domain=cli/lib summary=v28 で agent_slots table を追加 (PLAN-078)
+def _migrate_v27_to_v28(conn: sqlite3.Connection) -> None:
+    if not _has_table(conn, "agent_slots"):
+        conn.executescript(AGENT_SLOTS_SCHEMA_V28)
+    _create_append_only_trigger(conn, "agent_slots", immutable_columns=["id", "fired_at", "slot_key"])
+
+# migrate() 内 if current < 28 ブロックとして追加する。
+if current < 28:
+    _migrate_v27_to_v28(conn)
+    conn.execute("INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (28, datetime('now'))")
+```
+
+### 10.10 carry note
+
+- Phase 2 で `released_at` / `status` 遷移の append-only enforcement を追加する余地がある
+- `audit_log` への fire / release 自動記録は PLAN-078 では強制しない
+- `session_telemetry` は session 単位の独立 table として維持する
+- `automation_runs` との連携は HTTP 経路のみ FK を使う
