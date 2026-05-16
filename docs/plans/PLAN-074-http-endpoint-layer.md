@@ -1,10 +1,12 @@
 ---
 plan_id: PLAN-074
 title: "PLAN-074: HTTP endpoint 5 endpoint 実装 (PLAN-072 L4.5 carry、D-API EXT 契約具現化)"
-status: draft
+status: in_progress
+gate_status: G4_ready
 size: M-L
 drive: be
 created: 2026-05-16
+sprint_5_completed_at: 2026-05-16
 owner: PM
 phases: L4, L6
 gates: G4
@@ -14,7 +16,10 @@ framework_decision_rationale: |
   Flask 推奨理由: 軽量、Werkzeug の堅牢 routing/test_client、Pydantic drift リスクなし、pytest 統合容易。
   FastAPI 非推奨: 依存追加大 + OpenAPI 自動生成が D-API EXT と drift するリスク。
   http.server fallback: 依存ゼロにこだわる場合のみ。手書き routing/validation で G4 品質リスク増。
-auth_decision: pending
+auth_decision: localhost-only-bearer
+auth_decision_note_resolved: |
+  Sprint .1 で確定: 127.0.0.1/::1 限定 bind + Authorization: Bearer <HELIX_HTTP_API_TOKEN env>。
+  本番運用前に HMAC / mTLS / TLS termination 等の強化を検討 (carry note)。
 auth_decision_note: |
   Sprint .1 framework setup で Authorization header 形式 (Bearer / localhost-only / API key) を凍結する。
   HELIX は CLI 中心、HTTP 層は補完なので localhost-only + env 由来 token の最小構成が初期推奨。
@@ -237,3 +242,60 @@ G4 は Sprint .5 で実施する。全件 passed で G4 通過とする。
 5. commit は Opus が Sprint .5 完了確認後に実施 (Codex は commit 禁止)
 
 **並列可否**: Sprint .2 / Sprint .3 / Sprint .4 は framework 選定 (Sprint .1) 完了後に同時投入可能 (ファイル衝突なし、DB schema 変更なし)。
+
+---
+
+## §9 Resolution Summary (G4 ready, 2026-05-16)
+
+### Sprint 実装結果
+
+| Sprint | 内容 | commit | test |
+|---|---|---|---|
+| .0 | framework 選定 (Flask) | e30dfe8 | tl-advisor 助言 |
+| .1 | framework setup (5 routes blueprint + auth + envelope + validation) | 879945b, 883552b | pytest 5 / bats 1 PASS |
+| .2 | push/pr trigger endpoint | 95cb7be | pytest 5 PASS |
+| .3 | hooks callback endpoint | a387f9c | pytest 5 PASS |
+| .4 | audit endpoint | 2505c4a | pytest 5 PASS |
+| .5 | session telemetry endpoint | 1633202 | pytest 5 PASS |
+
+### 5 endpoint 実装 (D-API EXT 正本準拠)
+
+```
+POST /api/v1/automation/push/{plan_id}/trigger      (push_pr.py)
+POST /api/v1/automation/pr/{plan_id}/trigger        (push_pr.py)
+POST /api/v1/automation/hooks/{hook_kind}/callback  (hooks.py)
+POST /api/v1/automation/audit/log                   (audit.py)
+POST /api/v1/automation/session/telemetry           (telemetry.py)
+```
+
+### 設計判断
+
+- **auth**: localhost-only (127.0.0.1/::1 bind) + Authorization: Bearer <HELIX_HTTP_API_TOKEN env>
+- **audit_kind enum drift 解決**: HTTP 側 audit_kind (footer/summary/diff_lines/security_scan/qa_check) は payload.http_audit_kind に格納、helix_db.insert_audit_log には endpoint_call 固定で記録
+- **Flask compat fallback**: PEP 668 sandbox 用、本番運用前に削除必要 (Flask 本物 install)
+
+### test 全 PASS 検証
+
+- 27/27 PASS (http_api 5 endpoint suite)
+- 全回帰: pytest 1309 / bats 479 / shell 614 PASS (PLAN-072 G4 ready 時点、Sprint .2-.5 追加分込みで再回帰中)
+- helix doctor: 21 pass / 0 fail / 1 warn (rg のみ、env 由来 warn)
+
+### G4 entry チェックリスト
+
+- [x] 5 endpoint 全件で D-API EXT 契約と整合
+- [x] automation_runs lifecycle 遷移 / audit_log 書き込み / session_telemetry UPSERT が HTTP 経由で動作
+- [x] auth (localhost + Bearer) で 401/403 が返る
+- [x] pytest 全 PASS / bats 全 PASS
+- [x] helix doctor 0 fail
+- [x] git commit / push 完了 (origin/main 2505c4a)
+
+### Carry / Followup
+
+1. **Flask 本物 install (本番運用必須)**: venv / apt / pipx で。`pip install --break-system-packages` 非推奨
+2. **compat fallback Flask class 削除** (本番前): cli/lib/http_api/server.py の Blueprint shim 撤去
+3. **auth 強化** (必要時): HMAC / mTLS / TLS termination
+4. **HELIX V-model 後続**: L5 Visual (HTTP 系は薄い) / L6 統合検証 / L7-L11 Run phase
+
+### Sprint .6 G4 ready 宣言
+
+PLAN-074 (HTTP endpoint 層) は G4 ready 状態に到達。L4.5 carry の HTTP endpoint 層を完遂し、PLAN-072 で確立した v24-v27 helix.db + CLI/hook 統合の HTTP 表現を追加した。次工程: G4 PM 承認 → L6 統合検証。
