@@ -107,12 +107,46 @@ def test_insert_audit_log_rejects_invalid_kind(tmp_path: Path) -> None:
             helix_db.insert_audit_log(conn, audit_kind="bad_kind", actor="stop.sh")
 
 
-def test_stop_hook_records_hook_exec_with_invocation_reference(tmp_path: Path) -> None:
+def test_insert_audit_log_accepts_valid_run_id_fk(tmp_path: Path) -> None:
+    _, db_path = _init_project(tmp_path, "valid-run-id")
+
+    with helix_db._write_connection(str(db_path)) as conn:
+        run_id = helix_db.insert_automation_run(conn, "helix-push", "push", {"plan_id": "PLAN-072"})
+        audit_id = helix_db.insert_audit_log(
+            conn,
+            audit_kind="hook_exec",
+            actor="stop.sh",
+            run_id=run_id,
+            payload={"hook_name": "stop"},
+        )
+
+    row = _query_rows(db_path, "SELECT run_id FROM audit_log WHERE id = ?", (audit_id,))[0]
+    assert row["run_id"] == run_id
+
+
+def test_insert_audit_log_rejects_unknown_run_id_fk(tmp_path: Path) -> None:
+    _, db_path = _init_project(tmp_path, "invalid-run-id")
+
+    with helix_db._write_connection(str(db_path)) as conn:
+        with pytest.raises(sqlite3.IntegrityError):
+            helix_db.insert_audit_log(
+                conn,
+                audit_kind="hook_exec",
+                actor="stop.sh",
+                run_id=999999,
+                payload={"hook_name": "stop"},
+            )
+
+
+def test_stop_hook_records_hook_exec_with_automation_run_reference(tmp_path: Path) -> None:
     project_root, db_path = _init_project(tmp_path, "stop-hook")
+    with helix_db._write_connection(str(db_path)) as conn:
+        run_id = helix_db.insert_automation_run(conn, "helix-push", "push", {"plan_id": "PLAN-072"})
 
     proc = _run_stop_like_hook(
         STOP_HOOK,
         project_root,
+        HELIX_AUTOMATION_RUN_ID=str(run_id),
         HELIX_TOOL_USES="3",
         HELIX_HOOK_DURATION_MS="12",
     )
@@ -124,39 +158,43 @@ def test_stop_hook_records_hook_exec_with_invocation_reference(tmp_path: Path) -
         "SELECT audit_kind, actor, run_id, payload FROM audit_log ORDER BY id",
     )
 
-    assert len(invocation_rows) == 1
+    assert invocation_rows == []
     assert len(audit_rows) == 1
     payload = json.loads(audit_rows[0]["payload"])
     assert audit_rows[0]["audit_kind"] == "hook_exec"
     assert audit_rows[0]["actor"] == "stop.sh"
-    assert audit_rows[0]["run_id"] is None
+    assert audit_rows[0]["run_id"] == run_id
     assert payload["hook_name"] == "stop"
     assert payload["tool_uses"] == 3
     assert payload["duration_ms"] == 12
-    assert payload["invocation_log_id"] == invocation_rows[0]["id"]
 
 
 def test_post_tool_use_hook_records_hook_exec(tmp_path: Path) -> None:
     project_root, db_path = _init_project(tmp_path, "post-tool-use-hook")
+    with helix_db._write_connection(str(db_path)) as conn:
+        run_id = helix_db.insert_automation_run(conn, "helix-push", "push", {"plan_id": "PLAN-072"})
 
     proc = _run_stop_like_hook(
         POST_TOOL_USE_HOOK,
         project_root,
+        HELIX_AUTOMATION_RUN_ID=str(run_id),
         HELIX_TOOL_USES="4",
         HELIX_HOOK_DURATION_MS="9",
     )
 
     assert proc.returncode == 0
-    audit_rows = _query_rows(db_path, "SELECT audit_kind, actor, payload FROM audit_log ORDER BY id")
+    invocation_rows = _query_rows(db_path, "SELECT id FROM invocation_log")
+    audit_rows = _query_rows(db_path, "SELECT audit_kind, actor, run_id, payload FROM audit_log ORDER BY id")
 
+    assert invocation_rows == []
     assert len(audit_rows) == 1
     payload = json.loads(audit_rows[0]["payload"])
     assert audit_rows[0]["audit_kind"] == "hook_exec"
     assert audit_rows[0]["actor"] == "post-tool-use.sh"
+    assert audit_rows[0]["run_id"] == run_id
     assert payload["hook_name"] == "post-tool-use"
     assert payload["tool_uses"] == 4
     assert payload["duration_ms"] == 9
-    assert isinstance(payload["invocation_log_id"], int)
 
 
 def test_pretooluse_opus_repo_block_records_hook_and_gate(tmp_path: Path) -> None:

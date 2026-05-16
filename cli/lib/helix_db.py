@@ -3499,3 +3499,80 @@ def upsert_session_telemetry(
         conflict_column="session_id",
     )
     return _validate_positive_int(int(telemetry_id), "telemetry_id")
+
+
+# @helix:index id=helix-db.validate-positive-number domain=cli/lib summary=float/int 両対応の非負数 validator
+def _validate_positive_number(value, field_name):
+    import math
+
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{field_name} must be a number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{field_name} must be finite")
+    if number < 0:
+        raise ValueError(f"{field_name} must be >= 0")
+    return number
+
+
+# @helix:index id=helix-db.resolve-default-db-path-runtime domain=cli/lib summary=hook と endpoint の DB_PATH 解決経路を統一する
+def resolve_default_db_path():
+    env_path = os.environ.get("HELIX_DB_PATH", "").strip()
+    if env_path:
+        return str(Path(env_path).expanduser())
+
+    for env_name in ("HELIX_PROJECT_ROOT", "PROJECT_ROOT"):
+        project_root = os.environ.get(env_name, "").strip()
+        if project_root:
+            return str(Path(project_root).expanduser() / ".helix" / "helix.db")
+
+    helix_dir = os.environ.get("HELIX_DIR", "").strip()
+    if helix_dir:
+        return str(Path(helix_dir).expanduser() / "helix.db")
+
+    return str(Path.cwd() / ".helix" / "helix.db")
+
+
+# @helix:index id=helix-db.upsert-session-telemetry-runtime domain=cli/lib summary=cost_usd の非負有限値 validation を追加した runtime override
+def upsert_session_telemetry(
+    conn,
+    session_id: str,
+    actor: str,
+    *,
+    related_plan_id: str | None = None,
+    tool_uses_count: int = 0,
+    tokens_total: int = 0,
+    cost_usd: float = 0.0,
+    ended: bool = False,
+) -> int:
+    session_id = _require_non_empty(session_id, "session_id")
+    actor = _require_non_empty(actor, "actor")
+
+    if type(tool_uses_count) is not int or tool_uses_count < 0:
+        raise ValueError("tool_uses_count must be a non-negative integer")
+    if type(tokens_total) is not int or tokens_total < 0:
+        raise ValueError("tokens_total must be a non-negative integer")
+    cost_usd = _validate_positive_number(cost_usd, "cost_usd")
+
+    payload = {
+        "session_id": session_id,
+        "actor": actor,
+        "tool_uses_count": tool_uses_count,
+        "tokens_total": tokens_total,
+        "cost_usd": cost_usd,
+        "last_updated_at": datetime.now().isoformat(),
+    }
+    if related_plan_id is not None:
+        plan_id = str(related_plan_id).strip()
+        if plan_id:
+            payload["related_plan_id"] = plan_id
+    if ended:
+        payload["ended_at"] = datetime.now().isoformat()
+
+    telemetry_id = _upsert_row(
+        conn,
+        "session_telemetry",
+        payload,
+        conflict_column="session_id",
+    )
+    return _validate_positive_int(int(telemetry_id), "telemetry_id")
