@@ -409,6 +409,13 @@ PLAN-071 (carry capability detailing) との接点:
 - P1-01 (invocation_log 型衝突): PLAN-071 が carry event を `invocation_log` へ書く設計にした場合、type フィールドの値域を事前に確定すること。
 - P1-03 (`_validate_positive_number`): PLAN-071 で cost_usd のキャリーオーバー計算が必要な場合、float 精度の扱いを統一すること。
 
+## Sprint .5 Resolution Note
+
+- `invocation_log` は LLM 委譲呼び出し専用とし、Claude hook 実行 (`stop.sh` / `post-tool-use.sh`) は今後 `audit_log` のみへ記録する。
+- `audit_log` は hook / gate / endpoint / CLI の汎用監査証跡とし、`run_id` は `automation_runs.id` の FK として扱う。
+- `helix-push` / `helix-pr` は `HELIX_AUTOMATION_RUN_ID` を子プロセスへ export し、hook 側は同 env var を `audit_log.run_id` に伝播する。
+- DB パス解決は hook / endpoint ともに `helix_db.resolve_default_db_path()` を正本にする。
+
 ---
 
 ## 11. 次 step
