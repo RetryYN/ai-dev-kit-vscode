@@ -363,3 +363,35 @@ POST /api/v1/automation/session/telemetry           (telemetry.py)
 ### Sprint .6 G4 ready 宣言
 
 PLAN-074 (HTTP endpoint 層) は G4 ready 状態に到達。L4.5 carry の HTTP endpoint 層を完遂し、PLAN-072 で確立した v24-v27 helix.db + CLI/hook 統合の HTTP 表現を追加した。次工程: G4 PM 承認 → L6 統合検証。
+
+---
+
+## §9 V-model 4 artifact mapping (PLAN-075 retrofit、2026-05-17、commit aa8a948)
+
+PLAN-075 で確立した V-model 4 artifact 双方向 trace 原則 (詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`) に対する PLAN-074 の整備状況。
+
+| Artifact | 種類 | path | 状態 |
+|---|---|---|---|
+| ① 設計 (詳細) | D-API EXT §3.1-§3.5 (5 endpoint) | docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md | 完備 (テスト設計 reference 5 件追加済) |
+| ① 設計 (DB) | D-DB EXT v25/v26/v27 | docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md | 完備 (PLAN-072 由来) |
+| ② 実装コード | cli/lib/http_api/* (5 endpoint + framework) | cli/lib/http_api/{server,auth,envelope,validation}.py + routes/{push_pr,hooks,audit,telemetry}.py | 完備 (G4 ready) |
+| ③ テスト設計 (総合) | D-TEST-DESIGN-SYS、E2E 25 case | docs/v2/L4-test-design/PLAN-074-system-test-design.md | 完備 (PLAN-075 Phase 3 新規 427 行) |
+| ③ テスト設計 (結合) | D-TEST-DESIGN-INT、27 case | docs/v2/L4-test-design/PLAN-074-integration-test-design.md | 完備 (PLAN-075 Phase 3 新規 677 行) |
+| ③ テスト設計 (単体) | D-TEST-DESIGN-UNIT、8 module 63 case | docs/v2/L4-test-design/PLAN-074-unit-test-design.md | 完備 (PLAN-074 で起票、PLAN-075 で 8 module 双方向 ref 追記) |
+| ④ テストコード (結合) | D-TEST-CODE-INT、27 case 全 PASS | cli/lib/tests/test_http_api_{push_pr,hooks,audit,telemetry,server}.py | 完備 (PLAN-074 で実装、PLAN-075 で docstring に ③ ref 追記) |
+| ④ テストコード (単体) | D-TEST-CODE-UNIT、63 case 全 PASS | cli/lib/tests/test_http_api_{auth,envelope,validation,server_unit,routes_audit,routes_telemetry,routes_hooks,routes_push_pr}.py | 完備 (PLAN-075 Phase 3 新規) |
+
+### 双方向 trace (grep で検証可能)
+
+| from → to | path / 検証コマンド | count |
+|---|---|---|
+| ① → ③ | D-API EXT 内 `テスト設計ファイル` reference | 5 (5 endpoint) |
+| ③ → ① | unit-test-design.md 内 `対象設計 (① D-API)` reference | 8 (8 module) + 14 件総計 |
+| ② → ① | 実装 docstring 内 `契約: D-API EXT §X.Y` reference | 各 module で完備 |
+| ④ → ③ | test_*.py 内 `DoD 検証: PLAN-074-*-design.md U-XXX-NNN` reference | 13 file 全件、87+ 件 |
+
+### audit 結果
+
+- PLAN-075 Phase 4.1a audit (`docs/v2/audit/plan-067-074-vmodel-audit.md`) で **P0 partial** 判定 (実態は完備、PLAN doc への ref 欠落のみ)
+- 本 §9 追加で carry 解消、PLAN-074 は 4 artifact 双方向 trace 完全準拠
+- Phase 5 lint (vmodel_lint) で grandfather 対象外、lint 通過想定

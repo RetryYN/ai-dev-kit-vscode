@@ -293,3 +293,26 @@ Sprint 構成は既存 A/B/C/D を維持しつつ 6 スプリントへ拡張し�
 - §4 の受入条件が全て充足され、`drive / baseline_policy_family / score / functional_freeze` が cross-doc で照合可能。  
 - `cross-doc 整合性` が未検出であり、`M-01〜M-08 + CI-001〜CI-008` の継続引継ぎが記録される。  
 - Sprint .5 / .6 完了後に SprintD (必須 exit) で全 6 sprint の最終集約検証を実施し、G3 entry 判定はその後に行う。
+
+---
+
+## §8 V-model 4 artifact mapping (PLAN-075 retrofit、2026-05-17、grandfather)
+
+PLAN-070 は **設計系 PLAN** (L3 D-API EXT / D-DB EXT / D-CONTRACT の詳細設計起票が中核) であり、② 実装コードは他 PLAN (主に PLAN-072 / PLAN-074) で行われる。そのため PLAN-070 単独での 4 artifact 完備は構造的に不可能。
+
+PLAN-075 Phase 4 audit (`docs/v2/audit/plan-067-074-vmodel-audit.md` §2.2) で **P1 grandfather** 判定。
+
+| Artifact | 種類 | PLAN-070 内での扱い | 実体存在 |
+|---|---|---|---|
+| ① 設計 (詳細) | D-API EXT / D-DB EXT / D-CONTRACT 起票 | 本 PLAN の主成果物 | 完備 (D-API EXT 524 行 / D-DB EXT 606 行 / D-CONTRACT 817 行) |
+| ② 実装コード | (本 PLAN スコープ外、PLAN-072/074 由来) | 参照のみ | 他 PLAN で完備 |
+| ③ テスト設計 | (本 PLAN スコープ外、実装側 PLAN で起票) | reference のみ | PLAN-074-{system,integration,unit}-test-design.md 等を他 PLAN で起票 |
+| ④ テストコード | (本 PLAN スコープ外) | reference のみ | 他 PLAN で完備 |
+
+### Phase 5 lint への扱い
+
+`.helix/audit/deferred-findings.yaml` で `plan_070_071_grandfather` として grandfather 例外指定。`vmodel_lint` 実行時に skip 対象。
+
+### 双方向 trace の確保
+
+PLAN-070 の ① 設計 artifact (D-API EXT 等) は PLAN-074 で実装され、PLAN-074-{integration,unit}-test-design.md から D-API EXT への reference が双方向で確立済 (PLAN-075 Phase 3、commit aa8a948)。PLAN-070 自体は設計成果物の中継 PLAN として grandfather 化が妥当。

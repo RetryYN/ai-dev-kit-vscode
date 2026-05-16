@@ -356,3 +356,26 @@ completed_at: TBD
 gate_status: G3_carry_resolved
 carry: []
 ```
+
+---
+
+## §N V-model 4 artifact mapping (PLAN-075 retrofit、2026-05-17、grandfather)
+
+PLAN-071 は **capability 詳細化 PLAN** (D-API-CARRY 分離 1168 行を中核とする設計補強) で、② 実装コードは他 PLAN で行われる。PLAN-071 単独での 4 artifact 完備は構造的に不可能。
+
+PLAN-075 Phase 4 audit (`docs/v2/audit/plan-067-074-vmodel-audit.md` §2.2) で **P1 grandfather** 判定。
+
+| Artifact | 種類 | PLAN-071 内での扱い | 実体存在 |
+|---|---|---|---|
+| ① 設計 (詳細) | D-API-CARRY 分離 (capability 補強) | 本 PLAN の主成果物 | 完備 (D-API-CARRY-draft.md 1168 行) |
+| ② 実装コード | (他 PLAN 由来) | reference のみ | 他 PLAN で完備 |
+| ③ テスト設計 | (他 PLAN 由来) | reference のみ | 実装側 PLAN で起票 |
+| ④ テストコード | (他 PLAN 由来) | reference のみ | 他 PLAN で完備 |
+
+### Phase 5 lint への扱い
+
+`.helix/audit/deferred-findings.yaml` で `plan_070_071_grandfather` として grandfather 例外指定。`vmodel_lint` 実行時に skip 対象。
+
+### 双方向 trace の確保
+
+PLAN-071 の ① 設計 artifact (D-API-CARRY) は PLAN-074 / 他 PLAN で実装され、test-design からの reference は実装側 PLAN で双方向確立済。PLAN-071 自体は capability 補強の設計中継 PLAN として grandfather 化が妥当。

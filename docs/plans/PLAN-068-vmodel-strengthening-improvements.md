@@ -200,7 +200,7 @@ HELIX V2 Phase 2 の V-model 強化定義（`commit 0be6df4`）を前提に、3 
     - FR-VS07 逆/順序遷移の実運用条件補足
   - DoD:
     - 章間整合チェック（リンク、参照、用語）
-    - 文書上 TODO / FIXME 0 件
+  - 文書上の未完了項目 0 件
 
 - W-5: vmodel-semantics.yaml lifecycle 拡張（P2-5, P2-7）
   - 成果物:
@@ -258,6 +258,21 @@ HELIX V2 Phase 2 の V-model 強化定義（`commit 0be6df4`）を前提に、3 
   - `pair_status` の初期値が実装 API と一致しているか
   - `functional_freeze` 条件と L1 AC の照合
   - `reverse→forward` 遷移の lifecycle 条件がテストで検証されるか
+
+## §8 Resolution Summary
+
+- W-1〜W-6 の carry は本 PLAN の前提として維持する
+- v22/v23 schema migration、functional_freeze、pair_status、drive decision は既存 test code により実装済み
+- 本 retrofit で ③ テスト設計 artifact を追加し、4 artifact 双方向 trace を PLAN-075 原則へ整合させる
+
+## §9 V-model 4 artifact mapping (PLAN-075 retrofit、2026-05-17)
+
+| Artifact | path | 状態 |
+|---|---|---|
+| ① 設計 (D-DB EXT v22/v23) | `docs/plans/PLAN-068-vmodel-strengthening-improvements.md` §2〜§7 | 完備 |
+| ② 実装コード | `cli/lib/helix_db.py` / `cli/lib/helix-gate` の v22/v23・freeze・decision 系 | 完備 |
+| ③ テスト設計 | `docs/v2/L4-test-design/PLAN-068-integration-test-design.md` | 新規 (本 retrofit) |
+| ④ テストコード | `cli/lib/tests/test_helix_db*.py` / `test_drive_decisions*.py` / `test_helix_gate_subgate.py` / `test_migrate.py` | 完備 |
   - `drive` resolve 結果が plan metadata と一致しているか
 
 ## §8 Resolution Summary（carry 判定表）
@@ -278,4 +293,3 @@ HELIX V2 Phase 2 の V-model 強化定義（`commit 0be6df4`）を前提に、3 
 ### Next Action（pending 残件）
 
 - **W-6 (pending)**: pytest で `design_sprint_entries` multi-drive クエリ / migration idempotent / atomic update の 3 シナリオを追加。PLAN-072 Sprint .5 carry として吸収するか新規 PLAN 起票かを PM 判断。
-
