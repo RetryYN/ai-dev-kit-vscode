@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-068
 title: "PLAN-068: V-model 強化定義 carry 改善（7件 carry）"
-status: draft
+status: in_progress
 size: M
 drive: be
 created: 2026-05-15
@@ -254,4 +254,23 @@ HELIX V2 Phase 2 の V-model 強化定義（`commit 0be6df4`）を前提に、3 
   - `functional_freeze` 条件と L1 AC の照合
   - `reverse→forward` 遷移の lifecycle 条件がテストで検証されるか
   - `drive` resolve 結果が plan metadata と一致しているか
+
+## §8 Resolution Summary（carry 判定表）
+
+> 判定基準: L1-REQUIREMENTS.md (docs/v2/) に該当 FR/AC 存在 → resolved / PLAN-069/070/072 で実装済み → resolved / それ以外 → pending
+
+| Carry ID | Title | Status | Resolved by | Evidence |
+|---|---|---|---|---|
+| W-1 (P1-1) | `--drive` 契約揺れ / drive resolve ロジック | **resolved** | `cli/helix-gate` 実装 | `resolve_plan_metadata_drive()` / `resolve_subgate_drive()` 実装済み (helix-gate 行 326/360); L1 AC-16 に `helix gate G3 --subgate functional_freeze --plan-id` 契約明記 |
+| W-2 (P1-2) | drive 切替 in-place 禁止 / vmodel_loader stateless 化 | **resolved** | `cli/lib/vmodel_loader.py` 実装 | vmodel_loader.py に insert/update/execute/cursor/conn ゼロ → stateless 確認済み; drive in-place 禁止は helix-gate resolve ロジックで override 警告発行 (行 393) |
+| W-3 (P2-3) | append-only 訂正イベント schema 追加 (FR-VS08) | **resolved** | PLAN-070 v23 migration | PLAN-070 v23 に `source_entry_id/target_entry_id/decision/decided_by/reason/reopen_condition` 訂正列定義あり; FR-VS08 は L1 に独立 FR としては存在しないが P2-3 意図は PLAN-070 §D-DB EXT で吸収済み |
+| W-4 (P2-4) | L4.5 Phase B 統合詳細を L1 に追加 | **resolved** | docs/v2/L1-REQUIREMENTS.md | AC-15 に「L4.5 Phase B 補完定義」セクション追加済み (3 track 差分突合 / 契約整合 / 回帰テスト / pair_status 完了条件) |
+| W-4 (P2-6) | pair_status 初期値を FR-VS06 に明記 | **resolved** | docs/v2/L1-REQUIREMENTS.md | FR-VS06 に「新規 design_sprint_entries は初期値 `pending`」および waived 例外遷移条件を明記 (行 291-292); P2-6 補遺セクションにも遷移図あり |
+| W-5 (P2-5) | functional_freeze 判定優先順位 (L1 master / yaml 補助) | **resolved** | docs/v2/L1-REQUIREMENTS.md + vmodel-semantics.yaml | L1 §AC-16 補遺に master 宣言 (L1 優先) 明記; vmodel-semantics.yaml に `requires_functional_freeze` コメント付与 (L1 FR-VS03 master 準拠注記) |
+| W-5 (P2-7) | reverse→forward 遷移 yaml 未記述 | **resolved** | cli/config/vmodel-semantics.yaml | `lifecycle.origin_mode_transitions.reverse_to_forward` に trigger/条件を定義済み (行 86-96); L1 FR-VS07 に Reverse/Scrum 遷移条件も明文化 |
+| W-6 (P2-8) | テスト拡充 (multi-drive / migration idempotent / atomic) | **pending** | 未実装 | pytest/bats に multi-drive 連続遷移・v20→v21 idempotent・transaction wrap の回帰ケースが存在するか未確認。次 Sprint carry |
+
+### Next Action（pending 残件）
+
+- **W-6 (pending)**: pytest で `design_sprint_entries` multi-drive クエリ / migration idempotent / atomic update の 3 シナリオを追加。PLAN-072 Sprint .5 carry として吸収するか新規 PLAN 起票かを PM 判断。
 
