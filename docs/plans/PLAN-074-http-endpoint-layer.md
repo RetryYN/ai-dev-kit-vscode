@@ -8,6 +8,34 @@ created: 2026-05-16
 owner: PM
 phases: L4, L6
 gates: G4
+framework: Flask
+framework_decision_rationale: |
+  Codex tl-advisor (gpt-5.5 high) 助言 2026-05-16 結論。
+  Flask 推奨理由: 軽量、Werkzeug の堅牢 routing/test_client、Pydantic drift リスクなし、pytest 統合容易。
+  FastAPI 非推奨: 依存追加大 + OpenAPI 自動生成が D-API EXT と drift するリスク。
+  http.server fallback: 依存ゼロにこだわる場合のみ。手書き routing/validation で G4 品質リスク増。
+auth_decision: pending
+auth_decision_note: |
+  Sprint .1 framework setup で Authorization header 形式 (Bearer / localhost-only / API key) を凍結する。
+  HELIX は CLI 中心、HTTP 層は補完なので localhost-only + env 由来 token の最小構成が初期推奨。
+structure_proposal: |
+  cli/lib/http_api/
+    server.py        # create_app(), local bind, error handlers
+    envelope.py      # success/error/trace response
+    validation.py    # D-API EXT schema validators
+    auth.py          # Authorization / localhost policy
+    routes/
+      push_pr.py     # push/pr trigger
+      hooks.py       # hook callback
+      audit.py       # audit log
+      telemetry.py   # session telemetry
+  cli/lib/tests/
+    test_http_api_push_pr.py
+    test_http_api_hooks_audit.py
+    test_http_api_telemetry.py
+    test_http_api_contract.py
+  cli/tests/
+    helix-http-api.bats
 acceptance:
   - 5 endpoint (push/pr/hook/audit/telemetry) を HTTP server として実装し、D-API EXT 契約と完全整合
   - 既存 CLI 結合 (helix-push/pr + hooks) と同等の DB 書き込み挙動を HTTP 経由で再現
