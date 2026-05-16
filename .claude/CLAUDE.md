@@ -61,6 +61,17 @@
 
 **禁止**: 依存関係がないのに「念のため」「順番にやれば確実」を理由に直列化すること
 
+### ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
+
+`Bash(run_in_background: true)` で投入した command は **harness が完了時に task-notification を自動送信** する。ScheduleWakeup を併用するな:
+
+- `run_in_background: true` の結果待ち → **ScheduleWakeup 不要**。task-notification 自動通知を信用して他の作業を進める
+- 並行タスクが無くなったら turn を終え、harness が完了通知で自動再開させる
+- ScheduleWakeup は **harness 追跡外の外部状態 polling 専用**:
+  - GitHub Actions / CI run / リモートデプロイの監視
+  - 別 process が書き出すファイルの polling
+- 上記以外で ScheduleWakeup を使うのは禁止 (cache miss + cost + 「動いてない」印象 の三重損失)
+
 ### Agent tool は PMO + PdM 限定許可（v2.2、2026-05-15 改訂）
 
 PMO subagent (`pmo-sonnet` / `pmo-haiku`) と PdM subagent (`pdm-tech-innovation` / `pdm-marketing-innovation` / `pdm-innovation-manager`) のみ許可。  
