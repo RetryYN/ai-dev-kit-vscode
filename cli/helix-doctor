@@ -464,6 +464,41 @@ check_document_drift() {
   check_drift_count "cli/roles count drift" "$roles_count" "$declared_roles"
 }
 
+check_vmodel_4artifact() {
+  if [[ ! -f "$HELIX_HOME/cli/lib/vmodel_lint.py" ]]; then
+    return 0
+  fi
+
+  local output=""
+  local status=0
+  local incomplete="0"
+
+  if output="$(python3 "$HELIX_HOME/cli/lib/vmodel_lint.py" 2>&1)"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  incomplete="$(printf '%s\n' "$output" | grep -c '^\[⚠\]' || true)"
+
+  if [[ $status -ne 0 ]]; then
+    echo "  △ vmodel_4artifact_lint: execution failed (status=$status)"
+    printf '%s\n' "$output" | head -20 | sed 's/^/    /'
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if [[ "$incomplete" -gt 0 ]]; then
+    echo "  △ vmodel_4artifact_lint: $incomplete incomplete PLAN (V-model 4 artifact 不完全、PLAN-075 強化)"
+    printf '%s\n' "$output" | grep '^\[⚠\]' | head -10 | sed 's/^/    /'
+    WARN=$((WARN + incomplete))
+    return
+  fi
+
+  echo "  ✓ vmodel_4artifact_lint"
+  PASS=$((PASS + 1))
+}
+
 collect_stale_lock_report() {
   local runtime_lib_dir
   runtime_lib_dir="$(cd "$(dirname "$0")" && pwd)/lib"
@@ -598,6 +633,10 @@ check_mode_phase_consistency
 echo ""
 echo "[drift]"
 check_document_drift
+
+echo ""
+echo "[V-model 4 artifact]"
+check_vmodel_4artifact
 
 echo ""
 echo "[stale locks]"
