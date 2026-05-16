@@ -3245,3 +3245,208 @@ if __name__ == '__main__':
     except AttributeError:
         pass  # Python < 3.7
     main()
+
+
+# @helix:index id=helix-db.insert-audit-log domain=cli/lib summary=audit_log append-only writer for hooks endpoints and CLI
+def insert_audit_log(
+    conn,
+    audit_kind: str,
+    actor: str,
+    run_id: int | None = None,
+    payload: dict | None = None,
+) -> int:
+    _table_columns(conn, "audit_log")
+    audit_kind = _validate_choice(
+        audit_kind,
+        "audit_kind",
+        ("hook_exec", "gate_eval", "cli_invocation", "endpoint_call"),
+    )
+    actor = _require_non_empty(actor, "actor")
+    if run_id is not None:
+        run_id = _validate_positive_int(run_id, "run_id")
+    payload_dict = {} if payload is None else _validate_dict_payload(payload, "payload")
+
+    conn.execute(
+        """
+        INSERT INTO audit_log (audit_kind, actor, run_id, payload)
+        VALUES (?, ?, ?, ?)
+        """,
+        (audit_kind, actor, run_id, json.dumps(payload_dict, ensure_ascii=False)),
+    )
+    row = conn.execute("SELECT last_insert_rowid()").fetchone()
+    if row is None:
+        raise sqlite3.IntegrityError("failed to insert audit_log row")
+    return int(row[0])
+
+
+# @helix:index id=helix-db.insert-automation-run domain=cli/lib summary=automation_runs rowを作成し pending から running へ遷移する
+def insert_automation_run(
+    conn,
+    trigger_source: str,
+    run_kind: str,
+    metadata: dict | None = None,
+) -> int:
+    """automation_runs を登録し、開始時点で running へ進めた run_id を返す。"""
+    trigger_source = _require_non_empty(trigger_source, "trigger_source")
+    run_kind = _validate_choice(
+        _require_non_empty(run_kind, "run_kind"),
+        "run_kind",
+        ("push", "pr", "pretool", "posttool", "stop", "session_start"),
+    )
+    if metadata is not None:
+        metadata = _validate_dict_payload(metadata, "metadata")
+    metadata_payload = dict(metadata or {})
+    metadata_payload.setdefault("trigger_source", trigger_source)
+
+    payload = {
+        "run_kind": run_kind,
+        "trigger_actor": "system",
+        "started_at": datetime.now().isoformat(),
+        "status": "pending",
+    }
+    plan_id = metadata_payload.get("plan_id")
+    if isinstance(plan_id, str) and plan_id.strip():
+        payload["plan_id"] = plan_id.strip()
+    if metadata_payload:
+        payload["summary"] = json.dumps(metadata_payload, ensure_ascii=False, sort_keys=True)
+
+    columns = list(payload.keys())
+    placeholders = ", ".join(["?"] * len(columns))
+    cursor = conn.execute(
+        f"INSERT INTO automation_runs ({', '.join(columns)}) VALUES ({placeholders})",
+        [payload[column] for column in columns],
+    )
+    run_id = _validate_positive_int(int(cursor.lastrowid), "run_id")
+    _transition_lifecycle_status(
+        conn,
+        "automation_runs",
+        run_id,
+        "pending",
+        "running",
+        {
+            "pending": ["running", "cancelled"],
+            "running": ["completed", "failed", "cancelled"],
+        },
+    )
+    return run_id
+
+
+# @helix:index id=helix-db.complete-automation-run domain=cli/lib summary=automation_runs rowを running から terminal status へ完了させる
+def complete_automation_run(
+    conn,
+    run_id: int,
+    status: str = "completed",
+    error: str | None = None,
+) -> None:
+    """automation_runs を terminal status へ遷移し、終了メタデータを記録する。"""
+    run_id = _validate_positive_int(run_id, "run_id")
+    status = _validate_choice(
+        _require_non_empty(status, "status"),
+        "status",
+        ("completed", "failed", "cancelled"),
+    )
+    error_text = None if error is None else str(error).strip() or None
+
+    conn.execute(
+        """
+        UPDATE automation_runs
+        SET ended_at = ?,
+            exit_code = ?,
+            last_error = ?
+        WHERE id = ? AND status = 'running'
+        """,
+        (
+            datetime.now().isoformat(),
+            0 if status == "completed" else 1,
+            error_text,
+            run_id,
+        ),
+    )
+    _transition_lifecycle_status(
+        conn,
+        "automation_runs",
+        run_id,
+        "running",
+        status,
+        {
+            "pending": ["running", "cancelled"],
+            "running": ["completed", "failed", "cancelled"],
+        },
+    )
+
+
+# @helix:index id=helix-db.insert-drive-decision domain=cli/lib summary=drive switch decisionをappend-onlyで記録する
+def insert_drive_decision(
+    conn,
+    plan_id: str,
+    source_entry_id: int,
+    target_entry_id: int,
+    decision: str,
+    reason: str | None = None,
+    direction: str | None = None,
+) -> int:
+    """design_sprint_drive_decisions に drive switch 判定を追加する。"""
+    plan_id = _require_non_empty(plan_id, "plan_id")
+    source_entry_id = _validate_positive_int(source_entry_id, "source_entry_id")
+    target_entry_id = _validate_positive_int(target_entry_id, "target_entry_id")
+    decision = _validate_choice(
+        _require_non_empty(decision, "decision"),
+        "decision",
+        DESIGN_SPRINT_SWITCH_STATUSES,
+    )
+    if source_entry_id == target_entry_id:
+        raise ValueError("source_entry_id and target_entry_id must differ")
+
+    source_entry = conn.execute(
+        "SELECT id, plan_id FROM design_sprint_entries WHERE id = ?",
+        (source_entry_id,),
+    ).fetchone()
+    if source_entry is None:
+        raise ValueError("source_entry_id does not exist")
+    if source_entry["plan_id"] != plan_id:
+        raise ValueError("source_entry_id does not belong to plan_id")
+
+    target_entry = conn.execute(
+        "SELECT id, plan_id FROM design_sprint_entries WHERE id = ?",
+        (target_entry_id,),
+    ).fetchone()
+    if target_entry is None:
+        raise ValueError("target_entry_id does not exist")
+    if target_entry["plan_id"] != plan_id:
+        raise ValueError("target_entry_id does not belong to plan_id")
+
+    reason_text = str(reason).strip() if reason is not None else ""
+    if not reason_text:
+        reason_text = f"drive switch decision recorded for {plan_id}"
+
+    direction_value = None
+    if direction not in (None, ""):
+        direction_value = _validate_choice(
+            _require_non_empty(direction, "direction"),
+            "direction",
+            ("forward", "reverse", "forward_after_reverse"),
+        )
+
+    _, rows = _table_columns(conn, "design_sprint_drive_decisions")
+    valid_columns = {row["name"] if isinstance(row, sqlite3.Row) else row[1] for row in rows}
+
+    payload = {
+        "source_entry_id": source_entry_id,
+        "target_entry_id": target_entry_id,
+        "decision": decision,
+        "reason": _require_non_empty(reason_text, "reason"),
+    }
+    if "plan_id" in valid_columns:
+        payload["plan_id"] = plan_id
+    if "decided_by" in valid_columns:
+        payload["decided_by"] = "se"
+    if "direction" in valid_columns and direction_value is not None:
+        payload["direction"] = direction_value
+
+    columns = list(payload.keys())
+    placeholders = ", ".join(["?"] * len(columns))
+    cursor = conn.execute(
+        f"INSERT INTO design_sprint_drive_decisions ({', '.join(columns)}) VALUES ({placeholders})",
+        [payload[column] for column in columns],
+    )
+    return _validate_positive_int(int(cursor.lastrowid), "decision_id")
