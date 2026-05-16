@@ -52,6 +52,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 
 ### §2.1 auth.py
 
+**対象設計 (① D-API)**: D-API EXT §3.1〜§3.5 共通 framework 層 (require_localhost_and_bearer 認証契約、全 5 endpoint で適用)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/auth.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_auth.py` (新規、Phase 3.4a で実装)
+
 | 関数 | case | 入力 | 期待出力 | mock |
 |---|---|---|---|---|
 | `require_localhost_and_bearer` | U-AUTH-001 | remote_addr=127.0.0.1, Bearer=valid | None (pass through) | request |
@@ -64,6 +68,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 **case 数**: 6
 
 ### §2.2 envelope.py
+
+**対象設計 (① D-API)**: D-API EXT §共通 Envelope schema (success / error response 構造、全 5 endpoint で適用)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/envelope.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_envelope.py` (新規、Phase 3.4a で実装)
 
 | 関数 | case | 入力 | 期待出力 |
 |---|---|---|---|
@@ -80,6 +88,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 
 ### §2.3 validation.py
 
+**対象設計 (① D-API)**: D-API EXT §3.1〜§3.5 各 request_schema (必須フィールド / 型 / 境界値の validation helper、全 5 endpoint 共通)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/validation.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_validation.py` (新規、Phase 3.4a で実装)
+
 | 関数 | case | 入力 | 期待出力 |
 |---|---|---|---|
 | validation helper | U-VAL-001 | 正常 dict | dict 返却 |
@@ -90,6 +102,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 **case 数**: 4
 
 ### §2.4 server.py
+
+**対象設計 (① D-API)**: D-API EXT §framework (Flask app 構築、blueprint 登録、error handler、全 5 endpoint の組立て層)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/server.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_server_unit.py` (新規、Phase 3.4a で実装。既存 `test_http_api_server.py` は結合 test として継続)
 
 | 関数 | case | 入力 | 期待出力 | mock |
 |---|---|---|---|---|
@@ -102,6 +118,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 **case 数**: 5
 
 ### §2.5 routes/audit.py
+
+**対象設計 (① D-API)**: D-API EXT §3.4 audit endpoint (audit_kind enum drift 解決、payload.http_audit_kind 退避、helix_db.insert_audit_log の endpoint_call 固定)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/routes/audit.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_routes_audit.py` (新規、Phase 3.4b で実装)
 
 | 関数 | case | 入力 | 期待出力 | mock |
 |---|---|---|---|---|
@@ -124,6 +144,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 
 ### §2.6 routes/telemetry.py
 
+**対象設計 (① D-API)**: D-API EXT §3.5 Stop hook telemetry endpoint (session_id UNIQUE 制約による idempotent UPSERT、tool_uses_count/tokens_total/cost_usd 累積)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/routes/telemetry.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_routes_telemetry.py` (新規、Phase 3.4b で実装)
+
 | 関数 | case | 入力 | 期待出力 |
 |---|---|---|---|
 | `_require_non_empty_string` | U-TEL-H-001 | "abc" | "abc" |
@@ -143,6 +167,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 
 ### §2.7 routes/hooks.py
 
+**対象設計 (① D-API)**: D-API EXT §3.3 hook callback endpoint (hook_kind = pretool/posttool/stop/session_start、path と body の hook_kind 一致必須)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/routes/hooks.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_routes_hooks.py` (新規、Phase 3.4c で実装)
+
 | 関数 | case | 入力 | 期待出力 | mock |
 |---|---|---|---|---|
 | `hook_callback` handler | U-HK-001 | hook_kind=pretool, 正常 | 200 | helix_db |
@@ -155,6 +183,10 @@ PLAN-074 §3 (Sprint .1-.5) で実装が先行し、単体テストが欠落し�
 **case 数**: 6
 
 ### §2.8 routes/push_pr.py
+
+**対象設計 (① D-API)**: D-API EXT §3.1 push trigger endpoint + §3.2 pr trigger endpoint (push_gate.run_all_gates() 共通 gate 体系、run_kind=push/pr の automation_runs 登録)。V-model 4 artifact 双方向 trace (PLAN-075)。
+**実装ファイル (② D-IMPL)**: `cli/lib/http_api/routes/push_pr.py`
+**テストコード (④ D-TEST-CODE-UNIT)**: `cli/lib/tests/test_http_api_routes_push_pr.py` (新規、Phase 3.4c で実装)
 
 | 関数 | case | 入力 | 期待出力 | mock |
 |---|---|---|---|---|

@@ -2,6 +2,7 @@
   (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
 担当 WBS: PLAN-074 / WBS-074-L4-003 / Sprint .2
 対象実装: cli/lib/http_api/routes/push_pr.py
+テスト設計 (③ D-TEST-DESIGN-INT): docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.1 (push) + §3.2 (pr) (PLAN-075 V-model 4 artifact 双方向 trace)
 
 5 cases:
   - success: 正常系で run_id 返却 + automation_runs INSERT + audit_log

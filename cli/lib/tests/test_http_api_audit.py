@@ -2,6 +2,7 @@
   (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
 担当 WBS: PLAN-074 / WBS-074-L4-005 / Sprint .4
 対象実装: cli/lib/http_api/routes/audit.py
+テスト設計 (③ D-TEST-DESIGN-INT): docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.4 audit endpoint (PLAN-075 V-model 4 artifact 双方向 trace)
 
 5 cases:
   - success: HTTP audit_kind を payload.http_audit_kind に退避、helix_db には endpoint_call

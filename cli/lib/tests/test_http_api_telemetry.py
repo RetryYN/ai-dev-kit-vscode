@@ -2,6 +2,7 @@
   (docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md)
 担当 WBS: PLAN-074 / WBS-074-L4-006 / Sprint .5
 対象実装: cli/lib/http_api/routes/telemetry.py
+テスト設計 (③ D-TEST-DESIGN-INT): docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.5 telemetry endpoint (PLAN-075 V-model 4 artifact 双方向 trace)
 
 5 cases:
   - success: session_telemetry INSERT
