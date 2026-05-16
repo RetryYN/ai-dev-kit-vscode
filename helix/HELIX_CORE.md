@@ -83,45 +83,55 @@ L4 implementation / build / G4 補足（PLAN-013）:
 - 工程表外の変更が必要になった場合は、先に工程表更新またはユーザー確認へ戻る。
 - TL は工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team`、`helix review` を使い、使えない場合は理由を証跡化する。
 
-## 設計⇔テスト対応 (V-model 原則、2026-05-17 確立)
+## 設計⇔テスト対応 (V-model 原則、2026-05-17 確立 / 訂正)
 
-V-model の基本原則として、設計フェーズの各層と検証 (テスト) フェーズの各層は 1:1 対応する。**設計とテスト設計は同じ文書に書く** のが正本ルール。テスト設計を独立ドキュメント化することは V-model 違反とする。
+V-model の基本原則として、設計フェーズの各層と検証 (テスト) フェーズの各層は 1:1 対応する。ただし **4 つの artifact は別々の文書として存在** し、双方向 trace で繋ぐ。同じ文書に統合してはいけない (設計と実装コードが別物なのと同様、テスト設計とテストコードも別物)。
 
-### 設計⇔テスト 4 層対応
+### 4 artifact 構造
 
-| HELIX 層 | 設計成果物 | 含むべきテスト設計 | テスト実装フェーズ |
+```
+設計 (D-API EXT §3.X 等)  ←─対応関係─→  テスト設計 (test-design/*.md)
+        ↓ 実装                                    ↓ 実装
+実装コード (routes/*.py)   ←─対応関係─→  テストコード (test_*.py)
+```
+
+| Artifact | 担当層 | 例 |
+|---|---|---|
+| **① 設計** | 機能設計 / 詳細設計 / 全体設計 | D-API EXT §3.X (機能設計) / CONCEPT.md (全体設計) |
+| **② 実装コード** | コード成果物 | cli/lib/http_api/routes/*.py |
+| **③ テスト設計** | 単体/結合/総合テスト設計 | docs/v2/L4-test-design/PLAN-074-unit-test-design.md |
+| **④ テストコード** | テスト成果物 | cli/lib/tests/test_*.py |
+
+### 4 層 ⇔ 4 artifact 対応
+
+| HELIX 層 | ① 設計 | ③ 対応するテスト設計 | ④ テスト実装フェーズ |
 |---|---|---|---|
 | L1 要件定義 | 要件 / 受入条件 | **受入テスト設計** | L8 受入 |
-| L2 全体設計 | CONCEPT / ADR / visual-design | **総合テスト設計 (システムテスト / E2E)** | L6 統合検証 |
-| L3 詳細設計 | D-API / D-DB / D-CONTRACT | **結合テスト設計** | L4 結合テスト実装 |
-| L3-L4 機能設計 | endpoint / 関数 input/output schema、境界値 | **単体テスト設計** | L4 単体テスト実装 |
+| L2 全体設計 | CONCEPT / ADR | **総合テスト設計** | L6 統合検証 |
+| L3 詳細設計 | D-API / D-DB | **結合テスト設計** | L4 結合テスト実装 |
+| L3-L4 機能設計 | endpoint / 関数 schema | **単体テスト設計** | L4 単体テスト実装 |
 
-### 文書構造ルール
+### 双方向 trace ルール
 
-各設計文書は以下のセクションを必須で持つ:
+各 artifact は対応関係を明示する:
 
-- **L2 設計文書** (`CONCEPT.md` / `ADR-XXX.md` / PLAN.md §基本設計):
-  - §機能設計 / アーキテクチャ
-  - §**総合テスト設計** (E2E シナリオ列挙、性能/セキュリティの非機能テスト)
-
-- **L3 詳細設計文書** (`D-API/*.md` / `D-DB/*.md` / `D-CONTRACT/*.md`):
-  - §X 機能/契約定義 (request_schema / response_schema / error_codes)
-  - §**機能設計 + 単体テストケース** (関数 input/output bound、境界値、例外)
-  - §**詳細設計 + 結合テストケース** (モジュール結合動作、実 DB / 実 HTTP 経由)
-
-- **L4 機能設計** (上記 L3 詳細設計内、もしくは個別 endpoint 仕様):
-  - §単体テスト設計 (case 列挙、mock 戦略、DoD)
+- **設計 → 実装コード**: 設計に「実装ファイル: X.py」明示
+- **実装コード → 設計**: コード docstring に「契約: D-API EXT §3.X」明示
+- **設計 → テスト設計**: 設計に「テスト設計ファイル: docs/v2/L4-test-design/PLAN-XXX-*-design.md」明示
+- **テスト設計 → 設計**: テスト設計に「対象設計: D-API EXT §3.X」明示
+- **テスト設計 → テストコード**: テスト設計に「テスト実装ファイル: test_*.py」明示
+- **テストコード → テスト設計**: テスト docstring に「DoD 検証: PLAN-XXX-*-design.md U-XXX-001〜N」明示
 
 ### 違反例 (してはいけない)
 
-- 単体テスト設計を独立ドキュメント (`docs/v2/L4-test-design/PLAN-XXX-unit-test-design.md`) に切り出すこと
-- 結合テスト設計を D-API / D-DB と別ファイルに置くこと
-- 総合テスト設計を CONCEPT / ADR から欠落させること
-- test ファイルだけ存在し、設計文書側にテスト設計セクションがない状態
+- ① 設計と ② 実装コードを同じ文書に書く (例: D-API EXT 内にコード本体を埋め込む)
+- ① 設計と ③ テスト設計を同じ文書に書く (例: D-API EXT 内に test case 列挙を埋め込む)
+- ③ テスト設計と ④ テストコードを同じ文書に書く (例: test ファイル先頭で長文 docstring に case 設計を書く)
+- 4 artifact のいずれかが他の artifact への双方向 reference を欠く
 
 ### 既存 PLAN の retrofit
 
-V-model 違反が検出された場合、PLAN-075 (V-model 設計⇔テスト対応 framework 強化) の Phase 3-4 で retrofit する。helix doctor / G2-G4 ゲートで自動 lint を行う (PLAN-075 Phase 5)。
+PLAN-075 (V-model 4 artifact 双方向 trace framework 強化) の Phase 3-4 で既存 PLAN を retrofit。helix doctor / G2-G4 ゲートで「4 artifact 全件 + 双方向 trace」を fail-close 化 (Phase 5)。
 
 ## 工程別 subagent 起動マップ (PLAN-076、2026-05-17 確立)
 

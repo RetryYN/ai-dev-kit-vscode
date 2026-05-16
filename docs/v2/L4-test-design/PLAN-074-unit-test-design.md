@@ -2,15 +2,24 @@
 plan_id: PLAN-074
 doc_id: PLAN-074-unit-test-design
 title: "PLAN-074 単体テスト設計 (HTTP API framework + routes)"
-status: draft
+status: maintained
+artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
 created: 2026-05-17
+status_history:
+  - 2026-05-17: 初期作成 (誤って Phase 3 で削除予定とした)
+  - 2026-05-17: V-model 4 artifact 正解として保持決定 (PLAN-075 訂正)
 owner: PM
 related_docs:
   - docs/plans/PLAN-074-http-endpoint-layer.md
-  - docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md
+  - docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md (対象 ① 設計)
 phases: L4
 gates: G4
 ---
+
+> **V-model 4 artifact 位置付け** (2026-05-17 訂正):
+> 本書は ③ テスト設計 artifact。① 設計 (D-API EXT §3.X) と ④ テストコード (test_http_api_*.py) と
+> 双方向 trace で繋がる独立 artifact として **保持する** (Phase 3 で削除しない)。
+> PLAN-075 当初の誤解「同じ文書に統合」は訂正済。
 
 # PLAN-074 単体テスト設計 (HTTP API framework + routes)
 

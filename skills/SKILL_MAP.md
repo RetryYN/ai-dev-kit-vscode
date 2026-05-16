@@ -382,15 +382,16 @@ automation/browser-script:
   description: Playwright記録からのE2E化に加えてaxe-coreによるアクセシビリティ自動検証を提供
 ```
 
-## V-model 設計⇔テスト対応 (2026-05-17 確立)
+## V-model 4 artifact 双方向 trace (2026-05-17 確立 / 訂正)
 
 詳細は `helix/HELIX_CORE.md §設計⇔テスト対応`。
 
 要点:
-- 設計とテスト設計は**同じ文書に書く** (V-model 1:1 対応)
-- L2 → 総合テスト設計、L3 → 結合 + 単体テスト設計、L1 → 受入テスト設計
-- テスト設計を独立ドキュメント化することは V-model 違反
-- G2/G3/G4 ゲートで V-model 整合性を確認 (PLAN-075 Phase 5 で自動 lint 化予定)
+- 4 artifact は **別文書**: ① 設計 / ② 実装コード / ③ テスト設計 / ④ テストコード
+- 各 artifact は **双方向 reference** で対応関係を明示 (設計⇔テスト設計、設計⇔実装、テスト設計⇔テストコード)
+- L2 → 総合テスト設計、L3 → 結合テスト設計、機能設計 → 単体テスト設計、L1 → 受入テスト設計
+- 2 つ以上を 1 文書に統合することは V-model 違反 (例: D-API EXT 内にテスト設計埋め込み)
+- G2/G3/G4 ゲートで 4 artifact 揃いを確認 (PLAN-075 Phase 5 で自動 lint 化予定)
 
 ## 工程別 subagent 起動マップ (PLAN-076、2026-05-17 確立)
 
