@@ -21,6 +21,9 @@ Subcommands:
              Options: --title <title> [--file <path>] [--plan-id <PLAN-NNN>]
   review     TL レビューを実行し結果を保存
              Options: --id <PLAN-NNN> [--reviewer tl|qa|both]
+  drive-decision
+             drive switch policy を評価し decision を記録
+             Options: --plan-id <PLAN-NNN> --from-drive <drive> --to-drive <drive>
   finalize   approve 済みプランを確定
              Options: --id <PLAN-NNN> [--no-lint]
   reset      finalized/reviewed プランを draft/reviewed に戻す
@@ -382,6 +385,177 @@ PY
   rm -f "$raw_output_file"
 }
 
+cmd_drive_decision() {
+  local plan_id=""
+  local from_drive=""
+  local to_drive=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --plan-id)
+        plan_id="$2"
+        shift 2
+        ;;
+      --from-drive)
+        from_drive="$2"
+        shift 2
+        ;;
+      --to-drive)
+        to_drive="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ -z "$plan_id" || -z "$from_drive" || -z "$to_drive" ]]; then
+    echo "エラー: --plan-id / --from-drive / --to-drive は必須です" >&2
+    exit 1
+  fi
+
+  validate_plan_id "$plan_id"
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$DB_PATH" "$plan_id" "$from_drive" "$to_drive"
+import json
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+db_path = Path(sys.argv[2])
+plan_id = sys.argv[3]
+from_drive = sys.argv[4]
+to_drive = sys.argv[5]
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+
+ALLOWED_TRANSITIONS = {
+    ("be", "fe"),
+    ("be", "fullstack"),
+    ("fe", "fullstack"),
+    ("db", "fullstack"),
+}
+
+
+def active_entry(conn, plan_id: str, drive: str):
+    return conn.execute(
+        """
+        SELECT *
+        FROM design_sprint_entries
+        WHERE plan_id = ?
+          AND sprint_type = 'functional'
+          AND layer = 'functional'
+          AND drive = ?
+          AND voided_at IS NULL
+          AND status_on_switch IS NULL
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (plan_id, drive),
+    ).fetchone()
+
+
+def raw_meta_dict(row) -> dict:
+    raw_meta = row["raw_meta"] if row is not None else None
+    if not raw_meta:
+        return {}
+    try:
+        payload = json.loads(raw_meta)
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+helix_db._validate_choice(
+    helix_db._require_non_empty(from_drive, "from_drive"),
+    "from_drive",
+    helix_db.DESIGN_SPRINT_DRIVES,
+)
+helix_db._validate_choice(
+    helix_db._require_non_empty(to_drive, "to_drive"),
+    "to_drive",
+    helix_db.DESIGN_SPRINT_DRIVES,
+)
+
+conn = helix_db.get_connection(db_path)
+try:
+    source_entry = active_entry(conn, plan_id, from_drive)
+    target_entry = active_entry(conn, plan_id, to_drive)
+    if source_entry is None:
+        raise SystemExit(f"エラー: source entry が見つかりません: plan_id={plan_id} drive={from_drive}")
+    if target_entry is None:
+        raise SystemExit(f"エラー: target entry が見つかりません: plan_id={plan_id} drive={to_drive}")
+
+    source_meta = raw_meta_dict(source_entry)
+    target_meta = raw_meta_dict(target_entry)
+    g2_preserved = source_meta.get("g2_evidence_preserved", True) is not False
+    g2_preserved = g2_preserved and target_meta.get("g2_evidence_preserved", True) is not False
+    approved_by = target_meta.get("approved_by") or source_meta.get("approved_by")
+    waived_reason = target_meta.get("waived_reason") or source_meta.get("waived_reason")
+
+    if (from_drive, to_drive) not in ALLOWED_TRANSITIONS:
+        decision = "failed"
+        reason = f"drive switch policy rejected {from_drive}->{to_drive}"
+    elif not g2_preserved:
+        decision = "failed"
+        reason = "g2_evidence_preserved=false"
+    elif target_entry["pair_status"] == "paired":
+        decision = "preserved"
+        reason = f"pair_status=paired and evidence preserved for {from_drive}->{to_drive}"
+    elif target_entry["pair_status"] == "waived" and approved_by:
+        decision = "waived"
+        reason = str(waived_reason or f"waived by {approved_by} for {from_drive}->{to_drive}")
+    else:
+        decision = "failed"
+        reason = f"target pair_status={target_entry['pair_status']}"
+
+    warning = None
+    decision_id = None
+    try:
+        decision_id = helix_db.insert_drive_decision(
+            conn,
+            plan_id,
+            int(source_entry["id"]),
+            int(target_entry["id"]),
+            decision,
+            reason,
+            "forward",
+        )
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        warning = f"WARNING: design_sprint_drive_decisions write skipped: {exc}"
+        print(warning, file=sys.stderr)
+
+    print(
+        json.dumps(
+            {
+                "plan_id": plan_id,
+                "from_drive": from_drive,
+                "to_drive": to_drive,
+                "source_entry_id": int(source_entry["id"]),
+                "target_entry_id": int(target_entry["id"]),
+                "decision": decision,
+                "reason": reason,
+                "decision_id": decision_id,
+                "warning": warning,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+finally:
+    conn.close()
+PY
+}
+
 cmd_review() {
   local plan_id=""
   local reviewer="tl"
@@ -458,6 +632,7 @@ case "$CMD" in
   --mini) cmd_mini "$@" ;;
   draft) cmd_draft "$@" ;;
   review) cmd_review "$@" ;;
+  drive-decision) cmd_drive_decision "$@" ;;
   finalize) cmd_finalize "$@" ;;
   reset) cmd_reset "$@" ;;
   list) cmd_list "$@" ;;
