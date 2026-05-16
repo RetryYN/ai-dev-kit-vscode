@@ -1,11 +1,12 @@
 ---
 plan_id: PLAN-075
 title: "PLAN-075: V-model 4 artifact 双方向 trace framework 強化 (5 Phase)"
-status: draft
+status: completed
 size: L
 drive: be
 created: 2026-05-17
 revised: 2026-05-17 (4 artifact 解釈に訂正)
+completed: 2026-05-17 (Phase 5 完遂、commit c2e2ed4)
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
