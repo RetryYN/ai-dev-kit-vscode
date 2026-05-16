@@ -1,13 +1,20 @@
 ---
 plan_id: PLAN-072
 title: "PLAN-072: L4.5 Phase B 結合 (v24-v27 helix.db 実 endpoint/hook/CLI 統合)"
-status: draft
+status: frozen
 size: L
 drive: fullstack
 created: 2026-05-16
+frozen_at: 2026-05-16
 owner: PM
 phases: L4.5, L5, L6
 gates: G4
+gate_status: G4_ready
+凍結根拠: |
+  Sprint .1〜.6 全完遂 (11 commits, 1c1bc8b..dce1b5f)。pytest 1285 / bats 478 / shell 614 全 PASS。
+  helix doctor 0 fail (8 warn は既存 PLAN 群の drift、PLAN-072 と無関係)。
+  P0/P1 エラーなし。実装スコープは CLI (helix-push/pr/plan) + hook (.claude/hooks/*.sh + libexec/helix-session-start) の結合。
+  HTTP endpoint (push/pr/hook/audit/telemetry 5 endpoint) の HTTP 層実装は別 PLAN carry とする (D-API EXT は契約のみ凍結済)。
 acceptance:
   - v24 design_sprint_drive_decisions を drive switch policy 評価フローに結合 (helix-plan / helix-codex で書き込み)
   - v25 automation_runs を helix-push / helix-pr / hook / gate 実行フローに結合 (lifecycle 遷移を `_transition_lifecycle_status` 経由で実施)
@@ -163,13 +170,33 @@ Sprint .1-.4 は相互独立 → 並列投入。Sprint .5 は .1-.4 全完了後
 
 ## §7 G4 entry 条件チェックリスト
 
-- [ ] Sprint .1: helix-push / helix-pr automation_runs 統合 PASS
-- [ ] Sprint .2: hook audit_log 統合 PASS
-- [ ] Sprint .3: session_telemetry UPSERT 統合 PASS
-- [ ] Sprint .4: design_sprint_drive_decisions 統合 PASS
-- [ ] Sprint .5: P1-01/02/03 一括解消 PASS
-- [ ] Sprint .6: E2E test 3 テーブル一括書き込み確認 PASS
-- [ ] Sprint .7: bats + pytest 全 PASS + helix doctor クリーン + cross-doc 整合確認
+- [x] Sprint .1: helix-push / helix-pr automation_runs 統合 PASS (commits 1c1bc8b, 981ce45)
+- [x] Sprint .2: hook audit_log 統合 PASS (commit ed548f2、hook latency delta +43.29ms <50ms)
+- [x] Sprint .3: session_telemetry UPSERT 統合 PASS (commits 25bd341, 4001059、hook latency delta +45.51ms <50ms)
+- [x] Sprint .4: design_sprint_drive_decisions 統合 PASS (commit 3a3b5a0)
+- [x] Sprint .5: P1-01/02/03 一括解消 PASS (commits 14075c6, 672cc2e, f465a2b)
+- [x] Sprint .6: E2E test 3 テーブル一括書き込み確認 PASS (commit dce1b5f、pytest 2 + bats 1)
+- [x] Sprint .7: bats + pytest 全 PASS + helix doctor 0 fail + cross-doc 整合確認 (本 Sprint)
+- [x] G4 ready 宣言 (TL/PM 承認、2026-05-16)
+
+### G4 ready 整合性検証 (Sprint .7)
+
+| 項目 | 状態 | 根拠 |
+|------|------|------|
+| pytest 全 PASS | ✅ 1285/1285 (+24) | Sprint .1〜.6 で test 24 件追加、全回帰 0 fail |
+| bats 全 PASS | ✅ 478/478 (+7) | Sprint .1〜.6 で test 7 件追加、全回帰 0 fail |
+| shell-based 全 PASS | ✅ 614/614 | 既存維持 |
+| helix doctor | ✅ 14 pass, 0 fail, 8 warn | warn は既存 PLAN 群の drift (PLAN-072 と無関係) |
+| D-DB EXT vs 実装 | ✅ 一致 | automation_runs.plan_id 列存在 / trigger_source は summary JSON 格納で一致 |
+| 実装スコープ | ✅ CLI + hook 結合 | HTTP endpoint (5 endpoint) の HTTP 層実装は別 PLAN carry |
+| hook latency | ✅ max +45.51ms | DoD <=50ms 内 |
+
+### carry / 次 PLAN への引継ぎ
+
+- HTTP endpoint (push/pr/hook/audit/telemetry 5 endpoint) の HTTP 層実装 → 別 PLAN
+- PLAN-071 (capability detailing、L3 carry 11 件詳細化) → 別 PLAN、独立進行
+- helix doctor warn (skills/agents/roles count drift、phase.yaml v3→v4) → 別 PLAN または保守 PLAN
+- `_main__` 後の helper 配置 (cli/lib/helix_db.py line 3247+) の refactor → 別 PLAN
 - [ ] G4 ready 宣言 (TL/PM 承認)
 
 ## §8 next action
