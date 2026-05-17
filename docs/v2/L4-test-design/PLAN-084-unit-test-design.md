@@ -372,12 +372,17 @@ Phase 4.A/4.B で実装する単体テスト群の設計を確定し、Codex qa 
 - **受入条件**: Python バージョン `sys.version_info >= (3, 12)` かつ `sys.version_info < (3, 14)` の環境で正常動作する。`uuid7` パッケージ未インストール時は自前実装 fallback が動作する
 - **Phase 4.A carry**: 実装選択 (uuid7 パッケージ vs 自前実装) に応じて pytest marker または conftest で Python バージョン条件を設定する
 
-#### U-UUID-005: generate_event_id() — Python 3.14+ stdlib 切替可能性確認
+#### U-UUID-005: generate_event_id() — Python 3.14+ stdlib 切替可能性確認 (Phase 6+ 将来 carry)
 
 - **対象**: D-CONTRACT-EVENT-draft §3.2 Python 3.14+ `uuid.uuid7()` (RFC 9562、tl-advisor L3 review Round 2 P2 反映)
-- **入力**: `sys.version_info >= (3, 14)` の環境で `generate_event_id()` を呼ぶ
+- **HELIX 現状契約 (tl-advisor L3 Round 3 P3 反映)**:
+  - Phase 4.A 実装: Python 3.12.3 (HELIX local 環境) 向けに **3.12 fallback 設計** を採用 (U-UUID-004 でカバー、`uuid7` パッケージ or 自前実装)
+  - 「stdlib 統一」は契約ではなく、**Phase 6+ で Python 3.14 移行検討時の切替可能性確認** が本 case の目的
+  - 本 case は `sys.version_info >= (3, 14)` 環境でのみ有効、3.12.3 環境では `pytest.mark.skip(reason="Python 3.14+ required for stdlib uuid7")` で skip
+- **入力**: `sys.version_info >= (3, 14)` の環境で `generate_event_id()` を呼ぶ (将来 Python upgrade 時)
 - **期待**: `uuid.uuid7()` (stdlib) が呼ばれ、外部依存なしで動作する
-- **受入条件**: `uuid7` パッケージなしで UUID 形式の文字列が返る
+- **受入条件**: `uuid7` パッケージなしで UUID 形式の文字列が返る (将来 3.14+ 環境で実行時に PASS)
+- **Phase 6+ carry**: HELIX の Python バージョン要件を 3.14+ に引き上げる ADR (将来) で本 case が実 PASS になる切替判断を行う
 - **Phase 4.A carry**: `pytest.mark.skipif(sys.version_info < (3, 14), ...)` で条件付き実行。現時点 (Python 3.12 HELIX 環境) では skip 可
 
 ---

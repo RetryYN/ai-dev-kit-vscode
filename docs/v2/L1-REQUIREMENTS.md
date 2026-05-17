@@ -507,7 +507,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 | **NFR-40** | enum (5 design / 5 test) 固定 | 変更時の migration コスト最小化 |
 | **NFR-41** | drive 追加可能 (1 file 修正) | vmodel-semantics.yaml に entry 追加で完了 |
 | **NFR-42** | V3 への path 残す | managed_products / agent_registry が multi-tenancy / リモート同期に拡張可能 |
-| **NFR-43** | 6 db 独立 migration (PLAN-084) | 6 db 分離後、各 db 単独で schema migration 可能。db 間の migration 依存を持たない設計を L3 D-DB-SEPARATION で確定する |
+| **NFR-43** | 6 db 独立 migration (PLAN-084) | 6 db 分離後、各 db 単独で schema migration 可能。db 間の migration 依存を持たない設計を L3 D-DB-SEP-draft で確定する |
 | **NFR-44** | frontend/backend 将来 event 化 (PLAN-084) | frontend.db / backend.db の event-sourced 化可否は ADR-018 で定義した再判定条件 (write 頻度低下 / audit 必須化 / cross-db 参照増加) に基づき 6 ヶ月毎に review する (§3.9 FR-DB-SEP-09 参照) |
 
 ### 4.6 可観測性

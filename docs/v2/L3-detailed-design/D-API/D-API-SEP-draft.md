@@ -597,10 +597,10 @@ Phase 4 実装で確定・実施する事項:
 
 **双方向 trace**:
 
-- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-adapter-test-design.md` (Phase 4.A 着手時に起票後 reference を本 doc に追記)
+- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER-001〜015) + `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §6 (I-SMOKE-001〜006) (Phase 3.4 起票済、commit ff04129)
 - **本 doc → ② 実装コード**: `cli/lib/compatibility_adapter.py` (Phase 4.A)
-- **③ テスト設計 → 本 doc**: テスト設計ファイルに「対象設計: D-API-SEP-draft.md」を明示 (Phase 4.A)
-- **④ テストコード → ③ テスト設計**: テスト docstring に「DoD 検証: PLAN-084-adapter-test-design.md」を明示 (Phase 4.B)
+- **③ テスト設計 → 本 doc**: PLAN-084-unit-test-design.md frontmatter `related_designs` に「D-API-SEP-draft-v0.1」明示済
+- **④ テストコード → ③ テスト設計**: テスト docstring に「DoD 検証: PLAN-084-unit-test-design.md U-ADAPTER-XXX / PLAN-084-integration-test-design.md I-SMOKE-XXX」を明示 (Phase 4.A)
 - **本 doc ⇔ D-DB-SEP-draft**: 本 doc §5 (ATTACH allowlist) は D-DB-SEP §5.2 と同期。scrum.db routing は D-DB-SEP §2.3 の entity ownership に準拠。backend.db routing は D-DB-SEP §2.5 に準拠
 
 ---

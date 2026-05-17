@@ -54,7 +54,7 @@ Decision §4 (frontend/backend state-store 再判定条件) は schema の変更
 - compatibility_adapter.py の Python 実装詳細 (D-API-SEP-draft で扱う)
 - event envelope の Python class 設計 (D-CONTRACT-EVENT-draft で扱う、本 doc は schema のみ)
 - 完全な CREATE TABLE SQL (table shape を確定、完全 SQL は Phase 4.A 実装で確定)
-- HTTP endpoint 実装 (D-API-EVENT-SOURCING-draft で扱う)
+- HTTP endpoint 実装 (本 PLAN scope 外。`cli/lib/http_api/routes/*.py` 既存実装は D-API-SEP-draft compatibility adapter 経由で 6 db へ routing される、新規 HTTP endpoint は本 PLAN では扱わない)
 - projector の Python 実装詳細 (Phase 4.B)
 
 ### 1.3 前段文書との接続

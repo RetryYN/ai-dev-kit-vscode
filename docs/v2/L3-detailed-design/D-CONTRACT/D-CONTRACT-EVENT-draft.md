@@ -54,7 +54,7 @@ Phase 4.B 実装の正本契約として機能し、Codex se / qa が本文書�
 - compatibility adapter API (D-API-SEP-draft で扱う)
 - projector 実装本体 (Phase 4.B で Codex se が担当)
 - event_type 全種類の payload schema 列挙 (本文書は規約のみ、event_type 別 schema は Phase 4.B で確定)
-- HTTP endpoint 実装 (D-API-EVENT-SOURCING-draft で扱う)
+- HTTP endpoint 実装 (本 PLAN scope 外。EventEnvelope を HTTP 経由で受け取る endpoint は別 PLAN で扱う、本 doc は Python class の正本のみ確定)
 - plan.db の plan_change_log (hybrid 方式につき EventEnvelope 不使用、D-DB-SEP-draft §2.4 参照)
 - frontend.db / backend.db (state-store 採用につき EventEnvelope 対象外、ADR-018 §Decision.2 参照)
 
@@ -690,8 +690,9 @@ occurred_at: str = datetime.now(timezone.utc).isoformat()
 ### 双方向 trace 宣言
 
 - **本文書 → ② 実装コード**: 本文書 §2.2 の dataclass 定義が `cli/lib/event_envelope.py` の実装根拠。実装時に `# 対応設計: D-CONTRACT-EVENT-draft-v0.1 §2.2` を docstring に記載する
-- **本文書 → ③ テスト設計**: Phase 4.B 着手時に `cli/lib/tests/test_event_envelope_unit.py` に `# 対応設計: D-CONTRACT-EVENT-draft-v0.1 §2-§6` を記載する
-- **③ テスト設計 → 本文書**: テスト設計ファイル冒頭に `# 対象設計: D-CONTRACT-EVENT-draft-v0.1` を明示する
+- **本文書 → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT) + §4 (U-UUID) + §5 (U-CORR) + `PLAN-084-integration-test-design.md` §5 (I-CORR) (Phase 3.4 起票済、commit ff04129、frontmatter `related_designs` で双方向 trace 完備)
+- **本文書 → ④ テストコード**: Phase 4.B 着手時に `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid_v7_generator.py` / `test_correlation_context.py` / `test_correlation_cross_db.py` に `# DoD 検証: PLAN-084-unit-test-design.md U-EVT-XXX / U-UUID-XXX / U-CORR-XXX` を記載する (Phase 4.B carry)
+- **③ テスト設計 → 本文書**: `PLAN-084-unit-test-design.md` / `PLAN-084-integration-test-design.md` frontmatter `related_designs` に「D-CONTRACT-EVENT-draft-v0.1」明示済 (Phase 3.4 反映済)
 - **② 実装 → D-DB-SEP-draft §3**: `to_sqlite_row` / `from_sqlite_row` の column 順序は D-DB-SEP-draft §3 の event_envelope table 定義に準拠することを docstring に記載する
 
 Phase 4.B 着手前に 4 artifact 全件 + 双方向 trace の存在を確認すること (G4 チェック条件)。

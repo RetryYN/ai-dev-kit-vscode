@@ -289,7 +289,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 |---|---|---|---|---|
 | Phase 1 | L1 要件定義 (本 PLAN doc + L1 doc §3.9 拡張) | M | Opus + tl-advisor | 1-2 セッション |
 | Phase 2 | L2 基本設計 (CONCEPT.md + ADR-018 + ADR-019 + L2-MASTER 修正) | M-L | Opus + tl-advisor + pmo-tech-docs | 2-3 セッション |
-| Phase 3 | L3 詳細設計 (D-DB-SEPARATION + D-API-EVENT-SOURCING + D-DB-MIGRATION + test design) | M-L | Codex se + tl-advisor | 2-3 セッション |
+| Phase 3 | L3 詳細設計 (D-DB-SEP-draft + D-API-SEP-draft + D-DB-MIGRATION + test design) | M-L | Codex se + tl-advisor | 2-3 セッション |
 | Phase 4.A | L4 実装 sprint A (migration + adapter) | M | Codex se + Opus 統合 | 1-2 セッション |
 | Phase 4.B | L4 実装 sprint B (event_log + projector + dual-write) | M | Codex se + pg | 1-2 セッション |
 | Phase 4.C | L4 実装 sprint C (shadow replay + cutover + ADR-020) | M | Codex se + Opus | 1-2 セッション |
@@ -311,7 +311,7 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 
 - Phase 1 完遂: 本 PLAN doc 完成 + `docs/v2/L1-REQUIREMENTS.md` §3.9 章追加 (本 doc §2 を転記)
 - Phase 2 完遂: CONCEPT.md / L2-MASTER.md 修正 + ADR-018 + ADR-019 起票 + tl-advisor adversarial check PASS
-- Phase 3 完遂: D-DB-SEPARATION + D-API-EVENT-SOURCING + D-DB-MIGRATION (本 doc §2.5/§2.6 を詳細化) + 単体/結合 test 設計起票
+- Phase 3 完遂: D-DB-SEP-draft + D-API-SEP-draft + D-DB-MIGRATION (本 doc §2.5/§2.6 を詳細化) + 単体/結合 test 設計起票
 - Phase 4.A 完遂: compatibility adapter + 6 db 接続 + migration v30 → v31 + adapter test 11 file (lib 8 + top-level CLI 3) × 30+ path PASS
 - Phase 4.B 完遂: event_log + projector + dual-write + mismatch gate + projector test
 - Phase 4.C 完遂: shadow replay PASS + cutover script + ADR-020 起票 + helix doctor 0 fail
