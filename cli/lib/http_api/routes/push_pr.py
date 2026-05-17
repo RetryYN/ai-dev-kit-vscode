@@ -14,6 +14,9 @@ test: cli/lib/tests/test_http_api_push_pr.py (5 cases)
 from __future__ import annotations
 
 import os
+import sys
+from contextlib import contextmanager
+from inspect import signature
 from pathlib import Path
 from typing import Any
 
@@ -111,11 +114,27 @@ except ModuleNotFoundError:  # pragma: no cover - exercised in the current sandb
 
 import helix_db
 import push_gate
+REPO_ROOT = Path(__file__).resolve().parents[4]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from cli.lib import compatibility_adapter
+compatibility_adapter.helix_db = helix_db
 
 from ..envelope import error_response, success_response
 
 
 bp = Blueprint("push_pr", __name__)
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None):
+    write_connection = getattr(helix_db, "_write_connection")
+    if "ensure_schema" not in signature(write_connection).parameters:
+        with write_connection(db_path) as conn:
+            yield conn
+        return
+    with compatibility_adapter.write_connection(db_path) as conn:
+        yield conn
 
 
 def _project_root() -> Path:
@@ -259,7 +278,7 @@ def _handle_trigger(run_kind: str, trigger_source: str, plan_id: str):
 
     db_path = helix_db.resolve_default_db_path()
     try:
-        with helix_db._write_connection(db_path) as conn:
+        with _compat_write_connection(db_path) as conn:
             run_id = helix_db.insert_automation_run(
                 conn,
                 trigger_source=trigger_source,
@@ -276,7 +295,7 @@ def _handle_trigger(run_kind: str, trigger_source: str, plan_id: str):
         if not isinstance(gate_result, dict):
             raise TypeError("gate result must be a dict")
     except Exception as exc:
-        with helix_db._write_connection(db_path) as conn:
+        with _compat_write_connection(db_path) as conn:
             try:
                 helix_db.complete_automation_run(conn, run_id, status="failed", error=str(exc))
             except Exception:
@@ -287,7 +306,7 @@ def _handle_trigger(run_kind: str, trigger_source: str, plan_id: str):
     actor = "http-push" if run_kind == "push" else "http-pr"
 
     try:
-        with helix_db._write_connection(db_path) as conn:
+        with _compat_write_connection(db_path) as conn:
             helix_db.complete_automation_run(conn, run_id, status=final_status)
             # NOTE: D-API EXT の audit_kind enum drift は Sprint .4 で解消予定のため hook_exec を継続する。
             helix_db.insert_audit_log(

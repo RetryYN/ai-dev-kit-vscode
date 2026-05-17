@@ -2,17 +2,44 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 
 try:
-    from . import helix_db
+    from . import compatibility_adapter, helix_db
 except ImportError:  # pragma: no cover
     import helix_db
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from cli.lib import compatibility_adapter
+    compatibility_adapter.helix_db = helix_db
 
 
 LOOP_PREFIX = "H-LOCAL-"
 ALLOWED_FORWARD_LAYERS = tuple(f"L{index}" for index in range(1, 12))
 ALLOWED_STATES = ("S0", "S1", "S2", "S3")
 ALLOWED_DECIDE_RESULTS = ("confirmed", "rejected", "pivot")
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None = None, ensure_schema: bool = True):
+    generator = compatibility_adapter.write_connection.__wrapped__(db_path, ensure_schema)
+    conn = next(generator)
+    try:
+        yield conn
+    except BaseException as exc:
+        try:
+            generator.throw(exc)
+        except StopIteration:
+            pass
+        raise
+    else:
+        try:
+            next(generator)
+        except StopIteration:
+            pass
 
 
 def _require_non_empty(value: str, field_name: str) -> str:
@@ -110,7 +137,7 @@ def init_local_loop(
     forward_plan_id = _clean_optional_text(forward_plan_id)
     parent_loop_id = _clean_optional_text(parent_loop_id)
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         if parent_loop_id is not None:
             _fetch_loop(conn, _validate_loop_id(parent_loop_id))
         loop_id = _next_loop_id(conn)
@@ -152,7 +179,7 @@ def record_poc(
     commit_sha = _clean_optional_text(commit_sha)
     agent_slot_id = _validate_optional_positive_int(agent_slot_id, "agent_slot_id")
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = _fetch_loop(conn, loop_id)
         _assert_state(row, "S0")
         conn.execute(
@@ -181,7 +208,7 @@ def verify_loop(loop_id: str, observation: str | None = None) -> None:
     loop_id = _validate_loop_id(loop_id)
     observation = _clean_optional_text(observation)
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = _fetch_loop(conn, loop_id)
         _assert_state(row, "S1")
         conn.execute("UPDATE scrum_local_loops SET state = 'S2' WHERE loop_id = ?", (loop_id,))
@@ -201,7 +228,7 @@ def decide_loop(loop_id: str, result: str, note: str | None = None) -> None:
         raise ValueError(f"invalid result: {result}")
     note = _clean_optional_text(note)
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = _fetch_loop(conn, loop_id)
         _assert_state(row, "S2")
         conn.execute(
@@ -225,7 +252,7 @@ def decide_loop(loop_id: str, result: str, note: str | None = None) -> None:
 def list_active_loops(forward_layer: str | None = None) -> list[dict]:
     """state != S3 の active UPS loop 一覧を返す。"""
     layer = None if forward_layer is None else _validate_forward_layer(forward_layer)
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         if layer is None:
             rows = conn.execute(
                 """
@@ -251,7 +278,7 @@ def get_stats(days: int = 7) -> dict:
     """指定期間の confirmed/rejected/pivot 集計を返す。"""
     days = _validate_non_negative_int(days, "days")
     counts = {result: 0 for result in ALLOWED_DECIDE_RESULTS}
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             """
             SELECT decide_result, COUNT(*) AS count

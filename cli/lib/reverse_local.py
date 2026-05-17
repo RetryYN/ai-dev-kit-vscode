@@ -3,11 +3,19 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 
 try:
-    from . import helix_db
+    from . import compatibility_adapter, helix_db
 except ImportError:  # pragma: no cover
     import helix_db
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from cli.lib import compatibility_adapter
+    compatibility_adapter.helix_db = helix_db
 
 
 LOOP_PREFIX = "RL-"
@@ -20,6 +28,25 @@ NEXT_STATE_BY_CURRENT = {
     "R2": "R3",
     "R3": "R4",
 }
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None = None, ensure_schema: bool = True):
+    generator = compatibility_adapter.write_connection.__wrapped__(db_path, ensure_schema)
+    conn = next(generator)
+    try:
+        yield conn
+    except BaseException as exc:
+        try:
+            generator.throw(exc)
+        except StopIteration:
+            pass
+        raise
+    else:
+        try:
+            next(generator)
+        except StopIteration:
+            pass
 
 
 def _require_non_empty(value: str, field_name: str) -> str:
@@ -114,7 +141,7 @@ def _record_audit_event(conn: sqlite3.Connection, action: str, payload: dict) ->
 def init_from_scrum(scrum_loop_id: str, reverse_type: str = "scrum-to-forward") -> str:
     """confirmed scrum loop を起点に reverse loop を作成する。"""
     reverse_type = _validate_reverse_type(reverse_type)
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         scrum_row = _fetch_confirmed_scrum_loop(conn, scrum_loop_id)
         loop_id = _next_loop_id(conn)
         conn.execute(
@@ -144,7 +171,7 @@ def transition_state(loop_id: str, new_state: str) -> None:
     if new_state not in ALLOWED_STATES:
         raise ValueError(f"invalid new_state: {new_state}")
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = _fetch_reverse_loop(conn, loop_id)
         current_state = str(row["state"])
         expected_next = NEXT_STATE_BY_CURRENT.get(current_state)
@@ -180,7 +207,7 @@ def route_to_forward(
                 raise ValueError("artifact_links must contain dict items")
     serialized_links = None if artifact_links is None else json.dumps(artifact_links, ensure_ascii=False)
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = _fetch_reverse_loop(conn, loop_id)
         if row["state"] != "R4":
             raise ValueError(f"loop state must be R4: {loop_id}")
@@ -210,7 +237,7 @@ def route_to_forward(
 # @helix:index id=reverse_local.list_active_loops domain=cli/lib summary=完了していない reverse loop 一覧を返す
 def list_active_loops() -> list[dict]:
     """state != R4 の active reverse loop 一覧を返す。"""
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             """
             SELECT * FROM reverse_local_loops
@@ -226,7 +253,7 @@ def get_routing_stats(days: int = 7) -> dict:
     """指定期間の routing layer 集計を返す。"""
     days = _validate_non_negative_int(days, "days")
     layers: dict[str, int] = {}
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             """
             SELECT target_forward_layer, COUNT(*) AS count

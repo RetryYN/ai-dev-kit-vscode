@@ -2,17 +2,45 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 
 try:
-    from . import helix_db
+    from . import compatibility_adapter, helix_db
 except ImportError:  # pragma: no cover
     import helix_db
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from cli.lib import compatibility_adapter
+    compatibility_adapter.helix_db = helix_db
 
 
 ALLOWED_AGENT_KINDS = ("codex", "claude_subagent")
 ALLOWED_RELEASE_STATUSES = ("completed", "failed", "cancelled")
 ALLOWED_SLOT_SOURCES = ("helix_codex", "pretooluse_hook")
 ALLOWED_STATS_BY = ("hour", "role", "plan_id", "agent_kind")
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None = None, ensure_schema: bool = True):
+    generator = compatibility_adapter.write_connection.__wrapped__(db_path, ensure_schema)
+    conn = next(generator)
+    try:
+        yield conn
+    except BaseException as exc:
+        try:
+            generator.throw(exc)
+        except StopIteration:
+            pass
+        raise
+    else:
+        try:
+            next(generator)
+        except StopIteration:
+            pass
+
 
 def _validate_choice(value: str, field_name: str, allowed_values: tuple[str, ...]) -> str:
     text = str(value).strip()
@@ -76,7 +104,7 @@ def fire_slot(
     }
     columns = list(payload.keys())
     placeholders = ", ".join(["?"] * len(columns))
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         cursor = conn.execute(
             f"INSERT INTO agent_slots ({', '.join(columns)}) VALUES ({placeholders})",
             [payload[column] for column in columns],
@@ -92,7 +120,7 @@ def release_slot(slot_id: int, status: str = "completed", exit_code: int | None 
     if exit_code is not None and type(exit_code) is not int:
         raise ValueError("exit_code must be an integer or None")
 
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = conn.execute("SELECT status, released_at FROM agent_slots WHERE id = ?", (slot_id,)).fetchone()
         if row is None:
             raise ValueError(f"slot_id does not exist: {slot_id}")
@@ -113,7 +141,7 @@ def release_slot(slot_id: int, status: str = "completed", exit_code: int | None 
 # @helix:index id=agent_slots.list_active_slots domain=cli/lib summary=active running slot 一覧を返す
 def list_active_slots() -> list[dict]:
     """active slot 一覧を返す。"""
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             """
             SELECT * FROM agent_slots
@@ -128,7 +156,7 @@ def list_active_slots() -> list[dict]:
 def list_stale_slots(threshold_minutes: int = 5) -> list[dict]:
     """threshold を超えた running slot 一覧を返す。"""
     threshold_minutes = _validate_non_negative_int(threshold_minutes, "threshold_minutes")
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             """
             SELECT * FROM agent_slots
@@ -153,7 +181,7 @@ def get_stats(days: int = 7, by: str = "hour") -> list[dict]:
         "plan_id": "COALESCE(plan_id, '(none)')",
         "agent_kind": "COALESCE(agent_kind, '(none)')",
     }[by]
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         rows = conn.execute(
             f"""
             WITH base AS (

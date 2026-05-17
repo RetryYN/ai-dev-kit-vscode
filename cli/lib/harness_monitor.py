@@ -3,16 +3,43 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 
 try:
-    from . import agent_slots, helix_db
+    from . import agent_slots, compatibility_adapter, helix_db
 except ImportError:  # pragma: no cover
     import agent_slots
     import helix_db
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from cli.lib import compatibility_adapter
+    compatibility_adapter.helix_db = helix_db
 
 
 ALLOWED_EVENT_KINDS = ("pull", "push", "audit")
 ALLOWED_SEVERITIES = ("info", "warning", "critical")
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None = None, ensure_schema: bool = True):
+    generator = compatibility_adapter.write_connection.__wrapped__(db_path, ensure_schema)
+    conn = next(generator)
+    try:
+        yield conn
+    except BaseException as exc:
+        try:
+            generator.throw(exc)
+        except StopIteration:
+            pass
+        raise
+    else:
+        try:
+            next(generator)
+        except StopIteration:
+            pass
 
 
 def _validate_choice(value: str, field_name: str, allowed_values: tuple[str, ...]) -> str:
@@ -183,7 +210,7 @@ def record_event(
     }
     columns = list(row.keys())
     placeholders = ", ".join(["?"] * len(columns))
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         cursor = conn.execute(
             f"INSERT INTO harness_check_events ({', '.join(columns)}) VALUES ({placeholders})",
             [row[column] for column in columns],
@@ -198,7 +225,7 @@ def get_active_status(session_id: str | None = None) -> dict:
     active_slots = agent_slots.list_active_slots()
     if session_id is not None:
         active_slots = [slot for slot in active_slots if slot.get("session_id") == session_id]
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         return {
             "active_slot_count": len(active_slots),
             "running_tasks": _query_running_tasks(conn),
@@ -224,7 +251,7 @@ def get_active_status(session_id: str | None = None) -> dict:
 def get_session_audit(session_id: str) -> dict:
     """session 単位の harness event audit summary を返す。"""
     session_id = _require_non_empty_text(session_id, "session_id")
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         row = conn.execute(
             """
             SELECT
@@ -267,5 +294,5 @@ def list_recent_events(days: int = 1, severity: str | None = None) -> list[dict]
     days = _validate_non_negative_int(days, "days")
     if severity is not None:
         severity = _validate_choice(severity, "severity", ALLOWED_SEVERITIES)
-    with helix_db._write_connection(None) as conn:
+    with _compat_write_connection(None) as conn:
         return _fetch_recent_events(conn, days=days, severity=severity)

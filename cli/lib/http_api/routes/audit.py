@@ -16,7 +16,11 @@ test: cli/lib/tests/test_http_api_audit.py (5 cases)
 
 from __future__ import annotations
 
+import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
+from inspect import signature
+from pathlib import Path
 from typing import Any
 
 try:
@@ -53,12 +57,28 @@ except ModuleNotFoundError:  # pragma: no cover - exercised in the current sandb
 import sqlite3
 
 import helix_db
+REPO_ROOT = Path(__file__).resolve().parents[4]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from cli.lib import compatibility_adapter
+compatibility_adapter.helix_db = helix_db
 
 from ..envelope import error_response, success_response
 
 bp = Blueprint("audit", __name__)
 
 HTTP_AUDIT_KINDS = ("footer", "summary", "diff_lines", "security_scan", "qa_check")
+
+
+@contextmanager
+def _compat_write_connection(db_path: str | None):
+    write_connection = getattr(helix_db, "_write_connection")
+    if "ensure_schema" not in signature(write_connection).parameters:
+        with write_connection(db_path) as conn:
+            yield conn
+        return
+    with compatibility_adapter.write_connection(db_path) as conn:
+        yield conn
 
 
 def _request_json() -> dict[str, Any]:
@@ -117,7 +137,7 @@ def audit_log():
 
     db_path = helix_db.resolve_default_db_path()
     try:
-        with helix_db._write_connection(db_path) as conn:
+        with _compat_write_connection(db_path) as conn:
             row = conn.execute(
                 "SELECT id FROM automation_runs WHERE id = ?",
                 (run_id,),

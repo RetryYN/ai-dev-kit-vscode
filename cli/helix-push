@@ -25,12 +25,12 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
-import helix_db
+sys.path.insert(0, os.environ.get("HELIX_HOME") or os.path.dirname(os.path.dirname(os.environ["HELIX_AUTOMATION_LIB_DIR"])))
+from cli.lib import compatibility_adapter, helix_db
 
 metadata_raw = os.environ.get("HELIX_AUTOMATION_METADATA_JSON", "").strip()
 metadata = json.loads(metadata_raw) if metadata_raw else None
-with helix_db._write_connection(None) as conn:
+with compatibility_adapter.write_connection(helix_db.resolve_default_db_path()) as conn:
     run_id = helix_db.insert_automation_run(
         conn,
         os.environ["HELIX_AUTOMATION_TRIGGER_SOURCE"],
@@ -67,11 +67,11 @@ finalize_automation_run() {
 import os
 import sys
 
-sys.path.insert(0, os.environ["HELIX_AUTOMATION_LIB_DIR"])
-import helix_db
+sys.path.insert(0, os.environ.get("HELIX_HOME") or os.path.dirname(os.path.dirname(os.environ["HELIX_AUTOMATION_LIB_DIR"])))
+from cli.lib import compatibility_adapter, helix_db
 
 error = os.environ.get("HELIX_AUTOMATION_ERROR", "").strip() or None
-with helix_db._write_connection(None) as conn:
+with compatibility_adapter.write_connection(helix_db.resolve_default_db_path()) as conn:
     helix_db.complete_automation_run(
         conn,
         int(os.environ["HELIX_AUTOMATION_RUN_ID"]),
