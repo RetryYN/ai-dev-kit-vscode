@@ -195,6 +195,8 @@ HELIX V2 の③ 記録フェーズとして、単一 `helix.db` を 6 個の SQL
 write 頻度 / retention / replay SLO の **6 軸判定**でハイブリッド構成を採用する
 ([ADR-018 §Decision.2](../adr/ADR-018-db-separation-and-event-sourcing.md)):
 
+> **企画書レベルの抜粋表**: 以下の表は主要 5 軸 + 採用方式に絞った要約。replay SLO 列は冗長性回避のため省略 (event-sourced = < 5min / hybrid = < 30min / state-store = n/a)。完全な 6 軸 matrix は ADR-018 §Decision.2 を参照。
+
 | db | audit | temporal | event ordering | write 頻度 | retention | 採用方式 |
 |---|---|---|---|---|---|---|
 | orchestration | ◎ 必須 | ◎ 必須 | ◎ 必須 | 高 | 長期 (1y+) | **event-sourced** |

@@ -432,8 +432,11 @@ closed loop が成立することを L1 受入条件とする。
 | 6 | cli/lib/http_api/routes/push_pr.py | ≥1 | backend.db (automation_run) |
 | 7 | cli/lib/http_api/routes/hooks.py | ≥1 | backend.db (audit_log) |
 | 8 | cli/lib/http_api/routes/telemetry.py | ≥1 | backend.db (session_telemetry) |
+| 9 | cli/helix-pr (top-level CLI) | 2 | backend.db (automation_run) |
+| 10 | cli/helix-push (top-level CLI) | 2 | backend.db (automation_run) |
+| 11 | cli/helix-agent (top-level CLI、embed Python) | 1 | orchestration.db (agent_slots) |
 
-adapter 責務: 既存 `helix_db._write_connection(None)` 呼び出しを 8 file 全てで透過的に 6 db 経路へ adapt、API 互換 100% 維持、dual-write 期間は旧 helix.db と新 6 db 両方に write。
+adapter 責務: 既存 `helix_db._write_connection(None)` 呼び出しを 11 file (lib 8 + top-level CLI 3) 全てで透過的に 6 db 経路へ adapt、API 互換 100% 維持、dual-write 期間は旧 helix.db と新 6 db 両方に write。Phase 4.A smoke test で `helix-pr` / `helix-push` / `helix-agent list` の 3 top-level CLI smoke を必須化する (tl-advisor Round 1-3 反映、PLAN-084 §2.6 表と同期)。
 
 #### FR-DB-SEP-07: Reverse の例外扱い
 
@@ -464,7 +467,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 |---|---|---|
 | **NFR-01** | V1 動作互換性 | V2 完了まで V1 CLI / SKILL / hook 動作維持、helix.db v20 → v21 後方互換 |
 | **NFR-02** | 段階的 migration | Phase ごとに既存テスト PASS 維持 (pytest 1138+ / bats 433+ / shell 614+) |
-| **NFR-03** | 6 db 分離 compatibility adapter (PLAN-084) | v30 → v31 migration で既存 ② 実行ハーネス機能 (PLAN-078〜083) を破壊しない。`cli/lib/compatibility_adapter.py` で 8 file × 25+ 箇所の API 互換 100% 維持 (§3.9 FR-DB-SEP-06 参照) |
+| **NFR-03** | 6 db 分離 compatibility adapter (PLAN-084) | v30 → v31 migration で既存 ② 実行ハーネス機能 (PLAN-078〜083) を破壊しない。`cli/lib/compatibility_adapter.py` で 11 file (lib 8 + top-level CLI 3) × 30+ 箇所の API 互換 100% 維持 (§3.9 FR-DB-SEP-06 参照) |
 
 ### 4.2 性能
 
@@ -560,7 +563,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 | **AC-DB-SEP-02** | Event Sourcing 6 軸判定 matrix が L1 本文確定。3 event-sourced + 1 hybrid (plan = state snapshot + change log) + 2 state-store の採用根拠が明示 | §3.9 FR-DB-SEP-02 6 軸判定表 + plan.db hybrid 具体形 |
 | **AC-DB-SEP-03** | projector 責務分離 + 同期許可リスト 3 件 + timeout 200ms + fallback (async enqueue) + lag 警告境界 100 event / fail-close 境界 1000 event が L1 本文確定 | §3.9 FR-DB-SEP-03 projector 制約表 + 同期許可リスト + timeout/lag 境界表 |
 | **AC-DB-SEP-04** | migration gate 表 (dual-write start → mismatch gate → shadow replay → lag stabilization → cutover → rollback) の順序 / 停止条件 / 失敗時 owner が L1 本文確定 | §3.9 FR-DB-SEP-06 migration ゲート表 |
-| **AC-DB-SEP-05** | compatibility adapter 対象 file 8 件 (agent_slots / harness_monitor / scrum_local / reverse_local / http_api/routes 4 件) が L1 本文列挙、adapter 責務範囲確定 | §3.9 FR-DB-SEP-06 compatibility adapter 対象 file 一覧 |
+| **AC-DB-SEP-05** | compatibility adapter 対象 file 11 件 (lib 8: agent_slots / harness_monitor / scrum_local / reverse_local / http_api/routes 4 件 + top-level CLI 3: helix-pr / helix-push / helix-agent) が L1 本文列挙、adapter 責務範囲確定、Phase 4.A smoke test で top-level CLI 3 件カバー必須 | §3.9 FR-DB-SEP-06 compatibility adapter 対象 file 一覧 |
 | **AC-DB-SEP-06** | 3 軸トライアングル + 二重らせんが ADR-019 で正式記述 (Phase 2 起票)、frontend/backend = state-store 再判定条件が ADR-018 に明記 (Phase 2 起票) | §3.9 FR-DB-SEP-08 / FR-DB-SEP-09 |
 | **AC-DB-SEP-07** | L4 完遂で event-sourced 3 db (orchestration/vmodel/scrum) が dual-write 稼働、projector 1+ 稼働 (lag < 100 event)、shadow replay PASS、dual-write mismatch gate 0 件、既存 ② 実行ハーネス機能 (PLAN-078〜083) 破壊なし | L4 Phase 4.B / 4.C 完遂時の受入確認 |
 
