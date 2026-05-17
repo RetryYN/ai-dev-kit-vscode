@@ -385,3 +385,55 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 | #4 Important | P2 | §2.6 本文 + §3.1 Phase 4.A | compatibility adapter 対象を grep 実行で確定 (11 file (lib 8 + top-level CLI 3) × 30+ 箇所)、scrum_local / reverse_local / http_api/routes 4 件を追加、Phase 4.A で adapter test 全 path 検証 |
 | #5 Important | P2 | §2.2 + §6 R-11 | cross-db FK 禁止 vs ATTACH の衝突を契約化、ATTACH 許可範囲を migration/projector 内部に限定、R-11 (ATTACH drift) 独立 |
 | #6 Minor | P3 | §4 Phase 4 分割 / §6 R-12 | Phase 4 を 4.A/4.B/4.C の 3 sprint に分割、合計 8-14 セッション。compatibility adapter 漏れ R-12 を独立 |
+
+### Round 3 (2026-05-17、passed approved_with_minor_changes)
+
+| 指摘 ID | 優先 | 反映箇所 | 内容 |
+|---|---|---|---|
+| #1 minor | — | L3 carry | PLAN-084 §2.2 event envelope を旧形のまま維持 (Phase 2.2 / L3 では ADR-018 を正本引用、blocker ではない) |
+| #2 minor | — | carry note | ADR-019 carry 表は 8 件で実体一致 (commit メッセージ memo「9 件」は誤、本体問題なし) |
+
+### CONCEPT review (2026-05-17、approved_with_minor_changes)
+
+CONCEPT.md 拡張 (commit dd3be44) に対する tl-advisor 単独 review。
+
+| 指摘 ID | 優先 | 反映箇所 | 内容 |
+|---|---|---|---|
+| #1 Important | P2 | L1-REQUIREMENTS.md §3.9 adapter 表 + L436 + L467 + L563 | L1 側 8→11 file 同期 (commit dc5dce7 で反映、§3.9 表 8→11 row 拡張 + 3 箇所文章修正) |
+| #2 Minor | P3 | CONCEPT.md §6-db-separation 6 軸表 | replay SLO 列省略の根拠を blockquote で明記 (commit dc5dce7 で反映) |
+
+## 11. Phase 2 完遂凍結 (2026-05-17)
+
+### G2 ゲート判定: PASS
+
+Phase 2 (L2 基本設計) を tl-advisor 4 rounds passed をもって完遂凍結する。
+
+- Phase 2.0 FR-DB ID 改番 ✓ (commit 953e8ba、carry A 解消、§3.3 EXT / §3.9 SEP 接頭辞)
+- Phase 2.1 ADR-018/019 起票 ✓ (commit d5bae22、321 + 254 行、Decision 9 件確定)
+- Phase 2.2 CONCEPT.md +125 行 3 章 ✓ (commit dd3be44 + dc5dce7、3 軸トライアングル + 二重らせん strand + 6 db 分離 + ES 概念)
+- Phase 2.3 L2-MASTER.md:36 修正 ✓ (commit d5bae22 内、「含めない」→「ADR-018/019 で扱う」)
+- Phase 2.4 tl-advisor 4 rounds ✓ (ADR Round 1-2 changes_required → Round 3 passed / CONCEPT Round 1 approved_with_minor_changes)
+
+5 doc 全同期 (CONCEPT / ADR-018 / ADR-019 / PLAN-084 / L1-REQUIREMENTS で 11 file × 30+ 箇所)。
+
+**注記**: ADR-018/019 frontmatter `status: proposed` は維持 (Accepted は PO 承認待ち、本 PLAN doc は PM 判定として G2 凍結を宣言する)。
+
+### Phase 3 着手 (本 commit から開始)
+
+L3 詳細設計を `docs/v2/L3-detailed-design/` 配下に起票:
+
+- ✅ D-DB-SEP-draft.md (本 commit、708 行、ADR-018 §Decision.1/2/3/5 schema 展開、15 table + 9 carry to Phase 4)
+- ⏭️ D-API-SEP-draft.md (次セッション、compatibility adapter interface + Python helper API)
+- ⏭️ D-CONTRACT-EVENT-draft.md (次セッション、event envelope Python class + UUID v7 generator)
+- ⏭️ tl-advisor L3 review (3 doc 揃ったら一括 review、G3 凍結判定)
+
+### Phase 2 完遂後の commit chain
+
+| commit | 内容 | Phase |
+|---|---|---|
+| 953e8ba | FR-DB ID 改番 (carry A 解消) | 2.0 |
+| d5bae22 | ADR-018/019 起票 + L2-MASTER:36 修正 | 2.1 / 2.3 |
+| f5c258e | tl-advisor Round 1 反映 | 2.4 |
+| 2b01bd9 | tl-advisor Round 2 反映 | 2.4 |
+| dd3be44 | Phase 2.2 CONCEPT.md 拡張 | 2.2 |
+| dc5dce7 | tl-advisor CONCEPT review 反映 + Phase 2 完遂凍結 | 2.2 / 2.4 |
