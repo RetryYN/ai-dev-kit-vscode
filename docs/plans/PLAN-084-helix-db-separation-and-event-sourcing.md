@@ -422,10 +422,29 @@ Phase 2 (L2 基本設計) を tl-advisor 4 rounds passed をもって完遂凍�
 
 L3 詳細設計を `docs/v2/L3-detailed-design/` 配下に起票:
 
-- ✅ D-DB-SEP-draft.md (本 commit、708 行、ADR-018 §Decision.1/2/3/5 schema 展開、15 table + 9 carry to Phase 4)
-- ⏭️ D-API-SEP-draft.md (次セッション、compatibility adapter interface + Python helper API)
-- ⏭️ D-CONTRACT-EVENT-draft.md (次セッション、event envelope Python class + UUID v7 generator)
-- ⏭️ tl-advisor L3 review (3 doc 揃ったら一括 review、G3 凍結判定)
+- ✅ D-DB-SEP-draft.md (Phase 3.1、708 行、ADR-018 §Decision.1/2/3/5 schema 展開、15 table + 9 carry to Phase 4)
+- ✅ D-API-SEP-draft.md (Phase 3.2、607 行、compatibility adapter interface + Python helper API、12 carry to Phase 4)
+- ✅ D-CONTRACT-EVENT-draft.md (Phase 3.3、706 行、event envelope dataclass + UUID v7 generator + correlation_id、11 carry to Phase 4)
+- ⏭️ tl-advisor L3 review (3 doc 揃った、本セッション末で投入、G3 凍結判定)
+
+### Phase 3 doc 群の双方向 trace 構造
+
+3 doc は frontmatter `sibling_docs` と各 §References で相互参照:
+
+- **D-DB-SEP-draft**: schema 正本 (table 定義 + migration step)
+- **D-API-SEP-draft**: adapter API 正本 (write_connection / read_cross_db_projection)
+- **D-CONTRACT-EVENT-draft**: event class 正本 (EventEnvelope dataclass + UUID v7 + correlation)
+
+各 doc は他 2 doc を sibling として参照し、責務境界を明示 (D-DB-SEP = schema / D-API-SEP = adapter API / D-CONTRACT-EVENT = event class)。重複実装を防ぐ。
+
+### Phase 3 carry to Phase 4 累計
+
+3 doc 合計 carry items = 9 (D-DB-SEP) + 12 (D-API-SEP) + 11 (D-CONTRACT-EVENT) = **32 carry items**。
+
+主な Phase 4 担当分担:
+- Phase 4.A (migration + adapter): UUID v7 generator 実装 / adapter routing logic / adapter unit test / smoke test / ATTACH CI gate
+- Phase 4.B (event + projector + dual-write): EventEnvelope dataclass 実装 / correlation_context / payload schema / projector lag 監視
+- Phase 4.C (shadow replay + cutover): shadow replay test / cutover gate 5 PO 承認 runbook / ADR-020 起票
 
 ### Phase 2 完遂後の commit chain
 
