@@ -1,17 +1,15 @@
 """Compatibility adapter for phased helix.db separation.
 
-Phase 4.A.1 scope:
-- Keep the old ``helix_db._write_connection`` signature compatible.
-- Route ``db_path=None`` calls to one of the planned 6 databases.
-- Use the legacy single-db path until dual-write lands in Sprint 4.A.2.
-
 Design references:
 - D-API-SEP-draft §2/§4
+- D-API-SEP-phase4b-addendum §A
 - D-DB-SEP-draft §5/§6
 """
 
 from contextlib import contextmanager
+import json
 from pathlib import Path
+import sqlite3
 from sqlite3 import Connection
 from typing import Any, Iterator
 import inspect
@@ -19,6 +17,7 @@ import logging
 import os
 
 from . import helix_db
+from .dual_write_connection import _DualWriteConnection
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +61,8 @@ _DB_NAME_TO_FILENAME: dict[str, str] = {
     "backend": "backend.db",
     "frontend": "frontend.db",
 }
+
+_KNOWN_PROJECTORS = frozenset({"phase_state", "artifact_chain", "hypothesis_state"})
 
 
 def _is_discovery_mode() -> bool:
@@ -129,6 +130,17 @@ def _db_path_for(db_name: str) -> str:
     return str(_resolve_helix_dir() / filename)
 
 
+def _open_sqlite_connection(
+    db_path: str | Path | None, ensure_schema: bool
+) -> Connection:
+    target_path = helix_db._resolve_db_path(db_path)
+    helix_db._prepare_db_path(target_path)
+    conn = helix_db._connect(target_path)
+    if ensure_schema:
+        helix_db._ensure_schema(conn)
+    return conn
+
+
 def _open_cutover_connection(
     db_name: str, ensure_schema: bool
 ) -> Iterator[Connection]:
@@ -137,42 +149,48 @@ def _open_cutover_connection(
     return helix_db._write_connection(db_path, ensure_schema=ensure_schema)
 
 
-def _legacy_only_connection(ensure_schema: bool) -> Iterator[Connection]:
-    """Phase 4.A.1 fallback while dual-write is deferred to Sprint 4.A.2."""
-    logger.debug(
-        "compatibility_adapter: dual-write not enabled yet, using legacy helix.db only."
-    )
-    return helix_db._write_connection(None, ensure_schema=ensure_schema)
-
-
-def _resolve_connection_factory(
+@contextmanager
+def _open_dual_write_connection(
     target_db: str, ensure_schema: bool
-) -> Iterator[Connection]:
-    if _is_cutover_enabled():
-        logger.debug(
-            "compatibility_adapter: cutover enabled, routing writes to %s.db only.",
-            target_db,
-        )
-        return _open_cutover_connection(target_db, ensure_schema)
-    return _legacy_only_connection(ensure_schema)
+) -> Iterator[_DualWriteConnection]:
+    legacy_path = helix_db._resolve_db_path(None)
+    target_path = _db_path_for(target_db)
+    with helix_db.file_lock(helix_db.HELIX_DB_LOCK_NAME):
+        legacy_conn: Connection | None = None
+        new_conn: Connection | None = None
+        try:
+            legacy_conn = _open_sqlite_connection(legacy_path, ensure_schema)
+            new_conn = _open_sqlite_connection(target_path, ensure_schema)
+            dual_conn = _DualWriteConnection(legacy_conn=legacy_conn, new_conn=new_conn)
+            yield dual_conn
+            dual_conn.commit()
+        except Exception:
+            if legacy_conn is not None and new_conn is not None:
+                dual_conn.rollback()
+            raise
+        finally:
+            if legacy_conn is not None and new_conn is not None:
+                dual_conn.close()
+            else:
+                for conn in (legacy_conn, new_conn):
+                    if conn is None:
+                        continue
+                    conn.close()
 
 
 # @helix:index id=compatibility-adapter.write-connection domain=cli/lib summary=旧 _write_connection の 6 db routing 互換 API
 @contextmanager
 def write_connection(
     db_path: str | Path | None = None, ensure_schema: bool = True
-) -> Iterator[Connection]:
+) -> Iterator[Connection | _DualWriteConnection]:
     """Compatibility wrapper for ``helix_db._write_connection``.
 
     Behavior:
     - ``db_path is not None``: delegate to the legacy implementation unchanged.
     - ``db_path is None`` and ``HELIX_DB_CUTOVER=1``: route to the planned split
       database path.
-    - ``db_path is None`` and cutover is disabled: stay on legacy ``helix.db``.
-
-    Phase 4.A.1 intentionally does not dual-write. That bridge is a Sprint
-    4.A.2 carry item to avoid changing runtime semantics in the initial
-    skeleton.
+    - ``db_path is None`` and cutover is disabled: dual-write to legacy
+      ``helix.db`` and the routed split db.
     """
     if db_path is not None:
         with helix_db._write_connection(db_path, ensure_schema=ensure_schema) as conn:
@@ -181,26 +199,57 @@ def write_connection(
 
     caller_file, caller_func = _discover_caller()
     target_db = _route_to_db(caller_file, caller_func)
-    connection_factory = _resolve_connection_factory(target_db, ensure_schema)
-    with connection_factory as conn:
+    if _is_cutover_enabled():
+        logger.debug(
+            "compatibility_adapter: cutover enabled, routing writes to %s.db only.",
+            target_db,
+        )
+        with _open_cutover_connection(target_db, ensure_schema) as conn:
+            yield conn
+        return
+
+    logger.debug(
+        "compatibility_adapter: dual-write enabled for legacy helix.db and %s.db.",
+        target_db,
+    )
+    with _open_dual_write_connection(target_db, ensure_schema) as conn:
         yield conn
 
 
-# @helix:index id=compatibility-adapter.read-cross-db-projection domain=cli/lib summary=projection_state の cross-db read helper skeleton
+# @helix:index id=compatibility-adapter.read-cross-db-projection domain=cli/lib summary=projection_state の cross-db read helper
 def read_cross_db_projection(projector_id: str, db_name: str) -> dict[str, Any] | None:
-    """Read a projection snapshot through the approved helper boundary.
-
-    Phase 4.A.1 keeps this helper as a skeleton so application code has a
-    stable import target before the real cross-db snapshot path lands in Sprint
-    4.A.2. The final implementation will use a direct sqlite connection to the
-    target db and must not rely on ATTACH from the application layer.
-    """
+    """Read a projection snapshot through the approved helper boundary."""
     if not projector_id:
         raise ValueError("projector_id must not be empty")
+    if projector_id not in _KNOWN_PROJECTORS:
+        raise ValueError(
+            f"unknown projector_id '{projector_id}'. known: {sorted(_KNOWN_PROJECTORS)}"
+        )
     _validate_db_name(db_name)
-    logger.debug(
-        "compatibility_adapter: read_cross_db_projection(%s, %s) is a Phase 4.A.1 skeleton.",
-        projector_id,
-        db_name,
-    )
-    return None
+    db_path = Path(_db_path_for(db_name))
+    if not db_path.exists():
+        logger.warning(
+            "compatibility_adapter: projection db is missing for projector_id=%s db_name=%s path=%s",
+            projector_id,
+            db_name,
+            db_path,
+        )
+        return None
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            """
+            SELECT snapshot
+            FROM projection_state
+            WHERE projector_id = ? AND db_name = ?
+            """,
+            (projector_id, db_name),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    if row is None or row["snapshot"] is None:
+        return None
+    return json.loads(row["snapshot"])

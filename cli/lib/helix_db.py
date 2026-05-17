@@ -33,6 +33,11 @@ try:
 except ImportError:  # pragma: no cover
     from concurrent_lock import file_lock
 
+try:
+    from .migrations import v31_db_separation, v32_detector_runs
+except ImportError:  # pragma: no cover
+    from migrations import v31_db_separation, v32_detector_runs
+
 
 SCHEMA = """
 -- タスク実行ログ
@@ -230,7 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 30
+CURRENT_SCHEMA_VERSION = 32
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -1874,6 +1879,10 @@ def migrate(conn):
             conn.execute(
                 "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (30, datetime('now'))"
             )
+        if current < 31:
+            v31_db_separation.migrate_v30_to_v31(conn)
+        if current < 32:
+            v32_detector_runs.migrate_v31_to_v32(conn)
         conn.commit()
 
 
