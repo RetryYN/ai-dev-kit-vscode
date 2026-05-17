@@ -215,15 +215,20 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 | 6 | cli/lib/http_api/routes/push_pr.py | ≥1 | backend.db (automation_run) |
 | 7 | cli/lib/http_api/routes/hooks.py | ≥1 | backend.db (audit_log) |
 | 8 | cli/lib/http_api/routes/telemetry.py | ≥1 | backend.db (session_telemetry) |
+| 9 | cli/helix-pr (top-level CLI) | 2 | backend.db (automation_run) |
+| 10 | cli/helix-push (top-level CLI) | 2 | backend.db (automation_run) |
+| 11 | cli/helix-agent (top-level CLI、embed Python) | 1 | orchestration.db (agent_slots) |
 
-合計: **8 file + 25+ 箇所** (helix_db.py 自身は adapter 定義側で除外)。
+合計: **11 file (lib 8 + top-level CLI 3) + 30+ 箇所** (helix_db.py 自身は adapter 定義側で除外、tl-advisor Round 2 important #2 反映で top-level CLI 3 file 追加)。
+
+**棚卸し方針**: 単発 grep で凍結せず、`grep -rln "_write_connection" cli/` を Phase 4.A 着手時に再実行して本表に未列挙の callsite が無いことを検証対象とする。`tests/` 配下と `helix_db.py` 自身は adapter 定義側のため対象外、`cli/libexec/helix-session-start` は内部 helper として L3 で adapter 対象外の根拠を明記する (tl-advisor Round 2 carry)。
 
 **compatibility_adapter.py の責務**:
-- 既存 `helix_db._write_connection(None)` 呼び出しを 8 file 全てで透過的に 6 db 経路へ adapt
+- 既存 `helix_db._write_connection(None)` 呼び出しを 11 file (lib 8 + top-level CLI 3) 全てで透過的に 6 db 経路へ adapt
 - API 互換 100% 維持 (上位 file は変更不要、import 切替のみ)
 - dual-write 期間中: 旧 helix.db と新 6 db 両方に write、mismatch gate 検証
 - cutover 後: 旧 helix.db への write を停止、6 db のみへ
-- adapter 自身が compatibility_adapter テストで 8 file 全 path をカバー
+- adapter 自身が compatibility_adapter テストで 11 file (lib 8 + top-level CLI 3) 全 path をカバー
 
 ## 3. スコープ
 
@@ -248,11 +253,11 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 #### Phase 4: L4 実装 (3 sprint 分割、Round 2 Minor #6 反映)
 
 **Phase 4.A** (migration + compatibility adapter):
-- `cli/lib/compatibility_adapter.py` 新規 (§2.6 の 8 file × 25+ 箇所を adapt)
+- `cli/lib/compatibility_adapter.py` 新規 (§2.6 の 11 file (lib 8 + top-level CLI 3) × 30+ 箇所を adapt)
 - `cli/lib/helix_db_orchestration.py` / `helix_db_vmodel.py` / `helix_db_scrum.py` 新規 (6 db 接続)
 - `cli/lib/helix_db.py` 拡張: ATTACH DATABASE (migration/projector 内部限定)
 - migration script v30 → v31 (orchestration_events + projection_state + event_envelope table 追加、dual-write 開始)
-- adapter test (8 file 全 path PASS、API 互換 100% 確認)
+- adapter test (11 file (lib 8 + top-level CLI 3) 全 path PASS、API 互換 100% 確認)
 
 **Phase 4.B** (event_log + projector + dual-write):
 - `cli/lib/event_log.py` 新規 (event append + replay + envelope + correlation_id)
@@ -298,7 +303,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 | ① 設計 | L2 基本設計 + L3 詳細設計 | docs/v2/CONCEPT.md (§3-axis + §double-helix + §6-db-separation) + docs/adr/ADR-018 + ADR-019 + ADR-020 (cutover 判断) + docs/v2/L3-detailed-design/D-DB-SEPARATION.md + D-API-EVENT-SOURCING.md + D-DB-MIGRATION.md |
 | ② 実装コード | L4 実装 | cli/lib/event_log.py + projector.py + compatibility_adapter.py + helix_db_orchestration.py + helix_db_vmodel.py + helix_db_scrum.py + cli/lib/helix_db.py (ATTACH 拡張) + migration v30 → v31 + shadow replay script + cutover script |
 | ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-084-unit-test-design.md + PLAN-084-integration-test-design.md (Phase 3 で起票) |
-| ④ テストコード | L4 実装 | cli/lib/tests/test_event_log_unit.py + test_event_log_integration.py + test_projector_unit.py + test_projector_integration.py + test_compatibility_adapter.py (8 file × 25+ path) + test_db_separation_migration.py + test_shadow_replay.py + bats: tests/db-separation-cutover.bats + tests/dual-write-mismatch-gate.bats |
+| ④ テストコード | L4 実装 | cli/lib/tests/test_event_log_unit.py + test_event_log_integration.py + test_projector_unit.py + test_projector_integration.py + test_compatibility_adapter.py (11 file (lib 8 + top-level CLI 3) × 30+ path) + test_db_separation_migration.py + test_shadow_replay.py + bats: tests/db-separation-cutover.bats + tests/dual-write-mismatch-gate.bats |
 
 ## 5. 受入条件
 
@@ -307,7 +312,7 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 - Phase 1 完遂: 本 PLAN doc 完成 + `docs/v2/L1-REQUIREMENTS.md` §3.9 章追加 (本 doc §2 を転記)
 - Phase 2 完遂: CONCEPT.md / L2-MASTER.md 修正 + ADR-018 + ADR-019 起票 + tl-advisor adversarial check PASS
 - Phase 3 完遂: D-DB-SEPARATION + D-API-EVENT-SOURCING + D-DB-MIGRATION (本 doc §2.5/§2.6 を詳細化) + 単体/結合 test 設計起票
-- Phase 4.A 完遂: compatibility adapter + 6 db 接続 + migration v30 → v31 + adapter test 8 file × 25+ path PASS
+- Phase 4.A 完遂: compatibility adapter + 6 db 接続 + migration v30 → v31 + adapter test 11 file (lib 8 + top-level CLI 3) × 30+ path PASS
 - Phase 4.B 完遂: event_log + projector + dual-write + mismatch gate + projector test
 - Phase 4.C 完遂: shadow replay PASS + cutover script + ADR-020 起票 + helix doctor 0 fail
 - pytest + bats 全 PASS、既存 ② 実行ハーネス機能 (PLAN-078〜083) 破壊なし
@@ -320,14 +325,14 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 | R-02 | projector lag による read 一貫性低下 | UI / CLI が古い state を表示 | §2.4 lag 警告境界 100 event / fail-close 1000 event + last_processed_event_id 監視 (PLAN-085 で detector 実装) |
 | R-03 | SQLite ATTACH DATABASE の性能劣化 | cross-db query が遅い | §2.2 ATTACH 許可範囲を migration/projector 内部に限定、性能 NFR < 100ms (L1、Phase 3 D-DB/D-API で正式 NFR に昇格予定) |
 | R-04 | phase.yaml と projector derived state の二重真実 | Phase 4.C cutover 判断ミス | Phase 4.C 末で「併存期間維持」または「phase.yaml 廃止」を ADR-020 で記録 |
-| R-05 | ② 実行ハーネス (agent_slots / harness_monitor 等) の破壊 | PLAN-078〜083 機能停止 | §2.6 compatibility adapter で 8 file × 25+ 箇所を adapt、API 互換 100% 維持、adapter test で全 path 検証 |
+| R-05 | ② 実行ハーネス (agent_slots / harness_monitor 等) の破壊 | PLAN-078〜083 機能停止 | §2.6 compatibility adapter で 11 file (lib 8 + top-level CLI 3) × 30+ 箇所を adapt、API 互換 100% 維持、adapter test で全 path 検証 |
 | R-06 | Event Sourcing 採用範囲の判断ミス (plan.db hybrid) | 中期的 re-architecture コスト | §2.3 6 軸判定 matrix + plan.db hybrid 具体形 (state snapshot + change log) を本文確定 |
 | R-07 | L 規模 PLAN の途中 cancel リスク | framework 中断で advisory 状態が長期化 | Phase 4 を 3 sprint (A/B/C) に分割で部分完遂可、advisory lint fail-close 化は本 PLAN scope から分離 |
 | R-08 | orchestration.db 過集中 (central event bus 化) | 全 db 暗黙 bus 化で責務分離崩壊 | §2.2 entity owner / canonical source / cross-db FK 禁止 を L1 明記、orchestration は event 中継のみで domain logic 持たない |
 | R-09 | Event Sourcing 採用基準不足 (1/3 条件のみで hybrid) | plan.db hybrid 根拠が後段で覆る | §2.3 6 軸判定 matrix で全 db 評価、各 db 根拠を ADR-018 で公開 |
 | R-10 | dual-write mismatch の沈黙故障 | 旧 db と新 event log の divergence | §2.5 dual-write mismatch gate (10000 write 連続 0 件、shadow replay 定期検証) |
 | **R-11** | **ATTACH 許可範囲の運用 drift** | アプリ層からの ATTACH 利用で cross-db FK 禁止規約が形骸化 | §2.2 で ATTACH 許可を migration/projector 内部に限定明記、Phase 3 D-API で ATTACH 利用箇所を全列挙、Phase 4 adapter test で禁止違反検出 |
-| **R-12** | **compatibility adapter の漏れ** | 8 file 以外で `_write_connection(None)` 利用が将来発生 | Phase 4.A で `helix code stats --uncovered` + grep CI gate を追加、新規 `_write_connection(None)` 利用に lint で警告 |
+| **R-12** | **compatibility adapter の漏れ** | 11 file (lib 8 + top-level CLI 3) 以外で `_write_connection(None)` 利用が将来発生 | Phase 4.A で `helix code stats --uncovered` + grep CI gate を追加、新規 `_write_connection(None)` 利用に lint で警告 |
 
 ## 7. 依存
 
@@ -339,7 +344,7 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 - PLAN-080 harness_monitor v30 schema (Phase 4.A で orchestration.db へ移動対象)
 - PLAN-083 Harness 自動統合 (Phase 4.A で API 互換維持必須)
 - 既存 helix.db v30 schema (orchestration_events / projection_state / event_envelope table 追加で v31 へ)
-- 既存 cli/lib/helix_db.py の `_write_connection(None)` pattern (8 file × 25+ 箇所、§2.6 列挙)
+- 既存 cli/lib/helix_db.py の `_write_connection(None)` pattern (11 file (lib 8 + top-level CLI 3) × 30+ 箇所、§2.6 列挙)
 
 ## 8. Next Action
 
@@ -377,6 +382,6 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 | #1 Critical | P1 | §2.3 本文 matrix | 6 軸判定 matrix を「Phase 1.3 委譲」から本 PLAN doc §2.3 本文に実データで埋め込み、plan.db hybrid 具体形を 4 項目で詳細化 |
 | #2 Critical | P1 | §2.5 本文 matrix | migration gate 表を 6 ゲート (順序 + 通過条件 + 停止条件 + owner) で本文確定、ゲート 1-3 = Codex se、4-6 = PM/PO の owner 区分 |
 | #3 Important | P2 | §2.4 本文 matrix | projector 同期許可リスト 3 件 (phase / gate / agent_slot)、timeout 200ms、fallback (async enqueue)、lag 警告 100 / fail-close 1000 event、lag 時 read 挙動を本文確定 |
-| #4 Important | P2 | §2.6 本文 + §3.1 Phase 4.A | compatibility adapter 対象を grep 実行で確定 (8 file × 25+ 箇所)、scrum_local / reverse_local / http_api/routes 4 件を追加、Phase 4.A で adapter test 全 path 検証 |
+| #4 Important | P2 | §2.6 本文 + §3.1 Phase 4.A | compatibility adapter 対象を grep 実行で確定 (11 file (lib 8 + top-level CLI 3) × 30+ 箇所)、scrum_local / reverse_local / http_api/routes 4 件を追加、Phase 4.A で adapter test 全 path 検証 |
 | #5 Important | P2 | §2.2 + §6 R-11 | cross-db FK 禁止 vs ATTACH の衝突を契約化、ATTACH 許可範囲を migration/projector 内部に限定、R-11 (ATTACH drift) 独立 |
 | #6 Minor | P3 | §4 Phase 4 分割 / §6 R-12 | Phase 4 を 4.A/4.B/4.C の 3 sprint に分割、合計 8-14 セッション。compatibility adapter 漏れ R-12 を独立 |

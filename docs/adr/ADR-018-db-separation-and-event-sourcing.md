@@ -81,13 +81,15 @@ helix.db を 6 個の SQLite file に物理分離する。各 db は独立した
 | cross-db FK | **禁止**。SQLite ATTACH 下でも foreign key 制約は db 内に閉じる |
 | 許可される cross-db 参照 | projection_state table 経由のみ (snapshot を read) |
 | ATTACH 許可範囲 | **migration script + projector 内部のみ**。アプリケーション層 (cli/helix-*) からの ATTACH は禁止。必要な cross-db 参照は projection_state 経由とする |
-| event envelope | 全 event は `{ event_id, aggregate_id, db_name, event_type, payload, correlation_id, occurred_at }` の envelope に統一 |
+| event envelope | 全 event は `{ event_id, aggregate_id, aggregate_type, db_name, event_type, payload, correlation_id, occurred_at }` の envelope に統一 |
+| event_id | **global unique** (UUID v7 推奨)。`{db_name, event_id}` の composite key で identity を保証する |
+| aggregate identity | aggregate key は `{db_name, aggregate_type, aggregate_id}` の **composite key**。`aggregate_id` 単体での global uniqueness は要求しない (db 内 uniqueness のみ)。L3 契約で詳細 schema を確定 (tl-advisor Round 2 important #3 反映、carry: L3 で event envelope schema 確定) |
 | correlation_id | cross-db trace に必須。orchestration.db で発行し、他 db の event は orchestration の correlation_id を継承する |
 | domain logic 配置 | orchestration.db は event 中継のみ担当し、domain logic を持たない (過集中防止) |
 
 **Reverse 例外** (G-07 境界明示、FR-DB-SEP-07 準拠): Reverse 機能 (R0-R4 + RGC) は record strand を持たない例外として扱う。既存 code / 設計の逆引きであり、新規 event 生成を伴わないため event log への write 対象外とする (read のみ)。Reverse は "artifact strand を逆方向に辿る操作" であり、orchestration event log への write は発生しない。
 
-**[破壊的変更フラグ]** 既存の `helix_db._write_connection(None)` を直接呼び出す 8 file は、compatibility_adapter.py が適用されるまでの dual-write 期間中は旧 helix.db への write で動作を維持する。adapter 適用後の 6 db 分離環境では、adapter なしの raw 呼び出しは動作しなくなる。
+**[破壊的変更フラグ]** 既存の `helix_db._write_connection(None)` を直接呼び出す 11 file (lib 8 + top-level CLI 3) は、compatibility_adapter.py が適用されるまでの dual-write 期間中は旧 helix.db への write で動作を維持する。adapter 適用後の 6 db 分離環境では、adapter なしの raw 呼び出しは動作しなくなる。
 
 ### 2. Event Sourcing 6 軸判定 + ハイブリッド採用 (G-02 / FR-DB-SEP-02)
 
@@ -122,7 +124,7 @@ helix.db を 6 個の SQLite file に物理分離する。各 db は独立した
 - **同期方針**: state update と change log append は同一 transaction とし、不整合は migration mismatch gate と同じ機構で検出する
 - **projector 不要**: plan.db 内で state と change log の両方を持つため外部 projector は不要。event-sourced 3 db は projection_state を別 table で持つが、plan.db は内部完結
 
-**L2-MASTER.md との整合**: L2-MASTER.md:36 が "Event Sourcing 含めない" と明示除外していた箇所は、本 ADR の採択をもって "採用 (6 軸判定により条件付き)" に修正される。orchestration / vmodel / scrum の 3 db に限定した event-sourced 採用であり、全面的な事後採用とは区別する。L2-MASTER.md の修正は Phase 2.1 (CONCEPT.md 更新と同時) で実施する。
+**L2-MASTER.md との整合**: L2-MASTER.md:36 の旧 "Event Sourcing 含めない / L2 工程群確定後の話題" 記述は、本 ADR の採択と同時 (commit d5bae22) に "Event Sourcing / projector / ADR-018/019 で扱う / PLAN-084 で L1 確定" へ修正済み。orchestration / vmodel / scrum の 3 db に限定した event-sourced 採用であり、全面的な事後採用とは区別する。
 
 ### 3. projector 境界 (G-03 / FR-DB-SEP-03)
 
@@ -208,7 +210,7 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 
 - 既存 ② 実行ハーネス機能 (PLAN-078〜083) は dual-write 期間中も 100% 機能維持
 - shadow replay 検証は migration 期間中常時稼働 (一度 PASS して終わりではなく、継続的に実施)
-- compatibility_adapter.py が API 互換 100% を担保するまで、既存 8 file への変更は禁止
+- compatibility_adapter.py が API 互換 100% を担保するまで、既存 11 file (lib 8 + top-level CLI 3) への変更は禁止
 
 **compatibility adapter 対象 file 一覧** (`grep -rln "_write_connection" cli/` 2026-05-17 実行結果、tl-advisor Round 1 #1 反映で top-level CLI 追加):
 
@@ -234,11 +236,11 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 
 **compatibility_adapter.py の責務**:
 
-- 既存 `helix_db._write_connection(None)` 呼び出しを 8 file 全てで透過的に 6 db 経路へ adapt
-- API 互換 100% 維持 (上位 8 file は import 切替のみ、内部ロジック変更不要)
+- 既存 `helix_db._write_connection(None)` 呼び出しを 11 file (lib 8 + top-level CLI 3) 全てで透過的に 6 db 経路へ adapt
+- API 互換 100% 維持 (上位 11 file (lib 8 + top-level CLI 3) は import 切替のみ、内部ロジック変更不要)
 - dual-write 期間中: 旧 helix.db と新 6 db 両方に write し、mismatch gate 検証に使用
 - cutover 後: 旧 helix.db への write を停止し、6 db のみへ転送
-- adapter 自身が unit test で 8 file 全 path をカバー (Phase 4.A Exit 条件)
+- adapter 自身が unit test で 11 file (lib 8 + top-level CLI 3) 全 path をカバー (Phase 4.A Exit 条件)
 
 ## Consequences
 
@@ -249,25 +251,25 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 - **replay 可能性**: event log から任意時点の状態を再構築できる。projector を差し替えることで read model の形式を変更できる (backward compatibility 不要)。障害時の状態復元が event log replay で完結し、バックアップリストアに依存しない
 - **entity ownership の明確化**: 6 db の canonical entity 表により「どの data がどの db に属するか」が単一の正本で判定できる。コードレビューで entity ownership 違反を早期検出できる。新機能追加時に entity の配置先判断が ownership 表で即決される
 - **cross-db 参照の制御**: projection_state 経由のみを許可することで、cross-db JOIN の暗黙的依存が排除され、db 間の独立性が保たれる。各 db が独立して schema migration 可能になり、vmodel.db の schema 変更が orchestration.db に波及しない
-- **compatibility adapter による安全な段階移行**: 既存 8 file を変更せず adapter 経由で 6 db へ移行できるため、既存テスト (pytest 1622+ / bats / shell) の PASS 維持が容易。dual-write 期間中の mismatch gate により、divergence を検出して cutover を安全に制御できる
+- **compatibility adapter による安全な段階移行**: 既存 11 file (lib 8 + top-level CLI 3) を変更せず adapter 経由で 6 db へ移行できるため、既存テスト (pytest 1622+ / bats / shell) の PASS 維持が容易。dual-write 期間中の mismatch gate により、divergence を検出して cutover を安全に制御できる
 - **④ 問題発見配備の前提整備**: 6 db 分離が完成することで PLAN-085 (detector 本格配備) が record strand anomaly を db 単位で独立して監視できるようになる。単一 helix.db では db 横断 anomaly の原因特定が困難だった
 
 ### Negative
 
 - **migration 工数増**: 6 段階の migration gate と shadow replay 検証の実装により、Phase 4 が 4.A (migration + adapter) / 4.B (event_log + projector + dual-write) / 4.C (shadow replay + cutover) の 3 sprint に分割される (tl-advisor Round 2 Minor #6 反映)。8-12 セッションの見込みが 8-14 セッションに拡大する
-- **projector lag 管理必須**: 同期 projector 3 件の timeout 200ms 管理と lag 境界 (WARN 100 / fail-close 1000 event) の常時監視が運用コストを増加させる。harness_monitor への統合が Phase 4.B に追加され、lag > 1000 event が発生すると G2/G3/G4 が block されるため、開発フローが停止するリスクを常に持つ
-- **compatibility adapter 8 file 追加**: adapter 経由で API 互換を維持するが、dual-write 期間中は旧 helix.db と新 6 db の両方に write するため I/O 負荷が一時的に増加する (ゲート 5 cutover 後に解消)。adapter layer が中間に入ることでデバッグ時のトレースが複雑になる
+- **projector lag 管理必須**: 同期 projector 3 件の timeout 200ms 管理と lag 境界 (WARN 100 / fail-close 1000 event) の常時監視が運用コストを増加させる。harness_monitor への統合は Phase 4.B に追加され、**Phase 4.B (projector + harness_monitor 有効化) 以降**で lag > 1000 event が発生すると G2/G3/G4 が block されるため、開発フローが停止するリスクを常に持つ。Phase 4.B 完成までは本 lag fail-close は不適用 (Phase 4.A の dual-write 中は projector 未稼働のため block 発火対象外)
+- **compatibility adapter 11 file (lib 8 + top-level CLI 3) 追加**: adapter 経由で API 互換を維持するが、dual-write 期間中は旧 helix.db と新 6 db の両方に write するため I/O 負荷が一時的に増加する (ゲート 5 cutover 後に解消)。adapter layer が中間に入ることでデバッグ時のトレースが複雑になる
 - **6 db ファイル管理**: 単一 helix.db から 6 file への移行でバックアップ・リストア・デプロイ手順が複雑化する。`.helix/` 配下のファイル命名規則の更新が必要。テスト環境での 6 db セットアップが pytest fixture の変更を伴う可能性がある
 - **phase.yaml との二重真実**: Phase 4.C cutover 完了まで、phase.yaml (既存) と orchestration.db projection_state が並存し、二重真実状態になる。ADR-020 (cutover 後の phase.yaml 廃止判断) で解決するが、それまでの期間は両者の整合性を運用で保証する必要がある
 
 ### Risks
 
-- **projector 同期失敗時の gate block**: projector lag が 1000 event を超えると G2/G3/G4 の gate 通過判定が全て block される。harness_monitor による lag 監視の実装が G2 前に完成していない場合、開発プロセス全体が停止するリスク
-  - 緩和策: Phase 4.B で projector lag 監視を harness_monitor 統合と同時実装する。Phase 4.A の adapter 先行実装中に lag 監視の skeleton (last_processed_event_id 記録) を準備する
+- **projector 同期失敗時の gate block** (**Phase 4.B 以降適用**): projector lag が 1000 event を超えると G2/G3/G4 の gate 通過判定が全て block される。本 fail-close は **Phase 4.B (projector + harness_monitor 有効化) 以降にのみ適用** され、Phase 4.A 完成までの G2/G3 評価は本 ADR の設計 artifact 存在・契約整合の確認のみで行う。harness_monitor による lag 監視の実装が Phase 4.B 完成時点で機能していない場合、開発プロセス全体が停止するリスク
+  - 緩和策: Phase 4.B で projector lag 監視を harness_monitor 統合と同時実装する。Phase 4.A の adapter 先行実装中に lag 監視の skeleton (last_processed_event_id 記録) を準備する。Phase 4.B 完成までは fail-close 不適用とすることで、設計 phase (G2/G3) の評価が runtime 未実装に阻害されないよう分離する
 - **dual-write 期間中の mismatch 発見遅延**: divergence gate は 10000 write 連続の監視であり、実際の divergence 発見まで時間を要する場合がある
   - 緩和策: shadow replay (gate 3) を gate 2 と並行稼働させ、divergence を早期検出する。divergence 検出時のアラートを harness_monitor_events に記録し PM に即時通知する
-- **compatibility_adapter.py の API 互換失敗**: 8 file × 25+ 箇所の adapter 適用で一部の呼び出しが新 db 経路に正しくルーティングされない場合、既存テストが破損する
-  - 緩和策: adapter テストで 8 file 全 path をカバーし、API 互換 100% を Phase 4.A Exit 条件とする。既存テスト suite (pytest / bats) を adapter 適用後に全回帰する
+- **compatibility_adapter.py の API 互換失敗**: 11 file (lib 8 + top-level CLI 3) × 30+ 箇所の adapter 適用で一部の呼び出しが新 db 経路に正しくルーティングされない場合、既存テストが破損する
+  - 緩和策: adapter テストで 11 file (lib 8 + top-level CLI 3) 全 path をカバーし、API 互換 100% を Phase 4.A Exit 条件とする。既存テスト suite (pytest / bats) を adapter 適用後に全回帰する
 
 ## Alternatives considered
 
@@ -323,4 +325,4 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 - `docs/v2/L1-REQUIREMENTS.md §3.9` (FR-DB-SEP-01〜09 / AC-DB-SEP-01〜07)
 - tl-advisor Round 1-3 反映: 同期許可リスト 3 件確定 (Round 2 #3)、Phase 4 を 3 sprint 分割 (Round 2 Minor #6)、6 軸判定 matrix 本文埋め込み (Round 2 Critical #1)
 - `cli/lib/helix_db.py` (compatibility adapter の参照元、`_write_connection` pattern)
-- `docs/v2/CONCEPT.md` (L2-MASTER.md:36 の "Event Sourcing 含めない" 記述、Phase 2.1 で修正対象)
+- `docs/v2/L2-MASTER.md:36` (旧 "Event Sourcing 含めない" 記述、本 ADR 採択時 commit d5bae22 で "ADR-018/019 で扱う" へ修正済み)

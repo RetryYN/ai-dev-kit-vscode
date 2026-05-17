@@ -186,9 +186,13 @@ HELIX の設計判断は以下の 3 軸で構成され、**順序は固定**:
 | 対象 | 整合確認内容 | 優先度 |
 |---|---|---|
 | PLAN-079 SRF | 「Scrum → Reverse → Forward chain」の「らせん」用法が本 ADR と矛盾しないか確認 | P3 |
-| CONCEPT.md §3 | 3 軸トライアングルの既存記述と本 ADR §Decision.3 の整合確認 + §double-helix-strand セクション追加 | P2 |
+| CONCEPT.md §3 | 「2 Base 軸 + 付随基盤」現状記述に §3-axis-triangle + §double-helix-strand 章を Phase 2.2 で追記、本 ADR §Decision.3 を引用 | P2 |
 | docs/plans/PLAN-084-*.md | G-08 参照箇所が本 ADR の section 番号と一致するか確認 | P2 |
+| docs/operator/helix-spiral-operations.md | 「helix-spiral / らせん」用法が本 ADR の HELIX 命名運用ガイドと矛盾しないか確認 (tl-advisor Round 2 minor #5 反映) | P3 |
+| docs/plans/PLAN-027-*.md | 「entries / links」基盤の strand 概念表記が本 ADR の artifact strand × record strand 命名と整合するか確認 | P3 |
+| docs/plans/PLAN-078-*.md | agent_slots 関連の「らせん」用法 (もしあれば) が本 ADR の塩基対モデルと整合するか確認 | P3 |
 | memory ファイル群 | [[project_2026_05_15_helix_spiral_final_form]] 等の記述と本 ADR の乖離チェック | P3 |
+| 包括的棚卸し | `rg "らせん\|strand\|helix" docs/ skills/ memory/` を Phase 2 完了時に全件棚卸し、本表に未列挙の用例も確認 (broaden 方針、tl-advisor Round 2 minor #5 反映) | P3 |
 
 ---
 
