@@ -6,12 +6,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 0
 
 threshold="${HELIX_CONTEXT_COMPACT_THRESHOLD:-0.70}"
+session_id="$(timeout 3 python3 -m cli.lib.session_helper 2>/dev/null || echo "")"
 result_json='{}'
 
 if command -v timeout >/dev/null 2>&1; then
-  result_json="$(timeout 5 python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" 2>/dev/null)" || result_json='{}'
+  result_json="$(timeout 5 python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" --release-running --session-id "${session_id}" 2>/dev/null)" || result_json='{}'
 else
-  result_json="$(python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" 2>/dev/null)" || result_json='{}'
+  result_json="$(python3 -m cli.lib.handover_auto_dump auto-dump --json --threshold "$threshold" --release-running --session-id "${session_id}" 2>/dev/null)" || result_json='{}'
 fi
 
 parsed="$(
@@ -50,6 +51,18 @@ print(
 PY
 )"
 
+released_count=$(printf '%s' "$result_json" | RESULT_JSON="$result_json" python3 - <<'PY' 2>/dev/null
+import json
+import os
+
+try:
+    payload = json.loads(os.environ.get("RESULT_JSON", "{}"))
+except (TypeError, json.JSONDecodeError):
+    payload = {}
+print(int(payload.get("released_count", 0) or 0))
+PY
+)
+
 IFS=$'\t' read -r recommend ok revision pct threshold_pct <<<"$parsed"
 
 if [[ "${ok:-no}" != "yes" ]]; then
@@ -61,6 +74,10 @@ elif [[ "${recommend:-no}" == "yes" ]]; then
 EOF
 else
   echo "[HELIX] handover/CURRENT.json updated"
+fi
+
+if [[ "$released_count" -gt 0 ]]; then
+  echo "[HELIX] session ${session_id} の running slot ${released_count} 件を cancelled で release"
 fi
 
 exit 0

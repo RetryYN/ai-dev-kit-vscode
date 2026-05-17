@@ -15,6 +15,8 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from cli.lib import handover as handover_core
+from cli.lib import session_helper
+from cli.lib import agent_slots
 
 DEFAULT_THRESHOLD = 0.70
 DEFAULT_MESSAGE_LIMIT = 2000
@@ -55,6 +57,23 @@ def _session_line_count() -> tuple[int | None, float | None]:
     return line_count, min(line_count / limit, 1.0)
 
 
+def _release_running_slots_for_session(session_id: str | None) -> int:
+    if not session_id:
+        return 0
+    released = 0
+    try:
+        slots = [s for s in agent_slots.list_active_slots() if s.get("session_id") == session_id]
+    except Exception:
+        return 0
+    for slot in slots:
+        try:
+            agent_slots.release_slot(slot["id"], status="cancelled")
+        except Exception:
+            continue
+        released += 1
+    return released
+
+
 def _build_summary(state: dict[str, Any], dirty_lines: list[str], commits: list[str]) -> str:
     task = state.get("task", {})
     pending = state.get("files", {}).get("pending", [])
@@ -83,6 +102,8 @@ def auto_dump_current(
     *,
     helix_dir: Path | None = None,
     detect_compact_threshold: float = DEFAULT_THRESHOLD,
+    release_running_slots: bool = False,
+    release_session_id: str | None = None,
 ) -> dict[str, Any]:
     project_root = _project_root_from_helix_dir(helix_dir)
     current_json = project_root / ".helix" / "handover" / "CURRENT.json"
@@ -101,6 +122,12 @@ def auto_dump_current(
         updated["git"]["dirty"] = bool(dirty_lines)
         updated["updated_at"] = handover_core.now_iso()
         updated["revision"] = int(state.get("revision", 0)) + 1
+        release_session = release_session_id or (None if not release_running_slots else session_helper.detect_session_id())
+        released_count = (
+            _release_running_slots_for_session(release_session)
+            if release_running_slots
+            else 0
+        )
         handover_core.validate_state(updated)
         handover_core.atomic_write_json_with_revision(
             current_json,
@@ -112,6 +139,8 @@ def auto_dump_current(
             "revision": updated["revision"],
             "compact_recommended": recommendation["compact_recommended"],
             "context_pct_estimate": recommendation["context_pct_estimate"],
+            "released_count": released_count,
+            "session_id": release_session,
             "summary": _build_summary(updated, dirty_lines, commits),
         }
     except Exception as exc:
@@ -144,6 +173,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_auto = sub.add_parser("auto-dump")
     p_auto.add_argument("--json", action="store_true")
     p_auto.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
+    p_auto.add_argument("--release-running", action="store_true")
+    p_auto.add_argument("--session-id", default=None)
 
     p_compact = sub.add_parser("recommend-compact")
     p_compact.add_argument("--json", action="store_true")
@@ -156,7 +187,11 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.cmd == "auto-dump":
         return _print_result(
-            auto_dump_current(detect_compact_threshold=args.threshold),
+            auto_dump_current(
+                detect_compact_threshold=args.threshold,
+                release_running_slots=args.release_running,
+                release_session_id=args.session_id,
+            ),
             args.json,
         )
     if args.cmd == "recommend-compact":
