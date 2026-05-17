@@ -178,7 +178,14 @@ class EventEnvelope:
     DB INSERT 時刻 (record 時刻) とは別物。§6 参照。"""
 
     def to_sqlite_row(self) -> tuple[str, str, str, str, str, str, str, str]:
-        """SQLite event_envelope table への INSERT 用 tuple に変換する。
+        """SQLite event_envelope table への INSERT 用 tuple に変換する (8 列、tl-advisor L3 review Round 2 P1 #3 反映)。
+
+        **serializer は 8 列契約**: domain object と DB schema の対応は以下:
+        - 本 serializer の 8 列: event_id / aggregate_id / aggregate_type / db_name / event_type / payload_json / correlation_id / occurred_at
+        - DB schema は 9 列 (D-DB-SEP §3.1): 上記 8 列 + `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`
+        - **created_at は DB-only**: INSERT 時に SQL の DEFAULT で自動付与、本 serializer / EventEnvelope dataclass は持たない
+        - INSERT 文は明示列 8 個を指定 (例: `INSERT INTO event_envelope (event_id, aggregate_id, ...) VALUES (?,?,?,?,?,?,?,?)`)
+        - SELECT 文も明示列 8 個を指定 (`SELECT event_id, aggregate_id, ... FROM event_envelope` で created_at を除外)
 
         Returns:
             (event_id, aggregate_id, aggregate_type, db_name,
@@ -313,13 +320,13 @@ ADR-018 §Decision.1 は `event_id` を「global unique (UUID v7 推奨)」と�
 
 ### 3.2 Python library 選択方針
 
-Python 標準では UUID v7 は Python 3.13+ でのみ提供予定 (PEP 768 相当)。HELIX の Python バージョン要件が 3.12 以下の場合、外部ライブラリまたは自前実装が必要となる。
+Python 標準では UUID v7 は **Python 3.14+** で `uuid.uuid7()` として提供される (RFC 9562)。HELIX のローカル環境は Python 3.12.3 のため stdlib 採用不可、外部ライブラリまたは自前実装が必要 (tl-advisor L3 review Round 2 P2 反映、公式 docs https://docs.python.org/3.14/library/uuid.html 参照)。
 
 | 選択肢 | pros | cons |
 |---|---|---|
 | `uuid7` (PyPI: uuid7-py または uuid7 package) | 軽量、依存最小、MIT ライセンス | 依存追加 (1 件) |
 | 自前実装 (`time.time_ns()` + `os.urandom()`) | 依存なし、HELIX 内完結 | RFC 9562 準拠の確認が必要 |
-| Python 3.13+ `uuid.uuid7()` | stdlib、追加依存なし | Python バージョン要件引き上げ |
+| Python 3.14+ `uuid.uuid7()` | stdlib、追加依存なし | Python バージョン要件引き上げ (3.12.3 では不可) |
 
 **Phase 4.A での確定事項** (carry #1):
 1. HELIX の Python バージョン要件を確認する
@@ -674,9 +681,10 @@ occurred_at: str = datetime.now(timezone.utc).isoformat()
 |---|---|---|
 | ① 設計 (本文書) | `docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md` | Phase 3 draft |
 | ② 実装コード | `cli/lib/event_envelope.py` | Phase 4.B 実装 (carry) |
-| ③ 単体テスト設計 | `cli/lib/tests/test_event_envelope_unit.py` (設計) | Phase 4.B 起票 (carry) |
-| ③ 結合テスト設計 | `cli/lib/tests/test_event_envelope_integration.py` (設計) | Phase 4.B 起票 (carry) |
-| ③ cross-db trace テスト設計 | `cli/lib/tests/test_correlation_cross_db.py` (設計) | Phase 4.B 起票 (carry) |
+| ③ 単体テスト設計 | `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT-001〜010) + §4 (U-UUID-001〜005) + §5 (U-CORR-001〜005) | Phase 3.4 起票済 (commit ff04129) |
+| ③ 結合テスト設計 | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §5 (I-CORR-001〜006) | Phase 3.4 起票済 (commit ff04129) |
+| ④ 単体テストコード | `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid_v7_generator.py` / `test_correlation_context.py` | Phase 4.B 起票 (carry) |
+| ④ 結合テストコード | `cli/lib/tests/test_correlation_cross_db.py` | Phase 4.B 起票 (carry) |
 | ④ テストコード | 上記テストファイルの実装 | Phase 4.B 実装 (carry) |
 
 ### 双方向 trace 宣言

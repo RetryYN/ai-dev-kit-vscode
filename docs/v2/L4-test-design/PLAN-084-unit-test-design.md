@@ -199,15 +199,18 @@ Phase 4.A/4.B で実装する単体テスト群の設計を確定し、Codex qa 
 - **期待**: `read_cross_db_projection(...)` → `None`。例外が raise されない
 - **受入条件**: 戻り値が `None`。WARNING log が出力される
 
-#### U-ADAPTER-014: unknown caller の fail-close 動作 (tl-advisor L3 review P1 #3 反映)
+#### U-ADAPTER-014: unknown caller の fail-close 動作 (tl-advisor L3 review Round 2 P1 #2 反映、production fail-close 主契約)
 
-- **対象**: D-API-SEP §2.2 `_route_to_db` unknown caller fallback + Phase 4.A mapping 完全性検証後の fail-close 方針
-- **入力**: `caller_file = "unknown_module.py"`, `caller_func = "unknown_func"` (mapping に存在しない)
+- **対象**: D-API-SEP §2.2 `_route_to_db` unknown caller の **production default = fail-close**、discovery mode のみ fallback
+- **入力**: `caller_file = "unknown_module.py"`, `caller_func = "unknown_func"` (`_FILE_TO_DB` に存在しない、table prefix も該当なし)
 - **期待**:
-  - **Phase 4.A 現在** (mapping 未確定段階): `"orchestration"` へ fallback し WARNING log を出力する。例外は raise しない
-  - **Phase 4.A 完了後** (mapping 完全確定後): `_FILE_TO_DB` に存在しない caller を `ValueError` で reject する fail-close に切り替える (carry §7 #1)
-- **受入条件**: フォールバック動作時 — WARNING log が出力され `"orchestration"` が返る。fail-close 動作時 — `ValueError` または `RuntimeError` が raise される
-- **Phase 4.A carry**: fail-close への切り替え判断は mapping 完全版確定後 (D-API-SEP §7 carry #2 完了後) に PM が承認する
+  - **production default** (`HELIX_DB_DISCOVERY` 未設定 or `0`): `RuntimeError` を raise する fail-close (entity ownership 違反防止)。orchestration.db への fallback は **発生しない**
+  - **discovery mode** (`HELIX_DB_DISCOVERY=1`): `"orchestration"` へ fallback + WARNING log を出力。例外は raise しない (移行期の調査用途)
+- **受入条件**:
+  - production: `RuntimeError` が raise される + error message に「production fail-close (entity ownership 違反防止)」「`_FILE_TO_DB` mapping に追加するか、`HELIX_DB_DISCOVERY=1` で discovery mode を有効化してください」が含まれる
+  - discovery mode: WARNING log が出力され `"orchestration"` が返る + WARN message に「discovery mode」が含まれる
+- **test case 分割**: `pytest.mark.parametrize` で 2 環境 (`HELIX_DB_DISCOVERY=0` / `HELIX_DB_DISCOVERY=1`) を分岐 case として独立化
+- **D-API-SEP §2.2 / §2.5 整合**: 本 case は D-API-SEP §2.2 (実装契約) + §2.5 (error handling 表) と byte-level に一致する (Round 2 P1 #2 反映後)
 
 #### U-ADAPTER-015: cli/libexec/helix-session-start adapter 対象外 smoke
 
@@ -371,7 +374,7 @@ Phase 4.A/4.B で実装する単体テスト群の設計を確定し、Codex qa 
 
 #### U-UUID-005: generate_event_id() — Python 3.14+ stdlib 切替可能性確認
 
-- **対象**: D-CONTRACT-EVENT-draft §3.2 Python 3.13+ `uuid.uuid7()` (Python 3.14 相当)
+- **対象**: D-CONTRACT-EVENT-draft §3.2 Python 3.14+ `uuid.uuid7()` (RFC 9562、tl-advisor L3 review Round 2 P2 反映)
 - **入力**: `sys.version_info >= (3, 14)` の環境で `generate_event_id()` を呼ぶ
 - **期待**: `uuid.uuid7()` (stdlib) が呼ばれ、外部依存なしで動作する
 - **受入条件**: `uuid7` パッケージなしで UUID 形式の文字列が返る

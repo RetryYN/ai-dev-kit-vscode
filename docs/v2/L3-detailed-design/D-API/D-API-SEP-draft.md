@@ -288,7 +288,7 @@ SQLite ATTACH 下では cross-db transaction は単一 db に閉じる。以下�
 |---|---|---|
 | 旧 helix.db への write 失敗 | **critical** (例外を raise、呼び出し側に伝播) | N/A (旧 db への write なし) |
 | 新 6 db への write 失敗 | **WARN** (log のみ、処理継続) | **critical** (例外を raise) |
-| routing 先不明 (unknown caller) | **WARN** (orchestration.db へ fallback) | **WARN** (orchestration.db へ fallback) |
+| routing 先不明 (unknown caller) | **production default: `RuntimeError` fail-close** (entity ownership 違反防止) / `HELIX_DB_DISCOVERY=1` 環境変数で discovery mode 有効化時のみ WARN + orchestration.db fallback | 同左 (tl-advisor L3 review Round 2 P1 #2 反映、§2.2 と整合) |
 
 ---
 
@@ -592,7 +592,7 @@ Phase 4 実装で確定・実施する事項:
 |---|---|
 | **① 設計** (本文書) | D-API-SEP-draft-v0.1。L3 詳細設計 / 結合テスト設計レイヤー (L3 機能設計 → 単体テスト設計も含む) |
 | **② 実装コード** | `cli/lib/compatibility_adapter.py` (Phase 4.A 新規起票) |
-| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-adapter-test-design.md` (Phase 4.A 着手時に起票・reference 確定、現在 carry) |
+| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER-001〜015、Phase 3.4 起票済、commit ff04129) + `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §6 (I-SMOKE、top-level CLI smoke) |
 | **④ テストコード** | `cli/lib/tests/test_compatibility_adapter.py` (Phase 4.A) + `cli/tests/db_separation_smoke.bats` (Phase 4.A) |
 
 **双方向 trace**:

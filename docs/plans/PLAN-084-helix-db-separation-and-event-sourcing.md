@@ -245,8 +245,8 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 - L2-MASTER.md 該当箇所修正
 
 #### Phase 3: L3 詳細設計 (D-DB EXT + D-API EXT + migration plan)
-- `docs/v2/L3-detailed-design/D-DB-SEPARATION.md` 起票 (6 db 各 schema 設計 + event log table + projection_state table + event envelope + correlation_id)
-- `docs/v2/L3-detailed-design/D-API-EVENT-SOURCING.md` 起票 (event append API + projector read API + detector subscribe API + 同期許可リスト 3 件 + timeout / fallback / lag 境界 凍結)
+- `docs/v2/L3-detailed-design/D-DB-SEP-draft.md` 起票 (6 db 各 schema 設計 + event log table + projection_state table + event envelope + correlation_id)
+- `docs/v2/L3-detailed-design/D-API-SEP-draft.md` 起票 (event append API + projector read API + detector subscribe API + 同期許可リスト 3 件 + timeout / fallback / lag 境界 凍結)
 - `docs/v2/L3-detailed-design/D-DB-MIGRATION.md` 起票 (本 PLAN §2.5 migration gate 表 + §2.6 adapter file 一覧 を L3 で詳細化、shadow replay script 仕様、dual-write mismatch gate 仕様、rollback 手順)
 - `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` + `PLAN-084-integration-test-design.md` 起票
 
@@ -300,7 +300,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
-| ① 設計 | L2 基本設計 + L3 詳細設計 | docs/v2/CONCEPT.md (§3-axis + §double-helix + §6-db-separation) + docs/adr/ADR-018 + ADR-019 + ADR-020 (cutover 判断) + docs/v2/L3-detailed-design/D-DB-SEPARATION.md + D-API-EVENT-SOURCING.md + D-DB-MIGRATION.md |
+| ① 設計 | L2 基本設計 + L3 詳細設計 | docs/v2/CONCEPT.md (§3-axis + §double-helix + §6-db-separation) + docs/adr/ADR-018 + ADR-019 + ADR-020 (cutover 判断) + docs/v2/L3-detailed-design/D-DB-SEP-draft.md + D-API-SEP-draft.md + D-DB-MIGRATION.md |
 | ② 実装コード | L4 実装 | cli/lib/event_log.py + projector.py + compatibility_adapter.py + helix_db_orchestration.py + helix_db_vmodel.py + helix_db_scrum.py + cli/lib/helix_db.py (ATTACH 拡張) + migration v30 → v31 + shadow replay script + cutover script |
 | ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-084-unit-test-design.md + PLAN-084-integration-test-design.md (Phase 3 で起票) |
 | ④ テストコード | L4 実装 | cli/lib/tests/test_event_log_unit.py + test_event_log_integration.py + test_projector_unit.py + test_projector_integration.py + test_compatibility_adapter.py (11 file (lib 8 + top-level CLI 3) × 30+ path) + test_db_separation_migration.py + test_shadow_replay.py + bats: tests/db-separation-cutover.bats + tests/dual-write-mismatch-gate.bats |

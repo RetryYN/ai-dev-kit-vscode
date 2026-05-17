@@ -575,15 +575,17 @@ cli/lib/migrations/
 
 CREATE TABLE IF NOT EXISTS event_envelope (
     event_id        TEXT NOT NULL UNIQUE,
-    aggregate_id    TEXT NOT NULL,
-    aggregate_type  TEXT NOT NULL,
+    aggregate_id    TEXT NOT NULL CHECK(length(aggregate_id) > 0),
+    aggregate_type  TEXT NOT NULL CHECK(length(aggregate_type) > 0),
     db_name         TEXT NOT NULL CHECK (db_name IN ('orchestration','vmodel','scrum')),
-    event_type      TEXT NOT NULL,
+    event_type      TEXT NOT NULL CHECK(length(event_type) > 0),
     payload         JSON NOT NULL,
-    correlation_id  TEXT NOT NULL,
-    occurred_at     TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL CHECK(length(correlation_id) > 0),
+    occurred_at     TEXT NOT NULL CHECK(length(occurred_at) > 0),
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (db_name, event_id)
 );
+-- §3.1 と byte-level 一致 (tl-advisor L3 review Round 2 P1 #3 反映)
 
 CREATE TABLE IF NOT EXISTS projection_state (
     projector_id            TEXT NOT NULL,
@@ -691,7 +693,7 @@ carry 項目の優先度:
 |---|---|
 | **① 設計** (本文書) | D-DB-SEP-draft-v0.1。L3 詳細設計 / 結合テスト設計レイヤー |
 | **② 実装コード** | `cli/lib/migrations/v31_db_separation.py` + `cli/lib/projectors/*.py` (Phase 4.A/4.B 起票) |
-| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` (Phase 3 で起票予定) |
+| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §2 (I-MIGRATION) + §3 (I-DUALWRITE) + §4 (I-REPLAY) (Phase 3.4 起票済、commit ff04129) + `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER)
 | **④ テストコード** | `cli/lib/tests/test_db_separation_integration.py` (Phase 4.B) + `cli/lib/tests/test_shadow_replay.py` (Phase 4.C) |
 
 双方向 trace:
