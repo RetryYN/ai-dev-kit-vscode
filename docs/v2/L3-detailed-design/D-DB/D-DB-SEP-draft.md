@@ -12,6 +12,12 @@ related_adrs:
 related_plans:
   - PLAN-070 (D-DB-EXTENDED v25-v27 既存基盤)
   - PLAN-084 (本 PLAN、L2 ADR + L1 要件)
+sibling_docs:
+  - D-API-SEP-draft-v0.1 (Phase 3.2 起票、adapter API 正本、本 doc schema を adapter 経由で routing)
+  - D-CONTRACT-EVENT-draft-v0.1 (Phase 3.3 起票、event class 正本、本 doc §3 event_envelope schema を Python class 化)
+related_test_designs:
+  - PLAN-084-unit-test-design.md §2 (Phase 3.4 起票、U-ADAPTER-* / U-EVT-* で本 doc の table CRUD をカバー)
+  - PLAN-084-integration-test-design.md §2-§4 (Phase 3.4 起票、I-MIGRATION-* / I-DUALWRITE-* / I-REPLAY-* で本 doc §6 migration step をカバー)
 ---
 
 # PLAN-084 Phase 3: L3 D-DB 6 分離詳細設計 v0.1
@@ -362,13 +368,14 @@ event-sourced 3 db (orchestration / vmodel / scrum) 共通の event envelope。�
 ```sql
 CREATE TABLE IF NOT EXISTS event_envelope (
     event_id        TEXT NOT NULL UNIQUE,           -- UUID v7 (global unique)
-    aggregate_id    TEXT NOT NULL,                  -- db 内 unique
-    aggregate_type  TEXT NOT NULL,                  -- 'phase' / 'gate' / 'artifact' / 'hypothesis' / etc.
+    aggregate_id    TEXT NOT NULL CHECK(length(aggregate_id) > 0),
+    aggregate_type  TEXT NOT NULL CHECK(length(aggregate_type) > 0),
     db_name         TEXT NOT NULL CHECK (db_name IN ('orchestration','vmodel','scrum')),
-    event_type      TEXT NOT NULL,                  -- ドメイン固有 event 種別
+    event_type      TEXT NOT NULL CHECK(length(event_type) > 0),
     payload         JSON NOT NULL,                  -- application-specific (event_type 別の JSON schema は Phase 4.B で確定)
-    correlation_id  TEXT NOT NULL,                  -- cross-db trace (orchestration.db で発行、他 db は継承)
-    occurred_at     TEXT NOT NULL,                  -- ISO8601 (UTC)
+    correlation_id  TEXT NOT NULL CHECK(length(correlation_id) > 0),  -- cross-db trace、空文字拒否 (tl-advisor L3 review P2 #6 反映)
+    occurred_at     TEXT NOT NULL CHECK(length(occurred_at) > 0),    -- ISO8601 (UTC)
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,      -- SQLite INSERT 時刻 (occurred_at と別物、D-CONTRACT-EVENT §6.3 と整合、tl-advisor L3 review P2 #5 反映)
     PRIMARY KEY (db_name, event_id)
 );
 ```

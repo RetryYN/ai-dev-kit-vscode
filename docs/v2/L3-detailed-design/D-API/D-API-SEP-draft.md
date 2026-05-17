@@ -113,8 +113,8 @@ def write_connection(db_path: Optional[str] = None) -> Iterator[Connection]:
     db_path が指定された場合 (None 以外): 旧来の helix_db._write_connection(db_path) へ委譲。
     db_path=None の場合: caller の context (file path / function name / table name) から
     6 db 経路を自動 routing し、HELIX_DB_CUTOVER 環境変数に応じて
-    - 旧 helix.db のみ (cutover 後)
-    - 旧 helix.db + 新 6 db 両方 (dual-write 期間中)
+    - 旧 helix.db + 新 6 db 両方 (dual-write 期間中、HELIX_DB_CUTOVER=0)
+    - **新 6 db のみ** (cutover 後、HELIX_DB_CUTOVER=1。旧 helix.db への write は停止)
     への write を行う virtual connection を返す。
 
     呼び出し側の import 切替のみで動作するため、内部ロジック変更は不要。
@@ -196,7 +196,9 @@ _TABLE_PREFIX_TO_DB: dict[str, str] = {
 
 def _route_to_db(caller_file: str, caller_func: str) -> str:
     """caller の file path から canonical db を決定する。
-    file 直接マッピングが優先。未知の caller は orchestration.db へ fallback し WARN を出す。
+    file 直接マッピングが優先。未知の caller は HELIX_DB_DISCOVERY=1 (discovery mode)
+    でのみ orchestration.db に fallback + WARN、production では fail-close する。
+    (tl-advisor L3 review P1 #3 反映: entity ownership 破壊を防ぐ)
     """
     basename = Path(caller_file).name
     if basename in _FILE_TO_DB:
@@ -207,13 +209,20 @@ def _route_to_db(caller_file: str, caller_func: str) -> str:
         if prefix in caller_func.lower():
             return db_name
 
-    logger.warning(
-        "compatibility_adapter: unknown caller '%s' in '%s', "
-        "falling back to orchestration.db. "
-        "Add to _FILE_TO_DB mapping to suppress this warning.",
-        caller_func, caller_file
+    # production = fail-close、discovery mode のみ orchestration.db fallback + WARN
+    if os.environ.get("HELIX_DB_DISCOVERY") == "1":
+        logger.warning(
+            "compatibility_adapter (discovery mode): unknown caller '%s' in '%s', "
+            "falling back to orchestration.db. "
+            "Add to _FILE_TO_DB mapping before production deployment.",
+            caller_func, caller_file
+        )
+        return "orchestration"
+    raise RuntimeError(
+        f"compatibility_adapter: unknown caller '{caller_func}' in '{caller_file}'. "
+        f"production fail-close (entity ownership 違反防止)。"
+        f"_FILE_TO_DB mapping に追加するか、HELIX_DB_DISCOVERY=1 で discovery mode を有効化してください。"
     )
-    return "orchestration"
 ```
 
 ### 2.3 dual-write 期間中の I/O 経路
@@ -445,9 +454,12 @@ ATTACH DATABASE の使用が許可されるコンテキストは D-DB-SEP-draft 
 | 通常の lib helper | `cli/lib/agent_slots.py` / `cli/lib/harness_monitor.py` 等 |
 | compatibility_adapter.py 自身 | ATTACH を使わず db file に直接 connect することで cross-db read を実現 |
 
-**compatibility_adapter.py の cross-db read は ATTACH を使わない**: `read_cross_db_projection` は
-projection_state を read する際に ATTACH ではなく `sqlite3.connect(db_path)` で直接 db file に
-接続する。これにより allowlist 外でも cross-db read が可能になる (ATTACH 禁止規約を回避)。
+**compatibility_adapter.py の cross-db read は ATTACH を使わない公認 helper 経路**:
+`read_cross_db_projection` は projection_state を read する際に ATTACH ではなく
+`sqlite3.connect(db_path)` で直接 db file に接続する。これは ATTACH allowlist 制約を
+bypass するのではなく、**allowlist と無関係な別経路で cross-db read を実現** する設計。
+allowlist 外の caller (app 層 lib helper 等) からも安全に projection_state を read 可能
+(tl-advisor L3 review P3 反映、「回避」表現を「公認 helper 経路」に明確化)。
 
 ### 5.2 ATTACH 禁止 CI gate
 
@@ -560,6 +572,8 @@ Phase 4 実装で確定・実施する事項:
 | 10 | `HELIX_DB_CUTOVER` 環境変数の docs/runbook 起票 (cutover 手順 + rollback 手順) | Phase 4.C | PM |
 | 11 | HTTP API での `X-Projection-Lag: <n>` response header 付与 (lag > 100 event 時) | Phase 4.B | Codex se |
 | 12 | lint integration (ruff / pylint custom rule: ATTACH 禁止) 実装可否判断 | Phase 4.A | Codex se |
+| 13 | adapter test の受入条件: 「ラッパー / monkeypatch 適用後も `inspect.stack()[N]` の caller 判定がずれない」を `test_compatibility_adapter.py` に明示 (tl-advisor L3 review P3 反映、unit test 設計 U-ADAPTER-014/015 でカバー済) | Phase 4.A | Codex qa |
+| 14 | `inspect.stack()[2]` frame index 実測確定 (Python 実行環境での frame depth 検証、production 適用前に PM 承認、tl-advisor L3 review carry) | Phase 4.A | Codex se |
 
 **carry 優先度**:
 

@@ -306,7 +306,7 @@ ADR-018 §Decision.1 は `event_id` を「global unique (UUID v7 推奨)」と�
 | SQLite B-tree index | random insert で page split 多発 | 単調増加 insert で index 効率化 |
 | event log ORDER BY | `ORDER BY event_id` が non-deterministic | `ORDER BY event_id` で時系列 order と一致 |
 | 衝突確率 | ~2^-61 per event | ~2^-30 per ms (同一 ms 内の乱数部分) |
-| Python stdlib | `uuid.uuid4()` で生成可 | 標準では未提供 (Python 3.13+ で追加予定) |
+| Python stdlib | `uuid.uuid4()` で生成可 | 標準では未提供 (Python **3.14** で追加予定、tl-advisor L3 review P2 #4 反映) |
 | 可読性 | なし | 先頭 48 bit が timestamp、人間が大まかな時刻を読める |
 
 **採用決定**: UUID v7 を採用する。`event_id` の SQLite ORDER BY による時系列 sort が event log の基本操作であり、UUID v4 の random order は replay / projection の実装を複雑にする。
@@ -368,7 +368,7 @@ HELIX の想定イベント規模:
 | 1 日あたりの event (開発中) | ~500 件 |
 | 1 年あたりの event | ~180,000 件 |
 
-HELIX scale での衝突確率は事実上 0。UUID v7 の collision 対策として DB に `UNIQUE` 制約を設けることで検出可能 (D-DB-SEP-draft §3 の `event_id TEXT PRIMARY KEY` が対応)。
+HELIX scale での衝突確率は事実上 0。UUID v7 の collision 対策として DB に制約を設けることで検出可能 (D-DB-SEP-draft §3.1 の `event_id TEXT NOT NULL UNIQUE` + `(db_name, event_id) composite PRIMARY KEY` が対応、tl-advisor L3 review P2 #5 反映)。
 
 ### 3.5 generator 責務の境界
 
