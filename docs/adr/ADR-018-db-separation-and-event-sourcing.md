@@ -85,8 +85,6 @@ helix.db を 6 個の SQLite file に物理分離する。各 db は独立した
 | correlation_id | cross-db trace に必須。orchestration.db で発行し、他 db の event は orchestration の correlation_id を継承する |
 | domain logic 配置 | orchestration.db は event 中継のみ担当し、domain logic を持たない (過集中防止) |
 
-**Reverse 例外** (G-07 境界明示): Reverse 機能 (R0-R4 + RGC) は record strand を持たない例外として扱う。既存 code / 設計の逆引きであり、新規 event 生成を伴わないため event log への write 対象外とする (read のみ)。
-
 **Reverse 例外** (G-07 境界明示、FR-DB-SEP-07 準拠): Reverse 機能 (R0-R4 + RGC) は record strand を持たない例外として扱う。既存 code / 設計の逆引きであり、新規 event 生成を伴わないため event log への write 対象外とする (read のみ)。Reverse は "artifact strand を逆方向に辿る操作" であり、orchestration event log への write は発生しない。
 
 **[破壊的変更フラグ]** 既存の `helix_db._write_connection(None)` を直接呼び出す 8 file は、compatibility_adapter.py が適用されるまでの dual-write 期間中は旧 helix.db への write で動作を維持する。adapter 適用後の 6 db 分離環境では、adapter なしの raw 呼び出しは動作しなくなる。
@@ -159,7 +157,7 @@ event-sourced 3 db (orchestration / vmodel / scrum) には projector を配置�
 | 同期 projector timeout | 200ms |
 | timeout 時 fallback | async queue にエンキュー。caller には 200 OK + `X-Projector-Warning: fallback-to-async` header を返却 |
 | lag 警告境界 | last_processed_event_id 差分 100 event 超過 → WARN log + harness_monitor_events に record |
-| lag fail-close 境界 | 同 1000 event 超過 → G2/G3/G4 gate 通過判定を block (gate projector が stale な場合の safety net) |
+| lag fail-close 境界 | 同 1000 event 超過 → **Phase 4.B (projector + harness_monitor 有効化) 以降**に G2/G3/G4 gate 通過判定を block (gate projector が stale な場合の safety net)。G2/G3 時点では projector 未実装のため本 fail-close は適用されず、G2/G3 ゲートは設計 artifact の存在・契約整合の評価のみを行う |
 | lag 時 read 挙動 (同期) | stale data 許容 + `X-Projection-Lag: <n>` warning header 付与 |
 | lag 時 read 挙動 (async) | 直近 snapshot 返却 + `Retry-After: <t>` header 付与 |
 
@@ -212,7 +210,7 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 - shadow replay 検証は migration 期間中常時稼働 (一度 PASS して終わりではなく、継続的に実施)
 - compatibility_adapter.py が API 互換 100% を担保するまで、既存 8 file への変更は禁止
 
-**compatibility adapter 対象 file 一覧** (`grep -rln "_write_connection" cli/lib/` 2026-05-17 実行結果):
+**compatibility adapter 対象 file 一覧** (`grep -rln "_write_connection" cli/` 2026-05-17 実行結果、tl-advisor Round 1 #1 反映で top-level CLI 追加):
 
 | # | file | _write_connection 利用箇所数 | 6 db 分離後の所属 |
 |---|---|---|---|
@@ -224,8 +222,15 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 | 6 | cli/lib/http_api/routes/push_pr.py | ≥1 | backend.db (automation_run) |
 | 7 | cli/lib/http_api/routes/hooks.py | ≥1 | backend.db (audit_log) |
 | 8 | cli/lib/http_api/routes/telemetry.py | ≥1 | backend.db (session_telemetry) |
+| 9 | cli/helix-pr (top-level CLI) | 2 | backend.db (automation_run) |
+| 10 | cli/helix-push (top-level CLI) | 2 | backend.db (automation_run) |
+| 11 | cli/helix-agent (top-level CLI、embed Python) | 1 | orchestration.db (agent_slots) |
 
-合計: 8 file / 25+ 箇所 (helix_db.py 自身は adapter 定義側で除外)。
+合計: 11 file / 30+ 箇所 (lib 8 + top-level CLI 3、helix_db.py 自身は adapter 定義側で除外)。
+
+**棚卸し方針**: 単発 grep で凍結せず、`grep -rln "_write_connection" cli/` を Phase 4.A 着手時に再実行し、本表に未列挙の callsite が無いことを検証対象とする。中期的には `helix_db._write_connection` 内部で 6 db 経路への routing を完結させ、呼び出し側の列挙を最小化する。
+
+**Phase 4.A smoke test 必須項目**: adapter 適用後に `helix-pr` / `helix-push` / `helix-agent list` の 3 top-level CLI が新 6 db 経路で正常動作することを smoke test で確認する。lib 8 file の path は既存 pytest suite (1622+) で回帰確認。
 
 **compatibility_adapter.py の責務**:
 
@@ -304,7 +309,7 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 | PLAN-084 | 本 ADR の L1 要件確定 PLAN。§2.2-2.6 matrix が本 ADR の根拠源。本 ADR は Phase 2.1 (L2 基本設計) の成果物 |
 | ADR-015 | V2 orchestration 文脈。PM 実装禁止・PMO 新設・TL/SE/PE 分離の運用体制を確立。本 ADR はその体制の上で DB 管理を定義する前提 |
 | ADR-014 | cli/roles/*.conf を正本とする決定。本 ADR は DB 管理レイヤーであり、role 設定変更は不要。参照のみ |
-| ADR-019 | HELIX 二重らせん命名原則。本 ADR と同時起票予定 (G-08)。artifact strand (PLAN-075) と record strand (本 ADR) の二重らせんを命名レベルで正式化する |
+| ADR-019 | HELIX 二重らせん命名原則。本 ADR と同時起票 (G-08、2026-05-17)。artifact strand (PLAN-075) と record strand (本 ADR) の二重らせんを命名レベルで正式化する |
 | ADR-020 | cutover 後の phase.yaml 併存 / 廃止判断。Phase 4.C で起票予定。本 ADR の migration gate 5 (cutover) が完了した後の判断を記録する |
 | FR-DB-SEP-01〜09 / AC-DB-SEP-01〜07 | L1-REQUIREMENTS.md §3.9 に記載の L1 受入条件。本 ADR の Decision 1-5 がこれらの受入条件に対応する |
 | PLAN-075 | V-model 4 artifact 双方向 trace framework。vmodel.db が独立することで PLAN-075 の artifact / artifact_link の event trail が独立し、replay 検証が精度向上する |

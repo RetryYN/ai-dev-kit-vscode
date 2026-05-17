@@ -31,8 +31,10 @@ HELIX の命名原理と物理実装を統一的に説明する。
 また、3 軸トライアングル原則 (memory [[project_2026_05_15_helix_triangle_principle]])
 が「成果物 → 実行者 → 記録」の順序を確立し、
 db 設計を最後段に置く判断の根拠となっている。
-CONCEPT.md §3 はこの 3 軸の既存記述を持つが、
-命名由来と strand mapping の明文化は本 ADR で初めて行う。
+CONCEPT.md §3 の現状は「2 Base 軸 + 付随基盤: helix.db」を持ち、
+3 軸トライアングルの明示記述はまだない。本 ADR 採択後の Phase 2.2
+(CONCEPT.md 拡張) で §3-axis-triangle 章を追加し、本 ADR §Decision.3 を
+上位概念として引用する形で命名由来と strand mapping を CONCEPT.md にも反映する。
 
 本 ADR は PLAN-084 §2.5.0 G-08 を受けて Phase 2 で起票する概念定義 ADR であり、
 物理実装 (6 db 分離 + Event Sourcing) を扱う ADR-018 と対をなす。
@@ -68,7 +70,7 @@ docs/v2 docs hierarchy                frontend.db
 | artifact strand (V-model 成果物累積) | record strand (6 db event log / state) |
 |---|---|
 | docs/v2/L1-REQUIREMENTS.md (要件 + 受入テスト設計) | orchestration.db — phase / gate / sprint 遷移 event |
-| docs/v2/MASTER.md + ADR-* (全体設計 + 総合テスト設計) | vmodel.db — artifact / test_design / review event |
+| docs/v2/L2-MASTER.md + ADR-* (全体設計 + 総合テスト設計) | vmodel.db — artifact / test_design / review event |
 | D-API / D-DB / D-CONTRACT (詳細設計 + 結合テスト設計) | scrum.db — hypothesis / poc / verify / decide event |
 | cli/lib/*.py + cli/helix-* (実装コード + 単体テストコード) | plan.db — PLAN doc 進行 state snapshot + change log |
 | docs/v2/L4-test-design/*.md + cli/lib/tests/test_*.py | backend.db — be coverage / drive 切替 state |
@@ -179,7 +181,7 @@ HELIX の設計判断は以下の 3 軸で構成され、**順序は固定**:
 
 ### 既存文書との整合要件
 
-本 ADR 採択後、以下の整合作業を P3 carry として記録する:
+本 ADR 採択後、以下の整合作業を P2/P3 carry として記録する (表中の優先度に従う):
 
 | 対象 | 整合確認内容 | 優先度 |
 |---|---|---|
