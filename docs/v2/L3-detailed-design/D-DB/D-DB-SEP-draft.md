@@ -698,10 +698,10 @@ carry 項目の優先度:
 
 双方向 trace:
 
-- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` (Phase 4.A 着手時に起票・reference 確定、現在 carry)
+- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §2 (I-MIGRATION) + §3 (I-DUALWRITE) + §4 (I-REPLAY) + `PLAN-084-unit-test-design.md` §2 (U-ADAPTER) (Phase 3.4 起票済、commit ff04129)
 - **本 doc → ② 実装コード**: `cli/lib/migrations/v31_db_separation.py` (Phase 4.A)
-- **③ テスト設計 → 本 doc**: テスト設計ファイルに「対象設計: D-DB-SEP-draft.md」を明示 (Phase 4.A)
-- **④ テストコード → ③ テスト設計**: テスト docstring に「DoD 検証: PLAN-084-integration-test-design.md」を明示 (Phase 4.B)
+- **③ テスト設計 → 本 doc**: PLAN-084-unit-test-design.md / PLAN-084-integration-test-design.md frontmatter `related_designs` に「D-DB-SEP-draft-v0.1」明示済 (Phase 3.4 反映済)
+- **④ テストコード → ③ テスト設計**: Phase 4.B 着手時に test 実装 docstring に「DoD 検証: PLAN-084-integration-test-design.md I-MIGRATION-XXX / I-DUALWRITE-XXX / I-REPLAY-XXX」を記載 (Phase 4.B carry)
 
 ---
 

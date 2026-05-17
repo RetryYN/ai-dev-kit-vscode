@@ -247,7 +247,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 #### Phase 3: L3 詳細設計 (D-DB EXT + D-API EXT + migration plan)
 - `docs/v2/L3-detailed-design/D-DB-SEP-draft.md` 起票 (6 db 各 schema 設計 + event log table + projection_state table + event envelope + correlation_id)
 - `docs/v2/L3-detailed-design/D-API-SEP-draft.md` 起票 (event append API + projector read API + detector subscribe API + 同期許可リスト 3 件 + timeout / fallback / lag 境界 凍結)
-- `docs/v2/L3-detailed-design/D-DB-MIGRATION.md` 起票 (本 PLAN §2.5 migration gate 表 + §2.6 adapter file 一覧 を L3 で詳細化、shadow replay script 仕様、dual-write mismatch gate 仕様、rollback 手順)
+- ~~`docs/v2/L3-detailed-design/D-DB-MIGRATION.md` 起票~~ → **取り消し**: migration 詳細は D-DB-SEP §6 (migration v30→v31 step 7) に統合済、別 file 起票は不要 (tl-advisor L3 Round 4 minor 反映)
 - `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` + `PLAN-084-integration-test-design.md` 起票
 
 #### Phase 4: L4 実装 (3 sprint 分割、Round 2 Minor #6 反映)
@@ -289,7 +289,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 |---|---|---|---|---|
 | Phase 1 | L1 要件定義 (本 PLAN doc + L1 doc §3.9 拡張) | M | Opus + tl-advisor | 1-2 セッション |
 | Phase 2 | L2 基本設計 (CONCEPT.md + ADR-018 + ADR-019 + L2-MASTER 修正) | M-L | Opus + tl-advisor + pmo-tech-docs | 2-3 セッション |
-| Phase 3 | L3 詳細設計 (D-DB-SEP-draft + D-API-SEP-draft + D-DB-MIGRATION + test design) | M-L | Codex se + tl-advisor | 2-3 セッション |
+| Phase 3 | L3 詳細設計 (D-DB-SEP-draft + D-API-SEP-draft + D-CONTRACT-EVENT-draft + test design 2 doc。migration 詳細は D-DB-SEP §6 に統合) | M-L | Codex se + tl-advisor | 2-3 セッション |
 | Phase 4.A | L4 実装 sprint A (migration + adapter) | M | Codex se + Opus 統合 | 1-2 セッション |
 | Phase 4.B | L4 実装 sprint B (event_log + projector + dual-write) | M | Codex se + pg | 1-2 セッション |
 | Phase 4.C | L4 実装 sprint C (shadow replay + cutover + ADR-020) | M | Codex se + Opus | 1-2 セッション |
@@ -300,7 +300,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
-| ① 設計 | L2 基本設計 + L3 詳細設計 | docs/v2/CONCEPT.md (§3-axis + §double-helix + §6-db-separation) + docs/adr/ADR-018 + ADR-019 + ADR-020 (cutover 判断) + docs/v2/L3-detailed-design/D-DB-SEP-draft.md + D-API-SEP-draft.md + D-DB-MIGRATION.md |
+| ① 設計 | L2 基本設計 + L3 詳細設計 | docs/v2/CONCEPT.md (§3-axis + §double-helix + §6-db-separation) + docs/adr/ADR-018 + ADR-019 + ADR-020 (Phase 4.C cutover 判断、未起票) + docs/v2/L3-detailed-design/D-DB-SEP-draft.md + D-API-SEP-draft.md + D-CONTRACT-EVENT-draft.md (migration 詳細は D-DB-SEP §6 に統合) |
 | ② 実装コード | L4 実装 | cli/lib/event_log.py + projector.py + compatibility_adapter.py + helix_db_orchestration.py + helix_db_vmodel.py + helix_db_scrum.py + cli/lib/helix_db.py (ATTACH 拡張) + migration v30 → v31 + shadow replay script + cutover script |
 | ③ テスト設計 | L4 設計 | docs/v2/L4-test-design/PLAN-084-unit-test-design.md + PLAN-084-integration-test-design.md (Phase 3 で起票) |
 | ④ テストコード | L4 実装 | cli/lib/tests/test_event_log_unit.py + test_event_log_integration.py + test_projector_unit.py + test_projector_integration.py + test_compatibility_adapter.py (11 file (lib 8 + top-level CLI 3) × 30+ path) + test_db_separation_migration.py + test_shadow_replay.py + bats: tests/db-separation-cutover.bats + tests/dual-write-mismatch-gate.bats |
@@ -311,7 +311,7 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 
 - Phase 1 完遂: 本 PLAN doc 完成 + `docs/v2/L1-REQUIREMENTS.md` §3.9 章追加 (本 doc §2 を転記)
 - Phase 2 完遂: CONCEPT.md / L2-MASTER.md 修正 + ADR-018 + ADR-019 起票 + tl-advisor adversarial check PASS
-- Phase 3 完遂: D-DB-SEP-draft + D-API-SEP-draft + D-DB-MIGRATION (本 doc §2.5/§2.6 を詳細化) + 単体/結合 test 設計起票
+- Phase 3 完遂: D-DB-SEP-draft (本 doc §2.5/§2.6 + migration step を §6 で詳細化) + D-API-SEP-draft + D-CONTRACT-EVENT-draft + 単体/結合 test 設計起票 (PLAN-084-unit-test-design + PLAN-084-integration-test-design)
 - Phase 4.A 完遂: compatibility adapter + 6 db 接続 + migration v30 → v31 + adapter test 11 file (lib 8 + top-level CLI 3) × 30+ path PASS
 - Phase 4.B 完遂: event_log + projector + dual-write + mismatch gate + projector test
 - Phase 4.C 完遂: shadow replay PASS + cutover script + ADR-020 起票 + helix doctor 0 fail
@@ -456,3 +456,51 @@ L3 詳細設計を `docs/v2/L3-detailed-design/` 配下に起票:
 | 2b01bd9 | tl-advisor Round 2 反映 | 2.4 |
 | dd3be44 | Phase 2.2 CONCEPT.md 拡張 | 2.2 |
 | dc5dce7 | tl-advisor CONCEPT review 反映 + Phase 2 完遂凍結 | 2.2 / 2.4 |
+
+## 12. Phase 3 完遂凍結 (2026-05-17)
+
+### G3 ゲート判定: PASS
+
+Phase 3 (L3 詳細設計) を tl-advisor 4 rounds (L3 Round 1-3 changes_required → Round 4 passed) をもって完遂凍結する。
+
+- Phase 3.1 D-DB-SEP-draft 起票 ✓ (commit 8ef856e、708 行、15 table + migration step)
+- Phase 3.2 D-API-SEP-draft 起票 ✓ (commit ed934f1、607 行、compatibility adapter API)
+- Phase 3.3 D-CONTRACT-EVENT-draft 起票 ✓ (commit ed934f1、706 行、EventEnvelope class)
+- Phase 3.4 test design 2 doc 起票 ✓ (commit ff04129、unit 510 行 35 case + integration 783 行 40 case)
+- Phase 3.4 tl-advisor L3 Round 1-4 ✓
+  - Round 1 (ff04129): changes_required → important 6 + minor 3 反映
+  - Round 2 (2f82284): changes_required → important 4 + minor 1 反映
+  - Round 3 (2e286ef): changes_required → important 3 + minor 1 反映 (grep 漏れ全件除去)
+  - **Round 4 (本 commit)**: **passed (approved_with_minor_changes)** — critical 0 / important 0 / minor 2 (本 commit で stale cleanup 完了)
+
+### V-model 4 artifact 完備状態
+
+- ① 設計: ADR-018 / ADR-019 (L2) + D-DB-SEP-draft / D-API-SEP-draft / D-CONTRACT-EVENT-draft (L3)
+- ② 実装コード: Phase 4.A/4.B/4.C で起票 (cli/lib/migrations/v31_db_separation.py / compatibility_adapter.py / event_envelope.py / projector.py 等)
+- ③ テスト設計: PLAN-084-unit-test-design.md (35 case) + PLAN-084-integration-test-design.md (40 case)
+- ④ テストコード: Phase 4 で起票 (cli/lib/tests/test_*.py + cli/tests/*.bats)
+
+5 L3/L4 doc 全同期 (V-model 4 artifact ① ⇔ ③ 双方向 trace 完備)、PLAN-084 / L1-REQUIREMENTS / CONCEPT.md と整合確認済。
+
+**注記**: ADR-018/019 frontmatter `status: proposed` は維持 (Accepted は PO 承認待ち)。Phase 4.A 着手は本 G3 PASS 判定により着手 OK。
+
+### L4 carry list 最終確定 (tl-advisor Round 4 助言)
+
+| Phase 4 sprint | scope | carry items 主要 |
+|---|---|---|
+| **Phase 4.A (migration + adapter)** | v30 → v31 / compatibility_adapter / routing / UUID v7 (3.12 fallback) | adapter 本実装 / `_FILE_TO_DB` 再 grep / UUID v7 generator (uuid7-py or 自前) / adapter unit test (U-ADAPTER 15) / smoke test (I-SMOKE 6) / ATTACH 禁止 CI gate / session-start 対象外 smoke / runbook 下準備 / inspect.stack frame index 実測確定 (PM 承認) |
+| **Phase 4.B (event + projector + dual-write)** | EventEnvelope / correlation / projector / dual-write mismatch | EventEnvelope dataclass 実装 / `create_event_envelope` factory / payload JSON schema + jsonschema validator / correlation_context (thread-local) / projector + lag 監視 / dual-write mismatch gate / EventEnvelope/correlation tests (U-EVT 10 + U-UUID 5 + U-CORR 5 + I-DUALWRITE 8 + I-CORR 6) |
+| **Phase 4.C (shadow replay + cutover)** | shadow replay / cutover / rollback / ADR-020 | shadow replay test (I-REPLAY 8) / cutover script + gate 5 PO 承認 / rollback gate 6 / ADR-020 起票 (gate 5 pass 後 - gate 6 前) / 全回帰 (pytest 1622+ / bats / shell) / helix doctor 0 fail / soak 短縮条件確定 |
+
+### Phase 3 完遂後の commit chain
+
+| commit | 内容 | Phase |
+|---|---|---|
+| 8ef856e | D-DB-SEP-draft 起票 + Phase 2 凍結宣言 | 3.1 |
+| ed934f1 | D-API-SEP + D-CONTRACT-EVENT 起票 | 3.2 / 3.3 |
+| ff04129 | L3 review Round 1 反映 + test design 2 doc 起票 | 3.4 |
+| 2f82284 | L3 Round 2 反映 (V-model trace 凍結 + fail-close + schema byte-level) | 3.4 |
+| 2e286ef | L3 Round 3 反映 (grep 漏れ全件除去) | 3.4 |
+| **本 commit** | **L3 Round 4 minor 反映 + G3 凍結宣言** | **3.4 / G3** |
+
+next: Phase 4.A 着手準備 (compatibility_adapter.py + migration v31 + UUID v7 generator + adapter unit/smoke test 実装、次セッション carry)。
