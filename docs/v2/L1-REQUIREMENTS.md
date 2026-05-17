@@ -145,16 +145,16 @@ After の正本。**何を pairing するかの意味論** を L1 で確定す�
 
 | ID | 要件 | 受入条件 |
 |---|---|---|
-| **FR-DB01** | `_migrate_v20_to_v21` 実装 | `init_db` 後 `schema_version = 21` |
-| **FR-DB02** | `er_diagrams` table 新設 | (plan_id, design_level, drive, diagram_path, mermaid_content, version) |
-| **FR-DB03** | `process_maps` table 新設 | (plan_id, design_level, drive, map_kind, map_path, mermaid_content, version) |
-| **FR-DB04** | `managed_products` table 新設 | (product_name, product_path, drive, mode, helix_version) |
-| **FR-DB05** | `agent_registry` table 新設 | (agent_kind, role, model, thinking, allowed_paths, cost_budget) |
-| **FR-DB06** | `contract_entries.design_level` 既存値の再分類 migration | dry-run 必須、batch + transaction |
-| **FR-DB07** | `design_sprint_entries` table 新設 (工程転換、§3.8 と連動) | sprint_id × sprint_type × layer × drive × track × pair_status × freeze_gate × subgate |
-| **FR-DB08** | `design_sprint_artifact_links` table 新設 | sprint_entry_id × artifact_kind × artifact_ref × link_kind の組合せで UNIQUE |
-| **FR-DB09** | `contract_entries.origin_mode` / `evidence_status` 列追加 | TL 推奨 (forward/reverse/scrum) × (observed/inferred/confirmed) で Reverse/Scrum lifecycle |
-| **FR-DB10** | `design_review.direction` / `source_phase` 列追加 | TL 推奨 (forward/reverse) で Reverse review lifecycle |
+| **FR-DB-EXT-01** | `_migrate_v20_to_v21` 実装 | `init_db` 後 `schema_version = 21` |
+| **FR-DB-EXT-02** | `er_diagrams` table 新設 | (plan_id, design_level, drive, diagram_path, mermaid_content, version) |
+| **FR-DB-EXT-03** | `process_maps` table 新設 | (plan_id, design_level, drive, map_kind, map_path, mermaid_content, version) |
+| **FR-DB-EXT-04** | `managed_products` table 新設 | (product_name, product_path, drive, mode, helix_version) |
+| **FR-DB-EXT-05** | `agent_registry` table 新設 | (agent_kind, role, model, thinking, allowed_paths, cost_budget) |
+| **FR-DB-EXT-06** | `contract_entries.design_level` 既存値の再分類 migration | dry-run 必須、batch + transaction |
+| **FR-DB-EXT-07** | `design_sprint_entries` table 新設 (工程転換、§3.8 と連動) | sprint_id × sprint_type × layer × drive × track × pair_status × freeze_gate × subgate |
+| **FR-DB-EXT-08** | `design_sprint_artifact_links` table 新設 | sprint_entry_id × artifact_kind × artifact_ref × link_kind の組合せで UNIQUE |
+| **FR-DB-EXT-09** | `contract_entries.origin_mode` / `evidence_status` 列追加 | TL 推奨 (forward/reverse/scrum) × (observed/inferred/confirmed) で Reverse/Scrum lifecycle |
+| **FR-DB-EXT-10** | `design_review.direction` / `source_phase` 列追加 | TL 推奨 (forward/reverse) で Reverse review lifecycle |
 
 ### 3.4 検出ガードレール強化 (Phase 4)
 
@@ -299,7 +299,7 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 > **前提**: §3.3 (helix.db v21 schema 拡張) を **6 db 物理分離へ拡張** する。§3.3 は否定せず、本 §3.9 が次段として接続する
 > **tl-advisor Round 1 + Round 2 反映**: 6 軸判定表 / entity ownership / migration ゲート / projector 境界 / compatibility adapter を本文確定
 
-#### FR-DB01: 6 db 物理分離 + entity ownership + cross-db 規約
+#### FR-DB-SEP-01: 6 db 物理分離 + entity ownership + cross-db 規約
 
 helix.db を 6 db (orchestration / vmodel / scrum / plan / backend / frontend) に物理分離する。各 db は SQLite file として独立し、cross-db 参照は projection_state table 経由のみ許可する。SQLite ATTACH DATABASE の利用は migration script / projector 内部に限定する。
 
@@ -325,7 +325,7 @@ helix.db を 6 db (orchestration / vmodel / scrum / plan / backend / frontend) �
 | correlation_id | cross-db trace に必須。orchestration.db で発行、他 db の event は orchestration の correlation_id を継承 |
 | domain logic 配置 | orchestration.db は event 中継のみ、domain logic を持たない (過集中防止) |
 
-#### FR-DB02: Event Sourcing 6 軸判定 hybrid 採用
+#### FR-DB-SEP-02: Event Sourcing 6 軸判定 hybrid 採用
 
 6 db 一律ではなく、以下の 6 軸判定に基づくハイブリッド構成を採用する。
 
@@ -348,7 +348,7 @@ helix.db を 6 db (orchestration / vmodel / scrum / plan / backend / frontend) �
 - **同期方針**: state update と change log append は同一 transaction、不整合は migration mismatch gate と同じ機構で検出
 - **projector 不要**: plan.db 内で state と change log が両方持つため外部 projector 不要 (event-sourced 3 db は projection_state を別 table で持つが plan.db は内部完結)
 
-#### FR-DB03: projector 責務分離 + 同期境界
+#### FR-DB-SEP-03: projector 責務分離 + 同期境界
 
 event-sourced 3 db (orchestration/vmodel/scrum) には projector を配置し、event log から read model を構築する。projector は以下の制約を持つ。
 
@@ -380,7 +380,7 @@ event-sourced 3 db (orchestration/vmodel/scrum) には projector を配置し、
 | lag fail-close 境界 | 同 1000 event 超過 → G2/G3/G4 gate 通過判定 block |
 | lag 時 read 挙動 | 同期 projector: stale data 許容 + warning header / async projector: 直近 snapshot 返却 + retry-after header |
 
-#### FR-DB04: detector の 6 db 対応拡張 (本 PLAN は責務分離のみ)
+#### FR-DB-SEP-04: detector の 6 db 対応拡張 (本 PLAN は責務分離のみ)
 
 既存 14 axis detector (§3.4) を 6 db each に割り当て、record strand anomaly 系 (schema drift / event order violation / projector lag / aggregate invariant violation) を追加する。本 PLAN-084 では責務分離のみ確定し、本格実装は PLAN-085 想定 (④ 問題発見配備フェーズ) で実施する。
 
@@ -389,7 +389,7 @@ event-sourced 3 db (orchestration/vmodel/scrum) には projector を配置し、
 - artifact strand を直接 scan するのは V-model lint のみ (PLAN-075 scope)
 - detector は orchestration.db 経由で実行者 (agent_slots) へ feedback channel を確立
 
-#### FR-DB05: 3 軸閉ループ (成果物 → 記録 → 実行者 feedback)
+#### FR-DB-SEP-05: 3 軸閉ループ (成果物 → 記録 → 実行者 feedback)
 
 3 軸トライアングル (成果物・実行者・記録) を db 物理実装で閉ループ化する:
 
@@ -401,7 +401,7 @@ event-sourced 3 db (orchestration/vmodel/scrum) には projector を配置し、
 
 closed loop が成立することを L1 受入条件とする。
 
-#### FR-DB06: v30 → 6 db migration 戦略 (Strangler Fig + dual-write + compatibility adapter)
+#### FR-DB-SEP-06: v30 → 6 db migration 戦略 (Strangler Fig + dual-write + compatibility adapter)
 
 単一 helix.db (v30) → 6 db 分離は **Strangler Fig + dual-write + compatibility adapter** で段階移行する。
 
@@ -435,15 +435,15 @@ closed loop が成立することを L1 受入条件とする。
 
 adapter 責務: 既存 `helix_db._write_connection(None)` 呼び出しを 8 file 全てで透過的に 6 db 経路へ adapt、API 互換 100% 維持、dual-write 期間は旧 helix.db と新 6 db 両方に write。
 
-#### FR-DB07: Reverse の例外扱い
+#### FR-DB-SEP-07: Reverse の例外扱い
 
 Reverse 機能 (R0-R4 + RGC、SKILL_MAP.md §HELIX Reverse) は **record strand を持たない例外** として扱う。Reverse は既存 code/設計の逆引きであり、新規 event 生成を伴わないため event log への write 対象外とする (read のみ)。
 
-#### FR-DB08: 二重らせん命名原則 ADR-019
+#### FR-DB-SEP-08: 二重らせん命名原則 ADR-019
 
 HELIX 命名 = DNA 二重らせん由来を ADR-019 で正式化する (Phase 2 で起票)。artifact strand (V-model 4 artifact 双方向 trace) と record strand (event log) の二重らせんが L1 設計原理として機能する。L1 doc では FR として「ADR-019 を Phase 2 完遂時点で起票する」を要件化する。
 
-#### FR-DB09: frontend/backend state-store の再判定条件 (ADR-018 で管理)
+#### FR-DB-SEP-09: frontend/backend state-store の再判定条件 (ADR-018 で管理)
 
 frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定で audit △ / temporal × / event ordering ×)。将来 event 化への再判定条件を ADR-018 に明記する:
 
@@ -464,7 +464,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 |---|---|---|
 | **NFR-01** | V1 動作互換性 | V2 完了まで V1 CLI / SKILL / hook 動作維持、helix.db v20 → v21 後方互換 |
 | **NFR-02** | 段階的 migration | Phase ごとに既存テスト PASS 維持 (pytest 1138+ / bats 433+ / shell 614+) |
-| **NFR-03** | 6 db 分離 compatibility adapter (PLAN-084) | v30 → v31 migration で既存 ② 実行ハーネス機能 (PLAN-078〜083) を破壊しない。`cli/lib/compatibility_adapter.py` で 8 file × 25+ 箇所の API 互換 100% 維持 (§3.9 FR-DB06 参照) |
+| **NFR-03** | 6 db 分離 compatibility adapter (PLAN-084) | v30 → v31 migration で既存 ② 実行ハーネス機能 (PLAN-078〜083) を破壊しない。`cli/lib/compatibility_adapter.py` で 8 file × 25+ 箇所の API 互換 100% 維持 (§3.9 FR-DB-SEP-06 参照) |
 
 ### 4.2 性能
 
@@ -477,7 +477,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 | **NFR-14** | helix sync ≤ 60s | `helix sync --auto` 完了 |
 | **NFR-15** | 6 db cross-db query lag (PLAN-084) | SQLite ATTACH DATABASE による cross-db query lag < 100ms (migration/projector 内部限定の ATTACH に適用) |
 | **NFR-16** | event append latency (PLAN-084) | event log への append latency < 50ms (orchestration / vmodel / scrum の event-sourced 3 db 対象) |
-| **NFR-17** | projector lag 平常時 (PLAN-084) | projector lag (last_processed_event_id 差分) < 100 event を平常稼働状態と定義。100 event 超過で WARN、1000 event 超過で gate fail-close (§3.9 FR-DB03 参照) |
+| **NFR-17** | projector lag 平常時 (PLAN-084) | projector lag (last_processed_event_id 差分) < 100 event を平常稼働状態と定義。100 event 超過で WARN、1000 event 超過で gate fail-close (§3.9 FR-DB-SEP-03 参照) |
 
 ### 4.3 コスト効率
 
@@ -505,7 +505,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 | **NFR-41** | drive 追加可能 (1 file 修正) | vmodel-semantics.yaml に entry 追加で完了 |
 | **NFR-42** | V3 への path 残す | managed_products / agent_registry が multi-tenancy / リモート同期に拡張可能 |
 | **NFR-43** | 6 db 独立 migration (PLAN-084) | 6 db 分離後、各 db 単独で schema migration 可能。db 間の migration 依存を持たない設計を L3 D-DB-SEPARATION で確定する |
-| **NFR-44** | frontend/backend 将来 event 化 (PLAN-084) | frontend.db / backend.db の event-sourced 化可否は ADR-018 で定義した再判定条件 (write 頻度低下 / audit 必須化 / cross-db 参照増加) に基づき 6 ヶ月毎に review する (§3.9 FR-DB09 参照) |
+| **NFR-44** | frontend/backend 将来 event 化 (PLAN-084) | frontend.db / backend.db の event-sourced 化可否は ADR-018 で定義した再判定条件 (write 頻度低下 / audit 必須化 / cross-db 参照増加) に基づき 6 ヶ月毎に review する (§3.9 FR-DB-SEP-09 参照) |
 
 ### 4.6 可観測性
 
@@ -515,8 +515,8 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 | **NFR-51** | detector_runs 完備 | 全 detector 実行 record |
 | **NFR-52** | session-start dashboard | 1 秒以内表示 |
 | **NFR-53** | dev-state report 可能 | markdown / JSON export |
-| **NFR-54** | projector lag 監視 (PLAN-084) | projector lag (last_processed_event_id 差分) を harness_monitor で継続監視、WARN/fail-close 境界を harness_monitor_events table に record する (§3.9 FR-DB03 参照) |
-| **NFR-55** | dual-write mismatch gate 監視 (PLAN-084) | migration 期間中、dual-write mismatch gate (旧 db state vs 新 event log の divergence 検出) を常時稼働させ、divergence 件数を detector_runs table に record する (§3.9 FR-DB06 参照) |
+| **NFR-54** | projector lag 監視 (PLAN-084) | projector lag (last_processed_event_id 差分) を harness_monitor で継続監視、WARN/fail-close 境界を harness_monitor_events table に record する (§3.9 FR-DB-SEP-03 参照) |
+| **NFR-55** | dual-write mismatch gate 監視 (PLAN-084) | migration 期間中、dual-write mismatch gate (旧 db state vs 新 event log の divergence 検出) を常時稼働させ、divergence 件数を detector_runs table に record する (§3.9 FR-DB-SEP-06 参照) |
 
 ### 4.7 ドキュメンテーション
 
@@ -556,13 +556,13 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 
 | ID | 条件 | 対応箇所 |
 |---|---|---|
-| **AC-DB01** | 6 db (orchestration / vmodel / scrum / plan / backend / frontend) の責務境界 + entity ownership + cross-db FK 禁止 + ATTACH 許可範囲 (migration/projector 内部限定) + event envelope + correlation_id 規約が L1 確定 | §3.9 FR-DB01 entity ownership 表 + cross-db 規約表 |
-| **AC-DB02** | Event Sourcing 6 軸判定 matrix が L1 本文確定。3 event-sourced + 1 hybrid (plan = state snapshot + change log) + 2 state-store の採用根拠が明示 | §3.9 FR-DB02 6 軸判定表 + plan.db hybrid 具体形 |
-| **AC-DB03** | projector 責務分離 + 同期許可リスト 3 件 + timeout 200ms + fallback (async enqueue) + lag 警告境界 100 event / fail-close 境界 1000 event が L1 本文確定 | §3.9 FR-DB03 projector 制約表 + 同期許可リスト + timeout/lag 境界表 |
-| **AC-DB04** | migration gate 表 (dual-write start → mismatch gate → shadow replay → lag stabilization → cutover → rollback) の順序 / 停止条件 / 失敗時 owner が L1 本文確定 | §3.9 FR-DB06 migration ゲート表 |
-| **AC-DB05** | compatibility adapter 対象 file 8 件 (agent_slots / harness_monitor / scrum_local / reverse_local / http_api/routes 4 件) が L1 本文列挙、adapter 責務範囲確定 | §3.9 FR-DB06 compatibility adapter 対象 file 一覧 |
-| **AC-DB06** | 3 軸トライアングル + 二重らせんが ADR-019 で正式記述 (Phase 2 起票)、frontend/backend = state-store 再判定条件が ADR-018 に明記 (Phase 2 起票) | §3.9 FR-DB08 / FR-DB09 |
-| **AC-DB07** | L4 完遂で event-sourced 3 db (orchestration/vmodel/scrum) が dual-write 稼働、projector 1+ 稼働 (lag < 100 event)、shadow replay PASS、dual-write mismatch gate 0 件、既存 ② 実行ハーネス機能 (PLAN-078〜083) 破壊なし | L4 Phase 4.B / 4.C 完遂時の受入確認 |
+| **AC-DB-SEP-01** | 6 db (orchestration / vmodel / scrum / plan / backend / frontend) の責務境界 + entity ownership + cross-db FK 禁止 + ATTACH 許可範囲 (migration/projector 内部限定) + event envelope + correlation_id 規約が L1 確定 | §3.9 FR-DB-SEP-01 entity ownership 表 + cross-db 規約表 |
+| **AC-DB-SEP-02** | Event Sourcing 6 軸判定 matrix が L1 本文確定。3 event-sourced + 1 hybrid (plan = state snapshot + change log) + 2 state-store の採用根拠が明示 | §3.9 FR-DB-SEP-02 6 軸判定表 + plan.db hybrid 具体形 |
+| **AC-DB-SEP-03** | projector 責務分離 + 同期許可リスト 3 件 + timeout 200ms + fallback (async enqueue) + lag 警告境界 100 event / fail-close 境界 1000 event が L1 本文確定 | §3.9 FR-DB-SEP-03 projector 制約表 + 同期許可リスト + timeout/lag 境界表 |
+| **AC-DB-SEP-04** | migration gate 表 (dual-write start → mismatch gate → shadow replay → lag stabilization → cutover → rollback) の順序 / 停止条件 / 失敗時 owner が L1 本文確定 | §3.9 FR-DB-SEP-06 migration ゲート表 |
+| **AC-DB-SEP-05** | compatibility adapter 対象 file 8 件 (agent_slots / harness_monitor / scrum_local / reverse_local / http_api/routes 4 件) が L1 本文列挙、adapter 責務範囲確定 | §3.9 FR-DB-SEP-06 compatibility adapter 対象 file 一覧 |
+| **AC-DB-SEP-06** | 3 軸トライアングル + 二重らせんが ADR-019 で正式記述 (Phase 2 起票)、frontend/backend = state-store 再判定条件が ADR-018 に明記 (Phase 2 起票) | §3.9 FR-DB-SEP-08 / FR-DB-SEP-09 |
+| **AC-DB-SEP-07** | L4 完遂で event-sourced 3 db (orchestration/vmodel/scrum) が dual-write 稼働、projector 1+ 稼働 (lag < 100 event)、shadow replay PASS、dual-write mismatch gate 0 件、既存 ② 実行ハーネス機能 (PLAN-078〜083) 破壊なし | L4 Phase 4.B / 4.C 完遂時の受入確認 |
 
 > **PLAN trace**: PLAN-084 Phase 1.3 完遂 (2026-05-17)。Phase 2 (CONCEPT.md + ADR-018/ADR-019 起票) で L2 本文を確定する。
 
