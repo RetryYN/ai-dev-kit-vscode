@@ -292,6 +292,168 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **FR-VS06.4** | pair_status waived 遷移運用 | `waived` は PM の明示承認（`approved` 判定）でのみ付与可。承認文脈は design_sprint_entry / plan / sprint_id と紐付けて記録 |
 | **FR-VS07** | Reverse / Scrum モード対応（lifecycle 明文化） | 1) Reverse: RG4 (Gap & Routing) 完了時に `origin_mode` を `forward` へ自動遷移。2) `observed` / `inferred` は保持し、`observed`→`inferred`→`confirmed` の順で遷移。`confirmed` 遷移は RG3（Intent Hypotheses）完了後の PO 承認時のみ。3) Scrum: `confirmed` まで対象外、confirmed 後に Forward contract 生成と同時に sprint 開始 |
 
+### 3.9 db 分離 + Event Sourcing + projector (Phase 7、PLAN-084 scope)
+
+> **PLAN trace**: PLAN-084 (helix.db 6 分離 + Event Sourcing + projector)
+> **V2 構築 5 段階**: ③ データベース管理フェーズ本体 (①② 完成後の位置付け)
+> **前提**: §3.3 (helix.db v21 schema 拡張) を **6 db 物理分離へ拡張** する。§3.3 は否定せず、本 §3.9 が次段として接続する
+> **tl-advisor Round 1 + Round 2 反映**: 6 軸判定表 / entity ownership / migration ゲート / projector 境界 / compatibility adapter を本文確定
+
+#### FR-DB01: 6 db 物理分離 + entity ownership + cross-db 規約
+
+helix.db を 6 db (orchestration / vmodel / scrum / plan / backend / frontend) に物理分離する。各 db は SQLite file として独立し、cross-db 参照は projection_state table 経由のみ許可する。SQLite ATTACH DATABASE の利用は migration script / projector 内部に限定する。
+
+**entity ownership 表**:
+
+| db | canonical entity | 他 db からの参照経路 |
+|---|---|---|
+| orchestration.db | phase / gate / agent_slot / harness_event / harness_check_event | event subscribe 経由 (correlation_id で trace) |
+| vmodel.db | artifact / artifact_link / cross_drive_integrity / drive_decision | event subscribe + projection_state 経由 |
+| scrum.db | hypothesis / scrum_loop / srf_chain / scrum_local_loop / reverse_local_loop | event subscribe 経由 |
+| plan.db | plan / sprint / task / wbs / design_sprint_drive_decision | projection_state snapshot 経由 |
+| backend.db | api_endpoint / contract / impl_module / automation_run / audit_log / session_telemetry | projection_state snapshot 経由 |
+| frontend.db | ui_component / mock / design_token / mock_promotion | projection_state snapshot 経由 |
+
+**cross-db 規約**:
+
+| 規約 | 内容 |
+|---|---|
+| cross-db FK | **禁止** (SQLite ATTACH 下でも foreign key 制約は db 内に閉じる) |
+| 許可される cross-db 参照 | projection_state table 経由のみ (snapshot を read) |
+| ATTACH 許可範囲 | **migration script + projector 内部のみ**。アプリケーション層 (cli/helix-*) からの ATTACH は禁止 |
+| event envelope | 全 event は { event_id, aggregate_id, db_name, event_type, payload, correlation_id, occurred_at } の envelope に統一 |
+| correlation_id | cross-db trace に必須。orchestration.db で発行、他 db の event は orchestration の correlation_id を継承 |
+| domain logic 配置 | orchestration.db は event 中継のみ、domain logic を持たない (過集中防止) |
+
+#### FR-DB02: Event Sourcing 6 軸判定 hybrid 採用
+
+6 db 一律ではなく、以下の 6 軸判定に基づくハイブリッド構成を採用する。
+
+**6 軸判定表**:
+
+| db | audit | temporal | event ordering | write 頻度 | retention | replay SLO | 採用方式 |
+|---|---|---|---|---|---|---|---|
+| orchestration | ◎ 必須 | ◎ 必須 | ◎ 必須 | 高 | 長期 (1y+) | < 5min | **event-sourced** |
+| vmodel | ◎ 必須 | ◎ 必須 | ◎ 必須 | 中 | 長期 (1y+) | < 5min | **event-sourced** |
+| scrum | ◎ 必須 | ◎ 必須 | ◎ 必須 | 中 | 長期 (1y+) | < 5min | **event-sourced** |
+| plan | ◎ 必須 | △ 部分 | ○ 推奨 | 低 | 長期 (1y+) | < 30min | **hybrid (state snapshot + change log)** |
+| backend | △ 部分 | × 不要 | × 不要 | 高 | 短期 (90d) | n/a | **state-store** |
+| frontend | △ 部分 | × 不要 | × 不要 | 高 | 短期 (90d) | n/a | **state-store** |
+
+**採用決定ルール**: audit + temporal + event ordering の 3 軸が全て ◎ 必須 → event-sourced、1 軸でも × → state-store、その間 → hybrid。
+
+**plan.db hybrid の具体形**:
+- **state 部分**: SQLite table (plan / sprint / task / wbs) で snapshot 保持、直接 update 可、最新 state の query 高速
+- **change log 部分**: plan_change_log table に append (status 遷移 / WBS 追加削除 / sprint complete)、event ordering 保持
+- **同期方針**: state update と change log append は同一 transaction、不整合は migration mismatch gate と同じ機構で検出
+- **projector 不要**: plan.db 内で state と change log が両方持つため外部 projector 不要 (event-sourced 3 db は projection_state を別 table で持つが plan.db は内部完結)
+
+#### FR-DB03: projector 責務分離 + 同期境界
+
+event-sourced 3 db (orchestration/vmodel/scrum) には projector を配置し、event log から read model を構築する。projector は以下の制約を持つ。
+
+**projector 制約表**:
+
+| 制約 | 内容 |
+|---|---|
+| writer API | **禁止** (projector は event 生成 API を持たない、read model 生成専用) |
+| cross-projection join | **禁止** (1 projector = 1 read model、依存 projection 間の結合は上位 query layer の責務) |
+| replay idempotency | **必須** (dedup key = event_id + projector_id で冪等保証) |
+| 配信方式 | async standard、同期は許可リスト 3 件のみ |
+| failure isolation | projector failure は self 検知せず、detector が last_processed_event_id を監視 |
+
+**同期許可リスト** (3 件のみ):
+
+| 同期 projector | 同期理由 | timeout |
+|---|---|---|
+| phase projector | phase.yaml 更新は orchestration 全体の同期ポイント | 200ms |
+| gate projector | gate 通過判定は次 phase 遷移の前提 | 200ms |
+| agent_slot projector | fire/release は real-time UI / harness 監視に必要 | 200ms |
+
+**timeout / fallback / lag 境界**:
+
+| 項目 | 値 |
+|---|---|
+| 同期 projector timeout | 200ms |
+| timeout 時 fallback | async queue にエンキュー、caller には 200 OK + warning header 返却 |
+| lag 警告境界 | last_processed_event_id 差分 100 event 超過 → WARN log + harness_monitor に notify |
+| lag fail-close 境界 | 同 1000 event 超過 → G2/G3/G4 gate 通過判定 block |
+| lag 時 read 挙動 | 同期 projector: stale data 許容 + warning header / async projector: 直近 snapshot 返却 + retry-after header |
+
+#### FR-DB04: detector の 6 db 対応拡張 (本 PLAN は責務分離のみ)
+
+既存 14 axis detector (§3.4) を 6 db each に割り当て、record strand anomaly 系 (schema drift / event order violation / projector lag / aggregate invariant violation) を追加する。本 PLAN-084 では責務分離のみ確定し、本格実装は PLAN-085 想定 (④ 問題発見配備フェーズ) で実施する。
+
+責務分離:
+- detector の入力は **常に event log** (record strand)
+- artifact strand を直接 scan するのは V-model lint のみ (PLAN-075 scope)
+- detector は orchestration.db 経由で実行者 (agent_slots) へ feedback channel を確立
+
+#### FR-DB05: 3 軸閉ループ (成果物 → 記録 → 実行者 feedback)
+
+3 軸トライアングル (成果物・実行者・記録) を db 物理実装で閉ループ化する:
+
+```
+成果物 (vmodel.db) → 記録 (orchestration.db event log) → detector → 実行者 (agent_slots) feedback
+                                                            ↓
+                                                  artifact 修正 → 成果物へ
+```
+
+closed loop が成立することを L1 受入条件とする。
+
+#### FR-DB06: v30 → 6 db migration 戦略 (Strangler Fig + dual-write + compatibility adapter)
+
+単一 helix.db (v30) → 6 db 分離は **Strangler Fig + dual-write + compatibility adapter** で段階移行する。
+
+**migration ゲート表**:
+
+| # | ゲート名 | 通過条件 | 停止条件 | 失敗時 owner / 動作 |
+|---|---|---|---|---|
+| 1 | dual-write start (v31 migration) | orchestration_events + projection_state + event_envelope table 追加完了、既存 v30 table 破壊なし | migration script の sqlite3 error / table 既存 conflict | **owner: Codex se** / rollback (v30 維持、v31 schema drop) |
+| 2 | dual-write mismatch gate | 旧 db state と新 event log + projection_state の divergence 0 件 (10000 write 連続) | 1 件でも divergence 検出 | **owner: Codex se** / fail-close (cutover 不可、divergence 解消まで dual-write 継続) |
+| 3 | shadow replay 検証 | 過去 1000 event を新 projector で replay → derived state が旧 db state と byte-level 一致 | replay 不一致 / projector exception | **owner: Codex se** / fail-close (projector bug 修正後 retry) |
+| 4 | projector lag stabilization | lag < 100 event が連続 24h | lag > 100 event の発生 | **owner: PM (Opus)** / warning (cutover 延期、lag 原因調査) |
+| 5 | cutover | 上記 4 ゲート全 PASS + ユーザー (PO) 承認 | ユーザー却下 / 4 ゲートいずれか fail | **owner: PM (Opus) → ユーザー (PO) 承認** / execute (旧 state table tombstone → drop) |
+| 6 | rollback point | cutover 後 7d 以内に重大 anomaly (data loss / projector down >1h) | anomaly 検出 | **owner: PM (Opus) → ユーザー (PO) 承認** / 旧 db への切り戻し可能 (event log は保持) |
+
+**migration 中の不変条件**:
+- 既存 ② 実行ハーネス機能 (PLAN-078〜083) は dual-write 期間中も 100% 機能維持
+- shadow replay 検証は migration 期間中常時稼働 (一度 PASS して終わりではない)
+
+**compatibility adapter 対象 file 一覧** (grep 実結果、PLAN-084 §2.6):
+
+| # | file | _write_connection 利用箇所数 | 6 db 分離後の所属 |
+|---|---|---|---|
+| 1 | cli/lib/agent_slots.py | 5 | orchestration.db |
+| 2 | cli/lib/harness_monitor.py | 4 | orchestration.db |
+| 3 | cli/lib/scrum_local.py | 6 | scrum.db |
+| 4 | cli/lib/reverse_local.py | 5 | scrum.db |
+| 5 | cli/lib/http_api/routes/audit.py | ≥1 | backend.db (audit_log) |
+| 6 | cli/lib/http_api/routes/push_pr.py | ≥1 | backend.db (automation_run) |
+| 7 | cli/lib/http_api/routes/hooks.py | ≥1 | backend.db (audit_log) |
+| 8 | cli/lib/http_api/routes/telemetry.py | ≥1 | backend.db (session_telemetry) |
+
+adapter 責務: 既存 `helix_db._write_connection(None)` 呼び出しを 8 file 全てで透過的に 6 db 経路へ adapt、API 互換 100% 維持、dual-write 期間は旧 helix.db と新 6 db 両方に write。
+
+#### FR-DB07: Reverse の例外扱い
+
+Reverse 機能 (R0-R4 + RGC、SKILL_MAP.md §HELIX Reverse) は **record strand を持たない例外** として扱う。Reverse は既存 code/設計の逆引きであり、新規 event 生成を伴わないため event log への write 対象外とする (read のみ)。
+
+#### FR-DB08: 二重らせん命名原則 ADR-019
+
+HELIX 命名 = DNA 二重らせん由来を ADR-019 で正式化する (Phase 2 で起票)。artifact strand (V-model 4 artifact 双方向 trace) と record strand (event log) の二重らせんが L1 設計原理として機能する。L1 doc では FR として「ADR-019 を Phase 2 完遂時点で起票する」を要件化する。
+
+#### FR-DB09: frontend/backend state-store の再判定条件 (ADR-018 で管理)
+
+frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定で audit △ / temporal × / event ordering ×)。将来 event 化への再判定条件を ADR-018 に明記する:
+
+| 再判定トリガ | 内容 |
+|---|---|
+| write 頻度低下 | 高頻度 → 中頻度以下に低下した場合、temporal query 要件の再評価 |
+| audit 要件変化 | 法令対応 / compliance で audit trail が必須化した場合 |
+| cross-db 参照増加 | backend/frontend → orchestration への参照が cross-db FK 禁止規約を頻繁に違反する場合 |
+| 再判定タイミング | 6 ヶ月毎 ADR review、または上記トリガ発生時の臨時 review |
+
 ---
 
 ## §4 非機能要件 (NFR): 7 カテゴリ網羅
@@ -302,6 +464,7 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 |---|---|---|
 | **NFR-01** | V1 動作互換性 | V2 完了まで V1 CLI / SKILL / hook 動作維持、helix.db v20 → v21 後方互換 |
 | **NFR-02** | 段階的 migration | Phase ごとに既存テスト PASS 維持 (pytest 1138+ / bats 433+ / shell 614+) |
+| **NFR-03** | 6 db 分離 compatibility adapter (PLAN-084) | v30 → v31 migration で既存 ② 実行ハーネス機能 (PLAN-078〜083) を破壊しない。`cli/lib/compatibility_adapter.py` で 8 file × 25+ 箇所の API 互換 100% 維持 (§3.9 FR-DB06 参照) |
 
 ### 4.2 性能
 
@@ -312,6 +475,9 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **NFR-12** | SessionStart dashboard ≤ 1s | `helix detect dashboard --quick` 完了 |
 | **NFR-13** | PostToolUse auto-record ≤ 5s | Write 完了 → DB 反映 |
 | **NFR-14** | helix sync ≤ 60s | `helix sync --auto` 完了 |
+| **NFR-15** | 6 db cross-db query lag (PLAN-084) | SQLite ATTACH DATABASE による cross-db query lag < 100ms (migration/projector 内部限定の ATTACH に適用) |
+| **NFR-16** | event append latency (PLAN-084) | event log への append latency < 50ms (orchestration / vmodel / scrum の event-sourced 3 db 対象) |
+| **NFR-17** | projector lag 平常時 (PLAN-084) | projector lag (last_processed_event_id 差分) < 100 event を平常稼働状態と定義。100 event 超過で WARN、1000 event 超過で gate fail-close (§3.9 FR-DB03 参照) |
 
 ### 4.3 コスト効率
 
@@ -338,6 +504,8 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **NFR-40** | enum (5 design / 5 test) 固定 | 変更時の migration コスト最小化 |
 | **NFR-41** | drive 追加可能 (1 file 修正) | vmodel-semantics.yaml に entry 追加で完了 |
 | **NFR-42** | V3 への path 残す | managed_products / agent_registry が multi-tenancy / リモート同期に拡張可能 |
+| **NFR-43** | 6 db 独立 migration (PLAN-084) | 6 db 分離後、各 db 単独で schema migration 可能。db 間の migration 依存を持たない設計を L3 D-DB-SEPARATION で確定する |
+| **NFR-44** | frontend/backend 将来 event 化 (PLAN-084) | frontend.db / backend.db の event-sourced 化可否は ADR-018 で定義した再判定条件 (write 頻度低下 / audit 必須化 / cross-db 参照増加) に基づき 6 ヶ月毎に review する (§3.9 FR-DB09 参照) |
 
 ### 4.6 可観測性
 
@@ -347,6 +515,8 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **NFR-51** | detector_runs 完備 | 全 detector 実行 record |
 | **NFR-52** | session-start dashboard | 1 秒以内表示 |
 | **NFR-53** | dev-state report 可能 | markdown / JSON export |
+| **NFR-54** | projector lag 監視 (PLAN-084) | projector lag (last_processed_event_id 差分) を harness_monitor で継続監視、WARN/fail-close 境界を harness_monitor_events table に record する (§3.9 FR-DB03 参照) |
+| **NFR-55** | dual-write mismatch gate 監視 (PLAN-084) | migration 期間中、dual-write mismatch gate (旧 db state vs 新 event log の divergence 検出) を常時稼働させ、divergence 件数を detector_runs table に record する (§3.9 FR-DB06 参照) |
 
 ### 4.7 ドキュメンテーション
 
@@ -379,6 +549,22 @@ helix.db に蓄積された record を使って **3 問題 (バグ / スパゲ�
 | **AC-15** | 工程転換 (V-model スプリント化) 稼働 | **L4.5 Phase A**: 同一上位 sprint 内で `BE Sprint ∥ FE Sprint ∥ Contract Sprint` を同時進行。**L4.5 Phase B**: ① 3 track の成果物差分突合（設計 / テスト設計 / 実装 / review）。② 契約整合（contract と forward 接続）。③ 回帰テスト実行。`design_sprint_entries` table 存在、size 別必須 sprint_type CLI、fullstack track 並列管理、Phase B 完了時に G4 entry 条件を満たす |
 | **AC-16** | G3 functional_freeze サブゲート動作 | `helix gate G3 --subgate functional_freeze --plan-id <id>` で pair_status='paired' 確認。判定式は `size=L AND drive in (fe/fullstack/db)`（L1 master）。vmodel-semantics.yaml は次 sprint で補助情報を同期。矛盾時は L1 を先行適用 |
 | **AC-17** | origin_mode / evidence_status / direction 3 列追加 | `PRAGMA table_info` で contract_entries / design_review に該当列存在 |
+
+### PLAN-084 (db 分離 + Event Sourcing) G1 通過条件
+
+以下 7 項目が L1 本文に確定していることを PLAN-084 の G1 通過条件とする (frontmatter `acceptance` に対応):
+
+| ID | 条件 | 対応箇所 |
+|---|---|---|
+| **AC-DB01** | 6 db (orchestration / vmodel / scrum / plan / backend / frontend) の責務境界 + entity ownership + cross-db FK 禁止 + ATTACH 許可範囲 (migration/projector 内部限定) + event envelope + correlation_id 規約が L1 確定 | §3.9 FR-DB01 entity ownership 表 + cross-db 規約表 |
+| **AC-DB02** | Event Sourcing 6 軸判定 matrix が L1 本文確定。3 event-sourced + 1 hybrid (plan = state snapshot + change log) + 2 state-store の採用根拠が明示 | §3.9 FR-DB02 6 軸判定表 + plan.db hybrid 具体形 |
+| **AC-DB03** | projector 責務分離 + 同期許可リスト 3 件 + timeout 200ms + fallback (async enqueue) + lag 警告境界 100 event / fail-close 境界 1000 event が L1 本文確定 | §3.9 FR-DB03 projector 制約表 + 同期許可リスト + timeout/lag 境界表 |
+| **AC-DB04** | migration gate 表 (dual-write start → mismatch gate → shadow replay → lag stabilization → cutover → rollback) の順序 / 停止条件 / 失敗時 owner が L1 本文確定 | §3.9 FR-DB06 migration ゲート表 |
+| **AC-DB05** | compatibility adapter 対象 file 8 件 (agent_slots / harness_monitor / scrum_local / reverse_local / http_api/routes 4 件) が L1 本文列挙、adapter 責務範囲確定 | §3.9 FR-DB06 compatibility adapter 対象 file 一覧 |
+| **AC-DB06** | 3 軸トライアングル + 二重らせんが ADR-019 で正式記述 (Phase 2 起票)、frontend/backend = state-store 再判定条件が ADR-018 に明記 (Phase 2 起票) | §3.9 FR-DB08 / FR-DB09 |
+| **AC-DB07** | L4 完遂で event-sourced 3 db (orchestration/vmodel/scrum) が dual-write 稼働、projector 1+ 稼働 (lag < 100 event)、shadow replay PASS、dual-write mismatch gate 0 件、既存 ② 実行ハーネス機能 (PLAN-078〜083) 破壊なし | L4 Phase 4.B / 4.C 完遂時の受入確認 |
+
+> **PLAN trace**: PLAN-084 Phase 1.3 完遂 (2026-05-17)。Phase 2 (CONCEPT.md + ADR-018/ADR-019 起票) で L2 本文を確定する。
 
 ### L4.5 phase B 補完定義
 

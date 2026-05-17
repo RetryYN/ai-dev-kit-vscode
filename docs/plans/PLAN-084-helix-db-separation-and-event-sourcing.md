@@ -182,7 +182,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 | # | ゲート名 | 通過条件 | 停止条件 | 失敗時 owner / 動作 |
 |---|---|---|---|---|
 | 1 | dual-write start (v31 migration) | orchestration_events + projection_state + event_envelope table 追加完了、既存 v30 table 破壊なし | migration script の sqlite3 error / table 既存 conflict | **owner: Codex se** / rollback (v30 維持、v31 schema drop) |
-| 2 | dual-write mismatch gate | 旧 db state と新 event log + projection_state の divergence 0 件 (10000 write 連続) | 1 件でも divergence 検出 | **owner: Codex se + Opus 統合** / fail-close (cutover 不可、divergence 解消まで dual-write 継続) |
+| 2 | dual-write mismatch gate | 旧 db state と新 event log + projection_state の divergence 0 件 (10000 write 連続) | 1 件でも divergence 検出 | **owner: Codex se** (Opus は integration support) / fail-close (cutover 不可、divergence 解消まで dual-write 継続) |
 | 3 | shadow replay 検証 | 過去 1000 event を新 projector で replay → derived state が旧 db state と byte-level 一致 | replay 不一致 / projector exception | **owner: Codex se** / fail-close (projector bug 修正後 retry) |
 | 4 | projector lag stabilization | lag < 100 event が連続 24h | lag > 100 event の発生 | **owner: PM (Opus)** / warning (cutover 延期、lag 原因調査) |
 | 5 | cutover | 上記 4 ゲート全 PASS + ユーザー (PO) 承認 | ユーザー却下 / 4 ゲートいずれか fail | **owner: PM (Opus) → ユーザー (PO) 承認** / execute (旧 state table tombstone → drop)、または rollback |
@@ -205,7 +205,7 @@ helix.db を 6 db に物理分離し、event-sourced 3 db + hybrid 1 db + state-
 
 `grep -rln "_write_connection" cli/lib/` (2026-05-17 実行) で確定した adapt 対象:
 
-| # | file | _write_connection(None) 利用箇所数 | 6 db 分離後の所属 |
+| # | file | _write_connection 利用箇所数 | 6 db 分離後の所属 |
 |---|---|---|---|
 | 1 | cli/lib/agent_slots.py | 5 | orchestration.db |
 | 2 | cli/lib/harness_monitor.py | 4 | orchestration.db |
@@ -318,7 +318,7 @@ frontmatter `acceptance` 7 項目すべて達成 + 以下:
 |---|---|---|---|
 | R-01 | migration 中断時の cross-db 整合性 | helix.db v30 と 6 db の二重真実 | §2.5 migration gate 表 (順序 + 停止条件 + owner 明示) + rollback point (gate 6) |
 | R-02 | projector lag による read 一貫性低下 | UI / CLI が古い state を表示 | §2.4 lag 警告境界 100 event / fail-close 1000 event + last_processed_event_id 監視 (PLAN-085 で detector 実装) |
-| R-03 | SQLite ATTACH DATABASE の性能劣化 | cross-db query が遅い | §2.2 ATTACH 許可範囲を migration/projector 内部に限定、性能 NFR < 100ms (L1) |
+| R-03 | SQLite ATTACH DATABASE の性能劣化 | cross-db query が遅い | §2.2 ATTACH 許可範囲を migration/projector 内部に限定、性能 NFR < 100ms (L1、Phase 3 D-DB/D-API で正式 NFR に昇格予定) |
 | R-04 | phase.yaml と projector derived state の二重真実 | Phase 4.C cutover 判断ミス | Phase 4.C 末で「併存期間維持」または「phase.yaml 廃止」を ADR-020 で記録 |
 | R-05 | ② 実行ハーネス (agent_slots / harness_monitor 等) の破壊 | PLAN-078〜083 機能停止 | §2.6 compatibility adapter で 8 file × 25+ 箇所を adapt、API 互換 100% 維持、adapter test で全 path 検証 |
 | R-06 | Event Sourcing 採用範囲の判断ミス (plan.db hybrid) | 中期的 re-architecture コスト | §2.3 6 軸判定 matrix + plan.db hybrid 具体形 (state snapshot + change log) を本文確定 |
