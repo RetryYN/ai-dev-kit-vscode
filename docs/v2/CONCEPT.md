@@ -106,6 +106,131 @@ helix.db = {
 } で 3 問題 (バグ / スパゲッティ / 契約漏れ) を schema で防止
 ```
 
+### 3 軸トライアングル原則
+
+HELIX framework の根本構造は **「成果物 → 実行者 → 記録」** の 3 軸で構成され、
+この**順序は固定**である ([ADR-019 §Decision.3](../adr/ADR-019-double-helix-naming-principle.md)):
+
+```
+① 成果物 (V-model 工程群)
+   ↓  成果物が決まって初めて
+② 実行者 (Actor = subagent 14 種 + CLI roles 30 種)
+   ↓  実行者が決まって初めて
+③ 記録 (DB = 6 db 分離後の event log + state snapshot)
+```
+
+| 軸 | 内容 | HELIX 実体 |
+|---|---|---|
+| ① 成果物 | L1〜L11 工程で生まれる docs / code / test | docs/v2/L1〜L11 doc 群 / cli/lib/*.py / cli/helix-* |
+| ② 実行者 | mandatory 10 種 + on-demand 4 種 の subagent + CLI roles 30 種 | .claude/agents/*.md / cli/roles/*.conf |
+| ③ 記録 | 6 db の event log + state snapshot | cli/lib/helix_db.py → 6 db 分離後 |
+
+**db 設計は最後段**: ③ 記録 (db 設計) を ① 成果物定義より先に議論・実装することは
+3 軸トライアングル違反として reject する。「db 設計から始める」アプローチは
+「DB 駆動アンチパターン」に陥る (ADR-019 §Decision.3)。
+
+**3 軸とこれまでの §3 記述の接続**: §3 内の「Base 軸 1 (V-model 強化)」と「Base 軸 2 (自動化)」は
+軸 ① 成果物と軸 ② 実行者の中核を成す。「付随基盤: helix.db」が軸 ③ 記録の前身であり、
+本 §3 後段の「6 db 分離 + Event Sourcing 概念」でその物理実装を詳述する。
+
+### 二重らせん strand 構造
+
+HELIX という命名は **DNA 二重らせん構造** に由来する
+([ADR-019 §Decision.1](../adr/ADR-019-double-helix-naming-principle.md))。
+2 本の strand が塩基対 (Actor + detector) で結合し、Sprint 1 周 = 1 回転として
+時間軸で自己組織的に進化する構造が HELIX の設計原理と物理実装を統一的に説明する。
+
+```
+artifact strand                       record strand
+──────────────────────────            ──────────────────────────
+L1 要件 / 受入テスト設計               orchestration.db
+L2 全体設計 / 総合テスト設計     ◇◇◇  vmodel.db
+L3 詳細設計 / 結合テスト設計     塩基対  scrum.db
+L4 実装コード / 単体テストコード  ◇◇◇  plan.db
+Sprint commit chain                   backend.db
+docs/v2 docs hierarchy                frontend.db
+──────────────────────────            ──────────────────────────
+        ↑ Actor (helix CLI command) + detector が結合を維持 ↑
+```
+
+**artifact strand** (左鎖): V-model 工程群が生む成果物の累積
+— docs / code / test design / test code が Sprint ごとに積み上がる。
+
+**record strand** (右鎖): CLI 操作・ゲート通過・Agent 呼び出しの event log 累積
+— 6 db に分離されたイベントストアとして状態が保持される。
+
+**strand mapping 対応表** ([ADR-019 §Decision.2](../adr/ADR-019-double-helix-naming-principle.md) 要約):
+
+| artifact strand (V-model 成果物累積) | record strand (6 db event log / state) |
+|---|---|
+| docs/v2/L1-REQUIREMENTS.md (要件 + 受入テスト設計) | orchestration.db — phase / gate / sprint 遷移 event |
+| docs/v2/L2-MASTER.md + ADR-* (全体設計 + 総合テスト設計) | vmodel.db — artifact / test_design / review event |
+| D-API / D-DB / D-CONTRACT (詳細設計 + 結合テスト設計) | scrum.db — hypothesis / poc / verify / decide event |
+| cli/lib/*.py + cli/helix-* (実装コード + 単体テストコード) | plan.db — PLAN doc 進行 state snapshot + change log |
+| docs/v2/L4-test-design/*.md + cli/lib/tests/test_*.py | backend.db — be coverage / drive 切替 state |
+| .claude/agents/*.md + cli/templates/agents/*.md | frontend.db — visual mock / FE 成果物 state |
+
+**塩基対 (binding)**:
+- Actor (PM / TL / SE / PE / QA / PMO / PdM) が `helix` CLI command を実行すると、
+  artifact strand の成果物変化と record strand への event write が **同時に発生**する
+- detector (lint / audit / advisor) が record strand の anomaly を検知し、
+  artifact strand の修正要求として Actor へフィードバックする
+
+**Sprint = らせん 1 回転**: Sprint N で両 strand がそれぞれ延伸し、
+Sprint N+1 に向けてらせんが 1 段積まれる。V2 完了状態 = らせんが L1-L11 + Run (L9-L11)
+を 1 周したことを意味する。
+
+**例外**: Reverse 機能 (R0-R4 + RGC) は record strand を持たない。
+既存 code の逆引きであり新規 event を生成しないため、orchestration event log への
+write は発生しない (ADR-018 §Decision.1 注記)。
+
+### 6 db 分離 + Event Sourcing 概念
+
+HELIX V2 の③ 記録フェーズとして、単一 `helix.db` を 6 個の SQLite file に物理分離する
+([ADR-018 §Decision.1](../adr/ADR-018-db-separation-and-event-sourcing.md))。
+各 db は独立した entity ownership を持ち、cross-db FK は禁止、
+アプリケーション層からの ATTACH も禁止する (migration script + projector 内部のみ許可)。
+
+**6 db を一律に event-sourced にするのではなく**、audit / temporal / event ordering /
+write 頻度 / retention / replay SLO の **6 軸判定**でハイブリッド構成を採用する
+([ADR-018 §Decision.2](../adr/ADR-018-db-separation-and-event-sourcing.md)):
+
+| db | audit | temporal | event ordering | write 頻度 | retention | 採用方式 |
+|---|---|---|---|---|---|---|
+| orchestration | ◎ 必須 | ◎ 必須 | ◎ 必須 | 高 | 長期 (1y+) | **event-sourced** |
+| vmodel | ◎ 必須 | ◎ 必須 | ◎ 必須 | 中 | 長期 (1y+) | **event-sourced** |
+| scrum | ◎ 必須 | ◎ 必須 | ◎ 必須 | 中 | 長期 (1y+) | **event-sourced** |
+| plan | ◎ 必須 | △ 部分 | ○ 推奨 | 低 | 長期 (1y+) | **hybrid (state snapshot + change log)** |
+| backend | △ 部分 | × 不要 | × 不要 | 高 | 短期 (90d) | **state-store** |
+| frontend | △ 部分 | × 不要 | × 不要 | 高 | 短期 (90d) | **state-store** |
+
+採用決定ルール: audit + temporal + event ordering の 3 軸が全て ◎ 必須 → event-sourced。
+1 軸でも × → state-store。その間 → hybrid。
+
+**projector 境界** ([ADR-018 §Decision.3](../adr/ADR-018-db-separation-and-event-sourcing.md)):
+event-sourced 3 db (orchestration / vmodel / scrum) には projector を配置し、
+event log から read model を構築する。同期許可は **3 件のみ**
+(phase projector / gate projector / agent_slot projector、いずれも timeout 200ms)。
+それ以外は async enqueue。lag > 1000 event で **Phase 4.B 以降** に G2/G3/G4 gate を block
+(Phase 4.B 完成まで本 fail-close は不適用)。
+
+**migration gate 6 段階** ([ADR-018 §Decision.5](../adr/ADR-018-db-separation-and-event-sourcing.md)):
+v30 (単一 helix.db) → 6 db 分離は Strangler Fig + dual-write + compatibility adapter で段階移行:
+
+1. **dual-write start** — orchestration_events + projection_state 追加、既存 v30 破壊なし (自動)
+2. **dual-write mismatch gate** — 旧 db と新 event log の divergence 0 件 (10000 write 連続) (自動)
+3. **shadow replay 検証** — 過去 1000 event replay → derived state が byte-level 一致 (自動)
+4. **projector lag stabilization** — lag < 100 event 連続 24h (PM 監視)
+5. **cutover** — 4 ゲート全 PASS + PO 承認 (人間承認必須)
+6. **rollback point** — cutover 後 7d 以内の重大 anomaly で切り戻し可能 (人間承認必須)
+
+compatibility adapter (compatibility_adapter.py) が既存 11 file (lib 8 + top-level CLI 3) を
+API 互換 100% で 6 db 経路へ adapt する (Phase 4.A)。
+
+**補足 — backend / frontend の再判定**: backend.db / frontend.db は現時点で state-store だが、
+write 頻度低下・audit 要件変化・cross-db 参照増加 等のトリガで将来 event-sourced への
+昇格を検討する (ADR-018 §Decision.4、6 ヶ月毎に PM + TL で見直し)。
+
 ### Emergent value: 開発全容の可視化
 
 両軸 (V-model schema + 自動 record) が揃って初めて実現:
