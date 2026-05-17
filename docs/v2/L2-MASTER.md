@@ -33,7 +33,7 @@
 | DB schema 詳細 | 概要参照のみ | Phase C で詳細設計に委譲 |
 | hook 実装詳細 | 概要参照のみ | Phase E で自動化設計に委譲 |
 | 可視化 UI 詳細 | 概要参照のみ | Phase F で目標状態のみ固定 |
-| Event Sourcing / projector 議論 | 含めない | L2 工程群確定後の話題 |
+| Event Sourcing / projector | ADR-018/019 で扱う | PLAN-084 で L1 確定、ADR-018 (db 分離 + Event Sourcing + projector 境界) / ADR-019 (HELIX 二重らせん命名原則) で L2 凍結 |
 
 | 用語 | 定義 | 備考 |
 |---|---|---|
