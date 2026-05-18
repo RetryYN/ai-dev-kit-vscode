@@ -1516,16 +1516,17 @@ print(json.dumps(agent_mandatory.audit_phase('$phase_map')))
   }
 
   run_gate_design_doc_web_search_audit() {
-    # PLAN-087 Phase 3: 対象 PLAN/ADR の WebSearch / OSS 探索 evidence を G2/G3 で advisory 監査する。
-    # gate fail にはせず warning のみ増やす。判定不能時は SKIP。
+    # PLAN-089 Phase 2: 対象 PLAN/ADR の WebSearch / OSS 探索 evidence を G2/G3 で監査する。
+    # デフォルトは advisory を維持し、HELIX_GATE_DESIGN_DOC_FAIL_CLOSE=1 のときだけ fail-close に昇格する。
+    # HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 + HELIX_DESIGN_DOC_NO_WEB_REASON は hook と同じ bypass pattern として受理する。
     local gate_name="$1"
     case "$gate_name" in
       G2|G3) ;;
       *) return 0 ;;
     esac
 
-    echo "[helix-gate] design_doc_web_search_audit auto-run: $gate_name (PLAN-087 advisory)"
-    local audit_json status warn_count details
+    echo "[helix-gate] design_doc_web_search_audit auto-run: $gate_name (PLAN-089 env-gated fail-close)"
+    local audit_json status warn_count details fail_close_enabled bypass_used bypass_reason_missing
     audit_json="$(
       HELIX_GATE_PLAN_ID="${PAIR_CHECK_PLAN_ID:-}" \
       PYTHONPATH="$SCRIPT_DIR/.." python3 - "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$DB_PATH" "$PHASE_FILE" "$gate_name" <<'PY'
@@ -1550,6 +1551,11 @@ ADR_ID_RE = re.compile(r"^(ADR-\d{3,})")
 ADR_REF_RE = re.compile(r"docs/adr/(ADR-[A-Za-z0-9._-]+\.md)")
 SECTION_RE = re.compile(r"^##\s+(?:\d+\.\s+)?業界 standard 参照(?:\b|\s*\()", re.MULTILINE)
 NEXT_SECTION_RE = re.compile(r"^##\s+", re.MULTILINE)
+
+
+def truthy_env(name: str) -> bool:
+    value = os.environ.get(name, "").strip().lower()
+    return value not in {"", "0", "false", "no"}
 
 
 def resolve_plan_id() -> str:
@@ -1649,6 +1655,11 @@ for plan_doc in plan_docs:
             target_paths[str(adr_path.resolve())] = adr_path
 
 session_id = os.environ.get("HELIX_SESSION_ID", "").strip() or f"gate:{gate_name}:{plan_id}"
+fail_close_enabled = truthy_env("HELIX_GATE_DESIGN_DOC_FAIL_CLOSE")
+bypass_requested = truthy_env("HELIX_ALLOW_DESIGN_DOC_NO_WEB")
+bypass_reason = os.environ.get("HELIX_DESIGN_DOC_NO_WEB_REASON", "").strip()
+bypass_used = bypass_requested and bool(bypass_reason)
+bypass_reason_missing = bypass_requested and not bypass_reason
 targets = []
 warnings = []
 
@@ -1684,12 +1695,24 @@ for path in sorted(target_paths.values()):
             }
         )
 
+advisory_result = "warn" if warnings or bypass_reason_missing else "pass"
+helix_db.insert_gate_audit_metric(
+    str(db_path),
+    gate_name=gate_name,
+    plan_id=plan_id,
+    advisory_result=advisory_result,
+    bypass_used=bypass_used,
+)
+
 print(
     json.dumps(
         {
-            "status": "warn" if warnings else "pass",
+            "status": advisory_result,
             "plan_id": plan_id,
             "warn_count": len(warnings),
+            "fail_close_enabled": fail_close_enabled,
+            "bypass_used": bypass_used,
+            "bypass_reason_missing": bypass_reason_missing,
             "targets": targets,
             "warnings": warnings,
         },
@@ -1705,6 +1728,9 @@ PY
       return 0
     fi
     warn_count="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("warn_count", 0))' 2>/dev/null || echo "0")"
+    fail_close_enabled="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(1 if json.load(sys.stdin).get("fail_close_enabled") else 0)' 2>/dev/null || echo "0")"
+    bypass_used="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(1 if json.load(sys.stdin).get("bypass_used") else 0)' 2>/dev/null || echo "0")"
+    bypass_reason_missing="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(1 if json.load(sys.stdin).get("bypass_reason_missing") else 0)' 2>/dev/null || echo "0")"
     details="$(printf '%s' "$audit_json" | python3 -c '
 import sys, json
 data = json.load(sys.stdin)
@@ -1719,11 +1745,27 @@ else:
         parts.append(f"{item['doc_id']} web={int(bool(item['web_search_executed']))} oss={int(bool(item['oss_search_executed']))} rows={item['row_count']}")
     print("; ".join(parts))
 ' 2>/dev/null || echo "")"
-    if [[ "$warn_count" -gt 0 ]]; then
-      echo "  WARN [design_doc_web_search_audit] $details (advisory)"
-      detector_warn=$((detector_warn + warn_count))
+    if [[ "$bypass_reason_missing" == "1" ]]; then
+      echo "  FAIL [design_doc_web_search_audit] HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 には HELIX_DESIGN_DOC_NO_WEB_REASON が必須です"
+      detector_fail=$((detector_fail + 1))
+    elif [[ "$warn_count" -gt 0 ]]; then
+      if [[ "$fail_close_enabled" == "1" ]]; then
+        if [[ "$bypass_used" == "1" ]]; then
+          echo "  PASS [design_doc_web_search_audit] $details (bypass accepted)"
+        else
+          echo "  FAIL [design_doc_web_search_audit] $details (fail-close, bypass: HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 + HELIX_DESIGN_DOC_NO_WEB_REASON)"
+          detector_fail=$((detector_fail + warn_count))
+        fi
+      else
+        echo "  WARN [design_doc_web_search_audit] $details (advisory)"
+        detector_warn=$((detector_warn + warn_count))
+      fi
     else
-      echo "  PASS [design_doc_web_search_audit] $details"
+      if [[ "$bypass_used" == "1" ]]; then
+        echo "  PASS [design_doc_web_search_audit] $details (bypass configured, no missing evidence)"
+      else
+        echo "  PASS [design_doc_web_search_audit] $details"
+      fi
     fi
   }
 

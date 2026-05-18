@@ -165,7 +165,8 @@ memory feedback の確立背景:
   - PLAN-086 (rollback drill): Chaos Engineering (Netflix Principles of Chaos / Simian Army) + fault injection (NIST SP 800-190) 引用
   - PLAN-087 (本 PLAN): Claude Code hook API + ADR format standard (MADR / Nygard original) 引用 (本 wave で部分実施済)
 - [ ] **retrofit 候補 P1 13 件 + P2 6 件** (pmo-sonnet 報告詳細は memory feedback [[project_2026_05_19_plan087_web_search_guardrail_birth]] 参照、段階的 retrofit)
-- [ ] Issue #21988 fix monitor (Anthropic / Claude Code 側修正後、Phase 2 workaround 撤去)
+- [ ] ~~Issue #21988 fix monitor~~ → **2026-05-19 pmo-tech-news 調査で CLOSED 判明** (bug ではなく仕様整備、exit 2 が block / exit 1 が non-blocking)。HELIX hook は exit 2 使用済で現行仕様準拠 → PostToolUse 二重防御は **実装不要**。Claude Code 2.1.139 (2026-05-11) で追加された `continueOnBlock` (PostToolUse で reject reason を Claude に返しつつターン継続) を検討する方が適切 (別 PLAN carry)
+- [ ] **Issue #24327** (exit 2 後に Claude が待機する model 挙動変化、2.1.32 Opus 4.6 境界) は **model 側問題でフックで解決不可** → 動作観察 carry
 - [ ] **Wave 2 依存衝突 retrofit**: cli/lib/migrations/v32_design_doc_web_search_audit.py が detector_runs と統合された messy 構造を Phase 4 で分離検討 (別 migration に分離 or 設計意図明文化)
 
 ## 8. 関連 memory

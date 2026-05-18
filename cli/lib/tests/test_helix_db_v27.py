@@ -282,7 +282,8 @@ def test_init_db_to_v27_sequential(tmp_path: Path) -> None:
     finally:
         conn.close()
 
-    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION == 32
+    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION
+    assert helix_db.CURRENT_SCHEMA_VERSION >= 32
     assert {24, 25, 26, 27}.issubset(set(versions))
     assert "design_sprint_drive_decisions" in tables
     assert "automation_runs" in tables
@@ -320,6 +321,7 @@ def test_migrate_v23_db_to_v27(tmp_path: Path) -> None:
     finally:
         conn.close()
 
-    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION == 32
+    assert max(versions) == helix_db.CURRENT_SCHEMA_VERSION
+    assert helix_db.CURRENT_SCHEMA_VERSION >= 32
     for version in range(18, 28):
         assert version in versions, f"version {version} missing in schema_version"

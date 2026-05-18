@@ -34,9 +34,17 @@ except ImportError:  # pragma: no cover
     from concurrent_lock import file_lock
 
 try:
-    from .migrations import v31_db_separation, v32_design_doc_web_search_audit
+    from .migrations import (
+        v31_db_separation,
+        v32_design_doc_web_search_audit,
+        v33_gate_audit_metrics,
+    )
 except ImportError:  # pragma: no cover
-    from migrations import v31_db_separation, v32_design_doc_web_search_audit
+    from migrations import (
+        v31_db_separation,
+        v32_design_doc_web_search_audit,
+        v33_gate_audit_metrics,
+    )
 
 
 SCHEMA = """
@@ -235,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 32
+CURRENT_SCHEMA_VERSION = 33
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -1884,6 +1892,9 @@ def migrate(conn):
         if current < 32:
             v32_design_doc_web_search_audit.migrate_v31_to_v32(conn)
         v32_design_doc_web_search_audit.ensure_v32_additive_schema(conn)
+        if current < 33:
+            v33_gate_audit_metrics.migrate_v32_to_v33(conn)
+        v33_gate_audit_metrics.ensure_v33_additive_schema(conn)
         conn.commit()
 
 
@@ -2441,6 +2452,49 @@ def insert_design_doc_web_search_audit(
                 hook_session_id,
                 int(bool(web_search_executed)),
                 int(bool(oss_search_executed)),
+                created_at,
+            ),
+        )
+        return _validate_positive_int(int(cursor.lastrowid), "row_id")
+
+
+# @helix:index id=helix-db.insert-gate-audit-metric domain=cli/lib summary=design doc WebSearch gate の advisory/bypass 計測を記録する
+def insert_gate_audit_metric(
+    db_path,
+    *,
+    gate_name: str,
+    plan_id: str,
+    advisory_result: str,
+    bypass_used: bool,
+    created_at: str | None = None,
+):
+    """Record a gate-level design doc audit metric row."""
+    gate_name = _validate_choice(_require_non_empty(gate_name, "gate_name"), "gate_name", ("G2", "G3"))
+    plan_id = _require_non_empty(_clean_optional_text(plan_id, "plan_id"), "plan_id")
+    advisory_result = _validate_choice(
+        _require_non_empty(advisory_result, "advisory_result"),
+        "advisory_result",
+        ("pass", "warn", "skip"),
+    )
+    created_at = _clean_optional_text(created_at, "created_at") or datetime.now().isoformat()
+
+    with _write_connection(db_path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO gate_audit_metrics (
+                gate_name,
+                plan_id,
+                advisory_result,
+                bypass_used,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                gate_name,
+                plan_id,
+                advisory_result,
+                int(bool(bypass_used)),
                 created_at,
             ),
         )
