@@ -2,7 +2,7 @@
 id: D-API-SEP-phase4b-addendum
 plan: PLAN-084
 layer: L3
-status: addendum
+status: merged
 created: 2026-05-18
 addendum_for: D-API-SEP-draft.md
 triggered_by: tl-advisor verdict 2026-05-18 (5 P1 + 3 P2 指摘)
@@ -15,6 +15,9 @@ triggered_by: tl-advisor verdict 2026-05-18 (5 P1 + 3 P2 指摘)
 補助 frozen contract である。  
 対象は既存 doc の本文（`D-API-SEP-draft.md`/`D-CONTRACT-EVENT-draft.md`）ではなく、
 本ファイルに限定して byte-level を凍結する。
+
+本 addendum の内容は `D-API-SEP-draft.md §2.6` と `D-CONTRACT-EVENT-draft.md §4` に  
+`2026-05-18` 付で統合済みのため、参照用として残すのみとする。
 
 ## A. `_DualWriteConnection` 同期 method 仕様（P1）
 

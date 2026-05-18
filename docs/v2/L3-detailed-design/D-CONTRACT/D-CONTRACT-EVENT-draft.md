@@ -495,6 +495,59 @@ D-API-SEP-draft §4 の cross-db read helper (`read_cross_db_projection`) は pr
 
 ---
 
+### 4.6 contextvars normalize 仕様（Phase 4.B freeze 取り込み）
+
+`threading.local` 記述ではなく `contextvars` を採用し、`cli/lib/correlation_context.py` の実装に整合する。
+```python
+"""Correlation context helpers for cross-db trace propagation."""
+
+import contextvars
+from contextlib import contextmanager
+from typing import Iterator
+
+from . import uuid7_generator
+
+_CORRELATION_CONTEXT: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "helix_correlation_id",
+    default=None,
+)
+
+
+def current_correlation_id() -> str | None:
+    return _CORRELATION_CONTEXT.get()
+
+
+def get_current_correlation_id() -> str | None:
+    return current_correlation_id()
+
+
+@contextmanager
+def correlation_context(parent: str | None = None) -> Iterator[str]:
+    correlation_id = parent if parent is not None else uuid7_generator.generate_event_id()
+    token = _CORRELATION_CONTEXT.set(correlation_id)
+    try:
+        yield correlation_id
+    finally:
+        _CORRELATION_CONTEXT.reset(token)
+```
+
+実装一致条件:
+
+- `current_correlation_id()` は `get_current_correlation_id()` の alias 参照と互換
+- `correlation_context(parent=None)` は新規 correlation_id を発行
+- `correlation_context(parent=<id>)` は継承 context を返却
+- `clear_correlation()` は context 終了時リセットとして扱う（token restore）
+
+`D-API-SEP-phase4b-addendum` の §F と互換整合し、`docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md` 側は実装正本として contextvars を確定する。
+### 4.7 read / write の context 規約（補足）
+
+- `read_cross_db_projection()` を含む read 時も、`correlation_context` で発行された correlation_id を引き継ぐ
+- thread を跨いだ実行時は `contextvars` により呼び出し元 context へ依存
+
+### 4.8 correlation API（互換名）
+- `set_correlation(correlation_id: str | None) -> str | None`: 明示的な set。None は clear 兼用。既存実装では直接 setter ではなく `ContextVar.set` を使用するため、設計では本文の alias 規約で吸収する。
+- `get_correlation() -> str | None`: 取得関数。`current_correlation_id` と `get_current_correlation_id` の統合名として扱う。
+- `clear_correlation()`: context 終了時の `ContextVar.reset(token)` 相当を呼ぶ。実装では finally 時の token リストアで代替可。
 ## §5 payload schema 規約
 
 ### 5.1 payload の型と基本規約

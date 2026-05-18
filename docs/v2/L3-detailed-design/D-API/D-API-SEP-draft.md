@@ -92,6 +92,41 @@ compatibility_adapter.py はこの呼び出し慣行を破壊せず 6 db へ rou
 
 ## §2 compatibility_adapter.py の API 設計
 
+### 2.6 `_DualWriteConnection` 同期 method 仕様（byte-level 追加）
+
+`D-API-SEP-phase4b-addendum` の §A を統合する。
+
+```python
+class _DualWriteConnection:
+    """legacy + new db を atomic で 2 phase commit する synchronized wrapper."""
+
+    def __init__(self, legacy_conn: sqlite3.Connection, new_conn: sqlite3.Connection): ...
+    def execute(self, sql: str, params=()) -> sqlite3.Cursor: ...
+    def executemany(self, sql: str, params_list) -> sqlite3.Cursor: ...
+
+    def commit(self) -> None:
+        """legacy → new の順で commit。new 失敗時は WARN のみ。"""
+
+    def rollback(self) -> None:
+        """両 db rollback。例外時も両 db で best-effort rollback。"""
+
+    def close(self) -> None: ...
+
+    @property
+    def lastrowid(self) -> int | None:
+        """legacy_conn.lastrowid を返却。new_conn は dual-write 期間中は参照しない。"""
+```
+
+error policy（byte-level）:
+
+- legacy write 失敗（`execute`/`executemany`）: `critical` → `raise`
+- new write 失敗: `warn` log のみ、legacy 成功を優先
+- commit 失敗（legacy）: 両 DB rollback 試行後 `critical` raise
+- commit 失敗（new only）: `rollback` 後 `warn` log のみ
+- lock / `SQLITE_BUSY` 超過（retry 上限）: `critical` raise
+
+本節は `docs/v2/L3-detailed-design/D-API/D-API-SEP-phase4b-addendum.md`（status: merged）へ双方向 trace 参照している。
+
 ### 2.1 旧 `_write_connection(None)` 互換 API
 
 ```python
