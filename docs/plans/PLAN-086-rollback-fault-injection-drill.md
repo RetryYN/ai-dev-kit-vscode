@@ -26,6 +26,8 @@ related_docs:
 
 業界 standard (引用: towardsdatascience.com + codelit.io) では **「rollback scripts are rarely tested、treat rollbacks as last resort」「forward-only migration が業界主流」** が確立しているため、本 PLAN の `helix db rollback` CLI は **dev 限定試演ツール** と明確に位置付ける。production 用 retreat path は **forward-only undo migration (v32 を新規 commit)** が推奨。
 
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。CLI 実装 (cli/lib/db_cli.py、commit 22ce096) では preflight check で `cli/lib/helix_db.py` 経由の schema_version 確認を行う想定 (AC の `PRAGMA user_version` 表現は業界 standard 説明)。実装手順への置換は PLAN-089? carry。
+
 ## 業界 standard 参照 (本 PLAN が引用する根拠)
 
 | 参照 | source | 引用箇所 |

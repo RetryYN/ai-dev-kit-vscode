@@ -6,6 +6,8 @@ Accepted (2026-05-18) → scope down (2026-05-19、業界 standard ベース)
 
 > 2026-05-19 scope down 再書き直し: 初版 (commit 5d730ec b94395b) で SaaS 本番運用テンプレート (PO 承認 PR / S3 backup / 24h on-call 監視 / multi-reviewer / 6h 連続 critical 監視 / 48h legacy 停止) を local CLI tool である HELIX に過剰適用していた問題を訂正。第 1 次 scope down (本 commit 前) は Web 検索なしの思いつき書きだったため retract し、本 commit で **WebSearch + SQLite 公式仕様 + 業界 standard (alembic / flyway / sqitch / goose / dbmate / golang-migrate / simonw/sqlite-migrate)** を引用ベースに再書き直し。
 
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 ADR 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。本 ADR を HELIX 実装に適用する際は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認、または `cli/lib/helix_db.py:migrate()` 経由で migration 適用すること。AC や具体手順の `PRAGMA user_version = N` 表現は **業界 standard 説明** であり HELIX 実装手順ではない。実装時の置換は別 PLAN-089? carry (PRAGMA → schema_version table 表現の全面置換)。
+
 ## Deciders
 
 - PM (Opus)

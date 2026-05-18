@@ -20,5 +20,5 @@
 | ADR-016-concurrent-lock-primitive | ADR-016: concurrent lock primitive を standalone module として導入する | — | — |
 | ADR-018-db-separation-and-event-sourcing | ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界 | Accepted | 2026-05-18 |
 | ADR-019-double-helix-naming-principle | ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル | Accepted | 2026-05-18 |
-| ADR-020-cutover-rollback-gates | ADR-020: PLAN-084 migration gate 5 (cutover) + gate 6 (rollback) 採用 — local CLI tool 用簡略版 | Accepted | 2026-05-18 |
+| ADR-020-cutover-rollback-gates | ADR-020: PLAN-084 migration gate 5 (cutover) + gate 6 (rollback) 採用 — local CLI tool 用簡略版 (Web 検索ベース再書き直し) | Accepted | 2026-05-18 |
 | ADR-template | ADR Template | — | — |

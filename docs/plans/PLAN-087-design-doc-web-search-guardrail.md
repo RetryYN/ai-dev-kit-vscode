@@ -40,8 +40,13 @@ memory feedback の確立背景:
 | Claude Code Hooks 公式 doc | https://code.claude.com/docs/en/hooks | Phase 2 PreToolUse hook fail-close 設計 |
 | Issue #21988 (PreToolUse exit code 2 無視 bug) | https://github.com/anthropics/claude-code/issues/21988 | Phase 2 workaround 検証必須 |
 | 既存 HELIX hook 実装 pattern | .claude/hooks/pretooluse-agent-guard.sh (commit 3ae4af3、subagent guard、PMO+PdM 12 種 fail-close、12-case strict smoke PASS) | Phase 2 実装の base pattern |
+| **alembic process_revision_directives** | https://alembic.sqlalchemy.org/en/latest/cookbook.html | Phase 2 fail-close hook 設計の最上位参照実装 (生成前 block hook) |
+| **pressly/goose annotation parse** | https://pressly.github.io/goose/documentation/annotations/ | Phase 1 必須 section 検出 bash script の移植元 (`-- +goose Up` 必須 annotation → file invalid 判定) |
+| **amacneil/dbmate 2 section 必須** | https://github.com/amacneil/dbmate | Phase 1 template 必須 section の仕様根拠 (`-- migrate:up` + `-- migrate:down` 両方必須) |
+| sqitchers/sqitch Issue #799 (fail-close 未実装の反面教師) | https://github.com/sqitchers/sqitch/issues/799 | warn のみでは検出できない実例として L1 要件補強 |
 | 既存 memory feedback | [[feedback_subagent_guard_hook_fail_close]] | hook 実装前に frontmatter / 正本 grep で事実確認 |
 | 既存 memory feedback | [[feedback_helix_fill_holes_principle]] | HELIX = 穴を埋めるシステム原則 |
+| 既存 memory feedback | [[feedback_codex_parallel_dependency_check]] | Codex 並列投入前の file 衝突依存判定 (本 PLAN Wave 2 で再発・確立) |
 
 ## 3. 前提と制約
 
@@ -150,10 +155,18 @@ memory feedback の確立背景:
 
 ## 7. carry list
 
-- [ ] PLAN-088?: helix-gate G2/G3 で WebSearch 履歴 audit を advisory → fail-close 化 (本 PLAN Phase 3 後の段階的 enforcement)
+- [ ] PLAN-089?: helix-gate G2/G3 で WebSearch 履歴 audit を advisory → fail-close 化 (本 PLAN Phase 3 後の段階的 enforcement)
 - [ ] CLAUDE.md / SKILL_MAP.md の本ガードレール仕様明文化 (Phase 4 内)
-- [ ] 既存 ADR / PLAN (PLAN-085 / 086 / ADR-020 以外) の retrofit (template 業界 standard 参照 section 追加、段階的)
+- [ ] **retrofit 候補 P0 6 件** (pmo-sonnet Wave 2-7 報告、2026-05-19):
+  - ADR-018 (helix.db 6 分離 + Event Sourcing): Martin Fowler EventSourcing / CQRS / Greg Young 公式 + DDD Bounded Context per DB 引用
+  - ADR-020 (cutover-rollback gates): 既存 URL を `## 業界 standard 参照` section に昇格 (本 PLAN と同 wave で実施済)
+  - PLAN-084 (helix.db 6 分離): Event Sourcing / CQRS / Projector pattern (Fowler / MSDN CQRS Journey) + UUID v7 RFC 9562 + SQLite ATTACH 公式
+  - PLAN-085 (cutover staging): Forward-only migration (alembic / flyway docs) + SQLite WAL mode 公式 (本 PLAN と同 wave で部分実施済)
+  - PLAN-086 (rollback drill): Chaos Engineering (Netflix Principles of Chaos / Simian Army) + fault injection (NIST SP 800-190) 引用
+  - PLAN-087 (本 PLAN): Claude Code hook API + ADR format standard (MADR / Nygard original) 引用 (本 wave で部分実施済)
+- [ ] **retrofit 候補 P1 13 件 + P2 6 件** (pmo-sonnet 報告詳細は memory feedback [[project_2026_05_19_plan087_web_search_guardrail_birth]] 参照、段階的 retrofit)
 - [ ] Issue #21988 fix monitor (Anthropic / Claude Code 側修正後、Phase 2 workaround 撤去)
+- [ ] **Wave 2 依存衝突 retrofit**: cli/lib/migrations/v32_design_doc_web_search_audit.py が detector_runs と統合された messy 構造を Phase 4 で分離検討 (別 migration に分離 or 設計意図明文化)
 
 ## 8. 関連 memory
 

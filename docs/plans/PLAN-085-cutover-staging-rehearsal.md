@@ -30,6 +30,8 @@ related_docs:
 
 HELIX は CLI + local SQLite (`.helix/helix.db`) で動く tool で「本番デプロイ先」「staging 環境」「24h on-call 監視」という概念は無い。Phase 1: migration v31 sandbox 動作確認 + Phase 2: 手元 rollback 手順明文化 に縮小。
 
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。実 sandbox 動作確認時は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認すること。AC の `PRAGMA user_version = 31` 表現は **業界 standard 説明** であり HELIX 実装手順ではない。実装手順への置換は PLAN-089? carry。
+
 ## 業界 standard 参照 (本 PLAN が引用する根拠)
 
 | 参照 | source | 引用箇所 |
