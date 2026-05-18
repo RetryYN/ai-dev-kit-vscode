@@ -67,6 +67,24 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pretooluse-askuserquestion.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pretooluse-agent-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Checking HELIX subagent guard (PMO + PdM allowlist + model 必須)...",
+            "blockOnFailure": true
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pretooluse-agent-fire.sh",
+            "timeout": 5,
+            "blockOnFailure": false
+          }
+        ]
       }
     ],
     "PostToolUse": [
