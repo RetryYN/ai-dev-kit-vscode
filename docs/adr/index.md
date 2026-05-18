@@ -18,7 +18,7 @@
 | ADR-014-roles-config-format | ADR-014: cli/roles/*.conf を正本とする決定 (conf vs yaml 二重管理の整理) | Accepted | 2026-05-08 |
 | ADR-015-helix-v2-orchestration | ADR-015: HELIX v2 orchestration (PM 実装禁止 + PMO 新設 + ロール再配置) | Accepted | 2026-05-08 |
 | ADR-016-concurrent-lock-primitive | ADR-016: concurrent lock primitive を standalone module として導入する | — | — |
-| ADR-018-db-separation-and-event-sourcing | ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界 | proposed | 2026-05-17 |
-| ADR-019-double-helix-naming-principle | ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル | proposed | 2026-05-17 |
-| ADR-020-cutover-rollback-gates | ADR-020: PLAN-084 cutover gate 5 + rollback gate 6 採用 | proposed | 2026-05-18 |
+| ADR-018-db-separation-and-event-sourcing | ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界 | Accepted | 2026-05-18 |
+| ADR-019-double-helix-naming-principle | ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル | Accepted | 2026-05-18 |
+| ADR-020-cutover-rollback-gates | ADR-020: PLAN-084 cutover gate 5 + rollback gate 6 採用 | Accepted | 2026-05-18 |
 | ADR-template | ADR Template | — | — |

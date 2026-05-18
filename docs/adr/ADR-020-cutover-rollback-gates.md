@@ -2,15 +2,15 @@
 
 ## Status
 
-proposed
+Accepted (2026-05-18)
 
-date: 2026-05-18
+> proposed (2026-05-18) → Accepted (2026-05-18) PO 承認。本 ADR 起票同日に PLAN-084 Phase 4 完遂後の PO 承認で Accepted 遷移。本番 cutover 実行は別 PLAN-085 (staging 演習 → 本番 → 24h 監視 → 採用) で実行する。
 
 ## Deciders
 
 - PM (Opus)
 - TL (Codex tl-advisor、Phase 4.B-.C wave 1 並列実装後)
-- PO (人間承認待ち、status: proposed → Accepted は別 PR で遷移)
+- PO (yoshiyuki0907yn@gmail.com、2026-05-18 承認)
 
 ## Supersedes
 

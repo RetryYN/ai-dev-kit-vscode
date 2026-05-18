@@ -2,15 +2,15 @@
 
 ## Status
 
-proposed
+Accepted (2026-05-18)
 
-date: 2026-05-17
+> proposed (2026-05-17) → Accepted (2026-05-18) PO 承認。PLAN-084 Phase 4.A + 4.B + 4.C 実装完遂後、PO (yoshiyuki0907yn@gmail.com) が「OK」と承認。
 
 ## Deciders
 
 - PM (Opus)
-- TL (Codex tl-advisor、tl-advisor Round 1-3 反映)
-- PO (人間承認待ち)
+- TL (Codex tl-advisor、Round 1-3 反映)
+- PO (yoshiyuki0907yn@gmail.com、2026-05-18 承認)
 
 ---
 
