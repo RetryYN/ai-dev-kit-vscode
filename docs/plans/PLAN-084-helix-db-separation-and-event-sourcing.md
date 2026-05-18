@@ -484,6 +484,24 @@ Phase 3 (L3 詳細設計) を tl-advisor 4 rounds (L3 Round 1-3 changes_required
 
 **注記**: ADR-018/019 frontmatter `status: proposed` は維持 (Accepted は PO 承認待ち)。Phase 4.A 着手は本 G3 PASS 判定により着手 OK。
 
+### G3 軽量再判定 (2026-05-19、commit 9145239 + 611ab74)
+
+L3 addendum merge (commit 9145239) + tl-advisor 指摘反映 (commit 611ab74、P1 4件 + P2 2件 + P3 1件) による `D-API-SEP-draft.md` / `D-CONTRACT-EVENT-draft.md` 本文変更について、Opus 自己軽量再判定を実施。
+
+判定: **PASS 継続** (frozen contract 非破壊)
+
+根拠:
+
+| # | 変更内容 | 評価 |
+|---|---|---|
+| P1.1-2 | D-CONTRACT §4.3 threading.local → historical / §4.8 alias 規約明示 | 既存実装 `cli/lib/correlation_context.py` (Phase 4.B 完遂、commit b6facdf) に doc を寄せる訂正。新規契約なし |
+| P1.3-4 | D-API §2.6 _DualWriteConnection 実装 2 file 併記 + docstring 英語化 | class signature 不変、`cli/lib/dual_write_connection.py` (commit b6facdf 既存) の追加列挙のみ |
+| P2.1 | D-CONTRACT V-model trace ② に `correlation_context.py` 追加列挙 | 既存 file 列挙拡張 |
+| P2.2 | addendum.md frontmatter status=merged 整合 | doc 内部整合のみ |
+| P3.1 | テスト file 名 typo 訂正 (test_uuid7_generator_unit.py 他) | 実 file 名整合 |
+
+新規 contract 追加・signature 変更・破壊変更は無し。Phase 4.A/4.B/4.C 完遂済の実装 (cli/lib/compatibility_adapter.py / dual_write_connection.py / correlation_context.py / event_envelope.py / projector.py / shadow_replay.py / cutover_orchestrator.py / rollback_orchestrator.py) と doc 乖離なし。tl-advisor 再 review は任意 carry とし、Phase 4.A〜4.C 完遂 + PO 承認 path (PLAN-085 / PLAN-086) を継続する。
+
 ### L4 carry list 最終確定 (tl-advisor Round 4 助言)
 
 | Phase 4 sprint | scope | carry items 主要 |
