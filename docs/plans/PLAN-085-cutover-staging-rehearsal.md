@@ -1,167 +1,204 @@
 ---
 plan_id: PLAN-085
-title: "PLAN-085: cutover staging rehearsal and staged production cutover"
+title: "PLAN-085: migration v31 動作確認 + 手元 rollback 手順整備 (local CLI tool 用 scope down、Web 検索ベース再書き直し)"
 layer: L4
 status: draft
-size: M
+size: S
 drive: db
 created: 2026-05-18
-revised: 2026-05-18
+revised: 2026-05-19
 owner: PM
-phases: L1, L2, L3, L4, L7, L10
-gates: G5, G6, G7
+phases: L4
+gates: G6
 related_plans:
   - PLAN-084 (helix.db 6 分離 + Event Sourcing + projector)
-  - PLAN-086 (rollback fault injection drill)
+  - PLAN-086 (helix db rollback CLI 起票、本 PLAN と同 wave で scope down)
+  - PLAN-087 (設計 doc 作成時の Web 検索ガードレール工程組み込み、本 PLAN scope down の構造化 fix)
 related_docs:
-  - docs/adr/ADR-020-cutover-rollback-gates.md
+  - docs/adr/ADR-020-cutover-rollback-gates.md (本 PLAN と同 wave で scope down)
   - cli/lib/cutover_orchestrator.py
   - cli/lib/rollback_orchestrator.py
   - cli/lib/shadow_replay.py
+  - cli/lib/migrations/v31_db_separation.py
 ---
 
-# PLAN-085: cutover staging 演習 → 本番投入 → 24h 監視 → 採用
+# PLAN-085: migration v31 動作確認 + 手元 rollback 手順整備 (Web 検索ベース scope down)
+
+## 0. scope down 注記 (2026-05-19、Web 検索ベース再書き直し)
+
+初版 (commit 445b27e) は **SaaS 本番運用テンプレート** (staging 環境 / 本番 cutover / 24h 監視 / SRE on-call / Slack 通知 / sanitize PII copy / 4 Phase 構造 / 8 AC) を **local CLI tool である HELIX** に過剰適用していた。第 1 次 scope down (本 commit 前) は Web 検索なしの思いつき書きだったため retract し、本 commit で **WebSearch + SQLite 公式仕様 + 業界 standard (alembic / flyway / sqitch / goose / dbmate / simonw/sqlite-migrate)** を引用ベースに再書き直し。
+
+HELIX は CLI + local SQLite (`.helix/helix.db`) で動く tool で「本番デプロイ先」「staging 環境」「24h on-call 監視」という概念は無い。Phase 1: migration v31 sandbox 動作確認 + Phase 2: 手元 rollback 手順明文化 に縮小。
+
+## 業界 standard 参照 (本 PLAN が引用する根拠)
+
+| 参照 | source | 引用箇所 |
+|---|---|---|
+| SQLite ATTACH DATABASE + multi-db transaction span | https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68 | Phase 1 6 db 分離 migration atomic 化 |
+| SQLite DDL transactional | https://david.rothlis.net/declarative-schema-migration-for-sqlite/ | Phase 1 migration script の自動 rollback 機構 |
+| PRAGMA user_version | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | Phase 1 schema version 確認 |
+| Idempotent migration (CREATE TABLE IF NOT EXISTS) | https://eskerda.com/sqlite-schema-migrations-python/ | Phase 1 migration 冪等性必須化 |
+| Forward-only migration が業界主流 | https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/ | Phase 2 rollback の業界 standard 位置付け |
+| simonw/sqlite-migrate (個人 OSS 向け軽量 migration) | https://github.com/simonw/sqlite-migrate | HELIX local CLI tool と同型 |
+| Flyway 命名規約 `V<n>__<desc>.sql` / timestamp prefix | https://developer.harness.io/docs/database-devops/concepts/flyway-migrations-file-structure/ | backup file 命名 `<timestamp>_pre_v31.db` |
+| ADR-020 (本 PLAN と同 wave で scope down) | docs/adr/ADR-020-cutover-rollback-gates.md | Decision.1 / Decision.2 整合 |
 
 ## 1. 目的
 
-ADR-020 で採用した cutover gate 5 + rollback gate 6 を、**staging 演習 → 本番 cutover → 24h 監視 → 採用**の順で実施し、`PLAN-084` の実装成果を本番適用する。
-
-本計画のゴールは、以下を満たす事前演習済みの順序で採用を安全に確定すること。
-
-- gate 5 (cutover) を stage 環境で `shadow_replay + 模擬 cutover` を伴う手順検証により再現
-- gate 6 (rollback) を切替判定条件/操作性を含めて検証
-- 本番切替後 24h の監視窓を確保し、`mismatch detector + projector lag` を継続監視
-- carry 前提を PLAN-086 に分離し、実運用への影響を抑制
+PLAN-084 Phase 4.A-.C で実装した migration v31 (helix.db → 6 db 分離 + Event Sourcing + dual-write + cutover/rollback orchestrator) を、開発者個人の `.helix/helix.db` に対して **業界 standard (forward-only / SQLite DDL transactional / idempotent / PRAGMA user_version)** ベースで安全に適用する手元手順を確定する。
 
 ## 2. 前提と制約
 
-- `docs/plans/PLAN-084-helix-db-separation-and-event-sourcing.md` の `Phase 4.C`（shadow replay / cutover orchestrator / rollback orchestrator）を前提とする。
-- 本 PLAN は **PLAN-085 本体**として、PLAN-086（故障注入による rollback 試演習）を carry 末尾に分離する。
-- `@helix:index` は本 PLAN doc では付与しない（code 資産のみ対象）。
-- 本計画対象の編集は `docs/plans/PLAN-085-cutover-staging-rehearsal.md` のみ。
-- cutover/rollback 実行の最終手順は PO 承認と外部 runbook に従う。
+- 対象は **個人開発者の手元 `.helix/helix.db`** のみ。SaaS 本番環境は存在しない
+- migration 失敗時は **SQLite DDL transactional 特性で自動 ROLLBACK** (引用: david.rothlis.net)、明示的 backup restore は補助
+- backup 命名: **Flyway 風 timestamp prefix** `<YYYY-MM-DDTHH-MM-SS>_pre_v31.db` (引用: harness developer hub)
+- migration script は **idempotent** (`CREATE TABLE IF NOT EXISTS` 等、引用: eskerda.com)
+- 既存 orchestrator (cli/lib/{cutover,rollback}_orchestrator.py) は SaaS 要素 (confirm_token / 24h soak / 6h 連続) を含むが、本 PLAN は doc 整備 scope のみで実装側 reduce は別 PLAN-088? carry
+- `@helix:index` は本 PLAN doc では付与しない
 
-## 3. 受入条件
+## 3. Phase 1: migration v31 sandbox 動作確認
 
-### Phase 1: staging 演習（shadow_replay + 模擬 cutover）
+### 3.1 目的
 
-#### DoD
-- 本番 dataset の sanitize copy（PII/secret 除去済み）を staging 用に用意し、`shadow_replay.replay_to_shadow_db()` が 1 回以上成功して `failed_count=0` を満たす。
-- 連続 replay 実行時に「skip/failed/mismatch」率が事前閾値（failed 0、skip 可）に収まる。
-- 模擬 cutover で `cutover_orchestrator.cutover_preflight()` が `ready=True` を通過。
-- 監査ログ（preflight 出力、mismatch count、replay 時刻、実行者）を残す。
+手元 `.helix/helix.db` の sandbox copy に対して v30 → v31 migration を **SQLite ATTACH + 単一 transaction で atomic に** 実行 (引用: SQLite 公式) し、6 db 分離 + Event Sourcing + projector が想定通り動作することを確認する。
 
-#### Rollback trigger
-- sanitize copy 作成前後でデータ不整合（行数差分 > 1% など）を検知した場合。
-- replay result の `failed_count > 0` が観測された場合。
-- `replay limit` 到達前に projector 例外が 2 回以上発生した場合。
+### 3.2 手順
 
-#### 監視 metric
-- `shadow_replay` 実行件数、`failed_count`、`skipped_count`
-- replay 実行時間（P95）と完了率
-- replay 入力イベント数（event_id 増分）
+1. **backup 取得 (Flyway 風 timestamp prefix)**: 
+   ```bash
+   mkdir -p .helix/backups/
+   TS=$(date +%Y-%m-%dT%H-%M-%S)
+   cp .helix/helix.db ".helix/backups/${TS}_pre_v31.db"
+   ```
+2. **schema version 確認 (引用: SQLite forum)**: 
+   ```bash
+   sqlite3 .helix/helix.db "PRAGMA user_version;"  # 30 を確認
+   ```
+3. **sandbox copy 作成**: `cp .helix/helix.db /tmp/helix.db.sandbox`
+4. **sandbox で migration 実行 (idempotent + atomic)**: 
+   ```bash
+   HELIX_DB_PATH=/tmp/helix.db.sandbox python3 cli/lib/migrations/v31_db_separation.py
+   ```
+   - migration script 内で `BEGIN` → `ATTACH` 6 db → `CREATE TABLE IF NOT EXISTS` (idempotent) → data move → `PRAGMA user_version = 31` → `COMMIT`
+   - 失敗時 SQLite が自動 `ROLLBACK` (DDL transactional)
+5. **schema version 確認**: `sqlite3 /tmp/helix.db.sandbox "PRAGMA user_version;"` で 31 確認
+6. **動作確認**: `HELIX_DB_PATH=/tmp/helix.db.sandbox helix doctor` で 0 fail 確認
+7. **shadow replay**: 
+   ```python
+   from cli.lib.shadow_replay import replay_to_shadow_db
+   result = replay_to_shadow_db()
+   assert result.failed_count == 0
+   ```
+8. **mismatch detector**: 
+   ```python
+   from cli.lib.dual_write_mismatch import detect_mismatch
+   assert detect_mismatch().critical_count == 0
+   ```
+9. **idempotent 確認 (2 回目実行で no-op)**: `python3 cli/lib/migrations/v31_db_separation.py` を sandbox で再実行 → エラーなく完了 (CREATE TABLE IF NOT EXISTS 効く)
+10. **sandbox cleanup**: `rm /tmp/helix.db.sandbox`
 
-#### 担当
-- PO: 演習開始日と停止条件の承認、停止/継続判断
-- PM: 対象データの sanitize copy 作成・保管・実行日程
-- TL: 予測不能差分の root cause 分類、replay pipeline 健全性確認
+### 3.3 DoD
 
-### Phase 2: 本番 cutover（gate 5 通過後）
+- [ ] backup file (`.helix/backups/<timestamp>_pre_v31.db`) が timestamp prefix 命名で取得され sqlite として開ける
+- [ ] sandbox migration が `PRAGMA user_version = 31` で完了 + SQLite transactional 自動 ROLLBACK 動作確認 (失敗系 test)
+- [ ] sandbox 上の `helix doctor` 0 fail
+- [ ] shadow replay `failed_count == 0`
+- [ ] mismatch detector critical 0
+- [ ] migration script 2 回目実行で no-op (idempotent 確認)
+- [ ] 上記結果を本 PLAN §5 実施履歴に記録
 
-#### DoD
-- 本番実施前に `cutover_orchestrator.cutover_preflight()` が blocker なしを満たす。
-- PO 承認済み `confirm_token` を含む gate 5 実行 API/CLI を実施し、切替結果を `po_carry_required`/実施完了ステータスとして記録。
-- 全 6 DB の write 経路切替が完了し、dual-write 期間中の write 到達率が 100% 監査できる。
-- `cutover` 実施後 1h 時点で `projector lag` 警告が閾値内（既定: warn 100 / fail 1000）であることを確認。
+### 3.4 失敗時
 
-#### Rollback trigger
-- `cutover_preflight` が ready=False になった
-- confirm token 未発行/不整合
-- 実行直後に最初の 60 分で projection lag が fail-close 境界（1000）を超えた
+- sandbox migration が fail: SQLite 自動 ROLLBACK で sandbox は v30 状態維持、error log を本 PLAN §5 に記録、cli/lib/migrations/v31_db_separation.py の bug fix
+- migration script が non-idempotent: `CREATE TABLE IF NOT EXISTS` / `INSERT OR IGNORE` を追加 (引用: eskerda.com)
+- shadow replay fail: cli/lib/shadow_replay.py の bug fix
+- mismatch detector critical: dual-write logic (cli/lib/dual_write_connection.py) の bug fix
 
-#### 監視 metric
-- `cutover_orchestrator.cutover_execute()` 実行結果（status / confirmed / preflight ブロッカー）
-- dual-write write-through 成功率（6 db）
-- `projector lag`（WARN 100 / FAIL 1000）
+## 4. Phase 2: 手元 rollback 手順明文化 (dev 限定)
 
-#### 担当
-- PO: confirm_token 発行・承認・最終実行承認
-- PM: 切替手順実行、イベント観測、運用連絡
-- TL: 事前 checklist 監査、実行後 1h 側における障害診断
+### 4.1 目的
 
-### Phase 3: 24h 監視
+migration v31 後に問題が出た場合の手動 rollback 手順を README + `helix db rollback --help` に明文化する。**業界 standard (引用: towardsdatascience.com、alembic / flyway / sqitch / goose) では「rollback は last resort、forward-only undo migration が主流」** なので、本 Phase の rollback 手順は **dev 限定の試演用** と明記する。production 想定では **新規 v32 undo migration を commit する path** を推奨。
 
-#### DoD
-- 24h 継続監視の間、`mismatch detector` の critical 連続検知 0 回。
-- projector lag が `warn=100` を超えるイベントを 24h 内で 1 回以下に抑制。
-- `dual-write write-through` と `rollback preflight` を 24h 時点で再実行し、`can_rollback=True` を維持。
-- 監視結果を時系列で記録し、PM 宛に 8h/16h/24h レポートを提出。
+### 4.2 dev 限定 rollback 手順 (CLI 未実装時の暫定)
 
-#### Rollback trigger
-- mismatch detector critical が 24h 内に 2 連続以上発生
-- projector lag が fail-close 境界（1000）到達
-- `rollback_preflight()` が `can_rollback=False` へ遷移
+1. **現状確認**: `sqlite3 .helix/helix.db "PRAGMA user_version;"` で 31 確認
+2. **backup 存在確認**: `ls -la .helix/backups/<timestamp>_pre_v31.db`
+3. **backup restore**: `cp .helix/backups/<timestamp>_pre_v31.db .helix/helix.db`
+4. **6 db file 退避**: 
+   ```bash
+   ARCHIVE=".helix/v31-archive/$(date +%Y-%m-%dT%H-%M-%S)"
+   mkdir -p "$ARCHIVE"
+   mv .helix/orchestration.db .helix/vmodel.db .helix/scrum.db .helix/plan.db .helix/backend.db .helix/frontend.db "$ARCHIVE/" 2>/dev/null || true
+   ```
+5. **schema version 確認**: `sqlite3 .helix/helix.db "PRAGMA user_version;"` で 30 確認
+6. **動作確認**: `helix doctor` で 0 fail
+7. **diff event 取扱 (引用: SQLite `.dump` 公式)**: 必要なら退避先の 6 db から event_envelope を `.dump` で export して manual replay (個人開発者の判断、production では v32 forward migration を推奨)
 
-#### 監視 metric
-- mismatch count（critical / warning）
-- projector lag（last_processed_event_id 差分）
-- 24h 滞在中の write/replication 失敗率
+### 4.3 production 推奨 path: forward-only undo migration (引用: 業界主流)
 
-#### 担当
-- PO: 監視結果の受領可否判断（必要時「hot rollback」判断）
-- PM: 監視運用、8h ごとのステータス更新と carry 作成
-- TL: メトリクス異常時の技術診断と rollback 可否判断資料作成
+- v31 で問題発覚 → 新規 `cli/lib/migrations/v32_undo_v31.py` を実装
+- v32 で「v31 で行った 6 db 分離を helix.db に戻す」操作を script 化
+- `helix db migrate --to v32 --confirm` で forward 適用
+- 業界 standard (alembic / flyway / sqitch / goose 共通)、引用: towardsdatascience.com + codelit.io
+- HELIX local CLI tool でも同原則を default 推奨とする
 
-### Phase 4: 採用宣言
+### 4.4 DoD
 
-#### DoD
-- 24h 監視完了後に `ADR-020` を active 化するための採用判定資料を PM/PO/TL で共有。
-- `PLAN-085` の AC すべてに対し green を付与。
-- legacy db deprecation（停止計画/通知/監査）を開始し、`rollback window` 監視の継続責任を明示。
+- [ ] dev 限定 rollback 手順を README または docs/commands/db.md に追記
+- [ ] **「dev 限定 / production は v32 undo migration を推奨」注記** を明文化
+- [ ] `helix db --help` (or `helix db rollback --help`) に手動手順への link 追加 + dev 限定注記
+- [ ] 手元で 1 回手動 rollback を実演し、`.helix/helix.db` が v30 に戻ること (PRAGMA user_version = 30) 確認
+- [ ] forward-only undo migration の参考例 (空の v32 stub) を `cli/lib/migrations/v32_template.py` として配置 (具体 v32 実装は別 PLAN)
 
-#### Rollback trigger
-- 採用判定時点で PO が「hot rollback」を指示
-- legacy rollback 不能を示唆する監査結果（backup 不整合、重要 event 欠損）
+## 5. 実施履歴
 
-#### 監視 metric
-- AC 通過率（100%）
-- 監査レポート未処理項目数
-- legacy deprecation 進捗（停止対象 DB / 予定日 / 監査完了）
+(Phase 1 実施後に記録)
 
-#### 担当
-- PO: 採用可否最終承認
-- PM: LEGACY 停止計画実行
-- TL: ADR 更新内容と実行証跡の技術レビュー
+| 日付 | 実施者 | Phase | 結果 | 備考 |
+|---|---|---|---|---|
+| - | - | - | - | - |
 
-## 4. AC（Acceptance Criteria）
+## 6. 受入条件
 
-- AC-085-01: Stage rehearsal で sanitize copy を用いた shadow replay が `failed_count=0` で完了し、差分レポートが保存されること。
-- AC-085-02: gate 5 preflight の blocker が消去されること（dual-write 健全性、mismatch 0、shadow replay 完了）。
-- AC-085-03: 本番 cutover 実行時に PO 承認 token で実行され、preflight が ready の状態であること。
-- AC-085-04: 本番 cutover 後 24h の `mismatch detector critical` が 0 件であり、`projector lag` fail-close（1000）未到達であること。
-- AC-085-05: 24h 監視期間中に rollback preflight を再実行した際、`can_rollback=True` を維持し、rollback path 証跡（backup path / backup hash / diff_event_count）を保存すること。
-- AC-085-06: 24h 監視完了時点で ADR-020 active 化可否を評価し、採用時は legacy db deprecation の開始報告が PM から承認されること。
+- AC-085-01: Phase 1 sandbox migration が `PRAGMA user_version = 31` + `failed_count = 0` + mismatch critical 0 で完走し、結果が §5 に記録される
+- AC-085-02: migration script の idempotent 検証 (2 回目実行 no-op) が PASS
+- AC-085-03: SQLite DDL transactional 自動 ROLLBACK が失敗系 test で動作確認 (sandbox 上で意図的 fail を発生させ rollback されることを確認)
+- AC-085-04: Phase 2 dev 限定手動 rollback 手順が README または docs/commands/db.md に明文化され、**「dev 限定 / production は v32 undo migration」注記** 付き
+- AC-085-05: 手元で 1 回手動 rollback を実演し v30 に戻ること確認
 
-## 5. リスク
+## 7. リスク
 
-- R-01: dual-write 期間が想定より延長し、dual-write 由来の読み書き競合が増加する（監視ノイズ・処理遅延）
-  - 緩和: gate 4.2 で lag・mismatch・write error を可視化し、閾値超過時は cutover 延期を優先。
-- R-02: mismatch alert の noise 増加で障害判定が遅延する
-  - 緩和: 初回 24h は critical 直列監査を強化し、warning の上限値を文書化した playbook で抑制。
-- R-03: 24h 監視中の hot rollback が発生し、運用 window と rollback window が競合する
-  - 緩和: ロールバック演習（PLAN-086）で責務分離とオペ手順を事前固定し、実行手順を短縮。
-- R-04: 本番 traffic で shadow replay を追加実施した場合の遅延増
-  - 緩和: stage rehearsal と監視対象を分離し、本番直前は replay を観測ログ連携中心に縮退実行。
+- R-01: sandbox copy 上での migration 結果が本番 (= 開発者個人の `.helix/helix.db`) と乖離する可能性
+  - 緩和: sandbox は sqlite file の cp なので schema/data はビット単位で同一、乖離は本質的に発生しない
+- R-02: backup file (`.helix/backups/<timestamp>_pre_v31.db`) を誤削除すると rollback 不能
+  - 緩和: README で `.helix/backups/` を `.gitignore` する旨明記 + 開発者が自衛、複数 timestamp backup で時系列保持
+- R-03: 既存 orchestrator (cutover_orchestrator.py / rollback_orchestrator.py) が SaaS 要素 (confirm_token / 24h soak) を内包し、手元実行で誤動作の可能性
+  - 緩和: 本 PLAN は doc scope のみで実装は触らず、PLAN-088? (orchestrator scope down) で別途 reduce
+- R-04: 開発者が dev 限定 rollback を production 想定で使う誤解
+  - 緩和: README + `helix db rollback --help` 冒頭に **「dev 限定 / production は v32 undo migration」** 注記必須
 
-## 6. carry list
+## 8. carry list
 
-- [ ] PLAN-086: rollback 試演習（deliberate fault injection を含む rollback fault injection drill）を別 Plan として起票し実施する。
-  - 目的: gate 6 の人手最短時間手順、backup manifest 検証、差分イベント数再現を強化する。
+- [ ] PLAN-086: `helix db rollback` CLI 起票 (本 wave で scope down 同期、dev 限定位置付け明示)
+- [ ] PLAN-088?: cli/lib/{cutover,rollback}_orchestrator.py / shadow_replay.py / dual_write_mismatch.py の SaaS 要素 reduce (confirm_token / 24h soak / 6h 連続 等を local tool 用に簡略化)
+- [ ] v32 undo migration template (`cli/lib/migrations/v32_template.py`) は本 PLAN Phase 2 で配置、具体 v32 実装は別 PLAN
+- [ ] memory feedback [[feedback_design_doc_web_search_required]] 確立済
 
-## 7. 参照
+## 9. 参照
 
-- docs/adr/ADR-020-cutover-rollback-gates.md
+- docs/adr/ADR-020-cutover-rollback-gates.md (本 PLAN と同 wave で scope down 再書き直し)
 - docs/plans/PLAN-084-helix-db-separation-and-event-sourcing.md
+- docs/plans/PLAN-086-rollback-fault-injection-drill.md (本 wave で scope down 同期)
+- docs/plans/PLAN-087-design-doc-web-search-guardrail.md (本 PLAN scope down の構造化 fix)
 - cli/lib/cutover_orchestrator.py
 - cli/lib/rollback_orchestrator.py
 - cli/lib/shadow_replay.py
+- cli/lib/migrations/v31_db_separation.py
+- SQLite ATTACH DATABASE 公式: https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68
+- SQLite DDL transactional: https://david.rothlis.net/declarative-schema-migration-for-sqlite/
+- PRAGMA user_version: https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+- Idempotent migration: https://eskerda.com/sqlite-schema-migrations-python/
+- Forward-only migration (業界主流): https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/
+- Flyway 命名規約: https://developer.harness.io/docs/database-devops/concepts/flyway-migrations-file-structure/
+- simonw/sqlite-migrate (参考 OSS): https://github.com/simonw/sqlite-migrate
