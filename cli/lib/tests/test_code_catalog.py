@@ -19,6 +19,16 @@ import code_catalog
 REJECT_LOG_PATH = Path(".helix/cache/code-catalog-rejected.log")
 
 
+def _prepare_reject_log_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    reject_dir = tmp_path / ".helix" / "cache"
+    reject_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.chdir(tmp_path)
+    log_path = tmp_path / REJECT_LOG_PATH
+    if log_path.exists():
+        log_path.unlink()
+    return log_path
+
+
 def _git_add(root: Path, *paths: str) -> None:
     import subprocess
 
@@ -139,21 +149,19 @@ def test_should_redact_allows_version_string() -> None:
     assert reason is None
 
 
-def test_scan_file_logs_rejection() -> None:
-    with tempfile.TemporaryDirectory() as workdir:
-        source = Path(workdir) / "code_catalog_reject_sample.py"
-        source.write_text(
-            "# @helix:index id=foo domain=bar summary=auth_token is forbidden\n",
-            encoding="utf-8",
-        )
-        if REJECT_LOG_PATH.exists():
-            REJECT_LOG_PATH.unlink()
+def test_scan_file_logs_rejection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    source = tmp_path / "code_catalog_reject_sample.py"
+    source.write_text(
+        "# @helix:index id=foo domain=bar summary=auth_token is forbidden\n",
+        encoding="utf-8",
+    )
+    log_path = _prepare_reject_log_path(tmp_path, monkeypatch)
 
-        entries = code_catalog.scan_file(source)
+    entries = code_catalog.scan_file(source)
 
-        assert entries == []
-        lines = REJECT_LOG_PATH.read_text(encoding="utf-8").splitlines()
-        assert len(lines) == 1
+    assert entries == []
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
 
 
 def test_parse_helix_index_comment_parses_quoted_fields_and_related() -> None:
@@ -203,7 +211,9 @@ def test_parse_helix_index_comment_rejects_secret_like_summary() -> None:
     )
 
 
-def test_scan_file_skips_danger_summary_and_records_rejection_path(tmp_path: Path) -> None:
+def test_scan_file_skips_danger_summary_and_records_rejection_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     source = tmp_path / "sample.py"
     source.write_text(
         "\n".join(
@@ -215,15 +225,13 @@ def test_scan_file_skips_danger_summary_and_records_rejection_path(tmp_path: Pat
         ),
         encoding="utf-8",
     )
-
-    if REJECT_LOG_PATH.exists():
-        REJECT_LOG_PATH.unlink()
+    log_path = _prepare_reject_log_path(tmp_path, monkeypatch)
 
     entries = code_catalog.scan_file(source)
 
     assert len(entries) == 2
     assert [entry["id"] for entry in entries] == ["ok-id", "another-id"]
-    rejected = REJECT_LOG_PATH.read_text(encoding="utf-8").splitlines()
+    rejected = log_path.read_text(encoding="utf-8").splitlines()
     assert len(rejected) == 1
     assert "bad-id" not in rejected[0]
     assert "danger_pattern" in rejected[0]

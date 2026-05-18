@@ -193,7 +193,16 @@ patterns:
     )
     uninitialized_root = tmp_path / "uninitialized"
     uninitialized_root.mkdir()
+    real_exists = Path.exists
+
+    def _isolated_exists(path: Path) -> bool:
+        if str(path) == "/tmp/.helix":
+            return False
+        return real_exists(path)
+
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("HELIX_PROJECT_ROOT", str(initialized_root))
+    monkeypatch.setattr(meta_phase.Path, "exists", _isolated_exists)
     monkeypatch.chdir(uninitialized_root)
 
     status = meta_phase.check_patterns()
