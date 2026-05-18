@@ -6,7 +6,7 @@ Accepted (2026-05-18) → scope down (2026-05-19、業界 standard ベース)
 
 > 2026-05-19 scope down 再書き直し: 初版 (commit 5d730ec b94395b) で SaaS 本番運用テンプレート (PO 承認 PR / S3 backup / 24h on-call 監視 / multi-reviewer / 6h 連続 critical 監視 / 48h legacy 停止) を local CLI tool である HELIX に過剰適用していた問題を訂正。第 1 次 scope down (本 commit 前) は Web 検索なしの思いつき書きだったため retract し、本 commit で **WebSearch + SQLite 公式仕様 + 業界 standard (alembic / flyway / sqitch / goose / dbmate / golang-migrate / simonw/sqlite-migrate)** を引用ベースに再書き直し。
 
-> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 ADR 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。本 ADR を HELIX 実装に適用する際は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認、または `cli/lib/helix_db.py:migrate()` 経由で migration 適用すること。AC や具体手順の `PRAGMA user_version = N` 表現は **業界 standard 説明** であり HELIX 実装手順ではない。実装時の置換は別 PLAN-089? carry (PRAGMA → schema_version table 表現の全面置換)。
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 ADR 内の `schema_version` table 版管理表現 (`SELECT MAX(version) FROM schema_version`) は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は `cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数を使う独自 mechanism (`schema_version` table) を使用する。本 ADR を HELIX 実装に適用する際は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認、または `cli/lib/helix_db.py:migrate()` 経由で migration 適用すること。AC や具体手順の `INSERT INTO schema_version (version, applied_at) VALUES (N, datetime(''now''))` 表現は **業界 standard 説明** であり HELIX 実装手順ではない。実装時の置換は別 PLAN-089? carry (PRAGMA → schema_version table 表現の全面置換)。
 
 ## Deciders
 
@@ -29,7 +29,7 @@ Accepted (2026-05-18) → scope down (2026-05-19、業界 standard ベース)
 |---|---|---|
 | SQLite ATTACH DATABASE + multi-db transaction span | https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68 | Decision.1 6 db 分離 migration を **atomic 1 transaction で実現可能** |
 | SQLite DDL transactional (BEGIN/COMMIT 内で CREATE/ALTER ROLLBACK 可能) | https://david.rothlis.net/declarative-schema-migration-for-sqlite/ | Decision.1 migration script 内の自動 rollback 機構 |
-| PRAGMA user_version で schema 版数管理 | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | Decision.1 entry/exit 条件の schema version 確認 |
+| schema_version table (`SELECT MAX(version) FROM schema_version`) で schema 版数管理 | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | Decision.1 entry/exit 条件の schema version 確認 |
 | Forward-only migration が業界主流 (alembic / flyway / sqitch / goose) | https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/ | Decision.2 rollback gate 6 を「dev 限定試演用」と再位置付け |
 | 「rollback scripts are rarely tested、treat rollbacks as last resort」 | https://codelit.io/blog/database-migration-tools-comparison | Decision.2 rollback path は production 想定せず、forward-only undo migration (v32) が推奨 |
 | Idempotent migration (CREATE TABLE IF NOT EXISTS) | https://eskerda.com/sqlite-schema-migrations-python/ | Decision.1 migration script の冪等性必須化 |
@@ -49,7 +49,7 @@ PLAN-084 Phase 4.A-.B-.C wave 1 までで以下が完成:
 - dual-write `_DualWriteConnection` + projector 3 件 + mismatch detector (Phase 4.B.4-.8)
 - shadow replay + cutover orchestrator + rollback orchestrator (Phase 4.C.1-.3)
 
-残りは gate 5 / gate 6 の **手元実行手順** で、これを個人開発者が自分の `.helix/helix.db` に対して安全に適用するための gate を本 ADR で定義する。**業界 standard (forward-only migration + SQLite DDL transactional + PRAGMA user_version + idempotent script) を local CLI tool 用に適用する**。
+残りは gate 5 / gate 6 の **手元実行手順** で、これを個人開発者が自分の `.helix/helix.db` に対して安全に適用するための gate を本 ADR で定義する。**業界 standard (forward-only migration + SQLite DDL transactional + `SELECT MAX(version) FROM schema_version` + idempotent script) を local CLI tool 用に適用する**。
 
 ---
 
@@ -60,7 +60,7 @@ PLAN-084 Phase 4.A-.B-.C wave 1 までで以下が完成:
 cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate --to v31` 経由で実行する。**SQLite ATTACH DATABASE + 単一 transaction で 6 db 分離 migration を atomic 化** (SQLite 公式仕様)。
 
 **Entry 条件** (preflight、`cutover_preflight() -> CutoverPreflightResult`):
-- 現状 schema version 確認: `PRAGMA user_version` で v30 を確認 (引用: SQLite forum)
+- 現状 schema version 確認: `SELECT MAX(version) FROM schema_version` で v30 を確認 (引用: SQLite forum)
 - migration script が idempotent (`CREATE TABLE IF NOT EXISTS` / `ALTER TABLE ADD COLUMN IF NOT EXISTS` 等、引用: eskerda.com)
 - shadow replay が `failed_count == 0` で完走した記録あり (手元 `.helix/helix.db` の sandbox copy 上で実行)
 - dual-write 期間中の mismatch detector 直近実行で critical 0
@@ -69,12 +69,12 @@ cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate
 **Execute** (cutover):
 - 開発者が `helix db migrate --to v31 --confirm` を実行
 - `--confirm` フラグなしの場合は preflight 結果のみ表示 (dry-run)
-- 実行: SQLite `BEGIN` で transaction 開始 → ATTACH 6 db file → schema 構築 + data move → `PRAGMA user_version = 31` → `COMMIT`
+- 実行: SQLite `BEGIN` で transaction 開始 → ATTACH 6 db file → schema 構築 + data move → `INSERT INTO schema_version (version, applied_at) VALUES (31, datetime(''now''))` → `COMMIT`
 - 失敗時: SQLite が自動 `ROLLBACK` (DDL transactional 特性、引用: david.rothlis.net)、6 db file は CREATE 前状態に戻る
 - backup file path を `cli/lib/cutover_orchestrator.py` の result に記録
 
 **Exit 条件**:
-- `PRAGMA user_version` が 31 を返す
+- `SELECT MAX(version) FROM schema_version` が 31 を返す
 - 6 db file が生成され各 db の `event_envelope` table が読める
 - adapter test (cli/lib/tests/test_compatibility_adapter_unit.py) が PASS
 - `helix doctor` が 0 fail
@@ -90,14 +90,14 @@ cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate
 **dev 限定 retreat path**: `helix db rollback --to v30 --backup-path <path>` を提供する (developer convenience for testing migration locally)。
 
 **Entry 条件** (preflight、`rollback_preflight() -> dict`):
-- cutover 実行記録あり (PRAGMA user_version = 31 確認)
+- cutover 実行記録あり (`SELECT MAX(version) FROM schema_version` が 31 であることを確認)
 - backup file (`.helix/backups/<timestamp>_pre_v31.db`) が存在し sqlite として開ける
 - cutover 後の new db への write event 数 (`diff_event_count`) を SQLite `.dump` 経由で算出 (引用: SQLite forum)
 
 **Execute** (rollback、dev 限定):
 - 開発者が `helix db rollback --to v30 --backup-path .helix/backups/<timestamp>_pre_v31.db --confirm` を実行
 - `--confirm` なしは dry-run
-- 実行: backup file を `.helix/helix.db` に restore + 6 db file を `.helix/v31-archive/<timestamp>/` に退避 + `PRAGMA user_version = 30`
+- 実行: backup file を `.helix/helix.db` に restore + 6 db file を `.helix/v31-archive/<timestamp>/` に退避 + `INSERT INTO schema_version (version, applied_at) VALUES (30, datetime(''now''))`
 - diff event の取扱: `--discard-diff` (デフォルト) / `--export-diff <path>` (json 出力、`.dump` ベース) の 2 択
 
 **rollback trigger** (運用):
@@ -129,7 +129,7 @@ cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate
 - `--confirm` フラグは preflight 結果を表示後に再度 yes/no prompt で確認 (cli/lib/cutover_orchestrator.py で実装済 or 別 PLAN で追加)
 - backup file は `helix db migrate --to v31` 実行時に自動取得 + `.gitignore` で `.helix/backups/` を排除明記
 - `helix db rollback --help` 冒頭に **「dev 限定 / production は v32 undo migration を推奨」** 注記必須
-- README + docs/commands/index.md に schema version 確認 (`helix db version` で `PRAGMA user_version` 表示) を明記し、開発者が `.helix/helix.db` の現状を常に把握できるようにする
+- README + docs/commands/index.md に schema version 確認 (`helix db version` で `SELECT MAX(version) FROM schema_version` 表示) を明記し、開発者が `.helix/helix.db` の現状を常に把握できるようにする
 
 ---
 
@@ -142,7 +142,7 @@ cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate
 - **24h 監視 / 48h legacy 停止 / 6h 連続 critical 0**: 個人開発者が手元で migrate 後 1 セッション動作確認すれば十分
 - **on-call 通知 / Slack alerting / SRE エスカレーション**: 誰も on-call しない、不要
 - **confirm_token を git commit に埋め込む禁止 CI gate**: CLI flag (`--confirm`) で十分
-- **HELIX_DB_CUTOVER 環境変数永続化禁止 CI gate**: schema version は `PRAGMA user_version` で自然に保持 (SQLite 公式)
+- **HELIX_DB_CUTOVER 環境変数永続化禁止 CI gate**: schema version は `SELECT MAX(version) FROM schema_version` で自然に保持 (SQLite 公式)
 
 ---
 
@@ -158,7 +158,11 @@ cutover (v30 → v31 schema migration、6 db 分離切替) は `helix db migrate
 - PLAN-087 (設計 doc 作成時の Web 検索ガードレール工程組み込み、本 ADR 再書き直しの構造化 fix)
 - SQLite ATTACH DATABASE 公式: https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68
 - SQLite DDL transactional: https://david.rothlis.net/declarative-schema-migration-for-sqlite/
-- PRAGMA user_version: https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+- schema_version table (`SELECT MAX(version) FROM schema_version`): https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+
+## Revision History
+
+- 2026-05-19 schema_version table 参照への全面置換 (HELIX 実装整合)
 - Migration tools 比較 (forward-only 業界主流): https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/
 - Rollback as last resort: https://codelit.io/blog/database-migration-tools-comparison
 - simonw/sqlite-migrate (参考 OSS): https://github.com/simonw/sqlite-migrate

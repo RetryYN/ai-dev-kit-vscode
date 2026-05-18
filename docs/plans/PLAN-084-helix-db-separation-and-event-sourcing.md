@@ -32,6 +32,59 @@ acceptance:
   - L4 完遂で event-sourced 3 db (orchestration/vmodel/scrum) が dual-write 稼働、projector 1+ 稼働 (lag < 100 event)、shadow replay PASS、dual-write mismatch gate 0 件、既存 ② 実行ハーネス機能破壊なし
 ---
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### 4 query の検索結果リンク (3-5 件/query)
+
+**Event Sourcing implementation pattern best practice (Martin Fowler / EventStore / Greg Young)**
+
+- https://martinfowler.com/eaaDev/EventSourcing.html
+- https://martinfowler.com/articles/201701-event-driven.html
+- https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing
+- https://www.infoq.com/jp/news/2013/02/event-store-read-model/
+- https://www.kurrent.io/blog/what-is-event-sourcing/
+
+**Projector pattern read model write model (CQRS / Axon Framework / Lagom)**
+
+- https://docs.axoniq.io/axon-framework-5-getting-started/5.1/implement-read-model/
+- https://www.lagomframework.com/documentation/1.6.x/java/ReadSide.html
+- https://eventsourcing.readthedocs.io/en/v9.4.1/topics/projection.html
+- https://martendb.io/tutorials/read-model-projections
+- https://docs.getprooph.org/event-store/projections.html
+
+**UUID v7 RFC 9562 time-ordered identifier (IETF / draft-ietf-uuidrev-rfc4122bis)**
+
+- https://www.ietf.org/rfc/rfc9562
+- https://www.ietf.org/rfc/rfc9562.pdf
+- https://www.rfc-editor.org/rfc/rfc9562
+- https://www.iana.org/assignments/uuid/uuid.xhtml
+- https://uuid.ramsey.dev/en/4.x/rfc4122.html
+
+**SQLite ATTACH DATABASE transaction isolation (sqlite.org / 公式 doc)**
+
+- https://www.sqlite.org/lang_attach.html
+- https://www.sqlite.org/isolation.html
+- https://www.sqlite.org/transactional.html
+- https://www.sqlite.org/lang_transaction.html
+- https://www.sqlite.org/docs.html
+
+### HELIX 採用根拠
+
+| 採用方針 | 根拠 |
+|---|---|
+| Event Sourcing 採用 | Martin Fowler は event の逐次保存を真の状態原本として扱うことで、監査可能性・時系列再構成・時点時系列照会を確保すると説明。Event Sourcing を用いることで本 PLAN の event envelope / shadow replay 要件と整合。 |
+| Projector 採用 | Axon/Lagom/eventsourcing の projection 参考資料は、write model と read model の分離、read model を replay によって構築・再生成する運用を明示。projector 同期許可・async 併用方針は本 PLAN の負荷制御方針と一致。 |
+| UUID v7 採用 | RFC 9562 が RFC4122 を更新し、UUIDv7 の時系列ソート特性を定義。event_id や再現時系列追跡で時系列順序性と衝突低減を担保しやすい。 |
+| SQLite ATTACH 採用 | SQLite 公式文書は ATTACH を同一接続で複数 db を扱う手段として認めつつ、トランザクション隔離と実行時制御の特性を示す。migration/projector 内部限定という本 PLAN の運用制限は、実務上の cross-db 衝突回避に整合。 |
+
+### 業界 standard との対応（Phase 4 部品）
+
+| PLAN-084 部品 | 対応する industry pattern |
+|---|---|
+| Phase 4.A `compatibility_adapter.py` | **移行層 / Adapter pattern + CQRS 境界保護**: 既存 API を壊さず新旧 db 境界を接続する境界層。 |
+| Phase 4.B `EventEnvelope` / projector core | **Event Sourcing + Projector (Read model projection)**: write path は event 追加のみ、read side はイベント再生で派生状態を構築する標準的構成に対応。 |
+| Phase 4.C `shadow replay` / cutover | **Event replay / rebuild path**: event stream 再生検証と段階的切替を行い、state-sync 比較を前提とする移行フェーズ（影分身検証）に対応。 |
+
 # PLAN-084: helix.db 6 分離 + Event Sourcing + projector
 
 ## 1. 背景
@@ -522,3 +575,7 @@ L3 addendum merge (commit 9145239) + tl-advisor 指摘反映 (commit 611ab74、P
 | **本 commit** | **L3 Round 4 minor 反映 + G3 凍結宣言** | **3.4 / G3** |
 
 next: Phase 4.A 着手準備 (compatibility_adapter.py + migration v31 + UUID v7 generator + adapter unit/smoke test 実装、次セッション carry)。
+
+## Revision History
+
+- 2026-05-19 業界 standard 引用 retrofit (W5b-B、PLAN-087 ガードレール準拠)

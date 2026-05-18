@@ -26,7 +26,7 @@ related_docs:
 
 業界 standard (引用: towardsdatascience.com + codelit.io) では **「rollback scripts are rarely tested、treat rollbacks as last resort」「forward-only migration が業界主流」** が確立しているため、本 PLAN の `helix db rollback` CLI は **dev 限定試演ツール** と明確に位置付ける。production 用 retreat path は **forward-only undo migration (v32 を新規 commit)** が推奨。
 
-> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。CLI 実装 (cli/lib/db_cli.py、commit 22ce096) では preflight check で `cli/lib/helix_db.py` 経由の schema_version 確認を行う想定 (AC の `PRAGMA user_version` 表現は業界 standard 説明)。実装手順への置換は PLAN-089? carry。
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN 内の `SELECT MAX(version) FROM schema_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。CLI 実装 (cli/lib/db_cli.py、commit 22ce096) では preflight check で `cli/lib/helix_db.py` 経由の schema_version 確認を行う想定 (AC の `SELECT MAX(version) FROM schema_version` 表現は業界 standard 説明)。実装手順への置換は PLAN-089? carry。
 
 ## 業界 standard 参照 (本 PLAN が引用する根拠)
 
@@ -37,7 +37,7 @@ related_docs:
 | Alembic 2026 release の rollback features (down function) も dev 限定 | https://dasroot.net/posts/2026/04/database-migration-tools-flyway-liquibase-alembic/ | §1 同上 |
 | dbmate rollback (`schema.sql` 完全 representation) | https://github.com/amacneil/dbmate | §3.2 rollback orchestrator 実装例 |
 | SQLite `.dump` で schema+data export | https://www.sqliteforum.com/p/migrating-data-from-one-sqlite-database | §3.2 `--export-diff` 実装方式 |
-| PRAGMA user_version 確認 | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | §3.2 preflight 確認項目 |
+| SELECT MAX(version) FROM schema_version 確認 | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | §3.2 preflight 確認項目 |
 | ADR-020 Decision.2 (本 PLAN と同 wave で scope down) | docs/adr/ADR-020-cutover-rollback-gates.md | dev 限定位置付け整合 |
 
 ## 1. 目的
@@ -78,7 +78,7 @@ and PLAN-085 §4.3 for rationale.
 ### 3.2 動作 step
 
 1. **preflight**: `rollback_orchestrator.rollback_preflight()` 呼び出し、結果表示
-   - `PRAGMA user_version` で current schema = 31 確認 (引用: SQLite forum)
+   - `SELECT MAX(version) FROM schema_version` で current schema = 31 確認 (引用: SQLite forum)
    - backup file 存在 + sqlite として読める確認
    - `diff_event_count` 算出 (cutover 後の new db への write event 数、SQLite `.dump` ベース)
 2. **dry-run (--confirm なし)**: 実行計画 (backup restore source / 6 db 退避先 / diff event 数 / production 推奨は v32 undo migration である旨注記) を表示して exit 0
@@ -86,7 +86,7 @@ and PLAN-085 §4.3 for rationale.
    - 自己 backup: `.helix/helix.db` を `.helix/helix.db.pre-rollback.bak` に退避 (rollback 自体の rollback 用)
    - backup restore: backup を `.helix/helix.db` に restore
    - 6 db file 退避: `.helix/{orchestration,vmodel,scrum,plan,backend,frontend}.db` を `.helix/v31-archive/<timestamp>/` に mv
-   - `PRAGMA user_version = 30` を確認 (restore 元 backup が v30 なので自然に戻る)
+   - `INSERT INTO schema_version (version, applied_at) VALUES (30, datetime('now'))` を実行して `schema_version` table を更新 (restore 元 backup が v30 なので自然に戻る)
    - diff event 取扱:
      - `--discard-diff` (デフォルト): ログ出力のみ、event は退避先で保持
      - `--export-diff <path>`: SQLite `.dump` 経由で event_envelope を json 出力 (引用: SQLite forum)
@@ -96,7 +96,7 @@ and PLAN-085 §4.3 for rationale.
 
 - [ ] `helix db rollback --help` で usage 表示 + **「dev 限定 / production は v32 undo migration」注記** 冒頭必須
 - [ ] `--confirm` なしで dry-run が動作 (preflight 結果 + 実行計画 + production 推奨注記 表示)
-- [ ] `--confirm` ありで実 rollback が動作 (`.helix/helix.db` が backup と同一 sha256、6 db file が `.helix/v31-archive/<timestamp>/` に退避、`PRAGMA user_version = 30`)
+- [ ] `--confirm` ありで実 rollback が動作 (`.helix/helix.db` が backup と同一 sha256、6 db file が `.helix/v31-archive/<timestamp>/` に退避、`INSERT INTO schema_version (version, applied_at) VALUES (30, datetime('now'))`)
 - [ ] `--export-diff <path>` で event_envelope が SQLite `.dump` 経由 json 出力
 - [ ] test_db_rollback_cli.py で 5 ケース cover:
   - T1: --help で dev 限定注記表示
@@ -110,7 +110,7 @@ and PLAN-085 §4.3 for rationale.
 
 - AC-086-01: `helix db rollback --help` 冒頭に「dev 限定 / production は v32 undo migration を推奨」注記が必須表示
 - AC-086-02: `helix db rollback --to v30 --backup-path X` (--confirm なし) で dry-run が exit 0 + preflight 結果 + production 推奨注記表示
-- AC-086-03: `helix db rollback --to v30 --backup-path X --confirm` で実 rollback が動作し `.helix/helix.db` が backup と同一 sha256 + `PRAGMA user_version = 30`
+- AC-086-03: `helix db rollback --to v30 --backup-path X --confirm` で実 rollback が動作し `.helix/helix.db` が backup と同一 sha256 + `INSERT INTO schema_version (version, applied_at) VALUES (30, datetime('now'))`
 - AC-086-04: 6 db file が `.helix/v31-archive/<timestamp>/` に退避され元位置から消える
 - AC-086-05: `--export-diff <path>` で event_envelope が SQLite `.dump` 経由 json 出力
 - AC-086-06: pytest cli/lib/tests/test_db_rollback_cli.py が PASS (5 ケース)
@@ -145,4 +145,9 @@ and PLAN-085 §4.3 for rationale.
 - Alembic 2026 down function (dev 限定): https://dasroot.net/posts/2026/04/database-migration-tools-flyway-liquibase-alembic/
 - dbmate rollback (schema.sql 完全 representation): https://github.com/amacneil/dbmate
 - SQLite `.dump` 経由 export: https://www.sqliteforum.com/p/migrating-data-from-one-sqlite-database
-- PRAGMA user_version: https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+- SELECT MAX(version) FROM schema_version 確認: https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+
+
+## Revision History
+
+- 2026-05-19 PRAGMA user_version → schema_version table 全面置換 (HELIX 実装整合)

@@ -37,9 +37,13 @@ memory feedback の確立背景:
 
 | 参照 | source | 引用箇所 |
 |---|---|---|
-| Claude Code Hooks 公式 doc | https://code.claude.com/docs/en/hooks | Phase 2 PreToolUse hook fail-close 設計 |
-| Issue #21988 (PreToolUse exit code 2 無視 bug) | https://github.com/anthropics/claude-code/issues/21988 | Phase 2 workaround 検証必須 |
+| Claude Code Hooks 公式 doc | https://code.claude.com/docs/en/hooks | PreToolUse / PostToolUse イベント定義、`exit code 2` の意味、`stderr` 返却 |
+| Issue #21988 (PreToolUse hook exit code 無視事象) | https://github.com/anthropics/claude-code/issues/21988 | 「非ゼロ終了＝原則 abort」期待との差分と当初の不一致 |
+| Issue #24327 (PreToolUse 2 後の model 挙動) | https://github.com/anthropics/claude-code/issues/24327 | ブロック受信後の model 挙動差異と改善方針 |
 | 既存 HELIX hook 実装 pattern | .claude/hooks/pretooluse-agent-guard.sh (commit 3ae4af3、subagent guard、PMO+PdM 12 種 fail-close、12-case strict smoke PASS) | Phase 2 実装の base pattern |
+| **MADR (Markdown Architecture Decision Record)** | https://adr.github.io/madr/ ; https://github.com/adr/madr/blob/develop/template/adr-template.md | ADR section の構造化要素（Context/Decision/Consequences など） |
+| **adr-tools (GitHub)** | https://github.com/npryce/adr-tools | CLI 運用時の ADR 命名・番号化・履歴保持 |
+| **Michael Nygard 原典** | https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions | ADR-XXX 由来の `Context/Decision/Consequences/Status` 構成 |
 | **alembic process_revision_directives** | https://alembic.sqlalchemy.org/en/latest/cookbook.html | Phase 2 fail-close hook 設計の最上位参照実装 (生成前 block hook) |
 | **pressly/goose annotation parse** | https://pressly.github.io/goose/documentation/annotations/ | Phase 1 必須 section 検出 bash script の移植元 (`-- +goose Up` 必須 annotation → file invalid 判定) |
 | **amacneil/dbmate 2 section 必須** | https://github.com/amacneil/dbmate | Phase 1 template 必須 section の仕様根拠 (`-- migrate:up` + `-- migrate:down` 両方必須) |
@@ -47,6 +51,31 @@ memory feedback の確立背景:
 | 既存 memory feedback | [[feedback_subagent_guard_hook_fail_close]] | hook 実装前に frontmatter / 正本 grep で事実確認 |
 | 既存 memory feedback | [[feedback_helix_fill_holes_principle]] | HELIX = 穴を埋めるシステム原則 |
 | 既存 memory feedback | [[feedback_codex_parallel_dependency_check]] | Codex 並列投入前の file 衝突依存判定 (本 PLAN Wave 2 で再発・確立) |
+
+### ADR format 業界 standard
+
+比較対象は `MADR / Michael Nygard 原典 / adr-tools` を前提にする。
+
+- **MADR**: `Status`/`Context`/`Decision`/`Consequences` など、意思決定の選択肢・採用理由を明示しやすい構造を標準化。テンプレート変更と GitHub template の追跡性が高い。
+- **Michael Nygard 原典**: ADR を「短く 1-2 ページ」「単一決定」「文脈・決定・結果の 4 要素」で記述する原則を提示し、`doc` と一体運用できる設計知識の維持原則を示す。
+- **adr-tools**: ADR の番号付与 (`ADR-001` 系) と履歴保持（置換ではなく `supersede`）の運用を CLI 化し、既存の `ADR-XXX` 形式との整合を取りやすい。
+
+HELIX 採用根拠:
+
+- `ADR-XXX` 形式を採用する理由は、既存 PLAN/ADR の識別子体系（`ADR-020` 等）との同型性が高く、`carry list` や `revision` 監査で自動参照しやすいため。
+- 本 PLAN の DoD 系・carry 系運用は「決定の背景/代替/理由/影響」を継続して追跡する必要があるため、MADR/原典の構造を踏襲し、`## 業界 standard 参照` への明示リンクを前提とする。
+
+### Claude Code hook API 業界 standard
+
+- **Claude Code 公式 docs** では `PreToolUse` は実行前ブロック対象、`PostToolUse` は実行後通知を示すと定義され、`exit code 2` はブロッキングを示す。
+- **Issue #21988** は過去の非整合（非ゼロ終了が拒否を保証しない）を示した経緯として本 PLAN が検証対象化すべき失敗事例。
+- **Issue #24327** はブロック後に model が `stop` に対してどう振る舞うかというモデル側挙動の差異を示し、`continue` 期待値を明示化する必要性を示す。
+
+HELIX 採用根拠:
+
+- `exit code 2` を fail-close として明示採用し、`stderr` を human-readable に提示する運用を採る。
+- さらに model 応答不一致のリスク対策として、ブロック時メッセージは「human 介入ではない automated policy block」であることを明示し、必要時は PostToolUse で事後再チェックを併用する。
+
 
 ## 3. 前提と制約
 
@@ -179,8 +208,17 @@ memory feedback の確立背景:
 ## 9. 参照
 
 - Claude Code Hooks 公式: https://code.claude.com/docs/en/hooks
+- MADR公式: https://adr.github.io/madr/
+- MADR template: https://github.com/adr/madr/blob/develop/template/adr-template.md
+- ADRツール: https://github.com/npryce/adr-tools
+- Michael Nygard original: https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions
 - Issue #21988 (PreToolUse exit code 2 無視 bug): https://github.com/anthropics/claude-code/issues/21988
+- Issue #24327 (PreToolUse 2 後 model 挙動): https://github.com/anthropics/claude-code/issues/24327
 - .claude/hooks/pretooluse-agent-guard.sh (既存 hook、参考 pattern)
 - docs/plans/PLAN-085-cutover-staging-rehearsal.md (本 wave で同時 scope down)
 - docs/plans/PLAN-086-rollback-fault-injection-drill.md (同上)
 - docs/adr/ADR-020-cutover-rollback-gates.md (同上)
+
+## Revision History
+
+- 2026-05-19 業界 standard 引用 micro-retrofit (W5b-C、ADR format + Claude Code hook API)

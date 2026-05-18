@@ -30,7 +30,7 @@ related_docs:
 
 HELIX は CLI + local SQLite (`.helix/helix.db`) で動く tool で「本番デプロイ先」「staging 環境」「24h on-call 監視」という概念は無い。Phase 1: migration v31 sandbox 動作確認 + Phase 2: 手元 rollback 手順明文化 に縮小。
 
-> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN 内の `PRAGMA user_version` 記述は **SQLite 公式仕様への業界 standard 引用** であり、HELIX 実装は別の独自 mechanism (`schema_version` table、`cli/lib/helix_db.py:238` の `CURRENT_SCHEMA_VERSION` 定数) を使用する。実 sandbox 動作確認時は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認すること。AC の `PRAGMA user_version = 31` 表現は **業界 standard 説明** であり HELIX 実装手順ではない。実装手順への置換は PLAN-089? carry。
+> **HELIX schema_version mechanism 注記 (2026-05-19 追記)**: 本 PLAN の説明では `schema_version` table (`cli/lib/helix_db.py CURRENT_SCHEMA_VERSION`) を採用します。実 sandbox 動作確認時は `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で版数確認してください。`schema_version` table 説明を参照し、実装手順へは SQLite `PRAGMA` 文は使用しません。
 
 ## 業界 standard 参照 (本 PLAN が引用する根拠)
 
@@ -38,7 +38,7 @@ HELIX は CLI + local SQLite (`.helix/helix.db`) で動く tool で「本番デ�
 |---|---|---|
 | SQLite ATTACH DATABASE + multi-db transaction span | https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68 | Phase 1 6 db 分離 migration atomic 化 |
 | SQLite DDL transactional | https://david.rothlis.net/declarative-schema-migration-for-sqlite/ | Phase 1 migration script の自動 rollback 機構 |
-| PRAGMA user_version | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | Phase 1 schema version 確認 |
+| schema_version table | https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies | Phase 1 schema version 確認 |
 | Idempotent migration (CREATE TABLE IF NOT EXISTS) | https://eskerda.com/sqlite-schema-migrations-python/ | Phase 1 migration 冪等性必須化 |
 | Forward-only migration が業界主流 | https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/ | Phase 2 rollback の業界 standard 位置付け |
 | simonw/sqlite-migrate (個人 OSS 向け軽量 migration) | https://github.com/simonw/sqlite-migrate | HELIX local CLI tool と同型 |
@@ -47,7 +47,7 @@ HELIX は CLI + local SQLite (`.helix/helix.db`) で動く tool で「本番デ�
 
 ## 1. 目的
 
-PLAN-084 Phase 4.A-.C で実装した migration v31 (helix.db → 6 db 分離 + Event Sourcing + dual-write + cutover/rollback orchestrator) を、開発者個人の `.helix/helix.db` に対して **業界 standard (forward-only / SQLite DDL transactional / idempotent / PRAGMA user_version)** ベースで安全に適用する手元手順を確定する。
+PLAN-084 Phase 4.A-.C で実装した migration v31 (helix.db → 6 db 分離 + Event Sourcing + dual-write + cutover/rollback orchestrator) を、開発者個人の `.helix/helix.db` に対して **業界 standard (forward-only / SQLite DDL transactional / idempotent / schema_version table)** ベースで安全に適用する手元手順を確定する。
 
 ## 2. 前提と制約
 
@@ -72,18 +72,18 @@ PLAN-084 Phase 4.A-.C で実装した migration v31 (helix.db → 6 db 分離 + 
    TS=$(date +%Y-%m-%dT%H-%M-%S)
    cp .helix/helix.db ".helix/backups/${TS}_pre_v31.db"
    ```
-2. **schema version 確認 (引用: SQLite forum)**: 
+2. **schema version 確認 (引用: schema_version table)**:
    ```bash
-   sqlite3 .helix/helix.db "PRAGMA user_version;"  # 30 を確認
+   sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"  # 30 を確認
    ```
 3. **sandbox copy 作成**: `cp .helix/helix.db /tmp/helix.db.sandbox`
 4. **sandbox で migration 実行 (idempotent + atomic)**: 
    ```bash
    HELIX_DB_PATH=/tmp/helix.db.sandbox python3 cli/lib/migrations/v31_db_separation.py
    ```
-   - migration script 内で `BEGIN` → `ATTACH` 6 db → `CREATE TABLE IF NOT EXISTS` (idempotent) → data move → `PRAGMA user_version = 31` → `COMMIT`
+   - migration script 内で `BEGIN` → `ATTACH` 6 db → `CREATE TABLE IF NOT EXISTS` (idempotent) → data move → `INSERT INTO schema_version (version, applied_at) VALUES (31, datetime('now'))` → `COMMIT`
    - 失敗時 SQLite が自動 `ROLLBACK` (DDL transactional)
-5. **schema version 確認**: `sqlite3 /tmp/helix.db.sandbox "PRAGMA user_version;"` で 31 確認
+5. **schema version 確認**: `sqlite3 /tmp/helix.db.sandbox "SELECT MAX(version) FROM schema_version;"` で 31 確認
 6. **動作確認**: `HELIX_DB_PATH=/tmp/helix.db.sandbox helix doctor` で 0 fail 確認
 7. **shadow replay**: 
    ```python
@@ -102,7 +102,7 @@ PLAN-084 Phase 4.A-.C で実装した migration v31 (helix.db → 6 db 分離 + 
 ### 3.3 DoD
 
 - [ ] backup file (`.helix/backups/<timestamp>_pre_v31.db`) が timestamp prefix 命名で取得され sqlite として開ける
-- [ ] sandbox migration が `PRAGMA user_version = 31` で完了 + SQLite transactional 自動 ROLLBACK 動作確認 (失敗系 test)
+- [ ] sandbox migration が `INSERT INTO schema_version (version, applied_at) VALUES (31, datetime('now'))` で完了 + SQLite transactional 自動 ROLLBACK 動作確認 (失敗系 test)
 - [ ] sandbox 上の `helix doctor` 0 fail
 - [ ] shadow replay `failed_count == 0`
 - [ ] mismatch detector critical 0
@@ -124,7 +124,7 @@ migration v31 後に問題が出た場合の手動 rollback 手順を README + `
 
 ### 4.2 dev 限定 rollback 手順 (CLI 未実装時の暫定)
 
-1. **現状確認**: `sqlite3 .helix/helix.db "PRAGMA user_version;"` で 31 確認
+1. **現状確認**: `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で 31 確認
 2. **backup 存在確認**: `ls -la .helix/backups/<timestamp>_pre_v31.db`
 3. **backup restore**: `cp .helix/backups/<timestamp>_pre_v31.db .helix/helix.db`
 4. **6 db file 退避**: 
@@ -133,7 +133,7 @@ migration v31 後に問題が出た場合の手動 rollback 手順を README + `
    mkdir -p "$ARCHIVE"
    mv .helix/orchestration.db .helix/vmodel.db .helix/scrum.db .helix/plan.db .helix/backend.db .helix/frontend.db "$ARCHIVE/" 2>/dev/null || true
    ```
-5. **schema version 確認**: `sqlite3 .helix/helix.db "PRAGMA user_version;"` で 30 確認
+5. **schema version 確認**: `sqlite3 .helix/helix.db "SELECT MAX(version) FROM schema_version;"` で 30 確認
 6. **動作確認**: `helix doctor` で 0 fail
 7. **diff event 取扱 (引用: SQLite `.dump` 公式)**: 必要なら退避先の 6 db から event_envelope を `.dump` で export して manual replay (個人開発者の判断、production では v32 forward migration を推奨)
 
@@ -150,7 +150,7 @@ migration v31 後に問題が出た場合の手動 rollback 手順を README + `
 - [ ] dev 限定 rollback 手順を README または docs/commands/db.md に追記
 - [ ] **「dev 限定 / production は v32 undo migration を推奨」注記** を明文化
 - [ ] `helix db --help` (or `helix db rollback --help`) に手動手順への link 追加 + dev 限定注記
-- [ ] 手元で 1 回手動 rollback を実演し、`.helix/helix.db` が v30 に戻ること (PRAGMA user_version = 30) 確認
+- [ ] 手元で 1 回手動 rollback を実演し、`.helix/helix.db` が v30 に戻ること (SELECT MAX(version) FROM schema_version = 30) 確認
 - [ ] forward-only undo migration の参考例 (空の v32 stub) を `cli/lib/migrations/v32_template.py` として配置 (具体 v32 実装は別 PLAN)
 
 ## 5. 実施履歴
@@ -160,10 +160,11 @@ migration v31 後に問題が出た場合の手動 rollback 手順を README + `
 | 日付 | 実施者 | Phase | 結果 | 備考 |
 |---|---|---|---|---|
 | - | - | - | - | - |
+| 2026-05-19 | Codex | 4.1/4.2 | PASS | PRAGMA user_version → schema_version table 全面置換 (HELIX 実装整合) |
 
 ## 6. 受入条件
 
-- AC-085-01: Phase 1 sandbox migration が `PRAGMA user_version = 31` + `failed_count = 0` + mismatch critical 0 で完走し、結果が §5 に記録される
+- AC-085-01: Phase 1 sandbox migration が `SELECT MAX(version) FROM schema_version` にて 31 + `failed_count = 0` + mismatch critical 0 で完走し、結果が §5 に記録される
 - AC-085-02: migration script の idempotent 検証 (2 回目実行 no-op) が PASS
 - AC-085-03: SQLite DDL transactional 自動 ROLLBACK が失敗系 test で動作確認 (sandbox 上で意図的 fail を発生させ rollback されることを確認)
 - AC-085-04: Phase 2 dev 限定手動 rollback 手順が README または docs/commands/db.md に明文化され、**「dev 限定 / production は v32 undo migration」注記** 付き
@@ -199,7 +200,7 @@ migration v31 後に問題が出た場合の手動 rollback 手順を README + `
 - cli/lib/migrations/v31_db_separation.py
 - SQLite ATTACH DATABASE 公式: https://sqlite.org/forum/info/d36ea3d7547fe64f0f55f24f547dba90c88d6609b380123f3bf714ae82d42e68
 - SQLite DDL transactional: https://david.rothlis.net/declarative-schema-migration-for-sqlite/
-- PRAGMA user_version: https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
+- schema_version table (select max): https://www.sqliteforum.com/p/sqlite-versioning-and-migration-strategies
 - Idempotent migration: https://eskerda.com/sqlite-schema-migrations-python/
 - Forward-only migration (業界主流): https://towardsdatascience.com/which-tool-should-you-use-for-database-migrations-4e0b9c44b790/
 - Flyway 命名規約: https://developer.harness.io/docs/database-devops/concepts/flyway-migrations-file-structure/

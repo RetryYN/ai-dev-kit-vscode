@@ -6,6 +6,47 @@ Accepted (2026-05-18)
 
 > proposed (2026-05-17) → Accepted (2026-05-18) PO 承認。PLAN-084 Phase 4.A + 4.B + 4.C 実装完遂後、PO (yoshiyuki0907yn@gmail.com) が「OK」と承認。
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### 4 query の検索結果（3〜5 件/query）
+
+- **Martin Fowler Event Sourcing pattern**
+  - https://www.martinfowler.com/eaaDev/EventSourcing.html
+  - https://martinfowler.com/bliki/CommandQuerySeparation.html
+  - https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing
+- **Greg Young CQRS Event Sourcing pattern**
+  - https://learncqrs.com/do6pMI
+  - https://virtualddd.com/videos/greg-young-a-decade-of-ddd-cqrs-event-sourcing/
+  - https://www.tjenwellens.eu/blog/greg-young-cqrs-and-event-sourcing-code-on-the-beach-2014-youtube/
+  - https://www.infoq.com/news/2014/09/greg-young-event-sourcing/
+- **DDD Bounded Context per database (Eric Evans / Vaughn Vernon)**
+  - https://www.domainlanguage.com/ddd/reference/
+  - https://www.domainlanguage.com/wp-content/uploads/2016/05/DDD_Reference_2015-03.pdf
+  - https://www.oreilly.com/library/view/domain-driven-design-distilled/9780134434964/ch02.html
+- **SQLite ATTACH DATABASE multi-db transaction**
+  - https://www.sqlite.org/lang_attach.html
+  - https://sqlite.org/atomiccommit.html
+  - https://system.data.sqlite.org/home/raw/Doc/Extra/lang_attach.html?name=8427ac0a57f6628d0c87ab302a11042ba45d4eb5
+
+### HELIX 採用根拠
+
+- **Event Sourcing の選定理由**: `helix.db` を全 DB で event-sourced にするのではなく、監査要件・時間軸整合性・再構築性が高い db (`orchestration.db`, `vmodel.db`, `scrum.db`) のみを ES 化し、既知の高頻度/短寿命用途 (`backend.db`, `frontend.db`) は state-store を採ることで更新負荷と運用複雑性を抑える。これは Martin Fowler が Event Sourcing の価値（監査可能な状態履歴、再水和）を示す設計と整合する。
+- **CQRS 採用判断**: `record` 書き込みと `projection` 読み取りを分離し、`projector` の再計算で read model を再構築する構成を採用。決定の `event-sourced 3 db + hybrid` と一致し、Greg Young が CQRS を「command/query 分離」として主張する観点と一致する。
+- **DDD Bounded Context per DB の根拠**: `plan`/`orchestration`/`vmodel`/`scrum`/`backend`/`frontend` を DB 単位で責務明確化し、cross-db 参照を projection_state 経由のみとすることで、bounded context 境界に沿った「1 モデル = 1 所有領域」を保持する。これは DDD の bounded context 原則（Eric Evans）および実務書での戦略設計（Vernon）に整合する。
+- **SQLite ATTACH 採用根拠**: migration と projection 内部でのみ `ATTACH DATABASE` を許可し、同一接続で複数 db の multi-db transaction を活用。公式 doc の atomic multi-file commit 特性を前提に、アプリ層の自由 ATTACH を禁止することで参照規約を守る。
+
+### 業界 standard との対応（FR-DB / AC-DB）
+
+| 要件 | 対応 business pattern | 対応箇所 |
+|---|---|---|
+| FR-DB-SEP-01 / FR-DB-SEP-07 / FR-DB-SEP-09 | Bounded Context / Database per Context | Decision §1（db 分離・所有権・跨ぎ規約）、Decision §4（再判定条件） |
+| FR-DB-SEP-02 / FR-DB-SEP-04 / AC-DB-SEP-01 | Event Sourcing（監査・時間軸一貫性） | Decision §2（6 軸判定） |
+| FR-DB-SEP-03 / FR-DB-SEP-05 / AC-DB-SEP-02 / AC-DB-SEP-03 | CQRS + Projection / Read model | Decision §2（ハイブリッド）、Decision §3（projection 境界） |
+| FR-DB-SEP-06 / AC-DB-SEP-04 / AC-DB-SEP-07 | ATTACH Database + atomic multi-file transaction 制御 | Decision §1（ATTACH 許可範囲）・Decision §5（migration gate） |
+| AC-DB-SEP-05 / AC-DB-SEP-06 / FR-DB-SEP-08 | Adapter / 検証ゲート + 段階移行 | Decision §5（6 段階 migration gate） |
+
+**注記**: `FR-DB-SEP-01〜09 / AC-DB-SEP-01〜07` は本 ADR の `Decision §1〜§5`（`PLAN-084`）で対応付け済みであり、`L1-REQUIREMENTS.md §3.9` の要件群と一対一に trace 可能。
+
 ## Deciders
 
 - PM (Opus)
@@ -326,3 +367,7 @@ v30 (単一 helix.db) → 6 db 分離は **Strangler Fig + dual-write + compatib
 - tl-advisor Round 1-3 反映: 同期許可リスト 3 件確定 (Round 2 #3)、Phase 4 を 3 sprint 分割 (Round 2 Minor #6)、6 軸判定 matrix 本文埋め込み (Round 2 Critical #1)
 - `cli/lib/helix_db.py` (compatibility adapter の参照元、`_write_connection` pattern)
 - `docs/v2/L2-MASTER.md:36` (旧 "Event Sourcing 含めない" 記述、本 ADR 採択時 commit d5bae22 で "ADR-018/019 で扱う" へ修正済み)
+
+## Revision History
+
+- 2026-05-19 業界 standard 引用 retrofit (W5b-A、PLAN-087 ガードレール準拠)
