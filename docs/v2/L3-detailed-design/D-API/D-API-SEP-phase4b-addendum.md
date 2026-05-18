@@ -186,7 +186,9 @@ _CORRELATION_CONTEXT: contextvars.ContextVar[CorrelationContext | None] = contex
 
 ## 受入条件（この addendum の DoD）
 
-1. 本 addendum は新規作成のみ（`docs/v2/L3-detailed-design/D-API/D-API-SEP-phase4b-addendum.md`）
+> 統合済み (2026-05-18 merge)。本文は reference として保持。新規作成 DoD は PLAN-084 carry list で完了状態
+
+1. 本 addendum の仕様は `D-API-SEP-draft.md` / `D-CONTRACT-EVENT-draft.md` へ参照統合済み
 2. A〜F の 6 項目を以下の全観点で固定:
    - class/function signature
    - return type / param type
@@ -196,7 +198,7 @@ _CORRELATION_CONTEXT: contextvars.ContextVar[CorrelationContext | None] = contex
    - `id: D-API-SEP-phase4b-addendum`
    - `plan: PLAN-084`
    - `layer: L3`
-   - `status: addendum`
+   - `status: merged`
    - `created: 2026-05-18`
    - `addendum_for: D-API-SEP-draft.md`
    - `triggered_by: tl-advisor verdict 2026-05-18 (5 P1 + 3 P2 指摘)`

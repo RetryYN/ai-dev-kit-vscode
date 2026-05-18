@@ -96,25 +96,29 @@ compatibility_adapter.py はこの呼び出し慣行を破壊せず 6 db へ rou
 
 `D-API-SEP-phase4b-addendum` の §A を統合する。
 
+実装は次の 2 箇所で分離実装される:
+- `cli/lib/dual_write_connection.py`（`_DualWriteConnection` 本体）
+- `cli/lib/compatibility_adapter.py`（`write_connection` routing 経路および呼び出し元切替）
+
 ```python
 class _DualWriteConnection:
-    """legacy + new db を atomic で 2 phase commit する synchronized wrapper."""
+    """legacy + new db を atomic 2 phase commit で扱う synchronized wrapper."""
 
     def __init__(self, legacy_conn: sqlite3.Connection, new_conn: sqlite3.Connection): ...
     def execute(self, sql: str, params=()) -> sqlite3.Cursor: ...
     def executemany(self, sql: str, params_list) -> sqlite3.Cursor: ...
 
     def commit(self) -> None:
-        """legacy → new の順で commit。new 失敗時は WARN のみ。"""
+        """Commit legacy -> new; new-only failure is warning, legacy failure raises."""
 
     def rollback(self) -> None:
-        """両 db rollback。例外時も両 db で best-effort rollback。"""
+        """Attempt rollback on both DBs even if the first rollback fails."""
 
     def close(self) -> None: ...
 
     @property
     def lastrowid(self) -> int | None:
-        """legacy_conn.lastrowid を返却。new_conn は dual-write 期間中は参照しない。"""
+        """Return the legacy connection lastrowid during the dual-write window."""
 ```
 
 error policy（byte-level）:
@@ -633,7 +637,7 @@ Phase 4 実装で確定・実施する事項:
 **双方向 trace**:
 
 - **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER-001〜015) + `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §6 (I-SMOKE-001〜006) (Phase 3.4 起票済、commit ff04129)
-- **本 doc → ② 実装コード**: `cli/lib/compatibility_adapter.py` (Phase 4.A)
+- **本 doc → ② 実装コード**: `cli/lib/dual_write_connection.py` (`_DualWriteConnection` 本体) + `cli/lib/compatibility_adapter.py` (write_connection routing)
 - **③ テスト設計 → 本 doc**: PLAN-084-unit-test-design.md frontmatter `related_designs` に「D-API-SEP-draft-v0.1」明示済
 - **④ テストコード → ③ テスト設計**: テスト docstring に「DoD 検証: PLAN-084-unit-test-design.md U-ADAPTER-XXX / PLAN-084-integration-test-design.md I-SMOKE-XXX」を明示 (Phase 4.A)
 - **本 doc ⇔ D-DB-SEP-draft**: 本 doc §5 (ATTACH allowlist) は D-DB-SEP §5.2 と同期。scrum.db routing は D-DB-SEP §2.3 の entity ownership に準拠。backend.db routing は D-DB-SEP §2.5 に準拠

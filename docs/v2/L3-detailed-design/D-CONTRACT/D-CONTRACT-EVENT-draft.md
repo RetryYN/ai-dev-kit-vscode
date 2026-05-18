@@ -405,7 +405,9 @@ HELIX scale での衝突確率は事実上 0。UUID v7 の collision 対策と�
 | 同一 request 内の全 event | 同一 `correlation_id` を共有する |
 | 入れ子 command | 子 command は親の correlation_id を受け取り継承する。新規発行しない |
 
-### 4.3 継承 API (L3 signature 確定)
+### 4.3 継承 API（historical / superseded）
+
+> historical / superseded: `threading.local` ベースの API 仕様は履歴参照。normative contract は §4.6 の `contextvars` 実装のみとし、`2026-05-18 merge` 時点で上位節へ統合した。
 
 ```python
 # cli/lib/event_envelope.py
@@ -545,9 +547,9 @@ def correlation_context(parent: str | None = None) -> Iterator[str]:
 - thread を跨いだ実行時は `contextvars` により呼び出し元 context へ依存
 
 ### 4.8 correlation API（互換名）
-- `set_correlation(correlation_id: str | None) -> str | None`: 明示的な set。None は clear 兼用。既存実装では直接 setter ではなく `ContextVar.set` を使用するため、設計では本文の alias 規約で吸収する。
-- `get_correlation() -> str | None`: 取得関数。`current_correlation_id` と `get_current_correlation_id` の統合名として扱う。
-- `clear_correlation()`: context 終了時の `ContextVar.reset(token)` 相当を呼ぶ。実装では finally 時の token リストアで代替可。
+- `set_correlation(correlation_id: str | None) -> str | None`: exported API ではない alias 規約。`current_correlation_id()` 系と同義で、実装は `_CORRELATION_CONTEXT.set(...)`（`ContextVar.set`）経由で語義を持つ。
+- `get_correlation() -> str | None`: exported API ではない alias 規約。`get_current_correlation_id()` と同一意味で、本文の実装名は `current_correlation_id() / get_current_correlation_id()` を主契約とする。
+- `clear_correlation()`: exported API ではない alias 規約。`correlation_context` の終了時に行う `ContextVar.reset(token)` 相当（`ContextVar` トークンの復元）でクリア扱い。
 ## §5 payload schema 規約
 
 ### 5.1 payload の型と基本規約
@@ -733,18 +735,18 @@ occurred_at: str = datetime.now(timezone.utc).isoformat()
 | Artifact | 文書 / ファイル | 状態 |
 |---|---|---|
 | ① 設計 (本文書) | `docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md` | Phase 3 draft |
-| ② 実装コード | `cli/lib/event_envelope.py` | Phase 4.B 実装 (carry) |
+| ② 実装コード | `cli/lib/event_envelope.py` / `cli/lib/correlation_context.py` | Phase 4.B 実装 (carry) |
 | ③ 単体テスト設計 | `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT-001〜010) + §4 (U-UUID-001〜005) + §5 (U-CORR-001〜005) | Phase 3.4 起票済 (commit ff04129) |
 | ③ 結合テスト設計 | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §5 (I-CORR-001〜006) | Phase 3.4 起票済 (commit ff04129) |
-| ④ 単体テストコード | `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid_v7_generator.py` / `test_correlation_context.py` | Phase 4.B 起票 (carry) |
-| ④ 結合テストコード | `cli/lib/tests/test_correlation_cross_db.py` | Phase 4.B 起票 (carry) |
+| ④ 単体テストコード | `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` | Phase 4.B 起票 (carry) |
+| ④ 結合テストコード | `cli/lib/tests/test_correlation_integration.py` | Phase 4.B 起票 (carry) |
 | ④ テストコード | 上記テストファイルの実装 | Phase 4.B 実装 (carry) |
 
 ### 双方向 trace 宣言
 
 - **本文書 → ② 実装コード**: 本文書 §2.2 の dataclass 定義が `cli/lib/event_envelope.py` の実装根拠。実装時に `# 対応設計: D-CONTRACT-EVENT-draft-v0.1 §2.2` を docstring に記載する
 - **本文書 → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT) + §4 (U-UUID) + §5 (U-CORR) + `PLAN-084-integration-test-design.md` §5 (I-CORR) (Phase 3.4 起票済、commit ff04129、frontmatter `related_designs` で双方向 trace 完備)
-- **本文書 → ④ テストコード**: Phase 4.B 着手時に `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid_v7_generator.py` / `test_correlation_context.py` / `test_correlation_cross_db.py` に `# DoD 検証: PLAN-084-unit-test-design.md U-EVT-XXX / U-UUID-XXX / U-CORR-XXX` を記載する (Phase 4.B carry)
+- **本文書 → ④ テストコード**: Phase 4.B 着手時に `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` / `test_correlation_integration.py` に `# DoD 検証: PLAN-084-unit-test-design.md U-EVT-XXX / U-UUID-XXX / U-CORR-XXX` を記載する (Phase 4.B carry)
 - **③ テスト設計 → 本文書**: `PLAN-084-unit-test-design.md` / `PLAN-084-integration-test-design.md` frontmatter `related_designs` に「D-CONTRACT-EVENT-draft-v0.1」明示済 (Phase 3.4 反映済)
 - **② 実装 → D-DB-SEP-draft §3**: `to_sqlite_row` / `from_sqlite_row` の column 順序は D-DB-SEP-draft §3 の event_envelope table 定義に準拠することを docstring に記載する
 
