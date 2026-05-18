@@ -2,6 +2,7 @@ import fcntl
 import json
 import os
 import re
+import sys
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -22,16 +23,30 @@ def _validate_name(name: str) -> str:
     return name
 
 
+def _resolve_lock_dir(lock_dir: Path | None = None) -> Path:
+    if lock_dir is not None:
+        return Path(lock_dir)
+    project_root = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
+    helix_home = os.environ.get("HELIX_HOME", "").strip()
+    if project_root and helix_home:
+        current_dir = Path.cwd().resolve()
+        if current_dir == Path(helix_home).resolve():
+            return Path(project_root) / DEFAULT_LOCK_DIR
+    if project_root and Path.cwd().resolve() == Path(project_root).resolve():
+        return Path(project_root) / DEFAULT_LOCK_DIR
+    return DEFAULT_LOCK_DIR
+
+
 def _lock_path(name: str, lock_dir: Path | None = None) -> Path:
     key = _validate_name(name)
-    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    base_dir = _resolve_lock_dir(lock_dir)
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir / f"{key}.lock"
 
 
 def _lock_file_path(name: str, lock_dir: Path | None = None) -> Path:
     key = _validate_name(name)
-    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    base_dir = _resolve_lock_dir(lock_dir)
     return base_dir / f"{key}.lock"
 
 
@@ -120,6 +135,31 @@ def _pid_is_alive(pid: int) -> bool:
     return True
 
 
+def _emit_stale_lock_released(lock_path: Path, previous_pid: int, current_pid: int) -> None:
+    print(
+        "level=warn "
+        "event=stale_lock_released "
+        f"lock_path={lock_path.resolve()} previous_pid={previous_pid} current_pid={current_pid}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
+def _release_stale_lock_if_needed(lock_path: Path, fd: int, name: str) -> bool:
+    metadata = _read_lockfile_metadata_from_fd(fd, name)
+    if metadata is None:
+        return False
+    previous_pid = metadata["pid"]
+    if _pid_is_alive(previous_pid):
+        return False
+    _emit_stale_lock_released(lock_path, previous_pid, os.getpid())
+    try:
+        lock_path.unlink()
+    except FileNotFoundError:
+        pass
+    return True
+
+
 def acquire(name: str, timeout: float = LOCK_TIMEOUT_SECONDS, lock_dir: Path | None = None) -> int:
     if timeout < 0:
         raise ValueError("timeout must be non-negative")
@@ -129,18 +169,30 @@ def acquire(name: str, timeout: float = LOCK_TIMEOUT_SECONDS, lock_dir: Path | N
 
     while True:
         fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        closed = False
+        retry = False
         try:
             remaining = max(0.0, deadline - time.monotonic())
             _flock_with_timeout(fd, name, remaining)
-            if _path_matches_fd(lock_path, fd):
+            if _release_stale_lock_if_needed(lock_path, fd, name):
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
+                closed = True
+                retry = True
+            elif _path_matches_fd(lock_path, fd):
                 _write_lockfile_metadata(fd, name)
                 return fd
-            fcntl.flock(fd, fcntl.LOCK_UN)
+            else:
+                fcntl.flock(fd, fcntl.LOCK_UN)
         except Exception:
-            os.close(fd)
+            if not closed:
+                os.close(fd)
             raise
 
-        os.close(fd)
+        if not closed:
+            os.close(fd)
+        if retry:
+            continue
         if time.monotonic() >= deadline:
             raise TimeoutError(f"lock not acquired within {timeout:.1f}s: {name}")
         time.sleep(min(LOCK_RETRY_INTERVAL, max(0.0, deadline - time.monotonic())))
@@ -173,7 +225,7 @@ def read_lockfile_metadata(name: str, lock_dir: Path | None = None) -> dict | No
 
 
 def inspect_stale_locks(lock_dir: Path | None = None) -> dict[str, list[str]]:
-    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    base_dir = _resolve_lock_dir(lock_dir)
     if not base_dir.exists():
         return {"stale": [], "alive_skipped": [], "errors": []}
 
@@ -197,7 +249,7 @@ def inspect_stale_locks(lock_dir: Path | None = None) -> dict[str, list[str]]:
 
 
 def cleanup_stale(lock_dir: Path | None = None) -> dict[str, list[str]]:
-    base_dir = Path(lock_dir) if lock_dir is not None else DEFAULT_LOCK_DIR
+    base_dir = _resolve_lock_dir(lock_dir)
     if not base_dir.exists():
         return {"cleaned": [], "alive_skipped": [], "errors": []}
 

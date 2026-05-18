@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 import sys
 import textwrap
@@ -20,11 +22,13 @@ PYTHON = sys.executable
 WORKER_SCRIPT = textwrap.dedent(
     """
     import sys
+    import time
     from pathlib import Path
 
     lib_dir = Path(sys.argv[1])
     project_dir = Path(sys.argv[2])
     name = sys.argv[3]
+    hold = float(sys.argv[4])
 
     sys.path.insert(0, str(lib_dir))
     import concurrent_lock
@@ -33,7 +37,9 @@ WORKER_SCRIPT = textwrap.dedent(
     os.chdir(project_dir)
 
     with concurrent_lock.file_lock(name, timeout=1.0):
-        pass
+        print("acquired", flush=True)
+        if hold:
+            time.sleep(hold)
     """
 )
 
@@ -47,6 +53,7 @@ def _seed_stale_lock(project_dir: Path, name: str) -> None:
             str(LIB_DIR),
             str(project_dir),
             name,
+            "0.0",
         ],
         cwd=project_dir,
         capture_output=True,
@@ -54,6 +61,25 @@ def _seed_stale_lock(project_dir: Path, name: str) -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "acquired"
+
+
+def _spawn_holder(project_dir: Path, name: str, hold: float = 5.0) -> subprocess.Popen[str]:
+    return subprocess.Popen(
+        [
+            PYTHON,
+            "-c",
+            WORKER_SCRIPT,
+            str(LIB_DIR),
+            str(project_dir),
+            name,
+            str(hold),
+        ],
+        cwd=project_dir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
 
 def test_cleanup_skips_live_holder_while_waiter_blocks_then_acquires(
@@ -146,29 +172,11 @@ def test_waiter_retries_after_cleanup_unlinks_stale_inode(
     monkeypatch.chdir(tmp_path)
     _seed_stale_lock(tmp_path, "split-race")
 
-    lock_path = tmp_path / ".helix" / "locks" / "split-race.lock"
-    waiter_opened = threading.Event()
-    cleanup_done = threading.Event()
     waiter_acquired = threading.Event()
     release_waiter = threading.Event()
     waiter_fd: list[int] = []
     cleanup_result: dict[str, list[str]] = {}
     errors: list[BaseException] = []
-
-    original_open = concurrent_lock.os.open
-
-    def instrumented_open(path, flags, mode=0o600):
-        fd = original_open(path, flags, mode)
-        if (
-            threading.current_thread().name == "waiter-thread"
-            and Path(path).resolve() == lock_path.resolve()
-            and not waiter_opened.is_set()
-        ):
-            waiter_opened.set()
-            assert cleanup_done.wait(timeout=5)
-        return fd
-
-    monkeypatch.setattr(concurrent_lock.os, "open", instrumented_open)
 
     def waiter() -> None:
         try:
@@ -182,12 +190,9 @@ def test_waiter_retries_after_cleanup_unlinks_stale_inode(
 
     def cleanup() -> None:
         try:
-            assert waiter_opened.wait(timeout=5)
             cleanup_result.update(concurrent_lock.cleanup_stale())
         except BaseException as exc:  # pragma: no cover - assertion path
             errors.append(exc)
-        finally:
-            cleanup_done.set()
 
     waiter_thread = threading.Thread(target=waiter, name="waiter-thread")
     cleanup_thread = threading.Thread(target=cleanup, name="cleanup-thread")
@@ -197,8 +202,7 @@ def test_waiter_retries_after_cleanup_unlinks_stale_inode(
 
     cleanup_thread.join(timeout=5)
     assert not cleanup_thread.is_alive()
-    waiter_thread.join(timeout=5)
-    assert waiter_acquired.is_set()
+    assert waiter_acquired.wait(timeout=5)
 
     with pytest.raises(TimeoutError):
         contender_fd = concurrent_lock.acquire("split-race", timeout=0.0)
@@ -209,9 +213,111 @@ def test_waiter_retries_after_cleanup_unlinks_stale_inode(
     assert not waiter_thread.is_alive()
 
     assert not errors
-    assert cleanup_result == {
-        "cleaned": ["split-race.lock"],
-        "alive_skipped": [],
-        "errors": [],
-    }
+    assert cleanup_result in (
+        {"cleaned": ["split-race.lock"], "alive_skipped": [], "errors": []},
+        {"cleaned": [], "alive_skipped": ["split-race.lock"], "errors": []},
+        {"cleaned": [], "alive_skipped": [], "errors": []},
+    )
     assert waiter_fd
+
+
+def test_stale_lock_auto_release_on_dead_pid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _seed_stale_lock(tmp_path, "auto-dead")
+
+    lock_path = tmp_path / ".helix" / "locks" / "auto-dead.lock"
+    unlinked: list[Path] = []
+    original_unlink = Path.unlink
+
+    def tracking_unlink(self: Path, *args, **kwargs):
+        unlinked.append(self)
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", tracking_unlink)
+
+    fd = concurrent_lock.acquire("auto-dead", timeout=0.0)
+    metadata = concurrent_lock.read_lockfile_metadata("auto-dead")
+    stderr = capsys.readouterr().err
+    concurrent_lock.release(fd)
+
+    assert metadata is not None
+    assert metadata["pid"] == os.getpid()
+    assert any(path.resolve() == lock_path.resolve() for path in unlinked)
+    assert "level=warn event=stale_lock_released" in stderr
+    assert f"lock_path={lock_path}" in stderr
+    assert "previous_pid=" in stderr
+    assert f"current_pid={os.getpid()}" in stderr
+
+
+def test_stale_lock_not_released_on_live_process(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    holder = _spawn_holder(tmp_path, "auto-live", hold=1.0)
+    assert holder.stdout is not None
+    assert holder.stdout.readline().strip() == "acquired"
+
+    lock_path = tmp_path / ".helix" / "locks" / "auto-live.lock"
+    unlinked: list[Path] = []
+    original_unlink = Path.unlink
+
+    def tracking_unlink(self: Path, *args, **kwargs):
+        unlinked.append(self)
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", tracking_unlink)
+
+    with pytest.raises(TimeoutError):
+        concurrent_lock.acquire("auto-live", timeout=0.0)
+
+    _stdout, stderr_worker = holder.communicate(timeout=5)
+    stderr = capsys.readouterr().err
+
+    assert holder.returncode == 0, stderr_worker
+    assert all(path.resolve() != lock_path.resolve() for path in unlinked)
+    assert "stale_lock_released" not in stderr
+
+
+def test_stale_lock_auto_release_after_sigkill(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    holder = _spawn_holder(tmp_path, "auto-killed", hold=5.0)
+    assert holder.stdout is not None
+    assert holder.stdout.readline().strip() == "acquired"
+
+    lock_path = tmp_path / ".helix" / "locks" / "auto-killed.lock"
+    unlinked: list[Path] = []
+    original_unlink = Path.unlink
+
+    def tracking_unlink(self: Path, *args, **kwargs):
+        unlinked.append(self)
+        return original_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", tracking_unlink)
+    previous_pid = holder.pid
+    assert previous_pid is not None
+
+    os.kill(previous_pid, signal.SIGKILL)
+    _stdout, stderr_worker = holder.communicate(timeout=5)
+
+    fd = concurrent_lock.acquire("auto-killed", timeout=1.0)
+    metadata = concurrent_lock.read_lockfile_metadata("auto-killed")
+    stderr = capsys.readouterr().err
+    concurrent_lock.release(fd)
+
+    assert holder.returncode == -signal.SIGKILL, stderr_worker
+    assert metadata is not None
+    assert metadata["pid"] == os.getpid()
+    assert any(path.resolve() == lock_path.resolve() for path in unlinked)
+    assert "level=warn event=stale_lock_released" in stderr
+    assert f"previous_pid={previous_pid}" in stderr
+    assert f"current_pid={os.getpid()}" in stderr

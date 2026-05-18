@@ -192,7 +192,16 @@ def _write_to_fd(fd: int, text: str) -> None:
     os.fsync(fd)
 
 
-def _try_acquire_once(paths: LockPaths, name: str, pid: int, ttl: int | None) -> tuple[bool, bool, str]:
+def _emit_stale_lock_released(lock_path: Path, previous_pid: int, current_pid: int) -> None:
+    print(
+        "level=warn "
+        "event=stale_lock_released "
+        f"lock_path={lock_path} previous_pid={previous_pid} current_pid={current_pid}",
+        file=sys.stderr,
+    )
+
+
+def _try_acquire_once(paths: LockPaths, name: str, pid: int, ttl: int | None) -> tuple[bool, bool, str, int | None]:
     ensure_lock_parent(paths)
     _reject_symlink(paths.lock_file)
     mode = lock_file_mode(paths.scope)
@@ -202,21 +211,23 @@ def _try_acquire_once(paths: LockPaths, name: str, pid: int, ttl: int | None) ->
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            return False, False, "flock_busy"
+            return False, False, "flock_busy", None
         raw = _read_from_fd(fd).strip()
         stale_cleaned = False
         stale_reason = ""
+        previous_pid: int | None = None
         if raw:
             try:
-                parse_lock_text(raw)
+                existing = parse_lock_text(raw)
             except ValueError:
                 stale_cleaned = True
                 stale_reason = "lock_file_unreadable"
                 _delete_db_row(paths.db_path, name)
             else:
+                previous_pid = existing.pid
                 stale, reason = is_stale(paths.lock_file, _fetch_db_row(paths.db_path, name, paths.scope))
                 if not stale:
-                    return False, False, "held"
+                    return False, False, "held", None
                 stale_cleaned = True
                 stale_reason = reason
                 _delete_db_row(paths.db_path, name)
@@ -232,7 +243,7 @@ def _try_acquire_once(paths: LockPaths, name: str, pid: int, ttl: int | None) ->
             acquired_at=now,
             expires_at=expires_at,
         )
-        return True, stale_cleaned, stale_reason
+        return True, stale_cleaned, stale_reason, previous_pid
     finally:
         try:
             fcntl.flock(fd, fcntl.LOCK_UN)
@@ -252,8 +263,10 @@ def acquire(name: str, scope: str, timeout: int, ttl: int | None, project_root: 
     deadline = time.monotonic() + timeout
     last_reason = "held"
     while True:
-        acquired, stale_cleaned, reason = _try_acquire_once(paths, name, pid, ttl)
+        acquired, stale_cleaned, reason, previous_pid = _try_acquire_once(paths, name, pid, ttl)
         if acquired:
+            if stale_cleaned and previous_pid is not None:
+                _emit_stale_lock_released(paths.lock_file, previous_pid, pid)
             record = read_lock_file(paths.lock_file)
             print(
                 "acquired "
