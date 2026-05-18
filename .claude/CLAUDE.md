@@ -153,10 +153,36 @@ PMO 経路の変更:
 - Edit 直前の対象ファイル冒頭〜該当箇所のみ
 - ユーザーから明示指定された 1 ファイル
 
-**禁止**: Agent tool を model 指定なしで呼ぶこと
+**禁止**: subagent frontmatter の許可モデル family と異なる model 指定 (想定外 Opus 発火防止、`.claude/hooks/pretooluse-agent-guard.sh` で fail-close)
 **禁止**: Opus がバックエンドコードを直接 Edit/Write すること
 **禁止**: Opus が「自分でやった方が早い」を理由に委譲基準を超えた直接実行をすること
 **禁止**: Agent tool の特定指定付き呼び出しを含む実行
+
+#### Agent tool guard hook (2026-05-19、fail-close)
+
+`.claude/hooks/pretooluse-agent-guard.sh` (PreToolUse matcher=Agent) が以下を fail-close で機械強制:
+
+| 条件 | 挙動 |
+|------|------|
+| subagent_type 未指定 (general-purpose default) | exit 2 で block |
+| subagent_type が許可 12 種 (PMO 9 + PdM 3) 外 | exit 2 で block |
+| `tool_input.model` 省略 | pass (frontmatter で自動起動) |
+| `tool_input.model` 明示 + frontmatter と family 一致 | pass |
+| **`tool_input.model` 明示 + frontmatter と family 不一致** | **exit 2 で block (想定外 Opus 発火防止)** |
+
+subagent ごとの許可 model family (frontmatter 正本):
+- **opus**: pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager (PdM 3)
+- **sonnet**: pmo-sonnet / pmo-helix-explorer / pmo-project-explorer / pmo-tech-docs / pmo-tech-fork / pmo-tech-news (PMO Sonnet 6)
+- **haiku**: pmo-haiku / pmo-helix-scout / pmo-project-scout (PMO Haiku 3)
+
+例:
+- `Agent({subagent_type: "pmo-sonnet"})` → pass (frontmatter sonnet で起動)
+- `Agent({subagent_type: "pmo-sonnet", model: "sonnet"})` → pass (一致)
+- `Agent({subagent_type: "pmo-sonnet", model: "opus"})` → **block** (Sonnet 系を Opus override 禁止)
+- `Agent({subagent_type: "pdm-tech-innovation", model: "opus"})` → pass (frontmatter Opus と一致)
+- `Agent({subagent_type: "pdm-tech-innovation", model: "sonnet"})` → **block** (PdM を Sonnet override 禁止)
+
+bypass: `HELIX_ALLOW_RAW_AGENT=1` 環境変数 + 理由を evidence (会話 / final report) に残すこと。
 
 #### Budget 可視化（Opus 残使用量の把握）
 

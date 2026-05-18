@@ -151,7 +151,35 @@ Opus 直接 Read してよい範囲:
 - Edit 直前の対象箇所
 - ユーザー明示指定の 1 ファイル
 
-**禁止**: PMO 以外の subagent 呼び出し / Opus がバックエンドコード直接 Edit / 「自分でやった方が早い」を理由とする委譲基準超え
+**禁止**: PMO 以外の subagent 呼び出し / Opus がバックエンドコード直接 Edit / 「自分でやった方が早い」を理由とする委譲基準超え / **subagent frontmatter の許可 model family と異なる model 指定** (想定外 Opus 発火防止)
+
+### Agent tool guard hook (2026-05-19、fail-close)
+
+`.claude/hooks/pretooluse-agent-guard.sh` (PreToolUse matcher=Agent) が以下を fail-close で機械強制:
+
+| 条件 | 挙動 |
+|------|------|
+| subagent_type 未指定 (general-purpose default) | exit 2 で block |
+| subagent_type が許可 12 種 (PMO 9 + PdM 3) 外 | exit 2 で block |
+| `tool_input.model` 省略 | pass (frontmatter で自動起動) |
+| `tool_input.model` 明示 + frontmatter と family 一致 | pass |
+| **`tool_input.model` 明示 + frontmatter と family 不一致** | **exit 2 で block (想定外 Opus 発火防止)** |
+
+subagent ごとの許可 model family (frontmatter 正本、`.claude/agents/*.md`):
+- **opus**: pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager (PdM 3)
+- **sonnet**: pmo-sonnet / pmo-helix-explorer / pmo-project-explorer / pmo-tech-docs / pmo-tech-fork / pmo-tech-news (PMO Sonnet 6)
+- **haiku**: pmo-haiku / pmo-helix-scout / pmo-project-scout (PMO Haiku 3)
+
+挙動例:
+- `Agent({subagent_type: "pmo-sonnet"})` → pass (frontmatter sonnet 自動起動)
+- `Agent({subagent_type: "pmo-sonnet", model: "opus"})` → **block** (Sonnet 系を Opus override 禁止)
+- `Agent({subagent_type: "pmo-haiku", model: "opus"})` → **block** (Haiku 系を Opus override 禁止)
+- `Agent({subagent_type: "pdm-tech-innovation", model: "opus"})` → pass (frontmatter Opus 一致)
+- `Agent({subagent_type: "pdm-tech-innovation", model: "sonnet"})` → **block** (PdM を Sonnet override 禁止)
+
+bypass: `HELIX_ALLOW_RAW_AGENT=1` 環境変数 + 理由を evidence (会話 / final report) に残すこと。
+
+検証: 12-case strict smoke 全 PASS (commit 3ae4af3、想定外 Opus 発火 T2/T3/T12 完全 block 確認済)。
 
 ## 並列実行ルール（必須、default 上限 8 並列）
 
