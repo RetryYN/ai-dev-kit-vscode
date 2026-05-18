@@ -1515,6 +1515,218 @@ print(json.dumps(agent_mandatory.audit_phase('$phase_map')))
     fi
   }
 
+  run_gate_design_doc_web_search_audit() {
+    # PLAN-087 Phase 3: 対象 PLAN/ADR の WebSearch / OSS 探索 evidence を G2/G3 で advisory 監査する。
+    # gate fail にはせず warning のみ増やす。判定不能時は SKIP。
+    local gate_name="$1"
+    case "$gate_name" in
+      G2|G3) ;;
+      *) return 0 ;;
+    esac
+
+    echo "[helix-gate] design_doc_web_search_audit auto-run: $gate_name (PLAN-087 advisory)"
+    local audit_json status warn_count details
+    audit_json="$(
+      HELIX_GATE_PLAN_ID="${PAIR_CHECK_PLAN_ID:-}" \
+      PYTHONPATH="$SCRIPT_DIR/.." python3 - "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$DB_PATH" "$PHASE_FILE" "$gate_name" <<'PY'
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+project_root = Path(sys.argv[2])
+db_path = Path(sys.argv[3])
+phase_file = Path(sys.argv[4])
+gate_name = sys.argv[5]
+sys.path.insert(0, str(lib_dir))
+
+import helix_db
+import yaml_parser
+
+PLAN_ID_RE = re.compile(r"^(PLAN-\d{3,})")
+ADR_ID_RE = re.compile(r"^(ADR-\d{3,})")
+ADR_REF_RE = re.compile(r"docs/adr/(ADR-[A-Za-z0-9._-]+\.md)")
+SECTION_RE = re.compile(r"^##\s+(?:\d+\.\s+)?業界 standard 参照(?:\b|\s*\()", re.MULTILINE)
+NEXT_SECTION_RE = re.compile(r"^##\s+", re.MULTILINE)
+
+
+def resolve_plan_id() -> str:
+    explicit = os.environ.get("HELIX_GATE_PLAN_ID", "").strip()
+    if explicit:
+        return explicit
+    env_plan_id = os.environ.get("HELIX_PLAN_ID", "").strip()
+    if env_plan_id:
+        return env_plan_id
+    if phase_file.is_file():
+        data = yaml_parser.parse_yaml(phase_file.read_text(encoding="utf-8")) or {}
+        value = data.get("plan_id")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def extract_section(text: str) -> str:
+    match = SECTION_RE.search(text)
+    if not match:
+        return ""
+    next_match = NEXT_SECTION_RE.search(text, match.end())
+    end = next_match.start() if next_match else len(text)
+    return text[match.end():end]
+
+
+def parse_reference_rows(section_text: str) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for raw_line in section_text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|"):
+            continue
+        if re.match(r"^\|\s*参照\s*\|", line):
+            continue
+        if re.match(r"^\|\s*:?[- ]+:?\s*\|", line):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        if all(not cell or (cell.startswith("<") and cell.endswith(">")) for cell in cells[:3]):
+            continue
+        rows.append(cells[:3])
+    return rows
+
+
+def inspect_doc(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    section = extract_section(text)
+    rows = parse_reference_rows(section)
+    web = False
+    oss = False
+    for ref_name, source, excerpt in rows:
+        combined = " ".join((ref_name, source, excerpt)).lower()
+        source_lower = source.lower()
+        if "http://" in source_lower or "https://" in source_lower:
+            web = True
+        oss_markers = ("pmo-tech-fork", "open source", "oss", "existing oss", "既存 oss")
+        looks_like_repo = any(
+            marker in source_lower
+            for marker in (
+                "github.com/",
+                "gitlab.com/",
+                "codeberg.org/",
+                "git.sr.ht/",
+            )
+        ) and not any(
+            blocked in source_lower
+            for blocked in ("/issues/", "/pull/", "/actions/", "/releases/tag/")
+        )
+        if looks_like_repo or any(marker in combined for marker in oss_markers):
+            oss = True
+    return {
+        "path": str(path.relative_to(project_root)),
+        "section_present": bool(section),
+        "row_count": len(rows),
+        "web_search_executed": web,
+        "oss_search_executed": oss,
+    }
+
+
+plan_id = resolve_plan_id()
+if not plan_id:
+    print(json.dumps({"status": "skip", "reason": "plan_id_unresolved"}))
+    raise SystemExit(0)
+
+plan_docs = sorted((project_root / "docs" / "plans").glob(f"{plan_id}*.md"))
+if not plan_docs:
+    print(json.dumps({"status": "skip", "reason": "plan_doc_not_found", "plan_id": plan_id}))
+    raise SystemExit(0)
+
+target_paths: dict[str, Path] = {str(path.resolve()): path for path in plan_docs}
+for plan_doc in plan_docs:
+    text = plan_doc.read_text(encoding="utf-8")
+    for match in ADR_REF_RE.findall(text):
+        adr_path = project_root / match
+        if adr_path.is_file():
+            target_paths[str(adr_path.resolve())] = adr_path
+
+session_id = os.environ.get("HELIX_SESSION_ID", "").strip() or f"gate:{gate_name}:{plan_id}"
+targets = []
+warnings = []
+
+for path in sorted(target_paths.values()):
+    inspected = inspect_doc(path)
+    plan_match = PLAN_ID_RE.match(path.stem)
+    adr_match = ADR_ID_RE.match(path.stem)
+    target_plan_id = plan_match.group(1) if plan_match else None
+    target_adr_id = adr_match.group(1) if adr_match else None
+    helix_db.insert_design_doc_web_search_audit(
+        str(db_path),
+        plan_id=target_plan_id,
+        adr_id=target_adr_id,
+        hook_session_id=session_id,
+        web_search_executed=inspected["web_search_executed"],
+        oss_search_executed=inspected["oss_search_executed"],
+    )
+    doc_id = target_plan_id or target_adr_id or path.stem
+    inspected["doc_id"] = doc_id
+    targets.append(inspected)
+    missing = []
+    if not inspected["web_search_executed"]:
+        missing.append("web")
+    if not inspected["oss_search_executed"]:
+        missing.append("oss")
+    if missing:
+        warnings.append(
+            {
+                "doc_id": doc_id,
+                "path": inspected["path"],
+                "missing": missing,
+                "row_count": inspected["row_count"],
+            }
+        )
+
+print(
+    json.dumps(
+        {
+            "status": "warn" if warnings else "pass",
+            "plan_id": plan_id,
+            "warn_count": len(warnings),
+            "targets": targets,
+            "warnings": warnings,
+        },
+        ensure_ascii=False,
+    )
+)
+PY
+    )"
+    status="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("status", "skip"))' 2>/dev/null || echo "skip")"
+    if [[ "$status" == "skip" ]]; then
+      details="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("reason", "unknown"))' 2>/dev/null || echo "unknown")"
+      echo "  SKIP [design_doc_web_search_audit] reason=$details"
+      return 0
+    fi
+    warn_count="$(printf '%s' "$audit_json" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("warn_count", 0))' 2>/dev/null || echo "0")"
+    details="$(printf '%s' "$audit_json" | python3 -c '
+import sys, json
+data = json.load(sys.stdin)
+if data.get("warnings"):
+    parts = []
+    for item in data["warnings"][:5]:
+        parts.append(f"{item['doc_id']} missing={'/'.join(item['missing'])} rows={item['row_count']}")
+    print("; ".join(parts))
+else:
+    parts = []
+    for item in data.get("targets", [])[:5]:
+        parts.append(f"{item['doc_id']} web={int(bool(item['web_search_executed']))} oss={int(bool(item['oss_search_executed']))} rows={item['row_count']}")
+    print("; ".join(parts))
+' 2>/dev/null || echo "")"
+    if [[ "$warn_count" -gt 0 ]]; then
+      echo "  WARN [design_doc_web_search_audit] $details (advisory)"
+      detector_warn=$((detector_warn + warn_count))
+    else
+      echo "  PASS [design_doc_web_search_audit] $details"
+    fi
+  }
+
   run_gate_sprint_completion() {
     # PLAN-082 Phase 4: Sprint Plan 8 ステップ機械化 audit を G4 で advisory として走らせる。
     # overall != pass なら warning として detector_warn を増やす。
@@ -2399,6 +2611,7 @@ PY
   if [[ "$gate" =~ ^G[234]$ ]] && [[ "$SKIP_DETECTORS" != true ]]; then
     run_gate_vmodel_lint "$gate"
     run_gate_subagent_audit "$gate"
+    run_gate_design_doc_web_search_audit "$gate"
     run_gate_sprint_completion "$gate"
   fi
 

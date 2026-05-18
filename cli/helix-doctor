@@ -499,6 +499,82 @@ check_vmodel_4artifact() {
   PASS=$((PASS + 1))
 }
 
+check_design_doc_reference_sections() {
+  local output=""
+  local status=0
+  local empty_count="0"
+
+  if output="$(python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+import json
+import re
+import sys
+from pathlib import Path
+
+project_root = Path(sys.argv[1])
+targets = []
+for directory, pattern in (("docs/plans", "PLAN-*.md"), ("docs/adr", "ADR-*.md")):
+    base = project_root / directory
+    if base.is_dir():
+        targets.extend(sorted(base.glob(pattern)))
+
+section_re = re.compile(r"^##\s+(?:\d+\.\s+)?業界 standard 参照(?:\b|\s*\()", re.MULTILINE)
+next_section_re = re.compile(r"^##\s+", re.MULTILINE)
+header_re = re.compile(r"^\|\s*参照\s*\|")
+separator_re = re.compile(r"^\|\s*:?[- ]+:?\s*\|")
+results = []
+
+for path in targets:
+    text = path.read_text(encoding="utf-8")
+    match = section_re.search(text)
+    if not match:
+        continue
+    next_match = next_section_re.search(text, match.end())
+    end = next_match.start() if next_match else len(text)
+    section = text[match.end():end]
+    rows = 0
+    for raw_line in section.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|"):
+            continue
+        if header_re.match(line) or separator_re.match(line):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        if all(not cell or (cell.startswith("<") and cell.endswith(">")) for cell in cells[:3]):
+            continue
+        rows += 1
+    if rows == 0:
+        results.append(str(path.relative_to(project_root)))
+
+print(json.dumps({"empty_count": len(results), "paths": results}, ensure_ascii=False))
+PY
+)"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  empty_count="$(printf '%s\n' "$output" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("empty_count", 0))' 2>/dev/null || echo "0")"
+
+  if [[ $status -ne 0 ]]; then
+    echo "  △ design_doc_reference_sections: execution failed (status=$status)"
+    printf '%s\n' "$output" | head -20 | sed 's/^/    /'
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if [[ "$empty_count" -gt 0 ]]; then
+    echo "  △ design_doc_reference_sections: $empty_count docs with empty '業界 standard 参照' section (advisory、PLAN-087)"
+    printf '%s\n' "$output" | python3 -c 'import sys, json; [print(path) for path in json.load(sys.stdin).get("paths", [])[:10]]' 2>/dev/null | sed 's/^/    /'
+    WARN=$((WARN + empty_count))
+    return
+  fi
+
+  echo "  ✓ design_doc_reference_sections"
+  PASS=$((PASS + 1))
+}
+
 check_subagent_phase() {
   if [[ ! -f "$HELIX_HOME/cli/lib/agent_mandatory.py" ]]; then
     return 0
@@ -697,6 +773,7 @@ check_document_drift
 echo ""
 echo "[V-model 4 artifact]"
 check_vmodel_4artifact
+check_design_doc_reference_sections
 
 echo ""
 echo "[subagent + sprint 機械化 (PLAN-082)]"

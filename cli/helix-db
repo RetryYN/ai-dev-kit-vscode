@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-db: HELIX DB utilities
+# Usage: helix db rollback --to v30 --backup-path <path> [--confirm] [--discard-diff|--export-diff <path>]
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+exec python3 "$SCRIPT_DIR/lib/db_cli.py" \
+  --project-root "$PROJECT_ROOT" \
+  --db-path "$DB_PATH" \
+  "$@"

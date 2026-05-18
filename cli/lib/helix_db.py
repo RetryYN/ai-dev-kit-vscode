@@ -34,9 +34,9 @@ except ImportError:  # pragma: no cover
     from concurrent_lock import file_lock
 
 try:
-    from .migrations import v31_db_separation, v32_detector_runs
+    from .migrations import v31_db_separation, v32_design_doc_web_search_audit
 except ImportError:  # pragma: no cover
-    from migrations import v31_db_separation, v32_detector_runs
+    from migrations import v31_db_separation, v32_design_doc_web_search_audit
 
 
 SCHEMA = """
@@ -1882,7 +1882,8 @@ def migrate(conn):
         if current < 31:
             v31_db_separation.migrate_v30_to_v31(conn)
         if current < 32:
-            v32_detector_runs.migrate_v31_to_v32(conn)
+            v32_design_doc_web_search_audit.migrate_v31_to_v32(conn)
+        v32_design_doc_web_search_audit.ensure_v32_additive_schema(conn)
         conn.commit()
 
 
@@ -2239,6 +2240,17 @@ def _validate_dict_payload(value, field_name):
     return value
 
 
+def _clean_optional_text(value, field_name):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if "\x00" in text:
+        raise ValueError(f"{field_name} must not contain NUL")
+    return text
+
+
 def _table_columns(conn, table_name):
     table_name = _validate_identifier(table_name, "table_name")
     rows = conn.execute(f"PRAGMA table_info({_quote_identifier(table_name)})").fetchall()
@@ -2388,6 +2400,86 @@ def insert_audit_log(
     if row is None:
         raise sqlite3.IntegrityError("failed to insert audit_log row")
     return int(row[0])
+
+
+# @helix:index id=helix-db.insert-design-doc-web-search-audit domain=cli/lib summary=設計 doc の WebSearch/OSS 探索 evidence を append-only で記録する
+def insert_design_doc_web_search_audit(
+    db_path,
+    *,
+    plan_id: str | None = None,
+    adr_id: str | None = None,
+    hook_session_id: str,
+    web_search_executed: bool,
+    oss_search_executed: bool,
+    created_at: str | None = None,
+):
+    """Record design doc WebSearch/OSS exploration evidence."""
+    plan_id = _clean_optional_text(plan_id, "plan_id")
+    adr_id = _clean_optional_text(adr_id, "adr_id")
+    if plan_id is None and adr_id is None:
+        raise ValueError("plan_id or adr_id is required")
+
+    hook_session_id = _require_non_empty(hook_session_id, "hook_session_id")
+    created_at = _clean_optional_text(created_at, "created_at") or datetime.now().isoformat()
+
+    with _write_connection(db_path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO design_doc_web_search_audit (
+                plan_id,
+                adr_id,
+                hook_session_id,
+                web_search_executed,
+                oss_search_executed,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                plan_id,
+                adr_id,
+                hook_session_id,
+                int(bool(web_search_executed)),
+                int(bool(oss_search_executed)),
+                created_at,
+            ),
+        )
+        return _validate_positive_int(int(cursor.lastrowid), "row_id")
+
+
+# @helix:index id=helix-db.query-latest-design-doc-web-search-audit domain=cli/lib summary=設計 doc WebSearch/OSS 探索の最新 audit 行を取得する
+def query_latest_design_doc_web_search_audit(
+    db_path,
+    *,
+    plan_id: str | None = None,
+    adr_id: str | None = None,
+):
+    """Return the latest design doc WebSearch/OSS evidence row for the target."""
+    plan_id = _clean_optional_text(plan_id, "plan_id")
+    adr_id = _clean_optional_text(adr_id, "adr_id")
+    if plan_id is None and adr_id is None:
+        raise ValueError("plan_id or adr_id is required")
+
+    where = []
+    params = []
+    if plan_id is not None:
+        where.append("plan_id = ?")
+        params.append(plan_id)
+    if adr_id is not None:
+        where.append("adr_id = ?")
+        params.append(adr_id)
+
+    conn = _automation_conn(db_path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM design_doc_web_search_audit WHERE "
+            + " AND ".join(where)
+            + " ORDER BY created_at DESC, id DESC LIMIT 1",
+            params,
+        ).fetchone()
+        return None if row is None else dict(row)
+    finally:
+        conn.close()
 
 
 # @helix:index id=helix-db.insert-automation-run domain=cli/lib summary=automation_runs rowを作成し pending から running へ遷移する

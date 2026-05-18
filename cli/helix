@@ -84,6 +84,7 @@ case "$CMD" in
   session-start) exec "$SCRIPT_DIR/helix-session-start" "$@" ;;
   session-summary) exec "$SCRIPT_DIR/helix-session-summary" "$@" ;;
   doctor)   exec "$SCRIPT_DIR/helix-doctor" "$@" ;;
+  db)       exec "$SCRIPT_DIR/helix-db" "$@" ;;
   migrate)  exec "$SCRIPT_DIR/helix-migrate" "$@" ;;
   commands) exec "$SCRIPT_DIR/helix-commands" "$@" ;;
   help|-h|--help)
@@ -97,6 +98,7 @@ HELIX 全体管理:
   dashboard   主要状態の静的 snapshot 表示
   mode        forward / reverse / scrum 切替
   doctor      環境診断・修復
+  db          dev 限定 DB rollback drill ツール
   migrate     .helix/ テンプレ追従 (--dry-run/--yes/--rollback)
   commands    コマンド route/help/docs と主要 workflow 連携契約の同期検証
   setup       初期化検証・修復

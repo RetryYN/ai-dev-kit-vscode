@@ -55,6 +55,13 @@
         "hooks": [
           {
             "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pretooluse-design-doc-web-search-guard.sh",
+            "timeout": 5,
+            "statusMessage": "Checking design-doc research guard...",
+            "blockOnFailure": true
+          },
+          {
+            "type": "command",
             "command": "$HELIX_ROOT/.claude/hooks/pretooluse-opus-repo-block.sh"
           }
         ]
