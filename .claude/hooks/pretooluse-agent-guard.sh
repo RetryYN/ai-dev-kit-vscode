@@ -120,58 +120,117 @@ EOF
   exit 2
 fi
 
-# model 指定チェック (許可リスト内でも model 必須)
-if [[ "$model" == "_NONE_" || -z "$model" ]]; then
+# subagent definition から allowed model family / effort を抽出
+# (許可リスト 12 種は全て .claude/agents/<name>.md が存在する前提)
+agent_md=".claude/agents/${subagent_type}.md"
+if [[ ! -f "$agent_md" ]]; then
   cat >&2 <<EOF
-[helix-guard] BLOCK: subagent_type=${subagent_type} 呼び出しに model 指定がありません。
-CLAUDE.md ルール「禁止: Agent tool を model 指定なしで呼ぶこと」。
-
-許可される model:
-  haiku / sonnet / opus
-
-正しい呼び出し例:
-  Agent({
-    subagent_type: "${subagent_type}",
-    model: "sonnet",
-    description: "...",
-    prompt: "..."
-  })
-
-ロックを bypass する正当理由がある場合は HELIX_ALLOW_RAW_AGENT=1 を
-明示し、その理由を会話または final report に記録してください。
+[helix-guard] BLOCK: subagent_type=${subagent_type} の definition (${agent_md}) が
+見つかりません。許可リストにある subagent には必ず definition file が必要です。
+リポジトリ整合異常のため block します。
 EOF
-  if [[ "${HELIX_ALLOW_RAW_AGENT:-0}" == "1" ]]; then
-    echo "[helix-guard] WARN: HELIX_ALLOW_RAW_AGENT=1 で model 未指定を bypass。理由を evidence に残してください。" >&2
-    exit 0
-  fi
   exit 2
 fi
 
-# effort frontmatter チェック (warn のみ、block しない)
-agent_md=".claude/agents/${subagent_type}.md"
-if [[ -f "$agent_md" ]]; then
-  effort=$(python3 -c "
+# python embed で frontmatter model + effort を一括取得
+fm_data=$(python3 -c "
 import re
 with open('$agent_md') as f:
     content = f.read()
 m = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
 if not m:
     print('_NONE_')
+    print('_NONE_')
 else:
     fm = m.group(1)
+    mm = re.search(r'^model:\s*(\S+)', fm, re.MULTILINE)
     em = re.search(r'^effort:\s*(\S+)', fm, re.MULTILINE)
+    print(mm.group(1) if mm else '_NONE_')
     print(em.group(1) if em else '_NONE_')
-" 2>/dev/null || echo "_NONE_")
+" 2>/dev/null || printf "_NONE_\n_NONE_\n")
 
-  if [[ "$effort" == "_NONE_" ]]; then
+fm_model=$(printf '%s' "$fm_data" | sed -n '1p')
+effort=$(printf '%s' "$fm_data" | sed -n '2p')
+
+# frontmatter model を family (haiku/sonnet/opus) に正規化
+normalize_family() {
+  local raw="$1"
+  case "$raw" in
+    *haiku*|*Haiku*|*HAIKU*) printf 'haiku' ;;
+    *sonnet*|*Sonnet*|*SONNET*) printf 'sonnet' ;;
+    *opus*|*Opus*|*OPUS*) printf 'opus' ;;
+    *) printf '_UNKNOWN_' ;;
+  esac
+}
+
+allowed_family=$(normalize_family "$fm_model")
+
+if [[ "$allowed_family" == "_UNKNOWN_" ]]; then
+  cat >&2 <<EOF
+[helix-guard] BLOCK: subagent_type=${subagent_type} の definition frontmatter から
+model family を判定できません (fm_model=${fm_model})。
+.claude/agents/${subagent_type}.md の frontmatter に model: claude-sonnet-4-6 /
+claude-haiku-4-5-* / claude-opus-4-7 のいずれかを設定してください。
+EOF
+  exit 2
+fi
+
+# tool_input.model 検証
+# - 省略 (_NONE_): frontmatter で起動するため pass
+# - 明示: frontmatter family と一致のみ pass、不一致は block (override 禁止)
+if [[ "$model" != "_NONE_" && -n "$model" ]]; then
+  requested_family=$(normalize_family "$model")
+
+  if [[ "$requested_family" == "_UNKNOWN_" ]]; then
     cat >&2 <<EOF
+[helix-guard] BLOCK: subagent_type=${subagent_type} 呼び出しの model=${model} を
+haiku / sonnet / opus のいずれにも正規化できません。
+許可される model 値: "haiku" / "sonnet" / "opus" (Anthropic family id でも可)。
+EOF
+    if [[ "${HELIX_ALLOW_RAW_AGENT:-0}" == "1" ]]; then
+      echo "[helix-guard] WARN: HELIX_ALLOW_RAW_AGENT=1 で bypass (subagent_type=${subagent_type}, model=${model})。" >&2
+      exit 0
+    fi
+    exit 2
+  fi
+
+  if [[ "$requested_family" != "$allowed_family" ]]; then
+    cat >&2 <<EOF
+[helix-guard] BLOCK: 想定外 model override を検出しました。
+  subagent_type: ${subagent_type}
+  frontmatter で許可される model family: ${allowed_family} (${fm_model})
+  呼び出しで指定された model: ${model} (family: ${requested_family})
+
+CLAUDE.md ルール「想定外の Opus 発火を防止」に基づき、subagent ごとに固定された
+許可モデルを override する Agent 呼び出しは block します。
+
+正しい対処:
+  - model を省略する (frontmatter の ${allowed_family} で自動起動)
+  - もしくは ${allowed_family} family を明示指定する
+  - ${requested_family} で動かす必要がある場合は、その family を frontmatter で
+    許可する別 subagent (例: ${requested_family} = opus なら pdm-* 系、
+    sonnet なら pmo-sonnet 系) を使う
+
+ロックを bypass する正当理由がある場合は HELIX_ALLOW_RAW_AGENT=1 を
+明示し、その理由を会話または final report に記録してください。
+EOF
+    if [[ "${HELIX_ALLOW_RAW_AGENT:-0}" == "1" ]]; then
+      echo "[helix-guard] WARN: HELIX_ALLOW_RAW_AGENT=1 で model override を bypass (subagent_type=${subagent_type}, allowed=${allowed_family}, requested=${requested_family})。" >&2
+      exit 0
+    fi
+    exit 2
+  fi
+fi
+
+# effort frontmatter チェック (warn のみ、block しない)
+if [[ "$effort" == "_NONE_" ]]; then
+  cat >&2 <<EOF
 [helix-guard] WARN: subagent_type=${subagent_type} の definition (${agent_md}) に
 effort frontmatter が未定義です。
 推奨値: high (be-api / be-logic / code-reviewer / db-schema / devops-deploy /
-security-audit) または medium (qa-test / legacy / perf)。
+security-audit) または medium (qa-test / legacy / perf) / low (haiku 系)。
 警告のみ、block しません。
 EOF
-  fi
 fi
 
 exit 0
