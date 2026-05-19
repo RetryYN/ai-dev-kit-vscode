@@ -97,6 +97,7 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
+        "continueOnBlock": true,
         "hooks": [
           {
             "type": "command",

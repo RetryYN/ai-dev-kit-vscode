@@ -44,6 +44,11 @@ REASON_ENV_NAMES = (
 MAX_SCAN_FILES = 64
 MAX_SCAN_BYTES = 512 * 1024
 MIN_REVERT_LINES = 100
+BLOCK_REASON = "web_search_history_empty"
+BLOCK_DETAIL = (
+    "Web 検索履歴が見つかりません。"
+    "設計 doc は WebSearch 3 query 以上実施後に書き出してください"
+)
 
 
 def load_payload(path: Path) -> dict:
@@ -204,14 +209,29 @@ def query_agent_slots(repo_root: Path, project_root: Path, session_id: str) -> b
     return row is not None
 
 
-def warn(message: str) -> int:
-    print(message, file=sys.stderr)
-    return 1
-
-
-def info(message: str) -> int:
-    print(message, file=sys.stderr)
-    return 0
+def emit_json(
+    *,
+    action: str,
+    reason: str,
+    detail: str,
+    exit_code: int,
+    file_path: str = "",
+    backup_path: str = "",
+    evidence: set[str] | None = None,
+) -> int:
+    payload: dict[str, object] = {
+        "action": action,
+        "reason": reason,
+        "detail": detail,
+    }
+    if file_path:
+        payload["file"] = file_path
+    if backup_path:
+        payload["backup"] = backup_path
+    if evidence:
+        payload["evidence"] = sorted(evidence)
+    print(json.dumps(payload, ensure_ascii=False))
+    return exit_code
 
 
 def git_run(project_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -273,22 +293,15 @@ def revert_file(
     abs_path: Path,
     project_root: Path,
     rel_path: str,
-    current_text: str,
-) -> tuple[int, str]:
+) -> str:
     backup_path = write_backup(abs_path, project_root)
     head_text = read_head_text(project_root, rel_path)
     if head_text is None:
         abs_path.unlink(missing_ok=True)
-        return 2, (
-            "[helix-guard] FAIL-CLOSE: missing web-search evidence; "
-            f"reverted new file {rel_path}. backup={backup_path}"
-        )
+        return str(backup_path)
 
     abs_path.write_text(head_text, encoding="utf-8")
-    return 2, (
-        "[helix-guard] FAIL-CLOSE: missing web-search evidence; "
-        f"restored tracked file {rel_path} from HEAD. backup={backup_path}"
-    )
+    return str(backup_path)
 
 
 payload_path = Path(sys.argv[1])
@@ -301,43 +314,103 @@ if not isinstance(tool_input, dict):
     tool_input = {}
 
 if tool_name not in TARGET_TOOLS:
-    raise SystemExit(0)
+    raise SystemExit(
+        emit_json(
+            action="pass",
+            reason="skip_non_target_tool",
+            detail="design-doc guard の対象外 tool のため verification を skip しました",
+            exit_code=0,
+        )
+    )
 
 raw_path = str(tool_input.get("file_path") or payload.get("file_path") or "")
 abs_path, rel_path = resolve_path(raw_path, project_root)
 if abs_path is None or not is_target_design_doc(rel_path):
-    raise SystemExit(0)
+    raise SystemExit(
+        emit_json(
+            action="pass",
+            reason="skip_non_target_path",
+            detail="design-doc guard の対象外 path のため verification を skip しました",
+            exit_code=0,
+            file_path=str(abs_path) if abs_path is not None else "",
+        )
+    )
 if not abs_path.exists():
-    raise SystemExit(0)
+    raise SystemExit(
+        emit_json(
+            action="pass",
+            reason="skip_missing_file",
+            detail="対象 file が存在しないため verification を skip しました",
+            exit_code=0,
+            file_path=str(abs_path),
+        )
+    )
 
 if truthy_env("HELIX_ALLOW_DESIGN_DOC_NO_WEB"):
     reason = bypass_reason()
     if not reason:
         raise SystemExit(
-            info(
-                "[helix-guard] WARN: HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 but reason is missing; "
-                "skipping web-search verification"
+            emit_json(
+                action="warn",
+                reason="bypass_reason_missing",
+                detail=(
+                    "HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 ですが reason が未設定のため、"
+                    "warn-only で verification を skip しました"
+                ),
+                exit_code=1,
+                file_path=str(abs_path),
             )
         )
-    raise SystemExit(0)
+    raise SystemExit(
+        emit_json(
+            action="warn",
+            reason="bypass_allowed",
+            detail=(
+                "HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 により verification を skip しました: "
+                f"{reason}"
+            ),
+            exit_code=1,
+            file_path=str(abs_path),
+        )
+    )
 
 session_id = detect_session_id()
 if not session_id:
-    raise SystemExit(info("session_id missing, skipping web-search verification"))
+    raise SystemExit(
+        emit_json(
+            action="warn",
+            reason="session_id_missing",
+            detail="session_id が取得できないため warn-only で verification を skip しました",
+            exit_code=1,
+            file_path=str(abs_path),
+        )
+    )
 
 evidence = scan_transcripts()
 if query_agent_slots(repo_root, project_root, session_id):
     evidence.add("agent_slots:subagent")
 if evidence:
-    raise SystemExit(0)
+    raise SystemExit(
+        emit_json(
+            action="pass",
+            reason="verification_passed",
+            detail="Web 検索または許可済み subagent の証跡を確認しました",
+            exit_code=0,
+            file_path=str(abs_path),
+            evidence=evidence,
+        )
+    )
 
 try:
     current_text = abs_path.read_text(encoding="utf-8")
 except Exception as exc:
     raise SystemExit(
-        warn(
-            "[helix-guard] WARN: design-doc revert guard failed to read "
-            f"{rel_path}: {exc}"
+        emit_json(
+            action="warn",
+            reason="read_failed",
+            detail=f"design-doc revert guard failed to read {rel_path}: {exc}",
+            exit_code=1,
+            file_path=str(abs_path),
         )
     )
 
@@ -345,22 +418,42 @@ frontmatter = has_frontmatter(abs_path, current_text)
 line_count = count_lines(current_text)
 if frontmatter and line_count >= MIN_REVERT_LINES:
     try:
-        exit_code, message = revert_file(abs_path, project_root, rel_path, current_text)
+        backup_path = revert_file(abs_path, project_root, rel_path)
     except Exception as exc:
         raise SystemExit(
-            warn(
-                "[helix-guard] WARN: failed to revert design doc without web-search evidence: "
-                f"path={rel_path} error={exc}"
+            emit_json(
+                action="warn",
+                reason="revert_failed",
+                detail=(
+                    "design doc を revert できませんでした: "
+                    f"path={rel_path} error={exc}"
+                ),
+                exit_code=1,
+                file_path=str(abs_path),
             )
         )
-    print(message, file=sys.stderr)
-    raise SystemExit(exit_code)
+    raise SystemExit(
+        emit_json(
+            action="block",
+            reason=BLOCK_REASON,
+            detail=BLOCK_DETAIL,
+            exit_code=2,
+            file_path=str(abs_path),
+            backup_path=backup_path,
+        )
+    )
 
 raise SystemExit(
-    warn(
-        "[helix-guard] WARN: design doc changed without web-search evidence, "
-        f"but revert conditions were not met: path={rel_path} "
-        f"frontmatter={'yes' if frontmatter else 'no'} line_count={line_count}"
+    emit_json(
+        action="warn",
+        reason="revert_conditions_not_met",
+        detail=(
+            "design doc changed without web-search evidence, "
+            f"but revert conditions were not met: path={rel_path} "
+            f"frontmatter={'yes' if frontmatter else 'no'} line_count={line_count}"
+        ),
+        exit_code=1,
+        file_path=str(abs_path),
     )
 )
 PY

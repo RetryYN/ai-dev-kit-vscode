@@ -4,6 +4,40 @@ set -euo pipefail
 # shellcheck source=cli/lib/helix-common.sh
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
+emit_filtered_stderr() {
+  local stderr_file="$1"
+  [[ -s "$stderr_file" ]] || return 0
+  python3 - "$stderr_file" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+for line in path.read_text(encoding="utf-8").splitlines():
+    if line.startswith("level=warn event=stale_lock_released "):
+        continue
+    print(line, file=sys.stderr)
+PY
+}
+
+run_setup_helper_json() {
+  local stdout_file stderr_file status
+  stdout_file="$(mktemp)"
+  stderr_file="$(mktemp)"
+  if python3 "$SCRIPT_DIR/lib/setup_helper.py" \
+    --setup-dir "$SCRIPT_DIR/setup" \
+    --project-root "$PROJECT_ROOT" \
+    --db-path "$DB_PATH" \
+    "$@" >"$stdout_file" 2>"$stderr_file"; then
+    status=0
+  else
+    status=$?
+  fi
+  cat "$stdout_file"
+  emit_filtered_stderr "$stderr_file"
+  rm -f "$stdout_file" "$stderr_file"
+  return "$status"
+}
+
 usage() {
   cat <<'USAGE'
 使い方: helix setup <subcommand> [args...]
@@ -41,6 +75,10 @@ shift 2>/dev/null || true
 
 case "$CMD" in
   verify|install|repair|list|status|preflight|bootstrap|packages)
+    if [[ " $* " == *" --json "* ]]; then
+      run_setup_helper_json "$CMD" "$@"
+      exit $?
+    fi
     exec python3 "$SCRIPT_DIR/lib/setup_helper.py" \
       --setup-dir "$SCRIPT_DIR/setup" \
       --project-root "$PROJECT_ROOT" \

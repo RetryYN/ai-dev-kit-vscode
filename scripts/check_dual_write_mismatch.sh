@@ -95,6 +95,7 @@ def _load_helper(helper_path: Path):
     if spec is None or spec.loader is None:
         raise RuntimeError(f"unable to load helper module from {helper_path}")
     module = module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -163,7 +164,15 @@ def main() -> int:
 
     sys.path.insert(0, str(repo_root / "cli" / "lib"))
     helper = _load_helper(helper_path)
-    result = _fallback_result(scope) if helper is None else _call_helper(helper, scope, sample_size)
+    if helper is None:
+        result = _fallback_result(scope)
+    else:
+        try:
+            result = _call_helper(helper, scope, sample_size)
+        except RuntimeError as exc:
+            if "does not expose run_ci_gate" not in str(exc):
+                raise
+            result = _fallback_result(scope)
     data = _normalize_result(result, scope)
 
     severity = data["severity"]
