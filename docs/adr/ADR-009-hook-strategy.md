@@ -6,6 +6,54 @@
 
 ---
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### クエリ結果
+
+- `phase gate readiness entry exit criteria CMMI / DO-178C / Stage-Gate process`
+  - Stage-Gate（Cooper系）: 各ゲートで「deliverables」と「exit criteria」を設定し、判断基準を満たせない場合は次段階へ進まない運用を示す。
+    - https://cio-wiki.org/wiki/Stage-Gate
+  - NASA Software Engineering Handbook: 13レベルのライフサイクルレビューに対し、Entrance / Exit / Success Criteria（製品分類に合わせたテイラリング）を定義。
+    - https://swehb.nasa.gov/download/attachments/76447896/SWE_Handbook_Rel0.1_March2011_RevC.pdf?api=v2
+  - CMMI: プロセス目標（specific / generic goals）と成熟度管理を用いた予測可能性向上を目的とし、ゲート的レビューと評価を前提とした品質・リスク管理を説明。
+    - https://learn.microsoft.com/en-us/azure/devops/boards/work-items/guidance/cmmi/guidance-background-to-cmmi?view=azure-devops
+  - DO-178C（Ansys summary）: プランニング／開発／検証・QA/CM等のプロセスを objective based で定義し、プロセス毎に成果物と検証責務を明確化。
+    - https://www.ansys.com/en-gb/simulation-topics/what-is-do-178c
+
+- `technical debt prioritization carry over policy Martin Fowler / Ward Cunningham original / SAFe Agile`
+  - Technical Debt は Ward Cunningham 由来の比喩で、クルト（将来コスト）が増える欠陥管理を「払う・先送りする」の意思決定として扱う。
+    - https://martinfowler.com/bliki/TechnicalDebt.html
+  - Google SRE PRRは、サービス運用移譲前に受入基準をレビューして欠陥（運用観点）を事前潰しを促進。
+    - https://sre.google/sre-book/evolving-sre-engagement-model/
+  - Launch Checklist は実装・監視・セキュリティ・リリース工程の項目を明示。
+    - https://sre.google/sre-book/launch-checklist/
+
+- `release readiness review SRE production-readiness Google SRE book / Microsoft / DORA metrics`
+  - Google SRE PRR では「production setup/operational readiness」の確認と SRE と所有者体制の準備を要件化。
+    - https://sre.google/sre-book/evolving-sre-engagement-model/
+  - Google SRE の Release Engineering 章は本番配備速度・利用状況観点の運用指標を継続的に観測する重要性を示唆。
+    - https://sre.google/sre-book/release-engineering/
+  - Microsoft Well-Architected（mission-critical）：本番運用 readiness の自己評価質問票を想定し、運用品質を段階的に成熟させるアセスメントを提供。
+    - https://learn.microsoft.com/en-us/azure/well-architected/mission-critical/mission-critical-assessment
+  - DORA metrics（4指標）を開発・デリバリ品質の共通指標として採用する代表系資料。
+    - https://www.thoughtworks.com/en-us/radar/techniques/four-key-metrics
+
+### HELIX 採用根拠
+
+- **readiness entry / exit**: ゲートごとの「進入可否」と「終了可否」を明示する現行 HELIX の方針（`docs/adr` の他 ADR でも共通）と、NASA/Stage-Gate の criteria 型レビューを合わせる。
+  - 参考: `helix/HELIX_CORE.md`
+- **P0-P3 carry rule**: 重要度別 carry をそのまま運用し、未解決事項を deferred-finding に記録。
+  - 参考: `helix/HELIX_CORE.md`
+- **carry rule（deferred-finding）と accuracy_score 反映**: deferred-finding は `accuracy_score` 減点へ反映されるため、W5c のキャリー判断を「再現可能・監査可能」なデータへ統合する。
+  - 参考: `helix/HELIX_CORE.md`
+
+## Revision History
+
+| 日付 | 版 | 内容 | 変更者 |
+|---|---|---|---|
+| 2026-05-19 | WIP | 業界 standard 引用 retrofit（W5c-3、PLAN-087 ガードレール準拠、query 3 件結果反映、P0-P3 carry / accuracy_score 反映ルール明確化、Revision History 追加） | Codex |
+
+
 ## Context
 
 HELIX CLI は複数のフックポイントで自動検証・ガイド提示を行う:

@@ -139,6 +139,30 @@ CREATE TABLE sprint_checks (
 - PLAN-075 (V-model) と独立進行可能
 - PLAN-076 (subagent) と相互補完 (Sprint 内の subagent 呼び出しを mandatory 化)
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+- Sprint 定義済完了条件: Scrum.org は DoD をインクリメントの品質基準としてコミットメント化しており、Scrumb team/組織が文脈に合わせて標準化することを明示している（Scrum Guide と合わせて解釈）。
+  - [Scrum.org: What is a Definition of Done?](https://www.scrum.org/resources/what-definition-done)
+  - [Atlassian: Definition of Done in Agile](https://www.atlassian.com/agile/project-management/definition-of-done)
+- CI 前提の pre-merge/commit ガード: pre-commit はコミット前後でフックを通す標準ツール群であり、pre-commit.ci は CI 経由で運用し、Husky は `.husky` 配下の `pre-commit`/`pre-push` 管理を前提とする Git hook フレームワークとして広く採用される。
+  - [pre-commit](https://pre-commit.com/)
+  - [pre-commit.ci](https://pre-commit.ci/)
+  - [Husky: How to](https://typicode.github.io/husky/how-to.html)
+  - [Lefthook configuration](https://lefthook.dev/configuration/fail_on_changes.html)
+- Incremental sprint 実行の短周期運用: DORA はトランクベース開発を高頻度マージ＋fast CI 前提の実践として提示し、継続的デリバリー改善の主要標準として扱っている。
+  - [DORA: Trunk-based development](https://dora.dev/capabilities/trunk-based-development/)
+  - [DORA: Continuous delivery](https://dora.dev/capabilities/continuous-delivery/)
+
+### 参照要件への反映
+
+- PLAN-077 の Sprint step では、レビュー / テスト / 機械チェックを「Sprint Exit前必須」とする現行ルールを維持し、DoD 明確化を組み込みガードに接続する。
+- pre-commit/pre-merge チェックは、段階的に「変更受入時の CI 条件」として Step 4（機械チェック）・Step 5（テスト起動）に寄与する運用で再利用する。
+- マイクロスプリント運用は、PLAN-077 の「小さな反復＋高速フィードバック」原則を前提に継続的リリース性能改善の観点で定期的に再評価する。
+
+## 変更履歴
+
+- 2026-05-19 (W5c-11): `業界 standard 参照 (Web 検索 retrofit 2026-05-19)` を追加し、Sprint DoD / pre-commit / Husky・Lefthook / Continuous Delivery-TBD の業界標準参照を PLAN-077 に格納。
+
 ## §6 Next Action
 
 1. **今セッション**: Phase 1 (HELIX core 文書化) 完遂

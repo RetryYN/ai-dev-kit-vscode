@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 # Claude Code PostToolUse hook (matcher=Edit|Write|MultiEdit)
-# PLAN-087 Phase 2 carry: PreToolUse block が無視された場合の最後の防衛線。
-#
-# 方針:
-# - 対象は docs/adr/ADR-*.md と docs/plans/PLAN-*.md に限定
-# - session 内の WebSearch / WebFetch / pmo-tech-fork / pmo-tech-docs 証跡がなければ warn
-# - 新規 design doc は backup を残した上で自動 revert
-# - 既存 tracked file は安全側で自動 revert せず warn のみ
+# PLAN-089 / handover W9: self-revert の誤検出を減らし、
+# 大規模な設計 doc のみ最後の fail-close 対象にする。
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +15,6 @@ cat >"$payload_file"
 python3 - "$payload_file" "$PROJECT_ROOT" "$REPO_ROOT" <<'PY'
 from __future__ import annotations
 
-import difflib
 import json
 import os
 import re
@@ -28,7 +22,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 
@@ -49,7 +43,7 @@ REASON_ENV_NAMES = (
 )
 MAX_SCAN_FILES = 64
 MAX_SCAN_BYTES = 512 * 1024
-UNKNOWN_DIFF = 10**9
+MIN_REVERT_LINES = 100
 
 
 def load_payload(path: Path) -> dict:
@@ -107,27 +101,13 @@ def is_target_design_doc(rel_path: str) -> bool:
         return False
     if rel_path == "docs/adr/index.md":
         return False
-    if re.fullmatch(r"docs/adr/ADR-[^/]+\.md", rel_path):
+    if rel_path.startswith("docs/adr/") and rel_path.endswith(".md"):
         return True
     if re.fullmatch(r"docs/plans/PLAN-[^/]+\.md", rel_path):
         return True
+    if re.fullmatch(r"docs/specs/SPEC-[^/]+\.md", rel_path):
+        return True
     return False
-
-
-def count_changed_lines(before: str, after: str) -> int:
-    count = 0
-    for line in difflib.unified_diff(
-        before.splitlines(),
-        after.splitlines(),
-        fromfile="before",
-        tofile="after",
-        lineterm="",
-    ):
-        if line.startswith(("---", "+++")):
-            continue
-        if line.startswith(("+", "-")):
-            count += 1
-    return count
 
 
 def transcript_candidates() -> list[Path]:
@@ -198,8 +178,6 @@ def resolve_db_path(repo_root: Path, project_root: Path) -> str:
 
 
 def query_agent_slots(repo_root: Path, project_root: Path, session_id: str) -> bool:
-    if not session_id:
-        return False
     db_path = Path(resolve_db_path(repo_root, project_root))
     if not db_path.exists():
         return False
@@ -226,6 +204,16 @@ def query_agent_slots(repo_root: Path, project_root: Path, session_id: str) -> b
     return row is not None
 
 
+def warn(message: str) -> int:
+    print(message, file=sys.stderr)
+    return 1
+
+
+def info(message: str) -> int:
+    print(message, file=sys.stderr)
+    return 0
+
+
 def git_run(project_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "-C", str(project_root), *args],
@@ -235,11 +223,6 @@ def git_run(project_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def file_in_head(project_root: Path, rel_path: str) -> bool:
-    result = git_run(project_root, "cat-file", "-e", f"HEAD:{rel_path}")
-    return result.returncode == 0
-
-
 def read_head_text(project_root: Path, rel_path: str) -> str | None:
     result = git_run(project_root, "show", f"HEAD:{rel_path}")
     if result.returncode != 0:
@@ -247,32 +230,65 @@ def read_head_text(project_root: Path, rel_path: str) -> str | None:
     return result.stdout
 
 
-def diff_lines_vs_head(project_root: Path, rel_path: str, current_text: str) -> int:
-    head_text = read_head_text(project_root, rel_path)
-    if head_text is None:
-        return UNKNOWN_DIFF
-    return count_changed_lines(head_text, current_text)
+def has_frontmatter(abs_path: Path, current_text: str) -> bool:
+    try:
+        result = subprocess.run(
+            ["rg", "^---", str(abs_path)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        first_line = current_text.splitlines()[0] if current_text.splitlines() else ""
+        return first_line == "---"
+
+    if result.returncode not in {0, 1}:
+        return False
+    first_match = result.stdout.splitlines()[0].strip() if result.stdout else ""
+    return first_match == "---"
 
 
-def backup_root(project_root: Path) -> Path:
-    raw = os.environ.get("HELIX_DESIGN_DOC_REVERT_BACKUP_DIR", "").strip()
-    if raw:
-        return Path(raw).expanduser()
-    return project_root / ".helix" / "hooks" / "design-doc-web-search-revert"
+def count_lines(current_text: str) -> int:
+    return len(current_text.splitlines())
 
 
-def write_backup(abs_path: Path, project_root: Path, rel_path: str, session_id: str) -> Path:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    safe_session = session_id or "session-missing"
-    backup_path = backup_root(project_root) / safe_session / stamp / rel_path
+def backup_path_for(abs_path: Path, project_root: Path) -> Path:
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    return (
+        project_root
+        / ".helix"
+        / "backups"
+        / f"posttooluse-revert-{stamp}-{abs_path.name}.bak"
+    )
+
+
+def write_backup(abs_path: Path, project_root: Path) -> Path:
+    backup_path = backup_path_for(abs_path, project_root)
     backup_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(abs_path, backup_path)
     return backup_path
 
 
-def warn(message: str) -> int:
-    print(message, file=sys.stderr)
-    return 1
+def revert_file(
+    abs_path: Path,
+    project_root: Path,
+    rel_path: str,
+    current_text: str,
+) -> tuple[int, str]:
+    backup_path = write_backup(abs_path, project_root)
+    head_text = read_head_text(project_root, rel_path)
+    if head_text is None:
+        abs_path.unlink(missing_ok=True)
+        return 2, (
+            "[helix-guard] FAIL-CLOSE: missing web-search evidence; "
+            f"reverted new file {rel_path}. backup={backup_path}"
+        )
+
+    abs_path.write_text(head_text, encoding="utf-8")
+    return 2, (
+        "[helix-guard] FAIL-CLOSE: missing web-search evidence; "
+        f"restored tracked file {rel_path} from HEAD. backup={backup_path}"
+    )
 
 
 payload_path = Path(sys.argv[1])
@@ -296,13 +312,19 @@ if not abs_path.exists():
 
 if truthy_env("HELIX_ALLOW_DESIGN_DOC_NO_WEB"):
     reason = bypass_reason()
-    if reason:
-        raise SystemExit(0)
-    bypass_note = " bypass_reason=missing"
-else:
-    bypass_note = ""
+    if not reason:
+        raise SystemExit(
+            info(
+                "[helix-guard] WARN: HELIX_ALLOW_DESIGN_DOC_NO_WEB=1 but reason is missing; "
+                "skipping web-search verification"
+            )
+        )
+    raise SystemExit(0)
 
 session_id = detect_session_id()
+if not session_id:
+    raise SystemExit(info("session_id missing, skipping web-search verification"))
+
 evidence = scan_transcripts()
 if query_agent_slots(repo_root, project_root, session_id):
     evidence.add("agent_slots:subagent")
@@ -314,55 +336,31 @@ try:
 except Exception as exc:
     raise SystemExit(
         warn(
-            "[helix-guard] WARN: design-doc revert guard が "
-            f"{rel_path} の読み取りに失敗したため自動 revert を実行できませんでした: {exc}"
+            "[helix-guard] WARN: design-doc revert guard failed to read "
+            f"{rel_path}: {exc}"
         )
     )
 
-tracked_in_head = file_in_head(project_root, rel_path)
-diff_threshold = int(os.environ.get("HELIX_DESIGN_DOC_GUARD_DIFF_THRESHOLD", "50"))
-if tracked_in_head:
-    diff_lines = diff_lines_vs_head(project_root, rel_path, current_text)
-    if diff_lines != UNKNOWN_DIFF and diff_lines <= diff_threshold:
-        raise SystemExit(0)
-    raise SystemExit(
-        warn(
-            "[helix-guard] WARN: 事前調査なしの設計 doc 変更を検出しましたが、"
-            f"{rel_path} は既存 tracked file のため自動 revert を skip しました. "
-            f"diff_lines={diff_lines if diff_lines != UNKNOWN_DIFF else 'unknown'} "
-            f"session_id={session_id or 'missing'}{bypass_note}"
+frontmatter = has_frontmatter(abs_path, current_text)
+line_count = count_lines(current_text)
+if frontmatter and line_count >= MIN_REVERT_LINES:
+    try:
+        exit_code, message = revert_file(abs_path, project_root, rel_path, current_text)
+    except Exception as exc:
+        raise SystemExit(
+            warn(
+                "[helix-guard] WARN: failed to revert design doc without web-search evidence: "
+                f"path={rel_path} error={exc}"
+            )
         )
-    )
-
-try:
-    backup_path = write_backup(abs_path, project_root, rel_path, session_id)
-except Exception as exc:
-    raise SystemExit(
-        warn(
-            "[helix-guard] WARN: 事前調査なしの新規設計 doc を検出しましたが、"
-            f"backup 作成に失敗したため revert を中止しました: {exc}"
-        )
-    )
-
-try:
-    abs_path.unlink()
-except FileNotFoundError:
-    pass
-except Exception as exc:
-    raise SystemExit(
-        warn(
-            "[helix-guard] WARN: 事前調査なしの新規設計 doc の revert に失敗しました. "
-            f"path={rel_path} backup={backup_path} error={exc}"
-        )
-    )
+    print(message, file=sys.stderr)
+    raise SystemExit(exit_code)
 
 raise SystemExit(
     warn(
-        "[helix-guard] WARN: 事前調査なしの新規設計 doc 変更を検出したため "
-        f"{rel_path} を revert しました. "
-        f"backup={backup_path} session_id={session_id or 'missing'} "
-        "WebSearch / WebFetch / pmo-tech-fork / pmo-tech-docs を先に実行してください."
-        f"{bypass_note}"
+        "[helix-guard] WARN: design doc changed without web-search evidence, "
+        f"but revert conditions were not met: path={rel_path} "
+        f"frontmatter={'yes' if frontmatter else 'no'} line_count={line_count}"
     )
 )
 PY

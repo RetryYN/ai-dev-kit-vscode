@@ -387,3 +387,29 @@ helix sync --auto
 この PLAN は file → DB 自動 sync を HELIX の基盤として扱う。
 目的は「手動操作を減らす」ことではなく、「手動操作が必要な箇所を明確に限定する」ことにある。
 そのため、将来の拡張は sync 入口の追加ではなく、既存 registrar の責務境界の明確化として進める。
+
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+| テーマ | 参照標準 | PLAN-067 への反映方針 |
+|---|---|---|
+| CLI sandbox read-only / security pattern (Docker / Firejail / nsjail) | Docker CLI `--read-only` と `--security-opt`、ユーザー名前空間、nsjail | `helix sync` 系コマンド実行は `--read-only` 前提で、書込みが必要なパスのみ明示的ボリュームに限定。必要最小限の namespace / capability / seccomp 制限を前提に設計。 |
+| Feature flag kill switch / progressive delivery | LaunchDarkly Release + percentage / progressive / guarded rollout | 軽微変更は段階ロールアウト、重大イベントは kill switch で即時停止可能な設計を想定。`session log / gate` の監視メトリクスをリリース判定に連動。 |
+| AI agent consent gate / HITL | LangChain Human-in-the-Loop / AutoGen human_input_mode | side-effect 操作は実行前承認を必須化し、`approve/reject/edit/respond` の意思決定を監査ログ化。PLAN 側フローにも承認待ち状態を明示。 |
+
+## 参考標準 URL
+
+- Docker container run（read-only root filesystem）: https://docs.docker.com/reference/cli/docker/container/run/
+- Docker read-only / read-write volume mount 指針: https://docs.docker.com/engine/storage/volumes/
+- Docker bind mount read-only 参照: https://docs.docker.com/get-started/docker-concepts/running-containers/sharing-local-files/
+- Docker ユーザー名前空間: https://docs.docker.com/engine/security/userns-remap/
+- Firejail ドキュメント（既定プロファイル）: https://firejail.wordpress.com/documentation-2/
+- nsjail README（namespaces / seccomp / read-only mount 参照）: https://github.com/google/nsjail/blob/master/README.md
+- LaunchDarkly リリース方式（percentage/progressive/guarded）: https://launchdarkly.com/docs/home/releases/releasing
+- LaunchDarkly kill switch / guarded rollout 解説: https://launchdarkly.com/blog/kill-switches-progressive-rollouts-user-targeting/
+- LangChain Human-in-the-Loop: https://docs.langchain.com/oss/python/langchain/frontend/human-in-the-loop
+- LangChain HumanInTheLoopMiddleware（tool approval）: https://reference.langchain.com/javascript/functions/langchain.index.humanInTheLoopMiddleware.html
+- AutoGen Human-in-the-Loop: https://autogenhub.github.io/autogen/docs/tutorial/human-in-the-loop/
+
+## Revision History
+
+- W5c-6（2026-05-19）: `PLAN-067-helix-automation-layer.md` に「業界 standard 参照 (Web 検索 retrofit 2026-05-19)」を追記し、W5c-6 改善対象（CLI sandbox / kill switch + progressive / consent gate）を反映。 

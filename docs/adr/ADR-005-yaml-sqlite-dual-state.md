@@ -6,6 +6,36 @@
 
 ---
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### 検索結果（Query 1）
+
+- `SQLite schema evolution migration best practice`（Alembic / Flyway / sqitch / goose / dbmate 比較）
+  - https://alembic.sqlalchemy.org/en/latest/index.html
+  - https://github.com/flyway/flywaydb.org/blob/gh-pages/documentation/concepts/migrations.md
+  - https://sqitch.org/docs/manual/sqitch/
+  - https://pressly.github.io/goose/
+  - https://github.com/amacneil/dbmate
+
+### 検索結果（Query 2）
+
+- `forward-only migration vs reversible migration`
+  - https://github.com/flyway/flywaydb.org/blob/gh-pages/documentation/concepts/migrations.md
+  - https://sqitch.org/docs/manual/sqitch-deploy/
+
+### 検索結果（Query 3）
+
+- `SQLite schema_version table vs PRAGMA user_version`
+  - https://www.sqlite.org/pragma.html
+  - https://www2.sqlite.org/pragma.html
+  - https://www.sqlite.org/fileformat.html
+
+### HELIX 採用根拠
+
+- **forward-only / idempotent な進行優先**: HELIX の移行は `CURRENT_SCHEMA_VERSION`（現行: 33）と `schema_version` テーブルを順次加算する方式で、`helix_db.py` のマイグレーション実装が v1→v33 を順に適用する前提と一致するため、順次適用（forward-only）で再現性とロールバック事故回避を担保しやすい。
+- **schema_version table と `PRAGMA schema_version` の使い分け**: SQLite の `PRAGMA schema_version` は本質的にヘッダ同期機構で、更新の誤用は破損リスクを伴うため、HELIX はヘッダ値ではなく用途が明確な `schema_version` メタテーブルを使い、適用履歴を明示する。
+- **CURRENT_SCHEMA_VERSION mechanism**: `CURRENT_SCHEMA_VERSION` を実装上の終点（33）として持ち、`schema_version` テーブルの `MAX(version)` が到達目標を満たすまで移行を進めることで、状態遷移の検証と監査可能性を保っている。
+
 ## Context
 
 HELIX CLI は 2 種類の状態を管理する必要がある:
@@ -119,3 +149,9 @@ HELIX CLI は 2 種類の状態を管理する必要がある:
 - `cli/templates/state-machine.yaml` (遷移ルール定義)
 - `cli/templates/config.yaml` (プロジェクト設定テンプレート)
 - `.helix/reverse/R2-as-is-design.md` (ADR-005)
+
+## Revision History
+
+- 2026-05-19 業界 standard 引用 retrofit (W5c-1、PLAN-087 ガードレール準拠)
+  - 指定パス `docs/adr/ADR-005-helix-db-schema-evolution.md` が存在しないため、実体の `docs/adr/ADR-005-yaml-sqlite-dual-state.md`（`ADR-005: YAML-SQLite 二重状態管理`）を更新対象とした。
+  - WebSearch query は ADR 本体主題に合わせ、`SQLite schema evolution / migration / schema_version / user_version / HELIX migration` に寄せて再実施した。

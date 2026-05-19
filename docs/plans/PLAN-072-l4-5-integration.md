@@ -217,3 +217,34 @@ Sprint .1-.4 は相互独立 → 並列投入。Sprint .5 は .1-.4 全完了後
 3. Sprint .5 (.1-.4 完了後)
 4. Sprint .6 (.5 完了後)
 5. Sprint .7 (.6 完了後)
+
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+- 監査ログ（Audit Log）
+  - PostgreSQL の公式コミュニティ資料では、変更トリガ関数を介して DML（INSERT/UPDATE/DELETE）イベントを監査テーブルへ記録する実装例が示されており、`audit_log` をイベントとして扱う PLAN-072 の方針と整合する。
+  - SQLite の `CREATE TRIGGER` 仕様は、行単位でのイベント処理（`AFTER` / `BEFORE`）を前提としているため、`automation_runs` / `session_telemetry` のトランジションログ追加方針を補強する。
+  - 両方の運用で示される append-only 中心設計（更新・削除権限の分離）を踏まえ、監査データの保全性設計を PLAN-072 の監査トレース運用ルールに反映する。
+- CI/CD 可観測性（Automation Runs Telemetry）
+  - GitLab CI/CD Observability は pipeline/job/step の実行フロー観測を前提としており、PLAN-072 の `automation_runs` 集約と一致する評価軸を提供する。
+  - Buildkite はパイプラインイベントを OpenTelemetry へ送る統合パターンを示しており、将来の自動計測エクスポート設計と整合する。
+  - GitHub Actions は workflow run ログと実行状態の取得 API を前提にした可観測性基盤があるため、本 PLAN の運用監査ログ設計と親和性が高い。
+- イベント統合（Event-driven Integration）
+  - Martin Fowler のイベント駆動アーキテクチャ定義は、イベント生成と購読の分離を主張し、`automation_runs` → `audit_log` → `session_telemetry` のデータフロー分離方針を支持する。
+  - Amazon EventBridge はイベントスキーマ・ルーティング前提のイベントバス、Kafka は高スループットのストリーミング統合基盤として、PLAN-072 の将来外部連携設計（carry）に適合する比較対象を提供する。
+
+### 主要参照リンク
+
+- PostgreSQL Audit Trigger: https://wiki.postgresql.org/wiki/Audit_trigger
+- SQLite CREATE TRIGGER: https://www.sqlite.org/lang_createtrigger.html
+- GitLab CI/CD Observability: https://docs.gitlab.com/operations/observability/ci_cd/
+- GitLab Observability overview: https://docs.gitlab.com/operations/observability/observability/
+- Amazon EventBridge event reference: https://docs.aws.amazon.com/eventbridge/latest/userguide/event-reference.html
+- Amazon EventBridge schema: https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-schema.html
+- Apache Kafka design: https://docs.confluent.io/kafka/design/index.html
+- Buildkite observability: https://buildkite.com/docs/pipelines/best-practices/monitoring-and-observability
+- GitHub Actions workflow run logs: https://docs.github.com/en/actions/how-tos/monitoring-and-troubleshooting-workflows/monitoring-workflows/using-workflow-run-logs
+- Martin Fowler Event-driven: https://martinfowler.com/articles/201701-event-driven.html
+
+## Revision History
+
+- W5c-7 (2026-05-19): `docs/plans/PLAN-072-l4-5-integration.md` に「業界 standard 参照 (Web 検索 retrofit 2026-05-19)」を追加し、`W5c-7` の履歴を追記。既存 section は変更せず、末尾追記のみ反映。

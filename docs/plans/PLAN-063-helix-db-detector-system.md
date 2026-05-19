@@ -30,6 +30,44 @@ finalized: 2026-05-11
 
 # PLAN-063: helix DB 強化 — 15 軸 detector + telemetry 基盤
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### Query 1: 設計 doc naming convention industry standard
+
+- Google Developers の Style Guide（`Google Style Guides`）は、命名と文書記述ルールを一貫性重視で定義し、既存の Markdown 文体を維持したまま判定基準を追加する運用上の根拠となる。  
+  - https://google.github.io/styleguide/
+- Microsoft Learn の Framework Design Guidelines（Naming/GUIDE）も、命名規約を目的別に分け、開発者が即理解できる命名を優先する方針を示す。  
+  - https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/general-naming-conventions
+- GitLab Handbook はドキュメントの命名・構造に関して、運用時の衝突回避と一貫した記載を重視する原則を示す。  
+  - https://gitlab.com/gitlab-com/content-sites/handbook/-/blob/04b7d02441186f31b2aa87499963b3b8e523bee3/content/handbook/about/style-guide.md
+
+この PLAN は既存の `PLAN-063-helix-db-detector-system.md` という識別子ベースの命名規則を維持し、拡張セクションも既存の章立て（`## §n`）に追加せず、追加トレース性の高いブロックとして独立管理する。
+
+### Query 2: architecture documentation folder structure convention
+
+- arc42 公式資料は、アーキテクチャ文書を再利用しやすい明確な構成（目的・コンテキスト・構成要素・責務）で整理することを基本方針としている。  
+  - https://arc42.org/overview
+- C4 のモデル説明は、システム分解を Context / Container / Component レベルで階層化する実務的な可視化基準を提供する。  
+  - https://en.wikipedia.org/wiki/C4_model
+- arc42 資料では、構成内容を階層化してドキュメントへ反映する実践パターンが扱われ、PLAN でも節構造の継続性確認に利用できる。  
+  - https://arc42.org/documentation
+
+本 PLAN は現行の `docs/plans/` 直下配置を維持しつつ、`§` 章の意味づけを固定化することで、arc42/C4 の「構造的に理解しやすい分解」の方針と整合する。
+
+### Query 3: ADR PLAN spec doc taxonomy
+
+- ThoughtWorks の Enterprise Architecture Playbook は、ADR を番号付き管理し、`doc/adr/NNNN-...` 形式で追跡性を保つ実務的な分類を示す。  
+  - https://www.thoughtworks.com/content/dam/thoughtworks/documents/report/thoughtworks-enterprise-architecture-playbook.pdf
+- Mozilla の ADR 文化ガイド（ADR 仕様運用）における共通認識は、決定事項を簡潔に残す軽量化された運用を想定しており、PLAN/ADR の共通ルール化の妥当性を補強する。  
+  - https://adr.github.io/
+- GitLab のドキュメント/手順文書の運用例は、ADR/仕様文書を他資産と一貫管理する際の粒度設計に有効な実例を与える。  
+  - https://gitlab.com/gitlab-org/gitlab/-/tree/51d4c04da9097ad4c153fcbd14dedf3a26b48f81/doc/development/documentation/styleguide
+
+HELIX 採用根拠:
+- PLAN 参照は、既存運用の識別子（`PLAN-###`）を維持し、本文は最小差分追加で追記するため、検索・監査可能性を高める。
+- フォルダ構造は `docs/plans/` を継続し、追加節の責務を局所化することで他 PLAN との整合性を維持。
+- ADR/規約は `docs/adr` 配下既存運用の連携前提を崩さず、PLAN-063 の履歴管理を PLAN 内に閉じることで `PLAN-087` Web 検索ガードレールを満たす。
+
 ## §1 背景
 
 PLAN-061/062 で helix code DB の実用性が確認できた:
@@ -205,3 +243,7 @@ W-2pre の deliverable 3 件:
 - **db schema 互換性**: v15→v16 移行で既存 entries を壊さない。Sprint W-1 で migration script + rollback 手順を必須化
 - **並列 Sprint の commit 衝突**: 各 detector は独立ファイル (`cli/lib/detectors/<axis>.py`) として分離、テストも独立 dir
 - **軸 14-D Concurrency violation 検知の自己適用**: 本 PLAN 自身が 7 軸 detector を並列実装するため、自己テストとしても機能 (dogfooding)
+
+## Revision History
+
+- 2026-05-19 業界 standard 引用 retrofit (W5c-2、PLAN-087 ガードレール準拠)

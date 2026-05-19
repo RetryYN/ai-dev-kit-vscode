@@ -395,3 +395,25 @@ PLAN-075 で確立した V-model 4 artifact 双方向 trace 原則 (詳細: `hel
 - PLAN-075 Phase 4.1a audit (`docs/v2/audit/plan-067-074-vmodel-audit.md`) で **P0 partial** 判定 (実態は完備、PLAN doc への ref 欠落のみ)
 - 本 §9 追加で carry 解消、PLAN-074 は 4 artifact 双方向 trace 完全準拠
 - Phase 5 lint (vmodel_lint) で grandfather 対象外、lint 通過想定
+
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+- Flask/HTTP API 設計
+  - Flask-RESTX は API 定義と OpenAPI/Swagger をデコレータ中心で整形しやすい設計思想を採用しており、エンドポイント記述の一貫性と検証可能性に資する。
+  - Flask-Smorest は `marshmallow` ベースのシリアライズ/バリデーション、OpenAPI 自動生成、明示的な検証エラー、ETag / ページングを提供する実装実績がある。
+  - 参照: [Flask-RESTX Documentation](https://flask-restx.readthedocs.io/), [Flask-RESTX scaling guide](https://flask-restx.readthedocs.io/en/latest/scaling.html), [flask-smorest GitHub README](https://github.com/marshmallow-code/flask-smorest)
+
+- Webhook 受信検証（署名検証）
+  - GitHub は webhook の受信時に、`X-Hub-Signature-256` ヘッダ付き HMAC 署名で送信元と改ざんを検証する方式を推奨している。
+  - Stripe は webhook 処理前に生のリクエストボディ、`Stripe-Signature`、secret を使って検証を行うことを前提にしている。
+  - 参照: [GitHub webhook signature validation](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries), [Stripe webhook signature docs](https://docs.stripe.com/webhooks/signature?locale=en-GB)
+
+- API バージョニング（進化）
+  - Google API 設計原則では、まず既存互換の追加（新規プロパティ追加など）で互換性を保った拡張を優先し、必要時のみバージョニングを検討する方針が示される。
+  - Microsoft の公開ガイドラインでは `/v1` といった URL 先頭バージョン指定を含む実装が多く示される一方、運用上の整合性と更新性が重要な論点として扱われる。
+  - Zalando は互換変更での追加/延長を原則とし、やむを得ない場合にのみマルチバージョン化を推奨し、`Content-Type` ベース（メディアタイプ版）を検討する。
+  - 参照: [Google API versioning tips](https://cloud.google.com/blog/products/api-management/restful-api-design-tips-versioning), [Microsoft API Guidelines](https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md), [Zalando RESTful API guidelines](https://opensource.zalando.com/restful-api-guidelines/index.html)
+
+### Revision History
+
+- W5c-8 / 2026-05-19: PLAN-074 に「業界 standard 参照」セクションを追加し、W5c 13 件 retrofits（対象項目: W5c-8）を反映。既存セクションは変更せず追記のみ実施。

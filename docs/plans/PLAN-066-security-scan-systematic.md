@@ -319,3 +319,15 @@ Sprint 間の依存:
 4. DB schema 追加の詳細設計へ進む
 5. secret scan config の allowlist 方針を定義する
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+- `brew doctor` / `brew help` / `brew deps` は環境健全性と依存関係の診断に使うコマンドとして扱い、事前診断の例外基準を明示する（Homebrew manpage / Troubleshooting: `brew doctor`, `--list-checks`） [docs.brew.sh/Manpage](https://docs.brew.sh/Manpage), [docs.brew.sh/Troubleshooting](https://docs.brew.sh/Troubleshooting)
+- `npm doctor` は npm キャッシュ整合性や設定健全性検査に使う。`npm` の公式ドキュメントで `npm doctor` の確認手順が前提となる [npm Docs](https://docs.npmjs.com/cli/v10/commands/npm-doctor/)
+- `flutter doctor` は Flutter 開発環境のツール連携確認、必要時は `-v` 併用で詳細化する（CLI リファレンス / セットアップガイド） [docs.flutter.dev/reference/flutter-cli](https://docs.flutter.dev/reference/flutter-cli), [docs.flutter.dev/get-started/install/windows/mobile](https://docs.flutter.dev/get-started/install/windows/mobile?tab=vscode)
+- 静的解析 pre-flight では `shellcheck`（シェルスクリプト lint）、`hadolint`（Dockerfile + Bash in RUN、ShellCheck 基盤）を CI と pre-commit で運用する（公式ドキュメント） [shellcheck.net](https://www.shellcheck.net/), [hadolint.github.io/hadolint](https://hadolint.github.io/hadolint/), [pre-commit.com](https://pre-commit.com/)
+- `pre-commit` は `.pre-commit-config.yaml` で hook を定義し、`pre-commit install` と `pre-commit run` を中心に導入〜運用する（既定 hook タイプ、スキップ制御、config 検証） [pre-commit.com](https://pre-commit.com/)
+- Monorepo 診断は Bazel の `query --output graph`（依存関係可視化）と Nx の `affected`（影響範囲限定実行）／Turborepo の GraphQL/Turbo graph を比較し、PLAN 目的に合わせて採択する [Bazel query tutorial](https://bazel.build/tutorials/cpp-dependency), [Nx affected](https://nx.dev/ci/features/affected), [Turborepo run reference](https://turborepo.com/repo/docs/core-concepts/package-and-task-graph)
+
+## Revision History
+
+- 2026-05-19 W5c-5: PLAN-066 に industry standard 参照を Web 検索検証ベースで retrofit。`helix doctor` 系 / static-analysis / monorepo 診断観点を新規参照節として追加し、運用上の根拠リンクを明記。

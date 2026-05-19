@@ -242,3 +242,26 @@ def lint_plan(plan_id: str) -> LintResult:
 
 1. **今セッション**: Phase 1 完遂 (commit 024499f で完了、訂正反映で本 commit)
 2. **次セッション以降**: Phase 2-5 を段階的に
+
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+- V-model における検証・妥当性確認フェーズ: NASA SW Engineering Handbook の V&V 記述は、要件・設計・実装の各段階で確認活動を行い検証・妥当性検証へ対応づける構造を示している (SWEHB 付録では各段階の検証活動が定義され、Validation を伴う V モデルでの検証計画が示される)。
+  - 参照: [NASA SW Engineering Handbook Appendix](https://swehb.nasa.gov/x/MYHxAQ), [SWE Handbook PDF](https://swehb.nasa.gov/download/attachments/76447896/SWE_Handbook_Rel0.1_March2011_RevC.pdf?api=v2&modificationDate=1579537520000&version=1)
+- IEEE 系統の V 構造は、システム開発フェーズと対応する検証活動の整理として広く参照され、実務では設計・実装と検証間の対応を前提にレビュー/試験を計画する運用に使われる。
+  - 参照: [V-model (software development)](https://en.wikipedia.org/wiki/V-model_%28software_development%29)
+- DO-178C では、開発ライフサイクル中の verification / validation を明示し、特に安全性要求が高いソフトウェアにおける厳密な開発・検証工程の設計が求められる。
+  - 参照: [DO-178C Introduction](https://www.do178.org/do178_introduction.html), [DO-178C Verification Handbook PDF](https://studylib.net/doc/28106580/do-178c-handbook)
+
+- 要件とテスト成果物の双方向追跡は、ISO 26262 が要求する requirements management の重要な要素として明文化され、要件から実装・検証までの追跡性が要求される。
+  - 参照: [Parasoft: ISO 26262 Requirements Traceability](https://www.parasoft.com/learning-center/iso-26262/requirements-traceability/)
+- CMMI の要求管理実務では、要件-実装-検証の上下位リンクを維持することが要求され、影響分析とカバレッジ分析を支える基礎として扱われる。
+  - 参照: [CMMI v2.0 SP 1.4](https://cmmiinstitute.com/cmmi-model/level-2/requirements-management), [Jama bidirectional traceability guide](https://www.jamasoftware.com/requirements-management-guide/requirements-traceability/bidirectional-traceability)
+- IEEE 829 のテスト成果物は各テスト段階で異なる文書を想定し、要件ベースでの追跡を前提とする運用系で参照される。
+  - 参照: [Wikipedia: IEEE 829](https://es.wikipedia.org/wiki/IEEE_829), [IEEE 829-2008 PDF (archival reference)](https://www.studylib.net/doc/26178238/ieee-computer-society---ieee-std-829-2008-ieee-standard-f...)
+
+- テスト設計仕様は、ISO/IEC/IEEE 29119-2 のテスト仕様・設計観点で、単体/結合/システム系の設計を検証可能な文書構造として扱い、テストタイプ別に一貫した設計証跡を持つことを示している。
+  - 参照: [ISO/IEC/IEEE 29119 PDF](https://standards.ieee.org/wp-content/uploads/import/documents/tocs/ISO_IEC_IEEE_29119.pdf), [ISO/IEC/IEEE 29119-2:2013](https://standards.iteh.ai/catalog/standards/iso/cb1fbb24-b1de-4482-8573-478dd3d19307/iso-iec-ieee-29119-2-2013)
+
+### Revision History
+
+- W5c-9 / 2026-05-19: PLAN-075 に「業界 standard 参照」セクションを追加し、既存セクション不変で「V-model フェーズ / 双方向追跡 / テスト設計仕様標準」観点の参照を追記。
