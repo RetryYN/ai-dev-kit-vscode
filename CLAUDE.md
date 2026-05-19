@@ -281,7 +281,7 @@ PLAN-NNN = 1 トピックの implementation tree
 
 詳細 = `docs/v2/V5-plan-outlines.md` (pmo-sonnet 起票予定) + `memory/project_2026_05_20_v5_framework_evolution_recovery.md`。
 
-### V5 framework 17 要素
+### V5 framework 18 要素 (2026-05-20 拡張、turn 14-15 で 18 番追加)
 1. PLAN = self-contained workflow ルール doc (TodoWrite → PLAN 永続化置換)
 2. V-model layer (L0-L11、L3.5/L4.5 追加) × drive (be/fe/fullstack/scrum/reverse/db/agent/poc/troubleshoot) matrix
 3. 種別正規化 (design / impl / poc / reverse / troubleshoot / refactor / retrofit / research / add-design / add-impl / **recovery**)
@@ -298,9 +298,18 @@ PLAN-NNN = 1 トピックの implementation tree
 14. PoC = Scrum × Reverse 連携 matrix (Scrum 6 type × Reverse 5 type)
 15. GitHub 運用ルール統合 (`helix_github_workflow_rules.md` ベース)
 16. helix_improvement_plan_draft.md 6 Phase 統合
-17. **リカバリープラン kind (recovery、本 session 発覚の穴)**
+17. リカバリープラン kind (recovery、turn 13 確立)
+18. **自動走行 framework 5-layer** (turn 14-15 確立、claw0 + agent_farm + claude-brain + learn-claude-code 4 OSS シナジー):
+    - Layer 1: PostToolUse(Write|Edit + PLAN.md) → helix.db.task_queue auto-enqueue
+    - Layer 2: statusLine hook で context % 先回り監視 (>50% / 30-50% / ≤30% / ≤20% の 4 段階)
+    - Layer 3: PreCompact hook (v1.0.48+) で auto-compact 前 state 永続化、必要時 decision:block
+    - Layer 4: SessionStart(cleared|compacted) + UserPromptSubmit で関連履歴自動注入 (claude-brain pattern)
+    - Layer 5: ScheduleWakeup 15min heartbeat (claw0 cold-start) で carry check + 自動 task pop
+    - 解決問題: 14h idle 事故 + context 枯渇による中断 + carry 残し放置の 3 課題同時解消
+    - 実装事例: claude-brain (6 Python hook で SQLite 無損失キャプチャ + UserPromptSubmit 履歴注入)
+    - /clear /compact の発火は不可確定 (Anthropic Feature Request #20267) → 「発火」ではなく「前後の state capture + 復元」を 100% 自動化
 
-### 8 PLAN + 7 ADR 起票案 (次 session 開始時)
+### 9 PLAN + 8 ADR 起票案 (次 session 開始時、PLAN-099 を turn 14 で追加)
 ```
 parent: PLAN-MM-001 (設計プラン、V5 全体構想)
 ├── PLAN-091 ↔ ADR-025: framework 本体 (matrix + 種別 + template embed)
@@ -310,14 +319,49 @@ parent: PLAN-MM-001 (設計プラン、V5 全体構想)
 ├── PLAN-095 ↔ ADR-028: PoC = Scrum × Reverse matrix
 ├── PLAN-096 ↔ ADR-029: GitHub Actions + ブランチタイプ別パイプライン
 ├── PLAN-097 ↔ ADR-030: 抽象化層 (スキル/ワークフロー/ハーネス) + エスカレーション
-└── PLAN-098 ↔ ADR-031: リカバリープラン kind 正規化
+├── PLAN-098 ↔ ADR-031: リカバリープラン kind 正規化
+└── PLAN-099 ↔ ADR-032: 自動走行 framework 5-layer (turn 14-15 追加、statusLine + PreCompact + SessionStart cleared + UserPromptSubmit + heartbeat、14h idle + context 枯渇 + carry 放置の三課題同時解決)
 ```
 
-### TL 4 ラウンド全 passed (V5 = 5 ラウンド目候補)
+### TL 5 ラウンド全 passed (V5 確定、turn 17 で round 5 完了)
 - v1 (matrix + 種別): passed (bs9wuvqcs)
 - v2 (+ 依存 + agent slot + 自動登録): passed (PLAN-091〜093 分割推奨、bppaf3fwe)
 - v3 (+ template embed): passed (bkac94gnw)
 - v4 (+ V-model TDD + PoC リバース合流): passed (baq742e62)
+- **v5 (+ 自動走行 framework 18 番要素): passed_with_minor_changes** (bdnmyhznq、修正条件付き次 session 起票 OK)
+
+### TL v5 round 5 修正条件 (起票時必須遵守、5 重要 + 8 補助 + P0/P1 指摘)
+
+**5 重要項目**:
+1. **設計選択**: V5 に統合、実装単位は分離。PLAN-091 (規約本体) と PLAN-099 (runtime substrate) を **独立子 PLAN** として並行起票、feature flag / warn-only / fail-close 段階導入
+2. **PoC 戦略**: **C 案 = Layer 4 (復元) + Layer 5 (heartbeat) を先行 PoC** (0.5-1 session)、Layer 1-3 は PLAN-091/092/093 の schema・hook 正本確定後接続。A 案 (2-3 session) / B 案 (4-6 session) は非効率
+3. **PreCompact decision:block 制限**: 「`重要 state 永続化失敗` AND `未保存の L2/L3/ADR 判断がある` AND `一回だけ`」に限定。常用は context 枯渇継続事故リスク、通常は backup + warning
+4. **statusLine + Stop 役割分担**: 両方必要。Stop は軽量化 (handover snapshot / telemetry / stale release のみ)、statusLine に debounce + hysteresis hysteresis 必須 (警告連打防止)
+5. **claude-brain pattern**: **HELIX 独自再実装** が筋。会話 SQLite 全量キャプチャは secret/PII/予算情報リスク → `transcript_path 参照 + 要約 state + 明示的 retention` 正本、UserPromptSubmit 注入は関連 PLAN/handover/memory feedback の **短い bundle** に制限
+
+**8 補助項目**:
+6. **依存衝突**: PLAN-091 → PLAN-099 が正順 (frontmatter dependencies 語彙は PLAN-091 定義)。ただし Layer 4/5 PoC は暫定 schema なしで既存 handover/SessionStart/scheduler 上に作れるので並行着手可能
+7. **PLAN-088 関係**: 重複ではない。PLAN-088 = 「誰が担当、WIP 可視化」、Layer 1 = 「PLAN から runnable work item queue 化」。task_queue 新設なら責務明文化必須 (PLAN 定義 = `plan_registry`、実行待ち = 既存 `helix job`/scheduler に寄せる)
+8. **15min heartbeat**: **adaptive** (通常 15min / 低予算 30min / critical/hotfix 5min / active task 中無効)。固定値禁止、ScheduleWakeup は `carry>0 AND bg task なし AND budget healthy` の時だけ
+
+**P0 指摘 (絶対遵守)**:
+- 承認なし task pop は Plan Consent / WBS / handover Next Action を超える設計 → HELIX discipline 破壊。**queue worker は必ず plan guard を通すこと**
+
+**P1 指摘 (設計時要考慮)**:
+- task_queue / TodoWrite / helix job / handover が競合する恐れ → **単一の実行正本を決める**
+- PreCompact block の無限ループ、context 枯渇継続、manual compact 妨害リスク
+- claude-brain 型履歴保存は secret/PII/ライセンス判断 = **人間確認対象**
+
+**P2/P3 指摘**:
+- P2: hook foreground 処理肥大化 → SessionStart は fail-open、重い sync は background
+- P2: statusLine warning / heartbeat のノイズ化、重要警告無視リスク
+- P3: PLAN-081 等の古い hook 設計との docs drift → PLAN-099 起票時に obsolete/superseded 明記
+
+**テスト戦略 (最小 PoC)**:
+- fake transcript / fake handover / fake carry を使った hook fixture test 先行
+- Layer 4: SessionStart cleared/compacted + UserPromptSubmit 注入の snapshot test
+- Layer 5: fake timer で 5/15/30min + budget low + bg task active + carry 0 no-op 検証
+- Layer 1-3 本実装時: migration idempotent / queue atomic claim / PreCompact one-shot block / statusLine threshold hysteresis / hook timeout
 
 ### session 終了前チェックリスト (4 項目 全充足必須)
 1. carry == 0 (または時間枠満了)
