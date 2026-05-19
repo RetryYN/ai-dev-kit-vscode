@@ -13,6 +13,20 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/precompact-state-capture.sh",
+            "timeout": 3,
+            "statusMessage": "Capturing HELIX state before compact...",
+            "blockOnFailure": false
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write",
