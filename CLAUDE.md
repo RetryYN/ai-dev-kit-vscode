@@ -240,14 +240,38 @@ L4 実装中の Sprint Plan は標準 8 ステップに固定化:
 
 Sprint Exit 前に mandatory 全通過必須、`helix sprint complete --auto-check` で機械化。詳細: `helix/HELIX_CORE.md §Sprint Plan 標準構造`。
 
-## ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立)
+## ScheduleWakeup 運用ルール (task-notification 信用、2026-05-16 確立、2026-05-19 適用条件補強)
 
 `Bash(run_in_background: true)` で投入した command は **harness が完了時に task-notification を自動送信** する。ScheduleWakeup を併用するな:
 
 - `run_in_background: true` の結果待ち → **ScheduleWakeup 不要**。task-notification 自動通知を信用して他の作業を進める
-- 並行タスクが無くなったら turn を終え、harness が完了通知で自動再開させる
+- 並行タスクが無くなったら turn を終え、harness が完了通知で自動再開させる ← **適用条件**: (a) 全 carry 消化済 AND (b) ユーザー時間枠指示が満たされている、両方 AND の時のみ
+- carry が残っている / ユーザー時間枠 (例「24 時まで連続作業」) が満たされていない場合は turn を終えず、次の wave を投入し続ける (2026-05-19 14h アイドル事故で確立、[[feedback_dont_stop_with_carry_remaining]] 参照)
 - ScheduleWakeup は **harness 追跡外の外部状態 polling 専用** (GitHub Actions / CI / リモートデプロイ監視 / 別 process が書き出すファイルの polling)
 - 上記以外で ScheduleWakeup を使うのは禁止 (cache miss + cost + 「動いてない」印象 の三重損失)
+
+## ADR → PLAN 順序の必須遵守 (2026-05-19 確立、HELIX 思想 L1→L2→L3→L4)
+
+新規 PLAN 起票前に「大局判断有無を確認」: 新 framework 採用 / fail-close 化 / 外部新仕様採用 / 既存方針転換 / 既存 framework 大規模変更 のいずれかに該当する場合は **ADR 起票必須**、その後 PLAN で Phase 構成する。
+
+- HELIX 順序: L1 要件 → **L2 全体設計 (CONCEPT + ADR)** → L3 詳細設計 (D-API/D-DB) → **L4 実装計画 (PLAN/Sprint)**
+- PLAN だけで OK: 既存 ADR の実装計画 / bug fix / refactor (機能変更なし) / 既存 framework 内 Phase 拡張
+- ADR が必要: 新 framework 採用 / fail-close 化判断 / 外部新仕様採用 / 方針転換 / 大規模変更
+- 違反検出は `helix doctor check_plan_adr_trace` (新設予定) で fail-close 化
+- 詳細 + 逆引き救済 4 件: [[feedback_adr_before_plan_violation]]
+
+## 次 session 最優先 carry (2026-05-19 末確立、CLAUDE.md 永続化)
+
+本 session で起票した PLAN-087〜090 は ADR なしで HELIX 思想違反。次 session 開始直後に逆引き救済を着手する (V-model 4 artifact 解消 / PLAN-088 Phase 1 等の他 carry より優先):
+
+1. **ADR-021 起票**: 設計 doc Web 検索ガードレール採用 (PLAN-087 根拠)
+2. **ADR-022 起票**: TodoWrite × agent slot framework 採用 (PLAN-088 根拠)
+3. **ADR-023 起票**: gate fail-close advisory→fail-close 段階遷移採用 (PLAN-089 根拠)
+4. **ADR-024 起票**: Claude Code 2.1.139 continueOnBlock / active guidance loop pattern 採用 (PLAN-090 根拠)
+5. 各 PLAN 冒頭に「## 根拠 ADR」section 追加で双方向 trace 確立
+6. `helix doctor check_plan_adr_trace` 新設で PLAN 起票時 ADR 不在を fail-close 化 (PLAN-091? として起票候補)
+
+ADR 起票時も WebSearch 3 query 以上必須 ([[feedback_design_doc_web_search_required]])。V2 企画書 (docs/v2/CONCEPT.md §2 痛点「PLAN 累積による散在」/ §5 Phase I「Legacy Import」/ L1-REQUIREMENTS FR-LI01-03 / L2-MASTER §12 既知矛盾 M-01〜M-04 PLAN-069 resolved pattern) を着手前に必ず精読し、PLAN は工程単位 (ID+Phase+Sprint+DoD) 媒体・ADR は大局判断媒体という layer 区別を維持する。
 
 ## タスク受領時の skill 推挙呼び出し (必須)
 
