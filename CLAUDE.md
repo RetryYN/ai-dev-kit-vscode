@@ -250,28 +250,45 @@ Sprint Exit 前に mandatory 全通過必須、`helix sprint complete --auto-che
 - ScheduleWakeup は **harness 追跡外の外部状態 polling 専用** (GitHub Actions / CI / リモートデプロイ監視 / 別 process が書き出すファイルの polling)
 - 上記以外で ScheduleWakeup を使うのは禁止 (cache miss + cost + 「動いてない」印象 の三重損失)
 
-## ADR → PLAN 順序の必須遵守 (2026-05-19 確立、HELIX 思想 L1→L2→L3→L4)
+## PLAN ⊃ ADR レイヤー併存 (2026-05-19 訂正確立、HELIX 思想 = PLAN は implementation tree、ADR は L2 snapshot)
 
-新規 PLAN 起票前に「大局判断有無を確認」: 新 framework 採用 / fail-close 化 / 外部新仕様採用 / 既存方針転換 / 既存 framework 大規模変更 のいずれかに該当する場合は **ADR 起票必須**、その後 PLAN で Phase 構成する。
+**前提訂正**: PLAN は「L4 実装計画」ではなく **1 トピックの implementation tree (L1〜L4 全範囲を内包)**。ADR は PLAN tree 内で大局判断が必要な箇所の **L2 snapshot (任意、必要時のみ)**。「ADR 先 / PLAN 後」順序ではなく、**同じ PLAN trunk 内でレイヤー併存** (L2-MASTER §0 line 36 の正規 pattern「PLAN-084 で L1 確定、ADR-018/019 で L2 凍結」)。
 
-- HELIX 順序: L1 要件 → **L2 全体設計 (CONCEPT + ADR)** → L3 詳細設計 (D-API/D-DB) → **L4 実装計画 (PLAN/Sprint)**
-- PLAN だけで OK: 既存 ADR の実装計画 / bug fix / refactor (機能変更なし) / 既存 framework 内 Phase 拡張
-- ADR が必要: 新 framework 採用 / fail-close 化判断 / 外部新仕様採用 / 方針転換 / 大規模変更
-- 違反検出は `helix doctor check_plan_adr_trace` (新設予定) で fail-close 化
-- 詳細 + 逆引き救済 4 件: [[feedback_adr_before_plan_violation]]
+```
+PLAN-NNN = 1 トピックの implementation tree
+├── L1 確定: PLAN.md §背景 / 要件 / DoD
+├── L2 凍結: ADR-NNN snapshot (大局判断を別 file 永続化、必要時のみ)
+├── L3 詳細: D-API / D-DB (PLAN.md 内 or 別 file)
+└── L4 実装: Sprint .1〜.5 (PLAN.md §実装計画)
+```
+
+判定: 新規 PLAN 起票時 + 既存 PLAN 進行中、**L2 大局判断が含まれるか** を確認 → Yes なら ADR snapshot を併設する。
+
+- ADR snapshot が必要なケース (PLAN tree 内に L2 大局判断あり):
+  - 新 framework 採用判断 (例: Web 検索ガードレール採用、TodoWrite × agent slot 連動採用、active guidance loop pattern 採用)
+  - fail-close 化 / advisory→fail-close 段階遷移判断
+  - 外部新仕様の採用判断 (例: Claude Code 2.1.139 continueOnBlock、新 SDK バージョン)
+  - 既存方針転換 (例: PRAGMA user_version → schema_version table)
+  - 既存 framework 大規模変更 (例: hook 出力形式変更、subagent 許可リスト変更)
+- PLAN のみ (ADR snapshot 不要) なケース:
+  - 既存 ADR で凍結された方針の実装 (PLAN-085/086 が ADR-020 を実装する形)
+  - bug fix / refactor (機能変更なし)
+  - 既存 framework 内 Phase 拡張 (新方針なし)
+- 違反検出: `helix doctor check_plan_adr_snapshot` (新設予定) で PLAN tree 内に L2 大局判断が含まれるのに ADR snapshot 不在を fail-close 化
+- 詳細 + 逆引き救済 4 件 (本 session で発覚): [[feedback_adr_before_plan_violation]]
 
 ## 次 session 最優先 carry (2026-05-19 末確立、CLAUDE.md 永続化)
 
-本 session で起票した PLAN-087〜090 は ADR なしで HELIX 思想違反。次 session 開始直後に逆引き救済を着手する (V-model 4 artifact 解消 / PLAN-088 Phase 1 等の他 carry より優先):
+本 session で起票した PLAN-087〜090 は PLAN tree 内に L2 大局判断 (新 framework 採用 / fail-close 化 / 外部仕様採用) を含むのに **ADR snapshot 不在** = HELIX レイヤー併存違反。次 session 開始直後に snapshot 併設救済を着手する (V-model 4 artifact 解消 / PLAN-088 Phase 1 等の他 carry より優先):
 
-1. **ADR-021 起票**: 設計 doc Web 検索ガードレール採用 (PLAN-087 根拠)
-2. **ADR-022 起票**: TodoWrite × agent slot framework 採用 (PLAN-088 根拠)
-3. **ADR-023 起票**: gate fail-close advisory→fail-close 段階遷移採用 (PLAN-089 根拠)
-4. **ADR-024 起票**: Claude Code 2.1.139 continueOnBlock / active guidance loop pattern 採用 (PLAN-090 根拠)
-5. 各 PLAN 冒頭に「## 根拠 ADR」section 追加で双方向 trace 確立
-6. `helix doctor check_plan_adr_trace` 新設で PLAN 起票時 ADR 不在を fail-close 化 (PLAN-091? として起票候補)
+1. **ADR-021 snapshot 起票**: 設計 doc Web 検索ガードレール採用 (PLAN-087 tree の L2 凍結)
+2. **ADR-022 snapshot 起票**: TodoWrite × agent slot framework 採用 (PLAN-088 tree の L2 凍結)
+3. **ADR-023 snapshot 起票**: gate fail-close advisory→fail-close 段階遷移採用 (PLAN-089 tree の L2 凍結)
+4. **ADR-024 snapshot 起票**: Claude Code 2.1.139 continueOnBlock / active guidance loop pattern 採用 (PLAN-090 tree の L2 凍結)
+5. 各 PLAN.md 冒頭に「## L2 凍結 (ADR snapshot)」section 追加で PLAN ↔ ADR の双方向 trace 確立 (L2-MASTER §0 line 36 の PLAN-084↔ADR-018/019 を範例にする)
+6. `helix doctor check_plan_adr_snapshot` 新設で PLAN tree 内 L2 大局判断あり + ADR snapshot 不在を fail-close 化 (PLAN-091? として起票候補)
 
-ADR 起票時も WebSearch 3 query 以上必須 ([[feedback_design_doc_web_search_required]])。V2 企画書 (docs/v2/CONCEPT.md §2 痛点「PLAN 累積による散在」/ §5 Phase I「Legacy Import」/ L1-REQUIREMENTS FR-LI01-03 / L2-MASTER §12 既知矛盾 M-01〜M-04 PLAN-069 resolved pattern) を着手前に必ず精読し、PLAN は工程単位 (ID+Phase+Sprint+DoD) 媒体・ADR は大局判断媒体という layer 区別を維持する。
+ADR snapshot 起票時も WebSearch 3 query 以上必須 ([[feedback_design_doc_web_search_required]])。V2 企画書 (docs/v2/CONCEPT.md §2 痛点「PLAN 累積による散在」/ §5 Phase I「Legacy Import」/ L1-REQUIREMENTS FR-LI01-03 / L2-MASTER §0 line 36 PLAN↔ADR 範例 / §12 既知矛盾 M-01〜M-04 PLAN-069 resolved pattern) を着手前に必ず精読し、**PLAN は implementation tree (L1〜L4 内包)・ADR は L2 大局判断 snapshot** という layer 併存を維持する。
 
 ## タスク受領時の skill 推挙呼び出し (必須)
 
