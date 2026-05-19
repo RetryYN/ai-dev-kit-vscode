@@ -332,8 +332,32 @@ Phase 分割により段階導入。Phase 1 のみで UPS は使えるように�
 Phase 1 total estimate: 約 245 分 (size M、PLAN-078 と同規模)
 Phase 2 / Phase 3 は別途 Sprint 構成 (本 PLAN finalize 時に詳細化)
 
-## §9 Next Action
+## §9 業界標準引用 Retrofit (W5c-12)
+
+PLAN-087 で確立した「業界標準引用ガードレール」に従い、以下を PLAN-079 に接続する。  
+対象は 3 つ:
+
+- **Hypothesis-driven validation**: UPS は仮説・検証・判定を短周期で回すため、Lean Startup の *Build-Measure-Learn* / Eric Ries が示す検証ループに整合させる。  
+  参照: [The Lean Startup](https://en.wikipedia.org/wiki/The_Lean_Startup)
+- **レガシーコード/PoC の記述化**: SRF では PoC 成果物起点での reverse を行うため、Legacy Code 典型文献における *characterization tests*（振る舞い固定）を逆工学前提の安全策として採用する。  
+  参照: [Working Effectively with Legacy Code](https://books.google.com/books/about/Working_Effectively_with_Legacy_Code.html?id=fB6s_Z6g0gIC), [Working Effectively with Legacy Code (著書解説)](https://www.oreilly.com/library/view/working-effectively-with/0131177052/)
+- **段階的導入・意思決定ゲート**: SRF の R-LOCAL-4 routing と UPS 継続条件は、Stage-Gate/SAFe のゲート運用に近い意思決定分離として扱う。  
+  参照: [Scaled Agile — Inspect and Adapt](https://framework.scaledagile.com/inspect-and-adapt), [Cynefin framework](https://en.wikipedia.org/wiki/Cynefin_framework)
+
+### W5c-12 反映点
+
+- UPS S-LOCAL-0〜3 は `Build-Measure-Learn` の仮説立案→投入→測定→判断に対応し、`S-LOCAL-3` の `confirmed/rejected/pivot` を設計判断ログとして明文化する。
+- SRF R-LOCAL-1 の characterization test は PoC 逆工学の最小保証として明示し、PoC 仕様の「挙動不変性」を維持してから Forward 再設計へ移行する。
+- `Phase 1 の Gate 受入` は段階的導入ゲートの最小版とみなし、`Phase 2`/`Phase 3` へ進む際に次回導入判断を明示する。
+
+## §10 Next Action
 
 1. **本 commit**: PLAN-079 draft 起票のみ
 2. **次セッション以降**: PLAN-078 Sprint .1b と並行可能、Phase 5 (PLAN-075 残) とも並行可能 (3 並列 scope)
 3. **dogfooding 機会**: 本 PLAN-079 自身の実装中に UPS / SRF を実運用すれば、framework 妥当性検証になる
+
+## Revision History
+
+| 日付 | WBS / Task | 更新内容 | 担当 |
+|---|---|---|---|
+| 2026-05-19 | W5c-12 | 業界標準引用 retrofit を追加 (Lean Startup, Legacy Code documentation, phased rollout decision gate) | Docs |

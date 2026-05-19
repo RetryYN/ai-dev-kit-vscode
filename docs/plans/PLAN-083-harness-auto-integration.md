@@ -121,3 +121,42 @@ Claude Code Agent tool / Bash (Codex 経由) を **自動的に agent_slots に 
 2. Phase 3 prompt 作成 → Codex se 投入
 3. Phase 4 prompt 作成 → Codex se 投入
 4. Phase 5 prompt 作成 → Codex pg 投入 + Opus 全回帰
+
+## 9. 業界標準リファレンス（W5c-13）
+
+### 9.1 CI/CD ハーネスのオーケストレーション
+
+PLAN-083 は既存の `pretooluse` / `stop` フック統合を、既存 CI/CD での実行チェーン制御と同型で扱える状態にすることが目的。基準は次のとおり。
+
+- GitLab CI/CD: パイプラインは YAML でジョブとステージを定義し、ステージ依存（失敗時は後続を停止）という依存グラフで実行順を管理する（Build/テスト/デプロイ段階の明示的分離）。  
+  参照: `docs.gitlab.com/ci/pipelines/`, `docs.gitlab.com/ci/pipelines/pipeline_architectures/`
+- GitHub Actions: ワークフローはリポジトリ配下の YAML（`on`/`jobs`/`steps`）として定義され、イベント起点でジョブ実行を起動する。  
+  参照: `docs.github.com/en/actions/concepts/workflows-and-actions/workflows`, `docs.github.com/en/actions/writing-workflows/about-workflows`
+- Buildkite Pipelines: 「orchestration（実行制御）をプラットフォーム側で扱い、ワークフロー定義自体を柔軟に変更可能」とする構成を前提に、段階的ステップと監視を組み合わせる。  
+  参照: `buildkite.com/docs/pipelines`, `buildkite.com/platform/pipelines`
+
+### 9.2 イベント駆動フックチェーン（Pre/Post）
+
+Claude の hook ドキュメントでは、`PreToolUse` はツール実行前、`Stop` はタスク完了判定前に発火する標準イベントで、同一イベントに複数フックを設定したり、SDK 側でフックチェーン（複数フィルタ）を組める。  
+Git クライアント連携としては Husky が client-side フック（コミット/プッシュ等）を一元化し、pre-commit などのチェーン型実行を導く。  
+参考実装の観点では、イベント名の厳密一致、入力 JSON からの `tool_name` 連携、Stop 時の継続判定フロー（`ok` / `reason`）を PLAN の検証ポイントに一致させる。
+
+- Claude Code Hooks: `PreToolUse`, `PostToolUse`, `Stop` のイベント、`hook_event_name` を含む JSON 入力、複数設定の順次評価。  
+  参照: `docs.claude.com/docs/claude-code/hooks-guide`, `platform.claude.com/docs/en/agent-sdk/hooks`
+- Husky: コミット系ガード（pre-commit など）を含む client-side Git hook の代表実装。  
+  参照: `typicode.github.io/husky`
+- pre-commit: `.pre-commit-config.yaml` で hook 種別を宣言し、`SKIP` や `stages` で実行段階を制御する運用（段階的検証）モデル。  
+  参照: `pre-commit.com`
+
+### 9.3 セッション観測（telemetry）と標準化
+
+- OpenTelemetry はトレーシング/メトリクス/ログの収集・送信・ルーティングを標準化するデファクト系フレームワーク。  
+  参照: `opentelemetry.io/docs/concepts/semantic-conventions`
+- Datadog / Honeycomb は OTel を前提とした OTLP 受け入れ（直入力/Collector 経由）を想定し、サービス横断でトレース・メトリクス・ログの相関観測を前提化。  
+  参照: `docs.datadoghq.com/opentelemetry/`, `docs.honeycomb.io/send-data/opentelemetry`, `docs.honeycomb.io/send-data/telemetry-pipeline/sources/opentelemetry`
+
+PLAN-083 retrofit (W5c-13) では、session_id と hook 実行履歴を上記標準に合わせてイベントごとに観測し、`agent_slot`、`harness_check_events`、session リリースの整合を監査可能にする。
+
+## Revision History
+
+- 2026-05-19 (W5c-13): plan doc retrofit で「業界標準リファレンス」節を新設。CI/CD パターン、イベント駆動 hook chain、OTel セッション観測の基準を PLAN-083 の仕様に対比追加。

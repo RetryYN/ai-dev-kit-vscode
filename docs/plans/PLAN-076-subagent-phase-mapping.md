@@ -144,3 +144,38 @@ CREATE TABLE subagent_invocations (
 
 1. **今セッション**: Phase 1 (HELIX core 文書化) 完遂
 2. **次セッション以降**: Phase 2-5 を段階的
+
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### Multi-Agent orchestration framework（PLAN-076 W5c-10: retro)
+
+- **AutoGen / Semantic Kernel / Microsoft Agent Framework**
+  - AutoGen は当初から複数エージェント協調の基盤だったが、`maintenance mode` に入り、現在は Microsoft Agent Framework（MAF）への移行が推奨されている（新規プロジェクトは MAF）。([GitHub](https://github.com/microsoft/autogen))
+  - MAF は `production-ready`、安定 API、enterprise-grade な multi-agent orchestration を前提としているとされる（`stable APIs`, `cross-runtime interoperability`, `A2A/MCP`）。([GitHub](https://github.com/microsoft/autogen))
+  - Agent Framework 側の公式説明では、AutoGen/ Semantic Kernel の利点を統合し、型安全・telemetry・state 管理・graph-based workflow を明示的に強調している。([MicrosoftDocs](https://github.com/MicrosoftDocs/semantic-kernel-docs/blob/main/agent-framework/overview/index.md))
+- **LangGraph**
+  - LangGraph は「長寿命・状態保持型エージェント」のための low-level orchestration framework として位置付け、`durable execution`, `human-in-the-loop`, `stateful memory`, `production-ready deployment` を主軸に明記している。([LangChain docs](https://docs.langchain.com/oss/python/langgraph/overview))
+- **CrewAI**
+  - CrewAI は専用の role-based チーム制を採用し、role/goal/background を持つ specialized なエージェント群を用いた task delegation を前提としている。([AWS Prescriptive Guidance](https://docs.aws.amazon.com/prescriptive-guidance/latest/agentic-ai-frameworks/crewai.html), [docs.crewai.com](https://docs.crewai.com/en/introduction))
+- **Semantic Kernel**
+  - Semantic Kernel 側のエージェント基盤はツール/プラグイン、memory、planning、multi-agent の実装が想定されており、実務では specialist を分離した multi-turn 連携ができる構成が示されている。([GitHub](https://github.com/microsoft/semantic-kernel))
+- **OpenAI Assistants / Bedrock Agents**
+  - OpenAI Assistants API は persistent thread と tool 呼び出しを前提にし、Assistants API は v2 で継続運用される前提で設計されている（v1 beta 非対応）。([OpenAI Help Center](https://help.openai.com/en/articles/8550641-assistants-api))
+  - Bedrock Agents は `InvokeAgent` で orchestration フローを開始し、`pre-processing` / `orchestration` / `post-processing` を状態付きで実行する runtime を明示。([AWS Bedrock Docs](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-how.html))
+
+### Workflow gate / fail-close audit
+
+- SonarQube の品質ゲートは `Jenkins` 統合プラグインと `sonarqube-quality-gate` Step をワークフロー末尾で実行する運用が提示され、失敗時に後続ステップをスキップする fail-close 的な運用が可能。([SonarSource](https://www.sonarsource.com/resources/library/integrating-quality-gates-ci-cd-pipeline/))
+
+### PLAN-076 反映方針（W5c-10）
+
+1. mandatory subagent 呼び出し audit の監査観点で、上記の "role-based dispatch / orchestration state / production-ready" を説明用基準として引用保全する。  
+2. `Next Action` / `acceptance` に、業界 standard 参照の存在と更新日を紐付ける。  
+3. 改修後の `PLAN-076` 以外の PLAN には直接変更を加えず、今セッションは `PLAN-076` 1 ファイルのみ更新する。
+
+## Revision History
+
+| Date | Phase | Scope | Note |
+|---|---|---|---|
+| 2026-05-19 | W5c-10 | Retrofit P1 | Added mandatory references for industry-standard multi-agent production frameworks and fail-close quality-gate patterns; aligned with PLAN-087 web-search guardrail. |
+| 2026-05-19 | W5c | Retrofit P1 | Added industry standard references (AutoGen/MAF, LangGraph, CrewAI, Semantic Kernel, OpenAI Assistants, Bedrock Agents, SonarQube/Jenkins quality gate) and `W5c-10` evidence anchors |

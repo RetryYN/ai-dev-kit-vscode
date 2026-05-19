@@ -4,6 +4,23 @@
 
 Accepted (2026-05-10)
 
+## 業界 standard 参照 (Web 検索 retrofit 2026-05-19)
+
+### 参照ハイライト
+- Google SRE 書籍のチーム構成では、`tech lead (TL)`、`manager (SRM)`、`project manager (PM/TPM/PgM)` が明記され、TL はチームの技術方向性を担う責務を持つことが示される（2026-05-19時点）。
+- Spotify Engineering の公開資料では、`squad`（小規模自律チーム）・`tribe`・`chapter`・`guild` の構造と、squad 自律・知識共有・レビュー文化が言及される。
+- LangGraph は「エージェントオーケストレーション」を前提とした低レベルの実行基盤として、durable execution / streaming / human-in-the-loop を強調する。一方 CrewAI はロール付きエージェントを `Crew` として組成する multi-agent フレームとして説明される（2026-05-19時点）。
+- OpenAI Codex CLI の公式ページは、ローカル端末でリポジトリを検査・変更・実行できるコーディングエージェントとしての説明と、`open source` である公開情報を明示する。
+
+### 参照先
+- Google SRE: <https://sre.google/sre-book/communication-and-collaboration/>
+- Spotify squad model: <https://engineering.atspotify.com/2014/09/squad-health-check-model>
+- LangGraph overview: <https://docs.langchain.com/oss/python/langgraph/overview>
+- CrewAI (Crews): <https://docs.crewai.com/en/concepts/crews>
+- CrewAI Introduction: <https://docs.crewai.com/introduction>
+- OpenAI Codex CLI: <https://developers.openai.com/codex/cli>
+- OpenAI Codex Repo: <https://github.com/openai/codex>
+
 ## Deciders
 
 PO (ユーザー), PM (Opus), TL
@@ -96,3 +113,9 @@ PLAN-043 で扱う。
 - `cli/lib/handover.py`
 - `cli/lib/concurrent_lock.py`
 - `cli/lib/tests/test_concurrent_lock.py`
+
+## Revision History
+
+| Date | Description |
+|---|---|
+| 2026-05-19 | 業界 standard 引用 retrofit (W5c-4、PLAN-087 ガードレール準拠) |
