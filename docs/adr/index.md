@@ -21,4 +21,16 @@
 | ADR-018-db-separation-and-event-sourcing | ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界 | Accepted | 2026-05-18 |
 | ADR-019-double-helix-naming-principle | ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル | Accepted | 2026-05-18 |
 | ADR-020-cutover-rollback-gates | ADR-020: PLAN-084 migration gate 5 (cutover) + gate 6 (rollback) 採用 — local CLI tool 用簡略版 (Web 検索ベース再書き直し) | Accepted | 2026-05-18 |
+| ADR-021-design-doc-web-search-guardrail-snapshot | ADR-021: 設計 doc 作成時 Web 検索ガードレール採用 (PLAN-087 snapshot) | Proposed | 2026-05-20 |
+| ADR-022-todowrite-agent-slot-framework-snapshot | ADR-022: TodoWrite × agent slot framework 採用 (PLAN-088 snapshot) | Proposed | 2026-05-20 |
+| ADR-023-gate-fail-close-staged-adoption-snapshot | ADR-023: gate fail-close 段階導入採用 (PLAN-089 snapshot) | Proposed | 2026-05-20 |
+| ADR-024-continueonblock-active-guidance-loop-snapshot | ADR-024: Claude Code continueOnBlock + active guidance loop pattern 採用 (PLAN-090 snapshot) | Proposed | 2026-05-20 |
+| ADR-025-v5-framework-core-decision | ADR-025: V5 framework 本体採用判断 | Proposed | 2026-05-20 |
+| ADR-026-posttooluse-plan-auto-register-decision | ADR-026: PostToolUse 自動登録 + helix.db v35 schema 採用判断 | Proposed | 2026-05-20 |
+| ADR-027-plan-drift-detection-curator-decision | ADR-027: drift 検出 + Curator 自動化採用判断 | Proposed | 2026-05-20 |
+| ADR-028-poc-scrum-reverse-matrix-decision | ADR-028: PoC = Scrum × Reverse 連携 matrix 採用判断 | Proposed | 2026-05-20 |
+| ADR-029-github-actions-branch-pipeline-decision | ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断 | Proposed | 2026-05-20 |
+| ADR-030-abstraction-layer-escalation-decision | ADR-030: 抽象化層 + エスカレーション機構採用判断 | Proposed | 2026-05-20 |
+| ADR-031-recovery-plan-kind-decision | ADR-031: リカバリープラン kind 正規化採用判断 | Proposed | 2026-05-20 |
+| ADR-032-autonomous-runtime-framework-decision | ADR-032: 自動走行 framework 5-layer 採用判断 | Proposed | 2026-05-20 |
 | ADR-template | ADR Template | — | — |

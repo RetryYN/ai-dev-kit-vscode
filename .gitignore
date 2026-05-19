@@ -36,6 +36,11 @@ public/generated/
 # 履歴アーカイブ（ローカル保管、Git 追跡対象外）
 /docs/archive/
 
+# root level の draft / 構想メモ markdown (PLAN doc 化前の作業領域、tracked にしない)
+# 例: helix_github_workflow_rules.md / helix_improvement_plan_draft.md
+# 正式 doc 化したら docs/plans/ または docs/v2/ に PLAN-NNN として移動する
+/helix_*.md
+
 # シェル展開失敗ガード: `~` がリテラル文字列のまま mkdir されるケース防止
 # (過去コミット 5314036 で混入した残骸の再発防止)
 /~
