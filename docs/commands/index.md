@@ -13,6 +13,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix mode` | forward / reverse / scrum の mode 切替 |
 | `helix doctor` | 環境診断・修復 |
 | `helix migrate` | `.helix/` テンプレート追従 |
+| `helix db` | helix.db migration / rollback / dev-sandbox 試演 (PLAN-086) |
 | `helix commands` | route / help / docs と主要 workflow 連携契約の同期検証 |
 | `helix setup` | 初期化検証・修復コンポーネント |
 | `helix test` | shell / pytest / bats のセルフテスト |

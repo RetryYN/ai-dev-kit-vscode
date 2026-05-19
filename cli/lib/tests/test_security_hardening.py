@@ -69,7 +69,7 @@ def test_post_tool_use_settings_sanitize_file_path() -> None:
     command = post_tool_use["hooks"][0]["command"]
 
     assert post_tool_use["matcher"] == "Edit|Write|MultiEdit"
-    assert command == "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
+    assert command == "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-design-doc-web-search-revert.sh"
     assert "python3 -c" not in command
 
 
