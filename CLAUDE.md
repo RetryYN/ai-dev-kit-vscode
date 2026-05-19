@@ -277,6 +277,56 @@ PLAN-NNN = 1 トピックの implementation tree
 - 違反検出: `helix doctor check_plan_adr_snapshot` (新設予定) で PLAN tree 内に L2 大局判断が含まれるのに ADR snapshot 不在を fail-close 化
 - 詳細 + 逆引き救済 4 件 (本 session で発覚): [[feedback_adr_before_plan_violation]]
 
+## PLAN 規約 framework v5 (2026-05-20 確立、TL 4 ラウンド + ユーザー 12+ ターン訂正経緯)
+
+詳細 = `docs/v2/V5-plan-outlines.md` (pmo-sonnet 起票予定) + `memory/project_2026_05_20_v5_framework_evolution_recovery.md`。
+
+### V5 framework 17 要素
+1. PLAN = self-contained workflow ルール doc (TodoWrite → PLAN 永続化置換)
+2. V-model layer (L0-L11、L3.5/L4.5 追加) × drive (be/fe/fullstack/scrum/reverse/db/agent/poc/troubleshoot) matrix
+3. 種別正規化 (design / impl / poc / reverse / troubleshoot / refactor / retrofit / research / add-design / add-impl / **recovery**)
+4. matrix 外 / kind 不在を helix plan CLI で fail-close
+5. 生成物 trace (frontmatter `generates`、V2 BR-V1 4 layer chain 直結)
+6. 依存関係 graph (frontmatter `dependencies`: requires/parent/blocks)
+7. agent slot 割当 (frontmatter `agent_slots`)
+8. PostToolUse hook で PLAN.md → helix.db 自動登録
+9. PLAN ↔ 設計 doc drift 検出 (helix doctor)
+10. 進捗 trace (plan.db sprint_progress)
+11. ADR snapshot 必須化 (L2 大局判断あれば、PLAN ⊃ ADR レイヤー併存)
+12. kind 別 workflow template embed (Step 1-N)
+13. V-model TDD 駆動 (設計⇔テスト設計対 pair freeze + 実装 TDD + QA 追加テスト)
+14. PoC = Scrum × Reverse 連携 matrix (Scrum 6 type × Reverse 5 type)
+15. GitHub 運用ルール統合 (`helix_github_workflow_rules.md` ベース)
+16. helix_improvement_plan_draft.md 6 Phase 統合
+17. **リカバリープラン kind (recovery、本 session 発覚の穴)**
+
+### 8 PLAN + 7 ADR 起票案 (次 session 開始時)
+```
+parent: PLAN-MM-001 (設計プラン、V5 全体構想)
+├── PLAN-091 ↔ ADR-025: framework 本体 (matrix + 種別 + template embed)
+├── PLAN-092 ↔ ADR-026: PostToolUse 自動登録 + helix.db v35 schema
+├── PLAN-093 ↔ ADR-027: drift 検出 + 進捗 trace + Curator
+├── PLAN-094 ↔ ADR-021〜024: 既存 retrofit + V2 全面見直し
+├── PLAN-095 ↔ ADR-028: PoC = Scrum × Reverse matrix
+├── PLAN-096 ↔ ADR-029: GitHub Actions + ブランチタイプ別パイプライン
+├── PLAN-097 ↔ ADR-030: 抽象化層 (スキル/ワークフロー/ハーネス) + エスカレーション
+└── PLAN-098 ↔ ADR-031: リカバリープラン kind 正規化
+```
+
+### TL 4 ラウンド全 passed (V5 = 5 ラウンド目候補)
+- v1 (matrix + 種別): passed (bs9wuvqcs)
+- v2 (+ 依存 + agent slot + 自動登録): passed (PLAN-091〜093 分割推奨、bppaf3fwe)
+- v3 (+ template embed): passed (bkac94gnw)
+- v4 (+ V-model TDD + PoC リバース合流): passed (baq742e62)
+
+### session 終了前チェックリスト (4 項目 全充足必須)
+1. carry == 0 (または時間枠満了)
+2. リカバリープラン (kind=recovery) 起票済
+3. handover updated
+4. memory feedback 永続化済
+
+→ 4 項目満たさず turn 終了は禁止 ([[feedback_dont_stop_with_carry_remaining]] 14h idle 事故防止)。
+
 ## 次 session 最優先 carry (2026-05-19 末確立、CLAUDE.md 永続化)
 
 本 session で起票した PLAN-087〜090 は PLAN tree 内に L2 大局判断 (新 framework 採用 / fail-close 化 / 外部仕様採用) を含むのに **ADR snapshot 不在** = HELIX レイヤー併存違反。次 session 開始直後に snapshot 併設救済を着手する (V-model 4 artifact 解消 / PLAN-088 Phase 1 等の他 carry より優先):
