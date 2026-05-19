@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -9,6 +10,10 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import skill_dispatcher
+
+
+def _ts_days_ago(days: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _write_catalog(tmp_path: Path) -> tuple[Path, Path]:
@@ -65,13 +70,15 @@ def _insert_usage(
     db_path: Path,
     skill_id: str,
     outcome: str = "delegated",
-    created_at: str = "2026-04-19 00:00:00",
+    created_at: str | None = None,
     session_id: str | None = None,
 ) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:
         skill_dispatcher._ensure_db_schema(conn)  # noqa: SLF001
+        if created_at is None:
+            created_at = _ts_days_ago(1)
         conn.execute(
             "INSERT INTO skill_usage (task_text, skill_id, outcome, created_at, session_id) "
             "VALUES (?, ?, ?, ?, ?)",
@@ -85,12 +92,14 @@ def _insert_usage(
 def _insert_session(
     db_path: Path,
     session_id: str,
-    started_at: str = "2026-04-19 00:00:00",
+    started_at: str | None = None,
 ) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:
         skill_dispatcher._ensure_db_schema(conn)  # noqa: SLF001
+        if started_at is None:
+            started_at = _ts_days_ago(1)
         conn.execute(
             "INSERT INTO sessions (id, started_at) VALUES (?, ?)",
             (session_id, started_at),
@@ -176,8 +185,8 @@ def test_stats_includes_hit_rate(tmp_path: Path) -> None:
     skills_root, catalog_path = _write_catalog(tmp_path)
     db_path = tmp_path / ".helix" / "helix.db"
 
-    _insert_usage(db_path, "common/code-review", "delegated", "2026-04-19 00:00:00")
-    _insert_usage(db_path, "common/testing", "delegated", "2026-04-20 00:00:00")
+    _insert_usage(db_path, "common/code-review", "delegated", _ts_days_ago(2))
+    _insert_usage(db_path, "common/testing", "delegated", _ts_days_ago(1))
 
     result = skill_dispatcher.stats(
         db_path=db_path,
@@ -199,13 +208,13 @@ def test_stats_hit_rate_sessions_based(tmp_path: Path) -> None:
     db_path = tmp_path / ".helix" / "helix.db"
 
     for i in range(10):
-        _insert_session(db_path, f"session-{i}", "2026-04-19 00:00:00")
+        _insert_session(db_path, f"session-{i}", _ts_days_ago(1))
     for i in range(3):
         _insert_usage(
             db_path,
             "common/code-review",
             "delegated",
-            "2026-04-19 00:00:00",
+            _ts_days_ago(1),
             session_id=f"session-{i}",
         )
 
@@ -225,8 +234,9 @@ def test_stats_hit_rate_falls_back_to_days(tmp_path: Path) -> None:
     skills_root, catalog_path = _write_catalog(tmp_path)
     db_path = tmp_path / ".helix" / "helix.db"
 
-    _insert_usage(db_path, "common/code-review", "delegated", "2026-04-19 00:00:00")
-    _insert_usage(db_path, "common/testing", "delegated", "2026-04-20 00:00:00")
+    _insert_session(db_path, "session-legacy", _ts_days_ago(31))
+    _insert_usage(db_path, "common/code-review", "delegated", _ts_days_ago(2))
+    _insert_usage(db_path, "common/testing", "delegated", _ts_days_ago(1))
 
     result = skill_dispatcher.stats(
         db_path=db_path,
