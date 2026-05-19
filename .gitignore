@@ -26,6 +26,10 @@ docs/features/PLAN-*/
 # Codex CLI 副産物 (空ファイルが生成される)
 .codex
 
+# bats test の cwd 副産物 (check_dual_write_mismatch.sh / helix-agent slots / helix-setup bootstrap が project root に書き出す)
+/stdout.txt
+/stderr.txt
+
 # Codex 画像生成出力先 (docs/generated-assets.yaml で管理)
 public/generated/
 
