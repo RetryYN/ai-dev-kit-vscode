@@ -309,6 +309,31 @@ PLAN-NNN = 1 トピックの implementation tree
     - 実装事例: claude-brain (6 Python hook で SQLite 無損失キャプチャ + UserPromptSubmit 履歴注入)
     - /clear /compact の発火は不可確定 (Anthropic Feature Request #20267) → 「発火」ではなく「前後の state capture + 復元」を 100% 自動化
 
+### V5 framework 3 層構造 (turn 19、ユーザー指摘で確立、Layer A→B→C 着手順序)
+
+V モデル強化構想は 3 層: **工程管理ハーネス + helix.db 型ハーネス + 連携自動化ハーネス**。DB schema や hook 設計の前に、工程と管理 doc のルール整備 + どう動かすかが決まらないと start できない。V5 18 要素を 3 層に分解し、依存順序を遵守:
+
+```
+[Layer A] 工程・ドキュメント運用ルール整備 ← V2 企画書反映、Layer B/C の前提
+  V5 要素 1-7 (PLAN self-contained / matrix / 種別 / fail-close / generates / dependencies / agent_slots)
+  V5 要素 11-17 (ADR snapshot / template embed / V-model TDD / PoC=Scrum×Reverse / GitHub / helix_improvement / recovery)
+       ↓
+[Layer B] helix.db 型ハーネス ← Layer A の実体化
+  V5 要素 8 (DB 受け側) / 9 (drift) / 10 (進捗 trace)
+  単一実行正本決定 (task_queue / TodoWrite / helix job / handover 競合解消、TL v5 P1)
+       ↓
+[Layer C] 連携自動化ハーネス ← Layer A/B を hook で動かす
+  V5 要素 8 (hook 本体) / 18 (自動走行 framework 5-layer)
+  PoC C 案 (Layer 4+5) のみ並行可、本実装 (Layer 1-3) は A/B 確定後
+```
+
+**次 session 正順 (Layer A→B→C 遵守)**:
+0. V2 企画書見直し (`docs/v2/CONCEPT.md` / L1-REQUIREMENTS / L2-MASTER §0/§12) ← Layer A 正本確認
+1. Layer A 確定: V5 要素 1-7, 11-17 を企画書に反映 + ADR-021〜024 後追い snapshot 起票
+2. Layer B 確定: 単一実行正本決定 + helix.db schema 設計
+3. Layer C 並行: PoC C 案 (Layer 4+5) を Layer A/B 確定待たず先行
+4. PLAN 起票: Layer A 確定後に PLAN-MM-001 → PLAN-091(A) → PLAN-092/093(B) → PLAN-099(C) → PLAN-094(retrofit)
+
 ### 9 PLAN + 8 ADR 起票案 (次 session 開始時、PLAN-099 を turn 14 で追加)
 ```
 parent: PLAN-MM-001 (設計プラン、V5 全体構想)
