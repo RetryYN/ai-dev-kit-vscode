@@ -1,0 +1,21 @@
+name: commitlint
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: ci/commitlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate commit messages
+        run: npx --yes commitlint --from origin/main --to HEAD

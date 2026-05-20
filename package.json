@@ -1,0 +1,13 @@
+{
+  "name": "ai-dev-kit-vscode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development tooling for ai-dev-kit-vscode CLI workflows",
+  "scripts": {
+    "commitlint": "commitlint --from origin/main --to HEAD"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.1"
+  }
+}

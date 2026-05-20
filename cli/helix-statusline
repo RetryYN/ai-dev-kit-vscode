@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'USAGE'
+使い方: helix-statusline
+
+環境変数:
+  TRANSCRIPT_TOKENS / MAX_TOKENS               context 使用量の直接指定
+  HELIX_STATUSLINE_TRANSCRIPT_TOKENS_FILE      使用量ファイル
+  HELIX_STATUSLINE_MAX_TOKENS_FILE             上限ファイル
+  HELIX_STATUSLINE_DEBOUNCE_SEC                同一レベル通知の抑制秒数 (default: 30)
+  HELIX_STATUSLINE_HYSTERESIS_PCT              復帰ヒステリシス幅 (default: 5)
+USAGE
+  exit 0
+fi
+
+python3 - "$PROJECT_ROOT" <<'PY'
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+
+def read_int_from_path(path_text: str) -> int | None:
+    if not path_text:
+        return None
+    path = Path(path_text).expanduser()
+    if not path.exists():
+        return None
+    try:
+        return int(path.read_text(encoding="utf-8").strip())
+    except Exception:
+        return None
+
+
+def first_int_value(*env_names: str) -> int | None:
+    for name in env_names:
+        raw = os.environ.get(name, "").strip()
+        if not raw:
+            continue
+        try:
+            return int(raw)
+        except ValueError:
+            continue
+    return None
+
+
+def load_state(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def raw_level(remaining_pct: int) -> str:
+    if remaining_pct <= 20:
+        return "critical"
+    if remaining_pct <= 30:
+        return "warning"
+    if remaining_pct <= 50:
+        return "caution"
+    return "healthy"
+
+
+def apply_hysteresis(previous_level: str, remaining_pct: int, hysteresis_pct: int) -> str:
+    current = raw_level(remaining_pct)
+    if previous_level == "critical":
+        if remaining_pct <= 20 + hysteresis_pct:
+            return "critical"
+        return current
+    if previous_level == "warning":
+        if remaining_pct <= 20:
+            return "critical"
+        if remaining_pct <= 30 + hysteresis_pct:
+            return "warning"
+        return current
+    if previous_level == "caution":
+        if remaining_pct <= 20:
+            return "critical"
+        if remaining_pct <= 30:
+            return "warning"
+        if remaining_pct <= 50 + hysteresis_pct:
+            return "caution"
+        return current
+    return current
+
+
+def status_message(level: str, remaining_pct: int, debounced: bool) -> str:
+    if level == "healthy":
+        return f"[HELIX] context {remaining_pct}% remaining: healthy"
+    if level == "caution":
+        if debounced:
+            return f"[HELIX] context {remaining_pct}% remaining: caution 維持"
+        return f"[HELIX] context {remaining_pct}% remaining: /compact 推奨"
+    if level == "warning":
+        if debounced:
+            return f"[HELIX] context {remaining_pct}% remaining: warning 維持"
+        return f"[HELIX] context {remaining_pct}% remaining: state 永続化推奨"
+    if debounced:
+        return f"[HELIX] context {remaining_pct}% remaining: critical 維持"
+    return f"[HELIX] context {remaining_pct}% remaining: PreCompact block 条件チェック中"
+
+
+project_root = Path(os.environ.get("HELIX_PROJECT_ROOT", sys.argv[1])).resolve(strict=False)
+state_file = Path(
+    os.environ.get(
+        "HELIX_STATUSLINE_STATE_FILE",
+        str(Path(os.environ.get("HOME", "~")).expanduser() / ".helix" / "statusline_state.json"),
+    )
+).expanduser()
+state_file.parent.mkdir(parents=True, exist_ok=True)
+
+transcript_tokens = first_int_value("TRANSCRIPT_TOKENS", "HELIX_TRANSCRIPT_TOKENS")
+max_tokens = first_int_value("MAX_TOKENS", "HELIX_MAX_TOKENS")
+source = "env"
+
+if transcript_tokens is None:
+    transcript_tokens = read_int_from_path(
+        os.environ.get(
+            "HELIX_STATUSLINE_TRANSCRIPT_TOKENS_FILE",
+            str(project_root / ".helix" / "runtime" / "transcript_tokens"),
+        )
+    )
+    if transcript_tokens is not None:
+        source = "file"
+
+if max_tokens is None:
+    max_tokens = read_int_from_path(
+        os.environ.get(
+            "HELIX_STATUSLINE_MAX_TOKENS_FILE",
+            str(project_root / ".helix" / "runtime" / "max_tokens"),
+        )
+    )
+    if max_tokens is not None:
+        source = "file"
+
+if transcript_tokens is None or max_tokens is None or max_tokens <= 0:
+    print(
+        json.dumps(
+            {
+                "level": "unknown",
+                "statusMessage": "[HELIX] context estimate unavailable",
+                "debounced": False,
+                "HELIX_CONTEXT_PCT": None,
+                "source": "unavailable",
+            },
+            ensure_ascii=False,
+        )
+    )
+    raise SystemExit(0)
+
+remaining_pct = max(0, min(100, round((max_tokens - transcript_tokens) * 100 / max_tokens)))
+debounce_sec = max(0, int(os.environ.get("HELIX_STATUSLINE_DEBOUNCE_SEC", "30")))
+hysteresis_pct = max(0, int(os.environ.get("HELIX_STATUSLINE_HYSTERESIS_PCT", "5")))
+now_epoch = int(os.environ.get("HELIX_STATUSLINE_NOW_EPOCH", str(int(time.time()))))
+
+state = load_state(state_file)
+previous_level = str(state.get("level") or "")
+last_notified_at = int(state.get("last_notified_at") or 0)
+effective_level = apply_hysteresis(previous_level, remaining_pct, hysteresis_pct)
+
+debounced = (
+    effective_level == previous_level
+    and last_notified_at > 0
+    and now_epoch - last_notified_at < debounce_sec
+)
+next_notified_at = last_notified_at if debounced else now_epoch
+
+state_file.write_text(
+    json.dumps(
+        {
+            "level": effective_level,
+            "last_notified_at": next_notified_at,
+            "remaining_pct": remaining_pct,
+            "updated_at": now_epoch,
+        },
+        ensure_ascii=False,
+    ),
+    encoding="utf-8",
+)
+
+print(
+    json.dumps(
+        {
+            "level": effective_level,
+            "statusMessage": status_message(effective_level, remaining_pct, debounced),
+            "debounced": debounced,
+            "HELIX_CONTEXT_PCT": remaining_pct,
+            "contextPct": remaining_pct,
+            "transcriptTokens": transcript_tokens,
+            "maxTokens": max_tokens,
+            "hysteresisPct": hysteresis_pct,
+            "source": source,
+        },
+        ensure_ascii=False,
+    )
+)
+PY

@@ -114,6 +114,19 @@
             "blockOnFailure": true
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "continueOnBlock": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-plan-auto-register.sh",
+            "timeout": 10,
+            "statusMessage": "Syncing PLAN registry...",
+            "blockOnFailure": false
+          }
+        ]
       }
     ],
     "Stop": [

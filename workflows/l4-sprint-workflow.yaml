@@ -1,0 +1,73 @@
+workflow_id: l4-sprint-standard
+schema_version: 1
+version: "1.0"
+description: L4 Sprint .1-.5 standard 8-step workflow DSL
+drive:
+  - be
+  - fe
+  - fullstack
+  - agent
+steps:
+  - id: step-1-entry
+    name: Entry conditions
+    role: tl
+    condition: previous_sprint_complete == true and dependencies_resolved == true
+    escalation_level: L1
+    mandatory: true
+    depends_on: []
+  - id: step-2-pre-impl-scan
+    name: Asset scan
+    role: pmo-project-scout
+    condition: code_find_completed == true and reuse_candidates_reviewed == true
+    escalation_level: L0
+    mandatory: true
+    depends_on:
+      - step-1-entry
+  - id: step-3-functional-design
+    name: Pair freeze
+    role: tl
+    condition: functional_design_frozen == true and unit_test_design_exists == true
+    escalation_level: L2
+    mandatory: true
+    depends_on:
+      - step-2-pre-impl-scan
+  - id: step-4-implementation
+    name: Implementation
+    role: se
+    condition: implementation_saved == true and allowed_files_respected == true
+    escalation_level: L1
+    mandatory: true
+    depends_on:
+      - step-3-functional-design
+  - id: step-5-machine-check
+    name: Machine checks
+    role: qa
+    condition: py_compile_passed == true and yamllint_passed == true
+    escalation_level: L2
+    mandatory: true
+    depends_on:
+      - step-4-implementation
+  - id: step-6-test
+    name: Test execution
+    role: qa
+    condition: unit_tests_passed == true and integration_tests_passed == true and regression_tests_passed == true
+    escalation_level: L2
+    mandatory: true
+    depends_on:
+      - step-5-machine-check
+  - id: step-7-review
+    name: Review evidence
+    role: pmo-sonnet
+    condition: review_verdict == 'approve' and review_evidence_present == true
+    escalation_level: L2
+    mandatory: true
+    depends_on:
+      - step-6-test
+  - id: step-8-exit
+    name: Exit report
+    role: tl
+    condition: changed_files_listed == true and dod_confirmed == true and review_evidence_reported == true
+    escalation_level: L1
+    mandatory: true
+    depends_on:
+      - step-7-review

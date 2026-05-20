@@ -1,0 +1,24 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "type-enum": [2, "always", ["feat", "fix", "chore", "docs", "test", "refactor"]],
+    "scope-enum": [
+      2,
+      "always",
+      [
+        "plan",
+        "workflow",
+        "ci",
+        "docs",
+        "cli",
+        "hook",
+        "skill",
+        "pipeline",
+        "db",
+        "adr",
+        "config"
+      ]
+    ],
+    "body-max-line-length": [2, "always", 100]
+  }
+}

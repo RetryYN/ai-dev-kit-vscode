@@ -1,0 +1,32 @@
+harness_id: g4-gate-harness
+schema_version: 1
+version: "1.0"
+gate: G4
+description: G4 gate harness DSL for pair freeze, test pass, and review evidence
+workflow_ref: l4-sprint-standard
+checks:
+  - id: check-test-design-pair
+    name: Test design pair freeze
+    condition: functional_design_frozen == true and unit_test_design_exists == true
+    on_fail: reject
+    escalation_level: L2
+  - id: check-all-tests-pass
+    name: All tests pass
+    condition: py_compile_passed == true and unit_tests_passed == true and integration_tests_passed == true and regression_tests_passed == true
+    on_fail: reject
+    escalation_level: L2
+  - id: check-review-evidence
+    name: Review evidence present
+    condition: review_verdict == 'approve' and review_evidence_present == true
+    on_fail: review_inject
+    reviewer_type: agent
+    escalation_level: L1
+escalation_engine:
+  enabled: true
+  current_level_expr: escalation_engine.current_level(plan_id)
+  trigger_expr: escalation_engine.trigger(plan_id, check_id, escalation_level)
+  reviewer_type_matrix:
+    L0: agent
+    L1: agent
+    L2: council
+    L3: human
