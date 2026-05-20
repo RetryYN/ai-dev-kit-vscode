@@ -1,28 +1,53 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [--fix] [--cleanup-stale-locks]
+# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
+SUBCOMMAND=""
+MAX_AGE_DAYS=30
+
+if [[ $# -gt 0 && "$1" != -* ]]; then
+  case "$1" in
+    check_recovery_plan_freshness)
+      SUBCOMMAND="$1"
+      shift
+      ;;
+    *)
+      echo "エラー: 不明なサブコマンド: $1" >&2
+      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]" >&2
+      exit 2
+      ;;
+  esac
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --fix) FIX=true ;;
     --cleanup-stale-locks) CLEANUP_STALE_LOCKS=true ;;
+    --max-age-days)
+      shift
+      if [[ $# -eq 0 || ! "$1" =~ ^[0-9]+$ ]]; then
+        echo "エラー: --max-age-days には 0 以上の整数が必要です" >&2
+        exit 2
+      fi
+      MAX_AGE_DAYS="$1"
+      ;;
     --help|-h)
-      echo "使い方: helix doctor [--fix] [--cleanup-stale-locks]"
+      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]"
       echo ""
       echo "環境と .helix/ の整合性をチェックします。"
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
+      echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
       exit 0
       ;;
     *)
       echo "エラー: 不明なオプション: $1" >&2
-      echo "使い方: helix doctor [--fix] [--cleanup-stale-locks]" >&2
-      exit 1
+      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]" >&2
+      exit 2
       ;;
   esac
   shift
@@ -717,6 +742,69 @@ PY
   WARN=$((WARN + 1))
 }
 
+run_doctor_recovery_helper() {
+  local runtime_lib_dir
+  runtime_lib_dir="$(cd "$(dirname "$0")" && pwd)/lib"
+  HELIX_SCRIPT_LIB="$runtime_lib_dir" HELIX_MAX_AGE_DAYS="$MAX_AGE_DAYS" PYTHONPATH="$HELIX_HOME" python3 - <<'PY'
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+import doctor_recovery_check
+
+rows = doctor_recovery_check.run_check_recovery_freshness(
+    max_age_days=int(os.environ["HELIX_MAX_AGE_DAYS"])
+)
+print(json.dumps(rows, ensure_ascii=False))
+PY
+}
+
+run_recovery_freshness_subcommand() {
+  local report_json
+  if ! report_json="$(run_doctor_recovery_helper 2>&1)"; then
+    echo "[recovery freshness]"
+    echo "  ✗ recovery plan freshness"
+    printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'
+    return 2
+  fi
+
+  echo "[recovery freshness]"
+  eval "$(python3 - <<'PY' "$report_json"
+import json
+import shlex
+import sys
+
+rows = json.loads(sys.argv[1])
+warn_rows = [row for row in rows if row.get("status") == "warning"]
+preview = [
+    f"{row.get('plan_id', '-')}: {row.get('path', '-')}"
+    f" ({row.get('age_days', '?')}d > {row.get('max_age_days', '?')}d)"
+    for row in warn_rows[:10]
+]
+print(f"TOTAL_COUNT={len(rows)}")
+print(f"WARN_COUNT={len(warn_rows)}")
+print(f"PREVIEW={shlex.quote(chr(10).join(preview))}")
+PY
+)"
+
+  if [[ "$WARN_COUNT" == "0" ]]; then
+    echo "  ✓ recovery plan freshness"
+    echo "    checked: $TOTAL_COUNT"
+    return 0
+  fi
+
+  echo "  △ recovery plan freshness"
+  echo "    warnings: $WARN_COUNT / checked: $TOTAL_COUNT"
+  if [[ -n "${PREVIEW:-}" ]]; then
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      echo "    $line"
+    done <<< "$PREVIEW"
+  fi
+  return 1
+}
+
 run_doctor_plan_helper() {
   local helper_name="$1"
   HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_DOCTOR_HELPER="$helper_name" HELIX_DB_PATH_VALUE="$DB_PATH" python3 - <<'PY'
@@ -798,6 +886,11 @@ check_plan_advisory() {
   fi
   WARN=$((WARN + warn_count))
 }
+
+if [[ "$SUBCOMMAND" == "check_recovery_plan_freshness" ]]; then
+  run_recovery_freshness_subcommand
+  exit $?
+fi
 
 echo ""
 echo "[必須依存]"
