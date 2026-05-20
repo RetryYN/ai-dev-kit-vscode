@@ -5,6 +5,7 @@ title: "PLAN-092 単体テスト設計 (PostToolUse 自動登録 + helix.db v35 
 status: draft
 artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
 created: 2026-05-21
+revised: 2026-05-21 (§3 業界 standard 参照 + WebSearch 3 query 追補、PLAN-087 ガードレール準拠リカバリー)
 owner: QA
 related_docs:
   - docs/plans/PLAN-092-posttooluse-plan-auto-register.md
@@ -355,6 +356,8 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - PostToolUse hook が不要に block する
 - read-only 判定関数が DB 副作用を起こしている
 
+**アルゴリズム選択注記 (§3.3 参照)**: PLAN-092 §7 凍結の BFS 実装 spec に従う。業界 standard は directed graph cycle detection に DFS + recStack だが (GeeksforGeeks / W3Schools 多数)、BFS でも Kahn's algorithm (in-degree 0 削減) で等価な判定が可能であり、spec 優先で BFS test 設計を維持する。
+
 ### U-092-009 A→B→A の 2-node 循環を [A, B, A] として検出する
 
 **case ID**: U-092-009
@@ -393,6 +396,8 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - 最小循環を検出できない
 - PLAN-092 §6.3 の cycle detected guidance を生成できない
 - dependencies graph が不整合のまま登録される
+
+**アルゴリズム選択注記 (§3.3 参照)**: PLAN-092 §7 凍結の BFS 実装 spec に従う。業界 standard は directed graph cycle detection に DFS + recStack だが (GeeksforGeeks / W3Schools 多数)、BFS でも Kahn's algorithm (in-degree 0 削減) で等価な判定が可能であり、spec 優先で BFS test 設計を維持する。
 
 ### U-092-010 A→B→C→A の 3-node 循環を検出し BFS が無限ループしない
 
@@ -433,7 +438,106 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - BFS / DFS traversal の停止性を保証できない
 - V5 Layer B の PLAN graph 基盤が不正確になる
 
-## §3 テスト fixture 方針
+**アルゴリズム選択注記 (§3.3 参照)**: PLAN-092 §7 凍結の BFS 実装 spec に従う。業界 standard は directed graph cycle detection に DFS + recStack だが (GeeksforGeeks / W3Schools 多数)、BFS でも Kahn's algorithm (in-degree 0 削減) で等価な判定が可能であり、spec 優先で BFS test 設計を維持する。実装時に DFS + recStack を選択した場合でも、同等の検証性を満たす旨を PLAN-092 §7 spec 改訂時に追記することを検討すること。
+
+## §3 業界 standard 参照
+
+本 section は PLAN-087 ガードレール (設計 doc 作成時 WebSearch による業界 standard 参照必須) に基づく追補である。起票時 (2026-05-21) に WebSearch を skip した不備をリカバリーし、本書の設計根拠を事後補完する。
+
+### §3.1 Test Design Specification 標準構成 (IEEE 829 / ISO/IEC/IEEE 29119-3:2013)
+
+本書は IEEE 829-2008 Test Design Specification の後継規格である ISO/IEC/IEEE 29119-3:2013 (Software and systems engineering — Software testing — Part 3: Test documentation) の標準構成に準拠する。
+
+**IEEE 829 / ISO/IEC/IEEE 29119-3:2013 の Test Design Specification 3 要素**:
+
+| 要素 | 内容 | 本書対応 section |
+|---|---|---|
+| features to be tested | テスト対象の機能・挙動の列挙 | §1 テスト対象と境界 |
+| approaches employed | テスト手法・設計技法 | §2 case 設計 + §4 fixture 方針 |
+| pass/fail criteria | 合否判定基準 | §5 fail criteria |
+
+- IEEE 829-2008 は ISO/IEC/IEEE 29119-3:2013 に統合 (superseded) されており、現行標準は 29119-3
+- 本書の §0 (目的・V-model 位置づけ) は Test Design Specification の "overview" に相当する
+- V-model 4 artifact 分離原則 (設計 / 実装コード / テスト設計 / テストコードを別文書) は 29119-3 の artifact 独立保持方針と整合する
+
+**参照 sources**:
+- https://www.coleyconsulting.co.uk/IEEE829.htm (IEEE 829 構成の詳細解説)
+- https://en.wikipedia.org/wiki/Software_test_documentation (ISO/IEC/IEEE 29119 統合経緯)
+- https://ieeexplore.ieee.org/document/573169/ (IEEE 829 原文)
+
+### §3.2 pytest fixture + SQLite `:memory:` best practices
+
+本書 §4 fixture 方針は以下の業界 standard に基づく。
+
+**function scope fixture (pytest default) による test isolation**:
+- pytest fixture の scope default は `function` であり、test case ごとに新しい DB を提供する
+- `:memory:` SQLite は `sqlite3.connect(":memory:")` で生成し、各 test で独立した state を確保する
+- この方式により test 実行順序への依存を排除し、並列実行への対応を保つ
+
+**SQLite `:memory:` の基本パターン**:
+
+```python
+import sqlite3
+import pytest
+
+@pytest.fixture
+def db_conn():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("PRAGMA foreign_keys = ON")
+    # v35 schema を手動適用
+    apply_v35_schema(conn)
+    yield conn
+    conn.close()
+```
+
+- `connect_args={"check_same_thread": False}` は SQLAlchemy ORM 経由の場合に必要 (本書では sqlite3 直接接続を使うため不要)
+- `yield` 構造で setup / teardown を分離し、`try...finally` で session close を保証することが best practice
+- `:memory:` DB は RAM resident であり高速に動作し、test 終了時に消滅するため file システム汚染がない
+- 固定 timestamp を fixture に使うと `datetime.now(timezone.utc) - timedelta(days=N)` との境界条件で flake するため動的生成が必須 (本書 §4 で禁止明記済)
+
+**参照 sources**:
+- https://oneuptime.com/blog/post/2026-02-02-sqlite-testing/view (SQLite test patterns)
+- https://woteq.com/how-to-test-sqlite-in-memory-databases-using-pytest (pytest + :memory: 設定)
+- https://pytest-with-eric.com/database-testing/pytest-sql-database-testing/ (function scope fixture best practices)
+
+### §3.3 Directed Graph の Cycle Detection 業界 standard
+
+本書 U-092-008/009/010 は PLAN-092 §7 凍結の **BFS 実装** spec に従う。業界 standard との対照を以下に整理する。
+
+**業界 standard: DFS + recStack**
+
+Directed graph の cycle detection には DFS (Depth First Search) + `recStack` (recursion stack) を用いた方式が業界 standard として広く参照される:
+
+- 現在の再帰スタックに含まれる node (= 探索中の path) を `recStack` として管理する
+- DFS 中に `recStack` 内の node に到達した場合を cycle とみなす
+- visited set で探索済み node を管理し、無限ループを防止する
+
+**BFS による cycle detection: Kahn's algorithm (topological sort 方式)**
+
+BFS ベースでは Kahn's algorithm が一般的:
+- 全 node の in-degree (入次数) を計算する
+- in-degree = 0 の node を queue に enqueue し、BFS で処理しながら隣接 node の in-degree を削減する
+- 最終的に全 node を処理できなかった場合 (queue が枯渇、処理件数 < 全件数) に cycle の存在を確認する
+
+**本書での設計方針**:
+
+| 方式 | 業界 standard 評価 | 本書での扱い |
+|---|---|---|
+| DFS + recStack | directed graph cycle detection の業界 standard (GeeksforGeeks / W3Schools 多数) | PLAN-092 §7 で BFS 採用のため spec 優先 |
+| BFS + Kahn's algorithm | topological sort を利用した cycle detection として業界 standard | **PLAN-092 §7 凍結 spec に従い採用** |
+
+- U-092-008/009/010 の各 case は BFS 実装を前提とした期待値 (空 list / cycle path) を記述している
+- 実装時に DFS + recStack を選択した場合も同等の検証性 (cycle あり/なし判定 + cycle path) を満たすが、その場合は PLAN-092 §7 spec の改訂を推奨する (spec との乖離を明示)
+- 各 case の「アルゴリズム選択注記」はこの設計判断を test case 単位で可視化している
+
+**参照 sources**:
+- https://www.geeksforgeeks.org/dsa/detect-cycle-in-a-graph/ (DFS + recStack の詳細解説)
+- https://www.w3schools.com/dsa/dsa_algo_graphs_cycledetection.php (DFS / BFS cycle detection 比較)
+- https://favtutor.com/blogs/detect-cycle-in-directed-graph (BFS Kahn's algorithm の directed graph 適用)
+
+## §4 テスト fixture 方針
+
+**業界 standard 準拠 (§3.2 参照)**: 本 section の全方針は §3.2 に記載した pytest + SQLite `:memory:` best practices に基づく。
 
 - DB は `sqlite3.connect(":memory:")` を使い、file 上の `helix.db` は使わない
 - beforeEach / pytest fixture で v35 migration 相当の schema を手動適用する
@@ -443,17 +547,17 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - timestamp assertion は exact value ではなく非空、parse 可能性、before/after range で確認する
 - stderr は `capsys`、SQLite は本物の `:memory:` DB、ROLE_MAP validation は呼ばない
 
-## §4 fail criteria (G3 / G4 ゲート)
+## §5 fail criteria (G3 / G4 ゲート)
 
-### §4.1 G3 実装着手ゲート
+### §5.1 G3 実装着手ゲート
 
 - 本書が ③ 単体テスト設計 artifact として存在する
-- §0-§6 が揃っている
+- §0-§7 が揃っている
 - U-092-001〜010 が全件記述されている
 - 各 case に ID / title / 対象関数 / 入力 / 期待結果 / 検証 / 失敗意味 / ref がある
 - PLAN-092 §5 / §7 と本書の双方向 trace が成立する
 
-### §4.2 G4 実装凍結ゲート
+### §5.2 G4 実装凍結ゲート
 
 - Sprint .1b 完了条件として U-092-001〜010 が `cli/lib/tests/test_plan_parser.py` で全 PASS
 - PLAN-092 §10 / §11 DoD #4 に従い、10 case 全件 PASS が必須
@@ -461,7 +565,7 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - 既存 `cli/lib/tests/` の全回帰が PASS
 - test docstring に `DoD 検証: PLAN-092-unit-test-design.md U-092-001〜010` がある
 
-### §4.3 fail 判定
+### §5.3 fail 判定
 
 - 10 case のうち 1 件でも未実装 / skipped のまま Sprint .1b を完了しようとしている
 - parse failure 時に `plan_registry` が変更される
@@ -469,7 +573,7 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - 2-node / 3-node cycle を検出できない
 - fixed timestamp や secret / PII fixture が残る
 
-## §5 V-model 4 artifact 双方向 trace
+## §6 V-model 4 artifact 双方向 trace
 
 | Artifact | 担当層 | ファイル / 予定 |
 |---|---|---|
@@ -483,7 +587,7 @@ unit test では `:memory:` SQLite と手動 v35 schema 適用を使う。実 `h
 - ③ → ①: 本書 §0 / §2 の各 case が PLAN-092 §5 / §7 / §10 を ref として持つ
 - ④ → ③: Sprint .1b 実装時、`cli/lib/tests/test_plan_parser.py` docstring 冒頭に `DoD 検証: PLAN-092-unit-test-design.md U-092-001〜010` を挿入予定
 
-## §6 関連
+## §7 関連
 
 - 親 PLAN: `docs/plans/PLAN-092-posttooluse-plan-auto-register.md`
 - 上位 framework: `docs/plans/PLAN-091-v5-framework-core.md` §10 (V-model TDD pair freeze)
