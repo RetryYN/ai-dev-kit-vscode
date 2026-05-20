@@ -19,7 +19,7 @@ Proposed (2026-05-20、後追い snapshot — PLAN-090 実装済の L2 凍結)
 ## Related
 
 - PLAN-090-posttooluse-continueonblock-refactor (実装 PLAN、本 ADR が L2 凍結する)
-- PLAN-094-existing-retrofit-v2-revision (retrofit master、§4.4 に本 ADR の context 記載)
+- PLAN-100-existing-retrofit-v2-revision (retrofit master、§4.4 に本 ADR の context 記載)
 - PLAN-087-design-doc-web-search-guardrail (PostToolUse hook の前段 framework)
 - PLAN-089-gate-fail-close-design-doc-web-search-audit (PostToolUse hook と連携)
 - ADR-025-v5-framework-core-decision (V5 framework 本体)
@@ -118,4 +118,4 @@ Claude Code 2.1.139 で PostToolUse に `continueOnBlock` が追加された:
 
 **Codex CLI bypass 確認** (実測 commit b9wl210l): Codex CLI 内 Write が Claude Code hook を bypass することを実測で確認済み。この制約は HELIX 設計の前提として固定する。
 
-**本 ADR 起票後**: PLAN-090 frontmatter への `related_adr: [ADR-024]` 追加は PLAN-094 Phase 2 (別 session) で実施する。
+**本 ADR 起票後**: PLAN-090 frontmatter への `related_adr: [ADR-024]` 追加は PLAN-100 Phase 2 (別 session) で実施する。

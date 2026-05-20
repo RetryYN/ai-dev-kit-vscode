@@ -25,7 +25,7 @@ generates:
     artifact_type: design_doc
   - artifact_path: docs/plans/PLAN-093-plan-drift-detection-curator.md
     artifact_type: design_doc
-  - artifact_path: docs/plans/PLAN-094-existing-retrofit-v2-revision.md
+  - artifact_path: docs/plans/PLAN-100-existing-retrofit-v2-revision.md
     artifact_type: design_doc
   - artifact_path: docs/plans/PLAN-095-poc-scrum-reverse-matrix.md
     artifact_type: design_doc
@@ -72,7 +72,7 @@ dependencies:
     - PLAN-091-v5-framework-core
     - PLAN-092-posttooluse-plan-auto-register
     - PLAN-093-plan-drift-detection-curator
-    - PLAN-094-existing-retrofit-v2-revision
+    - PLAN-100-existing-retrofit-v2-revision
     - PLAN-095-poc-scrum-reverse-matrix
     - PLAN-096-github-actions-branch-pipeline
     - PLAN-097-abstraction-layer-escalation
@@ -81,8 +81,8 @@ dependencies:
 related_docs:
   - docs/v2/V5-plan-outlines.md (本 PLAN の起票元素材、17 要素時点で古い、CLAUDE.md が正本)
   - CLAUDE.md §V5 framework 18 要素 (最新正本、PLAN-099 含む)
-  - docs/v2/CONCEPT.md (V2 全体構想、PLAN-094 で全面見直し対象)
-  - docs/v2/L1-REQUIREMENTS.md (V2 要件、PLAN-094 で見直し対象)
+  - docs/v2/CONCEPT.md (V2 全体構想、PLAN-100 で全面見直し対象)
+  - docs/v2/L1-REQUIREMENTS.md (V2 要件、PLAN-100 で見直し対象)
   - docs/v2/L2-MASTER.md (V2 基本設計、§0 line 36 の PLAN↔ADR 範例)
   - helix_github_workflow_rules.md (PLAN-096 起票元素材、root level draft)
   - helix_improvement_plan_draft.md (PLAN-093/097 起票元素材、root level draft)
@@ -91,7 +91,7 @@ related_docs:
 related_memories:
   - project_2026_05_20_v5_framework_evolution_recovery (本 session の V5 確立過程)
   - feedback_recovery_plan_kind_missing (PLAN-098 直接 source)
-  - feedback_adr_before_plan_violation (PLAN-094 直接 source)
+  - feedback_adr_before_plan_violation (PLAN-100 直接 source)
   - feedback_dont_stop_with_carry_remaining (PLAN-098 § session 終了前チェック source)
   - feedback_design_doc_web_search_required (本 PLAN §3 Web 検索 3 query 起票準拠 source、PLAN-087 連動)
 acceptance:
@@ -100,7 +100,7 @@ acceptance:
   - frontmatter dependencies chain が PLAN-MM-001 を parent、PLAN-091〜099 を blocks で接続
   - PLAN-091 §単一実行正本決定 で `PLAN = plan_registry / helix job = runnable queue / handover = session continuity / TodoWrite = ephemeral checklist` を凍結 (TL v5 P1)
   - tl-advisor adversarial check (本 PLAN 含む) が passed (changes_required → 反映 → passed の反復で終結)
-  - V2 doc (CONCEPT/L1-REQUIREMENTS/L2-MASTER) との整合確認 (PLAN-094 で全面見直し計画明示)
+  - V2 doc (CONCEPT/L1-REQUIREMENTS/L2-MASTER) との整合確認 (PLAN-100 で全面見直し計画明示)
   - デグレ禁止: 既存 PLAN-001〜090 / CLI / hook / DB schema / template は本 session では編集しない (新規 doc 起票のみ)
 ---
 
@@ -110,7 +110,7 @@ acceptance:
 > **layer**: L2 (全体設計フェーズ、子 PLAN-091〜099 を blocks で従える親 hub)
 > **drive**: be (CLI / framework 実装中心、UI なし)
 > **本 PLAN の役割**: PLAN-091〜099 起票時の frontmatter 語彙・依存関係・整合判断の正本。子 PLAN は本 PLAN を parent に取る。
-> **正本宣言**: V5 framework 要素の正本は **CLAUDE.md §V5 framework 18 要素** + 本 PLAN。docs/v2/V5-plan-outlines.md は 17 要素時点の古い素材で、本 PLAN 起票後は要更新 (PLAN-094 retrofit 対象)。
+> **正本宣言**: V5 framework 要素の正本は **CLAUDE.md §V5 framework 18 要素** + 本 PLAN。docs/v2/V5-plan-outlines.md は 17 要素時点の古い素材で、本 PLAN 起票後は要更新 (PLAN-100 retrofit 対象)。
 
 ## §0. 本 PLAN の位置付け
 
@@ -129,17 +129,17 @@ V5 framework は本 session (2026-05-19〜20) の V1→V5 確立過程で出現�
 | 文書 | 要素数 | PLAN-099 含む | 状態 |
 |---|---|---|---|
 | **CLAUDE.md §V5 framework 18 要素** | 18 | ✅ | **最新正本** |
-| docs/v2/V5-plan-outlines.md | 17 | ❌ (本文に PLAN-099 outline はあるが「17 要素」と冒頭明記) | **古い、要更新 (PLAN-094 retrofit 対象)** |
+| docs/v2/V5-plan-outlines.md | 17 | ❌ (本文に PLAN-099 outline はあるが「17 要素」と冒頭明記) | **古い、要更新 (PLAN-100 retrofit 対象)** |
 | 本 PLAN-MM-001 | 18 | ✅ (子 PLAN として PLAN-099 を blocks に含む) | 起票中 |
 
-起票方針: 各子 PLAN は **CLAUDE.md の 18 要素マッピング** に従って起票し、V5-plan-outlines.md は素材参照に留める。drift 解消は PLAN-094 で V5-plan-outlines.md を 18 要素版に更新 (本 PLAN-MM-001 完遂後の別 session task)。
+起票方針: 各子 PLAN は **CLAUDE.md の 18 要素マッピング** に従って起票し、V5-plan-outlines.md は素材参照に留める。drift 解消は PLAN-100 で V5-plan-outlines.md を 18 要素版に更新 (本 PLAN-MM-001 完遂後の別 session task)。
 
 ## §1. 目的
 
 1. V5 framework 9 子 PLAN (PLAN-091〜099) の親設計として、起票時の frontmatter 語彙・依存関係・整合判断を提供する
 2. ADR-021〜024 retrofit (PLAN-087〜090 の L2 凍結 snapshot 後追い) と ADR-025〜032 新規起票 (PLAN-091〜099 の L2 凍結 snapshot) を計画する
 3. V5 framework 18 要素 + 3 層構造 + TL v5 round 5 修正条件を子 PLAN 全件に反映する
-4. V2 doc (CONCEPT / L1-REQUIREMENTS / L2-MASTER) の全面見直し (PLAN-094) を計画化し、V5 framework と既存 V2 構想の整合を保証する
+4. V2 doc (CONCEPT / L1-REQUIREMENTS / L2-MASTER) の全面見直し (PLAN-100) を計画化し、V5 framework と既存 V2 構想の整合を保証する
 5. 段階導入 5 Phase (warning → matrix 検証 → fail-close → retrofit → Curator 自動化) を子 PLAN 群に分散して機械化する
 
 ## §2. 背景
@@ -200,7 +200,7 @@ V5 framework は既存 HELIX 資産 (107 skills / 30 CLI roles / SKILL_MAP / HEL
 | 8 | PostToolUse hook で PLAN.md → helix.db 自動登録 | PLAN-092 |
 | 9 | PLAN ↔ 設計 doc drift 検出 (helix doctor) | PLAN-093 |
 | 10 | 進捗 trace (plan.db sprint_progress) | PLAN-092 (schema) + PLAN-093 (dashboard) |
-| 11 | ADR snapshot 必須化 (L2 大局判断あれば) | PLAN-091 (規約) + PLAN-094 (retrofit) |
+| 11 | ADR snapshot 必須化 (L2 大局判断あれば) | PLAN-091 (規約) + PLAN-100 (retrofit) |
 | 12 | kind 別 workflow template embed (Step 1-N) | PLAN-091 |
 | 13 | V-model TDD 駆動 (設計⇔テスト設計 pair freeze + 実装 TDD + QA 追加テスト) | PLAN-091 (template に組み込み) |
 | 14 | PoC = Scrum × Reverse 連携 matrix (Scrum 6 type × Reverse 5 type) | PLAN-095 |
@@ -214,7 +214,7 @@ V5 framework は既存 HELIX 資産 (107 skills / 30 CLI roles / SKILL_MAP / HEL
 ```
 [Layer A] 工程・ドキュメント運用ルール整備
   V5 要素 1-7 + 11-17
-  子 PLAN: PLAN-091 (本体) / PLAN-094 (retrofit) / PLAN-095 (PoC matrix) / PLAN-096 (GitHub) / PLAN-097 (抽象化層) / PLAN-098 (recovery)
+  子 PLAN: PLAN-091 (本体) / PLAN-100 (retrofit) / PLAN-095 (PoC matrix) / PLAN-096 (GitHub) / PLAN-097 (抽象化層) / PLAN-098 (recovery)
        ↓
 [Layer B] helix.db 型ハーネス整備
   V5 要素 8 + 9 + 10 + 単一実行正本決定 (TL v5 P1)
@@ -251,7 +251,7 @@ PLAN-MM-001 (本 PLAN、parent hub)
     │   ├── helix dashboard plan-progress 拡張
     │   └── Curator (helix_improvement Phase 6 統合、ルール昇格/降格自動判定)
     │
-    ├── PLAN-094 ↔ ADR-021/022/023/024  既存 retrofit + V2 全面見直し (§4 分割、tl-advisor Round 1 反映)
+    ├── PLAN-100 ↔ ADR-021/022/023/024  既存 retrofit + V2 全面見直し (§4 分割、tl-advisor Round 1 反映)
     │   ├── §4.1: ADR-021 (PLAN-087 Web 検索ガードレール snapshot) + 独立 DoD + 双方向 trace
     │   ├── §4.2: ADR-022 (PLAN-088 agent slot framework snapshot) + 独立 DoD + 双方向 trace
     │   ├── §4.3: ADR-023 (PLAN-089 gate fail-close snapshot) + 独立 DoD + 双方向 trace
@@ -298,7 +298,7 @@ PLAN-MM-001 (本 PLAN、parent hub)
 | P1 | warning 導入 (matrix 外でも続行、警告のみ) | PLAN-091 partial | 1 | TodoWrite (既存) |
 | P2 | matrix 検証 + drift 検出 | PLAN-091 + 092 + 093 | 2-3 | TodoWrite + plan_registry (新) |
 | P3 | fail-close 強制 (helix plan create で matrix 外 reject) | PLAN-091 enforce | 1 | TodoWrite + plan_registry |
-| P4 | retrofit + V2 全面見直し | PLAN-094 (並列 N codex docs) | 2-3 | (継続) |
+| P4 | retrofit + V2 全面見直し | PLAN-100 (並列 N codex docs) | 2-3 | (継続) |
 | P5 | Curator 自動化 + GitHub / 抽象化層 / PoC matrix 統合 + Layer C 本実装 | PLAN-095〜098 + PLAN-099 本実装 | 3-5 | (継続) |
 
 **P1 単一実行正本決定** (TL v5 P1、tl-advisor Round 1 反映):
@@ -363,14 +363,14 @@ CLAUDE.md §TL v5 round 5 修正条件 から、各 子 PLAN への反映指示�
 
 本 PLAN + 子 PLAN 9 件 + ADR 12 件 の起票は **新規 doc 作成のみ**。本 session では以下を **編集しない** (デグレ禁止):
 
-- 既存 PLAN-001〜090 docs (PLAN-094 retrofit の実施は別 session)
+- 既存 PLAN-001〜090 docs (PLAN-100 retrofit の実施は別 session)
 - 既存 cli/ (helix-plan / helix-codex / helix-claude / helix-doctor / helix-db / helix-job / scheduler / 等の CLI 本体)
 - 既存 .claude/hooks/ (PreToolUse / PostToolUse / Stop / SessionStart 等の hook)
 - 既存 cli/lib/ (helix_db.py / migrations/ / plan_parser.py / hook 受け側等)
 - 既存 cli/templates/ (PLAN/ADR/D-API/D-DB 等の template)
 - 既存 helix.db schema (v33 → v35 拡張は PLAN-092 実装時)
 - 既存 SKILL_MAP / HELIX_CORE / CLAUDE.md / AGENTS.md (本 session で V5 framework 関連の追記は OK だが、既存規約の削除は禁止)
-- 既存 docs/v2/ (CONCEPT/L1-REQUIREMENTS/L2-MASTER の見直しは PLAN-094 で計画化、本 session では編集しない)
+- 既存 docs/v2/ (CONCEPT/L1-REQUIREMENTS/L2-MASTER の見直しは PLAN-100 で計画化、本 session では編集しない)
 - 既存 docs/adr/ADR-001〜020 (本 session で新規追加のみ、既存編集は禁止)
 - 既存 helix job / TodoWrite / handover の実装 (task_queue は新設しない) (PLAN-091 で単一実行正本決定を凍結、実装は別 session)
 
@@ -395,7 +395,7 @@ CLAUDE.md §TL v5 round 5 修正条件 から、各 子 PLAN への反映指示�
 **finalize は本 session 範囲外** (tl-advisor Round 1 反映):
 - 子 PLAN finalize (status: draft → confirmed) は別 session
 - 子 PLAN 実装 (PLAN-091 P3 enforce / PLAN-092 schema v35 / PLAN-099 本実装 等) は別 session
-- V2 全面見直し本体 (PLAN-094 §6) は別 session
+- V2 全面見直し本体 (PLAN-100 §6) は別 session
 - helix doctor check_plan_adr_snapshot fail-close 化は別 session
 
 ## §11. V-model 4 artifact trace (本 PLAN の位置付け)
@@ -434,16 +434,16 @@ CLAUDE.md §TL v5 round 5 修正条件 から、各 子 PLAN への反映指示�
 - PLAN-091〜099 (9 件、§6 参照)
 
 ### related_adrs (本 PLAN が起票計画化する ADR)
-- ADR-021 (PLAN-087 retrofit snapshot、PLAN-094 §4.1 で起票)
-- ADR-022 (PLAN-088 retrofit snapshot、PLAN-094 §4.2 で起票)
-- ADR-023 (PLAN-089 retrofit snapshot、PLAN-094 §4.3 で起票)
-- ADR-024 (PLAN-090 retrofit snapshot、PLAN-094 §4.4 で起票)
+- ADR-021 (PLAN-087 retrofit snapshot、PLAN-100 §4.1 で起票)
+- ADR-022 (PLAN-088 retrofit snapshot、PLAN-100 §4.2 で起票)
+- ADR-023 (PLAN-089 retrofit snapshot、PLAN-100 §4.3 で起票)
+- ADR-024 (PLAN-090 retrofit snapshot、PLAN-100 §4.4 で起票)
 - ADR-025〜032 (PLAN-091〜099 新規 snapshot、各子 PLAN と同時起票)
 
 ### related_memories
 - project_2026_05_20_v5_framework_evolution_recovery (V5 確立過程の永続化記録)
 - feedback_recovery_plan_kind_missing (PLAN-098 直接 source)
-- feedback_adr_before_plan_violation (PLAN-094 ADR-021〜024 retrofit 直接 source、訂正後の正確な原則は「PLAN ⊃ ADR レイヤー併存」)
+- feedback_adr_before_plan_violation (PLAN-100 ADR-021〜024 retrofit 直接 source、訂正後の正確な原則は「PLAN ⊃ ADR レイヤー併存」)
 - feedback_dont_stop_with_carry_remaining (§12 session 終了前チェック source)
 - feedback_design_doc_web_search_required (§3 Web 検索 3 query 起票準拠 source、PLAN-087 連動)
 
@@ -459,7 +459,7 @@ CLAUDE.md §TL v5 round 5 修正条件 から、各 子 PLAN への反映指示�
 | W1 (済) | tl-advisor Round 1 review | Codex tl-advisor (gpt-5.5 high) | 1 |
 | **W2 (契約 seed 単独)** | **PLAN-091 + ADR-025** (frontmatter 語彙・依存契約・単一実行正本決定の正本) | **pmo-sonnet 単独** | **1** |
 | W3 (限定並列 3) | PLAN-092 + ADR-026 / PLAN-093 + ADR-027 / PLAN-099 + ADR-032 PoC C 案文書 | pmo-sonnet × 3 | 3 |
-| W4 (単独) | PLAN-094 + ADR-021/022/023/024 (§4 分割、§5 frontmatter retrofit 計画、§6 V2 見直し計画) | pmo-sonnet 単独 | 1 |
+| W4 (単独) | PLAN-100 + ADR-021/022/023/024 (§4 分割、§5 frontmatter retrofit 計画、§6 V2 見直し計画) | pmo-sonnet 単独 | 1 |
 | W5 (限定並列 4) | PLAN-095 + ADR-028 / PLAN-096 + ADR-029 / PLAN-097 + ADR-030 / PLAN-098 + ADR-031 | pmo-sonnet × 4 | 4 |
 | W6 | tl-advisor Round 2 review (PLAN-091 中心、契約整合) | Codex tl-advisor | 1 |
 | W7 | 修正反映 (changes_required ループ、passed まで反復) | pmo-sonnet (Codex 修正) + Opus (integrate) | N |
@@ -467,10 +467,10 @@ CLAUDE.md §TL v5 round 5 修正条件 から、各 子 PLAN への反映指示�
 | W9 | commit + push (single commit、git status clean 確認) | Opus 直接 | 1 |
 | W10 | 最終報告 + memory feedback 更新 | Opus 直接 | 1 |
 
-**並列性根拠** (tl-advisor Round 1 反映、PLAN-091 先行 → 限定並列 → PLAN-094 単独):
+**並列性根拠** (tl-advisor Round 1 反映、PLAN-091 先行 → 限定並列 → PLAN-100 単独):
 - W2: PLAN-091 は frontmatter 語彙・dependencies 語彙・単一実行正本決定の **契約 seed**。並列起票すると他子 PLAN が PLAN-091 の語彙を仮定して書き、整合 drift 発生 → 単独起票必須
 - W3: PLAN-092 (schema) / PLAN-093 (drift) / PLAN-099 (PoC C 案文書) は PLAN-091 契約を read-only で参照、互いに file 衝突なし → 3 並列
-- W4: PLAN-094 は ADR-021〜024 + frontmatter retrofit + V2 見直し計画を一文書に纏める → 単独起票で整合確保
+- W4: PLAN-100 は ADR-021〜024 + frontmatter retrofit + V2 見直し計画を一文書に纏める → 単独起票で整合確保
 - W5: PLAN-095/096/097/098 は独立トピック (PoC matrix / GitHub / 抽象化層 / recovery)、互いに file 衝突なし → 4 並列
 
 ## Appendix B: 起票時の整合チェック観点

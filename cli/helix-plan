@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
-# Usage: helix plan <draft|review|finalize|reset|list|status|lint|import> [options]
+# Usage: helix plan <draft|review|finalize|reset|list|status|lint|import|deps|generates> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PLAN_CMDS_DIR="$SCRIPT_DIR/helix-plan-cmds"
@@ -30,7 +30,12 @@ Subcommands:
              Options: --id <PLAN-NNN> [--to draft|reviewed] [--reason <text>]
   list       プラン一覧を表示
   status     プラン詳細を表示
-             Options: --id <PLAN-NNN>
+             Options: --id <PLAN-NNN> [--frontmatter]
+  deps       PLAN frontmatter の dependency chain を表示
+             Usage: helix plan deps <PLAN-NNN> [--depth <N>] [--json]
+  generates  PLAN frontmatter の生成物を表示 / 逆引き
+             Usage: helix plan generates <PLAN-NNN>
+                    helix plan generates --reverse <artifact_path> [--json]
   lint       PLAN markdown の status 整合を検査
              Usage: helix plan lint [--duplicates] <plan-file>
   import     PLAN markdown frontmatter から YAML を再生成
@@ -44,6 +49,10 @@ Examples:
   helix plan reset --id PLAN-001 --to draft --reason "v2 改訂"
   helix plan list
   helix plan status --id PLAN-001
+  helix plan status --id PLAN-091 --frontmatter
+  helix plan deps PLAN-091 --depth 2
+  helix plan generates PLAN-091
+  helix plan generates --reverse cli/lib/plan_validator.py
   helix plan lint docs/plans/PLAN-036-example.md
   helix plan lint --duplicates docs/plans/PLAN-036-example.md
   helix plan import --from-frontmatter --dry-run
@@ -58,6 +67,8 @@ source "$PLAN_CMDS_DIR/finalize.sh"
 source "$PLAN_CMDS_DIR/reset.sh"
 source "$PLAN_CMDS_DIR/list.sh"
 source "$PLAN_CMDS_DIR/status.sh"
+source "$PLAN_CMDS_DIR/deps.sh"
+source "$PLAN_CMDS_DIR/generates.sh"
 source "$PLAN_CMDS_DIR/lint.sh"
 source "$PLAN_CMDS_DIR/import.sh"
 
@@ -637,6 +648,8 @@ case "$CMD" in
   reset) cmd_reset "$@" ;;
   list) cmd_list "$@" ;;
   status) cmd_status "$@" ;;
+  deps) cmd_deps "$@" ;;
+  generates) cmd_generates "$@" ;;
   lint) cmd_lint "$@" ;;
   import) cmd_import "$@" ;;
   help|-h|--help) usage ;;

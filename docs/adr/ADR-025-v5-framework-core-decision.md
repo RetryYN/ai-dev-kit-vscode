@@ -99,7 +99,7 @@ v5 passed_with_minor_changes の修正条件のうち、本 ADR に直接影響�
 **訂正**: この整理は誤り。正しくは「V5 framework (Tier B の 9 PLAN + 8 ADR) は Tier A/D を吸収した上位概念ではなく、Tier A/B/D の分類自体が不要になる framework」。
 
 具体的には:
-- ADR-021〜024 (Tier A) は V5 の 9 PLAN/8 ADR 体系の中の retrofit PLAN-094 で一括対処
+- ADR-021〜024 (Tier A) は V5 の 9 PLAN/8 ADR 体系の中の retrofit PLAN-100 で一括対処
 - recovery 個別起票 (Tier D) は V5 の kind=recovery + PLAN-098 で体系化
 - Tier A/B/D の 3 分類は V5 起票後に廃止してよい
 
@@ -214,7 +214,7 @@ Layer C の PoC C 案 (Layer 4+5) のみ Layer A/B 確定前に並行 PoC 可。
 
 | リスク | 緩和策 |
 |---|---|
-| 既存 PLAN-001〜090 の retrofit コスト | PLAN-094 で docs role 並列 retrofit (段階化)、helix doctor advisory mode |
+| 既存 PLAN-001〜090 の retrofit コスト | PLAN-100 で docs role 並列 retrofit (段階化)、helix doctor advisory mode |
 | helix.db schema v33 → v35 migration | PLAN-092 で migration idempotent 設計 + PLAN-085 staging 演習パターン準拠 |
 | PostToolUse hook の性能影響 | PLAN-092 で fail-open 設計、重い sync は background 処理 (TL v5 P2) |
 | PoC C 案 PreCompact decision:block の誤用 | 3 条件 AND 限定 (PLAN-099 §Layer 3)、通常は warning のみ |
@@ -272,7 +272,7 @@ L2 大局判断があっても ADR snapshot は任意のまま、强制しない
 | PLAN-091 (本 PLAN) | 本体 (matrix + 種別 + template + 単一実行正本 + P0 guard) | Layer A | 最優先 (契約 seed) |
 | PLAN-092 | PostToolUse 自動登録 + helix.db v35 schema + P0 guard payload | Layer B | PLAN-091 後 |
 | PLAN-093 | drift 検出 + 進捗 trace + Curator + check_plan_adr_snapshot | Layer B | PLAN-091 後 |
-| PLAN-094 | 既存 retrofit + V2 全面見直し + ADR-021〜024 後追い snapshot | Layer A (retrofit) | PLAN-091 後 |
+| PLAN-100 | 既存 retrofit + V2 全面見直し + ADR-021〜024 後追い snapshot | Layer A (retrofit) | PLAN-091 後 |
 | PLAN-095 | PoC = Scrum × Reverse matrix | Layer A | PLAN-091 後 |
 | PLAN-096 | GitHub Actions + ブランチパイプライン | Layer A | PLAN-091 後 |
 | PLAN-097 | 抽象化層 + エスカレーション | Layer A | PLAN-091 後 |

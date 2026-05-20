@@ -1,0 +1,13 @@
+# .github/CODEOWNERS
+
+/cli/              @yoshiyuki0907yn
+/docs/v2/          @yoshiyuki0907yn
+/helix/            @yoshiyuki0907yn
+/skills/           @yoshiyuki0907yn
+/.claude/          @yoshiyuki0907yn
+/.github/workflows/ @yoshiyuki0907yn
+/docs/plans/       @yoshiyuki0907yn
+/docs/adr/         @yoshiyuki0907yn
+
+# fallback
+* @yoshiyuki0907yn

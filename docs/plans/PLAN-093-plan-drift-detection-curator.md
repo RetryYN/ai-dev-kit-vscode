@@ -219,7 +219,7 @@ PLAN Progress Dashboard (Layer A/B/C)
 
 Layer A: 工程・doc 運用ルール整備
   PLAN-091 [framework-core    ] ████████░░ 80%  (Sprint 4/5)
-  PLAN-094 [retrofit          ] ░░░░░░░░░░  0%  (not started)
+  PLAN-100 [retrofit          ] ░░░░░░░░░░  0%  (not started)
   PLAN-095 [poc-matrix        ] ░░░░░░░░░░  0%  [BLOCKED by PLAN-091]
   PLAN-097 [abstraction-layer ] ░░░░░░░░░░  0%  [BLOCKED by PLAN-093]
   PLAN-098 [recovery-kind     ] ░░░░░░░░░░  0%  [BLOCKED by PLAN-093]

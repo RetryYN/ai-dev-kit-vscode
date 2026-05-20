@@ -332,7 +332,7 @@ V モデル強化構想は 3 層: **工程管理ハーネス + helix.db 型ハ�
 1. Layer A 確定: V5 要素 1-7, 11-17 を企画書に反映 + ADR-021〜024 後追い snapshot 起票
 2. Layer B 確定: 単一実行正本決定 + helix.db schema 設計
 3. Layer C 並行: PoC C 案 (Layer 4+5) を Layer A/B 確定待たず先行
-4. PLAN 起票: Layer A 確定後に PLAN-MM-001 → PLAN-091(A) → PLAN-092/093(B) → PLAN-099(C) → PLAN-094(retrofit)
+4. PLAN 起票: Layer A 確定後に PLAN-MM-001 → PLAN-091(A) → PLAN-092/093(B) → PLAN-099(C) → PLAN-100(retrofit)
 
 ### 9 PLAN + 8 ADR 起票案 (次 session 開始時、PLAN-099 を turn 14 で追加)
 ```
@@ -340,7 +340,7 @@ parent: PLAN-MM-001 (設計プラン、V5 全体構想)
 ├── PLAN-091 ↔ ADR-025: framework 本体 (matrix + 種別 + template embed)
 ├── PLAN-092 ↔ ADR-026: PostToolUse 自動登録 + helix.db v35 schema
 ├── PLAN-093 ↔ ADR-027: drift 検出 + 進捗 trace + Curator
-├── PLAN-094 ↔ ADR-021〜024: 既存 retrofit + V2 全面見直し
+├── PLAN-100 ↔ ADR-021〜024: 既存 retrofit + V2 全面見直し (★ PLAN-099 完遂後の後段、V5 framework 実装 scope = PLAN-091〜099 に限定)
 ├── PLAN-095 ↔ ADR-028: PoC = Scrum × Reverse matrix
 ├── PLAN-096 ↔ ADR-029: GitHub Actions + ブランチタイプ別パイプライン
 ├── PLAN-097 ↔ ADR-030: 抽象化層 (スキル/ワークフロー/ハーネス) + エスカレーション

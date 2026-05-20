@@ -448,7 +448,7 @@ hook 実行中のエラー (python3 未インストール / helix.db 未初期�
 - PLAN.md / ADR-*.md の YAML frontmatter を parse して dict に変換する
 - dependencies / agent_slots / generates の構造化
 - helix.db v35 の plan_registry / plan_dependencies / plan_agent_slots / plan_generates へ upsert
-- cycle detection (dependencies graph の BFS/DFS)
+- cycle detection (dependencies graph で directed cycle 検出、業界 standard は **DFS + recStack** を推奨、BFS Kahn's algorithm (in-degree 0 削減方式) も同等可)
 
 ### 7.2 主要関数 (public API)
 
@@ -460,7 +460,8 @@ def upsert_plan(conn, frontmatter: dict, doc_path: str) -> dict:
     """plan_registry および関連 table に upsert する。戻り値: {plan_id, status, counts}"""
 
 def detect_cycle(conn, plan_id: str) -> list[str]:
-    """dependencies graph で循環依存を BFS で検出。循環パス list を返す (空なら cycle なし)"""
+    """dependencies graph で directed cycle を検出。循環パス list を返す (空なら cycle なし)。
+    実装は DFS + recStack 推奨 (業界 standard)、BFS Kahn's algorithm 代替可。test_design_ref §3.3 参照"""
 
 def main(filepath: str, mode: str = "upsert") -> int:
     """CLI エントリポイント。mode: upsert / check / validate"""
@@ -468,14 +469,33 @@ def main(filepath: str, mode: str = "upsert") -> int:
 
 ### 7.3 cycle detection アルゴリズム
 
+業界 standard (GeeksforGeeks / W3Schools / IEEE algorithms 多数) に従い、directed graph (PLAN dependencies) の cycle detection は以下 2 方式のいずれかで実装する。本書 test_design_ref `docs/v2/L4-test-design/PLAN-092-unit-test-design.md` §3.3 と整合。
+
+**方式 A: DFS + recStack (推奨、業界 standard)**
+
 ```
-1. plan_dependencies から requires / parent エッジを全取得
-2. BFS で plan_id を起点に dep_plan_id を辿る
-3. 既訪問済み plan_id に戻ってきた場合 → cycle detected
-4. 検出した cycle パスを list で返す
+1. plan_dependencies から requires / parent エッジを全取得し adjacency list を構築
+2. visited set と recStack (recursion stack) set を維持
+3. 各 plan_id を起点に DFS で再帰探索
+4. dep_plan_id が recStack にある場合 → directed cycle detected (back edge)
+5. DFS 完了時に plan_id を recStack から削除 (sibling 探索のため visited は維持)
+6. 検出した cycle パスを list で返す
 ```
 
-blocks エッジは cycle detection の対象外 (blocks は逆方向参照であり、循環ではない)。
+**方式 B: BFS Kahn's algorithm (代替、topological sort 利用)**
+
+```
+1. 全 plan_id の in-degree (依存される数) を計算
+2. in-degree=0 の node を queue に入れる
+3. queue から node を取り出し、出辺先の in-degree を 1 減らす
+4. in-degree=0 になった node を queue に追加
+5. 全 node を処理後、未処理 node が残る場合 → cycle detected
+6. cycle に含まれる plan_id (未処理) を list で返す
+```
+
+実装時にいずれかを選択 (Sprint .1b で確定)。本書 test 設計は spec 抽象度 (`detect_cycle` 関数の入出力契約) で検証し、内部アルゴリズム実装には依存しない。
+
+blocks エッジは cycle detection の対象外 (blocks は逆方向参照であり、PLAN-A.blocks=[PLAN-B] は PLAN-B.requires=[PLAN-A] と等価で重複)。
 
 ---
 
@@ -494,7 +514,7 @@ blocks エッジは cycle detection の対象外 (blocks は逆方向参照で�
 
 ### 8.3 既存 PLAN-001〜090 の retrofit
 
-v35 migration は schema 追加のみ。既存 PLAN の plan_registry への取り込みは **PLAN-094 (retrofit) で別 task** として実施する。本 migration は新規 table 作成のみで PLAN-094 への入力を提供する。
+v35 migration は schema 追加のみ。既存 PLAN の plan_registry への取り込みは **PLAN-100 (retrofit) で別 task** として実施する。本 migration は新規 table 作成のみで PLAN-100 への入力を提供する。
 
 ---
 
@@ -630,7 +650,7 @@ Sprint Exit 前に以下を全通過すること:
 | PLAN-090 | PostToolUse active guidance loop pattern (本 PLAN が踏襲) |
 | PLAN-088 | v34 schema 定義 (v35 は次の空き) |
 | PLAN-093 | 本 PLAN の plan_generates / failure_log を read して drift 検出 |
-| PLAN-094 | 既存 PLAN-001〜090 を plan_registry へ retrofit (本 PLAN の schema を前提) |
+| PLAN-100 | 既存 PLAN-001〜090 を plan_registry へ retrofit (本 PLAN の schema を前提) |
 | PLAN-095 | poc_validation_log を read |
 | ADR-026 | 本 PLAN の L2 大局判断 snapshot |
 | ADR-018 | SQLite ATTACH 設計方針 (本 PLAN が踏襲) |

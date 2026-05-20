@@ -44,7 +44,7 @@ PLAN-MM-001 (親設計) ← 起票完遂
     ├── PLAN-091 ↔ ADR-025  (framework 本体) ← 起票完遂
     ├── PLAN-092 ↔ ADR-026  (PostToolUse 自動登録 + schema v35) ← 起票完遂
     ├── PLAN-093 ↔ ADR-027  (drift 検出 + dashboard + Curator) ← 起票完遂
-    ├── PLAN-094 ↔ ADR-021〜024  (既存 retrofit + V2 全面見直し) ← 起票完遂
+    ├── PLAN-100 ↔ ADR-021〜024  (既存 retrofit + V2 全面見直し) ← 起票完遂
     ├── PLAN-095 ↔ ADR-028  (PoC = Scrum × Reverse matrix) ← 起票完遂
     ├── PLAN-096 ↔ ADR-029  (GitHub Actions + ブランチタイプ別パイプライン) ← 起票完遂
     ├── PLAN-097 ↔ ADR-030  (抽象化層 + エスカレーション) ← 起票完遂
@@ -144,7 +144,7 @@ PLAN-MM-001 (親設計) ← 起票完遂
 
 ---
 
-## PLAN-094 ↔ ADR-021〜024: 既存 retrofit + V2 全面見直し
+## PLAN-100 ↔ ADR-021〜024: 既存 retrofit + V2 全面見直し
 
 - **kind**: retrofit (cross-version)
 - **layer**: cross
@@ -274,7 +274,7 @@ PLAN-MM-001 (親設計) ← 起票完遂
 | P1 | warning 導入 (matrix 外でも続行、警告のみ) | PLAN-091 partial | 1 session |
 | P2 | matrix 検証 (helix plan validate + drift 検出) | PLAN-091 + 092 + 093 | 2-3 session |
 | P3 | fail-close 強制 (helix plan create で matrix 外 reject) | PLAN-091 enforce | 1 session |
-| P4 | retrofit + V2 全面見直し | PLAN-094 (並列 N Codex) | 2-3 session |
+| P4 | retrofit + V2 全面見直し | PLAN-100 (並列 N Codex) | 2-3 session |
 | P5 | Curator 自動化 + GitHub/抽象化層/PoC matrix 統合 | PLAN-095〜098 | 3-5 session |
 
 ---
@@ -376,7 +376,7 @@ V モデル強化構想は 3 層: **工程管理ハーネス + helix.db 型ハ�
 ```
 
 **PLAN → Layer マッピング**:
-- Layer A: PLAN-091 (matrix + 種別 + template embed) / PLAN-094 (retrofit + V2 見直し) / PLAN-095 (PoC × Reverse) / PLAN-096 (GitHub) / PLAN-097 (抽象化層) / PLAN-098 (recovery kind)
+- Layer A: PLAN-091 (matrix + 種別 + template embed) / PLAN-100 (retrofit + V2 見直し) / PLAN-095 (PoC × Reverse) / PLAN-096 (GitHub) / PLAN-097 (抽象化層) / PLAN-098 (recovery kind)
 - Layer B: PLAN-092 (DB 受け側 + schema v35) / PLAN-093 (drift + dashboard + Curator)
 - Layer C: PLAN-099 (自動走行 5-layer、hook 本体)
 

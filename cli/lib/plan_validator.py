@@ -180,10 +180,7 @@ def warn(plan_ref: str, field: str, reason: str, warnings: list[str]) -> None:
 
 
 def locate_plan_file(current_plan_path: Path, target_plan_id: str) -> Path | None:
-    directories = [current_plan_path.parent]
-    repo_plans_dir = Path(__file__).resolve().parents[2] / "docs" / "plans"
-    if repo_plans_dir not in directories:
-        directories.append(repo_plans_dir)
+    directories = _plan_search_directories(current_plan_path)
 
     patterns = (f"{target_plan_id}.md", f"{target_plan_id}-*.md")
     for directory in directories:
@@ -192,6 +189,14 @@ def locate_plan_file(current_plan_path: Path, target_plan_id: str) -> Path | Non
                 if match.resolve() != current_plan_path.resolve():
                     return match
     return None
+
+
+def _plan_search_directories(current_plan_path: Path) -> list[Path]:
+    directories = [current_plan_path.parent]
+    repo_plans_dir = Path(__file__).resolve().parents[2] / "docs" / "plans"
+    if repo_plans_dir not in directories:
+        directories.append(repo_plans_dir)
+    return directories
 
 
 def validate_plan(path: Path) -> list[str]:
@@ -313,22 +318,42 @@ def validate_dependencies(path: Path, frontmatter: PlanFrontmatter, warnings: li
 
     if not _is_string_list(dependencies.get("requires")):
         warn(plan_ref, "dependencies.requires", "expected list[string]", warnings)
+    requires = dependencies.get("requires")
+    if isinstance(frontmatter.plan_id, str) and isinstance(requires, list):
+        if frontmatter.plan_id in requires:
+            warn(plan_ref, "dependencies.requires", "self-edge in requires forbidden", warnings)
 
     blocks = dependencies.get("blocks")
     if not _is_string_list(blocks):
         warn(plan_ref, "dependencies.blocks", "expected list[string]", warnings)
         blocks = None
 
-    if not isinstance(frontmatter.plan_id, str) or not isinstance(blocks, list):
-        return
+    if isinstance(frontmatter.plan_id, str):
+        if isinstance(blocks, list):
+            _validate_reciprocal_blocks(path, frontmatter.plan_id, blocks, warnings)
 
+        cycle = detect_dependency_cycle(path, frontmatter.plan_id)
+        if cycle:
+            warn(plan_ref, "dependencies", f"cycle detected: {' -> '.join(cycle)}", warnings)
+
+
+def _validate_reciprocal_blocks(
+    path: Path,
+    plan_id: str,
+    blocks: list[str],
+    warnings: list[str],
+) -> None:
     for blocked_plan_id in blocks:
+        if blocked_plan_id == plan_id:
+            warn(plan_id, "dependencies.blocks", "self-edge in blocks forbidden", warnings)
+            continue
+
         blocked_plan_file = locate_plan_file(path, blocked_plan_id)
         if blocked_plan_file is None:
             warn(
-                plan_ref,
+                plan_id,
                 "dependencies.blocks",
-                f"{blocked_plan_id} not found for reciprocal dependency check",
+                f"{blocked_plan_id} does not exist (referenced in blocks)",
                 warnings,
             )
             continue
@@ -336,7 +361,7 @@ def validate_dependencies(path: Path, frontmatter: PlanFrontmatter, warnings: li
             blocked_payload = load_frontmatter(blocked_plan_file)
         except (OSError, ValueError, yaml.YAMLError) as exc:
             warn(
-                plan_ref,
+                plan_id,
                 "dependencies.blocks",
                 f"{blocked_plan_id} could not be read: {exc}",
                 warnings,
@@ -349,19 +374,101 @@ def validate_dependencies(path: Path, frontmatter: PlanFrontmatter, warnings: li
             blocked_requires = blocked_dependencies.get("requires")
         if not _is_string_list(blocked_requires):
             warn(
-                plan_ref,
+                plan_id,
                 "dependencies.blocks",
                 f"{blocked_plan_id} is missing requires list for reciprocal dependency check",
                 warnings,
             )
             continue
-        if frontmatter.plan_id not in blocked_requires:
+        if plan_id not in blocked_requires:
             warn(
-                plan_ref,
+                plan_id,
                 "dependencies.blocks",
-                f"{blocked_plan_id} does not require {frontmatter.plan_id}",
+                f"{blocked_plan_id} does not require {plan_id}",
                 warnings,
             )
+
+
+def detect_dependency_cycle(path: Path, plan_id: str) -> list[str] | None:
+    adjacency = _build_dependency_graph(path, plan_id)
+    if plan_id not in adjacency:
+        return None
+
+    visited: set[str] = set()
+    recursion_stack: set[str] = set()
+    traversal_path: list[str] = []
+
+    def dfs(node: str) -> list[str] | None:
+        visited.add(node)
+        recursion_stack.add(node)
+        traversal_path.append(node)
+
+        for dependency in adjacency.get(node, []):
+            if dependency in recursion_stack:
+                cycle_start = traversal_path.index(dependency)
+                return traversal_path[cycle_start:] + [dependency]
+            if dependency in visited:
+                continue
+            cycle = dfs(dependency)
+            if cycle:
+                return cycle
+
+        recursion_stack.remove(node)
+        traversal_path.pop()
+        return None
+
+    return dfs(plan_id)
+
+
+def _build_dependency_graph(path: Path, root_plan_id: str) -> dict[str, list[str]]:
+    adjacency: dict[str, list[str]] = {}
+    visited_paths: set[Path] = set()
+
+    def visit(plan_file: Path, current_plan_id: str) -> None:
+        resolved = plan_file.resolve()
+        if resolved in visited_paths:
+            return
+        visited_paths.add(resolved)
+
+        try:
+            payload = load_frontmatter(plan_file)
+        except (OSError, ValueError, yaml.YAMLError):
+            adjacency.setdefault(current_plan_id, [])
+            return
+
+        frontmatter = parse_frontmatter(payload)
+        node_id = frontmatter.plan_id or current_plan_id
+        edges = [edge for edge in _dependency_edges(frontmatter) if edge != node_id]
+        adjacency[node_id] = edges
+
+        for dependency in edges:
+            if dependency == node_id:
+                continue
+            adjacency.setdefault(dependency, [])
+            dependency_path = locate_plan_file(plan_file, dependency)
+            if dependency_path is not None:
+                visit(dependency_path, dependency)
+
+    root_path = path.resolve()
+    visit(root_path, root_plan_id)
+    return adjacency
+
+
+def _dependency_edges(frontmatter: PlanFrontmatter) -> list[str]:
+    if not isinstance(frontmatter.dependencies, dict):
+        return []
+
+    edges: list[str] = []
+    parent = frontmatter.dependencies.get("parent")
+    if isinstance(parent, str):
+        edges.append(parent)
+
+    requires = frontmatter.dependencies.get("requires")
+    if _is_string_list(requires):
+        edges.extend(requires)
+
+    # Preserve declaration order while removing duplicates.
+    return list(dict.fromkeys(edges))
 
 
 def _is_string_list(value: Any) -> bool:

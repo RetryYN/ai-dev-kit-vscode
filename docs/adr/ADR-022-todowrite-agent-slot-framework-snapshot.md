@@ -18,7 +18,7 @@ Proposed (2026-05-20、後追い snapshot — PLAN-088 実装済の L2 凍結)
 ## Related
 
 - PLAN-088-todowrite-agent-slot-framework (実装 PLAN、本 ADR が L2 凍結する)
-- PLAN-094-existing-retrofit-v2-revision (retrofit master、§4.2 に本 ADR の context 記載)
+- PLAN-100-existing-retrofit-v2-revision (retrofit master、§4.2 に本 ADR の context 記載)
 - ADR-025-v5-framework-core-decision (V5 framework 本体、要素 #7 agent_slots 割当ルール)
 - PLAN-091-v5-framework-core (§5.5 agent_slots 定義、本 ADR の upstream)
 - PLAN-076-subagent-process-mapping (subagent 工程マッピング、本 ADR の前提)
@@ -111,4 +111,4 @@ HELIX 運用において、並列実行時の agent 間の可観測性が不足�
 | Phase 2 (fail-close) | hook fail-close 化 | 別 session carry |
 | Phase 3 (DB) | helix.db v34 todo_entries + CLI | 別 session carry |
 
-**本 ADR 起票後**: PLAN-088 frontmatter への `related_adr: [ADR-022]` 追加は PLAN-094 Phase 2 (別 session) で実施する。
+**本 ADR 起票後**: PLAN-088 frontmatter への `related_adr: [ADR-022]` 追加は PLAN-100 Phase 2 (別 session) で実施する。

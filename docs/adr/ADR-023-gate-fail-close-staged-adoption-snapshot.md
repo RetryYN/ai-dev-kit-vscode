@@ -19,7 +19,7 @@ Proposed (2026-05-20、後追い snapshot — PLAN-089 実装済の L2 凍結)
 ## Related
 
 - PLAN-089-gate-fail-close-design-doc-web-search-audit (実装 PLAN、本 ADR が L2 凍結する)
-- PLAN-094-existing-retrofit-v2-revision (retrofit master、§4.3 に本 ADR の context 記載)
+- PLAN-100-existing-retrofit-v2-revision (retrofit master、§4.3 に本 ADR の context 記載)
 - PLAN-087-design-doc-web-search-guardrail (Web 検索ガードレールの前段、本 ADR の upstream)
 - ADR-021-design-doc-web-search-guardrail-snapshot (前段 ADR)
 - ADR-025-v5-framework-core-decision (V5 framework 本体、要素 #4 段階導入の正本)
@@ -63,7 +63,7 @@ PLAN-089 の実装範囲:
 具体的な実装:
 1. **Phase 1 (advisory 計測)**: helix-gate G2/G3 で advisory チェックを実施し、未準拠率を計測する。bypass 使用を記録する (環境変数は settings.json に永続化しない)
 2. **Phase 2 (fail-close 化)**: 計測期間 (1-2 session) のデータを元に fail-close に切替。helix-gate G2/G3 が Web 検索 section 不在 → exit 2 で block
-3. **Phase 3 (既存 PLAN retrofit)**: PLAN-001〜090 に業界 standard 参照 section を追加 (PLAN-094 Phase 3 と連動)
+3. **Phase 3 (既存 PLAN retrofit)**: PLAN-001〜090 に業界 standard 参照 section を追加 (PLAN-100 Phase 3 と連動)
 4. **Phase 4 (carry 解消)**: Phase 1-3 で発見した残件を解消
 
 **tl-advisor 相談の意見** (bi9qaatd6):
@@ -118,6 +118,6 @@ PLAN-089 の実装範囲:
 | helix-gate advisory audit 実装 (Phase 1) | 22ce096 / 35d8a30 | 完了 |
 | helix.db v33 migration (schema_version drift 修正) | 35d8a30 | 完了 |
 | PreToolUse hook fail-close (Phase 2 本番) | 35d8a30 | 完了 (hook 側は完了、gate 側は Phase 2 carry) |
-| 既存 PLAN retrofit (Phase 3) | - | PLAN-094 Phase 3 carry |
+| 既存 PLAN retrofit (Phase 3) | - | PLAN-100 Phase 3 carry |
 
-**本 ADR 起票後**: PLAN-089 frontmatter への `related_adr: [ADR-023]` 追加は PLAN-094 Phase 2 (別 session) で実施する。
+**本 ADR 起票後**: PLAN-089 frontmatter への `related_adr: [ADR-023]` 追加は PLAN-100 Phase 2 (別 session) で実施する。

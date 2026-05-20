@@ -1,0 +1,80 @@
+name: Refactor Branch Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - 'refactor/**'
+
+jobs:
+  lint:
+    name: ci/lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python syntax check
+        run: |
+          set -e
+          find cli/lib -name '*.py' -type f -print0 | \
+            xargs -0 -r python3 -m py_compile
+
+      - name: Bash syntax check
+        run: |
+          set -e
+          find cli -name '*.sh' -type f -print0 | \
+            xargs -0 -r bash -n
+
+  test:
+    name: ci/test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        run: |
+          if [ -f requirements-dev.txt ]; then
+            python3 -m pip install --quiet -r requirements-dev.txt
+          fi
+
+      - name: Run full regression (all tests)
+        run: |
+          python3 -m pytest cli/lib/tests/ -q --tb=short
+          if command -v bats >/dev/null 2>&1; then
+            bats cli/tests/ --timing
+          else
+            echo "bats is not installed; installing from apt."
+            sudo apt-get update
+            sudo apt-get install -y bats
+            bats cli/tests/ --timing
+          fi
+
+  validate:
+    name: ci/validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PLAN validation
+        run: |
+          set -e
+          for plan_file in docs/plans/*.md; do
+            python3 cli/lib/plan_validator.py "$plan_file"
+          done

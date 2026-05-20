@@ -35,7 +35,7 @@ dependencies:
   parent: PLAN-MM-001
   requires:
     - PLAN-091
-    - PLAN-094 (既存 retrofit、SKILL_MAP 整合)
+    - PLAN-100 (既存 retrofit、SKILL_MAP 整合)
     - PLAN-MM-001
     - PLAN-093-plan-drift-detection-curator
   blocks: []
@@ -87,7 +87,7 @@ HELIX の実行制御知識を **3 層抽象化** (スキル層 / ワークフ�
 
 ```
 [層 1] スキル層 (skills/*.md、107 skills)
-  ← 既存 SKILL_MAP 維持、derived_from_failures メタデータ追加 (PLAN-094 retrofit 担当)
+  ← 既存 SKILL_MAP 維持、derived_from_failures メタデータ追加 (PLAN-100 retrofit 担当)
          ↓ 組み合わせ定義
 [層 2] ワークフロー層 (workflows/*.yaml)
   ← スキル呼び出し順序の DAG。ステップ失敗時の retry/skip/escalate 分岐
@@ -154,11 +154,11 @@ skills/{category}/{skill-name}/SKILL.md
 ```
 
 - **現状**: 107 skills。スキルは「何をすべきか」の知識を定義する
-- **本 PLAN での拡張**: `derived_from_failures` メタデータフィールドを SKILL.md frontmatter に追加する設計を定義 (実際の retrofit は PLAN-094 担当)
+- **本 PLAN での拡張**: `derived_from_failures` メタデータフィールドを SKILL.md frontmatter に追加する設計を定義 (実際の retrofit は PLAN-100 担当)
 - **デグレ禁止**: 本 PLAN では既存 SKILL_MAP / 107 skills のファイルを一切変更しない
 
 ```yaml
-# SKILL.md frontmatter 拡張仕様 (PLAN-094 で retrofit 実施)
+# SKILL.md frontmatter 拡張仕様 (PLAN-100 で retrofit 実施)
 derived_from_failures:
   - failure_id: F-2026-001
     description: "設計 doc 作成時 Web 検索未実施による根拠薄弱"
@@ -703,7 +703,7 @@ class DemotionConfig:
 | PLAN-MM-001 | parent | V5 全体構想 (本 PLAN の親設計) |
 | PLAN-091 | requires | V5 framework 本体 (matrix + 種別 + template embed) — 本 PLAN の frontmatter 規約基盤 |
 | PLAN-093 | requires | drift 検出 + Curator — escalation_engine が Curator を read-only 参照 |
-| PLAN-094 | side-by-side | 既存 SKILL_MAP retrofit — derived_from_failures メタデータ追加担当 |
+| PLAN-100 | side-by-side | 既存 SKILL_MAP retrofit — derived_from_failures メタデータ追加担当 |
 | ADR-027 | related | drift 検出 + Curator 採用判断 — escalation_matrix テーブル設計の根拠 |
 | ADR-030 | self | 本 PLAN の L2 大局判断 snapshot |
 | helix_improvement Phase 4 | source | 本 PLAN の素材 (3 層構造 + 昇格/降格基準の初期設計) |

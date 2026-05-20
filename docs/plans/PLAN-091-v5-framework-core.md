@@ -64,7 +64,7 @@ dependencies:
   blocks:
     - PLAN-092-posttooluse-plan-auto-register
     - PLAN-093-plan-drift-detection-curator
-    - PLAN-094-existing-retrofit-v2-revision
+    - PLAN-100-existing-retrofit-v2-revision
     - PLAN-095-poc-scrum-reverse-matrix
     - PLAN-096-github-actions-branch-pipeline
     - PLAN-097-abstraction-layer-escalation
@@ -641,7 +641,7 @@ Step 8: 変更ファイル列挙 + DoD 確認 + review evidence 報告
 | **P1** | warning 導入: matrix 外 PLAN でも続行、警告のみ表示 | ✅ 本 PLAN §CLI | TodoWrite (既存) |
 | **P2** | matrix 検証: helix plan lint --v5 + drift 検出 (PLAN-093) | ✅ 本 PLAN §CLI (skeleton) + PLAN-092/093 (実装) | TodoWrite + plan_registry (新) |
 | **P3** | fail-close 強制: helix plan draft で matrix 外 reject | ✅ 本 PLAN §CLI (design)、実装は PLAN-091 実装 session | TodoWrite + plan_registry |
-| P4 | retrofit: PLAN-001〜090 frontmatter 一括拡張 | PLAN-094 | (継続) |
+| P4 | retrofit: PLAN-001〜090 frontmatter 一括拡張 | PLAN-100 | (継続) |
 | P5 | Curator 自動化 + GitHub + 抽象化層 + PoC matrix 統合 | PLAN-093/095/096/097 | (継続) |
 
 ### 9.1 P1 警告の設計
@@ -951,7 +951,7 @@ V5 P0 guard を実装するため、job payload に以下のフィールドを�
 ### 16.2 後段 PLAN (blocks)
 - PLAN-092: 本 PLAN §5 の語彙を frontmatter 受け側として DB 化 + §12 P0 guard の schema 実装
 - PLAN-093: 本 PLAN §7.3 の `check_plan_adr_snapshot` を実装
-- PLAN-094: 本 PLAN §5 の語彙を PLAN-001〜090 に retrofit
+- PLAN-100: 本 PLAN §5 の語彙を PLAN-001〜090 に retrofit
 - PLAN-095〜099: 本 PLAN §5 語彙を参照して各トピックを展開
 
 ### 16.3 関連 ADR

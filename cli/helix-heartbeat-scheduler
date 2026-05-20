@@ -1,0 +1,123 @@
+#!/bin/bash
+# 契約: PLAN-099 §9
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+使い方: helix-heartbeat-scheduler [--json]
+
+PoC:
+  - helix handover status --json から carry 数を取得
+  - helix budget status --json から budget tier を推定
+  - ScheduleWakeup 候補を設計情報として返す
+EOF
+}
+
+json_mode=0
+case "${1:-}" in
+  --help|-h)
+    usage
+    exit 0
+    ;;
+  --json)
+    json_mode=1
+    shift
+    ;;
+  "")
+    ;;
+  *)
+    echo "error: unknown argument: $1" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+if [[ $# -gt 0 ]]; then
+  echo "error: too many arguments" >&2
+  usage >&2
+  exit 2
+fi
+
+handover_json="$(helix handover status --json)"
+budget_json="$(helix budget status --json)"
+
+HANDOVER_JSON="$handover_json" \
+BUDGET_JSON="$budget_json" \
+JSON_MODE="$json_mode" \
+python3 - <<'PY'
+import json
+import os
+import sys
+
+
+def _remaining_values(budget: dict) -> list[int]:
+    values: list[int] = []
+    claude = budget.get("claude", {})
+    codex = budget.get("codex", {})
+
+    if isinstance(claude.get("weekly_remaining_pct"), (int, float)):
+        values.append(int(claude["weekly_remaining_pct"]))
+    elif isinstance(claude.get("weekly_used_pct"), (int, float)):
+        values.append(max(0, 100 - int(claude["weekly_used_pct"])))
+
+    if isinstance(codex.get("weekly_remaining_pct"), (int, float)):
+        values.append(int(codex["weekly_remaining_pct"]))
+    elif isinstance(codex.get("weekly_used_pct"), (int, float)):
+        values.append(max(0, 100 - int(codex["weekly_used_pct"])))
+
+    return values
+
+
+def _budget_tier(budget: dict) -> tuple[str, int]:
+    phase = str(os.environ.get("HELIX_PHASE", "")).lower()
+    if phase in {"critical", "hotfix"} or os.environ.get("HELIX_HOTFIX") == "1":
+        return "critical", 5
+
+    recommendations = budget.get("recommendations", [])
+    if any(isinstance(item, dict) and item.get("severity") == "critical" for item in recommendations):
+        return "critical", 5
+
+    remaining_values = _remaining_values(budget)
+    remaining = min(remaining_values) if remaining_values else 100
+    if remaining <= 5:
+        return "critical", 5
+    if remaining <= 30:
+        return "low", 30
+    return "healthy", 15
+
+
+handover = json.loads(os.environ["HANDOVER_JSON"])
+budget = json.loads(os.environ["BUDGET_JSON"])
+carry_count = int(handover.get("files", {}).get("pending_count") or 0)
+budget_tier, interval_minutes = _budget_tier(budget)
+next_action = "skip" if carry_count == 0 else "design_only"
+candidate = None
+if carry_count > 0:
+    candidate = {
+        "kind": "ScheduleWakeup",
+        "after_minutes": interval_minutes,
+        "prompt": "Carry detected. Review handover Next Action and require explicit consent before resuming work.",
+        "note": "PoC only; actual ScheduleWakeup hook wiring is deferred to a later sprint.",
+    }
+
+result = {
+    "carry_count": carry_count,
+    "budget_tier": budget_tier,
+    "interval_minutes": None if carry_count == 0 else interval_minutes,
+    "next_action": next_action,
+    "schedulewakeup_candidate": candidate,
+}
+
+if os.environ.get("JSON_MODE") == "1":
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    sys.exit(0)
+
+print(f"carry_count: {result['carry_count']}")
+print(f"budget_tier: {result['budget_tier']}")
+print(f"interval_minutes: {result['interval_minutes']}")
+print(f"next_action: {result['next_action']}")
+if candidate:
+    print(f"schedulewakeup_candidate: {candidate['kind']} +{candidate['after_minutes']}m")
+else:
+    print("schedulewakeup_candidate: none")
+PY

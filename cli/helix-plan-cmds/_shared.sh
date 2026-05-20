@@ -6,6 +6,8 @@ HELIX_CODEX="${HELIX_CODEX:-$SCRIPT_DIR/helix-codex}"
 REVIEW_SCHEMA="$SCRIPT_DIR/schemas/review-output.schema.json"
 PLAN_LINT="$SCRIPT_DIR/lib/plan_lint.py"
 PLAN_VALIDATOR="$SCRIPT_DIR/lib/plan_validator.py"
+DEPS_HELPER="${DEPS_HELPER:-$SCRIPT_DIR/lib/plan_deps_helper.py}"
+GENERATES_HELPER="${GENERATES_HELPER:-$SCRIPT_DIR/lib/plan_deps_helper.py}"
 
 ensure_dirs() {
   mkdir -p "$PLAN_DIR" "$MINI_PLAN_DIR" "$REVIEW_DIR"

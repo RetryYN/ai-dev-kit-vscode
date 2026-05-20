@@ -18,7 +18,7 @@ Proposed (2026-05-20、後追い snapshot — PLAN-087 実装済の L2 凍結)
 ## Related
 
 - PLAN-087-design-doc-web-search-guardrail (実装 PLAN、本 ADR が L2 凍結する)
-- PLAN-094-existing-retrofit-v2-revision (retrofit master、§4.1 に本 ADR の context 記載)
+- PLAN-100-existing-retrofit-v2-revision (retrofit master、§4.1 に本 ADR の context 記載)
 - ADR-025-v5-framework-core-decision (V5 framework 本体、要素 #11 ADR snapshot 必須化ルール)
 - PLAN-085-cutover-staging-rehearsal (本ガードレール試行運用の起点)
 - PLAN-086-rollback-fault-injection-drill (同上)
@@ -114,4 +114,4 @@ HELIX 運用において、設計 doc (ADR / PLAN / spec) を新規起票・大�
 | Phase 3 | helix-gate G2/G3 advisory gate + helix-doctor check | 22ce096 | 完了 (advisory) |
 | Phase 4 (carry) | helix-gate fail-close 化 (PLAN-089 §Phase 2 待ち) | - | PLAN-089 carry |
 
-**本 ADR 起票後**: PLAN-087 frontmatter への `related_adr: [ADR-021]` 追加 + PLAN-087 本文への `## L2 凍結 (ADR-021 snapshot)` section 追加は PLAN-094 Phase 2 (別 session) で実施する。
+**本 ADR 起票後**: PLAN-087 frontmatter への `related_adr: [ADR-021]` 追加 + PLAN-087 本文への `## L2 凍結 (ADR-021 snapshot)` section 追加は PLAN-100 Phase 2 (別 session) で実施する。

@@ -95,7 +95,7 @@ HELIX V2 時点での知識・実行制御の管理状況:
 - HELIX_CORE.md §Sprint Plan 標準構造 (8 ステップ) を workflows/l4-sprint-workflow.yaml として宣言的に表現することで、機械実行可能な形式に昇格できる
 - 3 層の責務分離により「知識の更新 (スキル層)」「実行順序の変更 (ワークフロー層)」「ガードレール強度の変更 (ハーネス層)」が独立して可能になる
 
-**既存 SKILL_MAP との関係**: 補完関係 (競合しない)。SKILL_MAP = スキルの知識定義、ワークフロー層 = スキルの組み合わせ順序。SKILL_MAP に 107 skills を追加・削除することはしない (デグレ禁止)。derived_from_failures メタデータ追加は PLAN-094 retrofit 担当。
+**既存 SKILL_MAP との関係**: 補完関係 (競合しない)。SKILL_MAP = スキルの知識定義、ワークフロー層 = スキルの組み合わせ順序。SKILL_MAP に 107 skills を追加・削除することはしない (デグレ禁止)。derived_from_failures メタデータ追加は PLAN-100 retrofit 担当。
 
 ### 決定 2: エスカレーション 3 段階の採用
 
@@ -164,7 +164,7 @@ HELIX V2 時点での知識・実行制御の管理状況:
 ### Negative
 
 1. **DSL 設計コスト**: workflows/*.yaml / harness/*.yaml の DSL を設計・実装するコストが発生する (Phase 1-2 で対応)
-2. **既存 SKILL_MAP retrofit 必要**: derived_from_failures メタデータ追加は PLAN-094 で別途 retrofit が必要。本 ADR 範囲外
+2. **既存 SKILL_MAP retrofit 必要**: derived_from_failures メタデータ追加は PLAN-100 で別途 retrofit が必要。本 ADR 範囲外
 3. **レビュー注入の人間負荷管理**: L2 (council) / L3 (human) エスカレーションが増加した場合、PO の review 負荷が高まる可能性。閾値設計 (§決定 3) で頻度を抑制する
 
 ### Risks

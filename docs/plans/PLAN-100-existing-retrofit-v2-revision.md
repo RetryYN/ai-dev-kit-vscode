@@ -1,13 +1,13 @@
 ---
-plan_id: PLAN-094
-title: "PLAN-094: 既存 PLAN-001〜090 retrofit + V2 全面見直し + ADR-021〜024 snapshot 後追い起票"
+plan_id: PLAN-100
+title: "PLAN-100: 既存 PLAN-001〜090 retrofit + V2 全面見直し + ADR-021〜024 snapshot 後追い起票"
 layer: cross
 kind: retrofit
 status: draft
 size: L
 drive: be
 created: 2026-05-20
-revised: 2026-05-20
+revised: "2026-05-21 (PLAN-094 → PLAN-100 リネーム、PLAN-099 完了後着手の後段化、V5 framework 着手 scope は PLAN-091〜099 に限定)"
 owner: PM
 agent_slots:
   - role: pm-advisor
@@ -46,6 +46,7 @@ dependencies:
   requires:
     - PLAN-091
     - PLAN-MM-001
+    - PLAN-099-autonomous-runtime-framework-5layer
   blocks:
     - PLAN-097-abstraction-layer-escalation
 related_adr:
@@ -69,19 +70,19 @@ related_docs:
   - helix/HELIX_CORE.md
 ---
 
-# PLAN-094: 既存 PLAN-001〜090 retrofit + V2 全面見直し + ADR-021〜024 snapshot 後追い起票
+# PLAN-100: 既存 PLAN-001〜090 retrofit + V2 全面見直し + ADR-021〜024 snapshot 後追い起票
 
 > **kind**: retrofit (既存 doc を V5 framework 新規約に合わせる更新)
 > **layer**: cross (PLAN-001〜090 全範囲 + V2 doc 全体に横断影響)
 > **drive**: be (CLI / framework 実装中心)
 > **本 PLAN の役割**: PLAN ⊃ ADR レイヤー併存の修正救済 (PLAN-087〜090 の L2 凍結 ADR snapshot 後追い起票) + PLAN-001〜090 frontmatter retrofit 計画 + V2 全面見直し計画。
-> **重要制約**: 本 PLAN 内 §4 は PLAN-094A〜D に分割しない。§4.1〜§4.4 の内部構造として管理する。ADR-021〜024 は各独立 file で起票する。
+> **重要制約**: 本 PLAN 内 §4 は PLAN-100A〜D に分割しない。§4.1〜§4.4 の内部構造として管理する。ADR-021〜024 は各独立 file で起票する。
 
 ---
 
 ## §0. 本 PLAN の位置付け
 
-本 PLAN は **V5 framework Layer A (工程・ドキュメント運用ルール整備) の retrofit 担当**。PLAN-MM-001 §6 の依存グラフで「PLAN-094 ↔ ADR-021/022/023/024」として位置付けられており、以下の 3 責務を持つ:
+本 PLAN は **V5 framework Layer A (工程・ドキュメント運用ルール整備) の retrofit 担当**。PLAN-MM-001 §6 の依存グラフで「PLAN-100 ↔ ADR-021/022/023/024」として位置付けられており、以下の 3 責務を持つ:
 
 1. **ADR snapshot 後追い起票** (§4): PLAN-087〜090 が L2 大局判断を含むにも関わらず ADR snapshot 不在だった問題を救済する (HELIX レイヤー併存違反の修正)。本 session で ADR-021〜024 を独立 file として起票する。
 2. **PLAN-001〜090 frontmatter retrofit 計画** (§5): 既存 PLAN 全 90 件に V5 framework 語彙 (kind / layer / drive / dependencies / agent_slots / generates) を追加する計画を立てる。実施は別 session。
@@ -159,9 +160,9 @@ docs/v2/ 配下の V2 doc (CONCEPT.md / L1-REQUIREMENTS.md / L2-MASTER.md) は V
 
 ## §4. PLAN-087〜090 L2 凍結 ADR snapshot 後追い起票 (本 session で完遂)
 
-PLAN-087〜090 の PLAN tree 内に L2 大局判断が含まれるにも関わらず ADR snapshot が不在だった問題を修正する。本 §4 は PLAN-094A〜D には分割しない。§4.1〜§4.4 の内部セクション構造として管理する。
+PLAN-087〜090 の PLAN tree 内に L2 大局判断が含まれるにも関わらず ADR snapshot が不在だった問題を修正する。本 §4 は PLAN-100A〜D には分割しない。§4.1〜§4.4 の内部セクション構造として管理する。
 
-**起票方針**: 各 ADR は独立 file (docs/adr/ADR-021〜024-*.md) として起票し、PLAN-087〜090 ↔ ADR-021〜024 の双方向 reference を確立する。PLAN-087〜090 本体への ## L2 凍結 (ADR snapshot) section 追加は別 session (PLAN-094 Phase 2)。
+**起票方針**: 各 ADR は独立 file (docs/adr/ADR-021〜024-*.md) として起票し、PLAN-087〜090 ↔ ADR-021〜024 の双方向 reference を確立する。PLAN-087〜090 本体への ## L2 凍結 (ADR snapshot) section 追加は別 session (PLAN-100 Phase 2)。
 
 ---
 
@@ -368,7 +369,7 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 
 | Phase | 内容 | 実施 session | 担当 | 完了条件 |
 |---|---|---|---|---|
-| **P1** | 本 task: ADR-021〜024 独立 file 起票 (本 session 完遂) | 本 session | pmo-sonnet | ADR-021〜024 全 4 file 存在 + PLAN-094 ↔ ADR 双方向 reference 確立 |
+| **P1** | 本 task: ADR-021〜024 独立 file 起票 (本 session 完遂) | 本 session | pmo-sonnet | ADR-021〜024 全 4 file 存在 + PLAN-100 ↔ ADR 双方向 reference 確立 |
 | **P2** | 別 session: PLAN-087〜090 への `## L2 凍結 (ADR snapshot)` section 追加 + related_adr frontmatter 追加 | 別 session | pmo-sonnet | PLAN-087〜090 ↔ ADR-021〜024 双方向 trace 完全確立 |
 | **P3** | 別 session: PLAN-001〜090 全件 frontmatter retrofit (§5 計画実施) | 別 session | docs × 4 並列 | `helix plan validate --all --strict` が全件 PASS |
 | **P4** | 別 session: V2 全面見直し (§6〜§7 計画実施) | 別 session | pmo-sonnet + Opus | L2-MASTER §0 更新 + CONCEPT V5 section 追加 + V5-plan-outlines.md 18 要素版 |
@@ -396,7 +397,7 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 3. docs/adr/ADR-023-gate-fail-close-staged-adoption-snapshot.md が存在する
 4. docs/adr/ADR-024-continueonblock-active-guidance-loop-snapshot.md が存在する
 5. 各 ADR に Related: PLAN-08N (対応 PLAN) が記載されている
-6. 本 PLAN-094 frontmatter に generates / related_adr / dependencies が完備されている
+6. 本 PLAN-100 frontmatter に generates / related_adr / dependencies が完備されている
 7. デグレ禁止 (§9) を侵していないことを git diff で確認
 
 ### Phase 2〜4 (別 session) DoD
@@ -413,14 +414,14 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 
 | Artifact | 状態 | ファイル |
 |---|---|---|
-| ① 設計 (本 PLAN) | 存在 (本 file) | docs/plans/PLAN-094-existing-retrofit-v2-revision.md |
+| ① 設計 (本 PLAN) | 存在 (本 file) | docs/plans/PLAN-100-existing-retrofit-v2-revision.md |
 | ② 実装コード | Phase 3〜4 以降 (別 session) | cli/helix-plan retrofit / PLAN-001〜090 frontmatter / V2 docs |
-| ③ テスト設計 | 未起票 (別 session) | docs/v2/L4-test-design/PLAN-094-retrofit-test-design.md (予定) |
+| ③ テスト設計 | 未起票 (別 session) | docs/v2/L4-test-design/PLAN-100-retrofit-test-design.md (予定) |
 | ④ テストコード | 未着手 (別 session) | cli/lib/tests/test_plan_retrofit.py (予定) |
 
 **双方向 reference**:
 - 本 PLAN → ADR-021〜024: frontmatter `related_adr` + §4.1〜§4.4
-- ADR-021〜024 → 本 PLAN: 各 ADR の `Related` section に `PLAN-094 (retrofit master)` を記載
+- ADR-021〜024 → 本 PLAN: 各 ADR の `Related` section に `PLAN-100 (retrofit master)` を記載
 - 本 PLAN → PLAN-087〜090: frontmatter `related_plans`
 - PLAN-087〜090 → 本 PLAN + ADR-021〜024: Phase 2 (別 session) で双方向 trace 確立
 
@@ -430,7 +431,7 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 
 ### 前段 PLAN (requires)
 - PLAN-091: frontmatter 語彙正本 (§5 retrofitルール の根拠)
-- PLAN-MM-001: 親設計、PLAN-094 の起票元 §6 PLAN-094 参照
+- PLAN-MM-001: 親設計、PLAN-100 の起票元 §6 PLAN-100 参照
 
 ### 後段 PLAN (blocks)
 - PLAN-097: 抽象化層設計は V2 全面見直し (§6) 完了後に整合確認が必要
