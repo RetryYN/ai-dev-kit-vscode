@@ -61,7 +61,7 @@ acceptance:
   - fake PLAN.md fixture を使った test が parse / upsert / cycle detection を検証すること
   - 既存 helix_db.py v33 schema および既存 hook に一切変更を加えないこと (デグレ禁止)
   - PLAN-090 active guidance loop pattern 準拠 (decision: continue + systemMessage 結果通知) を hook 内で実装すること
-test_design_ref: docs/v2/L4-test-design/PLAN-092-unit-test-design.md (起票予定)
+test_design_ref: docs/v2/L4-test-design/PLAN-092-unit-test-design.md
 ---
 
 # PLAN-092: PostToolUse 自動登録 + helix.db v35 schema (V5 Layer B)
@@ -578,8 +578,8 @@ Sprint Exit 前に以下を全通過すること:
 
 双方向 trace:
 - 本設計 → ② 実装: `generates` frontmatter に明示
-- 本設計 → ③ テスト設計: `test_design_ref` frontmatter に明示 (起票後に更新)
-- ③ テスト設計 → 本設計: テスト設計 doc に「対象設計: PLAN-092 §5〜§9」明示予定
+- 本設計 → ③ テスト設計: `test_design_ref` frontmatter で `docs/v2/L4-test-design/PLAN-092-unit-test-design.md` を明示 (Sprint .1a 着手前に起票完了、V-model TDD pair freeze 遵守)
+- ③ テスト設計 → 本設計: `docs/v2/L4-test-design/PLAN-092-unit-test-design.md` §0 で「対応 ① 設計 doc: PLAN-092 §5 §7」明示済
 - ④ テストコード → ③ テスト設計: test docstring に「DoD 検証: U-092-001〜010」明示予定
 
 ---
