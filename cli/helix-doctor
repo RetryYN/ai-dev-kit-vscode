@@ -717,6 +717,88 @@ PY
   WARN=$((WARN + 1))
 }
 
+run_doctor_plan_helper() {
+  local helper_name="$1"
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_DOCTOR_HELPER="$helper_name" HELIX_DB_PATH_VALUE="$DB_PATH" python3 - <<'PY'
+import json
+import os
+import sqlite3
+import sys
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+import doctor_plan_checks
+
+conn = sqlite3.connect(os.environ["HELIX_DB_PATH_VALUE"])
+conn.row_factory = sqlite3.Row
+try:
+    rows = getattr(doctor_plan_checks, os.environ["HELIX_DOCTOR_HELPER"])(conn)
+    print(json.dumps(rows, ensure_ascii=False))
+finally:
+    conn.close()
+PY
+}
+
+summarize_doctor_plan_rows() {
+  local report_json="$1"
+  python3 - <<'PY' "$report_json"
+import json
+import sys
+
+rows = json.loads(sys.argv[1])
+warn_rows = [row for row in rows if row.get("status") in {"warning", "error"}]
+
+def summarize(row):
+    plan_id = row.get("plan_id") or "-"
+    if row.get("artifact_path"):
+        return f"{plan_id}:{row['artifact_path']} ({row.get('reason', '-')})"
+    if row.get("cycle"):
+        return f"{plan_id}:{' -> '.join(row['cycle'])}"
+    if row.get("missing_tables"):
+        return f"missing tables: {', '.join(row['missing_tables'])}"
+    return f"{plan_id} ({row.get('reason', '-')})"
+
+preview = "; ".join(summarize(row) for row in warn_rows[:3])
+print(len(rows))
+print(len(warn_rows))
+print(preview)
+PY
+}
+
+check_plan_advisory() {
+  local label="$1"
+  local helper_name="$2"
+  local report_json
+  local summary
+  local total_count
+  local warn_count
+  local preview
+
+  if ! report_json="$(run_doctor_plan_helper "$helper_name" 2>&1)"; then
+    echo "  △ $label"
+    printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_doctor_plan_rows "$report_json")"
+  total_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  warn_count="$(printf '%s\n' "$summary" | sed -n '2p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '3p')"
+
+  if [[ "$warn_count" == "0" ]]; then
+    echo "  ✓ $label"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ $label"
+  echo "    warnings: $warn_count / rows: $total_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + warn_count))
+}
+
 echo ""
 echo "[必須依存]"
 check "python3" "command -v python3"
@@ -774,6 +856,12 @@ echo ""
 echo "[V-model 4 artifact]"
 check_vmodel_4artifact
 check_design_doc_reference_sections
+
+echo ""
+echo "[PLAN registry advisory]"
+check_plan_advisory "plan drift advisory" "run_check_plan_drift"
+check_plan_advisory "plan cycle advisory" "run_check_plan_cycle"
+check_plan_advisory "plan ADR snapshot advisory" "run_check_plan_adr_snapshot"
 
 echo ""
 echo "[subagent + sprint 機械化 (PLAN-082)]"

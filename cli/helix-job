@@ -10,6 +10,7 @@ usage() {
 
 サブコマンド:
   enqueue   ジョブを登録
+  pop       次のジョブを取得（P0 guard 付き）
   worker    ジョブ worker を起動（既定で stale running を復旧）
   status    ジョブ状態を表示
   cancel    ジョブをキャンセル
@@ -23,7 +24,17 @@ CMD="${1:-help}"
 shift 2>/dev/null || true
 
 case "$CMD" in
-  enqueue|worker|status|cancel|retry|requeue-stale|list)
+  pop)
+    exec python3 "$SCRIPT_DIR/lib/job_p0_guard.py" \
+      --db-path "$DB_PATH" \
+      pop "$@"
+    ;;
+  worker)
+    exec python3 "$SCRIPT_DIR/lib/job_p0_guard.py" \
+      --db-path "$DB_PATH" \
+      worker "$@"
+    ;;
+  enqueue|status|cancel|retry|requeue-stale|list)
     exec python3 "$SCRIPT_DIR/lib/job_queue_helper.py" \
       --db-path "$DB_PATH" \
       "$CMD" "$@"

@@ -9,6 +9,26 @@
             "timeout": 5,
             "statusMessage": "Loading HELIX framework...",
             "blockOnFailure": true
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-history-injection.sh",
+            "timeout": 5,
+            "statusMessage": "Injecting HELIX resume bundle...",
+            "blockOnFailure": false
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/userpromptsubmit-context-bundle.sh",
+            "timeout": 5,
+            "statusMessage": "Injecting HELIX prompt bundle...",
+            "blockOnFailure": false
           }
         ]
       }

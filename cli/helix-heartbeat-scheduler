@@ -6,10 +6,10 @@ usage() {
   cat <<'EOF'
 使い方: helix-heartbeat-scheduler [--json]
 
-PoC:
+Adaptive heartbeat:
   - helix handover status --json から carry 数を取得
   - helix budget status --json から budget tier を推定
-  - ScheduleWakeup 候補を設計情報として返す
+  - bg task / time window を確認して ScheduleWakeup 候補を返す
 EOF
 }
 
@@ -47,7 +47,9 @@ JSON_MODE="$json_mode" \
 python3 - <<'PY'
 import json
 import os
+import re
 import sys
+from pathlib import Path
 
 
 def _remaining_values(budget: dict) -> list[int]:
@@ -86,25 +88,76 @@ def _budget_tier(budget: dict) -> tuple[str, int]:
     return "healthy", 15
 
 
+def _truthy(name: str) -> bool:
+    return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _bg_task_active() -> bool:
+    return any(
+        _truthy(name)
+        for name in (
+            "HELIX_BG_TASK_ACTIVE",
+            "HELIX_BACKGROUND_TASK_ACTIVE",
+            "HELIX_RUN_IN_BACKGROUND_ACTIVE",
+        )
+    )
+
+
+def _within_time_window() -> bool:
+    disabled = {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+    value = str(os.environ.get("HELIX_WITHIN_TIME_WINDOW", "1")).strip().lower()
+    return value not in disabled
+
+
+def _next_action_text(project_root: Path) -> str:
+    handover_path = project_root / ".helix" / "handover" / "CURRENT.md"
+    try:
+        text = handover_path.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+    match = re.search(r"## Next Action \(Codex 向け\)\n(.*?)(?:\n## |\Z)", text, re.S)
+    if not match:
+        return ""
+    lines = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+    return " / ".join(lines[:1])
+
+
 handover = json.loads(os.environ["HANDOVER_JSON"])
 budget = json.loads(os.environ["BUDGET_JSON"])
 carry_count = int(handover.get("files", {}).get("pending_count") or 0)
 budget_tier, interval_minutes = _budget_tier(budget)
-next_action = "skip" if carry_count == 0 else "design_only"
+bg_task_active = _bg_task_active()
+within_time_window = _within_time_window()
+project_root = Path(os.environ.get("HELIX_PROJECT_ROOT") or os.getcwd())
+next_action_text = _next_action_text(project_root)
+should_schedule = carry_count > 0 and not bg_task_active and within_time_window
+next_action = "design_only" if should_schedule else "skip"
 candidate = None
-if carry_count > 0:
+if should_schedule:
+    prompt = "Carry detected. Review handover Next Action and require explicit consent before resuming work."
+    if next_action_text:
+        prompt = f"Carry detected. Next Action: {next_action_text}. Require explicit consent before resuming work."
     candidate = {
         "kind": "ScheduleWakeup",
         "after_minutes": interval_minutes,
-        "prompt": "Carry detected. Review handover Next Action and require explicit consent before resuming work.",
-        "note": "PoC only; actual ScheduleWakeup hook wiring is deferred to a later sprint.",
+        "prompt": prompt,
+        "reason": budget_tier,
     }
 
 result = {
     "carry_count": carry_count,
+    "bg_task_active": bg_task_active,
+    "within_time_window": within_time_window,
     "budget_tier": budget_tier,
-    "interval_minutes": None if carry_count == 0 else interval_minutes,
+    "interval_minutes": None if not should_schedule else interval_minutes,
     "next_action": next_action,
+    "next_action_text": next_action_text,
+    "should_schedule": should_schedule,
     "schedulewakeup_candidate": candidate,
 }
 
