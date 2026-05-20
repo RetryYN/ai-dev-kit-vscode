@@ -1,4 +1,4 @@
-"""DoD 検証: PLAN-092-unit-test-design.md U-092-001〜005
+"""DoD 検証: PLAN-092-unit-test-design.md U-092-001〜010
 
 PLAN-092 Sprint .1a の frontmatter parse / v35 upsert を固定する。
 """
@@ -108,6 +108,24 @@ def _connect_memory_db() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     v35_plan_registry.migrate_v34_to_v35(conn)
     return conn
+
+
+def _insert_plan_registry_row(conn: sqlite3.Connection, plan_id: str) -> None:
+    conn.execute(
+        """
+        INSERT INTO plan_registry (
+            plan_id, title, kind, layer, drive, status, frontmatter_json, doc_path
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (plan_id, plan_id, "impl", "L4", "be", "draft", json.dumps({"plan_id": plan_id}), f"docs/plans/{plan_id}.md"),
+    )
+
+
+def _insert_dependency(conn: sqlite3.Connection, plan_id: str, dep_plan_id: str, dep_type: str = "requires") -> None:
+    conn.execute(
+        "INSERT INTO plan_dependencies (plan_id, dep_type, dep_plan_id) VALUES (?, ?, ?)",
+        (plan_id, dep_type, dep_plan_id),
+    )
 
 
 def test_parse_frontmatter_populates_all_supported_fields(tmp_path: Path, capsys) -> None:
@@ -291,3 +309,90 @@ def test_upsert_plan_updates_registry_and_replaces_related_rows() -> None:
     assert "experimental-role" in selected_roles
     assert "cli/lib/tests/test_plan_parser.py" in selected_artifact_paths
     assert "cli/lib/migrations/v35_plan_registry.py" not in selected_artifact_paths
+
+
+def test_upsert_plan_logs_parse_failure_without_mutating_registry() -> None:
+    conn = _connect_memory_db()
+    baseline = _sample_frontmatter()
+    try:
+        plan_parser.upsert_plan(conn, baseline, "docs/plans/PLAN-092-sample.md")
+        before_count = conn.execute("SELECT COUNT(*) FROM plan_registry").fetchone()[0]
+        before_row = dict(conn.execute("SELECT * FROM plan_registry WHERE plan_id = ?", ("PLAN-092",)).fetchone())
+        result = plan_parser.upsert_plan(conn, None, "docs/plans/PLAN-092-invalid.md")
+        after_count = conn.execute("SELECT COUNT(*) FROM plan_registry").fetchone()[0]
+        after_row = dict(conn.execute("SELECT * FROM plan_registry WHERE plan_id = ?", ("PLAN-092",)).fetchone())
+        failure_row = conn.execute("SELECT failure_type, context FROM failure_log").fetchone()
+    finally:
+        conn.close()
+
+    assert result["status"] == "parse_error"
+    assert before_count == after_count == 1
+    assert before_row == after_row
+    assert failure_row["failure_type"] == "parse_error"
+    assert "PLAN-092-invalid.md" in failure_row["context"]
+
+
+def test_upsert_plan_accepts_agent_slots_roles_outside_role_map() -> None:
+    conn = _connect_memory_db()
+    frontmatter = _sample_frontmatter()
+    frontmatter["agent_slots"] = [{"role": "se"}, {"role": "experimental-role"}]
+    try:
+        result = plan_parser.upsert_plan(conn, frontmatter, "docs/plans/PLAN-092-sample.md")
+        roles = {row["role"] for row in conn.execute("SELECT role FROM plan_agent_slots").fetchall()}
+        failure_log_count = conn.execute("SELECT COUNT(*) FROM failure_log").fetchone()[0]
+    finally:
+        conn.close()
+
+    assert result["counts"]["agent_slots"] == 2
+    assert roles == {"se", "experimental-role"}
+    assert failure_log_count == 0
+
+
+def test_detect_cycle_returns_empty_list_for_acyclic_graph() -> None:
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            for plan_id in ("A", "B", "C", "D"):
+                _insert_plan_registry_row(conn, plan_id)
+            _insert_dependency(conn, "A", "B")
+            _insert_dependency(conn, "B", "C")
+            _insert_dependency(conn, "A", "D")
+            _insert_dependency(conn, "C", "A", "blocks")
+        cycle = plan_parser.detect_cycle(conn, "A")
+    finally:
+        conn.close()
+
+    assert cycle == []
+
+
+def test_detect_cycle_finds_two_node_cycle() -> None:
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            for plan_id in ("A", "B"):
+                _insert_plan_registry_row(conn, plan_id)
+            _insert_dependency(conn, "A", "B")
+            _insert_dependency(conn, "B", "A")
+        cycle = plan_parser.detect_cycle(conn, "A")
+    finally:
+        conn.close()
+
+    assert cycle == ["A", "B", "A"]
+
+
+def test_detect_cycle_finds_three_node_cycle_while_ignoring_blocks_edges() -> None:
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            for plan_id in ("A", "B", "C", "D"):
+                _insert_plan_registry_row(conn, plan_id)
+            _insert_dependency(conn, "A", "B")
+            _insert_dependency(conn, "B", "C")
+            _insert_dependency(conn, "C", "A")
+            _insert_dependency(conn, "A", "D", "parent")
+            _insert_dependency(conn, "D", "B", "blocks")
+        cycle = plan_parser.detect_cycle(conn, "A")
+    finally:
+        conn.close()
+
+    assert cycle == ["A", "B", "C", "A"]

@@ -281,9 +281,40 @@ def upsert_plan(conn, frontmatter: dict | None, doc_path: str) -> dict:
 
 
 def detect_cycle(conn, plan_id: str) -> list[str]:
-    """Sprint .1b で実装予定。Sprint .1a は stub として空 list を返す。"""
-    del conn, plan_id
-    return []
+    """dependencies graph から directed cycle を検出して循環 path を返す。"""
+    rows = conn.execute(
+        """
+        SELECT plan_id, dep_plan_id
+        FROM plan_dependencies
+        WHERE dep_type IN ('requires', 'parent')
+        ORDER BY id
+        """
+    ).fetchall()
+    adjacency: dict[str, list[str]] = {}
+    for source_plan_id, dep_plan_id in rows:
+        adjacency.setdefault(str(source_plan_id), []).append(str(dep_plan_id))
+
+    visited: set[str] = set()
+    rec_stack: set[str] = set()
+    path: list[str] = []
+
+    def dfs(node: str) -> list[str]:
+        visited.add(node)
+        rec_stack.add(node)
+        path.append(node)
+        for neighbor in adjacency.get(node, []):
+            if neighbor not in visited:
+                cycle = dfs(neighbor)
+                if cycle:
+                    return cycle
+            elif neighbor in rec_stack:
+                cycle_start = path.index(neighbor)
+                return path[cycle_start:] + [neighbor]
+        path.pop()
+        rec_stack.remove(node)
+        return []
+
+    return dfs(plan_id) if plan_id else []
 
 
 def _resolve_db_path(filepath: str) -> Path:
