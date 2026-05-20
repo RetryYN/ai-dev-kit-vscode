@@ -34,7 +34,7 @@ generates:
 dependencies:
   parent: PLAN-MM-001
   requires:
-    - PLAN-091-v5-framework-core (kind 11 種で recovery 定義の前提)
+    - PLAN-091
     - PLAN-093-plan-drift-detection-curator (helix doctor 拡張統合の前提)
     - PLAN-MM-001-v5-framework-master-plan
   blocks: []

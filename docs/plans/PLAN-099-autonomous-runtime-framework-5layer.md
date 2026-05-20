@@ -44,7 +44,7 @@ generates:
 dependencies:
   parent: PLAN-MM-001
   requires:
-    - "PLAN-091 (V5 framework 本体: frontmatter 語彙・agent_slots・generates の正本定義)"
+    - PLAN-091
     - PLAN-MM-001
     - PLAN-090 (PostToolUse continueOnBlock / active guidance loop pattern 前駆)
   blocks: []

@@ -47,6 +47,13 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | impl-sonnet | claude-sonnet-4-6 | L4 | Sonnet write-enabled 実装（Codex 上限時の代替経路） |
 | pm-advisor | claude-opus-4-7 | 全フェーズ | PM 級難判断のアドバイザー（read-only、Opus）。チャット PM (Opus / Sonnet 問わず) が大局判断で迷ったとき召喚 |
 | tl-advisor | gpt-5.5 | 全フェーズ | TL 級難判断のアドバイザー（read-only）。チャット PM / 実装担当が設計・契約・技術選択で迷ったとき召喚 |
+| pmo-helix-explorer | claude-sonnet-4-6 | 横断 | HELIX framework 内資産詳細探索 (skills/templates/cli/docs) |
+| pmo-helix-scout | claude-haiku-4-5-20251001 | 横断 | HELIX 内軽量検索・候補列挙 (1 hop 目) |
+| pmo-project-explorer | claude-sonnet-4-6 | 横断 | プロジェクト内資産詳細探索 (code/docs/config) |
+| pmo-project-scout | claude-haiku-4-5-20251001 | 横断 | プロジェクト内軽量検索・候補列挙 (1 hop 目) |
+| pmo-tech-docs | claude-sonnet-4-6 | 横断 | 設計手法・概念の外部精読 |
+| pmo-tech-fork | claude-sonnet-4-6 | 横断 | OSS/plugin 探索・転用判断 |
+| pmo-tech-news | claude-sonnet-4-6 | 横断 | 最新 Tech 動向 sweep（週次想定） |
 
 ## 共通ルール
 

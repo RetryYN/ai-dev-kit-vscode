@@ -41,8 +41,8 @@ generates:
 dependencies:
   parent: PLAN-MM-001
   requires:
+    - PLAN-091
     - PLAN-093 (helix doctor + Curator)
-    - PLAN-091-v5-framework-core
     - PLAN-092-posttooluse-plan-auto-register
     - PLAN-MM-001
   blocks: []

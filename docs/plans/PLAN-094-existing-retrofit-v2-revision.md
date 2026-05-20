@@ -44,7 +44,7 @@ generates:
 dependencies:
   parent: PLAN-MM-001
   requires:
-    - PLAN-091-v5-framework-core
+    - PLAN-091
     - PLAN-MM-001
   blocks:
     - PLAN-097-abstraction-layer-escalation

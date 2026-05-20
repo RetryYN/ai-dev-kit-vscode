@@ -34,8 +34,8 @@ generates:
 dependencies:
   parent: PLAN-MM-001
   requires:
+    - PLAN-091
     - PLAN-094 (既存 retrofit、SKILL_MAP 整合)
-    - PLAN-091-v5-framework-core
     - PLAN-MM-001
     - PLAN-093-plan-drift-detection-curator
   blocks: []

@@ -1,5 +1,6 @@
 cmd_lint() {
   local duplicates=0
+  local v5=0
   local plan_file=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -9,6 +10,10 @@ cmd_lint() {
         ;;
       --duplicates)
         duplicates=1
+        shift
+        ;;
+      --v5)
+        v5=1
         shift
         ;;
       -*)
@@ -31,8 +36,18 @@ cmd_lint() {
     exit 1
   fi
 
+  if [[ "$duplicates" -eq 1 && "$v5" -eq 1 ]]; then
+    echo "エラー: --v5 と --duplicates は同時に指定できません" >&2
+    exit 1
+  fi
+
   if [[ "$duplicates" -eq 1 ]]; then
     python3 "$PLAN_LINT" --duplicates "$plan_file"
+    return
+  fi
+
+  if [[ "$v5" -eq 1 ]]; then
+    python3 "$PLAN_VALIDATOR" "$plan_file"
     return
   fi
 
