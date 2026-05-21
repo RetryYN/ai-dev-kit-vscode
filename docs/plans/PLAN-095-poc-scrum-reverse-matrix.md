@@ -9,7 +9,6 @@ drive: scrum
 created: 2026-05-20
 revised: 2026-05-20
 owner: PM
-workflow_phase: "S0-S4 + R0-R4 cross-layer"
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 大局判断・matrix 設計最終承認・P0 境界管理"
@@ -42,8 +41,8 @@ dependencies:
   parent: PLAN-MM-001
   requires:
     - PLAN-091
-    - PLAN-093 (helix doctor + Curator)
-    - PLAN-092-posttooluse-plan-auto-register
+    - PLAN-093
+    - PLAN-092
     - PLAN-MM-001
   blocks: []
 related_adr:

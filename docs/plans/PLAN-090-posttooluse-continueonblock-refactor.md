@@ -1,10 +1,30 @@
 ---
 plan_id: PLAN-090
 title: "PLAN-090: PostToolUse continueOnBlock refactor"
+kind: refactor
 layer: L4
+drive: be
 status: Draft
 created: 2026-05-19
 owner: PM
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック"
+  - role: se
+    slot_label: "SE — PostToolUse hook decision:block 採用 + active guidance loop"
+generates:
+  - artifact_path: .claude/hooks/posttooluse-design-doc-web-search-revert.sh
+    artifact_type: hook
+  - artifact_path: .claude/settings.json
+    artifact_type: json_config
+  - artifact_path: cli/helix-gate
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 depends_on:
   - PLAN-087
   - PLAN-089

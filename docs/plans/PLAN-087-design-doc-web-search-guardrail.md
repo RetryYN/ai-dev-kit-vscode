@@ -1,15 +1,38 @@
 ---
 plan_id: PLAN-087
 title: "PLAN-087: 設計 doc 作成時の Web 検索 + OSS 探索ガードレール工程組み込み"
+kind: impl
 layer: L2
+drive: be
 status: draft
 size: M
-drive: be
 created: 2026-05-19
 revised: 2026-05-19
 owner: PM
 phases: L1, L2, L3, L4
 gates: G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — PreToolUse hook fail-close + G2/G3 audit 拡張"
+  - role: docs
+    slot_label: "Docs — template 必須 section + ADR snapshot 起草"
+generates:
+  - artifact_path: .claude/hooks/pretooluse-design-doc-web-search-guard.sh
+    artifact_type: hook
+  - artifact_path: docs/templates/adr-template.md
+    artifact_type: template
+  - artifact_path: docs/templates/plan-template.md
+    artifact_type: template
+  - artifact_path: cli/helix-gate
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-085 (ADR/PLAN scope down 再書き直しで本ガードレールを試行運用)
   - PLAN-086 (同上)

@@ -1,15 +1,36 @@
 ---
 plan_id: PLAN-089
 title: "PLAN-089: 設計 doc Web 検索 audit advisory→段階的 fail-close 化"
+kind: impl
 layer: L2
-size: S-M
-status: draft
 drive: be
+status: draft
+size: S-M
 created: 2026-05-19
 revised: 2026-05-19
 owner: PM
 phases: L4
 gates: G2, G3
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: tl-advisor
+    slot_label: "TL — 段階遷移妥当性 adversarial check"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック"
+  - role: se
+    slot_label: "SE — helix-gate fail-close + v33 migration"
+generates:
+  - artifact_path: cli/helix-gate
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/migrations/v33_gate_fail_close.py
+    artifact_type: schema_migration
+  - artifact_path: .claude/hooks/pretooluse-design-doc-web-search-guard.sh
+    artifact_type: hook
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-087
   - PLAN-085

@@ -1,5 +1,5 @@
 ---
-plan_id: PLAN-002B
+plan_id: PLAN-002-b
 title: "PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)"
 kind: impl
 layer: cross

@@ -20,9 +20,9 @@ agent_slots:
     slot_label: "Docs — workflows/ harness/ 骨格 YAML + DSL spec 起草"
 generates:
   - artifact_path: workflows/
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: harness/
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: cli/lib/escalation_engine.py
     artifact_type: python_module
   - artifact_path: cli/lib/demotion_checker.py
@@ -37,7 +37,7 @@ dependencies:
     - PLAN-091
     - PLAN-100
     - PLAN-MM-001
-    - PLAN-093-plan-drift-detection-curator
+    - PLAN-093
   blocks: []
 related_adr:
   - ADR-030-abstraction-layer-escalation-decision

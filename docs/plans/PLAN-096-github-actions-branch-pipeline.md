@@ -22,27 +22,27 @@ agent_slots:
     slot_label: "TL adversarial check — CODEOWNERS 人間承認境界判断・G2/G3 凍結判定"
 generates:
   - artifact_path: .github/workflows/feature.yml
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: .github/workflows/poc.yml
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: .github/workflows/refactor.yml
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: .github/workflows/hotfix.yml
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: .github/pull_request_template.md
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: .github/ISSUE_TEMPLATE/bug_report.md
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: .github/ISSUE_TEMPLATE/feature_request.md
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: .github/ISSUE_TEMPLATE/failure_pattern.md
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: .github/ISSUE_TEMPLATE/design_proposal.md
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: .github/CODEOWNERS
-    artifact_type: github_config
+    artifact_type: config
   - artifact_path: commitlint.config.js
-    artifact_type: workflow_config
+    artifact_type: yaml_config
   - artifact_path: docs/adr/ADR-029-github-actions-branch-pipeline-decision.md
     artifact_type: adr_snapshot
 dependencies:

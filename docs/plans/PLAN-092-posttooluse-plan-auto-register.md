@@ -35,7 +35,7 @@ dependencies:
   parent: PLAN-MM-001
   requires:
     - PLAN-091
-    - PLAN-MM-001-v5-framework-master-plan
+    - PLAN-MM-001
     - PLAN-090-posttooluse-continueonblock-refactor
     - PLAN-087-design-doc-web-search-guardrail
   blocks:

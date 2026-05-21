@@ -1,12 +1,36 @@
 ---
 plan_id: PLAN-088
 title: "PLAN-088: TodoWrite × agent slot framework"
+kind: impl
 layer: L2
+drive: be
 status: draft
 size: S-M
 created: 2026-05-19
 revised: 2026-05-19
 owner: PM
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — helix-todo CLI + v34 migration + PreToolUse prefix check hook"
+  - role: docs
+    slot_label: "Docs — todo_parser 起草"
+generates:
+  - artifact_path: cli/helix-todo
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/todo_parser.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/migrations/v34_todo_entries.py
+    artifact_type: schema_migration
+  - artifact_path: .claude/hooks/pretooluse-todowrite-prefix-check.sh
+    artifact_type: hook
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 depends_on:
   - PLAN-087-design-doc-web-search-guardrail
   - PLAN-089-gate-fail-close-design-doc-web-search-audit

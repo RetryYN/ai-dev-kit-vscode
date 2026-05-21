@@ -2,7 +2,7 @@
 plan_id: PLAN-098
 title: "PLAN-098: リカバリープラン kind 正規化 (recovery template 7 セクション + session 終了前チェックリスト 4 項目 fail-close + helix doctor check_recovery_plan_freshness)"
 layer: cross
-kind: design+impl
+kind: impl
 status: draft
 size: M
 drive: troubleshoot
@@ -30,13 +30,13 @@ generates:
   - artifact_path: cli/lib/helix_doctor.py (拡張 = check_recovery_plan_freshness 追加)
     artifact_type: cli_extension
   - artifact_path: docs/runbook/recovery-plan-usage.md
-    artifact_type: runbook
+    artifact_type: doc_update
 dependencies:
   parent: PLAN-MM-001
   requires:
     - PLAN-091
-    - PLAN-093-plan-drift-detection-curator (helix doctor 拡張統合の前提)
-    - PLAN-MM-001-v5-framework-master-plan
+    - PLAN-093
+    - PLAN-MM-001
   blocks: []
 related_adr: [ADR-031]
 related_plans:
