@@ -471,3 +471,62 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 - feedback_adr_before_plan_violation: PLAN ⊃ ADR レイヤー併存違反発覚 (本 PLAN の直接動機)
 - feedback_design_doc_web_search_required: §3 WebSearch 義務 (ADR-021 の根拠)
 - project_2026_05_20_v5_framework_evolution_recovery: V5 確立過程の全記録
+
+---
+
+## §13. Phase 4 readiness report 反映 (2026-05-22)
+
+### 13.1 readiness report 正本
+
+8 並列 subagent (pdm 3 + pmo 5) + 1 統合 (pdm-innovation-manager + tl-advisor adversarial check) のリサーチ結果を集約:
+
+**正本**: [docs/v2/phase4-readiness-report-2026-05-22.md](../v2/phase4-readiness-report-2026-05-22.md)
+
+### 13.2 V5 framework 18 → 19 要素拡張 (Phase 4 採用分)
+
+tl-advisor 推奨に従い段階採用。詳細は readiness report §2 参照:
+
+- **#22 ADR Decision Graph Registry**: 採用 P0 → 新規 PLAN-101 + ADR-033
+- #19 DORA guard / #20 Multi-agent topology / #23 DCB migration: 部分採用 P1-P2 → 既存 PLAN-091/093 scoped extension
+- #21 IDP export: 不採用 (internal dev tool に過剰)
+
+### 13.3 Phase 4 確定 FR-V5 list (L1-REQUIREMENTS 追加)
+
+§6.2 placeholder を確定 (5 件追加):
+
+- **P0 (Phase 4 同時実装)**: FR-V5-22 (ADR Decision Graph)
+- **P1 (Phase 5 carry)**: FR-V5-19 (Curator rework rate) / FR-V5-20 (agent_slots topology) / FR-V5-MK01 (NSM 指標) / FR-V5-MK02 (Progressive disclosure)
+
+合計 +5 FR、§11 件数 74 → 79 へ訂正 (Sprint 0 補完で +5 = 80 予定 → 本 readiness report で 79 へ調整)。
+
+### 13.4 設計手法 / OSS / Tech news 採用候補 (詳細は readiness report §4-§6)
+
+- 設計手法: MADR 2.1.2 / Event Sourcing upcasting / DMN / Anthropic Skill / GenAI Semantic Conventions
+- OSS: spec-kit / networkx (実装転用) / alembic (思想) / pre-commit (manifest) / LangGraph (思想)
+- Tech news: Claude Code v2.1.140-146 / OWASP MCP poisoning / GPT-5.2-codex / Cursor audit log
+
+### 13.5 marketing 思想 → technical metric 翻訳
+
+SaaS funnel そのまま不採用、internal dev tool 適合の技術指標へ翻訳:
+
+- NSM "carry consumed/session" → `helix metrics nsm` CLI + helix.db `session_carry_metric` table
+- counter-metric 3 軸 (validator failure / ADR snapshot 不在 / WebSearch 0 query) → helix.db で計測可能
+- Bowling pin / Aha moment / Progressive disclosure → CLAUDE.md / SessionStart hook 内部運用語彙限定
+
+### 13.6 Phase 4 着手 5 wave roadmap (§8 P4 詳細化)
+
+| Wave | 内容 | session 数 |
+|---|---|---|
+| Wave 1 | CONCEPT.md V5 section 追加 | 1 |
+| Wave 2 | L1-REQUIREMENTS FR-V5 追加 (P0 1 + P1 4) | 1 |
+| Wave 3 | L2-MASTER §0 範例拡張 + V5-plan-outlines.md 19 要素版 | 1 |
+| Wave 4 (並走可) | drift 補完 (HELIX_CORE / AGENTS / settings.json PreCompact / SKILL_MAP) | 1 |
+| Wave 5 (並行) | 新規 PLAN-101 (ADR Decision Graph) + ADR-033 起票 | 1 |
+
+### 13.7 Phase 4 着手原則 (tl-advisor 推奨、絶対遵守)
+
+1. 段階採用 — V5 一括拡張禁止、Phase 4 は 19 要素のみ
+2. scoped extension — #19/#20/#23 は既存 PLAN 拡張で吸収、新規 PLAN 増やさない
+3. marketing 翻訳 — SaaS 語彙そのまま不採用、internal technical metric 化
+4. simplicity 維持 — CLI/ゲート/文書/ADR の責務境界を保つ
+5. risks 監視 — PLAN-094 空白管理 / metric の目的化 / IDP 外部互換コスト
