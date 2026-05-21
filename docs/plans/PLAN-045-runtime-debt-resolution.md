@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-045
 title: 'PLAN-045（runtime debt 4 件集約解消 - PLAN-044 retro carry 4 件）'
+kind: troubleshoot
+layer: cross
+drive: be
 status: completed
 completed: 2026-05-10
 created: 2026-05-10
@@ -40,6 +43,28 @@ verification_commands:
     command: "git branch --list 'improvements/plan-045*' | wc -l"
     expected: "0 (W-final で削除)"
 related: [PLAN-044, PLAN-043, PLAN-042, PLAN-038, ADR-016]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/concurrent_lock.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/helix_db.py
+    artifact_type: python_module
+  - artifact_path: docs/plans/
+    artifact_type: doc_update
+  - artifact_path: docs/runbook/codex-test-bootstrap.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

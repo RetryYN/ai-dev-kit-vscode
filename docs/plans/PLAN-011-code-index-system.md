@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-011
 title: 'PLAN-011: コード index 登録システム (v1.3)'
+kind: impl
+layer: cross
+drive: be
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,24 @@ acceptance:
   - コード index のメタデータ規約と検索機能を定義する。
   - cli dispatcher 連携とテスト方針を明文化する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_catalog.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-code
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-011: コード index 登録システム (v1.3)

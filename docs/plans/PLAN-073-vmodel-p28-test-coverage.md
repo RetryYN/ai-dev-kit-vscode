@@ -1,9 +1,31 @@
 ---
 plan_id: PLAN-073
 title: "PLAN-073: V-model P2-8 テスト 3 ケース追加 (PLAN-068 W-6 carry)"
+kind: impl
+layer: L4
+drive: be
 status: completed
 size: S
-drive: be
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: qa
+    slot_label: "QA — vmodel_loader / helix-gate drive resolve テスト追加"
+  - role: docs
+    slot_label: "Docs — test-design 起草"
+generates:
+  - artifact_path: cli/lib/tests/test_vmodel_multi_drive.py
+    artifact_type: test
+  - artifact_path: cli/lib/tests/test_drive_decisions_idempotent.py
+    artifact_type: test
+  - artifact_path: cli/lib/tests/test_drive_decisions_atomic.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 created: 2026-05-16
 completed_at: 2026-05-16
 owner: PM

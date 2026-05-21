@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-046
 title: 'PLAN-046（runtime quality 5 件集約解消 - PLAN-045 retro carry 4 件 + W-5）'
+kind: impl
+layer: cross
+drive: be
 status: completed
 completed: 2026-05-10
 created: 2026-05-10
@@ -47,6 +50,26 @@ verification_commands:
     command: "git branch --list 'improvements/plan-046*' | wc -l"
     expected: "0"
 related: [PLAN-045, PLAN-044, PLAN-043, PLAN-042, PLAN-038, ADR-014, ADR-016]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-doctor
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/
+    artifact_type: python_module
+  - artifact_path: skills/SKILL_MAP.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

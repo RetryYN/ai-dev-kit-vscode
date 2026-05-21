@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-038
 title: PLAN-038（Codex prompt 最終確認 + plan finalize 運用強化 + lint 閾値観察）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -10,10 +13,28 @@ phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 completed: 2026-05-10
 acceptance:
-  - W-1: `helix plan finalize` が `docs/plans/PLAN-NNN.md` frontmatter (`status` / `finalized`) と `.helix/plans/PLAN-NNN.yaml` (`status` / `finalized_at`) を 1 transaction で同期更新可能であること。
-  - W-23: Codex prompt template に `tests: clean checkout` 必須化 + `intermediate_errors` 分離が反映されていること。
-  - W-4: 新設する `helix plan lint --duplicates` を PLAN-031〜037 へ実行し、誤検出 0 / 見逃し 0 (または許容理由を `.helix/audit/plan-038-w4-duplication-report.md` の `plan / expected_warn / observed_warn / false_positive / false_negative / action` 表に記録) を確認、必要な閾値・allowlist 調整が完了していること。
+  - 'W-1: helix plan finalize が docs/plans/PLAN-NNN.md frontmatter (status / finalized) と .helix/plans/PLAN-NNN.yaml (status / finalized_at) を 1 transaction で同期更新可能であること。'
+  - 'W-23: Codex prompt template に tests: clean checkout 必須化 + intermediate_errors 分離が反映されていること。'
+  - 'W-4: 新設する helix plan lint --duplicates を PLAN-031〜037 へ実行し、誤検出 0 / 見逃し 0 (または許容理由を .helix/audit/plan-038-w4-duplication-report.md の plan / expected_warn / observed_warn / false_positive / false_negative / action 表に記録) を確認、必要な閾値・allowlist 調整が完了していること。'
 related: [PLAN-037, PLAN-036, PLAN-035, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+  - artifact_path: cli/templates/prompts
+    artifact_type: template
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-067
 title: "PLAN-067: HELIX 自動化レイヤー強化 - file → DB 自動 sync"
+kind: impl
+layer: cross
+drive: be
 status: draft
 created: 2026-05-13
 finalized: null
@@ -29,6 +32,24 @@ acceptance:
     axis_c: "helix gate G2 通過時に design_review に 5 record 追加されることを確認する"
     axis_d: "cli/lib/ 編集後の commit 前に axis-01 detector が自動実行されることを確認する"
     axis_e: "helix sync --auto を 2 回実行し、2 回目の diff が 0 であることを確認する"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/
+    artifact_type: python_module
+  - artifact_path: .claude/hooks/
+    artifact_type: hook
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-067: HELIX 自動化レイヤー強化 - file → DB 自動 sync

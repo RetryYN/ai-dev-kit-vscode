@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-042
 title: 'PLAN-042（filter design 原則 + legacy frontmatter progressive (3 件) + concurrent reader lock 機構 PoC）'
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -14,6 +17,26 @@ acceptance:
   - W-23: PLAN-004/005/006 frontmatter 後付け、body-preservation hash test PASS、cli/lib/plan_frontmatter.py 本体未変更
   - W-4: ADR-016 起票、standalone lock primitive PoC 実装、race condition 回帰テスト 1 ケース PASS
 related: [PLAN-041, PLAN-040, PLAN-038, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/concurrent_lock.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_concurrent_lock.py
+    artifact_type: test
+  - artifact_path: docs/adr/ADR-016-concurrent-lock.md
+    artifact_type: adr_snapshot
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

@@ -1,9 +1,28 @@
 ---
 plan_id: PLAN-015
 title: "PLAN-015: DoD #3 test guard hack 解消 — fixture 0 件 + N=1 化"
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 created: 2026-05-03
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: qa
+    slot_label: "QA — テスト"
+generates:
+  - artifact_path: cli/lib/tests/test_stop_hook.py
+    artifact_type: test
+dependencies:
+  parent: PLAN-014
+  requires: []
+  blocks: []
 ---
 # PLAN-015: DoD #3 test guard hack 解消 — fixture 0 件 + N=1 化
 

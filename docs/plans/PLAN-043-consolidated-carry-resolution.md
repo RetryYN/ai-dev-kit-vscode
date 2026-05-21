@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-043
 title: 'PLAN-043（PLAN-042 retro carry 9 件集約解消 - small bug fixes + legacy progressive + lock critical path 接続 + 機能追加）'
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -16,6 +19,28 @@ acceptance:
   - W-4: helix plan import コマンド追加 + helix doctor 文書 drift 検知拡張 + accuracy_score 経路修復
   - W-6: PreToolUse hook で Opus の repo Edit/Write を mechanical block、5 ケース bats test PASS
 related: [PLAN-042, PLAN-041, PLAN-040, PLAN-038, ADR-014, ADR-015, ADR-016]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_dispatcher.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/handover.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+  - artifact_path: docs/runbook/codex-test-bootstrap.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

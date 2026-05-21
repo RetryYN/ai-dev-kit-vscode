@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-063
 title: "PLAN-063（helix DB 強化: 15 軸 detector + telemetry 基盤）"
+kind: impl
+layer: L4
+drive: db
 status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
@@ -26,6 +29,24 @@ acceptance:
   dashboard:
     verification_commands: { command: "cli/helix detect dashboard --format mermaid", expected: "mermaid 図出力、15 軸 detector の verdict 色分け + invocation_log/code_entries/observe_*/accuracy_score/skill_usage/routing_decisions/detector_runs の 7 テーブル統合 view を表示" }
 finalized: 2026-05-11
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: dba
+    slot_label: "DBA — DB schema 設計"
+generates:
+  - artifact_path: cli/helix-detect
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/
+    artifact_type: python_module
+dependencies:
+  parent: PLAN-062
+  requires: []
+  blocks: []
 ---
 
 # PLAN-063: helix DB 強化 — 15 軸 detector + telemetry 基盤

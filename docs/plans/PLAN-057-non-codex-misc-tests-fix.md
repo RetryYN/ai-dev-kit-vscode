@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-057
 title: "PLAN-057（Category F-other: non-codex misc tests 15 件、PLAN-051 carry）"
+kind: troubleshoot
+layer: L4
+drive: be
 status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
@@ -16,6 +19,24 @@ acceptance:
   tests_pass_via_helix_test:
     verification_commands: { command: "cli/helix test --no-pytest --bats-only", expected: "exit 0 / bats: 全 PASS" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/tests/test-helix-reverse-review.bats
+    artifact_type: test
+  - artifact_path: cli/tests/test-helix-scrum.bats
+    artifact_type: test
+dependencies:
+  parent: PLAN-051
+  requires: []
+  blocks: []
 ---
 
 # PLAN-057: Category F-other - non-codex misc tests 15 件

@@ -1,6 +1,8 @@
 ---
 plan_id: PLAN-069
 title: "PLAN-069: G3 entry blocker 解消 (M-01〜M-04, spine 整合化 + draft.yaml 正規化)"
+kind: impl
+layer: cross
 status: completed
 size: M
 drive: be
@@ -26,6 +28,24 @@ related:
   - docs/v2/B-design/vmodel-semantics-fe-draft.yaml (M-03 正本)
   - docs/v2/B-design/vmodel-semantics-fullstack-draft.yaml (M-03/M-04 対象)
   - docs/v2/B-design/helix-db-v21-spec.md (M-01 対象)
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/v2/B-design/vmodel-semantics-spine.yaml
+    artifact_type: yaml_config
+  - artifact_path: docs/v2/B-design/vmodel-semantics-fullstack-draft.yaml
+    artifact_type: yaml_config
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-069: G3 entry blocker 解消 (M-01〜M-04, spine 整合化 + draft.yaml 正規化)

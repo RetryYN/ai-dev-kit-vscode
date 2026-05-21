@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-064
 title: "PLAN-064（helix asset CLI: 画像生成 preset コマンド）"
+kind: impl
+layer: L4
+drive: be
 status: finalized
 created: 2026-05-12
 author: "PM (Opus)"
@@ -18,6 +21,24 @@ acceptance:
   test_coverage:
     verification_commands: { command: "bats cli/tests/test-helix-asset.bats", expected: "全 PASS (mock codex で preset 解決 + prompt 注入確認)" }
 finalized: 2026-05-11
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-asset
+    artifact_type: cli_extension
+  - artifact_path: cli/templates/assets/
+    artifact_type: template
+dependencies:
+  parent: PLAN-063
+  requires: []
+  blocks: []
 ---
 
 # PLAN-064: helix asset CLI — 画像生成 preset コマンド

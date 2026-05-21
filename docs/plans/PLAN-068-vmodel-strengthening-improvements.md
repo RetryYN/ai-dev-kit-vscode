@@ -1,6 +1,8 @@
 ---
 plan_id: PLAN-068
 title: "PLAN-068: V-model 強化定義 carry 改善（7件 carry）"
+kind: impl
+layer: L1
 status: completed
 size: M
 drive: be
@@ -25,6 +27,22 @@ related:
   - PLAN-028-helix-v2-orchestration
   - ADR-014
   - ADR-015
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/v2/L1-REQUIREMENTS.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-068: V-model 強化定義 carry 改善（7 件 carry）

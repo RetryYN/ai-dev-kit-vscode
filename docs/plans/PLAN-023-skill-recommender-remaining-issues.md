@@ -3,6 +3,8 @@ plan_id: PLAN-023
 title: "PLAN-023: skill 推挙パイプライン 残課題 3 件解消 (effort 伝搬 + sessions hit_rate + policy 誤判定)"
 status: completed
 size: M
+kind: impl
+layer: cross
 drive: be
 created: 2026-05-06
 owner: PM
@@ -13,8 +15,24 @@ acceptance:
   - 残課題 2: helix.db v15→v16 migration + sessions 単位の真 hit_rate 計測パイプライン
   - 残課題 3: HELIX policy の research 誤判定 (recommender role policy 不整合) を解消
   - 統合 E2E テスト 15/15 PASS
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_recommender.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related:
-  - PLAN-022 (本 PLAN の親、3 残課題の元)
+  - PLAN-022
   - ADR-007
 ---
 

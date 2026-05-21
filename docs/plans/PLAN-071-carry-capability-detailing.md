@@ -1,6 +1,8 @@
 ---
 plan_id: PLAN-071
 title: "PLAN-071: PLAN-070 carry capability detail 化"
+kind: add-impl
+layer: L3
 status: frozen
 gate_status: G3_complete
 size: M
@@ -22,6 +24,25 @@ related:
   - docs/v2/L3-detailed-design/D-API/D-API-CARRY-draft.md (§3.4-§3.14 carry detail 分離ファイル、分離理由: §4.4 ±200 行制約遵守)
   - docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md
   - docs/v2/L2-MASTER.md (§3-§10 capability matrix)
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: tl
+    slot_label: "TL — 設計判断"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/v2/L3-detailed-design/D-API/D-API-CARRY-draft.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires:
+    - PLAN-070
+  blocks: []
 ---
 
 # PLAN-071: PLAN-070 carry capability detail 化

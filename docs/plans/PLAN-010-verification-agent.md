@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-010
 title: 'PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v3.3)'
+kind: design
+layer: cross
+drive: be
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,22 @@ acceptance:
   - 検証ツール収集と設計方針を PLAN 横断で整理する。
   - Scrum / Reverse / Run への接続方針を定義する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: tl
+    slot_label: "TL — 設計判断"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-010-verification-agent.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-010: 検証ツール選定 + 検証方法設計エージェント (v3.3)

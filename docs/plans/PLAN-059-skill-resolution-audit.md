@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-059
 title: "PLAN-059（リファクタリング B: skill 解像度監査 + brush up）"
+kind: research
+layer: cross
+drive: be
 status: completed
 created: 2026-05-11
 completed: 2026-05-11
@@ -15,6 +18,24 @@ acceptance:
   low_resolution_brushed:
     verification_commands: { command: "low_resolution_count_after - low_resolution_count_before", expected: "減少 (低解像度判定 skill の半数以上を brush up または廃止)" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/audit/skill-resolution-2026-05.md
+    artifact_type: doc_update
+  - artifact_path: skills
+    artifact_type: markdown_doc
+dependencies:
+  parent: PLAN-058
+  requires: []
+  blocks: []
 ---
 
 # PLAN-059: リファクタリング B - skill 解像度監査 + brush up

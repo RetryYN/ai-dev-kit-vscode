@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-061
 title: "PLAN-061（dead code 実削除、PLAN-058 W-3 carry）"
+kind: refactor
+layer: L4
+drive: be
 status: completed
 created: 2026-05-11
 completed: 2026-05-11
@@ -15,6 +18,24 @@ acceptance:
   removal_safe:
     verification_commands: { command: "cli/helix test", expected: "exit 0 / 削除後も全 PASS" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/
+    artifact_type: python_module
+  - artifact_path: docs/audit/dead-code-final-2026-05.md
+    artifact_type: doc_update
+dependencies:
+  parent: PLAN-058
+  requires: []
+  blocks: []
 ---
 
 # PLAN-061: dead code 実削除 (PLAN-058 W-3 carry)

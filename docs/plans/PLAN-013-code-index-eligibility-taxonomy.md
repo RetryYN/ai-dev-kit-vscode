@@ -1,9 +1,28 @@
 ---
 plan_id: PLAN-013
 title: "PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract"
+kind: poc
+layer: L4
+drive: be
 status: completed
 created: 2026-05-03
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_catalog.py
+    artifact_type: python_module
+dependencies:
+  parent: PLAN-011
+  requires: []
+  blocks: []
 ---
 # PLAN-013 Code Index Eligibility Taxonomy and PoC Seed Contract
 

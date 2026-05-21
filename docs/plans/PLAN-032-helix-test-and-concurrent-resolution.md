@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-032
 title: HELIX v2/31 carry 解消 (helix-test self-test + 並列誤検出 + tests 統合)
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 author: Opus (PM)
@@ -8,14 +11,32 @@ size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 acceptance:
-  - W-1 (self-test 期待値追従) で test 255/400/459/685 4 件 PASS。
-  - W-2 (`cli/helix-codex` の `detect_plan_only_task` 判定順序改修、task_type_inference.py 自体は無変更) で test 507/508 PASS。
-  - W-3 (sprint complete state seed) で test 622 PASS。
-  - W-4 (allowed-files 並列誤検出) で 3 並列 helix-codex で warning 0 件。
-  - W-5 (tests/ vs cli/lib/tests/ 重複整理) は最小限の境界記述で対応可。
-  - cli/helix-test の shell-based self-test が 0 failed (現 7 -> 0)。
-  - 既存 regression: pytest cli/lib/tests/ + pytest tests/ + bats cli/tests に regression なし。
+  - 'W-1 (self-test 期待値追従) で test 255/400/459/685 4 件 PASS。'
+  - 'W-2 (cli/helix-codex の detect_plan_only_task 判定順序改修、task_type_inference.py 自体は無変更) で test 507/508 PASS。'
+  - 'W-3 (sprint complete state seed) で test 622 PASS。'
+  - 'W-4 (allowed-files 並列誤検出) で 3 並列 helix-codex で warning 0 件。'
+  - 'W-5 (tests/ vs cli/lib/tests/ 重複整理) は最小限の境界記述で対応可。'
+  - 'cli/helix-test の shell-based self-test が 0 failed (現 7 -> 0)。'
+  - '既存 regression: pytest cli/lib/tests/ + pytest tests/ + bats cli/tests に regression なし。'
 related: [PLAN-028, PLAN-029, PLAN-030, PLAN-031, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/task_type_inference.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 背景・前提

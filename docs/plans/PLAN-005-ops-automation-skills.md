@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-005
 title: 'PLAN-005: 運用自動化スキル群（scheduler/job-queue/lock/init-setup/observability）'
+kind: impl
+layer: cross
+drive: be
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,22 @@ acceptance:
   - 本文を一切変更せず frontmatter のみを後付けする。
   - body-preservation hash が migration 前後で一致する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-005-ops-automation-skills.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: [PLAN-002, PLAN-003]
+  blocks: []
 ---
 
 # PLAN-005: 運用自動化スキル群（scheduler/job-queue/lock/init-setup/observability）

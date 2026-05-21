@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-047
 title: 'PLAN-047（DS-120 デジタル・ガバメント推進標準ガイドライン実践ガイドブックの HELIX 取り込み）'
+kind: impl
+layer: cross
+drive: be
 status: completed
 completed: 2026-05-10
 created: 2026-05-10
@@ -30,6 +33,26 @@ acceptance:
     verification_commands:
       command: "git branch --list 'improvements/plan-047*' | wc -l"
       expected: "0"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/reference/ds120-mapping.md
+    artifact_type: markdown_doc
+  - artifact_path: skills/workflow/
+    artifact_type: doc_update
+  - artifact_path: helix/HELIX_CORE.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-047: DS-120 HELIX 取り込み統合計画

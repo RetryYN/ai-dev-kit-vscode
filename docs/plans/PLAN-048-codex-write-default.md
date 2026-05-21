@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-048
 title: 'PLAN-048（Codex docs/PG 委譲 prompt template に write 必須要求 default 化 + audit-only failure 機械検知）'
+kind: impl
+layer: L4
+drive: be
 status: completed
 completed: 2026-05-10
 created: 2026-05-10
@@ -35,6 +38,26 @@ acceptance:
     verification_commands:
       command: "git branch --list 'improvements/plan-048*' | wc -l"
       expected: "0"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/roles/docs.conf
+    artifact_type: config
+  - artifact_path: cli/roles/pg.conf
+    artifact_type: config
+  - artifact_path: cli/lib/tests/test_codex_post_validation.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-048: Codex 委譲 prompt template に write 必須要求 default 化 + audit-only failure 機械検知

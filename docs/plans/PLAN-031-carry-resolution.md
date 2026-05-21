@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-031
 title: HELIX v2/30 carry 解消
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 author: Opus (PM)
@@ -8,12 +11,30 @@ size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 acceptance:
-  - W-1 (skill_recommender の CODEX_BIN unset) で `cli/helix-test` の self-test「codex allowed-files rejects out-of-scope new file」が PASS。
-  - W-2 (claude shim guard 強化テスト) で `cli/tests/test-helix-codex.bats` の既存 2 ケース (raw override evidence / allow flag lacks reason) と重複しない差分ケース (HELIX_CLAUDE_INTERNAL=1 / 通常呼び出し誘導) を追加し全 PASS。
-  - W-3 (test_code_catalog 4 failed 解消) で project-root の `pytest tests/test_code_catalog.py` が 0 failed。
-  - `.helix/retros/PLAN-030.md §Try PLAN-031候補 1/2/3` が resolved 状態に遷移。
-  - 既存 regression: `pytest cli/lib/tests/` と `bats cli/tests` が PASS (件数は実行時の baseline を維持)。
+  - 'W-1 (skill_recommender の CODEX_BIN unset) で cli/helix-test の self-test「codex allowed-files rejects out-of-scope new file」が PASS。'
+  - 'W-2 (claude shim guard 強化テスト) で cli/tests/test-helix-codex.bats の既存 2 ケース (raw override evidence / allow flag lacks reason) と重複しない差分ケース (HELIX_CLAUDE_INTERNAL=1 / 通常呼び出し誘導) を追加し全 PASS。'
+  - 'W-3 (test_code_catalog 4 failed 解消) で project-root の pytest tests/test_code_catalog.py が 0 failed。'
+  - '.helix/retros/PLAN-030.md §Try PLAN-031候補 1/2/3 が resolved 状態に遷移。'
+  - '既存 regression: pytest cli/lib/tests/ と bats cli/tests が PASS (件数は実行時の baseline を維持)。'
 related: [PLAN-030, PLAN-028, PLAN-029, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_recommender.py
+    artifact_type: python_module
+  - artifact_path: cli/tests/test-helix-codex.bats
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 背景・前提

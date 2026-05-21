@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-041
 title: PLAN-041（SUMMARY marker prompt 強化 + legacy frontmatter progressive migration + Codex bats bootstrap runbook）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -14,6 +17,26 @@ acceptance:
   - W-23: PLAN-001-poc-skill.md 含む 3 件以内の legacy PLAN に frontmatter 後付け、body-preservation hash 検証 PASS。
   - W-4: cli/helix-test で bats 不在時 warning 動作、docs/runbook/codex-test-bootstrap.md で minimal install 手順記載。
 related: [PLAN-040, PLAN-039, PLAN-038, PLAN-001, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: docs/runbook/codex-test-bootstrap.md
+    artifact_type: doc_update
+  - artifact_path: docs/plans/
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

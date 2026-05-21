@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-040
 title: PLAN-040（cli/helix-plan subcommand 分割 + Codex summary 完全分離 + legacy frontmatter migration + spark primary 一時切替）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -14,6 +17,26 @@ acceptance:
   - W-23: helix-codex 完了報告 stdout に中間 bash error が混入せず、HELIX_DISABLE_SPARK=1 で primary が一時切替可能であること。
   - W-4: docs/plans/PLAN-NNN-*.md 全件が frontmatter parse 可能になり、helix plan lint で全 PLAN PASS であること。
 related: [PLAN-039, PLAN-038, PLAN-037, PLAN-036, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-plan-cmds/
+    artifact_type: cli_extension
+  - artifact_path: docs/plans/
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

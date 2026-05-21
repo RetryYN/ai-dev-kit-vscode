@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-036
 title: PLAN-036（helix-codex concurrent diff 取り込み + PLAN テンプレート統一 + bats /tmp 監査）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 finalized: 2026-05-09
@@ -10,13 +13,33 @@ size: M
 phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 acceptance:
-  - W-1: `helix-codex` 並列経路からの差分ファイルを `codex_post_validation` が許容し、`cli/lib/codex_post_validation.py::find_allowed_files_violations` の false positive を抑止できること。
-  - W-1: `helix-codex` 側で `--concurrent-from` 受付、`cli/lib/codex_post_validation.py` の `main()` へ同オプションを受け渡し、`read_snapshot` で path set 化されること。
-  - W-2: PLAN テンプレートの status 遷移を `docs/architecture/plan-template.md` の単一正本として定義し、`helix-plan lint` が `frontmatter` 以外の本文言及と整合しない場合を検出できること。
-  - W-2: `cli/helix-plan` に lint subcommand を追加し、`cli/tests/test-helix-plan-lint.bats` が W-2 条件を担保すること。
-  - W-3: `helix-bats-cleanup --list` が bats 由来残存を列挙し、`--delete --older-than` が削除対象を想定通りに除去すること。
-  - W-3: `helix` dispatch へ `bats-cleanup` が接続され、`cli/helix-bats-cleanup` の実行結果確認手順が PLAN 内で固定されること。
+  - 'W-1: helix-codex 並列経路からの差分ファイルを codex_post_validation が許容し、cli/lib/codex_post_validation.py::find_allowed_files_violations の false positive を抑止できること。'
+  - 'W-1: helix-codex 側で --concurrent-from 受付、cli/lib/codex_post_validation.py の main() へ同オプションを受け渡し、read_snapshot で path set 化されること。'
+  - 'W-2: PLAN テンプレートの status 遷移を docs/architecture/plan-template.md の単一正本として定義し、helix-plan lint が frontmatter 以外の本文言及と整合しない場合を検出できること。'
+  - 'W-2: cli/helix-plan に lint subcommand を追加し、cli/tests/test-helix-plan-lint.bats が W-2 条件を担保すること。'
+  - 'W-3: helix-bats-cleanup --list が bats 由来残存を列挙し、--delete --older-than が削除対象を想定通りに除去すること。'
+  - 'W-3: helix dispatch へ bats-cleanup が接続され、cli/helix-bats-cleanup の実行結果確認手順が PLAN 内で固定されること。'
 related: [PLAN-035, PLAN-034, PLAN-033, PLAN-032, PLAN-031, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/codex_post_validation.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-bats-cleanup
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

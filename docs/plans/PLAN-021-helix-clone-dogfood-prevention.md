@@ -3,6 +3,8 @@ plan_id: PLAN-021
 title: "PLAN-021: GitHub clone 時の dogfood 混入防止"
 status: completed
 size: S
+kind: impl
+layer: L1
 drive: be
 created: 2026-05-04
 owner: PM
@@ -12,6 +14,22 @@ acceptance:
   - .helix/ の allowlist (git 追跡対象) を撤廃
   - 既存作業履歴 (runtime state) を untracked 化
   - 新規 clone 時に作業者の runtime state が混入しないこと
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-021-helix-clone-dogfood-prevention.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related:
   - PLAN-020
 ---

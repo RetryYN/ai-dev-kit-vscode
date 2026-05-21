@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-035
 title: PLAN-035（helix review read-only fix + bats teardown 堅牢化 + Codex 完了報告信頼性強化）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 finalized: 2026-05-09
@@ -11,11 +14,29 @@ phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 note_size: W-2 は cli/tests/*.bats 52 ファイル一括置換のため SKILL_MAP の 11+ ファイル基準では L 相当だが、変更は機械的 sed 置換で行数 100 行程度に収まり、内容変更は teardown 内 1 行のみ → M で運用 (G4 を計画に含めて L4 実装凍結まで追跡)
 acceptance:
-  - W-1: `cli/helix-review` の read-only sandbox での `helix review --uncommitted` 実行を `HELIX_CODEX_INTERNAL` 検知時に skip へ切替し、PLAN-035 W-1 要件として実装可能になること。
-  - W-2: `cli/tests/*.bats` の teardown 内 `rm -rf "$TMP_ROOT"` 系を `rm -rf "$TMP_ROOT" 2>/dev/null || true`（または `HELIX_TEST_TMPDIR` 換算）へ統一し、`Directory not empty` 起因の偶発 fail を抑止できること。
-  - W-3: Codex 委譲完了報告の過信防止を docs/memory に記録し、allowed-files mock test 的な failure を Opus が full self-test (`cli/helix-test`) で検証する運用へ転換できること。
-  - W-4: carry 3 件の統合検証と retrospective 連携が完了し、status transition の受入条件が明確であること。
+  - 'W-1: cli/helix-review の read-only sandbox での helix review --uncommitted 実行を HELIX_CODEX_INTERNAL 検知時に skip へ切替し、PLAN-035 W-1 要件として実装可能になること。'
+  - 'W-2: cli/tests/*.bats の teardown 内 rm -rf "$TMP_ROOT" 系を rm -rf "$TMP_ROOT" 2>/dev/null || true（または HELIX_TEST_TMPDIR 換算）へ統一し、Directory not empty 起因の偶発 fail を抑止できること。'
+  - 'W-3: Codex 委譲完了報告の過信防止を docs/memory に記録し、allowed-files mock test 的な failure を Opus が full self-test (cli/helix-test) で検証する運用へ転換できること。'
+  - 'W-4: carry 3 件の統合検証と retrospective 連携が完了し、status transition の受入条件が明確であること。'
 related: [PLAN-034, PLAN-033, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-review
+    artifact_type: cli_extension
+  - artifact_path: cli/tests
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

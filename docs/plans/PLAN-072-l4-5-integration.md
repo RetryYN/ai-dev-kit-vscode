@@ -1,9 +1,35 @@
 ---
 plan_id: PLAN-072
 title: "PLAN-072: L4.5 Phase B 結合 (v24-v27 helix.db 実 endpoint/hook/CLI 統合)"
+kind: impl
+layer: L4.5
+drive: fullstack
 status: frozen
 size: L
-drive: fullstack
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — helix-push/pr/plan + hook 結合実装"
+  - role: docs
+    slot_label: "Docs — D-API EXT / 工程表起草"
+generates:
+  - artifact_path: cli/helix-push
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-pr
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+  - artifact_path: .claude/hooks/posttooluse-automation-run.sh
+    artifact_type: hook
+  - artifact_path: cli/lib/automation_runs.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 created: 2026-05-16
 frozen_at: 2026-05-16
 owner: PM

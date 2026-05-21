@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-009
 title: 'PLAN-009: Run 工程（L9-L11）(v3.3)'
+kind: design
+layer: cross
+drive: be
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,20 @@ acceptance:
   - L9-L11 の役割、入力/出力、ゲートを定義する。
   - PLAN-004/005/007/008 との接続方針を明文化する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-009-run-phase-l9-l11.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: [PLAN-004, PLAN-005, PLAN-007, PLAN-008]
+  blocks: []
 ---
 
 # PLAN-009: Run 工程（L9-L11）(v3.3)

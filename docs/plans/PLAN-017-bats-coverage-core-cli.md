@@ -1,6 +1,10 @@
 ---
 id: PLAN-017
+plan_id: PLAN-017
 title: "PLAN-017: core CLI の bats カバレッジ実態整理と不足補完（helix-gate / helix-codex / helix-handover / helix-plan）"
+kind: impl
+layer: cross
+drive: be
 status: finalized
 size: M
 phases:
@@ -24,6 +28,22 @@ acceptance:
   - "不足が大きい helix-plan / helix-codex の専用 bats を追加する"
   - "helix-plan / helix-codex で各 5 ケース以上（smoke のみではない）を保有する"
   - "cli/helix test で既存・新規 bats が集計に含まれ全 pass する"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: qa
+    slot_label: "QA — テスト"
+generates:
+  - artifact_path: docs/plans/PLAN-017-bats-coverage-core-cli.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-017: core CLI の bats カバレッジ実態整理と不足補完（finalized）

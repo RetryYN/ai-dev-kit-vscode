@@ -1,9 +1,30 @@
 ---
 plan_id: PLAN-016
 title: "PLAN-016: session-summary の md 廃止 — Stop hook を helix log report session 化"
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-03
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: .claude/hooks/stop.sh
+    artifact_type: hook
+  - artifact_path: cli/helix-log
+    artifact_type: cli_extension
+dependencies:
+  parent: PLAN-014
+  requires: []
+  blocks: []
 ---
 # PLAN-016: session-summary の md 廃止 — Stop hook を helix log report session 化
 

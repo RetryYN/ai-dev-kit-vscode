@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-051
 title: "PLAN-051（bats-lite errexit fix + 58 件 hidden failure 一斉対処 - CI integrity 最優先）"
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 completed: 2026-05-11
 created: 2026-05-11
@@ -23,6 +26,24 @@ acceptance:
   branch_minimal_footprint:
     verification_commands: { command: "git branch --list 'improvements/plan-051*' | wc -l", expected: 0 }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/scripts/bats-lite
+    artifact_type: script
+  - artifact_path: cli/tests
+    artifact_type: test
+dependencies:
+  parent: PLAN-050
+  requires: []
+  blocks: []
 ---
 
 # PLAN-051: bats-lite errexit fix + 58 件 hidden failure 一斉対処

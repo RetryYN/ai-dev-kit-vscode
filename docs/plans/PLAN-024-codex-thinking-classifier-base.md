@@ -3,6 +3,8 @@ plan_id: PLAN-024
 title: "PLAN-024: codex_thinking 体系整備 + LLMClassifierBase + defaults.yaml 外部化"
 status: completed
 size: L
+kind: impl
+layer: cross
 drive: be
 created: 2026-05-06
 owner: PM
@@ -18,10 +20,26 @@ acceptance:
   - Sprint .2: cli/templates 物理整理 (30 ファイル参照追従)
   - Sprint .3: 最新 3 モデル体系に統一、5.2-codex を全廃
   - pytest 931 / bats 293 全 PASS
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_classifier.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related:
-  - PLAN-022 (W-1a で PLAN-022 残課題 1 件吸収)
-  - PLAN-027 (entries E2E test の接続点)
-  - ADR-014 (cli/roles/*.conf 正本維持)
+  - PLAN-022
+  - PLAN-027
+  - ADR-014
 ---
 
 # PLAN-024: codex_thinking 体系整備 + LLMClassifierBase + defaults.yaml 外部化

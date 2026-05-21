@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-039
 title: PLAN-039（未発動機能の運用化 + auto-fallback 発火条件改善）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -10,10 +13,28 @@ phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 completed: 2026-05-10
 acceptance:
-  - W-1: HELIX_CODEX_AUTO_FALLBACK Layer 2 が usage_limit 検知時に発火可能であること (Layer 0/1 fallback と統合判定)。
-  - W-23: helix plan finalize が lint --duplicates を auto-run し、duplicate 検出時に finalize を block 可能であること。
-  - W-4: helix-codex --concurrent-from の auto-detect 機構と、bats-cleanup 定期運用ガイダンスが整備されていること。
+  - 'W-1: HELIX_CODEX_AUTO_FALLBACK Layer 2 が usage_limit 検知時に発火可能であること (Layer 0/1 fallback と統合判定)。'
+  - 'W-23: helix plan finalize が lint --duplicates を auto-run し、duplicate 検出時に finalize を block 可能であること。'
+  - 'W-4: helix-codex --concurrent-from の auto-detect 機構と、bats-cleanup 定期運用ガイダンスが整備されていること。'
 related: [PLAN-038, PLAN-037, PLAN-036, PLAN-035, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-060
 title: "PLAN-060（リファクタリング C: AI knowledge 重複検証 + skill 廃止判定）"
+kind: research
+layer: cross
+drive: be
 status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
@@ -14,6 +17,22 @@ acceptance:
   redundant_skills_removed:
     verification_commands: { command: "before_count - after_count", expected: ">= 5 (HELIX 固有付加価値ゼロと判定された skill を 5 件以上廃止)" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: research
+    slot_label: "Research — スキル重複調査"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/audit/ai-knowledge-overlap-2026-05.md
+    artifact_type: doc_update
+dependencies:
+  parent: PLAN-058
+  requires: []
+  blocks: []
 ---
 
 # PLAN-060: リファクタリング C - AI knowledge 重複検証 + skill 廃止判定

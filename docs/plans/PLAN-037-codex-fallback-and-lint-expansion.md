@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-037
 title: PLAN-037（helix-codex usage limit fallback + PLAN lint 拡張 + bats marker 一括適用）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-10
 finalized: 2026-05-10
@@ -10,11 +13,29 @@ phases: L1→L2→L3→L4
 gates: G1, G2, G3, G4
 completed: 2026-05-10
 acceptance:
-  - W-0: PLAN-036 retro carry 4 件を PLAN-037 の Sprint 構成へ再配線し、相互依存と担当分離が明確であること。
-  - W-1: `helix-codex` が usage limit 検知時に opt-in で role primary の自動 fallback を行えること。
-  - W-23: PLAN lint が section 横断の重複検出と allowlist 最小化を扱えること。
-  - W-4: 既存 `cli/tests/*.bats` へ `helix_bats_mark` を機械的に適用し、共通 helper の導線が揃うこと。
+  - 'W-0: PLAN-036 retro carry 4 件を PLAN-037 の Sprint 構成へ再配線し、相互依存と担当分離が明確であること。'
+  - 'W-1: helix-codex が usage limit 検知時に opt-in で role primary の自動 fallback を行えること。'
+  - 'W-23: PLAN lint が section 横断の重複検出と allowlist 最小化を扱えること。'
+  - 'W-4: 既存 cli/tests/*.bats へ helix_bats_mark を機械的に適用し、共通 helper の導線が揃うこと。'
 related: [PLAN-036, PLAN-035, PLAN-034, PLAN-033, PLAN-032, PLAN-031, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: cli/tests
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

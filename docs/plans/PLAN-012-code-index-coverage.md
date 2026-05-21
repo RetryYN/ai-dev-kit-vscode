@@ -1,9 +1,30 @@
 ---
 plan_id: PLAN-012
 title: "PLAN-012: コード index 未カバレッジ計測 (v1.4)"
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-03
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: qa
+    slot_label: "QA — テスト"
+generates:
+  - artifact_path: cli/lib/skill_catalog.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-code
+    artifact_type: cli_extension
+dependencies:
+  parent: PLAN-011
+  requires: []
+  blocks: []
 ---
 # PLAN-012: コード index 未カバレッジ計測 (v1.4)
 

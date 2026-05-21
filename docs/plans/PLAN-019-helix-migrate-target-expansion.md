@@ -1,6 +1,10 @@
 ---
 id: PLAN-019
+plan_id: PLAN-019
 title: "PLAN-019: helix-migrate 対象拡張 (CLAUDE.md / AGENTS.md / .claude/settings.json + 配布戦略明文化)"
+kind: add-impl
+layer: cross
+drive: be
 status: draft
 size: M
 phases:
@@ -27,6 +31,24 @@ acceptance:
   - "helix-doctor の案内が helix init --force から helix migrate に切替"
   - "既存対象 (.helix/ YAML 5 種) の挙動を破壊しない"
   - "cli/templates/ と skills/ は HELIX_HOME 参照を維持し配布対象に含めない"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: devops
+    slot_label: "DevOps — 配布戦略"
+generates:
+  - artifact_path: cli/helix-migrate
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/merge_settings.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-019: helix-migrate 対象拡張 (CLAUDE.md / AGENTS.md / .claude/settings.json + 配布戦略明文化) (draft v1)

@@ -1,10 +1,40 @@
 ---
 plan_id: PLAN-074
 title: "PLAN-074: HTTP endpoint 5 endpoint 実装 (PLAN-072 L4.5 carry、D-API EXT 契約具現化)"
+kind: impl
+layer: L4
+drive: be
 status: in_progress
 gate_status: G4_ready
 size: M-L
-drive: be
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: tl-advisor
+    slot_label: "TL — framework 選定 + auth 設計 adversarial check"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック"
+  - role: se
+    slot_label: "SE — Flask 5 endpoint + auth + validation 実装"
+  - role: docs
+    slot_label: "Docs — D-API EXT 起草"
+generates:
+  - artifact_path: cli/lib/http_api/server.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/http_api/routes/push_pr.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/http_api/routes/hooks.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/http_api/routes/audit.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/http_api/routes/telemetry.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_http_api_push_pr.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 created: 2026-05-16
 sprint_5_completed_at: 2026-05-16
 owner: PM
@@ -24,10 +54,10 @@ auth_decision_note: |
   Sprint .1 framework setup で Authorization header 形式 (Bearer / localhost-only / API key) を凍結する。
   HELIX は CLI 中心、HTTP 層は補完なので localhost-only + env 由来 token の最小構成が初期推奨。
 notes:
-  - Sprint .1 v2 では framework setup と auth freeze のみを実装し、endpoint 実装は Sprint .2-.5 に carry する。
-  - audit_kind enum drift は Sprint .4 の audit endpoint 実装時に解消設計を決定する。
-  - 'cli/lib/http_api/server.py' は Flask 不在環境 (PEP 668 externally-managed) でも動作する compat fallback Flask class を含む。本番運用前に本物 Flask install を必須化し、fallback を削除すること。
-  - Flask install 手順 (運用時): (a) python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt、(b) または sudo apt install python3-flask、(c) または pipx で隔離 install。pip install --break-system-packages は推奨しない。
+  - "Sprint .1 v2 では framework setup と auth freeze のみを実装し、endpoint 実装は Sprint .2-.5 に carry する。"
+  - "audit_kind enum drift は Sprint .4 の audit endpoint 実装時に解消設計を決定する。"
+  - "cli/lib/http_api/server.py は Flask 不在環境 (PEP 668 externally-managed) でも動作する compat fallback Flask class を含む。本番運用前に本物 Flask install を必須化し、fallback を削除すること。"
+  - "Flask install 手順 (運用時): (a) python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt、(b) または sudo apt install python3-flask、(c) または pipx で隔離 install。pip install --break-system-packages は推奨しない。"
 structure_proposal: |
   cli/lib/http_api/
     server.py        # create_app(), local bind, error handlers

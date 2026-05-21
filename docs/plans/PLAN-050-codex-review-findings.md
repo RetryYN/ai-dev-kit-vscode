@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-050
 title: 'PLAN-050（Codex review findings 解消 - bats hidden failure + HELIX_CORE.md ドリフト + phase.yaml mode 整合性 + audit 精緻化）'
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 completed: 2026-05-11
 created: 2026-05-10
@@ -51,6 +54,26 @@ acceptance:
     verification_commands:
       command: "git branch --list 'improvements/plan-050*' | wc -l"
       expected: "0"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/tests/test-helix-code.bats
+    artifact_type: test
+  - artifact_path: cli/lib/codex_post_validation.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-doctor
+    artifact_type: cli_extension
+dependencies:
+  parent: PLAN-049
+  requires: []
+  blocks: []
 ---
 
 # PLAN-050: Codex review findings 解消 + audit 精緻化

@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-065
 title: "PLAN-065（QA 強化: test 厳格化 + reviewer 切替 + regression baseline）"
+kind: impl
+layer: L4
+drive: be
 status: finalized
 created: 2026-05-12
 author: "PM (Opus)"
@@ -12,7 +15,7 @@ acceptance:
   qa_reviewer:
     verification_commands: { command: "cli/helix plan review --id PLAN-063 --reviewer qa", expected: "exit 0、QA 観点 critique (test pyramid / coverage / regression baseline) を出力" }
   regression_baseline:
-    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT COUNT(*) FROM test_baseline WHERE status=\"PASS\", expected: "≥ 1500 (shell 614 + pytest 1071 + bats 420 規模の baseline 取得)" }
+    verification_commands: { command: "sqlite3 .helix/helix.db 'SELECT COUNT(*) FROM test_baseline WHERE status=PASS'", expected: "≥ 1500 (shell 614 + pytest 1071 + bats 420 規模の baseline 取得)" }
   acceptance_template:
     verification_commands: { command: "grep -E 'test_pyramid|coverage_target|regression_baseline' cli/templates/plan/acceptance.yaml", expected: "3 必須 field が template 化されている" }
   criteria_doc:
@@ -22,6 +25,24 @@ acceptance:
   design_review_pair_check:
     verification_commands: { command: "cli/helix gate G1 --pair-check requirement --plan-id PLAN-063 && cli/helix gate G2 --pair-check architecture --plan-id PLAN-063 && cli/helix gate G3 --pair-check detailed --plan-id PLAN-063 && cli/helix gate G4 --pair-check functional --plan-id PLAN-063", expected: "すべて exit 0 (G1/G2/G3/G4 各 layer の縦 + 横 review 両方 passed を機械確認)" }
 finalized: 2026-05-12
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: qa
+    slot_label: "QA — テスト基準策定"
+generates:
+  - artifact_path: cli/helix-plan
+    artifact_type: cli_extension
+  - artifact_path: docs/qa/criteria-2026.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-065: QA 強化 — test 厳格化 + reviewer 切替 + regression baseline

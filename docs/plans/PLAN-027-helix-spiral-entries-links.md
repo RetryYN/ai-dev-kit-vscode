@@ -3,6 +3,8 @@ plan_id: PLAN-027
 title: "PLAN-027: HELIX らせん式 entries/links 基盤 (code-index 6 軸拡張 + helix-entry CLI)"
 status: completed
 size: M
+kind: impl
+layer: cross
 drive: be
 owner: PM
 phases: L1, L2, L3, L4, L6
@@ -10,19 +12,35 @@ gates: G2, G3, G4
 acceptance:
   - helix.db v17 で entries / links 2 テーブル + 6 index を追加
   - helix.db v18 で code_index に 6 軸メタデータ列 (origin / lifecycle / domain_kind / pair / direction / source) を ALTER ADD COLUMN
-  - # @helix:index parser が 6 軸フィールドを認識し catalog に反映
+  - '#@helix:index parser が 6 軸フィールドを認識し catalog に反映'
   - code_catalog.sync_to_db が entries テーブルを bulk populate
   - cli/helix-entry CLI が 7 subcommand (search / show / link-add / link-list / matrix / stats / verify) を提供
   - 全網羅 test (pytest +18, bats 15/15) が PASS
   - entries 53 件 / coverage 252 matrix の populate を確認
 related:
-  - PLAN-011-code-index-system
-  - PLAN-012-code-index-coverage
-  - PLAN-013-code-index-eligibility-taxonomy
-  - PLAN-024 (LLMClassifierBase に entries E2E test 追加)
+  - PLAN-011
+  - PLAN-012
+  - PLAN-013
+  - PLAN-024
 doc_completed:
   - docs/operator/helix-spiral-operations.md (らせん式 Spiral 運用マニュアル、2026-05-16 起票)
 created: 2026-05-07
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-entry
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-027: HELIX らせん式 entries/links 基盤 (code-index 6 軸拡張 + helix-entry CLI)

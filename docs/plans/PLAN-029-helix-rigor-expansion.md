@@ -1,3 +1,29 @@
+---
+plan_id: PLAN-029
+title: "PLAN-029: HELIX フレームワーク厳格化拡張"
+status: completed
+kind: design
+layer: cross
+drive: be
+created: 2026-05-08
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-029-helix-rigor-expansion.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
+---
+
 # PLAN-029: HELIX フレームワーク厳格化拡張
 
 ## メタデータ

@@ -3,6 +3,8 @@ plan_id: PLAN-022
 title: "PLAN-022: HELIX オーケストレーション層実機能化 (skill 推挙 + 自動発火 + thinking 必須化)"
 status: completed
 size: M
+kind: impl
+layer: cross
 drive: be
 created: 2026-05-06
 owner: PM
@@ -16,6 +18,22 @@ acceptance:
   - helix skill stats に hit_rate 集計が表示される
   - ADR-006 (skill chain) と ADR-007 (effort field 伝搬) が更新済
   - skill 自動発火 統合テストが 25/25 で PASS
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/skill_recommender.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related:
   - PLAN-023 (残課題 3 件解消)
   - PLAN-024 (W-1a で PLAN-022 残課題 1 件を取り込み)

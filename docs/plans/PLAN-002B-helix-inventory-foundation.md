@@ -1,9 +1,28 @@
 ---
 plan_id: PLAN-002B
 title: "PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)"
+kind: impl
+layer: cross
+drive: be
 status: draft
 created: 2026-04-30
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-002B-helix-inventory-foundation.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 # PLAN-002: HELIX 棚卸し基盤 (Phase 0 + A0/A1 + helix.db v8 audit_decisions) (v6)
 

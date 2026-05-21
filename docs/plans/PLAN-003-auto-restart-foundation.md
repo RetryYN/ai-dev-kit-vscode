@@ -1,11 +1,30 @@
 ---
 plan_id: PLAN-003
 title: "PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v3)"
+kind: impl
+layer: cross
+drive: be
 status: draft
 created: null
 finalized: null
 author: Opus (PM)
 related: [PLAN-002]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-003-auto-restart-foundation.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: [PLAN-002]
+  blocks: []
 ---
 # PLAN-003: auto-restart 基盤 (HMAC + HOME DB + hook materialization + CURRENT v2 + 残量警告) (v3)
 

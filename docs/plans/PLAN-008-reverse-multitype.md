@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-008
 title: 'PLAN-008: Reverse 5系統化（フルバック追加・設計 Reverse） (v3.3)'
+kind: design
+layer: cross
+drive: reverse
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,20 @@ acceptance:
   - Reverse を 5 系統に整理し、各系統の入力/出力/成功条件を定義する。
   - Forward と RGC への接続方針を明文化する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-008-reverse-multitype.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-008: Reverse 5系統化（フルバック追加・設計 Reverse） (v3.3)

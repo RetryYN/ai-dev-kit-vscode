@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-034
 title: helix-codex output tee + 委譲プロンプト共通フッタ（PLAN-033 retro 3 件 carry 集約）
+kind: impl
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 finalized: 2026-05-09
@@ -10,11 +13,29 @@ size: M
 phases: L2→L3→L4
 gates: G1, G2, G3
 acceptance:
-  - W-12-A: `cli/helix-codex` で codex stdout を audit log へ tee で保存し、`PIPESTATUS` 取得済み exit code で判定可能化する。
-  - W-12-B: 委譲プロンプトへ共通フッタ（summary/decision/ファイル/検証フォーマット）を自動付加し、`HELIX_CODEX_NO_FOOTER=1` 時のみ無効化できること。
-  - W-3: `docs/architecture/codex-review-sandbox-limitation.md` を作成し、read-only sandbox での `helix review --uncommitted` 回避と PLAN-035 への引き継ぎを明記する。
-  - W-4: 2 Docs Sprint での受入条件とリンク整合が閉じている。
+  - 'W-12-A: cli/helix-codex で codex stdout を audit log へ tee で保存し、PIPESTATUS 取得済み exit code で判定可能化する。'
+  - 'W-12-B: 委譲プロンプトへ共通フッタ（summary/decision/ファイル/検証フォーマット）を自動付加し、HELIX_CODEX_NO_FOOTER=1 時のみ無効化できること。'
+  - 'W-3: docs/architecture/codex-review-sandbox-limitation.md を作成し、read-only sandbox での helix review --uncommitted 回避と PLAN-035 への引き継ぎを明記する。'
+  - 'W-4: 2 Docs Sprint での受入条件とリンク整合が閉じている。'
 related: [PLAN-031, PLAN-032, PLAN-033, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: docs/architecture/codex-review-sandbox-limitation.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 目的

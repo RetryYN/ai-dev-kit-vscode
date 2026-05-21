@@ -1,6 +1,10 @@
 ---
 id: PLAN-018
+plan_id: PLAN-018
 title: "PLAN-018: LLM Guard / agent policy / research guard の事後正式化と強制導線強化"
+kind: impl
+layer: cross
+drive: be
 status: finalized
 size: L
 phases:
@@ -28,6 +32,22 @@ acceptance:
   - "team / codex harness の role assignment が許可外 delegation を拒否する"
   - "context guard が hook / memory / stale docs の不整合を検出する"
   - "G2/G3/G4 dry-run と helix test の結果を evidence として記録する"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: security
+    slot_label: "Security — ガード実装"
+generates:
+  - artifact_path: docs/plans/PLAN-018-llm-guard-retroactive-hardening.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-018: LLM Guard / agent policy / research guard の事後正式化と強制導線強化

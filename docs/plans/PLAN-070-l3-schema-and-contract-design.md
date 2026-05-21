@@ -1,6 +1,8 @@
 ---
 plan_id: PLAN-070
 title: "PLAN-070: L3 詳細設計 (D-API / D-DB / D-CONTRACT) Phase C 着手"
+kind: design
+layer: L3
 status: frozen
 size: L
 drive: fullstack
@@ -27,6 +29,27 @@ related:
   - docs/v2/L2-MASTER.md (G2 凍結正本)
   - docs/v2/B-design/vmodel-semantics-spine.yaml
   - docs/v2/B-design/helix-db-v21-spec.md (v22+ への接続)
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: tl
+    slot_label: "TL — 設計判断・ゲート"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/v2/L3-detailed-design/D-API/D-API-draft.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L3-detailed-design/D-DB/D-DB-draft.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires:
+    - PLAN-069
+  blocks: []
 ---
 
 # PLAN-070: L3 詳細設計 (D-API / D-DB / D-CONTRACT) Phase C 着手

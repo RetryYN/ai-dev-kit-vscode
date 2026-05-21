@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-058
 title: "PLAN-058（リファクタリング A: dead code 検出/削除 + 実装 bug fix 4 件 + env-dependent 15 件 carry 解消）"
+kind: refactor
+layer: L4
+drive: be
 status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
@@ -16,6 +19,24 @@ acceptance:
   tests_pass_full:
     verification_commands: { command: "cli/helix test", expected: "exit 0 / 全 PASS (614 shell + 1055 pytest + 420 bats)" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib
+    artifact_type: python_module
+  - artifact_path: cli/tests
+    artifact_type: test
+dependencies:
+  parent: PLAN-057
+  requires: []
+  blocks: []
 ---
 
 # PLAN-058: リファクタリング A - dead code + 実装 bug fix + env-dependent 解消

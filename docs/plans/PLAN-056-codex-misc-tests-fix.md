@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-056
 title: "PLAN-056（Category F-codex: codex 系 misc tests 18 件、PLAN-051 carry）"
+kind: troubleshoot
+layer: L4
+drive: be
 status: finalized
 created: 2026-05-11
 author: "PM (Opus)"
@@ -18,6 +21,24 @@ acceptance:
   tests_pass_via_helix_test:
     verification_commands: { command: "cli/helix test --no-pytest --bats-only", expected: "exit 0 / bats: 全 PASS (regression check)" }
 finalized: 2026-05-10
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/tests/test-helix-codex.bats
+    artifact_type: test
+  - artifact_path: cli/tests/test-helix-routing.bats
+    artifact_type: test
+dependencies:
+  parent: PLAN-051
+  requires: []
+  blocks: []
 ---
 
 # PLAN-056: Category F-codex - codex 系 misc tests 18 件

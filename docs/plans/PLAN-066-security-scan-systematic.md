@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-066
 title: "PLAN-066（security scan 体系化: G2/G4/G6 3 段階）"
+kind: impl
+layer: cross
+drive: be
 status: draft
 created: 2026-05-13
 author: "Codex (Docs)"
@@ -22,6 +25,24 @@ acceptance:
   regression_policy:
     verification_commands: { command: "helix plan lint docs/plans/PLAN-066-security-scan-systematic.md", expected: "frontmatter と acceptance 構造が plan lint を通過" }
 finalized: null
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: security
+    slot_label: "Security — セキュリティ監査・scan 実装"
+  - role: se
+    slot_label: "SE — 実装"
+generates:
+  - artifact_path: docs/security/G2-threat-model-PLAN-066.md
+    artifact_type: design_doc
+  - artifact_path: cli/lib/
+    artifact_type: python_module
+dependencies:
+  parent: PLAN-065
+  requires: []
+  blocks: []
 ---
 
 # PLAN-066: security scan 体系化 - G2/G4/G6 3 段階

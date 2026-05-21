@@ -2,8 +2,27 @@
 plan_id: PLAN-028
 title: "PLAN-028: HELIX v2 orchestration 移行"
 status: completed
+kind: design
+layer: L2
+drive: be
 created: 2026-05-08
 author: Legacy migration
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-028-helix-v2-orchestration.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 # PLAN-028: HELIX v2 orchestration 移行
 

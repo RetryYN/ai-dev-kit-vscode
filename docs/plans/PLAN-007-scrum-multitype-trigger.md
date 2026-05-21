@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-007
 title: 'PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v3)'
+kind: design
+layer: cross
+drive: scrum
 status: completed
 created: 2026-04-15
 author: Unknown (legacy)
@@ -11,6 +14,20 @@ acceptance:
   - 5 種 Scrum と差し込みトリガーの適用条件を定義する。
   - PLAN-009 へ接続できる運用方針と通知フローを明文化する。
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-007-scrum-multitype-trigger.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-007: Scrum 5 種トリガー設計（差し込み最適化） (v3)

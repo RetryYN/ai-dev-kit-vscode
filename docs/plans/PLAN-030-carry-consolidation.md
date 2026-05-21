@@ -1,3 +1,30 @@
+---
+plan_id: PLAN-030
+title: HELIX v2/29 carry 集約 - self-test 値追従 / 並列 allowed-files 改修 / Codex 役割誤判定改善 / doctor PMO 整合 / research.conf 乖離整理
+kind: troubleshoot
+layer: L4
+drive: be
+status: completed
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-codex
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-doctor
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
+---
+
 # PLAN-030: HELIX v2/29 carry 集約 - self-test 値追従 / 並列 allowed-files 改修 / Codex 役割誤判定改善 / doctor PMO 整合 / research.conf 乖離整理
 
 ## 1. メタデータ

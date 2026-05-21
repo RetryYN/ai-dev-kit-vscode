@@ -1,11 +1,28 @@
 ---
 plan_id: PLAN-001
 title: "PLAN-001: PoC Skill Canonical Fallback"
+kind: poc
+layer: cross
+drive: be
 status: draft
 created: 2026-05-04
 finalized: null
 author: Opus (PM)
 related: []
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: docs/plans/PLAN-001-poc-skill.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 # PLAN-001: PoC Skill Canonical Fallback
 

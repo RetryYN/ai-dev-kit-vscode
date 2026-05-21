@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-049
 title: 'PLAN-049（Reverse HELIX ドキュメント強化 - 5 axis 集約）'
+kind: add-design
+layer: cross
+drive: reverse
 status: completed
 completed: 2026-05-10
 created: 2026-05-10
@@ -55,6 +58,26 @@ acceptance:
     verification_commands:
       command: "git branch --list 'improvements/plan-049*' | wc -l"
       expected: "0"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: skills/workflow/reverse-r0/SKILL.md
+    artifact_type: doc_update
+  - artifact_path: skills/workflow/reverse-r1/SKILL.md
+    artifact_type: doc_update
+  - artifact_path: docs/commands/reverse.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-049: Reverse HELIX ドキュメント強化 (5 axis 集約)

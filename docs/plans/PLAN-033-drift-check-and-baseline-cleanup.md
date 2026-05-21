@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-033
 title: HELIX v2/32 carry 解消 (drift-check jq 解消 + baseline PID-aware cleanup + tests 役割明示)
+kind: troubleshoot
+layer: L4
+drive: be
 status: completed
 created: 2026-05-09
 finalized: 2026-05-09
@@ -10,11 +13,31 @@ size: M
 phases: L1→L2→L3→L4→L6
 gates: G1, G2, G3, G4
 acceptance:
-  - W-1: `cli/helix-drift-check` の汎用 deliverable 検出における `jq` 依存を排除し、`jq` 未導入時でも frozen guard が PASS 可能。
-  - W-2: 既に `codex-baseline-$$-<timestamp>.txt` 命名 (cli/helix-codex:1034) となっている baseline に対し、`cli/lib/codex_post_validation.py` で **PID 生存確認** (`kill -0` 相当) と **stale cleanup** (PID dead かつ window 外) を追加し、orphan baseline 永続残存を排除する。
-  - W-3: `docs/architecture/test-layout.md` に `tests/` と `cli/lib/tests/` の役割分担（E2E と unit）を明文化。
-  - W-4: テスト群の回帰: 既存 `pytest cli/lib/tests/` と `bats cli/tests` を維持しつつ、W-1/W-2/W-3 導入に伴う新規シナリオを追加 PASS。
+  - 'W-1: cli/helix-drift-check の汎用 deliverable 検出における jq 依存を排除し、jq 未導入時でも frozen guard が PASS 可能。'
+  - 'W-2: 既に codex-baseline-$$-<timestamp>.txt 命名 (cli/helix-codex:1034) となっている baseline に対し、cli/lib/codex_post_validation.py で PID 生存確認 (kill -0 相当) と stale cleanup (PID dead かつ window 外) を追加し、orphan baseline 永続残存を排除する。'
+  - 'W-3: docs/architecture/test-layout.md に tests/ と cli/lib/tests/ の役割分担（E2E と unit）を明文化。'
+  - 'W-4: テスト群の回帰: 既存 pytest cli/lib/tests/ と bats cli/tests を維持しつつ、W-1/W-2/W-3 導入に伴う新規シナリオを追加 PASS。'
 related: [PLAN-031, PLAN-032, ADR-014, ADR-015]
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/helix-drift-check
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/codex_post_validation.py
+    artifact_type: python_module
+  - artifact_path: docs/architecture/test-layout.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 ## §1 Goal

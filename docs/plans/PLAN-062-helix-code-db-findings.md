@@ -1,6 +1,9 @@
 ---
 plan_id: PLAN-062
 title: "PLAN-062（helix code DB 実用化で発見した 3 件 fix）"
+kind: impl
+layer: L4
+drive: db
 status: completed
 created: 2026-05-11
 completed: 2026-05-12
@@ -19,6 +22,22 @@ acceptance:
     verification_commands: { command: "helix code dup --threshold 0.85", expected: "main() entrypoint 6 件は除外マーク済 / 真重複のみ表示" }
     exclusion_spec: "default 除外条件は (name == 'main') AND (type == 'function') AND (parent_module endswith '__main__' or has 'if __name__' guard) の 3 軸 AND。--include-entrypoints flag で従来動作復元。name のみ判定 / body_hash 判定は採用しない (G3 で凍結)。"
 finalized: 2026-05-11
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — 実装"
+  - role: docs
+    slot_label: "Docs — ドキュメント起草"
+generates:
+  - artifact_path: cli/lib/codex_post_validation.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 ---
 
 # PLAN-062: helix code DB 実用化で発見した 3 件 fix
