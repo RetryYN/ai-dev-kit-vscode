@@ -229,3 +229,145 @@ PLAN-100 §6 を以下 4 wave で実行:
 - OpenAI Codex Changelog / GPT-5.5 introduction / Cursor changelog / Devin vs Cursor
 - OWASP LLM01 解説 / AI Agent Security 2026 / arxiv 2506.08837 (Dual-LLM Architecture)
 - Stripe Engineering Blog / Vercel Engineering Blog
+
+---
+
+## Wave 2 追加 (skills / workflow / ADR-001〜020 / docs subdir / cli inventory)
+
+ユーザー指摘「skill / workflow の見直しも」に応える追加 wave。
+
+### Wave 2 §1. skills/workflow/ V5 audit (pmo-helix-explorer)
+
+- workflow/ 31 skill: V5 要素直接補強 top 7 (gate-planning / schedule-wbs / verification / debt-register / design-doc / adversarial-review / poc)
+- V5 retrofit 必要 7 skill (context-memory / project-management / estimation / research / verification / quality-lv5 / postmortem)
+- 廃止候補なし、統合検討: compliance + dependency-map (役割境界明文化のみ)
+- agent-skills 23: 19 件 Anthropic open standard 準拠、2 件軽微 drift (context-engineering / using-agent-skills の helix_layer cross 未対応)
+- HELIX 独自 4 (system-design-sizing / technical-writing / mock-driven-development / helix-scrum): V5 整合 ◎
+- 新規候補: plan-lifecycle (V5 #1-6 統合) / autonomous-runtime (V5 #18) — Phase 5 carry
+
+### Wave 2 §2. ADR-001〜020 audit (pmo-project-explorer)
+
+- ADR-001〜003: Accepted、V5 整合
+- ADR-004〜013 (10 件): Status 空欄 → Phase 4 で一括 Accepted 記入必要
+- ADR-007 (3モード統合): UPS/SRF (PLAN-079) で interlocked chain 拡張 → addendum 推奨
+- ADR-009 (Hook 戦略): V5 PLAN-099 5-layer vs 旧 doc-map → addendum 必要
+- ADR-010 (Task OS): PLAN-088 TodoWrite × agent_slots と責務重複、整合確認必要
+- ADR-015 (v2 orchestration): subagent 14 種拡張の addendum 推奨
+- ADR-017: 欠番
+- ADR-template.md 二重管理: docs/adr/ と docs/templates/ で旧/新版混在
+- docs/v2/L4-test-design/ 13 件: V-model 4 artifact 双方向 trace reference 全件未記入 (PLAN-075 retrofit 残)
+
+### Wave 2 §3. docs/ 全 inventory (pmo-project-scout)
+
+- docs/ 全 .md count: 309 (excl plans/ + adr/)
+- docs/v2/: 82 / docs/features/: 137 / docs/design/: 17 / docs/commands/: 19 / docs/runbook/: 9 / docs/templates/: 2 / docs/agent-skills/: 3 / docs/operations/: 4
+- 見落とし zone: docs/v2/B-design/ / docs/v2/C-followup/ 12 file / docs/architecture/plan-template.md (旧版) / docs/plans/index.md 不在
+
+---
+
+## Wave 3 追加 (hooks / subagents / cli/lib / cli/helix-* / helix.db schema 全機能 audit)
+
+ユーザー指摘「hookやサブエージェントも。全機能だよ」「スクリプトやコマンド、データベースも」に応える全機能 audit。
+
+### Wave 3 §1. hooks + subagents 全機能 audit
+
+- .claude/hooks/ 15 件: 主要 hook 8 件詳細 (pretooluse-agent-guard / -design-doc-web-search-guard / -opus-repo-block / posttooluse-plan-auto-register / -design-doc-web-search-revert / precompact-state-snapshot / sessionstart-history-injection / userpromptsubmit-context-bundle)
+- settings.json 登録済 14 + **未登録 5 件 (gap)**:
+  - precompact-state-snapshot.sh (V5 Layer 3 未稼働)
+  - posttooluse-helix-job-enqueue.sh (Layer 1 補強 未稼働)
+  - sessionstart-harness-summary.sh
+  - pretooluse-codex-slot-check.sh (matcher 不明)
+  - post-tool-use.sh (旧実装、cli/libexec に移行済?)
+- **V5 5-layer 完備度 3/5**: Layer 1 ○ / Layer 2 × 未実装 / Layer 3 △ file あり登録なし / Layer 4 ○ / Layer 5 ○
+- .claude/agents/ 19 件:
+  - PMO 9 種 (sonnet 6 + haiku 3) + PdM 3 種 (opus) = 12 (guard 許可)
+  - その他 7 種 (be-api / be-logic / db-schema / devops-deploy / qa-test / security-audit / code-reviewer): **Agent tool 経由は guard で block、Codex CLI 経由のみ利用可** — docs 未明文化
+
+### Wave 3 §2. cli/lib Python module 全機能 audit
+
+- 全 .py: 111 (+ subdirs) / migrations: 6 (v31〜v35) / tests: 202
+- **空スタブ 2 件**: sprint_auto_check.py / plan_dependencies.py (0 行、未実装) — Phase 4 で実装必要
+- **helix_db.py CURRENT_SCHEMA_VERSION=33 vs v35_plan_registry.py の 35** = 二重管理 gap、Phase 4 で chain 統合必要
+- detectors/ 14 axis (axis_01〜14): registry.py 785 行で一括 dispatch、PLAN-080
+- escalation 3 module 分散 (escalation_engine / escalation_matrix / escalation_integration): 統合候補
+- code_catalog + code_edges 境界曖昧: 統合候補
+
+### Wave 3 §3. cli/helix-* 全 command 機能 audit
+
+- helix-* 直下: 66 件 + libexec/ 9 件 + shim 2 件 = 77 実体
+- 主要 30 command 詳細 (helix-plan 661 行 / helix-codex 1907 行 / helix-gate 2846 行 / helix-doctor 970 行 / helix-sprint 1082 行 / helix-reverse 1486 行 / helix-scrum 1028 行 / helix-skill 1579 行 / helix-interrupt 1003 行 / helix-task 835 行)
+- **Wave 1/2 で未捕捉だった大型 command**:
+  - helix-interrupt (1003 行): 設計変更割り込み + CC-S/M/L 分類
+  - helix-task (835 行): TodoWrite × agent_slots 連動 task_queue 管理
+  - cli/libexec/ 9 件 (helix-session-start / helix-hook / helix-gate-api-check 等): 実体は libexec/ に移行済、cli/ 直下は redirect shim
+- 未実装 carry CLI:
+  - helix plan retrofit (PLAN-091 §11、PLAN-100 Sprint 0 carry) — P0
+  - helix adr graph (PLAN-101、V5 要素 #22) — P2
+  - helix metrics nsm (FR-V5-MK01) — P3
+  - helix sprint complete --auto-check fail-close 化 — P1
+  - helix doctor check_plan_adr_snapshot fail-close 化 — P1
+
+### Wave 3 §4. helix.db schema + migrations 全機能 audit
+
+- 全 table: 73 (sqlite_sequence 除く 72)
+- カテゴリ: plan 系 5 / V-model 系 7 / sprint/gate 6 / task/job 7 / agent 3 / harness/event 5 / code 3 / skill 2 / audit/feedback 8 / recovery 4 / session 3 / 要件/import 7 / utility 6 / PLAN-084 DB 分離 2 / scrum trigger 2
+- migration v0〜v35 全 36 件:
+  - **v32 番号衝突**: v32_detector_runs.py と v32_design_doc_web_search_audit.py の 2 file 重複
+  - **v34 gap**: schema_version に記録なし、todo_entries 不在 (PLAN-088 migration 未統合 or 名称変更)
+  - **v35 chain 未統合**: helix_db.py CURRENT_SCHEMA_VERSION=33 ↔ v35_plan_registry.py の 35 = main chain 未統合 P0 gap
+- ATTACH transaction span (PLAN-084): v31 は scaffold のみ、6 db 物理分割未実施
+- append-only TRIGGER: agent_slots / scrum_local_loops / reverse_local_loops / harness_check_events の 4 table のみ。event_envelope / audit_log は TRIGGER なし → tampering 防止強化必要
+- audit_hash column: 未実装 (PLAN-084 Phase 4.B 待ち)
+- 未実装 schema: adr_registry / adr_decision_graph (PLAN-101 / 要素 #22) / session_carry_metric (FR-V5-MK01)
+
+### Wave 3 §5. Phase 4 / Phase 5 で必須対応の追加 list
+
+**P0 (Phase 4 最優先)**:
+1. helix_db.py CURRENT_SCHEMA_VERSION 33 → 35 昇格 + v35_plan_registry の main chain 統合
+2. v32 番号衝突解消 (2 file 統合 or 一方廃止)
+3. v34 gap 確認 + todo_entries (PLAN-088) migration の有無調査
+4. plan_dependencies.py / sprint_auto_check.py 空スタブ実装
+
+**P1 (Phase 4 必須)**:
+5. precompact-state-snapshot.sh を settings.json に登録 (V5 Layer 3 稼働)
+6. posttooluse-helix-job-enqueue.sh / sessionstart-harness-summary.sh を settings.json に登録
+7. plan_registry 既存 ~100 PLAN 一括 bulk import (PostToolUse hook trigger)
+8. ADR snapshot presence lint を fail-close 化 (helix doctor check_plan_adr_snapshot)
+9. ADR-004〜013 Status 空欄一括記入
+
+**P2 (Phase 4 推奨 or Phase 5 carry)**:
+10. ADR-007/009/010/015 addendum 追加 (V5 整合)
+11. ADR template / plan template の二重管理解消
+12. workflow/ 7 skill の trigger / description retrofit
+13. event_envelope append-only TRIGGER + audit_hash column 追加
+14. Layer 2 statusLine context 監視実装
+15. 7 種 subagent (be-* 等) の guard lock-out docs 明文化
+
+**Phase 5 carry**:
+- helix plan retrofit CLI (PLAN-091 §11)
+- helix adr graph (PLAN-101、要素 #22)
+- helix metrics nsm (FR-V5-MK01)
+- escalation 3 module 統合
+- workflow/plan-lifecycle / autonomous-runtime 新規 skill
+- adr_registry / adr_decision_graph schema (要素 #22)
+
+---
+
+## 総合 Wave 1+2+3 結論
+
+Phase 4 着手前に把握すべき既存資産は **plans 99 + adr 32 + skill 107 + workflow 31 + agent-skills 23 + cli/lib 111 + cli/helix 77 + hooks 15 + subagents 19 + helix.db 73 table + migration 36 + docs 309 = 計 932 単位**。
+
+Wave 1 で V5 framework 19 要素拡張確定、Wave 2 で skills/workflow/ADR の retrofit list、Wave 3 で hooks/subagents/CLI/DB の機能 gap (15+ P0/P1 carry) を抽出。Phase 4 5 wave roadmap を以下に修正:
+
+### Phase 4 改訂 roadmap (Wave 2+3 反映)
+
+| Wave | 内容 | session 数 |
+|---|---|---|
+| **Wave 1** | CONCEPT.md V5 section 追加 + ADR-001〜013 Status 一括記入 + docs/architecture/plan-template.md 旧版 廃止 | 1 |
+| **Wave 2** | L1-REQUIREMENTS FR-V5 5 件追加 + L2-MASTER §0 範例拡張 + V5-plan-outlines.md 19 要素版 | 1 |
+| **Wave 3 (P0)** | helix_db.py v35 chain 統合 + v32 番号衝突解消 + v34 gap 確認 + plan_dependencies.py / sprint_auto_check.py スタブ実装 | 1-2 |
+| **Wave 4 (P1)** | settings.json hook 補完 (precompact / job-enqueue / harness-summary) + plan_registry bulk import + ADR snapshot fail-close 化 | 1 |
+| **Wave 5 (P1)** | workflow/ 7 skill retrofit + ADR-007/009/010/015 addendum + template 二重管理解消 | 1 |
+| **Wave 6 (Phase 4 並行)** | PLAN-101 (ADR Decision Graph) + ADR-033 起票 | 1 |
+
+合計 6-7 session 想定 (旧 5 wave から +1-2 session)。Phase 5 carry は新規 skill 2 件 + CLI 3 件 + escalation 統合等で別途 3-5 session 想定。
