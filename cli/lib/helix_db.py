@@ -38,12 +38,16 @@ try:
         v31_db_separation,
         v32_design_doc_web_search_audit,
         v33_gate_audit_metrics,
+        v34_todo_entries,
+        v35_plan_registry,
     )
 except ImportError:  # pragma: no cover
     from migrations import (
         v31_db_separation,
         v32_design_doc_web_search_audit,
         v33_gate_audit_metrics,
+        v34_todo_entries,
+        v35_plan_registry,
     )
 
 
@@ -243,7 +247,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 33
+CURRENT_SCHEMA_VERSION = 35
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -1895,6 +1899,12 @@ def migrate(conn):
         if current < 33:
             v33_gate_audit_metrics.migrate_v32_to_v33(conn)
         v33_gate_audit_metrics.ensure_v33_additive_schema(conn)
+        if current < 34:
+            v34_todo_entries.migrate_v33_to_v34(conn)
+        v34_todo_entries.ensure_v34_additive_schema(conn)
+        if current < 35:
+            v35_plan_registry.migrate_v34_to_v35(conn)
+        v35_plan_registry.ensure_v35_additive_schema(conn)
         conn.commit()
 
 

@@ -7,6 +7,9 @@ metadata:
     - プロジェクト計画時
     - 進捗管理時
     - リソース調整時
+    - PLAN frontmatter V5 matrix (layer × drive × kind) 適用時
+    - PLAN-MM-001 (implementation tree) 親子 PLAN 依存 graph 管理時
+    - Sprint Plan 標準 8 ステップ (PLAN-077) 運用確認時
   verification:
     - "WBS: 全タスクに担当・見積もり・期限 設定済み"
     - "リスク一覧: 各リスクに対策・担当 付与済み"

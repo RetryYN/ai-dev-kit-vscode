@@ -166,3 +166,7 @@ helix task status            # 実行履歴
 - `cli/lib/learning_engine.py` (タスク実行パターンの学習)
 - ADR-003: Learning Engine Foundations（学習エンジン連携）
 - ADR-005: YAML-SQLite Dual State（状態管理方針）
+
+## V5 framework addendum (2026-05-22 retrofit)
+
+V5 要素 7 (agent_slots frontmatter) および PLAN-088 + ADR-022 の TodoWrite × agent_slots framework により、本 ADR の 2 層構造 (タスク → アクション) は PLAN frontmatter を経由した実行単位へと拡張された。具体的には各 PLAN の `agent_slots` フィールドが role / タスク割当の宣言となり、従来の `task-catalog.yaml` 63 タスクへの委譲先指定と V5 PLAN 起点の slot 割当が重複なく共存する設計 (task_catalog = 実行定義、agent_slots = 割当宣言)。SQLite 側は `task_runs` テーブルと `plan_registry` + `task_queue` 連携 (Layer 1、PLAN-099) で統合されるが、単一実行正本の決定 (helix job / handover / task_queue 競合解消) は PLAN-092 Layer B で別途確定する。

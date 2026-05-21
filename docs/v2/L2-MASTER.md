@@ -34,6 +34,13 @@
 | hook 実装詳細 | 概要参照のみ | Phase E で自動化設計に委譲 |
 | 可視化 UI 詳細 | 概要参照のみ | Phase F で目標状態のみ固定 |
 | Event Sourcing / projector | ADR-018/019 で扱う | PLAN-084 で L1 確定、ADR-018 (db 分離 + Event Sourcing + projector 境界) / ADR-019 (HELIX 二重らせん命名原則) で L2 凍結 |
+| 設計 doc Web 検索ガード | ADR-021 で扱う | PLAN-087 で L1〜L4 確定、ADR-021 で L2 凍結 (PreToolUse hook fail-close + WebSearch 3 query 必須) |
+| TodoWrite × agent slot framework | ADR-022 で扱う | PLAN-088 で L1〜L4 確定、ADR-022 で L2 凍結 (todo_entries v34 table + agent_slots schema) |
+| gate fail-close 段階導入 | ADR-023 で扱う | PLAN-089 で L1〜L4 確定、ADR-023 で L2 凍結 (advisory → fail-close 段階遷移) |
+| continueOnBlock + active guidance loop | ADR-024 で扱う | PLAN-090 で L1〜L4 確定、ADR-024 で L2 凍結 (Claude Code 2.1.139 新仕様採用) |
+| V5 framework 19 要素 3 層 | ADR-025〜032 で扱う | PLAN-091〜099 で L1〜L4 確定、ADR-025〜032 で L2 凍結 (Layer A→B→C 依存順、CONCEPT §10 参照) |
+| ADR Decision Graph (Phase 4 P0) | ADR-033 で扱う | PLAN-101 で L1〜L4 (Phase 4 同時実装)、ADR-033 で L2 凍結予定 (adr_decision_graph table + `helix adr graph` CLI、FR-V5-22) |
+| V2 doc retrofit (Phase 4 後追い整合) | PLAN-100 で扱う | 既存 99 PLAN + V2 doc 5 件を V5 framework 整合に retrofit (Phase 1 ADR snapshot + Phase 2-4 全 frontmatter + Phase 5 V2 doc 改訂) |
 
 | 用語 | 定義 | 備考 |
 |---|---|---|

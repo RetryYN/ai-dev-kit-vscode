@@ -8,6 +8,8 @@ metadata:
     - AIセッション管理時
     - コンテキスト最適化時
     - プロジェクト知識管理時
+    - V5 自動走行 framework (PLAN-099) SessionStart/PreCompact state 設計時
+    - session 終了前チェックリスト (carry/recovery/handover/memory 4 項目) 実施時
   verification:
     - "CLAUDE.md存在: CLAUDE.md or .claude/CLAUDE.md いずれかが存在する"
     - "CLAUDE.local.md: .gitignore に記載済み"

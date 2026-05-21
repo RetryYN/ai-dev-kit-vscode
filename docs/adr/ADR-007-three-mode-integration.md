@@ -126,3 +126,7 @@ reverse: { status: completed | in-progress | null, completed_at: ... }
 - `cli/helix-scrum` (Scrum モード)
 - `.helix/reverse/R4-gap-register.md` (Reverse→Forward 接続の実例)
 - ADR-005: YAML-SQLite Dual State（状態管理の上位方針）
+
+## V5 framework addendum (2026-05-22 retrofit)
+
+V5 要素 14 (PoC = Scrum × Reverse matrix、PLAN-095 + ADR-028) により、本 ADR で定義したモード間接続ルール (Reverse R4 Gap → Forward / Scrum confirmed → Forward L1) は PoC 起点のハイブリッドパスで補完される。具体的には `helix scrum decide --confirmed` による Forward 昇格に加え、Scrum S2 (PoC 実装) と Reverse R2 (As-Is 設計復元) を同一トピック内で並走させる新規パス (type: scrum-code, scrum-upgrade 等) が matrix に追加された。`phase.yaml` の `current_mode` は既存 3 値 (forward/reverse/scrum) を維持し、PoC × Reverse 連携の状態は `.helix/scrum/` サブディレクトリで独立管理する (ADR-028 正本)。

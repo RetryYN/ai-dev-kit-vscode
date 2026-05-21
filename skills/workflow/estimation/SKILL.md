@@ -7,6 +7,8 @@ metadata:
     - 見積もり依頼時
     - スプリント計画時
     - リソース計画時
+    - V5 agent_slots (PLAN-088 frontmatter) でロール見積もりを frontmatter に記入する時
+    - PLAN サイジング (S/M/L) と V5 drive 9 種の組合せ判定時
   verification:
     - "見積もり: 全タスクに工数(時間 or ポイント)付与済み"
     - "バッファ: 不確実性に応じた係数(×1.2〜2.0)適用済み"

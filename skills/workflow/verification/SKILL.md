@@ -10,6 +10,8 @@ metadata:
     - 品質ゲート通過時
     - Reverse ゲート（RG0-RG3）通過時
     - RGC Gap 閉塞検証時
+    - V5 V-model 4 artifact 双方向 trace 検証時 (PLAN-075 fail-close 対象)
+    - PLAN-076 mandatory subagent 起動 audit (helix agent fire-mandatory --phase Lx) 確認時
   verification:
     - "L1-L2, L3_api, V-L3〜V-L6 全レイヤー status: pass"
     - "L1: 要件カバレッジ 100% (functional/non-functional)"

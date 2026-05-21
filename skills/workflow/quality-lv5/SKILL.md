@@ -7,6 +7,8 @@ metadata:
     - テスト作成完了時
     - 品質ゲート通過時
     - リリース前検証時
+    - V5 Sprint Plan mandatory in sprint (テスト起動 Step 5) の G4 exit 条件判定時
+    - helix sprint complete --auto-check で coverage gate (core5 80%) 確認時
   verification:
     - "カバレッジ ≥70% (statement), ≥60% (branch)"
     - "テストピラミッド比率: Unit ≥60%, Integration 15-30%, E2E ≤15%"

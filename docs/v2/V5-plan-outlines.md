@@ -10,7 +10,7 @@
 
 ---
 
-## V5 framework 18 要素 (2026-05-20 確立済み、turn 14-15 で 18 番追加)
+## V5 framework 19 要素 (2026-05-20 確立 + 2026-05-22 readiness report で #19 追加)
 
 | # | 要素 | 概要 |
 |---|------|------|
@@ -32,6 +32,9 @@
 | 16 | helix_improvement_plan_draft.md 6 Phase 統合 | 失敗集レイヤー + ブランチ別 DB + 抽象化層 3 層 + Curator |
 | 17 | リカバリープラン kind 追加 (turn 13 確立) | session 断絶・議論脱線・認識ずれからの再開 workflow |
 | 18 | **自動走行 framework 5-layer** (turn 14-15 確立) | claw0 + agent_farm + claude-brain + learn-claude-code 4 OSS シナジー。Layer 1: PostToolUse → task_queue auto-enqueue / Layer 2: statusLine context % 監視 4 段階 / Layer 3: PreCompact state 永続化 / Layer 4: SessionStart + UserPromptSubmit 履歴注入 / Layer 5: ScheduleWakeup heartbeat。解決問題: 14h idle 事故 + context 枯渇 + carry 放置の 3 課題同時解消 |
+| **19 (FR-V5-22)** | **ADR Decision Graph Registry** (2026-05-22 readiness report で追加、P0、Phase 4 同時実装) | ADR 同士の supersedes / refines / relates_to 関係を adr_decision_graph table (helix.db v36 schema) で機械化。`helix adr graph` CLI で DOT/Mermaid 形式 export。ADR 30+ 件の関連性可視化。循環参照を `helix doctor` で fail-close 化。MADR 2.1.2 cross-reference を機械的に拡張 (PLAN-101 + ADR-033 で実装)。pdm tl-advisor 採用根拠: tl-advisor session 019e4b85 推奨、Phase 4 のみ採用 (#19/#20/#23 は Phase 5 scoped extension、#21 IDP export は不採用) |
+
+P1 (Phase 5 carry) 候補 4 件は L1-REQUIREMENTS §3.10 で先行記載済 (FR-V5-19 DORA Curator rework rate / FR-V5-20 Multi-agent topology / FR-V5-MK01 NSM / FR-V5-MK02 Progressive disclosure)。Phase 5 起票時に PLAN-091/093 scoped extension で取り込む (新規 PLAN 増やさない原則)。
 
 ---
 

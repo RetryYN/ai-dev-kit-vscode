@@ -92,3 +92,7 @@ PLAN-024 Sprint .3 で CLI / 設定の基盤は整備済みとなり、orchestra
 - `cli/helix-claude`（W-3 で実行モード対応）
 - `cli/helix-handover`（W-3 で `--mode` フィールド追加）
 - `cli/templates/prompts/pmo-base.md`（PMO no-write ポリシー固定）
+
+## V5 framework addendum (2026-05-22 retrofit)
+
+本 ADR が定義した PMO 新設 (Sonnet read-only / Haiku docs 限定) は、V5 framework で subagent 14 種 (PMO 9 + PdM 3 + advisor 2) へ体系化された (PLAN-076 + ADR-025)。具体的な追加は PMO 6 種 (helix-explorer / helix-scout / project-explorer / project-scout / tech-docs / tech-fork / tech-news) と PdM 3 種 (tech-innovation / marketing-innovation / innovation-manager)、および advisor 2 種 (pm-advisor / tl-advisor) であり、本 ADR §2 の起動経路拡張は `.claude/agents/` frontmatter + pretooluse-agent-guard.sh fail-close で機械強制される (PLAN-083 完遂、ADR-032 参照)。`helix claude` 経路は deprecated となり、新規は `Agent({subagent_type: "pmo-sonnet"})` 直接呼び出しへ移行済み。

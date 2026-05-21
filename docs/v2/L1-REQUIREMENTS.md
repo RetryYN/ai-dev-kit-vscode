@@ -459,6 +459,31 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 
 ---
 
+### 3.10 V5 framework 拡張 (Phase K、PLAN-091〜099 + PLAN-101 scope)
+
+V5 framework 19 要素 (CONCEPT.md §10) を機能要件として確定。2026-05-22 readiness report に基づく段階採用 (#22 のみ Phase 4 P0、他は Phase 5 carry)。
+
+| FR ID | 優先度 | 内容 | 採用根拠 |
+|---|---|---|---|
+| **FR-V5-22** | **P0 (Phase 4)** | **ADR Decision Graph Registry**: ADR 同士の supersedes / refines / relates_to を adr_decision_graph table で機械化、`helix adr graph` CLI で DOT/Mermaid 形式 export、ADR-021〜032 の関連性を可視化 | pdm tl-advisor 推奨 P0、MADR 2.1.2 cross-reference を拡張 (PLAN-101 + ADR-033 で実装) |
+| FR-V5-19 | P1 (Phase 5 carry) | DORA mirror-multiplier guard (Curator rework rate): 同一 PLAN への retroactive 修正回数を helix.db で計測、閾値超過で WARN | DORA framework mirror、Curator 多重 rework 検出 |
+| FR-V5-20 | P1 (Phase 5 carry) | Multi-agent topology (agent_slots 拡張): PLAN frontmatter agent_slots を hub-spoke / pipeline / parallel の topology 別に分類、role 重複を fail-close 化 | Anthropic multi-agent topology research 翻案 |
+| FR-V5-MK01 | P1 (Phase 5 carry) | Northstar Metric (NSM): carry consumed/session を helix.db `session_carry_metric` table で計測、`helix metrics nsm` CLI で trend 表示 | marketing NSM 思想を internal dev tool に翻訳 |
+| FR-V5-MK02 | P1 (Phase 5 carry) | Progressive disclosure: CLAUDE.md / SessionStart hook を初心者 → 熟練者で段階開示、context 過多防止 | Reforge Bowling Alley framework 翻案 |
+
+#### FR-V5 受入条件 (AC-V5)
+
+- AC-V5-22-1: `helix adr graph` で ADR 30+ 件の supersedes/refines graph が DOT 出力できる
+- AC-V5-22-2: adr_decision_graph table が helix.db v36 schema (PLAN-101 で導入) に存在
+- AC-V5-22-3: ADR 間の循環参照 (A supersedes B and B supersedes A) を `helix doctor` で fail-close 化
+- AC-V5-19/20/MK01/MK02: Phase 5 carry のため AC は Phase 5 起票時に確定
+
+#### Phase 5 carry 条件
+
+FR-V5-19/20/MK01/MK02 は Phase 4 で **doc only** (本 §3.10 への記載) とし、実装は Phase 5 へ deferred。Phase 5 起票時に既存 PLAN-091 (agent_slots) / PLAN-093 (drift Curator) を scoped extension する形で取り込む (新規 PLAN 増やさない原則、tl-advisor 5 原則準拠)。
+
+---
+
 ## §4 非機能要件 (NFR): 7 カテゴリ網羅
 
 ### 4.1 互換性
@@ -768,7 +793,7 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
 ## §11 G1 要件完了ゲート通過条件
 
 - [ ] §2 BR (V-V4 / A1-A4 / DB1-DB3 / EM1-EM4 / D1-D3 計 18) すべて PO レビュー済
-- [ ] §3 FR 5 Phase 順序で 9 セクション網羅 (計 74)
+- [ ] §3 FR 5 Phase 順序で 11 セクション網羅 (計 79、§3.9 PLAN-084 / §3.10 V5 framework 追加)
   - §3.0 既存整理 INV01-06 (6)
   - §3.1 V-model 強化定義 VD01-09 (9)
   - §3.2 V-model 実装 V01-07 (7)
@@ -778,6 +803,8 @@ frontend.db / backend.db は現時点で state-store 採用 (FR-DB02 6 軸判定
   - §3.6 可視化 EM01-06 (6)
   - §3.7 派生 (FE01-06 / AT01-05 / LI01-03 計 14)
   - §3.8 工程転換 VS01-VS07 (7)
+  - §3.9 db 分離 + Event Sourcing (PLAN-084 scope、FR-DB01-09 / AC-DB01-07)
+  - §3.10 V5 framework 拡張 FR-V5-22 / 19 / 20 / MK01 / MK02 (5、P0=1 件 + P1=4 件 Phase 5 carry)
 - [ ] §3.0/§3.1 (既存整理 + V-model 強化定義) が §3.8 (Before/After 工程転換) の根拠として完結している
 - [ ] §3.4 検出ガードレール強化 が §3.5 自動化 の前段として要件化されている
 - [ ] §4 NFR (互換 / 性能 / コスト / 安全 / 拡張 / 可観測 / docs 計 24) カテゴリ網羅

@@ -8,6 +8,8 @@ metadata:
     - 技術選定前の調査時
     - ライブラリ比較時
     - 未知領域着手時
+    - ADR / PLAN 設計 doc 作成前の業界 standard 調査 (PLAN-087 ガードレール発火時)
+    - PoC = Scrum × Reverse matrix (PLAN-095) の仮説検証対象の技術調査時
   verification:
     - "research_report が docs/research/ に .md で存在"
     - "一次情報 URL ≥3件"

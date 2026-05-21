@@ -222,5 +222,5 @@ def test_migrate_v32_to_v33_adds_gate_audit_metrics_and_records_schema_version(t
         "bypass_used",
         "created_at",
     ]
-    assert versions[-3:] == [31, 32, 33]
-    assert helix_db.CURRENT_SCHEMA_VERSION == 33
+    assert {31, 32, v33_gate_audit_metrics.CURRENT_SCHEMA_VERSION} <= set(versions)
+    assert helix_db.CURRENT_SCHEMA_VERSION >= v33_gate_audit_metrics.CURRENT_SCHEMA_VERSION

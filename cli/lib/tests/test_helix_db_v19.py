@@ -85,4 +85,4 @@ def test_migrate_v18_to_v19_preserves_existing_entries(tmp_path: Path) -> None:
 
 
 def test_current_schema_version_is_33() -> None:
-    assert helix_db.CURRENT_SCHEMA_VERSION == 33
+    assert helix_db.CURRENT_SCHEMA_VERSION == 35

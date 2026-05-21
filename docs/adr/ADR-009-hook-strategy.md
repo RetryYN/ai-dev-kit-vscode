@@ -186,3 +186,7 @@ triggers:
 - `cli/lib/doc_map_matcher.py` (マッチングロジック)
 - `cli/lib/phase_guard.py` (フェーズガード実装)
 - ADR-004: Bash-Python Hybrid（実装方針）
+
+## V5 framework addendum (2026-05-22 retrofit)
+
+V5 要素 18 (自動走行 framework 5-layer、PLAN-099 + ADR-032) により、本 ADR の 3 層フック構造 (PostToolUse advisory / pre-commit enforce / helix gate full) に 5 種の上位レイヤーが追加された。Layer 1 (PostToolUse PLAN 自動 enqueue) は既存 advisory hook を実行キュー化まで延長し、Layer 2 (statusLine context 監視) と Layer 3 (PreCompact state 永続化) は本 ADR が定義したタイムアウト制御 (SessionStart 5s / PostToolUse 10s) の上位に配置される。Layer 4 (SessionStart cleared/compacted 履歴注入) と Layer 5 (heartbeat 15min) は carry 放置防止と context 枯渇復旧を担い、本 ADR の Stop フック責務を分担・軽量化する。doc-map トリガー中心の判断ロジック自体は ADR-009 を正本として維持する (ADR-032 は runtime substrate 層)。

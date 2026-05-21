@@ -281,6 +281,7 @@ write 頻度低下・audit 要件変化・cross-db 参照増加 等のトリガ�
 | H | Agent Transformation 整理 (段 2 内集約) | 派生 |
 | I | Legacy Import (PLAN-001〜068 carry の V2 取り込み) | 派生 |
 | J | dogfood / 運用安定化 | 検証 |
+| **K** | **V5 framework 統合** (V5 19要素 3層構造 + PLAN ⊃ ADR レイヤー併存 + 自動走行 5-layer + ADR Decision Graph + GenAI semconv 観測性、§10 参照) | **拡張 framework** |
 
 ### 順序の論理
 
@@ -398,10 +399,97 @@ V2 は **ゼロ設計ではなく V1 資産の formalize + 連結**:
 | Reverse / Scrum mode | Phase D で V-model 統合 |
 | Agent Transformation 散在 | Phase H で集約整理 |
 | Automation-SEO (段 1 product 参考) | Phase D-H の参考実装 |
+| **PLAN-084 (helix.db 6 分離 + Event Sourcing)** | **Phase K Layer B の前段 (DB 分離 + projector 基盤)** |
+| **PLAN-087〜090 (Web 検索ガード / TodoWrite × agent slot / gate fail-close / continueOnBlock)** | **Phase K の PLAN ⊃ ADR 範例 (ADR-021〜024 と双方向 trace)** |
+| **PLAN-091〜099 (V5 framework 本体 / 自動登録 / drift 検出 / PoC=Scrum×Reverse / GitHub / 抽象化層 / recovery / 自動走行 5-layer)** | **Phase K の中核実装 (Layer A→B→C 順)** |
+| **PLAN-100 (既存 retrofit + V2 全面見直し)** | **Phase K と Phase I (Legacy Import) の橋渡し、PLAN-091〜099 完遂後の後段 retrofit** |
 
 ---
 
-**判断待ち**: 本企画書 (V2 価値連鎖 + 2 Base 軸 + 基盤 + Emergent value) を読み、§7 採否判断基準に照らして判断ください。approve なら即 L1-REQUIREMENTS.md 起票へ。
+## §10 V5 framework 統合 (2026-05-22 Phase K として追加)
+
+### §10.1 V5 framework 19 要素マッピング
+
+V5 framework は 3 層構造で 19 要素を統合する (Layer A → B → C 依存順)。
+
+| Layer | 要素 (19) | 概要 |
+|---|---|---|
+| **A** 工程ルール | 1-7, 11-18 | PLAN self-contained / matrix / 種別 / fail-close / generates / dependencies / agent_slots / ADR snapshot / template embed / V-model TDD / PoC=Scrum×Reverse / GitHub 統合 / recovery / 自動走行 5-layer |
+| **B** helix.db 型 | 8, 9, 10 | DB 受け側 / drift 検出 / 進捗 trace |
+| **C** 連携自動化 | 8 (hook 本体), 18 | PostToolUse / SessionStart / statusLine / PreCompact / 5-layer hook |
+
+19 番目要素 (#22 ADR Decision Graph) は 2026-05-22 readiness report で追加採用 (P0、Phase 4 同時実装)。PLAN-101 + ADR-033 で実装。
+
+### §10.2 3 層依存順序 (Layer A → B → C、着手必須順)
+
+```
+[Layer A] 工程・ドキュメント運用ルール整備 ← V2 企画書反映、Layer B/C の前提
+  V5 要素 1-7 (PLAN self-contained / matrix / 種別 / fail-close / generates / dependencies / agent_slots)
+  V5 要素 11-17 (ADR snapshot / template embed / V-model TDD / PoC / GitHub / helix_improvement / recovery)
+       ↓
+[Layer B] helix.db 型ハーネス ← Layer A の実体化
+  V5 要素 8 (DB 受け側) / 9 (drift 検出) / 10 (進捗 trace)
+  単一実行正本決定 (task_queue / TodoWrite / helix job / handover 競合解消)
+       ↓
+[Layer C] 連携自動化ハーネス ← Layer A/B を hook で動かす
+  V5 要素 8 (hook 本体) / 18 (自動走行 framework 5-layer)
+  PoC C 案 (Layer 4+5 = SessionStart + heartbeat) のみ並行可、本実装は A/B 確定後
+```
+
+工程ルール (A) が確定しないと DB schema (B) は設計できず、B が動かないと hook (C) が連動しない。並行可能なのは Layer C の PoC (Layer 4+5) のみ。本実装は A/B 確定後。
+
+### §10.3 PLAN ⊃ ADR レイヤー併存 範例
+
+PLAN は L1〜L4 を内包する implementation tree、ADR は PLAN tree 内 L2 大局判断の snapshot (任意・併設):
+
+| PLAN | tree 範囲 | ADR snapshot | L2 大局判断 |
+|---|---|---|---|
+| PLAN-084 | L1〜L4 (helix.db 6 分離 + Event Sourcing) | ADR-018 / ADR-019 | 6 分離 + 命名原則 + 3 軸トライアングル |
+| PLAN-087 | L1〜L4 (設計 doc Web 検索ガード) | ADR-021 | Web 検索 fail-close 採用 |
+| PLAN-088 | L1〜L4 (TodoWrite × agent slot) | ADR-022 | framework 採用 |
+| PLAN-089 | L1〜L4 (gate fail-close 段階導入) | ADR-023 | advisory → fail-close 段階遷移 |
+| PLAN-090 | L1〜L4 (continueOnBlock + active guidance) | ADR-024 | 外部新仕様採用 |
+
+「ADR 先 / PLAN 後」順序ではなく、同 trunk 内併存 (L2-MASTER §0 line 36 範例)。`helix doctor check_plan_adr_snapshot` (新設予定) で PLAN tree 内 L2 大局判断あり + ADR snapshot 不在を fail-close 化。
+
+### §10.4 V5 観測性 (GenAI Semantic Conventions 採用、OpenTelemetry 準拠)
+
+OpenTelemetry GenAI Semantic Conventions (2026-02 client spans 安定化) を agent observability の正本とする:
+
+- **span 名 / attribute key / metric / event shape** は OTel GenAI 準拠 ([opentelemetry.io/docs/specs/semconv/gen-ai/](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/))
+- agent invocation / tool call / retrieval を **child span** として記録 (推論 chain の完全 trace)
+- token usage / latency / error rate を **metric** 化
+- HELIX 独自 wide events として helix.db に append-only 蓄積 (event_envelope + audit_hash で tampering 防止)
+- PII / secret は redaction layer 経由 (Datadog / Honeycomb / New Relic 等の業界 standard 踏襲)
+
+major vendor (Datadog / Honeycomb / New Relic) + framework (LangChain / CrewAI / AutoGen / AG2) が OTel-compliant span を native emit、HELIX は SQLite-based wide events で同等の audit を local 完結。
+
+### §10.5 V5 差別化軸 (一般 AI dev tool / Cursor / Copilot 対比)
+
+| 項目 | HELIX V5 | 一般 AI dev tool |
+|---|---|---|
+| **V-model traceability** | 4 artifact 双方向 trace (設計 ↔ 実装 ↔ テスト設計 ↔ テストコード) を frontmatter + helix.db で機械強制 | コード生成中心、設計と test の trace 弱い |
+| **helix.db audit** | append-only event 蓄積、reciprocal dependency / drift 検出 / 進捗 trace を SQLite で sealed | 履歴は chat log のみ、structural audit なし |
+| **PLAN ⊃ ADR** | implementation tree (L1〜L4) + L2 snapshot (任意併設、`helix doctor` で fail-close 化) | spec / decision 分離なし |
+| **自動走行 5-layer** | PostToolUse / SessionStart / statusLine / PreCompact / heartbeat で context 枯渇 + carry 放置 + idle 三課題同時解決 | context 管理は手動、carry 放置可 |
+| **Event Sourcing + projector** | append-only event + upcaster + read model projection で schema evolution 安全化 (MADR 2.1.2 + 業界 Event Sourcing pattern) | state mutation 中心 |
+| **gate fail-close 段階導入** | advisory → fail-close 段階遷移で破壊的導入を回避 (ADR-023) | hard fail のみ or gate なし |
+
+Event Sourcing upcasting pattern は domain 標準 (Artium / Microsoft Azure / quintans 等) を採用。ADR format は MADR 2.1.2 ([adr.github.io/madr/](https://adr.github.io/madr/)) 準拠。
+
+### §10.6 status review 遷移フロー (PLAN 規約 v5)
+
+PLAN status は frontmatter `status` を正本に、`draft → finalized → completed` の 3 状態で遷移する。各遷移条件:
+
+- `draft` → `finalized`: tl-advisor adversarial review PASS + plan_validator (`helix plan lint --v5`) PASS + ADR snapshot 併設 (L2 大局判断があれば)
+- `finalized` → `completed`: Sprint Exit 条件全充足 + handover Next Action 消化 + 全 gate PASS + V-model 4 artifact 揃い (`helix doctor` check)
+- **逆遷移は禁止** (degrade 防止)。誤遷移は recovery plan kind (V5 要素 17) で別 PLAN 起票して trace。
+
+frontmatter `status` 更新時、PostToolUse hook (V5 要素 8) が helix.db `plan_registry` に自動同期し、`helix doctor check_plan_status_drift` で本文との drift を fail-close 化。
+
+---
+
+**判断待ち**: 本企画書 (V2 価値連鎖 + 2 Base 軸 + 基盤 + Emergent value + V5 framework 統合) を読み、§7 採否判断基準に照らして判断ください。approve なら即 L1-REQUIREMENTS.md 起票へ。
 
 | 採否 | [ ] approve / [ ] needs revision / [ ] reject |
 |---|---|
