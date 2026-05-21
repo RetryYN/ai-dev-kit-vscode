@@ -1,15 +1,36 @@
 ---
 plan_id: PLAN-085
 title: "PLAN-085: migration v31 動作確認 + 手元 rollback 手順整備 (local CLI tool 用 scope down、Web 検索ベース再書き直し)"
+kind: poc
 layer: L4
+drive: db
 status: draft
 size: S
-drive: db
 created: 2026-05-18
 revised: 2026-05-19
 owner: PM
 phases: L4
 gates: G6
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — Web 検索ベース整合チェック"
+  - role: se
+    slot_label: "SE — migration v31 sandbox 動作確認 + Flyway 風 timestamp prefix backup 手順整備"
+  - role: dba
+    slot_label: "DBA — 6 db 分離 sandbox 検証 + rollback 試演"
+generates:
+  - artifact_path: docs/runbook/migration-v31-rehearsal.md
+    artifact_type: doc_update
+  - artifact_path: cli/lib/migration_sandbox.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_migration_sandbox.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-084 (helix.db 6 分離 + Event Sourcing + projector)
   - PLAN-086 (helix db rollback CLI 起票、本 PLAN と同 wave で scope down)

@@ -1,13 +1,41 @@
 ---
 plan_id: PLAN-076
 title: "PLAN-076: subagent 工程マッピング framework (mandatory / on-demand 2 分類)"
+kind: impl
+layer: cross
+drive: be
 status: draft
 size: L
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G0.5, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — HELIX_CORE/SKILL_MAP/CLAUDE 工程マップ起草"
+  - role: se
+    slot_label: "SE — cli/helix-agent + subagent_invocations table + G2-G4 lint"
+generates:
+  - artifact_path: helix/HELIX_CORE.md
+    artifact_type: doc_update
+  - artifact_path: skills/SKILL_MAP.md
+    artifact_type: doc_update
+  - artifact_path: CLAUDE.md
+    artifact_type: doc_update
+  - artifact_path: cli/helix-agent
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/subagent_audit.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_subagent_audit.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-075 (V-model 設計⇔テスト対応、同時並行)
   - PLAN-077 (Sprint Plan 標準化、同時並行)

@@ -1,13 +1,41 @@
 ---
 plan_id: PLAN-077
 title: "PLAN-077: Sprint Plan 標準化 framework (機械チェック / テスト / レビュー mandatory in sprint)"
+kind: impl
+layer: L4
+drive: be
 status: draft
 size: L
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L4
 gates: G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — HELIX_CORE/SKILL_MAP/CLAUDE Sprint 8 ステップ起草"
+  - role: se
+    slot_label: "SE — cli/helix-sprint --auto-check + G4 lint + mandatory in sprint 強制化"
+generates:
+  - artifact_path: helix/HELIX_CORE.md
+    artifact_type: doc_update
+  - artifact_path: skills/SKILL_MAP.md
+    artifact_type: doc_update
+  - artifact_path: CLAUDE.md
+    artifact_type: doc_update
+  - artifact_path: cli/helix-sprint
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/sprint_auto_check.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_sprint_auto_check.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-075 (V-model 設計⇔テスト対応、同時並行)
   - PLAN-076 (subagent 工程マッピング、同時並行)

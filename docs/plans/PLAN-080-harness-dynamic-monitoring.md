@@ -1,13 +1,39 @@
 ---
 plan_id: PLAN-080
 title: "PLAN-080: Harness Dynamic Monitoring (3 軸 Pull/Push/Audit による Opus 制御 harness 強化)"
+kind: impl
+layer: cross
+drive: be
 status: completed
 size: M
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — D-DB / D-API 起草 + HELIX_CORE 反映"
+  - role: se
+    slot_label: "SE — helix.db v30 + cli/helix-harness 3 軸監視 + hook 統合"
+generates:
+  - artifact_path: cli/lib/migrations/v30_harness_monitoring.py
+    artifact_type: schema_migration
+  - artifact_path: cli/helix-harness
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/harness_monitor.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_harness_monitor.py
+    artifact_type: test
+  - artifact_path: .claude/hooks/stop-harness-audit.sh
+    artifact_type: hook
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-078 (agent slot v28、本 PLAN は v30、上層 monitoring layer)
   - PLAN-079 (UPS + SRF chain、本 PLAN は metric 取得対象)
@@ -27,13 +53,13 @@ trigger: |
   これらは Opus 個人の判断ループに dynamic feedback がないことが原因。
   Pull (たまに helix doctor で確認) しかなく、Push (適切タイミング自動警告) がない。
 acceptance:
-  - 3 軸 (Pull / Push / Audit) で dynamic check 機構が実装される
-  - `helix harness status` で現状 (active slot + 走行中 task + 未消化 deferred-findings + skip した skill chain) を pull で取得可能
-  - PreToolUse hook で Codex / Agent 呼び出しを捕捉し、現状 slot 数 + 8 並列遵守率 + 独立判定リマインダーを system-reminder で push
-  - SessionStart hook で前 session の release 漏れ + carry findings summary を表示
-  - helix.db v30 に harness_check_events table 追加 (audit_log 拡張ではなく独立 table、PLAN-078 v28 / PLAN-079 v29 の次)
-  - V-model 4 artifact 双方向 trace 完備
-  - pytest / bats 全回帰 PASS
+  - '3 軸 (Pull / Push / Audit) で dynamic check 機構が実装される'
+  - '`helix harness status` で現状 (active slot + 走行中 task + 未消化 deferred-findings + skip した skill chain) を pull で取得可能'
+  - 'PreToolUse hook で Codex / Agent 呼び出しを捕捉し、現状 slot 数 + 8 並列遵守率 + 独立判定リマインダーを system-reminder で push'
+  - 'SessionStart hook で前 session の release 漏れ + carry findings summary を表示'
+  - 'helix.db v30 に harness_check_events table 追加 (audit_log 拡張ではなく独立 table、PLAN-078 v28 / PLAN-079 v29 の次)'
+  - 'V-model 4 artifact 双方向 trace 完備'
+  - 'pytest / bats 全回帰 PASS'
 ---
 
 # PLAN-080: Harness Dynamic Monitoring

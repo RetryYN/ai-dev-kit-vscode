@@ -1,13 +1,35 @@
 ---
 plan_id: PLAN-083
 title: "PLAN-083: Harness 自動統合 (PreToolUse 自動 fire + Stop 自動 release + session_id 連携)"
+kind: impl
+layer: cross
+drive: be
 status: completed
 size: M
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — PreToolUse hook auto fire + Stop auto release + session_id 連携"
+generates:
+  - artifact_path: .claude/hooks/pretooluse-agent-auto-fire.sh
+    artifact_type: hook
+  - artifact_path: .claude/hooks/stop-agent-auto-release.sh
+    artifact_type: hook
+  - artifact_path: cli/lib/agent_auto_integration.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_agent_auto_integration.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-078 (agent_slots v28、fire/release 基盤)
   - PLAN-080 (Harness Monitoring v30、harness_check_events + 2 hooks)

@@ -1,14 +1,54 @@
 ---
 plan_id: PLAN-084
 title: "PLAN-084: helix.db 6 分離 + Event Sourcing + projector (V2 構築 ③ データベース管理フェーズ本体)"
+kind: design
+layer: L2
+drive: db
 status: draft
 size: L
-drive: be
 created: 2026-05-17
-revised: 2026-05-17 (tl-advisor Round 2 反映: 全 matrix 本文埋め込み + Phase 4 3 sprint 分割)
+revised: "2026-05-17 (tl-advisor Round 2 反映: 全 matrix 本文埋め込み + Phase 4 3 sprint 分割)"
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: tl-advisor
+    slot_label: "TL — db 分離設計の adversarial check (Round 1-4)"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・CONCEPT/L1/L2-MASTER 同期"
+  - role: docs
+    slot_label: "Docs — ADR-018/019/020 + D-DB-SEP + D-API-SEP + D-CONTRACT-EVENT 起草"
+  - role: se
+    slot_label: "SE — compatibility_adapter + UUID v7 + v31 migration + ATTACH gate + projector + cutover orchestrator"
+  - role: dba
+    slot_label: "DBA — 6 db schema 設計 + ATTACH transaction span + forward-only migration"
+generates:
+  - artifact_path: docs/adr/ADR-018-helix-db-separation.md
+    artifact_type: adr_snapshot
+  - artifact_path: docs/adr/ADR-019-event-sourcing-projector.md
+    artifact_type: adr_snapshot
+  - artifact_path: docs/adr/ADR-020-cutover-rollback-gates.md
+    artifact_type: adr_snapshot
+  - artifact_path: docs/v2/L3-detailed-design/D-DB/D-DB-SEP-draft.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L3-detailed-design/D-API/D-API-SEP-draft.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md
+    artifact_type: design_doc
+  - artifact_path: cli/lib/migrations/v31_db_separation.py
+    artifact_type: schema_migration
+  - artifact_path: cli/lib/compatibility_adapter.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/event_envelope.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/cutover_orchestrator.py
+    artifact_type: python_module
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-068 (V-model 強化 = db 分離アーキテクチャの基盤工事、単一 helix.db 前駆体)
   - PLAN-070 (L3 schema and contract design、D-DB EXT 既存基盤)

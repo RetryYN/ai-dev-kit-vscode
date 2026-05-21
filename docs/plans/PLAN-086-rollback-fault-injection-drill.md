@@ -1,6 +1,7 @@
 ---
 plan_id: PLAN-086
 title: "PLAN-086: helix db rollback CLI 起票 (dev 限定試演ツール、local CLI tool 用 scope down、Web 検索ベース再書き直し)"
+kind: impl
 layer: L4
 drive: db
 status: draft
@@ -9,6 +10,26 @@ created: 2026-05-19
 revised: 2026-05-19
 owner: PM
 gates: G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — Web 検索ベース整合チェック"
+  - role: se
+    slot_label: "SE — helix db rollback CLI 実装 + dev 限定 guard + production v32 undo migration 注記"
+  - role: dba
+    slot_label: "DBA — rollback orchestrator 設計 + 試演 sandbox"
+generates:
+  - artifact_path: cli/helix-db
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/rollback_orchestrator.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_rollback_orchestrator.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-085 (migration v31 動作確認 + 手元 rollback 手順整備、本 PLAN と同 wave で scope down)
   - PLAN-084 (helix.db 6 分離 + Event Sourcing + projector)

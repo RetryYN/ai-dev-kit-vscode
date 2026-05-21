@@ -1,13 +1,37 @@
 ---
 plan_id: PLAN-081
 title: "PLAN-081: Stop-hook auto handover + compact recommendation"
+kind: impl
+layer: cross
+drive: be
 status: completed_phase1
 size: M
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — Stop hook + handover auto dump + helix-stop-hook 実装"
+  - role: docs
+    slot_label: "Docs — D-API / D-DB 起草 + CLAUDE 反映"
+generates:
+  - artifact_path: .claude/hooks/stop-handover-auto-dump.sh
+    artifact_type: hook
+  - artifact_path: cli/helix-stop-hook
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/handover_auto_dump.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_handover_auto_dump.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-080 (Harness Dynamic Monitoring、同じく harness 強化系)
   - PLAN-075 (V-model 4 artifact 双方向 trace、context 切れ対策の起点)

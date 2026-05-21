@@ -1,15 +1,43 @@
 ---
 plan_id: PLAN-075
 title: "PLAN-075: V-model 4 artifact 双方向 trace framework 強化 (5 Phase)"
+kind: impl
+layer: cross
+drive: be
 status: completed
 size: L
-drive: be
 created: 2026-05-17
 revised: 2026-05-17 (4 artifact 解釈に訂正)
 completed: 2026-05-17 (Phase 5 完遂、commit c2e2ed4)
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: docs
+    slot_label: "Docs — テンプレート + HELIX_CORE/SKILL_MAP/CLAUDE 起草"
+  - role: se
+    slot_label: "SE — vmodel_lint + helix-gate G2/G3/G4 advisory + --skip-draft 拡張"
+generates:
+  - artifact_path: helix/HELIX_CORE.md
+    artifact_type: doc_update
+  - artifact_path: skills/SKILL_MAP.md
+    artifact_type: doc_update
+  - artifact_path: CLAUDE.md
+    artifact_type: doc_update
+  - artifact_path: cli/lib/vmodel_lint.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_vmodel_lint.py
+    artifact_type: test
+  - artifact_path: cli/helix-gate
+    artifact_type: cli_extension
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-074 (HTTP endpoint 層、4 artifact trace 欠落の起点)
   - PLAN-076 (subagent 工程マッピング、同時並行)

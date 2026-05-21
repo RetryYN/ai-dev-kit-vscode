@@ -1,13 +1,41 @@
 ---
 plan_id: PLAN-078
 title: "PLAN-078: Agent Slot 管理 (helix.db v28 + 並列実行可視化)"
+kind: impl
+layer: cross
+drive: be
 status: completed
 size: M
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — V-model 4 artifact 整合チェック"
+  - role: docs
+    slot_label: "Docs — D-DB EXT + test-design 起草"
+  - role: se
+    slot_label: "SE — helix.db v28 migration + cli/helix-agent slot fire/release + stats"
+  - role: dba
+    slot_label: "DBA — schema 設計 (agent_slots table、parent_invocation_id tree)"
+generates:
+  - artifact_path: cli/lib/migrations/v28_agent_slots.py
+    artifact_type: schema_migration
+  - artifact_path: cli/helix-agent
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/agent_slot.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_agent_slot.py
+    artifact_type: test
+  - artifact_path: docs/v2/L3-detailed-design/D-DB/agent-slots.md
+    artifact_type: design_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-075 (V-model 4 artifact、本 PLAN にも同原則を適用)
   - PLAN-027 (helix.db entries/links 基盤、初期実装)
@@ -22,12 +50,12 @@ trigger: |
   - helix.db は本来「依存関係 / trouble-shoot」集約 DB として設計されている (PLAN-027 / PLAN-069)
   - agent slot 管理はその設計思想と整合する自然な拡張
 acceptance:
-  - helix.db v28 schema migration で `agent_slots` table 追加 (parent_invocation_id で tree 表現)
-  - helix-codex 経由の Codex 起動が agent_slots に fire / release で記録される
-  - `helix agent slots --active` で現在 active な slot 一覧が表示される
-  - `helix agent stats` で並列度時系列・累積 cost が可視化される
-  - V-model 4 artifact 双方向 trace 完備 (D-DB EXT / 実装 / test-design / test-code)
-  - pytest / bats 全回帰 PASS
+  - 'helix.db v28 schema migration で `agent_slots` table 追加 (parent_invocation_id で tree 表現)'
+  - 'helix-codex 経由の Codex 起動が agent_slots に fire / release で記録される'
+  - '`helix agent slots --active` で現在 active な slot 一覧が表示される'
+  - '`helix agent stats` で並列度時系列・累積 cost が可視化される'
+  - 'V-model 4 artifact 双方向 trace 完備 (D-DB EXT / 実装 / test-design / test-code)'
+  - 'pytest / bats 全回帰 PASS'
 ---
 
 # PLAN-078: Agent Slot 管理 (helix.db v28 + 並列実行可視化)

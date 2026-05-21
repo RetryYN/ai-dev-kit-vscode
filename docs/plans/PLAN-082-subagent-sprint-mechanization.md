@@ -1,13 +1,41 @@
 ---
 plan_id: PLAN-082
 title: "PLAN-082: PLAN-076/077 機械化 (subagent fire-mandatory + Sprint 標準 8 ステップ機械化)"
+kind: impl
+layer: cross
+drive: be
 status: completed
 size: L
-drive: be
 created: 2026-05-17
 owner: PM
 phases: L1, L2, L3, L4
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: se
+    slot_label: "SE — agent_mandatory.audit_phase + sprint_lint + helix-agent fire-mandatory + helix-sprint --auto-check"
+  - role: docs
+    slot_label: "Docs — D-API 起草 + HELIX_CORE 反映"
+generates:
+  - artifact_path: cli/lib/agent_mandatory.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/sprint_lint.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-agent
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-sprint
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/tests/test_agent_mandatory.py
+    artifact_type: test
+  - artifact_path: cli/lib/tests/test_sprint_lint.py
+    artifact_type: test
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-075 (V-model lint 機械化、本 PLAN の pattern 起点)
   - PLAN-076 (subagent 工程マッピング、framework only、機械化未着手)

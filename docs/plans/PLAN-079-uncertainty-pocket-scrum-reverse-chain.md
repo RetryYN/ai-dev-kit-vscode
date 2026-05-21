@@ -1,13 +1,39 @@
 ---
 plan_id: PLAN-079
 title: "PLAN-079: Uncertainty Pocket Scrum + Scrum-to-Reverse-to-Forward chain (framework 拡張)"
+kind: impl
+layer: cross
+drive: scrum
 status: completed
 size: L
-drive: be
 created: 2026-05-17
 owner: PM
 phases: framework
 gates: G1, G2, G3, G4
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — framework 整合チェック"
+  - role: docs
+    slot_label: "Docs — UPS / SRF chain framework 起草"
+  - role: se
+    slot_label: "SE — helix.db v29 + reverse routing + cli scrum/reverse local loop"
+generates:
+  - artifact_path: cli/lib/migrations/v29_scrum_reverse_loops.py
+    artifact_type: schema_migration
+  - artifact_path: cli/helix-scrum
+    artifact_type: cli_extension
+  - artifact_path: cli/helix-reverse
+    artifact_type: cli_extension
+  - artifact_path: helix/HELIX_CORE.md
+    artifact_type: doc_update
+  - artifact_path: skills/SKILL_MAP.md
+    artifact_type: doc_update
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_plans:
   - PLAN-075 (V-model 4 artifact、本 PLAN にも適用)
   - PLAN-078 (agent slot、record strand 並走)
@@ -31,13 +57,13 @@ trigger: |
   - T401 pmo-sonnet が tool_uses 上限で 2 度 turn 返却 → 仮説 rejected → pivot
   - PLAN-070/071 retrofit task-plan 前提 → audit 後に「設計系 PLAN は構造的に 4 artifact 揃わない」と判明 → grandfather に pivot
 acceptance:
-  - HELIX framework に "Uncertainty Pocket Scrum (UPS)" パターンが明文化される
-  - HELIX framework に "Scrum-to-Reverse-to-Forward (SRF) chain" パターンが明文化される
-  - Reverse type matrix に新 type `scrum-to-forward` が追加される
-  - helix.db に `scrum_local_loops` table + `reverse_local_loops` table (v29、PLAN-078 v28 の次)
-  - CLI: `helix scrum local <subcommand>` + `helix reverse from-scrum`
-  - HELIX_CORE.md + SKILL_MAP.md + CLAUDE.md (project) に framework 拡張を明文化
-  - PLAN-079 自身が V-model 4 artifact 双方向 trace 完備 (PLAN-075 原則)
+  - 'HELIX framework に "Uncertainty Pocket Scrum (UPS)" パターンが明文化される'
+  - 'HELIX framework に "Scrum-to-Reverse-to-Forward (SRF) chain" パターンが明文化される'
+  - 'Reverse type matrix に新 type `scrum-to-forward` が追加される'
+  - 'helix.db に `scrum_local_loops` table + `reverse_local_loops` table (v29、PLAN-078 v28 の次)'
+  - 'CLI: `helix scrum local <subcommand>` + `helix reverse from-scrum`'
+  - 'HELIX_CORE.md + SKILL_MAP.md + CLAUDE.md (project) に framework 拡張を明文化'
+  - 'PLAN-079 自身が V-model 4 artifact 双方向 trace 完備 (PLAN-075 原則)'
 ---
 
 # PLAN-079: Uncertainty Pocket Scrum + Scrum-to-Reverse-to-Forward chain
