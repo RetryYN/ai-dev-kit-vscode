@@ -14,6 +14,8 @@ related_plans:
   - PLAN-087
   - PLAN-085
   - PLAN-086
+related_adr:
+  - ADR-023-gate-fail-close-staged-adoption-snapshot (L2 凍結 snapshot、PLAN-089 の大局判断を ADR 化)
 related_docs:
   - cli/helix-gate
   - .claude/hooks/pretooluse-design-doc-web-search-guard.sh
@@ -24,6 +26,21 @@ reference_docs:
 ---
 
 # PLAN-089: 設計 doc Web 検索 audit advisory→段階的 fail-close 化
+
+## L2 凍結 (ADR snapshot)
+
+本 PLAN は **PLAN ⊃ ADR レイヤー併存ルール** ([[feedback_adr_before_plan_violation]]) に基づき、以下の ADR snapshot で L2 大局判断 (gate fail-close 段階導入 advisory → fail-close) を凍結している。
+
+| ADR | 凍結対象 | Status |
+|---|---|---|
+| [ADR-023-gate-fail-close-staged-adoption-snapshot](../adr/ADR-023-gate-fail-close-staged-adoption-snapshot.md) | gate fail-close 段階導入 (Phase 1 advisory 計測 → Phase 2 fail-close 切替) 採用 | Proposed (2026-05-20、後追い snapshot、tl-advisor bi9qaatd6 検証済) |
+
+**双方向 trace**:
+- 本 PLAN → ADR-023: frontmatter `related_adr` + 本 section
+- ADR-023 → 本 PLAN: ADR-023 `## Related` に「PLAN-089-gate-fail-close-design-doc-web-search-audit (実装 PLAN、本 ADR が L2 凍結する)」を記載
+- 親 retrofit master: [PLAN-100 §4.3 / §8 Phase 1](PLAN-100-existing-retrofit-v2-revision.md) で本 snapshot 起票を管理
+
+---
 
 ## 0. 起票背景 + 再起票注記 (2026-05-19)
 

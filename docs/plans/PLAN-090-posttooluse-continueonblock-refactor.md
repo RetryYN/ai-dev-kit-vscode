@@ -8,6 +8,8 @@ owner: PM
 depends_on:
   - PLAN-087
   - PLAN-089
+related_adr:
+  - ADR-024-continueonblock-active-guidance-loop-snapshot (L2 凍結 snapshot、PLAN-090 の大局判断を ADR 化)
 related_docs:
   - docs/plans/PLAN-087-design-doc-web-search-guardrail.md
   - docs/plans/PLAN-089-gate-fail-close-design-doc-web-search-audit.md
@@ -17,6 +19,21 @@ related_docs:
 ---
 
 # PLAN-090: PostToolUse continueOnBlock refactor
+
+## L2 凍結 (ADR snapshot)
+
+本 PLAN は **PLAN ⊃ ADR レイヤー併存ルール** ([[feedback_adr_before_plan_violation]]) に基づき、以下の ADR snapshot で L2 大局判断 (Claude Code 2.1.139 continueOnBlock 採用 + active guidance loop pattern) を凍結している。
+
+| ADR | 凍結対象 | Status |
+|---|---|---|
+| [ADR-024-continueonblock-active-guidance-loop-snapshot](../adr/ADR-024-continueonblock-active-guidance-loop-snapshot.md) | Claude Code 2.1.139 continueOnBlock 採用 (PostToolUse decision:block + reject reason → ターン継続 + active guidance loop) | Proposed (2026-05-20、後追い snapshot、外部新仕様採用判断) |
+
+**双方向 trace**:
+- 本 PLAN → ADR-024: frontmatter `related_adr` + 本 section
+- ADR-024 → 本 PLAN: ADR-024 `## Related` に「PLAN-090-posttooluse-continueonblock-refactor (実装 PLAN、本 ADR が L2 凍結する)」を記載
+- 親 retrofit master: [PLAN-100 §4.4 / §8 Phase 1](PLAN-100-existing-retrofit-v2-revision.md) で本 snapshot 起票を管理
+
+---
 
 ## 1. メタ情報
 

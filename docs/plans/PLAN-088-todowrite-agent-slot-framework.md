@@ -10,7 +10,8 @@ owner: PM
 depends_on:
   - PLAN-087-design-doc-web-search-guardrail
   - PLAN-089-gate-fail-close-design-doc-web-search-audit
-related_adr: []
+related_adr:
+  - ADR-022-todowrite-agent-slot-framework-snapshot (L2 凍結 snapshot、PLAN-088 の大局判断を ADR 化)
 related_docs:
   - .claude/hooks/pretooluse-agent-guard.sh
   - cli/helix-todo
@@ -20,6 +21,21 @@ related_docs:
 ---
 
 # PLAN-088: TodoWrite × agent slot framework
+
+## L2 凍結 (ADR snapshot)
+
+本 PLAN は **PLAN ⊃ ADR レイヤー併存ルール** ([[feedback_adr_before_plan_violation]]) に基づき、以下の ADR snapshot で L2 大局判断 (TodoWrite × agent slot framework 採用) を凍結している。
+
+| ADR | 凍結対象 | Status |
+|---|---|---|
+| [ADR-022-todowrite-agent-slot-framework-snapshot](../adr/ADR-022-todowrite-agent-slot-framework-snapshot.md) | TodoWrite × agent slot framework 採用 (agent prefix 可観測化 + in_progress 重複防止 + 並列上限 8) | Proposed (2026-05-20、後追い snapshot) |
+
+**双方向 trace**:
+- 本 PLAN → ADR-022: frontmatter `related_adr` + 本 section
+- ADR-022 → 本 PLAN: ADR-022 `## Related` に「PLAN-088-todowrite-agent-slot-framework (実装 PLAN、本 ADR が L2 凍結する)」を記載
+- 親 retrofit master: [PLAN-100 §4.2 / §8 Phase 1](PLAN-100-existing-retrofit-v2-revision.md) で本 snapshot 起票を管理
+
+---
 
 ## 1. 目的 / 背景 / 採用根拠
 

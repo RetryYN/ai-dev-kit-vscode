@@ -13,6 +13,8 @@ gates: G3, G4
 related_plans:
   - PLAN-085 (ADR/PLAN scope down 再書き直しで本ガードレールを試行運用)
   - PLAN-086 (同上)
+related_adr:
+  - ADR-021-design-doc-web-search-guardrail-snapshot (L2 凍結 snapshot、PLAN-087 の大局判断を ADR 化)
 related_docs:
   - .claude/hooks/pretooluse-design-doc-web-search-guard.sh (新規実装)
   - .claude/hooks/pretooluse-agent-guard.sh (既存、参考 pattern)
@@ -23,6 +25,21 @@ related_docs:
 ---
 
 # PLAN-087: 設計 doc 作成時の Web 検索 + OSS 探索ガードレール工程組み込み
+
+## L2 凍結 (ADR snapshot)
+
+本 PLAN は **PLAN ⊃ ADR レイヤー併存ルール** ([[feedback_adr_before_plan_violation]]) に基づき、以下の ADR snapshot で L2 大局判断 (Web 検索ガードレール採用 framework) を凍結している。
+
+| ADR | 凍結対象 | Status |
+|---|---|---|
+| [ADR-021-design-doc-web-search-guardrail-snapshot](../adr/ADR-021-design-doc-web-search-guardrail-snapshot.md) | 設計 doc 作成時 Web 検索 + OSS 探索ガードレール採用 (template 必須 section + PreToolUse fail-close + G2/G3 audit advisory) | Proposed (2026-05-20、後追い snapshot) |
+
+**双方向 trace**:
+- 本 PLAN → ADR-021: frontmatter `related_adr` + 本 section
+- ADR-021 → 本 PLAN: ADR-021 `## Related` に「PLAN-087-design-doc-web-search-guardrail (実装 PLAN、本 ADR が L2 凍結する)」を記載
+- 親 retrofit master: [PLAN-100 §4.1 / §8 Phase 1](PLAN-100-existing-retrofit-v2-revision.md) で本 snapshot 起票を管理
+
+---
 
 ## 1. 目的
 
