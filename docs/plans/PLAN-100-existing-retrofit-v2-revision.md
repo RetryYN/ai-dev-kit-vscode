@@ -317,6 +317,12 @@ V5 framework 18 要素 + 3 層構造を §V2-V5 framework 統合 section とし�
   - §N+2: PLAN ⊃ ADR レイヤー併存の正規 pattern (L2-MASTER §0 line 36 の更新先)
 - 担当: pmo-sonnet (draft 起草) + Opus (finalize)
 
+#### Sprint 0 補完 (2026-05-21)
+
+- **status 遷移**: `status: draft` のままとなっている CONCEPT.md に `review` 遷移フローを追記し、承認日記入欄を設ける (Phase 4 実施時に同時処理)
+- **§9 V1 資産表更新**: 旧 PLAN-065/063 参照を V5 PLAN-091〜099 に置換する (V5 framework 子 PLAN 全 9 件を資産表に反映)
+- **AC-12 テスト baseline 更新**: `pytest 1138+` → `1820+` / `bats 433+` → `509+` に修正し現実値と整合させる (origin/main `9d546dc` 時点実績値)
+
 ### 6.2 L1-REQUIREMENTS.md 更新計画
 
 V5 framework 関連の FR を追加する:
@@ -334,6 +340,14 @@ FR-V5-09: PostToolUse hook は continueOnBlock を使用すること (PLAN-090)
 FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 ```
 
+#### Sprint 0 補完 (2026-05-21)
+
+- **§11 FR 件数訂正**: 74 → 80 に修正 (§3.4 GR08〜GR13 の 6 件追加分が未カウント)。G1 通過チェックリストの GR 行を `GR01-13 (13)` に修正する。
+- **NFR-03 stale 更新**: `v30 → v31 migration` 記述を `v30 → v35 (current)` 系列に更新し、helix.db schema_version の現実値 (origin/main `9d546dc` 時点) と整合させる。
+- **§5 AC-18〜24 追加**: V5 framework 実装を受入条件として追加する — AC-18 (PLAN-091 plan_validator PASS) / AC-19 (PLAN-092 PostToolUse auto-register 5s 以内) / AC-20 (PLAN-093 P0 guardian block) / AC-21 (PLAN-099 自動走行 heartbeat carry 0 判定) / AC-22 (recovery plan kind 起票機構) / AC-23 (Curator P1/P2 escalation 閾値) / AC-24 (UserPromptSubmit hook dogfooding 稼働)。
+- **§6 スコープ更新**: Phase K として「V5 framework 統合 (PLAN-091〜099)」を追記し、PLAN-100 retrofit との接続 (Phase K 完遂後に PLAN-100 Phase 3 着手可能) を明示する。
+- **FR-V5-10〜18 placeholder 確定方針**: Phase 4 実施前に PLAN-092〜099 の generates artifact_path リストと照合し、各 FR placeholder を確定する手順を §6.2 末尾に注記として追記する。
+
 ### 6.3 L2-MASTER.md 更新計画
 
 §0 line 36 の PLAN↔ADR 範例を更新する:
@@ -342,6 +356,17 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 - 更新後: 「PLAN-MM-001 で V5 全体設計確定、PLAN-091〜099 + ADR-025〜032 で実装・L2 凍結 (後追い例: PLAN-087〜090 ↔ ADR-021〜024)」
 
 また §12 既知矛盾 M-01〜M-04 に V5 framework 関連の drift 解消状況を追記する。
+
+#### Sprint 0 補完 (2026-05-21)
+
+- **§12 M-09〜M-12 具体内容追記**:
+  - M-09: PRAGMA user_version → schema_version table 置換 (PLAN-085 系、commit `877845a` で resolved)
+  - M-10: PLAN 種別 11 種 / agent_slots ROLE_MAP 30 enum が L2-MASTER §3.2 drive variant 表に未反映 (open。解消先 = PLAN-091 §5 語彙正本 + PLAN-100 §5 retrofit 計画による機械的適用)
+  - M-11: V5-plan-outlines.md 17 要素表記 drift (PLAN-099 追加後は 18 要素が正本、open)
+  - M-12: 既存 60 incomplete PLAN の V-model 4 artifact 不整備 (P2、PLAN-100 §5 で解消計画あり、status=planned)
+- **§0 / §1 両方への Layer A→B→C 追記**: §0 line 36 のみでなく §1 (アーキテクチャ全景) にも Layer A→B→C 着手順序への reference を追記する (外部参照: CLAUDE.md §V5 framework 3 層構造)。
+- **附録 A 連動記載**: L1-REQUIREMENTS の FR-V5-01〜09 追加と L2-MASTER 附録 A FR/AC 対応表更新を同一 Phase 4 session 内で同時実施する手順を §6.3 末尾に明記する。
+- **§12 判断保留更新**: `sync cycle における 3 origin_mode 統合管理の最終方針` は PLAN-095 (PoC=Scrum×Reverse matrix) で解消見込み。§12 保留欄に「→ PLAN-095 Sprint .3 完遂で close 予定」の注記を追加する。
 
 ---
 
