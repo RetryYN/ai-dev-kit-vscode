@@ -106,8 +106,8 @@ chunks:
       ```json
       {
         "id": "123",
-        "name": "山田太郎",
-        "email": "yamada@example.com",
+        "name": "サンプル ユーザー",
+        "email": "user@example.com",
         "created_at": "2024-01-15T10:30:00Z"
       }
       ```
