@@ -41,6 +41,8 @@ release_usage() {
 slots_usage() {
   printf '%s\n' \
     'Usage: helix agent slots [--active|--stale|--all] [--plan-id PLAN-XXX] [--since 1h] [--json]' \
+    '       helix agent slots release <slot_id> [--status cancelled|completed|failed]' \
+    '       helix agent slots release-stale [--threshold-minutes N] [--dry-run] [--json]' \
     '' \
     'Default: --active'
 }
@@ -59,6 +61,23 @@ _py() {
   local code="$1"
   shift
   PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -c "$code" "$@"
+}
+
+_py_filtered() {
+  local stderr_file=""
+  local output=""
+  local status=0
+
+  stderr_file="$(mktemp)"
+  if output="$(_py "$@" 2>"$stderr_file")"; then
+    status=0
+  else
+    status=$?
+  fi
+  _emit_filtered_stderr "$stderr_file"
+  rm -f "$stderr_file"
+  [[ -z "$output" ]] || printf '%s\n' "$output"
+  return "$status"
 }
 
 _print_json() {
@@ -121,7 +140,7 @@ cmd_fire() {
 
   [[ -n "$agent_kind" ]] || _die "fire には --agent-kind が必要です"
 
-  _py $'import sys\nfrom cli.lib import agent_slots\nnone = lambda value: value or None\nautomation_run_id = int(sys.argv[8]) if sys.argv[8] else None\nslot_id = agent_slots.fire_slot(sys.argv[1], role=none(sys.argv[2]), subagent_type=none(sys.argv[3]), plan_id=none(sys.argv[4]), task_id=none(sys.argv[5]), sprint=none(sys.argv[6]), session_id=none(sys.argv[7]), automation_run_id=automation_run_id, slot_source=sys.argv[9])\nprint(slot_id)' \
+  _py_filtered $'import sys\nfrom cli.lib import agent_slots\nnone = lambda value: value or None\nautomation_run_id = int(sys.argv[8]) if sys.argv[8] else None\nslot_id = agent_slots.fire_slot(sys.argv[1], role=none(sys.argv[2]), subagent_type=none(sys.argv[3]), plan_id=none(sys.argv[4]), task_id=none(sys.argv[5]), sprint=none(sys.argv[6]), session_id=none(sys.argv[7]), automation_run_id=automation_run_id, slot_source=sys.argv[9])\nprint(slot_id)' \
     "$agent_kind" "$role" "$subagent_type" "$plan_id" "$task_id" "$sprint" "$session_id" "$automation_run_id" "$slot_source"
 }
 
@@ -143,18 +162,17 @@ cmd_release() {
   [[ -n "$slot_id" ]] || _die "release には --slot-id が必要です"
   [[ -n "$status" ]] || _die "release には --status が必要です"
 
-  _py $'import sys\nfrom cli.lib import agent_slots\nexit_code = int(sys.argv[3]) if sys.argv[3] else None\nagent_slots.release_slot(int(sys.argv[1]), status=sys.argv[2], exit_code=exit_code)' \
+  _py_filtered $'import sys\nfrom cli.lib import agent_slots\nexit_code = int(sys.argv[3]) if sys.argv[3] else None\nagent_slots.release_slot(int(sys.argv[1]), status=sys.argv[2], exit_code=exit_code)' \
     "$slot_id" "$status" "$exit_code"
 }
 
-cmd_slots() {
+cmd_slots_list() {
   local mode="active"
   local plan_id=""
   local since=""
   local stale_threshold="${HELIX_STALE_THRESHOLD_MIN:-5}"
   local output_json=false
   local payload=""
-  local stderr_file=""
   local status=0
 
   while [[ $# -gt 0 ]]; do
@@ -170,17 +188,14 @@ cmd_slots() {
     esac
   done
 
-  stderr_file="$(mktemp)"
   if payload="$(
-    _py $'import datetime\nimport json\nimport re\nimport sys\nfrom cli.lib import agent_slots, compatibility_adapter, helix_db\nmode = sys.argv[1]\nplan_id = sys.argv[2] or None\nsince = sys.argv[3] or None\nstale_threshold = int(sys.argv[4])\nif mode == "active":\n    rows = agent_slots.list_active_slots()\nelif mode == "stale":\n    rows = agent_slots.list_stale_slots(threshold_minutes=stale_threshold)\nelse:\n    with compatibility_adapter.write_connection(helix_db.resolve_default_db_path()) as conn:\n        rows = [dict(row) for row in conn.execute("SELECT * FROM agent_slots ORDER BY fired_at DESC, id DESC").fetchall()]\nif plan_id:\n    rows = [row for row in rows if row.get("plan_id") == plan_id]\nif since:\n    match = re.fullmatch(r"(\\d+)([smhd])", since)\n    if not match:\n        raise SystemExit("invalid --since value (examples: 30m, 1h, 2d)")\n    amount = int(match.group(1))\n    seconds = amount * {"s": 1, "m": 60, "h": 3600, "d": 86400}[match.group(2)]\n    cutoff = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=seconds)\n    def parse_ts(value):\n        return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")\n    rows = [row for row in rows if row.get("fired_at") and parse_ts(row["fired_at"]) >= cutoff]\nprint(json.dumps(rows, ensure_ascii=False))' \
-      "$mode" "$plan_id" "$since" "$stale_threshold" 2>"$stderr_file"
+    _py_filtered $'import datetime\nimport json\nimport re\nimport sys\nfrom cli.lib import agent_slots, compatibility_adapter, helix_db\nmode = sys.argv[1]\nplan_id = sys.argv[2] or None\nsince = sys.argv[3] or None\nstale_threshold = int(sys.argv[4])\nif mode == "active":\n    rows = agent_slots.list_active_slots()\nelif mode == "stale":\n    rows = agent_slots.list_stale_slots(threshold_minutes=stale_threshold)\nelse:\n    with compatibility_adapter.write_connection(helix_db.resolve_default_db_path()) as conn:\n        rows = [dict(row) for row in conn.execute("SELECT * FROM agent_slots ORDER BY fired_at DESC, id DESC").fetchall()]\nif plan_id:\n    rows = [row for row in rows if row.get("plan_id") == plan_id]\nif since:\n    match = re.fullmatch(r"(\\d+)([smhd])", since)\n    if not match:\n        raise SystemExit("invalid --since value (examples: 30m, 1h, 2d)")\n    amount = int(match.group(1))\n    seconds = amount * {"s": 1, "m": 60, "h": 3600, "d": 86400}[match.group(2)]\n    cutoff = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - datetime.timedelta(seconds=seconds)\n    def parse_ts(value):\n        return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S")\n    rows = [row for row in rows if row.get("fired_at") and parse_ts(row["fired_at"]) >= cutoff]\nprint(json.dumps(rows, ensure_ascii=False))' \
+      "$mode" "$plan_id" "$since" "$stale_threshold"
   )"; then
     status=0
   else
     status=$?
   fi
-  _emit_filtered_stderr "$stderr_file"
-  rm -f "$stderr_file"
   [[ "$status" -eq 0 ]] || return "$status"
 
   if [[ "$output_json" == true ]]; then
@@ -188,6 +203,86 @@ cmd_slots() {
   else
     _print_slots_table "$payload" "$mode"
   fi
+}
+
+cmd_slots_release() {
+  local slot_id=""
+  local status="cancelled"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status) status="${2:-}"; shift 2 ;;
+      --help|-h)
+        printf '%s\n' 'Usage: helix agent slots release <slot_id> [--status cancelled|completed|failed]'
+        return 0
+        ;;
+      --*) _die "release の不明なオプションです: $1" ;;
+      *)
+        if [[ -z "$slot_id" ]]; then
+          slot_id="$1"
+        else
+          _die "release の余分な引数です: $1"
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  [[ -n "$slot_id" ]] || _die "release には slot_id が必要です"
+
+  _py_filtered $'import sys\nfrom cli.lib import agent_slots\nslot_id = int(sys.argv[1])\nstatus = sys.argv[2]\nagent_slots.release_slot(slot_id, status=status, exit_code=None)\nprint(f"released slot id={slot_id} (status={status})")' \
+    "$slot_id" "$status"
+}
+
+cmd_slots_release_stale() {
+  local threshold_minutes=5
+  local dry_run=0
+  local json_out=0
+  local payload=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --threshold-minutes) threshold_minutes="${2:-}"; shift 2 ;;
+      --dry-run) dry_run=1; shift ;;
+      --json) json_out=1; shift ;;
+      --help|-h)
+        printf '%s\n' 'Usage: helix agent slots release-stale [--threshold-minutes N] [--dry-run] [--json]'
+        return 0
+        ;;
+      *) _die "release-stale の不明なオプションです: $1" ;;
+    esac
+  done
+
+  payload="$(
+    _py_filtered $'import json\nimport sys\nfrom cli.lib import agent_slots\nthreshold = int(sys.argv[1])\ndry_run = bool(int(sys.argv[2]))\nstale = agent_slots.list_stale_slots(threshold_minutes=threshold)\nresult = {\n    "threshold_minutes": threshold,\n    "dry_run": dry_run,\n    "found": len(stale),\n    "released": 0,\n    "failed": 0,\n    "targets": stale,\n    "details": [],\n}\nif not dry_run:\n    for slot in stale:\n        try:\n            agent_slots.release_slot(slot["id"], status="cancelled", exit_code=None)\n            result["released"] += 1\n        except Exception as exc:  # noqa: BLE001\n            result["failed"] += 1\n            result["details"].append({"id": slot["id"], "error": str(exc)})\nprint(json.dumps(result, ensure_ascii=False, default=str))' \
+      "$threshold_minutes" "$dry_run"
+  )"
+
+  if [[ "$json_out" -eq 1 ]]; then
+    _print_json "$payload"
+  else
+    _py $'import json\nimport sys\nresult = json.loads(sys.argv[1])\nif result["found"] == 0:\n    print("stale slots: 0 件")\nelif int(sys.argv[2]):\n    print(f"dry-run: 対象 stale slots: {result[\"found\"]} 件 (threshold={result[\"threshold_minutes\"]} min)")\n    for slot in result["targets"]:\n        role = slot.get("role") or slot.get("subagent_type") or "-"\n        plan_id = slot.get("plan_id") or "-"\n        source = slot.get("slot_source") or "-"\n        print(f"  id={slot[\"id\"]} agent={slot[\"agent_kind\"]} role={role} plan={plan_id} source={source}")\nelse:\n    print(f"released: {result[\"released\"]} / failed: {result[\"failed\"]} / found: {result[\"found\"]} (threshold={result[\"threshold_minutes\"]} min)")\n    for detail in result["details"]:\n        print(f"  FAIL id={detail[\"id\"]}: {detail[\"error\"]}")' \
+      "$payload" "$dry_run"
+  fi
+}
+
+cmd_slots() {
+  case "${1:-list}" in
+    release-stale)
+      shift || true
+      cmd_slots_release_stale "$@"
+      ;;
+    release)
+      shift || true
+      cmd_slots_release "$@"
+      ;;
+    list|--active|--stale|--all|--*|"")
+      cmd_slots_list "$@"
+      ;;
+    *)
+      _die "不明な slots サブコマンドです: $1"
+      ;;
+  esac
 }
 
 cmd_stats() {
@@ -207,7 +302,7 @@ cmd_stats() {
   done
 
   payload="$(
-    _py $'import json\nimport sys\nfrom cli.lib import agent_slots\nrows = agent_slots.get_stats(days=int(sys.argv[1]), by=sys.argv[2])\nprint(json.dumps(rows, ensure_ascii=False))' \
+    _py_filtered $'import json\nimport sys\nfrom cli.lib import agent_slots\nrows = agent_slots.get_stats(days=int(sys.argv[1]), by=sys.argv[2])\nprint(json.dumps(rows, ensure_ascii=False))' \
       "$days" "$by"
   )"
 
