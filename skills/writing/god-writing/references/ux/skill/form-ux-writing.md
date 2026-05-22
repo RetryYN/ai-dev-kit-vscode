@@ -62,7 +62,7 @@ chunks:
     content: |
       プレースホルダーの活用：
       入力例を示す：
-      「例: user@example.com」
+      「例: user＠example.com」
       「例: 03-0000-0000」
       注意点：
       - ラベルの代わりにしない

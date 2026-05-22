@@ -107,7 +107,7 @@ chunks:
       {
         "id": "123",
         "name": "サンプル ユーザー",
-        "email": "user@example.com",
+        "email": "user＠example.com",
         "created_at": "2024-01-15T10:30:00Z"
       }
       ```
