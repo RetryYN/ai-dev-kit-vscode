@@ -1,3 +1,11 @@
+---
+adr_id: ADR-026
+title: "ADR-026: PostToolUse 自動登録 + helix.db v35 schema 採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-026: PostToolUse 自動登録 + helix.db v35 schema 採用判断
 
 ## Status

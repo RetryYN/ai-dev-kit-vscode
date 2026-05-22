@@ -1,3 +1,11 @@
+---
+adr_id: ADR-023
+title: "ADR-023: gate fail-close 段階導入 (advisory → fail-close 段階遷移) 採用"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-023: gate fail-close 段階導入 (advisory → fail-close 段階遷移) 採用
 
 ## Status

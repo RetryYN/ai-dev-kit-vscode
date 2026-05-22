@@ -1,3 +1,11 @@
+---
+adr_id: ADR-019
+title: "ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル"
+status: Accepted
+date: 2026-05-18
+layer: L2
+---
+
 # ADR-019: HELIX = DNA 二重らせん命名原則と 3 軸トライアングル
 
 ## Status

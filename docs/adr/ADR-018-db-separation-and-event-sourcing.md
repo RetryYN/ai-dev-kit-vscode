@@ -1,3 +1,11 @@
+---
+adr_id: ADR-018
+title: "ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界"
+status: Accepted
+date: 2026-05-18
+layer: L2
+---
+
 # ADR-018: helix.db 6 分離 + Event Sourcing + projector 境界
 
 ## Status

@@ -1,3 +1,11 @@
+---
+adr_id: ADR-027
+title: "ADR-027: drift 検出 + Curator 自動化採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-027: drift 検出 + Curator 自動化採用判断
 
 ## Status

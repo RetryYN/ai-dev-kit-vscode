@@ -1,3 +1,11 @@
+---
+adr_id: ADR-028
+title: "ADR-028: PoC = Scrum × Reverse 連携 matrix 採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-028: PoC = Scrum × Reverse 連携 matrix 採用判断
 
 ## Status

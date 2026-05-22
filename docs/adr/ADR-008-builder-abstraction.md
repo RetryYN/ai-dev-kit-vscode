@@ -1,3 +1,11 @@
+---
+adr_id: ADR-008
+title: "ADR-008: ビルダーシステムによる成果物生成の抽象化"
+status: Accepted
+date: 2026-04-14
+layer: L2
+---
+
 # ADR-008: ビルダーシステムによる成果物生成の抽象化
 
 > Status: Accepted

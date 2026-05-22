@@ -1,3 +1,11 @@
+---
+adr_id: ADR-014
+title: "ADR-014: cli/roles/*.conf を正本とする決定 (conf vs yaml 二重管理の整理)"
+status: Accepted
+date: 2026-05-08
+layer: L2
+---
+
 # ADR-014: cli/roles/*.conf を正本とする決定 (conf vs yaml 二重管理の整理)
 
 ## Status

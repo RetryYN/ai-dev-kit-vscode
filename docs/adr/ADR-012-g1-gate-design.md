@@ -1,3 +1,11 @@
+---
+adr_id: ADR-012
+title: "ADR-012: G1 ゲート運用方針"
+status: Accepted
+date: 2026-04-15
+layer: L2
+---
+
 # ADR-012: G1 ゲート運用方針
 
 > Status: Accepted (2026-05 implementation-aligned)

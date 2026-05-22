@@ -1,3 +1,11 @@
+---
+adr_id: ADR-025
+title: "ADR-025: V5 framework 本体採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-025: V5 framework 本体採用判断
 
 ## Status

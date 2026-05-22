@@ -1,3 +1,11 @@
+---
+adr_id: ADR-002
+title: "ADR-002: Builder System Foundations"
+status: Accepted
+date: 2026-04-03
+layer: L2
+---
+
 # ADR-002: Builder System Foundations
 
 ## Status

@@ -1,3 +1,11 @@
+---
+adr_id: ADR-031
+title: "ADR-031: リカバリープラン kind 正規化採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-031: リカバリープラン kind 正規化採用判断
 
 ## Status

@@ -1,3 +1,11 @@
+---
+adr_id: ADR-009
+title: "ADR-009: Hook 戦略（doc-map トリガー中心）"
+status: Accepted
+date: 2026-04-14
+layer: L2
+---
+
 # ADR-009: Hook 戦略（doc-map トリガー中心）
 
 > Status: Accepted

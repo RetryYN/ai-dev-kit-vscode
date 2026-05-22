@@ -1,3 +1,11 @@
+---
+adr_id: ADR-013
+title: "ADR-013: R4 専用ゲートの要否"
+status: Accepted
+date: 2026-04-15
+layer: L2
+---
+
 # ADR-013: R4 専用ゲートの要否
 
 > Status: Accepted

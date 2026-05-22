@@ -1,3 +1,11 @@
+---
+adr_id: ADR-021
+title: "ADR-021: 設計 doc 作成時 Web 検索ガードレール framework 採用"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-021: 設計 doc 作成時 Web 検索ガードレール framework 採用
 
 ## Status

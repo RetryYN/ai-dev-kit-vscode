@@ -1,3 +1,11 @@
+---
+adr_id: ADR-015
+title: "ADR-015: HELIX v2 orchestration (PM 実装禁止 + PMO 新設 + ロール再配置)"
+status: Accepted
+date: 2026-05-08
+layer: L2
+---
+
 # ADR-015: HELIX v2 orchestration (PM 実装禁止 + PMO 新設 + ロール再配置)
 
 ## Status

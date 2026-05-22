@@ -1,3 +1,11 @@
+---
+adr_id: ADR-033
+title: "ADR-033: PreToolUse hook の session_id 取得 fallback chain と transcript-based 検証緩和"
+status: Proposed
+date: 2026-05-22
+layer: L2
+---
+
 # ADR-033: PreToolUse hook の session_id 取得 fallback chain と transcript-based 検証緩和
 
 - Status: Proposed

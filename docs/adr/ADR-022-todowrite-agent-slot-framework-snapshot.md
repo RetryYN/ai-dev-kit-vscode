@@ -1,3 +1,11 @@
+---
+adr_id: ADR-022
+title: "ADR-022: TodoWrite × agent slot framework 採用"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-022: TodoWrite × agent slot framework 採用
 
 ## Status

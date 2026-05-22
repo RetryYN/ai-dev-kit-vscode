@@ -1,3 +1,11 @@
+---
+adr_id: ADR-005
+title: "ADR-005: YAML-SQLite 二重状態管理"
+status: Accepted
+date: 2026-04-05
+layer: L2
+---
+
 # ADR-005: YAML-SQLite 二重状態管理
 
 > Status: Accepted

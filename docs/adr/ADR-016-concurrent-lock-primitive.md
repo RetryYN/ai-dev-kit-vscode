@@ -1,3 +1,11 @@
+---
+adr_id: ADR-016
+title: "ADR-016: concurrent lock primitive を standalone module として導入する"
+status: Accepted
+date: 2026-05-10
+layer: L2
+---
+
 # ADR-016: concurrent lock primitive を standalone module として導入する
 
 ## Status

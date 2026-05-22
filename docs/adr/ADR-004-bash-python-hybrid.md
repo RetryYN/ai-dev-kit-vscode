@@ -1,3 +1,11 @@
+---
+adr_id: ADR-004
+title: "ADR-004: Bash-Python ハイブリッドアーキテクチャ"
+status: Accepted
+date: 2026-04-05
+layer: L2
+---
+
 # ADR-004: Bash-Python ハイブリッドアーキテクチャ
 
 > Status: Accepted

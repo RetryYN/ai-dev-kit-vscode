@@ -1,3 +1,11 @@
+---
+adr_id: ADR-011
+title: "ADR-011: helix-test / helix-test-debug の重複管理方針"
+status: Accepted
+date: 2026-04-15
+layer: L2
+---
+
 # ADR-011: helix-test / helix-test-debug の重複管理方針
 
 > Status: Accepted

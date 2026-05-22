@@ -1,3 +1,11 @@
+---
+adr_id: ADR-003
+title: "ADR-003: Learning Engine Foundations"
+status: Accepted
+date: 2026-04-03
+layer: L2
+---
+
 # ADR-003: Learning Engine Foundations
 
 ## Status

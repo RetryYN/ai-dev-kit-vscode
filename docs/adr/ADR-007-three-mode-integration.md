@@ -1,3 +1,11 @@
+---
+adr_id: ADR-007
+title: "ADR-007: 3モード統合（Forward / Reverse / Scrum）"
+status: Accepted
+date: 2026-04-14
+layer: L2
+---
+
 # ADR-007: 3モード統合（Forward / Reverse / Scrum）
 
 > Status: Accepted

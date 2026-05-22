@@ -1,3 +1,11 @@
+---
+adr_id: ADR-001
+title: "ADR-001: Deliverable Matrix as Source of Truth"
+status: Accepted
+date: 2026-04-02
+layer: L2
+---
+
 # ADR-001: Deliverable Matrix as Source of Truth
 
 ## Status

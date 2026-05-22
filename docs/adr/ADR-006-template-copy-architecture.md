@@ -1,3 +1,11 @@
+---
+adr_id: ADR-006
+title: "ADR-006: テンプレートコピーアーキテクチャ"
+status: Accepted
+date: 2026-04-05
+layer: L2
+---
+
 # ADR-006: テンプレートコピーアーキテクチャ
 
 > Status: Accepted

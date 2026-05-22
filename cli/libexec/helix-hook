@@ -434,6 +434,30 @@ cascade_invalidate() {
   fi
 }
 
+# YAML frontmatter から指定 field の値を抽出する
+extract_frontmatter_field() {
+  local file="$1"
+  local field="$2"
+  awk -v field="$field" '
+    BEGIN { in_fm=0; marker_count=0 }
+    /^---[ \t]*$/ {
+      marker_count++
+      if (marker_count == 1) { in_fm=1; next }
+      if (in_fm) { exit }
+    }
+    in_fm {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line ~ "^[ \t]*" field "[ \t]*:[ \t]*") {
+        sub("^[ \t]*" field "[ \t]*:[ \t]*", "", line)
+        gsub(/^["'\''[:space:]]+|["'\''[:space:]]+$/, "", line)
+        print line
+        exit
+      }
+    }
+  ' "$file"
+}
+
 # --- ADR 自動インデックス ---
 check_adr_index() {
   local file="$1"
@@ -458,11 +482,26 @@ check_adr_index() {
       local basename_f
       basename_f=$(basename "$f" .md)
       local title
-      title=$(head -5 "$f" | grep -m1 '^# ' | sed 's/^# //' || echo "$basename_f")
+      title=$(extract_frontmatter_field "$f" "title")
+      if [[ -z "$title" ]]; then
+        title=$(grep -m1 '^# ' "$f" | sed 's/^# //' || echo "")
+      fi
+      [[ -z "$title" ]] && title="$basename_f"
       local status
-      status=$(grep -m1 -iP '^\s*(ステータス|status):?\s*' "$f" | sed 's/.*[:：]\s*//' | tr -d '\r' || echo "—")
+      status=$(extract_frontmatter_field "$f" "status")
+      if [[ -z "$status" ]]; then
+        status=$(grep -m1 -iP '^\s*#*\s*(ステータス|status):?\s*' "$f" | sed 's/.*[:：]\s*//' | tr -d '\r' || echo "")
+      fi
+      [[ -z "$status" ]] && status="—"
       local adr_date
-      adr_date=$(grep -m1 -iP '(date|日付|承認|YYYY)' "$f" | grep -oP '\d{4}-\d{2}-\d{2}' || echo "—")
+      adr_date=$(extract_frontmatter_field "$f" "date")
+      if [[ -z "$adr_date" ]]; then
+        adr_date=$(grep -m1 -iP '(date|日付|承認|YYYY)' "$f" | grep -oP '\d{4}-\d{2}-\d{2}' || echo "")
+      fi
+      if [[ -z "$adr_date" ]]; then
+        adr_date=$(grep -m1 -oP '\d{4}-\d{2}-\d{2}' "$f" || echo "")
+      fi
+      [[ -z "$adr_date" ]] && adr_date="—"
       echo "| $basename_f | $title | $status | $adr_date |"
     done
   } > "$index_file"

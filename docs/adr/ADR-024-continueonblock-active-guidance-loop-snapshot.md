@@ -1,3 +1,11 @@
+---
+adr_id: ADR-024
+title: "ADR-024: Claude Code continueOnBlock + active guidance loop pattern 採用"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-024: Claude Code continueOnBlock + active guidance loop pattern 採用
 
 ## Status

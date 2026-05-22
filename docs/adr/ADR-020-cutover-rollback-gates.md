@@ -1,3 +1,11 @@
+---
+adr_id: ADR-020
+title: "ADR-020: PLAN-084 migration gate 5 (cutover) + gate 6 (rollback) 採用 — local CLI tool 用簡略版 (Web 検索ベース再書き直し)"
+status: Accepted
+date: 2026-05-18
+layer: L2
+---
+
 # ADR-020: PLAN-084 migration gate 5 (cutover) + gate 6 (rollback) 採用 — local CLI tool 用簡略版 (Web 検索ベース再書き直し)
 
 ## Status

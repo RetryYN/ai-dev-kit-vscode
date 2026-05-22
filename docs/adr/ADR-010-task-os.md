@@ -1,3 +1,11 @@
+---
+adr_id: ADR-010
+title: "ADR-010: Task OS（2層構造: タスク→アクション）"
+status: Accepted
+date: 2026-04-14
+layer: L2
+---
+
 # ADR-010: Task OS（2層構造: タスク→アクション）
 
 > Status: Accepted

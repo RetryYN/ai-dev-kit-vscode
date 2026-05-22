@@ -1,3 +1,11 @@
+---
+adr_id: ADR-029
+title: "ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断"
+status: Proposed
+date: 2026-05-20
+layer: L2
+---
+
 # ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断
 
 ## Status
