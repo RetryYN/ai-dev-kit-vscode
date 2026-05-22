@@ -55,6 +55,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix review` | Codex レビュー |
 | `helix skill` | スキル検索・参照 |
 | `helix budget` | Claude/Codex の消費・モデル推奨 |
+| `helix agent` | agent slot 一覧/release/stats/fire-mandatory/audit (PLAN-082) |
 | `helix hook` | PostToolUse hook |
 | `helix check-claudemd` | PreToolUse hook |
 | `helix context` | AGENTS / CLAUDE / hook / memory の強制導線検査と context bundle 生成 |

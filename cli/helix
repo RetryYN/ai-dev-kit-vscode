@@ -50,6 +50,7 @@ case "$CMD" in
   setup)     exec "$SCRIPT_DIR/helix-setup" "$@" ;;
   observe)   exec "$SCRIPT_DIR/helix-observe" "$@" ;;
   audit)     exec "$SCRIPT_DIR/helix-audit" "$@" ;;
+  agent)     exec "$SCRIPT_DIR/helix-agent" "$@" ;;
   recipe)   exec "$SCRIPT_DIR/helix-recipe" "$@" ;;
   learn)
     if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
@@ -136,6 +137,7 @@ Codex / Claude Code 管理 harness:
   review      Codex 自動レビュー
   skill       スキル検索・参照
   budget      Claude/Codex 予算管理・モデル推奨
+  agent       agent slot 一覧/release/stats/fire-mandatory/audit (PLAN-082)
   hook        PostToolUse hook
   check-claudemd PreToolUse hook
   context     context / memory guardrail check
