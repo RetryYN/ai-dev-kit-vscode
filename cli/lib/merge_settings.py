@@ -111,12 +111,34 @@ def _build_hooks():
 HELIX_HOOKS = _build_hooks()
 
 
+def _normalize_hook_command(command):
+    if not command:
+        return ""
+    if "/" in command or command.startswith("~"):
+        return os.path.abspath(os.path.expanduser(command))
+    return command
+
+
 def _is_helix_hook(entry):
-    """hook エントリが HELIX 由来かどうか（command に 'helix' を含む）"""
+    """hook エントリが HELIX_HOOKS 登録 command と完全一致するかを判定する。
+
+    command に "helix" を含むかという緩い判定ではなく、_build_hooks() が返す
+    HELIX_HOOKS の各 hook command と一致する場合のみ HELIX 由来とみなす。
+    比較前に `~` を含む path は絶対 path へ正規化し、既存 settings.json の
+    チルダ表記とも整合させる。
+    """
+    known_commands = set()
+    for event_entries in HELIX_HOOKS.values():
+        for event_entry in event_entries:
+            for hook in event_entry.get("hooks", []):
+                command = _normalize_hook_command(hook.get("command"))
+                if command:
+                    known_commands.add(command)
+
     hooks = entry.get("hooks", [])
-    for h in hooks:
-        cmd = h.get("command", "")
-        if "helix" in cmd:
+    for hook in hooks:
+        command = _normalize_hook_command(hook.get("command", ""))
+        if command in known_commands:
             return True
     return False
 

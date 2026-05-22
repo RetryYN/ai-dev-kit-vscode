@@ -184,13 +184,14 @@ def test_build_hooks_expands_tilde_in_helix_home(
 
 
 def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
+    stale_registered_command = "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"
     settings = {
         "hooks": {
             "PostToolUse": [
                 {"hooks": [{"command": "custom-post"}]},
                 {
                     "matcher": "Edit|Write",
-                    "hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-hook"}],
+                    "hooks": [{"command": stale_registered_command}],
                 },
             ]
         }
@@ -203,6 +204,25 @@ def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
         {"hooks": [{"command": "custom-post"}]},
         merge_settings.HELIX_HOOKS["PostToolUse"][0],
     ]
+
+
+def test_is_helix_hook_rejects_external_command_with_helix_in_name() -> None:
+    entry = {"hooks": [{"command": "/usr/local/bin/some-helix-tool"}]}
+
+    assert merge_settings._is_helix_hook(entry) is False
+
+
+def test_is_helix_hook_rejects_unregistered_command_under_helix_home() -> None:
+    command = str(Path(merge_settings._resolve_helix_home()) / "cli" / "libexec" / "helix-future-hook")
+    entry = {"hooks": [{"command": command}]}
+
+    assert merge_settings._is_helix_hook(entry) is False
+
+
+def test_is_helix_hook_accepts_registered_command_with_tilde_path() -> None:
+    entry = {"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-session-start"}]}
+
+    assert merge_settings._is_helix_hook(entry) is True
 
 
 def test_merge_settings_for_migrate_returns_merged_copy() -> None:
