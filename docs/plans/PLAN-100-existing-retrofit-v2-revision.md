@@ -3,11 +3,22 @@ plan_id: PLAN-100
 title: "PLAN-100: 既存 PLAN-001〜090 retrofit + V2 全面見直し + ADR-021〜024 snapshot 後追い起票"
 layer: cross
 kind: retrofit
-status: draft
+status: complete
 size: L
 drive: be
 created: 2026-05-20
 revised: "2026-05-21 (PLAN-094 → PLAN-100 リネーム、PLAN-099 完了後着手の後段化、V5 framework 着手 scope は PLAN-091〜099 に限定)"
+completed_at: 2026-05-22
+completion_commits:
+  - f622d21 (Phase 2: PLAN-087〜090 ↔ ADR-021〜024 双方向 trace 確立)
+  - e756700 (Phase 3 P2: PLAN-075〜086 12 件 V5 frontmatter retrofit)
+  - 91bef94 (Phase 3 P3+P4: PLAN-001〜074 73 件 V5 frontmatter retrofit、8 並列 pmo-sonnet wave)
+  - 803fc08 (pre-Phase-4 cleanup: 全 99 PLAN plan_validator PASS)
+  - 12fcafc (Phase 4 readiness: V5 19 要素拡張確定)
+  - 2a96f43 (Phase 4 readiness Wave 2+3: skills/workflow/hooks/subagents/cli/DB 全機能 audit)
+  - e4a15b1 (Phase 4 Wave 1-5 + regression fix、V5 framework 19 要素統合反映)
+  - 588fc46 (Phase 4 carry Wave 1: hook session_id fallback + settings.json + ADR drift 修正)
+  - bee507d (Phase 4 carry Wave 1.5: MAX_SCAN_BYTES 拡張 + PLAN-101 + ADR-033 起票完遂)
 owner: PM
 agent_slots:
   - role: pm-advisor
@@ -417,19 +428,19 @@ FR-V5-10〜18: (PLAN-092〜099 実装後に追加)
 
 ### Phase 1 (本 session) DoD
 
-1. docs/adr/ADR-021-design-doc-web-search-guardrail-snapshot.md が存在する
-2. docs/adr/ADR-022-todowrite-agent-slot-framework-snapshot.md が存在する
-3. docs/adr/ADR-023-gate-fail-close-staged-adoption-snapshot.md が存在する
-4. docs/adr/ADR-024-continueonblock-active-guidance-loop-snapshot.md が存在する
-5. 各 ADR に Related: PLAN-08N (対応 PLAN) が記載されている
-6. 本 PLAN-100 frontmatter に generates / related_adr / dependencies が完備されている
-7. デグレ禁止 (§9) を侵していないことを git diff で確認
+1. ✓ docs/adr/ADR-021-design-doc-web-search-guardrail-snapshot.md が存在する
+2. ✓ docs/adr/ADR-022-todowrite-agent-slot-framework-snapshot.md が存在する
+3. ✓ docs/adr/ADR-023-gate-fail-close-staged-adoption-snapshot.md が存在する
+4. ✓ docs/adr/ADR-024-continueonblock-active-guidance-loop-snapshot.md が存在する
+5. ✓ 各 ADR に Related: PLAN-08N (対応 PLAN) が記載されている
+6. ✓ 本 PLAN-100 frontmatter に generates / related_adr / dependencies が完備されている
+7. ✓ デグレ禁止 (§9) を侵していないことを git diff で確認
 
 ### Phase 2〜4 (別 session) DoD
 
-8. PLAN-087〜090 に related_adr frontmatter + ## L2 凍結 section が追加されている
-9. `helix plan validate --all --strict` が全 90 PLAN で PASS
-10. L2-MASTER §0 line 36 + CONCEPT.md V5 section + V5-plan-outlines.md 18 要素版が完成
+8. ✓ PLAN-087〜090 に related_adr frontmatter + `## L2 凍結` section が追加されている (commit f622d21)
+9. ✓ `helix plan validate --all --strict` が全 99 PLAN で PASS (commit 803fc08、19 要素拡張後も維持)
+10. ✓ L2-MASTER §0 line 36 + CONCEPT.md V5 section + V5-plan-outlines.md 19 要素版が完成 (commit 12fcafc / e4a15b1)
 
 ---
 
@@ -530,3 +541,46 @@ SaaS funnel そのまま不採用、internal dev tool 適合の技術指標へ�
 3. marketing 翻訳 — SaaS 語彙そのまま不採用、internal technical metric 化
 4. simplicity 維持 — CLI/ゲート/文書/ADR の責務境界を保つ
 5. risks 監視 — PLAN-094 空白管理 / metric の目的化 / IDP 外部互換コスト
+
+---
+
+## §14. 完遂記録 (2026-05-22 確定 / 2026-05-23 doc close)
+
+### Phase 別完遂
+
+| Phase | 内容 | 完遂日 | 主 commit |
+|---|---|---|---|
+| Phase 1 | ADR-021〜024 起票 (PLAN-087〜090 の L2 snapshot) | 2026-05-22 | f622d21 |
+| Phase 2 | PLAN-087〜090 双方向 trace (frontmatter related_adr + ## L2 凍結 section) | 2026-05-22 | f622d21 |
+| Phase 3 P2 | PLAN-075〜086 (12 件) V5 frontmatter retrofit | 2026-05-22 | e756700 |
+| Phase 3 P3+P4 | PLAN-001〜074 (73 件) V5 frontmatter retrofit (8 並列 pmo-sonnet wave) | 2026-05-22 | 91bef94 |
+| pre-Phase-4 cleanup | 全 99 PLAN plan_validator PASS 維持 | 2026-05-22 | 803fc08 |
+| Phase 4 readiness | V5 19 要素拡張確定 (8 並列 pdm+pmo 総動員) | 2026-05-22 | 12fcafc |
+| Phase 4 audit | skills/workflow/hooks/subagents/cli/DB 全機能 audit (16 subagent、932 単位網羅) | 2026-05-22 | 2a96f43 |
+| Phase 4 Wave 1-5 | V5 framework 19 要素統合反映 + regression fix | 2026-05-22 | e4a15b1 |
+| Phase 4 carry Wave 1 | hook session_id fallback + settings.json hook 登録 + ADR drift 修正 | 2026-05-22 | 588fc46 |
+| Phase 4 carry Wave 1.5 | MAX_SCAN_BYTES 拡張 + PLAN-101 + ADR-033 起票完遂 | 2026-05-22 | bee507d |
+| Phase 4 carry 2.B + 3.B | merge_settings.py bug fix + 31 ADR frontmatter retrofit + helix-hook robust | 2026-05-23 | 9a3df66, d3c2be7 |
+| doc close | 本 PLAN status: draft → complete + §14 完遂記録 追記 | 2026-05-23 | (本 commit) |
+
+### plan_validator 状態 (2026-05-23 確認)
+
+- 全 100 PLAN frontmatter (kind / layer / drive / generates / agent_slots / dependencies) で欠損 0 件
+- `helix plan validate --all --strict` PASS
+- helix doctor: 24 pass / 0 fail / 79 warn (前 session 23/0/78 から +1 pass、ADR retrofit による degradation なし)
+
+### 残 carry (PLAN-100 の責務外、別 PLAN へ)
+
+| carry | 内容 | 対応 PLAN / commit | 状況 |
+|---|---|---|---|
+| pytest collection stop 偽 fail | cli/lib/tests/conftest.py 追加 | 本 session で対応 (Task α) | 完遂 |
+| merge_settings _is_helix_hook bug | HELIX_HOOKS 完全一致判定 + ~ 正規化 | commit 9a3df66 | 完遂 |
+| ADR index.md drift 再発 | helix-hook check_adr_index() frontmatter 優先抽出 + 31 ADR retrofit | commit d3c2be7 | 完遂 |
+| helix agent CLI 未有効化 | top-level router 登録 + docs 整合 | commit 90b4a4d | 完遂 |
+| stale agent slot 95 件 | bulk release (cancelled) | 本 session で対応 (Task Y) | 完遂 |
+| L1-REQUIREMENTS FR-V5-10〜18 placeholder 確定 | scoped extension | 別 PLAN | carry |
+
+### 関連 ADR / PLAN
+- ADR-021〜024: Phase 2 で L2 snapshot として確立
+- ADR-033: PLAN-101 (hook session_id fallback) の L2 snapshot
+- PLAN-101: Phase 4 carry Wave 1 で完遂
