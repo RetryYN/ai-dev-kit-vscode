@@ -278,21 +278,21 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（107スキル）
+## スキル群配置（111スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
 
 | カテゴリ | スキル |
 |---------|--------|
-| workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc** |
+| workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc**, **doc-system-architect**, **requirements-deriver** |
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
 | project/ | ui, api, db |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy, **tech-innovation**, **marketing-innovation**, **innovation-mgr** |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
 | integration/ | agent-teams, **agent-design**, **agent-cost-design** |
-| writing/ | japanese, explain, story, presentation, social |
-| design-tools/ | diagram, web-system, pptx, graphic, character |
+| writing/ | japanese, explain, story, presentation, social, **god-writing** |
+| design-tools/ | diagram, web-system, pptx, graphic, character, **gpt-image** |
 | automation/ | site-mapping, browser-script, flow-optimize, scheduler, job-queue, lock, init-setup, observability |
 | **agent-skills/** | idea-refine, spec-driven-development, planning-and-task-breakdown, incremental-implementation, test-driven-development, context-engineering, source-driven-development, frontend-ui-engineering, api-and-interface-design, browser-testing-with-devtools, debugging-and-error-recovery, code-review-and-quality, security-and-hardening, performance-optimization, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, shipping-and-launch, using-agent-skills, **system-design-sizing**, **technical-writing**, **mock-driven-development**, **helix-scrum** |
 
@@ -315,6 +315,12 @@ fullstack 追加条件:
 
 **2026-05-13 追加分** (1スキル、ユーザー自作):
 - integration/: **agent-cost-design** (AIエージェント構築のコスト予算・ガードレール確定スキル。8 references = multi-vendor / fallback-policy / retry-design / flow-design / cost-estimation / test-budget / guardrail-impl / budget-monitoring を Phase 0-5 順序で参照。1.2 倍上振れ係数固定、80% 到達で追加予算申請、ハードリミットはラッパー層実装が中核原則。L1/L2/L3 エージェント設計の前段必須)
+
+**2026-05-23 追加分** (4スキル、ユーザー素材を pmo-sonnet で HELIX format 化):
+- workflow/: **doc-system-architect** (ドキュメント体系のメタ設計スキル。変数判断 4 軸 [決定の不可逆性/読み手/変更頻度/再現可能性] + 業界標準への整合 [ISO/IEC/IEEE 42010:2022 / arc42 / C4 / ADR Nygard / Diátaxis / IPA 非機能要求グレード 2018 / Keep a Changelog / 12-factor / Runbook] の二段で「何を・どこまで・どの粒度で書くか」を導出。Why > What > How の優先順位、Single Source of Truth、確定までは軽メモ。要件未確定項目は確認リストとして分離)
+- workflow/: **requirements-deriver** (機能要件→非機能要件導出スキル。「複数/顧客/組織/テナント/SaaS/決済/個人情報/連携/24時間/大量」シグナル → R1-R14 ルール → IPA 非機能要求グレード 2018 (6 大項目) × ISO/IEC 25010 (8 特性) 二軸タグ → 分離レベル/冗長構成/認証方式まで展開。AI のシングルテナント固定化を防ぐ L1 関所。doc-system-architect の子スキル)
+- writing/: **god-writing** (フロントエンド / LP / SEO / コピー / 心理 / UX / 日本語修辞 / ロジック / 技術文書 を 9 カテゴリ + 97 references で統合する神レベルライティング統合スキル。AIDA / PAS / BAB framework [27% conversion 向上事例] + 心理 trigger [emotional/social proof/urgency/trust] + UX 3 原則 [Clear/Concise/Contextual、Slack onboarding 93% 完遂事例] + E-E-A-T/LLMO + 日本語修辞。既存 writing/japanese 等は基礎用途で残置、本 skill は LP/FE 応用用途)
+- design-tools/: **gpt-image** (GPT Image 2 (2026/04/21 リリース、Codex CLI default、$imagegen built-in skill) で アイキャッチ / 図解 / LP ヒーロー画像を構造化プロンプト生成する実装層スキル。最大 16 reference images / 1K-4K / 多言語 99% typography / Thinking mode で reasoning built-in。helix codex --role docs 委譲か Codex CLI 内 $imagegen 起動。DALL-E 3 retired 後継)
 
 ### 責務境界クリア化（テスト・検証・品質系の使い分け）
 
@@ -350,6 +356,54 @@ fullstack 追加条件:
 - **D-API / D-CONTRACT の HELIX 正本**: `workflow/api-contract` (agent-design axis 07 から接続)
 
 エージェント構築の標準フロー: **agent-cost-design (前段) → agent-design (個別構造) → agent-teams (協調)**。コストガードを通さずに structural design へ進まない。
+
+### 責務境界クリア化 (ドキュメント体系・要件導出系の使い分け、2026-05-23 追加)
+
+doc-system-architect が親スキル、requirements-deriver は子スキル。L1 / L2 で開く順序が決まっている:
+
+| スキル | 守備範囲 | 起動タイミング |
+|--------|---------|---------------|
+| `workflow/doc-system-architect` | **ドキュメント体系の設計判断** (何を・どこまで・どの粒度で書くか / 業界標準への整合) | L1 受領直後〜L2 entry。新規プロジェクト立ち上げ・ドキュメント整理時に **必ず** 通る前段ゲート |
+| `workflow/requirements-deriver` | **機能要件 → 非機能要件導出** (IPA × ISO 25010 二軸 / R1-R14 シグナル) | L1 要件定義の核心。機能要件 doc から非機能要件を機械的に展開 (質問ゼロ、欠落のみ確認リスト) |
+| `workflow/requirements-handover` | **要件曖昧時の確認 protocol / 引継ぎチェックリスト** | 要件 doc 自体が曖昧な時に先行 (requirements-deriver の前段) |
+| `workflow/design-doc` | **L2/L3 個別設計書本体** (D-API / D-DB / D-CONTRACT / D-STATE) の作成 | 上記スキル群の出力を入力に、個別設計書を書く実行スキル |
+| `common/documentation` | **README / ADR / 技術文書テンプレート** | doc-system-architect が「採用標準」と決めた個別 doc を書く時 |
+
+使い分けルール:
+- **要件 doc が曖昧** → `requirements-handover` (協議が先)
+- **要件はあるが体系全体を決めたい** → `doc-system-architect` (メタ層、何書くか決める)
+- **要件から非機能要件を導出** → `requirements-deriver` (R1-R14 自動展開)
+- **個別 doc 本体作成** → `design-doc` / `documentation`
+
+標準フロー: **requirements-handover (協議 if 曖昧) → doc-system-architect (体系設計) → requirements-deriver (非機能要件導出) → design-doc / documentation (個別本体)**。
+
+### 責務境界クリア化 (LP / FE / 画像生成・統合ライティング系の使い分け、2026-05-23 追加)
+
+god-writing は writing/ 統合層、既存 writing/* は基礎層。gpt-image は LP / SEO 記事の画像生成専用:
+
+| スキル | 守備範囲 | 起動タイミング |
+|--------|---------|---------------|
+| `writing/god-writing` | **9 カテゴリ統合** (copywriting / psychology / sales / seo / ux / logical / japanese / technical / philosophy + meta + interview = 97 references) で LP / FE / SEO 記事 / セールスコピー / UX 文章を起草 | LP / FE / セールスページ作成、SEO 記事マーケ、コンバージョン重視コピー、エラーメッセージ / オンボーディング microcopy |
+| `writing/japanese` | **基礎日本語**: 文法 / 漢字仮名 / 句読点 / textlint 統合 lint | 基礎日本語 lint 用途 (god-writing references/japanese/basic/ は基礎踏襲、本 skill は応用層) |
+| `writing/explain` | **技術文書 4 部構成 + EEAT コンテンツ品質監査** | 技術ブログ・チュートリアル系 (god-writing references/technical/ と一部重複、explain は SEO 記事の核心) |
+| `writing/social` | **SNS 投稿テンプレート + GEO 設計** | SNS 単発投稿 (god-writing references/copywriting/social-copy.md と一部重複、social は SNS チャネル特化) |
+| `writing/story` | **ストーリーテリング** | ストーリー単体 (god-writing references/copywriting/storytelling.md と一部重複) |
+| `writing/presentation` | **プレゼン資料** | slide 用途 (god-writing 範囲外) |
+| `design-tools/gpt-image` | **GPT Image 2 (Codex CLI default) で画像生成** (アイキャッチ / 図解 / LP ヒーロー画像) | LP / SEO 記事の画像が必要な時、Codex CLI 内 $imagegen 起動時、brand asset (16 ref images) を style anchor として使う時 |
+| `design-tools/diagram` | **図解の設計 (10 種類の図解タイプ理論)** | 図解の **設計層** (gpt-image は実装層) |
+| `design-tools/graphic` | **コード生成型グラフィック (Satori 等)** | code で SVG/PNG 生成する時 (gpt-image は AI 生成型) |
+| `design-tools/web-system` | **shadcn/ui デザインシステム + デザイントークン 3 層** | UI コンポーネント層 (god-writing は文章層、両者は LP で組み合わせる) |
+| `common/visual-design` | **ビジュアル設計原則 / DESIGN.md / a11y / データ Viz** | 全体ビジュアル方針 (gpt-image / web-system / graphic の上位) |
+
+使い分けルール:
+- **基礎日本語 lint** → `writing/japanese`
+- **技術ブログ / チュートリアル** → `writing/explain`
+- **SNS 単発投稿** → `writing/social`
+- **LP / FE / セールスコピー / UX writing / 心理 trigger 統合** → **`writing/god-writing`** (本 PR で追加)
+- **LP / 記事の画像生成** → **`design-tools/gpt-image`** (本 PR で追加、Codex 委譲)
+- **UI コンポーネント設計** → `design-tools/web-system` + `common/visual-design`
+
+god-writing は **既存 writing/* との重複** を許容して導入 (基礎用途は既存 skill / 応用 LP 用途は god-writing の棲み分け)。将来統合候補は別 PLAN で検討。
 
 ### 既存スキル強化メモ（description 更新）
 
@@ -422,7 +476,7 @@ automation/browser-script:
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 107 スキル + 121 references を LLM マッチングで自動推挙する CLI を搭載。
+全 111 スキル + 221+ references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]
