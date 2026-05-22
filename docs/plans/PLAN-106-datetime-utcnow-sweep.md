@@ -1,12 +1,14 @@
 ---
 plan_id: PLAN-106
 title: datetime.utcnow() Python 3.13 removal 対応 完全 sweep
-status: draft
+status: completed
 kind: refactor
 drive: be
 layer: L4
 size: S
 created_at: 2026-05-23
+completed_at: 2026-05-23
+completion_note: "起票後の全 repo sweep で datetime.utcnow() / datetime.utcfromtimestamp() の hit は 0 件 (cli/scripts/.claude/verify/ 全 dir 確認済)。実体は本 session commit e3c658d で cli/lib/agent_mandatory.py:101 修正時に既に解消済だった。本 PLAN は status=completed として close、追加修正不要。"
 authors:
   - PM (Opus)
   - PMO (Sonnet)
