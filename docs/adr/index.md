@@ -33,4 +33,5 @@
 | ADR-030-abstraction-layer-escalation-decision | ADR-030: 抽象化層 3 層 (スキル/ワークフロー/ハーネス) + エスカレーション機構採用判断 | Proposed | 2026-05-20 |
 | ADR-031-recovery-plan-kind-decision | ADR-031: リカバリープラン kind 正規化採用判断 | Proposed | 2026-05-20 |
 | ADR-032-autonomous-runtime-framework-decision | ADR-032-autonomous-runtime-framework-decision | Proposed | 2026-05-20 |
+| ADR-033-design-doc-guard-session-id-fallback | ADR-033: PreToolUse hook の session_id 取得 fallback chain と transcript-based 検証緩和 | Proposed | 2026-05-22 |
 | ADR-template | ADR Template | — | — |
