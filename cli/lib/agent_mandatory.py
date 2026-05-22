@@ -7,7 +7,7 @@ PLAN-078 v28 agent_slots を audit log として再利用する.
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from cli.lib import helix_db
@@ -98,7 +98,7 @@ def audit_phase(phase: str, *, since_hours: int = 24, session_id: str | None = N
             "warning": False,
         }
 
-    threshold = datetime.utcnow() - timedelta(hours=since_hours)
+    threshold = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     threshold_iso = threshold.strftime("%Y-%m-%d %H:%M:%S")
 
     called_map: dict[str, str | None] = {}

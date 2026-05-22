@@ -11,6 +11,7 @@ if [[ "$stale_count" =~ ^[0-9]+$ ]] && [[ "$stale_count" -gt 0 ]]; then
   cat <<EOF
 [harness] 前 session の release 漏れ slot: $stale_count 件
   → helix agent slots --stale で詳細確認
+  → helix agent slots release-stale で一括 release (--dry-run で事前確認推奨)
 EOF
 fi
 
