@@ -18,6 +18,16 @@
             "blockOnFailure": false
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-harness-summary.sh",
+            "timeout": 5,
+            "blockOnFailure": false
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -28,6 +38,18 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/userpromptsubmit-context-bundle.sh",
             "timeout": 5,
             "statusMessage": "Injecting HELIX prompt bundle...",
+            "blockOnFailure": false
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/precompact-state-snapshot.sh",
+            "timeout": 30,
             "blockOnFailure": false
           }
         ]
@@ -144,6 +166,17 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-plan-auto-register.sh",
             "timeout": 10,
             "statusMessage": "Syncing PLAN registry...",
+            "blockOnFailure": false
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-helix-job-enqueue.sh",
+            "timeout": 10,
             "blockOnFailure": false
           }
         ]
