@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 import subprocess
 import sys
@@ -14,6 +15,25 @@ from migrations import v31_db_separation, v32_design_doc_web_search_audit, v33_g
 
 
 HELIX_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _init_helix_db_for_project(project_root: Path) -> None:
+    """PLAN-104 R-4 fix: helix_db.init_db を tmp_path 内 helix-db.lock で取得させるため、
+    HELIX_PROJECT_ROOT env を一時的に project_root に set してから呼ぶ。
+
+    並列 pytest 実行下で本番 .helix/locks/helix-db.lock を奪取し合って 5s timeout
+    する race condition の解消。前 session Codex se が同等修正を施したが grep wrapper
+    との混在で全体 revert されていた。本 fix は env scope だけを復活させる。
+    """
+    previous_project_root = os.environ.get("HELIX_PROJECT_ROOT")
+    try:
+        os.environ["HELIX_PROJECT_ROOT"] = str(project_root)
+        helix_db.init_db(str(project_root / ".helix" / "helix.db"))
+    finally:
+        if previous_project_root is None:
+            os.environ.pop("HELIX_PROJECT_ROOT", None)
+        else:
+            os.environ["HELIX_PROJECT_ROOT"] = previous_project_root
 
 
 def _write_gate_checks(project_root: Path) -> None:
@@ -52,7 +72,7 @@ def _init_project(tmp_path: Path, *, plan_id: str, plan_body: str) -> Path:
     (project_root / "docs" / "plans").mkdir(parents=True)
     _write_gate_checks(project_root)
     _write_phase(project_root)
-    helix_db.init_db(str(project_root / ".helix" / "helix.db"))
+    _init_helix_db_for_project(project_root)
     (project_root / "docs" / "plans" / f"{plan_id}-test.md").write_text(plan_body, encoding="utf-8")
     return project_root
 

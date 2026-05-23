@@ -214,16 +214,49 @@ Sprint Exit 条件:
 **単独実行 (本 wave A)**: 100/100 PASS ✓ (R-1/R-2/R-3 fix 直後の commit c007851)
 **並列実行下 (本 wave B、pytest gate sweep 219 test 同時走行)**: **5/60 fail (8.3%)** ← R-4 新 root cause 存在
 
-### R-4 仮説 (並列下 fail、Sprint .3 課題、次 session carry)
+### R-4 root cause 確定 + fix (2026-05-23 本 wave、Sprint .3)
 
-並列 pytest 実行下では duration 5s = SQLite busy_timeout boundary で fail。R-3 fix (env 優先化) で本番 helix-db.lock 奪取は解消したが、並列下で別の race condition が発覚:
+並列 stress test (100 ループ + pytest gate sweep 同時走行) で **traceback 詳細捕獲**:
 
-- **R-4-a**: 複数 pytest process が同 helix.db init を並行実行 → init race (schema 多重初期化、PRAGMA 設定の race)
-- **R-4-b**: WAL flush timing race (`PRAGMA journal_mode=WAL` 設定で write 直後の read が stale)
-- **R-4-c**: 共有 fixture state (HELIX_HOME 等の env が並列 test 間で干渉)
-- **R-4-d**: pytest tmp_path が同 inode を再利用するときの cleanup race
+```
+TimeoutError: lock not acquired within 5.0s: helix-db
+  File "cli/lib/concurrent_lock.py:59", in _flock_with_timeout
+    raise TimeoutError(f"lock not acquired within {timeout:.1f}s: {name}") from exc
+```
 
-**Sprint .3 課題** (次 session): R-4 traceback 詳細取得 → 仮説絞り込み → fix。PLAN-102 (pytest-xdist 並列化) は R-4 解消後に着手
+#### root cause
+
+test の `_init_project()` 内で `helix_db.init_db()` を呼ぶと、`_write_connection` 経由で `file_lock(HELIX_DB_LOCK_NAME)` が取得される (`HELIX_DB_LOCK_NAME = "helix-db"`)。
+
+**問題**: test 本体 (subprocess ではなく test process 自身) で `helix_db.init_db()` を呼ぶ瞬間、`HELIX_PROJECT_ROOT` env が **未設定**。R-3 fix で env 優先化したが env が無いと relative `.helix/locks` に fallback → cwd ベース resolve → **本番 `.helix/locks/helix-db.lock`** を奪取。
+
+並列 pytest 実行で複数 test process が同じ本番 lock を取り合い、1 process だけ取得、他は 5s timeout で fail。
+
+#### R-4 fix (commit 本 wave)
+
+`test_helix_gate_design_doc_fail_close.py` に `_init_helix_db_for_project()` helper を追加し、`helix_db.init_db()` 呼び出し前後に `HELIX_PROJECT_ROOT` を tmp_path に scope set する:
+
+```python
+def _init_helix_db_for_project(project_root: Path) -> None:
+    previous_project_root = os.environ.get("HELIX_PROJECT_ROOT")
+    try:
+        os.environ["HELIX_PROJECT_ROOT"] = str(project_root)
+        helix_db.init_db(str(project_root / ".helix" / "helix.db"))
+    finally:
+        if previous_project_root is None:
+            os.environ.pop("HELIX_PROJECT_ROOT", None)
+        else:
+            os.environ["HELIX_PROJECT_ROOT"] = previous_project_root
+```
+
+前 session Codex se が同等修正を施したが、無効な grep wrapper (R-2 違いに対処) と一緒に commit され、root cause 違いで全体 revert された。本 fix は **env scope だけ復活** させる清浄な実装。
+
+#### 検証 (Sprint .3 完遂)
+
+- 単独 100 ループ: **100/100 PASS** ✓
+- 並列 100 ループ + pytest gate sweep 219 test 同時実行: **100/100 PASS** ✓ (R-4 fix 前は 5/60 fail)
+
+PLAN-102 (pytest-xdist 並列化) は本 fix で **前提条件 satisfy 完了**。次 session で着手可能。
 
 ## carry / 学び
 
