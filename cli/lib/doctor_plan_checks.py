@@ -21,6 +21,10 @@ STALE_GENERATES_DAYS = 30
 L2_BIG_PICTURE_KINDS = {"design"}
 L2_BIG_PICTURE_LAYERS = {"L2"}
 
+# 新 15 工程 (commit eeb0530): kind=impl は process_layer=L7 + parent_design 必須。
+IMPL_KIND = "impl"
+REQUIRED_PROCESS_LAYER_FOR_IMPL = "L7"
+
 
 def _project_root() -> Path:
     configured = os.environ.get("HELIX_PROJECT_ROOT")
@@ -251,4 +255,94 @@ def run_check_plan_adr_snapshot(conn: sqlite3.Connection) -> list[dict[str, Any]
                 "reason": "missing_adr_snapshot",
             }
         )
+    return results
+
+
+def run_check_process_layer(conn: sqlite3.Connection | None = None) -> list[dict[str, Any]]:
+    """新 15 工程契約: kind=impl は process_layer=L7 必須 (warn-only P1)。
+
+    frontmatter 直接 parse 方式 (plan_registry schema 拡張不要)。
+    docs/v2/process/L07-implementation-sprint.md 参照。
+    """
+    plans_dir = _project_root() / "docs" / "plans"
+    if not plans_dir.exists():
+        return []
+
+    results: list[dict[str, Any]] = []
+    for plan_path in sorted(plans_dir.glob("PLAN-*.md")):
+        frontmatter = plan_parser.parse_frontmatter(str(plan_path))
+        if not frontmatter:
+            continue
+        plan_id = str(frontmatter.get("plan_id") or plan_path.stem)
+        kind = str(frontmatter.get("kind") or "")
+        if kind != IMPL_KIND:
+            continue
+
+        process_layer = frontmatter.get("process_layer")
+        if process_layer is None:
+            results.append(
+                {
+                    "plan_id": plan_id,
+                    "doc_path": str(plan_path.relative_to(_project_root())),
+                    "status": "warning",
+                    "reason": "missing_process_layer",
+                    "expected": REQUIRED_PROCESS_LAYER_FOR_IMPL,
+                }
+            )
+        elif process_layer != REQUIRED_PROCESS_LAYER_FOR_IMPL:
+            results.append(
+                {
+                    "plan_id": plan_id,
+                    "doc_path": str(plan_path.relative_to(_project_root())),
+                    "status": "warning",
+                    "reason": "wrong_process_layer",
+                    "actual": process_layer,
+                    "expected": REQUIRED_PROCESS_LAYER_FOR_IMPL,
+                }
+            )
+    return results
+
+
+def run_check_parent_design_existence(conn: sqlite3.Connection | None = None) -> list[dict[str, Any]]:
+    """新 15 工程契約: kind=impl は parent_design 必須 + path 存在確認 (warn-only P1)。
+
+    parent_design は L6 機能設計 doc を指す (V-model L6↔L7 pair freeze)。
+    """
+    plans_dir = _project_root() / "docs" / "plans"
+    if not plans_dir.exists():
+        return []
+
+    results: list[dict[str, Any]] = []
+    for plan_path in sorted(plans_dir.glob("PLAN-*.md")):
+        frontmatter = plan_parser.parse_frontmatter(str(plan_path))
+        if not frontmatter:
+            continue
+        plan_id = str(frontmatter.get("plan_id") or plan_path.stem)
+        kind = str(frontmatter.get("kind") or "")
+        if kind != IMPL_KIND:
+            continue
+
+        parent_design = frontmatter.get("parent_design")
+        if not parent_design:
+            results.append(
+                {
+                    "plan_id": plan_id,
+                    "doc_path": str(plan_path.relative_to(_project_root())),
+                    "status": "warning",
+                    "reason": "missing_parent_design",
+                }
+            )
+            continue
+
+        parent_path = _project_root() / str(parent_design)
+        if not parent_path.exists():
+            results.append(
+                {
+                    "plan_id": plan_id,
+                    "doc_path": str(plan_path.relative_to(_project_root())),
+                    "status": "warning",
+                    "reason": "parent_design_not_found",
+                    "parent_design": str(parent_design),
+                }
+            )
     return results

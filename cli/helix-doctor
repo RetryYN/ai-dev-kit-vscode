@@ -957,6 +957,11 @@ check_plan_advisory "plan cycle advisory" "run_check_plan_cycle"
 check_plan_advisory "plan ADR snapshot advisory" "run_check_plan_adr_snapshot"
 
 echo ""
+echo "[新 15 工程 process_layer / parent_design (commit eeb0530)]"
+check_plan_advisory "plan process_layer (kind=impl→L7)" "run_check_process_layer"
+check_plan_advisory "plan parent_design existence" "run_check_parent_design_existence"
+
+echo ""
 echo "[subagent + sprint 機械化 (PLAN-082)]"
 check_subagent_phase
 check_sprint_completion

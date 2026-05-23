@@ -242,3 +242,186 @@ def test_run_check_plan_adr_snapshot_accepts_related_adr_or_snapshot() -> None:
         conn.close()
 
     assert rows == []
+
+
+# ─────────────────────────────────────────────────────────────
+# 新 15 工程 process_layer / parent_design checks (commit eeb0530)
+# ─────────────────────────────────────────────────────────────
+
+import os
+
+
+def _write_plan_doc(plans_dir: Path, plan_id: str, frontmatter_lines: list[str]) -> Path:
+    """テスト用 PLAN doc を frontmatter 付きで書き出す。"""
+    plans_dir.mkdir(parents=True, exist_ok=True)
+    path = plans_dir / f"{plan_id}.md"
+    body = "---\n" + "\n".join(frontmatter_lines) + "\n---\n\n# Plan\n"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def test_run_check_process_layer_warns_when_impl_missing(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-001-test",
+        [
+            "plan_id: PLAN-001-test",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_process_layer()
+
+    assert len(rows) == 1
+    assert rows[0]["status"] == "warning"
+    assert rows[0]["reason"] == "missing_process_layer"
+    assert rows[0]["expected"] == "L7"
+
+
+def test_run_check_process_layer_warns_when_wrong_value(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-002-wrong",
+        [
+            "plan_id: PLAN-002-wrong",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "process_layer: L4",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_process_layer()
+
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "wrong_process_layer"
+    assert rows[0]["actual"] == "L4"
+    assert rows[0]["expected"] == "L7"
+
+
+def test_run_check_process_layer_ok_when_l7(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-003-ok",
+        [
+            "plan_id: PLAN-003-ok",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "process_layer: L7",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_process_layer()
+
+    assert rows == []
+
+
+def test_run_check_process_layer_skips_non_impl(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-004-design",
+        [
+            "plan_id: PLAN-004-design",
+            "title: Design Plan",
+            "kind: design",
+            "layer: L6",
+            "drive: be",
+            "status: draft",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_process_layer()
+
+    assert rows == []
+
+
+def test_run_check_parent_design_warns_when_missing(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-005-no-parent",
+        [
+            "plan_id: PLAN-005-no-parent",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "process_layer: L7",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_parent_design_existence()
+
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "missing_parent_design"
+
+
+def test_run_check_parent_design_warns_when_path_not_found(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-006-bad-parent",
+        [
+            "plan_id: PLAN-006-bad-parent",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "process_layer: L7",
+            "parent_design: docs/v2/L6-function-design/nonexistent.md",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_parent_design_existence()
+
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "parent_design_not_found"
+    assert rows[0]["parent_design"] == "docs/v2/L6-function-design/nonexistent.md"
+
+
+def test_run_check_parent_design_ok_when_exists(tmp_path: Path, monkeypatch) -> None:
+    plans_dir = tmp_path / "docs" / "plans"
+    parent_doc = tmp_path / "docs" / "v2" / "L6-function-design" / "feature.md"
+    parent_doc.parent.mkdir(parents=True, exist_ok=True)
+    parent_doc.write_text("# parent\n", encoding="utf-8")
+
+    _write_plan_doc(
+        plans_dir,
+        "PLAN-007-ok",
+        [
+            "plan_id: PLAN-007-ok",
+            "title: Test Plan",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "process_layer: L7",
+            "parent_design: docs/v2/L6-function-design/feature.md",
+        ],
+    )
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    rows = doctor_plan_checks.run_check_parent_design_existence()
+
+    assert rows == []
