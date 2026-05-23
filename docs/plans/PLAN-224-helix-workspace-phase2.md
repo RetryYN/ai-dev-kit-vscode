@@ -27,10 +27,10 @@ generates:
     path: cli/lib/tests/test_workspace_merge.py
   - artifact_type: doc_update
     path: docs/adr/ADR-040-helix-workspace-isolation.md
-parent_design: docs/adr/ADR-040-helix-workspace-isolation.md   # L2 snapshot を parent (PLAN-156 と同じ ADR、Phase 2 carry)
+parent_design: docs/adr/ADR-040-helix-workspace-isolation.md   # 新 L4 基本設計 snapshot を parent (PLAN-156 と同じ ADR、Phase 2 carry)
 pairs_test_design:
-  - docs/v2/L4-test-design/PLAN-156-integration-test-design.md   # PLAN-156 と同じ pair、Phase 2 で AC-5/AC-6 追加検証
-process_layer: L4
+  - docs/v2/L4-test-design/PLAN-156-integration-test-design.md   # PLAN-156 と同じ pair、Phase 2 で AC-5/AC-6 追加検証 (新 L8-test-design 再配置 carry)
+process_layer: L7   # 新 L7 実装スプリント工程の subordinate
 dependencies:
   parent: PLAN-156
   requires:

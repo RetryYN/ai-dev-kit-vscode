@@ -1,0 +1,67 @@
+---
+doc_id: process-L04
+title: "L4 基本設計 + 総合テスト設計"
+status: maintained
+created: 2026-05-24
+owner: PM
+process_layer: L4
+pairs_with: L9
+---
+
+# L4 基本設計 + 総合テスト設計
+
+## 入力
+
+- L3 システム機能要件 + AC (必須)
+- skill: `workflow/design-doc` / `workflow/adversarial-review` / `workflow/api-contract` / `common/visual-design`
+
+## 進め方
+
+### Step 1: アーキテクチャ + 大局判断
+- システム全体構造 (BE / FE / DB / 外部連携 / agent 構成) を確定
+- 大局判断ごとに **ADR snapshot** を起票 (`docs/adr/ADR-NNN-<topic>.md`)
+
+### Step 2: 業界 standard 整合
+- PLAN-087 ガード: Web 検索 3 query 必須
+- IEEE 42010 / arc42 / C4 / Diátaxis 等の整合
+
+### Step 3: tl-advisor adversarial check (mandatory)
+- 大局判断ごとに `helix codex --role tl-advisor` 召喚
+- changes_required 判定なら全 P0/P1 反映後に再召喚
+
+### Step 4: 総合テスト設計のペア凍結 (V-model L9 ペア)
+- アーキテクチャごとに **総合テスト** (system test) を設計
+- `docs/v2/L9-test-design/<area>-system-test-design.md` に pair として書く
+- 業界 standard: IEEE 829-2008 / ISO 29119-3 case 構造
+
+### Step 5: G4 基本設計凍結ゲート通過
+
+## 成果物
+
+- **正本**: `docs/v2/L4-architecture/<area>-architecture.md`
+- **ADR snapshot**: `docs/adr/ADR-NNN-<topic>.md`
+- **ペア artifact**: `docs/v2/L9-test-design/<area>-system-test-design.md`
+
+## ペア凍結相手
+
+L9 総合テスト
+
+## ゲート
+
+- **G4 基本設計凍結ゲート**: TL + PM 判定、adversarial-review + セキュリティ① + V-model 総合テスト設計ペア凍結
+
+## 関連 skill
+
+- `workflow/design-doc`
+- `workflow/adversarial-review` (tl-advisor 召喚、mandatory)
+- `workflow/api-contract` (方針)
+- `workflow/threat-model` (セキュリティ①)
+- `common/visual-design` (UI 案件)
+- `integration/agent-design` / `integration/agent-cost-design` (AI agent 案件)
+
+## アンチパターン
+
+- ❌ ADR snapshot を後追いで起票 (PLAN-156/PLAN-224 で発覚した V-model 違反、本工程で先に起票)
+- ❌ tl-advisor 召喚 skip (G4 blocking 対象)
+- ❌ 総合テスト設計のペア凍結を skip (V-model 違反、L9 総合テスト工程が空回り)
+- ❌ アーキテクチャ doc を PLAN.md 内に書く (PLAN は L7 のみ、本工程は doc + ADR が成果物)

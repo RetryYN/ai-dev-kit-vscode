@@ -2,16 +2,17 @@
 plan_id: PLAN-NNN-impl-slug
 title: "PLAN-NNN: (実装タイトル placeholder)"
 kind: impl
-layer: L4
+layer: L7              # 新 15 工程: L7 実装スプリント (旧 L4 から再採番、docs/v2/process/README.md §既存資産との関係 参照)
 drive: be
 status: draft
 created: 2026-MM-DD
 owner: PM
-process_layer: L4   # ★必須: 本 PLAN は L4 実装工程の subordinate (docs/v2/process/L4-implementation-process.md 参照)
-parent_design: docs/v2/L3-detailed-design/<area>/<feature>.md   # ★必須: L3 詳細設計 doc への path (L1/L2/L3 工程で確定済の親 doc)
-pairs_test_design:                                                # ★必須: V-model 4 artifact ③ への path
-  - docs/v2/L4-test-design/<feature>-unit-test-design.md           #   単体テスト設計 (L3 機能設計と pair 凍結済)
-  - docs/v2/L4-test-design/<feature>-integration-test-design.md    #   結合テスト設計 (L3 詳細設計と pair 凍結済)
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程の subordinate (docs/v2/process/L07-implementation-sprint.md 参照)
+parent_design: docs/v2/L6-function-design/<feature>/<function>.md   # ★必須: L6 機能設計 doc への path (L0-L6 設計工程で確定済の親 doc)
+pairs_test_design:                                                    # ★必須: V-model 4 artifact ③ への path
+  - docs/v2/L7-test-design/<feature>-unit-test-design.md               #   単体テスト設計 (L6 機能設計とペア凍結済、本工程で実装+実施)
+  - docs/v2/L8-test-design/<feature>-integration-test-design.md        #   結合テスト設計 (L5 詳細設計とペア凍結済、L8 で実施)
+  - docs/v2/L9-test-design/<feature>-system-test-design.md             #   総合テスト設計 (L4 基本設計とペア凍結済、L9 で実施)
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 大局判断・最終 finalize"
