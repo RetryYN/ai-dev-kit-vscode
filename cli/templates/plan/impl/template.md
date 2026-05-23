@@ -7,6 +7,11 @@ drive: be
 status: draft
 created: 2026-MM-DD
 owner: PM
+process_layer: L4   # ★必須: 本 PLAN は L4 実装工程の subordinate (docs/v2/process/L4-implementation-process.md 参照)
+parent_design: docs/v2/L3-detailed-design/<area>/<feature>.md   # ★必須: L3 詳細設計 doc への path (L1/L2/L3 工程で確定済の親 doc)
+pairs_test_design:                                                # ★必須: V-model 4 artifact ③ への path
+  - docs/v2/L4-test-design/<feature>-unit-test-design.md           #   単体テスト設計 (L3 機能設計と pair 凍結済)
+  - docs/v2/L4-test-design/<feature>-integration-test-design.md    #   結合テスト設計 (L3 詳細設計と pair 凍結済)
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 大局判断・最終 finalize"

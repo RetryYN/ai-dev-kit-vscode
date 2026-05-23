@@ -34,6 +34,10 @@ generates:
     path: cli/lib/tests/test_workspace_manager.py
   - artifact_type: config
     path: cli/templates/workspace/workspace.yaml
+parent_design: docs/adr/ADR-040-helix-workspace-isolation.md   # L2 snapshot を暫定 parent。本来は L3 詳細設計 doc が望ましいが、本 PLAN は V-model 違反で起票され ADR-040 が L2 + L3 詳細を吸収しているため、L3 設計 doc 切り出しは後続 retrofit carry (docs/v2/process/L3-detailed-design-process.md 整備工程)
+pairs_test_design:
+  - docs/v2/L4-test-design/PLAN-156-integration-test-design.md   # 結合テスト設計 (artifact ③)、Sprint .4 で後追い起票済
+process_layer: L4   # 本 PLAN は L4 実装工程の subordinate
 dependencies:
   requires: []
   blocks: []
