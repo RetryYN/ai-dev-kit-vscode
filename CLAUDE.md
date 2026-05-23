@@ -69,10 +69,26 @@ skills/
 ## HELIX ワークフロー
 - タスク受領時は `helix/HELIX_CORE.md`、`skills/SKILL_MAP.md`、`helix/CODEX_TL_MODE.md` を確認する。
 - `.helix/handover/CURRENT.json` がある場合は `helix handover status --json` を確認し、stale でなければ Next Action に従う。
+
+### 実装済み CLI mode
+
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`
 - Reverse: `reverse <type> R0` -> `R1` -> `R2` -> `R3` -> `R4` -> `rgc`
-- Scrum: `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Scrum (検証駆動 / HELIX-workflows での Discovery 互換): `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Research: `helix research` で技術調査・意思決定 (ADR 連携)
 - AI harness: `plan` / `task` の文脈を `codex` / `claude` / `team` / `review` / `handover` で管理する。
+
+### workflow doc 正本のみの mode (dedicated CLI 未整備)
+
+以下 mode は workflow doc を正本とし、PLAN kind + template で運用する。**`helix refactor` / `helix retrofit` / `helix recovery` 等の CLI は存在しないため叩かない**:
+
+- Refactor (kind=`refactor`) → [HELIX-workflows/helix-process/refactor-workflow.md](HELIX-workflows/helix-process/refactor-workflow.md)
+- Retrofit (kind=`retrofit`) → [HELIX-workflows/helix-process/retrofit-workflow.md](HELIX-workflows/helix-process/retrofit-workflow.md)
+- Incident (hotfix) → [HELIX-workflows/helix-process/incident-workflow.md](HELIX-workflows/helix-process/incident-workflow.md)
+- Add-feature → [HELIX-workflows/helix-process/add-feature-workflow.md](HELIX-workflows/helix-process/add-feature-workflow.md)
+- Recovery (AI 暴走ガード+収束、kind=`recovery`) → [HELIX-workflows/helix-process/recovery-workflow.md](HELIX-workflows/helix-process/recovery-workflow.md)
+
+新 4 mode + HELIX W (2 段 V 合流) + TDD 全モード共通絶対原則の詳細は [HELIX-workflows/HELIX-process-L0-L14.md](HELIX-workflows/HELIX-process-L0-L14.md) を正本とする (HELIX_CORE.md §V2 完全移行 経由で自動継承)。
 
 詳細は [docs/commands/index.md](docs/commands/index.md) と [docs/commands/ai-harness.md](docs/commands/ai-harness.md) を参照。
 

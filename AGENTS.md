@@ -78,11 +78,32 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 
 ## HELIX Workflow
 
+### Implemented CLI modes
+
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`
 - Reverse: `reverse <type> R0` -> `R1` -> `R2` -> `R3` -> `R4` -> `rgc`
-- Scrum: `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Scrum (検証駆動 / HELIX-workflows の Discovery 互換): `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Research: `helix research` で技術調査・ADR 連携
 - Interrupt: 実装中の設計ギャップや要件変更は `helix interrupt` で IIP / CC として扱う。
 - Handover: セッションや担当をまたぐ場合は `.helix/handover/` を正本にする。
+
+### Documented modes without dedicated CLI
+
+以下 mode は workflow doc 正本 + PLAN kind / template で扱う。**`helix refactor` / `helix retrofit` / `helix recovery` 等の CLI は存在しない**ため絶対に叩かない (TL Driven Mode の non-negotiable):
+
+- Refactor (kind=`refactor`) — [HELIX-workflows/helix-process/refactor-workflow.md](HELIX-workflows/helix-process/refactor-workflow.md)
+- Retrofit (kind=`retrofit`) — [HELIX-workflows/helix-process/retrofit-workflow.md](HELIX-workflows/helix-process/retrofit-workflow.md)
+- Incident (hotfix) — [HELIX-workflows/helix-process/incident-workflow.md](HELIX-workflows/helix-process/incident-workflow.md)
+- Add-feature — [HELIX-workflows/helix-process/add-feature-workflow.md](HELIX-workflows/helix-process/add-feature-workflow.md)
+- Recovery (AI 暴走ガード+収束、kind=`recovery`) — [HELIX-workflows/helix-process/recovery-workflow.md](HELIX-workflows/helix-process/recovery-workflow.md)
+
+### TDD (テストファースト) 全モード共通絶対原則
+
+いかなる工程・いかなるモードでも「テスト → 実装」順序を厳守し、テストアフター禁止。Refactor では変更前の保護網テスト存在を前提。詳細は [HELIX-workflows/HELIX-process-L0-L14.md §基本原則](HELIX-workflows/HELIX-process-L0-L14.md) と `helix/HELIX_CORE.md §V2 完全移行` を参照。
+
+### 特殊 workflow / HELIX W (AI エージェントシステム時のみ)
+
+[two-stage-agent-design.md](HELIX-workflows/helix-process/two-stage-agent-design.md) — 9 mode と並列ではなく特殊 workflow として扱う。`drive=agent` 起動・検出方式は integration-map 解消の後続 PLAN 候補。
 
 ## Codex / Claude Code Harness
 
