@@ -1,4 +1,6 @@
 import json
+import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -11,11 +13,14 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import workspace_manager
+import workspace_snapshot
 from workspace_manager import (
     WorkspaceDropAbortedError,
     WorkspaceExistsError,
     WorkspaceManager,
+    WorkspaceNotFoundError,
     _filtered_copy,
+    _inject_helix_workspace_env_vars,
 )
 
 
@@ -82,6 +87,58 @@ def _manager(repo: Path, tmp_path: Path) -> WorkspaceManager:
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
     return WorkspaceManager(project_root=repo, home=home)
+
+
+def _seed_plan_registry_db(repo: Path) -> None:
+    helix_dir = repo / ".helix"
+    helix_dir.mkdir(parents=True, exist_ok=True)
+    db_path = helix_dir / "helix.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            CREATE TABLE plan_registry (
+                plan_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                layer TEXT NOT NULL,
+                drive TEXT NOT NULL,
+                status TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE plan_dependencies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id TEXT NOT NULL,
+                dep_type TEXT NOT NULL,
+                dep_plan_id TEXT NOT NULL
+            )
+            """
+        )
+        conn.executemany(
+            """
+            INSERT INTO plan_registry (plan_id, title, kind, layer, drive, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                ("PLAN-156", "Workspace", "impl", "L4", "be", "in_progress"),
+                ("PLAN-PARENT", "Parent", "plan", "L3", "be", "accepted"),
+                ("PLAN-REQ", "Requirement", "plan", "L3", "be", "accepted"),
+                ("PLAN-BLOCK", "Blocked", "plan", "L4", "be", "draft"),
+            ],
+        )
+        conn.executemany(
+            """
+            INSERT INTO plan_dependencies (plan_id, dep_type, dep_plan_id)
+            VALUES (?, ?, ?)
+            """,
+            [
+                ("PLAN-156", "parent", "PLAN-PARENT"),
+                ("PLAN-156", "requires", "PLAN-REQ"),
+                ("PLAN-156", "blocks", "PLAN-BLOCK"),
+            ],
+        )
 
 
 def test_create_creates_worktree_and_workspace_manifest(tmp_path: Path) -> None:
@@ -172,14 +229,102 @@ def test_list_workspaces_filters_active_entries(tmp_path: Path) -> None:
     assert [row["task_id"] for row in rows] == ["PLAN-ACTIVE"]
 
 
-def test_preflight_reports_main_dirty_and_orphan(tmp_path: Path) -> None:
+def test_exec_in_workspace_returns_exit_code_zero_for_true_command(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)
     manager = _manager(repo, tmp_path)
 
-    result = manager.create(task_id="PLAN-PREFLIGHT")
+    manager.create(task_id="PLAN-EXEC-TRUE")
+
+    assert manager.exec_in_workspace("PLAN-EXEC-TRUE", "true") == 0
+
+
+def test_exec_in_workspace_propagates_nonzero_exit_code(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    manager.create(task_id="PLAN-EXEC-FALSE")
+
+    assert manager.exec_in_workspace("PLAN-EXEC-FALSE", "exit 7") == 7
+
+
+def test_exec_in_workspace_raises_for_missing_task(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    with pytest.raises(WorkspaceNotFoundError):
+        manager.exec_in_workspace("PLAN-MISSING", "true")
+
+
+def test_exec_in_workspace_raises_for_dropped_status(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    manager.create(task_id="PLAN-DROPPED")
+    manager._update_registry_status("PLAN-DROPPED", status="dropped", drop_reason="test")
+
+    with pytest.raises(ValueError, match="active"):
+        manager.exec_in_workspace("PLAN-DROPPED", "true")
+
+
+def test_exec_in_workspace_injects_helix_workspace_env_vars(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+    result = manager.create(task_id="PLAN-ENV")
     workspace_path = Path(result["workspace_path"])
+    recorded: dict[str, object] = {}
+
+    def fake_run(args, cwd, env, check):  # type: ignore[no-untyped-def]
+        recorded["args"] = args
+        recorded["cwd"] = cwd
+        recorded["env"] = env
+        recorded["check"] = check
+        return subprocess.CompletedProcess(args=args, returncode=0)
+
+    monkeypatch.setattr(workspace_manager.subprocess, "run", fake_run)
+
+    exit_code = manager.exec_in_workspace("PLAN-ENV", "printf 'ok'", extra_env={"EXTRA_FLAG": "1"})
+
+    env = recorded["env"]
+    assert exit_code == 0
+    assert recorded["args"] == ["/bin/bash", "-c", "printf 'ok'"]
+    assert recorded["cwd"] == workspace_path
+    assert recorded["check"] is False
+    assert isinstance(env, dict)
+    assert env["HELIX_WORKSPACE_TASK_ID"] == "PLAN-ENV"
+    assert env["HELIX_WORKSPACE_PATH"] == str(workspace_path)
+    assert env["HELIX_WORKSPACE_BRANCH"] == "workspace/PLAN-ENV"
+    assert env["EXTRA_FLAG"] == "1"
+
+
+def test_preflight_detects_main_dirty(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    manager.create(task_id="PLAN-PREFLIGHT-DIRTY")
     (repo / "README.md").write_text("dirty\n", encoding="utf-8")
+
+    payload = manager.preflight("PLAN-PREFLIGHT-DIRTY")
+    issues = {issue["kind"]: issue for issue in payload["issues"]}
+
+    assert payload["task_id"] == "PLAN-PREFLIGHT-DIRTY"
+    assert payload["ok"] is True
+    assert "checked_at" in payload
+    assert issues["main_dirty"]["severity"] == "warn"
+
+
+def test_preflight_detects_orphan_worktree(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-PREFLIGHT-ORPHAN")
+    workspace_path = Path(result["workspace_path"])
     subprocess.run(
         ["git", "worktree", "remove", "--force", str(workspace_path)],
         cwd=repo,
@@ -188,11 +333,34 @@ def test_preflight_reports_main_dirty_and_orphan(tmp_path: Path) -> None:
         text=True,
     )
 
-    payload = manager.preflight("PLAN-PREFLIGHT")
-    codes = {issue["code"] for issue in payload["issues"]}
+    payload = manager.preflight("PLAN-PREFLIGHT-ORPHAN")
+    issues = {issue["kind"]: issue for issue in payload["issues"]}
+
     assert payload["ok"] is False
-    assert "main_dirty" in codes
-    assert "orphan_worktree" in codes
+    assert issues["orphan_worktree"]["severity"] == "error"
+
+
+def test_preflight_detects_branch_divergence(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-PREFLIGHT-BRANCH")
+    workspace_path = Path(result["workspace_path"])
+    (workspace_path / "README.md").write_text("workspace branch change\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "commit", "-am", "workspace update"],
+        cwd=workspace_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = manager.preflight("PLAN-PREFLIGHT-BRANCH")
+    issues = {issue["kind"]: issue for issue in payload["issues"]}
+
+    assert payload["ok"] is True
+    assert issues["branch_divergence"]["severity"] == "warn"
 
 
 def test_drop_default_aborts_when_workspace_has_changes(tmp_path: Path) -> None:
@@ -255,6 +423,111 @@ def test_generate_snapshot_minimal_schema_version_one(tmp_path: Path) -> None:
     assert snapshot["task_id"] == "PLAN-SNAPSHOT"
 
 
+def test_generate_snapshot_extracts_plan_registry(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _seed_plan_registry_db(repo)
+    target_path = tmp_path / "snapshot.json"
+
+    payload = workspace_snapshot.generate_snapshot(
+        repo,
+        target_path,
+        task_id="PLAN-156",
+        base_sha="deadbeef",
+    )
+
+    assert [row["plan_id"] for row in payload["plan_registry"]] == [
+        "PLAN-156",
+        "PLAN-PARENT",
+        "PLAN-REQ",
+        "PLAN-BLOCK",
+    ]
+    assert payload["plan_registry"][0]["parent"] == "PLAN-PARENT"
+
+
+def test_generate_snapshot_extracts_handover_snapshot(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    handover_dir = repo / ".helix" / "handover"
+    handover_dir.mkdir(parents=True, exist_ok=True)
+    (handover_dir / "CURRENT.json").write_text(
+        json.dumps(
+            {
+                "task": {
+                    "id": "PLAN-156",
+                    "title": "workspace",
+                    "status": "in_progress",
+                },
+                "phase": "L4",
+                "sprint": ".3",
+                "next_actions": ["implement exec", "extend preflight"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    target_path = tmp_path / "snapshot.json"
+
+    payload = workspace_snapshot.generate_snapshot(
+        repo,
+        target_path,
+        task_id="PLAN-156",
+        base_sha="cafebabe",
+    )
+
+    assert payload["handover_snapshot"]["task"]["id"] == "PLAN-156"
+    assert payload["handover_snapshot"]["phase"] == "L4"
+    assert payload["handover_snapshot"]["next_actions"] == ["implement exec", "extend preflight"]
+
+
+def test_generate_snapshot_extracts_memory_links(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    memory_path = tmp_path / "MEMORY.md"
+    memory_path.write_text(
+        "\n".join(
+            [
+                "# Memory",
+                "- PLAN-156 keep workspace isolated",
+                "- unrelated entry",
+                "- PLAN-156 review branch divergence",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HELIX_MEMORY_PATH", str(memory_path))
+
+    payload = workspace_snapshot.generate_snapshot(
+        repo,
+        tmp_path / "snapshot.json",
+        task_id="PLAN-156",
+        base_sha="feedface",
+    )
+
+    assert payload["memory_links"] == [
+        "- PLAN-156 keep workspace isolated",
+        "- PLAN-156 review branch divergence",
+    ]
+
+
+def test_generate_snapshot_handles_missing_helix_db_gracefully(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    target_path = tmp_path / "snapshot.json"
+
+    payload = workspace_snapshot.generate_snapshot(
+        repo,
+        target_path,
+        task_id="PLAN-MISSING-DB",
+        base_sha="1234567",
+    )
+
+    assert payload["plan_registry"] == []
+    assert payload["handover_snapshot"] == {}
+    assert payload["memory_links"] == []
+    assert target_path.exists()
+
+
 def test_create_writes_registry_file_fallback(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)
@@ -266,3 +539,19 @@ def test_create_writes_registry_file_fallback(tmp_path: Path) -> None:
     assert registry_path.exists()
     payload = workspace_manager._read_yaml_file(registry_path)
     assert payload["status"] == "active"
+
+
+def test_inject_helix_workspace_env_vars_preserves_os_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("BASE_FLAG", "enabled")
+
+    env = _inject_helix_workspace_env_vars(
+        "PLAN-156",
+        tmp_path / "workspace",
+        "workspace/PLAN-156",
+        extra_env={"EXTRA_FLAG": "1"},
+    )
+
+    assert env["BASE_FLAG"] == "enabled"
+    assert env["HELIX_WORKSPACE_TASK_ID"] == "PLAN-156"
+    assert env["HELIX_WORKSPACE_BRANCH"] == "workspace/PLAN-156"
+    assert env["EXTRA_FLAG"] == "1"

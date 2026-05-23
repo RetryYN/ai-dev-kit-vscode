@@ -24,7 +24,7 @@ from cli.lib.workspace_manager import (  # noqa: E402
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="helix workspace", description="Manage git worktree-based HELIX workspaces")
     parser.add_argument("--project-root", default=".", help=argparse.SUPPRESS)
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     create_parser = subparsers.add_parser("create")
     create_parser.add_argument("--task", required=True)
@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     exec_parser = subparsers.add_parser("exec")
     exec_parser.add_argument("--task", required=True)
-    exec_parser.add_argument("command")
+    exec_parser.add_argument("shell_command")
     return parser
 
 
@@ -60,12 +60,12 @@ def main(argv: list[str] | None = None) -> int:
     manager = WorkspaceManager(project_root=Path(args.project_root))
 
     try:
-        if args.command == "create":
+        if args.subcommand == "create":
             _print_json(
                 manager.create(task_id=args.task, branch=args.branch, base=args.base)
             )
             return 0
-        if args.command == "list":
+        if args.subcommand == "list":
             payload = manager.list_workspaces(status=args.status)
             if args.json:
                 _print_json(payload)
@@ -76,18 +76,17 @@ def main(argv: list[str] | None = None) -> int:
                         f"{row.get('branch')} {row.get('workspace_path')}"
                     )
             return 0
-        if args.command == "preflight":
+        if args.subcommand == "preflight":
             _print_json(manager.preflight(args.task))
             return 0
-        if args.command == "drop":
+        if args.subcommand == "drop":
             _print_json(manager.drop(args.task, force=args.force))
             return 0
-        if args.command == "prune":
+        if args.subcommand == "prune":
             _print_json(manager.prune(dry_run=args.dry_run))
             return 0
-        if args.command == "exec":
-            print("helix workspace exec is reserved for Sprint .3", file=sys.stderr)
-            return 1
+        if args.subcommand == "exec":
+            return manager.exec_in_workspace(args.task, args.shell_command)
     except (
         WorkspaceExistsError,
         WorkspaceNotFoundError,

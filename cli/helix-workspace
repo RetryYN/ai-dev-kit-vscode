@@ -15,7 +15,7 @@ Subcommands:
   preflight --task PLAN-X
   drop --task PLAN-X [--force]
   prune [--dry-run]
-  exec --task PLAN-X "<command>"   Sprint .3 で完全実装
+  exec --task PLAN-X "<command>"
 EOF
   exit 0
 fi

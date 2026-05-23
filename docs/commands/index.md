@@ -45,6 +45,19 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix bats-cleanup` | bats 由来 /tmp 残存 dir の監査・削除 (HELIX marker file 必須) |
 | `helix push` | 6 ゲート機械検証 + git push 自動許可 (停滞防止) |
 
+### workspace
+
+git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
+
+| Subcommand | Description |
+|---|---|
+| `create --task PLAN-X` | Create workspace under `~/.helix/workspaces/<repo>/<task>` |
+| `list [--status active\|merged\|dropped]` | List registered workspaces |
+| `preflight --task PLAN-X` | Detect main dirty / orphan / branch divergence |
+| `exec --task PLAN-X "<command>"` | Run command inside workspace cwd |
+| `drop --task PLAN-X [--force]` | Default abort / `--force` trash 退避後 worktree 削除 |
+| `prune [--dry-run]` | Cleanup orphan worktrees |
+
 ## 3. Codex / Claude Code 管理 harness
 
 | コマンド | 役割 |

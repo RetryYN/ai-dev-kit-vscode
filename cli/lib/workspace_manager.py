@@ -111,6 +111,27 @@ def _registry_functions() -> dict[str, Any]:
     return {name: getattr(helix_db, name, None) for name in names}
 
 
+def _inject_helix_workspace_env_vars(
+    task_id: str,
+    workspace_path: Path,
+    branch: str,
+    *,
+    extra_env: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Return env with HELIX workspace metadata injected for subprocess use."""
+    env = os.environ.copy()
+    env.update(
+        {
+            "HELIX_WORKSPACE_TASK_ID": task_id,
+            "HELIX_WORKSPACE_PATH": str(workspace_path),
+            "HELIX_WORKSPACE_BRANCH": branch,
+        }
+    )
+    if extra_env:
+        env.update({str(key): str(value) for key, value in extra_env.items()})
+    return env
+
+
 def _filtered_copy(src_root: Path, dst_root: Path) -> dict:
     """Copy allowlisted `.helix/` content while honoring denylist rules."""
     copied_count = 0
@@ -291,41 +312,140 @@ class WorkspaceManager:
     def preflight(self, task_id: str) -> dict:
         """Check main dirty state, orphan worktree state, and branch divergence."""
         issues: list[dict[str, Any]] = []
+        checked_at = _now_iso8601()
         if self._git_stdout(["status", "--porcelain"], cwd=self.project_root):
-            issues.append({"code": "main_dirty", "path": str(self.project_root)})
+            issues.append(
+                {
+                    "kind": "main_dirty",
+                    "severity": "warn",
+                    "detail": f"main workspace has uncommitted changes: {self.project_root}",
+                }
+            )
 
         entry = self._get_workspace_entry(task_id)
         if entry is None:
-            issues.append({"code": "workspace_not_found", "task_id": task_id})
-            return {"ok": False, "issues": issues}
+            issues.append(
+                {
+                    "kind": "workspace_not_found",
+                    "severity": "error",
+                    "detail": f"workspace registry entry not found for task_id={task_id}",
+                }
+            )
+            return {
+                "task_id": task_id,
+                "ok": False,
+                "checked_at": checked_at,
+                "issues": issues,
+            }
+
+        status = str(entry.get("status", "")).strip()
+        if status != "active":
+            issues.append(
+                {
+                    "kind": "status_not_active",
+                    "severity": "error",
+                    "detail": f"workspace status is {status or 'unknown'} for task_id={task_id}",
+                }
+            )
 
         workspace_path = Path(str(entry["workspace_path"]))
         if not workspace_path.exists():
-            issues.append({"code": "orphan_worktree", "task_id": task_id, "workspace_path": str(workspace_path)})
+            issues.append(
+                {
+                    "kind": "orphan_worktree",
+                    "severity": "error",
+                    "detail": f"workspace path is missing: {workspace_path}",
+                }
+            )
         else:
             worktree_paths = self._git_worktree_paths()
             if str(workspace_path.resolve()) not in worktree_paths:
-                issues.append({"code": "orphan_worktree", "task_id": task_id, "workspace_path": str(workspace_path)})
+                issues.append(
+                    {
+                        "kind": "orphan_worktree",
+                        "severity": "error",
+                        "detail": f"workspace path is not registered in git worktree list: {workspace_path}",
+                    }
+                )
 
         branch_name = str(entry.get("branch", "")).strip()
-        base_sha = str(entry.get("base_sha", "")).strip()
-        if branch_name and base_sha:
+        base_ref = str(entry.get("base_ref", "main")).strip() or "main"
+        if branch_name:
             try:
-                branch_sha = self._git_stdout(["rev-parse", branch_name], cwd=self.project_root)
-                if branch_sha != base_sha:
+                counts = self._git_stdout(
+                    ["rev-list", "--left-right", "--count", f"{base_ref}...{branch_name}"],
+                    cwd=self.project_root,
+                )
+                behind, ahead = self._parse_rev_list_counts(counts)
+                if ahead > 0 or behind > 0:
                     issues.append(
                         {
-                            "code": "branch_diverged",
-                            "task_id": task_id,
-                            "branch": branch_name,
-                            "base_sha": base_sha,
-                            "head_sha": branch_sha,
+                            "kind": "branch_divergence",
+                            "severity": "warn",
+                            "detail": (
+                                f"workspace branch {branch_name} diverged from {base_ref} "
+                                f"(ahead={ahead}, behind={behind})"
+                            ),
                         }
                     )
-            except GitWorktreeError:
-                issues.append({"code": "branch_missing", "task_id": task_id, "branch": branch_name})
+            except (GitWorktreeError, ValueError) as exc:
+                issues.append(
+                    {
+                        "kind": "branch_divergence",
+                        "severity": "warn",
+                        "detail": f"unable to compare {branch_name} against {base_ref}: {exc}",
+                    }
+                )
 
-        return {"ok": not issues, "issues": issues}
+        issues.extend(self._collect_stale_lock_issues())
+        has_errors = any(issue.get("severity") == "error" for issue in issues)
+        return {
+            "task_id": task_id,
+            "ok": not has_errors,
+            "checked_at": checked_at,
+            "issues": issues,
+        }
+
+    def exec_in_workspace(
+        self,
+        task_id: str,
+        command: str,
+        *,
+        extra_env: dict[str, str] | None = None,
+    ) -> int:
+        """Run command inside workspace cwd. Returns exit code."""
+        task_id = task_id.strip()
+        command = command.strip()
+        if not task_id:
+            raise ValueError("task_id is required")
+        if not command:
+            raise ValueError("command is required")
+
+        entry = self._get_workspace_entry(task_id)
+        if entry is None:
+            raise WorkspaceNotFoundError(f"workspace not found for task_id={task_id}")
+
+        status = str(entry.get("status", "")).strip()
+        if status != "active":
+            raise ValueError(f"workspace status must be active for exec: {task_id} ({status or 'unknown'})")
+
+        workspace_path = Path(str(entry["workspace_path"]))
+        if not workspace_path.exists():
+            raise WorkspaceNotFoundError(f"workspace path is missing: {workspace_path}")
+
+        env = _inject_helix_workspace_env_vars(
+            task_id,
+            workspace_path,
+            str(entry.get("branch", "")).strip(),
+            extra_env=extra_env,
+        )
+        proc = subprocess.run(
+            ["/bin/bash", "-c", command],
+            cwd=workspace_path,
+            env=env,
+            check=False,
+        )
+        return int(proc.returncode)
 
     def drop(
         self,
@@ -406,6 +526,60 @@ class WorkspaceManager:
             if line.startswith("worktree "):
                 paths.add(str(Path(line.split(" ", 1)[1]).resolve()))
         return paths
+
+    def _parse_rev_list_counts(self, counts: str) -> tuple[int, int]:
+        parts = counts.split()
+        if len(parts) != 2:
+            raise ValueError(f"invalid rev-list count payload: {counts!r}")
+        return int(parts[0]), int(parts[1])
+
+    def _collect_stale_lock_issues(self) -> list[dict[str, str]]:
+        issues: list[dict[str, str]] = []
+        lock_dir = self.project_helix_dir / "locks"
+        if not lock_dir.exists():
+            return issues
+
+        for lock_path in sorted(lock_dir.glob("*")):
+            if not lock_path.is_file():
+                continue
+            pid = self._extract_lock_pid(lock_path)
+            if pid is None or self._pid_is_alive(pid):
+                continue
+            issues.append(
+                {
+                    "kind": "stale_lock",
+                    "severity": "warn",
+                    "detail": f"stale lock detected: {lock_path} (pid={pid})",
+                }
+            )
+        return issues
+
+    def _extract_lock_pid(self, lock_path: Path) -> int | None:
+        try:
+            raw = lock_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            return None
+        if not raw:
+            return None
+
+        digits = "".join(ch if ch.isdigit() else " " for ch in raw).split()
+        if not digits:
+            return None
+        try:
+            return int(digits[0])
+        except ValueError:
+            return None
+
+    def _pid_is_alive(self, pid: int) -> bool:
+        if pid <= 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
 
     def _workspace_has_unmerged_changes(self, workspace_path: Path, *, base_ref: str) -> bool:
         if self._git_stdout(["status", "--porcelain"], cwd=workspace_path):
