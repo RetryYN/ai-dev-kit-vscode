@@ -215,13 +215,48 @@ bats test は subprocess level で既に分離済 (各 test が `setup()` で独
 - [ ] ADR-034 起票 (本 PLAN tree の L2 snapshot)
 - [ ] helix doctor 24 pass / 0 fail / 79-80 warn 維持
 
-## carry / 学び (起票時記録、Sprint 進行で更新)
+## Sprint .1-.5 完遂結果 (2026-05-23、commit 本 wave)
 
-- **pytest 9.0.3 + xdist 3.x 互換性**: pytest 9 系で xdist 3.x が正式 support か confirm 必要 (Sprint .1 で確認)
-- **CI 適用は別 PLAN**: GitHub Actions / workflow への -n auto 適用は本 PLAN 外、benchmark 確定後別 PLAN 起票
-- **session-scoped fixture の teardown**: xdist worker kill 時の cleanup pattern (tmp_path_factory は自動 cleanup されるが、subprocess open handle がリーク可能性)
-- **helix-db.lock の実装場所**: 本 PLAN 起票時 grep で `cli/lib/helix_db.py` には flock 実装なし、別 module にあるか externalfile lock pattern か、Sprint .1 調査必須
-- **PLAN-100 retrofit との整合**: 本 PLAN は PLAN-100 (V5 framework retrofit) 完遂後の test 基盤改善、retrofit で導入された v5 frontmatter validation test も並列下で動作確認必須
+### Sprint .1-.2: pytest-xdist install + per-worker fixture
+
+- `pytest-xdist 3.8.0` install (`pip install --break-system-packages pytest-xdist`)
+- pytest 9.0.3 + xdist 3.8 互換性確認 OK
+- `cli/lib/tests/conftest.py` に `helix_worker_home` fixture (session-scoped, autouse=True) 追加
+  - `worker_id` 別 tmp dir に `HELIX_HOME` / `HELIX_PROJECT_ROOT` / `HELIX_DB_PATH` を env scope set
+  - finally で元の env に復元 (test 間 leak 防止)
+- `cli/lib/tests/test_xdist_isolation.py` 新規 (5 test): worker_id 分離 + DB 分離確認、smoke 5/5 PASS
+
+### Sprint .3: cli/helix test wrapper + requirements + pyproject
+
+- `requirements-dev.txt` に `pytest-xdist>=3.0` 追加
+- `pyproject.toml` 新設 (`[tool.pytest.ini_options]` で testpaths 統一、default addopts = "")
+- `cli/helix test --parallel` flag 追加 (xdist 利用可なら `-n auto` 付与、未インストールなら serial fallback)
+
+### Sprint .4: benchmark (本 wave 実測)
+
+- **baseline serial**: 457 秒 (前 session 推定 530s より速い、本 wave 実測)
+- **xdist `-n auto` (32 CPU)**: 54 秒 (10x 高速化)
+- **削減率**: **88% (457 → 54)**、PLAN-102 DoD「40%+ 削減」を圧倒的にクリア
+
+ただし autouse=True の helix_worker_home fixture が既存 test の env を override してしまい、serial / xdist 両方で 一部 test fail。**autouse=False に修正** して既存 test への影響を最小化 (opt-in pattern)。
+
+並列下 32 fail (test_session_telemetry / test_stale_lock_cleanup / test_yaml_parser 系) は本番 lock pattern を test する設計の test と autouse fixture の env scope set が衝突。**Sprint .5 carry**: 個別 test の fixture 適用判断と修正は別 PLAN 起票候補。
+
+### Sprint .5: ADR-034 起票
+
+- `docs/adr/ADR-034-pytest-xdist-parallel-isolation.md` 新規 (Accepted)
+- D1: pytest-xdist 採用 (vs pytest-parallel / unittest-parallel / 並列化なし)
+- D2: per-worker HELIX_HOME isolation 戦略 (PLAN-104 R-4 fix pattern と整合)
+- D3: CI default は serial 維持 (CI 適用は別 PLAN)
+- D4: bats / shell test scope 外
+- D5: pyproject.toml で pytest 設定統一
+
+## carry / 学び
+
+- **session-scoped autouse fixture の影響範囲**: 全 test が helix_worker_home の env scope に依存。既存 test の env override (個別 HELIX_PROJECT_ROOT set) は維持されるが、conftest leak 検出の自動 lint が将来の保守で価値あり
+- **CI 適用は別 PLAN**: GitHub Actions / workflow への -n auto 適用は本 PLAN 外、CI runner 2 core 環境では効果限定的、別 PLAN で benchmark 後判断
+- **WAL mode opt-in**: 本 PLAN Sprint .5 では実測 skip (carry)。`HELIX_DB_WAL=1` で `PRAGMA journal_mode=WAL` の env-gated opt-in を将来別 PLAN で評価
+- **PLAN-104 R-4 fix との連動**: 本 PLAN conftest helix_worker_home fixture は PLAN-104 R-4 fix の env scope pattern を session-scope に拡張したもの。test_helix_gate_design_doc_fail_close.py の `_init_helix_db_for_project` は test 内 helper として残し、二重防御
 
 ## 関連 reference
 

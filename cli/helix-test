@@ -9,6 +9,7 @@ RUN_BATS_TESTS=1
 RUN_PYTEST_TESTS=1
 BATS_STRICT=0
 PYTEST_STRICT=0
+PYTEST_PARALLEL=0  # PLAN-102: pytest-xdist 並列実行 opt-in (--parallel)
 
 if [[ "${HELIX_TEST_SELF_CHECK_ONLY:-0}" == "1" ]]; then
   RUN_CORE_TESTS=0
@@ -17,7 +18,7 @@ fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)
-      echo "Usage: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict]"
+      echo "Usage: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict] [--parallel]"
       echo ""
       echo "HELIX CLI 全ツールのセルフテストを実行します。"
       echo "  --no-pytest  pytest テストを実行しない"
@@ -25,6 +26,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --bats-only   bats テストのみ実行する"
       echo "  --bats-strict bats 未導入時を FAIL 扱いにする"
       echo "  --pytest-strict pytest 未導入時を FAIL 扱いにする"
+      echo "  --parallel    pytest-xdist で並列実行 (-n auto、PLAN-102、要 pytest-xdist 導入)"
       exit 0
       ;;
     --no-pytest)
@@ -44,9 +46,12 @@ while [[ $# -gt 0 ]]; do
     --pytest-strict)
       PYTEST_STRICT=1
       ;;
+    --parallel)
+      PYTEST_PARALLEL=1
+      ;;
     *)
       echo "エラー: 不明なオプション '$1'" >&2
-      echo "使い方: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict]" >&2
+      echo "使い方: helix test [--no-bats] [--no-pytest] [--bats-only] [--bats-strict] [--pytest-strict] [--parallel]" >&2
       exit 2
       ;;
   esac
@@ -165,7 +170,17 @@ run_pytest_tests() {
 
   echo "[pytest]"
   set +e
-  pytest_output="$(python3 -m pytest "$SCRIPT_DIR/lib/tests/" -q --tb=short 2>&1)"
+  local pytest_xdist_args=""
+  if [[ "$PYTEST_PARALLEL" -eq 1 ]]; then
+    # PLAN-102: pytest-xdist で並列実行 (-n auto は CPU 数自動検出)
+    if python3 -c "import xdist" >/dev/null 2>&1; then
+      pytest_xdist_args="-n auto"
+      echo "[pytest] --parallel: xdist -n auto enabled"
+    else
+      echo "[pytest] --parallel requested but pytest-xdist not installed; falling back to serial"
+    fi
+  fi
+  pytest_output="$(python3 -m pytest $pytest_xdist_args "$SCRIPT_DIR/lib/tests/" -q --tb=short 2>&1)"
   pytest_rc=$?
   set -e
   echo "$pytest_output"

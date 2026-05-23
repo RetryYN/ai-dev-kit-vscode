@@ -1,0 +1,13 @@
+# PLAN-102: pytest 設定統一 (default serial、--parallel で xdist opt-in)
+# 既存運用 (cli/helix test = serial) を維持しつつ、開発者が手元で `-n auto` を使えるよう
+# default addopts は空にする。
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["cli/lib/tests"]
+# default は addopts なし (serial)
+# 並列実行は明示的に `pytest -n auto` または `cli/helix test --parallel` で opt-in
+addopts = ""
+markers = [
+    "slow: marks tests as slow (skip with -m 'not slow')",
+]
