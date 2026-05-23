@@ -9,7 +9,7 @@
 工程定義正本: [HELIX-model/HELIX-process-L0-L14.md](../../../../HELIX-model/HELIX-process-L0-L14.md)
 
 - 新 15 工程 (L0-L14) + V-model ペア凍結 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
-- PLAN は **全工程で起票**、L7 は他工程 PLAN の上位概念
+- PLAN は **全工程で起票**、各工程 PLAN は `process_layer` ごとに独立。L7 は実装工程内に複数の `L7-<機能名>plan` を抱える上位概念 (他工程 PLAN の親ではない)
 - PLAN 命名規則: `L<NN>-○○○plan` (例: `L7-helix-workspace-mergeplan`)
 - 旧 V1 PLAN (PLAN-NNN-slug) は参考扱い、製本は V2 命名規則で書き直し
 - 詳細: docs/v2/process/README.md / HELIX-model/
