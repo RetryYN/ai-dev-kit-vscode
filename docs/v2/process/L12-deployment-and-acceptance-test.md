@@ -6,7 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L12
 pairs_with: L3
-canonical_source: HELIX-model/L12-deployment.md
+canonical_source: HELIX-workflows/helix-process/L12-deployment.md
 ---
 
 # L12 デプロイ + 受入テスト + 環境差異巻き取り
@@ -67,12 +67,12 @@ L3 要件定義 (L3 でペア凍結された受入テストを本工程で実施
 
 ---
 
-## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+## 正本 (HELIX-workflows) 抽出 — 2026-05-24 V2 完全移行
 
-> 正本: [L12-deployment.md](../../../HELIX-model/L12-deployment.md)
-> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+> 正本: [L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md)
+> 本 doc は HELIX-workflows に同期。差分は HELIX-workflows を優先。
 
-### 工程の位置づけ (HELIX-model 正本)
+### 工程の位置づけ (HELIX-workflows 正本)
 
 | 項目 | 内容 |
 |---|---|
@@ -81,7 +81,7 @@ L3 要件定義 (L3 でペア凍結された受入テストを本工程で実施
 | 出力 | L13 への入力 |
 | 対応する設計 | L3 要件定義 / 受け入れテスト設計 |
 
-### この工程の PLAN (HELIX-model 正本)
+### この工程の PLAN (HELIX-workflows 正本)
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
@@ -95,7 +95,7 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 ### `L12-環境差異plan`
 - 本番環境との差異解消
 
-> **PLAN が内蔵するもの** (HELIX-model 共通):
+> **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
 

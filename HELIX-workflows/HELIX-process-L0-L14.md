@@ -139,3 +139,40 @@ L11（総合レビュー / ユーザー検証 / 要件巻き取り）は、左�
 - [L12 デプロイ・受入テスト・環境差異巻き取り](helix-process/L12-deployment.md)
 - [L13 デプロイ後検証・実環境運用](helix-process/L13-post-deployment-verification.md)
 - [L14 運用検証・機能改善](helix-process/L14-operation-verification.md)
+
+---
+
+## 他モード（Forward 以外）
+
+Forward HELIX（上記 L0–L14）に加え、入口に応じて 5 モードを使い分ける。いずれも最終的に Forward（Vモデル）のドキュメント体系へ昇華・接続する。
+
+- [Scrum HELIX ワークフロー](helix-process/scrum-workflow.md) — ユーザーと要件をすり合わせて反復開発し、完成機能を Vモデル体系へ昇華するモード
+- [Discovery ワークフロー](helix-process/discovery-workflow.md) — 計画上の不明点を仮説・PoC・検証で潰す探索モード（Reverse と組み合わせ可）
+- [Reverse HELIX ワークフロー](helix-process/reverse-workflow.md) — 既存コード・設計から逆引きし Forward に接続するモード
+- [Incident HELIX ワークフロー](helix-process/incident-workflow.md) — 本番稼働中の障害に hotfix で即応し、恒久対策を Vモデル体系へ昇華するモード
+- [Add-feature HELIX ワークフロー](helix-process/add-feature-workflow.md) — 既存システムに新機能を追加する差分ワークフロー（add-design / add-impl）
+
+| 入口 | 使うモード | Forward への昇華 |
+|---|---|---|
+| 要件・設計・契約が明確 | Forward HELIX（L0–L14） | — |
+| 作るものは明確、要件をユーザーと合わせたい | Scrum HELIX（反復開発） | 完成機能を Reverse fullback で文書化 → L0–L14 |
+| 計画上の不明点・実現性が未確定 | Discovery（Reverse と組み合わせ可） | confirmed → L1/L3/L4–L6 へ昇格 |
+| 既存コード・設計資産を逆引きしたい | Reverse HELIX | R4 routing → L1/L3/L4/L7/L8–L11 |
+| 本番稼働中に障害が発生した | Incident HELIX（hotfix 即応） | 暫定収束後、恒久対策を L1/L3/L4–L6、postmortem を L14 |
+| 既存システムに新機能を追加したい | Add-feature（差分追補） | add-design / add-impl を L4–L7 に追補 → L0–L14 体系へ統合 |
+
+---
+
+## 工程専門ワークフロー（FE / UX）
+
+FE / UX は HELIX の弱点領域（FE 専用 detector が定義先行で未実装）のため、該当工程を専門ワークフローとして補強する。入口判定モードではなく、特定工程（L2 / L10）の進め方を専門化したもの。
+
+- [画面設計ワークフロー（UI / ワイヤーフレーム）](helix-process/screen-design-workflow.md) — L2 画面設計の専門化
+- [フロントデザインワークフロー（UX / ビジュアルデザイン）](helix-process/frontend-design-workflow.md) — L10 UX・ビジネスデザイン磨き上げの専門化
+
+| 工程 | 専門ワークフロー | 補強する FE detector |
+|---|---|---|
+| L2 画面設計 | 画面設計（UI / ワイヤーフレーム） | state-transition-drift / mock-promotion |
+| L10 UX 磨き上げ | フロントデザイン（UX / ビジュアル） | design-token-drift / a11y-regression / visual-regression |
+
+L2（左腕）でワイヤーフレームを設計し、L10（右腕）でビジュアル・UX として磨き上げる、というVモデル上のペア関係になる。

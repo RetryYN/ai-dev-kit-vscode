@@ -3,9 +3,9 @@
 > Claude Code / Codex CLI 共通。ツール固有設定は各ツールの設定ファイルに記載。
 > 正本: SKILL_MAP.md §正本宣言 参照
 
-## V2 完全移行 (2026-05-24、HELIX-model 正本)
+## V2 完全移行 (2026-05-24、HELIX-workflows 正本)
 
-正本: [HELIX-model/HELIX-process-L0-L14.md](../HELIX-model/HELIX-process-L0-L14.md)
+正本: [HELIX-workflows/HELIX-process-L0-L14.md](../HELIX-workflows/HELIX-process-L0-L14.md)
 
 - **工程**: L0 (企画書) → L14 (運用検証) の 15 工程構造
 - **V-model ペア凍結**: 設計工程と検証工程が対応 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
@@ -199,7 +199,7 @@ HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / 
 
 新 L7 実装スプリント (旧 L4) 中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
 
-> **V2 完全移行訂正 (2026-05-24、TL レビュー後再訂正)**: PLAN は全工程 L0-L14 に起票し、各工程 PLAN は `process_layer` ごとに独立。L7 は **実装工程内に複数の `L7-<機能名>plan` を抱える上位概念** (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書)。L7 は他工程 (L0-L6/L8-L14) の PLAN の親ではない。本節の「Sprint 標準構造」は L7 における各機能 PLAN の内部ステップを定義する。他工程の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-model/Lx-*.md)。
+> **V2 完全移行訂正 (2026-05-24、TL レビュー後再訂正)**: PLAN は全工程 L0-L14 に起票し、各工程 PLAN は `process_layer` ごとに独立。L7 は **実装工程内に複数の `L7-<機能名>plan` を抱える上位概念** (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書)。L7 は他工程 (L0-L6/L8-L14) の PLAN の親ではない。本節の「Sprint 標準構造」は L7 における各機能 PLAN の内部ステップを定義する。他工程の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-workflows/Lx-*.md)。
 
 ### Sprint .X 標準 8 ステップ
 

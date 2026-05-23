@@ -6,7 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L3
 pairs_with: L12
-canonical_source: HELIX-model/L3-requirements-definition.md
+canonical_source: HELIX-workflows/helix-process/L3-requirements-definition.md
 ---
 
 # L3 要件定義 + 受入テスト設計
@@ -60,12 +60,12 @@ L12 デプロイ + 受入テスト
 
 ---
 
-## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+## 正本 (HELIX-workflows) 抽出 — 2026-05-24 V2 完全移行
 
-> 正本: [L3-requirements-definition.md](../../../HELIX-model/L3-requirements-definition.md)
-> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+> 正本: [L3-requirements-definition.md](../../../HELIX-workflows/helix-process/L3-requirements-definition.md)
+> 本 doc は HELIX-workflows に同期。差分は HELIX-workflows を優先。
 
-### 工程の位置づけ (HELIX-model 正本)
+### 工程の位置づけ (HELIX-workflows 正本)
 
 | 項目 | 内容 |
 |---|---|
@@ -74,7 +74,7 @@ L12 デプロイ + 受入テスト
 | 出力 | L4 基本設計 への入力 |
 | ペアとなるテスト設計 | 受け入れテスト設計（右腕 L12 受入テストで実行） |
 
-### この工程の PLAN (HELIX-model 正本)
+### この工程の PLAN (HELIX-workflows 正本)
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
@@ -92,7 +92,7 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 - 可用性 / 性能・拡張性 / 運用・保守性 / 移行性 / セキュリティ / システム環境
 - （IPA 非機能要求グレードのグレード値で確定）
 
-> **PLAN が内蔵するもの** (HELIX-model 共通):
+> **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
 

@@ -5,14 +5,14 @@ status: maintained
 created: 2026-05-24
 updated: 2026-05-24
 owner: PM
-canonical_source: HELIX-model/HELIX-process-L0-L14.md
-note: "正本は repo root の HELIX-model/ ディレクトリ。本 doc は HELIX-model に同期しつつ既存資産 (Gate / アンチパターン / 関連 skill / 旧体系移行 note) を保持する実装文書。"
+canonical_source: HELIX-workflows/HELIX-process-L0-L14.md
+note: "正本は repo root の HELIX-workflows/ ディレクトリ。本 doc は HELIX-workflows に同期しつつ既存資産 (Gate / アンチパターン / 関連 skill / 旧体系移行 note) を保持する実装文書。"
 ---
 
 # HELIX V2 工程定義 — 15 工程構造
 
-> **正本**: [HELIX-model/HELIX-process-L0-L14.md](../../../HELIX-model/HELIX-process-L0-L14.md) (ユーザー提示)
-> **本 doc** は HELIX-model を実装文書として整理し、Gate / アンチパターン / 関連 skill / 旧体系移行 note を追補する。本文は HELIX-model に従う。
+> **正本**: [HELIX-workflows/HELIX-process-L0-L14.md](../../../HELIX-workflows/HELIX-process-L0-L14.md) (ユーザー提示)
+> **本 doc** は HELIX-workflows を実装文書として整理し、Gate / アンチパターン / 関連 skill / 旧体系移行 note を追補する。本文は HELIX-workflows に従う。
 
 ## 基本構造
 
@@ -113,7 +113,7 @@ docs/plans/
 > - **plan_validator / helix doctor の対象は V2 形式のみ**: V1 形式は legacy として skip
 > - **新規 PLAN は V2 形式必須**: `docs/plans/L<NN>/L<NN>-○○○plan.md` + 新 frontmatter
 
-## 各工程の PLAN 一覧 (HELIX-model 正本)
+## 各工程の PLAN 一覧 (HELIX-workflows 正本)
 
 | 工程 | 起票する PLAN |
 |---|---|
@@ -133,43 +133,43 @@ docs/plans/
 | **L13** | `L13-デプロイ後検証plan` / `L13-実環境運用plan` |
 | **L14** | `L14-運用検証plan` / `L14-機能改善plan` |
 
-各 PLAN の記載項目は HELIX-model 配下の工程別 doc を正本とする (本 doc の §工程ごとの process doc を参照)。
+各 PLAN の記載項目は HELIX-workflows 配下の工程別 doc を正本とする (本 doc の §工程ごとの process doc を参照)。
 
 ## PLAN frontmatter 必須 field
 
 ```yaml
 plan_id: L<NN>-<slug>plan       # 新命名規則 (例: L7-helix-workspace-mergeplan)
 process_layer: L<NN>            # 該当工程 (L0-L14)
-parent_process: HELIX-model/L<NN>-*.md  # 工程定義 doc への path
+parent_process: HELIX-workflows/L<NN>-*.md  # 工程定義 doc への path
 pairs_test_design:              # V-model ペア (L7 のみ必須、他工程は任意)
   - docs/v2/L<NN>-test-design/<feature>-test-design.md
 kind: design | requirements | ui-design | impl | test | review | deployment | operation
 status: draft | active | complete | blocked | abandoned
 ```
 
-L7 (kind=impl) の場合は `parent_design:` 必須 (L6 機能設計 doc への path)。他工程は `parent_process:` 必須 (HELIX-model/L<NN>-*.md)。
+L7 (kind=impl) の場合は `parent_design:` 必須 (L6 機能設計 doc への path)。他工程は `parent_process:` 必須 (HELIX-workflows/L<NN>-*.md)。
 
 PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 / 要件 / 設計詳細は parent doc 群を参照、PLAN.md に重複転載しない。
 
 ## 工程ごとの process doc
 
-| 工程 | 本 doc | 正本 (HELIX-model) | ペア |
+| 工程 | 本 doc | 正本 (HELIX-workflows) | ペア |
 |---|---|---|---|
-| L0 企画書 | [L00-planning.md](L00-planning.md) | [L0-concept.md](../../../HELIX-model/L0-concept.md) | — |
-| L1 要求定義 + 運用テスト設計 | [L01-requirements-and-operational-test-design.md](L01-requirements-and-operational-test-design.md) | [L1-requirements.md](../../../HELIX-model/L1-requirements.md) | L14 |
-| L2 画面設計 + ワイヤーモック | [L02-screen-design-and-wireframe.md](L02-screen-design-and-wireframe.md) | [L2-ui-design.md](../../../HELIX-model/L2-ui-design.md) | L10 |
-| L3 要件定義 + 受入テスト設計 | [L03-requirements-definition-and-acceptance-test-design.md](L03-requirements-definition-and-acceptance-test-design.md) | [L3-requirements-definition.md](../../../HELIX-model/L3-requirements-definition.md) | L12 |
-| L4 基本設計 + 総合テスト設計 | [L04-architecture-design-and-system-test-design.md](L04-architecture-design-and-system-test-design.md) | [L4-basic-design.md](../../../HELIX-model/L4-basic-design.md) | L9 |
-| L5 詳細設計 + 結合テスト設計 | [L05-detailed-design-and-integration-test-design.md](L05-detailed-design-and-integration-test-design.md) | [L5-detailed-design.md](../../../HELIX-model/L5-detailed-design.md) | L8 |
-| L6 機能設計 + 単体テスト設計 | [L06-function-design-and-unit-test-design.md](L06-function-design-and-unit-test-design.md) | [L6-functional-design.md](../../../HELIX-model/L6-functional-design.md) | L7 |
-| L7 実装スプリント | [L07-implementation-sprint.md](L07-implementation-sprint.md) | [L7-implementation.md](../../../HELIX-model/L7-implementation.md) | L6 |
-| L8 結合テスト | [L08-integration-testing.md](L08-integration-testing.md) | [L8-integration-test.md](../../../HELIX-model/L8-integration-test.md) | L5 |
-| L9 総合テスト | [L09-system-testing.md](L09-system-testing.md) | [L9-system-test.md](../../../HELIX-model/L9-system-test.md) | L4 |
-| L10 フロント UX 磨き上げ | [L10-frontend-ux-polish.md](L10-frontend-ux-polish.md) | [L10-ux-refinement.md](../../../HELIX-model/L10-ux-refinement.md) | L2 |
-| L11 総合レビュー + ユーザー検証 | [L11-review-and-user-validation.md](L11-review-and-user-validation.md) | [L11-final-review.md](../../../HELIX-model/L11-final-review.md) | L1/L3 最終突合 |
-| L12 デプロイ + 受入テスト | [L12-deployment-and-acceptance-test.md](L12-deployment-and-acceptance-test.md) | [L12-deployment.md](../../../HELIX-model/L12-deployment.md) | L3 |
-| L13 デプロイ後検証 + 実環境運用 | [L13-post-deployment-verification.md](L13-post-deployment-verification.md) | [L13-post-deployment-verification.md](../../../HELIX-model/L13-post-deployment-verification.md) | — |
-| L14 運用検証 + 機能改善 | [L14-operations-and-improvement.md](L14-operations-and-improvement.md) | [L14-operation-verification.md](../../../HELIX-model/L14-operation-verification.md) | L1 |
+| L0 企画書 | [L00-planning.md](L00-planning.md) | [L0-concept.md](../../../HELIX-workflows/helix-process/L0-concept.md) | — |
+| L1 要求定義 + 運用テスト設計 | [L01-requirements-and-operational-test-design.md](L01-requirements-and-operational-test-design.md) | [L1-requirements.md](../../../HELIX-workflows/helix-process/L1-requirements.md) | L14 |
+| L2 画面設計 + ワイヤーモック | [L02-screen-design-and-wireframe.md](L02-screen-design-and-wireframe.md) | [L2-ui-design.md](../../../HELIX-workflows/helix-process/L2-ui-design.md) | L10 |
+| L3 要件定義 + 受入テスト設計 | [L03-requirements-definition-and-acceptance-test-design.md](L03-requirements-definition-and-acceptance-test-design.md) | [L3-requirements-definition.md](../../../HELIX-workflows/helix-process/L3-requirements-definition.md) | L12 |
+| L4 基本設計 + 総合テスト設計 | [L04-architecture-design-and-system-test-design.md](L04-architecture-design-and-system-test-design.md) | [L4-basic-design.md](../../../HELIX-workflows/helix-process/L4-basic-design.md) | L9 |
+| L5 詳細設計 + 結合テスト設計 | [L05-detailed-design-and-integration-test-design.md](L05-detailed-design-and-integration-test-design.md) | [L5-detailed-design.md](../../../HELIX-workflows/helix-process/L5-detailed-design.md) | L8 |
+| L6 機能設計 + 単体テスト設計 | [L06-function-design-and-unit-test-design.md](L06-function-design-and-unit-test-design.md) | [L6-functional-design.md](../../../HELIX-workflows/helix-process/L6-functional-design.md) | L7 |
+| L7 実装スプリント | [L07-implementation-sprint.md](L07-implementation-sprint.md) | [L7-implementation.md](../../../HELIX-workflows/helix-process/L7-implementation.md) | L6 |
+| L8 結合テスト | [L08-integration-testing.md](L08-integration-testing.md) | [L8-integration-test.md](../../../HELIX-workflows/helix-process/L8-integration-test.md) | L5 |
+| L9 総合テスト | [L09-system-testing.md](L09-system-testing.md) | [L9-system-test.md](../../../HELIX-workflows/helix-process/L9-system-test.md) | L4 |
+| L10 フロント UX 磨き上げ | [L10-frontend-ux-polish.md](L10-frontend-ux-polish.md) | [L10-ux-refinement.md](../../../HELIX-workflows/helix-process/L10-ux-refinement.md) | L2 |
+| L11 総合レビュー + ユーザー検証 | [L11-review-and-user-validation.md](L11-review-and-user-validation.md) | [L11-final-review.md](../../../HELIX-workflows/helix-process/L11-final-review.md) | L1/L3 最終突合 |
+| L12 デプロイ + 受入テスト | [L12-deployment-and-acceptance-test.md](L12-deployment-and-acceptance-test.md) | [L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md) | L3 |
+| L13 デプロイ後検証 + 実環境運用 | [L13-post-deployment-verification.md](L13-post-deployment-verification.md) | [L13-post-deployment-verification.md](../../../HELIX-workflows/helix-process/L13-post-deployment-verification.md) | — |
+| L14 運用検証 + 機能改善 | [L14-operations-and-improvement.md](L14-operations-and-improvement.md) | [L14-operation-verification.md](../../../HELIX-workflows/helix-process/L14-operation-verification.md) | L1 |
 
 ## 既存資産との関係 (移行)
 
@@ -205,7 +205,7 @@ PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 
 - `helix/HELIX_CORE.md` の同様訂正 (carry)
 - `gate-policy.md` の G1〜G11 → G0-G14 再採番 (carry)
 
-## 改革のポイント (HELIX-model 正本反映後)
+## 改革のポイント (HELIX-workflows 正本反映後)
 
 1. **PLAN は全工程で起票** (L0-L14 各工程に PLAN を立て、工程ごとのドキュメント作成手順 + 進捗を管理)
 2. **L7 は PLAN の上位概念** (機能ごとの実装 PLAN を束ね、全体進捗管理)

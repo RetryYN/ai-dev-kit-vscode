@@ -4,15 +4,15 @@
 > CLAUDE.md / SKILL_MAP.md から参照される手順の正本。
 > 所有: ゲート定義、セキュリティチェック、フェーズ遷移、IIP、CC、V分類、LPR、ミニレトロ、adversarial-review、リファクタリング運用、Reverse ゲート。
 
-## V2 完全移行 (2026-05-24、HELIX-model 正本)
+## V2 完全移行 (2026-05-24、HELIX-workflows 正本)
 
-工程定義正本: [HELIX-model/HELIX-process-L0-L14.md](../../../../HELIX-model/HELIX-process-L0-L14.md)
+工程定義正本: [HELIX-workflows/HELIX-process-L0-L14.md](../../../../HELIX-workflows/HELIX-process-L0-L14.md)
 
 - 新 15 工程 (L0-L14) + V-model ペア凍結 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
 - PLAN は **全工程で起票**、各工程 PLAN は `process_layer` ごとに独立。L7 は実装工程内に複数の `L7-<機能名>plan` を抱える上位概念 (他工程 PLAN の親ではない)
 - PLAN 命名規則: `L<NN>-○○○plan` (例: `L7-helix-workspace-mergeplan`)
 - 旧 V1 PLAN (PLAN-NNN-slug) は参考扱い、製本は V2 命名規則で書き直し
-- 詳細: docs/v2/process/README.md / HELIX-model/
+- 詳細: docs/v2/process/README.md / HELIX-workflows/
 
 ## Status 共通語彙
 

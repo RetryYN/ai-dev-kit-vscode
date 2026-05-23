@@ -6,7 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L10
 pairs_with: L2
-canonical_source: HELIX-model/L10-ux-refinement.md
+canonical_source: HELIX-workflows/helix-process/L10-ux-refinement.md
 ---
 
 # L10 フロント UX・ビジネスデザイン磨き上げ
@@ -17,6 +17,7 @@ canonical_source: HELIX-model/L10-ux-refinement.md
 - L9 総合テスト完遂物 (機能は動く前提)
 - L2 carry note (磨き上げ余地)
 - skill: `common/visual-design` / `design-tools/web-system` / `writing/god-writing` / `agent-skills/frontend-ui-engineering`
+- **工程専門 workflow (FE 弱点補強)**: [frontend-design-workflow.md](../../../HELIX-workflows/helix-process/frontend-design-workflow.md) — ビジュアル → デザインシステム/トークン → a11y → ビジュアル回帰 → UX 磨き → ビジネスデザイン磨き。補強する FE detector = `design-token-drift` / `a11y-regression` / `visual-regression`
 
 ## 進め方
 
@@ -64,12 +65,12 @@ L2 画面設計
 
 ---
 
-## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+## 正本 (HELIX-workflows) 抽出 — 2026-05-24 V2 完全移行
 
-> 正本: [L10-ux-refinement.md](../../../HELIX-model/L10-ux-refinement.md)
-> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+> 正本: [L10-ux-refinement.md](../../../HELIX-workflows/helix-process/L10-ux-refinement.md)
+> 本 doc は HELIX-workflows に同期。差分は HELIX-workflows を優先。
 
-### 工程の位置づけ (HELIX-model 正本)
+### 工程の位置づけ (HELIX-workflows 正本)
 
 | 項目 | 内容 |
 |---|---|
@@ -78,7 +79,7 @@ L2 画面設計
 | 出力 | L11 への入力 |
 | 対応する設計 | L2 画面設計・フロントUI / ワイヤーモック |
 
-### この工程の PLAN (HELIX-model 正本)
+### この工程の PLAN (HELIX-workflows 正本)
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
@@ -89,7 +90,7 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 ### `L10-ビジネスデザインplan`
 - ビジネス価値の磨き上げ
 
-> **PLAN が内蔵するもの** (HELIX-model 共通):
+> **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
 

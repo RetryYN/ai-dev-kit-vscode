@@ -7,8 +7,8 @@ drive: fe              # fe|fullstack
 status: draft
 created: 2026-MM-DD
 owner: PM
-process_layer: L2             # ★必須: 工程番号 (HELIX-model 正本)
-parent_process: HELIX-model/L2-ui-design.md   # ★必須: 工程定義 doc
+process_layer: L2             # ★必須: 工程番号 (HELIX-workflows 正本)
+parent_process: HELIX-workflows/helix-process/L2-ui-design.md   # ★必須: 工程定義 doc
 # parent_design: <L7 のみ必須、本工程は不要>
 pairs_test_design: []  # 本工程は不要 (L7 のみ V-model trace 必須)
 is_reference: false        # V2 製本対象 = false
@@ -25,14 +25,14 @@ dependencies:
   requires: []
   blocks: []
 related_docs:
-  - HELIX-model/L2-ui-design.md
+  - HELIX-workflows/helix-process/L2-ui-design.md
   - docs/v2/process/L02-screen-design-and-wireframe.md
 ---
 
 ## §0 PLAN concept
 
 > **工程**: L2 (L2↔L10 pair freeze)
-> **正本**: HELIX-model/L2-ui-design.md
+> **正本**: HELIX-workflows/helix-process/L2-ui-design.md
 > **本 PLAN の対象**: <この PLAN が進める対象を書く>
 
 ## §1 工程表 (作業手順 + 進捗)
@@ -50,7 +50,7 @@ PLAN は **工程表 (作業手順 + 進捗) + 実装計画** の 2 要素を内
 
 ## §2 実装計画 (記載項目をどう埋めるか)
 
-### この工程で起票する PLAN 群 (HELIX-model 正本)
+### この工程で起票する PLAN 群 (HELIX-workflows 正本)
 
 - `L2-画面一覧plan`: 画面一覧
 - `L2-画面遷移plan`: 画面遷移
@@ -59,12 +59,12 @@ PLAN は **工程表 (作業手順 + 進捗) + 実装計画** の 2 要素を内
 
 ### 各 PLAN の記載項目
 
-詳細は [HELIX-model/L2-ui-design.md](../../../../HELIX-model/L2-ui-design.md) §この工程の PLAN を参照。
+詳細は [HELIX-workflows/helix-process/L2-ui-design.md](../../../../HELIX-workflows/helix-process/L2-ui-design.md) §この工程の PLAN を参照。
 
 ## §3 成果物
 
 - **製本対象 doc**: `docs/v2/L2-<area>/<feature>.md` (本 PLAN が完成させる正本)
-- **HELIX-model 正本**: [HELIX-model/L2-ui-design.md](../../../../HELIX-model/L2-ui-design.md)
+- **HELIX-workflows 正本**: [HELIX-workflows/helix-process/L2-ui-design.md](../../../../HELIX-workflows/helix-process/L2-ui-design.md)
 - **ペア凍結**: L2↔L10 pair freeze
 
 ## §4 受入条件 / DoD
@@ -76,5 +76,5 @@ PLAN は **工程表 (作業手順 + 進捗) + 実装計画** の 2 要素を内
 
 ## §5 関連 PLAN / ADR / docs
 
-- HELIX-model: HELIX-model/L2-ui-design.md
+- HELIX-workflows: HELIX-workflows/helix-process/L2-ui-design.md
 - 工程 doc: docs/v2/process/L02-screen-design-and-wireframe.md

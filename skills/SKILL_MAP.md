@@ -3,19 +3,19 @@
 ## 正本宣言
 
 - **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md`）
-- **工程定義正本**: [`HELIX-model/HELIX-process-L0-L14.md`](../HELIX-model/HELIX-process-L0-L14.md) (2026-05-24 V2 完全移行確立、commit 35a901c)
+- **工程定義正本**: [`HELIX-workflows/HELIX-process-L0-L14.md`](../HELIX-workflows/HELIX-process-L0-L14.md) (2026-05-24 V2 完全移行確立、commit 35a901c)
 - **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
 ## V2 完全移行 (2026-05-24、ユーザー指示)
 
-- **HELIX-model を正本** とし、docs/v2/process/ は実装文書として同期
+- **HELIX-workflows を正本** とし、docs/v2/process/ は実装文書として同期
 - **PLAN は全工程 L0-L14 で起票**、各工程 PLAN は `process_layer` ごとに独立。L7 は実装工程内に複数の `L7-<機能名>plan` を抱える上位概念 (他工程 PLAN の親ではない)
 - **PLAN 命名規則**: `L<NN>-○○○plan` (例: `L0-企画書plan` / `L7-helix-workspace-mergeplan`)
 - **PLAN 配置**: `docs/plans/L0/` 〜 `docs/plans/L14/` にフォルダ分離
 - **PLAN の中身**: 工程表 (作業手順 + 進捗) + 実装計画の 2 要素を内蔵 → 再開可能
 - **旧 V1 PLAN は参考扱い、製本にしない**。製本したい場合は V2 命名規則で書き直し (commit f409c55 で `is_reference: true` marked)
-- 詳細: docs/v2/process/README.md / HELIX-model/HELIX-process-L0-L14.md
+- 詳細: docs/v2/process/README.md / HELIX-workflows/HELIX-process-L0-L14.md
 
 ## モデル割当（真実は `cli/config/models.yaml`）
 
@@ -64,7 +64,7 @@ Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 →
 
 ## オーケストレーションフロー (新 15 工程 L0-L14、commit eeb0530)
 
-> **正本**: [HELIX-model/HELIX-process-L0-L14.md](../HELIX-model/HELIX-process-L0-L14.md) (commit 35a901c)
+> **正本**: [HELIX-workflows/HELIX-process-L0-L14.md](../HELIX-workflows/HELIX-process-L0-L14.md) (commit 35a901c)
 >
 > **構造的原則 (2026-05-24 V2 完全移行で訂正)**:
 > - PLAN は **機能 (ドキュメント) 単位で全工程 L0-L14 に起票**する
@@ -149,6 +149,34 @@ L14 運用検証 + 機能改善 (L1 運用テスト pair execute → 次イテ�
 
 **ゲート詳細・セキュリティ・遷移ルール** → `skills/tools/ai-coding/references/gate-policy.md` 参照
 
+### 入口モード一覧 (HELIX-workflows、2026-05-24 V2 完全移行で確立)
+
+正本: [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md) + [helix-process/README.md](../HELIX-workflows/helix-process/README.md)
+
+Forward HELIX (L0-L14) を中核とし、入口に応じて 5 mode + 2 工程専門 workflow を使い分ける。**全モードは最終的に Forward の L0-L14 ドキュメント体系へ収束・昇華する**。
+
+| モード | 入口 | 正本 | Forward 接続 |
+|---|---|---|---|
+| **Forward** | 要件・設計・契約が確定 | [HELIX-process-L0-L14.md](../HELIX-workflows/HELIX-process-L0-L14.md) | (本体) |
+| **Scrum** (アジャイル) | 要件をユーザーと反復で固める | [scrum-workflow.md](../HELIX-workflows/helix-process/scrum-workflow.md) | 完成機能を Reverse fullback で文書化 → L0-L14 |
+| **Discovery** | 計画上の不明点・実現性検証 (Reverse と組合せ可) | [discovery-workflow.md](../HELIX-workflows/helix-process/discovery-workflow.md) | confirmed → L1/L3/L4-L6 へ昇格 |
+| **Reverse** | 既存コード・設計の逆引き | [reverse-workflow.md](../HELIX-workflows/helix-process/reverse-workflow.md) | R4 routing → L1/L3/L4/L7/L8-L11 |
+| **Incident** | 本番障害の緊急対応 (hotfix) | [incident-workflow.md](../HELIX-workflows/helix-process/incident-workflow.md) | 暫定収束後、恒久対策を L1/L3/L4-L6、postmortem を L14 |
+| **Add-feature** | 既存システムへの差分追補 | [add-feature-workflow.md](../HELIX-workflows/helix-process/add-feature-workflow.md) | add-design / add-impl を L4-L7 に追補 → L0-L14 体系へ統合 |
+
+#### 工程専門ワークフロー (FE/UX、HELIX FE 弱点補強)
+
+入口判定モードではなく、特定工程 (L2/L10) の進め方を専門化したもの。
+
+| 専門 workflow | 対応工程 | 正本 | 補強する FE detector |
+|---|---|---|---|
+| 画面設計 (UI/ワイヤー) | L2 画面設計 | [screen-design-workflow.md](../HELIX-workflows/helix-process/screen-design-workflow.md) | state-transition-drift / mock-promotion |
+| フロントデザイン (UX/ビジュアル) | L10 UX 磨き上げ | [frontend-design-workflow.md](../HELIX-workflows/helix-process/frontend-design-workflow.md) | design-token-drift / a11y-regression / visual-regression |
+
+L2 (左腕) でワイヤー設計、L10 (右腕) で UX 磨き上げ、V-model 上のペア関係。
+
+> **責務整理 (重要、tl-advisor 指摘で確立)**: 既存 `§HELIX Scrum (検証駆動)` および `helix scrum` CLI / `agent-skills/helix-scrum` skill は **HELIX-workflows の Discovery 意味** に対応する (仮説検証 / PoC / verify scripts)。HELIX-workflows の新 Scrum (アジャイル) は別概念。CLI / skill 名は legacy 互換で維持、概念的には Discovery として読む。将来の rename は別 PLAN carry。
+
 ### HELIX Reverse（既存コードからの逆引き設計）
 
 ```
@@ -190,7 +218,10 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 **Reverse ゲート詳細** → `skills/tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
 **Reverse フロー詳細** → `workflow/reverse-analysis/SKILL.md` 参照
 
-### HELIX Scrum（検証駆動 / 要件未確定時）
+### HELIX Scrum（検証駆動 / 要件未確定時、HELIX-workflows での名称は Discovery）
+
+> **責務整理 (2026-05-24)**: 本 section の「Scrum」は HELIX-workflows の **Discovery ワークフロー** (仮説検証 / PoC / verify scripts) に意味的に対応する。HELIX-workflows の新「Scrum」 (アジャイル Scrum、ユーザー要件すり合わせ反復開発) とは別概念。`helix scrum` CLI / `agent-skills/helix-scrum` skill / S0-S4 phase / `.helix/scrum/` 配下は legacy 互換で維持されるが、概念的には Discovery として運用する。詳細は [discovery-workflow.md](../HELIX-workflows/helix-process/discovery-workflow.md)。
+
 
 ```
 【仮説・要件不確実】実現可能性不明・PoC 要・技術検証必要
