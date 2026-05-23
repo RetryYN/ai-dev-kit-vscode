@@ -17,8 +17,13 @@ import workspace_snapshot
 from workspace_manager import (
     WorkspaceDropAbortedError,
     WorkspaceExistsError,
+    WorkspaceMainDirtyError,
     WorkspaceManager,
+    WorkspaceMergeConflictError,
+    WorkspaceMergeSubmoduleNotSupportedError,
+    WorkspaceMergeTargetAheadError,
     WorkspaceNotFoundError,
+    WorkspaceUntrackedFilesError,
     _filtered_copy,
     _inject_helix_workspace_env_vars,
 )
@@ -49,8 +54,12 @@ def _init_repo(tmp_path: Path) -> Path:
         text=True,
     )
     (repo / "README.md").write_text("hello\n", encoding="utf-8")
+    (repo / ".gitignore").write_text(
+        ".helix/workspaces/\n.helix/helix.db\n.helix/helix.db-*\n",
+        encoding="utf-8",
+    )
     subprocess.run(
-        ["git", "add", "README.md"],
+        ["git", "add", "README.md", ".gitignore"],
         cwd=repo,
         check=True,
         capture_output=True,
@@ -87,6 +96,21 @@ def _manager(repo: Path, tmp_path: Path) -> WorkspaceManager:
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
     return WorkspaceManager(project_root=repo, home=home)
+
+
+def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _commit_seed_state(repo: Path) -> None:
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "seed helix state")
 
 
 def _seed_plan_registry_db(repo: Path) -> None:
@@ -607,3 +631,141 @@ def test_inject_helix_workspace_env_vars_overrides_db_path_dir_project_root(
     # main 側 path が一切 残っていないこと
     for value in env.values():
         assert str(main_root) not in str(value), f"main root leaked into env: {value}"
+
+
+def test_merge_aborts_when_main_dirty(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    manager.create(task_id="PLAN-MERGE-DIRTY")
+    (repo / "README.md").write_text("dirty main\n", encoding="utf-8")
+
+    with pytest.raises(WorkspaceMainDirtyError):
+        manager.merge("PLAN-MERGE-DIRTY")
+
+
+def test_merge_aborts_when_workspace_has_untracked(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-UNTRACKED")
+    workspace_path = Path(result["workspace_path"])
+    (workspace_path / "new-untracked.txt").write_text("pending\n", encoding="utf-8")
+
+    with pytest.raises(WorkspaceUntrackedFilesError, match="new-untracked.txt"):
+        manager.merge("PLAN-MERGE-UNTRACKED")
+
+
+def test_merge_aborts_when_target_ref_advanced_without_three_way(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    manager.create(task_id="PLAN-MERGE-AHEAD")
+    (repo / "main-only.txt").write_text("advanced\n", encoding="utf-8")
+    _git(repo, "add", "main-only.txt")
+    _git(repo, "commit", "-m", "advance main")
+
+    with pytest.raises(WorkspaceMergeTargetAheadError):
+        manager.merge("PLAN-MERGE-AHEAD")
+
+
+def test_merge_aborts_on_submodule_patch(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+    subrepo = tmp_path / "subrepo"
+    subrepo.mkdir()
+    _git(subrepo, "init", "-b", "main")
+    _git(subrepo, "config", "user.email", "qa@example.com")
+    _git(subrepo, "config", "user.name", "QA")
+    (subrepo / "module.txt").write_text("submodule\n", encoding="utf-8")
+    _git(subrepo, "add", "module.txt")
+    _git(subrepo, "commit", "-m", "init submodule")
+
+    result = manager.create(task_id="PLAN-MERGE-SUBMODULE")
+    workspace_path = Path(result["workspace_path"])
+    subprocess.run(
+        ["git", "-c", "protocol.file.allow=always", "submodule", "add", str(subrepo), "vendor/submodule"],
+        cwd=workspace_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _git(workspace_path, "commit", "-m", "add gitlink")
+
+    with pytest.raises(WorkspaceMergeSubmoduleNotSupportedError):
+        manager.merge("PLAN-MERGE-SUBMODULE")
+
+
+def test_merge_success_applies_patch_to_main(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-SUCCESS")
+    workspace_path = Path(result["workspace_path"])
+    (workspace_path / "README.md").write_text("merged from workspace\n", encoding="utf-8")
+    _git(workspace_path, "commit", "-am", "workspace change")
+
+    payload = manager.merge("PLAN-MERGE-SUCCESS")
+    entry = manager._get_workspace_entry("PLAN-MERGE-SUCCESS")
+
+    assert payload["merged"] is True
+    assert Path(payload["patch_path"]).exists()
+    assert any(line.endswith("README.md") for line in payload["applied_files"])
+    assert (repo / "README.md").read_text(encoding="utf-8") == "merged from workspace\n"
+    assert entry is not None
+    assert entry["status"] == "merged"
+    assert "merged_at" in entry
+
+
+def test_merge_includes_binary_file_change(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-BINARY")
+    workspace_path = Path(result["workspace_path"])
+    binary_payload = bytes(range(256))
+    (workspace_path / "blob.bin").write_bytes(binary_payload)
+    _git(workspace_path, "add", "blob.bin")
+    _git(workspace_path, "commit", "-m", "add binary")
+
+    payload = manager.merge("PLAN-MERGE-BINARY")
+
+    assert payload["merged"] is True
+    assert (repo / "blob.bin").read_bytes() == binary_payload
+
+
+def test_merge_conflict_saves_patch_to_trash(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-CONFLICT")
+    workspace_path = Path(result["workspace_path"])
+    (workspace_path / "README.md").write_text("workspace side\n", encoding="utf-8")
+    _git(workspace_path, "commit", "-am", "workspace update")
+
+    (repo / "README.md").write_text("main side\n", encoding="utf-8")
+    _git(repo, "commit", "-am", "main update")
+
+    with pytest.raises(WorkspaceMergeConflictError, match="merge-conflict.patch"):
+        manager.merge("PLAN-MERGE-CONFLICT", three_way=True)
+
+    trash_root = tmp_path / "home" / ".helix" / "workspace-trash" / "PLAN-MERGE-CONFLICT"
+    patch_files = list(trash_root.glob("*/merge-conflict.patch"))
+    metadata_files = list(trash_root.glob("*/metadata.json"))
+
+    assert patch_files
+    assert metadata_files

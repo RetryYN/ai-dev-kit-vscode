@@ -15,6 +15,7 @@ Subcommands:
   preflight --task PLAN-X
   drop --task PLAN-X [--force]
   prune [--dry-run]
+  merge --task PLAN-X [--target-ref main] [--three-way]
   exec --task PLAN-X "<command>"
 EOF
   exit 0

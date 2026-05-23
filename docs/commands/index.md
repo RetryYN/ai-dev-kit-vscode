@@ -55,6 +55,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | `list [--status active\|merged\|dropped]` | List registered workspaces |
 | `preflight --task PLAN-X` | Detect main dirty / orphan / branch divergence |
 | `exec --task PLAN-X "<command>"` | Run command inside workspace cwd |
+| `merge --task PLAN-X [--target-ref main] [--three-way]` | Apply workspace changes to main via git diff --binary patch (main dirty / untracked / submodule で abort、conflict 時 trash 退避) |
 | `drop --task PLAN-X [--force]` | Default abort / `--force` trash 退避後 worktree 削除 |
 | `prune [--dry-run]` | Cleanup orphan worktrees |
 

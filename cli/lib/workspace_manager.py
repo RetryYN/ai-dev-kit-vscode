@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -43,6 +46,13 @@ DENYLIST_GLOBS = [
     "*.db-wal",
     "*.db-shm",
 ]
+MERGE_IGNORED_UNTRACKED_PATHS = {
+    ".helix/workspace.yaml",
+    ".helix/helix.db",
+    ".helix/helix.db-wal",
+    ".helix/helix.db-shm",
+    "workspace_state_snapshot.json",
+}
 
 
 class WorkspaceExistsError(Exception):
@@ -59,6 +69,26 @@ class GitWorktreeError(Exception):
 
 class WorkspaceDropAbortedError(Exception):
     """Raised when a destructive drop is rejected without --force."""
+
+
+class WorkspaceMergeConflictError(Exception):
+    """Raised when git apply --check fails or apply encounters conflict."""
+
+
+class WorkspaceMergeSubmoduleNotSupportedError(Exception):
+    """Raised when workspace patch contains submodule changes (initial unsupported)."""
+
+
+class WorkspaceMainDirtyError(Exception):
+    """Raised when main repo git status --porcelain is non-empty (abort merge)."""
+
+
+class WorkspaceUntrackedFilesError(Exception):
+    """Raised when workspace has untracked files that would be silently dropped by git diff."""
+
+
+class WorkspaceMergeTargetAheadError(Exception):
+    """Raised when target_ref has advanced beyond base_sha and three_way=False (initial abort)."""
 
 
 def _now_iso8601() -> str:
@@ -469,6 +499,113 @@ class WorkspaceManager:
         )
         return int(proc.returncode)
 
+    def merge(
+        self,
+        task_id: str,
+        *,
+        target_ref: str = "main",
+        three_way: bool = False,
+    ) -> dict:
+        """Apply workspace changes to the main repo through a git binary patch."""
+        task_id = task_id.strip()
+        target_ref = target_ref.strip() or "main"
+        if not task_id:
+            raise ValueError("task_id is required")
+
+        entry = self._get_workspace_entry(task_id)
+        if entry is None:
+            raise WorkspaceNotFoundError(f"workspace not found for task_id={task_id}")
+
+        status = str(entry.get("status", "")).strip()
+        if status != "active":
+            raise ValueError(f"workspace status must be active for merge: {task_id} ({status or 'unknown'})")
+
+        if self._git_stdout(["status", "--porcelain"], cwd=self.project_root):
+            raise WorkspaceMainDirtyError(f"main workspace has uncommitted changes: {self.project_root}")
+
+        workspace_path = Path(str(entry["workspace_path"]))
+        if not workspace_path.exists():
+            raise WorkspaceNotFoundError(f"workspace path is missing: {workspace_path}")
+
+        workspace_untracked = self._list_merge_blocking_untracked_files(workspace_path)
+        if workspace_untracked:
+            raise WorkspaceUntrackedFilesError(
+                "workspace has untracked files that are not included in git diff: "
+                + ", ".join(workspace_untracked)
+            )
+
+        base_sha = str(entry.get("base_sha", "")).strip()
+        if not base_sha:
+            raise ValueError(f"workspace base_sha is missing for task_id={task_id}")
+        workspace_branch = str(entry.get("branch", "")).strip()
+        target_sha = self._git_stdout(["rev-parse", target_ref], cwd=self.project_root)
+        if target_sha != base_sha and not three_way:
+            raise WorkspaceMergeTargetAheadError(
+                f"target_ref {target_ref} advanced from base_sha {base_sha} to {target_sha}; rerun with --three-way"
+            )
+
+        patch_fd, patch_name = tempfile.mkstemp(prefix=f"{task_id}-merge-", suffix=".patch")
+        os.close(patch_fd)
+        patch_path = Path(patch_name)
+        keep_patch = False
+        try:
+            patch_text = self._run_git(
+                ["diff", "--binary", "--full-index", base_sha],
+                cwd=workspace_path,
+            ).stdout
+            patch_path.write_text(patch_text, encoding="utf-8")
+
+            if self._patch_contains_submodule_change(patch_text):
+                raise WorkspaceMergeSubmoduleNotSupportedError(
+                    f"workspace patch contains unsupported submodule changes: {workspace_path}"
+                )
+
+            apply_args = ["apply"]
+            if three_way:
+                apply_args.append("--3way")
+
+            try:
+                self._run_git([*apply_args, "--check", str(patch_path)], cwd=self.project_root)
+                self._run_git([*apply_args, str(patch_path)], cwd=self.project_root)
+            except GitWorktreeError as exc:
+                trash_path = self._save_merge_conflict_artifacts(
+                    task_id=task_id,
+                    patch_path=patch_path,
+                    base_sha=base_sha,
+                    target_ref=target_ref,
+                    target_sha=target_sha,
+                    workspace_branch=workspace_branch,
+                    three_way=three_way,
+                    error_message=str(exc),
+                )
+                raise WorkspaceMergeConflictError(
+                    f"{exc}; conflict patch saved to {trash_path / 'merge-conflict.patch'}"
+                ) from exc
+
+            merged_at = _now_iso8601()
+            self._update_registry_status(task_id, status="merged", drop_reason="", merged_at=merged_at)
+            applied_files = [
+                line
+                for line in self._git_stdout(["status", "--porcelain"], cwd=self.project_root).splitlines()
+                if line.strip()
+            ]
+            keep_patch = True
+            return {
+                "task_id": task_id,
+                "merged": True,
+                "patch_path": str(patch_path),
+                "applied_files": applied_files,
+                "target_ref": target_ref,
+                "target_sha_after": self._git_stdout(["rev-parse", "HEAD"], cwd=self.project_root),
+                "merged_at": merged_at,
+            }
+        except Exception:
+            if patch_path.exists():
+                with contextlib.suppress(OSError):
+                    if not keep_patch:
+                        patch_path.unlink()
+            raise
+
     def drop(
         self,
         task_id: str,
@@ -616,6 +753,59 @@ class WorkspaceManager:
         ahead = int(parts[1])
         return ahead > 0
 
+    def _list_untracked_files(self, cwd: Path) -> list[str]:
+        output = self._git_stdout(["ls-files", "--others", "--exclude-standard"], cwd=cwd)
+        return [line for line in output.splitlines() if line.strip()]
+
+    def _list_merge_blocking_untracked_files(self, cwd: Path) -> list[str]:
+        return [
+            path
+            for path in self._list_untracked_files(cwd)
+            if path not in MERGE_IGNORED_UNTRACKED_PATHS
+        ]
+
+    def _patch_contains_submodule_change(self, patch_text: str) -> bool:
+        return bool(re.search(r"(?m)^[+-]?Subproject commit [0-9a-f]{40}$", patch_text))
+
+    def _save_merge_conflict_artifacts(
+        self,
+        *,
+        task_id: str,
+        patch_path: Path,
+        base_sha: str,
+        target_ref: str,
+        target_sha: str,
+        workspace_branch: str,
+        three_way: bool,
+        error_message: str,
+    ) -> Path:
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S")
+        trash_path = self.home / ".helix" / "workspace-trash" / task_id / timestamp
+        trash_path.mkdir(parents=True, exist_ok=True)
+
+        conflict_patch_path = trash_path / "merge-conflict.patch"
+        shutil.copy2(patch_path, conflict_patch_path)
+        metadata_path = trash_path / "metadata.json"
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "task_id": task_id,
+                    "base_sha": base_sha,
+                    "target_ref": target_ref,
+                    "target_sha": target_sha,
+                    "workspace_branch": workspace_branch,
+                    "three_way": three_way,
+                    "saved_at": _now_iso8601(),
+                    "error": error_message,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return trash_path
+
     def _archive_workspace(self, task_id: str, workspace_path: Path) -> Path:
         timestamp = datetime.now().astimezone().strftime("%Y-%m-%dT%H-%M-%S")
         trash_path = self.home / ".helix" / "workspace-trash" / task_id / timestamp
@@ -703,13 +893,24 @@ class WorkspaceManager:
                 reserved_resources=reserved_resources,
             )
 
-    def _update_registry_status(self, task_id: str, *, status: str, drop_reason: str) -> None:
+    def _update_registry_status(
+        self,
+        task_id: str,
+        *,
+        status: str,
+        drop_reason: str,
+        merged_at: str = "",
+    ) -> None:
         registry_path = self.registry_dir / f"{task_id}.yaml"
         if registry_path.exists():
             payload = _read_yaml_file(registry_path)
             payload["status"] = status
             payload["updated_at"] = _now_iso8601()
             payload["drop_reason"] = drop_reason
+            if status == "merged":
+                payload["merged_at"] = merged_at or _now_iso8601()
+            elif "merged_at" in payload:
+                payload.pop("merged_at", None)
             _write_yaml_file(registry_path, payload)
 
         registry_api = _registry_functions().get("workspace_registry_update_status")

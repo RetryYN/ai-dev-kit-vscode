@@ -16,8 +16,13 @@ from cli.lib.workspace_manager import (  # noqa: E402
     GitWorktreeError,
     WorkspaceDropAbortedError,
     WorkspaceExistsError,
+    WorkspaceMainDirtyError,
     WorkspaceManager,
+    WorkspaceMergeConflictError,
+    WorkspaceMergeSubmoduleNotSupportedError,
+    WorkspaceMergeTargetAheadError,
     WorkspaceNotFoundError,
+    WorkspaceUntrackedFilesError,
 )
 
 
@@ -44,6 +49,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     prune_parser = subparsers.add_parser("prune")
     prune_parser.add_argument("--dry-run", action="store_true")
+
+    merge_parser = subparsers.add_parser("merge")
+    merge_parser.add_argument("--task", required=True)
+    merge_parser.add_argument("--target-ref", default="main")
+    merge_parser.add_argument(
+        "--three-way",
+        action="store_true",
+        help="Use git apply --3way (allows partial conflict resolution, default False)",
+    )
 
     exec_parser = subparsers.add_parser("exec")
     exec_parser.add_argument("--task", required=True)
@@ -85,12 +99,26 @@ def main(argv: list[str] | None = None) -> int:
         if args.subcommand == "prune":
             _print_json(manager.prune(dry_run=args.dry_run))
             return 0
+        if args.subcommand == "merge":
+            _print_json(
+                manager.merge(
+                    args.task,
+                    target_ref=args.target_ref,
+                    three_way=args.three_way,
+                )
+            )
+            return 0
         if args.subcommand == "exec":
             return manager.exec_in_workspace(args.task, args.shell_command)
     except (
         WorkspaceExistsError,
         WorkspaceNotFoundError,
         WorkspaceDropAbortedError,
+        WorkspaceMainDirtyError,
+        WorkspaceUntrackedFilesError,
+        WorkspaceMergeConflictError,
+        WorkspaceMergeSubmoduleNotSupportedError,
+        WorkspaceMergeTargetAheadError,
         GitWorktreeError,
         ValueError,
     ) as exc:
