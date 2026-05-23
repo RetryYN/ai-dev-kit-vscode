@@ -29,7 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def helix_worker_home(tmp_path_factory, worker_id):
     """PLAN-102: pytest-xdist worker ごとに独立した HELIX_HOME / HELIX_DB_PATH を割当
 
