@@ -163,10 +163,66 @@ Sprint Exit 条件:
 - [ ] helix doctor 24 pass / 0 fail / warn 維持
 - [ ] regression: 既存 gate test 全件 PASS
 
-## carry / 学び (起票時記録)
+## Sprint .1 結果 (2026-05-23 実施、root cause 確定)
 
-- **並列化リスク**: xdist 並列下では H1 (state 残留) / H2 (WAL flush) の影響が増幅される。本 PLAN で serial 下の flake を確定してから PLAN-102 に接続する。
-- **100 回 0 fail でも close は early**: PLAN-102 Sprint .4 の並列下 flake check を最終判定とし、serial 下 0 fail は中間 milestone 扱いとする。
+100 回ループ実行: **1 / 100 fail 再現** (run-58)。verbose loop 150 回追試で **3 fail 捕獲** (run 28 / 83 / 121、約 2% rate)。前 session uncommitted diff (Codex se grep wrapper + HELIX_PROJECT_ROOT init) では root cause に届かず、revert 済。
+
+### 確定した fail pattern (3 traceback 共通)
+
+- exit code: **141 (SIGPIPE)**
+- stderr: `level=warn event=stale_lock_released lock_path=/home/tenni/ai-dev-kit-vscode/.helix/locks/helix-db.lock previous_pid=XXX current_pid=YYY`
+- stdout: `=== G2: G2 ===\nSKIP: legacy PLAN (plan_not_found)\n...\n[helix-gate] vmodel_lint auto-run: G2 (PLAN-075 V-model 4 artifact)\n  WARN [vmodel_lint] incomplete=63 PLAN (V-model 4 artifact 不完全、advisory)\n[⚠] PLAN-004: ...\n[⚠] PLAN-005: ...\n[⚠] PLAN-006: ...\n[⚠] PLAN-007: ...\n[⚠] PLAN-008: ...\n` (5 PLAN で切断、incomplete=63 とミスマッチ)
+
+### root cause 2 系統
+
+**R-1: vmodel_lint が本番 docs/plans/ をスキャン (test isolation 破壊)**
+
+- stdout が `[⚠] PLAN-004 〜 PLAN-008` を列挙 = **HELIX_HOME (= /home/tenni/ai-dev-kit-vscode) 配下の本番 docs/plans/** を走査している (tmp_path/docs/plans/PLAN-323-test.md ではない)
+- helix-gate の auto-run detector / vmodel_lint logic が PROJECT_ROOT (env) ではなく HELIX_HOME (script の `$SCRIPT_DIR/..`) を docs/plans の起点にしている疑い
+- 検証: `incomplete=63 PLAN` は本番 PLAN-001〜PLAN-221 のうち 4 artifact 不完全な PLAN 数と一致するはず (要確認)
+
+**R-2: vmodel_lint pipeline 内のどこかで SIGPIPE 発生**
+
+- stdout が 5 PLAN で切断、incomplete=63 とミスマッチ
+- subprocess.run(capture_output=True) で全 read されるはずなのに途中切断 → helix-gate **内部の pipeline** (例: `python ... | grep ... | head ...`) で head などが先に close → 上流に SIGPIPE
+- 1/100 で発生 = race condition (buffer fill timing 依存)
+
+**R-3 (関連): concurrent_lock._resolve_lock_dir の fallback**
+
+- `cli/lib/concurrent_lock.py:26-37` の `_resolve_lock_dir()`:
+  ```python
+  project_root = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
+  if project_root and helix_home and Path.cwd().resolve() == Path(helix_home).resolve():
+      return Path(project_root) / DEFAULT_LOCK_DIR
+  if project_root and Path.cwd().resolve() == Path(project_root).resolve():
+      return Path(project_root) / DEFAULT_LOCK_DIR
+  return DEFAULT_LOCK_DIR  # ← cwd が project_root 完全一致しないと relative path に fallback
+  ```
+- cwd が project_root の subdirectory または symlink resolve で外れたとき、本番 `.helix/locks/` を奪う
+- ただし R-1 が解消すれば test stdout に「本番 PLAN」が出ないため、まずは R-1 を直す
+
+## Sprint .2: 修正方針 (次 session 着手、本 session carry)
+
+### 優先度 P0: R-1 解消 (vmodel_lint の docs/plans path 限定)
+
+- `cli/helix-gate` の vmodel_lint auto-run logic を Read し、`docs/plans/` 走査が PROJECT_ROOT 起点になっているか確認
+- もし HELIX_HOME 起点だったら PROJECT_ROOT 起点に修正 (内部 logic の path resolution bug)
+- test 側に `HELIX_GATE_SKIP_AUTO_DETECTORS=1` 等の bypass env を追加する選択肢もある (test isolation 簡素化)
+
+### 優先度 P1: R-3 解消 (lock dir resolution の安定化)
+
+- `_resolve_lock_dir()` で HELIX_PROJECT_ROOT が env にあれば cwd 判定なしで project_root を使う
+- 既存 logic (cwd 判定) は本番運用での後方互換 (cwd outside project_root) のため、env priority だけ強化
+
+### 優先度 P2: R-2 解消 (pipeline SIGPIPE 対策)
+
+- helix-gate 内の pipeline を grep して `head` / `tail` などの早 close consumer を特定
+- 該当 pipeline で `set -o pipefail` を local 解除、または full output を temp file 経由にする
+
+## carry / 学び
+
+- **並列化リスク**: PLAN-102 (xdist) に進む前に R-1 / R-2 解消必須。並列下では fail rate 上昇予想
+- **前 session Codex se 修正の有効性なし**: grep SIGPIPE wrapper は grep 単体の exit code 緩和、helix-gate 内部 pipeline の SIGPIPE は別問題。HELIX_PROJECT_ROOT init helper も lock path に届かない
 
 ## 関連 reference
 
