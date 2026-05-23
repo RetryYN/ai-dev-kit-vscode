@@ -58,3 +58,7 @@ fail-close: `confirmed` は対象 hypothesis の verify script 成功が必須�
 ## Forward 接続
 
 `confirmed` で handoff / promotion plan draft が生成される。PoC をそのまま本実装にせず、L1 要求定義 / L3 要件定義 / L4–L6 設計へ昇格させる。verify script は L6（機能設計 / 単体テスト）の回帰検証に残す。
+
+## 起票する PLAN kind
+
+検証は `poc` kind を起票する。confirmed 後の Forward 接続では、PoC をそのまま本実装にせず L1 / L3 / L4–L6 へ昇格させる。逸脱と kind の対応は deviation-plan-map.md を参照。

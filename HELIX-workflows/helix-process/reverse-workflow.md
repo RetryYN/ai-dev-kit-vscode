@@ -79,3 +79,7 @@ R4 で作った routing は、Reverse の結論に応じて Forward HELIX のど
 | 運用・受入・文書整合 | L8–L11（fullback） |
 
 `--invalidate-forward`（code type の R2/R3/R4/run/retry）は、Reverse の結果が Forward の既存 gate 前提を崩す場合に該当ゲートを invalidated に戻す。RGC は「Reverse で見つけた gap が Forward 側で閉じたか」の閉塞チェックで、open が残る場合は `debt` / `readiness defer` / 新規 `plan` に戻す。
+
+## 起票する PLAN kind
+
+各 type は `reverse` kind の PLAN として起票され、R4 routing で Forward へ接続する。逸脱と kind の対応は deviation-plan-map.md を参照。
