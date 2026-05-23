@@ -38,7 +38,29 @@ VALID_LAYERS = {
     "L9",
     "L10",
     "L11",
+    "L12",
+    "L13",
+    "L14",
     "cross",
+}
+# 新 15 工程 (L0-L14): docs/v2/process/README.md 参照。
+# kind=impl は process_layer=L7 を必須 (commit eeb0530)。
+VALID_PROCESS_LAYERS = {
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "L7",
+    "L8",
+    "L9",
+    "L10",
+    "L11",
+    "L12",
+    "L13",
+    "L14",
 }
 MISUSED_WORKFLOW_LAYERS = {"S0", "S1", "S2", "S3", "S4", "R0", "R1", "R2", "R3", "R4"}
 VALID_DRIVES = {
@@ -95,6 +117,9 @@ class PlanFrontmatter:
     drive: str | None
     status: str | None
     workflow_phase: str | None
+    process_layer: str | None
+    parent_design: str | None
+    pairs_test_design: Any
     agent_slots: Any
     generates: Any
     dependencies: Any
@@ -139,6 +164,9 @@ def parse_frontmatter(data: dict[str, Any]) -> PlanFrontmatter:
         drive=_string_or_none(data.get("drive")),
         status=_string_or_none(data.get("status")),
         workflow_phase=_string_or_none(data.get("workflow_phase")),
+        process_layer=_string_or_none(data.get("process_layer")),
+        parent_design=_string_or_none(data.get("parent_design")),
+        pairs_test_design=data.get("pairs_test_design"),
         agent_slots=data.get("agent_slots"),
         generates=data.get("generates"),
         dependencies=data.get("dependencies"),
@@ -251,8 +279,90 @@ def validate_plan(path: Path) -> list[str]:
     validate_agent_slots(plan_ref, frontmatter.agent_slots, valid_roles, warnings)
     validate_generates(plan_ref, frontmatter.generates, warnings)
     validate_dependencies(path, frontmatter, warnings)
+    validate_process_layer(path, frontmatter, warnings)
 
     return warnings
+
+
+def validate_process_layer(
+    path: Path,
+    frontmatter: PlanFrontmatter,
+    warnings: list[str],
+) -> None:
+    """新 15 工程 (L0-L14) 規約: kind=impl は process_layer=L7 + parent_design 必須。"""
+    plan_ref = frontmatter.plan_id or path.stem
+    process_layer = frontmatter.process_layer
+
+    if process_layer is not None and process_layer not in VALID_PROCESS_LAYERS:
+        warn(
+            plan_ref,
+            "process_layer",
+            f"unsupported value: {process_layer} (expected one of {sorted(VALID_PROCESS_LAYERS)})",
+            warnings,
+        )
+
+    if frontmatter.kind == "impl":
+        if process_layer is None:
+            warn(
+                plan_ref,
+                "process_layer",
+                "kind=impl requires process_layer=L7 (docs/v2/process/L07-implementation-sprint.md)",
+                warnings,
+            )
+        elif process_layer != "L7":
+            warn(
+                plan_ref,
+                "process_layer",
+                f"kind=impl must have process_layer=L7 (got {process_layer})",
+                warnings,
+            )
+
+        if frontmatter.parent_design is None:
+            warn(
+                plan_ref,
+                "parent_design",
+                "kind=impl requires parent_design (path to L6 function design doc)",
+                warnings,
+            )
+
+    if frontmatter.parent_design is not None:
+        _validate_path_exists(path, plan_ref, "parent_design", frontmatter.parent_design, warnings)
+
+    pairs = frontmatter.pairs_test_design
+    if pairs is not None:
+        if not isinstance(pairs, list):
+            warn(plan_ref, "pairs_test_design", "expected list[string] (test design doc paths)", warnings)
+            return
+        for index, pair_path in enumerate(pairs):
+            if not isinstance(pair_path, str):
+                warn(plan_ref, f"pairs_test_design[{index}]", "expected string", warnings)
+                continue
+            _validate_path_exists(
+                path,
+                plan_ref,
+                f"pairs_test_design[{index}]",
+                pair_path,
+                warnings,
+            )
+
+
+def _validate_path_exists(
+    plan_path: Path,
+    plan_ref: str,
+    field: str,
+    target_rel: str,
+    warnings: list[str],
+) -> None:
+    """parent_design / pairs_test_design の path が repo root 起点で存在するか確認 (warn-only)."""
+    repo_root = Path(__file__).resolve().parents[2]
+    target = repo_root / target_rel
+    if not target.exists():
+        warn(
+            plan_ref,
+            field,
+            f"path does not exist: {target_rel}",
+            warnings,
+        )
 
 
 def validate_agent_slots(

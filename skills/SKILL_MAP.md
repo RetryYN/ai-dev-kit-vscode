@@ -37,59 +37,95 @@
 - `docs/adr/ADR-015-helix-v2-orchestration.md`
 - `docs/plans/PLAN-028-helix-v2-orchestration.md`
 
-## 4フェーズ思想
+## 4フェーズ思想 (新 15 工程 L0-L14、commit eeb0530)
 
 ```
-Phase 1: 計画（ドキュメント・テスト駆動）  L1 → L2 → L3
-Phase 2: 実装（マイクロスプリント）          L4
-Phase 3: 仕上げ（デザイン駆動）             L5 → L6 → L7 → L8
-Phase 4: Run（本番運用確認）                L9 → L10 → L11
+Phase 0: 企画                               L0
+Phase 1: 設計 (ドキュメント・テスト駆動)    L1 → L2 → L3 → L4 → L5 → L6
+Phase 2: 実装 (スプリント、PLAN 起票 layer) L7
+Phase 3: 検証・磨き上げ                     L8 → L9 → L10 → L11
+Phase 4: リリース・運用                     L12 → L13 → L14
 
 Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 → R3 → R4 → Forward → RGC（閉塞検証）
 ```
 
-## オーケストレーションフロー
+**V-model ペア凍結対応**: L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7 (詳細は §オーケストレーションフロー)
+
+## オーケストレーションフロー (新 15 工程 L0-L14、commit eeb0530)
+
+> **構造的原則**: PLAN は L7 (実装スプリント) 工程の subordinate であり、各工程の成果物を作るための内部 task tree。工程 ⊃ PLAN であって PLAN ⊃ 工程ではない。L0-L6 / L8-L14 は PLAN を起票しない (docs/v2/process/README.md §既存資産との関係 参照)。
+>
+> **V-model ペア凍結**: 設計工程と検証工程は対で凍結する。
+>
+> | 設計層 | ↔ | 検証層 |
+> |---|---|---|
+> | L1 要求定義 (運用テスト設計) | ↔ | L14 運用検証 |
+> | L2 画面設計 (UX 期待) | ↔ | L10 FE UX 磨き上げ |
+> | L3 要件定義 (受入テスト設計) | ↔ | L12 受入テスト |
+> | L4 基本設計 (総合テスト設計) | ↔ | L9 総合テスト |
+> | L5 詳細設計 (結合テスト設計) | ↔ | L8 結合テスト |
+> | L6 機能設計 (単体テスト設計) | ↔ | L7 単体テスト実装 (Sprint Step 2) |
 
 ```
-【企画】人間が要件提示
-  ↓ → requirements-handover, estimation
-L1  要件定義（要件構造化 + 受入条件定義 + ★受入テスト設計）
-  ↓ G0.5 企画突合ゲート       [PM]       ★企画書の全項目が L1 に反映されているか
-  ↓ G1   要件完了ゲート         [PM+PO]
+【企画フェーズ】
+L0  企画書 (北極星指標・市場仮説・PdM 翻案)
+  ↓ G0.5 企画突合ゲート       [PM]
+  ↓ → requirements-handover, requirements-deriver, doc-system-architect
+
+【設計フェーズ (Phase 1)】
+L1  要求定義 + 運用テスト設計 (機能要求 + IPA × ISO 25010 非機能 + 受入条件 + ★運用テスト)
+  ↓ G1   要求完了ゲート         [PM+PO]
   ↓ G1.5 PoC ゲート            [TL+PM]    条件付き
-  ↓ G1R  事前調査ゲート         [自動/TL]  条件付き
-  ↓ → design-doc, api, db, security, visual-design（方針）
-L2  全体設計（方針・アーキテクチャ・visual方針・ADR + ★総合テスト設計）
-  ↓ G2   設計凍結ゲート         [TL+PM]    ★adversarial-review ★ミニレトロ ★セキュリティ① ★V-model 総合テスト設計
-  ↓ → api-contract, dependency-map, estimation §8-10
-L3  詳細設計 + API契約 + テスト設計 + 工程表（★結合テスト設計 + ★機能設計 + ★単体テスト設計）
-  ↓ G3   実装着手ゲート         [TL+PM]    ★API/Schema Freeze ★事前調査 ★V-model 結合/単体テスト設計
-  ↓ → ai-coding §4
-L4  実装（マイクロスプリント: .1a→.1b→.2→.3→.4→.5）★単体/結合テスト実装
-  ↓ G4   実装凍結ゲート         [TL+PM]    ★セキュリティ② ★ミニレトロ ★V-model テスト実装網羅 (単体 + 結合)
-  ↓ → visual-design
-L5  Visual Refinement（DESIGNER.md 駆動）
-  ↓ G5   デザイン凍結ゲート     [TL+PM]    UIなしskip可
-G5 デザイン凍結ゲート:
-  前提条件: ①information / ②layout / ③ux の三点セット (L2 visual-design) が完成していること
-  UIなし: スキップ可
-  ↓ → verification, testing, quality-lv5
-L6  統合検証（E2E・性能・セキュリティ・運用準備）
-  ↓ G6   RC判定ゲート（Release Candidate）  [PM+TL+PO]  ★セキュリティ③
-  ↓ G6.5 Pre-Release 静的検証     [TL]       ★template/破壊変更チェック
-  ↓ G6.7 Pre-Release 動的検証     [TL]       ★E2E/perf/security
-  ↓ G6.9 Pre-Release 本番直前確認 [TL+PM]    ★rollback/monitoring/on-call
-  ↓ → deploy, infrastructure, observability-sre
-L7  デプロイ（staging → 本番 → watch）
-  ↓ G7   安定性ゲート          [自動/PM]    ★セキュリティ④
-  ↓ → verification §14
-L8  受入（受入、ゲート無: 要件 ↔ 最終成果物の突合 → PO最終承認）★ミニレトロ
-  ↓ L9  デプロイ検証（staging 本番）
-  ↓ G9   デプロイ安定性ゲート    [自動/PM]    fail-close
-  ↓ L10 観測（SLO/SLI watch）
-  ↓ G10  観測完了ゲート         [PM]        fail-close
-  ↓ L11 運用学習（運用改善）
-  ↓ G11  運用学習完了ゲート     [PM]        fail-close
+  ↓ G1R  事前調査ゲート         [TL]      条件付き
+  ↓ → design-doc, visual-design (information / layout / ux)
+L2  画面設計 + フロント UI + ワイヤーモック (DESIGN.md / mock.html / state-events.md)
+  ↓ G2   画面凍結ゲート         [TL+PM]    ★mock UX 承認 ★MOCK-* auto-enqueue
+  ↓ → api-contract, requirements-deriver
+L3  要件定義 + 受入テスト設計 (FR/NFR 詳細 + ★受入テスト設計)
+  ↓ G3   要件凍結ゲート         [PM+PO]   ★V-model L3↔L12 受入テスト pair freeze
+  ↓ → design-doc, api-contract
+L4  基本設計 + 総合テスト設計 (アーキテクチャ + ADR + ★総合テスト設計)
+  ↓ G4   基本設計凍結ゲート     [TL+PM]   ★adversarial-review ★セキュリティ① ★V-model L4↔L9 pair freeze
+  ↓ → design-doc, api-contract, dependency-map
+L5  詳細設計 + 結合テスト設計 (D-API / D-DB / 詳細フロー + ★結合テスト設計)
+  ↓ G5   詳細設計凍結ゲート     [TL]      ★API/Schema Freeze ★V-model L5↔L8 pair freeze
+  ↓ → design-doc, api-contract, schedule-wbs
+L6  機能設計 + 単体テスト設計 (関数 / endpoint schema + ★単体テスト設計)
+  ↓ G6   機能設計凍結ゲート     [TL]      ★V-model L6↔L7-test pair freeze ★parent_design 凍結
+
+【実装フェーズ (Phase 2、PLAN 起票はここのみ)】
+L7  実装スプリント (kind=impl PLAN-NNN 起票、process_layer=L7)
+    Step 1: PLAN (sprint 計画、parent_design + pairs_test_design 参照)
+    Step 2: 単体テスト実装 (L6 機能設計から pair freeze)
+    Step 3: 本体実装 (TDD)
+    Step 4: 設計・テスト・実装 3 点レビュー
+    Step 5: テストパターン追加 (QA 観点)
+    Step 6: テスト実施 (回帰)
+    Step 7: 修正 / 実装完了
+  ↓ G7   実装完了ゲート         [TL+PM]   ★セキュリティ② ★ミニレトロ ★4 artifact trace
+  ↓ → verification
+
+【検証フェーズ (Phase 3)】
+L8  結合テスト + 依存関係解消 (L5 詳細設計↔結合テスト設計 pair execute)
+  ↓ G8   結合検証ゲート         [TL]
+L9  総合テスト + 依存関係解消 (L4 基本設計↔総合テスト設計 pair execute)
+  ↓ G9   総合検証ゲート         [TL+PM]   ★セキュリティ③ ★E2E/perf/security
+  ↓ → visual-design, god-writing
+L10 フロント UX 磨き上げ (DESIGNER.md / ビジュアル磨き / コピー磨き) — L2↔L10 pair execute
+  ↓ G10  UX 磨き上げゲート      [TL+PM]   UI なし skip 可
+L11 総合レビュー + ユーザー検証 + 要件巻き取り (PO 検証 + 要件 drift 解消)
+  ↓ G11  RC 判定ゲート          [PM+TL+PO]
+  ↓ G11.5 Pre-Release 本番直前確認 [TL+PM]  ★rollback/monitoring/on-call
+
+【リリースフェーズ (Phase 4)】
+L12 デプロイ + 受入テスト + 環境差異巻き取り (L3 要件↔L12 受入 pair execute)
+  ↓ G12  デプロイ受入ゲート     [PM+PO]   ★セキュリティ④
+  ↓ → observability-sre
+L13 デプロイ後検証 + 実環境運用 (smoke / canary / 初期インシデント対応)
+  ↓ G13  安定性ゲート           [自動/PM] fail-close
+  ↓ → postmortem, innovation-mgr
+L14 運用検証 + 機能改善 (L1 運用テスト pair execute → 次イテレーション L0 input)
+  ↓ G14  運用学習完了ゲート     [PM]      fail-close
 ```
 
 **ゲート詳細・セキュリティ・遷移ルール** → `skills/tools/ai-coding/references/gate-policy.md` 参照

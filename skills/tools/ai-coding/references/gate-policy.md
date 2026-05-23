@@ -28,29 +28,48 @@
 
 ## ゲート一覧
 
+> **新 15 工程移行中の注意** (commit eeb0530): 本ファイル §G0.5〜§G11 までの detail section は **旧 L1-L11 体系下の表記** を保持中。**新 G0-G14 への正式 renumber は別 PLAN で実施**。当面は本節の readiness table を **新規定本** とし、各 detail section の `accuracy_weight` / `判定者` / `判定形式` / `Fail 時の差戻し先` は意味を維持して新ゲート番号で読み替える。
+>
+> 旧 → 新 主要対応:
+> - 旧 G4 (実装凍結、sprint .1-.5) → 新 **G7** (実装完了、Sprint Step 1-7)
+> - 旧 G5 (デザイン凍結) → 新 **G10** (UX 磨き上げ)
+> - 旧 G6 (RC 判定) → 新 **G11** (RC 判定)
+> - 旧 G7 (安定性) → 新 **G13** (安定性)
+> - 旧 G9 (デプロイ安定性) → 新 **G13** (smoke/canary に統合)
+> - 旧 G10 (観測完了) → 新 **G13** (運用 watch に統合)
+> - 旧 G11 (運用学習) → 新 **G14** (運用学習)
+> - 新 **G8** (結合検証) / 新 **G12** (デプロイ受入) は旧体系の G6/G7 の中に潜在していたが、新 15 工程で明示化された
+
 ## readiness exit と gate AND 条件
 
 PLAN-004 v5 / HELIX-V3-FOLLOWUP で確定した運用契約。
 
 ### 概要
 
-各 L (L0-L11) は entry/exit に readiness 条件を持ち、対応する G* ゲートの通過判定に AND 結合される。
+各 L (L0-L14、新 15 工程 commit eeb0530) は entry/exit に readiness 条件を持ち、対応する G* ゲートの通過判定に AND 結合される。
 
-| gate | mapped L | readiness exit |
-|---|---|---|
-| G0.5 | L0 | phase/config 初期化 |
-| G1   | L1 | 要件/受入条件 |
-| G1R  | L1 | 同上 (research 補完) |
-| G1.5 | L1 | 同上 (PoC 補完) |
-| G2   | L2 | ADR/設計/threat model |
-| G3   | L3 | API/Schema/WBS/test plan |
-| G4   | L4 | sprint .1-.5/CI |
-| G5   | L5 | UI/visual/a11y or waived |
-| G6   | L6 | E2E/性能/セキュリティ |
-| G7   | L7 | runbook/release/rollback |
-| G9   | L9 | smoke/rollback/metrics |
-| G10  | L10 | SLO/SLI/異常ログ |
-| G11  | L11 | postmortem/run-learning/next-cycle proposal |
+> **新 15 工程 ↔ 旧 L1-L11 体系の対応**: 新 L7 (実装スプリント) が旧 L4 実装に相当。旧 L5/L6/L7 (Visual/統合検証/デプロイ) は新 L10/L8-L9/L12 に分解された (docs/v2/process/README.md §既存資産との関係 参照)。本表は新 15 工程ベース。
+
+| gate | mapped L | readiness exit | V-model ペア |
+|---|---|---|---|
+| G0.5 | L0 | phase/config 初期化、企画書↔L1 突合 | — |
+| G1   | L1 | 要求/受入条件/運用テスト設計 | ↔ L14 |
+| G1R  | L1 | 同上 (research 補完) | — |
+| G1.5 | L1 | 同上 (PoC 補完) | — |
+| G2   | L2 | DESIGN.md / mock UX 承認 / MOCK-* enqueue | ↔ L10 |
+| G3   | L3 | FR/NFR 詳細 + 受入テスト設計 pair freeze | ↔ L12 |
+| G4   | L4 | アーキ + ADR + 総合テスト設計 pair freeze | ↔ L9 |
+| G5   | L5 | D-API/D-DB Freeze + 結合テスト設計 pair freeze | ↔ L8 |
+| G6   | L6 | endpoint schema + 単体テスト設計 pair freeze | ↔ L7 Step 2 |
+| G7   | L7 | sprint Step 1-7 全完遂 + 4 artifact trace + CI | (実装フェーズ完了) |
+| G8   | L8 | 結合テスト実施 + 依存関係解消 (L5↔L8 pair execute) | — |
+| G9   | L9 | 総合テスト + E2E/perf/security (L4↔L9 pair execute) | — |
+| G10  | L10 | UI/visual/a11y/copy 磨き上げ (L2↔L10 pair execute) | UI なし skip 可 |
+| G11  | L11 | 総合レビュー + PO 検証 + 要件 drift 解消 → RC 判定 | — |
+| G11.5 | L11 | rollback/monitoring/on-call 本番直前確認 | — |
+| G12  | L12 | デプロイ + 受入テスト + 環境差異解消 (L3↔L12 pair execute) | — |
+| G13  | L13 | smoke/canary/初期インシデント対応 (fail-close) | — |
+| G14  | L14 | 運用 KPI + 機能改善 pull-back (L1↔L14 pair execute、fail-close) | — |
 
 ### 判定式
 

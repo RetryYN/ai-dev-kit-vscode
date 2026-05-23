@@ -43,14 +43,18 @@ def _assert_no_warn(stderr: str) -> None:
 
 
 def _base_frontmatter(created_at: str) -> dict[str, object]:
+    # 新 15 工程 (L0-L14): kind=impl は process_layer=L7 + parent_design 必須。
+    # parent_design は repo root 起点で存在確認されるため、実在 file を指す。
     return {
         "plan_id": "PLAN-123-valid",
         "title": "Valid Plan",
         "kind": "impl",
-        "layer": "L4",
+        "layer": "L7",
         "drive": "be",
         "status": "draft",
         "created": created_at,
+        "process_layer": "L7",
+        "parent_design": "docs/v2/process/L07-implementation-sprint.md",
         "agent_slots": [{"role": "se", "slot_label": "SE"}],
         "generates": [
             {
@@ -312,6 +316,112 @@ def test_p1_exit_zero_with_warnings(tmp_path: Path) -> None:
 def test_valid_plan_no_warn(tmp_path: Path) -> None:
     frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
     path = _write_plan(tmp_path / "PLAN-123-valid.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_no_warn(result.stderr)
+
+
+def test_kind_impl_missing_process_layer_warn(tmp_path: Path) -> None:
+    """kind=impl で process_layer 不在は warn (新 15 工程規約)."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del frontmatter["process_layer"]
+    path = _write_plan(tmp_path / "PLAN-123-no-process.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "process_layer")
+    _assert_warn_contains(result.stderr, "kind=impl requires process_layer=L7")
+
+
+def test_kind_impl_wrong_process_layer_warn(tmp_path: Path) -> None:
+    """kind=impl で process_layer != L7 は warn."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["process_layer"] = "L4"
+    path = _write_plan(tmp_path / "PLAN-123-wrong-process.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "process_layer")
+    _assert_warn_contains(result.stderr, "kind=impl must have process_layer=L7")
+
+
+def test_kind_impl_missing_parent_design_warn(tmp_path: Path) -> None:
+    """kind=impl で parent_design 不在は warn."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del frontmatter["parent_design"]
+    path = _write_plan(tmp_path / "PLAN-123-no-parent.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "parent_design")
+    _assert_warn_contains(result.stderr, "kind=impl requires parent_design")
+
+
+def test_parent_design_path_not_exist_warn(tmp_path: Path) -> None:
+    """parent_design path が repo root 起点で存在しなければ warn."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["parent_design"] = "docs/v2/L6-function-design/nonexistent.md"
+    path = _write_plan(tmp_path / "PLAN-123-bad-parent.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "parent_design")
+    _assert_warn_contains(result.stderr, "path does not exist")
+
+
+def test_process_layer_unsupported_value_warn(tmp_path: Path) -> None:
+    """process_layer に L0-L14 以外を指定すると warn."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["process_layer"] = "L99"
+    path = _write_plan(tmp_path / "PLAN-123-bad-pl.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "process_layer")
+    _assert_warn_contains(result.stderr, "unsupported value: L99")
+
+
+def test_pairs_test_design_list_validation(tmp_path: Path) -> None:
+    """pairs_test_design は list[string] で path 存在確認される."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["pairs_test_design"] = ["docs/v2/L7-test-design/nonexistent.md"]
+    path = _write_plan(tmp_path / "PLAN-123-pairs.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "pairs_test_design[0]")
+    _assert_warn_contains(result.stderr, "path does not exist")
+
+
+def test_pairs_test_design_non_list_warn(tmp_path: Path) -> None:
+    """pairs_test_design が list でないと warn."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["pairs_test_design"] = "docs/v2/L7-test-design/single.md"
+    path = _write_plan(tmp_path / "PLAN-123-pairs-str.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "pairs_test_design")
+    _assert_warn_contains(result.stderr, "expected list[string]")
+
+
+def test_kind_design_no_process_layer_required(tmp_path: Path) -> None:
+    """kind=design は process_layer / parent_design 不要 (impl のみ強制)."""
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["kind"] = "design"
+    frontmatter["layer"] = "L6"
+    del frontmatter["process_layer"]
+    del frontmatter["parent_design"]
+    path = _write_plan(tmp_path / "PLAN-123-design.md", frontmatter)
 
     result = _run_validator(path)
 
