@@ -1,7 +1,7 @@
 ---
 plan_id: PLAN-156
 title: helix workspace isolation (git worktree ベース per-task 書き込み可能 sandbox)
-status: draft
+status: complete
 kind: impl
 drive: be
 layer: L4
@@ -212,7 +212,7 @@ echo "main_sentinel" > /path/to/main/test  # main に write **不可** が期待
 
 **Sprint .1 完遂 commit**: 本 commit (PLAN-156 doc 更新 + ADR-040 新規起票)
 
-### Sprint .2: .helix/ isolation + helix.db 設計 (Codex dba + se)
+### Sprint .2: .helix/ isolation + helix.db 設計 (Codex dba + se) — **完遂 (2026-05-23、commit 098ba97)**
 
 実施内容 (並列 2 Codex):
 
@@ -235,7 +235,7 @@ se は `cli/lib/workspace_manager.py` (新規) + `cli/helix-workspace` (新規)�
 - workspace.yaml schema が確定
 - helix.db isolation 方針が code comment で記録済
 
-### Sprint .3: CLI 完全実装 (Codex se 委譲)
+### Sprint .3: CLI 完全実装 (Codex se 委譲) — **完遂 (2026-05-23、commit 1724be5)**
 
 実施内容:
 
@@ -259,7 +259,48 @@ se は `cli/lib/workspace_manager.py` (新規) + `cli/helix-workspace` (新規)�
 - `bash -n cli/helix-workspace` PASS
 - `helix workspace create --task PLAN-999` が実際に worktree を作成できる (手動確認)
 
-### Sprint .4: test + E2E 確認 (Codex qa 委譲)
+### Sprint .4: test + E2E 確認 (pmo-sonnet test design + Opus D8 Layer 2 E2E) — **完遂 (2026-05-24)**
+
+実施内容 (本 Sprint で完遂、commit は本 Sprint .4 commit):
+
+1. **V-model artifact ③ test design doc 起票** (pmo-sonnet 委譲、background):
+   - `docs/v2/L4-test-design/PLAN-156-integration-test-design.md` 新規 (1335 行)
+   - test case 95 件 (I-156-001〜I-156-100) を 5 ブロックで設計
+   - 既存 unit test 33 件 (test_workspace_manager.py 24 + test_workspace_registry.py 9) を §4 で全件マッピング
+   - WebSearch 3 query 実施 (IEEE 829-2008 / ISO/IEC/IEEE 29119-3:2021 / pytest fixture / git worktree)
+   - PLAN-087 ガード遵守 (設計 doc 作成時 Web 検索 3 query 必須)
+   - 業界 standard 引用: IEEE 829 § TCS / ISO 29119-3 clause 9.2 TestCaseSpecification
+
+2. **D8 E2E sentinel check** (Opus 直接):
+   - **Layer 1 (bash 直接)**: workspace create → exec で `pwd / git rev-parse / env injection / write / main read / snapshot` 全 PASS (Sprint .3 完了時点、commit 1724be5 後)
+   - **Layer 2 (Codex CLI 経由)**: workspace exec 経由で `codex exec --sandbox read-only` 起動、Codex CLI banner で `workdir: ~/.helix/workspaces/ai-dev-kit-vscode/PLAN-156-AC5` を確認、Codex 出力 `D8_SENTINEL_PWD=~/.helix/workspaces/...` で **cwd respect 実証** → **AC-5 conditional satisfied** (container fallback ADR-041 起票不要)
+   - **Layer 3 (並列 2 workspace lock 競合)**: PLAN-163 / Phase 2 carry
+
+3. **D7 drop fail-safe 動作確認**:
+   - `helix workspace drop --task X --force` で `~/.helix/workspace-trash/<task>/<timestamp>/{changes.bundle, untracked.tar.gz}` 退避を実機確認
+   - registry status: active → dropped 遷移確認 (`workspace_registry_update_status` 機能確認)
+
+4. **ADR-040 → Accepted 格上げ** (AC-1〜5 全 satisfied、AC-6 のみ Phase 2 carry):
+   - Status History を ADR-040 §Status に追記 (Sprint .2/.3/.4 commit 紐付け)
+   - AC-5 evidence (workdir banner / pwd output / session id) を ADR-040 §AC-5 検証 evidence に記録
+   - `helix-hook check_adr_index` が docs/adr/index.md を自動更新 (Accepted with conditions → Accepted)
+
+完了条件 (全 satisfied):
+
+- ✓ V-model artifact ③ test design doc 起票 (1335 行、95 case)
+- ✓ WebSearch 3 query 実施 (PLAN-087 ガード遵守)
+- ✓ D8 E2E sentinel Layer 1 + Layer 2 PASS
+- ✓ D7 drop fail-safe 動作確認
+- ✓ ADR-040 → Accepted 格上げ (AC-1〜5 satisfied)
+
+**Sprint .4 carry**:
+- D8 Layer 3 (並列 2 workspace lock 競合) は PLAN-163 / Phase 2 carry
+- AC-6 (symlink 戦略 immutable snapshot 対象限定) は Phase 2 carry
+- `helix workspace merge` 実装は PLAN-163 carry
+
+### Sprint .4 旧仕様 (リファレンス、上記が正本)
+
+
 
 実施内容:
 

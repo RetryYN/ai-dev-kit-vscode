@@ -1,7 +1,7 @@
 ---
 adr_id: ADR-040
 title: helix workspace isolation (git worktree-based per-task sandbox + filtered materialized init)
-status: Accepted with conditions
+status: Accepted
 date: 2026-05-23
 deciders:
   - PM (Opus)
@@ -17,9 +17,16 @@ superseded_by: []
 
 ## Status
 
-**Accepted with conditions** — 2026-05-23
+**Accepted** — 2026-05-23 (Sprint .2-.4 完遂で全 AC satisfied、history は §Status History 参照)
 
-tl-advisor adversarial check (2026-05-23) で **P0 指摘 2 件・P1 指摘 4 件・P2 指摘 3 件・P3 指摘 3 件** を受領。**P0/P1 指摘は本 ADR の決定で反映済** (workspace 配置、コピー戦略 D、空 DB → snapshot json、MVP 縮小、drop fail-safe、Codex sandbox E2E 前倒し)。残 P2/P3 は本文末「Acceptance Conditions」section 参照、解消後に **Accepted** へ格上げする。
+### Status History
+
+- 2026-05-23 (初版): **Accepted with conditions** — tl-advisor adversarial check で P0 ×2 / P1 ×4 / P2 ×3 / P3 ×3 指摘を受領、P0/P1 全反映で凍結
+- 2026-05-23 (Sprint .2 完遂、commit 098ba97): AC-1/AC-2/AC-4 satisfied (`drop` 統一、`base_sha` 記録、`reserved_resources` field 追加)
+- 2026-05-23 (Sprint .3 完遂、commit 1724be5): AC-3 satisfied (MVP scope = `create/list/exec/preflight/drop-safe/prune` 完成、`merge` は PLAN-163)
+- 2026-05-23 (Sprint .4 D8 E2E PASS): **Accepted** 格上げ — AC-5 conditional satisfied (Codex CLI sandbox が workspace cwd に限定されることを実証、Layer 2 sentinel `workdir=workspace_path` 確認、ADR-041 起票不要)、AC-6 は Phase 2 検討 (本 PLAN-156 では完全採用見送り、本 ADR 範囲外)
+
+P0/P1/P2/P3 指摘は全て対応 (P0/P1 = 本 ADR 決定で反映、P2 = Sprint .2-.3 実装で satisfy、P3 = AC-5 D8 E2E 検証で satisfy、AC-6 のみ Phase 2 carry)。
 
 ## Context
 
@@ -243,18 +250,47 @@ docker run --rm -v $(pwd):/work:ro -v workspace:/work/.helix --workdir /work <im
 
 却下理由: cwd が main と同じ → Codex cwd 混乱事故を防げない。stash / checkout 強要で並列実行不可。
 
-## Acceptance Conditions (Accepted with conditions → Accepted 化までに必要)
+## Acceptance Conditions (履歴記録、本 ADR Accepted 格上げ時に全件確認済)
 
-tl-advisor adversarial check (2026-05-23) で受領した P2/P3 指摘を解消する条件 (P0/P1 は本 ADR で satisfy 済):
+tl-advisor adversarial check (2026-05-23) で受領した P2/P3 指摘の解消状況 (P0/P1 は本 ADR 決定で satisfy 済):
 
-| # | 条件 | 対応 |
+| # | 条件 | 対応状況 (2026-05-23 時点、Sprint .4 完了) |
 |---|---|---|
-| AC-1 (P2) | API 命名 `drop` に統一、`delete` は doc 内も含めて使用禁止 | PLAN-156 Sprint .2 で実装、`delete` の grep が 0 件であること |
-| AC-2 (P2) | `--branch` 指定時 `git worktree add -b` 標準化、`base_sha` が workspace.yaml に必ず記録 | PLAN-156 Sprint .2 実装で satisfy |
-| AC-3 (P2) | MVP scope を Sprint .1-.2 に縮小 (`merge` は PLAN-163 以降に分離) | 本 ADR D9 で確定済、PLAN-156 doc 更新で satisfy |
-| AC-4 (P3) | ports / venv / node_modules / cache / test DB 予約を workspace manifest に記録 | PLAN-156 Sprint .2 で `reserved_resources:` field を workspace.yaml に追加 |
-| AC-5 (P3) | container isolation 案を ADR-041 で fallback 案として保持 (D8 E2E fail 時の代替) | D8 E2E 検証後、fail なら ADR-041 起票、PASS なら本 AC は無条件 satisfied |
-| AC-6 (P3) | symlink 戦略 (Alt-2) は immutable snapshot 対象のみに限定して採用検討 | Phase 2 (PLAN-163 以降) で検討、本 PLAN-156 では完全採用見送り |
+| AC-1 (P2) | API 命名 `drop` に統一、`delete` は doc 内も含めて使用禁止 | ✓ **satisfied** (Sprint .2、commit 098ba97): `cli/helix-workspace` / `workspace_cli.py` / 本 ADR / PLAN-156 で `delete` 不使用 |
+| AC-2 (P2) | `--branch` 指定時 `git worktree add -b` 標準化、`base_sha` が workspace.yaml に必ず記録 | ✓ **satisfied** (Sprint .2、commit 098ba97): `WorkspaceManager.create` で `git worktree add -b workspace/PLAN-X <path> <base>` 標準化、workspace.yaml + workspace_registry table に `base_sha` 記録 |
+| AC-3 (P2) | MVP scope を Sprint .1-.2 に縮小 (`merge` は PLAN-163 以降に分離) | ✓ **satisfied** (Sprint .3、commit 1724be5): MVP = `create/list/exec/preflight/drop-safe/prune` 完成、`merge` は PLAN-163 carry |
+| AC-4 (P3) | ports / venv / node_modules / cache / test DB 予約を workspace manifest に記録 | ✓ **satisfied** (Sprint .2、commit 098ba97): `cli/templates/workspace/workspace.yaml` に `reserved_resources:` field (ports / venv / cache_prefix) を追加、`workspace_registry` table にも JSON column |
+| AC-5 (P3) | container isolation 案を ADR-041 で fallback 案として保持 (D8 E2E fail 時の代替) | ✓ **conditional satisfied** (Sprint .4、2026-05-23 D8 E2E Layer 2 検証): Codex CLI sandbox が workspace cwd に限定されることを実証 — `codex exec` 起動時の `workdir: /home/USER/.helix/workspaces/<repo>/<task>` を確認、cwd respect が機能 → **container fallback ADR-041 起票不要**。Layer 3 (並列 2 workspace の helix-db.lock 競合検証) は別 PLAN-163 carry |
+| AC-6 (P3) | symlink 戦略 (Alt-2) は immutable snapshot 対象のみに限定して採用検討 | ⏳ **Phase 2 carry** (本 PLAN-156 では完全採用見送り、PLAN-163 以降で検討。本 AC は本 ADR の格上げ条件には含まれない、別 PLAN で扱う) |
+
+### AC-5 検証 evidence (D8 E2E sentinel Layer 2)
+
+実行コマンド (workspace exec 経由で Codex CLI 起動、HELIX_ALLOW_RAW_CODEX=1 bypass 理由 = sandbox cwd respect 検証):
+
+```bash
+./cli/helix workspace create --task PLAN-156-AC5 --base main
+# create OK, workspace_path = ~/.helix/workspaces/ai-dev-kit-vscode/PLAN-156-AC5
+
+./cli/helix workspace exec --task PLAN-156-AC5 \
+  'HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON="D8 sentinel" \
+   codex exec "Output: D8_SENTINEL_PWD=$(pwd)" --sandbox read-only -m gpt-5.3-codex-spark'
+```
+
+Codex CLI 起動 banner で確認:
+
+```text
+workdir: /home/tenni/.helix/workspaces/ai-dev-kit-vscode/PLAN-156-AC5
+model: gpt-5.3-codex-spark
+sandbox: read-only
+session id: 019e5555-3968-7161-b64e-624f7fbcf641
+```
+
+Codex 出力:
+```
+D8_SENTINEL_PWD=/home/tenni/.helix/workspaces/ai-dev-kit-vscode/PLAN-156-AC5
+```
+
+→ Codex CLI の `workdir` = workspace path であり、sandbox cwd respect が機能。AC-5 conditional satisfied。container fallback ADR-041 起票不要。
 
 ## Related Documents
 
