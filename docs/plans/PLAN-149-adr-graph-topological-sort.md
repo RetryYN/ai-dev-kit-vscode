@@ -34,7 +34,7 @@ related_plans:
   - PLAN-131-adr-decision-graph
   - PLAN-091-v5-framework-core
 related_adr:
-  - ADR-046-adr-decision-graph-schema
+  - ADR-062-adr-decision-graph-schema-extended
   - ADR-052-adr-graph-topological-sort
 related_docs:
   - docs/adr/ADR-046-adr-decision-graph-schema.md

@@ -36,7 +36,7 @@ related_plans:
   - PLAN-168 (drift auto-fix proposal — 設計方針の参照元)
   - PLAN-110 (helix doctor warn 漸減 framework — doctor check 改善との共存)
 related_adr:
-  - ADR-050
+  - ADR-064
 ---
 
 # PLAN-181: helix doctor self-healing framework

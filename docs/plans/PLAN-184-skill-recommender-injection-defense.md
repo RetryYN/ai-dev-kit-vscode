@@ -38,7 +38,7 @@ related_plans:
   - PLAN-121
   - PLAN-022
 related_adr:
-  - ADR-055
+  - ADR-065
 related_docs:
   - cli/lib/skill_recommender.py
   - cli/templates/prompts/skill-search.md

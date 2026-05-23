@@ -42,7 +42,7 @@ dependencies:
   blocks: []
 related_adr:
   - ADR-032
-  - ADR-041
+  - ADR-060
 ---
 
 # PLAN-139: runtime carry monitoring — carry > 0 かつ bg task なし時の ScheduleWakeup 判定 framework

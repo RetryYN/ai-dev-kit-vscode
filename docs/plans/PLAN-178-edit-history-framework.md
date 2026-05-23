@@ -40,7 +40,7 @@ related_plans:
   - PLAN-143
   - PLAN-177
 related_adr:
-  - ADR-056
+  - ADR-066
 related_docs:
   - cli/lib/helix_db.py
   - .claude/hooks/posttooluse-helix-job-enqueue.sh

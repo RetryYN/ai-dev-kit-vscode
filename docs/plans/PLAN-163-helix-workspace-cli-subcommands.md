@@ -32,7 +32,7 @@ dependencies:
     - PLAN-156
   blocks: []
 related_adr:
-  - ADR-040-helix-workspace-isolation
+  - ADR-059-helix-workspace-isolation-extended
 related_docs:
   - docs/plans/PLAN-156-helix-workspace-worktree-isolation.md
   - cli/helix

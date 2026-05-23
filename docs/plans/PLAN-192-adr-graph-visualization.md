@@ -35,7 +35,7 @@ related_plans:
   - PLAN-131-adr-decision-graph
   - PLAN-160-helix-mkdocs-site
 related_adr:
-  - ADR-046-adr-decision-graph-schema
+  - ADR-063-adr-decision-graph-schema-extended
 related_docs:
   - docs/adr/index.md
   - docs/commands/index.md

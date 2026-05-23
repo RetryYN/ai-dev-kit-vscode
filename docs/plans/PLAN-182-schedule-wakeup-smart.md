@@ -37,7 +37,7 @@ dependencies:
   blocks: []
 related_adr:
   - ADR-032
-  - ADR-041
+  - ADR-061
   - ADR-051
 ---
 
