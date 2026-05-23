@@ -769,3 +769,73 @@ def test_merge_conflict_saves_patch_to_trash(tmp_path: Path) -> None:
 
     assert patch_files
     assert metadata_files
+
+
+def test_merge_rename_file(tmp_path: Path) -> None:
+    """DoD 検証: PLAN-224 Sprint .3 P2-1 rename merge fixture."""
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-RENAME")
+    workspace_path = Path(result["workspace_path"])
+    _git(workspace_path, "mv", "README.md", "RENAMED.md")
+    _git(workspace_path, "commit", "-m", "rename readme")
+
+    payload = manager.merge("PLAN-MERGE-RENAME")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "apply rename")
+    rename_log = _git(repo, "log", "-M", "--diff-filter=R", "--name-status", "-1").stdout
+
+    assert payload["merged"] is True
+    assert not (repo / "README.md").exists()
+    assert (repo / "RENAMED.md").read_text(encoding="utf-8") == "hello\n"
+    assert "R" in rename_log
+    assert "README.md" in rename_log
+    assert "RENAMED.md" in rename_log
+    assert manager._get_workspace_entry("PLAN-MERGE-RENAME")["status"] == "merged"
+
+
+def test_merge_chmod_change(tmp_path: Path) -> None:
+    """DoD 検証: PLAN-224 Sprint .3 P2-1 chmod merge fixture."""
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-CHMOD")
+    workspace_path = Path(result["workspace_path"])
+    readme_path = workspace_path / "README.md"
+    readme_path.chmod(0o755)
+    _git(workspace_path, "add", "README.md")
+    _git(workspace_path, "commit", "-m", "make readme executable")
+
+    payload = manager.merge("PLAN-MERGE-CHMOD")
+
+    assert payload["merged"] is True
+    assert (repo / "README.md").stat().st_mode & 0o111
+    assert manager._get_workspace_entry("PLAN-MERGE-CHMOD")["status"] == "merged"
+
+
+def test_merge_symlink_change(tmp_path: Path) -> None:
+    """DoD 検証: PLAN-224 Sprint .3 P2-1 symlink merge fixture."""
+    repo = _init_repo(tmp_path)
+    _seed_helix(repo)
+    _commit_seed_state(repo)
+    manager = _manager(repo, tmp_path)
+
+    result = manager.create(task_id="PLAN-MERGE-SYMLINK")
+    workspace_path = Path(result["workspace_path"])
+    (workspace_path / "target.txt").write_text("target\n", encoding="utf-8")
+    os.symlink("target.txt", workspace_path / "source-link")
+    _git(workspace_path, "add", "target.txt", "source-link")
+    _git(workspace_path, "commit", "-m", "add symlink")
+
+    payload = manager.merge("PLAN-MERGE-SYMLINK")
+
+    assert payload["merged"] is True
+    assert (repo / "target.txt").read_text(encoding="utf-8") == "target\n"
+    assert os.path.islink(repo / "source-link")
+    assert os.readlink(repo / "source-link") == "target.txt"
+    assert manager._get_workspace_entry("PLAN-MERGE-SYMLINK")["status"] == "merged"
