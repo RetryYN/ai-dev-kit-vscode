@@ -1,17 +1,19 @@
 ---
 name: security
-description: 脆弱性対策・OWASP・秘密情報管理を提供
+description: 脆弱性対策・OWASP・秘密情報管理を提供。GitHub Actions workflow security は references/gha-security.md (zizmor 30+ ルール、PLAN-222/ADR-036 統合) を参照
 metadata:
   helix_layer: all
   triggers:
     - 認証実装時
     - API公開時
     - セキュリティレビュー時
+    - GitHub Actions workflow 変更時 (references/gha-security.md)
   verification:
     - "OWASP Top 10 チェック済み"
     - "機密情報ハードコード 0件"
     - "認証・認可テスト通過"
     - "SQL Injection/XSS 脆弱性 0件"
+    - "zizmor: GitHub Actions workflow security scan PASS (unpinned-uses / excessive-permissions / template-injection / dangerous-triggers / artipacked、references/gha-security.md)"
 compatibility:
   claude: true
   codex: true
@@ -25,6 +27,7 @@ compatibility:
 - 認証機能実装時
 - API開発時
 - セキュリティ監査時
+- GitHub Actions workflow 変更時 → [references/gha-security.md](references/gha-security.md) を併読 (zizmor 30+ ルールベース、ADR-036)
 
 ---
 

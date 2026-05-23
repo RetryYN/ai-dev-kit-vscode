@@ -35,3 +35,4 @@
 | ADR-032-autonomous-runtime-framework-decision | ADR-032: 自動走行 framework 5-layer 採用判断 | Proposed | 2026-05-20 |
 | ADR-033-design-doc-guard-session-id-fallback | ADR-033: PreToolUse hook の session_id 取得 fallback chain と transcript-based 検証緩和 | Proposed | 2026-05-22 |
 | ADR-035-external-skills-integration-2026-05-23 | 外部素材 skill 4 件の HELIX 体系統合 (doc-system-architect / requirements-deriver / god-writing / gpt-image) | Accepted | 2026-05-23 |
+| ADR-036-zizmor-adoption-decision | zizmor (GitHub Actions security audit) 採用 + 3 段統合 (CI enforcement + local advisory + knowledge reference) | Accepted with conditions | 2026-05-23 |

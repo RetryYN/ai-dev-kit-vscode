@@ -114,6 +114,48 @@ collect_commits() {
   done | awk 'NF && !seen[$0]++'
 }
 
+scan_github_workflows_with_zizmor() {
+  # PLAN-222 / ADR-036: GitHub Actions workflow 変更時に zizmor をローカル実行
+  # - zizmor 未インストール時は warning のみ (fail-open、CI ジョブで fail-close 担保)
+  # - HELIX_DRY_RUN_HOOK=1 では warning のみで通す (本 hook 内既存方針との整合)
+  local workflows_changed=0
+  local commit=""
+  local file=""
+
+  while IFS= read -r commit; do
+    [[ -z "$commit" ]] && continue
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      case "$file" in
+        .github/workflows/*.yml|.github/workflows/*.yaml)
+          workflows_changed=1
+          break 2
+          ;;
+      esac
+    done < <(git diff-tree --root --no-commit-id --name-only -r --diff-filter=ACMR "$commit")
+  done < <(collect_commits)
+
+  if [[ "$workflows_changed" -eq 0 ]]; then
+    return 0
+  fi
+
+  if ! command -v zizmor >/dev/null 2>&1; then
+    echo "[pre-push] zizmor not installed, skipping local GitHub Actions scan (CI will catch)."
+    echo "[pre-push] install: pip install zizmor"
+    return 0
+  fi
+
+  echo "[pre-push] zizmor: scanning .github/workflows/ for security issues..."
+  if ! zizmor .github/workflows/ >&2; then
+    if [[ "$dry_run" == "1" ]]; then
+      echo "HELIX_DRY_RUN_HOOK=1 is set, so this push is allowed after zizmor warning."
+      return 0
+    fi
+    echo "[pre-push] zizmor reported issues. Fix them or use 'git push --no-verify' with explicit approval."
+    return 1
+  fi
+}
+
 main() {
   local commit=""
   local file=""
@@ -137,6 +179,8 @@ main() {
     echo "Review the diff and use 'git push --no-verify' only after explicit approval."
     exit 1
   fi
+
+  scan_github_workflows_with_zizmor || exit 1
 }
 
 main "$@"

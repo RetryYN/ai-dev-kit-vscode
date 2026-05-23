@@ -8,12 +8,18 @@ on:
     branches:
       - main
 
+# PLAN-222 / ADR-036: 最小権限原則 (zizmor excessive-permissions / undocumented-permissions 対応)
+permissions:
+  contents: read
+
 env:
   HELIX_HOME: ${{ github.workspace }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4

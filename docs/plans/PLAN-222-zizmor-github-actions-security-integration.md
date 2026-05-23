@@ -101,7 +101,7 @@ pmo-tech-fork (agent ae182efe) が本 PLAN trigger の評価レポート作成�
 | 案 C (P1 推奨) | scripts/git-hooks/pre-push 統合 | Sprint .4 |
 | 案 D (P2 任意) | SKILL.md triggers 拡張 | Sprint .4 後段 |
 
-## 実装計画 (Sprint .1 - .4、4 並列投入可)
+## 実装計画 (Sprint .1 → .2 → (.3 ∥ .4)、tl-advisor 指摘 P1 反映で 3 step 化)
 
 ### Sprint .1: ADR-036 起票 + 採用方針確定 (Opus + tl-advisor)
 
@@ -113,8 +113,8 @@ pmo-tech-fork (agent ae182efe) が本 PLAN trigger の評価レポート作成�
 
 完了条件:
 
-- ADR-036 が accepted 状態で存在
-- statisfy: tl-advisor からの強い反対意見なし
+- ADR-036 が **Accepted with conditions** 状態で存在 (P1/P2/P3 解消後 Accepted 化、Acceptance Conditions AC-1〜AC-8)
+- satisfy: tl-advisor adversarial check 完了 (changes_required 判定済、修正反映)
 
 ### Sprint .2: CI ジョブ + workflow SHA 固定 + permissions 宣言 (Codex pe 委譲、案 B P0)
 

@@ -8,11 +8,17 @@ on:
     branches:
       - 'hotfix/**'
 
+# PLAN-222 / ADR-036: 最小権限原則
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: ci/lint
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

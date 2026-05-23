@@ -1,0 +1,55 @@
+name: Security (zizmor GitHub Actions audit)
+
+# PLAN-222 / ADR-036: GitHub Actions workflow security audit (zizmor)
+# - PR ごとに走り SARIF 出力 + GitHub Security tab upload
+# - 既存 6 workflow と独立、security 専用 workflow
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor-scan:
+    name: zizmor / GitHub Actions security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write   # SARIF upload 用
+    steps:
+      - name: Checkout
+        # TODO(PLAN-222 Sprint follow-up): Dependabot で SHA 固定 (actions/checkout latest commit SHA)
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install zizmor
+        run: python3 -m pip install zizmor
+
+      - name: Run zizmor (SARIF output)
+        run: zizmor --format sarif .github/workflows/ > zizmor-results.sarif || true
+
+      - name: Run zizmor (text output for log)
+        # exit code 非 0 で fail させ、SARIF は前 step で生成済
+        run: zizmor .github/workflows/
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always() && hashFiles('zizmor-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: zizmor-results.sarif
+          category: zizmor

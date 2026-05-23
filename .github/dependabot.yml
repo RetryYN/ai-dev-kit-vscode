@@ -1,0 +1,23 @@
+# PLAN-222 / ADR-036: GitHub Actions の SHA 固定維持のため Dependabot を有効化
+# 週次で SHA 更新 PR を自動生成し、actions の supply chain 攻撃耐性を維持する
+
+version: 2
+updates:
+  # GitHub Actions (.github/workflows/**) の更新追跡
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "security"
+    commit-message:
+      prefix: "chore(actions)"
+      include: "scope"
+    # SHA 固定運用のため、major / minor / patch すべてを追跡
+    # zizmor の unpinned-uses ルールが SHA 固定を要求するため必須
