@@ -153,7 +153,9 @@ L14 運用検証 + 機能改善 (L1 運用テスト pair execute → 次イテ�
 
 正本: [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md) + [helix-process/README.md](../HELIX-workflows/helix-process/README.md)
 
-Forward HELIX (L0-L14) を中核とし、入口に応じて 5 mode + 2 工程専門 workflow を使い分ける。**全モードは最終的に Forward の L0-L14 ドキュメント体系へ収束・昇華する**。
+Forward HELIX (L0-L14) を中核とし、入口に応じて 9 mode + 2 工程専門 workflow を使い分ける。**全モードは最終的に Forward の L0-L14 ドキュメント体系へ収束・昇華する**。
+
+正本 table は [HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md) を参照。本 section は HELIX framework 側の **入口判定アンカー** として最小情報のみ持つ。
 
 | モード | 入口 | 正本 | Forward 接続 |
 |---|---|---|---|
@@ -163,6 +165,23 @@ Forward HELIX (L0-L14) を中核とし、入口に応じて 5 mode + 2 工程専
 | **Reverse** | 既存コード・設計の逆引き | [reverse-workflow.md](../HELIX-workflows/helix-process/reverse-workflow.md) | R4 routing → L1/L3/L4/L7/L8-L11 |
 | **Incident** | 本番障害の緊急対応 (hotfix) | [incident-workflow.md](../HELIX-workflows/helix-process/incident-workflow.md) | 暫定収束後、恒久対策を L1/L3/L4-L6、postmortem を L14 |
 | **Add-feature** | 既存システムへの差分追補 | [add-feature-workflow.md](../HELIX-workflows/helix-process/add-feature-workflow.md) | add-design / add-impl を L4-L7 に追補 → L0-L14 体系へ統合 |
+
+#### 新 4 mode (workflow doc 正本、入口判定 anchor のみ)
+
+table 二重化を避けるため詳細は正本へ委譲する。CLI 整備状況と運用方針のみ本 section に記載:
+
+- **Refactor** ([refactor-workflow.md](../HELIX-workflows/helix-process/refactor-workflow.md)) — 振る舞い不変の構造改善。**dedicated CLI 未整備**。PLAN kind=`refactor` + workflow doc で運用。Forward 接続は L7 内部、既存 L8/L9 テストを保護網として流用
+- **Retrofit** ([retrofit-workflow.md](../HELIX-workflows/helix-process/retrofit-workflow.md)) — 依存・基盤の段階改修・移行。**dedicated CLI 未整備**。PLAN kind=`retrofit` + retrofit-matrix + config で運用。L4/L5 追補 + L8/L9 回帰、要件変更時のみ L1/L3 へ戻す
+- **Research** ([research-workflow.md](../HELIX-workflows/helix-process/research-workflow.md)) — 実装前の技術調査・意思決定。**`helix research` CLI あり**。PLAN kind=`research` + ADR + research-memo で運用。Discovery (作って試す) との分岐: 「調べて決める」が Research
+- **Recovery** ([recovery-workflow.md](../HELIX-workflows/helix-process/recovery-workflow.md)) — AI エージェントの暴走・独断専行のガード+収束。**dedicated CLI 未整備**。PLAN kind=`recovery` + recovery-log + stop-hook + cutover_orchestrator で運用。発火条件 4 種 (想定外大規模変更 / 工程逸脱 / 認識ズレ蓄積 / 予算超過)
+
+> **CLI 未整備の警告**: Refactor / Retrofit / Recovery は `helix refactor` / `helix retrofit` / `helix recovery` 等の CLI が存在しない。エージェントが叩いて失敗するリスク回避のため、必ず workflow doc 正本 + PLAN kind / template で扱う。CLI 契約整理は後続 ADR / PLAN 候補。
+
+#### 特殊 workflow / HELIX W
+
+入口判定 mode と異なる **特殊設計**: AI エージェントシステム構築時のみの 2 段 V 字。9 mode 表に並べない。
+
+- **HELIX W** ([two-stage-agent-design.md](../HELIX-workflows/helix-process/two-stage-agent-design.md)) — Phase1 (一般システム、be/fe/db/fullstack、L1-L9) + Phase2 (agent、L1-L9) + Phase3 (合流、L10-L14)。`drive=agent` 起動・検出方式は integration-map 解消の後続 PLAN 候補
 
 #### 工程専門ワークフロー (FE/UX、HELIX FE 弱点補強)
 
