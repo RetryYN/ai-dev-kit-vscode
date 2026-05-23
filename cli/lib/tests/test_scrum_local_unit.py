@@ -512,12 +512,14 @@ class TestGetStats:
 
     def test_u_sl_stats_003_includes_future_dated_rows_for_zero_days(self, fresh_db: Path) -> None:
         """DoD 検証: PLAN-079-unit-test-design.md U-SL-STATS-003 (days=0 は現在以後の row を含む)"""
+        # PLAN-223: 並列下では worker 起動 overhead で +1 秒の未来日が
+        # get_stats 呼び出し時には past になる race があるため余裕を持たせる
         _insert_scrum_loop(
             fresh_db,
             loop_id="H-LOCAL-605",
             state="S3",
             decide_result="confirmed",
-            decided_at=_ts_future(seconds=1),
+            decided_at=_ts_future(seconds=30),
         )
 
         stats = scrum_local.get_stats(days=0)

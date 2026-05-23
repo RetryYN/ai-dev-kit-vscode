@@ -43,8 +43,10 @@ def _query_rows(db_path: Path, query: str, params: tuple = ()) -> list[sqlite3.R
 
 def _run_stop_like_hook(hook_path: Path, project_root: Path, **extra_env: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
+    # PLAN-223: session fixture が HELIX_DB_PATH=worker_base を inherit するので明示 override
     env["HELIX_HOME"] = str(REPO_ROOT)
     env["HELIX_PROJECT_ROOT"] = str(project_root)
+    env["HELIX_DB_PATH"] = str(project_root / ".helix" / "helix.db")
     env.update(extra_env)
     return subprocess.run(
         [str(hook_path)],
@@ -62,7 +64,10 @@ def _run_pretooluse_hook(
     **extra_env: str,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
+    # PLAN-223: session fixture inherit を明示 override
     env["HELIX_HOME"] = str(REPO_ROOT)
+    env["HELIX_PROJECT_ROOT"] = str(project_root)
+    env["HELIX_DB_PATH"] = str(project_root / ".helix" / "helix.db")
     env["CLAUDE_PROJECT_DIR"] = str(project_root)
     env.update(extra_env)
     return subprocess.run(

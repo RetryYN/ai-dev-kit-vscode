@@ -32,6 +32,9 @@ def _record_tl_advisor(db_path: Path, timestamp: str) -> None:
 
 def _run_hook(project_root: Path, payload: dict, now: str | None = None) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
+    # PLAN-223: session fixture inherit を明示 override (project_root の db を使わせる)
+    env["HELIX_PROJECT_ROOT"] = str(project_root)
+    env["HELIX_DB_PATH"] = str(project_root / ".helix" / "helix.db")
     env["CLAUDE_PROJECT_DIR"] = str(project_root)
     if now is not None:
         env["HELIX_ASKUSERQUESTION_NOW"] = now

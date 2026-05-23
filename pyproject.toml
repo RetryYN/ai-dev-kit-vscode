@@ -10,4 +10,5 @@ testpaths = ["cli/lib/tests"]
 addopts = ""
 markers = [
     "slow: marks tests as slow (skip with -m 'not slow')",
+    "no_helix_function_root: opt-out from PLAN-223 conftest.py の helix_function_root fixture (worker_base env を保持する test 用)",
 ]

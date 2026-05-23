@@ -3,7 +3,8 @@ plan_id: PLAN-223
 title: "PLAN-223: pytest-xdist 並列下 fail 32 件の個別 test fix (PLAN-102 後段)"
 layer: L4
 kind: impl
-status: draft
+status: completed
+completed_at: 2026-05-23
 size: M
 drive: be
 created: 2026-05-23
@@ -148,3 +149,71 @@ for i in $(seq 1 10); do pytest -n auto cli/lib/tests/test_session_telemetry.py 
 - PLAN-104 (R-3/R-4 fix、env scope pattern の base)
 - ADR-034 (本 PLAN tree の L2 snapshot)
 - [[feedback_plan104_gate_test_flake_root_cause]] (env scope helper pattern)
+
+## 完遂結果 (2026-05-23)
+
+### Sprint .1: traceback 取得 + 分類 (PASS)
+
+並列 sweep で **33 fail / 13 test file** 検出 (52.17s)。6 root cause pattern に分類:
+
+| Pattern | 該当 | 修正方針 |
+|---|---|---|
+| P1: lock pattern test の `monkeypatch.chdir(tmp_path)` + lock path 期待 | test_concurrent_lock × 4 / test_handover × 2 / test_stale_lock_cleanup × 5 / test_yaml_parser × 1 / test_helix_doctor × 2 | function-scoped autouse fixture で HELIX_PROJECT_ROOT を tmp_path に dynamic override |
+| P2: merge_settings の `_resolve_helix_home()` REPO_ROOT 期待 | test_merge_settings × 3 | test 内で `monkeypatch.delenv("HELIX_HOME")` で default 復帰 |
+| P3: context_guard の framework_root を REPO_ROOT 期待 | test_context_guard × 4 | 同上 |
+| P4: hook DB recording の subprocess env で session inherit | test_audit_log × 4 / test_audit_e2e × 3 / test_pretooluse_askuserquestion × 2 / test_session_telemetry × 1 | helper の env に `HELIX_DB_PATH=str(db_path)` 明示 override |
+| P5: regression (PLAN-102 test_xdist_isolation が新 fixture と衝突) | test_xdist_isolation × 2 | pytestmark で `no_helix_function_root` marker 適用 (opt-out) |
+| P6: future-dated rows race (worker 起動 overhead で +1s が過去化) | test_reverse_local_unit × 1 / test_scrum_local_unit × 1 | `_ts_future(seconds=1)` → `seconds=30` 緩和 |
+
+### Sprint .2: conftest 改修 + 個別 fix (PASS)
+
+#### conftest.py 改修
+
+`helix_function_root` (function-scoped autouse) を追加:
+```python
+@pytest.fixture(autouse=True)
+def helix_function_root(request, monkeypatch, tmp_path):
+    if request.node.get_closest_marker("no_helix_function_root"):
+        yield
+        return
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("HELIX_DB_PATH", str(tmp_path / ".helix" / "helix.db"))
+    yield
+```
+
+設計判断:
+- HELIX_HOME は worker_base 維持 (framework path 計算用)
+- HELIX_PROJECT_ROOT / HELIX_DB_PATH のみ tmp_path 動的 override
+- `@pytest.mark.no_helix_function_root` で opt-out (PLAN-102 isolation test 等)
+
+#### 個別 fix (12 file)
+
+- cli/lib/tests/conftest.py: function-scoped fixture + marker support
+- cli/lib/tests/test_audit_e2e.py: REPO_ROOT 定義 + _run_audit env 明示
+- cli/lib/tests/test_audit_log.py: _run_stop_like_hook / _run_pretooluse_hook で HELIX_DB_PATH 明示
+- cli/lib/tests/test_context_guard.py: pytest import + 4 test に `monkeypatch.delenv("HELIX_HOME")`
+- cli/lib/tests/test_handover.py: _run_handover_worker + test_lock_release_on_exception で `HELIX_PROJECT_ROOT=str(repo)` override
+- cli/lib/tests/test_merge_settings.py: 3 test に `monkeypatch.delenv("HELIX_HOME")`
+- cli/lib/tests/test_pretooluse_askuserquestion.py: _run_hook で HELIX_DB_PATH 明示
+- cli/lib/tests/test_reverse_local_unit.py: `_ts_future(seconds=30)`
+- cli/lib/tests/test_scrum_local_unit.py: 同上
+- cli/lib/tests/test_session_telemetry.py: env に `HELIX_DB_PATH=str(db_path)` 追加
+- cli/lib/tests/test_xdist_isolation.py: pytestmark + import pytest
+- pyproject.toml: `no_helix_function_root` marker 登録
+
+### Sprint .3: 検証 (PASS)
+
+| 検証項目 | 結果 |
+|---|---|
+| `pytest -n auto cli/lib/tests/ -q` | **1851 passed, 4 skipped, 0 fail, 52.84s** |
+| `pytest cli/lib/tests/ -q` (serial 回帰) | **1851 passed, 4 skipped, 0 fail, 598s** |
+| 10 回 loop flake check (対象 14 file) | **182 passed × 10 回 / 全 PASS (各 9.6-9.8s)** |
+| helix doctor | **21 pass / 0 fail / 145 warn** (stale lock 増、cleanup 済) |
+
+### 学び
+
+- **autouse function-scoped fixture の有効性**: session fixture (env 固定) と function fixture (test ごと dynamic override) の 2 段構成で xdist parallelism + 既存 test の env 期待を両立可能
+- **opt-out marker pattern**: 一部 test (isolation test 等) で session env を直接検証したい場合、`no_helix_function_root` marker で skip 可能。`request.node.get_closest_marker()` で実装
+- **subprocess の env inherit**: `os.environ.copy()` 経由で session fixture の HELIX_DB_PATH が全 subprocess hook に inherit される。helper 関数で明示 override が必須
+- **future-dated rows test の race**: `_ts_future(seconds=1)` 程度では並列下 worker 起動 overhead で過去化する → 30 秒に緩和 ([[feedback_pytest_fixture_time_dependent_flake]] 同 pattern)
+- **修正 file 12 件 / +90 行 / -8 行** で 33 fail → 0 fail (1851 PASS) 達成、PLAN-102 carry 完全解消

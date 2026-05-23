@@ -12,6 +12,7 @@ import helix_db
 
 SCRIPT_DIR = Path(__file__).parent.parent.parent
 HELIX_AUDIT = SCRIPT_DIR / "helix-audit"
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _setup_workspace() -> tuple[Path, Path]:
@@ -25,6 +26,9 @@ def _setup_workspace() -> tuple[Path, Path]:
 
 def _run_audit(ws: Path, db: Path, *args: str):
     env = os.environ.copy()
+    # PLAN-223: session fixture が HELIX_HOME=worker_base に固定するため REPO_ROOT を明示
+    # (audit_a1 等の module import path 解決に必要)
+    env["HELIX_HOME"] = str(REPO_ROOT)
     env["HELIX_DIR"] = str(ws / ".helix")
     env["HELIX_PROJECT_ROOT"] = str(ws)
     env["HELIX_DB_PATH"] = str(db)

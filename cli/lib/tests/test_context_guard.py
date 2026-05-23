@@ -3,6 +3,8 @@ import py_compile
 import sys
 from pathlib import Path
 
+import pytest
+
 
 LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
@@ -112,7 +114,11 @@ def test_check_context_fails_when_research_tool_guard_missing(tmp_path: Path) ->
     assert any(item["code"] == "missing_hook" and "helix-pre-research" in item["message"] for item in payload["errors"])
 
 
-def test_check_context_passes_with_required_files_and_hooks(tmp_path: Path) -> None:
+def test_check_context_passes_with_required_files_and_hooks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PLAN-223: session fixture が HELIX_HOME=worker_base に固定するため REPO_ROOT default に戻す
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     _write_required_files(tmp_path)
     _write_settings(tmp_path)
     (tmp_path / "docs" / "memory").mkdir(parents=True)
@@ -164,7 +170,11 @@ def test_check_context_rejects_invalid_project_settings_before_user_fallback(mon
     assert any(item["code"] == "invalid_project_settings" for item in payload["errors"])
 
 
-def test_check_context_uses_installed_cli_when_project_cli_is_absent(tmp_path: Path) -> None:
+def test_check_context_uses_installed_cli_when_project_cli_is_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PLAN-223: session fixture inherit を REPO_ROOT default に戻す
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     _write_required_files(tmp_path)
     _write_settings(tmp_path)
     (tmp_path / "docs" / "memory").mkdir(parents=True)
@@ -218,6 +228,8 @@ def test_context_bundle_is_compact(tmp_path: Path) -> None:
 
 
 def test_main_defaults_to_check_without_subcommand(monkeypatch, capsys, tmp_path: Path) -> None:
+    # PLAN-223: session fixture inherit を REPO_ROOT default に戻す
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     _write_required_files(tmp_path)
     _write_settings(tmp_path)
     (tmp_path / "docs" / "memory").mkdir(parents=True)
@@ -228,7 +240,11 @@ def test_main_defaults_to_check_without_subcommand(monkeypatch, capsys, tmp_path
     assert "HELIX Context Guard" in capsys.readouterr().out
 
 
-def test_check_context_reports_guarded_local_raw_codex_allow_as_info(tmp_path: Path) -> None:
+def test_check_context_reports_guarded_local_raw_codex_allow_as_info(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PLAN-223: session fixture inherit を REPO_ROOT default に戻す
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     _write_required_files(tmp_path)
     _write_settings(tmp_path)
     (tmp_path / "docs" / "memory").mkdir(parents=True)

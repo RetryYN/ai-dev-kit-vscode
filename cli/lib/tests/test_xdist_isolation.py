@@ -11,6 +11,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import pytest
+
+# PLAN-223: helix_worker_home (session fixture) の env を直接検証するため、
+# 後段の helix_function_root (function fixture) による tmp_path override を opt-out
+pytestmark = pytest.mark.no_helix_function_root
+
 
 def test_helix_home_set_to_tmp_dir(helix_worker_home: Path) -> None:
     """helix_worker_home fixture が HELIX_HOME を tmp dir に scope set する."""

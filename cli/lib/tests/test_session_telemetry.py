@@ -177,10 +177,12 @@ def test_stop_hook_upserts_session_telemetry_from_stdin(tmp_path: Path) -> None:
         helix_db.upsert_session_telemetry(conn, "stop-stdin", actor="claude-code")
 
     env = os.environ.copy()
+    # PLAN-223: session fixture inherit を明示 override (project_root の db を使わせる)
     env.update(
         {
             "HELIX_HOME": str(REPO_ROOT),
             "HELIX_PROJECT_ROOT": str(project_root),
+            "HELIX_DB_PATH": str(db_path),
             "HELIX_SESSION_ID": "stop-stdin",
             "HELIX_TOOL_USES": "1",
             "HELIX_HOOK_DURATION_MS": "8",

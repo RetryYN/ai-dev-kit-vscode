@@ -142,6 +142,9 @@ def _run_handover_worker(
     sleep_sec: float = 0.0,
 ) -> subprocess.Popen[str]:
     env = os.environ.copy()
+    # PLAN-223: session fixture inherit を repo に override (lock を repo/.helix/locks/ に置く)
+    env["HELIX_PROJECT_ROOT"] = str(repo)
+    env["HELIX_DB_PATH"] = str(repo / ".helix" / "helix.db")
     return subprocess.Popen(
         [
             PYTHON,
@@ -799,6 +802,8 @@ def test_handover_lock_release_on_exception(
 ) -> None:
     repo = _init_repo(tmp_path)
     monkeypatch.chdir(repo)
+    # PLAN-223: function fixture が HELIX_PROJECT_ROOT=tmp_path に set するため repo に override
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(repo))
     args = handover.parse_args(
         [
             "--handover-dir",

@@ -62,3 +62,28 @@ def helix_worker_home(tmp_path_factory, worker_id):
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = prev
+
+
+@pytest.fixture(autouse=True)
+def helix_function_root(request, monkeypatch, tmp_path):
+    """PLAN-223: test ごとに tmp_path を HELIX_PROJECT_ROOT/HELIX_DB_PATH に動的 override
+
+    session-scoped helix_worker_home が worker_base に env を固定するが、
+    多くの test は tmp_path 配下に lock/.helix/helix.db を作る前提なので
+    function-scope で tmp_path に上書きする。
+
+    monkeypatch を使うため test 終了時に session env (worker_base) に自動復元される。
+
+    例外: HELIX_HOME は worker_base 維持 (merge_settings._resolve_helix_home() で
+    `cli/libexec/` 等の framework path 計算に使われるため、test_merge_settings 等は
+    REPO_ROOT を期待する別 fixture で個別 override する)。
+
+    opt-out: `@pytest.mark.no_helix_function_root` を付けた test では override しない
+    (worker_base を維持したい test 用、test_merge_settings 等)。
+    """
+    if request.node.get_closest_marker("no_helix_function_root"):
+        yield
+        return
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("HELIX_DB_PATH", str(tmp_path / ".helix" / "helix.db"))
+    yield

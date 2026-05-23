@@ -106,7 +106,12 @@ def test_main_exits_three_when_settings_json_is_invalid(
     assert "設定マージに失敗" in capsys.readouterr().err
 
 
-def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
+def test_post_tool_use_hook_preserves_fail_close_behavior(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # PLAN-223: session fixture が HELIX_HOME=worker_base に固定するため、
+    # REPO_ROOT を期待する _resolve_helix_home() default に戻す
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     entry = merge_settings.HELIX_HOOKS["PostToolUse"][0]
     hook = merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]
     command = hook["command"]
@@ -119,7 +124,10 @@ def test_post_tool_use_hook_preserves_fail_close_behavior() -> None:
     assert hook["blockOnFailure"] is True
 
 
-def test_pre_tool_use_bash_guard_is_registered() -> None:
+def test_pre_tool_use_bash_guard_is_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     entries = merge_settings.HELIX_HOOKS["PreToolUse"]
     bash_entries = [entry for entry in entries if entry.get("matcher") == "Bash"]
 
@@ -131,7 +139,10 @@ def test_pre_tool_use_bash_guard_is_registered() -> None:
     assert hook["blockOnFailure"] is True
 
 
-def test_pre_tool_use_research_guard_is_registered() -> None:
+def test_pre_tool_use_research_guard_is_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HELIX_HOME", raising=False)
     entries = merge_settings.HELIX_HOOKS["PreToolUse"]
     research_entries = [entry for entry in entries if entry.get("matcher") == "WebSearch|WebFetch"]
 
