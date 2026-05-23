@@ -6,6 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L14
 pairs_with: L1
+canonical_source: HELIX-model/L14-operation-verification.md
 ---
 
 # L14 運用検証 + 機能改善
@@ -65,3 +66,36 @@ L1 要求定義 (L1 でペア凍結された運用テストを本工程で実施
 - ❌ KPI 観測なし運用 (業務影響不明)
 - ❌ フィードバック → L1 巻き取りを skip (次イテレーションに知見が継承されない)
 - ❌ PLAN 起票
+
+---
+
+## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+
+> 正本: [L14-operation-verification.md](../../../HELIX-model/L14-operation-verification.md)
+> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+
+### 工程の位置づけ (HELIX-model 正本)
+
+| 項目 | 内容 |
+|---|---|
+| 区分 | V字 右腕（運用フェーズ・最外殻） |
+| 入力 | L13・L1 運用テスト設計 |
+| 出力 | 次サイクル L0 へフィードバック |
+| 対応する設計 | L1 要求定義 / 運用テスト設計 |
+
+### この工程の PLAN (HELIX-model 正本)
+
+PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
+
+### `L14-運用検証plan`
+- 運用 KPI 検証
+- SLA 確認
+
+### `L14-機能改善plan`
+- 改善要望の収集
+- 次サイクルへのフィードバック
+
+> **PLAN が内蔵するもの** (HELIX-model 共通):
+> - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
+> - **実装計画**: 記載項目をどう埋めるかの計画
+

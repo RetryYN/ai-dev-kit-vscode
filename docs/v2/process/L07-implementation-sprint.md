@@ -6,6 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L7
 pairs_with: L6
+canonical_source: HELIX-model/L7-implementation.md
 ---
 
 # L7 実装スプリント工程
@@ -103,3 +104,34 @@ L6 機能設計 (L6 で凍結された単体テスト設計を L7 で実装+検�
 - ❌ 3 点レビューを skip (設計 ⇔ テスト ⇔ 実装の整合性が崩れる)
 - ❌ commit を skip して次 Sprint へ (DoD trace が失われる)
 - ❌ L8/L9 テスト設計 (artifact ③) を本工程で起票 (本来 L4/L5 でペア凍結済のはず、後追いは V-model 違反)
+
+---
+
+## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+
+> 正本: [L7-implementation.md](../../../HELIX-model/L7-implementation.md)
+> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+
+### 工程の位置づけ (HELIX-model 正本)
+
+| 項目 | 内容 |
+|---|---|
+| 区分 | V字 谷（実装工程） |
+| 入力 | L6 機能設計 |
+| 出力 | L8 結合テスト への入力 |
+| 工程表 | 実装する機能の順番を定義 |
+| PLAN | 機能の中身の実装手順書として起票 |
+
+### この工程の PLAN (HELIX-model 正本)
+
+L7 の工程表が実装機能の順番を定義し、その配下の PLAN が各機能の中身の実装手順書になる。
+
+### `L7-<機能名>plan`
+- 対象機能
+- 実装手順（下記フロー）
+- 進捗状態
+
+> **PLAN が内蔵するもの** (HELIX-model 共通):
+> - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
+> - **実装計画**: 記載項目をどう埋めるかの計画
+

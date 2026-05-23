@@ -6,6 +6,7 @@ created: 2026-05-24
 owner: PM
 process_layer: L0
 pairs_with: null
+canonical_source: HELIX-model/L0-concept.md
 ---
 
 # L0 企画書
@@ -60,3 +61,36 @@ pairs_with: null
 - ❌ 企画書なしで L1 要求定義に進む (ビジネス目標が不明)
 - ❌ 業界事例調査を skip (差別化困難)
 - ❌ G0.5 で tl-advisor adversarial check を skip
+
+---
+
+## 正本 (HELIX-model) 抽出 — 2026-05-24 V2 完全移行
+
+> 正本: [L0-concept.md](../../../HELIX-model/L0-concept.md)
+> 本 doc は HELIX-model に同期。差分は HELIX-model を優先。
+
+### 工程の位置づけ (HELIX-model 正本)
+
+| 項目 | 内容 |
+|---|---|
+| 区分 | 起点 |
+| 入力 | 事業課題・アイデア |
+| 出力 | L1 要求定義 への入力 |
+| ペアとなるテスト設計 | なし（L11 総合レビュー / ユーザー検証で最終確認） |
+
+### この工程の PLAN (HELIX-model 正本)
+
+PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
+
+### `L0-企画書plan`
+- 背景・目的
+- 解決する課題
+- スコープ（対象 / 対象外）
+- 投資対効果
+- 成功条件・KGI / KPI
+- 想定リスク
+
+> **PLAN が内蔵するもの** (HELIX-model 共通):
+> - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
+> - **実装計画**: 記載項目をどう埋めるかの計画
+
