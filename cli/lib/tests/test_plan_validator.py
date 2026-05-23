@@ -43,11 +43,11 @@ def _assert_no_warn(stderr: str) -> None:
 
 
 def _base_frontmatter(created_at: str) -> dict[str, object]:
-    # 新 15 工程 (L0-L14): kind=impl は process_layer=L7 + parent_design 必須。
+    # V2 完全移行 (2026-05-24): plan_id は新形式 L<NN>-<slug>plan、kind=impl は process_layer=L7 必須。
     # parent_design は repo root 起点で存在確認されるため、実在 file を指す。
     return {
-        "plan_id": "PLAN-123-valid",
-        "title": "Valid Plan",
+        "plan_id": "L7-base-test-featureplan",
+        "title": "Base Test Plan",
         "kind": "impl",
         "layer": "L7",
         "drive": "be",
@@ -190,16 +190,16 @@ def test_cycle_detection_no_cycle(tmp_path: Path) -> None:
     plan_a = _base_frontmatter(created_at)
     plan_b = _base_frontmatter(created_at)
     plan_c = _base_frontmatter(created_at)
-    plan_a["plan_id"] = "PLAN-301-a"
-    plan_b["plan_id"] = "PLAN-302-b"
-    plan_c["plan_id"] = "PLAN-303-c"
-    plan_a["dependencies"] = {"parent": None, "requires": ["PLAN-302-b"], "blocks": []}
-    plan_b["dependencies"] = {"parent": None, "requires": ["PLAN-303-c"], "blocks": []}
+    plan_a["plan_id"] = "L7-301-aplan"
+    plan_b["plan_id"] = "L7-302-bplan"
+    plan_c["plan_id"] = "L7-303-cplan"
+    plan_a["dependencies"] = {"parent": None, "requires": ["L7-302-bplan"], "blocks": []}
+    plan_b["dependencies"] = {"parent": None, "requires": ["L7-303-cplan"], "blocks": []}
     plan_c["dependencies"] = {"parent": None, "requires": [], "blocks": []}
 
-    path_a = _write_plan(tmp_path / "PLAN-301-a.md", plan_a)
-    _write_plan(tmp_path / "PLAN-302-b.md", plan_b)
-    _write_plan(tmp_path / "PLAN-303-c.md", plan_c)
+    path_a = _write_plan(tmp_path / "L7-301-aplan.md", plan_a)
+    _write_plan(tmp_path / "L7-302-bplan.md", plan_b)
+    _write_plan(tmp_path / "L7-303-cplan.md", plan_c)
 
     result = _run_validator(path_a)
 
@@ -254,7 +254,8 @@ def test_cycle_detection_3node(tmp_path: Path) -> None:
 
 def test_cycle_detection_self_edge(tmp_path: Path) -> None:
     frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
-    frontmatter["dependencies"] = {"parent": None, "requires": ["PLAN-123-valid"], "blocks": []}
+    # self-edge: requires に自身の plan_id (L7-base-test-featureplan) を入れる
+    frontmatter["dependencies"] = {"parent": None, "requires": ["L7-base-test-featureplan"], "blocks": []}
     path = _write_plan(tmp_path / "PLAN-123-self-edge.md", frontmatter)
 
     result = _run_validator(path)

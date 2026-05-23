@@ -261,17 +261,23 @@ def run_check_plan_adr_snapshot(conn: sqlite3.Connection) -> list[dict[str, Any]
 def run_check_process_layer(conn: sqlite3.Connection | None = None) -> list[dict[str, Any]]:
     """新 15 工程契約: kind=impl は process_layer=L7 必須 (warn-only P1)。
 
+    V2 完全移行 (2026-05-24): V1 legacy PLAN (is_reference: true) は check 対象外。
+    L<NN>-<slug>plan 形式 (V2) のみ製本対象。
     frontmatter 直接 parse 方式 (plan_registry schema 拡張不要)。
-    docs/v2/process/L07-implementation-sprint.md 参照。
     """
     plans_dir = _project_root() / "docs" / "plans"
     if not plans_dir.exists():
         return []
 
     results: list[dict[str, Any]] = []
-    for plan_path in sorted(plans_dir.glob("PLAN-*.md")):
+    # PLAN-* (V1 legacy) + L*plan (V2) の両方を scan
+    plan_files = list(plans_dir.glob("PLAN-*.md")) + list(plans_dir.glob("L*plan.md"))
+    for plan_path in sorted(set(plan_files)):
         frontmatter = plan_parser.parse_frontmatter(str(plan_path))
         if not frontmatter:
+            continue
+        # V1 legacy reference は skip (V2 製本対象外)
+        if frontmatter.get("is_reference") is True:
             continue
         plan_id = str(frontmatter.get("plan_id") or plan_path.stem)
         kind = str(frontmatter.get("kind") or "")
@@ -306,6 +312,7 @@ def run_check_process_layer(conn: sqlite3.Connection | None = None) -> list[dict
 def run_check_parent_design_existence(conn: sqlite3.Connection | None = None) -> list[dict[str, Any]]:
     """新 15 工程契約: kind=impl は parent_design 必須 + path 存在確認 (warn-only P1)。
 
+    V2 完全移行 (2026-05-24): V1 legacy PLAN (is_reference: true) は check 対象外。
     parent_design は L6 機能設計 doc を指す (V-model L6↔L7 pair freeze)。
     """
     plans_dir = _project_root() / "docs" / "plans"
@@ -313,9 +320,12 @@ def run_check_parent_design_existence(conn: sqlite3.Connection | None = None) ->
         return []
 
     results: list[dict[str, Any]] = []
-    for plan_path in sorted(plans_dir.glob("PLAN-*.md")):
+    plan_files = list(plans_dir.glob("PLAN-*.md")) + list(plans_dir.glob("L*plan.md"))
+    for plan_path in sorted(set(plan_files)):
         frontmatter = plan_parser.parse_frontmatter(str(plan_path))
         if not frontmatter:
+            continue
+        if frontmatter.get("is_reference") is True:
             continue
         plan_id = str(frontmatter.get("plan_id") or plan_path.stem)
         kind = str(frontmatter.get("kind") or "")

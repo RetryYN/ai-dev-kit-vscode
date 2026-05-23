@@ -22,6 +22,18 @@ VALID_KINDS = {
     "add-design",
     "add-impl",
     "recovery",
+    # 新 V2 完全移行 (2026-05-24): HELIX-model 工程別 kind
+    "planning",
+    "requirements",
+    "ui-design",
+    "basic-design",
+    "detailed-design",
+    "function-design",
+    "test",
+    "ux-refinement",
+    "review",
+    "deployment",
+    "operation",
 }
 VALID_LAYERS = {
     "L0",
@@ -104,7 +116,12 @@ REQUIRED_FIELDS = (
     "generates",
     "dependencies",
 )
-PLAN_ID_RE = re.compile(r"^PLAN-(?:\d{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?|MM-\d{3})$")
+# V1 (legacy): PLAN-NNN / PLAN-NNN-slug / PLAN-MM-NNN
+V1_PLAN_ID_RE = re.compile(r"^PLAN-(?:\d{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?|MM-\d{3})$")
+# V2 (新、HELIX-model 正本): L<NN>-<slug>plan (例: L0-企画書plan / L7-helix-workspace-mergeplan)
+V2_PLAN_ID_RE = re.compile(r"^L(?:[0-9]|1[0-4])-[^\s]+plan$")
+# 後方互換: 既存テストや CLI から参照される PLAN_ID_RE は V1 形式のまま (旧仕様維持)。
+PLAN_ID_RE = V1_PLAN_ID_RE
 ROLE_HEADER_RE = re.compile(r"^\|\s*ロール\s*\|\s*model\s*\|", re.IGNORECASE)
 
 
@@ -178,6 +195,17 @@ def _string_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _classify_plan_format(plan_id: str | None) -> str:
+    """plan_id を V1 / V2 / unknown に分類 (V2 完全移行、2026-05-24)."""
+    if plan_id is None:
+        return "missing"
+    if V2_PLAN_ID_RE.fullmatch(plan_id):
+        return "v2"
+    if V1_PLAN_ID_RE.fullmatch(plan_id):
+        return "v1"
+    return "unknown"
+
+
 def role_map_path() -> Path:
     return Path(__file__).resolve().parents[1] / "ROLE_MAP.md"
 
@@ -243,8 +271,30 @@ def validate_plan(path: Path) -> list[str]:
         if field not in frontmatter.raw:
             warn(plan_ref, field, "missing required field", warnings)
 
-    if frontmatter.plan_id is not None and not PLAN_ID_RE.fullmatch(frontmatter.plan_id):
-        warn(plan_ref, "plan_id", "expected PLAN-NNN, PLAN-NNN-slug, or PLAN-MM-NNN", warnings)
+    # V2 完全移行 (2026-05-24): plan_id format で V1 (legacy) / V2 を判定。
+    # V2 製本対象は V2 format のみ。V1 (PLAN-NNN-slug) は legacy 参考扱い → 厳格検証は skip。
+    is_reference = bool(frontmatter.raw.get("is_reference"))
+    plan_format = _classify_plan_format(frontmatter.plan_id)
+    if frontmatter.plan_id is not None and plan_format == "unknown":
+        warn(
+            plan_ref,
+            "plan_id",
+            "expected V2 format 'L<NN>-<slug>plan' or V1 legacy 'PLAN-NNN[-slug]'",
+            warnings,
+        )
+
+    if plan_format == "v1" and not is_reference:
+        warn(
+            plan_ref,
+            "plan_id",
+            "V1 (legacy) PLAN must declare is_reference: true (V2 製本対象外、書き直し前提)",
+            warnings,
+        )
+
+    # V1 legacy reference の扱い (V2 完全移行、2026-05-24):
+    #   - V2 専用 field (process_layer / parent_design / pairs_test_design) の検証 skip
+    #   - cycle / reciprocal / agent_slots / generates の検証は走らせる (循環参照などは legacy でも検出すべき)
+    skip_v2_strict = is_reference and plan_format == "v1"
 
     if frontmatter.kind is not None and frontmatter.kind not in VALID_KINDS:
         warn(frontmatter.plan_id or plan_ref, "kind", f"unsupported value: {frontmatter.kind}", warnings)
@@ -279,7 +329,8 @@ def validate_plan(path: Path) -> list[str]:
     validate_agent_slots(plan_ref, frontmatter.agent_slots, valid_roles, warnings)
     validate_generates(plan_ref, frontmatter.generates, warnings)
     validate_dependencies(path, frontmatter, warnings)
-    validate_process_layer(path, frontmatter, warnings)
+    if not skip_v2_strict:
+        validate_process_layer(path, frontmatter, warnings)
 
     return warnings
 
