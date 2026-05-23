@@ -298,6 +298,7 @@ def test_exec_in_workspace_injects_helix_workspace_env_vars(tmp_path: Path, monk
     assert env["HELIX_WORKSPACE_TASK_ID"] == "PLAN-ENV"
     assert env["HELIX_WORKSPACE_PATH"] == str(workspace_path)
     assert env["HELIX_WORKSPACE_BRANCH"] == "workspace/PLAN-ENV"
+    assert env["HELIX_PROJECT_ROOT"] == str(workspace_path)
     assert env["EXTRA_FLAG"] == "1"
 
 
@@ -555,3 +556,54 @@ def test_inject_helix_workspace_env_vars_preserves_os_environment(monkeypatch: p
     assert env["HELIX_WORKSPACE_TASK_ID"] == "PLAN-156"
     assert env["HELIX_WORKSPACE_BRANCH"] == "workspace/PLAN-156"
     assert env["EXTRA_FLAG"] == "1"
+    assert env["HELIX_PROJECT_ROOT"] == str(tmp_path / "workspace")
+
+
+def test_inject_helix_workspace_env_vars_overrides_parent_helix_project_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """PLAN-224 Sprint .1: workspace exec で起動した helix CLI が main lock_dir
+    を見ないよう、HELIX_PROJECT_ROOT が必ず workspace_path で override されること。
+    """
+    main_root = tmp_path / "main_repo"
+    workspace_path = tmp_path / "workspaces" / "PLAN-X"
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(main_root))
+
+    env = _inject_helix_workspace_env_vars(
+        "PLAN-X",
+        workspace_path,
+        "workspace/PLAN-X",
+    )
+
+    assert env["HELIX_PROJECT_ROOT"] == str(workspace_path)
+    assert env["HELIX_PROJECT_ROOT"] != str(main_root)
+
+
+def test_inject_helix_workspace_env_vars_overrides_db_path_dir_project_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """PLAN-224 Sprint .1 tl-advisor P0-2: HELIX_DB_PATH / HELIX_DIR / PROJECT_ROOT
+    全てを workspace 側に override し、helix_db.resolve_default_db_path() の
+    resolution 順序を踏まえても main DB を見ない保証。
+    """
+    main_root = tmp_path / "main_repo"
+    workspace_path = tmp_path / "workspaces" / "PLAN-Y"
+
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(main_root))
+    monkeypatch.setenv("PROJECT_ROOT", str(main_root))
+    monkeypatch.setenv("HELIX_DIR", str(main_root / ".helix"))
+    monkeypatch.setenv("HELIX_DB_PATH", str(main_root / ".helix" / "helix.db"))
+
+    env = _inject_helix_workspace_env_vars(
+        "PLAN-Y",
+        workspace_path,
+        "workspace/PLAN-Y",
+    )
+
+    assert env["HELIX_PROJECT_ROOT"] == str(workspace_path)
+    assert env["PROJECT_ROOT"] == str(workspace_path)
+    assert env["HELIX_DIR"] == str(workspace_path / ".helix")
+    assert env["HELIX_DB_PATH"] == str(workspace_path / ".helix" / "helix.db")
+    # main 側 path が一切 残っていないこと
+    for value in env.values():
+        assert str(main_root) not in str(value), f"main root leaked into env: {value}"

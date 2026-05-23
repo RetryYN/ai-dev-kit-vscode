@@ -97,6 +97,40 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 - **mount-bind readonly**: `mount --bind src dst` + `mount -o remount,ro dst` で部分的 readonly mount 可
 - **本 PLAN への含意**: AC-6 採用なら symlink + `chattr +i` または bind mount readonly の組み合わせで「真 immutable 保証 + 再現性担保」可能。ただし HELIX は CLI ツール (sudo / container 前提なし)、bind mount は root 権限要 → 採用ハードル高い
 
+## tl-advisor adversarial check 受領 (Sprint .1 完遂、2026-05-24、btlj2b0nk)
+
+**判定**: **changes_required** (P0 ×2 + P1 ×3 + P2 ×3 + P3 ×2)
+
+### P0 指摘 (passing block、本 Sprint .1 内で全 satisfy)
+
+| # | 指摘 | 修正状況 |
+|---|---|---|
+| P0-1 | `git diff --binary <workspace_branch> <main_ref>` は **diff 方向が逆** で workspace 変更を main に取り込む patch にならない。さらに branch ref 同士の diff だと未 commit working tree 変更を取り込めない | ✓ **修正済**: Sprint .2 仕様を `git -C <workspace_path> diff --binary --full-index <base_sha>` (workspace working tree + base_sha 起点) に変更。`target_ref` が base_sha から進んでいる場合は初版 abort、`--3way` は明示 opt-in |
+| P0-2 | env isolation が `HELIX_PROJECT_ROOT` だけでは不足。`HELIX_DB_PATH` が親 process から継承されると `resolve_default_db_path()` (resolution 順序: HELIX_DB_PATH → HELIX_PROJECT_ROOT → HELIX_DIR → cwd) で main DB 参照のまま | ✓ **hot fix 完了 (本 Sprint .1 commit)**: `_inject_helix_workspace_env_vars` で `HELIX_PROJECT_ROOT` / `PROJECT_ROOT` / `HELIX_DIR` / `HELIX_DB_PATH` を全て workspace 側に明示 override。test 2 case 追加 (overrides_parent / overrides_db_path_dir_project_root) で fail-close 保証 |
+
+### P1 指摘 (Sprint .2-.5 着手前に修正、本 PLAN §Sprint .2-.3 仕様に反映)
+
+| # | 指摘 | 反映状況 |
+|---|---|---|
+| P1-1 | `--no-abort-on-dirty` は復旧不能な責務境界を作る、初版から削除 | ✓ Sprint .2 仕様から `--no-abort-on-dirty` 削除、main dirty は **無条件 abort**。必要なら `--export-patch-only` 等の限定 mode を Phase 3 で検討 |
+| P1-2 | untracked file の契約曖昧、`git diff` だけでは untracked が入らず新規 file が静かに欠落 | ✓ Sprint .2 仕様: workspace に untracked file ある場合 **abort + 一覧表示** を default 動作にする。untracked tar/patch 取り込みは Phase 3 別 PLAN |
+| P1-3 | Layer 3 test の判定基準が弱い、`exit 0 + 競合ログ 0` だけでは WAL unfair lock 検出困難 | ✓ Sprint .3 仕様: 2 workspace で短時間 lock hold + DB write を **20-50 loop 実行**、`database is locked` / `lock not acquired` / `stale_lock_released` を stderr/stdout から fail 判定 |
+
+### P2 指摘 (Phase 2 完遂までに対応、本 PLAN §Sprint .2-.4 仕様に反映)
+
+| # | 指摘 | 反映状況 |
+|---|---|---|
+| P2-1 | merge corner case (rename / symlink / file mode / submodule) を別 fixture に、submodule は初版 unsupported abort 推奨 | ✓ Sprint .3 test に `rename / chmod / symlink / binary / submodule` 5 fixture を独立で配置、submodule は明示 `WorkspaceMergeSubmoduleNotSupportedError` で abort |
+| P2-2 | 「真 immutable」境界が弱い、`.helix/templates/` も main 側更新が workspace に見えた時点で snapshot 性破壊 | ✓ Sprint .4 AC-6 採用条件を「content-addressed / hash pinned / readonly enforcement 可能」まで引き上げ。事実上 **Phase 2 不採用判定 寄り**、Phase 3 で reflink/CoW 検出に再検討 |
+| P2-3 | `git apply --3way` 自動既定は partial/conflict state を main に残すリスク | ✓ Sprint .2 仕様: default は `--check` fail-closed + conflict patch 保存。`--3way` は **明示 opt-in flag** または temp worktree mode のみ |
+
+### P3 指摘 (Phase 3 以降検討、本 PLAN 範囲外)
+
+| # | 指摘 | 対応 |
+|---|---|---|
+| P3-1 | 将来 workspace merge は `git merge --no-commit --no-ff workspace_branch` を temp worktree で検証する方が git 標準寄り | Phase 3 検討 (PLAN-225+) |
+| P3-2 | AC-6 再検討時は symlink ではなく reflink/CoW 検出を Phase 3 最適化テーマに | Phase 3 検討 |
+
 ### Q3: `parallel test isolation sqlite WAL lock contention multiple workspaces 2026`
 
 主な findings (Sources: [sqlite.org WAL](https://sqlite.org/wal.html) / [sqlite.org locking v3](https://sqlite.org/lockingv3.html) / [tenthousandmeters concurrent writes](https://tenthousandmeters.com/blog/sqlite-concurrent-writes-and-database-is-locked-errors/) / [gauravsarma 2026-05](https://gauravsarma.com/posts/2026-05-12_where-sqlite-gives-up)):
@@ -151,14 +185,16 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 
 **担当**: Codex SE
 
-**作業**:
+**※ tl-advisor adversarial check (P0-1 / P1-1 / P1-2 / P2-1 / P2-3) 反映後の正本仕様**:
 
-1. `WorkspaceManager.merge(task_id, *, target_ref="main", abort_on_dirty=True)`:
-   - main repo の `git status --porcelain` 確認 (dirty なら abort)
-   - workspace branch HEAD と main の `git diff --binary` 生成
-   - `git apply --check` で preflight
-   - PASS なら main workspace に apply、registry status を `merged` に遷移
+1. `WorkspaceManager.merge(task_id, *, target_ref="main", three_way=False)`:
+   - main repo の `git status --porcelain` 確認 (**non-empty なら無条件 abort**、`--no-abort-on-dirty` 廃止)
+   - workspace の **untracked file** 確認 (`git -C <workspace_path> ls-files --others --exclude-standard`)、存在すれば **abort + 一覧表示**
+   - workspace working tree + base_sha 起点で patch 生成: `git -C <workspace_path> diff --binary --full-index <base_sha> > /tmp/<task>-merge.patch` (**P0-1 反映、方向は workspace→main**)
+   - `target_ref` が `base_sha` から進んでいる場合は **初版 abort** (rebase は manual 要求)、`three_way=True` 明示時のみ `git apply --3way` 経路に分岐
+   - `git apply --check` で preflight、PASS なら main workspace に apply、registry status を `merged` に遷移
    - FAIL なら conflict patch を trash に保存、WorkspaceMergeConflictError raise
+   - submodule 検出時は `WorkspaceMergeSubmoduleNotSupportedError` で abort (P2-1)
 2. `helix workspace merge --task PLAN-X [--target-ref main] [--no-abort-on-dirty]` の workspace_cli.py 分岐実装
 3. `cli/helix-workspace` help text に `merge` 追記
 4. 新 exception class `WorkspaceMergeConflictError` (WorkspaceManager) + main dirty error class
@@ -182,7 +218,8 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 2. `cli/lib/tests/test_workspace_parallel.py` 新規 (Layer 3 検証):
    - 2 workspace 同時 create (subprocess.Popen × 2、両 join 待ち)
    - 各 workspace 内で同時 exec (Codex 委譲不要、軽量 bash command で十分)
-   - 両者 exit 0 + lock 競合 0 確認
+   - **stress loop** (tl-advisor P1-3 反映): 2 workspace で **短時間 lock hold + DB write を 20-50 loop 実行**、stderr/stdout から `database is locked` / `lock not acquired` / `stale_lock_released` を grep して **0 件 fail 判定**
+   - 5 種 corner case fixture (rename / chmod / symlink / binary / submodule、tl-advisor P2-1 反映) を merge test に独立配置、submodule は `WorkspaceMergeSubmoduleNotSupportedError` を assert
 3. Layer 3 E2E 実機:
    - `./cli/helix workspace create --task PLAN-224-LAYER3-A & ./cli/helix workspace create --task PLAN-224-LAYER3-B & wait`
    - 並列 exec で互いに干渉しないことを実機確認
@@ -202,9 +239,9 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 **作業**:
 
 1. Sprint .1 で確定した判定基準と実測 (filtered copy cost、再現性影響、symlink readonly 担保性) を比較
-2. 判定:
-   - **採用** → ADR-041-helix-workspace-symlink-snapshot 起票 (Accepted with conditions、本 PLAN Sprint .4 完了で Accepted)
-   - **不採用** → ADR-040 §AC-6 を「Phase 2 でも見送り (理由: filtered copy で数 KB 範囲、symlink readonly 担保が OS 依存で再現性低下)」と更新
+2. 判定 (**tl-advisor P2-2 反映で採用条件を厳格化**):
+   - **採用** → 採用条件 = 「content-addressed / hash pinned / readonly enforcement 可能」全 satisfy。ADR-041-helix-workspace-symlink-snapshot 起票 (Accepted with conditions、本 PLAN Sprint .4 完了で Accepted)
+   - **不採用 (本 PLAN 起票時点の推奨判定)** → ADR-040 §AC-6 を「Phase 2 でも見送り (理由: HELIX は CLI ツールで chattr/bind mount/readonly enforcement 不可、filtered copy 数 KB-MB で十分、symlink 化は main 側更新が workspace に見えて snapshot 性破壊リスク)」と更新。Phase 3 で reflink/CoW 検出に再検討 (P3-2)
 3. ADR-040 §AC-5/D8 履歴に Layer 3 結果 (PASS / FAIL) 反映
 4. ADR-040 Status History に Phase 2 完遂記録追記 (本 commit 紐付け)
 

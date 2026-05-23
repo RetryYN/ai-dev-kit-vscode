@@ -118,13 +118,35 @@ def _inject_helix_workspace_env_vars(
     *,
     extra_env: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Return env with HELIX workspace metadata injected for subprocess use."""
+    """Return env with HELIX workspace metadata injected for subprocess use.
+
+    HELIX_PROJECT_ROOT / HELIX_DB_PATH / HELIX_DIR / PROJECT_ROOT を workspace
+    side に明示上書きする。PLAN-224 Sprint .1 tl-advisor adversarial check で
+    確認: 親 process の HELIX_PROJECT_ROOT を上書きするだけでは不足で、
+    helix_db.resolve_default_db_path() の resolution 順序が
+
+        1. HELIX_DB_PATH (env)
+        2. HELIX_PROJECT_ROOT / PROJECT_ROOT (env)
+        3. HELIX_DIR (env)
+        4. cwd
+
+    のため、HELIX_DB_PATH が親から継承されたままだと workspace 内 helix CLI が
+    main の helix.db を read/write してしまう (ADR-040 D3 違反)。同様に
+    concurrent_lock._resolve_lock_dir() は HELIX_PROJECT_ROOT を見るので、
+    PROJECT_ROOT/HELIX_DIR も含めて workspace 配下に固定する。
+    """
+    workspace_helix_dir = workspace_path / ".helix"
+    workspace_db_path = workspace_helix_dir / "helix.db"
     env = os.environ.copy()
     env.update(
         {
             "HELIX_WORKSPACE_TASK_ID": task_id,
             "HELIX_WORKSPACE_PATH": str(workspace_path),
             "HELIX_WORKSPACE_BRANCH": branch,
+            "HELIX_PROJECT_ROOT": str(workspace_path),
+            "PROJECT_ROOT": str(workspace_path),
+            "HELIX_DIR": str(workspace_helix_dir),
+            "HELIX_DB_PATH": str(workspace_db_path),
         }
     )
     if extra_env:
