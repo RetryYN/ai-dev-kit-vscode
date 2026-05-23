@@ -2,6 +2,7 @@
 plan_id: PLAN-023
 title: "PLAN-023: skill 推挙パイプライン 残課題 3 件解消 (effort 伝搬 + sessions hit_rate + policy 誤判定)"
 status: completed
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
 parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 size: M

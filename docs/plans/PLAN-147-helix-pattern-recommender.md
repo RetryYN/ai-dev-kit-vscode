@@ -2,6 +2,7 @@
 plan_id: PLAN-147
 title: "helix pattern recommender — recipe deprecated 後継 (session 横断 pattern 認識 + 再現提案)"
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 kind: design
 drive: be
 layer: L3

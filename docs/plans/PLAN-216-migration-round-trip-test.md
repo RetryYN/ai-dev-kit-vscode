@@ -4,6 +4,7 @@ title: "PLAN-216: helix.db migration round-trip test framework v2 (up/down/verif
 layer: L4
 kind: impl
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
 parent_design: docs/plans/PLAN-132-helix-db-migration-test-framework.md   # from dependencies.parent
 size: M

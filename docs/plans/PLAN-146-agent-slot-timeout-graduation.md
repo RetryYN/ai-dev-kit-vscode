@@ -5,6 +5,7 @@ kind: refactor
 layer: L4
 drive: be
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: S
 created: "2026-05-23"
 owner: PM

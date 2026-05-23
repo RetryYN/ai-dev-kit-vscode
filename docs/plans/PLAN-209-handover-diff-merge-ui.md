@@ -5,6 +5,7 @@ kind: impl
 layer: L4
 drive: fe
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
 parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 created: 2026-05-23

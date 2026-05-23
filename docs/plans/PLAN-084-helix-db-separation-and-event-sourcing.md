@@ -5,6 +5,7 @@ kind: design
 layer: L2
 drive: db
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: L
 created: 2026-05-17
 revised: "2026-05-17 (tl-advisor Round 2 反映: 全 matrix 本文埋め込み + Phase 4 3 sprint 分割)"

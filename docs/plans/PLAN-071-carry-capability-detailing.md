@@ -4,6 +4,7 @@ title: "PLAN-071: PLAN-070 carry capability detail 化"
 kind: add-impl
 layer: L3
 status: frozen
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 gate_status: G3_complete
 size: M
 drive: fullstack

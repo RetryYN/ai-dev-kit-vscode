@@ -5,6 +5,7 @@ kind: research
 layer: cross
 drive: be
 status: completed
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 created: 2026-05-11
 completed: 2026-05-11
 author: "PM (Opus)"

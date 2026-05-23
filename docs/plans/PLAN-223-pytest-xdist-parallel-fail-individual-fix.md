@@ -4,6 +4,7 @@ title: "PLAN-223: pytest-xdist 並列下 fail 32 件の個別 test fix (PLAN-102
 layer: L4
 kind: impl
 status: completed
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
 parent_design: docs/plans/PLAN-102-pytest-xdist-parallel-isolation.md   # from dependencies.parent
 completed_at: 2026-05-23

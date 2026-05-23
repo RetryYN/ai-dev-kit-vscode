@@ -4,6 +4,7 @@ title: "PLAN-125: V2 CONCEPT.md V5 framework retrofit 完遂"
 layer: cross
 kind: retrofit
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: M
 drive: be
 created: 2026-05-23

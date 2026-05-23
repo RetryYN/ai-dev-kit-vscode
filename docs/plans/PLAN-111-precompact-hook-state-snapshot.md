@@ -2,6 +2,7 @@
 plan_id: PLAN-111
 title: PreCompact hook 実装 (V5 Layer 3、auto-compact 前 state 永続化)
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
 parent_design: docs/plans/PLAN-099-autonomous-runtime-framework-5layer.md   # from dependencies.parent
 kind: impl

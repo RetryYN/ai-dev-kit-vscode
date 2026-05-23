@@ -4,6 +4,7 @@ title: "PLAN-MM-001: V5 framework 親設計プラン (V5 全体構想 + 子 PLAN
 layer: L2
 kind: design
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: L
 drive: be
 created: 2026-05-20

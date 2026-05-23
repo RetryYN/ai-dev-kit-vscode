@@ -2,6 +2,7 @@
 plan_id: PLAN-156
 title: helix workspace isolation (git worktree ベース per-task 書き込み可能 sandbox)
 status: complete
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 kind: impl
 drive: be
 layer: L4

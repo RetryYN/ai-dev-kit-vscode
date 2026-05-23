@@ -2,6 +2,7 @@
 plan_id: PLAN-103
 title: "FR-V5-19/20/MK01/MK02 Acceptance Criteria 確定 + 実装 hint 提示"
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 kind: design
 drive: be
 layer: L1

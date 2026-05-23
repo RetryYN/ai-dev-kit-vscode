@@ -4,6 +4,7 @@ title: "PLAN-126: V2 L1-REQUIREMENTS FR-V5 全項目 P0/P1/P2 整理"
 layer: L1
 kind: retrofit
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: M
 drive: be
 created: 2026-05-23

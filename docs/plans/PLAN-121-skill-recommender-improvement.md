@@ -2,6 +2,7 @@
 plan_id: PLAN-121
 title: "skill recommender improvement (gpt-5.4-mini prompt tuning + cache TTL 拡張)"
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 kind: refactor
 drive: be
 layer: L4

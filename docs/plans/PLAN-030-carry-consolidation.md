@@ -5,6 +5,7 @@ kind: troubleshoot
 layer: L4
 drive: be
 status: completed
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 大局判断・finalize"

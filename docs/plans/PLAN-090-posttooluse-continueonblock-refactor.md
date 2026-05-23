@@ -5,6 +5,7 @@ kind: refactor
 layer: L4
 drive: be
 status: Draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 created: 2026-05-19
 owner: PM
 agent_slots:

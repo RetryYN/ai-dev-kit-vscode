@@ -4,6 +4,7 @@ title: "PLAN-127: V2 L2-MASTER PLAN ↔ ADR 双方向 trace 完遂"
 layer: L2
 kind: retrofit
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: M
 drive: be
 created: 2026-05-23

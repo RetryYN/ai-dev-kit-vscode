@@ -4,6 +4,7 @@ title: "PLAN-070: L3 詳細設計 (D-API / D-DB / D-CONTRACT) Phase C 着手"
 kind: design
 layer: L3
 status: frozen
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: L
 drive: fullstack
 created: 2026-05-16

@@ -2,6 +2,7 @@
 plan_id: PLAN-105
 title: "drift audit 結果反映 (CLAUDE.md / SKILL_MAP / HELIX_CORE / CODEX_TL_MODE)"
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 kind: retrofit
 drive: be
 layer: cross

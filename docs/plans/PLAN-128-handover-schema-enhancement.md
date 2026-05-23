@@ -4,6 +4,7 @@ title: "PLAN-128: handover protocol improvement (CURRENT.json schema 強化)"
 layer: L4
 kind: refactor
 status: draft
+is_reference: true   # V2 完全移行 (2026-05-24): 旧 V1 PLAN 参考扱い、製本にしない (commit ea846ea)
 size: M
 drive: be
 created: 2026-05-23
