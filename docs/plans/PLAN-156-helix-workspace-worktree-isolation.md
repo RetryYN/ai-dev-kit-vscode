@@ -96,87 +96,121 @@ git worktree を使った per-task workspace isolation で、各タスクが
 本 PLAN は新 framework 採用判断 (git worktree ベース isolation) を含むため、
 WebSearch 3 query 必須 (PLAN-087 ガード)。
 
-実施予定 query (Sprint .1 前に pmo-tech-fork が実施):
+**実施済 (2026-05-23、Opus 直接)**:
 
-1. `git worktree sandbox isolation CI 2026` — worktree を sandbox として使う事例
-2. `helix workspace per-task sqlite isolation pattern` — SQLite isolation パターン
-3. `git worktree .helix copy strategy side-by-side workspace` — .helix/ コピー戦略の実例
+1. `git worktree sandbox isolation CI parallel tasks 2026` → 2026 mid で 4-8 worktree/dev 標準、Claude Code 組込 `--worktree`、JetBrains 2026.1 / VS Code 2025.7 対応。worktree は file isolation のみ、ports/db/caches は別途必要
+2. `SQLite per-process isolation pattern WAL mode concurrent workspace 2026` → WAL mode + cross-process Docker volume sharing 可能、database-per-tenant pattern 標準、snapshot isolation
+3. `git worktree side-by-side workspace copy strategy AI agent isolation` → 完全 isolated working dir + shared .git 標準、pnpm + Git Worktrees 統合 pattern、shared task document pattern が agent 間 coordination 推奨
 
-WebSearch 結果は ADR-040 §evidence に記録し、採用根拠とする。
+WebSearch 結果は **ADR-040 §Context** に転記済 (採用根拠)。
 
-## 設計方針
+## 設計方針 (ADR-040 で確定、tl-advisor adversarial check P0/P1 反映済)
 
-### workspace lifecycle
+**変更点 (元の設計方針からの差分)**: workspace 配置先 / コピー戦略 / merge 責務 / API 命名 / drop fail-safe を tl-advisor 指摘で全面修正。詳細は [ADR-040](../adr/ADR-040-helix-workspace-isolation.md) §Decision (D1-D9) 参照。
 
-```
-helix workspace create --task PLAN-X [--branch workspace/PLAN-X]
-  → git worktree add .helix/workspaces/PLAN-X <branch>
-  → .helix/ を workspace ディレクトリに deep copy (helix.db は空 init)
-  → workspace.yaml に task_id / created_at / base_sha を記録
-
-helix workspace list
-  → .helix/workspaces/ の workspace.yaml 一覧を表示
-
-helix workspace merge --task PLAN-X [--strategy patch|rsync]
-  → workspace の変更差分を main workspace に適用
-  → ADR-040 で確定した merge 戦略を使用
-
-helix workspace delete --task PLAN-X
-  → git worktree remove .helix/workspaces/PLAN-X --force
-  → workspace.yaml の entry を削除
-```
-
-### .helix/ コピー戦略 (ADR-040 で確定)
-
-候補:
-
-- **A: deep copy** (推奨): `.helix/` を workspace に全コピー、helix.db は空 init
-  - pros: 完全 isolation、phase.yaml 等の読み取りも可能
-  - cons: .helix/ サイズ次第でコピーコスト
-- **B: symlink**: 読み取り専用 file を symlink、db のみ workspace に配置
-  - pros: コスト低
-  - cons: symlink 先変更が workspace に影響するリスク
-- **C: empty init**: workspace は新規 `.helix/` を `helix init --minimal` で作成
-  - pros: 最軽量
-  - cons: phase.yaml 等の状態が引き継がれない
-
-Sprint .2 で tl-advisor + dba に確認して ADR-040 で凍結する。
-
-### helix.db isolation
-
-workspace の `.helix/helix.db` は main の helix.db から独立した空 db として初期化する。
-main db の read が必要なコマンド (helix plan status 等) は workspace 内で動作させるか、
-`--db` フラグで main db を read-only 参照させる設計を採用 (ADR-040 で確定)。
-
-### Codex 委譲との統合
+### workspace lifecycle (D1: 配置先 + D5: API 命名統一)
 
 ```bash
-# Codex を workspace 内で実行する場合
+# workspace 配置先 = ~/.helix/workspaces/<repo>/<task>/ (HOME 配下、main runtime と物理分離)
+helix workspace create --task PLAN-X [--branch workspace/PLAN-X] [--base main]
+  → git worktree add -b workspace/PLAN-X ~/.helix/workspaces/<repo>/PLAN-X <base>
+  → .helix/ を filtered materialized init (D2)、helix.db は空 init
+  → workspace_state_snapshot.json を生成 (D3)
+  → .helix/workspaces/<task>.yaml に registry entry (main 配下、metadata only)
+
+helix workspace list [--status active|merged|dropped]
+  → registry yaml の一覧表示
+
+helix workspace exec --task PLAN-X "<command>"
+  → workspace dir に cwd 切替 + command 実行
+
+helix workspace preflight --task PLAN-X
+  → main dirty / orphan worktree / branch divergence の事前検出
+
+helix workspace drop --task PLAN-X [--force]
+  → default は未 merge 変更あれば abort、--force でも事前 bundle + untracked tar を退避
+
+helix workspace prune [--dry-run]
+  → orphan worktree (.git/worktrees/ 残骸) の cleanup
+
+# MVP scope 外 (Phase 2 / 別 PLAN-163)
+# helix workspace merge   ← 標準 git flow (workspace branch → PR) を MVP では使う
+```
+
+### .helix/ コピー戦略 = D: filtered materialized init (D2)
+
+**実測 `.helix/` = 465MB** (audit 422MB + tmp 32MB が 98%)。deep copy は事故的に重く、再帰コピーリスクあり。tl-advisor P0-2 指摘で **filtered materialized init** に確定。
+
+- **allowlist** (workspace に copy): `config/` / `phase.yaml` / `task-plan.yaml` / `templates/`
+- **denylist** (絶対 skip): `tmp/` / `backups/` / `workspaces/` / `audit/runs/` / `*.db-wal` / `*.db-shm` / `logs/` / `cache/`
+- **snapshot json**: `workspace_state_snapshot.json` を workspace 内に生成 (plan_registry / handover / memory feedback の関連 link)
+- **helix.db**: 空 init (`helix init --minimal` 相当、schema migration 全適用)
+
+cost 試算: 数 MB 以内、create は 1-2 秒で完了見込み。
+
+### helix.db isolation (D3: snapshot json + workspace db)
+
+**廃案**: live main DB read-only 参照 (全 CLI コマンドに `--db` routing 実装が広がる、実装複雑度高)
+
+**採用**: `workspace_state_snapshot.json` + workspace 内 `.helix/helix.db` (write 専用):
+
+- `helix plan status` / `helix task list` 等は snapshot json から取得 (workspace 開始時点の state)
+- workspace 内の新規 task / handover update / audit log は workspace `.helix/helix.db` に書く
+- workspace 短命前提 (数時間〜数日) で snapshot stale は許容
+- merge 時に workspace DB の delta を main DB に取り込む (Phase 2 / PLAN-163)
+
+### merge 戦略 (D4: 標準 git flow 採用)
+
+**MVP**: 標準 git flow (`workspace branch → PR → git merge`) を正本にする。`helix workspace merge` は **MVP 範囲外**。
+
+**Phase 2 (PLAN-163)**: `helix workspace merge` を `git diff --binary` preflight + patch apply convenience として実装、main dirty 時 abort。
+
+### Codex 委譲との統合 (D8: E2E kill criteria)
+
+```bash
 helix workspace exec --task PLAN-X \
   "helix codex --role se --task '...' --approved"
 ```
 
-`helix workspace exec` は worktree ディレクトリに cwd を切り替えてから
-コマンドを実行する wrapper。Codex はその cwd の `.helix/helix.db` に書き込む。
+**Sprint .1/.2 の kill criteria に E2E sentinel check 前倒し**:
+```bash
+# workspace 内で実行
+pwd                             # → ~/.helix/workspaces/<repo>/<task>
+git rev-parse --show-toplevel   # → 同上 (workspace root)
+echo "sentinel" > workspace_test  # workspace 内 write 可能
+echo "main_sentinel" > /path/to/main/test  # main に write **不可** が期待
+```
+
+→ `main に write 可能` だった場合、container isolation 案 (Docker / podman) に差戻す (tl-advisor P1-3)。
+
+### drop fail-safe (D7)
+
+`drop` default は abort。`--force` でも事前 `git bundle create` + `tar czf untracked.tar.gz` を `~/.helix/workspace-trash/<task>/<timestamp>/` に退避。
 
 ## 実装計画
 
-### Sprint .1: OSS 調査 + 設計確定 (pmo-tech-fork + Opus)
+### Sprint .1: OSS 調査 + 設計確定 (Opus + tl-advisor) — **完遂 (2026-05-23)**
 
 実施内容:
 
-1. pmo-tech-fork が WebSearch 3 query を実施:
-   - git worktree sandbox isolation 事例収集
-   - SQLite per-process isolation パターン
-   - side-by-side workspace の .helix/ コピー戦略事例
-2. 調査結果を本 PLAN §WebSearch 履歴 に追記
-3. tl-advisor 召喚で worktree ベース設計の adversarial check
-4. ADR-040 起票 (採用根拠 + .helix/ コピー戦略 + merge 戦略 + cleanup fail-safe)
+1. **WebSearch 3 query 完了** (Opus 直接、本 PLAN §WebSearch 履歴 に追記済):
+   - git worktree sandbox isolation CI parallel tasks 2026
+   - SQLite per-process isolation pattern WAL mode concurrent workspace 2026
+   - git worktree side-by-side workspace copy strategy AI agent isolation
+2. **`.helix/` サイズ実測**: 465MB (audit 422MB + tmp 32MB = 98%) → deep copy 不可確定
+3. **tl-advisor 召喚** (helix codex --role tl-advisor、bo0jgiba6):
+   - 判定: **changes_required**、P0 指摘 2 件 + P1 指摘 4 件 + P2 指摘 3 件 + P3 指摘 3 件
+   - P0/P1 指摘は本 ADR で全 satisfy (workspace 配置 / コピー戦略 D / 空 DB → snapshot json / MVP 縮小 / drop fail-safe / Codex sandbox E2E)
+4. **ADR-040 起票** (Accepted with conditions、D1-D9 で設計凍結)
 
-完了条件:
+完了条件 (全 satisfied):
 
-- WebSearch 3 query 完了 + ADR-040 accepted
-- .helix/ コピー戦略が A/B/C から 1 つに確定
+- ✓ WebSearch 3 query 完了
+- ✓ ADR-040 起票 (Accepted with conditions、本 ADR §Acceptance Conditions が AC-1〜6 で残課題明示)
+- ✓ .helix/ コピー戦略確定 (**D: filtered materialized init**、A/B/C は ADR-040 §Alternatives で却下記録)
+- ✓ MVP scope 確定 (Sprint .1-.2 で create/list/exec/preflight/drop-safe、merge は Phase 2)
+
+**Sprint .1 完遂 commit**: 本 commit (PLAN-156 doc 更新 + ADR-040 新規起票)
 
 ### Sprint .2: .helix/ isolation + helix.db 設計 (Codex dba + se)
 
