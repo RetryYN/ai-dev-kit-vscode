@@ -26,13 +26,11 @@ def _validate_name(name: str) -> str:
 def _resolve_lock_dir(lock_dir: Path | None = None) -> Path:
     if lock_dir is not None:
         return Path(lock_dir)
+    # PLAN-104 R-3 fix: HELIX_PROJECT_ROOT が env にあれば cwd 判定なしで
+    # project_root を使う。cwd が project_root の subdirectory / symlink resolve
+    # で外れたとき本番 .helix/locks/helix-db.lock を奪う回帰を防ぐ。
     project_root = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
-    helix_home = os.environ.get("HELIX_HOME", "").strip()
-    if project_root and helix_home:
-        current_dir = Path.cwd().resolve()
-        if current_dir == Path(helix_home).resolve():
-            return Path(project_root) / DEFAULT_LOCK_DIR
-    if project_root and Path.cwd().resolve() == Path(project_root).resolve():
+    if project_root:
         return Path(project_root) / DEFAULT_LOCK_DIR
     return DEFAULT_LOCK_DIR
 

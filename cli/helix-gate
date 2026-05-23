@@ -1476,7 +1476,7 @@ PY
     [[ -z "$incomplete_count" ]] && incomplete_count=0
     if [[ "$incomplete_count" -gt 0 ]]; then
       echo "  WARN [vmodel_lint] incomplete=$incomplete_count PLAN (V-model 4 artifact 不完全、advisory)"
-      grep '^\[⚠\]' "$tmp" | head -5
+      awk '/^\[⚠\]/{n++; if(n<=5)print}' "$tmp"
       detector_warn=$((detector_warn + 1))
     else
       echo "  PASS [vmodel_lint] V-model 4 artifact: 全 non-grandfather PLAN が complete"

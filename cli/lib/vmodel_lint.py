@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -24,8 +25,10 @@ except ImportError:  # pragma: no cover - optional dependency path
 
 
 HELIX_ROOT = Path(__file__).resolve().parents[2]
-PLANS_DIR = HELIX_ROOT / "docs" / "plans"
-DEFERRED_FINDINGS = HELIX_ROOT / ".helix" / "audit" / "deferred-findings.yaml"
+_PROJECT_ROOT_ENV = os.environ.get("HELIX_PROJECT_ROOT", "").strip()
+PROJECT_ROOT = Path(_PROJECT_ROOT_ENV).resolve() if _PROJECT_ROOT_ENV else HELIX_ROOT
+PLANS_DIR = PROJECT_ROOT / "docs" / "plans"
+DEFERRED_FINDINGS = PROJECT_ROOT / ".helix" / "audit" / "deferred-findings.yaml"
 
 PLAN_ID_PATTERN = re.compile(r"\bPLAN-[A-Z0-9]+\b")
 DESIGN_PATTERN = re.compile(r"D-API|D-DB|D-CONCEPT|D-FUNC|docs/v2/L3-detailed-design/")
