@@ -75,15 +75,44 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 
 ## WebSearch 履歴 (PLAN-087 ガード遵守)
 
-本 PLAN は AC-6 symlink 採用判定 (新規 L2 大局判断) を含むため、Sprint .1 で **WebSearch 3 query 必須**:
+本 PLAN は AC-6 symlink 採用判定 (新規 L2 大局判断) を含むため、Sprint .1 で **WebSearch 3 query 必須**。
 
-実施予定 (Sprint .1 entry 時に Opus 直接):
+**実施済 (2026-05-24、Opus 直接)**:
 
-1. `git worktree symlink immutable snapshot pattern 2026` — symlink を immutable snapshot 対象に限定する pattern の妥当性確認
-2. `filesystem symlink readonly mount immutable 2026 best practices` — immutable filesystem 設計の業界 standard
-3. `parallel test isolation sqlite WAL lock contention 2026` — Layer 3 検証時の SQLite WAL mode 振る舞い (PLAN-156 Sprint .1 で実施済の query を補完)
+### Q1: `git worktree symlink immutable snapshot pattern 2026 readonly`
 
-検索結果は ADR-041 起票時 §Context に転記 (採用判定なら)、または ADR-040 §AC-6 履歴に転記 (不採用判定なら)。
+主な findings (Sources: [git-scm.com worktree](https://git-scm.com/docs/git-worktree) / [verdent.ai Codex worktrees](https://www.verdent.ai/guides/codex-app-worktrees-explained) / [gist node_modules symlink](https://gist.github.com/jtsternberg/ea58569dbc7531d51325621e7f5ec1fe)):
+
+- **node_modules を worktree 間で symlink するアンチパターン**: 依存が branch で異なると stale dependency が silent に使われるリスク → 「dependency 差で stale 使用」の典型例
+- **Apple Silicon Mac の copy-on-write**: 「read-heavy dependency tree に near-zero cost」、symlink 不要で disk 効率も担保
+- **2026 業界 standard**: Codex App (2026-02-02 launch) が各 agent thread に独自 worktree を auto-create、「issue trackers as orchestration layer / worktrees as isolation layer」が emerging best practice
+- **本 PLAN への含意**: dependency 差リスクは AC-6 で問題、再現性低下も同様。**真に immutable な対象 (templates の固定設定等) のみ symlink + readonly 可、それ以外は filtered copy 維持** が妥当
+
+### Q2: `filesystem symlink readonly mount immutable workspace best practices 2026`
+
+主な findings (Sources: [oneuptime readOnlyRootFilesystem 2026](https://oneuptime.com/blog/post/2026-02-09-readonlyrootfilesystem-immutable/view) / [LWN symlinks immutability](https://lwn.net/Articles/445002/) / [linuxvox readonly fs](https://linuxvox.com/blog/linux-read-only-filesystem/)):
+
+- **Kubernetes readOnlyRootFilesystem: true** 業界 standard: root fs を read-only mount、書き込み必要 path (tmp / logs / cache / pid / config-override) のみ emptyDir
+- **Linux file-level immutable**: `chattr +i <file>` で個別 file を modify/delete/rename 不可化
+- **mount-bind readonly**: `mount --bind src dst` + `mount -o remount,ro dst` で部分的 readonly mount 可
+- **本 PLAN への含意**: AC-6 採用なら symlink + `chattr +i` または bind mount readonly の組み合わせで「真 immutable 保証 + 再現性担保」可能。ただし HELIX は CLI ツール (sudo / container 前提なし)、bind mount は root 権限要 → 採用ハードル高い
+
+### Q3: `parallel test isolation sqlite WAL lock contention multiple workspaces 2026`
+
+主な findings (Sources: [sqlite.org WAL](https://sqlite.org/wal.html) / [sqlite.org locking v3](https://sqlite.org/lockingv3.html) / [tenthousandmeters concurrent writes](https://tenthousandmeters.com/blog/sqlite-concurrent-writes-and-database-is-locked-errors/) / [gauravsarma 2026-05](https://gauravsarma.com/posts/2026-05-12_where-sqlite-gives-up)):
+
+- **WAL mode の lock contention**: 複数 connection 同時 write / checkpoint で「database is locked」発生
+- **Unfair lock (2026)**: OS file-locking 上の busy-wait、FIFO queue / priority なし、blocked waiter は再び race
+- **Single global writer**: process 追加で改善不可、single-file model で machine 追加でも改善不可
+- **SQLite 3.51.3 (2026-03-13) bug fix**: WAL mode で複数 concurrent 同時 write/checkpoint の bug が修正済 (HELIX が依存する SQLite version 確認)
+- **BEGIN CONCURRENT experimental**: 非衝突 write の部分 overlap 可、main trunk 未マージ → 本 PLAN 範囲外
+- **本 PLAN への含意**: ADR-040 D3 (workspace 内空 init helix.db) 設計が WAL contention 回避の核。Layer 3 検証で確認すべきは「workspace 内 helix-db.lock が **workspace 内 lock_dir** に作られ、main の lock_dir と独立」していること。仮に lock_dir が main repo を見ていた場合、Layer 3 FAIL → workspace 別 lock_dir 設計 (新規 ADR-XXX) 必要
+
+### WebSearch 総括 (Sprint .1 設計確定根拠)
+
+- **AC-6 symlink**: 「真 immutable 限定で採用可」だが、HELIX は CLI ツールで chattr / mount 制御不能 → **不採用予定** (Sprint .4 で最終 decision)、ADR-040 §AC-6 を「Phase 2 でも見送り」更新で済む
+- **merge 戦略**: ADR-040 D4 で確定済 (git diff --binary + patch apply)、本 query では新規 finding なし
+- **Layer 3**: workspace 別 lock_dir 設計が PASS の前提、Sprint .3 で要 verification
 
 ## 実装計画
 
@@ -102,6 +131,8 @@ PLAN-156 全 Sprint (.1-.4) 完遂で MVP scope (`create / list / exec / preflig
 3. Layer 3 並列検証の test 設計:
    - 2 workspace を同時 create → 各 workspace 内で同時 exec → helix-db.lock 競合が出ないこと
    - 検証は subprocess.Popen + `time` で同時起動、両 exit 0 確認
+   - **重要懸念 (Sprint .1 で要確認)**: PLAN-156 D8 sentinel 実行時に `level=warn event=stale_lock_released lock_path=/home/tenni/ai-dev-kit-vscode/.helix/locks/helix-db.lock` という warning が観測された。これは workspace exec 内で起動された helix CLI が **main の lock_dir** を見ていることを示唆。`cli/lib/helix_db.py:HELIX_DB_LOCK_NAME = "helix-db"` + `file_lock()` 実装で lock_dir 決定経路を Sprint .1 で精査し、workspace 別 lock_dir でなければ ADR-040 D3 設計違反として **Sprint .3 PASS の前提条件** になる
+   - 仮に main lock_dir 共有のままだった場合、Sprint .2 内で `workspace_manager.exec_in_workspace` の env に `HELIX_LOCK_DIR=<workspace>/.helix/locks` を inject、あるいは file_lock を `HELIX_PROJECT_ROOT` ベース resolution に変更する設計案を新規 ADR で確定
 4. AC-6 symlink decision の判定基準明確化:
    - 採用: `.helix/templates/` 等の immutable な read-only 部分のみ symlink、それ以外は materialized copy 維持
    - 不採用: 全 immutable 部分も materialized copy (符号化 cost は数 KB で許容)
