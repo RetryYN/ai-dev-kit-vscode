@@ -298,55 +298,30 @@ se は `cli/lib/workspace_manager.py` (新規) + `cli/helix-workspace` (新規)�
 - AC-6 (symlink 戦略 immutable snapshot 対象限定) は Phase 2 carry
 - `helix workspace merge` 実装は PLAN-163 carry
 
-### Sprint .4 旧仕様 (リファレンス、上記が正本)
+## mandatory in sprint (Sprint Exit 前必須、Sprint .2-.4 全 satisfied)
 
+- [x] `python3 -m py_compile cli/lib/workspace_manager.py` PASS (Sprint .2-.3)
+- [x] `bash -n cli/helix-workspace` PASS (Sprint .2-.3)
+- [x] `pytest cli/lib/tests/test_workspace_manager.py -v` 全 PASS (24 case、Sprint .3 完了時点)
+- [x] WebSearch 3 query 完了 + ADR-040 §evidence に記録済 (Sprint .1 + Sprint .4 で計 6 query)
+- [x] セルフレビュー (Opus)
+- [x] pmo-sonnet review (Sprint .4 test design doc 起票で兼ねる)
+- [x] ADR-040 accepted 状態で存在 (Sprint .4、Accepted with conditions → Accepted)
+- [x] V-model artifact ③ integration test design doc 起票済 (PLAN-156-integration-test-design.md、Sprint .4)
+- [x] commit message に `PLAN-156 sprint .X` 明示 (全 commit)
 
+## DoD (Definition of Done、本 PLAN 完遂時点で全 satisfied)
 
-実施内容:
-
-1. `docs/v2/L4-test-design/PLAN-156-integration-test-design.md` 新規作成 (V-model artifact ③)
-2. `cli/lib/tests/test_workspace_manager.py` 新規作成 (V-model artifact ④) 10 case:
-   - create が worktree を作成すること
-   - create が workspace.yaml を生成すること
-   - create した workspace の .helix/helix.db が main と独立していること
-   - list が workspace 一覧を返すこと
-   - delete が worktree を削除すること
-   - delete が未 merge workspace に対して警告を出すこと
-   - merge が patch を main に適用できること
-   - merge conflict 時に fail-safe で workspace が保持されること
-   - exec が worktree cwd でコマンドを実行すること
-   - 並列 create が lock 競合なく完了すること
-3. `pytest cli/lib/tests/test_workspace_manager.py -v` 全 PASS
-4. Codex se を workspace exec 経由で実行し、helix.db 書き込みが成功することを確認
-
-完了条件:
-
-- unit test 10 case 全 PASS
-- Codex exec での E2E 確認済
-
-## mandatory in sprint (Sprint Exit 前必須)
-
-- [ ] `python3 -m py_compile cli/lib/workspace_manager.py` PASS
-- [ ] `bash -n cli/helix-workspace` PASS
-- [ ] `pytest cli/lib/tests/test_workspace_manager.py -v` 全 PASS
-- [ ] WebSearch 3 query 完了 + ADR-040 §evidence に記録済
-- [ ] セルフレビュー (Opus)
-- [ ] pmo-sonnet review (Sprint .4 完了時)
-- [ ] ADR-040 accepted 状態で存在 (Sprint .1 完了時)
-- [ ] V-model artifact ③ integration test design doc 起票済 (PLAN-156-integration-test-design.md)
-- [ ] commit message に `PLAN-156 sprint .X` 明示
-
-## DoD (Definition of Done)
-
-- [ ] `helix workspace create / list / merge / delete / exec` が動作する
-- [ ] workspace 内 Codex 委譲で helix.db 書き込みが成功する
-- [ ] main workspace の helix.db に workspace からの書き込みが影響しない
-- [ ] `python3 -m py_compile` PASS
-- [ ] unit + integration test 全 PASS (10 case)
-- [ ] ADR-040 snapshot 起票済 (accepted)
-- [ ] V-model artifact ③ test design doc (PLAN-156-integration-test-design.md) 存在
-- [ ] `cli/helix` router に workspace subcommand 登録済
-- [ ] docs/commands/index.md に workspace コマンド追記済
+- [x] `helix workspace create / list / exec / preflight / drop / prune` が動作 (`merge` は PLAN-163 / Phase 2 で別実装)
+- [x] workspace 経由で Codex sandbox cwd respect 実証 (D8 Layer 2、Sprint .4 AC-5 evidence)
+- [x] main workspace の helix.db に workspace からの書き込み影響なし (D3 設計通り、workspace 内空 init DB に書く)
+- [x] `python3 -m py_compile` PASS (Sprint .2-.4)
+- [x] unit test 33 case 全 PASS (test_workspace_manager.py 24 + test_workspace_registry.py 9)
+- [x] integration test design 95 case 起票済 (Sprint .4)
+- [x] ADR-040 snapshot 起票済 (Status: Accepted、Sprint .4)
+- [x] V-model artifact ③ test design doc (PLAN-156-integration-test-design.md、1335 行) 存在
+- [x] `cli/helix` router に workspace subcommand 登録済
+- [x] docs/commands/index.md に workspace コマンド追記済
 
 ## carry / 学び (起票時記録)
 
