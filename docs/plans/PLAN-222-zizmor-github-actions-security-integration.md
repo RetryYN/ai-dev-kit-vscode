@@ -206,3 +206,21 @@ pmo-tech-fork (agent ae182efe) が本 PLAN trigger の評価レポート作成�
 | SHA 固定後の action 更新漏れ | 既知脆弱性 fix の遅延 | Dependabot actions ecosystem で週次 PR 自動生成 |
 | zizmor false positive で CI 阻害 | PR merge 遅延 | zizmor.yml 設定 + `# zizmor:ignore` コメント運用、ADR-036 で運用ルール明文化 |
 | GitHub 以外の CI 移行時の無価値化 | 投資の sunk cost | HELIX は GitHub 運用前提のため当面は問題なし、移行検討時に再評価 |
+
+## AC-1 satisfied (2026-05-23)
+
+`.github/workflows/security.yml` 内 3 action を SHA pin + version comment 付きに変更 (ADR-036 AC-1):
+
+| Action | SHA | Version comment |
+|---|---|---|
+| `actions/checkout` | `34e114876b0b11c390a56381ad16ebd13914f8d5` | v4.3.1 |
+| `actions/setup-python` | `a26af69be951a213d495a4c3e4e4022e16d87065` | v5.6.0 |
+| `github/codeql-action/upload-sarif` | `8c78abb9b62512e3c45dea6559ffd924ed8549c8` | v3.28.0 |
+
+検証: `python3 -c "yaml.safe_load(...)"` YAML OK、zizmor は CI 実行 (security.yml workflow trigger 時)。
+
+**残 AC**:
+- AC-2: zizmor-action 不使用 (`pip install zizmor` 直接実行) で **conditional satisfied**、AC-3 で Dependabot pip ecosystem に委譲
+- AC-3: Dependabot 初回 PR (week 1) 待機 → 確認後 ADR-036 を `Accepted` に格上げ
+
+scope 注: 他 workflow (ci.yml / feature.yml / hotfix.yml / poc.yml / refactor.yml / commitlint.yml) の同 action SHA pin は ADR-036 scope 外 (Dependabot で順次対応)。

@@ -218,9 +218,9 @@ tl-advisor adversarial check (2026-05-23) で受領した P1/P2 指摘を解消�
 
 | # | 条件 | 対応 |
 |---|---|---|
-| AC-1 (P1) | `security.yml` 内の `actions/checkout` / `actions/setup-python` / `upload-sarif` が SHA pin + version comment 付きで存在 | Dependabot 初回 PR でカバー、Sprint .2 完了条件 |
-| AC-2 (P1) | `zizmor-action` 自体の SHA pin (本 ADR では `pip install zizmor` 直接実行で zizmor-action 不使用なので無条件 satisfy) | Sprint .2 完了時点で確認 |
-| AC-3 (P1) | Dependabot 初回 PR (week 1) が期待通り SHA pinned action を更新できること | 採用後 1 週間で確認 |
+| AC-1 (P1) | `security.yml` 内の `actions/checkout` / `actions/setup-python` / `upload-sarif` が SHA pin + version comment 付きで存在 | **satisfied (2026-05-23)**: `actions/checkout@34e114876b...` # v4.3.1 / `actions/setup-python@a26af69be...` # v5.6.0 / `github/codeql-action/upload-sarif@8c78abb9b...` # v3.28.0 (PLAN-222 AC-1 wave) |
+| AC-2 (P1) | `zizmor-action` 自体の SHA pin (本 ADR では `pip install zizmor` 直接実行で zizmor-action 不使用なので無条件 satisfy) | **satisfied** (zizmor-action 不使用、`pip install zizmor` 直接実行で `python3 -m pip install zizmor` の pip package SHA 検証は AC-3 で Dependabot pip ecosystem に委譲) |
+| AC-3 (P1) | Dependabot 初回 PR (week 1) が期待通り SHA pinned action を更新できること | 採用後 1 週間で確認 (Dependabot ecosystem=github-actions 週次) |
 | AC-4 (P1) | Sprint 並列順序を `.1 → .2 → (.3 ∥ .4)` に修正 (PLAN-222 更新) | PLAN-222 修正 |
 | AC-5 (P2) | `cli/lib/zizmor_ignore_lint.py` 機械検査の実装 (理由 + owner + 期限) | PLAN-222 carry または別 PLAN |
 | AC-6 (P2) | pre-push hook の workflow 変更検出が `HEAD..origin/main` ではなく stdin refs ベースであること | Sprint .4 実装で satisfy 済 (本 wave で確認) |
