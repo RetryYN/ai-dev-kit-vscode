@@ -15,6 +15,9 @@
 - **PLAN の中身**: 工程表 (作業手順 + 進捗) + 実装計画の 2 要素を内蔵
 - **旧 V1 PLAN (PLAN-NNN-slug)**: 参考扱い、製本にしない。製本したい場合は V2 命名規則で書き直し (commit f409c55 で `is_reference: true` marked)
 - **plan_validator / helix doctor**: V1 reference は skip、V2 のみ厳格検証 (commit ea846ea)
+- **9 mode**: Forward (本体) + Scrum (アジャイル) / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery。詳細は [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md)。Research は `helix research` CLI あり、Refactor / Retrofit / Recovery は workflow doc 正本・dedicated CLI 未整備 (PLAN kind + workflow doc で運用)
+- **HELIX W (2 段 V 合流)**: AI エージェントシステム時のみの特殊 workflow。9 mode と並列ではなく、特殊設計として [two-stage-agent-design.md](../HELIX-workflows/helix-process/two-stage-agent-design.md) を正本とする
+- **TDD (テストファースト) 全モード共通絶対原則**: いかなる工程・いかなるモードでも「テスト → 実装」順序を厳守、テストアフター禁止。Refactor では変更前の保護網テスト存在を前提。詳細は [HELIX-workflows/HELIX-process-L0-L14.md §基本原則](../HELIX-workflows/HELIX-process-L0-L14.md)
 
 ---
 
