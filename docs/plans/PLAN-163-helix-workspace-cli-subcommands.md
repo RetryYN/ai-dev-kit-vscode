@@ -1,7 +1,11 @@
 ---
 plan_id: PLAN-163
-title: helix workspace CLI subcommand 詳細設計・実装 (PLAN-156 子 PLAN)
-status: draft
+title: helix workspace CLI subcommand 詳細設計・実装 (PLAN-156 子 PLAN、PLAN-156 で吸収完遂、superseded)
+status: superseded
+superseded_by: PLAN-156
+status_history:
+  - 2026-05-23: draft (前 session 連続起票で作成、PLAN-156 子 PLAN として定義)
+  - 2026-05-24: superseded (PLAN-156 Sprint .2-.4 で本 PLAN scope 全実装済、commit 098ba97/1724be5/4e47004 で完遂)
 kind: impl
 drive: be
 layer: L4
@@ -50,7 +54,34 @@ acceptance_criteria:
   - "docs/commands/index.md に workspace コマンドが記載されている"
 ---
 
-# PLAN-163: helix workspace CLI subcommand 詳細設計・実装 (PLAN-156 子 PLAN)
+# PLAN-163: helix workspace CLI subcommand 詳細設計・実装 (PLAN-156 子 PLAN、superseded)
+
+## status: superseded by PLAN-156 (2026-05-24)
+
+本 PLAN は前 session 連続起票時 (2026-05-23) に「PLAN-156 子 PLAN」として `helix workspace` CLI subcommand 詳細設計・実装を担う目的で起票された。しかし PLAN-156 自身が Sprint .2-.4 で本 PLAN scope を完全に吸収する形で完遂したため、本 PLAN は **superseded** となる。
+
+### PLAN-156 完遂状況 (本 PLAN 内容との対応)
+
+| 旧 PLAN-163 Sprint | 実装担当 | 完遂 commit |
+|---|---|---|
+| Sprint .1 (helix-workspace bash dispatcher + WorkspaceManager skeleton) | PLAN-156 Sprint .2 (Codex se) | `098ba97` |
+| Sprint .2 (WorkspaceManager 完全実装: create / list / merge / drop) | PLAN-156 Sprint .3 (Codex se) | `1724be5` |
+| Sprint .3 (docs 更新) | PLAN-156 Sprint .3 (Codex se) | `1724be5` |
+| Sprint .4 (テスト T1〜T8 8 case) | PLAN-156 Sprint .3-.4 (test_workspace_manager.py 24 case + integration test design 95 case) | `1724be5` / `4e47004` |
+
+### `merge` subcommand 取り扱いの差分
+
+- 旧 PLAN-163 は `merge` を MVP に含めていた
+- ADR-040 D4 で `merge` は **MVP 範囲外** と確定 (標準 git flow を正本にする、HELIX 独自 merge は実装複雑度高で却下)
+- → `merge` 実装は **Phase 2 (新 PLAN-224)** で別途扱う
+
+### 後継 PLAN
+
+Phase 2 (workspace merge convenience + D8 Layer 3 並列 lock 競合検証 + AC-6 symlink immutable snapshot 限定採用 判定) は **PLAN-224** で起票・管理する。
+
+以下は historical reference として保持 (本 PLAN は status: superseded で実装着手しない):
+
+---
 
 ## L2 凍結 (ADR snapshot)
 
