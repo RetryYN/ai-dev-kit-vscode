@@ -201,23 +201,29 @@ Sprint Exit 条件:
 - cwd が project_root の subdirectory または symlink resolve で外れたとき、本番 `.helix/locks/` を奪う
 - ただし R-1 が解消すれば test stdout に「本番 PLAN」が出ないため、まずは R-1 を直す
 
-## Sprint .2: 修正方針 (次 session 着手、本 session carry)
+## Sprint .2 完遂結果 (2026-05-23 commit c007851)
 
-### 優先度 P0: R-1 解消 (vmodel_lint の docs/plans path 限定)
+### R-1/R-2/R-3 全 fix 実装済 (commit c007851)
 
-- `cli/helix-gate` の vmodel_lint auto-run logic を Read し、`docs/plans/` 走査が PROJECT_ROOT 起点になっているか確認
-- もし HELIX_HOME 起点だったら PROJECT_ROOT 起点に修正 (内部 logic の path resolution bug)
-- test 側に `HELIX_GATE_SKIP_AUTO_DETECTORS=1` 等の bypass env を追加する選択肢もある (test isolation 簡素化)
+- **R-1**: `cli/lib/vmodel_lint.py` HELIX_PROJECT_ROOT env 優先化 (HELIX_ROOT fallback 保持)
+- **R-2**: `cli/helix-gate` line 1479 `grep|head -5` → `awk '/^\[⚠\]/{n++;if(n<=5)print}'` (SIGPIPE 回避)
+- **R-3**: `cli/lib/concurrent_lock.py` `_resolve_lock_dir()` env 優先化 (cwd 判定除去)
 
-### 優先度 P1: R-3 解消 (lock dir resolution の安定化)
+### 検証結果
 
-- `_resolve_lock_dir()` で HELIX_PROJECT_ROOT が env にあれば cwd 判定なしで project_root を使う
-- 既存 logic (cwd 判定) は本番運用での後方互換 (cwd outside project_root) のため、env priority だけ強化
+**単独実行 (本 wave A)**: 100/100 PASS ✓ (R-1/R-2/R-3 fix 直後の commit c007851)
+**並列実行下 (本 wave B、pytest gate sweep 219 test 同時走行)**: **5/60 fail (8.3%)** ← R-4 新 root cause 存在
 
-### 優先度 P2: R-2 解消 (pipeline SIGPIPE 対策)
+### R-4 仮説 (並列下 fail、Sprint .3 課題、次 session carry)
 
-- helix-gate 内の pipeline を grep して `head` / `tail` などの早 close consumer を特定
-- 該当 pipeline で `set -o pipefail` を local 解除、または full output を temp file 経由にする
+並列 pytest 実行下では duration 5s = SQLite busy_timeout boundary で fail。R-3 fix (env 優先化) で本番 helix-db.lock 奪取は解消したが、並列下で別の race condition が発覚:
+
+- **R-4-a**: 複数 pytest process が同 helix.db init を並行実行 → init race (schema 多重初期化、PRAGMA 設定の race)
+- **R-4-b**: WAL flush timing race (`PRAGMA journal_mode=WAL` 設定で write 直後の read が stale)
+- **R-4-c**: 共有 fixture state (HELIX_HOME 等の env が並列 test 間で干渉)
+- **R-4-d**: pytest tmp_path が同 inode を再利用するときの cleanup race
+
+**Sprint .3 課題** (次 session): R-4 traceback 詳細取得 → 仮説絞り込み → fix。PLAN-102 (pytest-xdist 並列化) は R-4 解消後に着手
 
 ## carry / 学び
 
