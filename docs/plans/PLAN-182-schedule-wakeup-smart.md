@@ -38,7 +38,7 @@ dependencies:
 related_adr:
   - ADR-032
   - ADR-041
-  - ADR-051 (本 PLAN の L2 snapshot、起票予定)
+  - ADR-051
 ---
 
 # PLAN-182: ScheduleWakeup smart scheduling

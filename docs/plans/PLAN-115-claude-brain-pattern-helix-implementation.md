@@ -37,7 +37,7 @@ dependencies:
     - PLAN-099
   blocks: []
 related_adr:
-  - ADR-042-claude-brain-helix-adaptation-decision (candidate)
+  - ADR-042-claude-brain-helix-adaptation-decision
 related_plans:
   - PLAN-099 (親 PLAN、Layer 4 定義)
   - PLAN-091 (frontmatter 語彙正本)

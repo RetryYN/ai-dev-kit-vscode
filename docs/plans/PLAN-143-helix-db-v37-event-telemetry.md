@@ -39,7 +39,7 @@ dependencies:
     - PLAN-116
   blocks: []
 related_adr:
-  - ADR-050-helix-db-v37-event-telemetry-decision (candidate)
+  - ADR-050-helix-db-v37-event-telemetry-decision
 related_plans:
   - PLAN-116 (親 PLAN、v36 schema 追加。plan_registry / task_queue が本 PLAN の前提)
   - PLAN-134 (helix metrics CLI。telemetry table を参照する。PLAN-134 は旧 frontmatter のため blocks に含めず related_plans で管理)

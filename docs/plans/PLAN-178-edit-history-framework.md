@@ -40,7 +40,7 @@ related_plans:
   - PLAN-143
   - PLAN-177
 related_adr:
-  - ADR-056 候補 (edit_history 記録方針 L2 snapshot、本 PLAN 起票後に起票)
+  - ADR-056
 related_docs:
   - cli/lib/helix_db.py
   - .claude/hooks/posttooluse-helix-job-enqueue.sh

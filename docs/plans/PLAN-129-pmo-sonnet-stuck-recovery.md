@@ -36,7 +36,7 @@ dependencies:
     - PLAN-088
   blocks: []
 related_adr:
-  - ADR-045 (本 PLAN の L2 snapshot、新 framework 採用)
+  - ADR-045
 related_plans:
   - PLAN-088 (TodoWrite × agent slot framework — agent_slots テーブル正本)
   - PLAN-099 (自動走行 framework 5-layer — statusLine + heartbeat と stuck 検出の協調)

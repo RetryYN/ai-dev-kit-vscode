@@ -38,7 +38,7 @@ related_plans:
   - PLAN-121
   - PLAN-022
 related_adr:
-  - ADR-055 候補 (LLM prompt injection 防御方針 L2 snapshot、本 PLAN 起票後に起票)
+  - ADR-055
 related_docs:
   - cli/lib/skill_recommender.py
   - cli/templates/prompts/skill-search.md

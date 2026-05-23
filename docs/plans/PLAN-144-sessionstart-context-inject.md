@@ -38,7 +38,7 @@ dependencies:
     - PLAN-081
   blocks: []
 related_adr:
-  - ADR-051-sessionstart-context-inject-decision (candidate)
+  - ADR-051-sessionstart-context-inject-decision
 related_plans:
   - PLAN-099 (親 PLAN、V5 Layer 4 定義。Layer 4 + SessionStart 注入設計の正本)
   - PLAN-081 (SessionStart 既存 hook。sessionstart-harness-summary.sh と共存必須)

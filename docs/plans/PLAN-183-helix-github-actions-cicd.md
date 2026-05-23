@@ -37,7 +37,7 @@ related_plans:
   - PLAN-096
   - PLAN-077
 related_adr:
-  - ADR-029 (GitHub Actions + ブランチタイプ別パイプライン、L2 snapshot)
+  - ADR-029
 related_docs:
   - docs/plans/PLAN-096-github-workflow-integration.md
   - docs/plans/PLAN-077-sprint-plan-standard-structure.md

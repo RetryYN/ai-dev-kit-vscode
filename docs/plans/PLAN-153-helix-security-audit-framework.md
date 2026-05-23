@@ -41,7 +41,7 @@ related_plans:
   - PLAN-143
   - PLAN-089
 related_adr:
-  - ADR-054 候補 (OWASP automated check 統合方針 L2 snapshot、本 PLAN 起票後に起票)
+  - ADR-054
 related_docs:
   - cli/lib/helix_db.py
   - cli/helix-gate

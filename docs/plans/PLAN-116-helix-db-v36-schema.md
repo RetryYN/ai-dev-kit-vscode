@@ -39,7 +39,7 @@ dependencies:
     - PLAN-113-v5-layer1-posttooluse-plan-register
   related_plans_note: "PLAN-088 / PLAN-093 (drift 検出) / PLAN-086 (rollback CLI) とも依存あり。PLAN-088 の requires に PLAN-116 は未記載 (別 PLAN retrofit 時に追補)"
 related_adr:
-  - ADR-043-helix-db-v36-schema-decision (candidate)
+  - ADR-043-helix-db-v36-schema-decision
 related_plans:
   - PLAN-091 (親 PLAN、frontmatter 語彙正本 + 単一実行正本決定)
   - PLAN-092 (PostToolUse plan 自動登録、plan_registry を使う)

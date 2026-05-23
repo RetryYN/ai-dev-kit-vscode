@@ -38,7 +38,7 @@ related_plans:
   - PLAN-143
   - PLAN-153
 related_adr:
-  - ADR-055 候補 (benchmark regression 閾値方針 L2 snapshot、本 PLAN 起票後に起票)
+  - ADR-055
 related_docs:
   - cli/lib/helix_db.py
   - cli/helix-skill

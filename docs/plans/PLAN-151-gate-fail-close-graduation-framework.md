@@ -40,7 +40,7 @@ related_plans:
   - PLAN-089
   - PLAN-119
 related_adr:
-  - ADR-053 候補 (fail-close graduation framework、本 PLAN 確定後に起票)
+  - ADR-053
 reference_docs:
   - docs/plans/PLAN-089-gate-fail-close-design-doc-web-search-audit.md
   - docs/plans/PLAN-119-pytest-coverage-gate-fail-close.md

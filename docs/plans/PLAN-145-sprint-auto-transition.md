@@ -34,7 +34,7 @@ dependencies:
     - PLAN-077
   blocks: []
 related_adr:
-  - ADR-050 (本 PLAN の L2 snapshot 候補、新 hook framework 採用判断)
+  - ADR-050
 related_plans:
   - PLAN-077 (Sprint Plan 標準化 framework — mandatory in sprint 8 ステップ正本)
   - PLAN-099 (自動走行 framework 5-layer — PostToolUse hook 連携)
