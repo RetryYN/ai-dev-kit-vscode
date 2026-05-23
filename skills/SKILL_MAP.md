@@ -405,6 +405,24 @@ god-writing は writing/ 統合層、既存 writing/* は基礎層。gpt-image �
 
 god-writing は **既存 writing/* との重複** を許容して導入 (基礎用途は既存 skill / 応用 LP 用途は god-writing の棲み分け)。将来統合候補は別 PLAN で検討。
 
+### 責務境界クリア化 (code-review 系の使い分け、2026-05-23 追加)
+
+code-review は 3 系統で目的が分かれる:
+
+| スキル | 守備範囲 | 起動タイミング |
+|--------|---------|---------------|
+| `common/code-review` | HELIX L4 / G4 連携の **base skill** (OWASP セキュリティ / パフォーマンス / 設計観点 / Critical/High 0 達成基準) + **Google eng-practices reviewer guide** (references/google-reviewer-guide.md、LGTM/Nit/Blocking ラベル、健全性ベース判定) | レビュアー視点で承認可否 (LGTM / LGTM with nits / Changes requested) を判定するとき。HELIX gate 連携時 |
+| `agent-skills/code-review-and-quality` | **5 軸 review** (Correctness / Readability / Architecture / Security / Performance) (addyosmani/agent-skills MIT 由来、英語) | 多次元評価が必要なとき。author / reviewer 区別なく汎用 review |
+| `workflow/adversarial-review` | G2/G4/G6 ゲート前の **adversarial check** (悪魔の代弁者役) | gate 通過前に意図的に反対意見を集めて穴を探すとき |
+
+使い分けルール:
+- **HELIX L4/G4 で承認可否判定** → `common/code-review` (Google reviewer guide 統合)
+- **5 軸で多次元評価** → `agent-skills/code-review-and-quality`
+- **ゲート前 adversarial check** → `workflow/adversarial-review`
+- **author 視点 (変更を作成する側)** → 別 skill (現在は `agent-skills/source-driven-development` 等を併用)
+
+common/code-review に Google eng-practices reviewer guide を統合した経緯: 「健全性ベース判定 + LGTM/Nit/Blocking ラベル」は HELIX 既存 skill に明示的に存在しなかったため、common/code-review/references/ に reviewer 専用 reference として追加 (2026-05-23、SKILL (1).md 統合)。
+
 ### 既存スキル強化メモ（description 更新）
 
 ```yaml

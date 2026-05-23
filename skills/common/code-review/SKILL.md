@@ -1,17 +1,19 @@
 ---
 name: code-review
-description: HELIX L4 実装 / G4 実装凍結ゲート連携のコードレビュー SKILL。セキュリティ (OWASP) ・パフォーマンス・設計観点チェックリスト・workflow/adversarial-review 統合・Critical/High 指摘 0 件達成基準・建設的フィードバック例を提供
+description: HELIX L4 実装 / G4 実装凍結ゲート連携のコードレビュー SKILL。セキュリティ (OWASP) ・パフォーマンス・設計観点チェックリスト・workflow/adversarial-review 統合・Critical/High 指摘 0 件達成基準・建設的フィードバック例を提供。Google eng-practices reviewer guide (LGTM/Nit/Blocking ラベル・健全性ベース判定) を references/google-reviewer-guide.md に統合
 metadata:
   helix_layer: L4
   triggers:
     - コードレビュー実施時
     - PRテンプレート作成時
     - レビュー文化構築時
+    - レビュアー視点の承認可否判定時
   verification:
     - "Critical/High指摘 0件（全て解消済み）"
     - "セキュリティ: OWASP Top10チェックリスト 未対応 0件"
     - "FIXME/TODO 0件（rg 'FIXME|TODO' 対象ファイル）"
     - "CI通過（lint + test + build）"
+    - "判定: LGTM / LGTM with nits / Changes requested で明示 (Google eng-practices)"
 compatibility:
   claude: true
   codex: true
@@ -25,6 +27,16 @@ compatibility:
 - コードレビュー実施時
 - PRテンプレート作成時
 - レビュー文化構築時
+- レビュアー視点での承認可否判定時 (LGTM/LGTM with nits/Changes requested 判定)
+
+## レビュアー視点 (Google eng-practices)
+
+承認可否判定の判断基準・コメントラベル ([Blocking] / Nit: / Optional: / FYI:) ・出力テンプレート (LGTM / LGTM with nits / Changes requested) は **[references/google-reviewer-guide.md](references/google-reviewer-guide.md)** を参照。
+
+要約:
+- 最上位原則: **コードベースの「全体的な健全性」を確実に向上させるか** で判定 (完璧主義回避)
+- 観点優先順位: 設計 > 機能性 > 複雑性 > テスト > 命名 > コメント > スタイル > 一貫性 > ドキュメント
+- 判定: Blocking 1件以上 → Changes requested / Blocking 0 + Nit あり → LGTM with nits / 全なし → LGTM
 
 ---
 
