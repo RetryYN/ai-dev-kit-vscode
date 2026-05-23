@@ -1,12 +1,13 @@
 ---
 plan_id: PLAN-109
 title: helix skill catalog rebuild 自動化 hook (PostToolUse SKILL.md 検出)
-status: draft
+status: completed
 kind: impl
 drive: be
 layer: L4
 size: S
 created_at: 2026-05-23
+completed_at: 2026-05-23
 authors:
   - PM (Opus)
   - PMO (Sonnet)

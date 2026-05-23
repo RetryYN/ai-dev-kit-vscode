@@ -180,6 +180,17 @@
             "blockOnFailure": false
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-skill-catalog-rebuild.sh",
+            "timeout": 5,
+            "blockOnFailure": false
+          }
+        ]
       }
     ],
     "Stop": [
