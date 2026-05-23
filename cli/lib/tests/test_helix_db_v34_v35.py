@@ -81,8 +81,12 @@ def test_v35_creates_10_tables(tmp_path: Path) -> None:
     assert versions[-5:] == [31, 32, 33, 34, 35]
 
 
-def test_full_chain_to_v35(tmp_path: Path) -> None:
-    """DoD 検証: PLAN-100-WAVE-3AB-V2 T-CHAIN-001 (fresh DB を migrate すると v35 まで到達する)"""
+def test_full_chain_to_latest(tmp_path: Path) -> None:
+    """DoD 検証: PLAN-100-WAVE-3AB-V2 T-CHAIN-001 (fresh DB を migrate すると最新 (=CURRENT_SCHEMA_VERSION) まで到達する)
+
+    Note: PLAN-156 Sprint .2 で v36 (workspace_registry) を追加したため、最新版到達値は CURRENT_SCHEMA_VERSION
+    を正本にして比較する。v34→v35 表面の検証は test_v35_creates_10_tables を参照。
+    """
     db_path = tmp_path / "helix.db"
     helix_db.init_db(str(db_path))
 
@@ -99,7 +103,7 @@ def test_full_chain_to_v35(tmp_path: Path) -> None:
     finally:
         conn.close()
 
-    assert max_version == 35
+    assert max_version == helix_db.CURRENT_SCHEMA_VERSION
     assert todo_entries_exists is not None
     assert set(v35_plan_registry.V35_TABLE_NAMES) <= created_tables
 

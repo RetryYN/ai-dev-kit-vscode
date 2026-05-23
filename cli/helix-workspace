@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+# HELIX workspace manager dispatcher (PLAN-156 / ADR-040)
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+if [[ $# -eq 0 || "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'EOF'
+Usage: helix workspace <subcommand> [options]
+
+Subcommands:
+  create --task PLAN-X [--branch workspace/PLAN-X] [--base main]
+  list [--status active|merged|dropped] [--json]
+  preflight --task PLAN-X
+  drop --task PLAN-X [--force]
+  prune [--dry-run]
+  exec --task PLAN-X "<command>"   Sprint .3 で完全実装
+EOF
+  exit 0
+fi
+
+exec python3 "$SCRIPT_DIR/lib/workspace_cli.py" \
+  --project-root "$PROJECT_ROOT" \
+  "$@"

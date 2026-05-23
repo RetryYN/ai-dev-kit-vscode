@@ -1,0 +1,15 @@
+# HELIX Workspace Manifest (PLAN-156 / ADR-040 D1/D5)
+# This file is materialized per workspace at create time.
+task_id: ""
+workspace_path: ""
+branch: ""
+base_sha: ""
+base_ref: "main"
+status: "active"
+created_at: ""
+updated_at: ""
+snapshot_path: "workspace_state_snapshot.json"
+reserved_resources:
+  ports: []
+  venv: ""
+  cache_prefix: ""

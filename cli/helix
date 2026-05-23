@@ -43,6 +43,7 @@ case "$CMD" in
   readiness) exec "$SCRIPT_DIR/helix-readiness" "$@" ;;
   interrupt) exec "$SCRIPT_DIR/helix-interrupt" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
+  workspace) exec "$SCRIPT_DIR/helix-workspace" "$@" ;;
   budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
   scheduler) exec "$SCRIPT_DIR/helix-scheduler" "$@" ;;
   job)       exec "$SCRIPT_DIR/helix-job" "$@" ;;
@@ -124,6 +125,7 @@ HELIX プロジェクト管理:
   task        タスクオペレーティングシステム
   interrupt   IIP/CC 中断・復帰管理
   handover    Opus/Codex handover 管理
+  workspace   git worktree-based per-task workspace 管理 (PLAN-156)
   pr          PR 自動生成 + 6 ゲート機械検証 (--gate / --auto-merge)
   retro       レトロスペクティブ
   debt        技術負債管理

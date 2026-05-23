@@ -247,7 +247,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_usage_outcome ON skill_usage(outcome);
 PRAGMA_JOURNAL_MODE = "WAL"
 PRAGMA_BUSY_TIMEOUT_MS = 5000
 DEFAULT_SQLITE_TIMEOUT_SEC = PRAGMA_BUSY_TIMEOUT_MS / 1000.0
-CURRENT_SCHEMA_VERSION = 35
+CURRENT_SCHEMA_VERSION = 36
 HELIX_DB_LOCK_NAME = "helix-db"
 
 
@@ -999,6 +999,29 @@ END;
 """
 
 
+WORKSPACE_REGISTRY_SCHEMA_V36 = """
+CREATE TABLE IF NOT EXISTS workspace_registry (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT UNIQUE NOT NULL,
+    workspace_path TEXT NOT NULL,
+    branch TEXT NOT NULL,
+    base_sha TEXT NOT NULL,
+    base_ref TEXT DEFAULT 'main',
+    status TEXT NOT NULL DEFAULT 'active'
+        CHECK(status IN ('active', 'merged', 'dropped')),
+    snapshot_path TEXT DEFAULT '',
+    reserved_resources TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    dropped_at TEXT DEFAULT '',
+    drop_reason TEXT DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_registry_status ON workspace_registry(status);
+CREATE INDEX IF NOT EXISTS idx_workspace_registry_task_id ON workspace_registry(task_id);
+"""
+
+
 INVOCATION_LOG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invocation_log (
     id INTEGER PRIMARY KEY,
@@ -1523,6 +1546,11 @@ def _migrate_v29_to_v30(conn: sqlite3.Connection) -> None:
     conn.executescript(HARNESS_CHECK_EVENTS_SCHEMA_V30)
 
 
+def _migrate_v35_to_v36(conn: sqlite3.Connection) -> None:
+    """v36: workspace_registry テーブル追加。"""
+    conn.executescript(WORKSPACE_REGISTRY_SCHEMA_V36)
+
+
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -1905,6 +1933,11 @@ def migrate(conn):
         if current < 35:
             v35_plan_registry.migrate_v34_to_v35(conn)
         v35_plan_registry.ensure_v35_additive_schema(conn)
+        if current < 36:
+            _migrate_v35_to_v36(conn)
+            conn.execute(
+                "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (36, datetime('now'))"
+            )
         conn.commit()
 
 
@@ -1912,6 +1945,142 @@ def migrate(conn):
 def migrate_all(conn: sqlite3.Connection) -> None:
     """fresh DB / 既存 DB の両方で全 schema を揃える互換 wrapper。"""
     _ensure_schema(conn)
+
+
+WORKSPACE_REGISTRY_STATUSES = ("active", "merged", "dropped")
+
+
+# @helix:index id=helix-db.workspace-registry-insert domain=cli/lib summary=workspace_registry insert
+def workspace_registry_insert(
+    conn: sqlite3.Connection,
+    *,
+    task_id: str,
+    workspace_path: str,
+    branch: str,
+    base_sha: str,
+    base_ref: str = "main",
+    snapshot_path: str = "",
+    reserved_resources: dict | None = None,
+) -> int:
+    """workspace_registry に entry を追加し row id を返す。
+
+    UNIQUE(task_id) 違反時は IntegrityError を raise。caller が judge する。
+    """
+    _table_columns(conn, "workspace_registry")
+    task_id = _require_non_empty(task_id, "task_id")
+    workspace_path = _require_non_empty(workspace_path, "workspace_path")
+    branch = _require_non_empty(branch, "branch")
+    base_sha = _require_non_empty(base_sha, "base_sha")
+    base_ref = _require_non_empty(base_ref, "base_ref")
+    resources = _validate_dict_payload(reserved_resources or {}, "reserved_resources")
+    now = datetime.now().isoformat()
+
+    cursor = conn.execute(
+        """
+        INSERT INTO workspace_registry (
+            task_id, workspace_path, branch, base_sha, base_ref,
+            status, snapshot_path, reserved_resources, created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+        """,
+        (
+            task_id,
+            workspace_path,
+            branch,
+            base_sha,
+            base_ref,
+            str(snapshot_path or ""),
+            json.dumps(resources, ensure_ascii=False, sort_keys=True),
+            now,
+            now,
+        ),
+    )
+    return _validate_positive_int(int(cursor.lastrowid), "row_id")
+
+
+# @helix:index id=helix-db.workspace-registry-get domain=cli/lib summary=workspace_registry get by task_id
+def workspace_registry_get(conn, task_id: str) -> dict | None:
+    """task_id で entry 1 件取得。なければ None。"""
+    _table_columns(conn, "workspace_registry")
+    task_id = _require_non_empty(task_id, "task_id")
+    row = conn.execute(
+        "SELECT * FROM workspace_registry WHERE task_id = ?",
+        (task_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    data = dict(row)
+    try:
+        data["reserved_resources"] = json.loads(data.get("reserved_resources") or "{}")
+    except json.JSONDecodeError:
+        data["reserved_resources"] = {}
+    return data
+
+
+# @helix:index id=helix-db.workspace-registry-list domain=cli/lib summary=workspace_registry list
+def workspace_registry_list(
+    conn,
+    *,
+    status: str | None = None,
+) -> list[dict]:
+    """active/merged/dropped 等で filter。None 時は全件。"""
+    _table_columns(conn, "workspace_registry")
+    sql = "SELECT * FROM workspace_registry"
+    params: list[str] = []
+    if status is not None:
+        status = _validate_choice(status, "status", WORKSPACE_REGISTRY_STATUSES)
+        sql += " WHERE status = ?"
+        params.append(status)
+    sql += " ORDER BY id ASC"
+    rows = conn.execute(sql, params).fetchall()
+
+    result: list[dict] = []
+    for row in rows:
+        data = dict(row)
+        try:
+            data["reserved_resources"] = json.loads(data.get("reserved_resources") or "{}")
+        except json.JSONDecodeError:
+            data["reserved_resources"] = {}
+        result.append(data)
+    return result
+
+
+# @helix:index id=helix-db.workspace-registry-update-status domain=cli/lib summary=workspace_registry status 更新
+def workspace_registry_update_status(
+    conn,
+    task_id: str,
+    *,
+    status: str,
+    drop_reason: str = "",
+) -> bool:
+    """status='dropped' 時は dropped_at + drop_reason 記録。
+
+    更新成功で True、対象不在で False。
+    """
+    _table_columns(conn, "workspace_registry")
+    task_id = _require_non_empty(task_id, "task_id")
+    status = _validate_choice(status, "status", WORKSPACE_REGISTRY_STATUSES)
+    now = datetime.now().isoformat()
+
+    if status == "dropped":
+        cursor = conn.execute(
+            """
+            UPDATE workspace_registry
+            SET status = ?, updated_at = ?, dropped_at = ?, drop_reason = ?
+            WHERE task_id = ?
+            """,
+            (status, now, now, str(drop_reason or ""), task_id),
+        )
+    else:
+        cursor = conn.execute(
+            """
+            UPDATE workspace_registry
+            SET status = ?, updated_at = ?, dropped_at = '', drop_reason = ''
+            WHERE task_id = ?
+            """,
+            (status, now, task_id),
+        )
+    return cursor.rowcount > 0
 
 
 def _ensure_schema(conn):
