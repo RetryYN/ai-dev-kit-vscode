@@ -3,6 +3,19 @@
 > Claude Code / Codex CLI 共通。ツール固有設定は各ツールの設定ファイルに記載。
 > 正本: SKILL_MAP.md §正本宣言 参照
 
+## V2 完全移行 (2026-05-24、HELIX-model 正本)
+
+正本: [HELIX-model/HELIX-process-L0-L14.md](../HELIX-model/HELIX-process-L0-L14.md)
+
+- **工程**: L0 (企画書) → L14 (運用検証) の 15 工程構造
+- **V-model ペア凍結**: 設計工程と検証工程が対応 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
+- **PLAN は全工程で起票**: 各工程の作業手順 + 進捗を機能 (ドキュメント) 単位で管理。L7 は他 PLAN の上位概念
+- **PLAN 命名規則**: `L<NN>-○○○plan` (例: `L0-企画書plan` / `L7-helix-workspace-mergeplan`)
+- **PLAN 配置**: `docs/plans/L0/` 〜 `docs/plans/L14/` にフォルダ分離
+- **PLAN の中身**: 工程表 (作業手順 + 進捗) + 実装計画の 2 要素を内蔵
+- **旧 V1 PLAN (PLAN-NNN-slug)**: 参考扱い、製本にしない。製本したい場合は V2 命名規則で書き直し (commit f409c55 で `is_reference: true` marked)
+- **plan_validator / helix doctor**: V1 reference は skip、V2 のみ厳格検証 (commit ea846ea)
+
 ---
 
 ## 応答言語
@@ -32,7 +45,7 @@
 2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
 3. ゲート判定（`skills/tools/ai-coding/references/gate-policy.md §ゲート一覧`）
 4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
-4.5 実装着手前 (L4 entry): `helix code find "<keyword>"` で既存実装の流用候補を確認する
+4.5 実装着手前 (新 L7 / 旧 L4 entry): `helix code find "<keyword>"` で既存実装の流用候補を確認する
   - 公開 API / 再利用候補は `--bucket coverage_eligible`（default）で確認
   - private helper の再利用/PoC seed 探索は `--bucket private_helper` を併用する
   - 非公開 → 公開昇格候補（seed candidate）を `--seed-promotable true` で抽出する
@@ -44,11 +57,11 @@
 - 軽文書チェック / docs/**: `helix claude --role pmo --model haiku --execute --allow-paths "docs/**"`
 4.7 スキル推奨: `helix skill chain "<タスク記述>"` を任意で実施。skip 理由がある場合は会話または final report に記録する（例: 自明な小修正、既知 skill のみ使用 等）
 
-L4 implementation / build / G4 補足（PLAN-013）:
-- L4 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
-- L4 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類する
-- L4 build: `helix code build` で catalog を再生成し、`bucket` / `symbol_line` / metadata を自動付与する
-- G4: `helix code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
+新 L7 (旧 L4) implementation / build / G7 (旧 G4) 補足（PLAN-013）:
+- L7 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
+- L7 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類する
+- L7 build: `helix code build` で catalog を再生成し、`bucket` / `symbol_line` / metadata を自動付与する
+- G7: `helix code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
 5. 実行開始
 6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
 7. readiness exit 条件確認 → 該当スキル Read
@@ -184,7 +197,9 @@ HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / 
 
 ## Sprint Plan 標準構造 (PLAN-077、2026-05-17 確立)
 
-L4 実装中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
+新 L7 実装スプリント (旧 L4) 中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
+
+> **V2 完全移行訂正 (2026-05-24)**: PLAN は全工程 L0-L14 に起票し、L7 は他工程 PLAN の上位概念 (HELIX-model 正本)。本節の「Sprint 標準構造」は L7 (実装スプリント工程) における PLAN の内部ステップを定義する。L0-L6 / L8-L14 の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-model/Lx-*.md)。
 
 ### Sprint .X 標準 8 ステップ
 

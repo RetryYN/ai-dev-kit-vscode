@@ -3,8 +3,19 @@
 ## 正本宣言
 
 - **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md`）
+- **工程定義正本**: [`HELIX-model/HELIX-process-L0-L14.md`](../HELIX-model/HELIX-process-L0-L14.md) (2026-05-24 V2 完全移行確立、commit 35a901c)
 - **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
+
+## V2 完全移行 (2026-05-24、ユーザー指示)
+
+- **HELIX-model を正本** とし、docs/v2/process/ は実装文書として同期
+- **PLAN は全工程 L0-L14 で起票**、L7 は他工程 PLAN の上位概念
+- **PLAN 命名規則**: `L<NN>-○○○plan` (例: `L0-企画書plan` / `L7-helix-workspace-mergeplan`)
+- **PLAN 配置**: `docs/plans/L0/` 〜 `docs/plans/L14/` にフォルダ分離
+- **PLAN の中身**: 工程表 (作業手順 + 進捗) + 実装計画の 2 要素を内蔵 → 再開可能
+- **旧 V1 PLAN は参考扱い、製本にしない**。製本したい場合は V2 命名規則で書き直し (commit f409c55 で `is_reference: true` marked)
+- 詳細: docs/v2/process/README.md / HELIX-model/HELIX-process-L0-L14.md
 
 ## モデル割当（真実は `cli/config/models.yaml`）
 
@@ -53,7 +64,15 @@ Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 →
 
 ## オーケストレーションフロー (新 15 工程 L0-L14、commit eeb0530)
 
-> **構造的原則**: PLAN は L7 (実装スプリント) 工程の subordinate であり、各工程の成果物を作るための内部 task tree。工程 ⊃ PLAN であって PLAN ⊃ 工程ではない。L0-L6 / L8-L14 は PLAN を起票しない (docs/v2/process/README.md §既存資産との関係 参照)。
+> **正本**: [HELIX-model/HELIX-process-L0-L14.md](../HELIX-model/HELIX-process-L0-L14.md) (commit 35a901c)
+>
+> **構造的原則 (2026-05-24 V2 完全移行で訂正)**:
+> - PLAN は **機能 (ドキュメント) 単位で全工程 L0-L14 に起票**する
+> - **L7 は PLAN の上位概念** であり、他工程の PLAN を束ねて全体進捗を管理する
+> - PLAN は **工程表 (作業手順 + 進捗) + 実装計画** の 2 要素を内蔵 → 再開可能
+> - PLAN 命名規則: **`L<NN>-○○○plan`** (例: L0-企画書plan / L7-helix-workspace-mergeplan)
+> - 配置: **`docs/plans/L0/` 〜 `docs/plans/L14/`** にフォルダ分離
+> - 旧 V1 PLAN (PLAN-NNN-slug) は **参考扱い、製本にしない**。製本したい場合は V2 命名規則で新規書き直し (commit f409c55 で is_reference: true marked)
 >
 > **V-model ペア凍結**: 設計工程と検証工程は対で凍結する。
 >
