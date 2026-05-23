@@ -2,6 +2,8 @@
 plan_id: PLAN-190
 title: "handover replay framework (過去 session の再現・post-mortem 用途)"
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

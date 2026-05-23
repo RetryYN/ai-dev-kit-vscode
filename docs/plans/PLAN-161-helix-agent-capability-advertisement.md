@@ -5,6 +5,8 @@ kind: impl
 layer: L4
 drive: agent
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-088-todowrite-agent-slot-framework.md   # from dependencies.parent
 size: M
 created: 2026-05-23
 revised: 2026-05-23

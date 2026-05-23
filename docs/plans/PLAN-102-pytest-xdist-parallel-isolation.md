@@ -2,6 +2,8 @@
 plan_id: PLAN-102
 title: pytest-xdist 並列化 + helix-db.lock per-worker fixture isolation
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/adr/ADR-034-pytest-xdist-parallel-isolation.md   # from related_adr
 kind: impl
 drive: be
 layer: L4

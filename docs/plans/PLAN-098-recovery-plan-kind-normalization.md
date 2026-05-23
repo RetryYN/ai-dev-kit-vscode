@@ -4,6 +4,8 @@ title: "PLAN-098: リカバリープラン kind 正規化 (recovery template 7 �
 layer: cross
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 size: M
 drive: troubleshoot
 created: 2026-05-20

@@ -2,6 +2,8 @@
 plan_id: PLAN-148
 title: "helix plan complete 時の parent/child status 整合チェック (child draft 放置 drift 防止)"
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 kind: impl
 drive: be
 layer: L4

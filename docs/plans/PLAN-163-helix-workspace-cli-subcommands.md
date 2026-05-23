@@ -2,6 +2,8 @@
 plan_id: PLAN-163
 title: helix workspace CLI subcommand 詳細設計・実装 (PLAN-156 子 PLAN、PLAN-156 で吸収完遂、superseded)
 status: superseded
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-156-helix-workspace-worktree-isolation.md   # from dependencies.parent
 superseded_by: PLAN-156
 status_history:
   - 2026-05-23: draft (前 session 連続起票で作成、PLAN-156 子 PLAN として定義)

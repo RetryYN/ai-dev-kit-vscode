@@ -5,6 +5,8 @@ kind: impl
 layer: L4
 drive: be
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 created: 2026-05-10
 finalized: 2026-05-10
 completed: 2026-05-10
@@ -202,4 +204,3 @@ W-0（本 draft）→ TL Round 1 → 修正 → TL Round 2 → 修正 → Opus f
   - 別枠 1 件: PLAN-002-helix-inventory-foundation.md（duplicate ID 解決込みで PLAN-043 以降）
 - W-4 critical path 接続（`.helix/handover/CURRENT.json` / `helix.db` / `.helix/phase.yaml` への共通 module 適用）は PLAN-043 で扱う。
 - filter design feedback memory が不十分な場合は、PLAN-043 で memory feedback 強化 Sprint を追加する。
-

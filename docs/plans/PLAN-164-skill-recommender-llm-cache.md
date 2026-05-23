@@ -2,6 +2,8 @@
 plan_id: PLAN-164
 title: skill recommender LLM prompt result cache (gpt-5.4-mini client-side 24h TTL)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-121-skill-recommender-improvement.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

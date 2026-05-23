@@ -2,6 +2,8 @@
 plan_id: PLAN-112
 title: statusLine warning 実装 (V5 Layer 2、context % 4 段階監視)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-099-autonomous-runtime-framework-5layer.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

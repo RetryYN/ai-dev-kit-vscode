@@ -5,6 +5,8 @@ kind: impl
 layer: L4
 drive: db
 status: finalized
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-062-helix-code-db-findings.md   # from dependencies.parent
 created: 2026-05-11
 author: "PM (Opus)"
 priority: high

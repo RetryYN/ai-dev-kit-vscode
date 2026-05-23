@@ -2,6 +2,8 @@
 plan_id: PLAN-180
 title: agent_slots SLA tracking (各 subagent の応答時間 SLA 計測・違反検出)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-129-pmo-sonnet-stuck-recovery.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

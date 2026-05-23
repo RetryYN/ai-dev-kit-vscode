@@ -2,6 +2,8 @@
 plan_id: PLAN-113
 title: "PostToolUse PLAN.md auto-register + task_queue auto-enqueue (V5 Layer 1)"
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-099-autonomous-runtime-framework-5layer.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

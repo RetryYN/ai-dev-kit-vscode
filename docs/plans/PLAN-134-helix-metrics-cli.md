@@ -2,6 +2,8 @@
 plan_id: PLAN-134
 title: helix metrics CLI (session 別 carry / PLAN / commit / agent slot 可視化)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

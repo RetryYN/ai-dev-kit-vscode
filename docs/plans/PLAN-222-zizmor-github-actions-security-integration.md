@@ -4,6 +4,8 @@ title: "PLAN-222: zizmor (GitHub Actions security audit) 統合 — CI ジョブ
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/adr/ADR-036-zizmor-adoption-decision.md   # from related_adr
 size: S
 drive: be
 created: 2026-05-23

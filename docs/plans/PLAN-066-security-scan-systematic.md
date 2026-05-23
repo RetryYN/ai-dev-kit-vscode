@@ -5,6 +5,8 @@ kind: impl
 layer: cross
 drive: be
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-065-qa-strictness.md   # from dependencies.parent
 created: 2026-05-13
 author: "Codex (Docs)"
 priority: high

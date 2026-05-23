@@ -5,6 +5,8 @@ kind: impl
 layer: L4
 drive: be
 status: in_progress
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 gate_status: G4_ready
 size: M-L
 agent_slots:

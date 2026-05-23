@@ -4,6 +4,8 @@ title: "PLAN-173: FE driver mock harness framework (fe drive 専用 mock 管理 
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 size: M
 drive: fe
 created: 2026-05-23

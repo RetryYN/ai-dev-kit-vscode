@@ -4,6 +4,8 @@ title: "PLAN-192: ADR Decision Graph visualization (graphviz / mermaid output)"
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-131-adr-decision-graph.md   # from dependencies.parent
 size: S
 drive: be
 created: 2026-05-23

@@ -5,6 +5,8 @@ kind: impl
 layer: L4
 drive: be
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-011-code-index-system.md   # from dependencies.parent
 created: 2026-05-03
 author: Legacy migration
 agent_slots:

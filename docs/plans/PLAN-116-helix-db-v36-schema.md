@@ -4,6 +4,8 @@ title: "PLAN-116: helix.db v36 schema (plan_registry / task_queue / plan_depende
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-091-v5-framework-core.md   # from dependencies.parent
 size: M
 drive: db
 created: 2026-05-23

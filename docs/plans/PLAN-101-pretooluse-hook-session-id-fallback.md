@@ -2,6 +2,8 @@
 plan_id: PLAN-101
 title: PreToolUse design-doc hook session_id fallback 実装 + transcript-based 検証緩和
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-100-existing-retrofit-v2-revision.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

@@ -4,6 +4,8 @@ title: "PLAN-069: G3 entry blocker 解消 (M-01〜M-04, spine 整合化 + draft.
 kind: impl
 layer: cross
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 size: M
 drive: be
 created: 2026-05-15
@@ -365,4 +367,3 @@ grep -A1 "CI-002\\|CI-003\\|CI-006" docs/v2/A-audit/cross-drive-integrity-check.
 - 役割正本:
   - `cli/ROLE_MAP.md`
   - `docs/v2/B-design/*-draft.yaml`
-

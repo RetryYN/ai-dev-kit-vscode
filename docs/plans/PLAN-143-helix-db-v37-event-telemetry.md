@@ -4,6 +4,8 @@ title: "PLAN-143: helix.db v37 schema (event_log + telemetry table)"
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-116-helix-db-v36-schema.md   # from dependencies.parent
 size: M
 drive: db
 created: 2026-05-23

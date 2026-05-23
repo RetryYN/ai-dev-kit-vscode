@@ -4,6 +4,8 @@ title: "PLAN-217: handover protocol federated (multi-repo handover hub)"
 layer: L4
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-128-handover-schema-enhancement.md   # from dependencies.parent
 size: L
 drive: be
 created: 2026-05-23

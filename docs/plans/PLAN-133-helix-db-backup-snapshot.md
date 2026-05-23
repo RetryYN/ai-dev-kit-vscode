@@ -2,6 +2,8 @@
 plan_id: PLAN-133
 title: helix.db backup auto-snapshot framework (SessionStart hook + restore CLI)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 kind: impl
 drive: be
 layer: L4

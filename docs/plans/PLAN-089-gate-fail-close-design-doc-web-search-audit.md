@@ -5,6 +5,8 @@ kind: impl
 layer: L2
 drive: be
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/adr/ADR-023-gate-fail-close-staged-adoption-snapshot.md   # from related_adr
 size: S-M
 created: 2026-05-19
 revised: 2026-05-19

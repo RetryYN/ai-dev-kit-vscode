@@ -2,6 +2,8 @@
 plan_id: PLAN-198
 title: hook security audit (hook 権限スコープ静的解析)
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

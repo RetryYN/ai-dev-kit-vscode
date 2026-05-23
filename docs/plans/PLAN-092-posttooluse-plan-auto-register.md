@@ -4,6 +4,8 @@ title: "PLAN-092: PostToolUse 自動登録 + helix.db v35 schema (V5 Layer B)"
 layer: cross
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 size: M
 drive: be
 created: 2026-05-20

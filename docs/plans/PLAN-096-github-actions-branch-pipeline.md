@@ -4,6 +4,8 @@ title: "PLAN-096: GitHub Actions + ブランチタイプ別パイプライン (V
 layer: cross
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 size: M
 drive: be
 created: 2026-05-20

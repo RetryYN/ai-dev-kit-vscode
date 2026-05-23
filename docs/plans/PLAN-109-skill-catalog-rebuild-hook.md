@@ -2,6 +2,8 @@
 plan_id: PLAN-109
 title: helix skill catalog rebuild 自動化 hook (PostToolUse SKILL.md 検出)
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 kind: impl
 drive: be
 layer: L4

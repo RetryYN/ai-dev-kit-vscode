@@ -5,6 +5,8 @@ kind: impl
 layer: cross
 drive: be
 status: proposed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 created: 2026-05-20
 author: pmo-sonnet
 agent_slots:

@@ -2,6 +2,8 @@
 plan_id: PLAN-140
 title: "PLAN-140: TodoWrite 状態と handover Next Action の双方向同期 framework"
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-099-autonomous-runtime-framework-5layer.md   # from dependencies.parent
 kind: impl
 drive: be
 layer: L4

@@ -2,6 +2,8 @@
 plan_id: PLAN-020
 title: "PLAN-020: HELIX 最新基準適合化整備"
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 size: S
 kind: impl
 layer: L1

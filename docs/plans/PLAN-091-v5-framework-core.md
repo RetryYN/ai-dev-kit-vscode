@@ -4,6 +4,8 @@ title: "PLAN-091: V5 framework 本体 (matrix + 種別正規化 + template embed
 layer: cross
 kind: impl
 status: draft
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/plans/PLAN-MM-001-v5-framework-master-plan.md   # from dependencies.parent
 size: L
 drive: be
 created: 2026-05-20

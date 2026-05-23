@@ -2,6 +2,8 @@
 plan_id: PLAN-022
 title: "PLAN-022: HELIX オーケストレーション層実機能化 (skill 推挙 + 自動発火 + thinking 必須化)"
 status: completed
+process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (commit eeb0530 retrofit)
+parent_design: docs/v2/process/L07-implementation-sprint.md   # ★TODO retrofit pending: L6 機能設計 doc 起草後に差し替え
 size: M
 kind: impl
 layer: cross
