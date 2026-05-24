@@ -1,10 +1,14 @@
 ---
 doc_id: observability-metrics
-title: "HELIX 観測・計測機構（発火・トラブル計測と実行ログ）"
-status: draft
+title: HELIX 観測・計測機構（発火・トラブル計測と実行ログ）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 管理・自動化基盤
 ---
 
 # HELIX 観測・計測機構

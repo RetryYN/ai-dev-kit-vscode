@@ -1,10 +1,14 @@
 ---
 doc_id: fe-detector-spec
-title: "FE detector 判定仕様（動的検証の組み込み）"
-status: draft
+title: FE detector 判定仕様（動的検証の組み込み）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: ADR・research 関連
 ---
 
 # FE detector 判定仕様（動的検証の組み込み）

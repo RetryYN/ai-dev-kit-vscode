@@ -1,10 +1,14 @@
 ---
 doc_id: process-l14-operation-verification
-title: "L14 運用検証・機能改善 — 工程定義"
-status: draft
+title: L14 運用検証・機能改善 — 工程定義
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/specs
+  category: L0-L14 工程
 ---
 
 # L14 運用検証・機能改善

@@ -1,10 +1,14 @@
 ---
 doc_id: process-l5-detailed-design
-title: "L5 詳細設計（内部設計） — 工程定義"
-status: draft
+title: L5 詳細設計（内部設計） — 工程定義
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/design
+  category: L0-L14 工程
 ---
 
 # L5 詳細設計（内部設計）

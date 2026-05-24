@@ -1,10 +1,14 @@
 ---
 doc_id: db-integration
-title: "Vモデル本線 DB への収束・接続"
-status: draft
+title: Vモデル本線 DB への収束・接続
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 管理・自動化基盤
 ---
 
 # Vモデル本線 DB への収束・接続

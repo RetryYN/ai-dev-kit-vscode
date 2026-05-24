@@ -1,7 +1,8 @@
 ---
 doc_id: workflows-index
 title: "HELIX ワークフロー索引"
-status: draft
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 ---

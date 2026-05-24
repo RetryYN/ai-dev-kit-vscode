@@ -1,10 +1,14 @@
 ---
 doc_id: integration-map
-title: "スキル・コマンドの穴と統合状況"
-status: draft
+title: スキル・コマンドの穴と統合状況
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: ADR・research 関連
 ---
 
 # スキル・コマンドの穴と統合状況

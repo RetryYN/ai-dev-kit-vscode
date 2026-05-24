@@ -196,6 +196,11 @@ L2 (左腕) でワイヤー設計、L10 (右腕) で UX 磨き上げ、V-model �
 
 > **責務整理 (重要、tl-advisor 指摘で確立)**: 既存 `§HELIX Scrum (検証駆動)` および `helix scrum` CLI / `agent-skills/helix-scrum` skill は **HELIX-workflows の Discovery 意味** に対応する (仮説検証 / PoC / verify scripts)。HELIX-workflows の新 Scrum (アジャイル) は別概念。CLI / skill 名は legacy 互換で維持、概念的には Discovery として読む。将来の rename は別 PLAN carry。
 
+### ワークフロー文書統合 cross-reference
+
+helix-process/ 45 file の中央 INDEX 兼 appendix は [docs/architecture/helix-workflows-appendix.md](../docs/architecture/helix-workflows-appendix.md) を参照する。
+domain 別の導線は `docs/{adr,research,runbook,rollback,postmortem,slo,design}/helix-workflows-appendix.md` に集約する。
+
 ### HELIX Reverse（既存コードからの逆引き設計）
 
 ```

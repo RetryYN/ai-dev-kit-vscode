@@ -1,10 +1,14 @@
 ---
 doc_id: test-perspective-gate
-title: "テスト観点ゲート（W字補強）"
-status: draft
+title: テスト観点ゲート（W字補強）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 管理・自動化基盤
 ---
 
 # テスト観点ゲート（W字補強）

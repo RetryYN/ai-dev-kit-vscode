@@ -86,6 +86,9 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 
 新規 PLAN 起票・モード判断・コマンド整備など、企画・設計判断に入る前に [HELIX-workflows/helix-process/integration-map.md](HELIX-workflows/helix-process/integration-map.md) §結論と優先順位 を必ず確認する (整理済み企画書を読まずに自前 carry list を並べないこと)。
 
+文書統合 INDEX 兼 appendix は [docs/architecture/helix-workflows-appendix.md](docs/architecture/helix-workflows-appendix.md) を正本とする。
+docs domain 別の導線は `docs/{adr,research,runbook,rollback,postmortem,slo,design}/helix-workflows-appendix.md` を参照する。
+
 ### Implemented CLI modes
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`

@@ -1,10 +1,14 @@
 ---
 doc_id: two-stage-agent-design
-title: "HELIX W（2段設計・V字を2回, Phase 合流型）"
-status: draft
+title: HELIX W（2段設計・V字を2回, Phase 合流型）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: ADR・research 関連
 ---
 
 # HELIX W（2段設計・V字を2回, Phase 合流型）

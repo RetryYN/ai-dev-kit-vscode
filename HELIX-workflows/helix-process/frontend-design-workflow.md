@@ -1,10 +1,14 @@
 ---
 doc_id: workflow-frontend-design
-title: "フロントデザインワークフロー（UX / ビジュアルデザイン）"
-status: draft
+title: フロントデザインワークフロー（UX / ビジュアルデザイン）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/design
+  category: 工程専門
 ---
 
 # フロントデザインワークフロー（UX / ビジュアルデザイン）

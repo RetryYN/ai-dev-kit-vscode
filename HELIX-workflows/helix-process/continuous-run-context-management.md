@@ -1,10 +1,14 @@
 ---
 doc_id: continuous-run-context-management
-title: "自動走行とコンテキスト管理"
-status: draft
+title: 自動走行とコンテキスト管理
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 管理・自動化基盤
 ---
 
 # 自動走行とコンテキスト管理

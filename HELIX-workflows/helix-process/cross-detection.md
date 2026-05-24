@@ -1,10 +1,14 @@
 ---
 doc_id: cross-detection
-title: "HELIX 横断検出（依存漏れ・契約漏れ・デグレ回避）"
-status: draft
+title: HELIX 横断検出（依存漏れ・契約漏れ・デグレ回避）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 検出・学習・注入
 ---
 
 # HELIX 横断検出（依存漏れ・契約漏れ・デグレ回避）

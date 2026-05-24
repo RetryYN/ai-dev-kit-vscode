@@ -1,10 +1,14 @@
 ---
 doc_id: workflow-recovery
-title: "Recovery HELIX ワークフロー（AI 暴走対応）"
-status: draft
+title: Recovery HELIX ワークフロー（AI 暴走対応）
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/runbook
+  category: モードワークフロー
 ---
 
 # Recovery HELIX ワークフロー（AI 暴走対応）

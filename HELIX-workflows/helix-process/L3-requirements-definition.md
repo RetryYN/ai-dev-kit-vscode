@@ -1,10 +1,14 @@
 ---
 doc_id: process-l3-requirements-definition
-title: "L3 要件定義 — 工程定義"
-status: draft
+title: L3 要件定義 — 工程定義
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/requirements
+  category: L0-L14 工程
 ---
 
 # L3 要件定義

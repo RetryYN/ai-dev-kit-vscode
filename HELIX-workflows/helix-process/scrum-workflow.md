@@ -1,10 +1,14 @@
 ---
 doc_id: workflow-scrum
-title: "Scrum HELIX ワークフロー"
-status: draft
+title: Scrum HELIX ワークフロー
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/design
+  category: モードワークフロー
 ---
 
 # Scrum HELIX ワークフロー

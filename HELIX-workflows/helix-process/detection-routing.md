@@ -1,10 +1,14 @@
 ---
 doc_id: detection-routing
-title: "HELIX DB 検出 → モード連携"
-status: draft
+title: HELIX DB 検出 → モード連携
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 検出・学習・注入
 ---
 
 # HELIX DB 検出 → モード連携

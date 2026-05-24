@@ -1,10 +1,14 @@
 ---
 doc_id: process-l10-ux-refinement
-title: "L10 フロントデザインUX・ビジネスデザイン磨き上げ — 工程定義"
-status: draft
+title: L10 フロントデザインUX・ビジネスデザイン磨き上げ — 工程定義
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/design
+  category: L0-L14 工程
 ---
 
 # L10 フロントデザインUX・ビジネスデザイン磨き上げ

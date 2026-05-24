@@ -71,6 +71,7 @@ skills/
 - タスク受領時は `helix/HELIX_CORE.md`、`skills/SKILL_MAP.md`、`helix/CODEX_TL_MODE.md` を確認する。これらは HELIX-workflows を正本として参照する形で同期されている (drift 発見時は HELIX-workflows を正、本ファイル群を retrofit)。
 - 新規 PLAN 起票・モード判断・コマンド整備など、企画・設計判断に入る前に [HELIX-workflows/helix-process/integration-map.md](HELIX-workflows/helix-process/integration-map.md) §結論と優先順位 を必ず確認する (整理済み企画書を読まずに自前 carry list を並べないこと、[[feedback_read_integrated_plan_before_carry_list]])。
 - `.helix/handover/CURRENT.json` がある場合は `helix handover status --json` を確認し、stale でなければ Next Action に従う。
+- 文書統合 INDEX 兼 appendix は [docs/architecture/helix-workflows-appendix.md](docs/architecture/helix-workflows-appendix.md) を参照する。domain 別の導線は `docs/{adr,research,runbook,rollback,postmortem,slo,design}/helix-workflows-appendix.md` に集約する。
 
 ### 実装済み CLI mode
 

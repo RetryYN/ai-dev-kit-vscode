@@ -1,10 +1,14 @@
 ---
 doc_id: ci-pr-workflow
-title: "CI / GitHub 運用ワークフロー"
-status: draft
+title: CI / GitHub 運用ワークフロー
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
+integration_target:
+  docs_path: docs/architecture
+  category: 管理・自動化基盤
 ---
 
 # CI / GitHub 運用ワークフロー
