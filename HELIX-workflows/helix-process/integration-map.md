@@ -41,11 +41,11 @@ integration_target:
 | PLAN kind 11種（design / impl / poc / reverse / troubleshoot / refactor / retrofit / research / add-design / add-impl / recovery） | 全てあり |
 | generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | retrofit-matrix / research-memo / ADR / recovery-log は全てあり（2026-05-25 完遂） |
 | 工程(L): L1 / L2 / L3 / L4（sprint-guide 5種）/ L5 | あり |
-| 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | なし（穴） |
+| 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | あり（英語版 `cli/templates/plan/v2/L00-L14-*-template.md` として既存、2026-05-25 確認） |
 | drive=agent（2段設計の Stage 2 昇華） | なし（穴, two-stage-agent-design） |
 | 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | なし（穴, continuous-run-context-management） |
 
-PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log、加えて research-memo / ADR の雛形も 2026-05-25 完了対応で揃っている。工程テンプレートは L1–L5 中心で、L0 と L6–L14 が欠けている。
+PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log、加えて research-memo / ADR の雛形も 2026-05-25 完了対応で揃っている。工程テンプレートは L00–L14 (英語版) として `cli/templates/plan/v2/` に既存、L1–L14 完備済み。
 
 ## 未統合
 
