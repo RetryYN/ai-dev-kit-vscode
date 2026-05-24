@@ -29,6 +29,16 @@ compatibility:
 - レビュー文化構築時
 - レビュアー視点での承認可否判定時 (LGTM/LGTM with nits/Changes requested 判定)
 
+## 責務分離 (隣接 skill との境界)
+
+本 skill は **レビュー観点 (何を見るか) + 判定ラベル (どう判定するか)** の正本。隣接 skill との分業:
+
+- **`workflow/review-stage-routing` (2026-05-25 追加)**: **段階 → ロール分業** (誰が見るか) を担当。6 段階 (Format/Lint/Style/Logic/Design/Architecture) × ロール (PM/TL/SE/PE/QA/security) のルーティングと、AI ゼロ指摘領域こそ上位ロールが見る「逆説ルール」+ ADR 降下のみを扱う。観点と判定は本 skill に委譲、本 skill と重複しない
+- **`workflow/adversarial-review`**: G2/G4/G6 ゲート前の adversarial check (悪魔の代弁者)、本 skill の判定とは別軸
+- **`agent-skills/code-review-and-quality`**: 5 軸 review (Correctness/Readability/Architecture/Security/Performance) 多次元評価
+
+詳細な使い分けは [skills/SKILL_MAP.md §責務境界クリア化 (code-review 系の使い分け)](../../SKILL_MAP.md) を参照。
+
 ## レビュアー視点 (Google eng-practices)
 
 承認可否判定の判断基準・コメントラベル ([Blocking] / Nit: / Optional: / FYI:) ・出力テンプレート (LGTM / LGTM with nits / Changes requested) は **[references/google-reviewer-guide.md](references/google-reviewer-guide.md)** を参照。
