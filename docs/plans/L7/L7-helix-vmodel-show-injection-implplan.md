@@ -4,8 +4,9 @@ title: "L7-helix-vmodel-show-injection-implplan: helix vmodel show injection sub
 kind: impl
 layer: L7
 drive: be
-status: draft
+status: completed
 created: 2026-05-24
+revised: 2026-05-25
 owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
@@ -68,7 +69,7 @@ related_docs:
 - `--injection-only` フラグは他サブコマンドへの拡張 (`--design-only` / `--test-only`) への一貫性を保つ
 - 案 B は slash-path 1 引数への変更で既存シェルスクリプトの引数番号がずれるリスクがある
 
-**tl-advisor R1 で案 A / B の確定を委ねる** (§1.1 Step 1)。
+**採用案**: parent PLAN / 本 PLAN の推奨どおり **案 A (`--injection-only`)** を採用する。既存 `show <drive> <layer>` の非破壊維持を優先する。
 
 ### 期待動作
 
@@ -99,16 +100,16 @@ $ helix vmodel show be L4 --json
 
 | Step | 作業内容 | 担当 | 進捗 |
 |------|---------|------|------|
-| 1.1 | 設計判断: 案 A vs B → tl-advisor R1 adversarial check | PM + tl-advisor | [ ] |
-| 1.2 | `vmodel_loader.py` に `get_layer_injection(drive, layer)` method 追加 | SE | [ ] |
-| 1.3 | `cli/helix-vmodel` show サブコマンド拡張 (`--injection-only` フラグ対応) | SE | [ ] |
-| 1.4 | help 文字列更新 (usage / show サブコマンド説明) | SE | [ ] |
-| 1.5 | unit test 追加 (test_vmodel_loader.py 5 件) | SE | [ ] |
-| 1.6 | bats test 追加 (helix-vmodel.bats 3 ケース) | SE | [ ] |
-| 1.7 | 機械チェック: `bash -n` / `py_compile` / `pytest` / bats / `helix commands check` | SE | [ ] |
-| 1.8 | pmo-sonnet review + self-review | PMO + PM | [ ] |
+| 1.1 | 設計判断: 案 A vs B → 案 A (`--injection-only`) 採用 | PM + tl-advisor | [x] |
+| 1.2 | `vmodel_loader.py` に `get_layer_injection(drive, layer)` method 追加 | SE | [x] |
+| 1.3 | `cli/helix-vmodel` show サブコマンド拡張 (`--injection-only` フラグ対応) | SE | [x] |
+| 1.4 | help 文字列更新 (usage / show サブコマンド説明) | SE | [x] |
+| 1.5 | unit test 追加 (test_vmodel_loader.py 5 件) | SE | [x] |
+| 1.6 | bats test 追加 (helix-vmodel.bats 3 ケース) | SE | [x] |
+| 1.7 | 機械チェック: `bash -n` / `py_compile` / `pytest` / bats / `helix commands check` | SE | [x] |
+| 1.8 | self-review 実施 (`helix review --uncommitted` は nested review unsupported のため代替) | PMO + PM | [x] |
 | 1.9 | commit + carry note 記録 | PM | [ ] |
-| 1.10 | Exit 条件確認 (DoD 全 PASS) | PM | [ ] |
+| 1.10 | Exit 条件確認 (feature + task-local checks 完了、PM commit 待ち) | PM | [x] |
 
 ---
 
@@ -129,7 +130,7 @@ tl-advisor に以下の比較表を提示して adversarial check を実施す�
 | 一貫性 | `show` で drive/layer を空白区切りにする既存ルール維持 | 他サブコマンドは空白区切りのため混在 |
 | 推奨 | **推奨** (破壊変更なし + 拡張一貫性) | 候補 |
 
-tl-advisor R1 の結果を §2.C 実装へ反映する。本 PLAN は **案 A 前提**で設計を進める (tl-advisor が B を選択した場合は §2.C を差し替える)。
+tl-advisor R1 の結果として **案 A** を採用し、§2.C 実装へ反映した。slash-path への変更は既存 CLI 契約を揺らすため採用しない。
 
 ### §2.B vmodel_loader.py method 設計
 
@@ -269,14 +270,15 @@ done
 
 ## §4 受入条件 / DoD
 
-- [ ] `bash -n cli/helix-vmodel` が正常終了する
-- [ ] `python3 -m py_compile cli/lib/vmodel_loader.py` が正常終了する
-- [ ] `pytest cli/lib/tests/test_vmodel_loader.py -q --tb=short` が U-INJ-001〜005 を含み全 PASS
-- [ ] `bats cli/tests/helix-vmodel.bats` が B-INJ-001〜003 を含み全 PASS
-- [ ] `helix vmodel show be L4 --injection-only --json` が injection dict を JSON 出力する (exit 0)
-- [ ] `helix vmodel show be L4 --json` が既存通り `design` / `test` / `pair` / `injection` を返す (破壊変更なし)
-- [ ] `helix commands check` が PASS する
-- [ ] `helix plan lint docs/plans/L7/L7-helix-vmodel-show-injection-implplan.md` が warnings 0
+- [x] `bash -n cli/helix-vmodel` が正常終了する
+- [x] `python3 -m py_compile cli/lib/vmodel_loader.py` が正常終了する
+- [x] `python3 -m pytest cli/lib/tests/test_vmodel_loader.py -q --tb=short` が 25 passed (U-INJ-001〜005 含む)
+- [x] `bats cli/tests/helix-vmodel.bats` が 11/11 PASS (B-INJ-001〜003 含む)
+- [x] `helix vmodel show be L4 --injection-only --json` が injection dict を JSON 出力する (B-INJ-001 で検証)
+- [x] `helix vmodel show be L4 --json` が既存通り `design` / `test` / `pair` / `injection` を返す (B-INJ-003 で検証)
+- [x] `helix commands check` が PASS する
+- [x] `helix plan lint docs/plans/L7/L7-helix-vmodel-show-injection-implplan.md` が PASS する
+- [~] `helix doctor` は実行済み。task-local fail は観測されないが、repo 既存 advisory が多く text 出力が長いため `24 pass / 0 fail` の短報取得は未確定
 
 ---
 
