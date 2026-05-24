@@ -24,6 +24,7 @@ superseded_by: []
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で `recommended_command` が「人間向け表示専用」と「後続 CLI に渡す契約」の両方として書かれ矛盾発覚、ADR snapshot で役割凍結
 - 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-1 (JSON object vs string 矛盾) を `RecommendedCommandV1` schema + `schema_version`/`safety` field で一本化、P1-3 (Recovery 接続例外) を §接続コマンド統一表に追加、P1-4 (`suggest_command` backward compat 固定表) を §Decision 末尾に追加、tl-advisor R2 待ち
+- 2026-05-24 (R2 revision): tl-advisor R2 で **needs_revision** (P0 なし、P1 5 件)、P1-3 (`safety.requires_preflight` field 追加) + P1-4 (`suggest_command` 固定表を route_engine.py L53-61 全 signal 11 行に拡張、`regression_prod`/`unknown_design`/`degradation` alias/`incident` env 分岐含む) + P1-2 (`helix plan draft` machine args 拡張は別 PLAN carry `L7-helix-plan-draft-machine-args-ext` として明示) + P1-5 (`--format machine` 廃止、`--format json` additive 採用 = 代替案 C) を §Decision に反映、tl-advisor R3 待ち
 
 ## Context
 
@@ -85,7 +86,8 @@ PLAN C' draft §V3 接続契約に `recommended_command` field 仕様が記載�
   },
   "safety": {
     "auto_apply": false,
-    "requires_human_approval": false
+    "requires_human_approval": false,
+    "requires_preflight": false
   },
   "exit_code_expectations": {
     "0": "PLAN draft created",
@@ -96,7 +98,9 @@ PLAN C' draft §V3 接続契約に `recommended_command` field 仕様が記載�
 ```
 
 `schema_version`: 将来の schema 変更時に additive で `v2` 等に拡張。strict parser は unknown schema_version で fail-close。
-`safety.auto_apply`: agent が確認なしに即実行可否 (default false)。`safety.requires_human_approval`: 人間承認必須フラグ (env/infra/prod 変更時 true、R1 P1-2 反映)。
+`safety.auto_apply`: agent が確認なしに即実行可否 (default false)。
+`safety.requires_human_approval`: 人間承認必須フラグ (env/infra/prod 変更時 true、R1 P1-2 反映)。
+`safety.requires_preflight`: **前段 preflight 必須フラグ** (R2 P1-3 反映、ADR-041 `upgrade` 高リスク時の Reverse upgrade R0-R4 前段に対応、default false)。requires_preflight=true 時は `command` を `helix reverse upgrade R0` 等に変更してから本 command 実行。
 
 ### 接続コマンド統一 (PLAN B/C/C' 共通) + **Recovery 例外** (R1 P1-3 反映)
 
@@ -112,18 +116,41 @@ route_engine の `recommended_command` は **`helix plan draft --kind <mode>` �
 
 各 mode CLI (`helix refactor init` / `helix retrofit init` 等) は PLAN 起票後の **手動着手** に限定 (refactor/retrofit のみ)。
 
-### `suggest_command` backward compat 固定表 (R1 P1-4 反映、既存 signal 全件)
+### `suggest_command` backward compat 固定表 (R2 P1-4 反映、現行 route_engine.py L53-61 全 signal)
 
-| signal | 既存 `suggest_command` | 値変更可否 |
-|---|---|---|
-| `drift` (schema/contract) | `helix reverse normalization R0` | **凍結** (変更禁止) |
-| `drift` (code_smell/structural) | `helix plan draft --kind refactor` (新規) | 追加 (本 ADR で凍結) |
-| `dependency_outdated` / `upgrade` / `config_drift` | `helix plan draft --kind retrofit` (新規) | 追加 (本 ADR で凍結) |
-| `runaway` | `helix recover plan --signal-id runaway` | **凍結** (PLAN D 既存) |
-| `regression_dev` / `incident` | 既存値 (recover_engine.signal_to_condition 参照) | **凍結** |
-| `debt_degradation` | `helix plan draft --kind refactor --from-debt-id <id>` | 追加 |
+`cli/lib/route_engine.py:53-61` の `SIGNAL_TO_MODE` 全 signal を全件凍結:
 
-既存 `eval --format command` は本表の `suggest_command` 文字列を返す (R1 P1-4 反映で全件固定)。
+| signal | 既存 `suggest_command` | mode | 値変更可否 |
+|---|---|---|---|
+| `drift` (schema/contract) | `helix reverse normalization R0` | Reverse | **凍結** (変更禁止) |
+| `drift` (code_smell/structural) | `helix plan draft --kind refactor` (新規) | Refactor | 追加 (本 ADR で凍結) |
+| `dependency_outdated` / `upgrade` / `config_drift` | `helix plan draft --kind retrofit` (新規) | Retrofit | 追加 (本 ADR で凍結) |
+| `runaway` | `helix recover plan --signal-id runaway` | Recovery | **凍結** (PLAN D 既存、Recovery 例外) |
+| `regression_dev` | 既存値 (recover_engine.signal_to_condition 参照) | Recovery | **凍結** |
+| `regression_prod` | 既存値 (現行 route_engine が返す) | Recovery | **凍結** (R2 P1-4 追加) |
+| `incident` (env=prod) | `helix recover plan --signal-id incident` (Recovery 経由) | Recovery | **凍結** |
+| `incident` (env=dev) | `helix plan draft --kind troubleshoot` (Incident と区別) | Troubleshoot | **凍結** (R2 P1-4 追加、env 分岐明示) |
+| `unknown_design` | `helix reverse code R0` (現状 Reverse(code) 固定) | Reverse | **凍結** (R2 P1-4 追加) |
+| `degradation` (alias) | `debt_degradation` への alias 維持 | Refactor (debt_degradation 経由) | **凍結** (R2 P1-4 追加、alias) |
+| `debt_degradation` | `helix plan draft --kind refactor --from-debt-id <id>` | Refactor | 追加 |
+
+既存 `eval --format command` は本表の `suggest_command` 文字列を返す (R2 P1-4 反映で route_engine.py L53-61 全 signal 凍結、deprecation alias 含む)。
+
+### `helix plan draft` machine args 接続 (R2 P1-2 反映)
+
+ADR-042 の `recommended_command.command = "helix plan draft"` + `args` (`kind/drift_type/signal_id/slug`) は **現行 `cli/helix-plan-cmds/draft.sh:28-54` が受けない args**。R2 で以下を carry C-NEW として確定:
+
+1. **`helix plan draft --kind/--drift-type/--signal-id/--slug` 拡張**は別 PLAN candidate (`L7-helix-plan-draft-machine-args-ext`、ADR-042 Accepted 後の前提依存) として起票必須
+2. **本 ADR Accepted の前提依存 dependency**: 本 ADR の `recommended_command` machine contract を実行可能にするには、上記別 PLAN の完遂が必要 (本 ADR Status を `Accepted with conditions` とし、condition #2 として明示)
+3. **暫定対応**: 別 PLAN 完遂前は `recommended_command.command = "helix plan draft"` + `args` を suggestion (人間が args を手動で `--title`/`--file`/`--plan-id` に変換) として使う
+
+### `--format machine` 廃止、`--format json` に additive 拡張 (R2 P1-5 代替案 C 採用)
+
+ADR-042 当初案 `--format machine` 新規 format は現行 `cli/lib/route_engine.py:265` が `json|command` のみで不整合。R2 で **代替案 C 採用**:
+
+- `--format machine` は**廃止** (新 format 増やさない)
+- `--format json` 出力に `recommended_command` object を **additive 追加** (既存 caller 互換)
+- 既存 `--format json` consumer は新 field を ignore で動作維持 (additive backward compat)
 
 不採用: `helix refactor init` / `helix retrofit init` を recommended_command に直接含める → route_engine が複数 mode CLI に依存、test surface 増。
 

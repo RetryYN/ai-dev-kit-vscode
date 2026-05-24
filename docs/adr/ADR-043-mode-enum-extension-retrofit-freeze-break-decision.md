@@ -24,6 +24,7 @@ superseded_by: []
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で「accepted parent design (detection-routing.md) は Retrofit 含まない、Mode enum に Retrofit 追加するなら L2 ADR snapshot で凍結すること」指摘、本 ADR で凍結
 - 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-2 (parent design footnote 自己矛盾、detection-routing.md に §5 不在) を **PLAN frontmatter `parent_design` 複数値並記 pattern** に変更 (detection-routing.md 完全不変更維持)、P1-5 (additive backward compat 影響調査) を §Decision 末尾に追加、tl-advisor R2 待ち
+- 2026-05-24 (R2 revision): tl-advisor R2 で **needs_revision** (P0 なし、P1 5 件)、P1-1 (`parent_design` 複数値 list が plan_validator.py と不整合) を **代替案 A 採用 = `parent_design` string 維持 + `parent_design_addenda: list[str]` 新 field** に修正、`plan_validator.py` 拡張は別 PLAN carry `L7-plan-validator-parent-design-addenda-ext` として明示、tl-advisor R3 待ち
 
 ## Context
 
@@ -69,19 +70,20 @@ Mode = Literal["Reverse", "Refactor", "Retrofit", "Recovery", "Incident"]
 
 ### parent design (detection-routing.md) との関係 (R1 P0-2 反映、自己矛盾解消)
 
-**重要 (R1 P0-2 反映)**: 当初案「detection-routing.md 本文不変更 + §5 footnote 追記」は、現行 detection-routing.md に §5 / Mode 一覧が**存在しない**ため自己矛盾。本 revision で **detection-routing.md は完全不変更** + **PLAN frontmatter で `parent_design` 複数値並記** pattern に修正。
+**重要 (R1 P0-2 + R2 P1-1 反映)**: 当初案「detection-routing.md 本文不変更 + §5 footnote 追記」は、現行 detection-routing.md に §5 / Mode 一覧が**存在しない**ため自己矛盾。R1 で「PLAN frontmatter `parent_design` 複数値 list」採用したが、R2 で `cli/lib/plan_validator.py:138-139,175-186,371-380` が `parent_design: str | None` 前提で list は None 扱い + warn 発生と判明。R2 採用 = **代替案 A: `parent_design` string 維持 + `parent_design_addenda: list[str]` 新 field**。
 
 - `detection-routing.md` 本文は **完全に変更しない** (accepted 凍結維持、footnote 追記も行わない)
-- PLAN C / C' (および本 ADR 影響範囲) の `parent_design` field を **複数値 list** にし、`detection-routing.md` と `ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md` の両方を併記:
+- PLAN C / C' (および本 ADR 影響範囲) の frontmatter 形式 (R2 P1-1 代替案 A 採用):
 
 ```yaml
-# PLAN C' frontmatter 例 (R3 反映で対応)
-parent_design:
-  - HELIX-workflows/helix-process/detection-routing.md   # 上位 parent
+# PLAN C' frontmatter 例 (R3 反映で対応、plan_validator.py 互換)
+parent_design: HELIX-workflows/helix-process/detection-routing.md   # 上位 parent (string、既存 validator 互換)
+parent_design_addenda:                                                # 追補 ADR list (新 field、optional)
   - docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md   # 追補 ADR (必読)
 ```
 
-- PLAN reader (Codex SE / pmo-sonnet) は `parent_design` を順次 read し、ADR-043 で Retrofit mode の追補を必ず認識する
+- `plan_validator.py` への影響: `parent_design_addenda` field は optional、未指定なら従来動作維持 (backward compat)。新 field 追加 + parse は別 PLAN candidate (`L7-plan-validator-parent-design-addenda-ext`、本 ADR Accepted 後の前提依存) carry
+- PLAN reader (Codex SE / pmo-sonnet) は `parent_design` + `parent_design_addenda` の両方を read し、ADR-043 で Retrofit mode の追補を必ず認識する
 - ADR index.md / `docs/adr/helix-workflows-appendix.md` で ADR-043 を「detection-routing.md 追補」明示
 - 将来 detection-routing.md v2 (新版) を起こす際に本 ADR を統合 → ADR-043 を superseded marker で凍結
 

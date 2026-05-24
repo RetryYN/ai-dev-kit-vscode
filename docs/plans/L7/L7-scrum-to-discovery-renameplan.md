@@ -6,7 +6,7 @@ layer: L7
 drive: be
 status: draft
 created: 2026-05-24
-revised: 2026-05-24
+revised: 2026-05-24 (R2 revision: P0-1 state-path legacy / P1-1 docs/commands / P1-2 enum-contract / P1-3 4-property-test / P2-1 trace / P2-2 no-dollar-star / P2-3 env-form)
 owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
@@ -50,6 +50,10 @@ related_docs:
   - helix/HELIX_CORE.md
   - CLAUDE.md
   - AGENTS.md
+  - docs/commands/index.md (P1-1: Sprint .4 で discovery エントリ追加)
+  - docs/commands/scrum.md (P1-1: alias doc として残存 + discovery.md への誘導注記追加)
+  - docs/commands/discovery.md (P1-1: 新規作成 — Sprint .4 で実施)
+  - "(本 PLAN は ADR-041/042/043 の影響範囲外: drift_type / recommended_command / Mode enum は本 PLAN scope に含まれない)"
 ---
 
 ## §0 PLAN concept
@@ -57,6 +61,7 @@ related_docs:
 > **工程**: L7 実装スプリント
 > **正本設計**: [HELIX-workflows/helix-process/discovery-workflow.md](../../../HELIX-workflows/helix-process/discovery-workflow.md)
 > **本 PLAN (A1) の scope**: HELIX-workflows V2 完全移行で「Scrum (アジャイル)」と「Discovery (検証駆動)」が別概念に整理されたことに伴い、**CLI/skill/doc の外部表示名を alias で統一し、Stage 1 (deprecated warning あり alias) を実装する**。内部 symbol/DB table の rename は一切行わない (legacy 名維持)。
+> **enum 契約 (P1-2 反映)**: 本 PLAN は `plan_validator.py` の `VALID_KINDS`/`VALID_DRIVES` を **変更しない**。`kind: discovery` の追加・`VALID_DRIVES` への discovery 追加・`kind: scrum` の warn-only 化は全て A2 scope。PLAN frontmatter の `kind:` は既存 enum 値 (`poc` 等) を使用し続ける。本 PLAN は **CLI/skill/doc alias のみ**を担う。
 > **位置づけ**: SKILL_MAP.md §HELIX Scrum line 247 に「将来の rename は別 PLAN carry」として明記された carry を消化する PLAN (A1)。A1 完遂後に後段 PLAN A2 (`L7-scrum-to-discovery-migration-enumplan`) が runtime dir migration + drive/kind enum 正規化 + Stage 2-4 を担う。
 
 > **A2 移管事項 (本 PLAN の scope 外)**:
@@ -109,7 +114,7 @@ kind=refactor が deviation-plan-map の定義に合致する。
 | 3 | CLI alias routing 契約確定 (全 12 subcommand) | PM | ✅ done (§8) |
 | 4 | tl-advisor adversarial check R1 | PM → TL | ✅ done (needs_revision → revision 完了) |
 | 5 | TL R1 指摘反映 (P0/P1 反映、scope 縮小) | PM | ✅ done (本 revision) |
-| 6 | tl-advisor adversarial check R2 (必要な場合) | PM → TL | □ pending |
+| 6 | tl-advisor adversarial check R2 反映 (P0-1 / P1-1/-2/-3 / P2-1/-2/-3 全反映) | PM → PMO | ✅ done (本 revision) |
 | 7 | SE 委譲: Sprint .2 CLI alias 実装 (`cli/helix-discovery` 全 12 subcommand + `cli/helix-scrum` shim) | PM → SE | □ pending |
 | 8 | SE 委譲: Sprint .3 skill alias 対応 (`helix-discovery/` 新規 + `helix-scrum/` alias stub 維持) | PM → SE | □ pending |
 | 9 | SE 委譲: Sprint .4 doc 更新 (CLAUDE.md / AGENTS.md / SKILL_MAP.md / HELIX_CORE.md / docs/agent-skills/README.md 等) | PM → SE | □ pending |
@@ -189,13 +194,11 @@ Stage 1: Alias + Warning 段階 (本 PLAN 実装直後、default activation)
 
 | 旧 | 新 |
 |---|---|
-| `SCRUM_DIR="$HELIX_DIR/scrum"` | `DISCOVERY_DIR="$HELIX_DIR/discovery"` (外部 dir パス) |
-| `BACKLOG="$SCRUM_DIR/backlog.yaml"` | `BACKLOG="$DISCOVERY_DIR/backlog.yaml"` |
-| `SPRINT_FILE="$SCRUM_DIR/sprint.yaml"` | `SPRINT_FILE="$DISCOVERY_DIR/sprint.yaml"` |
-| `SCRUM_VERIFY_DIR="$SCRUM_DIR/verify"` | `DISCOVERY_VERIFY_DIR="$DISCOVERY_DIR/verify"` |
 | usage/help 表示 `helix scrum` | `helix discovery` |
 
-**内部維持 (変更しない)**: `scrum_*` 関数名、内部 module import、DB table 名 — A2 scope
+> **重要 (P0-1 反映)**: `cli/helix-discovery` の **runtime state path は `.helix/scrum/` を引き続き使用する** (backward compat 維持)。`SCRUM_DIR`、`BACKLOG`、`SPRINT_FILE`、`SCRUM_VERIFY_DIR` 等の変数名・パス定義は変更しない。`.helix/discovery/` への切替・fallback・migration は A2 (`L7-scrum-to-discovery-migration-enumplan`) scope。A1 では外部表示名 (CLI usage / help 文字列 / skill doc / user-facing doc) のみ変更する。
+
+**内部維持 (変更しない)**: `scrum_*` 変数名・関数名・内部 module import・DB table 名・runtime dir パス — 全て A2 scope
 
 ### 3.2 skill
 
@@ -213,7 +216,7 @@ Stage 1: Alias + Warning 段階 (本 PLAN 実装直後、default activation)
 
 > **A1 では runtime dir を一切変更しない。** `.helix/scrum/` の migration は A2 (`L7-scrum-to-discovery-migration-enumplan`) が担当する。
 > atomicity / manifest 検証 / lock / 再実行安全性の設計は A2 scope。
-> 本 PLAN では `.helix/scrum/` の存在を前提に、`helix discovery` が `.helix/discovery/` を新規作成パスとして扱う (既存 `.helix/scrum/` には触れない)。
+> **`cli/helix-discovery` は `.helix/scrum/` を runtime storage として使用する** (backward compat Stage 1)。`.helix/discovery/` への切替は A2 で実施する。A1 では `.helix/discovery/` に関する記述・実装を一切含まない。
 
 ### 3.4 doc 更新対象 (A1 scope で全件実施)
 
@@ -228,6 +231,9 @@ Stage 1: Alias + Warning 段階 (本 PLAN 実装直後、default activation)
 | `skills/SKILL_MAP.md` | §HELIX Scrum section (line 245-271) | section title を「§HELIX Discovery (旧: HELIX Scrum)」に変更、CLI コマンド例を `helix discovery` に更新、legacy 互換 note を保持。carry 明記「rename 完了 (L7-scrum-to-discovery-renameplan)」 |
 | `helix/HELIX_CORE.md` | §状態管理の二層構造 `.helix/scrum/` 言及箇所 | `.helix/discovery/ (旧: .helix/scrum/)` 表記に更新 |
 | `docs/agent-skills/README.md` | `helix-scrum` 参照箇所 | `helix-discovery` を正本として追加 + `helix-scrum` を legacy alias として注記 |
+| `docs/commands/index.md` | コマンド一覧 | `discovery` エントリ追加 (P1-1 追加) |
+| `docs/commands/scrum.md` | doc 全体 | alias doc として残存。冒頭に「**[DEPRECATED]** `helix scrum` は非推奨です。`helix discovery` を使用してください → `docs/commands/discovery.md` 参照」を追記 (P1-1 追加) |
+| `docs/commands/discovery.md` | 新規作成 | `helix discovery` の正本コマンドリファレンス (全 12 subcommand 記載)。`helix scrum` は deprecated alias である旨を冒頭に明記 (P1-1 追加、Sprint .4 で作成) |
 
 **内部 reference (accepted workflow / runtime doc — 更新対象)**:
 
@@ -388,7 +394,7 @@ discovery)  exec "$SCRIPT_DIR/helix-discovery" "$@" ;;
 | # | 条件 | 検証方法 |
 |---|---|---|
 | D1 | `helix discovery <subcommand>` が全 12 subcommand 正常動作 | bats helix-discovery.bats 全 PASS |
-| D2 | `helix scrum <subcommand>` が deprecated warning を stderr に出力した上で `helix discovery <subcommand>` と同等動作 (全 12 subcommand) | bats helix-discovery.bats + 手動 smoke |
+| D2 | `helix scrum <subcommand>` が deprecated warning を stderr に出力した上で `helix discovery <subcommand>` と同等動作 (全 12 subcommand)。具体的には: **stdout equality** (scrum stdout == discovery stdout)、**stderr contains DEPRECATED**、**stdout not contains DEPRECATED**、**exit code equality** の 4 property 全て成立すること (P1-3 反映) | bats helix-discovery.bats `_assert_alias_equivalence` helper で 12 subcommand × 4 property 全 PASS |
 | D3 | `stdout not contains DEPRECATED` (stdout 汚染なし) かつ `stderr contains DEPRECATED` | bats run --separate-stderr 確認 |
 | D4 | exit code が `helix discovery <subcmd>` と `helix scrum <subcmd>` で一致する | bats 確認 |
 | D5 | `HELIX_SUPPRESS_LEGACY_WARN=1` 時に stderr warning が出力されない | bats 確認 |
@@ -425,37 +431,77 @@ discovery)  exec "$SCRIPT_DIR/helix-discovery" "$@" ;;
 @test "helix discovery web-search が動作する" { ... }
 @test "helix discovery acceptance-design が動作する" { ... }
 
-# --- deprecated alias 確認 (全 12 subcommand × 3 property) ---
-# property 1: stderr に DEPRECATED が含まれる
-# property 2: stdout に DEPRECATED が含まれない
-# property 3: exit code が helix discovery と一致する
-@test "helix scrum init: stderr contains DEPRECATED, stdout clean, exit code same" {
-  run --separate-stderr helix scrum init --help
-  [[ "$stderr" =~ "DEPRECATED" ]]
-  [[ ! "$output" =~ "DEPRECATED" ]]
-}
-@test "helix scrum backlog: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum local: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum plan: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum poc: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum verify: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum decide: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum review: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum status: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum trigger: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum web-search: stderr contains DEPRECATED, stdout clean" { ... }
-@test "helix scrum acceptance-design: stderr contains DEPRECATED, stdout clean" { ... }
+# --- deprecated alias 確認 (全 12 subcommand × 4 property) ---
+# P1-3 反映: 全 12 subcommand で以下 4 property を --separate-stderr で assertion する:
+#   property 1: stdout == helix discovery <subcmd> stdout  (alias 同等性)
+#   property 2: stderr contains DEPRECATED               (warning 出力確認)
+#   property 3: stdout not contains DEPRECATED           (stdout 汚染なし)
+#   property 4: exit code == helix discovery <subcmd> exit code (透過)
 
-# --- warning 抑止 ---
+# helper: subcmd alias 同等性 + 4 property を一括検証
+_assert_alias_equivalence() {
+  local subcmd="$1"; shift
+  # helix discovery の stdout / exit code を取得 (warning なし)
+  run helix discovery "$subcmd" "$@"; local disc_out="$output"; local disc_status="$status"
+  # helix scrum の stdout / stderr / exit code を取得
+  run --separate-stderr env HELIX_SUPPRESS_LEGACY_WARN=0 helix scrum "$subcmd" "$@"
+  # property 1: stdout 同等性
+  [[ "$output" == "$disc_out" ]]
+  # property 2: stderr に DEPRECATED
+  [[ "$stderr" =~ "DEPRECATED" ]]
+  # property 3: stdout に DEPRECATED なし
+  [[ ! "$output" =~ "DEPRECATED" ]]
+  # property 4: exit code 一致
+  [[ "$status" -eq "$disc_status" ]]
+}
+
+@test "alias 4-property: helix scrum init" {
+  _assert_alias_equivalence init --help
+}
+@test "alias 4-property: helix scrum backlog" {
+  _assert_alias_equivalence backlog --help
+}
+@test "alias 4-property: helix scrum local" {
+  _assert_alias_equivalence local --help
+}
+@test "alias 4-property: helix scrum plan" {
+  _assert_alias_equivalence plan --help
+}
+@test "alias 4-property: helix scrum poc" {
+  _assert_alias_equivalence poc --help
+}
+@test "alias 4-property: helix scrum verify" {
+  _assert_alias_equivalence verify --help
+}
+@test "alias 4-property: helix scrum decide" {
+  _assert_alias_equivalence decide --help
+}
+@test "alias 4-property: helix scrum review" {
+  _assert_alias_equivalence review --help
+}
+@test "alias 4-property: helix scrum status" {
+  _assert_alias_equivalence status --help
+}
+@test "alias 4-property: helix scrum trigger" {
+  _assert_alias_equivalence trigger --help
+}
+@test "alias 4-property: helix scrum web-search" {
+  _assert_alias_equivalence web-search --help
+}
+@test "alias 4-property: helix scrum acceptance-design" {
+  _assert_alias_equivalence acceptance-design --help
+}
+
+# --- warning 抑止 (P2-3 反映: env 形式統一) ---
 @test "HELIX_SUPPRESS_LEGACY_WARN=1 時に helix scrum は warning を出力しない" {
-  HELIX_SUPPRESS_LEGACY_WARN=1 run --separate-stderr helix scrum init --help
+  run --separate-stderr env HELIX_SUPPRESS_LEGACY_WARN=1 helix scrum init --help
   [[ ! "$stderr" =~ "DEPRECATED" ]]
 }
 
-# --- alias 同等性 (stdout が helix discovery と一致する) ---
+# --- alias 同等性 (stdout が helix discovery と一致する、HELIX_SUPPRESS_LEGACY_WARN=1 で warning 除外) ---
 @test "helix scrum help と helix discovery help の stdout が一致する" {
   run helix discovery help; discovery_out="$output"
-  HELIX_SUPPRESS_LEGACY_WARN=1 run helix scrum help; scrum_out="$output"
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 helix scrum help; scrum_out="$output"
   [[ "$discovery_out" == "$scrum_out" ]]
 }
 ```
@@ -554,7 +600,7 @@ helix scrum <cmd>      →  cli/helix router               cli/helix-scrum (depr
 
 ### runtime dir — A1 scope の扱い
 
-A1 では `.helix/discovery/` を新規作成パスとして使用する。`.helix/scrum/` が存在する場合でも A1 は一切触れない。runtime dir 解決ロジック (fallback / migration 提案 / auto-migrate) は A2 scope。
+> **P0-1 反映**: A1 では `cli/helix-discovery` の runtime storage path を **`.helix/scrum/` のまま維持する**。`helix discovery` コマンドが参照するデータは `.helix/scrum/` に置かれ続けるため、既存ユーザーへの影響はない。`.helix/discovery/` への切替・fallback・drive enum 追加は A2 scope。runtime dir 解決ロジック (fallback / migration 提案 / auto-migrate) は A2 scope。
 
 ### deprecated shim の実装契約
 
@@ -564,8 +610,8 @@ A1 では `.helix/discovery/` を新規作成パスとして使用する。`.hel
 # - "$@" を変更せずに転送 (サブコマンド・引数はそのまま)
 # - stderr に warning を出力 (stdout を汚染しない)
 # - warning は 1 回のみ (loop しない)
->&2 printf '[DEPRECATED] helix scrum は非推奨です。\n'
->&2 printf '[DEPRECATED] "helix discovery %s" を使用してください。\n' "$*"
+# - "$*" を warning message に含めない (引数の log 化を避ける — P2-2 反映)
+>&2 printf '[DEPRECATED] helix scrum は非推奨です。'\''helix discovery'\'' を使用してください。\n'
 >&2 printf '[DEPRECATED] removal: L7-helix-scrum-removal-plan を参照\n'
 exec "$(dirname "$0")/helix-discovery" "$@"
 ```
@@ -597,6 +643,11 @@ exec "$(dirname "$0")/helix-discovery" "$@"
 | `docs/agent-skills/README.md` | `helix-scrum` 参照箇所 — Sprint .3/.4 で更新 |
 | `docs/design/L2-cli-architecture.md` | `helix scrum` 記述 — P3 carry (§10 Carry C2) |
 | `docs/v2/V5-plan-outlines.md` | `helix scrum` 参照 — P3 carry (§10 Carry C3) |
+| `docs/commands/index.md` | コマンド一覧 — Sprint .4 で `discovery` エントリ追加 (P1-1) |
+| `docs/commands/scrum.md` | alias doc として残存 — Sprint .4 で deprecated 誘導注記追加 (P1-1) |
+| `docs/commands/discovery.md` | 新規作成 — Sprint .4 で `helix discovery` 正本リファレンス作成 (P1-1) |
+
+> **ADR scope 外の明示**: 本 PLAN (A1) は **ADR-041/042/043 の影響範囲外** である。ADR-041/042/043 が扱う `drift_type`・`recommended_command`・`Mode enum` (route_engine 関連) は本 PLAN scope に含まれない。
 
 ### 関連 PLAN
 
@@ -613,6 +664,18 @@ exec "$(dirname "$0")/helix-discovery" "$@"
 ### Carry C1 (P1 — A2 scope、`L7-scrum-to-discovery-migration-enumplan` §10 carry として移管済)
 
 **A2 移管事項**: runtime dir migration / drive・kind enum 正規化 / Stage activation / S0-S4→D0-D4 state machine 分離 / `L7-helix-scrum-removal-plan` stub 起票は全て A2 PLAN が担当する。A1 完遂後に A2 を起動すること。
+
+**tl-advisor 指摘 → A2 該当節 trace (P2-1 反映)**:
+
+| tl-advisor 指摘 ID | 指摘内容 | A2 対応節 |
+|---|---|---|
+| R1-P0: runtime dir 切替が Stage 1 backward compat を破壊 | A1 で `.helix/discovery/` を使い始める設計 → A1 は `.helix/scrum/` 維持に変更 | A2 §3.3 runtime dir migration |
+| R2-P0-1 (本 revision で解消) | A1 §3.1 / §8 の `.helix/discovery/` 記述削除 → 解消済 | — |
+| R1-P1: drive enum 不整合 | A1 に `kind: discovery` / VALID_DRIVES 追加あり → A1 からは削除、A2 へ移管 | A2 §3.5 PLAN kind enum |
+| R2-P1-2 (本 revision で解消) | A2 の enum 契約説明 (VALID_KINDS 変更しない) に統一 → 解消済 | — |
+| R2-P1-3 (本 revision で解消) | alias 同等性テスト 4 property × 12 subcommand 強化 → §6 / DoD D2 に反映済 | — |
+
+**state path migration は A2 carry** (`L7-scrum-to-discovery-migration-enumplan` §3.3 runtime dir migration が担当)。
 
 ### Carry C2 (P3 — 任意)
 

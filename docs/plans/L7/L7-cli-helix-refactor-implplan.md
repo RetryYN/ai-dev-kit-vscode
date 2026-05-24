@@ -6,11 +6,14 @@ layer: L7
 drive: be
 status: draft
 created: 2026-05-24
-revised: 2026-05-24
+revised: 2026-05-24-R3
 owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
-parent_design: HELIX-workflows/helix-process/refactor-workflow.md
+parent_design:
+  - HELIX-workflows/helix-process/refactor-workflow.md
+  - docs/adr/ADR-041-drift-type-7-categories-routing-decision.md   # drift_type SoT
+  - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md   # recommended_command SoT
 pairs_test_design:
   - HELIX-workflows/helix-process/deviation-plan-map.md
 is_reference: false
@@ -35,6 +38,8 @@ dependencies:
   requires:
     - L7-helix-route-implplan
     - L7-route-engine-drift-type-retrofit-ext
+    - ADR-041   # drift_type SoT
+    - ADR-042   # recommended_command SoT
   blocks: []
 related_docs:
   - HELIX-workflows/helix-process/refactor-workflow.md
@@ -48,6 +53,8 @@ related_docs:
   - docs/plans/L7/L7-helix-recover-implplan.md
   - docs/plans/L7/L7-helix-route-implplan.md
   - docs/plans/L7/L7-route-engine-drift-type-retrofit-ext.md
+  - docs/adr/ADR-041-drift-type-7-categories-routing-decision.md
+  - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md
 ---
 
 ## §0 PLAN concept
@@ -586,9 +593,16 @@ helix refactor done
 python3 -m pytest cli/lib/tests/ -q --tb=short
 ```
 
+### ADR SoT 整合確認
+
+- `--drift-type` 受付値が ADR-041 §Decision の Refactor 対象 2 種 (code_smell / structural) に限定されていること
+- `recommended_command` の JSON parse が ADR-042 RecommendedCommandV1 schema に準拠していること (schema_version / command / args / safety フィールドの存在確認)
+
 ---
 
 ## §7 risk / mitigation
+
+> **ADR SoT 参照**: drift_type 別ルーティングのリスクは ADR-041 §Consequences、recommended_command 機械契約のリスクは ADR-042 §Consequences を参照。
 
 | # | リスク | 影響度 | mitigation |
 |---|---|---|---|
@@ -597,6 +611,8 @@ python3 -m pytest cli/lib/tests/ -q --tb=short
 | R-3 | session 中に別 session を init しようとした場合の二重起動 | Medium | init 時に既存 `.helix/refactor-session.json` が存在すれば `exit 2: active session exists, run 'helix refactor status' or 'helix refactor done'` を返す |
 | R-4 | bats テストで `.helix/refactor-session.json` が test 間で残留する | Low | bats の setup/teardown で session ファイルをクリーンアップ (cli/helix-recover bats のパターンを踏襲) |
 | R-5 | `--test-cmd` に shell injection が可能な文字列が渡される | Medium | subprocess.run でシェル展開せず (`shell=False`)、shlex.split でコマンドをパース。README に「信頼できるコマンドのみ指定」と明記 |
+| R-6 | drift_type 分類が ADR-041 SoT と乖離した場合の実装 drift | Low | `--drift-type` の受付値は ADR-041 §Decision の 7 種のみを真値とし、それ以外は `exit 2: unsupported drift_type` で明示拒否。ADR-041 改訂時は本 PLAN §8 の scope 記述のみ更新すれば表 copy が不要なため drift が発生しない。 |
+| R-7 | recommended_command JSON schema が ADR-042 RecommendedCommandV1 と乖離する | Low | 本 PLAN は JSON parse する受領側のみ実装。出力側 (route_engine / PLAN C') が ADR-042 §Decision schema に従うことを PLAN C' のレビューで確認する。 |
 
 ---
 
@@ -611,20 +627,14 @@ python3 -m pytest cli/lib/tests/ -q --tb=short
 detection-routing.md は「設計⇔実装 drift → Reverse(normalization)」を正規経路として定義する。
 本 PLAN の `drift` signal を Refactor に接続するのは drift_type で細分化された結果。
 
-> **P1-1 修正**: drift_type は 7 種が正式定義 (PLAN A2/C/C' 整合)。route_engine.py (L7-helix-route-implplan §signal 分類) が drift_type を解析して分岐先を決定する。
-> drift_type の route_engine 拡張 (7 種全対応) は **別 PLAN (L7-route-engine-drift-type-retrofit-ext)** に分離済み (本 PLAN では code_smell/structural→Refactor scope のみ実装)。
-
-| drift_type | ルーティング先 | 根拠 |
-|---|---|---|
-| `schema` | Reverse (normalization) | DB schema / API contract drift = 設計⇔実装乖離、Reverse 領域 |
-| `contract` | Reverse (normalization) | 同上 |
-| `code_smell` | **Refactor (本 PLAN scope)** | コード品質劣化、振る舞い不変の構造改善 |
-| `structural` | **Refactor (本 PLAN scope)** | 内部構造の整理、振る舞い不変 |
-| `dependency_outdated` | Retrofit → (別 PLAN) | 依存ライブラリ旧版、Retrofit 領域 |
-| `upgrade` | Retrofit → (別 PLAN) | フレームワーク/言語バージョン移行、Retrofit 領域 |
-| `config_drift` | Retrofit → (別 PLAN) | 環境設定乖離、Retrofit 領域 |
-
-> **carry note**: `dependency_outdated / upgrade / config_drift → Retrofit` のルーティングは `L7-route-engine-drift-type-retrofit-ext` 完遂後に有効化される。本 PLAN では route_engine に drift_type=code_smell/structural のみ Refactor へ接続する実装に限定する。
+> **drift_type 分岐契約** (本 PLAN scope 限定): **ADR-041 §Decision 参照**。
+> drift_type の完全定義 (7 種) と各種ルーティング先は ADR-041 を SoT とする。本 PLAN に表を copy しない (PLAN 間 drift risk 回避)。
+>
+> 本 PLAN は `drift_type ∈ {code_smell, structural}` のみを Refactor 対象として受領する。
+> - `schema / contract` は Reverse (normalization) が担当
+> - `dependency_outdated / upgrade / config_drift` は Retrofit (L7-cli-helix-retrofit-impl) が担当
+>
+> route_engine の drift_type 7 種全対応拡張は **別 PLAN (L7-route-engine-drift-type-retrofit-ext)** に分離済み。本 PLAN では code_smell/structural→Refactor scope のみ実装する。
 
 本 PLAN の §8 接続契約は drift_type ∈ {code_smell, structural} に限定する。
 上位 signal `drift` 単独受領時は、refactor init より先に `helix route eval --signal drift`
@@ -684,6 +694,36 @@ helix refactor init \
 | `debt_id` | `--from-debt-id` | debt 機構連携時のみ。helix debt list から id を取得 |
 | `cli_hint` 値 | `helix refactor init ...` のコマンド文字列 | route は hint を表示するだけ、自動実行しない |
 
+### recommended_command 契約 (ADR-042 RecommendedCommandV1 schema)
+
+route_engine (PLAN C') が本 PLAN B へ渡す `recommended_command` は JSON object 形式で出力する。詳細は **ADR-042 §Decision** を SoT とする。
+
+```json
+{
+  "schema_version": "v1",
+  "command": "helix plan draft",
+  "args": {
+    "kind": "refactor",
+    "drift_type": "code_smell",
+    "signal_id": "drift",
+    "slug": "<auto>"
+  },
+  "safety": {
+    "auto_apply": false,
+    "requires_human_approval": false
+  }
+}
+```
+
+`drift_type` は `"code_smell"` または `"structural"` のいずれか。本 PLAN B は JSON parse して `--drift-type` 引数として `helix refactor init` に渡す受領側実装とする。
+
+### 接続コマンド統一 (ADR-042 §Decision)
+
+- route_engine は `helix plan draft --kind refactor --drift-type ...` を `recommended_command` として返す
+- 各 mode CLI (`helix refactor init`) は **PLAN 起票後の手動着手** に限定する
+- route_engine → 直接 `helix refactor init` の自動連携は **行わない** (PLAN-first 原則)
+- 本 PLAN B / PLAN C / PLAN C' の §V3 (接続契約) は本 ADR SoT 参照とし、recommended_command 形式の表 copy は drift risk のため禁止する
+
 ---
 
 ## §9 関連 doc / 関連 PLAN
@@ -726,3 +766,4 @@ helix refactor init \
 | C-06 | `helix debt status` / threshold 超過自動連携 (P1-6) は helix-debt サブコマンド拡張後の future。現在は --from-debt-id 手動指定に限定 | P2 | □ 別 PLAN 待ち |
 | C-07 | unknown_design → Refactor 接続は Reverse(code) で契約復元後に既存テスト整備を前提とした別 carry として検討 | P3 | □ carry |
 | C-08 | P2-2: test_cmd の shlex.split + shell=False 方針では pipe/env/redirect 不可。代替として --test-arg 配列または trusted shell opt-in の実装は別 PR 候補 | P3 | □ carry |
+| C-NEW | **R3 revision (ADR SoT 参照置換) 記録**: §8 drift_type 7 種表 → ADR-041 §Decision 参照に置換 (行削除 -11 行 + reference 追記 +10 行)。recommended_command JSON object 形式 + 接続コマンド統一 (ADR-042 §Decision) を §8 末尾に追記 (+28 行)。frontmatter dependencies.requires に ADR-041/042 追加、parent_design を list 化して同追加、related_docs に同追加。本 R3 変更一覧は Phase 3 tl-advisor R3 round confirm 対象。 | P1 | ✅ R3 revised |

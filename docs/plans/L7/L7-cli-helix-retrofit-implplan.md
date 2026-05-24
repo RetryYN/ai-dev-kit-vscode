@@ -11,6 +11,10 @@ owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
 parent_design: HELIX-workflows/helix-process/retrofit-workflow.md
+parent_design_addenda:
+  - docs/adr/ADR-041-drift-type-7-categories-routing-decision.md
+  - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md
+  - docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md
 pairs_test_design:
   - HELIX-workflows/helix-process/retrofit-workflow.md
   - HELIX-workflows/helix-process/deviation-plan-map.md
@@ -37,8 +41,7 @@ generates:
     artifact_type: test
 dependencies:
   parent: L7-helix-workflows-parent-acceptedplan
-  requires:
-    - L7-route-engine-drift-type-retrofit-extplan
+  requires: []
   blocks: []
 related_docs:
   - HELIX-workflows/helix-process/retrofit-workflow.md
@@ -52,6 +55,9 @@ related_docs:
   - docs/commands/index.md
   - docs/plans/L7/L7-helix-recover-implplan.md
   - docs/plans/L7/L7-helix-route-implplan.md
+  - docs/adr/ADR-041-drift-type-7-categories-routing-decision.md
+  - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md
+  - docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md
 ---
 
 ## §0 PLAN concept
@@ -61,7 +67,7 @@ related_docs:
 > **本 PLAN の対象**: `cli/helix-retrofit` コマンドの新規実装。依存・フレームワーク・基盤を **要件を変えずに段階的に移行** するための CLI エントリーポイントを実体化する。
 > **位置づけ**: CLAUDE.md / HELIX_CORE.md で「dedicated CLI 未整備、PLAN kind + retrofit-matrix + config で運用」と carry 明示された案件を本 PLAN で実体化する。retrofit-workflow.md (status: accepted, 2026-05-24) が正本設計。
 >
-> **[scope 縮小 — tl-advisor R1 反映]**: 本 PLAN は **retrofit CLI 単体 state manager (direct invocation 想定)** に scope を限定する。route_engine 拡張 (drift_type 分岐 / Retrofit mode routing / `helix route suggest` 連携) は **別 PLAN `L7-route-engine-drift-type-retrofit-extplan` (C') に移管済み**。本 PLAN は C' を `dependencies.requires` に記載し、route 連携の有効化は C' 完遂後とする (§11 carry C8 参照)。
+> **[scope 縮小 — tl-advisor R1 反映]**: 本 PLAN は **retrofit CLI 単体 state manager (direct invocation 想定)** に scope を限定する。route_engine 拡張 (drift_type 分岐 / Retrofit mode routing / `helix route suggest` 連携) は **別 PLAN `L7-route-engine-drift-type-retrofit-extplan` (C') に移管済み**。本 PLAN は self-contained (C' への hard dependency なし)。route 連携の有効化は C' 完遂後の carry として §11 C8 に記録する。
 
 ### parent_design (accepted) を採用する理由
 
@@ -91,7 +97,7 @@ related_docs:
 | L1/L3 戻り | 不要 (振る舞い変えない) | 要件変更時のみ戻る |
 | 回帰テスト | 既存テストが保護網 (変化なし) | L8/L9 回帰テストで移行後の整合確認 |
 
-> **判定シグナル**: `helix route suggest` が `drift_type=dependency_outdated` / `upgrade` / `config_drift` を返す場合は Retrofit。`drift_type=structural` / `code_smell` を返す場合は Refactor。境界が曖昧な場合は `helix retrofit plan --check-kind` で判定補助を提供する。
+> **判定シグナル**: `helix route suggest` が `drift_type=dependency_outdated` / `upgrade` / `config_drift` を返す場合は Retrofit。`drift_type=structural` / `code_smell` を返す場合は Refactor。本 PLAN の CLI surface は **5 subcommand (init / matrix / status / done / plan) に固定**する。drift_type 判定補助は route_engine (C') が担当する。
 
 ---
 
@@ -130,6 +136,14 @@ subcommand:
   status   現在の retrofit PLAN 進捗と matrix 完了率を表示
   done     指定 matrix 行 (--row R001) を completed にマーク。--run-regression で回帰実行
   plan     PLAN kind=retrofit の draft 起票 (既存 PLAN に紐付ける場合は --plan-id 指定)
+           Usage: helix retrofit plan [--slug <name>]
+           責務: kind=retrofit の PLAN draft を retrofit-workflow.md template から生成
+           exit code: 0=success / 1=template 不在 / 2=duplicate plan_id
+           init との差分:
+             init は retrofit-matrix.md (row 操作) + config YAML を生成する matrix 管理コマンド
+             plan は docs/plans/L7/L7-<slug>plan.md (workflow 計画文書) を生成する PLAN 起票コマンド
+           generates: docs/plans/L7/L7-<slug>plan.md
+             frontmatter: kind=retrofit / drift_type (CLI 引数から取得) / process_layer=L7
 
 削除 subcommand:
   config     (init が生成、show は status で代替可能、独立 subcommand 不要)
@@ -178,13 +192,13 @@ exit-code:
 
 ```
 helix retrofit matrix list --slug <slug>
-  → retrofit-matrix の全行を表形式で表示 (status 色分け: todo/in-progress/done/blocked)
+  → retrofit-matrix の全行を表形式で表示 (status 色分け: todo/in_progress/done/blocked)
 
 helix retrofit matrix add --slug <slug> --from "<旧>" --to "<新>" --scope "<影響範囲>" [--phase L4]
   → matrix に新行を追加 (phase は L4/L5/L7 追補先)
   → ID は R001 から始まる連番を自動採番 (frontmatter rows に追記 → table 再生成)
 
-helix retrofit matrix update --slug <slug> --row R001 --status <todo|in-progress|done|blocked>
+helix retrofit matrix update --slug <slug> --row R001 --status <todo|in_progress|done|blocked>
   → 指定行 (R001 形式 ID) の status を更新 (done 時は done-at タイムスタンプを付与)
   → frontmatter rows を更新 → Markdown table を再生成
 
@@ -203,7 +217,7 @@ exit-code: 0 成功 / 1 slug 不在 / 2 row ID 不在
     plan: L7-python312-migration-retrofitplan (draft)
     matrix: 4/12 done (33%), 2 blocked, 6 pending
     config: cli/config/python312-migration-retrofit.yaml (exists)
-    next: R005 (logging → structlog) [in-progress]
+    next: R005 (logging → structlog) [in_progress]
     [WARNING] 2 blocked rows — review L1/L3 re-entry conditions before proceeding
 
 --json 出力フィールド (P2-2 反映):
@@ -624,12 +638,14 @@ detection-routing.md の「drift (設計⇔実装乖離)」
   ↓ helix retrofit init --slug <slug> で Retrofit に接続
 ```
 
-**Retrofit / Refactor / Reverse の drift_type 分岐**:
-- `drift_type=dependency_outdated` → **Retrofit** = 依存バージョンの更新・基盤移行
-- `drift_type=upgrade` → **Retrofit** = version 移行 (Reverse type=upgrade と連動)
-- `drift_type=config_drift` → **Retrofit** = 設定ファイル乖離解消
-- `drift_type=code_smell` / `structural` → **Refactor** (振る舞い不変の構造改善、Refactor scope)
-- `drift_type=schema` / `contract` → **Reverse normalization** (既存 Reverse path)
+**drift_type 分岐契約** (本 PLAN scope 限定): ADR-041 §Decision 参照。
+本 PLAN は `drift_type ∈ {dependency_outdated, upgrade, config_drift}` のみを Retrofit 対象として受領する。
+- `schema` / `contract` は Reverse (normalization) が担当
+- `code_smell` / `structural` は Refactor (L7-cli-helix-refactor-impl) が担当
+
+**upgrade 例外**: ADR-041 で「uncertainty=high または impact=high の場合は Reverse upgrade R0-R4 を前段」と明示済み。本 PLAN は低リスク時のみ Retrofit 直行。
+
+**config_drift 例外**: ADR-041 で「env/infra/prod は人間承認必須、`safety.requires_human_approval=true`」と明示済み。
 
 `cross-cutting-mechanisms.md` が定義する drift-check 横断機構は上記分岐の **上流トリガー** であり、本 CLI は横断機構と別レイヤーに位置する (横断機構がシグナルを生成 → route_engine が分類 → 本 CLI が Retrofit state を管理)。
 
@@ -637,10 +653,32 @@ detection-routing.md の「drift (設計⇔実装乖離)」
 
 > **[P0-1 反映 — C' 移管]** `helix route suggest` の `drift_type` 分岐 / `recommended_command` フィールド追加 / Retrofit mode routing は **`L7-route-engine-drift-type-retrofit-extplan` (C') scope**。本 PLAN では実装しない。
 
+**recommended_command 契約** (ADR-042 RecommendedCommandV1 schema):
+
+```json
+{
+  "schema_version": "v1",
+  "command": "helix plan draft",
+  "args": {
+    "kind": "retrofit",
+    "drift_type": "dependency_outdated",
+    "signal_id": "drift"
+  },
+  "safety": {
+    "auto_apply": false,
+    "requires_human_approval": false,
+    "requires_preflight": false
+  }
+}
+```
+
+詳細は ADR-042 §Decision RecommendedCommandV1 schema 参照。
+`helix retrofit init` は PLAN 確定後の手動着手コマンドであり、route から自動誘導される recommended_command ではない (C' 完遂後の接続は C8 carry 参照)。
+
 本 PLAN (C) と C' の接続ポイント:
 - C 完遂後: `helix retrofit init --slug <slug>` が direct invocation で動作
-- C' 完遂後: `helix route suggest --signal dependency_outdated` が `recommended_command: "helix retrofit init --slug ..."` を返し、C の init に自動誘導
-- C + C' 統合後の E2E フロー確認は §11 carry C8 として記録
+- C' 完遂後: `helix route suggest --signal dependency_outdated` が `recommended_command` (ADR-042 RecommendedCommandV1 形式) を返し、`helix plan draft --kind retrofit` で PLAN 起票へ誘導
+- C + C' 統合後の route → `helix plan draft --kind retrofit` E2E フロー確認は §11 carry C8 として記録
 
 ### KindChecker 内部ユーティリティと将来連携
 
@@ -694,9 +732,10 @@ retrofit-workflow.md が定義する Forward 接続:
 | # | carry | 優先度 | 担当先 |
 |---|---|---|---|
 | C1 | `helix route suggest` に `recommended_command: "helix retrofit init --slug ..."` フィールドを追加する拡張 | P2 | L7-helix-route-implplan.md §11 carry に追記 |
-| C2 | plan_validator の `KIND_ENUM` に `retrofit` が含まれているか確認。不在の場合は enum 追加 PR を即起票 | **P0** (Sprint .1 最優先確認、integration-map §テンプレートの穴と連動) | SE (Sprint .1 着手時に最初に確認) |
+| C2 | plan_validator `VALID_KINDS` に `retrofit` が含まれることを Sprint .1 で `grep -n 'retrofit' cli/lib/plan_validator.py` で確認。**resolved / Sprint .1 verification evidence**: R5 参照 (VALID_KINDS 含有確認済み、P0 carry 取消、Low risk に降格) | ~~P0~~ **resolved** | SE (Sprint .1 着手時に再確認のみ) |
 | C3 | `helix doctor` で retrofit-matrix と PLAN status の乖離検出を追加 | P2 | 別 PLAN (helix doctor 拡張) |
 | C4 | rows 数 > 50 の場合に `<slug>-retrofit-matrix-rows.yaml` へ分離するオプション | P3 | Sprint .2 時点で暫定判断 |
 | C5 | `helix refactor` CLI が実装された際に `check-kind` exit-code との自動連携フローを確立 | P3 | refactor CLI 実装 PLAN が起票された時点で連携 |
 | C6 | retrofit-matrix のスキーマ lint (required field 欠損 / status enum 違反) を `helix doctor` に追加 | P2 | 別 PLAN (helix doctor 拡張) |
 | C7 (new) | Sprint .2 `init` サブコマンド実装完了後、`integration-map.md §テンプレートの穴` の retrofit-matrix 不在 carry を update し、本 PLAN 完遂を証跡として記録する | P1 (Sprint .2 完了後即) | PM |
+| C8 (new) | C' (`L7-route-engine-drift-type-retrofit-extplan`) 完遂後: route → `helix plan draft --kind retrofit` 統一 (ADR-042 採用) の E2E テスト追加。`helix route suggest --signal dependency_outdated` が `recommended_command: {"command": "helix plan draft", "args": {"kind": "retrofit"}}` を返すことを bats で確認。`helix retrofit init` は PLAN 確定後の手動着手として位置付けを明文化 | P2 | next session (C' 完遂後) |

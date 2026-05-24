@@ -22,9 +22,12 @@ generates:
 dependencies:
   requires:
     - L7-helix-recover-implplan
+    - ADR-042   # recommended_command + Recovery 例外 SoT
   parent: L7-helix-workflows-parent-acceptedplan
   blocks: []
-parent_design: HELIX-workflows/helix-process/recovery-workflow.md
+parent_design:
+  - HELIX-workflows/helix-process/recovery-workflow.md
+  - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md
 pairs_test_design: []
 agent_slots:
   - role: tl-advisor
@@ -34,7 +37,7 @@ agent_slots:
   - role: pmo-sonnet
     slot_label: "PMO — 4 artifact 双方向 trace 整合チェック + recover/recovery 責務境界確認"
 created: 2026-05-24
-revised: "2026-05-24 (R1 revision by pmo-sonnet: P1x5 + P2 partial)"
+revised: "2026-05-24 (R3 revision by pmo-sonnet: ADR-042 Recovery 例外確認 + ADR ref 追加)"
 owner: PM
 is_reference: false
 ---
@@ -436,6 +439,7 @@ def complete_session(confirm_token: str, forward_target: str | None, skip_cutove
 - `CutoverPreflightResult` の判定属性は **`ready`** (bool) と **`blockers`** (list[str])。`all_clear` は存在しない (P1-1 修正)。
 - `cutover_execute()` は `done` subcommand 内で **再 preflight** を内部で行う実装になっている点を SE が認識すること (二重チェックで安全側に倒れる設計)。
 - preflight FAIL 時は `CutoverPreflightFailed` exception を raise し、`helix-recovery` スクリプト側で exit 1 に変換する。
+- **ADR-042 `safety.requires_human_approval: true` 参照**: Recovery mode の `done` subcommand は cutover_execute() を呼ぶ最終確定操作であり、`--confirm-token PO-APPROVED-<PLAN_ID>` による人間承認トークンを必須とする。これは ADR-042 RecommendedCommandV1 schema の `safety.requires_human_approval: true` と整合する (auto_apply: false)。
 
 ### §5.2 設計上の注意点
 
@@ -456,6 +460,8 @@ Recovery の対象が「設計ドキュメントの訂正」のみで、DB や g
 ### §6.1 stop-hook の役割
 
 recovery-workflow.md §二段構えの機構 に「stop-hook: 停止時の状態 dump + compact 推奨」と定義されている。既存の Stop hook (`.claude/hooks/`) が発火したとき、recovery mode と連携することで状態を保全する。
+
+**ADR-042 Recovery 例外との接続**: stop-hook が `helix recover plan` を呼ぶ場合 (C1/C2 発火後の自動 PLAN draft 生成)、ADR-042 §Decision Recovery 例外に従い `recommended_command.command = "helix recover plan"` / `safety.requires_human_approval: true` の制約を遵守する。stop-hook は自動実行 (auto_apply: false) を前提とし、PM の明示承認後に `helix recovery start` を手動実行する。
 
 ### §6.2 stop-hook → recovery の接続方法
 
@@ -673,12 +679,49 @@ detection-routing.md は「AI 暴走 → Recovery」ルーティングを定義�
 | agent_mandatory | C2 工程逸脱 | RP-1 |
 | (interrupt escalation) | C3 認識ズレ蓄積 | RP-3 |
 
+**Recovery 接続契約 (ADR-042 §Decision Recovery 例外)**:
+PLAN D は ADR-042 で「Recovery 例外 = `helix recover plan --signal-id` 維持 (refactor/retrofit のみ `helix plan draft --kind` 統一)」が明示されている。本 PLAN D の `signal_to_condition()` mapping は ADR-042 反映済、変更不要:
+
+| signal_id | recommended_command (ADR-042 §Decision Recovery 例外 + §backward compat 固定表) |
+|---|---|
+| `runaway` | `helix recover plan --signal-id runaway --auto-routed-from helix-route` |
+| `regression_dev` | 現行 `signal_to_condition()` 維持 (ADR-042 §backward compat 固定表で凍結) |
+| `incident` | 現行 `signal_to_condition()` 維持 (ADR-042 §backward compat 固定表で凍結) |
+
+→ `helix plan draft --kind recovery` への将来移行は本 PLAN scope 外、別 PLAN candidate carry (Recovery 接続統一は PLAN D 完遂後に検討)。詳細は §13 C8 参照。
+
 ### §11.2 interrupt → Recovery エスカレーション (cross-cutting-mechanisms.md §4 つの横断機構)
 
 cross-cutting-mechanisms の interrupt 機構 (`helix interrupt`) は、開発中の割り込みを sprint_interrupted に遷移させる。これが重大または暴走と判断された場合、Recovery へエスカレーションする。
 
 発火条件 C2 (独断専行・工程逸脱) は interrupt で捕捉された後に Recovery へ昇格するケースが典型。
 recovery start の前段として `helix interrupt status` で発火済 interrupt を確認する運用を推奨する (interrupt が active なら escalate 経路を確認してから recovery start を実行)。
+
+### §11.3 recommended_command 契約形式 (ADR-042 RecommendedCommandV1)
+
+本 PLAN D の `helix-route → helix-recover` 接続で使われる `recommended_command` は ADR-042 の `RecommendedCommandV1` schema に準拠する。Recovery 例外として `helix recover plan --signal-id` を維持し、JSON object 形式で表現する:
+
+```json
+{
+  "schema_version": "v1",
+  "command": "helix recover plan",
+  "args": {
+    "signal_id": "runaway",
+    "auto_routed_from": "helix-route"
+  },
+  "safety": {
+    "auto_apply": false,
+    "requires_human_approval": true
+  }
+}
+```
+
+`safety.requires_human_approval: true` の根拠: recovery start は PM 承認が必要 (§11 接続フロー参照、route は `helix recover plan` で停止し PM が PLAN ID を確定後に手動実行)。
+
+詳細: ADR-042 §Decision Recovery 例外 + §backward compat 固定表。
+
+**ADR-042 SoT 参照原則**:
+本 PLAN D の signal_to_condition mapping と recommended_command 形式は ADR-042 §Decision を SoT とする。本 PLAN 内に表 copy せず、ADR-042 reference のみ持つ。drift 防止のため、本 PLAN 内で signal_to_condition mapping を独立に再定義しない。`route_engine.py` 実装時は必ず ADR-042 §Decision を一次参照にすること。
 
 ---
 
@@ -700,6 +743,7 @@ recovery start の前段として `helix interrupt status` で発火済 interrup
 | HELIX-workflows/helix-process/automation-gate-map.md | 参照 (Recovery mode が gate-checks.yaml 適用範囲外であることの確認) |
 | HELIX-workflows/helix-process/integration-map.md | 参照 (§コマンドの穴 #2 trace、CRITICAL 2 対応、C7 carry で更新予定) |
 | HELIX-workflows/helix-process/incident-workflow.md | 参照 (Recovery と Incident の kind 区別、helix-incident CLI との scope 分離) |
+| docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md | SoT 参照 (Recovery 例外 = `helix recover plan --signal-id` 維持、recommended_command RecommendedCommandV1 schema、§11.1 / §11.3 の判断根拠) |
 | docs/commands/index.md | 更新対象 (Sprint .5) |
 
 ---
@@ -715,6 +759,7 @@ recovery start の前段として `helix interrupt status` で発火済 interrup
 | recovery session の stale 検出 CLI (7 日超過) | P3 — Sprint .2 内に組み込み or 別 PLAN | SE |
 | `cli/helix recover help` への recovery への誘導メッセージ追記 (命名衝突 mitigation) | P2 — Sprint .3 内で対応 | SE |
 | C7: integration-map.md §コマンドの穴 に「helix-recovery (workflow 管理層、L7-cli-helix-recovery-implplan で解消)」を追記 (本 PLAN 完了後) | P2 — 本 PLAN Sprint .5 完遂後に実施 | PM |
-| C8: incident-workflow.md 連携の別 PLAN 起票候補 (helix-incident CLI、Incident mode の troubleshoot 操作層、本 PLAN scope 外) | P3 — 別 PLAN | PM 判断 |
+| C8 (将来検討): ADR-042 で Recovery は例外として `helix recover plan` 維持済。refactor/retrofit と同様の `helix plan draft --kind recovery` への統一は本 PLAN 完遂後に検討 (別 PLAN candidate)。route_engine と各 mode CLI の整合性を見ながら判断 (ADR-042 §Decision SoT 参照)。 | P3 — 別 PLAN 候補 | PM 判断 |
+| C11: incident-workflow.md 連携の別 PLAN 起票候補 (helix-incident CLI、Incident mode の troubleshoot 操作層、本 PLAN scope 外) | P3 — 別 PLAN | PM 判断 |
 | C9: `helix recover check --json` 出力に `schema_version` フィールドを付与 (方針 A)。現状は方針 B (required keys 検証) で代替済。方針 A を採用する場合は helix-recover 下位 CLI の契約変更が必要なため別 PLAN で起票する。 | P3 — 別 PLAN 起票 candidate | PM 判断 |
 | C10: signal mapping 拡張。現在 `recovery_engine.signal_to_condition()` は `runaway / regression_dev / incident` のみ実装。本 PLAN §11.1 の変換対応表 (runaway / budget / agent_mandatory / interrupt escalation) との mapping ズレは `L7-route-engine-drift-type-retrofit-ext` 相当の別 PLAN で解消する。本 PLAN の実装は既存 signal_to_condition() 範囲内で動作すれば十分とする。 | P2 — 別 PLAN 依存 (L7-helix-route-implplan 完遂後に判断) | PM → SE |

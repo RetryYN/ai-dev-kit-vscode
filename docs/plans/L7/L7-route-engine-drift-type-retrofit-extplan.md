@@ -29,6 +29,8 @@ dependencies:
     - L7-cli-helix-refactor-implplan
     - L7-cli-helix-retrofit-implplan
 parent_design: HELIX-workflows/helix-process/detection-routing.md
+parent_design_addenda:
+  - docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md
 pairs_test_design: []
 agent_slots:
   - role: tl-advisor
@@ -38,7 +40,7 @@ agent_slots:
   - role: pmo-sonnet
     slot_label: "PMO — 4 artifact 双方向 trace 確認・PLAN B/C との drift_type 統一確認"
 created: 2026-05-24
-revised: 2026-05-24
+revised: 2026-05-24-R2
 owner: PM
 is_reference: false
 ---
@@ -180,20 +182,26 @@ helix route suggest --signal <signal> [--drift-type <drift_type>]
 
 **出力**: `recommended_command` を 1 行で stdout 出力 (デフォルト)、`--json` で RouteResult の JSON 出力。
 
-#### recommended_command の生成ルール
+#### route → mode 接続コマンド契約 (ADR-042 §Decision SoT)
 
-| mode | recommended_command |
+> **ADR-042 §backward compat 固定表** が正本。本 PLAN は SoT 参照のみ行い、独自定義しない。
+
+| mode | recommended_command (JSON object 形式) |
 |---|---|
-| Recovery (runaway/regression_dev) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` |
-| Incident (prod) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` |
-| Reverse | `helix reverse R0 --type normalization` |
-| Refactor | `helix plan draft --kind refactor` |
-| Retrofit | `helix plan draft --kind retrofit --drift-type {drift_type}` |
+| Recovery (runaway/regression_dev) | `{"command": "helix recover plan", "args": {"signal-id": "{signal}", "reopen-point": "{reopen_point}", "auto-routed-from": "helix-route"}}` ★ ADR-042 Recovery 例外 |
+| Incident (prod) | `{"command": "helix recover plan", "args": {"signal-id": "{signal}", "reopen-point": "{reopen_point}", "auto-routed-from": "helix-route"}}` ★ ADR-042 Recovery 例外 |
+| Reverse | `{"command": "helix reverse normalization R0", "args": {}}` (`helix reverse <type> <stage>` 形式、ADR-042 固定) |
+| Refactor | `{"command": "helix plan draft", "args": {"kind": "refactor"}}` |
+| Retrofit | `{"command": "helix plan draft", "args": {"kind": "retrofit", "drift-type": "{drift_type}"}}` |
+
+> **注意**: Reverse コマンド形式は `helix reverse <type> <stage>` (cli/helix-reverse の usage に準拠)。  
+> `helix reverse R0 --type normalization` は誤り、ADR-042 §backward compat 固定表と不一致のため使用禁止。  
+> Recovery は `helix recover plan --signal-id <signal>` を使用 (ADR-042 Recovery 例外、`helix plan draft` とは異なる)。
 
 **既存 `suggest_command` field との関係**:
-- `suggest_command` (既存): `helix route eval --format command` で出力される文字列。backward compat 維持。
-- `recommended_command` (新規): `helix route suggest` 専用出力。より詳細な引数を持つ場合がある。
-- 暫定的に `recommended_command` は `suggest_command` と同じ値から開始し、Retrofit の場合のみ `--drift-type` を追加する差異を持つ。
+- `suggest_command` (既存): `helix route eval --format command` で出力される文字列。backward compat 維持 (string 形式)。
+- `recommended_command` (新規): **JSON object 形式** (ADR-042 で string 廃止・JSON object 一本化確定)。`helix route suggest` 専用出力。
+- `suggest_command` は deprecated 候補だが backward compat のため共存維持。機械処理には `recommended_command` (JSON object) を使用する。
 
 #### suggest vs eval の使い分け
 
@@ -220,18 +228,21 @@ class RouteResult:
     action: Action
     env: Env
     source_schema: str
-    suggest_command: str
+    suggest_command: str             # 既存 (backward compat 維持、string 形式)
     recover_args: dict[str, str] | None
     plan_hint: str
     # 新規追加 fields
-    drift_type: str | None          # drift signal 細分化。drift 以外は None
-    recommended_command: str        # suggest subcommand が返すコマンド文字列
+    drift_type: str | None           # drift signal 細分化。shortcut signal は自動付与、drift 以外の signal は None
+    recommended_command: dict[str, Any]  # JSON object 形式 (ADR-042 string 廃止・JSON object 一本化)
 ```
+
+> **ADR-042 §Decision**: `recommended_command` は JSON object 一本化 (string 形式は廃止)。  
+> `suggest_command` (string) は backward compat のため共存維持するが、機械処理には `recommended_command` (dict) を使用。
 
 **backward compat**:
 - `to_dict()` は `asdict()` で自動追加される。既存呼び出し元が JSON を parse する場合、新 field は追加情報として無視される (破壊的変更なし)。
-- `drift_type=None` はデフォルト値で、drift 以外の全 signal に適用する。
-- `recommended_command` は既存 `suggest_command` と同値にフォールバックし、mode 別の拡張コマンド文字列を持つ。
+- `drift_type=None` はデフォルト値で、`drift` signal 以外の signal (shortcut signal 含む) には自動付与ロジックで値が設定される (P0-1 修正、下記 `_resolve_drift_type()` 参照)。
+- `recommended_command` は dict 型。`suggest_command` (string) は既存値を維持。
 
 #### drift_type の伝播経路
 
@@ -337,20 +348,49 @@ U-EXT-005: drift + drift_type=dependency_outdated → mode=Retrofit, kind=retrof
 U-EXT-006: drift + drift_type=upgrade → mode=Retrofit, kind=retrofit, subtype=upgrade
 U-EXT-007: drift + drift_type=config_drift → mode=Retrofit, kind=retrofit, subtype=config
 U-EXT-008: drift + drift_type 未指定 → mode=Reverse (backward compat)
-U-EXT-009: signal=dependency_outdated (shortcut) → mode=Retrofit, kind=retrofit
-U-EXT-010: signal=upgrade (shortcut) → mode=Retrofit, kind=retrofit
-U-EXT-011: signal=config_drift (shortcut) → mode=Retrofit, kind=retrofit
+U-EXT-009: signal=dependency_outdated (shortcut) → mode=Retrofit, kind=retrofit, drift_type="dependency_outdated" (自動付与 P0-1)
+U-EXT-010: signal=upgrade (shortcut) → mode=Retrofit, kind=retrofit, drift_type="upgrade" (自動付与 P0-1)
+U-EXT-011: signal=config_drift (shortcut) → mode=Retrofit, kind=retrofit, drift_type="config_drift" (自動付与 P0-1)
 U-EXT-012: RouteResult.drift_type が drift signal で drift_type 値を持つ
-U-EXT-013: RouteResult.drift_type が非 drift signal で None を返す
-U-EXT-014: RouteResult.recommended_command が Retrofit 時に --drift-type 付き
-U-EXT-015: RouteResult.recommended_command が Reverse 時に helix reverse R0 --type normalization
-U-EXT-016: RouteResult.recommended_command が Refactor 時に helix plan draft --kind refactor
+U-EXT-013: RouteResult.drift_type が非 shortcut/非 drift signal で None を返す
+U-EXT-014: RouteResult.recommended_command が Retrofit 時に JSON object で drift-type 含む
+U-EXT-015: RouteResult.recommended_command が Reverse 時に command="helix reverse normalization R0" (P0-2)
+U-EXT-016: RouteResult.recommended_command が Refactor 時に command="helix plan draft", args={"kind": "refactor"}
 U-EXT-017: RouteResult.to_dict() に drift_type / recommended_command が含まれる
 U-EXT-018: from_detect_output() が result.drift_type を読み取り RouteResult に伝播する
 U-EXT-019: from_detect_output() が drift_type 未指定時にデフォルト (schema) を適用する
 U-EXT-020: list_signals() に dependency_outdated / upgrade / config_drift が含まれる
 U-EXT-021: list_signals() の drift エントリに drift_types[] field が追加されている
 U-EXT-022: 既存テスト (test_drift_routes_to_reverse_normalization 等) が回帰しない (py_compile 含む)
+U-EXT-023: shortcut signal=upgrade + recommended_command の exact match (command/args/safety 全項目、P1-5)
+U-EXT-024: shortcut signal=upgrade + uncertainty=high, impact=high → recommended_command.safety.requires_preflight=True (P1-5 高リスク)
+U-EXT-025: drift_type validate conflict — signal=upgrade + drift_type="config_drift" → RouteEngineError 発生 (P1-2)
+U-EXT-026: Reverse recommended_command format — signal=drift, drift_type=schema → command="helix reverse normalization R0" (P0-2 exact match)
+```
+
+**追加テストコード例 (P1-5、Sprint .1 で実装)**:
+
+```python
+def test_shortcut_upgrade_recommended_command():
+    result = RouteEngine().evaluate(signal="upgrade", uncertainty="low", impact="low")
+    assert result.mode == "Retrofit"
+    assert result.drift_type == "upgrade"              # P0-1: shortcut 自動付与
+    assert result.recommended_command["command"] == "helix plan draft"
+    assert result.recommended_command["args"]["kind"] == "retrofit"
+    assert result.recommended_command["args"]["drift-type"] == "upgrade"
+
+def test_shortcut_upgrade_high_risk_preflight():
+    result = RouteEngine().evaluate(signal="upgrade", uncertainty="high", impact="high")
+    assert result.recommended_command["safety"]["requires_preflight"] is True  # P1-5
+
+def test_drift_type_validate_conflict():
+    with pytest.raises(RouteEngineError, match="矛盾"):
+        RouteEngine().evaluate(signal="upgrade", drift_type="config_drift")  # P1-2
+
+def test_reverse_command_format():
+    result = RouteEngine().evaluate(signal="drift", drift_type="schema")
+    # P0-2: helix reverse <type> <stage> 形式
+    assert result.recommended_command["command"] == "helix reverse normalization R0"
 ```
 
 **bats integration tests (helix-route.bats 追加分)**:
@@ -452,11 +492,11 @@ class RouteResult:
     action: Action
     env: Env
     source_schema: str
-    suggest_command: str        # 既存 (backward compat 維持)
+    suggest_command: str                   # 既存 (backward compat 維持、string 形式)
     recover_args: dict[str, str] | None
     plan_hint: str
-    drift_type: str | None      # 新規: drift signal 細分化。drift 以外は None
-    recommended_command: str    # 新規: suggest subcommand が返す詳細コマンド
+    drift_type: str | None                 # 新規: shortcut signal は自動付与、drift signal は引数/DRIFT_TYPE_OVERRIDE から取得
+    recommended_command: dict[str, Any]    # 新規: JSON object 形式 (ADR-042、string 形式廃止)
 ```
 
 **Step 2-4: evaluate() 拡張**
@@ -506,20 +546,48 @@ def evaluate(
 **Step 2-5: 新規プライベートメソッド**
 
 ```python
-def _resolve_drift_type(self, signal: str, drift_type: str | None) -> str | None:
-    """drift signal の drift_type を正規化する。
-    - drift signal でない → None
-    - drift signal + drift_type 指定 → validate して返す
-    - drift signal + drift_type 未指定 → DEFAULT_DRIFT_TYPE ("schema")
+# shortcut signal → drift_type 自動付与マッピング (P0-1 修正)
+# signal != "drift" でも shortcut signal (dependency_outdated / upgrade / config_drift) は drift_type を自動付与
+SIGNAL_TO_DRIFT_TYPE: dict[str, str | None] = {
+    "drift": None,                        # 単独 drift は drift_type を引数または DRIFT_TYPE_OVERRIDE から取得
+    "dependency_outdated": "dependency_outdated",  # shortcut → drift_type 自動付与
+    "upgrade": "upgrade",                          # shortcut → drift_type 自動付与
+    "config_drift": "config_drift",                # shortcut → drift_type 自動付与
+    "debt_degradation": None,             # Refactor 経由、drift_type 必須でない
+    # 他 signal は drift_type=None (Reverse/Recovery 系)
+}
+
+def _resolve_drift_type(self, signal: str, drift_type_arg: str | None) -> str | None:
+    """drift_type を解決する (P0-1 shortcut signal 対応版)。
+    - shortcut signal (dependency_outdated/upgrade/config_drift): drift_type を自動付与
+      → drift_type_arg が同値なら許可、矛盾する値なら RouteEngineError
+    - drift signal: 引数または DRIFT_TYPE_OVERRIDE から取得、未指定は DEFAULT_DRIFT_TYPE
+    - 他 signal: None を返す
     """
-    if signal != "drift":
-        return None
-    if drift_type is None:
-        return DEFAULT_DRIFT_TYPE
-    normalized = drift_type.strip().lower()
-    if normalized not in VALID_DRIFT_TYPES:
-        raise RouteEngineError(f"unknown drift_type: {drift_type}")
-    return normalized
+    auto = SIGNAL_TO_DRIFT_TYPE.get(signal)
+    if auto is not None:
+        # shortcut signal: drift_type が自動決定される
+        self._validate_drift_type(signal, drift_type_arg)  # 矛盾チェック (P1-2)
+        return auto
+    if signal == "drift":
+        if drift_type_arg is None:
+            return DEFAULT_DRIFT_TYPE
+        normalized = drift_type_arg.strip().lower()
+        if normalized not in VALID_DRIFT_TYPES:
+            raise RouteEngineError(f"unknown drift_type: {drift_type_arg}")
+        return normalized
+    # その他 signal (Reverse/Recovery/Incident 系): DRIFT_TYPE_OVERRIDE 上書きなし
+    return DRIFT_TYPE_OVERRIDE.get(signal)  # 基本 None、特殊 override がある signal のみ非 None
+
+def _validate_drift_type(self, signal: str, drift_type_arg: str | None) -> None:
+    """shortcut signal に明示 drift_type 指定された場合、同値なら許可、矛盾は RouteEngineError (P1-2)。"""
+    shortcut = SIGNAL_TO_DRIFT_TYPE.get(signal)
+    if shortcut is not None and drift_type_arg is not None and shortcut != drift_type_arg:
+        raise RouteEngineError(
+            f"signal={signal} の drift_type は {shortcut} 固定、"
+            f"明示指定 {drift_type_arg} と矛盾します"
+        )
+```
 
 def _resolve_route(self, signal: str, env: Env, drift_type: str | None = None) -> dict[str, Any]:
     """signal + drift_type でルートを解決する。drift signal のみ drift_type で上書き。"""
@@ -545,22 +613,53 @@ def _build_recommended_command(
     drift_type: str | None,
     env: Env,
     reopen_point: str,
-) -> str:
-    """suggest subcommand が返す詳細 recommended_command を生成する。"""
+) -> dict[str, Any]:
+    """suggest subcommand が返す詳細 recommended_command を JSON object 形式で生成する。
+    ADR-042 §Decision: string 廃止・JSON object 一本化。
+    Recovery 例外: helix recover plan を使用 (helix plan draft とは異なる)。
+    Reverse 形式: helix reverse <type> <stage> (cli/helix-reverse usage、ADR-042 固定表)。
+    """
     if signal in RECOVER_LINKED_SIGNALS or (signal == "incident" and env == "prod"):
-        return (
-            f"helix recover plan --signal-id {signal} "
-            f"--reopen-point {reopen_point} --auto-routed-from helix-route"
-        )
+        # ADR-042 Recovery 例外: helix recover plan
+        return {
+            "command": "helix recover plan",
+            "args": {
+                "signal-id": signal,
+                "reopen-point": reopen_point,
+                "auto-routed-from": "helix-route",
+            },
+            "safety": {"requires_preflight": False},
+        }
     if mode == "Reverse":
-        return "helix reverse R0 --type normalization"
+        # P0-2 修正: helix reverse <type> <stage> 形式 (ADR-042 固定表と一致)
+        # 誤: "helix reverse R0 --type normalization"
+        # 正: "helix reverse normalization R0"
+        reverse_type = "normalization"  # schema/contract → normalization
+        return {
+            "command": f"helix reverse {reverse_type} R0",
+            "args": {},
+            "safety": {"requires_preflight": False},
+        }
     if mode == "Refactor":
-        return "helix plan draft --kind refactor"
+        return {
+            "command": "helix plan draft",
+            "args": {"kind": "refactor"},
+            "safety": {"requires_preflight": False},
+        }
     if mode == "Retrofit":
         dt = drift_type or "dependency_outdated"
-        return f"helix plan draft --kind retrofit --drift-type {dt}"
+        high_risk = False  # uncertainty/impact は evaluate() 内で判定済
+        return {
+            "command": "helix plan draft",
+            "args": {"kind": "retrofit", "drift-type": dt},
+            "safety": {"requires_preflight": high_risk},
+        }
     # fallback
-    return f"helix plan draft --kind {kind}"
+    return {
+        "command": "helix plan draft",
+        "args": {"kind": kind},
+        "safety": {"requires_preflight": False},
+    }
 ```
 
 **Step 2-6: from_detect_output() 拡張**
@@ -747,7 +846,7 @@ def _print_route_help() -> None:
 - [ ] `from_detect_output()` backward compat (drift_type なし JSON でエラーなし)
 - [ ] `RouteResult.to_dict()` に drift_type / recommended_command が含まれる
 - [ ] suggest subcommand の Retrofit 出力に `--drift-type` が含まれる
-- [ ] suggest subcommand の Reverse 出力: `helix reverse R0 --type normalization`
+- [ ] suggest subcommand の Reverse 出力: `helix reverse normalization R0` (P0-2、`helix reverse <type> <stage>` 形式)
 - [ ] suggest subcommand の Refactor 出力: `helix plan draft --kind refactor`
 - [ ] Recovery/Incident (prod) signal: recommended_command = helix recover plan (既存と同一)
 
@@ -868,23 +967,29 @@ def _print_route_help() -> None:
   "action": "<suggest_only|immediate_plan_draft|discovery_first|emergency_routing>",
   "env": "<dev|prod>",
   "source_schema": "helix_detect_run_json_v1",
-  "suggest_command": "<backward compat コマンド文字列>",
+  "suggest_command": "<backward compat コマンド文字列 (string、機械処理非推奨)>",
   "recover_args": {"signal_id": "...", "reopen_point": "...", "auto_routed_from": "helix-route"},
   "plan_hint": "<signal> routed to <mode> (<priority>, <action>)",
-  "recommended_command": "<mode 別詳細コマンド文字列>",
+  "recommended_command": {
+    "command": "<CLI コマンド>",
+    "args": {"<arg-name>": "<value>"},
+    "safety": {"requires_preflight": false}
+  },
   "source_schema": "helix_detect_run_json_v1"
 }
 ```
 
-### §7.2 mode 別 recommended_command テンプレート
+### §7.2 mode 別 recommended_command テンプレート (ADR-042 SoT 参照)
 
-| mode | recommended_command テンプレート | 後続 CLI |
-|---|---|---|
-| Reverse | `helix reverse R0 --type normalization` | helix-reverse |
-| Refactor | `helix plan draft --kind refactor` | helix plan |
-| Retrofit | `helix plan draft --kind retrofit --drift-type {drift_type}` | helix plan |
-| Recovery | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` | helix-recover |
-| Incident (prod) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` | helix-recover |
+> **正本**: ADR-042 §Decision + §backward compat 固定表。本 PLAN は SoT 参照のみ行う。
+
+| mode | command | args | 後続 CLI | 備考 |
+|---|---|---|---|---|
+| Reverse | `helix reverse normalization R0` | `{}` | helix-reverse | `helix reverse <type> <stage>` 形式 (P0-2 修正、`--type` 形式は禁止) |
+| Refactor | `helix plan draft` | `{"kind": "refactor"}` | helix plan | |
+| Retrofit | `helix plan draft` | `{"kind": "retrofit", "drift-type": "{drift_type}"}` | helix plan | |
+| Recovery | `helix recover plan` | `{"signal-id": "{signal}", "reopen-point": "{reopen_point}", "auto-routed-from": "helix-route"}` | helix-recover | ★ ADR-042 Recovery 例外 (helix plan draft ではない) |
+| Incident (prod) | `helix recover plan` | `{"signal-id": "{signal}", "reopen-point": "{reopen_point}", "auto-routed-from": "helix-route"}` | helix-recover | ★ ADR-042 Recovery 例外 |
 
 ### §7.3 PLAN B (refactor) 接続契約
 
@@ -911,8 +1016,10 @@ PLAN C の state manager が `drift_type` を受け取り、retrofit 種別 (dep
 |---|---|
 | `helix route eval --signal drift` | mode=Reverse, kind=reverse, subtype=normalization (変更なし) |
 | `helix route eval --format command` | `helix plan draft --kind reverse` (変更なし) |
-| `RouteResult.suggest_command` | 既存値を維持 (Retrofit 時のみ新値) |
+| `RouteResult.suggest_command` | 既存値を維持 (string 形式、backward compat) |
+| `RouteResult.recommended_command` | JSON object 形式 (ADR-042)。Reverse は `helix reverse normalization R0` |
 | `from_detect_output()` | drift_type field なし JSON でエラーなし (default 適用) |
+| shortcut signal drift_type | `dependency_outdated`/`upgrade`/`config_drift` は drift_type を自動付与 (P0-1) |
 
 ---
 
@@ -928,6 +1035,9 @@ PLAN C の state manager が `drift_type` を受け取り、retrofit 種別 (dep
 | [L7-helix-route-implplan.md](./L7-helix-route-implplan.md) | 既存 helix-route 実装 PLAN (本 PLAN の前提依存) |
 | [L7-cli-helix-refactor-implplan.md](./L7-cli-helix-refactor-implplan.md) | blocks 依存先 (drift_type 分岐の利用側) |
 | [L7-cli-helix-retrofit-implplan.md](./L7-cli-helix-retrofit-implplan.md) | blocks 依存先 (Retrofit mode + suggest の利用側) |
+| `docs/adr/ADR-041-drift-type-7-classification.md` | drift_type 7 種分類 SoT (本 PLAN は参照) |
+| `docs/adr/ADR-042-recommended-command-machine-contract.md` | recommended_command 機械契約 + Recovery 例外 SoT (本 PLAN は参照) |
+| `docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md` | Mode enum 拡張 + parent_design_addenda field (frontmatter で適用済) |
 | `cli/lib/route_engine.py` | 本 PLAN の実装対象 |
 | `cli/lib/tests/test_route_engine.py` | テストコード (本 PLAN で拡張) |
 | `cli/tests/helix-route.bats` | CLI 統合テスト (本 PLAN で拡張) |
@@ -954,32 +1064,36 @@ PLAN C の state manager が `drift_type` を受け取り、retrofit 種別 (dep
 | cross-detection dashboard schema adapter | 既存 `from_detect_output()` の schema エラー範囲維持 |
 | drift_type の helix-detect 出力への追加 | helix-detect / detector 側は別 PLAN |
 
-### §9.3 tl-advisor R1 未解決指摘 (次レビュー候補)
+### §9.3 tl-advisor R1 反映済み指摘 (R2 revision 完了)
 
-本 PLAN 起票時点で tl-advisor R1 は PLAN C に対する指摘。本 PLAN (C') のみの tl-advisor R1 review は Sprint .0 で実施する。以下は仮 carry:
+本 PLAN は tl-advisor R1 (decision: needs_revision, P0×3 + P1×5) を受けて R2 revision を実施済み。
 
-| 指摘候補 | 対応方針 |
+| 指摘 | 対応状況 |
 |---|---|
-| `DRIFT_TYPE_OVERRIDE` と `SIGNAL_TO_MODE` の 2 dict 分離の設計妥当性 | Sprint .0 で TL 確認 |
-| `recommended_command` と `suggest_command` の役割重複リスク | §7.5 backward compat 保証で対応済 (TL 確認要) |
-| `drift_type` の validate を evaluate() 内で行う vs. `_normalize_signal()` に組み込む | Sprint .0 で TL 確認 |
+| P0-1: shortcut signal の drift_type が None になる | **解消**: `SIGNAL_TO_DRIFT_TYPE` dict + `_resolve_drift_type()` を shortcut 自動付与版に改訂 (§4 Step 2-5) |
+| P0-2: Reverse の recommended_command が CLI 契約不一致 | **解消**: `helix reverse normalization R0` (`helix reverse <type> <stage>`) 形式に統一 (§2.3/§4/§7.2/§7.5) |
+| P0-3: PLAN B/C/C' の route 接続コマンド契約未確定 | **解消**: ADR-042 §Decision SoT 参照に置換、Recovery 例外明示 (§2.3/§7.1/§7.2) |
+| P1-1: recommended_command 二重契約矛盾 | **解消**: JSON object 一本化 (ADR-042 準拠)、string 形式記述全削除 (§2.4/§4 Step 2-3/Step 2-5) |
+| P1-2: shortcut signal + --drift-type 明示時の validate | **解消**: `_validate_drift_type()` 追加 (§4 Step 2-5)、U-EXT-025 テスト追加 |
+| P1-3: Mode enum 拡張前に L2 ADR snapshot | **解消**: ADR-043 起票完遂済、frontmatter `parent_design_addenda` に登録済み |
+| P1-4: frontmatter 依存 ID 揺れ | **確認**: 本 PLAN 内部は `plan_id: L7-route-engine-drift-type-retrofit-ext` で統一済み (ファイル名 suffix `plan` は別途、関連 PLAN の参照揺れは各 PLAN で個別対処) |
+| P1-5: テスト不足 (shortcut exact match / validate / reverse format) | **解消**: U-EXT-023〜026 + テストコード例追加 (§4 Sprint .1) |
 
 ---
 
-## §10 L2 凍結 (ADR snapshot)
+## §10 L2 凍結 (ADR snapshot) — 起票完遂済
 
-本 PLAN の設計判断に含まれる L2 大局判断:
+> **本 PLAN は ADR SoT を参照するのみ。ADR 起票は完遂済み。**
 
-1. **drift_type 7 種を PLAN B/C/C' の単一 source of truth として route_engine.py に集約する**
-   → PLAN B/C が各自 drift_type enum を持つのではなく、route_engine の定義を正本とする
-   → ADR snapshot 要否: **要** (drift_type 集約方針は L2 レベルの選択)
+| L2 大局判断 | ADR | status |
+|---|---|---|
+| drift_type 7 種を PLAN B/C/C' の単一 SoT として route_engine.py に集約する | ADR-041 | Accepted |
+| `recommended_command` を JSON object 一本化 (string 廃止)、`suggest_command` と共存で backward compat | ADR-042 | Accepted |
+| Mode enum 拡張 (`Retrofit` 追加) + `parent_design_addenda` field 導入 | ADR-043 (R2 代替案 A 採用) | Accepted |
 
-2. **`recommended_command` field を新規追加し `suggest_command` と共存させる**
-   → 既存 `suggest_command` を deprecated にするのではなく、より詳細な `recommended_command` を追加
-   → ADR snapshot 要否: **P2 (次 session 候補)** - 2 field 共存は短期的妥協であり、将来の統合 ADR 候補
-
-> Sprint .0 の TL review 後、L2 凍結が必要と判断された場合は `docs/adr/` に ADR snapshot を別 file で起票する (PLAN ⊃ ADR レイヤー併存原則)。
+本 PLAN の frontmatter `parent_design_addenda` に ADR-043 を登録済み。実装時は各 ADR の §Decision を正本として参照し、本 PLAN で独自定義を行わない (PLAN ⊃ ADR レイヤー併存原則)。
 
 ---
 
 *作成: 2026-05-24 | PMO Sonnet | L7 実装 PLAN (route_engine.py 拡張)*
+*R2 revision: 2026-05-24 | PMO Sonnet | tl-advisor R1 needs_revision (P0×3 + P1×5) 反映、ADR-041/042/043 SoT 接続*

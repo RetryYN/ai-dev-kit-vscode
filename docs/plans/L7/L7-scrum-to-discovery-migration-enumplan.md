@@ -1,10 +1,11 @@
 ---
-plan_id: L7-scrum-to-discovery-migration-enum
-name: L7-scrum-to-discovery-migration-enum
+plan_id: L7-scrum-to-discovery-migration-enumplan
+name: L7-scrum-to-discovery-migration-enumplan
 title: "L7-scrum-to-discovery-migration-enumplan: runtime dir migration + drive/mode enum 正規化 + Stage activation (Stage 2-4 担当)"
 description: scrum→discovery rename の Stage 2-4 (runtime dir migration data 保全 + drive/mode/kind enum 正規化 + HELIX_DISCOVERY_COMPAT_STAGE activation + S0-S4→D0-D4 state machine 分離 + removal timeline stub)
 status: draft
 process_layer: L7
+layer: L7
 kind: impl
 drive: be
 size: L
@@ -20,6 +21,8 @@ generates:
   - artifact_path: docs/v2/L7-test-design/L7-scrum-to-discovery-migration-enum-test-design.md
     artifact_type: design_doc
   - artifact_path: cli/lib/discovery_migrate.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/discovery_compat.py
     artifact_type: python_module
   - artifact_path: cli/helix-discovery (migrate subcommand 拡張)
     artifact_type: cli_extension
@@ -42,8 +45,8 @@ related_docs:
 agent_slots:
   - role: tl-advisor
     slot_label: "TL — runtime migration atomicity 設計・enum 互換契約・Stage activation 仕組み妥当性検証 (R1 adversarial check)"
-  - role: codex-se
-    slot_label: "SE — cli/lib/discovery_migrate.py 実装 + plan_validator.py retrofit + migrate subcommand + pytest"
+  - role: se
+    slot_label: "SE — cli/lib/discovery_migrate.py 実装 + cli/lib/discovery_compat.py 分離実装 + plan_validator.py retrofit + migrate subcommand + pytest"
   - role: pmo-sonnet
     slot_label: "PMO — 4 artifact 双方向 trace review + A1/A2 scope 境界最終確認"
 is_reference: false
@@ -88,17 +91,17 @@ is_reference: false
 
 | Step | 作業内容 | 担当 | 進捗 |
 |---|---|---|---|
-| 0 | 前提確認: A1 (L7-scrum-to-discovery-renameplan) 完遂確認 | PM | □ pending |
+| 0 | **前提確認: A1 (L7-scrum-to-discovery-renameplan) 完遂確認** (以下の PASS 条件 全 3 件を機械確認すること。1 件でも FAIL なら本 PLAN は blocked)<br>PASS-1: `test -x cli/helix-discovery` — alias shim が存在して実行可能<br>PASS-2: `grep -q "discovery)" cli/helix` — cli/helix router に discovery routing が登録済<br>PASS-3: `helix discovery --help` が exit 0 で discovery help を表示<br>FAIL 時: A1 完遂を待ち、本 PLAN 着手不可 | PM | □ pending |
 | 1 | tl-advisor R1 adversarial check (§2 設計全体) | PM → TL | □ pending |
 | 2 | R1 指摘反映 (必要に応じて §2 更新) | PM | □ pending |
 | 3 | tl-advisor R2 (R1 needs_revision の場合) | PM → TL | □ pending |
 | 4 | Sprint .1 design doc 起草 (docs/v2/L7-design/ + test-design/) | PM → SE docs | □ pending |
-| 5 | Sprint .2 cli/lib/discovery_migrate.py 実装 (§2.2 保全設計準拠) | PM → SE | □ pending |
+| 5 | Sprint .2 cli/lib/discovery_migrate.py 実装 (§2.2 保全設計準拠、migration data movement のみ: copy/manifest/lock/verify) | PM → SE | □ pending |
 | 6 | Sprint .3 `helix discovery migrate` subcommand 拡張 (--dry-run / --status / auto) | PM → SE | □ pending |
 | 7 | Sprint .4 plan_validator.py VALID_DRIVES + compat enum retrofit (§2.1 準拠) | PM → SE | □ pending |
 | 8 | Sprint .5 phase.yaml / helix doctor / command_mapper compat 更新 (§2.1 準拠) | PM → SE | □ pending |
-| 9 | Sprint .6 Stage activation 仕組み実装 (§2.3 準拠: env + config読み取り + 既定値) | PM → SE | □ pending |
-| 10 | Sprint .7 S0-S4 → D0-D4 state machine 分離 (§2.4 準拠: 表示 layer のみ変更) | PM → SE | □ pending |
+| 9 | Sprint .6 cli/lib/discovery_compat.py 実装 (§2.5 準拠: stage/drive/phase 表示変換を discovery_migrate.py から分離) | PM → SE | □ pending |
+| 10 | Sprint .7 S0-S4 → D0-D4 state machine 分離 + Stage activation CLI 組み込み (§2.3 / §2.4 準拠: 表示 layer のみ変更) | PM → SE | □ pending |
 | 11 | Sprint .8 `L7-helix-scrum-removal-plan` stub 起票 (§9 carry) | PM | □ pending |
 | 12 | 機械チェック: bash -n / shellcheck / python3 -m py_compile / yamllint | SE | □ pending |
 | 13 | pytest test_discovery_migrate.py 全 PASS (§5 DoD 参照) | SE | □ pending |
@@ -208,6 +211,8 @@ A1 の `cp -r` のみでは不十分。以下の保全要件を全て満たす `
 
 #### 2.2.2 migration 実行フロー
 
+> **P0-1 設計原則**: dst が non-empty directory の場合、atomic rename は成立しない。**pseudo-transaction pattern** を採用し、merge case では `dst.tmp` 構築 → `dst.backup-<timestamp>` 退避 → rename の 3 ステップで atomicity を擬似的に保証する。
+
 ```
 migrate(src=".helix/scrum/", dst=".helix/discovery/") 実行フロー:
 
@@ -224,28 +229,55 @@ migrate(src=".helix/scrum/", dst=".helix/discovery/") 実行フロー:
    └─ なし: 続行
 
 4. manifest 生成 (src)
-   manifest = {relative_path: sha256, ...} for all files under src
+   manifest = {relative_path: (sha256, size_bytes), ...} for all regular files under src
+   ※ 特殊ファイル (FIFO / device / socket / symlink) は fail-close (exit 2 + エラーメッセージ)
 
-5. dst conflict 確認
-   ├─ dst なし: → step 6
-   └─ dst あり: merge 方針を適用 (§2.2.3 参照) → conflict resolved → step 6
+5. dst conflict 確認 (P0-1 核心)
+   ├─ dst なし: → step 6 (新規 migration、安全)
+   ├─ dst 存在 + 空 (empty): → step 6 (empty dir は上書き可能)
+   ├─ dst 存在 + manifest hash 一致 (.migration-manifest.json 照合): idempotent skip → exit 0
+   │   ※ 2 条件のみ auto-migrate 許可 (dst なし / manifest hash 一致)
+   └─ dst 存在 + non-empty + manifest hash 不一致 (conflict):
+       ├─ --merge-strategy 未指定 (default): abort → exit 2
+       │   エラー: "dst .helix/discovery/ は non-empty です。
+       │            helix discovery migrate --status で確認後、
+       │            --merge-strategy [keep-dst|keep-src|abort] を明示して実行してください。"
+       └─ --merge-strategy 明示: pseudo-transaction merge へ進む (step 5M)
 
-6. dst.tmp へ全コピー (cp -r src/ dst.tmp/)
+5M. [merge case] pseudo-transaction pattern:
+   a. dst.tmp/ に最終形を構築:
+      - src/ のファイルを dst.tmp/ へコピー
+      - 既存 dst/ のファイルを merge strategy に従って dst.tmp/ へ反映
+        (keep-dst: dst のファイルを優先、keep-src: src のファイルを優先)
+   b. manifest 検証 (dst.tmp):
+      ├─ count/hash mismatch: → cleanup dst.tmp → exit 1
+      └─ OK: 続行
+   c. 既存 dst/ を dst.backup-<timestamp>/ に rename (atomic、同一 FS 前提)
+      └─ rename 失敗: cleanup dst.tmp → exit 1 + "backup rename 失敗"
+   d. dst.tmp/ → dst/ に rename (atomic)
+      └─ rename 失敗: dst.backup-<timestamp>/ → dst/ に restore → cleanup dst.tmp → exit 1
+   e. 成功: dst.backup-<timestamp>/ は 7 日後に削除 (rollback 余地として保持)
+      ログ: "[INFO] backup: dst.backup-<timestamp>/ (7 日後に自動削除、rollback 手順: §2.2.4 参照)"
+   → step 9 へ
+
+6. [新規 migration case] dst.tmp/ へ全コピー (cp -r src/ dst.tmp/)
 
 7. manifest 検証 (dst.tmp)
    ├─ count mismatch: → cleanup dst.tmp → exit 1 + "コピー不完全: ファイル数不一致"
-   ├─ hash mismatch: → cleanup dst.tmp → exit 1 + "コピー不完全: ハッシュ不一致 [file]"
+   ├─ hash/size mismatch: → cleanup dst.tmp → exit 1 + "コピー不完全: hash/size 不一致 [file]"
    └─ OK: 続行
 
 8. 原子 rename: dst.tmp → dst
-   └─ 同一 FS の rename は POSIX atomic。異 FS 時は警告 + fallback (mv + rm) を使用
+   ├─ 同一 FS: POSIX atomic rename (os.rename)
+   └─ 異 FS (EXDEV): **設定異常として fail-close** (exit 2 + "EXDEV: dst と src が異なる FS 上にあります。.helix/ を同一 FS 上に配置してください")
+      ※ P2-2 対応: EXDEV fallback (mv + rm) は採用しない。dst.tmp は dst.parent 配下で同一 FS が保証されるべき
 
 9. src に README.deprecated を配置
    内容: "このディレクトリは .helix/discovery/ へ移行されました (migration: YYYY-MM-DD)。
          helix discovery コマンドを使用してください。"
 
 10. migration manifest を .helix/discovery/.migration-manifest.json に保存
-    {"src": ".helix/scrum/", "dst": ".helix/discovery/", "migrated_at": ISO8601, "file_count": N, "total_bytes": N}
+    {"src": ".helix/scrum/", "dst": ".helix/discovery/", "migrated_at": ISO8601, "file_count": N, "total_bytes": N, "manifest_hash": "<sha256 of manifest content>"}
 
 11. migration smoke test
     helix discovery backlog list (終了コード 0 を確認)
@@ -258,37 +290,78 @@ migrate(src=".helix/scrum/", dst=".helix/discovery/") 実行フロー:
     削除する場合: rm -rf .helix/scrum/"
 ```
 
-#### 2.2.3 dst conflict 時の merge 方針 (P2-3 対応)
+#### 2.2.3 dst conflict 時の merge 方針 (P0-1 / P2-3 対応)
+
+> **P0-1 設計原則**: default は **abort** (exit 2)。`--merge-strategy` を明示した場合のみ merge を続行する。merge case は §2.2.2 step 5M の pseudo-transaction pattern で実行する。
 
 `.helix/discovery/` が既に存在する場合の処理:
 
-| ケース | dst の状態 | 対応方針 |
+| ケース | dst の状態 | 対応方針 (P0-1 改訂) |
 |---|---|---|
-| **A: dst が空** | `.helix/discovery/` は存在するが空 | src からそのままコピー (上書き) |
-| **B: dst に migration manifest あり** | `.helix/discovery/.migration-manifest.json` 存在 | 既に migrate 完了とみなして skip (idempotent)。`--force` で再実行可 |
-| **C: dst に backlog.yaml あり (merge 対象)** | 独立した backlog.yaml が存在 | デフォルト: エラーで停止。`--merge-strategy keep-dst` / `keep-src` / `interactive` を選択させる |
-| **D: dst に verify/ あり (conflict)** | verify/ ディレクトリが存在 | src の verify/*.sh を dst/verify/ にコピー。名前衝突は `--merge-strategy` に従う |
-| **E: dst に README.deprecated のみ** | README.deprecated のみ存在 | cleanup して src からコピー (README.deprecated は上書き対象外) |
+| **A: dst が空** | `.helix/discovery/` は存在するが空 | src からそのままコピー (auto 許可、step 6 へ) |
+| **B: dst に migration manifest あり (hash 一致)** | `.helix/discovery/.migration-manifest.json` 存在 + manifest hash 一致 | 既に migrate 完了とみなして skip (idempotent)。`--force` で再実行可 |
+| **C: dst に backlog.yaml あり (conflict)** | 独立した backlog.yaml が存在 (manifest hash 不一致) | **default: abort (exit 2)**。`--merge-strategy keep-dst` / `keep-src` 明示時のみ pseudo-transaction merge (step 5M) へ |
+| **D: dst に verify/ あり (conflict)** | verify/ ディレクトリが存在 (manifest hash 不一致) | **default: abort (exit 2)**。`--merge-strategy` 明示時のみ pseudo-transaction merge |
+| **E: dst に README.deprecated のみ** | README.deprecated のみ存在 | cleanup して src からコピー (README.deprecated は auto 許可) |
 
-**`--merge-strategy` オプション**:
-- `keep-dst` (default): dst の既存ファイルを優先。src 固有ファイルのみ追加コピー
-- `keep-src`: src を優先。dst の既存ファイルを上書き
-- `interactive`: conflict ファイルを1件ずつ確認 (CI 環境では禁止)
-- `abort`: conflict 検出時にエラーで停止 (デフォルト、ケース C/D)
+**`--merge-strategy` オプション** (conflict 時のみ有効):
+- *(未指定、default)*: **abort** — conflict 検出時は exit 2 + 手動指定要求メッセージを出力
+- `keep-dst`: dst の既存ファイルを優先。src 固有ファイルのみ追加コピー (pseudo-transaction)
+- `keep-src`: src を優先。dst の既存ファイルを上書き (pseudo-transaction)
+- `abort`: 明示的に abort 指定 (default と同じ挙動)
+- ~~`interactive`~~: 削除 (CI 環境での誤用リスク、ユーザー混乱回避のため非採用)
+
+**auto-migrate で許可されるケース** (P0-2 厳格化):
+1. dst なし → 新規 migration (安全)
+2. dst 存在 + dst が空 → auto 許可
+3. dst 存在 + manifest hash 一致 → idempotent 再実行 (無変更)
+
+**auto-migrate で禁止されるケース** (conflict 時は必ず手動介入):
+- dst 存在 + non-empty + manifest hash 不一致 → `helix discovery migrate --status` 表示 + 手動 `--merge-strategy` 要求
 
 **merge 完了後に migration manifest を生成**し、以後の idempotent 判定に使用する。
 
-#### 2.2.4 trigger: auto-migrate (Stage 3)
+#### 2.2.4 trigger: auto-migrate (Stage 3) — P0-2 厳格化
 
-Stage 3 activation 時、`helix discovery` コマンド実行時に以下を自動実行:
+Stage 3 activation 時、`helix discovery` コマンド実行時の auto-migrate は **以下の 2 条件のみ**で実行する:
 
 ```bash
 # cli/helix-discovery の先頭に追加 (Stage 3 のみ):
-if [[ -d "$HELIX_DIR/scrum" ]] && [[ ! -f "$HELIX_DIR/discovery/.migration-manifest.json" ]]; then
-    echo "[INFO] .helix/scrum/ を検出。自動移行を開始します..."
-    python3 -m cli.lib.discovery_migrate --auto --merge-strategy keep-dst
+# P0-2: auto-migrate は「dst なし」または「manifest hash 一致」の場合のみ許可
+_auto_migrate_if_safe() {
+    local scrum_dir="$HELIX_DIR/scrum"
+    local discovery_dir="$HELIX_DIR/discovery"
+    local manifest="$discovery_dir/.migration-manifest.json"
+
+    # auto-migrate 許可条件 1: dst なし (新規 migration)
+    if [[ -d "$scrum_dir" ]] && [[ ! -d "$discovery_dir" ]]; then
+        echo "[INFO] .helix/scrum/ を検出。自動移行を開始します..." >&2
+        python3 -m cli.lib.discovery_migrate --auto
+        return
+    fi
+
+    # auto-migrate 許可条件 2: dst 存在 + manifest hash 一致 (idempotent 再実行)
+    if [[ -d "$scrum_dir" ]] && [[ -f "$manifest" ]]; then
+        # manifest hash 一致確認は discovery_migrate.py 内部で判定 (hash 不一致は abort)
+        python3 -m cli.lib.discovery_migrate --auto
+        return
+    fi
+
+    # conflict 検出時 (dst 存在 + non-empty + manifest hash 不一致): auto は実行しない
+    if [[ -d "$scrum_dir" ]] && [[ -d "$discovery_dir" ]] && [[ ! -f "$manifest" ]]; then
+        echo "[WARN] .helix/discovery/ が既に存在し、migration manifest がありません。" >&2
+        echo "       helix discovery migrate --status で状態を確認し、" >&2
+        echo "       --merge-strategy [keep-dst|keep-src|abort] を明示して実行してください。" >&2
+        # auto-migrate は実行しない (conflict は手動介入必須)
+    fi
+}
+
+if [[ "$(python3 -c 'from cli.lib.discovery_compat import get_compat_stage; print(get_compat_stage())')" -ge 3 ]]; then
+    _auto_migrate_if_safe
 fi
 ```
+
+> **P0-2 設計根拠**: `--merge-strategy keep-dst` 固定の auto-migrate は silent merge を引き起こす。conflict 検出時 (dst 存在 + manifest hash 不一致) は必ず手動 `--merge-strategy` 指定を要求する。
 
 ---
 
@@ -321,7 +394,7 @@ discovery:
 |---|---|---|
 | 1 (Alias) | 1 (default) | `helix scrum` → helix-scrum shim 実行。warning なし |
 | 2 (Warning) | 2 | `helix scrum` 実行時に stderr deprecated warning 出力。plan_validator に `scrum` drive deprecation warn |
-| 3 (Migration) | 3 | `.helix/scrum/` 存在時に `helix discovery` 起動で auto-migrate。`helix scrum` は redirect |
+| 3 (Migration) | 3 | `.helix/scrum/` 存在時に `helix discovery` 起動で auto-migrate (P0-2 厳格化: dst なし / manifest hash 一致 の 2 条件のみ auto 許可、conflict 時は手動介入要求)。`helix scrum` は redirect |
 | 4 (Removal) | 4 | `helix scrum` は `command not found` 相当エラー (削除は L7-helix-scrum-removal-plan) |
 
 **注意**: Stage 4 の CLI 削除は本 PLAN スコープ外。`HELIX_DISCOVERY_COMPAT_STAGE=4` を設定した場合は "Stage 4 は L7-helix-scrum-removal-plan で管理されます" というメッセージを出して exit する stub のみ実装する。
@@ -338,9 +411,13 @@ Stage を上げる場合の標準手順:
 5. リリースノートに Stage 変更を明記
 ```
 
-#### 2.3.4 Stage 読み取り関数の実装 (cli/lib/discovery_migrate.py に配置)
+#### 2.3.4 Stage 読み取り関数の実装 (cli/lib/discovery_compat.py に配置、P1-5)
+
+> **P1-5 設計方針**: `get_compat_stage()` および phase/drive 変換関数は `cli/lib/discovery_compat.py` (新規) に配置する。`discovery_migrate.py` は data movement (copy / manifest / lock / verify) に閉じ、`discovery_compat.py` への import は許可する。
 
 ```python
+# cli/lib/discovery_compat.py (新規、Sprint .6 で実装)
+
 def get_compat_stage() -> int:
     """
     HELIX_DISCOVERY_COMPAT_STAGE env > .helix/config.yaml discovery.compat_stage > デフォルト 1
@@ -364,6 +441,14 @@ def get_compat_stage() -> int:
             raise ValueError(f".helix/config.yaml discovery.compat_stage 不正値: {stage}")
         return stage
     return 1  # default
+
+def is_drive_deprecated(drive: str) -> bool:
+    """drive が非推奨かどうかを返す"""
+    return drive in DEPRECATED_DRIVES
+
+DEPRECATED_DRIVES: dict[str, str] = {
+    "scrum": "discovery",   # 旧 drive → 推奨 drive のマッピング
+}
 ```
 
 ---
@@ -382,26 +467,34 @@ def get_compat_stage() -> int:
 
 #### 2.4.2 実装: 表示 layer の D 変換
 
-**`cli/lib/discovery_migrate.py` に配置**:
+**`cli/lib/discovery_compat.py` に配置 (P1-1 / P1-5 対応)**:
+
+> **P1-1 設計根拠**: `scrum_local.decide_loop()` は S3 を **decided** (Decide/Confirmed) として使用する実装になっている。S4 は DB state として存在しないため、D4 (Forward 接続) は DB state ではなく decide_result から派生して表示する。D4 を DB に書き込まない。
 
 ```python
-# S-phase → D-phase 変換テーブル
+# cli/lib/discovery_compat.py に追記 (Sprint .6 で実装)
+
+# S-phase → D-phase 変換テーブル (P1-1 DB 実装と整合)
+# S0-S3 は DB の実データ意味に基づいて定義
 PHASE_DISPLAY_MAP = {
     "S0": "D0",  # Backlog 構築
     "S1": "D1",  # Sprint Plan
-    "S2": "D2",  # PoC 実装
-    "S3": "D3",  # Verify
-    "S4": "D4",  # Decide
-    # 逆引き (読み込み時に D が来た場合の DB write 用)
-    "D0": "S0", "D1": "S1", "D2": "S2", "D3": "S3", "D4": "S4",
+    "S2": "D2",  # PoC 実装 (Verify は S2 の sub-step として既存実装に合わせる)
+    "S3": "D3",  # Decide/Confirmed (scrum_local.decide_loop() が S3 を decided として使用)
+    # D4 (Forward 接続) は DB state にしない。decide_result から派生して表示する
+    # 逆引き (ユーザー D-phase 入力 → DB write 用 S-phase)
+    "D0": "S0", "D1": "S1", "D2": "S2", "D3": "S3",
+    # D4 の DB write は禁止 (派生表示のみ)
 }
 
 def phase_to_display(phase: str) -> str:
-    """DB の S-phase を表示用 D-phase に変換する"""
+    """DB の S-phase を表示用 D-phase に変換する。D4 は decide_result から派生して呼び出し側で生成する"""
     return PHASE_DISPLAY_MAP.get(phase, phase)
 
 def display_to_phase(display: str) -> str:
-    """ユーザー入力の D-phase を DB 書き込み用 S-phase に変換する"""
+    """ユーザー入力の D-phase を DB 書き込み用 S-phase に変換する。D4 は DB write 禁止 (ValueError を raise)"""
+    if display == "D4":
+        raise ValueError("D4 は DB state ではありません。decide_result から派生して表示します。")
     return PHASE_DISPLAY_MAP.get(display, display)
 ```
 
@@ -410,12 +503,76 @@ def display_to_phase(display: str) -> str:
 - ユーザーが `--phase D2` 等を指定した場合、`display_to_phase()` で S-phase に変換してから DB 検索/更新
 - `helix doctor` の phase 表示にも適用
 
-#### 2.4.3 DB state は変更しない (明示的除外)
+#### 2.4.3 DB state は変更しない (明示的除外) + D4 派生表示
 
 - `helix.db` の `phase` カラム値は `S0-S3` のまま維持
+- **D4 (Forward 接続) は DB state にしない**: `scrum_local.decide_loop()` が S3 を decided として使うため、D4 は `decide_result` フィールドから派生して表示レイヤーで生成する。DB には書き込まない
 - migration script (§2.2) は DB には一切触れない (user data の `.helix/scrum/` dir のみ対象)
 - 既存 pytest のアサートは変更しない (S-phase アサートのままで OK)
 - D-phase の追加アサートが必要な場合は `phase_to_display()` 経由のアサートとして test_discovery_migrate.py に追加
+- `--phase D4` のユーザー入力は `display_to_phase()` で ValueError を raise して使用禁止を明示
+
+### §2.5 discovery_compat.py / discovery_migrate.py 責務分離 (P1-5)
+
+**問題**: `HELIX_DISCOVERY_COMPAT_STAGE` などの stage/drive/phase 変換を `discovery_migrate.py` に置くと module 依存が肥大化し、CLI や plan_validator が migration 本体コードを import する形になる。
+
+**採用: `cli/lib/discovery_compat.py` (新規) に変換系を分離**
+
+| module | 責務 | 公開関数 |
+|---|---|---|
+| `cli/lib/discovery_compat.py` | stage/drive/phase 表示変換 (変換ロジックのみ、I/O なし) | `get_compat_stage()` / `phase_to_display()` / `display_to_phase()` / `is_drive_deprecated()` |
+| `cli/lib/discovery_migrate.py` | data movement のみ (copy / manifest / lock / verify / pseudo-transaction) | `migrate()` / `generate_manifest()` / `verify_manifest()` / `acquire_lock()` / `release_lock()` / `check_conflict()` |
+
+**依存方向**:
+```
+cli/helix-discovery  ──import──→  discovery_compat.py (stage 判定、phase 変換)
+cli/helix-discovery  ──import──→  discovery_migrate.py (migrate 実行)
+discovery_migrate.py ──import──→  discovery_compat.py (phase 変換のみ、逆は禁止)
+cli/lib/plan_validator.py ──import──→  discovery_compat.py (deprecated drive 判定)
+```
+
+**Sprint 対応**:
+- Sprint .2: `discovery_migrate.py` — migration 本体実装 (data movement に閉じる)
+- Sprint .6: `discovery_compat.py` — 変換系実装 (get_compat_stage / phase_to_display / display_to_phase / is_drive_deprecated)
+
+**注意**: `discovery_migrate.py` から `discovery_compat.py` への import は許可するが、循環 import になる逆方向 (compat → migrate) は禁止。
+
+---
+
+### §2.6 path 正規化 + symlink fail-close (P1-6)
+
+`--src` / `--dst` 引数の安全検証を `discover_migrate.py` の入口で実施する:
+
+```python
+def _validate_path(p: Path, project_root: Path) -> Path:
+    """
+    project root 配下 .helix/{scrum,discovery} に正規化し、symlink は fail-close で拒否する。
+    特殊ファイル (FIFO / device / socket) の含むディレクトリも fail-close。
+    """
+    resolved = p.resolve(strict=False)
+    expected_parents = [
+        project_root / ".helix" / "scrum",
+        project_root / ".helix" / "discovery",
+    ]
+    if not any(resolved == ep or ep in resolved.parents for ep in expected_parents):
+        raise ValueError(
+            f"path outside .helix/{{scrum,discovery}}: {p}\n"
+            f"  (resolved: {resolved})"
+        )
+    # symlink fail-close: p 自身または親ディレクトリが symlink なら拒否
+    if p.is_symlink() or any(parent.is_symlink() for parent in p.parents):
+        raise ValueError(f"symlink not allowed: {p}")
+    return resolved
+
+def _check_special_files(directory: Path) -> None:
+    """FIFO / device / socket を含むディレクトリは migration 対象外 (fail-close)"""
+    for entry in directory.rglob("*"):
+        if entry.stat().st_mode & 0o170000 not in (0o100000, 0o040000):
+            # regular file / directory 以外は拒否
+            raise ValueError(f"special file not allowed in migration source: {entry}")
+```
+
+この検証は `migrate()` の引数受け取り直後に実行し、ロック取得前に完了する。
 
 ---
 
@@ -432,19 +589,29 @@ def display_to_phase(display: str) -> str:
 | `validate_frontmatter()` に deprecated drive warn 追加 | cli/lib/plan_validator.py | .4 |
 | `"scrum"` は VALID_DRIVES に残存 (Stage 4 まで削除しない) | cli/lib/plan_validator.py | .4 |
 
-### 3.2 cli/lib/discovery_migrate.py (新規)
+### 3.2 cli/lib/discovery_migrate.py (新規) — data movement 専門 (P1-5)
 
 | 機能 | 説明 |
 |---|---|
-| `get_compat_stage()` | Stage activation source 読み取り (§2.3.4) |
-| `PHASE_DISPLAY_MAP` | S/D phase 変換テーブル (§2.4.2) |
-| `phase_to_display()` / `display_to_phase()` | phase 変換関数 |
-| `generate_manifest(src)` | migration 前の file list + sha256 生成 |
-| `verify_manifest(dst, manifest)` | コピー後の manifest 照合 |
+| `_validate_path(p, project_root)` | path 正規化 + symlink fail-close + project root 境界検証 (§2.6) |
+| `_check_special_files(directory)` | FIFO / device / socket を含むディレクトリの fail-close 検証 (§2.6) |
+| `generate_manifest(src)` | migration 前の file list + (sha256, size_bytes) 生成 |
+| `verify_manifest(dst, manifest)` | コピー後の manifest 照合 (count + hash + size) |
 | `acquire_lock()` / `release_lock()` | flock ベースの並行 lock |
-| `migrate(src, dst, strategy, dry_run)` | 保全設計準拠の migration 本体 (§2.2.2) |
+| `migrate(src, dst, strategy, dry_run, force, auto)` | pseudo-transaction 保全設計準拠の migration 本体 (§2.2.2) |
 | `check_conflict(dst)` | dst conflict ケース判定 (§2.2.3) |
-| `merge_directories(src, dst, strategy)` | merge 方針適用 |
+| `merge_directories(src, dst, strategy)` | pseudo-transaction merge 方針適用 (§2.2.2 step 5M) |
+
+### 3.2b cli/lib/discovery_compat.py (新規) — 変換系専門 (P1-5)
+
+| 機能 | 説明 |
+|---|---|
+| `get_compat_stage()` | Stage activation source 読み取り: env > config > default 1 (§2.3.4) |
+| `DEPRECATED_DRIVES` | deprecated drive → 推奨 drive マッピング dict |
+| `is_drive_deprecated(drive)` | drive が非推奨かどうかを返す |
+| `PHASE_DISPLAY_MAP` | S/D phase 変換テーブル (P1-1 整合: S3=Decide/Confirmed、D4 は DB state なし) |
+| `phase_to_display(phase)` | DB の S-phase を表示用 D-phase に変換 |
+| `display_to_phase(display)` | ユーザー入力の D-phase を DB 書き込み用 S-phase に変換 (D4 は ValueError) |
 
 ### 3.3 cli/helix-discovery 変更範囲
 
@@ -464,13 +631,14 @@ def display_to_phase(display: str) -> str:
 | `helix doctor` | drive deprecation warn + stage mismatch warn 追加 | .5 |
 | helix router (command_mapper) | A1 完遂済のため変更不要 | — |
 
-### 3.5 test 対象
+### 3.5 test 対象 (P2-4 対応: test file 分割)
 
-| テストファイル | 内容 | Sprint |
-|---|---|---|
-| `cli/lib/tests/test_discovery_migrate.py` | migrate 全 case (正常 / dry-run / status / lock / conflict merge / idempotent / hash mismatch / incomplete copy cleanup / smoke) | .2-.7 |
-| `cli/lib/tests/test_plan_validator_drive.py` (新規 or 既存に追加) | discovery drive valid / scrum drive deprecated warn / deprecated drives mapping | .4 |
-| `cli/lib/tests/test_phase_display.py` (新規 or 既存に追加) | phase_to_display / display_to_phase / D-phase CLI input | .7 |
+| テストファイル | 対象層 | 内容 | Sprint |
+|---|---|---|---|
+| `cli/lib/tests/test_discovery_compat.py` (新規) | **unit** (I/O なし) | `phase_to_display` / `display_to_phase` (D4 ValueError) / `get_compat_stage` (env / config / default) / `is_drive_deprecated` | .6 |
+| `cli/lib/tests/test_discovery_migrate.py` (新規) | **filesystem integration** | migrate 全 case (正常 / dry-run / status / lock / conflict abort / conflict keep-dst / conflict keep-src / idempotent / hash mismatch / partial cleanup / symlink reject / FIFO reject / smoke) | .2-.3 |
+| `cli/lib/tests/test_plan_validator_drive.py` (新規 or 既存に追加) | **unit** | discovery drive valid / scrum drive deprecated warn (exit 0) / DEPRECATED_DRIVES mapping | .4 |
+| `cli/helix-discovery --migrate` bats (新規 or 既存に追加) | **CLI subprocess** (bats + pytest subprocess) | `--dry-run` / `--status` / `--auto` stage-safe / Stage 3 auto-migrate 条件分岐 | .3 / .6 |
 
 ---
 
@@ -557,19 +725,27 @@ Examples:
 
 **変更内容**:
 1. `VALID_DRIVES` に `"discovery"` 追加
-2. `DEPRECATED_DRIVES = {"scrum": "discovery"}` dict 追加
-3. `validate_frontmatter()` 内に deprecated drive 検出 + warn 追加:
+2. `DEPRECATED_DRIVES` は `cli/lib/discovery_compat.py` から import (重複定義しない)
+3. `validate_frontmatter()` 内に deprecated drive 検出 + warn 追加 (P1-2 実装整合):
 
 ```python
-if frontmatter.drive in DEPRECATED_DRIVES:
+# plan_validator.py の実装パターン (warn-only、exit 0 維持)
+from cli.lib.discovery_compat import DEPRECATED_DRIVES, is_drive_deprecated
+
+# validate_frontmatter() 内:
+if is_drive_deprecated(frontmatter.drive):
     new_drive = DEPRECATED_DRIVES[frontmatter.drive]
-    findings.append(Finding(
-        level="WARN",
-        code="DEPRECATED_DRIVE",
-        message=f"drive: {frontmatter.drive!r} は非推奨です。drive: {new_drive!r} を使用してください。",
-        context={"deprecated": frontmatter.drive, "replacement": new_drive},
-    ))
+    # 実装は Finding ではなく warnings リスト方式 (既存 plan_validator.py の warn-only pattern に合わせる)
+    warnings.append(
+        f"DEPRECATED_DRIVES: '{frontmatter.drive}' は将来削除予定 (Stage 4)、"
+        f"drive: {new_drive} に移行推奨"
+    )
 ```
+
+**`DEPRECATED_DRIVES` warning 出力仕様** (P1-2 exit code 明示):
+- 出力形式: `"DEPRECATED_DRIVES: '<drive>' は将来削除予定 (Stage 4)、drive: <new_drive> に移行推奨"`
+- exit code: **0** (warn-only、fail-close しない)
+- Stage 4 での fail-close 昇格は L7-helix-scrum-removal-plan 担当
 
 4. `helix size --drive scrum` の内部変換: `--drive scrum` 指定時に discovery に変換してから処理。warn を stderr に出力。
 
@@ -592,19 +768,24 @@ if frontmatter.drive in DEPRECATED_DRIVES:
 
 ---
 
-### Sprint .6: Stage activation 仕組み実装
+### Sprint .6: cli/lib/discovery_compat.py 実装 + Stage activation CLI 組み込み (P1-5)
 
-**目標**: §2.3 の Stage activation を cli/helix-discovery と cli/helix-scrum shim に組み込む。
+**目標**: §2.5 に基づき `cli/lib/discovery_compat.py` を新規実装し、Stage activation を cli/helix-discovery と cli/helix-scrum shim に組み込む。
 
 **変更内容**:
-1. `get_compat_stage()` (cli/lib/discovery_migrate.py 実装済) を CLI から呼ぶ
-2. Stage 2 の deprecated warning 出力ロジック (cli/helix-scrum shim)
-3. Stage 3 の auto-migrate trigger (cli/helix-discovery 先頭)
+1. `cli/lib/discovery_compat.py` 新規実装:
+   - `get_compat_stage()` (§2.3.4、env > config > default 1)
+   - `DEPRECATED_DRIVES`, `is_drive_deprecated()`
+   - `PHASE_DISPLAY_MAP`, `phase_to_display()`, `display_to_phase()` (P1-1 整合: D4 は ValueError)
+2. Stage 2 の deprecated warning 出力ロジック (cli/helix-scrum shim、`get_compat_stage()` を import)
+3. Stage 3 の auto-migrate trigger (cli/helix-discovery 先頭、P0-2 厳格化版 `_auto_migrate_if_safe()`)
 4. Stage 4 stub (L7-helix-scrum-removal-plan へ委譲メッセージ)
 
 **受入条件**:
+- `python3 -m py_compile cli/lib/discovery_compat.py` PASS
 - `HELIX_DISCOVERY_COMPAT_STAGE=2 helix scrum backlog list` が warning を stderr に出力して正常実行
-- `HELIX_DISCOVERY_COMPAT_STAGE=3 helix discovery backlog list` が `.helix/scrum/` 存在時に auto-migrate を実行
+- `HELIX_DISCOVERY_COMPAT_STAGE=3 helix discovery backlog list` が `.helix/scrum/` 存在 (dst なし) 時に auto-migrate を実行
+- `HELIX_DISCOVERY_COMPAT_STAGE=3 helix discovery backlog list` が `.helix/scrum/` + `.helix/discovery/` (conflict) 時は **auto-migrate を実行せず** 手動介入要求メッセージを表示
 - `HELIX_DISCOVERY_COMPAT_STAGE=4 helix scrum` が "L7-helix-scrum-removal-plan で管理" メッセージを出して exit 1
 
 ---
@@ -639,9 +820,14 @@ if frontmatter.drive in DEPRECATED_DRIVES:
 | AC-6 | 部分コピー後 interrupt → 再実行で tmp cleanup + 完全再コピー成功 | .2 |
 | AC-7 | hash mismatch 検出時に dst.tmp cleanup + src 無傷 + exit 1 | .2 |
 | AC-8 | lock 競合時に "別の migrate が実行中" エラーで exit 1 | .2 |
-| AC-9 | dst conflict (backlog.yaml 存在) + `--merge-strategy abort` でエラー停止 | .2 |
-| AC-10 | dst conflict + `--merge-strategy keep-dst` で dst 優先 merge 成功 | .2 |
-| AC-11 | idempotent: 2 回目 migrate は skip (manifest 一致確認) | .2 |
+| AC-9 | dst conflict (backlog.yaml 存在) + `--merge-strategy` 未指定 で **abort** (exit 2 + 手動介入要求メッセージ) | .2 |
+| AC-9b | dst conflict + `--merge-strategy keep-dst` で pseudo-transaction merge 成功 (dst.backup-* 生成確認) | .2 |
+| AC-10 | dst conflict + `--merge-strategy keep-src` で src 優先 merge 成功 | .2 |
+| AC-10b | merge 失敗時 (backup rename 失敗): dst.backup-* → dst restore + dst.tmp cleanup 確認 | .2 |
+| AC-11 | idempotent: 2 回目 migrate は skip (manifest hash 一致確認) | .2 |
+| AC-11b | Stage 3 auto-migrate: dst なし → auto 実行、dst 存在 + conflict → 手動介入要求 (auto 不実行) | .6 |
+| AC-11c | symlink / FIFO / device が src に含まれる場合 fail-close (exit 2) | .2 |
+| AC-11d | EXDEV (異 FS) 検出時 fail-close (exit 2 + 設定異常メッセージ) | .2 |
 | AC-12 | `HELIX_DISCOVERY_COMPAT_STAGE=2 helix scrum` が warning + 正常実行 | .6 |
 | AC-13 | `HELIX_DISCOVERY_COMPAT_STAGE=3 helix discovery` が `.helix/scrum/` 存在時に auto-migrate | .6 |
 | AC-14 | `HELIX_DISCOVERY_COMPAT_STAGE=1` (default) では warning なし | .6 |
@@ -669,8 +855,10 @@ if frontmatter.drive in DEPRECATED_DRIVES:
 
 | risk | 影響 | 確率 | mitigation |
 |---|---|---|---|
-| **data loss**: migration 中の interrupt でユーザーデータが消滅 | P0 (データ消滅は最重大) | 低 (正常系は発生しない) | dst.tmp + manifest 検証 + src 残存方針。src は migrate 完了後も削除しない (§2.2.2 step 9 は README.deprecated のみ配置) |
-| **異 FS rename 非 atomic**: `dst.tmp → dst` が異なるファイルシステム上で発生し、途中で failure | P0 | 低 (通常 .helix/ は同一 FS) | rename が EXDEV で失敗した場合は `mv + rm` fallback に切り替え + WARN 表示。部分コピー検出は step 3 の tmp 残存チェックでカバー |
+| **data loss (merge case)**: pseudo-transaction の backup rename 後に dst.tmp → dst rename が失敗し、dst が空になる | P0 | 低 (backup → restore で復旧) | §2.2.2 step 5M d の restore ロジックで自動復旧。backup rename 自体が失敗した場合は dst.tmp cleanup + exit 1 (dst は無傷) |
+| **data loss (non-merge case)**: migration 中の interrupt でユーザーデータが消滅 | P0 | 低 (正常系は発生しない) | dst.tmp + manifest 検証 + src 残存方針。src は migrate 完了後も削除しない (§2.2.2 step 9 は README.deprecated のみ配置) |
+| **P0-2 silent merge**: Stage 3 auto-migrate が conflict 時に keep-dst で上書きする | P0 | 低 (P0-2 修正後) | §2.2.4 の `_auto_migrate_if_safe()` で conflict 検出時は auto 不実行 + 手動介入要求。auto は dst なし / manifest hash 一致の 2 条件のみ |
+| **EXDEV (異 FS)**: `dst.tmp → dst` が異なるファイルシステム上で発生 | P1 | 低 (通常 .helix/ は同一 FS) | **fail-close** (exit 2 + 設定異常メッセージ)。P2-2 対応: `mv + rm` fallback は採用しない。.helix/ を同一 FS 上に配置することを設定要件とする |
 | **hash collision**: sha256 hash が偶然一致して破損ファイルを PASS とする | P2 | 極低 | size (bytes) も合わせて照合することで実質ゼロ |
 | **Stage activation 不一致**: env と config の Stage が噛み合わず、Stage 2 が production で誤発火 | P1 | 中 (設定ミス) | デフォルト値を Stage 1 に設定 (§2.3.1)。Stage を上げる前に staging で動作確認を手順化 (§2.3.3) |
 | **S0-S4 DB state が D-phase と不一致**: 表示が D0-D4 になっても DB が S0-S3 のままで混乱 | P2 | 低 (分離設計で正常) | `phase_to_display()` を通じた thin shim 設計を文書化 (§2.4 参照)。DB を変更しない設計を PLAN に明示 |
@@ -682,12 +870,12 @@ if frontmatter.drive in DEPRECATED_DRIVES:
 
 ## §7 V3 接続契約 (Stage activation source + migration trigger)
 
-### 7.1 外部との接続インターフェース
+### 7.1 外部との接続インターフェース (P1-5 分離後)
 
-本 PLAN が提供するインターフェースは以下の 3 点。後続 PLAN (L7-helix-scrum-removal-plan 等) は本 PLAN の成果物に依存する。
+本 PLAN が提供するインターフェースは以下の 2 module。後続 PLAN (L7-helix-scrum-removal-plan 等) は本 PLAN の成果物に依存する。
 
 ```python
-# cli/lib/discovery_migrate.py が公開する契約
+# cli/lib/discovery_compat.py が公開する契約 (変換系、P1-5)
 
 # 1. Stage activation source
 def get_compat_stage() -> int:
@@ -697,7 +885,21 @@ def get_compat_stage() -> int:
     例外: ValueError (不正値)
     """
 
-# 2. migration 実行
+# 2. Phase 変換 (P1-1 整合: D4 は ValueError)
+def phase_to_display(phase: str) -> str:
+    """DB の S-phase → 表示用 D-phase (S0→D0, S1→D1, S2→D2, S3→D3)。D4 は呼び出し側で decide_result から生成"""
+
+def display_to_phase(display: str) -> str:
+    """ユーザー入力の D-phase → DB 書き込み用 S-phase。D4 指定時は ValueError"""
+
+# 3. Deprecated drive 判定
+DEPRECATED_DRIVES: dict[str, str]  # {"scrum": "discovery"}
+def is_drive_deprecated(drive: str) -> bool: ...
+
+
+# cli/lib/discovery_migrate.py が公開する契約 (data movement 専門、P1-5)
+
+# 4. migration 実行
 def migrate(
     src: Path,
     dst: Path,
@@ -707,25 +909,23 @@ def migrate(
     auto: bool = False,
 ) -> MigrateResult:
     """
+    P0-1: dst non-empty + strategy 未指定 → abort (exit 2)
+    P0-1: merge case → pseudo-transaction (dst.tmp 構築 → dst.backup-<ts> 退避 → rename)
+    P0-2: auto=True 時は dst なし / manifest hash 一致 の 2 条件のみ実行、conflict は abort
     返り値: MigrateResult(status, files_copied, bytes_copied, errors)
-    status: "complete" | "skipped" | "dry_run" | "failed"
+    status: "complete" | "skipped" | "dry_run" | "failed" | "aborted"
     """
-
-# 3. Phase 変換
-def phase_to_display(phase: str) -> str:
-    """DB の S-phase → 表示用 D-phase"""
-
-def display_to_phase(display: str) -> str:
-    """ユーザー入力の D-phase → DB 書き込み用 S-phase"""
 ```
 
-### 7.2 Stage 3 auto-trigger の発火条件
+### 7.2 Stage 3 auto-trigger の発火条件 (P0-2 厳格化後)
 
 ```bash
-# cli/helix-discovery が Stage 3 で使用する発火条件:
-[ "$(python3 -c 'from cli.lib.discovery_migrate import get_compat_stage; print(get_compat_stage())')" -ge 3 ] \
-  && [ -d "$HELIX_DIR/scrum" ] \
-  && [ ! -f "$HELIX_DIR/discovery/.migration-manifest.json" ]
+# cli/helix-discovery が Stage 3 で使用する発火条件 (§2.2.4 の _auto_migrate_if_safe() 参照):
+# 条件 1: dst なし → auto 実行
+# 条件 2: manifest hash 一致 → auto 実行 (idempotent)
+# conflict (dst 存在 + non-empty + manifest hash 不一致) → 手動介入要求、auto 不実行
+[ "$(python3 -c 'from cli.lib.discovery_compat import get_compat_stage; print(get_compat_stage())')" -ge 3 ] \
+  && _auto_migrate_if_safe
 ```
 
 ### 7.3 removal plan への委譲条件
@@ -751,6 +951,7 @@ def display_to_phase(display: str) -> str:
 | SKILL_MAP.md §HELIX Scrum | skills/SKILL_MAP.md (line ~247) | "将来の rename は別 PLAN carry" 根拠 |
 | parent PLAN | L7-helix-workflows-parent-acceptedplan | 親工程管理 PLAN |
 | 後続 PLAN (stub) | L7-helix-scrum-removal-plan (§9 で起票) | Stage 4 removal の担当 PLAN |
+| ADR scope 外 (明示) | ADR-041 / ADR-042 / ADR-043 | **本 PLAN は ADR-041/042/043 の影響範囲外**。本 PLAN は drive enum 正規化 + runtime dir migration のみ担当。route_engine 拡張 (drift_type / recommended_command / Mode enum) は別 PLAN C' 担当 |
 
 ---
 
