@@ -1,7 +1,8 @@
 ---
 doc_id: process-overview-v2
 title: "HELIX 工程定義 L0–L14 — V-model 構造"
-status: draft
+status: accepted
+accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
 note: "ユーザー提示の工程定義を正本として整備。本ファイルは記述の忠実な構造化であり、工程の追加・削除・解釈変更は行わない。"
