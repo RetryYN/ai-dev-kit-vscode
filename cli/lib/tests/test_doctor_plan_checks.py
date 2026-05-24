@@ -150,6 +150,102 @@ def test_run_check_plan_drift_warns_for_stale_active_plan(tmp_path: Path, monkey
     assert rows[0]["days_stale"] > doctor_plan_checks.STALE_GENERATES_DAYS
 
 
+def test_run_check_plan_drift_excludes_is_reference_plan_when_column_exists(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            conn.execute("ALTER TABLE plan_registry ADD COLUMN is_reference INTEGER DEFAULT 0")
+            _insert_plan(conn, plan_id="PLAN-093")
+            conn.execute("UPDATE plan_registry SET is_reference = 1 WHERE plan_id = ?", ("PLAN-093",))
+            _insert_generate(
+                conn,
+                plan_id="PLAN-093",
+                artifact_path="cli/lib/missing.py",
+                artifact_type="python_module",
+            )
+        rows = doctor_plan_checks.run_check_plan_drift(conn)
+    finally:
+        conn.close()
+
+    assert rows == []
+
+
+def test_run_check_plan_drift_excludes_is_reference_plan_via_frontmatter_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    _write_plan_doc(
+        tmp_path / "docs" / "plans",
+        "PLAN-093",
+        [
+            "plan_id: PLAN-093",
+            "title: PLAN-093",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+            "is_reference: true",
+        ],
+    )
+
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            _insert_plan(conn, plan_id="PLAN-093")
+            _insert_generate(
+                conn,
+                plan_id="PLAN-093",
+                artifact_path="cli/lib/missing.py",
+                artifact_type="python_module",
+            )
+        rows = doctor_plan_checks.run_check_plan_drift(conn)
+    finally:
+        conn.close()
+
+    assert rows == []
+
+
+def test_run_check_plan_drift_includes_active_plan_via_frontmatter_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    _write_plan_doc(
+        tmp_path / "docs" / "plans",
+        "PLAN-093",
+        [
+            "plan_id: PLAN-093",
+            "title: PLAN-093",
+            "kind: impl",
+            "layer: L7",
+            "drive: be",
+            "status: draft",
+        ],
+    )
+
+    conn = _connect_memory_db()
+    try:
+        with conn:
+            _insert_plan(conn, plan_id="PLAN-093")
+            _insert_generate(
+                conn,
+                plan_id="PLAN-093",
+                artifact_path="cli/lib/missing.py",
+                artifact_type="python_module",
+            )
+        rows = doctor_plan_checks.run_check_plan_drift(conn)
+    finally:
+        conn.close()
+
+    assert rows[0]["plan_id"] == "PLAN-093"
+    assert rows[0]["status"] == "warning"
+    assert rows[0]["reason"] == "missing_artifact"
+
+
 def test_run_check_plan_drift_returns_table_warning_when_schema_is_absent() -> None:
     conn = sqlite3.connect(":memory:")
     try:

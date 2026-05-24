@@ -88,13 +88,17 @@ frontmatter.get("is_reference") == True のとき skip する実装が存在す�
 
 | Step | 担当 | 内容 | 受入条件 |
 |------|------|------|---------|
-| 1 | PMO | root cause 確認 + scope 承認 | 本 PLAN 内容に齟齬なし |
+| 1 | PMO | ✅ done root cause 確認 + scope 承認 | 本 PLAN 内容に齟齬なし |
 | 2 | SE | migration v36 設計 (additive、idempotent) | CURRENT_SCHEMA_VERSION = 36 |
 | 3 | SE | plan_registry.py upsert 修正 | is_reference 値を column に書き込み |
 | 4 | TL-advisor | adversarial check | P0 指摘 0 件で proceed |
-| 5 | SE | doctor_plan_checks.py `run_check_plan_drift()` 修正 | SQL 変更 + test 3 件新規 |
-| 6 | PMO | helix doctor 検証 | drift advisory 54 → 大幅減 (≤10 件目標) |
+| 5 | SE | ✅ done doctor_plan_checks.py `run_check_plan_drift()` 修正 | SQL 変更 + test 3 件新規 |
+| 6 | PMO | ✅ done helix doctor 検証 | drift advisory 54 → 大幅減 (≤10 件目標) |
 | 7 | PM | commit + push | pytest 全 PASS / helix doctor warn 減少確認 |
+
+実装メモ (2026-05-24): 実 DB schema に `plan_registry.is_reference` column が未存在だったため、
+TASK_INPUT の分岐条件に従い migration 追加ではなく frontmatter parse fallback で
+`is_reference: true` PLAN を drift check 母集団から除外した。
 
 **Entry 条件**: 本 PLAN review 完了、SE slot 割当
 

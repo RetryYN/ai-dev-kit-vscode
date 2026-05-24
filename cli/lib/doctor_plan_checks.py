@@ -38,6 +38,11 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {str(row[1]) for row in rows}
+
+
 def _missing_tables_result(required: list[str]) -> list[dict[str, Any]]:
     return [
         {
@@ -85,6 +90,13 @@ def _artifact_path(path_text: str) -> Path:
     return _project_root() / artifact
 
 
+def _doc_frontmatter_is_reference(doc_path: Any) -> bool:
+    if not doc_path:
+        return False
+    frontmatter = plan_parser.parse_frontmatter(str(_artifact_path(str(doc_path))))
+    return bool(frontmatter) and frontmatter.get("is_reference") is True
+
+
 def _related_adr_present(value: Any) -> bool:
     if value is None:
         return False
@@ -110,24 +122,49 @@ def run_check_plan_drift(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     if missing:
         return _missing_tables_result(missing)
 
-    rows = conn.execute(
-        """
-        SELECT
-            g.plan_id,
-            g.artifact_path,
-            g.artifact_type,
-            p.status,
-            p.updated_at
-        FROM plan_generates AS g
-        LEFT JOIN plan_registry AS p ON p.plan_id = g.plan_id
-        ORDER BY g.plan_id, g.artifact_path
-        """
-    ).fetchall()
+    has_is_reference_column = "is_reference" in _table_columns(conn, "plan_registry")
+    if has_is_reference_column:
+        rows = conn.execute(
+            """
+            SELECT
+                g.plan_id,
+                g.artifact_path,
+                g.artifact_type,
+                p.status,
+                p.updated_at
+            FROM plan_generates AS g
+            LEFT JOIN plan_registry AS p ON p.plan_id = g.plan_id
+            WHERE (p.is_reference IS NULL OR p.is_reference = 0)
+            ORDER BY g.plan_id, g.artifact_path
+            """
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT
+                g.plan_id,
+                g.artifact_path,
+                g.artifact_type,
+                p.status,
+                p.updated_at,
+                p.doc_path
+            FROM plan_generates AS g
+            LEFT JOIN plan_registry AS p ON p.plan_id = g.plan_id
+            ORDER BY g.plan_id, g.artifact_path
+            """
+        ).fetchall()
 
     results: list[dict[str, Any]] = []
+    reference_plan_cache: dict[str, bool] = {}
     with conn:
         for row in rows:
             plan_id = str(row[0])
+            if not has_is_reference_column:
+                doc_path = row[5]
+                if plan_id not in reference_plan_cache:
+                    reference_plan_cache[plan_id] = _doc_frontmatter_is_reference(doc_path)
+                if reference_plan_cache[plan_id]:
+                    continue
             artifact_path = str(row[1])
             artifact_type = str(row[2])
             plan_status = str(row[3] or "")
