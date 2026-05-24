@@ -437,13 +437,23 @@ class TestConcurrentFire:
 
 
 class TestStatsAggregation:
+    @staticmethod
+    def _seed_and_freeze_now(
+        fresh_db_with_automation_runs: dict[str, object],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> Path:
+        db_path = fresh_db_with_automation_runs["db_path"]
+        _patch_sqlite_now(monkeypatch, fresh_db_with_automation_runs["frozen_now"])
+        _seed_stats_dataset(db_path)
+        return db_path
+
     def test_i_stat_001_by_hour_aggregates_total_and_peak_parallel(
         self,
         fresh_db_with_automation_runs: dict[str, object],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """I-STAT-001: 複数 slot 投入後、by=hour で件数と peak_parallel を集計できる。"""
-        db_path = fresh_db_with_automation_runs["db_path"]
-        _seed_stats_dataset(db_path)
+        db_path = self._seed_and_freeze_now(fresh_db_with_automation_runs, monkeypatch)
 
         rows = agent_slots.get_stats(days=7, by="hour")
 
@@ -460,10 +470,10 @@ class TestStatsAggregation:
     def test_i_stat_002_by_role_groups_none_bucket(
         self,
         fresh_db_with_automation_runs: dict[str, object],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """I-STAT-002: by=role で role 別の件数が崩れず、NULL は (none) に集約される。"""
-        db_path = fresh_db_with_automation_runs["db_path"]
-        _seed_stats_dataset(db_path)
+        db_path = self._seed_and_freeze_now(fresh_db_with_automation_runs, monkeypatch)
 
         rows = agent_slots.get_stats(days=7, by="role")
         groups = {row["group"]: row for row in rows}
@@ -477,10 +487,10 @@ class TestStatsAggregation:
     def test_i_stat_003_by_plan_id_groups_plan_specific_rows(
         self,
         fresh_db_with_automation_runs: dict[str, object],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """I-STAT-003: by=plan_id で PLAN-078 / PLAN-079 / (none) が分かれて集計される。"""
-        db_path = fresh_db_with_automation_runs["db_path"]
-        _seed_stats_dataset(db_path)
+        db_path = self._seed_and_freeze_now(fresh_db_with_automation_runs, monkeypatch)
 
         rows = agent_slots.get_stats(days=7, by="plan_id")
         groups = {row["group"]: row for row in rows}
@@ -492,10 +502,10 @@ class TestStatsAggregation:
     def test_i_stat_004_by_agent_kind_groups_codex_and_subagent(
         self,
         fresh_db_with_automation_runs: dict[str, object],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """I-STAT-004: by=agent_kind で codex と claude_subagent が別グループになる。"""
-        db_path = fresh_db_with_automation_runs["db_path"]
-        _seed_stats_dataset(db_path)
+        db_path = self._seed_and_freeze_now(fresh_db_with_automation_runs, monkeypatch)
 
         rows = agent_slots.get_stats(days=7, by="agent_kind")
         groups = {row["group"]: row for row in rows}
