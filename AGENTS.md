@@ -78,6 +78,14 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 
 ## HELIX Workflow
 
+### HELIX-workflows 参照原則 (2026-05-24 V2 完全移行で確立)
+
+**工程・モード判断時はまず [HELIX-workflows/](HELIX-workflows/) を正本として参照する**。L0-L14 の工程定義は [HELIX-workflows/HELIX-process-L0-L14.md](HELIX-workflows/HELIX-process-L0-L14.md)、各工程詳細・mode 別 workflow は [HELIX-workflows/helix-process/](HELIX-workflows/helix-process/) (L0-L14 工程 doc / 9 mode workflow / 工程専門 / 管理・自動化基盤 doc 群、integration-map / asset-mapping / folder-structure-review / detection-routing / layer-context-injection / cross-cutting-mechanisms / automation-gate-map / continuous-run-context-management / fe-detector-spec / observability-metrics 等を含む)。
+
+`AGENTS.md` / `helix/HELIX_CORE.md` / `skills/SKILL_MAP.md` / `helix/CODEX_TL_MODE.md` は HELIX-workflows を正本として参照する形で同期されている。drift 発見時は HELIX-workflows を正、本ファイル群を retrofit する方針。
+
+新規 PLAN 起票・モード判断・コマンド整備など、企画・設計判断に入る前に [HELIX-workflows/helix-process/integration-map.md](HELIX-workflows/helix-process/integration-map.md) §結論と優先順位 を必ず確認する (整理済み企画書を読まずに自前 carry list を並べないこと)。
+
 ### Implemented CLI modes
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`

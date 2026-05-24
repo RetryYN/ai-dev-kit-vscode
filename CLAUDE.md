@@ -67,7 +67,9 @@ skills/
 - `.helix/` runtime state、`.claude/settings.local.json`、`.codex` などのローカル副産物をドキュメント目的で追跡対象にしない。
 
 ## HELIX ワークフロー
-- タスク受領時は `helix/HELIX_CORE.md`、`skills/SKILL_MAP.md`、`helix/CODEX_TL_MODE.md` を確認する。
+- **工程・モード判断時はまず [HELIX-workflows/](HELIX-workflows/) を正本として参照する** (2026-05-24 V2 完全移行で確立、commit `35a901c / ee1a13a`)。L0-L14 の工程定義は [HELIX-workflows/HELIX-process-L0-L14.md](HELIX-workflows/HELIX-process-L0-L14.md)、各工程詳細・mode 別 workflow は [HELIX-workflows/helix-process/](HELIX-workflows/helix-process/) (L0-L14 工程 doc / 9 mode workflow (forward/scrum/discovery/reverse/incident/add-feature/refactor/retrofit/research/recovery) / 工程専門 (screen-design/frontend-design) / 管理・自動化基盤 (integration-map / asset-mapping / folder-structure-review / detection-routing / layer-context-injection / cross-cutting-mechanisms / automation-gate-map / continuous-run-context-management / fe-detector-spec / observability-metrics / cross-detection / db-auto-registration / db-integration / learning-engine / deviation-plan-map / test-perspective-gate / two-stage-agent-design / infra-readiness) 等)。
+- タスク受領時は `helix/HELIX_CORE.md`、`skills/SKILL_MAP.md`、`helix/CODEX_TL_MODE.md` を確認する。これらは HELIX-workflows を正本として参照する形で同期されている (drift 発見時は HELIX-workflows を正、本ファイル群を retrofit)。
+- 新規 PLAN 起票・モード判断・コマンド整備など、企画・設計判断に入る前に [HELIX-workflows/helix-process/integration-map.md](HELIX-workflows/helix-process/integration-map.md) §結論と優先順位 を必ず確認する (整理済み企画書を読まずに自前 carry list を並べないこと、[[feedback_read_integrated_plan_before_carry_list]])。
 - `.helix/handover/CURRENT.json` がある場合は `helix handover status --json` を確認し、stale でなければ Next Action に従う。
 
 ### 実装済み CLI mode
