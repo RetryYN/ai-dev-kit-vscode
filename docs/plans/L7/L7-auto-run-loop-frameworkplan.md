@@ -4,7 +4,7 @@ title: "L7-auto-run-loop-frameworkplan: 指定時間・heartbeat・compaction �
 kind: design
 layer: L7
 drive: be
-status: draft
+status: completed
 process_layer: L7
 parent_design: HELIX-workflows/helix-process/continuous-run-context-management.md
 pairs_test_design: []
@@ -53,17 +53,16 @@ scope 外:
 - 実行基盤（daemon / CI runner / スケジューラ）の実装
 - compaction API 本体実装
 
-## §3 工程表 (placeholder)
+## §3 工程表
 
 | Sprint | 作業内容 | 受入条件 | 状態 |
 |---|---|---|---|
-| .1 | 連続走行の SoT と責務分解 | 利害関係範囲が明文化される | planned |
-| .2 | `continuous-run-context-management` との対照表を作成 | plan lint と frontmatter parse 条件を満たす | planned |
-| .3 | 実装移行向け acceptance 条件を記録 | 実装 session へ引き継げる状態 | planned |
+| .1 | 連続走行の SoT と責務分解 | 利害関係範囲が明文化される | completed |
+| .2 | `cli/helix-auto-run` skeleton + `cli/lib/auto_run_engine.py` 実装 | start / status / resume / stop / heartbeat / budget が最小動作する | completed |
+| .3 | pytest / bats / docs / router / PLAN status 更新 | minimal viable foundation が検証付きで残る | completed |
 
 ## §11 carry
 
-- carry-1: 指定時間/heartbeat/compaction の文脈を単一 PLAN に統合
-- carry-2: 自動走行フック設計（起動・再開・停止）を blueprint 化
-- carry-3: 実装可否判断は次実装 session に委譲
-
+- carry-1: compaction API 統合は next phase。現時点では `integrations.compaction_api = pending_next_phase` の接続点のみ保持
+- carry-2: ScheduleWakeup / hook 統合は scope 外。heartbeat 判定は `cli/helix-heartbeat-scheduler` 呼び出しまで
+- carry-3: full autonomous loop の本格検証・長時間連続稼働確認は次 PLAN へ持ち越し

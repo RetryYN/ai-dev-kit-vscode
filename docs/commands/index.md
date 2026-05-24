@@ -44,6 +44,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix add-feature` | Add-feature mode の design / impl 追補 state 管理と Forward 接続案内 |
 | `helix retrofit` | Retrofit mode の matrix/config/plan 管理 |
 | `helix handover` | Opus / Codex handover |
+| `helix auto-run` | 指定時間 budget window・heartbeat 判定・PLAN resume skeleton の状態管理 |
 | `helix route` | detect signal を Reverse / Refactor / Retrofit / Recovery / Incident へ提案ルーティング (drift_type 7 種分岐、ADR-041 SoT) |
 | `helix workspace` | git worktree-based per-task workspace 管理 |
 | `helix pr` | PR 自動生成 + 6 ゲート機械検証 (`--gate` / `--auto-merge`) |

@@ -52,6 +52,7 @@ case "$CMD" in
   add-feature) exec "$SCRIPT_DIR/helix-add-feature" "$@" ;;
   retrofit) exec "$SCRIPT_DIR/helix-retrofit" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
+  auto-run) exec "$SCRIPT_DIR/helix-auto-run" "$@" ;;
   workspace) exec "$SCRIPT_DIR/helix-workspace" "$@" ;;
   budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
   scheduler) exec "$SCRIPT_DIR/helix-scheduler" "$@" ;;
@@ -140,6 +141,7 @@ HELIX プロジェクト管理:
   add-feature Add-feature mode の design/impl 追補 state 管理と Forward 接続案内
   retrofit    Retrofit mode の matrix/config/plan 管理
   handover    Opus/Codex handover 管理
+  auto-run    指定時間 budget window と heartbeat による PLAN resume skeleton
   route       detect signal を Reverse/Refactor/Recovery/Incident へ提案ルーティング
   workspace   git worktree-based per-task workspace 管理 (PLAN-156)
   pr          PR 自動生成 + 6 ゲート機械検証 (--gate / --auto-merge)
