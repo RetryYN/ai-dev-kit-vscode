@@ -23,6 +23,7 @@ superseded_by: []
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — PLAN B/C/C' の tl-advisor R1 で drift_type 7 種境界の必要性発覚 (PLAN C' R1 §L2 凍結 候補 #1)、本 ADR で contract 凍結
+- 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review、rollout JSONL bypass で抽出) で **needs_revision** 判定、P1-1 (upgrade Reverse vs Retrofit 境界) + P1-2 (config_drift env/infra 人間承認) を §Decision に反映、tl-advisor R2 待ち
 
 ## Context
 
@@ -71,8 +72,8 @@ PLAN B/C/C' 起票時点で drift_type 表の整合性確認が必須となっ�
 | `code_smell` | **Refactor** | コード品質劣化 (複雑度 / 重複 / 命名) |
 | `structural` | **Refactor** | 内部構造改善 (振る舞い不変) |
 | `dependency_outdated` | **Retrofit** | 依存 library version 古い |
-| `upgrade` | **Retrofit** | runtime / framework / language version 移行 (※ uncertainty=high or impact=high の場合は Reverse upgrade R0-R4 を前段) |
-| `config_drift` | **Retrofit** | config / env / infra 設定 drift |
+| `upgrade` | **Retrofit (条件付き)** | runtime / framework / language version 移行。**uncertainty=high or impact=high 時は Reverse upgrade R0-R4 を前段** (R1 P1-1 反映、機械契約は `recommended_command.safety.requires_preflight=true` + `recommended_command.command = "helix reverse upgrade R0"`)。低リスク時のみ Retrofit 直行 |
+| `config_drift` | **Retrofit (人間承認必須)** | config / env / infra 設定 drift。**env / infrastructure / production config は人間確認対象** (HELIX escalation 境界、CLAUDE.md §禁止事項)。route_engine は plan draft 提案まで、**auto apply 禁止**、`recommended_command.safety.requires_human_approval=true` 固定 (R1 P1-2 反映) |
 
 ### 実装契約
 

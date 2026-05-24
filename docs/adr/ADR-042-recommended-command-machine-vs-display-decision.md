@@ -23,6 +23,7 @@ superseded_by: []
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で `recommended_command` が「人間向け表示専用」と「後続 CLI に渡す契約」の両方として書かれ矛盾発覚、ADR snapshot で役割凍結
+- 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-1 (JSON object vs string 矛盾) を `RecommendedCommandV1` schema + `schema_version`/`safety` field で一本化、P1-3 (Recovery 接続例外) を §接続コマンド統一表に追加、P1-4 (`suggest_command` backward compat 固定表) を §Decision 末尾に追加、tl-advisor R2 待ち
 
 ## Context
 
@@ -65,19 +66,26 @@ PLAN C' draft §V3 接続契約に `recommended_command` field 仕様が記載�
 
 | field | 役割 | 形式 | backward compat |
 |---|---|---|---|
-| `suggest_command` (既存) | **人間向け表示専用** (cli_hint) | 自然言語混じり可、stable string | **値変更禁止** (backward compat 最優先) |
-| `recommended_command` (新規) | **後続 CLI に渡す機械契約** | parsable command + 構造化 args、JSON-serializable | 新規 field、additive |
+| `suggest_command` (既存) | **人間向け表示専用** (cli_hint) | 自然言語混じり可、stable string | **値変更禁止** (既存 signal 全件、§Decision 末尾の固定表参照) |
+| `recommended_command` (新規) | **後続 CLI に渡す機械契約** | **JSON object 一本化** (string 形式は禁止)、JSON-serializable | 新規 field、additive |
 
-### 機械契約の構造化 args (`recommended_command`)
+**重要 (R1 P0-1 反映)**: `recommended_command` は string 形式を**禁止**、必ず JSON object。PLAN C'/B/C/D の string 期待記述は R3 反映で JSON parse に修正必須。
+
+### 機械契約 schema `RecommendedCommandV1` (R1 P0-1 反映、JSON 一本化)
 
 ```json
 {
+  "schema_version": "v1",
   "command": "helix plan draft",
   "args": {
     "kind": "retrofit",
     "drift_type": "dependency_outdated",
     "signal_id": "drift",
     "slug": "<auto>"
+  },
+  "safety": {
+    "auto_apply": false,
+    "requires_human_approval": false
   },
   "exit_code_expectations": {
     "0": "PLAN draft created",
@@ -87,14 +95,35 @@ PLAN C' draft §V3 接続契約に `recommended_command` field 仕様が記載�
 }
 ```
 
-### 接続コマンド統一 (PLAN B/C/C'/D 共通)
+`schema_version`: 将来の schema 変更時に additive で `v2` 等に拡張。strict parser は unknown schema_version で fail-close。
+`safety.auto_apply`: agent が確認なしに即実行可否 (default false)。`safety.requires_human_approval`: 人間承認必須フラグ (env/infra/prod 変更時 true、R1 P1-2 反映)。
+
+### 接続コマンド統一 (PLAN B/C/C' 共通) + **Recovery 例外** (R1 P1-3 反映)
 
 route_engine の `recommended_command` は **`helix plan draft --kind <mode>` 統一**:
-- PLAN B: `helix plan draft --kind refactor --drift-type code_smell`
-- PLAN C: `helix plan draft --kind retrofit --drift-type dependency_outdated`
-- PLAN D: `helix plan draft --kind recovery --signal-id runaway`
+- PLAN B (Refactor): `helix plan draft --kind refactor --drift-type code_smell`
+- PLAN C (Retrofit): `helix plan draft --kind retrofit --drift-type dependency_outdated`
 
-→ route_engine の責務 = **PLAN 起票を推奨**、各 mode CLI (`helix refactor init` 等) は PLAN 起票後の **手動着手** に限定。
+**★ Recovery は例外** (PLAN D 既存契約 `helix recover plan --signal-id` 維持):
+- PLAN D (Recovery): `helix recover plan --signal-id runaway --auto-routed-from helix-route`
+- 理由: PLAN D §11 と現行 `cli/lib/route_engine.py` の `signal_to_condition()` が既に `recover plan` 契約を持つ。`helix plan draft --kind recovery` への移行は別 PLAN candidate carry (PLAN D 完遂後検討)
+
+→ route_engine の責務 = **refactor/retrofit は PLAN 起票推奨、recovery は recover plan 推奨**。
+
+各 mode CLI (`helix refactor init` / `helix retrofit init` 等) は PLAN 起票後の **手動着手** に限定 (refactor/retrofit のみ)。
+
+### `suggest_command` backward compat 固定表 (R1 P1-4 反映、既存 signal 全件)
+
+| signal | 既存 `suggest_command` | 値変更可否 |
+|---|---|---|
+| `drift` (schema/contract) | `helix reverse normalization R0` | **凍結** (変更禁止) |
+| `drift` (code_smell/structural) | `helix plan draft --kind refactor` (新規) | 追加 (本 ADR で凍結) |
+| `dependency_outdated` / `upgrade` / `config_drift` | `helix plan draft --kind retrofit` (新規) | 追加 (本 ADR で凍結) |
+| `runaway` | `helix recover plan --signal-id runaway` | **凍結** (PLAN D 既存) |
+| `regression_dev` / `incident` | 既存値 (recover_engine.signal_to_condition 参照) | **凍結** |
+| `debt_degradation` | `helix plan draft --kind refactor --from-debt-id <id>` | 追加 |
+
+既存 `eval --format command` は本表の `suggest_command` 文字列を返す (R1 P1-4 反映で全件固定)。
 
 不採用: `helix refactor init` / `helix retrofit init` を recommended_command に直接含める → route_engine が複数 mode CLI に依存、test surface 増。
 

@@ -23,6 +23,7 @@ superseded_by: []
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で「accepted parent design (detection-routing.md) は Retrofit 含まない、Mode enum に Retrofit 追加するなら L2 ADR snapshot で凍結すること」指摘、本 ADR で凍結
+- 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-2 (parent design footnote 自己矛盾、detection-routing.md に §5 不在) を **PLAN frontmatter `parent_design` 複数値並記 pattern** に変更 (detection-routing.md 完全不変更維持)、P1-5 (additive backward compat 影響調査) を §Decision 末尾に追加、tl-advisor R2 待ち
 
 ## Context
 
@@ -66,11 +67,37 @@ Mode = Literal["Reverse", "Refactor", "Retrofit", "Recovery", "Incident"]
 
 **順序**: Retrofit は Refactor と Recovery の間 (関連 mode を隣接)。既存値 (Reverse/Refactor/Recovery/Incident) の順序・spelling は変更しない (backward compat)。
 
-### parent design (detection-routing.md) との関係
+### parent design (detection-routing.md) との関係 (R1 P0-2 反映、自己矛盾解消)
 
-- `detection-routing.md` 本文は **変更しない** (accepted 凍結維持)
-- 本 ADR-043 を **追補 ADR として並存**、detection-routing.md の §5 (Mode 一覧) に「※ Retrofit mode は ADR-043 で追加凍結、本 doc 次回 revision 時に統合予定」と footnote 追記のみ
+**重要 (R1 P0-2 反映)**: 当初案「detection-routing.md 本文不変更 + §5 footnote 追記」は、現行 detection-routing.md に §5 / Mode 一覧が**存在しない**ため自己矛盾。本 revision で **detection-routing.md は完全不変更** + **PLAN frontmatter で `parent_design` 複数値並記** pattern に修正。
+
+- `detection-routing.md` 本文は **完全に変更しない** (accepted 凍結維持、footnote 追記も行わない)
+- PLAN C / C' (および本 ADR 影響範囲) の `parent_design` field を **複数値 list** にし、`detection-routing.md` と `ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md` の両方を併記:
+
+```yaml
+# PLAN C' frontmatter 例 (R3 反映で対応)
+parent_design:
+  - HELIX-workflows/helix-process/detection-routing.md   # 上位 parent
+  - docs/adr/ADR-043-mode-enum-extension-retrofit-freeze-break-decision.md   # 追補 ADR (必読)
+```
+
+- PLAN reader (Codex SE / pmo-sonnet) は `parent_design` を順次 read し、ADR-043 で Retrofit mode の追補を必ず認識する
+- ADR index.md / `docs/adr/helix-workflows-appendix.md` で ADR-043 を「detection-routing.md 追補」明示
 - 将来 detection-routing.md v2 (新版) を起こす際に本 ADR を統合 → ADR-043 を superseded marker で凍結
+
+### additive backward compat の影響調査 (R1 P1-5 反映)
+
+旧 parser / caller が Mode enum を exhaustive parse している場合の破壊 risk 確認:
+
+| caller | enum 扱い | 影響 | 対策 |
+|---|---|---|---|
+| `cli/lib/route_engine.py` 内部 | `Mode = Literal[...]` (mypy strict) | None (本 ADR で更新) | Mode に Retrofit 追加するだけ、既存 caller 不変 |
+| `cli/lib/tests/test_route_engine.py` | assertion で Mode 値参照 | None (本 ADR で test 拡張) | Retrofit 含む新規 test case 追加、既存 test 不変 |
+| `cli/helix-route` (bash) | JSON output の `mode` field を string 比較 | additive (Retrofit 値が新たに出現可) | 既存 caller は `mode in [Reverse|Refactor|Recovery|Incident]` の if-elif chain なら fallthrough、case match なら unknown error |
+| `cli/helix-recover` | route_engine 経由で Mode 受領 | None (Retrofit を Recovery に escalation しない設計) | 影響なし |
+| 外部 JSON consumer (HELIX 外) | unknown | **要調査** | 本 PLAN scope 外、carry C-AT として `helix doctor` で Mode caller 検出 framework 別 PLAN candidate |
+
+→ **HELIX 内部 caller には破壊 risk なし**、外部 JSON consumer の調査は別 PLAN carry。
 
 ### backward compat 保証
 
