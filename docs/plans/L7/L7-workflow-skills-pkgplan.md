@@ -54,6 +54,8 @@ generates:
 dependencies:
   parent: null
   requires:
+    # 以下 3 PLAN は「実装完了」を要求するのではなく、各 v3 接続契約 (signal schema / injection-set schema / recovery handshake) が frozen であることを参照する。
+    # Step 7-10 着手前に各 PLAN の接続契約凍結状態を確認すること。実装 (CLI 動作) は本 PLAN と並行して進行してよい。
     - L7-helix-route-implplan
     - L7-helix-recover-implplan
     - L7-vmodel-semantics-injection-setplan
@@ -115,8 +117,8 @@ integration-map §優先順位
 | 1 | 正本 4 doc 精読 (detection-routing / learning-engine / cross-detection / layer-context-injection) | PM | ✅ done |
 | 2 | 範例精読 (retrofit SKILL.md + references/) | PM | ✅ done |
 | 3 | 本 PLAN 起票 + tl-advisor 第 1 ラウンド依頼 | PM | ✅ done (draft 起票完了) |
-| 4 | tl-advisor 第 1 ラウンド adversarial check | PM → TL | □ pending |
-| 5 | TL 第 1 ラウンド指摘反映 | PM | □ pending |
+| 4 | tl-advisor 第 1 ラウンド adversarial check | PM → TL | ✅ done (needs_revision P1×4 受領) |
+| 5 | TL 第 1 ラウンド指摘反映 | PM | ✅ done (pmo-sonnet 反映済) |
 | 6 | tl-advisor 第 2 ラウンド (必要に応じて) | PM → TL | □ pending |
 | 7 | SE 委譲: S-1 detection-routing SKILL.md + 2 references/ 起草 | PM → SE | □ pending |
 | 8 | SE 委譲: S-2 learning-engine SKILL.md + 2 references/ 起草 | PM → SE | □ pending |
@@ -134,6 +136,14 @@ S-1〜S-4 は **相互にファイル衝突しない** (各自独立ディレク
 - S-4 layer-context-injection は S-2 learning-engine の出力先 (注入セット更新) だが、これも起草として独立
 - よって Step 7-10 は **4 並列** 投入可能 (Codex SE × 4 または SE × 2 + PMO-Sonnet × 2)
 
+### Step 7-10 着手前提条件
+
+以下が揃ってから Step 7-10 (SE 委譲) を投入すること:
+1. **共有語彙の凍結**: signal / mode / priority / aggregate_signal の定義が detection-routing.md / cross-detection.md で確定済
+2. **signal schema の凍結**: SIGNAL_TO_MODE マップの key / value 型が helix route PLAN v3 接続契約として frozen
+3. **injection-set frontmatter template 確定**: `drives.{drive}.layers.{layer}.injection` の 20 セル YAML スキーマが vmodel-semantics-injection-setplan v3 で frozen
+4. **関連スキル名の凍結**: 4 SKILL.md が相互参照するスキル名 (detection-routing / cross-detection / learning-engine / layer-context-injection) が本 PLAN §2 で確定済 (SE はこの名称を使う)
+
 ---
 
 ## §2 実装計画
@@ -150,7 +160,7 @@ S-1〜S-4 は **相互にファイル衝突しない** (各自独立ディレク
 name: detection-routing
 description: 検出シグナル (drift / degradation / runaway / incident) を受け取り、4 象限 (uncertainty × impact) 評価と SIGNAL_TO_MODE 固定マップで対応モード (Recovery / Incident / Reverse / Refactor) へルーティング判定する。helix route CLI の設計根拠スキル
 metadata:
-  helix_layer: L4
+  helix_layer: L4-L14
   category: workflow
   triggers:
     - drift 検出時 (設計 ⇔ 実装乖離)
@@ -165,9 +175,9 @@ metadata:
     - "4 象限で priority が P0-P3 のいずれかに決定"
     - "mode は SIGNAL_TO_MODE で固定 (4 象限で上書きしない)"
     - "suggest_command が helix route eval の出力と一致"
-  compatibility:
-    claude: true
-    codex: true
+compatibility:
+  claude: true
+  codex: true
 ```
 
 #### SKILL.md 本文構成
@@ -227,14 +237,19 @@ metadata:
     - layer-context-injection の注入セットを更新したい時
     - 成功実行の手順を recipe として保存したい時
     - skill-radar の推薦精度を改善したい時
+    - G9 / L9 総合検証 完了後に検証結果を学習したい時
+    - G10 / L10 UX 検証 完了後にフィードバックを取り込みたい時
+    - G11 / L11 RC / ユーザー検証 完了後に知見を recipe 化したい時
+    - G14 / L14 運用検証 完了後に次サイクルへ学習を引き継ぎたい時
   verification:
     - "analyze_success が成功 run を分析し recipe を保存済"
-    - "頻出トラブルが gate / detector に予防ルールとして反映済"
+    - "頻出トラブルが PLAN / PR 候補化され、gate / detector への直接変更は TL 確認後のみ実施"
     - "layer-context-injection の注入セットに学習結果が反映済"
     - "recipe は pattern_key で検索可能"
-  compatibility:
-    claude: true
-    codex: true
+    - "G9-G11 / L9-L11 / L14 の検証フィードバックが feedback_hook / detector 結果 / recovery-log として入力済"
+compatibility:
+  claude: true
+  codex: true
 ```
 
 #### SKILL.md 本文構成
@@ -243,13 +258,22 @@ metadata:
 - **責務境界**: layer-context-injection との関係
   - learning-engine: 学習 → recipe / 予防ルール化
   - layer-context-injection: 注入セットの定義・実行 (learning-engine の出力を受け取る)
-- **学習の入力**: 正本の入力源テーブルを再掲 + helix.db との連携
+- **学習の入力**: 正本の入力源テーブルを再掲 + helix.db との連携。入力に以下を明示すること:
+  - feedback_hook (ゲート通過後の 5 軸 Lv1-5 フィードバック)
+  - detector 結果 (drift / 劣化 / 回帰の検出履歴)
+  - recovery-log (AI 暴走・収束の履歴)
+  - G9 / L9 総合検証 結果 (総合テスト完了後のフィードバック)
+  - G10 / L10 UX 検証 結果 (FE UX 磨き上げ完了後のフィードバック)
+  - G11 / L11 RC / ユーザー検証 結果 (RC 判定後のユーザーフィードバック)
+  - G14 / L14 運用検証 結果 (次サイクル L0 input となる運用知見)
 - **学習の処理**: analyze_success → save_recipe フロー
-- **学習の出力**: recipe 再利用 / スキル推薦改善 / 予防ルール化 / L 単位注入の更新
+- **学習の出力**: recipe 再利用 / スキル推薦改善 / 予防ルール化 / L 単位注入の更新。出力の性質を明示すること:
+  - 予防ルール化の結果は **gate / detector への直接変更ではなく PLAN / PR 候補化** にとどまる
+  - gate / detector の実際の変更は TL 確認後に別 PLAN として実施する
 - **学習ループ**: 正本の循環図を再掲 + helix learn CLI 使用例
 - **Forward 接続**: L14 運用学習 → 次サイクル L0 input の接続規則
 - **エスカレーション基準**: recipe 昇格が gate 変更を伴う場合の TL 確認要件
-- **完了チェック**: recipe 保存 + 予防ルール化 + 注入セット更新の 3 点確認
+- **完了チェック**: recipe 保存 + 予防ルール化 (PLAN/PR 候補化) + 注入セット更新の 3 点確認
 
 #### references/ ファイル (2 件)
 
@@ -300,9 +324,9 @@ metadata:
     - "検出した漏れ・デグレが detection-routing でモード発動につながっている"
     - "baseline が最新 commit に更新されている"
     - "デグレ検出時は fail-close で停止している"
-  compatibility:
-    claude: true
-    codex: true
+compatibility:
+  claude: true
+  codex: true
 ```
 
 #### SKILL.md 本文構成
@@ -350,7 +374,7 @@ metadata:
 
 ```yaml
 name: layer-context-injection
-description: 各 L (工程 L0-L14) 入口で mandatory_skills / recommended_commands / required_agents / orchestration_mode を文脈注入し、AI の工程選択の迷いを消す機構。vmodel-semantics.yaml の injection-set と helix-context CLI が実装基盤
+description: 各 L (工程 L0-L14) 入口で mandatory_skills / recommended_commands / required_agents / orchestration_mode を文脈注入し、AI の工程選択の迷いを消す機構。vmodel-semantics.yaml の injection-set と helix-context CLI が実装基盤。injection-set の実体キーは drive × layer の 20 セル構造 (4 drive × 5 layer) で管理される
 metadata:
   helix_layer: L0-L14
   category: workflow
@@ -363,12 +387,13 @@ metadata:
     - 新しい L 向けスキルを injection-set に追加した時
   verification:
     - "工程 L に対応する injection-set が vmodel-semantics.yaml に定義済"
+    - "injection-set のキーが drive × layer 20 セル構造 (drives.{drive}.layers.{layer}.injection) に準拠している"
     - "helix-context が当該 L の injection-set を正しく注入済"
     - "必須 agent が agent_mandatory.list_mandatory_for_phase で定義済"
     - "orchestration 方式が axis-14-orchestration-integrity で検証済"
-  compatibility:
-    claude: true
-    codex: true
+compatibility:
+  claude: true
+  codex: true
 ```
 
 #### SKILL.md 本文構成
@@ -379,8 +404,9 @@ metadata:
   - learning-engine: 学習結果を injection-set に反映 (L 単位注入の更新)
   - detection-routing: injection-set の「どのモードか」情報を受け取る連携
 - **注入 5 要素**: スキル / ワークフロー / サブエージェント / コマンド / オーケストレーション
+- **injection-set 実体キー構造**: vmodel-semantics.yaml における injection-set の実体は `4 drive × 5 layer = 20 セル構造` (`drives.{drive}.layers.{layer}.injection`) であることを明記し、L0-L14 全工程の概念説明と区別する。SKILL.md では「L0-L14 工程別の概念」を説明しつつ、references/injection-set-schema.md では 20 セル構造の実体キーを正本とすること
 - **L 単位注入セット**: references/l-unit-injection-table.md を参照
-- **injection-set schema**: references/injection-set-schema.md を参照
+- **injection-set schema**: references/injection-set-schema.md を参照 (実体キー: `drives.{drive}.layers.{layer}.injection` = 20 セル)
 - **AI の判断の迷いを消す原理**: 正本の「選択肢を事前に絞る」方針の再掲
 - **オーケストレーション制御**: agent_slots / Claude Code (判断) vs Codex (実装) 二軸 / axis-14 検証
 - **Forward 接続**: vmodel-semantics.yaml 更新フロー (learning-engine → injection-set 更新 → helix-context 反映)
@@ -507,7 +533,7 @@ metadata:
 - `skills/workflow/retrofit/SKILL.md` — 直近の同手法スキル化事例 (範例)
 - `skills/workflow/retrofit/references/retrofit-matrix-template.md` — references/ 構造の参考
 - `skills/SKILL_MAP.md` — §スキル群配置 workflow/ リスト追記対象 + §責務境界クリア化 参考パターン
-- `docs/plans/L7/L7-helix-route-implplan.md` — detection-routing.md を CLI 化した実装 PLAN (S-1 の後続)
+- `docs/plans/L7/L7-helix-route-implplan.md` — detection-routing.md を CLI 化した実装 PLAN (S-1 の後続)。本 PLAN では route PLAN の実装完了を要求せず、signal schema v3 接続契約が frozen であることのみ参照する
 - `docs/plans/L7/L7-helix-recover-implplan.md` — learning-engine / detection-routing と連携する Recovery CLI
 - `docs/plans/L7/L7-vmodel-semantics-injection-setplan.md` — S-4 の injection-set 実体 (vmodel-semantics.yaml)
 
