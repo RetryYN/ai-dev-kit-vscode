@@ -44,8 +44,8 @@ integration_target:
 | generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | retrofit-matrix / research-memo / ADR / recovery-log は全てあり（2026-05-25 完遂） |
 | 工程(L): L1 / L2 / L3 / L4（sprint-guide 5種）/ L5 | あり |
 | 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | あり（英語版 `cli/templates/plan/v2/L00-L14-*-template.md` として既存、2026-05-25 確認） |
-| drive=agent（2段設計の Stage 2 昇華） | なし（穴, two-stage-agent-design） |
-| 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | なし（穴, continuous-run-context-management） |
+| drive=agent（2段設計の Stage 2 昇華） | なし（穴, two-stage-agent-design） → PLAN-roadmap-起票 (2026-05-25) |
+| 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | なし（穴, continuous-run-context-management） → PLAN-roadmap-起票 (2026-05-25) |
 
 PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log、加えて research-memo / ADR の雛形も 2026-05-25 完了対応で揃っている。工程テンプレートは L00–L14 (英語版) として `cli/templates/plan/v2/` に既存、L1–L14 完備済み。
 
@@ -54,8 +54,8 @@ PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit 
 | 項目 | 状態 |
 |---|---|
 | vmodel-semantics 注入セット（mandatory_skills / recommended_commands / orchestration_mode） | 定義済み（2026-05-25 完遂、commit 2942d81、cli/config/vmodel-semantics.yaml に injection block 反映 + helix vmodel show --injection-only CLI 接続 commit 79b8220）= layer-context-injection の核心が実体反映 |
-| ワークフロー文書 ↔ skills/ | 未統合（helix-process/ は独立 md） |
-| ワークフロー文書 ↔ .md プロトコル層（AGENTS.md / CLAUDE.md） | 未統合 |
+| ワークフロー文書 ↔ skills/ | 未統合（helix-process/ は独立 md） → PLAN-roadmap-起票 (2026-05-25) |
+| ワークフロー文書 ↔ .md プロトコル層（AGENTS.md / CLAUDE.md） | 未統合 → PLAN-roadmap-起票 (2026-05-25) |
 
 ## 統合済み
 
