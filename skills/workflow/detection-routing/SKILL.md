@@ -24,6 +24,10 @@ compatibility:
 
 # Detection Routing
 
+## 対応 workflow doc
+
+- [detection-routing](../../../HELIX-workflows/helix-process/detection-routing.md)
+
 ## 目的
 
 検出シグナルを「どのモードへ渡すか」という判断に変換する。

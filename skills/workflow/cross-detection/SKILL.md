@@ -22,6 +22,10 @@ compatibility:
 
 # Cross Detection
 
+## 対応 workflow doc
+
+- [cross-detection](../../../HELIX-workflows/helix-process/cross-detection.md)
+
 ## 目的
 
 単一 detector 単位では弱い異常を、複数 axis の組合せで意味のある signal にする。

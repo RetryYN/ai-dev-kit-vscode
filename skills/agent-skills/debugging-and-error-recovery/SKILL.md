@@ -9,6 +9,10 @@ upstream: addyosmani/agent-skills (MIT)
 
 # Debugging and Error Recovery
 
+## 対応 workflow doc
+
+- [recovery-workflow](../../../HELIX-workflows/helix-process/recovery-workflow.md)
+
 ## Overview
 
 Systematic debugging with structured triage. When something breaks, stop adding features, preserve evidence, and follow a structured process to find and fix the root cause. Guessing wastes time. The triage checklist works for test failures, build errors, runtime bugs, and production incidents.

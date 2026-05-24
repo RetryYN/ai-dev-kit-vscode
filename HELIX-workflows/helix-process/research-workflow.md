@@ -55,3 +55,7 @@ Research は、実装前の技術調査・方式比較・意思決定を行う�
 ## Forward 接続
 
 ADR は L1 要求定義・L4 基本設計の判断材料として接続する。調査の結果、「作れるか不明」になれば Discovery（PoC 検証）へ、「既存実装を調べる必要がある」となれば Reverse へ切り替える。
+
+## §関連 skill
+
+- [research](../skills/workflow/research/SKILL.md)

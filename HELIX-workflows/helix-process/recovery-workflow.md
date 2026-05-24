@@ -80,3 +80,7 @@ AI エージェント（Claude Code / Codex）が独断専行・暴走したと�
 ## Forward 接続
 
 収束後、確定した再開ポイントから標準フロー（L0–L14）へ復帰する。認識訂正履歴と再発防止策は L14 運用検証へフィードバックする。
+
+## §関連 skill
+
+- [debugging-and-error-recovery](../skills/agent-skills/debugging-and-error-recovery/SKILL.md)

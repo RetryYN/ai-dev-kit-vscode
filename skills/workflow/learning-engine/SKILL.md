@@ -24,6 +24,10 @@ compatibility:
 
 # Learning Engine
 
+## 対応 workflow doc
+
+- [learning-engine](../../../HELIX-workflows/helix-process/learning-engine.md)
+
 ## 目的
 
 同じ失敗や同じ成功を、次の工程で再利用できる形に変換する。

@@ -63,3 +63,7 @@ Refactor は、既存コードの内部構造を、外部から見た振る舞�
 ## Forward 接続
 
 振る舞いを変えないため、L1 要求・L4 設計は不変。L7 実装の内部構造を改善し、既存テスト（L8 / L9）を保護網として流用する。設計と実装の双方向 trace は維持する。
+
+## §関連 skill
+
+- [refactoring](../skills/common/refactoring/SKILL.md)

@@ -22,6 +22,10 @@ compatibility:
 
 # Reverse Analysis Router
 
+## 対応 workflow doc
+
+- [reverse-workflow](../../../HELIX-workflows/helix-process/reverse-workflow.md)
+
 Reverse HELIX は「既存コードという観測事実」から設計と意図を逆方向に復元し、差分を Forward HELIX に安全に接続するための流れである。本スキルは全体像と入口を提供し、各フェーズの実行詳細は専用スキルへ委譲する。
 
 ## Reverse type matrix

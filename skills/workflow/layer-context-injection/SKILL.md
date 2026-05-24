@@ -23,6 +23,10 @@ compatibility:
 
 # Layer Context Injection
 
+## 対応 workflow doc
+
+- [layer-context-injection](../../../HELIX-workflows/helix-process/layer-context-injection.md)
+
 ## 目的
 
 工程へ入るたびに「何を使うか」を考え直さなくて済む状態を作る。

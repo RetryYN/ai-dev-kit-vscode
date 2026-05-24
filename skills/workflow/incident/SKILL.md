@@ -18,6 +18,10 @@ compatibility:
 
 # 障害対応スキル
 
+## 対応 workflow doc
+
+- [incident](../../../HELIX-workflows/helix-process/incident-workflow.md)
+
 ## 適用タイミング
 
 このスキルは以下の場合に読み込む：

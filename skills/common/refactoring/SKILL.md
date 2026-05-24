@@ -19,6 +19,10 @@ compatibility:
 
 # リファクタリングスキル
 
+## 対応 workflow doc
+
+- [refactor-workflow](../../../HELIX-workflows/helix-process/refactor-workflow.md)
+
 ## 適用タイミング
 
 このスキルは以下の場合に読み込む：

@@ -87,3 +87,7 @@ R4 で作った routing は、Reverse の結論に応じて Forward HELIX のど
 ## 起票する PLAN kind
 
 各 type は `reverse` kind の PLAN として起票され、R4 routing で Forward へ接続する。逸脱と kind の対応は deviation-plan-map.md を参照。
+
+## §関連 skill
+
+- [reverse-analysis](../skills/workflow/reverse-analysis/SKILL.md)

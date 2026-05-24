@@ -21,6 +21,10 @@ compatibility:
 
 # Research スキル（G1R 事前調査）
 
+## 対応 workflow doc
+
+- [research-workflow](../../../HELIX-workflows/helix-process/research-workflow.md)
+
 ## 目的
 
 G1R（事前調査ゲート）で必要な調査を、

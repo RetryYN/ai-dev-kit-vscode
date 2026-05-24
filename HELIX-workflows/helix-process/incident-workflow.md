@@ -72,3 +72,7 @@ postmortem を L14 運用検証へフィードバック
 | postmortem・運用学習 | L14 運用検証 |
 
 これにより、緊急の hotfix は速く打ちつつ、恒久対策は Vモデルのドキュメント体系・トレーサビリティに収束する。
+
+## §関連 skill
+
+- [incident](../skills/workflow/incident/SKILL.md)

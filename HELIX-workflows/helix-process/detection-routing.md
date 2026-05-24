@@ -63,3 +63,7 @@ DB 検出（drift / 劣化 / 暴走 / 障害）
 ```
 
 この循環により、Vモデル本線 DB が、ドキュメント・コード・テスト・カバレッジの整合を自律的に保ち、ずれた瞬間に適切なモード（Recovery / Incident / Reverse / Refactor）へつながる。検出から対応までが、人手の判断を待たずに起動する。
+
+## §関連 skill
+
+- [detection-routing](../skills/workflow/detection-routing/SKILL.md)

@@ -56,3 +56,7 @@ integration_target:
 ```
 
 成功は recipe として再利用され、トラブルは予防ルールに変わる。学んだ結果が L 単位の文脈注入に反映されるため、同じ迷い・同じトラブルが繰り返されにくくなる。
+
+## §関連 skill
+
+- [learning-engine](../skills/workflow/learning-engine/SKILL.md)

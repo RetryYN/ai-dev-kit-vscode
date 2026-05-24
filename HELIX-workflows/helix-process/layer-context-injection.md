@@ -68,3 +68,7 @@ vmodel-semantics.yaml の各 layer に、注入セットを定義する（owner_
 - L 単位で専門性・手順・agent・command・方式が注入され、AI の選択の迷いが消える。
 - 横断機構（cross-cutting-mechanisms.md）や検出連携（detection-routing.md）と整合し、L 文脈に応じた自動化が一貫する。
 - どの工程でも「この L では何を使い、誰が、どう協調するか」が事前に定まるため、AI の独断専行の余地が縮まり、Recovery の発動頻度も下がる。
+
+## §関連 skill
+
+- [layer-context-injection](../skills/workflow/layer-context-injection/SKILL.md)

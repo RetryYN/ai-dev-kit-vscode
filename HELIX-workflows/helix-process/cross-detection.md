@@ -57,3 +57,7 @@ doctor が detector を横断実行
 ```
 
 単一の工程内では見えない横断的な漏れ（依存・契約・回帰）を、DB 横断の detector と doctor で機械的に拾い、モードへつなぐ。Learning Engine（learning-engine.md）が頻出パターンを学べば、これらの漏れは事前の予防ルールにも反映される。
+
+## §関連 skill
+
+- [cross-detection](../skills/workflow/cross-detection/SKILL.md)

@@ -21,6 +21,10 @@ compatibility:
 
 # コンテキスト・メモリスキル
 
+## 対応 workflow doc
+
+- [layer-context-injection](../../../HELIX-workflows/helix-process/layer-context-injection.md)
+
 ## 適用タイミング
 
 このスキルは以下の場合に読み込む：
