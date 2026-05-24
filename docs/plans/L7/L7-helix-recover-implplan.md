@@ -1,6 +1,6 @@
 ---
 plan_id: L7-helix-recover-implplan
-title: "L7-helix-recover-implplan: helix-recover CLI 実装 — Recovery mode (AI 暴走・独断専行ガード+収束) 起動コマンド (P1 修正版 v2)"
+title: "L7-helix-recover-implplan: helix-recover CLI 実装 — Recovery mode (AI 暴走・独断専行ガード+収束) 起動コマンド (v3 接続契約確定版)"
 kind: impl
 layer: L7
 drive: be
@@ -144,6 +144,29 @@ C4 予算過剰:    UNKNOWN (helix budget status --json failed: exit 1)    [budg
 
 引数 mode (`--condition C1 --reopen-point <SHA> --auto-routed-from helix-route`) で非対話実行可能。`--auto-routed-from` は helix-route から呼ばれた場合のトレーサビリティ用。
 
+**v3 追加**: route 連携用に `--signal-id <signal>` を **追加引数** として受け付ける (recover/route 接続契約 R2-P1-7 解消):
+
+```
+helix recover plan --signal-id runaway --reopen-point HEAD --auto-routed-from helix-route
+```
+
+内部で `signal_to_condition(signal_id)` を呼び、signal vocabulary (drift/runaway/regression_*/debt_degradation/incident/unknown_design) を C1-C4 condition_id にマップする:
+
+| signal_id | condition_id | 理由 |
+|---|---|---|
+| runaway | C2 (工程逸脱) | AI 暴走は工程逸脱の表面化 |
+| regression_dev | C3 (認識ズレ) | 開発中デグレは認識ズレの蓄積結果 |
+| regression_prod | (recover 対象外、Incident 委譲) | helix-recover が処理せず、Incident/troubleshoot へ |
+| incident (env=prod) | C3 (認識ズレ) + 緊急 | 本番障害発生時は認識ズレ + 暴走複合の可能性 |
+| drift / debt_degradation / unknown_design | (recover 対象外、plan draft 委譲) | これらは route → plan draft (Reverse/Refactor) で処理 |
+
+`--signal-id` と `--condition` の両受け: `--signal-id` 優先 (route 経由を示す)、不在時は `--condition` を直接使用 (手動起動)。両不在で対話 mode へ fallback。
+
+route 経由 (`--auto-routed-from helix-route` あり) のとき、recovery-log §再発防止 に以下を自動記録:
+- `route_signal: runaway`
+- `routed_from: helix-route`
+- `signal_to_condition_mapping: runaway → C2`
+
 ### §2.B cli/lib/recovery_engine.py 設計
 
 Python モジュール。`cli/helix-recover` のバックエンドロジックを担う。**`cli/lib/recovery_plan_check.py` の既存契約と完全互換**。
@@ -164,16 +187,35 @@ SourceKey = Literal[
     "budget_status_json",
 ]
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class RecoveryCondition:
+    """v3: frozen + slots + __post_init__ で Literal 型値の membership check を実行時 fail-close。
+    triggered は @property で severity から派生 (フィールドではない、矛盾排除)。"""
+
     condition_id: ConditionId
-    triggered: bool
-    severity: Severity
+    severity: Severity        # CLEAR / WARN / FAIL / UNKNOWN
     source: SourceKey
     metric_value: float | int | str | None
     threshold: float | int | str | None
-    evidence: str           # 検出根拠の短文 (CLI 出力 / recovery-log にそのまま転載)
-    detail: str             # 長文 detail (recovery-log §事故記録 に転載)
+    evidence: str             # 検出根拠の短文
+    detail: str               # 長文 detail (recovery-log §事故記録 に転載)
+
+    def __post_init__(self):
+        # v3 R2-P1-9: Literal 実行時 membership check
+        if self.condition_id not in ("C1", "C2", "C3", "C4"):
+            raise TypeError(f"invalid condition_id: {self.condition_id!r}")
+        if self.severity not in ("CLEAR", "WARN", "FAIL", "UNKNOWN"):
+            raise TypeError(f"invalid severity: {self.severity!r}")
+
+    @property
+    def triggered(self) -> bool:
+        """v3: severity から派生 (WARN/FAIL なら True、CLEAR/UNKNOWN なら False)。"""
+        return self.severity in ("WARN", "FAIL")
+
+    @property
+    def requires_attention(self) -> bool:
+        """v3: triggered または UNKNOWN なら True (UNKNOWN は明示確認必要)。"""
+        return self.triggered or self.severity == "UNKNOWN"
 
 
 class RecoveryEngine:
@@ -182,9 +224,32 @@ class RecoveryEngine:
     def check_conditions(self, since_commits: int = 1) -> list[RecoveryCondition]:
         """C1-C4 の 4 条件を診断して結果リストを返す"""
 
-    def dump_state(self, output_path: str, conditions: list[RecoveryCondition]) -> str:
+    def dump_state(
+        self,
+        output_path: str,
+        conditions: list[RecoveryCondition],
+        auto_routed_from: str | None = None,    # v3: route 経由トレース
+        route_signal: str | None = None,         # v3: route 経由 signal vocabulary
+    ) -> str:
         """conditions + helix.db + phase.yaml + git log + handover から
-        recovery-log.md を 7 必須セクション準拠で生成して path を返す"""
+        recovery-log.md を 7 必須セクション準拠で生成して path を返す。
+        auto_routed_from / route_signal が指定されたとき §再発防止 に自動記録。
+
+        v3: 出力 heading は cli.lib.recovery_plan_check.REQUIRED_TEMPLATE_SECTIONS
+        を import して canonical 配列で出力 (private _SECTION_MARKERS 非依存)。
+        書き込み後に check_recovery_template_sections(path) == [] を必ず assert する。"""
+
+    def signal_to_condition(self, signal_id: str) -> "ConditionId | None":
+        """v3: route signal vocabulary を recover condition vocabulary にマップ。
+        Returns: C1 / C2 / C3 / C4 / None (recover 対象外)
+
+        Mapping (PLAN §2.A 接続契約 R2-P1-7 解消):
+        - runaway          → C2 (工程逸脱)
+        - regression_dev   → C3 (認識ズレ)
+        - incident (prod)  → C3 (認識ズレ + 緊急)
+        - regression_prod  → None (Incident/troubleshoot 委譲)
+        - drift / debt_degradation / unknown_design → None (plan draft 委譲)
+        """
 
     def suggest_rollback_point(self) -> dict:
         """最終 known-good な commit SHA + PLAN ID + phase を **dry-run のみ** 返す。

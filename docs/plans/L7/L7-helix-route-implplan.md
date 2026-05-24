@@ -1,6 +1,6 @@
 ---
 plan_id: L7-helix-route-implplan
-title: "L7-helix-route-implplan: helix-route CLI 実装 — 検出シグナル → モード自動ルーティング (P1 修正版 v2)"
+title: "L7-helix-route-implplan: helix-route CLI 実装 — 検出シグナル → モード自動ルーティング (v3 接続契約確定版)"
 kind: impl
 layer: L7
 drive: be
@@ -150,9 +150,9 @@ evaluate() の戻り値:
   "action": "emergency_routing",
   "env": "dev",
   "source_schema": "helix_detect_run_json_v1",
-  "suggest_command": "helix recover plan --condition runaway --reopen-point HEAD --auto-routed-from helix-route",
+  "suggest_command": "helix recover plan --signal-id runaway --reopen-point HEAD --auto-routed-from helix-route",
   "recover_args": {
-    "condition_id": "runaway",
+    "signal_id": "runaway",
     "reopen_point": "HEAD",
     "auto_routed_from": "helix-route"
   },
