@@ -348,7 +348,7 @@ def test_migration_v14_to_v15_idempotent(tmp_path: Path) -> None:
     conn.close()
 
     assert version == helix_db.CURRENT_SCHEMA_VERSION
-    assert versions == [14, 15, 16, 17, 18, 19, 20]
+    assert versions == list(range(14, helix_db.CURRENT_SCHEMA_VERSION + 1))
     assert {"bucket", "symbol_line"} <= columns
     assert row == ("legacy.entry", 7, "coverage_eligible")
 

@@ -71,9 +71,9 @@ test_code_catalog.py:351 の assertion `assert versions == [14, 15, 16, 17, 18, 
 | 1 | test_code_catalog.py:351 周辺 Read + 設計意図確認 | PM | ✅ done |
 | 2 | 修正方針 (案 A/B/C) 比較 + 案 B 推奨理由整理 | PM | ✅ done (§2.A) |
 | 3 | tl-advisor adversarial check 第 1 ラウンド | PM → TL | □ pending |
-| 4 | SE 委譲: tests/test_code_catalog.py 修正 | PM → SE | □ pending |
-| 5 | pytest test_code_catalog.py 単体 PASS 確認 | SE | □ pending |
-| 6 | pytest 全回帰 (2015+ PASS / 0 failed 復帰確認) | SE | □ pending |
+| 4 | PM 直接 Edit: tests/test_code_catalog.py:351 動的 list 化 | PM | ✅ done (2026-05-24) |
+| 5 | pytest test_code_catalog.py::test_migration_v14_to_v15_idempotent 単体 PASS 確認 | PM | ✅ done (PASSED) |
+| 6 | pytest 全回帰 (2015+ PASS / 0 failed 復帰確認) | PM | □ pending |
 | 7 | commit + push | PM | □ pending |
 
 ## §2 実装計画
