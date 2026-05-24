@@ -323,9 +323,53 @@ get_conf_value() {
   printf '%s' "$value"
 }
 
+get_agent_frontmatter_value() {
+  local agent_path="$1"
+  local key="$2"
+
+  python3 - "$agent_path" "$key" <<'PY'
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+agent_path = Path(sys.argv[1])
+key = sys.argv[2]
+
+if not agent_path.is_file():
+    raise SystemExit(0)
+
+raw = agent_path.read_text(encoding="utf-8")
+lines = raw.splitlines()
+if not lines or lines[0].strip() != "---":
+    raise SystemExit(0)
+
+end = None
+for idx, line in enumerate(lines[1:], start=1):
+    if line.strip() == "---":
+        end = idx
+        break
+
+if end is None:
+    raise SystemExit(0)
+
+prefix = f"{key}:"
+for line in lines[1:end]:
+    stripped = line.strip()
+    if not stripped.startswith(prefix):
+        continue
+    value = stripped[len(prefix):].strip()
+    if value[:1] in {"'", '"'} and value[-1:] == value[:1]:
+        value = value[1:-1]
+    print(value)
+    raise SystemExit(0)
+PY
+}
+
 check_role_config_consistency() {
   local roles_file="${HELIX_HOME}/cli/config/models.yaml"
   local roles_dir="${HELIX_HOME}/cli/roles"
+  local agents_dir="${HELIX_HOME}/.claude/agents"
   local runtime_yaml_parser
   local codex_mismatch=0
   local pmo_mismatch=0
@@ -348,6 +392,29 @@ check_role_config_consistency() {
     yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "$yaml_key" 2>/dev/null || true)"
     if [[ "$conf_value" != "$yaml_value" ]]; then
       echo "WARNING: pmo role $(basename "$conf_path" .conf): ${label} conf=${conf_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
+      pmo_mismatch=$((pmo_mismatch + 1))
+    fi
+  }
+
+  check_pmo_agent_mirror() {
+    local role="$1"
+    local agent_key="$2"
+    local yaml_key="$3"
+    local label="$4"
+    local agent_path="$agents_dir/$role.md"
+    local agent_value
+    local yaml_value
+
+    if [[ ! -f "$agent_path" ]]; then
+      echo "WARNING: pmo role $role: agent file ${agent_path#$HELIX_HOME/} missing"
+      pmo_mismatch=$((pmo_mismatch + 1))
+      return
+    fi
+
+    agent_value="$(get_agent_frontmatter_value "$agent_path" "$agent_key" 2>/dev/null || true)"
+    yaml_value="$(python3 "$runtime_yaml_parser" read "$roles_file" "$yaml_key" 2>/dev/null || true)"
+    if [[ "$agent_value" != "$yaml_value" ]]; then
+      echo "WARNING: pmo role $role: agent $label frontmatter=${agent_value:-missing}, yaml=${yaml_value:-missing} (mismatch)"
       pmo_mismatch=$((pmo_mismatch + 1))
     fi
   }
@@ -412,6 +479,9 @@ check_role_config_consistency() {
           check_pmo_mirror "$conf_path" "codex_allow_paths" "role_metadata.$role.codex_allow_paths" "codex_allow_paths"
         fi
       fi
+
+      check_pmo_agent_mirror "$role" "model" "roles.$role" "model"
+      check_pmo_agent_mirror "$role" "effort" "role_metadata.$role.thinking" "effort"
 
       continue
     fi
@@ -633,14 +703,14 @@ check_vmodel_4artifact() {
 
   if [[ $status -ne 0 ]]; then
     echo "  △ vmodel_4artifact_lint: execution failed (status=$status)"
-    printf '%s\n' "$output" | head -20 | sed 's/^/    /'
+    { printf '%s\n' "$output" | head -20 | sed 's/^/    /'; } || true
     WARN=$((WARN + 1))
     return
   fi
 
   if [[ "$incomplete" -gt 0 ]]; then
     echo "  △ vmodel_4artifact_lint: $incomplete incomplete PLAN (V-model 4 artifact 不完全、PLAN-075 強化)"
-    printf '%s\n' "$output" | grep '^\[⚠\]' | head -10 | sed 's/^/    /'
+    { printf '%s\n' "$output" | grep '^\[⚠\]' | head -10 | sed 's/^/    /'; } || true
     WARN=$((WARN + incomplete))
     return
   fi
@@ -709,7 +779,7 @@ PY
 
   if [[ $status -ne 0 ]]; then
     echo "  △ design_doc_reference_sections: execution failed (status=$status)"
-    printf '%s\n' "$output" | head -20 | sed 's/^/    /'
+    { printf '%s\n' "$output" | head -20 | sed 's/^/    /'; } || true
     WARN=$((WARN + 1))
     return
   fi
@@ -890,7 +960,7 @@ run_recovery_freshness_subcommand() {
   if ! report_json="$(run_doctor_recovery_helper 2>&1)"; then
     echo "[recovery freshness]"
     echo "  ✗ recovery plan freshness"
-    printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
     return 2
   fi
 
@@ -988,7 +1058,7 @@ check_plan_advisory() {
 
   if ! report_json="$(run_doctor_plan_helper "$helper_name" 2>&1)"; then
     echo "  △ $label"
-    printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
     WARN=$((WARN + 1))
     return
   fi

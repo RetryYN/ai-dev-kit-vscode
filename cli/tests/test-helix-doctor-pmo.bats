@@ -16,6 +16,10 @@ teardown() {
 
 @test "helix doctor shows pmo role consistency" {
   run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"✓ pmo role consistency"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
   [ "$status" -eq 0 ]
   [[ "$output" == *"✓ pmo role consistency"* ]]
 }

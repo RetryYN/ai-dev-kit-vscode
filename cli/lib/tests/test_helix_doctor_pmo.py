@@ -21,6 +21,21 @@ def _set_role_metadata_value(config_path: Path, key_path: str, value: str) -> No
     )
 
 
+def _set_agent_frontmatter_value(agent_path: Path, key: str, value: str) -> None:
+    lines = agent_path.read_text(encoding="utf-8").splitlines()
+    updated: list[str] = []
+    replaced = False
+    for line in lines:
+        if line.startswith(f"{key}:"):
+            updated.append(f"{key}: {value}")
+            replaced = True
+        else:
+            updated.append(line)
+    if not replaced:
+        raise AssertionError(f"frontmatter key not found: {key}")
+    agent_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+
 def test_pmo_sonnet_consistency_pass() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         working_dir = Path(tmpdir)
@@ -52,6 +67,26 @@ def test_pmo_sonnet_mismatched_thinking_is_warn() -> None:
         assert "  △ pmo role consistency" in result.stdout
 
 
+def test_pmo_sonnet_agent_model_mismatch_is_warn() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        working_dir = Path(tmpdir)
+        home_root = working_dir / "home"
+        home_root.mkdir()
+
+        _copy_roles_and_config(working_dir)
+        _set_agent_frontmatter_value(
+            working_dir / ".claude/agents/pmo-sonnet.md",
+            "model",
+            "claude-haiku-4-5-20251001",
+        )
+
+        result = _run_helix_doctor(working_dir, home_root)
+
+        assert result.returncode == 0
+        assert "WARNING: pmo role pmo-sonnet: agent model" in result.stdout
+        assert "  △ pmo role consistency" in result.stdout
+
+
 def test_pmo_haiku_consistency_pass() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         working_dir = Path(tmpdir)
@@ -80,4 +115,24 @@ def test_pmo_haiku_mismatched_allow_paths_is_warn() -> None:
 
         assert result.returncode == 0
         assert "WARNING: pmo role pmo-haiku: claude_allow_paths" in result.stdout
+        assert "  △ pmo role consistency" in result.stdout
+
+
+def test_pmo_haiku_agent_effort_mismatch_is_warn() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        working_dir = Path(tmpdir)
+        home_root = working_dir / "home"
+        home_root.mkdir()
+
+        _copy_roles_and_config(working_dir)
+        _set_agent_frontmatter_value(
+            working_dir / ".claude/agents/pmo-haiku.md",
+            "effort",
+            "medium",
+        )
+
+        result = _run_helix_doctor(working_dir, home_root)
+
+        assert result.returncode == 0
+        assert "WARNING: pmo role pmo-haiku: agent effort" in result.stdout
         assert "  △ pmo role consistency" in result.stdout

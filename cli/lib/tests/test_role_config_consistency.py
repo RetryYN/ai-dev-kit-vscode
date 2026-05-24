@@ -13,8 +13,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 def _copy_roles_and_config(working_dir: Path) -> None:
     cli_dir = working_dir / "cli"
     (cli_dir / "lib").mkdir(parents=True, exist_ok=True)
+    (working_dir / ".claude").mkdir(parents=True, exist_ok=True)
     shutil.copytree(REPO_ROOT / "cli/roles", cli_dir / "roles", dirs_exist_ok=True)
     shutil.copytree(REPO_ROOT / "cli/config", cli_dir / "config", dirs_exist_ok=True)
+    shutil.copytree(REPO_ROOT / ".claude/agents", working_dir / ".claude/agents", dirs_exist_ok=True)
     shutil.copy2(REPO_ROOT / "cli/lib/yaml_parser.py", cli_dir / "lib" / "yaml_parser.py")
 
 
