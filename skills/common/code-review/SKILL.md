@@ -1,8 +1,8 @@
 ---
 name: code-review
-description: HELIX L4 実装 / G4 実装凍結ゲート連携のコードレビュー SKILL。セキュリティ (OWASP) ・パフォーマンス・設計観点チェックリスト・workflow/adversarial-review 統合・Critical/High 指摘 0 件達成基準・建設的フィードバック例を提供。Google eng-practices reviewer guide (LGTM/Nit/Blocking ラベル・健全性ベース判定) を references/google-reviewer-guide.md に統合
+description: HELIX L7 実装 / G7 実装完了ゲート連携のコードレビュー SKILL。セキュリティ (OWASP) ・パフォーマンス・設計観点チェックリスト・workflow/adversarial-review 統合・Critical/High 指摘 0 件達成基準・建設的フィードバック例を提供。Google eng-practices reviewer guide (LGTM/Nit/Blocking ラベル・健全性ベース判定) を references/google-reviewer-guide.md に統合
 metadata:
-  helix_layer: L4
+  helix_layer: L7
   triggers:
     - コードレビュー実施時
     - PRテンプレート作成時

@@ -1,8 +1,8 @@
 ---
 name: error-fix
-description: HELIX L4 実装 / L6 統合検証 / R0 Reverse 証拠収集連携のエラー修正 SKILL。原因特定フロー・デバッグ手順・再現テスト・失敗パターンレジストリ運用・workflow/debt-register 連携の修正パターンを提供
+description: HELIX L7 実装 / L8 結合テスト / R0 Reverse 証拠収集連携のエラー修正 SKILL。原因特定フロー・デバッグ手順・再現テスト・失敗パターンレジストリ運用・workflow/debt-register 連携の修正パターンを提供
 metadata:
-  helix_layer: L4
+  helix_layer: L7
   triggers:
     - エラー発生時
     - バグ修正時
@@ -295,7 +295,7 @@ CREATE INDEX IF NOT EXISTS idx_failure_patterns_task_type
 
 - コマンド実行前に危険パターンを静的検知
 - 検知時は実行を中断し、代替コマンドまたは明示承認を要求
-- G4/G6 ではブロックイベントを監査ログへ記録する
+- G7/G11 ではブロックイベントを監査ログへ記録する
 
 ### 例外条件
 

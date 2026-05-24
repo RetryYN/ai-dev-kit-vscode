@@ -1,8 +1,8 @@
 ---
 name: testing
-description: HELIX L4 実装 / L6 統合検証のテストピラミッド戦略 SKILL。ユニット/統合/E2E テンプレート + G4 実装凍結ゲート / G6 RC 判定ゲートのカバレッジ目標 (Unit ≥80% / Integration 主要フロー / E2E クリティカルパス) と workflow/quality-lv5 連携の品質検証手順を提供
+description: HELIX L7 実装 / L8 結合テストのテストピラミッド戦略 SKILL。ユニット/統合/E2E テンプレート + G7 実装完了ゲート / G11 RC 判定ゲートのカバレッジ目標 (Unit ≥80% / Integration 主要フロー / E2E クリティカルパス) と workflow/quality-lv5 連携の品質検証手順を提供
 metadata:
-  helix_layer: L4
+  helix_layer: L7
   triggers:
     - テスト作成時
     - 機能実装完了時
@@ -153,7 +153,7 @@ def test_validate_request_envelope_missing_field():
     ...
 ```
 
-これは G4 ゲートで 4 artifact 双方向 trace lint の対象になる。
+これは G7 ゲートで 4 artifact 双方向 trace lint の対象になる。
 
 ---
 
@@ -350,7 +350,7 @@ func TestCreateUser_Success(t *testing.T) {
 ```
 - Verify Script Builder で関数シグネチャを入力し、初期テストを生成
 - 生成後に testing スキルの必須ケース（正常系/異常系/境界値）で不足分を追記
-- G4 前に自動生成テストを手動レビューし、偽陽性・過剰モックを除去
+- G7 前に自動生成テストを手動レビューし、偽陽性・過剰モックを除去
 ```
 
 ---
@@ -405,7 +405,7 @@ func TestAddCommutative(t *testing.T) {
 ### HELIX D-TEST への統合
 
 - 各 property のテンプレートを D-TEST (③ テスト設計 artifact、別文書、D-TEST-DESIGN-{INT|UNIT} 等) に含める
-- G4 ゲートで property-based test の存在を検証する
+- G7 ゲートで property-based test の存在を検証する
 
 ### セットアップ
 
@@ -459,7 +459,7 @@ go-mutesting ./...
 
 ### HELIX 統合
 
-- G4 ゲートで Mutation Score 70%以上を推奨基準とする
+- G7 ゲートで Mutation Score 70%以上を推奨基準とする
 - `quality_score` の計算に Mutation Score を組み込む
 - D-TEST (③ テスト設計 artifact、別文書、D-TEST-DESIGN-{INT|UNIT} 等) に変異テスト対象範囲を明記する
 
@@ -488,5 +488,5 @@ go-mutesting ./...
 
 ### HELIX 統合
 
-- G6 ゲートで flaky テストの存在をチェックする
+- G11 ゲートで flaky テストの存在をチェックする
 - `verify/` スクリプトに flaky 検出ロジックの追加を提案する

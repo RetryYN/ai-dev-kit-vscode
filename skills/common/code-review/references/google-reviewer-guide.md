@@ -1,4 +1,4 @@
-> 目的: Google Engineering Practices (https://google.github.io/eng-practices/) の reviewer guide を判断基準とした、HELIX L4 / G4 コードレビューの「レビュアー視点」運用 reference。承認可否 (LGTM / LGTM with nits / Changes requested) 判定、Blocking / Nit / Optional のコメントラベル付け、健全性 (code health) を基準とした完璧主義回避を集約。
+> 目的: Google Engineering Practices (https://google.github.io/eng-practices/) の reviewer guide を判断基準とした、HELIX L7 / G7 コードレビューの「レビュアー視点」運用 reference。承認可否 (LGTM / LGTM with nits / Changes requested) 判定、Blocking / Nit / Optional のコメントラベル付け、健全性 (code health) を基準とした完璧主義回避を集約。
 
 # Google Engineering Practices: Code Review Reviewer Guide (HELIX 統合版)
 
@@ -162,15 +162,15 @@ Blocking 0件 かつ 指摘なし          → LGTM
 
 ### 関連 skill
 
-- `skills/common/code-review/SKILL.md`: HELIX L4 / G4 連携の base skill (本 reference の親 skill)
+- `skills/common/code-review/SKILL.md`: HELIX L7 / G7 連携の base skill (本 reference の親 skill)
 - `skills/agent-skills/code-review-and-quality/SKILL.md`: addyosmani/agent-skills (MIT) 由来の 5 軸 review (Correctness / Readability / Architecture / Security / Performance)
 - `skills/workflow/adversarial-review/SKILL.md`: G2/G4/G6 ゲート前の adversarial check
 - `skills/common/security/SKILL.md`: §2 の Security (4 番目観点) を具体化する OWASP/秘密情報チェック
 
 ### 関連 gate
 
-- **G4 実装凍結ゲート**: 本 reference の判定ルール (LGTM / LGTM with nits / Changes requested) を **mandatory in sprint** のレビュー step (PLAN-077 Sprint 標準 8 ステップ Step 6) に適用
-- **G6 RC 判定ゲート**: 統合 PR の最終 review 時に本 reference の出力テンプレートを使う
+- **G7 実装完了ゲート**: 本 reference の判定ルール (LGTM / LGTM with nits / Changes requested) を **mandatory in sprint** のレビュー step (PLAN-077 Sprint 標準 8 ステップ Step 6) に適用
+- **G11 RC 判定ゲート**: 統合 PR の最終 review 時に本 reference の出力テンプレートを使う
 
 ### HELIX 独自拡張
 
