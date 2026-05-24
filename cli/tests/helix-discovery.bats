@@ -34,10 +34,17 @@ assert_alias_equivalence() {
   alias_out="$(cat "$stdout_file")"
   alias_err="$(cat "$stderr_file")"
   [ "$alias_out" = "$discovery_out" ]
-  [[ "$alias_err" == *"DEPRECATED"* ]]
+  [[ "$alias_err" != *"DEPRECATED"* ]]
   [[ "$alias_out" != *"DEPRECATED"* ]]
 
-  HELIX_SUPPRESS_LEGACY_WARN=1 helix scrum "$subcmd" "$@" >"$stdout_file" 2>"$stderr_file"
+  HELIX_DISCOVERY_COMPAT_STAGE=2 HELIX_SUPPRESS_LEGACY_WARN="" helix scrum "$subcmd" "$@" >"$stdout_file" 2>"$stderr_file"
+  [ "$?" -eq 0 ]
+  alias_out="$(cat "$stdout_file")"
+  alias_err="$(cat "$stderr_file")"
+  [ "$alias_out" = "$discovery_out" ]
+  [[ "$alias_err" == *"DEPRECATED"* ]]
+
+  HELIX_DISCOVERY_COMPAT_STAGE=2 HELIX_SUPPRESS_LEGACY_WARN=1 helix scrum "$subcmd" "$@" >"$stdout_file" 2>"$stderr_file"
   [ "$?" -eq 0 ]
   alias_out="$(cat "$stdout_file")"
   alias_err="$(cat "$stderr_file")"
@@ -64,4 +71,22 @@ assert_alias_equivalence() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"discovery"* ]]
   [[ "$output" == *"scrum"* ]]
+}
+
+@test "helix discovery migrate --dry-run shows runtime migration plan" {
+  mkdir -p "$PROJECT_ROOT/.helix/scrum/verify/H001"
+  cat > "$PROJECT_ROOT/.helix/scrum/backlog.yaml" <<'YAML'
+hypotheses:
+  H001:
+    title: sample
+YAML
+  cat > "$PROJECT_ROOT/.helix/scrum/sprint.yaml" <<'YAML'
+current_sprint: 1
+YAML
+
+  run helix discovery migrate --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"dry_run"* ]]
+  [[ "$output" == *".helix/scrum"* ]]
+  [[ "$output" == *".helix/discovery"* ]]
 }

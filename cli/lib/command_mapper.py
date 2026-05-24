@@ -20,6 +20,11 @@ LAYER_COMMANDS = {
     "S2": ["helix-discovery poc"],
     "S3": ["helix-discovery verify"],
     "S4": ["helix-discovery decide"],
+    "D0": ["helix-discovery backlog"],
+    "D1": ["helix-discovery plan"],
+    "D2": ["helix-discovery poc"],
+    "D3": ["helix-discovery verify"],
+    "D4": ["helix-discovery decide"],
 }
 
 ALL_LAYER_COMMANDS = ["helix-verify-all", "helix-gate"]

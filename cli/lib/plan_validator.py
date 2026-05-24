@@ -9,6 +9,11 @@ from typing import Any
 
 import yaml
 
+try:
+    from . import discovery_compat
+except ImportError:  # pragma: no cover
+    import discovery_compat  # type: ignore[no-redef]
+
 
 VALID_KINDS = {
     "design",
@@ -79,6 +84,7 @@ VALID_DRIVES = {
     "be",
     "fe",
     "fullstack",
+    "discovery",
     "scrum",
     "db",
     "agent",
@@ -312,6 +318,14 @@ def validate_plan(path: Path) -> list[str]:
 
     if frontmatter.drive is not None and frontmatter.drive not in VALID_DRIVES:
         warn(plan_ref, "drive", f"unsupported value: {frontmatter.drive}", warnings)
+    elif discovery_compat.is_drive_deprecated(frontmatter.drive):
+        replacement = discovery_compat.DEPRECATED_DRIVES[frontmatter.drive]
+        warn(
+            plan_ref,
+            "drive",
+            f"DEPRECATED_DRIVES: '{frontmatter.drive}' は将来削除予定 (Stage 4)、drive: {replacement} に移行推奨",
+            warnings,
+        )
 
     if frontmatter.workflow_phase is not None:
         if frontmatter.workflow_phase not in VALID_WORKFLOW_PHASES:

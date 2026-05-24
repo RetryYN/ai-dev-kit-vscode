@@ -103,6 +103,29 @@ def test_drive_enum_warn(tmp_path: Path) -> None:
     _assert_warns_on(result.stderr, "drive")
 
 
+def test_discovery_drive_is_valid_without_warning(tmp_path: Path) -> None:
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["drive"] = "discovery"
+    path = _write_plan(tmp_path / "PLAN-123-discovery-drive.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_no_warn(result.stderr)
+
+
+def test_scrum_drive_warns_as_deprecated_but_passes(tmp_path: Path) -> None:
+    frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["drive"] = "scrum"
+    path = _write_plan(tmp_path / "PLAN-123-scrum-drive.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warn_contains(result.stderr, "DEPRECATED_DRIVES")
+    _assert_warn_contains(result.stderr, "drive: discovery")
+
+
 def test_role_enum_warn(tmp_path: Path) -> None:
     frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
     frontmatter["agent_slots"] = [{"role": "codex-tl"}]

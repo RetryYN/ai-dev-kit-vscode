@@ -51,6 +51,11 @@ def test_phase_mode_scrum_s_phase_pass(tmp_path: Path) -> None:
     assert "⚠ phase_mode_consistency" not in output
 
 
+def test_phase_mode_discovery_d_phase_pass(tmp_path: Path) -> None:
+    output = _run_doctor(tmp_path, "discovery", "D1")
+    assert "⚠ phase_mode_consistency" not in output
+
+
 def test_phase_mode_mismatch_warns(tmp_path: Path) -> None:
     output = _run_doctor(tmp_path, "reverse", "L1")
     assert "⚠ phase_mode_consistency" in output

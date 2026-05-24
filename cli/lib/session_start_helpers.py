@@ -18,6 +18,12 @@ if str(SCRIPT_DIR) not in sys.path:
 from yaml_parser import get_nested, parse_yaml  # noqa: E402
 
 
+def _normalize_mode(mode: str | None) -> str | None:
+    if mode == "scrum":
+        return "discovery"
+    return mode
+
+
 def get_handover_task(project_root: Path | str | None = None) -> str:
     """
     .helix/handover/CURRENT.json から task_title を取得して返す。
@@ -53,7 +59,7 @@ def build_progress_block(project_root: Path) -> str:
     try:
         phase_data = parse_yaml(phase_file.read_text(encoding="utf-8"))
         current_phase = get_nested(phase_data, "current_phase") or "L1"
-        current_mode = get_nested(phase_data, "current_mode") or "forward"
+        current_mode = _normalize_mode(get_nested(phase_data, "current_mode")) or "forward"
         current_step = _format_sprint(get_nested(phase_data, "sprint.current_step"))
         sprint_status = get_nested(phase_data, "sprint.status") or "active"
         drive = get_nested(phase_data, "sprint.drive")

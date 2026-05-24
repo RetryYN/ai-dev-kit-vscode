@@ -38,3 +38,8 @@ def test_derive_commands_builds_skill_id_from_category_and_name() -> None:
 
 def test_derive_commands_returns_empty_for_unknown_skill() -> None:
     assert command_mapper.derive_commands({"id": "unknown/skill"}) == []
+
+
+def test_discovery_phase_commands_accept_d_aliases() -> None:
+    assert command_mapper.LAYER_COMMANDS["D0"] == ["helix-discovery backlog"]
+    assert command_mapper.LAYER_COMMANDS["D4"] == ["helix-discovery decide"]

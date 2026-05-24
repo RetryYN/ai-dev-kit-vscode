@@ -2,8 +2,8 @@
 set -euo pipefail
 # helix-mode: 開発モード/drive 管理
 # Usage:
-#   helix mode [forward|reverse|scrum]
-#   helix mode --drive <be|fe|db|fullstack|agent|scrum> [--reason "text"] [--dry-run] [--yes]
+#   helix mode [forward|reverse|discovery]
+#   helix mode --drive <be|fe|db|fullstack|agent|discovery|scrum> [--reason "text"] [--dry-run] [--yes]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PHASE_FILE="$HELIX_DIR/phase.yaml"
@@ -16,11 +16,12 @@ usage() {
        helix mode --drive <type> [--reason "理由"] [--dry-run] [--yes]
 
 引数なし: 現在のモードを表示
-forward:  Forward HELIX (L1→L8) に切替
-reverse:  Reverse HELIX (R0→R4) に切替
-scrum:    HELIX Discovery（検証駆動開発、legacy mode 名: scrum）に切替
+forward:    Forward HELIX (L1→L8) に切替
+reverse:    Reverse HELIX (R0→R4) に切替
+discovery:  HELIX Discovery（検証駆動開発）に切替
+scrum:      HELIX Discovery の legacy alias
 
---drive:  sprint.drive を切り替え（be/fe/db/fullstack/agent/scrum）
+--drive:  sprint.drive を切り替え（be/fe/db/fullstack/agent/discovery/scrum）
           変更時は一番若い passed ゲートを起点に G7 まで invalidated
           --dry-run で影響範囲プレビュー
           --yes で確認プロンプトを省略
@@ -43,13 +44,16 @@ if [[ ! -f "$STATE_MACHINE" ]]; then
 fi
 
 current_mode=$(python3 "$YP" read "$PHASE_FILE" current_mode 2>/dev/null || echo "forward")
+if [[ "$current_mode" == "scrum" ]]; then
+  current_mode="discovery"
+fi
 
 if [[ -z "${1:-}" ]]; then
   echo "現在のモード: $current_mode"
   case "$current_mode" in
     forward) echo "  Forward HELIX (L1→L8): ゲート駆動の新規開発" ;;
     reverse) echo "  Reverse HELIX (R0→R4): 既存コードからの設計復元" ;;
-    scrum)   echo "  HELIX Discovery: 仮説検証駆動開発 (legacy mode 名: scrum)" ;;
+    discovery)   echo "  HELIX Discovery: 仮説検証駆動開発" ;;
   esac
   exit 0
 fi
@@ -135,12 +139,17 @@ run_drive_switch() {
   fi
 
   case "$new_drive" in
-    be|fe|db|fullstack|agent|scrum) ;;
+    be|fe|db|fullstack|agent|discovery|scrum) ;;
     *)
-      echo "エラー: 無効な drive '$new_drive'（be, fe, db, fullstack, agent, scrum）" >&2
+      echo "エラー: 無効な drive '$new_drive'（be, fe, db, fullstack, agent, discovery, scrum）" >&2
       exit 2
       ;;
   esac
+
+  if [[ "$new_drive" == "scrum" ]]; then
+    echo "[DEPRECATED] drive=scrum は legacy alias です。内部では discovery として扱います。" >&2
+    new_drive="discovery"
+  fi
 
   local old_drive youngest_passed_gate cascade_targets
   old_drive=$(python3 "$YP" read "$PHASE_FILE" "sprint.drive" 2>/dev/null || echo "be")
@@ -208,12 +217,16 @@ fi
 
 NEW_MODE="$1"
 case "$NEW_MODE" in
-  forward|reverse|scrum) ;;
+  forward|reverse|discovery|scrum) ;;
   *)
-    echo "エラー: 無効なモード '$NEW_MODE'（forward, reverse, scrum を指定）" >&2
+    echo "エラー: 無効なモード '$NEW_MODE'（forward, reverse, discovery, scrum を指定）" >&2
     exit 2
     ;;
 esac
+
+if [[ "$NEW_MODE" == "scrum" ]]; then
+  NEW_MODE="discovery"
+fi
 
 if [[ "$current_mode" == "$NEW_MODE" ]]; then
   echo "既に $NEW_MODE モードです"
@@ -237,10 +250,14 @@ print(sum(1 for value in types.values() if isinstance(value, dict) and value.get
   fi
 fi
 
-if [[ "$current_mode" == "scrum" && "$NEW_MODE" == "forward" ]]; then
+if [[ "$current_mode" == "discovery" && "$NEW_MODE" == "forward" ]]; then
   # confirmed な仮説があるかチェック（scrum/backlog.yaml）
-  if [[ -f "$HELIX_DIR/scrum/backlog.yaml" ]]; then
-    confirmed=$(python3 "$YP" dump "$HELIX_DIR/scrum/backlog.yaml" 2>/dev/null | python3 -c "
+  backlog_file="$HELIX_DIR/discovery/backlog.yaml"
+  if [[ ! -f "$backlog_file" ]]; then
+    backlog_file="$HELIX_DIR/scrum/backlog.yaml"
+  fi
+  if [[ -f "$backlog_file" ]]; then
+    confirmed=$(python3 "$YP" dump "$backlog_file" 2>/dev/null | python3 -c "
 import json
 import sys
 d = json.load(sys.stdin)
@@ -265,5 +282,5 @@ echo "モードを $current_mode → $NEW_MODE に切り替えました"
 case "$NEW_MODE" in
   forward) echo "  次のステップ: helix size でサイジングを実行" ;;
   reverse) echo "  次のステップ: helix reverse R0 で証拠収集を開始" ;;
-  scrum)   echo "  次のステップ: helix discovery init (旧: helix scrum init) で初期化" ;;
+  discovery)   echo "  次のステップ: helix discovery init (旧: helix scrum init) で初期化" ;;
 esac

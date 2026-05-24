@@ -5,8 +5,22 @@ set -euo pipefail
 # Removal: L7-helix-scrum-removal-plan
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib/helix-common.sh"
 
-if [[ -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
+compat_stage="$(
+  PYTHONPATH="$HELIX_HOME${PYTHONPATH:+:$PYTHONPATH}" python3 - <<'PY'
+from cli.lib.discovery_compat import get_compat_stage
+
+print(get_compat_stage())
+PY
+)"
+
+if [[ "$compat_stage" -ge 4 ]]; then
+  >&2 printf "Stage 4 は L7-helix-scrum-removal-plan で管理されます。'helix discovery' を使用してください。\n"
+  exit 1
+fi
+
+if [[ "$compat_stage" -ge 2 && -z "${HELIX_SUPPRESS_LEGACY_WARN:-}" ]]; then
   >&2 printf "[DEPRECATED] 'helix scrum' は非推奨です。'helix discovery' を使用してください。\n"
   >&2 printf "[DEPRECATED] removal: L7-helix-scrum-removal-plan を参照\n"
 fi

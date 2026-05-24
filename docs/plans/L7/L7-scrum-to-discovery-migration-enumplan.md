@@ -3,7 +3,7 @@ plan_id: L7-scrum-to-discovery-migration-enumplan
 name: L7-scrum-to-discovery-migration-enumplan
 title: "L7-scrum-to-discovery-migration-enumplan: runtime dir migration + drive/mode enum 正規化 + Stage activation (Stage 2-4 担当)"
 description: scrum→discovery rename の Stage 2-4 (runtime dir migration data 保全 + drive/mode/kind enum 正規化 + HELIX_DISCOVERY_COMPAT_STAGE activation + S0-S4→D0-D4 state machine 分離 + removal timeline stub)
-status: draft
+status: completed
 process_layer: L7
 layer: L7
 kind: impl
@@ -11,10 +11,11 @@ drive: be
 size: L
 priority: P1
 created: 2026-05-24
-revised: 2026-05-24
+revised: 2026-05-25
 owner: PM
 parent_design: HELIX-workflows/helix-process/discovery-workflow.md
-pairs_test_design: []
+pairs_test_design:
+  - docs/v2/L7-test-design/L7-scrum-to-discovery-migration-enum-test-design.md
 generates:
   - artifact_path: docs/v2/L7-design/L7-scrum-to-discovery-migration-enum-design.md
     artifact_type: design_doc

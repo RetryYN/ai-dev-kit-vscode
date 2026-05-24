@@ -497,6 +497,10 @@ check_mode_phase_consistency() {
     return 0
   fi
 
+  if [[ "$current_mode" == "scrum" ]]; then
+    current_mode="discovery"
+  fi
+
   case "$current_mode" in
     forward)
       if ! [[ "$current_phase" =~ ^L([1-9]|1[01])$ ]]; then
@@ -514,12 +518,12 @@ check_mode_phase_consistency() {
         echo "  ✓ phase_mode_consistency: reverse + $current_phase"
       fi
       ;;
-    scrum)
-      if ! [[ "$current_phase" =~ ^S[0-4]$ ]]; then
-        echo "  ⚠ phase_mode_consistency: mode=scrum だが phase=$current_phase (S0-S4 期待)"
+    discovery)
+      if ! [[ "$current_phase" =~ ^(D[0-4]|S[0-4])$ ]]; then
+        echo "  ⚠ phase_mode_consistency: mode=discovery だが phase=$current_phase (D0-D4/S0-S4 期待)"
         WARN=$((WARN + 1))
       else
-        echo "  ✓ phase_mode_consistency: scrum + $current_phase"
+        echo "  ✓ phase_mode_consistency: discovery + $current_phase"
       fi
       ;;
     *)
@@ -527,6 +531,23 @@ check_mode_phase_consistency() {
       WARN=$((WARN + 1))
       ;;
   esac
+}
+
+check_discovery_compat_warnings() {
+  local phase_yaml="$PROJECT_ROOT/.helix/phase.yaml"
+  [[ -f "$phase_yaml" ]] || return 0
+
+  local current_mode sprint_drive
+  current_mode=$(grep -E '^current_mode:' "$phase_yaml" | sed 's/^current_mode: *//' | tr -d "\"'" | tr -d ' ')
+  sprint_drive=$(python3 "$YAML_PARSER" read "$phase_yaml" sprint.drive 2>/dev/null || echo "")
+
+  if [[ "$current_mode" == "scrum" || "$sprint_drive" == "scrum" ]]; then
+    echo "  △ discovery_compat: scrum legacy 値を検出しました。discovery へ移行してください。"
+    WARN=$((WARN + 1))
+  else
+    echo "  ✓ discovery_compat: discovery mode/drive"
+    PASS=$((PASS + 1))
+  fi
 }
 
 extract_declared_count() {
@@ -1044,6 +1065,7 @@ check_role_effort_consistency
 echo ""
 echo "[mode/phase 整合性]"
 check_mode_phase_consistency
+check_discovery_compat_warnings
 
 echo ""
 echo "[drift]"

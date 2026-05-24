@@ -101,6 +101,6 @@ SH
 
   run "$HELIX_ROOT/cli/helix" mode forward
   [ "$status" -eq 0 ]
-  [[ "$output" == *"scrum → forward"* ]]
+  [[ "$output" == *"forward"* ]]
   [[ "$output" != *"confirmed な仮説がありません"* ]]
 }

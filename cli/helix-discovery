@@ -2,19 +2,94 @@
 set -euo pipefail
 
 # helix-discovery: HELIX Discovery（検証駆動開発）
-# Usage: helix discovery <init|backlog|local|plan|poc|verify|decide|review|status|trigger|web-search|acceptance-design> [args...]
+# Usage: helix discovery <init|backlog|local|plan|poc|verify|decide|review|status|migrate|trigger|web-search|acceptance-design> [args...]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 YP="$SCRIPT_DIR/lib/yaml_parser.py"
-SCRUM_DIR="$HELIX_DIR/scrum"
-BACKLOG="$SCRUM_DIR/backlog.yaml"
-SPRINT_FILE="$SCRUM_DIR/sprint.yaml"
 VERIFY_DIR="$PROJECT_ROOT/verify"
-SCRUM_VERIFY_DIR="$SCRUM_DIR/verify"
 HELIX_CODEX="$SCRIPT_DIR/helix-codex"
+DISCOVERY_PYTHONPATH="$HELIX_HOME${PYTHONPATH:+:$PYTHONPATH}"
+SCRUM_DIR=""
+BACKLOG=""
+SPRINT_FILE=""
+SCRUM_VERIFY_DIR=""
 
 CMD="${1:-help}"
 shift 2>/dev/null || true
+
+refresh_discovery_paths() {
+  if [[ -d "$HELIX_DIR/discovery" ]]; then
+    SCRUM_DIR="$HELIX_DIR/discovery"
+  elif [[ -z "${HELIX_DISCOVERY_REFRESH_GUARD:-}" && "$(compat_stage)" -ge 3 && ! -d "$HELIX_DIR/scrum" ]]; then
+    SCRUM_DIR="$HELIX_DIR/discovery"
+  else
+    SCRUM_DIR="$HELIX_DIR/scrum"
+  fi
+  BACKLOG="$SCRUM_DIR/backlog.yaml"
+  SPRINT_FILE="$SCRUM_DIR/sprint.yaml"
+  SCRUM_VERIFY_DIR="$SCRUM_DIR/verify"
+}
+
+compat_stage() {
+  PYTHONPATH="$DISCOVERY_PYTHONPATH" python3 - <<'PY'
+from cli.lib.discovery_compat import get_compat_stage
+
+print(get_compat_stage())
+PY
+}
+
+phase_to_display() {
+  local phase="$1"
+  local decide_result="${2:-}"
+  PYTHONPATH="$DISCOVERY_PYTHONPATH" python3 - <<'PY' "$phase" "$decide_result"
+import sys
+
+from cli.lib.discovery_compat import phase_to_display
+
+print(phase_to_display(sys.argv[1], sys.argv[2] or None) or "")
+PY
+}
+
+_migration_status() {
+  PYTHONPATH="$DISCOVERY_PYTHONPATH" python3 - <<'PY' "$HELIX_DIR"
+from pathlib import Path
+
+from cli.lib.discovery_migrate import status
+
+helix_dir = Path(sys.argv[1])
+print(status(helix_dir / "scrum", helix_dir / "discovery"))
+PY
+}
+
+_auto_migrate_if_safe() {
+  local scrum_dir="$HELIX_DIR/scrum"
+  local discovery_dir="$HELIX_DIR/discovery"
+  local state=""
+
+  [[ -d "$scrum_dir" ]] || return 0
+  state="$(_migration_status)"
+  case "$state" in
+    pending|complete)
+      echo "[INFO] .helix/scrum/ を検出。自動移行を開始します..." >&2
+      PYTHONPATH="$DISCOVERY_PYTHONPATH" python3 -m cli.lib.discovery_migrate --auto >/dev/null
+      ;;
+    conflict|partial)
+      echo "[WARN] .helix/discovery/ が既に存在し、自動移行の安全条件を満たしません。" >&2
+      echo "       helix discovery migrate --status で状態を確認し、" >&2
+      echo "       --merge-strategy [keep-dst|keep-src|abort] を明示して実行してください。" >&2
+      ;;
+    *)
+      ;;
+  esac
+}
+
+refresh_discovery_paths
+if [[ "$CMD" != "help" && "$CMD" != "--help" && "$CMD" != "-h" ]]; then
+  if [[ "$(compat_stage)" -ge 3 ]]; then
+    _auto_migrate_if_safe
+    refresh_discovery_paths
+  fi
+fi
 
 scrum_lookup_field() {
   local hid="$1"
@@ -39,7 +114,7 @@ scrum_local_print_json() {
 
 scrum_local_print_loops_table() {
   local payload="$1"
-  scrum_local_py $'import json\nimport sys\nrows = json.loads(sys.argv[1])\nif not rows:\n    print("loop はありません。")\n    raise SystemExit(0)\nheaders = ["LOOP_ID", "LAYER", "STATE", "RESULT", "PLAN_ID", "STARTED_AT"]\nkeys = ["loop_id", "forward_layer", "state", "decide_result", "forward_plan_id", "started_at"]\nwidths = [len(header) for header in headers]\ntable = []\nfor row in rows:\n    values = [str(row.get(key) or "-") for key in keys]\n    table.append(values)\n    for index, value in enumerate(values):\n        widths[index] = max(widths[index], len(value))\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nfor row in table:\n    print(fmt.format(*row))' "$payload"
+  scrum_local_py $'import json\nimport sys\nfrom discovery_compat import phase_to_display\nrows = json.loads(sys.argv[1])\nif not rows:\n    print("loop はありません。")\n    raise SystemExit(0)\nheaders = ["LOOP_ID", "LAYER", "PHASE", "RESULT", "PLAN_ID", "STARTED_AT"]\nwidths = [len(header) for header in headers]\ntable = []\nfor row in rows:\n    values = [\n        str(row.get("loop_id") or "-"),\n        str(row.get("forward_layer") or "-"),\n        str(phase_to_display(str(row.get("state") or "-"), row.get("decide_result")) or "-"),\n        str(row.get("decide_result") or "-"),\n        str(row.get("forward_plan_id") or "-"),\n        str(row.get("started_at") or "-"),\n    ]\n    table.append(values)\n    for index, value in enumerate(values):\n        widths[index] = max(widths[index], len(value))\nfmt = " | ".join("{:<" + str(width) + "}" for width in widths)\nprint(fmt.format(*headers))\nprint("-+-".join("-" * width for width in widths))\nfor row in table:\n    print(fmt.format(*row))' "$payload"
 }
 
 scrum_local_print_stats_table() {
@@ -100,7 +175,7 @@ cmd_local() {
       }
       scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nagent_slot_id = int(sys.argv[3]) if sys.argv[3] else None\nscrum_local.record_poc(sys.argv[1], commit_sha=(sys.argv[2] or None), agent_slot_id=agent_slot_id)' \
         "$loop_id" "$commit_sha" "$agent_slot_id"
-      echo "[scrum] $loop_id -> S1"
+      echo "[discovery] $loop_id -> $(phase_to_display S1)"
       ;;
     verify)
       local loop_id="" observation=""
@@ -124,7 +199,7 @@ cmd_local() {
       }
       scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nscrum_local.verify_loop(sys.argv[1], observation=(sys.argv[2] or None))' \
         "$loop_id" "$observation"
-      echo "[scrum] $loop_id -> S2"
+      echo "[discovery] $loop_id -> $(phase_to_display S2)"
       ;;
     decide)
       local loop_id="" result="" note=""
@@ -149,7 +224,7 @@ cmd_local() {
       }
       scrum_local_py $'import sys\nfrom cli.lib import scrum_local\nscrum_local.decide_loop(sys.argv[1], sys.argv[2], note=(sys.argv[3] or None))' \
         "$loop_id" "$result" "$note"
-      echo "[scrum] $loop_id -> S3 ($result)"
+      echo "[discovery] $loop_id -> $(phase_to_display S3 "$result") ($result)"
       ;;
     list)
       local layer="" output_json=false
@@ -230,9 +305,9 @@ cmd_init() {
   fi
 
   current_mode=$(python3 "$YP" read "$HELIX_DIR/phase.yaml" current_mode 2>/dev/null || echo "forward")
-  if [[ "$current_mode" != "scrum" && -f "$HELIX_DIR/phase.yaml" ]]; then
-    python3 "$YP" write "$HELIX_DIR/phase.yaml" current_mode scrum 2>/dev/null || true
-    echo "[helix-discovery] モードを scrum に自動切替しました"
+  if [[ "$current_mode" != "discovery" && -f "$HELIX_DIR/phase.yaml" ]]; then
+    python3 "$YP" write "$HELIX_DIR/phase.yaml" current_mode discovery 2>/dev/null || true
+    echo "[helix-discovery] モードを discovery に自動切替しました"
   fi
 
   echo "=== HELIX Discovery Init ==="
@@ -287,16 +362,24 @@ hypotheses = data.get('hypotheses', {})
 if not hypotheses or (isinstance(hypotheses, dict) and not any(isinstance(v, dict) for v in hypotheses.values())):
     print('  (空)')
     sys.exit(0)
-print(f'  {\"ID\":<6} {\"Status\":<12} {\"Sprint\":<8} {\"Title\"}')
-print(f'  {\"---\":<6} {\"------\":<12} {\"------\":<8} {\"-----\"}')
+phase_for_status = {
+    "queued": "D0",
+    "testing": "D2",
+    "confirmed": "D4",
+    "rejected": "D3",
+    "pivot": "D3",
+}
+print(f'  {\"ID\":<6} {\"Phase\":<8} {\"Status\":<12} {\"Sprint\":<8} {\"Title\"}')
+print(f'  {\"---\":<6} {\"-----\":<8} {\"------\":<12} {\"------\":<8} {\"-----\"}')
 for hid, h in sorted(hypotheses.items()):
     if not isinstance(h, dict):
         continue
     status = h.get('status', 'queued')
     sprint = h.get('sprint', '—') or '—'
+    phase = phase_for_status.get(status, 'D0')
     title = h.get('title', '')
     icon = {'queued':' ', 'testing':'→', 'confirmed':'✓', 'rejected':'✗', 'pivot':'↻'}.get(status, ' ')
-    print(f'  {icon} {hid:<5} {status:<12} {str(sprint):<8} {title}')
+    print(f'  {icon} {hid:<5} {phase:<8} {status:<12} {str(sprint):<8} {title}')
 " 2>/dev/null
       echo ""
       ;;
@@ -348,7 +431,7 @@ VEOF
         chmod +x "$PROJECT_ROOT/$verify_script"
       fi
 
-      echo "[scrum] $hid 追加: $title"
+      echo "[discovery] $hid 追加: $title"
       echo "  検証スクリプト: $verify_script"
       echo "  → スクリプトを編集して検証ロジックを実装してください"
       ;;
@@ -589,7 +672,7 @@ cmd_decide() {
     python3 "$YP" write "$BACKLOG" "hypotheses.${hid}.learnings" "$learnings"
   fi
 
-  echo "[scrum] $hid: $decision — $title"
+  echo "[discovery] $hid: $decision — $title"
 
   case "$decision" in
     confirmed)
@@ -599,7 +682,7 @@ cmd_decide() {
         echo "  PASS: verify script passed — $verify_script"
       fi
       if [[ "$strict_promote" == true ]]; then
-        echo "[scrum] strict-promote checks:"
+        echo "[discovery] strict-promote checks:"
         verify_hypothesis_dir="$SCRUM_VERIFY_DIR/$hid"
         verify_count=$(find "$verify_hypothesis_dir" -maxdepth 1 -type f -name '*.sh' 2>/dev/null | wc -l | tr -d ' ' || echo "0")
         if [[ "${verify_count:-0}" -gt 0 ]]; then
@@ -934,7 +1017,7 @@ USAGE
    Summary: "$query" に関する一次調査の placeholder 結果。実 Web API 統合前の smoke 用エントリで、S0.5 の参照 URL と要約保存フローを固定する。
 EOF
 
-  echo "[scrum] web-search saved: ${research_file#$PROJECT_ROOT/}"
+  echo "[discovery] web-search saved: ${research_file#$PROJECT_ROOT/}"
   echo "  references: 1"
 }
 
@@ -1010,7 +1093,19 @@ $acceptance
 - 本テンプレートは PLAN-029 W-6 の acceptance-design smoke 用です。
 EOF
 
-  echo "[scrum] acceptance-design saved: ${acceptance_file#$PROJECT_ROOT/}"
+  echo "[discovery] acceptance-design saved: ${acceptance_file#$PROJECT_ROOT/}"
+}
+
+# ============================
+# migrate: runtime dir migration
+# ============================
+cmd_migrate() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: helix discovery migrate [--dry-run|--status|--auto|--force|--merge-strategy keep-dst|keep-src|abort] [--src PATH] [--dst PATH]"
+    return 0
+  fi
+
+  PYTHONPATH="$DISCOVERY_PYTHONPATH" python3 -m cli.lib.discovery_migrate "$@"
 }
 
 # ============================
@@ -1026,6 +1121,7 @@ case "$CMD" in
   decide)  cmd_decide "$@" ;;
   review)  cmd_review "$@" ;;
   status)  cmd_status "$@" ;;
+  migrate) cmd_migrate "$@" ;;
   trigger) cmd_trigger "$@" ;;
   web-search) cmd_web_search "$@" ;;
   acceptance-design) cmd_acceptance_design "$@" ;;
@@ -1050,6 +1146,7 @@ Commands:
   status                  現在の状態表示
   web-search              検索事例メモ保存 (--query --hypothesis)
   acceptance-design       受入条件テンプレ生成 (--hypothesis)
+  migrate                 runtime dir migration (--dry-run|--status|--merge-strategy ...)
   trigger detect          差し込み候補を検出 (--scan PATH [--save] [--json])
   trigger list            差し込み候補一覧 (--status ... --type ... [--json])
   trigger transition      状態遷移 (--id ST-... --status ... --owner ...)

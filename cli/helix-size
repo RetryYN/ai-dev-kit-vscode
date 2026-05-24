@@ -284,9 +284,14 @@ DRIVE="${DRIVE:-be}"
 
 # --- 駆動タイプバリデーション ---
 case "$DRIVE" in
-  be|fe|db|fullstack|agent|scrum) ;;
-  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent, scrum を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
+  be|fe|db|fullstack|agent|discovery|scrum) ;;
+  *) echo "エラー: 無効な --drive 値です: '$DRIVE'（be, fe, db, fullstack, agent, discovery, scrum を指定してください）" >&2; exit "$EXIT_INPUT_ERROR" ;;
 esac
+
+if [[ "$DRIVE" == "scrum" ]]; then
+  echo "[DEPRECATED] --drive scrum は legacy alias です。内部では discovery として扱います。" >&2
+  DRIVE="discovery"
+fi
 
 if [[ "$FORCE_LARGE" == true ]]; then
   if [[ "$DRIVE" != "agent" ]]; then
@@ -312,7 +317,7 @@ size_from_files() {
 }
 
 # --- scrum (検証駆動) 専用分岐: Forward HELIX のフェーズ進行は行わない ---
-if [[ "$DRIVE" == "scrum" ]]; then
+if [[ "$DRIVE" == "discovery" ]]; then
   _SIZE_SCRUM=$(size_from_files)
   if [[ "$RISK_FLAGS_SET" == true ]]; then
     FINAL_SIZE="L"
@@ -320,11 +325,11 @@ if [[ "$DRIVE" == "scrum" ]]; then
     _SIZE_SCRUM="$FINAL_SIZE"
   fi
   if [[ "$JSON_OUTPUT" == true ]]; then
-    printf '{"size": "%s", "drive": "scrum", "mode": "scrum", "phases": []}\n' "$_SIZE_SCRUM"
+    printf '{"size": "%s", "drive": "discovery", "mode": "discovery", "phases": []}\n' "$_SIZE_SCRUM"
   else
     echo "=== タスクサイジング結果 ==="
     echo "サイズ:       $_SIZE_SCRUM"
-    echo "駆動タイプ:   scrum (検証駆動)"
+    echo "駆動タイプ:   discovery (検証駆動)"
     echo ""
     echo "要件不確実性が高いため Phase S (検証駆動) を推奨します。"
     echo "仮説検証サイクルで要件を確定してから Forward HELIX に移行してください。"
@@ -339,8 +344,8 @@ if [[ "$DRIVE" == "scrum" ]]; then
     echo "  7. 確定後に helix size --ui/--api/--db で再サイジング → Forward HELIX へ"
   fi
   if [[ -f "$HELIX_DIR/phase.yaml" && -f "$YAML_PARSER" ]]; then
-    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "sprint.drive" "scrum" 2>/dev/null || true
-    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "current_mode" "scrum" 2>/dev/null || true
+    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "sprint.drive" "discovery" 2>/dev/null || true
+    python3 "$YAML_PARSER" write "$HELIX_DIR/phase.yaml" "current_mode" "discovery" 2>/dev/null || true
   fi
   update_matrix_size_and_risk_flags "$_SIZE_SCRUM"
   exit "$EXIT_SUCCESS"
