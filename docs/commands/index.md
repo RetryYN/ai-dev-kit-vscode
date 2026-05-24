@@ -10,7 +10,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix init` | `.helix/` とプロジェクト設定を初期化し、meta-phase pattern 契約テンプレートを配置 |
 | `helix status` | 現在 phase / gate / next action を表示 |
 | `helix dashboard` | 静的な読み取り専用 snapshot を表示（Dashboard 構想管理の対象外） |
-| `helix mode` | forward / reverse / scrum の mode 切替 |
+| `helix mode` | forward / reverse / discovery (検証駆動、旧 scrum) の mode 切替。9 mode 詳細は [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../../HELIX-workflows/HELIX-process-L0-L14.md) 参照 |
 | `helix doctor` | 環境診断・修復 (`--json` 対応) |
 | `helix migrate` | `.helix/` テンプレート追従 |
 | `helix db` | helix.db migration / rollback / dev-sandbox 試演 (PLAN-086) |
@@ -42,7 +42,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix recovery` | Recovery workflow session の開始・phase 進行・postmortem・完了管理 |
 | `helix retrofit` | Retrofit mode の matrix/config/plan 管理 |
 | `helix handover` | Opus / Codex handover |
-| `helix route` | detect signal を Reverse / Refactor / Recovery / Incident へ提案ルーティング |
+| `helix route` | detect signal を Reverse / Refactor / Retrofit / Recovery / Incident へ提案ルーティング (drift_type 7 種分岐、ADR-041 SoT) |
 | `helix workspace` | git worktree-based per-task workspace 管理 |
 | `helix pr` | PR 自動生成 + 6 ゲート機械検証 (`--gate` / `--auto-merge`) |
 | `helix retro` | ミニレトロ |
