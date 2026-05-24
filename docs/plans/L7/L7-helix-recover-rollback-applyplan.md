@@ -39,7 +39,7 @@ generates:
   - artifact_path: docs/commands/index.md
     artifact_type: doc_update
 dependencies:
-  parent: null
+  parent: L7-helix-workflows-parent-acceptedplan
   requires:
     - L7-helix-recover-implplan
   blocks: []
