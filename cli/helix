@@ -48,6 +48,7 @@ case "$CMD" in
   refactor) exec "$SCRIPT_DIR/helix-refactor" "$@" ;;
   recover) exec "$SCRIPT_DIR/helix-recover" "$@" ;;
   recovery) exec "$SCRIPT_DIR/helix-recovery" "$@" ;;
+  incident) exec "$SCRIPT_DIR/helix-incident" "$@" ;;
   retrofit) exec "$SCRIPT_DIR/helix-retrofit" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
   workspace) exec "$SCRIPT_DIR/helix-workspace" "$@" ;;
@@ -134,6 +135,7 @@ HELIX プロジェクト管理:
   refactor    Refactor mode の session 管理 (保護網確認・振る舞い不変 check)
   recover     Recovery mode の診断・dump・PLAN 起票 (rollback は dry-run のみ)
   recovery    Recovery workflow session の開始・進行・完了管理
+  incident    Incident mode の detect / triage / hotfix / postmortem / route
   retrofit    Retrofit mode の matrix/config/plan 管理
   handover    Opus/Codex handover 管理
   route       detect signal を Reverse/Refactor/Recovery/Incident へ提案ルーティング

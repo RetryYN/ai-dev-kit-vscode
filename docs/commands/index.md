@@ -40,6 +40,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix refactor` | Refactor mode の session 管理 (保護網確認・振る舞い不変 check) |
 | `helix recover` | Recovery mode の診断・dump・PLAN 起票 (rollback は dry-run のみ) |
 | `helix recovery` | Recovery workflow session の開始・phase 進行・postmortem・完了管理 |
+| `helix incident` | Incident mode の detect / triage / hotfix / postmortem / route 管理 |
 | `helix retrofit` | Retrofit mode の matrix/config/plan 管理 |
 | `helix handover` | Opus / Codex handover |
 | `helix route` | detect signal を Reverse / Refactor / Retrofit / Recovery / Incident へ提案ルーティング (drift_type 7 種分岐、ADR-041 SoT) |
