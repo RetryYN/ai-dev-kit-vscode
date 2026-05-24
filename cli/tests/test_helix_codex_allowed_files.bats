@@ -120,7 +120,11 @@ run_tracked_b_change_case() {
     --allowed-files "tracked-a.txt" \
     "$@"
 
-  [ "$status" -eq "$expected_status" ]
+  if [ "$expected_status" = "nonzero" ]; then
+    [ "$status" -ne 0 ]
+  else
+    [ "$status" -eq "$expected_status" ]
+  fi
 }
 
 @test "same plan positive auto-adds trusted concurrent baseline" {
@@ -141,8 +145,8 @@ run_tracked_b_change_case() {
     "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt" \
     "PLAN-OTHER"
 
-  run_tracked_b_change_case 0 --plan-id PLAN-039
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  run_tracked_b_change_case nonzero --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
@@ -153,8 +157,8 @@ run_tracked_b_change_case() {
     "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt" \
     "PLAN-039"
 
-  run_tracked_b_change_case 0
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  run_tracked_b_change_case nonzero
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
@@ -164,8 +168,8 @@ run_tracked_b_change_case() {
     "$PROJECT_ROOT/.helix/tmp/codex-baseline-999999-111111111.txt" \
     "PLAN-039"
 
-  run_tracked_b_change_case 0 --plan-id PLAN-039
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  run_tracked_b_change_case nonzero --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
@@ -177,8 +181,8 @@ run_tracked_b_change_case() {
     "$TMP_ROOT/forged/codex-baseline-${ALIVE_PID}-111111111.txt" \
     "PLAN-039"
 
-  run_tracked_b_change_case 0 --plan-id PLAN-039
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  run_tracked_b_change_case nonzero --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
@@ -190,8 +194,8 @@ run_tracked_b_change_case() {
   ln -s "$TMP_ROOT/target-baseline.txt" \
     "$PROJECT_ROOT/.helix/tmp/codex-baseline-${ALIVE_PID}-111111111.txt"
 
-  run_tracked_b_change_case 0 --plan-id PLAN-039
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  run_tracked_b_change_case nonzero --plan-id PLAN-039
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" != *"auto-detect: plan=PLAN-039 baseline=1 file(s)"* ]]
 }
 
@@ -204,8 +208,8 @@ run_tracked_b_change_case() {
     --approved \
     --allowed-files "tracked-a.txt"
 
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"--allowed-files 外の変更を検出しました"* ]]
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"--allowed-files 外の変更を検出しました"* ]]
   [[ "$output" == *"fake codex ok"* ]]
 }
 
