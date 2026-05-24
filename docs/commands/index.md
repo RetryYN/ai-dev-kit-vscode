@@ -91,6 +91,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | `helix reverse` | 既存コード・設計資産から Reverse HELIX。詳細: [reverse.md](reverse.md) |
 | `helix discovery` | 仮説検証、PoC、verify、Forward 接続。詳細: [discovery.md](discovery.md) |
 | `helix scrum` | `helix discovery` の deprecated alias。詳細: [scrum.md](scrum.md) |
+| `helix scrum-agile` | ユーザー要件をすり合わせながら sprint を回し、完成インクリメントを `helix reverse fullback` へ接続する Scrum mode |
 | `helix verify-all` | verify/ 配下の全検証 |
 | `helix verify-agent` | 検証ツール候補 harvest / design / drift cross-check |
 
@@ -142,5 +143,6 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | 要件・設計・契約が明確 | Forward HELIX (`size` → `plan` → `gate` → `sprint`) |
 | 既存コードや設計資産を逆引きしたい | `reverse` |
 | 要件や実現性が未確定 | `scrum` |
+| 作るものは概ね決まっており、ユーザーと反復的に合わせたい | `scrum-agile` |
 | 実装中に設計ギャップや要件変更が出た | `interrupt` |
 | セッションや担当者をまたいで継続する | `handover` |

@@ -37,6 +37,7 @@ case "$CMD" in
   push)     exec "$SCRIPT_DIR/helix-push" "$@" ;;
   innovation) exec "$SCRIPT_DIR/helix-innovation" "$@" ;;
   scrum)    exec "$SCRIPT_DIR/helix-scrum" "$@" ;;
+  scrum-agile) exec "$SCRIPT_DIR/helix-scrum-agile" "$@" ;;
   discovery) exec "$SCRIPT_DIR/helix-discovery" "$@" ;;
   matrix)   exec "$SCRIPT_DIR/helix-matrix" "$@" ;;
   plan)     exec "$SCRIPT_DIR/helix-plan" "$@" ;;
@@ -160,6 +161,7 @@ Codex / Claude Code 管理 harness:
 Reverse / Discovery / 検証:
   reverse     リバース HELIX
   scrum       検証駆動開発 (deprecated alias: discovery)
+  scrum-agile ユーザー要件すり合わせ型のアジャイル Scrum mode
   discovery   検証駆動開発
   verify-all  全レイヤー検証
   verify-agent 検証ツール harvest / design / PLAN drift cross-check
