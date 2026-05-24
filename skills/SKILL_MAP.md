@@ -521,12 +521,12 @@ code-review は 3 系統で目的が分かれる:
 
 | スキル | 守備範囲 | 起動タイミング |
 |--------|---------|---------------|
-| `common/code-review` | HELIX L4 / G4 連携の **base skill** (OWASP セキュリティ / パフォーマンス / 設計観点 / Critical/High 0 達成基準) + **Google eng-practices reviewer guide** (references/google-reviewer-guide.md、LGTM/Nit/Blocking ラベル、健全性ベース判定) | レビュアー視点で承認可否 (LGTM / LGTM with nits / Changes requested) を判定するとき。HELIX gate 連携時 |
+| `common/code-review` | HELIX L7 / G7 連携 (旧 L4/G4) の **base skill** (OWASP セキュリティ / パフォーマンス / 設計観点 / Critical/High 0 達成基準) + **Google eng-practices reviewer guide** (references/google-reviewer-guide.md、LGTM/Nit/Blocking ラベル、健全性ベース判定) | レビュアー視点で承認可否 (LGTM / LGTM with nits / Changes requested) を判定するとき。HELIX gate 連携時 (実装完了ゲート = G7) |
 | `agent-skills/code-review-and-quality` | **5 軸 review** (Correctness / Readability / Architecture / Security / Performance) (addyosmani/agent-skills MIT 由来、英語) | 多次元評価が必要なとき。author / reviewer 区別なく汎用 review |
 | `workflow/adversarial-review` | G2/G4/G6 ゲート前の **adversarial check** (悪魔の代弁者役) | gate 通過前に意図的に反対意見を集めて穴を探すとき |
 
 使い分けルール:
-- **HELIX L4/G4 で承認可否判定** → `common/code-review` (Google reviewer guide 統合)
+- **HELIX L7/G7 (旧 L4/G4) で承認可否判定** → `common/code-review` (Google reviewer guide 統合、実装完了ゲート連携)
 - **5 軸で多次元評価** → `agent-skills/code-review-and-quality`
 - **ゲート前 adversarial check** → `workflow/adversarial-review`
 - **author 視点 (変更を作成する側)** → 別 skill (現在は `agent-skills/source-driven-development` 等を併用)
