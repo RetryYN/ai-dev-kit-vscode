@@ -93,7 +93,7 @@ docs domain 別の導線は `docs/{adr,research,runbook,rollback,postmortem,slo,
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`
 - Reverse: `reverse <type> R0` -> `R1` -> `R2` -> `R3` -> `R4` -> `rgc`
-- Scrum (検証駆動 / HELIX-workflows の Discovery 互換): `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Discovery (検証駆動 / 旧: helix scrum): `discovery init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
 - Research: `helix research` で技術調査・ADR 連携
 - Interrupt: 実装中の設計ギャップや要件変更は `helix interrupt` で IIP / CC として扱う。
 - Handover: セッションや担当をまたぐ場合は `.helix/handover/` を正本にする。

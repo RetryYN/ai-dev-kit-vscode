@@ -4,9 +4,9 @@ title: "L7-cli-helix-retrofit-implplan: helix-retrofit CLI 実装 — Retrofit m
 kind: impl
 layer: L7
 drive: be
-status: draft
+status: completed
 created: 2026-05-24
-revised: 2026-05-24
+revised: 2026-05-25
 owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md

@@ -130,7 +130,7 @@ AGENTS.md と `skill` ツールを使った、エージェント駆動のスキ�
 
 HELIX 独自スキル (4 本):
 - `system-design-sizing` / `technical-writing` (外部根拠ベース)
-- `mock-driven-development` / `helix-scrum` (HELIX 本体由来)
+- `mock-driven-development` / `helix-discovery` / `helix-scrum` (HELIX 本体由来、`helix-scrum` は legacy alias)
 
 ### Define (L1 要件定義) — 何を作るか明確化
 
@@ -199,7 +199,8 @@ HELIX 独自スキル (4 本):
 | [system-design-sizing](skills/system-design-sizing/SKILL.md) | 容量計画・CAP トレードオフ・ボトルネック識別 | L1-L2 / G1.5, G2 |
 | [technical-writing](skills/technical-writing/SKILL.md) | Google Tech Writing 原則で文書品質底上げ | L2/L3/L7 / G2, G4, G6 |
 | [mock-driven-development](skills/mock-driven-development/SKILL.md) | FE 駆動の L2 核心・mock.html → 契約導出 → 昇格 | L2-L4 / G2, G4, G6 |
-| [helix-scrum](skills/helix-scrum/SKILL.md) | 仮説検証 S0-S4 → Forward HELIX 接続 | S0-S4 |
+| [helix-discovery](skills/helix-discovery/SKILL.md) | 仮説検証 D0-D4 → Forward HELIX 接続 | D0-D4 |
+| [helix-scrum](skills/helix-scrum/SKILL.md) | 仮説検証 alias (deprecated) | S0-S4 |
 
 詳細は CLAUDE.md と docs/skill-anatomy.md を参照。
 
@@ -287,7 +288,8 @@ agent-skills/
 │   ├── documentation-and-adrs/        #   L7 出荷
 │   ├── shipping-and-launch/           #   L7 出荷
 │   ├── technical-writing/             #   ★HELIX 独自 全フェーズ文書品質
-│   ├── helix-scrum/                   #   ★HELIX 独自 S0-S4 仮説検証
+│   ├── helix-discovery/               #   ★HELIX 独自 D0-D4 仮説検証
+│   ├── helix-scrum/                   #   legacy alias (deprecated)
 │   └── using-agent-skills/            #   メタ: スキルパックの使い方
 ├── agents/                            # 3 つの専門 persona
 ├── references/                        # 4 つの補助チェックリスト

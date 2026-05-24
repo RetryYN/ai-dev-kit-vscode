@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+# shellcheck source=cli/lib/helix-common.sh
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+exec env PYTHONPATH="$SCRIPT_DIR/lib:$HELIX_HOME${PYTHONPATH:+:$PYTHONPATH}" python3 "$SCRIPT_DIR/lib/refactor_engine.py" "$@"

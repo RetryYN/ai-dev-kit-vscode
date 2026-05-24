@@ -9,6 +9,8 @@ upstream: helix (ai-dev-kit-vscode/cli/helix-scrum)
 
 # HELIX Scrum (仮説検証駆動)
 
+> **[DEPRECATED]** このスキルは backward compat alias です。正本は `skills/agent-skills/helix-discovery/` です (`L7-scrum-to-discovery-renameplan`)。
+
 ## Overview
 
 通常の HELIX は L1 要件定義から始めるが、要件や成立条件がまだ固まっていない案件では、そのまま Forward に入ると仮定のまま設計と実装が進んでしまう。

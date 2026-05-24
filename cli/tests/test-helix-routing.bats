@@ -84,7 +84,7 @@ PY
     "HELIX 全体管理" \
     "HELIX プロジェクト管理" \
     "Codex / Claude Code 管理 harness" \
-    "Reverse / Scrum / 検証" \
+    "Reverse / Discovery / 検証" \
     "学習・再利用" \
     "補助・運用"; do
     [[ "$help_output" == *"$category"* ]]
@@ -95,7 +95,7 @@ PY
     init status dashboard mode doctor migrate commands setup test test-debug debug bench \
     size plan research meta-phase matrix gate gate-api-check readiness sprint task interrupt handover pr retro debt bats-cleanup drift-check \
     codex claude team review skill budget hook check-claudemd context session-start session-summary \
-    reverse scrum verify-all verify-agent \
+    reverse scrum discovery verify-all verify-agent \
     log recipe learn promote discover builder code entry audit \
     scheduler job lock observe; do
     [[ "$help_output" == *"$cmd"* ]]
@@ -104,6 +104,7 @@ PY
 
   grep -q "reverse.md" "$index_file"
   grep -q "scrum.md" "$index_file"
+  grep -q "discovery.md" "$index_file"
   grep -q "入口判定" "$index_file"
   grep -q "Gate 判定" "$HELIX_ROOT/docs/commands/reverse.md"
   grep -q "Hypothesis 判定" "$HELIX_ROOT/docs/commands/scrum.md"

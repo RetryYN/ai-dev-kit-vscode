@@ -46,7 +46,7 @@ helix_db を中心に、catalog / registry 群で構成される。
 
 ### 現状
 
-- Reverse は docs/reverse/（R0–R4）、Discovery は .helix/scrum/（backlog / hypotheses）等、モード別の個別領域に実行時生成される。
+- Reverse は docs/reverse/（R0–R4）、Discovery は `.helix/scrum/`（runtime legacy path、`helix discovery` の実行時領域）等、モード別の個別領域に実行時生成される。
 - モードごとにデータが分散し、本線 DB と切り離れている。
 
 ### 構想（収束接続）

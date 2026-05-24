@@ -15,11 +15,11 @@ LAYER_COMMANDS = {
     "R2": ["helix-reverse R2"],
     "R3": ["helix-reverse R3"],
     "R4": ["helix-reverse R4"],
-    "S0": ["helix-scrum backlog"],
-    "S1": ["helix-scrum plan"],
-    "S2": ["helix-scrum poc"],
-    "S3": ["helix-scrum verify"],
-    "S4": ["helix-scrum decide"],
+    "S0": ["helix-discovery backlog"],
+    "S1": ["helix-discovery plan"],
+    "S2": ["helix-discovery poc"],
+    "S3": ["helix-discovery verify"],
+    "S4": ["helix-discovery decide"],
 }
 
 ALL_LAYER_COMMANDS = ["helix-verify-all", "helix-gate"]

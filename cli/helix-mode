@@ -18,7 +18,7 @@ usage() {
 引数なし: 現在のモードを表示
 forward:  Forward HELIX (L1→L8) に切替
 reverse:  Reverse HELIX (R0→R4) に切替
-scrum:    HELIX Scrum（検証駆動開発）に切替
+scrum:    HELIX Discovery（検証駆動開発、legacy mode 名: scrum）に切替
 
 --drive:  sprint.drive を切り替え（be/fe/db/fullstack/agent/scrum）
           変更時は一番若い passed ゲートを起点に G7 まで invalidated
@@ -49,7 +49,7 @@ if [[ -z "${1:-}" ]]; then
   case "$current_mode" in
     forward) echo "  Forward HELIX (L1→L8): ゲート駆動の新規開発" ;;
     reverse) echo "  Reverse HELIX (R0→R4): 既存コードからの設計復元" ;;
-    scrum)   echo "  HELIX Scrum: 仮説検証駆動開発" ;;
+    scrum)   echo "  HELIX Discovery: 仮説検証駆動開発 (legacy mode 名: scrum)" ;;
   esac
   exit 0
 fi
@@ -265,5 +265,5 @@ echo "モードを $current_mode → $NEW_MODE に切り替えました"
 case "$NEW_MODE" in
   forward) echo "  次のステップ: helix size でサイジングを実行" ;;
   reverse) echo "  次のステップ: helix reverse R0 で証拠収集を開始" ;;
-  scrum)   echo "  次のステップ: helix scrum init で初期化" ;;
+  scrum)   echo "  次のステップ: helix discovery init (旧: helix scrum init) で初期化" ;;
 esac

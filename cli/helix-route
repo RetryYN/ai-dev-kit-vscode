@@ -5,4 +5,8 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  exec python3 "$SCRIPT_DIR/lib/route_engine.py" help
+fi
+
 exec python3 "$SCRIPT_DIR/lib/route_engine.py" "$@"

@@ -200,7 +200,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --ui          UI変更あり"
       echo "  --agent       エージェント駆動（--drive agent の短縮形）"
       echo "  --large       大規模案件として扱う（agent では 2 段設計推奨）"
-      echo "  --uncertain   要件不確実 (仮説検証が必要) → scrum (検証駆動) を推奨"
+      echo "  --uncertain   要件不確実 (仮説検証が必要) → discovery (検証駆動、旧: scrum) を推奨"
       echo "  --type TYPE   タスク種別:"
       echo "                  bugfix, refactor, new-feature, ui-change, doc, new-module"
       echo "  --drive DRIVE 駆動タイプ (デフォルト: be):"
@@ -264,7 +264,7 @@ if [[ "$DRIVE_SET" != true ]]; then
   if [[ "$UNCERTAIN" == true ]]; then
     DRIVE="scrum"
     echo "[drive-auto] 判定: scrum (要件不確実 → 検証駆動)" >&2
-    echo "[drive-auto] → helix scrum init で仮説検証から開始してください" >&2
+    echo "[drive-auto] → helix discovery init (旧: helix scrum init) で仮説検証から開始してください" >&2
     echo "[drive-auto] → 確定後に helix size --ui/--api/--db で再サイジング" >&2
   elif [[ "$HAS_UI" == true && ( "$HAS_API" == true || "$HAS_DB" == true ) ]]; then
     DRIVE="fullstack"
@@ -330,12 +330,12 @@ if [[ "$DRIVE" == "scrum" ]]; then
     echo "仮説検証サイクルで要件を確定してから Forward HELIX に移行してください。"
     echo ""
     echo "=== 次のステップ ==="
-    echo "  1. helix scrum init"
-    echo "  2. helix scrum backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'"
-    echo "  3. helix scrum plan --goal 'ゴール' --hypotheses H001"
-    echo "  4. helix scrum poc --hypothesis H001 で PoC 実装"
-    echo "  5. helix scrum verify で全検証スクリプト実行"
-    echo "  6. helix scrum decide --hypothesis H001 --confirmed で仮説確定"
+    echo "  1. helix discovery init"
+    echo "  2. helix discovery backlog add --id H001 --title '仮説' --question '検証内容' --acceptance '成功条件'"
+    echo "  3. helix discovery plan --goal 'ゴール' --hypotheses H001"
+    echo "  4. helix discovery poc --hypothesis H001 で PoC 実装"
+    echo "  5. helix discovery verify で全検証スクリプト実行"
+    echo "  6. helix discovery decide --hypothesis H001 --confirmed で仮説確定"
     echo "  7. 確定後に helix size --ui/--api/--db で再サイジング → Forward HELIX へ"
   fi
   if [[ -f "$HELIX_DIR/phase.yaml" && -f "$YAML_PARSER" ]]; then

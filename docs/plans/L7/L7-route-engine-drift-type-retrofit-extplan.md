@@ -2,7 +2,7 @@
 plan_id: L7-route-engine-drift-type-retrofit-ext
 name: L7-route-engine-drift-type-retrofit-ext
 description: route_engine.py 拡張 — drift_type 7 種細分化 + Retrofit mode 追加 + suggest subcommand + recommended_command field
-status: draft
+status: completed
 process_layer: L7
 kind: impl
 drive: be

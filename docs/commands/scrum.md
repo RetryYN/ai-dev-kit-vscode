@@ -1,6 +1,8 @@
 # helix scrum 判定管理ガイド
 
-`helix scrum` は要件や実現性が未確定なものを、仮説・PoC・検証スクリプト・判定で管理する検証駆動モードです。Forward HELIX に入る前の不確実性を潰すために使います。
+> **[DEPRECATED]** `helix scrum` は backward compat alias です。正本は [`helix discovery`](discovery.md) です。
+
+`helix scrum` は要件や実現性が未確定なものを、仮説・PoC・検証スクリプト・判定で管理する検証駆動モードの legacy alias です。正本コマンドは `helix discovery` で、Forward HELIX に入る前の不確実性を潰すために使います。
 
 ## 入口判定
 

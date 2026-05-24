@@ -4,7 +4,7 @@ title: "L7-cli-helix-refactor-implplan: helix-refactor CLI 実装 — Refactor m
 kind: impl
 layer: L7
 drive: be
-status: draft
+status: completed
 created: 2026-05-24
 revised: 2026-05-24-R3
 owner: PM
@@ -766,4 +766,5 @@ route_engine (PLAN C') が本 PLAN B へ渡す `recommended_command` は JSON ob
 | C-06 | `helix debt status` / threshold 超過自動連携 (P1-6) は helix-debt サブコマンド拡張後の future。現在は --from-debt-id 手動指定に限定 | P2 | □ 別 PLAN 待ち |
 | C-07 | unknown_design → Refactor 接続は Reverse(code) で契約復元後に既存テスト整備を前提とした別 carry として検討 | P3 | □ carry |
 | C-08 | P2-2: test_cmd の shlex.split + shell=False 方針では pipe/env/redirect 不可。代替として --test-arg 配列または trusted shell opt-in の実装は別 PR 候補 | P3 | □ carry |
+| C-09 | `helix route suggest --signal drift --drift-type code_smell --format json` の `recommended_command.args.drift_type` exact match は route_engine 拡張 (C' 担当) の rerun で最終確認する。本 PLAN は受け口 (`helix refactor`) 実装と router/help/docs 登録までを完了 | P1 | □ C' rerun 待ち |
 | C-NEW | **R3 revision (ADR SoT 参照置換) 記録**: §8 drift_type 7 種表 → ADR-041 §Decision 参照に置換 (行削除 -11 行 + reference 追記 +10 行)。recommended_command JSON object 形式 + 接続コマンド統一 (ADR-042 §Decision) を §8 末尾に追記 (+28 行)。frontmatter dependencies.requires に ADR-041/042 追加、parent_design を list 化して同追加、related_docs に同追加。本 R3 変更一覧は Phase 3 tl-advisor R3 round confirm 対象。 | P1 | ✅ R3 revised |

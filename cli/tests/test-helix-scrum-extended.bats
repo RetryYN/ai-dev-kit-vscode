@@ -21,23 +21,23 @@ teardown() {
 }
 
 @test "helix scrum web-search と acceptance-design は help を表示できる" {
-  run "$HELIX_ROOT/cli/helix-scrum" web-search --help
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" web-search --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Usage: helix scrum web-search"* ]]
+  [[ "$output" == *"Usage: helix discovery web-search"* ]]
 
-  run "$HELIX_ROOT/cli/helix-scrum" acceptance-design --help
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" acceptance-design --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Usage: helix scrum acceptance-design"* ]]
+  [[ "$output" == *"Usage: helix discovery acceptance-design"* ]]
 }
 
 @test "helix scrum web-search は reference を保存し acceptance-design はテンプレを出力する" {
-  run "$HELIX_ROOT/cli/helix-scrum" init
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" init
   [ "$status" -eq 0 ]
 
-  run "$HELIX_ROOT/cli/helix-scrum" backlog add --id H001 --title "検索仮説" --question "事例が見つかるか" --acceptance "1件以上の参考事例を保存できる"
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" backlog add --id H001 --title "検索仮説" --question "事例が見つかるか" --acceptance "1件以上の参考事例を保存できる"
   [ "$status" -eq 0 ]
 
-  run "$HELIX_ROOT/cli/helix-scrum" web-search --query "test" --hypothesis H001
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" web-search --query "test" --hypothesis H001
   [ "$status" -eq 0 ]
   [[ "$output" == *"web-search saved"* ]]
 
@@ -46,7 +46,7 @@ teardown() {
   grep -R "Reference URL:" "$PROJECT_ROOT/.helix/scrum/research/H001" >/dev/null
   grep -R "Summary:" "$PROJECT_ROOT/.helix/scrum/research/H001" >/dev/null
 
-  run "$HELIX_ROOT/cli/helix-scrum" acceptance-design --hypothesis H001
+  run env HELIX_SUPPRESS_LEGACY_WARN=1 "$HELIX_ROOT/cli/helix-scrum" acceptance-design --hypothesis H001
   [ "$status" -eq 0 ]
   [ -f "$PROJECT_ROOT/.helix/scrum/acceptance/H001.md" ]
   grep -q "PoC Acceptance Criteria" "$PROJECT_ROOT/.helix/scrum/acceptance/H001.md"

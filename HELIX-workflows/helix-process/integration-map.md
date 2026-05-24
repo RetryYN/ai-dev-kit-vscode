@@ -38,13 +38,13 @@ integration_target:
 | テンプレート | 状態 |
 |---|---|
 | PLAN kind 11種（design / impl / poc / reverse / troubleshoot / refactor / retrofit / research / add-design / add-impl / recovery） | 全てあり |
-| generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | なし（穴） |
+| generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | retrofit-matrix / recovery-log はあり、research-memo / ADR は穴 |
 | 工程(L): L1 / L2 / L3 / L4（sprint-guide 5種）/ L5 | あり |
 | 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | なし（穴） |
 | drive=agent（2段設計の Stage 2 昇華） | なし（穴, two-stage-agent-design） |
 | 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | なし（穴, continuous-run-context-management） |
 
-PLAN の kind 雛形は揃っているが、その PLAN が生む成果物の雛形（特に新モードの retrofit-matrix / research-memo / ADR / recovery-log）が無い。工程テンプレートも L1–L5 中心で、L0 と L6–L14 が欠けている。
+PLAN の kind 雛形は揃っている。generates 成果物も `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log は実装済みだが、research-memo / ADR の雛形は未整備。工程テンプレートは L1–L5 中心で、L0 と L6–L14 が欠けている。
 
 ## 未統合
 

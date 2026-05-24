@@ -55,6 +55,153 @@ def test_drift_routes_to_reverse_normalization() -> None:
     assert result.action == "suggest_only"
 
 
+@pytest.mark.parametrize(
+    ("drift_type", "mode", "kind", "subtype"),
+    [
+        ("schema", "Reverse", "reverse", "normalization"),
+        ("contract", "Reverse", "reverse", "normalization"),
+        ("code_smell", "Refactor", "refactor", None),
+        ("structural", "Refactor", "refactor", None),
+        ("dependency_outdated", "Retrofit", "retrofit", "dependency"),
+        ("upgrade", "Retrofit", "retrofit", "upgrade"),
+        ("config_drift", "Retrofit", "retrofit", "config"),
+    ],
+)
+def test_drift_type_overrides_route(drift_type: str, mode: str, kind: str, subtype: str | None) -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-001-U-EXT-007."""
+    result = route_engine.RouteEngine().evaluate("drift", drift_type=drift_type)
+
+    assert result.mode == mode
+    assert result.kind == kind
+    assert result.subtype == subtype
+    assert result.drift_type == drift_type
+
+
+@pytest.mark.parametrize(
+    ("signal", "subtype", "drift_type"),
+    [
+        ("dependency_outdated", "dependency", "dependency_outdated"),
+        ("upgrade", "upgrade", "upgrade"),
+        ("config_drift", "config", "config_drift"),
+    ],
+)
+def test_shortcut_signals_route_to_retrofit(signal: str, subtype: str, drift_type: str) -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-009-U-EXT-011."""
+    result = route_engine.RouteEngine().evaluate(signal)
+
+    assert result.mode == "Retrofit"
+    assert result.kind == "retrofit"
+    assert result.subtype == subtype
+    assert result.drift_type == drift_type
+
+
+def test_non_drift_signal_keeps_drift_type_none() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-013."""
+    result = route_engine.RouteEngine().evaluate("unknown_design")
+
+    assert result.drift_type is None
+
+
+def test_recommended_command_for_retrofit_is_json_object() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-014,U-EXT-023."""
+    result = route_engine.RouteEngine().evaluate("upgrade")
+
+    assert result.recommended_command == {
+        "schema_version": "v1",
+        "command": "helix plan draft",
+        "args": {"kind": "retrofit", "drift_type": "upgrade"},
+        "safety": {
+            "auto_apply": False,
+            "requires_human_approval": False,
+            "requires_preflight": False,
+        },
+    }
+
+
+def test_high_risk_upgrade_requires_reverse_preflight() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-024."""
+    result = route_engine.RouteEngine().evaluate("upgrade", uncertainty="high", impact="high")
+
+    assert result.recommended_command["command"] == "helix reverse upgrade R0"
+    assert result.recommended_command["args"] == {}
+    assert result.recommended_command["safety"] == {
+        "auto_apply": False,
+        "requires_human_approval": False,
+        "requires_preflight": True,
+    }
+
+
+def test_recommended_command_for_reverse_and_refactor() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-015,U-EXT-016,U-EXT-026."""
+    reverse_result = route_engine.RouteEngine().evaluate("drift", drift_type="schema")
+    refactor_result = route_engine.RouteEngine().evaluate("drift", drift_type="code_smell")
+
+    assert reverse_result.recommended_command == {
+        "schema_version": "v1",
+        "command": "helix reverse normalization R0",
+        "args": {},
+        "safety": {
+            "auto_apply": False,
+            "requires_human_approval": False,
+            "requires_preflight": False,
+        },
+    }
+    assert refactor_result.recommended_command == {
+        "schema_version": "v1",
+        "command": "helix plan draft",
+        "args": {"kind": "refactor"},
+        "safety": {
+            "auto_apply": False,
+            "requires_human_approval": False,
+            "requires_preflight": False,
+        },
+    }
+
+
+def test_to_dict_contains_drift_type_and_recommended_command() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-017."""
+    result = route_engine.RouteEngine().evaluate("dependency_outdated")
+
+    payload = result.to_dict()
+
+    assert payload["drift_type"] == "dependency_outdated"
+    assert payload["recommended_command"]["args"]["kind"] == "retrofit"
+
+
+def test_from_detect_output_reads_drift_type_when_present() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-018,U-EXT-019."""
+    payload = [
+        {
+            "detector": "axis_01_drift",
+            "status": "drift",
+            "result": {
+                "uncertainty": "low",
+                "impact": "high",
+                "env": "dev",
+                "drift_type": "config_drift",
+            },
+        },
+        {
+            "detector": "axis_01_drift",
+            "status": "drift",
+            "result": {"uncertainty": "low", "impact": "low", "env": "dev"},
+        },
+    ]
+
+    results = route_engine.RouteEngine().from_detect_output(payload)
+
+    assert results[0].mode == "Retrofit"
+    assert results[0].drift_type == "config_drift"
+    assert results[1].mode == "Reverse"
+    assert results[1].drift_type == "schema"
+
+
+def test_shortcut_signal_with_conflicting_drift_type_raises() -> None:
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-025."""
+    with pytest.raises(route_engine.RouteEngineError, match="矛盾"):
+        route_engine.RouteEngine().evaluate("upgrade", drift_type="config_drift")
+
+
 def test_debt_degradation_routes_to_refactor() -> None:
     """DoD 検証: debt_degradation は Refactor へ固定される。"""
     result = route_engine.RouteEngine().evaluate("debt_degradation", impact="high")
@@ -119,11 +266,11 @@ def test_invalid_signal_and_invalid_schema_raise() -> None:
 
 
 def test_list_signals_returns_all() -> None:
-    """DoD 検証: 7 signal + 1 alias が列挙される。"""
+    """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-020,U-EXT-021."""
     items = route_engine.RouteEngine().list_signals()
 
-    assert len(items) == 8
-    assert [item["signal"] for item in items[:7]] == [
+    assert len(items) == 11
+    assert [item["signal"] for item in items[:10]] == [
         "drift",
         "debt_degradation",
         "regression_prod",
@@ -131,6 +278,19 @@ def test_list_signals_returns_all() -> None:
         "runaway",
         "incident",
         "unknown_design",
+        "dependency_outdated",
+        "upgrade",
+        "config_drift",
+    ]
+    drift_entry = items[0]
+    assert drift_entry["drift_types"] == [
+        "schema",
+        "contract",
+        "code_smell",
+        "structural",
+        "dependency_outdated",
+        "upgrade",
+        "config_drift",
     ]
     assert items[-1]["signal"] == "degradation"
     assert items[-1]["deprecated"] is True

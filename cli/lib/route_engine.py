@@ -13,16 +13,49 @@ from pathlib import Path
 from typing import Any, Literal, TextIO
 
 
-Mode = Literal["Reverse", "Refactor", "Recovery", "Incident"]
-Kind = Literal["reverse", "refactor", "recovery", "troubleshoot"]
+Mode = Literal["Reverse", "Refactor", "Recovery", "Incident", "Retrofit"]
+Kind = Literal["reverse", "refactor", "recovery", "troubleshoot", "retrofit"]
 Priority = Literal["P0", "P1", "P2", "P3"]
 Action = Literal["suggest_only", "immediate_plan_draft", "discovery_first", "emergency_routing"]
 Severity = Literal["low", "high"]
 Env = Literal["prod", "dev"]
+DriftType = Literal[
+    "schema",
+    "contract",
+    "code_smell",
+    "structural",
+    "dependency_outdated",
+    "upgrade",
+    "config_drift",
+]
 
 SOURCE_SCHEMA = "helix_detect_run_json_v1"
 VALID_SEVERITY = ("low", "high")
+VALID_DRIFT_TYPES = (
+    "schema",
+    "contract",
+    "code_smell",
+    "structural",
+    "dependency_outdated",
+    "upgrade",
+    "config_drift",
+)
+DEFAULT_DRIFT_TYPE: DriftType = "schema"
 RECOVER_LINKED_SIGNALS = {"runaway", "regression_dev"}
+SHORTCUT_SIGNAL_TO_DRIFT_TYPE: dict[str, DriftType] = {
+    "dependency_outdated": "dependency_outdated",
+    "upgrade": "upgrade",
+    "config_drift": "config_drift",
+}
+DRIFT_TYPE_TO_ROUTE: dict[DriftType, dict[str, str | None]] = {
+    "schema": {"mode": "Reverse", "kind": "reverse", "subtype": "normalization"},
+    "contract": {"mode": "Reverse", "kind": "reverse", "subtype": "normalization"},
+    "code_smell": {"mode": "Refactor", "kind": "refactor", "subtype": None},
+    "structural": {"mode": "Refactor", "kind": "refactor", "subtype": None},
+    "dependency_outdated": {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
+    "upgrade": {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
+    "config_drift": {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
+}
 
 
 class RouteEngineError(ValueError):
@@ -42,6 +75,8 @@ class RouteResult:
     suggest_command: str
     recover_args: dict[str, str] | None
     plan_hint: str
+    drift_type: str | None
+    recommended_command: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -58,6 +93,9 @@ class RouteEngine:
         "runaway": {"mode": "Recovery", "kind": "recovery", "subtype": None},
         "incident": {"mode": "Incident", "kind": "_env_dependent", "subtype": None},
         "unknown_design": {"mode": "Reverse", "kind": "reverse", "subtype": "code"},
+        "dependency_outdated": {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
+        "upgrade": {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
+        "config_drift": {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
     }
 
     DEPRECATED_ALIAS: dict[str, str] = {
@@ -81,14 +119,32 @@ class RouteEngine:
         impact: Severity = "low",
         env: Env | None = None,
         reopen_point: str = "HEAD",
+        drift_type: str | None = None,
     ) -> RouteResult:
         signal_id = self._normalize_signal(signal)
         normalized_uncertainty = self._normalize_severity("uncertainty", uncertainty)
         normalized_impact = self._normalize_severity("impact", impact)
         normalized_env = self._resolve_env(signal_id, env)
-        route = self._resolve_route(signal_id, normalized_env)
+        normalized_drift_type = self._resolve_drift_type(signal_id, drift_type)
+        route = self._resolve_route(signal_id, normalized_env, normalized_drift_type)
         priority, action = self.PRIORITY_ACTION[(normalized_uncertainty, normalized_impact)]
-        suggest_command, recover_args = self._build_suggest_command(signal_id, route["kind"], normalized_env, reopen_point)
+        suggest_command, recover_args = self._build_suggest_command(
+            signal_id,
+            route["kind"],
+            normalized_env,
+            reopen_point,
+        )
+        recommended_command = self._build_recommended_command(
+            signal_id,
+            route["mode"],
+            route["kind"],
+            route["subtype"],
+            normalized_drift_type,
+            normalized_env,
+            reopen_point,
+            normalized_uncertainty,
+            normalized_impact,
+        )
         plan_hint = self._build_plan_hint(signal_id, route["mode"], priority, action)
         return RouteResult(
             signal=signal_id,
@@ -102,6 +158,8 @@ class RouteEngine:
             suggest_command=suggest_command,
             recover_args=recover_args,
             plan_hint=plan_hint,
+            drift_type=normalized_drift_type,
+            recommended_command=recommended_command,
         )
 
     def from_detect_output(self, detect_run_json: dict[str, Any] | list[dict[str, Any]]) -> list[RouteResult]:
@@ -132,21 +190,24 @@ class RouteEngine:
                     impact=str(result.get("impact", "low")),
                     env=self._env_from_result(result),
                     reopen_point=str(result.get("reopen_point", "HEAD")),
+                    drift_type=self._drift_type_from_result(result),
                 )
             )
         return results
 
     def list_signals(self) -> list[dict[str, Any]]:
-        items = [
-            {
+        items = []
+        for signal, values in self.SIGNAL_TO_MODE.items():
+            entry: dict[str, Any] = {
                 "signal": signal,
                 "mode": values["mode"],
                 "kind": self._display_kind(signal, "dev"),
                 "subtype": values["subtype"],
                 "deprecated": False,
             }
-            for signal, values in self.SIGNAL_TO_MODE.items()
-        ]
+            if signal == "drift":
+                entry["drift_types"] = list(VALID_DRIFT_TYPES)
+            items.append(entry)
         items.append(
             {
                 "signal": "degradation",
@@ -187,13 +248,35 @@ class RouteEngine:
             raise ValueError(f"invalid env: {env}")
         return normalized  # type: ignore[return-value]
 
-    def _resolve_route(self, signal: str, env: Env) -> dict[str, Any]:
+    def _resolve_drift_type(self, signal: str, drift_type: str | None) -> DriftType | None:
+        shortcut_drift_type = SHORTCUT_SIGNAL_TO_DRIFT_TYPE.get(signal)
+        if shortcut_drift_type is not None:
+            if drift_type is not None and drift_type != shortcut_drift_type:
+                raise RouteEngineError(
+                    f"signal={signal} の drift_type は {shortcut_drift_type} 固定で、明示指定 {drift_type} と矛盾します"
+                )
+            return shortcut_drift_type
+        if signal != "drift":
+            return None
+        if drift_type is None:
+            return DEFAULT_DRIFT_TYPE
+        normalized = drift_type.strip().lower()
+        if normalized not in VALID_DRIFT_TYPES:
+            raise RouteEngineError(f"unknown drift_type: {drift_type}")
+        return normalized  # type: ignore[return-value]
+
+    def _resolve_route(self, signal: str, env: Env, drift_type: DriftType | None = None) -> dict[str, Any]:
         mapping = self.SIGNAL_TO_MODE[signal]
         mode = mapping["mode"]
         subtype = mapping["subtype"]
         kind = mapping["kind"]
         if signal == "incident":
             kind = "recovery" if env == "prod" else "troubleshoot"
+        if signal == "drift" and drift_type is not None:
+            override = DRIFT_TYPE_TO_ROUTE[drift_type]
+            mode = override["mode"]
+            kind = override["kind"]
+            subtype = override["subtype"]
         return {
             "mode": mode,
             "kind": kind,
@@ -220,6 +303,80 @@ class RouteEngine:
             )
         return (f"helix plan draft --kind {kind}", None)
 
+    def _build_recommended_command(
+        self,
+        signal: str,
+        mode: Mode,
+        kind: Kind,
+        subtype: str | None,
+        drift_type: DriftType | None,
+        env: Env,
+        reopen_point: str,
+        uncertainty: Severity,
+        impact: Severity,
+    ) -> dict[str, Any]:
+        base_safety = {
+            "auto_apply": False,
+            "requires_human_approval": False,
+            "requires_preflight": False,
+        }
+        if mode == "Recovery" or (mode == "Incident" and env == "prod"):
+            return {
+                "schema_version": "v1",
+                "command": "helix recover plan",
+                "args": {
+                    "signal_id": signal,
+                    "reopen_point": reopen_point,
+                    "auto_routed_from": "helix-route",
+                },
+                "safety": {
+                    **base_safety,
+                    "requires_human_approval": True,
+                },
+            }
+        if mode == "Reverse":
+            reverse_type = "code" if subtype == "code" else "normalization"
+            return {
+                "schema_version": "v1",
+                "command": f"helix reverse {reverse_type} R0",
+                "args": {},
+                "safety": base_safety,
+            }
+        if mode == "Refactor":
+            return {
+                "schema_version": "v1",
+                "command": "helix plan draft",
+                "args": {"kind": "refactor"},
+                "safety": base_safety,
+            }
+        if mode == "Retrofit":
+            normalized_drift_type = drift_type or "dependency_outdated"
+            if normalized_drift_type == "upgrade" and (uncertainty == "high" or impact == "high"):
+                return {
+                    "schema_version": "v1",
+                    "command": "helix reverse upgrade R0",
+                    "args": {},
+                    "safety": {
+                        **base_safety,
+                        "requires_preflight": True,
+                    },
+                }
+            return {
+                "schema_version": "v1",
+                "command": "helix plan draft",
+                "args": {"kind": "retrofit", "drift_type": normalized_drift_type},
+                "safety": {
+                    **base_safety,
+                    "requires_human_approval": normalized_drift_type == "config_drift",
+                },
+            }
+        return {
+            "schema_version": "v1",
+            "command": "helix plan draft",
+            "args": {"kind": kind},
+            "safety": base_safety,
+        }
+
     def _build_plan_hint(self, signal: str, mode: Mode, priority: Priority, action: Action) -> str:
         return f"{signal} routed to {mode} ({priority}, {action})"
 
@@ -233,6 +390,13 @@ class RouteEngine:
             return None
         return str(value)
 
+    @staticmethod
+    def _drift_type_from_result(result: dict[str, Any]) -> str | None:
+        value = result.get("drift_type")
+        if value is None:
+            return None
+        return str(value)
+
 
 def _load_json_input(path: str) -> Any:
     if path in {"-", "/dev/stdin"}:
@@ -242,9 +406,10 @@ def _load_json_input(path: str) -> Any:
 
 def _print_route_help() -> None:
     print(
-        "Usage: helix route <eval|list-signals|help> [args...]\n\n"
+        "Usage: helix route <eval|suggest|list-signals|help> [args...]\n\n"
         "Commands:\n"
-        "  eval          signal または detect JSON から route を評価\n"
+        "  eval          signal または detect JSON から route を評価 (full RouteResult)\n"
+        "  suggest       suggest_command を 1 行 string で出力、--format json で JSON を返す\n"
         "  list-signals  登録済 signal と alias を表示\n"
         "  help          この usage を表示\n"
     )
@@ -258,11 +423,24 @@ def _build_parser() -> argparse.ArgumentParser:
     source_group = eval_parser.add_mutually_exclusive_group(required=True)
     source_group.add_argument("--signal")
     source_group.add_argument("--from-json")
+    eval_parser.add_argument("--drift-type")
     eval_parser.add_argument("--uncertainty", default="low")
     eval_parser.add_argument("--impact", default="low")
     eval_parser.add_argument("--env")
     eval_parser.add_argument("--reopen-point", default="HEAD")
     eval_parser.add_argument("--format", choices=("json", "command"), default="json")
+
+    suggest_parser = sub.add_parser("suggest")
+    suggest_source_group = suggest_parser.add_mutually_exclusive_group(required=True)
+    suggest_source_group.add_argument("--signal")
+    suggest_source_group.add_argument("--from-json")
+    suggest_parser.add_argument("--drift-type")
+    suggest_parser.add_argument("--uncertainty", default="low")
+    suggest_parser.add_argument("--impact", default="low")
+    suggest_parser.add_argument("--env")
+    suggest_parser.add_argument("--reopen-point", default="HEAD")
+    suggest_parser.add_argument("--format", choices=("command", "json"), default="command")
+    suggest_parser.add_argument("--json", action="store_true", dest="output_json")
 
     list_parser = sub.add_parser("list-signals")
     list_parser.add_argument("--json", action="store_true")
@@ -295,9 +473,36 @@ def main(argv: list[str] | None = None) -> int:
                     line = f"{item['signal']} mode={item['mode']} kind={item['kind']}"
                     if item.get("subtype"):
                         line += f" subtype={item['subtype']}"
+                    if item.get("drift_types"):
+                        line += " drift_types=" + ",".join(item["drift_types"])
                     if item.get("deprecated"):
                         line += f" deprecated replacement={item['replacement']}"
                     print(line)
+            return 0
+
+        if args.command == "suggest":
+            output_format = "json" if getattr(args, "output_json", False) else args.format
+            if args.from_json:
+                results = engine.from_detect_output(_load_json_input(args.from_json))
+                if output_format == "json":
+                    print(json.dumps([result.to_dict() for result in results], ensure_ascii=False, sort_keys=True))
+                else:
+                    for result in results:
+                        print(result.suggest_command)
+                return 0
+
+            result = engine.evaluate(
+                args.signal,
+                uncertainty=args.uncertainty,
+                impact=args.impact,
+                env=args.env,
+                reopen_point=args.reopen_point,
+                drift_type=args.drift_type,
+            )
+            if output_format == "json":
+                print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+            else:
+                print(result.suggest_command)
             return 0
 
         if args.from_json:
@@ -315,6 +520,7 @@ def main(argv: list[str] | None = None) -> int:
             impact=args.impact,
             env=args.env,
             reopen_point=args.reopen_point,
+            drift_type=args.drift_type,
         )
         if args.format == "command":
             print(result.suggest_command)

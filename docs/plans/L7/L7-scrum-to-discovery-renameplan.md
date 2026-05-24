@@ -4,7 +4,7 @@ title: "L7-scrum-to-discovery-renameplan (A1): helix-scrum → helix-discovery C
 kind: refactor
 layer: L7
 drive: be
-status: draft
+status: completed
 created: 2026-05-24
 revised: "2026-05-24 (R2 revision: P0-1 state-path legacy / P1-1 docs/commands / P1-2 enum-contract / P1-3 4-property-test / P2-1 trace / P2-2 no-dollar-star / P2-3 env-form)"
 owner: PM

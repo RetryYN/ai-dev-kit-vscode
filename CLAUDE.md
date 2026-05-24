@@ -77,7 +77,7 @@ skills/
 
 - Forward: `size` -> `plan` -> `matrix` -> `gate` -> `sprint` -> `test`
 - Reverse: `reverse <type> R0` -> `R1` -> `R2` -> `R3` -> `R4` -> `rgc`
-- Scrum (検証駆動 / HELIX-workflows での Discovery 互換): `scrum init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
+- Discovery (検証駆動 / 旧: helix scrum): `discovery init` -> `backlog` -> `plan` -> `poc` -> `verify` -> `decide`
 - Research: `helix research` で技術調査・意思決定 (ADR 連携)
 - AI harness: `plan` / `task` の文脈を `codex` / `claude` / `team` / `review` / `handover` で管理する。
 

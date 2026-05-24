@@ -2,7 +2,7 @@
 plan_id: L7-cli-helix-recovery-impl
 name: L7-cli-helix-recovery-impl
 description: cli/helix-recovery 新規実装 — Recovery mode workflow 進行・全体管理 CLI (recover/recovery 責務分離 + 発火条件 4 種機械化 + stop-hook 連携 + cutover_orchestrator 連携)
-status: draft
+status: completed
 process_layer: L7
 kind: impl
 drive: be
@@ -96,12 +96,12 @@ integration-map.md §コマンドの穴 に「helix-recovery (workflow 管理層
 | 6 | stop-hook 連携設計 | PM | ✅ done (§6) |
 | 7 | tl-advisor adversarial check 第 1 ラウンド | PM → TL | ✅ done (needs_revision、P0 なし / P1 5 件 / P2 4 件) |
 | 8 | TL 指摘反映 (P1 全件 + P2 反映可能範囲) | PM → PMO | ✅ done (pmo-sonnet revision) |
-| 9 | SE 委譲: cli/helix-recovery + cli/lib/recovery_workflow_engine.py 実装 | PM → SE | □ pending |
-| 10 | bash -n / shellcheck / python3 -m py_compile 確認 | SE | □ pending |
-| 11 | pytest test_helix_recovery.py + bats helix_recovery.bats 全 PASS | SE | □ pending |
-| 12 | cli/helix router 登録 + `helix help` + `helix commands check` 確認 | SE | □ pending |
-| 13 | docs/commands/index.md 更新 | SE | □ pending |
-| 14 | pmo-sonnet で 4 artifact 双方向 trace 確認 | PM → PMO | □ pending |
+| 9 | SE 委譲: cli/helix-recovery + cli/lib/recovery_workflow_engine.py 実装 | PM → SE | ✅ done |
+| 10 | bash -n / shellcheck / python3 -m py_compile 確認 | SE | ✅ done |
+| 11 | pytest test_helix_recovery.py + bats helix_recovery.bats 全 PASS | SE | ✅ done |
+| 12 | cli/helix router 登録 + `helix help` + `helix commands check` 確認 | SE | ✅ done |
+| 13 | docs/commands/index.md 更新 | SE | ✅ done |
+| 14 | pmo-sonnet で 4 artifact 双方向 trace 確認 | PM → PMO | ✅ done (self-check) |
 | 15 | commit + push | PM | □ pending |
 
 ---

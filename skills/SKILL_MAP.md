@@ -194,7 +194,7 @@ table 二重化を避けるため詳細は正本へ委譲する。CLI 整備状�
 
 L2 (左腕) でワイヤー設計、L10 (右腕) で UX 磨き上げ、V-model 上のペア関係。
 
-> **責務整理 (重要、tl-advisor 指摘で確立)**: 既存 `§HELIX Scrum (検証駆動)` および `helix scrum` CLI / `agent-skills/helix-scrum` skill は **HELIX-workflows の Discovery 意味** に対応する (仮説検証 / PoC / verify scripts)。HELIX-workflows の新 Scrum (アジャイル) は別概念。CLI / skill 名は legacy 互換で維持、概念的には Discovery として読む。将来の rename は別 PLAN carry。
+> **責務整理 (重要、L7-scrum-to-discovery-renameplan 完了後)**: `helix discovery` CLI / `agent-skills/helix-discovery` skill が正本であり、`helix scrum` / `agent-skills/helix-scrum` は legacy alias である。HELIX-workflows の新 Scrum (アジャイル) は別概念で、検証駆動の Discovery とは区別する。
 
 ### ワークフロー文書統合 cross-reference
 
@@ -242,30 +242,30 @@ Forward HELIX（Gap種別で L1/L2/L3/L4 に振り分け）
 **Reverse ゲート詳細** → `skills/tools/ai-coding/references/gate-policy.md §Reverse ゲート` 参照
 **Reverse フロー詳細** → `workflow/reverse-analysis/SKILL.md` 参照
 
-### HELIX Scrum（検証駆動 / 要件未確定時、HELIX-workflows での名称は Discovery）
+### HELIX Discovery（検証駆動 / 要件未確定時、旧: HELIX Scrum）
 
-> **責務整理 (2026-05-24)**: 本 section の「Scrum」は HELIX-workflows の **Discovery ワークフロー** (仮説検証 / PoC / verify scripts) に意味的に対応する。HELIX-workflows の新「Scrum」 (アジャイル Scrum、ユーザー要件すり合わせ反復開発) とは別概念。`helix scrum` CLI / `agent-skills/helix-scrum` skill / S0-S4 phase / `.helix/scrum/` 配下は legacy 互換で維持されるが、概念的には Discovery として運用する。詳細は [discovery-workflow.md](../HELIX-workflows/helix-process/discovery-workflow.md)。
+> **責務整理 (2026-05-25)**: 本 section は HELIX-workflows の **Discovery ワークフロー** (仮説検証 / PoC / verify scripts) を扱う。`helix discovery` / `agent-skills/helix-discovery` が正本で、`helix scrum` / `agent-skills/helix-scrum` は 1 release の backward compat alias である。HELIX-workflows の新「Scrum」 (アジャイル Scrum、ユーザー要件すり合わせ反復開発) とは別概念。runtime state は A1 では `.helix/scrum/` を継続利用する。詳細は [discovery-workflow.md](../HELIX-workflows/helix-process/discovery-workflow.md)。
 
 
 ```
 【仮説・要件不確実】実現可能性不明・PoC 要・技術検証必要
-  ↓ helix size --uncertain → scrum 判定 / または helix scrum init を直接起動
-S0  Backlog 構築（仮説一覧 + 検証質問 + 成功条件）
-  ↓ helix scrum backlog add
-S1  Sprint Plan（ゴール + 対象仮説選定）
-  ↓ helix scrum plan
-S2  PoC 実装（Codex に委譲、verify/ スクリプト化）
-  ↓ helix scrum poc --hypothesis H001
-S3  Verify（全検証スクリプト実行 → リグレッション蓄積）
-  ↓ helix scrum verify
-S4  Decide（confirmed / rejected / pivot）
-  ↓ helix scrum decide --hypothesis H001 --confirmed
+  ↓ helix size --uncertain → discovery 判定 / または helix discovery init を直接起動
+D0  Backlog 構築（仮説一覧 + 検証質問 + 成功条件）
+  ↓ helix discovery backlog add
+D1  Sprint Plan（ゴール + 対象仮説選定）
+  ↓ helix discovery plan
+D2  PoC 実装（Codex に委譲、verify/ スクリプト化）
+  ↓ helix discovery poc --hypothesis H001
+D3  Verify（全検証スクリプト実行 → リグレッション蓄積）
+  ↓ helix discovery verify
+D4  Decide（confirmed / rejected / pivot）
+  ↓ helix discovery decide --hypothesis H001 --confirmed
   ↓
 Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/fullstack 再判定）
 ```
 
 **Scrum モードの特徴**:
-- Forward HELIX のフェーズ進行 (L1-L11) は走らない。`.helix/scrum/` 配下で独立管理
+- Forward HELIX のフェーズ進行 (L1-L11) は走らない。runtime state は `.helix/scrum/` 配下で独立管理 (A1 scope)
 - verify/*.sh は毎回全実行 → リグレッション検出
 - `decide --confirmed` で Forward HELIX に接続
 - `db` / `agent` エッジケースでも「仮説検証フェーズ」として scrum 前段利用可能
@@ -404,7 +404,7 @@ fullstack 追加条件:
 | writing/ | japanese, explain, story, presentation, social, **god-writing** |
 | design-tools/ | diagram, web-system, pptx, graphic, character, **gpt-image** |
 | automation/ | site-mapping, browser-script, flow-optimize, scheduler, job-queue, lock, init-setup, observability |
-| **agent-skills/** | idea-refine, spec-driven-development, planning-and-task-breakdown, incremental-implementation, test-driven-development, context-engineering, source-driven-development, frontend-ui-engineering, api-and-interface-design, browser-testing-with-devtools, debugging-and-error-recovery, code-review-and-quality, security-and-hardening, performance-optimization, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, shipping-and-launch, using-agent-skills, **system-design-sizing**, **technical-writing**, **mock-driven-development**, **helix-scrum** |
+| **agent-skills/** | idea-refine, spec-driven-development, planning-and-task-breakdown, incremental-implementation, test-driven-development, context-engineering, source-driven-development, frontend-ui-engineering, api-and-interface-design, browser-testing-with-devtools, debugging-and-error-recovery, code-review-and-quality, security-and-hardening, performance-optimization, ci-cd-and-automation, deprecation-and-migration, documentation-and-adrs, shipping-and-launch, using-agent-skills, **system-design-sizing**, **technical-writing**, **mock-driven-development**, **helix-discovery**, **helix-scrum** |
 
 **2026-04-17 追加分** (20スキル):
 - workflow/: research (G1R)・poc (G1.5)・gate-planning (G0.5/G1.5)・schedule-wbs (L3)・threat-model (G2)・runbook (L6)・debt-register (G4)・reverse-r0〜r4 + reverse-rgc (R0-R4 + RGC)
@@ -413,7 +413,7 @@ fullstack 追加条件:
 
 **2026-04-22 追加分** (25スキル、agent-skills/ カテゴリ新設):
 - 上流由来 19 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / security-and-hardening / performance-optimization / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
-- HELIX 独自 4: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-scrum (S0-S4 仮説検証)
+- HELIX 独自 discovery skill: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-discovery (D0-D4 仮説検証)。`helix-scrum` は legacy alias として維持
 - 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-analysis
 - 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 19 エージェント構成: be-api / be-logic / code-reviewer / db-schema / devops-deploy / qa-test / security-audit / pmo-sonnet / pmo-haiku / pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager / pmo-helix-explorer / pmo-helix-scout / pmo-project-explorer / pmo-project-scout / pmo-tech-docs / pmo-tech-fork / pmo-tech-news）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md

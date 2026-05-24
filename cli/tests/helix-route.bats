@@ -33,6 +33,7 @@ teardown() {
   run "$HELIX_ROOT/cli/helix" route help
   [ "$status" -eq 0 ]
   [[ "$output" == *"Usage: helix route"* ]]
+  [[ "$output" == *"suggest"* ]]
   [[ "$output" == *"list-signals"* ]]
 }
 
@@ -77,8 +78,73 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == *"drift mode=Reverse"* ]]
   [[ "$output" == *"incident mode=Incident"* ]]
+  [[ "$output" == *"dependency_outdated mode=Retrofit"* ]]
   [[ "$output" == *"degradation mode=alias"* ]]
-  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" -eq 8 ]
+  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" -eq 11 ]
+}
+
+@test "helix route eval routes dependency_outdated to Retrofit" {
+  run "$HELIX_ROOT/cli/helix" route eval --signal dependency_outdated
+  [ "$status" -eq 0 ]
+
+  ROUTE_JSON="$output" python3 - <<'PY'
+import json
+import os
+
+payload = json.loads(os.environ["ROUTE_JSON"])
+assert payload["mode"] == "Retrofit", payload
+assert payload["kind"] == "retrofit", payload
+assert payload["drift_type"] == "dependency_outdated", payload
+assert payload["recommended_command"]["args"]["drift_type"] == "dependency_outdated", payload
+PY
+}
+
+@test "helix route suggest prints suggest_command by default" {
+  run "$HELIX_ROOT/cli/helix" route suggest --signal dependency_outdated
+  [ "$status" -eq 0 ]
+  [ "$output" = "helix plan draft --kind retrofit" ]
+}
+
+@test "helix route suggest supports drift_type overrides" {
+  run "$HELIX_ROOT/cli/helix" route suggest --signal drift --drift-type config_drift
+  [ "$status" -eq 0 ]
+  [ "$output" = "helix plan draft --kind retrofit" ]
+}
+
+@test "helix route suggest --format json returns recommended_command object" {
+  run "$HELIX_ROOT/cli/helix" route suggest --signal upgrade --format json
+  [ "$status" -eq 0 ]
+
+  ROUTE_JSON="$output" python3 - <<'PY'
+import json
+import os
+
+payload = json.loads(os.environ["ROUTE_JSON"])
+assert payload["mode"] == "Retrofit", payload
+assert payload["recommended_command"]["command"] == "helix plan draft", payload
+assert payload["recommended_command"]["args"]["kind"] == "retrofit", payload
+assert payload["recommended_command"]["args"]["drift_type"] == "upgrade", payload
+assert set(payload["recommended_command"]["safety"]) == {
+    "auto_apply",
+    "requires_human_approval",
+    "requires_preflight",
+}, payload
+PY
+}
+
+@test "helix route list-signals --json exposes drift_types" {
+  run "$HELIX_ROOT/cli/helix" route list-signals --json
+  [ "$status" -eq 0 ]
+
+  ROUTE_JSON="$output" python3 - <<'PY'
+import json
+import os
+
+payload = json.loads(os.environ["ROUTE_JSON"])
+drift = next(item for item in payload if item["signal"] == "drift")
+assert "dependency_outdated" in drift["drift_types"], payload
+assert any(item["signal"] == "upgrade" and item["mode"] == "Retrofit" for item in payload), payload
+PY
 }
 
 @test "helix commands check stays consistent after route registration" {

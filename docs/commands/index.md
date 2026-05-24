@@ -1,6 +1,6 @@
 # HELIX コマンド索引
 
-HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harness」「Reverse / Scrum / 検証」「学習・再利用」「補助・運用」の 6 領域で使い分ける。
+HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harness」「Reverse / Discovery / 検証」「学習・再利用」「補助・運用」の 6 領域で使い分ける。
 
 ## 1. HELIX 全体管理
 
@@ -37,7 +37,10 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix sprint` | L4 マイクロスプリント |
 | `helix task` | タスク OS |
 | `helix interrupt` | IIP / CC の開始・適用・再開・履歴集計 |
+| `helix refactor` | Refactor mode の session 管理 (保護網確認・振る舞い不変 check) |
 | `helix recover` | Recovery mode の診断・dump・PLAN 起票 (rollback は dry-run のみ) |
+| `helix recovery` | Recovery workflow session の開始・phase 進行・postmortem・完了管理 |
+| `helix retrofit` | Retrofit mode の matrix/config/plan 管理 |
 | `helix handover` | Opus / Codex handover |
 | `helix route` | detect signal を Reverse / Refactor / Recovery / Incident へ提案ルーティング |
 | `helix workspace` | git worktree-based per-task workspace 管理 |
@@ -81,12 +84,13 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 
 詳細: [ai-harness.md](ai-harness.md)
 
-## 4. Reverse / Scrum / 検証
+## 4. Reverse / Discovery / 検証
 
 | コマンド | 役割 |
 |---|---|
 | `helix reverse` | 既存コード・設計資産から Reverse HELIX。詳細: [reverse.md](reverse.md) |
-| `helix scrum` | 仮説検証、PoC、verify、Forward 接続。詳細: [scrum.md](scrum.md) |
+| `helix discovery` | 仮説検証、PoC、verify、Forward 接続。詳細: [discovery.md](discovery.md) |
+| `helix scrum` | `helix discovery` の deprecated alias。詳細: [scrum.md](scrum.md) |
 | `helix verify-all` | verify/ 配下の全検証 |
 | `helix verify-agent` | 検証ツール候補 harvest / design / drift cross-check |
 
@@ -126,7 +130,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | 新規機能を正攻法で進める | `size` → `plan` → `matrix` → `gate` → `sprint` → `test` |
 | Codex / Claude Code を管理して使う | `plan` / `task` → `codex` or `claude` → `review` → `handover` |
 | AI 強制導線と memory の穴を確認する | `context check` → `context bundle` → `session-start` |
-| 要件が曖昧なものを検証する | `scrum init` → `scrum backlog add` → `scrum poc` → `scrum verify` |
+| 要件が曖昧なものを検証する | `discovery init` → `discovery backlog add` → `discovery poc` → `discovery verify` |
 | 既存コードから設計を復元する | `reverse <type> R0` → `R1` → `R2` → `R3` → `R4` → `rgc` |
 | 成功パターンを再利用する | `log` → `recipe learn` → `recipe promote` → `builder` |
 | 状態を眺めて次を決める | `status` → `dashboard` → `readiness` → `debt` |
