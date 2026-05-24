@@ -3,6 +3,7 @@ doc_id: integration-map
 title: スキル・コマンドの穴と統合状況
 status: accepted
 accepted_date: 2026-05-24
+revised: 2026-05-25
 created: 2026-05-24
 owner: PM
 parent: ../HELIX-process-L0-L14.md
@@ -21,30 +22,30 @@ integration_target:
 |---|---|
 | recovery / incident / reverse / refactor / research / context | あり |
 | retrofit | なし（穴） |
-| detection-routing / learning-engine / cross-detection / layer-context-injection | ワークフロー文書はあり、workflow スキル未追加 |
+| detection-routing / learning-engine / cross-detection / layer-context-injection | ワークフロー文書あり、workflow スキル追加済（2026-05-25 完遂） |
 
 ## コマンドの穴
 
 | コマンド | 状態 |
 |---|---|
 | learn / context / matrix / doctor / drift-check / readiness / debt / interrupt | あり |
-| helix-recover（Recovery 起動） | なし（穴） |
-| helix-route（検出 → モードルーティング起動） | なし（穴） |
+| helix-recover（Recovery 起動） | あり（2026-05-25 完遂） |
+| helix-route（検出 → モードルーティング起動） | あり（2026-05-25 完遂） |
 
-学習・注入・オーケストレーション・横断集約のコマンドは揃っているが、Recovery を起動するコマンドと、検出結果をモードへ振り分ける（detection-routing）コマンドが欠けている。
+学習・注入・オーケストレーション・横断集約のコマンドは揃っており、`helix-recover / helix-route` は 2026-05-25 の対応で補完された。
 
 ## テンプレートの穴
 
 | テンプレート | 状態 |
 |---|---|
 | PLAN kind 11種（design / impl / poc / reverse / troubleshoot / refactor / retrofit / research / add-design / add-impl / recovery） | 全てあり |
-| generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | retrofit-matrix / recovery-log はあり、research-memo / ADR は穴 |
+| generates 成果物: retrofit-matrix / research-memo / ADR / recovery-log | retrofit-matrix / research-memo / ADR / recovery-log は全てあり（2026-05-25 完遂） |
 | 工程(L): L1 / L2 / L3 / L4（sprint-guide 5種）/ L5 | あり |
 | 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | なし（穴） |
 | drive=agent（2段設計の Stage 2 昇華） | なし（穴, two-stage-agent-design） |
 | 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | なし（穴, continuous-run-context-management） |
 
-PLAN の kind 雛形は揃っている。generates 成果物も `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log は実装済みだが、research-memo / ADR の雛形は未整備。工程テンプレートは L1–L5 中心で、L0 と L6–L14 が欠けている。
+PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log、加えて research-memo / ADR の雛形も 2026-05-25 完了対応で揃っている。工程テンプレートは L1–L5 中心で、L0 と L6–L14 が欠けている。
 
 ## 未統合
 
@@ -64,7 +65,8 @@ PLAN の kind 雛形は揃っている。generates 成果物も `helix retrofit 
 
 埋めるべき穴は次の通り。
 
-1. vmodel-semantics の注入セット定義（最優先）。これを定義しないと layer-context-injection で設計した L 単位注入が実際に効かない。設計済みの内容を yaml に落とすだけで、新規判断は不要。
+1. vmodel-semantics の注入セット定義（最優先）。これを定義しないと layer-context-injection で設計した L 単位注入が実際に効かない。設計済みの内容を yaml に落とすだけで、新規判断は不要。  
+   - 2026-05-25 完遂: commit 2942d81（**integration-map 注記追加対象**）
 2. コマンド2件: helix-recover（Recovery 起動）、helix-route（検出 → モードルーティング起動）。
 3. スキル: retrofit ワークフロースキル、および detection-routing / learning-engine / cross-detection / layer-context-injection の workflow スキル化。
 4. テンプレート: generates 成果物（retrofit-matrix / research-memo / ADR / recovery-log）と、工程 L0 / L6〜L14 のドキュメントテンプレート。
