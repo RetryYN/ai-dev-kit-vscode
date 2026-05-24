@@ -9,6 +9,20 @@
 
 - **Edit 前に Read**: 未読ファイルの Edit は失敗する
 
+### workflow doc 直接参照 index（Claude Code）
+
+- [Forward（Vモデル）](../HELIX-workflows/HELIX-process-L0-L14.md)
+- [Scrum](../HELIX-workflows/helix-process/scrum-workflow.md)
+- [Discovery](../HELIX-workflows/helix-process/discovery-workflow.md)
+- [Reverse](../HELIX-workflows/helix-process/reverse-workflow.md)
+- [Incident](../HELIX-workflows/helix-process/incident-workflow.md)
+- [Add-feature](../HELIX-workflows/helix-process/add-feature-workflow.md)
+- [Refactor](../HELIX-workflows/helix-process/refactor-workflow.md)
+- [Retrofit](../HELIX-workflows/helix-process/retrofit-workflow.md)
+- [Research](../HELIX-workflows/helix-process/research-workflow.md)
+- [Recovery](../HELIX-workflows/helix-process/recovery-workflow.md)
+- [2段AI合流（HELIX W）](../HELIX-workflows/helix-process/two-stage-agent-design.md)
+
 ### PM = Opus（実装禁止・チャットのみ）
 
 **すべて委譲**。例外は MCP 検証などツール動作確認のみ。

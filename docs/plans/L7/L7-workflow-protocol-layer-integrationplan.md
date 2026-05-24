@@ -4,7 +4,7 @@ title: "L7-workflow-protocol-layer-integrationplan: workflow doc と .md プロ�
 kind: design
 layer: L7
 drive: be
-status: draft
+status: completed
 process_layer: L7
 parent_design: HELIX-workflows/HELIX-process-L0-L14.md
 pairs_test_design: []
@@ -67,4 +67,3 @@ scope 外:
 - carry-1: プロトコル層に workflow 参照が固定化されないと handover 再現性が低下する問題を緩和
 - carry-2: `.md` 参照更新ルールを次回実装へ引き継ぐ
 - carry-3: 実装前提文書として継続的に監査可能にする
-

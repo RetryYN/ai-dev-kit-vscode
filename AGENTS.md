@@ -98,6 +98,22 @@ docs domain 別の導線は `docs/{adr,research,runbook,rollback,postmortem,slo,
 - Interrupt: 実装中の設計ギャップや要件変更は `helix interrupt` で IIP / CC として扱う。
 - Handover: セッションや担当をまたぐ場合は `.helix/handover/` を正本にする。
 
+### workflow doc 直接参照 index（Codex CLI）
+
+- [Forward（Vモデル）正本](HELIX-workflows/HELIX-process-L0-L14.md)
+- [Scrum](HELIX-workflows/helix-process/scrum-workflow.md)
+- [Discovery](HELIX-workflows/helix-process/discovery-workflow.md)
+- [Reverse](HELIX-workflows/helix-process/reverse-workflow.md)
+- [Incident](HELIX-workflows/helix-process/incident-workflow.md)
+- [Add-feature](HELIX-workflows/helix-process/add-feature-workflow.md)
+- [Refactor](HELIX-workflows/helix-process/refactor-workflow.md)
+- [Retrofit](HELIX-workflows/helix-process/retrofit-workflow.md)
+- [Research](HELIX-workflows/helix-process/research-workflow.md)
+- [Recovery](HELIX-workflows/helix-process/recovery-workflow.md)
+- [画面設計（UI / ワイヤーフレーム）](HELIX-workflows/helix-process/screen-design-workflow.md)
+- [フロントデザイン（UX / ビジュアル）](HELIX-workflows/helix-process/frontend-design-workflow.md)
+- [HELIX W（2 段V 合流）](HELIX-workflows/helix-process/two-stage-agent-design.md)
+
 ### Documented modes without dedicated CLI
 
 以下 mode は workflow doc 正本 + PLAN kind / template で扱う。**`helix refactor` / `helix retrofit` / `helix recovery` 等の CLI は存在しない**ため絶対に叩かない (TL Driven Mode の non-negotiable):

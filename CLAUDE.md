@@ -91,6 +91,23 @@ skills/
 - Add-feature → [HELIX-workflows/helix-process/add-feature-workflow.md](HELIX-workflows/helix-process/add-feature-workflow.md)
 - Recovery (AI 暴走ガード+収束、kind=`recovery`) → [HELIX-workflows/helix-process/recovery-workflow.md](HELIX-workflows/helix-process/recovery-workflow.md)
 
+### workflow doc 直接参照 index（CLAUDE）
+
+- [Forward（Vモデル）正本](HELIX-workflows/HELIX-process-L0-L14.md)
+- [Scrum](HELIX-workflows/helix-process/scrum-workflow.md)
+- [Discovery](HELIX-workflows/helix-process/discovery-workflow.md)
+- [Reverse](HELIX-workflows/helix-process/reverse-workflow.md)
+- [Incident](HELIX-workflows/helix-process/incident-workflow.md)
+- [Add-feature](HELIX-workflows/helix-process/add-feature-workflow.md)
+- [Refactor](HELIX-workflows/helix-process/refactor-workflow.md)
+- [Retrofit](HELIX-workflows/helix-process/retrofit-workflow.md)
+- [Research](HELIX-workflows/helix-process/research-workflow.md)
+- [Recovery](HELIX-workflows/helix-process/recovery-workflow.md)
+- [画面設計（UI / ワイヤーフレーム）](HELIX-workflows/helix-process/screen-design-workflow.md)
+- [フロントデザイン（UX / ビジュアル）](HELIX-workflows/helix-process/frontend-design-workflow.md)
+- [HELIX W（2 段V 合流）](HELIX-workflows/helix-process/two-stage-agent-design.md)
+- [自動化・ゲート・運用基盤](HELIX-workflows/helix-process/automation-gate-map.md)
+
 新 4 mode + HELIX W (2 段 V 合流) + TDD 全モード共通絶対原則の詳細は [HELIX-workflows/HELIX-process-L0-L14.md](HELIX-workflows/HELIX-process-L0-L14.md) を正本とする (HELIX_CORE.md §V2 完全移行 経由で自動継承)。
 
 詳細は [docs/commands/index.md](docs/commands/index.md) と [docs/commands/ai-harness.md](docs/commands/ai-harness.md) を参照。
