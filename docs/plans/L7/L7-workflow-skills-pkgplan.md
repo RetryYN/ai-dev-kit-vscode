@@ -374,7 +374,7 @@ compatibility:
 
 ```yaml
 name: layer-context-injection
-description: 各 L (工程 L0-L14) 入口で mandatory_skills / recommended_commands / required_agents / orchestration_mode を文脈注入し、AI の工程選択の迷いを消す機構。vmodel-semantics.yaml の injection-set と helix-context CLI が実装基盤。injection-set の実体キーは drive × layer の 20 セル構造 (4 drive × 5 layer) で管理される
+description: 各 L (工程 L0-L14) 入口で mandatory_agents / recommended_agents / recommended_skills / recommended_commands / orchestration_mode (vmodel frozen 契約 6 field) を文脈注入し、AI の工程選択の迷いを消す機構。vmodel-semantics.yaml の injection-set と helix-context CLI が実装基盤。injection-set の実体キーは drive × layer の 20 セル構造 (4 drive × 5 layer) で管理される
 metadata:
   helix_layer: L0-L14
   category: workflow
