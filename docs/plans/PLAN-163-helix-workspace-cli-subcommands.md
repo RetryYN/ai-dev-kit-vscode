@@ -7,8 +7,8 @@ process_layer: L7   # ★必須: 本 PLAN は L7 実装スプリント工程 (co
 parent_design: docs/plans/PLAN-156-helix-workspace-worktree-isolation.md   # from dependencies.parent
 superseded_by: PLAN-156
 status_history:
-  - 2026-05-23: draft (前 session 連続起票で作成、PLAN-156 子 PLAN として定義)
-  - 2026-05-24: superseded (PLAN-156 Sprint .2-.4 で本 PLAN scope 全実装済、commit 098ba97/1724be5/4e47004 で完遂)
+  - "2026-05-23: draft (前 session 連続起票で作成、PLAN-156 子 PLAN として定義)"
+  - "2026-05-24: superseded (PLAN-156 Sprint .2-.4 で本 PLAN scope 全実装済、commit 098ba97/1724be5/4e47004 で完遂)"
 kind: impl
 drive: be
 layer: L4
