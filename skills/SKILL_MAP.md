@@ -265,14 +265,14 @@ Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/full
 ```
 
 **Scrum モードの特徴**:
-- Forward HELIX のフェーズ進行 (L1-L11) は走らない。runtime state は `.helix/scrum/` 配下で独立管理 (A1 scope)
+- Forward HELIX のフェーズ進行 (L1-L14) は走らない。runtime state は `.helix/scrum/` 配下で独立管理 (A1 scope)
 - verify/*.sh は毎回全実行 → リグレッション検出
 - `decide --confirmed` で Forward HELIX に接続
 - `db` / `agent` エッジケースでも「仮説検証フェーズ」として scrum 前段利用可能
 
 ## readiness と carry rule
 
-PLAN-004 v5 連動として、L1-L11 の entry/exit に readiness 条件を含める。
+PLAN-004 v5 連動として、L1-L14 の entry/exit に readiness 条件を含める。
 
 - P0: gate stop（即修正）
 - P1: gate stop OR carry（PM承認）
@@ -330,7 +330,7 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 |---------|----|----|----|-----------|----|
 | L2 設計 | API設計・アーキテクチャ・ADR | **モック駆動設計**（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（**mock含む**）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
 | L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
-| L4 実装順 (新 L7) | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 (旧 L4.5) | ツール→オーケストレーション→UI |
+| L7 実装順 (旧 L4) | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 (旧 L4.5) | ツール→オーケストレーション→UI |
 | L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
 | L9 Run-1（デプロイ検証） | 標準 | 標準 | 薄い | 標準 | 薄い |
 | L10 Run-2（観測） | 薄い | 標準 | 薄い | 標準 | 薄い |
@@ -383,7 +383,7 @@ Run 工程（L9-L11）の適用可否:
 - PoC / 検証寄り: 本番影響がなければ Run は skip 可
 
 fullstack 追加条件:
-- L4 (新 L7) は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L7-L8 結合、旧 L4.5）
+- L7 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L7-L8 結合、旧 L4.5）
 - L5 は常に必要（結合後の Visual Refinement）
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
@@ -454,7 +454,7 @@ fullstack 追加条件:
 | スキル | 守備範囲 | 利用タイミング |
 |--------|---------|---------------|
 | `integration/agent-cost-design` | **エージェント着手前のコスト予算・ガードレール確定** (生成フロー / マルチベンダー / コスト見積 / 予算監視) | L1 受領直後〜L2 設計前。**設計・実装に着手する前に必ず** 通る前段ゲート |
-| `integration/agent-design` | **個別 LLM agent / task** の structural design (要素・骨格・前段制約・後段責務) | L2 ADR / L3 D-API / L4 実装で **判断に迷ったとき** 該当 axis を開く |
+| `integration/agent-design` | **個別 LLM agent / task** の structural design (要素・骨格・前段制約・後段責務) | L2 ADR / L3 D-API / L4 基本設計で **判断に迷ったとき** 該当 axis を開く |
 | `integration/agent-teams` | **複数 agent の協調・分業** | agent-design で個別設計後、複数 agent をチーム化するとき |
 | `agent-skills/spec-driven-development` | **仕様駆動開発全般** (LLM 限定なし) | spec → 実装の上位プロセス。agent-design はその LLM 特化版 |
 
@@ -594,7 +594,7 @@ automation/browser-script:
 詳細は `helix/HELIX_CORE.md §Sprint Plan 標準構造`。
 
 要点:
-- L4 実装中の Sprint Plan が標準 8 ステップに固定化される
+- L7 実装中の Sprint Plan が標準 8 ステップに固定化される
 - **mandatory in sprint**: 機械チェック (py_compile / lint) + テスト起動 (該当 test / 全回帰) + レビュー (セルフ / pmo-sonnet)
 - **on-demand in sprint**: security audit / perf test / tl-advisor 等
 - Sprint Exit 前に mandatory 全通過必須、`helix sprint complete --auto-check` で機械化
@@ -670,8 +670,8 @@ helix code list [--domain <name>] [--json]              # entry 一覧
 - non_indexable_paths: `tests/*.py` / `fixture/*` / `generated/*` / `vendor/*`（bucket 分類前 pre-filter）
 - helix.db schema: v14 → v15（`bucket` / `symbol_line` を追加）
 
-PLAN-013 運用フロー（L1-L11 追跡）:
-- L4 entry: `helix code find` / `helix code stats --uncovered --bucket coverage_eligible` で既存資産を確認
-- L4 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類
-- L4 build: `helix code build` で catalog を再生成し `bucket` / `symbol_line` / metadata を自動付与
-- G4: `helix code stats --scope core5 --bucket coverage_eligible --fail-under 80` を実施して coverage gate
+PLAN-013 運用フロー（L1-L14 追跡）:
+- L7 entry: `helix code find` / `helix code stats --uncovered --bucket coverage_eligible` で既存資産を確認
+- L7 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類
+- L7 build: `helix code build` で catalog を再生成し `bucket` / `symbol_line` / metadata を自動付与
+- G7: `helix code stats --scope core5 --bucket coverage_eligible --fail-under 80` を実施して coverage gate
