@@ -65,6 +65,20 @@ convert_bats_file() {
       printf '__bats_test_funcs+=("%s")\n' "$fn_name" >>"$dst"
       printf '%s() {\n' "$fn_name" >>"$dst"
       idx=$((idx + 1))
+    elif [[ "$line" =~ ^function[[:space:]]+([a-zA-Z0-9_]+)[[:space:]]*\{[[:space:]]*#@test[[:space:]]*(.*)$ ]]; then
+      local fn_name comment_style_name
+      fn_name="${BASH_REMATCH[1]}"
+      comment_style_name="${fn_name//_/ }"
+      printf '__bats_test_names+=("%s")\n' "${comment_style_name}" >>"$dst"
+      printf '__bats_test_funcs+=("%s")\n' "$fn_name" >>"$dst"
+      printf '%s\n' "$line" >>"$dst"
+    elif [[ "$line" =~ ^([a-zA-Z0-9_]+)\(\)[[:space:]]*\{[[:space:]]*#@test[[:space:]]*(.*)$ ]]; then
+      local fn_name comment_style_name
+      fn_name="${BASH_REMATCH[1]}"
+      comment_style_name="${fn_name//_/ }"
+      printf '__bats_test_names+=("%s")\n' "${comment_style_name}" >>"$dst"
+      printf '__bats_test_funcs+=("%s")\n' "$fn_name" >>"$dst"
+      printf '%s\n' "$line" >>"$dst"
     else
       printf '%s\n' "$line" >>"$dst"
     fi
