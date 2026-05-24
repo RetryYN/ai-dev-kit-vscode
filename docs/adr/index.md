@@ -38,3 +38,6 @@
 | ADR-035-external-skills-integration-2026-05-23 | 外部素材 skill 4 件の HELIX 体系統合 (doc-system-architect / requirements-deriver / god-writing / gpt-image) | Accepted | 2026-05-23 |
 | ADR-036-zizmor-adoption-decision | zizmor (GitHub Actions security audit) 採用 + 3 段統合 (CI enforcement + local advisory + knowledge reference) | Accepted with conditions | 2026-05-23 |
 | ADR-040-helix-workspace-isolation | helix workspace isolation (git worktree-based per-task sandbox + filtered materialized init) | Accepted | 2026-05-23 |
+| ADR-041-drift-type-7-categories-routing-decision | drift_type 7 種分類 + Reverse/Refactor/Retrofit 3 mode 分岐ルーティング契約 | Proposed | 2026-05-24 |
+| ADR-042-recommended-command-machine-vs-display-decision | recommended_command 機械契約 vs 人間表示の役割分離 (suggest_command backward compat + 新 field 役割固定) | Proposed | 2026-05-24 |
+| ADR-043-mode-enum-extension-retrofit-freeze-break-decision | Mode enum 拡張 (Retrofit 追加) — parent design freeze break + additive backward compat 凍結 | Proposed | 2026-05-24 |
