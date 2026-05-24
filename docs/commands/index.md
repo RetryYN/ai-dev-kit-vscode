@@ -11,7 +11,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix status` | 現在 phase / gate / next action を表示 |
 | `helix dashboard` | 静的な読み取り専用 snapshot を表示（Dashboard 構想管理の対象外） |
 | `helix mode` | forward / reverse / scrum の mode 切替 |
-| `helix doctor` | 環境診断・修復 |
+| `helix doctor` | 環境診断・修復 (`--json` 対応) |
 | `helix migrate` | `.helix/` テンプレート追従 |
 | `helix db` | helix.db migration / rollback / dev-sandbox 試演 (PLAN-086) |
 | `helix commands` | route / help / docs と主要 workflow 連携契約の同期検証 |
@@ -32,7 +32,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix matrix` | 成果物対照表と gate-checks の生成 |
 | `helix gate` | G0.5-G11 のゲート検証 |
 | `helix gate-api-check` | D-API と実装 endpoint の整合検証 |
-| `helix vmodel` | V-model semantics 表示・検証 (drive/layer/test/pair) |
+| `helix vmodel` | V-model semantics 表示・検証 (`show --injection-only` 対応) |
 | `helix readiness` | readiness exit と deferred finding 管理 |
 | `helix sprint` | L4 マイクロスプリント |
 | `helix task` | タスク OS |

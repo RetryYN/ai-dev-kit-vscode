@@ -388,14 +388,14 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（111スキル）
+## スキル群配置（116スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
 
 | カテゴリ | スキル |
 |---------|--------|
-| workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc**, **doc-system-architect**, **requirements-deriver**, **retrofit** |
+| workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc**, **doc-system-architect**, **requirements-deriver**, **retrofit**, **detection-routing**, **learning-engine**, **cross-detection**, **layer-context-injection** |
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
 | project/ | ui, api, db |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy, **tech-innovation**, **marketing-innovation**, **innovation-mgr** |
@@ -604,7 +604,7 @@ automation/browser-script:
 
 ## 自動推挙システム（gpt-5.4-mini）
 
-全 111 スキル + 221+ references を LLM マッチングで自動推挙する CLI を搭載。
+全 116 スキル + 229+ references を LLM マッチングで自動推挙する CLI を搭載。
 
 ```bash
 helix skill list [--layer L2] [--category common] [--json]

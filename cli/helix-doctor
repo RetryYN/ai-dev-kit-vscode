@@ -1,33 +1,42 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]
+# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
 SUBCOMMAND=""
 MAX_AGE_DAYS=30
+JSON_OUTPUT=false
+FORWARDED_ARGS=()
 
-if [[ $# -gt 0 && "$1" != -* ]]; then
-  case "$1" in
-    check_recovery_plan_freshness)
-      SUBCOMMAND="$1"
-      shift
-      ;;
-    *)
-      echo "エラー: 不明なサブコマンド: $1" >&2
-      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]" >&2
-      exit 2
-      ;;
-  esac
-fi
+show_usage() {
+  printf '%s\n' "$USAGE_TEXT"
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --fix) FIX=true ;;
-    --cleanup-stale-locks) CLEANUP_STALE_LOCKS=true ;;
+    check_recovery_plan_freshness)
+      if [[ -n "$SUBCOMMAND" ]]; then
+        echo "エラー: サブコマンドは 1 つだけ指定できます: $1" >&2
+        show_usage >&2
+        exit 2
+      fi
+      SUBCOMMAND="$1"
+      FORWARDED_ARGS+=("$1")
+      ;;
+    --fix)
+      FIX=true
+      FORWARDED_ARGS+=("$1")
+      ;;
+    --cleanup-stale-locks)
+      CLEANUP_STALE_LOCKS=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --max-age-days)
       shift
       if [[ $# -eq 0 || ! "$1" =~ ^[0-9]+$ ]]; then
@@ -35,23 +44,118 @@ while [[ $# -gt 0 ]]; do
         exit 2
       fi
       MAX_AGE_DAYS="$1"
+      FORWARDED_ARGS+=("--max-age-days" "$1")
+      ;;
+    --json)
+      JSON_OUTPUT=true
       ;;
     --help|-h)
-      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]"
+      show_usage
       echo ""
       echo "環境と .helix/ の整合性をチェックします。"
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
+      echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
     *)
       echo "エラー: 不明なオプション: $1" >&2
-      echo "使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]" >&2
+      show_usage >&2
       exit 2
       ;;
   esac
   shift
 done
+
+render_doctor_json() {
+  local doctor_output="$1"
+  python3 - <<'PY' "$doctor_output"
+import json
+import re
+import sys
+from datetime import datetime
+
+text = sys.argv[1]
+match = re.search(r"結果:\s+(\d+)\s+pass,\s+(\d+)\s+fail,\s+(\d+)\s+warn", text)
+if not match:
+    raise SystemExit(1)
+
+pass_count, fail_count, warn_count = (int(value) for value in match.groups())
+advisories = []
+category = ""
+current = None
+
+for line in text.splitlines():
+    stripped = line.strip()
+    if line.startswith("[") and line.endswith("]"):
+        category = line[1:-1]
+        current = None
+        continue
+
+    advisory_match = re.match(r"^\s*(△|✗|⚠|WARN:)\s*(.+)$", line)
+    if advisory_match:
+        marker, name = advisory_match.groups()
+        current = {
+            "category": category or "doctor",
+            "name": name.replace("（推奨）", "").strip(),
+            "status": "fail" if marker == "✗" else "warning",
+            "detail": "",
+        }
+        advisories.append(current)
+        continue
+
+    if current is not None and (line.startswith("    ") or line.startswith("      ")):
+        detail = stripped
+        if detail:
+            current["detail"] = f"{current['detail']} {detail}".strip() if current["detail"] else detail
+        continue
+
+    current = None
+
+for advisory in advisories:
+    if not advisory["detail"]:
+      advisory["detail"] = advisory["name"]
+
+payload = {
+    "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+    "pass": pass_count,
+    "fail": fail_count,
+    "warn": warn_count,
+    "advisories": advisories,
+    "summary": f"{pass_count} pass, {fail_count} fail, {warn_count} warn",
+}
+print(json.dumps(payload, ensure_ascii=False))
+PY
+}
+
+if [[ "$JSON_OUTPUT" == true ]]; then
+  if [[ -n "$SUBCOMMAND" ]]; then
+    echo "エラー: --json はデフォルト doctor 出力でのみ使用できます" >&2
+    exit 2
+  fi
+
+  tmp_stderr="$(mktemp)"
+  set +e
+  doctor_output="$("$SELF_PATH" "${FORWARDED_ARGS[@]}" 2>"$tmp_stderr")"
+  doctor_rc=$?
+  set -e
+  doctor_stderr="$(cat "$tmp_stderr")"
+  rm -f "$tmp_stderr"
+
+  if [[ $doctor_rc -gt 1 ]]; then
+    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+    exit "$doctor_rc"
+  fi
+
+  if ! json_output="$(render_doctor_json "$doctor_output")"; then
+    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+    echo "エラー: doctor text 出力の JSON 変換に失敗しました" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$json_output"
+  exit "$doctor_rc"
+fi
 
 echo "=== HELIX Doctor ==="
 PASS=0

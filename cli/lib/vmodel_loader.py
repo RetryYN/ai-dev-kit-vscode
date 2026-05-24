@@ -225,6 +225,16 @@ class VModelSemantics:
             raise KeyError(f"invalid layer mapping for drive {drive}: {layer}")
         return deepcopy(layer_data)
 
+    def get_layer_injection(self, drive: str, layer: str) -> dict[str, Any]:
+        """Return only the injection block for the requested drive and layer."""
+        layer_data = self.get_layer(drive, layer)
+        injection = layer_data.get("injection")
+        if injection is None:
+            raise KeyError(f"injection not defined for drive={drive} layer={layer}")
+        if not isinstance(injection, dict):
+            raise ValueError(f"injection must be a mapping for drive={drive} layer={layer}")
+        return deepcopy(injection)
+
     def list_drives(self) -> list[str]:
         drives_cfg = self.spine.get("drives")
         if isinstance(drives_cfg, dict) and isinstance(drives_cfg.get("allowed"), list):

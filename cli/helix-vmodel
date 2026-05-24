@@ -12,7 +12,8 @@ usage() {
 
 Subcommands:
   list [--drive DRIVE] [--json]       drive または layer 一覧
-  show <drive> <layer> [--json]       指定 (drive, layer) の semantics
+  show <drive> <layer> [--injection-only] [--json]
+                                      指定 (drive, layer) の semantics
   validate [--config PATH] [--json]   yaml 正規化検証
   --help                              このヘルプ
 USAGE
@@ -64,8 +65,9 @@ show_entry() {
   local drive="$1"
   local layer="$2"
   local as_json="$3"
+  local injection_only="$4"
 
-  python3 - "$LIB_DIR" "$drive" "$layer" "$as_json" <<'PY'
+  python3 - "$LIB_DIR" "$drive" "$layer" "$as_json" "$injection_only" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -74,13 +76,17 @@ lib_dir = Path(sys.argv[1])
 drive = sys.argv[2]
 layer = sys.argv[3]
 as_json = sys.argv[4] == "true"
+injection_only = sys.argv[5] == "true"
 
 sys.path.insert(0, str(lib_dir))
 from vmodel_loader import load_default
 
 try:
     vm = load_default()
-    payload = {"drive": drive, "layer": layer, **vm.get_layer(drive, layer)}
+    if injection_only:
+        payload = {"drive": drive, "layer": layer, "injection": vm.get_layer_injection(drive, layer)}
+    else:
+        payload = {"drive": drive, "layer": layer, **vm.get_layer(drive, layer)}
 except KeyError as exc:
     print(f"エラー: {exc.args[0]}", file=sys.stderr)
     raise SystemExit(2)
@@ -94,6 +100,20 @@ if as_json:
 
 print(f"drive: {payload['drive']}")
 print(f"layer: {payload['layer']}")
+if injection_only:
+    section = payload["injection"]
+    for key, value in section.items():
+        if isinstance(value, list):
+            rendered = ", ".join(str(item) for item in value)
+        elif isinstance(value, dict):
+            rendered = json.dumps(value, ensure_ascii=False, sort_keys=False)
+        elif value is None:
+            rendered = "null"
+        else:
+            rendered = str(value)
+        print(f"injection.{key}: {rendered}")
+    raise SystemExit(0)
+
 for section_name in ("design", "test", "pair"):
     section = payload[section_name]
     for key, value in section.items():
@@ -199,16 +219,21 @@ USAGE
       ;;
     show)
       local as_json="false"
+      local injection_only="false"
       local positional=()
       while [[ $# -gt 0 ]]; do
         case "$1" in
+          --injection-only)
+            injection_only="true"
+            shift
+            ;;
           --json)
             as_json="true"
             shift
             ;;
           --help|-h)
             cat <<'USAGE'
-使い方: helix vmodel show <drive> <layer> [--json]
+使い方: helix vmodel show <drive> <layer> [--injection-only] [--json]
 USAGE
             return 0
             ;;
@@ -223,7 +248,7 @@ USAGE
         esac
       done
       [[ "${#positional[@]}" -eq 2 ]] || { echo "エラー: show には drive と layer が必要です" >&2; return 64; }
-      show_entry "${positional[0]}" "${positional[1]}" "$as_json"
+      show_entry "${positional[0]}" "${positional[1]}" "$as_json" "$injection_only"
       ;;
     validate)
       local config_path=""

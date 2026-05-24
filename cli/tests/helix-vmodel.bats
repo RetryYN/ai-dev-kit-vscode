@@ -78,7 +78,7 @@ PY
   [ "$status" -eq 0 ]
   [[ "$output" == *"使い方: helix vmodel <subcommand>"* ]]
   [[ "$output" == *"list [--drive DRIVE] [--json]"* ]]
-  [[ "$output" == *"show <drive> <layer> [--json]"* ]]
+  [[ "$output" == *"show <drive> <layer> [--injection-only] [--json]"* ]]
   [[ "$output" == *"validate [--config PATH] [--json]"* ]]
 }
 
@@ -110,4 +110,43 @@ assert payload["design"]["review_unit"] == "plan"
 assert payload["test"]["test_level"] == "operational"
 PY
   [ "$status" -eq 0 ]
+}
+
+@test "test_vmodel_show_injection_only_json_outputs_valid_json" {
+  run "$HELIX_ROOT/cli/helix" vmodel show be architecture --json --injection-only
+  [ "$status" -eq 0 ]
+  run env JSON_PAYLOAD="$output" python3 - <<'PY'
+import json
+import os
+
+payload = json.loads(os.environ["JSON_PAYLOAD"])
+assert payload["drive"] == "be"
+assert payload["layer"] == "architecture"
+assert sorted(payload.keys()) == ["drive", "injection", "layer"]
+assert payload["injection"]["owner_role"] == "tl"
+assert set(payload["injection"].keys()) == {
+    "owner_role",
+    "mandatory_agents",
+    "recommended_agents",
+    "recommended_skills",
+    "recommended_commands",
+    "orchestration_mode",
+}
+PY
+  [ "$status" -eq 0 ]
+}
+
+@test "test_vmodel_show_injection_only_text_output" {
+  run "$HELIX_ROOT/cli/helix" vmodel show be architecture --injection-only
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"drive: be"* ]]
+  [[ "$output" == *"layer: architecture"* ]]
+  [[ "$output" == *"injection.owner_role: tl"* ]]
+  [[ "$output" != *"design.review_unit:"* ]]
+}
+
+@test "test_vmodel_show_injection_only_invalid_layer_fails" {
+  run "$HELIX_ROOT/cli/helix" vmodel show be invalid --injection-only --json
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown layer for drive be: invalid"* ]]
 }

@@ -68,6 +68,48 @@ def test_get_layer_be_planning() -> None:
     assert layer["injection"]["orchestration_mode"] == "pm_lead"
 
 
+def test_get_layer_injection_returns_subset() -> None:
+    model = vmodel_loader.load_default()
+
+    injection = model.get_layer_injection("be", "architecture")
+
+    assert set(injection.keys()) == set(INJECTION_FIELDS)
+    assert injection["owner_role"] == "tl"
+    assert "workflow/design-doc" in injection["recommended_skills"]
+
+
+def test_get_layer_injection_unknown_drive_raises() -> None:
+    model = vmodel_loader.load_default()
+
+    with pytest.raises(KeyError, match="unknown drive: invalid"):
+        model.get_layer_injection("invalid", "architecture")
+
+
+def test_get_layer_injection_unknown_layer_raises() -> None:
+    model = vmodel_loader.load_default()
+
+    with pytest.raises(KeyError, match="unknown layer for drive be: invalid"):
+        model.get_layer_injection("be", "invalid")
+
+
+def test_get_layer_injection_is_deep_copy() -> None:
+    model = vmodel_loader.load_default()
+
+    injection = model.get_layer_injection("be", "architecture")
+    injection["recommended_commands"].append("helix bogus")
+
+    fresh_injection = model.get_layer_injection("be", "architecture")
+    assert "helix bogus" not in fresh_injection["recommended_commands"]
+
+
+def test_get_layer_injection_has_required_fields() -> None:
+    model = vmodel_loader.load_default()
+
+    injection = model.get_layer_injection("be", "architecture")
+
+    assert tuple(injection.keys()) == INJECTION_FIELDS
+
+
 def test_validate_passes_on_default() -> None:
     model = vmodel_loader.load_default()
 
