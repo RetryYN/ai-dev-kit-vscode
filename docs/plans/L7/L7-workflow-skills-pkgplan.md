@@ -84,7 +84,7 @@ related_docs:
 
 | # | スキル名 | 正本 doc | helix_layer |
 |---|---|---|---|
-| S-1 | detection-routing | HELIX-workflows/helix-process/detection-routing.md | L4 |
+| S-1 | detection-routing | HELIX-workflows/helix-process/detection-routing.md | L4-L14 |
 | S-2 | learning-engine | HELIX-workflows/helix-process/learning-engine.md | L14 |
 | S-3 | cross-detection | HELIX-workflows/helix-process/cross-detection.md | L4-L9 |
 | S-4 | layer-context-injection | HELIX-workflows/helix-process/layer-context-injection.md | L0-L14 |
@@ -421,10 +421,11 @@ compatibility:
 > 目的: vmodel-semantics.yaml の injection-set 定義スキーマ。各 layer に注入する 5 要素の YAML 構造を標準化する
 ```
 
-内容:
-- injection-set YAML スキーマ定義 (layer / owner_role / mandatory_agents / skills / recommended_commands / orchestration_mode)
-- フィールド定義と valid values
-- 既存 vmodel-semantics.yaml の injection-set 現状 (L7-vmodel-semantics-injection-setplan v3 連携)
+内容 (tl-advisor R2 P1 反映、L7-vmodel-semantics-injection-setplan v3 §2 frozen 契約と完全一致):
+- injection-set YAML スキーマ定義 (**6 field**): `owner_role` / `mandatory_agents` / `recommended_agents` / `recommended_skills` / `recommended_commands` / `orchestration_mode`
+- 各 field 定義と valid values (vmodel_loader.VModelSemantics._validate_injection と一致)
+- `layer` は injection 内 field ではなく、`drives.{drive}.layers.{layer}.injection` の parent key (PLAN §0 で明示)
+- 既存 vmodel-semantics.yaml の injection-set 現状 (L7-vmodel-semantics-injection-setplan v3 §2.E 20 セル展開、connection-frozen 参照のみ実装完了不要)
 
 **references/l-unit-injection-table.md**
 
