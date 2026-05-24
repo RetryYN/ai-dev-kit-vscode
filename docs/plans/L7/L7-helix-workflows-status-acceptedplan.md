@@ -25,7 +25,9 @@ generates:
     artifact_type: doc_update
 dependencies:
   parent: null
-  requires: []
+  requires:
+    - L7-vmodel-semantics-injection-setplan
+    - L7-docs-integration-mappingplan
   blocks: []
 related_docs:
   - HELIX-workflows/HELIX-process-L0-L14.md
@@ -90,19 +92,25 @@ related_docs:
 
 ### §2.A 除外 list (status を accepted 以外に固定する file)
 
-本 PLAN 実行時点の判定:
+本 PLAN 実行時点の判定 (tl-advisor R1 P1-1 反映、実測ベース):
 
 ```
 除外 file (status: accepted に変更しない):
-  - なし (全 46 file が accepted 対象)
+  - なし (全 46 file が accepted 対象、README.md 含む)
+
+実測結果 (2026-05-24 tl-advisor R1 検証):
+  - files: 46
+  - status_draft: 46 (全件)
+  - status_missing: 0 (README.md も status: draft あり、当初の「フィールドなし」推測は誤り)
+  - accepted_date_existing: 0 (上書き衝突なし)
 
 根拠:
   - deprecated 相当の file は HELIX-workflows/helix-process/ には現時点で存在しない
-  - README.md は status フィールドなし (frontmatter 構造が異なる可能性 → §2.B で検出して skip)
+  - README.md は status: draft フィールドが既に存在 (実測確認済)
   - HELIX-process-L0-L14.md は helix-process/ 配下ではなく HELIX-workflows/ 直下 (スコープ外、後続 PLAN で別途判断)
 ```
 
-除外 list に追加すべき判断が生じた場合は、SE が dry-run 出力を PMO へ提示し、PM 承認後に除外 list を更新してから apply する。
+除外 list に追加すべき判断が生じた場合は、SE が dry-run 出力を PMO へ提示し、PM 承認後に除外 list を更新してから apply する。PMO review 用に file 別の `file / category / freeze_basis / exclude_reason` 一覧を dry-run report として併出する (tl-advisor P2-1 反映)。
 
 ### §2.B batch script 設計
 
@@ -116,30 +124,35 @@ related_docs:
   --apply: 実際に file 更新を実行
   --verbose: 全 file の処理結果を出力 (skip 含む)
 
-処理フロー:
-  1. HELIX-workflows/helix-process/*.md を glob で収集
-  2. 各 file に対して:
-     a. ファイル先頭 --- ... --- の frontmatter ブロックを抽出
-     b. yaml.safe_load で parse
-     c. status フィールドが存在し、値が 'draft' であれば変更対象に加える
-     d. status フィールドがない / 'draft' 以外の場合は skip (ログに記録)
-     e. 除外 list に含まれる場合は skip
-  3. 変更対象 file に対して:
-     a. 'status: draft' → 'status: accepted' 置換
-     b. status 行の直後 (or revised 行の直後) に 'accepted_date: 2026-05-24' を追加
-        (既に accepted_date が存在する場合は skip)
-  4. dry-run mode: diff を表示して終了
-  5. apply mode: file 書き込み実行
-  6. apply 後に yaml.safe_load で全件 parse validation (syntax error があれば abort + rollback)
-  7. 処理サマリを出力: 変更 N 件 / skip N 件 / error N 件
+処理フロー (tl-advisor R1 P1-2 + P2 反映、transaction + encoding 明示版):
 
-重要な実装注意:
-  - frontmatter は正規表現で --- ブロックを特定する (re.DOTALL)
-  - YAML parse は frontmatter 部分のみ (本文を誤 parse しない)
-  - status 行は sed 相当の行単位置換ではなく、yaml dump → 書き戻しは使わない
-    (既存の frontmatter コメント・順序・クォートスタイルを保持するため)
-  - 行単位の string replace: `status: draft` → `status: accepted` (行頭マッチ)
-  - accepted_date 挿入: status 行直後に挿入、既存 accepted_date がある場合は上書き
+  1. HELIX-workflows/helix-process/*.md を glob で収集 (46 件)
+  2. 各 file に対して **メモリ上で** 処理:
+     a. `path.read_text(encoding='utf-8')` で読み込み
+     b. `splitlines(keepends=True)` で先頭 `---` から次の単独 `---` までを行単位で抽出 (regex DOTALL は使わない、行単位処理が安全)
+     c. yaml.safe_load で frontmatter parse (本文は除く)
+     d. status フィールドが 'draft' であれば変更対象に加える、'accepted' なら skip ログ
+     e. 除外 list に含まれる場合は skip ログ
+  3. 全 file の更新後内容を **メモリ上で構築** + 個別 yaml.safe_load で frontmatter syntax validation
+  4. validation 全 PASS の場合のみ、**temp file + os.replace で atomic 書き込み**:
+     a. 各 file につき `path.parent / f'.{path.name}.tmp.{pid}'` に utf-8 で書き込み
+     b. `os.replace(tmp_path, path)` で atomic 置換 (rename は same-fs で atomic)
+  5. validation 1 件でも fail の場合は **全件 abort、temp file 全削除、原 file は無変更**
+  6. apply 後に `yaml.safe_load + frontmatter parse` を再度全件実行して double-check
+  7. 処理サマリ: changed N / skipped N / errors N / status_missing N / accepted_date_conflict N
+
+変更ルール (tl-advisor R1 P2-2 反映、idempotent):
+  - `status: draft` → `status: accepted` (行頭マッチ)
+  - `accepted_date` 既存値 == `2026-05-24` → no-op
+  - `accepted_date` 既存値 != `2026-05-24` → error (上書きは `--force-date` フラグ明示時のみ)
+  - `accepted_date` 不在 → status 行直後に挿入 (新規追加)
+
+実装注意 (encoding / atomic / idempotent 三大原則):
+  - 全 I/O で `encoding='utf-8'` 明示 (read_text/write_text/io.open すべて)
+  - 行末 `newline=''` 維持 (LF/CRLF 混在しない)
+  - temp file + os.replace で transaction (validation failure 時の復旧不能を防止)
+  - yaml dump は使わない (frontmatter コメント・順序・クォートスタイルを破壊するため、行単位 string replace のみ)
+  - 行単位処理は keepends=True で改行コード保持
 ```
 
 ### §2.C accepted_date 追加の位置決め
@@ -163,23 +176,38 @@ created: 2026-05-24
 
 ### §2.D dry-run 出力仕様
 
+tl-advisor R1 P2-3 反映、unified diff + 集計版:
+
 ```
 === DRY-RUN MODE (pass --apply to apply) ===
 
-[CHANGE] HELIX-workflows/helix-process/L0-concept.md
-  status: draft -> accepted
-  + accepted_date: 2026-05-24
+--- HELIX-workflows/helix-process/L0-concept.md
++++ HELIX-workflows/helix-process/L0-concept.md
+@@ frontmatter @@
+-status: draft
++status: accepted
++accepted_date: 2026-05-24
 
-[CHANGE] HELIX-workflows/helix-process/L1-requirements.md
-  status: draft -> accepted
-  + accepted_date: 2026-05-24
+--- HELIX-workflows/helix-process/L1-requirements.md
++++ HELIX-workflows/helix-process/L1-requirements.md
+@@ frontmatter @@
+-status: draft
++status: accepted
++accepted_date: 2026-05-24
 
-... (46 件分)
+... (46 件分の unified diff)
 
-[SKIP] HELIX-workflows/helix-process/some-file.md
-  reason: status field not found
+[REPORT] file × category × freeze_basis × exclude_reason:
+  L0-concept.md            | L0 工程 doc           | content_frozen_2026-05-24 | -
+  L1-requirements.md       | L1 工程 doc           | content_frozen_2026-05-24 | -
+  ... (46 件分)
 
-Summary: 46 changed / 0 skipped / 0 errors
+Summary:
+  changed: 46
+  skipped: 0
+  errors: 0
+  status_missing: 0
+  accepted_date_conflict: 0
 ```
 
 ### §2.E 46 file 一覧 (script の検索対象)
@@ -233,7 +261,7 @@ test-perspective-gate.md
 two-stage-agent-design.md
 ```
 
-注: README.md は status フィールド不在の可能性大。script の skip ログで確認し、除外 list に追加判断する。
+注: README.md も status: draft あり (tl-advisor R1 実測確認、§2.A 反映済)。全 46 件が accepted 対象。
 
 ---
 
