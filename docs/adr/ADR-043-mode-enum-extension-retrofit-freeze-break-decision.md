@@ -1,8 +1,9 @@
 ---
 adr_id: ADR-043
 title: Mode enum 拡張 (Retrofit 追加) — parent design freeze break + additive backward compat 凍結
-status: Proposed
+status: Accepted
 date: 2026-05-24
+accepted_date: 2026-05-25
 deciders:
   - PM (Opus)
   - TL-advisor (gpt-5.5 high、tl-advisor R1 (PLAN C') で「accepted parent design への Retrofit 追加は ADR snapshot 必須」指摘、ADR snapshot で凍結)
@@ -18,13 +19,15 @@ superseded_by: []
 
 ## Status
 
-**Proposed** — 2026-05-24 (tl-advisor R2 + pm-advisor adversarial check 後に Accepted へ推進予定)
+**Accepted with conditions** — 2026-05-25 (tl-advisor R5 で P0 なし、Mode enum 拡張に関する PLAN C' 反映確認、Accepted 化推進)
 
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で「accepted parent design (detection-routing.md) は Retrofit 含まない、Mode enum に Retrofit 追加するなら L2 ADR snapshot で凍結すること」指摘、本 ADR で凍結
 - 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-2 (parent design footnote 自己矛盾、detection-routing.md に §5 不在) を **PLAN frontmatter `parent_design` 複数値並記 pattern** に変更 (detection-routing.md 完全不変更維持)、P1-5 (additive backward compat 影響調査) を §Decision 末尾に追加、tl-advisor R2 待ち
 - 2026-05-24 (R2 revision): tl-advisor R2 で **needs_revision** (P0 なし、P1 5 件)、P1-1 (`parent_design` 複数値 list が plan_validator.py と不整合) を **代替案 A 採用 = `parent_design` string 維持 + `parent_design_addenda: list[str]` 新 field** に修正、`plan_validator.py` 拡張は別 PLAN carry `L7-plan-validator-parent-design-addenda-ext` として明示、tl-advisor R3 待ち
+- 2026-05-24 (R3/R4 revision): R3/R4 統合 review P1 8 件全反映 (commit 3633646)、`parent_design_addenda` 代替案 A pattern を PLAN B/C/C'/D 全件で確立
+- 2026-05-25 (R5 → Accepted with conditions): tl-advisor R5 で **P0 なし**、Mode enum 拡張に関する直接 P1 残無し (R5 残 P1 は PLAN C' 内の他 issue で本 ADR に影響しない)。Accepted with conditions の条件 = (1) `parent_design_addenda` を機械検査可能にする `plan_validator.py` 拡張 (`L7-plan-validator-parent-design-addenda-ext`) は後続 PLAN 依存 (現状 = 読解運用) (2) PLAN C' §10 で本 ADR Accepted 化と同期済
 
 ## Context
 

@@ -622,7 +622,7 @@ def _build_recommended_command(
     Recovery 例外: helix recover plan を使用 (helix plan draft とは異なる)。
     Reverse 形式: helix reverse <type> <stage> (cli/helix-reverse usage、ADR-042 固定表)。
     """
-    # P1-4 反映: ADR-042 RecommendedCommandV1 schema 完全化 (schema_version + safety 4 field)
+    # P1-4 反映: ADR-042 RecommendedCommandV1 schema 完全化 (schema_version + safety 3 field: auto_apply / requires_human_approval / requires_preflight)
     base_safety = {"auto_apply": False, "requires_human_approval": False, "requires_preflight": False}
     if signal in RECOVER_LINKED_SIGNALS or (signal == "incident" and env == "prod"):
         # ADR-042 Recovery 例外: helix recover plan
@@ -946,15 +946,17 @@ def _print_route_help() -> None:
 
 ---
 
-### R4: suggest subcommand の recommended_command 文字列変更
+### R4: suggest subcommand の recommended_command JSON object 変更
 
-**リスク**: `recommended_command` が将来変更された際に、呼び出し元が文字列 parse していると壊れる。
+**リスク**: ADR-042 で `recommended_command` は **後続 CLI に渡す機械契約 (JSON object)** と確定。schema_version v1 から v2 等への将来変更時に、消費側 (PLAN B/C/D の各 CLI) が strict parser で fail-close できる必要がある。
 
 **影響**: medium
 
-**mitigation**:
-- `recommended_command` は人間向け表示専用と明記 (§2.4)
-- 機械処理には `suggest_command` / `recover_args` を使用するよう §7 接続契約で規定
+**mitigation** (ADR-042 §役割分離契約に整合、R5 P1-R5-2 で役割逆転を訂正):
+- `recommended_command` は **機械処理用 JSON object** (§2.4、ADR-042 §Decision)。後続 CLI (`helix plan draft` / `helix recover plan` / `helix reverse`) はこの JSON を strict に parse する
+- `schema_version` field を strict parser で検証し、unknown version で fail-close
+- 人間向け表示 (cli_hint) には **`suggest_command` (string、backward compat 凍結値)** を使用する (ADR-042 §`suggest_command` backward compat 固定表参照)
+- 将来 schema 変更時は ADR-042 §Decision に additive 拡張 (`safety` 追加 field 等) を記録し、`schema_version` を bump する
 
 ---
 
@@ -1112,11 +1114,13 @@ PLAN C の state manager が `drift_type` を受け取り、retrofit 種別 (dep
 
 | L2 大局判断 | ADR | status |
 |---|---|---|
-| drift_type 7 種を PLAN B/C/C' の単一 SoT として route_engine.py に集約する | ADR-041 | Accepted |
-| `recommended_command` を JSON object 一本化 (string 廃止)、`suggest_command` と共存で backward compat | ADR-042 | Accepted |
-| Mode enum 拡張 (`Retrofit` 追加) + `parent_design_addenda` field 導入 | ADR-043 (R2 代替案 A 採用) | Accepted |
+| drift_type 7 種を PLAN B/C/C' の単一 SoT として route_engine.py に集約する | ADR-041 | Accepted with conditions (2026-05-25) |
+| `recommended_command` を JSON object 一本化 (string 廃止)、`suggest_command` と共存で backward compat | ADR-042 | Accepted with conditions (2026-05-25) |
+| Mode enum 拡張 (`Retrofit` 追加) + `parent_design_addenda` field 導入 | ADR-043 (R2 代替案 A 採用) | Accepted with conditions (2026-05-25) |
 
 本 PLAN の frontmatter `parent_design_addenda` に ADR-043 を登録済み。実装時は各 ADR の §Decision を正本として参照し、本 PLAN で独自定義を行わない (PLAN ⊃ ADR レイヤー併存原則)。
+
+**R5 反映 (2026-05-25)**: tl-advisor R5 (rollout JSONL bypass、bbvocrtey) で P0 なし、残 P1 2 件 (P1-R5-1 safety field 数 / P1-R5-2 R4 役割逆転) を本 PLAN 内で修正済 ([§5.7](#§5-7) base_safety コメント訂正、[§6 R4](#r4-suggest-subcommand) 役割記述修正)。ADR-041/042/043 を `Accepted with conditions` (frontmatter accepted_date: 2026-05-25) に推進。Conditions: (1) PLAN C' P1-R5 2 件修正反映済 (本 PLAN) (2) `helix plan draft` machine args 拡張 (`L7-helix-plan-draft-machine-args-ext`、ADR-042) (3) `plan_validator.py` `parent_design_addenda` 機械検査拡張 (`L7-plan-validator-parent-design-addenda-ext`、ADR-043) は後続 PLAN 依存。SE 委譲 final 判定 (R5 結果): A1 可 / A2 可 (A1 完遂後) / B 条件付き可 / C 条件付き可 (C1 superseded 完了済) / C' 本 PLAN R5 反映後に再判定 / D 条件付き可。
 
 ---
 

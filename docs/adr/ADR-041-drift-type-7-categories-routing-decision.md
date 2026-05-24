@@ -1,8 +1,9 @@
 ---
 adr_id: ADR-041
 title: drift_type 7 種分類 + Reverse/Refactor/Retrofit 3 mode 分岐ルーティング契約
-status: Proposed
+status: Accepted
 date: 2026-05-24
+accepted_date: 2026-05-25
 deciders:
   - PM (Opus)
   - TL-advisor (gpt-5.5 high、tl-advisor R1 (PLAN C') で本契約の必要性発見、ADR snapshot 必須化判定)
@@ -18,13 +19,15 @@ superseded_by: []
 
 ## Status
 
-**Proposed** — 2026-05-24 (tl-advisor R2 + pm-advisor adversarial check 後に Accepted へ推進予定)
+**Accepted with conditions** — 2026-05-25 (tl-advisor R5 で P0 なし、PLAN C' P1-R5 2 件修正済を確認、Accepted 化推進)
 
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — PLAN B/C/C' の tl-advisor R1 で drift_type 7 種境界の必要性発覚 (PLAN C' R1 §L2 凍結 候補 #1)、本 ADR で contract 凍結
 - 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review、rollout JSONL bypass で抽出) で **needs_revision** 判定、P1-1 (upgrade Reverse vs Retrofit 境界) + P1-2 (config_drift env/infra 人間承認) を §Decision に反映、tl-advisor R2 待ち
 - 2026-05-24 (R2 revision): tl-advisor R2 で **needs_revision** (P0 なし、P1 5 件 + P2 3 件)、P1-3 (`requires_preflight` schema 不整合) を ADR-042 schema 拡張 + 本 ADR `upgrade` 行で参照、tl-advisor R3 待ち
+- 2026-05-24 (R3/R4 revision): tl-advisor R3/R4 統合 review P1 8 件全反映 (commit 3633646)、`drift_type` 7 種統一 / `requires_preflight` 引用関係明示
+- 2026-05-25 (R5 → Accepted with conditions): tl-advisor R5 (rollout JSONL bypass、bbvocrtey) で **P0 なし**、残 P1 (PLAN C' RecommendedCommandV1 safety field 数 + R4 役割逆転) は本 session で修正 (commit 予定)。Accepted with conditions の条件 = (1) PLAN C' P1-R5-1/P1-R5-2 修正反映済 (2) PLAN C carry C1 superseded 完了 (3) `recommended_command` machine args を受ける `helix plan draft` 拡張 (`L7-helix-plan-draft-machine-args-ext` 別 PLAN) は後続 PLAN 依存
 
 ## Context
 

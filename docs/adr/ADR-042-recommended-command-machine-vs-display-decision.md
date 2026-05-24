@@ -1,8 +1,9 @@
 ---
 adr_id: ADR-042
 title: recommended_command 機械契約 vs 人間表示の役割分離 (suggest_command backward compat + 新 field 役割固定)
-status: Proposed
+status: Accepted
 date: 2026-05-24
+accepted_date: 2026-05-25
 deciders:
   - PM (Opus)
   - TL-advisor (gpt-5.5 high、tl-advisor R1 (PLAN C') で recommended_command の二重契約矛盾発覚、ADR snapshot 必須化判定)
@@ -18,13 +19,15 @@ superseded_by: []
 
 ## Status
 
-**Proposed** — 2026-05-24 (tl-advisor R2 + pm-advisor adversarial check 後に Accepted へ推進予定)
+**Accepted with conditions** — 2026-05-25 (tl-advisor R5 で P0 なし、PLAN C' P1-R5-1/-2 修正済を確認、Accepted 化推進)
 
 ### Status History
 
 - 2026-05-24 (初版): **Proposed** — tl-advisor R1 (PLAN C') で `recommended_command` が「人間向け表示専用」と「後続 CLI に渡す契約」の両方として書かれ矛盾発覚、ADR snapshot で役割凍結
 - 2026-05-24 (R1 revision): tl-advisor R1 (3 ADR 統合 review) で **needs_revision** 判定、P0-1 (JSON object vs string 矛盾) を `RecommendedCommandV1` schema + `schema_version`/`safety` field で一本化、P1-3 (Recovery 接続例外) を §接続コマンド統一表に追加、P1-4 (`suggest_command` backward compat 固定表) を §Decision 末尾に追加、tl-advisor R2 待ち
 - 2026-05-24 (R2 revision): tl-advisor R2 で **needs_revision** (P0 なし、P1 5 件)、P1-3 (`safety.requires_preflight` field 追加) + P1-4 (`suggest_command` 固定表を route_engine.py L53-61 全 signal 11 行に拡張、`regression_prod`/`unknown_design`/`degradation` alias/`incident` env 分岐含む) + P1-2 (`helix plan draft` machine args 拡張は別 PLAN carry `L7-helix-plan-draft-machine-args-ext` として明示) + P1-5 (`--format machine` 廃止、`--format json` additive 採用 = 代替案 C) を §Decision に反映、tl-advisor R3 待ち
+- 2026-05-24 (R3/R4 revision): R3/R4 統合 review P1 8 件全反映 (commit 3633646)、`recommended_command` JSON object 一本化を schema_version/safety 3 field (auto_apply/requires_human_approval/requires_preflight) で完全化
+- 2026-05-25 (R5 → Accepted with conditions): tl-advisor R5 (rollout JSONL bypass) で **P0 なし**、PLAN C' P1-R5-1 (safety 4 field の誤記 → 3 field 訂正)、P1-R5-2 (PLAN C' R4 役割逆転訂正 = `recommended_command` 機械契約 / `suggest_command` 人間表示) を本 session で修正済。Accepted with conditions の条件 = (1) PLAN C' 上記 2 件修正反映済 (2) `helix plan draft` machine args 拡張 (`L7-helix-plan-draft-machine-args-ext`) は後続 PLAN 依存 (3) PLAN C' §10 で本 ADR の Accepted 化と同期済
 
 ## Context
 

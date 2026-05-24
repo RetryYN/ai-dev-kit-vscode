@@ -731,7 +731,7 @@ retrofit-workflow.md が定義する Forward 接続:
 
 | # | carry | 優先度 | 担当先 |
 |---|---|---|---|
-| C1 | `helix route suggest` に `recommended_command: "helix retrofit init --slug ..."` フィールドを追加する拡張 | P2 | L7-helix-route-implplan.md §11 carry に追記 |
+| C1 | ~~`helix route suggest` に `recommended_command: "helix retrofit init --slug ..."` フィールドを追加する拡張~~ **superseded by C8** (R5 P2 反映): ADR-042 で `recommended_command` は `helix plan draft --kind retrofit` JSON object 一本化と確定。string 形式の `helix retrofit init --slug ...` は廃止。本項は C8 に統合 | ~~P2~~ **superseded** | superseded |
 | C2 | plan_validator `VALID_KINDS` に `retrofit` が含まれることを Sprint .1 で `grep -n 'retrofit' cli/lib/plan_validator.py` で確認。**resolved / Sprint .1 verification evidence**: R5 参照 (VALID_KINDS 含有確認済み、P0 carry 取消、Low risk に降格) | ~~P0~~ **resolved** | SE (Sprint .1 着手時に再確認のみ) |
 | C3 | `helix doctor` で retrofit-matrix と PLAN status の乖離検出を追加 | P2 | 別 PLAN (helix doctor 拡張) |
 | C4 | rows 数 > 50 の場合に `<slug>-retrofit-matrix-rows.yaml` へ分離するオプション | P3 | Sprint .2 時点で暫定判断 |
