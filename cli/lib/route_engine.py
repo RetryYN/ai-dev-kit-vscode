@@ -13,8 +13,27 @@ from pathlib import Path
 from typing import Any, Literal, TextIO
 
 
-Mode = Literal["Reverse", "Refactor", "Recovery", "Incident", "Retrofit"]
-Kind = Literal["reverse", "refactor", "recovery", "troubleshoot", "retrofit"]
+Mode = Literal[
+    "Reverse",
+    "Refactor",
+    "Recovery",
+    "Incident",
+    "Retrofit",
+    "scrum_agile",
+    "incident",
+    "add_feature",
+    "recovery",
+]
+Kind = Literal[
+    "reverse",
+    "refactor",
+    "recovery",
+    "troubleshoot",
+    "retrofit",
+    "scrum_agile",
+    "incident",
+    "add_feature",
+]
 Priority = Literal["P0", "P1", "P2", "P3"]
 Action = Literal["suggest_only", "immediate_plan_draft", "discovery_first", "emergency_routing"]
 Severity = Literal["low", "high"]
@@ -27,6 +46,10 @@ DriftType = Literal[
     "dependency_outdated",
     "upgrade",
     "config_drift",
+    "production_incident",
+    "agent_runaway",
+    "feature_addition",
+    "user_feedback_iteration",
 ]
 
 SOURCE_SCHEMA = "helix_detect_run_json_v1"
@@ -39,6 +62,10 @@ VALID_DRIFT_TYPES = (
     "dependency_outdated",
     "upgrade",
     "config_drift",
+    "production_incident",
+    "agent_runaway",
+    "feature_addition",
+    "user_feedback_iteration",
 )
 DEFAULT_DRIFT_TYPE: DriftType = "schema"
 RECOVER_LINKED_SIGNALS = {"runaway", "regression_dev"}
@@ -46,6 +73,14 @@ SHORTCUT_SIGNAL_TO_DRIFT_TYPE: dict[str, DriftType] = {
     "dependency_outdated": "dependency_outdated",
     "upgrade": "upgrade",
     "config_drift": "config_drift",
+    "user_feedback_iteration": "user_feedback_iteration",
+    "requirement_continuous_refinement": "user_feedback_iteration",
+    "production_incident": "production_incident",
+    "hotfix_required": "production_incident",
+    "feature_addition": "feature_addition",
+    "scope_extension": "feature_addition",
+    "agent_runaway": "agent_runaway",
+    "context_exhaustion": "agent_runaway",
 }
 DRIFT_TYPE_TO_ROUTE: dict[DriftType, dict[str, str | None]] = {
     "schema": {"mode": "Reverse", "kind": "reverse", "subtype": "normalization"},
@@ -55,6 +90,10 @@ DRIFT_TYPE_TO_ROUTE: dict[DriftType, dict[str, str | None]] = {
     "dependency_outdated": {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
     "upgrade": {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
     "config_drift": {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
+    "production_incident": {"mode": "incident", "kind": "incident", "subtype": None},
+    "agent_runaway": {"mode": "recovery", "kind": "recovery", "subtype": None},
+    "feature_addition": {"mode": "add_feature", "kind": "add_feature", "subtype": None},
+    "user_feedback_iteration": {"mode": "scrum_agile", "kind": "scrum_agile", "subtype": None},
 }
 
 
@@ -96,6 +135,14 @@ class RouteEngine:
         "dependency_outdated": {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
         "upgrade": {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
         "config_drift": {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
+        "user_feedback_iteration": {"mode": "scrum_agile", "kind": "scrum_agile", "subtype": None},
+        "requirement_continuous_refinement": {"mode": "scrum_agile", "kind": "scrum_agile", "subtype": None},
+        "production_incident": {"mode": "incident", "kind": "incident", "subtype": None},
+        "hotfix_required": {"mode": "incident", "kind": "incident", "subtype": None},
+        "feature_addition": {"mode": "add_feature", "kind": "add_feature", "subtype": None},
+        "scope_extension": {"mode": "add_feature", "kind": "add_feature", "subtype": None},
+        "agent_runaway": {"mode": "recovery", "kind": "recovery", "subtype": None},
+        "context_exhaustion": {"mode": "recovery", "kind": "recovery", "subtype": None},
     }
 
     DEPRECATED_ALIAS: dict[str, str] = {
@@ -130,6 +177,7 @@ class RouteEngine:
         priority, action = self.PRIORITY_ACTION[(normalized_uncertainty, normalized_impact)]
         suggest_command, recover_args = self._build_suggest_command(
             signal_id,
+            route["mode"],
             route["kind"],
             normalized_env,
             reopen_point,
@@ -243,7 +291,11 @@ class RouteEngine:
         if signal in {"incident", "regression_prod"}:
             if env is None or not str(env).strip():
                 raise ValueError(f"env is required for signal={signal}")
-        normalized = str(env).strip().lower() if env is not None else "dev"
+        normalized = (
+            str(env).strip().lower()
+            if env is not None
+            else ("prod" if signal in {"production_incident", "hotfix_required"} else "dev")
+        )
         if normalized not in {"dev", "prod"}:
             raise ValueError(f"invalid env: {env}")
         return normalized  # type: ignore[return-value]
@@ -286,10 +338,27 @@ class RouteEngine:
     def _build_suggest_command(
         self,
         signal: str,
+        mode: Mode,
         kind: Kind,
         env: Env,
         reopen_point: str,
     ) -> tuple[str, dict[str, str] | None]:
+        if mode == "scrum_agile":
+            return ("helix scrum-agile init", None)
+        if mode == "incident":
+            return (
+                "helix incident detect "
+                f"--incident-id <incident-id> --summary \"auto-routed from {signal}\" --severity P1 --env {env}",
+                None,
+            )
+        if mode == "add_feature":
+            return (
+                "helix add-feature add-design "
+                f"--feature <feature-id> --summary \"auto-routed from {signal}\" --requires-plan <plan-id>",
+                None,
+            )
+        if mode == "recovery":
+            return (f"helix recovery start --plan-id <plan-id> --reopen-point {reopen_point}", None)
         if signal in RECOVER_LINKED_SIGNALS or (signal == "incident" and env == "prod"):
             recover_args = {
                 "signal_id": signal,
@@ -328,6 +397,52 @@ class RouteEngine:
                     "signal_id": signal,
                     "reopen_point": reopen_point,
                     "auto_routed_from": "helix-route",
+                },
+                "safety": {
+                    **base_safety,
+                    "requires_human_approval": True,
+                },
+            }
+        if mode == "scrum_agile":
+            return {
+                "schema_version": "v1",
+                "command": "helix scrum-agile init",
+                "args": {},
+                "safety": base_safety,
+            }
+        if mode == "incident":
+            return {
+                "schema_version": "v1",
+                "command": "helix incident detect",
+                "args": {
+                    "incident_id": "<incident-id>",
+                    "summary": f"auto-routed from {signal}",
+                    "severity": "P1",
+                    "env": env,
+                },
+                "safety": {
+                    **base_safety,
+                    "requires_human_approval": True,
+                },
+            }
+        if mode == "add_feature":
+            return {
+                "schema_version": "v1",
+                "command": "helix add-feature add-design",
+                "args": {
+                    "feature": "<feature-id>",
+                    "summary": f"auto-routed from {signal}",
+                    "requires_plan": "<plan-id>",
+                },
+                "safety": base_safety,
+            }
+        if mode == "recovery":
+            return {
+                "schema_version": "v1",
+                "command": "helix recovery start",
+                "args": {
+                    "plan_id": "<plan-id>",
+                    "reopen_point": reopen_point,
                 },
                 "safety": {
                     **base_safety,
@@ -396,6 +511,9 @@ class RouteEngine:
         if value is None:
             return None
         return str(value)
+
+
+SIGNAL_TO_MODE = RouteEngine.SIGNAL_TO_MODE
 
 
 def _load_json_input(path: str) -> Any:

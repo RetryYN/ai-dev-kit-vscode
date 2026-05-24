@@ -65,6 +65,10 @@ def test_drift_routes_to_reverse_normalization() -> None:
         ("dependency_outdated", "Retrofit", "retrofit", "dependency"),
         ("upgrade", "Retrofit", "retrofit", "upgrade"),
         ("config_drift", "Retrofit", "retrofit", "config"),
+        ("production_incident", "incident", "incident", None),
+        ("agent_runaway", "recovery", "recovery", None),
+        ("feature_addition", "add_feature", "add_feature", None),
+        ("user_feedback_iteration", "scrum_agile", "scrum_agile", None),
     ],
 )
 def test_drift_type_overrides_route(drift_type: str, mode: str, kind: str, subtype: str | None) -> None:
@@ -202,6 +206,90 @@ def test_shortcut_signal_with_conflicting_drift_type_raises() -> None:
         route_engine.RouteEngine().evaluate("upgrade", drift_type="config_drift")
 
 
+@pytest.mark.parametrize(
+    ("signal", "mode", "kind", "drift_type"),
+    [
+        ("user_feedback_iteration", "scrum_agile", "scrum_agile", "user_feedback_iteration"),
+        ("requirement_continuous_refinement", "scrum_agile", "scrum_agile", "user_feedback_iteration"),
+        ("production_incident", "incident", "incident", "production_incident"),
+        ("hotfix_required", "incident", "incident", "production_incident"),
+        ("feature_addition", "add_feature", "add_feature", "feature_addition"),
+        ("scope_extension", "add_feature", "add_feature", "feature_addition"),
+        ("agent_runaway", "recovery", "recovery", "agent_runaway"),
+        ("context_exhaustion", "recovery", "recovery", "agent_runaway"),
+    ],
+)
+def test_new_mode_shortcut_signals_route_to_expected_mode(
+    signal: str,
+    mode: str,
+    kind: str,
+    drift_type: str,
+) -> None:
+    """DoD 検証: 4 mode shortcut signal は additive に mode と drift_type を固定する。"""
+    result = route_engine.RouteEngine().evaluate(signal)
+
+    assert result.mode == mode
+    assert result.kind == kind
+    assert result.drift_type == drift_type
+
+
+@pytest.mark.parametrize(
+    ("signal", "command", "args", "requires_human_approval"),
+    [
+        ("user_feedback_iteration", "helix scrum-agile init", {}, False),
+        (
+            "production_incident",
+            "helix incident detect",
+            {
+                "incident_id": "<incident-id>",
+                "summary": "auto-routed from production_incident",
+                "severity": "P1",
+                "env": "prod",
+            },
+            True,
+        ),
+        (
+            "feature_addition",
+            "helix add-feature add-design",
+            {
+                "feature": "<feature-id>",
+                "summary": "auto-routed from feature_addition",
+                "requires_plan": "<plan-id>",
+            },
+            False,
+        ),
+        (
+            "agent_runaway",
+            "helix recovery start",
+            {
+                "plan_id": "<plan-id>",
+                "reopen_point": "HEAD",
+            },
+            True,
+        ),
+    ],
+)
+def test_recommended_command_for_new_modes_uses_mode_cli_contract(
+    signal: str,
+    command: str,
+    args: dict[str, str],
+    requires_human_approval: bool,
+) -> None:
+    """DoD 検証: 新 4 mode は mode CLI へ直接つながる RecommendedCommandV1 を返す。"""
+    result = route_engine.RouteEngine().evaluate(signal)
+
+    assert result.recommended_command == {
+        "schema_version": "v1",
+        "command": command,
+        "args": args,
+        "safety": {
+            "auto_apply": False,
+            "requires_human_approval": requires_human_approval,
+            "requires_preflight": False,
+        },
+    }
+
+
 def test_debt_degradation_routes_to_refactor() -> None:
     """DoD 検証: debt_degradation は Refactor へ固定される。"""
     result = route_engine.RouteEngine().evaluate("debt_degradation", impact="high")
@@ -269,8 +357,8 @@ def test_list_signals_returns_all() -> None:
     """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-020,U-EXT-021."""
     items = route_engine.RouteEngine().list_signals()
 
-    assert len(items) == 11
-    assert [item["signal"] for item in items[:10]] == [
+    assert len(items) == 19
+    assert [item["signal"] for item in items[:18]] == [
         "drift",
         "debt_degradation",
         "regression_prod",
@@ -281,6 +369,14 @@ def test_list_signals_returns_all() -> None:
         "dependency_outdated",
         "upgrade",
         "config_drift",
+        "user_feedback_iteration",
+        "requirement_continuous_refinement",
+        "production_incident",
+        "hotfix_required",
+        "feature_addition",
+        "scope_extension",
+        "agent_runaway",
+        "context_exhaustion",
     ]
     drift_entry = items[0]
     assert drift_entry["drift_types"] == [
@@ -291,6 +387,10 @@ def test_list_signals_returns_all() -> None:
         "dependency_outdated",
         "upgrade",
         "config_drift",
+        "production_incident",
+        "agent_runaway",
+        "feature_addition",
+        "user_feedback_iteration",
     ]
     assert items[-1]["signal"] == "degradation"
     assert items[-1]["deprecated"] is True
@@ -336,6 +436,10 @@ def test_regression_signals_route_by_mode() -> None:
         ("runaway", "dev", "Recovery"),
         ("incident", "prod", "Incident"),
         ("unknown_design", "dev", "Reverse"),
+        ("user_feedback_iteration", "dev", "scrum_agile"),
+        ("production_incident", "dev", "incident"),
+        ("feature_addition", "dev", "add_feature"),
+        ("agent_runaway", "dev", "recovery"),
     ],
 )
 def test_all_signals_high_high_keep_mode_and_force_p0(signal: str, env: str, mode: str) -> None:
