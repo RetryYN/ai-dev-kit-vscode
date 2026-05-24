@@ -73,14 +73,23 @@ assert payload[0]["suggest_command"] == "helix plan draft --kind reverse", paylo
 PY
 }
 
-@test "helix route list-signals shows 7 signals and 1 alias" {
+@test "helix route list-signals stays aligned with JSON contract" {
   run "$HELIX_ROOT/cli/helix" route list-signals
   [ "$status" -eq 0 ]
   [[ "$output" == *"drift mode=Reverse"* ]]
   [[ "$output" == *"incident mode=Incident"* ]]
   [[ "$output" == *"dependency_outdated mode=Retrofit"* ]]
   [[ "$output" == *"degradation mode=alias"* ]]
-  [ "$(printf '%s\n' "$output" | wc -l | tr -d ' ')" -eq 11 ]
+
+  ROUTE_TEXT="$output" ROUTE_JSON="$("$HELIX_ROOT/cli/helix" route list-signals --json)" python3 - <<'PY'
+import json
+import os
+
+text_lines = [line for line in os.environ["ROUTE_TEXT"].splitlines() if line.strip()]
+payload = json.loads(os.environ["ROUTE_JSON"])
+assert len(text_lines) == len(payload), (len(text_lines), len(payload))
+assert sum(1 for item in payload if item["mode"] == "alias") == 1, payload
+PY
 }
 
 @test "helix route eval routes dependency_outdated to Retrofit" {

@@ -2,7 +2,7 @@
 """HELIX スキル推挙を Codex で実行する。"""
 from __future__ import annotations
 
-import argparse, hashlib, json, os, re, subprocess, sys, time
+import argparse, hashlib, json, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 from typing import Any
 
@@ -114,23 +114,34 @@ def _filter_catalog(catalog: dict[str, Any], layer_filter: str | None, category_
 
 
 def _run_recommender(prompt: str) -> str:
-    cmd = [_helix_codex_path(), "--role", "recommender", "--task", prompt]
-    env = os.environ.copy()
-    # recommender は書き込みを行わないため、親の CODEX_BIN を子 helix-codex へ引き継がない。
-    env.pop("CODEX_BIN", None)
+    task_file: str | None = None
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False, env=env)
-    except subprocess.TimeoutExpired as exc:
-        raise RecommenderError(5, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
-    except OSError as exc:
-        raise RecommenderError(3, f"helix-codex の起動に失敗しました: {exc}") from exc
-    if (proc.stderr or "").strip():
-        print(f"[skill_recommender] helix-codex stderr:\n{proc.stderr.strip()}", file=sys.stderr)
-    if proc.returncode != 0:
-        if proc.returncode in NETWORK_EXIT_CODES:
-            raise RecommenderError(5, f"ネットワークまたはタイムアウトで失敗しました (exit={proc.returncode})。")
-        raise RecommenderError(3, f"helix-codex が失敗しました (exit={proc.returncode})。")
-    return proc.stdout or ""
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".md", delete=False) as tmp:
+            tmp.write(prompt)
+            task_file = tmp.name
+        cmd = [_helix_codex_path(), "--role", "recommender", "--task-file", task_file]
+        env = os.environ.copy()
+        # recommender は書き込みを行わないため、親の CODEX_BIN を子 helix-codex へ引き継がない。
+        env.pop("CODEX_BIN", None)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, check=False, env=env)
+        except subprocess.TimeoutExpired as exc:
+            raise RecommenderError(5, "Codex 呼び出しがタイムアウトしました（1800秒）。") from exc
+        except OSError as exc:
+            raise RecommenderError(3, f"helix-codex の起動に失敗しました: {exc}") from exc
+        if (proc.stderr or "").strip():
+            print(f"[skill_recommender] helix-codex stderr:\n{proc.stderr.strip()}", file=sys.stderr)
+        if proc.returncode != 0:
+            if proc.returncode in NETWORK_EXIT_CODES:
+                raise RecommenderError(5, f"ネットワークまたはタイムアウトで失敗しました (exit={proc.returncode})。")
+            raise RecommenderError(3, f"helix-codex が失敗しました (exit={proc.returncode})。")
+        return proc.stdout or ""
+    finally:
+        if task_file:
+            try:
+                os.unlink(task_file)
+            except OSError:
+                pass
 
 
 def _jsonl_version(path: Path) -> str:
