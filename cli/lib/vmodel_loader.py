@@ -3,13 +3,31 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
+import sys
 from typing import Any
 
 import yaml
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from cli.lib.agent_mandatory import MANDATORY_SUBAGENTS, ON_DEMAND_SUBAGENTS
+from cli.lib.command_catalog import build_catalog as build_command_catalog, repo_root
+
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "vmodel-semantics.yaml"
+SKILLS_ROOT = REPO_ROOT / "skills"
+INJECTION_REQUIRED_FIELDS = (
+    "owner_role",
+    "mandatory_agents",
+    "recommended_agents",
+    "recommended_skills",
+    "recommended_commands",
+    "orchestration_mode",
+)
 
 
 def _require_string_list(value: Any, field_path: str, *, allow_empty: bool = False) -> list[str]:
@@ -24,6 +42,41 @@ def _require_non_empty_string(value: Any, field_path: str) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError(f"{field_path} must be a non-empty string")
     return value
+
+
+@lru_cache(maxsize=1)
+def _known_agent_set() -> set[str]:
+    mandatory = {
+        entry["subagent"]
+        for entries in MANDATORY_SUBAGENTS.values()
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("subagent"), str)
+    }
+    on_demand = {
+        entry["subagent"]
+        for entry in ON_DEMAND_SUBAGENTS
+        if isinstance(entry, dict) and isinstance(entry.get("subagent"), str)
+    }
+    return mandatory | on_demand
+
+
+@lru_cache(maxsize=1)
+def _known_skill_set() -> set[str]:
+    skill_ids: set[str] = set()
+    for skill_md in SKILLS_ROOT.rglob("SKILL.md"):
+        relative = skill_md.relative_to(SKILLS_ROOT)
+        if len(relative.parts) >= 3:
+            skill_ids.add(f"{relative.parts[0]}/{relative.parts[1]}")
+    return skill_ids
+
+
+@lru_cache(maxsize=1)
+def _known_command_set() -> set[str]:
+    return {entry.name for entry in build_command_catalog(repo_root())}
+
+
+class VmodelInjectionError(ValueError):
+    """Raised when an injection block is malformed or references unknown IDs."""
 
 
 class VModelSemantics:
@@ -144,6 +197,15 @@ class VModelSemantics:
                     allowed_horizontal_rule=allowed_values["horizontal_rule"],
                     score_range=allowed_values["score_weight"],
                 )
+                self._validate_injection(
+                    layer_data.get("injection"),
+                    drive,
+                    layer,
+                    allowed_values,
+                    _known_agent_set(),
+                    _known_skill_set(),
+                    _known_command_set(),
+                )
 
         if errors:
             self._raise_validation_error(errors)
@@ -207,6 +269,13 @@ class VModelSemantics:
         if not isinstance(allowed_values, dict):
             raise ValueError("spine.allowed_values must be a mapping")
         review_axes = set(_require_string_list(allowed_values.get("review_axes"), "spine.allowed_values.review_axes"))
+        owner_role = set(_require_string_list(allowed_values.get("owner_role"), "spine.allowed_values.owner_role"))
+        orchestration_mode = set(
+            _require_string_list(
+                allowed_values.get("orchestration_mode"),
+                "spine.allowed_values.orchestration_mode",
+            )
+        )
         baseline_policy = set(
             _require_string_list(allowed_values.get("baseline_policy"), "spine.allowed_values.baseline_policy")
         )
@@ -222,6 +291,8 @@ class VModelSemantics:
             raise ValueError("spine.allowed_values.score_weight.min/max must be numbers")
         return {
             "review_axes": review_axes,
+            "owner_role": owner_role,
+            "orchestration_mode": orchestration_mode,
             "baseline_policy": baseline_policy,
             "horizontal_rule": horizontal_rule,
             "score_weight": (float(minimum), float(maximum)),
@@ -375,6 +446,65 @@ class VModelSemantics:
                 errors.append(f"{field_path}.promotion must be a mapping or null")
             elif promotion.get("append_only") is not True:
                 errors.append(f"{field_path}.promotion.append_only must be true")
+
+    @staticmethod
+    def _validate_injection(
+        injection: Any,
+        drive: str,
+        layer: str,
+        allowed_values: dict[str, Any],
+        agent_set: set[str],
+        skill_set: set[str],
+        command_set: set[str],
+    ) -> None:
+        field_path = f"{drive}/{layer}/injection"
+        if not isinstance(injection, dict):
+            raise VmodelInjectionError(f"{field_path}: must be a mapping")
+
+        missing = [field for field in INJECTION_REQUIRED_FIELDS if field not in injection]
+        if missing:
+            raise VmodelInjectionError(f"{field_path}: missing required fields: {', '.join(missing)}")
+
+        owner_role = _require_non_empty_string(injection.get("owner_role"), f"{field_path}.owner_role")
+        if owner_role not in allowed_values["owner_role"]:
+            raise VmodelInjectionError(f"{field_path}: unknown owner_role {owner_role!r}")
+
+        orchestration_mode = _require_non_empty_string(
+            injection.get("orchestration_mode"),
+            f"{field_path}.orchestration_mode",
+        )
+        if orchestration_mode not in allowed_values["orchestration_mode"]:
+            raise VmodelInjectionError(f"{field_path}: unknown orchestration_mode {orchestration_mode!r}")
+
+        for list_name in ("mandatory_agents", "recommended_agents"):
+            values = _require_string_list(injection.get(list_name), f"{field_path}.{list_name}", allow_empty=True)
+            for agent in values:
+                if agent not in agent_set:
+                    raise VmodelInjectionError(f"{field_path}: unknown agent {agent!r} in {list_name}")
+
+        recommended_skills = _require_string_list(
+            injection.get("recommended_skills"),
+            f"{field_path}.recommended_skills",
+            allow_empty=True,
+        )
+        for skill_id in recommended_skills:
+            if skill_id not in skill_set:
+                raise VmodelInjectionError(f"{field_path}: unknown skill {skill_id!r} in recommended_skills")
+
+        recommended_commands = _require_string_list(
+            injection.get("recommended_commands"),
+            f"{field_path}.recommended_commands",
+            allow_empty=True,
+        )
+        for command in recommended_commands:
+            prefix = "helix "
+            if not command.startswith(prefix):
+                raise VmodelInjectionError(
+                    f"{field_path}: recommended_commands entries must start with 'helix '"
+                )
+            subcommand = command[len(prefix) :]
+            if not subcommand or subcommand not in command_set:
+                raise VmodelInjectionError(f"{field_path}: unknown command {command!r} in recommended_commands")
 
     @staticmethod
     def _raise_validation_error(errors: list[str]) -> None:

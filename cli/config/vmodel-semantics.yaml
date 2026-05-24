@@ -59,6 +59,13 @@ spine:
       - devops
       - docs
       - research
+      - pm
+    orchestration_mode:
+      - pm_lead
+      - claude_judge
+      - claude_judge_codex_impl
+      - codex_impl_qa_verify
+      - claude_design_impl
     baseline_policy:
       - snapshot
       - regression_corpus
@@ -137,6 +144,20 @@ drives:
           promotion: null
           requires_functional_freeze: false
           conditional_rule: Required for production-facing or Run-phase BE work; advisory for draft-only design spikes.
+        injection:
+          owner_role: pm
+          mandatory_agents: []
+          recommended_agents:
+            - pm-advisor
+          recommended_skills:
+            - workflow/project-management
+            - workflow/requirements-handover
+            - workflow/doc-system-architect
+            - agent-skills/planning-and-task-breakdown
+          recommended_commands:
+            - helix plan
+            - helix size
+          orchestration_mode: pm_lead
       requirement:
         design:
           artifacts:
@@ -169,6 +190,23 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: false
+        injection:
+          owner_role: pm
+          mandatory_agents:
+            - pmo-project-explorer
+            - pmo-helix-explorer
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/requirements-deriver
+            - workflow/api-contract
+            - workflow/requirements-handover
+          recommended_commands:
+            - helix plan
+            - helix gate
+          orchestration_mode: claude_judge
       architecture:
         design:
           artifacts:
@@ -202,6 +240,24 @@ drives:
           score_weight: 0.25
           promotion: null
           requires_functional_freeze: false
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/api-contract
+            - workflow/adversarial-review
+            - workflow/threat-model
+            - agent-skills/api-and-interface-design
+            - agent-skills/system-design-sizing
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+          orchestration_mode: claude_judge_codex_impl
       detailed:
         design:
           artifacts:
@@ -235,6 +291,22 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: false
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/api-contract
+            - workflow/design-doc
+            - workflow/schedule-wbs
+            - project/db
+          recommended_commands:
+            - helix gate
+            - helix db
+          orchestration_mode: claude_judge_codex_impl
       functional:
         design:
           artifacts:
@@ -269,6 +341,21 @@ drives:
           score_weight: 0.25
           promotion: null
           requires_functional_freeze: false
+        injection:
+          owner_role: se
+          mandatory_agents: []
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/testing
+            - workflow/quality-lv5
+            - workflow/verification
+            - workflow/runbook
+            - agent-skills/test-driven-development
+          recommended_commands:
+            - helix test
+            - helix verify-all
+          orchestration_mode: codex_impl_qa_verify
   fe:
     description: Frontend/mock-driven first drive.
     layers:
@@ -306,6 +393,21 @@ drives:
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Required once FE work commits to the 5-stage wire/mockup/judgment/implementation/review pipeline.
+        injection:
+          owner_role: pm
+          mandatory_agents: []
+          recommended_agents:
+            - pm-advisor
+          recommended_skills:
+            - workflow/project-management
+            - workflow/requirements-handover
+            - workflow/doc-system-architect
+            - agent-skills/planning-and-task-breakdown
+            - writing/god-writing
+          recommended_commands:
+            - helix plan
+            - helix size
+          orchestration_mode: pm_lead
       requirement:
         design:
           artifacts:
@@ -339,6 +441,23 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: pm
+          mandatory_agents:
+            - pmo-project-explorer
+            - pmo-helix-explorer
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/requirements-deriver
+            - common/visual-design
+            - agent-skills/mock-driven-development
+          recommended_commands:
+            - helix plan
+            - helix gate
+          orchestration_mode: claude_judge
       architecture:
         design:
           artifacts:
@@ -388,6 +507,23 @@ drives:
               - G4: MOCK-HARDCODE
               - G4: MOCK-CODE-LEAK
               - G6: MOCK-DERIVED-CONTRACT
+        injection:
+          owner_role: fe
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/visual-design
+            - design-tools/web-system
+            - design-tools/gpt-image
+            - agent-skills/mock-driven-development
+            - agent-skills/frontend-ui-engineering
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+          orchestration_mode: claude_design_impl
       detailed:
         design:
           artifacts:
@@ -423,6 +559,22 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: fe
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - design-tools/web-system
+            - agent-skills/frontend-ui-engineering
+            - agent-skills/mock-driven-development
+            - project/ui
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+          orchestration_mode: claude_design_impl
       functional:
         design:
           artifacts:
@@ -459,6 +611,20 @@ drives:
           score_weight: 0.25
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: fe
+          mandatory_agents: []
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/testing
+            - agent-skills/test-driven-development
+            - agent-skills/browser-testing-with-devtools
+            - automation/browser-script
+          recommended_commands:
+            - helix test
+            - helix verify-all
+          orchestration_mode: codex_impl_qa_verify
   db:
     description: Database/model first drive for master-data, ERP, and data-platform work.
     layers:
@@ -496,6 +662,20 @@ drives:
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Required when the DB drive advances to migration planning or operational rollout; advisory for draft-only semantic spikes.
+        injection:
+          owner_role: pm
+          mandatory_agents: []
+          recommended_agents:
+            - pm-advisor
+          recommended_skills:
+            - workflow/project-management
+            - workflow/doc-system-architect
+            - workflow/requirements-handover
+            - agent-skills/planning-and-task-breakdown
+          recommended_commands:
+            - helix plan
+            - helix size
+          orchestration_mode: pm_lead
       requirement:
         design:
           artifacts:
@@ -529,6 +709,22 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: pm
+          mandatory_agents:
+            - pmo-project-explorer
+            - pmo-helix-explorer
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/requirements-deriver
+            - workflow/api-contract
+          recommended_commands:
+            - helix plan
+            - helix gate
+          orchestration_mode: claude_judge
       architecture:
         design:
           artifacts:
@@ -562,6 +758,23 @@ drives:
           score_weight: 0.25
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: dba
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/api-contract
+            - workflow/adversarial-review
+            - project/db
+            - agent-skills/system-design-sizing
+          recommended_commands:
+            - helix gate
+            - helix db
+          orchestration_mode: claude_judge_codex_impl
       detailed:
         design:
           artifacts:
@@ -595,6 +808,21 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: dba
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - project/db
+            - workflow/api-contract
+            - workflow/schedule-wbs
+          recommended_commands:
+            - helix gate
+            - helix db
+          orchestration_mode: claude_judge_codex_impl
       functional:
         design:
           artifacts:
@@ -628,6 +856,21 @@ drives:
           score_weight: 0.25
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: dba
+          mandatory_agents: []
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/testing
+            - project/db
+            - workflow/quality-lv5
+            - workflow/verification
+          recommended_commands:
+            - helix test
+            - helix verify-all
+            - helix db
+          orchestration_mode: codex_impl_qa_verify
   fullstack:
     description: Backend + frontend + contract tracks advance in parallel and merge at L4.5.
     layers:
@@ -664,6 +907,21 @@ drives:
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Fullstack planning is fail-close when be/fe/contract/shared do not agree on Phase A/B entry criteria.
+        injection:
+          owner_role: pm
+          mandatory_agents: []
+          recommended_agents:
+            - pm-advisor
+          recommended_skills:
+            - workflow/project-management
+            - workflow/requirements-handover
+            - workflow/doc-system-architect
+            - agent-skills/planning-and-task-breakdown
+            - agent-skills/system-design-sizing
+          recommended_commands:
+            - helix plan
+            - helix size
+          orchestration_mode: pm_lead
       requirement:
         design:
           artifacts:
@@ -697,6 +955,24 @@ drives:
           score_weight: 0.2
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
+        injection:
+          owner_role: pm
+          mandatory_agents:
+            - pmo-project-explorer
+            - pmo-helix-explorer
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/requirements-deriver
+            - workflow/api-contract
+            - workflow/requirements-handover
+            - common/visual-design
+          recommended_commands:
+            - helix plan
+            - helix gate
+          orchestration_mode: claude_judge
       architecture:
         design:
           artifacts:
@@ -746,6 +1022,25 @@ drives:
               - fe
               - contract
             phase_b_join: l4.5
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/api-contract
+            - workflow/adversarial-review
+            - workflow/threat-model
+            - agent-skills/api-and-interface-design
+            - agent-skills/mock-driven-development
+            - common/visual-design
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+          orchestration_mode: claude_judge_codex_impl
       detailed:
         design:
           artifacts:
@@ -783,6 +1078,25 @@ drives:
           promotion: null
           requires_functional_freeze: true  # L1 FR-VS03 master: enforce only when size=L and drive in (fe/fullstack/db)
           conditional_rule: Phase A closes only after be/fe/contract detailed designs and integration tests are all paired.
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/api-contract
+            - workflow/design-doc
+            - workflow/schedule-wbs
+            - project/ui
+            - project/db
+            - agent-skills/api-and-interface-design
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+            - helix db
+          orchestration_mode: claude_judge_codex_impl
       functional:
         design:
           artifacts:
@@ -836,3 +1150,19 @@ drives:
               - a11y
               - e2e
               - contract_test
+        injection:
+          owner_role: se
+          mandatory_agents: []
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/testing
+            - workflow/quality-lv5
+            - workflow/verification
+            - workflow/runbook
+            - agent-skills/test-driven-development
+            - agent-skills/browser-testing-with-devtools
+          recommended_commands:
+            - helix test
+            - helix verify-all
+          orchestration_mode: codex_impl_qa_verify
