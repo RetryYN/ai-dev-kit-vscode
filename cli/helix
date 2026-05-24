@@ -155,7 +155,7 @@ Codex / Claude Code 管理 harness:
   review      Codex 自動レビュー
   skill       スキル検索・参照
   budget      Claude/Codex 予算管理・モデル推奨
-  agent       agent slot 一覧/release/stats/fire-mandatory/audit (PLAN-082)
+  agent       HELIX W drive=agent init/stage1/stage2/merge/route + agent slot/audit
   hook        PostToolUse hook
   check-claudemd PreToolUse hook
   context     context / memory guardrail check

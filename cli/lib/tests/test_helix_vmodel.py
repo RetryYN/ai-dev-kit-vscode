@@ -49,7 +49,7 @@ def test_helix_vmodel_list_json(tmp_path: Path) -> None:
 
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(proc.stdout)
-    assert payload["drives"] == ["be", "fe", "db", "fullstack"]
+    assert payload["drives"] == ["be", "fe", "db", "fullstack", "agent"]
     assert payload["layers"] == ["planning", "requirement", "architecture", "detailed", "functional"]
 
 

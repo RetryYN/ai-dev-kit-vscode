@@ -77,7 +77,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | `helix review` | Codex レビュー |
 | `helix skill` | スキル検索・参照 |
 | `helix budget` | Claude/Codex の消費・モデル推奨 |
-| `helix agent` | agent slot 一覧/release/stats/fire-mandatory/audit (PLAN-082) |
+| `helix agent` | HELIX W drive=agent の `init/stage1/stage2/merge/route` と agent slot/audit を扱う |
 | `helix hook` | PostToolUse hook |
 | `helix check-claudemd` | PreToolUse hook |
 | `helix context` | AGENTS / CLAUDE / hook / memory の強制導線検査と context bundle 生成 |

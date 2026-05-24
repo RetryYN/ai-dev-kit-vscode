@@ -27,10 +27,10 @@ teardown() {
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
-@test "test_vmodel_list_shows_4_drives" {
+@test "test_vmodel_list_shows_5_drives" {
   run "$HELIX_ROOT/cli/helix" vmodel list
   [ "$status" -eq 0 ]
-  [[ "$output" == *"drives: be, fe, db, fullstack"* ]]
+  [[ "$output" == *"drives: be, fe, db, fullstack, agent"* ]]
 }
 
 @test "test_vmodel_list_with_drive_be_shows_5_layers" {
@@ -90,8 +90,8 @@ import json
 import os
 
 payload = json.loads(os.environ["JSON_PAYLOAD"])
-assert payload["drives"] == ["be", "fe", "db", "fullstack"]
-assert len(payload["drives"]) == 4
+assert payload["drives"] == ["be", "fe", "db", "fullstack", "agent"]
+assert len(payload["drives"]) == 5
 PY
   [ "$status" -eq 0 ]
 }

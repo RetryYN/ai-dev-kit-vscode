@@ -43,10 +43,10 @@ def test_load_default_config() -> None:
     assert model.data["schema_version"] == 1
 
 
-def test_list_drives_returns_4() -> None:
+def test_list_drives_returns_5() -> None:
     model = vmodel_loader.load_default()
 
-    assert model.list_drives() == ["be", "fe", "db", "fullstack"]
+    assert model.list_drives() == ["be", "fe", "db", "fullstack", "agent"]
 
 
 def test_list_layers_returns_5() -> None:

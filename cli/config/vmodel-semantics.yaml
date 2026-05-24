@@ -14,6 +14,7 @@ spine:
       - fe
       - db
       - fullstack
+      - agent
     description: HELIX drive type. Scrum and Reverse are origin modes, not drive values in this spine.
   layers:
     allowed:
@@ -355,6 +356,271 @@ drives:
           recommended_commands:
             - helix test
             - helix verify-all
+          orchestration_mode: codex_impl_qa_verify
+  agent:
+    description: HELIX W Phase 2 drive for tool/MCP/skill/subagent orchestration before L10 merge.
+    layers:
+      planning:
+        design:
+          artifacts:
+            - plan_goal
+            - drive_decision
+            - phase2_strategy
+            - merge_contract
+          review_unit: plan
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-08-plan-integrity
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: operational
+          artifacts:
+            - operational_test_outline
+            - runbook_acceptance
+            - phase_transition_checklist
+          baseline_policy: manual_only
+          detectors:
+            - axis-11-regression
+            - axis-14-orchestration-integrity
+        pair:
+          horizontal_rule: conditional
+          vertical_from: null
+          vertical_to: requirement
+          score_weight: 0.1
+          promotion: null
+          requires_functional_freeze: false
+          conditional_rule: Phase 2 planning is fail-close until Phase 1/Phase 2 merge assumptions are explicit.
+        injection:
+          owner_role: pm
+          mandatory_agents: []
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/project-management
+            - workflow/requirements-handover
+            - workflow/doc-system-architect
+            - agent-skills/planning-and-task-breakdown
+            - agent-skills/system-design-sizing
+          recommended_commands:
+            - helix plan
+            - helix size
+            - helix agent
+          orchestration_mode: pm_lead
+      requirement:
+        design:
+          artifacts:
+            - l1_requirements
+            - tool_capability_map
+            - interface_scope
+            - merge_constraints
+          review_unit: capability
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-08-plan-integrity
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: acceptance
+          artifacts:
+            - acceptance_test_design
+            - tool_acceptance_matrix
+            - operator_scenarios
+          baseline_policy: golden_fixture
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: planning
+          vertical_to: architecture
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: false
+        injection:
+          owner_role: pm
+          mandatory_agents:
+            - pmo-project-explorer
+            - pmo-helix-explorer
+          recommended_agents:
+            - pm-advisor
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/requirements-deriver
+            - workflow/api-contract
+            - workflow/requirements-handover
+          recommended_commands:
+            - helix plan
+            - helix gate
+            - helix agent
+          orchestration_mode: claude_judge
+      architecture:
+        design:
+          artifacts:
+            - architecture_decision_record
+            - tool_topology
+            - mcp_contract_overview
+            - skill_interface_map
+          review_unit: feature_slice
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-07-contract-drift
+            - axis-10-relation-graph
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: system_integration
+          artifacts:
+            - integration_scenarios
+            - contract_test_design
+            - merge_readiness_plan
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: requirement
+          vertical_to: detailed
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: false
+          conditional_rule: tool, MCP, skill, and subagent architecture must freeze together before detailed design.
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/design-doc
+            - workflow/api-contract
+            - workflow/adversarial-review
+            - workflow/threat-model
+            - agent-skills/api-and-interface-design
+            - agent-skills/system-design-sizing
+          recommended_commands:
+            - helix gate
+            - helix drift-check
+            - helix agent
+          orchestration_mode: claude_judge_codex_impl
+      detailed:
+        design:
+          artifacts:
+            - tool_contract
+            - mcp_schema
+            - prompt_boundary
+            - state_boundary
+          review_unit: feature_contract
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-06-naming-confusion
+            - axis-07-contract-drift
+            - axis-12-connection-deficiency
+            - axis-14-orchestration-integrity
+        test:
+          test_level: integration
+          artifacts:
+            - integration_test_design
+            - tool_fixture_set
+            - skill_contract_fixture_set
+          baseline_policy: regression_corpus
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: architecture
+          vertical_to: functional
+          score_weight: 0.2
+          promotion: null
+          requires_functional_freeze: false
+          conditional_rule: Phase 2 closes detailed design only after tool and MCP integration tests are paired.
+        injection:
+          owner_role: tl
+          mandatory_agents:
+            - pmo-project-scout
+            - pmo-project-explorer
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - workflow/api-contract
+            - workflow/design-doc
+            - workflow/schedule-wbs
+            - agent-skills/api-and-interface-design
+          recommended_commands:
+            - helix gate
+            - helix verify-agent
+            - helix agent
+          orchestration_mode: claude_judge_codex_impl
+      functional:
+        design:
+          artifacts:
+            - function_contract
+            - tool_symbol_map
+            - subagent_dispatch_map
+            - phase3_merge_readiness
+          review_unit: feature_unit
+          review_axes:
+            - vertical
+            - horizontal
+          detectors:
+            - axis-01-dead-code-drift
+            - axis-02-coverage-erosion
+            - axis-09-refactor-opportunity
+            - axis-14-orchestration-integrity
+        test:
+          test_level: unit
+          artifacts:
+            - agent_unit_test_design
+            - tool_stub_suite
+            - mcp_contract_exit_suite
+            - merge_exit_suite
+          baseline_policy: snapshot
+          detectors:
+            - axis-02-coverage-erosion
+            - axis-09-test-quality
+            - axis-11-regression
+            - axis-12-connection-deficiency
+        pair:
+          horizontal_rule: required
+          vertical_from: detailed
+          vertical_to: null
+          score_weight: 0.25
+          promotion: null
+          requires_functional_freeze: false
+          conditional_rule: Phase 3 merge stays closed until tool, MCP, skill, and dispatch tests all pass together.
+        injection:
+          owner_role: se
+          mandatory_agents: []
+          recommended_agents:
+            - tl-advisor
+          recommended_skills:
+            - common/testing
+            - workflow/quality-lv5
+            - workflow/verification
+            - agent-skills/test-driven-development
+            - agent-skills/browser-testing-with-devtools
+          recommended_commands:
+            - helix test
+            - helix verify-agent
+            - helix agent
           orchestration_mode: codex_impl_qa_verify
   fe:
     description: Frontend/mock-driven first drive.

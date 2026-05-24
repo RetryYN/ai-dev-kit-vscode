@@ -8,6 +8,11 @@ usage() {
     'Usage: helix agent <subcommand> [options]' \
     '' \
     'Subcommands:' \
+    '  init             HELIX W agent session を初期化する' \
+    '  stage1           Phase 1 (一般システム) の進行を更新する' \
+    '  stage2           Phase 2 (agent) の進行を更新する' \
+    '  merge            Phase 3 (L10-L14 合流) を開始する' \
+    '  route            現在 phase の HELIX route を表示する' \
     '  fire             slot を起動記録する内部 API' \
     '  release          slot を終了記録する内部 API' \
     '  slots            slot 一覧を表示する' \
@@ -387,9 +392,16 @@ cmd_audit() {
   PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli.lib.agent_mandatory audit --phase "$phase" --since-hours "$since_hours" "${session_args[@]}" $json_flag
 }
 
+cmd_agent_workflow() {
+  env PYTHONPATH="$HELIX_HOME${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli.lib.agent_engine "$@"
+}
+
 main() {
   local subcommand="${1:-}"
   case "$subcommand" in
+    init|stage1|stage2|merge|route)
+      cmd_agent_workflow "$@"
+      ;;
     fire)
       shift || true
       cmd_fire "$@"
