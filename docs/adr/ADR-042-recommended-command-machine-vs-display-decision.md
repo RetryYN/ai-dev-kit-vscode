@@ -184,7 +184,7 @@ recommended_command = {
 
 ### 運用影響
 
-- `helix route eval --format machine` で `recommended_command` JSON 取得 (新規 format)
+- `helix route eval --format json` 出力に `recommended_command` JSON object を additive 追加 (R2 P1-5 代替案 C 採用、既存 caller 互換維持)
 - `helix route eval --format command` は `suggest_command` 文字列を出力 (既存、backward compat)
 - 各 mode CLI (refactor / retrofit / recovery) は PLAN 起票後の手動着手フローに整理
 

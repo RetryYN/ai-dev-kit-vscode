@@ -25,8 +25,8 @@ dependencies:
     - ADR-042   # recommended_command + Recovery 例外 SoT
   parent: L7-helix-workflows-parent-acceptedplan
   blocks: []
-parent_design:
-  - HELIX-workflows/helix-process/recovery-workflow.md
+parent_design: HELIX-workflows/helix-process/recovery-workflow.md
+parent_design_addenda:
   - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md
 pairs_test_design: []
 agent_slots:

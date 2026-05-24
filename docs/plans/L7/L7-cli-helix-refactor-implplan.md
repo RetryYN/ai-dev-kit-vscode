@@ -10,8 +10,8 @@ revised: 2026-05-24-R3
 owner: PM
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
-parent_design:
-  - HELIX-workflows/helix-process/refactor-workflow.md
+parent_design: HELIX-workflows/helix-process/refactor-workflow.md
+parent_design_addenda:
   - docs/adr/ADR-041-drift-type-7-categories-routing-decision.md   # drift_type SoT
   - docs/adr/ADR-042-recommended-command-machine-vs-display-decision.md   # recommended_command SoT
 pairs_test_design:
