@@ -69,6 +69,8 @@ def test_drift_routes_to_reverse_normalization() -> None:
         ("agent_runaway", "recovery", "recovery", None),
         ("feature_addition", "add_feature", "add_feature", None),
         ("user_feedback_iteration", "scrum_agile", "scrum_agile", None),
+        ("ai_agent_construction", "drive_agent", "drive_agent", None),
+        ("long_running_task", "auto_run", "auto_run", None),
     ],
 )
 def test_drift_type_overrides_route(drift_type: str, mode: str, kind: str, subtype: str | None) -> None:
@@ -217,6 +219,10 @@ def test_shortcut_signal_with_conflicting_drift_type_raises() -> None:
         ("scope_extension", "add_feature", "add_feature", "feature_addition"),
         ("agent_runaway", "recovery", "recovery", "agent_runaway"),
         ("context_exhaustion", "recovery", "recovery", "agent_runaway"),
+        ("ai_agent_construction", "drive_agent", "drive_agent", "ai_agent_construction"),
+        ("agent_design_required", "drive_agent", "drive_agent", "ai_agent_construction"),
+        ("long_running_task", "auto_run", "auto_run", "long_running_task"),
+        ("context_exhaustion_predicted", "auto_run", "auto_run", "long_running_task"),
     ],
 )
 def test_new_mode_shortcut_signals_route_to_expected_mode(
@@ -266,6 +272,25 @@ def test_new_mode_shortcut_signals_route_to_expected_mode(
                 "reopen_point": "HEAD",
             },
             True,
+        ),
+        (
+            "ai_agent_construction",
+            "helix agent init",
+            {
+                "agent_id": "<agent-id>",
+                "summary": "auto-routed from ai_agent_construction",
+                "phase1_drive": "fullstack",
+            },
+            False,
+        ),
+        (
+            "long_running_task",
+            "helix auto-run start",
+            {
+                "plan_id": "<plan-id>",
+                "duration_minutes": 60,
+            },
+            False,
         ),
     ],
 )
@@ -357,8 +382,8 @@ def test_list_signals_returns_all() -> None:
     """DoD 検証: L7-route-engine-drift-type-retrofit-ext-test-design.md U-EXT-020,U-EXT-021."""
     items = route_engine.RouteEngine().list_signals()
 
-    assert len(items) == 19
-    assert [item["signal"] for item in items[:18]] == [
+    assert len(items) == 23
+    assert [item["signal"] for item in items[:22]] == [
         "drift",
         "debt_degradation",
         "regression_prod",
@@ -377,6 +402,10 @@ def test_list_signals_returns_all() -> None:
         "scope_extension",
         "agent_runaway",
         "context_exhaustion",
+        "ai_agent_construction",
+        "agent_design_required",
+        "long_running_task",
+        "context_exhaustion_predicted",
     ]
     drift_entry = items[0]
     assert drift_entry["drift_types"] == [
@@ -391,6 +420,8 @@ def test_list_signals_returns_all() -> None:
         "agent_runaway",
         "feature_addition",
         "user_feedback_iteration",
+        "ai_agent_construction",
+        "long_running_task",
     ]
     assert items[-1]["signal"] == "degradation"
     assert items[-1]["deprecated"] is True
@@ -440,6 +471,8 @@ def test_regression_signals_route_by_mode() -> None:
         ("production_incident", "dev", "incident"),
         ("feature_addition", "dev", "add_feature"),
         ("agent_runaway", "dev", "recovery"),
+        ("ai_agent_construction", "dev", "drive_agent"),
+        ("long_running_task", "dev", "auto_run"),
     ],
 )
 def test_all_signals_high_high_keep_mode_and_force_p0(signal: str, env: str, mode: str) -> None:

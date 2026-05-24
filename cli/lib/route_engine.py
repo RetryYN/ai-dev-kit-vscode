@@ -23,6 +23,8 @@ Mode = Literal[
     "incident",
     "add_feature",
     "recovery",
+    "drive_agent",
+    "auto_run",
 ]
 Kind = Literal[
     "reverse",
@@ -33,6 +35,8 @@ Kind = Literal[
     "scrum_agile",
     "incident",
     "add_feature",
+    "drive_agent",
+    "auto_run",
 ]
 Priority = Literal["P0", "P1", "P2", "P3"]
 Action = Literal["suggest_only", "immediate_plan_draft", "discovery_first", "emergency_routing"]
@@ -50,6 +54,8 @@ DriftType = Literal[
     "agent_runaway",
     "feature_addition",
     "user_feedback_iteration",
+    "ai_agent_construction",
+    "long_running_task",
 ]
 
 SOURCE_SCHEMA = "helix_detect_run_json_v1"
@@ -66,6 +72,8 @@ VALID_DRIFT_TYPES = (
     "agent_runaway",
     "feature_addition",
     "user_feedback_iteration",
+    "ai_agent_construction",
+    "long_running_task",
 )
 DEFAULT_DRIFT_TYPE: DriftType = "schema"
 RECOVER_LINKED_SIGNALS = {"runaway", "regression_dev"}
@@ -81,6 +89,10 @@ SHORTCUT_SIGNAL_TO_DRIFT_TYPE: dict[str, DriftType] = {
     "scope_extension": "feature_addition",
     "agent_runaway": "agent_runaway",
     "context_exhaustion": "agent_runaway",
+    "ai_agent_construction": "ai_agent_construction",
+    "agent_design_required": "ai_agent_construction",
+    "long_running_task": "long_running_task",
+    "context_exhaustion_predicted": "long_running_task",
 }
 DRIFT_TYPE_TO_ROUTE: dict[DriftType, dict[str, str | None]] = {
     "schema": {"mode": "Reverse", "kind": "reverse", "subtype": "normalization"},
@@ -94,6 +106,8 @@ DRIFT_TYPE_TO_ROUTE: dict[DriftType, dict[str, str | None]] = {
     "agent_runaway": {"mode": "recovery", "kind": "recovery", "subtype": None},
     "feature_addition": {"mode": "add_feature", "kind": "add_feature", "subtype": None},
     "user_feedback_iteration": {"mode": "scrum_agile", "kind": "scrum_agile", "subtype": None},
+    "ai_agent_construction": {"mode": "drive_agent", "kind": "drive_agent", "subtype": None},
+    "long_running_task": {"mode": "auto_run", "kind": "auto_run", "subtype": None},
 }
 
 
@@ -143,6 +157,10 @@ class RouteEngine:
         "scope_extension": {"mode": "add_feature", "kind": "add_feature", "subtype": None},
         "agent_runaway": {"mode": "recovery", "kind": "recovery", "subtype": None},
         "context_exhaustion": {"mode": "recovery", "kind": "recovery", "subtype": None},
+        "ai_agent_construction": {"mode": "drive_agent", "kind": "drive_agent", "subtype": None},
+        "agent_design_required": {"mode": "drive_agent", "kind": "drive_agent", "subtype": None},
+        "long_running_task": {"mode": "auto_run", "kind": "auto_run", "subtype": None},
+        "context_exhaustion_predicted": {"mode": "auto_run", "kind": "auto_run", "subtype": None},
     }
 
     DEPRECATED_ALIAS: dict[str, str] = {
@@ -359,6 +377,14 @@ class RouteEngine:
             )
         if mode == "recovery":
             return (f"helix recovery start --plan-id <plan-id> --reopen-point {reopen_point}", None)
+        if mode == "drive_agent":
+            return (
+                "helix agent init "
+                f'--agent-id <agent-id> --summary "auto-routed from {signal}" --phase1-drive fullstack',
+                None,
+            )
+        if mode == "auto_run":
+            return ("helix auto-run start --plan-id <plan-id> --duration-minutes 60", None)
         if signal in RECOVER_LINKED_SIGNALS or (signal == "incident" and env == "prod"):
             recover_args = {
                 "signal_id": signal,
@@ -448,6 +474,27 @@ class RouteEngine:
                     **base_safety,
                     "requires_human_approval": True,
                 },
+            }
+        if mode == "drive_agent":
+            return {
+                "schema_version": "v1",
+                "command": "helix agent init",
+                "args": {
+                    "agent_id": "<agent-id>",
+                    "summary": f"auto-routed from {signal}",
+                    "phase1_drive": "fullstack",
+                },
+                "safety": base_safety,
+            }
+        if mode == "auto_run":
+            return {
+                "schema_version": "v1",
+                "command": "helix auto-run start",
+                "args": {
+                    "plan_id": "<plan-id>",
+                    "duration_minutes": 60,
+                },
+                "safety": base_safety,
             }
         if mode == "Reverse":
             reverse_type = "code" if subtype == "code" else "normalization"
