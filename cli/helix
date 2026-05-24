@@ -49,6 +49,7 @@ case "$CMD" in
   recover) exec "$SCRIPT_DIR/helix-recover" "$@" ;;
   recovery) exec "$SCRIPT_DIR/helix-recovery" "$@" ;;
   incident) exec "$SCRIPT_DIR/helix-incident" "$@" ;;
+  add-feature) exec "$SCRIPT_DIR/helix-add-feature" "$@" ;;
   retrofit) exec "$SCRIPT_DIR/helix-retrofit" "$@" ;;
   handover) exec "$SCRIPT_DIR/helix-handover" "$@" ;;
   workspace) exec "$SCRIPT_DIR/helix-workspace" "$@" ;;
@@ -136,6 +137,7 @@ HELIX プロジェクト管理:
   recover     Recovery mode の診断・dump・PLAN 起票 (rollback は dry-run のみ)
   recovery    Recovery workflow session の開始・進行・完了管理
   incident    Incident mode の detect / triage / hotfix / postmortem / route
+  add-feature Add-feature mode の design/impl 追補 state 管理と Forward 接続案内
   retrofit    Retrofit mode の matrix/config/plan 管理
   handover    Opus/Codex handover 管理
   route       detect signal を Reverse/Refactor/Recovery/Incident へ提案ルーティング
