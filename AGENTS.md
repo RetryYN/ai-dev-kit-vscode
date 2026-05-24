@@ -54,7 +54,7 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 - 明示承認は `OK`、`進めて`、`実装して`、`それで`、`やって`、`apply`、`proceed` などの実行指示とする。
 - ユーザーの最新依頼が最初から明確な実装指示であれば、別途承認待ちにせず実装してよい。
 - 実装時は L3 工程表、`.helix/task-plan.yaml`、`.helix/handover/CURRENT.md` の Next Action の順で作業正本を確認する。
-- 工程表がある場合は、`plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、受入条件、reference_docs を特定してから実装する。
+- 工程表がある場合は、`plan_id`、`task_id` または `WBS ID`、`L7 Sprint` (旧 L4 Sprint)、依存、受入条件、reference_docs を特定してから実装する。
 - 工程表外の変更が必要になったら、先に工程表更新またはユーザー確認へ戻る。
 - 工程表が必要な規模なのに存在しない場合は、最小工程表または task-plan を作ってから実装する。
 

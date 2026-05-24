@@ -112,7 +112,7 @@ L5  詳細設計 + 結合テスト設計 (D-API / D-DB / 詳細フロー + ★�
 L6  機能設計 + 単体テスト設計 (関数 / endpoint schema + ★単体テスト設計)
   ↓ G6   機能設計凍結ゲート     [TL]      ★V-model L6↔L7-test pair freeze ★parent_design 凍結
 
-【実装フェーズ (Phase 2、PLAN 起票はここのみ)】
+【実装フェーズ (Phase 2、L7 = 機能 PLAN 上位概念。他工程 PLAN は §V2 完全移行 参照)】
 L7  実装スプリント (kind=impl PLAN-NNN 起票、process_layer=L7)
     Step 1: PLAN (sprint 計画、parent_design + pairs_test_design 参照)
     Step 2: 単体テスト実装 (L6 機能設計から pair freeze)

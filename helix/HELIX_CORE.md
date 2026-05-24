@@ -94,7 +94,7 @@
 ## 工程表・承認・委譲
 
 - 実装は L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を正とする。
-- 工程表がある場合、`plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、受入条件、reference_docs を確認してから L4 に入る。
+- 工程表がある場合、`plan_id`、`task_id` または `WBS ID`、`L7 Sprint` (旧 L4 Sprint)、依存、受入条件、reference_docs を確認してから L7 に入る。
 - 計画・実装順・整理案をユーザーへ提示した場合、明示承認があるまでファイル編集・依存追加・外部状態変更へ進まない。
 - 工程表外の変更が必要になった場合は、先に工程表更新またはユーザー確認へ戻る。
 - TL は工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team`、`helix review` を使い、使えない場合は理由を証跡化する。
@@ -170,10 +170,10 @@ HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / 
 | pdm-innovation-manager | G0.5 / L1 接続 | 統合判断 |
 | pmo-tech-fork | L2 entry (OSS 採用判断時) | OSS 探索 |
 | pmo-tech-docs | L2 entry (設計手法精読時) | 外部 doc 精読 |
-| pmo-helix-explorer | L2-L4 entry | HELIX 内資産探索 |
-| pmo-project-explorer | L3-L4 entry | project 内資産探索 |
-| pmo-project-scout | L4 entry | 軽量目星 |
-| pmo-helix-scout | L2-L4 entry | HELIX 内軽量目星 |
+| pmo-helix-explorer | L2-L7 entry | HELIX 内資産探索 |
+| pmo-project-explorer | L3-L7 entry | project 内資産探索 |
+| pmo-project-scout | L7 entry | 軽量目星 |
+| pmo-helix-scout | L2-L7 entry | HELIX 内軽量目星 |
 | pmo-sonnet | G2/G4/L8 review | 判断伴う read-only |
 
 ### ② 実行選択サブエージェント (on-demand by judgment) — 4 種
@@ -202,7 +202,7 @@ HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / 
 
 新 L7 実装スプリント (旧 L4) 中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
 
-> **V2 完全移行訂正 (2026-05-24、TL レビュー後再訂正)**: PLAN は全工程 L0-L14 に起票し、各工程 PLAN は `process_layer` ごとに独立。L7 は **実装工程内に複数の `L7-<機能名>plan` を抱える上位概念** (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書)。L7 は他工程 (L0-L6/L8-L14) の PLAN の親ではない。本節の「Sprint 標準構造」は L7 における各機能 PLAN の内部ステップを定義する。他工程の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-workflows/Lx-*.md)。
+> **V2 完全移行訂正 (2026-05-24、TL レビュー後再訂正)**: PLAN は全工程 L0-L14 に起票し、各工程 PLAN は `process_layer` ごとに独立。L7 は **実装工程内に複数の `L7-<機能名>plan` を抱える上位概念** (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書)。L7 は他工程 (L0-L6/L8-L14) の PLAN の親ではない。本節の「Sprint 標準構造」は L7 における各機能 PLAN の内部ステップを定義する。他工程の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-workflows/HELIX-process-L0-L14.md §工程別詳細ドキュメント)。
 
 ### Sprint .X 標準 8 ステップ
 
