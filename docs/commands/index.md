@@ -37,7 +37,10 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix sprint` | L4 マイクロスプリント |
 | `helix task` | タスク OS |
 | `helix interrupt` | IIP / CC の開始・適用・再開・履歴集計 |
+| `helix recover` | Recovery mode の診断・dump・PLAN 起票 (rollback は dry-run のみ) |
 | `helix handover` | Opus / Codex handover |
+| `helix route` | detect signal を Reverse / Refactor / Recovery / Incident へ提案ルーティング |
+| `helix workspace` | git worktree-based per-task workspace 管理 |
 | `helix pr` | PR 自動生成 + 6 ゲート機械検証 (`--gate` / `--auto-merge`) |
 | `helix retro` | ミニレトロ |
 | `helix debt` | 技術負債管理 |

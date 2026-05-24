@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-route: L7-helix-route-implplan route entrypoint
+
+source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
+
+exec python3 "$SCRIPT_DIR/lib/route_engine.py" "$@"
