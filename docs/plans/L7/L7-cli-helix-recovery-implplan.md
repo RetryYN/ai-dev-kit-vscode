@@ -9,11 +9,16 @@ drive: be
 size: M
 priority: P2
 generates:
-  - design: docs/v2/L7-design/L7-cli-helix-recovery-impl-design.md
-  - test_design: docs/v2/L7-test-design/L7-cli-helix-recovery-impl-test-design.md
-  - impl: cli/helix-recovery
-  - test_code: cli/lib/tests/test_helix_recovery.py
-  - test_bats: cli/lib/tests/bats/helix_recovery.bats
+  - artifact_path: docs/v2/L7-design/L7-cli-helix-recovery-impl-design.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L7-test-design/L7-cli-helix-recovery-impl-test-design.md
+    artifact_type: design_doc
+  - artifact_path: cli/helix-recovery
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/tests/test_helix_recovery.py
+    artifact_type: test
+  - artifact_path: cli/lib/tests/bats/helix_recovery.bats
+    artifact_type: test
 dependencies:
   requires:
     - L7-helix-recover-implplan
@@ -29,7 +34,7 @@ agent_slots:
   - role: pmo-sonnet
     slot_label: "PMO — 4 artifact 双方向 trace 整合チェック + recover/recovery 責務境界確認"
 created: 2026-05-24
-revised: 2026-05-24
+revised: "2026-05-24 (R1 revision by pmo-sonnet: P1x5 + P2 partial)"
 owner: PM
 is_reference: false
 ---
@@ -72,7 +77,7 @@ integration-map.md §コマンドの穴 に「helix-recovery (workflow 管理層
 
 ### parent_design (draft status) を採用する理由
 
-`recovery-workflow.md` の frontmatter status は `draft` のまま。HELIX-workflows が 2026-05-24 commit 群で正本化直後であり、各 doc の status frontmatter 更新が後続作業として残っているため。本 PLAN は HELIX-workflows 正本群を **design-frozen 扱い** とし、L7 implementation を許可する。SE 実装時は親設計 (`recovery-workflow.md`) を変更しない。draft → accepted 更新は別 PLAN で batch 処理する。
+`recovery-workflow.md` の frontmatter status は `accepted` に更新済み (2026-05-24 commit 群で正本化完了)。本 PLAN は HELIX-workflows 正本群を **design-frozen 扱い** とし、L7 implementation を許可する。SE 実装時は親設計 (`recovery-workflow.md`) を変更しない。
 
 ---
 
@@ -86,8 +91,8 @@ integration-map.md §コマンドの穴 に「helix-recovery (workflow 管理層
 | 4 | 発火条件 4 種機械化設計 (条件検出ロジック / threshold) | PM | ✅ done (§4) |
 | 5 | cutover_orchestrator 連携設計 | PM | ✅ done (§5) |
 | 6 | stop-hook 連携設計 | PM | ✅ done (§6) |
-| 7 | tl-advisor adversarial check 第 1 ラウンド | PM → TL | □ pending |
-| 8 | TL 指摘反映 | PM | □ pending |
+| 7 | tl-advisor adversarial check 第 1 ラウンド | PM → TL | ✅ done (needs_revision、P0 なし / P1 5 件 / P2 4 件) |
+| 8 | TL 指摘反映 (P1 全件 + P2 反映可能範囲) | PM → PMO | ✅ done (pmo-sonnet revision) |
 | 9 | SE 委譲: cli/helix-recovery + cli/lib/recovery_workflow_engine.py 実装 | PM → SE | □ pending |
 | 10 | bash -n / shellcheck / python3 -m py_compile 確認 | SE | □ pending |
 | 11 | pytest test_helix_recovery.py + bats helix_recovery.bats 全 PASS | SE | □ pending |
@@ -172,17 +177,27 @@ helix recovery done --confirm-token PO-APPROVED-RECOVERY-001
 cli/helix-recover  ──────────────────────────────────────────────→  cli/lib/recovery_engine.py
                                                                           │ (既存、commit 904c4f6)
 cli/helix-recovery ──→ cli/lib/recovery_workflow_engine.py  ──────→  cli/lib/recovery_engine.py
-                             (本 PLAN で新設)                          (read-only で利用)
+                             (本 PLAN で新設 / thin adapter)           (read-only で診断 API を呼ぶ)
                         │
                         ├──→ cli/lib/cutover_orchestrator.py  (cutover_preflight / cutover_execute)
-                        ├──→ cli/lib/recovery_plan_check.py   (REQUIRED_TEMPLATE_SECTIONS 参照)
-                        └──→ cli/lib/helix_db.py              (recovery session state 読み書き)
+                        └──→ cli/lib/recovery_plan_check.py   (REQUIRED_TEMPLATE_SECTIONS 参照)
 ```
+
+**thin adapter の責務** (`recovery_workflow_engine.py` が閉じ込める 4 機能):
+1. `helix recover check --json` 出力のパース (required keys 検証)
+2. `.helix/recovery/CURRENT.json` の read/write (session state 永続化)
+3. `cutover_preflight()` の `ready` / `blockers` 判定とエラー変換
+4. `--dry-run` / `--skip-cutover` の例外ハンドリング
 
 **依存方向原則**:
 - `recovery_workflow_engine.py` は `recovery_engine.py` に依存する (上位層が下位層を呼ぶ)
 - `recovery_engine.py` は `recovery_workflow_engine.py` に依存しない (循環依存禁止)
 - `helix-recover` は `recovery_workflow_engine.py` に依存しない (実行層と workflow 層を疎結合に保つ)
+
+**session state の保存先 (P1-3 制約)**:
+- **session state は `.helix/recovery/CURRENT.json` (file) に限定する**。`helix_db.py` は **read-only の evidence 参照** (`helix recover check --json` 結果の読み取り) のみに使用する。
+- DB schema / migration 追加は本 PLAN scope 外であり、§10 risk 参照。
+- CURRENT.json の schema は `recovery_workflow_engine.py` 内部に閉じ、外部の helix.db migration サイクルとは独立する。
 
 ---
 
@@ -312,23 +327,36 @@ Exit codes:
 #### helix recovery done
 
 ```
-Usage: helix recovery done --confirm-token <token> [--forward-target <Lx>] [--dry-run]
+Usage: helix recovery done --confirm-token <token> [--forward-target <Lx>]
+                           [--dry-run] [--skip-cutover] [--skip-reason "<text>"]
 
-  --confirm-token   PO-APPROVED-<PLAN_ID> 形式の承認トークン (必須、cutover_execute と同形式)
+  --confirm-token   PO-APPROVED-<PLAN_ID> 形式の承認トークン (必須、--skip-cutover 時は省略可)
   --forward-target  Forward HELIX の再開ポイント L 工程 (default: session の reopen_point から推定)
-  --dry-run         cutover_execute() を呼ばず動作確認のみ
+  --dry-run         preflight 結果を stdout に表示して cutover_execute() を呼ばない
+                    preflight PASS なら exit 0 / blockers あれば exit 1
+  --skip-cutover    cutover_orchestrator を経由せず session を completed に直接遷移させる
+                    (設計ドキュメント訂正のみ、DB/git 変更がないケース向け)
+  --skip-reason     --skip-cutover 使用時に必須。audit log に記録されるスキップ理由
+
+Exit codes:
+  0: 完了成功 / (--dry-run 時: preflight PASS)
+  1: session 不在 / preflight FAIL (preflight.ready=false) / --skip-cutover かつ --skip-reason 不在
+  2: confirm-token 形式不正 / --dry-run 時 preflight blockers あり
+
+重要制約:
+  - default (オプションなし) = preflight 実行 → preflight.ready=false なら exit 2
+  - cutover_orchestrator の default probe が未設定の場合、preflight は常に
+    dual_write_unhealthy / dual_write_mismatch_count_unavailable / shadow_replay_incomplete を返す。
+    この場合は --skip-cutover (+ --skip-reason) を明示して完了させること。
+  - --skip-cutover 使用時は audit log にスキップ理由が必須。理由なしは exit 1 で拒否。
 
 処理フロー:
   1. helix recovery status で session が active か確認
-  2. cutover_preflight() で事前チェック実行
-  3. preflight PASS なら cutover_execute(confirm_token=...) を呼ぶ
-  4. CURRENT.json を status=completed に更新
-  5. Forward 復帰先 (--forward-target) を stdout に表示
-
-Exit codes:
-  0: 完了成功
-  1: session 不在 / preflight FAIL
-  2: confirm-token 形式不正
+  2. --skip-cutover 指定なし → cutover_preflight() で事前チェック実行 (ready/blockers 判定)
+  3. --dry-run 指定 → preflight 結果を stdout 表示して exit (execute しない)
+  4. preflight.ready=true → cutover_execute(confirm_token=...) を呼ぶ
+  5. CURRENT.json を status=completed に更新
+  6. Forward 復帰先 (--forward-target) を stdout に表示
 
 Output (stdout):
   [HELIX Recovery] RECOVERY-001 完了
@@ -384,19 +412,30 @@ helix recovery start --plan-id RECOVERY-001
 
 ### §5.1 利用する API
 
-`cli/lib/cutover_orchestrator.py` が提供する 2 関数を `helix recovery done` が呼ぶ:
+`cli/lib/cutover_orchestrator.py` が提供する 2 関数を `helix recovery done` が呼ぶ。**thin adapter (`recovery_workflow_engine.py`) 経由で呼び出し**、`helix-recovery` は直接 import しない:
 
 ```python
+# recovery_workflow_engine.py 内の complete_session() が担う処理
 from cli.lib.cutover_orchestrator import cutover_preflight, cutover_execute
 
-# done subcommand の内部処理
-preflight_result = cutover_preflight()
-if preflight_result.all_clear:
-    result = cutover_execute(confirm_token=args.confirm_token)
-else:
-    print(f"[HELIX Recovery] cutover preflight FAIL: {preflight_result}")
-    sys.exit(1)
+def complete_session(confirm_token: str, forward_target: str | None, skip_cutover: bool) -> dict:
+    preflight_result = cutover_preflight()
+    # CutoverPreflightResult の属性は `ready` (bool) / `blockers` (list[str])
+    if not preflight_result.ready:
+        raise CutoverPreflightFailed(preflight_result.blockers)
+    if not skip_cutover:
+        result = cutover_execute(confirm_token=confirm_token)
+    else:
+        result = {"status": "skipped", "reason": "skip_cutover flag"}
+    # CURRENT.json を status=completed に更新
+    _update_current_json({"status": "completed", "completed_at": _now_iso()})
+    return result
 ```
+
+**設計注意**:
+- `CutoverPreflightResult` の判定属性は **`ready`** (bool) と **`blockers`** (list[str])。`all_clear` は存在しない (P1-1 修正)。
+- `cutover_execute()` は `done` subcommand 内で **再 preflight** を内部で行う実装になっている点を SE が認識すること (二重チェックで安全側に倒れる設計)。
+- preflight FAIL 時は `CutoverPreflightFailed` exception を raise し、`helix-recovery` スクリプト側で exit 1 に変換する。
 
 ### §5.2 設計上の注意点
 
@@ -424,16 +463,42 @@ Stop hook は Claude Code が終了する際に発火する。Recovery mode が 
 
 ```bash
 # .claude/hooks/stop-recovery-update.sh (本 PLAN で新設)
-#!/bin/bash
+#!/usr/bin/env bash
 # Stop hook: Recovery session が active な場合に状態 snapshot を更新する
+#
+# 実行環境注意 (P1-4):
+#   Claude Stop hook は任意の cwd / 環境変数で発火する。
+#   HELIX_PROJECT_ROOT や PYTHONPATH が未設定の可能性があるため、
+#   スクリプト内で project root を自己解決する。
+
+set -euo pipefail
+
+# 自己解決: スクリプト位置から project root を決定
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../" && pwd)"
+
+export HELIX_PROJECT_ROOT="${HELIX_PROJECT_ROOT:-$PROJECT_ROOT}"
+export PYTHONPATH="$PROJECT_ROOT/cli/lib:${PYTHONPATH:-}"
+
+# helix-common.sh が存在する場合は共通ユーティリティを読み込む
+COMMON_SH="$PROJECT_ROOT/cli/lib/helix-common.sh"
+if [[ -f "$COMMON_SH" ]]; then
+  # shellcheck source=/dev/null
+  source "$COMMON_SH"
+fi
 
 RECOVERY_CURRENT="$HELIX_PROJECT_ROOT/.helix/recovery/CURRENT.json"
 
 if [[ -f "$RECOVERY_CURRENT" ]]; then
-  STATUS=$(python3 -c "import json,sys; d=json.load(open('$RECOVERY_CURRENT')); print(d.get('status',''))")
+  STATUS=$(python3 -c "import json,sys; d=json.load(open('$RECOVERY_CURRENT')); print(d.get('status',''))" 2>/dev/null || echo "")
   if [[ "$STATUS" == "active" ]]; then
     # 停止時刻を記録し、compact 推奨メッセージを出力
-    python3 -m cli.lib.recovery_workflow_engine snapshot_on_stop
+    python3 -c "
+import sys
+sys.path.insert(0, '$PROJECT_ROOT/cli/lib')
+from recovery_workflow_engine import snapshot_on_stop
+snapshot_on_stop()
+"
     echo "[HELIX Recovery] 停止を検出。recovery session (active) の状態を snapshot しました。"
     echo "[HELIX Recovery] 推奨: /compact を実行してから次の作業を開始してください。"
   fi
@@ -467,7 +532,7 @@ fi
 - stop-hook 連携設計 (§6) の確定
 - tl-advisor 第 1 ラウンド (Step 7)
 
-**DoD**: tl-advisor 第 1 ラウンド PASS (needs_revision 含む)。P1 指摘を §2-§6 に反映完了。
+**DoD**: tl-advisor 第 1 ラウンド 完了 (needs_revision、P0 なし / P1 5 件)。P1 全件 + P2 反映可能範囲を pmo-sonnet revision で §2.3 / §5.1 / §3 / §6.2 / §10 / §12 / §13 に反映完了。✅ Sprint .1 complete。
 
 ### Sprint .2: cli/helix-recovery + recovery_workflow_engine.py 実装
 
@@ -570,9 +635,10 @@ cli/lib/recovery_workflow_engine.py
 | recover / recovery 命名衝突 | ユーザーが helix recover / helix recovery を混同する | help / README で「recover = 単発操作、recovery = workflow 管理」を明示。`helix recover help` に recovery への誘導メッセージを追記 |
 | cutover_orchestrator の default probe が未設定 | `cutover_preflight()` が `healthy: false` を返し done が常に FAIL | preflight FAIL 時に `--skip-cutover` フラグを案内する。default probe を wired にする必要がある場合は別 PLAN |
 | stop-hook の自動登録なし | Recovery session active 中に Claude Code が終了しても snapshot されない | `helix recovery start` の警告メッセージで手動登録を促す。自動登録は hooks 変更に人間承認が必要なため scope 外 |
-| helix recover check --json の出力形式変化 | recovery start での triggered_conditions 連携が壊れる | `recovery_workflow_engine.py` の `_parse_recover_check_output()` に schema version チェックを追加し、形式変化を fail-close で検出 |
-| recovery session が stale になる (start したまま放置) | status コマンドが stale な session を返し続ける | `helix recovery status` で 7 日以上 active なものに stale 警告を表示。`--force-close` で手動クローズ可能 |
-| postmortem テンプレート不在 | Sprint .5 でテンプレートを新設するまで postmortem subcommand が exit 1 | Sprint .5 の一部として `cli/templates/plan/recovery/postmortem-template.md` を作成。不在時は既存 recovery template.md を fallback で利用 |
+| helix recover check --json の出力形式変化 | recovery start での triggered_conditions 連携が壊れる | **schema version 方針 B 採用 (P1-5)**: 既存 JSON は top-level list 形式で `schema_version` フィールドなし。`recovery_workflow_engine.py` の `_parse_recover_check_output()` で required keys (`condition_id` / `severity` / `source`) の存在検証を行い、key 欠落時に fail-close で例外を raise する。`schema_version` フィールドの付与 (方針 A) は下位 CLI 変更が必要なため別 PLAN carry (§13 参照) |
+| recovery session が stale になる (start したまま放置) | status コマンドが stale な session を返し続ける | `helix recovery status` で 7 日以上 active なものに stale 警告を表示。`helix recovery done --skip-cutover --skip-reason "stale close"` で手動クローズ可能 (`--force-close` は本 PLAN 実装対象外のため §3 に定義しない。P2-1 整合) |
+| postmortem テンプレート不在 | Sprint .5 でテンプレートを新設するまで postmortem subcommand が exit 1 | Sprint .5 の一部として `cli/templates/plan/recovery/postmortem-template.md` を作成。不在時は fallback として `cli/templates/plan/recovery/template.md` (既存) を利用。template.md が不在の場合は空テンプレートを生成して exit 0 を維持 (P2-4 対応) |
+| DB schema / migration 追加 | 本 PLAN scope 外の helix.db 変更が波及し migration サイクルを乱す | session state は `.helix/recovery/CURRENT.json` に限定 (P1-3)。`recovery_workflow_engine.py` は `helix_db.py` への書き込みを行わない。DB 書き込みが必要と判断した場合は即座に escalate して別 PLAN に分離する |
 
 ---
 
@@ -627,7 +693,7 @@ recovery start の前段として `helix interrupt status` で発火済 interrup
 | cli/lib/recovery_engine.py | 依存モジュール (commit 904c4f6 で実装済) |
 | cli/lib/recovery_plan_check.py | 依存モジュール (7 必須セクション契約) |
 | cli/lib/cutover_orchestrator.py | 依存モジュール (done subcommand が利用) |
-| cli/lib/helix_db.py | 依存モジュール (recovery session state の永続化) |
+| cli/lib/helix_db.py | read-only 参照のみ (`helix recover check --json` の evidence 読み取り用。session state 書き込みには使用しない、§2.3 P1-3 制約) |
 | HELIX-workflows/helix-process/deviation-plan-map.md | 参照 (kind=recovery の逸脱マップ、Recovery / Incident 区別の根拠) |
 | HELIX-workflows/helix-process/detection-routing.md | 参照 (signal=runaway 出典、signal_id → 発火条件 C1-C4 変換の上位定義) |
 | HELIX-workflows/helix-process/cross-cutting-mechanisms.md | 参照 (interrupt → Recovery 前段ガード、横断機構との層分離根拠) |
@@ -650,3 +716,5 @@ recovery start の前段として `helix interrupt status` で発火済 interrup
 | `cli/helix recover help` への recovery への誘導メッセージ追記 (命名衝突 mitigation) | P2 — Sprint .3 内で対応 | SE |
 | C7: integration-map.md §コマンドの穴 に「helix-recovery (workflow 管理層、L7-cli-helix-recovery-implplan で解消)」を追記 (本 PLAN 完了後) | P2 — 本 PLAN Sprint .5 完遂後に実施 | PM |
 | C8: incident-workflow.md 連携の別 PLAN 起票候補 (helix-incident CLI、Incident mode の troubleshoot 操作層、本 PLAN scope 外) | P3 — 別 PLAN | PM 判断 |
+| C9: `helix recover check --json` 出力に `schema_version` フィールドを付与 (方針 A)。現状は方針 B (required keys 検証) で代替済。方針 A を採用する場合は helix-recover 下位 CLI の契約変更が必要なため別 PLAN で起票する。 | P3 — 別 PLAN 起票 candidate | PM 判断 |
+| C10: signal mapping 拡張。現在 `recovery_engine.signal_to_condition()` は `runaway / regression_dev / incident` のみ実装。本 PLAN §11.1 の変換対応表 (runaway / budget / agent_mandatory / interrupt escalation) との mapping ズレは `L7-route-engine-drift-type-retrofit-ext` 相当の別 PLAN で解消する。本 PLAN の実装は既存 signal_to_condition() 範囲内で動作すれば十分とする。 | P2 — 別 PLAN 依存 (L7-helix-route-implplan 完遂後に判断) | PM → SE |

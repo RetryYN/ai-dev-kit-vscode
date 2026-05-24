@@ -1,0 +1,985 @@
+---
+plan_id: L7-route-engine-drift-type-retrofit-ext
+name: L7-route-engine-drift-type-retrofit-ext
+description: route_engine.py 拡張 — drift_type 7 種細分化 + Retrofit mode 追加 + suggest subcommand + recommended_command field
+status: draft
+process_layer: L7
+kind: impl
+drive: be
+size: M
+priority: P0
+generates:
+  - artifact_path: docs/v2/L7-design/L7-route-engine-drift-type-retrofit-ext-design.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L7-test-design/L7-route-engine-drift-type-retrofit-ext-test-design.md
+    artifact_type: design_doc
+  - artifact_path: cli/lib/route_engine.py
+    artifact_type: python_module
+  - artifact_path: cli/helix-route
+    artifact_type: cli_extension
+  - artifact_path: cli/lib/tests/test_route_engine.py
+    artifact_type: test
+  - artifact_path: cli/tests/helix-route.bats
+    artifact_type: test
+dependencies:
+  parent: L7-helix-workflows-parent-acceptedplan
+  requires:
+    - L7-helix-route-implplan
+  blocks:
+    - L7-cli-helix-refactor-implplan
+    - L7-cli-helix-retrofit-implplan
+parent_design: HELIX-workflows/helix-process/detection-routing.md
+pairs_test_design: []
+agent_slots:
+  - role: tl-advisor
+    slot_label: "TL — R1 設計 adversarial check (drift_type 分岐表 / suggest subcommand 契約 / backward compat)"
+  - role: se
+    slot_label: "SE — route_engine.py 拡張 + suggest subcommand + test 実装"
+  - role: pmo-sonnet
+    slot_label: "PMO — 4 artifact 双方向 trace 確認・PLAN B/C との drift_type 統一確認"
+created: 2026-05-24
+revised: 2026-05-24
+owner: PM
+is_reference: false
+---
+
+## §0 PLAN concept
+
+> **工程**: L7 実装スプリント
+> **正本設計**: [HELIX-workflows/helix-process/detection-routing.md](../../../HELIX-workflows/helix-process/detection-routing.md)
+> **前提 PLAN**: [L7-helix-route-implplan.md](./L7-helix-route-implplan.md) (実装済 `helix route eval / list-signals` の上に拡張)
+> **後続 PLAN (本 PLAN が blocks)**: L7-cli-helix-refactor-implplan / L7-cli-helix-retrofit-implplan
+
+### 背景と切り出し経緯
+
+PLAN C (L7-cli-helix-retrofit-impl) の tl-advisor R1 で P0-1 指摘:
+
+> route → retrofit 接続契約が現行実装と不整合。`route_engine.py` は Retrofit mode 未追加、drift signal の細分化 (drift_type) 未対応、suggest subcommand 未実装、recommended_command field 未実装。
+
+PLAN C 本体は scope を「retrofit CLI state manager のみ」に限定して revision され、route_engine 拡張を本 PLAN (C') として切り出す。本 PLAN は **PLAN B (helix-refactor) および PLAN C (helix-retrofit) の前提依存 (blocks)** であり、両 PLAN が参照する drift_type 分岐表・suggest subcommand 契約を確立する。
+
+### 解決する 5 課題 (tl-advisor R1 P0-1 + PLAN B P1-1)
+
+| # | 現行の問題 | 本 PLAN の解決 |
+|---|---|---|
+| 1 | `Mode` が `Reverse\|Refactor\|Recovery\|Incident` のみ | `Retrofit` 追加 |
+| 2 | `drift` signal が `Reverse/normalization` 固定 | drift_type 7 種で分岐先を変える |
+| 3 | drift_type 数が PLAN 間で不統一 (6 種 vs 7 種) | 7 種で正式確定 |
+| 4 | `suggest` subcommand 未実装 | `helix route suggest` 追加 |
+| 5 | `recommended_command` field 未実装 | `RouteResult` に field 追加 |
+
+### 本 PLAN の scope 外 (別 PLAN 担当)
+
+- Refactor CLI 本体実装 → L7-cli-helix-refactor-implplan
+- Retrofit CLI state manager 実装 → L7-cli-helix-retrofit-implplan
+- cross-detection / dashboard schema adapter → 既存 `from_detect_output` 範囲維持
+
+---
+
+## §1 工程表
+
+| Sprint | 内容 | 担当 | 受入条件 | 状態 |
+|--------|------|------|----------|------|
+| .0 | Entry 条件確認 + 既存資産 Read + 設計判断確定 | PM + TL | §2 全項目承認、drift_type 分岐表 PLAN B/C と照合一致 | pending |
+| .1 | テスト設計 (test-design doc 起草) + failing tests 作成 (TDD) | SE | test-design doc 生成、pytest で全 failing 確認 | pending |
+| .2 | route_engine.py 拡張実装 (Mode / drift_type / recommend / suggest) | SE | py_compile PASS、既存テスト全 PASS | pending |
+| .3 | suggest subcommand 実装 (helix-route CLI 拡張) | SE | bats 新規テスト PASS、backward compat 確認 | pending |
+| .4 | 全テスト通過確認 + 設計 doc 生成 | SE | pytest ALL PASS、bats ALL PASS | pending |
+| .5 | セルフレビュー + pmo-sonnet review + DoD 確認 | SE + PMO | DoD 全項目 checked | pending |
+
+**Entry 条件**:
+- L7-helix-route-implplan の Sprint .1-.5 完遂済み (route_engine.py 実装済)
+- PLAN B/C の drift_type 分岐表確認済み
+
+**Exit 条件 (DoD)**:
+- §5 DoD 全項目 checked
+- py_compile PASS
+- pytest (test_route_engine.py 拡張分) ALL PASS
+- bats (helix-route.bats 拡張分) ALL PASS
+- 既存テスト回帰なし
+- drift_type 分岐表が PLAN B/C/C' で完全一致
+
+---
+
+## §2 設計判断
+
+### §2.1 Mode enum 拡張
+
+**現行**:
+```python
+Mode = Literal["Reverse", "Refactor", "Recovery", "Incident"]
+Kind = Literal["reverse", "refactor", "recovery", "troubleshoot"]
+```
+
+**拡張後**:
+```python
+Mode = Literal["Reverse", "Refactor", "Recovery", "Incident", "Retrofit"]
+Kind = Literal["reverse", "refactor", "recovery", "troubleshoot", "retrofit"]
+```
+
+**設計判断**: Retrofit は独立 mode として追加する。既存 4 mode の kind mapping には影響しない。
+
+**backward compat**: `Mode` は Literal 型 (型ヒント用途)。実行時ロジックは SIGNAL_TO_MODE dict が source of truth であり、既存 signal の mode 値は変更しない。新 signal (`dependency_outdated` / `upgrade` / `config_drift`) のみ `Retrofit` を返す。
+
+---
+
+### §2.2 drift_type 7 種細分化 + 分岐表
+
+#### drift_type 正式定義 (7 種、PLAN B/C/C' 統一)
+
+| drift_type | 意味 | 分岐先 mode | kind | subtype |
+|---|---|---|---|---|
+| `schema` | DB/API スキーマ乖離 | Reverse | reverse | normalization |
+| `contract` | API 契約・型定義乖離 | Reverse | reverse | normalization |
+| `code_smell` | コード品質劣化・技術的負債 | Refactor | refactor | null |
+| `structural` | 構造・アーキテクチャ乖離 | Refactor | refactor | null |
+| `dependency_outdated` | 依存ライブラリ陳腐化 | Retrofit | retrofit | dependency |
+| `upgrade` | バージョンアップ必要 | Retrofit | retrofit | upgrade |
+| `config_drift` | 設定値・環境設定乖離 | Retrofit | retrofit | config |
+
+#### drift signal の拡張マッピング
+
+現行の `drift` signal は `Reverse/normalization` 固定。拡張後は `drift_type` で細分化:
+
+```
+drift (signal)
+├─ drift_type=schema      → Reverse / normalization
+├─ drift_type=contract    → Reverse / normalization
+├─ drift_type=code_smell  → Refactor / null
+├─ drift_type=structural  → Refactor / null
+├─ drift_type=dependency_outdated → Retrofit / dependency
+├─ drift_type=upgrade     → Retrofit / upgrade
+└─ drift_type=config_drift → Retrofit / config
+```
+
+**drift_type 未指定時のデフォルト**: `schema` (既存 `Reverse/normalization` を維持、backward compat)
+
+#### 新 signal 追加 (drift_type shortcut)
+
+drift_type shortcut として以下 3 シグナルを新規追加する:
+
+| signal | drift_type | mode | kind | subtype |
+|---|---|---|---|---|
+| `dependency_outdated` | dependency_outdated | Retrofit | retrofit | dependency |
+| `upgrade` | upgrade | Retrofit | retrofit | upgrade |
+| `config_drift` | config_drift | Retrofit | retrofit | config |
+
+**設計判断**: shortcut signal は `drift` + `drift_type=X` の等価表現。detector が直接 shortcut signal を送ることができる (cross-detection output との互換性確保)。
+
+---
+
+### §2.3 suggest subcommand 設計
+
+#### コマンド仕様
+
+```
+helix route suggest --signal <signal> [--drift-type <drift_type>]
+                    [--uncertainty low|high] [--impact low|high]
+                    [--env dev|prod]
+```
+
+**出力**: `recommended_command` を 1 行で stdout 出力 (デフォルト)、`--json` で RouteResult の JSON 出力。
+
+#### recommended_command の生成ルール
+
+| mode | recommended_command |
+|---|---|
+| Recovery (runaway/regression_dev) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` |
+| Incident (prod) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` |
+| Reverse | `helix reverse R0 --type normalization` |
+| Refactor | `helix plan draft --kind refactor` |
+| Retrofit | `helix plan draft --kind retrofit --drift-type {drift_type}` |
+
+**既存 `suggest_command` field との関係**:
+- `suggest_command` (既存): `helix route eval --format command` で出力される文字列。backward compat 維持。
+- `recommended_command` (新規): `helix route suggest` 専用出力。より詳細な引数を持つ場合がある。
+- 暫定的に `recommended_command` は `suggest_command` と同じ値から開始し、Retrofit の場合のみ `--drift-type` を追加する差異を持つ。
+
+#### suggest vs eval の使い分け
+
+| コマンド | 用途 | 出力 |
+|---|---|---|
+| `helix route eval` | 全 RouteResult 情報 (JSON) または suggest_command 1 行 | JSON / 1 行コマンド |
+| `helix route suggest` | recommended_command のみ (人間向け) | 1 行コマンド (デフォルト) または JSON |
+
+---
+
+### §2.4 recommended_command field 設計
+
+#### RouteResult 拡張
+
+```python
+@dataclass(frozen=True, slots=True)
+class RouteResult:
+    # 既存 fields (変更なし)
+    signal: str
+    mode: Mode
+    kind: Kind
+    subtype: str | None
+    priority: Priority
+    action: Action
+    env: Env
+    source_schema: str
+    suggest_command: str
+    recover_args: dict[str, str] | None
+    plan_hint: str
+    # 新規追加 fields
+    drift_type: str | None          # drift signal 細分化。drift 以外は None
+    recommended_command: str        # suggest subcommand が返すコマンド文字列
+```
+
+**backward compat**:
+- `to_dict()` は `asdict()` で自動追加される。既存呼び出し元が JSON を parse する場合、新 field は追加情報として無視される (破壊的変更なし)。
+- `drift_type=None` はデフォルト値で、drift 以外の全 signal に適用する。
+- `recommended_command` は既存 `suggest_command` と同値にフォールバックし、mode 別の拡張コマンド文字列を持つ。
+
+#### drift_type の伝播経路
+
+```
+helix-detect 出力 (detect_run.json)
+  └─ result.drift_type (optional field)
+       └─ RouteEngine.from_detect_output()
+            └─ RouteResult.drift_type
+                 └─ recommended_command に --drift-type {drift_type} 付与 (Retrofit 時)
+```
+
+`from_detect_output()` 拡張: `result.drift_type` を読み取り、`evaluate()` に `drift_type` を渡す。
+
+---
+
+## §3 影響範囲 inventory
+
+### §3.1 変更対象ファイル
+
+| ファイル | 変更種別 | 変更内容 |
+|---|---|---|
+| `cli/lib/route_engine.py` | extend | Mode/Kind Literal 拡張、SIGNAL_TO_MODE 3 signal 追加、RouteResult 2 field 追加、evaluate() drift_type 引数追加、_build_suggest_command() Retrofit 分岐追加、from_detect_output() drift_type 抽出追加 |
+| `cli/helix-route` | extend | `suggest` subcommand 追加 (argparse)、`list-signals` に drift_type 情報追加 |
+| `cli/lib/tests/test_route_engine.py` | extend | Retrofit mode / drift_type / recommend / suggest 対応テスト追加 |
+| `cli/tests/helix-route.bats` | extend | `suggest` subcommand bats テスト追加 |
+
+### §3.2 新規生成ファイル
+
+| ファイル | 内容 |
+|---|---|
+| `docs/v2/L7-design/L7-route-engine-drift-type-retrofit-ext-design.md` | 設計 doc (§2 設計判断の永続化) |
+| `docs/v2/L7-test-design/L7-route-engine-drift-type-retrofit-ext-test-design.md` | テスト設計 doc (Sprint .1 で生成) |
+
+### §3.3 既存呼び出し元 (backward compat 確認対象)
+
+```bash
+# 既存呼び出し元を確認
+grep -rn "route_engine\|helix-route\|helix route" /home/tenni/ai-dev-kit-vscode/cli/ \
+  --include="*.py" --include="*.bats" --include="*.bash" \
+  | grep -v "__pycache__" | grep -v ".pyc" | head -30
+```
+
+確認済み呼び出し元:
+- `cli/lib/tests/test_route_engine.py` — テストコード、本 PLAN で拡張
+- `cli/lib/tests/test_detector_router.py` — detector_router 経由の間接参照。RouteResult dict 形式を確認必要
+- `cli/tests/helix-route.bats` — CLI 統合テスト、本 PLAN で拡張
+- `cli/helix-route` — CLI entrypoint、suggest subcommand 追加
+
+### §3.4 変更しないファイル (scope 外)
+
+- `cli/lib/detectors/registry.py` — detector 定義は変更しない
+- `cli/helix-detect` — detect CLI は変更しない
+- `cli/helix-recover` — recover CLI は変更しない (recover_args の consume 側)
+- `HELIX-workflows/helix-process/detection-routing.md` — 親設計 doc は read-only
+
+---
+
+## §4 Sprint 詳細
+
+### Sprint .0: Entry 条件確認 + 設計判断確定
+
+**担当**: PM + TL-advisor
+
+**作業**:
+1. `cli/lib/route_engine.py` 全体 Read (完了: §2 の設計判断ベース)
+2. `cli/lib/tests/test_route_engine.py` 冒頭 Read (テスト構造確認)
+3. `cli/tests/helix-route.bats` 冒頭 Read (bats 構造確認)
+4. PLAN B (L7-cli-helix-refactor-implplan) / PLAN C (L7-cli-helix-retrofit-implplan) の drift_type 分岐表と §2.2 分岐表を照合し完全一致を確認
+5. tl-advisor R1 review → 承認後 Sprint .1 に進む
+
+**受入条件**:
+- §2 全設計判断が tl-advisor によって承認済み
+- drift_type 7 種分岐表が PLAN B/C と一致確認済み
+- 既存 `helix route eval` / `list-signals` backward compat 方針が明確
+
+---
+
+### Sprint .1: テスト設計 + Failing Tests (TDD Step 1)
+
+**担当**: SE
+
+**TDD 原則**: テストが全て failing になることを pytest で確認してから Sprint .2 に進む。
+
+#### テスト設計 doc 起草
+
+`docs/v2/L7-test-design/L7-route-engine-drift-type-retrofit-ext-test-design.md` を作成する。
+
+内容:
+- 対象設計: `docs/v2/L7-design/L7-route-engine-drift-type-retrofit-ext-design.md`
+- テスト対象: `cli/lib/route_engine.py` (拡張分)
+- テスト実装: `cli/lib/tests/test_route_engine.py` (拡張分) / `cli/tests/helix-route.bats` (拡張分)
+
+#### 追加テストケース一覧
+
+**Python unit tests (test_route_engine.py 追加分)**:
+
+```
+U-EXT-001: drift + drift_type=schema → mode=Reverse, kind=reverse, subtype=normalization
+U-EXT-002: drift + drift_type=contract → mode=Reverse, kind=reverse, subtype=normalization
+U-EXT-003: drift + drift_type=code_smell → mode=Refactor, kind=refactor, subtype=None
+U-EXT-004: drift + drift_type=structural → mode=Refactor, kind=refactor, subtype=None
+U-EXT-005: drift + drift_type=dependency_outdated → mode=Retrofit, kind=retrofit, subtype=dependency
+U-EXT-006: drift + drift_type=upgrade → mode=Retrofit, kind=retrofit, subtype=upgrade
+U-EXT-007: drift + drift_type=config_drift → mode=Retrofit, kind=retrofit, subtype=config
+U-EXT-008: drift + drift_type 未指定 → mode=Reverse (backward compat)
+U-EXT-009: signal=dependency_outdated (shortcut) → mode=Retrofit, kind=retrofit
+U-EXT-010: signal=upgrade (shortcut) → mode=Retrofit, kind=retrofit
+U-EXT-011: signal=config_drift (shortcut) → mode=Retrofit, kind=retrofit
+U-EXT-012: RouteResult.drift_type が drift signal で drift_type 値を持つ
+U-EXT-013: RouteResult.drift_type が非 drift signal で None を返す
+U-EXT-014: RouteResult.recommended_command が Retrofit 時に --drift-type 付き
+U-EXT-015: RouteResult.recommended_command が Reverse 時に helix reverse R0 --type normalization
+U-EXT-016: RouteResult.recommended_command が Refactor 時に helix plan draft --kind refactor
+U-EXT-017: RouteResult.to_dict() に drift_type / recommended_command が含まれる
+U-EXT-018: from_detect_output() が result.drift_type を読み取り RouteResult に伝播する
+U-EXT-019: from_detect_output() が drift_type 未指定時にデフォルト (schema) を適用する
+U-EXT-020: list_signals() に dependency_outdated / upgrade / config_drift が含まれる
+U-EXT-021: list_signals() の drift エントリに drift_types[] field が追加されている
+U-EXT-022: 既存テスト (test_drift_routes_to_reverse_normalization 等) が回帰しない (py_compile 含む)
+```
+
+**bats integration tests (helix-route.bats 追加分)**:
+
+```
+B-EXT-001: helix route eval --signal drift → backward compat (mode=Reverse)
+B-EXT-002: helix route eval --signal dependency_outdated → mode=Retrofit JSON 確認
+B-EXT-003: helix route suggest --signal dependency_outdated → recommended_command 1 行出力
+B-EXT-004: helix route suggest --signal drift --drift-type config_drift → Retrofit command
+B-EXT-005: helix route suggest --signal drift --drift-type code_smell → Refactor command
+B-EXT-006: helix route suggest --signal drift → backward compat (drift_type 未指定 = schema)
+B-EXT-007: helix route list-signals --json に dependency_outdated / upgrade / config_drift 含む
+B-EXT-008: helix route suggest --json で full RouteResult JSON 出力
+```
+
+#### Failing tests 作成手順
+
+1. `test_route_engine.py` に U-EXT-001〜022 を追加 (実装前なので全て failing)
+2. `helix-route.bats` に B-EXT-001〜008 を追加 (suggest subcommand 未実装なので failing)
+3. `pytest cli/lib/tests/test_route_engine.py -v` でフォールバックテスト (U-EXT-022) のみ PASS、他は FAIL を確認
+4. Failing 確認後に Sprint .2 に移行
+
+**受入条件**:
+- テスト設計 doc 生成済み
+- 新規テスト U-EXT-001〜021 が全て failing
+- 既存テスト U-EXT-022 (回帰確認群) は PASS を維持
+
+---
+
+### Sprint .2: route_engine.py 拡張実装
+
+**担当**: SE
+
+**TDD 原則**: テストを PASS させることだけを目的にする。テスト追加は Sprint .1 で完了済み。
+
+#### 変更対象: cli/lib/route_engine.py
+
+**Step 2-1: Mode / Kind Literal 拡張**
+
+```python
+# Before
+Mode = Literal["Reverse", "Refactor", "Recovery", "Incident"]
+Kind = Literal["reverse", "refactor", "recovery", "troubleshoot"]
+
+# After
+Mode = Literal["Reverse", "Refactor", "Recovery", "Incident", "Retrofit"]
+Kind = Literal["reverse", "refactor", "recovery", "troubleshoot", "retrofit"]
+DriftType = Literal[
+    "schema", "contract", "code_smell", "structural",
+    "dependency_outdated", "upgrade", "config_drift"
+]
+VALID_DRIFT_TYPES: tuple[str, ...] = (
+    "schema", "contract", "code_smell", "structural",
+    "dependency_outdated", "upgrade", "config_drift"
+)
+DEFAULT_DRIFT_TYPE = "schema"
+```
+
+**Step 2-2: SIGNAL_TO_MODE 拡張**
+
+```python
+SIGNAL_TO_MODE: dict[str, dict[str, str | None]] = {
+    # 既存 (変更なし)
+    "drift": {"mode": "Reverse", "kind": "reverse", "subtype": "normalization"},
+    "debt_degradation": {"mode": "Refactor", "kind": "refactor", "subtype": None},
+    "regression_prod": {"mode": "Incident", "kind": "recovery", "subtype": None},
+    "regression_dev": {"mode": "Recovery", "kind": "recovery", "subtype": None},
+    "runaway": {"mode": "Recovery", "kind": "recovery", "subtype": None},
+    "incident": {"mode": "Incident", "kind": "_env_dependent", "subtype": None},
+    "unknown_design": {"mode": "Reverse", "kind": "reverse", "subtype": "code"},
+    # 新規追加 (Retrofit shortcut signals)
+    "dependency_outdated": {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
+    "upgrade": {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
+    "config_drift": {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
+}
+
+# drift signal の drift_type 別マッピング (新規)
+DRIFT_TYPE_OVERRIDE: dict[str, dict[str, str | None]] = {
+    "schema":               {"mode": "Reverse",  "kind": "reverse",  "subtype": "normalization"},
+    "contract":             {"mode": "Reverse",  "kind": "reverse",  "subtype": "normalization"},
+    "code_smell":           {"mode": "Refactor", "kind": "refactor", "subtype": None},
+    "structural":           {"mode": "Refactor", "kind": "refactor", "subtype": None},
+    "dependency_outdated":  {"mode": "Retrofit", "kind": "retrofit", "subtype": "dependency"},
+    "upgrade":              {"mode": "Retrofit", "kind": "retrofit", "subtype": "upgrade"},
+    "config_drift":         {"mode": "Retrofit", "kind": "retrofit", "subtype": "config"},
+}
+```
+
+**Step 2-3: RouteResult 拡張**
+
+```python
+@dataclass(frozen=True, slots=True)
+class RouteResult:
+    signal: str
+    mode: Mode
+    kind: Kind
+    subtype: str | None
+    priority: Priority
+    action: Action
+    env: Env
+    source_schema: str
+    suggest_command: str        # 既存 (backward compat 維持)
+    recover_args: dict[str, str] | None
+    plan_hint: str
+    drift_type: str | None      # 新規: drift signal 細分化。drift 以外は None
+    recommended_command: str    # 新規: suggest subcommand が返す詳細コマンド
+```
+
+**Step 2-4: evaluate() 拡張**
+
+```python
+def evaluate(
+    self,
+    signal: str,
+    uncertainty: Severity = "low",
+    impact: Severity = "low",
+    env: Env | None = None,
+    reopen_point: str = "HEAD",
+    drift_type: str | None = None,   # 新規引数
+) -> RouteResult:
+    signal_id = self._normalize_signal(signal)
+    normalized_uncertainty = self._normalize_severity("uncertainty", uncertainty)
+    normalized_impact = self._normalize_severity("impact", impact)
+    normalized_env = self._resolve_env(signal_id, env)
+    normalized_drift_type = self._resolve_drift_type(signal_id, drift_type)  # 新規
+    route = self._resolve_route(signal_id, normalized_env, normalized_drift_type)  # 拡張
+    priority, action = self.PRIORITY_ACTION[(normalized_uncertainty, normalized_impact)]
+    suggest_command, recover_args = self._build_suggest_command(
+        signal_id, route["kind"], normalized_env, reopen_point
+    )
+    recommended_command = self._build_recommended_command(  # 新規
+        signal_id, route["mode"], route["kind"], normalized_drift_type,
+        normalized_env, reopen_point
+    )
+    plan_hint = self._build_plan_hint(signal_id, route["mode"], priority, action)
+    return RouteResult(
+        signal=signal_id,
+        mode=route["mode"],
+        kind=route["kind"],
+        subtype=route["subtype"],
+        priority=priority,
+        action=action,
+        env=normalized_env,
+        source_schema=SOURCE_SCHEMA,
+        suggest_command=suggest_command,
+        recover_args=recover_args,
+        plan_hint=plan_hint,
+        drift_type=normalized_drift_type,
+        recommended_command=recommended_command,
+    )
+```
+
+**Step 2-5: 新規プライベートメソッド**
+
+```python
+def _resolve_drift_type(self, signal: str, drift_type: str | None) -> str | None:
+    """drift signal の drift_type を正規化する。
+    - drift signal でない → None
+    - drift signal + drift_type 指定 → validate して返す
+    - drift signal + drift_type 未指定 → DEFAULT_DRIFT_TYPE ("schema")
+    """
+    if signal != "drift":
+        return None
+    if drift_type is None:
+        return DEFAULT_DRIFT_TYPE
+    normalized = drift_type.strip().lower()
+    if normalized not in VALID_DRIFT_TYPES:
+        raise RouteEngineError(f"unknown drift_type: {drift_type}")
+    return normalized
+
+def _resolve_route(self, signal: str, env: Env, drift_type: str | None = None) -> dict[str, Any]:
+    """signal + drift_type でルートを解決する。drift signal のみ drift_type で上書き。"""
+    mapping = self.SIGNAL_TO_MODE[signal]
+    mode = mapping["mode"]
+    subtype = mapping["subtype"]
+    kind = mapping["kind"]
+    if signal == "incident":
+        kind = "recovery" if env == "prod" else "troubleshoot"
+    # drift signal + drift_type が指定された場合は DRIFT_TYPE_OVERRIDE で上書き
+    if signal == "drift" and drift_type is not None:
+        override = self.DRIFT_TYPE_OVERRIDE[drift_type]
+        mode = override["mode"]
+        kind = override["kind"]
+        subtype = override["subtype"]
+    return {"mode": mode, "kind": kind, "subtype": subtype}
+
+def _build_recommended_command(
+    self,
+    signal: str,
+    mode: str,
+    kind: str,
+    drift_type: str | None,
+    env: Env,
+    reopen_point: str,
+) -> str:
+    """suggest subcommand が返す詳細 recommended_command を生成する。"""
+    if signal in RECOVER_LINKED_SIGNALS or (signal == "incident" and env == "prod"):
+        return (
+            f"helix recover plan --signal-id {signal} "
+            f"--reopen-point {reopen_point} --auto-routed-from helix-route"
+        )
+    if mode == "Reverse":
+        return "helix reverse R0 --type normalization"
+    if mode == "Refactor":
+        return "helix plan draft --kind refactor"
+    if mode == "Retrofit":
+        dt = drift_type or "dependency_outdated"
+        return f"helix plan draft --kind retrofit --drift-type {dt}"
+    # fallback
+    return f"helix plan draft --kind {kind}"
+```
+
+**Step 2-6: from_detect_output() 拡張**
+
+```python
+def from_detect_output(self, detect_run_json: dict[str, Any] | list[dict[str, Any]]) -> list[RouteResult]:
+    # ... 既存の schema 検証ロジック (変更なし) ...
+    results: list[RouteResult] = []
+    for item in items:
+        # ... 既存の validation (変更なし) ...
+        result = item.get("result")
+        # drift_type を result から取得 (新規)
+        raw_drift_type = result.get("drift_type") if isinstance(result, dict) else None
+        results.append(
+            self.evaluate(
+                str(item["status"]),
+                uncertainty=str(result.get("uncertainty", "low")),
+                impact=str(result.get("impact", "low")),
+                env=self._env_from_result(result),
+                reopen_point=str(result.get("reopen_point", "HEAD")),
+                drift_type=str(raw_drift_type) if raw_drift_type is not None else None,  # 新規
+            )
+        )
+    return results
+```
+
+**Step 2-7: list_signals() 拡張**
+
+```python
+def list_signals(self) -> list[dict[str, Any]]:
+    items = []
+    for signal, values in self.SIGNAL_TO_MODE.items():
+        entry: dict[str, Any] = {
+            "signal": signal,
+            "mode": values["mode"],
+            "kind": self._display_kind(signal, "dev"),
+            "subtype": values["subtype"],
+            "deprecated": False,
+        }
+        # drift signal に drift_types[] を追加 (新規)
+        if signal == "drift":
+            entry["drift_types"] = list(VALID_DRIFT_TYPES)
+        items.append(entry)
+    # deprecated alias (変更なし)
+    items.append({
+        "signal": "degradation",
+        "mode": "alias",
+        "kind": "alias",
+        "subtype": None,
+        "deprecated": True,
+        "replacement": self.DEPRECATED_ALIAS["degradation"],
+    })
+    return items
+```
+
+**受入条件**:
+- py_compile PASS
+- U-EXT-001〜021 が PASS に転換
+- 既存テスト全件 PASS (回帰なし)
+
+---
+
+### Sprint .3: suggest subcommand 実装 (helix-route CLI 拡張)
+
+**担当**: SE
+
+#### 変更対象: cli/helix-route
+
+`suggest` subcommand を argparse に追加する。
+
+**argparse 拡張**:
+
+```python
+# _build_parser() 内
+suggest_parser = sub.add_parser("suggest")
+suggest_source = suggest_parser.add_mutually_exclusive_group(required=True)
+suggest_source.add_argument("--signal")
+suggest_source.add_argument("--from-json")
+suggest_parser.add_argument("--drift-type")
+suggest_parser.add_argument("--uncertainty", default="low")
+suggest_parser.add_argument("--impact", default="low")
+suggest_parser.add_argument("--env")
+suggest_parser.add_argument("--reopen-point", default="HEAD")
+suggest_parser.add_argument("--json", action="store_true", dest="output_json")
+```
+
+**suggest コマンドの実行ロジック**:
+
+```python
+if args.command == "suggest":
+    if args.from_json:
+        results = engine.from_detect_output(_load_json_input(args.from_json))
+        if args.output_json:
+            print(json.dumps([r.to_dict() for r in results], ensure_ascii=False, sort_keys=True))
+        else:
+            for r in results:
+                print(r.recommended_command)
+        return 0
+    result = engine.evaluate(
+        args.signal,
+        uncertainty=args.uncertainty,
+        impact=args.impact,
+        env=args.env,
+        reopen_point=args.reopen_point,
+        drift_type=args.drift_type,
+    )
+    if args.output_json:
+        print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+    else:
+        print(result.recommended_command)
+    return 0
+```
+
+**help テキスト更新**:
+
+```python
+def _print_route_help() -> None:
+    print(
+        "Usage: helix route <eval|suggest|list-signals|help> [args...]\n\n"
+        "Commands:\n"
+        "  eval          signal または detect JSON から route を評価 (full RouteResult)\n"
+        "  suggest       recommended_command を 1 行で出力 (人間向け簡易コマンド)\n"
+        "  list-signals  登録済 signal と alias を表示 (drift の drift_types[] 含む)\n"
+        "  help          この usage を表示\n"
+    )
+```
+
+**受入条件**:
+- B-EXT-001〜008 が全て PASS
+- `helix route eval` / `list-signals` の既存 bats テスト PASS (backward compat)
+- `helix route suggest --signal drift` で backward compat (drift_type 未指定 = schema = Reverse)
+
+---
+
+### Sprint .4: 全テスト通過確認 + 設計 doc 生成
+
+**担当**: SE
+
+**作業**:
+
+1. 全 pytest 実行:
+   ```bash
+   python3 -m pytest cli/lib/tests/test_route_engine.py -v --tb=short
+   ```
+   期待: 全件 PASS (既存 + U-EXT-001〜022)
+
+2. 全 bats 実行:
+   ```bash
+   bats cli/tests/helix-route.bats
+   ```
+   期待: 全件 PASS (既存 + B-EXT-001〜008)
+
+3. 回帰確認 (route 関連テスト全体):
+   ```bash
+   python3 -m pytest cli/lib/tests/test_detector_router.py -v --tb=short
+   ```
+
+4. py_compile 確認:
+   ```bash
+   python3 -m py_compile cli/lib/route_engine.py
+   ```
+
+5. 設計 doc 生成:
+   `docs/v2/L7-design/L7-route-engine-drift-type-retrofit-ext-design.md` を起草する。
+   内容: §2 設計判断の永続化 (接続契約・drift_type 7 種・suggest subcommand 仕様)
+
+**受入条件**:
+- pytest / bats 全件 PASS
+- py_compile PASS
+- 設計 doc 生成済み
+
+---
+
+### Sprint .5: セルフレビュー + pmo-sonnet review + DoD 確認
+
+**担当**: SE + PMO
+
+**セルフレビューチェックリスト**:
+
+- [ ] drift_type 7 種分岐表が PLAN B (L7-cli-helix-refactor-implplan) と完全一致
+- [ ] drift_type 7 種分岐表が PLAN C (L7-cli-helix-retrofit-implplan) と完全一致
+- [ ] `helix route eval --signal drift` backward compat (Reverse/normalization)
+- [ ] `helix route eval --format command` backward compat (出力形式変更なし)
+- [ ] `from_detect_output()` backward compat (drift_type なし JSON でエラーなし)
+- [ ] `RouteResult.to_dict()` に drift_type / recommended_command が含まれる
+- [ ] suggest subcommand の Retrofit 出力に `--drift-type` が含まれる
+- [ ] suggest subcommand の Reverse 出力: `helix reverse R0 --type normalization`
+- [ ] suggest subcommand の Refactor 出力: `helix plan draft --kind refactor`
+- [ ] Recovery/Incident (prod) signal: recommended_command = helix recover plan (既存と同一)
+
+**pmo-sonnet review 観点**:
+- 4 artifact 双方向 trace: ① 設計 doc ↔ ③ テスト設計 doc ↔ ④ テストコード
+- PLAN B/C の blocks 依存が frontmatter に正確に記述されているか
+- §7 V3 接続契約の completeness
+
+**受入条件**:
+- セルフレビューチェックリスト全項目 checked
+- pmo-sonnet review passed
+
+---
+
+## §5 DoD + 受入条件
+
+### 必須 (Sprint Exit 前に全項目確認)
+
+- [ ] py_compile PASS: `python3 -m py_compile cli/lib/route_engine.py`
+- [ ] pytest ALL PASS: `python3 -m pytest cli/lib/tests/test_route_engine.py -v`
+- [ ] bats ALL PASS: `bats cli/tests/helix-route.bats`
+- [ ] 回帰なし: `python3 -m pytest cli/lib/tests/test_detector_router.py -v`
+- [ ] drift_type 7 種分岐表が §2.2 テーブルと完全一致
+- [ ] `Mode` Literal に `Retrofit` 追加済み
+- [ ] `RouteResult` に `drift_type` / `recommended_command` field 追加済み
+- [ ] `helix route suggest` が installed で動作する
+- [ ] backward compat: 既存 `helix route eval --signal drift` が Reverse/normalization を返す
+- [ ] backward compat: `RouteResult.suggest_command` が既存と同じ値
+- [ ] テスト設計 doc 生成済み (`docs/v2/L7-test-design/`)
+- [ ] 設計 doc 生成済み (`docs/v2/L7-design/`)
+- [ ] PLAN B/C が本 PLAN の drift_type 分岐表を参照する旨を frontmatter に記載済み
+
+### on-demand
+
+- [ ] helix doctor check PASS (regression なし)
+- [ ] security audit: RouteEngineError による入力 validation 確認
+
+---
+
+## §6 risk + mitigation
+
+### R1: 既存 helix-route 互換破壊
+
+**リスク**: `RouteResult` に field を追加することで、JSON を parse する既存コードが予期しない field で壊れる可能性。
+
+**影響**: high (detect_router / 外部呼び出し元)
+
+**mitigation**:
+- `to_dict()` は `asdict()` で自動対応、追加 field は無視可能
+- `suggest_command` の値は変更しない (既存コマンド文字列を保持)
+- Sprint .4 で `test_detector_router.py` を回帰実行して確認
+
+---
+
+### R2: drift_type 誤判定 / PLAN B/C との不整合
+
+**リスク**: PLAN B (refactor) / C (retrofit) が異なる drift_type 分岐表を参照した場合、3 PLAN 間で動作が矛盾する。
+
+**影響**: high (Refactor/Retrofit の mode 選択が誤る)
+
+**mitigation**:
+- §2.2 分岐表を「本 PLAN を単一 source of truth」として確立し、PLAN B/C は本 PLAN を参照する形に統一
+- Sprint .0 の Entry で PLAN B/C の分岐表と §2.2 を照合、差異があれば本 PLAN を訂正
+- Sprint .5 セルフレビューでも再確認
+
+---
+
+### R3: Mode enum 移行 (Literal 型)
+
+**リスク**: `Retrofit` を Literal に追加することで、型チェックツール (mypy) が既存コードの `Mode` 型ヒント使用箇所でエラーを出す可能性。
+
+**影響**: low (現行は型ヒントのみ、runtime には影響しない)
+
+**mitigation**:
+- Literal の追加は backward compat (既存値は全て保持)
+- mypy が実行されていれば Sprint .4 で確認
+
+---
+
+### R4: suggest subcommand の recommended_command 文字列変更
+
+**リスク**: `recommended_command` が将来変更された際に、呼び出し元が文字列 parse していると壊れる。
+
+**影響**: medium
+
+**mitigation**:
+- `recommended_command` は人間向け表示専用と明記 (§2.4)
+- 機械処理には `suggest_command` / `recover_args` を使用するよう §7 接続契約で規定
+
+---
+
+### R5: backward compat — drift signal の drift_type デフォルト
+
+**リスク**: `drift` + drift_type 未指定時に `schema` をデフォルトにすることで、既存テストが `Reverse/normalization` を期待している場合に問題なし。しかし `schema` → `Reverse/normalization` のマッピングが将来変わった場合に不整合が生じる。
+
+**影響**: low
+
+**mitigation**:
+- `schema` と `contract` は両方 `Reverse/normalization` にマッピングされているため、`schema` をデフォルトにすることは既存動作と完全一致
+- U-EXT-008 / B-EXT-006 で backward compat テストを明示的に追加
+
+---
+
+## §7 V3 接続契約 (route → 各 mode CLI への signal_id / drift_type / recommended_command 完全契約)
+
+### §7.1 契約 schema (helix route → 後続 CLI)
+
+本 PLAN の拡張後、`helix route eval` / `helix route suggest` は以下の JSON schema で後続 CLI に情報を渡す:
+
+```json
+{
+  "signal": "<signal_id>",
+  "mode": "<Reverse|Refactor|Recovery|Incident|Retrofit>",
+  "kind": "<reverse|refactor|recovery|troubleshoot|retrofit>",
+  "subtype": "<normalization|code|dependency|upgrade|config|null>",
+  "drift_type": "<7 種の drift_type | null>",
+  "priority": "<P0|P1|P2|P3>",
+  "action": "<suggest_only|immediate_plan_draft|discovery_first|emergency_routing>",
+  "env": "<dev|prod>",
+  "source_schema": "helix_detect_run_json_v1",
+  "suggest_command": "<backward compat コマンド文字列>",
+  "recover_args": {"signal_id": "...", "reopen_point": "...", "auto_routed_from": "helix-route"},
+  "plan_hint": "<signal> routed to <mode> (<priority>, <action>)",
+  "recommended_command": "<mode 別詳細コマンド文字列>",
+  "source_schema": "helix_detect_run_json_v1"
+}
+```
+
+### §7.2 mode 別 recommended_command テンプレート
+
+| mode | recommended_command テンプレート | 後続 CLI |
+|---|---|---|
+| Reverse | `helix reverse R0 --type normalization` | helix-reverse |
+| Refactor | `helix plan draft --kind refactor` | helix plan |
+| Retrofit | `helix plan draft --kind retrofit --drift-type {drift_type}` | helix plan |
+| Recovery | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` | helix-recover |
+| Incident (prod) | `helix recover plan --signal-id {signal} --reopen-point {reopen_point} --auto-routed-from helix-route` | helix-recover |
+
+### §7.3 PLAN B (refactor) 接続契約
+
+PLAN B (L7-cli-helix-refactor-implplan) が参照する route 出力:
+- `mode=Refactor` かつ `kind=refactor`
+- `drift_type` = `code_smell` または `structural`
+- `recommended_command` = `helix plan draft --kind refactor`
+
+PLAN B は `helix route eval --signal debt_degradation` または `helix route eval --signal drift --drift-type code_smell` の出力を入力として受け取ることができる。
+
+### §7.4 PLAN C (retrofit) 接続契約
+
+PLAN C (L7-cli-helix-retrofit-implplan) が参照する route 出力:
+- `mode=Retrofit` かつ `kind=retrofit`
+- `drift_type` = `dependency_outdated` / `upgrade` / `config_drift`
+- `subtype` = `dependency` / `upgrade` / `config`
+- `recommended_command` = `helix plan draft --kind retrofit --drift-type {drift_type}`
+
+PLAN C の state manager が `drift_type` を受け取り、retrofit 種別 (dependency/upgrade/config) 別の処理分岐に使用する。
+
+### §7.5 backward compat 保証
+
+| 契約点 | 保証内容 |
+|---|---|
+| `helix route eval --signal drift` | mode=Reverse, kind=reverse, subtype=normalization (変更なし) |
+| `helix route eval --format command` | `helix plan draft --kind reverse` (変更なし) |
+| `RouteResult.suggest_command` | 既存値を維持 (Retrofit 時のみ新値) |
+| `from_detect_output()` | drift_type field なし JSON でエラーなし (default 適用) |
+
+---
+
+## §8 関連 doc
+
+| doc | 関係 |
+|---|---|
+| [detection-routing.md](../../../HELIX-workflows/helix-process/detection-routing.md) | 親設計 doc (本 PLAN の設計の正本) |
+| [cross-cutting-mechanisms.md](../../../HELIX-workflows/helix-process/cross-cutting-mechanisms.md) | drift detection の横断メカニズム |
+| [refactor-workflow.md](../../../HELIX-workflows/helix-process/refactor-workflow.md) | PLAN B 参照 workflow |
+| [retrofit-workflow.md](../../../HELIX-workflows/helix-process/retrofit-workflow.md) | PLAN C 参照 workflow |
+| [recovery-workflow.md](../../../HELIX-workflows/helix-process/recovery-workflow.md) | Recovery/Incident 時の後続 workflow |
+| [L7-helix-route-implplan.md](./L7-helix-route-implplan.md) | 既存 helix-route 実装 PLAN (本 PLAN の前提依存) |
+| [L7-cli-helix-refactor-implplan.md](./L7-cli-helix-refactor-implplan.md) | blocks 依存先 (drift_type 分岐の利用側) |
+| [L7-cli-helix-retrofit-implplan.md](./L7-cli-helix-retrofit-implplan.md) | blocks 依存先 (Retrofit mode + suggest の利用側) |
+| `cli/lib/route_engine.py` | 本 PLAN の実装対象 |
+| `cli/lib/tests/test_route_engine.py` | テストコード (本 PLAN で拡張) |
+| `cli/tests/helix-route.bats` | CLI 統合テスト (本 PLAN で拡張) |
+
+---
+
+## §9 carry / 残課題
+
+### §9.1 本 PLAN 完遂後の carry
+
+| carry | 担当 PLAN | 優先度 |
+|---|---|---|
+| helix-refactor CLI 実装 (drift_type 分岐受け取り側) | L7-cli-helix-refactor-implplan | P1 |
+| helix-retrofit CLI state manager 実装 | L7-cli-helix-retrofit-implplan | P1 |
+| from_detect_output() adapter 拡張 (cross-detection schema v2) | 別 PLAN | P3 |
+
+### §9.2 本 PLAN で意図的に対応しない事項
+
+| 項目 | 理由 |
+|---|---|
+| `helix reverse R0 --type` の実装 | helix-reverse CLI は既存、`--type normalization` 引数は別 scope |
+| `helix plan draft --kind retrofit` の実装 | L7-cli-helix-retrofit-implplan scope |
+| `helix plan draft --kind refactor` の実装 | L7-cli-helix-refactor-implplan scope |
+| cross-detection dashboard schema adapter | 既存 `from_detect_output()` の schema エラー範囲維持 |
+| drift_type の helix-detect 出力への追加 | helix-detect / detector 側は別 PLAN |
+
+### §9.3 tl-advisor R1 未解決指摘 (次レビュー候補)
+
+本 PLAN 起票時点で tl-advisor R1 は PLAN C に対する指摘。本 PLAN (C') のみの tl-advisor R1 review は Sprint .0 で実施する。以下は仮 carry:
+
+| 指摘候補 | 対応方針 |
+|---|---|
+| `DRIFT_TYPE_OVERRIDE` と `SIGNAL_TO_MODE` の 2 dict 分離の設計妥当性 | Sprint .0 で TL 確認 |
+| `recommended_command` と `suggest_command` の役割重複リスク | §7.5 backward compat 保証で対応済 (TL 確認要) |
+| `drift_type` の validate を evaluate() 内で行う vs. `_normalize_signal()` に組み込む | Sprint .0 で TL 確認 |
+
+---
+
+## §10 L2 凍結 (ADR snapshot)
+
+本 PLAN の設計判断に含まれる L2 大局判断:
+
+1. **drift_type 7 種を PLAN B/C/C' の単一 source of truth として route_engine.py に集約する**
+   → PLAN B/C が各自 drift_type enum を持つのではなく、route_engine の定義を正本とする
+   → ADR snapshot 要否: **要** (drift_type 集約方針は L2 レベルの選択)
+
+2. **`recommended_command` field を新規追加し `suggest_command` と共存させる**
+   → 既存 `suggest_command` を deprecated にするのではなく、より詳細な `recommended_command` を追加
+   → ADR snapshot 要否: **P2 (次 session 候補)** - 2 field 共存は短期的妥協であり、将来の統合 ADR 候補
+
+> Sprint .0 の TL review 後、L2 凍結が必要と判断された場合は `docs/adr/` に ADR snapshot を別 file で起票する (PLAN ⊃ ADR レイヤー併存原則)。
+
+---
+
+*作成: 2026-05-24 | PMO Sonnet | L7 実装 PLAN (route_engine.py 拡張)*

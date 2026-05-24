@@ -30,14 +30,15 @@ generates:
   - artifact_path: docs/v2/L7-design/L7-cli-helix-retrofit-impl-design.md
     artifact_type: design_doc
   - artifact_path: docs/v2/L7-test-design/L7-cli-helix-retrofit-impl-test-design.md
-    artifact_type: test_design
+    artifact_type: design_doc
   - artifact_path: cli/lib/tests/test_retrofit_engine.py
     artifact_type: test
   - artifact_path: cli/lib/tests/bats/helix_retrofit.bats
     artifact_type: test
 dependencies:
   parent: L7-helix-workflows-parent-acceptedplan
-  requires: []
+  requires:
+    - L7-route-engine-drift-type-retrofit-extplan
   blocks: []
 related_docs:
   - HELIX-workflows/helix-process/retrofit-workflow.md
@@ -59,6 +60,8 @@ related_docs:
 > **正本設計**: [HELIX-workflows/helix-process/retrofit-workflow.md](../../../HELIX-workflows/helix-process/retrofit-workflow.md)
 > **本 PLAN の対象**: `cli/helix-retrofit` コマンドの新規実装。依存・フレームワーク・基盤を **要件を変えずに段階的に移行** するための CLI エントリーポイントを実体化する。
 > **位置づけ**: CLAUDE.md / HELIX_CORE.md で「dedicated CLI 未整備、PLAN kind + retrofit-matrix + config で運用」と carry 明示された案件を本 PLAN で実体化する。retrofit-workflow.md (status: accepted, 2026-05-24) が正本設計。
+>
+> **[scope 縮小 — tl-advisor R1 反映]**: 本 PLAN は **retrofit CLI 単体 state manager (direct invocation 想定)** に scope を限定する。route_engine 拡張 (drift_type 分岐 / Retrofit mode routing / `helix route suggest` 連携) は **別 PLAN `L7-route-engine-drift-type-retrofit-extplan` (C') に移管済み**。本 PLAN は C' を `dependencies.requires` に記載し、route 連携の有効化は C' 完遂後とする (§11 carry C8 参照)。
 
 ### parent_design (accepted) を採用する理由
 
@@ -116,20 +119,24 @@ related_docs:
 
 ### §2.A cli/helix-retrofit CLI 設計
 
-#### サブコマンド構成
+#### サブコマンド構成 (正式 CLI surface — 5 本、tl-advisor R1 P1-3 反映)
 
 ```
 helix retrofit [subcommand] [options]
 
 subcommand:
-  init         retrofit-matrix.md と config YAML を生成し、PLAN kind=retrofit を draft 起票
-  matrix       retrofit-matrix.md の表示・更新 (row の追加・status 変更・一覧)
-  config       config YAML の表示・差分確認 (生成は init、適用は手動ガード)
-  status       現在の retrofit PLAN 進捗と matrix 完了率を表示
-  plan         PLAN kind=retrofit の draft 起票 (矩形が既存なら既存 PLAN と接続)
-  check-kind   変更シグナルから retrofit / refactor / forward を判定して提案
-  done         指定 matrix 行を completed にマークし、回帰テスト促進メッセージを表示
+  init     retrofit-matrix.md と config YAML を生成し、PLAN kind=retrofit を draft 起票
+  matrix   retrofit-matrix.md の表示・更新 (row の追加・status 変更・一覧)
+  status   現在の retrofit PLAN 進捗と matrix 完了率を表示
+  done     指定 matrix 行 (--row R001) を completed にマーク。--run-regression で回帰実行
+  plan     PLAN kind=retrofit の draft 起票 (既存 PLAN に紐付ける場合は --plan-id 指定)
+
+削除 subcommand:
+  config     (init が生成、show は status で代替可能、独立 subcommand 不要)
+  check-kind (route 連携 C' 移管のため削除。KindChecker ロジック自体は内部ユーティリティとして残存)
 ```
+
+> **注**: `helix route suggest` 連携 / `--no-plan` フラグ / `check-kind` の exit-code ブリッジは **C' PLAN (`L7-route-engine-drift-type-retrofit-extplan`)** で実装する。
 
 #### サブコマンド詳細仕様
 
@@ -137,22 +144,37 @@ subcommand:
 
 ```
 入力:
-  --slug: retrofit 識別子 (例: python312-migration、sqlite-to-postgres)
+  --slug:    retrofit 識別子 (例: python312-migration、sqlite-to-postgres)
+             形式強制: kebab-case 正規表現 ^[a-z0-9][a-z0-9-]*[a-z0-9]$ 違反は exit 2
   --plan-id: 既存 PLAN に紐付ける場合の ID (省略時は新規 PLAN draft を生成)
-  --drive: be (default) / fullstack / db
+  --drive:   be (default) / fullstack / db
 
 出力:
-  docs/plans/<slug>-retrofit-matrix.md  (retrofit-matrix テンプレート生成)
-  cli/config/<slug>-retrofit.yaml       (config テンプレート生成)
-  docs/plans/L7/L7-<slug>-retrofitplan.md  (PLAN draft、--plan-id 省略時)
+  docs/plans/<slug>-retrofit-matrix.md     (retrofit-matrix テンプレート生成)
+  cli/config/<slug>-retrofit.yaml          (config テンプレート生成)
+  docs/plans/L7/L7-<slug>-retrofitplan.md (PLAN draft、--plan-id 省略時)
+
+  PLAN draft frontmatter 例:
+    kind: retrofit
+    process_layer: L7
+    parent_design: HELIX-workflows/helix-process/retrofit-workflow.md
+    generates: [<slug>-retrofit-matrix.md, <slug>-retrofit.yaml]
+    pairs_test_design: [docs/v2/L7-test-design/...]
+
+  ※ upgrade kind の row を含む場合、Reverse upgrade (R0-R4) の完遂 evidence が要求される
+     (evidence 不在 = row status を blocked で作成し警告表示)
 
 exit-code:
   0: 成功
   1: slug 重複 (既存 matrix あり、--force で上書き)
-  2: 設定エラー
+  2: 設定エラー (slug 形式違反 / drive 不正)
 ```
 
 **`helix retrofit matrix [list|add|update|show] [options]`**
+
+> **[P1-4 反映]** YAML frontmatter `rows` が **唯一の正本 (Single Source of Truth)**。Markdown table は `rows` から自動生成されるビューであり直接編集禁止。
+> table 先頭行に `<!-- DO NOT EDIT TABLE — regenerated from frontmatter rows -->` を自動挿入する。
+> `helix retrofit status` が matrix table と frontmatter `rows` の不整合を検出した場合は警告を表示する。
 
 ```
 helix retrofit matrix list --slug <slug>
@@ -160,14 +182,16 @@ helix retrofit matrix list --slug <slug>
 
 helix retrofit matrix add --slug <slug> --from "<旧>" --to "<新>" --scope "<影響範囲>" [--phase L4]
   → matrix に新行を追加 (phase は L4/L5/L7 追補先)
+  → ID は R001 から始まる連番を自動採番 (frontmatter rows に追記 → table 再生成)
 
-helix retrofit matrix update --slug <slug> --row <N> --status <todo|in-progress|done|blocked>
-  → 指定行の status を更新 (done 時は done-at タイムスタンプを付与)
+helix retrofit matrix update --slug <slug> --row R001 --status <todo|in-progress|done|blocked>
+  → 指定行 (R001 形式 ID) の status を更新 (done 時は done-at タイムスタンプを付与)
+  → frontmatter rows を更新 → Markdown table を再生成
 
 helix retrofit matrix show --slug <slug> --summary
   → matrix 完了率 (done/total) + blocked 件数 + pending 件数を表示
 
-exit-code: 0 成功 / 1 slug 不在 / 2 row 番号範囲外
+exit-code: 0 成功 / 1 slug 不在 / 2 row ID 不在
 ```
 
 **`helix retrofit status [--slug <slug>] [--json]`**
@@ -179,38 +203,46 @@ exit-code: 0 成功 / 1 slug 不在 / 2 row 番号範囲外
     plan: L7-python312-migration-retrofitplan (draft)
     matrix: 4/12 done (33%), 2 blocked, 6 pending
     config: cli/config/python312-migration-retrofit.yaml (exists)
-    next: matrix row 5 (logging → structlog) [in-progress]
+    next: R005 (logging → structlog) [in-progress]
+    [WARNING] 2 blocked rows — review L1/L3 re-entry conditions before proceeding
+
+--json 出力フィールド (P2-2 反映):
+  slug, plan_id, plan_status, done, total, completion_pct,
+  blocked_count, pending_count, next_row_id, next_row_desc,
+  config_exists, regression_phases, has_missing_evidence (bool)
 
 exit-code: 0 (slug 不在でも 0、"no active retrofit" メッセージ)
 ```
 
-**`helix retrofit check-kind [--signal <drift_type>] [--files <path,...>]`**
+**`helix retrofit done --slug <slug> --row R001 [--run-regression]`**
+
+> **[P1-5 反映]** row 指定は `R001` 形式 ID 必須 (整数 index 廃止)。
+> **[P1-8 反映]** blocked 行がある場合は `done` を禁止 (exit 2 で fail-close)。
+> **[P1-10 反映]** `--run-regression` 失敗時は row を `in_progress` に巻き戻す。
 
 ```
-入力:
-  --signal: helix route suggest の drift_type 出力を受け取る
-  --files: 変更対象ファイル一覧 (省略時は git diff --name-only HEAD)
-
-出力: retrofit / refactor / forward のいずれかと根拠を表示
-判定ロジック:
-  - requirements.txt / pyproject.toml / Dockerfile / *.yaml (config) 変更 → retrofit 優先
-  - import 変更のみ、振る舞い変化なし → refactor 優先
-  - 新機能 / 新 API / スキーマ追加 → forward 優先
-  - 混在 → retrofit + forward の分離を推奨
-
-exit-code: 0 retrofit / 1 refactor / 2 forward / 3 混在
-```
-
-**`helix retrofit done --slug <slug> --row <N> [--run-regression]`**
-
-```
-入力: slug + row 番号
+入力: --slug + --row R001 形式 ID
 動作:
-  1. matrix 行を status=done, done-at=<timestamp> に更新
-  2. --run-regression 付きの場合: `helix test --scope L8-regression` を起動
+  0. 前提チェック: blocked 行が存在する場合は exit 2 で禁止
+     ("blocked rows exist — resolve before marking done")
+  1. matrix 行を status=done, done-at=<timestamp> に更新 (frontmatter rows → table 再生成)
+  2. --run-regression 付きの場合:
+     - config の phases.regression に指定された回帰テストを同期実行
+       (初期実装では同期のみ。非同期は別 PLAN 対応)
+     - 成功: done 状態を確定
+     - 失敗: row を status=in_progress に巻き戻し、regression_failed=true を row に記録
+             exit code 3 で失敗内容を表示
   3. 全行 done の場合: retrofit 完了メッセージ + PLAN status=complete 更新促進
 
-exit-code: 0 成功 / 1 slug/row 不在
+L1/L3 再入条件:
+  - blocked 理由が「要件変更の可能性」の場合は L1/L3 再確認を促すメッセージを表示
+  - 未解消 blocked > 0 の場合、done は完全禁止
+
+exit-code:
+  0: 成功
+  1: slug / row ID 不在
+  2: blocked 行あり (fail-close)
+  3: --run-regression 失敗 (row 巻き戻し済)
 ```
 
 #### 入力源と凍結設計
@@ -218,10 +250,10 @@ exit-code: 0 成功 / 1 slug/row 不在
 | サブコマンド | 主入力源 | 凍結理由 |
 |---|---|---|
 | `init` | CLI 引数 (--slug, --plan-id) | ユーザー明示指定 |
-| `matrix list/show` | `docs/plans/<slug>-retrofit-matrix.md` (YAML front + Markdown table) | 人間可読な単一 source of truth |
-| `status` | matrix.md + PLAN frontmatter `status` | helix.db 不依存で軽量 |
-| `check-kind` | `git diff --name-only HEAD` + `--signal` 引数 | ファイル名パターンで安定判定 |
-| `done` | matrix.md row update + helix test | 機械 + 人間の両確認 |
+| `matrix list/show` | `docs/plans/<slug>-retrofit-matrix.md` (YAML frontmatter `rows` が正本) | Single SoT — table はビュー生成、直接編集禁止 |
+| `status` | matrix.md frontmatter `rows` + PLAN frontmatter `status` | helix.db 不依存で軽量 |
+| `done` | matrix.md row update (R001 ID) + phases.regression config | 機械 + 人間の両確認、回帰失敗で巻き戻し |
+| `plan` | CLI 引数 + retrofit-workflow.md template | PLAN draft 生成のみ、state 変更なし |
 
 ---
 
@@ -233,32 +265,53 @@ exit-code: 0 成功 / 1 slug/row 不在
 # cli/lib/retrofit_engine.py
 
 class RetrofitMatrix:
-    """retrofit-matrix.md の YAML front matter + Markdown table を管理"""
+    """retrofit-matrix.md の YAML frontmatter rows が正本、Markdown table はビュー"""
     def load(slug: str) -> RetrofitMatrix
     def add_row(from_: str, to: str, scope: str, phase: str = "L7") -> None
-    def update_row(row_n: int, status: str) -> None
+    def update_row(row_id: str, status: str, regression_failed: bool = False) -> None
+    # row_id は "R001" 形式 (整数 index 廃止、P1-5 反映)
+    # status=done 時に done_at タイムスタンプを自動付与
+    # status 変更後に Markdown table を frontmatter rows から再生成 (P1-4 反映)
     def summary() -> dict  # {total, done, in_progress, blocked, pending, completion_pct}
+    def has_blocked() -> bool  # done 前チェック用 (P1-8 反映)
     def save() -> None
 
 class RetrofitConfig:
     """cli/config/<slug>-retrofit.yaml を管理"""
     def load(slug: str) -> RetrofitConfig
-    def show_diff(current_path: str) -> str  # 現状 config との差分表示
     def save_template(slug: str, drive: str) -> Path
+    def regression_command() -> list[str]  # phases.regression から回帰テストコマンド生成 (P1-6)
 
 class KindChecker:
-    """変更ファイル + signal から retrofit/refactor/forward を判定"""
-    RETROFIT_PATTERNS = [r"requirements.*\.txt", r"pyproject\.toml",
-                          r"Dockerfile", r"docker-compose", r"\.ya?ml$"]
+    """変更ファイル + signal から retrofit/refactor/forward を判定 (内部ユーティリティ)
+    
+    [P1-9 反映] 判定優先順:
+      1. signal 最優先: dependency_outdated/upgrade/config_drift → retrofit
+                        structural/code_smell/naming → refactor
+                        (signal 指定時はファイルパターン判定を行わない)
+      2. signal なし時のみ file pattern 補助:
+         requirements*.txt / pyproject.toml / Dockerfile / docker-compose → retrofit
+         import のみ変更 (振る舞い変化なし) → refactor
+         新機能 / 新 API / スキーマ追加 → forward
+      3. schema / contract 変更 → Reverse normalization 推奨 (exit 3)
+      4. 混在 → 分割推奨 (exit 3)
+      ※ *.yaml 一律 retrofit / import 一律 refactor は廃止
+    """
+    RETROFIT_SIGNALS  = ["dependency_outdated", "upgrade", "config_drift"]
     REFACTOR_SIGNALS  = ["structural", "code_smell", "naming"]
+    REVERSE_SIGNALS   = ["schema", "contract"]
     def check(files: list[str], signal: str = "") -> tuple[str, str]
-    # returns (kind, reason)
+    # returns (kind, reason) — kind: retrofit/refactor/forward/reverse/mixed
 
 def init_retrofit(slug: str, plan_id: str | None, drive: str) -> dict:
     """init subcommand の実装本体"""
 
 def get_retrofit_status(slug: str | None, as_json: bool) -> dict:
     """status subcommand の実装本体"""
+
+def run_regression(config: RetrofitConfig) -> bool:
+    """phases.regression の回帰テスト同期実行 (P1-10)
+    失敗時は False を返す (呼び出し元が row を in_progress に巻き戻す)"""
 ```
 
 #### retrofit-matrix.md ファイル形式 (§3 参照)
@@ -287,6 +340,10 @@ Markdown table は front matter の `rows` リストから自動生成する。
 
 ### retrofit-matrix.md テンプレート
 
+> **[P1-4 反映]** YAML frontmatter `rows` が **唯一の正本 (Single Source of Truth)**。
+> Markdown table は `rows` から自動生成されるビューであり、直接編集禁止。
+> `<!-- DO NOT EDIT TABLE — regenerated from frontmatter rows -->` を table 直前行に自動挿入する。
+
 ```markdown
 ---
 slug: python312-migration
@@ -302,6 +359,7 @@ rows:
     phase: L7
     status: todo
     done_at: null
+    regression_failed: false
     notes: ""
   - id: R002
     from: "datetime.utcnow()"
@@ -310,11 +368,13 @@ rows:
     phase: L7
     status: done
     done_at: "2026-05-24T10:30:00"
+    regression_failed: false
     notes: "DeprecationWarning 対応 (Python 3.13+ removal)"
 ---
 
 # Retrofit Matrix: python312-migration
 
+<!-- DO NOT EDIT TABLE — regenerated from frontmatter rows -->
 | ID | From | To | Scope | Phase | Status | Done At |
 |---|---|---|---|---|---|---|
 | R001 | Python 3.9 | Python 3.12 | 全 .py ファイル | L7 | todo | - |
@@ -323,13 +383,18 @@ rows:
 
 ### config YAML テンプレート (`cli/config/<slug>-retrofit.yaml`)
 
+> **[P1-6 反映]** `phases.regression` を正本フィールドとして統一。`regression.phases` 形式は廃止。
+> `done --run-regression` は `phases.regression` の値でテストを実行する。
+> 実行コマンドは Sprint .1 で `helix test --help` 確認後に正式 option を固定する
+> (暫定: `helix test --layer L8 --regression` または `helix test L8`)。
+
 ```yaml
 # cli/config/python312-migration-retrofit.yaml
 slug: python312-migration
 drive: be
 phases:
   design_supplement: [L4, L5]   # 追補する設計工程
-  regression: [L8, L9]           # 回帰テスト工程
+  regression: [L8, L9]           # 回帰テスト工程 (phases.regression が正本、P1-6)
 rollback:
   strategy: git-revert            # git-revert / branch-cutover / feature-flag
   checkpoint: HEAD~3              # ロールバック起点 (手動更新)
@@ -355,13 +420,10 @@ regression_scope:
 | `helix retrofit` | Retrofit mode 確定後の**matrix 管理・config 管理・進捗追跡** | route が `retrofit` を返した後、または直接 retrofit と確定している場合 |
 | `helix refactor` (未実装) | Refactor mode の**実行補助** (振る舞い不変の構造改善) | route が `refactor` を返した後 |
 
-### helix route → helix retrofit の連携フロー
+### helix retrofit direct invocation フロー (本 PLAN scope)
 
 ```
-ユーザー: 依存更新・基盤移行を検討
-  ↓
-helix route suggest [--signal dependency_outdated]
-  → 出力例: "mode: retrofit — 推奨コマンド: helix retrofit init --slug <slug>"
+ユーザー: 依存更新・基盤移行を確定 (モード判断済み)
   ↓
 helix retrofit init --slug python312-migration
   → retrofit-matrix.md + config.yaml + PLAN draft を生成
@@ -375,11 +437,12 @@ helix retrofit done --slug python312-migration --row R001 [--run-regression]
 helix retrofit status  (完了率確認)
 ```
 
-### helix route との境界プロトコル
+### helix route との境界プロトコル (scope 限定)
 
 - `helix route` は **モードの提案のみ** を返し、state 変更をしない (read-only に近い)
 - `helix retrofit` は **state を持つ** (matrix.md / config.yaml を生成・更新する)
-- `helix route suggest` の出力に `recommended_command` フィールドを追加し、retrofit/recover/refactor へのリンクを返す (route_engine.py の拡張 carry、本 PLAN scope 外)
+- `helix route suggest` の出力に `recommended_command` フィールドを追加し retrofit へ誘導するフローは **C' PLAN (`L7-route-engine-drift-type-retrofit-extplan`) scope**。本 PLAN では実装しない。
+- C' 完遂後に本 PLAN の route 連携を有効化する (§11 carry C8)。
 
 ### helix recover との責務境界
 
@@ -453,15 +516,17 @@ helix retrofit status  (完了率確認)
    - `RetrofitMatrix.update_row()` status 変更 + done_at 付与
    - `RetrofitMatrix.summary()` 各カウント正確性
    - `RetrofitConfig.save_template()` ファイル生成 + 必須キー検証
-   - `KindChecker.check()` retrofit / refactor / forward 各シグナル
+   - `KindChecker.check()` signal 優先 / file pattern 補助の各シグナル (内部 unit)
    - `init_retrofit()` matrix + config + PLAN 生成の 3 点セット確認
-   - エラー系: slug 重複 / row 番号範囲外 / slug 不在
+   - `run_regression()` 成功時の done 確定 / 失敗時の in_progress 巻き戻し
+   - エラー系: slug 重複 / row ID 不在 / slug 不在 / blocked 行での done 禁止
 2. `cli/lib/tests/bats/helix_retrofit.bats`:
-   - `helix retrofit init` 出力確認
+   - `helix retrofit init` 出力確認 (matrix + config + PLAN 3 点生成)
    - `helix retrofit matrix list` 表形式出力確認
+   - `helix retrofit matrix update --row R001 --status done` 更新確認
    - `helix retrofit status` JSON 出力確認
-   - `helix retrofit check-kind` exit-code 確認
-   - `helix retrofit done` status 更新確認
+   - `helix retrofit done --row R001` status 更新確認
+   - `helix retrofit done --row R001` blocked 行あり exit 2 確認
    - `helix retrofit --help` ヘルプ出力確認
 
 **完了条件**:
@@ -480,8 +545,8 @@ helix retrofit status  (完了率確認)
    ```bash
    helix retrofit --help
    helix retrofit init --slug smoke-test-$(date +%s)
+   helix retrofit matrix list --slug smoke-test-$(date +%s) || true
    helix retrofit status
-   helix retrofit check-kind --files "requirements.txt"
    ```
 5. pmo-sonnet 4 artifact 双方向 trace 確認
 
@@ -518,12 +583,12 @@ helix retrofit status  (完了率確認)
 |---|---|
 | AC-1 | `helix retrofit init --slug <slug>` が `docs/plans/<slug>-retrofit-matrix.md` + `cli/config/<slug>-retrofit.yaml` + PLAN draft (オプション) を生成する |
 | AC-2 | `helix retrofit matrix list --slug <slug>` が matrix 全行を表形式で表示する |
-| AC-3 | `helix retrofit matrix update --slug <slug> --row R001 --status done` が matrix YAML + Markdown table を更新する |
-| AC-4 | `helix retrofit status` が completion_pct と next row を表示する |
-| AC-5 | `helix retrofit check-kind --files requirements.txt` が exit-code 0 (retrofit) を返す |
-| AC-6 | `helix retrofit check-kind --signal structural` が exit-code 1 (refactor) を返す |
-| AC-7 | `helix retrofit done --slug <slug> --row R001` が matrix を更新し、done_at を記録する |
-| AC-8 | `helix route suggest` の出力に retrofit の `recommended_command` が含まれる (**本 PLAN scope は確認のみ**、route_engine.py 拡張は別 PLAN carry) |
+| AC-3 | `helix retrofit matrix update --slug <slug> --row R001 --status done` が matrix YAML frontmatter `rows` と Markdown table (ビュー) を両方更新する |
+| AC-4 | `helix retrofit status` が completion_pct と next row (R001 形式 ID) を表示する |
+| AC-5 | `helix retrofit done --slug <slug> --row R001 --run-regression` が回帰失敗時に row を `in_progress` に巻き戻し、exit-code 3 を返す |
+| AC-6 | `helix retrofit done --slug <slug> --row R001` が blocked 行存在時に exit-code 2 で禁止される |
+| AC-7 | `helix retrofit done --slug <slug> --row R001` (blocked なし) が matrix を更新し、done_at を記録する |
+| AC-8 | *(削除 — route 連携は C' PLAN scope。本 PLAN では実装しない)* |
 | AC-9 | 全回帰テスト (`helix test`) が PASS する |
 
 ---
@@ -533,11 +598,11 @@ helix retrofit status  (完了率確認)
 | # | リスク | 影響 | 緩和策 |
 |---|---|---|---|
 | R1 | retrofit-matrix.md の YAML front matter が大規模 retrofit で肥大化し、git diff が読みにくくなる | Medium | rows 数が 50 を超える場合は `<slug>-retrofit-matrix-rows.yaml` に分離するオプションを実装 (Sprint .2 で検討、本 PLAN では暫定 threshold = 50) |
-| R2 | `helix retrofit done --run-regression` が長時間実行になり、CI で timeout する | Medium | `--run-regression` は `helix test --scope L8-regression` を**バックグラウンド起動** (`run_in_background: true` 相当) し、PID を表示して非同期に完了を待つ実装にする |
-| R3 | `check-kind` の判定が不安定で、refactor を retrofit と誤判定する | Low | KindChecker は **保守的** (混在時は exit-code 3 で「分離推奨」)。過剰な retrofit 起票はコスト高だが、refactor と分離しないより低コスト |
+| R2 | `helix retrofit done --run-regression` が長時間実行になり、CI で timeout する | Medium | 初期実装は**同期実行のみ**。timeout 対策として回帰テストスコープを `phases.regression` で絞り込む。非同期バックグラウンド実行は別 PLAN carry (P2-3 反映) |
+| R3 | KindChecker の判定が不安定で、refactor を retrofit と誤判定する | Low | KindChecker は **signal 最優先** (P1-9)、file pattern は補助のみ。混在は exit-code 3 で「分離推奨」。check-kind は内部 utility に降格済みのため外部 API 安定性は不要 |
 | R4 | slug 命名規則が統一されず、matrix ファイルが散乱する | Low | `helix retrofit init` は slug の形式を `kebab-case` に強制 (正規表現: `^[a-z0-9][a-z0-9-]*[a-z0-9]$`) し、違反時は exit 2 |
-| R5 | PLAN kind=retrofit の frontmatter が plan_validator に未登録で drift 警告が出る | **High** | plan_validator の `KIND_ENUM` に `retrofit` がすでに含まれているか確認 (**Sprint .1 で P0 確認、不在なら enum 追加を即 carry 起票**。integration-map §テンプレートの穴と連動、kind 不在は retrofit PLAN 起票を完全に阻害する) |
-| R6 | phase 戻りすぎリスク: retrofit 実行中に要件変更が発生し、L1/L3 戻りが不明確なまま実装継続 | High | `helix retrofit matrix update --status blocked --notes "要件変更の可能性、L1/L3 確認が必要"` を明示し、`helix route suggest` で L1/L3 再入を促す。blocked 件数 > 0 の場合は `helix retrofit status` が警告メッセージを表示する |
+| R5 | PLAN kind=retrofit の frontmatter が plan_validator に未登録で drift 警告が出る | **Low (resolved)** | `cli/lib/plan_validator.py` の `VALID_KINDS` に `retrofit` が含まれることを確認済み。Sprint .1 で `grep VALID_KINDS retrofit` で再確認する手順だけ残す (P1-1 反映、P0 取消) |
+| R6 | phase 戻りすぎリスク: retrofit 実行中に要件変更が発生し、L1/L3 戻りが不明確なまま実装継続 | High | **fail-close 強化 (P1-8 反映)**: blocked 行が存在する場合は `done` を exit 2 で完全禁止。blocked 理由が「要件変更の可能性」の場合は L1/L3 再入メッセージを表示。`helix retrofit status` が blocked 件数 > 0 を警告表示。L1/L3 再入条件: blocked row の notes に「L1/L3 確認済」を記録してから `--status in_progress` に戻す |
 | R7 | retrofit-matrix.md と PLAN frontmatter の status が乖離する | Medium | `helix retrofit status` が matrix completion_pct と PLAN status の不整合を検出し、警告を表示する (helix doctor への carry 候補) |
 
 ---
@@ -568,33 +633,31 @@ detection-routing.md の「drift (設計⇔実装乖離)」
 
 `cross-cutting-mechanisms.md` が定義する drift-check 横断機構は上記分岐の **上流トリガー** であり、本 CLI は横断機構と別レイヤーに位置する (横断機構がシグナルを生成 → route_engine が分類 → 本 CLI が Retrofit state を管理)。
 
-### helix route → helix retrofit 接続
+### helix route との接続契約 (本 PLAN scope 外)
 
-`helix route suggest` が以下の drift_type を検出した場合に retrofit を提案する:
+> **[P0-1 反映 — C' 移管]** `helix route suggest` の `drift_type` 分岐 / `recommended_command` フィールド追加 / Retrofit mode routing は **`L7-route-engine-drift-type-retrofit-extplan` (C') scope**。本 PLAN では実装しない。
 
-| drift_type (route_engine.py) | retrofit への接続条件 | 推奨コマンド |
-|---|---|---|
-| `dependency_outdated` | 依存バージョンの更新が必要 | `helix retrofit init --slug <inferred_slug>` |
-| `upgrade` (Reverse type=upgrade) | 既存 system + 新版の差分対応 | `helix retrofit init --slug <inferred_slug>` |
-| `config_drift` | 設定ファイルと実態の乖離 | `helix retrofit init --slug <inferred_slug> --no-plan` |
+本 PLAN (C) と C' の接続ポイント:
+- C 完遂後: `helix retrofit init --slug <slug>` が direct invocation で動作
+- C' 完遂後: `helix route suggest --signal dependency_outdated` が `recommended_command: "helix retrofit init --slug ..."` を返し、C の init に自動誘導
+- C + C' 統合後の E2E フロー確認は §11 carry C8 として記録
 
-**接続契約の拡張 (carry)**:
-`route_engine.py` に `recommended_command` フィールドを追加する拡張は **本 PLAN scope 外**。
-→ `L7-helix-route-implplan.md §11 carry` に追記して連携する。
+### KindChecker 内部ユーティリティと将来連携
 
-### helix refactor (未実装) との信号分岐
+`KindChecker` は `retrofit_engine.py` の内部 utility として維持する (公開 subcommand `check-kind` は削除済み)。
+将来の `helix refactor` 実装時または C' 連携時に、signal / file pattern を受け付けて判定結果を返す API として再利用できる:
 
-将来の `helix refactor` 実装時に、`helix retrofit check-kind` の exit-code を信号として利用できる:
-
-```bash
-kind=$(helix retrofit check-kind --files "$CHANGED_FILES"; echo $?)
-case $kind in
-  0) helix retrofit init --slug ... ;;   # retrofit
-  1) helix refactor init --slug ... ;;   # refactor (未実装)
-  2) helix plan draft ... ;;             # forward
-  3) echo "mixed: split recommended" ;;  # 分離推奨
-esac
+```python
+# 内部呼び出し例 (route_engine.py または他 CLI から)
+from cli.lib.retrofit_engine import KindChecker
+kind, reason = KindChecker().check(files=changed_files, signal="dependency_outdated")
+# kind: "retrofit" / reason: "signal=dependency_outdated (priority 1)"
 ```
+
+判定優先順 (P1-9 反映):
+1. signal 最優先 → retrofit / refactor / reverse を確定
+2. signal なし時のみ file pattern 補助
+3. 混在 → exit 3 で分割推奨 (schema/contract は Reverse normalization を案内)
 
 ### L4/L5 追補との連携
 
@@ -603,8 +666,8 @@ retrofit-workflow.md が定義する Forward 接続:
 
 これを CLI でサポートする:
 - `config.yaml` の `phases.design_supplement` フィールドに `[L4]` / `[L5]` を記録し、追補が必要な設計工程を明示
-- `helix retrofit status` が `design_supplement` の未完了追補を警告として表示
-- `helix retrofit done --run-regression` が `config.yaml` の `regression.phases` (L8/L9) でテストを実行
+- `helix retrofit status` が `phases.design_supplement` の未完了追補を警告として表示
+- `helix retrofit done --run-regression` が `config.yaml` の `phases.regression` (L8/L9) でテストを実行 (P1-6 反映、`phases.regression` が正本フィールド)
 
 ---
 
