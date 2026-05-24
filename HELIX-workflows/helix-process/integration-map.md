@@ -31,6 +31,8 @@ integration_target:
 | learn / context / matrix / doctor / drift-check / readiness / debt / interrupt | あり |
 | helix-recover（Recovery 起動） | あり（2026-05-25 完遂） |
 | helix-route（検出 → モードルーティング起動） | あり（2026-05-25 完遂） |
+| helix-scrum-agile / helix-incident / helix-add-feature（HELIX-workflows V2 mode CLI 完備） | あり（2026-05-25 完遂、commits 3ac35fc / 54a563b / e38088e）= Forward + Reverse + Discovery + Refactor + Retrofit + Recovery + Scrum + Incident + Add-feature の 9 mode CLI 完備達成 |
+| route_engine SIGNAL_TO_MODE 4 mode 接続（scrum_agile / incident / add_feature / recovery） | あり（2026-05-25 完遂、commit e815745）= route 自動推奨 9 mode 完備 |
 
 学習・注入・オーケストレーション・横断集約のコマンドは揃っており、`helix-recover / helix-route` は 2026-05-25 の対応で補完された。
 
@@ -51,7 +53,7 @@ PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit 
 
 | 項目 | 状態 |
 |---|---|
-| vmodel-semantics 注入セット（mandatory_skills / recommended_commands / orchestration_mode） | 未定義（0件）＝ layer-context-injection の核心が実体未反映 |
+| vmodel-semantics 注入セット（mandatory_skills / recommended_commands / orchestration_mode） | 定義済み（2026-05-25 完遂、commit 2942d81、cli/config/vmodel-semantics.yaml に injection block 反映 + helix vmodel show --injection-only CLI 接続 commit 79b8220）= layer-context-injection の核心が実体反映 |
 | ワークフロー文書 ↔ skills/ | 未統合（helix-process/ は独立 md） |
 | ワークフロー文書 ↔ .md プロトコル層（AGENTS.md / CLAUDE.md） | 未統合 |
 
