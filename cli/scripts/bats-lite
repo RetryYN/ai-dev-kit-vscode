@@ -161,7 +161,25 @@ PASS=0
 FAIL=0
 FAILED_TESTS=()
 
-for file in "$@"; do
+targets=()
+for arg in "$@"; do
+  if [[ -d "$arg" ]]; then
+    before="${#targets[@]}"
+    shopt -s nullglob
+    for file in "$arg"/*.bats; do
+      targets+=("$file")
+    done
+    shopt -u nullglob
+    if [[ "${#targets[@]}" -eq "$before" ]]; then
+      echo "not ok - missing file: $arg" >&2
+      exit 1
+    fi
+  else
+    targets+=("$arg")
+  fi
+done
+
+for file in "${targets[@]}"; do
   if [[ ! -f "$file" ]]; then
     echo "not ok - missing file: $file" >&2
     exit 1
