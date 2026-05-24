@@ -107,15 +107,19 @@ C2 検出 source=agent_mandatory_audit で `helix doctor --json` を呼ぶが、
 }
 ```
 
-### §2.B cli/helix-doctor 引数 parser 拡張
+### §2.B cli/helix-doctor 引数 parser 拡張 (tl-advisor R1 P2 反映)
 
 既存 helix-doctor の引数 parser に `--json` フラグを追加:
-- `--json` 指定時: 全 check 結果を集計して JSON を stdout に出力 (text 出力は stderr or 抑止)
-- `--json` 不在時: 既存 text 出力 (変更なし)
+- `--json` 指定時:
+  - **stdout は JSON のみ**(text 出力は完全抑止)
+  - fail>0 のとき exit code 1 (既存挙動を維持)
+  - fail==0 のとき exit code 0
+- `--json` 不在時: 既存 text 出力 (変更なし、stdout に従来通り出力)
 
 互換性:
 - 既存 `[check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N]` は維持
 - `--json` を追加引数として共存
+- `--json --max-age-days N` も parser で受付 (引数順序不問)
 
 ### §2.C 出力実装
 
@@ -123,14 +127,18 @@ helix-doctor の各 check (PLAN registry / process_layer / subagent + sprint / s
 - 各 check function が pass / fail / warn count と advisory list を返す
 - 統合 dict にまとめて json.dumps で出力
 
-### §2.D テスト設計
+### §2.D テスト設計 (tl-advisor R1 P2 反映、unit 5 → 9 + bats 3 → 5 拡張)
 
-unit test (test_doctor_json.py) 5 件:
+unit test (test_doctor_json.py) 9 件:
 - test_doctor_json_returns_valid_json: --json 出力が json.loads でパース可能
 - test_doctor_json_schema_required_keys: timestamp / pass / fail / warn / advisories / summary の必須 key
 - test_doctor_json_advisories_structure: 各 advisory に category / name / status / detail
 - test_doctor_json_pass_count_matches_text: --json と text 出力の pass/fail/warn 数が一致
 - test_doctor_json_does_not_affect_text_output: --json 不在時に既存 text 出力が変化しない
+- test_doctor_json_stdout_no_text_pollution: --json 時 stdout に JSON 以外混入なし (text 行 / log line が現れない)
+- test_doctor_json_fail_exits_with_1: fail>0 のとき exit code 1 を維持 (--json でも text でも同じ挙動)
+- test_doctor_json_with_max_age_days_parser: `--json --max-age-days 7` parser で落ちない、引数順序不問
+- test_doctor_check_recovery_plan_freshness_regression: 既存 `check_recovery_plan_freshness` サブコマンドが回帰しない (--json なし時)
 
 bats test (helix-doctor-json.bats) 3 件:
 - helix doctor --json が valid JSON を出力する
@@ -166,4 +174,5 @@ bats test (helix-doctor-json.bats) 3 件:
 
 - helix doctor --json --filter <category> でカテゴリ別出力
 - helix doctor --json --advisories-only で advisory のみ出力 (recover C2 用途特化)
-- recover の C2 検出を helix doctor --json failure 時 UNKNOWN にする fallback 強化 (本 PLAN 完遂後でも残る安全網)
+- recover の C2 検出を helix doctor --json failure 時 UNKNOWN にする fallback 強化 (本 PLAN 完遂後でも残る安全網、tl-advisor R1 P2 推奨)
+- doctor JSON schema 拡張: `version: 1` / `exit_code` / `checks[]` 追加 (tl-advisor R1 提案、scope 拡大時に検討)
