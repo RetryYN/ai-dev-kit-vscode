@@ -330,7 +330,7 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 |---------|----|----|----|-----------|----|
 | L2 設計 | API設計・アーキテクチャ・ADR | **モック駆動設計**（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（**mock含む**）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
 | L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
-| L4 実装順 | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L4.5結合 | ツール→オーケストレーション→UI |
+| L4 実装順 (新 L7) | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 (旧 L4.5) | ツール→オーケストレーション→UI |
 | L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
 | L9 Run-1（デプロイ検証） | 標準 | 標準 | 薄い | 標準 | 薄い |
 | L10 Run-2（観測） | 薄い | 標準 | 薄い | 標準 | 薄い |
@@ -383,7 +383,7 @@ Run 工程（L9-L11）の適用可否:
 - PoC / 検証寄り: 本番影響がなければ Run は skip 可
 
 fullstack 追加条件:
-- L4 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L4.5 結合）
+- L4 (新 L7) は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L7-L8 結合、旧 L4.5）
 - L5 は常に必要（結合後の Visual Refinement）
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
