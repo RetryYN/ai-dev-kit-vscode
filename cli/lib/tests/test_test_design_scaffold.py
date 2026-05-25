@@ -202,6 +202,53 @@ def test_auto_detect_paired_design_none_disables_preference(tmp_path) -> None:
     assert detected == "docs/plans/L9/L9-a-completed-plan.md"
 
 
+def test_auto_detect_paired_design_prefers_design_kind(tmp_path) -> None:
+    """DoD 検証: W22 U-001 prefer_kind='design' なら design 候補を優先する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-poc-plan.md").write_text("---\nkind: poc\nstatus: draft\n---\n", encoding="utf-8")
+    (pair_dir / "L9-design-plan.md").write_text("---\nkind: design\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_kind="design")
+
+    assert detected == "docs/plans/L9/L9-design-plan.md"
+
+
+def test_auto_detect_paired_design_fallback_when_no_preferred_kind(tmp_path) -> None:
+    """DoD 検証: W22 U-002 prefer_kind 未該当時は sorted 最初へ fallback する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-impl-plan.md").write_text("---\nkind: impl\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_kind="design")
+
+    assert detected == "docs/plans/L9/L9-impl-plan.md"
+
+
+def test_auto_detect_paired_design_prefer_status_and_kind_combined(tmp_path) -> None:
+    """DoD 検証: W22 U-003 prefer_status と prefer_kind 両一致を最優先する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-old-design-completed-plan.md").write_text(
+        "---\nkind: design\nstatus: completed\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-new-design-draft-plan.md").write_text(
+        "---\nkind: design\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-impl-draft-plan.md").write_text("---\nkind: impl\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        prefer_status="draft",
+        prefer_kind="design",
+    )
+
+    assert detected == "docs/plans/L9/L9-new-design-draft-plan.md"
+
+
 def test_extract_function_signatures_finds_python_def(tmp_path) -> None:
     """DoD 検証: W21 U-001 paired design doc から Python def を抽出する。"""
     paired_design = tmp_path / "paired-design.md"

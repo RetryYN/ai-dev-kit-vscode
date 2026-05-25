@@ -285,26 +285,29 @@ def _default_output_path(project_root: Path, pair_layer: str) -> Path:
     )
 
 
-def _read_plan_status(plan_path: Path) -> str | None:
+def _read_plan_metadata(plan_path: Path) -> dict[str, str]:
     try:
         text = plan_path.read_text(encoding="utf-8")
     except OSError:
-        return None
+        return {}
 
     match = FRONTMATTER_RE.match(text)
     if not match:
-        return None
+        return {}
 
     payload = yaml.safe_load(match.group(1)) or {}
     if not isinstance(payload, dict):
-        return None
+        return {}
 
-    raw_status = payload.get("status")
-    if not isinstance(raw_status, str):
-        return None
-
-    status = raw_status.strip()
-    return status or None
+    metadata: dict[str, str] = {}
+    for key in ("status", "kind"):
+        raw_value = payload.get(key)
+        if not isinstance(raw_value, str):
+            continue
+        value = raw_value.strip()
+        if value:
+            metadata[key] = value
+    return metadata
 
 
 def auto_detect_paired_design(
@@ -312,9 +315,10 @@ def auto_detect_paired_design(
     *,
     project_root: Path,
     prefer_status: str | None = "draft",
+    prefer_kind: str | None = None,
 ) -> str | None:
     """
-    Return the first pair PLAN path relative to project_root, if one exists.
+    Return the preferred pair PLAN path relative to project_root, if one exists.
     """
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -326,9 +330,21 @@ def auto_detect_paired_design(
     if not matches:
         return None
 
+    candidates = [(match, _read_plan_metadata(match)) for match in matches]
+
+    if prefer_status is not None and prefer_kind is not None:
+        for match, metadata in candidates:
+            if metadata.get("status") == prefer_status and metadata.get("kind") == prefer_kind:
+                return str(match.relative_to(root))
+
     if prefer_status is not None:
-        for match in matches:
-            if _read_plan_status(match) == prefer_status:
+        for match, metadata in candidates:
+            if metadata.get("status") == prefer_status:
+                return str(match.relative_to(root))
+
+    if prefer_kind is not None:
+        for match, metadata in candidates:
+            if metadata.get("kind") == prefer_kind:
                 return str(match.relative_to(root))
 
     return str(matches[0].relative_to(root))
@@ -453,6 +469,11 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("draft", "in_progress", "completed", "none"),
         default="draft",
     )
+    parser.add_argument(
+        "--prefer-kind",
+        choices=("design", "impl", "poc", "none"),
+        default="none",
+    )
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
@@ -464,10 +485,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     project_root = resolve_project_root()
     prefer_status = None if args.prefer_status == "none" else args.prefer_status
+    prefer_kind = None if args.prefer_kind == "none" else args.prefer_kind
     paired_design = args.paired_design or auto_detect_paired_design(
         args.layer,
         project_root=project_root,
         prefer_status=prefer_status,
+        prefer_kind=prefer_kind,
     )
 
     if paired_design is None:

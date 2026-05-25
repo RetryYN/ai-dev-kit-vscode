@@ -117,3 +117,29 @@ EOF
   [[ "$output" == *"paired_design_doc"* ]]
   [[ "$output" == *"L9-z-draft-plan.md"* ]]
 }
+
+@test "helix-test-design-scaffold respects --prefer-kind" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L9"
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-impl-plan.md" <<'EOF'
+---
+title: Impl Pair
+kind: impl
+status: draft
+---
+EOF
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-design-plan.md" <<'EOF'
+---
+title: Design Pair
+kind: design
+status: draft
+---
+EOF
+
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4 \
+    --prefer-kind design
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"paired_design_doc"* ]]
+  [[ "$output" == *"L9-design-plan.md"* ]]
+}
