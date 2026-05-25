@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -209,6 +210,53 @@ def extract_api_endpoints(paired_design_path: Path, *, max_count: int = 5) -> li
     return endpoints
 
 
+def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, str]]:
+    """
+    Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str}]
+    spec_path 不在 or parse error → 空 list
+    """
+    if not spec_path.exists() or max_count <= 0:
+        return []
+
+    try:
+        raw_text = spec_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    try:
+        payload = json.loads(raw_text) if spec_path.suffix.lower() == ".json" else yaml.safe_load(raw_text)
+    except (json.JSONDecodeError, yaml.YAMLError):
+        return []
+
+    if not isinstance(payload, dict):
+        return []
+
+    raw_paths = payload.get("paths")
+    if not isinstance(raw_paths, dict):
+        return []
+
+    endpoints: list[dict[str, str]] = []
+    for path, methods in raw_paths.items():
+        if not isinstance(path, str) or not isinstance(methods, dict):
+            continue
+        for method_name, operation in methods.items():
+            if not isinstance(method_name, str):
+                continue
+            normalized_method = method_name.upper()
+            if normalized_method not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
+                continue
+            summary = ""
+            if isinstance(operation, dict):
+                raw_summary = operation.get("summary")
+                if isinstance(raw_summary, str):
+                    summary = raw_summary.strip()
+            endpoints.append({"method": normalized_method, "path": path, "summary": summary})
+            if len(endpoints) >= max_count:
+                return endpoints
+
+    return endpoints
+
+
 def _acceptance_body_from_sections(sections: dict[str, str]) -> str:
     acceptance = sections["acceptance"].strip()
     if not acceptance:
@@ -221,6 +269,7 @@ def _test_cases_body(
     *,
     functions: list[dict[str, str]],
     endpoints: list[dict[str, str]],
+    openapi_endpoints: list[dict[str, str]],
 ) -> str:
     blocks: list[str] = []
     function_spec = sections["function_spec"].strip()
@@ -268,7 +317,29 @@ def _test_cases_body(
                 )
             )
 
-    if not functions and not endpoints:
+    if openapi_endpoints:
+        for index, endpoint in enumerate(openapi_endpoints, start=1):
+            quote_lines = [f"> endpoint: `{endpoint['method']} {endpoint['path']}`"]
+            summary = endpoint.get("summary", "").strip()
+            if summary:
+                quote_lines.append(f"> summary: {summary}")
+            blocks.append(
+                "\n".join(
+                    [
+                        f"### TC-OPENAPI-{index:03d}: `{endpoint['method']} {endpoint['path']}`",
+                        "",
+                        "引用:",
+                        "",
+                        *quote_lines,
+                        "",
+                        "- 入力: TODO",
+                        "- 期待結果: TODO",
+                        "- 検証手順: TODO",
+                    ]
+                )
+            )
+
+    if not functions and not endpoints and not openapi_endpoints:
         blocks.append(_default_test_cases_body())
 
     return "\n\n".join(blocks)
@@ -280,6 +351,7 @@ def _inject_extracted_sections(
     sections: dict[str, str],
     functions: list[dict[str, str]],
     endpoints: list[dict[str, str]],
+    openapi_endpoints: list[dict[str, str]],
 ) -> str:
     return rendered.replace(
         "__ACCEPTANCE_BODY__",
@@ -287,7 +359,12 @@ def _inject_extracted_sections(
         1,
     ).replace(
         "__TEST_CASES_BODY__",
-        _test_cases_body(sections, functions=functions, endpoints=endpoints),
+        _test_cases_body(
+            sections,
+            functions=functions,
+            endpoints=endpoints,
+            openapi_endpoints=openapi_endpoints,
+        ),
         1,
     )
 
@@ -301,6 +378,7 @@ def _render_skeleton(
     extract_sections: bool = False,
     extract_functions: bool = False,
     extract_endpoints: bool = False,
+    openapi_spec_path: Path | str | None = None,
 ) -> str:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -318,12 +396,13 @@ def _render_skeleton(
         paired_design_doc=_yaml_quote(paired_design_doc),
         today=date.today().isoformat(),
     )
-    if not extract_sections and not extract_functions and not extract_endpoints:
+    if not extract_sections and not extract_functions and not extract_endpoints and openapi_spec_path is None:
         return _inject_extracted_sections(
             rendered,
             sections={"acceptance": "", "function_spec": ""},
             functions=[],
             endpoints=[],
+            openapi_endpoints=[],
         )
 
     sections = (
@@ -333,11 +412,17 @@ def _render_skeleton(
     )
     functions = extract_function_signatures(paired_design_path) if extract_functions else []
     endpoints = extract_api_endpoints(paired_design_path) if extract_endpoints else []
+    openapi_endpoints = (
+        extract_openapi_endpoints(Path(openapi_spec_path))
+        if openapi_spec_path is not None
+        else []
+    )
     return _inject_extracted_sections(
         rendered,
         sections=sections,
         functions=functions,
         endpoints=endpoints,
+        openapi_endpoints=openapi_endpoints,
     )
 
 
@@ -433,6 +518,7 @@ def generate_skeleton(
     extract_sections: bool = False,
     extract_functions: bool = False,
     extract_endpoints: bool = False,
+    openapi_spec_path: Path | str | None = None,
 ) -> str:
     """
     Returns: テスト設計 doc の skeleton 文字列
@@ -442,6 +528,7 @@ def generate_skeleton(
     extract_sections=True: paired design doc の relevant section を template に引用する
     extract_functions=True: paired design doc の function 定義ごとに TC 雛形を展開する
     extract_endpoints=True: paired design doc の API endpoint ごとに TC 雛形を展開する
+    openapi_spec_path 指定: OpenAPI spec file から endpoint ごとに TC-OPENAPI 雛形を展開する
     """
     return _render_skeleton(
         layer,
@@ -450,6 +537,7 @@ def generate_skeleton(
         extract_sections=extract_sections,
         extract_functions=extract_functions,
         extract_endpoints=extract_endpoints,
+        openapi_spec_path=openapi_spec_path,
     )
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from cli.lib.test_design_scaffold import (
     extract_api_endpoints,
+    extract_openapi_endpoints,
     auto_detect_paired_design,
     extract_function_signatures,
     extract_paired_design_sections,
@@ -357,3 +358,50 @@ POST /api/orders
     assert "### TC-API-001: `GET /api/users`" in skeleton
     assert "### TC-API-002: `POST /api/orders`" in skeleton
     assert "> endpoint: `GET /api/users`" in skeleton
+
+
+def test_extract_openapi_endpoints_yaml(tmp_path) -> None:
+    """DoD 検証: W24 U-001 OpenAPI YAML から endpoint を抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users:
+    get:
+      summary: List users
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints == [{"method": "GET", "path": "/api/users", "summary": "List users"}]
+
+
+def test_extract_openapi_endpoints_handles_missing_file(tmp_path) -> None:
+    """DoD 検証: W24 U-002 OpenAPI spec 不在時は空 list を返す。"""
+    missing_path = tmp_path / "missing-openapi.yaml"
+
+    assert extract_openapi_endpoints(missing_path) == []
+
+
+def test_generate_skeleton_with_openapi_spec_includes_endpoint_tc(tmp_path) -> None:
+    """DoD 検証: W24 U-003 openapi_spec_path 指定で endpoint 別 TC を展開する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text("# Sample Design\n", encoding="utf-8")
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      summary: Get user
+""",
+        encoding="utf-8",
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), openapi_spec_path=spec_path)
+
+    assert "### TC-OPENAPI-001: `GET /api/users/{id}`" in skeleton
+    assert "> endpoint: `GET /api/users/{id}`" in skeleton
+    assert "> summary: Get user" in skeleton
