@@ -184,7 +184,29 @@ case "$SUBCOMMAND" in
     ;;
   resume)
     ensure_helix_ready
-    run_handover_py resume "$@"
+    # --check-staleness pre-process (W66)
+    pre_check=0
+    threshold_hours=24
+    resume_args=()
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --check-staleness) pre_check=1; shift ;;
+        --threshold-hours)
+          [[ $# -ge 2 ]] || { echo "エラー: --threshold-hours には値が必要です" >&2; exit "$EXIT_INPUT_ERROR"; }
+          threshold_hours="$2"; shift 2 ;;
+        *) resume_args+=("$1"); shift ;;
+      esac
+    done
+    if [[ "$pre_check" -eq 1 ]]; then
+      echo "[handover staleness check]"
+      "$SCRIPT_DIR/helix-handover" stale --threshold-hours "$threshold_hours" || true
+      echo ""
+    fi
+    if [[ "${#resume_args[@]}" -gt 0 ]]; then
+      run_handover_py resume "${resume_args[@]}"
+    else
+      run_handover_py resume
+    fi
     ;;
   help|-h|--help)
     usage

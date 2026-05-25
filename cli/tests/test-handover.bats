@@ -458,3 +458,10 @@ YAML
   run python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); assert d["status"] in {"fresh","stale","no_handover"} and "hours_since_update" in d' <<<"$output"
   [ "$status" -eq 0 ]
 }
+
+@test "40 W66: helix handover resume --check-staleness emits staleness section when no handover" {
+  cd "$PROJECT_ROOT"
+  run "$HELIX_HOME/cli/helix" handover resume --check-staleness
+  # 既存 handover が無い場合、resume は失敗する想定だが、stale check section は表示される
+  [[ "$output" == *"[handover staleness check]"* ]]
+}
