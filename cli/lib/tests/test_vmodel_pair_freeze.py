@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze, get_pair
 
 
@@ -182,3 +184,49 @@ def test_check_pair_freeze_status_breakdown_field_present_in_no_pair(tmp_path) -
 
     assert "status_breakdown" in result
     assert result["status_breakdown"] == {}
+
+
+def test_check_pair_freeze_since_days_filters_old(tmp_path) -> None:
+    """DoD 検証: W17 U-001 since_days は古い revised PLAN を除外する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L7-old-plan.md").write_text(
+        "---\nrevised: 2000-01-01\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+    today = date.today().isoformat()
+    (pair_dir / "L7-new-plan.md").write_text(
+        f"---\nrevised: {today}\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+
+    result = check_pair_freeze("L6", project_root=tmp_path, since_days=30)
+
+    assert result["status"] == "ok"
+    assert result["pair_doc_exists"] is True
+    assert result["pair_doc_path"] == str(pair_dir / "L7-new-plan.md")
+
+
+def test_check_pair_freeze_since_days_handles_missing_revised(tmp_path) -> None:
+    """DoD 検証: W17 U-002 revised 不在時は created を使う。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    created = (date.today() - timedelta(days=1)).isoformat()
+    (pair_dir / "L7-created-only-plan.md").write_text(
+        f"---\ncreated: {created}\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+
+    result = check_pair_freeze("L6", project_root=tmp_path, since_days=30)
+
+    assert result["status"] == "ok"
+    assert result["pair_doc_exists"] is True
+    assert result["pair_doc_path"] == str(pair_dir / "L7-created-only-plan.md")
+
+
+def test_check_pair_freeze_since_days_field_in_result(tmp_path) -> None:
+    """DoD 検証: W17 U-003 result に since_days field を含む。"""
+    result = check_pair_freeze("L0", project_root=tmp_path, since_days=30)
+
+    assert "since_days" in result
+    assert result["since_days"] == 30

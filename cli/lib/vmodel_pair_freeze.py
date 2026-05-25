@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -45,15 +47,15 @@ def get_severity(layer: str) -> str | None:
     return None
 
 
-def _load_plan_status(plan_path: Path) -> str | None:
-    """Return plan status from YAML frontmatter when present."""
+def _load_plan_frontmatter(plan_path: Path) -> dict[str, Any]:
+    """Return YAML frontmatter when present."""
     try:
         lines = plan_path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return None
+        return {}
 
     if not lines or lines[0].strip() != "---":
-        return None
+        return {}
 
     end_index: int | None = None
     for index, line in enumerate(lines[1:], start=1):
@@ -61,22 +63,68 @@ def _load_plan_status(plan_path: Path) -> str | None:
             end_index = index
             break
     if end_index is None:
-        return None
+        return {}
 
     try:
         loaded = yaml.safe_load("\n".join(lines[1:end_index])) or {}
     except yaml.YAMLError:
-        return None
+        return {}
 
     if not isinstance(loaded, dict):
-        return None
-    status = loaded.get("status")
+        return {}
+    return loaded
+
+
+def _load_plan_status(plan_path: Path) -> str | None:
+    """Return plan status from YAML frontmatter when present."""
+    status = _load_plan_frontmatter(plan_path).get("status")
     return status if isinstance(status, str) else None
 
 
 def _filter_active_plans(plan_paths: list[Path]) -> list[Path]:
     active_statuses = {"draft", "in_progress"}
     return [plan_path for plan_path in plan_paths if _load_plan_status(plan_path) in active_statuses]
+
+
+def _coerce_frontmatter_date(value: Any) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        return None
+
+    match = re.match(r"^\s*(\d{4}-\d{2}-\d{2})", value)
+    if not match:
+        return None
+
+    try:
+        return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _resolve_plan_date(plan_path: Path) -> date | None:
+    frontmatter = _load_plan_frontmatter(plan_path)
+    for field_name in ("revised", "created"):
+        resolved = _coerce_frontmatter_date(frontmatter.get(field_name))
+        if resolved is not None:
+            return resolved
+
+    try:
+        return datetime.fromtimestamp(plan_path.stat().st_mtime).date()
+    except OSError:
+        return None
+
+
+def _filter_recent_plans(plan_paths: list[Path], since_days: int) -> list[Path]:
+    cutoff = date.today() - timedelta(days=since_days)
+    filtered: list[Path] = []
+    for plan_path in plan_paths:
+        resolved = _resolve_plan_date(plan_path)
+        if resolved is not None and resolved >= cutoff:
+            filtered.append(plan_path)
+    return filtered
 
 
 def _empty_status_breakdown() -> dict[str, int]:
@@ -101,6 +149,7 @@ def check_pair_freeze(
     *,
     project_root: Path | None = None,
     active_only: bool = False,
+    since_days: int | None = None,
 ) -> dict[str, Any]:
     """Return V-model pair freeze status for one layer."""
     pair = get_pair(layer)
@@ -111,6 +160,7 @@ def check_pair_freeze(
             "pair": None,
             "severity": severity,
             "active_only": active_only,
+            "since_days": since_days,
             "status_breakdown": {},
             "pair_doc_exists": False,
             "pair_doc_path": None,
@@ -124,6 +174,8 @@ def check_pair_freeze(
     matches = sorted(pair_dir.glob(pattern)) if pair_dir.is_dir() else []
     if active_only:
         matches = _filter_active_plans(matches)
+    if since_days is not None:
+        matches = _filter_recent_plans(matches, since_days)
     status_breakdown = _build_status_breakdown(matches)
     pair_doc = matches[0] if matches else None
 
@@ -133,6 +185,7 @@ def check_pair_freeze(
             "pair": pair,
             "severity": severity,
             "active_only": active_only,
+            "since_days": since_days,
             "status_breakdown": status_breakdown,
             "pair_doc_exists": True,
             "pair_doc_path": str(pair_doc),
@@ -145,6 +198,7 @@ def check_pair_freeze(
         "pair": pair,
         "severity": severity,
         "active_only": active_only,
+        "since_days": since_days,
         "status_breakdown": status_breakdown,
         "pair_doc_exists": False,
         "pair_doc_path": None,

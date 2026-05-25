@@ -5,7 +5,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -14,6 +14,7 @@ MAX_AGE_DAYS=30
 JSON_OUTPUT=false
 STRICT_VMODEL_PAIR_FREEZE=false
 VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
+VMODEL_PAIR_FREEZE_SINCE_DAYS=""
 FORWARDED_ARGS=()
 
 show_usage() {
@@ -59,6 +60,15 @@ while [[ $# -gt 0 ]]; do
       VMODEL_PAIR_FREEZE_ACTIVE_ONLY=true
       FORWARDED_ARGS+=("$1")
       ;;
+    --vmodel-pair-freeze-since-days)
+      shift
+      if [[ $# -eq 0 || ! "$1" =~ ^[0-9]+$ ]]; then
+        echo "エラー: --vmodel-pair-freeze-since-days には 0 以上の整数が必要です" >&2
+        exit 2
+      fi
+      VMODEL_PAIR_FREEZE_SINCE_DAYS="$1"
+      FORWARDED_ARGS+=("--vmodel-pair-freeze-since-days" "$1")
+      ;;
     --help|-h)
       show_usage
       echo ""
@@ -67,6 +77,7 @@ while [[ $# -gt 0 ]]; do
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
+      echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
@@ -733,7 +744,7 @@ check_vmodel_4artifact() {
 
 check_vmodel_pair_freeze() {
   local report_json
-  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" python3 - "$PROJECT_ROOT" <<'PY' 2>&1
 import json
 import os
 import sys
@@ -743,7 +754,17 @@ from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze
 
 root = Path(sys.argv[1])
 active_only = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY") == "1"
-results = [check_pair_freeze(layer, project_root=root, active_only=active_only) for layer in sorted(VMODEL_PAIRS)]
+since_days_raw = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS", "")
+since_days = int(since_days_raw) if since_days_raw else None
+results = [
+    check_pair_freeze(
+        layer,
+        project_root=root,
+        active_only=active_only,
+        since_days=since_days,
+    )
+    for layer in sorted(VMODEL_PAIRS)
+]
 missing = [row for row in results if row.get("status") == "pair_missing"]
 summary = {"critical": 0, "warning": 0, "info": 0}
 status_breakdown = {"draft": 0, "in_progress": 0, "completed": 0, "superseded": 0, "other": 0}
@@ -761,6 +782,7 @@ print(
     json.dumps(
         {
             "active_only": active_only,
+            "since_days": since_days,
             "missing_count": len(missing),
             "missing": missing,
             "summary": summary,
@@ -788,6 +810,9 @@ PY
   local marker=""
   if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]]; then
     marker=" (active-only)"
+  fi
+  if [[ -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" ]]; then
+    marker="$marker (since ${VMODEL_PAIR_FREEZE_SINCE_DAYS}d)"
   fi
   local status_breakdown_line=""
   if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" != true ]]; then

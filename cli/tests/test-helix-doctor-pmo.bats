@@ -93,3 +93,14 @@ teardown() {
   [[ "$output" == *"superseded="* ]]
   [[ "$output" == *"other="* ]]
 }
+
+@test "helix doctor --vmodel-pair-freeze-since-days marker" {
+  run "$HELIX_ROOT/cli/helix-doctor" --vmodel-pair-freeze-since-days 30
+  if [ "$status" -ne 0 ] || [[ "$output" != *"(since 30d)"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"(since 30d)"* ]]
+}
