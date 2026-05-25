@@ -312,6 +312,39 @@ EOF
   [[ "$output" = /* ]]
 }
 
+@test "helix plan show --content-preview outputs body preview" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-show-previewplan.md" <<'EOF'
+---
+plan_id: L7-show-previewplan
+title: "L7-show-previewplan: show preview"
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/helix-process/HELIX-process-L0-L14.md
+agent_slots: []
+generates: []
+---
+
+## section
+line-1
+line-2
+line-3
+line-4
+line-5
+line-6
+EOF
+
+  run "$HELIX_ROOT/cli/helix" plan show L7-show-previewplan --content-preview 5
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kind: impl"* ]]
+  [[ "$output" == *"## section"* ]]
+  [[ "$output" == *"line-4"* ]]
+  [[ "$output" != *"line-5"* ]]
+}
+
 @test "helix plan finalize rejects unapproved review" {
   "$HELIX_ROOT/cli/helix" plan draft --title "Finalize Guard" >/dev/null
 

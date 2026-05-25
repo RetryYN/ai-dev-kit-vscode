@@ -32,7 +32,7 @@ Subcommands:
   status     プラン詳細を表示
              Options: --id <PLAN-NNN> [--frontmatter]
   show       PLAN markdown frontmatter を表示
-             Usage: helix plan show <plan-id-or-path> [--json|--path-only]
+             Usage: helix plan show <plan-id-or-path> [--json|--path-only] [--content-preview N]
   health     docs/plans 配下の PLAN frontmatter 健全性を集計
              Options: [--json] [--plans-root PATH]
   deps       PLAN frontmatter の dependency chain を表示
@@ -57,6 +57,7 @@ Examples:
   helix plan show L7-helix-plan-show-subcommandplan
   helix plan show docs/plans/L7/L7-helix-plan-show-subcommandplan.md --json
   helix plan show L7-helix-plan-show-subcommandplan --path-only
+  helix plan show L7-helix-plan-show-content-previewplan --content-preview 5
   helix plan health
   helix plan health --json --plans-root docs/plans/L7
   helix plan deps PLAN-091 --depth 2
@@ -115,6 +116,7 @@ cmd_show() {
   local target=""
   local json=false
   local path_only=false
+  local content_preview=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -125,6 +127,18 @@ cmd_show() {
       --path-only)
         path_only=true
         shift
+        ;;
+      --content-preview)
+        if [[ $# -lt 2 ]]; then
+          echo "エラー: --content-preview には整数値が必要です" >&2
+          exit 1
+        fi
+        if [[ ! "$2" =~ ^[0-9]+$ ]]; then
+          echo "エラー: --content-preview には 0 以上の整数を指定してください" >&2
+          exit 1
+        fi
+        content_preview="$2"
+        shift 2
         ;;
       --help|-h)
         usage
@@ -155,7 +169,17 @@ cmd_show() {
     exit 1
   fi
 
-  python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$target" "$json" "$path_only"
+  if [[ "$json" == true && "$content_preview" -gt 0 ]]; then
+    echo "エラー: --json と --content-preview は同時に指定できません" >&2
+    exit 1
+  fi
+
+  if [[ "$path_only" == true && "$content_preview" -gt 0 ]]; then
+    echo "エラー: --path-only と --content-preview は同時に指定できません" >&2
+    exit 1
+  fi
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$target" "$json" "$path_only" "$content_preview"
 import json
 import sys
 from datetime import date, datetime
@@ -168,6 +192,7 @@ project_root = Path(sys.argv[2]).resolve()
 target = sys.argv[3]
 json_output = sys.argv[4] == "true"
 path_only = sys.argv[5] == "true"
+content_preview = int(sys.argv[6])
 
 sys.path.insert(0, str(lib_dir))
 import plan_validator
@@ -209,6 +234,24 @@ def to_jsonable(value):
     return value
 
 
+def extract_body_preview(path: Path, max_lines: int) -> str:
+    if max_lines <= 0:
+        return ""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if lines and lines[0].strip() == "---":
+        for idx in range(1, len(lines)):
+            if lines[idx].strip() == "---":
+                body_lines = lines[idx + 1 :]
+                break
+        else:
+            body_lines = []
+    else:
+        body_lines = lines
+    while body_lines and not body_lines[0].strip():
+        body_lines.pop(0)
+    return "\n".join(body_lines[:max_lines])
+
+
 try:
     plan_path = resolve_target(target)
     if path_only:
@@ -224,7 +267,11 @@ except Exception as exc:
 if json_output:
     print(json.dumps(to_jsonable(frontmatter), ensure_ascii=False, indent=2))
 else:
-    print(yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).rstrip())
+    rendered = yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).rstrip()
+    preview = extract_body_preview(plan_path, content_preview)
+    if preview:
+        rendered = f"{rendered}\n\n{preview}"
+    print(rendered)
 PY
 }
 
