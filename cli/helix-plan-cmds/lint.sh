@@ -1,5 +1,7 @@
 cmd_lint() {
   local duplicates=0
+  local json=0
+  local validate_frontmatter=0
   local v5=0
   local plan_file=""
   while [[ $# -gt 0 ]]; do
@@ -10,6 +12,14 @@ cmd_lint() {
         ;;
       --duplicates)
         duplicates=1
+        shift
+        ;;
+      --json)
+        json=1
+        shift
+        ;;
+      --validate-frontmatter)
+        validate_frontmatter=1
         shift
         ;;
       --v5)
@@ -41,8 +51,16 @@ cmd_lint() {
     exit 1
   fi
 
+  local args=()
+  if [[ "$validate_frontmatter" -eq 1 ]]; then
+    args+=(--validate-frontmatter)
+  fi
+  if [[ "$json" -eq 1 ]]; then
+    args+=(--json)
+  fi
+
   if [[ "$duplicates" -eq 1 ]]; then
-    python3 "$PLAN_LINT" --duplicates "$plan_file"
+    python3 "$PLAN_LINT" --duplicates "${args[@]}" "$plan_file"
     return
   fi
 
@@ -51,5 +69,5 @@ cmd_lint() {
     return
   fi
 
-  python3 "$PLAN_LINT" "$plan_file"
+  python3 "$PLAN_LINT" "${args[@]}" "$plan_file"
 }

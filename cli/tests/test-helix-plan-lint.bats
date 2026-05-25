@@ -243,3 +243,28 @@ EOF
   [[ "$output" == *"docs/plans/PLAN-036-self-reference-fallback.md:12: frontmatter.status=draft but body asserts completed"* ]]
   [[ "$output" != *"body asserts finalized"* ]]
 }
+
+@test "helix plan lint --validate-frontmatter exits 0 for valid V2 PLAN" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/L7-plan-lint-cli-validateplan.md" \
+    "L7-plan-lint-cli-validateplan" \
+    "draft" \
+    $'## §1 Scope\nvalid plan body' \
+    $'kind: impl\nlayer: L7\ndrive: be\nprocess_layer: L7'
+
+  run "$HELIX_ROOT/cli/helix" plan lint --validate-frontmatter docs/plans/L7-plan-lint-cli-validateplan.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"PASS: no contradictory status assertions"* ]]
+}
+
+@test "helix plan lint --validate-frontmatter --json outputs parseable payload" {
+  write_plan_md \
+    "$PROJECT_ROOT/docs/plans/L7-plan-lint-cli-validateplan.md" \
+    "L7-plan-lint-cli-validateplan" \
+    "draft" \
+    $'## §1 Scope\nvalid plan body' \
+    $'kind: impl\nlayer: L7\ndrive: be\nprocess_layer: L7'
+
+  run bash -c "$HELIX_ROOT/cli/helix plan lint --validate-frontmatter --json docs/plans/L7-plan-lint-cli-validateplan.md | python3 -c 'import json, sys; data=json.load(sys.stdin); assert data[\"ok\"] is True; assert data[\"frontmatter\"][\"validated\"] is True; assert data[\"frontmatter\"][\"has_error\"] is False'"
+  [ "$status" -eq 0 ]
+}

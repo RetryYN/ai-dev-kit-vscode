@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from dataclasses import dataclass
@@ -112,6 +113,16 @@ def _parse_args() -> argparse.Namespace:
         "--duplicates",
         action="store_true",
         help="duplicate-only モードで markdown table を stdout に出力する",
+    )
+    parser.add_argument(
+        "--validate-frontmatter",
+        action="store_true",
+        help="validate_plan_frontmatter を明示実行する",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="結果を JSON で出力する",
     )
     parser.add_argument("plan_file", help="PLAN markdown file")
     return parser.parse_args()
@@ -310,6 +321,39 @@ def _report_frontmatter_findings(path: Path, findings: list[dict[str, str]]) -> 
         if finding["level"] == "error":
             has_error = True
     return has_error
+
+
+def _serialize_status_findings(findings: list[Finding]) -> list[dict[str, object]]:
+    return [
+        {
+            "line_no": finding.line_no,
+            "expected": finding.expected,
+            "actual": finding.actual,
+            "line_text": finding.line_text,
+        }
+        for finding in findings
+    ]
+
+
+def _serialize_duplicate_warnings(warnings: list[DuplicateWarning]) -> list[dict[str, object]]:
+    return [
+        {
+            "work_id": warning.work_id,
+            "kind": warning.kind,
+            "scope_section_label": warning.scope_section_label,
+            "scope_line_no": warning.scope_line_no,
+            "sprint_section_label": warning.sprint_section_label,
+            "sprint_line_no": warning.sprint_line_no,
+            "similarity": round(warning.similarity, 2),
+            "level": _duplicate_level(warning.similarity),
+        }
+        for warning in warnings
+    ]
+
+
+def _emit_json(payload: dict[str, object]) -> int:
+    print(json.dumps(payload, ensure_ascii=False))
+    return 0
 
 
 def _parse_heading(line: str) -> tuple[int, str] | None:
@@ -564,10 +608,18 @@ def _find_mismatches(
     return findings
 
 
-def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
+def _lint_plan(
+    path: Path,
+    *,
+    duplicates_only: bool = False,
+    validate_frontmatter: bool = False,
+    json_output: bool = False,
+) -> int:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except FileNotFoundError:
+        if json_output:
+            return _emit_json({"path": str(path), "ok": False, "error": "plan file が見つかりません"}) or 1
         print(f"FAIL: plan file が見つかりません: {path}", file=sys.stderr)
         return 1
 
@@ -575,11 +627,14 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
         frontmatter_lines, body_start_idx = _extract_frontmatter(lines)
         expected_status, frontmatter_plan_id, lint_self_reference = _extract_status(frontmatter_lines)
     except ValueError as exc:
+        if json_output:
+            return _emit_json({"path": str(path), "ok": False, "error": str(exc)}) or 1
         print(f"FAIL: {path}: {exc}", file=sys.stderr)
         return 1
 
     frontmatter_findings: list[dict[str, str]] = []
-    if not duplicates_only and _is_v2_plan_candidate(path, frontmatter_plan_id):
+    should_validate_frontmatter = validate_frontmatter or _is_v2_plan_candidate(path, frontmatter_plan_id)
+    if not duplicates_only and should_validate_frontmatter:
         try:
             frontmatter = _parse_frontmatter_mapping(frontmatter_lines)
         except ValueError as exc:
@@ -595,17 +650,62 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
 
     plan_number = _resolve_plan_number(path, frontmatter_plan_id)
     if not duplicates_only and plan_number is not None and plan_number < 36:
+        if json_output:
+            _emit_json(
+                {
+                    "path": str(path),
+                    "ok": True,
+                    "skipped": True,
+                    "reason": f"PLAN-{plan_number:03d} retroactive 対象外",
+                    "frontmatter": {
+                        "validated": should_validate_frontmatter,
+                        "findings": frontmatter_findings,
+                        "has_error": any(f["level"] == "error" for f in frontmatter_findings),
+                    },
+                }
+            )
+            return 0
         print(f"PASS: lint skipped for PLAN-{plan_number:03d} (retroactive 対象外)")
         return 0
 
     lint_self_reference = lint_self_reference or plan_number in SELF_REFERENCE_PLAN_NUMBERS
     duplicate_warnings = _find_duplicate_warnings(lines, body_start_idx)
     if duplicates_only:
+        if json_output:
+            _emit_json(
+                {
+                    "path": str(path),
+                    "ok": True,
+                    "mode": "duplicates",
+                    "duplicates": _serialize_duplicate_warnings(duplicate_warnings),
+                }
+            )
+            return 0
         _render_duplicate_report(duplicate_warnings)
         return 0
 
     findings = _find_mismatches(lines, body_start_idx, expected_status, lint_self_reference)
     has_frontmatter_error = _report_frontmatter_findings(path, frontmatter_findings)
+    ok = not findings and not has_frontmatter_error
+
+    if json_output:
+        _emit_json(
+            {
+                "path": str(path),
+                "ok": ok,
+                "frontmatter": {
+                    "validated": should_validate_frontmatter,
+                    "findings": frontmatter_findings,
+                    "has_error": has_frontmatter_error,
+                },
+                "status_lint": {
+                    "expected_status": expected_status,
+                    "findings": _serialize_status_findings(findings),
+                },
+                "duplicates": _serialize_duplicate_warnings(duplicate_warnings),
+            }
+        )
+        return 0 if ok else 1
 
     for warning in duplicate_warnings:
         print(
@@ -614,7 +714,7 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
             file=sys.stderr,
         )
 
-    if not findings and not has_frontmatter_error:
+    if ok:
         print(f"PASS: no contradictory status assertions in {path}")
         return 0
 
@@ -630,7 +730,12 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
 
 def main() -> int:
     args = _parse_args()
-    return _lint_plan(Path(args.plan_file), duplicates_only=args.duplicates)
+    return _lint_plan(
+        Path(args.plan_file),
+        duplicates_only=args.duplicates,
+        validate_frontmatter=args.validate_frontmatter,
+        json_output=args.json,
+    )
 
 
 if __name__ == "__main__":
