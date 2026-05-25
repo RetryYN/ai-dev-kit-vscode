@@ -114,26 +114,36 @@ HELIX_HOOKS = _build_hooks()
 def _normalize_hook_command(command):
     if not command:
         return ""
-    if "/" in command or command.startswith("~"):
+    if command.startswith("~"):
         return os.path.abspath(os.path.expanduser(command))
+    if os.path.isabs(command):
+        return os.path.abspath(command)
     return command
 
 
+def _known_helix_commands(helix_entries):
+    commands = set()
+    for helix_entry in helix_entries:
+        for hook in helix_entry.get("hooks", []):
+            command = _normalize_hook_command(hook.get("command"))
+            if command:
+                commands.add(command)
+    return commands
+
+
+def _all_helix_entries():
+    return [helix_entry for event_entries in HELIX_HOOKS.values() for helix_entry in event_entries]
+
+
 def _is_helix_hook(entry):
-    """hook エントリが HELIX_HOOKS 登録 command と完全一致するかを判定する。
+    """hook エントリに HELIX_HOOKS 登録 command が含まれるかを厳密判定する。
 
     command に "helix" を含むかという緩い判定ではなく、_build_hooks() が返す
-    HELIX_HOOKS の各 hook command と一致する場合のみ HELIX 由来とみなす。
+    HELIX_HOOKS の各 hook command と一致する hook のみ HELIX 由来とみなす。
     比較前に `~` を含む path は絶対 path へ正規化し、既存 settings.json の
     チルダ表記とも整合させる。
     """
-    known_commands = set()
-    for event_entries in HELIX_HOOKS.values():
-        for event_entry in event_entries:
-            for hook in event_entry.get("hooks", []):
-                command = _normalize_hook_command(hook.get("command"))
-                if command:
-                    known_commands.add(command)
+    known_commands = _known_helix_commands(_all_helix_entries())
 
     hooks = entry.get("hooks", [])
     for hook in hooks:
@@ -141,6 +151,64 @@ def _is_helix_hook(entry):
         if command in known_commands:
             return True
     return False
+
+
+def _canonical_entry_index(entry, helix_entries):
+    command_to_index = {}
+    for index, helix_entry in enumerate(helix_entries):
+        for hook in helix_entry.get("hooks", []):
+            command = _normalize_hook_command(hook.get("command"))
+            if command:
+                command_to_index[command] = index
+
+    for hook in entry.get("hooks", []):
+        command = _normalize_hook_command(hook.get("command", ""))
+        if command in command_to_index:
+            return command_to_index[command]
+    return None
+
+
+def _merge_entry_with_canonical(existing_entry, canonical_entry):
+    merged_entry = copy.deepcopy(existing_entry)
+    for key, value in canonical_entry.items():
+        if key == "hooks":
+            continue
+        merged_entry[key] = copy.deepcopy(value)
+
+    canonical_commands = _known_helix_commands([canonical_entry])
+    canonical_hooks = copy.deepcopy(canonical_entry.get("hooks", []))
+    merged_hooks = []
+    inserted = False
+    for hook in existing_entry.get("hooks", []):
+        command = _normalize_hook_command(hook.get("command", ""))
+        if command in canonical_commands:
+            if not inserted:
+                merged_hooks.extend(copy.deepcopy(canonical_hooks))
+                inserted = True
+            continue
+        merged_hooks.append(copy.deepcopy(hook))
+
+    if not inserted:
+        merged_hooks.extend(copy.deepcopy(canonical_hooks))
+
+    merged_entry["hooks"] = merged_hooks
+    return merged_entry
+
+
+def _strip_helix_hooks(entry):
+    known_commands = _known_helix_commands(_all_helix_entries())
+    remaining_hooks = []
+    for hook in entry.get("hooks", []):
+        command = _normalize_hook_command(hook.get("command", ""))
+        if command not in known_commands:
+            remaining_hooks.append(copy.deepcopy(hook))
+
+    if not remaining_hooks:
+        return None
+
+    stripped_entry = copy.deepcopy(entry)
+    stripped_entry["hooks"] = remaining_hooks
+    return stripped_entry
 
 
 def _merge_hooks(settings, hooks_to_install):
@@ -151,10 +219,32 @@ def _merge_hooks(settings, hooks_to_install):
     changed = False
     for event, helix_entries in hooks_to_install.items():
         existing = settings["hooks"].get(event, [])
-        non_helix_entries = [entry for entry in existing if not _is_helix_hook(entry)]
-        current_helix_entries = [entry for entry in existing if _is_helix_hook(entry)]
-        if current_helix_entries != helix_entries:
-            settings["hooks"][event] = non_helix_entries + helix_entries
+        anchor_index = len(existing)
+        custom_entries = []
+        merged_canonical_entries = {}
+
+        for index, entry in enumerate(existing):
+            canonical_index = _canonical_entry_index(entry, helix_entries)
+            if canonical_index is None:
+                custom_entries.append((index, copy.deepcopy(entry)))
+                continue
+
+            anchor_index = min(anchor_index, index)
+            if canonical_index not in merged_canonical_entries:
+                merged_canonical_entries[canonical_index] = _merge_entry_with_canonical(
+                    entry, helix_entries[canonical_index]
+                )
+
+        prefix_custom = [entry for index, entry in custom_entries if index < anchor_index]
+        suffix_custom = [entry for index, entry in custom_entries if index >= anchor_index]
+        canonical_block = [
+            copy.deepcopy(merged_canonical_entries.get(index, helix_entry))
+            for index, helix_entry in enumerate(helix_entries)
+        ]
+        merged_entries = prefix_custom + canonical_block + suffix_custom
+
+        if merged_entries != existing:
+            settings["hooks"][event] = merged_entries
             changed = True
 
     return changed
@@ -190,8 +280,13 @@ def remove(settings):
     changed = False
     for event in list(hooks.keys()):
         original = hooks[event]
-        filtered = [e for e in original if not _is_helix_hook(e)]
-        if len(filtered) != len(original):
+        filtered = []
+        for entry in original:
+            stripped_entry = _strip_helix_hooks(entry)
+            if stripped_entry is not None:
+                filtered.append(stripped_entry)
+
+        if filtered != original:
             changed = True
             if filtered:
                 hooks[event] = filtered

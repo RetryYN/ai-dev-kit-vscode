@@ -73,6 +73,23 @@ def test_post_tool_use_settings_sanitize_file_path() -> None:
     assert "python3 -c" not in command
 
 
+def test_session_start_settings_include_history_injection_hook() -> None:
+    payload = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+    session_start = payload["hooks"]["SessionStart"]
+    commands = [hook["command"] for entry in session_start for hook in entry.get("hooks", [])]
+
+    assert commands[0] == "~/ai-dev-kit-vscode/cli/helix-session-start"
+    assert "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-history-injection.sh" in commands
+
+
+def test_session_start_settings_include_harness_summary_hook() -> None:
+    payload = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+    session_start = payload["hooks"]["SessionStart"]
+    commands = [hook["command"] for entry in session_start for hook in entry.get("hooks", [])]
+
+    assert "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-harness-summary.sh" in commands
+
+
 def test_redaction_stream_redacts_sensitive_lines() -> None:
     proc = subprocess.run(
         [sys.executable, str(REDACTION_PATH), "--stream"],

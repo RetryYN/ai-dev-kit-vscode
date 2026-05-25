@@ -21,6 +21,10 @@ def _first_hook_command(hooks: dict, event: str) -> str:
     return hooks[event][0]["hooks"][0]["command"]
 
 
+def _hook_commands(entry: dict) -> list[str]:
+    return [hook["command"] for hook in entry.get("hooks", [])]
+
+
 def test_module_py_compile() -> None:
     py_compile.compile(str(MODULE_PATH), doraise=True)
 
@@ -251,3 +255,176 @@ def test_merge_settings_for_migrate_returns_merged_copy() -> None:
     assert current == {"hooks": {"Stop": [{"hooks": [{"command": "custom-stop"}]}]}}
     assert merged["hooks"]["Stop"][0] == {"hooks": [{"command": "custom-stop"}]}
     assert merged["hooks"]["Stop"][1] == merge_settings.HELIX_HOOKS["Stop"][0]
+
+
+def test_merge_preserves_custom_sessionstart_history_injection() -> None:
+    history_hook = "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-history-injection.sh"
+    harness_hook = "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-harness-summary.sh"
+    settings = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
+                            "timeout": 5,
+                            "statusMessage": "Loading HELIX framework...",
+                            "blockOnFailure": True,
+                        },
+                        {
+                            "type": "command",
+                            "command": history_hook,
+                            "timeout": 5,
+                            "statusMessage": "Injecting HELIX resume bundle...",
+                            "blockOnFailure": False,
+                        },
+                    ]
+                },
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": harness_hook,
+                            "timeout": 5,
+                            "blockOnFailure": False,
+                        }
+                    ]
+                },
+            ]
+        }
+    }
+
+    changed = merge_settings.merge(settings)
+
+    assert changed is True
+    assert _hook_commands(settings["hooks"]["SessionStart"][0]) == [
+        merge_settings.HELIX_HOOKS["SessionStart"][0]["hooks"][0]["command"],
+        history_hook,
+    ]
+    assert _hook_commands(settings["hooks"]["SessionStart"][1]) == [harness_hook]
+
+
+def test_merge_preserves_canonical_helix_session_start_path() -> None:
+    settings = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+
+    changed = merge_settings.merge(settings)
+
+    assert changed is True
+    assert settings["hooks"]["SessionStart"][0]["hooks"][0]["command"] == (
+        merge_settings.HELIX_HOOKS["SessionStart"][0]["hooks"][0]["command"]
+    )
+
+
+def test_merge_preserves_design_doc_web_search_revert_first() -> None:
+    revert_hook = "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-design-doc-web-search-revert.sh"
+    settings = {
+        "hooks": {
+            "PostToolUse": [
+                {
+                    "matcher": "Edit|Write|MultiEdit",
+                    "continueOnBlock": True,
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": revert_hook,
+                            "timeout": 5,
+                            "statusMessage": "Checking design-doc revert guard...",
+                            "blockOnFailure": False,
+                        },
+                        {
+                            "type": "command",
+                            "command": "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use",
+                            "timeout": 10,
+                            "statusMessage": "HELIX design sync check...",
+                            "blockOnFailure": True,
+                        },
+                    ],
+                }
+            ]
+        }
+    }
+
+    changed = merge_settings.merge(settings)
+
+    assert changed is True
+    assert settings["hooks"]["PostToolUse"][0]["hooks"][0]["command"] == revert_hook
+    assert settings["hooks"]["PostToolUse"][0]["hooks"][1]["command"] == (
+        merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]["command"]
+    )
+
+
+def test_remove_only_helix_hook_preserves_custom() -> None:
+    history_hook = "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-history-injection.sh"
+    settings = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
+                        },
+                        {
+                            "type": "command",
+                            "command": history_hook,
+                        },
+                    ]
+                }
+            ]
+        }
+    }
+
+    changed = merge_settings.remove(settings)
+
+    assert changed is True
+    assert settings["hooks"]["SessionStart"] == [{"hooks": [{"type": "command", "command": history_hook}]}]
+
+
+def test_merge_idempotency() -> None:
+    settings = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "~/ai-dev-kit-vscode/cli/helix-session-start",
+                            "timeout": 5,
+                            "statusMessage": "Loading HELIX framework...",
+                            "blockOnFailure": True,
+                        },
+                        {
+                            "type": "command",
+                            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-history-injection.sh",
+                            "timeout": 5,
+                            "statusMessage": "Injecting HELIX resume bundle...",
+                            "blockOnFailure": False,
+                        },
+                    ]
+                }
+            ]
+        }
+    }
+
+    first_changed = merge_settings.merge(settings)
+    first_snapshot = json.dumps(settings, ensure_ascii=False, sort_keys=True)
+    second_changed = merge_settings.merge(settings)
+    second_snapshot = json.dumps(settings, ensure_ascii=False, sort_keys=True)
+
+    assert first_changed is True
+    assert second_changed is False
+    assert first_snapshot == second_snapshot
