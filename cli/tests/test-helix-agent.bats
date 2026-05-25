@@ -123,3 +123,32 @@ PY
   run "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L20 --status entered
   [ "$status" -ne 0 ]
 }
+
+@test "helix agent phase start adds to active phases" {
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A4 --summary "test" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent phase start --phase phase2
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"phase: phase2 (started)"* ]]
+  [[ "$output" == *"active_phases: phase1, phase2"* ]]
+  [[ "$output" == *"current_phase: phase1"* ]]
+}
+
+@test "helix agent phase pause removes from active" {
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A5 --summary "test" >/dev/null
+  "$HELIX_ROOT/cli/helix" agent phase start --phase phase2 >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent phase pause --phase phase1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"phase: phase1 (paused)"* ]]
+  [[ "$output" == *"active_phases: phase2"* ]]
+  [[ "$output" == *"current_phase: phase2"* ]]
+}
+
+@test "helix agent phase rejects invalid phase" {
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A6 --summary "test" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent phase start --phase phase99
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"unsupported phase"* ]]
+}

@@ -30,6 +30,20 @@ def _project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return root
 
 
+def _phase_payload(label: str, drive: str) -> dict[str, object]:
+    return {
+        "label": label,
+        "drive": drive,
+        "plan_id": None,
+        "status": "pending",
+        "summary": None,
+        "started_at": None,
+        "completed_at": None,
+        "current_layer": None,
+        "layer_history": [],
+    }
+
+
 def test_module_py_compile() -> None:
     """DoD 検証: agent_engine.py が py_compile を通る。"""
     py_compile.compile(str(MODULE_PATH), doraise=True)
@@ -237,3 +251,108 @@ def test_advance_layer_rejects_completed_mismatch(tmp_path: Path, monkeypatch: p
 
     with pytest.raises(module.AgentEngineError, match="layer mismatch"):
         engine.advance_layer(phase="phase1", layer="L2", status="completed")
+
+
+def test_init_session_sets_active_phases(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: init_session 後に active_phases は phase1 で初期化される。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+
+    session = engine.init_session(agent_id="AG-014", summary="active phases init")
+
+    assert session.active_phases == ["phase1"]
+    assert session.current_phase == "phase1"
+
+
+def test_start_phase_adds_to_active(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: start_phase は active_phases に重複なく phase を追加する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-015", summary="start phase")
+
+    session = engine.start_phase(phase="phase2")
+
+    assert session.active_phases == ["phase1", "phase2"]
+    assert session.phase2["status"] == "in_progress"
+
+
+def test_pause_phase_removes_from_active(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: pause_phase は active_phases から対象 phase を取り除く。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-016", summary="pause phase")
+    engine.start_phase(phase="phase2")
+
+    session = engine.pause_phase(phase="phase1")
+
+    assert session.active_phases == ["phase2"]
+
+
+def test_resume_phase_re_adds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: resume_phase は pause 済み phase を末尾へ再追加する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-017", summary="resume phase")
+    engine.start_phase(phase="phase2")
+    engine.pause_phase(phase="phase1")
+
+    session = engine.resume_phase(phase="phase1")
+
+    assert session.active_phases == ["phase2", "phase1"]
+
+
+def test_start_phase_rejects_invalid(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: start_phase は不正 phase を exit_code=2 で reject する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-018", summary="invalid start phase")
+
+    with pytest.raises(module.AgentEngineError, match="unsupported phase") as exc_info:
+        engine.start_phase(phase="phase99")
+
+    assert exc_info.value.exit_code == 2
+
+
+def test_from_dict_legacy_compatibility_active_phases_default() -> None:
+    """DoD 検証: active_phases がない旧 payload は phase1 を補完する。"""
+    module = _load_module()
+
+    session = module.AgentSession.from_dict(
+        {
+            "agent_id": "AG-019",
+            "summary": "legacy active phases",
+            "current_phase": "phase2",
+            "phase1": {"label": "一般システム", "drive": "fullstack", "status": "pending"},
+            "phase2": {"label": "エージェント昇華", "drive": "agent", "status": "pending"},
+            "phase3": {"label": "L10-L14 合流", "drive": "agent", "status": "pending"},
+        }
+    )
+
+    assert session.active_phases == ["phase1"]
+    assert session.current_phase == "phase1"
+
+
+def test_current_phase_property_returns_first_active() -> None:
+    """DoD 検証: current_phase property は active_phases の先頭を返す。"""
+    module = _load_module()
+
+    session = module.AgentSession(
+        agent_id="AG-020",
+        summary="current phase property",
+        status="initialized",
+        active_phases=["phase2"],
+        parent_design=module.PARENT_DESIGN,
+        phase1=_phase_payload("一般システム", "fullstack"),
+        phase2=_phase_payload("エージェント昇華", "agent"),
+        phase3=_phase_payload("L10-L14 合流", "agent"),
+        warnings=[],
+        timeline=[],
+        log_path=".helix/agent/AG-020.md",
+    )
+
+    assert session.current_phase == "phase2"

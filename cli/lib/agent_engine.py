@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -46,12 +46,22 @@ def _normalize_stage(payload: Any) -> dict[str, Any]:
     return stage
 
 
+def _normalize_active_phases(payload: Any) -> list[str]:
+    values = payload if isinstance(payload, list) else []
+    phases: list[str] = []
+    for item in values:
+        value = str(item).strip()
+        if value and value not in phases:
+            phases.append(value)
+    return phases
+
+
 @dataclass(slots=True)
 class AgentSession:
     agent_id: str
     summary: str
     status: str
-    current_phase: str
+    active_phases: list[str]
     parent_design: str
     phase1: dict[str, Any]
     phase2: dict[str, Any]
@@ -61,15 +71,40 @@ class AgentSession:
     log_path: str
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "agent_id": self.agent_id,
+            "summary": self.summary,
+            "status": self.status,
+            "current_phase": self.current_phase,
+            "active_phases": list(self.active_phases),
+            "parent_design": self.parent_design,
+            "phase1": dict(self.phase1),
+            "phase2": dict(self.phase2),
+            "phase3": dict(self.phase3),
+            "warnings": list(self.warnings),
+            "timeline": [dict(item) for item in self.timeline],
+            "log_path": self.log_path,
+        }
+
+    @property
+    def current_phase(self) -> str:
+        return self.active_phases[0] if self.active_phases else "phase1"
+
+    @current_phase.setter
+    def current_phase(self, phase: str) -> None:
+        value = str(phase).strip() or "phase1"
+        self.active_phases = [value, *[item for item in self.active_phases if item != value]]
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "AgentSession":
+        active_phases = _normalize_active_phases(payload.get("active_phases"))
+        if "active_phases" not in payload:
+            active_phases = ["phase1"]
         return cls(
             agent_id=str(payload.get("agent_id") or ""),
             summary=str(payload.get("summary") or ""),
             status=str(payload.get("status") or "initialized"),
-            current_phase=str(payload.get("current_phase") or "phase1"),
+            active_phases=active_phases,
             parent_design=str(payload.get("parent_design") or PARENT_DESIGN),
             phase1=_normalize_stage(payload.get("phase1")),
             phase2=_normalize_stage(payload.get("phase2")),
@@ -155,12 +190,14 @@ class AgentEngine:
             f"agent_id: {session.agent_id}",
             f"status: {session.status}",
             f"current_phase: {session.current_phase}",
+            f"active_phases: {', '.join(session.active_phases)}",
             f"parent_design: {session.parent_design}",
             "---",
             "",
             f"# HELIX Agent Log — {session.agent_id}",
             "",
             f"- Summary: {session.summary}",
+            f"- Active phases: {', '.join(session.active_phases) or '-'}",
             f"- Phase1: {session.phase1.get('drive', '-')} / {session.phase1.get('status', '-')}",
             f"- Phase2: {session.phase2.get('drive', '-')} / {session.phase2.get('status', '-')}",
             f"- Phase3: {session.phase3.get('drive', '-')} / {session.phase3.get('status', '-')}",
@@ -199,6 +236,13 @@ class AgentEngine:
         if value not in {"phase1", "phase2", "phase3"}:
             raise AgentEngineError(f"unsupported phase: {phase}", 2)
         return value
+
+    def _activate_phase(self, session: AgentSession, phase: str) -> None:
+        if phase not in session.active_phases:
+            session.active_phases.append(phase)
+
+    def _deactivate_phase(self, session: AgentSession, phase: str) -> None:
+        session.active_phases = [item for item in session.active_phases if item != phase]
 
     def _validate_layer_name(self, phase: str, layer: str) -> str:
         value = layer.strip()
@@ -258,7 +302,7 @@ class AgentEngine:
             agent_id=normalized_agent_id,
             summary=normalized_summary,
             status="initialized",
-            current_phase="phase1",
+            active_phases=["phase1"],
             parent_design=PARENT_DESIGN,
             phase1=self._new_stage(drive=normalized_drive, label="一般システム"),
             phase2=self._new_stage(drive="agent", label="エージェント昇華"),
@@ -298,7 +342,8 @@ class AgentEngine:
                 "completed_at": now if normalized_status == "ready" else None,
             }
         )
-        session.current_phase = "phase2" if normalized_status == "ready" else "phase1"
+        if normalized_status == "ready":
+            self._activate_phase(session, "phase2")
         session.status = f"phase1_{normalized_status}"
         self._append_timeline(
             session,
@@ -331,7 +376,7 @@ class AgentEngine:
                 "completed_at": now if normalized_status == "ready" else None,
             }
         )
-        session.current_phase = "phase2"
+        self._activate_phase(session, "phase2")
         session.status = f"phase2_{normalized_status}"
         self._append_timeline(
             session,
@@ -359,9 +404,37 @@ class AgentEngine:
                 "completed_at": now,
             }
         )
-        session.current_phase = "phase3"
+        session.active_phases = ["phase3"]
         session.status = "phase3_ready"
         self._append_timeline(session, "merge", normalized_plan)
+        self._write_session(session)
+        self._write_log(session)
+        return session
+
+    def start_phase(self, *, phase: str) -> AgentSession:
+        normalized_phase = self._validate_layer_phase(phase)
+        session = self._require_session()
+        getattr(session, normalized_phase)["status"] = "in_progress"
+        self._activate_phase(session, normalized_phase)
+        self._append_timeline(session, "phase", f"{normalized_phase} / started")
+        self._write_session(session)
+        self._write_log(session)
+        return session
+
+    def pause_phase(self, *, phase: str) -> AgentSession:
+        normalized_phase = self._validate_layer_phase(phase)
+        session = self._require_session()
+        self._deactivate_phase(session, normalized_phase)
+        self._append_timeline(session, "phase", f"{normalized_phase} / paused")
+        self._write_session(session)
+        self._write_log(session)
+        return session
+
+    def resume_phase(self, *, phase: str) -> AgentSession:
+        normalized_phase = self._validate_layer_phase(phase)
+        session = self._require_session()
+        self._activate_phase(session, normalized_phase)
+        self._append_timeline(session, "phase", f"{normalized_phase} / resumed")
         self._write_session(session)
         self._write_log(session)
         return session
@@ -413,6 +486,7 @@ class AgentEngine:
 def _print_session(session: AgentSession) -> None:
     print(f"[HELIX Agent] {session.agent_id} ({session.status})")
     print(f"current_phase: {session.current_phase}")
+    print(f"active_phases: {', '.join(session.active_phases)}")
     print(f"parent_design: {session.parent_design}")
 
 
@@ -422,6 +496,23 @@ def _print_route(route: dict[str, Any]) -> None:
     print(f"layers: {', '.join(route['layers'])}")
     print(f"parent_design: {route['parent_design']}")
     print(f"recommended_command: {route['recommended_command']}")
+
+
+def _phase_action_payload(session: AgentSession, *, phase: str, action: str) -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "phase": phase,
+        "action": action,
+        "active_phases": list(session.active_phases),
+        "current_phase": session.current_phase,
+    }
+
+
+def _print_phase_action(payload: dict[str, Any]) -> None:
+    print(f"status: {payload['status']}")
+    print(f"phase: {payload['phase']} ({payload['action']})")
+    print(f"active_phases: {', '.join(payload['active_phases'])}")
+    print(f"current_phase: {payload['current_phase']}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -455,6 +546,13 @@ def build_parser() -> argparse.ArgumentParser:
     route_parser = subparsers.add_parser("route", help="現在 phase の HELIX route を表示")
     route_parser.add_argument("--phase", choices=("phase1", "phase2", "phase3"))
     route_parser.add_argument("--json", action="store_true")
+
+    phase_parser = subparsers.add_parser("phase", help="active phases を更新")
+    phase_subparsers = phase_parser.add_subparsers(dest="phase_action")
+    for action in ("start", "pause", "resume"):
+        action_parser = phase_subparsers.add_parser(action, help=f"phase を {action} する")
+        action_parser.add_argument("--phase", required=True)
+        action_parser.add_argument("--json", action="store_true")
 
     return parser
 
@@ -518,8 +616,27 @@ def main(argv: list[str] | None = None) -> int:
                 _print_route(route)
             return 0
 
+        if args.subcommand == "phase":
+            if args.phase_action == "start":
+                session = engine.start_phase(phase=args.phase)
+                payload = _phase_action_payload(session, phase=args.phase, action="started")
+            elif args.phase_action == "pause":
+                session = engine.pause_phase(phase=args.phase)
+                payload = _phase_action_payload(session, phase=args.phase, action="paused")
+            elif args.phase_action == "resume":
+                session = engine.resume_phase(phase=args.phase)
+                payload = _phase_action_payload(session, phase=args.phase, action="resumed")
+            else:
+                parser.print_help()
+                return 1
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                _print_phase_action(payload)
+            return 0
+
         parser.print_help()
-        return 0
+        return 1
     except AgentEngineError as exc:
         print(str(exc), file=sys.stderr)
         return exc.exit_code

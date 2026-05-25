@@ -105,5 +105,5 @@ API 追加:
 
 ### §11 carry
 
-- carry-1: 各 layer の design ↔ test pair freeze 自動化（V-model 強化、別 PLAN）
-- carry-2: Phase 1/2 並列実行（現状は順次のみ、別 PLAN）
+- carry-1: 各 layer の design ↔ test pair freeze 自動化（resolved 2026-05-25）
+- carry-2: Phase 1/2 並列実行（resolved 2026-05-25）

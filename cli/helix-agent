@@ -12,6 +12,7 @@ usage() {
     '  stage1           Phase 1 (一般システム) の進行を更新する' \
     '  stage2           Phase 2 (agent) の進行を更新する' \
     '  merge            Phase 3 (L10-L14 合流) を開始する' \
+    '  phase            active phases を start|pause|resume する' \
     '  layer            phase 内 layer (L1-L14) の進行を更新する' \
     '  route            現在 phase の HELIX route を表示する' \
     '  fire             slot を起動記録する内部 API' \
@@ -444,7 +445,7 @@ cmd_agent_workflow() {
 main() {
   local subcommand="${1:-}"
   case "$subcommand" in
-    init|stage1|stage2|merge|route)
+    init|stage1|stage2|merge|route|phase)
       cmd_agent_workflow "$@"
       ;;
     fire)
