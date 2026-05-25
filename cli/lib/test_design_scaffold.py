@@ -211,10 +211,62 @@ def extract_api_endpoints(paired_design_path: Path, *, max_count: int = 5) -> li
     return endpoints
 
 
+def _extract_openapi_parameter(parameter: dict[str, Any]) -> dict[str, Any] | None:
+    raw_name = parameter.get("name")
+    if not isinstance(raw_name, str):
+        return None
+    name = raw_name.strip()
+    if not name:
+        return None
+
+    raw_in = parameter.get("in")
+    parameter_in = raw_in.strip() if isinstance(raw_in, str) else ""
+    parameter_schema = parameter.get("schema")
+    parameter_type = "unknown"
+    if isinstance(parameter_schema, dict):
+        raw_type = parameter_schema.get("type")
+        if isinstance(raw_type, str) and raw_type.strip():
+            parameter_type = raw_type.strip()
+
+    raw_required = parameter.get("required")
+    required = raw_required if isinstance(raw_required, bool) else False
+    raw_example = parameter.get("example")
+    if raw_example is None and isinstance(parameter_schema, dict):
+        raw_example = parameter_schema.get("example")
+    example = "" if raw_example is None else str(raw_example)
+
+    return {
+        "name": name,
+        "in": parameter_in,
+        "type": parameter_type,
+        "required": required,
+        "example": example,
+    }
+
+
+def _format_openapi_parameter(parameter: Any) -> str:
+    if isinstance(parameter, str):
+        return parameter.strip()
+    if not isinstance(parameter, dict):
+        return ""
+
+    raw_name = parameter.get("name")
+    if not isinstance(raw_name, str):
+        return ""
+    name = raw_name.strip()
+    if not name:
+        return ""
+
+    raw_type = parameter.get("type")
+    parameter_type = raw_type.strip() if isinstance(raw_type, str) and raw_type.strip() else "unknown"
+    requirement = "required" if parameter.get("required") is True else "optional"
+    return f"{name} ({parameter_type}, {requirement})"
+
+
 def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, Any]]:
     """
     Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str,
-               'parameters': list[str], 'responses': list[str], 'request_body': str}]
+               'parameters': list[str | dict[str, Any]], 'responses': list[str], 'request_body': str}]
     spec_path 不在 or parse error → 空 list
     """
     if not spec_path.exists() or max_count <= 0:
@@ -249,7 +301,7 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
             if normalized_method not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
                 continue
             summary = ""
-            parameter_names: list[str] = []
+            parameters: list[dict[str, Any]] = []
             responses: list[str] = []
             request_body = ""
             if isinstance(operation, dict):
@@ -265,11 +317,15 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
                 for parameter in combined_parameters:
                     if not isinstance(parameter, dict):
                         continue
-                    raw_name = parameter.get("name")
-                    if isinstance(raw_name, str):
-                        name = raw_name.strip()
-                        if name and name not in parameter_names:
-                            parameter_names.append(name)
+                    extracted = _extract_openapi_parameter(parameter)
+                    if extracted is None:
+                        continue
+                    if any(
+                        existing.get("name") == extracted["name"] and existing.get("in") == extracted["in"]
+                        for existing in parameters
+                    ):
+                        continue
+                    parameters.append(extracted)
 
                 raw_responses = operation.get("responses")
                 if isinstance(raw_responses, dict):
@@ -288,7 +344,7 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
                     "method": normalized_method,
                     "path": path,
                     "summary": summary,
-                    "parameters": parameter_names,
+                    "parameters": parameters,
                     "responses": responses,
                     "request_body": request_body,
                 }
@@ -311,7 +367,7 @@ def _test_cases_body(
     *,
     functions: list[dict[str, str]],
     endpoints: list[dict[str, str]],
-    openapi_endpoints: list[dict[str, str]],
+    openapi_endpoints: list[dict[str, Any]],
 ) -> str:
     blocks: list[str] = []
     function_spec = sections["function_spec"].strip()
@@ -367,7 +423,11 @@ def _test_cases_body(
                 quote_lines.append(f"> summary: {summary}")
             parameters = endpoint.get("parameters", [])
             if parameters:
-                quote_lines.append(f"> parameters: {', '.join(parameters)}")
+                rendered_parameters = [
+                    rendered for rendered in (_format_openapi_parameter(parameter) for parameter in parameters) if rendered
+                ]
+                if rendered_parameters:
+                    quote_lines.append(f"> parameters: {', '.join(rendered_parameters)}")
             responses = endpoint.get("responses", [])
             if responses:
                 quote_lines.append(f"> responses: {', '.join(responses)}")

@@ -503,7 +503,70 @@ paths:
 
     endpoints = extract_openapi_endpoints(spec_path)
 
-    assert endpoints[0]["parameters"] == ["id", "verbose"]
+    assert [
+        parameter["name"] if isinstance(parameter, dict) else parameter
+        for parameter in endpoints[0]["parameters"]
+    ] == ["id", "verbose"]
+
+
+def test_extract_openapi_endpoints_parameter_includes_type(tmp_path) -> None:
+    """DoD 検証: W31 U-001 OpenAPI parameter detail を type/required/example 付きで抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users:
+    get:
+      parameters:
+        - name: x
+          in: query
+          required: true
+          schema:
+            type: string
+          example: abc
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["parameters"] == [
+        {
+            "name": "x",
+            "in": "query",
+            "type": "string",
+            "required": True,
+            "example": "abc",
+        }
+    ]
+
+
+def test_extract_openapi_endpoints_parameter_handles_missing_schema(tmp_path) -> None:
+    """DoD 検証: W31 U-002 parameter schema/detail 不在時は default 値を返す。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users:
+    get:
+      parameters:
+        - name: verbose
+          in: query
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["parameters"] == [
+        {
+            "name": "verbose",
+            "in": "query",
+            "type": "unknown",
+            "required": False,
+            "example": "",
+        }
+    ]
 
 
 def test_extract_openapi_endpoints_includes_responses(tmp_path) -> None:
@@ -567,6 +630,9 @@ paths:
       parameters:
         - name: id
           in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         description: User payload
       responses:
@@ -581,6 +647,41 @@ paths:
     assert "### TC-OPENAPI-001: `GET /api/users/{id}`" in skeleton
     assert "> endpoint: `GET /api/users/{id}`" in skeleton
     assert "> summary: Get user" in skeleton
-    assert "> parameters: id" in skeleton
+    assert "> parameters: id (string, required)" in skeleton
     assert "> responses: 200, 404" in skeleton
     assert "> request_body: User payload" in skeleton
+
+
+def test_generate_skeleton_with_openapi_spec_parameter_backward_compat(monkeypatch, tmp_path) -> None:
+    """DoD 検証: W31 U-003 skeleton は legacy str parameter entry も表示できる。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text("# Sample Design\n", encoding="utf-8")
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text("openapi: 3.0.0\npaths: {}\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "cli.lib.test_design_scaffold.extract_openapi_endpoints",
+        lambda *_args, **_kwargs: [
+            {
+                "method": "GET",
+                "path": "/api/users/{id}",
+                "summary": "Get user",
+                "parameters": [
+                    "id",
+                    {
+                        "name": "verbose",
+                        "in": "query",
+                        "type": "boolean",
+                        "required": False,
+                        "example": "",
+                    },
+                ],
+                "responses": ["200"],
+                "request_body": "",
+            }
+        ],
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), openapi_spec_path=spec_path)
+
+    assert "> parameters: id, verbose (boolean, optional)" in skeleton
