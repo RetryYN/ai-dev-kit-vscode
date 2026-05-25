@@ -78,3 +78,18 @@ teardown() {
   [[ "$output" == *"[V-model pair freeze]"* ]]
   [[ "$output" == *"(active-only)"* ]]
 }
+
+@test "helix doctor includes vmodel status breakdown" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"status breakdown:"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"status breakdown:"* ]]
+  [[ "$output" == *"draft="* ]]
+  [[ "$output" == *"in_progress="* ]]
+  [[ "$output" == *"completed="* ]]
+  [[ "$output" == *"superseded="* ]]
+  [[ "$output" == *"other="* ]]
+}

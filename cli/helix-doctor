@@ -746,10 +746,17 @@ active_only = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY") == "1"
 results = [check_pair_freeze(layer, project_root=root, active_only=active_only) for layer in sorted(VMODEL_PAIRS)]
 missing = [row for row in results if row.get("status") == "pair_missing"]
 summary = {"critical": 0, "warning": 0, "info": 0}
+status_breakdown = {"draft": 0, "in_progress": 0, "completed": 0, "superseded": 0, "other": 0}
 for row in missing:
     severity = row.get("severity")
     if severity in summary:
         summary[severity] += 1
+for row in results:
+    row_breakdown = row.get("status_breakdown") or {}
+    for key in status_breakdown:
+        value = row_breakdown.get(key, 0)
+        if isinstance(value, int):
+            status_breakdown[key] += value
 print(
     json.dumps(
         {
@@ -757,6 +764,7 @@ print(
             "missing_count": len(missing),
             "missing": missing,
             "summary": summary,
+            "status_breakdown": status_breakdown,
         },
         ensure_ascii=False,
     )
@@ -781,21 +789,28 @@ PY
   if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]]; then
     marker=" (active-only)"
   fi
+  local status_breakdown_line=""
+  if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" != true ]]; then
+    status_breakdown_line="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; b=json.load(sys.stdin)["status_breakdown"]; print("draft=%s in_progress=%s completed=%s superseded=%s other=%s" % (b["draft"], b["in_progress"], b["completed"], b["superseded"], b["other"]))' 2>/dev/null || true)"
+  fi
 
   if [[ "$missing_count" == "0" ]]; then
     echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0$marker"
+    [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     PASS=$((PASS + 1))
     return
   fi
 
   if [[ "$STRICT_VMODEL_PAIR_FREEZE" == true && "$critical_count" -gt 0 ]]; then
     echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker (strict mode)"
+    [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     FAIL=$((FAIL + 1))
     WARN=$((WARN + warning_count + info_count))
     return
   fi
 
   echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker"
+  [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
   WARN=$((WARN + missing_count))
 }
 

@@ -26,6 +26,7 @@ VMODEL_PAIRS = {
 CRITICAL_LAYERS = {"L1", "L3", "L4", "L6"}
 WARNING_LAYERS = {"L2", "L5"}
 INFO_LAYERS = {"L7", "L8", "L9", "L10", "L12", "L14"}
+STATUS_BREAKDOWN_KEYS = ("draft", "in_progress", "completed", "superseded", "other")
 
 
 def get_pair(layer: str) -> str | None:
@@ -78,6 +79,23 @@ def _filter_active_plans(plan_paths: list[Path]) -> list[Path]:
     return [plan_path for plan_path in plan_paths if _load_plan_status(plan_path) in active_statuses]
 
 
+def _empty_status_breakdown() -> dict[str, int]:
+    return {key: 0 for key in STATUS_BREAKDOWN_KEYS}
+
+
+def _normalize_plan_status(status: str | None) -> str:
+    if status in STATUS_BREAKDOWN_KEYS[:-1]:
+        return status
+    return "other"
+
+
+def _build_status_breakdown(plan_paths: list[Path]) -> dict[str, int]:
+    breakdown = _empty_status_breakdown()
+    for plan_path in plan_paths:
+        breakdown[_normalize_plan_status(_load_plan_status(plan_path))] += 1
+    return breakdown
+
+
 def check_pair_freeze(
     layer: str,
     *,
@@ -93,6 +111,7 @@ def check_pair_freeze(
             "pair": None,
             "severity": severity,
             "active_only": active_only,
+            "status_breakdown": {},
             "pair_doc_exists": False,
             "pair_doc_path": None,
             "status": "no_pair",
@@ -105,6 +124,7 @@ def check_pair_freeze(
     matches = sorted(pair_dir.glob(pattern)) if pair_dir.is_dir() else []
     if active_only:
         matches = _filter_active_plans(matches)
+    status_breakdown = _build_status_breakdown(matches)
     pair_doc = matches[0] if matches else None
 
     if pair_doc is not None:
@@ -113,6 +133,7 @@ def check_pair_freeze(
             "pair": pair,
             "severity": severity,
             "active_only": active_only,
+            "status_breakdown": status_breakdown,
             "pair_doc_exists": True,
             "pair_doc_path": str(pair_doc),
             "status": "ok",
@@ -124,6 +145,7 @@ def check_pair_freeze(
         "pair": pair,
         "severity": severity,
         "active_only": active_only,
+        "status_breakdown": status_breakdown,
         "pair_doc_exists": False,
         "pair_doc_path": None,
         "status": "pair_missing",

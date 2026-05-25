@@ -134,3 +134,51 @@ def test_check_pair_freeze_active_only_field_in_result(tmp_path) -> None:
 
     assert "active_only" in result
     assert result["active_only"] is True
+
+
+def test_check_pair_freeze_status_breakdown_counts(tmp_path) -> None:
+    """DoD 検証: W15 U-001 pair PLAN の status 別件数を返す。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L7-draft-sampleplan.md").write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+    (pair_dir / "L7-in-progress-sampleplan.md").write_text(
+        "---\nstatus: in_progress\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L7-completed-sampleplan.md").write_text(
+        "---\nstatus: completed\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L7-superseded-sampleplan.md").write_text(
+        "---\nstatus: superseded\n---\n",
+        encoding="utf-8",
+    )
+
+    result = check_pair_freeze("L6", project_root=tmp_path)
+
+    assert result["status_breakdown"] == {
+        "draft": 1,
+        "in_progress": 1,
+        "completed": 1,
+        "superseded": 1,
+        "other": 0,
+    }
+
+
+def test_check_pair_freeze_status_breakdown_handles_missing_status(tmp_path) -> None:
+    """DoD 検証: W15 U-002 status 欠損は other に集計する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L7-missing-statusplan.md").write_text("---\nplan_id: sample\n---\n", encoding="utf-8")
+
+    result = check_pair_freeze("L6", project_root=tmp_path)
+
+    assert result["status_breakdown"]["other"] == 1
+
+
+def test_check_pair_freeze_status_breakdown_field_present_in_no_pair(tmp_path) -> None:
+    """DoD 検証: W15 U-003 no_pair でも status_breakdown field を返す。"""
+    result = check_pair_freeze("L0", project_root=tmp_path)
+
+    assert "status_breakdown" in result
+    assert result["status_breakdown"] == {}
