@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze, get_pair
+from cli.lib.vmodel_pair_freeze import (
+    VMODEL_PAIRS,
+    check_pair_freeze,
+    get_pair,
+    suggest_stale_revisions,
+)
 
 
 def test_get_pair_returns_expected() -> None:
@@ -273,3 +278,45 @@ def test_check_pair_freeze_stale_count_field_in_result(tmp_path) -> None:
 
     assert "stale_count" in result
     assert result["stale_count"] == 0
+
+
+def test_suggest_stale_revisions_finds_old_plans(tmp_path) -> None:
+    """DoD 検証: W29 U-001 古い pair PLAN に revised 更新候補を返す。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    plan_path = pair_dir / "L9-old-plan.md"
+    plan_path.write_text(
+        "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\n---\n",
+        encoding="utf-8",
+    )
+
+    result = suggest_stale_revisions("L4", project_root=tmp_path, since_days=30)
+
+    assert len(result) == 1
+    assert result[0] == {
+        "plan_id": "L9-old-plan",
+        "plan_path": str(plan_path),
+        "current_revised": "2000-01-01",
+        "suggested_revised": date.today().isoformat(),
+    }
+
+
+def test_suggest_stale_revisions_skips_recent(tmp_path) -> None:
+    """DoD 検証: W29 U-002 直近 revised の pair PLAN は候補から除外する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    pair_dir.joinpath("L9-new-plan.md").write_text(
+        f"---\nplan_id: L9-new-plan\nrevised: {date.today().isoformat()}\n---\n",
+        encoding="utf-8",
+    )
+
+    result = suggest_stale_revisions("L4", project_root=tmp_path, since_days=30)
+
+    assert result == []
+
+
+def test_suggest_stale_revisions_returns_empty_when_no_pair(tmp_path) -> None:
+    """DoD 検証: W29 U-003 pair を持たない layer は空 list を返す。"""
+    result = suggest_stale_revisions("L0", project_root=tmp_path, since_days=30)
+
+    assert result == []

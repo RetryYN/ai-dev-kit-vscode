@@ -117,6 +117,24 @@ def _resolve_plan_date(plan_path: Path) -> date | None:
         return None
 
 
+def _stringify_frontmatter_date(value: Any) -> str | None:
+    resolved = _coerce_frontmatter_date(value)
+    return resolved.isoformat() if resolved is not None else None
+
+
+def _resolve_pair_plan_paths(layer: str, project_root: Path | None = None) -> tuple[str | None, list[Path]]:
+    pair = get_pair(layer)
+    if pair is None:
+        return None, []
+
+    root = Path(project_root) if project_root is not None else resolve_project_root()
+    pair_dir = root / "docs" / "plans" / pair
+    if not pair_dir.is_dir():
+        return pair, []
+
+    return pair, sorted(pair_dir.glob(f"{pair}-*plan.md"))
+
+
 def _filter_recent_plans(plan_paths: list[Path], since_days: int) -> list[Path]:
     cutoff = date.today() - timedelta(days=since_days)
     filtered: list[Path] = []
@@ -154,6 +172,38 @@ def _build_status_breakdown(plan_paths: list[Path]) -> dict[str, int]:
     return breakdown
 
 
+def suggest_stale_revisions(
+    layer: str,
+    *,
+    project_root: Path,
+    since_days: int = 30,
+) -> list[dict[str, str | None]]:
+    """Return dry-run revised date suggestions for stale pair plans."""
+    pair, plan_paths = _resolve_pair_plan_paths(layer, project_root)
+    if pair is None or not plan_paths:
+        return []
+
+    cutoff = date.today() - timedelta(days=since_days)
+    suggested_revised = date.today().isoformat()
+    suggestions: list[dict[str, str | None]] = []
+    for plan_path in plan_paths:
+        resolved = _resolve_plan_date(plan_path)
+        if resolved is None or resolved >= cutoff:
+            continue
+
+        frontmatter = _load_plan_frontmatter(plan_path)
+        plan_id = frontmatter.get("plan_id")
+        suggestions.append(
+            {
+                "plan_id": plan_id if isinstance(plan_id, str) and plan_id else plan_path.stem,
+                "plan_path": str(plan_path),
+                "current_revised": _stringify_frontmatter_date(frontmatter.get("revised")),
+                "suggested_revised": suggested_revised,
+            }
+        )
+    return suggestions
+
+
 def check_pair_freeze(
     layer: str,
     *,
@@ -179,10 +229,8 @@ def check_pair_freeze(
             "hint": None,
         }
 
-    root = Path(project_root) if project_root is not None else resolve_project_root()
-    pair_dir = root / "docs" / "plans" / pair
+    _, matches = _resolve_pair_plan_paths(layer, project_root)
     pattern = f"{pair}-*plan.md"
-    matches = sorted(pair_dir.glob(pattern)) if pair_dir.is_dir() else []
     if active_only:
         matches = _filter_active_plans(matches)
     stale_count = 0

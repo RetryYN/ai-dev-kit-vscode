@@ -5,7 +5,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -15,6 +15,7 @@ JSON_OUTPUT=false
 STRICT_VMODEL_PAIR_FREEZE=false
 VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
 VMODEL_PAIR_FREEZE_SINCE_DAYS=""
+SUGGEST_REVISIONS=false
 FORWARDED_ARGS=()
 
 show_usage() {
@@ -69,6 +70,10 @@ while [[ $# -gt 0 ]]; do
       VMODEL_PAIR_FREEZE_SINCE_DAYS="$1"
       FORWARDED_ARGS+=("--vmodel-pair-freeze-since-days" "$1")
       ;;
+    --suggest-revisions)
+      SUGGEST_REVISIONS=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --help|-h)
       show_usage
       echo ""
@@ -78,6 +83,7 @@ while [[ $# -gt 0 ]]; do
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
+      echo "--suggest-revisions を付けると stale PLAN に対する revised 更新候補 hint を表示します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
@@ -744,18 +750,19 @@ check_vmodel_4artifact() {
 
 check_vmodel_pair_freeze() {
   local report_json
-  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
 import json
 import os
 import sys
 from pathlib import Path
 
-from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze
+from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze, suggest_stale_revisions
 
 root = Path(sys.argv[1])
 active_only = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY") == "1"
 since_days_raw = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS", "")
 since_days = int(since_days_raw) if since_days_raw else None
+suggest_revisions_enabled = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS") == "1"
 results = [
     check_pair_freeze(
         layer,
@@ -769,6 +776,8 @@ missing = [row for row in results if row.get("status") == "pair_missing"]
 summary = {"critical": 0, "warning": 0, "info": 0}
 status_breakdown = {"draft": 0, "in_progress": 0, "completed": 0, "superseded": 0, "other": 0}
 stale_count = 0
+suggestions = []
+seen_plan_paths = set()
 for row in missing:
     severity = row.get("severity")
     if severity in summary:
@@ -782,6 +791,14 @@ for row in results:
         value = row_breakdown.get(key, 0)
         if isinstance(value, int):
             status_breakdown[key] += value
+if suggest_revisions_enabled and since_days is not None:
+    for layer in sorted(VMODEL_PAIRS):
+        for suggestion in suggest_stale_revisions(layer, project_root=root, since_days=since_days):
+            plan_path = suggestion.get("plan_path")
+            if not isinstance(plan_path, str) or plan_path in seen_plan_paths:
+                continue
+            seen_plan_paths.add(plan_path)
+            suggestions.append(suggestion)
 print(
     json.dumps(
         {
@@ -792,6 +809,7 @@ print(
             "summary": summary,
             "stale_count": stale_count,
             "status_breakdown": status_breakdown,
+            "suggestions": suggestions,
         },
         ensure_ascii=False,
     )
@@ -831,11 +849,20 @@ PY
   if [[ -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" && "$stale_count" != "0" ]]; then
     stale_line="  stale (older than ${VMODEL_PAIR_FREEZE_SINCE_DAYS}d): ${stale_count} PLANs"
   fi
+  local suggest_line=""
+  if [[ "$SUGGEST_REVISIONS" == true && -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" ]]; then
+    local suggestion_count="0"
+    suggestion_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("suggestions", [])))' 2>/dev/null || echo "0")"
+    if [[ "$suggestion_count" != "0" ]]; then
+      suggest_line="  suggest revisions (example): helix-test-design-scaffold --layer L4 --apply"
+    fi
+  fi
 
   if [[ "$missing_count" == "0" ]]; then
     echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0$marker"
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     [[ -n "$stale_line" ]] && echo "$stale_line"
+    [[ -n "$suggest_line" ]] && echo "$suggest_line"
     PASS=$((PASS + 1))
     return
   fi
@@ -844,6 +871,7 @@ PY
     echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker (strict mode)"
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     [[ -n "$stale_line" ]] && echo "$stale_line"
+    [[ -n "$suggest_line" ]] && echo "$suggest_line"
     FAIL=$((FAIL + 1))
     WARN=$((WARN + warning_count + info_count))
     return
@@ -852,6 +880,7 @@ PY
   echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker"
   [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
   [[ -n "$stale_line" ]] && echo "$stale_line"
+  [[ -n "$suggest_line" ]] && echo "$suggest_line"
   WARN=$((WARN + missing_count))
 }
 
