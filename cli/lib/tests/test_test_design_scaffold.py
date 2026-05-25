@@ -9,6 +9,7 @@ from cli.lib.test_design_scaffold import (
     extract_function_signatures,
     extract_paired_design_sections,
     generate_skeleton,
+    score_paired_design,
     write_scaffold,
 )
 
@@ -249,6 +250,52 @@ def test_auto_detect_paired_design_prefer_status_and_kind_combined(tmp_path) -> 
     )
 
     assert detected == "docs/plans/L9/L9-new-design-draft-plan.md"
+
+
+def test_score_paired_design_status_match_only() -> None:
+    """DoD 検証: W26 U-001 status 一致のみなら status weight を返す。"""
+    score = score_paired_design(
+        {"status": "draft", "kind": "impl"},
+        prefer_status="draft",
+        prefer_kind=None,
+    )
+
+    assert score == 2
+
+
+def test_score_paired_design_both_match() -> None:
+    """DoD 検証: W26 U-002 status と kind が両一致なら合計 score を返す。"""
+    score = score_paired_design(
+        {"status": "draft", "kind": "design"},
+        prefer_status="draft",
+        prefer_kind="design",
+    )
+
+    assert score == 3
+
+
+def test_auto_detect_paired_design_weighted_selects_best(tmp_path) -> None:
+    """DoD 検証: W26 U-003 weighted=True なら最高 score の候補を選ぶ。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-status-only-plan.md").write_text(
+        "---\nstatus: draft\nkind: impl\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-b-both-match-plan.md").write_text(
+        "---\nstatus: draft\nkind: design\n---\n",
+        encoding="utf-8",
+    )
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        prefer_status="draft",
+        prefer_kind="design",
+        weighted=True,
+    )
+
+    assert detected == "docs/plans/L9/L9-b-both-match-plan.md"
 
 
 def test_extract_function_signatures_finds_python_def(tmp_path) -> None:

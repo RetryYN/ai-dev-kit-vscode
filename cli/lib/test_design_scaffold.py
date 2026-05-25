@@ -462,12 +462,30 @@ def _read_plan_metadata(plan_path: Path) -> dict[str, str]:
     return metadata
 
 
+def score_paired_design(
+    candidate_frontmatter: dict[str, str],
+    *,
+    prefer_status: str | None = None,
+    prefer_kind: str | None = None,
+    status_weight: int = 2,
+    kind_weight: int = 1,
+) -> int:
+    """Return a weighted score for a paired design candidate."""
+    score = 0
+    if prefer_status is not None and candidate_frontmatter.get("status") == prefer_status:
+        score += status_weight
+    if prefer_kind is not None and candidate_frontmatter.get("kind") == prefer_kind:
+        score += kind_weight
+    return score
+
+
 def auto_detect_paired_design(
     layer: str,
     *,
     project_root: Path,
     prefer_status: str | None = "draft",
     prefer_kind: str | None = None,
+    weighted: bool = False,
 ) -> str | None:
     """
     Return the preferred pair PLAN path relative to project_root, if one exists.
@@ -483,6 +501,20 @@ def auto_detect_paired_design(
         return None
 
     candidates = [(match, _read_plan_metadata(match)) for match in matches]
+
+    if weighted:
+        best_match = matches[0]
+        best_score = -1
+        for match, metadata in candidates:
+            score = score_paired_design(
+                metadata,
+                prefer_status=prefer_status,
+                prefer_kind=prefer_kind,
+            )
+            if score > best_score:
+                best_match = match
+                best_score = score
+        return str(best_match.relative_to(root))
 
     if prefer_status is not None and prefer_kind is not None:
         for match, metadata in candidates:
