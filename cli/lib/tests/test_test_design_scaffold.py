@@ -685,3 +685,100 @@ def test_generate_skeleton_with_openapi_spec_parameter_backward_compat(monkeypat
     skeleton = generate_skeleton("L4", str(paired_design), openapi_spec_path=spec_path)
 
     assert "> parameters: id, verbose (boolean, optional)" in skeleton
+
+
+def test_extract_openapi_endpoints_resolves_parameter_ref(tmp_path) -> None:
+    """DoD 検証: W32 U-001 components.parameters の $ref を解決して parameter detail を抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+paths:
+  /api/users/{userId}:
+    get:
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["parameters"] == [
+        {
+            "name": "userId",
+            "in": "path",
+            "type": "string",
+            "required": True,
+            "example": "",
+        }
+    ]
+
+
+def test_extract_openapi_endpoints_resolves_request_body_ref(tmp_path) -> None:
+    """DoD 検証: W32 U-002 requestBody schema の components.schemas 参照を解決する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+paths:
+  /api/users:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["request_body"] == {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+            "name": {"type": "string"},
+            "age": {"type": "integer"},
+        },
+    }
+
+
+def test_extract_openapi_endpoints_handles_missing_ref(tmp_path) -> None:
+    """DoD 検証: W32 U-003 存在しない $ref は例外にせず空 dict として扱う。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MissingSchema'
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["request_body"] == {}

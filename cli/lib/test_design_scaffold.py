@@ -244,6 +244,65 @@ def _extract_openapi_parameter(parameter: dict[str, Any]) -> dict[str, Any] | No
     }
 
 
+def _resolve_openapi_ref(spec: dict[str, Any], ref_str: str) -> dict[str, Any]:
+    """Resolve a 1-hop local OpenAPI ref and return an object payload or empty dict."""
+    if not isinstance(ref_str, str) or not ref_str.startswith("#/"):
+        return {}
+    current: Any = spec
+    for part in ref_str[2:].split("/"):
+        if not isinstance(current, dict):
+            return {}
+        current = current.get(part)
+    return current if isinstance(current, dict) else {}
+
+
+def _resolve_openapi_schema(spec: dict[str, Any], schema: Any) -> dict[str, Any]:
+    if not isinstance(schema, dict):
+        return {}
+    raw_ref = schema.get("$ref")
+    if not isinstance(raw_ref, str):
+        return dict(schema)
+    resolved = _resolve_openapi_ref(spec, raw_ref)
+    if not resolved:
+        return {}
+    merged = dict(resolved)
+    for key, value in schema.items():
+        if key == "$ref":
+            continue
+        merged[key] = value
+    return merged
+
+
+def _extract_openapi_request_body(spec: dict[str, Any], request_body: dict[str, Any]) -> str | dict[str, Any]:
+    raw_description = request_body.get("description")
+    if isinstance(raw_description, str) and raw_description.strip():
+        return raw_description.strip()
+
+    raw_content = request_body.get("content")
+    if not isinstance(raw_content, dict):
+        return "present"
+
+    for media_type in raw_content.values():
+        if not isinstance(media_type, dict):
+            continue
+        resolved_schema = _resolve_openapi_schema(spec, media_type.get("schema"))
+        if resolved_schema:
+            return resolved_schema
+    return {}
+
+
+def _resolve_openapi_parameter(spec: dict[str, Any], parameter: Any) -> dict[str, Any] | None:
+    if not isinstance(parameter, dict):
+        return None
+    raw_ref = parameter.get("$ref")
+    if isinstance(raw_ref, str):
+        resolved = _resolve_openapi_ref(spec, raw_ref)
+        if not resolved:
+            return None
+        parameter = {**resolved, **{key: value for key, value in parameter.items() if key != "$ref"}}
+    return _extract_openapi_parameter(parameter)
+
+
 def _format_openapi_parameter(parameter: Any) -> str:
     if isinstance(parameter, str):
         return parameter.strip()
@@ -263,10 +322,20 @@ def _format_openapi_parameter(parameter: Any) -> str:
     return f"{name} ({parameter_type}, {requirement})"
 
 
+def _format_openapi_request_body(request_body: Any) -> str:
+    if isinstance(request_body, str):
+        return request_body.strip()
+    if isinstance(request_body, dict):
+        if not request_body:
+            return "{}"
+        return json.dumps(request_body, ensure_ascii=False, sort_keys=True)
+    return ""
+
+
 def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, Any]]:
     """
     Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str,
-               'parameters': list[str | dict[str, Any]], 'responses': list[str], 'request_body': str}]
+               'parameters': list[str | dict[str, Any]], 'responses': list[str], 'request_body': str | dict[str, Any]}]
     spec_path 不在 or parse error → 空 list
     """
     if not spec_path.exists() or max_count <= 0:
@@ -315,9 +384,7 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
                 if isinstance(raw_parameters, list):
                     combined_parameters.extend(raw_parameters)
                 for parameter in combined_parameters:
-                    if not isinstance(parameter, dict):
-                        continue
-                    extracted = _extract_openapi_parameter(parameter)
+                    extracted = _resolve_openapi_parameter(payload, parameter)
                     if extracted is None:
                         continue
                     if any(
@@ -334,11 +401,7 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
 
                 raw_request_body = operation.get("requestBody")
                 if isinstance(raw_request_body, dict):
-                    raw_description = raw_request_body.get("description")
-                    if isinstance(raw_description, str) and raw_description.strip():
-                        request_body = raw_description.strip()
-                    else:
-                        request_body = "present"
+                    request_body = _extract_openapi_request_body(payload, raw_request_body)
             endpoints.append(
                 {
                     "method": normalized_method,
@@ -431,7 +494,7 @@ def _test_cases_body(
             responses = endpoint.get("responses", [])
             if responses:
                 quote_lines.append(f"> responses: {', '.join(responses)}")
-            request_body = endpoint.get("request_body", "").strip()
+            request_body = _format_openapi_request_body(endpoint.get("request_body", ""))
             if request_body:
                 quote_lines.append(f"> request_body: {request_body}")
             blocks.append(
