@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from cli.lib.test_design_scaffold import (
+    _resolve_openapi_ref,
     extract_api_endpoints,
     extract_openapi_endpoints,
     auto_detect_paired_design,
@@ -866,3 +867,47 @@ paths:
     endpoints = extract_openapi_endpoints(spec_path)
 
     assert endpoints[0]["request_body"] == {}
+
+
+def test_resolve_openapi_ref_2hop() -> None:
+    """DoD 検証: W34 U-001 2-hop の components.schemas $ref を最終 dict まで解決する。"""
+    spec = {
+        "components": {
+            "schemas": {
+                "A": {"$ref": "#/components/schemas/B"},
+                "B": {"type": "object"},
+            }
+        }
+    }
+
+    assert _resolve_openapi_ref(spec, "#/components/schemas/A") == {"type": "object"}
+
+
+def test_resolve_openapi_ref_circular() -> None:
+    """DoD 検証: W34 U-002 循環 $ref は例外なく最後に到達した dict を返す。"""
+    spec = {
+        "components": {
+            "schemas": {
+                "A": {"$ref": "#/components/schemas/B"},
+                "B": {"$ref": "#/components/schemas/A"},
+            }
+        }
+    }
+
+    assert _resolve_openapi_ref(spec, "#/components/schemas/A") == {"$ref": "#/components/schemas/A"}
+
+
+def test_resolve_openapi_ref_max_hops_exceeded() -> None:
+    """DoD 検証: W34 U-003 max_hops 超過時はその時点の dict で停止する。"""
+    spec = {
+        "components": {
+            "schemas": {
+                "A": {"$ref": "#/components/schemas/B"},
+                "B": {"type": "object"},
+            }
+        }
+    }
+
+    assert _resolve_openapi_ref(spec, "#/components/schemas/A", max_hops=1) == {
+        "$ref": "#/components/schemas/B"
+    }

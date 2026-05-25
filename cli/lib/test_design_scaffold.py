@@ -244,16 +244,41 @@ def _extract_openapi_parameter(parameter: dict[str, Any]) -> dict[str, Any] | No
     }
 
 
-def _resolve_openapi_ref(spec: dict[str, Any], ref_str: str) -> dict[str, Any]:
-    """Resolve a 1-hop local OpenAPI ref and return an object payload or empty dict."""
+def _resolve_openapi_ref(
+    spec: dict[str, Any],
+    ref_str: str,
+    *,
+    max_hops: int = 3,
+    visited: set[str] | None = None,
+) -> dict[str, Any]:
+    """Resolve a local OpenAPI ref up to max_hops and stop safely on cycles."""
     if not isinstance(ref_str, str) or not ref_str.startswith("#/"):
         return {}
+
     current: Any = spec
     for part in ref_str[2:].split("/"):
         if not isinstance(current, dict):
             return {}
         current = current.get(part)
-    return current if isinstance(current, dict) else {}
+    if not isinstance(current, dict):
+        return {}
+
+    if max_hops <= 1:
+        return current
+
+    raw_ref = current.get("$ref")
+    if not isinstance(raw_ref, str):
+        return current
+
+    seen = set() if visited is None else set(visited)
+    if raw_ref in seen:
+        return current
+
+    seen.add(ref_str)
+    resolved = _resolve_openapi_ref(spec, raw_ref, max_hops=max_hops - 1, visited=seen)
+    if not resolved:
+        return {}
+    return resolved
 
 
 def _resolve_openapi_schema(spec: dict[str, Any], schema: Any) -> dict[str, Any]:
