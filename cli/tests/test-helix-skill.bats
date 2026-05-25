@@ -113,3 +113,17 @@ PY
   run python3 -c 'import json, sys; payload = json.loads(sys.argv[1]); assert {"total", "valid", "invalid", "errors"} <= payload.keys()' "$output"
   [ "$status" -eq 0 ]
 }
+
+@test "W57: helix skill audit-layers runs without crash" {
+  run "$HELIX_ROOT/cli/helix" skill audit-layers
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"total_skills:"* ]]
+}
+
+@test "W57: helix skill audit-layers --json outputs valid JSON" {
+  run "$HELIX_ROOT/cli/helix" skill audit-layers --json
+  [ "$status" -eq 0 ]
+
+  run python3 -c 'import json, sys; p = json.loads(sys.argv[1]); assert {"total_skills", "with_helix_layer", "without_helix_layer", "distribution"} <= p.keys()' "$output"
+  [ "$status" -eq 0 ]
+}

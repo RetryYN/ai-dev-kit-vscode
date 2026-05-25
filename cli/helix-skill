@@ -1367,6 +1367,55 @@ main() {
       lint_skills "$as_json" "$skills_root"
       return $?
       ;;
+    audit-layers)
+      local as_json="false"
+      local skills_root="$SKILLS_ROOT"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --json) as_json="true"; shift ;;
+          --skills-root)
+            [[ $# -ge 2 ]] || { echo "エラー: --skills-root には値が必要です" >&2; return 64; }
+            skills_root="$2"; shift 2 ;;
+          --help|-h)
+            cat <<'AUSAGE'
+使い方: helix skill audit-layers [--json] [--skills-root PATH]
+
+skills/* SKILL.md frontmatter の helix_layer field を audit、distribution 集計レポート出力。
+
+Options:
+  --json              JSON 出力
+  --skills-root PATH  検査対象 skills root (デフォルト: HELIX_HOME/skills)
+AUSAGE
+            return 0 ;;
+          *) echo "エラー: 不明なオプションです: $1" >&2; return 64 ;;
+        esac
+      done
+      PYTHONPATH="$HELIX_HOME" python3 - "$skills_root" "$as_json" <<'PY'
+import json, sys
+from pathlib import Path
+from cli.lib.skill_helix_layer_audit import audit_skill_helix_layers
+
+skills_root = Path(sys.argv[1])
+as_json = sys.argv[2] == "true"
+result = audit_skill_helix_layers(skills_root)
+if as_json:
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+else:
+    print(f"total_skills: {result['total_skills']}")
+    print(f"with_helix_layer: {result['with_helix_layer']}")
+    print(f"without_helix_layer: {result['without_helix_layer']}")
+    print(f"invalid_helix_layer: {result['invalid_helix_layer']}")
+    print("distribution:")
+    for layer, count in sorted(result.get("distribution", {}).items()):
+        if count > 0:
+            print(f"  {layer}: {count}")
+    if result.get("invalid_examples"):
+        print("invalid_examples (first 3):")
+        for ex in result["invalid_examples"][:3]:
+            print(f"  - {ex.get('file', '?')}: helix_layer={ex.get('helix_layer_value', '?')}")
+PY
+      return $?
+      ;;
     search)
       if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
         search_usage
