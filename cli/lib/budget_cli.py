@@ -83,16 +83,67 @@ def _build_weekly_forecast(claude: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _build_json_payload(
+    result: dict[str, Any],
+    claude_forecast: dict[str, Any] | None,
+) -> dict[str, Any]:
+    payload = dict(result)
+    claude = dict(payload.get("claude", {}))
+    codex = dict(payload.get("codex", {}))
+    payload["summary"] = {
+        "claude": {
+            "source": claude.get("source", "?"),
+            "used_pct": claude.get("weekly_used_pct", 0),
+            "remaining": claude.get("weekly_remaining_pct", 100 - claude.get("weekly_used_pct", 0)),
+        },
+        "codex": {
+            "source": codex.get("source", "?"),
+            "used_pct": codex.get("weekly_used_pct", 0),
+            "remaining": 100 - codex.get("weekly_used_pct", 0),
+        },
+    }
+    payload["per_source_breakdown"] = {
+        "claude_weekly": {
+            "source": claude.get("source", "?"),
+            "used_pct": claude.get("weekly_used_pct", 0),
+            "remaining": claude.get("weekly_remaining_pct", 100 - claude.get("weekly_used_pct", 0)),
+        },
+        "codex_five_hour": {
+            "source": codex.get("source", "?"),
+            "used_pct": codex.get("five_hour_used_pct", 0),
+            "remaining": 100 - codex.get("five_hour_used_pct", 0),
+        },
+        "codex_weekly": {
+            "source": codex.get("source", "?"),
+            "used_pct": codex.get("weekly_used_pct", 0),
+            "remaining": 100 - codex.get("weekly_used_pct", 0),
+        },
+    }
+    if "block_remaining_minutes" in claude:
+        payload["per_source_breakdown"]["claude_block"] = {
+            "source": "ccusage blocks",
+            "used_pct": None,
+            "remaining": claude.get("block_remaining_minutes", 0),
+        }
+    if claude_forecast is not None:
+        claude["weekly_forecast"] = claude_forecast
+        payload["claude"] = claude
+        payload["forecast"] = claude_forecast
+    return payload
+
+
 def _print_status(result: dict[str, Any], as_json: bool, include_forecast: bool = False) -> None:
     claude_forecast = None
     if include_forecast:
         claude_forecast = _build_weekly_forecast(result.get("claude", {}))
     if as_json:
-        if claude_forecast is not None:
-            result = dict(result)
-            result["claude"] = dict(result.get("claude", {}))
-            result["claude"]["weekly_forecast"] = claude_forecast
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                _build_json_payload(result, claude_forecast),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return
     c = result.get("claude", {})
     x = result.get("codex", {})

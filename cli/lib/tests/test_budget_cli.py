@@ -207,3 +207,80 @@ def test_status_without_forecast_flag_omits_forecast() -> None:
         budget_cli._print_status(result, as_json=False, include_forecast=False)
 
     assert "forecast" not in buf.getvalue()
+
+
+def test_budget_cli_json_output() -> None:
+    result = {
+        "claude": {
+            "source": "ccusage",
+            "weekly_used_pct": 60,
+            "weekly_remaining_pct": 40,
+            "block_remaining_minutes": 180,
+        },
+        "codex": {
+            "source": "state.db",
+            "five_hour_used_pct": 25,
+            "weekly_used_pct": 70,
+        },
+        "recommendations": [],
+        "cached": False,
+    }
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=True, include_forecast=False)
+
+    payload = __import__("json").loads(buf.getvalue())
+    assert payload["summary"]["claude"] == {
+        "source": "ccusage",
+        "used_pct": 60,
+        "remaining": 40,
+    }
+    assert payload["summary"]["codex"] == {
+        "source": "state.db",
+        "used_pct": 70,
+        "remaining": 30,
+    }
+    assert payload["per_source_breakdown"]["claude_weekly"] == {
+        "source": "ccusage",
+        "used_pct": 60,
+        "remaining": 40,
+    }
+    assert payload["per_source_breakdown"]["codex_five_hour"] == {
+        "source": "state.db",
+        "used_pct": 25,
+        "remaining": 75,
+    }
+
+
+def test_budget_cli_json_with_forecast(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = {
+        "claude": {
+            "source": "ccusage",
+            "weekly_used_pct": 50,
+            "weekly_remaining_pct": 50,
+            "block_remaining_minutes": 120,
+        },
+        "codex": {
+            "source": "state.db",
+            "five_hour_used_pct": 20,
+            "weekly_used_pct": 35,
+        },
+        "recommendations": [],
+        "cached": False,
+    }
+    forecast = {
+        "projected_exhaustion_hours": 24.0,
+        "projected_exhaustion_date": "2026-05-25T00:00:00+00:00",
+        "rate_per_hour": 1.0,
+        "on_track": False,
+    }
+    monkeypatch.setattr(budget_cli, "_build_weekly_forecast", lambda _: forecast)
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=True, include_forecast=True)
+
+    payload = __import__("json").loads(buf.getvalue())
+    assert payload["forecast"] == forecast
+    assert payload["claude"]["weekly_forecast"] == forecast
