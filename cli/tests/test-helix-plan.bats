@@ -289,6 +289,29 @@ EOF
   [ "$status" -eq 0 ]
 }
 
+@test "helix plan show --path-only outputs absolute path" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-show-path-onlyplan.md" <<'EOF'
+---
+plan_id: L7-show-path-onlyplan
+title: "L7-show-path-onlyplan: show path"
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/helix-process/HELIX-process-L0-L14.md
+agent_slots: []
+generates: []
+---
+EOF
+
+  run "$HELIX_ROOT/cli/helix" plan show L7-show-path-onlyplan --path-only
+  [ "$status" -eq 0 ]
+  [[ "$output" == *.md ]]
+  [[ "$output" = /* ]]
+}
+
 @test "helix plan finalize rejects unapproved review" {
   "$HELIX_ROOT/cli/helix" plan draft --title "Finalize Guard" >/dev/null
 

@@ -32,7 +32,7 @@ Subcommands:
   status     プラン詳細を表示
              Options: --id <PLAN-NNN> [--frontmatter]
   show       PLAN markdown frontmatter を表示
-             Usage: helix plan show <plan-id-or-path> [--json]
+             Usage: helix plan show <plan-id-or-path> [--json|--path-only]
   health     docs/plans 配下の PLAN frontmatter 健全性を集計
              Options: [--json] [--plans-root PATH]
   deps       PLAN frontmatter の dependency chain を表示
@@ -56,6 +56,7 @@ Examples:
   helix plan status --id PLAN-091 --frontmatter
   helix plan show L7-helix-plan-show-subcommandplan
   helix plan show docs/plans/L7/L7-helix-plan-show-subcommandplan.md --json
+  helix plan show L7-helix-plan-show-subcommandplan --path-only
   helix plan health
   helix plan health --json --plans-root docs/plans/L7
   helix plan deps PLAN-091 --depth 2
@@ -113,11 +114,16 @@ cmd_health() {
 cmd_show() {
   local target=""
   local json=false
+  local path_only=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --json)
         json=true
+        shift
+        ;;
+      --path-only)
+        path_only=true
         shift
         ;;
       --help|-h)
@@ -144,7 +150,12 @@ cmd_show() {
     exit 1
   fi
 
-  python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$target" "$json"
+  if [[ "$json" == true && "$path_only" == true ]]; then
+    echo "エラー: --json と --path-only は同時に指定できません" >&2
+    exit 1
+  fi
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$target" "$json" "$path_only"
 import json
 import sys
 from datetime import date, datetime
@@ -156,6 +167,7 @@ lib_dir = Path(sys.argv[1])
 project_root = Path(sys.argv[2]).resolve()
 target = sys.argv[3]
 json_output = sys.argv[4] == "true"
+path_only = sys.argv[5] == "true"
 
 sys.path.insert(0, str(lib_dir))
 import plan_validator
@@ -171,17 +183,19 @@ def resolve_target(raw: str) -> Path:
             return project_candidate
 
     docs_root = project_root / "docs" / "plans"
-    exact_matches = sorted(docs_root.rglob(f"{raw}.md"))
-    if len(exact_matches) == 1:
-        return exact_matches[0]
-    if len(exact_matches) > 1:
-        raise ValueError(f"multiple plan markdown files found: {raw}")
 
-    slug_matches = sorted(docs_root.rglob(f"{raw}-*.md"))
-    if len(slug_matches) == 1:
-        return slug_matches[0]
-    if len(slug_matches) > 1:
-        raise ValueError(f"multiple plan markdown files found: {raw}")
+    def ensure_unique(matches):
+        if len(matches) == 1:
+            return matches[0].resolve()
+        if len(matches) > 1:
+            raise ValueError(f"multiple plan markdown files found: {raw}")
+        return None
+
+    for pattern in (f"{raw}.md", f"{raw}-*.md"):
+        match = ensure_unique(sorted(docs_root.rglob(pattern)))
+        if match is not None:
+            return match
+
     raise ValueError(f"plan markdown not found: {raw}")
 
 
@@ -197,6 +211,9 @@ def to_jsonable(value):
 
 try:
     plan_path = resolve_target(target)
+    if path_only:
+        print(plan_path)
+        raise SystemExit(0)
     frontmatter = plan_validator.load_frontmatter(plan_path)
     if not isinstance(frontmatter, dict):
         raise ValueError(f"frontmatter is not a mapping: {plan_path}")
