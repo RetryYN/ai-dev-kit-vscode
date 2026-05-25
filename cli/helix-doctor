@@ -934,6 +934,38 @@ PY
   WARN=$((WARN + 1))
 }
 
+check_plan_health() {
+  local report_json=""
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME:$HELIX_HOME/cli/lib" python3 - "$PROJECT_ROOT/docs/plans" <<'PY' 2>&1
+import json
+import sys
+from pathlib import Path
+
+from cli.lib.plan_health import scan_all_plans
+
+plans_root = Path(sys.argv[1])
+print(json.dumps(scan_all_plans(plans_root), ensure_ascii=False))
+PY
+)" || ! python3 -c 'import json,sys; json.loads(sys.stdin.read())' <<<"$report_json" >/dev/null 2>&1; then
+    echo "  △ check plan health: execution failed"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  local total_count invalid_count
+  total_count="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("total",0))' <<<"$report_json")"
+  invalid_count="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("invalid_frontmatter",0))' <<<"$report_json")"
+
+  if [[ "$invalid_count" == "0" ]]; then
+    echo "  ✓ check plan health: 0 invalid frontmatter (out of $total_count plans)"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check plan health: $invalid_count invalid frontmatter (out of $total_count plans)"
+  WARN=$((WARN + 1))
+}
+
 check_vmodel_pair_freeze() {
   local report_json
   if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_STALE_REVISIONS=$([[ "$APPLY_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_PATCHES=$([[ "$APPLY_PATCHES" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_ROLLBACK_STALE_REVISIONS=$([[ "$ROLLBACK_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_WRITES=$([[ "$APPLY_WRITES" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
@@ -1608,6 +1640,10 @@ check_skill_frontmatter
 echo ""
 echo "[skill helix_layer audit]"
 check_skill_helix_layer_audit
+
+echo ""
+echo "[plan health]"
+check_plan_health
 
 echo ""
 echo "[V-model pair freeze]"

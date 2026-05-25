@@ -40,6 +40,17 @@ teardown() {
   [[ "$output" == *"check skills/* frontmatter:"* ]]
 }
 
+@test "helix doctor includes plan health section" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"[plan health]"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[plan health]"* ]]
+  [[ "$output" == *"check plan health:"* ]]
+}
+
 @test "helix doctor includes vmodel pair freeze section" {
   run "$HELIX_ROOT/cli/helix-doctor"
   if [ "$status" -ne 0 ] || [[ "$output" != *"[V-model pair freeze]"* ]]; then
