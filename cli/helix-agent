@@ -12,6 +12,7 @@ usage() {
     '  stage1           Phase 1 (一般システム) の進行を更新する' \
     '  stage2           Phase 2 (agent) の進行を更新する' \
     '  merge            Phase 3 (L10-L14 合流) を開始する' \
+    '  layer            phase 内 layer (L1-L14) の進行を更新する' \
     '  route            現在 phase の HELIX route を表示する' \
     '  fire             slot を起動記録する内部 API' \
     '  release          slot を終了記録する内部 API' \
@@ -55,6 +56,11 @@ slots_usage() {
 stats_usage() {
   printf '%s\n' \
     'Usage: helix agent stats [--days 7] [--by hour|role|plan_id|agent_kind] [--json]'
+}
+
+layer_usage() {
+  printf '%s\n' \
+    'Usage: helix agent layer --phase <phase1|phase2|phase3> --layer <L1-L14> --status <entered|completed> [--json]'
 }
 
 _die() {
@@ -318,6 +324,45 @@ cmd_stats() {
   fi
 }
 
+cmd_layer() {
+  local phase=""
+  local layer=""
+  local status=""
+  local json_flag=0
+  local payload=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --phase) phase="${2:-}"; shift 2 ;;
+      --layer) layer="${2:-}"; shift 2 ;;
+      --status) status="${2:-}"; shift 2 ;;
+      --json) json_flag=1; shift ;;
+      --help|-h)
+        layer_usage
+        exit 0
+        ;;
+      *) _die "layer の不明なオプションです: $1" ;;
+    esac
+  done
+
+  [[ -n "$phase" ]] || _die "layer には --phase が必要です"
+  [[ -n "$layer" ]] || _die "layer には --layer が必要です"
+  [[ -n "$status" ]] || _die "layer には --status が必要です"
+
+  payload="$(
+    _py_filtered $'import json\nimport sys\nfrom cli.lib.agent_engine import AgentEngine, AgentEngineError\nengine = AgentEngine()\nadvance_layer = getattr(engine, "advance_layer", None)\nif advance_layer is None:\n    raise AgentEngineError("WAITING: W4-B advance_layer not yet available", 2)\nsession = advance_layer(phase=sys.argv[1], layer=sys.argv[2], status=sys.argv[3])\nphase_state = getattr(session, sys.argv[1])\nhistory = list(phase_state.get("layer_history") or [])\npayload = {\n    "status": "ok",\n    "phase": sys.argv[1],\n    "current_layer": phase_state.get("current_layer"),\n    "layer_history": history[-3:][::-1],\n}\nprint(json.dumps(payload, ensure_ascii=False))' \
+      "$phase" "$layer" "$status"
+  )"
+
+  if [[ "$json_flag" -eq 1 ]]; then
+    _print_json "$payload"
+    return 0
+  fi
+
+  _py $'import json\nimport sys\npayload = json.loads(sys.argv[1])\nprint(f"status: {payload[\"status\"]}")\nprint(f"phase: {payload[\"phase\"]}")\nprint(f"current_layer: {payload[\"current_layer\"]}")\nprint("layer_history (latest 3):")\nfor entry in payload["layer_history"]:\n    print(f"  {entry[\"layer\"]}: entered_at={entry.get(\"entered_at\")}, completed_at={entry.get(\"completed_at\")}")' \
+    "$payload"
+}
+
 cmd_fire_mandatory() {
   local phase=""
   local dry_run=""
@@ -417,6 +462,10 @@ main() {
     stats)
       shift || true
       cmd_stats "$@"
+      ;;
+    layer)
+      shift || true
+      cmd_layer "$@"
       ;;
     fire-mandatory)
       shift || true

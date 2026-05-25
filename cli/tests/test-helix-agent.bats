@@ -30,6 +30,13 @@ teardown() {
   rm -rf "$TMP_ROOT" 2>/dev/null || true
 }
 
+agent_layer_supported() {
+  python3 - <<'PY'
+from cli.lib.agent_engine import AgentEngine
+raise SystemExit(0 if hasattr(AgentEngine(), "advance_layer") else 1)
+PY
+}
+
 @test "helix agent help lists HELIX W subcommands" {
   run "$HELIX_ROOT/cli/helix-agent" --help
   [ "$status" -eq 0 ]
@@ -80,4 +87,39 @@ teardown() {
   run "$HELIX_ROOT/cli/helix" agent merge --plan-id L10-phase3-plan
   [ "$status" -ne 0 ]
   [[ "$output" == *"stage2"* ]]
+}
+
+@test "helix agent layer entered initializes current_layer" {
+  if ! agent_layer_supported; then
+    skip "HELIX-SKIP: W4-B advance_layer not yet available"
+  fi
+
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A1 --summary "test" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L1 --status entered
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"current_layer: L1"* ]] || [[ "$output" == *'"current_layer": "L1"'* ]]
+}
+
+@test "helix agent layer completed marks completed_at" {
+  if ! agent_layer_supported; then
+    skip "HELIX-SKIP: W4-B advance_layer not yet available"
+  fi
+
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A2 --summary "test" >/dev/null
+  "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L1 --status entered >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L1 --status completed
+  [ "$status" -eq 0 ]
+}
+
+@test "helix agent layer rejects invalid layer" {
+  if ! agent_layer_supported; then
+    skip "HELIX-SKIP: W4-B advance_layer not yet available"
+  fi
+
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A3 --summary "test" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L20 --status entered
+  [ "$status" -ne 0 ]
 }

@@ -87,4 +87,4 @@ scope 外:
 ## §11 carry
 
 - carry-1: route_engine から `drive=agent` を直接提案する接続は別 PLAN で扱う
-- carry-2: HELIX W 各 phase 内のより詳細な state 管理（L1-L9 粒度）は後続で拡張する
+- carry-2: resolved 2026-05-25 (L7-drive-agent-l1-l9-state-extplan で完遂、commit pending)

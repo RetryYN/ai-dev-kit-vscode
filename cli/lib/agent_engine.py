@@ -39,6 +39,13 @@ def _optional_text(value: Any) -> str | None:
     return text or None
 
 
+def _normalize_stage(payload: Any) -> dict[str, Any]:
+    stage = dict(payload or {})
+    stage.setdefault("current_layer", None)
+    stage.setdefault("layer_history", [])
+    return stage
+
+
 @dataclass(slots=True)
 class AgentSession:
     agent_id: str
@@ -64,9 +71,9 @@ class AgentSession:
             status=str(payload.get("status") or "initialized"),
             current_phase=str(payload.get("current_phase") or "phase1"),
             parent_design=str(payload.get("parent_design") or PARENT_DESIGN),
-            phase1=dict(payload.get("phase1") or {}),
-            phase2=dict(payload.get("phase2") or {}),
-            phase3=dict(payload.get("phase3") or {}),
+            phase1=_normalize_stage(payload.get("phase1")),
+            phase2=_normalize_stage(payload.get("phase2")),
+            phase3=_normalize_stage(payload.get("phase3")),
             warnings=[str(item) for item in payload.get("warnings") or []],
             timeline=[
                 {
@@ -131,6 +138,8 @@ class AgentEngine:
             "summary": None,
             "started_at": None,
             "completed_at": None,
+            "current_layer": None,
+            "layer_history": [],
         }
 
     def _write_session(self, session: AgentSession) -> None:
@@ -184,6 +193,55 @@ class AgentEngine:
 
     def _append_timeline(self, session: AgentSession, event: str, detail: str) -> None:
         session.timeline.append({"at": self._now_iso(), "event": event, "detail": detail})
+
+    def _validate_layer_phase(self, phase: str) -> str:
+        value = phase.strip()
+        if value not in {"phase1", "phase2", "phase3"}:
+            raise AgentEngineError(f"unsupported phase: {phase}", 2)
+        return value
+
+    def _validate_layer_name(self, phase: str, layer: str) -> str:
+        value = layer.strip()
+        allowed_layers = PHASE3_LAYERS if phase == "phase3" else PHASE1_LAYERS
+        if value not in allowed_layers:
+            raise AgentEngineError(f"unsupported layer: {layer}", 2)
+        return value
+
+    def _validate_layer_status(self, status: str) -> str:
+        value = status.strip()
+        if value not in {"entered", "completed"}:
+            raise AgentEngineError(f"unsupported layer status: {status}", 2)
+        return value
+
+    def advance_layer(self, *, phase: str, layer: str, status: str) -> AgentSession:
+        normalized_phase = self._validate_layer_phase(phase)
+        normalized_layer = self._validate_layer_name(normalized_phase, layer)
+        normalized_status = self._validate_layer_status(status)
+        session = self._require_session()
+        stage = getattr(session, normalized_phase)
+        history = stage.setdefault("layer_history", [])
+        now = self._now_iso()
+
+        if normalized_status == "entered":
+            if history and history[-1].get("completed_at") is None:
+                history[-1]["completed_at"] = now
+            stage["current_layer"] = normalized_layer
+            history.append(
+                {
+                    "layer": normalized_layer,
+                    "entered_at": now,
+                    "completed_at": None,
+                }
+            )
+        else:
+            if not history or history[-1].get("layer") != normalized_layer:
+                raise AgentEngineError("layer mismatch", 2)
+            history[-1]["completed_at"] = now
+
+        self._append_timeline(session, "layer", f"{normalized_phase} / {normalized_layer} / {normalized_status}")
+        self._write_session(session)
+        self._write_log(session)
+        return session
 
     def init_session(self, *, agent_id: str, summary: str, phase1_drive: str = "fullstack") -> AgentSession:
         normalized_agent_id = self._validate_agent_id(agent_id)

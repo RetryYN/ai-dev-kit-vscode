@@ -6,6 +6,7 @@ import importlib
 import io
 import py_compile
 from contextlib import redirect_stdout
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -45,6 +46,8 @@ def test_init_creates_current_state_and_log(tmp_path: Path, monkeypatch: pytest.
     assert session.agent_id == "AG-001"
     assert session.current_phase == "phase1"
     assert session.phase1["drive"] == "fullstack"
+    assert session.phase1["current_layer"] is None
+    assert session.phase1["layer_history"] == []
     assert (root / ".helix" / "agent" / "CURRENT.json").exists()
     assert (root / ".helix" / "agent" / "AG-001.md").exists()
 
@@ -115,3 +118,122 @@ def test_main_prints_phase3_route_guidance(tmp_path: Path, monkeypatch: pytest.M
     output = buffer.getvalue()
     assert "phase: phase3" in output
     assert "L10, L11, L12, L13, L14" in output
+
+
+def test_from_dict_defaults_layer_state_for_backward_compatibility() -> None:
+    """DoD 検証: 旧 payload から current_layer/layer_history を後方互換復元する。"""
+    module = _load_module()
+
+    session = module.AgentSession.from_dict(
+        {
+            "agent_id": "AG-006",
+            "summary": "legacy payload",
+            "phase1": {"label": "一般システム", "drive": "fullstack", "status": "pending"},
+            "phase2": {"label": "エージェント昇華", "drive": "agent", "status": "pending"},
+            "phase3": {"label": "L10-L14 合流", "drive": "agent", "status": "pending"},
+        }
+    )
+
+    assert session.phase1["current_layer"] is None
+    assert session.phase1["layer_history"] == []
+    assert session.phase2["current_layer"] is None
+    assert session.phase2["layer_history"] == []
+    assert session.phase3["current_layer"] is None
+    assert session.phase3["layer_history"] == []
+
+
+def test_route_with_explicit_phase3_uses_phase3_layers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: phase 指定 route は phase3 layer 定義を返す。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-007", summary="explicit phase3 route")
+
+    route = engine.route_current("phase3")
+
+    assert route["phase"] == "phase3"
+    assert route["layers"] == ["L10", "L11", "L12", "L13", "L14"]
+
+
+def test_route_rejects_invalid_phase(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: route は不正 phase 指定を reject する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-008", summary="invalid phase")
+
+    with pytest.raises(module.AgentEngineError, match="unsupported phase"):
+        engine.route_current("phase9")
+
+
+def test_advance_layer_entered_initializes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: layer entered で current_layer と履歴を初期化する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-009", summary="layer init")
+
+    session = engine.advance_layer(phase="phase1", layer="L1", status="entered")
+
+    entry = session.phase1["layer_history"][0]
+    assert session.phase1["current_layer"] == "L1"
+    assert entry["layer"] == "L1"
+    assert entry["completed_at"] is None
+    assert datetime.fromisoformat(entry["entered_at"])
+
+
+def test_advance_layer_entered_auto_completes_previous(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: 新 layer entered 時に直前未完了 entry を自動完了する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-010", summary="layer rollover")
+    engine.advance_layer(phase="phase1", layer="L1", status="entered")
+
+    session = engine.advance_layer(phase="phase1", layer="L2", status="entered")
+
+    first, second = session.phase1["layer_history"]
+    assert session.phase1["current_layer"] == "L2"
+    assert first["layer"] == "L1"
+    assert datetime.fromisoformat(first["completed_at"])
+    assert second["layer"] == "L2"
+    assert second["completed_at"] is None
+
+
+def test_advance_layer_completed_marks_current(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: layer completed で最新 entry に completed_at を設定する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-011", summary="complete layer")
+    engine.advance_layer(phase="phase1", layer="L1", status="entered")
+
+    session = engine.advance_layer(phase="phase1", layer="L1", status="completed")
+
+    entry = session.phase1["layer_history"][-1]
+    assert session.phase1["current_layer"] == "L1"
+    assert entry["layer"] == "L1"
+    assert datetime.fromisoformat(entry["completed_at"])
+
+
+def test_advance_layer_rejects_invalid_layer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: phase に対応しない layer は exit_code=2 で reject する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-012", summary="invalid layer")
+
+    with pytest.raises(module.AgentEngineError, match="unsupported layer"):
+        engine.advance_layer(phase="phase1", layer="L20", status="entered")
+
+
+def test_advance_layer_rejects_completed_mismatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: completed 対象が最新 entry と不一致なら fail-close。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-013", summary="mismatch complete")
+    engine.advance_layer(phase="phase1", layer="L1", status="entered")
+
+    with pytest.raises(module.AgentEngineError, match="layer mismatch"):
+        engine.advance_layer(phase="phase1", layer="L2", status="completed")
