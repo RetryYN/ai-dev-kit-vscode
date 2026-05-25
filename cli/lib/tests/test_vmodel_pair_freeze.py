@@ -230,3 +230,46 @@ def test_check_pair_freeze_since_days_field_in_result(tmp_path) -> None:
 
     assert "since_days" in result
     assert result["since_days"] == 30
+
+
+def test_check_pair_freeze_stale_count_when_since_days_set(tmp_path) -> None:
+    """DoD 検証: W19 U-001 since_days 指定時は期間外 PLAN 数を stale_count に集計する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L7-old-plan.md").write_text(
+        "---\nrevised: 2000-01-01\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+    today = date.today().isoformat()
+    (pair_dir / "L7-new-plan.md").write_text(
+        f"---\nrevised: {today}\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+
+    result = check_pair_freeze("L6", project_root=tmp_path, since_days=30)
+
+    assert result["status"] == "ok"
+    assert result["stale_count"] == 1
+
+
+def test_check_pair_freeze_stale_count_zero_when_since_days_none(tmp_path) -> None:
+    """DoD 検証: W19 U-002 since_days=None では stale_count=0。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L7-old-plan.md").write_text(
+        "---\nrevised: 2000-01-01\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+
+    result = check_pair_freeze("L6", project_root=tmp_path)
+
+    assert result["status"] == "ok"
+    assert result["stale_count"] == 0
+
+
+def test_check_pair_freeze_stale_count_field_in_result(tmp_path) -> None:
+    """DoD 検証: W19 U-003 result に stale_count field を含む。"""
+    result = check_pair_freeze("L0", project_root=tmp_path, since_days=30)
+
+    assert "stale_count" in result
+    assert result["stale_count"] == 0

@@ -104,3 +104,20 @@ teardown() {
   [[ "$output" == *"[V-model pair freeze]"* ]]
   [[ "$output" == *"(since 30d)"* ]]
 }
+
+@test "helix doctor --vmodel-pair-freeze-since-days shows stale count" {
+  local stale_plan="$HELIX_ROOT/docs/plans/L7/L7-bats-stale-temporaryplan.md"
+
+  mkdir -p "$(dirname "$stale_plan")"
+  trap 'rm -f "$stale_plan"' RETURN
+  printf -- "---\nplan_id: L7-bats-stale-temporaryplan\ntitle: temp\nrevised: 2000-01-01\nstatus: draft\n---\n" > "$stale_plan"
+
+  run "$HELIX_ROOT/cli/helix-doctor" --vmodel-pair-freeze-since-days 30
+  if [ "$status" -ne 0 ] || [[ "$output" != *"stale (older than 30d):"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"stale (older than 30d):"* ]]
+}

@@ -127,6 +127,16 @@ def _filter_recent_plans(plan_paths: list[Path], since_days: int) -> list[Path]:
     return filtered
 
 
+def _count_stale_plans(plan_paths: list[Path], since_days: int) -> int:
+    cutoff = date.today() - timedelta(days=since_days)
+    stale_count = 0
+    for plan_path in plan_paths:
+        resolved = _resolve_plan_date(plan_path)
+        if resolved is not None and resolved < cutoff:
+            stale_count += 1
+    return stale_count
+
+
 def _empty_status_breakdown() -> dict[str, int]:
     return {key: 0 for key in STATUS_BREAKDOWN_KEYS}
 
@@ -161,6 +171,7 @@ def check_pair_freeze(
             "severity": severity,
             "active_only": active_only,
             "since_days": since_days,
+            "stale_count": 0,
             "status_breakdown": {},
             "pair_doc_exists": False,
             "pair_doc_path": None,
@@ -174,7 +185,9 @@ def check_pair_freeze(
     matches = sorted(pair_dir.glob(pattern)) if pair_dir.is_dir() else []
     if active_only:
         matches = _filter_active_plans(matches)
+    stale_count = 0
     if since_days is not None:
+        stale_count = _count_stale_plans(matches, since_days)
         matches = _filter_recent_plans(matches, since_days)
     status_breakdown = _build_status_breakdown(matches)
     pair_doc = matches[0] if matches else None
@@ -186,6 +199,7 @@ def check_pair_freeze(
             "severity": severity,
             "active_only": active_only,
             "since_days": since_days,
+            "stale_count": stale_count,
             "status_breakdown": status_breakdown,
             "pair_doc_exists": True,
             "pair_doc_path": str(pair_doc),
@@ -199,6 +213,7 @@ def check_pair_freeze(
         "severity": severity,
         "active_only": active_only,
         "since_days": since_days,
+        "stale_count": stale_count,
         "status_breakdown": status_breakdown,
         "pair_doc_exists": False,
         "pair_doc_path": None,

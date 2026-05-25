@@ -768,11 +768,15 @@ results = [
 missing = [row for row in results if row.get("status") == "pair_missing"]
 summary = {"critical": 0, "warning": 0, "info": 0}
 status_breakdown = {"draft": 0, "in_progress": 0, "completed": 0, "superseded": 0, "other": 0}
+stale_count = 0
 for row in missing:
     severity = row.get("severity")
     if severity in summary:
         summary[severity] += 1
 for row in results:
+    row_stale_count = row.get("stale_count", 0)
+    if isinstance(row_stale_count, int):
+        stale_count += row_stale_count
     row_breakdown = row.get("status_breakdown") or {}
     for key in status_breakdown:
         value = row_breakdown.get(key, 0)
@@ -786,6 +790,7 @@ print(
             "missing_count": len(missing),
             "missing": missing,
             "summary": summary,
+            "stale_count": stale_count,
             "status_breakdown": status_breakdown,
         },
         ensure_ascii=False,
@@ -818,10 +823,19 @@ PY
   if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" != true ]]; then
     status_breakdown_line="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; b=json.load(sys.stdin)["status_breakdown"]; print("draft=%s in_progress=%s completed=%s superseded=%s other=%s" % (b["draft"], b["in_progress"], b["completed"], b["superseded"], b["other"]))' 2>/dev/null || true)"
   fi
+  local stale_count="0"
+  if [[ -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" ]]; then
+    stale_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("stale_count", 0))' 2>/dev/null || echo "0")"
+  fi
+  local stale_line=""
+  if [[ -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" && "$stale_count" != "0" ]]; then
+    stale_line="  stale (older than ${VMODEL_PAIR_FREEZE_SINCE_DAYS}d): ${stale_count} PLANs"
+  fi
 
   if [[ "$missing_count" == "0" ]]; then
     echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0$marker"
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
+    [[ -n "$stale_line" ]] && echo "$stale_line"
     PASS=$((PASS + 1))
     return
   fi
@@ -829,6 +843,7 @@ PY
   if [[ "$STRICT_VMODEL_PAIR_FREEZE" == true && "$critical_count" -gt 0 ]]; then
     echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker (strict mode)"
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
+    [[ -n "$stale_line" ]] && echo "$stale_line"
     FAIL=$((FAIL + 1))
     WARN=$((WARN + warning_count + info_count))
     return
@@ -836,6 +851,7 @@ PY
 
   echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker"
   [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
+  [[ -n "$stale_line" ]] && echo "$stale_line"
   WARN=$((WARN + missing_count))
 }
 
