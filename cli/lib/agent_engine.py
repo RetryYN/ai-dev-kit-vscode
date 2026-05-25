@@ -17,8 +17,13 @@ from typing import Any
 
 try:
     from .paths import project_root as detect_project_root
+    from .vmodel_pair_freeze import check_pair_freeze
 except ImportError:  # pragma: no cover
     from paths import project_root as detect_project_root
+    try:
+        from cli.lib.vmodel_pair_freeze import check_pair_freeze
+    except ImportError:
+        from vmodel_pair_freeze import check_pair_freeze
 
 
 PHASE1_DRIVES = ("be", "fe", "db", "fullstack")
@@ -283,6 +288,21 @@ class AgentEngine:
             history[-1]["completed_at"] = now
 
         self._append_timeline(session, "layer", f"{normalized_phase} / {normalized_layer} / {normalized_status}")
+        if normalized_status == "entered":
+            result = check_pair_freeze(normalized_layer, project_root=self.project_root)
+            if result.get("status") == "pair_missing":
+                warning = (
+                    "vmodel pair freeze missing: "
+                    f"layer={normalized_layer}, "
+                    f"expected_pair={result['pair']}, "
+                    f"severity={result['severity']}"
+                )
+                session.warnings.append(warning)
+                self._append_timeline(
+                    session,
+                    "vmodel_pair_warning",
+                    f"pair_missing: layer={normalized_layer}, severity={result['severity']}",
+                )
         self._write_session(session)
         self._write_log(session)
         return session

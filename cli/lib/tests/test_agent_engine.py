@@ -44,6 +44,14 @@ def _phase_payload(label: str, drive: str) -> dict[str, object]:
     }
 
 
+def _write_plan(root: Path, layer: str, slug: str) -> Path:
+    plan_dir = root / "docs" / "plans" / layer
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    plan_path = plan_dir / f"{layer}-{slug}plan.md"
+    plan_path.write_text(f"# {layer} {slug}\n", encoding="utf-8")
+    return plan_path
+
+
 def test_module_py_compile() -> None:
     """DoD 検証: agent_engine.py が py_compile を通る。"""
     py_compile.compile(str(MODULE_PATH), doraise=True)
@@ -253,13 +261,57 @@ def test_advance_layer_rejects_completed_mismatch(tmp_path: Path, monkeypatch: p
         engine.advance_layer(phase="phase1", layer="L2", status="completed")
 
 
+def test_advance_layer_emits_pair_warning_when_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: L7-advance-layer-pair-check-connectplan.md U-001 pair_missing は warning/timeline を追加する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    _write_plan(root, "L4", "design")
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-014", summary="pair missing warning")
+
+    session = engine.advance_layer(phase="phase1", layer="L4", status="entered")
+
+    assert any("vmodel pair freeze missing: layer=L4" in warning for warning in session.warnings)
+    assert session.timeline[-1]["event"] == "vmodel_pair_warning"
+    assert "pair_missing: layer=L4" in session.timeline[-1]["detail"]
+
+
+def test_advance_layer_no_warning_when_pair_exists(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: L7-advance-layer-pair-check-connectplan.md U-002 pair 存在時は warning を増やさない。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    _write_plan(root, "L4", "design")
+    _write_plan(root, "L9", "system-test")
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-015", summary="pair exists")
+
+    session = engine.advance_layer(phase="phase1", layer="L4", status="entered")
+
+    assert not any("vmodel pair freeze" in warning for warning in session.warnings)
+    assert session.timeline[-1]["event"] == "layer"
+
+
+def test_advance_layer_no_warning_for_no_pair_layer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: L7-advance-layer-pair-check-connectplan.md U-003 pair なし layer は通常進行する。"""
+    module = _load_module()
+    root = _project_root(tmp_path, monkeypatch)
+    engine = module.AgentEngine(project_root=root)
+    engine.init_session(agent_id="AG-016", summary="no pair layer")
+
+    session = engine.advance_layer(phase="phase3", layer="L11", status="entered")
+
+    assert session.phase3["current_layer"] == "L11"
+    assert not any("vmodel pair freeze" in warning for warning in session.warnings)
+    assert session.timeline[-1]["event"] == "layer"
+
+
 def test_init_session_sets_active_phases(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """DoD 検証: init_session 後に active_phases は phase1 で初期化される。"""
     module = _load_module()
     root = _project_root(tmp_path, monkeypatch)
     engine = module.AgentEngine(project_root=root)
 
-    session = engine.init_session(agent_id="AG-014", summary="active phases init")
+    session = engine.init_session(agent_id="AG-017", summary="active phases init")
 
     assert session.active_phases == ["phase1"]
     assert session.current_phase == "phase1"
@@ -270,7 +322,7 @@ def test_start_phase_adds_to_active(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     module = _load_module()
     root = _project_root(tmp_path, monkeypatch)
     engine = module.AgentEngine(project_root=root)
-    engine.init_session(agent_id="AG-015", summary="start phase")
+    engine.init_session(agent_id="AG-018", summary="start phase")
 
     session = engine.start_phase(phase="phase2")
 
@@ -283,7 +335,7 @@ def test_pause_phase_removes_from_active(tmp_path: Path, monkeypatch: pytest.Mon
     module = _load_module()
     root = _project_root(tmp_path, monkeypatch)
     engine = module.AgentEngine(project_root=root)
-    engine.init_session(agent_id="AG-016", summary="pause phase")
+    engine.init_session(agent_id="AG-019", summary="pause phase")
     engine.start_phase(phase="phase2")
 
     session = engine.pause_phase(phase="phase1")
@@ -296,7 +348,7 @@ def test_resume_phase_re_adds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     module = _load_module()
     root = _project_root(tmp_path, monkeypatch)
     engine = module.AgentEngine(project_root=root)
-    engine.init_session(agent_id="AG-017", summary="resume phase")
+    engine.init_session(agent_id="AG-020", summary="resume phase")
     engine.start_phase(phase="phase2")
     engine.pause_phase(phase="phase1")
 
@@ -310,7 +362,7 @@ def test_start_phase_rejects_invalid(tmp_path: Path, monkeypatch: pytest.MonkeyP
     module = _load_module()
     root = _project_root(tmp_path, monkeypatch)
     engine = module.AgentEngine(project_root=root)
-    engine.init_session(agent_id="AG-018", summary="invalid start phase")
+    engine.init_session(agent_id="AG-021", summary="invalid start phase")
 
     with pytest.raises(module.AgentEngineError, match="unsupported phase") as exc_info:
         engine.start_phase(phase="phase99")
