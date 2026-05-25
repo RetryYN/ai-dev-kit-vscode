@@ -39,6 +39,8 @@ ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}
 ALLOWED_STATUS_UPDATE = {"in_progress", "blocked", "ready_for_review"}
 SHA40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 HANDOVER_LOCK_NAME = "handover-current"
+EVENT_TIMESTAMP_RE = re.compile(r"^### \[([^\]]+)\]")
+LABEL_TIMESTAMP_RE = re.compile(r"^Timestamp:\s+(.+)$")
 
 
 class HandoverError(Exception):
@@ -79,6 +81,78 @@ def load_json(path):
 def dump_json(path, payload):
     ensure_dir(path.parent)
     write_text(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
+def _load_updated_at_from_json(path):
+    try:
+        payload = json.loads(read_text(path))
+    except (OSError, json.JSONDecodeError):
+        return None
+    value = payload.get("updated_at")
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def _load_updated_at_from_markdown(path):
+    try:
+        lines = read_text(path).splitlines()
+    except OSError:
+        return None
+
+    last_timestamp = None
+    for line in lines:
+        match = EVENT_TIMESTAMP_RE.match(line) or LABEL_TIMESTAMP_RE.match(line)
+        if match:
+            last_timestamp = match.group(1).strip()
+    return last_timestamp
+
+
+def _parse_iso_datetime(raw):
+    if not raw:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
+    return parsed
+
+
+def check_handover_staleness(*, project_root, stale_threshold_hours=24):
+    """Return time-based handover freshness based on CURRENT updated_at."""
+
+    handover_dir = Path(project_root) / ".helix" / "handover"
+    current_json = handover_dir / "CURRENT.json"
+    current_md = handover_dir / "CURRENT.md"
+
+    updated_at_raw = None
+    if current_json.exists():
+        updated_at_raw = _load_updated_at_from_json(current_json)
+    elif current_md.exists():
+        updated_at_raw = _load_updated_at_from_markdown(current_md)
+    else:
+        return {
+            "status": "no_handover",
+            "updated_at": None,
+            "hours_since_update": None,
+        }
+
+    updated_at = _parse_iso_datetime(updated_at_raw)
+    if updated_at is None:
+        return {
+            "status": "stale",
+            "updated_at": updated_at_raw,
+            "hours_since_update": None,
+        }
+
+    now = datetime.datetime.now().astimezone()
+    hours_since_update = (now - updated_at).total_seconds() / 3600
+    status = "stale" if hours_since_update > stale_threshold_hours else "fresh"
+    return {
+        "status": status,
+        "updated_at": updated_at.isoformat(),
+        "hours_since_update": hours_since_update,
+    }
 
 
 def normalize_list_value(raw):
@@ -704,6 +778,10 @@ def cmd_dump(args):
 
 def build_status_payload(state, args, stale, stale_reasons):
     files = state.get("files", {})
+    time_based_stale = check_handover_staleness(
+        project_root=args.project_root,
+        stale_threshold_hours=int(os.environ.get("HELIX_HANDOVER_STALE_HOURS", "24")),
+    )
     return {
         "exists": True,
         "schema_version": state.get("schema_version"),
@@ -719,6 +797,7 @@ def build_status_payload(state, args, stale, stale_reasons):
         "git": state.get("git"),
         "stale": stale,
         "stale_reasons": stale_reasons,
+        "time_based_stale": time_based_stale,
         "files": {
             "completed_count": len(files.get("completed", [])),
             "pending_count": len(files.get("pending", [])),
@@ -754,6 +833,7 @@ def cmd_status(args):
     print(f"owner: {state['owner']}")
     print(f"revision: {state['revision']}")
     print(f"stale: {str(stale).lower()}")
+    print(f"time_based_stale: {payload['time_based_stale']['status']}")
     if reasons:
         print("stale_reasons: " + ",".join(reasons))
     if args.full:
