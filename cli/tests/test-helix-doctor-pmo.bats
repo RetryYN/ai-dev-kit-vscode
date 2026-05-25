@@ -23,3 +23,14 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"✓ pmo role consistency"* ]]
 }
+
+@test "helix doctor includes vmodel pair freeze section" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"[V-model pair freeze]"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"check vmodel pair freeze:"* ]]
+}

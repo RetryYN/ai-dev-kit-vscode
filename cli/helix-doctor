@@ -719,6 +719,40 @@ check_vmodel_4artifact() {
   PASS=$((PASS + 1))
 }
 
+check_vmodel_pair_freeze() {
+  local report_json
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+import json
+import sys
+from pathlib import Path
+
+from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze
+
+root = Path(sys.argv[1])
+results = [check_pair_freeze(layer, project_root=root) for layer in sorted(VMODEL_PAIRS)]
+missing = [row for row in results if row.get("status") == "pair_missing"]
+print(json.dumps({"missing_count": len(missing), "missing": missing}, ensure_ascii=False))
+PY
+)"; then
+    echo "  △ check vmodel pair freeze: execution failed"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  local missing_count
+  missing_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["missing_count"])' 2>/dev/null || echo "0")"
+
+  if [[ "$missing_count" == "0" ]]; then
+    echo "  ✓ check vmodel pair freeze: 0 missing pair docs"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check vmodel pair freeze: $missing_count missing pair docs"
+  WARN=$((WARN + missing_count))
+}
+
 check_design_doc_reference_sections() {
   local output=""
   local status=0
@@ -1145,6 +1179,10 @@ echo ""
 echo "[V-model 4 artifact]"
 check_vmodel_4artifact
 check_design_doc_reference_sections
+
+echo ""
+echo "[V-model pair freeze]"
+check_vmodel_pair_freeze
 
 echo ""
 echo "[PLAN registry advisory]"
