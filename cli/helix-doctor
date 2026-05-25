@@ -5,7 +5,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -16,6 +16,8 @@ STRICT_VMODEL_PAIR_FREEZE=false
 VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
 VMODEL_PAIR_FREEZE_SINCE_DAYS=""
 SUGGEST_REVISIONS=false
+APPLY_STALE_REVISIONS=false
+APPLY_WRITES=false
 FORWARDED_ARGS=()
 
 show_usage() {
@@ -74,6 +76,14 @@ while [[ $# -gt 0 ]]; do
       SUGGEST_REVISIONS=true
       FORWARDED_ARGS+=("$1")
       ;;
+    --apply-stale-revisions)
+      APPLY_STALE_REVISIONS=true
+      FORWARDED_ARGS+=("$1")
+      ;;
+    --apply)
+      APPLY_WRITES=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --help|-h)
       show_usage
       echo ""
@@ -84,6 +94,8 @@ while [[ $# -gt 0 ]]; do
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
       echo "--suggest-revisions を付けると stale PLAN に対する revised 更新候補 hint を表示します。"
+      echo "--apply-stale-revisions を付けると stale PLAN revised 更新の dry-run または apply を実行します。"
+      echo "--apply を併用すると --apply-stale-revisions の結果を実 file に反映します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
@@ -750,19 +762,26 @@ check_vmodel_4artifact() {
 
 check_vmodel_pair_freeze() {
   local report_json
-  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_STALE_REVISIONS=$([[ "$APPLY_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_WRITES=$([[ "$APPLY_WRITES" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
 import json
 import os
 import sys
 from pathlib import Path
 
-from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze, suggest_stale_revisions
+from cli.lib.vmodel_pair_freeze import (
+    VMODEL_PAIRS,
+    apply_stale_revisions,
+    check_pair_freeze,
+    suggest_stale_revisions,
+)
 
 root = Path(sys.argv[1])
 active_only = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY") == "1"
 since_days_raw = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS", "")
 since_days = int(since_days_raw) if since_days_raw else None
 suggest_revisions_enabled = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS") == "1"
+apply_stale_revisions_enabled = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_APPLY_STALE_REVISIONS") == "1"
+apply_writes = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_APPLY_WRITES") == "1"
 results = [
     check_pair_freeze(
         layer,
@@ -777,7 +796,9 @@ summary = {"critical": 0, "warning": 0, "info": 0}
 status_breakdown = {"draft": 0, "in_progress": 0, "completed": 0, "superseded": 0, "other": 0}
 stale_count = 0
 suggestions = []
-seen_plan_paths = set()
+applied_results = []
+seen_suggestion_plan_paths = set()
+seen_applied_plan_paths = set()
 for row in missing:
     severity = row.get("severity")
     if severity in summary:
@@ -795,10 +816,23 @@ if suggest_revisions_enabled and since_days is not None:
     for layer in sorted(VMODEL_PAIRS):
         for suggestion in suggest_stale_revisions(layer, project_root=root, since_days=since_days):
             plan_path = suggestion.get("plan_path")
-            if not isinstance(plan_path, str) or plan_path in seen_plan_paths:
+            if not isinstance(plan_path, str) or plan_path in seen_suggestion_plan_paths:
                 continue
-            seen_plan_paths.add(plan_path)
+            seen_suggestion_plan_paths.add(plan_path)
             suggestions.append(suggestion)
+if apply_stale_revisions_enabled and since_days is not None:
+    for layer in sorted(VMODEL_PAIRS):
+        for result in apply_stale_revisions(
+            layer,
+            project_root=root,
+            since_days=since_days,
+            dry_run=not apply_writes,
+        ):
+            plan_path = result.get("plan_path")
+            if not isinstance(plan_path, str) or plan_path in seen_applied_plan_paths:
+                continue
+            seen_applied_plan_paths.add(plan_path)
+            applied_results.append(result)
 print(
     json.dumps(
         {
@@ -810,6 +844,7 @@ print(
             "stale_count": stale_count,
             "status_breakdown": status_breakdown,
             "suggestions": suggestions,
+            "applied_results": applied_results,
         },
         ensure_ascii=False,
     )
@@ -857,12 +892,23 @@ PY
       suggest_line="  suggest revisions (example): helix-test-design-scaffold --layer L4 --apply"
     fi
   fi
+  local apply_line=""
+  if [[ "$APPLY_STALE_REVISIONS" == true && -n "$VMODEL_PAIR_FREEZE_SINCE_DAYS" ]]; then
+    local apply_count="0"
+    apply_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("applied_results", [])))' 2>/dev/null || echo "0")"
+    if [[ "$APPLY_WRITES" == true ]]; then
+      apply_line="  apply stale revisions (applied): ${apply_count} PLANs"
+    else
+      apply_line="  apply stale revisions (dry-run): ${apply_count} PLANs"
+    fi
+  fi
 
   if [[ "$missing_count" == "0" ]]; then
     echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0$marker"
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     [[ -n "$stale_line" ]] && echo "$stale_line"
     [[ -n "$suggest_line" ]] && echo "$suggest_line"
+    [[ -n "$apply_line" ]] && echo "$apply_line"
     PASS=$((PASS + 1))
     return
   fi
@@ -872,6 +918,7 @@ PY
     [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
     [[ -n "$stale_line" ]] && echo "$stale_line"
     [[ -n "$suggest_line" ]] && echo "$suggest_line"
+    [[ -n "$apply_line" ]] && echo "$apply_line"
     FAIL=$((FAIL + 1))
     WARN=$((WARN + warning_count + info_count))
     return
@@ -881,6 +928,7 @@ PY
   [[ -n "$status_breakdown_line" ]] && echo "  status breakdown: $status_breakdown_line"
   [[ -n "$stale_line" ]] && echo "$stale_line"
   [[ -n "$suggest_line" ]] && echo "$suggest_line"
+  [[ -n "$apply_line" ]] && echo "$apply_line"
   WARN=$((WARN + missing_count))
 }
 

@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from cli.lib.vmodel_pair_freeze import (
     VMODEL_PAIRS,
+    apply_stale_revisions,
     check_pair_freeze,
     get_pair,
     suggest_stale_revisions,
@@ -318,5 +319,59 @@ def test_suggest_stale_revisions_skips_recent(tmp_path) -> None:
 def test_suggest_stale_revisions_returns_empty_when_no_pair(tmp_path) -> None:
     """DoD 検証: W29 U-003 pair を持たない layer は空 list を返す。"""
     result = suggest_stale_revisions("L0", project_root=tmp_path, since_days=30)
+
+    assert result == []
+
+
+def test_apply_stale_revisions_dry_run(tmp_path) -> None:
+    """DoD 検証: W35 U-001 dry_run は候補だけ返し frontmatter を更新しない。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    plan_path = pair_dir / "L9-old-plan.md"
+    original = "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\nstatus: draft\n---\n"
+    plan_path.write_text(original, encoding="utf-8")
+
+    result = apply_stale_revisions("L4", project_root=tmp_path, since_days=30, dry_run=True)
+
+    assert result == [
+        {
+            "plan_id": "L9-old-plan",
+            "plan_path": str(plan_path),
+            "status": "dry_run",
+            "new_revised": date.today().isoformat(),
+        }
+    ]
+    assert plan_path.read_text(encoding="utf-8") == original
+
+
+def test_apply_stale_revisions_writes_when_not_dry_run(tmp_path) -> None:
+    """DoD 検証: W35 U-002 dry_run=False は revised を当日に更新する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    plan_path = pair_dir / "L9-old-plan.md"
+    plan_path.write_text(
+        "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\nstatus: draft\n---\nbody\n",
+        encoding="utf-8",
+    )
+
+    result = apply_stale_revisions("L4", project_root=tmp_path, since_days=30, dry_run=False)
+
+    assert result == [
+        {
+            "plan_id": "L9-old-plan",
+            "plan_path": str(plan_path),
+            "status": "updated",
+            "new_revised": date.today().isoformat(),
+        }
+    ]
+    updated_text = plan_path.read_text(encoding="utf-8")
+    assert f"revised: {date.today().isoformat()}" in updated_text
+    assert "status: draft" in updated_text
+    assert updated_text.endswith("---\nbody\n")
+
+
+def test_apply_stale_revisions_returns_empty_when_no_pair(tmp_path) -> None:
+    """DoD 検証: W35 U-003 pair を持たない layer は空 list を返す。"""
+    result = apply_stale_revisions("L0", project_root=tmp_path, since_days=30, dry_run=False)
 
     assert result == []

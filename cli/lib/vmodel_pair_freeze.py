@@ -122,6 +122,31 @@ def _stringify_frontmatter_date(value: Any) -> str | None:
     return resolved.isoformat() if resolved is not None else None
 
 
+def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str) -> None:
+    lines = plan_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("frontmatter missing")
+
+    end_index: int | None = None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_index = index
+            break
+    if end_index is None:
+        raise ValueError("frontmatter unterminated")
+
+    revised_pattern = re.compile(r"^(\s*revised\s*:\s*).*$")
+    for index in range(1, end_index):
+        match = revised_pattern.match(lines[index])
+        if match:
+            lines[index] = f"{match.group(1)}{new_revised}\n"
+            break
+    else:
+        lines.insert(end_index, f"revised: {new_revised}\n")
+
+    plan_path.write_text("".join(lines), encoding="utf-8")
+
+
 def _resolve_pair_plan_paths(layer: str, project_root: Path | None = None) -> tuple[str | None, list[Path]]:
     pair = get_pair(layer)
     if pair is None:
@@ -202,6 +227,44 @@ def suggest_stale_revisions(
             }
         )
     return suggestions
+
+
+def apply_stale_revisions(
+    layer: str,
+    *,
+    project_root: Path,
+    since_days: int = 30,
+    dry_run: bool = True,
+) -> list[dict[str, str]]:
+    """Apply or preview revised date updates for stale pair plans."""
+    suggestions = suggest_stale_revisions(layer, project_root=project_root, since_days=since_days)
+    new_revised = date.today().isoformat()
+    results: list[dict[str, str]] = []
+
+    for suggestion in suggestions:
+        plan_path = suggestion.get("plan_path")
+        plan_id = suggestion.get("plan_id")
+        if not isinstance(plan_path, str) or not isinstance(plan_id, str):
+            continue
+
+        result = {
+            "plan_id": plan_id,
+            "plan_path": plan_path,
+            "status": "dry_run" if dry_run else "updated",
+            "new_revised": new_revised,
+        }
+        if dry_run:
+            results.append(result)
+            continue
+
+        try:
+            _rewrite_frontmatter_revised(Path(plan_path), new_revised)
+        except (OSError, ValueError) as exc:
+            result["status"] = "skipped"
+            result["reason"] = str(exc)
+        results.append(result)
+
+    return results
 
 
 def check_pair_freeze(

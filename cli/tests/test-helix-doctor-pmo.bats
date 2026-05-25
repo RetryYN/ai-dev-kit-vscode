@@ -139,3 +139,21 @@ teardown() {
   [[ "$output" == *"stale (older than 30d):"* ]]
   [[ "$output" == *"suggest revisions (example):"* ]]
 }
+
+@test "helix doctor --apply-stale-revisions dry-run output" {
+  local stale_plan="$HELIX_ROOT/docs/plans/L9/L9-bats-apply-stale-temporaryplan.md"
+
+  mkdir -p "$(dirname "$stale_plan")"
+  trap 'rm -f "$stale_plan"' RETURN
+  printf -- "---\nplan_id: L9-bats-apply-stale-temporaryplan\ntitle: temp\nrevised: 2000-01-01\nstatus: draft\n---\n" > "$stale_plan"
+
+  run "$HELIX_ROOT/cli/helix" doctor --vmodel-pair-freeze-since-days 30 --apply-stale-revisions
+  if [ "$status" -ne 0 ] || [[ "$output" != *"apply stale revisions (dry-run):"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"stale (older than 30d):"* ]]
+  [[ "$output" == *"apply stale revisions (dry-run):"* ]]
+}
