@@ -298,6 +298,56 @@ def test_auto_detect_paired_design_weighted_selects_best(tmp_path) -> None:
     assert detected == "docs/plans/L9/L9-b-both-match-plan.md"
 
 
+def test_auto_detect_paired_design_custom_weight(tmp_path) -> None:
+    """DoD 検証: W28 U-001 custom weight で kind 優先候補を選べる。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-status-match-plan.md").write_text(
+        "---\nstatus: draft\nkind: impl\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-kind-match-plan.md").write_text(
+        "---\nstatus: completed\nkind: design\n---\n",
+        encoding="utf-8",
+    )
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        prefer_status="draft",
+        prefer_kind="design",
+        weighted=True,
+        status_weight=1,
+        kind_weight=3,
+    )
+
+    assert detected == "docs/plans/L9/L9-kind-match-plan.md"
+
+
+def test_auto_detect_paired_design_default_weight_uses_status_priority(tmp_path) -> None:
+    """DoD 検証: W28 U-002 default weight は status 優先を維持する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-status-match-plan.md").write_text(
+        "---\nstatus: draft\nkind: impl\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-kind-match-plan.md").write_text(
+        "---\nstatus: completed\nkind: design\n---\n",
+        encoding="utf-8",
+    )
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        prefer_status="draft",
+        prefer_kind="design",
+        weighted=True,
+    )
+
+    assert detected == "docs/plans/L9/L9-status-match-plan.md"
+
+
 def test_extract_function_signatures_finds_python_def(tmp_path) -> None:
     """DoD 検証: W21 U-001 paired design doc から Python def を抽出する。"""
     paired_design = tmp_path / "paired-design.md"

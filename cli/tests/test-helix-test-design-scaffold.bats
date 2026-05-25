@@ -143,3 +143,31 @@ EOF
   [[ "$output" == *"paired_design_doc"* ]]
   [[ "$output" == *"L9-design-plan.md"* ]]
 }
+
+@test "helix-test-design-scaffold respects --status-weight + --kind-weight" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L9"
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-status-match-plan.md" <<'EOF'
+---
+title: Status Match
+status: draft
+kind: impl
+---
+EOF
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-kind-match-plan.md" <<'EOF'
+---
+title: Kind Match
+status: completed
+kind: design
+---
+EOF
+
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4 \
+    --weighted \
+    --status-weight 3 \
+    --kind-weight 1
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"paired_design_doc"* ]]
+  [[ "$output" == *"L9-status-match-plan.md"* ]]
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -479,6 +480,13 @@ def score_paired_design(
     return score
 
 
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return parsed
+
+
 def auto_detect_paired_design(
     layer: str,
     *,
@@ -486,6 +494,8 @@ def auto_detect_paired_design(
     prefer_status: str | None = "draft",
     prefer_kind: str | None = None,
     weighted: bool = False,
+    status_weight: int = 2,
+    kind_weight: int = 1,
 ) -> str | None:
     """
     Return the preferred pair PLAN path relative to project_root, if one exists.
@@ -510,6 +520,8 @@ def auto_detect_paired_design(
                 metadata,
                 prefer_status=prefer_status,
                 prefer_kind=prefer_kind,
+                status_weight=status_weight,
+                kind_weight=kind_weight,
             )
             if score > best_score:
                 best_match = match
@@ -668,6 +680,9 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("design", "impl", "poc", "none"),
         default="none",
     )
+    parser.add_argument("--weighted", action="store_true")
+    parser.add_argument("--status-weight", type=_positive_int, default=2)
+    parser.add_argument("--kind-weight", type=_positive_int, default=1)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
@@ -676,7 +691,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    cli_args = argv if argv is not None else None
+    args = parser.parse_args(cli_args)
+    raw_args = cli_args if cli_args is not None else sys.argv[1:]
+    weights_specified = "--status-weight" in raw_args or "--kind-weight" in raw_args
+    if weights_specified and not args.weighted:
+        parser.error("--status-weight/--kind-weight require --weighted")
     project_root = resolve_project_root()
     prefer_status = None if args.prefer_status == "none" else args.prefer_status
     prefer_kind = None if args.prefer_kind == "none" else args.prefer_kind
@@ -685,6 +705,9 @@ def main(argv: list[str] | None = None) -> int:
         project_root=project_root,
         prefer_status=prefer_status,
         prefer_kind=prefer_kind,
+        weighted=args.weighted,
+        status_weight=args.status_weight,
+        kind_weight=args.kind_weight,
     )
 
     if paired_design is None:
