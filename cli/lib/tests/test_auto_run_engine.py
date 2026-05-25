@@ -97,3 +97,47 @@ def test_stop_marks_state_stopped(tmp_path: Path) -> None:
 
     assert payload["status"] == "stopped"
     assert payload["resume"]["resume_ready"] is False
+
+
+def test_start_with_until_iso(tmp_path: Path) -> None:
+    """DoD 検証: L7-auto-run-poc-session-cleanerplan start accepts ISO until."""
+    engine = auto_run_engine.AutoRunEngine(project_root=tmp_path)
+
+    payload = engine.start(plan_id="X", until="2099-01-01T00:00:00+09:00")
+
+    assert payload["budget"]["source"] == "until"
+    assert payload["budget"]["deadline_at"] == "2099-01-01T00:00:00+09:00"
+
+
+def test_start_with_until_hhmm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DoD 検証: L7-auto-run-poc-session-cleanerplan start accepts HH:MM until."""
+    engine = auto_run_engine.AutoRunEngine(project_root=tmp_path)
+    fixed_now = auto_run_engine._parse_iso("2099-01-01T12:00:00+09:00")
+    monkeypatch.setattr(auto_run_engine, "_now", lambda: fixed_now)
+
+    payload = engine.start(plan_id="X", until="23:59")
+
+    assert payload["budget"]["source"] == "until"
+    assert payload["budget"]["remaining_minutes"] > 0
+
+
+def test_start_with_both_args_raises(tmp_path: Path) -> None:
+    """DoD 検証: L7-auto-run-poc-session-cleanerplan rejects mutually exclusive args."""
+    engine = auto_run_engine.AutoRunEngine(project_root=tmp_path)
+
+    with pytest.raises(auto_run_engine.AutoRunError, match="mutually exclusive"):
+        engine.start(plan_id="X", duration_minutes=30, until="20:00")
+
+
+def test_session_control_initialized(tmp_path: Path) -> None:
+    """DoD 検証: L7-auto-run-poc-session-cleanerplan initializes session_control."""
+    engine = auto_run_engine.AutoRunEngine(project_root=tmp_path)
+
+    payload = engine.start(plan_id="X")
+
+    assert payload["session_control"] == {
+        "mode": "dry_run",
+        "status": "idle",
+        "last_restart_at": None,
+        "restart_count": 0,
+    }

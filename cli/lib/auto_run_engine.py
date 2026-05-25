@@ -8,6 +8,7 @@ import argparse
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 from copy import deepcopy
@@ -86,6 +87,7 @@ class AutoRunEngine:
         window = _ensure_dict(state.get("budget_window") or {}, label="budget_window")
         deadline_at = str(window.get("deadline_at") or "").strip()
         duration_minutes = int(window.get("duration_minutes") or 0)
+        source = str(window.get("source") or "duration").strip() or "duration"
         if not deadline_at:
             raise AutoRunError("budget_window.deadline_at is missing")
         remaining = _remaining_minutes(deadline_at)
@@ -93,9 +95,42 @@ class AutoRunEngine:
         return {
             "duration_minutes": duration_minutes,
             "deadline_at": deadline_at,
+            "source": source,
             "remaining_minutes": remaining,
             "within_time_window": within_window,
         }
+
+    def _resolve_deadline(self, *, duration_minutes: int | None, until: str | None) -> tuple[int, datetime, str]:
+        if duration_minutes is not None and until is not None:
+            raise AutoRunError("--until and --duration-minutes are mutually exclusive")
+        if until is not None:
+            raw = until.strip()
+            deadline_at = self._parse_until(raw)
+            duration = max(1, math.ceil((deadline_at - _now()).total_seconds() / 60))
+            return duration, deadline_at, "until"
+        effective_duration = DEFAULT_DURATION_MINUTES if duration_minutes is None else duration_minutes
+        if effective_duration <= 0:
+            raise AutoRunError("--duration-minutes must be > 0")
+        deadline_at = _now() + timedelta(minutes=effective_duration)
+        return effective_duration, deadline_at, "duration"
+
+    def _parse_until(self, raw: str) -> datetime:
+        now = _now()
+        if re.fullmatch(r"\d{2}:\d{2}", raw):
+            hour, minute = (int(part) for part in raw.split(":", 1))
+            if hour > 23 or minute > 59:
+                raise AutoRunError(f"invalid --until: {raw}")
+            deadline = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if deadline <= now:
+                deadline += timedelta(days=1)
+            return deadline
+        try:
+            parsed = datetime.fromisoformat(raw)
+        except ValueError as exc:
+            raise AutoRunError(f"invalid --until: {raw}") from exc
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=now.tzinfo)
+        return parsed
 
     def _run_heartbeat_scheduler(self, *, within_time_window: bool) -> dict[str, Any]:
         if not self.heartbeat_scheduler.exists():
@@ -154,15 +189,22 @@ class AutoRunEngine:
         payload["resume"] = self._build_resume_snapshot(payload, budget, heartbeat)
         return payload
 
-    def start(self, *, plan_id: str, duration_minutes: int = DEFAULT_DURATION_MINUTES) -> dict[str, Any]:
+    def start(
+        self,
+        *,
+        plan_id: str,
+        duration_minutes: int | None = None,
+        until: str | None = None,
+    ) -> dict[str, Any]:
         plan_id = plan_id.strip()
         if not plan_id:
             raise AutoRunError("--plan-id is required")
-        if duration_minutes <= 0:
-            raise AutoRunError("--duration-minutes must be > 0")
 
         started_at = _now()
-        deadline_at = started_at + timedelta(minutes=duration_minutes)
+        effective_duration, deadline_at, source = self._resolve_deadline(
+            duration_minutes=duration_minutes,
+            until=until,
+        )
         state = {
             "version": STATE_VERSION,
             "status": "running",
@@ -173,8 +215,9 @@ class AutoRunEngine:
                 "resume_target": "handover_next_action",
             },
             "budget_window": {
-                "duration_minutes": duration_minutes,
+                "duration_minutes": effective_duration,
                 "deadline_at": deadline_at.isoformat(timespec="seconds"),
+                "source": source,
             },
             "heartbeat": {
                 "checked_at": None,
@@ -186,6 +229,12 @@ class AutoRunEngine:
             "integrations": {
                 "compaction_api": "pending_next_phase",
                 "schedulewakeup_hook": "out_of_scope_this_task",
+            },
+            "session_control": {
+                "mode": "dry_run",
+                "status": "idle",
+                "last_restart_at": None,
+                "restart_count": 0,
             },
         }
         self._save_state(state)
@@ -203,6 +252,7 @@ class AutoRunEngine:
             state["budget_window"] = {
                 "duration_minutes": set_minutes,
                 "deadline_at": deadline_at.isoformat(timespec="seconds"),
+                "source": "duration",
             }
             state["updated_at"] = _now_iso()
             self._save_state(state)
@@ -269,7 +319,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_start = sub.add_parser("start")
     p_start.add_argument("--plan-id", required=True)
-    p_start.add_argument("--duration-minutes", type=int, default=DEFAULT_DURATION_MINUTES)
+    p_start.add_argument("--duration-minutes", type=int, default=None)
+    p_start.add_argument("--until")
     p_start.add_argument("--json", action="store_true")
 
     p_status = sub.add_parser("status")
@@ -301,6 +352,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = engine.start(
                 plan_id=args.plan_id,
                 duration_minutes=args.duration_minutes,
+                until=args.until,
             )
         elif args.subcmd == "status":
             payload = engine.status()
