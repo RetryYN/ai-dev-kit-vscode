@@ -26,10 +26,34 @@ teardown() {
   run "$HELIX_ROOT/cli/helix" plan --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"draft"* ]]
+  [[ "$output" == *"health"* ]]
   [[ "$output" == *"review"* ]]
   [[ "$output" == *"finalize"* ]]
   [[ "$output" == *"reset"* ]]
   [[ "$output" == *"status"* ]]
+}
+
+@test "helix plan health runs without crash" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-health-check-plan.md" <<'EOF'
+---
+plan_id: L7-health-check-plan
+title: Health Check
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/helix-process/HELIX-process-L0-L14.md
+---
+
+## body
+EOF
+
+  run "$HELIX_ROOT/cli/helix" plan health
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Total Plans: 1"* ]]
+  [[ "$output" == *"Invalid Frontmatter: 0"* ]]
 }
 
 @test "helix plan list reports empty state" {

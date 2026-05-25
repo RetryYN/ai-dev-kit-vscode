@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
-# Usage: helix plan <draft|review|finalize|reset|list|status|lint|import|deps|generates> [options]
+# Usage: helix plan <draft|review|finalize|reset|list|status|health|lint|import|deps|generates> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PLAN_CMDS_DIR="$SCRIPT_DIR/helix-plan-cmds"
@@ -31,6 +31,8 @@ Subcommands:
   list       プラン一覧を表示
   status     プラン詳細を表示
              Options: --id <PLAN-NNN> [--frontmatter]
+  health     docs/plans 配下の PLAN frontmatter 健全性を集計
+             Options: [--json] [--plans-root PATH]
   deps       PLAN frontmatter の dependency chain を表示
              Usage: helix plan deps <PLAN-NNN> [--depth <N>] [--json]
   generates  PLAN frontmatter の生成物を表示 / 逆引き
@@ -50,6 +52,8 @@ Examples:
   helix plan list
   helix plan status --id PLAN-001
   helix plan status --id PLAN-091 --frontmatter
+  helix plan health
+  helix plan health --json --plans-root docs/plans/L7
   helix plan deps PLAN-091 --depth 2
   helix plan generates PLAN-091
   helix plan generates --reverse cli/lib/plan_validator.py
@@ -71,6 +75,36 @@ source "$PLAN_CMDS_DIR/deps.sh"
 source "$PLAN_CMDS_DIR/generates.sh"
 source "$PLAN_CMDS_DIR/lint.sh"
 source "$PLAN_CMDS_DIR/import.sh"
+
+cmd_health() {
+  local args=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      --json)
+        args+=("$1")
+        shift
+        ;;
+      --plans-root)
+        if [[ $# -lt 2 ]]; then
+          echo "エラー: --plans-root には値が必要です" >&2
+          exit 1
+        fi
+        args+=("$1" "$2")
+        shift 2
+        ;;
+      *)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  python3 "$SCRIPT_DIR/lib/plan_health.py" "${args[@]}"
+}
 
 review_output_path_for_reviewer() {
   local plan_id="$1"
@@ -648,6 +682,7 @@ case "$CMD" in
   reset) cmd_reset "$@" ;;
   list) cmd_list "$@" ;;
   status) cmd_status "$@" ;;
+  health) cmd_health "$@" ;;
   deps) cmd_deps "$@" ;;
   generates) cmd_generates "$@" ;;
   lint) cmd_lint "$@" ;;
