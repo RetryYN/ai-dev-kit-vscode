@@ -53,6 +53,33 @@ def test_check_pair_freeze_status_pair_missing(tmp_path) -> None:
     assert "L7-*plan.md" in result["hint"]
 
 
+def test_check_pair_freeze_severity_critical(tmp_path) -> None:
+    """DoD 検証: W7-C U-001 L4 の pair_missing は critical。"""
+    result = check_pair_freeze("L4", project_root=tmp_path)
+
+    assert result["status"] == "pair_missing"
+    assert result["severity"] == "critical"
+
+
+def test_check_pair_freeze_severity_warning(tmp_path) -> None:
+    """DoD 検証: W7-C U-002 L2 の pair_missing は warning。"""
+    result = check_pair_freeze("L2", project_root=tmp_path)
+
+    assert result["status"] == "pair_missing"
+    assert result["severity"] == "warning"
+
+
+def test_check_pair_freeze_severity_info(tmp_path) -> None:
+    """DoD 検証: W7-C U-003 L7 の pair_missing は info。"""
+    orphan_root = tmp_path / "empty"
+    orphan_root.mkdir()
+
+    result = check_pair_freeze("L7", project_root=orphan_root)
+
+    assert result["status"] == "pair_missing"
+    assert result["severity"] == "info"
+
+
 def test_check_pair_freeze_status_no_pair(tmp_path) -> None:
     """DoD 検証: W6-B U-005 pair 非対象 layer は status=no_pair。"""
     result = check_pair_freeze("L0", project_root=tmp_path)

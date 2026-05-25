@@ -5,13 +5,14 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
 SUBCOMMAND=""
 MAX_AGE_DAYS=30
 JSON_OUTPUT=false
+STRICT_VMODEL_PAIR_FREEZE=false
 FORWARDED_ARGS=()
 
 show_usage() {
@@ -49,12 +50,17 @@ while [[ $# -gt 0 ]]; do
     --json)
       JSON_OUTPUT=true
       ;;
+    --strict-vmodel-pair-freeze)
+      STRICT_VMODEL_PAIR_FREEZE=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --help|-h)
       show_usage
       echo ""
       echo "環境と .helix/ の整合性をチェックします。"
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
+      echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
@@ -731,7 +737,12 @@ from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze
 root = Path(sys.argv[1])
 results = [check_pair_freeze(layer, project_root=root) for layer in sorted(VMODEL_PAIRS)]
 missing = [row for row in results if row.get("status") == "pair_missing"]
-print(json.dumps({"missing_count": len(missing), "missing": missing}, ensure_ascii=False))
+summary = {"critical": 0, "warning": 0, "info": 0}
+for row in missing:
+    severity = row.get("severity")
+    if severity in summary:
+        summary[severity] += 1
+print(json.dumps({"missing_count": len(missing), "missing": missing, "summary": summary}, ensure_ascii=False))
 PY
 )"; then
     echo "  △ check vmodel pair freeze: execution failed"
@@ -742,14 +753,27 @@ PY
 
   local missing_count
   missing_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["missing_count"])' 2>/dev/null || echo "0")"
+  local critical_count
+  critical_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["critical"])' 2>/dev/null || echo "0")"
+  local warning_count
+  warning_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["warning"])' 2>/dev/null || echo "0")"
+  local info_count
+  info_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["info"])' 2>/dev/null || echo "0")"
 
   if [[ "$missing_count" == "0" ]]; then
-    echo "  ✓ check vmodel pair freeze: 0 missing pair docs"
+    echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0"
     PASS=$((PASS + 1))
     return
   fi
 
-  echo "  △ check vmodel pair freeze: $missing_count missing pair docs"
+  if [[ "$STRICT_VMODEL_PAIR_FREEZE" == true && "$critical_count" -gt 0 ]]; then
+    echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count (strict mode)"
+    FAIL=$((FAIL + 1))
+    WARN=$((WARN + warning_count + info_count))
+    return
+  fi
+
+  echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count"
   WARN=$((WARN + missing_count))
 }
 

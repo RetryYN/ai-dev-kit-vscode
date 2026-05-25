@@ -34,3 +34,36 @@ teardown() {
   [[ "$output" == *"[V-model pair freeze]"* ]]
   [[ "$output" == *"check vmodel pair freeze:"* ]]
 }
+
+@test "helix doctor strict mode fails on critical missing" {
+  run "$HELIX_ROOT/cli/helix-doctor" --strict-vmodel-pair-freeze
+  if [ "$status" -ne 1 ] || [[ "$output" != *"critical:"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"critical:"* ]]
+}
+
+@test "helix doctor strict mode passes when no critical missing" {
+  local l9_plan="$HELIX_ROOT/docs/plans/L9/L9-bats-temporaryplan.md"
+  local l12_plan="$HELIX_ROOT/docs/plans/L12/L12-bats-temporaryplan.md"
+  local l14_plan="$HELIX_ROOT/docs/plans/L14/L14-bats-temporaryplan.md"
+
+  mkdir -p "$(dirname "$l9_plan")" "$(dirname "$l12_plan")" "$(dirname "$l14_plan")"
+  trap 'rm -f "$l9_plan" "$l12_plan" "$l14_plan"' RETURN
+
+  printf -- "---\nplan_id: L9-bats-temporaryplan\ntitle: temp\n---\n" > "$l9_plan"
+  printf -- "---\nplan_id: L12-bats-temporaryplan\ntitle: temp\n---\n" > "$l12_plan"
+  printf -- "---\nplan_id: L14-bats-temporaryplan\ntitle: temp\n---\n" > "$l14_plan"
+
+  run "$HELIX_ROOT/cli/helix-doctor" --strict-vmodel-pair-freeze
+  if [ "$status" -ne 0 ] || [[ "$output" != *"critical:0"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"critical:0"* ]]
+}

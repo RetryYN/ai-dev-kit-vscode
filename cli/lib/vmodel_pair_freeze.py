@@ -21,19 +21,36 @@ VMODEL_PAIRS = {
     "L14": "L1",
 }
 
+CRITICAL_LAYERS = {"L1", "L3", "L4", "L6"}
+WARNING_LAYERS = {"L2", "L5"}
+INFO_LAYERS = {"L7", "L8", "L9", "L10", "L12", "L14"}
+
 
 def get_pair(layer: str) -> str | None:
     """L1-L14 のうち pair を返す。L0/L11/L13 は None。"""
     return VMODEL_PAIRS.get(layer)
 
 
+def get_severity(layer: str) -> str | None:
+    """Return configured severity for a paired layer."""
+    if layer in CRITICAL_LAYERS:
+        return "critical"
+    if layer in WARNING_LAYERS:
+        return "warning"
+    if layer in INFO_LAYERS:
+        return "info"
+    return None
+
+
 def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[str, Any]:
     """Return V-model pair freeze status for one layer."""
     pair = get_pair(layer)
+    severity = get_severity(layer)
     if pair is None:
         return {
             "layer": layer,
             "pair": None,
+            "severity": severity,
             "pair_doc_exists": False,
             "pair_doc_path": None,
             "status": "no_pair",
@@ -50,6 +67,7 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
         return {
             "layer": layer,
             "pair": pair,
+            "severity": severity,
             "pair_doc_exists": True,
             "pair_doc_path": str(pair_doc),
             "status": "ok",
@@ -59,6 +77,7 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
     return {
         "layer": layer,
         "pair": pair,
+        "severity": severity,
         "pair_doc_exists": False,
         "pair_doc_path": None,
         "status": "pair_missing",
