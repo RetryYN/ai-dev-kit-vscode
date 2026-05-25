@@ -211,9 +211,10 @@ def extract_api_endpoints(paired_design_path: Path, *, max_count: int = 5) -> li
     return endpoints
 
 
-def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, str]]:
+def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, Any]]:
     """
-    Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str}]
+    Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str,
+               'parameters': list[str], 'responses': list[str], 'request_body': str}]
     spec_path 不在 or parse error → 空 list
     """
     if not spec_path.exists() or max_count <= 0:
@@ -236,10 +237,11 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
     if not isinstance(raw_paths, dict):
         return []
 
-    endpoints: list[dict[str, str]] = []
+    endpoints: list[dict[str, Any]] = []
     for path, methods in raw_paths.items():
         if not isinstance(path, str) or not isinstance(methods, dict):
             continue
+        path_level_parameters = methods.get("parameters")
         for method_name, operation in methods.items():
             if not isinstance(method_name, str):
                 continue
@@ -247,11 +249,50 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
             if normalized_method not in {"GET", "POST", "PUT", "DELETE", "PATCH"}:
                 continue
             summary = ""
+            parameter_names: list[str] = []
+            responses: list[str] = []
+            request_body = ""
             if isinstance(operation, dict):
                 raw_summary = operation.get("summary")
                 if isinstance(raw_summary, str):
                     summary = raw_summary.strip()
-            endpoints.append({"method": normalized_method, "path": path, "summary": summary})
+                raw_parameters = operation.get("parameters")
+                combined_parameters = []
+                if isinstance(path_level_parameters, list):
+                    combined_parameters.extend(path_level_parameters)
+                if isinstance(raw_parameters, list):
+                    combined_parameters.extend(raw_parameters)
+                for parameter in combined_parameters:
+                    if not isinstance(parameter, dict):
+                        continue
+                    raw_name = parameter.get("name")
+                    if isinstance(raw_name, str):
+                        name = raw_name.strip()
+                        if name and name not in parameter_names:
+                            parameter_names.append(name)
+
+                raw_responses = operation.get("responses")
+                if isinstance(raw_responses, dict):
+                    for status_code in raw_responses:
+                        responses.append(str(status_code))
+
+                raw_request_body = operation.get("requestBody")
+                if isinstance(raw_request_body, dict):
+                    raw_description = raw_request_body.get("description")
+                    if isinstance(raw_description, str) and raw_description.strip():
+                        request_body = raw_description.strip()
+                    else:
+                        request_body = "present"
+            endpoints.append(
+                {
+                    "method": normalized_method,
+                    "path": path,
+                    "summary": summary,
+                    "parameters": parameter_names,
+                    "responses": responses,
+                    "request_body": request_body,
+                }
+            )
             if len(endpoints) >= max_count:
                 return endpoints
 
@@ -324,6 +365,15 @@ def _test_cases_body(
             summary = endpoint.get("summary", "").strip()
             if summary:
                 quote_lines.append(f"> summary: {summary}")
+            parameters = endpoint.get("parameters", [])
+            if parameters:
+                quote_lines.append(f"> parameters: {', '.join(parameters)}")
+            responses = endpoint.get("responses", [])
+            if responses:
+                quote_lines.append(f"> responses: {', '.join(responses)}")
+            request_body = endpoint.get("request_body", "").strip()
+            if request_body:
+                quote_lines.append(f"> request_body: {request_body}")
             blocks.append(
                 "\n".join(
                     [

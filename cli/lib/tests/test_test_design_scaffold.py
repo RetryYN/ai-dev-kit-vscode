@@ -472,7 +472,78 @@ paths:
 
     endpoints = extract_openapi_endpoints(spec_path)
 
-    assert endpoints == [{"method": "GET", "path": "/api/users", "summary": "List users"}]
+    assert endpoints == [
+        {
+            "method": "GET",
+            "path": "/api/users",
+            "summary": "List users",
+            "parameters": [],
+            "responses": [],
+            "request_body": "",
+        }
+    ]
+
+
+def test_extract_openapi_endpoints_includes_parameters(tmp_path) -> None:
+    """DoD 検証: W30 U-001 OpenAPI parameters の name 一覧を抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+        - name: verbose
+          in: query
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["parameters"] == ["id", "verbose"]
+
+
+def test_extract_openapi_endpoints_includes_responses(tmp_path) -> None:
+    """DoD 検証: W30 U-002 OpenAPI responses の status code 一覧を抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      responses:
+        '200': {}
+        '400': {}
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["responses"] == ["200", "400"]
+
+
+def test_extract_openapi_endpoints_handles_missing_detail(tmp_path) -> None:
+    """DoD 検証: W30 U-003 details 不在時は空 collection と空文字を返す。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users:
+    get:
+      summary: List users
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["parameters"] == []
+    assert endpoints[0]["responses"] == []
+    assert endpoints[0]["request_body"] == ""
 
 
 def test_extract_openapi_endpoints_handles_missing_file(tmp_path) -> None:
@@ -493,6 +564,14 @@ paths:
   /api/users/{id}:
     get:
       summary: Get user
+      parameters:
+        - name: id
+          in: path
+      requestBody:
+        description: User payload
+      responses:
+        '200': {}
+        '404': {}
 """,
         encoding="utf-8",
     )
@@ -502,3 +581,6 @@ paths:
     assert "### TC-OPENAPI-001: `GET /api/users/{id}`" in skeleton
     assert "> endpoint: `GET /api/users/{id}`" in skeleton
     assert "> summary: Get user" in skeleton
+    assert "> parameters: id" in skeleton
+    assert "> responses: 200, 404" in skeleton
+    assert "> request_body: User payload" in skeleton
