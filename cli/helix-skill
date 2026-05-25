@@ -54,7 +54,7 @@ usage() {
 
 Subcommands:
   list [--layer LAYER] [--category CAT] [--json]  スキル一覧表示
-  show <skill-id> [--with-content]                スキル詳細表示
+  show <skill-id> [--json] [--with-content]       SKILL.md frontmatter 表示
   lint [--json] [--skills-root PATH]              SKILL.md frontmatter を検証
   catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
                                                    catalog を再生成
@@ -988,71 +988,58 @@ PY
 
 show_skill() {
   local skill_id="$1"
-  local with_content="$2"
+  local as_json="$2"
+  local with_content="$3"
 
-  ensure_catalog || return 2
-
-  python3 - "$CATALOG_PY" "$CACHE_PATH" "$skill_id" "$with_content" "$SKILLS_ROOT" <<'PY'
+  python3 - "$LIB_DIR" "$skill_id" "$as_json" "$with_content" "$SKILLS_ROOT" <<'PY'
+import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(sys.argv[1]).parent))
+sys.path.insert(0, str(Path(sys.argv[1])))
 import skill_catalog  # type: ignore
 
-cache_path = Path(sys.argv[2])
-skill_id = sys.argv[3]
+skill_id = sys.argv[2].strip()
+as_json = sys.argv[3] == "true"
 with_content = sys.argv[4] == "true"
-skills_root = Path(sys.argv[5])
+skills_root = Path(sys.argv[5]).resolve()
 
-catalog = skill_catalog.load_catalog(cache_path)
-skill = skill_catalog.find_skill(catalog, skill_id)
-if skill is None:
+def resolve_skill_file(root: Path, target: str) -> Path | None:
+    direct = root / target / "SKILL.md"
+    if "/" in target and direct.exists():
+        return direct
+    candidate_paths = sorted(root.glob(f"*/{target}/SKILL.md"))
+    if len(candidate_paths) == 1:
+        return candidate_paths[0]
+    return None
+
+skill_file = resolve_skill_file(skills_root, skill_id)
+if skill_file is None:
     print(f"エラー: スキルが見つかりません: {skill_id}", file=sys.stderr)
-    raise SystemExit(2)
+    raise SystemExit(1)
 
-print(f"id: {skill.get('id', '')}")
-print(f"name: {skill.get('name', '')}")
-print(f"category: {skill.get('category', '')}")
-print(f"helix_layer: {skill.get('helix_layer', '')}")
-print(f"path: {skill.get('path', '')}")
-print(f"description: {skill.get('description', '')}")
-print(f"compatibility: claude={skill.get('compatibility', {}).get('claude', False)} codex={skill.get('compatibility', {}).get('codex', False)}")
-commands = skill.get("commands") if isinstance(skill.get("commands"), list) else []
-commands = [str(command).strip() for command in commands if str(command).strip()]
-print(f"commands: {' | '.join(commands) if commands else 'なし'}")
+raw_text = skill_file.read_text(encoding="utf-8")
+frontmatter = skill_catalog._extract_frontmatter(raw_text)
+if not isinstance(frontmatter, dict):
+    print(f"エラー: frontmatter を解析できません: {skill_file}", file=sys.stderr)
+    raise SystemExit(1)
 
-triggers = skill.get("triggers", [])
-print("triggers:")
-for trig in triggers:
-    print(f"  - {trig}")
+lines = raw_text.splitlines()
+end = next((idx for idx in range(1, len(lines)) if lines[idx].strip() == "---"), None)
+frontmatter_text = "\n".join(lines[: end + 1]) if end is not None else "---\n---"
 
-verification = skill.get("verification", [])
-print("verification:")
-for check in verification:
-    print(f"  - {check}")
+if as_json:
+    payload = dict(frontmatter)
+    if with_content:
+        payload["content"] = raw_text
+        payload["path"] = str(skill_file.relative_to(skills_root))
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
 
-refs = skill.get("references", [])
-print(f"references ({len(refs)}):")
-for ref in refs:
-    print(f"  - {ref.get('path', '')}")
-    print(f"    title: {ref.get('title', '')}")
-    intro = (ref.get("intro", "") or "").strip()
-    if intro:
-        print(f"    intro: {intro}")
-
+print(frontmatter_text)
 if with_content:
-    rel_path = skill.get("path", "")
-    if rel_path.startswith("skills/"):
-        local_rel = rel_path[len("skills/"):]
-        skill_file = skills_root / local_rel
-    else:
-        skill_file = skills_root / skill.get("category", "") / skill.get("name", "") / "SKILL.md"
-
     print("\n--- SKILL.md ---")
-    if skill_file.exists():
-        print(skill_file.read_text(encoding="utf-8"))
-    else:
-        print(f"(SKILL.md が見つかりません: {skill_file})")
+    print(raw_text)
 PY
 }
 
@@ -1323,12 +1310,21 @@ main() {
       [[ $# -ge 1 ]] || { echo "エラー: show には skill-id が必要です" >&2; return 64; }
       local skill_id="$1"
       shift
+      local as_json="false"
       local with_content="false"
       while [[ $# -gt 0 ]]; do
         case "$1" in
+          --json)
+            as_json="true"
+            shift
+            ;;
           --with-content)
             with_content="true"
             shift
+            ;;
+          --help|-h)
+            echo "使い方: helix skill show <skill-id> [--json] [--with-content]"
+            return 0
             ;;
           *)
             echo "エラー: 不明なオプションです: $1" >&2
@@ -1336,7 +1332,7 @@ main() {
             ;;
         esac
       done
-      show_skill "$skill_id" "$with_content"
+      show_skill "$skill_id" "$as_json" "$with_content"
       return $?
       ;;
     lint)

@@ -114,6 +114,22 @@ PY
   [ "$status" -eq 0 ]
 }
 
+@test "W70: helix skill show outputs frontmatter" {
+  run "$HELIX_ROOT/cli/helix" skill show common/testing
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"name: testing"* ]]
+  [[ "$output" == *"metadata:"* ]]
+  [[ "$output" == *"compatibility:"* ]]
+}
+
+@test "W70: helix skill show --json outputs valid JSON" {
+  run "$HELIX_ROOT/cli/helix" skill show common/testing --json
+  [ "$status" -eq 0 ]
+
+  run python3 -c 'import json, sys; payload = json.loads(sys.argv[1]); assert payload["name"] == "testing"; assert "metadata" in payload; assert "compatibility" in payload' "$output"
+  [ "$status" -eq 0 ]
+}
+
 @test "W57: helix skill audit-layers runs without crash" {
   run "$HELIX_ROOT/cli/helix" skill audit-layers
   [ "$status" -eq 0 ]
