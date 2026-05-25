@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import tempfile
 from difflib import unified_diff
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -310,6 +312,66 @@ def generate_stale_patch(
         )
 
     return patches
+
+
+def apply_stale_patches(
+    layer: str,
+    *,
+    project_root: Path,
+    since_days: int = 30,
+    dry_run: bool = True,
+) -> dict[str, str | list[Any]]:
+    """Return dry-run patch previews or apply generated stale patches with git apply."""
+    patches = generate_stale_patch(layer, project_root=project_root, since_days=since_days)
+    if not patches:
+        return {"status": "no_patches", "patches": [], "errors": []}
+    if dry_run:
+        return {"status": "dry_run", "patches": patches, "errors": []}
+
+    errors: list[str] = []
+    for patch in patches:
+        unified_diff_text = patch.get("unified_diff")
+        plan_path = patch.get("plan_path")
+        if not isinstance(unified_diff_text, str) or not isinstance(plan_path, str):
+            errors.append(f"invalid patch payload: {patch!r}")
+            continue
+
+        tmp_name: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                suffix=".patch",
+                delete=False,
+                dir=project_root,
+            ) as tmp_file:
+                tmp_file.write(unified_diff_text + "\n")
+                tmp_name = tmp_file.name
+
+            completed = subprocess.run(
+                ["git", "apply", "--unidiff-zero", "--allow-empty", tmp_name],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if completed.returncode != 0:
+                detail = completed.stderr.strip() or completed.stdout.strip() or f"git apply failed for {plan_path}"
+                errors.append(f"{plan_path}: {detail}")
+        except OSError as exc:
+            errors.append(f"{plan_path}: {exc}")
+        finally:
+            if tmp_name is not None:
+                try:
+                    Path(tmp_name).unlink()
+                except OSError:
+                    pass
+
+    return {
+        "status": "failed" if errors else "applied",
+        "patches": patches,
+        "errors": errors,
+    }
 
 
 def apply_stale_revisions(

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import subprocess
 from datetime import date, timedelta
 
 from cli.lib.vmodel_pair_freeze import (
+    apply_stale_patches,
     VMODEL_PAIRS,
     apply_stale_revisions,
     check_pair_freeze,
@@ -420,6 +422,52 @@ def test_generate_stale_patch_returns_empty_when_no_pair(tmp_path) -> None:
     result = generate_stale_patch("L0", project_root=tmp_path, since_days=30)
 
     assert result == []
+
+
+def test_apply_stale_patches_dry_run(tmp_path) -> None:
+    """DoD 検証: W44 U-001 dry_run は patch のみ返し frontmatter を変更しない。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    plan_path = pair_dir / "L9-old-plan.md"
+    original = "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\nstatus: draft\n---\nbody\n"
+    plan_path.write_text(original, encoding="utf-8")
+
+    result = apply_stale_patches("L4", project_root=tmp_path, since_days=30, dry_run=True)
+
+    assert result["status"] == "dry_run"
+    assert result["errors"] == []
+    assert len(result["patches"]) == 1
+    assert result["patches"][0]["plan_path"] == str(plan_path)
+    assert plan_path.read_text(encoding="utf-8") == original
+
+
+def test_apply_stale_patches_no_patches(tmp_path) -> None:
+    """DoD 検証: W44 U-002 pair doc 不在なら status=no_patches。"""
+    result = apply_stale_patches("L4", project_root=tmp_path, since_days=30, dry_run=True)
+
+    assert result == {"status": "no_patches", "patches": [], "errors": []}
+
+
+def test_apply_stale_patches_handles_apply_error(tmp_path, monkeypatch) -> None:
+    """DoD 検証: W44 U-003 git apply 失敗時は status=failed と errors を返す。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    pair_dir.joinpath("L9-old-plan.md").write_text(
+        "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\nstatus: draft\n---\nbody\n",
+        encoding="utf-8",
+    )
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args=args[0], returncode=1, stdout="", stderr="apply failed")
+
+    monkeypatch.setattr("cli.lib.vmodel_pair_freeze.subprocess.run", fake_run)
+
+    result = apply_stale_patches("L4", project_root=tmp_path, since_days=30, dry_run=False)
+
+    assert result["status"] == "failed"
+    assert len(result["patches"]) == 1
+    assert len(result["errors"]) == 1
+    assert "apply failed" in result["errors"][0]
 
 
 def test_rollback_stale_revisions_dry_run(tmp_path) -> None:
