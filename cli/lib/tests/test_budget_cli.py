@@ -21,11 +21,12 @@ def test_main_dispatches_status_subcommand(monkeypatch: pytest.MonkeyPatch) -> N
         captured["json"] = args.json
         captured["no_cache"] = args.no_cache
         captured["forecast"] = args.forecast
+        captured["since_hours"] = args.since_hours
         return 11
 
     monkeypatch.setattr(budget_cli, "cmd_status", fake_cmd)
 
-    result = budget_cli.main(["status", "--json", "--no-cache", "--forecast"])
+    result = budget_cli.main(["status", "--json", "--no-cache", "--forecast", "--since-hours", "12"])
 
     assert result == 11
     assert captured == {
@@ -33,6 +34,7 @@ def test_main_dispatches_status_subcommand(monkeypatch: pytest.MonkeyPatch) -> N
         "json": True,
         "no_cache": True,
         "forecast": True,
+        "since_hours": 12.0,
     }
 
 
@@ -275,7 +277,11 @@ def test_budget_cli_json_with_forecast(monkeypatch: pytest.MonkeyPatch) -> None:
         "rate_per_hour": 1.0,
         "on_track": False,
     }
-    monkeypatch.setattr(budget_cli, "_build_weekly_forecast", lambda _: forecast)
+    monkeypatch.setattr(
+        budget_cli,
+        "_build_weekly_forecast",
+        lambda _claude, since_hours=None: forecast,
+    )
 
     buf = io.StringIO()
     with redirect_stdout(buf):
@@ -284,3 +290,86 @@ def test_budget_cli_json_with_forecast(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = __import__("json").loads(buf.getvalue())
     assert payload["forecast"] == forecast
     assert payload["claude"]["weekly_forecast"] == forecast
+
+
+def test_budget_cli_forecast_respects_since_hours(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = {
+        "claude": {
+            "weekly_used_pct": 50,
+            "block_remaining_minutes": 120,
+            "source": "ccusage",
+        },
+        "codex": {"plan": "max", "five_hour_used_pct": 42, "weekly_used_pct": 67, "source": "state.db"},
+        "recommendations": [],
+    }
+    captured: dict[str, float] = {}
+
+    def fake_forecast_exhaustion(**kwargs):
+        captured["elapsed_hours"] = kwargs["elapsed_hours"]
+        return {
+            "projected_exhaustion_hours": 24.0,
+            "projected_exhaustion_date": "2026-05-25T00:00:00+00:00",
+            "rate_per_hour": 1.0,
+            "on_track": False,
+        }
+
+    monkeypatch.setattr(budget_cli, "forecast_exhaustion", fake_forecast_exhaustion)
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(
+            result,
+            as_json=False,
+            include_forecast=True,
+            since_hours=12.0,
+        )
+
+    assert captured["elapsed_hours"] == 12.0
+    assert "forecast (weekly): projected exhaustion in 24h (off track)" in buf.getvalue()
+
+
+def test_budget_cli_forecast_since_hours_with_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = {
+        "claude": {
+            "source": "ccusage",
+            "weekly_used_pct": 50,
+            "weekly_remaining_pct": 50,
+            "block_remaining_minutes": 120,
+        },
+        "codex": {
+            "source": "state.db",
+            "five_hour_used_pct": 20,
+            "weekly_used_pct": 35,
+        },
+        "recommendations": [],
+        "cached": False,
+    }
+    captured: dict[str, float] = {}
+
+    def fake_forecast_exhaustion(**kwargs):
+        captured["elapsed_hours"] = kwargs["elapsed_hours"]
+        return {
+            "projected_exhaustion_hours": 10.0,
+            "projected_exhaustion_date": "2026-05-25T00:00:00+00:00",
+            "rate_per_hour": 5.0,
+            "on_track": True,
+        }
+
+    monkeypatch.setattr(budget_cli, "forecast_exhaustion", fake_forecast_exhaustion)
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(
+            result,
+            as_json=True,
+            include_forecast=True,
+            since_hours=6.0,
+        )
+
+    payload = __import__("json").loads(buf.getvalue())
+    assert captured["elapsed_hours"] == 6.0
+    assert payload["forecast"]["projected_exhaustion_hours"] == 10.0

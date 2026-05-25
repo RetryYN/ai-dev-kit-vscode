@@ -76,10 +76,18 @@ def _format_forecast_hours(hours: float) -> str:
     return f"{hours:.1f}h"
 
 
-def _build_weekly_forecast(claude: dict[str, Any]) -> dict[str, Any]:
+def _build_weekly_forecast(
+    claude: dict[str, Any],
+    since_hours: float | None = None,
+) -> dict[str, Any]:
+    elapsed_hours = (
+        max(0.0, since_hours)
+        if since_hours is not None
+        else _resolve_weekly_elapsed_hours(claude)
+    )
     return forecast_exhaustion(
         current_used_pct=claude.get("weekly_used_pct", 0),
-        elapsed_hours=_resolve_weekly_elapsed_hours(claude),
+        elapsed_hours=elapsed_hours,
     )
 
 
@@ -132,10 +140,18 @@ def _build_json_payload(
     return payload
 
 
-def _print_status(result: dict[str, Any], as_json: bool, include_forecast: bool = False) -> None:
+def _print_status(
+    result: dict[str, Any],
+    as_json: bool,
+    include_forecast: bool = False,
+    since_hours: float | None = None,
+) -> None:
     claude_forecast = None
     if include_forecast:
-        claude_forecast = _build_weekly_forecast(result.get("claude", {}))
+        claude_forecast = _build_weekly_forecast(
+            result.get("claude", {}),
+            since_hours=since_hours,
+        )
     if as_json:
         print(
             json.dumps(
@@ -168,7 +184,12 @@ def _print_status(result: dict[str, Any], as_json: bool, include_forecast: bool 
 
 def cmd_status(args) -> int:
     result = collect_status(use_cache=not args.no_cache)
-    _print_status(result, args.json, include_forecast=args.forecast)
+    _print_status(
+        result,
+        args.json,
+        include_forecast=args.forecast,
+        since_hours=args.since_hours,
+    )
     return 0
 
 
@@ -267,6 +288,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_s.add_argument("--no-cache", action="store_true")
     p_s.add_argument("--breakdown", action="store_true")
     p_s.add_argument("--forecast", action="store_true")
+    p_s.add_argument("--since-hours", type=float)
     p_s.set_defaults(func=cmd_status)
 
     p_f = sub.add_parser("forecast")
