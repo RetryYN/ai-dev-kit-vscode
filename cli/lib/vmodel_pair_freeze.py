@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from difflib import unified_diff
 from datetime import date, datetime, timedelta
@@ -123,7 +124,11 @@ def _stringify_frontmatter_date(value: Any) -> str | None:
     return resolved.isoformat() if resolved is not None else None
 
 
-def _rewrite_frontmatter_revised_text(content: str, new_revised: str) -> str:
+def _audit_file_path(project_root: Path) -> Path:
+    return project_root / ".helix" / "audit" / "stale-revisions.json"
+
+
+def _rewrite_frontmatter_revised_text(content: str, new_revised: str | None) -> str:
     lines = content.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         raise ValueError("frontmatter missing")
@@ -140,17 +145,43 @@ def _rewrite_frontmatter_revised_text(content: str, new_revised: str) -> str:
     for index in range(1, end_index):
         match = revised_pattern.match(lines[index])
         if match:
-            lines[index] = f"{match.group(1)}{new_revised}\n"
+            if new_revised is None:
+                del lines[index]
+            else:
+                lines[index] = f"{match.group(1)}{new_revised}\n"
             break
     else:
-        lines.insert(end_index, f"revised: {new_revised}\n")
+        if new_revised is not None:
+            lines.insert(end_index, f"revised: {new_revised}\n")
 
     return "".join(lines)
 
 
-def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str) -> None:
+def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str | None) -> None:
     content = plan_path.read_text(encoding="utf-8")
     plan_path.write_text(_rewrite_frontmatter_revised_text(content, new_revised), encoding="utf-8")
+
+
+def _load_audit_records(audit_path: Path) -> list[dict[str, Any]]:
+    try:
+        loaded = json.loads(audit_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(loaded, list):
+        return []
+    return [record for record in loaded if isinstance(record, dict)]
+
+
+def _write_audit_records(audit_path: Path, records: list[dict[str, Any]]) -> None:
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_path.write_text(json.dumps(records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _append_audit_record(project_root: Path, record: dict[str, Any]) -> None:
+    audit_path = _audit_file_path(project_root)
+    records = _load_audit_records(audit_path)
+    records.append(record)
+    _write_audit_records(audit_path, records)
 
 
 def _resolve_pair_plan_paths(layer: str, project_root: Path | None = None) -> tuple[str | None, list[Path]]:
@@ -292,6 +323,7 @@ def apply_stale_revisions(
     suggestions = suggest_stale_revisions(layer, project_root=project_root, since_days=since_days)
     new_revised = date.today().isoformat()
     results: list[dict[str, str]] = []
+    audit_changes: list[dict[str, str | None]] = []
 
     for suggestion in suggestions:
         plan_path = suggestion.get("plan_path")
@@ -311,12 +343,69 @@ def apply_stale_revisions(
 
         try:
             _rewrite_frontmatter_revised(Path(plan_path), new_revised)
+            audit_changes.append(
+                {
+                    "plan_path": plan_path,
+                    "before_revised": suggestion.get("current_revised"),
+                    "after_revised": new_revised,
+                }
+            )
         except (OSError, ValueError) as exc:
             result["status"] = "skipped"
             result["reason"] = str(exc)
         results.append(result)
 
+    if not dry_run and audit_changes:
+        _append_audit_record(
+            project_root,
+            {
+                "applied_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "layer": layer,
+                "changes": audit_changes,
+            },
+        )
+
     return results
+
+
+def rollback_stale_revisions(
+    *,
+    project_root: Path,
+    dry_run: bool = True,
+) -> dict[str, str | list[dict[str, str | None]]]:
+    """Preview or rollback stale revised updates from the latest audit record."""
+    audit_path = _audit_file_path(project_root)
+    if not audit_path.is_file():
+        return {"status": "no_audit", "rolled_back": []}
+
+    records = _load_audit_records(audit_path)
+    if not records:
+        return {"status": "no_audit", "rolled_back": []}
+
+    latest_record = records[-1]
+    changes = latest_record.get("changes")
+    if not isinstance(changes, list):
+        return {"status": "no_audit", "rolled_back": []}
+
+    rolled_back: list[dict[str, str | None]] = []
+    for change in changes:
+        if not isinstance(change, dict):
+            continue
+        plan_path = change.get("plan_path")
+        restored_revised = change.get("before_revised")
+        if not isinstance(plan_path, str):
+            continue
+        if restored_revised is not None and not isinstance(restored_revised, str):
+            continue
+
+        if not dry_run:
+            _rewrite_frontmatter_revised(Path(plan_path), restored_revised)
+        rolled_back.append({"plan_path": plan_path, "restored_revised": restored_revised})
+
+    return {
+        "status": "dry_run" if dry_run else "rolled_back",
+        "rolled_back": rolled_back,
+    }
 
 
 def check_pair_freeze(

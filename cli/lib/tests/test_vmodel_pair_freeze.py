@@ -10,6 +10,7 @@ from cli.lib.vmodel_pair_freeze import (
     check_pair_freeze,
     generate_stale_patch,
     get_pair,
+    rollback_stale_revisions,
     suggest_stale_revisions,
 )
 
@@ -419,3 +420,66 @@ def test_generate_stale_patch_returns_empty_when_no_pair(tmp_path) -> None:
     result = generate_stale_patch("L0", project_root=tmp_path, since_days=30)
 
     assert result == []
+
+
+def test_rollback_stale_revisions_dry_run(tmp_path) -> None:
+    """DoD 検証: W43 U-001 dry_run は rollback 候補だけ返し frontmatter を更新しない。"""
+    plan_path = tmp_path / "docs" / "plans" / "L9" / "L9-old-plan.md"
+    plan_path.parent.mkdir(parents=True)
+    plan_path.write_text(
+        f"---\nplan_id: L9-old-plan\nrevised: {date.today().isoformat()}\nstatus: draft\n---\nbody\n",
+        encoding="utf-8",
+    )
+    audit_dir = tmp_path / ".helix" / "audit"
+    audit_dir.mkdir(parents=True)
+    audit_dir.joinpath("stale-revisions.json").write_text(
+        '[{"applied_at":"2026-05-25T00:00:00+09:00","layer":"L4","changes":[{"plan_path":"'
+        + str(plan_path)
+        + '","before_revised":"2000-01-01","after_revised":"'
+        + date.today().isoformat()
+        + '"}]}]',
+        encoding="utf-8",
+    )
+
+    result = rollback_stale_revisions(project_root=tmp_path, dry_run=True)
+
+    assert result == {
+        "status": "dry_run",
+        "rolled_back": [{"plan_path": str(plan_path), "restored_revised": "2000-01-01"}],
+    }
+    assert f"revised: {date.today().isoformat()}" in plan_path.read_text(encoding="utf-8")
+
+
+def test_rollback_stale_revisions_writes_when_not_dry_run(tmp_path) -> None:
+    """DoD 検証: W43 U-002 dry_run=False は latest audit に従って revised を復元する。"""
+    plan_path = tmp_path / "docs" / "plans" / "L9" / "L9-old-plan.md"
+    plan_path.parent.mkdir(parents=True)
+    plan_path.write_text(
+        f"---\nplan_id: L9-old-plan\nrevised: {date.today().isoformat()}\nstatus: draft\n---\nbody\n",
+        encoding="utf-8",
+    )
+    audit_dir = tmp_path / ".helix" / "audit"
+    audit_dir.mkdir(parents=True)
+    audit_dir.joinpath("stale-revisions.json").write_text(
+        '[{"applied_at":"2026-05-25T00:00:00+09:00","layer":"L4","changes":[{"plan_path":"'
+        + str(plan_path)
+        + '","before_revised":"2000-01-01","after_revised":"'
+        + date.today().isoformat()
+        + '"}]}]',
+        encoding="utf-8",
+    )
+
+    result = rollback_stale_revisions(project_root=tmp_path, dry_run=False)
+
+    assert result == {
+        "status": "rolled_back",
+        "rolled_back": [{"plan_path": str(plan_path), "restored_revised": "2000-01-01"}],
+    }
+    assert "revised: 2000-01-01" in plan_path.read_text(encoding="utf-8")
+
+
+def test_rollback_stale_revisions_no_audit(tmp_path) -> None:
+    """DoD 検証: W43 U-003 audit 不在時は no_audit を返す。"""
+    result = rollback_stale_revisions(project_root=tmp_path, dry_run=False)
+
+    assert result == {"status": "no_audit", "rolled_back": []}

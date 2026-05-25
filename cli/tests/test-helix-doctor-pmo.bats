@@ -157,3 +157,22 @@ teardown() {
   [[ "$output" == *"stale (older than 30d):"* ]]
   [[ "$output" == *"apply stale revisions (dry-run):"* ]]
 }
+
+@test "helix doctor --rollback-stale-revisions dry-run output" {
+  local audit_file="$HELIX_ROOT/.helix/audit/stale-revisions.json"
+  local stale_plan="$HELIX_ROOT/docs/plans/L9/L9-bats-rollback-stale-temporaryplan.md"
+
+  mkdir -p "$(dirname "$audit_file")" "$(dirname "$stale_plan")"
+  trap 'rm -f "$audit_file" "$stale_plan"' RETURN
+  printf -- "---\nplan_id: L9-bats-rollback-stale-temporaryplan\ntitle: temp\nrevised: 2026-05-25\nstatus: draft\n---\n" > "$stale_plan"
+  printf -- '[{"applied_at":"2026-05-25T00:00:00+09:00","layer":"L4","changes":[{"plan_path":"%s","before_revised":"2000-01-01","after_revised":"2026-05-25"}]}]\n' "$stale_plan" > "$audit_file"
+
+  run "$HELIX_ROOT/cli/helix" doctor --rollback-stale-revisions
+  if [ "$status" -ne 0 ] || [[ "$output" != *"rollback stale revisions (dry-run):"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"rollback stale revisions (dry-run):"* ]]
+}
