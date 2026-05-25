@@ -8,6 +8,7 @@ from cli.lib.vmodel_pair_freeze import (
     VMODEL_PAIRS,
     apply_stale_revisions,
     check_pair_freeze,
+    generate_stale_patch,
     get_pair,
     suggest_stale_revisions,
 )
@@ -373,5 +374,48 @@ def test_apply_stale_revisions_writes_when_not_dry_run(tmp_path) -> None:
 def test_apply_stale_revisions_returns_empty_when_no_pair(tmp_path) -> None:
     """DoD 検証: W35 U-003 pair を持たない layer は空 list を返す。"""
     result = apply_stale_revisions("L0", project_root=tmp_path, since_days=30, dry_run=False)
+
+    assert result == []
+
+
+def test_generate_stale_patch_returns_unified_diff(tmp_path) -> None:
+    """DoD 検証: W38 U-001 stale PLAN から revised 更新 patch を生成する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    plan_path = pair_dir / "L9-old-plan.md"
+    plan_path.write_text(
+        "---\nplan_id: L9-old-plan\nrevised: 2000-01-01\nstatus: draft\n---\nbody\n",
+        encoding="utf-8",
+    )
+
+    result = generate_stale_patch("L4", project_root=tmp_path, since_days=30)
+
+    assert len(result) == 1
+    assert result[0]["plan_id"] == "L9-old-plan"
+    assert result[0]["plan_path"] == str(plan_path)
+    assert result[0]["before_revised"] == "2000-01-01"
+    assert result[0]["after_revised"] == date.today().isoformat()
+    assert "@@" in result[0]["unified_diff"]
+    assert "-revised: 2000-01-01" in result[0]["unified_diff"]
+    assert f"+revised: {date.today().isoformat()}" in result[0]["unified_diff"]
+
+
+def test_generate_stale_patch_skips_recent(tmp_path) -> None:
+    """DoD 検証: W38 U-002 当日 revised の PLAN は patch 対象外。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    pair_dir.joinpath("L9-new-plan.md").write_text(
+        f"---\nplan_id: L9-new-plan\nrevised: {date.today().isoformat()}\nstatus: draft\n---\n",
+        encoding="utf-8",
+    )
+
+    result = generate_stale_patch("L4", project_root=tmp_path, since_days=30)
+
+    assert result == []
+
+
+def test_generate_stale_patch_returns_empty_when_no_pair(tmp_path) -> None:
+    """DoD 検証: W38 U-003 pair を持たない layer は空 list を返す。"""
+    result = generate_stale_patch("L0", project_root=tmp_path, since_days=30)
 
     assert result == []

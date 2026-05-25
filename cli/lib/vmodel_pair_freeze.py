@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from difflib import unified_diff
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -122,8 +123,8 @@ def _stringify_frontmatter_date(value: Any) -> str | None:
     return resolved.isoformat() if resolved is not None else None
 
 
-def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str) -> None:
-    lines = plan_path.read_text(encoding="utf-8").splitlines(keepends=True)
+def _rewrite_frontmatter_revised_text(content: str, new_revised: str) -> str:
+    lines = content.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         raise ValueError("frontmatter missing")
 
@@ -144,7 +145,12 @@ def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str) -> None:
     else:
         lines.insert(end_index, f"revised: {new_revised}\n")
 
-    plan_path.write_text("".join(lines), encoding="utf-8")
+    return "".join(lines)
+
+
+def _rewrite_frontmatter_revised(plan_path: Path, new_revised: str) -> None:
+    content = plan_path.read_text(encoding="utf-8")
+    plan_path.write_text(_rewrite_frontmatter_revised_text(content, new_revised), encoding="utf-8")
 
 
 def _resolve_pair_plan_paths(layer: str, project_root: Path | None = None) -> tuple[str | None, list[Path]]:
@@ -227,6 +233,52 @@ def suggest_stale_revisions(
             }
         )
     return suggestions
+
+
+def generate_stale_patch(
+    layer: str,
+    *,
+    project_root: Path,
+    since_days: int = 30,
+) -> list[dict[str, str | None]]:
+    """Return unified diff patches for stale revised frontmatter updates."""
+    suggestions = suggest_stale_revisions(layer, project_root=project_root, since_days=since_days)
+    patches: list[dict[str, str | None]] = []
+
+    for suggestion in suggestions:
+        plan_path = suggestion.get("plan_path")
+        plan_id = suggestion.get("plan_id")
+        after_revised = suggestion.get("suggested_revised")
+        if not isinstance(plan_path, str) or not isinstance(plan_id, str) or not isinstance(after_revised, str):
+            continue
+
+        path = Path(plan_path)
+        try:
+            before_content = path.read_text(encoding="utf-8")
+            after_content = _rewrite_frontmatter_revised_text(before_content, after_revised)
+        except (OSError, ValueError):
+            continue
+
+        diff = "\n".join(
+            unified_diff(
+                before_content.splitlines(),
+                after_content.splitlines(),
+                fromfile=plan_path,
+                tofile=plan_path,
+                lineterm="",
+            )
+        )
+        patches.append(
+            {
+                "plan_id": plan_id,
+                "plan_path": plan_path,
+                "unified_diff": diff,
+                "before_revised": suggestion.get("current_revised"),
+                "after_revised": after_revised,
+            }
+        )
+
+    return patches
 
 
 def apply_stale_revisions(
