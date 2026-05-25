@@ -164,3 +164,38 @@ def test_auto_detect_paired_design_returns_none_when_no_pair(tmp_path) -> None:
 def test_auto_detect_paired_design_returns_none_when_no_match(tmp_path) -> None:
     """DoD 検証: W16 U-003 pair layer に match が無いとき None を返す。"""
     assert auto_detect_paired_design("L4", project_root=tmp_path) is None
+
+
+def test_auto_detect_paired_design_prefers_draft_status(tmp_path) -> None:
+    """DoD 検証: W20 U-001 prefer_status='draft' なら draft 候補を優先する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-completed-plan.md").write_text("---\nstatus: completed\n---\n", encoding="utf-8")
+    (pair_dir / "L9-z-draft-plan.md").write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_status="draft")
+
+    assert detected == "docs/plans/L9/L9-z-draft-plan.md"
+
+
+def test_auto_detect_paired_design_fallback_to_first_when_no_preferred(tmp_path) -> None:
+    """DoD 検証: W20 U-002 prefer_status 未該当時は sorted 最初へ fallback する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-completed-plan.md").write_text("---\nstatus: completed\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_status="draft")
+
+    assert detected == "docs/plans/L9/L9-a-completed-plan.md"
+
+
+def test_auto_detect_paired_design_none_disables_preference(tmp_path) -> None:
+    """DoD 検証: W20 U-003 prefer_status=None なら従来の sorted 最初を使う。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-completed-plan.md").write_text("---\nstatus: completed\n---\n", encoding="utf-8")
+    (pair_dir / "L9-z-draft-plan.md").write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_status=None)
+
+    assert detected == "docs/plans/L9/L9-a-completed-plan.md"

@@ -93,3 +93,27 @@ EOF
   [[ "$output" == *"paired_design_doc"* ]]
   [[ "$output" == *"L9-auto-plan.md"* ]]
 }
+
+@test "helix-test-design-scaffold respects --prefer-status" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L9"
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-a-completed-plan.md" <<'EOF'
+---
+title: Completed Pair
+status: completed
+---
+EOF
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-z-draft-plan.md" <<'EOF'
+---
+title: Draft Pair
+status: draft
+---
+EOF
+
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4 \
+    --prefer-status draft
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"paired_design_doc"* ]]
+  [[ "$output" == *"L9-z-draft-plan.md"* ]]
+}

@@ -198,7 +198,34 @@ def _default_output_path(project_root: Path, pair_layer: str) -> Path:
     )
 
 
-def auto_detect_paired_design(layer: str, *, project_root: Path) -> str | None:
+def _read_plan_status(plan_path: Path) -> str | None:
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        return None
+
+    payload = yaml.safe_load(match.group(1)) or {}
+    if not isinstance(payload, dict):
+        return None
+
+    raw_status = payload.get("status")
+    if not isinstance(raw_status, str):
+        return None
+
+    status = raw_status.strip()
+    return status or None
+
+
+def auto_detect_paired_design(
+    layer: str,
+    *,
+    project_root: Path,
+    prefer_status: str | None = "draft",
+) -> str | None:
     """
     Return the first pair PLAN path relative to project_root, if one exists.
     """
@@ -211,6 +238,11 @@ def auto_detect_paired_design(layer: str, *, project_root: Path) -> str | None:
     matches = sorted(pair_dir.glob(f"{pair_layer}-*plan.md")) if pair_dir.is_dir() else []
     if not matches:
         return None
+
+    if prefer_status is not None:
+        for match in matches:
+            if _read_plan_status(match) == prefer_status:
+                return str(match.relative_to(root))
 
     return str(matches[0].relative_to(root))
 
@@ -322,6 +354,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="helix-test-design-scaffold")
     parser.add_argument("--layer", required=True)
     parser.add_argument("--paired-design")
+    parser.add_argument(
+        "--prefer-status",
+        choices=("draft", "in_progress", "completed", "none"),
+        default="draft",
+    )
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
@@ -332,7 +369,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     project_root = resolve_project_root()
-    paired_design = args.paired_design or auto_detect_paired_design(args.layer, project_root=project_root)
+    prefer_status = None if args.prefer_status == "none" else args.prefer_status
+    paired_design = args.paired_design or auto_detect_paired_design(
+        args.layer,
+        project_root=project_root,
+        prefer_status=prefer_status,
+    )
 
     if paired_design is None:
         print(f"error: paired design could not be auto-detected for layer {args.layer}")
