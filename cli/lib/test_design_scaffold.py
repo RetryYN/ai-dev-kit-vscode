@@ -48,6 +48,9 @@ TODO: pair design doc から DoD を引き写す
 """
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
+SECTION_HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$")
+ACCEPTANCE_KEYWORDS = ("受入条件", "受入要件", "DoD")
+FUNCTION_SPEC_KEYWORDS = ("機能設計", "関数仕様")
 
 
 def _yaml_quote(value: str) -> str:
@@ -85,12 +88,81 @@ def _slugify(value: str, *, fallback: str) -> str:
     return fallback_slug or "draft"
 
 
+def _normalize_heading(heading: str) -> str:
+    return re.sub(r"\s+", "", heading)
+
+
+def _extract_section(text: str, *, keywords: tuple[str, ...]) -> str:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        match = SECTION_HEADING_RE.match(line)
+        if not match:
+            continue
+        level = len(match.group(1))
+        heading = _normalize_heading(match.group(2))
+        if not any(keyword in heading for keyword in keywords):
+            continue
+
+        body_lines: list[str] = []
+        for next_line in lines[index + 1 :]:
+            next_match = SECTION_HEADING_RE.match(next_line)
+            if next_match and len(next_match.group(1)) <= level:
+                break
+            body_lines.append(next_line)
+        return "\n".join(body_lines).strip()
+    return ""
+
+
+def _as_blockquote(text: str) -> str:
+    return "\n".join("> " if line == "" else f"> {line}" for line in text.splitlines())
+
+
+def extract_paired_design_sections(paired_design_path: Path) -> dict[str, str]:
+    """
+    Returns: {'acceptance': str, 'function_spec': str}
+    paired_design_path が存在しない or 該当 section なし → 空 string
+    """
+    sections = {"acceptance": "", "function_spec": ""}
+    if not paired_design_path.exists():
+        return sections
+
+    text = paired_design_path.read_text(encoding="utf-8")
+    text = FRONTMATTER_RE.sub("", text, count=1)
+    sections["acceptance"] = _extract_section(text, keywords=ACCEPTANCE_KEYWORDS)
+    sections["function_spec"] = _extract_section(text, keywords=FUNCTION_SPEC_KEYWORDS)
+    return sections
+
+
+def _inject_extracted_sections(template: str, sections: dict[str, str]) -> str:
+    result = template
+    acceptance = sections["acceptance"].strip()
+    if acceptance:
+        acceptance_block = f"引用:\n\n{_as_blockquote(acceptance)}\n\nTODO: pair design doc から DoD を引き写す"
+        result = result.replace(
+            "TODO: pair design doc から DoD を引き写す",
+            acceptance_block,
+            1,
+        )
+
+    function_spec = sections["function_spec"].strip()
+    if function_spec:
+        function_block = (
+            "### 関連 design sections\n\n"
+            f"{_as_blockquote(function_spec)}\n\n"
+            "TODO: 上記 function spec を参照して TC-001 を具体化する\n\n"
+            "### TC-001: <初期ケース>"
+        )
+        result = result.replace("### TC-001: <初期ケース>", function_block, 1)
+    return result
+
+
 def _render_skeleton(
     layer: str,
     paired_design_doc: str,
     *,
     title: str | None = None,
     slug: str | None = None,
+    extract_sections: bool = False,
 ) -> str:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -99,7 +171,7 @@ def _render_skeleton(
     paired_design_path = Path(paired_design_doc)
     resolved_title = title.strip() if isinstance(title, str) and title.strip() else _infer_title(paired_design_path)
     resolved_slug = slug or _slugify(resolved_title, fallback=paired_design_path.stem)
-    return TEMPLATE.format(
+    rendered = TEMPLATE.format(
         pair_layer=pair_layer,
         pair_layer_dir=pair_layer,
         slug=resolved_slug,
@@ -108,6 +180,11 @@ def _render_skeleton(
         paired_design_doc=_yaml_quote(paired_design_doc),
         today=date.today().isoformat(),
     )
+    if not extract_sections:
+        return rendered
+
+    sections = extract_paired_design_sections(paired_design_path)
+    return _inject_extracted_sections(rendered, sections)
 
 
 def _default_output_path(project_root: Path, pair_layer: str) -> Path:
@@ -129,14 +206,26 @@ def _slug_from_output_path(output_path: Path, pair_layer: str) -> str:
     return _slugify(stem, fallback=f"{pair_layer}-draft")
 
 
-def generate_skeleton(layer: str, paired_design_doc: str, *, title: str | None = None) -> str:
+def generate_skeleton(
+    layer: str,
+    paired_design_doc: str,
+    *,
+    title: str | None = None,
+    extract_sections: bool = False,
+) -> str:
     """
     Returns: テスト設計 doc の skeleton 文字列
     layer: pair の不在 layer (例: L4 design で missing pair L9 なら paired_design_layer=L4, target_layer=L9)
     paired_design_doc: 対応する pair design の path
     title: doc title (default: pair_doc title から推定)
+    extract_sections=True: paired design doc の relevant section を template に引用する
     """
-    return _render_skeleton(layer, paired_design_doc, title=title)
+    return _render_skeleton(
+        layer,
+        paired_design_doc,
+        title=title,
+        extract_sections=extract_sections,
+    )
 
 
 def _write_scaffold(

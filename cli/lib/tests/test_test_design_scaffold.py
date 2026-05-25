@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from cli.lib.test_design_scaffold import generate_skeleton, write_scaffold
+from cli.lib.test_design_scaffold import (
+    extract_paired_design_sections,
+    generate_skeleton,
+    write_scaffold,
+)
 
 
 def test_generate_skeleton_includes_layer_and_pair() -> None:
@@ -84,3 +88,56 @@ def test_write_scaffold_skips_existing(tmp_path) -> None:
     assert result["status"] == "skipped"
     assert result["reason"] == "file exists"
     assert output_path.read_text(encoding="utf-8") == "existing\n"
+
+
+def test_extract_paired_design_sections_finds_acceptance(tmp_path) -> None:
+    """DoD 検証: W13 U-001 paired design doc から受入条件 section を抽出する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+## §1 受入条件
+
+- acceptance text
+
+## §3 補足
+
+- note
+""",
+        encoding="utf-8",
+    )
+
+    sections = extract_paired_design_sections(paired_design)
+
+    assert "acceptance text" in sections["acceptance"]
+    assert sections["function_spec"] == ""
+
+
+def test_generate_skeleton_with_extract_sections_includes_acceptance(tmp_path) -> None:
+    """DoD 検証: W13 U-002 extract_sections=True で受入条件引用を注入する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+## §1 受入条件
+
+- acceptance text
+""",
+        encoding="utf-8",
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), extract_sections=True)
+
+    assert "> - acceptance text" in skeleton
+
+
+def test_generate_skeleton_extract_sections_handles_missing_file() -> None:
+    """DoD 検証: W13 U-003 missing file でも extract_sections=True で落ちない。"""
+    skeleton = generate_skeleton(
+        "L4",
+        "docs/plans/L4/not-found.md",
+        extract_sections=True,
+    )
+
+    assert "## §1 受入条件" in skeleton
+    assert "TODO: pair design doc から DoD を引き写す" in skeleton
