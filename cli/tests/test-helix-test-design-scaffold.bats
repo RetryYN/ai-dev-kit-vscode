@@ -52,3 +52,24 @@ teardown() {
   [ -f "${matches[0]}" ]
   grep -q "paired_design_doc: 'docs/plans/L4/L4-sample-design-plan.md'" "${matches[0]}"
 }
+
+@test "helix-test-design-scaffold --extract-sections includes acceptance section" {
+  cat > "$PROJECT_ROOT/parent.md" <<'EOF'
+---
+plan_id: TEST
+---
+
+## §1 受入条件
+
+- 受入 1
+- 受入 2
+EOF
+
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4 \
+    --paired-design parent.md \
+    --extract-sections
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"引用:"* ]]
+}

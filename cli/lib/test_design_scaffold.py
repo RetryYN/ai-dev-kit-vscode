@@ -236,6 +236,7 @@ def _write_scaffold(
     dry_run: bool = True,
     output_path: Path | None = None,
     title: str | None = None,
+    extract_sections: bool = False,
 ) -> dict[str, Any]:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -244,7 +245,13 @@ def _write_scaffold(
     root = Path(project_root)
     resolved_output_path = Path(output_path) if output_path is not None else _default_output_path(root, pair_layer)
     slug = _slug_from_output_path(resolved_output_path, pair_layer)
-    content = _render_skeleton(layer, paired_design_doc, title=title, slug=slug)
+    content = _render_skeleton(
+        layer,
+        paired_design_doc,
+        title=title,
+        slug=slug,
+        extract_sections=extract_sections,
+    )
 
     result = {
         "status": "dry_run" if dry_run else "applied",
@@ -272,6 +279,7 @@ def write_scaffold(
     project_root: Path,
     dry_run: bool = True,
     output_path: Path | None = None,
+    extract_sections: bool = False,
 ) -> dict[str, Any]:
     """
     Returns: {'status': 'dry_run'|'applied'|'skipped', 'output_path': str, 'content': str, 'reason': str}
@@ -285,6 +293,7 @@ def write_scaffold(
         project_root=project_root,
         dry_run=dry_run,
         output_path=output_path,
+        extract_sections=extract_sections,
     )
 
 
@@ -297,6 +306,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--layer", required=True)
     parser.add_argument("--paired-design", required=True)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
     return parser
 
@@ -312,6 +322,7 @@ def main(argv: list[str] | None = None) -> int:
             project_root=resolve_project_root(),
             dry_run=not args.apply,
             title=args.title,
+            extract_sections=args.extract_sections,
         )
     except ValueError as exc:
         print(f"error: {exc}")
