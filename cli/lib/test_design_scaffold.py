@@ -303,6 +303,34 @@ def _resolve_openapi_parameter(spec: dict[str, Any], parameter: Any) -> dict[str
     return _extract_openapi_parameter(parameter)
 
 
+def _extract_openapi_response_entry(response: Any, *, status_code: str) -> str | dict[str, str]:
+    if not isinstance(response, dict):
+        return status_code
+
+    raw_description = response.get("description")
+    description = raw_description.strip() if isinstance(raw_description, str) else ""
+    schema_ref = ""
+
+    raw_content = response.get("content")
+    if isinstance(raw_content, dict):
+        for media_type in raw_content.values():
+            if not isinstance(media_type, dict):
+                continue
+            raw_schema = media_type.get("schema")
+            if not isinstance(raw_schema, dict):
+                continue
+            raw_ref = raw_schema.get("$ref")
+            if isinstance(raw_ref, str):
+                schema_ref = raw_ref
+                break
+
+    return {
+        "status": status_code,
+        "description": description,
+        "schema_ref": schema_ref,
+    }
+
+
 def _format_openapi_parameter(parameter: Any) -> str:
     if isinstance(parameter, str):
         return parameter.strip()
@@ -332,10 +360,31 @@ def _format_openapi_request_body(request_body: Any) -> str:
     return ""
 
 
+def _format_openapi_response(response: Any) -> str:
+    if isinstance(response, str):
+        return response.strip()
+    if not isinstance(response, dict):
+        return ""
+
+    raw_status = response.get("status")
+    if not isinstance(raw_status, str):
+        return ""
+    status = raw_status.strip()
+    if not status:
+        return ""
+
+    raw_description = response.get("description")
+    description = raw_description.strip() if isinstance(raw_description, str) else ""
+    if description:
+        return f"{status}: {description}"
+    return status
+
+
 def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[dict[str, Any]]:
     """
     Returns: [{'method': 'GET', 'path': '/api/users/{id}', 'summary': str,
-               'parameters': list[str | dict[str, Any]], 'responses': list[str], 'request_body': str | dict[str, Any]}]
+               'parameters': list[str | dict[str, Any]], 'responses': list[str | dict[str, str]],
+               'request_body': str | dict[str, Any]}]
     spec_path 不在 or parse error → 空 list
     """
     if not spec_path.exists() or max_count <= 0:
@@ -371,7 +420,7 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
                 continue
             summary = ""
             parameters: list[dict[str, Any]] = []
-            responses: list[str] = []
+            responses: list[str | dict[str, str]] = []
             request_body = ""
             if isinstance(operation, dict):
                 raw_summary = operation.get("summary")
@@ -396,8 +445,8 @@ def extract_openapi_endpoints(spec_path: Path, *, max_count: int = 10) -> list[d
 
                 raw_responses = operation.get("responses")
                 if isinstance(raw_responses, dict):
-                    for status_code in raw_responses:
-                        responses.append(str(status_code))
+                    for status_code, response in raw_responses.items():
+                        responses.append(_extract_openapi_response_entry(response, status_code=str(status_code)))
 
                 raw_request_body = operation.get("requestBody")
                 if isinstance(raw_request_body, dict):
@@ -492,11 +541,12 @@ def _test_cases_body(
                 if rendered_parameters:
                     quote_lines.append(f"> parameters: {', '.join(rendered_parameters)}")
             responses = endpoint.get("responses", [])
-            if responses:
-                quote_lines.append(f"> responses: {', '.join(responses)}")
             request_body = _format_openapi_request_body(endpoint.get("request_body", ""))
             if request_body:
                 quote_lines.append(f"> request_body: {request_body}")
+            expected_responses = [
+                rendered for rendered in (_format_openapi_response(response) for response in responses) if rendered
+            ]
             blocks.append(
                 "\n".join(
                     [
@@ -509,6 +559,15 @@ def _test_cases_body(
                         "- 入力: TODO",
                         "- 期待結果: TODO",
                         "- 検証手順: TODO",
+                        *(
+                            [
+                                "",
+                                "expected responses:",
+                                *[f"- {response}" for response in expected_responses],
+                            ]
+                            if expected_responses
+                            else []
+                        ),
                     ]
                 )
             )

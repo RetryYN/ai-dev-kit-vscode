@@ -14,6 +14,10 @@ from cli.lib.test_design_scaffold import (
 )
 
 
+def _response_statuses(responses):
+    return [response.get("status") if isinstance(response, dict) else response for response in responses]
+
+
 def test_generate_skeleton_includes_layer_and_pair() -> None:
     """DoD 検証: W9-C U-001 L4 design から L9 pair skeleton を生成する。"""
     skeleton = generate_skeleton(
@@ -586,7 +590,62 @@ paths:
 
     endpoints = extract_openapi_endpoints(spec_path)
 
-    assert endpoints[0]["responses"] == ["200", "400"]
+    assert _response_statuses(endpoints[0]["responses"]) == ["200", "400"]
+
+
+def test_extract_openapi_endpoints_response_includes_description(tmp_path) -> None:
+    """DoD 検証: W33 U-001 response description を status ごとに抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["responses"] == [
+        {"status": "200", "description": "OK", "schema_ref": ""},
+        {"status": "400", "description": "Bad Request", "schema_ref": ""},
+    ]
+
+
+def test_extract_openapi_endpoints_response_includes_schema_ref(tmp_path) -> None:
+    """DoD 検証: W33 U-002 response schema の $ref を schema_ref に抽出する。"""
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_openapi_endpoints(spec_path)
+
+    assert endpoints[0]["responses"] == [
+        {
+            "status": "200",
+            "description": "OK",
+            "schema_ref": "#/components/schemas/User",
+        }
+    ]
 
 
 def test_extract_openapi_endpoints_handles_missing_detail(tmp_path) -> None:
@@ -648,8 +707,33 @@ paths:
     assert "> endpoint: `GET /api/users/{id}`" in skeleton
     assert "> summary: Get user" in skeleton
     assert "> parameters: id (string, required)" in skeleton
-    assert "> responses: 200, 404" in skeleton
     assert "> request_body: User payload" in skeleton
+
+
+def test_generate_skeleton_with_openapi_response_includes_in_tc(tmp_path) -> None:
+    """DoD 検証: W33 U-003 endpoint TC に expected responses section を含める。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text("# Sample Design\n", encoding="utf-8")
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.0.0
+paths:
+  /api/users/{id}:
+    get:
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not Found
+""",
+        encoding="utf-8",
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), openapi_spec_path=spec_path)
+
+    assert "expected responses:" in skeleton
+    assert "- 200: OK" in skeleton
+    assert "- 404: Not Found" in skeleton
 
 
 def test_generate_skeleton_with_openapi_spec_parameter_backward_compat(monkeypatch, tmp_path) -> None:
