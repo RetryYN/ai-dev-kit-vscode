@@ -143,3 +143,21 @@ PY
   run python3 -c 'import json, sys; p = json.loads(sys.argv[1]); assert {"total_skills", "with_helix_layer", "without_helix_layer", "distribution"} <= p.keys()' "$output"
   [ "$status" -eq 0 ]
 }
+
+@test "W71: helix skill list supports comma-separated --layer filter" {
+  "$HELIX_ROOT/cli/helix" skill catalog rebuild >/dev/null 2>&1
+  run "$HELIX_ROOT/cli/helix" skill list --layer L2,L7 --json
+  [ "$status" -eq 0 ]
+
+  run python3 -c 'import json, sys; p = json.loads(sys.argv[1]); skills = p["skills"]; assert skills; assert all(s.get("helix_layer") in {"L2", "L7"} for s in skills); layers = {s.get("helix_layer") for s in skills}; assert {"L2", "L7"} <= layers' "$output"
+  [ "$status" -eq 0 ]
+}
+
+@test "W71: helix skill list supports comma-separated --category filter" {
+  "$HELIX_ROOT/cli/helix" skill catalog rebuild >/dev/null 2>&1
+  run "$HELIX_ROOT/cli/helix" skill list --category common,workflow --json
+  [ "$status" -eq 0 ]
+
+  run python3 -c 'import json, sys; p = json.loads(sys.argv[1]); skills = p["skills"]; assert skills; assert all(s.get("category") in {"common", "workflow"} for s in skills); categories = {s.get("category") for s in skills}; assert {"common", "workflow"} <= categories' "$output"
+  [ "$status" -eq 0 ]
+}

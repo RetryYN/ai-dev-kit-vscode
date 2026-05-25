@@ -53,7 +53,7 @@ usage() {
 使い方: helix skill <subcommand>
 
 Subcommands:
-  list [--layer LAYER] [--category CAT] [--json]  スキル一覧表示
+  list [--layer LAYER[,LAYER...]] [--category CAT[,CAT...]] [--json]  スキル一覧表示
   show <skill-id> [--json] [--with-content]       SKILL.md frontmatter 表示
   lint [--json] [--skills-root PATH]              SKILL.md frontmatter を検証
   catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
@@ -933,13 +933,13 @@ ensure_catalog() {
 }
 
 list_skills() {
-  local layer="$1"
-  local category="$2"
+  local layer_filter="$1"
+  local category_filter="$2"
   local as_json="$3"
 
   ensure_catalog || return 2
 
-  python3 - "$CATALOG_PY" "$CACHE_PATH" "$layer" "$category" "$as_json" <<'PY'
+  python3 - "$CATALOG_PY" "$CACHE_PATH" "$layer_filter" "$category_filter" "$as_json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -948,16 +948,23 @@ sys.path.insert(0, str(Path(sys.argv[1]).parent))
 import skill_catalog  # type: ignore
 
 cache_path = Path(sys.argv[2])
-layer = sys.argv[3]
-category = sys.argv[4]
+layer_filter = sys.argv[3]
+category_filter = sys.argv[4]
 as_json = sys.argv[5] == "true"
 
+def parse_filter(raw: str) -> set[str]:
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
 catalog = skill_catalog.load_catalog(cache_path)
+layer_values = parse_filter(layer_filter)
+category_values = parse_filter(category_filter)
 skills = []
 for item in catalog.get("skills", []):
-    if layer and item.get("helix_layer") != layer:
+    helix_layer = str(item.get("helix_layer", "") or "")
+    category = str(item.get("category", "") or "")
+    if layer_values and helix_layer not in layer_values:
         continue
-    if category and item.get("category") != category:
+    if category_values and category not in category_values:
         continue
     skills.append(item)
 
@@ -1278,19 +1285,19 @@ main() {
       esac
       ;;
     list)
-      local layer=""
-      local category=""
+      local layer_filter=""
+      local category_filter=""
       local as_json="false"
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --layer)
             [[ $# -ge 2 ]] || { echo "エラー: --layer には値が必要です" >&2; return 64; }
-            layer="$2"
+            layer_filter="$2"
             shift 2
             ;;
           --category)
             [[ $# -ge 2 ]] || { echo "エラー: --category には値が必要です" >&2; return 64; }
-            category="$2"
+            category_filter="$2"
             shift 2
             ;;
           --json)
@@ -1303,7 +1310,7 @@ main() {
             ;;
         esac
       done
-      list_skills "$layer" "$category" "$as_json"
+      list_skills "$layer_filter" "$category_filter" "$as_json"
       return $?
       ;;
     show)
