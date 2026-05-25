@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from cli.lib.test_design_scaffold import (
+    auto_detect_paired_design,
     extract_paired_design_sections,
     generate_skeleton,
     write_scaffold,
@@ -141,3 +142,25 @@ def test_generate_skeleton_extract_sections_handles_missing_file() -> None:
 
     assert "## §1 受入条件" in skeleton
     assert "TODO: pair design doc から DoD を引き写す" in skeleton
+
+
+def test_auto_detect_paired_design_finds_first_match(tmp_path) -> None:
+    """DoD 検証: W16 U-001 pair layer 配下の最初の PLAN を auto detect する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-foo-plan.md").write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+    (pair_dir / "L9-bar-plan.md").write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design("L4", project_root=tmp_path)
+
+    assert detected == "docs/plans/L9/L9-bar-plan.md"
+
+
+def test_auto_detect_paired_design_returns_none_when_no_pair(tmp_path) -> None:
+    """DoD 検証: W16 U-002 pair なし layer は None を返す。"""
+    assert auto_detect_paired_design("L0", project_root=tmp_path) is None
+
+
+def test_auto_detect_paired_design_returns_none_when_no_match(tmp_path) -> None:
+    """DoD 検証: W16 U-003 pair layer に match が無いとき None を返す。"""
+    assert auto_detect_paired_design("L4", project_root=tmp_path) is None

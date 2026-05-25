@@ -198,6 +198,23 @@ def _default_output_path(project_root: Path, pair_layer: str) -> Path:
     )
 
 
+def auto_detect_paired_design(layer: str, *, project_root: Path) -> str | None:
+    """
+    Return the first pair PLAN path relative to project_root, if one exists.
+    """
+    pair_layer = get_pair(layer)
+    if pair_layer is None:
+        return None
+
+    root = Path(project_root)
+    pair_dir = root / "docs" / "plans" / pair_layer
+    matches = sorted(pair_dir.glob(f"{pair_layer}-*plan.md")) if pair_dir.is_dir() else []
+    if not matches:
+        return None
+
+    return str(matches[0].relative_to(root))
+
+
 def _slug_from_output_path(output_path: Path, pair_layer: str) -> str:
     prefix = f"TEST-DESIGN-{pair_layer}-"
     stem = output_path.stem
@@ -304,7 +321,7 @@ def _preview(content: str, *, lines: int = 20) -> str:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="helix-test-design-scaffold")
     parser.add_argument("--layer", required=True)
-    parser.add_argument("--paired-design", required=True)
+    parser.add_argument("--paired-design")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
@@ -314,12 +331,18 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    project_root = resolve_project_root()
+    paired_design = args.paired_design or auto_detect_paired_design(args.layer, project_root=project_root)
+
+    if paired_design is None:
+        print(f"error: paired design could not be auto-detected for layer {args.layer}")
+        return 1
 
     try:
         result = _write_scaffold(
             args.layer,
-            args.paired_design,
-            project_root=resolve_project_root(),
+            paired_design,
+            project_root=project_root,
             dry_run=not args.apply,
             title=args.title,
             extract_sections=args.extract_sections,

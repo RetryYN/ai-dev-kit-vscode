@@ -73,3 +73,23 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" == *"引用:"* ]]
 }
+
+@test "helix-test-design-scaffold auto-detects paired design when omitted" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L9"
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-auto-plan.md" <<'EOF'
+---
+title: Auto Pair
+status: draft
+---
+
+# Auto Pair
+EOF
+
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"status: dry_run"* ]]
+  [[ "$output" == *"paired_design_doc"* ]]
+  [[ "$output" == *"L9-auto-plan.md"* ]]
+}
