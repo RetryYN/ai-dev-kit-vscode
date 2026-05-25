@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from .paths import project_root as resolve_project_root
 
 
@@ -42,7 +44,46 @@ def get_severity(layer: str) -> str | None:
     return None
 
 
-def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[str, Any]:
+def _load_plan_status(plan_path: Path) -> str | None:
+    """Return plan status from YAML frontmatter when present."""
+    try:
+        lines = plan_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+
+    if not lines or lines[0].strip() != "---":
+        return None
+
+    end_index: int | None = None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end_index = index
+            break
+    if end_index is None:
+        return None
+
+    try:
+        loaded = yaml.safe_load("\n".join(lines[1:end_index])) or {}
+    except yaml.YAMLError:
+        return None
+
+    if not isinstance(loaded, dict):
+        return None
+    status = loaded.get("status")
+    return status if isinstance(status, str) else None
+
+
+def _filter_active_plans(plan_paths: list[Path]) -> list[Path]:
+    active_statuses = {"draft", "in_progress"}
+    return [plan_path for plan_path in plan_paths if _load_plan_status(plan_path) in active_statuses]
+
+
+def check_pair_freeze(
+    layer: str,
+    *,
+    project_root: Path | None = None,
+    active_only: bool = False,
+) -> dict[str, Any]:
     """Return V-model pair freeze status for one layer."""
     pair = get_pair(layer)
     severity = get_severity(layer)
@@ -51,6 +92,7 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
             "layer": layer,
             "pair": None,
             "severity": severity,
+            "active_only": active_only,
             "pair_doc_exists": False,
             "pair_doc_path": None,
             "status": "no_pair",
@@ -61,6 +103,8 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
     pair_dir = root / "docs" / "plans" / pair
     pattern = f"{pair}-*plan.md"
     matches = sorted(pair_dir.glob(pattern)) if pair_dir.is_dir() else []
+    if active_only:
+        matches = _filter_active_plans(matches)
     pair_doc = matches[0] if matches else None
 
     if pair_doc is not None:
@@ -68,6 +112,7 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
             "layer": layer,
             "pair": pair,
             "severity": severity,
+            "active_only": active_only,
             "pair_doc_exists": True,
             "pair_doc_path": str(pair_doc),
             "status": "ok",
@@ -78,6 +123,7 @@ def check_pair_freeze(layer: str, *, project_root: Path | None = None) -> dict[s
         "layer": layer,
         "pair": pair,
         "severity": severity,
+        "active_only": active_only,
         "pair_doc_exists": False,
         "pair_doc_path": None,
         "status": "pair_missing",

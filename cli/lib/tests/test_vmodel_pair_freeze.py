@@ -90,3 +90,47 @@ def test_check_pair_freeze_status_no_pair(tmp_path) -> None:
     assert result["pair_doc_path"] is None
     assert result["status"] == "no_pair"
     assert result["hint"] is None
+
+
+def test_check_pair_freeze_active_only_filters_completed(tmp_path) -> None:
+    """DoD 検証: W12 U-001 active_only は completed plan を除外する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    completed_plan = pair_dir / "L7-completed-sampleplan.md"
+    draft_plan = pair_dir / "L7-draft-sampleplan.md"
+    completed_plan.write_text("---\nstatus: completed\n---\n", encoding="utf-8")
+    draft_plan.write_text("---\nstatus: draft\n---\n", encoding="utf-8")
+
+    result_all = check_pair_freeze("L6", project_root=tmp_path)
+    result_active = check_pair_freeze("L6", project_root=tmp_path, active_only=True)
+
+    assert result_all["pair_doc_exists"] is True
+    assert result_all["status"] == "ok"
+    assert result_all["active_only"] is False
+    assert result_active["pair_doc_exists"] is True
+    assert result_active["pair_doc_path"] == str(draft_plan)
+    assert result_active["status"] == "ok"
+    assert result_active["active_only"] is True
+
+
+def test_check_pair_freeze_active_only_returns_pair_missing_when_only_completed(tmp_path) -> None:
+    """DoD 検証: W12 U-002 active_only では completed only を missing と判定する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L7"
+    pair_dir.mkdir(parents=True)
+    completed_plan = pair_dir / "L7-completed-onlyplan.md"
+    completed_plan.write_text("---\nstatus: completed\n---\n", encoding="utf-8")
+
+    result = check_pair_freeze("L6", project_root=tmp_path, active_only=True)
+
+    assert result["pair_doc_exists"] is False
+    assert result["pair_doc_path"] is None
+    assert result["status"] == "pair_missing"
+    assert result["active_only"] is True
+
+
+def test_check_pair_freeze_active_only_field_in_result(tmp_path) -> None:
+    """DoD 検証: W12 U-003 result に active_only field を含む。"""
+    result = check_pair_freeze("L0", project_root=tmp_path, active_only=True)
+
+    assert "active_only" in result
+    assert result["active_only"] is True

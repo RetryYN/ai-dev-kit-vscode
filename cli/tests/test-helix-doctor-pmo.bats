@@ -67,3 +67,14 @@ teardown() {
   [[ "$output" == *"[V-model pair freeze]"* ]]
   [[ "$output" == *"critical:0"* ]]
 }
+
+@test "helix doctor --vmodel-pair-freeze-active-only shows active-only marker" {
+  run "$HELIX_ROOT/cli/helix-doctor" --vmodel-pair-freeze-active-only
+  if [ "$status" -ne 0 ] || [[ "$output" != *"(active-only)"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[V-model pair freeze]"* ]]
+  [[ "$output" == *"(active-only)"* ]]
+}

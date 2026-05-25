@@ -5,7 +5,7 @@ set -euo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--json]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -13,6 +13,7 @@ SUBCOMMAND=""
 MAX_AGE_DAYS=30
 JSON_OUTPUT=false
 STRICT_VMODEL_PAIR_FREEZE=false
+VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
 FORWARDED_ARGS=()
 
 show_usage() {
@@ -54,6 +55,10 @@ while [[ $# -gt 0 ]]; do
       STRICT_VMODEL_PAIR_FREEZE=true
       FORWARDED_ARGS+=("$1")
       ;;
+    --vmodel-pair-freeze-active-only)
+      VMODEL_PAIR_FREEZE_ACTIVE_ONLY=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --help|-h)
       show_usage
       echo ""
@@ -61,6 +66,7 @@ while [[ $# -gt 0 ]]; do
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
+      echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
       exit 0
       ;;
@@ -727,22 +733,34 @@ check_vmodel_4artifact() {
 
 check_vmodel_pair_freeze() {
   local report_json
-  if ! report_json="$(PYTHONPATH="$HELIX_HOME" python3 - "$PROJECT_ROOT" <<'PY' 2>&1
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
 import json
+import os
 import sys
 from pathlib import Path
 
 from cli.lib.vmodel_pair_freeze import VMODEL_PAIRS, check_pair_freeze
 
 root = Path(sys.argv[1])
-results = [check_pair_freeze(layer, project_root=root) for layer in sorted(VMODEL_PAIRS)]
+active_only = os.environ.get("HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY") == "1"
+results = [check_pair_freeze(layer, project_root=root, active_only=active_only) for layer in sorted(VMODEL_PAIRS)]
 missing = [row for row in results if row.get("status") == "pair_missing"]
 summary = {"critical": 0, "warning": 0, "info": 0}
 for row in missing:
     severity = row.get("severity")
     if severity in summary:
         summary[severity] += 1
-print(json.dumps({"missing_count": len(missing), "missing": missing, "summary": summary}, ensure_ascii=False))
+print(
+    json.dumps(
+        {
+            "active_only": active_only,
+            "missing_count": len(missing),
+            "missing": missing,
+            "summary": summary,
+        },
+        ensure_ascii=False,
+    )
+)
 PY
 )"; then
     echo "  △ check vmodel pair freeze: execution failed"
@@ -759,21 +777,25 @@ PY
   warning_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["warning"])' 2>/dev/null || echo "0")"
   local info_count
   info_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["summary"]["info"])' 2>/dev/null || echo "0")"
+  local marker=""
+  if [[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]]; then
+    marker=" (active-only)"
+  fi
 
   if [[ "$missing_count" == "0" ]]; then
-    echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0"
+    echo "  ✓ check vmodel pair freeze: critical:0 warning:0 info:0$marker"
     PASS=$((PASS + 1))
     return
   fi
 
   if [[ "$STRICT_VMODEL_PAIR_FREEZE" == true && "$critical_count" -gt 0 ]]; then
-    echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count (strict mode)"
+    echo "  ✗ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker (strict mode)"
     FAIL=$((FAIL + 1))
     WARN=$((WARN + warning_count + info_count))
     return
   fi
 
-  echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count"
+  echo "  △ check vmodel pair freeze: critical:$critical_count warning:$warning_count info:$info_count$marker"
   WARN=$((WARN + missing_count))
 }
 
