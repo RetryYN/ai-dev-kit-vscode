@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import builtins
 import json
 import re
 import sys
@@ -715,7 +716,7 @@ def _read_plan_metadata(plan_path: Path) -> dict[str, str]:
         return {}
 
     metadata: dict[str, str] = {}
-    for key in ("status", "kind"):
+    for key in ("plan_id", "status", "kind"):
         raw_value = payload.get(key)
         if not isinstance(raw_value, str):
             continue
@@ -749,6 +750,35 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+def list_paired_design_candidates(
+    layer: str,
+    *,
+    project_root: Path,
+) -> list[dict[str, str]]:
+    """
+    Return sorted paired design candidates as relative path + selected metadata.
+    """
+    pair_layer = get_pair(layer)
+    if pair_layer is None:
+        return []
+
+    root = Path(project_root)
+    pair_dir = root / "docs" / "plans" / pair_layer
+    matches = sorted(pair_dir.glob(f"{pair_layer}-*plan.md")) if pair_dir.is_dir() else []
+    candidates: list[dict[str, str]] = []
+    for match in matches:
+        metadata = _read_plan_metadata(match)
+        candidates.append(
+            {
+                "plan_path": str(match.relative_to(root)),
+                "plan_id": metadata.get("plan_id", ""),
+                "status": metadata.get("status", ""),
+                "kind": metadata.get("kind", ""),
+            }
+        )
+    return candidates
+
+
 def auto_detect_paired_design(
     layer: str,
     *,
@@ -758,26 +788,41 @@ def auto_detect_paired_design(
     weighted: bool = False,
     status_weight: int = 2,
     kind_weight: int = 1,
+    interactive: bool = False,
+    input_fn=None,
 ) -> str | None:
     """
     Return the preferred pair PLAN path relative to project_root, if one exists.
     """
-    pair_layer = get_pair(layer)
-    if pair_layer is None:
+    candidates = list_paired_design_candidates(layer, project_root=project_root)
+    if not candidates:
         return None
-
     root = Path(project_root)
-    pair_dir = root / "docs" / "plans" / pair_layer
-    matches = sorted(pair_dir.glob(f"{pair_layer}-*plan.md")) if pair_dir.is_dir() else []
-    if not matches:
-        return None
+    matches = [root / candidate["plan_path"] for candidate in candidates]
+    candidate_pairs = [(match, _read_plan_metadata(match)) for match in matches]
 
-    candidates = [(match, _read_plan_metadata(match)) for match in matches]
+    if interactive:
+        prompt_input = input_fn or builtins.input
+        print(f"Select paired design for {layer}:")
+        for index, candidate in enumerate(candidates, start=1):
+            plan_id = candidate["plan_id"] or "-"
+            status = candidate["status"] or "-"
+            kind = candidate["kind"] or "-"
+            print(f"{index}. {candidate['plan_path']} [plan_id={plan_id}, status={status}, kind={kind}]")
+        selected = prompt_input("Enter number (blank for default 1): ").strip()
+        if selected == "":
+            return candidates[0]["plan_path"]
+        if not selected.isdigit():
+            return None
+        selected_index = int(selected)
+        if selected_index < 1 or selected_index > len(candidates):
+            return None
+        return candidates[selected_index - 1]["plan_path"]
 
     if weighted:
         best_match = matches[0]
         best_score = -1
-        for match, metadata in candidates:
+        for match, metadata in candidate_pairs:
             score = score_paired_design(
                 metadata,
                 prefer_status=prefer_status,
@@ -791,17 +836,17 @@ def auto_detect_paired_design(
         return str(best_match.relative_to(root))
 
     if prefer_status is not None and prefer_kind is not None:
-        for match, metadata in candidates:
+        for match, metadata in candidate_pairs:
             if metadata.get("status") == prefer_status and metadata.get("kind") == prefer_kind:
                 return str(match.relative_to(root))
 
     if prefer_status is not None:
-        for match, metadata in candidates:
+        for match, metadata in candidate_pairs:
             if metadata.get("status") == prefer_status:
                 return str(match.relative_to(root))
 
     if prefer_kind is not None:
-        for match, metadata in candidates:
+        for match, metadata in candidate_pairs:
             if metadata.get("kind") == prefer_kind:
                 return str(match.relative_to(root))
 
@@ -1031,6 +1076,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--weighted", action="store_true")
     parser.add_argument("--status-weight", type=_positive_int, default=2)
     parser.add_argument("--kind-weight", type=_positive_int, default=1)
+    parser.add_argument("--interactive", action="store_true")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--output-dir")
     parser.add_argument("--json", dest="as_json", action="store_true")
@@ -1058,6 +1104,7 @@ def main(argv: list[str] | None = None) -> int:
         weighted=args.weighted,
         status_weight=args.status_weight,
         kind_weight=args.kind_weight,
+        interactive=args.interactive,
     )
 
     if paired_design is None:

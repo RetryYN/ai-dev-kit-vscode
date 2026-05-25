@@ -11,6 +11,7 @@ from cli.lib.test_design_scaffold import (
     extract_openapi_endpoints,
     auto_detect_paired_design,
     extract_function_signatures,
+    list_paired_design_candidates,
     extract_paired_design_sections,
     generate_skeleton,
     score_paired_design,
@@ -408,6 +409,71 @@ def test_auto_detect_paired_design_default_weight_uses_status_priority(tmp_path)
     )
 
     assert detected == "docs/plans/L9/L9-status-match-plan.md"
+
+
+def test_list_paired_design_candidates_returns_sorted(tmp_path) -> None:
+    """DoD 検証: W42 U-001 pair layer candidate list は sorted metadata を返す。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-b-plan.md").write_text(
+        "---\nplan_id: B-PLAN\nstatus: draft\nkind: impl\n---\n",
+        encoding="utf-8",
+    )
+    (pair_dir / "L9-a-plan.md").write_text(
+        "---\nplan_id: A-PLAN\nstatus: in_progress\nkind: design\n---\n",
+        encoding="utf-8",
+    )
+
+    candidates = list_paired_design_candidates("L4", project_root=tmp_path)
+
+    assert candidates == [
+        {
+            "plan_path": "docs/plans/L9/L9-a-plan.md",
+            "plan_id": "A-PLAN",
+            "status": "in_progress",
+            "kind": "design",
+        },
+        {
+            "plan_path": "docs/plans/L9/L9-b-plan.md",
+            "plan_id": "B-PLAN",
+            "status": "draft",
+            "kind": "impl",
+        },
+    ]
+
+
+def test_auto_detect_interactive_selects_by_input(tmp_path) -> None:
+    """DoD 検証: W42 U-002 interactive で番号入力した候補を採用する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-plan.md").write_text("---\nplan_id: A-PLAN\nstatus: draft\n---\n", encoding="utf-8")
+    (pair_dir / "L9-b-plan.md").write_text("---\nplan_id: B-PLAN\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        interactive=True,
+        input_fn=lambda _prompt: "2",
+    )
+
+    assert detected == "docs/plans/L9/L9-b-plan.md"
+
+
+def test_auto_detect_interactive_empty_input_default(tmp_path) -> None:
+    """DoD 検証: W42 U-003 interactive の空入力は sorted 最初を採用する。"""
+    pair_dir = tmp_path / "docs" / "plans" / "L9"
+    pair_dir.mkdir(parents=True)
+    (pair_dir / "L9-a-plan.md").write_text("---\nplan_id: A-PLAN\nstatus: draft\n---\n", encoding="utf-8")
+    (pair_dir / "L9-b-plan.md").write_text("---\nplan_id: B-PLAN\nstatus: draft\n---\n", encoding="utf-8")
+
+    detected = auto_detect_paired_design(
+        "L4",
+        project_root=tmp_path,
+        interactive=True,
+        input_fn=lambda _prompt: "",
+    )
+
+    assert detected == "docs/plans/L9/L9-a-plan.md"
 
 
 def test_extract_function_signatures_finds_python_def(tmp_path) -> None:

@@ -182,3 +182,21 @@ EOF
   [[ "$output" == *"{"* ]]
   [[ "$output" == *"\"metadata\""* ]]
 }
+
+@test "helix-test-design-scaffold --interactive prompts and accepts" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L9"
+  cat > "$PROJECT_ROOT/docs/plans/L9/L9-a-plan.md" <<'EOF'
+---
+title: Auto Pair
+plan_id: AUTO-PAIR
+status: draft
+kind: impl
+---
+EOF
+
+  run bash -lc "printf '\\n' | \"$HELIX_ROOT/cli/helix-test-design-scaffold\" --layer L4 --interactive"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Select paired design"* ]]
+  [[ "$output" == *"L9-a-plan.md"* ]]
+}

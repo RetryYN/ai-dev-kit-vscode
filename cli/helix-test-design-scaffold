@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# Thin wrapper that forwards CLI flags, including selection hints and
-# output-format flags, to cli.lib.test_design_scaffold.
+# Thin wrapper that forwards CLI flags, including selection hints,
+# interactive selection, and output-format flags, to the Python entrypoint.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=cli/lib/helix-common.sh
 source "$SCRIPT_DIR/lib/helix-common.sh"
