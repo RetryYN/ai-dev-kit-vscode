@@ -227,7 +227,7 @@ class AutoRunEngine:
                 "schedulewakeup_candidate": None,
             },
             "integrations": {
-                "compaction_api": "pending_next_phase",
+                "compaction_api": "active",
                 "schedulewakeup_hook": "out_of_scope_this_task",
             },
             "session_control": {

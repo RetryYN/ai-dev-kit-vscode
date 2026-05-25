@@ -22,7 +22,7 @@ def test_start_initializes_state_and_budget_window(tmp_path: Path) -> None:
     assert raw["status"] == "running"
     assert raw["plan"]["plan_id"] == "L7-auto-run-loop-frameworkplan"
     assert payload["budget"]["duration_minutes"] == 45
-    assert payload["integrations"]["compaction_api"] == "pending_next_phase"
+    assert payload["integrations"]["compaction_api"] == "active"
 
 
 def test_budget_set_minutes_updates_deadline(tmp_path: Path) -> None:

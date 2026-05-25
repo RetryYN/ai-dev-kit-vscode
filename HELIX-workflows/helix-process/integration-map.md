@@ -46,7 +46,7 @@ integration_target:
 | 工程(L): L1 / L2 / L3 / L4（sprint-guide 5種）/ L5 | あり |
 | 工程(L): L0 / L6 / L7 / L8 / L9 / L10 / L11 / L12 / L13 / L14 | あり（英語版 `cli/templates/plan/v2/L00-L14-*-template.md` として既存、2026-05-25 確認） |
 | drive=agent（2段設計の Stage 2 昇華） | drive-agent L1-L9 phase state 完遂（`helix agent layer`）。phase parallel 完遂（`L7-drive-agent-phase-parallelplan`）により start/pause/resume 運用を追加。 |
-| 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | PoC 完遂 (PLAN: L7-auto-run-poc-session-cleanerplan) |
+| 自動走行ループ（指定時間→budget time window、heartbeat wake→PLAN 再開、compaction API 統合） | PoC 完遂 (PLAN: L7-auto-run-poc-session-cleanerplan, L7-auto-run-poc-compaction-apiplan) |
 
 PLAN の kind 雛形は揃っている。generates 成果物は `helix retrofit init` による retrofit-matrix と `helix recover dump` による recovery-log、加えて research-memo / ADR の雛形も 2026-05-25 完了対応で揃っている。工程テンプレートは L00–L14 (英語版) として `cli/templates/plan/v2/` に既存、L1–L14 完備済み。
 
