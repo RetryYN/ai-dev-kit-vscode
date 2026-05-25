@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from cli.lib.test_design_scaffold import (
     _resolve_openapi_ref,
     extract_api_endpoints,
@@ -98,6 +101,60 @@ def test_write_scaffold_skips_existing(tmp_path) -> None:
     assert result["status"] == "skipped"
     assert result["reason"] == "file exists"
     assert output_path.read_text(encoding="utf-8") == "existing\n"
+
+
+def test_write_scaffold_uses_output_dir(tmp_path) -> None:
+    """DoD 検証: W39 U-001 output_dir 指定時は配下に auto path を生成する。"""
+    output_dir = tmp_path / "exports"
+
+    result = write_scaffold(
+        "L4",
+        "docs/plans/L4/L4-sample-design-plan.md",
+        project_root=tmp_path,
+        dry_run=False,
+        output_dir=output_dir,
+    )
+
+    output_path = output_dir / Path(result["output_path"]).name
+    assert result["status"] == "applied"
+    assert output_path.parent == output_dir
+    assert output_path.suffix == ".md"
+    assert output_path.exists()
+    assert output_path.name.startswith("TEST-DESIGN-L9-auto-")
+
+
+def test_write_scaffold_as_json(tmp_path) -> None:
+    """DoD 検証: W39 U-002 as_json=True なら JSON parse 可能な content を返す。"""
+    result = write_scaffold(
+        "L4",
+        "docs/plans/L4/L4-sample-design-plan.md",
+        project_root=tmp_path,
+        dry_run=True,
+        as_json=True,
+    )
+
+    payload = json.loads(result["content"])
+    assert result["output_path"].endswith(".json")
+    assert set(payload) >= {"metadata", "sections"}
+    assert payload["metadata"]["target_layer"] == "L9"
+    assert "acceptance" in payload["sections"]
+
+
+def test_write_scaffold_output_dir_creates_missing_directory(tmp_path) -> None:
+    """DoD 検証: W39 U-003 output_dir 未作成でも apply 時に mkdir される。"""
+    output_dir = tmp_path / "nested" / "missing" / "exports"
+
+    result = write_scaffold(
+        "L4",
+        "docs/plans/L4/L4-sample-design-plan.md",
+        project_root=tmp_path,
+        dry_run=False,
+        output_dir=output_dir,
+    )
+
+    assert result["status"] == "applied"
+    assert output_dir.is_dir()
+    assert Path(result["output_path"]).exists()
 
 
 def test_extract_paired_design_sections_finds_acceptance(tmp_path) -> None:

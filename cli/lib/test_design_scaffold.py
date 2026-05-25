@@ -684,15 +684,20 @@ def _render_skeleton(
     )
 
 
-def _default_output_path(project_root: Path, pair_layer: str) -> Path:
+def _default_output_path(
+    project_root: Path,
+    pair_layer: str,
+    *,
+    output_dir: Path | str | None = None,
+    suffix: str = ".md",
+) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return (
-        Path(project_root)
-        / "docs"
-        / "plans"
-        / pair_layer
-        / f"TEST-DESIGN-{pair_layer}-auto-{timestamp}.md"
+    base_dir = (
+        Path(output_dir)
+        if output_dir is not None
+        else Path(project_root) / "docs" / "plans" / pair_layer
     )
+    return base_dir / f"TEST-DESIGN-{pair_layer}-auto-{timestamp}{suffix}"
 
 
 def _read_plan_metadata(plan_path: Path) -> dict[str, str]:
@@ -811,6 +816,63 @@ def _slug_from_output_path(output_path: Path, pair_layer: str) -> str:
     return _slugify(stem, fallback=f"{pair_layer}-draft")
 
 
+def _scaffold_payload(
+    layer: str,
+    paired_design_doc: str,
+    *,
+    title: str | None = None,
+    slug: str | None = None,
+    extract_sections: bool = False,
+    extract_functions: bool = False,
+    extract_endpoints: bool = False,
+    openapi_spec_path: Path | str | None = None,
+) -> dict[str, Any]:
+    pair_layer = get_pair(layer)
+    if pair_layer is None:
+        raise ValueError(f"layer has no V-model pair: {layer}")
+
+    paired_design_path = Path(paired_design_doc)
+    resolved_title = title or _infer_title(paired_design_path)
+    resolved_slug = slug or _slugify(resolved_title, fallback=paired_design_path.stem)
+    sections = (
+        extract_paired_design_sections(paired_design_path)
+        if extract_sections
+        else {"acceptance": "", "function_spec": ""}
+    )
+    functions = extract_function_signatures(paired_design_path) if extract_functions else []
+    endpoints = extract_api_endpoints(paired_design_path) if extract_endpoints else []
+    openapi_endpoints = (
+        extract_openapi_endpoints(Path(openapi_spec_path))
+        if openapi_spec_path is not None
+        else []
+    )
+
+    return {
+        "metadata": {
+            "test_design_id": f"TEST-DESIGN-{pair_layer}-{resolved_slug}",
+            "title": resolved_title,
+            "target_layer": pair_layer,
+            "paired_design_layer": layer,
+            "paired_design_doc": paired_design_doc,
+            "status": "draft",
+            "created": date.today().isoformat(),
+        },
+        "sections": {
+            "acceptance": _acceptance_body_from_sections(sections),
+            "test_cases": _test_cases_body(
+                sections,
+                functions=functions,
+                endpoints=endpoints,
+                openapi_endpoints=openapi_endpoints,
+            ),
+            "trace": (
+                f"pair design: {paired_design_doc}\n"
+                f"pair test (this doc): docs/plans/{pair_layer}/TEST-DESIGN-{pair_layer}-{resolved_slug}.md"
+            ),
+        },
+    }
+
+
 def generate_skeleton(
     layer: str,
     paired_design_doc: str,
@@ -849,6 +911,8 @@ def _write_scaffold(
     project_root: Path,
     dry_run: bool = True,
     output_path: Path | None = None,
+    output_dir: Path | str | None = None,
+    as_json: bool = False,
     title: str | None = None,
     extract_sections: bool = False,
     extract_functions: bool = False,
@@ -859,17 +923,37 @@ def _write_scaffold(
         raise ValueError(f"layer has no V-model pair: {layer}")
 
     root = Path(project_root)
-    resolved_output_path = Path(output_path) if output_path is not None else _default_output_path(root, pair_layer)
-    slug = _slug_from_output_path(resolved_output_path, pair_layer)
-    content = _render_skeleton(
-        layer,
-        paired_design_doc,
-        title=title,
-        slug=slug,
-        extract_sections=extract_sections,
-        extract_functions=extract_functions,
-        extract_endpoints=extract_endpoints,
+    suffix = ".json" if as_json else ".md"
+    resolved_output_path = (
+        Path(output_path)
+        if output_path is not None
+        else _default_output_path(root, pair_layer, output_dir=output_dir, suffix=suffix)
     )
+    slug = _slug_from_output_path(resolved_output_path, pair_layer)
+    if as_json:
+        content = json.dumps(
+            _scaffold_payload(
+                layer,
+                paired_design_doc,
+                title=title,
+                slug=slug,
+                extract_sections=extract_sections,
+                extract_functions=extract_functions,
+                extract_endpoints=extract_endpoints,
+            ),
+            ensure_ascii=False,
+            indent=2,
+        )
+    else:
+        content = _render_skeleton(
+            layer,
+            paired_design_doc,
+            title=title,
+            slug=slug,
+            extract_sections=extract_sections,
+            extract_functions=extract_functions,
+            extract_endpoints=extract_endpoints,
+        )
 
     result = {
         "status": "dry_run" if dry_run else "applied",
@@ -897,6 +981,8 @@ def write_scaffold(
     project_root: Path,
     dry_run: bool = True,
     output_path: Path | None = None,
+    output_dir: Path | str | None = None,
+    as_json: bool = False,
     extract_sections: bool = False,
     extract_functions: bool = False,
     extract_endpoints: bool = False,
@@ -905,7 +991,10 @@ def write_scaffold(
     Returns: {'status': 'dry_run'|'applied'|'skipped', 'output_path': str, 'content': str, 'reason': str}
     dry_run=True: 内容を返すだけ、書き込みなし
     dry_run=False (--apply): output_path に write、既存 path なら status='skipped'
-    output_path 未指定なら docs/plans/{pair_layer_dir}/TEST-DESIGN-{pair_layer}-auto-{datetime}.md 自動生成
+    output_path 指定時は最優先
+    output_dir 指定時は output_dir/TEST-DESIGN-{pair_layer}-auto-{datetime}.md|json を生成
+    as_json=True: skeleton を {metadata, sections} JSON で返す
+    output_path / output_dir 未指定なら docs/plans/{pair_layer_dir}/TEST-DESIGN-{pair_layer}-auto-{datetime}.md 自動生成
     """
     return _write_scaffold(
         layer,
@@ -913,6 +1002,8 @@ def write_scaffold(
         project_root=project_root,
         dry_run=dry_run,
         output_path=output_path,
+        output_dir=output_dir,
+        as_json=as_json,
         extract_sections=extract_sections,
         extract_functions=extract_functions,
         extract_endpoints=extract_endpoints,
@@ -941,6 +1032,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--status-weight", type=_positive_int, default=2)
     parser.add_argument("--kind-weight", type=_positive_int, default=1)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--output-dir")
+    parser.add_argument("--json", dest="as_json", action="store_true")
     parser.add_argument("--extract-sections", action="store_true")
     parser.add_argument("--title")
     return parser
@@ -977,6 +1070,8 @@ def main(argv: list[str] | None = None) -> int:
             paired_design,
             project_root=project_root,
             dry_run=not args.apply,
+            output_dir=args.output_dir,
+            as_json=args.as_json,
             title=args.title,
             extract_sections=args.extract_sections,
         )

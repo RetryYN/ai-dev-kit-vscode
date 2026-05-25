@@ -171,3 +171,14 @@ EOF
   [[ "$output" == *"paired_design_doc"* ]]
   [[ "$output" == *"L9-status-match-plan.md"* ]]
 }
+
+@test "helix-test-design-scaffold --json outputs JSON" {
+  run "$HELIX_ROOT/cli/helix-test-design-scaffold" \
+    --layer L4 \
+    --paired-design docs/plans/L4/L4-sample-design-plan.md \
+    --json
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"{"* ]]
+  [[ "$output" == *"\"metadata\""* ]]
+}
