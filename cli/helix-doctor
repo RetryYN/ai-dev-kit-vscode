@@ -816,6 +816,89 @@ check_vmodel_4artifact() {
   PASS=$((PASS + 1))
 }
 
+check_skill_frontmatter() {
+  local report_json=""
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" python3 - "$PROJECT_ROOT/skills" <<'PY' 2>&1
+import json
+import sys
+from pathlib import Path
+
+from cli.lib.skill_catalog import _extract_frontmatter
+from cli.lib.skill_frontmatter_lint import scan_skills_directory, validate_skill_frontmatter
+
+skills_root = Path(sys.argv[1])
+if not skills_root.exists():
+    print(json.dumps({"total": 0, "valid": 0, "invalid": 0, "errors": []}))
+    raise SystemExit(0)
+
+try:
+    print(json.dumps(scan_skills_directory(skills_root)))
+except TypeError:
+    total = 0
+    valid = 0
+    invalid = 0
+    errors = []
+    for skill_md in sorted(skills_root.rglob("SKILL.md")):
+        total += 1
+        try:
+            frontmatter = _extract_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except Exception as exc:
+            invalid += 1
+            errors.append(
+                {
+                    "file": skill_md.relative_to(skills_root).as_posix(),
+                    "errors": [{"level": "error", "field": "frontmatter", "message": str(exc)}],
+                }
+            )
+            continue
+
+        if not isinstance(frontmatter, dict):
+            invalid += 1
+            errors.append(
+                {
+                    "file": skill_md.relative_to(skills_root).as_posix(),
+                    "errors": [{"level": "error", "field": "frontmatter", "message": "missing YAML frontmatter"}],
+                }
+            )
+            continue
+
+        metadata = frontmatter.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("helix_layer"), list):
+            metadata = dict(metadata)
+            metadata["helix_layer"] = ",".join(str(item) for item in metadata["helix_layer"])
+            frontmatter = dict(frontmatter)
+            frontmatter["metadata"] = metadata
+
+        findings = validate_skill_frontmatter(frontmatter)
+        error_findings = [finding for finding in findings if finding["level"] == "error"]
+        if error_findings:
+            invalid += 1
+            errors.append({"file": skill_md.relative_to(skills_root).as_posix(), "errors": error_findings})
+        else:
+            valid += 1
+
+    print(json.dumps({"total": total, "valid": valid, "invalid": invalid, "errors": errors}))
+PY
+)"; then
+    echo "  △ check skills/* frontmatter: execution failed"
+    { printf '%s\n' "$report_json" | head -20 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  local invalid_count="0"
+  invalid_count="$(printf '%s\n' "$report_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["invalid"])' 2>/dev/null || echo "0")"
+
+  if [[ "$invalid_count" == "0" ]]; then
+    echo "  ✓ check skills/* frontmatter: 0 invalid skills"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check skills/* frontmatter: $invalid_count invalid skills"
+  WARN=$((WARN + 1))
+}
+
 check_vmodel_pair_freeze() {
   local report_json
   if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_STALE_REVISIONS=$([[ "$APPLY_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_PATCHES=$([[ "$APPLY_PATCHES" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_ROLLBACK_STALE_REVISIONS=$([[ "$ROLLBACK_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_WRITES=$([[ "$APPLY_WRITES" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
@@ -1482,6 +1565,10 @@ echo ""
 echo "[V-model 4 artifact]"
 check_vmodel_4artifact
 check_design_doc_reference_sections
+
+echo ""
+echo "[skill frontmatter]"
+check_skill_frontmatter
 
 echo ""
 echo "[V-model pair freeze]"
