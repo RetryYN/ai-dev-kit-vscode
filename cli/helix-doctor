@@ -899,6 +899,41 @@ PY
   WARN=$((WARN + 1))
 }
 
+check_skill_helix_layer_audit() {
+  local report_json=""
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" python3 - "$PROJECT_ROOT/skills" <<'PY' 2>&1
+import json
+import sys
+from pathlib import Path
+
+from cli.lib.skill_helix_layer_audit import audit_skill_helix_layers
+
+skills_root = Path(sys.argv[1])
+if not skills_root.exists():
+    print(json.dumps({"total_skills": 0, "with_helix_layer": 0, "without_helix_layer": 0, "invalid_helix_layer": 0}))
+    raise SystemExit(0)
+print(json.dumps(audit_skill_helix_layers(skills_root), ensure_ascii=False))
+PY
+)" || ! python3 -c 'import json,sys; json.loads(sys.stdin.read())' <<<"$report_json" >/dev/null 2>&1; then
+    echo "  △ check skill helix_layer audit: skipped (audit error)"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  local without_count invalid_count
+  without_count=$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("without_helix_layer",0))' <<<"$report_json")
+  invalid_count=$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("invalid_helix_layer",0))' <<<"$report_json")
+
+  if [[ "$without_count" == "0" && "$invalid_count" == "0" ]]; then
+    echo "  ✓ check skill helix_layer: 0 without, 0 invalid"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check skill helix_layer: $without_count without_helix_layer, $invalid_count invalid"
+  WARN=$((WARN + 1))
+}
+
 check_vmodel_pair_freeze() {
   local report_json
   if ! report_json="$(PYTHONPATH="$HELIX_HOME" HELIX_VMODEL_PAIR_FREEZE_ACTIVE_ONLY=$([[ "$VMODEL_PAIR_FREEZE_ACTIVE_ONLY" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_SINCE_DAYS="$VMODEL_PAIR_FREEZE_SINCE_DAYS" HELIX_VMODEL_PAIR_FREEZE_SUGGEST_REVISIONS=$([[ "$SUGGEST_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_STALE_REVISIONS=$([[ "$APPLY_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_PATCHES=$([[ "$APPLY_PATCHES" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_ROLLBACK_STALE_REVISIONS=$([[ "$ROLLBACK_STALE_REVISIONS" == true ]] && echo 1 || echo 0) HELIX_VMODEL_PAIR_FREEZE_APPLY_WRITES=$([[ "$APPLY_WRITES" == true ]] && echo 1 || echo 0) python3 - "$PROJECT_ROOT" <<'PY' 2>&1
@@ -1569,6 +1604,10 @@ check_design_doc_reference_sections
 echo ""
 echo "[skill frontmatter]"
 check_skill_frontmatter
+
+echo ""
+echo "[skill helix_layer audit]"
+check_skill_helix_layer_audit
 
 echo ""
 echo "[V-model pair freeze]"

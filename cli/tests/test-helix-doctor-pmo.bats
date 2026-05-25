@@ -210,3 +210,10 @@ teardown() {
   [[ "$output" == *"stale (older than 30d):"* ]]
   [[ "$output" == *"apply stale patches (dry-run):"* ]]
 }
+
+@test "W58: helix doctor includes skill helix_layer audit section" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[skill helix_layer audit]"* ]]
+  [[ "$output" == *"check skill helix_layer:"* ]]
+}
