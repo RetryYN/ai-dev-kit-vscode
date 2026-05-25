@@ -1,17 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json]
+# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json] [--summary]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
 SUBCOMMAND=""
 MAX_AGE_DAYS=30
 JSON_OUTPUT=false
+SUMMARY_OUTPUT=false
 STRICT_VMODEL_PAIR_FREEZE=false
 VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
 VMODEL_PAIR_FREEZE_SINCE_DAYS=""
@@ -56,6 +57,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --json)
       JSON_OUTPUT=true
+      ;;
+    --summary)
+      SUMMARY_OUTPUT=true
       ;;
     --strict-vmodel-pair-freeze)
       STRICT_VMODEL_PAIR_FREEZE=true
@@ -109,6 +113,7 @@ while [[ $# -gt 0 ]]; do
       echo "--rollback-stale-revisions を付けると最新 audit record に基づく rollback の dry-run または apply を実行します。"
       echo "--apply を併用すると --apply-stale-revisions / --apply-patches / --rollback-stale-revisions の結果を実 file に反映します。"
       echo "--json を付けると text 出力を抑止し、構造化 JSON のみを stdout に出力します。"
+      echo "--summary を付けると text 出力を parse し、section 集計 JSON のみを stdout に出力します。"
       exit 0
       ;;
     *)
@@ -119,6 +124,11 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if [[ "$JSON_OUTPUT" == true && "$SUMMARY_OUTPUT" == true ]]; then
+  echo "エラー: --json と --summary は同時に使用できません" >&2
+  exit 2
+fi
 
 render_doctor_json() {
   local doctor_output="$1"
@@ -181,6 +191,11 @@ print(json.dumps(payload, ensure_ascii=False))
 PY
 }
 
+render_doctor_summary() {
+  local doctor_output="$1"
+  printf '%s' "$doctor_output" | python3 "$(cd "$(dirname "$0")" && pwd)/lib/doctor_summary.py"
+}
+
 if [[ "$JSON_OUTPUT" == true ]]; then
   if [[ -n "$SUBCOMMAND" ]]; then
     echo "エラー: --json はデフォルト doctor 出力でのみ使用できます" >&2
@@ -207,6 +222,35 @@ if [[ "$JSON_OUTPUT" == true ]]; then
   fi
 
   printf '%s\n' "$json_output"
+  exit "$doctor_rc"
+fi
+
+if [[ "$SUMMARY_OUTPUT" == true ]]; then
+  if [[ -n "$SUBCOMMAND" ]]; then
+    echo "エラー: --summary はデフォルト doctor 出力でのみ使用できます" >&2
+    exit 2
+  fi
+
+  tmp_stderr="$(mktemp)"
+  set +e
+  doctor_output="$("$SELF_PATH" "${FORWARDED_ARGS[@]}" 2>"$tmp_stderr")"
+  doctor_rc=$?
+  set -e
+  doctor_stderr="$(cat "$tmp_stderr")"
+  rm -f "$tmp_stderr"
+
+  if [[ $doctor_rc -gt 1 ]]; then
+    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+    exit "$doctor_rc"
+  fi
+
+  if ! summary_output="$(render_doctor_summary "$doctor_output")"; then
+    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+    echo "エラー: doctor text 出力の summary 変換に失敗しました" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$summary_output"
   exit "$doctor_rc"
 fi
 

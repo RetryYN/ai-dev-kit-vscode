@@ -24,6 +24,11 @@ teardown() {
   [[ "$output" == *"✓ pmo role consistency"* ]]
 }
 
+@test "helix doctor --summary outputs JSON" {
+  run bash -lc "\"$HELIX_ROOT/cli/helix\" doctor --summary | python3 -c 'import json,sys; d=json.load(sys.stdin); assert \"pass_count\" in d and \"sections\" in d and isinstance(d[\"sections\"], list)'"
+  [ "$status" -eq 0 ]
+}
+
 @test "helix doctor includes vmodel pair freeze section" {
   run "$HELIX_ROOT/cli/helix-doctor"
   if [ "$status" -ne 0 ] || [[ "$output" != *"[V-model pair freeze]"* ]]; then
