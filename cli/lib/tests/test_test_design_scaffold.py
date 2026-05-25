@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from cli.lib.test_design_scaffold import (
+    extract_api_endpoints,
     auto_detect_paired_design,
     extract_function_signatures,
     extract_paired_design_sections,
@@ -301,3 +302,58 @@ def second_case():
     assert "### TC-001: `first_case`" in skeleton
     assert "### TC-002: `second_case`" in skeleton
     assert "> signature: `def first_case():`" in skeleton
+
+
+def test_extract_api_endpoints_finds_inline(tmp_path) -> None:
+    """DoD 検証: W23 U-001 inline 記法の endpoint を抽出する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+API list:
+GET /api/users
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_api_endpoints(paired_design)
+
+    assert endpoints == [{"method": "GET", "path": "/api/users", "context": "API list:\nGET /api/users"}]
+
+
+def test_extract_api_endpoints_finds_table_row(tmp_path) -> None:
+    """DoD 検証: W23 U-002 markdown table row の endpoint を抽出する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+| Method | Path |
+| POST | /api/orders |
+""",
+        encoding="utf-8",
+    )
+
+    endpoints = extract_api_endpoints(paired_design)
+
+    assert endpoints[0]["method"] == "POST"
+    assert endpoints[0]["path"] == "/api/orders"
+    assert "| POST | /api/orders |" in endpoints[0]["context"]
+
+
+def test_generate_skeleton_with_extract_endpoints_includes_tc_per_endpoint(tmp_path) -> None:
+    """DoD 検証: W23 U-003 extract_endpoints=True で endpoint 別 TC を展開する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+GET /api/users
+POST /api/orders
+""",
+        encoding="utf-8",
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), extract_endpoints=True)
+
+    assert "### TC-API-001: `GET /api/users`" in skeleton
+    assert "### TC-API-002: `POST /api/orders`" in skeleton
+    assert "> endpoint: `GET /api/users`" in skeleton

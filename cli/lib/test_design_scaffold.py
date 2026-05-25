@@ -47,6 +47,8 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
 SECTION_HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$")
 PYTHON_DEF_RE = re.compile(r"^def ([a-z_]+)\(")
 BASH_FUNCTION_RE = re.compile(r"^([a-z_]+)\(\) \{")
+INLINE_ENDPOINT_RE = re.compile(r"\b(GET|POST|PUT|DELETE|PATCH)\s+(\/[^\s\)]+)")
+TABLE_ENDPOINT_RE = re.compile(r"\|\s*(GET|POST|PUT|DELETE|PATCH)\s*\|\s*(\/[^\s\|]+)")
 ACCEPTANCE_KEYWORDS = ("受入条件", "受入要件", "DoD")
 FUNCTION_SPEC_KEYWORDS = ("機能設計", "関数仕様")
 
@@ -175,6 +177,38 @@ def extract_function_signatures(paired_design_path: Path, *, max_count: int = 5)
     return signatures
 
 
+def extract_api_endpoints(paired_design_path: Path, *, max_count: int = 5) -> list[dict[str, str]]:
+    """
+    Returns: [{'method': str, 'path': str, 'context': str}]
+    paired_design_path が存在しない → 空 list
+    """
+    if not paired_design_path.exists() or max_count <= 0:
+        return []
+
+    text = paired_design_path.read_text(encoding="utf-8")
+    text = FRONTMATTER_RE.sub("", text, count=1)
+    lines = text.splitlines()
+    endpoints: list[dict[str, str]] = []
+
+    for index, line in enumerate(lines):
+        match = TABLE_ENDPOINT_RE.search(line) or INLINE_ENDPOINT_RE.search(line)
+        if match is None:
+            continue
+        context_start = max(0, index - 1)
+        context_end = min(len(lines), index + 2)
+        endpoints.append(
+            {
+                "method": match.group(1),
+                "path": match.group(2),
+                "context": "\n".join(lines[context_start:context_end]).strip(),
+            }
+        )
+        if len(endpoints) >= max_count:
+            break
+
+    return endpoints
+
+
 def _acceptance_body_from_sections(sections: dict[str, str]) -> str:
     acceptance = sections["acceptance"].strip()
     if not acceptance:
@@ -186,6 +220,7 @@ def _test_cases_body(
     sections: dict[str, str],
     *,
     functions: list[dict[str, str]],
+    endpoints: list[dict[str, str]],
 ) -> str:
     blocks: list[str] = []
     function_spec = sections["function_spec"].strip()
@@ -214,7 +249,26 @@ def _test_cases_body(
                     ]
                 )
             )
-    else:
+
+    if endpoints:
+        for index, endpoint in enumerate(endpoints, start=1):
+            blocks.append(
+                "\n".join(
+                    [
+                        f"### TC-API-{index:03d}: `{endpoint['method']} {endpoint['path']}`",
+                        "",
+                        "引用:",
+                        "",
+                        f"> endpoint: `{endpoint['method']} {endpoint['path']}`",
+                        "",
+                        "- 入力: TODO",
+                        "- 期待結果: TODO",
+                        "- 検証手順: TODO",
+                    ]
+                )
+            )
+
+    if not functions and not endpoints:
         blocks.append(_default_test_cases_body())
 
     return "\n\n".join(blocks)
@@ -225,6 +279,7 @@ def _inject_extracted_sections(
     *,
     sections: dict[str, str],
     functions: list[dict[str, str]],
+    endpoints: list[dict[str, str]],
 ) -> str:
     return rendered.replace(
         "__ACCEPTANCE_BODY__",
@@ -232,7 +287,7 @@ def _inject_extracted_sections(
         1,
     ).replace(
         "__TEST_CASES_BODY__",
-        _test_cases_body(sections, functions=functions),
+        _test_cases_body(sections, functions=functions, endpoints=endpoints),
         1,
     )
 
@@ -245,6 +300,7 @@ def _render_skeleton(
     slug: str | None = None,
     extract_sections: bool = False,
     extract_functions: bool = False,
+    extract_endpoints: bool = False,
 ) -> str:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -262,8 +318,13 @@ def _render_skeleton(
         paired_design_doc=_yaml_quote(paired_design_doc),
         today=date.today().isoformat(),
     )
-    if not extract_sections and not extract_functions:
-        return _inject_extracted_sections(rendered, sections={"acceptance": "", "function_spec": ""}, functions=[])
+    if not extract_sections and not extract_functions and not extract_endpoints:
+        return _inject_extracted_sections(
+            rendered,
+            sections={"acceptance": "", "function_spec": ""},
+            functions=[],
+            endpoints=[],
+        )
 
     sections = (
         extract_paired_design_sections(paired_design_path)
@@ -271,7 +332,13 @@ def _render_skeleton(
         else {"acceptance": "", "function_spec": ""}
     )
     functions = extract_function_signatures(paired_design_path) if extract_functions else []
-    return _inject_extracted_sections(rendered, sections=sections, functions=functions)
+    endpoints = extract_api_endpoints(paired_design_path) if extract_endpoints else []
+    return _inject_extracted_sections(
+        rendered,
+        sections=sections,
+        functions=functions,
+        endpoints=endpoints,
+    )
 
 
 def _default_output_path(project_root: Path, pair_layer: str) -> Path:
@@ -365,6 +432,7 @@ def generate_skeleton(
     title: str | None = None,
     extract_sections: bool = False,
     extract_functions: bool = False,
+    extract_endpoints: bool = False,
 ) -> str:
     """
     Returns: テスト設計 doc の skeleton 文字列
@@ -373,6 +441,7 @@ def generate_skeleton(
     title: doc title (default: pair_doc title から推定)
     extract_sections=True: paired design doc の relevant section を template に引用する
     extract_functions=True: paired design doc の function 定義ごとに TC 雛形を展開する
+    extract_endpoints=True: paired design doc の API endpoint ごとに TC 雛形を展開する
     """
     return _render_skeleton(
         layer,
@@ -380,6 +449,7 @@ def generate_skeleton(
         title=title,
         extract_sections=extract_sections,
         extract_functions=extract_functions,
+        extract_endpoints=extract_endpoints,
     )
 
 
@@ -393,6 +463,7 @@ def _write_scaffold(
     title: str | None = None,
     extract_sections: bool = False,
     extract_functions: bool = False,
+    extract_endpoints: bool = False,
 ) -> dict[str, Any]:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -408,6 +479,7 @@ def _write_scaffold(
         slug=slug,
         extract_sections=extract_sections,
         extract_functions=extract_functions,
+        extract_endpoints=extract_endpoints,
     )
 
     result = {
@@ -438,6 +510,7 @@ def write_scaffold(
     output_path: Path | None = None,
     extract_sections: bool = False,
     extract_functions: bool = False,
+    extract_endpoints: bool = False,
 ) -> dict[str, Any]:
     """
     Returns: {'status': 'dry_run'|'applied'|'skipped', 'output_path': str, 'content': str, 'reason': str}
@@ -453,6 +526,7 @@ def write_scaffold(
         output_path=output_path,
         extract_sections=extract_sections,
         extract_functions=extract_functions,
+        extract_endpoints=extract_endpoints,
     )
 
 
