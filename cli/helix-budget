@@ -8,7 +8,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || $# -eq 0 ]]; then
 使い方: helix budget <subcommand>
 
 サブコマンド:
-  status [--json] [--no-cache] [--breakdown]
+  status [--json] [--no-cache] [--breakdown] [--forecast]
                               Claude/Codex 両側の消費 % と枯渇予測を表示
   forecast [--days N] [--json]
                               N 日後の消費予測

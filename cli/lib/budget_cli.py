@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
 from budget import ClaudeBudget, CodexBudget, ForecastEngine, collect_status
+from budget_forecast import forecast_exhaustion
 from effort_classifier import classify
 from model_fallback import suggest_model
 
@@ -50,8 +52,46 @@ def _print_claude_budget(c: dict[str, Any]) -> None:
         )
 
 
-def _print_status(result: dict[str, Any], as_json: bool) -> None:
+def _resolve_weekly_elapsed_hours(claude: dict[str, Any]) -> float:
+    env_value = os.environ.get("HELIX_BUDGET_WEEKLY_ELAPSED_HOURS")
+    if env_value:
+        try:
+            return max(0.0, float(env_value))
+        except ValueError:
+            return 0.0
+
+    remaining_minutes = claude.get("block_remaining_minutes")
+    if remaining_minutes is None:
+        return 0.0
+    try:
+        return max(0.0, 5.0 - (float(remaining_minutes) / 60.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _format_forecast_hours(hours: float) -> str:
+    rounded = round(hours)
+    if abs(hours - rounded) < 0.05:
+        return f"{int(rounded)}h"
+    return f"{hours:.1f}h"
+
+
+def _build_weekly_forecast(claude: dict[str, Any]) -> dict[str, Any]:
+    return forecast_exhaustion(
+        current_used_pct=claude.get("weekly_used_pct", 0),
+        elapsed_hours=_resolve_weekly_elapsed_hours(claude),
+    )
+
+
+def _print_status(result: dict[str, Any], as_json: bool, include_forecast: bool = False) -> None:
+    claude_forecast = None
+    if include_forecast:
+        claude_forecast = _build_weekly_forecast(result.get("claude", {}))
     if as_json:
+        if claude_forecast is not None:
+            result = dict(result)
+            result["claude"] = dict(result.get("claude", {}))
+            result["claude"]["weekly_forecast"] = claude_forecast
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
     c = result.get("claude", {})
@@ -61,13 +101,23 @@ def _print_status(result: dict[str, Any], as_json: bool) -> None:
           f"/ {x.get('weekly_used_pct', 0)}% (weekly)  (source: {x.get('source', '?')})")
     for rec in result.get("recommendations", []):
         print(f"  [{rec['severity']}] {rec['message']}")
+    if claude_forecast is not None:
+        hours = claude_forecast.get("projected_exhaustion_hours")
+        status = "on track" if claude_forecast.get("on_track") else "off track"
+        if hours is None:
+            print("forecast (weekly): unavailable (elapsed 0h)")
+        else:
+            print(
+                "forecast (weekly): "
+                f"projected exhaustion in {_format_forecast_hours(float(hours))} ({status})"
+            )
     if result.get("cached"):
         print(f"  (cached {result.get('_cache_age_sec', 0)}s ago)")
 
 
 def cmd_status(args) -> int:
     result = collect_status(use_cache=not args.no_cache)
-    _print_status(result, args.json)
+    _print_status(result, args.json, include_forecast=args.forecast)
     return 0
 
 
@@ -165,6 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_s.add_argument("--json", action="store_true")
     p_s.add_argument("--no-cache", action="store_true")
     p_s.add_argument("--breakdown", action="store_true")
+    p_s.add_argument("--forecast", action="store_true")
     p_s.set_defaults(func=cmd_status)
 
     p_f = sub.add_parser("forecast")

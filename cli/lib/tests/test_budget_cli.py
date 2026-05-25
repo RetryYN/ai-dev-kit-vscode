@@ -20,14 +20,20 @@ def test_main_dispatches_status_subcommand(monkeypatch: pytest.MonkeyPatch) -> N
         captured["subcmd"] = args.subcmd
         captured["json"] = args.json
         captured["no_cache"] = args.no_cache
+        captured["forecast"] = args.forecast
         return 11
 
     monkeypatch.setattr(budget_cli, "cmd_status", fake_cmd)
 
-    result = budget_cli.main(["status", "--json", "--no-cache"])
+    result = budget_cli.main(["status", "--json", "--no-cache", "--forecast"])
 
     assert result == 11
-    assert captured == {"subcmd": "status", "json": True, "no_cache": True}
+    assert captured == {
+        "subcmd": "status",
+        "json": True,
+        "no_cache": True,
+        "forecast": True,
+    }
 
 
 def test_main_dispatches_cache_subcommand(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -152,3 +158,52 @@ def test_format_without_block_info() -> None:
         "Claude (weekly ref $200): 57% used / 43% remaining ($114.00 of $200, source: ccusage)",
         "Codex  (max): 42% (5h) / 67% (weekly)  (source: state.db)",
     ]
+
+
+def test_status_with_forecast_flag_outputs_forecast(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    result = {
+        "claude": {
+            "weekly_used_pct": 50,
+            "block_remaining_minutes": 120,
+            "source": "ccusage",
+        },
+        "codex": {"plan": "max", "five_hour_used_pct": 42, "weekly_used_pct": 67, "source": "state.db"},
+        "recommendations": [],
+    }
+
+    monkeypatch.setattr(
+        budget_cli,
+        "forecast_exhaustion",
+        lambda **_: {
+            "projected_exhaustion_hours": 24.0,
+            "projected_exhaustion_date": "2026-05-25T00:00:00+00:00",
+            "rate_per_hour": 1.0,
+            "on_track": False,
+        },
+    )
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=False, include_forecast=True)
+
+    assert "forecast (weekly): projected exhaustion in 24h (off track)" in buf.getvalue()
+
+
+def test_status_without_forecast_flag_omits_forecast() -> None:
+    result = {
+        "claude": {
+            "weekly_used_pct": 50,
+            "block_remaining_minutes": 120,
+            "source": "ccusage",
+        },
+        "codex": {"plan": "max", "five_hour_used_pct": 42, "weekly_used_pct": 67, "source": "state.db"},
+        "recommendations": [],
+    }
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        budget_cli._print_status(result, as_json=False, include_forecast=False)
+
+    assert "forecast" not in buf.getvalue()
