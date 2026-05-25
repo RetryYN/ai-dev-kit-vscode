@@ -62,6 +62,53 @@ EOF
   [[ "$output" == *"プランは登録されていません。"* ]]
 }
 
+@test "helix plan list outputs docs/plans entries with filters" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-list-smokeplan.md" <<'EOF'
+---
+plan_id: L7-list-smokeplan
+title: "L7-list-smokeplan: list smoke"
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/HELIX-process-L0-L14.md
+agent_slots: []
+generates: []
+dependencies: {}
+---
+EOF
+
+  run "$HELIX_ROOT/cli/helix" plan list --status draft --kind impl --layer L7
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"L7-list-smokeplan"* ]]
+  [[ "$output" == *"draft"* ]]
+  [[ "$output" == *"L7"* ]]
+}
+
+@test "helix plan list --json outputs valid JSON" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-list-jsonplan.md" <<'EOF'
+---
+plan_id: L7-list-jsonplan
+title: "L7-list-jsonplan: list json"
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/HELIX-process-L0-L14.md
+agent_slots: []
+generates: []
+dependencies: {}
+---
+EOF
+
+  run bash -lc "\"$HELIX_ROOT/cli/helix\" plan list --json | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data[\"plans\"]; assert data[\"plans\"][0][\"plan_id\"].startswith(\"L7-\")'"
+  [ "$status" -eq 0 ]
+}
+
 @test "helix plan draft creates first plan yaml with source file" {
   run "$HELIX_ROOT/cli/helix" plan draft --title "Plan CLI Coverage" --file docs/source.md
   [ "$status" -eq 0 ]
