@@ -465,3 +465,8 @@ YAML
   # 既存 handover が無い場合、resume は失敗する想定だが、stale check section は表示される
   [[ "$output" == *"[handover staleness check]"* ]]
 }
+
+@test "41 compaction-sync runs without crash" {
+  run "$HELIX_ROOT/cli/helix-handover" compaction-sync
+  [ "$status" -eq 0 ]
+}

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-handover: Claude Code(Opus) <-> Codex CLI の非同期 handover 管理
-# Usage: helix handover <dump|status|stale|update|clear|escalate|resume> [options]
+# Usage: helix handover <dump|status|stale|update|clear|escalate|resume|compaction-sync> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
@@ -22,6 +22,7 @@ Subcommands:
   clear     handover を archive に移動
   escalate  ESCALATION.md を生成して status=escalated に遷移
   resume    Codex→Opus 復帰支援 (RESUME.md 生成)
+  compaction-sync  compaction 後の handover snapshot を実行/表示
 
 Examples:
   helix handover dump --task-id T-001 --task-title "JWT 実装" --files "src/auth.py,tests/test_auth.py"
@@ -30,6 +31,8 @@ Examples:
   helix handover update --owner codex --note "作業再開"
   helix handover resume --note "Opus review restart"
   helix handover escalate --reason "仕様判断が必要" --context "..."
+  helix handover compaction-sync --json
+  helix handover compaction-sync --apply
   helix handover clear --reason completed
 USAGE
 }
@@ -134,6 +137,59 @@ else:
 PY
 }
 
+run_handover_compaction_sync() {
+  local apply_mode=false
+  local json_output=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --apply)
+        apply_mode=true
+        shift
+        ;;
+      --json)
+        json_output=true
+        shift
+        ;;
+      *)
+        echo "エラー: compaction-sync の不明なオプション '$1'" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  PYTHONPATH="$SCRIPT_DIR/lib${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 - "$PROJECT_ROOT" "$apply_mode" "$json_output" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+from compaction_adapter import FakeCompactionAdapter, sync_handover_after_compaction
+
+project_root = Path(sys.argv[1]).expanduser().resolve()
+apply_mode = sys.argv[2] == "true"
+json_output = sys.argv[3] == "true"
+
+payload = sync_handover_after_compaction(
+    FakeCompactionAdapter(),
+    project_root=project_root,
+    dry_run=not apply_mode,
+)
+
+if json_output:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+else:
+    snapshot = payload.get("handover_snapshot") or {}
+    compaction_status = payload.get("compaction_status") or {}
+    print(f"status: {payload.get('status')}")
+    print(f"mode: {'apply' if apply_mode else 'dry_run'}")
+    print(f"compaction_status: {compaction_status.get('status')}")
+    print(f"handover_exists: {snapshot.get('exists')}")
+    print(f"updated_at: {snapshot.get('updated_at')}")
+    print(f"next_action_summary: {snapshot.get('next_action_summary')}")
+PY
+}
+
 SUBCOMMAND="${1:-help}"
 if [[ $# -gt 0 ]]; then
   shift
@@ -207,6 +263,10 @@ case "$SUBCOMMAND" in
     else
       run_handover_py resume
     fi
+    ;;
+  compaction-sync)
+    ensure_helix_ready
+    run_handover_compaction_sync "$@"
     ;;
   help|-h|--help)
     usage
