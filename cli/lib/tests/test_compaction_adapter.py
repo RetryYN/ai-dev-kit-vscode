@@ -77,3 +77,79 @@ def test_check_drift_threshold_within() -> None:
         "threshold": 0.5,
         "recommendation": "continue",
     }
+
+
+def test_sync_handover_after_compaction_dry_run(tmp_path: Path, monkeypatch) -> None:
+    """DoD 検証: L7-auto-run-compaction-handover-syncplan dry-run returns handover snapshot only."""
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    handover_path = tmp_path / ".helix" / "handover" / "CURRENT.json"
+    handover_path.parent.mkdir(parents=True, exist_ok=True)
+    handover_path.write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-05-25T00:00:00+09:00",
+                "next_action": "Resume compaction follow-up and validate audit sync.",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = compaction_adapter.sync_handover_after_compaction(
+        compaction_adapter.FakeCompactionAdapter(),
+        project_root=tmp_path,
+        dry_run=True,
+    )
+
+    assert payload["status"] == "dry_run"
+    assert payload["compaction_status"]["status"] == "success"
+    assert payload["handover_snapshot"] == {
+        "exists": True,
+        "updated_at": "2026-05-25T00:00:00+09:00",
+        "next_action_summary": "Resume compaction follow-up and validate audit sync.",
+    }
+
+
+def test_sync_handover_after_compaction_writes_when_not_dry_run(tmp_path: Path, monkeypatch) -> None:
+    """DoD 検証: L7-auto-run-compaction-handover-syncplan non-dry-run writes audit snapshot."""
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+    handover_path = tmp_path / ".helix" / "handover" / "CURRENT.json"
+    handover_path.parent.mkdir(parents=True, exist_ok=True)
+    handover_path.write_text(
+        json.dumps(
+            {
+                "updated_at": "2026-05-25T00:00:00+09:00",
+                "next_action": "Persist compaction audit output.",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = compaction_adapter.sync_handover_after_compaction(
+        compaction_adapter.FakeCompactionAdapter(),
+        project_root=tmp_path,
+        dry_run=False,
+    )
+
+    audit_path = tmp_path / ".helix" / "handover" / "COMPACTION-SYNC.json"
+    assert payload["status"] == "synced"
+    assert audit_path.exists()
+    assert json.loads(audit_path.read_text(encoding="utf-8")) == payload["handover_snapshot"]
+
+
+def test_sync_handover_after_compaction_handles_missing_handover(tmp_path: Path, monkeypatch) -> None:
+    """DoD 検証: L7-auto-run-compaction-handover-syncplan missing handover returns no_handover."""
+    monkeypatch.setenv("HELIX_PROJECT_ROOT", str(tmp_path))
+
+    payload = compaction_adapter.sync_handover_after_compaction(
+        compaction_adapter.FakeCompactionAdapter(),
+        project_root=tmp_path,
+        dry_run=True,
+    )
+
+    assert payload["status"] == "no_handover"
+    assert payload["compaction_status"]["status"] == "success"
+    assert payload["handover_snapshot"] == {
+        "exists": False,
+        "updated_at": None,
+        "next_action_summary": "",
+    }

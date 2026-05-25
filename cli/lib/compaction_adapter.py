@@ -20,9 +20,12 @@ except ImportError:  # pragma: no cover
 
 
 STATE_PATH = Path(".helix") / "auto-run" / "compaction.json"
+HANDOVER_CURRENT_PATH = Path(".helix") / "handover" / "CURRENT.json"
+HANDOVER_SYNC_PATH = Path(".helix") / "handover" / "COMPACTION-SYNC.json"
 STATE_VERSION = 1
 LOCK_NAME = "auto-run-compaction-state"
 DEFAULT_BEFORE_TOKENS = 1000
+MAX_NEXT_ACTION_SUMMARY = 200
 
 
 class CompactionError(RuntimeError):
@@ -92,6 +95,48 @@ def _write_state_file(path: Path, payload: dict[str, Any]) -> None:
     tmp_path = path.parent / f"{path.name}.tmp.{os.getpid()}"
     tmp_path.write_text(_json_dump(payload), encoding="utf-8")
     os.replace(tmp_path, path)
+
+
+def _truncate_summary(value: str, *, limit: int = MAX_NEXT_ACTION_SUMMARY) -> str:
+    text = " ".join(value.split()).strip()
+    return text[:limit]
+
+
+def _handover_next_action_summary(payload: dict[str, Any]) -> str:
+    next_action = payload.get("next_action")
+    if isinstance(next_action, str) and next_action.strip():
+        return _truncate_summary(next_action)
+
+    next_actions = payload.get("next_actions")
+    if isinstance(next_actions, list):
+        joined = "; ".join(str(item).strip() for item in next_actions if str(item).strip())
+        if joined:
+            return _truncate_summary(joined)
+    return ""
+
+
+def _read_handover_snapshot(project_root: Path) -> dict[str, Any]:
+    handover_path = project_root / HANDOVER_CURRENT_PATH
+    if not handover_path.exists():
+        return {
+            "exists": False,
+            "updated_at": None,
+            "next_action_summary": "",
+        }
+
+    try:
+        payload = json.loads(handover_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+
+    updated_at = payload.get("updated_at")
+    return {
+        "exists": True,
+        "updated_at": str(updated_at) if updated_at else None,
+        "next_action_summary": _handover_next_action_summary(payload),
+    }
 
 
 def _persist_success(*, compacted_at: str) -> None:
@@ -199,4 +244,37 @@ def check_drift_threshold(drift: float, threshold: float = 0.5) -> dict[str, Any
         "drift": normalized_drift,
         "threshold": normalized_threshold,
         "recommendation": "continue" if ok else "request_compaction",
+    }
+
+
+def sync_handover_after_compaction(
+    adapter: CompactionAdapter,
+    *,
+    project_root: Path,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Run compaction, then return or persist a compact handover snapshot."""
+    compaction_status = adapter.request_compaction()
+    handover_snapshot = _read_handover_snapshot(project_root)
+    if not handover_snapshot["exists"]:
+        return {
+            "compaction_status": compaction_status,
+            "handover_snapshot": handover_snapshot,
+            "status": "no_handover",
+        }
+
+    if dry_run:
+        return {
+            "compaction_status": compaction_status,
+            "handover_snapshot": handover_snapshot,
+            "status": "dry_run",
+        }
+
+    sync_path = project_root / HANDOVER_SYNC_PATH
+    sync_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_state_file(sync_path, handover_snapshot)
+    return {
+        "compaction_status": compaction_status,
+        "handover_snapshot": handover_snapshot,
+        "status": "synced",
     }
