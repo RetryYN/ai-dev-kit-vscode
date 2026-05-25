@@ -152,3 +152,28 @@ PY
   [ "$status" -ne 0 ]
   [[ "$output" == *"unsupported phase"* ]]
 }
+
+@test "helix agent layer outputs vmodel pair freeze warning when pair missing" {
+  if ! agent_layer_supported; then
+    skip "HELIX-SKIP: W4-B advance_layer not yet available"
+  fi
+
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A7 --summary "warning-test" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" agent layer --phase phase1 --layer L4 --status entered
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"vmodel pair freeze missing"* ]]
+}
+
+@test "helix agent layer omits warnings for no-pair layer" {
+  if ! agent_layer_supported; then
+    skip "HELIX-SKIP: W4-B advance_layer not yet available"
+  fi
+
+  "$HELIX_ROOT/cli/helix" agent init --agent-id A8 --summary "no-pair-test" >/dev/null
+
+  # L11 / L13 は VMODEL_PAIRS に含まれない (pair なし layer)、phase3 に属する → warning なし
+  run "$HELIX_ROOT/cli/helix" agent layer --phase phase3 --layer L11 --status entered
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"vmodel pair freeze missing"* ]]
+}

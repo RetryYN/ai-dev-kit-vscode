@@ -351,7 +351,7 @@ cmd_layer() {
   [[ -n "$status" ]] || _die "layer には --status が必要です"
 
   payload="$(
-    _py_filtered $'import json\nimport sys\nfrom cli.lib.agent_engine import AgentEngine, AgentEngineError\nengine = AgentEngine()\nadvance_layer = getattr(engine, "advance_layer", None)\nif advance_layer is None:\n    raise AgentEngineError("WAITING: W4-B advance_layer not yet available", 2)\nsession = advance_layer(phase=sys.argv[1], layer=sys.argv[2], status=sys.argv[3])\nphase_state = getattr(session, sys.argv[1])\nhistory = list(phase_state.get("layer_history") or [])\npayload = {\n    "status": "ok",\n    "phase": sys.argv[1],\n    "current_layer": phase_state.get("current_layer"),\n    "layer_history": history[-3:][::-1],\n}\nprint(json.dumps(payload, ensure_ascii=False))' \
+    _py_filtered $'import json\nimport sys\nfrom cli.lib.agent_engine import AgentEngine, AgentEngineError\nengine = AgentEngine()\nadvance_layer = getattr(engine, "advance_layer", None)\nif advance_layer is None:\n    raise AgentEngineError("WAITING: W4-B advance_layer not yet available", 2)\nsession = advance_layer(phase=sys.argv[1], layer=sys.argv[2], status=sys.argv[3])\nphase_state = getattr(session, sys.argv[1])\nhistory = list(phase_state.get("layer_history") or [])\npair_warnings = [w for w in (session.warnings or []) if w.startswith("vmodel pair freeze")]\npayload = {\n    "status": "ok",\n    "phase": sys.argv[1],\n    "current_layer": phase_state.get("current_layer"),\n    "layer_history": history[-3:][::-1],\n    "warnings": pair_warnings[-3:][::-1],\n}\nprint(json.dumps(payload, ensure_ascii=False))' \
       "$phase" "$layer" "$status"
   )"
 
@@ -360,7 +360,7 @@ cmd_layer() {
     return 0
   fi
 
-  _py $'import json\nimport sys\npayload = json.loads(sys.argv[1])\nprint(f"status: {payload[\"status\"]}")\nprint(f"phase: {payload[\"phase\"]}")\nprint(f"current_layer: {payload[\"current_layer\"]}")\nprint("layer_history (latest 3):")\nfor entry in payload["layer_history"]:\n    print(f"  {entry[\"layer\"]}: entered_at={entry.get(\"entered_at\")}, completed_at={entry.get(\"completed_at\")}")' \
+  _py $'import json\nimport sys\npayload = json.loads(sys.argv[1])\nprint(f"status: {payload[\"status\"]}")\nprint(f"phase: {payload[\"phase\"]}")\nprint(f"current_layer: {payload[\"current_layer\"]}")\nprint("layer_history (latest 3):")\nfor entry in payload["layer_history"]:\n    print(f"  {entry[\"layer\"]}: entered_at={entry.get(\"entered_at\")}, completed_at={entry.get(\"completed_at\")}")\nwarnings = payload.get("warnings") or []\nif warnings:\n    print("warnings (latest 3):")\n    for w in warnings:\n        print(f"  - {w}")' \
     "$payload"
 }
 
