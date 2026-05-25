@@ -55,6 +55,7 @@ usage() {
 Subcommands:
   list [--layer LAYER] [--category CAT] [--json]  スキル一覧表示
   show <skill-id> [--with-content]                スキル詳細表示
+  lint [--json] [--skills-root PATH]              SKILL.md frontmatter を検証
   catalog rebuild [--auto-classify] [--only-pending] [--dry-run]
                                                    catalog を再生成
   classify <skill-id> [--approve] [--dry-run]     単発分類
@@ -132,6 +133,17 @@ Options:
 USAGE
 }
 
+lint_usage() {
+  cat <<'USAGE'
+使い方: helix skill lint [--json] [--skills-root PATH]
+
+Options:
+  --json              集計結果を JSON で出力
+  --skills-root PATH  検査対象 skills root（デフォルト: HELIX_HOME/skills）
+  --help              lint のヘルプ
+USAGE
+}
+
 classify_usage() {
   cat <<'USAGE'
 使い方: helix skill classify <skill-id> [--approve] [--dry-run]
@@ -141,6 +153,102 @@ Options:
   --dry-run  分類だけ実行し JSONL へは書き込まない
   --help     classify のヘルプ
 USAGE
+}
+
+lint_skills() {
+  local as_json="$1"
+  local skills_root="$2"
+  local report_json=""
+
+  if ! report_json="$(PYTHONPATH="$HELIX_HOME" python3 - "$skills_root" <<'PY' 2>&1
+import json
+import sys
+from pathlib import Path
+
+from cli.lib.skill_catalog import _extract_frontmatter
+from cli.lib.skill_frontmatter_lint import scan_skills_directory
+from cli.lib.skill_frontmatter_lint import validate_skill_frontmatter
+
+skills_root = Path(sys.argv[1])
+if not skills_root.exists():
+    print(json.dumps({"total": 0, "valid": 0, "invalid": 0, "errors": []}))
+    raise SystemExit(0)
+
+try:
+    print(json.dumps(scan_skills_directory(skills_root), ensure_ascii=False))
+except TypeError:
+    total = 0
+    valid = 0
+    invalid = 0
+    errors = []
+    for skill_md in sorted(skills_root.rglob("SKILL.md")):
+        total += 1
+        try:
+            frontmatter = _extract_frontmatter(skill_md.read_text(encoding="utf-8"))
+        except Exception as exc:
+            invalid += 1
+            errors.append(
+                {
+                    "file": skill_md.relative_to(skills_root).as_posix(),
+                    "errors": [{"level": "error", "field": "frontmatter", "message": str(exc)}],
+                }
+            )
+            continue
+
+        if not isinstance(frontmatter, dict):
+            invalid += 1
+            errors.append(
+                {
+                    "file": skill_md.relative_to(skills_root).as_posix(),
+                    "errors": [{"level": "error", "field": "frontmatter", "message": "missing YAML frontmatter"}],
+                }
+            )
+            continue
+
+        metadata = frontmatter.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("helix_layer"), list):
+            metadata = dict(metadata)
+            metadata["helix_layer"] = ",".join(str(item) for item in metadata["helix_layer"])
+            frontmatter = dict(frontmatter)
+            frontmatter["metadata"] = metadata
+
+        findings = validate_skill_frontmatter(frontmatter)
+        error_findings = [finding for finding in findings if finding["level"] == "error"]
+        if error_findings:
+            invalid += 1
+            errors.append({"file": skill_md.relative_to(skills_root).as_posix(), "errors": error_findings})
+        else:
+            valid += 1
+
+    print(json.dumps({"total": total, "valid": valid, "invalid": invalid, "errors": errors}, ensure_ascii=False))
+PY
+)"; then
+    printf '%s\n' "$report_json" >&2
+    return 1
+  fi
+
+  if [[ "$as_json" == "true" ]]; then
+    printf '%s\n' "$report_json"
+    return 0
+  fi
+
+  run_py_with_json "$report_json" <<'PY'
+import json
+import os
+
+with open(os.environ["HELIX_PAYLOAD_FILE"], encoding="utf-8") as fh:
+    report = json.load(fh)
+
+print(f"total: {report.get('total', 0)}")
+print(f"valid: {report.get('valid', 0)}")
+print(f"invalid: {report.get('invalid', 0)}")
+for entry in report.get("errors", []):
+    file_path = entry.get("file", "<unknown>")
+    for finding in entry.get("errors", []):
+        field = finding.get("field", "<unknown>")
+        message = finding.get("message", "")
+        print(f"{file_path}: {field}: {message}")
+PY
 }
 
 catalog_catalog_rebuild_usage() {
@@ -1229,6 +1337,34 @@ main() {
         esac
       done
       show_skill "$skill_id" "$with_content"
+      return $?
+      ;;
+    lint)
+      local as_json="false"
+      local skills_root="$SKILLS_ROOT"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --json)
+            as_json="true"
+            shift
+            ;;
+          --skills-root)
+            [[ $# -ge 2 ]] || { echo "エラー: --skills-root には値が必要です" >&2; return 64; }
+            skills_root="$2"
+            shift 2
+            ;;
+          --help|-h)
+            lint_usage
+            return 0
+            ;;
+          *)
+            echo "エラー: 不明なオプションです: $1" >&2
+            lint_usage >&2
+            return 64
+            ;;
+        esac
+      done
+      lint_skills "$as_json" "$skills_root"
       return $?
       ;;
     search)

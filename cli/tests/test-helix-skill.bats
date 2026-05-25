@@ -97,3 +97,19 @@ PY
   run assert_skill_usage_entries
   [ "$status" -eq 0 ]
 }
+
+@test "W53: helix skill lint runs without crash" {
+  run "$HELIX_ROOT/cli/helix" skill lint
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"total:"* ]]
+  [[ "$output" == *"valid:"* ]]
+  [[ "$output" == *"invalid:"* ]]
+}
+
+@test "W53: helix skill lint --json outputs valid JSON" {
+  run "$HELIX_ROOT/cli/helix" skill lint --json
+  [ "$status" -eq 0 ]
+
+  run python3 -c 'import json, sys; payload = json.loads(sys.argv[1]); assert {"total", "valid", "invalid", "errors"} <= payload.keys()' "$output"
+  [ "$status" -eq 0 ]
+}
