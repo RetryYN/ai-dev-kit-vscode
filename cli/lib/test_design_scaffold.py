@@ -31,15 +31,11 @@ created: '{today}'
 
 ## §1 受入条件 (DoD)
 
-TODO: pair design doc から DoD を引き写す
+__ACCEPTANCE_BODY__
 
 ## §2 テストケース
 
-### TC-001: <初期ケース>
-
-- 入力: TODO
-- 期待結果: TODO
-- 検証手順: TODO
+__TEST_CASES_BODY__
 
 ## §3 トレース
 
@@ -49,6 +45,8 @@ TODO: pair design doc から DoD を引き写す
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
 SECTION_HEADING_RE = re.compile(r"^(#{2,6})\s+(.*)$")
+PYTHON_DEF_RE = re.compile(r"^def ([a-z_]+)\(")
+BASH_FUNCTION_RE = re.compile(r"^([a-z_]+)\(\) \{")
 ACCEPTANCE_KEYWORDS = ("受入条件", "受入要件", "DoD")
 FUNCTION_SPEC_KEYWORDS = ("機能設計", "関数仕様")
 
@@ -117,6 +115,18 @@ def _as_blockquote(text: str) -> str:
     return "\n".join("> " if line == "" else f"> {line}" for line in text.splitlines())
 
 
+def _default_acceptance_body() -> str:
+    return "TODO: pair design doc から DoD を引き写す"
+
+
+def _default_test_cases_body() -> str:
+    return """### TC-001: <初期ケース>
+
+- 入力: TODO
+- 期待結果: TODO
+- 検証手順: TODO"""
+
+
 def extract_paired_design_sections(paired_design_path: Path) -> dict[str, str]:
     """
     Returns: {'acceptance': str, 'function_spec': str}
@@ -133,27 +143,98 @@ def extract_paired_design_sections(paired_design_path: Path) -> dict[str, str]:
     return sections
 
 
-def _inject_extracted_sections(template: str, sections: dict[str, str]) -> str:
-    result = template
-    acceptance = sections["acceptance"].strip()
-    if acceptance:
-        acceptance_block = f"引用:\n\n{_as_blockquote(acceptance)}\n\nTODO: pair design doc から DoD を引き写す"
-        result = result.replace(
-            "TODO: pair design doc から DoD を引き写す",
-            acceptance_block,
-            1,
-        )
+def extract_function_signatures(paired_design_path: Path, *, max_count: int = 5) -> list[dict[str, str]]:
+    """
+    Returns: [{'name': str, 'signature': str, 'context': str}]
+    paired_design_path が存在しない → 空 list
+    """
+    if not paired_design_path.exists() or max_count <= 0:
+        return []
 
+    text = paired_design_path.read_text(encoding="utf-8")
+    text = FRONTMATTER_RE.sub("", text, count=1)
+    lines = text.splitlines()
+    signatures: list[dict[str, str]] = []
+
+    for index, line in enumerate(lines):
+        match = PYTHON_DEF_RE.match(line) or BASH_FUNCTION_RE.match(line)
+        if match is None:
+            continue
+        context_start = max(0, index - 1)
+        context_end = min(len(lines), index + 2)
+        signatures.append(
+            {
+                "name": match.group(1),
+                "signature": line.strip(),
+                "context": "\n".join(lines[context_start:context_end]).strip(),
+            }
+        )
+        if len(signatures) >= max_count:
+            break
+
+    return signatures
+
+
+def _acceptance_body_from_sections(sections: dict[str, str]) -> str:
+    acceptance = sections["acceptance"].strip()
+    if not acceptance:
+        return _default_acceptance_body()
+    return f"引用:\n\n{_as_blockquote(acceptance)}\n\nTODO: pair design doc から DoD を引き写す"
+
+
+def _test_cases_body(
+    sections: dict[str, str],
+    *,
+    functions: list[dict[str, str]],
+) -> str:
+    blocks: list[str] = []
     function_spec = sections["function_spec"].strip()
     if function_spec:
-        function_block = (
+        blocks.append(
             "### 関連 design sections\n\n"
             f"{_as_blockquote(function_spec)}\n\n"
             "TODO: 上記 function spec を参照して TC-001 を具体化する\n\n"
-            "### TC-001: <初期ケース>"
         )
-        result = result.replace("### TC-001: <初期ケース>", function_block, 1)
-    return result
+
+    if functions:
+        for index, function in enumerate(functions, start=1):
+            blocks.append(
+                "\n".join(
+                    [
+                        f"### TC-{index:03d}: `{function['name']}`",
+                        "",
+                        "引用:",
+                        "",
+                        f"> function: `{function['name']}`",
+                        f"> signature: `{function['signature']}`",
+                        "",
+                        "- 入力: TODO",
+                        "- 期待結果: TODO",
+                        "- 検証手順: TODO",
+                    ]
+                )
+            )
+    else:
+        blocks.append(_default_test_cases_body())
+
+    return "\n\n".join(blocks)
+
+
+def _inject_extracted_sections(
+    rendered: str,
+    *,
+    sections: dict[str, str],
+    functions: list[dict[str, str]],
+) -> str:
+    return rendered.replace(
+        "__ACCEPTANCE_BODY__",
+        _acceptance_body_from_sections(sections),
+        1,
+    ).replace(
+        "__TEST_CASES_BODY__",
+        _test_cases_body(sections, functions=functions),
+        1,
+    )
 
 
 def _render_skeleton(
@@ -163,6 +244,7 @@ def _render_skeleton(
     title: str | None = None,
     slug: str | None = None,
     extract_sections: bool = False,
+    extract_functions: bool = False,
 ) -> str:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -180,11 +262,16 @@ def _render_skeleton(
         paired_design_doc=_yaml_quote(paired_design_doc),
         today=date.today().isoformat(),
     )
-    if not extract_sections:
-        return rendered
+    if not extract_sections and not extract_functions:
+        return _inject_extracted_sections(rendered, sections={"acceptance": "", "function_spec": ""}, functions=[])
 
-    sections = extract_paired_design_sections(paired_design_path)
-    return _inject_extracted_sections(rendered, sections)
+    sections = (
+        extract_paired_design_sections(paired_design_path)
+        if extract_sections
+        else {"acceptance": "", "function_spec": ""}
+    )
+    functions = extract_function_signatures(paired_design_path) if extract_functions else []
+    return _inject_extracted_sections(rendered, sections=sections, functions=functions)
 
 
 def _default_output_path(project_root: Path, pair_layer: str) -> Path:
@@ -261,6 +348,7 @@ def generate_skeleton(
     *,
     title: str | None = None,
     extract_sections: bool = False,
+    extract_functions: bool = False,
 ) -> str:
     """
     Returns: テスト設計 doc の skeleton 文字列
@@ -268,12 +356,14 @@ def generate_skeleton(
     paired_design_doc: 対応する pair design の path
     title: doc title (default: pair_doc title から推定)
     extract_sections=True: paired design doc の relevant section を template に引用する
+    extract_functions=True: paired design doc の function 定義ごとに TC 雛形を展開する
     """
     return _render_skeleton(
         layer,
         paired_design_doc,
         title=title,
         extract_sections=extract_sections,
+        extract_functions=extract_functions,
     )
 
 
@@ -286,6 +376,7 @@ def _write_scaffold(
     output_path: Path | None = None,
     title: str | None = None,
     extract_sections: bool = False,
+    extract_functions: bool = False,
 ) -> dict[str, Any]:
     pair_layer = get_pair(layer)
     if pair_layer is None:
@@ -300,6 +391,7 @@ def _write_scaffold(
         title=title,
         slug=slug,
         extract_sections=extract_sections,
+        extract_functions=extract_functions,
     )
 
     result = {
@@ -329,6 +421,7 @@ def write_scaffold(
     dry_run: bool = True,
     output_path: Path | None = None,
     extract_sections: bool = False,
+    extract_functions: bool = False,
 ) -> dict[str, Any]:
     """
     Returns: {'status': 'dry_run'|'applied'|'skipped', 'output_path': str, 'content': str, 'reason': str}
@@ -343,6 +436,7 @@ def write_scaffold(
         dry_run=dry_run,
         output_path=output_path,
         extract_sections=extract_sections,
+        extract_functions=extract_functions,
     )
 
 

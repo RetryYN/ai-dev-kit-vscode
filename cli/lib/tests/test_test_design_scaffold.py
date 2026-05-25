@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from cli.lib.test_design_scaffold import (
     auto_detect_paired_design,
+    extract_function_signatures,
     extract_paired_design_sections,
     generate_skeleton,
     write_scaffold,
@@ -199,3 +200,57 @@ def test_auto_detect_paired_design_none_disables_preference(tmp_path) -> None:
     detected = auto_detect_paired_design("L4", project_root=tmp_path, prefer_status=None)
 
     assert detected == "docs/plans/L9/L9-a-completed-plan.md"
+
+
+def test_extract_function_signatures_finds_python_def(tmp_path) -> None:
+    """DoD 検証: W21 U-001 paired design doc から Python def を抽出する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+def my_function(arg1, arg2):
+    return arg1 + arg2
+""",
+        encoding="utf-8",
+    )
+
+    signatures = extract_function_signatures(paired_design)
+
+    assert signatures[0]["name"] == "my_function"
+    assert "def my_function(arg1, arg2):" in signatures[0]["signature"]
+    assert "return arg1 + arg2" in signatures[0]["context"]
+
+
+def test_extract_function_signatures_truncates_at_max_count(tmp_path) -> None:
+    """DoD 検証: W21 U-002 max_count を超える関数定義は truncate する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        "\n".join(f"def func_{chr(97 + index)}():" for index in range(10)),
+        encoding="utf-8",
+    )
+
+    signatures = extract_function_signatures(paired_design, max_count=3)
+
+    assert len(signatures) == 3
+
+
+def test_generate_skeleton_with_extract_functions_includes_tc_per_function(tmp_path) -> None:
+    """DoD 検証: W21 U-003 extract_functions=True で関数別 TC を展開する。"""
+    paired_design = tmp_path / "paired-design.md"
+    paired_design.write_text(
+        """# Sample Design
+
+def first_case():
+    return 1
+
+def second_case():
+    return 2
+""",
+        encoding="utf-8",
+    )
+
+    skeleton = generate_skeleton("L4", str(paired_design), extract_functions=True)
+
+    assert "### TC-001: `first_case`" in skeleton
+    assert "### TC-002: `second_case`" in skeleton
+    assert "> signature: `def first_case():`" in skeleton
