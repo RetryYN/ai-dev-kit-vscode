@@ -6,18 +6,23 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 
 PLAN_NUMBER_RE = re.compile(r"PLAN-(\d{3,})")
-STATUS_LINE_RE = re.compile(r"^\s*status:\s*(draft|finalized|completed)\s*$")
-PLAN_ID_LINE_RE = re.compile(r"^\s*plan_id:\s*(PLAN-\d{3,})\s*$")
+V2_PLAN_ID_RE = re.compile(r"^L(?:[0-9]|1[0-4])-[^\s]+plan$")
+STATUS_VALUES = ("draft", "in_progress", "finalized", "completed")
+STATUS_PATTERN = "|".join(STATUS_VALUES)
+STATUS_LINE_RE = re.compile(rf"^\s*status:\s*({STATUS_PATTERN})\s*$")
+PLAN_ID_LINE_RE = re.compile(r"^\s*plan_id:\s*([^\s]+)\s*$")
 LINT_SELF_REFERENCE_RE = re.compile(r"^\s*lint_self_reference:\s*(true|false)\s*$")
 HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.+?)\s*$")
-DATE_LOG_RE = re.compile(r"^\s*\d{4}-\d{2}-\d{2}\b.*\bstatus\s+(draft|finalized|completed)\b")
+DATE_LOG_RE = re.compile(rf"^\s*\d{{4}}-\d{{2}}-\d{{2}}\b.*\bstatus\s+({STATUS_PATTERN})\b")
 ASSERTIVE_PATTERNS = (
-    re.compile(r"現在の status は (?P<status>draft|finalized|completed)(?: です)?"),
-    re.compile(r"(?:本 PLAN の )?status は (?P<status>draft|finalized|completed) です"),
-    re.compile(r"(?:本 PLAN の )?status は (?P<status>draft|finalized|completed) として運用中"),
-    re.compile(r"status:\s*(?P<status>draft|finalized|completed)\s*として運用(?:中)?"),
+    re.compile(rf"現在の status は (?P<status>{STATUS_PATTERN})(?: です)?"),
+    re.compile(rf"(?:本 PLAN の )?status は (?P<status>{STATUS_PATTERN}) です"),
+    re.compile(rf"(?:本 PLAN の )?status は (?P<status>{STATUS_PATTERN}) として運用中"),
+    re.compile(rf"status:\s*(?P<status>{STATUS_PATTERN})\s*として運用(?:中)?"),
 )
 SKIP_SECTION_KEYWORDS = ("out of scope", "retro placeholder")
 SELF_REFERENCE_SECTION_RE = re.compile(r"^§?(?P<section>\d+\.\d+)\s+W-(?P<work_id>\d+)\b")
@@ -35,6 +40,29 @@ KIND_NAMES = {
 }
 WARN_SIMILARITY = 0.4
 HIGHLIGHT_SIMILARITY = 0.7
+FRONTMATTER_REQUIRED_FIELDS = ("plan_id", "title", "kind", "layer", "drive", "status")
+FRONTMATTER_KIND_VALUES = {
+    "impl",
+    "design",
+    "poc",
+    "refactor",
+    "retrofit",
+    "recovery",
+    "research",
+}
+FRONTMATTER_LAYER_VALUES = {f"L{index}" for index in range(0, 15)}
+FRONTMATTER_DRIVE_VALUES = {
+    "be",
+    "fe",
+    "db",
+    "fullstack",
+    "agent",
+    "discovery",
+    "reverse",
+    "poc",
+    "troubleshoot",
+}
+FRONTMATTER_PROCESS_LAYER_VALUES = {f"L{index}" for index in range(0, 15)}
 
 
 @dataclass(frozen=True)
@@ -63,6 +91,16 @@ class DuplicateWarning:
     sprint_section_label: str
     sprint_line_no: int
     similarity: float
+
+
+def _add_frontmatter_finding(
+    findings: list[dict[str, str]],
+    *,
+    level: str,
+    field: str,
+    message: str,
+) -> None:
+    findings.append({"level": level, "field": field, "message": message})
 
 
 def _parse_args() -> argparse.Namespace:
@@ -120,6 +158,158 @@ def _extract_status(frontmatter_lines: list[str]) -> tuple[str, str | None, bool
     if status is None:
         raise ValueError("frontmatter.status が見つかりません")
     return status, plan_id, lint_self_reference
+
+
+def _parse_frontmatter_mapping(frontmatter_lines: list[str]) -> dict[str, object]:
+    try:
+        payload = yaml.safe_load("\n".join(frontmatter_lines)) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"frontmatter YAML parse failed: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("frontmatter must be a mapping")
+    return payload
+
+
+def _is_non_empty_string(value: object) -> bool:
+    return isinstance(value, str) and value.strip() != ""
+
+
+def _validate_string_list(
+    findings: list[dict[str, str]],
+    *,
+    field: str,
+    value: object,
+) -> None:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        _add_frontmatter_finding(
+            findings,
+            level="warning",
+            field=field,
+            message=f"expected list[str]: {field}",
+        )
+
+
+def validate_plan_frontmatter(frontmatter: dict) -> list[dict[str, str]]:
+    findings: list[dict[str, str]] = []
+
+    for field in FRONTMATTER_REQUIRED_FIELDS:
+        if not _is_non_empty_string(frontmatter.get(field)):
+            _add_frontmatter_finding(
+                findings,
+                level="error",
+                field=field,
+                message=f"missing field: {field}",
+            )
+
+    enum_fields = {
+        "kind": FRONTMATTER_KIND_VALUES,
+        "layer": FRONTMATTER_LAYER_VALUES,
+        "drive": FRONTMATTER_DRIVE_VALUES,
+        "status": set(STATUS_VALUES),
+    }
+    for field, valid_values in enum_fields.items():
+        value = frontmatter.get(field)
+        if _is_non_empty_string(value) and value not in valid_values:
+            _add_frontmatter_finding(
+                findings,
+                level="error",
+                field=field,
+                message=f"invalid {field}: {value}",
+            )
+
+    process_layer = frontmatter.get("process_layer")
+    if process_layer is not None:
+        if not _is_non_empty_string(process_layer):
+            _add_frontmatter_finding(
+                findings,
+                level="error",
+                field="process_layer",
+                message="process_layer must be a non-empty string",
+            )
+        elif process_layer not in FRONTMATTER_PROCESS_LAYER_VALUES:
+            _add_frontmatter_finding(
+                findings,
+                level="error",
+                field="process_layer",
+                message=f"invalid process_layer: {process_layer}",
+            )
+
+    parent_design = frontmatter.get("parent_design")
+    if parent_design is not None and not _is_non_empty_string(parent_design):
+        _add_frontmatter_finding(
+            findings,
+            level="warning",
+            field="parent_design",
+            message="parent_design must be a non-empty string path",
+        )
+
+    dependencies = frontmatter.get("dependencies")
+    if dependencies is not None:
+        if not isinstance(dependencies, dict):
+            _add_frontmatter_finding(
+                findings,
+                level="warning",
+                field="dependencies",
+                message="dependencies must be a mapping",
+            )
+        else:
+            for field in ("requires", "blocks"):
+                if field in dependencies:
+                    _validate_string_list(
+                        findings,
+                        field=f"dependencies.{field}",
+                        value=dependencies[field],
+                    )
+
+    generates = frontmatter.get("generates")
+    if generates is not None:
+        if not isinstance(generates, list):
+            _add_frontmatter_finding(
+                findings,
+                level="warning",
+                field="generates",
+                message="generates must be a list",
+            )
+        else:
+            for index, item in enumerate(generates):
+                if not isinstance(item, dict):
+                    _add_frontmatter_finding(
+                        findings,
+                        level="warning",
+                        field=f"generates[{index}]",
+                        message="generate item must be a mapping",
+                    )
+                    continue
+                for required_key in ("artifact_path", "artifact_type"):
+                    if not _is_non_empty_string(item.get(required_key)):
+                        _add_frontmatter_finding(
+                            findings,
+                            level="warning",
+                            field=f"generates[{index}].{required_key}",
+                            message=f"missing field: generates[{index}].{required_key}",
+                        )
+
+    return findings
+
+
+def _is_v2_plan_candidate(path: Path, frontmatter_plan_id: str | None) -> bool:
+    if frontmatter_plan_id is not None and V2_PLAN_ID_RE.fullmatch(frontmatter_plan_id):
+        return True
+    if V2_PLAN_ID_RE.fullmatch(path.stem):
+        return True
+    return bool(path.parent.name in FRONTMATTER_LAYER_VALUES and path.parent.name.startswith("L"))
+
+
+def _report_frontmatter_findings(path: Path, findings: list[dict[str, str]]) -> bool:
+    has_error = False
+    for finding in findings:
+        print(
+            f"{path}: frontmatter {finding['level']}: {finding['field']}: {finding['message']}",
+            file=sys.stderr,
+        )
+        if finding["level"] == "error":
+            has_error = True
+    return has_error
 
 
 def _parse_heading(line: str) -> tuple[int, str] | None:
@@ -388,6 +578,21 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
         print(f"FAIL: {path}: {exc}", file=sys.stderr)
         return 1
 
+    frontmatter_findings: list[dict[str, str]] = []
+    if not duplicates_only and _is_v2_plan_candidate(path, frontmatter_plan_id):
+        try:
+            frontmatter = _parse_frontmatter_mapping(frontmatter_lines)
+        except ValueError as exc:
+            frontmatter_findings = [
+                {
+                    "level": "error",
+                    "field": "frontmatter",
+                    "message": str(exc),
+                }
+            ]
+        else:
+            frontmatter_findings = validate_plan_frontmatter(frontmatter)
+
     plan_number = _resolve_plan_number(path, frontmatter_plan_id)
     if not duplicates_only and plan_number is not None and plan_number < 36:
         print(f"PASS: lint skipped for PLAN-{plan_number:03d} (retroactive 対象外)")
@@ -400,6 +605,7 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
         return 0
 
     findings = _find_mismatches(lines, body_start_idx, expected_status, lint_self_reference)
+    has_frontmatter_error = _report_frontmatter_findings(path, frontmatter_findings)
 
     for warning in duplicate_warnings:
         print(
@@ -408,7 +614,7 @@ def _lint_plan(path: Path, duplicates_only: bool = False) -> int:
             file=sys.stderr,
         )
 
-    if not findings:
+    if not findings and not has_frontmatter_error:
         print(f"PASS: no contradictory status assertions in {path}")
         return 0
 
