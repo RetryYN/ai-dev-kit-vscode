@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-plan: 設計提案の下書き/レビュー/確定を管理
-# Usage: helix plan <draft|review|finalize|reset|list|status|health|lint|import|deps|generates> [options]
+# Usage: helix plan <draft|review|finalize|reset|list|status|show|health|lint|import|deps|generates> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 PLAN_CMDS_DIR="$SCRIPT_DIR/helix-plan-cmds"
@@ -31,6 +31,8 @@ Subcommands:
   list       プラン一覧を表示
   status     プラン詳細を表示
              Options: --id <PLAN-NNN> [--frontmatter]
+  show       PLAN markdown frontmatter を表示
+             Usage: helix plan show <plan-id-or-path> [--json]
   health     docs/plans 配下の PLAN frontmatter 健全性を集計
              Options: [--json] [--plans-root PATH]
   deps       PLAN frontmatter の dependency chain を表示
@@ -52,6 +54,8 @@ Examples:
   helix plan list
   helix plan status --id PLAN-001
   helix plan status --id PLAN-091 --frontmatter
+  helix plan show L7-helix-plan-show-subcommandplan
+  helix plan show docs/plans/L7/L7-helix-plan-show-subcommandplan.md --json
   helix plan health
   helix plan health --json --plans-root docs/plans/L7
   helix plan deps PLAN-091 --depth 2
@@ -104,6 +108,107 @@ cmd_health() {
   done
 
   python3 "$SCRIPT_DIR/lib/plan_health.py" "${args[@]}"
+}
+
+cmd_show() {
+  local target=""
+  local json=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)
+        json=true
+        shift
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      -*)
+        echo "エラー: 不明なオプションです: $1" >&2
+        exit 1
+        ;;
+      *)
+        if [[ -n "$target" ]]; then
+          echo "エラー: 引数は 1 つだけ指定できます" >&2
+          exit 1
+        fi
+        target="$1"
+        shift
+        ;;
+    esac
+  done
+
+  if [[ -z "$target" ]]; then
+    echo "エラー: plan-id-or-path は必須です" >&2
+    exit 1
+  fi
+
+  python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" "$target" "$json"
+import json
+import sys
+from datetime import date, datetime
+from pathlib import Path
+
+import yaml
+
+lib_dir = Path(sys.argv[1])
+project_root = Path(sys.argv[2]).resolve()
+target = sys.argv[3]
+json_output = sys.argv[4] == "true"
+
+sys.path.insert(0, str(lib_dir))
+import plan_validator
+
+
+def resolve_target(raw: str) -> Path:
+    candidate = Path(raw)
+    if candidate.is_file():
+        return candidate.resolve()
+    if not candidate.is_absolute():
+        project_candidate = (project_root / candidate).resolve()
+        if project_candidate.is_file():
+            return project_candidate
+
+    docs_root = project_root / "docs" / "plans"
+    exact_matches = sorted(docs_root.rglob(f"{raw}.md"))
+    if len(exact_matches) == 1:
+        return exact_matches[0]
+    if len(exact_matches) > 1:
+        raise ValueError(f"multiple plan markdown files found: {raw}")
+
+    slug_matches = sorted(docs_root.rglob(f"{raw}-*.md"))
+    if len(slug_matches) == 1:
+        return slug_matches[0]
+    if len(slug_matches) > 1:
+        raise ValueError(f"multiple plan markdown files found: {raw}")
+    raise ValueError(f"plan markdown not found: {raw}")
+
+
+def to_jsonable(value):
+    if isinstance(value, dict):
+        return {key: to_jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [to_jsonable(item) for item in value]
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value
+
+
+try:
+    plan_path = resolve_target(target)
+    frontmatter = plan_validator.load_frontmatter(plan_path)
+    if not isinstance(frontmatter, dict):
+        raise ValueError(f"frontmatter is not a mapping: {plan_path}")
+except Exception as exc:
+    print(f"エラー: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+if json_output:
+    print(json.dumps(to_jsonable(frontmatter), ensure_ascii=False, indent=2))
+else:
+    print(yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).rstrip())
+PY
 }
 
 review_output_path_for_reviewer() {
@@ -682,6 +787,7 @@ case "$CMD" in
   reset) cmd_reset "$@" ;;
   list) cmd_list "$@" ;;
   status) cmd_status "$@" ;;
+  show) cmd_show "$@" ;;
   health) cmd_health "$@" ;;
   deps) cmd_deps "$@" ;;
   generates) cmd_generates "$@" ;;

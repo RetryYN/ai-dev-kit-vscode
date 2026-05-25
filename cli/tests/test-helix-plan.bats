@@ -30,6 +30,7 @@ teardown() {
   [[ "$output" == *"review"* ]]
   [[ "$output" == *"finalize"* ]]
   [[ "$output" == *"reset"* ]]
+  [[ "$output" == *"show"* ]]
   [[ "$output" == *"status"* ]]
 }
 
@@ -233,6 +234,59 @@ YAML
   [[ "$output" == *"Source File: docs/source.md"* ]]
   [[ "$output" == *"Review:"* ]]
   [[ "$output" == *"Status:    pending"* ]]
+}
+
+@test "helix plan show outputs frontmatter for existing plan doc" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-show-frontmatterplan.md" <<'EOF'
+---
+plan_id: L7-show-frontmatterplan
+title: "L7-show-frontmatterplan: show frontmatter"
+kind: impl
+layer: L7
+drive: be
+status: draft
+process_layer: L7
+parent_design: HELIX-workflows/helix-process/HELIX-process-L0-L14.md
+dependencies:
+  requires:
+    - docs/plans/L7/L7-plan-health-subcommandplan.md
+agent_slots: []
+generates: []
+---
+
+## body
+EOF
+
+  run "$HELIX_ROOT/cli/helix" plan show L7-show-frontmatterplan
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"plan_id: L7-show-frontmatterplan"* ]]
+  [[ "$output" == *"title: 'L7-show-frontmatterplan: show frontmatter'"* || "$output" == *'title: "L7-show-frontmatterplan: show frontmatter"'* ]]
+  [[ "$output" == *"dependencies:"* ]]
+}
+
+@test "helix plan show --json outputs valid JSON" {
+  mkdir -p "$PROJECT_ROOT/docs/plans/L7"
+  cat > "$PROJECT_ROOT/docs/plans/L7/L7-show-jsonplan.md" <<'EOF'
+---
+plan_id: L7-show-jsonplan
+title: "L7-show-jsonplan: show json"
+kind: impl
+layer: L7
+drive: be
+status: draft
+created: 2026-05-25
+process_layer: L7
+parent_design: HELIX-workflows/helix-process/HELIX-process-L0-L14.md
+agent_slots: []
+generates: []
+---
+
+## body
+EOF
+
+  run bash -lc "\"$HELIX_ROOT/cli/helix\" plan show L7-show-jsonplan --json | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data[\"plan_id\"] == \"L7-show-jsonplan\"; assert data[\"status\"] == \"draft\"'"
+  [ "$status" -eq 0 ]
 }
 
 @test "helix plan finalize rejects unapproved review" {
