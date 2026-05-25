@@ -444,3 +444,17 @@ YAML
   run "$HELIX_ROOT/cli/helix-handover" dump --task-id T-001 --task-title "test"
   [ "$status" -eq 0 ]
 }
+
+@test "38 stale runs without crash when no handover exists" {
+  run "$HELIX_ROOT/cli/helix-handover" stale
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "status: no_handover" ]]
+}
+
+@test "39 stale --json outputs valid JSON" {
+  handover_dump
+  run "$HELIX_ROOT/cli/helix-handover" stale --json
+  [ "$status" -eq 0 ]
+  run python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); assert d["status"] in {"fresh","stale","no_handover"} and "hours_since_update" in d' <<<"$output"
+  [ "$status" -eq 0 ]
+}

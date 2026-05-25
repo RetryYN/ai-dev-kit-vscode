@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-handover: Claude Code(Opus) <-> Codex CLI の非同期 handover 管理
-# Usage: helix handover <dump|status|update|clear|escalate|resume> [options]
+# Usage: helix handover <dump|status|stale|update|clear|escalate|resume> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
@@ -17,6 +17,7 @@ Usage: helix handover <subcommand> [options]
 Subcommands:
   dump      CURRENT.json / CURRENT.md を生成
   status    handover 状態を表示
+  stale     time-based stale 判定のみを表示
   update    handover 状態を更新
   clear     handover を archive に移動
   escalate  ESCALATION.md を生成して status=escalated に遷移
@@ -25,6 +26,7 @@ Subcommands:
 Examples:
   helix handover dump --task-id T-001 --task-title "JWT 実装" --files "src/auth.py,tests/test_auth.py"
   helix handover status --json
+  helix handover stale --threshold-hours 48 --json
   helix handover update --owner codex --note "作業再開"
   helix handover resume --note "Opus review restart"
   helix handover escalate --reason "仕様判断が必要" --context "..."
@@ -77,6 +79,61 @@ run_handover_py() {
     "$@"
 }
 
+run_handover_stale() {
+  local threshold_hours=24
+  local json_output=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --threshold-hours)
+        if [[ $# -lt 2 ]]; then
+          echo "エラー: --threshold-hours には整数が必要です" >&2
+          exit "$EXIT_INPUT_ERROR"
+        fi
+        threshold_hours="$2"
+        shift 2
+        ;;
+      --json)
+        json_output=true
+        shift
+        ;;
+      *)
+        echo "エラー: stale の不明なオプション '$1'" >&2
+        exit "$EXIT_INPUT_ERROR"
+        ;;
+    esac
+  done
+
+  if [[ ! "$threshold_hours" =~ ^[0-9]+$ ]]; then
+    echo "エラー: --threshold-hours には 0 以上の整数を指定してください" >&2
+    exit "$EXIT_INPUT_ERROR"
+  fi
+
+  PYTHONPATH="$SCRIPT_DIR/lib${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 - "$PROJECT_ROOT" "$threshold_hours" "$json_output" <<'PY'
+import json
+import sys
+
+from handover import check_handover_staleness
+
+project_root = sys.argv[1]
+threshold_hours = int(sys.argv[2])
+json_output = sys.argv[3] == "true"
+
+payload = check_handover_staleness(
+    project_root=project_root,
+    stale_threshold_hours=threshold_hours,
+)
+
+if json_output:
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+else:
+    print(f"status: {payload['status']}")
+    print(f"updated_at: {payload['updated_at']}")
+    print(f"hours_since_update: {payload['hours_since_update']}")
+PY
+}
+
 SUBCOMMAND="${1:-help}"
 if [[ $# -gt 0 ]]; then
   shift
@@ -108,6 +165,10 @@ case "$SUBCOMMAND" in
   status)
     ensure_helix_ready
     run_handover_py status "$@"
+    ;;
+  stale)
+    ensure_helix_ready
+    run_handover_stale "$@"
     ;;
   update)
     ensure_helix_ready
