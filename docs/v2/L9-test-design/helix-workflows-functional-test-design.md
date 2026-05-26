@@ -31,6 +31,14 @@ industry_standards:
 - `pairs`: `docs/v2/L9-test-design/helix-workflows-functional-test-design.md` ↔ `docs/v2/L4-architecture/helix-workflows-functional-design.md`
 - `plan`: `docs/plans/L4/L4-helix-workflows-機能設計plan.md`
 - `schema`: `cli/lib/dispatch`, `helix.db.*` 系
+- `adr_snapshot`:
+  - **ADR-044** (構造/永続化/ratchet/audit): ST-F1〜ST-F5 と pair freeze
+  - **ADR-045** (F6-F10 governance): ST-F6〜ST-F10 と Decision-1〜5 pair freeze
+    - ST-F6 ↔ ADR-045 Decision-1 (Homeostasis Governance)
+    - ST-F7 ↔ ADR-045 Decision-3 (Evolution Promotion Guard)
+    - ST-F8 ↔ ADR-045 Decision-4 (Reproduction Order)
+    - ST-F9 ↔ ADR-045 Decision-2 (Survival Operations)
+    - ST-F10 ↔ ADR-045 Decision-5 (Symbiosis DDD ACL)
 
 ## §1 機能テスト方針
 
@@ -286,6 +294,18 @@ fixture:
     auto_throttle_success: 0.9
 ```
 
+#### pair freeze (ADR-045 Decision-1: Homeostasis Governance)
+
+本 ST の合格判定は **ADR-045 Decision-1** と双方向 trace する。
+
+- L4 機能設計 §6 (F6 恒常性) ↔ 本 ST-F6 の pair freeze
+- governance ルール:
+  - 監視 metric 6 種 (opus_residual_ratio / delegation_ratio / parallel_compliance_ratio / gate_pass_rate / audit_drift_count / carry_residual_count)
+  - 監視周期: statusLine (毎 turn) + PreCompact + 週次 `helix budget --homeostasis`
+  - homeostatic response: 閾値超過 → `helix doctor --check-homeostasis` 警告 → PM エスカレーション
+- 安全境界: 自動修復は行わず人間判断介在を保持
+- 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-1
+
 → pair: L4 §6
 
 
@@ -324,6 +344,17 @@ fixture:
     event_count_min: 1
 ```
 
+#### pair freeze (ADR-045 Decision-3: Evolution Promotion Guard)
+
+本 ST の合格判定は **ADR-045 Decision-3** と双方向 trace する。
+
+- L4 機能設計 §7 (F7 進化) ↔ 本 ST-F7 の pair freeze
+- governance ルール:
+  - 進化サイクル: Variation (fork) → Selection (score) → Promotion (promote) → Deprecation
+  - 安全境界: score 閾値 + dry-run/canary 期間 + 人間承認 / advisor 承認 + revert 経路
+- 安全境界: parent_design / accepted ADR 改変は人間承認必須、promote 後 N session 以内なら無条件 revert 可
+- 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-3
+
 → pair: L4 §7
 
 ### ST-F8 繁殖 (version migration)
@@ -359,6 +390,17 @@ fixture:
     plan_retain_count: 1.0
 ```
 
+#### pair freeze (ADR-045 Decision-4: Reproduction Order)
+
+本 ST の合格判定は **ADR-045 Decision-4** と双方向 trace する。
+
+- L4 機能設計 §8 (F8 繁殖) ↔ 本 ST-F8 の pair freeze
+- governance ルール:
+  - 固定 6 step: schema_version bump → plan_version bump → portable export → project apply → rollback evidence → smoke test
+  - 互換性: backward compat 1 stage 保証 + forward compat warn-only + breaking change cap (1 release 内で複数 schema bump 禁止)
+- 安全境界: 順序逸脱は data loss リスク、rollback evidence (`.helix/audit/migration-YYYYMMDD.yaml`) で always-available 性確保
+- 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-4
+
 → pair: L4 §8
 
 ### ST-F9 排泄 (PLAN apoptosis)
@@ -391,6 +433,17 @@ fixture:
     action_count_min: 5
     archive_success: 1.0
 ```
+
+#### pair freeze (ADR-045 Decision-2: Survival Operations)
+
+本 ST の合格判定は **ADR-045 Decision-2** と双方向 trace する。
+
+- L4 機能設計 §9 (F9 排泄) ↔ 本 ST-F9 の pair freeze
+- governance ルール:
+  - apoptosis (能動的排除): `helix plan apoptosis` 手動 + 週次 cron
+  - autophagy (自浄): `helix db autophagy` 週次
+- 安全ゲート 4 段 (★ 必須): dry-run 先行 + 保護対象リスト (accepted ADR / implemented PLAN / 直近 N 日 event) + idempotency + production 承認ゲート + rollback evidence (`.helix/audit/apoptosis-YYYYMMDD.yaml`)
+- 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-2
 
 → pair: L4 §9
 
@@ -427,6 +480,18 @@ fixture:
     namespace_conflict_max: 0
 ```
 
+#### pair freeze (ADR-045 Decision-5: Symbiosis DDD Anti-Corruption Layer)
+
+本 ST の合格判定は **ADR-045 Decision-5** と双方向 trace する。
+
+- L4 機能設計 §10 (F10 共生) ↔ 本 ST-F10 の pair freeze
+- governance ルール:
+  - Internal context (HELIX core) ↔ External context (Codex / Claude / GitHub / MCP / 他 OSS)
+  - Anti-Corruption Layer: adapter (`cli/helix-<external>`) + translator (schema 変換) + guard (fail-close)
+  - 共生受入規約: `helix coexist framework <name>` + `helix coexist adopt --compatibility-adr <ADR-NNN>`
+- 安全境界: namespace 競合は宣言時 rejection、`helix doctor check_framework_coexist` で機械化
+- 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-5
+
 → pair: L4 §10
 
 ### ST-F6〜ST-F10 実行補助ルール
@@ -441,18 +506,18 @@ fixture:
 
 ## §3 10 機能領域 × 機械処理 ↔ ST-F1〜F10 双方向 trace
 
-| ST | 対応 ST | check | hook | CLI / DB |
-|---|---|---|---|---|
-| ST-F1 | F1 | check_doc_lifecycle / check_4_domain_separation / check_ssot_sync / check_4_artifact_trace | pre-commit doc lint / pre-tool-use | helix doctor, helix.db.event_log |
-| ST-F2 | F2 | check_plan_frontmatter_completeness / check_plan_naming_convention / check_plan_adr_snapshot | pre-commit plan validate | helix plan, helix.db.plan_registry |
-| ST-F3 | F3 | check_skill_catalog_freshness / check_skill_usage | post-task skill log | helix skill, helix.db.skill_usage |
-| ST-F4 | F4 | check_mode_routing / check_pair_freeze | SessionStart mode hint | helix init/reverse/research/sprint, helix.db.mode_transition |
-| ST-F5 | F5 | check_role_assignment / check_parallel_compliance | pretooluse-agent-guard | helix codex/claude/agent, helix.db.role_audit |
-| ST-F6 | F6 | check_homeostasis | statusLine + PreCompact | helix budget, helix doctor |
-| ST-F7 | F7 | check_plan_fork / check_evolution_score | mutation hook | helix plan, helix.evolution |
-| ST-F8 | F8 | check_version_migration | migration event hook | helix version, helix portable, helix migrate |
-| ST-F9 | F9 | check_plan_apoptosis | weekly cron | helix plan apoptosis, helix.db autophagy |
-| ST-F10 | F10 | check_framework_coexist | coexist event hook | helix coexist |
+| ST | 対応 F | check | hook | CLI / DB | ADR Decision |
+|---|---|---|---|---|---|
+| ST-F1 | F1 | check_doc_lifecycle / check_4_domain_separation / check_ssot_sync / check_4_artifact_trace | pre-commit doc lint / pre-tool-use | helix doctor, helix.db.event_log | ADR-044 Decision-1, Decision-2 |
+| ST-F2 | F2 | check_plan_frontmatter_completeness / check_plan_naming_convention / check_plan_adr_snapshot | pre-commit plan validate | helix plan, helix.db.plan_registry | ADR-044 Decision-3 |
+| ST-F3 | F3 | check_skill_catalog_freshness / check_skill_usage | post-task skill log | helix skill, helix.db.skill_usage | ADR-044 Decision-1 |
+| ST-F4 | F4 | check_mode_routing / check_pair_freeze | SessionStart mode hint | helix init/reverse/research/sprint, helix.db.mode_transition | ADR-044 Decision-1 |
+| ST-F5 | F5 | check_role_assignment / check_parallel_compliance | pretooluse-agent-guard | helix codex/claude/agent, helix.db.role_audit | ADR-044 Decision-4 |
+| ST-F6 | F6 | check_homeostasis | statusLine + PreCompact | helix budget --homeostasis, helix doctor | **ADR-045 Decision-1** |
+| ST-F7 | F7 | check_plan_fork / check_evolution_score | mutation hook | helix plan fork, helix evolution {score,promote,deprecate} | **ADR-045 Decision-3** |
+| ST-F8 | F8 | check_version_migration | migration event hook | helix version bump, helix portable {export,import,adopt}, helix migrate | **ADR-045 Decision-4** |
+| ST-F9 | F9 | check_plan_apoptosis | weekly cron | helix plan apoptosis, helix db autophagy | **ADR-045 Decision-2** |
+| ST-F10 | F10 | check_framework_coexist | coexist event hook | helix coexist {framework,status,adopt} | **ADR-045 Decision-5** |
 
 ## §4 非機能テスト
 

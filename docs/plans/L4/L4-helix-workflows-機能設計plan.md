@@ -1,10 +1,10 @@
 ---
 plan_id: L4-helix-workflows-機能設計plan
-title: "L4-helix-workflows-機能設計plan: HELIX-workflows V2 機能設計 (skeleton)"
+title: "L4-helix-workflows-機能設計plan: HELIX-workflows V2 機能設計"
 kind: design
 layer: L4
 drive: be
-status: draft
+status: in_progress
 created: 2026-05-27
 owner: PM
 process_layer: L4
