@@ -201,6 +201,13 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 - **受入基準**: critical ≥ 1 件で exit code 2、critical 0 件なら summary JSON
 - **検証 step**: (1) 軽微 warning case (2) critical case を作る (3) exit code + summary 比較
 
+### AC-FR-15: ドキュメント品質レビュー機能 (2026-05-26 FR-DOCREVIEW-01 / BR-11 由来、新規追加)
+
+- **対象 FR**: FR-DOCREVIEW-01
+- **デプロイ後検証内容**: `helix codex --role doc-reviewer --task "..."` 召喚で gpt-5.5 high read-only が起動し、4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515) + V-model 量閉じ性 / implementation_status 列を統合検査して judgement 返却
+- **受入基準**: (1) `cli/roles/doc-reviewer.conf` 存在 + gpt-5.5 + read-only + skills 配置正しい (2) `skills/workflow/doc-review/SKILL.md` 存在 + 9 section 構成 (3) サンプル doc に対して召喚 → SUMMARY block に decision (approve/conditional_approve/blocked) + P0/P1/P2/P3 列挙が返る (4) Edit/Write/NotebookEdit 試行が block される (read-only 強制)
+- **検証 step**: (1) `helix codex --role doc-reviewer --task-file <sample>` で起動 → (2) stdout SUMMARY block parse → (3) rollout.jsonl の `response_item.output_text` で詳細取得 → (4) Edit 試行 → block 確認 → (5) `tl-advisor` との同時召喚で responsibility 分離確認
+
 ### AC-FR-14: schema migration / retrofit
 - **対象 FR**: FR-MIGR-01
 - **デプロイ後検証内容**: migration plan / manual approval requirement / compatibility warning が分離
@@ -228,11 +235,14 @@ L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/S
 - **AC-NFR-OP-03** (対象: NFR-OP-03) — 検証: warn 閾値 / 受入: 50 件で alert AND Phase α exit ≤ 20 / step: warn 数操作 → alert/exit 条件確認
 - **AC-NFR-OP-04** (対象: NFR-OP-04) — 検証: lineage trace / 受入: 欠損 0 件 / step: skill/command/agent の trace 抽出
 - **AC-NFR-OP-05** (対象: NFR-OP-05) — 検証: verify-before-act ([[feedback_memory_verify_before_act]]) / 受入: 違反 0 件 AND verify 実施率 100% / step: carry 実行前後ログ確認
+- **AC-NFR-OP-06** (対象: NFR-OP-06、2026-05-26 BR-09 由来) — 検証: inventory drift 監査 / 受入: drift 率 ≤ 5% AND 新規 doc 起票時 implementation_status 列充足率 100% / step: (1) 直近 30 commit の doc 改定で implementation_status 列充足率を grep → (2) `helix doctor check_glossary_coverage` (L4 carry) で drift 集計 → (3) ≤ 5% 確認
+- **AC-NFR-OP-07** (対象: NFR-OP-07、2026-05-26 BR-11 由来) — 検証: doc-reviewer 召喚 coverage / 受入: 大規模 doc 改定 (~500 行+) の `helix codex --role doc-reviewer` 召喚 + 判定結果残置率 ≥ 95% / step: (1) 直近 30 commit のうち doc 改定 (~500 行+) 該当 commit 抽出 → (2) commit message + final report + 会話 history で召喚 evidence + 判定 grep → (3) 召喚率 ≥ 95% 確認
 
 ### 移行性 (MG)
 - **AC-NFR-MG-01** (対象: NFR-MG-01) — 検証: V1→V2 retrofit / 受入: 再実行成功率 ≥ 95% / step: retrofit → rerun → rollback 確認
 - **AC-NFR-MG-02** (対象: NFR-MG-02) — 検証: migration idempotency / 受入: 副作用 0 件 / step: migration 2 回実行 → 差分確認
 - **AC-NFR-MG-03** (対象: NFR-MG-03) — 検証: package bootstrap / 受入: 導入初期化 ≤ 30 分 / step: 新規 project で bootstrap
+- **AC-NFR-MG-04** (対象: NFR-MG-04、2026-05-26 BR-10 由来) — 検証: Strangler Fig Pattern 段階置換進捗 / 受入: Phase α 終了時 V1 PLAN `is_reference: true` 化率 100% AND Phase β 終了時 旧 enum 残存 0 AND Phase γ 終了時 Strangler 段階置換完了 / step: (1) `find docs/plans/ -name '*.md' | xargs grep -l 'is_reference: true' | wc -l` で V1 PLAN 移行率 → (2) `git grep -E 'G[2-9]|G14' --` で旧 enum 残存 → (3) Phase 別残量 dashboard と kill criteria 突合
 
 ### セキュリティ (SC)
 - **AC-NFR-SC-01** (対象: NFR-SC-01) — 検証: secret scan / 受入: 検出 0 件 / step: repository scan 実行

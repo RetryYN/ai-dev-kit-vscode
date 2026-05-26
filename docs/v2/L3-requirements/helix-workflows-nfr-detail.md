@@ -48,6 +48,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | NFR-OP-03 | **運用保守レベル 2** | `helix doctor` warn は **50 で alert**、Phase α exit は **20 以下**に固定 | 保守性 | L12: 閾値受入 / L14: 週次推移 |
 | NFR-OP-04 | **運用保守レベル 2** | skill / command / agent の lineage trace 欠損 **0 件**、主要資産 coverage **100%** | 保守性 | L12: trace 存在確認 / L14: 世代監査 |
 | NFR-OP-05 | **運用保守レベル 3** | `feedback_memory_verify_before_act` 違反 **0 件**、memory carry 実行前 verify 実施率 **100%** | 保守性 | L12: guard 受入 / L14: 違反監査 |
+| NFR-OP-06 (2026-05-26 BR-09 由来) | **運用保守レベル 3** | inventory drift 率 ≤ **5%** (毎週金曜計測)、設計 doc 内 implementation_status 列充足率 **100%** (新規 doc 起票時) | 保守性 | L12: inventory drift 監査 (AC-NFR-OP-06) / L14: OT-09 週次計測 |
+| NFR-OP-07 (2026-05-26 BR-11 由来) | **運用保守レベル 3** | 大規模 doc 改定 (~500 行+) の `helix codex --role doc-reviewer` 召喚 coverage **≥ 95%**、commit message / final report / 会話 history のいずれかに召喚 evidence + 判定結果残置率 **≥ 95%** | 保守性 | L12: 召喚 coverage 受入 (AC-NFR-OP-07) / L14: OT-11 週次計測 |
 
 ## §4 移行性 (NFR-MG-* IPA グレード値)
 
@@ -56,6 +58,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | NFR-MG-01 | **移行性レベル 2** | V1→V2 retrofit pipeline の再実行成功率 **95% 以上**、rollback path を保持 | 移植性 | L12: 手順受入 / L13: 実移行試行 |
 | NFR-MG-02 | **移行性レベル 3** | schema migration の idempotent 再実行で副作用 **0 件** | 移植性 | L12: rerun 検証 / L13-L14: migration 監査 |
 | NFR-MG-03 | **移行性レベル 2** | 採用 project への package 導入初期化を **30 分以内**で完了できる状態にする | 移植性 | L12: bootstrap 受入 / L13: 採用 project 試行 |
+| NFR-MG-04 (2026-05-26 BR-10 由来) | **移行性レベル 3** | Strangler Fig Pattern (Fowler 2004) 段階置換進捗を Phase 別残量 dashboard で管理、Phase α 終了時 V1 PLAN `is_reference: true` 化率 **100%**、Phase β 終了時 旧 enum 残存 **0**、Phase γ 終了時 Strangler 段階置換 **完了** | 移植性 | L12: migration 残量受入 (AC-NFR-MG-04) / L14: OT-10 週次計測 / L13-L14: dashboard 監視 |
 
 ## §5 セキュリティ (NFR-SC-* IPA グレード値)
 

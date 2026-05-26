@@ -35,12 +35,13 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-IMPACT-01 | 影響範囲 query 機能 | L1 FR-06, TR-05 | 4 artifact trace と mode event を横断して影響範囲を 5 秒以内に返す |
 | FR-EVT-01 | Forward 復帰 event 機能 | L1 FR-07, TR-06 | 9 mode closure を記録し、Forward の昇格先と closure metadata を保持する |
 | FR-4ART-01 | 4 artifact / pair freeze 監査機能 | L1 FR-08, TR-06 | 設計・実装・テスト設計・テストコードの trace 欠落を warn / fail-close で出す |
-| FR-INV-01 | 資産 inventory / density 可視化機能 | L1 FR-09, TR-06 | skill / CLI / PLAN / docs / DB schema を工程別に登録し、密度と空白を表示する |
+| FR-INV-01 | 資産 inventory / density 可視化機能 (+ implementation_status 列必須化) | L1 FR-09, TR-06, **BR-09** (2026-05-26 拡張) | skill / CLI / PLAN / docs / DB schema を工程別に登録し、密度と空白を表示する + 設計 doc 内 `implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須化、`helix doctor check_glossary_coverage` で L0 §12.1 整合監査 |
 | FR-CTX-01 | layer context injection 機能 | L1 FR-10, TR-02, TR-07 | 工程別に agent / skill / command / model route を注入し、AI の選択空間を制約する |
 | FR-DRIFT-01 | discrepancy routing 機能 | L1 FR-11, TR-03 | drift / trace 欠落 / 環境差異を検知し、interrupt / recovery / reverse normalization へ送る |
 | FR-PLAN-01 | PLAN dependency / generates trace 機能 | L1 FR-12, TR-08 | PLAN frontmatter の依存関係と生成物を追跡し、互換期間中の drift を明示する |
 | FR-DOCTOR-01 | doctor 総合監査機能 | L1 FR-08, FR-11, TR-04 | doctor が監査 view を束ね、warn 集計と fail-close 候補を返す |
-| FR-MIGR-01 | schema migration / retrofit 機能 | L1 TR-05, TR-08 | V1→V2 / advisory→fail-close の移行を migration log つきで進める |
+| FR-MIGR-01 | schema migration / retrofit 機能 (+ Strangler Fig Pattern 段階置換) | L1 TR-05, TR-08, **BR-10** (2026-05-26 拡張) | V1→V2 / advisory→fail-close の移行を migration log つきで進める + **Strangler Fig Pattern (Fowler 2004) 段階置換 + Phase 別残量管理 (Phase α/β/γ kill criteria)**、`helix doctor check_migration_pending` (L4 carry) で残量監査 |
+| **FR-DOCREVIEW-01** (新規、2026-05-26) | **ドキュメント品質レビュー機能** | **BR-11** | `helix codex --role doc-reviewer` (gpt-5.5 high read-only) 召喚で 4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515:2018) + V-model 量閉じ性 / implementation_status 列必須を統合検査、判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘返却、`helix doctor check_doc_review_coverage` で召喚率 ≥ 95% 監査 |
 
 ## §2 機能仕様
 
@@ -121,6 +122,26 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 振る舞い: pair freeze、4 artifact、inventory、migration、context injection、mode transition の監査結果を束ね、warn 件数、severity、修復候補を返す。
 - 状態遷移: `scanned -> summarized -> reported`。
 - エラー処理: 個別監査が一部失敗しても summary は返す。ただし `critical` が 1 件でもある場合は exit code 2 とする。
+
+### FR-DOCREVIEW-01 ドキュメント品質レビュー機能 (2026-05-26 BR-11 由来、新規追加)
+
+- **目的**: tl-advisor (技術判断) / pm-advisor (大局判断) / pmo-sonnet (汎用) / code-reviewer (5 軸 code) と責務分離した **doc 品質専用 review** を提供
+- **CLI 契約**: `helix codex --role doc-reviewer --task "..."` または `--task-file <path>` で召喚、read-only (Edit/Write/NotebookEdit 禁止)
+- **入力**: review 対象 doc path / scope / 該当工程 (L0/L1/L3/L4/G ゲート) / 既存指摘 (前段 audit 結果)
+- **出力**: 判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘 + 修正案 + 残リスク + 観点 (Correctness / Completeness / Consistency / Clarity / 業界標準 / V-model)
+- **観点 4 視点**:
+  1. **Correctness** (事実整合): 主張 ↔ 実体 (CLI / file / schema / table / view / config) の diff、`implementation_status` 列必須
+  2. **Completeness** (章充足): doc-system-architect 必須 6 項目 + arc42 章 + Diátaxis 4 mode + V-model 4 artifact の存在
+  3. **Consistency** (用語・構造整合): L0 §12 Glossary SSoT との用語ゆれ、anti-corruption layer 遵守
+  4. **Clarity** (可読性): Why > What > How 順序、section / 図表 / cross-reference の適切性
+- **業界標準整合**: Diátaxis (Procida 2017) / arc42 v8 / ISO/IEC/IEEE 26515:2018 / ISO/IEC/IEEE 26513:2017 / DDD SSoT (Evans 2003)
+- **HELIX 固有検査**: balance_ratio ≥ 1.0 / pair freeze frontmatter / implementation_status 列 / V-model 4 artifact 双方向 trace / migration pipeline 整合 (BR-RULE-09 + BR-RULE-10)
+- **召喚タイミング**: 大規模 doc 改定 (~500 行+) / G0.5・G1・G3・G7 ゲート evidence / V-model pair freeze 前
+- **責務分離**: tl-advisor (技術判断 adversarial) と並走、code-reviewer (code 5 軸) は対象外、pmo-sonnet (汎用 read-only) より特化
+- **実体化**: `cli/roles/doc-reviewer.conf` (gpt-5.5 high read-only) + `skills/workflow/doc-review/SKILL.md`
+- **副作用**: なし (read-only)
+- **技術制約**: Codex CLI gpt-5.5 high、thinking budget 大 (~30-60 sec response、token ~50-130K)、stdout に SUMMARY block + rollout.jsonl で詳細取得可能 ([[feedback_rollout_jsonl_bypass_pattern]])
+- **機械判定 carry (L4)**: `helix doctor check_doc_review_coverage` 新設、直近 30 commit のうち大規模 doc 改定 commit で召喚 evidence + 判定結果が残された率 ≥ 95% を fail-close
 
 ### FR-MIGR-01 schema migration / retrofit 機能
 
