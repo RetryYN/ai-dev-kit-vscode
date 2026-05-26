@@ -22,6 +22,7 @@ ALLOWED_ROLES = {
     "dba",
     "devops",
     "docs",
+    "doc-reviewer",
     "research",
     "legacy",
     "perf",

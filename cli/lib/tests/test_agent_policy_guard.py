@@ -136,6 +136,13 @@ def test_recommender_passes_check() -> None:
     assert not any(item["code"] == "invalid_role" for item in payload["errors"])
 
 
+def test_doc_reviewer_passes_check() -> None:
+    payload = agent_policy_guard.check_member("doc-reviewer", "codex", "document quality review")
+
+    assert payload["ok"] is True
+    assert not any(item["code"] == "invalid_role" for item in payload["errors"])
+
+
 def test_policy_allows_pdm_tech_innovation() -> None:
     payload = agent_policy_guard.check_member("pdm-tech-innovation", "codex", "subagent 仕様同期")
 
