@@ -51,8 +51,9 @@ related_docs:
 | 7 | pmo-sonnet 再 audit (反映漏れ / 二次 drift / AC 充足 / 残 carry 妥当性) | ☑ completed (2026-05-26、判定: yes_with_minor、反映漏れ 0、二次 drift D1 = §6.5.6 line 513 blockquote `1 個` → `7 個`、D2 = G7 AI 判定境界の L1 carry) |
 | 8 | D1 修正 (§6.5.6 line 513 blockquote `1 個` → `7 個`、AC-11 完全充足化) | ☑ completed (2026-05-26、1 行修正) |
 | 9 | G0.5 ゲート判定再評価 (conditional_approve 取得 → ユーザー判断) | ☑ completed (2026-05-26、conditional_approve 取得 + ユーザー approve、L0 commit 9d65a63 push 完了 4428aa5..cd598d2) |
-| 10 | L1 接続 (`L1-helix-workflows-<area>plan` 4 種 + L14-test-design pair artifact + 4 製本 doc 同時起票、画面要求は L2 skip により対象外) | ☑ completed (2026-05-26、Phase A Opus 業務要求 + Phase B Codex SE 3 並列 機能/技術/非機能要求 + Phase C pmo-sonnet 整合 audit yes_with_minor + Phase C.1 修正 3 件 + Phase D tl-advisor G1 evidence (in_progress、bg id=b68ihwdxu)) |
-| 11 | G1 ゲート判定 → L3 接続 (`L3-helix-workflows-<area>要件plan` 3 種 + L12-test-design pair artifact) | □ pending (Phase D 完了後) |
+| 10 | L1 接続 (`L1-helix-workflows-<area>plan` 4 種 + L14-test-design pair artifact + 4 製本 doc 同時起票、画面要求は L2 skip により対象外) | ☑ completed (2026-05-26、Phase A Opus 業務要求 + Phase B Codex SE 3 並列 + Phase C pmo audit yes_with_minor + Phase C.1 修正 3 件 + Phase D tl-advisor blocked → P0/P1 6 件修正 + Phase D.1 pmo 2nd yes_with_minor + Phase D.2 1 行修正 ×2 → G1 conditional_approve 取得、commit aa86a22 push 完遂) |
+| 11 | L3 接続 (`L3-helix-workflows-<area>要件plan` 3 種 + L12-test-design pair artifact + 3 製本 doc 同時起票、技術要求は機能要件の入出力に統合) | ☑ completed (2026-05-26、Phase E.A Opus 業務要件 + Phase E.B Codex SE 2 並列 機能/非機能要件 + Phase E.B.1 L12 §2/§3 一括適用 (AC-FR 14 + AC-NFR 25) + Phase E.C pmo 1st yes_with_minor + Phase E.C.1 修正 4 件 + Phase E.D tl-advisor blocked → P0/P1 5 件修正 + Phase E.D.1 pmo 2nd yes_with_minor + Phase E.D.2 1 行修正 → G3 conditional_approve 取得) |
+| 12 | L4 接続 (`L4-helix-workflows-基本設計plan` + L9-test-design 総合テスト設計 pair artifact、L4↔L9 pair freeze、L1-IN-14 team 構造確定) | □ pending (次 session 候補) |
 
 ## §2 実装計画 (記載項目をどう埋めるか)
 
