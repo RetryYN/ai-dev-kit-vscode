@@ -42,6 +42,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-DOCTOR-01 | doctor 総合監査機能 | L1 FR-08, FR-11, TR-04 | doctor が監査 view を束ね、warn 集計と fail-close 候補を返す |
 | FR-MIGR-01 | schema migration / retrofit 機能 (+ Strangler Fig Pattern 段階置換) | L1 TR-05, TR-08, **BR-10** (2026-05-26 拡張) | V1→V2 / advisory→fail-close の移行を migration log つきで進める + **Strangler Fig Pattern (Fowler 2004) 段階置換 + Phase 別残量管理 (Phase α/β/γ kill criteria)**、`helix doctor check_migration_pending` (L4 carry) で残量監査 |
 | **FR-DOCREVIEW-01** (新規、2026-05-26) | **ドキュメント品質レビュー機能** | **BR-11** | `helix codex --role doc-reviewer` (gpt-5.5 high read-only) 召喚で 4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515:2018) + V-model 量閉じ性 / implementation_status 列必須を統合検査、判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘返却、`helix doctor check_doc_review_coverage` で召喚率 ≥ 95% 監査 |
+| **FR-CHANGEPROP-01** (新規、2026-05-26 BR-12 由来) | **変更追跡 + デグレ禁止 ratchet 機能** | **BR-12** | 上流 ID (BR-* / FR-* / NFR-*) 追加・更新・削除 commit を検出 → 下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit 以内に存在するか機械検証 + balance_ratio < 1.0 regression を前 commit との diff で検出 + 上流 ID 参照の下流 ID trace 切れ検出。3 つの `helix doctor check_*` (`check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) を pre-commit / CI hook で fail-close。Ratchet 機構: balance_ratio の過去最小値より下回ったら fail-close (品質後戻り禁止) |
 
 ## §2 機能仕様
 
@@ -142,6 +143,27 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - **副作用**: なし (read-only)
 - **技術制約**: Codex CLI gpt-5.5 high、thinking budget 大 (~30-60 sec response、token ~50-130K)、stdout に SUMMARY block + rollout.jsonl で詳細取得可能 ([[feedback_rollout_jsonl_bypass_pattern]])
 - **機械判定 carry (L4)**: `helix doctor check_doc_review_coverage` 新設、直近 30 commit のうち大規模 doc 改定 commit で召喚 evidence + 判定結果が残された率 ≥ 95% を fail-close
+
+### FR-CHANGEPROP-01 変更追跡 + デグレ禁止 ratchet 機能 (2026-05-26 BR-12 由来、新規追加)
+
+- **目的**: 既存 V-model pair freeze (balance_ratio ≥ 1.0) は結果整合のみで、**上流変更 → 下流必須修正の機械追跡が完全不在** という framework 欠陥を解消
+- **3 軸機械強制 (L4 carry、`helix doctor check_*` 3 件 + pre-commit / CI hook)**:
+  1. **`check_upstream_downstream_alignment`**: 上流 ID (BR-* / FR-* / NFR-*) 追加 / 更新 / 削除 commit で下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit (default N=3) 以内に存在するか機械検証、不在で fail-close。例外: `kind=reference` / `is_reference: true` doc / deferred-findings.yaml 登録済 deprecation
+  2. **`check_balance_ratio_regression`**: 全 V-model pair (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7) の `balance_ratio` を前 commit との diff で集計、< 1.0 regression または **過去最小値より下回り (Ratchet 機構)** で fail-close
+  3. **`check_id_reference_completeness`**: 上流 ID を参照する下流 ID の trace 切れ (例: BR-09 参照の FR-INV-01 が削除された) を grep + frontmatter trace で検出、孤立 ID を warn → fail-close
+- **CLI 契約**: `helix doctor --check-changeprop` で 3 軸一括実行、`--ratchet` flag で過去最小値ベース ratchet 適用、`--commit-range <range>` で diff scope 指定
+- **入力**: commit range (default: HEAD~1..HEAD)、N commit window (default: 3)、ratchet baseline (default: `.helix/audit/balance-ratio-baseline.yaml`、L4 carry)
+- **出力**: pass / fail / warn 各 ID 列 + 違反 ID list + 修正 suggestion (例: 「BR-09 追加されたが下流 FR-INV-01 拡張なし → L3 FR doc §1 に BR-09 列追加が必要」)
+- **副作用**: `.helix/audit/balance-ratio-baseline.yaml` (Ratchet baseline、L4 carry) 更新、`.helix/audit/changeprop-violations.yaml` (違反 log、L4 carry) 出力
+- **業界標準整合**:
+  - **Continuous Delivery** (Humble & Farley 2010): automated test + 段階 deploy で品質後戻り禁止
+  - **Don't Break the Build** (Google "Building Secure & Reliable Systems" 2020): branch protection + required checks
+  - **Ratchet Constraints** (Google Testing Blog "The Tax Strikes Back" 2020): 機械強制 ratchet で過去最良値を baseline 化
+  - **Hyrum's Law** (Hyrum Wright): observable behavior に依存する下流が存在する前提で上流変更を扱う
+  - **Semantic Versioning 2.0.0**: ID rename / delete は破壊的変更扱い、deferred-findings.yaml 登録必須
+  - **Trunk-based Development + branch protection**: required checks に本機能 3 件を組込
+- **technical 制約**: pre-commit hook + CI hook 統合、`helix-doctor` 拡張 (実装: cli/lib/changeprop_check.py 新設、L4 carry)、SQLite (`helix.db`) に `changeprop_violations` table 追加 (L4 carry)
+- **責務分離**: BR-09 (実在マッピング) / BR-10 (Strangler Fig 段階移行) / BR-11 (doc-reviewer 召喚) は **個別品質維持**、BR-12 (本 FR) は **全 BR-* / FR-* / NFR-* / AC-* / OT-* の上流↔下流 alignment 横断強制**
 
 ### FR-MIGR-01 schema migration / retrofit 機能
 

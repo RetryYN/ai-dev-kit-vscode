@@ -119,6 +119,13 @@ L3 3 PLAN それぞれに対応する AC-* を 3 section で構成:
 - **受入基準**: 該当 doc 改定の commit message / final report / 会話 history のいずれかに `helix codex --role doc-reviewer` 召喚 evidence + 判定結果が記載されている率 ≥ 95% (`helix doctor check_doc_review_coverage` (L4 carry) で機械監査)
 - **検証 step**: (1) 直近 30 commit のうち doc 改定 (~500 行+) 該当 commit を抽出 → (2) 各 commit message + 会話 history で doc-reviewer 召喚 evidence を grep → (3) 召喚率 + 判定の分布 (approve / conditional / blocked) を集計 → (4) 召喚不在 commit を warn 出力 + retrofit 起票 → (5) tl-advisor (技術判断) / doc-reviewer (doc 品質) の責務分離が遵守されているか sample audit
 
+### AC-BR-12: デグレ禁止ガードレール 受入テスト (2026-05-26 BR-RULE-12 由来、新規追加)
+
+- **対象 BR**: BR-12 デグレ禁止ガードレール業務 (変更追跡 + ratchet 機構)
+- **デプロイ後検証内容**: 上流 ID (BR-* / FR-* / NFR-*) 追加・更新・削除 commit で下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit (default N=3) 以内に存在するか + balance_ratio regression + 上流↔下流 trace 切れ を `helix doctor check_*` 3 件 (`check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) で機械強制 (pre-commit + CI hook 統合)
+- **受入基準**: (1) 違反 commit が hook で block されること (2) balance_ratio 過去最小値より下回ったら fail-close (Ratchet 機構) (3) 上流↔下流 alignment 違反率 = 0% (`.helix/audit/changeprop-violations.yaml` で 0 件維持) (4) Hyrum's Law ベースの破壊的変更が deferred-findings.yaml 登録必須
+- **検証 step**: (1) sample commit で BR-* 追加 (下流対応なし) → block 確認 → (2) sample commit で balance_ratio 下げ → block 確認 → (3) sample commit で上流 ID delete → trace 切れ警告 → (4) `.helix/audit/balance-ratio-baseline.yaml` (L4 carry) との突合確認 → (5) deferred-findings 登録時の例外 path 確認
+
 ## §2 機能系受入テスト (FR-* ↔ AC-FR-*、Phase E.B Codex SE bxwlot2t6 PROPOSE 反映 2026-05-26)
 
 L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements-detail.md) **core FR 14 件** (FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-9MODE-01 / FR-GATE-01 / FR-IMPACT-01 / FR-EVT-01 / FR-4ART-01 / FR-INV-01 / FR-CTX-01 / FR-DRIFT-01 / FR-PLAN-01 / FR-DOCTOR-01 / FR-MIGR-01、L1 FR + L1 TR 統合詳細化) に対する受入テスト。balance_ratio = **AC-FR 14 件 / core FR 14 件 = 1.0**。L3 doc 内の FR-* 参照出現数は 28 件あるが、これは core FR + cross-reference 出現の合計で AC 母数ではない (2026-05-26 tl-advisor G3 P1 #3 反映)。
@@ -208,6 +215,13 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 - **受入基準**: (1) `cli/roles/doc-reviewer.conf` 存在 + gpt-5.5 + read-only + skills 配置正しい (2) `skills/workflow/doc-review/SKILL.md` 存在 + 9 section 構成 (3) サンプル doc に対して召喚 → SUMMARY block に decision (approve/conditional_approve/blocked) + P0/P1/P2/P3 列挙が返る (4) Edit/Write/NotebookEdit 試行が block される (read-only 強制)
 - **検証 step**: (1) `helix codex --role doc-reviewer --task-file <sample>` で起動 → (2) stdout SUMMARY block parse → (3) rollout.jsonl の `response_item.output_text` で詳細取得 → (4) Edit 試行 → block 確認 → (5) `tl-advisor` との同時召喚で responsibility 分離確認
 
+### AC-FR-16: 変更追跡 + デグレ禁止 ratchet 機能 (2026-05-26 FR-CHANGEPROP-01 / BR-12 由来、新規追加)
+
+- **対象 FR**: FR-CHANGEPROP-01
+- **デプロイ後検証内容**: `helix doctor --check-changeprop [--ratchet] [--commit-range <range>]` で 3 軸 (`check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) 一括実行、pre-commit hook + CI hook 統合
+- **受入基準**: (1) 3 軸 check の実装存在 (`cli/lib/changeprop_check.py` 等) (2) 違反 commit が pre-commit hook で reject される (3) `.helix/audit/balance-ratio-baseline.yaml` の Ratchet baseline 更新が正しく動作 (4) `.helix/audit/changeprop-violations.yaml` に違反 log 出力 (5) `--commit-range HEAD~10..HEAD` で過去 10 commit の集計が正常
+- **検証 step**: (1) `helix doctor --check-changeprop --commit-range HEAD~1..HEAD` で 3 軸個別 check 結果取得 → (2) sample 違反 commit を生成 → block 確認 → (3) `--ratchet` flag で過去最小値ベース ratchet 動作確認 → (4) deferred-findings.yaml 登録時の例外 path 動作確認 → (5) pre-commit + CI hook 統合の smoke test
+
 ### AC-FR-14: schema migration / retrofit
 - **対象 FR**: FR-MIGR-01
 - **デプロイ後検証内容**: migration plan / manual approval requirement / compatibility warning が分離
@@ -237,6 +251,7 @@ L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/S
 - **AC-NFR-OP-05** (対象: NFR-OP-05) — 検証: verify-before-act ([[feedback_memory_verify_before_act]]) / 受入: 違反 0 件 AND verify 実施率 100% / step: carry 実行前後ログ確認
 - **AC-NFR-OP-06** (対象: NFR-OP-06、2026-05-26 BR-09 由来) — 検証: inventory drift 監査 / 受入: drift 率 ≤ 5% AND 新規 doc 起票時 implementation_status 列充足率 100% / step: (1) 直近 30 commit の doc 改定で implementation_status 列充足率を grep → (2) `helix doctor check_glossary_coverage` (L4 carry) で drift 集計 → (3) ≤ 5% 確認
 - **AC-NFR-OP-07** (対象: NFR-OP-07、2026-05-26 BR-11 由来) — 検証: doc-reviewer 召喚 coverage / 受入: 大規模 doc 改定 (~500 行+) の `helix codex --role doc-reviewer` 召喚 + 判定結果残置率 ≥ 95% / step: (1) 直近 30 commit のうち doc 改定 (~500 行+) 該当 commit 抽出 → (2) commit message + final report + 会話 history で召喚 evidence + 判定 grep → (3) 召喚率 ≥ 95% 確認
+- **AC-NFR-OP-08** (対象: NFR-OP-08、2026-05-26 BR-12 由来) — 検証: デグレ禁止 ratchet 機構機械強制 / 受入: 違反 commit の hook block 率 100% AND balance_ratio < 1.0 regression 検出率 100% AND 上流↔下流 trace 切れ件数 0 / step: (1) `helix doctor --check-changeprop` 3 軸個別 check → (2) sample 違反 commit で hook block 確認 → (3) `.helix/audit/changeprop-violations.yaml` 0 件維持 → (4) Ratchet baseline 更新動作確認 → (5) Hyrum's Law ベースの破壊的変更が deferred-findings 登録経由のみで通過することを確認
 
 ### 移行性 (MG)
 - **AC-NFR-MG-01** (対象: NFR-MG-01) — 検証: V1→V2 retrofit / 受入: 再実行成功率 ≥ 95% / step: retrofit → rerun → rollback 確認

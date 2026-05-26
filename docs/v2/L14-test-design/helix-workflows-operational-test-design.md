@@ -34,6 +34,7 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | BR-09 既存資産整理・マッピング | OT-09 inventory drift 監査 (helix-* CLI / helix.db schema / .helix/ runtime / docs/adr/* と L0 §12.1 Glossary mapping の整合率) | 毎週金曜 | drift 率 > 5% で `helix doctor check_glossary_coverage` (L4 carry) fail-close、設計 doc の implementation_status 列 retrofit 起票 |
 | BR-10 既存資産の段階移行・retrofit | OT-10 migration pipeline 残量監査 (V1 PLAN の `is_reference: true` 化率 / 旧 enum 残存件数 / Strangler 段階置換進捗) | 毎週金曜 | 残量 > 期待値 で `helix doctor check_migration_pending` (L4 carry) fail-close、Phase 別残量 dashboard 起票 |
 | BR-11 doc 品質継続レビュー | OT-11 doc-reviewer 召喚 coverage 監査 (大規模 doc 改定 commit のうち `helix codex --role doc-reviewer` 召喚 evidence + 判定結果が残された率) | 毎週金曜 | 召喚率 < 95% で `helix doctor check_doc_review_coverage` (L4 carry) fail-close、tl-advisor / doc-reviewer 責務分離違反 sample audit + retrofit carry 起票 |
+| BR-12 デグレ禁止ガードレール | OT-12 デグレ件数監査 (上流 ID 追加 commit で下流対応不在 件数 / balance_ratio regression 件数 / 上流↔下流 trace 切れ件数) | 毎日 (pre-commit + CI hook 連動)、週次集計は金曜 | 違反 > 0 件で `helix doctor check_upstream_downstream_alignment` / `check_balance_ratio_regression` / `check_id_reference_completeness` (L4 carry、3 件) fail-close、Ratchet baseline 後戻り検出時 immediate alert + commit reject |
 
 > **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
 
@@ -94,6 +95,15 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 - **測定式**: `SELECT (SELECT COUNT(*) FROM injection_log WHERE status='success' AND created_at >= date('now', '-7 days')) * 1.0 / (SELECT COUNT(*) FROM phase_entry_log WHERE entered_at >= date('now', '-7 days')) AS injection_rate` (V5 framework 完遂後)
 - **target**: ≥ 90%
 - **fail 措置**: < 90% で `helix-context` 設定 audit + skill_catalog / command_catalog rebuild + vmodel-semantics.yaml drift 検証
+
+### OT-12: デグレ件数監査 (BR-12 由来、2026-05-26 ユーザー指摘反映)
+
+- **対象 BR**: BR-12 デグレ禁止ガードレール業務 (変更追跡 + ratchet 機構)
+- **計測内容**: (1) 上流 ID (BR-* / FR-* / NFR-*) 追加 commit で下流対応 ID 不在の件数 (2) balance_ratio < 1.0 regression 件数 (3) 上流↔下流 trace 切れ件数 (4) Ratchet baseline 後戻り件数
+- **頻度**: pre-commit + CI hook 連動 (immediate)、週次集計は毎週金曜
+- **target**: 全 4 項目 = 0 件 (Ratchet 機構: 過去最小値より下回らない)
+- **検証手段**: `helix doctor --check-changeprop` (L4 carry、新設) で 3 軸 check 一括実行、`.helix/audit/changeprop-violations.yaml` (L4 carry) に違反 log 出力、`.helix/audit/balance-ratio-baseline.yaml` (L4 carry) で Ratchet baseline 管理
+- **異常時アクション**: 違反 > 0 件で immediate commit reject (pre-commit / CI hook)、Ratchet baseline 後戻り検出時は alert + commit block、deferred-findings.yaml 登録経由のみで破壊的変更通過
 
 ### OT-11: doc-reviewer 召喚 coverage 監査 (BR-11 由来、2026-05-26 ユーザー指摘反映)
 

@@ -50,6 +50,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | NFR-OP-05 | **運用保守レベル 3** | `feedback_memory_verify_before_act` 違反 **0 件**、memory carry 実行前 verify 実施率 **100%** | 保守性 | L12: guard 受入 / L14: 違反監査 |
 | NFR-OP-06 (2026-05-26 BR-09 由来) | **運用保守レベル 3** | inventory drift 率 ≤ **5%** (毎週金曜計測)、設計 doc 内 implementation_status 列充足率 **100%** (新規 doc 起票時) | 保守性 | L12: inventory drift 監査 (AC-NFR-OP-06) / L14: OT-09 週次計測 |
 | NFR-OP-07 (2026-05-26 BR-11 由来) | **運用保守レベル 3** | 大規模 doc 改定 (~500 行+) の `helix codex --role doc-reviewer` 召喚 coverage **≥ 95%**、commit message / final report / 会話 history のいずれかに召喚 evidence + 判定結果残置率 **≥ 95%** | 保守性 | L12: 召喚 coverage 受入 (AC-NFR-OP-07) / L14: OT-11 週次計測 |
+| NFR-OP-08 (2026-05-26 BR-12 由来) | **運用保守レベル 4** | デグレ禁止 ratchet 機構の機械強制率 **100%** (上流 ID 追加 commit で下流対応不在による fail-close が機械検出されること)、balance_ratio < 1.0 regression 検出率 **100%**、上流↔下流 trace 切れ件数 **0** | 保守性 | L12: 3 軸 check 受入 (AC-NFR-OP-08) / L14: OT-12 週次計測 / pre-commit + CI hook 統合 |
 
 ## §4 移行性 (NFR-MG-* IPA グレード値)
 
