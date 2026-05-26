@@ -19,9 +19,9 @@ related_l3_docs:
 
 # HELIX-workflows 受入テスト設計 (L12 ペア artifact)
 
-> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、47 AC (BR 8 + FR 14 + NFR 25) で balance_ratio ≥ 1.0。
+> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、57 AC (BR 12 + FR 16 + NFR 29) で balance_ratio ≥ 1.0 (本 session BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件)。
 >
-> **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜08 + §2 機能系 AC-FR-01〜14 + §3 非機能系 AC-NFR 25 件すべて detail 化済 2026-05-26)。
+> **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜12 + §2 機能系 AC-FR-01〜16 + §3 非機能系 AC-NFR 29 件すべて detail 化済 2026-05-26、BR-12 ratchet 機構準拠で 本 session BR-09/10/11/12 追従済)。
 >
 > **正本**: [HELIX-workflows/helix-process/L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md)
 
@@ -230,7 +230,7 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 
 ## §3 非機能系受入テスト (NFR-* ↔ AC-NFR-*、Phase E.B Codex SE bi6xoaz58 PROPOSE 反映 2026-05-26)
 
-L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/SC/SE 6 領域 23 件 + ISO 25010 再導出 2 件 (使用性 US / 機能適合性 FS) に対する受入テスト。balance_ratio = AC-NFR 25 件 / NFR 23 件 = 1.09 (≥ 1.0、追加 US/FS で網羅性強化)。
+L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/SC/SE 6 領域 27 件 (本 session BR-09/10/11/12 由来で NFR-OP-06/07/08 + NFR-MG-04 を追加、23→27) + ISO 25010 再導出 2 件 (使用性 US / 機能適合性 FS) に対する受入テスト。balance_ratio = AC-NFR 29 件 / NFR 27 件 = 1.07 (≥ 1.0、追加 US/FS で網羅性強化)。
 
 ### 可用性 (AV)
 - **AC-NFR-AV-01** (対象: NFR-AV-01) — 検証: 月次 CLI 起動成功率 / 受入: ≥ 99.9% / step: 起動ログ集計 → 閾値判定
