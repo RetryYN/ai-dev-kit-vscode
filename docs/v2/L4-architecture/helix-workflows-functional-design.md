@@ -683,6 +683,289 @@ HELIX-workflows + 他 framework（Rails / Next.js / Spring Boot / Django 等）�
 
 → pair: L9 ST-F10
 
+### §10.8 §10.x フラット配列 index (機械検証補助)
+
+### §10.8.1 列挙形式
+
+- §10.1 | L0 企画書 | common | R
+- §10.1 | L0 企画書 | workflow | M
+- §10.1 | L0 企画書 | tools | R
+- §10.1 | L0 企画書 | project | -
+- §10.1 | L0 企画書 | advanced | M
+- §10.1 | L0 企画書 | automation | -
+- §10.1 | L0 企画書 | integration | M
+- §10.1 | L0 企画書 | writing | M
+- §10.1 | L0 企画書 | design-tools | M
+- §10.1 | L1 要求定義 | common | R
+- §10.1 | L1 要求定義 | workflow | M
+- §10.1 | L1 要求定義 | tools | R
+- §10.1 | L1 要求定義 | project | R
+- §10.1 | L1 要求定義 | advanced | R
+- §10.1 | L1 要求定義 | automation | -
+- §10.1 | L1 要求定義 | integration | R
+- §10.1 | L1 要求定義 | writing | M
+- §10.1 | L1 要求定義 | design-tools | M
+- §10.1 | L2 画面設計 | common | M
+- §10.1 | L2 画面設計 | workflow | M
+- §10.1 | L2 画面設計 | tools | R
+- §10.1 | L2 画面設計 | project | M
+- §10.1 | L2 画面設計 | advanced | -
+- §10.1 | L2 画面設計 | automation | -
+- §10.1 | L2 画面設計 | integration | R
+- §10.1 | L2 画面設計 | writing | M
+- §10.1 | L2 画面設計 | design-tools | M
+- §10.1 | L3 要求定義 | common | R
+- §10.1 | L3 要求定義 | workflow | M
+- §10.1 | L3 要求定義 | tools | R
+- §10.1 | L3 要求定義 | project | M
+- §10.1 | L3 要求定義 | advanced | R
+- §10.1 | L3 要求定義 | automation | -
+- §10.1 | L3 要求定義 | integration | R
+- §10.1 | L3 要求定義 | writing | R
+- §10.1 | L3 要求定義 | design-tools | M
+- §10.1 | L4 基本設計 (本工程) | common | R
+- §10.1 | L4 基本設計 (本工程) | workflow | M
+- §10.1 | L4 基本設計 (本工程) | tools | R
+- §10.1 | L4 基本設計 (本工程) | project | R
+- §10.1 | L4 基本設計 (本工程) | advanced | M
+- §10.1 | L4 基本設計 (本工程) | automation | -
+- §10.1 | L4 基本設計 (本工程) | integration | M
+- §10.1 | L4 基本設計 (本工程) | writing | R
+- §10.1 | L4 基本設計 (本工程) | design-tools | M
+- §10.1 | L5 詳細設計 | common | M
+- §10.1 | L5 詳細設計 | workflow | M
+- §10.1 | L5 詳細設計 | tools | R
+- §10.1 | L5 詳細設計 | project | M
+- §10.1 | L5 詳細設計 | advanced | R
+- §10.1 | L5 詳細設計 | automation | -
+- §10.1 | L5 詳細設計 | integration | R
+- §10.1 | L5 詳細設計 | writing | R
+- §10.1 | L5 詳細設計 | design-tools | M
+- §10.1 | L6 機能設計 | common | M
+- §10.1 | L6 機能設計 | workflow | M
+- §10.1 | L6 機能設計 | tools | R
+- §10.1 | L6 機能設計 | project | M
+- §10.1 | L6 機能設計 | advanced | R
+- §10.1 | L6 機能設計 | automation | -
+- §10.1 | L6 機能設計 | integration | R
+- §10.1 | L6 機能設計 | writing | R
+- §10.1 | L6 機能設計 | design-tools | M
+- §10.1 | L7 実装スプリント | common | M
+- §10.1 | L7 実装スプリント | workflow | M
+- §10.1 | L7 実装スプリント | tools | M
+- §10.1 | L7 実装スプリント | project | M
+- §10.1 | L7 実装スプリント | advanced | -
+- §10.1 | L7 実装スプリント | automation | R
+- §10.1 | L7 実装スプリント | integration | M
+- §10.1 | L7 実装スプリント | writing | R
+- §10.1 | L7 実装スプリント | design-tools | M
+- §10.1 | L8 結合テスト | common | M
+- §10.1 | L8 結合テスト | workflow | M
+- §10.1 | L8 結合テスト | tools | R
+- §10.1 | L8 結合テスト | project | M
+- §10.1 | L8 結合テスト | advanced | -
+- §10.1 | L8 結合テスト | automation | -
+- §10.1 | L8 結合テスト | integration | R
+- §10.1 | L8 結合テスト | writing | -
+- §10.1 | L8 結合テスト | design-tools | M
+- §10.1 | L9 総合テスト | common | M
+- §10.1 | L9 総合テスト | workflow | M
+- §10.1 | L9 総合テスト | tools | R
+- §10.1 | L9 総合テスト | project | M
+- §10.1 | L9 総合テスト | advanced | R
+- §10.1 | L9 総合テスト | automation | R
+- §10.1 | L9 総合テスト | integration | R
+- §10.1 | L9 総合テスト | writing | -
+- §10.1 | L9 総合テスト | design-tools | M
+- §10.1 | L10 UX 磨き | common | M
+- §10.1 | L10 UX 磨き | workflow | -
+- §10.1 | L10 UX 磨き | tools | R
+- §10.1 | L10 UX 磨き | project | M
+- §10.1 | L10 UX 磨き | advanced | -
+- §10.1 | L10 UX 磨き | automation | -
+- §10.1 | L10 UX 磨き | integration | -
+- §10.1 | L10 UX 磨き | writing | M
+- §10.1 | L10 UX 磨き | design-tools | M
+- §10.1 | L11 総合レビュー | common | M
+- §10.1 | L11 総合レビュー | workflow | M
+- §10.1 | L11 総合レビュー | tools | R
+- §10.1 | L11 総合レビュー | project | -
+- §10.1 | L11 総合レビュー | advanced | -
+- §10.1 | L11 総合レビュー | automation | -
+- §10.1 | L11 総合レビュー | integration | R
+- §10.1 | L11 総合レビュー | writing | M
+- §10.1 | L11 総合レビュー | design-tools | M
+- §10.1 | L12 デプロイ | common | M
+- §10.1 | L12 デプロイ | workflow | M
+- §10.1 | L12 デプロイ | tools | -
+- §10.1 | L12 デプロイ | project | -
+- §10.1 | L12 デプロイ | advanced | -
+- §10.1 | L12 デプロイ | automation | M
+- §10.1 | L12 デプロイ | integration | -
+- §10.1 | L12 デプロイ | writing | R
+- §10.1 | L12 デプロイ | design-tools | M
+- §10.1 | L13 デプロイ後検証 | common | -
+- §10.1 | L13 デプロイ後検証 | workflow | M
+- §10.1 | L13 デプロイ後検証 | tools | -
+- §10.1 | L13 デプロイ後検証 | project | -
+- §10.1 | L13 デプロイ後検証 | advanced | -
+- §10.1 | L13 デプロイ後検証 | automation | M
+- §10.1 | L13 デプロイ後検証 | integration | -
+- §10.1 | L13 デプロイ後検証 | writing | R
+- §10.1 | L13 デプロイ後検証 | design-tools | M
+- §10.1 | L14 運用検証 | common | -
+- §10.1 | L14 運用検証 | workflow | M
+- §10.1 | L14 運用検証 | tools | -
+- §10.1 | L14 運用検証 | project | -
+- §10.1 | L14 運用検証 | advanced | M
+- §10.1 | L14 運用検証 | automation | M
+- §10.1 | L14 運用検証 | integration | -
+- §10.1 | L14 運用検証 | writing | R
+- §10.1 | L14 運用検証 | design-tools | M
+- §10.2 | L0 | 必須 CLI | `helix init` `helix size`
+- §10.2 | L0 | 補助 CLI / hook | `helix budget` `helix skill chain`
+- §10.2 | L0 | 入口 hook | SessionStart
+- §10.2 | L1 | 必須 CLI | `helix plan create` `helix plan validate`
+- §10.2 | L1 | 補助 CLI / hook | `helix skill chain` `helix budget`
+- §10.2 | L1 | 入口 hook | SessionStart
+- §10.2 | L2 | 必須 CLI | `helix plan create` `helix gate G2`
+- §10.2 | L2 | 補助 CLI / hook | `helix skill use visual-design/design`
+- §10.2 | L2 | 入口 hook | SessionStart
+- §10.2 | L3 | 必須 CLI | `helix plan create` `helix gate G3`
+- §10.2 | L3 | 補助 CLI / hook | `helix skill use design-doc/api-contract`
+- §10.2 | L3 | 入口 hook | SessionStart
+- §10.2 | L4 | 必須 CLI | `helix plan create` `helix gate G4` `helix codex --role tl-advisor`
+- §10.2 | L4 | 補助 CLI / hook | `helix doctor` `helix skill chain`
+- §10.2 | L4 | 入口 hook | SessionStart
+- §10.2 | L5 | 必須 CLI | `helix plan create` `helix gate G5`
+- §10.2 | L5 | 補助 CLI / hook | `helix codex --role tl` `helix doctor`
+- §10.2 | L5 | 入口 hook | SessionStart
+- §10.2 | L6 | 必須 CLI | `helix plan create` `helix gate G6`
+- §10.2 | L6 | 補助 CLI / hook | `helix codex --role tl`
+- §10.2 | L6 | 入口 hook | SessionStart
+- §10.2 | L7 | 必須 CLI | `helix sprint {status,next,complete,reset}` `helix code {find,build,stats}` `helix test` `helix codex --role se/pg/qa` `helix gate G7`
+- §10.2 | L7 | 補助 CLI / hook | `helix review --uncommitted` `helix handover {dump,update,resume,clear}` `helix doctor`
+- §10.2 | L7 | 入口 hook | SessionStart / PreToolUse / PostToolUse
+- §10.2 | L8 | 必須 CLI | `helix test` `helix gate G8`
+- §10.2 | L8 | 補助 CLI / hook | `helix codex --role qa` `helix review --uncommitted`
+- §10.2 | L8 | 入口 hook | SessionStart
+- §10.2 | L9 | 必須 CLI | `helix test` `helix gate G9` `helix codex --role security`
+- §10.2 | L9 | 補助 CLI / hook | `helix review` `helix doctor` `helix code stats --uncovered`
+- §10.2 | L9 | 入口 hook | SessionStart
+- §10.2 | L10 | 必須 CLI | `helix gate G10`
+- §10.2 | L10 | 補助 CLI / hook | `helix codex --role docs` `helix codex --role fe`
+- §10.2 | L10 | 入口 hook | SessionStart
+- §10.2 | L11 | 必須 CLI | `helix gate G11` `helix review --uncommitted`
+- §10.2 | L11 | 補助 CLI / hook | `helix codex --role tl-advisor` `helix doctor`
+- §10.2 | L11 | 入口 hook | SessionStart
+- §10.2 | L12 | 必須 CLI | `helix pr` `helix gate G12` `helix codex --role devops`
+- §10.2 | L12 | 補助 CLI / hook | `helix handover {dump,clear}`
+- §10.2 | L12 | 入口 hook | pre-commit / pre-push / CI
+- §10.2 | L13 | 必須 CLI | `helix gate G13`
+- §10.2 | L13 | 補助 CLI / hook | `helix codex --role devops` `helix doctor --json`
+- §10.2 | L13 | 入口 hook | CI / scheduled
+- §10.2 | L14 | 必須 CLI | `helix gate G14` `helix reverse <type> R0`
+- §10.2 | L14 | 補助 CLI / hook | `helix codex --role docs` `helix postmortem`
+- §10.2 | L14 | 入口 hook | weekly cron
+- §10.3 | Forward (V字) | common | R
+- §10.3 | Forward (V字) | workflow | M
+- §10.3 | Forward (V字) | tools | R
+- §10.3 | Forward (V字) | project | R
+- §10.3 | Forward (V字) | advanced | R
+- §10.3 | Forward (V字) | automation | R
+- §10.3 | Forward (V字) | integration | R
+- §10.3 | Forward (V字) | writing | R
+- §10.3 | Forward (V字) | design-tools | R
+- §10.3 | Scrum (アジャイル) | common | R
+- §10.3 | Scrum (アジャイル) | workflow | M
+- §10.3 | Scrum (アジャイル) | tools | R
+- §10.3 | Scrum (アジャイル) | project | R
+- §10.3 | Scrum (アジャイル) | advanced | -
+- §10.3 | Scrum (アジャイル) | automation | -
+- §10.3 | Scrum (アジャイル) | integration | M
+- §10.3 | Scrum (アジャイル) | writing | R
+- §10.3 | Scrum (アジャイル) | design-tools | R
+- §10.3 | Discovery (仮説検証) | common | R
+- §10.3 | Discovery (仮説検証) | workflow | M
+- §10.3 | Discovery (仮説検証) | tools | M
+- §10.3 | Discovery (仮説検証) | project | R
+- §10.3 | Discovery (仮説検証) | advanced | M
+- §10.3 | Discovery (仮説検証) | automation | -
+- §10.3 | Discovery (仮説検証) | integration | M
+- §10.3 | Discovery (仮説検証) | writing | R
+- §10.3 | Discovery (仮説検証) | design-tools | M
+- §10.3 | Reverse (既存→設計復元) | common | R
+- §10.3 | Reverse (既存→設計復元) | workflow | M
+- §10.3 | Reverse (既存→設計復元) | tools | M
+- §10.3 | Reverse (既存→設計復元) | project | R
+- §10.3 | Reverse (既存→設計復元) | advanced | M
+- §10.3 | Reverse (既存→設計復元) | automation | -
+- §10.3 | Reverse (既存→設計復元) | integration | -
+- §10.3 | Reverse (既存→設計復元) | writing | R
+- §10.3 | Reverse (既存→設計復元) | design-tools | M
+- §10.3 | Incident (障害対応) | common | M
+- §10.3 | Incident (障害対応) | workflow | M
+- §10.3 | Incident (障害対応) | tools | M
+- §10.3 | Incident (障害対応) | project | -
+- §10.3 | Incident (障害対応) | advanced | -
+- §10.3 | Incident (障害対応) | automation | M
+- §10.3 | Incident (障害対応) | integration | -
+- §10.3 | Incident (障害対応) | writing | M
+- §10.3 | Incident (障害対応) | design-tools | M
+- §10.3 | Add-feature (差分追加) | common | R
+- §10.3 | Add-feature (差分追加) | workflow | M
+- §10.3 | Add-feature (差分追加) | tools | R
+- §10.3 | Add-feature (差分追加) | project | M
+- §10.3 | Add-feature (差分追加) | advanced | -
+- §10.3 | Add-feature (差分追加) | automation | -
+- §10.3 | Add-feature (差分追加) | integration | R
+- §10.3 | Add-feature (差分追加) | writing | R
+- §10.3 | Add-feature (差分追加) | design-tools | R
+- §10.3 | Refactor (構造改善) | common | M
+- §10.3 | Refactor (構造改善) | workflow | M
+- §10.3 | Refactor (構造改善) | tools | R
+- §10.3 | Refactor (構造改善) | project | -
+- §10.3 | Refactor (構造改善) | advanced | -
+- §10.3 | Refactor (構造改善) | automation | -
+- §10.3 | Refactor (構造改善) | integration | -
+- §10.3 | Refactor (構造改善) | writing | -
+- §10.3 | Refactor (構造改善) | design-tools | M
+- §10.3 | Retrofit (基盤改修) | common | R
+- §10.3 | Retrofit (基盤改修) | workflow | M
+- §10.3 | Retrofit (基盤改修) | tools | R
+- §10.3 | Retrofit (基盤改修) | project | R
+- §10.3 | Retrofit (基盤改修) | advanced | M
+- §10.3 | Retrofit (基盤改修) | automation | M
+- §10.3 | Retrofit (基盤改修) | integration | -
+- §10.3 | Retrofit (基盤改修) | writing | R
+- §10.3 | Retrofit (基盤改修) | design-tools | M
+- §10.3 | Research (技術調査) | common | -
+- §10.3 | Research (技術調査) | workflow | M
+- §10.3 | Research (技術調査) | tools | M
+- §10.3 | Research (技術調査) | project | -
+- §10.3 | Research (技術調査) | advanced | M
+- §10.3 | Research (技術調査) | automation | -
+- §10.3 | Research (技術調査) | integration | M
+- §10.3 | Research (技術調査) | writing | R
+- §10.3 | Research (技術調査) | design-tools | M
+- §10.4 | Forward | 必須 CLI | `helix plan` `helix gate <G0.5-G14>` `helix sprint` `helix test` `helix codex --role <30 種>` `helix claude --role pmo`
+- §10.4 | Forward | 補助 CLI / event | `helix budget` `helix doctor` `helix skill chain` `helix code` `helix handover`
+- §10.4 | Scrum (旧名) | 必須 CLI | `helix sprint` `helix plan`
+- §10.4 | Scrum (旧名) | 補助 CLI / event | `helix codex --role pg/se` `helix backlog`
+- §10.4 | Discovery | 必須 CLI | `helix discovery init` `helix discovery backlog` `helix discovery plan` `helix discovery poc` `helix discovery verify` `helix discovery decide`
+- §10.4 | Discovery | 補助 CLI / event | `helix codex --role research` `helix budget`
+- §10.4 | Reverse | 必須 CLI | `helix reverse code R0` 〜 `helix reverse code R4` `helix reverse rgc` `helix reverse design R0-R4` `helix reverse upgrade` `helix reverse normalization` `helix reverse fullback`
+- §10.4 | Reverse | 補助 CLI / event | `helix codex --role legacy/research` `helix code find`
+- §10.4 | Incident | 必須 CLI | `(CLI 未整備) PLAN kind=incident + workflow doc`
+- §10.4 | Incident | 補助 CLI / event | `helix codex --role security` `helix handover escalate`
+- §10.4 | Add-feature | 必須 CLI | `helix plan create` `helix gate G4-G7`
+- §10.4 | Add-feature | 補助 CLI / event | `helix codex --role se/qa`
+- §10.4 | Refactor | 必須 CLI | `(CLI 未整備) PLAN kind=refactor + workflow doc`
+- §10.4 | Refactor | 補助 CLI / event | `helix codex --role tl` `helix review --uncommitted` `helix test`
+- §10.4 | Retrofit | 必須 CLI | `(CLI 未整備) PLAN kind=retrofit + workflow doc`
+- §10.4 | Retrofit | 補助 CLI / event | `helix codex --role dba/devops/legacy` `helix code stats --uncovered`
+- §10.4 | Research | 必須 CLI | `helix research`
+- §10.4 | Research | 補助 CLI / event | `helix codex --role research` `helix budget simulate`
 ## §11 F6-F10 補助設計
 
 ### §11.1 F6 実行監査観点
@@ -1023,3 +1306,227 @@ L7 実装で planned 9 件 + partial 16 件 = 計 25 機能を implemented に�
 ### §9.3 機能カタログから機械検出 (BR-RULE-09 整合)
 
 本カタログは frontmatter `implementation_status` 列が **L9 ST-F1〜F10 の test 実行結果** と機械的に整合する。pair test design (L9 ST-F<N>) が all planned のうちは F<N>.<M> も partial 上限。L7 実装で ST が implemented 遷移 → F も implemented 候補に。`helix doctor --check-implementation-status-pair` (planned) で双方向整合を機械検証。
+
+## §10 ワークフロー分布 matrix (skill / CLI / subagent × 工程 / mode)
+
+> 本節は HELIX-workflows V2 のワークフロー内 skill / CLI 分布を機械 lookup 可能にする INDEX。L5 詳細設計 / L7 実装で「この工程・この mode で何の skill / CLI / subagent を使うか」を定義。
+
+### §10.1 L0-L14 × skill 9 大カテゴリ matrix (必須/推奨/任意)
+
+| 工程 | common | workflow | tools | project | advanced | automation | integration | writing | design-tools | agent-skills |
+|---|---|---|---|---|---|---|---|---|---|
+| L0 企画書 | R | M | R | - | M | - | M | M | M |
+| L1 要求定義 | R | M | R | R | R | - | R | M | M |
+| L2 画面設計 | M | M | R | M | - | - | R | M | M |
+| L3 要求定義 | R | M | R | M | R | - | R | R | M |
+| L4 基本設計 (本工程) | R | M | R | R | M | - | M | R | M |
+| L5 詳細設計 | M | M | R | M | R | - | R | R | M |
+| L6 機能設計 | M | M | R | M | R | - | R | R | M |
+| L7 実装スプリント | M | M | M | M | - | R | M | R | M |
+| L8 結合テスト | M | M | R | M | - | - | R | - | M |
+| L9 総合テスト | M | M | R | M | R | R | R | - | M |
+| L10 UX 磨き | M | - | R | M | - | - | - | M | M |
+| L11 総合レビュー | M | M | R | - | - | - | R | M | M |
+| L12 デプロイ | M | M | - | - | - | M | - | R | M |
+| L13 デプロイ後検証 | - | M | - | - | - | M | - | R | M |
+| L14 運用検証 | - | M | - | - | M | M | - | R | M |
+
+凡例: **M**=mandatory、**R**=recommended、**O**=optional、**-**=不要。  
+※ 具体 skill は `SKILL_MAP.md` の 9 大カテゴリ規約に従い、phase 別 catalog 側で参照。
+
+### §10.2 L0-L14 × 主要 CLI / hook matrix
+
+| 工程 | 必須 CLI | 補助 CLI / hook | 入口 hook |
+|---|---|---|---|
+| L0 | `helix init` `helix size` | `helix budget` `helix skill chain` | SessionStart |
+| L1 | `helix plan create` `helix plan validate` | `helix skill chain` `helix budget` | SessionStart |
+| L2 | `helix plan create` `helix gate G2` | `helix skill use visual-design/design` | SessionStart |
+| L3 | `helix plan create` `helix gate G3` | `helix skill use design-doc/api-contract` | SessionStart |
+| L4 | `helix plan create` `helix gate G4` `helix codex --role tl-advisor` | `helix doctor` `helix skill chain` | SessionStart |
+| L5 | `helix plan create` `helix gate G5` | `helix codex --role tl` `helix doctor` | SessionStart |
+| L6 | `helix plan create` `helix gate G6` | `helix codex --role tl` | SessionStart |
+| L7 | `helix sprint {status,next,complete,reset}` `helix code {find,build,stats}` `helix test` `helix codex --role se/pg/qa` `helix gate G7` | `helix review --uncommitted` `helix handover {dump,update,resume,clear}` `helix doctor` | SessionStart / PreToolUse / PostToolUse |
+| L8 | `helix test` `helix gate G8` | `helix codex --role qa` `helix review --uncommitted` | SessionStart |
+| L9 | `helix test` `helix gate G9` `helix codex --role security` | `helix review` `helix doctor` `helix code stats --uncovered` | SessionStart |
+| L10 | `helix gate G10` | `helix codex --role docs` `helix codex --role fe` | SessionStart |
+| L11 | `helix gate G11` `helix review --uncommitted` | `helix codex --role tl-advisor` `helix doctor` | SessionStart |
+| L12 | `helix pr` `helix gate G12` `helix codex --role devops` | `helix handover {dump,clear}` | pre-commit / pre-push / CI |
+| L13 | `helix gate G13` | `helix codex --role devops` `helix doctor --json` | CI / scheduled |
+| L14 | `helix gate G14` `helix reverse <type> R0` | `helix codex --role docs` `helix postmortem` | weekly cron |
+
+### §10.3 9 mode × skill 9 大カテゴリ matrix
+
+| mode | common | workflow | tools | project | advanced | automation | integration | writing | design-tools | agent-skills |
+|---|---|---|---|---|---|---|---|---|---|
+| Forward (V字) | R | M | R | R | R | R | R | R | R |
+| Scrum (アジャイル) | R | M | R | R | - | - | M | R | R |
+| Discovery (仮説検証) | R | M | M | R | M | - | M | R | M |
+| Reverse (既存→設計復元) | R | M | M | R | M | - | - | R | M |
+| Incident (障害対応) | M | M | M | - | - | M | - | M | M |
+| Add-feature (差分追加) | R | M | R | M | - | - | R | R | R |
+| Refactor (構造改善) | M | M | R | - | - | - | - | - | M |
+| Retrofit (基盤改修) | R | M | R | R | M | M | - | R | M |
+| Research (技術調査) | - | M | M | - | M | - | M | R | M |
+
+### §10.4 9 mode × 主要 CLI matrix
+
+| mode | 必須 CLI | 補助 CLI / event |
+|---|---|---|
+| Forward | `helix plan` `helix gate <G0.5-G14>` `helix sprint` `helix test` `helix codex --role <30 種>` `helix claude --role pmo` | `helix budget` `helix doctor` `helix skill chain` `helix code` `helix handover` |
+| Scrum (旧名) | `helix sprint` `helix plan` | `helix codex --role pg/se` `helix backlog` |
+| Discovery | `helix discovery init` `helix discovery backlog` `helix discovery plan` `helix discovery poc` `helix discovery verify` `helix discovery decide` | `helix codex --role research` `helix budget` |
+| Reverse | `helix reverse code R0` 〜 `helix reverse code R4` `helix reverse rgc` `helix reverse design R0-R4` `helix reverse upgrade` `helix reverse normalization` `helix reverse fullback` | `helix codex --role legacy/research` `helix code find` |
+| Incident | `(CLI 未整備) PLAN kind=incident + workflow doc` | `helix codex --role security` `helix handover escalate` |
+| Add-feature | `helix plan create` `helix gate G4-G7` | `helix codex --role se/qa` |
+| Refactor | `(CLI 未整備) PLAN kind=refactor + workflow doc` | `helix codex --role tl` `helix review --uncommitted` `helix test` |
+| Retrofit | `(CLI 未整備) PLAN kind=retrofit + workflow doc` | `helix codex --role dba/devops/legacy` `helix code stats --uncovered` |
+| Research | `helix research` | `helix codex --role research` `helix budget simulate` |
+
+> CLI 未整備の 4 mode (Refactor/Retrofit/Incident/Recovery) は workflow doc 正本運用、PLAN kind + template で扱う。
+
+### §10.5 subagent × 工程 matrix (HELIX_CORE.md 拡張)
+
+| subagent | 種別 | mandatory_by_phase | on_demand_by_phase | implementation_status |
+|---|---|---|---|---|
+| pdm-tech-innovation | PdM Opus | G0.5 | (内部判断) | implemented |
+| pdm-marketing-innovation | PdM Opus | G0.5 | (内部判断) | implemented |
+| pdm-innovation-manager | PdM Opus | G0.5 / L1 接続 | - | implemented |
+| pmo-tech-fork | PMO Sonnet | L2 (OSS 採用判断) | L4 / L7 | implemented |
+| pmo-tech-docs | PMO Sonnet | L2 (設計手法精読) | L4 / L5 | implemented |
+| pmo-helix-explorer | PMO Sonnet | L2-L7 entry | L9 review | implemented |
+| pmo-project-explorer | PMO Sonnet | L3-L7 entry | L9 / L11 review | implemented |
+| pmo-helix-scout | PMO Haiku | L2-L7 entry (軽量) | - | implemented |
+| pmo-project-scout | PMO Haiku | L7 entry (軽量) | L4 / L5 | implemented |
+| pmo-sonnet | PMO Sonnet | G2 / G4 / L8 review | 長文 Read / 判断伴う read-only | implemented |
+| pmo-haiku | PMO Haiku | - | 軽 Web 検索 / docs/** 軽修正 | implemented |
+| pmo-tech-news | PMO Sonnet | - | 週次定期 sweep | implemented |
+
+### §10.6 分布 matrix 集計
+
+| matrix | 行数 | 列数 | total cells |
+|---|---:|---:|---:|
+| §10.1 工程 × skill カテゴリ | 15 | 10 | 150 |
+| §10.2 工程 × CLI/hook | 15 | 3 | 45 |
+| §10.3 mode × skill カテゴリ | 10 | 10 | 100 |
+| §10.4 mode × CLI | 10 | 2 | 20 |
+| §10.5 subagent × 工程 | 12 | 4 | 48 |
+| **計** | — | — | **363 cells** |
+
+### §10.7 機械処理 mapping
+
+- `helix skill chain` は §10.1 + §10.3 を内部参照して推奨 skill を算出（catalog から候補選定）。
+- `helix doctor --check-skill-distribution`（planned）で各工程の必須 skill 利用率を機械検証。
+- `helix doctor --check-cli-distribution`（planned）で各工程の必須 CLI 起動証跡を `helix.db.event_log` で確認。
+- `helix agent fire-mandatory --phase Lx` は §10.5 から該当 subagent を一括起動。
+
+→ pair: ST-F1 (ドキュメント体系内の matrix 整合性) + ST-F3 (skill 体系内の推奨整合) + ST-F4 (workflow 内の mode 整合)
+
+## §11 モデル資産マッピング (model × workflow assets)
+
+> ユーザー指摘「モデル資産マッピング」を解消するため、HELIX モデル群（Opus / Codex 5.5/5.4/5.3-spark/5.3 / Sonnet / Haiku）とワークフロー資産を 5 matrix で記述。
+
+### §11.1 モデル × 工程 (L0-L14) matrix
+
+| 工程 | Opus (PM) | Codex 5.5 (TL) | Codex 5.4 (SE) | Codex 5.3-spark (PE) | Codex 5.3 (Sec/DBA/DevOps/Perf) | Codex 5.2 (Research) | Codex 5.4-mini (Recommender) | Sonnet (PMO) | Haiku (PMO) |
+|---|---|---|---|---|---|---|---|---|---|
+| L0 企画書 | ★ | ○ | - | - | - | △ | △ | △ | △ |
+| L1 要求定義 | ★ | ○ | - | - | △ | △ | △ | ○ | △ |
+| L2 画面設計 | ★ | ○ | △ | △ | - | - | △ | ○ | - |
+| L3 要件定義 | ★ | ★ | ○ | - | △ | - | △ | ○ | △ |
+| L4 基本設計 | ★ | ★ | ○ | - | △ | - | △ | ○ | - |
+| L5 詳細設計 | ○ | ★ | ★ | - | △ | - | △ | ○ | - |
+| L6 機能設計 | ○ | ★ | ★ | ○ | △ | - | △ | △ | - |
+| L7 実装 | △ | ★ | ★ | ★ | ★ | △ | ★ | ○ | △ |
+| L8 結合テスト | △ | ○ | ○ | △ | ★ | - | △ | ○ | - |
+| L9 総合テスト | ○ | ★ | △ | △ | ★ | - | △ | ★ | △ |
+| L10 UX 磨き | ○ | ★ | △ | △ | - | - | △ | ★ | △ |
+| L11 総合レビュー | ★ | ★ | △ | - | △ | - | △ | ★ | △ |
+| L12 デプロイ | ○ | ○ | △ | - | ★ | - | △ | ○ | - |
+| L13 デプロイ後検証 | △ | △ | - | - | ★ | - | △ | ○ | △ |
+| L14 運用検証 | ★ | ○ | - | - | △ | △ | △ | ○ | △ |
+
+凡例: **★**=primary、**○**=secondary、**△**=支援、**-**=不使用
+
+### §11.2 モデル × 9 mode matrix
+
+| mode | Opus | Codex 5.5 | Codex 5.4 | Codex 5.3-spark | Codex 5.3 | Codex 5.2 | Codex 5.4-mini | Sonnet | Haiku |
+|---|---|---|---|---|---|---|---|---|---|
+| Forward | ★ | ★ | ★ | ○ | ○ | △ | ★ | ○ | △ |
+| Scrum | ★ | ○ | ★ | ★ | △ | - | ○ | ○ | △ |
+| Discovery (CRISPR) | ★ | ★ | △ | ★ | △ | ★ | ○ | ○ | △ |
+| Reverse (逆転写) | ○ | ★ | ○ | - | △ | ★ | △ | ○ | △ |
+| Incident (SOS) | ★ | ★ | ★ | ★ | ★ | - | △ | ○ | △ |
+| Add-feature (alt splicing) | ○ | ★ | ★ | ★ | △ | - | ○ | ○ | △ |
+| Refactor | ○ | ★ | ★ | ○ | △ | - | △ | △ | - |
+| Retrofit | ○ | ★ | ★ | △ | ★ | △ | △ | ○ | - |
+| Research (調査) | ○ | ★ | △ | - | △ | ★ | ○ | ○ | △ |
+| Recovery (AI 暴走) | ★ | ★ | △ | - | △ | - | - | ○ | △ |
+
+### §11.3 モデル × skill 9 大カテゴリ matrix
+
+| skill カテゴリ | Opus | Codex 5.5 | Codex 5.4 | Codex 5.3-spark | Codex 5.3 | Codex 5.2 | Codex 5.4-mini | Sonnet | Haiku |
+|---|---|---|---|---|---|---|---|---|---|
+| common | 統合判断 | 扱う | 扱う | 扱う | 扱う | △ | 推挙 | 整合 review | △ |
+| workflow | 統合判断 | 扱う | 扱う | 扱う | 扱う | △ | 推挙 | 構造 check | △ |
+| tools | △ | 扱う | 扱う | 扱う | △ | 扱う | 推挙 | △ | 扱う (web-search) |
+| project | △ | 扱う | 扱う | 扱う | 扱う | - | 推挙 | △ | - |
+| advanced | 統合判断 | 扱う | 扱う | △ | 扱う | 扱う | 推挙 | △ | - |
+| automation | △ | 扱う | 扱う | 扱う | 扱う | - | 推挙 | △ | - |
+| integration | 統合判断 | 扱う | △ | △ | △ | - | 推挙 | △ | - |
+| writing | 扱う | 扱う | △ | △ | - | △ | 推挙 | △ | 扱う |
+| design-tools | △ (大局) | 扱う | △ | △ | - | - | 推挙 | △ | 扱う |
+
+### §11.4 モデル × 主要 CLI matrix
+
+| CLI 群 | Opus 起動 | Codex 起動 | Sonnet/Haiku 起動 | 自動 (hook) |
+|---|---|---|---|---|
+| `helix plan {create,validate,status,list,show}` | 起動 (PM 判断) | - | 起動 (PMO review) | post-commit auto-register |
+| `helix gate <G0.5-G14>` | 起動 (PM 承認) | 補助 (TL) | - | CI gate |
+| `helix sprint {status,next,complete,reset}` | 起動 (PM 進行) | - | - | - |
+| `helix code {find,build,stats,show,dup}` | 起動 (探索) | 起動 (実装前) | 起動 (review) | post-commit code build |
+| `helix skill {chain,search,use,catalog,stats}` | 起動 (PM 推挙確認) | - | - | UserPromptSubmit auto chain |
+| `helix codex --role <30 種>` | **起動主体** | (Codex 自身が実行) | - | - |
+| `helix claude --role <pm/pmo/tl-advisor>` | **起動主体** | - | (PMO 実行) | - |
+| `helix agent {slots,fire-mandatory,suggest}` | 起動 | - | - | PreToolUse / phase entry |
+| `helix doctor` | 補助 | 補助 | 起動 | pre-commit / CI |
+| `helix test` | 補助 | 起動 (QA 実行) | - | CI |
+| `helix review --uncommitted` | 起動 (PM 承認前) | 補助 | 起動 (PMO review) | manual |
+| `helix budget {status,simulate}` | **起動主体** | - | - | session start |
+| `helix discovery / research / reverse / pr / handover` | 起動 (PM mode 判断) | 補助 | - | mode entry |
+| `helix init / db / matrix` | 起動 (初期化) | - | - | - |
+
+### §11.5 モデル × subagent (12 種許可) matrix
+
+| subagent | 起動主体 | model family | thinking | 召喚タイミング |
+|---|---|---|---|---|
+| pmo-sonnet | Opus | Claude Sonnet 4.6 | medium | G2/G4/L8 review / 長文 Read / 判断 read-only |
+| pmo-helix-explorer | Opus | Claude Sonnet 4.6 | medium | L2-L7 entry (HELIX 内詳細探索) |
+| pmo-project-explorer | Opus | Claude Sonnet 4.6 | medium | L3-L7 entry (project 内詳細探索) |
+| pmo-tech-docs | Opus | Claude Sonnet 4.6 | medium | L2 entry (外部 doc 精読) |
+| pmo-tech-fork | Opus | Claude Sonnet 4.6 | medium | L2 entry (OSS 採用判断) |
+| pmo-tech-news | Opus | Claude Sonnet 4.6 | medium | 週次 sweep |
+| pmo-haiku | Opus | Claude Haiku 4.5 | low | docs/** 軽修正 / Web 検索目星 |
+| pmo-helix-scout | Opus | Claude Haiku 4.5 | low | L2-L7 entry (軽量目星) |
+| pmo-project-scout | Opus | Claude Haiku 4.5 | low | L7 entry (軽量目星) |
+| pdm-tech-innovation | Opus | Claude Opus 4.7 | - | G0.5 (技術思想翻案) |
+| pdm-marketing-innovation | Opus | Claude Opus 4.7 | - | G0.5 (マーケ思想翻案) |
+| pdm-innovation-manager | Opus | Claude Opus 4.7 | - | G0.5 / L1 接続 |
+
+### §11.6 モデル資産マッピング集計
+
+| matrix | 行数 | 列数 | total cells |
+|---|---:|---:|---:|
+| §11.1 モデル × 工程 | 15 | 9 | 135 |
+| §11.2 モデル × mode | 10 | 9 | 90 |
+| §11.3 モデル × skill カテゴリ | 10 | 9 | 90 |
+| §11.4 モデル × CLI | 14 | 4 | 56 |
+| §11.5 モデル × subagent | 12 | 4 | 48 |
+| **計** | — | — | **419 cells** |
+
+### §11.7 機械処理 mapping
+
+- `helix budget simulate --task "..."` は §11.1〜§11.4 を内部参照して最適モデル + thinking を機械推奨（現状 implemented）。
+- `helix doctor --check-model-distribution`（planned）で各工程の primary model 起動証跡を `helix.db.event_log` で確認。
+- Agent tool guard hook (`pretooluse-agent-guard.sh`) は §11.5 を fail-close 強制（現状 implemented）。
+
+→ pair: ST-F5 (オーケストレーション内のモデル配備整合)
