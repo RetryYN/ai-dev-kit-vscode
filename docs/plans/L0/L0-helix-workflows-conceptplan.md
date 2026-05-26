@@ -23,7 +23,10 @@ dependencies:
   parent: null
   requires: []
   blocks:
-    - L1-helix-workflows-requirementsplan
+    - L1-helix-workflows-業務要求plan
+    - L1-helix-workflows-機能要求plan
+    - L1-helix-workflows-技術要求plan
+    - L1-helix-workflows-非機能要求plan
 related_docs:
   - HELIX-workflows/helix-process/L0-concept.md
   - docs/v2/process/L00-planning.md
@@ -47,8 +50,9 @@ related_docs:
 | 6 | TL レビュー結果反映 (P0 量閉じ式向き訂正 / P1#2 gate 機械判定境界分解 / P1#3 V モデル DB 10 core + view 区分明示 / P1#4 Diagram 2 Incident/Recovery 分岐粒度 / P1#5 AC-07 実数訂正 + AC-09/10/11 追加 / P2 L2/L10 unskip 条件 + Phase α 3 層分割案) | ☑ completed (2026-05-26、5 件 + carry 2 件 全反映) |
 | 7 | pmo-sonnet 再 audit (反映漏れ / 二次 drift / AC 充足 / 残 carry 妥当性) | ☑ completed (2026-05-26、判定: yes_with_minor、反映漏れ 0、二次 drift D1 = §6.5.6 line 513 blockquote `1 個` → `7 個`、D2 = G7 AI 判定境界の L1 carry) |
 | 8 | D1 修正 (§6.5.6 line 513 blockquote `1 個` → `7 個`、AC-11 完全充足化) | ☑ completed (2026-05-26、1 行修正) |
-| 9 | G0.5 ゲート判定再評価 (conditional_approve 取得 → ユーザー判断) | □ in_progress (D1 解消後の最終判定) |
-| 10 | L1 接続 (`L1-helix-workflows-<area>plan` 4 種 + L14-test-design pair artifact 同時起票、画面要求は L2 skip により対象外) | □ pending |
+| 9 | G0.5 ゲート判定再評価 (conditional_approve 取得 → ユーザー判断) | ☑ completed (2026-05-26、conditional_approve 取得 + ユーザー approve、L0 commit 9d65a63 push 完了 4428aa5..cd598d2) |
+| 10 | L1 接続 (`L1-helix-workflows-<area>plan` 4 種 + L14-test-design pair artifact + 4 製本 doc 同時起票、画面要求は L2 skip により対象外) | ☑ completed (2026-05-26、Phase A Opus 業務要求 + Phase B Codex SE 3 並列 機能/技術/非機能要求 + Phase C pmo-sonnet 整合 audit yes_with_minor + Phase C.1 修正 3 件 + Phase D tl-advisor G1 evidence (in_progress、bg id=b68ihwdxu)) |
+| 11 | G1 ゲート判定 → L3 接続 (`L3-helix-workflows-<area>要件plan` 3 種 + L12-test-design pair artifact) | □ pending (Phase D 完了後) |
 
 ## §2 実装計画 (記載項目をどう埋めるか)
 
