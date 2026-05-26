@@ -138,42 +138,42 @@ L3 設計で確定した業務要件・機能要件・非機能要件を、L4 �
 
 ### §4.1 G3 conditional 残 P1 5 件 (前 session 確立、L4 内対処)
 
-- **P1-1**: baseline path / source / update policy 統一 (L3/L12/L14 で散在)
+- **P1-1**: baseline path / source / update policy 統一 (L3/L12/L14 で散在) [☐ planned: L7 carry]
   - 対応方針: BR-12 ratchet と changeprop の統合配線を `L4 方式設計` として凍結。
-- **P1-2**: `helix doctor --check-changeprop` read-only と write update 契約分離
+- **P1-2**: `helix doctor --check-changeprop` read-only と write update 契約分離 [☐ planned: L7 carry]
   - 対応方針: hook 入口を read と write に分け、失敗時の責務分解を明示。
-- **P1-3**: AC-12〜16 の grep count から parser 移行
+- **P1-3**: AC-12〜16 の grep count から parser 移行 [✓ 解消 2026-05-27 commit XXX (L9 ST-4 本体化)]
   - 対応方針: 今期は migration path を skeleton で明示し、実装時に parser 対応を段階展開。
-- **P1-4**: doc-reviewer evidence の正規化
+- **P1-4**: doc-reviewer evidence の正規化 [✓ 解消 2026-05-27 commit XXX (L4 §6.3 schema)]
   - 対応方針: `.helix/audit/doc-reviewer-evidence.yaml` を schema + 保持期間付きで管理。
-- **P1-5**: 5s pre-commit と CI-only 20-120s 分割
+- **P1-5**: 5s pre-commit と CI-only 20-120s 分割 [✓ 解消 2026-05-27 commit XXX (L4 §1.3 hook 分割表)]
   - 対応方針: L4 開始時に hook 2 モードを明記し、ローカル開発者体験を保持。
 
 ### §4.2 L4 skeleton tl-advisor audit P1 8 件 (2026-05-27 確立、Step 2-3 本体化対象)
 
-- **P1-A1**: L3 plan の `dependencies.blocks` が `L4-helix-workflows-基本設計plan` を参照 (本 PLAN は方式設計)
+- **P1-A1**: L3 plan の `dependencies.blocks` が `L4-helix-workflows-基本設計plan` を参照 (本 PLAN は方式設計) [☐ carry: L3 retrofit 別 PLAN]
   - 対応方針: 本 PLAN §0.1 で carry 明示済。L3 retrofit PLAN として後続起票。
-- **P1-A2**: L4↔L9 の双方向 trace で L4 側に ST mapping table がなく逆参照のみ
+- **P1-A2**: L4↔L9 の双方向 trace で L4 側に ST mapping table がなく逆参照のみ [✓ 解消 2026-05-27 commit XXX (→ pair trace 7+17 件)]
   - 対応方針: Step 2 で L4 architecture 各 § に `対応 ST-ID / 観測コマンド / evidence path` 表追加。
-- **P1-A3**: baseline path / `check_changeprop` 表記ゆれ (`--check-changeprop` vs `check_changeprop`)
+- **P1-A3**: baseline path / `check_changeprop` 表記ゆれ (`--check-changeprop` vs `check_changeprop`) [✓ 解消 2026-05-27 commit XXX]
   - 対応方針: 本 commit で L4 architecture §4 を `--check-changeprop` で統一。L3/L12/L14 への横断的 retrofit は P1-1 と統合。
-- **P1-A4**: P1-3 (AC grep→parser 移行) が L9 ST に未反映
+- **P1-A4**: P1-3 (AC grep→parser 移行) が L9 ST に未反映 [✓ 解消 2026-05-27 commit XXX (本 wave ST-4 本体化)]
   - 対応方針: Step 3 で L9 ST-4 (ratchet 機構) に parser ベース検証 / grep 誤検出 fixture / AC-12〜16 受入条件 追加。
-- **P1-A5**: doc-reviewer evidence YAML schema/retention/helix.db key 未設計
+- **P1-A5**: doc-reviewer evidence YAML schema/retention/helix.db key 未設計 [✓ 解消 2026-05-27 commit XXX (L4 §6.3)]
   - 対応方針: Step 2 で L4 §6 に `.helix/audit/doc-reviewer-evidence.yaml` の fields / retention / DB key / 欠落時 fail 条件 を schema 表で本体化。P1-4 と統合。
-- **P1-A6**: mandatory subagent と on-demand (pm-advisor / tl-advisor) が L4 §5 に混在
+- **P1-A6**: mandatory subagent と on-demand (pm-advisor / tl-advisor) が L4 §5 に混在 [✓ 解消 2026-05-27 commit XXX (L4 §5.1 分離 + 整合修正)]
   - 対応方針: 本 commit で L4 architecture §5 に `mandatory_by_phase` / `on_demand` 分離を注記。
-- **P1-A7**: industry standards (IEEE 42010 / arc42 / C4) 列挙のみで対応表なし
+- **P1-A7**: industry standards (IEEE 42010 / arc42 / C4) 列挙のみで対応表なし [✓ 解消 2026-05-27 commit XXX (L4 §0.1 対応表)]
   - 対応方針: Step 2 で L4 §0 / 関連 § に IEEE viewpoint・arc42 12 章・C4 4 階層の対応表を本体化。出典: arc42.org / c4model.com / ISO/IEC/IEEE 42010:2022。
-- **P1-A8**: 設計 doc が CLI/file/schema を主張する箇所に `implementation_status` 列未出現 (BR-RULE-09 違反)
+- **P1-A8**: 設計 doc が CLI/file/schema を主張する箇所に `implementation_status` 列未出現 (BR-RULE-09 違反) [✓ 解消 2026-05-27 commit XXX (3 file 合計 48 件)]
   - 対応方針: Step 2 で L4 architecture / L9 test design / ADR-044 の実在主張表に `implementation_status` 列追加。
 
 ### §4.3 L4 skeleton tl-advisor audit P2 4 件 (carry 化)
 
-- **P2-A1**: ADR-044 Decision に 9 mode→Forward 回帰 / 採用 project 配布判断が未収容 → Step 4 ADR 本体化で追加。
-- **P2-A2**: D2/D3 carry が L4 architecture 側に未反映 → 本 commit で L4 architecture §7 / §8 に carry note 追記 (下記 §5 と連動)。
-- **P2-A3**: L9 security test が汎用、secret/credential/OWASP 観測条件不足 → Step 3 で L9 §4 非機能テストを本体化。
-- **P2-A4**: Web 検索 3 query + balance_ratio 再集計 pending → Step 1 (参考調査) + Step 2-3 で本体化前必須。
+- **P2-A1**: ADR-044 Decision に 9 mode→Forward 回帰 / 採用 project 配布判断が未収容 → Step 4 ADR 本体化で追加。 [☐ L4 Step 4 carry]
+- **P2-A2**: D2/D3 carry が L4 architecture 側に未反映 → 本 commit で L4 architecture §7 / §8 に carry note 追記 (下記 §5 と連動)。 [☐ carry: L4 §5.2 維持]
+- **P2-A3**: L9 security test が汎用、secret/credential/OWASP 観測条件不足 → Step 3 で L9 §4 非機能テストを本体化。 [partial: §4.2 OWASP 言及済、fixture 詳細は planned]
+- **P2-A4**: Web 検索 3 query + balance_ratio 再集計 pending → Step 1 (参考調査) + Step 2-3 で本体化前必須。 [✓ 解消 2026-05-27 commit XXX (pmo-haiku Web 検索完了)]
 
 ## §5 pmo-sonnet D2/D3 + BR-09/BR-10 ラベル carry の L4 内消化
 
