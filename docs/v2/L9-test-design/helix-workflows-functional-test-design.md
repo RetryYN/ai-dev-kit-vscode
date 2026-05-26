@@ -61,7 +61,7 @@ ST-F1〜ST-F5 は以下の三層で検証する。
 - ST テスト完了で `finalized → pair_verified` 遷移を更新可能
 - `implementation_status` が `planned` の項目は次 wave carry のみ
 
-## §2 ST-F1〜ST-F5
+## §2 ST-F1〜ST-F10
 
 ### ST-F1 ドキュメント体系
 
@@ -255,7 +255,191 @@ fixture:
 
 → pair: L4 §5
 
-## §3 5 機能領域 × 機械処理 ↔ ST-F1〜F5 双方向 trace
+### ST-F6 恒常性 monitoring
+
+- **観点**: context 使用率 / workspace 規模 / token 消費 / 並列度 / balance_ratio の動的 throttle 動作
+- **入力 / fixture**: `tests/fixtures/l9/st-f6/`
+- **期待結果**: context 使用率 / workspace 規模 / token 消費 / 並列度 / balance_ratio の制御で auto throttle が発火
+- **検証コマンド**:
+
+```bash
+helix budget status --homeostasis
+```
+
+- **DoD**:
+  - 6 metric 全て threshold 設定
+  - warning 100% 発火
+  - auto throttle 90% 成功
+- **AC-mapping**: AC-FR-17
+- **実行時間**: 20 秒以内
+- **implementation_status**: planned
+- **fixture contract**:
+
+```yaml
+fixture:
+  path: tests/fixtures/l9/st-f6
+  files:
+    - metrics_homeostasis.csv
+    - warning_threshold.yml
+  expected:
+    warning_fire_rate: 1.0
+    auto_throttle_success: 0.9
+```
+
+→ pair: L4 §6
+
+
+
+### ST-F7 進化 (fork + promote / deprecate)
+
+- **観点**: PLAN fork → experiment → accuracy_score 計測 → promote/deprecate の自動 cycle
+- **入力 / fixture**: `tests/fixtures/l9/st-f7/`
+- **期待結果**: `helix plan fork` / `helix evolution score` / `helix evolution promote` または `deprecate` の event が記録される
+- **検証コマンド**:
+
+```bash
+helix plan fork PLAN-X --mutation "experiment"
+helix evolution score PLAN-X-experiment
+helix evolution promote PLAN-X-experiment
+```
+
+- **DoD**:
+  - experiment cycle 1 回完遂
+  - score 計測
+  - retire/deprecate event 記録
+- **AC-mapping**: AC-FR-18
+- **実行時間**: 30 秒以内
+- **implementation_status**: planned
+- **fixture contract**:
+
+```yaml
+fixture:
+  path: tests/fixtures/l9/st-f7
+  files:
+    - evolution_cycle.yml
+    - score_threshold.json
+  expected:
+    cycle_completed: true
+    score_recorded: true
+    event_count_min: 1
+```
+
+→ pair: L4 §7
+
+### ST-F8 繁殖 (version migration)
+
+- **観点**: HELIX-workflows V → V+1 の migration、portable package export/import の往復、過去 PLAN 継承
+- **入力 / fixture**: `tests/fixtures/l9/st-f8/`
+- **期待結果**: version bump 後に portable と migration が往復し整合が保たれる
+- **検証コマンド**:
+
+```bash
+helix version bump --minor
+helix portable export
+helix portable adopt path/to/adr.tar.gz
+helix migrate v1 --to v2
+```
+
+- **DoD**:
+  - 双方向 migration round-trip 100% 整合
+  - 過去 PLAN 全件継承
+- **AC-mapping**: AC-FR-19
+- **実行時間**: 45 秒以内
+- **implementation_status**: planned
+- **fixture contract**:
+
+```yaml
+fixture:
+  path: tests/fixtures/l9/st-f8
+  files:
+    - migration_matrix.csv
+    - plan_catalog.json
+  expected:
+    roundtrip_success: 1.0
+    plan_retain_count: 1.0
+```
+
+→ pair: L4 §8
+
+### ST-F9 排泄 (PLAN apoptosis)
+
+- **観点**: stale PLAN 自動 detection / superseded marking / archive / DB autophagy 全フロー
+- **入力 / fixture**: `tests/fixtures/l9/st-f9/`
+- **期待結果**: stale candidate / warning / archive / obsolete marking が end-to-end で進行する
+- **検証コマンド**:
+
+```bash
+helix plan apoptosis --dry-run
+helix plan apoptosis --execute
+```
+
+- **DoD**:
+  - 5 lifecycle 状態の自動 action 発火
+  - archive 100% 成功
+- **AC-mapping**: AC-FR-20
+- **実行時間**: 60 秒以内
+- **implementation_status**: planned
+- **fixture contract**:
+
+```yaml
+fixture:
+  path: tests/fixtures/l9/st-f9
+  files:
+    - apoptosis_candidates.csv
+    - autophagy_report.yml
+  expected:
+    action_count_min: 5
+    archive_success: 1.0
+```
+
+→ pair: L4 §9
+
+### ST-F10 共生 (multi-framework)
+
+- **観点**: 他 framework との並走宣言 + ADR 取り込み + namespace 競合回避
+- **入力 / fixture**: `tests/fixtures/l9/st-f10/`
+- **期待結果**: coexist 宣言、既存 ADR 取り込み、競合回避 namespace が成立する
+- **検証コマンド**:
+
+```bash
+helix coexist --framework rails
+helix coexist adopt path/to/adr
+helix coexist status
+```
+
+- **DoD**:
+  - 並走 framework 1 件以上
+  - ADR 取り込み 1 件以上
+  - namespace 競合 0
+- **AC-mapping**: AC-FR-21
+- **実行時間**: 20 秒以内
+- **implementation_status**: planned
+- **fixture contract**:
+
+```yaml
+fixture:
+  path: tests/fixtures/l9/st-f10
+  files:
+    - coexist_frameworks.csv
+    - adr_adopt_log.json
+  expected:
+    framework_count_min: 1
+    namespace_conflict_max: 0
+```
+
+→ pair: L4 §10
+
+### ST-F6〜ST-F10 実行補助ルール
+
+- ST-F6〜ST-F10 は fixture 実体未作成時でも planned 仕様として計画可能で、`tests/fixtures/l9/` 配下の未整備を carry として明記する
+- ST-F7/ST-F9 の併用実行時は `dry-run` 実行を先に行い、`execute` は承認ゲートを経てから開始する
+- ST-F8 と ST-F10 は順序依存を持つため、migration → coexist の順で `tests order` を固定する
+- ST-F9 の weekly cron は環境差分により schedule drift が起きるため、再現用 fixture で `timezone` を固定する
+- いずれの ST でも `implementation_status: planned` は次 wave carry へ明示し、done 化条件はステータス更新で判定する
+- DoD 判定は全項目で `pass` のみを carry 可能条件とし、`warn` 以上は未決定として保留する
+- L9 pair freeze 時は `tests/fixtures` の期待値ファイル更新と併せて実施し、`pair_completeness` を維持する
+
+## §3 10 機能領域 × 機械処理 ↔ ST-F1〜F10 双方向 trace
 
 | ST | 対応 ST | check | hook | CLI / DB |
 |---|---|---|---|---|
@@ -264,8 +448,11 @@ fixture:
 | ST-F3 | F3 | check_skill_catalog_freshness / check_skill_usage | post-task skill log | helix skill, helix.db.skill_usage |
 | ST-F4 | F4 | check_mode_routing / check_pair_freeze | SessionStart mode hint | helix init/reverse/research/sprint, helix.db.mode_transition |
 | ST-F5 | F5 | check_role_assignment / check_parallel_compliance | pretooluse-agent-guard | helix codex/claude/agent, helix.db.role_audit |
-
-→ pair: L4 §6
+| ST-F6 | F6 | check_homeostasis | statusLine + PreCompact | helix budget, helix doctor |
+| ST-F7 | F7 | check_plan_fork / check_evolution_score | mutation hook | helix plan, helix.evolution |
+| ST-F8 | F8 | check_version_migration | migration event hook | helix version, helix portable, helix migrate |
+| ST-F9 | F9 | check_plan_apoptosis | weekly cron | helix plan apoptosis, helix.db autophagy |
+| ST-F10 | F10 | check_framework_coexist | coexist event hook | helix coexist |
 
 ## §4 非機能テスト
 
@@ -319,6 +506,7 @@ maintainability:
 - ST 全項目の `implementation_status` を implemented へ更新（L7-L9 本体化で）
 - ST-F4/ST-F5 の mode/guard 実測値を本番運用前に確定
 - ST 全体を CI 実行パイプラインに接続
+- ST-F6〜ST-F10 の fixture も同時に投入し、監査観点を一貫維持
 
 ## 付録 A 実行メモ
 
@@ -329,7 +517,12 @@ maintainability:
 3. `ST-F3`（skill）
 4. `ST-F4`（workflow）
 5. `ST-F5`（orchestration）
-6. `§4 非機能`（性能 / 信頼性 / 保守性）
+6. `ST-F6`（homeostasis）
+7. `ST-F7`（evolution）
+8. `ST-F8`（reproduction）
+9. `ST-F9`（apoptosis）
+10. `ST-F10`（symbiosis）
+11. `§4 非機能`（性能 / 信頼性 / 保守性）
 
 ### A.2 失敗時の carry ルール
 

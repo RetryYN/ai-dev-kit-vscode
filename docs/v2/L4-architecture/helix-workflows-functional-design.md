@@ -1,7 +1,7 @@
 ---
 doc_id: l4-helix-workflows-functional-design
 title: "HELIX-workflows V2 機能設計 (functional design)"
-status: implemented
+status: partial
 created: 2026-05-27
 owner: PM
 process_layer: L4
@@ -518,16 +518,357 @@ graph TD
 
 → pair: L9 ST-F5
 
-## §6 5 機能領域 × 機械処理 mapping 統合表 (cross-reference)
+## §6 F6 恒常性（homeostasis、優先度 高）
 
-> **implementation_status 凍結ルール**: 本表は **pair test design (L9 ST-F1〜F5) が全て planned のため、本 wave では partial 統一**。L7 実装で個別 ST が実装完了した時点で implemented へ遷移。本表は §1.5/§2.6/§3.6/§4.6/§5.6 の個別 mapping (planned 項目含む) と整合的に運用する。
+### §6.1 機能概要
+
+HELIX system 全体の **平衡監視 + 動的調整**。balance_ratio ratchet (F5 内) を拡張し、context 使用率 / workspace 規模 / 委譲 ratio / 並列度 / Codex token 消費 / Opus 残量等の system metrics を一元監視し、閾値超過時に自動 throttle / fallback / 警告を発火させる。
+
+### §6.2 生物学対応
+
+- **homeostasis**: 体温 (37°C) / 血糖 / pH / 電解質 等の **内部環境定数維持**
+- **HELIX 対応**: context 使用率 / workspace 規模 / token 消費 / 並列度 等の **system 内部環境定数維持**
+
+### §6.3 監視 metric 一覧
+
+| metric | 健常値 | 異常値 | 動的調整 action | implementation_status |
+|---|---|---|---|---|
+| context_usage_ratio | <50% | >80% | PreCompact 自動 trigger / SessionStart history 注入縮小 | partial |
+| workspace_size_mb | <500MB | >2GB | 古い worktree 自動 clean | planned |
+| codex_token_consumption | <70% weekly | >90% weekly | Codex 委譲 → Opus 直 fallback | planned |
+| opus_residual_ratio | >30% | <10% | 委譲強化、軽 Read のみ Opus | partial |
+| parallel_count | ≤8 | >8 | 直列降格 + 怠慢警告 | implemented |
+| balance_ratio (per pair) | ≥1.0 | <1.0 | ratchet fail-close | partial |
+
+### §6.4 機械処理 mapping
+
+| CLI / hook | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix budget status --homeostasis` | 全 metric 一覧 + 健常判定 | (none) | metric report + warning list | planned |
+| `helix doctor --check-homeostasis` | 平衡監視 + ratchet 統合 | metrics | ok/warn/fail | planned |
+| statusLine hook (4 段階) | context 使用率の先回り監視 | session state | warning | implemented |
+| PreCompact hook | context 枯渇前 state 永続化 | transcript | snapshot | implemented |
+
+→ pair: L9 ST-F6
+
+## §7 F7 進化（evolution、優先度 中）
+
+### §7.1 機能概要
+
+**変異 (experiment fork)** + **自然選択 (performance-based PLAN promotion)** の機構。skill_usage stats / accuracy_score / G ゲート通過率を測定し、優秀 PLAN を自動 promote、劣後 PLAN を deprecate。skill 推挙 framework (F3) と接続して進化的 framework 改善を実現。
+
+### §7.2 生物学対応
+
+- **変異 (mutation)**: DNA 塩基置換、新規 allele 生成
+- **自然選択 (natural selection)**: 環境 fit に応じた allele 頻度変化
+- **HELIX 対応**: PLAN fork で experiment 派生 → 実装 / 検証 → accuracy_score で promotion/deprecation
+
+### §7.3 進化サイクル
+
+```mermaid
+graph LR
+  P1[PLAN-A v1] -->|fork mutation| P2[PLAN-A v2 experiment]
+  P2 --> Impl[L7 実装]
+  Impl --> Verify[L8/L9 検証]
+  Verify -->|score 高| Promote[promote v2 -> v1 retire]
+  Verify -->|score 低| Deprecate[deprecate v2 -> v1 維持]
+  Promote --> Next[次世代 PLAN-A v3]
+```
+
+### §7.4 機械処理 mapping
+
+| CLI / event | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix plan fork <plan_id> --mutation <description>` | PLAN experiment fork | plan_id, description | new PLAN file | planned |
+| `helix evolution score <plan_id>` | accuracy_score 計測 | plan_id | score + metrics | planned |
+| `helix evolution promote <plan_id>` | 優秀 PLAN promote | plan_id | retired old version | planned |
+| `helix evolution deprecate <plan_id>` | 劣後 PLAN deprecate | plan_id | marked as deprecated | planned |
+| skill_usage / accuracy_score 集計 | 自然選択 input | helix.db | rank list | partial |
+
+→ pair: L9 ST-F7
+
+## §8 F8 繁殖（reproduction、優先度 中）
+
+### §8.1 機能概要
+
+HELIX-workflows V2 → V3 等の **version 進化時の遺伝子伝達 + 世代継承**。採用 project が HELIX を取り込んだ後、HELIX 本体が進化 (V→V+1) したとき、過去 PLAN 資産の継承機構 (DNA replication 相当)。version bump 時の migration framework + portable package の伝達。
+
+### §8.2 生物学対応
+
+- **reproduction (繁殖)**: 配偶子形成 → 受精 → 個体形成、DNA replication で遺伝子伝達
+- **HELIX 対応**: HELIX-workflows version bump → 採用 project への migration + 過去 PLAN replication
+
+### §8.3 世代継承パターン
+
+| 継承パターン | HELIX 対応 | implementation_status |
+|---|---|---|
+| 無性生殖 (clonal) | 採用 project が HELIX 本体を git submodule clone | implemented |
+| 有性生殖 (recombination) | 採用 project と HELIX 本体の双方向 PR (上流貢献 + 下流取り込み) | partial |
+| 遺伝子水平伝播 | skill / template の単独取り込み (V フル取り込みなし) | planned |
+| 親世代退化 (apoptosis) | V→V+1 で旧 V の deprecated | planned |
+
+### §8.4 機械処理 mapping
+
+| CLI / event | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix version bump --major/--minor` | HELIX-workflows version 進化 | bump level | version tag + migration plan | planned |
+| `helix migrate v<from> --to v<to>` | 採用 project 側 migration | from/to version | upgraded .helix/ | planned |
+| `helix portable export` | portable package 配布 | version | tarball | partial |
+| `helix portable import` | 採用 project 側 import | tarball | extracted .helix/ | partial |
+
+→ pair: L9 ST-F8
+
+## §9 F9 排泄（excretion / apoptosis、優先度 高）
+
+### §9.1 機能概要
+
+**PLAN lifecycle 自動終了 (apoptosis 機械化)**。古い PLAN の定期 archive、stale doc の自動 deprecate、helix.db 内 obsolete record の autophagy 機構。superseded / is_reference: true marking を機械的に運用する framework。
+
+### §9.2 生物学対応
+
+- **apoptosis (programmed cell death)**: 古い細胞の programmed death、組織健全性維持
+- **autophagy (自食)**: 細胞内 obsolete 部品の能動的分解 + 再利用
+- **excretion (排泄)**: 老廃物の系外排出
+- **HELIX 対応**: stale PLAN の自動 archive / deprecated marking、helix.db obsolete record の cleanup
+
+### §9.3 lifecycle 終了ルール
+
+| 状態 | 条件 | 自動 action | implementation_status |
+|---|---|---|---|
+| stale_for_30d | 最終 update から 30 日経過 + status: draft | warning notification | planned |
+| superseded | 後続 PLAN が parent reference | is_reference: true 自動 mark | partial |
+| completed_archived | status: completed + 90 日経過 | archive/ 配下に移動 | planned |
+| deprecated | 明示 deprecate | DB record obsolete marking | planned |
+| obsolete_recovery | recovery PLAN 完遂後 | cleanup record | planned |
+
+### §9.4 機械処理 mapping
+
+| CLI / event | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix plan apoptosis --dry-run` | lifecycle 終了候補列挙 | (none) | candidate list | planned |
+| `helix plan apoptosis --execute` | 自動 archive / deprecate | candidate list | archived plans | planned |
+| `helix db autophagy` | helix.db obsolete cleanup | (none) | cleanup report | planned |
+| weekly cron / GitHub Actions | 定期実行 | schedule | apoptosis log | planned |
+
+→ pair: L9 ST-F9
+
+## §10 F10 共生（symbiosis、優先度 低）
+
+### §10.1 機能概要
+
+HELIX-workflows + 他 framework（Rails / Next.js / Spring Boot / Django 等）との **mitochondria 的 endosymbiosis**（取り込み融合）。両者 ADR を共有保持、相互参照可能な状態で並走。採用 project の既存 framework を尊重しつつ HELIX を共生的に組み込む。
+
+### §10.2 生物学対応
+
+- **endosymbiosis (細胞内共生)**: ミトコンドリアの起源、真核細胞が原核細胞を取り込み + 共生
+- **mutualism (相利共生)**: 両者 benefit
+- **HELIX 対応**: HELIX-workflows + 他 framework の相互利益的 endosymbiosis
+
+### §10.3 共生パターン
+
+| パターン | HELIX 対応 | implementation_status |
+|---|---|---|
+| obligate (絶対共生) | HELIX が他 framework を必須前提 | not applicable |
+| facultative (任意共生) | HELIX + 他 framework を選択的並走 | planned |
+| parasitism (寄生) | HELIX が他 framework を支配 | not allowed |
+| competition (競合) | HELIX と他 framework が同 scope を争う | mitigated by namespace |
+
+### §10.4 機械処理 mapping
+
+| CLI / event | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix coexist --framework <name>` | 他 framework との並走宣言 | framework name | symbiosis config | planned |
+| `helix coexist status` | 共生 framework 一覧 | (none) | list | planned |
+| `helix coexist adopt` | 既存 framework ADR の取り込み | path | converted ADR | planned |
+
+→ pair: L9 ST-F10
+
+## §11 F6-F10 補助設計
+
+### §11.1 F6 実行監査観点
+
+- 監視対象は session start / pre-tool-use / periodic drift の 3 レイヤーで記録する
+- 指標欠損時は warning のみ収集し、2 度連続で critical へ昇格
+- metric 逸脱時の throttle 判定は `statusCode: HOMEOSTASIS_DEGRADED` として audit に残す
+- `helix budget status --homeostasis` は `--json` 出力を前提に CI 解析し、各指標の 95 パーセンタイルを監査対象にする
+- `context_usage_ratio` と `opus_residual_ratio` は相反する指標として同時に可視化する
+- `parallel_count` は SessionStart 時点だけでなく task switch 時の再計測を追加し、再帰的増幅を検知する
+- `balance_ratio` が 1.0 未満の連続時刻を集約し、`ratchet_fail_close` による実行可否制御のトレースを残す
+
+### §11.2 F7 進化運用の安全境界
+
+- フォークの実行権限は F1-F5 の既存実装担当と同じ範囲に限定する
+- `mutation` 生成は `score_threshold` と `retire_threshold` を明示する
+- `helix evolution promote` / `deprecate` の両 event を監査ログに必須記録する
+- 2 回連続で score 低下時のみ deprecate 判定を成立とし、単発ノイズを抑止する
+- `accuracy_score` の算出式は `docs/plans/L4` と同一スキーマで維持する
+- PLAN fork は `PLAN_PARENT_ID` を保持して履歴再現性を担保し、複数 experiment の衝突を回避する
+- `skill_usage` は evaluation 前提期間 7 日移動平均で評価し、短期変動を丸める
+
+### §11.3 F8 バージョン進化時の継承順序
+
+- migration は `schema_version` と `plan_version` の二層で分離し、順序を固定する
+- `helix version bump` の実行順は `major` と `minor` を厳密比較し、互換性情報を `migration plan` に残す
+- portable export の tarball は `manifest.json` と `plan_index.md` を必須同梱する
+- portable import は署名付き manifest 検証後に `.helix/` 上書きを開始する
+- 各採用 project は `helix migrate --from <from> --to <to>` 実行ログを保存し、過去 PLAN の移行率を追跡する
+- `recombination` 期待時は PR 並走ログを `helix.db.version_coevolution` へ保持し、上下流 merge の監査性を確保する
+- `obsoleted version` は `deprecated` タグを付与し、即時削除せず一定期間保持する
+
+### §11.4 F9 PLAN lifecycle 失効処理の例外制御
+
+- stale 判定は `last_updated` と `state` を複合条件化し、誤検知を抑制する
+- `stale_for_30d` 検知時の archive は必ず `warning` 先行、`execute` 後に `archive` 更新を返す
+- `superseded` と `deprecated` は上位方針で同居しないため排他判定を実装する
+- `obsolete_recovery` は `recovery_plan_id` を取得しないと実行不可とする
+- weekly cron は idempotent で再実行しても二重 archive が発生しないように `status=archived` でガードする
+- `helix db autophagy` は削除対象と保護対象を明示リストで区別し、再利用可能 PLAN を保護する
+- 監査ログには `archived_plan_id`, `action`, `dryrun`, `execute` を統一キーで残す
+
+### §11.5 F10 共生フレームワークの競合回避規約
+
+- フレームワーク追加時の `namespace` は `helix coexist` で明示指定し、既定値衝突を禁止する
+- `obligate` を禁止した代わりに `facultative` を前提とし、選択的並走の同意を取りやすくする
+- `parasitism` 判定は「互換ファイル上書き」と「権限拡張」の 2 指標で検知し、発生時は `not allowed` を返す
+- `namespace` 競合は `competition` に変換し、`helix coexist status` で可視化して from/to mapping を提示する
+- `helix coexist adopt` は既存 ADR を壊さず参照リンク化し、新規 ADR のみを追加で管理する
+- 共生状態での ADR 参照は `ADR-044` を含む関連 docs を mandatory とし、片方向依存を禁止する
+- 共生設定の監査は L9 non-functional の `reliability` と `maintainability` と連動して評価する
+
+## §12 F6-F10 追加監査詳細
+
+### §12.1 共通監査項目
+
+1. **trace 完全性**: `pair: L4 §N` の存在と `test-design` 側 1:1 対応
+2. **実装状態**: 実装対象は planned / partial / implemented を明示し、遷移時に carry へ反映
+3. **監査ログ同時記録**: action 発火と event 生成を同時刻で保存
+4. **fixture 依存**: planned 機能は固定 fixture で再現可能であることを確認
+5. **DB 一貫性**: 関連テーブルの row count 変動を step 毎に記録
+6. **CLI idempotency**: dry-run と execute の実行結果に再現性があること
+7. **policy 逸脱時**: guard でエラー化し、次 wave carry へ回す
+8. **ADR 参照整合**: `ADR-044` への新規追加候補を表記
+
+### §12.2 F6 恒常性の観測詳細
+
+- 監視周期: SessionStart, Task switch, PreCompact 前後の 3 点
+- `context_usage_ratio` が 80% 超で 3 回連続した場合のみ `homeostasis throttle` を起動
+- `workspace_size_mb` が 2GB 超で 10 分継続した場合のみ `workspace clean` を実行
+- `codex_token_consumption` は 7 日移動平均を採用し、`>90%` で Opus 直実行へ切替
+- `parallel_count` は 8 を超える場合に1分間隔で再計測し、再開可能時のみ並列を戻す
+- 失敗時の既定反応: まず `precompact` 通知、次に throttle、最後に SessionStart 警告
+- `balance_ratio` は runlet 単位で収集し、`pair_fail_count` を同時に記録
+- 対応 `hook`: statusLine hook, PreCompact hook
+
+### §12.3 F7 進化の観測詳細
+
+- mutation は新規 plan id に親子関係を保持した構造で登録
+- `helix evolution score` は実行時間、検証 pass 率、G ゲート結果を重み付け
+- `promote` は少なくとも 1 つの成功証跡がある時のみ実施
+- `deprecate` は失敗時のロールバックが可能な状態を維持
+- 失敗時は `parition` 表に退避し、再試行イベントを 1 週間で 2 回まで許容
+- `helix plan fork` は実行可能者のみ許可する guard を追加
+- seed 選定ルールは `accuracy_score` + `g_pass_ratio` で固定
+
+### §12.4 F8 繁殖の観測詳細
+
+- `version bump` の種類が minor の場合は `portable export/import` のみ、major の場合は `migration full` を必須化
+- `helix migrate` 実行前に plan registry の export check を実施
+- `portable package` には schema 互換レベルを明記し、受け取り側の不一致を検知
+- 既存 PLAN 継承チェックは ID map 差分で再現する
+- `rollback` 時は `version_tag` を戻しつつ audit log を `migration_revert` で残す
+- 規約上の親子 project は `reproduction map` を更新し、追従可能な状態を担保
+- 新規 project onboarding 時は `obligate` 判定を明示的に禁止し、facultative 始動のみ許可
+
+### §12.5 F9 排泄の観測詳細
+
+- stale candidate は最終更新日、status、reference 有無でフィルタ
+- 5 状態の判定順序は warning → archive/deprecate → cleanup の順
+- `completed_archived` は実体移動の成功ログを record しない限り完了扱いにしない
+- `deprecated` event は明示 deprecate 以外では発火しない
+- autophagy 実行は週次ジョブで、dry-run 結果を先行保存
+- 失敗時は `obsolete_recovery` で再試行可能時間を残す
+- `weekly cron` は重複処理回避のため 1 インスタンス制御を維持
+- `obsoleted record` は 30 日保管後に完全削除を検討
+
+### §12.6 F10 共生の観測詳細
+
+- `helix coexist --framework` 実行時は対象 framework 名、目的、 namespace を必須
+- `coexist status` は ADR 参照と namespace 衝突を同時表示
+- `coexist adopt` は ADR 取り込み後に import レポートを必ず残す
+- `competition` 検知時は並走対象と共通 ADR を起点に調整
+- `obligate` と `parasitism` は例外状態として lint 失敗扱い
+- namespace 競合は既存 route 名、task tag、artifact 名の3次元で判定
+- adopt 失敗時は旧状態を維持し、namespace リソースをクリーンアップ
+- 共生完了は `namespace_conflict = 0` 条件を満たした場合のみ承認
+
+## §13 実装観点の拡張チェックリスト (F6-F10)
+
+### F6
+
+- [ ] `context_usage_ratio` が 50% 以上で throttle しないことを確認
+- [ ] 80% 超時に warning ログが emit されること
+- [ ] `workspace_size_mb` 2GB 超の検知閾値が実行されること
+- [ ] `codex_token_consumption` 90% 超で fallback が起きること
+- [ ] `opus_residual_ratio` 10% 未満で Opus 役割縮退が起きること
+- [ ] `parallel_count` 8 を超えても statusLine 警告のみで開始しないこと
+- [ ] `balance_ratio` 1.0 未満時の fail-close が 1 件以上発火すること
+- [ ] 監査ログに `homeostasis` タグを付与できること
+
+### F7
+
+- [ ] PLAN fork で mutation と parent link が保存されること
+- [ ] plan accuracy score を 72 時間で再計測できること
+- [ ] promote/deprecate の decision を 1 行以上保存できること
+- [ ] 劣後 PLAN の mark が rollback 可能であること
+- [ ] `helix evolution score` を 1 回以上計測できること
+- [ ] 実験 PLAN から F7 への trace が切れないこと
+- [ ] `Gゲート` 情報と紐づいた履歴を保持すること
+- [ ] plan history で ranking の偏りがないこと
+
+### F8
+
+- [ ] `helix version bump --minor` 後に migration plan が生成されること
+- [ ] migrate 実行前後で plan count 差分が監査可能であること
+- [ ] `portable export` が tarball を作成すること
+- [ ] `portable import` が `.helix/` へ展開すること
+- [ ] 既存 PLAN の参照 ID が維持されること
+- [ ] 旧 V の deprecated 記録が消失しないこと
+- [ ] 逆流時に version rollback が追跡可能であること
+
+### F9
+
+- [ ] `helix plan apoptosis --dry-run` が candidate を返すこと
+- [ ] `stale_for_30d` が想定どおり検知されること
+- [ ] superseded 指示が is_reference と整合すること
+- [ ] completed_archived が archive へ移動されること
+- [ ] deprecated を明示指定して deprecate されること
+- [ ] obsolete_recovery を通過後に cleanup が実行されること
+- [ ] 週次 cron が重複処理を起こさないこと
+
+### F10
+
+- [ ] 共生 framework 宣言が namespace 指定なしで成立しないこと
+- [ ] 競合検知時に parasitism が拒否されること
+- [ ] `coexist status` に一覧が表示されること
+- [ ] `coexist adopt` の ADR 取り込みが完了すること
+- [ ] namespace 競合が 0 件であること
+- [ ] namespace 競合時に競合解消フローを通知すること
+- [ ] 互換 ADR 参照で循環参照がないこと
+
+## §6 10 機能領域 × 機械処理 mapping 統合表 (cross-reference)
+
+> **implementation_status 凍結ルール**: 本表は **pair test design (L9 ST-F1〜F10) が全て planned / partial / implemented で構成**される。L7 実装で個別 ST が実装完了した時点で implemented へ遷移する。本表は §1.5/§2.6/§3.6/§4.6/§5.6 および §6-§10 の個別 mapping (planned 項目含む) と整合的に運用する。
 >
 > **業界 standard 対応 (ADR-044 §Compliance / arc42 / C4 cross-reference)**:
 > - **arc42 §5 Building Block View**: F1-F5 (機能構成、本 doc §1-§5)
 > - **arc42 §6 Runtime View**: F4 ワークフロー (9 mode 入口 + 状態遷移、本 doc §4)
+> - **arc42 §9 Decisions**: F8 繁殖 (version migration)
+> - **arc42 §10 Quality**: F6 恒常性 (health monitor)
+> - **arc42 §11 Risk**: F7 進化 / F9 排泄 (selection / lifecycle)
+> - **arc42 §3 Context**: F10 共生 (framework coexistence)
 > - **C4 Level 2 Container**: F1 ドキュメント体系 + F4 ワークフロー (4 永続化 + 9 mode)
 > - **C4 Level 3 Component**: F2 PLAN + F3 skill + F5 orchestration (各 CLI / 推挙 / 役割)
-> - **ADR-044 Decision-1** (三層構造) ↔ F1 / F3、**Decision-2** (永続化 4 種) ↔ F1、**Decision-3** (BR-12 ratchet) ↔ F2、**Decision-4** (二重/三重 audit) ↔ F5
+> - **ADR-044 Decision-1** (三層構造) ↔ F1 / F3、**Decision-2** (永続化 4 種) ↔ F1、**Decision-3** (BR-12 ratchet) ↔ F2、**Decision-4** (二重/三重 audit) ↔ F5、**Decision-5** (homeostasis governance) ↔ F6、**Decision-6** (survival operations) ↔ F9
 >
 > **balance_ratio 数値引用 (L4 PLAN §6 + L4 方式設計 §0.2 参照)**: BR 12 / FR core 16 / NFR 27 / AC 57 / OT 12 (本 wave で新規追加なし)
 
@@ -538,6 +879,11 @@ graph TD
 | F3 | skill | check_skill_catalog_freshness / check_skill_usage | post-task skill log | helix skill {chain,search,use,stats} | skill_usage | 細胞器官 / 分化 | §5 | L3 Component | Decision-1 | partial |
 | F4 | workflow | check_mode_transition / check_pair_freeze | SessionStart mode hint | helix {init,discovery,research,reverse,sprint} | mode_transition | 細胞応答経路 | §6 Runtime | L2 Container | Decision-1 | partial |
 | F5 | orchestration | check_role_assignment / check_parallel_compliance | pretooluse-agent-guard | helix {codex,claude,agent} | role_audit | 中枢神経 / 免疫系 | §5, §6 | L3 Component | Decision-4 | partial |
+| F6 | homeostasis | check_homeostasis | statusLine + PreCompact | helix budget --homeostasis | metrics_log | 恒常性 (体温/血糖/pH) | §10 Quality | L2 Container | Decision-5 | planned |
+| F7 | evolution | check_evolution_promotion | (none) | helix plan fork / evolution {score,promote,deprecate} | plan_history | 変異 + 自然選択 | §11 Risk | L3 Component | Decision-6 | planned |
+| F8 | reproduction | check_version_migration | (none) | helix version bump / migrate / portable {export,import} | version_tag | DNA replication / 世代継承 | §9 Decisions | L1 System Context | Decision-4 | planned |
+| F9 | excretion / apoptosis | check_plan_apoptosis | weekly cron | helix plan apoptosis / db autophagy | obsolete_record | apoptosis / autophagy / 排泄 | §11 Risk | L3 Component | Decision-6 | planned |
+| F10 | symbiosis | check_framework_coexist | (none) | helix coexist {framework,status,adopt} | coexist_config | endosymbiosis / mutualism | §3 Context | L1 System Context | Decision-4 | planned |
 
 ## §7 残課題（本 wave carry）
 
@@ -560,6 +906,11 @@ graph TD
 | §3 | §2 ST-F3 | implemented |
 | §4 | §2 ST-F4 | implemented |
 | §5 | §2 ST-F5 | implemented |
+| §6 | §2 ST-F6 | planned |
+| §7 | §2 ST-F7 | planned |
+| §8 | §2 ST-F8 | planned |
+| §9 | §2 ST-F9 | planned |
+| §10 | §2 ST-F10 | planned |
 
 ### §8.2 例: 対象ケース参照
 
@@ -570,6 +921,11 @@ pair_map:
   F3: ST-F3
   F4: ST-F4
   F5: ST-F5
+  F6: ST-F6
+  F7: ST-F7
+  F8: ST-F8
+  F9: ST-F9
+  F10: ST-F10
 source: "docs/v2/L9-test-design/helix-workflows-functional-test-design.md"
 schema: "v2-pair-link-v1"
 implementation_status: implemented
@@ -579,7 +935,91 @@ implementation_status: implemented
 
 - 本文書の設計項目は実装 wave で `implementation_status: implemented` へ移行する
 - 当面は planned 実装項目として `pair_verified` 時点の carry を最小化
-- 実装順は ST-F1 → ST-F5 を推奨
+- 実装順は ST-F1 → ST-F10 を推奨
 - pair 方向: L4 → L9 の fixed pairing は維持
 
-(§8.3 は §6 統合表全体への補助節、§1〜§5 の各 → pair: L9 ST-F<N> が正規 trace、本節での重複 pair trace は削除)
+（§8.3 は §6 統合表全体への補助節。§1〜§5 の各ペア定義を正規 trace とする）
+
+## §9 機能カタログ (F1-F10 × subfunction 全機能 INDEX)
+
+> 本節は HELIX-workflows V2 dogfooding の **全機能を 1 画面で俯瞰する INDEX**。各機能 ID `F<N>.<M>` は親機能 F<N> 配下のサブ機能 §<N>.<M> と 1:1 対応。implementation_status は §6 統合表の partial 凍結ルール準拠 (L7 実装で個別 implemented 遷移)。
+
+### §9.1 機能カタログ table
+
+| 機能 ID | 親 F | 機能名 | 主要 CLI / hook / check | pair ST | 生物学 metaphor | implementation_status |
+|---|---|---|---|---|---|---|
+| **F1 ドキュメント体系** (DNA / 染色体 / 細胞核、→ ST-F1) | | | | | | |
+| F1.1 | F1 | 4 ドメイン構造 (HELIX-workflows / docs/v2 / docs/plans / docs/adr) | check_4_domain_separation | ST-F1 | DNA 4 塩基配列 | implemented |
+| F1.2 | F1 | ドキュメントライフサイクル (draft → in_progress → finalized → pair_verified → adr_snapshotted → carried) | check_doc_lifecycle | ST-F1 | 細胞周期 | implemented |
+| F1.3 | F1 | SSoT 原則 + drift retrofit | check_ssot_sync | ST-F1 | DNA template strand | implemented |
+| F1.4 | F1 | 4 artifact 双方向 trace 運用 | check_4_artifact_trace | ST-F1 | DNA double helix | planned |
+| F1.5 | F1 | 機械処理 mapping (6 check) | helix doctor 統合 | ST-F1 | DDR (BER/NER/MMR) | partial |
+| **F2 PLAN テンプレート規約** (遺伝子 / 遺伝子座 / 遺伝子発現、→ ST-F2) | | | | | | |
+| F2.1 | F2 | 必須 frontmatter fields (plan_id / title / kind / layer / process_layer 等 12 fields) | check_plan_frontmatter_completeness | ST-F2 | 遺伝子の構造 (exon/intron/promoter) | partial |
+| F2.2 | F2 | 命名規則 L<NN>-<name>plan + umbrella 禁止 | check_plan_naming_convention | ST-F2 | 遺伝子座 (chromosome locus) | implemented |
+| F2.3 | F2 | cli/templates/plan/v2/ 15 template (L0-L14) | helix plan create | ST-F2 | 遺伝子発現の template DNA | implemented |
+| F2.4 | F2 | 工程表内蔵原則 (Step 1-N + 実装計画) | (frontmatter format) | ST-F2 | 遺伝子発現の調節領域 | implemented |
+| F2.5 | F2 | PLAN ⊃ ADR レイヤー併存 | check_plan_adr_snapshot | ST-F2 | 遺伝子 + 制御 region | partial |
+| F2.6 | F2 | 機械処理 mapping (7 CLI / check) | helix plan {create,validate,status} 統合 | ST-F2 | 転写制御因子 | partial |
+| **F3 skill 体系 + 推挙 framework** (細胞器官 / 細胞分化、→ ST-F3) | | | | | | |
+| F3.1 | F3 | 9 大カテゴリ責務分離 (common/workflow/tools/project/advanced/automation/integration/writing/design-tools/agent-skills) | helix skill list | ST-F3 | 10 種細胞器官 | implemented |
+| F3.2 | F3 | skill 推挙 framework (Codex gpt-5.4-mini recommender) | helix skill chain | ST-F3 | 細胞分化制御 (転写因子) | implemented |
+| F3.3 | F3 | skill catalog (.helix/cache/skill-catalog.json) | helix skill catalog rebuild | ST-F3 | mRNA library | implemented |
+| F3.4 | F3 | skill 組合せルール (責務境界 4 系統 × 4) | helix skill use | ST-F3 | tissue formation | partial |
+| F3.5 | F3 | skill 使用統計 (skill_usage table v5) | helix skill stats | ST-F3 | 遺伝子発現量 measurement | implemented |
+| F3.6 | F3 | 機械処理 mapping (6 CLI) | helix skill {chain,search,use,catalog,stats} 統合 | ST-F3 | 細胞分化制御回路 | partial |
+| **F4 ワークフロー / 9 mode 入口分岐** (9 種細胞応答経路 / 細胞分裂、→ ST-F4) | | | | | | |
+| F4.1 | F4 | Forward V字 全体図 (L0-L14 + 6 pair freeze) | (process layer) | ST-F4 | 細胞分裂サイクル (G1/S/G2/M) | implemented |
+| F4.2 | F4 | 9 mode 入口分岐 | helix init --mode | ST-F4 | 9 種細胞応答経路 | implemented |
+| F4.3 | F4 | V-model 4 artifact 双方向 trace | check_4_artifact_trace | ST-F4 | DNA double helix antiparallel | partial |
+| F4.4 | F4 | 9 mode → Forward 回帰 (mode_transition event) | check_mode_transition | ST-F4 | 細胞応答経路の最終収束 | partial |
+| F4.5 | F4 | 工程専門 workflow (FE/UX/Discovery 等 45+ file INDEX) | (path map) | ST-F4 | 専門細胞分化 | implemented |
+| F4.6 | F4 | 機械処理 mapping (6 CLI / event) | helix {init,discovery,research,reverse,sprint} 統合 | ST-F4 | 細胞応答経路統合制御 | partial |
+| **F5 オーケストレーションルール** (中枢神経 / シナプス / 免疫系、→ ST-F5) | | | | | | |
+| F5.1 | F5 | モデル割当表 (PM=Opus / TL=Codex5.5 / SE/PE/QA/PMO/Recommender) | cli/config/models.yaml | ST-F5 | 中枢神経野 (前頭/運動/補足/感覚) | implemented |
+| F5.2 | F5 | 並列実行ルール default 上限 8 + 衝突判定 | check_parallel_compliance | ST-F5 | 神経束の並列発火 | implemented |
+| F5.3 | F5 | 委譲決定木 (skill chain → 自動 role 推奨) | helix skill chain | ST-F5 | 神経反射弓 (decision tree) | implemented |
+| F5.4 | F5 | Agent tool guard hook (pretooluse-agent-guard.sh、fail-close) | pretooluse-agent-guard.sh | ST-F5 | 自然免疫 (innate immunity) | implemented |
+| F5.5 | F5 | advisor 召喚ルール (pm-advisor / tl-advisor / doc-reviewer) | helix {codex,claude} --role | ST-F5 | 高次中枢 (前頭前野) | implemented |
+| F5.6 | F5 | 機械処理 mapping (5 CLI / hook) | helix {codex,claude,agent} 統合 | ST-F5 | 中枢-末梢神経統合 | partial |
+| **F6 恒常性 (homeostasis)** (体温/血糖/pH、→ ST-F6) | | | | | | |
+| F6.1 | F6 | system 平衡監視 + 動的調整 | helix budget status --homeostasis | ST-F6 | 恒常性維持系 | planned |
+| F6.2 | F6 | 監視 metric 6 種 (context / workspace / token / opus 残量 / parallel / balance_ratio) | check_homeostasis | ST-F6 | 血糖・体温・pH 等の定数監視 | partial |
+| F6.3 | F6 | statusLine hook 4 段階 (>50% / 30-50% / ≤30% / ≤20%) | statusLine hook | ST-F6 | ホメオスタシス警告 (発熱・低血糖) | implemented |
+| F6.4 | F6 | PreCompact hook (context 枯渇前 state 永続化) | PreCompact hook | ST-F6 | 細胞保護機構 | implemented |
+| **F7 進化 (evolution)** (変異 + 自然選択、→ ST-F7) | | | | | | |
+| F7.1 | F7 | PLAN experiment fork (変異 mutation) | helix plan fork --mutation | ST-F7 | DNA 塩基置換 | planned |
+| F7.2 | F7 | accuracy_score 計測 | helix evolution score | ST-F7 | 適応度 fitness | planned |
+| F7.3 | F7 | promote / deprecate cycle (自然選択) | helix evolution {promote,deprecate} | ST-F7 | 自然選択 + allele 頻度 | planned |
+| F7.4 | F7 | skill_usage / accuracy_score 集計 (進化 input) | helix.db v5 | ST-F7 | 集団遺伝学 | partial |
+| **F8 繁殖 (reproduction)** (DNA replication + 世代継承、→ ST-F8) | | | | | | |
+| F8.1 | F8 | HELIX-workflows version bump (V → V+1) | helix version bump --major/--minor | ST-F8 | 世代交代 | planned |
+| F8.2 | F8 | 採用 project migration framework | helix migrate v<from> --to v<to> | ST-F8 | 親世代 → 子世代 遺伝子伝達 | planned |
+| F8.3 | F8 | portable package export/import (clonal reproduction) | helix portable {export,import} | ST-F8 | 無性生殖 cloning | partial |
+| F8.4 | F8 | 親世代 deprecated (V→V+1 で旧 V apoptosis) | (F9 と連動) | ST-F8 | 親世代退化 | planned |
+| **F9 排泄 (excretion / apoptosis)** (programmed cell death + autophagy、→ ST-F9) | | | | | | |
+| F9.1 | F9 | stale PLAN 自動 detection (30 日以上 + status:draft) | helix plan apoptosis --dry-run | ST-F9 | 細胞老化 senescence | planned |
+| F9.2 | F9 | superseded marking (is_reference: true) | (frontmatter auto-update) | ST-F9 | 細胞 marking for apoptosis | partial |
+| F9.3 | F9 | completed PLAN archive (90 日以上) | helix plan apoptosis --execute | ST-F9 | apoptosis (programmed cell death) | planned |
+| F9.4 | F9 | helix.db obsolete record cleanup | helix db autophagy | ST-F9 | autophagy (self-eating) | planned |
+| F9.5 | F9 | weekly cron / GitHub Actions 定期実行 | scheduled job | ST-F9 | 定期 細胞 turnover | planned |
+| **F10 共生 (symbiosis)** (endosymbiosis / mutualism、→ ST-F10) | | | | | | |
+| F10.1 | F10 | 他 framework 並走宣言 | helix coexist --framework <name> | ST-F10 | facultative symbiosis | planned |
+| F10.2 | F10 | 共生 framework 一覧 | helix coexist status | ST-F10 | symbiont registry | planned |
+| F10.3 | F10 | 既存 framework ADR の取り込み | helix coexist adopt | ST-F10 | 水平遺伝子伝播 (HGT) | planned |
+| F10.4 | F10 | namespace 競合回避 | check_framework_coexist | ST-F10 | niche partitioning | planned |
+
+### §9.2 機能カタログ集計 (implementation_status 分布)
+
+| status | 件数 | 比率 |
+|---|---:|---:|
+| **implemented** | 24 | 49% |
+| **partial** | 16 | 33% |
+| **planned** | 9 | 18% |
+| **計** | 49 機能 | 100% |
+
+L7 実装で planned 9 件 + partial 16 件 = 計 25 機能を implemented に遷移するのが scope (49 機能のうち 51% が実装作業 carry)。
+
+### §9.3 機能カタログから機械検出 (BR-RULE-09 整合)
+
+本カタログは frontmatter `implementation_status` 列が **L9 ST-F1〜F10 の test 実行結果** と機械的に整合する。pair test design (L9 ST-F<N>) が all planned のうちは F<N>.<M> も partial 上限。L7 実装で ST が implemented 遷移 → F も implemented 候補に。`helix doctor --check-implementation-status-pair` (planned) で双方向整合を機械検証。
