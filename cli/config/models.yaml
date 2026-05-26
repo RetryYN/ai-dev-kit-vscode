@@ -33,6 +33,7 @@ roles:
   pdm-innovation-manager: claude-opus-4-7
   pm-advisor: claude-opus-4-7
   tl-advisor: gpt-5.5
+  doc-reviewer: gpt-5.5
 
 role_metadata:
   pmo-sonnet:
@@ -148,6 +149,14 @@ role_metadata:
     codex_disallowed_tools: "Edit,Write,NotebookEdit"
     disallowed_tools: "Edit,Write,NotebookEdit"
   tl-advisor:
+    provider: codex
+    codex_thinking: high
+    thinking: high
+    codex_permission_mode: read-only
+    permission_mode: plan
+    codex_disallowed_tools: "Edit,Write,NotebookEdit"
+    disallowed_tools: "Edit,Write,NotebookEdit"
+  doc-reviewer:
     provider: codex
     codex_thinking: high
     thinking: high

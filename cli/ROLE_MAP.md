@@ -18,7 +18,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
-## ロール一覧 (30)
+## ロール一覧 (31)
 
 > CLI 引数 (`--role`) は本表の「ロール」列に従う。team naming で「PE」と表記される責務は CLI 上では `pg` を使う (PE = `--role pg`)。
 
@@ -47,6 +47,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 | impl-sonnet | claude-sonnet-4-6 | L4 | Sonnet write-enabled 実装（Codex 上限時の代替経路） |
 | pm-advisor | claude-opus-4-7 | 全フェーズ | PM 級難判断のアドバイザー（read-only、Opus）。チャット PM (Opus / Sonnet 問わず) が大局判断で迷ったとき召喚 |
 | tl-advisor | gpt-5.5 | 全フェーズ | TL 級難判断のアドバイザー（read-only）。チャット PM / 実装担当が設計・契約・技術選択で迷ったとき召喚 |
+| doc-reviewer | gpt-5.5 | 全フェーズ (主に L0/L1/L3/L4/G ゲート前) | ドキュメント品質レビュー専用 role (read-only)。4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準整合 (Diátaxis / arc42 / ISO/IEC/IEEE 26515 / DDD SSoT) + HELIX 固有 V-model 量閉じ性 (balance_ratio ≥ 1.0) / implementation_status 列必須を統合検査。tl-advisor (技術判断) / code-reviewer (5 軸 code) / pmo-sonnet (汎用) と責務分離。大規模 doc 改定 (~500 行+) や G ゲート evidence で召喚 |
 | pmo-helix-explorer | claude-sonnet-4-6 | 横断 | HELIX framework 内資産詳細探索 (skills/templates/cli/docs) |
 | pmo-helix-scout | claude-haiku-4-5-20251001 | 横断 | HELIX 内軽量検索・候補列挙 (1 hop 目) |
 | pmo-project-explorer | claude-sonnet-4-6 | 横断 | プロジェクト内資産詳細探索 (code/docs/config) |
@@ -58,7 +59,7 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 ## 共通ルール
 
 > 注記: `helix codex --auto-thinking` は **opt-in flag**。default は role conf の `codex_thinking` を参照。`--auto-thinking` は task description から effort を動的推定する option（明示時のみ有効）。
-> role effort map: tl/high, se/high, pg/medium, fe/high, qa/high, security/xhigh, dba/medium, devops/medium, docs/low, research/low, legacy/xhigh, perf/high, classifier/low, recommender/low, effort-classifier/low, impl-sonnet/medium, pdm-innovation-manager/high, pdm-marketing-innovation/high, pdm-tech-innovation/high, pm-advisor/high, pmo-haiku/low, pmo-helix-explorer/medium, pmo-helix-scout/low, pmo-project-explorer/medium, pmo-project-scout/low, pmo-sonnet/medium, pmo-tech-docs/medium, pmo-tech-fork/medium, pmo-tech-news/medium, tl-advisor/high.
+> role effort map: tl/high, se/high, pg/medium, fe/high, qa/high, security/xhigh, dba/medium, devops/medium, docs/low, research/low, legacy/xhigh, perf/high, classifier/low, recommender/low, effort-classifier/low, impl-sonnet/medium, pdm-innovation-manager/high, pdm-marketing-innovation/high, pdm-tech-innovation/high, pm-advisor/high, pmo-haiku/low, pmo-helix-explorer/medium, pmo-helix-scout/low, pmo-project-explorer/medium, pmo-project-scout/low, pmo-sonnet/medium, pmo-tech-docs/medium, pmo-tech-fork/medium, pmo-tech-news/medium, tl-advisor/high, doc-reviewer/high.
 
 1. 作業前に「参照スキル」に記載されたファイルを必ず Read する
 2. 自分の担当外の作業は行わない（PM に差し戻す）

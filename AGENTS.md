@@ -73,6 +73,7 @@ Codex CLI 単体利用時は TL（テックリード）として自律動作す�
 
 - `helix claude --role pm-advisor --execute --task "..."` — Opus 4.7、PM 級判断 (スコープ / 優先度 / 大局リスク)
 - `helix codex --role tl-advisor --task "..."` — gpt-5.5 high、TL 級判断 (設計 / 契約 / 技術選択 / テスト戦略)
+- `helix codex --role doc-reviewer --task "..."` — gpt-5.5 high、ドキュメント品質レビュー専用 (4 視点 Correctness / Completeness / Consistency / Clarity + 業界標準 Diátaxis / arc42 / ISO 26515 / DDD SSoT + HELIX V-model 量閉じ性 + implementation_status 列必須)
 
 最終判断は呼び出し側。助言内容は会話または final report に残す。
 

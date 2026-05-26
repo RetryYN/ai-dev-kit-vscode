@@ -33,6 +33,7 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | BR-08 採用 project 展開 | OT-08 採用 project の dogfooding 稼働率 (採用 project の V-model 整合 PLAN 完遂数 / 期待値) | 毎月末 | 稼働率 < 50% で onboarding doc + CLI portable 化 carry 起票 |
 | BR-09 既存資産整理・マッピング | OT-09 inventory drift 監査 (helix-* CLI / helix.db schema / .helix/ runtime / docs/adr/* と L0 §12.1 Glossary mapping の整合率) | 毎週金曜 | drift 率 > 5% で `helix doctor check_glossary_coverage` (L4 carry) fail-close、設計 doc の implementation_status 列 retrofit 起票 |
 | BR-10 既存資産の段階移行・retrofit | OT-10 migration pipeline 残量監査 (V1 PLAN の `is_reference: true` 化率 / 旧 enum 残存件数 / Strangler 段階置換進捗) | 毎週金曜 | 残量 > 期待値 で `helix doctor check_migration_pending` (L4 carry) fail-close、Phase 別残量 dashboard 起票 |
+| BR-11 doc 品質継続レビュー | OT-11 doc-reviewer 召喚 coverage 監査 (大規模 doc 改定 commit のうち `helix codex --role doc-reviewer` 召喚 evidence + 判定結果が残された率) | 毎週金曜 | 召喚率 < 95% で `helix doctor check_doc_review_coverage` (L4 carry) fail-close、tl-advisor / doc-reviewer 責務分離違反 sample audit + retrofit carry 起票 |
 
 > **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
 
@@ -93,6 +94,15 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 - **測定式**: `SELECT (SELECT COUNT(*) FROM injection_log WHERE status='success' AND created_at >= date('now', '-7 days')) * 1.0 / (SELECT COUNT(*) FROM phase_entry_log WHERE entered_at >= date('now', '-7 days')) AS injection_rate` (V5 framework 完遂後)
 - **target**: ≥ 90%
 - **fail 措置**: < 90% で `helix-context` 設定 audit + skill_catalog / command_catalog rebuild + vmodel-semantics.yaml drift 検証
+
+### OT-11: doc-reviewer 召喚 coverage 監査 (BR-11 由来、2026-05-26 ユーザー指摘反映)
+
+- **対象 BR**: BR-11 doc 品質継続レビュー業務
+- **計測内容**: 大規模 doc 改定 (~500 行+) commit / G0.5・G1・G3・G7 ゲート evidence のうち、`helix codex --role doc-reviewer` 召喚 evidence + 判定結果 (approve / conditional_approve / blocked) が commit message / final report / 会話 history のいずれかに残された率
+- **頻度**: 毎週金曜
+- **target**: 召喚 coverage ≥ 95%
+- **検証手段**: `helix doctor check_doc_review_coverage` (L4 carry、新設) で 直近 30 commit を grep + 召喚率集計、tl-advisor / doc-reviewer 責務分離違反 (技術判断のみで doc 品質視点が漏れている commit) を sample audit
+- **異常時アクション**: coverage < 95% で fail-close、未召喚 doc 改定 commit を warn 出力 + retrofit doc-review 召喚 carry 起票、責務分離違反 commit は postmortem 起票
 
 ### OT-09: 既存資産 inventory drift 監査 (BR-09 由来、2026-05-26 ユーザー指摘反映)
 

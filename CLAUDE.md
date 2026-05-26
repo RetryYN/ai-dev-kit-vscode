@@ -139,11 +139,13 @@ Codex CLI 向けの正本は [AGENTS.md](AGENTS.md)。プロジェクト知識�
 |---|---|---|---|
 | **pm-advisor** | claude-opus-4-7 (read-only) | `helix claude --role pm-advisor --execute --task "..."` | スコープ / 優先度 / 大局リスク / HELIX フェーズ整合 / 委譲先選択 で迷う |
 | **tl-advisor** | gpt-5.5 high (read-only) | `helix codex --role tl-advisor --task "..."` | 設計選択 / 契約・API 妥当性 / テスト戦略 / リファクタ判断 で迷う |
+| **doc-reviewer** | gpt-5.5 high (read-only) | `helix codex --role doc-reviewer --task "..."` | **ドキュメント品質レビュー専用**。大規模 doc 改定 (~500 行+) / G ゲート evidence / V-model 4 artifact pair freeze 前。4 視点 (Correctness 事実整合 / Completeness 章充足 / Consistency 用語・構造整合 / Clarity 可読性) + 業界標準 (Diátaxis / arc42 / ISO/IEC/IEEE 26515 / DDD SSoT) + HELIX V-model 量閉じ性 / implementation_status 列必須 を統合検査 |
 
 運用原則:
 - **PM が Sonnet で動いているチャット** では、難判断に当たったら必ず pm-advisor (Opus) に相談する。Sonnet 単独で大局判断を確定させない
 - **PM が Opus でも**、自分の判断に確信が持てない技術判断は tl-advisor を呼んで反論を取る (adversarial check)
 - 実装担当 (Sonnet / Codex) は契約や設計で迷ったら tl-advisor、スコープで迷ったら pm-advisor を呼ぶ
+- **大規模 doc 改定** (L0/L1/L3 製本 doc / arc42 設計 doc / runbook 等 ~500 行+) や **G ゲート evidence** では tl-advisor (技術判断 adversarial) と並走で **doc-reviewer** を呼ぶ (責務分離: tl-advisor = 技術判断 / doc-reviewer = doc 品質 + 業界標準整合 + V-model 量閉じ性)
 - アドバイザーは read-only。コード編集や状態変更は行わない (構造化助言のみ返す)
 - 呼び出した task / 助言内容は会話または final report に残し、判断トレースを失わない
 

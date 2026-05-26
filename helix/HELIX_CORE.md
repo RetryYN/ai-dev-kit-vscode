@@ -84,11 +84,13 @@
 
 - `helix claude --role pm-advisor --execute --task "..."` — PM 級判断 (スコープ / 優先度 / 大局リスク / フェーズ整合 / 委譲先) を Opus 4.7 に相談
 - `helix codex --role tl-advisor --task "..."` — TL 級判断 (設計 / 契約 / 技術選択 / テスト戦略 / リファクタ) を gpt-5.5 high に相談
+- `helix codex --role doc-reviewer --task "..."` — **ドキュメント品質レビュー専用** (大規模 doc 改定 / G ゲート evidence / V-model 4 artifact pair freeze 前)、gpt-5.5 high read-only。4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515 / DDD SSoT) + HELIX V-model 量閉じ性 + implementation_status 列必須を統合検査
 
 運用原則:
 - PM が Sonnet で動くチャットでは難判断を Sonnet 単独で確定させず、必ず pm-advisor (Opus) に相談する
 - PM が Opus でも技術判断の adversarial check として tl-advisor を呼ぶ運用は推奨
 - 実装担当 (Sonnet / Codex) は契約・設計で迷えば tl-advisor、スコープで迷えば pm-advisor を呼ぶ
+- 大規模 doc 改定や G ゲート evidence では tl-advisor と並走で doc-reviewer を呼ぶ (責務分離: tl-advisor = 技術判断、doc-reviewer = doc 品質 + 業界標準整合 + V-model 量閉じ性)
 - 呼び出した task / 助言内容は会話または final report に残し、判断トレースを保つ
 
 ## 工程表・承認・委譲

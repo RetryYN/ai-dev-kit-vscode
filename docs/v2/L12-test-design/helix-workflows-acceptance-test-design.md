@@ -112,6 +112,13 @@ L3 3 PLAN それぞれに対応する AC-* を 3 section で構成:
 - **受入基準**: V1 PLAN 223 件の `is_reference: true` 化率 100%、旧 enum (旧 G2/G3/G4 / 旧 layer L1-L11) 残存 = 0、Phase 別残量 dashboard で Phase α/β/γ kill criteria 満たすこと
 - **検証 step**: (1) `find docs/plans/ -name '*.md' | xargs grep -l 'is_reference: true' | wc -l` で V1 PLAN 移行率 → (2) `git grep -E 'G[2-9]|G14' --` で旧 enum 残存 → (3) frontmatter field migration (例: kind=impl→process_layer=L7) を機械検証 → (4) ADR snapshot 後追い起票件数を audit → (5) Phase 別残量と kill criteria 突合
 
+### AC-BR-11: doc 品質継続レビュー 受入テスト (2026-05-26 ユーザー指摘反映、BR-RULE-11 由来)
+
+- **対象 BR**: BR-11 doc 品質継続レビュー業務
+- **デプロイ後検証内容**: 大規模 doc 改定 / G ゲート evidence / V-model 4 artifact pair freeze 前で **doc-reviewer 専用 role (Codex gpt-5.5 high)** が召喚され、4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO/IEC/IEEE 26515:2018) + HELIX V-model 量閉じ性 / implementation_status 列必須を統合検査して判定 (approve / conditional_approve / blocked) を返す
+- **受入基準**: 該当 doc 改定の commit message / final report / 会話 history のいずれかに `helix codex --role doc-reviewer` 召喚 evidence + 判定結果が記載されている率 ≥ 95% (`helix doctor check_doc_review_coverage` (L4 carry) で機械監査)
+- **検証 step**: (1) 直近 30 commit のうち doc 改定 (~500 行+) 該当 commit を抽出 → (2) 各 commit message + 会話 history で doc-reviewer 召喚 evidence を grep → (3) 召喚率 + 判定の分布 (approve / conditional / blocked) を集計 → (4) 召喚不在 commit を warn 出力 + retrofit 起票 → (5) tl-advisor (技術判断) / doc-reviewer (doc 品質) の責務分離が遵守されているか sample audit
+
 ## §2 機能系受入テスト (FR-* ↔ AC-FR-*、Phase E.B Codex SE bxwlot2t6 PROPOSE 反映 2026-05-26)
 
 L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements-detail.md) **core FR 14 件** (FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-9MODE-01 / FR-GATE-01 / FR-IMPACT-01 / FR-EVT-01 / FR-4ART-01 / FR-INV-01 / FR-CTX-01 / FR-DRIFT-01 / FR-PLAN-01 / FR-DOCTOR-01 / FR-MIGR-01、L1 FR + L1 TR 統合詳細化) に対する受入テスト。balance_ratio = **AC-FR 14 件 / core FR 14 件 = 1.0**。L3 doc 内の FR-* 参照出現数は 28 件あるが、これは core FR + cross-reference 出現の合計で AC 母数ではない (2026-05-26 tl-advisor G3 P1 #3 反映)。

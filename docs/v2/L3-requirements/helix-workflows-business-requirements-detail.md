@@ -128,6 +128,7 @@ flowchart TB
 |---|---|---|---|
 | BR-RULE-09 | 設計 doc 内で「対応 CLI / file path / schema field / table / view / config」を主張 AND `implementation_status` 列不在 | fail-close、doc レビュー差戻 (机上宣言禁止、verify-before-act 必須、[[feedback_memory_verify_before_act]]) | reference doc (kind=reference / is_reference: true) は適用外、要件確定前の概念 doc は L0 §12.1 Glossary 5 列構成への準拠で許容 |
 | BR-RULE-10 | 既存資産 (V1 PLAN / 旧 CLI / 旧 enum / 旧 process layer / 旧 frontmatter field) を後継 (V2 / 新 enum / L0-L14 / 新 field) に置換 AND 段階移行計画 (Phase 分割 / Strangler Fig path / 残量管理) 不在 | fail-close、L4 基本設計で migration pipeline 凍結まで起票拒否 | hotfix (Incident mode) で旧資産を一時利用する場合は applicable、ただし postmortem で migration carry 化必須 |
+| BR-RULE-11 | 大規模 doc 改定 (~500 行+) / G0.5・G1・G3・G7 ゲート evidence / V-model 4 artifact pair freeze 前 AND **doc-reviewer 召喚 evidence 不在** | fail-close、ゲート通過拒否 (`helix codex --role doc-reviewer --task ...` の召喚と判定 (approve / conditional_approve / blocked) 結果を会話 / final report / commit message に残すこと必須) | hotfix (Incident mode) で 1 commit < 50 行の typo 修正のみ等の軽微改定は applicable、ただし postmortem で doc-review carry 化を検討。reference doc (kind=reference / is_reference: true) は適用外 |
 
 
 

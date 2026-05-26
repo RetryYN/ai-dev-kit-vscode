@@ -699,6 +699,7 @@ flowchart TB
 12. **L1-IN-12** ★: **排泄系 (excretion) — 不要 PLAN / skill / hook の自動 deprecation 機構** (シナプス pruning 相当、生物学的に老廃物排出がないと中毒で死ぬ = HELIX も累積一方で warn 109 件 / PLAN 324 件 / skill 118 種の肥大化を放置するのが致命的。auto-deprecation: 使用頻度 / 最終更新時刻 / drift 検出回数で老化判定 → 自動 archive)
 13. **L1-IN-18** (2026-05-26 追加、ユーザー指摘「既存整理は要求の中に含まれる」): **既存資産整理・マッピング** — HELIX-workflows の既存資産 (helix-* CLI 81 件 / helix.db 50+ table + view 1 / cli/config/*.yaml / .helix/ runtime / docs/adr/* 41 件 / cli/templates/plan/v2/* 15 件 / .claude/agents/*.md 19 件) を **inventory として継続管理**し、設計 doc 内で「対応 CLI / file path / schema field」を主張する際は **`implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須**。机上宣言だけで実在と読まれる記述は禁止。本 doc §12.1 の Glossary 5 列構成 (implementation_status 含む) が L1 以降の標準フォーマット ([[feedback_memory_verify_before_act]] verify-before-act 整合)
 14. **L1-IN-19** (2026-05-26 追加、ユーザー指摘「ドキュメント体系の中に移行要求もいりそう」): **既存資産の段階移行・retrofit** — V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration / retrofit pipeline** を要件として組み込む。具体的: 旧 V1 PLAN 223 件は `is_reference: true` 化、helix-* CLI rename / skill 棚卸し、frontmatter field 移行 (例: kind=impl→process_layer=L7、L1 → L1-helix-workflows-*-plan)、helix.db schema migration、ADR snapshot 後追い起票。**Strangler Fig Pattern (Martin Fowler 2004)** ベースで段階置換、`helix doctor check_migration_pending` (L4 carry) で残量管理。BR-09 (整理) と BR-10 (移行) は責務分離 (整理 = 現状評価、移行 = 段階置換)
+15. **L1-IN-20** (2026-05-26 追加、ユーザー指摘「アドバイザーをよく使っているけど、ドキュメントレビューみたいなのがあった方がいい」): **doc 品質レビュー継続化** — tl-advisor (技術判断) / pm-advisor (大局判断) / pmo-sonnet (汎用構造化) と責務分離した **doc-reviewer 専用 role (Codex gpt-5.5 high read-only)** を新設し、大規模 doc 改定 (~500 行+) / G ゲート evidence / V-model 4 artifact pair freeze 前で必須召喚。4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / **ISO/IEC/IEEE 26515:2018**) + HELIX 固有 V-model 量閉じ性 (balance_ratio ≥ 1.0) / implementation_status 列必須を統合検査。`skills/workflow/doc-review/SKILL.md` + `cli/roles/doc-reviewer.conf` で実体化、`helix doctor check_doc_review_coverage` (L4 carry) で召喚 evidence audit
 
 ### §8.2 L1 で保留 (L1/L3 で確定)
 
@@ -726,7 +727,7 @@ flowchart TB
 4. **AC-04**: Guardrail 3 軸 fail-close 設計記載 (§5.2)
 5. **AC-05**: Phase α/β/γ 仮境界 (§3.3) + 「L1 で KGI 確定」明示
 6. **AC-06**: 想定リスク 上位 3 件 (R1 / R2 / R3) に mitigation 記載 (§6)
-7. **AC-07**: L1 接続項目 **14 件 (採択 L1-IN-01〜12 + L1-IN-18 + L1-IN-19) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 19 件** 列挙 (§8) ※ 2026-05-26 ユーザー指摘 2 件 (「既存整理は要求の中に含まれる」+「ドキュメント体系の中に移行要求もいりそう」) 反映で L1-IN-18/19 新規採択
+7. **AC-07**: L1 接続項目 **15 件 (採択 L1-IN-01〜12 + L1-IN-18 + L1-IN-19 + L1-IN-20) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 20 件** 列挙 (§8) ※ 2026-05-26 ユーザー指摘 3 件 (「既存整理は要求の中に含まれる」+「ドキュメント体系の中に移行要求もいりそう」+「アドバイザーは多用しているがドキュメントレビュー専用 role が必要」) 反映で L1-IN-18/19/20 新規採択
 8. **AC-08**: HELIX-workflows 正本 (素材) への参照 path が §7.1 で完全列挙
 9. **AC-09**: Diagram 2 で Incident (hotfix→L7 / permanent→L1/L3/L4-L6 / postmortem→L14、3 経路並走可) と Recovery (cutover 設計差戻 L1/L3/L4-L6 + 実装差戻 L7) の分岐粒度が §6.5.2 で明示 (tl-advisor adversarial check 2026-05-26 反映)
 10. **AC-10**: V-model 量閉じ率の式が `balance_ratio = test_count / design_count ≥ 1.0` の向き (テスト÷設計) で §5.3 に記載 + paired_trace_coverage / orphan_test_count を併用 (tl-advisor P0 反映)
@@ -873,6 +874,7 @@ flowchart TB
 | **L14** 運用学習 | **postmortem** (Google SRE 2016) / **Keep a Changelog v1.1.0** | L1 BR doc §7 想定 |
 | **全層共通** | **Single Source of Truth** (DDD, Eric Evans 2003) / **Ubiquitous Language** | 本 §12 Glossary が SSoT |
 | **全層共通: 移行・retrofit** (2026-05-26 ユーザー指摘反映) | **Strangler Fig Pattern** (Martin Fowler 2004、段階置換) / **Refactoring** (Martin Fowler 1999) / **Database Refactoring** (Scott Ambler 2006) / **Migration Path Documentation** | BR-10 既存資産の段階移行・retrofit (L1) + BR-RULE-10 段階移行計画必須 (L3) + AC-BR-10 受入テスト (L12) + OT-10 残量監査 (L14) で 4 artifact pair freeze |
+| **全層共通: doc 品質 review** (2026-05-26 ユーザー指摘反映、L1-IN-20 由来) | **ISO/IEC/IEEE 26515:2018** (Developing user documentation in an agile environment) / **ISO/IEC/IEEE 26513:2017** (Requirements for testers and reviewers of information for users) / **Diátaxis review checklist** / **arc42 review checklist** | BR-11 doc 品質継続レビュー (L1) + BR-RULE-11 大規模 doc 改定時 doc-reviewer 召喚必須 (L3) + AC-BR-11 受入テスト (L12) + OT-11 doc-reviewer 召喚 coverage 監査 (L14) で 4 artifact pair freeze。`cli/roles/doc-reviewer.conf` (gpt-5.5 high) + `skills/workflow/doc-review/SKILL.md` で実体化 |
 
 ### §13.2 コーディング規約 Single Source of Truth (path 列挙、repo-local / external 分離)
 
