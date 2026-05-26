@@ -1530,3 +1530,173 @@ L7 実装で planned 9 件 + partial 16 件 = 計 25 機能を implemented に�
 - Agent tool guard hook (`pretooluse-agent-guard.sh`) は §11.5 を fail-close 強制（現状 implemented）。
 
 → pair: ST-F5 (オーケストレーション内のモデル配備整合)
+
+## §12 Reverse 経路マッピング (モデル別 contribution → 正本 doc 逆統合)
+
+> 本節は HELIX が生成した成果物 (実装コード / 起草 doc / implicit knowledge / Web 検索結果 / 翻案思想 / 救出変更) を
+> `HELIX-workflows` / `docs/v2` / `docs/plans` / `docs/adr` へ逆統合する経路を規定する。
+
+### §12.1 生物学対応 (retrotranscriptase の多様性)
+
+| 生物学 retrotranscriptase | RNA テンプレート | DNA 出力 | HELIX 対応 |
+|---|---|---|---|
+| RNA virus (HIV 等) reverse transcriptase | viral RNA | proviral DNA (host 統合) | Codex SE 実装 → fullback Reverse → 正本設計 doc |
+| Retrotransposon (LINE/SINE) | mRNA | jumping DNA (新規 locus 挿入) | Codex docs 独立 doc → normalization → SSoT 同期 |
+| Telomerase | RNA template | telomere DNA extension | 既存 doc 末尾追加 (extension) → 逆統合 |
+| Endogenous retroelement | cellular mRNA | endogenous DNA copy | 内部 mRNA (worktree state) → endogenous integration |
+| Group II intron | self-splicing RNA | host genome integration | recovery 救出変更 → ADR snapshot 統合 |
+
+各 retrotranscriptase は異なる入口と異なる integration を持つ。HELIX も同様にモデル別入口を持つ。
+
+### §12.2 モデル × Reverse type × 入口経路 matrix
+
+| モデル contribution | 主 Reverse type | 入口 path | 経由 R-step | 統合先 正本 doc | 生物学対応 | implementation_status |
+|---|---|---|---|---|---|---|
+| Codex SE/PE 実装 worktree code | fullback | worktree HEAD diff | R0 (Evidence) → R1 (Contracts) → R2 (As-Is Design) → R4 (Gap → Forward) | docs/v2/L5-detailed-design/ + docs/v2/L4-architecture/ | RNA virus reverse transcriptase | planned |
+| Codex docs 独立起草 doc | normalization | docs/ 配下新規 file | R0 (Evidence) → R2 (drift 検出) → R3 (PO 確認) → R4 (routing) | HELIX-workflows/ + docs/v2/ SSoT sync | Retrotransposon (jumping) | planned |
+| Sonnet (pmo-project-explorer) implicit knowledge | R3 hypothesis | .helix/audit/explorer-report.yaml | R3 (Intent Hypotheses) → PO 検証 → R4 routing | docs/v2/L1-requirements/ + docs/v2/L3-requirements/ | Endogenous retroelement | planned |
+| Haiku (pmo-haiku) Web 検索外部知見 | research-workflow | .helix/audit/web-search-evidence.yaml | research → ADR draft → L0 統合 | docs/adr/ + docs/v2/L0-helix-workflows/ | Group II intron (外部由来) | planned |
+| PdM Opus (pdm-tech-innovation 等) 翻案 | L1 reverse (新規) | .helix/audit/pdm-translation.yaml | R3 hypothesis 相当 → L1 業務要求 統合 | docs/v2/L1-requirements/ | Telomerase (末端追加) | planned |
+| Recovery mode 救出変更 | recovery-reverse (新規) | .helix/recovery-log.yaml + ADR-NNN | R0 (Evidence) → R2 (As-Is) → ADR snapshot 統合 | docs/adr/ + 該当 PLAN | Group II intron 救出 | planned |
+| ADR-only contribution (Opus 大局判断) | 既存 ADR snapshot | docs/adr/ADR-NNN.md 起票 | (直接統合、Reverse 不要) | docs/adr/ + PLAN tree | 直接 DNA 編集 (CRISPR-like) | implemented |
+| Codex 5.5 (TL) adversarial review | review-feedback-reverse (新規) | .helix/audit/tl-advisor-feedback.yaml | R2 (As-Is design 補強) → 該当 doc 修正 | 該当設計 doc / PLAN | DDR 修復 (mismatch repair) | partial |
+| Codex 5.2 (Research) 精読結果 | research-evidence-reverse | .helix/audit/research-memo.yaml | research → 該当 PLAN 参照 統合 | docs/v2/L0-L6/ + docs/adr/ | LINE/SINE 遺伝子複製 | planned |
+
+### §12.3 各 Reverse 経路の CLI / hook / audit trail
+
+| Reverse 経路 | 起動 CLI | trail | trigger | implementation_status |
+|---|---|---|---|---|
+| fullback (worktree → 正本) | `helix reverse fullback R0` → R4 | git diff + worktree HEAD | L7 sprint complete | partial |
+| normalization (drift → SSoT) | `helix reverse normalization R0` → R4 | docs/v2 ↔ HELIX-workflows diff | drift detector | planned |
+| R3 hypothesis (implicit → 要件) | `helix reverse code R3` (拡張) | .helix/audit/explorer-report.yaml | pmo-project-explorer 完了 | planned |
+| research → ADR (Web 検索 → ADR) | `helix research --route-to-adr` | .helix/audit/web-search-evidence.yaml | pmo-haiku Web 検索完了 | planned |
+| L1 reverse (PdM → L1) | `helix reverse pdm-to-l1` (新規) | .helix/audit/pdm-translation.yaml | G0.5 通過後 | planned |
+| recovery-reverse (救出 → ADR) | `helix recovery --finalize-to-adr` (新規) | .helix/recovery-log.yaml | recovery PLAN 完了 | planned |
+| review-feedback-reverse (TL → 修正) | `helix reverse review-feedback` (新規) | .helix/audit/tl-advisor-feedback.yaml | tl-advisor changes_required | partial |
+| research-evidence-reverse | `helix research --evidence-attach <plan_id>` | .helix/audit/research-memo.yaml | Codex 5.2 research 完了 | planned |
+| ADR-only (直接 DNA 編集) | `helix adr create` (既存) | docs/adr/ADR-NNN | Opus PM 大局判断 | implemented |
+
+### §12.4 Reverse 経路の全 cycle (mermaid)
+
+```mermaid
+graph LR
+  subgraph Forward
+    L0[L0 企画書] --> L7[L7 実装]
+    L7 --> L14[L14 運用検証]
+  end
+  subgraph Reverse 経路
+    Code[Codex 実装 worktree] -->|fullback| L4[L4 設計 doc]
+    Doc[Codex docs 独立 doc] -->|normalization| SSoT[HELIX-workflows SSoT]
+    Implicit[Sonnet implicit knowledge] -->|R3 hypothesis| L1[L1 要件]
+    Web[Haiku Web 検索] -->|research → ADR| ADR[ADR snapshot]
+    PdM[PdM 翻案] -->|L1 reverse| L1
+    Recov[Recovery 救出] -->|recovery-reverse| ADR
+    TL[TL adversarial] -->|review-feedback| L4
+    Research[Codex 5.2 research] -->|evidence-attach| L0_L6[L0-L6 各層]
+  end
+  L4 --> Forward
+  SSoT --> Forward
+  L1 --> Forward
+  ADR --> Forward
+  L0_L6 --> Forward
+```
+
+### §12.5 Reverse 経路の audit trail / 統合検証
+
+| 経路 | audit trail file | 統合検証 check | implementation_status |
+|---|---|---|---|
+| fullback | `.helix/audit/reverse-fullback-<plan_id>.yaml` | `check_fullback_completeness` | planned |
+| normalization | `.helix/audit/reverse-normalization-<doc>.yaml` | `check_ssot_sync_after_normalization` | planned |
+| R3 hypothesis | `.helix/audit/explorer-hypothesis-<task>.yaml` | `check_hypothesis_routed_to_l1` | planned |
+| research → ADR | `.helix/audit/research-to-adr-<topic>.yaml` | `check_research_adr_integration` | planned |
+| L1 reverse | `.helix/audit/pdm-translation-<topic>.yaml` | `check_pdm_l1_routing` | planned |
+| recovery-reverse | `.helix/recovery-log-<incident>.yaml` | `check_recovery_adr_finalization` | planned |
+| review-feedback-reverse | `.helix/audit/tl-advisor-<plan_id>.yaml` | `check_review_feedback_applied` | partial |
+| research-evidence | `.helix/audit/research-memo-<topic>.yaml` | `check_research_evidence_attached` | planned |
+
+### §12.6 機械処理 mapping (統合)
+
+| CLI | 役割 | 入力 | 出力 | implementation_status |
+|---|---|---|---|---|
+| `helix reverse fullback` | worktree → 正本 doc 逆統合 | plan_id, worktree path | 統合済 doc + audit yaml | partial |
+| `helix reverse normalization` | drift → SSoT 同期 | drift report | normalized doc + ADR | planned |
+| `helix reverse pdm-to-l1` | PdM 翻案 → L1 業務要求 | pdm-translation.yaml | L1 doc 追加分 | planned |
+| `helix reverse review-feedback` | TL 指摘 → 該当 doc 修正 | tl-advisor-feedback.yaml | doc 修正 patch | partial |
+| `helix recovery --finalize-to-adr` | recovery 救出 → ADR snapshot | recovery-log.yaml | ADR-NNN 起票 | planned |
+| `helix research --route-to-adr` | Web 検索結果 → ADR/L0 | web-search-evidence.yaml | ADR draft + L0 update | planned |
+| `helix research --evidence-attach <plan_id>` | research → 既存 PLAN 参照追加 | research-memo.yaml | PLAN related_docs 更新 | planned |
+| `helix doctor --check-reverse-routing` | 全 Reverse 経路の audit trail 完備性検証 | audit/* | OK/NG list | planned |
+
+### §12.7 Reverse 経路集計
+
+| matrix | 行数 | 列数 | cells |
+|---|---:|---:|---:|
+| §12.1 retrotranscriptase 対応 | 5 | 4 | 20 |
+| §12.2 モデル × Reverse type 入口 | 9 | 7 | 63 |
+| §12.3 経路 × CLI/trail/trigger | 9 | 5 | 45 |
+| §12.5 経路 × audit trail/check | 8 | 4 | 32 |
+| §12.6 機械処理 CLI mapping | 8 | 5 | 40 |
+| **計** | — | — | **200 cells** |
+
+### §12.8 Forward / Reverse 全 cycle 統合性
+
+Forward (L0 → L14) + Reverse 経路は双方向 cycle を構成する。L7 実装で生成された成果物
+（Codex / Sonnet / Haiku / PdM / Recovery contribution）は 8 つの reverse 経路のいずれかで正本 doc 体系に逆統合される。これにより:
+
+- 孤立成果物の防止 (worktree / .helix/audit/ で生成され doc 化されない drift を機械検出)
+- dogfooding 自己整合 (HELIX-workflows V2 自体が Reverse 経路で改善 cycle を構築)
+- 生物学的完全性 (retrotranscriptase 多様性により、いかなる成果物も DNA = 正本 doc に戻る)
+
+L4 実装で追加される `reverse` 監査は次の 4 層に反映される。
+
+1. 文書層: `helix doctor --check-reverse-routing` が経路別 YAML の存在有無を確認し、未作成なら `BLOCK` を出す
+2. PLAN 層: plan_registry に `reverse_route` 属性（`type / source_path / target_path / evidence`）を追加
+3. DB 層: `helix.db.reverse_event` に trail hash と実行結果を append し再実行耐性を担保
+4. 監視層: 月次で `.helix/audit/*` の有効期限をチェックし、stale trail を回収
+
+#### 逆統合の共通ガード
+
+- 入口 path が存在しない場合、`BLOCK` で進行停止し、`block_reason` に再取得手順を明記
+- `implementation_status=planned` は `G7` 以降に `partial/implemented` へ昇格することを前提
+- `existing evidence hash` が一致しない場合は再逆統合を要求
+- `fullback` は worktree 差分が空の場合は `NOOP` として記録
+
+#### 8 ルートの受け入れ条件（実運用）
+
+| reverse route | 必須 evidence | 失敗時アクション | owner |
+|---|---|---|---|
+| fullback | worktree diff / 逆統合先 doc 差分 | R4 再実行依頼 | se |
+| normalization | drift report | ADR 化案の作成待ち | legacy |
+| R3 hypothesis | explorer-report.yaml | L1 監査待ち | sonnet |
+| research → ADR | web-search-evidence.yaml | PoC 版 ADR draft 追加 | haiku |
+| L1 reverse | pdm-translation.yaml | Opus 意思決定待ち | pdm-tech-innovation |
+| recovery-reverse | recovery-log.yaml + plan_id | 回収完了後に ADR finalize | recovery |
+| review-feedback | tl-advisor-feedback.yaml | 反映ログ差分を作成し再レビュー | tl-advisor |
+| research-evidence | research-memo.yaml | PLAN related_docs patch の付与 | research |
+
+#### 生物学比喩の運用ルール
+
+- RNA virus 型: 実装主体モデルの差分は `R0-R4` でまず証跡化し、正本化済み doc と照合する
+- Retrotransposon 型: docs 配下の新規作成文書は `SSoT` 同期を通して `HELIX-workflows` に統合
+- Telomerase 型: L1 翻案は末端に追記する前提を採用し、既存文脈との競合差分を明示
+- Endogenous retroelement 型: implicit knowledge は仮説レイヤーでまず capture し、`PO` で要件化
+- Group II intron 型: recovery / 外部由来知見は ADR へ吸収し、PLAN への紐付けを必須化
+
+#### 証跡品質の最小要件
+
+- 各経路は `implementation_status` を `planned -> partial -> implemented` へ遷移させる履歴を残す
+- `trail` ファイルは最低 3 項目 `source_path / generated_at / owner` を持つこと
+- 逆統合対象が複数 doc にまたがる場合、集約版 ADR-NNN を 1 つ作成する
+- 既存 ADR の直接編集は原則しない。変更が必要な場合は新規 ADR を作り `revision` を明示
+- 逆統合失敗時は `helix reverse` 再実行と `.helix/audit` 再作成を 1 組み合わせで実施
+- `helix doctor --check-reverse-routing` は週次 runbook の必須ジョブに追加
+- recovery 経路は通常経路と同じ評価基準でなく、事故 severity を優先して判定
+- L4 実装レビュー時は §12 の 8 経路について 1 つずつ evidence を照合する
+- 既存 reverse 5 type と新規 4 type の overlap がある場合は最短で吸収する経路を採択
+- すべての経路は `plan_id` もしくは `incident_id` をキーとしてトレース
+- 監査証跡の TTL は 180 日、期限切れは次 L0 で更新対象化
+- モデル別逆経路は運用前提として pair_design と pair_test_design の両 doc に追記
+- 証跡ファイル未作成が連続する場合は `BLOCK` を出し、`Next Action` へ戻す
+- `implementation_status` が `implemented` 固定された行は次回以降 `drift guard` で変更検知を必須化
+
+→ pair: L9 ST-F4 (workflow 内の reverse 経路整合) + ST-F9 (apoptosis、孤立成果物の自動 cleanup) + ST-F10 (symbiosis、外部 framework との Reverse 互換)
