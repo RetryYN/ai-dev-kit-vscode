@@ -97,6 +97,21 @@ L3 3 PLAN それぞれに対応する AC-* を 3 section で構成:
 - **受入基準**: 採用 project の OT-01 相当稼働率 ≥ 50% (Phase β 完了条件)
 - **検証 step**: (1) HELIX-workflows V2 portable package 化 (carry) → (2) 採用候補 project に取込 → (3) 各 project で `helix budget status --json` 経由で稼働率報告 → (4) 集約 ≥ 50% 確認
 
+### AC-BR-09: 既存資産整理・マッピング 受入テスト (2026-05-26 ユーザー指摘反映、BR-RULE-09 由来)
+
+- **対象 BR**: BR-09 既存資産整理・マッピング業務
+- **デプロイ後検証内容**: 設計 doc 内の「対応 CLI / file path / schema field / table / view / config」主張に対し `implementation_status` 列 (installed / partial / L4-carry / not-implemented) が **必須充足**、`helix doctor check_glossary_coverage` (L4 carry) で drift 検出
+- **受入基準**: L0 §12.1 Glossary 19 用語 + L1 §10 業務 entity 12 件 + 後続 L3/L4 設計 doc 全件で `implementation_status` 列 = 5 列 (CLI / file / schema / grep / status) 充足、inventory drift 率 ≤ 5% (毎週金曜)
+- **検証 step**: (1) L0 §12.1 で機械判定 grep (5 列充足チェック) → (2) L1 §10 で entity ↔ L0 Glossary term 列で 1:1 対応確認 → (3) L3/L4 doc に implementation_status 列ありを sample audit → (4) 不足 doc を carry 起票
+- **机上宣言禁止**: [[feedback_memory_verify_before_act]] verify-before-act 整合
+
+### AC-BR-10: 既存資産の段階移行・retrofit 受入テスト (2026-05-26 ユーザー指摘反映、BR-RULE-10 由来)
+
+- **対象 BR**: BR-10 既存資産の段階移行・retrofit 業務
+- **デプロイ後検証内容**: V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration pipeline** が Strangler Fig Pattern (Fowler 2004) ベースで凍結、`helix doctor check_migration_pending` (L4 carry) で残量管理
+- **受入基準**: V1 PLAN 223 件の `is_reference: true` 化率 100%、旧 enum (旧 G2/G3/G4 / 旧 layer L1-L11) 残存 = 0、Phase 別残量 dashboard で Phase α/β/γ kill criteria 満たすこと
+- **検証 step**: (1) `find docs/plans/ -name '*.md' | xargs grep -l 'is_reference: true' | wc -l` で V1 PLAN 移行率 → (2) `git grep -E 'G[2-9]|G14' --` で旧 enum 残存 → (3) frontmatter field migration (例: kind=impl→process_layer=L7) を機械検証 → (4) ADR snapshot 後追い起票件数を audit → (5) Phase 別残量と kill criteria 突合
+
 ## §2 機能系受入テスト (FR-* ↔ AC-FR-*、Phase E.B Codex SE bxwlot2t6 PROPOSE 反映 2026-05-26)
 
 L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements-detail.md) **core FR 14 件** (FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-9MODE-01 / FR-GATE-01 / FR-IMPACT-01 / FR-EVT-01 / FR-4ART-01 / FR-INV-01 / FR-CTX-01 / FR-DRIFT-01 / FR-PLAN-01 / FR-DOCTOR-01 / FR-MIGR-01、L1 FR + L1 TR 統合詳細化) に対する受入テスト。balance_ratio = **AC-FR 14 件 / core FR 14 件 = 1.0**。L3 doc 内の FR-* 参照出現数は 28 件あるが、これは core FR + cross-reference 出現の合計で AC 母数ではない (2026-05-26 tl-advisor G3 P1 #3 反映)。

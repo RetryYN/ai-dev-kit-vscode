@@ -54,6 +54,8 @@ HELIX-workflows V2 全 47 doc を **dogfooding 工程** として走らせる業
 | BR-06 | **影響範囲分析業務** | 機能改修時に過去 trace を helix.db query で 5 秒以内に retrieve、変更影響を可視化 | P1 |
 | BR-07 | **AI agent 配線業務** | 工程別 skill / mandatory subagent / 推奨 command を vmodel-semantics.yaml で機械注入、AI 判断の選択空間を絞る | P1 |
 | BR-08 | **採用 project への展開業務** | HELIX V2 を採用する他 project が同じ道を走れるよう CLI + skill + template を維持・配布 | P2 |
+| BR-09 | **既存資産整理・マッピング業務** (2026-05-26 ユーザー指摘反映、L1-IN-18) | HELIX-workflows の既存資産 (helix-* CLI 81 件 / helix.db 50+ table + view 1 / cli/config/*.yaml 5 件 / .helix/* runtime / docs/adr/* 41 件 / cli/templates/plan/v2/* 15 件 / .claude/agents/*.md 19 件) を **inventory** として継続管理し、設計 doc 内で「対応 CLI / file path / schema field」を主張する際は **implementation_status (installed / partial / L4-carry / not-implemented) 列必須**。机上宣言だけで実在と読まれる記述を禁止 ([[feedback_memory_verify_before_act]] verify-before-act 整合) | P0 |
+| BR-10 | **既存資産の段階移行・retrofit 業務** (2026-05-26 ユーザー指摘反映、L1-IN-19) | V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration / retrofit pipeline** を要件として組み込む。具体的: 旧 V1 PLAN 223 件は `is_reference: true` 化、helix-* CLI rename / skill 棚卸し、frontmatter field 移行、helix.db schema migration、ADR snapshot 後追い起票。Strangler Fig Pattern (Fowler 2004) ベースで段階置換、`helix doctor check_migration_pending` (L4 carry) で残量管理 | P0 |
 
 ## §3 業務フロー (Forward V-model 主線 + 9 mode 分岐)
 

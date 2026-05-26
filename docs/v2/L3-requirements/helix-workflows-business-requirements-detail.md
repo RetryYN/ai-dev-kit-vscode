@@ -120,9 +120,16 @@ flowchart TB
 | G1 | L1 PLAN 4 件 + L14 pair の整合 + balance_ratio = 1.0 | 常時 (PM + PO + tl-advisor 1 回必須) |
 | G3 | L3 PLAN 3 件 + L12 pair の整合 + L1↔L3 trace | 常時 (PM + tl-advisor 1 回必須) |
 | G7 | L7 sprint 7 step 全完遂 + 単体 test pass + lint pass | 設計判断 trade-off ≥ 2 件 / P0 指摘あり |
-| G14 | OT-01〜OT-08 全 pass + Guardrail 全 healthy | 月次 PM レビュー |
+| G14 | OT-01〜OT-10 全 pass + Guardrail 全 healthy | 月次 PM レビュー |
 
-## §3 対象業務範囲 (in/out scope)
+### §2.4 既存資産整理・移行 rule (2026-05-26 ユーザー指摘反映、BR-09/10 L1-IN-18/19 由来)
+
+| rule ID | 条件 | アクション | 例外 |
+|---|---|---|---|
+| BR-RULE-09 | 設計 doc 内で「対応 CLI / file path / schema field / table / view / config」を主張 AND `implementation_status` 列不在 | fail-close、doc レビュー差戻 (机上宣言禁止、verify-before-act 必須、[[feedback_memory_verify_before_act]]) | reference doc (kind=reference / is_reference: true) は適用外、要件確定前の概念 doc は L0 §12.1 Glossary 5 列構成への準拠で許容 |
+| BR-RULE-10 | 既存資産 (V1 PLAN / 旧 CLI / 旧 enum / 旧 process layer / 旧 frontmatter field) を後継 (V2 / 新 enum / L0-L14 / 新 field) に置換 AND 段階移行計画 (Phase 分割 / Strangler Fig path / 残量管理) 不在 | fail-close、L4 基本設計で migration pipeline 凍結まで起票拒否 | hotfix (Incident mode) で旧資産を一時利用する場合は applicable、ただし postmortem で migration carry 化必須 |
+
+
 
 ### §3.1 in scope
 

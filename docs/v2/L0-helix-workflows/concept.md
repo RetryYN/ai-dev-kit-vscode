@@ -697,6 +697,8 @@ flowchart TB
     - **table 数固定**: L1 schema 設計時、`core tables = 10` / `audit/event tables = 1 (拡張可)` / `derived views = 7 (拡張可)` の境界を仕様書で固定する
 11. **L1-IN-11**: **TDD 駆動の機械強制契約** (L1-L6 設計⇔テスト設計ペア凍結 + L7 sprint 7 step の **順序 fail-close**: 受け入れ test 不在で実装着手不可 / 受け入れ test pass 前に強化 test 追加不可 / 強化 test 不在で修正着手不可 + ドキュメント根拠 (parent_design / pairs_test_design path) の存在必須 + 全 mode 共通絶対原則 + Refactor 保護網テスト前提)
 12. **L1-IN-12** ★: **排泄系 (excretion) — 不要 PLAN / skill / hook の自動 deprecation 機構** (シナプス pruning 相当、生物学的に老廃物排出がないと中毒で死ぬ = HELIX も累積一方で warn 109 件 / PLAN 324 件 / skill 118 種の肥大化を放置するのが致命的。auto-deprecation: 使用頻度 / 最終更新時刻 / drift 検出回数で老化判定 → 自動 archive)
+13. **L1-IN-18** (2026-05-26 追加、ユーザー指摘「既存整理は要求の中に含まれる」): **既存資産整理・マッピング** — HELIX-workflows の既存資産 (helix-* CLI 81 件 / helix.db 50+ table + view 1 / cli/config/*.yaml / .helix/ runtime / docs/adr/* 41 件 / cli/templates/plan/v2/* 15 件 / .claude/agents/*.md 19 件) を **inventory として継続管理**し、設計 doc 内で「対応 CLI / file path / schema field」を主張する際は **`implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須**。机上宣言だけで実在と読まれる記述は禁止。本 doc §12.1 の Glossary 5 列構成 (implementation_status 含む) が L1 以降の標準フォーマット ([[feedback_memory_verify_before_act]] verify-before-act 整合)
+14. **L1-IN-19** (2026-05-26 追加、ユーザー指摘「ドキュメント体系の中に移行要求もいりそう」): **既存資産の段階移行・retrofit** — V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration / retrofit pipeline** を要件として組み込む。具体的: 旧 V1 PLAN 223 件は `is_reference: true` 化、helix-* CLI rename / skill 棚卸し、frontmatter field 移行 (例: kind=impl→process_layer=L7、L1 → L1-helix-workflows-*-plan)、helix.db schema migration、ADR snapshot 後追い起票。**Strangler Fig Pattern (Martin Fowler 2004)** ベースで段階置換、`helix doctor check_migration_pending` (L4 carry) で残量管理。BR-09 (整理) と BR-10 (移行) は責務分離 (整理 = 現状評価、移行 = 段階置換)
 
 ### §8.2 L1 で保留 (L1/L3 で確定)
 
@@ -724,7 +726,7 @@ flowchart TB
 4. **AC-04**: Guardrail 3 軸 fail-close 設計記載 (§5.2)
 5. **AC-05**: Phase α/β/γ 仮境界 (§3.3) + 「L1 で KGI 確定」明示
 6. **AC-06**: 想定リスク 上位 3 件 (R1 / R2 / R3) に mitigation 記載 (§6)
-7. **AC-07**: L1 接続項目 **12 件 (採択 L1-IN-01〜12) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 17 件** 列挙 (§8)
+7. **AC-07**: L1 接続項目 **14 件 (採択 L1-IN-01〜12 + L1-IN-18 + L1-IN-19) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 19 件** 列挙 (§8) ※ 2026-05-26 ユーザー指摘 2 件 (「既存整理は要求の中に含まれる」+「ドキュメント体系の中に移行要求もいりそう」) 反映で L1-IN-18/19 新規採択
 8. **AC-08**: HELIX-workflows 正本 (素材) への参照 path が §7.1 で完全列挙
 9. **AC-09**: Diagram 2 で Incident (hotfix→L7 / permanent→L1/L3/L4-L6 / postmortem→L14、3 経路並走可) と Recovery (cutover 設計差戻 L1/L3/L4-L6 + 実装差戻 L7) の分岐粒度が §6.5.2 で明示 (tl-advisor adversarial check 2026-05-26 反映)
 10. **AC-10**: V-model 量閉じ率の式が `balance_ratio = test_count / design_count ≥ 1.0` の向き (テスト÷設計) で §5.3 に記載 + paired_trace_coverage / orphan_test_count を併用 (tl-advisor P0 反映)
@@ -766,33 +768,76 @@ flowchart TB
 > **正本宣言**: 本 §12 が HELIX-workflows 全工程 (L0-L14) で使われる主要用語の **Single Source of Truth (SSoT)**。L1-L14 doc は本 §12 を `parent_doc reference` 経由で参照し、独自定義しない (anti-corruption layer 経由)。
 > **機械判定化方針**: 各用語に **対応 CLI / file path / schema field / 検出 grep pattern** を併記し、`helix doctor check_ubiquitous_language` (L4 carry、新設) で L1-L14 doc 内の表記ゆれ・未定義用語を検出可能にする ([[feedback_helix_fill_holes_principle]] 「memo→構造化→仕組み化→自動検出」原則整合)。
 
-### §12.1 主要 19 用語 (機械判定可能化、4 列分割)
+### §12.1 主要 19 用語 (機械判定可能化、5 列分割 + implementation_status)
 
-> **AC-12 機械判定**: 各用語が「対応 CLI / file path / schema field / 検出 grep pattern」の 4 列を持ち、未整備は `N/A (L4 carry: ...)` で明示。`helix doctor check_glossary_coverage` で 4 列が空でないか fail-close (L4 carry)。
+> **AC-12 機械判定**: 各用語が「対応 CLI / file path / schema field / 検出 grep pattern + **implementation_status**」の 5 列を持ち、`implementation_status` は `installed / partial / L4-carry / not-implemented` 4 値で実在マッピング ([[feedback_memory_verify_before_act]] 整合、机上宣言だけで「実在」と読まれない設計)。`helix doctor check_glossary_coverage` で 5 列が空でないか fail-close (L4 carry)。
+> **既存ソース sweep 完了**: 2026-05-26 pmo-project-explorer + Opus quick verify で全 19 用語の実在確認済 ([[feedback_doc_system_architect_retrofit_pattern]] 整合)。
 
-| 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern |
-|---|---|---|---|---|---|
-| **PLAN** | implementation tree (L1〜L4 内包) を内蔵する起票単位 | `helix plan <list\|show\|lint\|validate>` | `docs/plans/L<NN>/L<NN>-○○○plan.md` / `cli/templates/plan/v2/L<NN>-*.md` | `plan_registry` table | `^L[0-9]+-.*plan\.md$` |
-| **gate** | 工程突合チェックポイント (G0.5 / G1 / G1.5 / G1R / G2-G14) | `helix gate <NN>` | `cli/config/gate-policy.yaml` (L4 carry) | N/A (L4 carry: `gate_verdict` schema 未確定) | `^G[0-9]+` |
-| **mode** | HELIX 入口判定 (Forward + 9 派生) | `helix route` (一部 CLI 不在 carry) | `cli/lib/route_engine.py` | `frontmatter.mode` (carry、現状 frontmatter なし) | `mode:\s*(Forward\|Scrum\|Discovery\|Reverse\|Incident\|Add-feature\|Refactor\|Retrofit\|Research\|Recovery)` |
-| **drive** | タスク駆動タイプ (be / fe / db / fullstack / agent) | `helix size --drive <type>` | `cli/lib/plan_validator.py` | `frontmatter.drive` / `VALID_DRIVES` enum | `^drive:\s*(be\|fe\|db\|fullstack\|agent)$` |
-| **artifact** | V-model 4 種 (設計 / 実装 / テスト設計 / テストコード) | `helix doctor check_4artifact_trace` | N/A (frontmatter 経由) | `frontmatter.generates.artifact_type` enum | `artifact_type:\s*(design_doc\|.*test.*\|cli_extension\|python_module\|markdown_doc\|doc_update)` |
-| **pair freeze** | V-model 設計層 ↔ 検証層の対凍結 (6 対) | `helix doctor V-model pair freeze` | N/A (frontmatter 経由) | `frontmatter.pairs_test_design` / `frontmatter.pairs_with` | `pairs_(test_design\|with):\s*` |
-| **balance_ratio** | 量閉じ性指標 (`test_count / design_count ≥ 1.0`、Chargaff 比喩) | `helix doctor balance_ratio` (L4 carry) | N/A (view 経由) | `pair_volume_balance` view (helix.db) | `balance_ratio\s*[≥=]\s*1\.0` |
-| **NSM** | North Star Metric (V-model 整合 PLAN 完遂数の 6 axes) | `helix nsm` (L4 carry) | `cli/config/north-star.yaml` (L4 carry) | N/A (L4 carry) | `North Star\|NSM` |
-| **guardrail** | 3 軸独立 fail-close (Pair Freeze / Agent Error Budget / TTFSP) | N/A (L4 carry) | `cli/config/guardrail.yaml` (L4 carry) | N/A (L4 carry) | `guardrail\|Pair Freeze\|TTFSP` |
-| **trace** | 4 artifact 間の双方向 reference (① ↔ ② / ① ↔ ③ / ③ ↔ ④) | `helix doctor check_4artifact_trace` | N/A (frontmatter 経由) | `frontmatter.parent_design` / `frontmatter.next_pair_freeze` | `parent_design:\|next_pair_freeze:` |
-| **drift** | 設計 doc と実体 (code / PLAN / registry) のズレ | `helix doctor` 全 check / `vmodel_lint` | N/A (検出器多数) | `plan_drift_advisory` view (helix.db) | `drift\|advisory` |
-| **carry** | 次工程に持ち越す未確定項目 (P0 / P1 / P2 / P3 4 段) | N/A (L4 carry、`helix doctor check_carry_lifecycle` 新設) | `.helix/audit/deferred-findings.yaml` (L4 carry) | N/A (L4 carry) | `P[0-3]\b.*carry\|deferred` |
-| **readiness** | 工程 entry/exit 条件の機械判定可能性 | `helix gate <NN> --static-only` | `cli/lib/gate.py` | `static_subchecks` | `readiness\|static_subchecks` |
-| **agent_slot** | 並列実行可能な特化エージェント slot (mandatory 10 / on-demand 4)。**§12 正本用語**、L1 §10 entity 名と同一 | `helix agent <fire\|fire-mandatory\|suggest\|slots>` | `.claude/agents/*.md` | `agent_slots` table (helix.db) | `agent_slot\|subagent` |
-| **handover** | PM ↔ TL ↔ 実装担当 の作業引き渡し protocol | `helix handover <dump\|status\|update\|resume\|escalate\|clear>` | `.helix/handover/CURRENT.json` | `handover_status` table (helix.db) | `handover` |
-| **sprint** | L7 実装工程内の機能 PLAN (L7-<機能名>plan)、Step 1-8 標準構造 | `helix sprint <status\|next\|complete\|reset>` | `docs/plans/L7/L7-*plan.md` | `sprint_progress` table (helix.db) | `^L7-.*plan\.md$\|sprint` |
-| **phase** | 現在の工程進捗 (Phase 0-4 / R / L<NN> + drive 別) | `helix gate` (進捗判定) | `.helix/phase.yaml` | N/A (YAML state) | `^Phase:\|^phase:\|process_layer:` |
-| **IIP / deferral** | 既知の未解決事項 (Improvement In Progress / 意図的 deferral) の registry | N/A (L4 carry、`helix doctor check_carry_lifecycle`) | `.helix/audit/deferred-findings.yaml` (L4 carry、現状未整備) | N/A (L4 carry) | `IIP\|deferral\|deferred` |
-| **ADR** | アーキテクチャ決定記録 (Michael Nygard 2011)、L2 大局判断の snapshot | `helix adr` (一部 CLI 不在 carry) | `docs/adr/ADR-NNN-*.md` | `frontmatter.adr_snapshot` | `^ADR-[0-9]+` |
+| 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern | implementation_status |
+|---|---|---|---|---|---|---|
+| **PLAN** | implementation tree (L1〜L4 内包) を内蔵する起票単位 | `helix plan <list\|show\|status\|draft\|review\|finalize\|reset\|mini\|deps\|generates\|import>` (`cli/helix-plan-cmds/` 11 subcommand) + `lint` (logic は `cli/lib/plan_lint.py` 経由、subcommand 形態は `helix plan finalize --no-lint` flag で参照) | `docs/plans/L<NN>/L<NN>-○○○plan.md` / `cli/templates/plan/v2/L<NN>-*.md` (15 template 実在) | `plan_registry` table + 関連 (`plan_dependencies` / `plan_generates` / `plan_references` / `plan_reviews` / `plan_agent_slots` table) | `^L[0-9]+-.*plan\.md$` | **installed** |
+| **gate** | 工程突合チェックポイント (G0.5 / G1 / G1.5 / G1R / G2-G14) | `helix gate <NN>` (`cli/helix-gate` 実在、`--static-only` / `--readiness-mode` 実装済) | `.helix/gate-checks.yaml` 実在 / `cli/config/gate-policy.yaml` (L4 carry: gate-policy yaml 新規) | `gate_runs` table + `phase_gate_runs` table + `gate_audit_metrics` table | `^G[0-9]+` | **partial** (yaml 未整備、CLI + table は installed) |
+| **mode** | HELIX 入口判定 (Forward + 9 派生) | `helix route` (`cli/helix-route` 実在) | `cli/lib/route_engine.py` | `frontmatter.process_layer` (mode 自体は frontmatter field なし) | `mode:\s*(Forward\|Scrum\|Discovery\|Reverse\|Incident\|Add-feature\|Refactor\|Retrofit\|Research\|Recovery)` | **installed** |
+| **drive** | タスク駆動タイプ (10 種: `be / fe / fullstack / discovery / scrum / db / agent / reverse / poc / troubleshoot`) | `helix size --drive <type>` | `cli/lib/plan_validator.py:83` | `frontmatter.drive` / `VALID_DRIVES` enum (10 種) | `^drive:\s*(be\|fe\|fullstack\|discovery\|scrum\|db\|agent\|reverse\|poc\|troubleshoot)$` | **installed** |
+| **artifact** | V-model 4 種 (設計 / 実装 / テスト設計 / テストコード)、frontmatter 実体は 15+ enum | `helix doctor check_vmodel_4artifact` (`vmodel_lint.py` 経由) | N/A (frontmatter 経由) | `frontmatter.generates.artifact_type` / `VALID_ARTIFACT_TYPES` enum (`cli/lib/plan_validator.py:96` で 15+ enum = `design_doc / adr_snapshot / cli_extension / template / python_module / test / hook / schema_migration / config / script / doc_update / markdown_doc / yaml_config / json_config / binary / ...`) | `artifact_type:\s*([a-z_]+)` | **installed** |
+| **pair freeze** | V-model 設計層 ↔ 検証層の対凍結 (6 対) | `helix doctor check_vmodel_pair_freeze` / `helix doctor check_pair_freeze` | N/A (frontmatter 経由) | `frontmatter.pairs_test_design` / `frontmatter.pairs_with` | `pairs_(test_design\|with):\s*` | **installed** |
+| **balance_ratio** | 量閉じ性指標 (`test_count / design_count ≥ 1.0`、Chargaff 比喩) | `helix doctor balance_ratio` (L4 carry: 専用 flag 新設) | N/A (view 経由) | `pair_volume_balance` view (helix.db、**現状未実体**、view 数 = 1 個 `accuracy_score_effective` のみ) | `balance_ratio\s*[≥=]\s*1\.0` | **L4-carry** (view 未実体化) |
+| **NSM** | North Star Metric (V-model 整合 PLAN 完遂数の 6 axes) | `helix nsm` (`cli/helix-nsm` 不在、L4 carry) | `cli/config/north-star.yaml` (L4 carry、不在) | N/A (L4 carry) | `North Star\|NSM` | **not-implemented** |
+| **guardrail** | 3 軸独立 fail-close (Pair Freeze / Agent Error Budget / TTFSP) | `helix gate --readiness-mode enforce` (代替実装、`cli/config/guardrail.yaml` 不在) | `cli/config/guardrail.yaml` (L4 carry、不在) | N/A (L4 carry) | `guardrail\|Pair Freeze\|TTFSP` | **partial** (gate readiness-mode が代替、専用 yaml 不在) |
+| **trace** | 4 artifact 間の双方向 reference (① ↔ ② / ① ↔ ③ / ③ ↔ ④) | `helix doctor check_vmodel_4artifact` + `check_parent_design_existence` | N/A (frontmatter 経由) | `frontmatter.parent_design` (実在、`plan_validator.py`) / `frontmatter.next_pair_freeze` (**未実装、L4 carry**) | `parent_design:\|next_pair_freeze:` | **partial** (parent_design 実在、next_pair_freeze 未実装) |
+| **drift** | 設計 doc と実体 (code / PLAN / registry) のズレ | `helix doctor check_plan_drift` / `helix doctor check_document_drift` / `helix drift-check` (`cli/helix-drift-check` 実在) / `cli/lib/vmodel_lint.py` | N/A (検出器多数) | `plan_drift_advisory` view (helix.db、**現状未実体**、L4 carry) | `drift\|advisory` | **partial** (検出器多数 installed、専用 view 未実体) |
+| **carry** | 次工程に持ち越す未確定項目 (P0 / P1 / P2 / P3 4 段) | `helix debt` (`cli/helix-debt` 実在) / `helix doctor` の各 check で carry 検出 | `.helix/audit/deferred-findings.yaml` (**実存** 63 KB、2026-05-17 から運用) | `deferred_findings` table (helix.db、**実在**) | `P[0-3]\b.*carry\|deferred` | **installed** |
+| **readiness** | 工程 entry/exit 条件の機械判定可能性 | `helix gate <NN> --static-only` / `--readiness-mode <advisory\|enforce>` | `cli/lib/deliverable_gate.py` (`gate.py` ではなく `deliverable_gate.py`) | `static_subchecks` / `gate_runs.readiness_mode` | `readiness\|static_subchecks` | **installed** |
+| **agent_slot** | 並列実行可能な特化エージェント slot (mandatory 10 / on-demand 4)。**§12 正本用語**、L1 §10 entity 名と同一 | `helix agent <fire\|fire-mandatory\|suggest\|slots\|release\|audit>` | `.claude/agents/*.md` (**19 agent 実在**) | `agent_slots` table (helix.db、実在) + `plan_agent_slots` table | `agent_slot\|subagent` | **installed** |
+| **handover** | PM ↔ TL ↔ 実装担当 の作業引き渡し protocol | `helix handover <dump\|status\|update\|resume\|escalate\|clear\|compaction-sync>` | `.helix/handover/CURRENT.json` (アクティブ時) + `.helix/handover/archive/` | N/A (helix.db に `handover_*` table 不在、`.helix/handover/` JSON state) | `handover` | **installed** (CLI + file state)、table は不在で代わりに JSON file state |
+| **sprint** | L7 実装工程内の機能 PLAN (L7-<機能名>plan)、Step 1-8 標準構造 | `helix sprint <status\|next\|complete\|reset\|addon>` | `docs/plans/L7/L7-*plan.md` | `sprint_progress` table (helix.db、実在) + `sprint_metrics` table | `^L7-.*plan\.md$\|sprint` | **installed** |
+| **phase** | 現在の工程進捗 (Phase 0-4 / R / L<NN> + drive 別) | `helix gate` (進捗判定) | `.helix/phase.yaml` (**実存** 2.8 KB) + `.helix/framework.yaml` | `phase_gate_runs` table (helix.db、実在) | `^Phase:\|^phase:\|process_layer:` | **installed** |
+| **IIP / deferral** | 既知の未解決事項 (Improvement In Progress / 意図的 deferral) の registry | `helix debt` / `helix doctor` の deferred 検出 | `.helix/audit/deferred-findings.yaml` (**実存** 63 KB、2026-05-17 から運用) | `deferred_findings` table (helix.db、**実在**) | `IIP\|deferral\|deferred` | **installed** |
+| **ADR** | アーキテクチャ決定記録 (Michael Nygard 2011)、L2 大局判断の snapshot | `helix adr` (`cli/helix-adr` 不在、L4 carry) | `docs/adr/ADR-001〜043.md` (**41 ADR 実在**) | `frontmatter.adr_snapshot` (`VALID_ARTIFACT_TYPES` enum に含む) | `^ADR-[0-9]+` | **partial** (doc + frontmatter installed、CLI 不在) |
+
+**implementation_status サマリ (19 用語の状態分布)**:
+- **installed**: 11 用語 (PLAN / mode / drive / artifact / pair freeze / carry / readiness / agent_slot / handover / sprint / phase / IIP/deferral) ※ 12 用語 (重複統合あり)
+- **partial**: 5 用語 (gate / guardrail / trace / drift / ADR)
+- **L4-carry**: 1 用語 (balance_ratio)
+- **not-implemented**: 1 用語 (NSM)
 
 **用語追加 carry (P3 由来、L4 で実装)**: `BR` / `FR` / `NFR` / `OT` / `AC` (要件 ID prefix) は L1/L3 doc で頻出するが、本 §12 ではメタ用語として記載省略。L4 基本設計で要件 ID prefix の命名規約を凍結する。
+
+### §12.1.1 §12 未掲載の主要 helix-* CLI subcommand (逆引きマッピング、bonus 発見)
+
+主要 entity に閉じない CLI も多数実在 (cli/helix-* 全 81 件)。`feedback_helix_fill_holes_principle` 「memo→構造化→仕組み化→自動検出」の sweeper として将来統合候補:
+
+| CLI subcommand | 役割 | §12 用語との関係 |
+|---|---|---|
+| `helix doctor` | 全体健全性チェック (24 pass / warn / fail 集計) | `drift` / `pair freeze` / `trace` を統合検出 |
+| `helix code` | コードインデックス build/find/show/dup/stats | (PLAN-011/012/013、code drift 検出) |
+| `helix budget` | Claude/Codex 消費量・予測・forecast | (guardrail TTFSP 関連、L4 で統合候補) |
+| `helix skill` | スキル list/show/search/chain/use | (PLAN-022 スキル推挙、L4 で統合候補) |
+| `helix workspace` | worktree isolation exec/create/list | (PLAN-156、L4 carry: isolation 用) |
+| `helix vmodel` | V-model pair freeze 状態確認 | `pair freeze` 補助 CLI |
+| `helix research` | 技術調査・ADR 連携 | `ADR` mode (Research BC) |
+| `helix discovery` | D0-D4 仮説検証フロー | Discovery BC entry |
+| `helix handover compaction-sync` | compact 前後の state sync | `handover` 拡張 (最新追加) |
+| `helix drift-check` | drift 検出 | `drift` 専用 CLI |
+
+### §12.1.2 helix.db schema 全体観 (50+ table 群、§12 主要 19 用語の親集合)
+
+§12.1 で扱う主要 19 用語の対応 table は helix.db の **50+ table 群** の一部。全体観として以下のドメイン別 group が実在 (主要 group 9 区分):
+
+| Domain group | 代表 table | §12 との関係 |
+|---|---|---|
+| **PLAN 関連 (6)** | `plan_registry` / `plan_dependencies` / `plan_generates` / `plan_references` / `plan_reviews` / `plan_agent_slots` | §12 `PLAN` の親集合 |
+| **gate 関連 (3)** | `gate_runs` / `phase_gate_runs` / `gate_audit_metrics` | §12 `gate` の親集合 |
+| **要件 trace (4)** | `requirements` / `req_changes` / `req_impl_map` / `req_test_map` | §12 `artifact` / `trace` の補助 |
+| **品質スコア (3)** | `accuracy_score` / `accuracy_score_adjustments` / `accuracy_score_effective` (view) | balance_ratio / NSM の親集合候補 |
+| **agent / sprint / handover (5)** | `agent_slots` / `plan_agent_slots` / `sprint_progress` / `sprint_metrics` / `*` | §12 同名用語 |
+| **event / telemetry (4)** | `events` / `event_envelope` / `harness_check_events` / `session_telemetry` | (L4 carry: 統合候補) |
+| **運用・debt (5)** | `deferred_findings` / `debt_items` / `feedback` / `failure_log` / `retro_items` | §12 `carry` / `IIP/deferral` の親集合 |
+| **mode-specific (5)** | `scrum_trigger` / `scrum_local_loops` / `reverse_local_loops` / `refactor_degrade_pattern` / `poc_validation_log` | §12 `mode` 補助 |
+| **code / contract (3)** | `code_index` / `code_edges` / `contract_entries` | (PLAN-011/012/013) |
+
+**機械判定 carry (L4)**:
+- `helix doctor check_business_entity_coverage`: §12.1 19 用語 × helix.db 50+ table の対応 mapping が drift していないか fail-close (本 §12.1.2 を正本とする)
 
 ### §12.2 機械判定 carry (L4 基本設計で実装、本 §12 では仕様宣言のみ)
 
@@ -827,6 +872,7 @@ flowchart TB
 | **L13** 安定性 | **Google SRE SLO/SLI** (2016) | (carry) |
 | **L14** 運用学習 | **postmortem** (Google SRE 2016) / **Keep a Changelog v1.1.0** | L1 BR doc §7 想定 |
 | **全層共通** | **Single Source of Truth** (DDD, Eric Evans 2003) / **Ubiquitous Language** | 本 §12 Glossary が SSoT |
+| **全層共通: 移行・retrofit** (2026-05-26 ユーザー指摘反映) | **Strangler Fig Pattern** (Martin Fowler 2004、段階置換) / **Refactoring** (Martin Fowler 1999) / **Database Refactoring** (Scott Ambler 2006) / **Migration Path Documentation** | BR-10 既存資産の段階移行・retrofit (L1) + BR-RULE-10 段階移行計画必須 (L3) + AC-BR-10 受入テスト (L12) + OT-10 残量監査 (L14) で 4 artifact pair freeze |
 
 ### §13.2 コーディング規約 Single Source of Truth (path 列挙、repo-local / external 分離)
 

@@ -31,6 +31,8 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | BR-06 影響範囲分析 | OT-06 影響範囲 query 応答時間 (helix.db 4 artifact trace) | 機能改修 trigger 都度 | > 5 秒で query 最適化 + index 設計レビュー |
 | BR-07 AI agent 配線 | OT-07 vmodel-semantics.yaml 注入セット利用率 = 各工程 entry 時の mandatory_skills / recommended_commands 注入成功率 | 毎週月曜 | < 90% で helix-context 設定 audit + skill / command catalog rebuild |
 | BR-08 採用 project 展開 | OT-08 採用 project の dogfooding 稼働率 (採用 project の V-model 整合 PLAN 完遂数 / 期待値) | 毎月末 | 稼働率 < 50% で onboarding doc + CLI portable 化 carry 起票 |
+| BR-09 既存資産整理・マッピング | OT-09 inventory drift 監査 (helix-* CLI / helix.db schema / .helix/ runtime / docs/adr/* と L0 §12.1 Glossary mapping の整合率) | 毎週金曜 | drift 率 > 5% で `helix doctor check_glossary_coverage` (L4 carry) fail-close、設計 doc の implementation_status 列 retrofit 起票 |
+| BR-10 既存資産の段階移行・retrofit | OT-10 migration pipeline 残量監査 (V1 PLAN の `is_reference: true` 化率 / 旧 enum 残存件数 / Strangler 段階置換進捗) | 毎週金曜 | 残量 > 期待値 で `helix doctor check_migration_pending` (L4 carry) fail-close、Phase 別残量 dashboard 起票 |
 
 > **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
 
@@ -91,6 +93,24 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 - **測定式**: `SELECT (SELECT COUNT(*) FROM injection_log WHERE status='success' AND created_at >= date('now', '-7 days')) * 1.0 / (SELECT COUNT(*) FROM phase_entry_log WHERE entered_at >= date('now', '-7 days')) AS injection_rate` (V5 framework 完遂後)
 - **target**: ≥ 90%
 - **fail 措置**: < 90% で `helix-context` 設定 audit + skill_catalog / command_catalog rebuild + vmodel-semantics.yaml drift 検証
+
+### OT-09: 既存資産 inventory drift 監査 (BR-09 由来、2026-05-26 ユーザー指摘反映)
+
+- **対象 BR**: BR-09 既存資産整理・マッピング業務
+- **計測内容**: HELIX-workflows 既存資産 (helix-* CLI 81 件 / helix.db 50+ table + view 1 / cli/config/*.yaml 5 件 / .helix/* runtime / docs/adr/* 41 件 / cli/templates/plan/v2/* 15 件 / .claude/agents/*.md 19 件) と L0 §12.1 Glossary mapping の **drift 率**
+- **頻度**: 毎週金曜
+- **target**: drift 率 ≤ 5%
+- **検証手段**: `helix doctor check_glossary_coverage` (L4 carry、新設) で 5 列充足率 + L0 §12.1 19 用語の `implementation_status` 列と実体の整合性を機械判定
+- **異常時アクション**: drift > 5% で fail-close、設計 doc の implementation_status 列 retrofit 起票 (`feedback_memory_verify_before_act` 整合)
+
+### OT-10: migration pipeline 残量監査 (BR-10 由来、2026-05-26 ユーザー指摘反映)
+
+- **対象 BR**: BR-10 既存資産の段階移行・retrofit 業務
+- **計測内容**: V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の段階 migration 残量
+- **頻度**: 毎週金曜
+- **target**: Phase α 終了時 V1 PLAN `is_reference: true` 化率 100% / Phase β 終了時 旧 enum 残存 0 / Phase γ 終了時 Strangler 段階置換完了
+- **検証手段**: `helix doctor check_migration_pending` (L4 carry、新設) で Phase 別残量 + Strangler Fig Pattern 段階置換進捗を JSON 出力、Phase 別 dashboard 生成
+- **異常時アクション**: 残量 > 期待値 で fail-close、Phase 別残量 dashboard 起票 + L4 基本設計の migration pipeline 再凍結
 
 ### OT-08: 採用 project の dogfooding 稼働率
 
