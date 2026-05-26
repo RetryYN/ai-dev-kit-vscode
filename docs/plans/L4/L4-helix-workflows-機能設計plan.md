@@ -26,6 +26,8 @@ generates:
     artifact_type: design_doc
   - artifact_path: docs/v2/L9-test-design/helix-workflows-functional-test-design.md
     artifact_type: design_doc
+  - artifact_path: docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+    artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-方式設計plan
   requires:
@@ -47,6 +49,7 @@ related_docs:
   - HELIX-workflows/helix-process/L9-system-test.md
   - docs/v2/L4-architecture/helix-workflows-system-architecture.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
+  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
   - skills/SKILL_MAP.md
   - helix/HELIX_CORE.md
   - CLAUDE.md

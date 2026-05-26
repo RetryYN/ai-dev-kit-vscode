@@ -550,6 +550,7 @@ L4 §0.1 industry standards alignment と pair で運用する。
 - ADR-025〜032  V5 framework 系
 - ADR-041  drift type 7 categories
 - ADR-043  mode enum retrofit freeze break 対応
+- **ADR-045  F6-F10 governance and survival operations snapshot (sibling、本 ADR の運用統治軸を補完)**
 
 ### 7.2 併走参照
 

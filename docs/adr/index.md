@@ -41,3 +41,5 @@
 | ADR-041-drift-type-7-categories-routing-decision | drift_type 7 種分類 + Reverse/Refactor/Retrofit 3 mode 分岐ルーティング契約 | Accepted | 2026-05-24 |
 | ADR-042-recommended-command-machine-vs-display-decision | recommended_command 機械契約 vs 人間表示の役割分離 (suggest_command backward compat + 新 field 役割固定) | Accepted | 2026-05-24 |
 | ADR-043-mode-enum-extension-retrofit-freeze-break-decision | Mode enum 拡張 (Retrofit 追加) — parent design freeze break + additive backward compat 凍結 | Accepted | 2026-05-24 |
+| ADR-044-helix-workflows-v2-architecture-snapshot | HELIX-workflows V2 dogfooding 方式設計 snapshot | Proposed | 2026-05-27 |
+| ADR-045-helix-workflows-f6-f10-governance-snapshot | HELIX-workflows V2 F6-F10 governance and survival operations snapshot | Proposed | 2026-05-27 |
