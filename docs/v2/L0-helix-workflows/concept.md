@@ -656,7 +656,7 @@ flowchart TB
 
 ### §7.4 下流 PLAN (本 PLAN 完遂後に起票)
 
-- L1-helix-workflows-requirementsplan (L1 要求定義 + 運用テスト設計)
+- L1 4 PLAN (業務要求 / 機能要求 / 技術要求 / 非機能要求) (L1 要求定義 + 運用テスト設計)
 
 ### §7.5 memory carry (L1+ で具体化する方針、L0 では対象外)
 
@@ -671,7 +671,7 @@ flowchart TB
 
 ---
 
-## §8 L1 バトン (L1-helix-workflows-requirementsplan へ引き継ぐ項目)
+## §8 L1 バトン (L1 4 PLAN (業務要求 / 機能要求 / 技術要求 / 非機能要求) へ引き継ぐ項目)
 
 ### §8.1 L1 で確定する項目 (採択、10 件)
 

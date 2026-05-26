@@ -105,4 +105,4 @@ L1-IN-05 は **HELIX-workflows ↔ cli/helix-* ↔ skill ↔ helix.db** の drif
   - [cli/config/vmodel-semantics.yaml](../../../cli/config/vmodel-semantics.yaml)
   - [cli/config/models.yaml](../../../cli/config/models.yaml)
 - **carry**: 技術要求 doc は L1↔L14 ではなく **L4 基本設計 ↔ L9 総合テスト設計** でペア凍結する。L4 基本設計起票時に L9 総合テスト設計を pair artifact 化する (`next_pair_freeze: L4` を frontmatter に明記)。
-- **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 doc 共通)**: `L3-helix-workflows-requirementsplan` は L1 4 PLAN 全件 (業務 / 機能 / 技術 / 非機能) を `dependencies.requires` に列挙し、`docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票して L3 技術要件 (採用技術詳細 / 制約) と L12 受入テスト設計の技術系 AC-* を pair freeze する (詳細は業務要求 doc §7 参照、L4↔L9 は更に下流の多層検証)。
+- **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 doc 共通)**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務 / 機能 / 技術 / 非機能) を `dependencies.requires` に列挙し、`docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票して L3 技術要件 (採用技術詳細 / 制約) と L12 受入テスト設計の技術系 AC-* を pair freeze する (詳細は業務要求 doc §7 参照、L4↔L9 は更に下流の多層検証)。

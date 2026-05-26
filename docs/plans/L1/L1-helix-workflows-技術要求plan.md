@@ -26,7 +26,8 @@ dependencies:
   requires:
     - L0-helix-workflows-conceptplan
   blocks:
-    - L3-helix-workflows-requirementsplan
+    - L3-helix-workflows-機能要件plan
+    - L3-helix-workflows-非機能要件plan
     - L4-helix-workflows-基本設計plan
 related_docs:
   - HELIX-workflows/helix-process/L1-requirements.md
@@ -91,7 +92,7 @@ related_docs:
 
 ### §2.5 L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 PLAN 共通)
 
-- **L3 PLAN 起票時の dependencies.requires**: `L3-helix-workflows-requirementsplan` は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
+- **L3 PLAN 起票時の dependencies.requires**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
 - **L3↔L12 pair freeze**: L3 起票時に `docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票し、L3 技術要件 (採用技術・制約) と L12 受入テスト設計 (技術系 AC-*) を pair freeze する
 
 ## §3 成果物
@@ -120,7 +121,9 @@ related_docs:
   - L1-helix-workflows-機能要求plan
   - L1-helix-workflows-非機能要求plan
 - **下流 PLAN**:
-  - L3-helix-workflows-requirementsplan
+  - L3-helix-workflows-業務要件plan
+  - L3-helix-workflows-機能要件plan
+  - L3-helix-workflows-非機能要件plan
   - L4-helix-workflows-基本設計plan
 - **技術参照**:
   - [cli/lib/helix_db.py](../../../cli/lib/helix_db.py)

@@ -26,7 +26,7 @@ dependencies:
   requires:
     - L0-helix-workflows-conceptplan
   blocks:
-    - L3-helix-workflows-requirementsplan
+    - L3-helix-workflows-非機能要件plan
     - L4-helix-workflows-基本設計plan
 related_docs:
   - docs/v2/L0-helix-workflows/concept.md
@@ -95,7 +95,7 @@ related_docs:
 - [x] NFR-* が 15 件以上定義されている
 - [x] `L1-IN-12` が本文に明示されている
 - [x] `python3` + `plan_validator.validate_plan(...)` で frontmatter を検証済み
-- [ ] `L3-helix-workflows-requirementsplan` / `L4-helix-workflows-基本設計plan` 起票後の reciprocal dependency 追記
+- [ ] L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) / `L4-helix-workflows-基本設計plan` 起票後の reciprocal dependency 追記
 - [ ] tl-advisor / pmo-sonnet による最終レビュー
 
 ## §5 関連
@@ -109,5 +109,5 @@ related_docs:
 
 ## §6 L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 PLAN 共通)
 
-- **L3 PLAN 起票時の dependencies.requires**: `L3-helix-workflows-requirementsplan` は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
+- **L3 PLAN 起票時の dependencies.requires**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
 - **L3↔L12 pair freeze**: L3 起票時に `docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票し、L3 非機能要件 (IPA グレード値) と L12 受入テスト設計 (NFR 系 AC-*) を pair freeze する (本 doc は L13 安定性 + L14 運用検証でも多層検証、`next_pair_freeze: L4` を製本 doc frontmatter に明記)

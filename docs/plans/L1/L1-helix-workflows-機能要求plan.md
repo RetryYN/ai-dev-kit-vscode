@@ -27,7 +27,7 @@ dependencies:
     - L0-helix-workflows-conceptplan
     - L1-helix-workflows-業務要求plan
   blocks:
-    - L3-helix-workflows-requirementsplan
+    - L3-helix-workflows-機能要件plan
 related_docs:
   - HELIX-workflows/helix-process/L1-requirements.md
   - docs/v2/process/L01-requirements-and-operational-test-design.md
@@ -40,7 +40,7 @@ related_docs:
 
 > **工程**: L1
 > **正本**: HELIX-workflows/helix-process/L1-requirements.md
-> **本 PLAN の対象**: HELIX-workflows V2 dogfooding における **機能要求** (Functional Requirements、FR) を起票する。L0 [見直し企画書](../L0/L0-helix-workflows-conceptplan.md) §8 のうち **L1-IN-01 / 02 / 11** を主 scope とし、L0 §3 / §5 / §6.5 / §8 から導出される周辺機能を FR へ再構成する。業務要求 sibling doc [`helix-workflows-business-requirements.md`](../../v2/L1-requirements/helix-workflows-business-requirements.md) を上位文脈とし、L3 `L3-helix-workflows-requirementsplan` で詳細化する。
+> **本 PLAN の対象**: HELIX-workflows V2 dogfooding における **機能要求** (Functional Requirements、FR) を起票する。L0 [見直し企画書](../L0/L0-helix-workflows-conceptplan.md) §8 のうち **L1-IN-01 / 02 / 11** を主 scope とし、L0 §3 / §5 / §6.5 / §8 から導出される周辺機能を FR へ再構成する。業務要求 sibling doc [`helix-workflows-business-requirements.md`](../../v2/L1-requirements/helix-workflows-business-requirements.md) を上位文脈とし、L3 `L3-helix-workflows-機能要件plan` で詳細化する。
 
 ## §1 工程表 (作業手順 + 進捗)
 
@@ -51,7 +51,7 @@ related_docs:
 | 3 | ドラフト起草 (`docs/v2/L1-requirements/helix-workflows-functional-requirements.md` に FR / UC / flow / I/O を記載) | ☑ completed (2026-05-26) |
 | 4 | TL レビュー (tl-advisor、G1 evidence 用 adversarial check) | □ pending |
 | 5 | pmo-sonnet 再 audit (構造整合 / carry / downstream 参照整合) | □ pending |
-| 6 | 修正反映 + G1 事前確認 + L3 `L3-helix-workflows-requirementsplan` へ引き渡し | □ pending |
+| 6 | 修正反映 + G1 事前確認 + L3 L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) へ引き渡し | □ pending |
 
 ## §2 実装計画 (記載項目をどう埋めるか)
 
@@ -107,7 +107,7 @@ related_docs:
 
 ### §2.4.1 L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 PLAN 共通)
 
-- **L3 PLAN 起票時の dependencies.requires**: `L3-helix-workflows-requirementsplan` は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
+- **L3 PLAN 起票時の dependencies.requires**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務要求 / 機能要求 / 技術要求 / 非機能要求) を `dependencies.requires` に列挙する
 - **L3↔L12 pair freeze**: L3 起票時に `docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票し、L3 FR-* / NFR-* と L12 受入テスト設計 (AC-*) を pair freeze する (L1↔L14 で運用テストペア凍結したのと同じ構造)
 
 ### §2.5 L0 §8 振り分け
@@ -144,4 +144,4 @@ related_docs:
 - **工程 doc**: [docs/v2/process/L01-requirements-and-operational-test-design.md](../../v2/process/L01-requirements-and-operational-test-design.md)
 - **template**: [cli/templates/plan/v2/L01-requirements-template.md](../../../cli/templates/plan/v2/L01-requirements-template.md)
 - **integration-map**: [HELIX-workflows/helix-process/integration-map.md](../../../HELIX-workflows/helix-process/integration-map.md)
-- **下流 PLAN**: `L3-helix-workflows-requirementsplan`
+- **下流 PLAN**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)

@@ -163,7 +163,7 @@ L0 企画 → G0.5 → L1 要求定義 + 運用テスト設計 → G1
 - **HELIX-workflows L1 正本**: [HELIX-workflows/helix-process/L1-requirements.md](../../../HELIX-workflows/helix-process/L1-requirements.md)
 - **L1 工程 doc**: [docs/v2/process/L01-requirements-and-operational-test-design.md](../process/L01-requirements-and-operational-test-design.md)
 - **並走 PLAN** (Phase B で起票): L1-helix-workflows-{機能要求 / 技術要求 / 非機能要求}plan
-- **下流 PLAN**: L3-helix-workflows-requirementsplan (本 PLAN + 並走 3 PLAN 完遂後)
+- **下流 PLAN**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) (本 PLAN + 並走 3 PLAN 完遂後)
 - **skill**: workflow/requirements-handover / workflow/requirements-deriver / workflow/doc-system-architect
 
 ## §9 carry / 既知の不足

@@ -16,7 +16,7 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 
 > **本 doc の位置づけ**: HELIX-workflows V2 dogfooding における **機能要求 (FR-*)** の L1 正本。L0 [見直し企画書](../L0-helix-workflows/concept.md) §5 / §6.5 / §8 と、L1 [業務要求 doc](./helix-workflows-business-requirements.md) で定義した BR を受け、HELIX が備えるべき機能を **要望レベル** で整理する。
 >
-> **境界**: 本 doc は L1 のため、API / schema / detector 実装詳細までは固定しない。詳細契約は L3 `L3-helix-workflows-requirementsplan`、技術詳細は L1 技術要求 plan、受入ペア凍結は L3↔L12 で確定する。
+> **境界**: 本 doc は L1 のため、API / schema / detector 実装詳細までは固定しない。詳細契約は L3 L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)、技術詳細は L1 技術要求 plan、受入ペア凍結は L3↔L12 で確定する。
 >
 > **件数 (2026-05-26 tl-advisor G1 audit P0 #2 確定)**: 機能要求は **FR-01〜FR-12 (計 12 件)**。L3 詳細化 (G3 凍結) で更に細分化される。
 
@@ -53,7 +53,7 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 
 ### 1. PLAN 起票と依存関係の確立
 
-`helix plan draft --kind requirements --layer L1` 相当の起票で、PLAN frontmatter が生成され、`dependencies` / `generates` / `process_layer` が解釈される。これにより `plan_registry` 相当の管理対象へ登録され、後工程 PLAN (`L3-helix-workflows-requirementsplan`) への `blocks` 関係が確立される。
+`helix plan draft --kind requirements --layer L1` 相当の起票で、PLAN frontmatter が生成され、`dependencies` / `generates` / `process_layer` が解釈される。これにより `plan_registry` 相当の管理対象へ登録され、後工程 PLAN (L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)) への `blocks` 関係が確立される。
 
 ### 2. Gate 判定と証跡化
 
@@ -102,9 +102,9 @@ PLAN file と製本 doc を入力に `helix gate G1` などを実行し、detect
 
 ### L14 / L3 ペア凍結の扱い
 
-L1↔L14 の直接ペア凍結は [業務要求 doc](./helix-workflows-business-requirements.md) と運用テスト設計で担保する。本 doc は `pairs_with: L14` + `next_pair_freeze: L3` とし、機能要求の詳細化と受入テスト設計の pair freeze は `L3-helix-workflows-requirementsplan` 起票時に `L12` 側 artifact と対で凍結する。
+L1↔L14 の直接ペア凍結は [業務要求 doc](./helix-workflows-business-requirements.md) と運用テスト設計で担保する。本 doc は `pairs_with: L14` + `next_pair_freeze: L3` とし、機能要求の詳細化と受入テスト設計の pair freeze は L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) 起票時に `L12` 側 artifact と対で凍結する。
 
-> **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 doc 共通)**: `L3-helix-workflows-requirementsplan` は L1 4 PLAN 全件 (業務 / 機能 / 技術 / 非機能) を `dependencies.requires` に列挙し、`docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票して FR-* AC-* と pair freeze する (詳細は業務要求 doc §7 参照)。
+> **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 doc 共通)**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務 / 機能 / 技術 / 非機能) を `dependencies.requires` に列挙し、`docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票して FR-* AC-* と pair freeze する (詳細は業務要求 doc §7 参照)。
 
 ## §6 関連 doc
 
@@ -114,4 +114,4 @@ L1↔L14 の直接ペア凍結は [業務要求 doc](./helix-workflows-business-
 - **HELIX-workflows L1 正本**: [HELIX-workflows/helix-process/L1-requirements.md](../../../HELIX-workflows/helix-process/L1-requirements.md)
 - **工程 doc**: [docs/v2/process/L01-requirements-and-operational-test-design.md](../process/L01-requirements-and-operational-test-design.md)
 - **並走 PLAN**: `L1-helix-workflows-技術要求plan` / `L1-helix-workflows-非機能要求plan`
-- **下流 PLAN**: `L3-helix-workflows-requirementsplan`
+- **下流 PLAN**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)
