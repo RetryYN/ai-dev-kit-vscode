@@ -20,6 +20,8 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 >
 > **件数 (2026-05-26 tl-advisor G1 audit P0 #2 確定)**: 機能要求は **FR-01〜FR-12 (計 12 件)**。L3 詳細化 (G3 凍結) で更に細分化される。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 機能一覧
 
 | FR-ID | 機能名 | 振り分け / 根拠 | 概要 |

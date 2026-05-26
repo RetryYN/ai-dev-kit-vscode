@@ -729,6 +729,11 @@ flowchart TB
 9. **AC-09**: Diagram 2 で Incident (hotfix→L7 / permanent→L1/L3/L4-L6 / postmortem→L14、3 経路並走可) と Recovery (cutover 設計差戻 L1/L3/L4-L6 + 実装差戻 L7) の分岐粒度が §6.5.2 で明示 (tl-advisor adversarial check 2026-05-26 反映)
 10. **AC-10**: V-model 量閉じ率の式が `balance_ratio = test_count / design_count ≥ 1.0` の向き (テスト÷設計) で §5.3 に記載 + paired_trace_coverage / orphan_test_count を併用 (tl-advisor P0 反映)
 11. **AC-11**: V モデル DB の構造区分が **core tables 10 + audit/event 1 + derived views 7** として §6.5.6 で明示、`pair_volume_balance` は view であり core 10 に含めない (tl-advisor P1#3 反映)
+12. **AC-12** (DDD ユビキタス言語、機械判定可能): L0 §12 Glossary が主要 14 用語以上を定義、各用語に「対応 CLI / file path / schema field / 検出 grep pattern」を表 row 形式で併記 (機械判定: 表 row 数 ≥ 14、3 列充足) — [[feedback_helix_fill_holes_principle]] 「memo→構造化→仕組み化→自動検出」整合
+13. **AC-13** (業界標準整合、機械判定可能): L0 §13.1 で L0-L14 全工程 15 段に業界標準対応 (arc42 / ISO/IEC/IEEE 29148:2018 / ISO/IEC/IEEE 42010:2022 / ISO/IEC 25010:2023 / C4 model / Diátaxis / IPA / Nygard / DORA / 12-factor 等) を明示 (検算: checker は `全層共通` 行を工程数から除外し、L0-L14 = 15 段で fail-close) + §13.2 でコーディング規約 SSoT path 4 件 (repo-local: CLAUDE.md / SKILL_MAP.md / HELIX_CORE.md / HELIX-process-L0-L14.md) + 1 件 (external: `~/.claude/.../memory/MEMORY.md` を `external_path_exists` checker 対象) 列挙 (機械判定: §13.1 row 数 - 「全層共通」= 15 + repo-local path 存在チェック 4 件 + external path 1 件)
+14. **AC-14** (Bounded Context、機械判定可能): L0 §14.1 で BC 全 10 行 (Forward 本体 1 + derived mode 9 = Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) 全件に「固有用語 + anti-corruption 経由先」明示 + §14.2 で BC 越境例 ≥ 3 件 (機械判定: §14.1 table row 数 = 10、うち `Forward` 1 行 + derived 9 行、§14.2 例 ≥ 3、checker は Forward を別枠で数える)
+15. **AC-15** (機械判定 carry 明示): §12.末尾 / §13.4 / §14.3 で `helix doctor check_*` 新設 carry を ≥ 6 件列挙し、L4 基本設計で凍結する責務を明示 (機械判定: `helix doctor check_` 文字列 grep count ≥ 6)
+16. **AC-16** (既存 lint ツール組み込み計画): §13.3 で markdown / shell / Python / YAML / SQL / 依存脆弱性 / secret スキャン / 静的解析 の 8 領域すべてに既存 OSS ツール (markdownlint / shellcheck / ruff / yamllint / sqlfluff / pip-audit / gitleaks / semgrep) と組み込み先 (pre-commit / CI / helix doctor) を明示 (機械判定: 表 row 数 ≥ 8)
 
 ---
 
@@ -739,6 +744,7 @@ flowchart TB
 - **2026-05-26**: マーケティングツール等の具体 product は L0 では扱わない (L1+ で use case として扱う)
 - **2026-05-26**: 新 paradigm への移行は採用せず、HELIX-workflows V2 をそのまま使う方針確定
 - **2026-05-26**: Primary NSM = "V-model 整合 PLAN 完遂数 / week" 単一採用、Guardrail 3 軸 + Cascade KPI で補強
+- **2026-05-26**: doc-system-architect retrofit (§12 Glossary + §13 業界標準整合 + §14 Bounded Context、AC-12〜AC-16) を追加、機械判定可能化 (CLI / file path / schema field 併記 + `helix doctor check_*` carry 明示) で `feedback_helix_fill_holes_principle` 「memo→構造化→仕組み化→自動検出」原則に整合
 
 ---
 
@@ -752,3 +758,151 @@ flowchart TB
 | 投資対効果 | §4 | ☑ |
 | 成功条件・KGI / KPI | §5 | ☑ |
 | 想定リスク | §6 | ☑ |
+
+---
+
+## §12 Glossary (HELIX-workflows ユビキタス言語、Single Source of Truth)
+
+> **正本宣言**: 本 §12 が HELIX-workflows 全工程 (L0-L14) で使われる主要用語の **Single Source of Truth (SSoT)**。L1-L14 doc は本 §12 を `parent_doc reference` 経由で参照し、独自定義しない (anti-corruption layer 経由)。
+> **機械判定化方針**: 各用語に **対応 CLI / file path / schema field / 検出 grep pattern** を併記し、`helix doctor check_ubiquitous_language` (L4 carry、新設) で L1-L14 doc 内の表記ゆれ・未定義用語を検出可能にする ([[feedback_helix_fill_holes_principle]] 「memo→構造化→仕組み化→自動検出」原則整合)。
+
+### §12.1 主要 19 用語 (機械判定可能化、4 列分割)
+
+> **AC-12 機械判定**: 各用語が「対応 CLI / file path / schema field / 検出 grep pattern」の 4 列を持ち、未整備は `N/A (L4 carry: ...)` で明示。`helix doctor check_glossary_coverage` で 4 列が空でないか fail-close (L4 carry)。
+
+| 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern |
+|---|---|---|---|---|---|
+| **PLAN** | implementation tree (L1〜L4 内包) を内蔵する起票単位 | `helix plan <list\|show\|lint\|validate>` | `docs/plans/L<NN>/L<NN>-○○○plan.md` / `cli/templates/plan/v2/L<NN>-*.md` | `plan_registry` table | `^L[0-9]+-.*plan\.md$` |
+| **gate** | 工程突合チェックポイント (G0.5 / G1 / G1.5 / G1R / G2-G14) | `helix gate <NN>` | `cli/config/gate-policy.yaml` (L4 carry) | N/A (L4 carry: `gate_verdict` schema 未確定) | `^G[0-9]+` |
+| **mode** | HELIX 入口判定 (Forward + 9 派生) | `helix route` (一部 CLI 不在 carry) | `cli/lib/route_engine.py` | `frontmatter.mode` (carry、現状 frontmatter なし) | `mode:\s*(Forward\|Scrum\|Discovery\|Reverse\|Incident\|Add-feature\|Refactor\|Retrofit\|Research\|Recovery)` |
+| **drive** | タスク駆動タイプ (be / fe / db / fullstack / agent) | `helix size --drive <type>` | `cli/lib/plan_validator.py` | `frontmatter.drive` / `VALID_DRIVES` enum | `^drive:\s*(be\|fe\|db\|fullstack\|agent)$` |
+| **artifact** | V-model 4 種 (設計 / 実装 / テスト設計 / テストコード) | `helix doctor check_4artifact_trace` | N/A (frontmatter 経由) | `frontmatter.generates.artifact_type` enum | `artifact_type:\s*(design_doc\|.*test.*\|cli_extension\|python_module\|markdown_doc\|doc_update)` |
+| **pair freeze** | V-model 設計層 ↔ 検証層の対凍結 (6 対) | `helix doctor V-model pair freeze` | N/A (frontmatter 経由) | `frontmatter.pairs_test_design` / `frontmatter.pairs_with` | `pairs_(test_design\|with):\s*` |
+| **balance_ratio** | 量閉じ性指標 (`test_count / design_count ≥ 1.0`、Chargaff 比喩) | `helix doctor balance_ratio` (L4 carry) | N/A (view 経由) | `pair_volume_balance` view (helix.db) | `balance_ratio\s*[≥=]\s*1\.0` |
+| **NSM** | North Star Metric (V-model 整合 PLAN 完遂数の 6 axes) | `helix nsm` (L4 carry) | `cli/config/north-star.yaml` (L4 carry) | N/A (L4 carry) | `North Star\|NSM` |
+| **guardrail** | 3 軸独立 fail-close (Pair Freeze / Agent Error Budget / TTFSP) | N/A (L4 carry) | `cli/config/guardrail.yaml` (L4 carry) | N/A (L4 carry) | `guardrail\|Pair Freeze\|TTFSP` |
+| **trace** | 4 artifact 間の双方向 reference (① ↔ ② / ① ↔ ③ / ③ ↔ ④) | `helix doctor check_4artifact_trace` | N/A (frontmatter 経由) | `frontmatter.parent_design` / `frontmatter.next_pair_freeze` | `parent_design:\|next_pair_freeze:` |
+| **drift** | 設計 doc と実体 (code / PLAN / registry) のズレ | `helix doctor` 全 check / `vmodel_lint` | N/A (検出器多数) | `plan_drift_advisory` view (helix.db) | `drift\|advisory` |
+| **carry** | 次工程に持ち越す未確定項目 (P0 / P1 / P2 / P3 4 段) | N/A (L4 carry、`helix doctor check_carry_lifecycle` 新設) | `.helix/audit/deferred-findings.yaml` (L4 carry) | N/A (L4 carry) | `P[0-3]\b.*carry\|deferred` |
+| **readiness** | 工程 entry/exit 条件の機械判定可能性 | `helix gate <NN> --static-only` | `cli/lib/gate.py` | `static_subchecks` | `readiness\|static_subchecks` |
+| **agent_slot** | 並列実行可能な特化エージェント slot (mandatory 10 / on-demand 4)。**§12 正本用語**、L1 §10 entity 名と同一 | `helix agent <fire\|fire-mandatory\|suggest\|slots>` | `.claude/agents/*.md` | `agent_slots` table (helix.db) | `agent_slot\|subagent` |
+| **handover** | PM ↔ TL ↔ 実装担当 の作業引き渡し protocol | `helix handover <dump\|status\|update\|resume\|escalate\|clear>` | `.helix/handover/CURRENT.json` | `handover_status` table (helix.db) | `handover` |
+| **sprint** | L7 実装工程内の機能 PLAN (L7-<機能名>plan)、Step 1-8 標準構造 | `helix sprint <status\|next\|complete\|reset>` | `docs/plans/L7/L7-*plan.md` | `sprint_progress` table (helix.db) | `^L7-.*plan\.md$\|sprint` |
+| **phase** | 現在の工程進捗 (Phase 0-4 / R / L<NN> + drive 別) | `helix gate` (進捗判定) | `.helix/phase.yaml` | N/A (YAML state) | `^Phase:\|^phase:\|process_layer:` |
+| **IIP / deferral** | 既知の未解決事項 (Improvement In Progress / 意図的 deferral) の registry | N/A (L4 carry、`helix doctor check_carry_lifecycle`) | `.helix/audit/deferred-findings.yaml` (L4 carry、現状未整備) | N/A (L4 carry) | `IIP\|deferral\|deferred` |
+| **ADR** | アーキテクチャ決定記録 (Michael Nygard 2011)、L2 大局判断の snapshot | `helix adr` (一部 CLI 不在 carry) | `docs/adr/ADR-NNN-*.md` | `frontmatter.adr_snapshot` | `^ADR-[0-9]+` |
+
+**用語追加 carry (P3 由来、L4 で実装)**: `BR` / `FR` / `NFR` / `OT` / `AC` (要件 ID prefix) は L1/L3 doc で頻出するが、本 §12 ではメタ用語として記載省略。L4 基本設計で要件 ID prefix の命名規約を凍結する。
+
+### §12.2 機械判定 carry (L4 基本設計で実装、本 §12 では仕様宣言のみ)
+
+- `helix doctor check_ubiquitous_language`: L1-L14 doc 内の表記ゆれ / 未定義用語を warn (本 §12.1 表から正規表現自動抽出)
+- `helix doctor check_glossary_coverage`: 各用語の「対応 CLI / file path / schema field」列が空でないか fail-close
+- `helix doctor check_carry_lifecycle`: P0/P1/P2/P3 carry の lifecycle が `.helix/audit/deferred-findings.yaml` に登録済か (現状未整備、L4 で整備)
+
+---
+
+## §13 業界標準への整合 mapping (doc-system-architect 適用、SSoT 宣言)
+
+> **正本宣言**: HELIX-workflows の各設計層が外部業界標準のどれと整合するかを本 §13 で **Single Source of Truth** として確定。doc-system-architect skill の「業界標準への整合」軸を本 doc で適用。
+> **機械判定化方針**: §13.1 で工程別 mapping、§13.2 でコーディング規約 SSoT path 列挙、§13.3 で既存 lint ツール組み込み計画 (8 領域)、§13.4 で `helix doctor check_*` carry を明示。
+
+### §13.1 工程別業界標準 mapping (L0-L14、15 工程)
+
+| HELIX 工程 | 整合先業界標準 | 対応 section / 適用先 |
+|---|---|---|
+| **L0** 企画 | Lean Startup MVP (Eric Ries 2011) / Sean Ellis "North Star Metric" 概念 (2017) | 本 §5.1 Primary NSM + §1 北極星指標 |
+| **L1** 要求 | **ISO/IEC/IEEE 29148:2018** Requirements Engineering (主) / IEEE 830-1998 SRS (historical reference) / **IPA 非機能要求グレード 2018** 6 大項目 / **ISO/IEC 25010:2023** 8 特性 (※2011 から 2023 へ更新、IPA 2018 との mapping は注記) | L1 BR doc §1 / L1 NFR doc §1-§7 (確定済) |
+| **L2** 全体設計 | **arc42 v8** (architecture documentation template) / **C4 model** (Context / Container / Component / Code, Simon Brown 2018) | (L2 doc 未起票、L4 carry) |
+| **L3** 要件 | **ISO/IEC/IEEE 42010:2022** (Architecture description) / **ISO/IEC 25010:2023** 8 特性 / **IPA 非機能要件グレード値 (レベル 0-5、2018 版)** | L3 NFR doc §1-§6 IPA グレード値確定済 |
+| **L4** 基本設計 | **arc42 §5 Building Block View** / **ADR (Michael Nygard 2011)** | (L4 未起票、本 doc §11 carry) |
+| **L5** 詳細設計 | **C4 Container / Component level** + ADR 凍結 | (L5 carry) |
+| **L6** 機能設計 | **C4 Code level** / **Diátaxis** (Tutorial / How-to / Reference / Explanation, Daniele Procida 2017) | (L6 carry) |
+| **L7** 実装スプリント | **TDD** (Kent Beck 2003) / **xUnit pattern** (Gerard Meszaros 2007) | (carry) |
+| **L8** 結合検証 | **xUnit pattern** / Contract testing (Ian Robinson 2010) | (carry) |
+| **L9** 総合検証 | **ISO/IEC 29119** (Software Testing) | (carry) |
+| **L10** UX | **WCAG 2.2** (accessibility) / **Material Design 3** | (FE 駆動時のみ、carry) |
+| **L11** RC | **DORA 4 metrics** (Forsgren et al. 2018: deployment frequency / lead time / change failure rate / MTTR) | (carry) |
+| **L12** デプロイ | **12-factor app** (Adam Wiggins 2011) / IPA SLA グレード値 | L3 NFR-OP-* / L12 受入テスト設計 |
+| **L13** 安定性 | **Google SRE SLO/SLI** (2016) | (carry) |
+| **L14** 運用学習 | **postmortem** (Google SRE 2016) / **Keep a Changelog v1.1.0** | L1 BR doc §7 想定 |
+| **全層共通** | **Single Source of Truth** (DDD, Eric Evans 2003) / **Ubiquitous Language** | 本 §12 Glossary が SSoT |
+
+### §13.2 コーディング規約 Single Source of Truth (path 列挙、repo-local / external 分離)
+
+> **機械判定 (P1 #5 反映)**: repo-local path は `path_exists` checker、external path は `external_path_exists` checker で分けて判定する。混在は fail-close 解釈の曖昧化要因のため禁止。
+
+#### §13.2.1 repo-local path (4 件、`path_exists` checker 対象)
+
+| 規約種別 | 正本 path | 適用範囲 |
+|---|---|---|
+| **Bash / Python コーディング規約** | [`CLAUDE.md`](../../../CLAUDE.md) §コーディング規約 | `cli/helix-*` + `cli/lib/*.py` 全体 |
+| **コミット規約** (1 commit = 1 PLAN / HEREDOC / Co-Authored-By) | [`CLAUDE.md`](../../../CLAUDE.md) §コミット規約 | 全 commit |
+| **HELIX 固有規約** (PLAN naming / frontmatter / pair freeze / V-model 4 artifact / 並列 8) | [`skills/SKILL_MAP.md`](../../../skills/SKILL_MAP.md) + [`helix/HELIX_CORE.md`](../../../helix/HELIX_CORE.md) | HELIX-workflows 全工程 |
+| **TDD 全 mode 共通絶対原則** | [`HELIX-workflows/HELIX-process-L0-L14.md`](../../../HELIX-workflows/HELIX-process-L0-L14.md) §基本原則 | 9 mode 全て (Forward / Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) |
+
+#### §13.2.2 external path (1 件、`external_path_exists` checker 対象)
+
+| 規約種別 | 正本 path (external) | 適用範囲 |
+|---|---|---|
+| **運用ルール** (verify-before-act / 二重 audit / 並列 8 / 偽 summary 対策 / SSH 認証 verify 等) | `~/.claude/projects/-home-tenni-ai-dev-kit-vscode/memory/MEMORY.md` + `feedback_*.md` 群 | session 運用全般 (Claude Code project-local memory) |
+
+### §13.3 既存 lint / scan ツール組み込み計画 (L4 carry、8 領域、導入分類付き)
+
+[[feedback_helix_fill_holes_principle]] 「失敗事象 memo→構造化→仕組み化→自動検出」原則に整合。HELIX 自製ツールではなく既存 OSS を組み込む方針。**導入分類 (P2 #3 反映)**: `installed` = 既導入 / `optional` = L4 で導入判断 (CI 時間・ライセンス・承認) / `CI-only` = pre-commit 負荷回避のため CI 限定。
+
+| 領域 | OSS ツール | 対象 | 組み込み先 | 導入分類 |
+|---|---|---|---|---|
+| **markdown** | markdownlint / vale | docs/**/*.md | pre-commit hook + `helix doctor check_markdown_lint` (L4 carry) | optional (vale は文体規約、L4 で導入判断) |
+| **shell** | shellcheck / shfmt | `cli/helix-*` | pre-commit hook | optional (L4 で導入判断、現状 `bash -n` のみ) |
+| **Python** | ruff / black | `cli/lib/*.py` | pre-commit hook + CI | optional (ruff/black、`pyright` は CI-only 候補で重い) |
+| **YAML** | yamllint | `cli/config/*.yaml` | pre-commit hook | optional |
+| **SQL** | sqlfluff | migration SQL | `helix code stats` 拡張 (L4 carry) | CI-only (SQL ファイル少、pre-commit 負荷回避) |
+| **依存脆弱性** | pip-audit / safety | requirements.txt | CI 定期実行 | CI-only (週次推奨) |
+| **secret スキャン** | gitleaks / trufflehog | 全 commit | pre-commit hook + CI | optional (gitleaks 推奨、trufflehog は CI-only) |
+| **静的解析** | semgrep | `cli/lib/*.py` | CI 定期実行 | CI-only (ライセンス確認 + 時間コスト)
+| **型チェック** | pyright | `cli/lib/*.py` | CI 定期実行 | CI-only (重量、L4 で導入判断) |
+
+### §13.4 機械判定 carry (L4 で凍結)
+
+- `helix doctor check_coding_rule_sot`: §13.2 で宣言された SSoT path 5 件 (CLAUDE.md / SKILL_MAP.md / HELIX_CORE.md / HELIX-process-L0-L14.md / memory directory) 全件存在チェック (fail-close)
+- `helix doctor check_industry_standard_coverage`: §13.1 mapping で全工程 (L0-L14、15 段) に業界標準が明示されているか fail-close
+- 8 領域 lint 組み込みは L4 基本設計の対象範囲、本 doc では宣言のみ
+
+---
+
+## §14 Bounded Context (DDD 適用、Forward 本体 1 + derived 9 mode = 10 BC)
+
+> **正本宣言**: HELIX-workflows の Bounded Context (BC) を mode 単位で本 §14 で確定。各 BC は **共通ユビキタス言語 §12** を共有しつつ mode 固有用語を持つ。BC 越境時は **anti-corruption layer = §12 Glossary 経由** で意味写像する (直接他 BC 固有用語の引用を禁止)。
+
+### §14.1 BC 一覧 (10 行 = Forward 本体 1 + derived mode 9)
+
+| BC | 入口判定 | 対応工程 | 固有用語 (mode-specific) | anti-corruption 経由先 |
+|---|---|---|---|---|
+| **Forward** (本体) | 要件・設計・契約が確定 | L0-L14 全工程 | (本体、§12 全用語使用) | (本体) |
+| **Scrum** (アジャイル反復) | ユーザー要件すり合わせ反復 | L1-L3 反復 → L4 進入 | sprint goal / iteration / increment / velocity | §12 PLAN / gate / artifact 経由で Forward L1 へ |
+| **Discovery** (検証駆動) | 要件未確定・仮説検証 | D0-D4 (`.helix/scrum/` runtime) | hypothesis / PoC / verify script / confirmed-rejected | §12 PLAN 経由で Forward L1 (confirmed → 昇格) |
+| **Reverse** (逆引き) | 既存コードからの設計復元 | R0-R4 + RGC | characterization tests / observed contract / intent hypothesis / RGC closure | §12 artifact / trace 経由で Forward L1/L3/L4/L7/L8-L11 |
+| **Incident** (緊急対応) | 本番障害の hotfix | hotfix→L7 / permanent→L1/L3/L4-L6 / postmortem→L14 | hotfix / postmortem / RCA / kill switch / 3 経路並走 | §12 gate (G7) + L14 (postmortem) 経由 |
+| **Add-feature** (差分追補) | 既存システムへの差分機能追加 | add-design (L4-L6) → add-impl (L7) → L8-L14 | add-design / add-impl / boundary contract / 互換期間 | §12 artifact / pair freeze 経由 |
+| **Refactor** (構造改善) | 振る舞い不変の構造改善 | L7 内部 + L8/L9 流用 | smell / behavior preservation / safety net test | §12 trace / pair freeze 経由 |
+| **Retrofit** (基盤改修) | 依存・基盤の段階改修・移行 | L4/L5 追補 + L8/L9 回帰 | retrofit matrix / migration phase / compatibility window | §12 PLAN kind=retrofit / generates 経由 |
+| **Research** (技術調査) | 実装前の技術調査・意思決定 | `helix research` + ADR + research-memo | hypothesis / decision (Accepted / Superseded) / option | §12 ADR snapshot 経由で L0/L4 採用判断 |
+| **Recovery** (AI 暴走ガード) | AI エージェント独断専行ガード+収束 | kind=recovery + recovery-log + stop-hook + cutover_orchestrator | trigger 4 種 (想定外大規模 / 工程逸脱 / 認識ズレ / 予算超過) / kill switch | §12 handover / PLAN 経由 |
+
+### §14.2 anti-corruption layer 設計 (BC 越境例 ≥ 3 件)
+
+BC 越境時は **§12 Glossary を経由** して意味写像する (P2 補正: 「直接引用禁止」を弱め、「**Forward 正本 doc へ未変換のまま定義語として持ち込まない**」とする。レビュー・移行 doc では引用可能、ただし定義語として固定する場合は §12 用語へ変換)。
+
+- **例 1** (Reverse → Forward): R3 `intent hypothesis` → §12 `PLAN.frontmatter.background` への変換を経由 (`hypothesis` を Forward L1 doc の **定義語** として持ち込まない、L1 doc では `要求の背景` または `BR-01〜BR-08`)
+- **例 2** (Incident → Forward): Incident `RCA (Root Cause Analysis)` → §12 用語の `drift` + `BR` (L1 業務要求) への変換を経由 (`RCA` を L3 業務要件 doc の **定義語** として持ち込まない、L3 では業務ルール (※ §12 `BR` の詳細化、本 §13 carry 候補で要件 ID prefix 命名は L4 凍結) として再表現)
+- **例 3** (Discovery → Forward): Discovery `confirmed` → §12 `BR` (業務要求) への昇格 (`hypothesis confirmed` を L1 BR doc の **定義語** として持ち込まない、L1 では `BR-XX として正式採択`)
+- **例 4** (Research → Forward): Research `ADR-Accepted` → §12 `ADR` (アーキテクチャ決定記録) snapshot 参照 (`option / decision` を L4 doc の **定義語** として直接引用せず、§12 `ADR` snapshot path を経由)
+
+### §14.3 機械判定 carry (L4 で凍結)
+
+- `helix doctor check_bc_anti_corruption`: mode 切替時 (route_engine.py が判定) に §12 Glossary 経由の意味写像が経由されているか fail-close (実装難度高、Phase 4-5 carry)
+- `helix doctor check_bc_mode_coverage`: 9 mode 全列挙が本 §14.1 にあるか fail-close (現状は機械化未着手、本 doc 起票時点で 9 mode 全網羅確認済)
+- 9 mode の機械判定境界は L4 基本設計で `cli/lib/route_engine.py` + `cli/config/route-engine.yaml` (L4 carry) に確定 (本 doc では仕様宣言のみ)
+
+---

@@ -21,6 +21,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 >
 > **scope**: FR の仕様・CLI 契約・副作用・技術制約まで。API / DB schema の実装詳細、detector algorithm の厳密化、migration script の詳細は L4-L6 で確定する。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 機能一覧 (FR-* 確定版)
 
 | L3 FR-ID | 機能名 | 主な統合元 | 概要 |

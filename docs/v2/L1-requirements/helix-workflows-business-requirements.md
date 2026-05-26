@@ -181,3 +181,45 @@ L0 §8.2 で「保留 (L1/L3 で確定)」とされた 3 件のうち、本 L1 �
 | L1-IN-13 | Phase α/β/γ 境界 KGI 確定 + must/should/later 3 層分割 + kill criteria | L3 要件定義 (G3 凍結前) | 業務要求 doc §5 BR 優先度配分 + 本 §9 で部分言及、L3 で数値閾値確定 |
 | L1-IN-14 | **専門エージェント / team 構造 (memory carry §9 P1.5) の Phase 配分** (チームアルゴリズム設計 / チームセキュリティ監査 / ドメインチェック自動化 / コーディングルール自動化等の team 編成) | L4 基本設計 (G4 凍結前) | 本 §9.1 carry のみ言及、L4 で team 構造 + 各 team の使用フェーズ + ROI 評価を確定 |
 | L1-IN-15 | 逆引き audit 11 穴の段階対応 (P1 進化/繁殖/老化/共生/代謝 + P2 内分泌/循環/消化/性差 + P3 多細胞化/神経変性) | 段階対応 (P1 = L3-L4 / P2 = L7-L9 / P3 = L13-L14) | NFR doc §3 NFR-OP-04 進化系統 trace + 本 §9.1 carry で全 11 穴 + 階層的 deferment |
+
+## §10 業務 entity 列挙 (DDD 適用、要件レベル / 詳細は L4)
+
+> **正本宣言**: HELIX-workflows の業務 entity を要件レベルで列挙する。**ユビキタス言語の SSoT は L0 concept §12 Glossary** (本 doc は §12 を parent_doc reference として参照)。各 entity の属性 / 集約境界 / ライフサイクル詳細は **L4 基本設計** (arc42 §5 Building Block View) で確定する (carry)。
+> **機械判定化方針**: 各 entity に「対応 helix.db table / CLI subcommand」を併記し、`helix doctor check_business_entity_coverage` (L4 carry、新設) で entity ↔ schema / CLI 整合を検出可能にする ([[feedback_helix_fill_holes_principle]] 整合)。
+
+### §10.1 主要業務 entity 一覧 (L0 Glossary term との対応明示)
+
+> **P1 #3 反映 (2026-05-26 tl-advisor adversarial check)**: 各 entity が L0 §12.1 Glossary のどの用語と対応するかを列追加。L1 独自定義は禁止、L0 §12 用語と 1:1 対応 (anti-corruption layer)。
+
+| 業務 entity | L0 Glossary term ([§12.1](../L0-helix-workflows/concept.md)) | 業務的意味 (BR で扱う側面) | 対応 helix.db table / CLI subcommand / file |
+|---|---|---|---|
+| **plan** | `PLAN` | 1 工程の起票単位、誰がいつ何を確定するかの契約書 | `plan_registry` table / `helix plan <list|show|lint|validate>` / `docs/plans/L<NN>/L<NN>-○○○plan.md` |
+| **gate** | `gate` | 工程突合チェックポイント、確定 / 凍結 / fail-close の権限境界 | `helix gate <NN>` / `cli/config/gate-policy.yaml` (L4 carry) |
+| **artifact** | `artifact` | 4 種 (設計 / 実装コード / テスト設計 / テストコード)、V-model trace 単位 | `frontmatter.generates.artifact_type` / `helix doctor check_4artifact_trace` |
+| **pair** | `pair freeze` (略称) | V-model 設計層 ↔ 検証層の対凍結関係 (L1↔L14 等 6 対) | `frontmatter.pairs_test_design` / `pair_volume_balance` view / `helix doctor V-model pair freeze` |
+| **mode** | `mode` | HELIX 入口判定 (Forward 本体 + 9 派生 mode) | `cli/lib/route_engine.py` / `helix route` (一部 carry) |
+| **drive** | `drive` | タスク駆動タイプ (be / fe / db / fullstack / agent) | `helix size --drive <type>` / `VALID_DRIVES` |
+| **agent_slot** | `agent_slot` (L0 正本用語、§12.1 で `subagent` から rename) | 並列実行可能な特化エージェント slot (mandatory 10 / on-demand 4) | `helix agent <fire|fire-mandatory|suggest|slots>` / `agent_slots` table / `.claude/agents/*.md` |
+| **handover** | `handover` | PM ↔ TL ↔ 実装担当 の作業引き渡し protocol | `helix handover <dump|status|update|resume|escalate|clear>` / `.helix/handover/CURRENT.json` |
+| **sprint** | `sprint` (L0 §12.1 で正式追加、2026-05-26 P1 #3 反映) | L7 実装工程内の機能 PLAN (L7-<機能名>plan)、Step 1-8 標準構造 | `helix sprint <status|next|complete|reset>` / `sprint_progress` table |
+| **phase** | `phase` (L0 §12.1 で正式追加、2026-05-26 P1 #3 反映) | 現在の工程進捗 (Phase 0-4 / R / L<NN> + drive 別) | `.helix/phase.yaml` / `helix gate` |
+| **carry** | `carry` | 次工程に持ち越す未確定項目 (P0/P1/P2/P3 4 段) | `.helix/audit/deferred-findings.yaml` (L4 carry、現状未整備) / memory `feedback_*.md` |
+| **trace** | `trace` | 4 artifact 間の双方向 reference | `frontmatter.parent_design` / `frontmatter.next_pair_freeze` / `helix doctor check_4artifact_trace` |
+
+### §10.2 L4 carry (ドメインモデル詳細化)
+
+本 §10 は **業務側面の entity 列挙** に留め、以下は L4 基本設計 (arc42 §5 Building Block View) で確定する:
+
+- **集約境界** (例: plan ⊃ sprint / plan ⊃ artifact / handover ↔ phase)
+- **値オブジェクト** (例: balance_ratio / readiness / IIP)
+- **エンティティ ID 規約** (例: plan_id = `L<NN>-○○○plan` / artifact_path / gate_id)
+- **ライフサイクル** (例: plan.status: draft → finalized → completed → superseded)
+- **不変条件** (例: pair freeze 後の artifact 改変禁止 / TDD 順序強制)
+- **集約間の整合性ルール** (例: balance_ratio ≥ 1.0 / trace 双方向必須)
+- `helix doctor check_business_entity_coverage` 新設 (entity ↔ table / CLI 不整合を fail-close)
+
+### §10.3 SSoT 参照
+
+- **ユビキタス言語 SSoT**: [L0 concept §12 Glossary](../L0-helix-workflows/concept.md) (主要 19 用語)
+- **Bounded Context SSoT**: [L0 concept §14 BC](../L0-helix-workflows/concept.md) (9 mode + Forward 本体)
+- **業界標準整合 SSoT**: [L0 concept §13](../L0-helix-workflows/concept.md) (L0-L14 工程別)

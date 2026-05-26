@@ -19,6 +19,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 >
 > **scope**: 業務フロー (mermaid + step) / 業務ルール (条件分岐 / 制約 / 例外) / 対象業務範囲 (in/out scope) まで。**機能仕様 / 入出力定義** は L3 機能要件 doc で、**システム機能設計** は L4-L6 で行う。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 業務フロー (確定版、BR-* 詳細化)
 
 ### §1.1 BR-01 dogfooding 稼働 業務フロー

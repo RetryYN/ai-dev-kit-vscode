@@ -32,6 +32,8 @@ related_l1_doc: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | BR-07 AI agent 配線 | OT-07 vmodel-semantics.yaml 注入セット利用率 = 各工程 entry 時の mandatory_skills / recommended_commands 注入成功率 | 毎週月曜 | < 90% で helix-context 設定 audit + skill / command catalog rebuild |
 | BR-08 採用 project 展開 | OT-08 採用 project の dogfooding 稼働率 (採用 project の V-model 整合 PLAN 完遂数 / 期待値) | 毎月末 | 稼働率 < 50% で onboarding doc + CLI portable 化 carry 起票 |
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 運用テスト設計の詳細 (Step 3 で埋める)
 
 ### OT-01: V-model 整合 PLAN 完遂数 (NSM 測定)

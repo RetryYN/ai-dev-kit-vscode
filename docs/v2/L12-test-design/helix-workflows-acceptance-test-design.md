@@ -37,6 +37,8 @@ L3 3 PLAN それぞれに対応する AC-* を 3 section で構成:
 
 **量閉じ性 (Chargaff's rule、L0 §5.3)**: 各 section で対応要件と AC が `balance_ratio = AC_count / requirement_count ≥ 1.0` を満たすことを G3 機械検証。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 業務系受入テスト (BR-* ↔ AC-BR-*、Phase E.A で確定)
 
 ### AC-BR-01: dogfooding 稼働 受入テスト

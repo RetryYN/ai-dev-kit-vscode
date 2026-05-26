@@ -18,6 +18,8 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 >
 > **scope**: L1-IN-05/06/07/08/10 を中心に、技術選定・制約・外部連携・既存資産制約を明記する。破壊的 schema 変更、CLI 互換切替、mode event 永続化方式の細部は L4-L5 で確定する。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 採用技術・技術制約
 
 | TR-ID | 領域 | 採用技術 / 制約 |

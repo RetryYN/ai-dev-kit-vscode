@@ -21,6 +21,8 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 >
 > **件数 (2026-05-26 tl-advisor G1 audit P0 #2 確定)**: NFR は **6 領域 (AV / PF / OP / MG / SC / SE) × 計 23 件** (AV=3, PF=4, OP=5, MG=3, SC=5, SE=3)。L4 基本設計 (G4 凍結) で詳細化 + IPA グレード値確定。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 可用性 (Availability)
 
 | NFR-ID | 要件 | 根拠シグナル | IPA 大項目 | ISO 25010 | 検証観点 |

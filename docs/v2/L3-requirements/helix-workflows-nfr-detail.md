@@ -18,6 +18,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 >
 > **確定ルール**: 本 doc の「レベル」は HELIX-workflows 用に採用する L3 の確定値であり、L4 ではその達成方法 (監視・実装方式・集計経路) を凍結する。L12 は初期受入、L13 は安定性、L14 は運用検証を担当する。
 
+> **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
+
 ## §1 可用性 (NFR-AV-* IPA グレード値)
 
 | NFR-ID | L3 確定値 | target / 判定条件 | ISO 25010 | 検証境界 |
