@@ -375,6 +375,104 @@ industry_standards:
 - ADR-042 の既存受け取り先（非 v2）に影響を与えない。
 - `gateway` / `forward_target` / `recommended_pipeline` は空値許容（`null`）で移行可能。
 
+### Sub-Decision 7: helix.db deviation log + Forward 唯一正本 + sync flow（2026-05-28 ユーザー指摘で確立）
+
+#### 方針
+
+- ユーザー指摘 2026-05-28: 「ヘリックスdbね。フォワードからの逸脱の記録を残して、ドキュメント化したときもログとして残す意味な。フォワードは唯一の正本dbとして逸脱を記録してＶモデルに書いたらコード類を同期するような感じね。」
+- **Forward (V-model L0-L14 doc)** を **唯一の正本** (single source of truth) として扱う。
+- 各 mode で発生した **Forward からの逸脱** (設計 skip / 実装先行 / contract drift / hotfix 差分 / 暴走収束 等) を helix.db に **mode 別 deviation log** として記録する。
+- Reverse Gateway Profile を経由して V-model doc に反映した時点で `reflected_at`、code 同期完了時点で `synced_at` を記録する。
+- doc 直接修正は禁止 (原則「Research を除くフォワード外は全 Reverse 経由」と整合)。
+- 振り返り / 監査 / framework 改善のための一次データとして deviation log を活用する。
+
+#### sync flow (3 段階)
+
+```text
+[Non-Forward 8 mode で逸脱発生]
+  ↓ insert deviation_log (status=pending, created_at)
+  ↓
+[Reverse Gateway Profile (mode 別 profile)]
+  ↓ V-model doc 確定 (Forward L0-L14 doc 反映)
+  ↓ update deviation_log (status=reflected, reflected_at)
+  ↓
+[Forward DB = 唯一の正本]
+  ↓ V-model doc → code 同期 (ratchet)
+  ↓ update deviation_log (status=synced, synced_at)
+```
+
+#### スキーマ案 (Wave 6 route_engine 契約拡張で実体化)
+
+```sql
+-- 共通 deviation log (全 mode 共通フィールド)
+CREATE TABLE deviation_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mode TEXT NOT NULL,                    -- scrum/discovery/incident/recovery/add-feature/retrofit/refactor/research
+  deviation_type TEXT NOT NULL,          -- design_skip / impl_first / contract_drift / hotfix_diff / runaway 等
+  source_layer TEXT,                     -- L0-L14 (発生元 layer)
+  source_file TEXT,                      -- 逸脱が発生した実装/doc path
+  source_plan_id TEXT,                   -- 該当 PLAN ID
+  reverse_profile TEXT,                  -- fullback / poc-fullback / normalization / post-hotfix 等
+  forward_target_layer TEXT,             -- L0-L14 反映先
+  forward_target_doc TEXT,               -- 反映先 doc path
+  status TEXT NOT NULL DEFAULT 'pending',-- pending / reflected / synced
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  reflected_at TIMESTAMP,
+  synced_at TIMESTAMP
+);
+CREATE INDEX idx_deviation_log_mode_status ON deviation_log(mode, status);
+CREATE INDEX idx_deviation_log_created_at ON deviation_log(created_at);
+
+-- mode 固有 metadata (必要に応じ拡張、本 ADR では schema 案のみ)
+CREATE TABLE deviation_scrum_meta (
+  deviation_id INTEGER PRIMARY KEY,
+  hypothesis_id TEXT,
+  sprint_id TEXT,
+  FOREIGN KEY (deviation_id) REFERENCES deviation_log(id)
+);
+
+CREATE TABLE deviation_refactor_meta (
+  deviation_id INTEGER PRIMARY KEY,
+  refactor_plan_id TEXT,
+  before_sha TEXT,                       -- 振る舞い不変保証の before SHA
+  after_sha TEXT,                        -- after SHA
+  test_protection_layer TEXT,            -- 既存テスト保護網 (L7/L8/L9)
+  FOREIGN KEY (deviation_id) REFERENCES deviation_log(id)
+);
+
+CREATE TABLE deviation_incident_meta (
+  deviation_id INTEGER PRIMARY KEY,
+  severity TEXT,                         -- P0/P1/P2
+  hotfix_pr TEXT,                        -- hotfix PR URL
+  postmortem_id TEXT,                    -- L14 postmortem 連携
+  FOREIGN KEY (deviation_id) REFERENCES deviation_log(id)
+);
+
+-- 他 mode (discovery / recovery / add-feature / retrofit / research) も同 pattern で拡張可能
+```
+
+#### 業界標準整合
+
+- **ISO/IEC/IEEE 42010:2022** (Architecture Description) — rationale 永続化要求 (deviation log = rationale 一次データ)
+- **DevOps Three Ways** — feedback loop 強化 (逸脱 → 反映 → 同期 の閉ループ)
+- **arc42 §9 Design Decisions** — 決定 trace (deviation 発生時の判断記録)
+- **DDD Event Sourcing** — 状態変化を log として保持 (status 遷移を append-only 記録)
+
+#### 受け入れ条件
+
+- 各 mode で発生した逸脱が `deviation_log` に記録される (mode + deviation_type + source 必須)。
+- Forward V-model doc への反映が `reflected_at` で trace される。
+- code 同期完了が `synced_at` で trace される。
+- doc 直接修正による逸脱は workflow doc + lint で防止される (workflow doc に「Reverse 経由必須」明記、PostToolUse hook で警告)。
+- mode 別 metadata table は必要に応じ拡張可能 (本 ADR では schema 案のみ、実装は Wave 6)。
+- Forward (V-model L0-L14 doc) と code の単方向同期が崩れない (code 先行 → Reverse 経由必須)。
+
+#### 実装 carry (本 ADR では schema 案のみ、PLAN 起票は別 wave)
+
+- **Wave 6** (route_engine 契約拡張): `deviation_log` schema 追加 + insert/update hook 整備。**L5 詳細設計 (DB) PLAN + L7 実装 PLAN** を別途起票。
+- **Wave 7** (8 mode workflow doc 同期): 各 mode workflow doc に「Reverse Gateway Profile + deviation log 記録」section 追加。
+- **Wave 8** (検証): deviation_log 読み出し test + reflected → synced 流れの E2E test。
+
 ## Routing Design (Reverse Gateway Profile)
 
 ### 追加的 route model（ADR-047 提案）
