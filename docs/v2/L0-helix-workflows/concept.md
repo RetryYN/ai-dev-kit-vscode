@@ -673,7 +673,7 @@ flowchart TB
 
 ## §8 L1 バトン (L1 4 PLAN (業務要求 / 機能要求 / 技術要求 / 非機能要求) へ引き継ぐ項目)
 
-### §8.1 L1 で確定する項目 (採択、10 件)
+### §8.1 L1 で確定する項目 (採択、17 件)
 
 1. **L1-IN-01**: Primary NSM "V-model 整合 PLAN 完遂数" の 6 axes 機械判定契約
 2. **L1-IN-02**: Guardrail 3 軸 (Pair Freeze / Agent Error Budget / TTFSP) の独立性 + fail-close 条件
@@ -701,6 +701,7 @@ flowchart TB
 14. **L1-IN-19** (2026-05-26 追加、ユーザー指摘「ドキュメント体系の中に移行要求もいりそう」): **既存資産の段階移行・retrofit** — V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration / retrofit pipeline** を要件として組み込む。具体的: 旧 V1 PLAN 223 件は `is_reference: true` 化、helix-* CLI rename / skill 棚卸し、frontmatter field 移行 (例: kind=impl→process_layer=L7、L1 → L1-helix-workflows-*-plan)、helix.db schema migration、ADR snapshot 後追い起票。**Strangler Fig Pattern (Martin Fowler 2004)** ベースで段階置換、`helix doctor check_migration_pending` (L4 carry) で残量管理。BR-09 (整理) と BR-10 (移行) は責務分離 (整理 = 現状評価、移行 = 段階置換)
 15. **L1-IN-20** (2026-05-26 追加、ユーザー指摘「アドバイザーをよく使っているけど、ドキュメントレビューみたいなのがあった方がいい」): **doc 品質レビュー継続化** — tl-advisor (技術判断) / pm-advisor (大局判断) / pmo-sonnet (汎用構造化) と責務分離した **doc-reviewer 専用 role (Codex gpt-5.5 high read-only)** を新設し、大規模 doc 改定 (~500 行+) / G ゲート evidence / V-model 4 artifact pair freeze 前で必須召喚。4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / **ISO/IEC/IEEE 26515:2018**) + HELIX 固有 V-model 量閉じ性 (balance_ratio ≥ 1.0) / implementation_status 列必須を統合検査。`skills/workflow/doc-review/SKILL.md` + `cli/roles/doc-reviewer.conf` で実体化、`helix doctor check_doc_review_coverage` (L4 carry) で召喚 evidence audit
 16. **L1-IN-21** (2026-05-26 追加、ユーザー指摘「ドキュメント通過のために上流が修正されたら下流の修正も必要にしないとずれまくる。デグレ禁止の原則を守るガードレール機構が必要」): **デグレ禁止ガードレール (変更追跡 + ratchet 機構)** — 既存 V-model pair freeze (balance_ratio ≥ 1.0) は **結果整合** のみで、**上流変更 → 下流必須修正の機械追跡が完全に不在**。本 session 自身が「BR-09/10/11 追加 → L3 FR/NFR / L12 AC を後追いで思い出して修正」pattern を踏んでおり、framework として欠陥。**Continuous Delivery (Humble & Farley 2010) / Don't Break the Build (Google SRE 2020) / Ratchet Constraints (Google Testing Blog 2020) / Hyrum's Law (Hyrum Wright) / API Versioning (Semantic Versioning) / Trunk-based Development + branch protection** をベースに、**(1) 上流 ID (BR-* / FR-* / NFR-*) 追加 commit で下流対応 ID (FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit 以内に存在しない場合 fail-close (2) balance_ratio < 1.0 regression を前 commit との diff で機械検出 (3) 上流 ID 参照の下流 ID trace 切れ検出** の 3 軸で機械強制 (L4 carry)。実体化: `helix doctor check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness` 3 件新設
+17. **L1-IN-22** (2026-05-28 追加、ユーザー指摘「プランを作ったらユーザーに聞く前に TL に相談すること。なるべくユーザー負担を減らしてプラン自体の正当性を確認すること。これプラン起票のルールな。機能要求だぞ」): **PLAN 起票レビュールール** — PLAN 起票時、ユーザー確認の前に TL (tl-advisor) へ正当性レビュー (工程整合 / 既存重複 / V モデル順 / 採択判断・進め方の妥当性 / trace 整合) を自動相談し、PLAN 自体の正当性を TL で確認してユーザー負担を最小化する。**L1 process feedback 由来** (L0 企画当初の項目ではなく、L1 要求定義工程で確立)、デグレ禁止 **L1-IN-21 の自己適用** として L0 §8 へ遡及追加 (下流 FR-13 先行 → 上流追随)。機能要求 **FR-13** に対応。適用範囲 (全 PLAN 必須か、risk / size / trace-impact 閾値で mandatory / recommended / skip 分けか) は L3 で詳細化 (tl-advisor P2 反映)
 
 ### §8.2 L1 で保留 (L1/L3 で確定)
 
@@ -728,7 +729,7 @@ flowchart TB
 4. **AC-04**: Guardrail 3 軸 fail-close 設計記載 (§5.2)
 5. **AC-05**: Phase α/β/γ 仮境界 (§3.3) + 「L1 で KGI 確定」明示
 6. **AC-06**: 想定リスク 上位 3 件 (R1 / R2 / R3) に mitigation 記載 (§6)
-7. **AC-07**: L1 接続項目 **16 件 (採択 L1-IN-01〜12 + L1-IN-18 + L1-IN-19 + L1-IN-20 + L1-IN-21) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 21 件** 列挙 (§8) ※ 2026-05-26 ユーザー指摘 4 件 (「既存整理は要求の中に含まれる」+「ドキュメント体系の中に移行要求もいりそう」+「アドバイザーは多用しているがドキュメントレビュー専用 role が必要」+「上流修正時の下流追随を機械強制するデグレ禁止ガードレールが必要」) 反映で L1-IN-18/19/20/21 新規採択
+7. **AC-07**: L1 接続項目 **17 件 (採択 L1-IN-01〜12 + L1-IN-18〜22) + 3 件 (保留 L1-IN-13〜15) + 2 件 (見送り L1-IN-16/17) = 計 22 件** 列挙 (§8) ※ 2026-05-26 ユーザー指摘 4 件 (「既存整理は要求の中に含まれる」+「ドキュメント体系の中に移行要求もいりそう」+「アドバイザーは多用しているがドキュメントレビュー専用 role が必要」+「上流修正時の下流追随を機械強制するデグレ禁止ガードレールが必要」) 反映で L1-IN-18/19/20/21 新規採択 + 2026-05-28 L1-IN-22 (PLAN 起票レビュールール、FR-13 由来) を L1 process feedback として遡及追加 (デグレ禁止 L1-IN-21 自己適用)
 8. **AC-08**: HELIX-workflows 正本 (素材) への参照 path が §7.1 で完全列挙
 9. **AC-09**: Diagram 2 で Incident (hotfix→L7 / permanent→L1/L3/L4-L6 / postmortem→L14、3 経路並走可) と Recovery (cutover 設計差戻 L1/L3/L4-L6 + 実装差戻 L7) の分岐粒度が §6.5.2 で明示 (tl-advisor adversarial check 2026-05-26 反映)
 10. **AC-10**: V-model 量閉じ率の式が `balance_ratio = test_count / design_count ≥ 1.0` の向き (テスト÷設計) で §5.3 に記載 + paired_trace_coverage / orphan_test_count を併用 (tl-advisor P0 反映)

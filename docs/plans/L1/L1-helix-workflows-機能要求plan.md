@@ -34,6 +34,7 @@ related_docs:
   - docs/v2/L0-helix-workflows/concept.md
   - docs/v2/L1-requirements/helix-workflows-business-requirements.md
   - cli/templates/plan/v2/L01-requirements-template.md
+  - docs/plans/L1/L1-helix-workflows-要求定義移行plan.md
 ---
 
 ## §0 PLAN concept

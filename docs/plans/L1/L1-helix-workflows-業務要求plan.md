@@ -36,6 +36,7 @@ related_docs:
   - docs/v2/process/L01-requirements-and-operational-test-design.md
   - docs/v2/L0-helix-workflows/concept.md
   - HELIX-workflows/helix-process/L14-operation-verification.md
+  - docs/plans/L1/L1-helix-workflows-要求定義移行plan.md
 ---
 
 ## §0 PLAN concept

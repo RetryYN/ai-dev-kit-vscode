@@ -36,6 +36,7 @@ related_docs:
   - cli/lib/helix_db.py
   - cli/config/vmodel-semantics.yaml
   - cli/config/models.yaml
+  - docs/plans/L1/L1-helix-workflows-要求定義移行plan.md
 ---
 
 ## §0 PLAN concept

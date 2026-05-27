@@ -34,6 +34,7 @@ related_docs:
   - docs/v2/L1-requirements/helix-workflows-business-requirements.md
   - HELIX-workflows/helix-process/L1-requirements.md
   - docs/v2/process/L01-requirements-and-operational-test-design.md
+  - docs/plans/L1/L1-helix-workflows-要求定義移行plan.md
 ---
 
 ## §0 PLAN concept

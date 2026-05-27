@@ -18,7 +18,7 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 >
 > **境界**: 本 doc は L1 のため、API / schema / detector 実装詳細までは固定しない。詳細契約は L3 L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)、技術詳細は L1 技術要求 plan、受入ペア凍結は L3↔L12 で確定する。
 >
-> **件数 (2026-05-26 tl-advisor G1 audit P0 #2 確定)**: 機能要求は **FR-01〜FR-12 (計 12 件)**。L3 詳細化 (G3 凍結) で更に細分化される。
+> **件数 (2026-05-28 更新、FR-13 PLAN 起票レビュー追加)**: 機能要求は **FR-01〜FR-13 (計 13 件)**。L3 詳細化 (G3 凍結) で更に細分化される。
 
 > **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
 
@@ -37,7 +37,8 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 | FR-09 | 資産 inventory / density 可視化機能 | L1-IN-06 | skill、CLI、PLAN、docs、helix.db schema を L0-L14 工程へ双方向 mapping し、工程別の密度と未整備箇所を可視化できること。 |
 | FR-10 | layer context injection 機能 | L1-IN-07 | 対象工程に応じて mandatory skill、推奨 command、orchestration mode を自動注入し、AI の選択空間を工程単位で絞れること。 |
 | FR-11 | discrepancy routing 機能 | L1-IN-05 / 08 / 10 | drift、trace 欠落、gate 不整合、mode 復帰漏れを `discrepancy_log` 相当で検知し、interrupt / recovery / reverse normalization / manual review のどれに送るかを提案できること。 |
-| FR-12 | PLAN dependency / generates trace 機能 | L1-IN-03 / 09 | PLAN frontmatter の `dependencies` と `generates` を解釈し、上流下流関係と生成物 path の整合を機械的に追跡できること。 |
+| FR-12 | PLAN dependency / generates trace 機能 | L1-IN-03 | PLAN frontmatter の `dependencies` と `generates` を解釈し、上流下流関係と生成物 path の整合を機械的に追跡できること。(L1-IN-09 template 手順書化は §4 carry で扱い FR 化しない) |
+| FR-13 | PLAN 起票レビュー機能 | 2026-05-28 追加 (L1-IN-22) | PLAN 起票時、ユーザー確認の前に TL (tl-advisor) へ正当性レビュー (工程整合 / 既存重複 / V モデル順 / 採択判断・進め方の妥当性) を自動相談し、PLAN 自体の正当性を TL で確認してユーザー負担を最小化できること。ユーザーへの確認は TL レビュー通過後の要点のみに絞れること。適用範囲 (全 PLAN 必須か、risk / size / trace-impact 閾値で mandatory / recommended / skip 分けか) は L3 で詳細化する (tl-advisor P2)。 |
 
 ## §2 利用シナリオ
 
