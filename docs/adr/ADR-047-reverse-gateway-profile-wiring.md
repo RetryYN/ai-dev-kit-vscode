@@ -188,8 +188,8 @@ industry_standards:
 | Recovery | 収束フェーズ中心で stop-go を重視 | 事後（post-recovery） |
 | Retrofit | 逆接続があるが mode 間で不揃い | 必須（upgrade / normalization） |
 | Add-feature | 直感的には design+implementation の二段接続 | 必須（design entry + fullback） |
-| Refactor | 挙動不変ケースが多数 | 条件（normalization-lite） |
-| Research | 参照 doc や desk-check が主 | 条件（conditional） |
+| Refactor | 挙動不変でも doc trace 変動あり (ユーザー指摘 2026-05-28: 「直接 doc 触ると崩れる」) | **必須**（PLAN driven + normalization、Sub-Decision 1 へ移動） |
+| Research | 参照 doc 体系・desk-check が主、ADR が直接 Forward 接続 | **例外: 直接 Forward 接続**（Sub-Decision 3、1 mode のみ） |
 | HELIX W (設計論) | mode category 外 | 設計論として Phase 1/2/3 で profile 記載 |
 
 ### forward 入口に対する課題
@@ -205,12 +205,13 @@ industry_standards:
 「Non-Forward entry modes は Forward L0-L14 接続前に Reverse Gateway Profile を通す」。  
 ただし Emergency/収束中例外モードは profile の `post-*` パターンを使い、停止優先を維持する。
 
-### Sub-Decision 1: 必須 profile（4 mode、確実に Reverse gateway 経由）
+### Sub-Decision 1: 必須 profile（5 mode、確実に Reverse gateway 経由）
 
 #### 方針
 
-- Scrum / Discovery / Add-feature / Retrofit は必ず Reverse Gateway Profile を経由する。
+- Scrum / Discovery / Add-feature / Retrofit / **Refactor** は必ず Reverse Gateway Profile を経由する (ユーザー指摘 2026-05-28: 「リサーチを除くフォワードから外れる線は全部リバースで正本に戻す原則で直接ドキュメントから触ると崩れてトラブル可能性大」)。
 - Add-feature は既存の設計と実装断面差を吸収しやすくするため design-entry と fullback を両立する。
+- Refactor は PLAN driven 運用 (kind=refactor PLAN を先に起票 → 破壊点/デグレ trace → 本体 doc 確定 → 修正 → Reverse normalization で正本に戻す) で安全性確保。
 
 #### 詳細
 
@@ -238,11 +239,25 @@ industry_standards:
    - 出力: `forward_target=retrofit_plan`。  
    - `recommended_pipeline`: `suggest_command` の前後に normalization check を追加可能（additive）。
 
+5. Refactor：`PLAN driven + normalization` profile（ユーザー指摘 2026-05-28 で Sub-Decision 3 条件 profile から本必須 profile へ昇格）  
+   - **運用 pattern (5 step)**:
+     1. **`kind: refactor` PLAN を先に起票** (本体 doc 修正前)
+     2. PLAN で **破壊点 / デグレ可能性 / 影響範囲 (影響 module / 既存テスト保護網 / rollback evidence)** を構造化記述
+     3. **本体 doc 確定** (tl-advisor adversarial → TL approve → PLAN finalize)
+     4. **PLAN に基づき本体 doc 修正実施** (PM / Codex docs)
+     5. **Reverse normalization で正本に戻す** (必須、trace 整合 + 直接 doc 触りによる崩れ防止)
+   - 入力: kind=refactor PLAN (破壊点/デグレ/影響範囲 構造化済)。  
+   - 挙動: 振る舞い不変でも doc trace は必ず Reverse normalization 経由で正本同期。直接 doc 修正を禁止 (原則「Research を除くフォワード外は全 Reverse 経由」)。  
+   - 出力: `forward_target=refactor_plan`。  
+   - `recommended_pipeline`: PLAN finalize 後に normalization 必須、軽量化は profile 内 step (例: 振る舞い不変ケースは normalization 単段、設計 trace 変更時は ADR snapshot 追補) で対応。  
+   - ADR-041 の `code_smell` / `structural` → Refactor 直接分岐は **profile 内で保持** (route_engine v1 互換)。
+
 #### 受け入れ条件（required）
 
 - 各 mode で Reverse Gateway Profile が必須として明記される。
 - `profile`=fullback の定義が docs と route_engine で同義となる。
 - ADR-041 で定義された drift routing との整合が維持される。
+- Refactor は `kind: refactor` PLAN 起票が必須前提として明示される (PLAN 不在で本体 doc 直接修正は禁止)。
 
 ### Sub-Decision 2: 事後 profile（2 mode、緊急対応中 skip、収束後のみ）
 
@@ -267,42 +282,32 @@ industry_standards:
 - 収束中は reverse skip が許容されることを明示し、post 判定条件（収束トリガ）を定義する。
 - Recovery / Incident の初動速度が低下しない。
 
-### Sub-Decision 3: 条件 profile（2 mode、特定条件のみ）
+### Sub-Decision 3: 例外: 直接 Forward 接続 (1 mode、Research のみ)
 
 #### 方針
 
-- Refactor と Research は前提条件を満たした時のみ normalization / reverse を行う。
-- 既定時は軽量 profile を採用して、無駄な Reverse 実行を避ける。
+- ユーザー指摘 2026-05-28: 「リサーチを除くフォワードから外れる線は全部リバースで正本に戻す原則」=  **Research のみが Reverse Gateway Profile の例外**。
+- Research の出力 (ADR snapshot + research-memo) は **参照ドキュメント体系** = 既に doc 化済で、Reverse 経由で逆引きする必要なし。
+- 「既存資産を調べる必要がある」と判明した場合は Research → Reverse mode に **切り替え** (mode 切り替えは別経路、Research profile ではない)。
+- 旧 Sub-Decision 3 の Refactor は Sub-Decision 1 (必須 profile) へ移動済 (ユーザー指摘で訂正)。
 
 #### 詳細
 
-1. Refactor：`PLAN driven + normalization-lite` profile  
-   - **運用 pattern (ユーザー指摘 2026-05-28、5 step)**:
-     1. **`kind: refactor` PLAN を先に起票** (本体 doc 修正前)
-     2. PLAN で **破壊点 / デグレ可能性 / 影響範囲 (影響 module / 既存テスト保護網 / rollback evidence)** を構造化記述
-     3. **本体 doc 確定** (tl-advisor adversarial → TL approve → PLAN finalize)
-     4. **PLAN に基づき本体 doc 修正実施** (PM / Codex docs)
-     5. 設計 trace 変更時のみ **Reverse normalization-lite** (trace 整合のため)
-   - 効果: 破壊点 / デグレが PLAN trace で辿れる、後から見直しやすい (機械的 R0-R4 強制より軽量 + 安全)
-   - 条件:
-     - 挙動変更なしケース: lite のみ（軽量、Reverse skip）  
-     - 設計 trace 変更ケース: normalization を追加  
-     - ADR 整合不一致: normalization に昇格  
-   - `forward_target`: `refactor_plan`  
-   - `recommended_pipeline`: `suggest_command` まず維持し、必要時のみ normalization 系 pipeline を追加
-
-2. Research：`conditional` profile  
-   - 条件:
-     - 既存資産調査を要する場合のみ Reverse  
-     - ADR と現行 doc の齟齬検出時のみ Reverse  
-     - 机上検討/情報収集のみは直接 L1/L4 ADR 接続  
-   - `forward_target`: `research_plan`  
-   - `recommended_pipeline`: 机上 path は pipeline 追記なし、調査依存時に追加
+1. Research：**直接 Forward 接続** (Reverse Gateway Profile 不要)  
+   - 出力: ADR snapshot (`docs/adr/ADR-NNN-*.md`) + research-memo (`docs/research/*.md`) → 直接 L1 要求定義 / L4 基本設計 の判断材料に attach。
+   - `forward_target`: `research_plan` または `adr_snapshot`。
+   - `gateway`: `null` (本 mode は gateway 不要)。
+   - `recommended_pipeline`: `suggest_command` 単独 (ADR/memo doc を直接配置)。
+   - 例外切り替え:
+     - 「既存資産調査が必要」と判明 → Research → **Reverse mode (code/design type) へ切り替え** (Research profile の延長ではない)
+     - 「ADR と現行 doc に齟齬」と判明 → Research → **Reverse mode (normalization type) へ切り替え**
+     - 机上検討のみ → 切り替えなし、直接 Forward 接続を完遂
 
 #### 受け入れ条件
 
-- 条件評価ロジックが可観測であること（手順・条件を文書に保持）。
-- 条件未成立時の pass-through が明示されること。
+- Research は doc 体系を直接生成すること (ADR + research-memo) が明示される。
+- 切り替え条件 (Research → Reverse) が明示され、切り替え時は Reverse mode の独立経路を取る (Research profile の延長ではない)。
+- Reverse Gateway Profile の例外は **本 1 mode のみ** に限定し、他 mode (Refactor 含む) は必ず Sub-Decision 1/2 のいずれかを通る。
 
 ### Sub-Decision 4: HELIX W 特殊扱い（設計論カテゴリ）
 
