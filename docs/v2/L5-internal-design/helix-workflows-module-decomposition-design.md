@@ -58,7 +58,7 @@ owner: TL
 - 追加モジュール時の命名規約を M1〜M11 横断で適用。
 
 ### §1.3 固定数（観測値）
-- M1: `cli/` = 80 entry
+- M1: `cli/` = 93 entry (実測 `ls cli/helix-* | grep -v helix-plan-cmds | wc -l` = 93)
 - M1-s: `cli/helix-plan-cmds` = 12 file
 - M2: `cli/lib/` `*.py` = 139 file（非テスト）
 - M3: `.claude/hooks/` = 17 file
@@ -68,7 +68,7 @@ owner: TL
 - M7: `scripts/git-hooks/` = 2 file
 
 ### §1.4 差分メモ
-- pmo-sonnet inventory の想定と実体に差分が残っている箇所がある（72/84 想定 → 実体 80/12）。
+- pmo-sonnet inventory の想定値と実体に差分があった（72/80/84 は古い想定、実測 93 entry + plan-cmds 12 file = 105 件が正、R1 audit で確定）。
 - 差分は本 PLAN の前提差分として採番し、次アクションで解消。
 
 ## §2 機能 × module matrix (F1-F10 × 各 module、表形式)
@@ -312,11 +312,11 @@ owner: TL
 
 ## §3 cli/ dispatcher
 
-### §3.1 helix-* bash entry 一覧 (72想定 + plan-cmds12)
+### §3.1 helix-* bash entry 一覧 (実測 93 + plan-cmds 12 file = 105)
 
 本節は entry の物理一覧を凍結する。
 
-#### §3.1.1 既存 entry 一覧（実測 80）
+#### §3.1.1 既存 entry 一覧（実測 93、本 doc 一覧の追補は L7 carry）
 - cli/helix-add-feature
 - cli/helix-agent
 - cli/helix-asset

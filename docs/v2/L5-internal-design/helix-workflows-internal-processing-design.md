@@ -292,7 +292,7 @@ function validate_frontmatter(file):
     missing = [k for k in REQUIRED_KEYS if k not in data or is_null(data[k])]
     errors = []
     if not semver_or_date(data.created): errors.append("created_format")
-    if data.process_layer not in ["L0","L1","L2","L3","L4","L5","L6","L7","L8","L9","L10","L11"]:
+    if data.process_layer not in ["L0","L1","L2","L3","L4","L5","L6","L7","L8","L9","L10","L11","L12","L13","L14"]:
         errors.append("process_layer_invalid")
     if "adr_snapshot" in data and not is_list(data.adr_snapshot):
         errors.append("adr_snapshot_type")

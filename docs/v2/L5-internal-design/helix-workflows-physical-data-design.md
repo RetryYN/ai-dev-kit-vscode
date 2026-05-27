@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS plan_registry (
 - `plan_id`: PLAN 識別子
 - `title`: PLAN タイトル
 - `kind`: PLAN kind
-- `layer`: 工程レイヤ（L0-L9）
+- `layer`: 工程レイヤ（L0-L14）
 - `drive`: ドライブ識別子
 - `status`: `draft/review/in_progress/completed` 等
 - `size`: サイズ種別（任意）

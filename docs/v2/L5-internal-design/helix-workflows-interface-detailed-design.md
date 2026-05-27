@@ -4,7 +4,7 @@
 - 対象版: HELIX-workflows V2
 - 作成日: 2026-05-27
 - 担当: docs (L5設計)
-- 目的: `CLI 34件 / hook 11件` の入出力契約凍結（argparse / output format / exit code / payload schema / error handling / timeout / retry / blocking）
+- 目的: `CLI 36件 (本文 §2-§9 で完全定義、付録 A は実装状況追跡表) / hook 11件` の入出力契約凍結（argparse / output format / exit code / payload schema / error handling / timeout / retry / blocking）
 
 ---
 
@@ -30,7 +30,7 @@
 5. hook payload schema
 6. audit 連携（role_audit / event_log）
 7. timeout / retry / blocking 方針
-8. U-01〜U-07 の最終決定
+8. U-01〜U-07c の最終決定（計 9 決定、U-07 は §10.9-10.11 で mutation/migration/coexist event hook に分割）
 
 未スコープ: GUI/API server API 変更、外部 SaaS API 契約、認証基盤変更、PII 処理。
 
@@ -917,54 +917,56 @@
 | U-07b | implemented | migration event 追加決定 |
 | U-07c | implemented | coexist event 追加決定 |
 
-## 付録 A. CLI 命令一覧（34件）
+## 付録 A. CLI 命令一覧（実装状況追跡、本文 §2-§9 と整合する 36 件 + 検討候補 N 件）
 
-- A-01 `helix init`
-- A-02 `helix status`
-- A-03 `helix dashboard`
-- A-04 `helix mode`
-- A-05 `helix doctor`
-- A-06 `helix budget status`
-- A-07 `helix budget status --homeostasis`
-- A-08 `helix budget predict`
-- A-09 `helix db`
-- A-10 `helix migrate`
-- A-11 `helix commands`
-- A-12 `helix setup`
-- A-13 `helix test`
-- A-14 `helix test-debug`
-- A-15 `helix debug`
-- A-16 `helix bench`
-- A-17 `helix plan`
-- A-18 `helix plan fork`
-- A-19 `helix plan apoptosis`
-- A-20 `helix matrix`
-- A-21 `helix gate`
-- A-22 `helix gate-api-check`
-- A-23 `helix vmodel`
-- A-24 `helix push`
-- A-25 `helix readiness`
-- A-26 `helix sprint`
-- A-27 `helix task`
-- A-28 `helix interrupt`
-- A-29 `helix refactor`
-- A-30 `helix recover`
-- A-31 `helix recovery`
-- A-32 `helix incident`
-- A-33 `helix add-feature`
-- A-34 `helix retrofit`
-- A-35 `helix handover`
-- A-36 `helix recipe score`
-- A-37 `helix recipe promote`
-- A-38 `helix recipe deprecate`
-- A-39 `helix version`
-- A-40 `helix portable adopt`
-- A-41 `helix portable validate`
-- A-42 `helix coexist status`
-- A-43 `helix coexist adopt`
-- A-44 `helix coexist validate`
-- A-45 `helix db autophagy`
-- A-46 `helix db cleanup-legacy`
+- CLI-001 `helix init`
+- CLI-002 `helix status`
+- CLI-003 `helix dashboard`
+- CLI-004 `helix mode`
+- CLI-005 `helix doctor`
+- CLI-006 `helix budget status`
+- CLI-007 `helix budget status --homeostasis`
+- CLI-008 `helix budget predict`
+- CLI-009 `helix db`
+- CLI-010 `helix migrate`
+- CLI-011 `helix commands`
+- CLI-012 `helix setup`
+- CLI-013 `helix test`
+- CLI-014 `helix test-debug`
+- CLI-015 `helix debug`
+- CLI-016 `helix bench`
+- CLI-017 `helix plan`
+- CLI-018 `helix plan fork`
+- CLI-019 `helix plan apoptosis`
+- CLI-020 `helix matrix`
+- CLI-021 `helix gate`
+- CLI-022 `helix gate-api-check`
+- CLI-023 `helix vmodel`
+- CLI-024 `helix push`
+- CLI-025 `helix readiness`
+- CLI-026 `helix sprint`
+- CLI-027 `helix task`
+- CLI-028 `helix interrupt`
+- CLI-029 `helix refactor`
+- CLI-030 `helix recover`
+- CLI-031 `helix recovery`
+- CLI-032 `helix incident`
+- CLI-033 `helix add-feature`
+- CLI-034 `helix retrofit`
+- CLI-035 `helix handover`
+- CLI-036 `helix recipe score`
+- CLI-037 `helix recipe promote`
+- CLI-038 `helix recipe deprecate`
+- CLI-039 `helix version`
+- CLI-040 `helix portable adopt`
+- CLI-041 `helix portable validate`
+- CLI-042 `helix coexist status`
+- CLI-043 `helix coexist adopt`
+- CLI-044 `helix coexist validate`
+- CLI-045 `helix db autophagy`
+- CLI-046 `helix db cleanup-legacy`
+
+本表は本文 §2-§9 の A-XX（36件）を含み、検討候補 CLI-NNN（10件）を追加した実装状況追跡用。
 
 ## §12.5 CLI 一覧（A-01〜A-46）実装前提表（exit code / payload schema 交差チェック）
 
@@ -1730,4 +1732,3 @@
 - exit code: 0 / 1 / 2 / 1020
 - side effect: none
 - error handling: policy miss -> 1
-
