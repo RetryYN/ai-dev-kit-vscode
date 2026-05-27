@@ -10,10 +10,6 @@ owner: PM
 process_layer: L0
 parent_process: HELIX-workflows/helix-process/L0-concept.md
 pairs_test_design: []
-sibling_adr:
-  - ADR-044 (V2 architecture snapshot)
-  - ADR-045 (F6-F10 governance snapshot)
-  - ADR-047 (Reverse Gateway Profile wiring)
 is_reference: false
 agent_slots:
   - role: pm-advisor
