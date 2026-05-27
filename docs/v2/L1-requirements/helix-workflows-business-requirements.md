@@ -132,9 +132,9 @@ L0 企画 → G0.5 → L1 要求定義 + 運用テスト設計 → G1
 | BR-06 影響範囲分析 | 機能改修時に過去 trace 取得が手動、影響範囲が見えない | helix.db query 5 秒以内に過去 trace retrieve、4 artifact 双方向 trace で機械判定 | Cascade: 影響範囲 query 時間 ≤ 5 秒 (L0 §5.3) |
 | BR-07 AI agent 配線 | 工程別 skill / mandatory / 推奨 command の機械注入が未完、AI が独自判断 | `vmodel-semantics.yaml` L 別注入セット正本化、helix-context が L 入る時に注入、helix doctor audit | Cascade: AI 判断削減率 ≥ 70% (L0 §5.3) |
 | BR-08 採用展開 | HELIX V2 採用 project は self / 数件、再現性未確認 | 採用 project が同じ 13 工程を走れる、CLI/template 互換維持 | KGI: 採用 project 数 (Phase β 完了条件) |
-| BR-09 既存資産整理・マッピング (2026-05-26 追加) | 設計 doc 内の「対応 CLI / file path / schema field」主張が実体と検証されておらず机上宣言が混入 (本 session で L0 §12.1 retrofit 時に 9 件 drift 発見、verify-before-act 違反敗走) | 全設計 doc で `implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須、inventory ↔ Glossary mapping を継続管理、新規 doc 起票時 fail-close で防止 | NSM: inventory drift 率 ≤ 5%、NFR-OP-06 (L3) で SLA 確定 |
-| BR-10 既存資産の段階移行・retrofit (2026-05-26 追加) | V1→V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum→新 enum の移行が個別任意で進行、Phase 別残量管理が不在、HELIX-workflows V2 完全移行宣言後も旧資産が残存 | Strangler Fig Pattern (Fowler 2004) ベースで段階置換、Phase α/β/γ kill criteria + 残量 dashboard で機械管理、V1 PLAN 223 件は `is_reference: true` 化 100% を Phase α exit 条件にする | KGI: Phase α 終了時 V1 PLAN 移行率 100%、NFR-MG-04 (L3) で SLA 確定 |
-| BR-11 doc 品質継続レビュー (2026-05-26 追加) | アドバイザー (tl-advisor / pm-advisor / pmo-sonnet) を doc review に使い回し、doc 品質専用 role が不在、本 session で大規模 doc 改定 (L0 §12-§14 retrofit / BR-09/10 組込 等) も tl-advisor + pmo-sonnet で代用 | doc-reviewer 専用 role (Codex gpt-5.5 high read-only) を新設、4 視点 + 業界標準 (ISO 26515) + V-model 量閉じ性で統合検査、大規模 doc 改定 / G ゲート evidence で必須召喚、召喚 coverage ≥ 95% を機械監査 | KGI: 大規模 doc 改定 commit の doc-reviewer 召喚率 ≥ 95%、NFR-OP-07 (L3) で SLA 確定 |
+| BR-09 既存資産整理・マッピング (2026-05-26 追加) | 設計 doc 内の「対応 CLI / file path / schema field」主張が実体と検証されておらず机上宣言が混入 (本 session で L0 §12.1 retrofit 時に 9 件 drift 発見、verify-before-act 違反敗走) | 全設計 doc で `implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須、inventory ↔ Glossary mapping を継続管理、新規 doc 起票時 fail-close で防止 | NSM: inventory drift 率 ≤ 5%、SLA は L3 で確定 (NFR 詳細化時に ID 採番) |
+| BR-10 既存資産の段階移行・retrofit (2026-05-26 追加) | V1→V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum→新 enum の移行が個別任意で進行、Phase 別残量管理が不在、HELIX-workflows V2 完全移行宣言後も旧資産が残存 | Strangler Fig Pattern (Fowler 2004) ベースで段階置換、Phase α/β/γ kill criteria + 残量 dashboard で機械管理、V1 PLAN 223 件は `is_reference: true` 化 100% を Phase α exit 条件にする | KGI: Phase α 終了時 V1 PLAN 移行率 100%、SLA は L3 で確定 (NFR 詳細化時に ID 採番) |
+| BR-11 doc 品質継続レビュー (2026-05-26 追加) | アドバイザー (tl-advisor / pm-advisor / pmo-sonnet) を doc review に使い回し、doc 品質専用 role が不在、本 session で大規模 doc 改定 (L0 §12-§14 retrofit / BR-09/10 組込 等) も tl-advisor + pmo-sonnet で代用 | doc-reviewer 専用 role (Codex gpt-5.5 high read-only) を新設、4 視点 + 業界標準 (ISO 26515) + V-model 量閉じ性で統合検査、大規模 doc 改定 / G ゲート evidence で必須召喚、召喚 coverage ≥ 95% を機械監査 | KGI: 大規模 doc 改定 commit の doc-reviewer 召喚率 ≥ 95%、SLA は L3 で確定 (NFR 詳細化時に ID 採番) |
 
 ## §6 業務スコープ外 (本 BR では扱わない)
 
@@ -159,6 +159,10 @@ L0 企画 → G0.5 → L1 要求定義 + 運用テスト設計 → G1
 | BR-06 影響範囲分析 | OT-06 影響範囲 query 応答時間 | 機能改修 trigger 都度 |
 | BR-07 AI agent 配線 | OT-07 vmodel-semantics.yaml 注入セット利用率 | 毎週月曜 |
 | BR-08 採用 project 展開 | OT-08 採用 project dogfooding 稼働率 | 毎月末 |
+| BR-09 既存資産整理 | OT-09 inventory drift 率 (L14 起票時定義) | 毎月末 |
+| BR-10 段階移行 | OT-10 V1 移行率 (L14 起票時定義) | 毎月末 |
+| BR-11 doc レビュー | OT-11 doc-reviewer 召喚率 (L14 起票時定義) | 毎週 |
+| BR-12 デグレ禁止 | OT-12 デグレ件数 (L14 起票時定義) | 毎週 |
 
 > **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #3 反映)**: 本 doc の業務要件は L3 で詳細化 (L3-helix-workflows-業務要件plan) され、L3↔L12 ペア凍結で `docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` に業務系 AC-* を pair artifact 化する。L1↔L14 (運用テスト) + L3↔L12 (受入テスト) の二重 pair が業務要件の運用品質と受入品質を両面で保証。
 
@@ -176,6 +180,7 @@ L0 企画 → G0.5 → L1 要求定義 + 運用テスト設計 → G1
 ## §9 carry / 既知の不足
 
 - ~~BR-04〜BR-08 の L14 OT-* 対応~~: **解消済 (2026-05-26 tl-advisor G1 adversarial P0 #1 反映)** — L14 doc §1 に OT-04〜OT-08 追加で BR/OT が 1:1 対応 (balance_ratio = 1.0)。
+- **BR-09〜BR-12 の L14 OT-09〜12 対応**: §7 表に pair 宣言済 (2026-05-28 L0→L1 完遂検証で補充)。OT-09〜12 の実体定義は L14 運用テスト設計 doc 起票時に追加する carry。L1↔L14 pair freeze の balance_ratio 実測は L14 工程で完成 (今は L0→L1 フェーズのため L14 doc 本体には未着手)。
 - 8 BR の優先度配分 (P0/P1/P2) は L0 §3 / §5 から導出。Phase α は P0 完遂 (BR-01/02/03)、Phase β で P1 完遂、Phase γ で P2 完遂。閾値は L1-IN-13 Phase α 三段分割案 (must/should/later + kill criteria) で確定。
 - §3.1 業務フローの「G ゲート」は static_subchecks + AI 判定の合成式 (L0 §6.5.4)、L1-helix-workflows-技術要求plan で `gate-policy.yaml` 化。
 
