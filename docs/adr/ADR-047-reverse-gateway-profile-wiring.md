@@ -6,7 +6,7 @@ author: PM
 owner: PM
 created: 2026-05-28
 parent_plan: L0-helix-workflows-conceptplan
-process_layer: L1
+process_layer: L4
 related_design: HELIX-workflows/HELIX-process-L0-L14.md
 sibling_adr:
   - ADR-041 (drift type routing, amend 対象)
@@ -403,7 +403,7 @@ RouteDecision
 | Recovery | post-recovery fullback | cond | 収束優先 | Recovery plan |
 | Retrofit | fullback | true | 資産更新と互換保全 | Retrofit plan |
 | Add-feature | fullback | true | 設計入口 + 実装後 fullback | Add-feature plan |
-| Refactor | normalization-lite | false | 挙動不変ケース優先 | Refactor plan |
+| Refactor | PLAN driven + normalization | true | PLAN 先行 + 直接 doc 触り禁止 | Refactor plan |
 | Research | conditional | false | 齟齬時のみ | Research plan |
 | HELIX W | normalization (design) | N/A | 設計論 | なし |
 
@@ -411,7 +411,7 @@ RouteDecision
 
 - Incident と Recovery は収束前は profile 適用を `skip`。  
 - Research の直接 ADR 接続は条件未成立なら許容。  
-- Refactor は設計 trace 変更時のみ normalization に昇格。  
+- Refactor は **常に PLAN driven + normalization 必須** (2026-05-28 ユーザー指摘で訂正、直接 doc 触り禁止)。
 - Add-feature の fullback には design-entry の前提を持ち、実装後再接続を明記。  
 
 ### 事業影響の観測
