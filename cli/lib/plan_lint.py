@@ -42,14 +42,30 @@ KIND_NAMES = {
 WARN_SIMILARITY = 0.4
 HIGHLIGHT_SIMILARITY = 0.7
 FRONTMATTER_REQUIRED_FIELDS = ("plan_id", "title", "kind", "layer", "drive", "status")
+# plan_validator.py::VALID_KINDS と同期 (drift test で一致を強制)
 FRONTMATTER_KIND_VALUES = {
-    "impl",
     "design",
+    "impl",
     "poc",
+    "reverse",
+    "troubleshoot",
     "refactor",
     "retrofit",
-    "recovery",
     "research",
+    "add-design",
+    "add-impl",
+    "recovery",
+    "planning",
+    "requirements",
+    "ui-design",
+    "basic-design",
+    "detailed-design",
+    "function-design",
+    "test",
+    "ux-refinement",
+    "review",
+    "deployment",
+    "operation",
 }
 FRONTMATTER_LAYER_VALUES = {f"L{index}" for index in range(0, 15)}
 FRONTMATTER_DRIVE_VALUES = {

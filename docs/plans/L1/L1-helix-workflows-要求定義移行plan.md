@@ -1,7 +1,7 @@
 ---
 plan_id: L1-helix-workflows-要求定義移行plan
 title: "L1-helix-workflows-要求定義移行plan: L0 企画 → L1 要求への移行 (L1-IN 採択判断)"
-kind: design
+kind: requirements
 layer: L1
 drive: be
 status: draft
