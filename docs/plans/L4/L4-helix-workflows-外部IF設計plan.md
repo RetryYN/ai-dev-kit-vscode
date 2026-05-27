@@ -23,7 +23,10 @@ dependencies:
     - L4-helix-workflows-機能設計plan
     - L4-helix-workflows-データ設計plan
   blocks:
-    - L5-helix-workflows-詳細設計plan
+    - L5-helix-workflows-内部処理設計plan
+    - L5-helix-workflows-モジュール分割設計plan
+    - L5-helix-workflows-データ詳細設計plan
+    - L5-helix-workflows-外部IF詳細設計plan
 related_docs:
   - HELIX-workflows/helix-process/L4-basic-design.md
   - docs/plans/L4/L4-helix-workflows-方式設計plan.md
