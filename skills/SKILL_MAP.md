@@ -390,7 +390,7 @@ fullstack 追加条件:
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
-## スキル群配置（118スキル）
+## スキル群配置（130スキル）
 
 パス: `skills/{カテゴリ}/{スキル名}/SKILL.md`
 詳細 I/O → `orchestration-workflow.md` / 遷移条件 → `layer-interface.md`（共に `skills/tools/ai-coding/references/`）
@@ -399,7 +399,7 @@ fullstack 追加条件:
 |---------|--------|
 | workflow/ | project-management, dev-policy, estimation, requirements-handover, compliance, design-doc, api-contract, dependency-map, quality-lv5, deploy, dev-setup, incident, observability-sre, postmortem, verification, adversarial-review, context-memory, reverse-analysis, **research**, **poc**, **gate-planning**, **schedule-wbs**, **threat-model**, **runbook**, **debt-register**, **reverse-r0**, **reverse-r1**, **reverse-r2**, **reverse-r3**, **reverse-r4**, **reverse-rgc**, **doc-system-architect**, **requirements-deriver**, **retrofit**, **detection-routing**, **learning-engine**, **cross-detection**, **layer-context-injection**, **review-stage-routing** |
 | common/ | visual-design, design, coding, refactoring, documentation, security, testing, error-fix, performance, code-review, infrastructure, git |
-| project/ | ui, api, db |
+| project/ | ui, api, db, **fe-testing/** (11 skill: 01-taxonomy / 02-strategy-selection / 03-test-design / 04-tooling / 05-unit-logic / 06-interaction / 07-integration-msw / 08-visual-regression / 09-accessibility / 10-e2e / 11-ci-flake) |
 | advanced/ | tech-selection, i18n, external-api, ai-integration, migration, legacy, **tech-innovation**, **marketing-innovation**, **innovation-mgr** |
 | tools/ | ai-coding, ide-tools, **web-search**, **ai-search** |
 | integration/ | agent-teams, **agent-design**, **agent-cost-design** |
@@ -427,6 +427,11 @@ fullstack 追加条件:
 
 **2026-05-13 追加分** (1スキル、ユーザー自作):
 - integration/: **agent-cost-design** (AIエージェント構築のコスト予算・ガードレール確定スキル。8 references = multi-vendor / fallback-policy / retry-design / flow-design / cost-estimation / test-budget / guardrail-impl / budget-monitoring を Phase 0-5 順序で参照。1.2 倍上振れ係数固定、80% 到達で追加予算申請、ハードリミットはラッパー層実装が中核原則。L1/L2/L3 エージェント設計の前段必須)
+
+**2026-05-28 追加分** (11 スキル、ユーザー追加 fe-testforge を skills/project/fe-testing/ に統合):
+- project/fe-testing/: FE テスト設計の framework 11 skill (taxonomy → strategy → design → tooling → 5 実装 skill → ci-flake)
+- 各 skill は独立した SKILL.md を持ち、HELIX skill-radar (FTS5) に個別登録可能
+- 詳細: skills/project/fe-testing/README.md
 
 **2026-05-23 追加分** (4スキル、ユーザー素材を pmo-sonnet で HELIX format 化):
 - workflow/: **doc-system-architect** (ドキュメント体系のメタ設計スキル。変数判断 4 軸 [決定の不可逆性/読み手/変更頻度/再現可能性] + 業界標準への整合 [ISO/IEC/IEEE 42010:2022 / arc42 / C4 / ADR Nygard / Diátaxis / IPA 非機能要求グレード 2018 / Keep a Changelog / 12-factor / Runbook] の二段で「何を・どこまで・どの粒度で書くか」を導出。Why > What > How の優先順位、Single Source of Truth、確定までは軽メモ。要件未確定項目は確認リストとして分離)
