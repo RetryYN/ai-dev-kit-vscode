@@ -34,7 +34,7 @@
 | IT-IP | F1〜F12 の内部処理フロー | PLAN frontmatter, mode routing, governance hook, 経路移譲 | 失敗時は phase ごとの KPI 低下と statusLine 欠落、または hook 逸脱 |
 | IT-MOD | cli, cli/lib, hooks, subagent, skills | 実行時API 呼び出し、権限制御、model family 適用 | import 循環、権限不整合、agent 呼び出し失敗 |
 | IT-DB | helix.db, migration, event log, obsolete_record | FK/CASCADE/rollback, migration step chain | FK 破綻、履歴欠落、リトライ不可状態 |
-| IT-IF | CLI exit code 34 件, hook 11 schema, retry/timeout | 失敗時復帰、close/open policy | exit code 不一致、payload schema 逸脱 |
+| IT-IF | CLI exit code 36 件 (本文定義), hook 11 schema, retry/timeout | 失敗時復帰、close/open policy | exit code 不一致、payload schema 逸脱 |
 
 ### §1.2 実行戦略 (CI / pre-push / local quick / nightly full)
 
@@ -279,9 +279,11 @@ L5 では cli を上位入口、cli/lib を実体として設計。逆流禁止�
 
 ## §5 IT-IF IF 結合 (L5 外部IF詳細 doc §1-§11 pair)
 
-### §5.1 CLI 34 件の exit code 整合
+### §5.1 CLI 36 件の exit code 整合
 
-CLI の 34 exit code を mode / path 別に再定義し、仕様と差分がないことを検証する。
+L5 R1 修正で本文定義 36 件に統一 (R1 audit C1 反映、commit d5b611c)。CLI 36 件の exit code を mode / path 別に再定義し、仕様と差分がないことを検証する。
+
+⚠️ §12.5 で言及される §A-37〜A-95 (59 件) は L7 spike 完了後の追加 CLI 候補、本 L8 doc では payload schema 検証対象外 (L7 carry)。
 
 | Test ID | 結合 path | 期待動作 | failure mode | 検証 metric / assertion |
 |---|---|---|---|---|
