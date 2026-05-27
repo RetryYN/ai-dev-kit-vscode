@@ -43,3 +43,4 @@
 | ADR-043-mode-enum-extension-retrofit-freeze-break-decision | Mode enum 拡張 (Retrofit 追加) — parent design freeze break + additive backward compat 凍結 | Accepted | 2026-05-24 |
 | ADR-044-helix-workflows-v2-architecture-snapshot | HELIX-workflows V2 dogfooding 方式設計 snapshot | Proposed | 2026-05-27 |
 | ADR-045-helix-workflows-f6-f10-governance-snapshot | HELIX-workflows V2 F6-F10 governance and survival operations snapshot | Proposed | 2026-05-27 |
+| ADR-047-reverse-gateway-profile-wiring | Reverse Gateway Profile for Non-Forward Modes (V-model wiring unification) | Proposed | 2026-05-28 |
