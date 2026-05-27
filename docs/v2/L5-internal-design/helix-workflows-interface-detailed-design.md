@@ -893,6 +893,8 @@
 
 ## §13 implementation_status 表（planned/partial/implemented）
 
+本表は 47件（CLI 36 + hook 11）を対象に planned/partial/implemented を記載する。
+
 | 対象 | status | 補足 |
 |---|---|---|
 | §1 共通ルール | implemented | 既存方針を確定化 |
@@ -919,41 +921,77 @@
 
 ## 付録 A. CLI 命令一覧（実装状況追跡、本文 §2-§9 と整合する 36 件 + 検討候補 N 件）
 
+### CLI-001
 - CLI-001 `helix init`
+### CLI-002
 - CLI-002 `helix status`
+### CLI-003
 - CLI-003 `helix dashboard`
+### CLI-004
 - CLI-004 `helix mode`
+### CLI-005
 - CLI-005 `helix doctor`
+### CLI-006
 - CLI-006 `helix budget status`
+### CLI-007
 - CLI-007 `helix budget status --homeostasis`
+### CLI-008
 - CLI-008 `helix budget predict`
+### CLI-009
 - CLI-009 `helix db`
+### CLI-010
 - CLI-010 `helix migrate`
+### CLI-011
 - CLI-011 `helix commands`
+### CLI-012
 - CLI-012 `helix setup`
+### CLI-013
 - CLI-013 `helix test`
+### CLI-014
 - CLI-014 `helix test-debug`
+### CLI-015
 - CLI-015 `helix debug`
+### CLI-016
 - CLI-016 `helix bench`
+### CLI-017
 - CLI-017 `helix plan`
+### CLI-018
 - CLI-018 `helix plan fork`
+### CLI-019
 - CLI-019 `helix plan apoptosis`
+### CLI-020
 - CLI-020 `helix matrix`
+### CLI-021
 - CLI-021 `helix gate`
+### CLI-022
 - CLI-022 `helix gate-api-check`
+### CLI-023
 - CLI-023 `helix vmodel`
+### CLI-024
 - CLI-024 `helix push`
+### CLI-025
 - CLI-025 `helix readiness`
+### CLI-026
 - CLI-026 `helix sprint`
+### CLI-027
 - CLI-027 `helix task`
+### CLI-028
 - CLI-028 `helix interrupt`
+### CLI-029
 - CLI-029 `helix refactor`
+### CLI-030
 - CLI-030 `helix recover`
+### CLI-031
 - CLI-031 `helix recovery`
+### CLI-032
 - CLI-032 `helix incident`
+### CLI-033
 - CLI-033 `helix add-feature`
+### CLI-034
 - CLI-034 `helix retrofit`
+### CLI-035
 - CLI-035 `helix handover`
+### CLI-036
 - CLI-036 `helix recipe score`
 - CLI-037 `helix recipe promote`
 - CLI-038 `helix recipe deprecate`
@@ -968,7 +1006,9 @@
 
 本表は本文 §2-§9 の A-XX（36件）を含み、検討候補 CLI-NNN（10件）を追加した実装状況追跡用。
 
-## §12.5 CLI 一覧（A-01〜A-46）実装前提表（exit code / payload schema 交差チェック）
+## §12.5 CLI 一覧（A-01〜A-95）実装前提表（exit code / payload schema 交差チェック）
+
+本表は A-01〜A-36 を payload schema cross-check 対象とする。A-37〜A-95 は次 PLAN 候補（L7 spike 完了後の追加 CLI）として carry 化、本 doc では schema 不在を許容する。
 
 ### A-01 `helix doctor check-mode-transition`
 - usage pattern: `helix doctor check-mode-transition [--plan-id <id>] [--json]`
@@ -1268,6 +1308,7 @@
 - exit code: 0 / 1 / 2
 - side effect: directory scaffold write
 - error handling: missing template -> 1
+- L7 carry: payload schema 未定
 
 ### A-38 `helix status`
 - usage: `helix status [--json] [--watch]`
@@ -1276,6 +1317,7 @@
 - exit code: 0 / 1 / 2
 - side effect: none
 - error handling: metadata stale -> 1
+- L7 carry: payload schema 未定
 
 ### A-39 `helix dashboard`
 - usage: `helix dashboard [--refresh] [--json] [--scope <project|global>]`
@@ -1284,6 +1326,7 @@
 - exit code: 0 / 1 / 2
 - side effect: cache update optional
 - error handling: source missing -> 1
+- L7 carry: payload schema 未定
 
 ### A-40 `helix mode`
 - usage: `helix mode <forward|reverse|scrum|discovery> [--json]`
@@ -1292,6 +1335,7 @@
 - exit code: 0 / 1 / 2 / 1030
 - side effect: session mode update
 - error handling: invalid transition -> 2
+- L7 carry: payload schema 未定
 
 ### A-41 `helix commands`
 - usage: `helix commands [--sync] [--json] [--check-only]`
@@ -1300,6 +1344,7 @@
 - exit code: 0 / 1 / 2 / 1010
 - side effect: spec sync optional
 - error handling: drift -> 2
+- L7 carry: payload schema 未定
 
 ### A-42 `helix setup`
 - usage: `helix setup [--json] [--repair] [--yes]`
@@ -1308,6 +1353,7 @@
 - exit code: 0 / 1 / 2
 - side effect: environment init
 - error handling: repair incomplete -> 2
+- L7 carry: payload schema 未定
 
 ### A-43 `helix test`
 - usage: `helix test [--scope <module>] [--json] [--timeout <N>]`
@@ -1316,6 +1362,7 @@
 - exit code: 0 / 1 / 2
 - side effect: none / artifacts optional
 - error handling: failing test -> 2
+- L7 carry: payload schema 未定
 
 ### A-44 `helix test-debug`
 - usage: `helix test-debug [--json] [--module <name>] [--trace]`
@@ -1324,6 +1371,7 @@
 - exit code: 0 / 1 / 2
 - side effect: trace logs
 - error handling: tracer unavailable -> 1
+- L7 carry: payload schema 未定
 
 ### A-45 `helix debug`
 - usage: `helix debug <subcmd> [--json] [--verbose]`
@@ -1332,6 +1380,7 @@
 - exit code: 0 / 1 / 2
 - side effect: optional file dump
 - error handling: unsupported subcmd -> 1
+- L7 carry: payload schema 未定
 
 ### A-46 `helix bench`
 - usage: `helix bench [--json] [--filter <name>] [--repeat <N>]`
@@ -1340,6 +1389,7 @@
 - exit code: 0 / 1 / 2
 - side effect: metric log write
 - error handling: sample timeout -> 2
+- L7 carry: payload schema 未定
 
 ### A-47 `helix gate`
 - usage: `helix gate [--json] [--plan-id <id>] [--revalidate]`
@@ -1348,6 +1398,7 @@
 - exit code: 0 / 1 / 2 / 1010
 - side effect: gate state
 - error handling: unresolved issue -> 2
+- L7 carry: payload schema 未定
 
 ### A-48 `helix gate-api-check`
 - usage: `helix gate-api-check [--json] [--strict]`
@@ -1356,6 +1407,7 @@
 - exit code: 0 / 1 / 2
 - side effect: none
 - error handling: drift -> 1
+- L7 carry: payload schema 未定
 
 ### A-49 `helix vmodel`
 - usage: `helix vmodel [--json] [--drive <forward|reverse|hybrid>]`
@@ -1364,6 +1416,7 @@
 - exit code: 0 / 1 / 2
 - side effect: model state update optional
 - error handling: invalid drive -> 1
+- L7 carry: payload schema 未定
 
 ### A-50 `helix push`
 - usage: `helix push [--gate] [--auto-merge] [--json]`
@@ -1372,6 +1425,7 @@
 - exit code: 0 / 1 / 2
 - side effect: remote push / auto-merge
 - error handling: push denied -> 2
+- L7 carry: payload schema 未定
 
 ### A-51 `helix readiness`
 - usage: `helix readiness [--deferred-finding] [--json]`
@@ -1380,6 +1434,7 @@
 - exit code: 0 / 1 / 2
 - side effect: readiness marker write
 - error handling: stale marker -> 1
+- L7 carry: payload schema 未定
 
 ### A-52 `helix sprint`
 - usage: `helix sprint [--json] [--next] [--status]`
@@ -1388,6 +1443,7 @@
 - exit code: 0 / 1 / 2
 - side effect: sprint state update
 - error handling: invalid state -> 2
+- L7 carry: payload schema 未定
 
 ### A-53 `helix task`
 - usage: `helix task <create|update|close|view> [--json]`
@@ -1396,6 +1452,7 @@
 - exit code: 0 / 1 / 2
 - side effect: task record write
 - error handling: action invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-54 `helix interrupt`
 - usage: `helix interrupt <start|stop|resume> [--json] [--reason <text>]`
@@ -1404,6 +1461,7 @@
 - exit code: 0 / 1 / 2
 - side effect: state update
 - error handling: invalid reason -> 1
+- L7 carry: payload schema 未定
 
 ### A-55 `helix refactor`
 - usage: `helix refactor [--json] [--session-id <id>] [--checkpoint]`
@@ -1412,6 +1470,7 @@
 - exit code: 0 / 1 / 2
 - side effect: refactor session write
 - error handling: checkpoint fail -> 2
+- L7 carry: payload schema 未定
 
 ### A-56 `helix recover`
 - usage: `helix recover [--diagnose-only] [--create-plan] [--json]`
@@ -1420,6 +1479,7 @@
 - exit code: 0 / 1 / 2
 - side effect: optional plan draft
 - error handling: diagnostic timeout -> 2
+- L7 carry: payload schema 未定
 
 ### A-57 `helix recovery`
 - usage: `helix recovery --start|--finalize-to-adr [--json]`
@@ -1428,6 +1488,7 @@
 - exit code: 0 / 1 / 2 / 1010
 - side effect: recovery state
 - error handling: incomplete evidence -> 2
+- L7 carry: payload schema 未定
 
 ### A-58 `helix incident`
 - usage: `helix incident [--json] [--severity <sev>] [--route]`
@@ -1436,6 +1497,7 @@
 - exit code: 0 / 1 / 2 / 1060
 - side effect: incident artifact write
 - error handling: route failure -> 2
+- L7 carry: payload schema 未定
 
 ### A-59 `helix add-feature`
 - usage: `helix add-feature [--json] [--phase <design|impl>] [--id <id>]`
@@ -1444,6 +1506,7 @@
 - exit code: 0 / 1 / 2
 - side effect: mode transition update
 - error handling: phase mismatch -> 1
+- L7 carry: payload schema 未定
 
 ### A-60 `helix retrofit`
 - usage: `helix retrofit [--json] [--matrix <file>] [--plan-id <id>]`
@@ -1452,6 +1515,7 @@
 - exit code: 0 / 1 / 2 / 1010
 - side effect: retrofit plan write
 - error handling: matrix parse fail -> 1
+- L7 carry: payload schema 未定
 
 ### A-61 `helix handover`
 - usage: `helix handover [--json] [--status | --complete | --blocker | --unblock] [--owner <name>]`
@@ -1460,6 +1524,7 @@
 - exit code: 0 / 1 / 2 / 2
 - side effect: handover file update
 - error handling: owner mismatch -> 1
+- L7 carry: payload schema 未定
 
 ### A-62 `helix route`
 - usage: `helix route [--signal <file>] [--json] [--dry-run]`
@@ -1468,6 +1533,7 @@
 - exit code: 0 / 1 / 2
 - side effect: routing suggestion
 - error handling: signal parse error -> 1
+- L7 carry: payload schema 未定
 
 ### A-63 `helix workspace`
 - usage: `helix workspace [--json] [--create <name>] [--close <name>]`
@@ -1476,6 +1542,7 @@
 - exit code: 0 / 1 / 2
 - side effect: worktree write
 - error handling: worktree failure -> 2
+- L7 carry: payload schema 未定
 
 ### A-64 `helix schedule`（※本節内では情報系補足）
 - usage: `helix scheduler [--json] [--cron <expr>] [--once]`
@@ -1484,6 +1551,7 @@
 - exit code: 0 / 1 / 2
 - side effect: schedule register
 - error handling: cron parse fail -> 1
+- L7 carry: payload schema 未定
 
 ### A-65 `helix hook`
 - usage: `helix hook [--json] [--list] [--reload]`
@@ -1492,6 +1560,7 @@
 - exit code: 0 / 1 / 2 / 1010
 - side effect: hook config update
 - error handling: hook load fail -> 2
+- L7 carry: payload schema 未定
 
 ### A-66 `helix check-claudemd`
 - usage: `helix check-claudemd [--json] [--strict]`
@@ -1500,6 +1569,7 @@
 - exit code: 0 / 1 / 2
 - side effect: warnings only
 - error handling: format invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-67 `helix context`
 - usage: `helix context [--json] [--guard <on|off>] [--snapshot]`
@@ -1508,6 +1578,7 @@
 - exit code: 0 / 1 / 2
 - side effect: context state
 - error handling: snapshot unavailable -> 2
+- L7 carry: payload schema 未定
 
 ### A-68 `helix session-start`
 - usage: `helix session-start [--json] [--dry-run]`
@@ -1516,6 +1587,7 @@
 - exit code: 0 / 1 / 2
 - side effect: session metadata
 - error handling: session lock -> 2
+- L7 carry: payload schema 未定
 
 ### A-69 `helix session-summary`
 - usage: `helix session-summary [--json] [--stop]`
@@ -1524,6 +1596,7 @@
 - exit code: 0 / 1 / 2
 - side effect: session close
 - error handling: missing context -> 1
+- L7 carry: payload schema 未定
 
 ### A-70 `helix reverse`
 - usage: `helix reverse [--json] [--stage <R0|R1|R2|R3|R4>]`
@@ -1532,6 +1605,7 @@
 - exit code: 0 / 1 / 2 / 1030
 - side effect: reverse workflow update
 - error handling: stage invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-71 `helix scrum`
 - usage: `helix scrum [--json] [--next] [--status]`
@@ -1540,6 +1614,7 @@
 - exit code: 0 / 1 / 2
 - side effect: scrum state write
 - error handling: legacy mode -> 1
+- L7 carry: payload schema 未定
 
 ### A-72 `helix scrum-agile`
 - usage: `helix scrum-agile [--json] [--status] [--tick]`
@@ -1548,6 +1623,7 @@
 - exit code: 0 / 1 / 2
 - side effect: cadence state
 - error handling: invalid cadence -> 1
+- L7 carry: payload schema 未定
 
 ### A-73 `helix discovery`
 - usage: `helix discovery [--json] [--plan] [--topic <text>]`
@@ -1556,6 +1632,7 @@
 - exit code: 0 / 1 / 2
 - side effect: discovery draft
 - error handling: topic 空 -> 1
+- L7 carry: payload schema 未定
 
 ### A-74 `helix verify-all`
 - usage: `helix verify-all [--json] [--scope <all|plan|runtime>]`
@@ -1564,6 +1641,7 @@
 - exit code: 0 / 1 / 2
 - side effect: verification artifacts
 - error handling: first fail at module -> 2
+- L7 carry: payload schema 未定
 
 ### A-75 `helix verify-agent`
 - usage: `helix verify-agent [--json] [--type <harvest|design|drift>]`
@@ -1572,6 +1650,7 @@
 - exit code: 0 / 1 / 2
 - side effect: evidence write
 - error handling: mismatch -> 2
+- L7 carry: payload schema 未定
 
 ### A-76 `helix log`
 - usage: `helix log [--json] [--filter <expr>] [--raw]`
@@ -1580,6 +1659,7 @@
 - exit code: 0 / 1 / 2
 - side effect: optional dump
 - error handling: format parse fail -> 1
+- L7 carry: payload schema 未定
 
 ### A-77 `helix recipe`
 - usage: `helix recipe [discover|promote|list] [--json]`
@@ -1588,6 +1668,7 @@
 - exit code: 0 / 1 / 2
 - side effect: optional cache
 - error handling: action mismatch -> 1
+- L7 carry: payload schema 未定
 
 ### A-78 `helix learn`
 - usage: `helix learn [--json] [--source <path>] [--dry-run]`
@@ -1596,6 +1677,7 @@
 - exit code: 0 / 1 / 2
 - side effect: learning store
 - error handling: source invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-79 `helix promote`
 - usage: `helix promote [--json] [--id <artifact-id>] [--target <stable|legacy>]`
@@ -1604,6 +1686,7 @@
 - exit code: 0 / 1 / 2
 - side effect: promotion table write
 - error handling: target locked -> 2
+- L7 carry: payload schema 未定
 
 ### A-80 `helix discover`
 - usage: `helix discover [--json] [--keyword <q>] [--top <N>]`
@@ -1612,6 +1695,7 @@
 - exit code: 0 / 1 / 2
 - side effect: search read
 - error handling: query invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-81 `helix builder`
 - usage: `helix builder [--json] [--artifact <id>] [--dry-run]`
@@ -1620,6 +1704,7 @@
 - exit code: 0 / 1 / 2
 - side effect: builder artifact write
 - error handling: artifact build error -> 2
+- L7 carry: payload schema 未定
 
 ### A-82 `helix code`
 - usage: `helix code [find|stat|dup] [--json] [--query <q>]`
@@ -1628,6 +1713,7 @@
 - exit code: 0 / 1 / 2
 - side effect: index cache
 - error handling: query invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-83 `helix asset`
 - usage: `helix asset [--json] [--preset <name>] [--out <path>]`
@@ -1636,6 +1722,7 @@
 - exit code: 0 / 1 / 2
 - side effect: asset file write
 - error handling: preset missing -> 1
+- L7 carry: payload schema 未定
 
 ### A-84 `helix entry`
 - usage: `helix entry [--json] [--id <entry-id>] [--mode <create|update|delete>]`
@@ -1644,6 +1731,7 @@
 - exit code: 0 / 1 / 2
 - side effect: entry write
 - error handling: id conflict -> 1
+- L7 carry: payload schema 未定
 
 ### A-85 `helix audit`
 - usage: `helix audit [--json] [--range <from> <to>] [--type <security|contract>]`
@@ -1652,6 +1740,7 @@
 - exit code: 0 / 1 / 2
 - side effect: evidence read
 - error handling: range syntax -> 1
+- L7 carry: payload schema 未定
 
 ### A-86 `helix observe`
 - usage: `helix observe [--json] [--metrics] [--events]`
@@ -1660,6 +1749,7 @@
 - exit code: 0 / 1 / 2
 - side effect: metrics cache
 - error handling: observability unavailable -> 2
+- L7 carry: payload schema 未定
 
 ### A-87 `helix job`
 - usage: `helix job [--json] [--list|--status <id>] [--cancel <id>]`
@@ -1668,6 +1758,7 @@
 - exit code: 0 / 1 / 2
 - side effect: queue operation
 - error handling: queue unavailable -> 2
+- L7 carry: payload schema 未定
 
 ### A-88 `helix lock`
 - usage: `helix lock [--json] [--acquire <name>] [--release <name>]`
@@ -1676,6 +1767,7 @@
 - exit code: 0 / 1 / 2
 - side effect: lock table update
 - error handling: deadlock risk -> 2
+- L7 carry: payload schema 未定
 
 ### A-89 `helix codex`
 - usage: `helix codex --role <role> --task <text> [--plan-id <id>]`
@@ -1684,6 +1776,7 @@
 - exit code: 0 / 1 / 2
 - side effect: task artifact write
 - error handling: role mismatch -> 1
+- L7 carry: payload schema 未定
 
 ### A-90 `helix claude`
 - usage: `helix claude --role <role> --task <text> --dry-run [--plan-id <id>]`
@@ -1692,6 +1785,7 @@
 - exit code: 0 / 1 / 2
 - side effect: prompt file write
 - error handling: template invalid -> 1
+- L7 carry: payload schema 未定
 
 ### A-91 `helix team`
 - usage: `helix team run --definition <file> [--json]`
@@ -1700,6 +1794,7 @@
 - exit code: 0 / 1 / 2
 - side effect: team run metadata
 - error handling: definition missing -> 1
+- L7 carry: payload schema 未定
 
 ### A-92 `helix review`
 - usage: `helix review [--json] [--uncommitted] [--strict]`
@@ -1708,6 +1803,7 @@
 - exit code: 0 / 1 / 2
 - side effect: review artifact
 - error handling: parser fail -> 2
+- L7 carry: payload schema 未定
 
 ### A-93 `helix skill`
 - usage: `helix skill [--json] [list|search] [--q <query>]`
@@ -1716,6 +1812,7 @@
 - exit code: 0 / 1 / 2
 - side effect: none
 - error handling: not found -> 1
+- L7 carry: payload schema 未定
 
 ### A-94 `helix auto-run`
 - usage: `helix auto-run [--json] [--enable|--disable] [--window <N>]`
@@ -1724,6 +1821,7 @@
 - exit code: 0 / 1 / 2
 - side effect: heartbeat state
 - error handling: schedule conflict -> 2
+- L7 carry: payload schema 未定
 
 ### A-95 `helix budget status --homeostasis`（再定義確認）
 - usage: `helix budget status --homeostasis [--days <N>] [--json]`
@@ -1732,3 +1830,4 @@
 - exit code: 0 / 1 / 2 / 1020
 - side effect: none
 - error handling: policy miss -> 1
+- L7 carry: payload schema 未定
