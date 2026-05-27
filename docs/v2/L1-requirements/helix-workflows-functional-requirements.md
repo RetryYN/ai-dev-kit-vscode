@@ -32,7 +32,7 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 | FR-04 | 9 mode 入口判定機能 | L0 §6.5.2 | detector / signal により Discovery、Scrum、Reverse、Incident、Add-feature、Refactor、Retrofit、Research、Recovery の入口を機械判定し、推奨 route を返せること。 |
 | FR-05 | gate 機械判定機能 | L0 §6.5.4 | `gate_verdict = static_subchecks AND ai_review_required_when(...)` の合成式で gate 判定でき、AI 判定が必要な gate でも static 部分は AI なしで先行実行できること。 |
 | FR-06 | 影響範囲 query 機能 | L0 §5.3 | 機能改修 trigger から過去 trace を 5 秒以内に取得し、関連 PLAN / 設計 / テスト設計 / 実装 / mode_transition を横断して影響範囲を返せること。 |
-| FR-07 | Forward 復帰 event 機能 | L1-IN-08 / L0 §6.5.2 | 9 mode の closure 時に Forward 復帰 event を記録し、昇格先 (`L1 / L3 / L4-L6 / L7-L14`) を機械判定できること。 |
+| FR-07 | Forward 復帰 event 機能 | L1-IN-08 / L0 §6.5.2 | 9 mode の closure 時に Forward 復帰 event を記録し、昇格先 (`L1 / L3 / L4-L6 / L7-L14`) を機械判定できること。**Non-Forward mode の成果は必ず Reverse Gateway (mode 別 profile) を経由して Forward 正本へ整流し、正本 doc の直接編集を避けて正本一貫性を保てること** (2026-05-28 追補、Add-feature Step 2)。 |
 | FR-08 | 4 artifact / pair freeze 監査機能 | L1-IN-04 | `parent_design` / `pairs_test_design` / trace link の存在を確認し、`expected_pair_freeze` / `expected_4artifact_trace` との差分を warn または fail-close で示せること。 |
 | FR-09 | 資産 inventory / density 可視化機能 | L1-IN-06 | skill、CLI、PLAN、docs、helix.db schema を L0-L14 工程へ双方向 mapping し、工程別の密度と未整備箇所を可視化できること。 |
 | FR-10 | layer context injection 機能 | L1-IN-07 | 対象工程に応じて mandatory skill、推奨 command、orchestration mode を自動注入し、AI の選択空間を工程単位で絞れること。 |
