@@ -1,0 +1,460 @@
+# Reverse fullback R1 observed contracts
+# 対象: HELIX framework 既存資産 ↔ L1/L3 要件定義 の trace 契約
+# 採録日: 2026-05-29
+# 採録者: pmo-sonnet (R1 retrofit)
+# evidence: /tmp/l1_l3_audit_2026-05-29.md (L1 56 ID × L3 detail trace 全行突合)
+#
+# audit_history:
+#   - 2026-05-29: pmo-sonnet (R1 初版) — L1 56 ID 全件 trace 観測契約起票
+#   - 2026-05-29: pmo-sonnet (Wave fix-B) — tl-advisor R1 P2-3 反映 (L3 FR 18 件全件閉鎖 + functional-registry.md §11 整合) + 件数 canonical 同期 (total 548: CLI 80 / skill 130 / workflow 49 / template 114) + R3 output_target path 修正 (.helix/ → docs/v2/)
+
+reverse_type: fullback
+workflow_phase: R1
+plan_id: R-helix-workflows-existing-assets-fullbackplan
+created: "2026-05-29"
+owner: PM
+
+# ─────────────────────────────────────────────
+# 観測契約: L1 56 ID 全件の状態
+# ─────────────────────────────────────────────
+observed_contracts:
+
+  l1_business_requirements:
+    total: 12
+    adopted_l3: 12
+    deferred: 0
+    missing: 0
+    ids:
+      BR-01:
+        status: adopted
+        l3_section: "BR-detail §1.1 業務フロー + §2.1 BR-RULE-01〜04 + §4 trace 表"
+        note: "dogfooding 稼働"
+      BR-02:
+        status: adopted
+        l3_section: "BR-detail §1.2 業務フロー + §4 AC-BR-02"
+        note: "4 artifact retrofit"
+      BR-03:
+        status: adopted
+        l3_section: "BR-detail §1.3 業務フロー + §2.1 BR-RULE-04 + §4 AC-BR-03"
+        note: "drift 解消"
+      BR-04:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.2 BR-RULE-05〜08 + §4 AC-BR-04"
+        note: "9 mode → Forward 回帰"
+      BR-05:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.1 BR-RULE-02 + §2.3 G1/G3 + §4 AC-BR-05"
+        note: "ペア凍結監査"
+      BR-06:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §3.1 + §4 AC-BR-06"
+        note: "影響範囲分析"
+      BR-07:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §3.1 + §4 AC-BR-07"
+        note: "AI agent 配線"
+      BR-08:
+        status: adopted_with_carry
+        l3_section: "BR-detail §1.4 + §3.1/§3.2 + §4 AC-BR-08"
+        note: "Phase β carry 付き (採用 project 展開は L4 以降)"
+      BR-09:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.4 BR-RULE-09 + §4 AC-BR-09"
+        note: "既存資産整理・マッピング (2026-05-29 取り込み)"
+      BR-10:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.4 BR-RULE-10 + §4 AC-BR-10"
+        note: "既存資産の段階移行・retrofit (2026-05-29 取り込み)"
+      BR-11:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.4 BR-RULE-11 + §4 AC-BR-11"
+        note: "doc 品質レビュー継続化 (2026-05-29 取り込み)"
+      BR-12:
+        status: adopted
+        l3_section: "BR-detail §1.4 + §2.4 BR-RULE-12 + §4 AC-BR-12"
+        note: "デグレ禁止ガードレール (2026-05-29 取り込み)"
+
+  l1_functional_requirements:
+    total: 13
+    adopted_l3: 13
+    deferred: 0
+    missing: 0
+    ids:
+      FR-01:
+        status: adopted
+        l3_id: FR-NSM-01
+        note: "NSM 計測機能 → FR-detail §1 + §2 仕様 + §4 mapping"
+      FR-02:
+        status: adopted
+        l3_id: FR-GR-01
+        note: "Guardrail 3 軸 fail-close → FR-detail §1 + §4 mapping"
+      FR-03:
+        status: adopted
+        l3_id: FR-TDD-01
+        note: "TDD 順序 fail-close → FR-detail §1 + §4 mapping"
+      FR-04:
+        status: adopted
+        l3_id: FR-9MODE-01
+        note: "9 mode 入口判定 → FR-detail §1 + §4 mapping"
+      FR-05:
+        status: adopted
+        l3_id: FR-GATE-01
+        note: "gate 機械判定 → FR-detail §1 + §4 mapping"
+      FR-06:
+        status: adopted
+        l3_id: FR-IMPACT-01
+        note: "影響範囲 query → FR-detail §1 + §4 mapping"
+      FR-07:
+        status: adopted
+        l3_id: FR-EVT-01
+        note: "Forward 復帰 event → FR-detail §1 + §4 mapping"
+      FR-08:
+        status: adopted_split
+        l3_id: "FR-4ART-01 + FR-DOCTOR-01"
+        note: "4 artifact / pair freeze 監査 → 2 FR に分割詳細化"
+      FR-09:
+        status: adopted
+        l3_id: FR-INV-01
+        note: "資産 inventory / density 可視化 → FR-detail §1 + §4 mapping"
+      FR-10:
+        status: adopted_partial_extension
+        l3_id: FR-CTX-01
+        note: "layer context injection → 本 session 追加要求 #3 (PdM 召喚 L1/L3 mandatory 化) は L1 back-port が未完 (L4 carry)"
+      FR-11:
+        status: adopted_split
+        l3_id: "FR-DRIFT-01 + FR-DOCTOR-01"
+        note: "discrepancy routing → 2 FR に分割詳細化"
+      FR-12:
+        status: adopted
+        l3_id: FR-PLAN-01
+        note: "PLAN dependency / generates trace → FR-detail §1 + §4 mapping"
+      FR-13:
+        status: adopted_distributed
+        l3_id: "FR-GATE-01 + FR-PLAN-01 + FR-CTX-01"
+        note: "PLAN 起票レビュー機能 (2026-05-28 追加)。L3 独自 FR ID 不採番、3 既存 FR に横断実現。MIN-01 として双方向 trace 補完済"
+
+  l1_nfr:
+    total: 23
+    adopted_l3: 23
+    deferred: 0
+    missing: 0
+    detail:
+      NFR-AV-01: { status: adopted, l3_id: AV-01, note: "99%+ → 99.9%+ に強化採録" }
+      NFR-AV-02: { status: adopted, l3_id: AV-02, note: "helix.db 整合性 100% / レベル 4" }
+      NFR-AV-03: { status: adopted, l3_id: AV-03, note: "handover 自動 dump 95%+ / 15 分以内" }
+      NFR-PF-01: { status: adopted, l3_id: PF-01, note: "helix doctor 30 秒以内 / レベル 2" }
+      NFR-PF-02: { status: adopted, l3_id: PF-02, note: "影響範囲 query 5 秒以内 (p95 10 秒追加)" }
+      NFR-PF-03: { status: adopted, l3_id: PF-03, note: "8 並列 Codex 衝突回避 / レベル 3" }
+      NFR-PF-04: { status: adopted, l3_id: PF-04, note: "PLAN 起票 1 分以内 + 失敗率 5% 未満追加" }
+      NFR-OP-01: { status: adopted, l3_id: OP-01, note: "auto-deprecation 月次 archive 率 90%+ 確定" }
+      NFR-OP-02: { status: adopted, l3_id: OP-02, note: "月次資産 audit / レベル 3" }
+      NFR-OP-03: { status: adopted, l3_id: OP-03, note: "warn 50 alert / 20 完了条件 / レベル 2" }
+      NFR-OP-04: { status: adopted, l3_id: OP-04, note: "進化系統 trace / 主要資産 coverage 100%" }
+      NFR-OP-05: { status: adopted, l3_id: OP-05, note: "verify-before-act 強制 / レベル 3" }
+      NFR-MG-01: { status: adopted, l3_id: MG-01, note: "V1→V2 retrofit pipeline / レベル 2" }
+      NFR-MG-02: { status: adopted, l3_id: MG-02, note: "schema migration idempotency / レベル 3" }
+      NFR-MG-03: { status: adopted, l3_id: MG-03, note: "portable package 化 30 分以内 / レベル 2" }
+      NFR-SC-01: { status: adopted, l3_id: SC-01, note: "secret を docs 等に書かない / レベル 4" }
+      NFR-SC-02: { status: adopted, l3_id: SC-02, note: "settings regen 検知 / レベル 3" }
+      NFR-SC-03: { status: adopted, l3_id: SC-03, note: "tool guard hook / レベル 4" }
+      NFR-SC-04: { status: adopted, l3_id: SC-04, note: "Codex commit/push 禁止 / レベル 3" }
+      NFR-SC-05: { status: adopted, l3_id: SC-05, note: "高リスク変更の人間確認 / レベル 4" }
+      NFR-SE-01: { status: adopted, l3_id: SE-01, note: "Linux / macOS 両対応 / レベル 2" }
+      NFR-SE-02: { status: adopted, l3_id: SE-02, note: "Claude / Codex 両対応 / レベル 2" }
+      NFR-SE-03: { status: adopted, l3_id: SE-03, note: "runtime version 下限固定 / レベル 2" }
+
+  l1_technical_requirements:
+    total: 8
+    adopted_l3: 8
+    deferred_l4: 1
+    missing: 0
+    note: "TR-detail は存在せず L3 機能要件 doc §4 mapping に統合済 (正規設計。frontmatter related_l1 に functional + technical 両 doc を明示)"
+    ids:
+      TR-01:
+        status: adopted
+        l3_target: "FR-9MODE-01 + 各 FR 仕様 §3 技術制約列"
+        note: "Python 3.11+ / Bash 5.0+ / SQLite 3.40+ runtime"
+      TR-02:
+        status: adopted
+        l3_target: "FR-GR-01 (model routing) + FR-CTX-01 (models.yaml 注入)"
+        note: "AI model 割当"
+      TR-03:
+        status: adopted
+        l3_target: "FR-DRIFT-01 (Linux/macOS 差異)"
+        note: "OS / 環境差異"
+      TR-04:
+        status: adopted
+        l3_target: "FR-TDD-01 + FR-DOCTOR-01 (pytest / Bats / verify)"
+        note: "test framework"
+      TR-05:
+        status: adopted
+        l3_target: "FR-NSM-01 / FR-GATE-01 / FR-IMPACT-01 / FR-MIGR-01"
+        note: "DB schema 管理"
+      TR-06:
+        status: adopted
+        l3_target: "FR-EVT-01 / FR-4ART-01 / FR-INV-01"
+        note: "trace / inventory"
+      TR-07:
+        status: adopted
+        l3_target: "FR-CTX-01"
+        note: "context injection"
+      TR-08:
+        status: adopted_with_l4_carry
+        l3_target: "FR-PLAN-01 / FR-MIGR-01"
+        note: "compatibility。L4↔L9 pair freeze は L4 carry として移行 PLAN §3.1 に明示"
+
+# ─────────────────────────────────────────────
+# 移行 PLAN との整合
+# ─────────────────────────────────────────────
+migration_plan_alignment:
+  l1_to_l3_plan:
+    path: docs/plans/L3/L3-helix-workflows-要件定義移行plan.md
+    declared_counts:
+      adopted: 13
+      deferred_l4: 5
+      deferred_l14: 1
+      staged: 1  # L1-IN-15 段階対応
+      total: 20
+    actual_row_count: 20
+    consistent: true
+    notes:
+      - "§2.1 FR carry 採択 4 件: FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-13 mapping → FR-detail §1/§4 で確認可"
+      - "§2.2 BR carry 採択 3 件: BR 優先度配分 + G ゲート合成式 + L1-IN-13 → BR-detail §6/§2.3/§7 確認可"
+      - "§2.3 TR carry 採択 2 件: TR-01〜08 統合 → FR-detail §4 mapping / FR-EVT-01 確認可"
+      - "§2.4 NFR carry 採択 4 件: NFR-OP-05 / skip 方針 / IPA グレード値 / L1-IN-15 P1 → NFR-detail §1〜§8 確認可"
+      - "L4 carry 5 件 / L14 carry 1 件 / 段階対応 1 件 (L1-IN-15) は移行 PLAN §3.1〜§3.3 に明示"
+
+# ─────────────────────────────────────────────
+# 漏れ判定 (Critical / Important / Minor)
+# ─────────────────────────────────────────────
+gap_findings:
+  critical:
+    count: 0
+    items: []
+
+  important:
+    count: 2
+    items:
+      - id: IMP-01
+        description: "FR-FNREG-01 / FR-GLOSSARY-01 の L1 back-port 欠落"
+        detail: >
+          2026-05-29 ユーザー要求由来で L3 FR-detail に直接追加された 2 FR に対し、
+          L1 機能要求 doc に parent 要求が存在しない。V-model「要求 → 要件」の順序に逆らって
+          下流から追加された状態。緩和措置として FR-detail §1 に
+          「FR-FNREG-01 は FR-INV-01 の FR 特化版」「FR-GLOSSARY-01 は FR-INV-01 line 38 から分離・独立」
+          と明記されており間接的な親要求 (L1 FR-09) が存在する。
+        affected_ids:
+          - FR-FNREG-01
+          - FR-GLOSSARY-01
+        recommendation: >
+          選択肢 A: L1 機能要求 doc §1 に FR-14 / FR-15 として back-port 追加。
+          選択肢 B (軽量): L3 FR-FNREG-01 / FR-GLOSSARY-01 各 §目的 に
+          「上位要求: L1 FR-09 (資産 inventory の特化版 / 分離 FR)」を 1 行追記し双方向 trace 確立。
+        resolution_status: partial  # 本 session Wave E で L3 親 trace 追記済、L1 back-port は L4 carry
+
+      - id: IMP-02
+        description: "BR-RULE-13 (PdM 提案 evidence 残置) の L1 back-port 欠落"
+        detail: >
+          L3 BR-detail §2.4 BR-RULE-13 「L1/L3 工程の PLAN 起票時に PdM 提案 evidence 残置必須」は
+          L1 BR doc に対応する親業務要求が存在しない。
+          L1 BR-11 (doc 品質レビュー) は doc-reviewer 召喚要求であり PdM evidence 残置要求とは別物。
+          L1 BR-07 (AI agent 配線) または BR-01 (dogfooding) の下位ルールとして派生している
+          可能性があるが L3 doc に trace 記述がない。
+        affected_ids:
+          - BR-RULE-13
+        recommendation: >
+          選択肢 A: L1 業務要求 doc に BR-13 (PdM 提案統合業務) を追加。
+          選択肢 B (軽量): L3 BR-detail §2.4 BR-RULE-13 の「根拠 BR」列に
+          BR-07 (AI agent 配線業務) を明記して trace 補完。
+        resolution_status: partial  # 本 session Wave E で L3 親 trace 追記済、L1 back-port は L4 carry
+
+  minor:
+    count: 1
+    items:
+      - id: MIN-01
+        description: "FR-13 (PLAN 起票レビュー機能) の L3 横断実現 3 FR への双方向 trace 未追記"
+        detail: >
+          L3 FR-detail §4 の FR-13 mapping 行は
+          「FR-GATE-01 + FR-PLAN-01 + FR-CTX-01 に横断実現」として記述済みだが、
+          FR-GATE-01 / FR-PLAN-01 / FR-CTX-01 各仕様 §2 に
+          「FR-13 の横断実現として組み込む」という逆方向 trace が明記されていない。
+        affected_ids:
+          - FR-13
+          - FR-GATE-01
+          - FR-PLAN-01
+          - FR-CTX-01
+        recommendation: >
+          FR-GATE-01 / FR-PLAN-01 / FR-CTX-01 の仕様 §2 末尾それぞれに
+          「※ L1 FR-13 PLAN 起票レビュー機能の横断実現構成要素」を 1 行追記。
+        resolution_status: resolved  # 本 session Wave E で各 §2 末尾追記済
+
+# ─────────────────────────────────────────────
+# 逆方向 contracts (実装あり・要件なし)
+# ─────────────────────────────────────────────
+reverse_gap_findings:
+  total: 10
+  open: 5
+  resolved: 5
+  items:
+    - asset: helix-check-claudemd
+      category: CLI
+      gap_reason: "DEPRECATED shim。後継 helix-doctor で吸収済"
+      status: open
+      routing_candidate: NFR-OP-01  # auto-deprecation 機構で milestone 設定
+    - asset: helix-gate-api-check
+      category: CLI
+      gap_reason: "DEPRECATED shim"
+      status: open
+      routing_candidate: NFR-OP-01
+    - asset: helix-hook
+      category: CLI
+      gap_reason: "DEPRECATED shim"
+      status: open
+      routing_candidate: NFR-OP-01
+    - asset: helix-session-start
+      category: CLI
+      gap_reason: "DEPRECATED shim"
+      status: open
+      routing_candidate: NFR-OP-01
+    - asset: helix-scrum
+      category: CLI
+      gap_reason: "helix-discovery の legacy alias。廃止 milestone 未確定"
+      status: open
+      routing_candidate: "L4 carry (廃止 milestone 決定)"
+    - asset: helix-test
+      category: CLI
+      gap_reason: "テスト infrastructure。本 R1 で NFR-AV-02 / NFR-OP-02 派生 trace 追加"
+      status: resolved
+    - asset: helix-test-debug
+      category: CLI
+      gap_reason: "同上"
+      status: resolved
+    - asset: helix-bats-cleanup
+      category: CLI
+      gap_reason: "Bats 一時 file cleanup。本 R1 で NFR-OP-02 派生 trace 追加"
+      status: resolved
+    - asset: "assets/ 7 file"
+      category: template
+      gap_reason: "gpt-image / LP 用 asset。skills/design-tools/gpt-image inventory に整理済"
+      status: resolved
+    - asset: folder-structure-review.md
+      category: workflow_doc
+      gap_reason: "BR-11 (doc 品質レビュー継続化) 派生として trace 追加済"
+      status: resolved
+
+# ─────────────────────────────────────────────
+# L3 FR 18 件 実装状態集計 (functional-registry.md §11 と整合)
+# ─────────────────────────────────────────────
+l3_fr_implementation_status:
+  total: 18
+  fully_implemented: 13
+  partially_implemented: 3
+  partially_realized_by_this_doc: 1  # FR-FNREG-01: functional-registry.md で部分実体化
+  not_implemented: 1                  # FR-GLOSSARY-01: Wave D carry
+  ids:
+    FR-NSM-01:
+      status: partially_implemented
+      primary_assets: "observability-metrics.md / helix-observe / observability_helper.py / automation/observability"
+      note: "check_header_count_consistency 等 L4 carry"
+    FR-GR-01:
+      status: fully_implemented
+      primary_assets: "pretooluse-agent-guard.sh / pretooluse-opus-repo-block.sh / llm_guard.py / integration/agent-cost-design / common/security / workflow/threat-model"
+    FR-TDD-01:
+      status: fully_implemented
+      primary_assets: "helix-sprint / sprint_auto_check.py / workflow/verification / common/testing / agent-skills/test-driven-development"
+    FR-9MODE-01:
+      status: fully_implemented
+      primary_assets: "helix-route / route_engine.py / discovery-workflow.md / reverse-workflow.md / recovery-workflow.md / refactor-workflow.md"
+    FR-GATE-01:
+      status: fully_implemented
+      primary_assets: "helix-gate / push_gate.py / gate_check_generator.py / automation-gate-map.md / test-perspective-gate.md"
+    FR-IMPACT-01:
+      status: partially_implemented
+      primary_assets: "agent-skills/system-design-sizing / workflow/dependency-map / helix-detect"
+      note: "full query 機能は L4 carry"
+    FR-EVT-01:
+      status: fully_implemented
+      primary_assets: "helix-handover / helix-harness / helix-job / handover.py / posttooluse-helix-job-enqueue.sh"
+    FR-4ART-01:
+      status: fully_implemented
+      primary_assets: "helix-vmodel / vmodel_lint.py / vmodel_pair_freeze.py / test_design_scaffold.py / workflow/requirements-deriver"
+    FR-INV-01:
+      status: fully_implemented
+      primary_assets: "helix-skill / helix-code / skill_catalog.py / code_catalog.py / posttooluse-skill-catalog-rebuild.sh"
+      note: "yaml 化は L4 carry"
+    FR-CTX-01:
+      status: fully_implemented
+      primary_assets: "helix-agent / sessionstart-history-injection.sh / userpromptsubmit-context-bundle.sh / workflow/layer-context-injection / layer-context-injection.md"
+    FR-DRIFT-01:
+      status: fully_implemented
+      primary_assets: "helix-detect / helix-drift-check / drift_db_diff.py / workflow/cross-detection / detection-routing.md"
+    FR-PLAN-01:
+      status: fully_implemented
+      primary_assets: "helix-plan / plan_validator.py / plan_lint.py / plan_dependencies.py / posttooluse-plan-auto-register.sh"
+    FR-DOCREVIEW-01:
+      status: fully_implemented
+      primary_assets: "helix-review / review_output.py / workflow/doc-review / review-stage-routing.md / code-reviewer.md"
+    FR-CHANGEPROP-01:
+      status: partially_implemented
+      primary_assets: "workflow/cross-detection / deviation-plan-map.md / vmodel_lint.py"
+      note: "3 check_* fail-close は L4 carry"
+    FR-FNREG-01:
+      status: partially_realized_by_this_doc
+      primary_assets: "docs/v2/L3-requirements/helix-workflows-functional-registry.md (本 R2 で部分実体化)"
+      note: "functional-registry.yaml + helix doctor check_fr_sot_alignment は L4 carry"
+    FR-GLOSSARY-01:
+      status: not_implemented
+      primary_assets: "L0 §12 Glossary skeleton 19 用語のみ"
+      note: "Wave D: helix-workflows-glossary-registry.md 起草 + yaml 化 は carry"
+    FR-DOCTOR-01:
+      status: fully_implemented
+      primary_assets: "helix-doctor / doctor_plan_checks.py / doctor_summary.py / doctor_recovery_check.py"
+      note: "check_* 追加は L4 carry"
+    FR-MIGR-01:
+      status: fully_implemented
+      primary_assets: "helix-db / helix-migrate / migrate.py / compatibility_adapter.py / rollback_orchestrator.py"
+
+# ─────────────────────────────────────────────
+# coverage summary
+# ─────────────────────────────────────────────
+coverage_summary:
+  l1_to_l3_forward:
+    value: "56/56 = 100%"
+    critical_gaps: 0
+    note: "Critical 漏れ 0。Important 2 件は L3 内に緩和措置済、L1 back-port は L4 carry"
+  l3_to_l1_back_port:
+    value: "13/15 ≈ 87%"
+    open_items:
+      - "FR-FNREG-01: L1 FR-14 back-port 候補 (IMP-01)"
+      - "FR-GLOSSARY-01: L1 FR-15 back-port 候補 (IMP-01)"
+      - "BR-RULE-13: L1 BR-13 back-port 候補 (IMP-02)"
+    note: "Wave E で L3 親 trace 追記により間接的 trace は確立済"
+  asset_to_fr_mapping:
+    value: "L3 FR 18 件: fully_implemented 13 / partially_implemented 3 / partially_realized_by_this_doc 1 / not_implemented 1"
+    detail_ref: "l3_fr_implementation_status (上記 section) 参照"
+    note: "functional-registry.md §11 と整合確認済 (2026-05-29 Wave fix-B)"
+  total_assets: 548
+  total_assets_breakdown: "CLI 80 + lib 139 + hook 17 + agent 19 + skill 130 + workflow doc 49 + template 114"
+  total_assets_note: "canonical 件数 (2026-05-29 Opus PM find verify により旧 559/563 から訂正)"
+  reverse_gap_open_total: 7
+  reverse_gap_breakdown:
+    important: 2  # IMP-01 / IMP-02
+    reverse_asset_open: 5  # DEPRECATED shim 4 件 + helix-scrum alias 1 件
+
+# ─────────────────────────────────────────────
+# 次フェーズ (R2 / R3) への引き継ぎ
+# ─────────────────────────────────────────────
+next_phase:
+  R2:
+    status: completed
+    output: docs/v2/L3-requirements/helix-workflows-functional-registry.md
+    output_size: "848 行"
+    note: "本 session で functional-registry.md として完了済"
+  R3:
+    status: pending
+    input_from_this_file:
+      - "gap_findings.important (2 件): IMP-01 / IMP-02 の L1 back-port 判断"
+      - "reverse_gap_findings.open (5 件): DEPRECATED shim 4 件 + helix-scrum alias 廃止 milestone"
+    open_count: 7
+    output_target: "docs/v2/reverse/fullback/helix-workflows-existing-assets/F3-fullback-handover-checklist.yaml"
+    r3_focus: "Gap × routing 判断 (Important 2 件の L4 carry 確定 + open 5 件の routing_candidate 優先度付け)"

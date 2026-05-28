@@ -1,0 +1,165 @@
+# Reverse fullback R0 evidence
+# 対象: HELIX framework 既存資産 548 件
+# 採録日: 2026-05-29
+# 採録者: pmo-sonnet (Wave A + Wave B + Wave R0 retrofit)
+# 改訂: 2026-05-29 pmo-sonnet (Wave fix-A) — tl-advisor R1 P1 件数 drift + path update
+
+reverse_type: fullback
+workflow_phase: R0
+plan_id: R-helix-workflows-existing-assets-fullbackplan
+created: "2026-05-29"
+owner: PM
+
+scope:
+  framework: HELIX
+  commit: "461942e"  # 2026-05-29 時点 main HEAD
+  target_paths:
+    - "cli/helix-*"
+    - "cli/lib/*.py"
+    - ".claude/hooks/*.sh"
+    - ".claude/agents/*.md"
+    - "skills/**/SKILL.md"
+    - "HELIX-workflows/helix-process/*.md"
+    - "HELIX-workflows/HELIX-process-L0-L14.md"
+    - "cli/templates/**"
+
+summary:
+  total_assets: 548
+  by_category:
+    cli_binaries: 80    # 旧 94: find -type f -executable 再 verify。cli/helix-plan-cmds/ sub-script 12 件 + ディレクトリエントリ混入を除外
+    cli_lib_modules: 139
+    hooks: 17
+    subagents: 19
+    skills: 130         # 旧 132: find skills -name 'SKILL.md' -type f で再 verify
+    workflow_docs: 49   # 旧 50: helix-process/*.md 48 件 + HELIX-process-L0-L14.md 1 件 = 49 件
+    templates: 114      # 旧 112: find cli/templates -type f で再 verify
+  notes:
+    - "templates: find cli/templates -type f で 114 件確認 (旧 112 は過少計上)"
+    - "skills: find skills -name 'SKILL.md' -type f で 130 件確認 (旧 132 の +2 は重複カウント起因)"
+    - "workflow_docs: L0-L14工程定義 15 + 9 mode workflow 10 + 工程専門/特殊 3 + 管理基盤 20 + root 1 = 49件 (管理基盤 README 含む 21→20 訂正)"
+    - "cli_binaries: cli/helix-plan-cmds/ 配下 12 sub-script は helix-plan の内部構成要素のため total から除外"
+
+# observation method: 機械的 inventory (ls / find / grep) + SKILL.md frontmatter 抽出
+# verification: Wave A/B 個別 inventory doc で全件列挙済
+
+evidence_artifacts:
+  - path: "/tmp/asset_inventory_wave_a_2026-05-29.md"
+    category: "CLI / hook / agent / template"
+    asset_count: 377
+    method: "ls + 各 CLI head 抽出"
+  - path: "/tmp/asset_inventory_wave_b_2026-05-29.md"
+    category: "skill / workflow doc"
+    asset_count: 182
+    method: "SKILL.md frontmatter description 抽出 + helix-process/ doc 列挙"
+
+# 主要資産の代表例 (構造把握用、全件は L3 機能一覧 doc 参照)
+assets_representative:
+  cli_binaries:
+    - { name: "helix-doctor", function: "framework 整合性監査 (4 artifact + V-model + drift)、pass/warn/error 判定、--json/--type フラグ" }
+    - { name: "helix-codex", function: "Codex 委譲 ハードガード付き (sandbox / plan-only / 工程文脈注入、--consent/--approved/--plan-id)" }
+    - { name: "helix-plan", function: "PLAN 起票 / lint / status / validate (draft/review/finalize/lint/list/status)" }
+    - { name: "helix-gate", function: "G0-G14 ゲート判定 (機械評価 + fail-close、--pair-check / --drive 引数)" }
+    - { name: "helix-sprint", function: "L7 マイクロスプリント管理 (plan/start/complete/status/addon、標準 8 ステップ)" }
+    - { name: "helix-reverse", function: "Reverse HELIX pipeline (R0-R4-RGC、既存コード→設計復元)" }
+    - { name: "helix-workspace", function: "Workspace manager dispatcher (PLAN-156/ADR-040、isolation/exec/list/cleanup)" }
+    # 全 80 件は Wave A inventory doc §1 参照
+    # deprecated 候補 8 件: helix-bats-cleanup / helix-check-claudemd / helix-debug / helix-gate-api-check / helix-hook / helix-scrum / helix-session-start / helix-test-debug
+    # 補足: cli/helix-plan-cmds/ ディレクトリ配下に 12 件の sub-script (_shared.sh / deps.sh / draft.sh / finalize.sh / generates.sh / import.sh / lint.sh / list.sh / mini.sh / reset.sh / review.sh / status.sh) が存在し、cli/helix-plan CLI から内部呼び出しされる。これらは independent CLI ではなく helix-plan の構成要素のため total_assets に含めない。
+  cli_lib_modules:
+    - { name: "plan_validator.py", responsibility: "PLAN frontmatter 検証 (V2 22 kind + V-model pair)" }
+    - { name: "skill_recommender.py", responsibility: "gpt-5.4-mini LLM スキル推挙 (1h cache)" }
+    - { name: "workspace_manager.py", responsibility: "並列ワークスペース管理 (lock + DB registry)" }
+    - { name: "helix_db.py", responsibility: "HELIX ログ DB (SQLite ベース task 実行・評価・改善追跡)" }
+    - { name: "handover.py", responsibility: "handover コアロジック (JSON + Markdown、dump/update/resume/clear)" }
+    # 全 139 件は Wave A inventory doc §2 参照
+  hooks:
+    - { name: "pretooluse-agent-guard.sh", event: "PreToolUse", function: "Agent 許可 12 種 + model family 一致 fail-close" }
+    - { name: "pretooluse-opus-repo-block.sh", event: "PreToolUse", function: "Opus による backend code 直接 Edit ブロック" }
+    - { name: "posttooluse-plan-auto-register.sh", event: "PostToolUse", function: "PLAN.md → helix.db 自動登録" }
+    # 全 17 件は Wave A inventory doc §3 参照
+  subagents:
+    - { name: "pmo-sonnet", model: "sonnet", role: "判断伴う read-only / 構造化チェック" }
+    - { name: "pmo-haiku", model: "haiku", role: "Web 検索 / docs/** 軽修正" }
+    - { name: "pdm-tech-innovation", model: "opus", role: "海外技術思想翻案" }
+    - { name: "pdm-marketing-innovation", model: "opus", role: "海外マーケ思想翻案" }
+    - { name: "pdm-innovation-manager", model: "opus", role: "PdM 統合・新方向性策定 + L1 接続" }
+    # 全 19 件は Wave A inventory doc §4 参照
+  skills_by_category:
+    workflow: 40   # L0-L14 + design + reverse + verification + gate 等
+    common: 12
+    project: 19    # fe-testing/01-11 含む
+    advanced: 9
+    tools: 4
+    integration: 3
+    writing: 6
+    design_tools: 6
+    automation: 8
+    agent_skills: 25
+    # 全 130 件は Wave B inventory doc §1 参照
+    # L1/L3 FR 対応なし (スコープ外) 候補 22 件: workflow/compliance / dev-policy / dev-setup / estimation / common/design / common/infrastructure / common/visual-design / project/fe-a11y 等 FE/UX/マーケ/i18n 系
+  workflow_docs:
+    by_class:
+      forward_l0_l14_processes: 15   # L0-concept.md 〜 L14-operation-verification.md
+      mode_workflows: 10             # Forward本体 + scrum/discovery/reverse/incident/add-feature/refactor/retrofit/research/recovery
+      process_specialized: 3         # screen-design / frontend-design / two-stage-agent-design
+      management_infrastructure: 21  # README含む integration-map / automation-gate-map 等
+      root: 1                        # HELIX-process-L0-L14.md
+    # 詳細は Wave B inventory doc §2 参照
+
+# FR マッピング集計 (Wave A/B inventory 横断)
+fr_coverage:
+  l1_fr_count: 13          # FR-01〜FR-13
+  l3_fr_count: 18          # FR-NSM-01 〜 FR-DOCTOR-01 / FR-MIGR-01 等 core 18件
+  assets_with_fr_mapping: 526   # 548 資産中 FR 対応あり概算 (旧 541、total 訂正に伴い再計算)
+  assets_without_fr: 22         # FE/UX/マーケ/i18n/汎用インフラ専用 = スコープ外として整理
+  fr_gap_candidates:
+    - "helix-bats-cleanup / helix-debug / helix-test / helix-test-debug: テスト運用・デバッグ CLI に直接対応 FR なし"
+    - "workflow/compliance / dev-policy / dev-setup / estimation: 組織・開発体制・環境整備は現 FR スコープ外"
+    - "HELIX-workflows/folder-structure-review.md: L1/L3 FR 対応なし"
+
+# 採録範囲外 (out-of-scope)
+out_of_scope:
+  - "docs/"             # 設計 doc は別工程 (L2-L6) で管理、本 inventory 対象外
+  - "cli/tests/"        # テストは framework 内資産 inventory の対象外
+  - ".git/"             # version control 内部
+  - "node_modules/, __pycache__/"  # generated artifacts
+
+# 採録の信頼性評価
+confidence:
+  cli_binaries: high        # ls + 機械列挙
+  cli_lib_modules: high     # find + 機械列挙
+  hooks: high               # ls + 機械列挙
+  subagents: high           # ls + 機械列挙
+  skills: medium            # SKILL.md description 抜粋ベース、責務粒度に揺れあり (特に agent-skills/ 25 件は英語 description が多く日本語翻訳精度に差)
+  workflow_docs: high       # helix-process/ dir list + 機能確認
+  templates: medium         # cli/templates/ 構造は機械列挙済、内部コンテンツの精度未検証
+
+# 採録上の注意事項
+notes:
+  - "project/ skills カウント: SKILL_MAP 記載 14 件に対し fe-testing/01-11 (11件) を加算して 19 件 (= SKILL_MAP 記載「project/ 14 スキル」との差異は fe-testing 追加分)"
+  - "workflow/ skills カウント: Wave B では 35 件列挙、SKILL_MAP 記載 40 件との差 5 件は doc-review / requirements-handover / requirements-deriver / review-stage-routing 等の 2026-05 追加分"
+  - "管理基盤 doc: README.md 含む 21 件 (Wave B summary 記載値)"
+  - "deprecated CLI 8 件 (helix-bats-cleanup / check-claudemd / debug / gate-api-check / hook / scrum / session-start / test-debug) は inventory に含むが廃止候補として識別済"
+
+# 次フェーズ (R1) への引き継ぎ
+next_phase:
+  R1_input:
+    - "本 yaml の assets_representative + Wave A/B inventory doc 全件"
+    - "L1/L3 要件 doc: FR-01〜FR-13 (L1) / FR-NSM-01 〜 FR-MIGR-01 (L3 core 18件)"
+    - "FR gap candidates 22 件 (スコープ外候補) の判断依頼"
+    - "deprecated CLI 8 件の廃止判断依頼"
+  R1_output_target: "F1-fullback-contracts.yaml"
+  R1_focus:
+    - "CLI 80 件の公開 API (subcommand / option / output 形式) 機械抽出"
+    - "cli/lib/ 139 件の公開 symbol (function / class) 抽出"
+    - "PLAN frontmatter contracts (kind 22 種 / generates / dependencies 語彙) の characterization"
+    - "hook event × trigger 条件 × exit_code 契約の列挙"
+
+# 改訂履歴
+audit_history:
+  - date: "2026-05-29"
+    author: "pmo-sonnet (Wave R0 retrofit)"
+    note: "初版採録 (Wave A + Wave B、total 563)"
+  - date: "2026-05-29"
+    author: "pmo-sonnet (Wave fix-A)"
+    note: "tl-advisor R1 P1 件数 drift 修正 + path update。cli_binaries 94→80 (cli/helix-plan-cmds/ sub-script 12 件除外)、skills 132→130 (find 再 verify)、workflow_docs 50→49 (管理基盤 21→20)、templates 112→114 (find 再 verify)、total 563→548。fr_coverage.assets_with_fr_mapping 541→526 (total 訂正連動)。R1_focus cli 件数 94→80。"

@@ -1,0 +1,227 @@
+# Reverse fullback R3 handover checklist
+# 対象: HELIX framework 既存資産 fullback の PO 確認事項
+# 作成日: 2026-05-29
+# 作成者: pmo-sonnet (R3 起草)
+
+reverse_type: fullback
+workflow_phase: R3
+plan_id: R-helix-workflows-existing-assets-fullbackplan
+created: "2026-05-29"
+owner: PM
+
+related_artifacts:
+  - docs/v2/reverse/fullback/helix-workflows-existing-assets/F0-fullback-evidence.yaml
+  - docs/v2/reverse/fullback/helix-workflows-existing-assets/F1-fullback-contracts.yaml
+  - docs/v2/reverse/fullback/helix-workflows-existing-assets/F2-fullback-as-is-review.md
+  - docs/v2/reverse/fullback/helix-workflows-existing-assets/F4-fullback-routing.md
+  - docs/v2/L3-requirements/helix-workflows-functional-registry.md
+
+audit_history:
+  - 2026-05-29: pmo-sonnet (Wave R3) — F3 起草 (HO-01〜08 = 8 item, urgency high 2 / medium 2 / low 4)
+  - 2026-05-29: PM (Opus) — path update (.helix/reverse/ → docs/v2/reverse/fullback/) + related_artifacts に F1/F4 追加
+
+# PO 確認 checklist
+# 各 item は { id, category, finding, hypothesis, po_question, decision_required, urgency, routing_candidate }
+
+handover_items:
+
+  # === Important 系 (順方向 / 親 trace 不在) ===
+
+  - id: HO-01
+    category: important_forward_gap
+    finding: "L3 FR-FNREG-01 (機能一覧 SSoT) が L1 FR doc に対応する FR-XX を持たない"
+    hypothesis: >
+      ユーザー要求由来 (2026-05-29) で L3 に直接追加された。
+      L1 上位要求は FR-09 (資産 inventory) が概念的親と推定。
+    po_question: >
+      L1 FR doc を改訂して FR-14 (機能一覧管理) を back-port するか?
+      選択肢 A: L4 carry として L1 doc 改訂を後続 PLAN 化。
+      選択肢 B: L3 trace 追記のみで closure (本 session Wave E で実施済)。
+      どちらを採用するか?
+    decision_required: true
+    urgency: medium
+    routing_candidate: >
+      A: L4 carry — L1 doc 改訂を後続 PLAN 化 (次 session)。
+      B: L3 trace 追記のみで closure (本 session Wave E 実施済、追加作業不要)。
+
+  - id: HO-02
+    category: important_forward_gap
+    finding: "L3 FR-GLOSSARY-01 (用語一覧 SSoT) が L1 FR doc に対応する FR-XX を持たない。かつ実装未実体化"
+    hypothesis: >
+      FR-INV-01 line 38 から分離・独立した要件。
+      L1 上位要求は FR-09 (資産 inventory) が概念的親と推定。
+      L0 §12 Glossary skeleton に 19 用語が存在するが glossary-registry.md 本体が未作成。
+    po_question: >
+      (a) glossary-registry.md を本 session 内 Wave D で起草するか? それとも別 session carry か?
+      (b) L1 FR doc を改訂して FR-15 (用語一覧管理) を back-port するか?
+      選択肢 A: 本 session Wave D で glossary-registry.md 起草 + L4 carry で L1 back-port。
+      選択肢 B: 両方を別 session carry にする。
+      どちらを採用するか?
+    decision_required: true
+    urgency: high
+    routing_candidate: >
+      Wave D (本 session): glossary-registry.md 起草で FR-GLOSSARY-01 実装実体化。
+      L4 carry: L1 FR doc 改訂 (FR-15 back-port) + helix doctor check_glossary_coverage 実装。
+
+  - id: HO-03
+    category: important_reverse_gap
+    finding: "L3 BR-RULE-13 (PdM 提案 evidence 残置) が L1 BR doc に対応する BR-XX を持たない"
+    hypothesis: >
+      L1 BR-07 (AI agent 配線業務) の下位ルールとして派生し、
+      L3 で新規追加 (2026-05-28) された業務ルール。
+    po_question: >
+      L1 BR doc を改訂して BR-13 (PdM 提案統合業務) を back-port するか?
+      選択肢 A: L4 carry として L1 BR doc 改訂を後続 PLAN 化。
+      選択肢 B: L3 trace 追記のみで closure (本 session Wave E で実施済)。
+      どちらを採用するか?
+    decision_required: true
+    urgency: low
+    routing_candidate: >
+      A: L4 carry — L1 BR doc 改訂を後続 PLAN 化 (低優先)。
+      B: L3 trace 追記のみで closure (本 session Wave E 実施済)。
+
+  # === 逆方向 open (deprecated shim + legacy alias) ===
+
+  - id: HO-04
+    category: reverse_gap_deprecated
+    finding: >
+      CLI 4 件 (helix-check-claudemd / helix-gate-api-check / helix-hook / helix-session-start)
+      が DEPRECATED shim として残置。後継 CLI で機能吸収済だが廃止 milestone 不明。
+    hypothesis: >
+      NFR-OP-01 (auto-deprecation framework) が shim 廃止 milestone を持っていないため、
+      廃止時期が宙に浮いている状態。warn 出力のみで当面残置する方針が暗黙に継続中。
+    po_question: >
+      DEPRECATED shim 4 件の廃止 milestone (バージョン番号または日付) を確定するか?
+      選択肢 A: L4 carry として NFR-OP-01 拡張 PLAN を起票し deprecated.md に milestone 明記。
+      選択肢 B: 当面は warn 出力のみで残置し、廃止 milestone は別サイクルで確定。
+      どちらを採用するか?
+    decision_required: true
+    urgency: medium
+    routing_candidate: >
+      A: L4 carry — NFR-OP-01 拡張 + deprecated.md milestone 追記
+        + helix doctor check_deprecated_shim_milestone 実装。
+      B: 現状維持 (warn 残置、RG3 open item として記録)。
+
+  - id: HO-05
+    category: reverse_gap_legacy_alias
+    finding: >
+      helix-scrum CLI は helix-discovery の legacy alias。
+      SKILL_MAP に明示済だが廃止リリース番号が未確定。
+    hypothesis: >
+      PLAN-070 系の rename 完遂時に 1 release backward compat alias として残置された。
+      helix-discovery が正本 (2026-05-25 責務整理で確立) だが、
+      alias 除去タイミングが定まっていない。
+    po_question: >
+      helix-scrum alias を特定バージョンで除去するか?
+      選択肢 A: L4 carry として廃止バージョンを SKILL_MAP §6 + cli/helix-scrum header に明記。
+      選択肢 B: indefinite alias として残置し、廃止は別サイクルで判断。
+      どちらを採用するか?
+    decision_required: true
+    urgency: low
+    routing_candidate: >
+      A: L4 carry — SKILL_MAP §6 + cli/helix-scrum header に廃止バージョン/日付明記。
+      B: 現状維持 (indefinite alias、RG3 open item として記録)。
+
+  # === closure 確認 (本 R2 で trace 追記済) ===
+
+  - id: HO-06
+    category: confirmation_resolved
+    finding: >
+      本 R2 (functional-registry.md) で trace 追記済の 5 件:
+      helix-test / helix-test-debug / helix-bats-cleanup / assets 7 file / folder-structure-review.md
+    hypothesis: >
+      それぞれ NFR-AV-02 (テスト実行基盤) / NFR-OP-02 (CLI 保守容易性) /
+      BR-11 (Codex 委譲コミット禁止) 派生として整合する。
+    po_question: >
+      本 R2 の trace 追記内容で resolved として closure してよいか?
+      (修正不要、PO 承認確認のみ)
+      Yes / No どちらか?
+    decision_required: true
+    urgency: low
+    routing_candidate: "RG3 pass → R4 routing で 5 件まとめて closure 確認。"
+
+  # === 構造的所見 (mapping coverage 不達) ===
+
+  - id: HO-07
+    category: structural_observation
+    finding: >
+      L3 FR 18 件中 FR-GLOSSARY-01 のみ未実装。
+      mapping coverage 約 78% (完全実装 13 件 + 部分実装 3 件 + 部分実体化 1 件 + 未実装 1 件)。
+      80% 目標未達。
+    hypothesis: >
+      FR-GLOSSARY-01 の実装実体化 = Wave D 起草 (glossary-registry.md) +
+      L0 §12 Glossary skeleton 19 用語の昇格で coverage 約 83% 達成見込み。
+    po_question: >
+      FR-GLOSSARY-01 実体化を本 session 内 Wave D で進めるか? それとも別 session carry か?
+      選択肢 A: 本 session Wave D で glossary-registry.md 起草 (HO-02 と連動)。
+      選択肢 B: 別 session carry として L4 PLAN に積む。
+      どちらを採用するか?
+    decision_required: true
+    urgency: high
+    routing_candidate: >
+      A: Wave D (本 session) — glossary-registry.md 起草で coverage ~83% 達成。
+      B: L4 carry (別 session) — coverage 不達のまま本 session 終了。
+
+  # === fullback 方法論 retrofit ===
+
+  - id: HO-08
+    category: methodology_retrofit
+    finding: >
+      本 session の作業は事実上 Reverse fullback workflow R0-R4 を辿ったが、
+      CLI 経由 (helix reverse fullback R0...) ではなく ad hoc に進めた。
+    hypothesis: >
+      今後類似の fullback 作業 (実装完遂後の文書整合) は
+      helix reverse fullback CLI 経由で標準化すべき。
+      本 session 自身が fullback workflow の dogfooding 事例になっている。
+    po_question: >
+      本 fullback PLAN 起票後、helix reverse fullback CLI の起動シーケンス documentation
+      (HELIX-workflows/helix-process/reverse-workflow.md §fullback フロー) を補強するか?
+      選択肢 A: L4 carry として reverse-workflow.md §fullback section 追加を後続 PLAN 化。
+      選択肢 B: 本 session では方法論 carry として記録のみ、補強は別サイクル。
+      どちらを採用するか?
+    decision_required: true
+    urgency: low
+    routing_candidate: >
+      A: L4 carry — HELIX-workflows/helix-process/reverse-workflow.md
+        §fullback フロー section 追加 PLAN 化。
+      B: 現状維持 (方法論 carry として記録のみ)。
+
+# 集計
+summary:
+  total_items: 8
+  by_urgency:
+    high: 2    # HO-02 (FR-GLOSSARY-01 未実体化) + HO-07 (mapping coverage 78% 未達)
+    medium: 2  # HO-01 (FR-FNREG-01 L1 back-port) + HO-04 (deprecated shim milestone)
+    low: 4     # HO-03 + HO-05 + HO-06 + HO-08
+  decisions_required: 8
+  resolved_confirmation_items: 1  # HO-06 (5 件まとめ確認)
+
+# RG3 ゲート判定基準
+rg3_pass_criteria:
+  required:
+    - "全 HO item の po_question が yes/no + 選択肢形式で明示されている"
+    - "各 routing_candidate が L1 doc 改訂 / L4 carry / Wave 内追加 / RG3 closure のどこへ戻るか書かれている"
+    - "urgency が high / medium / low で判定されている"
+    - "decision_required フラグが全 item に設定されている"
+  optional:
+    - "PO 判断後の actual_decision フィールドを各 item に追記 (R4 起草時)"
+
+# 次フェーズ (R4) への引き継ぎ
+next_phase:
+  R4_input:
+    - "本 yaml の PO 判断結果 (各 item の actual_decision)"
+    - "F2-fullback-as-is-review.md の closure 候補 5 件 (HO-06)"
+  R4_output_target: F4-fullback-routing.md
+  R4_routing_table:
+    L1_doc_revision_candidates:
+      - "HO-01: FR-14 (機能一覧管理) back-port"
+      - "HO-02: FR-15 (用語一覧管理) back-port"
+      - "HO-03: BR-13 (PdM 提案統合業務) back-port"
+    L4_carry_candidates:
+      - "HO-04: NFR-OP-01 拡張 + deprecated shim milestone 確定"
+      - "HO-05: helix-scrum alias 廃止バージョン明記"
+      - "HO-08: reverse-workflow.md §fullback section 追加"
+    wave_in_session_candidates:
+      - "HO-02 / HO-07: Wave D — glossary-registry.md 起草 (mapping coverage 78% → ~83%)"
+    rg3_closure_confirmation:
+      - "HO-06: resolved 5 件 (helix-test / helix-test-debug / helix-bats-cleanup / assets 7 file / folder-structure-review.md)"
