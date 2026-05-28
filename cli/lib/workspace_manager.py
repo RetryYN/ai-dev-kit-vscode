@@ -847,21 +847,20 @@ class WorkspaceManager:
         return entries
 
     def _get_workspace_entry(self, task_id: str) -> dict[str, Any] | None:
+        registry_path = self.registry_dir / f"{task_id}.yaml"
+        if registry_path.exists():
+            payload = _read_yaml_file(registry_path)
+            payload.setdefault("task_id", task_id)
+            return payload
+
         registry_api = _registry_functions().get("workspace_registry_get")
         if callable(registry_api):
             with compatibility_adapter.write_connection(helix_db.resolve_default_db_path()) as conn:
                 row = registry_api(conn, task_id)
             if row is not None:
                 payload = dict(row)
-                registry_path = self.registry_dir / f"{task_id}.yaml"
-                if registry_path.exists():
-                    payload = {**_read_yaml_file(registry_path), **payload}
                 return payload
-
-        registry_path = self.registry_dir / f"{task_id}.yaml"
-        if not registry_path.exists():
-            return None
-        return _read_yaml_file(registry_path)
+        return None
 
     def _registry_entry_exists(self, task_id: str) -> bool:
         entry = self._get_workspace_entry(task_id)
