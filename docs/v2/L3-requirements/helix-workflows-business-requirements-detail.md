@@ -11,6 +11,8 @@ canonical_source: HELIX-workflows/helix-process/L3-requirements-definition.md
 parent_plan: L3-helix-workflows-業務要件plan
 related_l1: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+audit_history:
+  - "2026-05-29: pmo-sonnet (Wave E) — IMP-02 back-port trace 追記 (BR-RULE-13 説明末尾 L1 BR-07 派生 back-port)"
 ---
 
 # HELIX-workflows V2 業務要件 (確定版、L3 詳細化)
@@ -135,6 +137,8 @@ flowchart TB
 | BR-RULE-11 | 大規模 doc 改定 (~500 行+) / G0.5・G1・G3・G7 ゲート evidence / V-model 4 artifact pair freeze 前 AND **doc-reviewer 召喚 evidence 不在** | fail-close、ゲート通過拒否 (`helix codex --role doc-reviewer --task ...` の召喚と判定 (approve / conditional_approve / blocked) 結果を会話 / final report / commit message に残すこと必須) | hotfix (Incident mode) で 1 commit < 50 行の typo 修正のみ等の軽微改定は applicable、ただし postmortem で doc-review carry 化を検討。reference doc (kind=reference / is_reference: true) は適用外 |
 | BR-RULE-12 | 上流 ID (BR-* / FR-* / NFR-*) を新規追加または既存 ID を delete / rename した commit AND **同 commit / 直前後 N commit 以内に下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) の追加 / 更新 / 削除がない** OR **balance_ratio < 1.0 regression を起こす** | fail-close、commit 拒否 (`helix doctor check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness` 全 pass まで) | (1) 上流 ID delete が **意図的 deprecation** で deferred-findings.yaml に登録済の場合は applicable (2) 緊急 hotfix で 1 commit 完結する場合は直後 N=3 commit 以内 fixup 必須 (3) reference doc (kind=reference / is_reference: true) 内の ID 変更は適用外 |
 | BR-RULE-13 (2026-05-29 ユーザー要求由来、PdM 提案統合) | L1 / L3 要件定義工程の PLAN 起票時 AND **PdM 提案 evidence (pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager 召喚 + 判定結果 + Product 観点フィードバック) が会話 / final report / commit message のいずれかに残されていない** | warn (Phase α) → fail-close (Phase β 以降、L4 で `helix doctor check_pdm_proposal_coverage` 実体化後) | (1) 軽微修正 (typo / 表記統一等、< 30 行) は適用外 (2) hotfix (Incident mode) は postmortem で PdM carry 化を検討 (3) reference doc (kind=reference / is_reference: true) は適用外 (4) Recovery mode の暴走収束 PLAN は適用外 |
+
+> **上位要求 (back-port)**: L1 BR-07 (AI agent 配線業務) の下位ルールとして派生。L1 BR doc には対応 BR-XX (PdM 提案統合業務) が存在せず、本 RULE は L3 で新規追加 (2026-05-28、ユーザー要求由来)。今後 L1 BR doc 改訂時に L1 BR-13 として back-port 候補。
 
 
 

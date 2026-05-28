@@ -13,6 +13,8 @@ related_l1:
   - docs/v2/L1-requirements/helix-workflows-functional-requirements.md
   - docs/v2/L1-requirements/helix-workflows-technical-requirements.md
 pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+audit_history:
+  - "2026-05-29: pmo-sonnet (Wave E) — IMP-01a/01b/MIN-01 back-port trace 追記 (FR-FNREG-01/FR-GLOSSARY-01 §目的、FR-GATE-01/FR-PLAN-01/FR-CTX-01 §2 仕様 FR-13 横断実現)"
 ---
 
 # HELIX-workflows V2 機能要件 (確定版、L3 詳細化)
@@ -77,6 +79,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 振る舞い: gate 名、対象 PLAN、pair artifact、関連 doc を入力に、`static_subchecks` を先行実行し、その後 `ai_review_required_when(...)` を評価して最終 verdict を生成する。
 - 状態遷移: `not_run -> static_checked -> ai_reviewed -> decided`。AI review 不要なら `static_checked -> decided` を許可する。
 - エラー処理: 未知 gate 指定は exit code 1、必須 artifact 不在は exit code 2、AI review 実行不能時は `blocked` を返す。
+> **L1 FR-13 横断実現**: PLAN 起票レビュー機能 (2026-05-28 追加 L1 FR) の構成要素として機能。tl-advisor 召喚 + pmo audit pair freeze + adversarial check の自動化に寄与。
 
 ### FR-IMPACT-01 影響範囲 query 機能
 
@@ -108,6 +111,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 状態遷移: `requested -> bundled -> injected`。bundle 生成後に CLI/hook へ注入される。
 - エラー処理: layer 未定義は exit code 2、skill path 不在は `bundle_warning`、model route 欠落は role 既定値で代替し warning を返す。
 - **L1/L3 要件定義工程の PdM 召喚拡張** (2026-05-29 ユーザー要求由来): 既存 mandatory_by_phase (G0.5 で PdM 3 種召喚) を **L1 / L3 要件定義工程に拡張**。L1/L3 PLAN 起票時 `helix context bundle --layer L1|L3` で **mandatory_agents に `pdm-tech-innovation` / `pdm-marketing-innovation` / `pdm-innovation-manager` 3 種を自動含む** (Product 観点を技術観点と並走させ、要件 doc に PdM 提案 evidence 残置必須化)。実体化は L4 carry (`cli/config/vmodel-semantics.yaml` の mandatory_by_phase 拡張、`helix agent fire-mandatory --phase L1` / `--phase L3` で一括投入)、BR-RULE-13 と連携
+> **L1 FR-13 横断実現**: PLAN 起票レビュー機能 (2026-05-28 追加 L1 FR) の構成要素として機能。tl-advisor 召喚 + pmo audit pair freeze + adversarial check の自動化に寄与。
 
 ### FR-DRIFT-01 discrepancy routing 機能
 
@@ -120,6 +124,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 振る舞い: PLAN frontmatter の `dependencies` と `generates` を解釈し、上流下流、artifact 逆引き、deprecated path の互換追跡を返す。
 - 状態遷移: `parsed -> linked -> validated`。互換 path を含む場合は `validated_with_warning` を許可する。
 - エラー処理: parent 不在は `warning` または `blocking`、path 不達は `broken_link`、互換期限切れは `blocking` を返す。
+> **L1 FR-13 横断実現**: PLAN 起票レビュー機能 (2026-05-28 追加 L1 FR) の構成要素として機能。tl-advisor 召喚 + pmo audit pair freeze + adversarial check の自動化に寄与。
 
 ### FR-DOCTOR-01 doctor 総合監査機能 (+ 2026-05-29 ユーザー要求: doctor type 分割)
 
@@ -190,6 +195,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 ### FR-FNREG-01 機能一覧 SSoT + 自動チェック機能 (2026-05-29 ユーザー要求由来、新規追加)
 
+> **上位要求 (back-port)**: L1 FR-09 (資産 inventory / density 可視化) の FR 特化版として派生。L1 FR doc には対応 FR-XX が存在せず、本 FR は L3 で新規追加 (2026-05-29、ユーザー要求由来)。今後 L1 FR doc 改訂時に L1 FR-14 として back-port 候補。
+
 - **目的**: FR-* (HELIX-workflows 全機能定義) の中央 SSoT を確立し、doc 内 FR-* 参照との drift / 未定義 / 重複を機械検出。「機能一覧みたいなの作ったほうがいい」ユーザー要求 (2026-05-29) への直接対応
 - **CLI 契約**:
   - `helix function registry list [--scope L1|L3|L4|all] [--json]`: SSoT 全 FR-* 一覧
@@ -207,6 +214,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - **機械判定 carry (L4)**: `helix doctor check_fr_sot_alignment` を新設、doc 内 FR-* 参照を SSoT 突合 (drift ≤ 5% / 未定義 ID 0 件 / 重複 ID 0 件) を fail-close
 
 ### FR-GLOSSARY-01 ドメイン用語 SSoT + 自動チェック機能 (2026-05-29 ユーザー要求由来、新規追加)
+
+> **上位要求 (back-port)**: L1 FR-09 (資産 inventory / density 可視化) + FR-INV-01 (line 38) から分離・独立。L1 FR doc には対応 FR-XX が存在せず、本 FR は L3 で新規追加 (2026-05-29、ユーザー要求由来)。今後 L1 FR doc 改訂時に L1 FR-15 として back-port 候補。
 
 - **目的**: ドメイン用語 (HELIX-workflows ユビキタス言語) の中央 SSoT を確立し、doc 内用語使用との定義不在 / 用語ゆれ / anti-corruption 違反を機械検出。「ドメイン (用語) 一覧 ... これをドキュメントの自動チェックにしてよ」ユーザー要求 (2026-05-29) への直接対応
 - **CLI 契約**:
