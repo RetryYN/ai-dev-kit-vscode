@@ -202,11 +202,11 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 - **受入基準**: 正常 graph は `validated`、broken link は `exit code 2`、deprecated path は warning
 - **検証 step**: (1) 正常 frontmatter 用意 (2) broken link を混ぜる (3) deprecated path を混ぜて比較
 
-### AC-FR-13: doctor 総合監査
+### AC-FR-13: doctor 総合監査 (+ doctor type 分割、2026-05-29 ユーザー要求)
 - **対象 FR**: FR-DOCTOR-01
-- **デプロイ後検証内容**: doctor が trace / inventory / migration / context の監査結果を 1 summary に束ねる
-- **受入基準**: critical ≥ 1 件で exit code 2、critical 0 件なら summary JSON
-- **検証 step**: (1) 軽微 warning case (2) critical case を作る (3) exit code + summary 比較
+- **デプロイ後検証内容**: doctor が trace / inventory / migration / context の監査結果を 1 summary に束ねる + **type 分割 (`helix doctor --type <type>`) で領域別実行が独立動作**
+- **受入基準**: critical ≥ 1 件で exit code 2、critical 0 件なら summary JSON + **`--type docs/plan/vmodel/db/skill/security/locks/inventory` 各 type 単独実行で領域別 summary、`--type all` (default) は集約 summary (現行互換)**
+- **検証 step**: (1) 軽微 warning case (2) critical case を作る (3) exit code + summary 比較 (4) **各 type 単独実行で領域別 summary 取得 (5) `--type all` で全 type 集約一致確認 (6) type 別 audit log `.helix/audit/doctor-<type>-<ts>.yaml` 分離出力動作確認**
 
 ### AC-FR-15: ドキュメント品質レビュー機能 (2026-05-26 FR-DOCREVIEW-01 / BR-11 由来、新規追加)
 

@@ -121,11 +121,25 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 状態遷移: `parsed -> linked -> validated`。互換 path を含む場合は `validated_with_warning` を許可する。
 - エラー処理: parent 不在は `warning` または `blocking`、path 不達は `broken_link`、互換期限切れは `blocking` を返す。
 
-### FR-DOCTOR-01 doctor 総合監査機能
+### FR-DOCTOR-01 doctor 総合監査機能 (+ 2026-05-29 ユーザー要求: doctor type 分割)
 
 - 振る舞い: pair freeze、4 artifact、inventory、migration、context injection、mode transition の監査結果を束ね、warn 件数、severity、修復候補を返す。
 - 状態遷移: `scanned -> summarized -> reported`。
 - エラー処理: 個別監査が一部失敗しても summary は返す。ただし `critical` が 1 件でもある場合は exit code 2 とする。
+- **doctor type 分割** (2026-05-29 ユーザー要求由来): `helix doctor [--type <docs|plan|vmodel|db|skill|security|locks|inventory|all>]` で領域別実行を可能にする。引数なし (`helix doctor`) は **all 集約** (現行互換)、`--type docs` 等は **領域別 audit + 領域別 summary** を返す
+  - **type 一覧と check 対象**:
+    - `docs`: doc 整合性 (FR-* / BR-* / NFR-* 件数 / 用語 SSoT / V-model trace、FR-FNREG-01 / FR-GLOSSARY-01 連携)
+    - `plan`: PLAN frontmatter (plan_validator) / plan_lint / dependencies / generates trace
+    - `vmodel`: pair freeze (L1↔L14 等 6 対) / 4 artifact 双方向 trace / balance_ratio (FR-CHANGEPROP-01 連携)
+    - `db`: helix.db schema / migration log / index / lock 健全性
+    - `skill`: skill metadata (helix_layer 必須 / category 整合 / description 充足)
+    - `security`: secret scan / regen guard / tool guard 違反
+    - `locks`: stale lock (dead/alive) / lock 衝突
+    - `inventory`: skill/CLI/PLAN/docs/DB schema density / 未割当資産 (FR-INV-01 連携)
+    - `all` (default、現行 `helix doctor`): 上記全 type 集約
+  - **実装**: `helix-doctor-<type>` 各 sub-script + 集約 dispatcher (L4 carry、`cli/lib/doctor_dispatcher.py` 新設)
+  - **副作用**: 各 type の audit log は `.helix/audit/doctor-<type>-<timestamp>.yaml` に分離出力 (現状 single log を type 別分離)
+  - **責務分離**: 各 type は独立実行可能、相互依存なし。`all` 集約時のみ依存関係解決 (例: vmodel が plan の整合性を前提とする等)
 
 ### FR-DOCREVIEW-01 ドキュメント品質レビュー機能 (2026-05-26 BR-11 由来、新規追加)
 
@@ -233,7 +247,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-CTX-01 | `helix context bundle --layer L3 --role se` | `stdout`: 注入 bundle、`stderr`: 欠落 skill、`exit 0/2` | bundle cache 更新、hook 注入 | `models.yaml` / `vmodel-semantics.yaml` が正本 |
 | FR-DRIFT-01 | `helix drift-check --json` | `stdout`: routed discrepancy、`stderr`: 分類不能項目、`exit 0/2` | discrepancy log 更新、route suggestion 記録 | Linux / macOS 差異を区別、Claude/Codex 両 runtime で再現 |
 | FR-PLAN-01 | `helix plan generates --plan-id <id>` | `stdout`: dependency graph、`stderr`: broken link、`exit 0/1/2` | plan graph cache 更新 | 1 release 互換を維持し deprecated warning を返す |
-| FR-DOCTOR-01 | `helix doctor --json` | `stdout`: audit summary JSON、`stderr`: critical findings、`exit 0/2` | warn 集計、readiness input 更新 | pytest / Bats / verify / inventory audit を横断 |
+| FR-DOCTOR-01 | `helix doctor [--type <docs|plan|vmodel|db|skill|security|locks|inventory|all>] [--json]` (2026-05-29 ユーザー要求 type 分割追加) | `stdout`: audit summary JSON (`--type` 指定で領域別 summary)、`stderr`: critical findings、`exit 0/2` | warn 集計、readiness input 更新、`.helix/audit/doctor-<type>-<ts>.yaml` 分離出力 | pytest / Bats / verify / inventory audit 横断。`--type all` (default、引数なし時) は現行互換 |
 | FR-MIGR-01 | `helix db migrate --plan v2-freeze` | `stdout`: migration result、`stderr`: manual approval required、`exit 0/2` | schema version 更新、migration log 追加 | SQLite migration、互換期間中 router 並走、rollback 情報保持 |
 | FR-DOCREVIEW-01 (L3 拡張、BR-11 由来) | `helix codex --role doc-reviewer --task "..."` (gpt-5.5 high read-only) | `stdout`: 4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準整合 + V-model 量閉じ性 + 判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘、`stderr`: doc 不在 / 環境エラー、`exit 0/1/2` | doc-reviewer 召喚 evidence 記録 (commit message / final report / 会話 history) | gpt-5.5 high read-only、Diátaxis / arc42 / ISO 26515:2018 / DDD SSoT 整合検査、`helix doctor check_doc_review_coverage` (L4 carry) で召喚率 ≥ 95% 監査 |
 | FR-CHANGEPROP-01 (L3 拡張、BR-12 由来) | `helix doctor --check-changeprop` (3 軸: `check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) | `stdout`: 3 軸 audit summary JSON、`stderr`: 違反詳細、`exit 0/2` | pre-commit / CI hook で fail-close、`.helix/audit/changeprop-violations.yaml` 更新、ratchet baseline 更新 | Hyrum's Law ベース破壊的変更が deferred-findings.yaml 登録経由のみ通過、balance_ratio 過去最小値より下回ったら fail-close |
