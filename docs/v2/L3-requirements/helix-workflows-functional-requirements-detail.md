@@ -35,7 +35,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-IMPACT-01 | 影響範囲 query 機能 | L1 FR-06, TR-05 | 4 artifact trace と mode event を横断して影響範囲を 5 秒以内に返す |
 | FR-EVT-01 | Forward 復帰 event 機能 | L1 FR-07, TR-06 | 9 mode closure を記録し、Forward の昇格先と closure metadata を保持する |
 | FR-4ART-01 | 4 artifact / pair freeze 監査機能 | L1 FR-08, TR-06 | 設計・実装・テスト設計・テストコードの trace 欠落を warn / fail-close で出す |
-| FR-INV-01 | 資産 inventory / density 可視化機能 (+ implementation_status 列必須化) | L1 FR-09, TR-06, **BR-09** (2026-05-26 拡張) | skill / CLI / PLAN / docs / DB schema を工程別に登録し、密度と空白を表示する + 設計 doc 内 `implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須化、`helix doctor check_glossary_coverage` で L0 §12.1 整合監査 |
+| FR-INV-01 | 資産 inventory / density 可視化機能 (+ implementation_status 列必須化) | L1 FR-09, TR-06, **BR-09** (2026-05-26 拡張) | skill / CLI / PLAN / docs / DB schema を工程別に登録し、密度と空白を表示する + 設計 doc 内 `implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須化。**用語整合監査機能 (旧 `check_glossary_coverage` 言及) は 2026-05-29 から FR-GLOSSARY-01 に分離・委譲** (FR-GLOSSARY-01 §2 参照) |
 | FR-CTX-01 | layer context injection 機能 | L1 FR-10, TR-02, TR-07 | 工程別に agent / skill / command / model route を注入し、AI の選択空間を制約する |
 | FR-DRIFT-01 | discrepancy routing 機能 | L1 FR-11, TR-03 | drift / trace 欠落 / 環境差異を検知し、interrupt / recovery / reverse normalization へ送る |
 | FR-PLAN-01 | PLAN dependency / generates trace 機能 | L1 FR-12, TR-08 | PLAN frontmatter の依存関係と生成物を追跡し、互換期間中の drift を明示する |
@@ -43,6 +43,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-MIGR-01 | schema migration / retrofit 機能 (+ Strangler Fig Pattern 段階置換) | L1 TR-05, TR-08, **BR-10** (2026-05-26 拡張) | V1→V2 / advisory→fail-close の移行を migration log つきで進める + **Strangler Fig Pattern (Fowler 2004) 段階置換 + Phase 別残量管理 (Phase α/β/γ kill criteria)**、`helix doctor check_migration_pending` (L4 carry) で残量監査 |
 | **FR-DOCREVIEW-01** (新規、2026-05-26) | **ドキュメント品質レビュー機能** | **BR-11** | `helix codex --role doc-reviewer` (gpt-5.5 high read-only) 召喚で 4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515:2018) + V-model 量閉じ性 / implementation_status 列必須を統合検査、判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘返却、`helix doctor check_doc_review_coverage` で召喚率 ≥ 95% 監査 |
 | **FR-CHANGEPROP-01** (新規、2026-05-26 BR-12 由来) | **変更追跡 + デグレ禁止 ratchet 機能** | **BR-12** | 上流 ID (BR-* / FR-* / NFR-*) 追加・更新・削除 commit を検出 → 下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit 以内に存在するか機械検証 + balance_ratio < 1.0 regression を前 commit との diff で検出 + 上流 ID 参照の下流 ID trace 切れ検出。3 つの `helix doctor check_*` (`check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) を pre-commit / CI hook で fail-close。Ratchet 機構: balance_ratio の過去最小値より下回ったら fail-close (品質後戻り禁止) |
+| **FR-FNREG-01** (新規、2026-05-29 ユーザー要求由来) | **機能一覧 SSoT + 自動チェック機能** | **ユーザー要求 (2026-05-29) + BR-09 拡張** | FR-* (HELIX-workflows 全機能) の中央 SSoT (`cli/config/functional-registry.yaml`) を維持し、doc 内 FR-* 参照との突合 (drift / 未定義 / 重複) を機械検出。`helix function registry [list / show / check]` で SSoT 操作、`helix doctor check_fr_sot_alignment` (L4 carry) で全 doc 横断 FR 参照を SSoT 突合 (drift ≤ 5% / 未定義 ID 0 件)。FR-INV-01 (資産 inventory) の FR 特化版、`implementation_status` 列必須は FR-INV-01 と共通。範囲: L1 / L3 / L4 / L6 doc 内の FR-* 参照すべて |
+| **FR-GLOSSARY-01** (新規、2026-05-29 ユーザー要求由来) | **ドメイン用語 SSoT + 自動チェック機能** | **ユーザー要求 (2026-05-29) + L0 §12.1 Glossary 由来** | ドメイン用語 (HELIX-workflows ユビキタス言語) の中央 SSoT (`cli/config/glossary.yaml`、L0 §12.1 Glossary から派生) を維持し、doc 内用語使用との突合 (定義不在 / 用語ゆれ / anti-corruption 違反) を機械検出。`helix glossary [list / show / check]` で SSoT 操作、`helix doctor check_glossary_coverage` (L4 carry) で全 doc 横断用語使用を SSoT 突合 (未定義用語 0 件 / 用語ゆれ ≤ 1%)。FR-INV-01 の用語監査言及 (line 38) を独立 FR として分離・拡張、L0 §12.1 が原本・SSoT は機械可読 mirror。範囲: 全工程 doc (L0-L14) + skill / PLAN / commit message |
 
 ## §2 機能仕様
 
@@ -105,6 +107,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 振る舞い: process layer と role を入力に、`vmodel-semantics.yaml` と `models.yaml` から mandatory_agents、recommended_skills、recommended_commands、model route を束ねて返す。
 - 状態遷移: `requested -> bundled -> injected`。bundle 生成後に CLI/hook へ注入される。
 - エラー処理: layer 未定義は exit code 2、skill path 不在は `bundle_warning`、model route 欠落は role 既定値で代替し warning を返す。
+- **L1/L3 要件定義工程の PdM 召喚拡張** (2026-05-29 ユーザー要求由来): 既存 mandatory_by_phase (G0.5 で PdM 3 種召喚) を **L1 / L3 要件定義工程に拡張**。L1/L3 PLAN 起票時 `helix context bundle --layer L1|L3` で **mandatory_agents に `pdm-tech-innovation` / `pdm-marketing-innovation` / `pdm-innovation-manager` 3 種を自動含む** (Product 観点を技術観点と並走させ、要件 doc に PdM 提案 evidence 残置必須化)。実体化は L4 carry (`cli/config/vmodel-semantics.yaml` の mandatory_by_phase 拡張、`helix agent fire-mandatory --phase L1` / `--phase L3` で一括投入)、BR-RULE-13 と連携
 
 ### FR-DRIFT-01 discrepancy routing 機能
 
@@ -171,6 +174,49 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 - 状態遷移: `planned -> running -> completed` または `planned -> blocked`。
 - エラー処理: destructive migration は自動実行せず `manual_approval_required`、互換期間外の古い router が残る場合は `warning` を返す。
 
+### FR-FNREG-01 機能一覧 SSoT + 自動チェック機能 (2026-05-29 ユーザー要求由来、新規追加)
+
+- **目的**: FR-* (HELIX-workflows 全機能定義) の中央 SSoT を確立し、doc 内 FR-* 参照との drift / 未定義 / 重複を機械検出。「機能一覧みたいなの作ったほうがいい」ユーザー要求 (2026-05-29) への直接対応
+- **CLI 契約**:
+  - `helix function registry list [--scope L1|L3|L4|all] [--json]`: SSoT 全 FR-* 一覧
+  - `helix function registry show <FR-ID>`: 個別 FR detail (定義元 / 担当 doc / status / 関連 PLAN)
+  - `helix function registry check [--commit-range <range>] [--json]`: doc 内 FR-* 参照を SSoT 突合 → drift / 未定義 / 重複 report
+- **入力**: `cli/config/functional-registry.yaml` (SSoT、機械可読 YAML、L4 carry で実体化) / commit range (default: HEAD~1..HEAD) / scope (default: all)
+- **出力**: pass / fail / warn 各 FR + 違反一覧 (drift > 5% / 未定義 ID / 重複 ID) + 修正 suggestion + status (installed / partial / L4-carry / not-implemented)
+- **状態遷移**: SSoT entry: `proposed -> defined -> implemented -> deprecated`、各 FR は `implementation_status` 列を持つ
+- **副作用**: `cli/config/functional-registry.yaml` 読込 / `helix.db.functional_registry` table 更新 (L4 carry) / `.helix/audit/fr-drift.yaml` 出力
+- **業界標準整合**: SSoT pattern (Brewer 2000) / Single Source of Truth (Fowler "Refactoring Databases" 2006) / OpenAPI Specification (機械可読契約)
+- **HELIX 固有検査**: FR-INV-01 (資産 inventory) の FR 特化版、`implementation_status` 列必須は共通、L0 §12.1 用語整合 (FR-* 命名は Glossary entry と整合) は FR-GLOSSARY-01 と連携
+- **責務分離**: FR-INV-01 (skill/CLI/PLAN/docs/DB schema の資産横断 inventory) ≠ FR-FNREG-01 (FR-* 特化 registry)、FR-CHANGEPROP-01 (上流↔下流変更追跡) は本 SSoT を参照
+- **召喚タイミング**: PLAN 起票時 (FR-* 参照定義済 check) / G3 ゲート evidence / L4 基本設計起票時 / 月次 audit
+- **技術制約**: SQLite 3.40+ / YAML 1.2 / 全 doc grep 高速化 (`rg` 利用) / `helix doctor check_fr_sot_alignment` 新設 (L4 carry)
+- **機械判定 carry (L4)**: `helix doctor check_fr_sot_alignment` を新設、doc 内 FR-* 参照を SSoT 突合 (drift ≤ 5% / 未定義 ID 0 件 / 重複 ID 0 件) を fail-close
+
+### FR-GLOSSARY-01 ドメイン用語 SSoT + 自動チェック機能 (2026-05-29 ユーザー要求由来、新規追加)
+
+- **目的**: ドメイン用語 (HELIX-workflows ユビキタス言語) の中央 SSoT を確立し、doc 内用語使用との定義不在 / 用語ゆれ / anti-corruption 違反を機械検出。「ドメイン (用語) 一覧 ... これをドキュメントの自動チェックにしてよ」ユーザー要求 (2026-05-29) への直接対応
+- **CLI 契約**:
+  - `helix glossary list [--scope L0|L1|L3|all] [--json]`: SSoT 全用語一覧
+  - `helix glossary show <term>`: 個別用語 detail (定義 / 対応 helix.db / CLI / file path / 関連 doc)
+  - `helix glossary check [--commit-range <range>] [--allow-drift <ratio>] [--json]`: doc 内用語使用を SSoT 突合 → 定義不在 / 用語ゆれ / anti-corruption 違反 report
+- **入力**: `cli/config/glossary.yaml` (機械可読 mirror、L0 §12.1 Glossary が原本、L4 carry で実体化) / commit range / allow-drift (default: 0.01 = 1%)
+- **出力**: pass / fail / warn 各用語 + 違反一覧 (未定義用語 / 用語ゆれ > 1% / anti-corruption layer 違反 = 子 doc 独自定義) + 修正 suggestion
+- **状態遷移**: SSoT entry: `proposed -> ratified -> mainstream -> deprecated`、各用語は `definition_source` (L0 §12.1 line ref) を持つ
+- **副作用**: `cli/config/glossary.yaml` 読込 / `helix.db.glossary` table 更新 (L4 carry) / `.helix/audit/glossary-drift.yaml` 出力
+- **業界標準整合**:
+  - **DDD ユビキタス言語** (Evans "Domain-Driven Design" 2003): 開発者・ドメインエキスパート間で共通用語使用
+  - **anti-corruption layer** (DDD): 子 doc が独自定義持つ場合の隔離境界
+  - **ISO/IEC/IEEE 24765:2017** (Systems and software engineering vocabulary)
+  - **arc42 v8 §1.2** (Glossary / Terminology section 必須)
+- **HELIX 固有検査**:
+  - L0 §12.1 Glossary が原本 (anti-corruption layer 起点)、本 SSoT は機械可読 mirror
+  - 各用語に「対応 helix.db table / CLI subcommand / file path / schema field / grep pattern」5 列構成 (doc-system-architect retrofit と整合)
+  - 子 doc (L1/L3/L4-L14) は L0 §12.1 を `parent_doc reference` し、独自定義禁止 (anti-corruption 違反 = fail-close)
+- **責務分離**: FR-INV-01 line 38「`check_glossary_coverage` で L0 §12.1 整合監査」を独立 FR として分離・拡張、FR-FNREG-01 (FR 特化) と連携 (FR-* 命名は Glossary entry に登録)
+- **召喚タイミング**: doc 改定時 (用語使用 check) / G ゲート evidence / 新規用語追加時 (L0 §12.1 update + SSoT mirror) / 月次 audit
+- **技術制約**: SQLite 3.40+ / YAML 1.2 / 全 doc grep + 文脈解析 (`rg --multiline`) / `helix doctor check_glossary_coverage` 新設 (L4 carry)
+- **機械判定 carry (L4)**: `helix doctor check_glossary_coverage` を新設、doc 内用語使用を SSoT 突合 (未定義用語 0 件 / 用語ゆれ ≤ 1% / anti-corruption 違反 0 件) を fail-close
+
 ## §3 入出力定義
 
 | FR-ID | CLI input | CLI output | 副作用 | L1 TR 技術制約 |
@@ -179,7 +225,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-GR-01 | `helix gate guardrail --metric <coverage|error-budget|ttfsp>` | `stdout`: verdict、`stderr`: 逸脱理由、`exit 0/2` | guardrail event 記録、agent throttle flag 更新 | model routing は `models.yaml` 正本、guardrail は fail-close 優先 |
 | FR-TDD-01 | `helix sprint check-order --plan-id <id> --step <Sx>` | `stdout`: allow / block、`stderr`: 欠落 step、`exit 0/2` | sprint state 更新、block reason 記録 | pytest / Bats / verify script が判定ソース |
 | FR-9MODE-01 | `helix route eval --signal <json>` | `stdout`: mode 候補配列、`stderr`: 不足 signal、`exit 0/1/2` | suggestion log 更新 | Python + Bash runtime 共存、Linux / macOS 対応 |
-| FR-GATE-01 | `helix gate G3 --plan <path>` | `stdout`: verdict / static summary、`stderr`: blocker 詳細、`exit 0/2` | gate_pass、decision_trace 更新 | SQLite view と AI review 条件を併用 |
+| FR-GATE-01 | `helix gate <Gx> [--plan-id <PLAN-ID>] [--static-only] [--dry-run]` (2026-05-29 CLI 整合修正、旧 `--plan <path>` は現 CLI 不存在) | `stdout`: verdict / static summary、`stderr`: blocker 詳細、`exit 0/2` | gate_pass、decision_trace 更新 | SQLite view と AI review 条件を併用。`--plan-id` は現状 `PLAN-数字3桁` 制約 (V2 named PLAN 対応は L4 carry) |
 | FR-IMPACT-01 | `helix code impact-range --plan-id <id>` | `stdout`: 影響範囲一覧、`stderr`: timeout / not found、`exit 0/1/2` | trace cache 参照、query metric 記録 | 5 秒 SLA、4 artifact trace / mode event 利用 |
 | FR-EVT-01 | `helix mode close --mode <name> --target-layer <Lx>` | `stdout`: closure result、`stderr`: route 保留理由、`exit 0/2` | `mode_transition` row 追加 | event row に `source_workflow` / `idempotency_key` 必須 |
 | FR-4ART-01 | `helix doctor --check trace` | `stdout`: trace summary、`stderr`: 欠落一覧、`exit 0/2` | warning / blocker 集計更新 | 双方向 trace metadata を DB / doc の両方で保持 |
@@ -189,6 +235,10 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-PLAN-01 | `helix plan generates --plan-id <id>` | `stdout`: dependency graph、`stderr`: broken link、`exit 0/1/2` | plan graph cache 更新 | 1 release 互換を維持し deprecated warning を返す |
 | FR-DOCTOR-01 | `helix doctor --json` | `stdout`: audit summary JSON、`stderr`: critical findings、`exit 0/2` | warn 集計、readiness input 更新 | pytest / Bats / verify / inventory audit を横断 |
 | FR-MIGR-01 | `helix db migrate --plan v2-freeze` | `stdout`: migration result、`stderr`: manual approval required、`exit 0/2` | schema version 更新、migration log 追加 | SQLite migration、互換期間中 router 並走、rollback 情報保持 |
+| FR-DOCREVIEW-01 (L3 拡張、BR-11 由来) | `helix codex --role doc-reviewer --task "..."` (gpt-5.5 high read-only) | `stdout`: 4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準整合 + V-model 量閉じ性 + 判定 (approve / conditional_approve / blocked) + P0/P1/P2/P3 指摘、`stderr`: doc 不在 / 環境エラー、`exit 0/1/2` | doc-reviewer 召喚 evidence 記録 (commit message / final report / 会話 history) | gpt-5.5 high read-only、Diátaxis / arc42 / ISO 26515:2018 / DDD SSoT 整合検査、`helix doctor check_doc_review_coverage` (L4 carry) で召喚率 ≥ 95% 監査 |
+| FR-CHANGEPROP-01 (L3 拡張、BR-12 由来) | `helix doctor --check-changeprop` (3 軸: `check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness`) | `stdout`: 3 軸 audit summary JSON、`stderr`: 違反詳細、`exit 0/2` | pre-commit / CI hook で fail-close、`.helix/audit/changeprop-violations.yaml` 更新、ratchet baseline 更新 | Hyrum's Law ベース破壊的変更が deferred-findings.yaml 登録経由のみ通過、balance_ratio 過去最小値より下回ったら fail-close |
+| FR-FNREG-01 (L3 拡張、2026-05-29 ユーザー要求由来) | `helix function registry [list|show|check] [--scope L1|L3|L4|all] [--commit-range <range>] [--json]` | `stdout`: SSoT FR 一覧 / detail / drift report JSON、`stderr`: 未定義 ID / 重複 ID、`exit 0/2` | `cli/config/functional-registry.yaml` 読込、`helix.db.functional_registry` table 更新 (L4 carry)、`.helix/audit/fr-drift.yaml` 出力 | SSoT pattern (Fowler 2006)、`helix doctor check_fr_sot_alignment` (L4 carry) で drift ≤ 5% fail-close |
+| FR-GLOSSARY-01 (L3 拡張、2026-05-29 ユーザー要求由来) | `helix glossary [list|show|check] [--scope L0|L1|L3|all] [--commit-range <range>] [--allow-drift <ratio>] [--json]` | `stdout`: SSoT 用語一覧 / detail / drift report JSON、`stderr`: 未定義用語 / anti-corruption 違反、`exit 0/2` | `cli/config/glossary.yaml` 読込 (L0 §12.1 が原本)、`helix.db.glossary` table 更新 (L4 carry)、`.helix/audit/glossary-drift.yaml` 出力 | DDD ユビキタス言語 (Evans 2003) + anti-corruption layer、`helix doctor check_glossary_coverage` (L4 carry) で未定義 0 件 / ゆれ ≤ 1% fail-close |
 
 ## §4 L1 → L3 統合 mapping
 
@@ -206,6 +256,9 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | FR-10 | FR-CTX-01 | layer context injection |
 | FR-11 | FR-DRIFT-01, FR-DOCTOR-01 | discrepancy routing、doctor 集約 |
 | FR-12 | FR-PLAN-01 | dependencies / generates trace |
+| **FR-13** (2026-05-29 追加) | **FR-GATE-01 + FR-PLAN-01 + FR-CTX-01 (統合 mapping)** | **PLAN 起票レビュー機能を新 FR でなく 3 既存 FR への横断機能として実現**: PLAN 起票時に tl-advisor 自動相談 (gate 評価 = FR-GATE-01、PLAN dependency trace = FR-PLAN-01、tl-advisor context bundle 注入 = FR-CTX-01)。適用範囲 (mandatory / recommended / skip 閾値) は **L3 carry → L4 で実装方式確定**。 |
+| **ユーザー要求 (2026-05-29) 機能一覧 SSoT** | **FR-FNREG-01** (L3 新規 FR) | **FR-* 中央 SSoT + 自動チェック**: `cli/config/functional-registry.yaml` SSoT 維持、doc 内 FR 参照との drift 監査 (FR-INV-01 の FR 特化版) |
+| **ユーザー要求 (2026-05-29) 用語一覧 SSoT** | **FR-GLOSSARY-01** (L3 新規 FR) | **ドメイン用語 SSoT + 自動チェック**: L0 §12.1 Glossary 原本 + `cli/config/glossary.yaml` 機械可読 mirror、doc 内用語使用 SSoT 突合 (anti-corruption layer 機械強制) |
 | TR-01 | FR-9MODE-01 | Python/Bash runtime 前提 |
 | TR-02 | FR-GR-01, FR-CTX-01 | model routing、role-based injection |
 | TR-03 | FR-DRIFT-01 | Linux/macOS 差異、Claude/Codex 両対応 |

@@ -15,7 +15,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 # HELIX-workflows V2 業務要件 (確定版、L3 詳細化)
 
-> **本 doc の位置づけ**: L1 [業務要求 doc](../L1-requirements/helix-workflows-business-requirements.md) BR-01〜BR-08 を **業務フロー (確定版) + 業務ルール + 対象業務範囲** で実装可能な粒度に詳細化した L3 業務要件正本。L12 [受入テスト設計](../L12-test-design/helix-workflows-acceptance-test-design.md) §1 と V-model **L3↔L12 ペア凍結** (AC-BR-* と 1:1 対応)。
+> **本 doc の位置づけ**: L1 [業務要求 doc](../L1-requirements/helix-workflows-business-requirements.md) **BR-01〜BR-12** (BR-01〜08 = L1 Phase E.A 確定、BR-09〜12 = L1-IN-18〜21 由来、2026-05-29 L3 取り込み) を **業務フロー (確定版) + 業務ルール + 対象業務範囲** で実装可能な粒度に詳細化した L3 業務要件正本。L12 [受入テスト設計](../L12-test-design/helix-workflows-acceptance-test-design.md) §1 と V-model **L3↔L12 ペア凍結** (AC-BR-01〜12 と 1:1 対応、balance_ratio = 12/12 = 1.0)。
 >
 > **scope**: 業務フロー (mermaid + step) / 業務ルール (条件分岐 / 制約 / 例外) / 対象業務範囲 (in/out scope) まで。**機能仕様 / 入出力定義** は L3 機能要件 doc で、**システム機能設計** は L4-L6 で行う。
 
@@ -80,7 +80,7 @@ flowchart TB
   CLOSURE --> FWD[Forward 復帰 + helix.db.mode_transition 登録]
 ```
 
-### §1.4 BR-04〜BR-08 業務フロー (要約)
+### §1.4 BR-04〜BR-12 業務フロー (要約、2026-05-29 BR-09〜12 取り込み拡張)
 
 | BR | 業務フロー要約 |
 |---|---|
@@ -89,8 +89,12 @@ flowchart TB
 | BR-06 影響範囲分析 | 機能改修 trigger (PLAN edit / branch 作成) → `helix code impact-range --plan-id` → 4 artifact 双方向 trace query → 影響範囲視覚化 |
 | BR-07 AI agent 配線 | L 工程 entry → `helix-context` が `vmodel-semantics.yaml` 読込 → mandatory_skills/commands/agents 自動注入 → AI 選択空間絞り込み |
 | BR-08 採用 project 展開 | HELIX-workflows portable package 化 → 採用 project 取込 (`helix init` 等) → 各 project で dogfooding 起動 → 採用 project 報告集約 |
+| **BR-09 既存資産整理・マッピング** (2026-05-29 取り込み、L1-IN-18 由来) | 新規 doc 起票時に `implementation_status` 列充足を機械検証 (BR-RULE-09) → 不在で fail-close → 起票者修正 → 月次 inventory drift 監査 (≤ 5%) |
+| **BR-10 既存資産の段階移行・retrofit** (2026-05-29 取り込み、L1-IN-19 由来) | V1 PLAN scan → `is_reference: true` 化 (Phase α 100%) → 旧 enum 残存 0 (Phase β) → Strangler Fig 段階置換完了 (Phase γ) → Phase 別残量 dashboard で kill criteria 突合 (BR-RULE-10) |
+| **BR-11 doc 品質レビュー継続化** (2026-05-29 取り込み、L1-IN-20 由来) | 大規模 doc 改定 (~500 行+) trigger → `helix codex --role doc-reviewer` 召喚 (gpt-5.5 high read-only) → 4 視点 + 業界標準 + V-model 量閉じ性検査 → 判定 evidence 残置 (≥ 95%、BR-RULE-11) |
+| **BR-12 デグレ禁止ガードレール** (2026-05-29 取り込み、L1-IN-21 由来) | 上流 ID 追加 commit 検出 → 下流対応 ID 存在検証 + balance_ratio < 1.0 regression 検出 + trace 切れ検出 → pre-commit / CI hook fail-close (BR-RULE-12 + FR-CHANGEPROP-01) |
 
-(BR-04〜BR-08 は本 doc では要約、Phase E.B 完了後に詳細 mermaid 追加 carry)
+(BR-04〜BR-12 は本 doc では要約、Phase E.B 完了後に BR-04〜08 詳細 mermaid 追加 carry、BR-09〜12 は §2.4 業務 rule + L12 AC-BR-09〜12 で実体定義済)
 
 ## §2 業務ルール (条件分岐 / 制約 / 例外処理)
 
@@ -130,6 +134,7 @@ flowchart TB
 | BR-RULE-10 | 既存資産 (V1 PLAN / 旧 CLI / 旧 enum / 旧 process layer / 旧 frontmatter field) を後継 (V2 / 新 enum / L0-L14 / 新 field) に置換 AND 段階移行計画 (Phase 分割 / Strangler Fig path / 残量管理) 不在 | fail-close、L4 基本設計で migration pipeline 凍結まで起票拒否 | hotfix (Incident mode) で旧資産を一時利用する場合は applicable、ただし postmortem で migration carry 化必須 |
 | BR-RULE-11 | 大規模 doc 改定 (~500 行+) / G0.5・G1・G3・G7 ゲート evidence / V-model 4 artifact pair freeze 前 AND **doc-reviewer 召喚 evidence 不在** | fail-close、ゲート通過拒否 (`helix codex --role doc-reviewer --task ...` の召喚と判定 (approve / conditional_approve / blocked) 結果を会話 / final report / commit message に残すこと必須) | hotfix (Incident mode) で 1 commit < 50 行の typo 修正のみ等の軽微改定は applicable、ただし postmortem で doc-review carry 化を検討。reference doc (kind=reference / is_reference: true) は適用外 |
 | BR-RULE-12 | 上流 ID (BR-* / FR-* / NFR-*) を新規追加または既存 ID を delete / rename した commit AND **同 commit / 直前後 N commit 以内に下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) の追加 / 更新 / 削除がない** OR **balance_ratio < 1.0 regression を起こす** | fail-close、commit 拒否 (`helix doctor check_upstream_downstream_alignment` + `check_balance_ratio_regression` + `check_id_reference_completeness` 全 pass まで) | (1) 上流 ID delete が **意図的 deprecation** で deferred-findings.yaml に登録済の場合は applicable (2) 緊急 hotfix で 1 commit 完結する場合は直後 N=3 commit 以内 fixup 必須 (3) reference doc (kind=reference / is_reference: true) 内の ID 変更は適用外 |
+| BR-RULE-13 (2026-05-29 ユーザー要求由来、PdM 提案統合) | L1 / L3 要件定義工程の PLAN 起票時 AND **PdM 提案 evidence (pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager 召喚 + 判定結果 + Product 観点フィードバック) が会話 / final report / commit message のいずれかに残されていない** | warn (Phase α) → fail-close (Phase β 以降、L4 で `helix doctor check_pdm_proposal_coverage` 実体化後) | (1) 軽微修正 (typo / 表記統一等、< 30 行) は適用外 (2) hotfix (Incident mode) は postmortem で PdM carry 化を検討 (3) reference doc (kind=reference / is_reference: true) は適用外 (4) Recovery mode の暴走収束 PLAN は適用外 |
 
 
 
@@ -162,24 +167,30 @@ flowchart TB
 | BR-05 ペア凍結監査 | §1.4 要約 + §2.1 BR-RULE-02 + §2.3 G1/G3 + §3.1 in scope (ペア凍結監査) | AC-BR-05 |
 | BR-06 影響範囲分析 | §1.4 要約 + §3.1 in scope (影響範囲分析) | AC-BR-06 |
 | BR-07 AI agent 配線 | §1.4 要約 + §3.1 in scope (AI agent 配線) | AC-BR-07 |
-| BR-08 採用 project 展開 | §1.4 要約 + §3.1 in scope (採用 project) + §3.2 out scope (各 project business logic) | AC-BR-08 |
+| BR-08 採用 project 展開 | §1.4 要約 + §3.1 in scope (採用 project) + §3.2 out scope (各 project business logic) | AC-BR-08 (実行可能性 carry: 採用 project 現状 self のみ、Phase β 以降に確定、§6 carry 明示) |
+| BR-09 既存資産整理・マッピング (2026-05-29 取り込み、L1-IN-18 由来) | §1.4 要約 + §2.4 BR-RULE-09 (implementation_status 列充足 fail-close) + §3.1 in scope (既存資産整理) | AC-BR-09 |
+| BR-10 既存資産の段階移行・retrofit (2026-05-29 取り込み、L1-IN-19 由来) | §1.4 要約 + §2.4 BR-RULE-10 (Strangler Fig 段階移行) + §3.1 in scope (V1→V2 retrofit) | AC-BR-10 |
+| BR-11 doc 品質レビュー継続化 (2026-05-29 取り込み、L1-IN-20 由来) | §1.4 要約 + §2.4 BR-RULE-11 (doc-reviewer 召喚) + §3.1 in scope (doc 品質保証) | AC-BR-11 |
+| BR-12 デグレ禁止ガードレール (2026-05-29 取り込み、L1-IN-21 由来) | §1.4 要約 + §2.4 BR-RULE-12 (上流↔下流 trace ratchet) + §3.1 in scope (ratchet 機械強制) | AC-BR-12 |
+| **PdM 提案統合 (2026-05-29 ユーザー要求由来)** | **§2.4 BR-RULE-13 (L1/L3 要件定義時 PdM 提案 evidence 残置必須)** + L3 機能要件 doc FR-CTX-01「L1/L3 PdM 召喚拡張」 + 既存 PdM subagent 3 種 (pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager) | **AC 化は L4 carry** (`helix doctor check_pdm_proposal_coverage` 実体化後、AC-BR-13 として L12 §1 追加候補) |
 
 ## §5 関連 doc
 
 - **上流 L1**: [helix-workflows-business-requirements.md](../L1-requirements/helix-workflows-business-requirements.md) (G1 conditional_approve 取得済、commit aa86a22)
 - **PLAN (本 doc を生成)**: [L3-helix-workflows-業務要件plan.md](../../plans/L3/L3-helix-workflows-業務要件plan.md)
-- **L12 ペア相手**: [helix-workflows-acceptance-test-design.md](../L12-test-design/helix-workflows-acceptance-test-design.md) §1 業務系 AC-BR-01〜08
+- **L12 ペア相手**: [helix-workflows-acceptance-test-design.md](../L12-test-design/helix-workflows-acceptance-test-design.md) §1 業務系 AC-BR-01〜12 (2026-05-29 BR-09〜12 取り込みで balance_ratio = 12/12 = 1.0)
 - **L1 ペア (運用テスト設計)**: [helix-workflows-operational-test-design.md](../L14-test-design/helix-workflows-operational-test-design.md) (L1↔L14 ペア凍結)
 - **HELIX-workflows L3 正本**: [HELIX-workflows/helix-process/L3-requirements-definition.md](../../../HELIX-workflows/helix-process/L3-requirements-definition.md)
 - **L0 概念**: [docs/v2/L0-helix-workflows/concept.md](../L0-helix-workflows/concept.md)
 - **並走 L3 doc** (Phase E.B 起票済 2026-05-26):
-  - [helix-workflows-functional-requirements-detail.md](./helix-workflows-functional-requirements-detail.md) (機能要件 + 入出力 + 技術要求統合、FR-* 28 unique)
-  - [helix-workflows-nfr-detail.md](./helix-workflows-nfr-detail.md) (NFR IPA グレード値確定 + ISO 25010 再導出 US/FS、NFR-* 23 + 2)
+  - [helix-workflows-functional-requirements-detail.md](./helix-workflows-functional-requirements-detail.md) (機能要件 + 入出力 + 技術要求統合、**core FR 18 件** = core 14 + L3 拡張 4 (FR-DOCREVIEW-01 / FR-CHANGEPROP-01 / FR-FNREG-01 / FR-GLOSSARY-01)、2026-05-29 ユーザー要求反映で 16→18 更新)
+  - [helix-workflows-nfr-detail.md](./helix-workflows-nfr-detail.md) (NFR IPA グレード値確定 + ISO 25010 再導出 US/FS、**NFR-* 27 件** = L1 23 + L3 拡張 4 (NFR-OP-06/07/08 + NFR-MG-04)、2026-05-29 更新)
 - **下流 L4**: L4-helix-workflows-基本設計plan (L3 3 PLAN 完遂後)
 
 ## §6 carry / 既知の不足
 
-- §1.4 BR-04〜BR-08 の詳細 mermaid 図は Phase E.B 完了後に追加 (機能要件 doc で詳細フローが定義された後、cross-reference で参照)
+- §1.4 BR-04〜BR-08 の詳細 mermaid 図は Phase E.B 完了後に追加 (機能要件 doc で詳細フローが定義された後、cross-reference で参照)。BR-09〜12 は §2.4 業務 rule + L12 AC-BR-09〜12 で実体定義済 (詳細 mermaid 不要、機械検証で十分)
+- AC-BR-08 (採用 project 展開) の実行可能性 carry: 採用 project が現状 self のみのため、Phase β 以降の検証 (代替 AC: Phase α では「採用 project portable 化準備」)
 - §2.3 G ゲート判定 rule は L1 技術要求 doc §gate-policy.yaml 化 carry と整合、L4 基本設計で gate-policy.yaml 実体化
 - §3.1 採用 project portable 化は L1-IN-15 (L1 NFR §3 NFR-OP-04 進化系統 trace) と関連、Phase β で確定
 

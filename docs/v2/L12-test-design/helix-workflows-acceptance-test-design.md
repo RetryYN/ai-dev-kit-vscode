@@ -19,7 +19,7 @@ related_l3_docs:
 
 # HELIX-workflows 受入テスト設計 (L12 ペア artifact)
 
-> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、57 AC (BR 12 + FR 16 + NFR 29) で balance_ratio ≥ 1.0 (本 session BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件)。
+> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、**59 AC (BR 12 + FR 18 + NFR 29)** で balance_ratio ≥ 1.0 (2026-05-26 BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件、**2026-05-29 ユーザー要求由来 FR-FNREG-01 (機能一覧 SSoT) + FR-GLOSSARY-01 (用語一覧 SSoT) 追加で 57→59 件**)。
 >
 > **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜12 + §2 機能系 AC-FR-01〜16 + §3 非機能系 AC-NFR 29 件すべて detail 化済 2026-05-26、BR-12 ratchet 機構準拠で 本 session BR-09/10/11/12 追従済)。
 >
@@ -128,7 +128,7 @@ L3 3 PLAN それぞれに対応する AC-* を 3 section で構成:
 
 ## §2 機能系受入テスト (FR-* ↔ AC-FR-*、Phase E.B Codex SE bxwlot2t6 PROPOSE 反映 2026-05-26)
 
-L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements-detail.md) **core FR 14 件** (FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-9MODE-01 / FR-GATE-01 / FR-IMPACT-01 / FR-EVT-01 / FR-4ART-01 / FR-INV-01 / FR-CTX-01 / FR-DRIFT-01 / FR-PLAN-01 / FR-DOCTOR-01 / FR-MIGR-01、L1 FR + L1 TR 統合詳細化) に対する受入テスト。balance_ratio = **AC-FR 14 件 / core FR 14 件 = 1.0**。L3 doc 内の FR-* 参照出現数は 28 件あるが、これは core FR + cross-reference 出現の合計で AC 母数ではない (2026-05-26 tl-advisor G3 P1 #3 反映)。
+L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements-detail.md) **core FR 18 件** (core 14: FR-NSM-01 / FR-GR-01 / FR-TDD-01 / FR-9MODE-01 / FR-GATE-01 / FR-IMPACT-01 / FR-EVT-01 / FR-4ART-01 / FR-INV-01 / FR-CTX-01 / FR-DRIFT-01 / FR-PLAN-01 / FR-DOCTOR-01 / FR-MIGR-01、L1 FR + L1 TR 統合詳細化 + L3 拡張 4 件: FR-DOCREVIEW-01 (BR-11 由来) / FR-CHANGEPROP-01 (BR-12 由来) / **FR-FNREG-01 (2026-05-29 ユーザー要求 / 機能一覧 SSoT) / FR-GLOSSARY-01 (2026-05-29 ユーザー要求 / 用語一覧 SSoT)**) に対する受入テスト。balance_ratio = **AC-FR 18 件 / core FR 18 件 = 1.0** (2026-05-29 ユーザー要求反映で 16→18 件)。L3 doc 内の FR-* 参照出現数は 30 件 (前 28 + 拡張 2) あるが、これは core FR + cross-reference 出現の合計で AC 母数ではない (2026-05-26 tl-advisor G3 P1 #3 反映)。**L1 FR-13 (PLAN 起票レビュー) は新 AC でなく統合 mapping (FR-GATE-01 + FR-PLAN-01 + FR-CTX-01) として L3 で表現 → AC-FR-05/12/10 で間接受入**。
 
 ### AC-FR-01: NSM 計測・整合スコア
 - **対象 FR**: FR-NSM-01
@@ -228,6 +228,18 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 - **受入基準**: migration 成功率 ≥ 95%、approval 必須 case が auto-merge を block、compat warning 漏れ 0
 - **検証 step**: (1) migration plan 実行 (2) approval 必須 case で auto-merge block 確認 (3) compat warning 動作確認
 
+### AC-FR-17: 機能一覧 SSoT + 自動チェック (2026-05-29 FR-FNREG-01 / ユーザー要求由来、新規追加)
+- **対象 FR**: FR-FNREG-01
+- **デプロイ後検証内容**: `cli/config/functional-registry.yaml` SSoT と doc 内 FR-* 参照の整合が機械検出
+- **受入基準**: drift ≤ 5% / 未定義 ID 0 件 / 重複 ID 0 件 / `implementation_status` 列充足率 100% (新規 doc 起票時)
+- **検証 step**: (1) SSoT 登録済 FR を doc 追加 → pass (2) SSoT 未登録 FR を doc 追加 → fail-close (3) 重複 ID で fail-close (4) `implementation_status` 列不在で fail-close
+
+### AC-FR-18: ドメイン用語 SSoT + 自動チェック (2026-05-29 FR-GLOSSARY-01 / ユーザー要求由来、新規追加)
+- **対象 FR**: FR-GLOSSARY-01
+- **デプロイ後検証内容**: `cli/config/glossary.yaml` SSoT (L0 §12.1 mirror) と doc 内用語使用の整合 (anti-corruption layer) 機械検出
+- **受入基準**: 未定義用語 0 件 / 用語ゆれ ≤ 1% / 子 doc 独自定義 (anti-corruption 違反) 0 件
+- **検証 step**: (1) SSoT 登録済用語を子 doc 使用 → pass (2) SSoT 未登録用語 → warn → fail-close (3) 子 doc 独自定義追加 → anti-corruption 違反 fail-close (4) L0 §12.1 update → SSoT mirror 再生成動作確認
+
 ## §3 非機能系受入テスト (NFR-* ↔ AC-NFR-*、Phase E.B Codex SE bi6xoaz58 PROPOSE 反映 2026-05-26)
 
 L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/SC/SE 6 領域 27 件 (本 session BR-09/10/11/12 由来で NFR-OP-06/07/08 + NFR-MG-04 を追加、23→27) + ISO 25010 再導出 2 件 (使用性 US / 機能適合性 FS) に対する受入テスト。balance_ratio = AC-NFR 29 件 / NFR 27 件 = 1.07 (≥ 1.0、追加 US/FS で網羅性強化)。
@@ -296,6 +308,6 @@ L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/S
 ## §6 carry / 既知の不足
 
 - **L12-test-design template skeleton 不在 carry**: 本 doc は L3-業務要件plan 起票時に手動作成。L14 と同様、`cli/templates/plan/v2/` に L12-test-design 用 template 整備候補 (別 PLAN)。
-- ~~§2 / §3 AC 未定義~~: **解消済 (2026-05-26 Phase E.B.1 完了)** — §2 機能系 AC-FR-01〜14 + §3 非機能系 AC-NFR 25 件すべて detail 化、balance_ratio 全 pair ≥ 1.0。
+- ~~§2 / §3 AC 未定義~~: **解消済 (2026-05-26 Phase E.B.1 完了 + 2026-05-29 件数整合修正)** — §2 機能系 AC-FR-* + §3 非機能系 AC-NFR 29 件 (L1 25 + L3 拡張 4 由来) すべて detail 化、balance_ratio 全 pair ≥ 1.0 (AC-NFR 29/NFR 27 = 1.07)。
 - **L12 工程 doc 不在の可能性**: `docs/v2/process/L12-*` の存在を verify 必要、不在なら carry。
 - **AC-BR-08 受入テストの実行可能性**: 採用 project が現状 self のみのため、Phase β 以降の検証 (carry)。Phase α では「採用 project portable 化準備」を AC 化代替。

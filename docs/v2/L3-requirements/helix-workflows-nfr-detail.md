@@ -14,7 +14,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 # HELIX-workflows V2 非機能要件 (確定版、L3 IPA グレード値)
 
-> **本 doc の位置づけ**: L1 [`helix-workflows-nfr.md`](../L1-requirements/helix-workflows-nfr.md) の NFR-AV/PF/OP/MG/SC/SE 計 23 件を、L3 で **IPA 非機能要求グレード値 (レベル 0-5)** と数値 target まで固定した正本。L12 受入テスト設計の NFR 系 AC-NFR-* と V-model **L3↔L12 pair freeze** を成立させる。
+> **本 doc の位置づけ**: L1 [`helix-workflows-nfr.md`](../L1-requirements/helix-workflows-nfr.md) の NFR-AV/PF/OP/MG/SC/SE 計 23 件 + **L3 拡張 4 件** (BR-09〜12 由来: NFR-OP-06/07/08 + NFR-MG-04、2026-05-26 追加) = **計 27 件** を、L3 で **IPA 非機能要求グレード値 (レベル 0-5)** と数値 target まで固定した正本。L12 受入テスト設計の NFR 系 AC-NFR-* と V-model **L3↔L12 pair freeze** を成立させる。
 >
 > **確定ルール**: 本 doc の「レベル」は HELIX-workflows 用に採用する L3 の確定値であり、L4 ではその達成方法 (監視・実装方式・集計経路) を凍結する。L12 は初期受入、L13 は安定性、L14 は運用検証を担当する。
 
@@ -81,7 +81,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 ## §7 IPA × ISO 25010 二軸タグ表 + ISO 残り 2 特性の再導出
 
-### §7.1 NFR 23 件の二軸タグ
+### §7.1 NFR 27 件の二軸タグ (L1 23 件 + L3 拡張 4 件)
 
 | ISO 25010 特性 | 対応 NFR / L3 観点 | IPA 側の受け皿 |
 |---|---|---|
@@ -91,8 +91,8 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | 使用性 | **L3 再導出**: CLI usability (`helix help` 完備率 **90% 以上**、TTFSP **30 分以内**、自己解決可能な error 文言) | システム環境 / 運用・保守性 |
 | 信頼性 | NFR-AV-01〜03 | 可用性 |
 | セキュリティ | NFR-SC-01〜05 | セキュリティ |
-| 保守性 | NFR-OP-01〜05 | 運用・保守性 |
-| 移植性 | NFR-MG-01〜03 | 移行性 |
+| 保守性 | NFR-OP-01〜08 (L1: 01〜05 + L3 拡張 BR-09/11/12 由来: 06/07/08) | 運用・保守性 |
+| 移植性 | NFR-MG-01〜04 (L1: 01〜03 + L3 拡張 BR-10 由来: 04) | 移行性 |
 
 ### §7.2 L3 再導出の扱い
 
