@@ -4,15 +4,22 @@ title: "L4-helix-workflows-データ設計plan: HELIX-workflows V2 データ設�
 kind: design
 layer: L4
 drive: be
-status: in_progress
+status: finalized
 tagline: "HELIX Workflows V2 データ設計（L4）"
 author: "Codex"
 created_at: 2026-05-27
 process_layer: L4
 parent_design: docs/plans/L4/L4-helix-workflows-方式設計plan.md
 pairs_test_design:
-  - HELIX-workflows/HELIX-process-L0-L14.md#l9
+  - docs/v2/L9-test-design/helix-workflows-system-test-design.md
 pair: L9
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・最終 finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: tl-advisor
+    slot_label: "TL — adversarial check (G4 evidence)"
 generates:
   - artifact_path: docs/plans/L5/L5-helix-workflows-データ詳細設計plan.md
     artifact_type: design_doc
@@ -350,3 +357,11 @@ L5 では本 §2 の全テーブルを以下の項目で具体化する。
 4. `mode_transition` の 9 mode 名辞書が CLI 実装と完全一致するか最終検証。
 5. 外部共生設定 `coexist_config` のセキュアなシークレット参照ポリシー。
 6. L5 詳細設計後の KPI（検知率・復旧時間）測定基盤との突合。
+
+## L4 完遂 evidence (2026-05-29)
+
+- 設計 doc: 本体化完遂 (§0-§8 全セクション記述済み、11 table 全 implementation_status 定義)
+- pair freeze: L4↔L9 双方向 trace coverage PASS (データ永続化テストは system-test-design §5 依存解消テストでカバー)
+- 監査: 2026-05-27 tl-advisor R1/R2 (conditional_approve) + 2026-05-29 pmo-sonnet freeze-readiness audit = YES with minor、M-1〜M-4 全解消
+- implementation_status 列: 全 11 テーブル × 行で BR-RULE-09 準拠確認済
+- carry (L7 実装へ): L5 カラム型/FK/index 物理設計 / retention 実装 / schema_version migration script / WAL ロック設計

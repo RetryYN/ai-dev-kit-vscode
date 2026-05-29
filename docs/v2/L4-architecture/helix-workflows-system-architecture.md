@@ -1,7 +1,7 @@
 ---
 doc_id: l4-helix-workflows-system-architecture
 title: "HELIX-workflows V2 方式設計 (system architecture)"
-status: skeleton
+status: frozen
 created: 2026-05-27
 owner: PM
 process_layer: L4

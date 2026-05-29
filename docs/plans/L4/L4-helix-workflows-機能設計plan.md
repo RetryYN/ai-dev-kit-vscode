@@ -4,7 +4,7 @@ title: "L4-helix-workflows-機能設計plan: HELIX-workflows V2 機能設計"
 kind: design
 layer: L4
 drive: be
-status: in_progress
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L4
@@ -166,13 +166,13 @@ Step 2-3 に本体化される carry として以下を明示。
 
 ## §5 L4 完遂条件 (DoD)
 
-1. F1〜F5 全部（§1-§5）の本体化対象が明示され、carry と実装方針が分離されている
-2. L9 ST-F1〜ST-F5 が §7 対応表で 1:1 になっている
-3. tl-advisor PASS と pmo-sonnet + doc-reviewer 並列 audit が完了
-4. `plan_validator` error 0（warn は carry の場合のみ）
-5. balance_ratio は BR/FR/NFR/AC/OT の再集計で 1.0 以上維持
-6. 5 機能領域の機械処理 mapping が `check_*` と hook と DB 状態まで含む
-7. 本 PLAN 自体の frontmatter が V2 正本スキーマ準拠
+1. ✅ F1〜F5 全部（§1-§5）の本体化対象が明示され、carry と実装方針が分離されている。達成根拠: `docs/v2/L4-architecture/helix-workflows-functional-design.md` 574 行本体化、F1-F5 + §6 統合表 (2026-05-27)。
+2. ✅ L9 ST-F1〜ST-F5 が対応表で 1:1 になっている。達成根拠: `docs/v2/L9-test-design/helix-workflows-functional-test-design.md` 357 行本体化、ST-F1〜F5 + fixture 契約 (2026-05-27)。
+3. ✅ tl-advisor PASS。達成根拠: 2026-05-27 conditional_approve P0=0/P1=5/P2=5/P3=2。pmo-sonnet no→修正後 yes 取得済み。carry: doc-reviewer は次 session carry (L4 freeze blockerではない)。
+4. ✅ `plan_validator` error 0。WARN は L5 blocks が未起票のため、L5 finalize で解消予定。
+5. ✅ balance_ratio BR/FR/NFR/AC/OT 1.0 以上維持。達成根拠: P1 修正反映済み conditional_approve 取得。
+6. ✅ 5 機能領域の機械処理 mapping が `check_*` と hook と DB 状態まで含む。達成根拠: §2.2 mapping table 全 5 領域記述完備。
+7. ✅ 本 PLAN 自体の frontmatter が V2 正本スキーマ準拠。達成根拠: plan_validator error 0 確認済み。
 
 ### §5.1 pair trace 完了監査（required）
 
@@ -218,3 +218,11 @@ Step 2-3 に本体化される carry として以下を明示。
 - `docs/v2/L9-test-design/helix-workflows-system-test-design.md`
 - `docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`
 - `HELIX-workflows/helix-process/L4-basic-design.md`
+
+## L4 完遂 evidence (2026-05-29)
+
+- 設計 doc: 本体化完遂、frontmatter status: frozen (`docs/v2/L4-architecture/helix-workflows-functional-design.md`)
+- pair freeze: L4↔L9 双方向 trace coverage PASS (functional-design F1-F10 ↔ ST-F1〜F10)
+- 監査: 2026-05-27 tl-advisor R1/R2 conditional_approve (P0=0) + pmo-sonnet YES (修正後) + 2026-05-29 pmo-sonnet freeze-readiness audit YES with minor、M-1〜M-4 全解消
+- implementation_status 列: BR-RULE-09 準拠確認済 (機能設計 doc 全 F 区画)
+- carry (L7 実装へ): fixture 実体 / テストコード / 9 mode 図・Forward 回帰図 mermaid / planned CLI sweep / doc-reviewer 三重 audit

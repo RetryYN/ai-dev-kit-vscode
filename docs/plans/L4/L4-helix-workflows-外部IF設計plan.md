@@ -4,7 +4,7 @@ title: "L4-helix-workflows-外部IF設計plan: HELIX-workflows V2 外部接続�
 kind: design
 layer: L4
 drive: be
-status: in_progress
+status: finalized
 created: 2026-05-27
 owner: TL
 process_layer: L4
@@ -13,6 +13,13 @@ pair_process: L9-helix-workflows-system-test-design
 parent_process: HELIX-workflows/helix-process/L4-basic-design.md
 pairs_test_design:
   - docs/v2/L9-test-design/helix-workflows-system-test-design.md
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 大局判断・最終 finalize"
+  - role: pmo-sonnet
+    slot_label: "PMO — 整合チェック・review"
+  - role: tl-advisor
+    slot_label: "TL — adversarial check (G4 evidence)"
 generates:
   - artifact_path: docs/plans/L5/L5-helix-workflows-外部IF詳細設計plan.md
     artifact_type: design_doc
@@ -450,3 +457,11 @@ frontmatter: sibling
 | ROLE_MAP と models.yaml の差分定義を監査ルール化 | 整合 | 進行中 | implemented |
 | 役割実行ログを wrapper 経路へ統合 | 監査 | 進行中 | partial |
 | external-key 供給と secret 方針の formalize | セキュリティ | 進行中 | partial |
+
+## L4 完遂 evidence (2026-05-29)
+
+- 設計 doc: 本体化完遂 (§0-§13 全 14 セクション記述済み、AC-IF-01〜24 全列挙)
+- pair freeze: L4↔L9 双方向 trace coverage PASS (外部IF §2-§8 ↔ ST-2〜8、計 7 pair 対応)
+- 監査: 2026-05-27 tl-advisor R1/R2 (conditional_approve) + 2026-05-29 pmo-sonnet freeze-readiness audit = YES with minor、M-1〜M-4 全解消
+- implementation_status 列: 全 §§ の全 TABLE で BR-RULE-09 準拠確認済
+- carry (L7 実装へ): MCP 認証ポリシー実装 / exit code 監査スクリプト / AC-IF-17〜24 planned→implemented 昇格 / doc-reviewer 三重 audit

@@ -1,7 +1,7 @@
 ---
 doc_id: l4-helix-workflows-functional-design
 title: "HELIX-workflows V2 機能設計 (functional design)"
-status: partial
+status: frozen
 created: 2026-05-27
 owner: PM
 process_layer: L4
@@ -24,7 +24,7 @@ industry_standards:
 
 本体化で満たす原則は次のとおり。
 
-- 5 機能領域（F1〜F5）を 4 artifact trace で再構成する
+- 中核 5 機能領域（F1〜F5）を 4 artifact trace で再構成する。加えて拡張 5 機能（F6〜F10: 恒常性 / 進化 / 繁殖 / 排泄 / 共生）を §6〜§13 で governance 機能として本体化する（ADR-045 準拠）
 - 対象領域の実装契約（plan/check/guard/schema）を section 粒度で固定する
 - `implementation_status` を持つ実行設計（planned / implemented / deferred）へ整理する
 - 生物学 metaphor を各 § 末尾に 1 行固定し続ける

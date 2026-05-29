@@ -1,7 +1,8 @@
 ---
 doc_id: l9-helix-workflows-functional-test-design
 title: "HELIX-workflows V2 機能テスト設計 (functional test design)"
-status: implemented
+status: frozen
+test_execution_status: planned  # 設計凍結。fixture/テストコード実体化は L7 実装 carry (ST-F* 各 implementation_status: planned)
 created: 2026-05-27
 owner: PM
 process_layer: L9

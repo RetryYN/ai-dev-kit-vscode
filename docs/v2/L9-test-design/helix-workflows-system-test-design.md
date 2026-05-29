@@ -1,7 +1,7 @@
 ---
 doc_id: l9-helix-workflows-system-test-design
 title: "HELIX-workflows V2 総合テスト設計 (system test design)"
-status: skeleton
+status: frozen
 created: 2026-05-27
 owner: PM
 process_layer: L9
@@ -465,7 +465,7 @@ L4/L9 pair freeze 数値基準: BR 12 / FR 16 / NFR 27 / AC 57 / OT 12（L4 PLAN
 
 - security OWASP fixture の詳細化（P2-A3）
 - web standards 根拠（P2-A4）
-- ST-4 本体化完遂 (2026-05-27 commit XXX)
+- ST-4 (BR-12 ratchet) は 2026-05-27 wave で本体化済。fixture 実体・parser ベース AC-12〜16 検証は L7 実装 carry
 
 残課題は carry のみ残し、本文を本体化したセクションへ追加の実行仕様を再導入しない。
 
