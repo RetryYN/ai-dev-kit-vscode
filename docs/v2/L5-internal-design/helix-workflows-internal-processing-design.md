@@ -1621,3 +1621,120 @@ stateDiagram-v2
 - [ ] F8 portable import 時の schema upgrade policy の例外定義（破壊的変更禁止）
 - [ ] F10 ACL adapter の外部フレームワークごとの ACL エッジケースを追加
 - [ ] 本書の `implementation_status` が `implemented` に移る際の PR テンプレートを追加
+
+---
+
+## §15 モジュール間シーケンス（IEEE 1016-2009 Interaction viewpoint）
+
+> (recovery-2026-05-30 追補)
+
+本節は **IEEE Std 1016-2009 Interaction viewpoint** に対応する。§0.5 の表では §1.1/§5/§9 が Interaction viewpoint の担当として掲載されているが、それらは擬似コードと stateDiagram（状態遷移）で記述されており、モジュール間の非同期メッセージ・戻り値・エラー分岐を時系列で追跡できるシーケンス図（sequenceDiagram）が欠落している（audit L5-02「sequenceDiagram 0 件」指摘）。本節では代表的な 2 フローを mermaid sequenceDiagram 形式で定義し、Interaction viewpoint の充足を補完する。
+
+### §15.1 PLAN 自動登録フロー（F2 系 — PostToolUse hook → plan_parser → plan_registry）
+
+F2「PLAN テンプレート」の中核実行経路：Claude Code が `docs/plans/**/*.md` を Write/Edit した際に PostToolUse hook が発火し、`plan_parser.upsert_plan()` を経由して `helix.db.plan_registry` へ登録されるまでの同期/非同期プロセスを示す。
+
+**参加者**:
+
+- `claude_code`: Claude Code エージェント（Write/Edit ツール呼び出し側）
+- `posttooluse_hook`: `.claude/settings.json` の PostToolUse hook (`helix-post-tool-use`)
+- `plan_parser`: `cli/lib/plan_parser.py`（frontmatter parse + upsert）
+- `helix_db`: `cli/lib/helix_db.py` → SQLite `helix.db`（`plan_registry` / `plan_generates` / `plan_dependencies` テーブル）
+
+```mermaid
+sequenceDiagram
+    participant CC as claude_code
+    participant H as posttooluse_hook
+    participant PP as plan_parser
+    participant DB as helix_db (plan_registry)
+
+    CC->>H: ToolResult(Write|Edit, path=docs/plans/Lx/...)
+    Note over H: matcher: Write|Edit<br/>ファイル名が docs/plans に該当するか判定
+    H->>PP: parse_frontmatter(filepath)
+    PP-->>H: frontmatter dict | None
+    alt frontmatter が None（parse 失敗）
+        H->>DB: INSERT failure_log(parse_error, plan_id=None)
+        H-->>CC: exit 0（fail-open、次回 Write で再試行）
+    else 必須フィールド欠落（plan_id / kind / layer）
+        H->>DB: INSERT failure_log(missing_required_field, plan_id)
+        H-->>CC: exit 0（警告のみ、fail-open）
+    else frontmatter 正常
+        H->>PP: upsert_plan(conn, frontmatter, doc_path)
+        PP->>DB: DELETE 既存 plan_generates / plan_dependencies<br/>（旧参照を一度クリア）
+        PP->>DB: INSERT OR REPLACE plan_registry<br/>(plan_id, title, kind, layer, drive, status, ...)
+        PP->>DB: INSERT plan_generates (artifact_path, artifact_type) ×N
+        PP->>DB: INSERT plan_dependencies (dep_type, dep_plan_id) ×M
+        DB-->>PP: rowcount, last_insert_rowid
+        PP-->>H: {plan_id, status:"ok", counts:{generates:N, deps:M}}
+        H-->>CC: exit 0（登録完了）
+    end
+```
+
+**注意点**:
+
+- PostToolUse hook は同期実行（Claude Code のツール結果受信後、次のアクションに進む前に完了）。
+- `upsert_plan` は DELETE → INSERT の 2 フェーズでべき等性を担保（同一 `plan_id` の再登録で重複なし）。
+- `failure_log` への記録は fail-open（hook が exit 非 0 を返すと Claude Code が interrupted になるため）。
+- 対応 metric: `ST-F2.f2.frontmatter_error_count`（目標 0）、`ST-F2.f2.validation_latency_p95`（目標 500ms）。
+
+### §15.2 skill 推挙フロー（F3 系 — helix skill chain → recommender → cache → dispatcher → 委譲）
+
+F3「skill 推挙」の主要実行経路：`helix skill chain "<task>"` 呼び出しから、gpt-5.4-mini による推挙スコアリング、1 時間 TTL キャッシュ判定、`skill_dispatcher` による委譲先決定・実行委譲までを示す。
+
+**参加者**:
+
+- `pm_opus`: PM（ユーザーまたは Opus 自身）
+- `helix_skill_chain`: `cli/helix-skill` の `chain` サブコマンド
+- `skill_recommender`: `cli/lib/skill_recommender.py`（`recommend()` 関数）
+- `cache`: `.helix/cache/recommendations/<sha256>.json`（ファイルシステム上のキャッシュ）
+- `gpt_mini`: gpt-5.4-mini（LLM 推挙エンジン）
+- `skill_dispatcher`: `cli/lib/skill_dispatcher.py`（`dispatch()` 関数）
+- `codex_or_agent`: 委譲先（`helix codex --role X` または `Agent({subagent_type: "pmo-*"})`）
+
+```mermaid
+sequenceDiagram
+    participant PM as pm_opus
+    participant SC as helix_skill_chain
+    participant SR as skill_recommender
+    participant CA as cache
+    participant GM as gpt_mini
+    participant SD as skill_dispatcher
+    participant DA as codex_or_agent
+
+    PM->>SC: helix skill chain "<task_text>"
+    SC->>SR: recommend(task_text, top_n=5)
+    SR->>SR: h = sha1(task_text + mode + "deterministic")
+    SR->>CA: cache_get(h)
+    alt キャッシュヒット（TTL 1h 以内）
+        CA-->>SR: cached topn result
+        SR-->>SC: {skills: [...], source: "cache"}
+    else キャッシュミスまたは期限切れ
+        SR->>SR: build_catalog(load_skill_defs())
+        SR->>SR: embed(task_text) + score_each_skill()
+        SR->>GM: prompt(task_text, catalog_summary, top_n=5)
+        GM-->>SR: topn skill_ids + justification
+        SR->>CA: cache_set(h, topn, ttl=3600)
+        CA-->>SR: ok
+        SR-->>SC: {skills: [...], source: "llm"}
+    end
+    SC->>SD: dispatch(top_skill, task=task_text)
+    SD->>SD: determine_agent(skill) → agent_type, role
+    alt agent_type == "codex"
+        SD->>DA: helix codex --role <role> --task "..."
+        DA-->>SD: exit_code, stdout
+    else agent_type == "pmo-sonnet"
+        SD->>DA: Agent({subagent_type: "pmo-sonnet", prompt: bundle})
+        DA-->>SD: result text
+    end
+    SD->>SD: INSERT skill_usage(skill_id, task, agent, timestamp) → helix.db
+    SD-->>SC: {dispatched: true, agent: agent_type, result: ...}
+    SC-->>PM: 推挙スキル一覧 + 委譲先 + 結果サマリ
+```
+
+**注意点**:
+
+- `recommend()` と `dispatch()` は直列（推挙結果を受けてから委譲先を決定するため後段依存）。
+- キャッシュミス時の gpt-5.4-mini 呼び出しは非同期可能だが、現実装では同期（top_n 結果を待ってから返却）。
+- `embed()` が外部 API 呼び出し失敗の場合は `deterministic fallback`（trigger + mode のみ）へ降格し SR がエラーを呑み込む（fail-open）。
+- `skill_usage` への INSERT は委譲後に行われるため、委譲失敗でも推挙記録は残る（監査用）。
+- 対応 metric: `ST-F3.f3.recommendation_precision`（目標 ≥ 80%）、`ST-F3.f3.recommend_cache_hit`（目標 ≥ 70%）。

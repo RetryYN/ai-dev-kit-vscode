@@ -1336,3 +1336,118 @@ SELECT m.name, p."seq" AS fk_count FROM sqlite_master m LEFT JOIN pragma_foreign
 SELECT table_name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%CREATE TABLE%plan_registry%';
 SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('event_log','metrics_log','plan_history','version_tag');
 ```
+
+## §13 リソース・性能設計 / SLO（IEEE 1016 Resource viewpoint）
+
+> (recovery-2026-05-30 追補) L5-08 欠落補完。IEEE Std 1016-2009 Resource viewpoint を正式に適用する。
+> 本節は §0.5 業界標準整合表「Resource viewpoint: §6 ストレージ方針 / §7 backup / §8 migration 運用境界」の記述を補完し、
+> 各テーブル・操作単位の SLO/SLI 統合設計節として機能する。
+> 確定していない数値は「目標未確定 (L14 carry)」と明記し、捏造しない。
+
+### §13.1 helix.db ストレージ総量予測
+
+12 table の想定 row 数・増加率（§2.x.5 / §3.x.5 の合算）から総ストレージを見積もる。
+
+| table | 想定 row 数 | 期間 | 増加率 | 1 row 概算バイト | 1 年後概算 row 数 |
+|---|---|---|---|---|---|
+| event_log | 1,500/日 | 年間 | 7.5%/30 日 | ≈ 512 B | ≈ 630,000 |
+| plan_registry | 2,000/年 | 年間 | 100〜300/月 | ≈ 2 KB | ≈ 2,000 |
+| skill_usage | 3,000/月 | 月次 | 1.2〜1.6 倍/月 | ≈ 1 KB | ≈ 60,000 |
+| mode_transition | 100/年 | 年間 | +20%/q | ≈ 512 B | ≈ 120 |
+| role_audit | 100/年 | 年間 | +15%/q | ≈ 512 B | ≈ 115 |
+| audit_link | 800/q | 四半期 | +10〜20%/q | ≈ 384 B | ≈ 3,500 |
+| metrics_log | 12,000/月 | 月次 | +120% (導入後) | ≈ 512 B | ≈ 144,000 |
+| plan_history | 150/月 | 月次 | +25%/q | ≈ 1 KB | ≈ 3,600 |
+| version_tag | 20/年 | 年間 | migration 発生時集中 | ≈ 2 KB | ≈ 20 |
+| obsolete_record | 30/q | 四半期 | +30%/q | ≈ 1 KB | ≈ 130 |
+| coexist_config | 40/年 | 年間 | +10%/q | ≈ 2 KB | ≈ 44 |
+| version_coevolution | 10/q | 四半期 | +15%/q | ≈ 1 KB | ≈ 46 |
+
+**1 年後の helix.db 総量概算**:
+
+| 区分 | 概算 |
+|---|---|
+| データ合計 (raw rows) | ≈ 843,000 行 |
+| ストレージ (WAL込み概算) | **≈ 700 MB 〜 1.2 GB** (index 分含む) |
+| retention 適用後 (event 90 日 / metrics 30 日) | **≈ 200〜400 MB** が実効サイズ |
+| 推奨アラートライン | 500 MB 超過で `helix doctor` 警告 (目標未確定 L14 carry) |
+
+> 注: event_log は retention 90 日を適用すると常時約 135,000 行 (≈ 70 MB) に抑制される (§8.1 参照)。
+> metrics_log は raw 30 日で約 360,000 行 → retain 後 ≈ 180 MB に落ち着く想定。
+> 上記は単一チーム (1-5 名) の通常稼働を前提とした推定値。大規模チームへのスケールアップ評価は目標未確定 (L14 carry)。
+
+### §13.2 主要操作の SLO/SLI 統合表
+
+下表は `docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md` に散在する
+個別 latency 目標値を SLO/SLI 形式に統合したものである。元出典の ST-Fx.fx.* 指標名を保持する。
+
+| 操作 | SLI 指標 (ST-* 名) | SLO 目標値 | 計測点 | 実装状態 |
+|---|---|---|---|---|
+| F1 ルーティング分類 | `ST-F1.f1.classify_latency_ms` | < 300 ms (p50) | CLI 受信〜mode 決定 | planned |
+| F2 PLAN バリデーション (p95) | `ST-F2.f2.validation_latency_p95` | < 500 ms (p95) | plan_lint 呼出〜exit | planned |
+| F3 skill catalog 構築 | `ST-F3.f3.skill_catalog_build_ms` | < 800 ms | catalog rebuild 全体 | planned |
+| F4 mode routing 分岐決定 | `ST-F4.f4.mode_routing_latency` | < 200 ms | route_engine 判定 | planned |
+| F4 Reverse entry 判定 | `ST-F4.f4.reverse_entry_latency` | < 250 ms | reverse entry check | planned |
+| F6 metric 収集サイクル | `ST-F6.f6.metric_collect_latency` | < 2 s | collector 1 サイクル | planned |
+| F6 session 復元 | `ST-F6.f6.session_restore_latency` | < 5 s | SessionStart 完了まで | planned |
+| F6 prompt bundle 注入 | `ST-F6.f6.prompt_bundle_latency` | < 2 s | UserPromptSubmit 処理 | planned |
+| F10 adapter 起動 | `ST-F10.f10.adapter_startup_latency` | < 8 s | coexist adapter init | planned |
+| helix doctor 全検査 | 目標未確定 (L14 carry) | — | doctor full run | — |
+| DB write (plan 登録) | 目標未確定 (L14 carry) | — | INSERT plan_registry | — |
+| skill 推挙 cache hit | 目標未確定 (L14 carry) | — | .helix/cache/ hit path | — |
+
+> SLO 達成率の期間 window は原則 7 日ローリング (ADR-045 §2.1 参照)。
+> 「目標未確定」項目は L7 実装後の計測値をもって L14 運用テスト設計で確定する。
+
+### §13.3 SQLite リソース競合・同時アクセス方針
+
+WAL モードと workspace isolation を組み合わせた同時アクセス制御方針を定義する。
+
+| 観点 | 設計方針 | 設定値 | 根拠 |
+|---|---|---|---|
+| journal mode | WAL (Write-Ahead Log) | `PRAGMA journal_mode = WAL` | 読み取りと書き込みを分離、CLI/hook 並列実行耐性 (§1.1 項目 2) |
+| busy timeout | 5,000 ms 待機後 abort | `PRAGMA busy_timeout = 5000` | hook が短時間 lock を取得する想定、5s は過大でなく実用的 |
+| synchronous | NORMAL | `PRAGMA synchronous = NORMAL` | WAL 下では durability 十分、FULL は過剰コスト |
+| 同時書き込み上限 | **1 writer / N readers** | SQLite WAL 仕様固有 | 複数 CLI が同時 INSERT する場合は busy_timeout で順序化 |
+| workspace isolation | セッション間 DB 分離 | `.helix/workspaces/<id>/helix.db` | PLAN-156 workspace isolation framework による (ADR-040) |
+| 競合回避策 | idempotency_key (event_log) + UNIQUE index | §2.1 DDL / §4.3 参照 | 重複 event の安全な再試行 |
+| lock 監視 | 目標未確定 (L14 carry) | — | `pragma wal_checkpoint` 実行頻度・lock 時間の SLI 計測は未実装 |
+
+**並列実行シナリオ別の競合リスク評価**:
+
+| シナリオ | 競合リスク | 緩和策 |
+|---|---|---|
+| `helix plan` + `helix doctor` 同時実行 | 低 (reader×writer WAL 分離) | busy_timeout 5s で自動解決 |
+| PostToolUse hook × CLI 同時書き込み | 中 (同一 table INSERT 競合) | idempotency_key で重複排除 |
+| workspace 分離時の cross-DB JOIN | 低 (分離 DB なので競合なし) | ATTACH DATABASE は将来 carry |
+| migration 中の hook 発火 | 高 (schema 変更中の INSERT) | migration は `--approved` flag + BEGIN EXCLUSIVE で hook を排除 |
+
+### §13.4 backup/restore リソースコスト
+
+| 操作 | 推定コスト | 根拠 |
+|---|---|---|
+| `sqlite3 .backup` (WAL flush 込み) | ≈ 1〜5 s (200 MB DB 想定) | WAL checkpoint + file copy の合計、SSD 想定 |
+| migration dry-run (SELECT COUNT) | < 100 ms | read-only scan、index 利用前提 |
+| migration 本体実行 (ALTER + INSERT) | ≈ 1〜30 s (table サイズ依存) | event_log 63 万行 COPY は 10〜30 s 想定 |
+| `.helix/audit/*.yaml` 書き込み | < 500 ms | YAML シリアライズ + fsync | 
+| rollback (backup restore) | ≈ 5〜15 s | backup file copy + WAL 再適用 |
+| helix doctor full scan | 目標未確定 (L14 carry) | 全 warn 検査の累積時間は未計測 |
+
+> migration 本体実行の 10〜30 s 推定は `event_log` が 1 年蓄積後の最悪ケース。
+> retention 適用 (90 日) 運用では実効 row 数が ≈ 135,000 に抑制されるため ≈ 3〜5 s に短縮。
+
+### §13.5 SLO 評価・アラート設計（carry）
+
+以下は L7 実装後 / L14 運用テストで確定する項目。現時点では設計意図のみ記録する。
+
+| 項目 | 設計意図 | 状態 |
+|---|---|---|
+| metrics_log への SLI 記録 | F6 homeostasis loop が各 SLI を `metric_name='slo_*'` で自動保存 | 目標未確定 (L14 carry) |
+| helix doctor `check_slo_breach` | SLO 超過 row を `event_log` に `event_type='slo_breach'` で記録 | 目標未確定 (L14 carry) |
+| DB サイズ警告ライン | 500 MB 超で `helix doctor` WARN、1 GB 超で ERROR | 目標未確定 (L14 carry) |
+| WAL checkpoint 頻度 | 1,000 WAL pages 毎に auto checkpoint (SQLite default) | 現行設定維持 |
+| SLO 計測 window | 7 日ローリング (ADR-045 §2.1 準拠) | 設計意図のみ |
+
+> L5-08 欠落を解消した本節の残課題は上表の「目標未確定 (L14 carry)」5 項目。
+> これらは L7 実装着手前後に `docs/v2/L9-test-design/` および `docs/v2/L14-*/` の
+> 対応節を更新することで V-model pair trace を完結させる。

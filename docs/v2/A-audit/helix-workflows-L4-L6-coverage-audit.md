@@ -135,3 +135,27 @@ L5-02 は「シーケンス図形式」が欠落しているが、擬似コー�
 | L5-02 | 明示シーケンス図は薄い | 部分 | 一致 |
 | L5-06 | 散在・未集約 | 部分 | 一致 |
 | L5-08 | 薄い | 部分 | 一致 |
+
+---
+
+## §5 追補後 再採点 (recovery-2026-05-30 step 3-4 完了後)
+
+audit §3 やり直し対象 8 件を recovery で追補 → 再 grep 実証で全件 closed。
+
+| ID | 旧判定 | 追補後 | 追補先 (grep 実証済) |
+|---|---|---|---|
+| L4-09 脅威分析 | **欠落(必須)** | **充足** | system-architecture §9 (STRIDE×信頼境界6 + 25010:2023 Security/Safety) |
+| L4-06 NFR↔arch | 部分 | 充足 | system-architecture §10 (25010:2023 9特性 1:1 mapping) |
+| L4-01 context | 部分 | 充足 | system-architecture §11 (アクター7種 + C4 L1 mermaid + 境界表) |
+| L4-05 stakeholder matrix | 部分 | 充足 | system-architecture §12 (6×6 matrix) |
+| L5-02 sequence | 部分 | 充足 | internal-processing §15 (sequenceDiagram ×2: PLAN登録/skill推挙) |
+| L5-06 横断的関心事 | 部分 | 充足 | interface-detailed §14 (ロギング/エラー伝播/トランザクション/セキュリティ横断 集約) |
+| L6-04 event_type enum | 部分 | 充足 | interface-detailed §15 (11 hook enum 一覧表) |
+| L5-08 SLO/性能 | 部分 | 充足 | physical-data §13 (SLO/SLI統合 + リソース競合、未確定値は L14 carry 明示) |
+
+**結論**: L4/L5/L6 は業界標準カバー基準 (design-coverage-baseline) を全項目で充足。Forward は **L6 から再開可能** (L7 実装スプリントへ進める状態)。
+
+**forward carry (本 recovery のスコープ外、L6 再開には不要)**:
+- L4-09 threat model に対応する L9 総合テストの security 観点 (ST-9) = planned。V-model L4↔L9 pair の右腕は L9 工程で実装
+- L5-08 の SLO 数値 (plan登録/skill推挙/doctor full の latency 目標) = L14 運用検証で実測確定
+- helix doctor `check_design_coverage` の機械 lint 化 = L14 carry

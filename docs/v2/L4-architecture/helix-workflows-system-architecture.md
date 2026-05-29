@@ -67,6 +67,8 @@ L4 方式設計は L3 で確定した BR/FR/NFR/AC/OT を実行可能な設計�
 
 詳細 viewpoint mapping は ADR-044 §6 Compliance を参照。
 
+> **recovery-2026-05-30 追補**: L4-09 脅威分析 (§9)、L4-06 NFR↔arch mapping (§10)、L4-01 コンテキスト図 (§11)、L4-05 Stakeholder×Concern マトリクス (§12) を追補した。§0.1 の arc42 §3/§10/§4/§5 対応欄はそれぞれ §11/§9+§10/§10/§12 の本体節へのポインタを持つ。
+
 ### §0.2 V-model pair freeze 数値基準 (L4 PLAN §6 参照)
 
 - BR: 12 (BR-01〜12)
@@ -623,3 +625,164 @@ doc_reviewer_evidence:
 
 - §7 配布対象は本体化済み。
 - BR-09/BR-10 は Stage 遷移と evidence の carry のみ残存。
+
+---
+
+## §9 脅威分析 / セキュリティ viewpoint
+
+(recovery-2026-05-30 追補)
+
+本節は arc42 §10 Quality Requirements および ISO/IEC 25010:2023 Security 特性に対応する。HELIX-workflows V2 は `pretooluse-agent-guard.sh`・fail-close gate・model family 検証・委譲 Codex commit 禁止など複数のセキュリティ機構を持つ。それらを **STRIDE × 信頼境界** の観点で統合し、L4 設計の Security viewpoint として固定する。
+
+関連スキル: `workflow/threat-model`。pair test: L9 §ST-9 (security 観点、planned)。
+
+### §9.1 信頼境界一覧
+
+| 境界 ID | 境界の説明 | 内側 | 外側 |
+|---|---|---|---|
+| TB-1 | AI エージェント ↔ repo files | HELIX CLI / hook / gate | Claude Code Opus / Codex (委譲) |
+| TB-2 | subagent model 指定 | frontmatter で許可された model family | Agent tool の model 明示指定 |
+| TB-3 | raw bypass 環境変数 | HELIX guard (fail-close) | `HELIX_ALLOW_RAW_CODEX/CLAUDE/AGENT` 保持者 |
+| TB-4 | 委譲 Codex ↔ git | PM (Opus) が検証後 commit する経路 | 委譲 Codex が直接 `git commit` する経路 |
+| TB-5 | docs/skills への secret/PII 混入 | 設計文書 / スキル文書 | credential / 個人情報 |
+| TB-6 | budget / API cost | HELIX budget monitor | 過剰 API 呼び出し (DoS 相当) |
+
+### §9.2 STRIDE 脅威マトリクス
+
+| 境界 | STRIDE 脅威 | 具体的脅威シナリオ | 対策 (実装済 / 計画) | implementation_status |
+|---|---|---|---|---|
+| TB-1 | **T**: Tampering | AI エージェントが想定外ファイルを独断変更 | `pretooluse-agent-guard.sh` subagent allowlist (12 種) fail-close、gate fail-close、Recovery mode | implemented |
+| TB-1 | **T**: Tampering | 工程外・承認前のコード編集 | Plan Consent Gate (`awaiting_plan_consent` stop)、commit 禁止ルール | implemented (policy) |
+| TB-2 | **S**: Spoofing / **E**: Elevation | 許可 model family と異なる model 指定で Opus を想定外発火 | frontmatter model family 一致強制 (不一致 → exit 2 block)、`pretooluse-agent-guard.sh` T2/T3/T12 block 確認済 (commit 3ae4af3) | implemented |
+| TB-3 | **E**: Elevation of Privilege | guard 迂回による無制限操作 | bypass 時に `HELIX_ALLOW_RAW_*=1` + 理由 evidence 必須、会話 / final report への証跡義務 | implemented (policy) |
+| TB-4 | **T**: Tampering | 委譲 Codex が git add/commit/push を直接実行し、PM 検証をスキップ | 委譲 Codex commit 禁止ルール (CLAUDE.md §委譲 Codex のコミット禁止)、`helix codex` hard guard (`--plan-only` / `--consent auto`) | implemented |
+| TB-5 | **I**: Information Disclosure | credential / PII が docs や skills に混入 | CLAUDE.md §禁止事項、gitleaks / semgrep 候補 lint (L14 carry) | partial (policy implemented, CI lint planned) |
+| TB-6 | **D**: Denial of Service | 過剰 API 呼び出しによる budget 枯渇 | `helix budget status` / `helix budget simulate`、80% 到達で追加予算申請ルール | implemented |
+
+**注**: STRIDE = Spoofing / Tampering / Repudiation / Information Disclosure / Denial of Service / Elevation of Privilege。
+
+### §9.3 ISO/IEC 25010:2023 Security 特性 × HELIX 対応
+
+| 25010:2023 Security サブ特性 | HELIX 対応 |
+|---|---|
+| Confidentiality (機密性) | docs/skills への credential 混入禁止、TB-5 guard |
+| Integrity (完全性) | TB-1/TB-4 fail-close で想定外変更を阻止、pre-commit hook で lint / schema 検証 |
+| Non-repudiation (否認防止) | helix.db event_log への監査記録、audit YAML retention 90 日、bypass 時 evidence 義務 |
+| Accountability (責任追跡性) | agent_role / event_log_id / owner field による操作トレース、handover owner 遷移記録 |
+| Authenticity (真正性) | subagent frontmatter model family 一致強制、Plan Consent Gate による承認フロー |
+
+### §9.4 ISO/IEC 25010:2023 Safety 特性 × HELIX 対応
+
+| Safety サブ特性 | HELIX 対応 |
+|---|---|
+| Operational Constraint Satisfaction | gate fail-close (G2/G4/G7) で工程逸脱を構造的に阻止 |
+| Risk Identification | Recovery mode 発火条件 4 種 (想定外大規模変更 / 工程逸脱 / 認識ズレ / 予算超過) で事前検出 |
+| Fail Safe | fail-close exit 2 (block) / fail-open exit 0 (pass + advisory) の 2 段設計、hook timeout は fail-open |
+| Hazard Warning | statusLine debounce + hysteresis で重要警告の連打を防止しつつ見落とし回避 |
+
+---
+
+## §10 NFR (ISO/IEC 25010:2023 9 特性) ↔ アーキテクチャ設計戦略 mapping
+
+(recovery-2026-05-30 追補)
+
+本節は arc42 §4 Solution Strategy に対応する。L3 非機能要件 doc (`docs/plans/L3/L3-helix-workflows-非機能要件plan.md`) の NFR-ID を L4 アーキテクチャ設計戦略に接続する 1:1 mapping 表として機能する。
+
+ISO/IEC 25010:2023 の 9 特性 (旧 8 特性から Safety 追加、Usability→Interaction Capability、Portability→Flexibility に改称) を基準とする。
+
+### §10.1 NFR ↔ アーキ設計戦略 mapping 表
+
+| 25010:2023 特性 | HELIX 設計戦略 | 主要実装箇所 | 対応 NFR-ID (L3) | implementation_status |
+|---|---|---|---|---|
+| **Functional Suitability** (機能適合性) | 9 mode × 15 工程の直交設計。Forward/Scrum/Discovery/Reverse 等が独立 workflow として存在しつつ、全モードが Forward L0-L14 体系へ収束 | HELIX-workflows/helix-process/ 45 file、9 mode CLI | NFR-FS-01〜03 | implemented |
+| **Performance Efficiency** (性能効率性) | SQLite WAL mode による concurrent read、pre-commit hook 0.5-2s 目標、skill catalog 800ms 以内、helix.db schema v35 dual-write mismatch 検知 | `cli/lib/helix_db.py` WAL pragma、`cli/lib/skill_catalog.py` cache | NFR-PE-01〜04 | implemented |
+| **Compatibility** (互換性) | helix.db migration script による schema 後方互換維持 (v10〜v35 段階移行)、HELIX V1 PLAN 参考扱い + V2 命名規則での共存、Strangler Fig 3-stage migration | `cli/helix-db`、§7.3 Strangler Fig | NFR-CO-01〜02 | implemented |
+| **Interaction Capability** (相互作用能力、旧 Usability) | `helix` ルーターによる統一コマンド体系、`helix help` / `helix doctor` による状態可視化、HELIX-workflows doc 体系の人間可読性 | `cli/helix`、`cli/helix-doctor` | NFR-IC-01〜03 | implemented |
+| **Reliability** (信頼性) | fail-close gate による工程逸脱防止、pre-commit / CI helix job の 2 段 fail-close、handover による session 中断復帰、audit YAML retention 90 日 | §1.3 hook 配線、§5 mandatory subagent、§6 audit pattern | NFR-RL-01〜05 | implemented |
+| **Security** (セキュリティ) | §9 脅威分析参照。pretooluse-agent-guard fail-close、model family 一致強制、TB-1〜6 全境界 guard | §9、`.claude/hooks/pretooluse-agent-guard.sh` | NFR-SE-01〜06 | implemented |
+| **Maintainability** (保守性) | V-model 4 artifact 双方向 trace で設計⇔実装⇔テストの変更影響を追跡可能に。helix doctor による drift 検出、PLAN ⊃ ADR レイヤー併存で判断記録 | §2.2 trace、`cli/lib/doctor_plan_checks.py` | NFR-MA-01〜05 | implemented |
+| **Flexibility** (柔軟性、旧 Portability) | 採用 project への portable package 配布 (§7.1)。`helix init --template` による初期化。drive type (be/fe/fullstack/db/agent/scrum) で工程カスタマイズ | §7 配布、`cli/helix-plan` drive option | NFR-FL-01〜03 | partial |
+| **Safety** (安全性、2023 新追加) | Recovery mode 4 発火条件による AI 暴走検出、statusLine hysteresis による重大警告の確実到達、ScheduleWakeup による carry 放置防止 | Recovery workflow、PLAN-099 auto-run framework | NFR-SF-01〜02 | partial |
+
+### §10.2 L3 非機能要件 doc との接続
+
+- 正本 NFR-ID 定義: `docs/plans/L3/L3-helix-workflows-非機能要件plan.md`
+- 本 §10.1 の NFR-ID は L3 doc の ID 体系に準拠する。L3 doc が更新された場合は §10.1 を同期すること (carry: L7 実装スプリント entry チェック)
+
+---
+
+## §11 システムコンテキスト (arc42 §3 Context and Scope)
+
+(recovery-2026-05-30 追補)
+
+本節は arc42 §3 に対応し、HELIX-workflows V2 システムの外部境界と外部アクターを明示する。§1.1 の三層構造表を補完し、C4 Level 1 System Context として機能する。
+
+### §11.1 外部アクター一覧
+
+| アクター | 種別 | インターフェース | 役割 |
+|---|---|---|---|
+| **PM (Opus)** | 人間 + AI | Claude Code チャット、`helix plan/gate` CLI | タスク分解・承認・最終判断。コード編集禁止 |
+| **委譲 Codex (TL/SE/PE)** | AI | `helix codex --role <role>` CLI | 設計・実装・テスト。commit 禁止 |
+| **PO (プロダクトオーナー)** | 人間 | チャット、受入ゲート | 要件承認・受入判断 |
+| **採用 project チーム** | 人間 + AI | `helix init --template`、portable package | HELIX-workflows を自プロジェクトに導入して利用 |
+| **GitHub / CI** | 外部システム | `git push`、`.github/workflows/ci.yml` | pre-push / CI helix job による lint・gate 自動実行 |
+| **Claude Code harness** | AI ランタイム | Claude Code API、hook PreToolUse/PostToolUse | subagent 起動・hook 発火・session 管理 |
+| **helix.db (SQLite)** | 内部永続化 | `cli/lib/helix_db.py` | event_log / plan_registry / mode_transition |
+
+### §11.2 コンテキスト図 (mermaid flowchart)
+
+```mermaid
+flowchart TD
+  PM["PM (Opus)\nタスク分解・承認"]
+  PO["PO\n要件承認・受入"]
+  Codex["委譲 Codex (TL/SE/PE)\n設計・実装"]
+  Adopter["採用 project チーム\nhelix init --template"]
+  GitHub["GitHub / CI\npre-push / ci.yml"]
+  Harness["Claude Code harness\nhook / subagent runtime"]
+
+  subgraph HELIX ["HELIX-workflows V2 (システム境界)"]
+    CLI["cli/ コマンド群\nhelix plan/gate/sprint/doctor"]
+    DB["helix.db\nSQLite (WAL)"]
+    Skills["skills/ 知識資産\n130 スキル"]
+    Docs["HELIX-workflows/\nhelix-process/ (正本)"]
+  end
+
+  PM -->|"承認・指示"| CLI
+  PO -->|"受入承認"| CLI
+  Codex -->|"実装成果物 (commit 禁止)"| CLI
+  Adopter -->|"helix init / portable pkg"| CLI
+  GitHub -->|"hook 発火 / CI gate"| CLI
+  Harness -->|"subagent 起動 / hook"| CLI
+  CLI <--> DB
+  CLI --> Skills
+  CLI --> Docs
+```
+
+### §11.3 システム境界の定義
+
+| 境界内 (HELIX が管理する) | 境界外 (HELIX が依存するが管理しない) |
+|---|---|
+| `cli/` コマンド群、`cli/lib/` Python helper | Claude Code API / Codex API (外部 LLM サービス) |
+| `helix.db` SQLite 永続化 | GitHub Actions ランタイム |
+| `skills/` 知識資産 130 スキル | ユーザーの採用 project コードベース |
+| `HELIX-workflows/` 工程 doc 45 file | OS / WSL2 環境 |
+| `.claude/hooks/` / `.claude/agents/` | `~/.codex/` Codex CLI 設定 |
+
+---
+
+## §12 Stakeholder × Concern マトリクス (ISO 42010:2022 §5.2)
+
+(recovery-2026-05-30 追補)
+
+本節は §0.1 の compact な 42010 要素テーブルを拡充し、独立した 2 軸マトリクスとして機能する。行=Stakeholder、列=Concern とし、各セルに「その stakeholder がその concern で何を気にするか」を簡潔に記載する。
+
+### §12.1 Stakeholder × Concern マトリクス
+
+| Stakeholder / Concern | 機能適合性 | 性能効率性 | セキュリティ | 保守性 | 相互作用能力 | コスト / Safety |
+|---|---|---|---|---|---|---|
+| **PM (Opus)** | 9 mode × 15 工程が要件を漏れなくカバーするか | helix コマンドの応答遅延がワークフロー阻害しないか | AI 暴走・想定外変更がゲートで阻止されるか | ADR / PLAN の変更追跡が容易か | チャット + CLI で意図が正確に伝わるか | Opus / Codex 予算が週間上限内に収まるか (Safety: Recovery mode 発火しないか) |
+| **TL (Codex gpt-5.5)** | 設計判断が V-model 対応表に正しく格納されるか | helix doctor / lint の速度が開発ループを遅延させないか | TB-1/TB-2 guard が設計外操作を確実に阻止するか | L5/L6 設計 doc の drift が doctor で自動検出されるか | `helix codex --role tl` が正確なスキル・コンテキストを注入するか | tl-advisor 呼び出しコストが適正か |
+| **SE (Codex gpt-5.4)** | 実装 sprint の entry/exit 条件が明確か | CI helix job の実行時間 (20-120s) が acceptable か | commit 禁止ルールと hard guard が確実に機能するか | L6 → L7 の 4 artifact trace が自動 lint されるか | `helix sprint` / `helix handover` が継続実装を支援するか | SE sprint の工数見積もり精度 |
+| **PO (プロダクトオーナー)** | L3 要件の FR が採用 project の実際の機能として確認できるか | 受入テスト (L12) の実行時間が許容範囲か | 個人情報・機密がドキュメントに混入しないか (TB-5) | 受入条件が変更された時に design doc に反映されるか | helix gate コマンドが PO 非技術者に分かりやすい結果を返すか | ライセンス / コンプライアンスリスク |
+| **採用 project オーナー** | portable package が自プロジェクト tech stack に対応するか | `helix init --template` の初期化が数分以内に完了するか | HELIX framework 自体に backdoor / secret 混入がないか | framework バージョンアップ時に既存 PLAN が壊れないか | 既存 Git / CI 環境に helix が追加設定なしで組み込めるか | framework 採用の初期コストと学習コスト |
+| **監査担当 (auditor)** | 全 gate の pass/fail が helix.db に trace 可能か | audit YAML 生成・検索の応答時間 | bypass 証跡が evidence として保存されているか (Non-repudiation) | helix doctor の check 項目が業界標準 (arc42 / 25010) に対応しているか | audit report が非技術者に提示可能な形式か | 監査工数・証跡保持コスト (retention 90 日) |

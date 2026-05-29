@@ -941,6 +941,111 @@ industry_standards:
 | U-07b | implemented | migration event 追加決定 |
 | U-07c | implemented | coexist event 追加決定 |
 
+## §14 横断的関心事 (cross-cutting concerns) の集約節 (recovery-2026-05-30 追補)
+
+> (recovery-2026-05-30 追補) IEEE Std 1016-2009 Patterns use viewpoint / arc42§8 に対応する横断的関心事の集約節。L5-06 欠落判定 (audit: helix-workflows-L4-L6-coverage-audit.md §1 L5-06) への対応。本節は §10 hook payload schema・§11 error handling 共通ルールに散在していた方針を一箇所に集約し、各関心事が「どのモジュール群に横断的に効くか」を明示する。
+
+### §14.1 横断的関心事サマリ表
+
+| 関心事 | 集約方針 | 適用モジュール群 | 参照 §/節 |
+|---|---|---|---|
+| ロギング | helix.db event_log への構造化記録を全 hook・CLI コマンドが共通して行う | cli/lib/*.py 全体 / cli/helix-* 全体 | §14.2 |
+| エラー伝播 | exit code 体系 (0/1/2/1001〜1060) の層をまたぐ伝播ルール | cli/helix-* シェル → cli/lib/plan_*.py → helix.db | §14.3 |
+| トランザクション境界 | SQLite write の atomic 単位を compatibility_adapter.write_connection に統一 | cli/lib/compatibility_adapter.py / plan_registry.py / discovery_migrate.py | §14.4 |
+| セキュリティ横断 | hook guard (fail-close) と model family 検証の適用方針。L4-09 脅威分析 (双方向 trace: system-architecture.md §14 追補予定) と対応 | .claude/hooks/pretooluse-agent-guard.sh / cli/helix-codex / cli/helix-claude | §14.5 |
+
+### §14.2 ロギング方針 (helix.db event_log 構造化記録)
+
+- **方針**: 全 hook および副作用を持つ CLI コマンドは `helix.db` の `event_log` テーブルへ構造化レコードを記録する。
+- **必須フィールド**: `session_id`, `event_type`, `timestamp`, `actor` (CLI コマンド名 or hook 名), `result` (`pass`/`fail`/`skip`), `exit_code`
+- **任意フィールド**: `payload` (JSON)、`error_code`、`duration_ms`
+- **適用モジュール**: `cli/lib/plan_registry.py` / `cli/lib/compatibility_adapter.py` / `cli/lib/learning_engine.py` / `.claude/hooks/*.sh`
+- **除外**: `--dry-run` フラグが付いた場合、event_log への書き込みは行わない (dry run は副作用ゼロ原則)
+- **監査連携**: §10 の各 hook の `audit log: role_audit + event_log` 記述はこの方針の個別適用である。`role_audit` は role の使用記録、`event_log` はイベント全般のタイムラインを担う。
+
+### §14.3 エラー伝播ルール (exit code の層をまたぐ伝播)
+
+exit code 体系は edge-case-design.md §0.2 で定義された値を L5 IF 層で伝播する。
+
+| exit code | 意味 | 伝播ルール |
+|---|---|---|
+| 0 | 正常終了 | 上位シェルに透過伝播 |
+| 1 | 一般エラー (user error, 入力不正) | hook が 1 を返した場合、CLI は `WARN` に降格して続行可 (fail-open hook に限る) |
+| 2 | 重大エラー / fail-close 強制 | hook が 2 を返した場合、CLI は即座に中断。上位シェルは 2 を透過伝播する |
+| 1001 | plan registry エラー | CLI レイヤーで `ERROR(DOC-1001)` を stdout に出力してから exit 2 に変換 |
+| 1010 | state 整合エラー | 同上。recovery 系コマンドが受け取った場合は recovery plan への自動遷移を検討 |
+| 1020 | budget/homeostasis 警告 | fail-open。`issues[severity=warning]` を付与して続行 |
+| 1030 | mode 遷移不正 | fail-close。CLI は現在 mode を維持して exit 2 |
+| 1040 〜 1059 | 各 F 機能固有エラー | `ERROR(DOC-1040〜1059)` を stdout + exit 2 |
+| 1060 | incident 緊急エラー | fail-close。incident log を書いてから exit 2 |
+
+- **シェル → Python 呼び出し境界**: `cli/helix-*` bash スクリプトは Python helper の exit code をそのまま `exit $?` で透過する。変換は行わない。
+- **Python 内部例外**: `cli/lib/*.py` では `SystemExit(code)` を用い、`raise Exception` をスタックトレースとして stdout/stderr に出力しない (ユーザー向けには `ERROR(...)` メッセージのみ)。
+- **既存 §11 との関係**: §11 は `fail-close/fail-open の選択基準` と `timeout/retry 共通規約` を定義する。本節 §14.3 はその「層間伝播の具体ルール」として補完する (置換ではない)。
+
+### §14.4 トランザクション境界 (SQLite write の atomic 単位)
+
+- **統一接続口**: `cli/lib/compatibility_adapter.py` の `write_connection()` コンテキストマネージャが SQLite の **1 トランザクション = 1 write_connection ブロック** を定義する。
+- **commit 単位**:
+  - 1 CLI コマンドの副作用全体 → 1 トランザクション (例: `helix plan update` は plan_registry + event_log を 1 commit)
+  - hook の event_log 書き込み → 独立トランザクション (hook は短命、メイン処理と分離)
+  - migration スクリプト → 1 migration step = 1 トランザクション (途中失敗でロールバック)
+- **並行書き込み**: `helix workspace` による並列ワークツリー環境では、各ワーカーが独立 DB ファイルを持つ (isolation 方針は ADR-040 §DB-Isolation を参照)。メイン DB への write は `helix workspace sync` 時に serialize する。
+- **read-only 操作**: `--json`, `--dry-run`, `helix doctor`, `helix status` 等の read-only コマンドは `write_connection` を使用しない。誤用検出は `compatibility_adapter` の write guard で fail-close。
+- **適用モジュール**: `cli/lib/compatibility_adapter.py` / `cli/lib/plan_registry.py` / `cli/lib/discovery_migrate.py` / `cli/lib/helix_db.py`
+
+### §14.5 セキュリティ横断方針 (hook guard / fail-close の適用)
+
+本節は hook guard と model family 検証の横断方針をまとめる。L4-09 脅威分析節 (system-architecture.md §14 追補 予定、双方向 trace: L4-09) との対応を示す。
+
+| セキュリティ機能 | 適用場所 | 方針 | fail-close / fail-open |
+|---|---|---|---|
+| hook guard (pretooluse-agent-guard) | `.claude/hooks/pretooluse-agent-guard.sh` | subagent_type が許可 12 種 (PMO 9 + PdM 3) 外は exit 2 でブロック | **fail-close** |
+| model family 検証 | 同上 | frontmatter と model family 不一致の場合 exit 2 でブロック (想定外 Opus 発火防止) | **fail-close** |
+| plan lint / commit lint | `.claude/hooks/pre-commit` (§10.6) | .md/.yaml の構造不整合は exit 2。carry note は pass | **fail-close** |
+| PreCompact 前状態保全 | `sessionstart-harness-summary.sh` (§10.2/§10.4) | 未保存 L2/L3/ADR 判断がある場合のみ decision:block。常用禁止 | **条件付き fail-close** |
+| DB write guard | `cli/lib/compatibility_adapter.py` | read-only コマンドからの write_connection 呼び出しを検出して fail-close | **fail-close** |
+
+- **fail-close の基準統一**: セキュリティ関連 (認証・モデル family・artifact 破損・重要状態遷移) は §11 の方針に従い fail-close とする。
+- **fail-open の範囲**: 監査系 hook (event_log 書き込み遅延、metrics_log 欠損) は fail-open とし `issues[severity=warning]` を付与する。
+- **双方向 trace**: 本節の hook guard 方針は L4-09 脅威分析節 (system-architecture.md、recovery-2026-05-30 で追補予定) と対応する。L4-09 が STRIDE 観点の脅威一覧を持ち、本節 §14.5 がその L5 IF レベルの対策方針を記述する関係。
+
+---
+
+## §15 hook event_type enum 一覧表 (recovery-2026-05-30 追補)
+
+> (recovery-2026-05-30 追補) §10 の 11 hook を event_type の enum 一覧表として集約。L6-04 欠落判定 (audit: helix-workflows-L4-L6-coverage-audit.md §1 L6-04) への対応。現状は §10 で個別 envelope が定義されているが、全 hook の event_type enum を横断的に確認できる一覧表が不在だったため追補する。
+
+### §15.1 hook event_type enum 一覧 (11 件)
+
+| # | event_type | 発火タイミング | matcher | fail-close / fail-open | timeout | 対応 hook ファイル / §参照 |
+|---|---|---|---|---|---|---|
+| 1 | `StatusLine` | Claude Code が UI ステータスバー更新を要求するたびに発火 | `StatusLine` | fail-open (UI 表示のみ影響) | 2s | `.claude/hooks/session-statusline.sh` / §10.1 |
+| 2 | `PreCompact` | Claude Code がコンテキスト圧縮 (compact) を実行する直前に発火 | `PreCompact` | fail-close (前提保全) | 5s | `.claude/hooks/pre-compact-guard.sh` / §10.2 |
+| 3 | `PreToolUse` | Agent tool 呼び出し前に subagent_type / model family を検証 | `agent-guard` (PreToolUse) | fail-close (guard 失敗は即ブロック) | 3s | `.claude/hooks/pretooluse-agent-guard.sh` / §10.3 |
+| 4 | `SessionStart` | Claude Code セッション開始時 (cleared / compacted 両方) に発火 | `SessionStart` | fail-close (監査必要) | 5s | `.claude/hooks/sessionstart-harness-summary.sh` / §10.4 |
+| 5 | `UserPromptSubmit` | ユーザーがプロンプトを送信するたびに発火 | `UserPromptSubmit` | fail-open (最終制御は次段) | 3s | `.claude/hooks/userpromptsubmit-history-injection.sh` / §10.5 |
+| 6 | `PreCommit` | git pre-commit 時に doc lint / plan validate を実行 | `*.md,*.yaml,plan.md` | fail-close (lint 失敗はコミット阻止) | 10s | `.claude/hooks/pre-commit-doc-lint.sh` / §10.6 |
+| 7 | `PostToolUse` (Task) | Task tool 完了後に skill_usage を記録 (U-06) | `Task` (PostToolUse) | fail-open (収集失敗は実行停止不可) | 5s | `.claude/hooks/posttooluse-skill-usage.sh` / §10.7 |
+| 8 | `Scheduled` | weekly cron または GitHub Actions スケジュール実行時に発火 | `weekly` | fail-close (長期監視監査) | 30m | `.github/workflows/weekly-check.yml` / §10.8 |
+| 9 | `Mutation` | plan / artifact の Mutation 操作 (PostToolUse + scheduler 連動) | `PostToolUse` + scheduler | fail-open (監査遅延時) | 5s | `.claude/hooks/posttooluse-mutation-event.sh` / §10.9 |
+| 10 | `Migration` | DB migration 操作 (PostToolUse + scheduler 連動) | `PostToolUse` + scheduler | fail-close (migration integrity) | 10s | `.claude/hooks/posttooluse-migration-event.sh` / §10.10 |
+| 11 | `Coexist` | framework coexist 操作 (PostToolUse + scheduler 連動) | `PostToolUse` + scheduler | fail-open (最終状態監査で収束) | 5s | `.claude/hooks/posttooluse-coexist-event.sh` / §10.11 |
+
+### §15.2 fail-close / fail-open 分類サマリ
+
+| 分類 | event_type | 理由 |
+|---|---|---|
+| **fail-close** (5 件) | PreCompact / PreToolUse(agent-guard) / SessionStart / PreCommit / Migration | 前提保全・セキュリティ guard・lint・migration integrity の 4 カテゴリ。失敗は処理を止める必要がある |
+| **fail-open** (5 件) | StatusLine / UserPromptSubmit / PostToolUse(Task) / Mutation / Coexist | 収集・記録・UI 系。失敗しても主処理を止めない。`issues[severity=warning]` を付与 |
+| **条件付き fail-close** (1 件) | PreCompact (block 判定時) | 通常は fail-open だが、未保存 L2/L3/ADR 判断が存在する場合のみ一度だけ fail-close に昇格 |
+
+### §15.3 enum 値の正本宣言
+
+本表の `event_type` 値は Claude Code hook 仕様の matcher 名と対応する。HELIX 実装コードで event_type を参照する場合は本節の値を正本として使用する。新 hook 追加時は本表への行追加を必須とし、§10 に個別節を追加してから本表を更新する順序を守る (先に §10 個別節 → 後に §15 一覧表更新)。
+
+---
+
 ## 付録 A. CLI 命令一覧（実装状況追跡、本文 §2-§9 と整合する 36 件 + 検討候補 N 件）
 
 ### CLI-001

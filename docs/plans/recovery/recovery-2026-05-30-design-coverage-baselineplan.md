@@ -4,7 +4,7 @@ title: "recovery-2026-05-30-design-coverage-baseline: L4-L6 設計を業界標�
 kind: recovery
 layer: recovery
 drive: be
-status: draft
+status: completed
 created: 2026-05-30
 owner: PM
 agent_slots:
@@ -116,8 +116,8 @@ Recovery workflow の発火条件 4 種のうち 2 種に該当:
 |---|---|---|
 | recovery-log 起票 | done | 本 doc (plan_lint PASS、validator は recovery 命名の既知 WARN のみ) |
 | G1 カバー基準確定 | done | `skills/workflow/doc-system-architect/references/design-coverage-baseline.md` (74→76行、L4-01〜09/L5-01〜09/L6-01〜05 = 23 成果物 + 充足判定 + ゲート運用)。PM レビューで L4-09 脅威分析行を追補 (G4 と整合) |
-| audit (9 本採点) | pending | 次: design-coverage-baseline で 9 本を採点し A-audit に gap 表を frozen 化 |
-| G4 脅威分析追補 | pending | — |
-| G3+G5 追補 | pending | — |
-| G2 拡充 | pending | — |
-| frozen 整合再確認 | pending | — |
+| audit (9 本採点) | done | `docs/v2/A-audit/helix-workflows-L4-L6-coverage-audit.md` (全文採点。最低充足セット全層 YES、必須欠落 L4-09 + 部分 7 件特定) |
+| G4 脅威分析追補 | done | system-architecture §9 (STRIDE×信頼境界6 + 25010:2023 Security/Safety、grep 実証済) |
+| G3+G5 追補 | done | §10 NFR↔arch mapping (25010:2023 9特性) / §11 context (arc42§3) + L5-02 §15 sequenceDiagram / L5-08 §13 SLO / L5-06 §14 横断的関心事 / L6-04 §15 event_type enum |
+| G2 拡充 | done | §12 Stakeholder×Concern 6×6 matrix |
+| frozen 整合再確認 | done | audit §5 再採点 = 8 項目全 closed。L4/L5/L6 は基準全項目充足 → Forward L6 再開可能。forward carry (L9 security pair / SLO 実測 / check_design_coverage lint) は L6 再開に不要 |
