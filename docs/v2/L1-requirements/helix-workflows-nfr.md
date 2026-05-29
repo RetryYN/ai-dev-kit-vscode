@@ -15,7 +15,7 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 
 # HELIX-workflows V2 非機能要求 (Non-Functional Requirements)
 
-> **位置づけ**: 本 doc は HELIX-workflows V2 dogfooding の L1 非機能要求正本。L0 concept の `L1-IN-12` / `L1-IN-15`、および業務要求 doc の BR-02 / BR-03 / BR-06 / BR-07 / BR-08 を、IPA 非機能要求グレード 2018 と ISO/IEC 25010 の二軸で製本する。
+> **位置づけ**: 本 doc は HELIX-workflows V2 dogfooding の L1 非機能要求正本。L0 concept の `L1-IN-12` / `L1-IN-15`、および業務要求 doc の BR-02 / BR-03 / BR-06 / BR-07 / BR-08 を、IPA 非機能要求グレード 2018 と ISO/IEC 25010:2023 の二軸で製本する。
 >
 > **導出シグナル**: `requirements-deriver` の観点では、R6 (24時間・停止許容なし)、R8 (高同時実行・並列 Codex)、R9 (外部ツール連携)、R11 (多 OS / 多 runtime)、R12 (既存 V1→V2 移行)、R13 (監査・追跡)、R14 (外部リソース / token / runtime 制約) が主要シグナルとして立ち上がる。
 >
@@ -56,9 +56,9 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 
 | NFR-ID | 要件 | 根拠シグナル | IPA 大項目 | ISO 25010 | 検証観点 |
 |---|---|---|---|---|---|
-| NFR-MG-01 | V1 PLAN (`is_reference=true`) から V2 PLAN への retrofit pipeline を段階移行可能にする | R12 / BR-02 | 移行性 | 移植性 | retrofit 失敗率 / 再実行性 |
-| NFR-MG-02 | `helix.db` schema migration は `schema_migration_log` を用いて **idempotent** に適用できる | R12 / BR-03 | 移行性 | 移植性 | migration 再実行で副作用 0 |
-| NFR-MG-03 | 採用 project が HELIX-workflows V2 を持ち込めるよう、CLI / template / hook を portable package として配布できる | R11 / R12 / BR-08 | 移行性 | 移植性 | package 導入手順の再現性 |
+| NFR-MG-01 | V1 PLAN (`is_reference=true`) から V2 PLAN への retrofit pipeline を段階移行可能にする | R12 / BR-02 | 移行性 | 柔軟性 | retrofit 失敗率 / 再実行性 |
+| NFR-MG-02 | `helix.db` schema migration は `schema_migration_log` を用いて **idempotent** に適用できる | R12 / BR-03 | 移行性 | 柔軟性 | migration 再実行で副作用 0 |
+| NFR-MG-03 | 採用 project が HELIX-workflows V2 を持ち込めるよう、CLI / template / hook を portable package として配布できる | R11 / R12 / BR-08 | 移行性 | 柔軟性 | package 導入手順の再現性 |
 
 ## §5 セキュリティ (Security)
 
@@ -78,7 +78,9 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | NFR-SE-02 | Claude Code (CLI + native VS Code extension) と Codex CLI の両方をサポートする | R9 / R11 / BR-08 | システム環境 | 互換性 | CLI / extension 両導線の継続性 |
 | NFR-SE-03 | 実行基盤を Python 3.11+ / Bash 5.0+ / SQLite 3.40+ / git 2.40+ に揃える | R11 / BR-08 | システム環境 | 互換性 | runtime version 下限チェック |
 
-## §7 IPA × ISO 25010 二軸タグ表
+## §7 IPA × ISO/IEC 25010:2023 二軸タグ表
+
+> **ISO 25010 特性ラベル注記**: 本 doc では 2023 版の 9 特性モデルに合わせ、`相互作用能力 (Interaction Capability、旧 Usability)` と `柔軟性 (Flexibility、旧 Portability)` を用いる。
 
 | NFR-ID | 要約 | IPA | ISO 25010 |
 |---|---|---|---|
@@ -94,9 +96,9 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | NFR-OP-03 | warn 50 alert / 20 完了条件 | 運用・保守性 | 保守性 |
 | NFR-OP-04 | 進化系統 trace | 運用・保守性 | 保守性 |
 | NFR-OP-05 | verify-before-act 強制 | 運用・保守性 | 保守性 |
-| NFR-MG-01 | V1→V2 retrofit pipeline | 移行性 | 移植性 |
-| NFR-MG-02 | schema migration idempotency | 移行性 | 移植性 |
-| NFR-MG-03 | portable package 化 | 移行性 | 移植性 |
+| NFR-MG-01 | V1→V2 retrofit pipeline | 移行性 | 柔軟性 |
+| NFR-MG-02 | schema migration idempotency | 移行性 | 柔軟性 |
+| NFR-MG-03 | portable package 化 | 移行性 | 柔軟性 |
 | NFR-SC-01 | secret を docs 等に書かない | セキュリティ | セキュリティ |
 | NFR-SC-02 | settings regen 検知 | セキュリティ | セキュリティ |
 | NFR-SC-03 | tool guard hook | セキュリティ | セキュリティ |
@@ -106,11 +108,11 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 | NFR-SE-02 | Claude / Codex 両対応 | システム環境 | 互換性 |
 | NFR-SE-03 | runtime version 下限固定 | システム環境 | 互換性 |
 
-**ISO/IEC 25010 網羅メモ**
+**ISO/IEC 25010:2023 9 特性網羅メモ**
 
-- 現れた特性: 性能効率性 / 互換性 / 信頼性 / セキュリティ / 保守性 / 移植性
-- 現時点で主対象外の特性: 機能適合性 / 使用性
-- 理由: 機能適合性は L3 機能要求と L4-L6 設計で凍結し、使用性は HELIX-workflows が UI を持たないため L2/L10 skip 前提。ただし docs site / visual workflow / interactive UI を追加する場合は L2/L10 unskip 条件として再導出する
+- 現れた特性: 性能効率性 / 互換性 / 信頼性 / セキュリティ / 保守性 / 柔軟性
+- L3 で再導出する特性: 機能適合性 / 相互作用能力 / 安全性 (L1 では未掲示、L3 NFR doc §7 + L12 AC-NFR-FS/US/SF-01 で補完)
+- 理由: 機能適合性は L3 機能要求と L4-L6 設計で凍結し、相互作用能力は HELIX-workflows が UI を持たないため CLI 中心へ読み替え (docs site / TUI 追加時は L2/L10 unskip)。安全性は `rollback` / DB rollback / `helix workspace` drop 等の破壊的操作を持つため「低頻度だが高影響」として L3/L12 で fail-safe / reversibility を再導出する
 
 ## §8 関連 doc
 

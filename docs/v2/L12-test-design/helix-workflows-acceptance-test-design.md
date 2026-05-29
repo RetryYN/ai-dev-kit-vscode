@@ -21,7 +21,7 @@ related_l3_docs:
 
 > **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、**59 AC (BR 12 + FR 18 + NFR 29)** で balance_ratio ≥ 1.0 (2026-05-26 BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件、**2026-05-29 ユーザー要求由来 FR-FNREG-01 (機能一覧 SSoT) + FR-GLOSSARY-01 (用語一覧 SSoT) 追加で 57→59 件**)。
 >
-> **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜12 + §2 機能系 AC-FR-01〜16 + §3 非機能系 AC-NFR 29 件すべて detail 化済 2026-05-26、BR-12 ratchet 機構準拠で 本 session BR-09/10/11/12 追従済)。
+> **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜12 + §2 機能系 AC-FR-01〜16 + §3 非機能系 AC-NFR 30 件すべて detail 化済 (2026-05-26 に 29 件、2026-05-30 PLAN-226 で ISO 25010:2023 移行 + Safety AC-NFR-SF-01 追加 → 30 件)、BR-12 ratchet 機構準拠で 本 session BR-09/10/11/12 追従済)。
 >
 > **正本**: [HELIX-workflows/helix-process/L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md)
 
@@ -242,7 +242,7 @@ L3 [機能要件 doc](../L3-requirements/helix-workflows-functional-requirements
 
 ## §3 非機能系受入テスト (NFR-* ↔ AC-NFR-*、Phase E.B Codex SE bi6xoaz58 PROPOSE 反映 2026-05-26)
 
-L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/SC/SE 6 領域 27 件 (本 session BR-09/10/11/12 由来で NFR-OP-06/07/08 + NFR-MG-04 を追加、23→27) + ISO 25010 再導出 2 件 (使用性 US / 機能適合性 FS) に対する受入テスト。balance_ratio = AC-NFR 29 件 / NFR 27 件 = 1.07 (≥ 1.0、追加 US/FS で網羅性強化)。
+L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/SC/SE 6 領域 27 件 (本 session BR-09/10/11/12 由来で NFR-OP-06/07/08 + NFR-MG-04 を追加、23→27) + ISO 25010:2023 再導出 3 件 (相互作用能力 US / 機能適合性 FS / 安全性 SF) に対する受入テスト。balance_ratio = AC-NFR 30 件 / NFR 27 件 = 1.11 (≥ 1.0、追加 US/FS/SF で網羅性強化)。
 
 ### 可用性 (AV)
 - **AC-NFR-AV-01** (対象: NFR-AV-01) — 検証: 月次 CLI 起動成功率 / 受入: ≥ 99.9% / step: 起動ログ集計 → 閾値判定
@@ -283,9 +283,10 @@ L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/S
 - **AC-NFR-SE-02** (対象: NFR-SE-02) — 検証: Claude/Codex 両導線 / 受入: core entry flow 継続率 100% / step: 両 CLI で同一フロー確認
 - **AC-NFR-SE-03** (対象: NFR-SE-03) — 検証: runtime 下限 (Python 3.11+ / Bash 5.0+ / SQLite 3.40+ / git 2.40+) / 受入: version 違反 0 件 / step: version check 実行
 
-### ISO 25010 再導出 (L1 未掲示 2 特性、L3 で補完)
-- **AC-NFR-US-01** (追加観点: ISO 使用性) — 検証: CLI usability / 受入: `helix help` 完備率 ≥ 90% AND TTFSP ≤ 30 分 / step: 初回利用者フローを計測 (docs site / TUI 追加時は L2/L10 unskip trigger)
+### ISO 25010:2023 再導出 (L1 未掲示 3 特性、L3 で補完)
+- **AC-NFR-US-01** (追加観点: ISO 相互作用能力 (Interaction Capability、旧 Usability — 2023 版で自己記述性・包摂性・User engagement を包含) — 検証: CLI usability + 自己記述性 + 包摂性 / 受入: `helix help` 完備率 ≥ 90% AND TTFSP ≤ 30 分 AND 自己記述性 (外部マニュアル参照なしで次アクションが分かる主要コマンド率 ≥ 90%、unknown command / error 時に next step を提示) AND 包摂性 (色のみに依存しない出力 / `NO_COLOR`・`--no-color` 対応) / step: (1) 初回利用者フロー計測 (2) error/unknown 系で next-step 提示を確認 (3) `NO_COLOR` で可読性確認 (docs site / TUI 追加時は L2/L10 unskip trigger)
 - **AC-NFR-FS-01** (追加観点: ISO 機能適合性) — 検証: FR-* と AC-FR-* の量閉じ性 / 受入: `balance_ratio ≥ 1.0` / step: requirement_count と AC_count を機械集計
+- **AC-NFR-SF-01** (追加観点: ISO 安全性 (Safety、2023 新規) — dogfooding は破壊的操作を持つため「低頻度だが高影響」) — 検証: 破壊的操作の fail-safe / reversibility / risk identification / 受入: `rollback --apply`・DB rollback・`helix workspace` drop 等の破壊的操作が (a) 実行前に影響範囲を提示 (risk identification) AND (b) confirm token / dry-run を経由 (fail-safe) AND (c) archive / backup により回復可能 (reversibility) を 100% 満たす / step: (1) 破壊的操作一覧を抽出 (2) 各操作で dry-run/confirm/archive の有無を確認 (3) 回復手順を実行して reversibility を検証
 
 ## §4 V-model L3↔L12 ペア凍結確認
 
@@ -308,6 +309,6 @@ L3 [NFR doc](../L3-requirements/helix-workflows-nfr-detail.md) NFR-AV/PF/OP/MG/S
 ## §6 carry / 既知の不足
 
 - **L12-test-design template skeleton 不在 carry**: 本 doc は L3-業務要件plan 起票時に手動作成。L14 と同様、`cli/templates/plan/v2/` に L12-test-design 用 template 整備候補 (別 PLAN)。
-- ~~§2 / §3 AC 未定義~~: **解消済 (2026-05-26 Phase E.B.1 完了 + 2026-05-29 件数整合修正)** — §2 機能系 AC-FR-* + §3 非機能系 AC-NFR 29 件 (L1 25 + L3 拡張 4 由来) すべて detail 化、balance_ratio 全 pair ≥ 1.0 (AC-NFR 29/NFR 27 = 1.07)。
+- ~~§2 / §3 AC 未定義~~: **解消済 (2026-05-26 Phase E.B.1 完了 + 2026-05-29 件数整合修正)** — §2 機能系 AC-FR-* + §3 非機能系 AC-NFR 30 件 (L1 25 + L3 拡張 4 由来 + 2026-05-30 PLAN-226 Safety SF-01) すべて detail 化、balance_ratio 全 pair ≥ 1.0 (AC-NFR 30/NFR 27 = 1.11)。
 - **L12 工程 doc 不在の可能性**: `docs/v2/process/L12-*` の存在を verify 必要、不在なら carry。
 - **AC-BR-08 受入テストの実行可能性**: 採用 project が現状 self のみのため、Phase β 以降の検証 (carry)。Phase α では「採用 project portable 化準備」を AC 化代替。

@@ -860,9 +860,9 @@ flowchart TB
 | HELIX 工程 | 整合先業界標準 | 対応 section / 適用先 |
 |---|---|---|
 | **L0** 企画 | Lean Startup MVP (Eric Ries 2011) / Sean Ellis "North Star Metric" 概念 (2017) | 本 §5.1 Primary NSM + §1 北極星指標 |
-| **L1** 要求 | **ISO/IEC/IEEE 29148:2018** Requirements Engineering (主) / IEEE 830-1998 SRS (historical reference) / **IPA 非機能要求グレード 2018** 6 大項目 / **ISO/IEC 25010:2023** 8 特性 (※2011 から 2023 へ更新、IPA 2018 との mapping は注記) | L1 BR doc §1 / L1 NFR doc §1-§7 (確定済) |
+| **L1** 要求 | **ISO/IEC/IEEE 29148:2018** Requirements Engineering (主) / IEEE 830-1998 SRS (historical reference) / **IPA 非機能要求グレード 2018** 6 大項目 / **ISO/IEC 25010:2023** 9 特性 (Safety 追加 / Usability→Interaction Capability / Portability→Flexibility、IPA 2018 mapping は 2011 版ベース・日本語訳は暫定) | L1 BR doc §1 / L1 NFR doc §1-§7 (確定済) |
 | **L2** 全体設計 | **arc42 v8** (architecture documentation template) / **C4 model** (Context / Container / Component / Code, Simon Brown 2018) | (L2 doc 未起票、L4 carry) |
-| **L3** 要件 | **ISO/IEC/IEEE 42010:2022** (Architecture description) / **ISO/IEC 25010:2023** 8 特性 / **IPA 非機能要件グレード値 (レベル 0-5、2018 版)** | L3 NFR doc §1-§6 IPA グレード値確定済 |
+| **L3** 要件 | **ISO/IEC/IEEE 42010:2022** (Architecture description) / **ISO/IEC 25010:2023** 9 特性 (使用性→相互作用能力 / 移植性→柔軟性 / Safety 追加、日本語訳は暫定) / **IPA 非機能要件グレード値 (レベル 0-5、2018 版)** | L3 NFR doc §1-§6 IPA グレード値確定済 |
 | **L4** 基本設計 | **arc42 §5 Building Block View** / **ADR (Michael Nygard 2011)** | (L4 未起票、本 doc §11 carry) |
 | **L5** 詳細設計 | **C4 Container / Component level** + ADR 凍結 | (L5 carry) |
 | **L6** 機能設計 | **C4 Code level** / **Diátaxis** (Tutorial / How-to / Reference / Explanation, Daniele Procida 2017) | (L6 carry) |

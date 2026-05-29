@@ -52,7 +52,7 @@ related_docs:
 
 > **工程**: L3 (L3↔L12 pair freeze)
 > **正本**: HELIX-workflows/helix-process/L3-requirements-definition.md
-> **本 PLAN の対象**: L1 [`helix-workflows-nfr.md`](../../v2/L1-requirements/helix-workflows-nfr.md) の NFR-AV/PF/OP/MG/SC/SE 計 23 件 + **L3 拡張 4 件** (BR-09〜12 由来: NFR-OP-06/07/08 + NFR-MG-04、2026-05-26 追加) = **計 27 件** を、**IPA 非機能要求グレード 2018 の 6 大項目ごとのグレード値 (レベル 0-5)** で確定し、L12 受入テスト設計の NFR 系 AC-NFR-* 29 件 とペア凍結 (balance_ratio = 29/27 = 1.07 ≥ 1.0) できる状態にする。L3 では target 値と測定境界を固定し、L4 で監視・実装方式を凍結する。
+> **本 PLAN の対象**: L1 [`helix-workflows-nfr.md`](../../v2/L1-requirements/helix-workflows-nfr.md) の NFR-AV/PF/OP/MG/SC/SE 計 23 件 + **L3 拡張 4 件** (BR-09〜12 由来: NFR-OP-06/07/08 + NFR-MG-04、2026-05-26 追加) = **計 27 件** を、**IPA 非機能要求グレード 2018 の 6 大項目ごとのグレード値 (レベル 0-5)** で確定し、L12 受入テスト設計の NFR 系 AC-NFR-* 30 件 とペア凍結 (balance_ratio = 30/27 = 1.11 ≥ 1.0、2026-05-30 PLAN-226 で ISO 25010:2023 移行 + Safety AC-NFR-SF-01 追加により 29→30) できる状態にする。L3 では target 値と測定境界を固定し、L4 で監視・実装方式を凍結する。
 
 ## §1 工程表 (作業手順 + 進捗)
 
@@ -60,7 +60,7 @@ related_docs:
 |---|---|---|
 | 1 | 参考調査: L0 concept / L1 NFR doc / L1 NFR PLAN / L3 業務要件 PLAN・製本 doc / L12 pair skeleton / requirements-deriver を読み、27 件 (L1 23 + L3 拡張 4) の確定対象と下流接続条件を整理する | ☑ completed (2026-05-26) |
 | 2 | NFR-AV/PF/OP/MG/SC/SE 27 件 (L1 23 + L3 拡張 BR-09〜12 由来 4) について IPA グレード値 (0-5)・数値 target・L4/L12/L13/L14 検証境界を定義する | ☑ completed (2026-05-26、本 PLAN §2.1 / 製本 doc §1-§6) |
-| 3 | ISO/IEC 25010 8 特性を二軸で再掲し、L1 未掲示の 2 特性 (使用性 / 機能適合性) を L3 で再導出する | ☑ completed (2026-05-26、本 PLAN §2.2 / 製本 doc §7) |
+| 3 | ISO/IEC 25010:2023 9 特性を二軸で再掲し、L1 未掲示の 2 特性 (相互作用能力 / 機能適合性) を L3 で再導出し、安全性は網羅注記のみ追加する | ☑ completed (2026-05-26、本 PLAN §2.2 / 製本 doc §7) |
 | 4 | `L1-IN-15` 逆引き audit 11 穴を L3-L4 / L7-L9 / L13-L14 の段階対応へ割り付ける | ☑ completed (2026-05-26、本 PLAN §2.3 / 製本 doc §8) |
 | 5 | 製本 doc `docs/v2/L3-requirements/helix-workflows-nfr-detail.md` を起票し、Codex SE は L12 pair 編集禁止 → AC-NFR-* propose を別出力 (Opus PM が後段 Phase E.B.1 で L12 §3 に一括反映) | ☑ completed (2026-05-26、Codex SE propose → Opus L12 §3 に 29 件 detail 反映済、L3 拡張 4 件含む) |
 | 6 | validator / grep / review で自己検証し、G3 evidence を残して L4 基本設計へ引き渡す | ☑ completed (2026-05-29、tl-advisor adversarial check verdict = changes_required → P1×2 (件数 23→27 / §7.1 二軸タグ表) + P2×2 (L12 §6 carry + doc 冒頭 BR-09〜12 由来明示) すべて反映、11 edit。pmo-sonnet 再 audit verdict = **approved** (D3 任意のみ)、NFR 27 件 / AC-NFR 29 件 / balance_ratio = 1.07、3 箇所 trace 成立) |
@@ -78,12 +78,13 @@ related_docs:
 | セキュリティ | NFR-SC-01〜05 | secret 排除 / regen guard / tool guard / commit guard / human approval を **セキュリティレベル 3-4** で確定 | L12 で guard 有効性、L14 で逸脱 0 を継続監視 |
 | システム環境 | NFR-SE-01〜03 | OS / toolchain / runtime 下限を **環境レベル 2** で確定 | L12 で matrix 確認、L13 で運用継続性を確認 |
 
-### §2.2 IPA × ISO 25010 8 特性網羅
+### §2.2 IPA × ISO/IEC 25010:2023 9 特性網羅
 
-- **現行 27 件に直接現れる特性**: 信頼性 / 性能効率性 / 保守性 / 移植性 / セキュリティ / 互換性
+- **現行 27 件に直接現れる特性**: 信頼性 / 性能効率性 / 保守性 / 柔軟性 / セキュリティ / 互換性
 - **L3 で再導出する特性**:
-  - **使用性**: HELIX-workflows は UI を持たないため「CLI usability」として再定義する。`helix help` 完備率、初回セットアップ完了時間、エラー文言の自己解決可能性を L3 の補助観点として固定し、docs site / TUI 追加時は L2/L10 unskip を trigger とする。
+  - **相互作用能力 (Interaction Capability、旧 Usability)**: HELIX-workflows は UI を持たないため「CLI usability」として再定義する。`helix help` 完備率、初回セットアップ完了時間、エラー文言の自己解決可能性を L3 の補助観点として固定し、docs site / TUI 追加時は L2/L10 unskip を trigger とする。
   - **機能適合性**: FR-* と AC-FR-* の 1:1 対応、契約逸脱の fail-close、L3 機能要件 doc と L12 機能系 AC の `balance_ratio ≥ 1.0` を機能適合性の品質観点として固定する。
+- **安全性 (Safety)**: 本ドメインは該当薄、本番影響・破壊的操作シグナル時のみ現れる。
 - **L3 での扱い**: 上記 2 特性は今回の 27 件へ強引に再採番せず、製本 doc §7 の **ISO 再導出観点** として記載し、AC-NFR propose で補助検証観点を追加する。
 
 ### §2.3 `L1-IN-15` 逆引き audit 11 穴の段階対応
@@ -105,12 +106,12 @@ related_docs:
 
 - [x] L1 NFR 23 件 + L3 拡張 4 件 = 計 27 件すべてが L3 製本 doc で IPA グレード値を持つ
 - [x] 6 領域 (AV / PF / OP / MG / SC / SE) すべてに target 値と検証境界がある
-- [x] ISO/IEC 25010 8 特性を棚卸しし、未掲示 2 特性 (使用性 / 機能適合性) を再導出した
+- [x] ISO/IEC 25010:2023 9 特性を棚卸しし、未掲示 2 特性 (相互作用能力 / 機能適合性) を再導出し、安全性は網羅注記を追加した
 - [x] `L1-IN-15` 11 穴の段階対応を明示した
 - [x] pair artifact path を frontmatter に固定し、L12 pair file 非編集を守った
 - [x] `plan_validator.validate_plan(...)` pass (2026-05-29、WARN 1 件 = L4 PLAN 未起票は将来案件で許容)
 - [x] tl-advisor / pmo-sonnet / review による最終レビュー (2026-05-29、tl-advisor: changes_required → 修正 / pmo-sonnet: **approved** with D3 任意のみ)
-- [x] G3 要件凍結ゲート evidence を追記して L4 基本設計へ引き渡し (2026-05-29、NFR 27 件 / AC-NFR 29 件 / balance_ratio 1.07 / L3↔L12 pair freeze 成立)
+- [x] G3 要件凍結ゲート evidence を追記して L4 基本設計へ引き渡し (2026-05-29、NFR 27 件 / AC-NFR 29 件 / balance_ratio 1.07 / L3↔L12 pair freeze 成立) → **2026-05-30 PLAN-226 再検証**: ISO 25010:2023 移行 (8→9 特性、使用性→相互作用能力 / 移植性→柔軟性) + Safety AC-NFR-SF-01 追加 + AC-NFR-US-01 強化、tl-advisor changes_required → 反映後 NFR 27 / AC-NFR 30 / balance_ratio 1.11
 
 ## §5 関連
 

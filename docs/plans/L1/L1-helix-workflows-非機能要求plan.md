@@ -41,7 +41,7 @@ related_docs:
 
 > **工程**: L1 (NFR 正本起票、L4 基本設計で pair freeze を具体化)
 > **正本**: HELIX-workflows/helix-process/L1-requirements.md
-> **本 PLAN の対象**: HELIX-workflows V2 dogfooding の **非機能要求 (NFR)** を、IPA 非機能要求グレード 2018 の 6 大項目と ISO/IEC 25010 の 8 特性で二軸整理し、L0 concept の `L1-IN-12` と `L1-IN-15` を L1 成果物へ落とし込む。L1 では `pairs_test_design: []` を維持しつつ、L4 基本設計起票時に L9/L13/L14 の検証設計へ接続する前提を固定する。
+> **本 PLAN の対象**: HELIX-workflows V2 dogfooding の **非機能要求 (NFR)** を、IPA 非機能要求グレード 2018 の 6 大項目と ISO/IEC 25010:2023 の 9 特性で二軸整理し、L0 concept の `L1-IN-12` と `L1-IN-15` を L1 成果物へ落とし込む。L1 では `pairs_test_design: []` を維持しつつ、L4 基本設計起票時に L9/L13/L14 の検証設計へ接続する前提を固定する。
 
 ## §1 工程表 (作業手順 + 進捗)
 
@@ -50,7 +50,7 @@ related_docs:
 | 1 | 参考調査: L0 concept / L1 業務要求 PLAN・製本 doc / HELIX-workflows L1 正本 / L1 工程 doc / requirements-deriver skill を読んで NFR 導出根拠を固める | ☑ completed (2026-05-26) |
 | 2 | `workflow/requirements-deriver` の R1-R14 シグナルを当て、L0 §8 の `L1-IN-12` と `L1-IN-15` を NFR scope に振り分ける | ☑ completed (2026-05-26) |
 | 3 | 製本 doc `docs/v2/L1-requirements/helix-workflows-nfr.md` を起草し、IPA 6 大項目ごとに NFR-* を定義する | ☑ completed (2026-05-26) |
-| 4 | IPA × ISO 25010 の二軸タグ表を整備し、現れない ISO 特性の carry を整理する | ☑ completed (2026-05-26) |
+| 4 | IPA × ISO/IEC 25010:2023 の 9 特性を前提に二軸タグ表を整備し、現れない ISO 特性の carry を整理する | ☑ completed (2026-05-26) |
 | 5 | validator / grep / git status / diff で自己検証し、下流計画 (`L3` / `L4`) への block を確認する | ☑ completed (2026-05-26) |
 | 6 | TL 観点レビュー結果を反映し、G1 入力として L3 requirements / L4 基本設計へ引き渡す | □ pending |
 
@@ -72,7 +72,7 @@ related_docs:
 | §4 移行性 | V1→V2 retrofit、schema migration idempotency、portable package 化を定義 | L0 §6.5.6 / BR-04 / BR-08 |
 | §5 セキュリティ | secret 禁止、settings drift、tool guard、commit/push guard、人間確認境界を明文化 | AGENTS / HELIX Core / BR-03 |
 | §6 システム環境 | Linux/macOS、Claude/Codex、Python/Bash/SQLite/git の実行基盤を固定 | BR-08 / 既存 runtime |
-| §7 二軸タグ表 | NFR-* 全件を IPA + ISO 25010 で再掲し、現れない ISO 特性を carry として明示 | requirements-deriver |
+| §7 二軸タグ表 | NFR-* 全件を IPA + ISO/IEC 25010:2023 で再掲し、`相互作用能力 (Interaction Capability、旧 Usability)` / `柔軟性 (Flexibility、旧 Portability)` / 安全性を含む 9 特性の carry を明示 | requirements-deriver |
 | §8 関連 doc | L4/L9/L13/L14 の接続先と `pairs_test_design: []` の理由を残す | L1 工程 doc / HELIX-workflows 正本 |
 
 ### L0 §8 バトン振り分け

@@ -56,10 +56,10 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 | NFR-ID | L3 確定値 | target / 判定条件 | ISO 25010 | 検証境界 |
 |---|---|---|---|---|
-| NFR-MG-01 | **移行性レベル 2** | V1→V2 retrofit pipeline の再実行成功率 **95% 以上**、rollback path を保持 | 移植性 | L12: 手順受入 / L13: 実移行試行 |
-| NFR-MG-02 | **移行性レベル 3** | schema migration の idempotent 再実行で副作用 **0 件** | 移植性 | L12: rerun 検証 / L13-L14: migration 監査 |
-| NFR-MG-03 | **移行性レベル 2** | 採用 project への package 導入初期化を **30 分以内**で完了できる状態にする | 移植性 | L12: bootstrap 受入 / L13: 採用 project 試行 |
-| NFR-MG-04 (2026-05-26 BR-10 由来) | **移行性レベル 3** | Strangler Fig Pattern (Fowler 2004) 段階置換進捗を Phase 別残量 dashboard で管理、Phase α 終了時 V1 PLAN `is_reference: true` 化率 **100%**、Phase β 終了時 旧 enum 残存 **0**、Phase γ 終了時 Strangler 段階置換 **完了** | 移植性 | L12: migration 残量受入 (AC-NFR-MG-04) / L14: OT-10 週次計測 / L13-L14: dashboard 監視 |
+| NFR-MG-01 | **移行性レベル 2** | V1→V2 retrofit pipeline の再実行成功率 **95% 以上**、rollback path を保持 | 柔軟性 | L12: 手順受入 / L13: 実移行試行 |
+| NFR-MG-02 | **移行性レベル 3** | schema migration の idempotent 再実行で副作用 **0 件** | 柔軟性 | L12: rerun 検証 / L13-L14: migration 監査 |
+| NFR-MG-03 | **移行性レベル 2** | 採用 project への package 導入初期化を **30 分以内**で完了できる状態にする | 柔軟性 | L12: bootstrap 受入 / L13: 採用 project 試行 |
+| NFR-MG-04 (2026-05-26 BR-10 由来) | **移行性レベル 3** | Strangler Fig Pattern (Fowler 2004) 段階置換進捗を Phase 別残量 dashboard で管理、Phase α 終了時 V1 PLAN `is_reference: true` 化率 **100%**、Phase β 終了時 旧 enum 残存 **0**、Phase γ 終了時 Strangler 段階置換 **完了** | 柔軟性 | L12: migration 残量受入 (AC-NFR-MG-04) / L14: OT-10 週次計測 / L13-L14: dashboard 監視 |
 
 ## §5 セキュリティ (NFR-SC-* IPA グレード値)
 
@@ -79,29 +79,35 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | NFR-SE-02 | **環境レベル 2** | Claude Code と Codex CLI の core entry flow 継続率 **100%** | 互換性 | L12: 両導線受入 / L13: 併走監査 |
 | NFR-SE-03 | **環境レベル 2** | Python 3.11+ / Bash 5.0+ / SQLite 3.40+ / git 2.40+ の version 下限違反 **0 件** | 互換性 | L12: version check / L14: upgrade 監視 |
 
-## §7 IPA × ISO 25010 二軸タグ表 + ISO 残り 2 特性の再導出
+## §7 IPA × ISO/IEC 25010:2023 二軸タグ表 + ISO 残り 3 特性の網羅整理
 
 ### §7.1 NFR 27 件の二軸タグ (L1 23 件 + L3 拡張 4 件)
+
+> **ISO 25010 特性ラベル注記**: 本 doc では 2023 版の 9 特性モデルに合わせ、`相互作用能力 (Interaction Capability、旧 Usability)` と `柔軟性 (Flexibility、旧 Portability)` を用いる。
 
 | ISO 25010 特性 | 対応 NFR / L3 観点 | IPA 側の受け皿 |
 |---|---|---|
 | 機能適合性 | **L3 再導出**: FR-* と AC-FR-* の `balance_ratio ≥ 1.0`、契約 drift fail-close | L3 機能要件plan / L12 機能系 AC |
 | 性能効率性 | NFR-PF-01〜04 | 性能・拡張性 |
 | 互換性 | NFR-SE-01〜03 | システム環境 |
-| 使用性 | **L3 再導出**: CLI usability (`helix help` 完備率 **90% 以上**、TTFSP **30 分以内**、自己解決可能な error 文言) | システム環境 / 運用・保守性 |
+| 相互作用能力 | **L3 再導出**: CLI usability (`helix help` 完備率 **90% 以上**、TTFSP **30 分以内**、自己解決可能な error 文言) | システム環境 / 運用・保守性 |
 | 信頼性 | NFR-AV-01〜03 | 可用性 |
 | セキュリティ | NFR-SC-01〜05 | セキュリティ |
 | 保守性 | NFR-OP-01〜08 (L1: 01〜05 + L3 拡張 BR-09/11/12 由来: 06/07/08) | 運用・保守性 |
-| 移植性 | NFR-MG-01〜04 (L1: 01〜03 + L3 拡張 BR-10 由来: 04) | 移行性 |
+| 柔軟性 | NFR-MG-01〜04 (L1: 01〜03 + L3 拡張 BR-10 由来: 04) | 移行性 |
+| 安全性 | **L3 再導出**: 破壊的操作 (`rollback --apply` / DB rollback / `helix workspace` drop) の fail-safe / reversibility / risk identification (AC-NFR-SF-01) | セキュリティ / 運用・保守性 |
 
 ### §7.2 L3 再導出の扱い
 
-- **使用性 (CLI usability)**:
-  - HELIX-workflows は UI を持たないため、L3 では CLI 中心の使用性へ読み替える。
+- **相互作用能力 (US、旧 使用性)**:
+  - HELIX-workflows は UI を持たないため、L3 では CLI 中心の相互作用能力へ読み替える。
   - docs site / TUI / interactive UI を追加する場合は、L0 §8.3 の skip 条件を外し、L2/L10 を unskip して再設計する。
 - **機能適合性**:
   - 機能そのものは L3 機能要件 doc が正本だが、L3 NFR でも「要件と受入の量閉じ性」を品質特性として再掲する。
   - 機能系 AC の欠落は G3 blocker として扱い、L12 の pair freeze を機械検証対象にする。
+- **安全性 (Safety、SF)**:
+  - 開発フレームワーク CLI だが `rollback --apply` / DB rollback / `helix workspace` drop 等の破壊的操作を持つため、「該当薄」ではなく「低頻度だが高影響」として扱う。
+  - L3 再導出として fail-safe (dry-run / confirm token) / reversibility (archive / backup による回復) / risk identification (実行前の影響範囲提示) を L12 の AC-NFR-SF-01 で検証する。
 
 ## §8 `L1-IN-15` 逆引き audit 11 穴の段階対応
 
