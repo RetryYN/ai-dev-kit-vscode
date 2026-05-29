@@ -38,9 +38,9 @@ L9 は以下を満たした時点で実行する。
 | 条件 | 判定コマンド | 判定値 | 判定結果 |
 |---|---|---|---|
 | L8 依存テスト完了 | ``helix doctor --phase L8 --json`` | `integration_complete=true` | pass / fail |
-| pair freeze 最低値 | ``helix doctor --check-pair-freeze --phase L9`` | `balance_ratio >= 1.0` | pass / fail |
+| pair freeze 最低値 | ``helix doctor --strict-vmodel-pair-freeze --json`` | `balance_ratio >= 1.0` | pass / fail |
 | hook fast-path 設定 | `cat .github/workflows` / `pre-commit config` | `helix doctor` 組込 | pass / fail |
-| 4 artifact 条件 | ``helix doctor --check-4-artifact --json`` | 4 artifact 検出数 4 | pass / fail |
+| 4 artifact 条件 | future `4_artifact` check | 4 artifact 検出数 4 | pass / fail |
 
 ### 1.3 fail-close と partial-pass
 
@@ -81,7 +81,8 @@ L9 は以下を満たした時点で実行する。
 - **期待結果**: skills が cli の直接 entrypoint を呼ばず、cli のみが明示許可経路経由で実行される。
 - **検証コマンド**:
   ```bash
-  helix doctor --check-layer-separation --phase L9 --json
+  # future / not-implemented:
+  #   layer_separation
   python -m pytest tests/unit/l9/test_layer_separation.py -q
   ```
 - **DoD**:
@@ -105,8 +106,9 @@ L9 は以下を満たした時点で実行する。
   - pair-freeze が 1.0 以上
 - **検証コマンド**:
   ```bash
-  helix doctor --check-4-artifact --json
-  helix doctor --check-pair-freeze --pair L4-L9
+  # future / not-implemented:
+  #   4_artifact
+  helix doctor --strict-vmodel-pair-freeze --json
   ```
 planned (L7 実装スプリントで CLI flag 実装、現在は L4 設計のみ)
 - **DoD**:
@@ -155,8 +157,9 @@ planned (L7 実装スプリントで CLI flag 実装、現在は L4 設計のみ
   - pre-commit fast と CI deep のどちらか、または両方で fail-close ロジックが成立
 - **検証コマンド**:
   ```bash
-  helix doctor --check-changeprop --baseline tests/fixtures/l9/st-4/ratchet-baseline.yaml
-  helix doctor --check-changeprop --update tests/fixtures/l9/st-4/ratchet-violations.yaml
+  # future / not-implemented:
+  #   changeprop --baseline tests/fixtures/l9/st-4/ratchet-baseline.yaml
+  #   changeprop --update tests/fixtures/l9/st-4/ratchet-violations.yaml
   pre-commit run -a
   python -m pytest tests/integration -k ratchet -q
   ```
@@ -404,10 +407,10 @@ planned (L7 実装スプリントで CLI flag 実装、現在は L4 設計のみ
 
 | 観点 | 期待結果 | 検証コマンド | DoD | implementation_status |
 |---|---|---|---|---|
-| PLAN dependencies graph | cycle=0 / orphan=0 | ``helix plan-validator --check-dependencies --json`` | cycle=0, orphan=0 | partial |
-| parent_design | parent_design が全 PLAN に存在 | ``helix doctor --check-parent-design --phase L9`` | 未定義 0 件 | partial |
-| pairs_test_design | L4-L9 対応情報が存在 | ``helix doctor --check-pairs --phase L9`` | 欠如時 fail | partial |
-| BR-RULE-05 反転検査 | 5 pair coverage >= 1.0 | ``helix doctor --check-pair-freeze --pair 5`` | 5 pair 全件 >=1.0 | partial |
+| PLAN dependencies graph | cycle=0 / orphan=0 | ``helix plan health --json`` | cycle=0, orphan=0 | partial |
+| parent_design | parent_design が全 PLAN に存在 | future `parent_design` check | 未定義 0 件 | partial |
+| pairs_test_design | L4-L9 対応情報が存在 | future `pair` check | 欠如時 fail | partial |
+| BR-RULE-05 反転検査 | 5 pair coverage >= 1.0 | ``helix doctor --strict-vmodel-pair-freeze --json`` | 5 pair 全件 >=1.0 | partial |
 | BR-RULE-09 監査監視 | assert  implementation_status 列の有無 | ``rg "implementation_status" docs/v2/L9-test-design/helix-workflows-system-test-design.md`` | 列不足の項目 0 | partial |
 
 ### 5.2 依存解消 SQL 検査サンプル
@@ -429,7 +432,7 @@ WHERE p.dep_count > 0
 
 ## §6 V-model pair freeze 双方向 trace
 
-### 6.1 7 対 1 テーブル（L4 §X ↔ ST-X）
+### 6.1 7/7 pair table（L4 §1〜§7 ↔ ST-1〜ST-7）
 
 | L4 セクション | L9 ST | trace 状態 | implementation_status |
 |---|---|---|---|
@@ -441,7 +444,9 @@ WHERE p.dep_count > 0
 | §6 | ST-6 | partial | partial |
 | §7 | ST-7 | partial | partial |
 
-### 6.2 balance ratio（5 pair）
+### 6.2 pair coverage と balance ratio
+
+`docs/v2/L4-architecture/helix-workflows-system-architecture.md` の §8 は carry-only のため pair 対象外。L4 本体は §1〜§7 ↔ ST-1〜ST-7 の 7/7 で `balance_ratio = 1.0` を維持する。
 
 | Pair | ratio | target | implementation_status |
 |---|---:|---:|---|

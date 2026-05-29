@@ -102,7 +102,7 @@ pairs_test_design:
 ### §2.1.F1 モジュール割付
 | function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
 |---|---|---|---|---|---|---|---|
-| F1-1 | `cli/helix-doctor` | `helix doctor --check-document / --check-pair / --check-vmodel` (実在 check、doc/pair/4-artifact lint) | `cli/helix-doctor -> cli/lib/vmodel_lint.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | doctor は集約入口。4 artifact 判定本体は lib 側へ委譲。 |
+| F1-1 | `cli/helix-doctor` | `helix doctor [--strict-vmodel-pair-freeze] [--json]` (内部 check_document / check_pair / check_vmodel を一括実行、per-check flag なし) | `cli/helix-doctor -> cli/lib/vmodel_lint.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | doctor は集約入口。4 artifact 判定本体は lib 側へ委譲。`--check-X` 個別 flag は planned (現状は一括実行)。 |
 | F1-2 | `cli/lib/vmodel_lint.py` | `main(argv=None)` | `vmodel_lint -> cli/lib/vmodel_pair_freeze.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 双方向 trace lint の本体。 |
 | F1-3 | `cli/lib/vmodel_pair_freeze.py` | `check_pair_freeze()` | `vmodel_pair_freeze -> docs/plans + docs/v2` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | pair freeze 監査と stale revision 補助を保持。 |
 | F1-4 | `cli/lib/test_design_scaffold.py` | `generate_skeleton() / write_scaffold()` | `test_design_scaffold -> paired design docs` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 設計 doc から test design 雛形を生成し 4 artifact を接続。 |

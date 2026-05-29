@@ -82,23 +82,25 @@ L4 方式設計は L3 で確定した BR/FR/NFR/AC/OT を実行可能な設計�
 
 #### 1.1.1 層構造表
 
-| 層 | 主要構成 | 責務 | 入口 |
-|---|---|---|---|
-| HELIX-workflows | `HELIX-workflows/helix-process/*`, `docs/v2/*`, `docs/adr/*` | 工程、ガイド、観測方針の正本管理 | `helix plan/matrix/gate/sprint` |
-| cli | `cli/`, `cli/lib/`, `.github/workflows/*` | 実行、監査、DB、hook、役割解決 | `helix` コマンド群 |
-| skills | `skills/common`, `skills/workflow`, `skills/tools`, `skills/project`, `skills/advanced` | 知識資産と運用知識、レビュー基準 | `helix codex --role ...` |
+| 層 | 主要構成 | 責務 | 入口 | implementation_status |
+|---|---|---|---|---|
+| HELIX-workflows | `HELIX-workflows/helix-process/*`, `docs/v2/*`, `docs/adr/*` | 工程、ガイド、観測方針の正本管理 | `helix plan/matrix/gate/sprint` | implemented |
+| cli | `cli/`, `cli/lib/`, `.github/workflows/*` | 実行、監査、DB、hook、役割解決 | `helix` コマンド群 | implemented |
+| skills | `skills/common`, `skills/workflow`, `skills/tools`, `skills/project`, `skills/advanced` | 知識資産と運用知識、レビュー基準 | `helix codex --role ...` | implemented |
 
 #### 1.1.2 cli 内訳
 
-| entrypoint | ファイル / 代表 | 役割 |
-|---|---|---|
-| helix | `cli/helix` | 全 mode ルータ |
-| helix-plan/task/matrix/gate/sprint | `cli/helix-plan` 等 | PLAN, TASK, MATRIX, GATE, SPRINT |
-| helix-codex/helix-claude | `cli/helix-codex`, `cli/helix-claude` | 委譲起動、レビュー連携 |
-| helix-doctor/helix-agent | `cli/helix-doctor`, `cli/helix-agent` | 医療的観測: ratchet / 監査 / agent 起動 |
-| helix-db | `cli/helix-db` | 永続化 DB 操作 |
+| entrypoint | ファイル / 代表 | 役割 | implementation_status |
+|---|---|---|---|
+| helix | `cli/helix` | 全 mode ルータ | implemented |
+| helix-plan/task/matrix/gate/sprint | `cli/helix-plan` 等 | PLAN, TASK, MATRIX, GATE, SPRINT | implemented |
+| helix-codex/helix-claude | `cli/helix-codex`, `cli/helix-claude` | 委譲起動、レビュー連携 | implemented |
+| helix-doctor/helix-agent | `cli/helix-doctor`, `cli/helix-agent` | 医療的観測: ratchet / 監査 / agent 起動 | implemented |
+| helix-db | `cli/helix-db` | 永続化 DB 操作 | implemented |
 
-#### 1.1.3 skills カテゴリ 116+ 内訳
+#### 1.1.3 skills カテゴリ 130 内訳
+
+count source（canonical, 2026-05-29）: CLI 80 / cli/lib 138 / skills 130 / hooks 17 / agents 19 / roles 31。skills は `find skills -name SKILL.md | wc -l`、roles は `cli/ROLE_MAP.md` を正とする。
 
 | カテゴリ | 代表的 skill | 役割 |
 |---|---|---|
@@ -110,21 +112,21 @@ L4 方式設計は L3 で確定した BR/FR/NFR/AC/OT を実行可能な設計�
 
 #### 1.2.1 I/O コマンド例
 
-| 永続化対象 | I/O コマンド | IN (典型) | OUT (典型) |
-|---|---|---|---|
-| helix.db | `helix db migrate`, `helix db status`, `helix db rollback` | migration version, plan id | schema version, 実行履歴 |
-| `.helix/audit/*.yaml` | `helix doctor`, `helix review`, `helix agent fire-mandatory` | payload, evidence path | audit yaml, status |
-| git history | `git show`, `git log`, `git merge-base` | hash, branch | commit graph, 変更点 |
-| `.helix/handover/*.json` | `helix handover status`, `helix handover update` | task id, owner | session state, next_action |
+| 永続化対象 | I/O コマンド | IN (典型) | OUT (典型) | implementation_status |
+|---|---|---|---|---|
+| helix.db | `helix db migrate`, `helix db status`, `helix db rollback` | migration version, plan id | schema version, 実行履歴 | planned |
+| `.helix/audit/*.yaml` | `helix doctor`, `helix review`, `helix agent fire-mandatory` | payload, evidence path | audit yaml, status | implemented |
+| git history | `git show`, `git log`, `git merge-base` | hash, branch | commit graph, 変更点 | implemented |
+| `.helix/handover/*.json` | `helix handover status`, `helix handover update` | task id, owner | session state, next_action | implemented |
 
 #### 1.2.2 schema 概要
 
-| 永続化対象 | schema 構造（抜粋） |
-|---|---|
-| helix.db | `schema_version`, `plan_registry`, `event_log`, `mode_transition`, `audit_link` |
-| .helix/audit/*.yaml | `audit_id`, `artifact`, `status`, `evidence`, `retention_until`, `helix_db_event_id` |
-| `.helix/audit/balance-ratio-baseline.yaml` | `branch`, `baseline_commit`, `min_ratio`, `source`, `last_updated` |
-| `.helix/handover/*.json` | `status`, `mode`, `owner`, `task`, `updated_at`, `stale`, `next_action` |
+| 永続化対象 | schema 構造（抜粋） | implementation_status |
+|---|---|---|
+| helix.db | `schema_version`, `plan_registry`, `event_log`, `mode_transition`, `audit_link` | implemented |
+| .helix/audit/*.yaml | `audit_id`, `artifact`, `status`, `evidence`, `retention_until`, `helix_db_event_id` | implemented |
+| `.helix/audit/balance-ratio-baseline.yaml` | `branch`, `baseline_commit`, `min_ratio`, `source`, `last_updated` | partial |
+| `.helix/handover/*.json` | `status`, `mode`, `owner`, `task`, `updated_at`, `stale`, `next_action` | implemented |
 
 ```yaml
 implementation_status: partial
@@ -332,9 +334,9 @@ mode_transition:
 | `.github/workflows/hotfix.yml` | incident 応答 | implemented |
 | `.github/workflows/poc.yml` | PoC 実行 | implemented |
 
-#### 3.2.2 Codex CLI role 一覧（30 role）
+#### 3.2.2 Codex CLI role 一覧（31 role）
 
-`cli/ROLE_MAP.md` と合わせて、L4 で主要確認する role を固定: tl, se, pg, qa, security, dba, devops, docs, research, legacy, perf, fe, recommender, classifier, effort-classifier, pmo-sonnet, pmo-haiku, pdm-tech-innovation, pdm-marketing-innovation, pdm-innovation-manager, impl-sonnet, pm-advisor, tl-advisor, doc-reviewer, pmo-helix-explorer, pmo-helix-scout, pmo-project-explorer, pmo-project-scout, pmo-tech-docs, pmo-tech-fork, pmo-tech-news.
+`cli/ROLE_MAP.md` を正とし、L4 で主要確認する role を固定: tl, se, pg, qa, security, dba, devops, docs, research, legacy, perf, fe, recommender, classifier, effort-classifier, pmo-sonnet, pmo-haiku, pdm-tech-innovation, pdm-marketing-innovation, pdm-innovation-manager, impl-sonnet, pm-advisor, tl-advisor, doc-reviewer, pmo-helix-explorer, pmo-helix-scout, pmo-project-explorer, pmo-project-scout, pmo-tech-docs, pmo-tech-fork, pmo-tech-news.
 
 #### 3.2.3 12 種許可 subagent 表（抜粋）
 
@@ -600,6 +602,8 @@ doc_reviewer_evidence:
 → pair: L9 §7 ST-7
 
 ## §8 残課題
+
+本節は carry-only section であり、L4↔L9 pair freeze の対象外とする。pair 対象は §1〜§7 ↔ ST-1〜ST-7 の 7/7 で `balance_ratio = 1.0` を維持する。
 
 ### §8.1 構造的 carry
 

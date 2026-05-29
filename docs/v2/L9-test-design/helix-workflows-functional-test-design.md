@@ -17,7 +17,7 @@ industry_standards:
 
 ## §0 概要
 
-本書は `docs/v2/L4-architecture/helix-workflows-functional-design.md` の 5 機能領域（F1〜F5）と 1 対 1 で対応する ST-F1〜ST-F5 を定義する。
+本書は `docs/v2/L4-architecture/helix-workflows-functional-design.md` の 10 機能領域（F1〜F10）と 1 対 1 で対応する ST-F1〜ST-F10 を定義する。
 本体化済み設計を `helix doctor` / hook / CLI / DB schema で再現することを目的とし、`L4↔L9` の pair freeze を実装可能状態で検証する。
 
 この test design は次の前提で記述する。
@@ -33,7 +33,7 @@ industry_standards:
 - `plan`: `docs/plans/L4/L4-helix-workflows-機能設計plan.md`
 - `schema`: `cli/lib/dispatch`, `helix.db.*` 系
 - `adr_snapshot`:
-  - **ADR-044** (構造/永続化/ratchet/audit): ST-F1〜ST-F5 と pair freeze
+  - **ADR-044** (構造/永続化/ratchet/audit): ST-F1〜ST-F10 のうち前半 5 件と pair freeze
   - **ADR-045** (F6-F10 governance): ST-F6〜ST-F10 と Decision-1〜5 pair freeze
     - ST-F6 ↔ ADR-045 Decision-1 (Homeostasis Governance)
     - ST-F7 ↔ ADR-045 Decision-3 (Evolution Promotion Guard)
@@ -43,9 +43,9 @@ industry_standards:
 
 ## §1 機能テスト方針
 
-ST-F1〜ST-F5 は以下の三層で検証する。
+ST-F1〜ST-F10 は以下の三層で検証する。
 
-- 機能検証: F1〜F5 の要件を設計・実装の中間状態含め検証
+- 機能検証: F1〜F10 の要件を設計・実装の中間状態含め検証
 - 機械処理検証: `helix doctor` / `helix plan` / `helix skill` / guard の出力状態を検証
 - trace 検証: 4 artifact の双方向（設計→テスト、実装→設計）を検証
 
@@ -80,10 +80,11 @@ ST-F1〜ST-F5 は以下の三層で検証する。
 - **検証コマンド**:
 
 ```bash
-helix doctor --check-doc-lifecycle --json
-helix doctor --check-4-domain-separation --json
-helix doctor --check-ssot-sync --json
-helix doctor --check-4-artifact-trace --json
+helix plan health --json
+# future / not-implemented:
+#   4_domain_separation
+#   ssot_sync
+#   4_artifact_trace
 ```
 
 - **DoD**:
@@ -118,10 +119,12 @@ fixture:
 - **検証コマンド**:
 
 ```bash
-helix plan validate --plan docs/plans/L4/L4-helix-workflows-機能設計plan.md
-helix doctor --check-plan-frontmatter-completeness --json --plan docs/plans/L4/L4-helix-workflows-機能設計plan.md
-helix doctor --check-plan-naming-convention --json
-helix doctor --check-plan-adr-snapshot --json
+helix plan lint docs/plans/L4/L4-helix-workflows-機能設計plan.md --duplicates
+helix plan health --json
+# future / not-implemented:
+#   plan_frontmatter_completeness
+#   plan_naming_convention
+#   plan_adr_snapshot
 ```
 
 - **DoD**:
@@ -193,11 +196,13 @@ fixture:
 - **検証コマンド**:
 
 ```bash
-helix init --mode forward
-helix reverse design --step R2
+helix mode forward
+helix reverse design R2
 helix discovery init
 helix sprint status
-helix doctor --check-mode-routing --json
+helix commands check --json
+# future / not-implemented:
+#   mode_routing
 ```
 
 - **DoD**:
@@ -315,13 +320,13 @@ fixture:
 
 - **観点**: PLAN fork → experiment → accuracy_score 計測 → promote/deprecate の自動 cycle
 - **入力 / fixture**: `tests/fixtures/l9/st-f7/`
-- **期待結果**: `helix plan fork` / `helix evolution score` / `helix evolution promote` または `deprecate` の event が記録される
+- **期待結果**: `helix plan fork` / `helix evolution score` / `helix evolution promote` または `deprecate` の event が記録される（planned / not-implemented future CLI）
 - **検証コマンド**:
 
 ```bash
-helix plan fork PLAN-X --mutation "experiment"
-helix evolution score PLAN-X-experiment
-helix evolution promote PLAN-X-experiment
+helix plan fork PLAN-X --mutation "experiment"  # planned / not-implemented
+helix evolution score PLAN-X-experiment  # planned / not-implemented
+helix evolution promote PLAN-X-experiment  # planned / not-implemented
 ```
 
 - **DoD**:
@@ -362,13 +367,13 @@ fixture:
 
 - **観点**: HELIX-workflows V → V+1 の migration、portable package export/import の往復、過去 PLAN 継承
 - **入力 / fixture**: `tests/fixtures/l9/st-f8/`
-- **期待結果**: version bump 後に portable と migration が往復し整合が保たれる
+- **期待結果**: version bump 後に portable と migration が往復し整合が保たれる（planned / not-implemented future CLI を含む）
 - **検証コマンド**:
 
 ```bash
-helix version bump --minor
-helix portable export
-helix portable adopt path/to/adr.tar.gz
+helix version bump --minor  # planned / not-implemented
+helix portable export  # planned / not-implemented
+helix portable adopt path/to/adr.tar.gz  # planned / not-implemented
 helix migrate v1 --to v2
 ```
 
@@ -408,12 +413,12 @@ fixture:
 
 - **観点**: stale PLAN 自動 detection / superseded marking / archive / DB autophagy 全フロー
 - **入力 / fixture**: `tests/fixtures/l9/st-f9/`
-- **期待結果**: stale candidate / warning / archive / obsolete marking が end-to-end で進行する
+- **期待結果**: stale candidate / warning / archive / obsolete marking が end-to-end で進行する（planned / not-implemented future CLI）
 - **検証コマンド**:
 
 ```bash
-helix plan apoptosis --dry-run
-helix plan apoptosis --execute
+helix plan apoptosis --dry-run  # planned / not-implemented
+helix plan apoptosis --execute  # planned / not-implemented
 ```
 
 - **DoD**:
@@ -441,8 +446,8 @@ fixture:
 
 - L4 機能設計 §9 (F9 排泄) ↔ 本 ST-F9 の pair freeze
 - governance ルール:
-  - apoptosis (能動的排除): `helix plan apoptosis` 手動 + 週次 cron
-  - autophagy (自浄): `helix db autophagy` 週次
+  - apoptosis (能動的排除): `helix plan apoptosis`（planned / not-implemented）手動 + 週次 cron
+  - autophagy (自浄): `helix db autophagy`（planned / not-implemented）週次
 - 安全ゲート 4 段 (★ 必須): dry-run 先行 + 保護対象リスト (accepted ADR / implemented PLAN / 直近 N 日 event) + idempotency + production 承認ゲート + rollback evidence (`.helix/audit/apoptosis-YYYYMMDD.yaml`)
 - 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-2
 
@@ -452,13 +457,13 @@ fixture:
 
 - **観点**: 他 framework との並走宣言 + ADR 取り込み + namespace 競合回避
 - **入力 / fixture**: `tests/fixtures/l9/st-f10/`
-- **期待結果**: coexist 宣言、既存 ADR 取り込み、競合回避 namespace が成立する
+- **期待結果**: coexist 宣言、既存 ADR 取り込み、競合回避 namespace が成立する（planned / not-implemented future CLI）
 - **検証コマンド**:
 
 ```bash
-helix coexist --framework rails
-helix coexist adopt path/to/adr
-helix coexist status
+helix coexist --framework rails  # planned / not-implemented
+helix coexist adopt path/to/adr  # planned / not-implemented
+helix coexist status  # planned / not-implemented
 ```
 
 - **DoD**:
@@ -489,7 +494,7 @@ fixture:
 - governance ルール:
   - Internal context (HELIX core) ↔ External context (Codex / Claude / GitHub / MCP / 他 OSS)
   - Anti-Corruption Layer: adapter (`cli/helix-<external>`) + translator (schema 変換) + guard (fail-close)
-  - 共生受入規約: `helix coexist framework <name>` + `helix coexist adopt --compatibility-adr <ADR-NNN>`
+  - 共生受入規約: `helix coexist framework <name>` + `helix coexist adopt --compatibility-adr <ADR-NNN>`（planned / not-implemented）
 - 安全境界: namespace 競合は宣言時 rejection、`helix doctor check_framework_coexist` で機械化
 - 関連 doc: `docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md` §Decision-5
 
@@ -515,17 +520,17 @@ fixture:
 | ST-F4 | F4 | check_mode_routing / check_pair_freeze | SessionStart mode hint | helix init/reverse/research/sprint, helix.db.mode_transition | ADR-044 Decision-1 |
 | ST-F5 | F5 | check_role_assignment / check_parallel_compliance | pretooluse-agent-guard | helix codex/claude/agent, helix.db.role_audit | ADR-044 Decision-4 |
 | ST-F6 | F6 | check_homeostasis | statusLine + PreCompact | helix budget --homeostasis, helix doctor | **ADR-045 Decision-1** |
-| ST-F7 | F7 | check_plan_fork / check_evolution_score | mutation hook | helix plan fork, helix evolution {score,promote,deprecate} | **ADR-045 Decision-3** |
-| ST-F8 | F8 | check_version_migration | migration event hook | helix version bump, helix portable {export,import,adopt}, helix migrate | **ADR-045 Decision-4** |
-| ST-F9 | F9 | check_plan_apoptosis | weekly cron | helix plan apoptosis, helix db autophagy | **ADR-045 Decision-2** |
-| ST-F10 | F10 | check_framework_coexist | coexist event hook | helix coexist {framework,status,adopt} | **ADR-045 Decision-5** |
+| ST-F7 | F7 | check_plan_fork / check_evolution_score | mutation hook | helix plan fork, helix evolution {score,promote,deprecate} (planned / not-implemented) | **ADR-045 Decision-3** |
+| ST-F8 | F8 | check_version_migration | migration event hook | helix version bump, helix portable {export,import,adopt} (planned / not-implemented), helix migrate | **ADR-045 Decision-4** |
+| ST-F9 | F9 | check_plan_apoptosis | weekly cron | helix plan apoptosis, helix db autophagy (planned / not-implemented) | **ADR-045 Decision-2** |
+| ST-F10 | F10 | check_framework_coexist | coexist event hook | helix coexist {framework,status,adopt} (planned / not-implemented) | **ADR-045 Decision-5** |
 
 ## §4 非機能テスト
 
 ### 性能テスト
 
 - `helix doctor` 95 パーセンタイルは 30 秒以内
-- `helix plan validate` は 5 秒以内
+- `helix plan lint` は 5 秒以内
 - `helix skill chain` は 10 秒以内
 - 失敗時は `tests/fixtures/l9/perf/` のメトリクスを比較
 
@@ -613,4 +618,4 @@ test_run:
     - docs/plans/L4/L4-helix-workflows-機能設計plan.md
 ```
 
-生物学対応: 本章は全体として F1〜F5 対応の検証系を担保
+生物学対応: 本章は全体として F1〜F10 対応の検証系を担保
