@@ -1,3 +1,17 @@
+---
+plan_id: L7-scrum-to-discovery-migration-enumplan
+doc_id: L7-scrum-to-discovery-migration-enum-test-design
+title: "L7 scrum-to-discovery migration enum テスト設計"
+status: completed
+artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
+created: 2026-05-25
+owner: SE
+related_docs:
+  - docs/plans/L7/L7-scrum-to-discovery-migration-enumplan.md
+  - docs/v2/L7-design/L7-scrum-to-discovery-migration-enum-design.md
+test_verified: "2026-05-30 test_discovery_migrate.py + test_discovery_compat.py 12 passed"
+---
+
 # L7 scrum-to-discovery migration enum test design
 
 ## Scope

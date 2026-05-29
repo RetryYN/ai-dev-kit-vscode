@@ -1,5 +1,6 @@
 ---
-plan_id: -
+plan_id: "-"
+status: draft
 process_layer: L3
 artifact_type: functional_registry
 related_l1:

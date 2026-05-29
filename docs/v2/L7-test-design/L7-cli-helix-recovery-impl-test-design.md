@@ -1,3 +1,17 @@
+---
+plan_id: L7-cli-helix-recovery-implplan
+doc_id: L7-cli-helix-recovery-impl-test-design
+title: "L7 helix recovery CLI テスト設計"
+status: completed
+artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
+created: 2026-05-25
+owner: SE
+related_docs:
+  - docs/plans/L7/L7-cli-helix-recovery-implplan.md
+  - docs/v2/L7-design/L7-cli-helix-recovery-impl-design.md
+test_verified: "2026-05-30 cli/lib/tests/test_helix_recovery.py 21 passed"
+---
+
 # L7 CLI HELIX Recovery テスト設計
 
 - 対象設計: `docs/v2/L7-design/L7-cli-helix-recovery-impl-design.md`

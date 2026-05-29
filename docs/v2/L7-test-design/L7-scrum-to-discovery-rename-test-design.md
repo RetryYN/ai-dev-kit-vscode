@@ -1,3 +1,17 @@
+---
+plan_id: L7-scrum-to-discovery-renameplan
+doc_id: L7-scrum-to-discovery-rename-test-design
+title: "L7 scrum-to-discovery rename テスト設計"
+status: completed
+artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
+created: 2026-05-25
+owner: SE
+related_docs:
+  - docs/plans/L7/L7-scrum-to-discovery-renameplan.md
+  - docs/v2/L7-design/L7-scrum-to-discovery-rename-design.md
+test_verified: "2026-05-30 cli/lib/tests/test_helix_discovery_alias.py 4 passed"
+---
+
 # L7 scrum-to-discovery rename test design
 
 ## Scope

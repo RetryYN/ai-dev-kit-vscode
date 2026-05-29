@@ -2,7 +2,7 @@
 plan_id: L7-cli-helix-retrofit-implplan
 doc_id: L7-cli-helix-retrofit-impl-test-design
 title: "L7 helix retrofit CLI テスト設計"
-status: draft
+status: completed
 artifact_role: "③ テスト設計 (V-model 4 artifact のうち)"
 created: 2026-05-25
 revised: 2026-05-25
