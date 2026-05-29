@@ -226,10 +226,10 @@ PreToolUse、PostToolUse、SessionStart、UserPromptSubmit は混線させない
 | CARRY-L7-CMC-007 | F9 | `apoptosis.py` と `obsolete_record` に approval/execute path を実装 | lifecycle archive と physical cleanup が未統合 |
 | CARRY-L7-CMC-008 | F10 | `helix coexist`、`coexist_config`、`Coexist event hook` を実装 | boundary contract は定義済みだが public CLI 不在 |
 
-### §6.3 自己検証
+### §6.3 freeze evidence (2026-05-29)
 
-1. `git status` 期待: `A docs/v2/L6-functional-design/helix-workflows-class-module-command-design.md`。同階層 / plan 配下の未追跡 doc は既存作業物として非破壊で保持する。
-2. `grep -c '→ UT-F'` 期待値: `72`。
-3. §1-§5 各 section の設計項目数: `21 / 11 / 10 / 8 / 20`。
+- L7 単体テスト pointer (`→ UT-F`): 72 件。
+- §1-§5 各 section の設計項目数: `21 / 11 / 10 / 8 / 20`。
+- L6↔L7 trace は §8 (L7 doc) の feature-level 表を正本とし、row 単位 `→ UT-Fx-NNN` は同一 feature 群内の代表 pointer。厳密 1:1 binding は L7 Sprint Step 2 (テスト実装時) で確定する。
 4. 未確定 marker / 同一行繰り返し: `0` を目標とし、frontmatter と table row に一時語を残さない。
 5. 深掘り prose 対象: `routing`, `plan parser`, `doctor/gate`, `DB write`, `migration`, `recovery`, `apoptosis/coexist`。

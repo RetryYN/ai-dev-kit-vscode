@@ -30,7 +30,7 @@ test_execution_status: planned  # 設計凍結、実行は L7 Sprint Step 2 carr
 
 ### §0.2 テスト方針
 
-- F1-F5 は各 public entry に対して、少なくとも正常系 1 件、異常系 1 件、境界値 1 件を設計する。
+- F1-F5 は **feature 単位** で正常系・異常系・境界値を網羅する (各 feature 群として 3 分類を満たす。個々の public entry が 3 種すべてを持つとは限らず、§8 の feature-level trace で網羅性を判定する)。
 - 異常系は `edge-case-design.md` の `EC-Fx-NNN` と対応させる。
 - command / hook は単体境界で subprocess / payload fixture を使い、外部 LLM 実行や destructive write は mock / dry-run に閉じる。
 - 全ケースの `implementation_status` は `planned` とし、fixture 実体とテストコードは L7 Sprint Step 2 の carry とする。
@@ -207,6 +207,8 @@ F6-F10 は governance 拡張領域であり、本書では test contract を先�
 
 ## §8 L6↔L7-test 双方向 trace 表 + implementation_status 集計
 
+> **trace 粒度モデル (2026-05-29 doc-reviewer 反映)**: L6↔L7 の双方向 trace は **feature-level (Fx 設計群 ↔ UT-Fx-NNN 群)** を正本とする。本 §8 の feature 別 trace 表が SSoT。L6 doc 各 row の `→ UT-Fx-NNN` pointer は同一 feature 群内の代表 case を指すものであり、関数/class/edge と UT case の **厳密な row-level 1:1 binding は L7 Sprint Step 2 (テスト実装時) で test docstring の `DoD 検証: UT-Fx-NNN` により確定する** (それまでは feature-level trace で閉じる)。複数 L6 設計要素 (function/class/edge) が同一 feature の UT 群を多対多で共有するため、row 単位の ID 一致ではなく feature 単位の網羅性で freeze を判定する。
+
 ### §8.1 F1-F5 trace
 
 | feature | L6 function IDs | L6 class/command/schema/hook IDs | L6 edge case IDs | L7 test case IDs | reverse pointer 方針 |
@@ -245,7 +247,7 @@ F6-F10 は governance 拡張領域であり、本書では test contract を先�
 | 項目 | 判定 |
 |---|---|
 | テスト設計品質 Lv | T3.5 相当。F1-F5 は正常・異常・境界を網羅し T3 を超えるが、実行 fixture / coverage 実測が未実施のため T4 は L7 Step 2 後に判定する |
-| G4 参考判定 | pass。L4 基本設計側の総合テスト pair ではなく、本書では L6↔L7 単体 pair として trace 設計を満たす |
+| G4 (非対象・参考) | 本書の正対 pair は L6↔L7 単体テストであり、G4 (L4↔L9 総合テスト) は対象外。参考として、本書の trace 設計は L4 側 evidence と矛盾しない |
 | G6 判定 | pass。L6 function / class / edge case から本書の UT case へ双方向 trace 可能 |
 | カバレッジ | 設計 coverage: F1-F5 public entry 100%。実測 statement / branch coverage は未実行 |
 | 未検出リスク | F6-F10 planned 領域、DB lock 復旧時間、migration rollback、external framework ACL 差分は単体テストだけでは検出不能。L8 結合テストへ carry |
