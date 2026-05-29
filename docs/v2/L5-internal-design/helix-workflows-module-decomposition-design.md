@@ -67,11 +67,11 @@ pairs_test_design:
 ### §1.3 固定数（観測値）
 - M1: `cli/` = 80 entry (canonical: `find cli -maxdepth 1 -name 'helix-*' -type f -executable | wc -l` = 80。2026-05-29 functional-registry で確定、§14 集計と一致。ls ベースの 93/94 は非実行ファイル・dir entry を含む過大計上)
 - M1-s: `cli/helix-plan-cmds` = 12 file
-- M2: `cli/lib/` `*.py` = 139 file（非テスト）
+- M2: `cli/lib/` `*.py` = 138 file（非テスト、`find cli/lib -maxdepth 1 -name '*.py' ! -name 'test_*' | wc -l`）
 - M3: `.claude/hooks/` = 17 file
 - M4: `.claude/agents/` = 19 file
 - M5: `cli/config/` = 5 file
-- M6: `skills/` = 119 `SKILL.md`
+- M6: `skills/` = 130 `SKILL.md`（`find skills -name 'SKILL.md' | wc -l`）
 - M7: `scripts/git-hooks/` = 2 file
 
 ### §1.4 差分メモ
@@ -102,7 +102,7 @@ pairs_test_design:
 ### §2.1.F1 モジュール割付
 | function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
 |---|---|---|---|---|---|---|---|
-| F1-1 | `cli/helix-doctor` | `helix doctor --check-doc-lifecycle` | `cli/helix-doctor -> cli/lib/vmodel_lint.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | doctor は集約入口。4 artifact 判定本体は lib 側へ委譲。 |
+| F1-1 | `cli/helix-doctor` | `helix doctor --check-document / --check-pair / --check-vmodel` (実在 check、doc/pair/4-artifact lint) | `cli/helix-doctor -> cli/lib/vmodel_lint.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | doctor は集約入口。4 artifact 判定本体は lib 側へ委譲。 |
 | F1-2 | `cli/lib/vmodel_lint.py` | `main(argv=None)` | `vmodel_lint -> cli/lib/vmodel_pair_freeze.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 双方向 trace lint の本体。 |
 | F1-3 | `cli/lib/vmodel_pair_freeze.py` | `check_pair_freeze()` | `vmodel_pair_freeze -> docs/plans + docs/v2` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | pair freeze 監査と stale revision 補助を保持。 |
 | F1-4 | `cli/lib/test_design_scaffold.py` | `generate_skeleton() / write_scaffold()` | `test_design_scaffold -> paired design docs` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 設計 doc から test design 雛形を生成し 4 artifact を接続。 |
@@ -831,11 +831,11 @@ graph TD
 
 | category | planned | partial | implemented |
 |---|---:|---:|---:|
-| cli entry 80 + plan cmds 12 | 0 | 100 | 0 |
-| cli/lib 139 modules | 0 | 1 | 0 |
+| cli entry 80 + plan cmds 12 | 0 | 92 | 0 |
+| cli/lib 138 modules | 0 | 1 | 0 |
 | hooks 17 | 0 | 0 | 1 |
 | agents 19 | 0 | 0 | 1 |
-| skills 119 | 1 | 0 | 0 |
+| skills 130 | 1 | 0 | 0 |
 | config 5 | 4 | 1 | 0 |
 | dependency lint | 1 | 0 | 0 |
 
@@ -846,7 +846,7 @@ graph TD
 | 観点 | 検証対象 | 観測手段 | 凍結時の期待 |
 |---|---|---|---|
 | 設計→実装 trace | §2.1 matrix の owner module / file path | `helix code find` + 実 file 存在確認 | implemented 行は実 path が存在 |
-| 設計→テスト trace | §2.1 の L8 結合テスト pointer (IT-IP-Fx) + §13 4 artifact | `vmodel_lint` 双方向 trace | 各 F に対応 ST pointer が解決 |
+| 設計→テスト trace | §2.1 の L8 結合テスト pointer (IT-IP-Fx) + §13 4 artifact | `vmodel_lint` 双方向 trace | 各 F に対応 IT pointer が解決 |
 | 依存方向 trace | §12 dependency direction rules | `helix doctor` dependency check (L8 dependency-resolution-design) | cli/lib → cli の逆流 0 |
 | 実装状態 trace | §14 implementation_status 表 | `helix code stats --bucket coverage_eligible` | planned/partial/implemented が実体と一致 |
 
