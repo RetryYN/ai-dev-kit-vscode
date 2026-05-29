@@ -121,3 +121,4 @@ Recovery workflow の発火条件 4 種のうち 2 種に該当:
 | G3+G5 追補 | done | §10 NFR↔arch mapping (25010:2023 9特性) / §11 context (arc42§3) + L5-02 §15 sequenceDiagram / L5-08 §13 SLO / L5-06 §14 横断的関心事 / L6-04 §15 event_type enum |
 | G2 拡充 | done | §12 Stakeholder×Concern 6×6 matrix |
 | frozen 整合再確認 | done | audit §5 再採点 = 8 項目全 closed。L4/L5/L6 は基準全項目充足 → Forward L6 再開可能。forward carry (L9 security pair / SLO 実測 / check_design_coverage lint) は L6 再開に不要 |
+| 設計書セット文書レベル完備 | done | 文書レベル audit (§6) で独立設計書であるべき 3 件を独立化 (正本移設+§ポインタ化): threat-model.md / system-context.md / cross-cutting-design.md。必須欠落なし。設計書セット文書レベル完備 → **L6 再開可能** |

@@ -22,15 +22,15 @@
 
 | ID | 成果物 | 典拠標準 | 必須/推奨 | HELIX-workflows V2 現状 (grep 実証) |
 |---|---|---|---|---|
-| L4-01 | システムコンテキスト図(外部境界・アクター) | IEEE1016 Context + arc42§3 | 必須 | 薄い (arc42§3 は mapping 表にあるが本体に専用節・図が薄い) |
+| L4-01 | システムコンテキスト図(外部境界・アクター) | IEEE1016 Context + arc42§3 | 必須 | 充足: 独立設計書 helix-workflows-system-context.md §1-3 (recovery 独立化) |
 | L4-02 | ビルディングブロック図(主要コンポーネント・責務割当) | IEEE1016 Composition + arc42§5(唯一の mandatory) | 必須 | 充足 (system-architecture §1) |
 | L4-03 | ADR | ISO42010 Correspondence + arc42§9 + Nygard | 必須 | 充足 (ADR-044/045) |
 | L4-04 | デプロイ/方式設計 | arc42§7 | 本番運用ありなら必須 | N/A 宣言が必要 (CLI ローカルツールで大半 N/A だが明示なし) |
-| L4-05 | Stakeholder×Concern マトリクス | ISO42010 §5.2 | 推奨 | 実在だが compact (system-architecture §0.1 に 42010 要素テーブル) → full matrix へ拡充余地 |
+| L4-05 | Stakeholder×Concern マトリクス | ISO42010 §5.2 | 推奨 | 充足: 独立設計書 helix-workflows-system-context.md §4 (6×6 matrix) |
 | L4-06 | NFR(ISO25010:2023 9特性)↔アーキ設計戦略 mapping | ISO42010 + arc42§4 + 25010 | 推奨 | 薄い (arc42§10+Concern で言及あるが L3 への pointer 中心) |
 | L4-07 | 依存関係マップ | IEEE1016 Dependency | 推奨 | L5 module-decomposition でカバー |
 | L4-08 | 総合テスト設計(V-model L4↔L9 pair) | ISO29119-4 | 必須(HELIX) | 充足 |
-| L4-09 | 脅威分析/セキュリティ viewpoint(攻撃面・信頼境界・STRIDE等) | threat-model(STRIDE) + arc42§10 + ISO25010:2023 Security/Safety | 必須(セキュリティ関心事あれば) | 欠落(security は concern/role/CI に散在、専用 threat model 節なし) |
+| L4-09 | 脅威分析/セキュリティ viewpoint(攻撃面・信頼境界・STRIDE等) | threat-model(STRIDE) + arc42§10 + ISO25010:2023 Security/Safety | 必須(セキュリティ関心事あれば) | 充足: 独立設計書 helix-workflows-threat-model.md (recovery 独立化、L9 ST-9 pair) |
 
 **充足判定**: L4-01+L4-02+L4-03+L4-08 で最低充足。本番運用あれば L4-04 必須。セキュリティ関心事(認証/権限/guard/fail-close 等)があれば L4-09 必須。HELIX-workflows V2 は hook guard / fail-close を持つため L4-09 該当。
 
@@ -43,7 +43,7 @@
 | L5-03 | API/IF契約(D-API) | IEEE1016 Interface | 必須 | 充足 (interface-detailed-design) |
 | L5-04 | データ設計(D-DB: ER/テーブル/永続化) | IEEE1016 Information | 必須 | 充足 (physical-data-design) |
 | L5-05 | 依存詳細・モジュール分割 | IEEE1016 Dependency | 推奨 | 充足 (module-decomposition) |
-| L5-06 | 横断的関心事設計(ロギング/エラー/トランザクション/セキュリティ横断) | IEEE1016 Patterns use + arc42§8 | 推奨 | 散在・未集約 |
+| L5-06 | 横断的関心事設計(ロギング/エラー/トランザクション/セキュリティ横断) | IEEE1016 Patterns use + arc42§8 | 推奨 | 充足: 独立設計書 helix-workflows-cross-cutting-design.md (recovery 独立化) |
 | L5-07 | 状態遷移図 | IEEE1016 State Dynamics | 状態を持つなら推奨 | internal-processing でカバー(mode transition/evolution lifecycle) |
 | L5-08 | リソース/性能設計 | IEEE1016 Resource | SLO あれば推奨 | 薄い |
 | L5-09 | 結合テスト設計(V-model L5↔L8 pair) | ISO29119-4 | 必須(HELIX) | 充足 |

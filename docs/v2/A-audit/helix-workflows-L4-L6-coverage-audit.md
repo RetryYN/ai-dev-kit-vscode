@@ -159,3 +159,21 @@ audit §3 やり直し対象 8 件を recovery で追補 → 再 grep 実証で�
 - L4-09 threat model に対応する L9 総合テストの security 観点 (ST-9) = planned。V-model L4↔L9 pair の右腕は L9 工程で実装
 - L5-08 の SLO 数値 (plan登録/skill推挙/doctor full の latency 目標) = L14 運用検証で実測確定
 - helix doctor `check_design_coverage` の機械 lint 化 = L14 carry
+
+---
+
+## §6 文書レベル完備 (recovery 追加 step: 設計書を全部そろえる)
+
+§5 まで viewpoint/節レベルで充足を確認したが、業界標準で「独立設計書」であるべきものが §節に埋まっていた 3 件を独立文書化 (正本移設 + 元§はポインタ化で SSoT 維持)。
+
+| 成果物 | 旧 (節内包) | 新 (独立設計書) |
+|---|---|---|
+| L4-09 脅威分析 | system-architecture §9 | **helix-workflows-threat-model.md** (125行、L9 ST-9 security pair trace) |
+| L4-01+L4-05 context+stakeholder | system-architecture §11+§12 | **helix-workflows-system-context.md** (112行、arc42§1-3 + ISO42010§5.2) |
+| L5-06 横断的関心事 | interface-detailed §14 | **helix-workflows-cross-cutting-design.md** (117行、IEEE1016 Patterns use + arc42§8) |
+
+**結論**: L4/L5/L6 の設計書セットは**文書レベルで完備**。必須成果物の完全欠落なし、標準上独立文書が筋の 3 件も独立化済。Forward は L6 から再開可能。
+
+**スコープ外 carry (本 recovery では触らない)**:
+- `docs/v2/L3-detailed-design/` の D-API/D-DB/D-CONTRACT draft は別スコープ (PLAN-070 helix CLI / PLAN-084 workspace 分離=SEP)。folder naming drift (V2 では L3=要件定義なのに detailed-design 名) あり → 別 retrofit PLAN 候補
+- `docs/v2/B-design/` の vmodel-semantics-* 等は正式 L4/L5/L6 フォルダ未昇格 → 別整理
