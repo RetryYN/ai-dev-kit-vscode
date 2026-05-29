@@ -434,8 +434,8 @@ fullstack 追加条件:
 - 詳細: skills/project/fe-testing/README.md
 
 **2026-05-23 追加分** (4スキル、ユーザー素材を pmo-sonnet で HELIX format 化):
-- workflow/: **doc-system-architect** (ドキュメント体系のメタ設計スキル。変数判断 4 軸 [決定の不可逆性/読み手/変更頻度/再現可能性] + 業界標準への整合 [ISO/IEC/IEEE 42010:2022 / arc42 / C4 / ADR Nygard / Diátaxis / IPA 非機能要求グレード 2018 / Keep a Changelog / 12-factor / Runbook] の二段で「何を・どこまで・どの粒度で書くか」を導出。Why > What > How の優先順位、Single Source of Truth、確定までは軽メモ。要件未確定項目は確認リストとして分離)
-- workflow/: **requirements-deriver** (機能要件→非機能要件導出スキル。「複数/顧客/組織/テナント/SaaS/決済/個人情報/連携/24時間/大量」シグナル → R1-R14 ルール → IPA 非機能要求グレード 2018 (6 大項目) × ISO/IEC 25010 (8 特性) 二軸タグ → 分離レベル/冗長構成/認証方式まで展開。AI のシングルテナント固定化を防ぐ L1 関所。doc-system-architect の子スキル)
+- workflow/: **doc-system-architect** (ドキュメント体系のメタ設計スキル。変数判断 4 軸 [決定の不可逆性/読み手/変更頻度/再現可能性] + 業界標準への整合 [ISO/IEC/IEEE 42010:2022 / arc42 / C4 / ADR Nygard / Diátaxis / IPA 非機能要求グレード (2018 改訂・事業終了/アーカイブ、実務チェックリスト) / ISO/IEC 25010:2023 / Keep a Changelog / 12-factor / Runbook] の二段で「何を・どこまで・どの粒度で書くか」を導出。Why > What > How の優先順位、Single Source of Truth、確定までは軽メモ。要件未確定項目は確認リストとして分離)
+- workflow/: **requirements-deriver** (機能要件→非機能要件導出スキル。「複数/顧客/組織/テナント/SaaS/決済/個人情報/連携/24時間/大量」シグナル → R1-R14 ルール → IPA 非機能要求グレード (2018 改訂・事業終了/アーカイブ、実務チェックリスト、6 大項目) × ISO/IEC 25010:2023 (9 特性) 二軸タグ → 分離レベル/冗長構成/認証方式まで展開。AI のシングルテナント固定化を防ぐ L1 関所。doc-system-architect の子スキル)
 - writing/: **god-writing** (フロントエンド / LP / SEO / コピー / 心理 / UX / 日本語修辞 / ロジック / 技術文書 を 9 カテゴリ + 97 references で統合する神レベルライティング統合スキル。AIDA / PAS / BAB framework [27% conversion 向上事例] + 心理 trigger [emotional/social proof/urgency/trust] + UX 3 原則 [Clear/Concise/Contextual、Slack onboarding 93% 完遂事例] + E-E-A-T/LLMO + 日本語修辞。既存 writing/japanese 等は基礎用途で残置、本 skill は LP/FE 応用用途)
 - design-tools/: **gpt-image** (GPT Image 2 (2026/04/21 リリース、Codex CLI default、$imagegen built-in skill) で アイキャッチ / 図解 / LP ヒーロー画像を構造化プロンプト生成する実装層スキル。最大 16 reference images / 1K-4K / 多言語 99% typography / Thinking mode で reasoning built-in。helix codex --role docs 委譲か Codex CLI 内 $imagegen 起動。DALL-E 3 retired 後継)
 
