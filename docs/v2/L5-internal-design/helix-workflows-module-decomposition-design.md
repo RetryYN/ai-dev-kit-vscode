@@ -1,9 +1,16 @@
 ---
 slug: helix-workflows-module-decomposition-design
-status: drafted
+doc_id: l5-helix-workflows-module-decomposition-design
+status: frozen
 status_type: L5
+process_layer: L5
 created: 2026-05-27
 owner: TL
+parent_plan: L5-helix-workflows-モジュール分割設計plan
+pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
+pairs_test_design:
+  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-MOD モジュール結合 (§3-§9 pair) + §2.1 機能別は IT-IP-Fx 参照
+  - docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
 ---
 
 # HELIX-workflows モジュール分割設計（L5）
@@ -58,7 +65,7 @@ owner: TL
 - 追加モジュール時の命名規約を M1〜M11 横断で適用。
 
 ### §1.3 固定数（観測値）
-- M1: `cli/` = 93 entry (実測 `ls cli/helix-* | grep -v helix-plan-cmds | wc -l` = 93)
+- M1: `cli/` = 80 entry (canonical: `find cli -maxdepth 1 -name 'helix-*' -type f -executable | wc -l` = 80。2026-05-29 functional-registry で確定、§14 集計と一致。ls ベースの 93/94 は非実行ファイル・dir entry を含む過大計上)
 - M1-s: `cli/helix-plan-cmds` = 12 file
 - M2: `cli/lib/` `*.py` = 139 file（非テスト）
 - M3: `.claude/hooks/` = 17 file
@@ -68,7 +75,7 @@ owner: TL
 - M7: `scripts/git-hooks/` = 2 file
 
 ### §1.4 差分メモ
-- pmo-sonnet inventory の想定値と実体に差分があった（72/80/84 は古い想定、実測 93 entry + plan-cmds 12 file = 105 件が正、R1 audit で確定）。
+- pmo-sonnet inventory の想定値と実体に差分があった（72/84 は古い想定。canonical は `find -type f -executable` で cli 80 entry + plan-cmds 12 file = 92 件、2026-05-29 functional-registry で確定。ls ベースの 93/94 は dir entry 等を含む過大計上）。
 - 差分は本 PLAN の前提差分として採番し、次アクションで解消。
 
 ## §2 機能 × module matrix (F1-F10 × 各 module、表形式)
@@ -90,225 +97,134 @@ owner: TL
 
 ### §2.1 F1-F10 詳細行（観測表現）
 
+> **L8 結合テスト pointer の意味論**: 本 §2.1 は機能 (F1-F10) 別の module 割付 matrix のため、L8 pointer は per-function 内部処理結合を検証する `IT-IP-Fx` (L8 §2、F organized) を指す。一方 module-layer 横断の結合 (cli↔cli/lib / hook↔cli/lib 等) は §3-§9 の module 一覧が `IT-MOD` (L8 §3、CLI/HOOK/SUB/SKILL organized) と pair する。frontmatter `pairs_test_design` は両者 (IT-MOD 主 + dependency-resolution) を列挙済。
+
 ### §2.1.F1 モジュール割付
-- F1-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F1-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F1-1 | `cli/helix-doctor` | `helix doctor --check-doc-lifecycle` | `cli/helix-doctor -> cli/lib/vmodel_lint.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | doctor は集約入口。4 artifact 判定本体は lib 側へ委譲。 |
+| F1-2 | `cli/lib/vmodel_lint.py` | `main(argv=None)` | `vmodel_lint -> cli/lib/vmodel_pair_freeze.py` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 双方向 trace lint の本体。 |
+| F1-3 | `cli/lib/vmodel_pair_freeze.py` | `check_pair_freeze()` | `vmodel_pair_freeze -> docs/plans + docs/v2` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | pair freeze 監査と stale revision 補助を保持。 |
+| F1-4 | `cli/lib/test_design_scaffold.py` | `generate_skeleton() / write_scaffold()` | `test_design_scaffold -> paired design docs` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 設計 doc から test design 雛形を生成し 4 artifact を接続。 |
+| F1-5 | `cli/lib/gate_check_generator.py` | `build_doc_map()` | `gate_check_generator -> doc-map.yaml -> hooks` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 編集 path と設計 doc の結線点。 |
+| F1-6 | `cli/templates/docs/PLAN.md.template` | `PLAN.md.template` | `template -> cli/helix-plan -> docs/plans` | implemented | `→ L6 関数仕様 §F1` | `→ L8 IT-IP-F1` | 4 artifact 記法の文書 SSoT。runtime 判定は持たない。 |
 
 ### §2.1.F2 モジュール割付
-- F2-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F2-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F2-1 | `cli/helix-plan` | `helix plan {create,validate,status,review}` | `cli/helix-plan -> plan_parser / plan_validator / plan_health` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | PLAN frontmatter の公開入口。 |
+| F2-2 | `cli/lib/plan_parser.py` | `parse_frontmatter() / upsert_plan()` | `plan_parser -> plan_dependencies + helix.db` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | 構文解析と registry 反映を担当。 |
+| F2-3 | `cli/lib/plan_validator.py` | `validate_plan() / detect_dependency_cycle()` | `plan_validator -> parsed frontmatter + role config` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | 意味検証と依存 graph 検査。 |
+| F2-4 | `cli/lib/plan_lint.py` | `validate_plan_frontmatter()` | `plan_lint -> plan_validator.VALID_KINDS` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | 文面 lint と重複警告の静的層。 |
+| F2-5 | `cli/lib/plan_dependencies.py` | `load_dependencies() / save_dependencies()` | `plan_dependencies -> plan_registry / helix.db` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | DAG 保存専用。validator 本体とは分離。 |
+| F2-6 | `.claude/hooks/posttooluse-plan-auto-register.sh` | `PostToolUse(Edit/Write on PLAN*.md)` | `hook -> plan_parser -> compatibility_adapter.write_connection()` | implemented | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | PLAN 更新直後の registry 自動同期。 |
+| F2-7 | `cli/lib/plan_health.py` | `scan_all_plans()` | `plan_health -> docs/plans tree` | partial | `→ L6 関数仕様 §F2` | `→ L8 IT-IP-F2` | 健康度集計はあるが completeness gate との fail-close 接続は未完。 |
+
+- `plan_parser.py` は frontmatter 読み取りと DB 反映だけを持ち、意味検証を抱え込まない。ここで validation まで行うと、更新時に parse failure と policy failure の責務が混線する。
+- `plan_validator.py` は path 存在、role、依存 cycle の外部整合を担当し、書き込みを持たない。失敗時は warning / fail を返すだけに凍結する。
+- `plan_lint.py` は文面規約と duplicate 候補の静的 lint に限定し、`plan_validator.py` のロジックを再実装しない。3 層分離を壊すと運用時の failure attribution ができなくなる。
 
 ### §2.1.F3 モジュール割付
-- F3-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F3-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F3-1 | `cli/helix-skill` | `helix skill {search,chain,use,catalog rebuild,stats}` | `cli/helix-skill -> skill_recommender / skill_dispatcher` | implemented | `→ L6 関数仕様 §F3` | `→ L8 IT-IP-F3` | skill 操作の統一 CLI。 |
+| F3-2 | `cli/lib/skill_catalog.py` | `build_catalog() / load_catalog()` | `skill_catalog -> skills/**/SKILL.md` | implemented | `→ L6 関数仕様 §F3` | `→ L8 IT-IP-F3` | catalog 再生成の source of truth。 |
+| F3-3 | `cli/lib/skill_recommender.py` | `recommend()` | `skill_recommender -> skill_catalog + TTL cache` | implemented | `→ L6 関数仕様 §F3` | `→ L8 IT-IP-F3` | 推挙 score と cache key を管理。 |
+| F3-4 | `cli/lib/skill_dispatcher.py` | `dispatch() / determine_agent()` | `skill_dispatcher -> helix codex/claude` | implemented | `→ L6 関数仕様 §F3` | `→ L8 IT-IP-F3` | 推奨結果を実行アクションへ変換。 |
+| F3-5 | `.claude/hooks/posttooluse-skill-catalog-rebuild.sh` | `PostToolUse(SKILL.md Write/Edit)` | `hook -> skill_catalog -> json/jsonl cache` | implemented | `→ L6 関数仕様 §F3` | `→ L8 IT-IP-F3` | catalog rebuild の debounce 起点。 |
 
 ### §2.1.F4 モジュール割付
-- F4-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F4-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F4-1 | `cli/helix-route` | `helix route` | `cli/helix-route -> cli/lib/route_engine.py` | implemented | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | 9 mode 入口の公開 command。 |
+| F4-2 | `cli/lib/route_engine.py` | `RouteEngine.evaluate() / from_detect_output()` | `route_engine -> route result only` | implemented | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | 判定専用。実行 side effect を持たない。 |
+| F4-3 | `cli/lib/task_dispatcher.py` | `dispatch_task()` | `task_dispatcher -> helix command / shell / webhook adapters` | implemented | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | task type ごとの実行変換層。 |
+| F4-4 | `cli/lib/workflow_dsl_parser.py` | `load_workflow() / validate_workflow_schema()` | `workflow_dsl_parser -> recovery/escalation workflow yaml` | partial | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | DSL 実装範囲は recovery/escalation 中心で、9 mode 全域ではない。 |
+| F4-5 | `cli/lib/scrum_local.py` | `init_local_loop() / verify_loop() / decide_loop()` | `scrum_local -> compatibility_adapter.write_connection()` | implemented | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | Discovery/Scrum 系 state machine の局所永続化。 |
+| F4-6 | `cli/lib/reverse_local.py` | `route_to_forward()` | `reverse_local -> reverse loop state -> Forward handoff` | implemented | `→ L6 関数仕様 §F4` | `→ L8 IT-IP-F4` | Reverse から Forward への接続専任。 |
+
+- `route_engine.py` は canonical mode 決定と alias 正規化だけを担当し、子 workflow を直接起動しない。ここに side effect を入れると route 判定の再利用と dry-run が壊れる。
+- `task_dispatcher.py` は承認済み task_type を `helix` command / shell / webhook へ変換する実行層であり、route 判定ロジックを再計算しない。判定失敗時は `DispatchError` を返して blocked 扱いに倒す。
+- routing 境界を 2 層に固定する理由は、mode 推奨の説明責務と実行責務を切り離し、fail-open な誤遷移を防ぐためである。
 
 ### §2.1.F5 モジュール割付
-- F5-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F5-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F5-1 | `cli/helix-codex` | `helix codex --role <role>` | `cli/helix-codex -> codex_thinking / codex_post_validation / codex_post_hook` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | Codex dispatch と post-audit の主入口。 |
+| F5-2 | `cli/helix-claude` | `helix claude --role <role>` | `cli/helix-claude -> prompt/task-file generation` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | Claude 側の read/write 文脈注入を担当。 |
+| F5-3 | `cli/helix-agent` | `helix agent {fire-mandatory,suggest,audit}` | `cli/helix-agent -> agent_mandatory / agent_slots` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | mandatory/on-demand agent の統制入口。 |
+| F5-4 | `cli/helix-doctor` | `helix doctor --summary` | `cli/helix-doctor -> doctor_plan_checks / doctor_recovery_check / doctor_summary` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | doctor 系監査の公開 command。 |
+| F5-5 | `cli/lib/doctor_plan_checks.py` | `run_check_plan_drift() / run_check_plan_cycle()` | `doctor_plan_checks -> plan_parser / plan_validator results` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | PLAN drift / generates / dependency の監査本体。 |
+| F5-6 | `cli/lib/gate_check_generator.py` | `build_doc_map()` | `gate_check_generator -> matrix_compiler -> gate files` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | gate/doc-map 生成の接点。 |
+| F5-7 | `.claude/hooks/pretooluse-agent-guard.sh` | `PreToolUse(Agent)` | `PreToolUse guard -> tool/model family policy` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | 非許可 tool / model family を fail-close。 |
+| F5-8 | `.claude/hooks/pretooluse-agent-fire.sh` | `PreToolUse(Agent auto fire)` | `PreToolUse fire -> session_helper / agent_slots` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | subagent 呼び出し前の slot 記録。 |
+| F5-9 | `.claude/hooks/post-tool-use.sh` | `PostToolUse dispatcher` | `PostToolUse -> posttooluse-* fan-out` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | 書き込み後の自動後処理集約。 |
+| F5-10 | `cli/lib/compatibility_adapter.py` | `write_connection()` | `compatibility_adapter -> dual-write / cutover db routing` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | DB write の物理ルーティング境界。 |
+| F5-11 | `cli/lib/helix_db.py` | `record_invocation() / record_selection()` | `helix_db -> sqlite persistence` | implemented | `→ L6 関数仕様 §F5` | `→ L8 IT-IP-F5` | 実行監査と selection 記録の永続化。 |
+
+- `cli/helix-doctor` は shell entry の集約器で、診断ロジックは `doctor_plan_checks.py` と `doctor_recovery_check.py` に押し込める。doctor entry 自身が判定本体を持つと、レビュー不能な bash 条件分岐が増えるため凍結する。
+- `doctor_plan_checks.py` は read-only finding 生成、`gate_check_generator.py` は gate/doc-map 生成に責務を限定する。両者を混在させると「監査」と「生成」が相互依存し、doctor の失敗が artifact 生成まで巻き込む。
+- `pretooluse-agent-guard.sh` / `pretooluse-agent-fire.sh` / `post-tool-use.sh` は PreToolUse と PostToolUse を跨がない。事前ガード、事前記録、事後ファンアウトの順序を固定し、途中失敗時は block or continue の責務を明確化する。
+- `cli/helix-codex` は dispatch と audit 境界を持ち、`codex_post_validation.py` が allowed-files / diff_lines を、`codex_post_hook.py` が review score 永続化を担当する。順序を崩すと scope 逸脱検知より先に DB 書き込みが発生する。
+- helix.db write は `compatibility_adapter.write_connection()` を唯一の物理境界に固定する。上位 hook/CLI から SQLite へ直接書くと dual-write / cutover / rollback の対称性が失われるため凍結する。
 
 ### §2.1.F6 モジュール割付
-- F6-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F6-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F6-1 | `cli/lib/homeostasis.py` | `planned: helix budget --homeostasis` | `homeostasis.py -> budget.py / plan_health.py / scheduler_helper.py` | planned | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | §0.3 freeze path。実ファイル未作成。 |
+| F6-2 | `cli/lib/budget.py` | `collect_status()` | `budget.py -> Claude/Codex budget sources` | partial | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | 消費収集はあるが閾値判定は homeostasis 専用に未統合。 |
+| F6-3 | `cli/lib/budget_cli.py` | `cmd_status() / cmd_forecast() / main()` | `budget_cli -> budget.collect_status()` | partial | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | homeostasis 専用 subcommand は未追加。 |
+| F6-4 | `cli/lib/plan_health.py` | `scan_all_plans()` | `plan_health -> docs/plans + plan metadata` | implemented | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | PLAN health の既存指標を提供。 |
+| F6-5 | `cli/lib/scheduler_helper.py` | `run_due_schedules() / requeue_stale_schedules()` | `scheduler_helper -> task_dispatcher` | implemented | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | 再実行と並列度制御の既存基盤。 |
+| F6-6 | `.claude/hooks/precompact-state-snapshot.sh` | `PreCompact snapshot` | `PreCompact -> blocked_sessions + backup` | implemented | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | 高負荷時 compact 前退避。閾値判定は持たない。 |
+| F6-7 | `cli/lib/session_start_helpers.py` | `build_progress_block()` | `session_start_helpers -> helix status / handover` | partial | `→ L6 関数仕様 §F6` | `→ L8 IT-IP-F6` | 可視化はあるが metrics_log 連携は未実装。 |
 
 ### §2.1.F7 モジュール割付
-- F7-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F7-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F7-1 | `cli/lib/evolution.py` | `planned: helix evolution {score,promote,deprecate}` | `evolution.py -> learning_engine.py / demotion_checker.py` | planned | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | §0.3 freeze path。CLI 契約のみ先に固定。 |
+| F7-2 | `cli/helix-learn` | `helix learn` | `cli/helix-learn -> learning_engine.py` | implemented | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | 成功 run から recipe を生成する既存入口。 |
+| F7-3 | `cli/helix-promote` | `helix promote` | `cli/helix-promote -> learning_engine.find_recipe()` | implemented | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | recipe を builder 生成物へ昇格。 |
+| F7-4 | `cli/lib/learning_engine.py` | `analyze_success() / save_recipe() / find_recipe()` | `learning_engine -> helix.db + global_store` | implemented | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | score 入力と学習結果の永続化本体。 |
+| F7-5 | `cli/lib/matrix_advisor.py` | `run_advisory()` | `matrix_advisor -> matrix index/state` | partial | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | advisory only。自動 promote/deprecate は未接続。 |
+| F7-6 | `cli/lib/demotion_checker.py` | `check_demotion_eligibility() / demote()` | `demotion_checker -> violation history` | implemented | `→ L6 関数仕様 §F7` | `→ L8 IT-IP-F7` | 降格判定の局所ロジック。 |
 
 ### §2.1.F8 モジュール割付
-- F8-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F8-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F8-1 | `cli/lib/migration.py` | `planned: helix version bump --major/--minor` | `migration.py -> migrate.py / compatibility_adapter.py` | planned | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | §0.3 freeze path。現状は `migrate.py` が近縁機能を代行。 |
+| F8-2 | `cli/lib/migrate.py` | `main(argv=None) / merge_yaml()` | `migrate.py -> template merge + settings merge` | implemented | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | テンプレート migration の現行実装。 |
+| F8-3 | `cli/lib/compatibility_adapter.py` | `write_connection()` | `compatibility_adapter -> dual-write / cutover` | implemented | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | 世代移行中の DB routing 境界。 |
+| F8-4 | `cli/lib/recovery_engine.py` | `main(argv=None)` | `recovery_engine -> recovery_plan_check.py` | implemented | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | 中断時 safe mode への回収経路。 |
+| F8-5 | `cli/lib/recovery_workflow_engine.py` | `main(argv=None) / snapshot_on_stop()` | `recovery_workflow_engine -> rollback_orchestrator.py` | implemented | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | 段階的 recovery workflow の state 管理。 |
+| F8-6 | `cli/lib/rollback_orchestrator.py` | `rollback_preflight() / rollback_execute()` | `rollback_orchestrator -> backup manifest` | implemented | `→ L6 関数仕様 §F8` | `→ L8 IT-IP-F8` | migration 失敗時の唯一の reverse gate。 |
+
+- `migration.py` は将来の version/portable orchestration 契約を受け持つ planned wrapper とし、既存 `migrate.py` の template merge 実装をそのまま抱き込まない。意図決定と実体変更を分けるためである。
+- `recovery_engine.py` は mode-level triage、`recovery_workflow_engine.py` は phase/state の継続管理、`rollback_orchestrator.py` は巻き戻し実行に責務を固定する。失敗時に 3 者が同じ state を書き始める設計は不可とする。
+- migration/recovery 境界を凍結する理由は、upgrade 失敗時の復旧 path を 1 本に絞り、partial apply と rollback の監査証跡を二重化しないためである。
 
 ### §2.1.F9 モジュール割付
-- F9-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F9-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F9-1 | `cli/lib/apoptosis.py` | `planned: helix plan apoptosis --dry-run/--execute` | `apoptosis.py -> recovery_plan_check.py / compatibility_adapter.py` | planned | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | §0.3 freeze path。自動 archive/cleanup 本体は未着手。 |
+| F9-2 | `cli/lib/recovery_plan_check.py` | `check_recovery_plan_freshness() / check_session_exit_4items()` | `recovery_plan_check -> recovery markdown + revised date` | implemented | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | stale 判定と session exit checklist を提供。 |
+| F9-3 | `cli/lib/doctor_recovery_check.py` | `run_check_recovery_freshness()` | `doctor_recovery_check -> recovery_plan_check` | implemented | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | doctor から stale recovery plan を監査。 |
+| F9-4 | `cli/lib/demotion_checker.py` | `check_demotion_eligibility() / demote()` | `demotion_checker -> violation history` | implemented | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | lifecycle 降格判定の局所ロジック。 |
+| F9-5 | `cli/lib/rollback_orchestrator.py` | `rollback_preflight() / rollback_execute()` | `rollback_orchestrator -> backup manifest + cleanup window` | partial | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | rollback はあるが stale PLAN archive の自動実行とは未統合。 |
+| F9-6 | `cli/lib/compatibility_adapter.py` | `write_connection()` | `compatibility_adapter -> helix.db physical write routing` | partial | `→ L6 関数仕様 §F9` | `→ L8 IT-IP-F9` | obsolete cleanup の write gateway 候補。apoptosis 専用 table update は未実装。 |
+
+- lifecycle cleanup の DB write は `compatibility_adapter.write_connection()` を通す前提に固定し、hook や shell からの直書きを許可しない。これにより cutover 中でも archive / obsolete update を同一経路で追跡できる。
+- `recovery_plan_check.py` は stale 判定と exit checklist の read-only 判断に留め、削除実行を持たない。削除実行まで抱えると autophagy failure と freshness warning を分離できなくなる。
 
 ### §2.1.F10 モジュール割付
-- F10-1: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-2: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-3: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-4: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-5: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-6: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-7: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-8: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-9: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-10: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-11: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-12: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-13: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-14: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-15: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-16: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-17: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-18: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-19: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
-- F10-20: module boundary, trace point, hook condition, skill usage, config dependency, doctor integration, dependency direction, error handling, testability, rollback path, review evidence.
+| function ID | owner module / file path | public command / bash func / python func / config schema | dependency direction | implementation_status | L6 関数仕様 pointer | L8 結合テスト pointer | 例外・carry 理由 |
+|---|---|---|---|---|---|---|---|
+| F10-1 | `cli/lib/coexist.py` | `planned: helix coexist {framework,status,adopt}` | `coexist.py -> compatibility_adapter.py / merge_settings.py` | planned | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | §0.3 freeze path。共生 command は未実装。 |
+| F10-2 | `cli/lib/compatibility_adapter.py` | `write_connection()` | `compatibility_adapter -> dual-write / cutover db routing` | partial | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | DB coexist の下位 adapter。namespace/ACL 判定までは未到達。 |
+| F10-3 | `cli/lib/merge_settings.py` | `merge() / merge_settings_for_migrate()` | `merge_settings -> external settings.json hooks` | partial | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | 既存 framework 設定へ HELIX hook を共生挿入する土台。 |
+| F10-4 | `cli/lib/shadow_replay.py` | `replay_to_shadow_db()` | `shadow_replay -> projection state comparison` | partial | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | 共生中の新旧 state を並走比較する補助。 |
+| F10-5 | `cli/lib/cutover_orchestrator.py` | `cutover_preflight() / cutover_execute()` | `cutover_orchestrator -> compatibility_adapter / shadow_replay` | partial | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | 共生解除または主系切替の判定点。 |
+| F10-6 | `cli/lib/rollback_orchestrator.py` | `rollback_preflight() / rollback_execute()` | `rollback_orchestrator -> coexist/cutover rollback path` | partial | `→ L6 関数仕様 §F10` | `→ L8 IT-IP-F10` | 共生失敗時の退避経路。coexist 専用 metadata は未定義。 |
 
 ## §3 cli/ dispatcher
 
@@ -922,403 +838,18 @@ graph TD
 | skills 119 | 1 | 0 | 0 |
 | config 5 | 4 | 1 | 0 |
 | dependency lint | 1 | 0 | 0 |
-- TRACE-G1.1: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.2: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.3: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.4: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.5: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.6: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.7: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.8: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.9: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.10: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.11: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.12: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.13: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.14: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.15: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.16: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.17: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.18: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.19: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.20: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.21: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.22: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.23: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.24: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.25: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.26: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.27: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.28: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.29: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.30: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.31: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.32: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.33: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.34: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.35: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.36: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.37: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.38: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.39: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.40: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.41: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.42: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.43: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.44: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.45: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.46: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.47: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.48: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.49: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.50: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.51: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.52: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.53: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.54: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.55: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.56: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.57: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.58: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.59: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.60: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.61: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.62: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.63: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.64: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.65: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.66: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.67: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.68: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.69: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.70: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.71: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.72: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.73: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.74: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.75: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.76: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.77: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.78: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.79: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G1.80: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.1: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.2: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.3: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.4: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.5: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.6: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.7: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.8: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.9: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.10: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.11: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.12: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.13: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.14: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.15: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.16: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.17: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.18: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.19: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.20: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.21: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.22: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.23: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.24: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.25: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.26: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.27: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.28: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.29: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.30: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.31: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.32: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.33: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.34: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.35: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.36: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.37: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.38: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.39: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.40: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.41: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.42: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.43: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.44: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.45: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.46: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.47: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.48: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.49: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.50: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.51: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.52: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.53: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.54: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.55: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.56: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.57: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.58: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.59: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.60: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.61: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.62: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.63: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.64: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.65: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.66: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.67: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.68: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.69: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.70: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.71: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.72: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.73: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.74: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.75: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.76: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.77: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.78: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.79: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G2.80: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.1: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.2: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.3: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.4: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.5: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.6: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.7: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.8: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.9: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.10: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.11: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.12: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.13: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.14: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.15: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.16: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.17: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.18: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.19: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.20: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.21: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.22: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.23: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.24: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.25: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.26: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.27: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.28: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.29: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.30: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.31: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.32: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.33: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.34: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.35: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.36: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.37: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.38: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.39: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.40: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.41: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.42: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.43: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.44: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.45: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.46: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.47: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.48: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.49: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.50: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.51: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.52: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.53: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.54: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.55: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.56: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.57: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.58: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.59: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.60: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.61: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.62: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.63: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.64: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.65: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.66: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.67: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.68: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.69: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.70: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.71: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.72: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.73: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.74: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.75: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.76: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.77: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.78: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.79: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G3.80: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.1: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.2: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.3: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.4: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.5: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.6: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.7: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.8: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.9: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.10: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.11: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.12: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.13: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.14: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.15: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.16: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.17: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.18: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.19: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.20: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.21: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.22: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.23: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.24: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.25: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.26: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.27: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.28: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.29: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.30: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.31: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.32: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.33: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.34: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.35: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.36: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.37: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.38: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.39: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.40: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.41: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.42: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.43: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.44: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.45: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.46: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.47: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.48: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.49: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.50: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.51: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.52: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.53: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.54: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.55: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.56: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.57: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.58: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.59: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.60: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.61: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.62: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.63: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.64: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.65: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.66: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.67: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.68: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.69: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.70: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.71: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.72: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.73: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.74: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.75: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.76: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.77: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.78: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.79: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G4.80: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.1: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.2: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.3: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.4: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.5: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.6: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.7: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.8: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.9: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.10: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.11: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.12: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.13: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.14: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.15: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.16: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.17: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.18: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.19: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.20: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.21: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.22: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.23: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.24: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.25: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.26: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.27: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.28: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.29: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.30: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.31: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.32: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.33: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.34: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.35: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.36: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.37: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.38: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.39: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.40: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.41: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.42: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.43: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.44: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.45: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.46: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.47: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.48: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.49: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.50: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.51: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.52: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.53: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.54: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.55: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.56: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.57: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.58: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.59: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.60: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.61: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.62: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.63: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.64: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.65: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.66: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.67: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.68: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.69: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.70: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.71: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.72: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.73: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.74: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.75: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.76: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.77: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.78: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.79: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
-- TRACE-G5.80: 変更影響の境界、監査ログ、依存方向、ロール起点を再確認する。
+
+## §15 トレース検証方針 (gate-level trace audit)
+
+§14 の implementation_status 表と §2.1 の機能×module matrix を起点に、gate (G4/G5/G6) 通過時のトレース検証を以下で実施する。識別子ごとの個別チェックリストは列挙せず、機械検証可能な観測点に集約する。
+
+| 観点 | 検証対象 | 観測手段 | 凍結時の期待 |
+|---|---|---|---|
+| 設計→実装 trace | §2.1 matrix の owner module / file path | `helix code find` + 実 file 存在確認 | implemented 行は実 path が存在 |
+| 設計→テスト trace | §2.1 の L8 結合テスト pointer (IT-IP-Fx) + §13 4 artifact | `vmodel_lint` 双方向 trace | 各 F に対応 ST pointer が解決 |
+| 依存方向 trace | §12 dependency direction rules | `helix doctor` dependency check (L8 dependency-resolution-design) | cli/lib → cli の逆流 0 |
+| 実装状態 trace | §14 implementation_status 表 | `helix code stats --bucket coverage_eligible` | planned/partial/implemented が実体と一致 |
+
+- 上記 4 観点は L8 結合テスト設計 (`helix-workflows-dependency-resolution-design.md`) の check 群 (check_one_way / check_circular / check_missing / check_subagent_guard) と pair する。
+- gate-level の個別 trace 項目は L7 実装時に `helix doctor` / `vmodel_lint` の機械検証で代替し、設計 doc 内での網羅列挙は行わない (BR-RULE: 機械検証可能性を文書量より優先)。
+- carry (L7): planned module (F6-F10 new module 6 件) の trace は実装後に implemented へ遷移。

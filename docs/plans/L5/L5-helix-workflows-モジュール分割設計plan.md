@@ -4,13 +4,14 @@ title: "L5-helix-workflows-モジュール分割設計plan: HELIX-workflows V2 �
 kind: design
 layer: L5
 drive: be
-status: draft
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L5
 parent_process: HELIX-workflows/helix-process/L5-detailed-design.md
 pairs_test_design:
   - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -81,15 +82,15 @@ related_docs:
 
 | Step | 作業 | 担当 | 状態 |
 |---|---|---|---|
-| 1 | 現状の cli/ / cli/lib/ / .claude/hooks/ / scripts/ の module 一覧抽出 | PM + pmo-sonnet | pending |
-| 2 | F1-F10 各機能が touch する module を機能 × module matrix で抽出 | PM | pending |
-| 3 | 責務分担 ルール起草 (1 module = 1 機能 or 1 横断 concern) | PM | pending |
-| 4 | 依存 graph (mermaid) 起草 - 循環依存検出 | PM | pending |
-| 5 | F6-F10 新規 module の追加配置決定 (homeostasis.py / evolution.py / migration.py / apoptosis.py / coexist.py 等) | PM + tl-advisor | pending |
-| 6 | hook 11 件の .claude/hooks/ 配置確定 + matcher 確定 | PM | pending |
-| 7 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | pending |
-| 8 | R1 反映 + R2 audit | PM + TL + PMO | pending |
-| 9 | L8 結合テスト設計 pair freeze | PM | pending |
+| 1 | 現状の cli/ / cli/lib/ / .claude/hooks/ / scripts/ の module 一覧抽出 | PM + pmo-sonnet | done |
+| 2 | F1-F10 各機能が touch する module を機能 × module matrix で抽出 | PM | done |
+| 3 | 責務分担 ルール起草 (1 module = 1 機能 or 1 横断 concern) | PM | done |
+| 4 | 依存 graph (mermaid) 起草 - 循環依存検出 | PM | done |
+| 5 | F6-F10 新規 module の追加配置決定 (homeostasis.py / evolution.py / migration.py / apoptosis.py / coexist.py 等) | PM + tl-advisor | done |
+| 6 | hook 11 件の .claude/hooks/ 配置確定 + matcher 確定 | PM | done |
+| 7 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | done |
+| 8 | R1 反映 + R2 audit | PM + TL + PMO | done |
+| 9 | L8 結合テスト設計 pair freeze | PM | done |
 | 10 | commit + push | PM | pending |
 
 ## §2 実装計画
@@ -166,3 +167,11 @@ related_docs:
 - parent: L4-helix-workflows-機能設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-データ詳細設計plan / L5-helix-workflows-外部IF詳細設計plan
 - ADR snapshot 候補: ADR-046 (CLI canonical + hook contract + module dependency rule の大局判断時)
+
+## L5 完遂 evidence (2026-05-29)
+
+- 設計 doc: docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md — 本体化完遂 (§2.1 機能×module matrix 100% coverage)、frontmatter status: frozen
+- pair freeze: L5↔L8 双方向 trace (IT-MOD 結合テスト設計 + dependency-resolution-design)
+- 監査: pmo-sonnet 機械検証 (placeholder 0 / matrix 100% coverage) + tl-advisor adversarial check
+- DoD: AC-MOD-01〜AC-MOD-09 達成。AC-MOD-10 (helix doctor check_dependency_direction lint 候補) は L7 carry
+- carry (L7 実装): 新規 module (F6-F10: homeostasis.py / evolution.py 等) の implemented 遷移 + dependency direction lint 実装

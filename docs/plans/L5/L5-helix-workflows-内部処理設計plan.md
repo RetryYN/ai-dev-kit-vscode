@@ -4,13 +4,14 @@ title: "L5-helix-workflows-内部処理設計plan: HELIX-workflows V2 内部処�
 kind: design
 layer: L5
 drive: be
-status: draft
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L5
 parent_process: HELIX-workflows/helix-process/L5-detailed-design.md
 pairs_test_design:
   - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -75,15 +76,15 @@ related_docs:
 
 | Step | 作業 | 担当 | 状態 |
 |---|---|---|---|
-| 1 | L4 機能設計 doc 全 §6-§10 を読み込み、F6-F10 の処理フロー candidate を抽出 | PM + pmo-sonnet | pending |
-| 2 | 各 F6-F10 機能の状態機械（state machine）を疑似コード or mermaid で起草 | PM | pending |
-| 3 | F7 score 算定式の 3 因子（delegation_ratio / gate_pass_rate / audit_drift_count）の重みづけ係数を tl-advisor adversarial で確定 | tl-advisor | pending |
-| 4 | F9 apoptosis 保護対象 N 日の既定値（30 日 candidate）を決定し、設定 file 配置を決定 | PM + tl-advisor | pending |
-| 5 | F1-F5 機能の内部処理（既存 helix doctor check_* の algorithm 詳細化）を起草 | PM | pending |
-| 6 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | pending |
-| 7 | R1 反映 + R2 audit | PM + TL + PMO | pending |
-| 8 | doc-reviewer 三重 audit (大規模 doc 改定なので推奨) | doc-reviewer | pending |
-| 9 | L8 結合テスト設計 pair freeze | PM | pending |
+| 1 | L4 機能設計 doc 全 §6-§10 を読み込み、F6-F10 の処理フロー candidate を抽出 | PM + pmo-sonnet | done |
+| 2 | 各 F6-F10 機能の状態機械（state machine）を疑似コード or mermaid で起草 | PM | done |
+| 3 | F7 score 算定式の 3 因子（delegation_ratio / gate_pass_rate / audit_drift_count）の重みづけ係数を tl-advisor adversarial で確定 | tl-advisor | done |
+| 4 | F9 apoptosis 保護対象 N 日の既定値（30 日 candidate）を決定し、設定 file 配置を決定 | PM + tl-advisor | done |
+| 5 | F1-F5 機能の内部処理（既存 helix doctor check_* の algorithm 詳細化）を起草 | PM | done |
+| 6 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | done |
+| 7 | R1 反映 + R2 audit | PM + TL + PMO | done |
+| 8 | doc-reviewer 三重 audit (大規模 doc 改定なので推奨) | doc-reviewer | done |
+| 9 | L8 結合テスト設計 pair freeze | PM | done |
 | 10 | commit + push | PM | pending |
 
 ## §2 実装計画
@@ -166,3 +167,11 @@ related_docs:
 - parent: L4-helix-workflows-機能設計plan
 - siblings: L5-helix-workflows-モジュール分割設計plan / L5-helix-workflows-データ詳細設計plan / L5-helix-workflows-外部IF詳細設計plan
 - ADR snapshot 候補: ADR-046 (未起票、§3 で確定する algorithm の大局判断時)
+
+## L5 完遂 evidence (2026-05-29)
+
+- 設計 doc: docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md — 本体化完遂、frontmatter status: frozen
+- pair freeze: L5↔L8 双方向 trace (IT-IP 結合テスト設計 + dependency-resolution-design)
+- 監査: pmo-sonnet 機械検証 (placeholder 0 / matrix 100% coverage) + tl-advisor adversarial check
+- DoD: AC-IP-01〜AC-IP-08 達成。AC-IP-09 (L8 pair blocks) は pairs_test_design で代替 trace 確立
+- carry (L7 実装): fixture 実体 / テストコード / planned module (F6-F10 new module: homeostasis.py / evolution.py / migration.py / apoptosis.py / coexist.py) の implemented 遷移

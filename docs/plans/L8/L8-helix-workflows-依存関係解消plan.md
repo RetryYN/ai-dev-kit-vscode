@@ -4,7 +4,8 @@ title: "L8-helix-workflows-依存関係解消plan: HELIX-workflows V2 依存関�
 kind: design
 layer: L8
 drive: be
-status: draft
+status: finalized
+freeze_note: "L5↔L8 pair freeze (2026-05-29): pair doc dependency-resolution-design.md frozen, T-DEP-* 10ケース凍結。テスト実行/fixture実体は L7-L8 carry"
 created: 2026-05-27
 owner: PM
 process_layer: L8

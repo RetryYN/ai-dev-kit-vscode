@@ -1,3 +1,14 @@
+---
+doc_id: l5-helix-workflows-interface-detailed-design
+title: "HELIX-workflows V2 外部IF詳細設計 (interface detailed design)"
+status: frozen
+process_layer: L5
+doc_type: interface_detailed_design
+parent_plan: L5-helix-workflows-外部IF詳細設計plan
+pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
+pairs_test_design: docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-IF IF結合 (V-model L5↔L8 正対)
+---
+
 # L5 外部IF詳細設計
 
 - 文書名: `docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md`

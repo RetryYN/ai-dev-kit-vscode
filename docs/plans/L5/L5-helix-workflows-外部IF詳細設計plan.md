@@ -4,7 +4,7 @@ title: "L5-helix-workflows-外部IF詳細設計plan: HELIX-workflows V2 CLI API 
 kind: design
 layer: L5
 drive: be
-status: draft
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L5
@@ -115,18 +115,18 @@ related_docs:
 
 | Step | 作業 | 担当 | 状態 |
 |---|---|---|---|
-| 1 | CLI 34 件の現状実装 status を `helix --help` + `grep` で確認 | PM + pmo-sonnet | pending |
-| 2 | 各 CLI の argparse spec (positional / optional / flag) 起草 | PM | pending |
-| 3 | 各 CLI の出力 format (text / json / yaml) 確定 | PM | pending |
-| 4 | 各 CLI の exit code 確定 (0/1/2/N 別ルール) | PM | pending |
-| 5 | hook 11 件の event payload schema (JSON Schema) 起草 | PM | pending |
-| 6 | hook fail-close / fail-open 判定確定 | PM + security | pending |
-| 7 | 不確定 U-01〜U-07 を tl-advisor adversarial で確定 | tl-advisor | pending |
-| 8 | error handling 共通ルール (timeout / retry / blocking) 凍結 | PM | pending |
-| 9 | 800 行超過時の分割判定 (IF-core + IF-hook) | PM | pending |
-| 10 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | pending |
-| 11 | R1 反映 + R2 audit | PM + TL + PMO | pending |
-| 12 | L8 結合テスト設計 pair freeze | PM | pending |
+| 1 | CLI 34 件の現状実装 status を `helix --help` + `grep` で確認 | PM + pmo-sonnet | done |
+| 2 | 各 CLI の argparse spec (positional / optional / flag) 起草 | PM | done |
+| 3 | 各 CLI の出力 format (text / json / yaml) 確定 | PM | done |
+| 4 | 各 CLI の exit code 確定 (0/1/2/N 別ルール) | PM | done |
+| 5 | hook 11 件の event payload schema (JSON Schema) 起草 | PM | done |
+| 6 | hook fail-close / fail-open 判定確定 | PM + security | done |
+| 7 | 不確定 U-01〜U-07 を tl-advisor adversarial で確定 | tl-advisor | done |
+| 8 | error handling 共通ルール (timeout / retry / blocking) 凍結 | PM | done |
+| 9 | 800 行超過時の分割判定 (IF-core + IF-hook) | PM | done |
+| 10 | 二重 audit R1 (tl-advisor + pmo-sonnet) | TL + PMO | done |
+| 11 | R1 反映 + R2 audit | PM + TL + PMO | done |
+| 12 | L8 結合テスト設計 pair freeze | PM | done |
 | 13 | commit + push | PM | pending |
 
 ## §2 実装計画
@@ -237,3 +237,11 @@ related_docs:
 - parent: L4-helix-workflows-外部IF設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-モジュール分割設計plan / L5-helix-workflows-データ詳細設計plan
 - ADR snapshot 候補: ADR-046 (CLI 34 件 + hook 11 件 の正本一本化と契約凍結の大局判断時)
+
+## L5 完遂 evidence (2026-05-29)
+
+- 設計 doc: docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md — 本体化完遂、frontmatter status: frozen
+- pair freeze: L5↔L8 双方向 trace (IT-IF 結合テスト設計: integration-test-design.md §IF section)
+- 監査: pmo-sonnet 機械検証 (placeholder 0 / CLI 34 件 + hook 11 件 全件 spec 記載確認) + tl-advisor adversarial check
+- DoD: AC-IF-01〜AC-IF-11 達成 (U-01〜U-07 全件確定済)
+- carry (L7 実装): planned CLI (34 件のうち planned/partial) の実装遷移 + mutation / migration / coexist event hook の実体実装

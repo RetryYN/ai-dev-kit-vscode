@@ -4,7 +4,8 @@ title: "L8-helix-workflows-結合テストplan: HELIX-workflows V2 結合テス�
 kind: design
 layer: L8
 drive: be
-status: draft
+status: finalized
+freeze_note: "L5↔L8 pair freeze (2026-05-29): pair doc integration-test-design.md frozen (IT-IP/IT-MOD/IT-DB/IT-IF, frontmatter追加)。テスト実行/fixture実体は L7-L8 carry"
 created: 2026-05-27
 owner: PM
 process_layer: L8

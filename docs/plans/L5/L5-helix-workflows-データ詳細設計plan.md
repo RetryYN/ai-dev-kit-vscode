@@ -4,7 +4,7 @@ title: "L5-helix-workflows-データ詳細設計plan: HELIX-workflows V2 helix.d
 kind: design
 layer: L5
 drive: db
-status: draft
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L5
@@ -87,17 +87,17 @@ related_docs:
 
 | Step | 作業 | 担当 | 状態 |
 |---|---|---|---|
-| 1 | 既存 helix.db schema を `sqlite3 .helix/helix.db .schema` で全件抽出 | PM + DBA | pending |
-| 2 | 現状 implemented 5 table (event_log / plan_registry / skill_usage / mode_transition / role_audit) の column / index / FK を文書化 | PM + DBA | pending |
-| 3 | 新規 planned 7 table (metrics_log / plan_history / version_tag / obsolete_record / coexist_config / version_coevolution / audit_link) の物理 schema 起草 | PM + DBA | pending |
-| 4 | index 戦略確定 (検索頻度高 column に index、覆面 index、unique constraint) | DBA | pending |
-| 5 | FK 設計確定 (CASCADE / SET NULL / RESTRICT) | DBA | pending |
-| 6 | migration script 起草 (PRAGMA schema_version → migration table 移行を含む) | DBA | pending |
-| 7 | rollback strategy 確定 (各 migration の dryrun + backup manifest) | DBA + security | pending |
-| 8 | retention policy 確定 (event_log / metrics_log は autophagy 対象) | PM | pending |
-| 9 | 二重 audit R1 (tl-advisor + pmo-sonnet + dba) | TL + PMO + DBA | pending |
-| 10 | R1 反映 + R2 audit | PM + TL + PMO | pending |
-| 11 | L8 pair freeze (結合テスト設計に DB schema test を含む) | PM | pending |
+| 1 | 既存 helix.db schema を `sqlite3 .helix/helix.db .schema` で全件抽出 | PM + DBA | done |
+| 2 | 現状 implemented 5 table (event_log / plan_registry / skill_usage / mode_transition / role_audit) の column / index / FK を文書化 | PM + DBA | done |
+| 3 | 新規 planned 7 table (metrics_log / plan_history / version_tag / obsolete_record / coexist_config / version_coevolution / audit_link) の物理 schema 起草 | PM + DBA | done |
+| 4 | index 戦略確定 (検索頻度高 column に index、覆面 index、unique constraint) | DBA | done |
+| 5 | FK 設計確定 (CASCADE / SET NULL / RESTRICT) | DBA | done |
+| 6 | migration script 起草 (PRAGMA schema_version → migration table 移行を含む) | DBA | done |
+| 7 | rollback strategy 確定 (各 migration の dryrun + backup manifest) | DBA + security | done |
+| 8 | retention policy 確定 (event_log / metrics_log は autophagy 対象) | PM | done |
+| 9 | 二重 audit R1 (tl-advisor + pmo-sonnet + dba) | TL + PMO + DBA | done |
+| 10 | R1 反映 + R2 audit | PM + TL + PMO | done |
+| 11 | L8 pair freeze (結合テスト設計に DB schema test を含む) | PM | done |
 | 12 | commit + push | PM | pending |
 
 ## §2 実装計画
@@ -181,3 +181,11 @@ related_docs:
 - parent: L4-helix-workflows-データ設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-モジュール分割設計plan / L5-helix-workflows-外部IF詳細設計plan
 - ADR snapshot 候補: ADR-046 (helix.db 全 12 table 確定 + ADR-044 §6.8 retrofit の大局判断時)
+
+## L5 完遂 evidence (2026-05-29)
+
+- 設計 doc: docs/v2/L5-internal-design/helix-workflows-physical-data-design.md — 本体化完遂、frontmatter status: frozen
+- pair freeze: L5↔L8 双方向 trace (IT-DB 結合テスト設計: integration-test-design.md §DB schema section)
+- 監査: pmo-sonnet 機械検証 (placeholder 0 / 12 table 全件 DDL 記載確認) + tl-advisor adversarial check
+- DoD: AC-DB-01〜AC-DB-11 達成
+- carry (L7 実装): planned 7 table (metrics_log / plan_history / version_tag / obsolete_record / coexist_config / version_coevolution / audit_link) の migration 実行 + ADR-044 §6.8 retrofit

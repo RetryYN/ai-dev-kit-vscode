@@ -1,7 +1,7 @@
 ---
 doc_id: l8-helix-workflows-dependency-resolution-design
 title: "HELIX-workflows V2 L8 依存関係解消設計"
-status: draft
+status: frozen
 owner: TL
 type: design_doc
 created: 2026-05-27
@@ -9,6 +9,9 @@ process_layer: L8
 task_type: L8
 parent_plan: docs/plans/L8/L8-helix-workflows-依存関係解消plan.md
 plan_reference: docs/plans/L8/L8-helix-workflows-依存関係解消plan.md
+pairs_design:
+  - docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
+  - docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md
 generates:
   - artifact_path: docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
     artifact_type: design_doc
@@ -939,7 +942,10 @@ for (a,b,c,d) in TRACE:
 ```pseudo
 for doc in docs:
     if doc.type == "design":
-      require(doc.pairs_design in ["docs/v2/L9-test-design/...", ...])
+      require(doc.pairs_design in [
+        "docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md",
+        "docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md",
+      ])
     if doc.reference_docs is empty:
       warning("trace_gap")
 ```
@@ -1131,6 +1137,23 @@ for check in ["check_circular","check_one_way","check_stale","check_missing","ch
 **出力**
 
 - 品質ゲート: 問題 0 件。
+
+### §12.1.1 L5↔L8 sub-check ケース設計（freeze 対象）
+
+fixture 実体と Bats/Python 実装は L7 carry とし、本節では L5↔L8 pair freeze に必要なケース ID、入力構造、期待結果を固定する。全ケースの `implementation_status` は `planned`。
+
+| ケースID | 対象 check | 入力 (fixture種別・構造) | 期待結果 (exit code・warn/error・返却 payload) | reference |
+|---|---|---|---|---|
+| T-DEP-CIRC-01 | check_circular | graph fixture: `nodes=[cli/lib/a.py, cli/lib/b.py]`, `edges=[a->b]`, self-loop なし | exit 0 / warn 0 / payload: `{"status":"pass","cycles":[]}` | → L5 §12.1 方向則 / 対象 check: check_circular |
+| T-DEP-CIRC-02 | check_circular | graph fixture: `nodes=[cli/lib/a.py, cli/lib/b.py]`, `edges=[a->b,b->a]` | exit 1 / warn `cycle_detected` / payload: `{"status":"warn","cycle":["cli/lib/a.py","cli/lib/b.py","cli/lib/a.py"]}` | → L5 §12.2 検知 lint / 対象 check: check_circular |
+| T-DEP-ONEWAY-01 | check_one_way | edge fixture: `cli/helix-doctor -> cli/lib/doctor.py`, `hooks -> cli/helix` の許可方向のみ | exit 0 / warn 0 / payload: `{"status":"pass","violations":[]}` | → L5 §12.1 方向則 / 対象 check: check_one_way |
+| T-DEP-ONEWAY-02 | check_one_way | edge fixture: `cli/lib/task_dispatcher.py -> cli/helix` の逆方向 edge 1 件 | exit 2 / error `one_way_violation` / payload: `{"status":"fail","violations":[{"from":"cli/lib/task_dispatcher.py","to":"cli/helix","kind":"layer_violation"}]}` | → L5 §12.1 禁止: `cli/lib/* -> cli/*` / 対象 check: check_one_way |
+| T-DEP-STALE-01 | check_stale | module inventory fixture: `cli/lib/active.py` に inbound edge 1 件、allowlist 空 | exit 0 / warn 0 / payload: `{"status":"pass","stale_candidates":[]}` | → L5 §4 cli/lib Python helper / 対象 check: check_stale |
+| T-DEP-STALE-02 | check_stale | module inventory fixture: `cli/lib/legacy_unused.py` inbound edge 0 件、DEPRECATED marker なし | exit 1 / warn `stale_module` / payload: `{"status":"warn","stale_candidates":[{"path":"cli/lib/legacy_unused.py","class":"investigation_needed"}]}` | → L5 §4.4 helper / 共通層 + §12.2 検知 lint / 対象 check: check_stale |
+| T-DEP-MISSING-01 | check_missing | PLAN fixture: `generates=[docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md]` かつ file exists | exit 0 / warn 0 / payload: `{"status":"pass","missing":[]}` | → L5 §13 4 artifact 双方向 trace / 対象 check: check_missing |
+| T-DEP-MISSING-02 | check_missing | PLAN fixture: `generates=[docs/v2/L8-test-design/nonexistent.md]` かつ file absent | exit 1 / warn `missing_artifact` / payload: `{"status":"warn","missing":[{"artifact":"docs/v2/L8-test-design/nonexistent.md","reason":"missing_artifact"}]}` | → L5 §13 4 artifact 双方向 trace / 対象 check: check_missing |
+| T-DEP-GUARD-01 | check_subagent_guard | subagent fixture: `subagent_type=pmo-sonnet`, frontmatter model family `sonnet`, requested model family `sonnet` | exit 0 / warn 0 / payload: `{"status":"pass","items":[],"block_count":0}` | → L5 §7.2 model family 整合性 / 対象 check: check_subagent_guard |
+| T-DEP-GUARD-02 | check_subagent_guard | subagent fixture: `subagent_type=be-api`, requested model family `opus`, allow list 不一致 | exit 2 / error `forbidden_type` / payload: `{"status":"fail","items":[{"subagent_type":"be-api","error":"forbidden_type"}],"block_count":1}` | → L5 §7.3 prohibited 扱い / 対象 check: check_subagent_guard |
 
 ### §12.2 性能観点
 

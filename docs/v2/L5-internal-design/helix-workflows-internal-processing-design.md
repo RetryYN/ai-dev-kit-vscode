@@ -1,14 +1,16 @@
 ---
 doc_id: l5-helix-workflows-internal-processing-design
 title: "HELIX-workflows V2 L5 内部処理設計（内部処理 / アルゴリズム / 状態機械）"
-status: in_progress
+status: frozen
 created: 2026-05-27
 owner: docs
 process_layer: L5
 doc_type: internal_processing_design
 parent_plan: L5-helix-workflows-内部処理設計plan
 pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
-pairs_test_design: docs/v2/L9-test-design/helix-workflows-functional-test-design.md
+pairs_test_design:
+  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-IP 内部処理結合 (V-model L5↔L8 正対)
+  - docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
 adr_snapshot:
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
   - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md

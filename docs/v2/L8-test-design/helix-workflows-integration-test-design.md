@@ -1,3 +1,18 @@
+---
+doc_id: l8-helix-workflows-integration-test-design
+title: "HELIX-workflows V2 結合テスト設計 (integration test design)"
+status: frozen
+process_layer: L8
+doc_type: integration_test_design
+parent_plan: L8-helix-workflows-結合テストplan
+pairs_design:
+  - docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md   # IT-IP
+  - docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md  # IT-MOD
+  - docs/v2/L5-internal-design/helix-workflows-physical-data-design.md         # IT-DB
+  - docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md    # IT-IF
+test_execution_status: planned  # 設計凍結。fixture/テストコード実体化は L7/L8 実行 carry
+---
+
 # helix-workflows 結合テスト設計（v2）
 
 ## §0 PLAN reference + scope 宣言
@@ -126,8 +141,7 @@
 |---|---|---|---|---|
 | IT-IP-F6-001 | metric 集計 -> metrics_log 永続化 -> statusLine 発火 | warning/error を含む 4 段階閾値反映 | 集計値を statusLine へ反映しない | level 複数値の出現 |
 | IT-IP-F6-002 | metrics collector -> threshold evaluator -> exit 分岐 | threshold 過大時に fail-close | 過負荷を無視して続行 | warning_count/critical_count の比較 |
-| IT-IP-F6-003 | statusLine -> hook payload -> SessionStart | statusLine の重要度が hook に透過 | 重要度欠落 | payload.severity = level
-|
+| IT-IP-F6-003 | statusLine -> hook payload -> SessionStart | statusLine の重要度が hook に透過 | 重要度欠落 | payload.severity = level |
 | IT-IP-F6-004 | threshold state reset | 異常検知後に正常状態へ回帰 | stale alert 継続 | リトライ 2 回で stable になり metrics_state=healthy |
 
 ### §2.7 F7 PLAN 進化 結合 (fork → score → promote/deprecate)
@@ -161,8 +175,7 @@
 
 | Test ID | 結合 path | 期待動作 | failure mode | 検証 metric / assertion |
 |---|---|---|---|---|
-| IT-IP-F10-001 | namespace 生成 -> ACL adapter -> conflict check | 同名 namespace 競合を検知 | 競合を上書き | conflict_exit=1
-|
+| IT-IP-F10-001 | namespace 生成 -> ACL adapter -> conflict check | 同名 namespace 競合を検知 | 競合を上書き | conflict_exit=1 |
 | IT-IP-F10-002 | namespace mapping -> role mapping | role 名衝突時に明示拒否 | 競合を黙認 | conflict_map size >0 の場合 reject |
 | IT-IP-F10-003 | 外部 contributor 追加 -> ACL adapter | 外部 namespace の許可リスト更新 | allow list bypass | unauthorized denied |
 | IT-IP-F10-004 | namespace 再利用 | 旧 ID 再利用時にエイリアス警告 | old/new 衝突 | alias warning logged |
