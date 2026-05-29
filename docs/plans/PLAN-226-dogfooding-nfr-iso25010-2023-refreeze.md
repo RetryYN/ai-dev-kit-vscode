@@ -81,7 +81,7 @@ frozen dogfooding NFR 成果物の ISO 25010 参照を 2011 版 8 特性 → 202
 tl-advisor verdict = **changes_required** → P1×3 を反映:
 - **P1-1 相互作用能力の網羅不足**: AC-NFR-US-01 を強化 (helix help 完備率 + TTFSP に加え、自己記述性=外部マニュアル無しで次アクション判明 / unknown command・error の next-step 提示 / 包摂性=NO_COLOR・--no-color 対応)
 - **P1-2 Safety「該当薄」は楽観的**: HELIX は rollback/DB rollback/workspace drop の破壊的操作を持つ → 「該当薄」を撤回し「低頻度だが高影響」へ。**AC-NFR-SF-01 を ISO 再導出として追加** (fail-safe / reversibility / risk identification)。これにより **balance_ratio = AC-NFR 30 / NFR 27 = 1.11** (≥ 1.0、改善)。skill (requirements-deriver) の「破壊的操作シグナル時のみ Safety が現れる」rule に照らすと dogfooding は「現れる」ケースで、当初の該当薄判断が誤りだった
-- **P1-3 status 不整合**: 対象 L3/L12 doc の frontmatter は実は `status: draft` (frozen ではない)。L3 PLAN は「pair freeze 成立」と記載 = **着手前から存在する PLAN↔doc status drift** (本 PLAN scope 外、carry)。本 PLAN では draft 維持 + 移行 evidence のみ追加し、draft→frozen の昇格は別途 freeze gate 判断とする
+- **P1-3 status 不整合 → 再凍結で解消**: 対象 L3/L12 doc は `status: draft` だが、(a) L3 3 PLAN すべてが G3 要件凍結ゲート 2026-05-29 で「L3↔L12 pair freeze 成立」と記録、(b) 下流 L4-L6 設計 doc は既に `frozen`。**下流が frozen で上流が draft は論理破綻**であり、draft は凍結時に frontmatter を更新し忘れた clerical drift だった。「別 gate 判断で carry」は誤り (ユーザー指摘「フリーズしたから修正しない？ロジックがおかしい」)。tl-advisor の re-freeze 条件 (AC 補強) も満たしたため、**L3↔L12 pair artifact 4 doc (business/functional/nfr-detail + L12 acceptance) を `status: frozen` へ reconcile + freeze_evidence 追加**。L1 docs は L1↔L14 pair が L14 で完成する前提のため draft 維持が正しい
 
 ### 段階 rollout
 1. concept 矛盾 2 行を先行修正 (最小・低リスク)
@@ -96,11 +96,11 @@ tl-advisor verdict = **changes_required** → P1×3 を反映:
 - [x] L3↔L12 balance_ratio 移行後も ≥ 1.0 を tl-advisor が確認 (changes_required → 反映後 30/27 = 1.11)
 - [x] Safety は「低頻度高影響」として AC-NFR-SF-01 を追加 (当初の該当薄判断を tl-advisor 指摘で撤回)
 - [x] 相互作用能力の概念拡張 (自己記述性/包摂性) を AC-NFR-US-01 に反映
-- [x] 移行 evidence を L3 PLAN evidence 行に追加 (status は draft 維持。draft→frozen 昇格は別 freeze gate、PLAN↔doc status drift は carry)
+- [x] **再凍結実施**: L3↔L12 pair artifact 4 doc (business/functional/nfr-detail + L12 acceptance) を `status: frozen` + freeze_evidence へ reconcile (G3 2026-05-29 gate + 下流 L4-L6 frozen に整合)。L1 は L1↔L14 pair 未完成のため draft 維持が正しい
 - [x] 日本語暫定訳 + 英語正式名併記
 
 ## §6 carry (本 PLAN scope 外)
-- **PLAN↔doc status drift**: L3-nfr-detail / L12-acceptance の frontmatter は `status: draft` だが L3 PLAN は「pair freeze 成立」と記載。draft→frozen 昇格 or PLAN 記述訂正は別途 freeze gate 判断 (本 retrofit では触らない)
+- **L3↔L12 status drift は本 PLAN で解消済** (4 doc を frozen へ reconcile)。ただし他工程に同種 drift が残る可能性: L4-L6 は frozen だが、それらの pair (L9/L8/L7-test) や他 L3 doc (technical-requirements / functional-registry 等) の frozen/draft 整合は未確認 → **別途 status hygiene audit** (全 L0-L14 doc の status が gate evidence + pair freeze 記録と一致するか機械監査) を carry
 - process template (docs/v2/process/L01/L03 / HELIX-workflows L1/L3) の generic「IPA 非機能要求グレード 2018 / ISO 25010」参照は総称で事実誤りなし → 任意 polish
 - ADR-035 の IPA citation は immutable historical、触らない
 

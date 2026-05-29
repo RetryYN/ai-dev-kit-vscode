@@ -1,7 +1,8 @@
 ---
 doc_id: L3-helix-workflows-business-requirements-detail
 title: "HELIX-workflows V2 業務要件 (確定版、L3 詳細化)"
-status: draft
+status: frozen
+freeze_evidence: "G3 要件凍結ゲート 2026-05-29 (L3↔L12 pair freeze 成立、業務要件 + 受入テスト設計)"
 created: 2026-05-26
 owner: PM
 process_layer: L3

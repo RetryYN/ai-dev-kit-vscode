@@ -1,7 +1,8 @@
 ---
 doc_id: L3-helix-workflows-nfr-detail
 title: "HELIX-workflows V2 非機能要件 (確定版、L3 IPA グレード値)"
-status: draft
+status: frozen
+freeze_evidence: "G3 要件凍結ゲート 2026-05-29 (L3↔L12 pair freeze 成立) + 2026-05-30 PLAN-226 ISO 25010:2023 移行・tl-advisor 再検証 (NFR 27 / AC-NFR 30 / balance_ratio 1.11)"
 created: 2026-05-26
 owner: PM
 process_layer: L3

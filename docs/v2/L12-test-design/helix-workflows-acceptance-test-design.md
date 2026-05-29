@@ -1,7 +1,8 @@
 ---
 doc_id: L12-test-design-helix-workflows-acceptance
 title: "HELIX-workflows 受入テスト設計 (L12 ペア artifact、L3 3 PLAN 共通)"
-status: draft
+status: frozen
+freeze_evidence: "G3 要件凍結ゲート 2026-05-29 (L3↔L12 pair freeze 成立、3 PLAN 共通) + 2026-05-30 PLAN-226 NFR ISO 25010:2023 移行 (AC-NFR 30 / balance_ratio 1.11)"
 created: 2026-05-26
 owner: PM
 process_layer: L12
@@ -19,7 +20,7 @@ related_l3_docs:
 
 # HELIX-workflows 受入テスト設計 (L12 ペア artifact)
 
-> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、**59 AC (BR 12 + FR 18 + NFR 29)** で balance_ratio ≥ 1.0 (2026-05-26 BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件、**2026-05-29 ユーザー要求由来 FR-FNREG-01 (機能一覧 SSoT) + FR-GLOSSARY-01 (用語一覧 SSoT) 追加で 57→59 件**)。
+> **本 doc の位置づけ**: L3 要件定義 3 PLAN (業務要件 / 機能要件 / 非機能要件) との V-model **L3↔L12 ペア凍結** artifact。各要件 (BR-* / FR-* / NFR-*) に対して L12 デプロイ後の受入テスト (AC-*) を設計する。L3 3 PLAN 起票完遂 (2026-05-26) で §1-§3 すべて detail 化、**60 AC (BR 12 + FR 18 + NFR 30)** で balance_ratio ≥ 1.0 (2026-05-26 BR-09/10/11/12 + FR-DOCREVIEW-01 + FR-CHANGEPROP-01 + NFR-OP-06/07/08 + NFR-MG-04 追加で 47→57 件、2026-05-29 ユーザー要求由来 FR-FNREG-01 (機能一覧 SSoT) + FR-GLOSSARY-01 (用語一覧 SSoT) 追加で 57→59 件、**2026-05-30 PLAN-226 ISO 25010:2023 移行で Safety AC-NFR-SF-01 追加 59→60 件**)。
 >
 > **status**: draft (G3 evidence 完成、§1 業務系 AC-BR-01〜12 + §2 機能系 AC-FR-01〜16 + §3 非機能系 AC-NFR 30 件すべて detail 化済 (2026-05-26 に 29 件、2026-05-30 PLAN-226 で ISO 25010:2023 移行 + Safety AC-NFR-SF-01 追加 → 30 件)、BR-12 ratchet 機構準拠で 本 session BR-09/10/11/12 追従済)。
 >
