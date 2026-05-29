@@ -6,6 +6,9 @@ status_type: L5
 process_layer: L5
 created: 2026-05-27
 owner: TL
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Composition viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Dependency viewpoint"
 parent_plan: L5-helix-workflows-モジュール分割設計plan
 pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
 pairs_test_design:
@@ -16,6 +19,15 @@ pairs_test_design:
 # HELIX-workflows モジュール分割設計（L5）
 
 ## §0 PLAN reference + scope 宣言
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Composition | システムを構成する要素を階層/責務で編成する | §1 module 分類体系 / §2 機能別分類 / §12 traceability |
+| Dependency | 要素間依存を方向付きで固定する | §1.2 分類ガード / §2.1 dependency direction rules / §2.3 依存整合 |
+
+本設計は上記対応節により、モジュール分割と依存方向を IEEE 1016 の構成・依存 viewpoint に沿って固定する。
 
 本設計は `docs/plans/L5/L5-helix-workflows-モジュール分割設計plan.md` の §2.1 を実体化する。
 

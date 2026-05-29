@@ -7,11 +7,23 @@ doc_type: function_spec_design
 parent_plan: L6-helix-workflows-関数仕様plan
 pairs_design: docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Interface viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Algorithm viewpoint"
 ---
 
 # HELIX-workflows V2 関数仕様設計 (function spec design)
 
 ## §0 概要
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Interface | 外部公開 API の契約（入力/出力/副作用）を定義 | §0.4 input/output 定義 / §1〜§10 function table / §2〜§10 対応 ID |
+| Algorithm | 入力処理や判定手順を明文化する | 各章の関数定義行 / §1 境界条件 / §3〜§5 判定ロジック |
+
+本節では L6 の関数契約を、入口 I/F と処理ロジックの2軸で IEEE 1016 ビューにマッピングして実装検収性を担保する。
 
 本書は L5 詳細設計 3 文書を入力に、L7 実装へ直接落とせる public 関数 / CLI / hook の入口契約を凍結する L6 関数仕様設計である。関数 inventory の正本は `docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md` §2.1、CLI と hook の入出力正本は `docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md`、振る舞い正本は `docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md` とする。
 

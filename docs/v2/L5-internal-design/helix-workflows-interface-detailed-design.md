@@ -7,6 +7,8 @@ doc_type: interface_detailed_design
 parent_plan: L5-helix-workflows-外部IF詳細設計plan
 pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
 pairs_test_design: docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-IF IF結合 (V-model L5↔L8 正対)
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Interface viewpoint"
 ---
 
 # L5 外部IF詳細設計
@@ -20,6 +22,15 @@ pairs_test_design: docs/v2/L8-test-design/helix-workflows-integration-test-desig
 ---
 
 ## §0 PLAN reference + scope 宣言
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Interface | システム間/要素間の入出力・データ交換契約を定義 | §1 CLI API 共通ルール / §1.2 出力 format / §1.3 exit code / §1.4 引数・payload 定義 |
+| Interface | バインディングと境界条件を明文化する | §2 hooks event payload / §10.7 例外連携 / §11 fail-open 制御 |
+
+本節では CLI / hook の契約面を IEEE 1016 Interface viewpoint で固定し、実装者が I/F 変更時に §0 前提と §1~§11 の追跡整合を更新するようにする。
 
 このドキュメントは下記を前提に作成し、対象外範囲を明示する。
 

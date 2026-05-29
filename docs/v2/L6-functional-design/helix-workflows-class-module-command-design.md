@@ -7,11 +7,23 @@ doc_type: class_module_command_design
 parent_plan: L6-helix-workflows-クラス設計plan
 pairs_design: docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Logical viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Structure viewpoint"
 ---
 
 # HELIX-workflows V2 Class/Module/Command 設計
 
 ## §0 概要
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Logical | 論理要素の振る舞いと関連を定義 | §1.1 F1 module/command / §1.4 F4 mode routing / §1.5 F5 orchestration |
+| Structure | 物理/論理構造と責務境界を固定する | §1.1/§1.2/§1.3/§1.4 class/module/config/hook の責務表 |
+
+本節で class/module/command を論理/構造 viewpoint に落とし込み、構造変更時の traceability と依存境界を固定する。
 
 本書は L5 詳細設計 4 文書と L6 関数仕様設計を入力に、L7 実装スプリントが直接参照できる粒度まで Class / Module / Command / Schema / Hook の入口契約を凍結する L6 機能設計である。TL 助言に従い「クラス設計」は Python class / dataclass / module API、bash CLI subcommand、config/schema、hook/agent contract を一体で扱う。
 

@@ -7,11 +7,25 @@ doc_type: edge_case_design
 parent_plan: L6-helix-workflows-エッジケースplan
 pairs_design: docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Interface viewpoint"
+  - "ISO/IEC/IEEE 29119-4:2021 (Test techniques): equivalence partitioning / boundary value analysis / error guessing"
 ---
 
 # HELIX-workflows V2 エッジケース設計 (境界値・例外・エラー処理)
 
 ## §0 概要
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD / ISO/IEC/IEEE 29119-4:2021)
+
+| IEEE 1016 viewpoint / test technique | 定義 | 本 doc の対応 |
+|---|---|---|
+| Interface | エラー時入出力・状態報告の契約を規定 | §0.2 exit code 体系 / §1 パターン定義 / §2 境界 critical |
+| Equivalence partitioning | 入力領域を同値群で分割して検証 | §0.1 分類 / §2 系譜のエッジケース |
+| Boundary value analysis | 端点・境界条件を明示的に検証 | §0.1 分類（境界値） / §1.1 リトライ条件 / EP-001 |
+| Error guessing | 運用上起こりやすい例外を経験則で拾う | §1.4 例外分類 / §2 以降の回復定義 |
+
+本設計は IEEE 1016 Interface viewpoint を補助参照に据え、29119-4 の 3 手法を併用して境界値・例外・回復の検証設計を固定する。
 
 本書は `docs/v2/L6-functional-design/helix-workflows-function-spec-design.md` を入口契約の正本、`docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md` を境界条件・失敗境界・回復経路の正本、`docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md` を exit code / timeout / retry / blocking の正本として、HELIX-workflows V2 の境界値・例外・エラー処理を L7 単体テストへ落とせる粒度で固定する。
 

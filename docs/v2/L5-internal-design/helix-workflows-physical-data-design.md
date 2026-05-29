@@ -5,6 +5,9 @@ status: frozen
 process_layer: L5
 doc_type: physical_data_design
 parent_plan: L5-helix-workflows-データ詳細設計plan
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Information viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Resource viewpoint"
 pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
 pairs_test_design: docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-DB helix.db結合 (V-model L5↔L8 正対)
 ---
@@ -23,6 +26,15 @@ pairs_test_design: docs/v2/L8-test-design/helix-workflows-integration-test-desig
 本文書は **既存列名変更禁止** を守るため、既存実装テーブル（`skill_usage`）は現存列のみを採用。
 
 ## §0 PLAN reference + scope 宣言
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Information | データの構造・意味・永続対象を定義する | §1.1 schema 採用方針 / §2 既存 implemented table / §3 データ整合定義 |
+| Resource | 物理資源・アクセス性・容量面の制約を扱う | §6 ストレージ方針 / §7 backup / §8 migration 運用境界 |
+
+本設計は `helix.db` とテーブル粒度を情報 viewpoint で固定し、容量・バックアップ・移行時のリソース制約を resource viewpoint で補完する。\n
 
 ### 0.1 扱う対象
 
@@ -1324,4 +1336,3 @@ SELECT m.name, p."seq" AS fk_count FROM sqlite_master m LEFT JOIN pragma_foreign
 SELECT table_name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%CREATE TABLE%plan_registry%';
 SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('event_log','metrics_log','plan_history','version_tag');
 ```
-

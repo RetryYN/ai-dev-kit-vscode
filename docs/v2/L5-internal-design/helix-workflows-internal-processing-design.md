@@ -7,6 +7,10 @@ owner: docs
 process_layer: L5
 doc_type: internal_processing_design
 parent_plan: L5-helix-workflows-内部処理設計plan
+industry_standards:
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Interaction viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): State Dynamics viewpoint"
+  - "IEEE Std 1016-2009 (Software Design Descriptions): Algorithm viewpoint"
 pairs_design: docs/v2/L4-architecture/helix-workflows-functional-design.md
 pairs_test_design:
   - docs/v2/L8-test-design/helix-workflows-integration-test-design.md  # IT-IP 内部処理結合 (V-model L5↔L8 正対)
@@ -25,6 +29,16 @@ updated: 2026-05-27
 # HELIX-workflows V2 L5 内部処理設計（内部処理 / アルゴリズム / 状態機械）
 
 ## §0 PLAN reference + scope 宣言
+
+### §0.5 業界標準整合 (IEEE Std 1016-2009 SDD)
+
+| IEEE 1016 viewpoint | 定義 | 本 doc の対応 |
+|---|---|---|
+| Interaction | 要素間相互作用・メッセージの流れを示す | §1.1 4 ドメイン分離アルゴリズム / §5 execution pipeline / §9 フロー間連携 |
+| State Dynamics | 状態遷移と停止条件を定義する | §10 mode transition / §12 実行状態・失敗境界 / §13 recovery |
+| Algorithm | 変換・判定の手順を規定する | §11 pseudo-code / §1.1 分離アルゴリズム / §8 判定式 |
+
+本節では内部処理フローを上記 3 viewpoint で整合させ、状態・遷移・アルゴリズムを L7 落とし込み可能な形で維持する。
 
 本書は `docs/plans/L5/L5-helix-workflows-内部処理設計plan.md` の §2.1 構造をそのまま受け、L5 詳細設計のうち `内部処理 / アルゴリズム / 状態機械` を担当する。
 
@@ -1607,4 +1621,3 @@ stateDiagram-v2
 - [ ] F8 portable import 時の schema upgrade policy の例外定義（破壊的変更禁止）
 - [ ] F10 ACL adapter の外部フレームワークごとの ACL エッジケースを追加
 - [ ] 本書の `implementation_status` が `implemented` に移る際の PR テンプレートを追加
-
