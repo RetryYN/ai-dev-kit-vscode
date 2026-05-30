@@ -141,7 +141,7 @@ docs/plans/
 plan_id: L<NN>-<slug>plan       # 新命名規則 (例: L7-helix-workspace-mergeplan)
 process_layer: L<NN>            # 該当工程 (L0-L14)
 parent_process: HELIX-workflows/L<NN>-*.md  # 工程定義 doc への path
-pairs_test_design:              # V-model ペア (L7 のみ必須、他工程は任意)
+pairs_test_design:              # V-model pair を持つ工程 (L4/L5/L6/L7/L8/L9) で必須
   - docs/v2/L<NN>-test-design/<feature>-test-design.md
 kind: design | requirements | ui-design | impl | test | review | deployment | operation
 status: draft | active | complete | blocked | abandoned
@@ -201,7 +201,7 @@ PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 
 
 ### 既存 skills/SKILL_MAP.md との同期 carry
 
-- `SKILL_MAP.md §オーケストレーションフロー` の「PLAN は L7 のみ」前提を「PLAN は全工程で起票、L7 は上位概念」に訂正 (carry)
+- `SKILL_MAP.md §オーケストレーションフロー` の旧前提を「PLAN は全工程で起票、L7 は上位概念」に訂正 (carry)
 - `helix/HELIX_CORE.md` の同様訂正 (carry)
 - `gate-policy.md` の G1〜G11 → G0-G14 再採番 (carry)
 

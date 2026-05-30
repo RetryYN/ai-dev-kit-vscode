@@ -4,15 +4,15 @@ title: "L4-helix-workflows-外部IF設計plan: HELIX-workflows V2 外部接続�
 kind: design
 layer: L4
 drive: be
-status: finalized
+status: draft
 created: 2026-05-27
 owner: TL
 process_layer: L4
 pair: L9
-pair_process: L9-helix-workflows-system-test-design
+pair_process: L9-basic-design-test-design
 parent_process: HELIX-workflows/helix-process/L4-basic-design.md
 pairs_test_design:
-  - docs/v2/L9-test-design/helix-workflows-system-test-design.md
+  - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 大局判断・最終 finalize"
@@ -21,13 +21,17 @@ agent_slots:
   - role: tl-advisor
     slot_label: "TL — adversarial check (G4 evidence)"
 generates:
-  - artifact_path: docs/plans/L5/L5-helix-workflows-外部IF詳細設計plan.md
+  - artifact_path: docs/v2/L4-basic-design/外部IF設計.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    artifact_type: design_doc
+  - artifact_path: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
     artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-方式設計plan
   requires:
     - L4-helix-workflows-方式設計plan
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
   blocks:
     - L5-helix-workflows-内部処理設計plan
@@ -37,11 +41,11 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L4-basic-design.md
   - docs/plans/L4/L4-helix-workflows-方式設計plan.md
-  - docs/plans/L4/L4-helix-workflows-機能設計plan.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
-  - docs/v2/L4-architecture/helix-workflows-functional-design.md
+  - docs/plans/L4/L4-helix-workflows-機能構成設計plan.md
+  - docs/v2/L4-basic-design/方式設計.md
+  - docs/v2/L4-basic-design/機能構成設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
   - cli/ROLE_MAP.md
   - cli/config/models.yaml
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
@@ -62,9 +66,9 @@ frontmatter: sibling
 
 ### 目的
 
-- HELIX 正本と実装、外部実行器（Codex/Claude/Hooks/MCP/GitHub Actions/外部API）との境界を「細胞膜（boundary）」として明文化する。
+- HELIX 正本と実装、外部実行器（Codex/Claude/Hooks/MCP/GitHub Actions/外部API）との境界を「境界（boundary）」として明文化する。
 - wrapper / hook / サービス別契約を `planned / partial / implemented` で分解し、`CLI 実在性原則`（実在するコマンド証跡）を担保する。
-- ADR-044 Decision-4（`二重/三重 audit`）と F10 共生（endosymbiosis）整合を確定する。
+- ADR-044 Decision-4（`二重/三重 audit`）と F10 共生（coexistence）整合を確定する。
 - L5 詳細設計で API schema / contract が確定しやすいよう、`§11` SSoT と drift retrofit を示す。
 
 ### 期待アウトカム
@@ -76,25 +80,25 @@ frontmatter: sibling
 
 | 項目 | 期待値 | implementation_status |
 |---|---|---|
-| 生物学 metaphor | membrane / receptor / endosymbiosis | implemented |
+| 生物学 metaphor | boundary / adapter / coexistence | implemented |
 | Section 完成度 | §0-§13 14 セクション | implemented |
 | plan_lint | PASS（frontmatter warning 無） | planned |
 
 ### 参照
 
 - `docs/plans/L4/L4-helix-workflows-方式設計plan.md`
-- `docs/plans/L4/L4-helix-workflows-機能設計plan.md`
-- `docs/v2/L4-architecture/helix-workflows-system-architecture.md`
-- `docs/v2/L4-architecture/helix-workflows-functional-design.md`
+- `docs/plans/L4/L4-helix-workflows-機能構成設計plan.md`
+- `docs/v2/L4-basic-design/方式設計.md`
+- `docs/v2/L4-basic-design/機能構成設計.md`
 - `docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`
 - `cli/ROLE_MAP.md`
 - `cli/config/models.yaml`
 
 ### 生物学 metaphor
 
-- membrane = 外部境界（§1）
-- receptor = 外部アダプタ（§2-§7）
-- endosymbiosis = 共生（§8）
+- boundary = 外部境界（§1）
+- adapter = 外部アダプタ（§2-§7）
+- coexistence = 共生（§8）
 
 ## §1 外部接続境界の責務マトリクス
 
@@ -280,7 +284,7 @@ frontmatter: sibling
 | 障害条件 | 切替先 | 受け入れ条件 | implementation_status |
 |---|---|---|---|
 | provider timeout | 既存 docs 再利用 | search fallback | implemented |
-| schema 不整合 | raw block + `TODO` | 再試行/人工介入 | partial |
+| schema 不整合 | raw block | 再試行/人工介入 | partial |
 | 認証失敗 | 参照停止 | fail-close（外部依存停止） | implemented |
 | レート制限 | キャッシュ参照 | 1 分内の retry 限定 | implemented |
 
@@ -377,7 +381,7 @@ frontmatter: sibling
 |---|---|---|---|---|
 | HELIX-workflows | `HELIX-workflows` 配下 | PLAN 起票時に参照固定 | drift なら carry + block | implemented |
 | plans | `docs/plans/L4/*` | pair trace + frontmatter | 不一致時レビュー停止 | implemented |
-| architecture | `docs/v2/L4-architecture` | Plan ID 対応 map | 不整合なら WIP | implemented |
+| architecture | `docs/v2/L4-basic-design` | Plan ID 対応 map | 不整合なら WIP | implemented |
 | ADR | `docs/adr/ADR-044` | step4/step6で同時更新 | status 差分で block | implemented |
 | 外部IF実装 | cli 設定 / scripts / hook | CLI 起点で trace | 実装差分は PR コメント + handover | partial |
 

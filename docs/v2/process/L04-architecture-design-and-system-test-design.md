@@ -39,7 +39,7 @@ canonical_source: HELIX-workflows/helix-process/L4-basic-design.md
 
 ## 成果物
 
-- **正本**: `docs/v2/L4-architecture/<area>-architecture.md`
+- **正本**: `docs/v2/L4-basic-design/<area>-architecture.md`
 - **ADR snapshot**: `docs/adr/ADR-NNN-<topic>.md`
 - **ペア artifact**: `docs/v2/L9-test-design/<area>-system-test-design.md`
 
@@ -65,7 +65,7 @@ L9 総合テスト
 - ❌ ADR snapshot を後追いで起票 (PLAN-156/PLAN-224 で発覚した V-model 違反、本工程で先に起票)
 - ❌ tl-advisor 召喚 skip (G4 blocking 対象)
 - ❌ 総合テスト設計のペア凍結を skip (V-model 違反、L9 総合テスト工程が空回り)
-- ❌ アーキテクチャ doc を PLAN.md 内に書く (PLAN は L7 のみ、本工程は doc + ADR が成果物)
+- ❌ アーキテクチャ doc を PLAN.md 内に書く (PLAN は全工程で起票可だが、設計内容は PLAN 本文ではなく生成 doc + ADR に書く)
 
 ---
 
@@ -112,4 +112,3 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

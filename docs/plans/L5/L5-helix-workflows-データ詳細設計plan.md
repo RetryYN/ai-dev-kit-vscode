@@ -4,13 +4,13 @@ title: "L5-helix-workflows-データ詳細設計plan: HELIX-workflows V2 helix.d
 kind: design
 layer: L5
 drive: db
-status: finalized
+status: draft
 created: 2026-05-27
 owner: PM
 process_layer: L5
 parent_process: HELIX-workflows/helix-process/L5-detailed-design.md
 pairs_test_design:
-  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -24,13 +24,13 @@ agent_slots:
   - role: dba
     slot_label: "DBA — schema / index / migration 詳細"
 generates:
-  - artifact_path: docs/v2/L5-internal-design/helix-workflows-physical-data-design.md
+  - artifact_path: docs/v2/L5-detailed-design/物理データ設計.md
     artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-データ設計plan
   requires:
     - L4-helix-workflows-方式設計plan
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
     - L5-helix-workflows-内部処理設計plan
     - L5-helix-workflows-モジュール分割設計plan
@@ -39,10 +39,10 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L5-detailed-design.md
   - HELIX-workflows/helix-process/L8-integration-test.md
-  - docs/v2/L4-architecture/helix-workflows-functional-design.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
+  - docs/v2/L4-basic-design/機能構成設計.md
+  - docs/v2/L4-basic-design/方式設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ---
 
 ## §0 PLAN concept
@@ -80,7 +80,7 @@ related_docs:
 
 本 PLAN で確定すべき不確定事項:
 
-- U-08: `version_coevolution` table の帰属 ADR (現状 ADR-045 に未記載、ADR-044/045 どちらに追加するか確定)
+- U-08: `version_coevolution` table の帰属 ADR (現状 ADR-044 に未記載、ADR-044/045 どちらに追加するか確定)
 - U-09: ADR-044 §6.8 が言及する「11 table」の正本リスト化（本 PLAN で C-01〜C-12 = 12 table 全件を一覧化し ADR-044 §6.8 を retrofit）
 
 ## §1 工程表
@@ -94,7 +94,7 @@ related_docs:
 | 5 | FK 設計確定 (CASCADE / SET NULL / RESTRICT) | DBA | done |
 | 6 | migration script 起草 (PRAGMA schema_version → migration table 移行を含む) | DBA | done |
 | 7 | rollback strategy 確定 (各 migration の dryrun + backup manifest) | DBA + security | done |
-| 8 | retention policy 確定 (event_log / metrics_log は autophagy 対象) | PM | done |
+| 8 | retention policy 確定 (event_log / metrics_log は retention 対象) | PM | done |
 | 9 | 二重 audit R1 (tl-advisor + pmo-sonnet + dba) | TL + PMO + DBA | done |
 | 10 | R1 反映 + R2 audit | PM + TL + PMO | done |
 | 11 | L8 pair freeze (結合テスト設計に DB schema test を含む) | PM | done |
@@ -104,7 +104,7 @@ related_docs:
 
 ### §2.1 doc 構造 candidate
 
-`docs/v2/L5-internal-design/helix-workflows-physical-data-design.md`:
+`docs/v2/L5-detailed-design/物理データ設計.md`:
 
 ```
 §0 PLAN reference + scope 宣言
@@ -135,12 +135,12 @@ related_docs:
 §6 migration script
   §6.1 schema_version v<N> → v<N+1> migration template
   §6.2 destructive migration の人間承認境界
-  §6.3 backward compat 1 stage + breaking change cap (ADR-045 §4.1 連動)
+  §6.3 backward compat 1 stage + breaking change cap (ADR-044 §4.1 連動)
 §7 rollback strategy
   §7.1 dry-run + backup manifest
   §7.2 rollback evidence (obsolete_record / rollback_manifest_path)
 §8 retention policy
-  §8.1 event_log retention (autophagy 対象、ADR-045 §2.1)
+  §8.1 event_log retention (retention 対象、ADR-044 §2.1)
   §8.2 metrics_log retention
 §9 セキュリティ
   §9.1 file permission (umask)
@@ -169,7 +169,7 @@ related_docs:
 - AC-DB-04: 全 FK の CASCADE 戦略確定
 - AC-DB-05: migration script template + 人間承認境界凍結
 - AC-DB-06: rollback strategy (dry-run + backup manifest) 凍結
-- AC-DB-07: retention policy (autophagy 対象 table) 確定
+- AC-DB-07: retention policy (retention 対象 table) 確定
 - AC-DB-08: ADR-044 §6.8 retrofit 提案 (12 table 一覧化)
 - AC-DB-09: 二重 audit R1 + R2 PASS
 - AC-DB-10: L8 pair PLAN への blocks 設定
@@ -177,14 +177,14 @@ related_docs:
 
 ## §4 関連
 
-- pair: docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+- pair: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
 - parent: L4-helix-workflows-データ設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-モジュール分割設計plan / L5-helix-workflows-外部IF詳細設計plan
 - ADR snapshot 候補: ADR-046 (helix.db 全 12 table 確定 + ADR-044 §6.8 retrofit の大局判断時)
 
 ## L5 完遂 evidence (2026-05-29)
 
-- 設計 doc: docs/v2/L5-internal-design/helix-workflows-physical-data-design.md — 本体化完遂、frontmatter status: frozen
+- 設計 doc: docs/v2/L5-detailed-design/物理データ設計.md — 本体化完遂、frontmatter status: frozen
 - pair freeze: L5↔L8 双方向 trace (IT-DB 結合テスト設計: integration-test-design.md §DB schema section)
 - 監査: pmo-sonnet 機械検証 (placeholder 0 / 12 table 全件 DDL 記載確認) + tl-advisor adversarial check
 - DoD: AC-DB-01〜AC-DB-11 達成

@@ -68,7 +68,7 @@ canonical_source: HELIX-workflows/helix-process/L7-implementation.md
 - **コード (artifact ②)**: `cli/lib/<module>.py` / `cli/helix-<command>` 等
 - **テストコード (artifact ④)**: `cli/lib/tests/test_<module>.py`
 - **テスト実行結果**: pytest / bats raw output
-- **PLAN doc (管理用)**: `docs/plans/PLAN-NNN-<slug>.md` (本工程の管理単位)
+- **PLAN doc (管理用)**: `docs/plans/L7/L7-<機能名>plan.md` (本工程の管理単位)
 - **3 点レビュー記録**: PLAN.md §3 点レビューに記録
 
 ## V-model 4 artifact 完備
@@ -134,4 +134,3 @@ L7 の工程表が実装機能の順番を定義し、その配下の PLAN が�
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

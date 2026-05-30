@@ -4,13 +4,13 @@ title: "L5-helix-workflows-モジュール分割設計plan: HELIX-workflows V2 �
 kind: design
 layer: L5
 drive: be
-status: finalized
+status: draft
 created: 2026-05-27
 owner: PM
 process_layer: L5
 parent_process: HELIX-workflows/helix-process/L5-detailed-design.md
 pairs_test_design:
-  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
   - docs/v2/L8-test-design/helix-workflows-dependency-resolution-design.md
 is_reference: false
 agent_slots:
@@ -23,13 +23,13 @@ agent_slots:
   - role: doc-reviewer
     slot_label: "doc-reviewer — ドキュメント品質レビュー"
 generates:
-  - artifact_path: docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
+  - artifact_path: docs/v2/L5-detailed-design/モジュール分割設計.md
     artifact_type: design_doc
 dependencies:
-  parent: L4-helix-workflows-機能設計plan
+  parent: L4-helix-workflows-機能構成設計plan
   requires:
     - L4-helix-workflows-方式設計plan
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
     - L4-helix-workflows-外部IF設計plan
     - L5-helix-workflows-内部処理設計plan
@@ -39,15 +39,15 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L5-detailed-design.md
   - HELIX-workflows/helix-process/L8-integration-test.md
-  - docs/v2/L4-architecture/helix-workflows-functional-design.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
+  - docs/v2/L4-basic-design/機能構成設計.md
+  - docs/v2/L4-basic-design/方式設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ---
 
 ## §0 PLAN concept
 
-本 PLAN は HELIX-workflows V2 の **モジュール構成 / 責務分担 / 依存 graph** を凍結する。L4 機能設計（F1-F10）の機能カタログを物理 module（python file / bash script / hook file / config）にどう配置するかを確定する。
+本 PLAN は HELIX-workflows V2 の **モジュール構成 / 責務分担 / 依存 graph** を凍結する。L4 機能構成設計（FR16 機能群）の機能カタログを物理 module（python file / bash script / hook file / config）にどう配置するかを確定する。
 
 ### §0.1 担当 scope（L5 4 分割における本 PLAN の責務）
 
@@ -83,7 +83,7 @@ related_docs:
 | Step | 作業 | 担当 | 状態 |
 |---|---|---|---|
 | 1 | 現状の cli/ / cli/lib/ / .claude/hooks/ / scripts/ の module 一覧抽出 | PM + pmo-sonnet | done |
-| 2 | F1-F10 各機能が touch する module を機能 × module matrix で抽出 | PM | done |
+| 2 | FR16 各機能が touch する module を機能 × module matrix で抽出 | PM | done |
 | 3 | 責務分担 ルール起草 (1 module = 1 機能 or 1 横断 concern) | PM | done |
 | 4 | 依存 graph (mermaid) 起草 - 循環依存検出 | PM | done |
 | 5 | F6-F10 新規 module の追加配置決定 (homeostasis.py / evolution.py / migration.py / apoptosis.py / coexist.py 等) | PM + tl-advisor | done |
@@ -97,12 +97,12 @@ related_docs:
 
 ### §2.1 doc 構造 candidate
 
-`docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md`:
+`docs/v2/L5-detailed-design/モジュール分割設計.md`:
 
 ```
 §0 PLAN reference + scope 宣言
 §1 module 分類体系 (11 大分類)
-§2 機能 × module matrix (F1-F10 × 各 module)
+§2 機能 × module matrix (FR16 × 各 module)
 §3 cli/ dispatcher
   §3.1 helix-* bash entry 一覧 (~30 entry)
   §3.2 役割 dispatch table (cli/ROLE_MAP.md 連動)
@@ -150,7 +150,7 @@ related_docs:
 
 ## §3 DoD
 
-- AC-MOD-01: 機能 × module matrix が F1-F10 全 5 機能領域 + Reverse 経路 + governance hook で完備
+- AC-MOD-01: 機能 × module matrix が FR16 全 5 機能領域 + Reverse 経路 + governance hook で完備
 - AC-MOD-02: 新規追加 module (F6-F10 関連) のファイル名 / path 確定
 - AC-MOD-03: hook 11 件の .claude/hooks/ 配置 + matcher 確定
 - AC-MOD-04: 依存 graph (mermaid) で循環依存ゼロ確認
@@ -163,14 +163,14 @@ related_docs:
 
 ## §4 関連
 
-- pair: docs/v2/L8-test-design/helix-workflows-integration-test-design.md
-- parent: L4-helix-workflows-機能設計plan
+- pair: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
+- parent: L4-helix-workflows-機能構成設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-データ詳細設計plan / L5-helix-workflows-外部IF詳細設計plan
 - ADR snapshot 候補: ADR-046 (CLI canonical + hook contract + module dependency rule の大局判断時)
 
 ## L5 完遂 evidence (2026-05-29)
 
-- 設計 doc: docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md — 本体化完遂 (§2.1 機能×module matrix 100% coverage)、frontmatter status: frozen
+- 設計 doc: docs/v2/L5-detailed-design/モジュール分割設計.md — 本体化完遂 (§2.1 機能×module matrix 100% coverage)、frontmatter status: frozen
 - pair freeze: L5↔L8 双方向 trace (IT-MOD 結合テスト設計 + dependency-resolution-design)
 - 監査: pmo-sonnet 機械検証 (placeholder 0 / matrix 100% coverage) + tl-advisor adversarial check
 - DoD: AC-MOD-01〜AC-MOD-09 達成。AC-MOD-10 (helix doctor check_dependency_direction lint 候補) は L7 carry

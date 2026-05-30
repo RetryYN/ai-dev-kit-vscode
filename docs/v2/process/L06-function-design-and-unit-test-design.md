@@ -36,7 +36,7 @@ canonical_source: HELIX-workflows/helix-process/L6-functional-design.md
 
 ## 成果物
 
-- **正本**: `docs/v2/L6-function-design/<feature>/<function>.md` (関数 / 機能単位)
+- **正本**: `docs/v2/L6-functional-design/FR-XXX/<feature>/<function>.md` (関数 / 機能単位)
 - **ペア artifact**: `docs/v2/L7-test-design/<feature>-unit-test-design.md`
 - **工程表**: `docs/v2/L6-function-design/schedule/<area>-wbs.md` or `.helix/task-plan.yaml`
 
@@ -96,4 +96,3 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

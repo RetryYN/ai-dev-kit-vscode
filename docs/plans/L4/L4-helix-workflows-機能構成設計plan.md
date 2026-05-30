@@ -1,16 +1,16 @@
 ---
-plan_id: L4-helix-workflows-機能設計plan
-title: "L4-helix-workflows-機能設計plan: HELIX-workflows V2 機能設計"
+plan_id: L4-helix-workflows-機能構成設計plan
+title: "L4-helix-workflows-機能構成設計plan: HELIX-workflows V2 機能構成設計"
 kind: design
 layer: L4
 drive: be
-status: finalized
+status: draft
 created: 2026-05-27
 owner: PM
 process_layer: L4
 parent_process: HELIX-workflows/helix-process/L4-basic-design.md
 pairs_test_design:
-  - docs/v2/L9-test-design/helix-workflows-functional-test-design.md
+  - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -22,11 +22,11 @@ agent_slots:
   - role: doc-reviewer
     slot_label: "doc-reviewer — ドキュメント品質レビュー"
 generates:
-  - artifact_path: docs/v2/L4-architecture/helix-workflows-functional-design.md
+  - artifact_path: docs/v2/L4-basic-design/機能構成設計.md
     artifact_type: design_doc
-  - artifact_path: docs/v2/L9-test-design/helix-workflows-functional-test-design.md
+  - artifact_path: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
     artifact_type: design_doc
-  - artifact_path: docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - artifact_path: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
     artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-方式設計plan
@@ -50,9 +50,9 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L4-basic-design.md
   - HELIX-workflows/helix-process/L9-system-test.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
+  - docs/v2/L4-basic-design/方式設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
   - skills/SKILL_MAP.md
   - helix/HELIX_CORE.md
   - CLAUDE.md
@@ -73,26 +73,26 @@ related_docs:
 4. ワークフロー / 9 mode 入口分岐（F4）
 5. オーケストレーションルール（F5）
 
-これらを本 PLAN の中で固定し、Step 2-3 の本体化で各章に展開する。対象は `docs/v2/L4-architecture/helix-workflows-functional-design.md`（F1〜F5）と `docs/v2/L9-test-design/helix-workflows-functional-test-design.md`（ST-F1〜ST-F5）。
+これらを本 PLAN の中で固定し、Step 2-3 の本体化で各章に展開する。対象は `docs/v2/L4-basic-design/機能構成設計.md`（F1〜F5）と `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`（ST-F1〜ST-F5）。
 
-### §0.2 生物遺伝子工学 metaphor と対応
+### §0.2 構成メタファー と対応
 
 本 framework は「生物遺伝子工学を V モデルにはめ込んだ AI 時代の再編集モデル」を思想コアとする。
-README 正本の DNA/染色体/ゲノム/細胞核 などの層構造を、5 機能領域の抽象レイヤに対応づける（§0.1.1 で凍結）。
+README 正本の 文書/構成/レイヤ/境界 などの層構造を、5 機能領域の抽象レイヤに対応づける（§0.1.1 で凍結）。
 
-1. ドキュメント体系 = DNA + 塩基配列 + 染色体 + ゲノム + 細胞核（設計情報の配列化）
-2. PLAN 規約 = 遺伝子 + 遺伝子座 + 遺伝子発現（工程 ID の決定論）
-3. skill 体系 = 細胞器官 + 細胞分化（役割分担による専門分化）
-4. ワークフロー = 9 細胞応答経路 + 分裂サイクル（mode 入口と L0-L14 進行）
-5. オーケストレーション = 中枢神経 + シナプス + 免疫系（自動化と AI 委譲の協働）
+1. ドキュメント体系 = 文書構造 + 配置 + 層 + 境界（設計情報の配列化）
+2. PLAN 規約 = 命名 + 配置 + 反映（工程 ID の決定論）
+3. skill 体系 = 役割分担 + 専門化（役割分担による専門分化）
+4. ワークフロー = 9 mode 入口 + 遷移サイクル（mode 入口と L0-L14 進行）
+5. オーケストレーション = 自動化 + 接続 + 異常回収（自動化と AI 委譲の協働）
 
 ### §0.2.1 詳細対応表
 
 | 機能領域 | 生物学 metaphor | 役割 |
 |---|---|---|
-| F1 ドキュメント体系 | DNA + 染色体 + ゲノム + 細胞核 | PLAN/ADR/docs の保存と参照規約。SSoT 制御 |
+| F1 ドキュメント体系 | 文書構造 + 層 + 境界 + 管理 | PLAN/ADR/docs の保存と参照規約。SSoT 制御 |
 | F2 PLAN テンプレート規約 | 遺伝子 + 遺伝子座 + 発現 | 工程別 PLAN スキーマと進捗表現の統一 |
-| F3 skill 体系 + 推挙 | 細胞器官 + 分化 | role 別責務分離と委譲スケジューラ |
+| F3 skill 体系 + 推挙 | 役割分担 + 専門化 | role 別責務分離と委譲スケジューラ |
 | F4 ワークフロー入口 | 応答経路 + 分裂サイクル | 9 mode と Forward 回帰の入口制御 |
 | F5 オーケストレーション | 中枢神経 + シナプス + 免疫 | 実行自動化、審査委譲、異常回収の 3 軸 |
 
@@ -101,8 +101,8 @@ README 正本の DNA/染色体/ゲノム/細胞核 などの層構造を、5 機
 | Step | 作業内容 | 進捗 |
 |---|---|---|
 | 1 | 参考調査（L4 方式設計 + ADR-044 + CLAUDE.md + SKILL_MAP.md + HELIX_CORE.md + commit cd598d2 の思想原文） | ☑ completed (2026-05-27、本 wave で実施) |
-| 2 | 機能設計 doc 起草 (`docs/v2/L4-architecture/helix-workflows-functional-design.md`) | ☑ completed (2026-05-27、574 行本体化、F1-F5 + §6 統合表) |
-| 3 | L9 機能テスト設計 doc 起草 (`docs/v2/L9-test-design/helix-workflows-functional-test-design.md`) | ☑ completed (2026-05-27、357 行本体化、ST-F1〜F5 + fixture 契約) |
+| 2 | 機能設計 doc 起草 (`docs/v2/L4-basic-design/機能構成設計.md`) | ☑ completed (2026-05-27、574 行本体化、F1-F5 + §6 統合表) |
+| 3 | L9 機能テスト設計 doc 起草 (`docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`) | ☑ completed (2026-05-27、357 行本体化、ST-F1〜F5 + fixture 契約) |
 | 4 | tl-advisor adversarial check（G4 evidence） | ☑ completed (2026-05-27、conditional_approve P0=0/P1=5/P2=5/P3=2) |
 | 5 | pmo-sonnet + doc-reviewer 二重 audit | ☑ completed (2026-05-27、pmo-sonnet=no→修正後 yes、doc-reviewer は次 session carry) |
 | 6 | 修正反映 → G4 ゲート判定 → L5 詳細設計 / L4 残 PLAN へ展開 | ☑ in_progress (P1 修正反映済、conditional_approve 取得、L5 carry: planned CLI sweep + fixture path 実体化) |
@@ -137,8 +137,8 @@ Step 間の前提:
 ### §2.3 方式設計 pair 整合性
 
 - 本 PLAN は `L4-helix-workflows-方式設計plan` の `generates` と同一運用で pair freeze する。
-- 機能設計 doc: `docs/v2/L4-architecture/helix-workflows-functional-design.md`
-- テスト設計 doc: `docs/v2/L9-test-design/helix-workflows-functional-test-design.md`
+- 機能設計 doc: `docs/v2/L4-basic-design/機能構成設計.md`
+- テスト設計 doc: `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`
 - 仕様変更は L9 DoD に連動し、片側のみ更新しない。
 
 ### §2.4 L4 接続規約
@@ -150,9 +150,9 @@ Step 間の前提:
 
 - 起票 1: 本 PLAN（本ファイル）
 - 起票 2: 機能設計 doc
-  - `docs/v2/L4-architecture/helix-workflows-functional-design.md`
+  - `docs/v2/L4-basic-design/機能構成設計.md`
 - 起票 3: 機能テスト設計 doc
-  - `docs/v2/L9-test-design/helix-workflows-functional-test-design.md`
+  - `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`
 
 ## §4 残 carry
 
@@ -166,8 +166,8 @@ Step 2-3 に本体化される carry として以下を明示。
 
 ## §5 L4 完遂条件 (DoD)
 
-1. ✅ F1〜F5 全部（§1-§5）の本体化対象が明示され、carry と実装方針が分離されている。達成根拠: `docs/v2/L4-architecture/helix-workflows-functional-design.md` 574 行本体化、F1-F5 + §6 統合表 (2026-05-27)。
-2. ✅ L9 ST-F1〜ST-F5 が対応表で 1:1 になっている。達成根拠: `docs/v2/L9-test-design/helix-workflows-functional-test-design.md` 357 行本体化、ST-F1〜F5 + fixture 契約 (2026-05-27)。
+1. ✅ F1〜F5 全部（§1-§5）の本体化対象が明示され、carry と実装方針が分離されている。達成根拠: `docs/v2/L4-basic-design/機能構成設計.md` 574 行本体化、F1-F5 + §6 統合表 (2026-05-27)。
+2. ✅ L9 ST-F1〜ST-F5 が対応表で 1:1 になっている。達成根拠: `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md` 357 行本体化、ST-F1〜F5 + fixture 契約 (2026-05-27)。
 3. ✅ tl-advisor PASS。達成根拠: 2026-05-27 conditional_approve P0=0/P1=5/P2=5/P3=2。pmo-sonnet no→修正後 yes 取得済み。carry: doc-reviewer は次 session carry (L4 freeze blockerではない)。
 4. ✅ `plan_validator` error 0。WARN は L5 blocks が未起票のため、L5 finalize で解消予定。
 5. ✅ balance_ratio BR/FR/NFR/AC/OT 1.0 以上維持。達成根拠: P1 修正反映済み conditional_approve 取得。
@@ -209,20 +209,20 @@ Step 2-3 に本体化される carry として以下を明示。
 ### §6.2 監査前提
 
 - 変更は 3 行レベルで監査可能な形式（check 名・hook・CLI・DB）を付与。
-- 5 機能は 1 つの PLAN のみで定義し、機能間の重複記述は避ける。
+- 5 機能群は 1 つの PLAN のみで定義し、機能間の重複記述は避ける。
 - `implementation_status` は `partial`/`planned` を優先し、`implemented` は L4 本体化完了時に更新。
 
 ### §6.3 参照リンク
 
-- `docs/v2/L4-architecture/helix-workflows-system-architecture.md`
-- `docs/v2/L9-test-design/helix-workflows-system-test-design.md`
+- `docs/v2/L4-basic-design/方式設計.md`
+- `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`
 - `docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`
 - `HELIX-workflows/helix-process/L4-basic-design.md`
 
 ## L4 完遂 evidence (2026-05-29)
 
-- 設計 doc: 本体化完遂、frontmatter status: frozen (`docs/v2/L4-architecture/helix-workflows-functional-design.md`)
-- pair freeze: L4↔L9 双方向 trace coverage PASS (functional-design F1-F10 ↔ ST-F1〜F10)
+- 設計 doc: 本体化完遂、frontmatter status: frozen (`docs/v2/L4-basic-design/機能構成設計.md`)
+- pair freeze: L4↔L9 双方向 trace coverage PASS (functional-design FR16 ↔ ST-F1〜F10)
 - 監査: 2026-05-27 tl-advisor R1/R2 conditional_approve (P0=0) + pmo-sonnet YES (修正後) + 2026-05-29 pmo-sonnet freeze-readiness audit YES with minor、M-1〜M-4 全解消
 - implementation_status 列: BR-RULE-09 準拠確認済 (機能設計 doc 全 F 区画)
 - carry (L7 実装へ): fixture 実体 / テストコード / 9 mode 図・Forward 回帰図 mermaid / planned CLI sweep / doc-reviewer 三重 audit

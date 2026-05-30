@@ -4,13 +4,13 @@ title: "L5-helix-workflows-外部IF詳細設計plan: HELIX-workflows V2 CLI API 
 kind: design
 layer: L5
 drive: be
-status: finalized
+status: draft
 created: 2026-05-27
 owner: PM
 process_layer: L5
 parent_process: HELIX-workflows/helix-process/L5-detailed-design.md
 pairs_test_design:
-  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -22,13 +22,13 @@ agent_slots:
   - role: doc-reviewer
     slot_label: "doc-reviewer — ドキュメント品質レビュー"
 generates:
-  - artifact_path: docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md
+  - artifact_path: docs/v2/L5-detailed-design/IF詳細設計.md
     artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-外部IF設計plan
   requires:
     - L4-helix-workflows-方式設計plan
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
     - L4-helix-workflows-外部IF設計plan
     - L5-helix-workflows-内部処理設計plan
@@ -40,10 +40,10 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L5-detailed-design.md
   - HELIX-workflows/helix-process/L8-integration-test.md
-  - docs/v2/L4-architecture/helix-workflows-functional-design.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
+  - docs/v2/L4-basic-design/機能構成設計.md
+  - docs/v2/L4-basic-design/方式設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ---
 
 ## §0 PLAN concept
@@ -133,7 +133,7 @@ related_docs:
 
 ### §2.1 doc 構造 candidate
 
-`docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md`:
+`docs/v2/L5-detailed-design/IF詳細設計.md`:
 
 ```
 §0 PLAN reference + scope 宣言
@@ -233,14 +233,14 @@ related_docs:
 
 ## §4 関連
 
-- pair: docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+- pair: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
 - parent: L4-helix-workflows-外部IF設計plan
 - siblings: L5-helix-workflows-内部処理設計plan / L5-helix-workflows-モジュール分割設計plan / L5-helix-workflows-データ詳細設計plan
 - ADR snapshot 候補: ADR-046 (CLI 34 件 + hook 11 件 の正本一本化と契約凍結の大局判断時)
 
 ## L5 完遂 evidence (2026-05-29)
 
-- 設計 doc: docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md — 本体化完遂、frontmatter status: frozen
+- 設計 doc: docs/v2/L5-detailed-design/IF詳細設計.md — 本体化完遂、frontmatter status: frozen
 - pair freeze: L5↔L8 双方向 trace (IT-IF 結合テスト設計: integration-test-design.md §IF section)
 - 監査: pmo-sonnet 機械検証 (placeholder 0 / CLI 34 件 + hook 11 件 全件 spec 記載確認) + tl-advisor adversarial check
 - DoD: AC-IF-01〜AC-IF-11 達成 (U-01〜U-07 全件確定済)

@@ -4,13 +4,28 @@ title: "L6-helix-workflows-エッジケースplan: HELIX-workflows V2 境界値 
 kind: design
 layer: L6
 drive: be
-status: finalized
+status: draft
 created: 2026-05-29
 owner: PM
 process_layer: L6
 parent_process: HELIX-workflows/helix-process/L6-functional-design.md
 pairs_test_design:
-  - docs/v2/L7-test-design/helix-workflows-unit-test-design.md
+  - docs/v2/L7-test-design/FR-NSM-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-GR-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-TDD-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-9MODE-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-GATE-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-IMPACT-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-EVT-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-4ART-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-INV-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-CTX-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-DRIFT-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-PLAN-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-DOCTOR-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-MIGR-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-DOCREVIEW-01/unit-test-design.md
+  - docs/v2/L7-test-design/FR-CHANGEPROP-01/unit-test-design.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -22,7 +37,37 @@ agent_slots:
   - role: doc-reviewer
     slot_label: "doc-reviewer — ドキュメント品質レビュー"
 generates:
-  - artifact_path: docs/v2/L6-functional-design/helix-workflows-edge-case-design.md
+  - artifact_path: docs/v2/L6-functional-design/FR-NSM-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-GR-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-TDD-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-9MODE-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-GATE-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-IMPACT-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-EVT-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-4ART-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-INV-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-CTX-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-DRIFT-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-PLAN-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-DOCTOR-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-MIGR-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-DOCREVIEW-01/edge-cases.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L6-functional-design/FR-CHANGEPROP-01/edge-cases.md
     artifact_type: design_doc
 dependencies:
   parent: L6-helix-workflows-関数仕様plan
@@ -36,10 +81,10 @@ dependencies:
 related_docs:
   - HELIX-workflows/helix-process/L6-functional-design.md
   - HELIX-workflows/helix-process/L7-implementation.md
-  - docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
-  - docs/v2/L5-internal-design/helix-workflows-interface-detailed-design.md
-  - docs/v2/L5-internal-design/helix-workflows-internal-processing-design.md
-  - docs/v2/L5-internal-design/helix-workflows-physical-data-design.md
+  - docs/v2/L5-detailed-design/モジュール分割設計.md
+  - docs/v2/L5-detailed-design/IF詳細設計.md
+  - docs/v2/L5-detailed-design/内部処理設計.md
+  - docs/v2/L5-detailed-design/物理データ設計.md
 ---
 
 ## §0 PLAN concept
@@ -49,7 +94,7 @@ related_docs:
 ### §0.1 担当 scope
 - 境界値 (空入力・最大件数・並行・competing lock 等)
 - 例外・エラー処理パターン (exit code 体系・fail-close/fail-open・retry・rollback)
-- 各機能 (F1-F10) の異常系を単体テスト観点で列挙
+- 各機能 (FR16) の異常系を単体テスト観点で列挙
 
 ### §0.2 完遂方針 (24h dogfood、TL fallback 準拠)
 - **F1-F5 (中核機能) は完全本体化** (実装入口契約 = command/function/schema/error を確定)
@@ -69,9 +114,39 @@ related_docs:
 
 ## §2 実装計画
 
-- 生成物: `docs/v2/L6-functional-design/helix-workflows-edge-case-design.md`
+- 生成物: `docs/v2/L6-functional-design/FR-NSM-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-GR-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-TDD-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-9MODE-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-GATE-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-IMPACT-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-EVT-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-4ART-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-INV-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-CTX-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-DRIFT-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-PLAN-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-DOCTOR-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-MIGR-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-DOCREVIEW-01/edge-cases.md`
+- 生成物: `docs/v2/L6-functional-design/FR-CHANGEPROP-01/edge-cases.md`
 - 入力: L5 4 doc (module-decomposition §2.1 matrix / interface CLI 36件 / internal アルゴリズム / physical schema)
-- pair: `docs/v2/L7-test-design/helix-workflows-unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-NSM-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-GR-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-TDD-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-9MODE-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-GATE-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-IMPACT-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-EVT-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-4ART-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-INV-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-CTX-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-DRIFT-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-PLAN-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-DOCTOR-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-MIGR-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-DOCREVIEW-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
+- pair: `docs/v2/L7-test-design/FR-CHANGEPROP-01/unit-test-design.md` (L6↔L7-test 双方向 trace)
 - 各項目に implementation_status (implemented/partial/planned) + L7 carry 理由を付す
 
 ## §3 DoD
@@ -87,7 +162,7 @@ related_docs:
 
 - 親: L6-helix-workflows-関数仕様plan
 - L5 入力: module-decomposition / interface-detailed / internal-processing / physical-data
-- pair: L7 単体テスト設計 (docs/v2/L7-test-design/helix-workflows-unit-test-design.md)
+- pair: L7 単体テスト設計 (FR16 × docs/v2/L7-test-design/FR-NN/unit-test-design.md)
 
 ## L6/L7 freeze evidence (2026-05-29)
 

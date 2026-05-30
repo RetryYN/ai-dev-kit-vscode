@@ -4,14 +4,14 @@ title: "L4-helix-workflows-データ設計plan: HELIX-workflows V2 データ設�
 kind: design
 layer: L4
 drive: be
-status: finalized
+status: draft
 tagline: "HELIX Workflows V2 データ設計（L4）"
 author: "Codex"
 created_at: 2026-05-27
 process_layer: L4
 parent_design: docs/plans/L4/L4-helix-workflows-方式設計plan.md
 pairs_test_design:
-  - docs/v2/L9-test-design/helix-workflows-system-test-design.md
+  - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
 pair: L9
 agent_slots:
   - role: pm-advisor
@@ -21,13 +21,17 @@ agent_slots:
   - role: tl-advisor
     slot_label: "TL — adversarial check (G4 evidence)"
 generates:
-  - artifact_path: docs/plans/L5/L5-helix-workflows-データ詳細設計plan.md
+  - artifact_path: docs/v2/L4-basic-design/データ設計.md
+    artifact_type: design_doc
+  - artifact_path: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    artifact_type: design_doc
+  - artifact_path: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
     artifact_type: design_doc
 dependencies:
   parent: L4-helix-workflows-方式設計plan
   requires:
     - L4-helix-workflows-方式設計plan
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
   blocks:
     - L4-helix-workflows-外部IF設計plan
     - L5-helix-workflows-内部処理設計plan
@@ -36,16 +40,16 @@ dependencies:
     - L5-helix-workflows-外部IF詳細設計plan
 related_docs:
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
-  - docs/adr/ADR-045-helix-workflows-f6-f10-governance-snapshot.md
-  - docs/v2/L4-architecture/helix-workflows-system-architecture.md
-  - docs/v2/L4-architecture/helix-workflows-functional-design.md
+  - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
+  - docs/v2/L4-basic-design/方式設計.md
+  - docs/v2/L4-basic-design/機能構成設計.md
   - HELIX-workflows/helix-process/L4-basic-design.md
 balance_ratio: "BR=4, FR=7, NFR=8, AC=20, OT=6"
 ---
 
 ## §0 概要 + 期待アウトカム + 参照
 
-本 PLAN は HELIX Workflows V2 の L4 層におけるデータ設計の実装方針を定義する。データ設計は「生物学メタファー（染色体 + 遺伝子座）」を採用し、文書（DNA）に対して、
+本 PLAN は HELIX Workflows V2 の L4 層におけるデータ設計の実装方針を定義する。データ設計は「メタファー（染色体 + 遺伝子座）」を採用し、文書（文書）に対して、
 - 染色体（Chromosome）= `schema set`
 - 遺伝子座（Locus）= 個別 `table`
 として、計画・実績データの同一性と進化可能性を担保する。
@@ -62,11 +66,11 @@ balance_ratio: "BR=4, FR=7, NFR=8, AC=20, OT=6"
 
 - 上位設計:
   - `docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`
-  - `docs/v2/L4-architecture/helix-workflows-system-architecture.md`
+  - `docs/v2/L4-basic-design/方式設計.md`
 - 同期設計:
   - `docs/plans/L4/L4-helix-workflows-方式設計plan.md`
-  - `docs/plans/L4/L4-helix-workflows-機能設計plan.md`
-  - `docs/v2/L4-architecture/helix-workflows-functional-design.md`
+  - `docs/plans/L4/L4-helix-workflows-機能構成設計plan.md`
+  - `docs/v2/L4-basic-design/機能構成設計.md`
 - 実装基盤:
   - `HELIX-workflows/HELIX-process-L0-L14.md`
   - `helix/HELIX_CORE.md`

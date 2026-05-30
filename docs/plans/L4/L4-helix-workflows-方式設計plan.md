@@ -4,13 +4,13 @@ title: "L4-helix-workflows-方式設計plan: HELIX-workflows V2 方式設計"
 kind: design
 layer: L4
 drive: be
-status: finalized
+status: draft
 created: 2026-05-27
 owner: PM
 process_layer: L4
 parent_process: HELIX-workflows/helix-process/L4-basic-design.md
 pairs_test_design:
-  - docs/v2/L9-test-design/helix-workflows-system-test-design.md
+  - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
 is_reference: false
 agent_slots:
   - role: pm-advisor
@@ -22,9 +22,9 @@ agent_slots:
   - role: doc-reviewer
     slot_label: "doc-reviewer — ドキュメント品質レビュー (大規模 design 改定時)"
 generates:
-  - artifact_path: docs/v2/L4-architecture/helix-workflows-system-architecture.md
+  - artifact_path: docs/v2/L4-basic-design/方式設計.md
     artifact_type: design_doc
-  - artifact_path: docs/v2/L9-test-design/helix-workflows-system-test-design.md
+  - artifact_path: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
     artifact_type: design_doc
   - artifact_path: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
     artifact_type: design_doc
@@ -40,7 +40,7 @@ dependencies:
     - L3-helix-workflows-機能要件plan
     - L3-helix-workflows-非機能要件plan
   blocks:
-    - L4-helix-workflows-機能設計plan
+    - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
     - L4-helix-workflows-外部IF設計plan
 related_docs:
@@ -74,15 +74,15 @@ L3 3 PLAN の `dependencies.blocks` が `L4-helix-workflows-基本設計plan` (�
 | Step | 作業内容 | 進捗 |
 |---|---|---|
 | 1 | 参考調査 (L3 3 PLAN + L0 §8 + IEEE 42010 / arc42 / C4 / Diátaxis の業界 standard、Web 検索 3 query 必須) | ✅ done (2026-05-27、pmo-haiku Web 検索完了) |
-| 2 | 方式設計 doc 起草 (`docs/v2/L4-architecture/helix-workflows-system-architecture.md` §1-§8 本文化、本 skeleton から拡充) | ✅ done (2026-05-27、§1-§8 全本文化、implementation_status 列 48 件) |
-| 3 | L9 総合テスト設計 doc 起草 (`docs/v2/L9-test-design/helix-workflows-system-test-design.md` §1-§7 本文化、L4 §1-§7 ↔ ST-* 双方向 trace) | ✅ done (2026-05-27、ST-1〜7 + pair trace 7+17 件本体化) |
+| 2 | 方式設計 doc 起草 (`docs/v2/L4-basic-design/方式設計.md` §1-§8 本文化、本 skeleton から拡充) | ✅ done |
+| 3 | L9 総合テスト設計 doc 起草 (`docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md` §1-§7 本文化、L4 §1-§7 ↔ ST-* 双方向 trace) | ✅ done |
 | 4 | ADR-044 snapshot 起草 (大局判断本文化、IEEE 42010 standard 整合性 evidence) | ✅ done (2026-05-27、Decision 1-9 + Compliance + Alternatives) |
 | 5 | TL レビュー (`helix codex --role tl-advisor`、adversarial check 1 回必須、G4 evidence) | ✅ done (2026-05-27、R1/R2 二重 audit 完了、conditional_approve) |
 | 6 | pmo-sonnet + doc-reviewer 二重 audit + 修正反映 → G4 ゲート判定 → L4 機能/データ/外部IF 設計 PLAN へ展開 | ✅ done (2026-05-27/2026-05-29、pmo-sonnet YES with minor、M-1〜M-4 全解消) |
 
 ### Step 2-6 の実行方針
 
-Step 2〜3 は `docs/v2/L4-architecture/` と `docs/v2/L9-test-design/` の 2 生成物を同時に育て、Step 4 では ADR snapshot として `docs/adr/` に反映します。Step 5・6 は L4 固定の review chain を優先し、adversarial check / pmo audit / doc-reviewer で分業責務を分離して evidence を残します。
+Step 2〜3 は `docs/v2/L4-basic-design/` と `docs/v2/L9-test-design/` の 2 生成物を同時に育てる。Step 4 では ADR snapshot として `docs/adr/` に反映し、Step 5・6 は review chain を優先する。
 
 ### Step 1→6 トレーサビリティ目標
 
@@ -105,8 +105,8 @@ Step 2〜3 は `docs/v2/L4-architecture/` と `docs/v2/L9-test-design/` の 2 �
 
 本 PLAN は以下の 3 生成物を同時に凍結対象として扱い、それぞれの必須セクションを Step 2-3 で本体起草します。L4 方式設計と L9 総合テスト設計は相互参照を前提に、ADR snapshot は意思決定固定点を提供します。
 
-- **設計 doc** (`docs/v2/L4-architecture/helix-workflows-system-architecture.md`): §0〜§8 を 1:1 で埋める。
-- **総合テスト設計 doc** (`docs/v2/L9-test-design/helix-workflows-system-test-design.md`): §0〜§7 を 1:1 で埋める。
+- **設計 doc** (`docs/v2/L4-basic-design/方式設計.md`): §0〜§8 を 1:1 で埋める。
+- **総合テスト設計 doc** (`docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`): §0〜§7 を 1:1 で埋める。
 - **ADR** (`docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`): Nygard標準の 5 章を完成。
 
 ### §2.2 L3 → L4 詳細化 mapping
@@ -128,8 +128,8 @@ L3 設計で確定した業務要件・機能要件・非機能要件を、L4 �
 ## §3 成果物
 
 - 本 PLAN ファイル: `docs/plans/L4/L4-helix-workflows-方式設計plan.md`
-- 方式設計 doc: `docs/v2/L4-architecture/helix-workflows-system-architecture.md`
-- 総合テスト設計 doc: `docs/v2/L9-test-design/helix-workflows-system-test-design.md`
+- 方式設計 doc: `docs/v2/L4-basic-design/方式設計.md`
+- 総合テスト設計 doc: `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md`
 - ADR snapshot: `docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md`
 
 ## §4 G3 conditional + L4 skeleton audit (P1 13 件 + P2 4 件 の L4 設計内消化)
@@ -227,8 +227,8 @@ L3 設計で確定した業務要件・機能要件・非機能要件を、L4 �
 
 ## §7 L4 完遂条件 (DoD)
 
-1. ✅ 方式設計 doc 完成（§1-§8 が body 化）。達成根拠: `docs/v2/L4-architecture/helix-workflows-system-architecture.md` §1-§8 全本文化 (2026-05-27)。
-2. ✅ L9 総合テスト設計 doc 完成（§1-§7 が body 化）。達成根拠: `docs/v2/L9-test-design/helix-workflows-system-test-design.md` ST-1〜7 本体化 + L4↔L9 pair trace 24 件 (2026-05-27)。
+1. ✅ 方式設計 doc 完成（§1-§8 が body 化）。達成根拠: `docs/v2/L4-basic-design/方式設計.md` §1-§8 全本文化。
+2. ✅ L9 総合テスト設計 doc 完成（§1-§7 が body 化）。達成根拠: `docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md` ST-1〜7 本体化 + L4↔L9 pair trace。
 3. ✅ ADR-044 snapshot 起草完了。達成根拠: Decision 1-9 + Compliance 列 + Alternatives 確定 (2026-05-27)。※ Accepted への最終審査は L7 実装完了後に更新予定 (carry)。
 4. ✅ tl-advisor PASS。達成根拠: 2026-05-27 R1/R2 二重 audit、conditional_approve (P0=0)。
 5. ✅ pmo-sonnet 数値整合 OK。達成根拠: 2026-05-29 freeze-readiness audit YES with minor、M-1〜M-4 全解消。
@@ -240,7 +240,7 @@ L3 設計で確定した業務要件・機能要件・非機能要件を、L4 �
 
 ## L4 完遂 evidence (2026-05-29)
 
-- 設計 doc: 本体化完遂、frontmatter status: frozen (`docs/v2/L4-architecture/helix-workflows-system-architecture.md`)
+- 設計 doc: 本体化完遂、frontmatter status: draft (`docs/v2/L4-basic-design/方式設計.md`)
 - pair freeze: L4↔L9 双方向 trace coverage PASS (system-arch §1-§8 ↔ ST-1〜7、計 24 件 pair trace)
 - 監査: 2026-05-27 tl-advisor R1/R2 (conditional_approve) + 2026-05-29 pmo-sonnet freeze-readiness audit = YES with minor、M-1〜M-4 全解消
 - implementation_status 列: BR-RULE-09 準拠確認済 (3 doc 合計 48 件)
