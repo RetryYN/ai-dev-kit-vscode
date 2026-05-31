@@ -15,7 +15,7 @@ integration_target:
 
 ## 現状フォルダ構成（リポジトリ）
 
-- トップ: AGENTS.md / CLAUDE.md / README.md / cli / docs / harness / helix / skills / src / tests / verify / workflows / scripts
+- トップ: AGENTS.md / CLAUDE.md / README.md / cli / docs / helix / skills / src / tests / verify / scripts（旧 top-dir `harness/` `workflows/` の DSL yaml は cli/config/ へ集約済、下記注記）
 - cli（726 files）: lib（393, うち detectors 17）/ templates（97）/ config / libexec / roles / prompts / schemas / scripts / tests
 - docs（472 files）: adr / research / architecture / design / features / plans / requirements / runbook / slo / rollback / postmortem / qa / security-review / specs ほか30以上
 - tests（分散 307 files）: cli/lib/tests(213) / cli/tests(82) / tests(9) / .claude/hooks/tests(3)
@@ -31,7 +31,7 @@ detector（axis 14 + FE 5 stub）/ template（plan kind 11, docs L1–L5）/ com
 | docs/ | 472 files | 最大の未点検。adr（8本）/ research / runbook（9）/ slo / rollback / postmortem に実体あり |
 | tests 分散 | 307 files / 4箇所 | cli/lib/tests(213) / cli/tests(82) / tests(9) / .claude/hooks/tests(3) |
 | cli/lib | 393 files | detector(17) 以外（plan / skill / scrum / audit / codex / code / agent / vmodel 等）が大半未点検 |
-| トップ機能 dir | — | harness（g4-gate-harness）/ helix（HELIX_CORE, CODEX_TL_MODE）/ verify（番号付き検証スクリプト）/ workflows（l4-sprint-workflow）/ src / scripts |
+| トップ機能 dir | — | helix（HELIX_CORE 等）/ verify（番号付き検証スクリプト）/ src / scripts。※ 旧 `harness/g4-gate-harness.yaml` `workflows/l4-sprint-workflow.yaml`（1ファイル top-dir）は CLI 設定置き場 `cli/config/{harness,workflows}/` へ集約し top-dir 廃止（test_workflow_dsl_parser.py が参照、ADR-030 設計根拠） |
 | .claude / libexec / roles / prompts / schemas | — | Claude Code 連携・hook・補助 |
 
 ## 前回報告の訂正（実体確認による）

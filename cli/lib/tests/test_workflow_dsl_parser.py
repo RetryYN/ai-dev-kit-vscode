@@ -14,8 +14,8 @@ if str(LIB_DIR) not in sys.path:
 import workflow_dsl_parser
 
 
-WORKFLOW_PATH = REPO_ROOT / "workflows" / "l4-sprint-workflow.yaml"
-HARNESS_PATH = REPO_ROOT / "harness" / "g4-gate-harness.yaml"
+WORKFLOW_PATH = REPO_ROOT / "cli" / "config" / "workflows" / "l4-sprint-workflow.yaml"
+HARNESS_PATH = REPO_ROOT / "cli" / "config" / "harness" / "g4-gate-harness.yaml"
 
 
 def test_load_workflow_returns_mapping() -> None:
