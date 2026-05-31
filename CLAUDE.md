@@ -43,6 +43,16 @@ HELIX は、AI エージェントを `plan` / `task` / `role` / `gate` / `handov
 
 HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パスに依存させない。
 
+### 最上位原則: 実装（G）は HELIX 本体に / 計画（P）はプロジェクトに
+
+**実装（配布物 = G tier）は HELIX 本体の住所に、計画・設計記録（P tier）はプロジェクト側の住所に置く。** 配布物（全 project に効く harness）と dogfooding（この repo 固有の計画・設計記録）を住所で分離し、正本と副本の二重化・分類漏れを構造的に防ぐ。
+
+- **G（実装・配布物）の住所**: `helix/`（core doc・runtime・manifest）/ `HELIX-workflows/`（工程定義正本）/ `cli/`（CLI 実装・template）/ `skills/`（skill 正本）/ `.claude/{agents,hooks,commands}`。これらは消費側へ install され、全 project の振る舞いを定義する。
+- **P（計画・設計記録）の住所**: `docs/plans/`（PLAN = 進め方・軌跡）/ `docs/v2/`（この repo を HELIX で作る dogfooding の設計記録）/ `docs/{adr,research}`。配布しない。本 repo 固有。
+- **判定**: 「これは全 project に配布されて効くか（→ G、本体住所）」「この repo を作るための計画・設計記録か（→ P、project 住所）」。迷ったら G/P のどちらの性質かを先に決め、住所をそれに従わせる。
+- **drift 防止**: 同一内容を G と P の両方に書かない。G が正本なら P からは参照（リンク）で繋ぎ、再宣言しない。G↔P 重複を見つけたら正本（G）に一本化し副本を参照化する。
+- 詳細な top-dir 分類は本書「### top-dir 分類（G=配布 / P=project専用 / S=runtime・local / B=build）」を参照。BC 境界は [document-topology.md](HELIX-workflows/helix-process/document-topology.md)。
+
 | tier | 住所 | 置くもの |
 |---|---|---|
 | MASTER（原本） | この repo（`<clone>/`） | core doc 原本・CLI・skill・template（git 管理） |
