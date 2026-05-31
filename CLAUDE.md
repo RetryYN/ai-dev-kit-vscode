@@ -55,7 +55,21 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 - **常時注入 core セット**（現パスのまま `~/.helix/core/` 経由で読む。物理移動はしない）= `helix/HELIX_CORE.md` / `helix/HELIX_RUNTIME_RULES.md` / `helix/CLAUDE_RUNTIME_ADAPTER.md`（Codex は `CODEX_RUNTIME_ADAPTER.md`） / `HELIX-workflows/HELIX-process-L0-L14.md`。`HELIX-workflows/helix-process/*` と `docs/**` は詳細注入（常時注入しない）。
 - **判断**: ①全 project 共通 → MASTER（原本）を `~/.helix/core/` 経由で読む / ②project 横断 runtime → `~/.helix/` / ③この project だけ → `<project>/.helix/` / ④入口 → 参照のみ。
 - **禁止**: INJECTION に clone 先パスを直参照（`@~/ai-dev-kit-vscode/...` は廃止、必ず `@~/.helix/core/...`）/ runtime state を git に commit。
-- **状態**: global B（`.claude/CLAUDE.md`）の import を `@~/.helix/core/...` へ張替済・`~/.helix/core` symlink 作成済。**残**: `setup.sh` を `~/.helix/core` 基準（clone 位置検出 / SKILL_MAP 除外 / core 4 本）へ修正。
+- **状態**: 可搬化 完了。global B の import を `@~/.helix/core/...` へ張替・`~/.helix/core`→repo root symlink・`setup.sh` を clone 位置検出 / `~/.helix/core` 基準 import / SKILL_MAP 除外 / 旧 import 除去へ修正・`~/.claude/agents` を `~/.helix/core` 経由で統合（commit `878170b` / `93af0e9`）。
+
+### top-dir 分類（G=配布 / P=project専用 / S=runtime・local / B=build）
+
+この repo は製造元なので大半が G（harness 配布物）。物理移動はせず、各 top エントリの区分だけ明示して global / project の見通しを保つ。
+
+| 区分 | 意味 | top エントリ |
+|---|---|---|
+| **G** | harness 配布物（全 project に効く / 消費側へ install） | `helix/` `HELIX-workflows/` `cli/`（含 `cli/templates/`） `skills/` `harness/` `workflows/` `ai-code-review-kit/` `.claude/{agents,hooks,commands}` `setup.sh` `AGENTS.md` `README.md` `.claude/CLAUDE.md`(loader) |
+| **P** | project 専用（この repo の dogfooding、配布しない） | `CLAUDE.md`（本 project context） `docs/plans/` `docs/v2/` `docs/adr` `docs/research` `src/`（feature scaffold） |
+| **S** | runtime / local（生成物・機械固有、gitignored） | `.helix/` `.claude/{memory,agent-memory}` `settings.local.json` `public/` / root 直下 draft `.md` |
+| **B** | build / test | `tests/` `verify/` `scripts/` `pyproject.toml` `package.json` `requirements-dev.txt` |
+
+- **混在 dir（要注意）**: `docs/`（G=`docs/commands` 利用導線 ／ P=plans・v2・adr・research）、`.claude/`（G=agents/hooks/commands ／ S=memory・local）。
+- G のうち `~/.helix/core` 経由で**常時注入**されるのは保存先ルールの core セットのみ。他 G は詳細注入か CLI 実体。
 
 ## コーディング規約
 - 既存 CLI の Bash/Python 分担に合わせる。単純な CLI glue は Bash、状態集計や構造化処理は Python helper に寄せる。
