@@ -118,12 +118,33 @@ PY
 fi
 
 if [[ "$result" == "warn" ]]; then
-  warning="[helix] AskUserQuestion 呼び出し前に tl-advisor 相談を推奨します。停滞防止ルール参照: CLAUDE.md §AskUserQuestion 前必須 TL 相談"
-  printf '%s\n' "$warning" >&2
-  python3 - "$warning" <<'PY'
+  # env バイパス: ユーザー選好など TL 判断不要の質問は理由を evidence に残して許可する
+  # (既存の HELIX_ALLOW_RAW_* パターン踏襲)。
+  if [[ "${HELIX_ALLOW_ASKUSER:-0}" == "1" ]]; then
+    note="[helix] AskUserQuestion: TL 相談チェックを HELIX_ALLOW_ASKUSER=1 でバイパス。理由: ${HELIX_ASKUSER_REASON:-未記載}"
+    printf '%s\n' "$note" >&2
+    python3 - "$note" <<'PY'
 import json
 import sys
 print(json.dumps({"systemMessage": sys.argv[1]}, ensure_ascii=False))
+PY
+    exit 0
+  fi
+
+  # fail-close: 直近 5 分以内に tl-advisor 相談が無ければ AskUserQuestion を deny。
+  # 技術判断はユーザーに振る前に TL へ通す (停滞防止ルール、CLAUDE.md §AskUserQuestion 前 TL 相談)。
+  reason="[helix] AskUserQuestion をブロックしました。直近 5 分以内に tl-advisor 相談がありません。先に 'helix codex --role tl-advisor' で技術判断を諮ってから質問してください。ユーザー選好など TL 不要の質問は HELIX_ALLOW_ASKUSER=1 HELIX_ASKUSER_REASON=<理由> でバイパス可。正本: helix/CLAUDE_RUNTIME_ADAPTER.md §2 (AskUserQuestion 前 TL 相談)"
+  printf '%s\n' "$reason" >&2
+  python3 - "$reason" <<'PY'
+import json
+import sys
+print(json.dumps({
+    "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": sys.argv[1],
+    }
+}, ensure_ascii=False))
 PY
 fi
 exit 0

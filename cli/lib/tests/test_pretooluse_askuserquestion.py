@@ -57,13 +57,41 @@ def test_hook_returns_0_for_non_askquestion_tool(tmp_path: Path) -> None:
     assert proc.stderr == ""
 
 
-def test_hook_warns_when_no_recent_tl_advisor(tmp_path: Path) -> None:
-    project_root, _ = _init_project(tmp_path, "warn")
+def test_hook_denies_when_no_recent_tl_advisor(tmp_path: Path) -> None:
+    project_root, _ = _init_project(tmp_path, "deny")
     proc = _run_hook(project_root, {"tool_name": "AskUserQuestion", "tool_input": {"questions": []}})
 
     assert proc.returncode == 0
     assert "tl-advisor" in proc.stderr
-    assert "systemMessage" in proc.stdout
+    payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
+    hook_out = payload.get("hookSpecificOutput", {})
+    assert hook_out.get("hookEventName") == "PreToolUse"
+    assert hook_out.get("permissionDecision") == "deny"
+    assert "tl-advisor" in hook_out.get("permissionDecisionReason", "")
+
+
+def test_hook_bypass_allows_with_reason(tmp_path: Path) -> None:
+    project_root, _ = _init_project(tmp_path, "bypass")
+    env = os.environ.copy()
+    env["HELIX_PROJECT_ROOT"] = str(project_root)
+    env["HELIX_DB_PATH"] = str(project_root / ".helix" / "helix.db")
+    env["CLAUDE_PROJECT_DIR"] = str(project_root)
+    env["HELIX_ALLOW_ASKUSER"] = "1"
+    env["HELIX_ASKUSER_REASON"] = "user-preference question, no TL judgement needed"
+    proc = subprocess.run(
+        [str(HOOK_PATH)],
+        input=json.dumps({"tool_name": "AskUserQuestion", "tool_input": {"questions": []}}),
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+    assert proc.returncode == 0
+    payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
+    # Bypass surfaces a systemMessage note (not a deny) so the tool proceeds.
+    assert "hookSpecificOutput" not in payload
+    assert "systemMessage" in payload
+    assert "HELIX_ALLOW_ASKUSER" in payload["systemMessage"]
 
 
 def test_hook_passes_when_recent_tl_advisor_invocation(tmp_path: Path) -> None:
@@ -89,6 +117,8 @@ def test_hook_5min_window(tmp_path: Path) -> None:
     fresh = _run_hook(fresh_root, {"tool_name": "AskUserQuestion", "tool_input": {"questions": []}}, now=base_now.isoformat())
 
     assert "tl-advisor" in stale.stderr
-    assert stale.stdout != ""
+    # stale = deny (fail-close JSON 出力あり), fresh = pass (出力なし)
+    stale_payload = json.loads(stale.stdout) if stale.stdout.strip() else {}
+    assert stale_payload.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
     assert fresh.stdout == ""
     assert fresh.stderr == ""

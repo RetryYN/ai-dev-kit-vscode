@@ -26,6 +26,7 @@ Claude（PM = Opus）は HELIX の実行者であり、実装の主語ではな�
 - **Agent tool は許可された subagent（PMO / PdM の 12 種）のみ**。`model` を frontmatter の許可 family と不一致で指定しない。これは `.claude/hooks/pretooluse-agent-guard.sh` が fail-close で機械強制する（bypass は `HELIX_ALLOW_RAW_AGENT=1` + 理由を evidence に残す）。
 - **委譲した Codex はコミットしない**。`git add` / `commit` / `push` は呼び出し元（PM）が成果物検証後に判断する。
 - **大局判断で迷えば advisor を召喚する**（自前で結論を出す前に）。スコープ / 優先度 → `helix claude --role pm-advisor`、設計 / 契約 / テスト戦略 → `helix codex --role tl-advisor`、大規模 doc 品質 → `helix codex --role doc-reviewer`。いずれも read-only、最終判断は呼び出し側。
+- **AskUserQuestion でユーザーに技術判断を振る前に TL へ諮る**（停滞防止）。技術的トレードオフ（設計 / 契約 / 構造 / 配置 / 移行）の選択肢をユーザーに質問する前に、まず `helix codex --role tl-advisor` で技術判断を取り、TL 推奨を踏まえて質問する（またはユーザーに答えを返す）。ユーザー選好（運用ポリシー / コスト許容 / 優先度など TL 判断が不要なもの）の確認はこの限りでない。これは `.claude/hooks/pretooluse-askuserquestion.sh` が fail-close で機械強制する（直近 5 分以内に tl-advisor 相談がなければ AskUserQuestion を deny。bypass は `HELIX_ALLOW_ASKUSER=1` + `HELIX_ASKUSER_REASON=<理由>` を evidence に残す）。
 - **`run_in_background: true` の完了は harness の task-notification を信用し、ScheduleWakeup を併用しない**。ScheduleWakeup は harness 追跡外の外部状態（CI / リモートデプロイ / 別 process が書くファイル）の polling 専用。
 
 ## 3. 実行前チェック
