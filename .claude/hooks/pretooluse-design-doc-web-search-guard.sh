@@ -123,11 +123,11 @@ def is_target_design_doc(rel_path: str) -> bool:
         return False
     if rel_path.startswith("docs/templates/"):
         return False
+    if rel_path.startswith("docs/plans/"):
+        return False
     if rel_path == "docs/adr/index.md":
         return False
     if re.fullmatch(r"docs/adr/ADR-[^/]+\.md", rel_path):
-        return True
-    if re.fullmatch(r"docs/plans/PLAN-[^/]+\.md", rel_path):
         return True
     return False
 
