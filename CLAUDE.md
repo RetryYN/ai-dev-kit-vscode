@@ -43,9 +43,9 @@ HELIX は、AI エージェントを `plan` / `task` / `role` / `gate` / `handov
 
 HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パスに依存させない。
 
-### 最上位原則: 実装（G）は HELIX 本体に / 計画（P）はプロジェクトに
+### 保存先判断の原則: 実装（G）は HELIX 本体に / 計画（P）はプロジェクトに
 
-**実装（配布物 = G tier）は HELIX 本体の住所に、計画・設計記録（P tier）はプロジェクト側の住所に置く。** 配布物（全 project に効く harness）と dogfooding（この repo 固有の計画・設計記録）を住所で分離し、正本と副本の二重化・分類漏れを構造的に防ぐ。
+**実装（配布物 = G tier）は HELIX 本体の住所に、計画・設計記録（P tier）はプロジェクト側の住所に置く。** 配布物（全 project に効く harness）と dogfooding（この repo 固有の計画・設計記録）を住所で分離し、正本と副本の二重化・分類漏れを構造的に防ぐ。これは document-topology の配置判断ルールであり、HELIX Core の絶対原則（V-model / Forward 収束）ではない（格上げしない）。
 
 - **G（実装・配布物）の住所**: `helix/`（core doc・runtime・manifest）/ `HELIX-workflows/`（工程定義正本）/ `cli/`（CLI 実装・template）/ `skills/`（skill 正本）/ `.claude/{agents,hooks,commands}`。これらは消費側へ install され、全 project の振る舞いを定義する。
 - **P（計画・設計記録）の住所**: `docs/plans/`（PLAN = 進め方・軌跡）/ `docs/v2/`（この repo を HELIX で作る dogfooding の設計記録）/ `docs/{adr,research}`。配布しない。本 repo 固有。
@@ -99,17 +99,11 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 
 このリポは GitHub で配布される HELIX framework 本体 (製造元)。消費側は repo を clone + `setup.sh` で取り込む。配布物の品質を守るため、以下を規律とする。
 
-### 配布戦略 (戦略C: monorepo + dist publish) — 2026-06-01 確定
-
-- **monorepo (この repo) = G の単一正本 + P (dogfooding)**。製造元はここで作業する。G を複数 repo に実体コピーしない (drift 防止、`helix/core-manifest.tsv` SSoT と整合)。
-- **dist (artifact または別 `helix-dist` repo) = G+B のみを release で publish**。消費側はこれを取得する。**dist の G は monorepo から自動生成し、人手編集しない (generated mirror)**。
-- dist publish の実装・`setup.sh` の dev/consumer 2 モード化は未整備 (P1)。**repo/配布構造の変更は refactor でなく distribution architecture migration であり、ADR + migration PLAN + ユーザー承認を経てから着手する** (正本: [docs/plans/refactor/refactor-2026-06-01-folder-structure-g-p-separation.md](docs/plans/refactor/refactor-2026-06-01-folder-structure-g-p-separation.md) Phase 0)。
-
 ### ブランチ
 
 - `main`: 既定ブランチ。protected 想定、tag/release 対象。PR は通常 `main` を base にする。
 - 作業は `main` から branch を切る。デフォルトブランチへの直 push は、製造元の枠組み・policy・doc 改修で PM (Opus) が成果物検証後に判断する場合に限る (実装コードは別、下記)。
-- `dogfood`: 製造元の dogfooding 退避用 (P 中心の作業)。戦略C では恒久必須ではなく、dist 設計確定時に運用を見直す。
+- `dogfood`: 製造元の dogfooding 一時退避用 (P 中心の作業)。恒久必須ではなく運用は要再判断 (配布構造を正規ルート = L4 基本設計 PLAN + ADR で確定した時点で見直す)。
 
 ### 公開 API (破壊禁止)
 

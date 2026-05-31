@@ -46,6 +46,8 @@ related_docs:
 
 # PLAN-218: HELIX framework npm/pip package export
 
+> ⛔ **PARK（着手禁止）— 2026-06-01**: 本 PLAN（npm/pip package export）は配布アーキテクチャに属し、`is_reference:true`（旧 V1 参考）かつ参照先 **ADR-057 が実体不在**のまま孤児化していた。HELIX の配布戦略（dist publish / package export 等）が **L4 基本設計 PLAN + ADR + ユーザー明示承認**で正規に確定するまで着手禁止。確定時に本 PLAN を supersede / 廃止 / 継承のいずれかで処理する。経緯と収束は [recovery-2026-06-01-context-injection-dist-strategy](recovery/recovery-2026-06-01-context-injection-dist-strategyplan.md)、関連は [refactor-2026-06-01 Phase 0 (park)](refactor/refactor-2026-06-01-folder-structure-g-p-separation.md) を参照。
+
 ## L2 凍結 (ADR snapshot)
 
 本 PLAN tree は Python / Node.js の 2 package 系統への同時対応、および `helix` CLI を entry_points として公開する採用判断を含む。これらは L2 大局判断に該当するため、ADR snapshot を併設する。

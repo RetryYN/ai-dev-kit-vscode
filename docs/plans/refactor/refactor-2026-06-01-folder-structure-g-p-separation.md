@@ -30,7 +30,7 @@ verification:
 ## 0. 進め方（このPLANの位置づけ）
 
 - 本 PLAN は **計画のみ**（起票時点で実行しない）。実行は別セッションで段階的に行う。
-- **本 PLAN 自身は P tier（計画・設計記録）であり `dogfood` ブランチに置く**（main = 配布面には載せない、Phase 0 参照）。
+- **本 PLAN 自身は P tier（計画・設計記録）であり `docs/plans/`（配布されない P 住所）に置く**（配布面分離・ブランチ戦略は Phase 0 で park、本 PLAN のスコープは Phase 1-3 のフォルダ整理に縮小）。
 - 各段階の着手前に保護網テスト green を確認し、段階内で振る舞い不変を維持する。
 - **高リスク段階（Phase 3: docs/v2/process 正本二重化解消）は着手前に tl-advisor 諮問必須**。破壊的（参照 path 多数に波及・配布物の構造変更）のため PM 単独で確定しない。
 - 設計内容（どの doc に何を書くか）は本 PLAN に書かない。本 PLAN は手順・要点・判断ポイントのみ（PLAN の役割）。
@@ -60,35 +60,26 @@ verification:
 | P1 | 高 | **L 工程 doc の正本二重化** | `HELIX-workflows/helix-process/L*.md`（正本・配布 G）と `docs/v2/process/L00-L14-*.md`（15 本）が別命名で並存。CLAUDE.md は「正本は HELIX-workflows」と宣言するが `docs/v2/process/` の位置付け（正本コピー or dogfooding 設計記録）が曖昧 = drift 温床。本 session で粒度原則を両方に書く二重作業が発生したのが実害例。 |
 | P2 | 中 | **1 ファイル top-dir** | `harness/`（`g4-gate-harness.yaml` 1 本）/ `workflows/`（`l4-sprint-workflow.yaml` 1 本）。両者とも CLAUDE.md の G/P/S/B 分類表に未記載。`HELIX-workflows/` か `cli/templates/` への吸収候補。 |
 | P3 | 低 | `public/` 実体なし（`generated/` のみ gitignore、dir 自体は追跡）/ `.commitlintrc.json` が分類表（B tier）に未記載 / `verify-output.txt` gitignore 漏れ（現時点 untracked 解消済、再発防止に gitignore 追加要検討）。 |
-| **P0** | **最高** | **ブランチ未分離（main = 配布面に P が混在）**。消費側は repo を丸ごと clone するため `main` が配布面そのもの。`docs/plans/`（多数）・`docs/v2/`・project `CLAUDE.md` 等の P tier が `main` に載り、配布 framework と dogfooding 作業場が同一に混ざる。runtime 注入は `core-manifest.tsv` で抑制済みだが、配布体験・探索性・誤読リスクで負ける。tl-advisor 判定（2026-06-01, changes_required）。 |
+| P0※ | park | **ブランチ未分離（main = 配布面に P が混在）**。消費側は repo を丸ごと clone するため `main` が配布面そのもの。`docs/plans/`（多数）・`docs/v2/`・project `CLAUDE.md` 等の P tier が `main` に載り、配布 framework と dogfooding 作業場が同一に混ざる。runtime 注入は `core-manifest.tsv` で抑制済みだが、配布体験・探索性・誤読リスクで負ける。**→ 本 refactor では扱わない**: 解決策（配布面分離 / dist publish）は distribution architecture migration であり、L4 設計 + ADR + ユーザー承認を要する（Phase 0 park 参照）。 |
 
 ## 4. 段階的リファクタ手順
 
 > 原則: G/P 住所分離。配布物（G）は HELIX 本体住所へ集約、計画・設計記録（P）はプロジェクト住所へ。各 Phase 独立コミット、各 Phase 後にテスト green。
 
-### Phase 0（配布面分離・最高優先・破壊的）— 戦略C 確定 (2026-06-01)
+### Phase 0（配布面分離 / distribution architecture）— 本 refactor スコープ外・park（凍結）
 
-消費側は repo を丸ごと clone するため `main` が配布面そのもの。配布 framework と dogfooding（P）の混在を解消する。
-
-**確定戦略 = C（monorepo + dist publish）。ユーザー判断で確定 (2026-06-01)。**
-
-> 補足（判断の経緯・正直な記録）: tl-advisor は第 1 ラウンドで「A 暫定 + C 後送り」、第 2 ラウンドで「**B-canonical（新 repo `helix-framework` を G 唯一正本にし現 repo を P/dogfood へ降格）**」を推奨に変えた。一方ユーザーは **戦略C を最終選択**。C は「現 repo を分割せず monorepo に G+P を保ち、release で G+B のみを dist 配布」する案で、B の「G を別 repo へ移す」とは異なる。ユーザー選好が最終決定。C を採る根拠: ①repo を 1 つに保つので G の単一正本性が維持される（drift しない、本 session の core-manifest SSoT 化と整合）②`docs/v2/` dogfooding が同一 repo に残り L0-L14 trace が切れない ③B の installer 契約破壊・履歴分断を回避。代償: dist publish の release automation が必要（P1）。
-
-**戦略C の構成**:
-- **monorepo（現 `ai-dev-kit-vscode`）= G の単一正本 + P（dogfooding）**。製造元はここで作業。
-- **dist（artifact または別 `helix-dist` repo）= G+B のみを release で publish**。消費側はこれを取得。**dist の G は monorepo から自動生成され、人手編集しない（generated mirror、drift 防止）**。
-- 公開 API `@~/.helix/core/<path>` は維持。setup.sh は dist 側 layout を `@~/.helix/core/...` に合わせ、消費側は dist root を `~/.helix/core` に張る。
-
-**段階内タスク**:
-1. **(本 session 実施済 / 暫定)** 現 main から `dogfood` を作成し、P 差分（本 PLAN + project `CLAUDE.md` の G/P 原則追記）を退避 commit（`db721fd`、未 push）。**戦略C では monorepo 1 つに G+P を保つため、dogfood ブランチ分離は C の必須要素ではない**。本退避は session 区切りの一時措置であり、C の dist 設計時に「dogfood を畳んで main 単一運用へ戻す / dogfood を残す」を再判断する。
-2. **(別 session, P1)** dist publish を設計・実装。`helix release dist` 相当で G+B allowlist を抽出し artifact 化または `helix-dist` repo へ push（generated mirror、人手編集禁止）。
-3. **(別 session, P1)** setup.sh を dist 対応に（dev=monorepo / consumer=dist の 2 モード）。公開 API path は不変に保つ。
-4. **(別 session, P1)** dist の clean さを CI で gate（dist に P path が混入しないこと、core-manifest drift test、clean clone setup smoke）。
-- **G 側昇格**: 「配布物は P を含まない」という消費側にも関わる短い契約は、別 commit で G 側（`README.md` / `AGENTS.md` / `helix/` 配下の配布方針文書）へ昇格してよい。
-
-**本件の性質**: repo/配布構造の変更は refactor でなく **distribution architecture migration**。tl-advisor 指摘どおり、P1 着手前に **ADR（dist 配布方式の不可逆判断）+ migration PLAN** を起票し、ユーザー承認を得てから実行する。
-
-リスク: 既存 push 済み G commit（`525b1b1`）・installer 契約（setup.sh の repo root symlink 前提）・release provenance に波及。緩和: 破壊的操作（dist repo 新設 / installer 変更 / publish 自動化）は本 session で行わず、ADR + migration PLAN 起票 → ユーザー承認 → P1 で段階実施。本 session は戦略確定と記録まで。
+> **この Phase は本 refactor PLAN のスコープから除外し凍結する。** 配布面分離（monorepo vs dist publish、ブランチ戦略）は構造改善（refactor / L7）ではなく **distribution architecture migration** であり、Forward の L4（基本設計）+ ADR を通すべき判断（本 PLAN 89 行の自己認識どおり）。
+>
+> **経緯**: 未承認・V2 移行スコープ外の「戦略C（monorepo + dist publish）」を、ADR も L4 設計も経ずに常時注入 context（project CLAUDE.md / PM memory）へ「確定」として記述した結果、毎 session PM が dist publish を優先 backlog として誤って復唱する context injection（自己永続ドリフト）が発生した。その収束は [recovery-2026-06-01-context-injection-dist-strategy](../recovery/recovery-2026-06-01-context-injection-dist-strategyplan.md) を正本とする。
+>
+> **着手の前提条件（3 つ揃うまで実装禁止）**:
+> 1. 配布戦略の **L4 基本設計 PLAN**（住所は `docs/v2/L4-.../` または `docs/design/`。CLAUDE.md 等の常時注入 context には戦略本文を置かず、ポインタのみ）。
+> 2. **ADR**（dist 配布方式の不可逆判断。`docs/adr/ADR-0xx-helix-distribution-architecture.md`）。
+> 3. **ユーザー明示承認**。
+>
+> **関連孤児**: PLAN-218（npm/pip package export、`is_reference:true`、実体なし ADR-057 を参照）は distribution architecture 確定まで park。新 distribution PLAN/ADR 起票時に supersede / 廃止を判断する。
+>
+> 本 PLAN は以降 **Phase 1-3（フォルダ整理 / 住所明示）に縮小**する。配布構造そのものは扱わない。
 
 ### Phase 1（低リスク・即実行可）
 
