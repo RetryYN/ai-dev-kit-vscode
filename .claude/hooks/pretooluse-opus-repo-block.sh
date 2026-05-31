@@ -3,7 +3,52 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELIX_ROOT="$(cd "$script_dir/../.." && pwd)"
-project_root="${CLAUDE_PROJECT_DIR:-$HELIX_ROOT}"
+
+resolve_dir_path() {
+  local target="$1"
+  if command -v realpath >/dev/null 2>&1; then
+    realpath "$target"
+    return
+  fi
+  (
+    cd "$target"
+    pwd -P
+  )
+}
+
+resolve_file_path() {
+  local target="$1"
+  local parent=""
+  local base=""
+
+  [[ -n "$target" ]] || return 0
+
+  if [[ "$target" != /* ]]; then
+    target="$PWD/$target"
+  fi
+
+  if command -v realpath >/dev/null 2>&1; then
+    realpath -m -- "$target"
+    return
+  fi
+
+  parent="$(dirname "$target")"
+  base="$(basename "$target")"
+  if [[ -d "$parent" ]]; then
+    printf '%s/%s\n' "$(cd "$parent" && pwd -P)" "$base"
+    return
+  fi
+
+  printf '%s\n' "$target"
+}
+
+project_root="$(resolve_dir_path "${CLAUDE_PROJECT_DIR:-$HELIX_ROOT}")"
+master_root="$HELIX_ROOT"
+if [[ -e "$HOME/.helix/core" ]]; then
+  master_root="$(resolve_dir_path "$HOME/.helix/core")"
+else
+  master_root="$(resolve_dir_path "$HELIX_ROOT")"
+fi
 
 tmp_input="$(mktemp)"
 trap 'rm -f "$tmp_input"' EXIT
@@ -31,9 +76,10 @@ PY
 
 tool_name="$(read_json_field tool_name)"
 file_path="$(read_json_field file_path)"
+resolved_file_path="$(resolve_file_path "${file_path:-}")"
 
 is_repo_path=0
-allow_repo_state=0
+reason=""
 
 record_audit_events() {
   local gate_verdict="$1"
@@ -97,40 +143,54 @@ with helix_db._write_connection(db_path) as conn:
 PY
 }
 
-case "${file_path:-}" in
-  "$HELIX_ROOT/.helix"/*|"$HELIX_ROOT/.helix")
-    record_audit_events "bypassed" >/dev/null 2>&1 || true
-    exit 0
-    ;;
-  "$HELIX_ROOT"/*)
-    is_repo_path=1
-    ;;
-  *)
-    case "${file_path:-}" in
-      "$HOME"/.claude/projects/*/memory/*)
-        record_audit_events "bypassed" >/dev/null 2>&1 || true
-        exit 0
-        ;;
-    esac
-    ;;
-esac
+if [[ "$project_root" == "$master_root" ]]; then
+  reason="project_root matches harness master"
+  record_audit_events "bypassed" >/dev/null 2>&1 || true
+  exit 0
+fi
 
 if [[ "${HELIX_SUPPRESS_HOOK:-0}" == "1" ]]; then
+  reason="hook suppressed"
   record_audit_events "suppressed" >/dev/null 2>&1 || true
   exit 0
 fi
 
+case "${resolved_file_path:-}" in
+  "$project_root/.helix"/*|"$project_root/.helix")
+    reason="project .helix path"
+    record_audit_events "bypassed" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+esac
+
+case "${file_path:-}" in
+  "$HOME"/.claude/projects/*/memory/*)
+    reason="memory path"
+    record_audit_events "bypassed" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+esac
+
 if [[ "${HELIX_ALLOW_OPUS_REPO_EDIT:-0}" == "1" && -n "${HELIX_OPUS_EDIT_REASON:-}" ]]; then
+  reason="$HELIX_OPUS_EDIT_REASON"
   record_audit_events "allowed" >/dev/null 2>&1 || true
   exit 0
 fi
 
 if [[ "${HELIX_ALLOW_OPUS_PLAN_FIX:-0}" == "1" && "$file_path" =~ (^|/)docs/plans/PLAN-[^/]+\.md$ ]]; then
+  reason="plan fix override"
   record_audit_events "allowed" >/dev/null 2>&1 || true
   exit 0
 fi
 
+case "${resolved_file_path:-}" in
+  "$project_root"/*|"$project_root")
+    is_repo_path=1
+    ;;
+esac
+
 if [[ "$is_repo_path" -eq 0 ]]; then
+  reason="outside project root"
   record_audit_events "bypassed" >/dev/null 2>&1 || true
   exit 0
 fi
