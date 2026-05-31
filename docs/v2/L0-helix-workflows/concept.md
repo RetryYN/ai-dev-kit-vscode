@@ -842,6 +842,16 @@ flowchart TB
 **機械判定 carry (L4)**:
 - `helix doctor check_business_entity_coverage`: §12.1 19 用語 × helix.db 50+ table の対応 mapping が drift していないか fail-close (本 §12.1.2 を正本とする)
 
+### §12.1.3 PLAN モデル用語 (Process ⊃ Action、2026-06-01 追加)
+
+> 本 §12.1.3 は**用語ミラー**（term / schema field / grep / implementation_status）。定義本文は G 正本 [`HELIX-workflows/helix-process/plan-model.md`](../../../HELIX-workflows/helix-process/plan-model.md) を参照し**二重化しない**（住所 = G 正本 + P 用語ミラー、tl-advisor 2026-06-01 推奨）。
+
+| 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern | implementation_status |
+|---|---|---|---|---|---|---|
+| **Process Plan** | 駆動モデル・工程の連鎖（行程）を記録する親 PLAN。Forward へ戻す `forward_return` 必須 | `helix plan lint`(scope 対応は L7 実装) | `docs/plans/process/process-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=process` / `workflow_chain` / `contains_action_plans` / `forward_return` | `^plan_scope:\s*process$` | **partial** (定義済、validator 実装は本 session 進行) |
+| **Action Plan** | 単一 workflow 内部の収束ループ（実行）を記録する子 PLAN。`parent_process` 必須 | `helix plan lint` | `docs/plans/<workflow>/<workflow>-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=action` / `parent_process` / `workflow` | `^plan_scope:\s*action$` | **partial** |
+| **plan_scope** | PLAN の階層種別（`process` / `action`）。L単位 PLAN には強制しない | `helix plan lint --strict-frontmatter`(L7) | `cli/lib/plan_validator.py` `VALID_PLAN_SCOPES` | `frontmatter.plan_scope` | `^plan_scope:\s*(process\|action)$` | **partial** |
+
 ### §12.2 機械判定 carry (L4 基本設計で実装、本 §12 では仕様宣言のみ)
 
 - `helix doctor check_ubiquitous_language`: L1-L14 doc 内の表記ゆれ / 未定義用語を warn (本 §12.1 表から正規表現自動抽出)
