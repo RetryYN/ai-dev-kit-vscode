@@ -76,7 +76,7 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 | **G** | harness 配布物（全 project に効く / 消費側へ install） | `helix/` `HELIX-workflows/` `cli/`（含 `cli/templates/`） `skills/` `harness/` `workflows/` `ai-code-review-kit/` `.claude/{agents,hooks,commands}` `setup.sh` `AGENTS.md` `README.md` `.claude/CLAUDE.md`(loader) |
 | **P** | project 専用（この repo の dogfooding、配布しない） | `CLAUDE.md`（本 project context） `docs/plans/` `docs/v2/` `docs/adr` `docs/research` `src/`（feature scaffold） |
 | **S** | runtime / local（生成物・機械固有、gitignored） | `.helix/` `.claude/{memory,agent-memory}` `settings.local.json` `public/` / root 直下 draft `.md` |
-| **B** | build / test | `tests/` `verify/` `scripts/` `pyproject.toml` `package.json` `requirements-dev.txt` |
+| **B** | build / test | `tests/` `verify/` `scripts/` `pyproject.toml` `package.json` `requirements-dev.txt` `.commitlintrc.json` |
 
 - **混在 dir（要注意）**: `docs/`（G=`docs/commands` 利用導線 ／ P=plans・v2・adr・research）、`.claude/`（G=agents/hooks/commands ／ S=memory・local）。
 - G のうち `~/.helix/core` 経由で**常時注入**されるのは保存先ルールの core セットのみ。他 G は詳細注入か CLI 実体。
