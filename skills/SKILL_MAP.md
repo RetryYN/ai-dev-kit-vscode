@@ -2,8 +2,10 @@
 
 ## 正本宣言
 
-- **正本**: SKILL_MAP.md + 各 SKILL.md + ツール設定（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md`）
-- **工程定義正本**: [`HELIX-workflows/HELIX-process-L0-L14.md`](../HELIX-workflows/HELIX-process-L0-L14.md) (2026-05-24 V2 完全移行確立、commit 35a901c)
+- **役割**: SKILL_MAP.md は skill / role / gate の索引であり、常時注入する読み物ではない。
+- **注入原則**: 常時注入は `HELIX-workflows/HELIX-process-L0-L14.md` + `HELIX_CORE.md` + `HELIX_RUNTIME_RULES.md`。skill は HELIX DB の現在地、`vmodel-semantics`、`helix skill search` / recommender から必要分だけ注入する。
+- **skill 正本**: 各 `SKILL.md` とツール設定（`~/.claude/CLAUDE.md` / `~/.codex/AGENTS.md`）
+- **工程定義正本**: [`HELIX-workflows/HELIX-process-L0-L14.md`](../HELIX-workflows/HELIX-process-L0-L14.md)
 - **手順正本**: `skills/tools/ai-coding/references/workflow-core.md` + `skills/tools/ai-coding/references/gate-policy.md`
 - **矛盾時**: 実装 > アーカイブ資料（`docs/archive/`）
 
@@ -149,15 +151,15 @@ L14 運用検証 + 機能改善 (L1 運用テスト pair execute → 次イテ�
 
 **ゲート詳細・セキュリティ・遷移ルール** → `skills/tools/ai-coding/references/gate-policy.md` 参照
 
-### 入口モード一覧 (HELIX-workflows、2026-05-24 V2 完全移行で確立)
+### 入口 workflow一覧 (HELIX-workflows、2026-05-24 V2 完全移行で確立)
 
-正本: [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md) + [helix-process/README.md](../HELIX-workflows/helix-process/README.md)
+正本: [HELIX-workflows/HELIX-process-L0-L14.md §Workflow 入口](../HELIX-workflows/HELIX-process-L0-L14.md) + [helix-process/README.md](../HELIX-workflows/helix-process/README.md)
 
-Forward HELIX (L0-L14) を中核とし、入口に応じて 9 mode + 2 工程専門 workflow を使い分ける。**全モードは最終的に Forward の L0-L14 ドキュメント体系へ収束・昇華する**。
+Forward HELIX (L0-L14) を中核とし、入口に応じて 9 workflow + 2 工程専門 workflow を使い分ける。**全 workflowは最終的に Forward の L0-L14 ドキュメント体系へ収束・昇華する**。
 
-正本 table は [HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md) を参照。本 section は HELIX framework 側の **入口判定アンカー** として最小情報のみ持つ。
+正本 table は [HELIX-process-L0-L14.md §Workflow 入口](../HELIX-workflows/HELIX-process-L0-L14.md) を参照。本 section は HELIX framework 側の **入口判定アンカー** として最小情報のみ持つ。
 
-| モード | 入口 | 正本 | Forward 接続 |
+| ワークフロー | 入口 | 正本 | Forward 接続 |
 |---|---|---|---|
 | **Forward** | 要件・設計・契約が確定 | [HELIX-process-L0-L14.md](../HELIX-workflows/HELIX-process-L0-L14.md) | (本体) |
 | **Scrum** (アジャイル) | 要件をユーザーと反復で固める | [scrum-workflow.md](../HELIX-workflows/helix-process/scrum-workflow.md) | 完成機能を Reverse fullback で文書化 → L0-L14 |
@@ -166,7 +168,7 @@ Forward HELIX (L0-L14) を中核とし、入口に応じて 9 mode + 2 工程専
 | **Incident** | 本番障害の緊急対応 (hotfix) | [incident-workflow.md](../HELIX-workflows/helix-process/incident-workflow.md) | 暫定収束後、恒久対策を L1/L3/L4-L6、postmortem を L14 |
 | **Add-feature** | 既存システムへの差分追補 | [add-feature-workflow.md](../HELIX-workflows/helix-process/add-feature-workflow.md) | add-design / add-impl を L4-L7 に追補 → L0-L14 体系へ統合 |
 
-#### 新 4 mode (workflow doc 正本、入口判定 anchor のみ)
+#### 新 4 workflow (workflow doc 正本、入口判定 anchor のみ)
 
 table 二重化を避けるため詳細は正本へ委譲する。CLI 整備状況と運用方針のみ本 section に記載:
 
@@ -179,13 +181,13 @@ table 二重化を避けるため詳細は正本へ委譲する。CLI 整備状�
 
 #### 特殊 workflow / HELIX W
 
-入口判定 mode と異なる **特殊設計**: AI エージェントシステム構築時のみの 2 段 V 字。9 mode 表に並べない。
+入口判定 workflow と異なる **特殊設計**: AI エージェントシステム構築時のみの 2 段 V 字。9 workflow 表に並べない。
 
-- **HELIX W** ([two-stage-agent-design.md](../HELIX-workflows/helix-process/two-stage-agent-design.md)) — Phase1 (一般システム、be/fe/db/fullstack、L1-L9) + Phase2 (agent、L1-L9) + Phase3 (合流、L10-L14)。`drive=agent` 起動・検出方式は integration-map 解消の後続 PLAN 候補
+- **HELIX W** ([two-stage-agent-design.md](../HELIX-workflows/helix-process/two-stage-agent-design.md)) — Phase1 (一般システム、L1-L9) + Phase2 (agent、L1-L9) + Phase3 (合流、L10-L14)。agent workflow の起動・検出方式は integration-map 解消の後続 PLAN 候補
 
 #### 工程専門ワークフロー (FE/UX、HELIX FE 弱点補強)
 
-入口判定モードではなく、特定工程 (L2/L10) の進め方を専門化したもの。
+入口判定ワークフローではなく、特定工程 (L2/L10) の進め方を専門化したもの。
 
 | 専門 workflow | 対応工程 | 正本 | 補強する FE detector |
 |---|---|---|---|
@@ -264,7 +266,7 @@ D4  Decide（confirmed / rejected / pivot）
 Forward HELIX（確定仮説を L1 要件に昇格 → helix size で fe/be/fullstack 再判定）
 ```
 
-**Scrum モードの特徴**:
+**Scrum ワークフローの特徴**:
 - Forward HELIX のフェーズ進行 (L1-L14) は走らない。runtime state は `.helix/scrum/` 配下で独立管理 (A1 scope)
 - verify/*.sh は毎回全実行 → リグレッション検出
 - `decide --confirmed` で Forward HELIX に接続
@@ -292,22 +294,24 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 | 変更行数 | ~100 | 101-500 | 501+ |
 | API/DB変更 | なし | 片方 | 両方 |
 
-## 駆動タイプ
+## 旧 drive field / 既存 CLI 分類
 
-`helix size --drive <type>` で明示指定、または `--ui/--api/--db/--uncertain` フラグで自動判定。L2〜L5 の中身とゲート判定基準が変わる。
+この節は既存 CLI / validator に残る `drive` field の互換説明であり、HELIX のコア概念ではない。進行判断は Forward L0-L14 と workflow 現在地を正とし、BE / FE / DB / agent などは工程内の対象領域・実装観点として扱う。
+
+既存実装では `helix size --drive <type>` または `--ui/--api/--db/--uncertain` フラグで分類される。この分類は HELIX DB / `vmodel-semantics` / workflow 現在地による注入制御へ段階移行する。
 
 ### 主要 4 パターン (通常はこの 4 択)
 
-| 駆動タイプ | 起点 | 典型プロジェクト |
+| 旧分類 | 起点 | 典型プロジェクト |
 |-----------|------|----------------|
 | **be**（デフォルト） | API/ロジック | 業務系、解析系、SaaS バックエンド |
-| **fe** | デザイン/UX → モック駆動 | LP、EC、ダッシュボード、UX重視プロダクト |
+| **fe** | デザイン/UX → モック | LP、EC、ダッシュボード、UX重視プロダクト |
 | **scrum** | 仮説検証（要件不確実） | PoC、新規事業、技術検証、リサーチ系 |
 | **fullstack** | BE+FE同時（Twin Track） | SaaS、EC、ダッシュボード + API |
 
 ### エッジケース (特殊起点)
 
-| 駆動タイプ | 起点 | 典型プロジェクト |
+| 旧分類 | 起点 | 典型プロジェクト |
 |-----------|------|----------------|
 | **db** | スキーマ/データモデル | マスタ管理、ERP、データ基盤 |
 | **agent** | ツール/プロンプト | AI アプリ、自動化、ワークフロー |
@@ -317,22 +321,22 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 ```
 --uncertain あり                   → scrum (Phase S / 検証駆動)
 --ui + (--api or --db) あり        → fullstack (Twin Track)
---ui のみ                          → fe (モック駆動)
+--ui のみ                          → fe (モック)
 --api or --db あり                 → be
 フラグなし                         → be (デフォルト)
 ```
 
-明示 `--drive <type>` 指定は常に最優先。`db` / `agent` は明示指定のみ。
+既存 CLI では明示 `--drive <type>` 指定が最優先。`db` / `agent` は明示指定のみ。
 
-### 駆動タイプ別 L2〜L11
+### 旧分類別 L2〜L11
 
 | フェーズ | be | fe | db | fullstack | agent |
 |---------|----|----|----|-----------|----|
-| L2 設計 | API設計・アーキテクチャ・ADR | **モック駆動設計**（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（**mock含む**）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
+| L2 設計 | API設計・アーキテクチャ・ADR | モック設計（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（mock含む）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
 | L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
 | L6 機能設計 | API実装詳細 + 単体テスト観点 | FE API契約導出 + イベント連携 + モック準備 | スキーマ変更影響 + 単体確認観点 | 接続/変換 API + FE 連携 | ツール入出力 + 状態遷移 |
 | L7 実装順 (旧 L4) | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 (旧 L4.5) | ツール→オーケストレーション→UI |
-| L5 重み | 薄い（表示確認） | **厚い**（デザイン駆動） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
+| L5 重み | 薄い（表示確認） | 厚い（デザイン確認） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
 | L8 結合テスト | 依存関係解消 + 結合観点 | モック→本実装の接続検証 | 永続化を含む結合確認 | エンドポイント/画面連携の結合確認 | ツール呼び出しと外部連携の結合確認 |
 | L9 Run-1（デプロイ検証） | 標準 | 標準 | 薄い | 標準 | 薄い |
 | L10 Run-2（観測） | 薄い | 標準 | 薄い | 標準 | 薄い |
@@ -348,17 +352,17 @@ auto-thinking は opt-in flag、default は role conf の `codex_thinking`。
 
 ### L5 要否の判定
 
-| 駆動タイプ | L5 必要条件 |
+| 旧分類 | L5 必要条件 |
 |-----------|------------|
 | be | `--ui` 有りのときのみ |
-| fe | **常に必要**（FE駆動の核心） |
+| fe | **常に必要**（UI 品質確認の核心） |
 | db | `--ui` 有りのときのみ |
 | fullstack | **常に必要**（結合後の Visual Refinement） |
 | agent | **常に必要**（会話UI/デモ） |
 
 ## フェーズスキップ決定木
 
-駆動タイプで L5 の要否が変わる（上記参照）。それ以外の判定ロジックは共通:
+既存 CLI 分類で L5 の要否が変わる（上記参照）。それ以外の判定ロジックは共通:
 
 ```
 ├─ S（小規模）
@@ -378,7 +382,7 @@ auto-thinking は opt-in flag、default は role conf の `codex_thinking`。
     └─ L5不要 → フルフロー（L5/G5 skip）
 ```
 
-(L5) = 駆動タイプの L5 要否判定に従う
+(L5) = 既存 CLI 分類の L5 要否判定に従う
 
 Run 工程（L9-L11）の適用可否:
 - 本番運用あり: G9-G11 を必須適用
@@ -415,7 +419,7 @@ fullstack 追加条件:
 
 **2026-04-22 追加分** (25スキル、agent-skills/ カテゴリ新設):
 - 上流由来 19 (addyosmani/agent-skills MIT、日本語化済): idea-refine / spec-driven-development / planning-and-task-breakdown / incremental-implementation / test-driven-development / context-engineering / source-driven-development / frontend-ui-engineering / api-and-interface-design / browser-testing-with-devtools / debugging-and-error-recovery / code-review-and-quality / security-and-hardening / performance-optimization / ci-cd-and-automation / deprecation-and-migration / documentation-and-adrs / shipping-and-launch / using-agent-skills (メタ)
-- HELIX 独自 discovery skill: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (FE 駆動核心)・helix-discovery (D0-D4 仮説検証)。`helix-scrum` は legacy alias として維持
+- HELIX 独自 discovery skill: system-design-sizing (donnemartin/system-design-primer MIT 根拠)・technical-writing (Google Tech Writing CC-BY 根拠)・mock-driven-development (UI mock 核心)・helix-discovery (D0-D4 仮説検証)。`helix-scrum` は legacy alias として維持
 - 除外 3 (本体 workflow/ に既存): adversarial-review / debt-register / reverse-analysis
 - 付随: .claude-plugin/ (marketplace 配布用)・.claude/commands/ 7 本 (slash commands)・addyosmani/agent-skills 由来の 3 役（code-reviewer / security-audit / qa-test）は .claude/agents/ に統合（現在の .claude/agents/ は 19 エージェント構成: be-api / be-logic / code-reviewer / db-schema / devops-deploy / qa-test / security-audit / pmo-sonnet / pmo-haiku / pdm-tech-innovation / pdm-marketing-innovation / pdm-innovation-manager / pmo-helix-explorer / pmo-helix-scout / pmo-project-explorer / pmo-project-scout / pmo-tech-docs / pmo-tech-fork / pmo-tech-news）・agent-skills/references/ 5 checklist・agent-skills/hooks/ (session-start)
 - 統合ガイド: docs/agent-skills/README.md・docs/agent-skills/skill-anatomy.md

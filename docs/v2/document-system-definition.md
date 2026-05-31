@@ -1,7 +1,7 @@
 ---
 doc_id: v2-document-system-definition
 title: HELIX-workflows V2 L単位ドキュメント体系定義
-status: frozen
+status: draft
 created: 2026-05-30
 frozen_date: 2026-05-31
 owner: PM
@@ -71,12 +71,12 @@ HELIX-workflows V2 は CLI / フレームワーク寄りの `drive=be` 系であ
 | `docs/plans/L5/L5-helix-workflows-モジュール分割設計plan.md` | `docs/v2/L5-detailed-design/モジュール分割設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` |
 | `docs/plans/L5/L5-helix-workflows-物理データ設計plan.md` | `docs/v2/L5-detailed-design/物理データ設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` |
 | `docs/plans/L5/L5-helix-workflows-IF詳細設計plan.md` | `docs/v2/L5-detailed-design/IF詳細設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` |
-| `docs/plans/L6/L6-helix-workflows-関数仕様plan.md` | `docs/v2/L6-functional-design/FR-XXX/function-spec.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` |
-| `docs/plans/L6/L6-helix-workflows-クラス設計plan.md` | `docs/v2/L6-functional-design/FR-XXX/class-design.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` |
-| `docs/plans/L6/L6-helix-workflows-エッジケースplan.md` | `docs/v2/L6-functional-design/FR-XXX/edge-cases.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` |
+| `docs/plans/L6/L6-helix-workflows-関数仕様plan.md` | `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開して作成される `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` |
+| `docs/plans/L6/L6-helix-workflows-クラス設計plan.md` | `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開して作成される `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` |
+| `docs/plans/L6/L6-helix-workflows-エッジケースplan.md` | `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開して作成される `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` |
 
 L2 画面設計 plan は `N/A: L2最小・UI対象なし` と明示し、無言削除しない。
-L6 は `docs/v2/L6-functional-design/FR-XXX/index.md` を bundle manifest とし、`function-spec.md` / `class-design.md` / `edge-cases.md` を generates する。
+L6 3 PLAN は `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開する役割に限定し、548 資産を直書きしない。各 asset design は `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` に配置し、L7 は対応する `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` を持つ。
 
 ### 表3 V-model pair
 
@@ -90,9 +90,7 @@ L6 は `docs/v2/L6-functional-design/FR-XXX/index.md` を bundle manifest とし
 | `docs/v2/L5-detailed-design/モジュール分割設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` | L8 |
 | `docs/v2/L5-detailed-design/物理データ設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` | L8 |
 | `docs/v2/L5-detailed-design/IF詳細設計.md` | `docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md` | L8 |
-| `docs/v2/L6-functional-design/FR-XXX/function-spec.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` | L7 |
-| `docs/v2/L6-functional-design/FR-XXX/class-design.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` | L7 |
-| `docs/v2/L6-functional-design/FR-XXX/edge-cases.md` | `docs/v2/L7-test-design/FR-XXX/unit-test-design.md` | L7 |
+| `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` | L7 |
 
 ## §3 L4機能設計 vs L6機能設計の境界
 
@@ -106,21 +104,25 @@ L6 の機能設計は、機能ごとの関数仕様、クラス設計、エッ�
 
 L6 フォルダ配下の機能単位は、`docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md` と `docs/v2/L3-requirements/helix-workflows-functional-registry.md` を SSoT とし、FR 単位で列挙する。
 
-### 4.1 コード資産 bucket
+### 4.1 verification_pair_type
 
-`CLI 80 / lib 139 / hook 17 / agent 19 = 255` は **関数仕様必須** とする。実装直前粒度で個別の function / class / edge case に落とし込む。
+全 548 資産を機能設計対象とし、registry-only 免除は撤回する。各資産は `L6 ↔ L7` の primary pair を持ち、設計種別は `verification_pair_type` で表す。
 
-### 4.2 registry-only bucket
+| verification_pair_type | 値の意味 | L7 pair 検証形式 |
+|---|---|---|
+| `code` | CLI / lib / hook の実装資産 | `L7 unit` (pytest / bats / shellcheck) |
+| `agent` | subagent 資産 | prompt contract lint + fixture invocation |
+| `skill` | skill 資産 | skill lint + trigger resolution + reference existence |
+| `workflow_doc` | HELIX-workflows doc 資産 | static contract lint + transition table check |
+| `template` | template 資産 | render + schema + lint |
 
-`skill 130 + workflow 49 + template 114 = 293` は **registry-only** とする。単体テスト pair は免除し、L3 registry と資産 inventory で追跡する。
+### 4.2 L6 折衷案
 
-### 4.3 L6 折衷案
+L6 PLAN は正本どおり 3 本固定とする。`function-spec` / `class-design` / `edge-cases` は `asset-manifest.yaml` の生成・展開を担い、548 資産の詳細本文を直書きしない。個別資産の本体は `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` に置く。
 
-L6 PLAN は正本どおり 3 本固定とする。`function-spec` / `class-design` / `edge-cases` を FR 単位 bundle に生成するが、FR 単位 PLAN 16 本へ増やさない。正本衝突を避けるため、この 3 PLAN は `docs/v2/L6-functional-design/FR-XXX/` の bundle manifest と pair テスト設計を生成する役割に限定する。
+### 4.3 FR 単位一覧
 
-### 4.4 FR 単位一覧
-
-| FR-ID | 機能名 | bucket | L6 配置方針 |
+| FR-ID | 機能名 | verification_pair_type | L6 配置方針 |
 |---|---|---|---|
 | FR-NSM-01 | NSM 計測・整合スコア機能 | code | `docs/v2/L6-functional-design/FR-NSM-01/` |
 | FR-GR-01 | Guardrail fail-close 機能 | code | `docs/v2/L6-functional-design/FR-GR-01/` |
@@ -138,11 +140,10 @@ L6 PLAN は正本どおり 3 本固定とする。`function-spec` / `class-desig
 | FR-MIGR-01 | schema migration / retrofit 機能 | code | `docs/v2/L6-functional-design/FR-MIGR-01/` |
 | FR-DOCREVIEW-01 | ドキュメント品質レビュー機能 | code | `docs/v2/L6-functional-design/FR-DOCREVIEW-01/` |
 | FR-CHANGEPROP-01 | 変更追跡 + デグレ禁止 ratchet 機能 | code | `docs/v2/L6-functional-design/FR-CHANGEPROP-01/` |
-| FR-FNREG-01 | 機能一覧 SSoT + 自動チェック機能 | registry-only | (注1) L4 carry 完了後に再評価 |
-| FR-GLOSSARY-01 | ドメイン用語 SSoT + 自動チェック機能 | registry-only | (注1) L4 carry 完了後に再評価 |
+| FR-FNREG-01 | 機能一覧 SSoT + 自動チェック機能 | workflow_doc | `docs/v2/L6-functional-design/FR-FNREG-01/` |
+| FR-GLOSSARY-01 | ドメイン用語 SSoT + 自動チェック機能 | workflow_doc | `docs/v2/L6-functional-design/FR-GLOSSARY-01/` |
 
-> **bucket 確定 (2026-05-30、registry 照合済)**: code 16 件 / registry-only 2 件。当初 registry-only 判定だった FR-NSM-01 / FR-INV-01 / FR-DOCTOR-01 / FR-MIGR-01 / FR-DOCREVIEW-01 / FR-CHANGEPROP-01 の 6 件は、CLI binary / cli/lib モジュール / hook / agent の実装コードが registry §11 に実在する (完全実装〜部分実装) ため **code** に確定。
-> **(注1)** FR-FNREG-01 / FR-GLOSSARY-01 は専用コード資産 0 件 (yaml / check CLI 未実装、L4 carry)。実装が無い段階で関数仕様 doc を作ると trace が破綻するため registry-only を維持し、L4 carry (yaml 化 + check CLI) 完了後に code 昇格を再評価する。
+> **pair 方針確定 (2026-05-31、registry 照合済)**: 全 548 資産を機能設計対象とし、registry-only 免除は撤回する。FR-FNREG-01 / FR-GLOSSARY-01 も設計対象に含め、L6/L7 pair を持つ。各資産の個別展開は asset-manifest 経由で管理する。
 
 ## §5 frontmatter contract
 
@@ -161,7 +162,7 @@ pairs_test_design: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.
 
 ### 5.2 関数仕様doc
 
-必須 field: `asset_id / asset_path / parent_concept / pairs_test_design / test_case_prefix / bucket`
+必須 field: `asset_id / asset_path / parent_concept / pairs_test_design / test_case_prefix / verification_pair_type`
 
 ```yaml
 asset_id: FR-GATE-01
@@ -169,7 +170,7 @@ asset_path: cli/lib/gate_policy.py
 parent_concept: gate 合成判定機能
 pairs_test_design: docs/v2/L7-test-design/FR-GATE-01/unit-test-design.md
 test_case_prefix: U-GATE-
-bucket: code
+verification_pair_type: code
 ```
 
 ### 5.3 テスト設計doc
@@ -177,8 +178,8 @@ bucket: code
 必須 field: `parent_design / pairs_design`
 
 ```yaml
-parent_design: docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
-pairs_design: docs/v2/L6-functional-design/FR-GATE-01/
+parent_design: docs/v2/L6-functional-design/assets/code/FR-GATE-01/asset-design.md
+pairs_design: docs/v2/L6-functional-design/assets/code/FR-GATE-01/
 ```
 
 ## §6 ファイル命名・配置規約
@@ -199,12 +200,12 @@ pairs_design: docs/v2/L6-functional-design/FR-GATE-01/
 - 生成doc名に `plan` を入れない。PLAN 名を生成doc名へ流用しない
 - L4 生成doc: `方式設計.md` / `機能構成設計.md` / `データ設計.md` / `外部IF設計.md`
 - L5 生成doc: `内部処理設計.md` / `モジュール分割設計.md` / `物理データ設計.md` / `IF詳細設計.md`
-- L6 生成doc: `FR-<ID>/function-spec.md` / `class-design.md` / `edge-cases.md` / `index.md`
-- L7: `docs/v2/L7-test-design/FR-XXX/unit-test-design.md`
+- L6 生成doc: `assets/<asset_kind>/<asset_id>/asset-design.md`
+- L7: `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md`
 - L8: `docs/v2/L8-test-design/<L5-doc-stem>-結合テスト設計.md`
 - L9: `docs/v2/L9-test-design/<L4-doc-stem>-総合テスト設計.md`
 - frontmatter `parent_plan` は PLAN stem または plan_path で実在 PLAN に解決可能であること
-- frontmatter `pairs_design` は `docs/v2/L6-functional-design/FR-XXX/` の bundle manifest を指すこと
+- frontmatter `pairs_design` は `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/` の asset bundle を指すこと
 
 ### 6.3 逸脱禁止
 
@@ -221,8 +222,8 @@ Phase 1 は advisory、Phase 2 は fail-close とする。
 - 生成doc名に `plan` が含まれないこと
 - `parent_plan` / `plan_path` が `docs/plans/Lx/` に実在すること
 - 各 PLAN の `generates` が実在 doc に解決すること
-- L6 code FR 16 件は `function-spec` / `class-design` / `edge-cases` / `unit-test-design` を持つこと
-- registry-only FR は免除理由を持つこと
+- 全 548 資産が `asset-design` / `verification-design` の pair を持つこと
+- 全 548 資産が L6↔L7 primary pair を持つこと
 - `pairs_test_design` と `parent_design` の逆参照が一致すること
 
 ### 7.2 判定順

@@ -20,8 +20,10 @@ PROJECT_CONTEXT_FILES = [
 
 FRAMEWORK_CONTEXT_FILES = [
     "helix/HELIX_CORE.md",
+    "helix/HELIX_RUNTIME_RULES.md",
     "skills/SKILL_MAP.md",
-    "helix/CODEX_TL_MODE.md",
+    "helix/CODEX_RUNTIME_ADAPTER.md",
+    "helix/CLAUDE_RUNTIME_ADAPTER.md",
     "docs/commands/index.md",
     "docs/commands/ai-harness.md",
 ]

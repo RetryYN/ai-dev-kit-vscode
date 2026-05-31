@@ -5,8 +5,9 @@
 タスク受領時は必ず以下を Read してフローに従うこと:
 
 - `~/ai-dev-kit-vscode/helix/HELIX_CORE.md` — 共通ガイダンス
+- `~/ai-dev-kit-vscode/helix/HELIX_RUNTIME_RULES.md` — Claude / Codex 共通の実行規律
 - `~/ai-dev-kit-vscode/skills/SKILL_MAP.md` — フロー・ゲート・スキル一覧
-- `~/ai-dev-kit-vscode/helix/CODEX_TL_MODE.md` — Codex CLI の TL 主導読み替えルール
+- `~/ai-dev-kit-vscode/helix/CODEX_RUNTIME_ADAPTER.md` — Codex CLI 固有の runtime 差分
 
 ## スキル
 
@@ -17,11 +18,11 @@ HELIX スキルは `helix-*` プレフィックスで `~/.codex/skills/` にイ�
 - スキル内の `references/` パスはスキルディレクトリからの相対パス
 - 他スキルの references（例: `ai-coding/references/`）は `~/ai-dev-kit-vscode/skills/tools/ai-coding/references/` で解決
 
-## TL 駆動モード
+## Codex Runtime Adapter
 
-Codex CLI 単体利用時は **TL（テックリード）として自律動作** する。
+Codex CLI は独自 workflow ではない。HELIX Core と Runtime Rules に従い、Codex 固有の差分だけ `~/ai-dev-kit-vscode/helix/CODEX_RUNTIME_ADAPTER.md` で扱う。
 
-詳細な読み替えルール・ゲート運用・エスカレーション境界は `~/ai-dev-kit-vscode/helix/CODEX_TL_MODE.md` を正本とする。
+詳細な編集・検証・handover・CLI shim・出力制約は `~/ai-dev-kit-vscode/helix/CODEX_RUNTIME_ADAPTER.md` を正本とする。
 
 ### 役割
 
@@ -31,7 +32,8 @@ Codex CLI 単体利用時は **TL（テックリード）として自律動作**
 
 ### 行動指針
 
-- 設計→実装→テスト→検証を一気通貫で行う
+- 作業前に目的、workflow、Forward 接続先、合格基準・検証条件、作業正本、変更範囲を固定する
+- 実装を伴う場合は検証条件先行 / 実装時 TDD に従う
 - 適用ゲートはタスクサイズ（S/M/L）と変更種別で決まる → SKILL_MAP.md §フェーズスキップ決定木 に従う
 - 適用されるゲートは順番固定。各ゲートの pass/fail を明示する
 - 工程表 / task-plan / handover Next Action を正とし、工程表外の実装へ勝手に進まない
@@ -67,7 +69,7 @@ config.toml のデフォルト (`gpt-5.4`) は TL 役割用。役割を切り替
 
 1. `~/ai-dev-kit-vscode/helix/HELIX_CORE.md` が存在するか確認
 2. `~/ai-dev-kit-vscode/skills/SKILL_MAP.md` が存在するか確認
-3. `~/ai-dev-kit-vscode/helix/CODEX_TL_MODE.md` が存在するか確認
+3. `~/ai-dev-kit-vscode/helix/CODEX_RUNTIME_ADAPTER.md` が存在するか確認
 4. カレントディレクトリに `.helix/handover/CURRENT.json` が存在するかチェック
 5. 存在する場合は `helix handover status --json` を実行
 6. `stale: true` なら中断し、stale reason をユーザーに伝える

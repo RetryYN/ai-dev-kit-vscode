@@ -1,293 +1,129 @@
-# HELIX Core — 共通開発フロー定義
-
-> Claude Code / Codex CLI 共通。ツール固有設定は各ツールの設定ファイルに記載。
-> 正本: SKILL_MAP.md §正本宣言 参照
-
-## V2 完全移行 (2026-05-24、HELIX-workflows 正本)
-
-正本: [HELIX-workflows/HELIX-process-L0-L14.md](../HELIX-workflows/HELIX-process-L0-L14.md)
-
-- **工程**: L0 (企画書) → L14 (運用検証) の 15 工程構造
-- **V-model ペア凍結**: 設計工程と検証工程が対応 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
-- **PLAN は全工程で起票**: 各工程 PLAN は `process_layer` ごとに独立。L7 は実装工程内に複数の `L7-<機能名>plan` を抱える上位概念 (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書、他工程 PLAN の親ではない)
-- **PLAN 命名規則**: `L<NN>-○○○plan` (例: `L0-企画書plan` / `L7-helix-workspace-mergeplan`)
-- **PLAN 配置**: `docs/plans/L0/` 〜 `docs/plans/L14/` にフォルダ分離
-- **PLAN の中身**: 工程表 (作業手順 + 進捗) + 実装計画の 2 要素を内蔵
-- **旧 V1 PLAN (PLAN-NNN-slug)**: 参考扱い、製本にしない。製本したい場合は V2 命名規則で書き直し (commit f409c55 で `is_reference: true` marked)
-- **plan_validator / helix doctor**: V1 reference は skip、V2 のみ厳格検証 (commit ea846ea)
-- **9 mode**: Forward (本体) + Scrum (アジャイル) / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery。詳細は [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../HELIX-workflows/HELIX-process-L0-L14.md)。Research は `helix research` CLI あり、Refactor / Retrofit / Recovery は workflow doc 正本・dedicated CLI 未整備 (PLAN kind + workflow doc で運用)
-- **HELIX W (2 段 V 合流)**: AI エージェントシステム時のみの特殊 workflow。9 mode と並列ではなく、特殊設計として [two-stage-agent-design.md](../HELIX-workflows/helix-process/two-stage-agent-design.md) を正本とする
-- **TDD (テストファースト) 全モード共通絶対原則**: いかなる工程・いかなるモードでも「テスト → 実装」順序を厳守、テストアフター禁止。Refactor では変更前の保護網テスト存在を前提。詳細は [HELIX-workflows/HELIX-process-L0-L14.md §基本原則](../HELIX-workflows/HELIX-process-L0-L14.md)
-
----
-
-## 応答言語
-
-- 日本語で応答する
-
-## スキル
-
-- `~/ai-dev-kit-vscode/skills/` に配置
-- triggers 該当時は自発的に Read。全スキル一括読み込み禁止
-- コンテキスト管理: `context-memory` スキル参照
-
-## モデル割当（真実は `cli/config/models.yaml`）
-
-| ロール | モデル | thinking |
-|------|--------|--------|
-| PM | Opus (Claude Code) | — |
-| PMO Sonnet | claude-sonnet-4-6 | medium |
-| PMO Haiku | claude-haiku-4-5-20251001 | low |
-| TL | gpt-5.5 | high |
-| SE | gpt-5.4 | high |
-| PE | gpt-5.3-codex-spark / gpt-5.3-codex | low-medium |
-
-## タスク受領
-
-1. サイジング S/M/L（SKILL_MAP.md §タスクサイジング）
-2. フェーズスキップ決定（SKILL_MAP.md §フェーズスキップ決定木）
-3. ゲート判定（`skills/tools/ai-coding/references/gate-policy.md §ゲート一覧`）
-4. 該当スキルを Read（SKILL_MAP.md オーケストレーションフローの `→` 右のスキル名を参照）
-4.5 実装着手前 (新 L7 / 旧 L4 entry): `helix code find "<keyword>"` で既存実装の流用候補を確認する
-  - 公開 API / 再利用候補は `--bucket coverage_eligible`（default）で確認
-  - private helper の再利用/PoC seed 探索は `--bucket private_helper` を併用する
-  - 非公開 → 公開昇格候補（seed candidate）を `--seed-promotable true` で抽出する
-4.6 v2 ディスパッチ: タスク性質で必須委譲先を優先決定
-- BE 実装/DB/インフラ: `helix codex --role se`
-- 設計・レビュー・デバッグ: `helix codex --role tl`
-- 速度重視単機能実装: `helix codex --role pg`
-- 状況把握 / docs チェック: `helix claude --role pmo --model sonnet --execute`
-- 軽文書チェック / docs/**: `helix claude --role pmo --model haiku --execute --allow-paths "docs/**"`
-4.7 スキル推奨: `helix skill chain "<タスク記述>"` を任意で実施。skip 理由がある場合は会話または final report に記録する（例: 自明な小修正、既知 skill のみ使用 等）
+# HELIX Core
 
-新 L7 (旧 L4) implementation / build / G7 (旧 G4) 補足（PLAN-013）:
-- L7 entry: `helix code find`、`helix code stats --uncovered --bucket coverage_eligible` を使って既存資産を確認する
-- L7 implementation: 新規 public symbol は `coverage_eligible`、`_` 始まり helper は `private_helper` に分類する
-- L7 build: `helix code build` で catalog を再生成し、`bucket` / `symbol_line` / metadata を自動付与する
-- G7: `helix code stats --uncovered --scope core5 --bucket coverage_eligible --fail-under 80` を走らせて coverage gate を判断する
-5. 実行開始
-6. ミニレトロ: G2/G4/L8 通過時（`skills/tools/ai-coding/references/gate-policy.md §ミニレトロ`）
-7. readiness exit 条件確認 → 該当スキル Read
+HELIX は V モデルを起点とするプロジェクトマネジメント型品質管理実装システムである。V モデルにドキュメント・実装・テスト・カバレッジ・契約を対応づけて正本化し、HELIX DB がその整合を機械的に追う。ドキュメントで資産化し、実装で実体化し、テストで品質を固定する。どこかだけを変更して、他をずらしたままにすることを許さない。
 
-> **Reverse モード**: 既存コードからの設計復元は SKILL_MAP.md §Phase R / `workflow/reverse-analysis/SKILL.md` を参照。Forward とは別のサイジング・ゲート体系（R0→R4→Forward→RGC）を使用。
-> ※ RGC（Reverse Gap Closure）は `helix reverse rgc` で実装済み。R4 Gap Register から集計を表示する。
+## 0. 絶対原則
 
-## 設計提案
+HELIX の Core / DB / gate / workflow / harness は、次の絶対原則に従う。これが HELIX の最上位制約である。
 
-- ユーザーへの技術提案前に `helix plan draft → review → finalize` を実施
-- TL approve なしで finalize 不可
-- 詳細は `workflow-core.md §設計提案レビュー` 参照
-
-## Advisor 召喚（PM / TL 難判断）
-
-チャット PM (Opus / Sonnet 問わず) と実装担当が大局判断・技術選択で迷ったとき、自前で結論を出す前にアドバイザーを呼ぶ。アドバイザーは read-only で構造化助言のみ返し、最終判断は呼び出し側が下す。
+1. **V モデルが起点である**。すべての成果は V モデル（Forward L0-L14）上で正本化される。
+2. **他の駆動 workflow は V モデルから外れてよい。ただし最終的に V モデルへ戻すための仕組みであり、代替ではない**。Reverse / Discovery / Scrum / Add-feature / Refactor / Retrofit / Incident / Research / Recovery は、外れた事象を受け止めて Forward へ戻す枝である。
+3. **V モデルに戻さなければ HELIX DB のコアは動かない**。V モデルに紐付かない成果は trace / drift / coverage / 契約整合の管理対象にならず、HELIX 上で「完了」として成立しない。
+4. **AI を含むすべての実行者は、この原則の内側でだけ動く**。V モデルへの収束を持たない作業を完了扱いにしてはならない。
 
-- `helix claude --role pm-advisor --execute --task "..."` — PM 級判断 (スコープ / 優先度 / 大局リスク / フェーズ整合 / 委譲先) を Opus 4.7 に相談
-- `helix codex --role tl-advisor --task "..."` — TL 級判断 (設計 / 契約 / 技術選択 / テスト戦略 / リファクタ) を gpt-5.5 high に相談
-- `helix codex --role doc-reviewer --task "..."` — **ドキュメント品質レビュー専用** (大規模 doc 改定 / G ゲート evidence / V-model 4 artifact pair freeze 前)、gpt-5.5 high read-only。4 視点 (Correctness / Completeness / Consistency / Clarity) + 業界標準 (Diátaxis / arc42 / ISO 26515 / DDD SSoT) + HELIX V-model 量閉じ性 + implementation_status 列必須を統合検査
+この原則が崩れると、過剰起票・未検証の実装主張・テスト無し・V モデル片肺といった成果が、DB に紐付かないまま流出する。**原則を文章でなく仕組みで守らせること**が Core の役割である。
 
-運用原則:
-- PM が Sonnet で動くチャットでは難判断を Sonnet 単独で確定させず、必ず pm-advisor (Opus) に相談する
-- PM が Opus でも技術判断の adversarial check として tl-advisor を呼ぶ運用は推奨
-- 実装担当 (Sonnet / Codex) は契約・設計で迷えば tl-advisor、スコープで迷えば pm-advisor を呼ぶ
-- 大規模 doc 改定や G ゲート evidence では tl-advisor と並走で doc-reviewer を呼ぶ (責務分離: tl-advisor = 技術判断、doc-reviewer = doc 品質 + 業界標準整合 + V-model 量閉じ性)
-- 呼び出した task / 助言内容は会話または final report に残し、判断トレースを保つ
+## 1. V モデル（起点）
 
-## 工程表・承認・委譲
+V モデルは、ドキュメント・実装・テスト・カバレッジ・契約を対応づけて正本化する骨格であり、HELIX の起点である。V 字の形を持つ。
 
-- 実装は L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を正とする。
-- 工程表がある場合、`plan_id`、`task_id` または `WBS ID`、`L7 Sprint` (旧 L4 Sprint)、依存、受入条件、reference_docs を確認してから L7 に入る。
-- 計画・実装順・整理案をユーザーへ提示した場合、明示承認があるまでファイル編集・依存追加・外部状態変更へ進まない。
-- 工程表外の変更が必要になった場合は、先に工程表更新またはユーザー確認へ戻る。
-- TL は工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team`、`helix review` を使い、使えない場合は理由を証跡化する。
+- **左腕（下り・分解）**: 抽象から具体へ降りる設計。L0 企画 → L1 要求 → L2 画面 → L3 要件 → L4 基本設計 → L5 詳細設計 → L6 機能設計。
+- **底（実装）**: L7。設計を実体化する。
+- **右腕（上り・統合と検証）**: 具体から抽象へ昇る検証。L8 結合 → L9 総合 → L10 UX → L11 レビュー → L12 受入 → L13 運用検証 → L14 運用学習。
+- **横（水平対応）**: 左腕の各設計層は、右腕の対応する検証層と対になる（L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7）。設計時に対応する検証（テスト設計）を先に置き、対応する層で実行する。
 
-## 設計⇔テスト対応 (V-model 原則、2026-05-17 確立 / 訂正)
+これにより、ドキュメント（左腕）・実装（底）・テスト / 検証（右腕）・カバレッジを対応づけ、ずらさず正本化する。設計⇔検証の対は同時に凍結し、片方だけの成立（片肺）を完了扱いにしない。
 
-V-model の基本原則として、設計フェーズの各層と検証 (テスト) フェーズの各層は 1:1 対応する。ただし **4 つの artifact は別々の文書として存在** し、双方向 trace で繋ぐ。同じ文書に統合してはいけない (設計と実装コードが別物なのと同様、テスト設計とテストコードも別物)。
+Forward は L0-L14 の本線工程であり、正本化前の入力を受け取って V モデル成果物として製本する。作業に入る前に合格基準・検証条件を先に置く。実装を伴う場合は TDD（テストファースト）を適用し、コードを書く前に合格基準となるテストを先に置く。Discovery では仮説、PoC、検証条件、採用 / 棄却基準を先に置く。
 
-### 4 artifact 構造
+L 単位の entry / gate / 成果物の詳細は `HELIX-workflows/HELIX-process-L0-L14.md` を正本とする。
 
-```
-設計 (D-API EXT §3.X 等)  ←─対応関係─→  テスト設計 (test-design/*.md)
-        ↓ 実装                                    ↓ 実装
-実装コード (routes/*.py)   ←─対応関係─→  テストコード (test_*.py)
-```
+作る対象が AI エージェントシステムの場合、V モデルを 2 回通す（**W モデル / HELIX W**）。Phase 1（一般システム、L1-L9）と Phase 2（エージェント昇華、L1-L9）を各々 V モデルで作り、L10 で合流して L10-L14 を一度だけ通す。W は別の起点ではなく V モデルを 2 回適用した合成であり、両 Phase とも同一の V モデル DB へ収束する（絶対原則は各 Phase と合流点の両方で成立する）。詳細は `HELIX-workflows/helix-process/two-stage-agent-design.md`。
 
-| Artifact | 担当層 | 例 |
-|---|---|---|
-| **① 設計** | 機能設計 / 詳細設計 / 全体設計 | D-API EXT §3.X (機能設計) / CONCEPT.md (全体設計) |
-| **② 実装コード** | コード成果物 | cli/lib/http_api/routes/*.py |
-| **③ テスト設計** | 単体/結合/総合テスト設計 | docs/v2/L4-test-design/PLAN-074-unit-test-design.md |
-| **④ テストコード** | テスト成果物 | cli/lib/tests/test_*.py |
+## 2. HELIX DB（V モデル収束で動くコア）
 
-### 4 層 ⇔ 4 artifact 対応 (新 15 工程 L0-L14、commit eeb0530)
+HELIX DB は、PLAN・docs・code・test・coverage・contract・command・skill を登録し、整合を機械的に追う台帳であり、V モデルを正本とする。
 
-> **V-model ペア凍結**: 設計工程と検証工程は対で凍結する。実装 (L7) のみ PLAN を起票し、PLAN は `process_layer: L7` + `parent_design` (L6 機能設計 doc) + `pairs_test_design` (L7/L8/L9 テスト設計) を frontmatter に持つ。
+HELIX DB は、V モデル DB（正本）と workflow 補助 state を持ち、各 workflow の closure event で補助 state を V モデル DB に統合する。
 
-| 設計工程 | ① 設計 doc | ↔ ペア凍結 | ③ テスト設計 doc | ④ テスト実施工程 |
-|---|---|---|---|---|
-| **L1** 要求定義 | 機能要求 / 非機能要求 / 受入条件 | ↔ | **運用テスト設計** | **L14** 運用検証 |
-| **L2** 画面設計 | DESIGN.md / mock.html / state-events.md | ↔ | **UX 期待 / a11y チェック** | **L10** FE UX 磨き上げ |
-| **L3** 要件定義 | FR / NFR 詳細 | ↔ | **受入テスト設計** | **L12** デプロイ + 受入テスト |
-| **L4** 基本設計 | アーキテクチャ / ADR / CONCEPT | ↔ | **総合テスト設計** | **L9** 総合テスト |
-| **L5** 詳細設計 | D-API / D-DB / D-CONTRACT | ↔ | **結合テスト設計** | **L8** 結合テスト |
-| **L6** 機能設計 | endpoint / 関数 schema | ↔ | **単体テスト設計** | **L7 Step 2** 単体テスト実装 |
+**V モデルへ収束しない成果は DB のコアに載らない**。＝ trace / drift / coverage / 契約整合の対象にならず、HELIX 上では未完了である。これが絶対原則 3 の実体であり、off-V モデルの成果（過剰起票・未検証実装主張・片肺）が「成立しない」ことを機械で担保する。
 
-旧 4 層対応 (L1-L11 体系) は本 §設計⇔テスト対応に統合済。旧表記の `L4 実装` は新 `L7 実装スプリント`、`L4 結合テスト実装` は新 `L8 結合テスト` に対応する。
+逸脱 workflow の成果物は、対応する PLAN として起票し、本線 DB に取り込む。個別領域の作業で終わらせず、Forward の成果物と同じ整合管理に収束させる。
 
-### 双方向 trace ルール
-
-各 artifact は対応関係を明示する:
+## 3. 駆動 workflow（V モデルへ戻す枝）
 
-- **設計 → 実装コード**: 設計に「実装ファイル: X.py」明示
-- **実装コード → 設計**: コード docstring に「契約: D-API EXT §3.X」明示
-- **設計 → テスト設計**: 設計に「テスト設計ファイル: docs/v2/L4-test-design/PLAN-XXX-*-design.md」明示
-- **テスト設計 → 設計**: テスト設計に「対象設計: D-API EXT §3.X」明示
-- **テスト設計 → テストコード**: テスト設計に「テスト実装ファイル: test_*.py」明示
-- **テストコード → テスト設計**: テスト docstring に「DoD 検証: PLAN-XXX-*-design.md U-XXX-001〜N」明示
+Forward 以外の workflow は、逸脱・既存実態・障害・探索・改修などを受け止め、最終的に Forward へ戻す循環処理である。
 
-### 違反例 (してはいけない)
+Forward は要求・設計から実装・検証へ降ろすトップダウンの正本処理であり、Reverse は既存コード・既存実態・失敗事象から要件・設計・契約を復元し、Forward へ戻すボトムアップの復元処理である。
 
-- ① 設計と ② 実装コードを同じ文書に書く (例: D-API EXT 内にコード本体を埋め込む)
-- ① 設計と ③ テスト設計を同じ文書に書く (例: D-API EXT 内に test case 列挙を埋め込む)
-- ③ テスト設計と ④ テストコードを同じ文書に書く (例: test ファイル先頭で長文 docstring に case 設計を書く)
-- 4 artifact のいずれかが他の artifact への双方向 reference を欠く
+駆動 workflow は Forward の代替ではない。枝葉で発生した成果、判断、復旧結果は、必ず Forward の該当工程へ接続し、HELIX DB へ収束させる。戻し先（Forward 接続先）を持たない workflow は完了できない。
 
-### 既存 PLAN の retrofit
+## 4. 自動検出ループ
 
-PLAN-075 (V-model 4 artifact 双方向 trace framework 強化) の Phase 3-4 で既存 PLAN を retrofit。helix doctor / G2-G4 ゲートで「4 artifact 全件 + 双方向 trace」を fail-close 化 (Phase 5)。
+drift、劣化、trace 不整合、AI 暴走、障害を検出し、Reverse / Recovery / Incident / Refactor などへルーティングする。
 
-## 工程別 subagent 起動マップ (PLAN-076、2026-05-17 確立)
+自動登録で DB が充実し、DB 検出で workflow が発動し、PLAN 起票後に再登録される。検出された事象も最終的に V モデルへ戻す。この循環で、ずれや破綻を人手の記憶ではなく仕組みとして閉じる。
 
-subagent は **性格** で 2 分類し、扱い (lint / 強制化 / trace) を分ける。
+## 5. ドキュメント設計
 
-### ① 工程明示的サブエージェント (mandatory by phase) — 10 種
+ドキュメントは DDD の考え方で進める。ユビキタス言語を SSoT とし、Bounded Context ごとに責務と用語境界を分け、境界を越える場合は anti-corruption layer で意味を写像する。
 
-HELIX 工程で **必須** 組み込み。skip は理由要求、helix doctor / G2-G4 で「呼ばれていない → fail」自動 lint 対象 (PLAN-076 Phase 5 で fail-close 化予定)。
+各 L のドキュメントは、独自用語を増やして自己完結させるのではなく、上位の用語・境界・要求に接続する。これにより、ドキュメント体系そのものを HELIX DB の trace と自動検出の対象にする。
 
-| Subagent | 必須工程 | 役割 |
-|---|---|---|
-| pdm-tech-innovation | G0.5 | 海外技術思想翻案 |
-| pdm-marketing-innovation | G0.5 | 海外マーケ思想翻案 |
-| pdm-innovation-manager | G0.5 / L1 接続 | 統合判断 |
-| pmo-tech-fork | L2 entry (OSS 採用判断時) | OSS 探索 |
-| pmo-tech-docs | L2 entry (設計手法精読時) | 外部 doc 精読 |
-| pmo-helix-explorer | L2-L7 entry | HELIX 内資産探索 |
-| pmo-project-explorer | L3-L7 entry | project 内資産探索 |
-| pmo-project-scout | L7 entry | 軽量目星 |
-| pmo-helix-scout | L2-L7 entry | HELIX 内軽量目星 |
-| pmo-sonnet | G2/G4/L8 review | 判断伴う read-only |
+## 6. オーケストレーション層
 
-### ② 実行選択サブエージェント (on-demand by judgment) — 4 種
+gate、PLAN、handover、runtime rules で工程を制御する。
 
-工程に縛られず、判断に応じて任意起動。free will、lint 対象外。
+作業の目的、受入条件、担当、再開点、通過条件を固定し、AI や作業者が工程を飛ばしたり、正本を無視したり、V モデルへ戻さず終えたりしないようにする。
 
-| Subagent | 起動タイミング | 役割 |
-|---|---|---|
-| pmo-haiku | 軽 Web 検索 / docs/** 軽修正 | Web 検索目星 |
-| pmo-tech-news | 週次定期 sweep | 最新 tech 動向 |
-| pm-advisor | PM 級難判断時 | adversarial check |
-| tl-advisor | TL 級難判断時 | adversarial check |
+## 7. 実行効率化層
 
-### 設計上の意味
+skill、command、subagent、Codex / Claude harness で実作業を高速化・分担する。
 
-| 観点 | mandatory (10 種) | on-demand (4 種) |
-|---|---|---|
-| trace 対象 | 必須 (helix.db audit) | 任意 |
-| 強制化 | lint / ゲート fail-close | なし |
-| CLI | `helix agent fire-mandatory --phase L2` | `helix agent suggest --task "..."` |
-| 記録 | 呼ばれない → carry note 必須 | 呼んだ場合のみ会話記録 |
+AI は HELIX の代替判断者ではなく、HELIX の制約内で動く実行者である。実行効率化層は、品質管理の主語を AI に移さず、HELIX の工程・DB・gate に従わせるための実行基盤である。
 
-詳細: PLAN-076 (subagent 工程マッピング framework)。
+## 8. 機能単位の役割
 
-## Sprint Plan 標準構造 (PLAN-077、2026-05-17 確立)
+| 機能 | 役割 |
+|---|---|
+| Forward V モデル | L0-L14 で要求、設計、実装、検証、運用学習を正本化する（起点） |
+| HELIX DB | V モデル成果物と workflow 成果を登録し、収束した分だけ trace / drift / coverage を追う |
+| Reverse | 既存コード、既存実態、失敗事象から要件・設計・契約を復元する |
+| Discovery | 不確実な仮説を検証し、採用 / 棄却 / Forward 接続を判断する |
+| Scrum | 短周期の仮説検証・分割実行を扱い、成果を Forward へ接続する |
+| Add-feature | 既存正本に新機能を追加し、要求・設計・テスト・実装へ反映する |
+| Refactor | 振る舞いを保ったまま構造劣化を収束し、成果を Forward の該当工程へ戻す |
+| Retrofit | 既存成果物を現行の HELIX 正本構造へ合わせ直す |
+| Incident | 本番障害や緊急不具合を止血し、恒久対策と postmortem を Forward と DB に戻す |
+| Recovery | AI 暴走、工程逸脱、認識ズレ、破綻状態を収束し、再開点を Forward と DB に戻す |
+| Research | 技術調査と判断材料を整理し、ADR / PLAN / Forward へ接続する |
+| HELIX W | AI エージェントシステム時に、通常システム V とエージェント V を合流させる特殊 workflow |
+| PLAN | 目的、工程、成果物、受入条件、依存、進捗、再開点を管理する |
+| Handover | セッションや担当をまたぐ作業正本を管理する |
+| Gate / Detector | 成果物存在、trace、契約、テスト、品質劣化、V モデル収束を機械的に判定する |
+| Skill | 領域別の知識、チェックリスト、作業手順を提供する |
+| Command | HELIX DB、PLAN、gate、workflow、harness を操作する実行インターフェース |
+| Subagent / Role | PM / TL / SE / QA / specialist などの責務分担を実行単位にする |
+| Runtime Rules | Claude / Codex / CLI / team 実行時の共通規律を定義する |
+| Runtime Adapter | Claude / Codex など実行環境ごとの差分を吸収する |
 
-新 L7 実装スプリント (旧 L4) 中の Sprint Plan が毎回フリーハンドにならず、機械チェック / テスト起動 / レビューが Sprint 内必須ステップとして固定化される。
+## 9. 問い合わせ方法
 
-> **V2 完全移行訂正 (2026-05-24、TL レビュー後再訂正)**: PLAN は全工程 L0-L14 に起票し、各工程 PLAN は `process_layer` ごとに独立。L7 は **実装工程内に複数の `L7-<機能名>plan` を抱える上位概念** (L7 工程表が機能順序を定義、各 PLAN が 1 機能の実装手順書)。L7 は他工程 (L0-L6/L8-L14) の PLAN の親ではない。本節の「Sprint 標準構造」は L7 における各機能 PLAN の内部ステップを定義する。他工程の PLAN は工程表 + 実装計画の 2 要素を内蔵する形で起票される (詳細: docs/v2/process/README.md / HELIX-workflows/HELIX-process-L0-L14.md §工程別詳細ドキュメント)。
-
-### Sprint .X 標準 8 ステップ
-
-```
-Step 1: Entry 条件確認          (前 Sprint 完遂 / dependency)
-Step 2: 実装着手前               (helix code find / pmo-project-scout)
-Step 3: 実装                    (Codex 委譲 or Opus 直接)
-Step 4: ★機械チェック (mandatory in sprint):
-        - py_compile (Python) / bash -n (bash)
-        - shellcheck / markdownlint / yamllint
-        - helix code stats / helix doctor
-Step 5: ★テスト起動 (mandatory in sprint):
-        - 単体テスト (該当範囲、即時)
-        - 結合テスト (該当範囲)
-        - 全回帰 (Sprint Exit 前、helix test)
-Step 6: ★レビュー (mandatory in sprint):
-        - セルフレビュー
-        - pmo-sonnet review (G2/G4 時)
-        - tl-advisor (on-demand、adversarial check)
-Step 7: commit + carry note
-Step 8: Exit 条件確認 (DoD)
-```
-
-### 2 分類
-
-| ステップ性格 | mandatory in sprint | on-demand in sprint |
-|---|---|---|
-| 対象 | py_compile / 該当 test / 全回帰 / セルフレビュー / pmo-sonnet review (G2/G4) | security audit / perf test / coverage report / tl-advisor |
-| 発火 | Sprint Exit 前に必ず | 必要時のみ |
-| lint | 不在 → carry note 強制 | なし |
-| CLI | `helix sprint complete --auto-check` | `helix sprint addon <check>` |
-
-詳細: PLAN-077 (Sprint Plan 標準化 framework)。
-
-## readiness と carry rule
-
-PLAN-004 v5 と PLAN-009 v3 の方針として、L1-L11 を進める際は以下を適用する。
-
-- 各 L の entry/exit 条件に readiness を明示し、未充足時は前段へ差戻す。
-- 各ゲート（特に G1-G11）は readiness exit 判定に接続し、未達成は carry/passed 制御に反映する。
-- IIP/deferral の評価は下記で統一する。
-
-P0: gate stop（即修正）
-P1: gate stop もしくは carry（PM 承認）
-P2: 次 L 開始まで carry（deferred-finding として debt に記録）
-P3: 任意 carry
-
-deferred-finding は次の品質評価に反映し、accuracy_score から減点される（数値は共通で carry レベルにより重み付け）。
-
-## Phase 4 Run (L9-L11)
-
-PLAN-009 v3 の 4 フェーズ拡張に合わせ、Run 工程を追加する。
-
-### L9: デプロイ検証
-
-- デプロイ準備、ロールバック手順、smoke test、監視初期確認、初回復旧手順を検証する。
-
-### L10: 観測
-
-- リリース後の SLO/SLI、アラート、エラー率、外部依存の観測を完了し、未解決重大事象を確認する。
-
-### L11: 運用学習
-
-- postmortem と改善施策をまとめ、次サイクルの state/events へフィードバックし、運用引継ぎ資料へ反映する。
-
-### 連携ゲート
-
-- G9（デプロイ安定性）
-- G10（観測完了）
-- G11（運用学習完了）
-- 本番運用対象では Run 工程必須。PoC や検証寄りのタスクは本番影響がなければ任意 skip。
-
-## 状態管理の二層構造
-
-| 層 | ファイル | 役割 | 参照元 |
-|----|---------|------|--------|
-| 宣言的状態 | `.helix/phase.yaml` | 現在のフェーズ・ゲート通過状況・凍結フラグ | 15スクリプト |
-| イベントログ | `.helix/helix.db` (SQLite) | タスク実行履歴・hook 発火・フィードバック・学習 | 18+スクリプト |
-
-- phase.yaml は YAML で人間が読める。手動リセット可能
-- helix.db はイベント蓄積のみ。`helix log report` で可視化
-
-## 原則
-
-- **エスカレーション**: 本番影響・認証・決済・個人情報・ライセンス → 必ず人間に確認
-- **ファイル作成前**: 既存リソース確認 → 重複なら作成しない
+Core は詳細手順を持たない。AI や作業者は、知りたい内容に応じて該当する正本だけを読む。
+
+| 知りたいこと | 参照先 |
+|---|---|
+| 実行時の共通規律 | `helix/HELIX_RUNTIME_RULES.md` |
+| Codex 固有ルール | `helix/CODEX_RUNTIME_ADAPTER.md` |
+| Claude 固有ルール | `helix/CLAUDE_RUNTIME_ADAPTER.md` |
+| L0-L14 の工程定義 | `HELIX-workflows/HELIX-process-L0-L14.md` |
+| ドキュメント構成・参照関係・配置判断 | `HELIX-workflows/helix-process/document-topology.md` |
+| DDD 用語・境界 | `docs/v2/L0-helix-workflows/concept.md` §12 Glossary / §14 Bounded Context |
+| 各 workflow の詳細 | `HELIX-workflows/helix-process/*.md` |
+| DB 登録・収束・検出 | `HELIX-workflows/helix-process/db-integration.md` / `HELIX-workflows/helix-process/detection-routing.md` |
+| 自動化・ゲート判定 | `HELIX-workflows/helix-process/automation-gate-map.md` |
+| スキル・ゲート・ロール | `skills/SKILL_MAP.md` |
+| 現在の作業正本 | `.helix/handover/CURRENT.md` / `.helix/task-plan.yaml` / `docs/plans/L*/` |
+
+## 10. 最終チェック
+
+- V モデル（Forward）で正本化する接続先があるか。**戻し先を持たない作業を完了扱いにしていないか**。
+- V モデルに戻し、HELIX DB のコアに登録され、trace / drift / detector の管理対象になっているか。
+- 合格基準・検証条件を先に置いているか。実装を伴う場合はテストファーストを破っていないか。
+- ドキュメント、実装、テスト、カバレッジが対応しているか。設計⇔検証の対が片肺になっていないか。
+- ドキュメントが DDD の用語・境界・責務に沿っているか。
+- 逸脱・探索・障害・劣化を駆動 workflow で受け止め、Forward へ戻しているか。
+- 既存コード・既存実態・失敗事象から要件や設計へ戻す場合に、Reverse を通しているか。
+- 逸脱 workflow の成果物を PLAN 化し、HELIX DB に収束させているか。
+- HELIX 管理下の PLAN / handover / L 成果物を無視していないか。
+- AI を判断主体にせず、HELIX の制約内で動く実行者として扱っているか。

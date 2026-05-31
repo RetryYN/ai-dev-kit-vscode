@@ -2,15 +2,17 @@
 # setup.sh — HELIX フレームワーク ワンライナーセットアップ
 #
 # Usage:
-#   bash ~/ai-dev-kit-vscode/setup.sh              # インストール
-#   bash ~/ai-dev-kit-vscode/setup.sh --uninstall   # アンインストール
+#   bash /path/to/ai-dev-kit-vscode/setup.sh               # インストール
+#   bash /path/to/ai-dev-kit-vscode/setup.sh --uninstall   # アンインストール
 #
 # クローン後に1回実行すれば Claude Code + Codex CLI の設定が完了する。
 
 set -euo pipefail
 
 # --- 定数 ---
-HELIX_HOME="${HELIX_HOME:-$HOME/ai-dev-kit-vscode}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HELIX_HOME="${HELIX_HOME:-$SCRIPT_DIR}"
+HELIX_CORE_LINK="$HOME/.helix/core"
 CLAUDE_DIR="$HOME/.claude"
 CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
 CLAUDE_SETTINGS="$CLAUDE_DIR/settings.json"
@@ -21,8 +23,16 @@ CODEX_AGENTS="$CODEX_DIR/AGENTS.md"
 CODEX_CONFIG="$CODEX_DIR/config.toml"
 CODEX_HELIX_COMMENT="# HELIX: サンドボックス内に LANG/LC_ALL を継承（Windows/WSL 文字化け対策）"
 
-IMPORT_SKILL="@~/ai-dev-kit-vscode/skills/SKILL_MAP.md"
-IMPORT_CORE="@~/ai-dev-kit-vscode/helix/HELIX_CORE.md"
+CORE_IMPORTS=(
+    "@~/.helix/core/helix/HELIX_CORE.md"
+    "@~/.helix/core/helix/HELIX_RUNTIME_RULES.md"
+    "@~/.helix/core/helix/CLAUDE_RUNTIME_ADAPTER.md"
+    "@~/.helix/core/HELIX-workflows/HELIX-process-L0-L14.md"
+)
+LEGACY_CLAUDE_IMPORTS=(
+    "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md"
+    "@~/ai-dev-kit-vscode/helix/HELIX_CORE.md"
+)
 
 # --- ヘルパー ---
 ok=0; skip=0; warn=0; fail=0
@@ -31,6 +41,35 @@ _ok()   { echo "  [OK]   $1"; ok=$((ok+1)); }
 _skip() { echo "  [SKIP] $1"; skip=$((skip+1)); }
 _warn() { echo "  [WARN] $1"; warn=$((warn+1)); }
 _fail() { echo "  [FAIL] $1"; fail=$((fail+1)); }
+
+# --- ~/.helix/core symlink セットアップ ---
+setup_helix_core_symlink() {
+    echo "=== ~/.helix/core ==="
+
+    mkdir -p "$HOME/.helix"
+
+    if [[ -L "$HELIX_CORE_LINK" ]]; then
+        local current_target
+        local expected_target
+        expected_target="$(cd "$HELIX_HOME" && pwd -P)"
+        if current_target="$(cd "$HELIX_CORE_LINK" 2>/dev/null && pwd -P)"; then
+            if [[ "$current_target" == "$expected_target" ]]; then
+                _skip "~/.helix/core already points to $expected_target"
+            else
+                _warn "~/.helix/core points to $current_target (expected $expected_target); leaving unchanged"
+            fi
+        else
+            _warn "~/.helix/core is a broken symlink; leaving unchanged"
+        fi
+    elif [[ -e "$HELIX_CORE_LINK" ]]; then
+        _warn "~/.helix/core exists and is not a symlink; leaving unchanged"
+    else
+        ln -s "$HELIX_HOME" "$HELIX_CORE_LINK"
+        _ok "Created ~/.helix/core → $HELIX_HOME"
+    fi
+
+    echo ""
+}
 
 # --- 依存チェック ---
 check_deps() {
@@ -83,27 +122,51 @@ setup_claude_md() {
     mkdir -p "$CLAUDE_DIR"
 
     if [[ ! -f "$CLAUDE_MD" ]]; then
-        cat > "$CLAUDE_MD" <<EOF
-# Global Settings
-
-$IMPORT_SKILL
-$IMPORT_CORE
-EOF
+        {
+            echo "# Global Settings"
+            echo ""
+            local import_line
+            for import_line in "${CORE_IMPORTS[@]}"; do
+                echo "$import_line"
+            done
+        } > "$CLAUDE_MD"
         _ok "Created $CLAUDE_MD"
         return
     fi
 
-    # 既存ファイルに追記（重複チェック）
+    local tmp="${CLAUDE_MD}.tmp"
+    local removed=0
+    # 旧 import を除去してから既存ファイルに追記（重複チェック）
+    cp "$CLAUDE_MD" "$tmp"
+    local legacy_import
+    for legacy_import in "${LEGACY_CLAUDE_IMPORTS[@]}"; do
+        local matches
+        matches=$(grep -cF "$legacy_import" "$tmp" || true)
+        if [[ "$matches" -gt 0 ]]; then
+            grep -vF "$legacy_import" "$tmp" > "${tmp}.next" || true
+            mv "${tmp}.next" "$tmp"
+            removed=$((removed + matches))
+        fi
+    done
+
+    if [[ $removed -gt 0 ]]; then
+        mv "$tmp" "$CLAUDE_MD"
+        _ok "Removed $removed legacy import(s) from $CLAUDE_MD"
+    else
+        rm -f "$tmp"
+    fi
+
     local added=0
-    if ! grep -qF "$IMPORT_SKILL" "$CLAUDE_MD"; then
-        echo "" >> "$CLAUDE_MD"
-        echo "$IMPORT_SKILL" >> "$CLAUDE_MD"
-        added=$((added+1))
-    fi
-    if ! grep -qF "$IMPORT_CORE" "$CLAUDE_MD"; then
-        echo "$IMPORT_CORE" >> "$CLAUDE_MD"
-        added=$((added+1))
-    fi
+    local import_line
+    for import_line in "${CORE_IMPORTS[@]}"; do
+        if ! grep -qF "$import_line" "$CLAUDE_MD"; then
+            if [[ $added -eq 0 ]]; then
+                echo "" >> "$CLAUDE_MD"
+            fi
+            echo "$import_line" >> "$CLAUDE_MD"
+            added=$((added+1))
+        fi
+    done
 
     if [[ $added -gt 0 ]]; then
         _ok "Added $added import(s) to $CLAUDE_MD"
@@ -152,8 +215,9 @@ setup_settings() {
 setup_shell_path() {
     echo "=== Shell PATH ==="
 
-    local path_line="export PATH=\"\$HOME/ai-dev-kit-vscode/cli:\$PATH\""
-    local marker="ai-dev-kit-vscode/cli"
+    local path_line="export PATH=\"$HELIX_HOME/cli:\$PATH\""
+    local legacy_path_line="export PATH=\"\$HOME/ai-dev-kit-vscode/cli:\$PATH\""
+    local marker="$HELIX_HOME/cli"
     local added=false
 
     for rcfile in "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -161,8 +225,13 @@ setup_shell_path() {
             continue
         fi
 
-        if grep -qF "$marker" "$rcfile"; then
+        if grep -qF "$path_line" "$rcfile"; then
             _skip "PATH already in $(basename "$rcfile")"
+        elif grep -qF "$legacy_path_line" "$rcfile"; then
+            local tmp="${rcfile}.tmp"
+            sed "s|$(printf '%s\n' "$legacy_path_line" | sed 's/[.[\*^$()+?{}|/]/\\&/g')|$path_line|" "$rcfile" > "$tmp"
+            mv "$tmp" "$rcfile"
+            _ok "PATH updated in $(basename "$rcfile")"
         else
             echo "" >> "$rcfile"
             echo "# HELIX Framework" >> "$rcfile"
@@ -247,11 +316,26 @@ uninstall() {
     # CLAUDE.md から @import 行を削除
     if [[ -f "$CLAUDE_MD" ]]; then
         local tmp="${CLAUDE_MD}.tmp"
-        grep -vF "ai-dev-kit-vscode" "$CLAUDE_MD" > "$tmp" || true
+        cp "$CLAUDE_MD" "$tmp"
+        local import_line
+        for import_line in "${CORE_IMPORTS[@]}" "${LEGACY_CLAUDE_IMPORTS[@]}"; do
+            grep -vF "$import_line" "$tmp" > "${tmp}.next" || true
+            mv "${tmp}.next" "$tmp"
+        done
         mv "$tmp" "$CLAUDE_MD"
         _ok "Removed HELIX imports from $CLAUDE_MD"
     else
         _skip "$CLAUDE_MD not found"
+    fi
+
+    # ~/.helix/core symlink
+    if [[ -L "$HELIX_CORE_LINK" ]]; then
+        rm "$HELIX_CORE_LINK"
+        _ok "Removed ~/.helix/core symlink"
+    elif [[ -e "$HELIX_CORE_LINK" ]]; then
+        _skip "~/.helix/core exists and is not a symlink"
+    else
+        _skip "~/.helix/core not found"
     fi
 
     # settings.json から HELIX hooks を除去
@@ -279,10 +363,12 @@ uninstall() {
     fi
 
     # Shell PATH
+    local path_line="export PATH=\"$HELIX_HOME/cli:\$PATH\""
+    local legacy_path_line="export PATH=\"\$HOME/ai-dev-kit-vscode/cli:\$PATH\""
     for rcfile in "$HOME/.bashrc" "$HOME/.zshrc"; do
-        if [[ -f "$rcfile" ]] && grep -qF "ai-dev-kit-vscode/cli" "$rcfile"; then
+        if [[ -f "$rcfile" ]] && { grep -qF "$path_line" "$rcfile" || grep -qF "$legacy_path_line" "$rcfile"; }; then
             local tmp="${rcfile}.tmp"
-            grep -vF "ai-dev-kit-vscode/cli" "$rcfile" | grep -v "^# HELIX Framework$" > "$tmp" || true
+            grep -vF "$path_line" "$rcfile" | grep -vF "$legacy_path_line" | grep -v "^# HELIX Framework$" > "$tmp" || true
             mv "$tmp" "$rcfile"
             _ok "Removed PATH from $(basename "$rcfile")"
         fi
@@ -360,7 +446,7 @@ main() {
     fi
 
     if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
-        echo "Usage: bash $HELIX_HOME/setup.sh [--uninstall]"
+        echo "Usage: bash $SCRIPT_DIR/setup.sh [--uninstall]"
         echo ""
         echo "  --uninstall   Remove HELIX hooks and imports"
         echo "  --help        Show this help"
@@ -375,6 +461,7 @@ main() {
         exit 1
     fi
 
+    setup_helix_core_symlink
     setup_claude_md
     setup_settings
     setup_shell_path

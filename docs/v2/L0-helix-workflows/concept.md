@@ -20,24 +20,24 @@ canonical_source: HELIX-workflows/helix-process/L0-concept.md
 
 HELIX-workflows は 2026-05-24 V2 完全移行 (commit `35a901c` / `ee1a13a`) で **正本宣言された「道」**。構成は以下:
 
-- **HELIX-workflows/HELIX-process-L0-L14.md**: 全体構造正本 (220 行)、TDD 全 mode 共通絶対原則 + V-model ペア凍結 (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7)
+- **HELIX-workflows/HELIX-process-L0-L14.md**: Forward Vモデルの常時注入正本。定義、進め方、L0-L14 工程、テスト設計対応、DB現在地、Workflow入口を最小記述として保持
 - **HELIX-workflows/helix-process/ 47 doc**:
   - Forward 工程別 15 doc (L0-concept.md 〜 L14-operation-verification.md)
-  - 入口モード 9 doc (scrum / discovery / reverse / incident / add-feature / refactor / retrofit / research / recovery-workflow.md)
+  - 入口 workflow 9 doc (scrum / discovery / reverse / incident / add-feature / refactor / retrofit / research / recovery-workflow.md)
   - 工程専門 2 doc (screen-design / frontend-design-workflow.md)
   - 管理・自動化基盤 21 doc (automation-gate-map / deviation-plan-map / db-integration / db-auto-registration / detection-routing / fe-detector-spec / cross-cutting-mechanisms / test-perspective-gate / ci-pr-workflow / layer-context-injection / learning-engine / observability-metrics / continuous-run-context-management / cross-detection / infra-readiness / integration-map / folder-structure-review / asset-mapping / two-stage-agent-design / v2-9mode-ecosystem / README)
 - **cli/helix-* (約 60 CLI)** + **skill 118 種** + **helix.db schema v35+** + **runtime (.helix/)**
 - **PLAN**: V1 (PLAN-NNN) 224 件 (`is_reference: true` 参考扱い) + V2 (L<NN>-○○○plan) 100 件
 
-HELIX-workflows = AI エージェント (Codex / Claude) を主力とする **process layer framework**。Forward V-model + 9 mode + 横断機構 (interrupt/debt/drift-check/readiness) で構成。
+HELIX-workflows = AI エージェント (Codex / Claude) を主力とする **process layer framework**。Forward V-model + 9 workflow + 横断機構 (interrupt/debt/drift-check/readiness) で構成。
 
-### §1.2 メイン目的 — TDD 駆動 + ワークフロー配線の機械判定化 + helix.db = 資産保全 backbone
+### §1.2 メイン目的 — 検証条件先行 + 実装時 TDD + ワークフロー配線の機械判定化 + helix.db = 資産保全 backbone
 
-HELIX-workflows は **TDD (テスト駆動) を基本原則** とし、V モデル左腕で設計と同時にテスト設計を凍結、L6→L7 で「テスト → 実装」順序を固定する ([HELIX-process-L0-L14.md §基本原則](../../../HELIX-workflows/HELIX-process-L0-L14.md))。やり方が異なる 9 mode (Scrum/Discovery/Reverse/Incident/Add-feature/Refactor/Retrofit/Research/Recovery) も **最終的に V モデルへ回帰** し、見える化・引き継ぎ可能性・資産保全を確保する。helix.db はこの **資産保全 backbone** + 状態管理 + フィードバック機構として機能する。
+HELIX-workflows は **検証条件先行** を基本原則とし、作業前に合格基準・検証条件を置く。実装を伴う場合は **TDD (テスト駆動)** を適用し、V モデル左腕で設計と同時にテスト設計を凍結、L6→L7 で「テスト → 実装」順序を固定する ([HELIX-process-L0-L14.md](../../../HELIX-workflows/HELIX-process-L0-L14.md))。Discovery では仮説、PoC、検証条件、採用 / 棄却基準を先に置く。やり方が異なる 9 workflow (Scrum/Discovery/Reverse/Incident/Add-feature/Refactor/Retrofit/Research/Recovery) も **最終的に V モデルへ回帰** し、見える化・引き継ぎ可能性・資産保全を確保する。helix.db はこの **資産保全 backbone** + 状態管理 + フィードバック機構として機能する。
 
 以下 6 つを同時達成する:
 
-1. **TDD 駆動の強制 (受け入れラインが先、強化はあと)**:
+1. **検証条件先行 + 実装時 TDD の強制 (受け入れラインが先、強化はあと)**:
    - **L1-L6 設計⇔テスト設計ペア凍結** (運用 / 受入 / 総合 / 結合 / 単体テスト設計をドキュメント根拠で同時凍結)
    - **L7 sprint 7 step を厳守** (HELIX-workflows L7-implementation.md 正本):
      1. PLAN (sprint 計画、parent_design + pairs_test_design 参照)
@@ -48,20 +48,20 @@ HELIX-workflows は **TDD (テスト駆動) を基本原則** とし、V モデ�
      6. **テスト実施** (回帰、強化 test 含む全件)
      7. **修正 / 実装完了** (強化 test に対する実装修正、ここで初めて実装強化)
    - **順序原則**: 「ドキュメント → テスト → 実装 → レビュー → ドキュメント根拠でテスト追加 → 修正」。**受け入れラインが先、強化はあと**。実装の強化は受け入れライン通過後にしか着手しない
-   - 全 mode 共通絶対原則 (Forward / Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery)
+   - 全 workflow 共通絶対原則は「作業前に合格基準・検証条件を置く」こと。実装を伴う場合は TDD、Discovery では仮説・PoC・検証条件・採用 / 棄却基準を先に置く
    - Refactor では変更前の保護網テスト (既存テスト or ゴールデンマスター) 存在を前提
-2. **9 mode から V モデル回帰**: Scrum/Discovery/Reverse/Incident/Add-feature/Refactor/Retrofit/Research/Recovery の各 mode 完了後、Forward L0-L14 体系へ昇格・統合 (Reverse fullback / R4 routing / Add-feature 追補 等)
-3. **helix.db を決定する (V モデル DB = 正本 + 補助 DB = 中間 state)**: helix.db は **V モデル DB (正本)** + **補助 DB (9 mode 別、中間 state)** の二層構造。V モデル DB は設計工程 (L0/L4/L5/L6) × 実装 (L7) × テスト工程 (L7単体/L8/L9/L12/L14) を設計⇔テストペアで閉じ、工程 ID (L<NN>) + プラン ID (L<NN>-○○○plan) を主キーとする。補助 DB は Reverse/Discovery/Scrum/Incident/Refactor/Retrofit/Research/Recovery/Add-feature の中間 state を保持、closure event で V モデル DB に統合される。ワークフローの state / event / transition / 変更履歴 / 設計判断 / 実装内容 / コード&DB の変更 trace が schema で正本化される
+2. **9 workflow から V モデル回帰**: Scrum/Discovery/Reverse/Incident/Add-feature/Refactor/Retrofit/Research/Recovery の各 workflow 完了後、Forward L0-L14 体系へ昇格・統合 (Reverse fullback / R4 routing / Add-feature 追補 等)
+3. **helix.db を決定する (V モデル DB = 正本 + 補助 DB = 中間 state)**: helix.db は **V モデル DB (正本)** + **補助 DB (9 workflow 別、中間 state)** の二層構造。V モデル DB は設計工程 (L0/L4/L5/L6) × 実装 (L7) × テスト工程 (L7単体/L8/L9/L12/L14) を設計⇔テストペアで閉じ、工程 ID (L<NN>) + プラン ID (L<NN>-○○○plan) を主キーとする。補助 DB は Reverse/Discovery/Scrum/Incident/Refactor/Retrofit/Research/Recovery/Add-feature の中間 state を保持、closure event で V モデル DB に統合される。ワークフローの state / event / transition / 変更履歴 / 設計判断 / 実装内容 / コード&DB の変更 trace が schema で正本化される
 4. **AI による独自判断を厳格に減らす**: 配線が決まれば AI は配線に従うだけ (Opus PM の都度判断を排除)
-5. **ワークフロー分岐を機械判定する**: どの mode に行くか / どの gate を通すか / どの state に置くか / どの工程へ進むか を AI 判断ゼロで決定
+5. **ワークフロー分岐を機械判定する**: どの workflow に行くか / どの gate を通すか / どの state に置くか / どの工程へ進むか を AI 判断ゼロで決定
 6. **影響範囲分析の可用性向上 (helix.db の最終目標)**: 機能改善・改修時に「設計はこうだった」「実装はこうだった」「コード/DB/画面はこう変わった」が即座に追跡可能。「ここだけ直せばいいか / 影響範囲が広いから広めに直すか」を判断できる
 
 #### 正サイクル (データ駆動の自己回帰 framework + 資産保全)
 
 ```
-[1] TDD 駆動でワークフローに従う (設計⇔テスト ペア凍結、テスト → 実装)
+[1] 検証条件先行でワークフローに従う (設計⇔テスト ペア凍結、実装時はテスト → 実装)
    ↓
-[2] 9 mode 経由なら最終的に Forward V モデルに回帰 (見える化、引き継ぎ可能、資産保全)
+[2] 9 workflow 経由なら最終的に Forward V モデルに回帰 (見える化、引き継ぎ可能、資産保全)
    ↓
 [3] helix.db に適切に登録 (state / event / transition / 変更履歴 / trace が正しく蓄積)
    ↓
@@ -89,7 +89,7 @@ V モデル左腕 (設計工程) と右腕 (テスト工程) は **量・粒度�
 3. **キャパシティ予測**: 上流工程の量から下流工程の量を予測 (L4 ADR 数決まる → L9 総合 test の必要数が決まる)
 4. **量の暴走防止**: 各工程の量が機械的に律される、設計だけ無限膨張 / テストだけ膨張 の事故防止
 
-この「量閉じ性」が V モデル DB の正本性を担保する。補助 DB (mode 別、量不定) は closure event で V モデル DB に統合された時点で量が閉じる。
+この「量閉じ性」が V モデル DB の正本性を担保する。補助 DB (workflow 別、量不定) は closure event で V モデル DB に統合された時点で量が閉じる。
 
 #### 資産保全の意義 (helix.db の最終目標)
 
@@ -104,7 +104,7 @@ V モデル左腕 (設計工程) と右腕 (テスト工程) は **量・粒度�
 
 ### §1.3 HELIX-workflows の位置付け — 要求に近い性質
 
-HELIX-workflows は単なる framework 仕様ではなく、**要求 (= 何を作るか) に近い性質** を持つ。L0-L14 の各工程定義 / 9 mode workflow / V-model ペア / 横断機構 は、HELIX framework が満たすべき機能 (FR) + 非機能 (NFR) の上位概念。
+HELIX-workflows は単なる framework 仕様ではなく、**要求 (= 何を作るか) に近い性質** を持つ。L0-L14 の各工程定義 / 9 workflow / V-model ペア / 横断機構 は、HELIX framework が満たすべき機能 (FR) + 非機能 (NFR) の上位概念。
 
 そのため本見直し PLAN では:
 - **L0 (本 PLAN)**: 配線図の大局確定 + 機械判定化方針確定 (薄い企画書)
@@ -132,11 +132,11 @@ V-model ペア凍結も対応:
 
 2026-05-25 session3 (63 commit / 10 framework 強化) 完遂後、本 session で HELIX 自身を HELIX-workflows で自己適用 (dogfooding) しようとして以下が発覚:
 
-1. **ワークフロー配線が機械判定不能**: 各工程 / mode の遷移条件が doc 仕様止まり、AI Opus PM が都度判断
+1. **ワークフロー配線が機械判定不能**: 各工程 / workflow の遷移条件が doc 仕様止まり、AI Opus PM が都度判断
 2. **PLAN dir が L7 / L12 / L14 のみ実体 (L0/L1-L6/L8-L11/L13 不在)** → V2 命名規則の全工程起票が機能していない
 3. **helix doctor warn 109 件** (4 artifact 86 / pair freeze 11 / skill frontmatter 116 / etc) → V2 規約の機械強制が advisory 止まり
 4. **dogfooding 不在** → HELIX 自身が HELIX-workflows で開発されていない
-5. **9 mode 接続 trace 薄い** → 各 mode の Forward 接続が doc 仕様止まり、実走行 event が helix.db に登録されない
+5. **9 workflow 接続 trace 薄い** → 各 workflow の Forward 接続が doc 仕様止まり、実走行 event が helix.db に登録されない
 6. **専門エージェント / team 構造の累積議論** (memory carry §9 P1.5) → L7+ で再燃するが本 L0 では扱わない
 
 ---
@@ -150,11 +150,11 @@ V-model ペア凍結も対応:
 | 1 | PLAN 全工程起票 | L0/L1-L6/L8-L11/L13 dir 不在、V2 命名規則の全工程化が未完 | L1+ で L0-L14 全工程 dir 整備 + 各工程 skeleton PLAN 起票を要件化 (L2/L10 skip 適用後 13 工程) | L0-L14 全工程 PLAN dir の整備計画 | L1-IN-03 |
 | 2 | 4 artifact 双方向 trace | warn 86 件、設計 ↔ 実装 ↔ テスト設計 ↔ テストコード の trace が advisory | L1 NFR で fail-close 昇格、L7 既存 65 PLAN の retrofit を必須化 | HELIX-workflows 本体の見直し / helix.db schema 整合確認 | L1-IN-04 |
 | 3 | V-model pair freeze | warn 11 件、parent_design / pairs_test_design 未指定 PLAN | L1 NFR で必須化、L7 PLAN frontmatter validator を強制 | HELIX-workflows 本体の見直し / helix.db schema 整合確認 | L1-IN-04 |
-| 4 | mode 接続 trace | 9 mode の Forward 接続が doc 仕様止まり、実走行 event 不在 | helix.db に mode_transition table 新設、各 mode の confirmed → L1/L3/L4-L6 昇格を event 化 | V モデル逸脱モード回帰ワークフローの設計 / helix.db schema 整合確認 | L1-IN-08, L1-IN-10 |
+| 4 | workflow 接続 trace | 9 workflow の Forward 接続が doc 仕様止まり、実走行 event 不在 | helix.db に workflow_transition table 新設、各 workflow の confirmed → L1/L3/L4-L6 昇格を event 化 | V モデル逸脱 workflow の Forward 回帰設計 / helix.db schema 整合確認 | L1-IN-08, L1-IN-10 |
 | 5 | dogfooding | HELIX 自身が HELIX-workflows で開発されていない | 本 L0 起票が起点、L1+ で HELIX 自身の全工程 PLAN を起票する | dogfooding 計画 | L1-IN-03 |
 | 6 | 既存資産インベントリ | skill 118 / cli/helix-* 60 / helix.db table 30+ / PLAN 324 / docs が flat で工程未割当 | L0-L14 工程別に資産 inventory を作成、helix.db に双方向 mapping 登録 | 既存資産の工程別 inventory 作成 | L1-IN-06 |
 | 7 | 工程別 skill 注入機構 | `layer-context-injection.md` で設計済の L 別注入セットが実装不完全、helix-context が各 L で「ここで使う skill」を機械注入できていない | helix-context 強化 + `vmodel-semantics.yaml` L 別注入セット正本化 + helix doctor audit | 工程別 skill 注入機構の実装 | L1-IN-07 |
-| 8 | V モデル逸脱モードの Forward 回帰ワークフロー | 9 mode の closure 後に Forward 昇格手順が個別ばらつき | リバースワークフロー (R0-R4 + RGC) を 9 mode 共通基盤化、Forward 接続 event helix.db 登録 | V モデル逸脱モード回帰ワークフローの設計 | L1-IN-08 |
+| 8 | V モデル逸脱 workflow の Forward 回帰 | 9 workflow の closure 後に Forward 昇格手順が個別ばらつき | リバースワークフロー (R0-R4 + RGC) を 9 workflow 共通基盤化、Forward 接続 event helix.db 登録 | V モデル逸脱 workflow の Forward 回帰設計 | L1-IN-08 |
 | 9 | PLAN 内部の手順書化 | PLAN の §0-§5 構造はあるが、各 step の agent_slot 割当 + workflow trace が template に組込まれていない | template 拡張: 各 step に `agent_slot` + `workflow_ref` field 追加、cli/templates/plan/v2/L<NN>-template.md 全 13 件 (L2/L10 skip) を整備 | PLAN template の手順書化 | L1-IN-09 |
 | **10** | **TDD 順序 fail-close 未強制** | L7 sprint 7 step の **受け入れライン先 / 強化あと** が advisory 止まり、機械強制なし。テストアフター / 受け入れ test 不在 / 強化 test 不在 の事故防止が不完全 | L1 NFR で L7 sprint 7 step の順序 fail-close 機械強制契約を確立 (S2 test 存在前に S3 着手 = block / S5 強化 test pass 前に S7 修正 = block 等) | HELIX-workflows 本体の見直し / cli/helix-* (sprint 機械チェック) | L1-IN-11 |
 
@@ -176,7 +176,7 @@ HELIX-workflows の道に沿って HELIX 自身を L0-L14 で開発できる状�
 - **dogfooding 計画**: HELIX 自身を HELIX-workflows で開発する具体手順 (L0 → L1 → L2 → ... → L14) の見取り図
 - **既存資産の工程別 inventory 作成**: skill 118 / cli/helix-* 60 / helix.db table 30+ / PLAN 324 / docs を L0-L14 工程別に分類、資産 ↔ 工程の双方向 mapping を helix.db に登録、現状の工程別密度 (どの工程に資産集中 / どの工程が空白か) を可視化
 - **工程別 skill 注入機構の実装**: `helix-context` 強化、`vmodel-semantics.yaml` に L 別注入セット (skill / command / mandatory agent / orchestration) 正本化、helix doctor で audit。L に入った瞬間に AI の選択空間が「その工程で使うもの」に自動絞り込みされる機構 (`layer-context-injection.md` の実装層)
-- **V モデル逸脱モード回帰ワークフローの設計**: 9 mode (Scrum/Discovery/Reverse/Incident/Refactor/Retrofit/Research/Recovery/Add-feature) から Forward L0-L14 への回帰経路を、既存リバースワークフロー (R0-R4 + RGC) を **共通基盤** として再利用する形で設計。各 mode の closure 時に Forward への接続 event を helix.db 登録、9 mode → Forward の trace 充足
+- **V モデル逸脱 workflow の Forward 回帰設計**: 9 workflow (Scrum/Discovery/Reverse/Incident/Refactor/Retrofit/Research/Recovery/Add-feature) から Forward L0-L14 への回帰経路を、既存リバースワークフロー (R0-R4 + RGC) を **共通基盤** として再利用する形で設計。各 workflow の closure 時に Forward への接続 event を helix.db 登録、9 workflow → Forward の trace 充足
 - **PLAN template の手順書化 (15 件整備)**: cli/templates/plan/v2/L00-L14 template 全 15 件で各 step に `agent_slot` + `workflow_ref` field 組込。step ごとに「誰が / どの workflow で / どこまで進んだか」を残す手順書化、再開可能性を強化
 
 ### §3.2 対象外
@@ -216,7 +216,7 @@ Phase 境界 KGI は L1 要求定義で確定 (L3 で詳細化)。
 | Pair Freeze Coverage | ~30% (warn 11 件) | ≥ 80% (warn 3 件以下) |
 | skill frontmatter audit warn | 116 件 | ≤ 30 件 |
 | HELIX 自己適用 (dogfooding) | 0% (本 PLAN 起票が起点) | aligned PLAN ≥ 50 / month |
-| mode 接続 trace (helix.db event) | 0 件 | mode_transition event 蓄積開始 |
+| workflow 接続 trace (helix.db event) | 0 件 | workflow_transition event 蓄積開始 |
 
 ---
 
@@ -247,7 +247,7 @@ Phase 境界 KGI は L1 要求定義で確定 (L3 で詳細化)。
 - 3-problem 検知率 (バグ / spaghetti / 契約漏れ) ≥ 80%
 - Sprint 自律完遂率
 - 8 並列到達率
-- **9 mode → Forward 回帰率**: 9 mode 完了 PLAN のうち Forward (L1/L3/L4-L6/L7-L14) へ昇格 event 登録済の比率 ≥ 95%
+- **9 workflow → Forward 回帰率**: 9 workflow 完了 PLAN のうち Forward (L1/L3/L4-L6/L7-L14) へ昇格 event 登録済の比率 ≥ 95%
 - **影響範囲分析 query 時間**: 機能改修 trigger → 過去 trace retrieve まで ≤ 5 秒 (helix.db query)
 - **資産保全 trace 充足率**: asset_history / schema_migration_log / ui_state_diff / decision_trace の view が L7 sprint の commit と 1:1 対応している比率 ≥ 90%
 - **影響範囲判定の自動化率**: 「ここだけ / 広めに」の機械判定が L4-L6 algorithm で正しく判別できる率 ≥ 80% (L1-L5 で実装)
@@ -318,19 +318,19 @@ flowchart TB
 
 **機械判定式**: 各 gate (G0.5-G14) は `gate_verdict = static_subchecks AND ai_review_required_when(...)` の合成。`static_subchecks` (detector + frontmatter + count) は `exit 0 = pass` で機械判定、AI 判定が必要な gate (G0.5/G1/G3/G7/G11/G12/G14) でも static 部分は先行通過し、AI は最終 verdict のみ担当 (詳細: §6.5.4 Diagram 4)。pair 凍結は parent_design / pairs_test_design field の存在で機械判定。
 
-### §6.5.2 Diagram 2: 9 mode 入口判定 + Forward 復帰経路
+### §6.5.2 Diagram 2: 9 workflow 入口判定 + Forward 復帰経路
 
 ```mermaid
 flowchart LR
-  TRIGGER[入口判定 trigger] -->|要件未確定 / 仮説検証| DISCOVERY[Discovery mode<br/>D0→D4]
-  TRIGGER -->|要件すり合わせ反復| SCRUM[Scrum mode<br/>スプリント反復]
-  TRIGGER -->|既存コード逆引き| REVERSE[Reverse mode<br/>R0→R4 + RGC]
-  TRIGGER -->|本番障害 hotfix| INCIDENT[Incident mode<br/>detect→triage→hotfix→postmortem]
-  TRIGGER -->|既存に機能追補| ADDFEAT[Add-feature mode<br/>add-design / add-impl]
-  TRIGGER -->|振る舞い不変改善| REFACTOR[Refactor mode]
-  TRIGGER -->|基盤改修 / 移行| RETROFIT[Retrofit mode]
-  TRIGGER -->|事前調査 / 意思決定| RESEARCH[Research mode<br/>ADR + memo]
-  TRIGGER -->|AI 暴走 + 収束| RECOVERY[Recovery mode<br/>recovery-log + cutover]
+  TRIGGER[入口判定 trigger] -->|要件未確定 / 仮説検証| DISCOVERY[Discovery workflow<br/>D0→D4]
+  TRIGGER -->|要件すり合わせ反復| SCRUM[Scrum workflow<br/>スプリント反復]
+  TRIGGER -->|既存コード逆引き| REVERSE[Reverse workflow<br/>R0→R4 + RGC]
+  TRIGGER -->|本番障害 hotfix| INCIDENT[Incident workflow<br/>detect→triage→hotfix→postmortem]
+  TRIGGER -->|既存に機能追補| ADDFEAT[Add-feature workflow<br/>add-design / add-impl]
+  TRIGGER -->|振る舞い不変改善| REFACTOR[Refactor workflow]
+  TRIGGER -->|基盤改修 / 移行| RETROFIT[Retrofit workflow]
+  TRIGGER -->|事前調査 / 意思決定| RESEARCH[Research workflow<br/>ADR + memo]
+  TRIGGER -->|AI 暴走 + 収束| RECOVERY[Recovery workflow<br/>recovery-log + cutover]
 
   DISCOVERY -->|confirmed| L1F[Forward L1 へ昇格]
   SCRUM -->|完成機能| FULLBACK[Reverse fullback で<br/>文書化]
@@ -360,24 +360,24 @@ flowchart LR
   style L14F fill:#dcfce7
 ```
 
-**機械判定式**: 入口 trigger は detector で機械判定 (例: 仮説未確定検知 → Discovery、本番障害 alert → Incident)。Forward 復帰は各 mode の closure event を helix.db.mode_transition table に登録、event 発火で自動遷移。
+**機械判定式**: 入口 trigger は detector で機械判定 (例: 仮説未確定検知 → Discovery、本番障害 alert → Incident)。Forward 復帰は各 workflow の closure event を helix.db.workflow_transition table に登録、event 発火で自動遷移。
 
 **Incident / Recovery の復帰経路 (粒度詳細)**:
 - **Incident**: `incident_hotfix` は L7 暫定実装直行 (本番影響最小化)、`incident_permanent` は事象別に L1 要求 / L3 詳細 / L4-L6 設計に差戻し恒久対策、`postmortem` は L14 で運用学習に集約。3 経路は **並走可** (hotfix で先に止血 → permanent で根本対策 → postmortem で再発防止 を時系列で別 PLAN 起票)。
 - **Recovery**: `recovery_cutover` は逸脱原因別に **設計差戻し (L1/L3/L4-L6)** と **実装差戻し (L7)** に分岐。AI 暴走の原因が要件解釈なら L1、契約理解なら L3、設計判断なら L4-L6、実装ミスなら L7 へ。複数差戻しは recovery-log で trace し、`cutover_orchestrator` が機械順序制御。
 
-### §6.5.3 Diagram 3: 横断機構の発動条件 (全工程・全 mode から発動)
+### §6.5.3 Diagram 3: 横断機構の発動条件 (全工程・全 workflow から発動)
 
 ```mermaid
 flowchart TB
-  ANYPHASE[任意工程 / 任意 mode 実行中] -->|design_gap / new_requirement<br/>constraint / po_change| INTERRUPT[interrupt 機構<br/>helix-interrupt]
+  ANYPHASE[任意工程 / 任意 workflow 実行中] -->|design_gap / new_requirement<br/>constraint / po_change| INTERRUPT[interrupt 機構<br/>helix-interrupt]
   ANYPHASE -->|debt 蓄積検知<br/>code_smell / dead_code| DEBT[debt 機構<br/>helix-debt]
   ANYPHASE -->|D-API / D-CONTRACT / D-DB drift| DRIFT[drift-check 機構<br/>helix-drift-check]
   ANYPHASE -->|gate 通過判定で保留 deferred-finding| READINESS[readiness 機構<br/>helix-readiness]
 
   INTERRUPT -->|軽度| RESUME[sprint resume]
-  INTERRUPT -->|重大 / 暴走| RECOVERYM[Recovery mode へ]
-  DEBT -->|蓄積閾値超過| REFACTORM[Refactor mode へ]
+  INTERRUPT -->|重大 / 暴走| RECOVERYM[Recovery workflow へ]
+  DEBT -->|蓄積閾値超過| REFACTORM[Refactor workflow へ]
   DRIFT -->|乖離検出| REVERSEM[Reverse normalization へ]
   READINESS -->|後工程 PLAN へ繰越| NEXT_PHASE[次工程 PLAN へ deferred]
 
@@ -438,8 +438,8 @@ flowchart LR
 | 配線要素 | L1 で確定する機械判定契約 |
 |---|---|
 | Diagram 1 各 gate 遷移 | gate 別 detector / static check spec (exit code) |
-| Diagram 2 mode 入口 trigger | trigger detector (helix-route の判定 logic) |
-| Diagram 2 Forward 復帰 event | helix.db.mode_transition schema + event 発火条件 |
+| Diagram 2 workflow 入口 trigger | trigger detector (helix-route の判定 logic) |
+| Diagram 2 Forward 復帰 event | helix.db.workflow_transition schema + event 発火条件 |
 | Diagram 3 横断機構発動条件 | detector threshold (drift hash / debt 閾値 / interrupt trigger) |
 | Diagram 4 機械 / AI 境界 | gate 別の「機械判定可能領域」「AI 判定必要領域」の正本 list |
 
@@ -510,7 +510,7 @@ flowchart TB
 
 #### V モデル DB の table 構造 (主キー = 工程 ID + プラン ID、量閉じ性を schema 強制)
 
-> **構造区分**: **core tables 10 個** + **audit/event tables 1 個** (`volume_metrics`) + **derived views 7 個** (`pair_volume_balance` / `expected_pair_freeze` / `expected_4artifact_trace` / `expected_mode_transition` / `expected_volume_balance` / `v_model_alignment_score` / `discrepancy_log`)。view は **すべて core 10 には数えない** (L1-IN-10 で table/view 数を仕様書固定)。
+> **構造区分**: **core tables 10 個** + **audit/event tables 1 個** (`volume_metrics`) + **derived views 7 個** (`pair_volume_balance` / `expected_pair_freeze` / `expected_4artifact_trace` / `expected_workflow_transition` / `expected_volume_balance` / `v_model_alignment_score` / `discrepancy_log`)。view は **すべて core 10 には数えない** (L1-IN-10 で table/view 数を仕様書固定)。
 
 | 区分 | 構造 | 主キー / 関連 | 内容 |
 |---|---|---|---|
@@ -527,9 +527,9 @@ flowchart TB
 | audit/event | **volume_metrics** ★ | `(process_layer, plan_id, metric_kind, count)` | 各工程の量 metrics (L4: ADR 数 / L5: endpoint 数 / L6: 関数数 / L7: LOC + 単体 test 数 / L8: 結合 test 数 / L9: 総合 test 数 / L12: 受入 test 数 / L14: 運用 test 数) |
 | derived view | **pair_volume_balance** ★ | `SELECT design_layer, test_layer, design_count, test_count, (test_count*1.0/design_count) AS balance_ratio FROM volume_metrics ...` | 設計⇔テスト ペアの量バランス指標 view (例: L4 ADR 10 / L9 総合 test 12 = 1.2 で pass) |
 
-#### 補助 DB の table 構造 (mode 別、V モデル DB 統合前の中間 state)
+#### 補助 DB の table 構造 (workflow 別、V モデル DB 統合前の中間 state)
 
-| mode | table | closure 時に V モデル DB のどこへ統合 |
+| workflow | table | closure 時に V モデル DB のどこへ統合 |
 |---|---|---|
 | Reverse | `reverse_evidence` (R0) / `reverse_contract` (R1) / `reverse_design` (R2) / `reverse_hypothesis` (R3) / `reverse_gap_register` (R4) | R4 routing で L1/L3/L4 PLAN として登録 |
 | Discovery | `discovery_hypothesis` / `discovery_poc` / `discovery_verify_result` | confirmed → L1 要求 PLAN へ昇格 |
@@ -545,19 +545,19 @@ flowchart TB
 
 - `expected_pair_freeze` view (V モデル DB) ↔ 実態の差分 = `discrepancy_log` (Pair Freeze warn 11 件の根拠)
 - `expected_4artifact_trace` view ↔ 実態 = `discrepancy_log` (4 artifact warn 86 件の根拠)
-- `expected_mode_transition` view (補助 DB closure 時) ↔ 実態 = mode 接続 trace 漏れ検知
+- `expected_workflow_transition` view (補助 DB closure 時) ↔ 実態 = workflow 接続 trace 漏れ検知
 - `expected_volume_balance` view ★ ↔ `pair_volume_balance` 実態 = **量不均衡検知** (`balance_ratio = test_count / design_count ≥ 1.0` で pass、< 1.0 で fail-close。例: L9 総合 test 2 / L4 ADR 10 = 0.2 < 1.0 → カバレッジ不足で fail-close、L7 単体 test 20 / L6 関数 100 = 0.2 → fail-close、paired_trace_coverage ≥ 95% AND orphan_test_count = 0 を併用)
 - `v_model_alignment_score` view = 6 axes (layer / kind / pair_freeze / 4artifact / gate_pass / done) の集計 (NSM の source)
 
 **helix.db schema 設計の方向性 (L1/L5 で確定)**:
 
-- 既存 30+ table を **V モデル DB (10 table) + 補助 DB (9 mode 別 table 群) + 共通 view** に再構成
-- 各 table に `source_workflow` field (どの mode/工程由来か)
+- 既存 30+ table を **V モデル DB (10 table) + 補助 DB (9 workflow 別 table 群) + 共通 view** に再構成
+- 各 table に `source_workflow` field (どの workflow/工程由来か)
 - 補助 DB の closure event で V モデル DB に統合する transaction 契約
-- discrepancy_log の重大度 (P0-P3) で自動制御 (fail-close / interrupt / Incident mode / Recovery mode 切替)
+- discrepancy_log の重大度 (P0-P3) で自動制御 (fail-close / interrupt / Incident workflow / Recovery workflow 切替)
 - **資産保全 view** (新規): `asset_history` / `schema_migration_log` / `ui_state_diff` (HELIX-workflows は L2/L10 skip のため空 or 採用 project 用) / `decision_trace`
 
-### §6.5.6.1 L7 Sprint 7 Step フロー (TDD 駆動、受け入れライン先 → 強化あと) — Diagram 5.5
+### §6.5.6.1 L7 Sprint 7 Step フロー (実装時 TDD、受け入れライン先 → 強化あと) — Diagram 5.5
 
 ```mermaid
 flowchart TB
@@ -589,7 +589,7 @@ flowchart TB
 | S5 強化 test 追加 | L6 doc + S2/S3 + QA 観点 | 追加 test file | 受け入れ test pass 後にしか着手不可 (順序 fail-close) |
 | S7 強化に対する修正 | S5 で書いた強化 test | 実装修正 | S5 test 不在で S7 着手 = fail-close |
 
-これにより「実装はあと、受け入れラインが先、強化はそのあと」が helix.db.workflow_state + event_log で **機械的に保証** される。
+これにより「実装はあと、受け入れラインが先、強化はそのあと」が `gate_pass` / `transition_history` / event_log で **機械的に保証** される。
 
 ### §6.5.7 影響範囲分析フロー (機能改善・改修時、helix.db 駆動) — Diagram 6
 
@@ -625,7 +625,7 @@ flowchart TB
 | 設計判断の retrieve | `decision_trace` view + L4-L6 doc path | 過去の trade-off / ADR snapshot |
 | 実装の retrieve | `event_log where source=L7` + commit hash | sprint progress + 変更 file list |
 | code/DB/UI の変更 | `asset_history` + `schema_migration_log` + `ui_state_diff` | 時系列の change set |
-| 影響範囲 | `trace_link` (双方向) + `dependency graph` | 関連 PLAN / 関連 ADR / 関連 mode_transition |
+| 影響範囲 | `trace_link` (双方向) + `dependency graph` | 関連 PLAN / 関連 ADR / 関連 workflow_transition |
 | 「ここだけ / 広めに」判定 | dependency centrality (PageRank 等) + change set size + test coverage | local / broad の自動判定 (L4-L6 algorithm) |
 
 この機械化により、新規参加者 / AI session 跨ぎ / 別チーム引き継ぎ時に **過去の judgment を 1 query で復元** できる = knowledge for decision の可用性向上 = HELIX の真の価値。
@@ -683,19 +683,19 @@ flowchart TB
 5. **L1-IN-05**: HELIX-workflows と cli/helix-* / skill 118 / helix.db schema の drift 解消方針
 6. **L1-IN-06**: 既存資産の工程別 inventory schema (skill 118 / cli/helix-* 60 / helix.db table 30+ / PLAN 324 / docs を L0-L14 工程に双方向 mapping、helix.db 登録、現状密度の可視化)
 7. **L1-IN-07**: 工程別 skill 注入機構の機械強制契約 (`helix-context` 強化 + `vmodel-semantics.yaml` L 別注入セット正本化 + helix doctor audit、L 入る時に AI 選択空間自動絞り込み)
-8. **L1-IN-08**: V モデル逸脱モード回帰ワークフロー共通基盤化 (R0-R4 + RGC を 9 mode 共通、各 mode closure 時に Forward 接続 event helix.db 登録)
+8. **L1-IN-08**: V モデル逸脱 workflow の Forward 回帰共通基盤化 (R0-R4 + RGC を 9 workflow 共通、各 workflow closure 時に Forward 接続 event helix.db 登録)
 9. **L1-IN-09**: PLAN template 全 15 件の手順書化 (各 step に `agent_slot` + `workflow_ref` field 組込、cli/templates/plan/v2/L00-L14 整備、L2/L10 skip)
 10. **L1-IN-10**: helix.db = **V モデル DB (正本) + 補助 DB (中間 state)** 二層構造の schema 設計
     - **V モデル DB core tables (10)**: plan_registry / design_artifact / test_design_pair / test_implementation / code_implementation / coverage_link / gate_pass / transition_history / decision_trace / schema_migration_log (**主キー = `(process_layer, plan_id)`、設計⇔テストペアで閉じる**)
     - **V モデル DB audit/event tables (1+)**: `volume_metrics` ★ (各工程の量 metrics、L1 で他 audit/event table を追加可能)
-    - **V モデル DB derived views (核心)**: `pair_volume_balance` ★ (量バランス view、`balance_ratio = test_count / design_count`) / `expected_pair_freeze` / `expected_4artifact_trace` / `expected_mode_transition` / `expected_volume_balance` ★ / `v_model_alignment_score` (NSM source) / `discrepancy_log` (不適切検知) — **view は core table 数に含めない**
-    - **補助 DB 9 mode 別 table 群**: reverse_* (R0-R4+RGC) / discovery_* / scrum_* / incident_* / refactor_session / retrofit_* / research_* / recovery_* / addfeature_* (V モデル DB 統合前の中間 state)
-    - **closure event 契約**: 補助 DB → V モデル DB merge transaction の `idempotency_key (mode + plan_id + closure_event_id)` / `rollback` / `conflict resolution (V モデル DB 既存 row との突合)` を L1 で明確化 (tl-advisor adversarial check 2026-05-26 指摘)
+    - **V モデル DB derived views (核心)**: `pair_volume_balance` ★ (量バランス view、`balance_ratio = test_count / design_count`) / `expected_pair_freeze` / `expected_4artifact_trace` / `expected_workflow_transition` / `expected_volume_balance` ★ / `v_model_alignment_score` (NSM source) / `discrepancy_log` (不適切検知) — **view は core table 数に含めない**
+    - **補助 DB 9 workflow 別 table 群**: reverse_* (R0-R4+RGC) / discovery_* / scrum_* / incident_* / refactor_session / retrofit_* / research_* / recovery_* / addfeature_* (V モデル DB 統合前の中間 state)
+    - **closure event 契約**: 補助 DB → V モデル DB merge transaction の `idempotency_key (workflow + plan_id + closure_event_id)` / `rollback` / `conflict resolution (V モデル DB 既存 row との突合)` を L1 で明確化 (tl-advisor adversarial check 2026-05-26 指摘)
     - **資産保全 view**: `asset_history` / `schema_migration_log` (core/event 双方で利用) / `ui_state_diff` (HELIX-workflows は L2/L10 skip のため空、採用 project 用) / `decision_trace`
-    - 各 table に `source_workflow` field (どの mode/工程由来か)
-    - discrepancy_log の重大度 (P0-P3) で自動制御 (fail-close / interrupt / Incident mode / Recovery mode 切替)
+    - 各 table に `source_workflow` field (どの workflow/工程由来か)
+    - discrepancy_log の重大度 (P0-P3) で自動制御 (fail-close / interrupt / Incident workflow / Recovery workflow 切替)
     - **table 数固定**: L1 schema 設計時、`core tables = 10` / `audit/event tables = 1 (拡張可)` / `derived views = 7 (拡張可)` の境界を仕様書で固定する
-11. **L1-IN-11**: **TDD 駆動の機械強制契約** (L1-L6 設計⇔テスト設計ペア凍結 + L7 sprint 7 step の **順序 fail-close**: 受け入れ test 不在で実装着手不可 / 受け入れ test pass 前に強化 test 追加不可 / 強化 test 不在で修正着手不可 + ドキュメント根拠 (parent_design / pairs_test_design path) の存在必須 + 全 mode 共通絶対原則 + Refactor 保護網テスト前提)
+11. **L1-IN-11**: **検証条件先行 / 実装時 TDD の機械強制契約** (L1-L6 設計⇔テスト設計ペア凍結 + L7 sprint 7 step の **順序 fail-close**: 受け入れ test 不在で実装着手不可 / 受け入れ test pass 前に強化 test 追加不可 / 強化 test 不在で修正着手不可 + ドキュメント根拠 (parent_design / pairs_test_design path) の存在必須 + 全 workflow 共通で合格基準・検証条件を先行 + Refactor 保護網テスト前提)
 12. **L1-IN-12** ★: **排泄系 (excretion) — 不要 PLAN / skill / hook の自動 deprecation 機構** (シナプス pruning 相当、生物学的に老廃物排出がないと中毒で死ぬ = HELIX も累積一方で warn 109 件 / PLAN 324 件 / skill 118 種の肥大化を放置するのが致命的。auto-deprecation: 使用頻度 / 最終更新時刻 / drift 検出回数で老化判定 → 自動 archive)
 13. **L1-IN-18** (2026-05-26 追加、ユーザー指摘「既存整理は要求の中に含まれる」): **既存資産整理・マッピング** — HELIX-workflows の既存資産 (helix-* CLI 81 件 / helix.db 50+ table + view 1 / cli/config/*.yaml / .helix/ runtime / docs/adr/* 41 件 / cli/templates/plan/v2/* 15 件 / .claude/agents/*.md 19 件) を **inventory として継続管理**し、設計 doc 内で「対応 CLI / file path / schema field」を主張する際は **`implementation_status` 列 (installed / partial / L4-carry / not-implemented) 必須**。机上宣言だけで実在と読まれる記述は禁止。本 doc §12.1 の Glossary 5 列構成 (implementation_status 含む) が L1 以降の標準フォーマット ([[feedback_memory_verify_before_act]] verify-before-act 整合)
 14. **L1-IN-19** (2026-05-26 追加、ユーザー指摘「ドキュメント体系の中に移行要求もいりそう」): **既存資産の段階移行・retrofit** — V1 → V2 / 旧 process L1-L11 → 新 L0-L14 / 旧 enum → 新 enum の **段階 migration / retrofit pipeline** を要件として組み込む。具体的: 旧 V1 PLAN 223 件は `is_reference: true` 化、helix-* CLI rename / skill 棚卸し、frontmatter field 移行 (例: kind=impl→process_layer=L7、L1 → L1-helix-workflows-*-plan)、helix.db schema migration、ADR snapshot 後追い起票。**Strangler Fig Pattern (Martin Fowler 2004)** ベースで段階置換、`helix doctor check_migration_pending` (L4 carry) で残量管理。BR-09 (整理) と BR-10 (移行) は責務分離 (整理 = 現状評価、移行 = 段階置換)
@@ -710,7 +710,7 @@ flowchart TB
 14. **L1-IN-14**: 専門エージェント / team 構造 (memory carry §9 P1.5) の Phase 配分
 15. **L1-IN-15**: **逆引き audit 11 穴の段階対応** (生物学比喩から逆引き検出した HELIX 構造的穴、P0 = 排泄系は L1-IN-12 で先行、残り 11 穴は段階対応):
     - P1: 進化 (framework 世代継承) / 繁殖 (親 → 子 product 経験継承) / 老化 (deprecation lifecycle) / 共生 (Cursor / Claude Code との integration 戦略) / 代謝 (token vs 生産価値 収支 metric)
-    - P2: 内分泌系 (slow & global signal、skill 普及度) / 循環系 (cross-mode / cross-PLAN knowledge 流通) / 消化器系 (外部 OSS → 体内化 pipeline) / 性差 (multi-model 組換え戦略)
+    - P2: 内分泌系 (slow & global signal、skill 普及度) / 循環系 (cross-workflow / cross-PLAN knowledge 流通) / 消化器系 (外部 OSS → 体内化 pipeline) / 性差 (multi-model 組換え戦略)
     - P3: 多細胞化 (team scaling) / 神経変性 (AI 役 / hook 機能劣化検知)
     - 詳細: memory carry §10 「逆引き audit framework 12 穴」参照
 
@@ -736,7 +736,7 @@ flowchart TB
 11. **AC-11**: V モデル DB の構造区分が **core tables 10 + audit/event 1 + derived views 7** として §6.5.6 で明示、`pair_volume_balance` は view であり core 10 に含めない (tl-advisor P1#3 反映)
 12. **AC-12** (DDD ユビキタス言語、機械判定可能): L0 §12 Glossary が主要 14 用語以上を定義、各用語に「対応 CLI / file path / schema field / 検出 grep pattern」を表 row 形式で併記 (機械判定: 表 row 数 ≥ 14、3 列充足) — [[feedback_helix_fill_holes_principle]] 「memo→構造化→仕組み化→自動検出」整合
 13. **AC-13** (業界標準整合、機械判定可能): L0 §13.1 で L0-L14 全工程 15 段に業界標準対応 (arc42 / ISO/IEC/IEEE 29148:2018 / ISO/IEC/IEEE 42010:2022 / ISO/IEC 25010:2023 / C4 model / Diátaxis / IPA / Nygard / DORA / 12-factor 等) を明示 (検算: checker は `全層共通` 行を工程数から除外し、L0-L14 = 15 段で fail-close) + §13.2 でコーディング規約 SSoT path 4 件 (repo-local: CLAUDE.md / SKILL_MAP.md / HELIX_CORE.md / HELIX-process-L0-L14.md) + 1 件 (external: `~/.claude/.../memory/MEMORY.md` を `external_path_exists` checker 対象) 列挙 (機械判定: §13.1 row 数 - 「全層共通」= 15 + repo-local path 存在チェック 4 件 + external path 1 件)
-14. **AC-14** (Bounded Context、機械判定可能): L0 §14.1 で BC 全 10 行 (Forward 本体 1 + derived mode 9 = Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) 全件に「固有用語 + anti-corruption 経由先」明示 + §14.2 で BC 越境例 ≥ 3 件 (機械判定: §14.1 table row 数 = 10、うち `Forward` 1 行 + derived 9 行、§14.2 例 ≥ 3、checker は Forward を別枠で数える)
+14. **AC-14** (Bounded Context、機械判定可能): L0 §14.1 で BC 全 10 行 (Forward 本体 1 + derived workflow 9 = Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) 全件に「固有用語 + anti-corruption 経由先」明示 + §14.2 で BC 越境例 ≥ 3 件 (機械判定: §14.1 table row 数 = 10、うち `Forward` 1 行 + derived 9 行、§14.2 例 ≥ 3、checker は Forward を別枠で数える)
 15. **AC-15** (機械判定 carry 明示): §12.末尾 / §13.4 / §14.3 で `helix doctor check_*` 新設 carry を ≥ 6 件列挙し、L4 基本設計で凍結する責務を明示 (機械判定: `helix doctor check_` 文字列 grep count ≥ 6)
 16. **AC-16** (既存 lint ツール組み込み計画): §13.3 で markdown / shell / Python / YAML / SQL / 依存脆弱性 / secret スキャン / 静的解析 の 8 領域すべてに既存 OSS ツール (markdownlint / shellcheck / ruff / yamllint / sqlfluff / pip-audit / gitleaks / semgrep) と組み込み先 (pre-commit / CI / helix doctor) を明示 (機械判定: 表 row 数 ≥ 8)
 
@@ -780,8 +780,8 @@ flowchart TB
 |---|---|---|---|---|---|---|
 | **PLAN** | implementation tree (L1〜L4 内包) を内蔵する起票単位 | `helix plan <list\|show\|status\|draft\|review\|finalize\|reset\|mini\|deps\|generates\|import>` (`cli/helix-plan-cmds/` 11 subcommand) + `lint` (logic は `cli/lib/plan_lint.py` 経由、subcommand 形態は `helix plan finalize --no-lint` flag で参照) | `docs/plans/L<NN>/L<NN>-○○○plan.md` / `cli/templates/plan/v2/L<NN>-*.md` (15 template 実在) | `plan_registry` table + 関連 (`plan_dependencies` / `plan_generates` / `plan_references` / `plan_reviews` / `plan_agent_slots` table) | `^L[0-9]+-.*plan\.md$` | **installed** |
 | **gate** | 工程突合チェックポイント (G0.5 / G1 / G1.5 / G1R / G2-G14) | `helix gate <NN>` (`cli/helix-gate` 実在、`--static-only` / `--readiness-mode` 実装済) | `.helix/gate-checks.yaml` 実在 / `cli/config/gate-policy.yaml` (L4 carry: gate-policy yaml 新規) | `gate_runs` table + `phase_gate_runs` table + `gate_audit_metrics` table | `^G[0-9]+` | **partial** (yaml 未整備、CLI + table は installed) |
-| **mode** | HELIX 入口判定 (Forward + 9 派生) | `helix route` (`cli/helix-route` 実在) | `cli/lib/route_engine.py` | `frontmatter.process_layer` (mode 自体は frontmatter field なし) | `mode:\s*(Forward\|Scrum\|Discovery\|Reverse\|Incident\|Add-feature\|Refactor\|Retrofit\|Research\|Recovery)` | **installed** |
-| **drive** | タスク駆動タイプ (10 種: `be / fe / fullstack / discovery / scrum / db / agent / reverse / poc / troubleshoot`) | `helix size --drive <type>` | `cli/lib/plan_validator.py:83` | `frontmatter.drive` / `VALID_DRIVES` enum (10 種) | `^drive:\s*(be\|fe\|fullstack\|discovery\|scrum\|db\|agent\|reverse\|poc\|troubleshoot)$` | **installed** |
+| **workflow** | HELIX 入口判定 (Forward + workflow 群) | `helix route` (`cli/helix-route` 実在) | `cli/lib/route_engine.py` | `frontmatter.process_layer` | `workflow:\s*(Forward\|Scrum\|Discovery\|Reverse\|Incident\|Add-feature\|Refactor\|Retrofit\|Research\|Recovery)` | **installed** |
+| **legacy drive field** | 既存 CLI / validator に残る対象領域分類。HELIX コア概念ではなく、Forward 工程内の対象領域・実装観点として扱う | `helix size --drive <type>` | `cli/lib/plan_validator.py:83` | `frontmatter.drive` / `VALID_DRIVES` enum (10 種) | `^drive:\s*(be\|fe\|fullstack\|discovery\|scrum\|db\|agent\|reverse\|poc\|troubleshoot)$` | **installed / migration target** |
 | **artifact** | V-model 4 種 (設計 / 実装 / テスト設計 / テストコード)、frontmatter 実体は 15+ enum | `helix doctor check_vmodel_4artifact` (`vmodel_lint.py` 経由) | N/A (frontmatter 経由) | `frontmatter.generates.artifact_type` / `VALID_ARTIFACT_TYPES` enum (`cli/lib/plan_validator.py:96` で 15+ enum = `design_doc / adr_snapshot / cli_extension / template / python_module / test / hook / schema_migration / config / script / doc_update / markdown_doc / yaml_config / json_config / binary / ...`) | `artifact_type:\s*([a-z_]+)` | **installed** |
 | **pair freeze** | V-model 設計層 ↔ 検証層の対凍結 (6 対) | `helix doctor check_vmodel_pair_freeze` / `helix doctor check_pair_freeze` | N/A (frontmatter 経由) | `frontmatter.pairs_test_design` / `frontmatter.pairs_with` | `pairs_(test_design\|with):\s*` | **installed** |
 | **balance_ratio** | 量閉じ性指標 (`test_count / design_count ≥ 1.0`、Chargaff 比喩) | `helix doctor balance_ratio` (L4 carry: 専用 flag 新設) | N/A (view 経由) | `pair_volume_balance` view (helix.db、**現状未実体**、view 数 = 1 個 `accuracy_score_effective` のみ) | `balance_ratio\s*[≥=]\s*1\.0` | **L4-carry** (view 未実体化) |
@@ -794,12 +794,12 @@ flowchart TB
 | **agent_slot** | 並列実行可能な特化エージェント slot (mandatory 10 / on-demand 4)。**§12 正本用語**、L1 §10 entity 名と同一 | `helix agent <fire\|fire-mandatory\|suggest\|slots\|release\|audit>` | `.claude/agents/*.md` (**19 agent 実在**) | `agent_slots` table (helix.db、実在) + `plan_agent_slots` table | `agent_slot\|subagent` | **installed** |
 | **handover** | PM ↔ TL ↔ 実装担当 の作業引き渡し protocol | `helix handover <dump\|status\|update\|resume\|escalate\|clear\|compaction-sync>` | `.helix/handover/CURRENT.json` (アクティブ時) + `.helix/handover/archive/` | N/A (helix.db に `handover_*` table 不在、`.helix/handover/` JSON state) | `handover` | **installed** (CLI + file state)、table は不在で代わりに JSON file state |
 | **sprint** | L7 実装工程内の機能 PLAN (L7-<機能名>plan)、Step 1-8 標準構造 | `helix sprint <status\|next\|complete\|reset\|addon>` | `docs/plans/L7/L7-*plan.md` | `sprint_progress` table (helix.db、実在) + `sprint_metrics` table | `^L7-.*plan\.md$\|sprint` | **installed** |
-| **phase** | 現在の工程進捗 (Phase 0-4 / R / L<NN> + drive 別) | `helix gate` (進捗判定) | `.helix/phase.yaml` (**実存** 2.8 KB) + `.helix/framework.yaml` | `phase_gate_runs` table (helix.db、実在) | `^Phase:\|^phase:\|process_layer:` | **installed** |
+| **phase** | 現在の工程進捗 (Phase 0-4 / R / L<NN> + workflow 別) | `helix gate` (進捗判定) | `.helix/phase.yaml` (**実存** 2.8 KB) + `.helix/framework.yaml` | `phase_gate_runs` table (helix.db、実在) | `^Phase:\|^phase:\|process_layer:` | **installed** |
 | **IIP / deferral** | 既知の未解決事項 (Improvement In Progress / 意図的 deferral) の registry | `helix debt` / `helix doctor` の deferred 検出 | `.helix/audit/deferred-findings.yaml` (**実存** 63 KB、2026-05-17 から運用) | `deferred_findings` table (helix.db、**実在**) | `IIP\|deferral\|deferred` | **installed** |
 | **ADR** | アーキテクチャ決定記録 (Michael Nygard 2011)、L2 大局判断の snapshot | `helix adr` (`cli/helix-adr` 不在、L4 carry) | `docs/adr/ADR-001〜043.md` (**41 ADR 実在**) | `frontmatter.adr_snapshot` (`VALID_ARTIFACT_TYPES` enum に含む) | `^ADR-[0-9]+` | **partial** (doc + frontmatter installed、CLI 不在) |
 
 **implementation_status サマリ (19 用語の状態分布)**:
-- **installed**: 11 用語 (PLAN / mode / drive / artifact / pair freeze / carry / readiness / agent_slot / handover / sprint / phase / IIP/deferral) ※ 12 用語 (重複統合あり)
+- **installed**: 11 用語 (PLAN / workflow / legacy drive field / artifact / pair freeze / carry / readiness / agent_slot / handover / sprint / phase / IIP/deferral) ※ 12 用語 (重複統合あり)
 - **partial**: 5 用語 (gate / guardrail / trace / drift / ADR)
 - **L4-carry**: 1 用語 (balance_ratio)
 - **not-implemented**: 1 用語 (NSM)
@@ -818,7 +818,7 @@ flowchart TB
 | `helix skill` | スキル list/show/search/chain/use | (PLAN-022 スキル推挙、L4 で統合候補) |
 | `helix workspace` | worktree isolation exec/create/list | (PLAN-156、L4 carry: isolation 用) |
 | `helix vmodel` | V-model pair freeze 状態確認 | `pair freeze` 補助 CLI |
-| `helix research` | 技術調査・ADR 連携 | `ADR` mode (Research BC) |
+| `helix research` | 技術調査・ADR 連携 | Research workflow / ADR 連携 |
 | `helix discovery` | D0-D4 仮説検証フロー | Discovery BC entry |
 | `helix handover compaction-sync` | compact 前後の state sync | `handover` 拡張 (最新追加) |
 | `helix drift-check` | drift 検出 | `drift` 専用 CLI |
@@ -836,7 +836,7 @@ flowchart TB
 | **agent / sprint / handover (5)** | `agent_slots` / `plan_agent_slots` / `sprint_progress` / `sprint_metrics` / `*` | §12 同名用語 |
 | **event / telemetry (4)** | `events` / `event_envelope` / `harness_check_events` / `session_telemetry` | (L4 carry: 統合候補) |
 | **運用・debt (5)** | `deferred_findings` / `debt_items` / `feedback` / `failure_log` / `retro_items` | §12 `carry` / `IIP/deferral` の親集合 |
-| **mode-specific (5)** | `scrum_trigger` / `scrum_local_loops` / `reverse_local_loops` / `refactor_degrade_pattern` / `poc_validation_log` | §12 `mode` 補助 |
+| **workflow-specific (5)** | `scrum_trigger` / `scrum_local_loops` / `reverse_local_loops` / `refactor_degrade_pattern` / `poc_validation_log` | §12 `workflow` 補助 |
 | **code / contract (3)** | `code_index` / `code_edges` / `contract_entries` | (PLAN-011/012/013) |
 
 **機械判定 carry (L4)**:
@@ -869,7 +869,7 @@ flowchart TB
 | **L7** 実装スプリント | **TDD** (Kent Beck 2003) / **xUnit pattern** (Gerard Meszaros 2007) | (carry) |
 | **L8** 結合検証 | **xUnit pattern** / Contract testing (Ian Robinson 2010) | (carry) |
 | **L9** 総合検証 | **ISO/IEC 29119** (Software Testing) | (carry) |
-| **L10** UX | **WCAG 2.2** (accessibility) / **Material Design 3** | (FE 駆動時のみ、carry) |
+| **L10** UX | **WCAG 2.2** (accessibility) / **Material Design 3** | (UI 対象時のみ、carry) |
 | **L11** RC | **DORA 4 metrics** (Forsgren et al. 2018: deployment frequency / lead time / change failure rate / MTTR) | (carry) |
 | **L12** デプロイ | **12-factor app** (Adam Wiggins 2011) / IPA SLA グレード値 | L3 NFR-OP-* / L12 受入テスト設計 |
 | **L13** 安定性 | **Google SRE SLO/SLI** (2016) | (carry) |
@@ -890,7 +890,7 @@ flowchart TB
 | **Bash / Python コーディング規約** | [`CLAUDE.md`](../../../CLAUDE.md) §コーディング規約 | `cli/helix-*` + `cli/lib/*.py` 全体 |
 | **コミット規約** (1 commit = 1 PLAN / HEREDOC / Co-Authored-By) | [`CLAUDE.md`](../../../CLAUDE.md) §コミット規約 | 全 commit |
 | **HELIX 固有規約** (PLAN naming / frontmatter / pair freeze / V-model 4 artifact / 並列 8) | [`skills/SKILL_MAP.md`](../../../skills/SKILL_MAP.md) + [`helix/HELIX_CORE.md`](../../../helix/HELIX_CORE.md) | HELIX-workflows 全工程 |
-| **TDD 全 mode 共通絶対原則** | [`HELIX-workflows/HELIX-process-L0-L14.md`](../../../HELIX-workflows/HELIX-process-L0-L14.md) §基本原則 | 9 mode 全て (Forward / Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) |
+| **検証条件先行 / 実装時 TDD 共通原則** | [`HELIX-workflows/HELIX-process-L0-L14.md`](../../../HELIX-workflows/HELIX-process-L0-L14.md)  | 9 workflow 全て (Forward / Scrum / Discovery / Reverse / Incident / Add-feature / Refactor / Retrofit / Research / Recovery) |
 
 #### §13.2.2 external path (1 件、`external_path_exists` checker 対象)
 
@@ -922,13 +922,13 @@ flowchart TB
 
 ---
 
-## §14 Bounded Context (DDD 適用、Forward 本体 1 + derived 9 mode = 10 BC)
+## §14 Bounded Context (DDD 適用、Forward 本体 1 + derived 9 workflow = 10 BC)
 
-> **正本宣言**: HELIX-workflows の Bounded Context (BC) を mode 単位で本 §14 で確定。各 BC は **共通ユビキタス言語 §12** を共有しつつ mode 固有用語を持つ。BC 越境時は **anti-corruption layer = §12 Glossary 経由** で意味写像する (直接他 BC 固有用語の引用を禁止)。
+> **正本宣言**: HELIX-workflows の Bounded Context (BC) を workflow 単位で本 §14 で確定。各 BC は **共通ユビキタス言語 §12** を共有しつつ workflow 固有用語を持つ。BC 越境時は **anti-corruption layer = §12 Glossary 経由** で意味写像する (直接他 BC 固有用語の引用を禁止)。
 
-### §14.1 BC 一覧 (10 行 = Forward 本体 1 + derived mode 9)
+### §14.1 BC 一覧 (10 行 = Forward 本体 1 + derived workflow 9)
 
-| BC | 入口判定 | 対応工程 | 固有用語 (mode-specific) | anti-corruption 経由先 |
+| BC | 入口判定 | 対応工程 | 固有用語 (workflow-specific) | anti-corruption 経由先 |
 |---|---|---|---|---|
 | **Forward** (本体) | 要件・設計・契約が確定 | L0-L14 全工程 | (本体、§12 全用語使用) | (本体) |
 | **Scrum** (アジャイル反復) | ユーザー要件すり合わせ反復 | L1-L3 反復 → L4 進入 | sprint goal / iteration / increment / velocity | §12 PLAN / gate / artifact 経由で Forward L1 へ |
@@ -952,8 +952,8 @@ BC 越境時は **§12 Glossary を経由** して意味写像する (P2 補正:
 
 ### §14.3 機械判定 carry (L4 で凍結)
 
-- `helix doctor check_bc_anti_corruption`: mode 切替時 (route_engine.py が判定) に §12 Glossary 経由の意味写像が経由されているか fail-close (実装難度高、Phase 4-5 carry)
-- `helix doctor check_bc_mode_coverage`: 9 mode 全列挙が本 §14.1 にあるか fail-close (現状は機械化未着手、本 doc 起票時点で 9 mode 全網羅確認済)
-- 9 mode の機械判定境界は L4 基本設計で `cli/lib/route_engine.py` + `cli/config/route-engine.yaml` (L4 carry) に確定 (本 doc では仕様宣言のみ)
+- `helix doctor check_bc_anti_corruption`: workflow 切替時 (route_engine.py が判定) に §12 Glossary 経由の意味写像が経由されているか fail-close (実装難度高、Phase 4-5 carry)
+- `helix doctor check_bc_workflow_coverage`: 9 workflow 全列挙が本 §14.1 にあるか fail-close (現状は機械化未着手、本 doc 起票時点で 9 workflow 全網羅確認済)
+- 9 workflow の機械判定境界は L4 基本設計で `cli/lib/route_engine.py` + `cli/config/route-engine.yaml` (L4 carry) に確定 (本 doc では仕様宣言のみ)
 
 ---
