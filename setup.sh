@@ -71,6 +71,46 @@ setup_helix_core_symlink() {
     echo ""
 }
 
+# --- ~/.claude/agents symlink セットアップ ---
+setup_claude_agents_symlink() {
+    echo "=== ~/.claude/agents ==="
+
+    local target="$HOME/.helix/core/.claude/agents"
+    local link="$CLAUDE_DIR/agents"
+    local expected_target
+    local current_target
+
+    mkdir -p "$CLAUDE_DIR"
+    expected_target="$(cd "$target" 2>/dev/null && pwd -P || true)"
+
+    if [[ ! -e "$link" ]] && [[ ! -L "$link" ]]; then
+        ln -s "$target" "$link"
+        _ok "Created ~/.claude/agents → $target"
+    elif [[ -L "$link" ]]; then
+        if [[ -n "$expected_target" ]] && current_target="$(cd "$link" 2>/dev/null && pwd -P)"; then
+            if [[ "$current_target" == "$expected_target" ]]; then
+                _skip "~/.claude/agents already points to $expected_target"
+            else
+                _warn "~/.claude/agents points to $current_target (expected $expected_target); leaving unchanged"
+            fi
+        else
+            _warn "~/.claude/agents is a broken or unresolved symlink; leaving unchanged"
+        fi
+    elif [[ -d "$link" ]]; then
+        if [[ -z "$(find "$link" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]]; then
+            rmdir "$link"
+            ln -s "$target" "$link"
+            _ok "Replaced empty ~/.claude/agents directory with symlink to $target"
+        else
+            _warn "~/.claude/agents is a non-empty directory; leaving unchanged and requiring manual migration"
+        fi
+    else
+        _warn "~/.claude/agents exists and is not a directory symlink; leaving unchanged"
+    fi
+
+    echo ""
+}
+
 # --- 依存チェック ---
 check_deps() {
     echo "=== Dependency Check ==="
@@ -338,6 +378,17 @@ uninstall() {
         _skip "~/.helix/core not found"
     fi
 
+    # ~/.claude/agents symlink
+    local claude_agents_link="$CLAUDE_DIR/agents"
+    if [[ -L "$claude_agents_link" ]]; then
+        rm "$claude_agents_link"
+        _ok "Removed ~/.claude/agents symlink"
+    elif [[ -e "$claude_agents_link" ]]; then
+        _skip "~/.claude/agents exists and is not a symlink"
+    else
+        _skip "~/.claude/agents not found"
+    fi
+
     # settings.json から HELIX hooks を除去
     if [[ -f "$CLAUDE_SETTINGS" ]]; then
         cp "$CLAUDE_SETTINGS" "${CLAUDE_SETTINGS}.bak"
@@ -462,6 +513,7 @@ main() {
     fi
 
     setup_helix_core_symlink
+    setup_claude_agents_symlink
     setup_claude_md
     setup_settings
     setup_shell_path
