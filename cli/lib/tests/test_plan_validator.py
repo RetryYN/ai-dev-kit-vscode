@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,17 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VALIDATOR = REPO_ROOT / "cli" / "lib" / "plan_validator.py"
+LIB_DIR = REPO_ROOT / "cli" / "lib"
+PROCESS_PLAN = REPO_ROOT / "docs" / "plans" / "process" / "process-2026-06-01-plan-rule-closure.md"
+RECOVERY_PLAN = (
+    REPO_ROOT / "docs" / "plans" / "recovery" / "recovery-2026-05-30-design-coverage-baselineplan.md"
+)
+V1_REFERENCE_PLAN = REPO_ROOT / "docs" / "plans" / "PLAN-031-carry-resolution.md"
+
+if str(LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(LIB_DIR))
+
+import plan_validator
 
 
 def _run_validator(path: Path) -> subprocess.CompletedProcess[str]:
@@ -70,6 +82,53 @@ def _base_frontmatter(created_at: str) -> dict[str, object]:
     }
 
 
+def _base_action_frontmatter(created_at: str) -> dict[str, object]:
+    return {
+        "plan_id": "discovery-2026-06-01-action-sample",
+        "title": "Action Sample Plan",
+        "plan_scope": "action",
+        "kind": "poc",
+        "layer": "cross",
+        "drive": "discovery",
+        "status": "draft",
+        "created": created_at,
+        "parent_process": "docs/plans/process/process-2026-06-01-plan-rule-closure.md",
+        "workflow": "discovery",
+        "agent_slots": [],
+        "generates": [],
+        "dependencies": {
+            "parent": None,
+            "requires": [],
+            "blocks": [],
+        },
+    }
+
+
+def _base_process_frontmatter(created_at: str) -> dict[str, object]:
+    return {
+        "plan_id": "process-2026-06-01-action-link-check",
+        "title": "Process Sample Plan",
+        "plan_scope": "process",
+        "workflow_chain": "内部監査 -> Discovery -> Reverse",
+        "kind": "research",
+        "layer": "L1",
+        "drive": "discovery",
+        "status": "draft",
+        "created": created_at,
+        "contains_action_plans": [
+            "docs/plans/discovery/does-not-exist.md",
+        ],
+        "forward_return": "Forward L4",
+        "agent_slots": [],
+        "generates": [],
+        "dependencies": {
+            "parent": None,
+            "requires": [],
+            "blocks": [],
+        },
+    }
+
+
 def test_kind_enum_warn(tmp_path: Path) -> None:
     frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
     frontmatter["kind"] = "invalid-kind"
@@ -79,6 +138,70 @@ def test_kind_enum_warn(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     _assert_warns_on(result.stderr, "kind")
+
+
+def test_process_plan_scope_is_classified_without_unknown_warning() -> None:
+    frontmatter = plan_validator.parse_frontmatter(plan_validator.load_frontmatter(PROCESS_PLAN))
+
+    assert plan_validator._classify_plan_format(frontmatter.plan_id, frontmatter.plan_scope) == "process"
+
+    result = _run_validator(PROCESS_PLAN)
+
+    assert result.returncode == 0
+    assert not any("field=plan_id" in line for line in _warning_lines(result.stderr)), result.stderr
+
+
+def test_action_plan_scope_is_classified(tmp_path: Path) -> None:
+    frontmatter = _base_action_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    path = _write_plan(tmp_path / "discovery-2026-06-01-action-sample.md", frontmatter)
+
+    parsed = plan_validator.parse_frontmatter(plan_validator.load_frontmatter(path))
+    result = _run_validator(path)
+
+    assert plan_validator._classify_plan_format(parsed.plan_id, parsed.plan_scope) == "action"
+    assert result.returncode == 0
+
+
+def test_action_scope_missing_parent_process_warns(tmp_path: Path) -> None:
+    frontmatter = _base_action_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del frontmatter["parent_process"]
+    path = _write_plan(tmp_path / "discovery-2026-06-01-action-no-parent.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "parent_process")
+
+
+def test_process_scope_missing_action_path_warns(tmp_path: Path) -> None:
+    frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    path = _write_plan(tmp_path / "process-2026-06-01-action-link-check.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "contains_action_plans[0]")
+
+
+def test_action_naming_fallback_suppresses_unknown_and_parent_scope_warnings() -> None:
+    frontmatter = plan_validator.parse_frontmatter(plan_validator.load_frontmatter(RECOVERY_PLAN))
+
+    assert frontmatter.plan_scope is None
+    assert plan_validator._classify_plan_format(frontmatter.plan_id, frontmatter.plan_scope) == "action"
+
+    result = _run_validator(RECOVERY_PLAN)
+
+    assert result.returncode == 0
+    assert not any("field=plan_id" in line for line in _warning_lines(result.stderr)), result.stderr
+    assert not any("field=parent_process" in line for line in _warning_lines(result.stderr)), result.stderr
+
+
+def test_v1_reference_plan_keeps_v2_strict_skip_behavior() -> None:
+    result = _run_validator(V1_REFERENCE_PLAN)
+
+    assert result.returncode == 0
+    assert not any("field=process_layer" in line for line in _warning_lines(result.stderr)), result.stderr
+    assert not any("field=parent_design" in line for line in _warning_lines(result.stderr)), result.stderr
 
 
 def test_layer_enum_warn(tmp_path: Path) -> None:

@@ -77,6 +77,10 @@ def test_frontmatter_kind_values_match_plan_validator() -> None:
     assert plan_lint.FRONTMATTER_KIND_VALUES == plan_validator.VALID_KINDS
 
 
+def test_plan_scope_values_match_plan_validator() -> None:
+    assert plan_lint.VALID_PLAN_SCOPES == plan_validator.VALID_PLAN_SCOPES
+
+
 def test_v2_plan_templates_kinds_are_covered() -> None:
     template_dir = LIB_DIR.parent / "templates" / "plan" / "v2"
     template_kinds: set[str] = set()

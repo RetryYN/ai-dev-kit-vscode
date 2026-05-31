@@ -93,6 +93,18 @@ VALID_DRIVES = {
     "troubleshoot",
 }
 VALID_WORKFLOW_PHASES = MISUSED_WORKFLOW_LAYERS
+VALID_PLAN_SCOPES = {"process", "action"}
+VALID_WORKFLOWS = {
+    "discovery",
+    "reverse",
+    "recovery",
+    "incident",
+    "add-feature",
+    "refactor",
+    "retrofit",
+    "research",
+    "scrum",
+}
 VALID_ARTIFACT_TYPES = {
     "design_doc",
     "adr_snapshot",
@@ -126,6 +138,10 @@ REQUIRED_FIELDS = (
 V1_PLAN_ID_RE = re.compile(r"^PLAN-(?:\d{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?|MM-\d{3})$")
 # V2 (新、HELIX-model 正本): L<NN>-<slug>plan (例: L0-企画書plan / L7-helix-workspace-mergeplan)
 V2_PLAN_ID_RE = re.compile(r"^L(?:[0-9]|1[0-4])-[^\s]+plan$")
+PROCESS_PLAN_ID_RE = re.compile(r"^process-\d{4}-\d{2}-\d{2}-[a-z0-9-]+$")
+ACTION_PLAN_ID_RE = re.compile(
+    r"^(?:discovery|reverse|recovery|incident|add-feature|refactor|retrofit|research|scrum|poc|troubleshoot)-\d{4}-\d{2}-\d{2}-[a-z0-9-]+$"
+)
 # 後方互換: 既存テストや CLI から参照される PLAN_ID_RE は V1 形式のまま (旧仕様維持)。
 PLAN_ID_RE = V1_PLAN_ID_RE
 ROLE_HEADER_RE = re.compile(r"^\|\s*ロール\s*\|\s*model\s*\|", re.IGNORECASE)
@@ -135,6 +151,7 @@ ROLE_HEADER_RE = re.compile(r"^\|\s*ロール\s*\|\s*model\s*\|", re.IGNORECASE)
 class PlanFrontmatter:
     plan_id: str | None
     title: str | None
+    plan_scope: str | None
     kind: str | None
     layer: str | None
     drive: str | None
@@ -142,7 +159,12 @@ class PlanFrontmatter:
     workflow_phase: str | None
     process_layer: str | None
     parent_design: str | None
+    parent_process: str | None
     pairs_test_design: Any
+    contains_action_plans: Any
+    forward_return: str | None
+    workflow: str | None
+    workflow_chain: str | None
     agent_slots: Any
     generates: Any
     dependencies: Any
@@ -182,6 +204,7 @@ def parse_frontmatter(data: dict[str, Any]) -> PlanFrontmatter:
     return PlanFrontmatter(
         plan_id=_string_or_none(data.get("plan_id")),
         title=_string_or_none(data.get("title")),
+        plan_scope=_string_or_none(data.get("plan_scope")),
         kind=_string_or_none(data.get("kind")),
         layer=_string_or_none(data.get("layer")),
         drive=_string_or_none(data.get("drive")),
@@ -189,7 +212,12 @@ def parse_frontmatter(data: dict[str, Any]) -> PlanFrontmatter:
         workflow_phase=_string_or_none(data.get("workflow_phase")),
         process_layer=_string_or_none(data.get("process_layer")),
         parent_design=_string_or_none(data.get("parent_design")),
+        parent_process=_string_or_none(data.get("parent_process")),
         pairs_test_design=data.get("pairs_test_design"),
+        contains_action_plans=data.get("contains_action_plans"),
+        forward_return=_string_or_none(data.get("forward_return")),
+        workflow=_string_or_none(data.get("workflow")),
+        workflow_chain=_string_or_none(data.get("workflow_chain")),
         agent_slots=data.get("agent_slots"),
         generates=data.get("generates"),
         dependencies=data.get("dependencies"),
@@ -201,7 +229,7 @@ def _string_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _classify_plan_format(plan_id: str | None) -> str:
+def _classify_plan_id_format(plan_id: str | None) -> str:
     """plan_id を V1 / V2 / unknown に分類 (V2 完全移行、2026-05-24)."""
     if plan_id is None:
         return "missing"
@@ -210,6 +238,19 @@ def _classify_plan_format(plan_id: str | None) -> str:
     if V1_PLAN_ID_RE.fullmatch(plan_id):
         return "v1"
     return "unknown"
+
+
+def _classify_plan_format(plan_id: str | None, plan_scope: str | None) -> str:
+    """plan_scope 明示を優先し、未宣言時は命名 fallback を使って分類する."""
+    if plan_scope in VALID_PLAN_SCOPES:
+        return plan_scope
+    if plan_id is None:
+        return "missing"
+    if PROCESS_PLAN_ID_RE.fullmatch(plan_id):
+        return "process"
+    if ACTION_PLAN_ID_RE.fullmatch(plan_id):
+        return "action"
+    return _classify_plan_id_format(plan_id)
 
 
 def role_map_path() -> Path:
@@ -277,10 +318,15 @@ def validate_plan(path: Path) -> list[str]:
         if field not in frontmatter.raw:
             warn(plan_ref, field, "missing required field", warnings)
 
+    plan_scope_raw = frontmatter.raw.get("plan_scope")
+    if "plan_scope" in frontmatter.raw and frontmatter.plan_scope not in VALID_PLAN_SCOPES:
+        warn(plan_ref, "plan_scope", f"unsupported value: {plan_scope_raw}", warnings)
+
     # V2 完全移行 (2026-05-24): plan_id format で V1 (legacy) / V2 を判定。
     # V2 製本対象は V2 format のみ。V1 (PLAN-NNN-slug) は legacy 参考扱い → 厳格検証は skip。
     is_reference = bool(frontmatter.raw.get("is_reference"))
-    plan_format = _classify_plan_format(frontmatter.plan_id)
+    plan_id_format = _classify_plan_id_format(frontmatter.plan_id)
+    plan_format = _classify_plan_format(frontmatter.plan_id, frontmatter.plan_scope)
     if frontmatter.plan_id is not None and plan_format == "unknown":
         warn(
             plan_ref,
@@ -289,7 +335,7 @@ def validate_plan(path: Path) -> list[str]:
             warnings,
         )
 
-    if plan_format == "v1" and not is_reference:
+    if plan_id_format == "v1" and not is_reference:
         warn(
             plan_ref,
             "plan_id",
@@ -300,7 +346,25 @@ def validate_plan(path: Path) -> list[str]:
     # V1 legacy reference の扱い (V2 完全移行、2026-05-24):
     #   - V2 専用 field (process_layer / parent_design / pairs_test_design) の検証 skip
     #   - cycle / reciprocal / agent_slots / generates の検証は走らせる (循環参照などは legacy でも検出すべき)
-    skip_v2_strict = is_reference and plan_format == "v1"
+    skip_v2_strict = is_reference and plan_id_format == "v1"
+
+    if frontmatter.plan_scope == "process" and frontmatter.plan_id is not None:
+        if not PROCESS_PLAN_ID_RE.fullmatch(frontmatter.plan_id):
+            warn(
+                plan_ref,
+                "plan_id",
+                "plan_scope=process should use plan_id format 'process-YYYY-MM-DD-<topic>'",
+                warnings,
+            )
+
+    if frontmatter.plan_scope == "action" and frontmatter.plan_id is not None:
+        if not ACTION_PLAN_ID_RE.fullmatch(frontmatter.plan_id):
+            warn(
+                plan_ref,
+                "plan_id",
+                "plan_scope=action should use action workflow plan_id format '<workflow>-YYYY-MM-DD-<topic>'",
+                warnings,
+            )
 
     if frontmatter.kind is not None and frontmatter.kind not in VALID_KINDS:
         warn(frontmatter.plan_id or plan_ref, "kind", f"unsupported value: {frontmatter.kind}", warnings)
@@ -345,8 +409,81 @@ def validate_plan(path: Path) -> list[str]:
     validate_dependencies(path, frontmatter, warnings)
     if not skip_v2_strict:
         validate_process_layer(path, frontmatter, warnings)
+    validate_plan_scope_contract(path, frontmatter, warnings)
 
     return warnings
+
+
+def validate_plan_scope_contract(
+    path: Path,
+    frontmatter: PlanFrontmatter,
+    warnings: list[str],
+) -> None:
+    plan_ref = frontmatter.plan_id or path.stem
+
+    if frontmatter.plan_scope == "process":
+        if frontmatter.workflow_chain is None:
+            warn(
+                plan_ref,
+                "workflow_chain",
+                "plan_scope=process requires workflow_chain",
+                warnings,
+            )
+        if frontmatter.forward_return is None:
+            warn(
+                plan_ref,
+                "forward_return",
+                "plan_scope=process requires forward_return",
+                warnings,
+            )
+        _validate_string_path_list(
+            path,
+            plan_ref,
+            "contains_action_plans",
+            frontmatter.contains_action_plans,
+            required_reason="plan_scope=process requires contains_action_plans",
+            warnings=warnings,
+        )
+        return
+
+    if frontmatter.plan_scope == "action":
+        if frontmatter.parent_process is None:
+            warn(
+                plan_ref,
+                "parent_process",
+                "plan_scope=action requires parent_process",
+                warnings,
+            )
+        else:
+            _validate_path_exists(path, plan_ref, "parent_process", frontmatter.parent_process, warnings)
+
+        if frontmatter.workflow is None:
+            warn(plan_ref, "workflow", "plan_scope=action requires workflow", warnings)
+        elif frontmatter.workflow not in VALID_WORKFLOWS:
+            warn(plan_ref, "workflow", f"unsupported value: {frontmatter.workflow}", warnings)
+
+
+def _validate_string_path_list(
+    plan_path: Path,
+    plan_ref: str,
+    field: str,
+    value: Any,
+    *,
+    required_reason: str,
+    warnings: list[str],
+) -> None:
+    if value is None:
+        warn(plan_ref, field, required_reason, warnings)
+        return
+    if not isinstance(value, list):
+        warn(plan_ref, field, "expected list[string]", warnings)
+        return
+
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            warn(plan_ref, f"{field}[{index}]", "expected string", warnings)
+            continue
+        _validate_path_exists(plan_path, plan_ref, f"{field}[{index}]", item, warnings)
 
 
 def validate_process_layer(

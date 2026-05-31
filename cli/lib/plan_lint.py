@@ -9,6 +9,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from . import plan_validator
+except ImportError:  # pragma: no cover
+    import plan_validator  # type: ignore[no-redef]
+
 
 PLAN_NUMBER_RE = re.compile(r"PLAN-(\d{3,})")
 V2_PLAN_ID_RE = re.compile(r"^L(?:[0-9]|1[0-4])-[^\s]+plan$")
@@ -43,30 +48,8 @@ WARN_SIMILARITY = 0.4
 HIGHLIGHT_SIMILARITY = 0.7
 FRONTMATTER_REQUIRED_FIELDS = ("plan_id", "title", "kind", "layer", "drive", "status")
 # plan_validator.py::VALID_KINDS と同期 (drift test で一致を強制)
-FRONTMATTER_KIND_VALUES = {
-    "design",
-    "impl",
-    "poc",
-    "reverse",
-    "troubleshoot",
-    "refactor",
-    "retrofit",
-    "research",
-    "add-design",
-    "add-impl",
-    "recovery",
-    "planning",
-    "requirements",
-    "ui-design",
-    "basic-design",
-    "detailed-design",
-    "function-design",
-    "test",
-    "ux-refinement",
-    "review",
-    "deployment",
-    "operation",
-}
+FRONTMATTER_KIND_VALUES = plan_validator.VALID_KINDS
+VALID_PLAN_SCOPES = plan_validator.VALID_PLAN_SCOPES
 FRONTMATTER_LAYER_VALUES = {f"L{index}" for index in range(0, 15)}
 FRONTMATTER_DRIVE_VALUES = {
     "be",

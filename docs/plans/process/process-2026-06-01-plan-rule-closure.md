@@ -12,6 +12,20 @@ owner: PM
 contains_action_plans:
   - docs/plans/discovery/poc-2026-06-01-recovery-closureplan.md
 forward_return: "Reverse → Forward L4（closure 設計）+ PLAN モデル正本化"
+agent_slots:
+  - role: pm-advisor
+    slot_label: "PM — 行程設計・Forward 昇格判断"
+  - role: tl-advisor
+    slot_label: "TL — モデル/契約 adversarial check"
+  - role: se
+    slot_label: "SE — validator/hook/lint 実装（Codex）"
+generates:
+  - artifact_path: HELIX-workflows/helix-process/plan-model.md
+    artifact_type: markdown_doc
+dependencies:
+  parent: null
+  requires: []
+  blocks: []
 related_docs:
   - docs/v2/L0-helix-workflows/concept.md
   - HELIX-workflows/helix-process/discovery-workflow.md
@@ -85,8 +99,8 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 | 09:00–10:00 | 1 モデル統合 | TL+研究 統合 → Process⊃Action 定義 起草 | **done** |
 | 10:00–11:00 | 2 概念正本化 | 正本 doc + Glossary 追記 → commit | **done** |
 | 11:00–12:00 | 3 起票規約 | Process/Action 命名・親子・structure → commit | **done** |
-| 12:00–13:00 | 4 validator 委譲 | contract 確定 → Codex se(分類/unknown/親子/drift test) | todo |
-| 13:00–14:00 | 5 validator 検証 | Codex 検証 + 修正 → commit | todo |
+| 12:00–13:00 | 4 validator 委譲 | contract 確定 → Codex se(分類/unknown/親子/drift test) | **done** |
+| 13:00–14:00 | 5 validator 検証 | Codex 検証 + 修正 → commit | **done** |
 | 14:00–15:00 | 6 hook+lint | design-doc hook matcher + `--strict-frontmatter` (Codex) | todo |
 | 15:00–16:00 | 7 二重audit | tl-advisor + pmo-sonnet → 反映 | todo |
 | 16:00–17:00 | 8 closure設計 | mode_transition SSoT/closure adapter 設計doc ※実装は escalation 待ち | todo |
@@ -99,4 +113,6 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 ### 進捗ログ
 - **08:21 Block 0 done**: 現在地確認(setup完了/slot release/handover無し)、PLAN ルール実態 internal audit 完了(validator unknown / lint status のみ / hook:130 drift / 命名3分裂)、Process Plan 起票、TL(`b2mjkwpln`)+web検索(pmo-tech-docs)を background dispatch。
 - **08:40 Block 1+2 done**: TL=条件付き推奨(closure 契約と分離なら先行整備可 / 住所=G正本+P用語ミラー / forward_return 必須 / process⊃action[] 1段 / L単位 plan_scope 非強制)。web検索=業界横断で二層分離を支持(Temporal/Airflow/Argo/ISO9001/OODA/Saga、収束=Pivot transaction)。G 正本 `HELIX-workflows/helix-process/plan-model.md` 作成(§1-8、業界 anti-corruption mapping 込み)、concept.md §12.1.3 用語ミラー追加、§5 住所問題 解決。commit `99d6bbd`(push せず)。
-- **08:50 Block 3 done**: `docs/commands/plan.md` に「PLAN の種別と住所(Process/Action/L)」節 + plan-model.md 参照を追加、legacy PLAN-XXX template 参照に注記。次=commit → Block 4(validator を Codex 委譲)。
+- **08:50 Block 3 done**: `docs/commands/plan.md` に「PLAN の種別と住所(Process/Action/L)」節 + plan-model.md 参照を追加、legacy PLAN-XXX template 参照に注記。commit `928b646`。
+- **08:58 Block 4 dispatch (Codex se)**: 初回投入後 contract の穴に気づき停止→修正→再投入(`b8lc4yowr`)。修正点=命名 fallback 分類(plan_scope 未宣言でも `recovery-`/`poc-`/`refactor-` を action 分類 → 既存 workflow PLAN の unknown も解消)+ 親子 required 警告は plan_scope 明示時のみ(既存を強制 retrofit しない)。Block 6(hook 是正+strict-frontmatter)の Codex contract も prep 済。
+- **09:20 Block 4+5 done**: Codex(`b8lc4yowr`)実装完了(exit 1 は私の未 commit §7 編集を allowed-files guard が誤検知しただけ、コード無傷)。独立検証=py_compile OK / pytest 40+350 passed 回帰なし / process PLAN・既存 recovery PLAN とも unknown 解消 / 命名 fallback + 親子は plan_scope 明示時のみ(gradual)/ VALID_PLAN_SCOPES 単一ソース(plan_lint が import)+ drift test。dogfood Process Plan に agent_slots/generates/dependencies 補完で警告ゼロ。教訓=Codex 投入前に tracking 編集を commit する。次=commit → Block 6(hook+strict-lint, contract prep 済)。
