@@ -93,6 +93,12 @@ class DuplicateWarning:
     similarity: float
 
 
+@dataclass(frozen=True)
+class ScopeWarning:
+    field: str
+    message: str
+
+
 def _add_frontmatter_finding(
     findings: list[dict[str, str]],
     *,
@@ -122,6 +128,11 @@ def _parse_args() -> argparse.Namespace:
         "--json",
         action="store_true",
         help="結果を JSON で出力する",
+    )
+    parser.add_argument(
+        "--strict-frontmatter",
+        action="store_true",
+        help="plan_scope 明示 PLAN の required fields / 親子検証 warning を error 化する",
     )
     parser.add_argument("plan_file", help="PLAN markdown file")
     return parser.parse_args()
@@ -318,6 +329,38 @@ def _report_frontmatter_findings(path: Path, findings: list[dict[str, str]]) -> 
             file=sys.stderr,
         )
         if finding["level"] == "error":
+            has_error = True
+    return has_error
+
+
+def _collect_scope_warnings(path: Path, frontmatter: dict[str, object]) -> list[ScopeWarning]:
+    raw_plan_scope = frontmatter.get("plan_scope")
+    if raw_plan_scope not in VALID_PLAN_SCOPES:
+        return []
+
+    parsed = plan_validator.parse_frontmatter(frontmatter)
+    warnings: list[str] = []
+    plan_validator.validate_plan_scope_contract(path, parsed, warnings)
+
+    scope_warnings: list[ScopeWarning] = []
+    for warning in warnings:
+        prefix, _, message = warning.partition(" reason=")
+        field = ""
+        if " field=" in prefix:
+            field = prefix.split(" field=", 1)[1].strip()
+        scope_warnings.append(ScopeWarning(field=field, message=message or warning))
+    return scope_warnings
+
+
+def _report_scope_warnings(path: Path, warnings: list[ScopeWarning], *, strict: bool) -> bool:
+    has_error = False
+    level = "error" if strict else "warning"
+    for warning in warnings:
+        print(
+            f"{path}: frontmatter {level}: field={warning.field} reason={warning.message}",
+            file=sys.stderr,
+        )
+        if strict:
             has_error = True
     return has_error
 
@@ -613,6 +656,7 @@ def _lint_plan(
     duplicates_only: bool = False,
     validate_frontmatter: bool = False,
     json_output: bool = False,
+    strict_frontmatter: bool = False,
 ) -> int:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -632,8 +676,10 @@ def _lint_plan(
         return 1
 
     frontmatter_findings: list[dict[str, str]] = []
+    scope_warnings: list[ScopeWarning] = []
+    frontmatter: dict[str, object] | None = None
     should_validate_frontmatter = validate_frontmatter or _is_v2_plan_candidate(path, frontmatter_plan_id)
-    if not duplicates_only and should_validate_frontmatter:
+    if not duplicates_only:
         try:
             frontmatter = _parse_frontmatter_mapping(frontmatter_lines)
         except ValueError as exc:
@@ -645,7 +691,11 @@ def _lint_plan(
                 }
             ]
         else:
-            frontmatter_findings = validate_plan_frontmatter(frontmatter)
+            if frontmatter.get("plan_scope") in VALID_PLAN_SCOPES:
+                should_validate_frontmatter = True
+            if should_validate_frontmatter:
+                frontmatter_findings = validate_plan_frontmatter(frontmatter)
+            scope_warnings = _collect_scope_warnings(path, frontmatter)
 
     plan_number = _resolve_plan_number(path, frontmatter_plan_id)
     if not duplicates_only and plan_number is not None and plan_number < 36:
@@ -660,6 +710,14 @@ def _lint_plan(
                         "validated": should_validate_frontmatter,
                         "findings": frontmatter_findings,
                         "has_error": any(f["level"] == "error" for f in frontmatter_findings),
+                    },
+                    "plan_scope": {
+                        "strict_frontmatter": strict_frontmatter,
+                        "warnings": [
+                            {"field": warning.field, "message": warning.message}
+                            for warning in scope_warnings
+                        ],
+                        "has_error": strict_frontmatter and bool(scope_warnings),
                     },
                 }
             )
@@ -685,7 +743,8 @@ def _lint_plan(
 
     findings = _find_mismatches(lines, body_start_idx, expected_status, lint_self_reference)
     has_frontmatter_error = _report_frontmatter_findings(path, frontmatter_findings)
-    ok = not findings and not has_frontmatter_error
+    has_scope_error = _report_scope_warnings(path, scope_warnings, strict=strict_frontmatter)
+    ok = not findings and not has_frontmatter_error and not has_scope_error
 
     if json_output:
         _emit_json(
@@ -696,6 +755,14 @@ def _lint_plan(
                     "validated": should_validate_frontmatter,
                     "findings": frontmatter_findings,
                     "has_error": has_frontmatter_error,
+                },
+                "plan_scope": {
+                    "strict_frontmatter": strict_frontmatter,
+                    "warnings": [
+                        {"field": warning.field, "message": warning.message}
+                        for warning in scope_warnings
+                    ],
+                    "has_error": has_scope_error,
                 },
                 "status_lint": {
                     "expected_status": expected_status,
@@ -734,6 +801,7 @@ def main() -> int:
         duplicates_only=args.duplicates,
         validate_frontmatter=args.validate_frontmatter,
         json_output=args.json,
+        strict_frontmatter=args.strict_frontmatter,
     )
 
 

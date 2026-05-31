@@ -1,6 +1,7 @@
 cmd_lint() {
   local duplicates=0
   local json=0
+  local strict_frontmatter=0
   local validate_frontmatter=0
   local v5=0
   local plan_file=""
@@ -16,6 +17,10 @@ cmd_lint() {
         ;;
       --json)
         json=1
+        shift
+        ;;
+      --strict-frontmatter)
+        strict_frontmatter=1
         shift
         ;;
       --validate-frontmatter)
@@ -57,6 +62,9 @@ cmd_lint() {
   fi
   if [[ "$json" -eq 1 ]]; then
     args+=(--json)
+  fi
+  if [[ "$strict_frontmatter" -eq 1 ]]; then
+    args+=(--strict-frontmatter)
   fi
 
   if [[ "$duplicates" -eq 1 ]]; then
