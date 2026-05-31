@@ -95,6 +95,41 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 - prefix は `feat / fix / chore / docs / test / refactor`。コード変更を伴わない PLAN ドキュメント更新は `docs(plan-NNN):` を使う。
 - 自動生成物 (Stop hook によるセッション記録、Codex agent local state など) は手動 commit に取り込まない。`.gitignore` で除外するか、`git add` で対象を明示する。
 
+## GitHub 運用ルール
+
+このリポは GitHub で配布される HELIX framework 本体 (製造元)。消費側は repo を clone + `setup.sh` で取り込む。配布物の品質を守るため、以下を規律とする。
+
+### 配布戦略 (戦略C: monorepo + dist publish) — 2026-06-01 確定
+
+- **monorepo (この repo) = G の単一正本 + P (dogfooding)**。製造元はここで作業する。G を複数 repo に実体コピーしない (drift 防止、`helix/core-manifest.tsv` SSoT と整合)。
+- **dist (artifact または別 `helix-dist` repo) = G+B のみを release で publish**。消費側はこれを取得する。**dist の G は monorepo から自動生成し、人手編集しない (generated mirror)**。
+- dist publish の実装・`setup.sh` の dev/consumer 2 モード化は未整備 (P1)。**repo/配布構造の変更は refactor でなく distribution architecture migration であり、ADR + migration PLAN + ユーザー承認を経てから着手する** (正本: [docs/plans/refactor/refactor-2026-06-01-folder-structure-g-p-separation.md](docs/plans/refactor/refactor-2026-06-01-folder-structure-g-p-separation.md) Phase 0)。
+
+### ブランチ
+
+- `main`: 既定ブランチ。protected 想定、tag/release 対象。PR は通常 `main` を base にする。
+- 作業は `main` から branch を切る。デフォルトブランチへの直 push は、製造元の枠組み・policy・doc 改修で PM (Opus) が成果物検証後に判断する場合に限る (実装コードは別、下記)。
+- `dogfood`: 製造元の dogfooding 退避用 (P 中心の作業)。戦略C では恒久必須ではなく、dist 設計確定時に運用を見直す。
+
+### 公開 API (破壊禁止)
+
+- **`@~/.helix/core/<path>` import は配布の公開 API**。消費側の global loader (`~/.claude/CLAUDE.md` 等) が直接読む。**path 変更 = 既存消費側の参照切れ (breaking)**。
+- 常時注入 core セットの SSoT は `helix/core-manifest.tsv`。変更時は `cli/lib/tests/test_core_manifest_drift.py` で manifest⇔setup.sh⇔loader 一致を保証する。
+- core ファイルの物理移動はしない (配置非依存 mount `~/.helix/core` でパス安定)。やむを得ない場合は [document-topology.md](HELIX-workflows/helix-process/document-topology.md) の将来移動 policy (メジャー境界 + 旧 path shim ≥2 minor + migration detector) に従う。
+
+### push / PR
+
+- **push・PR 作成・merge はユーザーが明示的に依頼したときのみ行う** (commit はローカル、push は別判断)。
+- 委譲した Codex は commit / push しない。`git add` / `commit` / `push` は呼び出し元 (PM) が成果物検証後に判断する。
+- 外部公開操作 (push / PR / release / tag) は外向きアクションのため、durable な許可がない限り都度確認する。
+- PR body 末尾には `🤖 Generated with [Claude Code](https://claude.com/claude-code)` を付ける。GitHub 操作は `gh` CLI を使う。
+
+### gitignore / 追跡対象
+
+- S tier (runtime/local: `.helix/`・`.claude/{memory,agent-memory}`・`settings.local.json`・生成物) は git 追跡しない。
+- secret / API key / PII / credential を commit しない (`## 禁止事項` 参照)。
+- 自動生成物 (session 記録・Codex local state) は手動 commit に混ぜない。
+
 ## ディレクトリ構造
 ```text
 cli/
