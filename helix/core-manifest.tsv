@@ -1,0 +1,21 @@
+# core-manifest.tsv — HELIX 常時注入 core セットの単一権威 (SSoT)
+#
+# 配布契約: 消費側プロジェクトの global loader (~/.claude/CLAUDE.md / AGENTS.md) が
+# ここに列挙された import を常時注入する。setup.sh とドキュメントはこのファイルを
+# 唯一の source として参照し、core セットを二重定義しない (drift 防止)。
+#
+# 形式: <scope>\t<import-path>
+#   scope = common (全 runtime) / claude (Claude Code 固有) / codex (Codex CLI 固有)
+#   import-path = @~/.helix/core/<repo-relative-path>  (配置非依存 mount 経由、公開 API)
+#
+# 注入の合成:
+#   Claude (setup.sh / ~/.claude/CLAUDE.md) = common + claude
+#   Codex  (AGENTS.md)                      = common + codex
+#
+# パス変更は公開 API 破壊 (既存消費側の loader を壊す)。変更は将来移動 policy
+# (document-topology.md) に従い、メジャーバージョン境界 + 旧 path shim で行う。
+common	@~/.helix/core/helix/HELIX_CORE.md
+common	@~/.helix/core/helix/HELIX_RUNTIME_RULES.md
+common	@~/.helix/core/HELIX-workflows/HELIX-process-L0-L14.md
+claude	@~/.helix/core/helix/CLAUDE_RUNTIME_ADAPTER.md
+codex	@~/.helix/core/helix/CODEX_RUNTIME_ADAPTER.md

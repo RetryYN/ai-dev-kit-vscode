@@ -52,7 +52,7 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 | INJECTION（入口） | `~/.claude/CLAUDE.md` 等 | `@~/.helix/core/...` の参照のみ（実体を持たない） |
 
 - **GLOBAL-CORE の解決**: `~/.helix/core` は harness master を指す path 非依存の mount。製造元（ここ）= **repo root への symlink**（`~/.helix/core` → `<clone>/`、編集は repo 側で即反映）。消費側 = clone を残して同じ symlink（clone を消す場合のみ copy）。`setup.sh` が clone 位置を検出して張る。INJECTION はどちらも `@~/.helix/core/...` 固定でパス非依存。
-- **常時注入 core セット**（現パスのまま `~/.helix/core/` 経由で読む。物理移動はしない）= `helix/HELIX_CORE.md` / `helix/HELIX_RUNTIME_RULES.md` / `helix/CLAUDE_RUNTIME_ADAPTER.md`（Codex は `CODEX_RUNTIME_ADAPTER.md`） / `HELIX-workflows/HELIX-process-L0-L14.md`。`HELIX-workflows/helix-process/*` と `docs/**` は詳細注入（常時注入しない）。
+- **常時注入 core セット**の単一権威 (SSoT) は **`helix/core-manifest.tsv`**（setup.sh / global loader が参照。ここに列挙を二重定義しない）。`@~/.helix/core/<path>` は**配布の公開 API** であり、`~/.helix/core` 配置非依存 mount でパスを安定させる（path 変更 = 消費側 loader 破壊のため、移動は document-topology の将来移動 policy に従う）。`HELIX-workflows/helix-process/*` と `docs/**` は詳細注入（常時注入しない）。helix/（governance BC）と HELIX-workflows/（process model BC）の境界・越境理由は [document-topology.md](HELIX-workflows/helix-process/document-topology.md) を正本とする。
 - **判断**: ①全 project 共通 → MASTER（原本）を `~/.helix/core/` 経由で読む / ②project 横断 runtime → `~/.helix/` / ③この project だけ → `<project>/.helix/` / ④入口 → 参照のみ。
 - **禁止**: INJECTION に clone 先パスを直参照（`@~/ai-dev-kit-vscode/...` は廃止、必ず `@~/.helix/core/...`）/ runtime state を git に commit。
 - **状態**: 可搬化 完了。global B の import を `@~/.helix/core/...` へ張替・`~/.helix/core`→repo root symlink・`setup.sh` を clone 位置検出 / `~/.helix/core` 基準 import / SKILL_MAP 除外 / 旧 import 除去へ修正・`~/.claude/agents` を `~/.helix/core` 経由で統合（commit `878170b` / `93af0e9`）。

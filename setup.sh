@@ -23,24 +23,58 @@ CODEX_AGENTS="$CODEX_DIR/AGENTS.md"
 CODEX_CONFIG="$CODEX_DIR/config.toml"
 CODEX_HELIX_COMMENT="# HELIX: サンドボックス内に LANG/LC_ALL を継承（Windows/WSL 文字化け対策）"
 
-CORE_IMPORTS=(
-    "@~/.helix/core/helix/HELIX_CORE.md"
-    "@~/.helix/core/helix/HELIX_RUNTIME_RULES.md"
-    "@~/.helix/core/helix/CLAUDE_RUNTIME_ADAPTER.md"
-    "@~/.helix/core/HELIX-workflows/HELIX-process-L0-L14.md"
-)
-LEGACY_CLAUDE_IMPORTS=(
-    "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md"
-    "@~/ai-dev-kit-vscode/helix/HELIX_CORE.md"
-)
-
-# --- ヘルパー ---
 ok=0; skip=0; warn=0; fail=0
 
 _ok()   { echo "  [OK]   $1"; ok=$((ok+1)); }
 _skip() { echo "  [SKIP] $1"; skip=$((skip+1)); }
 _warn() { echo "  [WARN] $1"; warn=$((warn+1)); }
 _fail() { echo "  [FAIL] $1"; fail=$((fail+1)); }
+
+CORE_MANIFEST="$HELIX_HOME/helix/core-manifest.tsv"
+CORE_IMPORTS=()
+LEGACY_CLAUDE_IMPORTS=(
+    "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md"
+    "@~/ai-dev-kit-vscode/helix/HELIX_CORE.md"
+)
+
+load_core_imports() {
+    CORE_IMPORTS=()
+
+    if [[ ! -r "$CORE_MANIFEST" ]]; then
+        _fail "core manifest not found or unreadable: $CORE_MANIFEST"
+        return 1
+    fi
+
+    local line scope import_path extra
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+        IFS=$'\t' read -r scope import_path extra <<< "$line"
+        if [[ -z "$scope" || -z "$import_path" || -n "$extra" ]]; then
+            _fail "invalid core manifest row: $line"
+            return 1
+        fi
+
+        if [[ "$scope" == "common" || "$scope" == "claude" ]]; then
+            CORE_IMPORTS+=("$import_path")
+        fi
+    done < "$CORE_MANIFEST"
+
+    if [[ "${#CORE_IMPORTS[@]}" -eq 0 ]]; then
+        _fail "core manifest produced no Claude imports: $CORE_MANIFEST"
+        return 1
+    fi
+
+    return 0
+}
+
+if ! load_core_imports; then
+    if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+        exit 1
+    fi
+    return 1
+fi
 
 # --- ~/.helix/core symlink セットアップ ---
 setup_helix_core_symlink() {
@@ -521,4 +555,6 @@ main() {
     summary
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

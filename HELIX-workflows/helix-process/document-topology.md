@@ -183,6 +183,29 @@ helix/HELIX_CORE.md
 - `.codex` / `~/.codex` は Codex runtime state / user config であり、HELIX 概念を再定義しない。
 - project management control plane は HELIX 本体の一部である。個別 PLAN 本文は列挙しないが、PLAN / task / handover / sprint / gate / registry の仕組みは本書の回収対象に含める。
 
+> 常時注入 core セットの**単一権威 (SSoT) は `helix/core-manifest.tsv`**。上の参照順は人間可読な説明であり、実際に注入する import の正本は manifest。setup.sh / global loader は manifest を参照し、core セットを二重定義しない（drift 防止）。
+
+## 4.2 bounded context と配置（helix/ ↔ HELIX-workflows/）
+
+HELIX 本体は 2 つの bounded context に分かれる（HELIX_CORE §5 DDD に準拠）。これは「ねじれ」ではなく意図された境界である。
+
+| BC | ディレクトリ | 責務 |
+|---|---|---|
+| governance / runtime | `helix/` | 概念正本・絶対原則・実行規律・runtime adapter・core manifest |
+| process model | `HELIX-workflows/` | V モデル工程定義（L0-L14 正本 + `helix-process/*` 詳細） |
+
+- 常時注入 core セットは BC を**越境して**選択される（manifest が governance BC から process BC の `HELIX-process-L0-L14.md` を 1 本選ぶ）。これは正常な参照であり、物理統合は不要。
+- **公開 API**: `@~/.helix/core/<path>` import は配布契約。消費側プロジェクトの loader が直接読むため、**path 変更 = 公開 API 破壊**（既存消費側が setup.sh 再実行まで参照切れ）。core ファイルの物理移動は原則行わない（配置非依存 mount `~/.helix/core` でパスを安定させる設計）。
+
+### 将来移動 policy（公開 API 破壊を避ける）
+
+core ファイルの path をやむを得ず変更する場合:
+
+1. **メジャーバージョン境界**でのみ行う。
+2. 旧 path の **shim / alias を最低 2 minor バージョン維持**する。
+3. `setup.sh` に **migration detector**（旧 path import を検出して警告 + 新 path へ誘導）を入れる。
+4. `helix/core-manifest.tsv` を更新し、drift test で setup.sh / loader との一致を保証する。
+
 ## 4.1 現存性レビュー
 
 この文書の主要項目は実ファイルと突合済み。現時点の注意点は次の通り。
