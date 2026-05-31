@@ -18,6 +18,8 @@ canonical_source: HELIX-workflows/helix-process/L4-basic-design.md
 
 ## 進め方
 
+> **entry / exit 関所**: 着工前 / 凍結前に [design-coverage-baseline.md](../../../skills/workflow/doc-system-architect/references/design-coverage-baseline.md) §3 L4 (必須成果物) + §5 L単位ワークフロー を通す。L4 は **システム / コンポーネント粒度** (L9 総合テストと同粒度)。典拠標準 = ISO/IEC/IEEE 42010:2022 + arc42 + C4。
+
 ### Step 1: アーキテクチャ + 大局判断
 - システム全体構造 (BE / FE / DB / 外部連携 / agent 構成) を確定
 - 大局判断ごとに **ADR snapshot** を起票 (`docs/adr/ADR-NNN-<topic>.md`)

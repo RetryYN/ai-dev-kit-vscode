@@ -18,6 +18,8 @@ canonical_source: HELIX-workflows/helix-process/L5-detailed-design.md
 
 ## 進め方
 
+> **entry / exit 関所**: 着工前 / 凍結前に [design-coverage-baseline.md](../../../skills/workflow/doc-system-architect/references/design-coverage-baseline.md) §3 L5 (必須成果物) + §5 L単位ワークフロー を通す。L5 は **モジュール / 結合粒度** (L8 結合テストと同粒度)。典拠標準 = IEEE Std 1016-2009 viewpoints。
+
 ### Step 1: モジュール分割 + 契約境界
 - L4 アーキテクチャを **モジュール / コンポーネント** に分割
 - 各モジュール間の **契約境界** を確定 (D-API / D-DB / D-CONTRACT / D-STATE)

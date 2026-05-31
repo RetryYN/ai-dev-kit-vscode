@@ -24,6 +24,19 @@ integration_target:
 
 > 注: 標準では機能設計は基本設計（外部設計）の一部だが、本定義では実装直前の最下層設計として独立。
 
+## 粒度規律（設計⇔検証の粒度ペアリング）
+
+L6 機能設計は **単体テスト (L7) の粒度** で書く。これは HELIX Core §1 V モデルの「設計⇔検証の対」を粒度軸で閉じる規律であり、L6 が薄くなる事故を防ぐ正本。
+
+- **関数粒度**: L5 モジュールを関数 / メソッド 1 個まで分解する。モジュール / クラス止まり (L5 粒度) は粒度違反。
+- **Design by Contract**: 各関数仕様に `requires:` (事前) / `ensures:` (事後) / `invariant:` (不変、状態保持 unit のみ) を持たせ、L7 単体テストの入力値・アサーションを直接導く。
+- **量保証 (Chargaff)**: 関数仕様 1 件に対し単体テストケース ≥ 1 件 (`balance_ratio ≥ 1.0`)。
+- **片肺禁止**: 機能設計と単体テスト設計の一方だけの存在を許さない (G6 fail-close)。
+
+> 着工前 / 凍結前に [design-coverage-baseline.md](../../skills/workflow/doc-system-architect/references/design-coverage-baseline.md) §0 粒度ペアリング原則 + §3 L6 + §4 薄化防止機構 + §5 L単位ワークフロー を entry / exit 関所として通す。
+>
+> **G6 機能設計凍結ゲート exit 条件**: 関数 signature 確定 + V-model 単体テスト設計ペア凍結 + WBS 完備 + DbC (`requires`/`ensures`) 充足 + `balance_ratio ≥ 1.0`。
+
 ## この工程の PLAN
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。

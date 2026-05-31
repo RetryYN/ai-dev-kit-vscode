@@ -18,9 +18,12 @@ canonical_source: HELIX-workflows/helix-process/L6-functional-design.md
 
 ## 進め方
 
+> **entry 関所**: 着工前に [design-coverage-baseline.md](../../../skills/workflow/doc-system-architect/references/design-coverage-baseline.md) §0 粒度ペアリング原則 + §3 L6 + §5 L単位ワークフロー を通す。L6 は **単体テスト (L7) 粒度** で書く (関数 1 個 = 単体テスト対象 1 個)。モジュール / クラス止まりは粒度違反。
+
 ### Step 1: 関数 / 機能単位設計
 - L5 モジュールを **関数 / 機能単位** に分解
 - 各関数 signature (input / output / error / 副作用) を確定
+- 各関数に Design by Contract を付与: `requires:` (事前条件) / `ensures:` (事後条件) / `invariant:` (不変条件、状態保持 unit のみ)。これが L7 単体テストの入力値・アサーション設計を直接導く
 
 ### Step 2: 単体テスト設計のペア凍結 (V-model L7 ペア、実装スプリント直前)
 - 関数ごとに **単体テスト** を設計
@@ -33,6 +36,7 @@ canonical_source: HELIX-workflows/helix-process/L6-functional-design.md
 - 各 WBS item = 1 L7 PLAN に対応
 
 ### Step 4: G6 機能設計凍結ゲート通過
+- **exit 関所**: design-coverage-baseline §5 の L6 exit 条件 (関数粒度 + DbC 充足 + `balance_ratio ≥ 1.0` + 片肺なし) を満たす
 
 ## 成果物
 
