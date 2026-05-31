@@ -27,17 +27,39 @@ run_hook() {
   env "$@" "$HELIX_ROOT/.claude/hooks/pretooluse-opus-repo-block.sh" <<<"$payload"
 }
 
-@test "test_allow_master_repo_edit_when_project_root_matches_fallback_master" {
+@test "test_block_master_cli_edit_when_project_root_matches_fallback_master" {
   run run_hook "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$HELIX_ROOT/cli/lib/budget.py\"}}" CLAUDE_PROJECT_DIR="$HELIX_ROOT"
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"cli/** 実装"* ]]
 }
 
-@test "test_allow_master_repo_edit_when_project_root_matches_home_core_master" {
+@test "test_block_master_cli_edit_when_project_root_matches_home_core_master" {
   mkdir -p "$HOME_DIR/.helix"
   ln -s "$PROJECT_ROOT" "$HOME_DIR/.helix/core"
   consumer_file="$PROJECT_ROOT/cli/lib/budget.py"
   mkdir -p "$(dirname "$consumer_file")"
   run run_hook "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$consumer_file\"}}" CLAUDE_PROJECT_DIR="$PROJECT_ROOT"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"cli/** 実装"* ]]
+}
+
+@test "test_allow_master_non_cli_edit_when_project_root_matches_master" {
+  local path
+  for path in \
+    "$HELIX_ROOT/helix/HELIX_CORE.md" \
+    "$HELIX_ROOT/CLAUDE.md" \
+    "$HELIX_ROOT/.claude/hooks/x.sh" \
+    "$HELIX_ROOT/docs/x.md"; do
+    run run_hook "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$path\"}}" CLAUDE_PROJECT_DIR="$HELIX_ROOT"
+    [ "$status" -eq 0 ]
+  done
+}
+
+@test "test_allow_master_cli_edit_with_escape_hatch" {
+  run run_hook "{\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"$HELIX_ROOT/cli/lib/budget.py\"}}" \
+    CLAUDE_PROJECT_DIR="$HELIX_ROOT" \
+    HELIX_ALLOW_OPUS_REPO_EDIT=1 \
+    HELIX_OPUS_EDIT_REASON='master emergency fix'
   [ "$status" -eq 0 ]
 }
 

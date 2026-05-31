@@ -143,12 +143,6 @@ with helix_db._write_connection(db_path) as conn:
 PY
 }
 
-if [[ "$project_root" == "$master_root" ]]; then
-  reason="project_root matches harness master"
-  record_audit_events "bypassed" >/dev/null 2>&1 || true
-  exit 0
-fi
-
 if [[ "${HELIX_SUPPRESS_HOOK:-0}" == "1" ]]; then
   reason="hook suppressed"
   record_audit_events "suppressed" >/dev/null 2>&1 || true
@@ -183,11 +177,25 @@ if [[ "${HELIX_ALLOW_OPUS_PLAN_FIX:-0}" == "1" && "$file_path" =~ (^|/)docs/plan
   exit 0
 fi
 
-case "${resolved_file_path:-}" in
-  "$project_root"/*|"$project_root")
-    is_repo_path=1
-    ;;
-esac
+if [[ "$project_root" == "$master_root" ]]; then
+  case "${resolved_file_path:-}" in
+    "$project_root/cli"/*|"$project_root/cli")
+      is_repo_path=1
+      reason="製造元でも cli/** 実装は Opus 直編集禁止、helix codex --role <pg|se> へ委譲してください"
+      ;;
+    *)
+      reason="project_root matches harness master outside cli"
+      record_audit_events "bypassed" >/dev/null 2>&1 || true
+      exit 0
+      ;;
+  esac
+else
+  case "${resolved_file_path:-}" in
+    "$project_root"/*|"$project_root")
+      is_repo_path=1
+      ;;
+  esac
+fi
 
 if [[ "$is_repo_path" -eq 0 ]]; then
   reason="outside project root"
@@ -195,7 +203,9 @@ if [[ "$is_repo_path" -eq 0 ]]; then
   exit 0
 fi
 
-reason="PM (Opus) は repo file を直接 Edit/Write できません。helix codex --role <pg|se|docs> --task ... で委譲してください"
+if [[ -z "$reason" ]]; then
+  reason="PM (Opus) は repo file を直接 Edit/Write できません。helix codex --role <pg|se|docs> --task ... で委譲してください"
+fi
 
 if [[ "$tool_name" == "Edit" || "$tool_name" == "Write" || "$tool_name" == "MultiEdit" ]]; then
   if [[ "${HELIX_AUDIT_OPUS_BLOCK:-0}" == "1" ]]; then
