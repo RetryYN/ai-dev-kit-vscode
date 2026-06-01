@@ -42,6 +42,8 @@ related_docs:
 > mode: Discovery（kind=poc、検証駆動）/ Sprint #1 / hypothesis **H-CLOSURE-01**
 > 正本: [discovery-workflow.md](../../../HELIX-workflows/helix-process/discovery-workflow.md)
 > 位置づけ: **柱2（駆動 workflow 配線）の closure 閉ループが未実装**という穴を、Recovery 1 本の closure を end-to-end で検証して潰し、confirmed 後に Forward（L4 closure 設計）へ昇格する前段。**本 PLAN は doc/整理/設計提案/検証計画まで**（PoC 実装・schema は escalation 承認待ち、§8）。
+>
+> **⏸ STATUS 2026-06-02（park）**: closure DB（`mode_transition` 等）は**順序判断で park** ── escalation blocker ではなく「今やらない」選択。PLAN モデル整備（Process⊃Action）を先に完遂済（Forward 正本 `plan-model.md` + `concept.md §12.1.3`）。本 PoC 中の「escalation 承認待ち」記述は本 banner で supersede する。駆動モデル別 closure DB は Forward 従属の補助層であり、**正当化されたとき**（具体的な駆動 workflow が runtime closure 記録を要求し、closure モデルが妥当と確認できたとき）に L4 closure/data 設計で意図的に作る。詳細 = [process plan §8](../process/process-2026-06-01-plan-rule-closure.md) / [plan-model §9](../../../HELIX-workflows/helix-process/plan-model.md)。
 
 ## §1 背景・問題設定（なぜ Discovery か）
 

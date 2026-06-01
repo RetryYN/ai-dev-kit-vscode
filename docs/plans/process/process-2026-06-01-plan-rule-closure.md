@@ -122,6 +122,8 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 - **10:30 Block 7-fix done + 整備完了**: Codex(`bi62n3ur2`)で P1 解消。独立検証=pytest 49+359 passed / forward_return 欠落 process は非strict で exit 1(常時 fail-close)/ dogfood Process・PoC とも reciprocal clean / 既存 recovery PLAN に inferred_action warning。commit `5e6865b`。Glossary §12.1.3 status → installed、plan-model.md §9 に P2/P3 carry(file 命名 suffix / hook docs/v2 範囲 / inferred retrofit / closure escalation)。Block 10 全体整合=helix doctor 0 fail + pytest 359 回帰 passed で confirmed。**tl-advisor P1 全解消、Block 2-10 完了**。残=Block 12 Reverse 戻し記録 + memory / Block 13 最終報告。
 - **10:50 Block 10-13 done + 自走完了**: フル pytest **2322 passed / 4 skipped / 1 failed**。失敗=`test_audit_log.py::test_pretooluse_opus_repo_block_records_hook_and_gate`（opus-repo-block が製造元除外/inert で 0、test は 2 期待）= **前 session(`ae63be3`/`01cfa11`)由来の pre-existing drift、私の変更ファイルと無関係・スコープ外**（carry）。私の整備は回帰ゼロ。memory carry 記録(`project_2026_06_01_plan_model_process_action`)。§8 に Process closure 状態。**doc commit 8件ローカル(`99d6bbd`→`65e623b`)、未 push。22時指示に対し ~10:50 で非ブロック作業を完遂、closure は escalation でブロックのため busywork で埋めず停止。**
 
+- **2026-06-02 引き継ぎ + push**: ユーザー判断「**順序 park**」確定 ── 駆動モデル別 closure DB は確かに必要だが「いまではない」、Forward 正本構造（PLAN モデル）を先に完遂した状態で締める。closure 記録を「escalation 承認待ち」→「**park**（escalation blocker でなく順序判断、正当化されたとき L4 で意図的に作る）」へ訂正（PoC §位置づけ banner / 本 §8 / plan-model §9）。memory carry 更新。本 doc 群 commit の上、**origin/dogfood へ push**。
+
 ## §8 Process 完了状態 / Forward 接続（closure 記録）
 
 本 Process（内部監査 → web検索 → Discovery → Reverse）の closure 状態:
@@ -130,7 +132,7 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 |---|---|---|
 | 内部監査 | ✅ 完了 | PLAN 起票ルール実態を audit（未整備と判明） |
 | web検索 | ✅ 完了 | pmo-tech-docs で業界二層分離を確認、設計補強 |
-| Discovery（H-CLOSURE-01） | 🔶 設計のみ | closure 閉ループ検証。実装は **schema escalation 承認待ち**でブロック |
-| Reverse | 🔶 部分 | **PLAN モデル整備の枝は Forward 正本へ収束済**（`plan-model.md` = G process-model 正本 / `concept.md §12.1.3` 用語）。closure Discovery の枝は escalation 解除後に Reverse → Forward(L4) |
+| Discovery（H-CLOSURE-01） | 🔶 park | closure 閉ループ検証。closure DB は **2026-06-02 順序判断で park**（escalation blocker ではなく「今やらない」選択） |
+| Reverse | 🔶 部分 | **PLAN モデル整備の枝は Forward 正本へ収束済**（`plan-model.md` = G process-model 正本 / `concept.md §12.1.3` 用語）。closure Discovery の枝は park |
 
-→ **本 Process は部分 closure**: PLAN モデル整備（`forward_return` 前半「PLAN モデル正本化」）は Forward へ収束済（Core 原則「枝は Forward へ戻す」を満たす）。closure Discovery（同後半「L4 closure 設計」）は **schema escalation 承認が entry 条件**のため open。ユーザー復帰時に escalation 判断 → closure adapter 実装 → verify → decide → L4 昇格で **完全 closure**。
+→ **本 Process は部分 closure**: PLAN モデル整備は Forward 正本（plan-model.md）へ収束済（Core 原則「枝は Forward へ戻す」を満たす）。**closure Discovery は 2026-06-02 の順序判断で park** ── 駆動モデル別 closure DB は Forward 従属の補助層であり、正当化されたとき（具体的な駆動 workflow が runtime closure 記録を要求し、closure モデルが妥当と確認できたとき）に L4 closure/data 設計で**意図的に**作る。今は不要・escalation blocker ではない。柱2 の残り = `route` の suggest 止まり（新テーブルなしで最小実装可、これも今はやらない）。
