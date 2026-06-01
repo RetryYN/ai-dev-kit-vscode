@@ -334,6 +334,13 @@ def validate_plan(path: Path) -> list[str]:
             "expected V2 format 'L<NN>-<slug>plan' or V1 legacy 'PLAN-NNN[-slug]'",
             warnings,
         )
+    elif plan_format == "action" and frontmatter.plan_scope is None:
+        warn(
+            plan_ref,
+            "inferred_action_without_scope",
+            "action naming fallback inferred this plan as action; add plan_scope: action for retrofit",
+            warnings,
+        )
 
     if plan_id_format == "v1" and not is_reference:
         warn(
@@ -444,6 +451,17 @@ def validate_plan_scope_contract(
             required_reason="plan_scope=process requires contains_action_plans",
             warnings=warnings,
         )
+        if isinstance(frontmatter.contains_action_plans, list):
+            for index, child_path in enumerate(frontmatter.contains_action_plans):
+                if not isinstance(child_path, str):
+                    continue
+                _validate_action_child_reciprocal(
+                    path,
+                    plan_ref,
+                    f"contains_action_plans[{index}]",
+                    child_path,
+                    warnings,
+                )
         return
 
     if frontmatter.plan_scope == "action":
@@ -555,9 +573,8 @@ def _validate_path_exists(
     target_rel: str,
     warnings: list[str],
 ) -> None:
-    """parent_design / pairs_test_design の path が repo root 起点で存在するか確認 (warn-only)."""
-    repo_root = Path(__file__).resolve().parents[2]
-    target = repo_root / target_rel
+    """repo root 起点または絶対 path の存在確認 (warn-only)."""
+    target = _resolve_plan_pointer(target_rel)
     if not target.exists():
         warn(
             plan_ref,
@@ -565,6 +582,52 @@ def _validate_path_exists(
             f"path does not exist: {target_rel}",
             warnings,
         )
+
+
+def _validate_action_child_reciprocal(
+    process_path: Path,
+    process_ref: str,
+    field: str,
+    child_plan_ref: str,
+    warnings: list[str],
+) -> None:
+    child_path = _resolve_plan_pointer(child_plan_ref)
+    if not child_path.exists():
+        return
+
+    try:
+        child_frontmatter = parse_frontmatter(load_frontmatter(child_path))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        warn(process_ref, field, f"failed to read child plan frontmatter: {exc}", warnings)
+        return
+
+    if _classify_plan_format(child_frontmatter.plan_id, child_frontmatter.plan_scope) != "action":
+        warn(
+            process_ref,
+            field,
+            "child plan must classify as action (plan_scope=action or action naming fallback)",
+            warnings,
+        )
+        return
+
+    if child_frontmatter.parent_process is None:
+        warn(process_ref, field, "child plan must declare parent_process", warnings)
+        return
+
+    if _resolve_plan_pointer(child_frontmatter.parent_process).resolve() != process_path.resolve():
+        warn(
+            process_ref,
+            field,
+            "child parent_process must point back to this process plan",
+            warnings,
+        )
+
+
+def _resolve_plan_pointer(plan_ref: str) -> Path:
+    candidate = Path(plan_ref)
+    if candidate.is_absolute():
+        return candidate
+    return Path(__file__).resolve().parents[2] / candidate
 
 
 def validate_agent_slots(

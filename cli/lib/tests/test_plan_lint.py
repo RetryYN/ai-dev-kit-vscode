@@ -38,11 +38,14 @@ def _base_process_frontmatter(created_at: str) -> dict[str, object]:
         "plan_id": "process-2026-06-01-strict-frontmatter-check",
         "title": "Process Sample Plan",
         "plan_scope": "process",
+        "workflow_chain": "内部監査 -> Discovery -> Reverse",
         "kind": "research",
         "layer": "L1",
         "drive": "discovery",
         "status": "draft",
         "created": created_at,
+        "contains_action_plans": [],
+        "forward_return": "Forward L4",
         "agent_slots": [],
         "generates": [],
         "dependencies": {
@@ -55,6 +58,9 @@ def _base_process_frontmatter(created_at: str) -> dict[str, object]:
 
 def test_strict_frontmatter_promotes_process_scope_required_fields_to_error(tmp_path: Path) -> None:
     frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del frontmatter["workflow_chain"]
+    del frontmatter["contains_action_plans"]
+    del frontmatter["forward_return"]
     path = _write_plan(tmp_path / "process-2026-06-01-strict-frontmatter-check.md", frontmatter)
 
     result = _run_plan_lint(path, "--strict-frontmatter")
@@ -65,16 +71,24 @@ def test_strict_frontmatter_promotes_process_scope_required_fields_to_error(tmp_
     assert "field=contains_action_plans" in result.stderr
 
 
-def test_non_strict_frontmatter_keeps_warning_only_for_process_scope_contract(tmp_path: Path) -> None:
+def test_non_strict_frontmatter_fails_closed_when_process_forward_return_is_missing(tmp_path: Path) -> None:
     frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del frontmatter["forward_return"]
     path = _write_plan(tmp_path / "process-2026-06-01-warning-frontmatter-check.md", frontmatter)
 
     result = _run_plan_lint(path)
 
-    assert result.returncode == 0
-    assert "field=workflow_chain" in result.stderr
+    assert result.returncode == 1
     assert "field=forward_return" in result.stderr
-    assert "field=contains_action_plans" in result.stderr
+
+
+def test_non_strict_frontmatter_passes_when_process_forward_return_is_present(tmp_path: Path) -> None:
+    frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    path = _write_plan(tmp_path / "process-2026-06-01-forward-return-present.md", frontmatter)
+
+    result = _run_plan_lint(path)
+
+    assert result.returncode == 0
     assert "PASS: no contradictory status assertions" in result.stdout
 
 

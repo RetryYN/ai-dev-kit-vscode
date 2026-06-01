@@ -354,13 +354,16 @@ def _collect_scope_warnings(path: Path, frontmatter: dict[str, object]) -> list[
 
 def _report_scope_warnings(path: Path, warnings: list[ScopeWarning], *, strict: bool) -> bool:
     has_error = False
-    level = "error" if strict else "warning"
     for warning in warnings:
+        is_error = warning.field == "forward_return" or (
+            strict and warning.field != "inferred_action_without_scope"
+        )
+        level = "error" if is_error else "warning"
         print(
             f"{path}: frontmatter {level}: field={warning.field} reason={warning.message}",
             file=sys.stderr,
         )
-        if strict:
+        if is_error:
             has_error = True
     return has_error
 

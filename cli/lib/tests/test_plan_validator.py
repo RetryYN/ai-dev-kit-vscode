@@ -183,6 +183,60 @@ def test_process_scope_missing_action_path_warns(tmp_path: Path) -> None:
     _assert_warns_on(result.stderr, "contains_action_plans[0]")
 
 
+def test_process_scope_warns_when_child_parent_process_is_missing(tmp_path: Path) -> None:
+    process_path = tmp_path / "process-2026-06-01-child-parent-missing.md"
+    child_path = tmp_path / "discovery-2026-06-01-child-parent-missing.md"
+    child_frontmatter = _base_action_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    del child_frontmatter["parent_process"]
+    _write_plan(child_path, child_frontmatter)
+
+    process_frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    process_frontmatter["contains_action_plans"] = [str(child_path)]
+    _write_plan(process_path, process_frontmatter)
+
+    result = _run_validator(process_path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "contains_action_plans[0]")
+    _assert_warn_contains(result.stderr, "child plan must declare parent_process")
+
+
+def test_process_scope_warns_when_child_parent_process_points_elsewhere(tmp_path: Path) -> None:
+    process_path = tmp_path / "process-2026-06-01-child-parent-mismatch.md"
+    child_path = tmp_path / "discovery-2026-06-01-child-parent-mismatch.md"
+    child_frontmatter = _base_action_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    child_frontmatter["parent_process"] = str(tmp_path / "other-process.md")
+    _write_plan(child_path, child_frontmatter)
+
+    process_frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    process_frontmatter["contains_action_plans"] = [str(child_path)]
+    _write_plan(process_path, process_frontmatter)
+
+    result = _run_validator(process_path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "contains_action_plans[0]")
+    _assert_warn_contains(result.stderr, "child parent_process must point back to this process plan")
+
+
+def test_process_scope_warns_when_child_does_not_classify_as_action(tmp_path: Path) -> None:
+    process_path = tmp_path / "process-2026-06-01-child-not-action.md"
+    child_path = tmp_path / "L7-not-an-actionplan.md"
+    child_frontmatter = _base_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    child_frontmatter["parent_process"] = str(process_path)
+    _write_plan(child_path, child_frontmatter)
+
+    process_frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    process_frontmatter["contains_action_plans"] = [str(child_path)]
+    _write_plan(process_path, process_frontmatter)
+
+    result = _run_validator(process_path)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "contains_action_plans[0]")
+    _assert_warn_contains(result.stderr, "child plan must classify as action")
+
+
 def test_action_naming_fallback_suppresses_unknown_and_parent_scope_warnings() -> None:
     frontmatter = plan_validator.parse_frontmatter(plan_validator.load_frontmatter(RECOVERY_PLAN))
 
@@ -194,6 +248,25 @@ def test_action_naming_fallback_suppresses_unknown_and_parent_scope_warnings() -
     assert result.returncode == 0
     assert not any("field=plan_id" in line for line in _warning_lines(result.stderr)), result.stderr
     assert not any("field=parent_process" in line for line in _warning_lines(result.stderr)), result.stderr
+
+
+def test_action_naming_fallback_warns_for_inferred_action_without_scope() -> None:
+    result = _run_validator(RECOVERY_PLAN)
+
+    assert result.returncode == 0
+    _assert_warns_on(result.stderr, "inferred_action_without_scope")
+
+
+def test_process_generates_empty_list_is_allowed_without_warning(tmp_path: Path) -> None:
+    frontmatter = _base_process_frontmatter(datetime.now(timezone.utc).date().isoformat())
+    frontmatter["contains_action_plans"] = []
+    frontmatter["generates"] = []
+    path = _write_plan(tmp_path / "process-2026-06-01-empty-generates-ok.md", frontmatter)
+
+    result = _run_validator(path)
+
+    assert result.returncode == 0
+    assert not any("field=generates" in line for line in _warning_lines(result.stderr)), result.stderr
 
 
 def test_v1_reference_plan_keeps_v2_strict_skip_behavior() -> None:
