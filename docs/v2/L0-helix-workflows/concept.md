@@ -848,9 +848,9 @@ flowchart TB
 
 | 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern | implementation_status |
 |---|---|---|---|---|---|---|
-| **Process Plan** | 駆動モデル・工程の連鎖（行程）を記録する親 PLAN。Forward へ戻す `forward_return` 必須 | `helix plan lint`(scope 対応は L7 実装) | `docs/plans/process/process-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=process` / `workflow_chain` / `contains_action_plans` / `forward_return` | `^plan_scope:\s*process$` | **partial** (定義済、validator 実装は本 session 進行) |
-| **Action Plan** | 単一 workflow 内部の収束ループ（実行）を記録する子 PLAN。`parent_process` 必須 | `helix plan lint` | `docs/plans/<workflow>/<workflow>-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=action` / `parent_process` / `workflow` | `^plan_scope:\s*action$` | **partial** |
-| **plan_scope** | PLAN の階層種別（`process` / `action`）。L単位 PLAN には強制しない | `helix plan lint --strict-frontmatter`(L7) | `cli/lib/plan_validator.py` `VALID_PLAN_SCOPES` | `frontmatter.plan_scope` | `^plan_scope:\s*(process\|action)$` | **partial** |
+| **Process Plan** | 駆動モデル・工程の連鎖（行程）を記録する親 PLAN。Forward へ戻す `forward_return` 必須（欠落は常時 fail-close） | `helix plan lint`（process は forward_return 欠落で error） | `docs/plans/process/process-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=process` / `workflow_chain` / `contains_action_plans` / `forward_return` | `^plan_scope:\s*process$` | **installed** |
+| **Action Plan** | 単一 workflow 内部の収束ループ（実行）を記録する子 PLAN。`parent_process` 必須（reciprocal 検査） | `helix plan lint` | `docs/plans/<workflow>/<workflow>-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=action` / `parent_process` / `workflow` | `^plan_scope:\s*action$` | **installed** |
+| **plan_scope** | PLAN の階層種別（`process` / `action`）。L単位 PLAN には強制しない（命名 fallback で既存 workflow PLAN も分類、inferred は retrofit warning） | `helix plan lint --strict-frontmatter` | `cli/lib/plan_validator.py` `VALID_PLAN_SCOPES`（`plan_lint` が import） | `frontmatter.plan_scope` | `^plan_scope:\s*(process\|action)$` | **installed** |
 
 ### §12.2 機械判定 carry (L4 基本設計で実装、本 §12 では仕様宣言のみ)
 

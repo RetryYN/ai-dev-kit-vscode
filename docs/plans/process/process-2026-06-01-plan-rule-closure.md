@@ -102,10 +102,10 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 | 12:00–13:00 | 4 validator 委譲 | contract 確定 → Codex se(分類/unknown/親子/drift test) | **done** |
 | 13:00–14:00 | 5 validator 検証 | Codex 検証 + 修正 → commit | **done** |
 | 14:00–15:00 | 6 hook+lint | design-doc hook matcher + `--strict-frontmatter` (Codex) | **done** |
-| 15:00–16:00 | 7 二重audit | tl-advisor + pmo-sonnet → 反映 | **in progress** (P1 修正中) |
+| 15:00–16:00 | 7 二重audit | tl-advisor + pmo-sonnet → 反映 | **done** (P1 修正済) |
 | 16:00–17:00 | 8 closure設計 | mode_transition SSoT/closure adapter 設計doc ※実装は escalation 待ち | **done** (§4.5) |
 | 17:00–18:00 | 9 親子retrofit | 既存 PLAN へ plan_scope 付与方針・PoC を Action 正式リンク | **done** (PoC 双方向リンク) |
-| 18:00–19:00 | 10 全体整合 | helix doctor + テスト必要範囲 | todo |
+| 18:00–19:00 | 10 全体整合 | helix doctor + テスト必要範囲 | **done** (doctor 0 fail / pytest 359 回帰) |
 | 19:00–20:00 | 11 仕上げ | commit 整理・残課題棚卸し | todo |
 | 20:00–21:00 | 12 Reverse戻し | 整備の軌跡を Forward へ + memory carry | todo |
 | 21:00–22:00 | 13 最終report | escalation 待ち明示 + handover 更新 → 終了 | todo |
@@ -118,4 +118,5 @@ Discovery confirmed → Reverse で Forward へ戻す過程で正本化する:
 - **09:20 Block 4+5 done**: Codex(`b8lc4yowr`)実装完了(exit 1 は私の未 commit §7 編集を allowed-files guard が誤検知しただけ、コード無傷)。独立検証=py_compile OK / pytest 40+350 passed 回帰なし / process PLAN・既存 recovery PLAN とも unknown 解消 / 命名 fallback + 親子は plan_scope 明示時のみ(gradual)/ VALID_PLAN_SCOPES 単一ソース(plan_lint が import)+ drift test。dogfood Process Plan に agent_slots/generates/dependencies 補完で警告ゼロ。教訓=Codex 投入前に tracking 編集を commit する。commit `4c3e210`。
 - **09:40 Block 6 done**: Codex(`bzdr1l4gv`)完了 exit 0。独立検証=bash -n/py_compile OK / bats hook 2/2 / pytest 43 / hook が全 PLAN 形式除外・ADR のみ対象 / `--strict-frontmatter` 不完全 process PLAN で exit 1 fail-close・完全/非strict exit 0。2 commit に分割(`4f2d381` hook drift fix=recovery 根本原因解消 / `f3bce65` strict-lint)。**コア整備(Block 2-6)完了=recovery 指摘 3 件全解消**。repo 健全性=helix doctor 0 fail。
 - **09:55 Block 8+9 done**: PoC を Process の Action 子に retrofit(plan_scope=action+parent_process+workflow=discovery、双方向リンク完成、検証=action分類/警告0/strict exit0)。closure SSoT 分析を PoC §4.5(mode_transition lean、reverse_local_loops 既存パターン発見、Saga Pivot 枠組み、実装は escalation 承認後)。
-- **10:05 Block 7 audit done**: pmo-sonnet=整合 OK(要対応なし)。tl-advisor=**changes_required**: P1=①forward_return 常時 fail-close でない(warning+strict のみ) ②親子 reciprocal 未検査(子の plan_scope/parent_process 逆参照)。P2/P3=inferred-action warning+retrofit carry / path suffix 揺れ / hook 実質 ADR のみ / generates:[] 許容 / Glossary status 更新。P1 を Codex で修正してから完了宣言。次=doc commit → Block 7-fix(Codex)。
+- **10:05 Block 7 audit done**: pmo-sonnet=整合 OK(要対応なし)。tl-advisor=**changes_required**: P1=①forward_return 常時 fail-close でない(warning+strict のみ) ②親子 reciprocal 未検査(子の plan_scope/parent_process 逆参照)。P2/P3=inferred-action warning+retrofit carry / path suffix 揺れ / hook 実質 ADR のみ / generates:[] 許容 / Glossary status 更新。P1 を Codex で修正してから完了宣言。doc commit `1625171`。
+- **10:30 Block 7-fix done + 整備完了**: Codex(`bi62n3ur2`)で P1 解消。独立検証=pytest 49+359 passed / forward_return 欠落 process は非strict で exit 1(常時 fail-close)/ dogfood Process・PoC とも reciprocal clean / 既存 recovery PLAN に inferred_action warning。commit `5e6865b`。Glossary §12.1.3 status → installed、plan-model.md §9 に P2/P3 carry(file 命名 suffix / hook docs/v2 範囲 / inferred retrofit / closure escalation)。Block 10 全体整合=helix doctor 0 fail + pytest 359 回帰 passed で confirmed。**tl-advisor P1 全解消、Block 2-10 完了**。残=Block 12 Reverse 戻し記録 + memory / Block 13 最終報告。

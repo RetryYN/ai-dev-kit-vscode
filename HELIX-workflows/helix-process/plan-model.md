@@ -96,3 +96,10 @@ Process の連鎖を構成する step には 2 種がある:
 - 起票コマンド: [docs/commands/plan.md](../../docs/commands/plan.md)
 - workflow 別 entry: `HELIX-workflows/helix-process/*-workflow.md`
 - HELIX Core 絶対原則（駆動は枝で Forward へ戻す）: [helix/HELIX_CORE.md](../../helix/HELIX_CORE.md) §0/§3
+
+## 9. 残課題 / carry（2026-06-01 tl-advisor audit）
+
+- **file 命名 suffix の標準化（P2）**: workflow/process PLAN の file 名が `<plan_id>plan.md`（poc/recovery/refactor）と `<plan_id>.md`（process dogfood）で揺れている。validator は file suffix を検査せず plan_id で判定するため機能影響なし。follow-up で命名規則を 1 つに統一する。
+- **design-doc guard の対象範囲（P2）**: hook は PLAN を全除外したため実質 ADR のみが対象。実 design doc（`docs/v2/L*-*/`）を web検索 guard の対象にすべきかは別判断（過剰 enforcement リスクと天秤）。対象化するなら include path + test を追加する。
+- **inferred-action の retrofit（P2）**: `plan_scope` 未宣言の既存 workflow PLAN は命名 fallback で action 分類されるが `inferred_action_without_scope` warning が出る。順次 `plan_scope: action` + `parent_process` を付与（gradual、強制しない）。
+- **closure 契約の凍結（escalation）**: `mode_transition` 等の closure event schema は本モデルに**含めない**。closure PoC（H-CLOSURE-01）confirmed + schema escalation 承認後に L4/L5 で別途凍結。SSoT lean = `mode_transition`（[poc §4.5](../../docs/plans/discovery/poc-2026-06-01-recovery-closureplan.md)）。
