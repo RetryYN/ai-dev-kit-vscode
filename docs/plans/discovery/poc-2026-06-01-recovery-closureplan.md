@@ -7,6 +7,9 @@ drive: discovery
 status: draft
 created: 2026-06-01
 owner: PM
+plan_scope: action
+parent_process: docs/plans/process/process-2026-06-01-plan-rule-closure.md
+workflow: discovery
 agent_slots:
   - role: pm-advisor
     slot_label: "PM — 収束方針・Forward 昇格判断"
@@ -89,6 +92,21 @@ related_docs:
 2. **`mode_transition` データ構造（概念、L4/L5 で正式化）**: 1 closure = 1 row。列 = id / source_workflow / target_forward_layer / closure_reason / idempotency_key（unique）/ created。既存 `transition_history` との関係（吸収 or 併設）は L4 で判断。
 3. **配線（end-to-end）**: `route`（signal 推奨）→ `recover`（Recovery 起動）→ Recovery 完了 → **closure adapter** が closure event を `mode_transition` へ冪等記録 → そこから Forward 再開候補（target_forward_layer + payload）を復元。
 4. **実装単位（TL）**: いきなり中央 `helix mode close` を作らず、**まず Recovery 専用の薄い closure adapter** を作る。共通化（全 workflow 対応の `helix mode close`）は本 PoC 採用後に判断。
+
+### §4.5 closure 記録先 SSoT 分析（2026-06-01 実態調査、L4 で確定・schema escalation 承認後）
+
+closure event の記録先テーブル名が分裂している（本 session 実態調査）:
+
+| 名称 | 出現 | 位置づけ |
+|---|---|---|
+| `mode_transition` | コード（`cli/lib/vmodel_loader.py` / `cli/config/vmodel-semantics.yaml`）+ L1/L3 要件 doc | **de-facto canonical**（テーブル実体は未作成） |
+| `transition_history` | HELIX Core / process doc | 概念語 |
+| `workflow_transition` | `concept.md` 1 件 | stray（要収束） |
+| `reverse_local_loops`（`target_forward_plan`/`target_forward_layer`） | `helix_db.py` 実テーブル | 既存の per-workflow 戻り先記録機構（scrum_local_loops も同型） |
+
+**L4 判断事項（schema escalation 承認後）**: ①中央 `mode_transition` に集約 / ②`reverse_local_loops` 型 per-workflow loop を一般化 / ③`transition_history` に吸収。**lean = `mode_transition`**（コード+大半の doc で既使用。`workflow_transition` は alias 収束、`transition_history` は概念語として併存可）。idempotency は Saga の Retryable/Pivot transaction パターン（Forward 復帰 = Pivot = 不可逆コミット境界、web検索 精読）で設計。
+
+> **escalation**: `mode_transition` テーブル新設 = schema migration = ユーザー承認が entry 条件（`HELIX_RUNTIME_RULES §10`）。本 §4.5 は**設計分析のみ**（実装は承認後）。
 
 ## §5 PoC 検証計画（検証条件先置き）
 
