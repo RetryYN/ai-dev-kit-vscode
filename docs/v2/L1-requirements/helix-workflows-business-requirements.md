@@ -1,7 +1,8 @@
 ---
 doc_id: L1-helix-workflows-business-requirements
 title: "HELIX-workflows V2 業務要求 (Business Requirements)"
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 created: 2026-05-26
 owner: PM
 process_layer: L1

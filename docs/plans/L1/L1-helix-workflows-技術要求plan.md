@@ -4,7 +4,7 @@ title: "L1-helix-workflows-技術要求plan: HELIX-workflows V2 技術要求"
 kind: requirements
 layer: L1
 drive: be
-status: draft
+status: finalized
 created: 2026-05-26
 owner: PM
 process_layer: L1
@@ -28,7 +28,7 @@ dependencies:
   blocks:
     - L3-helix-workflows-機能要件plan
     - L3-helix-workflows-非機能要件plan
-    - L4-helix-workflows-基本設計plan
+    - L4-helix-workflows-方式設計plan
 related_docs:
   - HELIX-workflows/helix-process/L1-requirements.md
   - docs/v2/process/L01-requirements-and-operational-test-design.md

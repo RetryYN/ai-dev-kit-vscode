@@ -1,15 +1,19 @@
 ---
 doc_id: V2-L1-REQUIREMENTS
 title: "HELIX V2 構造改革 L1 要件定義書 ─ 2 Base 軸 + 基盤 + Emergent value"
-status: draft
+status: deprecated
 created: 2026-05-13
+deprecated_on: 2026-06-02
 author: "PM (Opus + Sonnet 4.6)"
 parent: docs/v2/CONCEPT.md
+superseded_by: docs/v2/L1-requirements/
 next_doc: docs/v2/MASTER.md (L2 基本設計)
 gate: G1 要件完了ゲート
 ---
 
 # HELIX V2 構造改革 L1 要件定義書
+
+> ⚠️ **DEPRECATED (2026-06-02)**: 本 doc は旧世代 (2026-05-13) の L1 要件定義書 (「2 Base 軸 + 基盤」旧構造) であり、現行正本は **[docs/v2/L1-requirements/](L1-requirements/)** の 4 分割 (業務要求 / 機能要求 / 技術要求 / 非機能要求) に置き換わっている。本 doc は履歴参照用に残すが、要件の根拠にしてはならない。
 
 ## §0 V2 価値連鎖 (本要件定義の構造原理)
 

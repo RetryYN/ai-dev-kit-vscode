@@ -1,11 +1,13 @@
 ---
 doc_id: L1-helix-workflows-functional-requirements
 title: "HELIX-workflows V2 機能要求 (Functional Requirements)"
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
+pairs_test_design: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
 next_pair_freeze: L3
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-機能要求plan
@@ -16,7 +18,7 @@ related_l0: docs/v2/L0-helix-workflows/concept.md
 
 > **本 doc の位置づけ**: HELIX-workflows V2 dogfooding における **機能要求 (FR-*)** の L1 正本。L0 [見直し企画書](../L0-helix-workflows/concept.md) §5 / §6.5 / §8 と、L1 [業務要求 doc](./helix-workflows-business-requirements.md) で定義した BR を受け、HELIX が備えるべき機能を **要望レベル** で整理する。
 >
-> **境界**: 本 doc は L1 のため、API / schema / detector 実装詳細までは固定しない。詳細契約は L3 L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)、技術詳細は L1 技術要求 plan、受入ペア凍結は L3↔L12 で確定する。
+> **境界**: 本 doc は L1 のため、API / schema / detector 実装詳細までは固定しない。詳細契約は L3 3 PLAN (業務要件 / 機能要件 / 非機能要件)、技術詳細は L1 技術要求 plan、受入ペア凍結は L3↔L12 で確定する。
 >
 > **件数 (2026-05-28 更新、FR-13 PLAN 起票レビュー追加)**: 機能要求は **FR-01〜FR-13 (計 13 件)**。L3 詳細化 (G3 凍結) で更に細分化される。
 

@@ -1,7 +1,8 @@
 ---
 doc_id: L9-test-design-L4-basic-design-system-test
 title: HELIX-workflows V2 L4 基本設計 総合テスト設計
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 owner: QA
 process_layer: L9
 test_layer: L9

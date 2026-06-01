@@ -4,7 +4,7 @@ title: "L1-helix-workflows-非機能要求plan: HELIX-workflows V2 非機能要�
 kind: requirements
 layer: L1
 drive: be
-status: draft
+status: finalized
 created: 2026-05-26
 owner: PM
 process_layer: L1
@@ -27,7 +27,7 @@ dependencies:
     - L0-helix-workflows-conceptplan
   blocks:
     - L3-helix-workflows-非機能要件plan
-    - L4-helix-workflows-基本設計plan
+    - L4-helix-workflows-方式設計plan
 related_docs:
   - docs/v2/L0-helix-workflows/concept.md
   - docs/plans/L1/L1-helix-workflows-業務要求plan.md

@@ -4,7 +4,7 @@ title: "L1-helix-workflows-業務要求plan: HELIX-workflows V2 業務要求"
 kind: requirements
 layer: L1
 drive: be
-status: draft
+status: finalized
 created: 2026-05-26
 owner: PM
 process_layer: L1

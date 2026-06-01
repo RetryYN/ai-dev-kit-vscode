@@ -4,7 +4,7 @@ title: "L0-helix-workflows-conceptplan: HELIX-workflows 見直し企画書"
 kind: planning
 layer: L0
 drive: be
-status: draft
+status: finalized
 created: 2026-05-26
 owner: PM
 process_layer: L0

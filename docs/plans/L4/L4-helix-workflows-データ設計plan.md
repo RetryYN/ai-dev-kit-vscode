@@ -4,7 +4,7 @@ title: "L4-helix-workflows-データ設計plan: HELIX-workflows V2 データ設�
 kind: design
 layer: L4
 drive: be
-status: draft
+status: finalized
 tagline: "HELIX Workflows V2 データ設計（L4）"
 author: "Codex"
 created_at: 2026-05-27

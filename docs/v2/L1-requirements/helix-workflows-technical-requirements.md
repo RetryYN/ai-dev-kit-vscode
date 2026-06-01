@@ -1,11 +1,13 @@
 ---
 doc_id: L1-helix-workflows-technical-requirements
 title: "HELIX-workflows V2 技術要求 (Technical Requirements)"
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
+pairs_test_design: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
 next_pair_freeze: L4
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-技術要求plan

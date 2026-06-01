@@ -1,7 +1,8 @@
 ---
 doc_id: L4-basic-design-external-interface
 title: HELIX-workflows V2 外部IF設計
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 owner: TL
 process_layer: L4
 parent_plan: L4-helix-workflows-外部IF設計plan
@@ -9,6 +10,7 @@ pairs_test_design: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.
 related_requirements:
   - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
   - docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ---
 
 # 外部IF設計
@@ -117,12 +119,24 @@ sequenceDiagram
 | SQLite | schema mismatch と破損を検知可能にする | NFR-AV-02, NFR-MG-02 |
 | HTTP 補助 API | 監査と telemetry の記録経路を保持する | FR-DOCTOR-01, FR-EVT-01 |
 
+### 6.1 認可・fail-close・timeout の L4 方針 (IF-06 / AI harness)
+
+外部IF境界の認可と失敗時挙動はセキュリティ責務 (NFR-SC) のため、**具体閾値・scheme は L5 へ送るが基本方針は L4 で凍結**する (tl-advisor 2026-06-02 P1: 「認可/fail-close を全て L5 送りにしない」)。
+
+| IF | 認可方針 (L4 凍結) | fail-close 方針 (L4 凍結) | timeout / retry 方針 (L4 凍結) |
+|---|---|---|---|
+| IF-06 HTTP 補助 API | loopback (`127.0.0.1`) bind の **local-only** を既定とし、ネットワーク公開しない。公開が必要な場合のみ token 認可を必須化 (scheme 詳細は L5) | gate / 検証失敗時は run を記録した上で副作用 (push / pr) を**実行しない** (記録は許可・操作は遮断)。認可外 caller は即時拒否 | request timeout 既定ありで超過は fail-close。**自動 retry は既定で行わない** (二重 push/pr 防止)。retry 値の確定は L5 |
+| IF-02 Codex harness | `--approved` + allowed-files + plan-only guard を必須とし、承認なし write は不可 | guard 違反 (非許可 path / commit / push) は wrapper で block。Codex 単独 commit / push は禁止 (呼出し元が判断) | wrapper timeout で SIGTERM、編集の atomic 性は保持 (部分適用の検証は呼出し元) |
+| IF-03 Claude hook | hook event ごとに role / model / path guard を fail-close 強制 | guard deny は操作を停止、bypass は環境変数 + evidence 必須 | hook timeout 超過は fail-close、hook を回避しない |
+
+上表は **方針 (direction) の凍結**であり、閾値・token scheme・retry 回数・error body の確定値は L5 IF 詳細設計が正本。
+
 ## 7. L5 への引き継ぎ
 
 L5 では以下を確定する。
 
 - CLI option、hook payload、HTTP body の詳細 schema
-- 認可条件、fail-close 条件、timeout と retry
+- 認可の具体 scheme (token 等)、fail-close の閾値、timeout / retry の確定値 (§6.1 で凍結した L4 方針の数値化)
 - DB API ごとの呼出し前提とエラー分類
 - Git / workspace 操作時の状態遷移と rollback 規約
 

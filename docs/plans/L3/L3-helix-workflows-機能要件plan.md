@@ -4,7 +4,7 @@ title: "L3-helix-workflows-機能要件plan: HELIX-workflows V2 機能要件 (�
 kind: requirements
 layer: L3
 drive: be
-status: draft
+status: finalized
 created: 2026-05-26
 owner: PM
 process_layer: L3
@@ -32,7 +32,7 @@ dependencies:
     - L1-helix-workflows-非機能要求plan
     - L3-helix-workflows-業務要件plan
   blocks:
-    - L4-helix-workflows-基本設計plan
+    - L4-helix-workflows-方式設計plan
 related_docs:
   - HELIX-workflows/helix-process/L3-requirements-definition.md
   - docs/v2/process/L03-requirements-definition-and-acceptance-test-design.md

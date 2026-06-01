@@ -4,7 +4,7 @@ title: "L3-helix-workflows-要件定義移行plan: L1 要求 → L3 要件への
 kind: requirements
 layer: L3
 drive: be
-status: draft
+status: finalized
 created: 2026-05-29
 owner: PM
 process_layer: L3

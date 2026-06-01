@@ -4,7 +4,7 @@ title: "L4-helix-workflows-機能構成設計plan: HELIX-workflows V2 機能構�
 kind: design
 layer: L4
 drive: be
-status: draft
+status: finalized
 created: 2026-05-27
 owner: PM
 process_layer: L4

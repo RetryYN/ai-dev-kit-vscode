@@ -1,14 +1,18 @@
 ---
 doc_id: V2-CONCEPT
 title: "【企画書】HELIX V2 構造改革 ─ V-model 強化 + 自動化で開発全容を可視化"
-status: draft
+status: deprecated
 created: 2026-05-13
+deprecated_on: 2026-06-02
 author: "PM (Opus + Sonnet 4.6)"
 decision_request: "V1 → V2 構造改革への着手承認"
+superseded_by: docs/v2/L0-helix-workflows/concept.md
 next_doc: docs/v2/L1-REQUIREMENTS.md (要件定義) → docs/v2/MASTER.md (基本設計)
 ---
 
 # 【企画書】HELIX V2 構造改革 ─ V-model 強化 + 自動化で開発全容を可視化
+
+> ⚠️ **DEPRECATED (2026-06-02)**: 本 doc は旧世代 (2026-05-13) の V2 企画書であり、現行正本は **[docs/v2/L0-helix-workflows/concept.md](L0-helix-workflows/concept.md)** に置き換わっている。L1 要求の現行正本は [docs/v2/L1-requirements/](L1-requirements/) (業務 / 機能 / 技術 / 非機能の 4 分割)。本 doc は履歴参照用に残すが、設計判断の根拠にしてはならない。
 
 ## 提案サマリー (一文)
 

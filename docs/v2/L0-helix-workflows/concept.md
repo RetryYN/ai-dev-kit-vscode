@@ -1,7 +1,8 @@
 ---
 doc_id: helix-workflows-concept
 title: "HELIX-workflows 見直し企画書 (L0)"
-status: draft
+status: frozen
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
 created: 2026-05-26
 owner: PM
 parent_plan: docs/plans/L0/L0-helix-workflows-conceptplan.md
@@ -445,6 +446,8 @@ flowchart LR
 
 ### §6.5.6 helix.db = V モデル DB (正本) + 補助 DB (中間 state) — Diagram 5
 
+> **SSoT 境界 (L0 → L4/L5)**: 本 §6.5.6〜§6.5.7 の table / view 構造・量閉じ schema・sprint 順序強制・影響範囲分析機械化は **L0 大局の目標像 (方向性提示)** であり、L0 はここで設計値を凍結しない。確定 schema の SSoT は **[L4 データ設計.md](../L4-basic-design/データ設計.md)** (as-is 論理モデル) + L5 物理設計 (target schema 凍結) が持つ。本 §の core/view 群は現時点で多くが未実体の目標像である点に注意 (実在 table は L4 データ設計.md を正本とする)。tl-advisor 2026-06-02 P1「L0 が下位設計 SSoT を奪わない」整合。
+
 ```mermaid
 flowchart TB
   subgraph VDB["V モデル DB = 正本<br/>(工程 ID + プラン ID を主キー、設計⇔テスト ペア閉じ)"]
@@ -799,7 +802,7 @@ flowchart TB
 | **ADR** | アーキテクチャ決定記録 (Michael Nygard 2011)、L2 大局判断の snapshot | `helix adr` (`cli/helix-adr` 不在、L4 carry) | `docs/adr/ADR-001〜043.md` (**41 ADR 実在**) | `frontmatter.adr_snapshot` (`VALID_ARTIFACT_TYPES` enum に含む) | `^ADR-[0-9]+` | **partial** (doc + frontmatter installed、CLI 不在) |
 
 **implementation_status サマリ (19 用語の状態分布)**:
-- **installed**: 11 用語 (PLAN / workflow / legacy drive field / artifact / pair freeze / carry / readiness / agent_slot / handover / sprint / phase / IIP/deferral) ※ 12 用語 (重複統合あり)
+- **installed**: 12 用語 (PLAN / workflow / legacy drive field / artifact / pair freeze / carry / readiness / agent_slot / handover / sprint / phase / IIP/deferral)
 - **partial**: 5 用語 (gate / guardrail / trace / drift / ADR)
 - **L4-carry**: 1 用語 (balance_ratio)
 - **not-implemented**: 1 用語 (NSM)
