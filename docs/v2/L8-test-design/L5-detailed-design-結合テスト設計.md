@@ -1,7 +1,8 @@
 ---
 doc_id: L8-test-design-L5-detailed-design-integration-test
 title: HELIX-workflows V2 L5 詳細設計 結合テスト設計
-status: draft
+status: frozen
+freeze_evidence: "2026-06-03 V-model pair-freeze (L5↔L8): IT-* 21 を L5 設計 ID (MOD/IF/IP/DB) へ trace、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/balance1.0、tl-advisor adversarial check (P1 修正済)、Reverse 源泉 integration テスト実在確認。coverage は設計 coverage (gap=IT-MOD-06/IT-DB-03/IT-DB-05 は実装で追加)"
 owner: QA
 process_layer: L8
 test_layer: L8
@@ -86,6 +87,8 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 - `observed` の IT は既存テストが green を維持する。
 - `gap` の IT（IT-MOD-06 / IT-DB-03 / IT-DB-05）は L8 実装フェーズで結合テストを追加し、`observed` へ昇格する（§7 リスク参照）。
 - L5↔L8 の双方向 frontmatter（L5 `pairs_test_design` ↔ 本書 `parent_design`/`pairs_design`）が解決する。
+
+> **gate evidence の注記**: 本 coverage 100% は **設計 coverage**（21 の L5 設計 ID が `IT-*` で trace される）であり、**実装済テスト coverage ではない**。`gap`（IT-MOD-06 / IT-DB-03 / IT-DB-05）は L8 実装で結合テストを追加して `observed` へ昇格する（実装 coverage は反芻機構で別途追跡）。
 
 ## 7. 未検出リスク（gap）
 

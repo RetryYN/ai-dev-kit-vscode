@@ -1,11 +1,12 @@
 ---
 doc_id: L6-functional-design-helix-workflows
 title: HELIX-workflows V2 機能設計（関数仕様 / DbC）
-status: draft
+status: frozen
+freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): FN-* 14 を DbC (requires/ensures/invariant) で定義し L7 UT-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/wrong_layer_pair0/balance1.0、tl-advisor adversarial check (P1 wrong_layer_pair=parent_design→upstream_design 修正済 / P2 FN-CONTRACT invariant 補完済)、Reverse 源泉 unit テスト実在確認"
 owner: SE
 process_layer: L6
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
-parent_design:
+upstream_design:
   - docs/v2/L5-detailed-design/モジュール分割設計.md
   - docs/v2/L5-detailed-design/内部処理設計.md
 related_requirements:
@@ -47,7 +48,7 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 | FN-HTTP-01 | HTTP route handler（push/pr trigger） | MOD-05 | `plan_id` + body 必須 field | `automation_runs` 記録 + envelope 返却 | localhost+bearer 必須・`trace_id` 返却 |
 | FN-AUDIT-01 | `audit_log` 記録 / `audit_validator` | MOD-04 | audit payload | `audit_log` row 追記 | `run_id` 存在必須 |
 | FN-CATALOG-01 | `code_catalog` 索引生成 | MOD-06 | code tree | `code_index` / `entries` 生成 | 索引は read-only source から導出 |
-| FN-CONTRACT-01 | `contract_registry` 登録 / 照合 | MOD-06 | contract 定義 | `contract_entries` 整合 | — |
+| FN-CONTRACT-01 | `contract_registry` 登録 / 照合 | MOD-06 | contract 定義 | `contract_entries` 整合 | 登録済 contract の entry/hash 整合を保つ（重複登録で破壊しない） |
 | FN-AGENT-01 | `agent_slots` fire / release | MOD-07 | role / task | slot 記録（fire/release） | stale slot は release 可能 |
 
 ## 4. 合格基準（G6）

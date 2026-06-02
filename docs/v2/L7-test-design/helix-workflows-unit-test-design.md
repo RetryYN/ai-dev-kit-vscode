@@ -1,7 +1,8 @@
 ---
 doc_id: L7-test-design-helix-workflows-unit-test
 title: HELIX-workflows V2 単体テスト設計
-status: draft
+status: frozen
+freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): UT-* 14 を L6 FN-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/balance1.0、tl-advisor adversarial check (P1 修正済)、Reverse 源泉 unit テスト 14 実在確認 (405/406 green、残 1 は既知 opus-repo-block hook carry)"
 owner: QA
 process_layer: L7
 test_layer: L7
