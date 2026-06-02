@@ -32,8 +32,8 @@ dependencies:
   blocks: []
 related_docs:
   - HELIX-workflows/helix-process/L8-integration-test.md
-  - docs/v2/L5-internal-design/helix-workflows-module-decomposition-design.md
-  - docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - docs/v2/L5-detailed-design/モジュール分割設計.md
+  - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
   - docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ---
 

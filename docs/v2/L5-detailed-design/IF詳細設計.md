@@ -30,12 +30,14 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 
 ## 3. IF ファミリ
 
-| 区分 | 実体 | 方向 | 主責務 |
-|---|---|---|---|
-| CLI | `cli/helix`, `cli/helix-*` | inbound/outbound | サブコマンド dispatch、usage、終了コード返却 |
-| Harness | `helix-codex`, `helix-claude`, `.claude/hooks/*.sh`, `cli/libexec/*` | 双方向 | role/task 注入、hook guard、summary 収集 |
-| HTTP Automation | `server.py`, `routes/push_pr.py`, `routes/hooks.py`, `routes/audit.py`, `routes/telemetry.py` | inbound | push/pr/hook/audit/telemetry 補助 API |
-| DB API | `helix_db.py` の insert/update helper | outbound | run、audit、session、workspace の永続化 |
+各 IF ファミリに安定 `IF-*` ID を付与する（L5↔L8 trace 用。L8 結合テスト設計の `IT-IF-*` はこの ID へ trace する。§5.2 の各 endpoint は `IF-HTTP-01` 配下の詳細）。
+
+| IF ID | 区分 | 実体 | 方向 | 主責務 |
+|---|---|---|---|---|
+| IF-CLI-01 | CLI | `cli/helix`, `cli/helix-*` | inbound/outbound | サブコマンド dispatch、usage、終了コード返却 |
+| IF-HARNESS-01 | Harness | `helix-codex`, `helix-claude`, `.claude/hooks/*.sh`, `cli/libexec/*` | 双方向 | role/task 注入、hook guard、summary 収集 |
+| IF-HTTP-01 | HTTP Automation | `server.py`, `routes/push_pr.py`, `routes/hooks.py`, `routes/audit.py`, `routes/telemetry.py` | inbound | push/pr/hook/audit/telemetry 補助 API |
+| IF-DB-01 | DB API | `helix_db.py` の insert/update helper | outbound | run、audit、session、workspace の永続化 |
 
 ## 4. CLI 共通契約
 

@@ -26,7 +26,7 @@ agent_slots:
   - role: qa
     slot_label: "QA — 結合テストケース設計"
 generates:
-  - artifact_path: docs/v2/L8-test-design/helix-workflows-integration-test-design.md
+  - artifact_path: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
     artifact_type: design_doc
 dependencies:
   parent: L5-helix-workflows-外部IF詳細設計plan
@@ -87,7 +87,7 @@ V-model: L5 ↔ L8 pair freeze の右腕。L5 4 doc に対応する 4 結合テ�
 
 ### §2.1 doc 構造 candidate
 
-`docs/v2/L8-test-design/helix-workflows-integration-test-design.md`:
+`docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md`:
 
 ```
 §0 PLAN reference + scope 宣言
