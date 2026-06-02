@@ -2,7 +2,7 @@
 doc_id: L9-test-design-L4-basic-design-system-test
 title: HELIX-workflows V2 L4 基本設計 総合テスト設計
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR. 2026-06-03 再凍結: L4↔L9 片肺解消 — NFR 6群を per-ID trace 化(TV-NFR-03/04 + TV-IF-03 + ST-NFR-02/03 + ST-IF-04 + TR-IF-05/06 + TR-NFR-AV/OP/MG/PF/SC/SE)、IF-05 永続化境界 + NFR-OP/MG に専用観点付与、trace_symmetry detector で coverage 再計測"
 owner: QA
 process_layer: L9
 test_layer: L9
@@ -65,8 +65,11 @@ standard_basis:
 | TV-DATA-02 | 再開可能性 | session / workspace / handover が中断後に正しい owner と next action を示す | P2 |
 | TV-IF-01 | AI harness 境界 | Codex / Claude wrapper が role、sandbox、approval policy、summary を保持する | P1 |
 | TV-IF-02 | fail-close | 未許可操作、stale handover、schema mismatch、trace 欠落で停止・差し戻しが起きる | P1 |
-| TV-NFR-01 | 性能・安定性 | 代表的な doctor / code find / plan validate が許容時間内に完了する | P2 |
-| TV-NFR-02 | セキュリティ | raw CLI 抑止、hook guard、secret / credential 非露出、Critical / High 欠陥 0 を確認する | P1 |
+| TV-NFR-01 | 性能・安定性 | 代表的な doctor / code find / plan validate が許容時間内に完了する（NFR-PF-01〜04） | P2 |
+| TV-NFR-02 | セキュリティ | raw CLI 抑止、hook guard、secret / credential 非露出、Critical / High 欠陥 0 を確認する（NFR-SE-01〜03、NFR-SC-03） | P1 |
+| TV-NFR-03 | 運用保守 | auto-deprecation 判定、累積 audit、warn 上限 alert、lineage trace、verify-before-act が機能する（NFR-OP-01〜05） | P2 |
+| TV-NFR-04 | 移行・互換進化 | schema_version、冪等 migration、旧新並存、非破壊中断、drift advisory、Strangler 段階置換が成立する（NFR-MG-01〜03、NFR-SC-01〜05） | P1 |
+| TV-IF-03 | 永続化境界 | `helix.db` への state / audit / session / asset trace 保存と再読込、schema mismatch fail-close、破損検知が境界どおり動く（IF-05、NFR-AV-02、NFR-MG-02） | P1 |
 
 ## 5. テストシナリオ
 
@@ -85,6 +88,9 @@ standard_basis:
 | ST-IF-02 | TV-IF-02, TV-NFR-02 | 未許可 write、raw CLI、secret 参照、stale handover を準備 | guard / hook / wrapper の fail-close を確認する | 禁止操作は block され、secret / credential の値は出力・保存されず、理由が監査ログに残る |
 | ST-IF-03 | TV-SYS-01, TV-IF-01 | Git worktree と PR 補助導線を準備 | workspace 分離、diff review、PR 前 gate、summary 出力の代表フローを確認する | workspace 衝突がなく、未 review 差分や gate fail で PR / push 導線が止まる |
 | ST-NFR-01 | TV-NFR-01 | 代表規模の docs / code index / DB を準備 | `helix doctor`、`helix code find`、plan validation、pair trace scan の実行時間と安定性を確認する | L4 非機能方針の許容範囲内で完了し、Flaky 率 5% 未満、再実行で同一 verdict を返す |
+| ST-NFR-02 | TV-NFR-03 | warn 累積 / doctor / gate / trace 欠落の fixture を準備 | auto-deprecation 判定、累積 audit 完走、warn 上限 alert、lineage trace 充足、verify-before-act 強制を総合確認する（NFR-OP-01〜05） | pass してはならない運用劣化（P0 老廃物残存、warn 上限超過の未 alert、lineage 孤立、verify-before-act 違反）が fail-close される |
+| ST-NFR-03 | TV-NFR-04 | schema version、migration 履歴、旧新並存対象を準備 | migration 再実行、中断、rollback 境界、schema mismatch、Strangler 段階置換と kill criteria を確認する（NFR-MG-01〜03、NFR-SC-01〜05） | destructive 操作なしで中断理由と再開条件が記録され、旧新並存・冪等・非破壊が保たれ、互換期間中に drift advisory を返す |
+| ST-IF-04 | TV-IF-03 | `helix.db` と監査補助、破損 / mismatch fixture を準備 | CLI から run / audit / session / asset trace を発生させ、SQLite への保存・再読込、schema mismatch・破損検知の証跡化を確認する（IF-05、NFR-AV-02、NFR-MG-02） | 永続化が `helix_db.py` 境界経由で行われ、mismatch / 破損は fail-close され、value は露出せず理由が監査ログに残る |
 | ST-NEG-01 | TV-IF-02, TV-DATA-02 | 不整合 fixture を準備 | parent_design 欠落、pairs_design 不一致、存在しない L4 doc、存在しない L9 doc を検出する | いずれも G4 / G9 の blocking issue として報告される |
 | ST-NEG-02 | TV-FR-02, TV-NFR-02 | review / security 証跡欠落を準備 | doc-reviewer、tl-advisor、security audit の不足時動作を確認する | P0 / P1 未解消、Critical / High 欠陥、証跡欠落が pass にならない |
 
@@ -106,7 +112,7 @@ standard_basis:
 | TR-ARCH-02 | 方式設計 §3 | 正本分離、入口統一、ポリシー集約、永続化、hook / harness 連携 | TV-SYS-02 / ST-SYS-02 | 文書正本、実装、DB state、hook の責務が混在しない |
 | TR-ARCH-03 | 方式設計 §4 | 層構成と責務境界 | TV-SYS-02 / ST-SYS-02 | Bash router、command、Python application、DB、統合層の境界逸脱がない |
 | TR-ARCH-04 | 方式設計 §5 | Workflow Control、Runtime Governance、Audit and Persistence、Handover and Workspace、Automation API | TV-FR-01 / ST-FR-01 | 主要ブロックが FR18 機能群と連動して確認できる |
-| TR-ARCH-05 | 方式設計 §7 | 可用性、性能、保守性、セキュリティ、互換性 | TV-NFR-01, TV-NFR-02 / ST-NFR-01, ST-IF-02 | 性能・セキュリティ・互換性の代表基準を満たす |
+| TR-ARCH-05 | 方式設計 §7 | NFR 6 群（可用性・移行・運用保守・性能・互換拡張・セキュリティ）全体方針 | TV-NFR-01〜04, TV-IF-03 / ST-NFR-01〜03, ST-IF-04, ST-IF-02 | NFR 6 群が各々 1 件以上の観点・シナリオへ接続される（下記 TR-NFR-* で個別 trace） |
 | TR-FUNC-01 | 機能構成設計 §2 | code 16 件 / registry-only 2 件 | TV-FR-01 / ST-FR-01 | FR18 の分類が L3 registry と一致し、registry-only の扱いが明示される |
 | TR-FUNC-02 | 機能構成設計 §3 | 5 機能群 | TV-FR-01 / ST-FR-01 | 各機能群の主責務と相互依存が総合フローで確認できる |
 | TR-FUNC-03 | 機能構成設計 §4 | FR 一覧と主な連携先 | TV-FR-01 / ST-FR-01, ST-FR-04 | FR ごとの連携先が実行 trace または統制 trace に現れる |
@@ -119,6 +125,14 @@ standard_basis:
 | TR-IF-02 | 外部IF設計 §3 | CLI、AI harness、VCS、DB、HTTP 境界 | TV-IF-01, TV-IF-02 / ST-IF-01, ST-IF-02 | HELIX 内責務と接続先責務が交差しない |
 | TR-IF-03 | 外部IF設計 §4 | CLI 入口、Codex / Claude harness、Git / workspace、SQLite、HTTP API | TV-IF-01 / ST-IF-01, ST-IF-03 | 主要 IF が正常系で連携し、監査証跡を残す |
 | TR-IF-04 | 外部IF設計 §6 | IF ごとの制約 | TV-IF-02, TV-NFR-02 / ST-IF-02, ST-NEG-02 | 明示承認なし write、未許可 tool、workspace 衝突、schema mismatch が fail-close される |
+| TR-IF-05 | 外部IF設計 §4 / §6.1 | IF-05 SQLite `helix.db` 永続化境界（`helix_db.py`） | TV-IF-03 / ST-IF-04 | state / audit / session / asset trace が境界経由で保存・再読込され、mismatch / 破損が fail-close される |
+| TR-IF-06 | 外部IF設計 §2 / §4 | IF-02 Codex / IF-03 Claude / IF-04 Git の各接続 | TV-IF-01 / ST-IF-01, ST-IF-03 | IF-02/03/04 が方向・入口・役割どおり連携し内部責務を保持しない |
+| TR-NFR-AV | 方式設計 §7 / データ §5.3 | NFR-AV-01〜03 可用性（CLI 起動、DB 整合、中断再開） | TV-IF-03, TV-NFR-01 / ST-IF-04, ST-DATA-02 | DB 整合（NFR-AV-02）と中断再開（NFR-AV-03）が総合系で確認できる（CLI 起動率 NFR-AV-01 は L14 OT-18 と分担） |
+| TR-NFR-OP | 方式設計 §7 | NFR-OP-01〜05 運用保守 | TV-NFR-03 / ST-NFR-02 | auto-deprecation / 累積 audit / warn 上限 / lineage / verify-before-act が機能し劣化が fail-close される |
+| TR-NFR-MG | 方式設計 §7 / データ §5.3 | NFR-MG-01 / NFR-MG-02 / NFR-MG-03 移行（schema_version / 冪等 / 非破壊 / Strangler） | TV-NFR-04, TV-IF-03 / ST-NFR-03, ST-IF-04 | migration が冪等・非破壊で、中断 / rollback / mismatch が destructive 操作なしで再開可能 |
+| TR-NFR-PF | 方式設計 §7 | NFR-PF-01〜04 性能 | TV-NFR-01 / ST-NFR-01 | 代表 command が許容時間内、Flaky 率 5% 未満、再実行同一 verdict |
+| TR-NFR-SC | 方式設計 §7 | NFR-SC-01〜05 互換・拡張 | TV-NFR-04 / ST-NFR-03 | 旧新並存・互換期間 drift advisory・段階置換 kill criteria が成立する |
+| TR-NFR-SE | 方式設計 §7 | NFR-SE-01〜03 セキュリティ | TV-NFR-02 / ST-IF-02, ST-NEG-02 | raw CLI 抑止、secret 非露出、未許可 write block が総合系で確認できる |
 
 ## 8. G4 / G9 合格基準
 
