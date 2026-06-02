@@ -6,7 +6,7 @@
 ## 1. 既存設定の監査（this repo, 2026-06-03）
 - **workflow 7 本**: `ci` / `commitlint` / `security`(zizmor, SHA pin + codeql sarif) + branch-mode 4 本(`feature`/`hotfix`/`poc`/`refactor`、各 lint+test+validate)。
 - `dependabot.yml`(weekly SHA 更新, PLAN-222/ADR-036) / `CODEOWNERS` / `pull_request_template.md`。
-- **gap**: `ISSUE_TEMPLATE/` 不在（駆動↔Issue 未実装）/ **ADR-029(github-actions-branch-pipeline) が `Proposed` のまま workflow は実装済 = 状態ねじれ**（要 reconcile）/ branch-mode 4 本が `pull_request: branches: main` を持ち PR で全部走る運用ノイズ(P1)。
+- **gap（2026-06-03 GitHub 早期実装 batch で一部解消）**: `ISSUE_TEMPLATE/` 不在 → **駆動 7 kind template + config 実装済**（§2.1） / ADR-029 が `Proposed` のまま実装済 = 状態ねじれ → **Accepted へ reconcile 済**（Accepted scope / transitional baseline / known debt を分離、ADR-029 §Status） / concurrency 未設定 → **全 7 workflow に追加済**（§3）。**残 gap**: branch-mode 4 本が `pull_request: branches: main` を持ち PR で全部走る運用ノイズ(P1) = branch-pipeline 統合（別 ADR/PLAN carry、§5）。
 - 一般論ベストプラクティス（GitHub Flow / 最小権限 GITHUB_TOKEN / SHA pin + dependabot / Linux 単独 / public repo = Actions 無料）は既存設定とほぼ整合。
 
 ## 2. HELIX-native 運用最適（中核）
@@ -43,14 +43,21 @@ Forward 逸脱検出（drift / 障害 / 探索 / 既存実態 / AI 暴走）
 - **branch protection**: Required status checks(Loose) + PR required + admin bypass ON + Force push OFF。
 - **GITHUB_TOKEN**: top-level `contents: read`、job 単位で最小追加（write は release job のみ）。
 - **SHA pin + dependabot**: 維持（immutable ref + 継続更新）。
-- **concurrency**: `cancel-in-progress: true`（Phase1 軽微修正で追加候補）。
+- **concurrency**: `cancel-in-progress: true` を全 7 workflow に **実装済**（2026-06-03、group=`${{ github.workflow }}-${{ github.ref }}`、job 名＝Required checks 名は不変）。
 
 ## 4. CLAUDE.md への取り込み
 - `CLAUDE.md` の「## GitHub 運用ルール」に **§Forward 逸脱 → Issue** と **§CI↔gate 紐づけ** を追記し、運用導線を本書へリンクする（重複させない）。
 
 ## 5. carry（tl-advisor: Phase 後段 / 別 PLAN）
-- **ADR-029 reconcile**: `Proposed` → `Accepted` か実装方針かを確定（実装済との状態ねじれ解消）。Required checks 名を壊さない段階移行。
-- branch-mode 4 本 → reusable workflow or `ci.yml` の conditional jobs へ統合（PR 全本走り = 運用ノイズ解消）。
-- `ISSUE_TEMPLATE/`（駆動 kind 別）実体化 + Issue↔PLAN 自動連携（`helix` から Issue 起票/close を駆動 closure に紐づける）。
+
+**2026-06-03 完了（GitHub 早期実装 batch）**:
+- **ADR-029 reconcile** → 完了: `Accepted` へ遷移、Accepted scope / transitional baseline / known debt を分離（ADR-029 §Status）。Required checks 名（job 名）は不変。
+- **`ISSUE_TEMPLATE/`（駆動 kind 別）実体化** → 完了: 駆動 7 kind template + `config.yml`（blank issue 無効化、逸脱 = template 選択を強制）。各 template に 症状/逸脱起点/forward_return/受入条件 + plan_id/parent_process。機能追加系 3 種（add-feature/reverse/retrofit）は **機能一覧 registry 登録/同期を必須 acceptance** 化（[functional-registry §1.5 更新規律](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md)）。
+- **concurrency** → 完了（§3、全 7 workflow）。
+
+**残 carry**:
+- **branch-mode 4 本 → reusable workflow or `ci.yml` の conditional jobs へ統合**（PR 全本走り = 運用ノイズ解消）。Required checks 名の互換を壊す可能性があるため**別 ADR/PLAN**で扱う（ADR-029 known debt、GitHub Flow 正規化方針の確定を含む）。
+- **Issue↔PLAN 自動連携**: `helix` から Issue 起票/close を駆動 closure（forward_return 到達）に紐づける自動化。
+- **`check_functional_registry` gate 実装**（L4 carry）: 機能一覧 §1.5 更新規律の機械 enforcement（未登録資産 fail-close）。whole-coverage detector に統合する。
 - release-please / PyPI publish: 今は不要（clone + setup.sh 配布、dist publish は park）。
 - macOS/Windows matrix: shell 差分検出（可搬性 NFR）が要る時点で追加。

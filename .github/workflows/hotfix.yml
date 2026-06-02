@@ -8,6 +8,11 @@ on:
     branches:
       - 'hotfix/**'
 
+# github-operations.md §3: 同一 ref の旧 run を自動キャンセル
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # PLAN-222 / ADR-036: 最小権限原則
 permissions:
   contents: read

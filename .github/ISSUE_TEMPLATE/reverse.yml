@@ -1,0 +1,85 @@
+name: "🔄 Reverse — 既存コード / 既存実態 / 失敗事象からの復元"
+description: "既存コード・既存実態・失敗事象から要件・設計・契約を復元し Forward へ戻す (駆動 workflow: Reverse)"
+title: "[reverse] "
+labels: ["reverse", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Reverse workflow** — Forward 正本が未整備な既存コード・既存実態・失敗事象を可視化する Issue です。
+        R0→R4→rgc で要件・設計・契約を復元し、`forward_return` の Forward 工程へ戻して close します。
+        正本: `HELIX-workflows/helix-process/reverse-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 症状 / 復元対象 (Symptom)
+      description: 正本化されていない既存コード・実態・失敗事象。対象パス・規模・なぜ復元が必要かを記載。
+      placeholder: "例) cli/lib/helix_db.py が L5 詳細設計 doc を持たず実装先行。設計復元が必要。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 逸脱起点 (Deviation origin)
+      description: いつ・どの判断で Forward を経ずに実態が先行したか。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 戻し先 Forward 層
+      description: "復元成果を正本化して戻す Forward 工程 (Reverse → L1 / L3 / L4 / L7 / L8-L11)。"
+      options:
+        - L1 要求定義
+        - L3 要件定義
+        - L4 基本設計
+        - L7 実装
+        - L8 結合テスト
+        - L9 総合テスト
+        - L10 フロントUX
+        - L11 総合レビュー
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 戻し先の成果物・節を具体的に。
+      placeholder: "例) L5 詳細設計 docs/v2/L5-detailed-design/内部処理設計.md へ復元反映"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件 (Acceptance / close 条件)
+      description: 何をもって復元完了=Issue close とするか（doc/code/test/契約の trace 整合）。
+    validations:
+      required: true
+  - type: textarea
+    id: functional-registry
+    attributes:
+      label: 機能一覧 (functional-registry) 登録/補完 — 必須 exit
+      description: "Reverse で復元・確認した機能を docs/v2/L3-requirements/helix-workflows-functional-registry.md へ登録/補完する内容 (機能名 / 説明 / L1 FR / L3 FR / status)。復元機能の未登録は FR-FNREG-01 SSoT の穴あき (registry §1.5 = デグレ第一歩)。"
+      placeholder: "例) reverse_local.py | confirmed→reverse routing helper | FR-04 | FR-9MODE-01 | active"
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) reverse-2026-06-03-l5-internal-process"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0"
+        - "P1"
+        - "P2"
+    validations:
+      required: true

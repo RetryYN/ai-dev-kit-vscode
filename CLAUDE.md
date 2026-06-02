@@ -123,6 +123,13 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 - 作業は `main` から branch を切る。デフォルトブランチへの直 push は、製造元の枠組み・policy・doc 改修で PM (Opus) が成果物検証後に判断する場合に限る (実装コードは別、下記)。
 - `dogfood`: 製造元の dogfooding 一時退避用 (P 中心の作業)。恒久必須ではなく運用は要再判断 (配布構造を正規ルート = L4 基本設計 PLAN + ADR で確定した時点で見直す)。
 
+### Forward 逸脱 → Issue / CI↔gate (HELIX-native)
+
+- **Forward V モデルから外れた瞬間 (駆動 workflow 発火: incident / reverse / discovery / recovery / refactor / add-feature / retrofit) に GitHub Issue を起票**し、`forward_return` 到達で close する。Issue = 逸脱の surface (Forward 正常進行は Issue 不要、PLAN で足りる)。template = `.github/ISSUE_TEMPLATE/<kind>.yml`、`config.yml` で blank issue 無効。
+- **機能追加系 (add-feature / reverse / retrofit) は機能一覧 (functional-registry) への登録/同期を必須 exit** とする (未登録 = FR-FNREG-01 SSoT 乖離 = デグレ第一歩。[functional-registry §1.5](docs/v2/L3-requirements/helix-workflows-functional-registry.md))。
+- **CI ↔ V-model gate 紐づけ**: `ci.yml` Required checks ALL PASS = G7 実装凍結証跡 / test (pytest+bats) = L8 結合 / security = L9 総合。全 7 workflow に `concurrency: cancel-in-progress`。
+- 設計正本: [github-operations.md](HELIX-workflows/helix-process/github-operations.md) (運用最適はここを正本とし、本節はリンクで繋ぐ = 重複させない)。
+
 ### 公開 API (破壊禁止)
 
 - **`@~/.helix/core/<path>` import は配布の公開 API**。消費側の global loader (`~/.claude/CLAUDE.md` 等) が直接読む。**path 変更 = 既存消費側の参照切れ (breaking)**。

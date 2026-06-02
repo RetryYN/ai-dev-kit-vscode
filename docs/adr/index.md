@@ -29,7 +29,7 @@
 | ADR-026-posttooluse-plan-auto-register-decision | ADR-026: PostToolUse 自動登録 + helix.db v35 schema 採用判断 | Proposed | 2026-05-20 |
 | ADR-027-plan-drift-detection-curator-decision | ADR-027: drift 検出 + Curator 自動化採用判断 | Proposed | 2026-05-20 |
 | ADR-028-poc-scrum-reverse-matrix-decision | ADR-028: PoC = Scrum × Reverse 連携 matrix 採用判断 | Proposed | 2026-05-20 |
-| ADR-029-github-actions-branch-pipeline-decision | ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断 | Proposed | 2026-05-20 |
+| ADR-029-github-actions-branch-pipeline-decision | ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断 | Accepted | 2026-05-20 |
 | ADR-030-abstraction-layer-escalation-decision | ADR-030: 抽象化層 3 層 (スキル/ワークフロー/ハーネス) + エスカレーション機構採用判断 | Proposed | 2026-05-20 |
 | ADR-031-recovery-plan-kind-decision | ADR-031: リカバリープラン kind 正規化採用判断 | Proposed | 2026-05-20 |
 | ADR-032-autonomous-runtime-framework-decision | ADR-032: 自動走行 framework 5-layer 採用判断 | Proposed | 2026-05-20 |

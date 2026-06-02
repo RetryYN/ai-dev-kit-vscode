@@ -16,6 +16,11 @@ on:
     paths:
       - '.github/workflows/**'
 
+# github-operations.md §3: 同一 ref の旧 run を自動キャンセル
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

@@ -1,8 +1,9 @@
 ---
 adr_id: ADR-029
 title: "ADR-029: GitHub Actions + ブランチタイプ別パイプライン採用判断"
-status: Proposed
+status: Accepted
 date: 2026-05-20
+accepted_date: 2026-06-03
 layer: L2
 ---
 
@@ -10,9 +11,16 @@ layer: L2
 
 ## Status
 
-Proposed (2026-05-20)
+Accepted (2026-06-03) — reconcile: 実装済の正本ねじれ解消
 
-> proposed (2026-05-20) — PLAN-096 と同時起票。Deciders による承認後 Accepted に遷移。
+> Proposed (2026-05-20) — PLAN-096 と同時起票。
+> **Accepted (2026-06-03)** — P2 相当（`feature`/`poc`/`refactor`/`hotfix` 4 workflow + `commitlint` + `CODEOWNERS`）が `.github/` に実装済のため、「`Proposed` のまま実装済」だった正本ねじれを解消し Accepted へ遷移する。ただし以下のスコープ分離を明記する（tl-advisor reconcile 指摘 2026-06-03 反映、`Accepted` を 4 workflow 物理分割の恒久最終承認と読ませない）。
+>
+> **Accepted scope（採択・実装済）**: ブランチ命名規則 + HELIX kind マッピング / Conventional Commits（commitlint）/ CODEOWNERS（個人 ID `@RetryYN`）/ branch-mode 4 workflow の存在 / Protected Branch (main) 方針 / `concurrency: cancel-in-progress`（2026-06-03 全 7 workflow に追加）。
+>
+> **Transitional baseline（暫定構成・既知の運用ノイズ）**: 現状の 4 workflow は各々 lint+test+validate を持ち、4 本とも `pull_request: branches: main` を持つため PR で全本走る（運用ノイズ = 既知 P1 debt）。本 Accepted はこの**物理 4 分割を恒久最終形として承認するものではない**。
+>
+> **Known debt（別 ADR / PLAN で確定）**: (1) 4 workflow → reusable workflow / `ci.yml` conditional jobs への統合（GitHub Flow 正規化、`HELIX-workflows/helix-process/github-operations.md` §1/§5）。Required status checks 名の互換を壊さない段階移行が要るため別 ADR/PLAN で扱う。(2) Decision §6 P3（helix.db 連携 + fail-close、PLAN-092 schema 依存）未実装。(3) Decision §2 の追加 job（vmodel-check / helix-doctor / poc-no-merge-check / incident-log 等）未実装。(4) ISSUE_TEMPLATE 駆動 kind 別（2026-06-03 実装、`github-operations.md` §2.1）は本 ADR scope 外の HELIX-native 運用最適。
 
 ## Deciders
 

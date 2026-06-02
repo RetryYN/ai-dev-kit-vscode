@@ -1,0 +1,81 @@
+name: "➕ Add-feature — 既存正本への新機能追加"
+description: "既存正本に新機能を追加し、要求・設計・テスト・実装へ反映する (駆動 workflow: Add-feature)"
+title: "[add-feature] "
+labels: ["add-feature", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Add-feature workflow** — 既存正本に対する新機能追加を可視化する Issue です。
+        差分機能を要求・設計・テスト・実装へ反映し、`forward_return`（L4-L7）へ戻して close します。
+        正本: `HELIX-workflows/helix-process/add-feature-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 追加機能 (Feature)
+      description: 追加したい機能と、なぜ既存正本だけでは不足か。
+      placeholder: "例) Issue↔PLAN 自動連携 (helix から Issue 起票/close を駆動 closure に紐づけ)。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 影響する既存正本 (Impacted SSoT)
+      description: どの既存要求・設計・契約に差分が乗るか。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 反映先 Forward 層
+      description: "差分を反映する Forward 工程 (Add-feature → L4-L7)。"
+      options:
+        - L4 基本設計
+        - L5 詳細設計
+        - L6 機能設計
+        - L7 実装
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 反映先の成果物・節。
+      placeholder: "例) L4 外部IF設計 へ Issue 連携 API を追補"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件 (Acceptance / close 条件)
+      description: 機能の受入基準（要求↔設計↔テスト↔実装の trace が閉じる）。
+    validations:
+      required: true
+  - type: textarea
+    id: functional-registry
+    attributes:
+      label: 機能一覧 (functional-registry) 登録 — 必須 exit
+      description: "追加機能を docs/v2/L3-requirements/helix-workflows-functional-registry.md へ登録する内容 (機能名 / 説明 / L1 FR / L3 FR / status)。登録なき機能追加は完了としない (registry §1.5 = デグレ第一歩の封鎖)。"
+      placeholder: "例) helix-issue-link | Issue↔PLAN 連携 CLI | FR-04 | FR-9MODE-01 | active"
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) add-feature-2026-06-03-issue-plan-link"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0"
+        - "P1"
+        - "P2"
+    validations:
+      required: true

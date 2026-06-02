@@ -1,0 +1,83 @@
+name: "🔧 Retrofit — 既存成果物を現行 HELIX 正本構造へ合わせ直す"
+description: "既存成果物を現行の HELIX 正本構造へ合わせ直す (駆動 workflow: Retrofit)"
+title: "[retrofit] "
+labels: ["retrofit", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Retrofit workflow** — 旧構造の既存成果物を現行 HELIX 正本構造へ合わせ直す作業を可視化する Issue です。
+        構造・契約・配置を現行正本へ整合させ、`forward_return`（L4-L9）へ戻して close します。
+        正本: `HELIX-workflows/helix-process/retrofit-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 症状 / 不整合 (Symptom)
+      description: 現行正本構造とのズレ（旧 path / 旧 frontmatter / 旧用語 / 旧配置）。対象を記載。
+      placeholder: "例) docs/plans/L3-detailed-design/ が現行 V2 構造と drift。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 逸脱起点 (Deviation origin)
+      description: いつの正本変更で旧構造が取り残されたか。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 戻し先 Forward 層
+      description: "合わせ直し成果を戻す Forward 工程 (Retrofit → L4-L9)。"
+      options:
+        - L4 基本設計
+        - L5 詳細設計
+        - L6 機能設計
+        - L7 実装
+        - L8 結合テスト
+        - L9 総合テスト
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 戻し先の成果物・節。
+      placeholder: "例) L4 基本設計 の現行構造へ archive + shim"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件 (Acceptance / close 条件)
+      description: 現行正本構造への整合完了基準（trace / 配置 / 用語の一致）。
+    validations:
+      required: true
+  - type: textarea
+    id: functional-registry
+    attributes:
+      label: 機能一覧 (functional-registry) 同期 — inventory 変化時は必須 exit
+      description: "機能の path/名称/status 変更・改廃に伴う functional-registry (docs/v2/L3-requirements/helix-workflows-functional-registry.md) の同期内容。inventory 変化がなければ『変化なし』と記入 (registry §1.5 = デグレ第一歩の封鎖)。"
+      placeholder: "例) helix-old-cmd → helix-new-cmd に rename、status=deprecated へ更新 / または『変化なし』"
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) retrofit-2026-06-03-l3-detailed-archive"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0"
+        - "P1"
+        - "P2"
+    validations:
+      required: true

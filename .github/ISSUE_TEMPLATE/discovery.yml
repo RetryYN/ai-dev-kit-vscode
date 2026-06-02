@@ -1,0 +1,74 @@
+name: "🔬 Discovery — 仮説検証 / PoC"
+description: "不確実な仮説を PoC で検証し、採用 / 棄却 / Forward 接続を判断する (駆動 workflow: Discovery)"
+title: "[discovery] "
+labels: ["discovery", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Discovery workflow** — Forward へ進む前に検証すべき「不確実な仮説・実現性」を可視化する Issue です。
+        仮説・PoC・採用/棄却基準を先に置き、confirmed を `forward_return` の Forward 工程へ昇格して close します。
+        正本: `HELIX-workflows/helix-process/discovery-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 不確実点 / 仮説 (Hypothesis)
+      description: 検証したい仮説と、不確実な点。なぜ Forward の前に検証が要るか。
+      placeholder: "例) trace_symmetry detector を fail-close gate 化しても false-positive を出さないか。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 逸脱起点 / 検証範囲 (Scope)
+      description: PoC スコープ・採用/棄却基準（先に固定する）。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 昇格先 Forward 層
+      description: "confirmed を昇格する Forward 工程 (Discovery → L1 / L3 / L4-L6)。"
+      options:
+        - L1 要求定義
+        - L3 要件定義
+        - L4 基本設計
+        - L5 詳細設計
+        - L6 機能設計
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 採用時の昇格先成果物。
+      placeholder: "例) L6 機能設計 として detector gate の関数仕様へ昇格"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 採用 / 棄却基準 + close 条件 (Acceptance)
+      description: PoC の何をもって採用/棄却を判断し close とするか。
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) poc-2026-06-03-detector-gate"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0"
+        - "P1"
+        - "P2"
+    validations:
+      required: true

@@ -8,6 +8,12 @@ on:
     branches:
       - main
 
+# Forward 逸脱→Issue / GitHub Flow 運用最適 (HELIX-workflows/helix-process/github-operations.md §3)
+# 同一 ref の旧 run を自動キャンセルし CI 多重起動を抑止する
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # PLAN-222 / ADR-036: 最小権限原則 (zizmor excessive-permissions / undocumented-permissions 対応)
 permissions:
   contents: read

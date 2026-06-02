@@ -1,0 +1,11 @@
+# HELIX-native Issue 運用 (github-operations.md §2.1)
+# Issue = Forward V モデルから外れた「逸脱の surface」(駆動 7 kind)。
+# Forward 正常進行は Issue 不要 (PLAN で足りる) → blank issue を無効化し、駆動 kind template の選択を強制する。
+blank_issues_enabled: false
+contact_links:
+  - name: HELIX GitHub 運用設計 (github-operations.md)
+    url: https://github.com/RetryYN/ai-dev-kit-vscode/blob/main/HELIX-workflows/helix-process/github-operations.md
+    about: "Forward 逸脱→Issue / CI↔gate 紐づけ / 駆動 workflow の設計正本。逸脱でない質問・相談はこちら。"
+  - name: 駆動 PLAN モデル (plan-model.md)
+    url: https://github.com/RetryYN/ai-dev-kit-vscode/blob/main/HELIX-workflows/helix-process/plan-model.md
+    about: "Process(親) ⊃ Action(子) / forward_return / parent_process の定義。Issue は close までに駆動 PLAN へ紐づける。"

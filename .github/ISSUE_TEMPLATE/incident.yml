@@ -1,0 +1,76 @@
+name: "🚨 Incident — 本番障害 / 緊急不具合"
+description: "本番障害・緊急不具合を止血し、恒久対策と postmortem を Forward / HELIX DB へ戻す (駆動 workflow: Incident)"
+title: "[incident] "
+labels: ["incident", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Incident workflow** — Forward V モデルから外れた「本番障害・緊急不具合」を可視化する Issue です。
+        止血 → 恒久対策 → postmortem を 駆動 Process(親) ⊃ Action(子) で収束し、`forward_return` 到達時に close します。
+        Forward の正常進行には Issue 不要です（**逸脱のみ Issue 化**）。
+        正本: `HELIX-workflows/helix-process/incident-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 症状 (Symptom)
+      description: 観測された障害・不具合。再現手順・影響範囲・発生時刻があれば記載。
+      placeholder: "例) 本番で helix gate が exit 1、全 PLAN が gate を通れない。2026-06-03 10:00〜。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 逸脱起点 (Deviation origin)
+      description: どの工程・コミット・変更から Forward を外れたか（症状の層ではなく逸脱が始まった層）。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 戻し先 Forward 層
+      description: "恒久対策を正本化して戻す Forward 工程 (Incident → L1 / L3 / L4-L6 / L14)。"
+      options:
+        - L1 要求定義
+        - L3 要件定義
+        - L4 基本設計
+        - L5 詳細設計
+        - L6 機能設計
+        - L14 運用検証
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 戻し先の成果物・節を具体的に。
+      placeholder: "例) L4 基本設計 方式設計.md §フェイルクローズ方針 の見直し"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件 (Acceptance / close 条件)
+      description: 何をもって収束=Issue close とするか。Forward 該当 L への closure event を記述。
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) incident-2026-06-03-gate-failure"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0 (止血最優先)"
+        - "P1"
+        - "P2"
+    validations:
+      required: true

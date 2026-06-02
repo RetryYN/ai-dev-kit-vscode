@@ -1,0 +1,84 @@
+name: "🛟 Recovery — AI 暴走 / 工程逸脱 / 認識ズレの収束"
+description: "AI 暴走・工程逸脱・認識ズレ・破綻状態を収束し、再開点を Forward / HELIX DB へ戻す (駆動 workflow: Recovery)"
+title: "[recovery] "
+labels: ["recovery", "deviation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Recovery workflow** — AI 暴走・工程逸脱・認識ズレ・破綻状態を可視化する Issue です。
+        Recovery は層ではなく横断モードです。**まず逸脱起点の層を特定**し、再開点を `forward_return` の Forward 工程へ戻して close します。
+        正本: `HELIX-workflows/helix-process/recovery-workflow.md` / `HELIX-workflows/helix-process/plan-model.md`
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 症状 (Symptom)
+      description: 暴走・逸脱・認識ズレの観測内容。
+      placeholder: "例) Phase 完遂を whole-coverage 未検証で宣言した。設計カバレッジ範囲を誤認。"
+    validations:
+      required: true
+  - type: textarea
+    id: deviation-origin
+    attributes:
+      label: 逸脱起点 (Deviation origin) — 必ず層を特定
+      description: どの工程・判断から逸脱が始まったか（症状の層ではなく逸脱起点の層）。再開点はここになる。
+    validations:
+      required: true
+  - type: dropdown
+    id: forward-return-layer
+    attributes:
+      label: forward_return — 再開する Forward 層
+      description: "再開ポイント (Recovery → 逸脱起点から L0-L14 のいずれか)。"
+      options:
+        - L0 企画
+        - L1 要求定義
+        - L2 画面設計
+        - L3 要件定義
+        - L4 基本設計
+        - L5 詳細設計
+        - L6 機能設計
+        - L7 実装
+        - L8 結合テスト
+        - L9 総合テスト
+        - L10 フロントUX
+        - L11 総合レビュー
+        - L12 受入テスト
+        - L13 運用検証
+        - L14 運用検証
+    validations:
+      required: true
+  - type: input
+    id: forward-return-detail
+    attributes:
+      label: forward_return (具体)
+      description: 再開する具体的な成果物・タスク。
+      placeholder: "例) 全設計 L0-L6 の coverage 検証から再開"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受入条件 (Acceptance / close 条件)
+      description: 何をもって収束=Issue close とするか。再発防止策を含める。
+    validations:
+      required: true
+  - type: input
+    id: plan-id
+    attributes:
+      label: plan_id (対応する駆動 PLAN、未起票なら TBD)
+      placeholder: "例) recovery-2026-06-03-whole-coverage-rescope"
+  - type: input
+    id: parent-process
+    attributes:
+      label: parent_process (親 Process PLAN path、単独 Action なら空)
+      placeholder: "例) docs/plans/process/process-2026-....md"
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - "P0"
+        - "P1"
+        - "P2"
+    validations:
+      required: true
