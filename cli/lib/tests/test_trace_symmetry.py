@@ -183,8 +183,8 @@ def test_collect_trace_symmetry_reports_duplicate_wrong_layer_and_deprecated_exc
             "",
             "| BR-ID | summary | description |",
             "| --- | --- | --- |",
-            "| BR-01 | first definition | duplicated left-column key |",
-            "| BR-01 | duplicate definition | duplicated left-column key |",
+            "| BR-01 | same definition | duplicated left-column key |",
+            "| BR-01 | same definition | duplicated left-column key |",
         ],
     )
     _write_doc(
@@ -230,3 +230,206 @@ def test_collect_trace_symmetry_reports_duplicate_wrong_layer_and_deprecated_exc
     assert l1_l14["deprecated_excluded"]["docs"] == ["docs/v2/L1-requirements/deprecated.md"]
     assert report["preflight_fail"]["duplicate_id"][0]["id"] == "BR-01"
     assert report["preflight_fail"]["wrong_layer_pair"][0]["doc"] == "docs/v2/L1-requirements/active.md"
+
+
+def test_collect_trace_symmetry_supports_whole_coverage_pairs(tmp_path: Path) -> None:
+    docs_root = tmp_path / "docs" / "v2"
+    _write_doc(
+        docs_root / "L5-detailed-design" / "module.md",
+        [
+            "doc_id: module",
+            "status: frozen",
+            "process_layer: L5",
+            "pairs_test_design:",
+            "  path: docs/v2/L8-test-design/integration.md",
+            "  ids:",
+            "    - IT-MOD-01",
+        ],
+        [
+            "# Module",
+            "",
+            "| MOD-ID | 概要 | 詳細 |",
+            "| --- | --- | --- |",
+            "| MOD-01 | module split | pair to integration design |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L8-test-design" / "integration.md",
+        [
+            "doc_id: integration",
+            "status: frozen",
+            "process_layer: L8",
+            "pairs_design: docs/v2/L5-detailed-design/module.md",
+        ],
+        [
+            "# Integration",
+            "",
+            "| IT-ID | 対象設計ID | シナリオ |",
+            "| --- | --- | --- |",
+            "| IT-MOD-01 | MOD-01 | integration coverage |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L6-functional-design" / "function.md",
+        [
+            "doc_id: function",
+            "status: frozen",
+            "process_layer: L6",
+            "pairs_test_design:",
+            "  path: docs/v2/L7-test-design/unit.md",
+            "  ids:",
+            "    - UT-FN-01",
+        ],
+        [
+            "# Function",
+            "",
+            "| FN-ID | 関数 | 契約 |",
+            "| --- | --- | --- |",
+            "| FN-ORDER-01 | evaluate_route | returns normalized route |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L7-test-design" / "unit.md",
+        [
+            "doc_id: unit",
+            "status: frozen",
+            "process_layer: L7",
+            "pairs_design: docs/v2/L6-functional-design/function.md",
+        ],
+        [
+            "# Unit",
+            "",
+            "| UT-ID | 対象設計ID | シナリオ |",
+            "| --- | --- | --- |",
+            "| UT-FN-01 | FN-ORDER-01 | unit coverage |",
+        ],
+    )
+
+    report = trace_symmetry.collect_trace_symmetry(project_root=tmp_path)
+
+    assert report["pairs"]["L5-L8"]["coverage_pct"] == 100.0
+    assert report["pairs"]["L5-L8"]["missing_pair"]["count"] == 0
+    assert report["pairs"]["L6-L7"]["coverage_pct"] == 100.0
+    assert report["pairs"]["L6-L7"]["missing_pair"]["count"] == 0
+
+
+def test_collect_trace_symmetry_reports_missing_pair_docs_and_ids(tmp_path: Path) -> None:
+    docs_root = tmp_path / "docs" / "v2"
+    _write_doc(
+        docs_root / "L5-detailed-design" / "if.md",
+        [
+            "doc_id: if",
+            "status: frozen",
+            "process_layer: L5",
+            "pairs_test_design:",
+            "  path: docs/v2/L8-test-design/integration.md",
+            "  ids:",
+            "    - IT-IF-01",
+            "    - IT-IF-02",
+        ],
+        [
+            "# IF",
+            "",
+            "| IF-ID | 対象 | 詳細 |",
+            "| --- | --- | --- |",
+            "| IF-01 | cli | declared pair ids must exist |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L8-test-design" / "integration.md",
+        [
+            "doc_id: integration",
+            "status: frozen",
+            "process_layer: L8",
+            "pairs_design: docs/v2/L5-detailed-design/if.md",
+        ],
+        [
+            "# Integration",
+            "",
+            "| IT-ID | 対象設計ID | シナリオ |",
+            "| --- | --- | --- |",
+            "| IT-IF-01 | IF-01 | only one test id exists |",
+        ],
+    )
+
+    report = trace_symmetry.collect_trace_symmetry(project_root=tmp_path)
+    pair = report["pairs"]["L5-L8"]
+
+    assert pair["missing_pair"]["count"] == 1
+    assert pair["missing_pair"]["items"][0]["reason"] == "missing_target_ids"
+    assert pair["missing_pair"]["items"][0]["ids"] == ["IT-IF-02"]
+
+
+def test_collect_trace_symmetry_ignores_meta_docs_and_reference_tables(tmp_path: Path) -> None:
+    docs_root = tmp_path / "docs" / "v2"
+    _write_doc(
+        docs_root / "L3-requirements" / "detail.md",
+        [
+            "doc_id: detail",
+            "status: frozen",
+            "process_layer: L3",
+            "pair_artifact: docs/v2/L12-test-design/acceptance.md",
+        ],
+        [
+            "# Detail",
+            "",
+            "### FR-ALPHA-01 Coverage target",
+            "",
+            "| L1 ID | L3 FR-ID | 統合内容 |",
+            "| --- | --- | --- |",
+            "| FR-01 | FR-ALPHA-01 | mapping only |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L3-requirements" / "registry.md",
+        [
+            "status: draft",
+            "process_layer: L3",
+            "artifact_type: functional_registry",
+        ],
+        [
+            "# Registry",
+            "",
+            "| FR-ID | 説明 |",
+            "| --- | --- |",
+            "| FR-ALPHA-01 | registry mirror only |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L1-requirements" / "strategy.md",
+        [
+            "status: draft",
+            "process_layer: L1",
+            "doc_kind: verification-strategy",
+        ],
+        [
+            "# Strategy",
+            "",
+            "| FR-ID | 説明 |",
+            "| --- | --- |",
+            "| FR-01 | should not be counted in L1 pair universe |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L12-test-design" / "acceptance.md",
+        [
+            "doc_id: acceptance",
+            "status: frozen",
+            "process_layer: L12",
+            "pairs_design: docs/v2/L3-requirements/detail.md",
+        ],
+        [
+            "# Acceptance",
+            "",
+            "| AT-ID | 対象要件ID | シナリオ |",
+            "| --- | --- | --- |",
+            "| AT-01 | FR-ALPHA-01 | covered requirement |",
+        ],
+    )
+
+    report = trace_symmetry.collect_trace_symmetry(project_root=tmp_path)
+    pair = report["pairs"]["L3-L12"]
+
+    assert pair["duplicate_id"]["count"] == 0
+    assert pair["coverage_pct"] == 100.0
+    assert pair["uncovered_req"]["ids"] == []
