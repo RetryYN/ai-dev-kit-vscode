@@ -34,6 +34,25 @@ audit_history:
 
 ---
 
+## §1.5 更新規律 — 機能を追加/復元/改廃する駆動 workflow の必須 exit
+
+> **デグレ第一歩の封鎖**: 機能が追加されても本 registry に載らなければ、FR-FNREG-01 (機能一覧 SSoT) が実態から静かに乖離し、`check_functional_registry` の母数が穴あきになる。これが機能網羅カバレッジ劣化の起点である。**機能 inventory を変える駆動 workflow は、本 registry への登録/同期を exit 条件（完了条件）とする**。
+
+| 駆動 workflow | registry 操作 | 必須/任意 |
+|---|---|---|
+| Add-feature | 新規機能を §該当区分へ **追加登録**（機能名 / 説明 / L1 FR / L3 FR / status） | **必須** |
+| Reverse | 復元した既存機能を **登録/補完**（本 registry 自体が Reverse fullback で生成された経緯） | **必須** |
+| Retrofit | 改廃・移設に伴い entry を **同期**（path/名称/status 更新、廃止は status 変更） | **必須**（inventory が変わる場合） |
+| Refactor | 振る舞い不変が原則。関数の rename/split で entry 名が変わるなら **同期のみ** | inventory 変化時のみ |
+| Discovery | confirmed を Forward 昇格（add-feature 等）した時点で登録 | 昇格先 workflow が担保 |
+| Incident / Recovery | 恒久対策で新機能を足した場合のみ登録 | 機能追加時のみ |
+
+- **登録単位の必須項目**: 機能名 / 一行説明 / L1 FR trace / L3 FR trace / status（active 等）。§2 summary の件数も同期する。
+- **機械 enforcement**: `helix doctor check_functional_registry`（L4 carry）が §3〜§9 の ID と実コード（cli/lib/hook/agent/skill/workflow/template）を突合し、**未登録資産を fail-close で検出**する。実装までは本 exit 条件を手続きで担保し、実装後は gate で担保する（Phase 検証で whole-coverage detector に統合）。
+- **駆動 workflow doc 側の参照**: add-feature / reverse / retrofit の各 workflow doc は本 §1.5 を exit 条件として参照する（規律の再定義はせず本 doc を SSoT とする）。
+
+---
+
 ## §2. 全体 summary
 
 | 区分 | 件数 |

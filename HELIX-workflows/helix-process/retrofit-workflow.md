@@ -60,3 +60,5 @@ Refactor（コード内部の構造改善）より広く、依存・基盤・構
 ## Forward 接続
 
 影響範囲に応じて L4 基本設計・L5 詳細設計・L7 実装へ追補する。検証は L8 結合テスト・L9 総合テスト（回帰）。要件自体が変わる場合のみ L1 / L3 へ戻す。
+
+**機能一覧（functional-registry）同期（inventory 変化時は必須 exit）**: Retrofit で機能の path / 名称 / status が変わる、または機能を改廃する場合は、[functional-registry §1.5 更新規律](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md) の該当 entry を同期（更新／廃止 status）してから Forward へ接続する。未同期は FR-FNREG-01 (機能一覧 SSoT) の drift＝デグレ第一歩になる。

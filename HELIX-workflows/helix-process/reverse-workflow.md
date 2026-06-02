@@ -84,6 +84,8 @@ R4 で作った routing は、Reverse の結論に応じて Forward HELIX のど
 
 `--invalidate-forward`（code type の R2/R3/R4/run/retry）は、Reverse の結果が Forward の既存 gate 前提を崩す場合に該当ゲートを invalidated に戻す。RGC は「Reverse で見つけた gap が Forward 側で閉じたか」の閉塞チェックで、open が残る場合は `debt` / `readiness defer` / 新規 `plan` に戻す。
 
+**機能一覧（functional-registry）登録（必須 exit）**: Reverse で復元・確認した既存機能は、[functional-registry §1.5 更新規律](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md) に登録/補完してから Forward へ接続する。本 registry 自体が Reverse fullback で生成された経緯のとおり、復元機能の未登録は FR-FNREG-01 (機能一覧 SSoT) の穴あき＝デグレ第一歩になる。同様に、復元過程（特に R3 Intent）で確定した**ドメイン用語**は [Glossary（concept.md §12）](../../docs/v2/L0-helix-workflows/concept.md) へ登録する。
+
 ## 起票する PLAN kind
 
 各 type は `reverse` kind の PLAN として起票され、R4 routing で Forward へ接続する。逸脱と kind の対応は deviation-plan-map.md を参照。
