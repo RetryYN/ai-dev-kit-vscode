@@ -4,7 +4,7 @@ title: "Recovery: Phase1 早すぎる完遂宣言 + 全設計カバレッジ認�
 kind: recovery
 layer: recovery
 drive: be
-status: in_progress
+status: completed
 created: 2026-06-03
 owner: PM
 parent_process: HELIX-workflows/helix-process/recovery-workflow.md
@@ -60,3 +60,4 @@ related_docs:
 | 日付 | 内容 | 担当 |
 |---|---|---|
 | 2026-06-03 | Recovery 起票。逸脱起点=早すぎる完遂宣言+whole-coverage 未検証+プラン漏れ未検索。網羅検索で現状確定。L4↔L9 は本日 100% 収束済。 | PM (Opus) |
+| 2026-06-03 | **収束完了 (forward_return 達成)**。再開ポイント全消化: ①detector whole-coverage 化 (L5/L6 ID 抽出+verification_layers+missing-pair、commit 91c9a16) ②L5↔L8 pairing (L5 per-item ID + L8 結合テスト設計 doc Reverse、2c0fbbe) ③L6↔L7 (L6 機能設計+L7 単体テスト設計 DbC、3e33b82) ④L1↔L14 verification_layers 契約 (over-report 解消、3ecdddc) ⑤GitHub 早期実装 (99b9ebe)。**全5 V-model pair が detector green** (coverage100%/uncovered0/missing-pair0/wrong_layer_pair0)。L5↔L8/L6↔L7 を tl-advisor check (P1修正) 後 V-model pair-freeze (96fb028)。**§6 完遂基準を満たす** (L0-L6 全設計層が doc+対テスト双方向、detector 全ペア measurable)。**残 finding**: L4↔L9 orphan18 (全 ST-* system scenario、forward coverage100% だが reverse-trace 弱、次 L9 re-freeze で ST-*→L4 verifies backlink 推奨=tl-advisor)。 | PM (Opus) |
