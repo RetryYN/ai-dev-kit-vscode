@@ -34,6 +34,8 @@ Project profile により、一部工程は skip できる。HELIX-workflows 自
 | L13 | デプロイ後検証 / 実環境運用 | 実環境検証 |
 | L14 | 運用検証 / 機能改善 | L1 の検証 |
 
+- **工程遷移規律**: L0→G0.5→L1 の遷移（企画→要求の翻訳、PdM 登場・PM/PO 判定）は `helix-process/planning-to-requirements-transition.md` を正本とする。右腕検証戦略は L1 で起票する（`docs/v2/L1-requirements/helix-workflows-verification-strategy.md`、入力は L0 から handoff）。
+
 ## テスト設計の対応
 
 | 作る層 | 実行・検証する層 |

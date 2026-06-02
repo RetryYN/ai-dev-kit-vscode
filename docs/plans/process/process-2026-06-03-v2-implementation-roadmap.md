@@ -9,7 +9,9 @@ drive: discovery
 status: draft
 created: 2026-06-03
 owner: PM
-contains_action_plans: []
+contains_action_plans:
+  - docs/plans/reverse/reverse-2026-06-03-l1-l3-trace-hardening.md
+  - docs/plans/discovery/poc-2026-06-03-trace-symmetry-detector.md
 forward_return: "Forward V モデル L0-L14 への全 pair 収束。Phase1-2 で L0-L9 の設計↔検証ペアを完全密度で確立、Phase3-4 で L7 実装+自動化+HELIX DB を実体化、Phase5-6 で L8-L14 を実走完走。最終=V モデル DB に全 L-pair freeze + trace/coverage closure が登録された状態。"
 agent_slots:
   - role: pm-advisor
@@ -110,6 +112,7 @@ related_docs:
 |---|---|---|
 | 2026-06-03 | V2 実装計画 Process 起票（6 Phase 確定 / 貫通要件 / 循環 / forward_return 宣言）。CLAUDE.md にスコープ・優先順位・循環を反映。 | PM (Opus) |
 | 2026-06-03 | tl-advisor adversarial check = **条件付き推奨 / P0 なし / P1×3**。P1 反映: ①§3.2 に Phase4 DB entry 条件（観測→D-DB/D-CONTRACT→migration/rollback→pair test、escalation gate）②§3.2 に Phase5 Troubleshoot routing（Recovery/Incident/Refactor へ、または非 workflow step 明記）③§1.3・CLAUDE.md に「監査スコープ=全体 / 編集範囲=allowed_files 準拠」を明文化。契約 P1: §5 に closure 判定を子 Action へ分解（target_l_pairs / balance_ratio / exit gate）。plan_validator / plan_lint --strict-frontmatter PASS。 | PM (Opus) |
+| 2026-06-03 | **Phase 1 実行**（/goal「Phase1 完遂」）。**重要発見=Phase1 ペアは健全**（L1↔L14 / L3↔L12 とも、当初の「両ペア片肺」は false positive 3 連発だった。実在片肺 L4↔L9 は Phase2）。詳細 [[reverse-2026-06-03-l1-l3-trace-hardening]]。**成果物**: ①検証戦略 doc 正本化 [[verification-strategy]]（Master Verification Strategy、ID universe / 双方向 trace / gap 指標 / false-positive 教訓 / 定量vs定性判定基準）②detector refine [[poc-2026-06-03-trace-symmetry-detector]]（cli/lib/trace_symmetry.py、L3↔L12 uncovered=0 / L4↔L9 片肺検出 を機械再現、pytest 3 passed）③L0→L1 遷移規律 [[planning-to-requirements-transition]]（PdM owner、Forward 内 transition discipline）④反芻機構 [[workflow-self-evaluation]]（skill/agent/command 発火評価 + 観測済改善点の要件 input）⑤GitHub HELIX-native 運用 [[github-operations]]（Forward 逸脱→Issue、CI↔gate 紐づけ）。**TL 一括諮問**（検証ロードマップ/L0→L1/GitHub）= 条件付き推奨 P0 なし。**carry**: L4↔L9 片肺(Phase2) / L1 verification_layers 契約+G1再凍結 / L0 inventory 数値 stale / detector L5-L6 抽出 / GitHub(ADR-029 reconcile・4-branch 統合・ISSUE_TEMPLATE・release-please)。 | PM (Opus) |
 
 ## 8. 次アクション
 1. tl-advisor で本 roadmap の adversarial check（Phase 境界・駆動耐性・forward_return・公開 API/harness 契約の保全）。
