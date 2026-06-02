@@ -2,11 +2,14 @@
 doc_id: L1-helix-workflows-business-requirements
 title: "HELIX-workflows V2 業務要求 (Business Requirements)"
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR; 2026-06-03 verification_layers 契約付与 (verification-strategy §7、L1↔L14 over-report 36件解消、G1 再凍結)"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
+verification_layers:
+  - ids: [BR-01, BR-02, BR-03, BR-04, BR-05, BR-06, BR-07, BR-08, BR-09, BR-10, BR-11, BR-12]
+    layers: [L14, L12]
 next_pair_freeze: L3
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-業務要求plan

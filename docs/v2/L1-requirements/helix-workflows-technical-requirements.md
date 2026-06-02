@@ -2,12 +2,15 @@
 doc_id: L1-helix-workflows-technical-requirements
 title: "HELIX-workflows V2 技術要求 (Technical Requirements)"
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR; 2026-06-03 verification_layers 契約付与 (verification-strategy §7、L1↔L14 over-report 36件解消、G1 再凍結)"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
 pairs_test_design: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+verification_layers:
+  - ids: [TR-01, TR-02, TR-03, TR-04, TR-05, TR-06, TR-07, TR-08]
+    layers: [L9, L8, L7]
 next_pair_freeze: L4
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-技術要求plan

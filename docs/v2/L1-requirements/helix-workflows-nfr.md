@@ -2,12 +2,19 @@
 doc_id: L1-helix-workflows-nfr
 title: "HELIX-workflows V2 非機能要求 (Non-Functional Requirements)"
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR; 2026-06-03 verification_layers 契約付与 (verification-strategy §7、L1↔L14 over-report 36件解消、G1 再凍結)"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
 pairs_test_design: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+verification_layers:
+  - ids: [NFR-AV-01, NFR-AV-02, NFR-AV-03, NFR-OP-01, NFR-OP-02, NFR-OP-03, NFR-OP-04, NFR-OP-05]
+    layers: [L14, L12]
+  - ids: [NFR-PF-01, NFR-PF-02, NFR-PF-03, NFR-PF-04, NFR-MG-01, NFR-MG-02, NFR-MG-03]
+    layers: [L12, L9]
+  - ids: [NFR-SC-01, NFR-SC-02, NFR-SC-03, NFR-SC-04, NFR-SC-05, NFR-SE-01, NFR-SE-02, NFR-SE-03]
+    layers: [L12]
 next_pair_freeze: L4
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-非機能要求plan

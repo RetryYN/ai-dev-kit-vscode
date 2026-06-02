@@ -2,12 +2,15 @@
 doc_id: L1-helix-workflows-functional-requirements
 title: "HELIX-workflows V2 機能要求 (Functional Requirements)"
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR; 2026-06-03 verification_layers 契約付与 (verification-strategy §7、L1↔L14 over-report 36件解消、G1 再凍結)"
 created: 2026-05-26
 owner: PM
 process_layer: L1
 pairs_with: L14
 pairs_test_design: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+verification_layers:
+  - ids: [FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12, FR-13]
+    layers: [L12, L9, L7]
 next_pair_freeze: L3
 canonical_source: HELIX-workflows/helix-process/L1-requirements.md
 parent_plan: L1-helix-workflows-機能要求plan
