@@ -7,7 +7,7 @@ workflow: reverse
 kind: reverse
 layer: L7
 drive: reverse
-status: in_progress
+status: completed
 created: 2026-06-03
 owner: PM
 agent_slots:
@@ -102,3 +102,16 @@ L7（実装: 配線 + handover 同期 + drift guard + test）→ **L8 統合検�
 
 - **BUG-5**（session-summaries rotation / 蓄積 governance）= P2 carry。Phase 3 gate の合否正当性に二次的なため本 Action 必須スコープ外。
 - グローバル `~/.claude/settings.json`（ユーザー環境 state）はリポ内 test だけでは保証不可 → setup.sh merge と helix init の両導線での検査を carry として明示。
+
+## 8. closure（L8 passed、2026-06-03）
+
+- 実装 commit `10a6412` `fix(hook): Stop hook 配線 + head_sha 同期で PLAN-081 片肺回収`（9 files、472+/31-）。
+- **PM 独立検証**（Codex summary を鵜呑みにせず実体確認）:
+  - 独立 pytest 42 passed + merge_settings 22 passed + 新規 test_handover_git_sync。
+  - フル bats suite green（not ok 0 件）+ 新規 test-helix-stop-hook-wiring.bats 2/2 + session-summary 回帰 8/8。
+  - `helix doctor` 24-0-105 baseline 維持（回帰なし）。
+  - settings.json: 他 hook 脱落ゼロ / helix-stop-hook 重複なし / content idempotent。
+  - 手動 Stop smoke: 実 repo で `helix-stop-hook` invoke → head_sha=実 HEAD 一致 / revision++。
+- BUG-1(P0) / BUG-2,3(P1) / BUG-4(P2) 解消。context_guard drift guard で再発を機械封鎖。
+- **forward_return 達成**: PLAN-081 の「Stop 統合 + 統合 test」未了契約を回収（L7 実装 → L8 統合検証 passed）。
+- **carry**: BUG-5（summaries rotation）/ global `~/.claude/settings.json` の setup.sh・helix init 両導線検査。
