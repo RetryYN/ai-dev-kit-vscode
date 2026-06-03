@@ -65,3 +65,5 @@ Add-feature は、既に Forward（Vモデル L0–L14）で作られ、ドキ�
 さらに、追加機能は **機能一覧（functional-registry）への登録を exit 条件**とする（registry doc [§1.5 更新規律](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md)）。これを欠くと FR-FNREG-01 (機能一覧 SSoT) が実態から乖離し、`check_functional_registry` の母数が穴あきになって機能網羅カバレッジが劣化する（デグレ第一歩）。Reverse / Retrofit も inventory を変える場合は同じく登録/同期を exit とする。
 
 また、追加が**新規ドメイン用語**を導入する場合は [Glossary（concept.md §12 = ユビキタス言語 SSoT）](../../docs/v2/L0-helix-workflows/concept.md) への登録も exit 条件とする（`helix/HELIX_RUNTIME_RULES.md` §5。用語の未登録も機能一覧と同型のデグレ経路）。
+
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: design pair freeze を functional-registry 同期と**同等の exit 条件**にする（非対称を解消）。

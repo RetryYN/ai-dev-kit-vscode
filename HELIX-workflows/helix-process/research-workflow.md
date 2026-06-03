@@ -56,6 +56,8 @@ Research は、実装前の技術調査・方式比較・意思決定を行う�
 
 ADR は L1 要求定義・L4 基本設計の判断材料として接続する。調査の結果、「作れるか不明」になれば Discovery（PoC 検証）へ、「既存実装を調べる必要がある」となれば Reverse へ切り替える。
 
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: ADR が L4 判断を変えるなら L4↔L9 再凍結の owner を TL+PM に固定し、接続完了を exit 条件にする。
+
 ## §関連 skill
 
 - [research](../skills/workflow/research/SKILL.md)

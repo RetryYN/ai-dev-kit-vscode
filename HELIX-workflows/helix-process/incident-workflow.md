@@ -73,6 +73,8 @@ postmortem を L14 運用検証へフィードバック
 
 これにより、緊急の hotfix は速く打ちつつ、恒久対策は Vモデルのドキュメント体系・トレーサビリティに収束する。
 
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: hotfix で L7/L8/L9 を先行しても、恒久化時に対 design を再凍結するまで close しない。
+
 ## §関連 skill
 
 - [incident](../skills/workflow/incident/SKILL.md)

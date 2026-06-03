@@ -86,6 +86,8 @@ R4 で作った routing は、Reverse の結論に応じて Forward HELIX のど
 
 **機能一覧（functional-registry）登録（必須 exit）**: Reverse で復元・確認した既存機能は、[functional-registry §1.5 更新規律](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md) に登録/補完してから Forward へ接続する。本 registry 自体が Reverse fullback で生成された経緯のとおり、復元機能の未登録は FR-FNREG-01 (機能一覧 SSoT) の穴あき＝デグレ第一歩になる。同様に、復元過程（特に R3 Intent）で確定した**ドメイン用語**は [Glossary（concept.md §12）](../../docs/v2/L0-helix-workflows/concept.md) へ登録する。
 
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: 「実装だけで閉じる→L7」は `pure_impl` を証明できる時のみ。証明不可なら L6↔L7 を再凍結。
+
 ## 起票する PLAN kind
 
 各 type は `reverse` kind の PLAN として起票され、R4 routing で Forward へ接続する。逸脱と kind の対応は deviation-plan-map.md を参照。

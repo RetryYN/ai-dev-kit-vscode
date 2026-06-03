@@ -96,3 +96,5 @@ Project profile により、一部工程は skip できる。HELIX-workflows 自
 | 既存を改修・移行する | Retrofit | L4-L9 |
 | 実装前に調査・意思決定する | Research | L1 / L4 |
 | AI が暴走・工程逸脱した | Recovery | 再開ポイントから L0-L14 |
+
+> **全駆動 workflow の引き戻し規律（必須）**: 上表の「戻し先」へ Forward 復帰するとき、各駆動 workflow は [helix-process/forward-return-discipline.md](helix-process/forward-return-discipline.md) を必須適用する。戻し先が実装/検証層（L7/L8/L9）でも、`design_change_class` が `pure_impl` と証明できない限り対の design 層（L6/L5/L4）を再凍結する（片肺禁止 = 絶対原則 §0/§1 の operationalize）。

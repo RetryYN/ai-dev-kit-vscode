@@ -61,6 +61,8 @@ fail-close: `confirmed` は対象 hypothesis の verify script 成功が必須�
 
 ## Forward 接続
 
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: 設計層へ昇格する時に対の検証層（L6→L7 等）を**同時凍結**する。
+
 `confirmed` で handoff / promotion plan draft が生成される。PoC をそのまま本実装にせず、L1 要求定義 / L3 要件定義 / L4–L6 設計へ昇格させる。verify script は L6（機能設計 / 単体テスト）の回帰検証に残す。
 
 ## 起票する PLAN kind

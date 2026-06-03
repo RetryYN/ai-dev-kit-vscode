@@ -81,6 +81,8 @@ AI エージェント（Claude Code / Codex）が独断専行・暴走したと�
 
 収束後、確定した再開ポイントから標準フロー（L0–L14）へ復帰する。認識訂正履歴と再発防止策は L14 運用検証へフィードバックする。
 
+> **Forward 引き戻し規律（共通）**: 本 workflow の forward_return は [forward-return-discipline.md](forward-return-discipline.md) を必須適用する（R1-R5 / `design_change_class` 判定 / touch 層の対 design 層を再凍結 / exit 条件）。固有点: 再開点が実装層のとき、逸脱前後で design 対が整合するか確認してから Forward 再開。
+
 ## §関連 skill
 
 - [debugging-and-error-recovery](../skills/agent-skills/debugging-and-error-recovery/SKILL.md)

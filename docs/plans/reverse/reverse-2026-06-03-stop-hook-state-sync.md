@@ -115,3 +115,14 @@ L7（実装: 配線 + handover 同期 + drift guard + test）→ **L8 統合検�
 - BUG-1(P0) / BUG-2,3(P1) / BUG-4(P2) 解消。context_guard drift guard で再発を機械封鎖。
 - **forward_return 達成**: PLAN-081 の「Stop 統合 + 統合 test」未了契約を回収（L7 実装 → L8 統合検証 passed）。
 - **carry**: BUG-5（summaries rotation）/ global `~/.claude/settings.json` の setup.sh・helix init 両導線検査。
+
+## 9. forward-return-discipline 遡及適用（2026-06-03、deferred finding）
+
+[forward-return-discipline.md](../../../HELIX-workflows/helix-process/forward-return-discipline.md) 新設に伴い本 PLAN の forward_return を遡及再評価する（retrofit-2026-06-03-driving-forward-return-discipline §7）。
+
+- `touched_layers`: L7（実装）+ L8（統合検証）。
+- `design_change_class`: **`design_or_contract_changed`**（`pure_impl` ではない）。理由: `collect_git_snapshot` / `refresh_git_snapshot` / `previous_head_sha` 機構を**新設**し、`cmd_update` / `cmd_resume` の関数責務（head_sha 再取得）を**変更**した = 関数仕様（L6 DbC）が変わる変更。
+- `required_refreeze_pairs`: **L6↔L7**（変更/新設関数の DbC 機能設計）。
+- `refreeze_evidence`: 実装・統合テスト（L7→L8）は passed だが、**L6 機能設計（DbC: requires/ensures）の再凍結は未実施＝片肺**。
+- **判定**: 本 PLAN は機能（実装+統合テスト）として完了しているが、V-model 基準（§forward-return-discipline R1）では L6↔L7 design 対が片肺。**§8 の `completed` は「機能完了」を指し、V-model pair 完全凍結ではない**。
+- **deferred finding `DF-FRD-001`**: 変更/新設関数（collect_git_snapshot 等）の L6 機能設計 DbC 再凍結を Phase A 後の carry とする（forward-return-discipline Phase C で detector が機械検出する対象の第 1 号）。本 finding を残すことで「片肺を completed で放置しない」規律を満たす。

@@ -57,6 +57,8 @@ Process の連鎖を構成する step には 2 種がある:
 
 > **closure 契約の分離（tl-advisor 必須条件）**: `mode_transition` / `closure_reason` / `target_forward_layer` / closure event schema を PLAN validator の必須 contract に**焼かない**。これらは closure PoC（H-CLOSURE-01）confirmed 後に別 PLAN で L4/L5 凍結する。本モデルは PLAN の構造（行程 / 実行の親子）だけを規定する。
 
+> **forward_return の再凍結 contract（[forward-return-discipline.md](forward-return-discipline.md) 連携）**: 駆動 PLAN の `forward_return` は戻し先 L だけでなく、`touched_layers` / `design_change_class`（`pure_impl` / `design_or_contract_changed` / `unknown`）/ `required_refreeze_pairs` / `refreeze_evidence` / `waiver` を宣言する（意味の正本は forward-return-discipline.md）。これは駆動 workflow が L7/L8/L9 へ戻る際に対の design 層（L6/L5/L4）を再凍結せず片肺を作る抜け穴を塞ぐためのもの。validator への落とし込みは**段階導入**（Phase B = lint warning → Phase C/D = detector/gate fail-close）であり、本 Phase では必須 contract に焼かない（上記 closure 契約分離と同方針）。
+
 ### 命名の整理（命名分裂を防ぐ）
 | path | 種別 | plan_scope |
 |---|---|---|
