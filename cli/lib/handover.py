@@ -195,6 +195,33 @@ def run_git(project_root, args, strict=True):
     return proc.stdout.strip()
 
 
+def collect_git_snapshot(project_root):
+    branch = run_git(project_root, ["rev-parse", "--abbrev-ref", "HEAD"], strict=True)
+    head_sha = run_git(project_root, ["rev-parse", "HEAD"], strict=True)
+    if not SHA40_RE.fullmatch(head_sha):
+        raise HandoverError("git rev-parse HEAD が 40 桁 SHA を返しませんでした", EXIT_PREREQ_ERROR)
+
+    dirty_text = run_git(project_root, ["status", "--porcelain"], strict=True)
+    return {
+        "branch": branch,
+        "head_sha": head_sha,
+        "dirty": bool(dirty_text.strip()),
+    }
+
+
+def refresh_git_snapshot(state, project_root, preserve_previous_head=False):
+    latest = collect_git_snapshot(project_root)
+    if preserve_previous_head:
+        prior_git = state.get("git", {})
+        prior_head = prior_git.get("head_sha")
+        prior_previous = prior_git.get("previous_head_sha")
+        if latest["head_sha"] != prior_head:
+            latest["previous_head_sha"] = prior_previous or prior_head
+        elif prior_previous:
+            latest["previous_head_sha"] = prior_previous
+    return latest
+
+
 def _unique_nonempty(items):
     seen = set()
     out = []
@@ -657,15 +684,12 @@ def stale_check(state, project_root, enabled):
         reasons.append("branch_mismatch")
 
     saved_sha = saved_git.get("head_sha", "")
-    log_text = run_git(project_root, ["log", "--format=%H", "-n", "50"], strict=False)
     if not SHA40_RE.fullmatch(saved_sha):
         reasons.append("head_sha_unreachable")
-    elif log_text is None:
+    elif run_git(project_root, ["cat-file", "-e", f"{saved_sha}^{{commit}}"], strict=False) is None:
         reasons.append("head_sha_unreachable")
-    else:
-        reachable = set(line.strip() for line in log_text.splitlines() if line.strip())
-        if saved_sha not in reachable:
-            reasons.append("head_sha_unreachable")
+    elif run_git(project_root, ["merge-base", "--is-ancestor", saved_sha, "HEAD"], strict=False) is None:
+        reasons.append("head_sha_unreachable")
 
     try:
         updated_at = datetime.datetime.fromisoformat(state.get("updated_at", ""))
@@ -705,13 +729,7 @@ def build_dump_state(args):
     if not args.task_id or not args.task_title:
         raise HandoverError("dump には --task-id と --task-title が必要です", EXIT_INPUT_ERROR)
 
-    branch = run_git(args.project_root, ["rev-parse", "--abbrev-ref", "HEAD"], strict=True)
-    head_sha = run_git(args.project_root, ["rev-parse", "HEAD"], strict=True)
-    if not SHA40_RE.fullmatch(head_sha):
-        raise HandoverError("git rev-parse HEAD が 40 桁 SHA を返しませんでした", EXIT_PREREQ_ERROR)
-
-    dirty_text = run_git(args.project_root, ["status", "--porcelain"], strict=True)
-    dirty = bool(dirty_text.strip())
+    git_snapshot = collect_git_snapshot(args.project_root)
 
     target_files = normalize_list_value(args.files)
     pending_files = normalize_list_value(args.pending) if args.pending else list(target_files)
@@ -730,11 +748,7 @@ def build_dump_state(args):
         "owner": "opus",
         "scope": args.scope,
         "mode": args.mode,
-        "git": {
-            "branch": branch,
-            "head_sha": head_sha,
-            "dirty": dirty,
-        },
+        "git": git_snapshot,
         "phase": args.phase,
         "sprint": sprint,
         "project": args.project,
@@ -961,6 +975,7 @@ def cmd_update(args):
         if not changed:
             raise HandoverError("update する内容が指定されていません", EXIT_INPUT_ERROR)
 
+        updated["git"] = refresh_git_snapshot(updated, args.project_root, preserve_previous_head=True)
         updated["updated_at"] = now_iso()
         updated["revision"] = expected_revision + 1
         validate_state(updated)
@@ -1180,8 +1195,9 @@ def cmd_resume(args):
                 EXIT_CHECK_FAILED,
             )
 
-        base_sha = state["git"]["head_sha"]
-        current_sha = run_git(args.project_root, ["rev-parse", "HEAD"], strict=True)
+        base_sha = state["git"].get("previous_head_sha") or state["git"]["head_sha"]
+        current_snapshot = collect_git_snapshot(args.project_root)
+        current_sha = current_snapshot["head_sha"]
         if not SHA40_RE.fullmatch(current_sha):
             raise HandoverError(f"現在の HEAD SHA が不正: {current_sha}", EXIT_INTERNAL_ERROR)
 
@@ -1218,6 +1234,7 @@ def cmd_resume(args):
         updated["owner"] = "opus"
         if not args.no_status_transition and current_status != "in_progress":
             updated["task"]["status"] = "in_progress"
+        updated["git"] = current_snapshot
         updated["updated_at"] = now_iso()
         updated["revision"] = expected_revision + 1
         validate_state(updated)

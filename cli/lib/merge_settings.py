@@ -103,6 +103,17 @@ def _build_hooks():
                         "blockOnFailure": False,
                     }
                 ]
+            },
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, "cli/helix-stop-hook"),
+                        "timeout": 10,
+                        "statusMessage": "Syncing handover state...",
+                        "blockOnFailure": False,
+                    }
+                ]
             }
         ]
     }
@@ -255,6 +266,23 @@ def merge(settings):
     return _merge_hooks(settings, HELIX_HOOKS)
 
 
+def _retile_known_helix_commands(settings):
+    known_commands = _known_helix_commands(_all_helix_entries())
+    home = os.path.abspath(os.path.expanduser("~"))
+    for event_entries in settings.get("hooks", {}).values():
+        for entry in event_entries:
+            for hook in entry.get("hooks", []):
+                command = hook.get("command")
+                normalized = _normalize_hook_command(command)
+                if normalized in known_commands and normalized.startswith(home + os.sep):
+                    hook["command"] = "~" + normalized[len(home):]
+
+
+def _should_retile_project_settings(path):
+    normalized = os.path.normpath(path)
+    return normalized.endswith(os.path.join(".claude", "settings.json"))
+
+
 def merge_settings_for_migrate(current, hooks_to_install):
     """migrate.py から使う非破壊 API。
 
@@ -318,9 +346,11 @@ def main():
             changed = remove(settings)
         else:
             changed = merge(settings)
+            if _should_retile_project_settings(path):
+                _retile_known_helix_commands(settings)
 
         if changed:
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(settings, f, indent=2, ensure_ascii=False)
                 f.write("\n")
 

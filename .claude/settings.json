@@ -204,6 +204,17 @@
             "blockOnFailure": false
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/ai-dev-kit-vscode/cli/helix-stop-hook",
+            "timeout": 10,
+            "statusMessage": "Syncing handover state...",
+            "blockOnFailure": false
+          }
+        ]
       }
     ]
   }

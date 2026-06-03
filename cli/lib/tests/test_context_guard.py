@@ -39,7 +39,12 @@ def _write_required_files(root: Path) -> None:
     _write_framework_context_files(root)
 
 
-def _write_settings(root: Path, include_bash_guard: bool = True, bash_guard_blocks: bool = True) -> None:
+def _write_settings(
+    root: Path,
+    include_bash_guard: bool = True,
+    bash_guard_blocks: bool = True,
+    include_stop_hook: bool = True,
+) -> None:
     pretool = [
         {
             "matcher": "Write",
@@ -69,6 +74,10 @@ def _write_settings(root: Path, include_bash_guard: bool = True, bash_guard_bloc
             ],
         }
     )
+    stop_entries = [{"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-session-summary"}]}]
+    if include_stop_hook:
+        stop_entries.append({"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-stop-hook"}]})
+
     payload = {
         "hooks": {
             "SessionStart": [{"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-session-start"}]}],
@@ -79,7 +88,7 @@ def _write_settings(root: Path, include_bash_guard: bool = True, bash_guard_bloc
                     "hooks": [{"command": "~/ai-dev-kit-vscode/cli/libexec/helix-post-tool-use"}],
                 }
             ],
-            "Stop": [{"hooks": [{"command": "~/ai-dev-kit-vscode/cli/helix-session-summary"}]}],
+            "Stop": stop_entries,
         }
     }
     settings = root / ".claude" / "settings.json"
@@ -112,6 +121,17 @@ def test_check_context_fails_when_research_tool_guard_missing(tmp_path: Path) ->
 
     assert payload["ok"] is False
     assert any(item["code"] == "missing_hook" and "helix-pre-research" in item["message"] for item in payload["errors"])
+
+
+def test_check_context_fails_when_stop_hook_missing(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    _write_settings(tmp_path, include_stop_hook=False)
+    (tmp_path / "docs" / "memory").mkdir(parents=True)
+
+    payload = context_guard.check_context(tmp_path)
+
+    assert payload["ok"] is False
+    assert any(item["code"] == "missing_hook" and "helix-stop-hook" in item["message"] for item in payload["errors"])
 
 
 def test_check_context_passes_with_required_files_and_hooks(

@@ -109,17 +109,13 @@ def auto_dump_current(
     current_json = project_root / ".helix" / "handover" / "CURRENT.json"
     try:
         state = handover_core.load_json(current_json)
-        branch = _run_text(project_root, ["git", "branch", "--show-current"]) or state.get("git", {}).get("branch", "")
-        head_sha = _run_text(project_root, ["git", "rev-parse", "HEAD"]) or state.get("git", {}).get("head_sha", "")
-        dirty_text = _run_text(project_root, ["bash", "-lc", "git status --porcelain | head -20"])
+        git_snapshot = handover_core.refresh_git_snapshot(state, project_root, preserve_previous_head=True)
+        dirty_text = handover_core.run_git(project_root, ["status", "--porcelain"], strict=True)
         dirty_lines = [line for line in dirty_text.splitlines() if line.strip()]
-        commits = _run_text(project_root, ["git", "log", "--oneline", "-10"], timeout_sec=10).splitlines()
+        commits = (handover_core.run_git(project_root, ["log", "--oneline", "-10"], strict=False) or "").splitlines()
         recommendation = recommend_compact(threshold=detect_compact_threshold)
         updated = json.loads(json.dumps(state, ensure_ascii=False))
-        updated.setdefault("git", {})
-        updated["git"]["branch"] = branch
-        updated["git"]["head_sha"] = head_sha
-        updated["git"]["dirty"] = bool(dirty_lines)
+        updated["git"] = git_snapshot
         updated["updated_at"] = handover_core.now_iso()
         updated["revision"] = int(state.get("revision", 0)) + 1
         release_session = release_session_id or (None if not release_running_slots else session_helper.detect_session_id())

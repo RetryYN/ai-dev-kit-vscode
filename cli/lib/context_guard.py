@@ -241,6 +241,7 @@ def check_context(root: Path) -> dict[str, Any]:
             ("PreToolUse", "helix-pre-research", "WebSearch|WebFetch"),
             ("PostToolUse", "helix-post-tool-use", "Edit|Write|MultiEdit"),
             ("Stop", "helix-session-summary", ""),
+            ("Stop", "helix-stop-hook", ""),
         ]
         for event, command_part, matcher_part in required_hooks:
             if not _has_hook(project_settings, event, command_part, matcher_part):
