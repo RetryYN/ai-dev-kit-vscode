@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -32,6 +33,41 @@ def _now_utc() -> datetime:
 
 def _shifted_iso(*, days: int = 0, minutes: int = 0, seconds: int = 0) -> str:
     return _iso_utc(_now_utc() - timedelta(days=days, minutes=minutes, seconds=seconds))
+
+
+def _apply_sqlite_now(base_now: datetime, *args: object) -> str:
+    current = base_now.replace(microsecond=0)
+    values = [str(arg).strip() for arg in args if str(arg).strip()]
+    if values and values[0].lower() == "now":
+        values = values[1:]
+    for value in values:
+        match = re.fullmatch(r"([+-])(\d+)\s+(second|seconds|minute|minutes|hour|hours|day|days)", value)
+        if match is None:
+            raise ValueError(f"unsupported sqlite datetime modifier: {value}")
+        sign = 1 if match.group(1) == "+" else -1
+        amount = int(match.group(2))
+        unit = match.group(3)
+        if unit.startswith("second"):
+            delta = timedelta(seconds=amount)
+        elif unit.startswith("minute"):
+            delta = timedelta(minutes=amount)
+        elif unit.startswith("hour"):
+            delta = timedelta(hours=amount)
+        else:
+            delta = timedelta(days=amount)
+        current = current + delta if sign > 0 else current - delta
+    return _iso_utc(current)
+
+
+def _freeze_agent_slots_now(monkeypatch: pytest.MonkeyPatch, frozen_now: datetime) -> None:
+    original_connect = agent_slots.helix_db._connect
+
+    def _connect_with_fixed_now(db_path: str | Path):
+        conn = original_connect(db_path)
+        conn.create_function("datetime", -1, lambda *args: _apply_sqlite_now(frozen_now, *args))
+        return conn
+
+    monkeypatch.setattr(agent_slots.helix_db, "_connect", _connect_with_fixed_now)
 
 
 def _open_conn(db_path: Path) -> sqlite3.Connection:
@@ -435,9 +471,16 @@ class TestListStaleSlots:
 
         assert agent_slots.list_stale_slots() == []
 
-    def test_u_stale_002_exactly_five_minutes_is_stale(self, fresh_db: Path) -> None:
+    def test_u_stale_002_exactly_five_minutes_is_stale(self, fresh_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """DoD 検証: PLAN-078-unit-test-design.md U-STALE-002 (5 分境界の stale 側を含める)"""
-        slot_id = _seed_slot(fresh_db, agent_kind="codex", role="se", fired_at=_shifted_iso(minutes=5, seconds=1))
+        frozen_now = datetime(2026, 6, 4, 12, 0, 0, tzinfo=timezone.utc)
+        _freeze_agent_slots_now(monkeypatch, frozen_now)
+        slot_id = _seed_slot(
+            fresh_db,
+            agent_kind="codex",
+            role="se",
+            fired_at=_iso_utc(frozen_now - timedelta(minutes=5)),
+        )
 
         rows = agent_slots.list_stale_slots()
 

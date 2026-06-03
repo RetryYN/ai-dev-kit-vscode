@@ -41,6 +41,19 @@ def _query_rows(db_path: Path, query: str, params: tuple = ()) -> list[sqlite3.R
         conn.close()
 
 
+def _latest_audit_log_id(db_path: Path) -> int:
+    rows = _query_rows(db_path, "SELECT COALESCE(MAX(id), 0) AS max_id FROM audit_log")
+    return int(rows[0]["max_id"])
+
+
+def _query_new_audit_rows(db_path: Path, start_id: int) -> list[sqlite3.Row]:
+    return _query_rows(
+        db_path,
+        "SELECT id, audit_kind, actor, payload FROM audit_log WHERE id > ? ORDER BY id",
+        (start_id,),
+    )
+
+
 def _run_stop_like_hook(hook_path: Path, project_root: Path, **extra_env: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     # PLAN-223: session fixture が HELIX_DB_PATH=worker_base を inherit するので明示 override
@@ -204,6 +217,7 @@ def test_post_tool_use_hook_records_hook_exec(tmp_path: Path) -> None:
 
 def test_pretooluse_opus_repo_block_records_hook_and_gate(tmp_path: Path) -> None:
     project_root, db_path = _init_project(tmp_path, "opus-block")
+    start_id = _latest_audit_log_id(db_path)
 
     proc = _run_pretooluse_hook(
         PRETOOLUSE_OPUS_HOOK,
@@ -213,7 +227,7 @@ def test_pretooluse_opus_repo_block_records_hook_and_gate(tmp_path: Path) -> Non
     )
 
     assert proc.returncode == 2
-    rows = _query_rows(db_path, "SELECT audit_kind, actor, payload FROM audit_log ORDER BY id")
+    rows = _query_new_audit_rows(db_path, start_id)
 
     assert [row["audit_kind"] for row in rows] == ["hook_exec", "gate_eval"]
     gate_payload = json.loads(rows[1]["payload"])
@@ -224,6 +238,7 @@ def test_pretooluse_opus_repo_block_records_hook_and_gate(tmp_path: Path) -> Non
 
 def test_pretooluse_askuserquestion_records_gate_eval(tmp_path: Path) -> None:
     project_root, db_path = _init_project(tmp_path, "askuserquestion")
+    start_id = _latest_audit_log_id(db_path)
 
     proc = _run_pretooluse_hook(
         PRETOOLUSE_ASK_HOOK,
@@ -232,7 +247,7 @@ def test_pretooluse_askuserquestion_records_gate_eval(tmp_path: Path) -> None:
     )
 
     assert proc.returncode == 0
-    rows = _query_rows(db_path, "SELECT audit_kind, actor, payload FROM audit_log ORDER BY id")
+    rows = _query_new_audit_rows(db_path, start_id)
 
     assert [row["audit_kind"] for row in rows] == ["hook_exec", "gate_eval"]
     gate_payload = json.loads(rows[1]["payload"])
