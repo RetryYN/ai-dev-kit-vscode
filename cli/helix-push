@@ -89,19 +89,34 @@ usage() {
 使い方: helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH]
 
 Options:
-  --gate           6 ゲート検証を実行
+  --gate           7 ゲート検証を実行
   --execute        全ゲート PASS 時のみ git push を実行
+  --plan-id PLAN   G-review 対象 PLAN を明示指定
+  --allow-main     main への push を明示許可
+  --reason TEXT    main への push を許可する理由
   --remote REMOTE  push 対象 remote (default: origin)
-  --branch BRANCH  push 対象 branch (default: main)
+  --branch BRANCH  push 対象 branch (default: current branch)
   --help           このヘルプ
 USAGE
+}
+
+current_git_branch() {
+  local detected=""
+  if detected="$(git -C "$PROJECT_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)" && [[ -n "$detected" ]]; then
+    printf '%s\n' "$detected"
+    return 0
+  fi
+  printf 'main\n'
 }
 
 main() {
   local run_gate="false"
   local execute="false"
   local remote="origin"
-  local branch="main"
+  local branch=""
+  local plan_id=""
+  local allow_main="false"
+  local reason=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -123,6 +138,20 @@ main() {
         branch="$2"
         shift 2
         ;;
+      --plan-id)
+        [[ $# -ge 2 ]] || { echo "エラー: --plan-id には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
+        plan_id="$2"
+        shift 2
+        ;;
+      --allow-main)
+        allow_main="true"
+        shift
+        ;;
+      --reason)
+        [[ $# -ge 2 ]] || { echo "エラー: --reason には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
+        reason="$2"
+        shift 2
+        ;;
       --help|-h)
         usage
         return 0
@@ -141,6 +170,15 @@ main() {
     return "$EXIT_INPUT_ERROR"
   }
 
+  if [[ -z "$branch" ]]; then
+    branch="$(current_git_branch)"
+  fi
+
+  if [[ "$branch" == "main" && ( "$allow_main" != "true" || -z "$reason" ) ]]; then
+    echo "エラー: main への push は --allow-main と --reason が必須です" >&2
+    return "$EXIT_INPUT_ERROR"
+  fi
+
   [[ -x "$HELPER" ]] || {
     echo "エラー: helper が実行できません: $HELPER" >&2
     return "$EXIT_PREREQ_ERROR"
@@ -151,6 +189,9 @@ main() {
     HELIX_AUTOMATION_REMOTE="$remote" \
     HELIX_AUTOMATION_BRANCH="$branch" \
     HELIX_AUTOMATION_EXECUTE="$execute" \
+    HELIX_AUTOMATION_PLAN_ID="$plan_id" \
+    HELIX_AUTOMATION_ALLOW_MAIN="$allow_main" \
+    HELIX_AUTOMATION_REASON="$reason" \
     python3 - <<'PY'
 import json
 import os
@@ -159,6 +200,9 @@ print(json.dumps({
     "remote": os.environ["HELIX_AUTOMATION_REMOTE"],
     "branch": os.environ["HELIX_AUTOMATION_BRANCH"],
     "execute": os.environ["HELIX_AUTOMATION_EXECUTE"] == "true",
+    "plan_id": os.environ["HELIX_AUTOMATION_PLAN_ID"] or None,
+    "allow_main": os.environ["HELIX_AUTOMATION_ALLOW_MAIN"] == "true",
+    "reason": os.environ["HELIX_AUTOMATION_REASON"] or None,
 }, ensure_ascii=False, sort_keys=True))
 PY
   )"
@@ -169,10 +213,17 @@ PY
     cd "$PROJECT_ROOT"
     export HELIX_AUTOMATION_RUN_ID="$AUTOMATION_RUN_ID"
     if [[ "$execute" == "true" ]]; then
-      "$HELPER" --execute --remote "$remote" --branch "$branch"
+      helper_cmd=("$HELPER" --execute --remote "$remote" --branch "$branch")
     else
-      "$HELPER" --remote "$remote" --branch "$branch"
+      helper_cmd=("$HELPER" --remote "$remote" --branch "$branch")
     fi
+    if [[ -n "$plan_id" ]]; then
+      helper_cmd+=(--plan-id "$plan_id")
+    fi
+    if [[ "$allow_main" == "true" ]]; then
+      helper_cmd+=(--allow-main)
+    fi
+    "${helper_cmd[@]}"
   )
 }
 

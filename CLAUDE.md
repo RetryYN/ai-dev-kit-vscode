@@ -138,9 +138,10 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 
 ### push / PR
 
-- **push・PR 作成・merge はユーザーが明示的に依頼したときのみ行う** (commit はローカル、push は別判断)。
+- **push は gate 委譲で自動許可** (毎回手動承認は撤廃、2026-06-03): `helix push --gate --execute --plan-id <PLAN>` が **7 gate** (G-tests/G-catalog/G-secret/G-ff/G-attr=Co-Authored-By/G-nondestructive/**G-review**=PLAN完遂 `status∈{completed,finalized}` + `tl_review=approve`) **全 PASS なら別途承認なしで push**。policy SSoT = [github-operations.md §3.5](HELIX-workflows/helix-process/github-operations.md)。
+- **raw `git push` は guard で deny** (gate 非経由は fail-close、bypass = `HELIX_ALLOW_RAW_PUSH=1` + 理由を evidence)。`helix push --execute` (`--gate` 無し) も deny。**`main` は auto-push 不可** (branch protection PR required + `--allow-main --reason` + 人間判断)。auto-push 対象は `dogfood` / `feature/*` / `hotfix/*`。
 - 委譲した Codex は commit / push しない。`git add` / `commit` / `push` は呼び出し元 (PM) が成果物検証後に判断する。
-- 外部公開操作 (push / PR / release / tag) は外向きアクションのため、durable な許可がない限り都度確認する。
+- **PR 作成 / merge / release / tag** 等の外部公開操作は外向きアクションのため、durable な許可がない限り都度確認する (gate-driven push の自動許可はこれらには及ばない)。
 - PR body 末尾には `🤖 Generated with [Claude Code](https://claude.com/claude-code)` を付ける。GitHub 操作は `gh` CLI を使う。
 
 ### gitignore / 追跡対象

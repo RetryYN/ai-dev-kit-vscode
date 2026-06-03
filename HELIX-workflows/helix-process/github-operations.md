@@ -45,6 +45,16 @@ Forward 逸脱検出（drift / 障害 / 探索 / 既存実態 / AI 暴走）
 - **SHA pin + dependabot**: 維持（immutable ref + 継続更新）。
 - **concurrency**: `cancel-in-progress: true` を全 7 workflow に **実装済**（2026-06-03、group=`${{ github.workflow }}-${{ github.ref }}`、job 名＝Required checks 名は不変）。
 
+## 3.5 gate-driven push（承認の gate 委譲、2026-06-03 — push policy SSoT）
+
+push の毎回手動承認を撤廃する。承認を**消す**のでなく**機械 gate に委譲**する。本節が push 政策の SSoT（CLI 契約 = [D-CONTRACT §4.5](../../docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md)、利用導線 = [docs/commands/push.md](../../docs/commands/push.md)、`CLAUDE.md` はリンク + 要約）。
+
+- **承認の置換**: `helix push --gate --execute --plan-id <PLAN>` が **7 gate 全 PASS → authorized push**（別途の人間承認は不要）。これは HELIX harness 経由の push のみに適用する。
+- **7 gate**: `G-tests` / `G-catalog` / `G-secret` / `G-ff` / `G-attr`(Co-Authored-By) / `G-nondestructive` / **`G-review`**（新）。`G-review` = 対象 PLAN frontmatter `status ∈ {completed, finalized}` + `tl_review == approve`。PLAN 特定は **explicit-first**（`--plan-id` → handover active plan_id → ahead commit の単一 PLAN）、**複数候補/0/handover 不一致は fail-close**。
+- **raw push は guarded**: gate を経由しない raw `git push`（`--force` / `git push origin main` 含む）は `helix-pre-bash` guard で **deny**（fail-close、bypass = `HELIX_ALLOW_RAW_PUSH=1` + 理由を evidence）。`helix push --execute`（`--gate` 無し）も deny。**＝従来「push は承認必須」は実行者の遵守頼みで機械 guard が無かったが、本変更で fail-close 化し安全性は向上する**。
+- **branch scope**: `dogfood` / `feature/*` / `hotfix/*` は gate-driven auto-push 可。**`main` は auto-push 不可**（§3 branch protection: PR required + force off 維持）。main 直 push は `--allow-main --reason <text>` + 人間判断を必須とし、doc/typo/hotfix 限定（§3 と整合）。`helix push` の default branch は current branch（main 暗黙 push を防ぐ）。
+- **配布 carry**: 消費側へ効かせるには CLAUDE/AGENTS template・hook/settings 配布・setup/migrate 導線への反映が要る（本 repo 確定後、別 batch）。
+
 ## 4. CLAUDE.md への取り込み
 - `CLAUDE.md` の「## GitHub 運用ルール」に **§Forward 逸脱 → Issue** と **§CI↔gate 紐づけ** を追記し、運用導線を本書へリンクする（重複させない）。
 

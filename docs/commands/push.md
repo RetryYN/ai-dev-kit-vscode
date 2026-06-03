@@ -2,10 +2,12 @@
 
 ## 概要
 
-`helix push` は、push 前に 6 つの機械ゲートをまとめて検証し、
+`helix push` は、push 前に 7 つの機械ゲートをまとめて検証し、
 条件を満たしたときだけ `git push` を実行するための補助 CLI です。
+全 gate PASS = authorized push（毎回の手動承認は不要）。policy SSoT は
+[github-operations.md §3.5](../../HELIX-workflows/helix-process/github-operations.md)。
 
-対象は `origin/main` を既定にした通常の push 導線で、
+対象 branch は既定で **current branch**（`main` への push は `--allow-main --reason` 必須）。
 `--execute` を付けない限りは dry-run として動作します。
 
 主な用途:
@@ -20,7 +22,7 @@
 ## 書式
 
 ```text
-helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH]
+helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLAN] [--allow-main --reason TEXT]
 ```
 
 実行例:
@@ -35,13 +37,16 @@ helix push --gate --execute --remote origin --branch main
 
 | オプション | 説明 |
 | --- | --- |
-| `--gate` | 6 ゲート検証を有効化。現状は必須 |
-| `--execute` | 全ゲート PASS 時のみ `git push <remote> <branch>` を実行 |
+| `--gate` | 7 ゲート検証を有効化。現状は必須 |
+| `--execute` | 全ゲート PASS 時のみ `git push <remote> <branch>` を実行（`--gate` 必須） |
 | `--remote REMOTE` | 検証対象と push 対象の remote。既定は `origin` |
-| `--branch BRANCH` | 検証対象と push 対象の branch。既定は `main` |
+| `--branch BRANCH` | 検証対象と push 対象の branch。既定は **current branch** |
+| `--plan-id PLAN` | G-review 対象 PLAN の明示指定（未指定時は handover active plan_id → ahead commit の単一 PLAN で解決、複数/0/不一致は fail-close） |
+| `--allow-main` | `main` への push を許可（`--reason` 必須）。未指定で branch=main は fail-close |
+| `--reason TEXT` | `--allow-main` 時の理由（commit/evidence へ） |
 | `--help` | ヘルプを表示 |
 
-## 6 ゲート
+## 7 ゲート
 
 | ID | 名前 | 検証内容 | fail 時メッセージ |
 | --- | --- | --- | --- |
@@ -51,6 +56,7 @@ helix push --gate --execute --remote origin --branch main
 | `G-ff` | fast-forward | `git fetch <remote> <branch>` 後に `git merge-base --is-ancestor <remote>/<branch> HEAD` | rebase 必要、`git pull --rebase origin main` |
 | `G-attr` | Co-Authored-By | `git rev-list --count <remote>/<branch>..HEAD` と `git log <remote>/<branch>..HEAD --grep "Co-Authored-By"` を比較 | commit 修正必要 (amend or rebase -i) |
 | `G-nondestructive` | destructive diff | `git diff <remote>/<branch>..HEAD` の追加行から `DROP TABLE` / `git branch -D` / `rm -rf` / `--force` / `--no-verify` を検出 | destructive operation 検出、manual-confirm 必要 |
+| `G-review` | PLAN完遂 + TLレビュー | 対象 PLAN frontmatter `status ∈ {completed, finalized}` + `tl_review == approve`（`--plan-id` で特定、explicit-first、複数/0/不一致は fail-close） | PLAN を completed/finalized + `tl_review: approve` にする、`--plan-id` 指定 |
 
 ## 出力形式
 

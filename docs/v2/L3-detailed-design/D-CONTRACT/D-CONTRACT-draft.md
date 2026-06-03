@@ -508,6 +508,15 @@ push_gate_run_all_gates:
     branch:
       type: string
       default: "main"
+      note: "helix-push CLI 層の default は current branch（main への push は --allow-main + --reason 必須）"
+    plan_id:
+      type: string | null
+      default: null
+      description: "G-review 対象 PLAN の明示指定（explicit-first: --plan-id → handover active plan_id → ahead commit の単一 PLAN。複数/0/不一致は fail-close）"
+    allow_main:
+      type: boolean
+      default: false
+      description: "main への push を許可（gate-driven auto-push は dogfood/feature/hotfix のみ。main は本フラグ + 人間判断が必須）"
   return_type: dict
   return_keys:
     ok: { type: boolean, description: "全 gate PASS かつ push 成功 (execute=true 時)" }
@@ -518,7 +527,7 @@ push_gate_run_all_gates:
         type: object
         required: [id, passed, detail, fix]
         properties:
-          id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+          id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive, G-review] }
           passed: { type: boolean }
           detail: { type: string }
           fix: { type: string }
@@ -544,8 +553,8 @@ push_gate_run_all_gates:
 existing_cli_callers:
   helix_push:
     file: cli/helix-push
-    pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH]"
-    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper"
+    pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLAN] [--allow-main]"
+    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper。helix-push の default branch=current、main は --allow-main + --reason 必須。G-review は対象 PLAN frontmatter の status∈{completed,finalized} + tl_review=approve を検査（gate-driven push 政策の SSoT は github-operations.md）"
   helix_pr:
     file: cli/helix-pr
     pattern: "inspect.signature(run_all_gates).parameters で動的キーワード確認後に呼び出し (L147-153)"

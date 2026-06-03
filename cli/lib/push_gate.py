@@ -9,6 +9,9 @@ import subprocess
 import sys
 from pathlib import Path
 from pathlib import PurePosixPath
+from typing import Any
+
+import plan_validator
 
 
 PYTEST_TESTS_CMD = ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]
@@ -29,6 +32,17 @@ DESTRUCTIVE_EXCLUDED_PREFIXES = (
 )
 DESTRUCTIVE_ROLLBACK_PREFIX = "cli/migrations/rollback/"
 DESTRUCTIVE_DIFF_HEADER = re.compile(r"^diff --git a/(.+) b/(.+)$")
+CONTRACT_GATE_ENUM_RE = re.compile(r"enum:\s*\[([^\]]+)\]")
+GATE_IDS = (
+    "G-tests",
+    "G-catalog",
+    "G-secret",
+    "G-ff",
+    "G-attr",
+    "G-nondestructive",
+    "G-review",
+)
+MAIN_BRANCH = "main"
 
 
 def _repo_root() -> Path:
@@ -104,6 +118,117 @@ def _is_excluded_destructive_path(path: str) -> bool:
     if path_text.startswith(DESTRUCTIVE_EXCLUDED_PREFIXES):
         return True
     return path_text.startswith(DESTRUCTIVE_ROLLBACK_PREFIX) and path_text.endswith(".sql")
+
+
+def _plan_doc_matches(project_root: Path, plan_id: str) -> list[Path]:
+    docs_plans = project_root / "docs" / "plans"
+    if not docs_plans.exists():
+        return []
+    return sorted(path for path in docs_plans.glob(f"**/{plan_id}.md") if path.is_file())
+
+
+def _resolve_plan_path(project_root: Path, plan_id: str) -> Path:
+    matches = _plan_doc_matches(project_root, plan_id)
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise ValueError(f"plan markdown not found: {plan_id}")
+    raise ValueError(f"multiple plan markdown files found: {plan_id}")
+
+
+def _load_handover_plan_id(project_root: Path) -> str | None:
+    handover_path = project_root / ".helix" / "handover" / "CURRENT.json"
+    if not handover_path.is_file():
+        return None
+    try:
+        payload = json.loads(handover_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    candidates = _collect_plan_ids(payload)
+    unique = sorted({candidate for candidate in candidates if candidate})
+    if len(unique) != 1:
+        return None
+    return unique[0]
+
+
+def _collect_plan_ids(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        collected: list[str] = []
+        for key, item in value.items():
+            if key == "plan_id" and isinstance(item, str) and item.strip():
+                collected.append(item.strip())
+            else:
+                collected.extend(_collect_plan_ids(item))
+        return collected
+    if isinstance(value, list):
+        collected: list[str] = []
+        for item in value:
+            collected.extend(_collect_plan_ids(item))
+        return collected
+    return []
+
+
+def _git_upstream_ref(project_root: Path) -> str | None:
+    proc = _run_command(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+        cwd=project_root,
+    )
+    if proc.returncode != 0:
+        return None
+    upstream = (proc.stdout or "").strip()
+    return upstream or None
+
+
+def _ahead_commit_plan_ids(project_root: Path) -> list[str]:
+    upstream = _git_upstream_ref(project_root)
+    if not upstream:
+        return []
+    proc = _run_command(
+        ["git", "diff", "--name-only", f"{upstream}..HEAD", "--", "docs/plans"],
+        cwd=project_root,
+    )
+    if proc.returncode != 0:
+        return []
+    plan_ids = {
+        Path(line.strip()).stem
+        for line in proc.stdout.splitlines()
+        if line.strip().startswith("docs/plans/") and line.strip().endswith(".md")
+    }
+    return sorted(plan_ids)
+
+
+def _resolve_review_plan_id(plan_id: str | None, project_root: Path) -> str:
+    explicit = plan_id.strip() if isinstance(plan_id, str) and plan_id.strip() else None
+    handover = _load_handover_plan_id(project_root)
+    ahead = _ahead_commit_plan_ids(project_root)
+
+    if explicit and handover and explicit != handover:
+        raise ValueError(f"plan_id mismatch: explicit={explicit} handover={handover}")
+    if explicit and len(ahead) == 1 and explicit != ahead[0]:
+        raise ValueError(f"plan_id mismatch: explicit={explicit} ahead={ahead[0]}")
+    if explicit and len(ahead) > 1 and explicit not in ahead:
+        raise ValueError(f"plan_id mismatch: explicit={explicit} ahead={ahead}")
+    if handover and len(ahead) > 1 and handover not in ahead:
+        raise ValueError(f"plan_id mismatch: handover={handover} ahead={ahead}")
+    if handover and len(ahead) == 1 and handover != ahead[0]:
+        raise ValueError(f"plan_id mismatch: handover={handover} ahead={ahead[0]}")
+
+    chosen = explicit or handover
+    if chosen:
+        return chosen
+    if len(ahead) == 1:
+        return ahead[0]
+    if len(ahead) > 1:
+        raise ValueError(f"multiple ahead PLAN candidates: {ahead}")
+    raise ValueError("plan_id is required: explicit/handover/ahead commit candidate not found")
+
+
+def _contract_gate_ids(contract_path: Path) -> list[str]:
+    text = contract_path.read_text(encoding="utf-8")
+    match = CONTRACT_GATE_ENUM_RE.search(text)
+    if not match:
+        raise ValueError(f"gate enum not found: {contract_path}")
+    return [item.strip() for item in match.group(1).split(",") if item.strip()]
 
 
 def run_gate_tests() -> dict:
@@ -288,7 +413,45 @@ def run_gate_nondestructive(remote: str = "origin", branch: str = "main") -> dic
     return _result("G-nondestructive", True, "no destructive pattern", "なし")
 
 
-def run_all_gates(execute: bool = False, remote: str = "origin", branch: str = "main") -> dict:
+def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
+    root = Path(project_root).resolve()
+    try:
+        resolved_plan_id = _resolve_review_plan_id(plan_id, root)
+        plan_path = _resolve_plan_path(root, resolved_plan_id)
+        frontmatter = plan_validator.load_frontmatter(plan_path)
+    except ValueError as exc:
+        return _result(
+            "G-review",
+            False,
+            str(exc),
+            "PLAN 特定 (--plan-id / handover / ahead commit) と docs/plans frontmatter を確認",
+        )
+
+    status = str(frontmatter.get("status", "")).strip()
+    tl_review = str(frontmatter.get("tl_review", "")).strip()
+    if status not in {"completed", "finalized"} or tl_review != "approve":
+        return _result(
+            "G-review",
+            False,
+            f"{resolved_plan_id} status={status or '<missing>'} tl_review={tl_review or '<missing>'}",
+            "PLAN frontmatter の status∈{completed,finalized} と tl_review=approve を満たすこと",
+        )
+    return _result(
+        "G-review",
+        True,
+        f"{resolved_plan_id} status={status} tl_review={tl_review}",
+        "なし",
+    )
+
+
+def run_all_gates(
+    execute: bool = False,
+    remote: str = "origin",
+    branch: str = "main",
+    plan_id: str | None = None,
+    allow_main: bool = False,
+) -> dict:
+    repo_root = _repo_root()
     gates = [
         run_gate_tests(),
         run_gate_catalog(),
@@ -296,6 +459,7 @@ def run_all_gates(execute: bool = False, remote: str = "origin", branch: str = "
         run_gate_ff(remote, branch),
         run_gate_attr(remote, branch),
         run_gate_nondestructive(remote, branch),
+        run_gate_review(plan_id, repo_root),
     ]
     failed = [gate for gate in gates if not gate["passed"]]
     result = {
@@ -305,6 +469,8 @@ def run_all_gates(execute: bool = False, remote: str = "origin", branch: str = "
         "execute_requested": execute,
         "remote": remote,
         "branch": branch,
+        "plan_id": plan_id,
+        "allow_main": allow_main,
         "push": {
             "attempted": False,
             "ok": False,
@@ -315,7 +481,11 @@ def run_all_gates(execute: bool = False, remote: str = "origin", branch: str = "
     if failed or not execute:
         return result
 
-    repo_root = _repo_root()
+    if branch == MAIN_BRANCH and not allow_main:
+        result["ok"] = False
+        result["push"]["detail"] = "main branch requires --allow-main"
+        return result
+
     push_proc = _run_command(["git", "push", remote, branch], cwd=repo_root)
     result["push"]["attempted"] = True
     result["push"]["ok"] = push_proc.returncode == 0
@@ -354,6 +524,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--remote", default="origin")
     parser.add_argument("--branch", default="main")
+    parser.add_argument("--plan-id", default=None)
+    parser.add_argument("--allow-main", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--help", "-h", action="store_true")
     return parser
@@ -369,7 +541,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"エラー: 不明なオプションです: {extra[0]}", file=sys.stderr)
         return 2
 
-    payload = run_all_gates(execute=args.execute, remote=args.remote, branch=args.branch)
+    payload = run_all_gates(
+        execute=args.execute,
+        remote=args.remote,
+        branch=args.branch,
+        plan_id=args.plan_id,
+        allow_main=args.allow_main,
+    )
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:

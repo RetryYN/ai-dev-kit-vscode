@@ -40,6 +40,41 @@ def test_blocks_direct_claude_cli() -> None:
     assert "helix claude" in result.reason
 
 
+def test_blocks_raw_git_push() -> None:
+    result = llm_guard.inspect_command("git push origin dogfood")
+
+    assert result.ok is False
+    assert "helix push --gate --execute" in result.reason
+
+
+def test_blocks_raw_git_push_force_variants() -> None:
+    assert not llm_guard.inspect_command("git push --force origin dogfood").ok
+    assert not llm_guard.inspect_command("git push -f origin dogfood").ok
+    assert not llm_guard.inspect_command("git push origin main").ok
+
+
+def test_blocks_raw_git_push_evasion_variants() -> None:
+    assert not llm_guard.inspect_command("G=git; $G push origin dogfood").ok
+    assert not llm_guard.inspect_command("$(printf git) push origin dogfood").ok
+
+
+def test_allows_helix_push_gate_execute() -> None:
+    assert llm_guard.inspect_command("helix push --gate --execute --plan-id plan --branch dogfood").ok
+
+
+def test_blocks_helix_push_execute_without_gate() -> None:
+    result = llm_guard.inspect_command("helix push --execute --plan-id plan --branch dogfood")
+
+    assert result.ok is False
+    assert "--gate" in result.reason
+
+
+def test_allows_raw_git_push_with_bypass_evidence() -> None:
+    command = "HELIX_ALLOW_RAW_PUSH=1 HELIX_RAW_PUSH_REASON=manual git push origin dogfood"
+
+    assert llm_guard.inspect_command(command).ok
+
+
 def test_blocks_codex_exec_with_global_options_and_alias() -> None:
     assert not llm_guard.inspect_command("codex -m gpt-5 exec unsafe").ok
     assert not llm_guard.inspect_command("codex --model=gpt-5 exec unsafe").ok

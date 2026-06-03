@@ -207,6 +207,16 @@ PACKAGE_RUNNER_OPTIONS_WITH_VALUE = {
     "--node-options",
 }
 PACKAGE_RUNNER_OPTIONS_NO_VALUE = {"-q", "--quiet", "--silent", "--bun"}
+GIT_OPTIONS_WITH_VALUE = {"-c", "-C", "--exec-path", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+GIT_OPTIONS_NO_VALUE = {
+    "-p",
+    "-P",
+    "--paginate",
+    "--no-pager",
+    "--no-replace-objects",
+    "--literal-pathspecs",
+    "--no-optional-locks",
+}
 DYNAMIC_CODEX_LOOKUP = r"(?:which|command\s+-v|type\s+-P)\s+codex"
 DYNAMIC_CODEX_SUB_RE = re.compile(rf"(['\"]?)(?:\$\(\s*{DYNAMIC_CODEX_LOOKUP}\s*\)|`\s*{DYNAMIC_CODEX_LOOKUP}\s*`)\1")
 DYNAMIC_CLAUDE_LOOKUP = r"(?:which|command\s+-v|type\s+-P)\s+claude"
@@ -1339,6 +1349,22 @@ def _stdout_body_may_emit_claude(body: str) -> bool:
     return any(value.strip() == "claude" for value in _stdout_literal_bodies(tokens))
 
 
+def _stdout_body_may_emit_git(body: str) -> bool:
+    try:
+        tokens = [_decode_detection_token(token) for token in shlex.split(body, comments=False, posix=True)]
+    except ValueError:
+        return False
+    return any(value.strip() == "git" for value in _stdout_literal_bodies(tokens))
+
+
+def _stdout_body_may_emit_helix(body: str) -> bool:
+    try:
+        tokens = [_decode_detection_token(token) for token in shlex.split(body, comments=False, posix=True)]
+    except ValueError:
+        return False
+    return any(value.strip() == "helix" for value in _stdout_literal_bodies(tokens))
+
+
 def _stdout_body_literals(body: str) -> list[str]:
     try:
         tokens = [_decode_detection_token(token) for token in shlex.split(body, comments=False, posix=True)]
@@ -1438,6 +1464,40 @@ def _word_may_expand_to_claude(word: str) -> bool:
         skeleton = skeleton.replace(f"$({body})", "")
         skeleton = skeleton.replace(f"`{body}`", "")
     return _basename(skeleton) == "claude"
+
+
+def _word_may_expand_to_git(word: str) -> bool:
+    normalized = _strip_outer_shell_quotes(word)
+    if _basename(normalized) == "git":
+        return True
+    if not any(marker in normalized for marker in ("$", "`")):
+        return False
+    if any(_stdout_body_may_emit_git(body) for body in _command_substitution_bodies(normalized)):
+        return True
+    if any(_basename(rendered) == "git" for rendered in _word_substitution_renders(normalized)):
+        return True
+    skeleton = SHELL_PARAM_EXPANSION_RE.sub("", normalized)
+    for body in _command_substitution_bodies(skeleton):
+        skeleton = skeleton.replace(f"$({body})", "")
+        skeleton = skeleton.replace(f"`{body}`", "")
+    return _basename(skeleton) == "git"
+
+
+def _word_may_expand_to_helix(word: str) -> bool:
+    normalized = _strip_outer_shell_quotes(word)
+    if _basename(normalized) == "helix":
+        return True
+    if not any(marker in normalized for marker in ("$", "`")):
+        return False
+    if any(_stdout_body_may_emit_helix(body) for body in _command_substitution_bodies(normalized)):
+        return True
+    if any(_basename(rendered) == "helix" for rendered in _word_substitution_renders(normalized)):
+        return True
+    skeleton = SHELL_PARAM_EXPANSION_RE.sub("", normalized)
+    for body in _command_substitution_bodies(skeleton):
+        skeleton = skeleton.replace(f"$({body})", "")
+        skeleton = skeleton.replace(f"`{body}`", "")
+    return _basename(skeleton) == "helix"
 
 
 def _raw_rest_is_codex_exec(rest: str) -> bool:
@@ -2723,6 +2783,19 @@ def _render_shell_expansions(
     return _render_shell_var_word(rendered, shell_vars)
 
 
+def _render_command_substitutions(
+    text: str,
+    detector: Any,
+    replacement: str,
+) -> str:
+    rendered = text
+    for body in _command_substitution_bodies(text):
+        if detector(body):
+            rendered = rendered.replace(f"$({body})", replacement)
+            rendered = rendered.replace(f"`{body}`", replacement)
+    return rendered
+
+
 def _render_shell_array_refs(text: str, shell_arrays: dict[str, list[str]]) -> str:
     if not shell_arrays:
         return text
@@ -2809,6 +2882,183 @@ def _segment_uses_claude_fragment_vars(segment: str, shell_vars: dict[str, str])
         return False
     rendered = _render_shell_var_word(tokens[0], shell_vars)
     return _basename(rendered) == "claude"
+
+
+def _strip_git_global_options(tokens: list[str]) -> list[str]:
+    remaining = list(tokens)
+    while remaining:
+        token = remaining[0]
+        if token == "--":
+            return remaining[1:]
+        if token in GIT_OPTIONS_WITH_VALUE:
+            remaining = remaining[2:] if len(remaining) >= 2 else []
+            continue
+        if any(token.startswith(f"{option}=") for option in GIT_OPTIONS_WITH_VALUE if option.startswith("--")):
+            remaining.pop(0)
+            continue
+        if token in GIT_OPTIONS_NO_VALUE:
+            remaining.pop(0)
+            continue
+        break
+    return remaining
+
+
+def _tokens_start_raw_git_push(tokens: list[str]) -> bool:
+    if not tokens or not _word_may_expand_to_git(tokens[0]):
+        return False
+    rest = _strip_git_global_options(tokens[1:])
+    return bool(rest) and rest[0] == "push"
+
+
+def _tokens_start_helix_push(tokens: list[str]) -> bool:
+    return len(tokens) >= 2 and _word_may_expand_to_helix(tokens[0]) and tokens[1] == "push"
+
+
+def _helix_push_requires_gate(tokens: list[str]) -> bool:
+    if not _tokens_start_helix_push(tokens):
+        return False
+    args = tokens[2:]
+    return "--execute" in args and "--gate" not in args
+
+
+def _segment_has_raw_git_push(segment: str) -> bool:
+    try:
+        tokens = [_decode_detection_token(token) for token in shlex.split(segment, comments=False, posix=True)]
+    except ValueError:
+        tokens = []
+    tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(tokens))
+    if _tokens_start_raw_git_push(tokens):
+        return True
+    rendered = _render_command_substitutions(segment, _stdout_body_may_emit_git, "git")
+    if rendered == segment:
+        return False
+    try:
+        rendered_tokens = [_decode_detection_token(token) for token in shlex.split(rendered, comments=False, posix=True)]
+    except ValueError:
+        return False
+    rendered_tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(rendered_tokens))
+    return _tokens_start_raw_git_push(rendered_tokens)
+
+
+def _segment_uses_git_array(segment: str, shell_arrays: dict[str, list[str]]) -> bool:
+    expanded = _expand_shell_array_command_tokens(segment, shell_arrays)
+    if not expanded:
+        return False
+    expanded_segment = " ".join(shlex.quote(token) for token in expanded)
+    return _tokens_start_raw_git_push(expanded) or _segment_has_raw_git_push(expanded_segment)
+
+
+def _segment_renders_to_raw_git_push(
+    segment: str,
+    shell_vars: dict[str, str],
+    shell_arrays: dict[str, list[str]],
+) -> bool:
+    rendered = _render_shell_expansions(segment, shell_vars, shell_arrays)
+    return rendered != segment and _segment_has_raw_git_push(rendered)
+
+
+def _segment_uses_git_fragment_vars(segment: str, shell_vars: dict[str, str]) -> bool:
+    if not shell_vars:
+        return False
+    try:
+        tokens = shlex.split(segment, comments=False, posix=True)
+    except ValueError:
+        return False
+    tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(tokens))
+    if len(tokens) < 2:
+        return False
+    rendered = _render_shell_var_word(tokens[0], shell_vars)
+    if _basename(rendered) != "git":
+        return False
+    rest = _strip_git_global_options(tokens[1:])
+    return bool(rest) and rest[0] == "push"
+
+
+def raw_git_push_segments(command: str) -> list[str]:
+    segments: list[str] = []
+    for surface in _iter_command_surfaces(command):
+        shell_vars: dict[str, str] = {}
+        shell_arrays: dict[str, list[str]] = {}
+        for segment in _split_shell_segments(surface):
+            text = segment.strip()
+            shell_vars.update(_assigned_shell_var_values(text, shell_vars))
+            shell_arrays.update(_assigned_shell_array_values(text, shell_vars, shell_arrays))
+            if text and (
+                _segment_has_raw_git_push(text)
+                or _segment_uses_git_array(text, shell_arrays)
+                or _segment_uses_git_fragment_vars(text, shell_vars)
+                or _segment_renders_to_raw_git_push(text, shell_vars, shell_arrays)
+            ):
+                segments.append(text)
+    return segments
+
+
+def _segment_is_unsafe_helix_push(segment: str) -> bool:
+    try:
+        tokens = [_decode_detection_token(token) for token in shlex.split(segment, comments=False, posix=True)]
+    except ValueError:
+        tokens = []
+    tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(tokens))
+    if _helix_push_requires_gate(tokens):
+        return True
+    rendered = _render_command_substitutions(segment, _stdout_body_may_emit_helix, "helix")
+    if rendered == segment:
+        return False
+    try:
+        rendered_tokens = [_decode_detection_token(token) for token in shlex.split(rendered, comments=False, posix=True)]
+    except ValueError:
+        return False
+    rendered_tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(rendered_tokens))
+    return _helix_push_requires_gate(rendered_tokens)
+
+
+def _segment_renders_to_unsafe_helix_push(
+    segment: str,
+    shell_vars: dict[str, str],
+    shell_arrays: dict[str, list[str]],
+) -> bool:
+    rendered = _render_shell_expansions(segment, shell_vars, shell_arrays)
+    return rendered != segment and _segment_is_unsafe_helix_push(rendered)
+
+
+def _segment_uses_helix_fragment_vars(segment: str, shell_vars: dict[str, str]) -> bool:
+    if not shell_vars:
+        return False
+    try:
+        tokens = shlex.split(segment, comments=False, posix=True)
+    except ValueError:
+        return False
+    tokens = _strip_wrappers_for_command_detection(_normalize_shell_control_tokens(tokens))
+    if len(tokens) < 2:
+        return False
+    rendered = _render_shell_var_word(tokens[0], shell_vars)
+    return _basename(rendered) == "helix" and tokens[1] == "push" and "--execute" in tokens[2:] and "--gate" not in tokens[2:]
+
+
+def _segment_uses_helix_array(segment: str, shell_arrays: dict[str, list[str]]) -> bool:
+    expanded = _expand_shell_array_command_tokens(segment, shell_arrays)
+    if not expanded:
+        return False
+    return _helix_push_requires_gate(expanded)
+
+
+def unsafe_helix_push_segments(command: str) -> list[str]:
+    segments: list[str] = []
+    for surface in _iter_command_surfaces(command):
+        shell_vars: dict[str, str] = {}
+        shell_arrays: dict[str, list[str]] = {}
+        for segment in _split_shell_segments(surface):
+            text = segment.strip()
+            shell_vars.update(_assigned_shell_var_values(text, shell_vars))
+            shell_arrays.update(_assigned_shell_array_values(text, shell_vars, shell_arrays))
+            if text and (
+                _segment_is_unsafe_helix_push(text)
+                or _segment_uses_helix_fragment_vars(text, shell_vars)
+                or _segment_uses_helix_array(text, shell_arrays)
+                or _segment_renders_to_unsafe_helix_push(text, shell_vars, shell_arrays)
+            ):
+                segments.append(text)
+    return segments
 
 
 def _strip_wrappers_for_command_detection(tokens: list[str]) -> list[str]:
@@ -3453,6 +3703,16 @@ def has_raw_claude_evidence(segment: str) -> bool:
     return bool(allow_raw and reason.strip())
 
 
+def has_raw_push_evidence(segment: str) -> bool:
+    try:
+        assignments = _leading_assignments(shlex.split(segment, comments=False, posix=True))
+    except ValueError:
+        assignments = {}
+    allow_raw = assignments.get("HELIX_ALLOW_RAW_PUSH") == "1"
+    reason = assignments.get("HELIX_RAW_PUSH_REASON", "")
+    return bool(allow_raw and reason.strip())
+
+
 def _raw_segment_is_command_substitution(segment: str) -> bool:
     stripped = segment.strip()
     return stripped.startswith("$(") or stripped.startswith("`")
@@ -3531,9 +3791,55 @@ def _raw_claude_segments_are_authorized(command: str) -> bool:
     return saw_raw
 
 
+def _raw_git_push_segments_are_authorized(command: str) -> bool:
+    shell_vars: dict[str, str] = {}
+    shell_arrays: dict[str, list[str]] = {}
+    saw_raw = False
+    for segment in _split_shell_segments(_join_line_continuations(command)):
+        text = segment.strip()
+        if not text:
+            continue
+        shell_vars.update(_assigned_shell_var_values(text, shell_vars))
+        shell_arrays.update(_assigned_shell_array_values(text, shell_vars, shell_arrays))
+        segment_raw = raw_git_push_segments(text)
+        if _segment_uses_git_fragment_vars(text, shell_vars):
+            segment_raw.append(text)
+        if _segment_uses_git_array(text, shell_arrays):
+            segment_raw.append(text)
+        if not segment_raw:
+            continue
+        saw_raw = True
+        if has_raw_push_evidence(text) and _segment_has_raw_git_push(text):
+            continue
+        if all(has_raw_push_evidence(raw_segment) for raw_segment in segment_raw):
+            continue
+        return False
+    return saw_raw
+
+
 def inspect_command(command: str) -> GuardResult:
     if not command.strip():
         return GuardResult(ok=True)
+    unsafe_helix_push = unsafe_helix_push_segments(command)
+    if unsafe_helix_push:
+        return GuardResult(
+            ok=False,
+            reason=(
+                "`helix push --execute` は `--gate` 必須です。"
+                " `helix push --gate --execute --plan-id <plan>` を使ってください。"
+            ),
+        )
+    raw_git_push = raw_git_push_segments(command)
+    if raw_git_push and not _raw_git_push_segments_are_authorized(command):
+        return GuardResult(
+            ok=False,
+            reason=(
+                "raw `git push` は gate-driven push policy のためブロックしました。"
+                " `helix push --gate --execute --plan-id <plan>` を使ってください。"
+                " 例外時は `HELIX_ALLOW_RAW_PUSH=1 HELIX_RAW_PUSH_REASON=<理由>` を同じコマンドに含め、"
+                "final/evidence に代替不能性を残してください。"
+            ),
+        )
     raw_codex = raw_codex_segments(command)
     raw_claude = raw_claude_segments(command)
     if not raw_codex and not raw_claude:

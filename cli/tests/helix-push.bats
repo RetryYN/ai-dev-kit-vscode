@@ -24,6 +24,8 @@ setup() {
   git -C "$SEED_DIR" commit -q -m "init"
   git -C "$SEED_DIR" remote add origin "$ORIGIN_DIR"
   git -C "$SEED_DIR" push -q -u origin main
+  git -C "$SEED_DIR" branch dogfood
+  git -C "$SEED_DIR" push -q origin dogfood
   git --git-dir="$ORIGIN_DIR" symbolic-ref HEAD refs/heads/main
   git clone -q "$ORIGIN_DIR" "$PROJECT_ROOT"
   git -C "$PROJECT_ROOT" config user.email "qa@example.com"
@@ -89,10 +91,36 @@ origin_main_sha() {
   git --git-dir="$ORIGIN_DIR" rev-parse refs/heads/main
 }
 
+origin_dogfood_sha() {
+  git --git-dir="$ORIGIN_DIR" rev-parse refs/heads/dogfood
+}
+
+create_plan_doc() {
+  local plan_id="${1:-add-feature-2026-06-03-gate-driven-push}"
+  local status="${2:-completed}"
+  local tl_review="${3:-approve}"
+  mkdir -p "$PROJECT_ROOT/docs/plans/add-feature"
+  cat > "$PROJECT_ROOT/docs/plans/add-feature/$plan_id.md" <<EOF
+---
+plan_id: $plan_id
+title: $plan_id
+kind: add-impl
+layer: L4
+drive: be
+status: $status
+tl_review: $tl_review
+---
+
+# $plan_id
+EOF
+}
+
 @test "test_push_gate_dry_run_succeeds_when_clean" {
+  create_plan_doc
+  git -C "$PROJECT_ROOT" checkout -q dogfood
   create_commit
 
-  run "$HELIX_ROOT/cli/helix-push" --gate
+  run "$HELIX_ROOT/cli/helix-push" --gate --branch dogfood --plan-id add-feature-2026-06-03-gate-driven-push
   [ "$status" -eq 0 ]
   [[ "$output" == *"[helix push] gate verification..."* ]]
   [[ "$output" == *"✓ G-tests"* ]]
@@ -101,21 +129,24 @@ origin_main_sha() {
   [[ "$output" == *"✓ G-ff"* ]]
   [[ "$output" == *"✓ G-attr"* ]]
   [[ "$output" == *"✓ G-nondestructive"* ]]
+  [[ "$output" == *"✓ G-review"* ]]
   [[ "$output" == *"[helix push] all gates PASS"* ]]
 }
 
 @test "test_push_gate_fail_blocks_execute" {
+  create_plan_doc
+  git -C "$PROJECT_ROOT" checkout -q dogfood
   create_commit blocked.txt
   before_local="$(git -C "$PROJECT_ROOT" rev-parse HEAD)"
-  before_origin="$(origin_main_sha)"
+  before_origin="$(origin_dogfood_sha)"
 
-  run env HELIX_PUSH_SECRET_STATUS=1 "$HELIX_ROOT/cli/helix-push" --gate --execute
+  run env HELIX_PUSH_SECRET_STATUS=1 "$HELIX_ROOT/cli/helix-push" --gate --execute --branch dogfood --plan-id add-feature-2026-06-03-gate-driven-push
   [ "$status" -eq 1 ]
   [[ "$output" == *"✗ G-secret"* ]]
   [[ "$output" == *"Fix: secret detected、staged change を確認"* ]]
   [[ "$output" == *"[helix push] BLOCKED (1 gate failed)"* ]]
   [ "$(git -C "$PROJECT_ROOT" rev-parse HEAD)" = "$before_local" ]
-  [ "$(origin_main_sha)" = "$before_origin" ]
+  [ "$(origin_dogfood_sha)" = "$before_origin" ]
 }
 
 @test "test_push_help_documents_options" {
@@ -123,6 +154,9 @@ origin_main_sha() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"使い方: helix push --gate"* ]]
   [[ "$output" == *"--execute"* ]]
+  [[ "$output" == *"--plan-id PLAN"* ]]
+  [[ "$output" == *"--allow-main"* ]]
+  [[ "$output" == *"--reason TEXT"* ]]
   [[ "$output" == *"--remote REMOTE"* ]]
   [[ "$output" == *"--branch BRANCH"* ]]
 }
@@ -134,11 +168,33 @@ origin_main_sha() {
 }
 
 @test "test_push_execute_calls_git_push" {
+  create_plan_doc
+  git -C "$PROJECT_ROOT" checkout -q dogfood
   create_commit execute.txt
   local_head="$(git -C "$PROJECT_ROOT" rev-parse HEAD)"
 
-  run "$HELIX_ROOT/cli/helix-push" --gate --execute --remote origin --branch main
+  run "$HELIX_ROOT/cli/helix-push" --gate --execute --remote origin --branch dogfood --plan-id add-feature-2026-06-03-gate-driven-push
   [ "$status" -eq 0 ]
-  [[ "$output" == *"[helix push] all gates PASS -> executing git push origin main"* ]]
-  [ "$(origin_main_sha)" = "$local_head" ]
+  [[ "$output" == *"[helix push] all gates PASS -> executing git push origin dogfood"* ]]
+  [ "$(origin_dogfood_sha)" = "$local_head" ]
+}
+
+@test "test_push_main_requires_allow_main_and_reason" {
+  create_plan_doc
+  create_commit main-block.txt
+
+  run "$HELIX_ROOT/cli/helix-push" --gate --execute --branch main --plan-id add-feature-2026-06-03-gate-driven-push
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"--allow-main"* ]]
+  [[ "$output" == *"--reason"* ]]
+}
+
+@test "test_push_main_accepts_allow_main_and_reason" {
+  create_plan_doc
+  create_commit main-allow.txt
+
+  run "$HELIX_ROOT/cli/helix-push" --gate --branch main --allow-main --reason "manual approval" --plan-id add-feature-2026-06-03-gate-driven-push
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"✓ G-review"* ]]
+  [[ "$output" == *"[helix push] all gates PASS"* ]]
 }
