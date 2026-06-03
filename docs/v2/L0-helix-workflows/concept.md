@@ -855,6 +855,16 @@ flowchart TB
 | **Action Plan** | 単一 workflow 内部の収束ループ（実行）を記録する子 PLAN。`parent_process` 必須（reciprocal 検査） | `helix plan lint` | `docs/plans/<workflow>/<workflow>-YYYY-MM-DD-<topic>plan.md` | `frontmatter.plan_scope=action` / `parent_process` / `workflow` | `^plan_scope:\s*action$` | **installed** |
 | **plan_scope** | PLAN の階層種別（`process` / `action`）。L単位 PLAN には強制しない（命名 fallback で既存 workflow PLAN も分類、inferred は retrofit warning） | `helix plan lint --strict-frontmatter` | `cli/lib/plan_validator.py` `VALID_PLAN_SCOPES`（`plan_lint` が import） | `frontmatter.plan_scope` | `^plan_scope:\s*(process\|action)$` | **installed** |
 
+### §12.1.4 検証・監査用語 (whole-coverage audit、2026-06-03 追加)
+
+> 本 §12.1.4 は**用語ミラー**。whole-coverage audit recipe の定義本文は [verification-strategy §11](../L1-requirements/helix-workflows-verification-strategy.md)、trace 不整合 routing は [detection-routing](../../../HELIX-workflows/helix-process/detection-routing.md) を正本とし**二重化しない**。「見直し（設計成果物の質・カバレッジ・整合の横断再検査）は新しい駆動 workflow にせず Forward 検証 activity として扱う」(tl-advisor 諮問2回 passed) の用語化。
+
+| 用語 | 定義 | 対応 CLI | file path | schema field | 検出 grep pattern | implementation_status |
+|---|---|---|---|---|---|---|
+| **whole-coverage audit** | 設計成果物の質・カバレッジ・整合を横断再検査して re-freeze する Forward 検証 activity（駆動 workflow でなく gate recipe）。`audit_verdict = detector_clean(必要条件) AND semantic_gate_pass(十分条件)` | `python3 cli/lib/trace_symmetry.py --json`（検出層） | `docs/v2/L1-requirements/helix-workflows-verification-strategy.md` §11（recipe 正本） | N/A（recipe + `refreeze_decision` evidence schema） | `whole-coverage audit\|audit_verdict` | **partial**（detector advisory installed、fail-close gate 化は Phase3） |
+| **trace 対称性 (trace symmetry)** | 設計層 ID ⇔ テスト設計層 ID の双方向 whole-coverage。coverage_pct / missing_pair / orphan / balance_ratio で測定 | `python3 cli/lib/trace_symmetry.py` | `cli/lib/trace_symmetry.py` | detector JSON: `coverage_pct / missing_pair / orphan_test / balance_ratio / wrong_layer_pair / duplicate_id` | `trace_symmetry\|coverage_pct\|balance_ratio` | **installed**（advisory PoC、pytest 済） |
+| **trace 不整合 (trace mismatch)** | 設計 ⇔ テスト設計の対応欠落（whole-coverage audit detector が検出する異常）。Forward pair gate fail / source-of-truth 不明なら reverse へ routing | `helix doctor check_pair_trace_symmetry`（Phase3） | `HELIX-workflows/helix-process/detection-routing.md`（routing 正本） | N/A | `trace 不整合\|trace mismatch` | **L4-carry**（routing 定義済、doctor 統合は Phase3） |
+
 ### §12.2 機械判定 carry (L4 基本設計で実装、本 §12 では仕様宣言のみ)
 
 - `helix doctor check_ubiquitous_language`: L1-L14 doc 内の表記ゆれ / 未定義用語を warn (本 §12.1 表から正規表現自動抽出)

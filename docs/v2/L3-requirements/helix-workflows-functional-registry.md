@@ -179,7 +179,7 @@ audit_history:
 
 ## §4. CLI lib modules (cli/lib/*.py)
 
-全 139 件。
+全 140 件。
 
 | Module | 責務 | 関連 L1 FR | 関連 L3 FR |
 |---|---|---|---|
@@ -310,6 +310,7 @@ audit_history:
 | task_type_inference.py | task type 推論 (impl/design/review/research 等の分類) | FR-10 | FR-CTX-01 |
 | team_runner.py | HELIX Team Runner (複数 role 協調実行) | FR-10 | FR-CTX-01 |
 | test_design_scaffold.py | テスト設計 scaffold 生成 (pair_layer / title 組み合わせ) | FR-08 | FR-4ART-01 |
+| trace_symmetry.py | 設計⇔テスト設計 whole-coverage 対称性監査 detector (coverage_pct / missing_pair / orphan / balance_ratio、全5 V-model pair 測定。whole-coverage audit の検出層、verification-strategy §11、2026-06-03 登録) | FR-08 | FR-4ART-01 / FR-CHANGEPROP-01 |
 | transcript_summary.py | PLAN-099 §8 transcript summary (会話要約 + 関連 PLAN/handover bundle) | FR-07 | FR-EVT-01 |
 | uuid7_generator.py | UUID v7 generator (event_id 発行用) | FR-07 | FR-EVT-01 |
 | verify_agent.py | PLAN-010 verification agent (spec 駆動検証) | FR-08 | FR-4ART-01 |

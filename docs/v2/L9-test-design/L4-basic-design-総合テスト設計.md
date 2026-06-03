@@ -2,7 +2,7 @@
 doc_id: L9-test-design-L4-basic-design-system-test
 title: HELIX-workflows V2 L4 基本設計 総合テスト設計
 status: frozen
-freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR. 2026-06-03 再凍結: L4↔L9 片肺解消 — NFR 6群を per-ID trace 化(TV-NFR-03/04 + TV-IF-03 + ST-NFR-02/03 + ST-IF-04 + TR-IF-05/06 + TR-NFR-AV/OP/MG/PF/SC/SE)、IF-05 永続化境界 + NFR-OP/MG に専用観点付与、trace_symmetry detector で coverage 再計測"
+freeze_evidence: "2026-06-02 L0-L3 review + L4 completion session; TL adversarial check; pair docs L14 L12 created; L4-L9 pair; plan_validator 0 ERROR. 2026-06-03 再凍結: L4↔L9 片肺解消 — NFR 6群を per-ID trace 化(TV-NFR-03/04 + TV-IF-03 + ST-NFR-02/03 + ST-IF-04 + TR-IF-05/06 + TR-NFR-AV/OP/MG/PF/SC/SE)、IF-05 永続化境界 + NFR-OP/MG に専用観点付与、trace_symmetry detector で coverage 再計測。2026-06-03 whole-coverage audit re-freeze: orphan18 (全 ST-*) を ST→TV→L4 の正当な2段 trace と semantic 判定 (§7.1)、balance 0.67 は §4 補助指標で合否非影響、audit_verdict=pass (TL+PM)"
 owner: QA
 process_layer: L9
 test_layer: L9
@@ -133,6 +133,16 @@ standard_basis:
 | TR-NFR-PF | 方式設計 §7 | NFR-PF-01〜04 性能 | TV-NFR-01 / ST-NFR-01 | 代表 command が許容時間内、Flaky 率 5% 未満、再実行同一 verdict |
 | TR-NFR-SC | 方式設計 §7 | NFR-SC-01〜05 互換・拡張 | TV-NFR-04 / ST-NFR-03 | 旧新並存・互換期間 drift advisory・段階置換 kill criteria が成立する |
 | TR-NFR-SE | 方式設計 §7 | NFR-SE-01〜03 セキュリティ | TV-NFR-02 / ST-IF-02, ST-NEG-02 | raw CLI 抑止、secret 非露出、未許可 write block が総合系で確認できる |
+
+### 7.1 whole-coverage audit — orphan semantic 判定 (2026-06-03 re-freeze)
+
+`trace_symmetry` detector の L4↔L9 実測: coverage 100% / missing_pair 0 / balance_ratio 0.67 / orphan_test 18（全 ST-*）。本節は [verification-strategy §11.5](../L1-requirements/helix-workflows-verification-strategy.md) の `semantic_gate.orphan_assessment` 証跡である。
+
+- **判定: orphan ではない（excluded_with_reason）**。ST-*（シナリオテスト、§5）は各々 TV-*（テスト観点、§4）を verify し、TV-* が本 §7 trace 表で L4 設計項目に紐づく。すなわち **ST-* → TV-* → L4 の 2 段（推移）trace** であり、ST-* は L4 への直接 backlink を持たない設計（シナリオは観点経由で設計に紐づく、というテスト設計の意図）。
+- detector は ST-* の L4 *直* backlink を探すため間接 trace を辿れず orphan 計上するが、これは真の片肺ではない（coverage 100% / missing_pair 0 が forward 完備を示す）。
+- balance_ratio 0.67 はこの 2 段 trace 構造に由来する補助指標であり、verification-strategy §4 により **合否主判定にしない**（dashboard / warning のみ）。
+- **対応**: ST-* への L4 直 backlink は追加しない。detector の ST→TV→L4 推移 trace 解決は Phase3 の fail-close gate 化と同時に実装する（deferred finding DF-WCAUDIT-L4L9-001）。
+- **audit_verdict = detector_clean（coverage100 / missing0 / preflight pass、必要条件）AND semantic_pass（orphan は正当な2段 trace、十分条件）= pass**。approvers: TL + PM（tl-advisor 諮問2回 passed）。
 
 ## 8. G4 / G9 合格基準
 

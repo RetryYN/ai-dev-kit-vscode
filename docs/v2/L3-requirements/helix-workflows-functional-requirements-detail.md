@@ -16,6 +16,7 @@ related_l1:
 pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 audit_history:
   - "2026-05-29: pmo-sonnet (Wave E) — IMP-01a/01b/MIN-01 back-port trace 追記 (FR-FNREG-01/FR-GLOSSARY-01 §目的、FR-GATE-01/FR-PLAN-01/FR-CTX-01 §2 仕様 FR-13 横断実現)"
+  - "2026-06-03: whole-coverage audit (見直し体系化) — FR-4ART-01/FR-DRIFT-01/FR-DOCTOR-01/FR-CHANGEPROP-01 に trace_symmetry detector + whole-coverage 対称性監査を構成要素として追補 (tl-advisor 諮問2回 passed、新 FR 不要・既存追補で trace 健全化。verification-strategy §11 正本)。再凍結 (新規 ID 追加なし → L3↔L12 pair freeze 不変)。"
 ---
 
 # HELIX-workflows V2 機能要件 (確定版、L3 詳細化)
@@ -99,6 +100,7 @@ audit_history:
 - 振る舞い: PLAN frontmatter、設計 doc、テスト設計 doc、テストコード、実装コードの trace link を照合し、欠落・不整合・片方向リンクを抽出する。
 - 状態遷移: `unchecked -> consistent` または `unchecked -> warning -> blocking`。
 - エラー処理: expected set が定義されていない工程は `advisory_only`、必須工程で欠落した場合は `blocking` を返す。
+- **whole-coverage 対称性監査 (2026-06-03 追補)**: 設計層 ID ⇔ テスト設計層 ID の双方向 whole-coverage を `cli/lib/trace_symmetry.py` で測定する (coverage_pct / missing_pair / orphan / balance_ratio)。本 FR の trace link 存在監査の「網羅対称版」であり、whole-coverage audit recipe・semantic re-freeze gate は [verification-strategy §11](../L1-requirements/helix-workflows-verification-strategy.md) を正本とする (新しい駆動 workflow / kind は作らず Forward 検証 activity として扱う)。
 
 ### FR-INV-01 資産 inventory / density 可視化機能
 
@@ -119,6 +121,7 @@ audit_history:
 - 振る舞い: doctor、drift-check、inventory audit、OS/runtime 検知結果を入力に、`manual_review / interrupt / recovery / reverse_normalization` の送出先を決める。
 - 状態遷移: `detected -> classified -> routed -> closed`。
 - エラー処理: 分類不能時は `manual_review` に倒す。Linux/macOS 差異で再現性が割れる場合は `environment_mismatch` を記録する。
+- **trace 不整合 routing (2026-06-03 追補)**: 設計 ⇔ テスト設計の trace 不整合 (whole-coverage audit detector が検出) を、Forward pair gate fail → 該当 L 再凍結、source-of-truth 不明なら reverse へ routing する ([detection-routing](../../../HELIX-workflows/helix-process/detection-routing.md) routing 表)。新しい駆動 kind は作らず既存 kind へ送る。
 
 ### FR-PLAN-01 PLAN dependency / generates trace 機能
 
@@ -136,7 +139,7 @@ audit_history:
   - **type 一覧と check 対象**:
     - `docs`: doc 整合性 (FR-* / BR-* / NFR-* 件数 / 用語 SSoT / V-model trace、FR-FNREG-01 / FR-GLOSSARY-01 連携)
     - `plan`: PLAN frontmatter (plan_validator) / plan_lint / dependencies / generates trace
-    - `vmodel`: pair freeze (L1↔L14 等 6 対) / 4 artifact 双方向 trace / balance_ratio (FR-CHANGEPROP-01 連携)
+    - `vmodel`: pair freeze (L1↔L14 等 6 対) / 4 artifact 双方向 trace / balance_ratio (FR-CHANGEPROP-01 連携) / **whole-coverage 対称性** (`check_pair_trace_symmetry`、`cli/lib/trace_symmetry.py`、Phase3 fail-close gate 化、verification-strategy §11.6)
     - `db`: helix.db schema / migration log / index / lock 健全性
     - `skill`: skill metadata (helix_layer 必須 / category 整合 / description 充足)
     - `security`: secret scan / regen guard / tool guard 違反
@@ -172,7 +175,7 @@ audit_history:
 - **目的**: 既存 V-model pair freeze (balance_ratio ≥ 1.0) は結果整合のみで、**上流変更 → 下流必須修正の機械追跡が完全不在** という framework 欠陥を解消
 - **3 軸機械強制 (L4 carry、`helix doctor check_*` 3 件 + pre-commit / CI hook)**:
   1. **`check_upstream_downstream_alignment`**: 上流 ID (BR-* / FR-* / NFR-*) 追加 / 更新 / 削除 commit で下流対応 ID (BR-RULE-* / FR-* / NFR-* / AC-* / OT-*) が同 commit / 直前後 N commit (default N=3) 以内に存在するか機械検証、不在で fail-close。例外: `kind=reference` / `is_reference: true` doc / deferred-findings.yaml 登録済 deprecation
-  2. **`check_balance_ratio_regression`**: 全 V-model pair (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7) の `balance_ratio` を前 commit との diff で集計、< 1.0 regression または **過去最小値より下回り (Ratchet 機構)** で fail-close
+  2. **`check_balance_ratio_regression`**: 全 V-model pair (L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7) の `balance_ratio` を前 commit との diff で集計、< 1.0 regression または **過去最小値より下回り (Ratchet 機構)** で fail-close。balance_ratio / coverage_pct / missing_pair / orphan の供給元は `cli/lib/trace_symmetry.py` (whole-coverage 対称性 detector、verification-strategy §11)。**balance_ratio は補助指標** (verification-strategy §4)、合否主判定は coverage / missing_pair / wrong_layer / duplicate_id の preflight 通過で行う
   3. **`check_id_reference_completeness`**: 上流 ID を参照する下流 ID の trace 切れ (例: BR-09 参照の FR-INV-01 が削除された) を grep + frontmatter trace で検出、孤立 ID を warn → fail-close
 - **CLI 契約**: `helix doctor --check-changeprop` で 3 軸一括実行、`--ratchet` flag で過去最小値ベース ratchet 適用、`--commit-range <range>` で diff scope 指定
 - **入力**: commit range (default: HEAD~1..HEAD)、N commit window (default: 3)、ratchet baseline (default: `.helix/audit/balance-ratio-baseline.yaml`、L4 carry)

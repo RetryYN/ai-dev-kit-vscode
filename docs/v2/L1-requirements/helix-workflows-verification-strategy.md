@@ -60,7 +60,7 @@ related_plans:
 | `missing_pair_frontmatter` | 設計 doc に pair 宣言なし | preflight fail |
 | `excluded_with_reason` | `acceptance_scope: excluded` 等＋代替層＋理由 | 許容（記録） |
 | `deprecated_excluded` | deprecated 除外 doc | 記録のみ |
-| `balance_ratio`（**補助**） | テストID数 / 設計ID数 | dashboard/warning のみ（合否主判定にしない） |
+| `balance_ratio`（**補助**） | テストID数 / 設計ID数 | dashboard/warning のみ（合否主判定にしない）。doc-reviewer（FR-DOCREVIEW-01）の `balance_ratio ≥ 1.0` 検査は **doc 品質の目安（warning）**、whole-coverage audit の **合否（pass/fail）は coverage / missing_pair / preflight が主判定**。2 段 trace 構造（例 L4↔L9 の ST→TV→L4）では balance < 1.0 でも semantic 判定で pass しうる（§11.2、P2 整合） |
 
 **preflight**: duplicate_id / wrong_layer_pair / missing_pair_frontmatter は coverage 計算前に fail とする（数値が信用できないため）。
 
@@ -90,13 +90,13 @@ L1 要求 doc は `pairs_with: L14`（構造ペア）を持つが、要求種別
 → L1 functional/technical/nfr doc に `verification_layers` frontmatter を追加し、detector が「pair_layer=L14 ≠ 検証層」を機械識別できるようにする（frozen doc 改変につき G1 再凍結を伴う、実施可否は Phase1/Phase2 で判断）。
 
 ## 8. 各 pair の検証層マッピング（現状）
-| pair | 検証層の意味 | 2026-06-03 状態 |
+| pair | 検証層の意味 | 2026-06-03 状態（Phase2 完遂後） |
 |---|---|---|
-| L1↔L14 | 運用検証（BR+運用NFR） | ✅ 健全（1.00、FR は L3↔L12 へ routing 明記） |
-| L3↔L12 | 受入（FR+NFR） | ✅ 健全（18 名前ベース FR 全 AT、1.00） |
-| L4↔L9 | 総合（NFR/IF/コンポーネント） | 🔴 片肺（NFR 23→観点2、IF-05 欠落）→ **Phase2** |
-| L5↔L8 | 結合 | 未検証（Phase2） |
-| L6↔L7 | 単体（DbC） | 未検証（Phase2、単体98ケースあり=反例候補） |
+| L1↔L14 | 運用検証（BR+運用NFR） | ✅ frozen（cov100% / 1.00、verification_layers 契約で FR を L3↔L12/L9/L7 へ routing・excluded 36） |
+| L3↔L12 | 受入（FR+NFR） | ✅ frozen（18 名前ベース FR 全 AT、cov100% / 1.00） |
+| L4↔L9 | 総合（NFR/IF/コンポーネント） | ✅ frozen（cov100% / missing0、orphan18=ST→TV→L4 の2段trace で excluded・balance0.67 補助、§11/L9 §7.1 re-freeze） |
+| L5↔L8 | 結合 | ✅ frozen（cov100% / 1.00。gap=IT-MOD-06/IT-DB-03/IT-DB-05 明示=deferred） |
+| L6↔L7 | 単体（DbC） | ✅ frozen（cov100% / 1.00、FN-*↔UT-* 1:1。観測済14契約に限定=deferred） |
 
 ## 10. 定量判定 vs 定性判定の基準（ユーザー指摘 2026-06-03）
 **結論: 組合せが最適（角度が最も高い）。** HELIX は既に gate で `gate_verdict = static_subchecks AND ai_review_required_when(...)` を採用済（L0 concept §6.5）。定量を先行・必要条件、定性を最終・十分条件に置く。
@@ -114,8 +114,70 @@ L1 要求 doc は `pairs_with: L14`（構造ペア）を持つが、要求種別
 
 **相互ガード（今 session の実証）**: 定量（detector）は**新規/未検証モデル**だと false positive を出す → 定性（TL/PM）が捕捉。逆に定性（TL）は**誤った定量前提**を渡されると判定が汚染される → 定量は**自己 verify してから諮問**。**両者は相互ガードし合う。単独運用はどちらも危険**。新規 detector/指標は定性 cross-check で golden 化してから fail-close gate に昇格させる（§6）。
 
+## 11. whole-coverage audit recipe（見直しの体系化 — 駆動モデルでなく Forward 検証 activity）
+
+> ユーザー指摘（2026-06-03）「見直しが何度も発生する。駆動モデルは作る／ある？」への回答。**「設計成果物の質・カバレッジ・整合を横断再検査して re-freeze する見直し」は新しい駆動 workflow にしない**（tl-advisor 条件付き推奨 (B)）。V から外れた別入口ではなく「V-model pair が閉じているかの再検査」= Forward 右腕の検証 + Core §4 自動検出ループの activity だから。新駆動化は HELIX 絶対原則（V 起点・枝は最小・必ず V へ戻す）に反し、既存 `helix audit`（A0/A1 decision 用）とも用語衝突する。`whole-coverage audit` は workflow / kind ではなく **gate recipe（activity）** として定義する。今まで Recovery で代用してきたが、Recovery の本旨（逸脱・破綻の収束）と「健全進行後の品質再検査」は意味がミスマッチであり、本 recipe で分離する。
+
+### 11.1 トリガ
+- Phase / freeze 前（必須）、定期、ユーザー指示、detector の whole-coverage 劣化検出（detection-routing の trace 不整合）。
+
+### 11.2 判定式（必要条件 AND 十分条件）
+`audit_verdict = detector_clean（必要条件）AND semantic_gate_pass（十分条件）`
+1. **必要条件（機械）**: `cli/lib/trace_symmetry.py` で全 pair を measure。preflight（duplicate_id / wrong_layer_pair / missing_pair_frontmatter）が fail なら数値無効 → 先に修正（§4 preflight）。coverage / missing_pair / balance を取得。
+2. **十分条件（semantic）**: TL/PM が orphan_test / excluded_with_reason / balance warning を意味判定（真の片肺か正当 routing か、検証深度が十分か）。§10 の定量 vs 定性基準に従う。
+   - **coverage 100% だけで re-freeze pass にしない**（balance / orphan が残れば semantic 判定必須。例: L4↔L9 の ST-* orphan）。
+
+### 11.3 owner と承認
+| activity | owner |
+|---|---|
+| detector 実行 + semantic gate 判定 | TL |
+| re-freeze 承認 | 該当 gate owner（L4/L9=TL+PM、L1/L14=PM/PO） |
+| 要件・scope・NFR の意味が変わる | PM/PO 承認（freeze-break / CC 扱い） |
+
+### 11.4 gap 検出時の routing（既存駆動へ、新 kind を作らない）
+[detection-routing](../../../HELIX-workflows/helix-process/detection-routing.md) の routing 表に従う:
+
+| gap 種別 | routing |
+|---|---|
+| 設計 ⇔ テスト設計の欠落 | 該当 Forward L の再凍結作業 |
+| 既存実態から設計復元が必要 | `kind=reverse` |
+| コード構造劣化 | `kind=refactor` |
+| AI/工程逸脱・早すぎる完遂宣言 | `kind=recovery` |
+| 基盤・形式移行 | `kind=retrofit` |
+
+### 11.5 evidence schema（semantic re-freeze の証跡 — gate 内完結で証跡が消えるのを防ぐ）
+re-freeze は次の schema で記録し、DB / PLAN / audit trail から追えるようにする:
+
+```yaml
+refreeze_decision:
+  pair: L4-L9
+  detector:                      # 必要条件（機械、trace_symmetry --json）
+    coverage_pct: 100.0
+    balance_ratio: 0.67
+    orphan_test_ids: [ST-...]
+    missing_pair: 0
+    preflight: pass
+  semantic_gate:                 # 十分条件（TL/PM の意味判定）
+    owner: TL
+    verdict: pass | conditional | fail
+    orphan_assessment: "..."     # orphan / excluded の妥当性
+    rationale: "..."
+  refreeze:
+    approvers: [TL, PM]
+    routing: none | {kind, plan_id}   # gap があれば既存 kind へ
+```
+- **detector clean かつ semantic 判定のみ（gap なし）**: 新 PLAN 不要。該当 L/gate evidence、readiness/deferred finding、または既存 Process Plan の closure evidence に記録。
+- **gap 修正が必要**: §11.4 の該当 kind PLAN を起票し routing。
+
+### 11.6 機械化の段階
+- 現状: detector advisory（exit 0）。**Phase3 で fail-close gate 化**（`helix doctor check_pair_trace_symmetry` / automation-gate-map 接続、§9 carry）。
+- semantic gate は AI/人の判定であり機械化しない（§10）。detector はその必要条件を供給するに留める。
+
 ## 9. carry
-- **Phase2**: L4↔L9 片肺解消（TV-IF-03/ST-IF-04/TV-NFR-03,04/ST-NFR-02,03/TR-* 追補、前段 tl-advisor 提案済）。L5↔L8 / L6↔L7 の検証。
-- **Phase3**: detector fail-close gate 化（automation-gate-map 接続、`helix doctor check_pair_trace_symmetry`）。
-- L1 `verification_layers` 契約 + G1 再凍結（任意、Phase1/2 判断）。
+- **Phase2 完遂（2026-06-03）**: L1↔L14 / L3↔L12 / L4↔L9 / L5↔L8 / L6↔L7 全 5 pair frozen + detector cov100% / missing0 / wrong_layer0 / dup0。「見直し」を whole-coverage audit recipe（§11）として体系化（新駆動 workflow を作らず Forward 検証 activity 化、tl-advisor 諮問2回 passed）。
+- **deferred finding（TL P3、whole-coverage audit re-freeze 時の追跡対象）**:
+  - `DF-WCAUDIT-L4L9-001`: detector が ST→TV→L4 推移 trace 未対応で orphan18（全 ST-*）を over-report。semantic 判定で excluded（L9 §7.1）。detector の推移 trace 解決は Phase3。
+  - `DF-WCAUDIT-L5L8-001`: L5↔L8 gap = IT-MOD-06 / IT-DB-03 / IT-DB-05（結合テスト未実装、設計 gap でない。L8 doc 明示済）。
+  - `DF-WCAUDIT-L6L7-001`: L6↔L7 は観測済 public contract 14 に限定（全関数網羅でない、粒度爆発回避の意図的限定）。将来 FR 拡張時に再評価。
+- **Phase3**: detector fail-close gate 化（automation-gate-map 接続、`helix doctor check_pair_trace_symmetry`）+ ST→TV→L4 推移 trace 解決 + whole-coverage audit recipe（§11）の CI 連動。
 - detector golden fixture（§6）の整備。

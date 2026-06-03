@@ -34,15 +34,18 @@ helix_db で管理することで検出できる異常（drift・劣化・暴走
 | 検出 | ルーティング先 | 起票 kind |
 |---|---|---|
 | 設計 ⇔ 実装 drift | Reverse（normalization type） | reverse |
+| 設計 ⇔ テスト設計 trace 不整合（whole-coverage audit） | Forward pair gate fail → 該当 L 再凍結。source-of-truth 不明なら Reverse | 該当 L 再凍結 / reverse |
 | コード劣化・負債蓄積 | Refactor | refactor |
 | AI 暴走（逸脱 / 過剰消費） | Recovery | recovery |
 | 本番障害（SLO 逸脱） | Incident | troubleshoot / recovery |
 | 設計 unknown 多発 | Reverse（code type） | reverse |
 
+> trace 不整合（設計 ⇔ テスト設計の対応欠落）は「別入口の駆動モード」ではなく、Forward 右腕の検証 activity（**whole-coverage audit**）として扱う。新しい駆動 workflow / kind は作らない（V 起点・枝は最小の原則）。detector（`cli/lib/trace_symmetry.py`）= 機械判定の必要条件、TL/PM の semantic 判定 = re-freeze の十分条件。gap が出た場合のみ上表の既存 kind（該当 L 再凍結 / reverse / refactor / recovery）へ routing する。recipe・owner・evidence schema の正本は [verification-strategy §11](../../docs/v2/L1-requirements/helix-workflows-verification-strategy.md)。
+
 ## 連携フロー
 
 ```
-DB 検出（drift / 劣化 / 暴走 / 障害）
+DB 検出（drift / 劣化 / trace 不整合 / 暴走 / 障害）
    → trigger 生成
    → evaluate（uncertainty × impact の 4象限）
    → モード発動（Recovery / Incident / Reverse / Refactor）
@@ -56,7 +59,7 @@ DB 検出（drift / 劣化 / 暴走 / 障害）
 
 ```
 自動登録で DB が充実
-   → DB 検出（drift / 劣化 / 暴走 / 障害）
+   → DB 検出（drift / 劣化 / trace 不整合 / 暴走 / 障害）
    → モード発動 → PLAN 起票
    → 自動登録
    → （再検出）
