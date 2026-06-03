@@ -174,7 +174,7 @@ main() {
     branch="$(current_git_branch)"
   fi
 
-  if [[ "$branch" == "main" && ( "$allow_main" != "true" || -z "$reason" ) ]]; then
+  if [[ "$execute" == "true" && "$branch" == "main" && ( "$allow_main" != "true" || -z "$reason" ) ]]; then
     echo "エラー: main への push は --allow-main と --reason が必須です" >&2
     return "$EXIT_INPUT_ERROR"
   fi

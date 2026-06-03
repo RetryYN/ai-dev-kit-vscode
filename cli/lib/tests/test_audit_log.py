@@ -207,8 +207,9 @@ def test_pretooluse_opus_repo_block_records_hook_and_gate(tmp_path: Path) -> Non
 
     proc = _run_pretooluse_hook(
         PRETOOLUSE_OPUS_HOOK,
-        project_root,
+        REPO_ROOT,
         {"tool_name": "Edit", "tool_input": {"file_path": str(REPO_ROOT / "cli" / "lib" / "budget.py")}},
+        HELIX_DB_PATH=str(db_path),
     )
 
     assert proc.returncode == 2
