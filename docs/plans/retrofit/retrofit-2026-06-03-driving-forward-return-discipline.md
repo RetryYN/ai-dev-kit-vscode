@@ -7,7 +7,7 @@ workflow: retrofit
 kind: retrofit
 layer: cross
 drive: be
-status: in_progress
+status: completed
 created: 2026-06-03
 owner: PM
 tl_review: approve
@@ -95,3 +95,11 @@ reverse-2026-06-03-stop-hook-state-sync は forward_return=L7→L8 で L6 機能
 ## 8. carry
 - Phase B-D（機械強制の段階導入）。
 - push gate の G-tests flakiness（test_audit_log state 汚染 + agent_slots timing）で gate-driven push が block される件は別 carry（本 Action と独立）。
+
+## 9. closure（Phase A 完了、2026-06-03、commit 7b4cfad）
+
+- **見直し**: 全 9 駆動 workflow を pmo-project-explorer ×4 で監査、V-model 非適合（forward_return が対 design 層を再凍結しない片肺抜け穴）を file:line 証跡で確定。
+- **改善（Phase A）**: `forward-return-discipline.md` 新設（R1-R5 operationalize + design_change_class fail-close 判定 + 再凍結 pair map + waiver + 段階導入）。9 workflow 全てを参照化（全 9 = 1 参照確認）。Refactor「設計 PLAN 起票せず」を pure_impl 限定へ修正、Scrum 昇華先表の L7 単体テスト欠落を解消。plan-model contract / L0-L14 入口表に反映。
+- **遡及**: reverse-stop-hook PLAN を design_or_contract_changed と再評価、L6 DbC 再凍結を deferred finding `DF-FRD-001` として記録（completed 放置せず）。
+- **検証**: plan validator PASS（retrofit / reverse 両 exit 0）、`helix doctor` 24-0-105 維持。tl-advisor changes_required → 推奨設計を全反映。
+- **carry**: Phase B-D（lint warning → detector 必要条件 → gate fail-close）。push gate flakiness は独立 carry。
