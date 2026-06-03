@@ -94,9 +94,9 @@ L1 要求 doc は `pairs_with: L14`（構造ペア）を持つが、要求種別
 |---|---|---|
 | L1↔L14 | 運用検証（BR+運用NFR） | ✅ frozen（cov100% / 1.00、verification_layers 契約で FR を L3↔L12/L9/L7 へ routing・excluded 36） |
 | L3↔L12 | 受入（FR+NFR） | ✅ frozen（18 名前ベース FR 全 AT、cov100% / 1.00） |
-| L4↔L9 | 総合（NFR/IF/コンポーネント） | ✅ frozen（cov100% / missing0、orphan18=ST→TV→L4 の2段trace で excluded・balance0.67 補助、§11/L9 §7.1 re-freeze） |
-| L5↔L8 | 結合 | ✅ frozen（cov100% / 1.00。gap=IT-MOD-06/IT-DB-03/IT-DB-05 明示=deferred） |
-| L6↔L7 | 単体（DbC） | ✅ frozen（cov100% / 1.00、FN-*↔UT-* 1:1。観測済14契約に限定=deferred） |
+| L4↔L9 | 総合（NFR/IF/コンポーネント） | ✅ frozen（machine: cov100%/missing0 clean だが **orphan_test=18≠0**＝machine-clean でない。semantic-pass: ST→TV→L4 の2段trace で excluded・balance0.67 補助、§11/§12/L9 §7.1 re-freeze） |
+| L5↔L8 | 結合 | ✅ frozen（machine-clean cov100% / 1.00。gap=IT-MOD-06/IT-DB-03/IT-DB-05 明示=deferred。L5=実質設計と確認 §12） |
+| L6↔L7 | 単体（DbC） | ✅ frozen（machine-clean cov100% / 1.00、FN-*↔UT-* 1:1。観測契約 subset=`DF-WCAUDIT-L6L7-001` / 責務粒度 caveat=`DF-WCAUDIT-L6L7-002`、§12 で honest 化） |
 
 ## 10. 定量判定 vs 定性判定の基準（ユーザー指摘 2026-06-03）
 **結論: 組合せが最適（角度が最も高い）。** HELIX は既に gate で `gate_verdict = static_subchecks AND ai_review_required_when(...)` を採用済（L0 concept §6.5）。定量を先行・必要条件、定性を最終・十分条件に置く。
@@ -178,6 +178,60 @@ refreeze_decision:
 - **deferred finding（TL P3、whole-coverage audit re-freeze 時の追跡対象）**:
   - `DF-WCAUDIT-L4L9-001`: detector が ST→TV→L4 推移 trace 未対応で orphan18（全 ST-*）を over-report。semantic 判定で excluded（L9 §7.1）。detector の推移 trace 解決は Phase3。
   - `DF-WCAUDIT-L5L8-001`: L5↔L8 gap = IT-MOD-06 / IT-DB-03 / IT-DB-05（結合テスト未実装、設計 gap でない。L8 doc 明示済）。
-  - `DF-WCAUDIT-L6L7-001`: L6↔L7 は観測済 public contract 14 に限定（全関数網羅でない、粒度爆発回避の意図的限定）。将来 FR 拡張時に再評価。
+  - `DF-WCAUDIT-L6L7-001`: L6↔L7 は観測済 public contract 14 に限定（全 139 lib 関数の約 10%、粒度爆発回避の意図的限定）。**gap クラスタ**: `FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計が未定義 = **`DF-WCAUDIT-L5L8-001`（IT-MOD-06/IT-DB-03/IT-DB-05）と同根**（2026-06-03 Phase2 総合見直し pmo Gap-1 で connective 確認）。universe 分類は L6 §5.1。将来 FR 拡張時に再評価。
+  - `DF-WCAUDIT-L6L7-002`（2026-06-03 Phase2 総合見直し tl-advisor P1 新規）: L6 `FN-*` は Reverse 由来の **観測契約 / 責務粒度**で、`FN-AGENT-01`(fire/release) `FN-CONTRACT-01`(登録/照合) `FN-DB-01`(接続/CRUD) `FN-HANDOVER-01`(resume/stale) 等が 1 FN に複数オペレーションを束ねており、厳密な「関数 1 個 = UT 1 個 / callable・入力型・例外型明示」より粗い（`FN-ROUTE-01` のみ単一関数）。1 FN↔1 UT で内部整合・detector green だが、厳密分割と callable/error contract 明示は Phase3 L7 実装（TDD sharpening）へ defer。L6 §5.2 記録。
 - **Phase3**: detector fail-close gate 化（automation-gate-map 接続、`helix doctor check_pair_trace_symmetry`）+ ST→TV→L4 推移 trace 解決 + whole-coverage audit recipe（§11）の CI 連動。
 - detector golden fixture（§6）の整備。
+
+## 12. Phase2 総合見直し refreeze_decision 証跡（2026-06-03、whole-coverage audit recipe §11 実行）
+
+> ユーザー指示「Phase2 の総合的見直し」を §11 whole-coverage audit recipe で実行。必要条件（detector 機械測定）+ 十分条件（tl-advisor adversarial + pmo 事実監査の二重 semantic gate）。**新 finding（L6 粒度 caveat = `DF-WCAUDIT-L6L7-002`、L6/L8 gap 同根クラスタ）を surface**し、freeze 文言を honest 化（design 変更なし）。machine-clean と semantic-pass を以下で明確に分離する。
+
+```yaml
+refreeze_decision:                 # Phase2 対象 3 pair（L1↔L14 / L3↔L12 は Phase1 で確定済）
+  - pair: L6-L7
+    detector:                      # 必要条件（trace_symmetry --json）
+      coverage_pct: 100.0
+      balance_ratio: 1.0
+      orphan_test: 0
+      missing_pair: 0
+      preflight: pass
+    semantic_gate:                 # 十分条件（二重 audit）
+      owner: TL(tl-advisor) + PM(Opus)
+      verdict: conditional         # 観測契約 subset としては成立、ただし freeze 文言の明確化が条件
+      assessment: "14 FN-* は DbC 完備・L7 UT-* と 1:1。ただし (a) 全 139 関数の ~10% subset、(b) FN-* が責務/複数オペレーション粒度で厳密単一関数より粗い、(c) catalog/contract 系 module の内部設計 gap が L8 gap3 と同根。"
+      rationale: "universe を §5.1 で明示分類、粒度 caveat を §5.2/DF-WCAUDIT-L6L7-002 で宣言し subset freeze として honest 化。実 expansion・厳密分割は Phase3 L7（TDD sharpening）へ defer。"
+    refreeze:
+      approvers: [TL, PM]
+      design_changed: false        # 範囲宣言の明確化のみ。FN-*/UT-*/DbC は不変、detector green 不変
+      routing: {kind: defer, target: Phase3-L7, findings: [DF-WCAUDIT-L6L7-001, DF-WCAUDIT-L6L7-002]}
+  - pair: L5-L8
+    detector: {coverage_pct: 100.0, balance_ratio: 1.0, orphan_test: 0, missing_pair: 0, preflight: pass}
+    semantic_gate:
+      owner: TL + PM
+      verdict: pass
+      assessment: "L5 4 doc（878 行）は実質設計（DDL/Mermaid/擬似コード/状態遷移、placeholder 残存 0）。薄い殻ではない（私の初期仮説を反証）。L8 21 IT-* が L5 21 設計 ID へ双方向 trace。"
+      rationale: "gap=IT-MOD-06/IT-DB-03/IT-DB-05 は結合テスト未実装（設計 gap でなく L8 明示済の deferred）。G8 前に observed 化。"
+    refreeze:
+      approvers: [TL, PM]
+      design_changed: false
+      routing: {kind: defer, target: Phase5-G8, findings: [DF-WCAUDIT-L5L8-001]}
+  - pair: L4-L9
+    detector:                      # ★machine と semantic を混同しない（tl-advisor P2）
+      coverage_pct: 100.0          # coverage/uncovered/missing_pair/wrong_layer は machine-clean
+      balance_ratio: 0.67
+      orphan_test: 18              # ★ST-* 全件は machine-clean でない（≠0）。semantic 判定で pass
+      missing_pair: 0
+      preflight: pass
+    semantic_gate:
+      owner: TL + PM
+      verdict: pass
+      assessment: "orphan18=ST-* は ST→TV→L4 の 2 段推移 trace が成立（L9 §7.1）。総合テストのシナリオが TV-* 経由で L4 設計項目へ繋がる構造は妥当（直 backlink を全 ST に足すと冗長）。"
+      rationale: "machine: 4 指標 clean だが orphan_test=18（detector が推移 trace 未対応）。semantic: 妥当な 2 段 trace。両者を分離表記（machine-clean + orphan semantic-pass）。"
+    refreeze:
+      approvers: [TL, PM]
+      design_changed: false
+      routing: {kind: defer, target: Phase3, findings: [DF-WCAUDIT-L4L9-001]}  # detector 推移 trace 解決
+```
+
+**Phase2 見直し総括**: 3 pair とも design 変更不要（freeze 維持）。L5↔L8 / L4↔L9 は既存 deferred finding を独立再確認、L6↔L7 は新 finding（粒度 caveat + gap 同根クラスタ）を surface し freeze 文言を honest 化。**用語規律**: 「全 5 pair frozen」は正しいが「全 5 pair machine-green」は誤り（L4↔L9 は orphan_test=18 で machine-clean でなく semantic-pass）。今後は **machine-clean（coverage/uncovered/missing_pair/wrong_layer の 4 指標）と semantic-pass（orphan/balance の意味判定）を分離**して表現する。

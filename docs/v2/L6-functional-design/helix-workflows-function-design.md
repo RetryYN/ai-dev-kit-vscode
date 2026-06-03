@@ -2,7 +2,7 @@
 doc_id: L6-functional-design-helix-workflows
 title: HELIX-workflows V2 機能設計（関数仕様 / DbC）
 status: frozen
-freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): FN-* 14 を DbC (requires/ensures/invariant) で定義し L7 UT-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/wrong_layer_pair0/balance1.0、tl-advisor adversarial check (P1 wrong_layer_pair=parent_design→upstream_design 修正済 / P2 FN-CONTRACT invariant 補完済)、Reverse 源泉 unit テスト実在確認"
+freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): FN-* 14 を DbC (requires/ensures/invariant) で定義し L7 UT-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/wrong_layer_pair0/balance1.0、tl-advisor adversarial check (P1 wrong_layer_pair=parent_design→upstream_design 修正済 / P2 FN-CONTRACT invariant 補完済)、Reverse 源泉 unit テスト実在確認 / 2026-06-03 Phase2 総合見直し (whole-coverage audit, tl-advisor changes_required[P1×2]+pmo 事実監査): 観測契約 subset freeze と確認し universe 分類(§5.1)+粒度 caveat(§5.2 DF-WCAUDIT-L6L7-002)を明示して freeze 範囲を honest 化、実設計 expansion は Phase3 L7 へ defer (re-freeze=範囲宣言の明確化のみ、FN-*/UT-*/DbC の design 変更なし・detector green 不変)"
 owner: SE
 process_layer: L6
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
@@ -56,13 +56,26 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 - 各 `FN-*` が `requires/ensures/invariant` を持ち、L7 の `UT-*` と 1:1 で対になる（trace_symmetry detector で L6↔L7 coverage 100% / uncovered 0 / orphan 0 / missing-pair 0）。
 - DbC は実装と既存 unit テストから推定可能なもののみ固定し、不明な intent は L7 側で仮説として扱う。
 
-## 5. 未確定 / gap
+## 5. カバレッジ universe と gap（観測契約 subset freeze の明示）
 
-- 上記 14 `FN-*` は観測済 public contract に限る。未観測の public 関数（例: builder / curator / dashboard 系の一部）は L6 後続拡張で追加する。
-- private helper・例外型の完全列挙・option ごとの細粒度 validation は本書では固定しない（必要時に FR 単位で `docs/v2/L6-functional-design/<FR>/` へ分割展開）。
+> 本書は **観測済 public contract subset の freeze** であり「HELIX 全機能（≈139 lib 関数）の機能設計 freeze」ではない。2026-06-03 Phase2 総合見直し（whole-coverage audit、tl-advisor + pmo 二重 audit）の P1 指摘を受け、universe を明示分類して freeze 範囲を honest にする（covered / excluded_with_reason / gap）。
+
+### 5.1 universe 分類
+| 区分 | 内容 | 件数 / 根拠 |
+|---|---|---|
+| **covered** | §3 の `FN-*` 14（L7 `UT-*` と 1:1、DbC 固定） | 14 |
+| **excluded_with_reason** | private helper / 例外型の完全列挙 / option 単位 validation（粒度爆発回避）。builder / curator / dashboard 系の未観測 public（観測テスト不在で契約を起こせない） | 観測契約なし=対象外 |
+| **gap（設計未定義・要追補）** | `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計。`FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール群の内部設計は未定義。**L8 の `IT-MOD-06` / `IT-DB-03` / `IT-DB-05` 結合テスト gap と同根クラスタ**（[DF-WCAUDIT-L6L7-001](../L1-requirements/helix-workflows-verification-strategy.md)） | 4 module |
+
+### 5.2 粒度 caveat（DF-WCAUDIT-L6L7-002）
+- `FN-*` は Reverse 由来の **観測済公開契約 / 責務粒度**で起こしており、`FN-AGENT-01`（fire / release）`FN-CONTRACT-01`（登録 / 照合）`FN-DB-01`（接続 / CRUD）`FN-HANDOVER-01`（resume / stale）等は **1 FN に複数オペレーションを束ねている**。HELIX 粒度ペアリング原則の厳密形（関数 1 個 = UT 1 個 / callable・入力型・例外型を明示）から見ると粗い（`FN-ROUTE-01` のみ単一関数 `RouteEngine.evaluate()`）。
+- 現状は「1 FN ↔ 1 UT」で内部整合し detector green だが、**厳密な単一関数分割と callable / error contract の明示は後続拡張（Phase3 L7 実装時に TDD で sharpening）へ defer**する。
+- 後続拡張は FR 単位で `docs/v2/L6-functional-design/<FR>/` へ分割展開する。
 
 ## 6. 自己検証チェックリスト
 
 - [ ] 全 `FN-*` が `requires/ensures/invariant` を持つ。
 - [ ] 全 `FN-*` が L7 `UT-*` と 1:1 対応（detector で uncovered 0 / orphan 0）。
 - [ ] `所属 MOD` が L5 モジュール分割設計の実在 ID を指す。
+- [ ] §5.1 universe（covered / excluded_with_reason / gap）が宣言され、freeze 範囲が観測契約 subset であることが明示されている。
+- [ ] §5.2 粒度 caveat（責務粒度・複数オペレーション束ね）と厳密分割の defer 先（Phase3）が記録されている。
