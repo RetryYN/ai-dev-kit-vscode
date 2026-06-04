@@ -93,6 +93,10 @@ def _run_pretooluse_hook(
     )
 
 
+def test_ambient_automation_run_id_is_scrubbed() -> None:
+    assert "HELIX_AUTOMATION_RUN_ID" not in os.environ
+
+
 def test_insert_audit_log_inserts_row(tmp_path: Path) -> None:
     _, db_path = _init_project(tmp_path, "helper")
 

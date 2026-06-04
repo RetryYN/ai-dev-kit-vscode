@@ -29,6 +29,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
+def _scrub_gate_context_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """gate/automation 実行由来の ambient env を test から隔離する。"""
+    for key in tuple(os.environ):
+        if key.startswith("HELIX_AUTOMATION_"):
+            monkeypatch.delenv(key, raising=False)
+    monkeypatch.delenv("HELIX_ASKUSERQUESTION_NOW", raising=False)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def helix_worker_home(tmp_path_factory, worker_id):
     """PLAN-102: pytest-xdist worker ごとに独立した HELIX_HOME / HELIX_DB_PATH を割当
@@ -81,6 +89,7 @@ def helix_function_root(request, monkeypatch, tmp_path):
     opt-out: `@pytest.mark.no_helix_function_root` を付けた test では override しない
     (worker_base を維持したい test 用、test_merge_settings 等)。
     """
+    _scrub_gate_context_env(monkeypatch)
     if request.node.get_closest_marker("no_helix_function_root"):
         yield
         return
