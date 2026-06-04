@@ -78,6 +78,59 @@ def _parse_list(lines: list[str], index: int, indent: int) -> tuple[list[Any], i
     return items, i
 
 
+def _parse_block_scalar(
+    lines: list[str], start: int, parent_indent: int, indicator: str
+) -> tuple[str, int]:
+    """YAML block scalar (literal `|` / folded `>`、chomp `-`/`+` 付き) を解析する。
+
+    catalog 用途のため厳密な YAML 折り畳み規則の近似で十分:
+    literal は改行保持、folded は空行を改行境界・連続行を空白結合する。
+    parent_indent より深くインデントされた行を本文として消費する。
+    """
+    style = indicator[0]
+    keep = "+" in indicator
+    block_lines: list[str] = []
+    block_indent: int | None = None
+    i = start
+    while i < len(lines):
+        line = lines[i]
+        if line.strip() == "":
+            block_lines.append("")
+            i += 1
+            continue
+        current_indent = len(line) - len(line.lstrip(" "))
+        if current_indent <= parent_indent:
+            break
+        if block_indent is None:
+            block_indent = current_indent
+        block_lines.append(line[block_indent:])
+        i += 1
+
+    while block_lines and block_lines[-1] == "":
+        block_lines.pop()
+
+    if style == "|":
+        text = "\n".join(block_lines)
+    else:  # folded '>'
+        folded: list[str] = []
+        buffer: list[str] = []
+        for bl in block_lines:
+            if bl == "":
+                if buffer:
+                    folded.append(" ".join(buffer))
+                    buffer = []
+                folded.append("")
+            else:
+                buffer.append(bl)
+        if buffer:
+            folded.append(" ".join(buffer))
+        text = "\n".join(folded)
+
+    if keep:
+        text += "\n"
+    return text, i
+
+
 # @helix:index id=skill-catalog.parse-mapping domain=cli/lib summary=frontmatterのネスト付きmappingを解析する seed_candidate=true
 def _parse_mapping(lines: list[str], index: int, indent: int) -> tuple[dict[str, Any], int]:
     result: dict[str, Any] = {}
@@ -103,6 +156,12 @@ def _parse_mapping(lines: list[str], index: int, indent: int) -> tuple[dict[str,
         key, rest = stripped.split(":", 1)
         key = key.strip()
         value = rest.strip()
+
+        # block scalar (literal `|` / folded `>`、`-`/`+` chomp・桁指定付き)
+        if value and re.fullmatch(r"[|>][0-9]*[+-]?", value):
+            block_text, i = _parse_block_scalar(lines, i + 1, indent, value)
+            result[key] = block_text
+            continue
 
         if value:
             result[key] = _parse_scalar(value)
