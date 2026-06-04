@@ -60,14 +60,32 @@ def _repo_root() -> Path:
     return Path(proc.stdout.strip()).resolve()
 
 
-def _run_command(command: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+def _run_command(
+    command: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=str(cwd) if cwd else None,
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
+
+
+def _hermetic_test_env() -> dict[str, str]:
+    """テスト subprocess へ渡す env から gate/automation 文脈変数を除去する。
+
+    gate (helix push) は自身の automation run のため HELIX_AUTOMATION_RUN_ID を
+    ambient に設定する。これを pytest/bats が継承すると、tmp DB に存在しない run_id を
+    参照して FK 違反/automation 記録汚染を起こし hermetic test が間欠 fail する
+    (pytest 側 conftest scrub と同じ隔離を runner 側でも適用し bats もカバーする)。
+    """
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("HELIX_AUTOMATION_") and key != "HELIX_ASKUSERQUESTION_NOW"
+    }
 
 
 def _result(gate_id: str, passed: bool, detail: str, fix: str) -> dict:
@@ -245,7 +263,8 @@ def _contract_gate_ids(contract_path: Path) -> list[str]:
 
 def run_gate_tests() -> dict:
     repo_root = _repo_root()
-    pytest_proc = _run_command(PYTEST_TESTS_CMD, cwd=repo_root)
+    test_env = _hermetic_test_env()
+    pytest_proc = _run_command(PYTEST_TESTS_CMD, cwd=repo_root, env=test_env)
     if pytest_proc.returncode != 0:
         return _result(
             "G-tests",
@@ -263,7 +282,7 @@ def run_gate_tests() -> dict:
             "テスト fail を修正してから再実行",
         )
 
-    bats_proc = _run_command(["bats", *bats_files], cwd=repo_root)
+    bats_proc = _run_command(["bats", *bats_files], cwd=repo_root, env=test_env)
     if bats_proc.returncode != 0:
         return _result(
             "G-tests",

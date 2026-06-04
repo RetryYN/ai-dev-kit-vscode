@@ -21,7 +21,7 @@ def test_run_gate_tests_returns_pass_when_pytest_succeeds(monkeypatch) -> None:
     repo_root = push_gate.Path("/tmp/repo")
     tests_dir = repo_root / "cli" / "tests"
 
-    def fake_run(command: list[str], *, cwd=None):  # type: ignore[no-untyped-def]
+    def fake_run(command: list[str], *, cwd=None, env=None):  # type: ignore[no-untyped-def]
         calls.append(command)
         if command[:3] == ["python3", "-m", "pytest"]:
             return _completed(command, 0, stdout="1147 passed in 1.23s\n")
