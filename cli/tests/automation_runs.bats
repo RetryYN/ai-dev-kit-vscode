@@ -111,7 +111,7 @@ assert row["ended_at"]
 assert row["last_error"] is None
 assert row["summary"]["trigger_source"] == "helix-push"
 assert row["summary"]["execute"] is False
-assert row["summary"]["branch"] == "main"
+assert row["summary"]["branch"] == "feature/automation-runs"
 assert row["summary"]["remote"] == "origin"
 PY
 }

@@ -232,7 +232,7 @@ PY
 @test "helix code stats --uncovered default outputs TSV with summary" {
   run "$HELIX_ROOT/cli/helix" code stats --uncovered
   [ "$status" -eq 0 ]
-  [[ "$output" == *$'cli/lib/skill_catalog.py\t270\tbuild_catalog\tfunction'* ]]
+  [[ "$output" == *$'cli/lib/skill_catalog.py\t329\tbuild_catalog\tfunction'* ]]
   [[ "$output" == *"summary: covered="* ]]
 }
 
