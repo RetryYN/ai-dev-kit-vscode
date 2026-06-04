@@ -10,6 +10,7 @@ drive: reverse
 status: completed
 created: 2026-06-03
 owner: PM
+tl_review: approve  # 遡及 TL review 2026-06-05 (G-review gate 追加前に close したため後付け、evidence: tl-advisor b48bm3o8v = approve)
 agent_slots:
   - role: tl-advisor
     slot_label: "TL — 修正スコープ / Stop hook 共存設計 / 正本判定 / 再発防止 test 戦略 adversarial check（完了 2026-06-03、passed）"
