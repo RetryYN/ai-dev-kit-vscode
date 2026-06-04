@@ -512,7 +512,7 @@ push_gate_run_all_gates:
     plan_id:
       type: string | null
       default: null
-      description: "G-review 対象 PLAN の明示指定（explicit-first: --plan-id → handover active plan_id → ahead commit の単一 PLAN。複数/0/不一致は fail-close）"
+      description: "G-review 対象の代表 PLAN を明示指定。単一 ahead PLAN は未指定でも可。複数 ahead PLAN では必須で、指定 PLAN が ahead に含まれることを確認したうえで ahead 全 PLAN を検査する（0/不一致は fail-close）"
     allow_main:
       type: boolean
       default: false
@@ -554,7 +554,7 @@ existing_cli_callers:
   helix_push:
     file: cli/helix-push
     pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLAN] [--allow-main]"
-    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper。helix-push の default branch=current、main は --allow-main + --reason 必須。G-review は対象 PLAN frontmatter の status∈{completed,finalized} + tl_review=approve を検査（gate-driven push 政策の SSoT は github-operations.md）"
+    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper。helix-push の default branch=current、main は --allow-main + --reason 必須。G-review は単一 ahead PLAN ではその 1 件、複数 ahead PLAN では `--plan-id` で代表を明示したうえで ahead 全 PLAN について frontmatter の status∈{completed,finalized} + tl_review=approve を検査する（gate-driven push 政策の SSoT は github-operations.md）"
   helix_pr:
     file: cli/helix-pr
     pattern: "inspect.signature(run_all_gates).parameters で動的キーワード確認後に呼び出し (L147-153)"

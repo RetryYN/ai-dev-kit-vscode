@@ -37,6 +37,10 @@ def _write_plan(
     return plan_path
 
 
+def _stub_ahead(monkeypatch, plan_ids: list[str]) -> None:
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: plan_ids)
+
+
 def test_run_gate_review_passes_with_explicit_plan_id(tmp_path: Path) -> None:
     plan_id = "add-feature-2026-06-03-gate-driven-push"
     _write_plan(tmp_path, plan_id)
@@ -112,6 +116,87 @@ def test_run_gate_review_fails_when_ahead_commit_has_multiple_plan_candidates(
 
     assert result["passed"] is False
     assert "multiple" in result["detail"]
+
+
+def test_run_gate_review_passes_when_all_ahead_plans_are_approved(
+    tmp_path: Path, monkeypatch
+) -> None:
+    representative = "add-feature-2026-06-03-gate-driven-push"
+    sibling = "add-feature-2026-06-03-gate-driven-push-docs"
+    _write_plan(tmp_path, representative)
+    _write_plan(tmp_path, sibling, status="finalized")
+    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
+    _stub_ahead(monkeypatch, [representative, sibling])
+
+    result = push_gate.run_gate_review(representative, tmp_path)
+
+    assert result["passed"] is True
+    assert representative in result["detail"]
+    assert sibling in result["detail"]
+
+
+def test_run_gate_review_fails_when_any_ahead_plan_is_missing_tl_review(
+    tmp_path: Path, monkeypatch
+) -> None:
+    representative = "add-feature-2026-06-03-gate-driven-push"
+    missing_review = "add-feature-2026-06-03-gate-driven-push-docs"
+    _write_plan(tmp_path, representative)
+    _write_plan(tmp_path, missing_review, tl_review=None)
+    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
+    _stub_ahead(monkeypatch, [representative, missing_review])
+
+    result = push_gate.run_gate_review(representative, tmp_path)
+
+    assert result["passed"] is False
+    assert missing_review in result["detail"]
+    assert "tl_review=<missing>" in result["detail"]
+
+
+def test_run_gate_review_fails_when_any_ahead_plan_status_is_not_completed_or_finalized(
+    tmp_path: Path, monkeypatch
+) -> None:
+    representative = "add-feature-2026-06-03-gate-driven-push"
+    incomplete = "add-feature-2026-06-03-gate-driven-push-docs"
+    _write_plan(tmp_path, representative)
+    _write_plan(tmp_path, incomplete, status="in_progress")
+    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
+    _stub_ahead(monkeypatch, [representative, incomplete])
+
+    result = push_gate.run_gate_review(representative, tmp_path)
+
+    assert result["passed"] is False
+    assert incomplete in result["detail"]
+    assert "status=in_progress" in result["detail"]
+
+
+def test_run_gate_review_fails_when_explicit_plan_id_is_not_in_ahead_candidates(
+    tmp_path: Path, monkeypatch
+) -> None:
+    representative = "add-feature-2026-06-03-gate-driven-push"
+    sibling = "add-feature-2026-06-03-gate-driven-push-docs"
+    _write_plan(tmp_path, representative)
+    _write_plan(tmp_path, sibling)
+    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
+    _stub_ahead(monkeypatch, [representative, sibling])
+
+    result = push_gate.run_gate_review("add-feature-2026-06-03-outside-scope", tmp_path)
+
+    assert result["passed"] is False
+    assert "explicit=add-feature-2026-06-03-outside-scope" in result["detail"]
+
+
+def test_run_gate_review_uses_single_ahead_plan_for_backward_compatibility(
+    tmp_path: Path, monkeypatch
+) -> None:
+    plan_id = "add-feature-2026-06-03-gate-driven-push"
+    _write_plan(tmp_path, plan_id)
+    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
+    _stub_ahead(monkeypatch, [plan_id])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is True
+    assert result["detail"] == f"{plan_id} status=completed tl_review=approve"
 
 
 def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:

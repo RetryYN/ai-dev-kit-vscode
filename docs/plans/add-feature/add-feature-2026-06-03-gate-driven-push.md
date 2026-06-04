@@ -114,3 +114,18 @@ L4（gate 契約 enum）→ L7（push_gate / helix-push / guard 実装）→ L8�
   - `helix doctor` 24-0-105 維持。Codex が `$(printf git) push` 回避形の guard 漏れを自己検出・解消。
 - 承認の機械 guard 不在を解消: raw push は fail-close deny、`helix push --gate --execute` 7 gate 全 PASS = authorized。
 - **forward_return**: L4(gate enum)→L7(実装)→L8(検証 passed)。Phase 3「CI↔gate 紐づけ」へ収束。
+
+## 10. addendum — G-review multi-PLAN hardening（2026-06-05）
+
+**dogfood 発見**: 本 gate の初実走（7 commit / 3 PLAN backlog の push）で、`run_gate_review` が `--plan-id` で解決した**代表 1 PLAN しか** `status`+`tl_review` を検査しないことが判明。multi-PLAN push では未レビュー PLAN が混在しても G-review が pass する＝ gate-driven push 自体の信頼境界の穴（§9 closure 時点の片肺）。これは「将来負債」であり defer に弱い（gate の保証が偽になる）。
+
+**TL 判定**（tl-advisor `b48bm3o8v` = passed）: 今回 push 前に hardening 推奨。設計 = `--plan-id` は代表明示として残し、検査対象を `_ahead_commit_plan_ids()` の全 PLAN へ拡張。
+
+**実装**（commit: 本 addendum と同 commit）:
+- `_all_review_plan_ids()` 追加。`run_gate_review` が ahead 全 PLAN を反復検査し、違反 PLAN id + 欠落フィールドを列挙して fail。
+- 後方互換: 単一 ahead PLAN push は現行どおりその 1 件を検査。multi-PLAN + `--plan-id` 未指定は fail-close（`multiple ahead PLAN candidates`）。multi-PLAN + `--plan-id` 指定は指定 PLAN が ahead 内であることを確認の上 ahead 全 PLAN を検査。
+- doc 同期: `github-operations.md`（policy SSoT）/ `docs/commands/push.md`（「6→7 ゲート」drift も修正）/ `D-CONTRACT-draft.md §4.5`。
+
+**PM 独立検証**: pytest `test_push_gate.py` **13 passed**（新規 5 ケース: 全 approve→pass / tl_review 欠落→fail / status 不正→fail / explicit not in ahead→fail / 単一 PLAN 後方互換）。bats `helix-push.bats` **7/7**。ロジック TL 設計一致を diff レビューで確認。
+
+**残 carry**: P2 `_ahead_commit_plan_ids()` は docs/plans diff 起点のため PLAN doc を触らない code-only commit の PLAN 帰属を検出できない（将来 `.helix/reviews/plans` / DB trace で補強）。P3 `merge_settings` retile の unit assertion 薄い。

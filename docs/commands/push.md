@@ -41,7 +41,7 @@ helix push --gate --execute --remote origin --branch main
 | `--execute` | 全ゲート PASS 時のみ `git push <remote> <branch>` を実行（`--gate` 必須） |
 | `--remote REMOTE` | 検証対象と push 対象の remote。既定は `origin` |
 | `--branch BRANCH` | 検証対象と push 対象の branch。既定は **current branch** |
-| `--plan-id PLAN` | G-review 対象 PLAN の明示指定（未指定時は handover active plan_id → ahead commit の単一 PLAN で解決、複数/0/不一致は fail-close） |
+| `--plan-id PLAN` | G-review 対象の代表 PLAN を明示指定。単一 ahead PLAN は未指定でも可。複数 ahead PLAN では必須で、指定 PLAN が ahead に含まれることを確認したうえで ahead 全 PLAN を検査する（0/不一致は fail-close） |
 | `--allow-main` | `main` への push を許可（`--reason` 必須）。未指定で branch=main は fail-close |
 | `--reason TEXT` | `--allow-main` 時の理由（commit/evidence へ） |
 | `--help` | ヘルプを表示 |
@@ -56,7 +56,7 @@ helix push --gate --execute --remote origin --branch main
 | `G-ff` | fast-forward | `git fetch <remote> <branch>` 後に `git merge-base --is-ancestor <remote>/<branch> HEAD` | rebase 必要、`git pull --rebase origin main` |
 | `G-attr` | Co-Authored-By | `git rev-list --count <remote>/<branch>..HEAD` と `git log <remote>/<branch>..HEAD --grep "Co-Authored-By"` を比較 | commit 修正必要 (amend or rebase -i) |
 | `G-nondestructive` | destructive diff | `git diff <remote>/<branch>..HEAD` の追加行から `DROP TABLE` / `git branch -D` / `rm -rf` / `--force` / `--no-verify` を検出 | destructive operation 検出、manual-confirm 必要 |
-| `G-review` | PLAN完遂 + TLレビュー | 対象 PLAN frontmatter `status ∈ {completed, finalized}` + `tl_review == approve`（`--plan-id` で特定、explicit-first、複数/0/不一致は fail-close） | PLAN を completed/finalized + `tl_review: approve` にする、`--plan-id` 指定 |
+| `G-review` | PLAN完遂 + TLレビュー | 単一 ahead PLAN はその 1 件、複数 ahead PLAN は `--plan-id` で代表を明示したうえで ahead 全 PLAN を対象に、frontmatter `status ∈ {completed, finalized}` + `tl_review == approve` を検査（0/不一致は fail-close） | PLAN を completed/finalized + `tl_review: approve` にする。複数 ahead PLAN では `--plan-id` を指定 |
 
 ## 出力形式
 
@@ -115,7 +115,7 @@ dry-run 成功時:
   - `--execute` / `--remote` / `--branch` の引数解釈
   - Python helper への委譲
 - `cli/lib/push_gate.py`
-  - 6 ゲートの実処理
+  - 7 ゲートの実処理
   - ゲート結果の集計
   - `--execute` 時の `git push`
   - CLI 向けの整形出力

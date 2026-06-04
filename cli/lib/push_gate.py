@@ -212,6 +212,8 @@ def _resolve_review_plan_id(plan_id: str | None, project_root: Path) -> str:
         raise ValueError(f"plan_id mismatch: handover={handover} ahead={ahead}")
     if handover and len(ahead) == 1 and handover != ahead[0]:
         raise ValueError(f"plan_id mismatch: handover={handover} ahead={ahead[0]}")
+    if len(ahead) > 1 and not explicit:
+        raise ValueError(f"multiple ahead PLAN candidates: {ahead}")
 
     chosen = explicit or handover
     if chosen:
@@ -221,6 +223,16 @@ def _resolve_review_plan_id(plan_id: str | None, project_root: Path) -> str:
     if len(ahead) > 1:
         raise ValueError(f"multiple ahead PLAN candidates: {ahead}")
     raise ValueError("plan_id is required: explicit/handover/ahead commit candidate not found")
+
+
+def _all_review_plan_ids(plan_id: str | None, project_root: Path) -> list[str]:
+    resolved_plan_id = _resolve_review_plan_id(plan_id, project_root)
+    ahead = _ahead_commit_plan_ids(project_root)
+    if len(ahead) > 1:
+        return ahead
+    if len(ahead) == 1:
+        return ahead
+    return [resolved_plan_id]
 
 
 def _contract_gate_ids(contract_path: Path) -> list[str]:
@@ -416,9 +428,7 @@ def run_gate_nondestructive(remote: str = "origin", branch: str = "main") -> dic
 def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
     root = Path(project_root).resolve()
     try:
-        resolved_plan_id = _resolve_review_plan_id(plan_id, root)
-        plan_path = _resolve_plan_path(root, resolved_plan_id)
-        frontmatter = plan_validator.load_frontmatter(plan_path)
+        review_plan_ids = _all_review_plan_ids(plan_id, root)
     except ValueError as exc:
         return _result(
             "G-review",
@@ -427,19 +437,43 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             "PLAN 特定 (--plan-id / handover / ahead commit) と docs/plans frontmatter を確認",
         )
 
-    status = str(frontmatter.get("status", "")).strip()
-    tl_review = str(frontmatter.get("tl_review", "")).strip()
-    if status not in {"completed", "finalized"} or tl_review != "approve":
+    reviewed: list[str] = []
+    violations: list[str] = []
+    try:
+        for review_plan_id in review_plan_ids:
+            plan_path = _resolve_plan_path(root, review_plan_id)
+            frontmatter = plan_validator.load_frontmatter(plan_path)
+            status = str(frontmatter.get("status", "")).strip()
+            tl_review = str(frontmatter.get("tl_review", "")).strip()
+            reviewed.append(f"{review_plan_id} status={status or '<missing>'} tl_review={tl_review or '<missing>'}")
+            missing_fields: list[str] = []
+            if status not in {"completed", "finalized"}:
+                missing_fields.append(f"status={status or '<missing>'}")
+            if tl_review != "approve":
+                missing_fields.append(f"tl_review={tl_review or '<missing>'}")
+            if missing_fields:
+                violations.append(f"{review_plan_id} {' '.join(missing_fields)}")
+    except ValueError as exc:
         return _result(
             "G-review",
             False,
-            f"{resolved_plan_id} status={status or '<missing>'} tl_review={tl_review or '<missing>'}",
+            str(exc),
+            "PLAN 特定 (--plan-id / handover / ahead commit) と docs/plans frontmatter を確認",
+        )
+
+    if violations:
+        return _result(
+            "G-review",
+            False,
+            f"review prerequisites missing: {'; '.join(violations)}",
             "PLAN frontmatter の status∈{completed,finalized} と tl_review=approve を満たすこと",
         )
+
+    detail = reviewed[0] if len(reviewed) == 1 else "; ".join(reviewed)
     return _result(
         "G-review",
         True,
-        f"{resolved_plan_id} status={status} tl_review={tl_review}",
+        detail,
         "なし",
     )
 
