@@ -1,0 +1,120 @@
+{
+  "created": "2026-06-06",
+  "expiry": "2026-09-04",
+  "generated_by": "ddd_registry_checks.py --emit-baseline",
+  "intentional_baseline": true,
+  "owner": "codex",
+  "reports": [
+    {
+      "baseline": [],
+      "check_name": "check_glossary_coverage",
+      "domain": "ddd_registry",
+      "exit_policy": 0,
+      "findings": [
+        {
+          "entry_id": "ADR",
+          "fingerprint": "daa05d3c6054277d759ce095ac1aba82e6f8f09c32059f38d13d63a21dd344ee",
+          "kind": "implementation_gap",
+          "message": "partial leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "NSM",
+          "fingerprint": "bc36f122c057ac11efd2794e793d75c681ddcf6f1f29018a1a8d1ed7d657d974",
+          "kind": "implementation_gap",
+          "message": "not-implemented leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "balance_ratio",
+          "fingerprint": "e40b041cf1bafe5e65f81e6268012acff49782aab79a24c9fdc7ac9e37af03f2",
+          "kind": "implementation_gap",
+          "message": "L4-carry leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "drift",
+          "fingerprint": "571a6398e22084863359b43bea9dfb129709f92f1c95436921544c1d81176009",
+          "kind": "implementation_gap",
+          "message": "partial leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "gate",
+          "fingerprint": "aa715d64cfcec1fee3157bdb3f8b7dc523240b27965af3bd2e799f2086ccf213",
+          "kind": "implementation_gap",
+          "message": "partial leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "guardrail",
+          "fingerprint": "10a2f03b839039bb416d89881a5265fbb5c63d7b06c77b3ade51b0d94abfe600",
+          "kind": "implementation_gap",
+          "message": "partial leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "trace",
+          "fingerprint": "3f54349a3b42436cdbaa44543d27757c3dacf8c0b86cac9a2940f2506fb46925",
+          "kind": "implementation_gap",
+          "message": "partial leaves this glossary term outside full installed coverage",
+          "path": "cli/config/ddd-registry.yaml",
+          "remediation": "keep the carry explicit until a later Action closes the gap",
+          "severity": "P3"
+        }
+      ],
+      "metrics": {
+        "concept_terms": 19,
+        "duplicate_terms": 0,
+        "extra_term_count": 0,
+        "implementation_gaps": 7,
+        "invalid_statuses": 0,
+        "missing_field_findings": 0,
+        "missing_term_count": 0,
+        "registry_terms": 19
+      },
+      "mode": "advisory"
+    },
+    {
+      "baseline": [],
+      "check_name": "check_bc_anti_corruption",
+      "domain": "ddd_registry",
+      "exit_policy": 0,
+      "findings": [],
+      "metrics": {
+        "concept_examples": 4,
+        "entries": 10,
+        "missing_field_entries": 0
+      },
+      "mode": "advisory"
+    },
+    {
+      "baseline": [],
+      "check_name": "check_bc_mode_coverage",
+      "domain": "ddd_registry",
+      "exit_policy": 0,
+      "findings": [],
+      "metrics": {
+        "concept_entries": 10,
+        "derived_present": 9,
+        "forward_present": 1,
+        "missing_modes": 0,
+        "registry_entries": 10,
+        "unexpected_modes": 0
+      },
+      "mode": "advisory"
+    }
+  ]
+}
