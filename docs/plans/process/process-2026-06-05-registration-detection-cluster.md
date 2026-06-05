@@ -6,7 +6,7 @@ workflow_chain: "Action1(共通基盤 RegistryLoader/Detector framework + functi
 kind: planning
 layer: L4
 drive: be
-status: draft  # 長命 process: 全 Action(1-3) の L7 完了で収束。Action1 のみ完了のため draft 継続（TL behzm4qdw: process は completed 不要、tl_review で守る）
+status: completed
 tl_review: approve  # TL bg5o6lxwb 条件付き推奨 → 条件(helix.db defer / trace_symmetry 分離 / changed-files ratchet を fail-close 前) を Action1 設計で充足し approve 昇格 (behzm4qdw 確認)。意味=Process 設計/Action1 landing 方針の承認 (Process 完了ではない)
 created: 2026-06-05
 owner: PM
@@ -111,3 +111,18 @@ registry schema を広げすぎ「全部載るが誰も保守しない YAML」�
 - 各 detector に baseline snapshot + 昇格基準。fail-close は changed-files ratchet 先行。
 - plan_validator / lint PASS、doctor 実行 30秒以内、helix doctor の既存 24-0-105 を退行させない。
 - 各 Action は gate-driven push で landing（baseline と fail-close commit を分離 = TL P2）。
+
+## 9. 収束記録（2026-06-06 — 全 3 Action L7 完了）
+
+全 Action が L4→L6→L7 を完了し、3 ドメインすべてに warn-only detector が `helix doctor` へ接続された。**「登録 + 検出が doc 完備・機械担保ゼロ」という負債を一掃**（registry を消しても・SSoT を消しても机上宣言だけになる状態を機械が surface するようになった）。
+
+| Action | status / tl_review | 実体化した doctor check（warn-only） |
+|---|---|---|
+| Action1 (registry-detector-base) | completed / approve (brwk41j0s) | `check_functional_registry` / `check_fr_sot_alignment` |
+| Action2 (coding-rule-ssot) | completed / approve (b5dc2tltq) | `check_coding_rule_sot` / `check_coding_rule_alignment` |
+| Action3 (ddd-registry-coverage) | completed / approve (boze5wqis) | `check_glossary_coverage` / `check_bc_anti_corruption` / `check_bc_mode_coverage` |
+
+- **実体化 7 check** / **Phase 4-5 へ defer 2 check**: `check_deprecated_registry`（Action1 carry）/ `check_ubiquitous_language`（全 doc 横断 semantic scan、Action3 §5 carry）。
+- 統合検証（PM 独立）: 全 pytest **2374 passed**（Action2 後）、Action3 後も新 test 5/5・bats 18/18・`helix doctor` **0 fail**（warn-only、新 7 check は △/✓）、trace_symmetry **L6-L7 pair balance 1.0 / coverage 100%**（新 FN-CRREG/FN-DDD ↔ UT 対が既存 frozen pair を退行させない）。
+- **fail-close（ratchet）昇格は本 Process の非スコープ**（warn baseline clean + changed-files ratchet 先行。V2 roadmap Phase3 で gate 化 + CI 連動）。HELIX DB / glossary・bc table 化は Phase 4。
+- forward_return 到達: 3 ドメインの登録・検出が機械化され、V2 roadmap Phase3（detector fail-close gate 化）/ Phase4（DB 拡張）へ収束。
