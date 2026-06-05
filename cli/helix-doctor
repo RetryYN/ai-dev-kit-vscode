@@ -1564,7 +1564,102 @@ print(report.render("json"))
 PY
 }
 
+run_coding_rule_helper() {
+  local helper_name="$1"
+  shift
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_CR_HELPER="$helper_name" python3 - "$@" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+
+from coding_rule_checks import (  # noqa: E402
+    check_coding_rule_alignment,
+    check_coding_rule_sot,
+)
+
+helper_name = os.environ["HELIX_CR_HELPER"]
+args = [Path(arg) for arg in sys.argv[1:]]
+
+if helper_name == "check_coding_rule_sot":
+    report = check_coding_rule_sot(args[0], args[1])
+elif helper_name == "check_coding_rule_alignment":
+    report = check_coding_rule_alignment(args[0], args[1])
+else:
+    raise SystemExit(f"unknown coding rule helper: {helper_name}")
+
+print(report.render("json"))
+PY
+}
+
+run_ddd_registry_helper() {
+  local helper_name="$1"
+  shift
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_DDD_HELPER="$helper_name" python3 - "$@" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+
+from ddd_registry_checks import (  # noqa: E402
+    check_bc_anti_corruption,
+    check_bc_mode_coverage,
+    check_glossary_coverage,
+)
+
+helper_name = os.environ["HELIX_DDD_HELPER"]
+args = [Path(arg) for arg in sys.argv[1:]]
+
+if helper_name == "check_glossary_coverage":
+    report = check_glossary_coverage(args[0], args[1])
+elif helper_name == "check_bc_anti_corruption":
+    report = check_bc_anti_corruption(args[0], args[1])
+elif helper_name == "check_bc_mode_coverage":
+    report = check_bc_mode_coverage(args[0], args[1])
+else:
+    raise SystemExit(f"unknown ddd registry helper: {helper_name}")
+
+print(report.render("json"))
+PY
+}
+
 summarize_functional_registry_report() {
+  local report_json="$1"
+  python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+findings = payload.get("findings", [])
+preview = "; ".join(
+    f"{finding.get('kind', '-')}:{finding.get('path', '-')}"
+    for finding in findings[:3]
+)
+print(len(findings))
+print(preview)
+PY
+}
+
+summarize_coding_rule_report() {
+  local report_json="$1"
+  python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+findings = payload.get("findings", [])
+preview = "; ".join(
+    f"{finding.get('kind', '-')}:{finding.get('path', '-')}"
+    for finding in findings[:3]
+)
+print(len(findings))
+print(preview)
+PY
+}
+
+summarize_ddd_registry_report() {
   local report_json="$1"
   python3 - <<'PY' "$report_json"
 import json
@@ -1654,6 +1749,127 @@ check_fr_sot_alignment_doctor() {
   fi
 
   echo "  △ check_fr_sot_alignment"
+  echo "    findings: $finding_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
+check_coding_rule_sot_doctor() {
+  local registry_path="$PROJECT_ROOT/cli/config/coding-rule-registry.yaml"
+  local report_json
+  local summary
+  local finding_count
+  local preview
+
+  if [[ ! -f "$registry_path" ]]; then
+    echo "  △ check_coding_rule_sot (skipped)"
+    echo "    registry yaml missing: cli/config/coding-rule-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_coding_rule_helper check_coding_rule_sot "$registry_path" "$PROJECT_ROOT" 2>&1)"; then
+    echo "  △ check_coding_rule_sot"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_coding_rule_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ check_coding_rule_sot"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check_coding_rule_sot"
+  echo "    findings: $finding_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
+check_coding_rule_alignment_doctor() {
+  local claude_md_path="$PROJECT_ROOT/CLAUDE.md"
+  local registry_path="$PROJECT_ROOT/cli/config/coding-rule-registry.yaml"
+  local report_json
+  local summary
+  local finding_count
+  local preview
+
+  if [[ ! -f "$claude_md_path" || ! -f "$registry_path" ]]; then
+    echo "  △ check_coding_rule_alignment (skipped)"
+    [[ ! -f "$claude_md_path" ]] && echo "    CLAUDE.md missing: CLAUDE.md"
+    [[ ! -f "$registry_path" ]] && echo "    registry yaml missing: cli/config/coding-rule-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_coding_rule_helper check_coding_rule_alignment "$claude_md_path" "$registry_path" 2>&1)"; then
+    echo "  △ check_coding_rule_alignment"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_coding_rule_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ check_coding_rule_alignment"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check_coding_rule_alignment"
+  echo "    findings: $finding_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
+check_ddd_registry_doctor() {
+  local label="$1"
+  local helper_name="$2"
+  local registry_path="$PROJECT_ROOT/cli/config/ddd-registry.yaml"
+  local report_json
+  local summary
+  local finding_count
+  local preview
+
+  if [[ ! -f "$registry_path" ]]; then
+    echo "  △ $label (skipped)"
+    echo "    registry yaml missing: cli/config/ddd-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_ddd_registry_helper "$helper_name" "$registry_path" "$PROJECT_ROOT" 2>&1)"; then
+    echo "  △ $label"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_ddd_registry_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ $label"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ $label"
   echo "    findings: $finding_count"
   if [[ -n "$preview" ]]; then
     echo "    $preview"
@@ -1800,6 +2016,17 @@ echo ""
 echo "[functional registry]"
 check_functional_registry_doctor
 check_fr_sot_alignment_doctor
+
+echo ""
+echo "[ddd registry]"
+check_ddd_registry_doctor "check_glossary_coverage" "check_glossary_coverage"
+check_ddd_registry_doctor "check_bc_anti_corruption" "check_bc_anti_corruption"
+check_ddd_registry_doctor "check_bc_mode_coverage" "check_bc_mode_coverage"
+
+echo ""
+echo "[coding rule registry]"
+check_coding_rule_sot_doctor
+check_coding_rule_alignment_doctor
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"

@@ -2658,6 +2658,54 @@ entries:
     code_paths:
       - "cli/lib/zizmor_ignore_lint.py"
     doc_paths: []
+  - id: "FR-LIB-144"
+    name: "coding_rule_checks.py"
+    domain: "lib"
+    description: "CLAUDE.md の coding/commit/forbid 14 rule と enforcement path の warn-only detector"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/coding_rule_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-145"
+    name: "coding-rule-registry.yaml"
+    domain: "lib"
+    description: "coding rule detector の機械正本 registry (CLAUDE.md 14 rule registry)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/config/coding-rule-registry.yaml"
+    doc_paths: []
+  - id: "FR-LIB-146"
+    name: "ddd_registry_checks.py"
+    domain: "lib"
+    description: "concept.md §12/§14 の Glossary / BC 構造 coverage を warn-only で検出する DDD detector"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/ddd_registry_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-147"
+    name: "ddd-registry.yaml"
+    domain: "lib"
+    description: "DDD detector の機械正本 registry (concept.md §12.1 19語 + §14.1 10 BC)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/config/ddd-registry.yaml"
+    doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"

@@ -228,3 +228,44 @@ teardown() {
   [[ "$output" == *"[skill helix_layer audit]"* ]]
   [[ "$output" == *"check skill helix_layer:"* ]]
 }
+
+@test "helix doctor includes coding rule registry section and keeps it warn-only" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"[coding rule registry]"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[coding rule registry]"* ]]
+  [[ "$output" == *"check_coding_rule_sot"* ]]
+  [[ "$output" == *"check_coding_rule_alignment"* ]]
+  [[ "$output" == *"0 fail"* ]]
+
+  result_line="$(printf '%s\n' "$output" | grep '結果:' | tail -1)"
+  fail_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\1/')"
+  warn_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\2/')"
+  [ "$fail_count" -eq 0 ]
+  [ "$warn_count" -ge 106 ]
+}
+
+@test "helix doctor includes ddd registry section and keeps fail count flat" {
+  run "$HELIX_ROOT/cli/helix-doctor"
+  if [ "$status" -ne 0 ] || [[ "$output" != *"[ddd registry]"* ]]; then
+    echo "doctor status=$status" >&2
+    printf '%s\n' "$output" >&2
+  fi
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"[ddd registry]"* ]]
+  [[ "$output" == *"check_glossary_coverage"* ]]
+  [[ "$output" == *"check_bc_anti_corruption"* ]]
+  [[ "$output" == *"check_bc_mode_coverage"* ]]
+  [[ "$output" == *"0 fail"* ]]
+
+  result_line="$(printf '%s\n' "$output" | grep '結果:' | tail -1)"
+  fail_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\1/')"
+  warn_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\2/')"
+  [ "$fail_count" -eq 0 ]
+  [ "$warn_count" -ge 107 ]
+}
