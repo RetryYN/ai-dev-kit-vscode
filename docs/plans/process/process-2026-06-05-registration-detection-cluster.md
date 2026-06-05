@@ -6,7 +6,8 @@ workflow_chain: "Action1(共通基盤 RegistryLoader/Detector framework + functi
 kind: planning
 layer: L4
 drive: be
-status: draft
+status: draft  # 長命 process: 全 Action(1-3) の L7 完了で収束。Action1 のみ完了のため draft 継続（TL behzm4qdw: process は completed 不要、tl_review で守る）
+tl_review: approve  # TL bg5o6lxwb 条件付き推奨 → 条件(helix.db defer / trace_symmetry 分離 / changed-files ratchet を fail-close 前) を Action1 設計で充足し approve 昇格 (behzm4qdw 確認)。意味=Process 設計/Action1 landing 方針の承認 (Process 完了ではない)
 created: 2026-06-05
 owner: PM
 contains_action_plans:

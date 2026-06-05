@@ -7,7 +7,8 @@ workflow: add-feature
 kind: add-impl
 layer: L4
 drive: be
-status: draft
+status: completed
+tl_review: approve  # TL re-review brwk41j0s = approve (前回 bdj3jrf2v changes_required の P1×3/P2/P3×2 を 1b-C で全解消、52 finding は非抑制 warn-only debt と確認)
 created: 2026-06-05
 owner: PM
 agent_slots:
