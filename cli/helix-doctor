@@ -1534,6 +1534,133 @@ print(preview)
 PY
 }
 
+run_functional_registry_helper() {
+  local helper_name="$1"
+  shift
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_FR_HELPER="$helper_name" python3 - "$@" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+
+from functional_registry_checks import (  # noqa: E402
+    check_fr_sot_alignment,
+    check_functional_registry,
+)
+
+helper_name = os.environ["HELIX_FR_HELPER"]
+args = [Path(arg) for arg in sys.argv[1:]]
+
+if helper_name == "check_functional_registry":
+    report = check_functional_registry(args[0], args[1])
+elif helper_name == "check_fr_sot_alignment":
+    report = check_fr_sot_alignment(args[0], args[1])
+else:
+    raise SystemExit(f"unknown functional registry helper: {helper_name}")
+
+print(report.render("json"))
+PY
+}
+
+summarize_functional_registry_report() {
+  local report_json="$1"
+  python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+findings = payload.get("findings", [])
+preview = "; ".join(
+    f"{finding.get('kind', '-')}:{finding.get('path', '-')}"
+    for finding in findings[:3]
+)
+print(len(findings))
+print(preview)
+PY
+}
+
+check_functional_registry_doctor() {
+  local registry_path="$PROJECT_ROOT/cli/config/functional-registry.yaml"
+  local report_json
+  local summary
+  local finding_count
+  local preview
+
+  if [[ ! -f "$registry_path" ]]; then
+    echo "  △ check_functional_registry (skipped)"
+    echo "    registry yaml missing: cli/config/functional-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_functional_registry_helper check_functional_registry "$registry_path" "$PROJECT_ROOT" 2>&1)"; then
+    echo "  △ check_functional_registry"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_functional_registry_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ check_functional_registry"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check_functional_registry"
+  echo "    findings: $finding_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
+check_fr_sot_alignment_doctor() {
+  local md_path="$PROJECT_ROOT/docs/v2/L3-requirements/helix-workflows-functional-registry.md"
+  local registry_path="$PROJECT_ROOT/cli/config/functional-registry.yaml"
+  local report_json
+  local summary
+  local finding_count
+  local preview
+
+  if [[ ! -f "$md_path" || ! -f "$registry_path" ]]; then
+    echo "  △ check_fr_sot_alignment (skipped)"
+    [[ ! -f "$md_path" ]] && echo "    markdown SSoT missing: docs/v2/L3-requirements/helix-workflows-functional-registry.md"
+    [[ ! -f "$registry_path" ]] && echo "    registry yaml missing: cli/config/functional-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_functional_registry_helper check_fr_sot_alignment "$md_path" "$registry_path" 2>&1)"; then
+    echo "  △ check_fr_sot_alignment"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_functional_registry_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ check_fr_sot_alignment"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check_fr_sot_alignment"
+  echo "    findings: $finding_count"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
 check_plan_advisory() {
   local label="$1"
   local helper_name="$2"
@@ -1668,6 +1795,11 @@ check_sprint_completion
 echo ""
 echo "[stale locks]"
 check_stale_locks
+
+echo ""
+echo "[functional registry]"
+check_functional_registry_doctor
+check_fr_sot_alignment_doctor
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"
