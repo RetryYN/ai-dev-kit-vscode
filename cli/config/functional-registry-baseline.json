@@ -1,0 +1,506 @@
+{
+  "created": "2026-06-05",
+  "expiry": "2026-09-03",
+  "generated_by": "functional_registry_checks.py --emit-baseline",
+  "intentional_baseline": true,
+  "owner": "codex",
+  "reports": [
+    {
+      "baseline": [],
+      "check_name": "check_functional_registry",
+      "domain": "functional_registry",
+      "exit_policy": 0,
+      "findings": [
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "52f407f36fbbe88f407da1975f0ddf2d653902cd03003c939af725a26796efe0",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/document-topology.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "7a0d62a129b1df6e1a8dead12484476078b4a76b3ae7466ab9e06449766e8d34",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/forward-return-discipline.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "0078c1ff5475d8b9240905095e4d95e112ee1acddb6580c579860b14a17943e9",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/github-operations.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "c870c20b73cd8b23de337129c36e1737471a0bb440e1fa5e9a7de5d86c4b7e3e",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/plan-model.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "476867abe321706c4f9c3f87cc030a7d8e51ebaaf64ba47976e7dffabe9ca76b",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/planning-to-requirements-transition.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "1fd16ef2f546080034750353ef35ce758364bce583558d0df266b2571f853d9c",
+          "kind": "unregistered_asset",
+          "message": "workflow asset exists on disk but is missing from the functional registry",
+          "path": "HELIX-workflows/helix-process/workflow-self-evaluation.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "fea84a3d23b525ece2ad9428bed6ea7dfdac8cd372e8ff6f36243425262e4925",
+          "kind": "unregistered_asset",
+          "message": "template asset exists on disk but is missing from the functional registry",
+          "path": "cli/templates/plan/v2/L02-ui-design-template.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "UNREGISTERED",
+          "fingerprint": "8713892369c49be7b33f5a9913660631eb9e6e42bf1ac842dcd8f50ece8529fe",
+          "kind": "unregistered_asset",
+          "message": "template asset exists on disk but is missing from the functional registry",
+          "path": "cli/templates/plan/v2/L06-function-design-template.md",
+          "remediation": "add the asset path and name to cli/config/functional-registry.yaml",
+          "severity": "P2"
+        },
+        {
+          "entry_id": "FR-CLI-006",
+          "fingerprint": "b631e75934c04e1f4086df049953800793f2f803442e3c2a3680d281ce9369ff",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-CLI-019",
+          "fingerprint": "44d7a71366fb40516b4881d450260d7acb0858a7e7454ddc46651f0f601f81b6",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-CLI-074",
+          "fingerprint": "4420016ccc039b3a8695d433eefe034bc2b95cefda327142184df8ee70e2fdec",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-CLI-075",
+          "fingerprint": "a17dac0fc08637265b3aaef253c95154bab5ca8861a612ba6b21aef403643b82",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-003",
+          "fingerprint": "bee883ebb57d84e44239675def82290c56492ed113c05aeba7f3da69180e6f6d",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-011",
+          "fingerprint": "d4e3e64fa4bb38bc5bc9d99813564487d7b0a56dd2c86358d09ea5ccef6c060b",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-012",
+          "fingerprint": "0d36a2e1a4fbcc4f66585ab39c97e979d22a5846c22b56e62f693b595490b3fb",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-015",
+          "fingerprint": "4899571ef6fc48ecdf8b41906bdf6c4468d4e57df0fb06d88d94d6efad3f831d",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-043",
+          "fingerprint": "7d7beff34e37bea4ee74f79f862e31e5d03ca25caaa95b28df4d1c4961e1a0ef",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-047",
+          "fingerprint": "8661f24c28c16deaf779418245833426c33ce1439191e4b756cfe0ba06132461",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-052",
+          "fingerprint": "725f1fc2fea6a781b3ce39cf9bfda2c0edf00b9f23ac7f1c5956ab5d3cfb65ee",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-055",
+          "fingerprint": "945a12ba48725ef834d4e898154c3c97d38be7250e26fb86b707995c6044dd63",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-056",
+          "fingerprint": "e6d63d3a4a19d0789f382c264f4f4a3639194982c6b16b1937fe74a2b1620abd",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-057",
+          "fingerprint": "c901fe6c206bc5f9542a357c827fd32204090e7eeb09f73cd38b476da8193142",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-058",
+          "fingerprint": "04e3b3a1761733b12175af148fc547a8f86dd8dd4a6eae477222438d734addbc",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-071",
+          "fingerprint": "5ec7ef799620cba21ae7fe15968b9938d20e8786c15526224dca7bf9fc987b7c",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-074",
+          "fingerprint": "ae5284cd6b71cd1be0232440f1d19ca881afe42baa05c1225c48eed2060c1f18",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-077",
+          "fingerprint": "a4c025ddcef2577ae7e7d37ead4a99f13c00ef8af416e83ca1727d8f3949a931",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-079",
+          "fingerprint": "0d5b6f0cba9edf0153c2eca58481626fd6f75fee8fd5b7d9c98a494fd78347b2",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-083",
+          "fingerprint": "7db0856a0f2b3a5016b5720a05375f9baeea1a95580ccd002eb87ae9ead0793c",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-084",
+          "fingerprint": "be3fd5a10cb9cf88d922dcb8607a3b45002c7d6ae51a52c7b0e769b87a0fbaff",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-089",
+          "fingerprint": "01c6a8bec8f6f89cc25de63c6274d93f4abe11fb5195295c5ce3b313bceafd4a",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-091",
+          "fingerprint": "10fd03805b8790750f18f4125b09a12968e58304b2cdba3210c0e1fe5579df4d",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-092",
+          "fingerprint": "0e3d9961d167248ff5b418111b17b020ae0477ad8d1a2f3c5d2c8e9295b34017",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-093",
+          "fingerprint": "7ae6a2c6a26d8b052626a5660745dab35a7d8586eae751f680d88f030e1ade97",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-094",
+          "fingerprint": "b1c344d853e9c6b4d49b435aaea91077cb3f64c2f7c81c7f4244c9e25a5d34db",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-096",
+          "fingerprint": "220c501ec71b5154a7cdc432f6205c42563601d50577a267b9f307c003904770",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-097",
+          "fingerprint": "b16fd6795c60d9de37a9854196059d4413e7c287f4cd6b9d45cfe96196ce4f19",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-098",
+          "fingerprint": "6c3bddc3b992b37dc816d605b2b9fb58c615acb642e1d2abe5d123250efbb012",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-099",
+          "fingerprint": "872b335ea7d7823805dfa693603838de830b3697ed1c04f78e7c7a770a4e7d3f",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-101",
+          "fingerprint": "3b684fec472d2afcf3ba6d8cd8c07e3abc539c1a765383c2f27dbf934ad5f5fc",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-116",
+          "fingerprint": "c5b6a7393e4599ee5693aecaaa45fc0fe6f61b646ffb9b0a8efe91ebcb06770f",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-SKILL-119",
+          "fingerprint": "810e5979c080fd786b196b6d592857b84c823c8a60f366101768b338a9a5ef58",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-025",
+          "fingerprint": "4a020ddf528a7aaf1e1665a2d21601b4a86837c0fa7464fe0fff489240a78e74",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-026",
+          "fingerprint": "aeb55fb0ff7a966c8cb31835af9303f5a02a38079f799d365bd26405bf484918",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-027",
+          "fingerprint": "f0c9e8c050b2fb885773a82d9588f7797e64541cedbe2e56a6e4950b90f59f93",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-028",
+          "fingerprint": "e07fa2f40dbfbcd89ef366b01b54fd1b2e3bfe46eb548f881ce87ab0655a65a5",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-029",
+          "fingerprint": "c6cf2251e307405e2616dd1b56d464c6373f7431b97b72eecc5c52e5e5dc8e36",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-030",
+          "fingerprint": "72f957e3f5e23269abf4b7c3314b5dbb53d7b30969a1d43c9080080ed935acd5",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-031",
+          "fingerprint": "6012f7ad4034d34ba44c4d4fe3c79991bdf686c061052807dbb694eabd2e06d7",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-TEMPLATE-083",
+          "fingerprint": "446490af8d07fa9995fe2fbc888b012e6708341dff35f167d8d073edb34bab30",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-WORKFLOW-011",
+          "fingerprint": "ba599b2c987275600a900dcf2343639f7f8acc283535651bb8a69bba08a44f80",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-WORKFLOW-027",
+          "fingerprint": "4965bf68c5958852037a97b89247c3e94a53e020031c41c859952f968f5a089b",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        },
+        {
+          "entry_id": "FR-WORKFLOW-038",
+          "fingerprint": "efe2f583de3cbcbb93ebf906222312a5cf101f3993866038e21bae9035800d47",
+          "kind": "invalid_fr_trace",
+          "message": "l1_fr is empty; l3_fr is empty",
+          "path": "cli/config/functional-registry.yaml",
+          "remediation": "fill valid l1_fr and l3_fr ids for active entries",
+          "severity": "P3"
+        }
+      ],
+      "metrics": {
+        "duplicate_ids": 0,
+        "entries": 553,
+        "registered_paths": 550,
+        "scanned_assets": 557
+      },
+      "mode": "advisory"
+    },
+    {
+      "baseline": [],
+      "check_name": "check_fr_sot_alignment",
+      "domain": "functional_registry",
+      "exit_policy": 0,
+      "findings": [],
+      "metrics": {
+        "extra_in_md": 0,
+        "md_entries": 553,
+        "missing_from_md": 0,
+        "yaml_entries": 553
+      },
+      "mode": "advisory"
+    }
+  ]
+}

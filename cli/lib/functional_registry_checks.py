@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
 import re
 from dataclasses import dataclass
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from functional_registry_seed import DOMAIN_SCAN_TARGETS, parse_markdown_registry_names
 from registry_checks import (
     DetectorReport,
     Finding,
@@ -16,17 +21,7 @@ from registry_checks import (
 
 DOMAIN_ENUM = frozenset({"cli", "lib", "hook", "agent", "skill", "workflow", "template"})
 FR_ID_PATTERN = re.compile(r"^FR-[A-Z0-9]+(?:-[A-Z0-9]+)*$")
-SECTION_PATTERN = re.compile(r"^##\s*§(\d+)\b")
-TABLE_HEADER_NAMES = frozenset({"CLI", "Module", "Hook", "Agent", "Skill", "Workflow", "Template"})
-DEFAULT_SCAN_TARGETS: dict[str, tuple[str, ...]] = {
-    "cli": ("cli/helix-*",),
-    "lib": ("cli/lib/*.py",),
-    "hook": (".claude/hooks/*",),
-    "agent": (".claude/agents/*.md",),
-    "skill": ("skills/**/SKILL.md",),
-    "workflow": ("HELIX-workflows/helix-process/*.md",),
-    "template": ("cli/templates/**",),
-}
+DEFAULT_SCAN_TARGETS = DOMAIN_SCAN_TARGETS
 
 
 @dataclass(slots=True)
@@ -181,32 +176,6 @@ def _build_trace_issues(entry: FunctionalRegistryEntry) -> list[str]:
     return issues
 
 
-def _parse_markdown_registry_names(text: str) -> list[str]:
-    names: list[str] = []
-    in_target_section = False
-
-    for line in text.splitlines():
-        stripped = line.strip()
-        match = SECTION_PATTERN.match(stripped)
-        if match:
-            section = int(match.group(1))
-            in_target_section = 3 <= section <= 9
-            continue
-        if not in_target_section or not stripped.startswith("|"):
-            continue
-
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if not cells or not cells[0]:
-            continue
-        if cells[0] in TABLE_HEADER_NAMES:
-            continue
-        if all(cell and set(cell) <= {"-", ":"} for cell in cells):
-            continue
-        names.append(cells[0])
-
-    return names
-
-
 def _build_report(
     check_name: str,
     findings: list[Finding],
@@ -230,6 +199,16 @@ def load_functional_registry(yaml_path: str | Path) -> list[FunctionalRegistryEn
         return [_validate_entry(row) for row in rows]
     except (OSError, ValueError) as exc:
         raise RegistryLoadError(str(exc)) from exc
+
+
+def _resolve_repo_root(registry_path: str | Path, repo_root: str | Path | None = None) -> Path:
+    if repo_root is not None:
+        return Path(repo_root).expanduser().resolve()
+
+    registry_path_obj = Path(registry_path).expanduser().resolve()
+    if registry_path_obj.parent.name == "config" and registry_path_obj.parent.parent.name == "cli":
+        return registry_path_obj.parent.parent.parent
+    return registry_path_obj.parent
 
 
 def check_functional_registry(
@@ -287,18 +266,21 @@ def check_functional_registry(
                     )
                 )
 
-    registered_paths = {
-        rel_path
+    registered_identities = {
+        (entry.domain, rel_path)
         for entry in entries
         for rel_path in (*entry.code_paths, *entry.doc_paths)
     }
-    registered_names = {entry.name for entry in entries}
+    registered_names_by_domain: dict[str, set[str]] = {}
+    for entry in entries:
+        registered_names_by_domain.setdefault(entry.domain, set()).add(entry.name)
     scanned_assets = _scan_assets(repo_root_path, scan_targets or DEFAULT_SCAN_TARGETS)
 
     for asset in scanned_assets:
-        if asset.path in registered_paths:
+        if (asset.domain, asset.path) in registered_identities:
             continue
-        if any(name in registered_names for name in asset.names):
+        domain_names = registered_names_by_domain.get(asset.domain, set())
+        if any(name in domain_names for name in asset.names):
             continue
         findings.append(
             Finding(
@@ -318,15 +300,20 @@ def check_functional_registry(
             "entries": len(entries),
             "duplicate_ids": sum(1 for count in duplicate_ids.values() if count > 1),
             "scanned_assets": len(scanned_assets),
-            "registered_paths": len(registered_paths),
+            "registered_paths": len(registered_identities),
         },
     )
 
 
-def check_fr_sot_alignment(md_path: str | Path, yaml_path: str | Path) -> DetectorReport:
+def check_fr_sot_alignment(
+    md_path: str | Path,
+    yaml_path: str | Path,
+    repo_root: str | Path | None = None,
+) -> DetectorReport:
     yaml_entries = load_functional_registry(yaml_path)
     md_path_obj = Path(md_path).expanduser().resolve()
-    md_names = _parse_markdown_registry_names(md_path_obj.read_text(encoding="utf-8"))
+    repo_root_path = _resolve_repo_root(yaml_path, repo_root)
+    md_names = parse_markdown_registry_names(md_path_obj.read_text(encoding="utf-8"), repo_root_path)
     yaml_names = [entry.name for entry in yaml_entries]
     yaml_name_set = set(yaml_names)
     md_name_set = set(md_names)
@@ -374,3 +361,126 @@ def check_fr_sot_alignment(md_path: str | Path, yaml_path: str | Path) -> Detect
         },
     )
 
+
+def _finding_fingerprint(finding: Mapping[str, Any]) -> str:
+    raw = "|".join(
+        str(finding.get(field, ""))
+        for field in ("severity", "kind", "entry_id", "path")
+    )
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _decorate_report_payload(report: DetectorReport) -> dict[str, Any]:
+    payload = json.loads(report.render("json"))
+    for finding in payload.get("findings", []):
+        finding["fingerprint"] = _finding_fingerprint(finding)
+    return payload
+
+
+def _normalize_iso_date(value: str | None, *, fallback: date) -> str:
+    if not value:
+        return fallback.isoformat()
+    return date.fromisoformat(value).isoformat()
+
+
+def build_functional_registry_baseline_payload(
+    registry_path: str | Path,
+    md_path: str | Path,
+    repo_root: str | Path | None = None,
+    *,
+    owner: str = "codex",
+    created: str | None = None,
+    expiry: str | None = None,
+    expiry_days: int = 90,
+    generated_by: str = "functional_registry_checks.py --emit-baseline",
+) -> dict[str, Any]:
+    repo_root_path = _resolve_repo_root(registry_path, repo_root)
+    created_date = date.fromisoformat(_normalize_iso_date(created, fallback=date.today()))
+    expiry_date = date.fromisoformat(expiry) if expiry else created_date + timedelta(days=expiry_days)
+    reports = [
+        _decorate_report_payload(check_functional_registry(registry_path, repo_root_path)),
+        _decorate_report_payload(check_fr_sot_alignment(md_path, registry_path, repo_root=repo_root_path)),
+    ]
+    return {
+        "intentional_baseline": True,
+        "owner": owner,
+        "created": created_date.isoformat(),
+        "expiry": expiry_date.isoformat(),
+        "generated_by": generated_by,
+        "reports": reports,
+    }
+
+
+def write_functional_registry_baseline(
+    output_path: str | Path,
+    registry_path: str | Path,
+    md_path: str | Path,
+    repo_root: str | Path | None = None,
+    **kwargs: Any,
+) -> Path:
+    output_path_obj = Path(output_path).expanduser().resolve()
+    payload = build_functional_registry_baseline_payload(
+        registry_path=registry_path,
+        md_path=md_path,
+        repo_root=repo_root,
+        **kwargs,
+    )
+    output_path_obj.parent.mkdir(parents=True, exist_ok=True)
+    output_path_obj.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return output_path_obj
+
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="functional registry detector utilities")
+    parser.add_argument("--emit-baseline", action="store_true", help="write a machine-readable functional registry baseline")
+    parser.add_argument("--repo-root", default=".", help="repository root for disk scans and grouped-row expansion")
+    parser.add_argument("--registry-path", default="cli/config/functional-registry.yaml", help="functional registry yaml path")
+    parser.add_argument(
+        "--md-path",
+        default="docs/v2/L3-requirements/helix-workflows-functional-registry.md",
+        help="functional registry markdown SSoT path",
+    )
+    parser.add_argument(
+        "--output",
+        default="cli/config/functional-registry-baseline.json",
+        help="baseline output path",
+    )
+    parser.add_argument("--owner", default="codex", help="baseline owner metadata")
+    parser.add_argument("--created", default=None, help="baseline creation date (YYYY-MM-DD)")
+    parser.add_argument("--expiry", default=None, help="baseline expiry date (YYYY-MM-DD)")
+    parser.add_argument("--expiry-days", type=int, default=90, help="expiry offset when --expiry is omitted")
+    parser.add_argument(
+        "--generated-by",
+        default="functional_registry_checks.py --emit-baseline",
+        help="baseline generated_by metadata",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = _build_arg_parser()
+    args = parser.parse_args(argv)
+
+    if not args.emit_baseline:
+        parser.error("no action requested")
+
+    output_path = write_functional_registry_baseline(
+        output_path=args.output,
+        registry_path=args.registry_path,
+        md_path=args.md_path,
+        repo_root=args.repo_root,
+        owner=args.owner,
+        created=args.created,
+        expiry=args.expiry,
+        expiry_days=args.expiry_days,
+        generated_by=args.generated_by,
+    )
+    print(output_path.as_posix())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

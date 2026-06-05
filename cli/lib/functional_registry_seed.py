@@ -6,7 +6,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 from yaml_parser import parse_yaml
 
@@ -29,6 +29,15 @@ DOMAIN_SECTION_MARKERS = (
     ("## §8.", "## §9.", "workflow"),
     ("## §9.", "## §10.", "template"),
 )
+DOMAIN_SCAN_TARGETS: dict[str, tuple[str, ...]] = {
+    "cli": ("cli/helix-*",),
+    "lib": ("cli/lib/*.py",),
+    "hook": (".claude/hooks/*",),
+    "agent": (".claude/agents/*.md",),
+    "skill": ("skills/**/SKILL.md",),
+    "workflow": ("HELIX-workflows/helix-process/*.md",),
+    "template": ("cli/templates/**/*",),
+}
 DOMAIN_ID_PREFIX = {
     "cli": "CLI",
     "lib": "LIB",
@@ -42,6 +51,7 @@ ALLOWED_DOMAINS = set(DOMAIN_ID_PREFIX)
 ALLOWED_STATUSES = {"active", "deprecated", "legacy_alias", "mandatory", "experimental"}
 FR_PATTERN = re.compile(r"\bFR-[A-Z0-9]+(?:-[A-Z0-9]+)*\b")
 GROUPED_ROW_PATTERN = re.compile(r"^(?P<start>.+?)〜(?P<end>.+?)\s+\((?P<count>\d+)\s+file\)$")
+SECTION_HEADER_PATTERN = re.compile(r"^##\s*§\d+\b", re.MULTILINE)
 SUMMARY_TOTAL = 548
 
 
@@ -117,20 +127,31 @@ def _parse_tables(section_text: str) -> list[dict[str, str]]:
     return rows
 
 
-def _section_slice(text: str, start_marker: str, end_marker: str) -> str:
-    start = text.index(start_marker)
-    end = text.index(end_marker, start)
+def _section_slice(text: str, start_marker: str, end_marker: str) -> str | None:
+    start = text.find(start_marker)
+    if start < 0:
+        return None
+    end = text.find(end_marker, start)
+    if end < 0:
+        next_section = SECTION_HEADER_PATTERN.search(text, start + len(start_marker))
+        end = next_section.start() if next_section else len(text)
     return text[start:end]
+
+
+def _iter_domain_rows_from_text(text: str) -> list[tuple[str, dict[str, str]]]:
+    rows: list[tuple[str, dict[str, str]]] = []
+    for start_marker, end_marker, domain in DOMAIN_SECTION_MARKERS:
+        section = _section_slice(text, start_marker, end_marker)
+        if section is None:
+            continue
+        for row in _parse_tables(section):
+            rows.append((domain, row))
+    return rows
 
 
 def _iter_domain_rows() -> list[tuple[str, dict[str, str]]]:
     text = SOURCE_DOC.read_text(encoding="utf-8")
-    rows: list[tuple[str, dict[str, str]]] = []
-    for start_marker, end_marker, domain in DOMAIN_SECTION_MARKERS:
-        section = _section_slice(text, start_marker, end_marker)
-        for row in _parse_tables(section):
-            rows.append((domain, row))
-    return rows
+    return _iter_domain_rows_from_text(text)
 
 
 def _derive_description(row: dict[str, str]) -> str:
@@ -201,6 +222,54 @@ def _resolve_paths(domain: str, name: str, explicit_relative_path: str | None = 
     return code_paths, doc_paths
 
 
+def _resolve_grouped_template_files(row_name: str, repo_root: Path) -> tuple[list[Path], dict[str, Any]]:
+    match = GROUPED_ROW_PATTERN.match(row_name)
+    if not match:
+        raise SeedError(f"invalid grouped row syntax: {row_name}")
+
+    prefix = Path(match.group("start").strip())
+    directory = prefix.parent.as_posix()
+    expected_count = int(match.group("count"))
+    target_dir = repo_root / "cli/templates" / directory
+    if not target_dir.is_dir():
+        raise SeedError(f"grouped row directory is missing: {target_dir.relative_to(repo_root).as_posix()}")
+
+    files = sorted(path for path in target_dir.iterdir() if path.is_file())
+    summary = {
+        "row": row_name,
+        "directory": target_dir.relative_to(repo_root).as_posix(),
+        "expected": expected_count,
+        "actual": len(files),
+    }
+    return files, summary
+
+
+def expand_grouped_template_names(row_name: str, repo_root: Path) -> list[str]:
+    files, _ = _resolve_grouped_template_files(row_name, repo_root)
+    return [path.name for path in files]
+
+
+def parse_markdown_registry_names(text: str, repo_root: Path) -> list[str]:
+    names: list[str] = []
+    per_domain_seen: dict[str, set[str]] = defaultdict(set)
+    for domain, row in _iter_domain_rows_from_text(text):
+        headers = list(row.keys())
+        row_name = row[headers[0]]
+        if domain == "template" and GROUPED_ROW_PATTERN.match(row_name):
+            expanded_names = expand_grouped_template_names(row_name, repo_root)
+            for name in expanded_names:
+                if name in per_domain_seen[domain]:
+                    continue
+                per_domain_seen[domain].add(name)
+                names.append(name)
+            continue
+        if row_name in per_domain_seen[domain]:
+            continue
+        per_domain_seen[domain].add(row_name)
+        names.append(row_name)
+    return names
+
+
 def _expand_grouped_template_row(
     row_name: str,
     description: str,
@@ -209,26 +278,8 @@ def _expand_grouped_template_row(
     status: str,
     grouped_row_counts: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    match = GROUPED_ROW_PATTERN.match(row_name)
-    if not match:
-        raise SeedError(f"invalid grouped row syntax: {row_name}")
-
-    prefix = Path(match.group("start").strip())
-    directory = prefix.parent.as_posix()
-    expected_count = int(match.group("count"))
-    target_dir = REPO_ROOT / "cli/templates" / directory
-    if not target_dir.is_dir():
-        raise SeedError(f"grouped row directory is missing: {target_dir.relative_to(REPO_ROOT).as_posix()}")
-
-    files = sorted(path for path in target_dir.iterdir() if path.is_file())
-    grouped_row_counts.append(
-        {
-            "row": row_name,
-            "directory": target_dir.relative_to(REPO_ROOT).as_posix(),
-            "expected": expected_count,
-            "actual": len(files),
-        }
-    )
+    files, grouped_summary = _resolve_grouped_template_files(row_name, REPO_ROOT)
+    grouped_row_counts.append(grouped_summary)
 
     entries: list[dict[str, Any]] = []
     for path in files:
@@ -394,33 +445,20 @@ def _validate_entries(entries: list[dict[str, Any]]) -> None:
 
 
 def _disk_counts() -> dict[str, int]:
+    def collect(domain: str, patterns: Sequence[str]) -> int:
+        seen: set[str] = set()
+        for pattern in patterns:
+            for path in REPO_ROOT.glob(pattern):
+                if not path.is_file():
+                    continue
+                if domain == "cli" and not path.stat().st_mode & 0o111:
+                    continue
+                seen.add(path.relative_to(REPO_ROOT).as_posix())
+        return len(seen)
+
     return {
-        "cli": len(
-            [
-                path
-                for path in (REPO_ROOT / "cli").glob("helix-*")
-                if path.is_file() and path.stat().st_mode & 0o111
-            ]
-        ),
-        "lib": len(list((REPO_ROOT / "cli/lib").glob("*.py"))),
-        "hook": len([path for path in (REPO_ROOT / ".claude/hooks").iterdir() if path.is_file()]),
-        "agent": len(list((REPO_ROOT / ".claude/agents").glob("*.md"))),
-        "skill": len(list((REPO_ROOT / "skills").glob("**/SKILL.md"))),
-        "workflow": len(
-            {
-                *{
-                    path.relative_to(REPO_ROOT).as_posix()
-                    for path in (REPO_ROOT / "HELIX-workflows").glob("*.md")
-                    if path.is_file()
-                },
-                *{
-                    path.relative_to(REPO_ROOT).as_posix()
-                    for path in (REPO_ROOT / "HELIX-workflows/helix-process").glob("*.md")
-                    if path.is_file()
-                },
-            }
-        ),
-        "template": len([path for path in (REPO_ROOT / "cli/templates").glob("**/*") if path.is_file()]),
+        domain: collect(domain, patterns)
+        for domain, patterns in DOMAIN_SCAN_TARGETS.items()
     }
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import sys
 import textwrap
 from pathlib import Path
@@ -13,6 +14,7 @@ if str(LIB_DIR) not in sys.path:
 
 from registry_checks import RegistryLoadError
 from functional_registry_checks import (
+    build_functional_registry_baseline_payload,
     check_fr_sot_alignment,
     check_functional_registry,
     load_functional_registry,
@@ -284,3 +286,241 @@ def test_check_fr_sot_alignment_reports_count_and_name_drift_and_passes_when_ali
     assert {"md_count_mismatch", "md_name_set_mismatch"} == mismatch_kinds
     assert aligned_report.findings == []
     assert md_path.read_text(encoding="utf-8") == before_md
+
+
+def test_check_fr_sot_alignment_ignores_headers_and_expands_grouped_rows(tmp_path: Path) -> None:
+    """DoD 検証: functional-registry-detector-単体テスト設計.md UT-FREG-02"""
+    _write_file(tmp_path / "cli/templates/agents/be-api.md", "# be api\n")
+    _write_file(tmp_path / "cli/templates/agents/security-audit.md", "# security audit\n")
+    _write_file(tmp_path / "cli/templates/assets/banner.md", "# banner\n")
+    _write_file(tmp_path / "cli/templates/assets/thumb.md", "# thumb\n")
+
+    registry_path = _write_registry(
+        tmp_path / "cli/config/functional-registry.yaml",
+        """
+        entries:
+          - id: FR-SKILL-001
+            name: automation/browser-script
+            domain: skill
+            description: browser script skill
+            l1_fr:
+              - FR-03
+            l3_fr:
+              - FR-TDD-01
+            status: active
+            code_paths: []
+            doc_paths:
+              - skills/automation/browser-script/SKILL.md
+          - id: FR-SKILL-002
+            name: agent-skills/api-and-interface-design
+            domain: skill
+            description: api design skill
+            l1_fr:
+              - FR-12
+            l3_fr:
+              - FR-PLAN-01
+            status: active
+            code_paths: []
+            doc_paths:
+              - skills/agent-skills/api-and-interface-design/SKILL.md
+          - id: FR-TEMPLATE-001
+            name: be-api.md
+            domain: template
+            description: agent template
+            l1_fr:
+              - FR-10
+            l3_fr:
+              - FR-CTX-01
+            status: active
+            code_paths: []
+            doc_paths:
+              - cli/templates/agents/be-api.md
+          - id: FR-TEMPLATE-002
+            name: security-audit.md
+            domain: template
+            description: agent template
+            l1_fr:
+              - FR-10
+            l3_fr:
+              - FR-CTX-01
+            status: active
+            code_paths: []
+            doc_paths:
+              - cli/templates/agents/security-audit.md
+          - id: FR-TEMPLATE-003
+            name: banner.md
+            domain: template
+            description: asset template
+            l1_fr: []
+            l3_fr: []
+            status: active
+            code_paths: []
+            doc_paths:
+              - cli/templates/assets/banner.md
+          - id: FR-TEMPLATE-004
+            name: thumb.md
+            domain: template
+            description: asset template
+            l1_fr: []
+            l3_fr: []
+            status: active
+            code_paths: []
+            doc_paths:
+              - cli/templates/assets/thumb.md
+        """,
+    )
+    md_path = _write_file(
+        tmp_path / "functional-registry.md",
+        textwrap.dedent(
+            """
+            # Registry
+
+            ## §7. Skills
+
+            | skill-id | 機能 | 関連 L1 FR | 関連 L3 FR |
+            |---|---|---|---|
+            | automation/browser-script | browser script skill | FR-03 | FR-TDD-01 |
+
+            | skill-id | 機能 | 関連 L1 FR | 関連 L3 FR |
+            |---|---|---|---|
+            | agent-skills/api-and-interface-design | api design skill | FR-12 | FR-PLAN-01 |
+
+            ## §9. Templates
+
+            | Path | 用途 | 関連 L1 FR | 関連 L3 FR |
+            |---|---|---|---|
+            | agents/be-api.md〜security-audit.md (2 file) | agent templates | FR-10 | FR-CTX-01 |
+
+            | Path | 用途 | 関連 L1 FR | 関連 L3 FR |
+            |---|---|---|---|
+            | assets/banner.md〜thumb.md (2 file) | asset templates | - | - |
+            """
+        ).strip()
+        + "\n",
+    )
+
+    report = check_fr_sot_alignment(md_path, registry_path, repo_root=tmp_path)
+
+    assert report.findings == []
+
+
+def test_check_functional_registry_does_not_suppress_same_name_in_other_domain(tmp_path: Path) -> None:
+    """DoD 検証: functional-registry-detector-単体テスト設計.md UT-FREG-01"""
+    _write_file(tmp_path / "cli/templates/assets/banner.md", "# template banner\n")
+    _write_file(tmp_path / ".claude/agents/banner.md", "# agent banner\n")
+
+    registry_path = _write_registry(
+        tmp_path / "functional-registry.yaml",
+        """
+        entries:
+          - id: FR-TEMPLATE-001
+            name: banner.md
+            domain: template
+            description: asset template
+            l1_fr:
+              - FR-09
+            l3_fr:
+              - FR-INV-01
+            status: active
+            code_paths: []
+            doc_paths:
+              - cli/templates/assets/banner.md
+        """,
+    )
+
+    report = check_functional_registry(
+        registry_path,
+        tmp_path,
+        scan_targets={
+            "agent": (".claude/agents/*.md",),
+            "template": ("cli/templates/assets/*.md",),
+        },
+    )
+
+    reported_paths = {finding.path for finding in report.findings if finding.kind == "unregistered_asset"}
+
+    assert ".claude/agents/banner.md" in reported_paths
+    assert "cli/templates/assets/banner.md" not in reported_paths
+
+
+def test_build_functional_registry_baseline_payload_is_deterministic(tmp_path: Path) -> None:
+    """DoD 検証: functional-registry-detector-単体テスト設計.md UT-FREG-01, UT-FREG-02"""
+    _write_file(tmp_path / "cli/helix-alpha", "#!/bin/sh\n")
+
+    registry_path = _write_registry(
+        tmp_path / "cli/config/functional-registry.yaml",
+        """
+        entries:
+          - id: FR-CLI-001
+            name: helix-alpha
+            domain: cli
+            description: alpha command
+            l1_fr:
+              - FR-01
+            l3_fr:
+              - FR-9MODE-01
+            status: active
+            code_paths:
+              - cli/helix-alpha
+            doc_paths: []
+          - id: FR-LIB-001
+            name: missing.py
+            domain: lib
+            description: missing path
+            l1_fr:
+              - FR-09
+            l3_fr:
+              - FR-INV-01
+            status: active
+            code_paths:
+              - cli/lib/missing.py
+            doc_paths: []
+        """,
+    )
+    md_path = _write_file(
+        tmp_path / "docs/v2/L3-requirements/functional-registry.md",
+        textwrap.dedent(
+            """
+            # Registry
+
+            ## §3. CLI binaries
+
+            | CLI | 主機能 |
+            |---|---|
+            | helix-alpha | alpha |
+            """
+        ).strip()
+        + "\n",
+    )
+
+    baseline_a = build_functional_registry_baseline_payload(
+        registry_path=registry_path,
+        md_path=md_path,
+        repo_root=tmp_path,
+        owner="codex",
+        created="2026-06-05",
+        expiry="2026-09-03",
+        generated_by="test-suite",
+    )
+    baseline_b = build_functional_registry_baseline_payload(
+        registry_path=registry_path,
+        md_path=md_path,
+        repo_root=tmp_path,
+        owner="codex",
+        created="2026-06-05",
+        expiry="2026-09-03",
+        generated_by="test-suite",
+    )
+
+    assert baseline_a == baseline_b
+
+    findings = [
+        finding
+        for report in baseline_a["reports"]
+        for finding in report["findings"]
+    ]
+    assert findings
+    assert all(finding["fingerprint"] for finding in findings)
+
+    expected_fingerprint = hashlib.sha256("P2|missing_registered_path|FR-LIB-001|cli/lib/missing.py".encode("utf-8")).hexdigest()
+    assert expected_fingerprint in {finding["fingerprint"] for finding in findings}

@@ -16,20 +16,33 @@ agent_slots:
   - role: se
     slot_label: "SE — registry_checks.py 基盤 + functional-registry.yaml + detector + doctor 接続 + test の実装（Codex、TDD）"
 generates:
+  # 1a 共通基盤
   - artifact_path: cli/lib/registry_checks.py
     artifact_type: python_module
-  - artifact_path: cli/config/functional-registry.yaml
-    artifact_type: config
   - artifact_path: cli/lib/tests/test_registry_checks.py
     artifact_type: test
-  - artifact_path: cli/helix-doctor
-    artifact_type: cli_extension
   - artifact_path: docs/v2/L6-functional-design/registry-detector-機能設計.md
     artifact_type: design_doc
   - artifact_path: docs/v2/L7-test-design/registry-detector-単体テスト設計.md
     artifact_type: design_doc
-  - artifact_path: docs/v2/L4-basic-design/registry-detector-基本設計.md
+  # 1b functional-registry 縦slice
+  - artifact_path: cli/config/functional-registry.yaml
+    artifact_type: yaml_config
+  - artifact_path: cli/lib/functional_registry_seed.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/functional_registry_checks.py
+    artifact_type: python_module
+  - artifact_path: cli/lib/tests/test_functional_registry_checks.py
+    artifact_type: test
+  - artifact_path: cli/config/functional-registry-baseline.json
+    artifact_type: json_config
+  - artifact_path: cli/helix-doctor
+    artifact_type: cli_extension
+  - artifact_path: docs/v2/L6-functional-design/functional-registry-detector-機能設計.md
     artifact_type: design_doc
+  - artifact_path: docs/v2/L7-test-design/functional-registry-detector-単体テスト設計.md
+    artifact_type: design_doc
+  # 注: L4 schema は独立 doc を作らず L6 functional-registry-detector §3 に内包 (topology 判断、TL P1 反映)
 dependencies:
   parent: docs/plans/process/process-2026-06-05-registration-detection-cluster.md
   requires: []
@@ -79,10 +92,11 @@ L4 基本設計追補（共通 report/YAML schema + GatePolicy baseline 凍結�
 ## 4. acceptance
 
 - `registry_checks.py` の RegistryLoader/Entry/Report/Finding/GatePolicy が単体テストで検証される。
-- `functional-registry.yaml` が 548件を機械可読で保持（code_paths/doc_paths 付き）。md⇔yaml 整合 check PASS。
-- `helix doctor` で check_functional_registry / check_fr_sot_alignment が **warn-only** 動作（未登録/code_path 不在/trace drift を低 FP 報告）。
-- baseline snapshot 明示。doctor 実行 30秒以内、既存 24-0-105 を退行させない。
-- plan_validator / lint PASS。gate-driven push で landing（baseline と将来 fail-close commit を分離）。
+- `functional-registry.yaml` が **550 件**を機械可読で保持（code_paths/doc_paths 付き）。md⇔yaml 件数差（md 548 / yaml 550 = lib 実 139→140 + source-only skill row）と name drift は **`check_fr_sot_alignment` が warn-only baseline として surface**（PASS でなく既知 drift の可視化が正）。parser は header / grouped row を name と誤認しない（TL P1: §7/§9 fixture で FP 抑止）。
+- `helix doctor` で check_functional_registry / check_fr_sot_alignment が **warn-only** 動作（未登録/code_path 不在/trace drift を低 FP 報告）。scan identity は `(domain, path)` 中心で自己資産誤検出を避ける（TL P2）。
+- **machine baseline snapshot**（`cli/config/functional-registry-baseline.json`、fingerprint 付き）を明示し ratchet 昇格の入力契約とする（TL P1: freeze_evidence 文字列でなく機械可読）。Action1 で追加した自資産（registry_checks / functional_registry_checks / seed）は registry に登録し自己未登録を残さない。
+- doctor 実行 30秒以内、既存 doctor を 0 fail 維持（warn 増のみ）。
+- plan_validator / lint PASS。gate-driven push で landing（warn baseline と将来 fail-close 昇格 commit を分離）。
 
 ## 5. carry
 

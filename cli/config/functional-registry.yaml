@@ -2466,6 +2466,42 @@ entries:
       - "cli/lib/test_design_scaffold.py"
     doc_paths: []
   - id: "FR-LIB-128"
+    name: "registry_checks.py"
+    domain: "lib"
+    description: "登録・検出 共通基盤 (RegistryLoader/Entry/Report/Finding/GatePolicy)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/registry_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-129"
+    name: "functional_registry_checks.py"
+    domain: "lib"
+    description: "functional-registry 劣化検出 (check_functional_registry/check_fr_sot_alignment/load)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/functional_registry_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-130"
+    name: "functional_registry_seed.py"
+    domain: "lib"
+    description: "functional-registry md→yaml seeder"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/functional_registry_seed.py"
+    doc_paths: []
+  - id: "FR-LIB-131"
     name: "trace_symmetry.py"
     domain: "lib"
     description: "設計⇔テスト設計 whole-coverage 対称性監査 detector (coverage_pct / missing_pair / orphan / balance_ratio、全5 V-model pair 測定。whole-coverage audit の検出層、verification-strategy §11、2026-06-03 登録)"
@@ -2478,7 +2514,7 @@ entries:
     code_paths:
       - "cli/lib/trace_symmetry.py"
     doc_paths: []
-  - id: "FR-LIB-129"
+  - id: "FR-LIB-132"
     name: "transcript_summary.py"
     domain: "lib"
     description: "PLAN-099 §8 transcript summary (会話要約 + 関連 PLAN/handover bundle)"
@@ -2490,7 +2526,7 @@ entries:
     code_paths:
       - "cli/lib/transcript_summary.py"
     doc_paths: []
-  - id: "FR-LIB-130"
+  - id: "FR-LIB-133"
     name: "uuid7_generator.py"
     domain: "lib"
     description: "UUID v7 generator (event_id 発行用)"
@@ -2502,7 +2538,7 @@ entries:
     code_paths:
       - "cli/lib/uuid7_generator.py"
     doc_paths: []
-  - id: "FR-LIB-131"
+  - id: "FR-LIB-134"
     name: "verify_agent.py"
     domain: "lib"
     description: "PLAN-010 verification agent (spec 駆動検証)"
@@ -2514,7 +2550,7 @@ entries:
     code_paths:
       - "cli/lib/verify_agent.py"
     doc_paths: []
-  - id: "FR-LIB-132"
+  - id: "FR-LIB-135"
     name: "vmodel_lint.py"
     domain: "lib"
     description: "V-model 4 artifact 双方向 trace lint (PLAN-075 Phase 5)"
@@ -2526,7 +2562,7 @@ entries:
     code_paths:
       - "cli/lib/vmodel_lint.py"
     doc_paths: []
-  - id: "FR-LIB-133"
+  - id: "FR-LIB-136"
     name: "vmodel_loader.py"
     domain: "lib"
     description: "V-model semantics loader (PLAN V2-PHASE-2 Task B)"
@@ -2538,7 +2574,7 @@ entries:
     code_paths:
       - "cli/lib/vmodel_loader.py"
     doc_paths: []
-  - id: "FR-LIB-134"
+  - id: "FR-LIB-137"
     name: "vmodel_pair_freeze.py"
     domain: "lib"
     description: "V-model pair freeze 管理 (L1↔L14 等の pair 凍結)"
@@ -2550,7 +2586,7 @@ entries:
     code_paths:
       - "cli/lib/vmodel_pair_freeze.py"
     doc_paths: []
-  - id: "FR-LIB-135"
+  - id: "FR-LIB-138"
     name: "workflow_dsl_parser.py"
     domain: "lib"
     description: "PLAN-097 §6/7 workflow DSL parser (recovery/escalation workflow)"
@@ -2562,7 +2598,7 @@ entries:
     code_paths:
       - "cli/lib/workflow_dsl_parser.py"
     doc_paths: []
-  - id: "FR-LIB-136"
+  - id: "FR-LIB-139"
     name: "workspace_cli.py"
     domain: "lib"
     description: "`helix workspace` CLI entrypoint"
@@ -2574,7 +2610,7 @@ entries:
     code_paths:
       - "cli/lib/workspace_cli.py"
     doc_paths: []
-  - id: "FR-LIB-137"
+  - id: "FR-LIB-140"
     name: "workspace_manager.py"
     domain: "lib"
     description: "HELIX workspace manager (PLAN-156/ADR-040、isolation/lock/exec)"
@@ -2586,7 +2622,7 @@ entries:
     code_paths:
       - "cli/lib/workspace_manager.py"
     doc_paths: []
-  - id: "FR-LIB-138"
+  - id: "FR-LIB-141"
     name: "workspace_snapshot.py"
     domain: "lib"
     description: "HELIX workspace state snapshot generator (PLAN-156/ADR-040 D3)"
@@ -2598,7 +2634,7 @@ entries:
     code_paths:
       - "cli/lib/workspace_snapshot.py"
     doc_paths: []
-  - id: "FR-LIB-139"
+  - id: "FR-LIB-142"
     name: "yaml_parser.py"
     domain: "lib"
     description: "Lightweight YAML parser (PyYAML 不要、frontmatter 用)"
@@ -2610,7 +2646,7 @@ entries:
     code_paths:
       - "cli/lib/yaml_parser.py"
     doc_paths: []
-  - id: "FR-LIB-140"
+  - id: "FR-LIB-143"
     name: "zizmor_ignore_lint.py"
     domain: "lib"
     description: "PLAN-222 AC-5: zizmor:ignore コメント metadata 機械検査"
