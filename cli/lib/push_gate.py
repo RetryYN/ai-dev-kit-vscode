@@ -464,9 +464,16 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             frontmatter = plan_validator.load_frontmatter(plan_path)
             status = str(frontmatter.get("status", "")).strip()
             tl_review = str(frontmatter.get("tl_review", "")).strip()
-            reviewed.append(f"{review_plan_id} status={status or '<missing>'} tl_review={tl_review or '<missing>'}")
+            plan_scope = str(frontmatter.get("plan_scope", "action")).strip() or "action"
+            reviewed.append(
+                f"{review_plan_id} scope={plan_scope} "
+                f"status={status or '<missing>'} tl_review={tl_review or '<missing>'}"
+            )
             missing_fields: list[str] = []
-            if status not in {"completed", "finalized"}:
+            # process-scope PLAN は長命の親 (全 Action の L7 完了で収束、plan-model)。
+            # incremental Action landing 中は未完了が正常なため status 完了は要求しない
+            # (TL 判定A 2026-06-05)。tl_review=approve のみで守る。action-scope は両方必須。
+            if plan_scope != "process" and status not in {"completed", "finalized"}:
                 missing_fields.append(f"status={status or '<missing>'}")
             if tl_review != "approve":
                 missing_fields.append(f"tl_review={tl_review or '<missing>'}")

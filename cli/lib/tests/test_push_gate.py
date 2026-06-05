@@ -18,6 +18,7 @@ def _write_plan(
     status: str = "completed",
     tl_review: str | None = "approve",
     subdir: str = "add-feature",
+    plan_scope: str | None = None,
 ) -> Path:
     plan_path = root / "docs" / "plans" / subdir / f"{plan_id}.md"
     plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -30,6 +31,8 @@ def _write_plan(
         "drive: be",
         f"status: {status}",
     ]
+    if plan_scope is not None:
+        lines.append(f"plan_scope: {plan_scope}")
     if tl_review is not None:
         lines.append(f"tl_review: {tl_review}")
     lines.extend(["---", "", "# body", ""])
@@ -50,9 +53,57 @@ def test_run_gate_review_passes_with_explicit_plan_id(tmp_path: Path) -> None:
     assert result == {
         "id": "G-review",
         "passed": True,
-        "detail": f"{plan_id} status=completed tl_review=approve",
+        "detail": f"{plan_id} scope=action status=completed tl_review=approve",
         "fix": "なし",
     }
+
+
+def test_run_gate_review_process_scope_passes_with_draft_and_approve(tmp_path: Path) -> None:
+    # 長命 process-scope PLAN は status 未完了でも tl_review=approve なら pass (TL 判定A)
+    plan_id = "process-2026-06-05-registration-detection-cluster"
+    _write_plan(tmp_path, plan_id, status="draft", subdir="process", plan_scope="process")
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is True
+    assert "scope=process" in result["detail"]
+
+
+def test_run_gate_review_process_scope_fails_when_tl_review_missing(tmp_path: Path) -> None:
+    # process-scope でも tl_review=approve は必須
+    plan_id = "process-2026-06-05-registration-detection-cluster"
+    _write_plan(tmp_path, plan_id, status="draft", tl_review=None, subdir="process", plan_scope="process")
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "tl_review" in result["detail"] or "tl_review" in result.get("detail", "")
+
+
+def test_run_gate_review_action_scope_fails_with_draft_even_if_approved(tmp_path: Path) -> None:
+    # action-scope は status 完了が必須 (gate を緩めていないことの回帰)
+    plan_id = "add-feature-2026-06-05-registry-detector-base"
+    _write_plan(tmp_path, plan_id, status="draft", plan_scope="action")
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+def test_run_gate_review_mixed_action_completed_and_process_draft_passes(tmp_path: Path, monkeypatch) -> None:
+    # action(completed+approve) + process(draft+approve) の 2 PLAN ahead は pass
+    action_id = "add-feature-2026-06-05-registry-detector-base"
+    process_id = "process-2026-06-05-registration-detection-cluster"
+    _write_plan(tmp_path, action_id, status="completed", plan_scope="action")
+    _write_plan(tmp_path, process_id, status="draft", subdir="process", plan_scope="process")
+    _stub_ahead(monkeypatch, [action_id, process_id])
+
+    result = push_gate.run_gate_review(action_id, tmp_path)
+
+    assert result["passed"] is True
+    assert "scope=process" in result["detail"]
+    assert "scope=action" in result["detail"]
 
 
 def test_run_gate_review_fails_when_status_is_not_completed(tmp_path: Path) -> None:
@@ -196,7 +247,7 @@ def test_run_gate_review_uses_single_ahead_plan_for_backward_compatibility(
     result = push_gate.run_gate_review(None, tmp_path)
 
     assert result["passed"] is True
-    assert result["detail"] == f"{plan_id} status=completed tl_review=approve"
+    assert result["detail"] == f"{plan_id} scope=action status=completed tl_review=approve"
 
 
 def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:

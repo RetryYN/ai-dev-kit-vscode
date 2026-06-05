@@ -56,7 +56,7 @@ helix push --gate --execute --remote origin --branch main
 | `G-ff` | fast-forward | `git fetch <remote> <branch>` 後に `git merge-base --is-ancestor <remote>/<branch> HEAD` | rebase 必要、`git pull --rebase origin main` |
 | `G-attr` | Co-Authored-By | `git rev-list --count <remote>/<branch>..HEAD` と `git log <remote>/<branch>..HEAD --grep "Co-Authored-By"` を比較 | commit 修正必要 (amend or rebase -i) |
 | `G-nondestructive` | destructive diff | `git diff <remote>/<branch>..HEAD` の追加行から `DROP TABLE` / `git branch -D` / `rm -rf` / `--force` / `--no-verify` を検出 | destructive operation 検出、manual-confirm 必要 |
-| `G-review` | PLAN完遂 + TLレビュー | 単一 ahead PLAN はその 1 件、複数 ahead PLAN は `--plan-id` で代表を明示したうえで ahead 全 PLAN を対象に、frontmatter `status ∈ {completed, finalized}` + `tl_review == approve` を検査（0/不一致は fail-close） | PLAN を completed/finalized + `tl_review: approve` にする。複数 ahead PLAN では `--plan-id` を指定 |
+| `G-review` | PLAN レビュー（`plan_scope` 別 lifecycle） | 単一/複数 ahead PLAN（複数は `--plan-id` で代表明示）を対象に、各 PLAN の `plan_scope` 別に検査: **action** = `status ∈ {completed, finalized}` + `tl_review == approve`／**process**（長命の親）= `tl_review == approve` のみ（`status` 完了不問）。0/不一致は fail-close | action PLAN を completed/finalized + `tl_review: approve` にする。process PLAN は `tl_review: approve`（status は draft/in_progress のままで可）。複数 ahead PLAN では `--plan-id` を指定 |
 
 ## 出力形式
 
