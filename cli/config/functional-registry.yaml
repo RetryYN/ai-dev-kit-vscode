@@ -1,0 +1,6509 @@
+entries:
+  - id: "FR-CLI-001"
+    name: "helix-add-feature"
+    domain: "cli"
+    description: "Add-feature workflow mode CLI (既存 system 追補、add_feature_engine.py 委譲)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-add-feature"
+    doc_paths: []
+  - id: "FR-CLI-002"
+    name: "helix-agent"
+    domain: "cli"
+    description: "subagent slot 管理 (fire-mandatory / suggest / slots / audit、PLAN-076/082 機械化)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-agent"
+    doc_paths: []
+  - id: "FR-CLI-003"
+    name: "helix-asset"
+    domain: "cli"
+    description: "既存資産 inventory CLI (コード index catalog 系 motif/design 管理)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-asset"
+    doc_paths: []
+  - id: "FR-CLI-004"
+    name: "helix-audit"
+    domain: "cli"
+    description: "Phase 0 preflight 一括実行 / A1 state machine 操作 (preflight/decisions/status)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-audit"
+    doc_paths: []
+  - id: "FR-CLI-005"
+    name: "helix-auto-run"
+    domain: "cli"
+    description: "自動走行 framework skeleton CLI (auto_run_engine.py 委譲、5-layer auto-run)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "experimental"
+    code_paths:
+      - "cli/helix-auto-run"
+    doc_paths: []
+  - id: "FR-CLI-006"
+    name: "helix-bats-cleanup"
+    domain: "cli"
+    description: "Bats テスト一時ファイル (/tmp/bats-run-*, /tmp/bats-test-*) クリーンアップ"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths:
+      - "cli/helix-bats-cleanup"
+    doc_paths: []
+  - id: "FR-CLI-007"
+    name: "helix-bench"
+    domain: "cli"
+    description: "プロジェクトメトリクスサマリ表示 (project metrics summary)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-bench"
+    doc_paths: []
+  - id: "FR-CLI-008"
+    name: "helix-budget"
+    domain: "cli"
+    description: "Claude/Codex 消費取得・予測・残量表示 (status/simulate/forecast サブコマンド)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-budget"
+    doc_paths: []
+  - id: "FR-CLI-009"
+    name: "helix-builder"
+    domain: "cli"
+    description: "Builder System CLI (型登録・builder registry 操作)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-builder"
+    doc_paths: []
+  - id: "FR-CLI-010"
+    name: "helix-check-claudemd"
+    domain: "cli"
+    description: "後方互換 shim (旧 CLAUDE.md チェック)"
+    l1_fr: []
+    l3_fr: []
+    status: "deprecated"
+    code_paths:
+      - "cli/helix-check-claudemd"
+    doc_paths: []
+  - id: "FR-CLI-011"
+    name: "helix-claude"
+    domain: "cli"
+    description: "Claude Code 向け plan/task 管理 harness (--role PMO/advisor/pmo 委譲)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-claude"
+    doc_paths: []
+  - id: "FR-CLI-012"
+    name: "helix-code"
+    domain: "cli"
+    description: "コード index catalog 管理・表示・検索 (build/find/show/dup/stats/list、PLAN-011〜013)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-code"
+    doc_paths: []
+  - id: "FR-CLI-013"
+    name: "helix-codex"
+    domain: "cli"
+    description: "HELIX スキル注入付き Codex CLI ラッパー (--role 別スキル + plan guard 注入)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-codex"
+    doc_paths: []
+  - id: "FR-CLI-014"
+    name: "helix-commands"
+    domain: "cli"
+    description: "コマンドカタログ表示 (route/help 由来コマンド一覧 list/show/check)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-commands"
+    doc_paths: []
+  - id: "FR-CLI-015"
+    name: "helix-context"
+    domain: "cli"
+    description: "context / memory guardrail checks (context 枯渇監視 / guardrail 整合確認)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-context"
+    doc_paths: []
+  - id: "FR-CLI-016"
+    name: "helix-dashboard"
+    domain: "cli"
+    description: "HELIX state dashboard (プロジェクト全体状態ビジュアル表示)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-dashboard"
+    doc_paths: []
+  - id: "FR-CLI-017"
+    name: "helix-db"
+    domain: "cli"
+    description: "HELIX DB utilities (helix.db 操作 / local rollback drill / schema 管理)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-db"
+    doc_paths: []
+  - id: "FR-CLI-018"
+    name: "helix-debt"
+    domain: "cli"
+    description: "技術負債台帳管理 (deferred-findings / debt 登録・一覧・クリア)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-debt"
+    doc_paths: []
+  - id: "FR-CLI-019"
+    name: "helix-debug"
+    domain: "cli"
+    description: "HELIX デバッグツール (内部状態ダンプ / hook デバッグ)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths:
+      - "cli/helix-debug"
+    doc_paths: []
+  - id: "FR-CLI-020"
+    name: "helix-detect"
+    domain: "cli"
+    description: "PLAN-063 detector router entrypoint (axis-01〜14 detector 実行・verdict 記録)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-detect"
+    doc_paths: []
+  - id: "FR-CLI-021"
+    name: "helix-discover"
+    domain: "cli"
+    description: "local/global recipe から類似候補検索 (Discovery 旧版、recipe 系)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-discover"
+    doc_paths: []
+  - id: "FR-CLI-022"
+    name: "helix-discovery"
+    domain: "cli"
+    description: "HELIX Discovery 検証駆動開発 CLI (D0-D4 仮説検証フロー、init/backlog/plan/poc/verify/decide)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-discovery"
+    doc_paths: []
+  - id: "FR-CLI-023"
+    name: "helix-doctor"
+    domain: "cli"
+    description: "環境チェック・ドキュメント整合監査 (pass/warn/error 判定、--json/--type フラグ)"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DOCTOR-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-doctor"
+    doc_paths: []
+  - id: "FR-CLI-024"
+    name: "helix-drift-check"
+    domain: "cli"
+    description: "設計 doc と実装の契約ドリフト検知 (D-API/D-DB vs 実装コード比較)"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-drift-check"
+    doc_paths: []
+  - id: "FR-CLI-025"
+    name: "helix-entry"
+    domain: "cli"
+    description: "HELIX entry (7 軸 + 関連 link の単体表示 / 一覧フィルタ)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-entry"
+    doc_paths: []
+  - id: "FR-CLI-026"
+    name: "helix-gate"
+    domain: "cli"
+    description: "HELIX ゲート自動検証 (G0-G14 ゲート通過判定 / --pair-check / --drive 引数)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-gate"
+    doc_paths: []
+  - id: "FR-CLI-027"
+    name: "helix-gate-api-check"
+    domain: "cli"
+    description: "後方互換 shim (旧 gate API チェック)"
+    l1_fr: []
+    l3_fr: []
+    status: "deprecated"
+    code_paths:
+      - "cli/helix-gate-api-check"
+    doc_paths: []
+  - id: "FR-CLI-028"
+    name: "helix-handover"
+    domain: "cli"
+    description: "Claude Code ⇔ Codex CLI 非同期 handover 管理 (dump/update/resume/clear/status)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-handover"
+    doc_paths: []
+  - id: "FR-CLI-029"
+    name: "helix-harness"
+    domain: "cli"
+    description: "AI harness コア操作 (recommend-compact / auto-dump / harness サブコマンド)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-harness"
+    doc_paths: []
+  - id: "FR-CLI-030"
+    name: "helix-heartbeat-scheduler"
+    domain: "cli"
+    description: "PLAN-099 §9 ハートビートスケジューラ (carry>0 AND bg task なし時の adaptive 起動)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "experimental"
+    code_paths:
+      - "cli/helix-heartbeat-scheduler"
+    doc_paths: []
+  - id: "FR-CLI-031"
+    name: "helix-hook"
+    domain: "cli"
+    description: "後方互換 shim (旧 hook 管理)"
+    l1_fr: []
+    l3_fr: []
+    status: "deprecated"
+    code_paths:
+      - "cli/helix-hook"
+    doc_paths: []
+  - id: "FR-CLI-032"
+    name: "helix-incident"
+    domain: "cli"
+    description: "Incident mode CLI (hotfix / incident_engine.py 委譲)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-incident"
+    doc_paths: []
+  - id: "FR-CLI-033"
+    name: "helix-init"
+    domain: "cli"
+    description: "HELIX プロジェクト初期化 (テンプレート配布 / .helix/ ディレクトリ構築)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-init"
+    doc_paths: []
+  - id: "FR-CLI-034"
+    name: "helix-innovation"
+    domain: "cli"
+    description: "PdM innovation pipeline (tech/marketing/manager 翻案フロー)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-innovation"
+    doc_paths: []
+  - id: "FR-CLI-035"
+    name: "helix-interrupt"
+    domain: "cli"
+    description: "IIP (Interrupt In Progress) / CC の割り込み管理"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-interrupt"
+    doc_paths: []
+  - id: "FR-CLI-036"
+    name: "helix-job"
+    domain: "cli"
+    description: "ジョブキュー操作 (enqueue/pop/list/status/clear、PLAN-091 P0 guard 連動)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-job"
+    doc_paths: []
+  - id: "FR-CLI-037"
+    name: "helix-learn"
+    domain: "cli"
+    description: "成功タスクから recipe 生成 + global.db 同期 (learning_engine 委譲)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-learn"
+    doc_paths: []
+  - id: "FR-CLI-038"
+    name: "helix-lock"
+    domain: "cli"
+    description: "Single-host ロック管理 (acquire/release/status、scope home | project)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-lock"
+    doc_paths: []
+  - id: "FR-CLI-039"
+    name: "helix-log"
+    domain: "cli"
+    description: "HELIX ログ・評価システム (task 実行履歴 / report / session 集計)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-log"
+    doc_paths: []
+  - id: "FR-CLI-040"
+    name: "helix-matrix"
+    domain: "cli"
+    description: "matrix.yaml ベースの生成/検証ユーティリティ (drive × layer matrix)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-matrix"
+    doc_paths: []
+  - id: "FR-CLI-041"
+    name: "helix-meta-phase"
+    domain: "cli"
+    description: "PLAN-006 L1 内メタ工程 (pattern.yaml 固定ルール契約検証)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-meta-phase"
+    doc_paths: []
+  - id: "FR-CLI-042"
+    name: "helix-migrate"
+    domain: "cli"
+    description: "HELIX 配布対象への安全なマージアップデート (template migration)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-migrate"
+    doc_paths: []
+  - id: "FR-CLI-043"
+    name: "helix-mode"
+    domain: "cli"
+    description: "開発モード/drive 管理 (be/fe/fullstack/scrum/agent/db/reverse など切替)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-mode"
+    doc_paths: []
+  - id: "FR-CLI-044"
+    name: "helix-observe"
+    domain: "cli"
+    description: "observability イベント操作 (log --event / stats / export)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-observe"
+    doc_paths: []
+  - id: "FR-CLI-045"
+    name: "helix-plan"
+    domain: "cli"
+    description: "設計提案の下書き/レビュー/確定管理 (draft/review/finalize/lint/list/status)"
+    l1_fr:
+      - "FR-06"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-plan"
+    doc_paths: []
+  - id: "FR-CLI-046"
+    name: "helix-pr"
+    domain: "cli"
+    description: "ゲート結果から PR テンプレート自動生成"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-pr"
+    doc_paths: []
+  - id: "FR-CLI-047"
+    name: "helix-promote"
+    domain: "cli"
+    description: "Builder registry 型登録 (promote サブコマンド)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-promote"
+    doc_paths: []
+  - id: "FR-CLI-048"
+    name: "helix-push"
+    domain: "cli"
+    description: "git push ゲート (6 ゲート検証 + 全 PASS 時のみ push 実行)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-push"
+    doc_paths: []
+  - id: "FR-CLI-049"
+    name: "helix-readiness"
+    domain: "cli"
+    description: "HELIX readiness exit 判定 / deferred-finding 操作"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-readiness"
+    doc_paths: []
+  - id: "FR-CLI-050"
+    name: "helix-recipe"
+    domain: "cli"
+    description: "成功パターン学習系コマンド統合ディスパッチャ (learn/promote/discover)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-recipe"
+    doc_paths: []
+  - id: "FR-CLI-051"
+    name: "helix-recover"
+    domain: "cli"
+    description: "Recovery mode CLI (recovery_engine.py 委譲、AI 暴走収束)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-recover"
+    doc_paths: []
+  - id: "FR-CLI-052"
+    name: "helix-recovery"
+    domain: "cli"
+    description: "Recovery workflow CLI (recovery_workflow_engine.py 委譲、詳細フロー)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-recovery"
+    doc_paths: []
+  - id: "FR-CLI-053"
+    name: "helix-refactor"
+    domain: "cli"
+    description: "Refactor mode CLI (refactor_engine.py 委譲、振る舞い不変構造改善)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-refactor"
+    doc_paths: []
+  - id: "FR-CLI-054"
+    name: "helix-research"
+    domain: "cli"
+    description: "L1-L3 設計厳格化向け技術調査テーマ生成 (--layer L2 | L3 / --auto / --dry-run)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-research"
+    doc_paths: []
+  - id: "FR-CLI-055"
+    name: "helix-retro"
+    domain: "cli"
+    description: "ミニレトロ管理 (G2/G4/L8 通過時のレトロ記録・表示)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-retro"
+    doc_paths: []
+  - id: "FR-CLI-056"
+    name: "helix-retrofit"
+    domain: "cli"
+    description: "Retrofit mode CLI (retrofit_engine.py 委譲、依存・基盤の段階改修)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-retrofit"
+    doc_paths: []
+  - id: "FR-CLI-057"
+    name: "helix-reverse"
+    domain: "cli"
+    description: "Reverse HELIX pipeline (R0-R4-RGC、既存コード→設計復元)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-reverse"
+    doc_paths: []
+  - id: "FR-CLI-058"
+    name: "helix-review"
+    domain: "cli"
+    description: "Codex 自動レビュー (--uncommitted / --plan-id、review_output.py 利用)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-review"
+    doc_paths: []
+  - id: "FR-CLI-059"
+    name: "helix-route"
+    domain: "cli"
+    description: "L7-helix-route-implplan route entrypoint (route_engine.py、mode 自動推奨)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-route"
+    doc_paths: []
+  - id: "FR-CLI-060"
+    name: "helix-scheduler"
+    domain: "cli"
+    description: "スケジューラ操作 (add/remove/list/run、cron / +Nm 形式)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-scheduler"
+    doc_paths: []
+  - id: "FR-CLI-061"
+    name: "helix-scrum"
+    domain: "cli"
+    description: "DEPRECATED alias shim → helix-discovery へ転送"
+    l1_fr: []
+    l3_fr: []
+    status: "legacy_alias"
+    code_paths:
+      - "cli/helix-scrum"
+    doc_paths: []
+  - id: "FR-CLI-062"
+    name: "helix-scrum-agile"
+    domain: "cli"
+    description: "Scrum (アジャイル) mode CLI (scrum_agile_engine.py 委譲)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-scrum-agile"
+    doc_paths: []
+  - id: "FR-CLI-063"
+    name: "helix-session-start"
+    domain: "cli"
+    description: "後方互換 shim (旧 session-start)"
+    l1_fr: []
+    l3_fr: []
+    status: "deprecated"
+    code_paths:
+      - "cli/helix-session-start"
+    doc_paths: []
+  - id: "FR-CLI-064"
+    name: "helix-session-summary"
+    domain: "cli"
+    description: "セッション終了時 cost_log INSERT (helix.db cost_log テーブル記録)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-session-summary"
+    doc_paths: []
+  - id: "FR-CLI-065"
+    name: "helix-setup"
+    domain: "cli"
+    description: "HELIX コンポーネント初期化・検証 (verify/install/list サブコマンド)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-setup"
+    doc_paths: []
+  - id: "FR-CLI-066"
+    name: "helix-size"
+    domain: "cli"
+    description: "タスクサイジング + フェーズスキップ自動判定 (S/M/L × drive × フラグ判定)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-size"
+    doc_paths: []
+  - id: "FR-CLI-067"
+    name: "helix-skill"
+    domain: "cli"
+    description: "スキル catalog 管理・表示・検索 (list/show/catalog/search/use/chain/stats)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-skill"
+    doc_paths: []
+  - id: "FR-CLI-068"
+    name: "helix-sprint"
+    domain: "cli"
+    description: "L7 実装スプリント管理 (plan/start/complete/status/addon、標準 8 ステップ)"
+    l1_fr:
+      - "FR-06"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "mandatory"
+    code_paths:
+      - "cli/helix-sprint"
+    doc_paths: []
+  - id: "FR-CLI-069"
+    name: "helix-status"
+    domain: "cli"
+    description: "プロジェクト全体の HELIX 状態表示 (phase.yaml / handover / doctor 統合)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-status"
+    doc_paths: []
+  - id: "FR-CLI-070"
+    name: "helix-statusline"
+    domain: "cli"
+    description: "コンテキスト % 先回り監視 (>50%/30-50%/≤30%/≤20% 4 段階 warning)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-statusline"
+    doc_paths: []
+  - id: "FR-CLI-071"
+    name: "helix-stop-hook"
+    domain: "cli"
+    description: "Stop hook エントリ (handover auto dump + compact recommendation)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-stop-hook"
+    doc_paths: []
+  - id: "FR-CLI-072"
+    name: "helix-task"
+    domain: "cli"
+    description: "HELIX タスクオペレーティングシステム (task create/update/list/show/pop)"
+    l1_fr:
+      - "FR-06"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-task"
+    doc_paths: []
+  - id: "FR-CLI-073"
+    name: "helix-team"
+    domain: "cli"
+    description: "エージェントチーム実行 (team_runner.py 委譲、複数 role 協調)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-team"
+    doc_paths: []
+  - id: "FR-CLI-074"
+    name: "helix-test"
+    domain: "cli"
+    description: "HELIX CLI 全ツールセルフテスト (bats + pytest 統合実行)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths:
+      - "cli/helix-test"
+    doc_paths: []
+  - id: "FR-CLI-075"
+    name: "helix-test-debug"
+    domain: "cli"
+    description: "debug-enabled セルフテスト wrapper"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths:
+      - "cli/helix-test-debug"
+    doc_paths: []
+  - id: "FR-CLI-076"
+    name: "helix-test-design-scaffold"
+    domain: "cli"
+    description: "テスト設計 scaffold 生成 CLI (test-design-scaffold.py 委譲、pair layer)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-test-design-scaffold"
+    doc_paths: []
+  - id: "FR-CLI-077"
+    name: "helix-verify-agent"
+    domain: "cli"
+    description: "PLAN-010 verification agent CLI (verify_agent.py 委譲)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-verify-agent"
+    doc_paths: []
+  - id: "FR-CLI-078"
+    name: "helix-verify-all"
+    domain: "cli"
+    description: "HELIX 全レイヤー検証を 1 コマンドで実行"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-verify-all"
+    doc_paths: []
+  - id: "FR-CLI-079"
+    name: "helix-vmodel"
+    domain: "cli"
+    description: "V-model 操作 (list/show/vmodel-score/vertical-check、--drive/--injection-only)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-vmodel"
+    doc_paths: []
+  - id: "FR-CLI-080"
+    name: "helix-workspace"
+    domain: "cli"
+    description: "Workspace manager dispatcher (PLAN-156/ADR-040、isolation/exec/list/cleanup)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/helix-workspace"
+    doc_paths: []
+  - id: "FR-LIB-001"
+    name: "add_feature_engine.py"
+    domain: "lib"
+    description: "Add-feature mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/add_feature_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-002"
+    name: "agent_engine.py"
+    domain: "lib"
+    description: "HELIX W agent drive CLI backend"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/agent_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-003"
+    name: "agent_mandatory.py"
+    domain: "lib"
+    description: "subagent fire-mandatory + suggest + audit (PLAN-076/082 機械化)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/agent_mandatory.py"
+    doc_paths: []
+  - id: "FR-LIB-004"
+    name: "agent_policy_guard.py"
+    domain: "lib"
+    description: "HELIX team 委譲定義のポリシーチェック"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/agent_policy_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-005"
+    name: "agent_slots.py"
+    domain: "lib"
+    description: "agent slot fire / list / stale 検出"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/agent_slots.py"
+    doc_paths: []
+  - id: "FR-LIB-006"
+    name: "allowed_files_estimator.py"
+    domain: "lib"
+    description: "実装タスクで変更される可能性があるファイル群の事前推定"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/allowed_files_estimator.py"
+    doc_paths: []
+  - id: "FR-LIB-007"
+    name: "audit_a1.py"
+    domain: "lib"
+    description: "A1 state machine: decisions.yaml → audit_decisions / import_runs 同期"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/audit_a1.py"
+    doc_paths: []
+  - id: "FR-LIB-008"
+    name: "audit_hash.py"
+    domain: "lib"
+    description: "A1 canonical hash 計算 (PLAN-002 v3 凍結済み仕様)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/audit_hash.py"
+    doc_paths: []
+  - id: "FR-LIB-009"
+    name: "audit_inventory.py"
+    domain: "lib"
+    description: "inventory discovery 出力から A0 decisions.yaml 下書き生成"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/audit_inventory.py"
+    doc_paths: []
+  - id: "FR-LIB-010"
+    name: "audit_validator.py"
+    domain: "lib"
+    description: "decisions.yaml スキーマ検証 (PLAN-002 Sprint 2a)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/audit_validator.py"
+    doc_paths: []
+  - id: "FR-LIB-011"
+    name: "auto_run_engine.py"
+    domain: "lib"
+    description: "helix auto-run framework skeleton (5-layer 自動走行)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/auto_run_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-012"
+    name: "budget.py"
+    domain: "lib"
+    description: "Claude/Codex 消費取得とキャッシュ・予測"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/budget.py"
+    doc_paths: []
+  - id: "FR-LIB-013"
+    name: "budget_cli.py"
+    domain: "lib"
+    description: "helix-budget サブコマンドエントリ"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/budget_cli.py"
+    doc_paths: []
+  - id: "FR-LIB-014"
+    name: "budget_forecast.py"
+    domain: "lib"
+    description: "budget 枯渇 forecast helpers"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/budget_forecast.py"
+    doc_paths: []
+  - id: "FR-LIB-015"
+    name: "code_catalog.py"
+    domain: "lib"
+    description: "HELIX code index catalog 生成・保存・検索"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/code_catalog.py"
+    doc_paths: []
+  - id: "FR-LIB-016"
+    name: "code_edges.py"
+    domain: "lib"
+    description: "コード依存グラフ edge 管理"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/code_edges.py"
+    doc_paths: []
+  - id: "FR-LIB-017"
+    name: "code_recommender.py"
+    domain: "lib"
+    description: "code index 流用候補を Codex で推挙"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/code_recommender.py"
+    doc_paths: []
+  - id: "FR-LIB-018"
+    name: "codex_post_hook.py"
+    domain: "lib"
+    description: "helix-codex TL review 出力の後処理 helpers"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/codex_post_hook.py"
+    doc_paths: []
+  - id: "FR-LIB-019"
+    name: "codex_post_validation.py"
+    domain: "lib"
+    description: "Codex 出力の後処理バリデーション"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/codex_post_validation.py"
+    doc_paths: []
+  - id: "FR-LIB-020"
+    name: "codex_thinking.py"
+    domain: "lib"
+    description: "HELIX Codex thinking level 解決 (CLI / auto classification / role config)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/codex_thinking.py"
+    doc_paths: []
+  - id: "FR-LIB-021"
+    name: "command_catalog.py"
+    domain: "lib"
+    description: "HELIX CLI コマンドカタログ helpers (routing/help/docs チェック)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/command_catalog.py"
+    doc_paths: []
+  - id: "FR-LIB-022"
+    name: "command_mapper.py"
+    domain: "lib"
+    description: "HELIX コマンドマッピング (layer/gate/category → 関連コマンドリスト)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/command_mapper.py"
+    doc_paths: []
+  - id: "FR-LIB-023"
+    name: "compaction_adapter.py"
+    domain: "lib"
+    description: "auto-run 用 compaction adapter PoC"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/compaction_adapter.py"
+    doc_paths: []
+  - id: "FR-LIB-024"
+    name: "compatibility_adapter.py"
+    domain: "lib"
+    description: "helix.db 分離の段階的移行 compatibility adapter (PLAN-084)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/compatibility_adapter.py"
+    doc_paths: []
+  - id: "FR-LIB-025"
+    name: "concurrent_lock.py"
+    domain: "lib"
+    description: "並列 lock 管理 (workspace isolation 用)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/concurrent_lock.py"
+    doc_paths: []
+  - id: "FR-LIB-026"
+    name: "context_guard.py"
+    domain: "lib"
+    description: "HELIX context / guardrail 整合確認チェック"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/context_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-027"
+    name: "contract_registry.py"
+    domain: "lib"
+    description: "API/DB 契約 registry 管理"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/contract_registry.py"
+    doc_paths: []
+  - id: "FR-LIB-028"
+    name: "correlation_context.py"
+    domain: "lib"
+    description: "cross-db trace propagation 用 correlation context helpers"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/correlation_context.py"
+    doc_paths: []
+  - id: "FR-LIB-029"
+    name: "cutover_orchestrator.py"
+    domain: "lib"
+    description: "PLAN-084 Phase 4.C cutover gate 5 orchestration helpers"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/cutover_orchestrator.py"
+    doc_paths: []
+  - id: "FR-LIB-030"
+    name: "db_cli.py"
+    domain: "lib"
+    description: "HELIX DB CLI helpers (local rollback drill)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/db_cli.py"
+    doc_paths: []
+  - id: "FR-LIB-031"
+    name: "defaults_loader.py"
+    domain: "lib"
+    description: "cli/config/defaults.yaml からの共通 HELIX CLI defaults 読み込み"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/defaults_loader.py"
+    doc_paths: []
+  - id: "FR-LIB-032"
+    name: "deferred_findings.py"
+    domain: "lib"
+    description: "deferred-finding (carry) の登録・参照・解消"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/deferred_findings.py"
+    doc_paths: []
+  - id: "FR-LIB-033"
+    name: "deliverable_gate.py"
+    domain: "lib"
+    description: "HELIX deliverable gate checker (成果物存在確認)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/deliverable_gate.py"
+    doc_paths: []
+  - id: "FR-LIB-034"
+    name: "demotion_checker.py"
+    domain: "lib"
+    description: "PLAN-097 §10 demotion 判定 (skill/command 降格チェック)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/demotion_checker.py"
+    doc_paths: []
+  - id: "FR-LIB-035"
+    name: "discovery_compat.py"
+    domain: "lib"
+    description: "Discovery mode 後方互換 adapter (scrum → discovery 移行)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/discovery_compat.py"
+    doc_paths: []
+  - id: "FR-LIB-036"
+    name: "discovery_migrate.py"
+    domain: "lib"
+    description: "scrum → discovery state machine migration (Stage 1-4)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/discovery_migrate.py"
+    doc_paths: []
+  - id: "FR-LIB-037"
+    name: "doc_map_matcher.py"
+    domain: "lib"
+    description: "doc-map.yaml トリガーマッチャー"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/doc_map_matcher.py"
+    doc_paths: []
+  - id: "FR-LIB-038"
+    name: "doctor_plan_checks.py"
+    domain: "lib"
+    description: "PLAN-093 §5 doctor plan 系チェック (plan drift / generates / dependencies)"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DOCTOR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/doctor_plan_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-039"
+    name: "doctor_recovery_check.py"
+    domain: "lib"
+    description: "PLAN-098 §9 doctor recovery チェック"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DOCTOR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/doctor_recovery_check.py"
+    doc_paths: []
+  - id: "FR-LIB-040"
+    name: "doctor_summary.py"
+    domain: "lib"
+    description: "helix doctor --summary 集計出力"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DOCTOR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/doctor_summary.py"
+    doc_paths: []
+  - id: "FR-LIB-041"
+    name: "drift_db_diff.py"
+    domain: "lib"
+    description: "D-DB markdown schema vs SQLite DB の diff 検出"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/drift_db_diff.py"
+    doc_paths: []
+  - id: "FR-LIB-042"
+    name: "dual_write_connection.py"
+    domain: "lib"
+    description: "PLAN-084 compatibility adapter 用 dual-write SQLite connection wrapper"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/dual_write_connection.py"
+    doc_paths: []
+  - id: "FR-LIB-043"
+    name: "dual_write_mismatch.py"
+    domain: "lib"
+    description: "PLAN-084 Phase 4.B.6 dual-write mismatch detector"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/dual_write_mismatch.py"
+    doc_paths: []
+  - id: "FR-LIB-044"
+    name: "effort_classifier.py"
+    domain: "lib"
+    description: "タスク難度 → effort 自動判定 (effort-classifier role)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/effort_classifier.py"
+    doc_paths: []
+  - id: "FR-LIB-045"
+    name: "entry_helper.py"
+    domain: "lib"
+    description: "HELIX entry (7 軸 + 関連 link) 操作 helpers"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/entry_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-046"
+    name: "escalation_engine.py"
+    domain: "lib"
+    description: "PLAN-097 §8/9 escalation engine (handover escalate / recovery 起動)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/escalation_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-047"
+    name: "escalation_integration.py"
+    domain: "lib"
+    description: "PLAN-097 §8/11 + PLAN-093 §7 escalation integration"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/escalation_integration.py"
+    doc_paths: []
+  - id: "FR-LIB-048"
+    name: "event_envelope.py"
+    domain: "lib"
+    description: "PLAN-084 event-sourced databases 用 event envelope helpers"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/event_envelope.py"
+    doc_paths: []
+  - id: "FR-LIB-049"
+    name: "feedback_hook.py"
+    domain: "lib"
+    description: "PLAN-004 gate feedback hook"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/feedback_hook.py"
+    doc_paths: []
+  - id: "FR-LIB-050"
+    name: "freeze_checker.py"
+    domain: "lib"
+    description: "HELIX freeze-break checker (runtime/index.json 駆動)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/freeze_checker.py"
+    doc_paths: []
+  - id: "FR-LIB-051"
+    name: "gate_check_generator.py"
+    domain: "lib"
+    description: "gate/doc-map generator (matrix_compiler から抽出)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/gate_check_generator.py"
+    doc_paths: []
+  - id: "FR-LIB-052"
+    name: "gate_policy_helper.py"
+    domain: "lib"
+    description: "gate-policy.md から gate accuracy weights 読み込み helpers"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/gate_policy_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-053"
+    name: "global_store.py"
+    domain: "lib"
+    description: "HELIX global recipe store"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/global_store.py"
+    doc_paths: []
+  - id: "FR-LIB-054"
+    name: "handover.py"
+    domain: "lib"
+    description: "handover コアロジック (JSON + Markdown、dump/update/resume/clear)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/handover.py"
+    doc_paths: []
+  - id: "FR-LIB-055"
+    name: "handover_auto_dump.py"
+    domain: "lib"
+    description: "Stop hook 用 handover auto dump + compact recommendation"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/handover_auto_dump.py"
+    doc_paths: []
+  - id: "FR-LIB-056"
+    name: "harness_monitor.py"
+    domain: "lib"
+    description: "harness check event 記録 / recent events 取得"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/harness_monitor.py"
+    doc_paths: []
+  - id: "FR-LIB-057"
+    name: "helix_db.py"
+    domain: "lib"
+    description: "HELIX ログ DB (SQLite ベース task 実行・評価・改善追跡)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/helix_db.py"
+    doc_paths: []
+  - id: "FR-LIB-058"
+    name: "hook_payload.py"
+    domain: "lib"
+    description: "Claude Code hook payload helpers"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/hook_payload.py"
+    doc_paths: []
+  - id: "FR-LIB-059"
+    name: "incident_engine.py"
+    domain: "lib"
+    description: "Incident mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/incident_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-060"
+    name: "init_helpers.py"
+    domain: "lib"
+    description: "helix-init 後処理 helpers"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/init_helpers.py"
+    doc_paths: []
+  - id: "FR-LIB-061"
+    name: "invocation_helper.py"
+    domain: "lib"
+    description: "CLI 呼び出し共通 helpers"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/invocation_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-062"
+    name: "job_p0_guard.py"
+    domain: "lib"
+    description: "PLAN-091 §12 job P0 guard (plan consent 通過確認)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/job_p0_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-063"
+    name: "job_queue_helper.py"
+    domain: "lib"
+    description: "job queue 操作 helpers (enqueue/pop/list/status)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/job_queue_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-064"
+    name: "learning_engine.py"
+    domain: "lib"
+    description: "HELIX learning engine (成功パターン recipe 生成・学習)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/learning_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-065"
+    name: "llm_classifier_base.py"
+    domain: "lib"
+    description: "HELIX LLM バックドクラシファイヤー base class"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/llm_classifier_base.py"
+    doc_paths: []
+  - id: "FR-LIB-066"
+    name: "llm_guard.py"
+    domain: "lib"
+    description: "生 LLM CLI 実行 PreToolUse guard (HELIX_ALLOW_RAW_CODEX 制御)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/llm_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-067"
+    name: "lock_helper.py"
+    domain: "lib"
+    description: "Single-host HELIX lock helper"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/lock_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-068"
+    name: "matrix_advisor.py"
+    domain: "lib"
+    description: "HELIX matrix advisory checker (Phase 3: advisory only)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/matrix_advisor.py"
+    doc_paths: []
+  - id: "FR-LIB-069"
+    name: "matrix_compiler.py"
+    domain: "lib"
+    description: "HELIX matrix compiler (drive × layer matrix 生成)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/matrix_compiler.py"
+    doc_paths: []
+  - id: "FR-LIB-070"
+    name: "merge_settings.py"
+    domain: "lib"
+    description: "~/.claude/settings.json に HELIX hooks を安全にマージ/除去"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/merge_settings.py"
+    doc_paths: []
+  - id: "FR-LIB-071"
+    name: "meta_phase.py"
+    domain: "lib"
+    description: "PLAN-006 meta-phase helpers (pattern.yaml ルール契約検証)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/meta_phase.py"
+    doc_paths: []
+  - id: "FR-LIB-072"
+    name: "migrate.py"
+    domain: "lib"
+    description: "HELIX template migration utility"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/migrate.py"
+    doc_paths: []
+  - id: "FR-LIB-073"
+    name: "model_fallback.py"
+    domain: "lib"
+    description: "枯渇モデルからの降格提案"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/model_fallback.py"
+    doc_paths: []
+  - id: "FR-LIB-074"
+    name: "model_registry.py"
+    domain: "lib"
+    description: "models.yaml からロール別モデル解決"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/model_registry.py"
+    doc_paths: []
+  - id: "FR-LIB-075"
+    name: "observability_helper.py"
+    domain: "lib"
+    description: "observability event log / stats helpers"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/observability_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-076"
+    name: "paths.py"
+    domain: "lib"
+    description: "HELIX 共通パス解決 helpers"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/paths.py"
+    doc_paths: []
+  - id: "FR-LIB-077"
+    name: "phase_guard.py"
+    domain: "lib"
+    description: "HELIX phase guard checker (フェーズ逸脱防止)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/phase_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-078"
+    name: "plan_dependencies.py"
+    domain: "lib"
+    description: "PLAN dependency graph 管理"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_dependencies.py"
+    doc_paths: []
+  - id: "FR-LIB-079"
+    name: "plan_deps_helper.py"
+    domain: "lib"
+    description: "PLAN dependency helpers (requires/parent/blocks 解決)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_deps_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-080"
+    name: "plan_frontmatter.py"
+    domain: "lib"
+    description: "PLAN markdown frontmatter + YAML state の atomic finalize helper"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_frontmatter.py"
+    doc_paths: []
+  - id: "FR-LIB-081"
+    name: "plan_health.py"
+    domain: "lib"
+    description: "PLAN health チェック (plan_health score 算出)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_health.py"
+    doc_paths: []
+  - id: "FR-LIB-082"
+    name: "plan_lint.py"
+    domain: "lib"
+    description: "PLAN frontmatter lint (VALID_KINDS 同期、plan_validator と一致 test)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_lint.py"
+    doc_paths: []
+  - id: "FR-LIB-083"
+    name: "plan_parser.py"
+    domain: "lib"
+    description: "PLAN-092 §5/7/8 PLAN frontmatter parser"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_parser.py"
+    doc_paths: []
+  - id: "FR-LIB-084"
+    name: "plan_registry.py"
+    domain: "lib"
+    description: "PLAN-100 Phase 4 Wave 4 plan registry (is_reference filter 付き)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_registry.py"
+    doc_paths: []
+  - id: "FR-LIB-085"
+    name: "plan_schema.py"
+    domain: "lib"
+    description: "PLAN.yaml schema helpers (gate/plan tooling 用)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_schema.py"
+    doc_paths: []
+  - id: "FR-LIB-086"
+    name: "plan_validator.py"
+    domain: "lib"
+    description: "新 15 工程 (L0-L14) PLAN frontmatter 検証 (VALID_KINDS 22 種)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/plan_validator.py"
+    doc_paths: []
+  - id: "FR-LIB-087"
+    name: "projector_lag.py"
+    domain: "lib"
+    description: "Projector lag helper (handover/review 遅延検出)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/projector_lag.py"
+    doc_paths: []
+  - id: "FR-LIB-088"
+    name: "push_gate.py"
+    domain: "lib"
+    description: "git push 前の 6 ゲート検証 (push_gate)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/push_gate.py"
+    doc_paths: []
+  - id: "FR-LIB-089"
+    name: "recovery_engine.py"
+    domain: "lib"
+    description: "Recovery mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/recovery_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-090"
+    name: "recovery_plan_check.py"
+    domain: "lib"
+    description: "PLAN-098 §5/6/9 recovery plan check"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/recovery_plan_check.py"
+    doc_paths: []
+  - id: "FR-LIB-091"
+    name: "recovery_workflow_engine.py"
+    domain: "lib"
+    description: "Recovery workflow CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/recovery_workflow_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-092"
+    name: "redaction.py"
+    domain: "lib"
+    description: "秘密情報 redaction helpers (secret/PII マスク)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/redaction.py"
+    doc_paths: []
+  - id: "FR-LIB-093"
+    name: "refactor_engine.py"
+    domain: "lib"
+    description: "Refactor mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/refactor_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-094"
+    name: "research_guard.py"
+    domain: "lib"
+    description: "HELIX G1R research gate fail-close checks"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/research_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-095"
+    name: "research_tool_guard.py"
+    domain: "lib"
+    description: "WebSearch/WebFetch hook events PreToolUse guard"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/research_tool_guard.py"
+    doc_paths: []
+  - id: "FR-LIB-096"
+    name: "retrofit_engine.py"
+    domain: "lib"
+    description: "Retrofit mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/retrofit_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-097"
+    name: "reverse_local.py"
+    domain: "lib"
+    description: "confirmed scrum → reverse routing init helpers"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/reverse_local.py"
+    doc_paths: []
+  - id: "FR-LIB-098"
+    name: "review_output.py"
+    domain: "lib"
+    description: "HELIX review JSON 出力の検証・正規化"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/review_output.py"
+    doc_paths: []
+  - id: "FR-LIB-099"
+    name: "rollback_orchestrator.py"
+    domain: "lib"
+    description: "PLAN-084 gate 6 rollback orchestration helpers"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/rollback_orchestrator.py"
+    doc_paths: []
+  - id: "FR-LIB-100"
+    name: "route_engine.py"
+    domain: "lib"
+    description: "HELIX route engine (mode 自動推奨、9 mode + drive_agent + auto_run)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/route_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-101"
+    name: "scheduler_helper.py"
+    domain: "lib"
+    description: "スケジューラ操作 helpers (cron / +Nm 形式 add/remove/run)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scheduler_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-102"
+    name: "scrum_agile_engine.py"
+    domain: "lib"
+    description: "Scrum (agile) mode CLI backend"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scrum_agile_engine.py"
+    doc_paths: []
+  - id: "FR-LIB-103"
+    name: "scrum_local.py"
+    domain: "lib"
+    description: "UPS loop local scrum state management"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scrum_local.py"
+    doc_paths: []
+  - id: "FR-LIB-104"
+    name: "scrum_reverse_matrix.py"
+    domain: "lib"
+    description: "PLAN-095 §5/6/7 scrum × reverse matrix"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scrum_reverse_matrix.py"
+    doc_paths: []
+  - id: "FR-LIB-105"
+    name: "scrum_to_reverse_routing.py"
+    domain: "lib"
+    description: "PLAN-095 §8/9 scrum → reverse routing"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scrum_to_reverse_routing.py"
+    doc_paths: []
+  - id: "FR-LIB-106"
+    name: "scrum_trigger.py"
+    domain: "lib"
+    description: "scrum 開始 trigger helpers"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/scrum_trigger.py"
+    doc_paths: []
+  - id: "FR-LIB-107"
+    name: "session_cleaner.py"
+    domain: "lib"
+    description: "HELIX auto-run 用 session cleaner PoC"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/session_cleaner.py"
+    doc_paths: []
+  - id: "FR-LIB-108"
+    name: "session_helper.py"
+    domain: "lib"
+    description: "PLAN-083 Phase 4 session_id 検出 helper"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/session_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-109"
+    name: "session_start_helpers.py"
+    domain: "lib"
+    description: "SessionStart hook 用進捗サマリ生成"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/session_start_helpers.py"
+    doc_paths: []
+  - id: "FR-LIB-110"
+    name: "setup_helper.py"
+    domain: "lib"
+    description: "HELIX setup コンポーネント runner"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/setup_helper.py"
+    doc_paths: []
+  - id: "FR-LIB-111"
+    name: "shadow_replay.py"
+    domain: "lib"
+    description: "PLAN-084 Phase 4.C shadow replay helpers"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/shadow_replay.py"
+    doc_paths: []
+  - id: "FR-LIB-112"
+    name: "skill_catalog.py"
+    domain: "lib"
+    description: "スキル catalog 生成・保存・検索 (SKILL.md frontmatter + references parser)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_catalog.py"
+    doc_paths: []
+  - id: "FR-LIB-113"
+    name: "skill_classifier.py"
+    domain: "lib"
+    description: "HELIX スキル分類を Codex で実行"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_classifier.py"
+    doc_paths: []
+  - id: "FR-LIB-114"
+    name: "skill_classify_runner.py"
+    domain: "lib"
+    description: "スキル分類実行 runner"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_classify_runner.py"
+    doc_paths: []
+  - id: "FR-LIB-115"
+    name: "skill_dispatcher.py"
+    domain: "lib"
+    description: "スキル推挙結果 → 実際の委譲アクション変換"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_dispatcher.py"
+    doc_paths: []
+  - id: "FR-LIB-116"
+    name: "skill_frontmatter_lint.py"
+    domain: "lib"
+    description: "SKILL.md frontmatter lint"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_frontmatter_lint.py"
+    doc_paths: []
+  - id: "FR-LIB-117"
+    name: "skill_helix_layer_audit.py"
+    domain: "lib"
+    description: "SKILL.md helix_layer フィールド audit"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_helix_layer_audit.py"
+    doc_paths: []
+  - id: "FR-LIB-118"
+    name: "skill_jsonl_schema.py"
+    domain: "lib"
+    description: "skill JSONL schema helpers"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_jsonl_schema.py"
+    doc_paths: []
+  - id: "FR-LIB-119"
+    name: "skill_recommender.py"
+    domain: "lib"
+    description: "HELIX スキル推挙を Codex で実行 (gpt-5.4-mini 経由、1 時間 TTL キャッシュ)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_recommender.py"
+    doc_paths: []
+  - id: "FR-LIB-120"
+    name: "skill_review.py"
+    domain: "lib"
+    description: "skill 品質レビュー helpers"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skill_review.py"
+    doc_paths: []
+  - id: "FR-LIB-121"
+    name: "skip_annotation_linter.py"
+    domain: "lib"
+    description: "@skip アノテーション lint (テスト skip 過剰検出)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/skip_annotation_linter.py"
+    doc_paths: []
+  - id: "FR-LIB-122"
+    name: "sprint_auto_check.py"
+    domain: "lib"
+    description: "Sprint auto check (Step 4 mandatory: py_compile / lint / test)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/sprint_auto_check.py"
+    doc_paths: []
+  - id: "FR-LIB-123"
+    name: "sprint_lint.py"
+    domain: "lib"
+    description: "PLAN-082 Phase 3 Sprint completion audit helpers"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/sprint_lint.py"
+    doc_paths: []
+  - id: "FR-LIB-124"
+    name: "task_dispatcher.py"
+    domain: "lib"
+    description: "task dispatch helpers (task_type_inference 連携)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/task_dispatcher.py"
+    doc_paths: []
+  - id: "FR-LIB-125"
+    name: "task_type_inference.py"
+    domain: "lib"
+    description: "task type 推論 (impl/design/review/research 等の分類)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/task_type_inference.py"
+    doc_paths: []
+  - id: "FR-LIB-126"
+    name: "team_runner.py"
+    domain: "lib"
+    description: "HELIX Team Runner (複数 role 協調実行)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/team_runner.py"
+    doc_paths: []
+  - id: "FR-LIB-127"
+    name: "test_design_scaffold.py"
+    domain: "lib"
+    description: "テスト設計 scaffold 生成 (pair_layer / title 組み合わせ)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/test_design_scaffold.py"
+    doc_paths: []
+  - id: "FR-LIB-128"
+    name: "trace_symmetry.py"
+    domain: "lib"
+    description: "設計⇔テスト設計 whole-coverage 対称性監査 detector (coverage_pct / missing_pair / orphan / balance_ratio、全5 V-model pair 測定。whole-coverage audit の検出層、verification-strategy §11、2026-06-03 登録)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+      - "FR-CHANGEPROP-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/trace_symmetry.py"
+    doc_paths: []
+  - id: "FR-LIB-129"
+    name: "transcript_summary.py"
+    domain: "lib"
+    description: "PLAN-099 §8 transcript summary (会話要約 + 関連 PLAN/handover bundle)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/transcript_summary.py"
+    doc_paths: []
+  - id: "FR-LIB-130"
+    name: "uuid7_generator.py"
+    domain: "lib"
+    description: "UUID v7 generator (event_id 発行用)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/uuid7_generator.py"
+    doc_paths: []
+  - id: "FR-LIB-131"
+    name: "verify_agent.py"
+    domain: "lib"
+    description: "PLAN-010 verification agent (spec 駆動検証)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/verify_agent.py"
+    doc_paths: []
+  - id: "FR-LIB-132"
+    name: "vmodel_lint.py"
+    domain: "lib"
+    description: "V-model 4 artifact 双方向 trace lint (PLAN-075 Phase 5)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/vmodel_lint.py"
+    doc_paths: []
+  - id: "FR-LIB-133"
+    name: "vmodel_loader.py"
+    domain: "lib"
+    description: "V-model semantics loader (PLAN V2-PHASE-2 Task B)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/vmodel_loader.py"
+    doc_paths: []
+  - id: "FR-LIB-134"
+    name: "vmodel_pair_freeze.py"
+    domain: "lib"
+    description: "V-model pair freeze 管理 (L1↔L14 等の pair 凍結)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/vmodel_pair_freeze.py"
+    doc_paths: []
+  - id: "FR-LIB-135"
+    name: "workflow_dsl_parser.py"
+    domain: "lib"
+    description: "PLAN-097 §6/7 workflow DSL parser (recovery/escalation workflow)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/workflow_dsl_parser.py"
+    doc_paths: []
+  - id: "FR-LIB-136"
+    name: "workspace_cli.py"
+    domain: "lib"
+    description: "`helix workspace` CLI entrypoint"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/workspace_cli.py"
+    doc_paths: []
+  - id: "FR-LIB-137"
+    name: "workspace_manager.py"
+    domain: "lib"
+    description: "HELIX workspace manager (PLAN-156/ADR-040、isolation/lock/exec)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/workspace_manager.py"
+    doc_paths: []
+  - id: "FR-LIB-138"
+    name: "workspace_snapshot.py"
+    domain: "lib"
+    description: "HELIX workspace state snapshot generator (PLAN-156/ADR-040 D3)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/workspace_snapshot.py"
+    doc_paths: []
+  - id: "FR-LIB-139"
+    name: "yaml_parser.py"
+    domain: "lib"
+    description: "Lightweight YAML parser (PyYAML 不要、frontmatter 用)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/yaml_parser.py"
+    doc_paths: []
+  - id: "FR-LIB-140"
+    name: "zizmor_ignore_lint.py"
+    domain: "lib"
+    description: "PLAN-222 AC-5: zizmor:ignore コメント metadata 機械検査"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/lib/zizmor_ignore_lint.py"
+    doc_paths: []
+  - id: "FR-HOOK-001"
+    name: "post-tool-use.sh"
+    domain: "hook"
+    description: "PostToolUse / 汎用 PostToolUse ディスパッチャ (複数後処理の統合)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/post-tool-use.sh"
+    doc_paths: []
+  - id: "FR-HOOK-002"
+    name: "posttooluse-design-doc-web-search-revert.sh"
+    domain: "hook"
+    description: "PostToolUse / Edit/Write/MultiEdit 後、設計 doc の WebSearch 不要 revert チェック (PLAN-087 guard)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/posttooluse-design-doc-web-search-revert.sh"
+    doc_paths: []
+  - id: "FR-HOOK-003"
+    name: "posttooluse-helix-job-enqueue.sh"
+    domain: "hook"
+    description: "PostToolUse / ツール完了後 job P0 guard 確認 + advisory enqueue"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/posttooluse-helix-job-enqueue.sh"
+    doc_paths: []
+  - id: "FR-HOOK-004"
+    name: "posttooluse-plan-auto-register.sh"
+    domain: "hook"
+    description: "PostToolUse / PLAN.md Write/Edit 時に helix.db に PLAN 自動登録 (PLAN-092 PostToolUse hook)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/posttooluse-plan-auto-register.sh"
+    doc_paths: []
+  - id: "FR-HOOK-005"
+    name: "posttooluse-skill-catalog-rebuild.sh"
+    domain: "hook"
+    description: "PostToolUse / SKILL.md Write/Edit 時に skill catalog を debounce 付きで自動 rebuild"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/posttooluse-skill-catalog-rebuild.sh"
+    doc_paths: []
+  - id: "FR-HOOK-006"
+    name: "precompact-state-snapshot.sh"
+    domain: "hook"
+    description: "PreCompact / /compact 前の state snapshot (blocked_sessions 記録 + state 永続化)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/precompact-state-snapshot.sh"
+    doc_paths: []
+  - id: "FR-HOOK-007"
+    name: "pretooluse-agent-fire.sh"
+    domain: "hook"
+    description: "PreToolUse / PLAN-083 Phase 2: Agent tool 呼び出し自動 fire (agent_slots 記録)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-agent-fire.sh"
+    doc_paths: []
+  - id: "FR-HOOK-008"
+    name: "pretooluse-agent-guard.sh"
+    domain: "hook"
+    description: "PreToolUse / subagent guard fail-close (許可 12 種 + model family 一致、exit 2 block)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-agent-guard.sh"
+    doc_paths: []
+  - id: "FR-HOOK-009"
+    name: "pretooluse-askuserquestion.sh"
+    domain: "hook"
+    description: "PreToolUse / AskUserQuestion tool 呼び出し時の DB 記録 + policy チェック"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-askuserquestion.sh"
+    doc_paths: []
+  - id: "FR-HOOK-010"
+    name: "pretooluse-codex-slot-check.sh"
+    domain: "hook"
+    description: "PreToolUse / Codex CLI 呼び出し前の active slot 数チェック (並列上限確認)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-codex-slot-check.sh"
+    doc_paths: []
+  - id: "FR-HOOK-011"
+    name: "pretooluse-design-doc-web-search-guard.sh"
+    domain: "hook"
+    description: "PreToolUse / Edit/Write/MultiEdit 前、設計 doc 改定時の WebSearch 3 query 必須ガード (PLAN-087)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-design-doc-web-search-guard.sh"
+    doc_paths: []
+  - id: "FR-HOOK-012"
+    name: "pretooluse-opus-repo-block.sh"
+    domain: "hook"
+    description: "PreToolUse / Opus による BE コード直接 Edit 禁止ガード (audit log 付き)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/pretooluse-opus-repo-block.sh"
+    doc_paths: []
+  - id: "FR-HOOK-013"
+    name: "sessionstart-harness-summary.sh"
+    domain: "hook"
+    description: "SessionStart / セッション開始時 stale slot 数 + critical event 数をサマリ表示"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/sessionstart-harness-summary.sh"
+    doc_paths: []
+  - id: "FR-HOOK-014"
+    name: "sessionstart-history-injection.sh"
+    domain: "hook"
+    description: "SessionStart / セッション開始時 memory/handover/PLAN 要約を context bundle として注入"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/sessionstart-history-injection.sh"
+    doc_paths: []
+  - id: "FR-HOOK-015"
+    name: "stop-recovery-update.sh"
+    domain: "hook"
+    description: "Stop / セッション終了時 recovery workflow state snapshot (snapshot_on_stop)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/stop-recovery-update.sh"
+    doc_paths: []
+  - id: "FR-HOOK-016"
+    name: "stop.sh"
+    domain: "hook"
+    description: "Stop / Stop hook 汎用ディスパッチャ (handover auto dump 連携)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/stop.sh"
+    doc_paths: []
+  - id: "FR-HOOK-017"
+    name: "userpromptsubmit-context-bundle.sh"
+    domain: "hook"
+    description: "UserPromptSubmit / ユーザープロンプト送信時 memory/handover/PLAN 関連 summary を context bundle として前付け注入"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - ".claude/hooks/userpromptsubmit-context-bundle.sh"
+    doc_paths: []
+  - id: "FR-AGENT-001"
+    name: "be-api.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / BE API 実装 (RESTful/GraphQL 設計・endpoint 実装・バリデーション・エラーハンドリング)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/be-api.md"
+  - id: "FR-AGENT-002"
+    name: "be-logic.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / BE ビジネスロジック実装 (ドメインモデル・サービス層・ユースケース実装)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/be-logic.md"
+  - id: "FR-AGENT-003"
+    name: "code-reviewer.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / Senior Staff Engineer 視点 5 軸レビュー (Critical/Important/Minor 整理、実装なし)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/code-reviewer.md"
+  - id: "FR-AGENT-004"
+    name: "db-schema.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / DB スキーマ設計・マイグレーション (ER 図・FK・インデックス・マイグレーション手順)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/db-schema.md"
+  - id: "FR-AGENT-005"
+    name: "devops-deploy.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / デプロイ・インフラ設計 (Docker/CI-CD/環境分離/監視・アラート)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/devops-deploy.md"
+  - id: "FR-AGENT-006"
+    name: "pdm-innovation-manager.md"
+    domain: "agent"
+    description: "claude-opus-4-7 / PdM Innovation Manager (pdm-tech/marketing 統合 + 新方向性策定 + L1 要件接続)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pdm-innovation-manager.md"
+  - id: "FR-AGENT-007"
+    name: "pdm-marketing-innovation.md"
+    domain: "agent"
+    description: "claude-opus-4-7 / PdM Marketing Innovation (海外マーケ思想 PLG/JTBD/NSM 等を日本版適応案に翻案)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pdm-marketing-innovation.md"
+  - id: "FR-AGENT-008"
+    name: "pdm-tech-innovation.md"
+    domain: "agent"
+    description: "claude-opus-4-7 / PdM Tech Innovation (海外技術思想 Spotify/Stripe/Linear 等を日本版実装案に翻案)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pdm-tech-innovation.md"
+  - id: "FR-AGENT-009"
+    name: "pmo-haiku.md"
+    domain: "agent"
+    description: "claude-haiku-4-5-20251001 / PMO 軽作業 (docs/** 限定軽修正・Web 検索・短文 doc 確認、Haiku 4.5 low thinking)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-haiku.md"
+  - id: "FR-AGENT-010"
+    name: "pmo-helix-explorer.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / HELIX Repository Explorer (skills/templates/cli/docs 詳細探索・設計整合チェック前段)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-helix-explorer.md"
+  - id: "FR-AGENT-011"
+    name: "pmo-helix-scout.md"
+    domain: "agent"
+    description: "claude-haiku-4-5-20251001 / HELIX Repository Scout (HELIX 内軽量目星付け・候補列挙、即応性最大)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-helix-scout.md"
+  - id: "FR-AGENT-012"
+    name: "pmo-project-explorer.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / Project Repository Explorer (project 内 code/docs/config 詳細探索・流用判断前段)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-project-explorer.md"
+  - id: "FR-AGENT-013"
+    name: "pmo-project-scout.md"
+    domain: "agent"
+    description: "claude-haiku-4-5-20251001 / Project Repository Scout (project 内軽量目星付け・候補列挙)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-project-scout.md"
+  - id: "FR-AGENT-014"
+    name: "pmo-sonnet.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / PMO 状況把握・docs/PLAN/review 構造化チェック (read-only 中心、Opus context 保護)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-sonnet.md"
+  - id: "FR-AGENT-015"
+    name: "pmo-tech-docs.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / Tech Document Manager (設計手法・アーキテクチャ外部 doc 精読 + HELIX 適用案)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-tech-docs.md"
+  - id: "FR-AGENT-016"
+    name: "pmo-tech-fork.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / Tech Fork Manager (OSS/plugin GitHub 探索・license/maintenance 評価・転用可能性 report)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-tech-fork.md"
+  - id: "FR-AGENT-017"
+    name: "pmo-tech-news.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / Tech News Advisor (AI/Dev tools/security/cloud 最新動向 sweep、週次 watch)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/pmo-tech-news.md"
+  - id: "FR-AGENT-018"
+    name: "qa-test.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / QA テスト設計・実行 (戦略・カバレッジ・E2E・perf・security test、L6 検証/G4/G6 gate)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/qa-test.md"
+  - id: "FR-AGENT-019"
+    name: "security-audit.md"
+    domain: "agent"
+    description: "claude-sonnet-4-6 / セキュリティ監査 (OWASP Top 10・認証認可・脆弱性・依存管理、G2/G4/G6/G7 gate)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - ".claude/agents/security-audit.md"
+  - id: "FR-SKILL-001"
+    name: "workflow/adversarial-review"
+    domain: "skill"
+    description: "設計批判レビュー (G2 固有)、脅威モデルは threat-model 委譲"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/adversarial-review/SKILL.md"
+  - id: "FR-SKILL-002"
+    name: "workflow/api-contract"
+    domain: "skill"
+    description: "API 契約 (D-API/D-CONTRACT)、スキーマ・レスポンス整合検証"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/api-contract/SKILL.md"
+  - id: "FR-SKILL-003"
+    name: "workflow/compliance"
+    domain: "skill"
+    description: "法令遵守・ライセンス・規制対応"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/compliance/SKILL.md"
+  - id: "FR-SKILL-004"
+    name: "workflow/context-memory"
+    domain: "skill"
+    description: "CLAUDE.md 運用含む AI コンテキスト管理・知識永続化"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/context-memory/SKILL.md"
+  - id: "FR-SKILL-005"
+    name: "workflow/cross-detection"
+    domain: "skill"
+    description: "横断的劣化を複数 axis 組合せで集約検出、後続 routing 渡し"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/cross-detection/SKILL.md"
+  - id: "FR-SKILL-006"
+    name: "workflow/debt-register"
+    domain: "skill"
+    description: "G4 通過条件の負債台帳生成・更新"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/debt-register/SKILL.md"
+  - id: "FR-SKILL-007"
+    name: "workflow/dependency-map"
+    domain: "skill"
+    description: "依存関係マップ作成、脆弱性・ライセンス・循環依存検証"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/dependency-map/SKILL.md"
+  - id: "FR-SKILL-008"
+    name: "workflow/deploy"
+    domain: "skill"
+    description: "Blue/Green デプロイ戦略・ロールバック・smoke test・G7/G9 連携"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/deploy/SKILL.md"
+  - id: "FR-SKILL-009"
+    name: "workflow/design-doc"
+    domain: "skill"
+    description: "D-API/D-DB/D-CONTRACT/D-STATE テンプレート、G2/G3 ゲート連携"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/design-doc/SKILL.md"
+  - id: "FR-SKILL-010"
+    name: "workflow/detection-routing"
+    domain: "skill"
+    description: "検出シグナル → SIGNAL_TO_MODE マップ → 後続フロー接続"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/detection-routing/SKILL.md"
+  - id: "FR-SKILL-011"
+    name: "workflow/dev-policy"
+    domain: "skill"
+    description: "開発方針・品質基準・完成の定義・チームルール雛形"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/dev-policy/SKILL.md"
+  - id: "FR-SKILL-012"
+    name: "workflow/dev-setup"
+    domain: "skill"
+    description: "OS 別セットアップ・VSCode 設定・開発環境構築"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/dev-setup/SKILL.md"
+  - id: "FR-SKILL-013"
+    name: "workflow/doc-review"
+    domain: "skill"
+    description: "ドキュメント品質レビュー専用 (4 視点 + 業界標準 + V-model 量閉じ性)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/doc-review/SKILL.md"
+  - id: "FR-SKILL-014"
+    name: "workflow/doc-system-architect"
+    domain: "skill"
+    description: "「何を・どこまで・どの粒度で書くか」をメタ設計するスキル"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/doc-system-architect/SKILL.md"
+  - id: "FR-SKILL-015"
+    name: "workflow/estimation"
+    domain: "skill"
+    description: "三点見積もり・リスク係数・スプリント計画見積もり"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/estimation/SKILL.md"
+  - id: "FR-SKILL-016"
+    name: "workflow/gate-planning"
+    domain: "skill"
+    description: "G0.5/G1.5 企画突合・PoC ゲート専用、技術スタック選定"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/gate-planning/SKILL.md"
+  - id: "FR-SKILL-017"
+    name: "workflow/incident"
+    domain: "skill"
+    description: "重要度判定 (P0-P3)・対応手順・連絡テンプレート・SLO 達成率検証"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/incident/SKILL.md"
+  - id: "FR-SKILL-018"
+    name: "workflow/layer-context-injection"
+    domain: "skill"
+    description: "L 単位 owner_role/mandatory_agents/6field 注入、工程別判断負荷削減"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/layer-context-injection/SKILL.md"
+  - id: "FR-SKILL-019"
+    name: "workflow/learning-engine"
+    domain: "skill"
+    description: "検出結果・recovery-log 学習、再発パターン整理、次サイクル改善候補接続"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/learning-engine/SKILL.md"
+  - id: "FR-SKILL-020"
+    name: "workflow/observability-sre"
+    domain: "skill"
+    description: "SLO/SLI 設計・アラート・ダッシュボード・リアルタイム監視設計"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/observability-sre/SKILL.md"
+  - id: "FR-SKILL-021"
+    name: "workflow/poc"
+    domain: "skill"
+    description: "G1.5 PoC ゲート専用、kill criteria 伴う最小検証、実装着手可否判定"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/poc/SKILL.md"
+  - id: "FR-SKILL-022"
+    name: "workflow/postmortem"
+    domain: "skill"
+    description: "5Whys 分析・再発防止アクション・L11 運用学習/G11 連携"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/postmortem/SKILL.md"
+  - id: "FR-SKILL-023"
+    name: "workflow/project-management"
+    domain: "skill"
+    description: "ダッシュボード・カンバンテンプレート・計画・進捗・報告運用"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/project-management/SKILL.md"
+  - id: "FR-SKILL-024"
+    name: "workflow/quality-lv5"
+    domain: "skill"
+    description: "テスト品質 Lv1-5 評価、テストピラミッド比率・カバレッジ目標検証"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/quality-lv5/SKILL.md"
+  - id: "FR-SKILL-025"
+    name: "workflow/requirements-deriver"
+    domain: "skill"
+    description: "機能要件→非機能要件導出、R1-R14 シグナル、IPA×ISO 25010 二軸展開"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/requirements-deriver/SKILL.md"
+  - id: "FR-SKILL-026"
+    name: "workflow/requirements-handover"
+    domain: "skill"
+    description: "要件曖昧時の確認質問・仮定管理・引継ぎチェックリスト"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/requirements-handover/SKILL.md"
+  - id: "FR-SKILL-027"
+    name: "workflow/research"
+    domain: "skill"
+    description: "G1R 事前調査ゲート、一次情報収集、research_report 作成標準化"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/research/SKILL.md"
+  - id: "FR-SKILL-028"
+    name: "workflow/retrofit"
+    domain: "skill"
+    description: "依存更新・基盤移行・構成変更を段階的に実施する改修モード"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/retrofit/SKILL.md"
+  - id: "FR-SKILL-029"
+    name: "workflow/reverse-analysis"
+    domain: "skill"
+    description: "Reverse Phase R 全体ルーター、R0-R4+RGC 統括、5 type 判定"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-analysis/SKILL.md"
+  - id: "FR-SKILL-030"
+    name: "workflow/reverse-r0"
+    domain: "skill"
+    description: "R0 証拠収集、code/DB/config/ops 4 軸 evidence_map 作成、RG0 通過判定"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-r0/SKILL.md"
+  - id: "FR-SKILL-031"
+    name: "workflow/reverse-r1"
+    domain: "skill"
+    description: "R1 Observed Contracts 抽出、API・DB・型機械抽出 + characterization tests"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-r1/SKILL.md"
+  - id: "FR-SKILL-032"
+    name: "workflow/reverse-r2"
+    domain: "skill"
+    description: "R2 As-Is Design 復元、観測契約から内部構造再構成 + ADR 推定"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-r2/SKILL.md"
+  - id: "FR-SKILL-033"
+    name: "workflow/reverse-r3"
+    domain: "skill"
+    description: "R3 Intent Hypotheses、要件仮説生成 + PO 検証 + Session Hypothesis Log"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-r3/SKILL.md"
+  - id: "FR-SKILL-034"
+    name: "workflow/reverse-r4"
+    domain: "skill"
+    description: "R4 Gap & Routing、R3 Intent と As-Is 差分 → Forward HELIX 振り分け"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-r4/SKILL.md"
+  - id: "FR-SKILL-035"
+    name: "workflow/reverse-rgc"
+    domain: "skill"
+    description: "Reverse Gap Closure、L6/L8 pass 後に Reverse gap 閉塞検証"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/reverse-rgc/SKILL.md"
+  - id: "FR-SKILL-036"
+    name: "workflow/review-stage-routing"
+    domain: "skill"
+    description: "レビュー 6 段階×ロール分業境界、AI 逆説ルール、ADR 降下"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/review-stage-routing/SKILL.md"
+  - id: "FR-SKILL-037"
+    name: "workflow/runbook"
+    domain: "skill"
+    description: "L6 Runbook (運用準備書) 生成スキル、G6 RC 判定通過条件"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/runbook/SKILL.md"
+  - id: "FR-SKILL-038"
+    name: "workflow/schedule-wbs"
+    domain: "skill"
+    description: "L3 工程表 (WBS+feature flag+rollback) 生成、G3 通過条件充足"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/schedule-wbs/SKILL.md"
+  - id: "FR-SKILL-039"
+    name: "workflow/threat-model"
+    domain: "skill"
+    description: "G2 通過条件の脅威モデル書生成、STRIDE/DREAD + common/security 連携"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/threat-model/SKILL.md"
+  - id: "FR-SKILL-040"
+    name: "workflow/verification"
+    domain: "skill"
+    description: "L1〜V-L6 各検証レイヤー、Spec 駆動検証、L8 仕様突合、Reverse RG0-RGC"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/workflow/verification/SKILL.md"
+  - id: "FR-SKILL-041"
+    name: "common/code-review"
+    domain: "skill"
+    description: "L7/G7 連携コードレビュー、OWASP・パフォーマンス・設計観点、Google reviewer guide 統合"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/code-review/SKILL.md"
+  - id: "FR-SKILL-042"
+    name: "common/coding"
+    domain: "skill"
+    description: "命名・構造・型安全性チェック、eslint/ruff/tsc/mypy 連携"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/coding/SKILL.md"
+  - id: "FR-SKILL-043"
+    name: "common/design"
+    domain: "skill"
+    description: "UI/UX とコンポーネント設計、日本市場向けデザイン原則"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/design/SKILL.md"
+  - id: "FR-SKILL-044"
+    name: "common/documentation"
+    domain: "skill"
+    description: "README/API 仕様書/ADR テンプレート・品質確認チェックリスト"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/documentation/SKILL.md"
+  - id: "FR-SKILL-045"
+    name: "common/error-fix"
+    domain: "skill"
+    description: "原因特定フロー・デバッグ手順・再現テスト・失敗パターンレジストリ"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/error-fix/SKILL.md"
+  - id: "FR-SKILL-046"
+    name: "common/git"
+    domain: "skill"
+    description: "ブランチ命名規則・コミットメッセージフォーマット・PR テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/git/SKILL.md"
+  - id: "FR-SKILL-047"
+    name: "common/infrastructure"
+    domain: "skill"
+    description: "Docker・PostgreSQL・Redis・Nginx 本番構成と安全設定"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/infrastructure/SKILL.md"
+  - id: "FR-SKILL-048"
+    name: "common/performance"
+    domain: "skill"
+    description: "Core Web Vitals 目標値・ボトルネック診断・計測手順"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/performance/SKILL.md"
+  - id: "FR-SKILL-049"
+    name: "common/refactoring"
+    domain: "skill"
+    description: "責務分離パターン・共通化判断基準・デグレ対策手順"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/refactoring/SKILL.md"
+  - id: "FR-SKILL-050"
+    name: "common/security"
+    domain: "skill"
+    description: "OWASP・秘密情報管理・GitHub Actions workflow security (zizmor)"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/security/SKILL.md"
+  - id: "FR-SKILL-051"
+    name: "common/testing"
+    domain: "skill"
+    description: "テストピラミッド戦略、ユニット/統合/E2E テンプレート、G7/G11 カバレッジ目標"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/testing/SKILL.md"
+  - id: "FR-SKILL-052"
+    name: "common/visual-design"
+    domain: "skill"
+    description: "ビジュアルデザイン基礎 (配色・タイポグラフィ・余白・視線誘導)、デザイン判断支援"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/common/visual-design/SKILL.md"
+  - id: "FR-SKILL-053"
+    name: "project/api"
+    domain: "skill"
+    description: "RESTful/GraphQL API 設計、エンドポイント規約・認証認可パターン"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/api/SKILL.md"
+  - id: "FR-SKILL-054"
+    name: "project/db"
+    domain: "skill"
+    description: "D-DB スキーマテンプレート・インデックス設計・マイグレーション安全手順・G3 Schema Freeze 連携"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/db/SKILL.md"
+  - id: "FR-SKILL-055"
+    name: "project/fe-a11y"
+    domain: "skill"
+    description: "axe-core 検証・WCAG 2.1 AA 準拠チェックリスト"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-a11y/SKILL.md"
+  - id: "FR-SKILL-056"
+    name: "project/fe-component"
+    domain: "skill"
+    description: "Atomic Design コンポーネントツリー設計・TypeScript Props 型定義"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-component/SKILL.md"
+  - id: "FR-SKILL-057"
+    name: "project/fe-design"
+    domain: "skill"
+    description: "FE 情報アーキテクチャ (D-IA) 設計、ページマップ・ナビゲーション階層"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-design/SKILL.md"
+  - id: "FR-SKILL-058"
+    name: "project/fe-style"
+    domain: "skill"
+    description: "デザイントークン 3 層定義 (primitive/semantic/component)・CSS/Tailwind 実装方針"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-style/SKILL.md"
+  - id: "FR-SKILL-059"
+    name: "project/fe-test"
+    domain: "skill"
+    description: "Storybook/Playwright E2E/VRT 設計と実装"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-test/SKILL.md"
+  - id: "FR-SKILL-060"
+    name: "project/fe-testing/01-taxonomy"
+    domain: "skill"
+    description: "FE テスト分類体系"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/01-taxonomy/SKILL.md"
+  - id: "FR-SKILL-061"
+    name: "project/fe-testing/02-strategy-selection"
+    domain: "skill"
+    description: "FE テスト戦略選択"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/02-strategy-selection/SKILL.md"
+  - id: "FR-SKILL-062"
+    name: "project/fe-testing/03-test-design"
+    domain: "skill"
+    description: "FE テスト設計"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/03-test-design/SKILL.md"
+  - id: "FR-SKILL-063"
+    name: "project/fe-testing/04-tooling"
+    domain: "skill"
+    description: "FE テストツール選定"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/04-tooling/SKILL.md"
+  - id: "FR-SKILL-064"
+    name: "project/fe-testing/05-unit-logic"
+    domain: "skill"
+    description: "FE 単体テスト (ロジック)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/05-unit-logic/SKILL.md"
+  - id: "FR-SKILL-065"
+    name: "project/fe-testing/06-interaction"
+    domain: "skill"
+    description: "FE インタラクションテスト"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/06-interaction/SKILL.md"
+  - id: "FR-SKILL-066"
+    name: "project/fe-testing/07-integration-msw"
+    domain: "skill"
+    description: "FE 統合テスト (MSW)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/07-integration-msw/SKILL.md"
+  - id: "FR-SKILL-067"
+    name: "project/fe-testing/08-visual-regression"
+    domain: "skill"
+    description: "FE ビジュアルリグレッション"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/08-visual-regression/SKILL.md"
+  - id: "FR-SKILL-068"
+    name: "project/fe-testing/09-accessibility"
+    domain: "skill"
+    description: "FE アクセシビリティテスト"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/09-accessibility/SKILL.md"
+  - id: "FR-SKILL-069"
+    name: "project/fe-testing/10-e2e"
+    domain: "skill"
+    description: "FE E2E テスト"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/10-e2e/SKILL.md"
+  - id: "FR-SKILL-070"
+    name: "project/fe-testing/11-ci-flake"
+    domain: "skill"
+    description: "FE CI flake 解消"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/fe-testing/11-ci-flake/SKILL.md"
+  - id: "FR-SKILL-071"
+    name: "project/ui"
+    domain: "skill"
+    description: "FE 設計知識群インデックス、情報設計・コンポーネント・スタイル・a11y・テストへ接続"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/project/ui/SKILL.md"
+  - id: "FR-SKILL-072"
+    name: "advanced/ai-integration"
+    domain: "skill"
+    description: "LLM 組み込み・RAG・エージェント設計、ルーティング・ベクトル検索・コンテキスト管理"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/ai-integration/SKILL.md"
+  - id: "FR-SKILL-073"
+    name: "advanced/external-api"
+    domain: "skill"
+    description: "外部 API 連携、アダプターパターン・リトライ・サーキットブレーカー堅牢化設計"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/external-api/SKILL.md"
+  - id: "FR-SKILL-074"
+    name: "advanced/i18n"
+    domain: "skill"
+    description: "多言語対応、Next.js/FastAPI i18n 実装パターン・Intl API 適用"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/i18n/SKILL.md"
+  - id: "FR-SKILL-075"
+    name: "advanced/innovation-mgr"
+    domain: "skill"
+    description: "PdM Tech/Marketing 出力統合 + 新方向性策定 + L1 接続、意思決定 phase"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/innovation-mgr/SKILL.md"
+  - id: "FR-SKILL-076"
+    name: "advanced/legacy"
+    domain: "skill"
+    description: "レガシーコード改修、特性テスト・Strangler Fig パターン・段階的リファクタリング"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/legacy/SKILL.md"
+  - id: "FR-SKILL-077"
+    name: "advanced/marketing-innovation"
+    domain: "skill"
+    description: "海外マーケティング思想 (Product-led/JTBD/NSM/Reforge/Bowling Alley) 翻案"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/marketing-innovation/SKILL.md"
+  - id: "FR-SKILL-078"
+    name: "advanced/migration"
+    domain: "skill"
+    description: "ETL スクリプト・データ整合性検証・Strangler Fig・段階的移行計画 + G7 安定性ゲート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/migration/SKILL.md"
+  - id: "FR-SKILL-079"
+    name: "advanced/tech-innovation"
+    domain: "skill"
+    description: "海外技術思想 (Spotify Squad/Stripe/Linear/DORA/SPACE) 日本版実装翻案"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/tech-innovation/SKILL.md"
+  - id: "FR-SKILL-080"
+    name: "advanced/tech-selection"
+    domain: "skill"
+    description: "技術選定評価マトリクス・SWOT 分析・ADR テンプレート・選定プロセス"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/advanced/tech-selection/SKILL.md"
+  - id: "FR-SKILL-081"
+    name: "tools/ai-coding"
+    domain: "skill"
+    description: "構造化プロンプトテンプレート・マルチエージェント戦略・CI/CD エージェント統合・出力レビューチェックリスト"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/tools/ai-coding/SKILL.md"
+  - id: "FR-SKILL-082"
+    name: "tools/ai-search"
+    domain: "skill"
+    description: "Haiku 4.5 リサーチロール委譲、仮説生成・長尺調査要約・多ソース統合"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/tools/ai-search/SKILL.md"
+  - id: "FR-SKILL-083"
+    name: "tools/ide-tools"
+    domain: "skill"
+    description: "IDE・AI ツール選定・MCP 設定比較・セットアップ手順"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/tools/ide-tools/SKILL.md"
+  - id: "FR-SKILL-084"
+    name: "tools/web-search"
+    domain: "skill"
+    description: "ビルトイン WebSearch+WebFetch、一次情報収集・ドキュメント確認・競合調査"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/tools/web-search/SKILL.md"
+  - id: "FR-SKILL-085"
+    name: "integration/agent-cost-design"
+    domain: "skill"
+    description: "AI エージェント構築着手前のコスト予算・ガードレール確定、生成フロー/マルチベンダー/コスト見積/予算監視"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/integration/agent-cost-design/SKILL.md"
+  - id: "FR-SKILL-086"
+    name: "integration/agent-design"
+    domain: "skill"
+    description: "LLM agent/task の structural design (要素・骨格・前段制約・後段責務) 参照マップ"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/integration/agent-design/SKILL.md"
+  - id: "FR-SKILL-087"
+    name: "integration/agent-teams"
+    domain: "skill"
+    description: "複数エージェント協調運用・役割設計・チーム構成・ビジュアルワークフロー・コスト管理"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/integration/agent-teams/SKILL.md"
+  - id: "FR-SKILL-088"
+    name: "writing/explain"
+    domain: "skill"
+    description: "技術文書の「概要・使い方・例・制約」4 部構成、EEAT コンテンツ品質監査"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/writing/explain/SKILL.md"
+  - id: "FR-SKILL-089"
+    name: "writing/god-writing"
+    domain: "skill"
+    description: "LP/SEO/コピー/UX 文章/セールスコピー統合ライティング (AIDA/PAS/BAB + 心理学 + UX writing + E-E-A-T)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/writing/god-writing/SKILL.md"
+  - id: "FR-SKILL-090"
+    name: "writing/japanese"
+    domain: "skill"
+    description: "textlint 統合日本語技術文書品質チェック・JTF 表記ルール準拠"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/writing/japanese/SKILL.md"
+  - id: "FR-SKILL-091"
+    name: "writing/presentation"
+    domain: "skill"
+    description: "Marp CLI Markdown→PPTX/PDF スライド自動生成"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/writing/presentation/SKILL.md"
+  - id: "FR-SKILL-092"
+    name: "writing/social"
+    domain: "skill"
+    description: "リリースノート・技術ブログ→X/LinkedIn/Bluesky SNS 投稿案自動生成"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/writing/social/SKILL.md"
+  - id: "FR-SKILL-093"
+    name: "writing/story"
+    domain: "skill"
+    description: "ストーリーテリング"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths: []
+  - id: "FR-SKILL-094"
+    name: "design-tools/character"
+    domain: "skill"
+    description: "AI 画像生成プロンプト設計でキャラクター・マスコット・アバターデザイン方針構造化"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/character/SKILL.md"
+  - id: "FR-SKILL-095"
+    name: "design-tools/diagram"
+    domain: "skill"
+    description: "Mermaid/D2 テキストベース図表生成、フローチャート・シーケンス図・ER 図・アーキテクチャ図"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/diagram/SKILL.md"
+  - id: "FR-SKILL-096"
+    name: "design-tools/gpt-image"
+    domain: "skill"
+    description: "GPT Image 2 で SEO 記事アイキャッチ・図解・LP ヒーロー画像生成 ($imagegen built-in)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/gpt-image/SKILL.md"
+  - id: "FR-SKILL-097"
+    name: "design-tools/graphic"
+    domain: "skill"
+    description: "Vercel Satori 等による SVG/OGP 画像動的生成、ブログ・リリースアイキャッチ自動作成"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/graphic/SKILL.md"
+  - id: "FR-SKILL-098"
+    name: "design-tools/pptx"
+    domain: "skill"
+    description: "python-pptx テンプレートベース PPTX 自動生成、定型報告書・提案書スライドデータ駆動作成"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/pptx/SKILL.md"
+  - id: "FR-SKILL-099"
+    name: "design-tools/web-system"
+    domain: "skill"
+    description: "shadcn/ui デザインシステム構築、コンポーネント選定・テーマ設定・トークン管理"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/design-tools/web-system/SKILL.md"
+  - id: "FR-SKILL-100"
+    name: "automation/browser-script"
+    domain: "skill"
+    description: "Playwright codegen によるブラウザ操作記録→E2E テスト雛形自動生成"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/browser-script/SKILL.md"
+  - id: "FR-SKILL-101"
+    name: "automation/flow-optimize"
+    domain: "skill"
+    description: "サイトマップ・Playwright 操作記録からユーザーフロー分析・ステップ数削減提案"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/flow-optimize/SKILL.md"
+  - id: "FR-SKILL-102"
+    name: "automation/init-setup"
+    domain: "skill"
+    description: "HELIX automation 初期化検証・導入・修復・DB 追跡"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/init-setup/SKILL.md"
+  - id: "FR-SKILL-103"
+    name: "automation/job-queue"
+    domain: "skill"
+    description: "HELIX 非同期ジョブ登録・worker・retry・list 管理"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/job-queue/SKILL.md"
+  - id: "FR-SKILL-104"
+    name: "automation/lock"
+    domain: "skill"
+    description: "HELIX single-host file lock + DB metadata lock 管理"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/lock/SKILL.md"
+  - id: "FR-SKILL-105"
+    name: "automation/observability"
+    domain: "skill"
+    description: "HELIX automation events・metrics 記録・集計・export"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/observability/SKILL.md"
+  - id: "FR-SKILL-106"
+    name: "automation/scheduler"
+    domain: "skill"
+    description: "cron-like 定期実行・単発 at 実行・期限到達 task 実行管理"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/scheduler/SKILL.md"
+  - id: "FR-SKILL-107"
+    name: "automation/site-mapping"
+    domain: "skill"
+    description: "Crawl4AI・Firecrawl でサイト構造抽出・Reverse 証拠収集・構造化データ抽出自動化"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/automation/site-mapping/SKILL.md"
+  - id: "FR-SKILL-108"
+    name: "agent-skills/api-and-interface-design"
+    domain: "skill"
+    description: "安定 API・インターフェース設計 (REST/GraphQL/型契約/BE-FE 境界)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/api-and-interface-design/SKILL.md"
+  - id: "FR-SKILL-109"
+    name: "agent-skills/browser-testing-with-devtools"
+    domain: "skill"
+    description: "実ブラウザテスト、DOM 検査・コンソールエラー・ネットワーク・性能・Chrome DevTools MCP"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/browser-testing-with-devtools/SKILL.md"
+  - id: "FR-SKILL-110"
+    name: "agent-skills/ci-cd-and-automation"
+    domain: "skill"
+    description: "CI/CD パイプライン自動化、品質ゲート・テストランナー・デプロイ戦略"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/ci-cd-and-automation/SKILL.md"
+  - id: "FR-SKILL-111"
+    name: "agent-skills/code-review-and-quality"
+    domain: "skill"
+    description: "5 軸 (Correctness/Readability/Architecture/Security/Performance) 多次元コードレビュー"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/code-review-and-quality/SKILL.md"
+  - id: "FR-SKILL-112"
+    name: "agent-skills/context-engineering"
+    domain: "skill"
+    description: "エージェント context 最適化、セッション開始・ルールファイル設定"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/context-engineering/SKILL.md"
+  - id: "FR-SKILL-113"
+    name: "agent-skills/debugging-and-error-recovery"
+    domain: "skill"
+    description: "根本原因特定デバッグ、テスト失敗・ビルドエラー・期待外動作への体系的アプローチ"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/debugging-and-error-recovery/SKILL.md"
+  - id: "FR-SKILL-114"
+    name: "agent-skills/deprecation-and-migration"
+    domain: "skill"
+    description: "廃止・移行管理、旧 API/機能廃止・ユーザー移行・sunset 判断"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-MIGR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/deprecation-and-migration/SKILL.md"
+  - id: "FR-SKILL-115"
+    name: "agent-skills/documentation-and-adrs"
+    domain: "skill"
+    description: "アーキテクチャ決定・公開 API 変更・機能リリース記録、ADR 作成"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/documentation-and-adrs/SKILL.md"
+  - id: "FR-SKILL-116"
+    name: "agent-skills/frontend-ui-engineering"
+    domain: "skill"
+    description: "本番品質 UI 構築、コンポーネント・レイアウト・状態管理"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/frontend-ui-engineering/SKILL.md"
+  - id: "FR-SKILL-117"
+    name: "agent-skills/helix-discovery"
+    domain: "skill"
+    description: "仮説検証駆動開発 D0-D4、confirmed 仮説 → L1 要件昇格"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/helix-discovery/SKILL.md"
+  - id: "FR-SKILL-118"
+    name: "agent-skills/helix-scrum"
+    domain: "skill"
+    description: "helix-discovery の legacy alias (同機能)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/helix-scrum/SKILL.md"
+  - id: "FR-SKILL-119"
+    name: "agent-skills/idea-refine"
+    domain: "skill"
+    description: "アイデア反復精錬、発散・収束思考"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/idea-refine/SKILL.md"
+  - id: "FR-SKILL-120"
+    name: "agent-skills/incremental-implementation"
+    domain: "skill"
+    description: "段階的変更実装、複数ファイル変更・大規模タスク分割"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/incremental-implementation/SKILL.md"
+  - id: "FR-SKILL-121"
+    name: "agent-skills/mock-driven-development"
+    domain: "skill"
+    description: "FE 駆動 L2 設計でモック→UX 固定→API 契約導出、debt (MOCK-HARDCODE/LEAK/DERIVED) ライフサイクル"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/mock-driven-development/SKILL.md"
+  - id: "FR-SKILL-122"
+    name: "agent-skills/performance-optimization"
+    domain: "skill"
+    description: "パフォーマンス要件充足、性能リグレッション・Core Web Vitals・ボトルネック修正"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/performance-optimization/SKILL.md"
+  - id: "FR-SKILL-123"
+    name: "agent-skills/planning-and-task-breakdown"
+    domain: "skill"
+    description: "作業タスク分解・実装可能単位化・規模見積もり・並列作業判断"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/planning-and-task-breakdown/SKILL.md"
+  - id: "FR-SKILL-124"
+    name: "agent-skills/security-and-hardening"
+    domain: "skill"
+    description: "コード脆弱性対策、ユーザー入力・認証・データストレージ・外部連携の hardening"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/security-and-hardening/SKILL.md"
+  - id: "FR-SKILL-125"
+    name: "agent-skills/shipping-and-launch"
+    domain: "skill"
+    description: "本番ローンチ準備、pre-launch チェックリスト・監視設定・段階的ロールアウト・ロールバック戦略"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/shipping-and-launch/SKILL.md"
+  - id: "FR-SKILL-126"
+    name: "agent-skills/source-driven-development"
+    domain: "skill"
+    description: "公式 doc 根拠コード、authoritative・source-cited 実装、古いパターン排除"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/source-driven-development/SKILL.md"
+  - id: "FR-SKILL-127"
+    name: "agent-skills/spec-driven-development"
+    domain: "skill"
+    description: "spec 先行コーディング、要件曖昧・仕様なしプロジェクトの spec 作成"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/spec-driven-development/SKILL.md"
+  - id: "FR-SKILL-128"
+    name: "agent-skills/system-design-sizing"
+    domain: "skill"
+    description: "システム規模・スケーラビリティ見積もり、容量計画・ボトルネック特定・トレードオフ分析"
+    l1_fr:
+      - "FR-06"
+    l3_fr:
+      - "FR-IMPACT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/system-design-sizing/SKILL.md"
+  - id: "FR-SKILL-129"
+    name: "agent-skills/technical-writing"
+    domain: "skill"
+    description: "Google Technical Writing 原則適用、設計書・API doc・README・SKILL.md・ADR 品質向上"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/technical-writing/SKILL.md"
+  - id: "FR-SKILL-130"
+    name: "agent-skills/test-driven-development"
+    domain: "skill"
+    description: "TDD 全面適用、ロジック実装・バグ修正・動作変更への「テスト→実装」強制"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/test-driven-development/SKILL.md"
+  - id: "FR-SKILL-131"
+    name: "agent-skills/using-agent-skills"
+    domain: "skill"
+    description: "エージェントスキル探索・起動のメタスキル、セッション開始・タスク適合スキル発見"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "skills/agent-skills/using-agent-skills/SKILL.md"
+  - id: "FR-WORKFLOW-001"
+    name: "L0-concept.md"
+    domain: "workflow"
+    description: "L0 / 企画書・北極星指標・市場仮説"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L0-concept.md"
+  - id: "FR-WORKFLOW-002"
+    name: "L1-requirements.md"
+    domain: "workflow"
+    description: "L1 / 要求定義・機能要求・非機能要求・受入条件・運用テスト設計"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L1-requirements.md"
+  - id: "FR-WORKFLOW-003"
+    name: "L2-ui-design.md"
+    domain: "workflow"
+    description: "L2 / 画面設計・フロント UI・ワイヤーモック・state-events.md"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L2-ui-design.md"
+  - id: "FR-WORKFLOW-004"
+    name: "L3-requirements-definition.md"
+    domain: "workflow"
+    description: "L3 / 要件定義・受入テスト設計・FR/NFR 詳細"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L3-requirements-definition.md"
+  - id: "FR-WORKFLOW-005"
+    name: "L4-basic-design.md"
+    domain: "workflow"
+    description: "L4 / 基本設計・アーキテクチャ・ADR・総合テスト設計"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L4-basic-design.md"
+  - id: "FR-WORKFLOW-006"
+    name: "L5-detailed-design.md"
+    domain: "workflow"
+    description: "L5 / 詳細設計・D-API/D-DB・結合テスト設計"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L5-detailed-design.md"
+  - id: "FR-WORKFLOW-007"
+    name: "L6-functional-design.md"
+    domain: "workflow"
+    description: "L6 / 機能設計・endpoint/関数 schema・単体テスト設計"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L6-functional-design.md"
+  - id: "FR-WORKFLOW-008"
+    name: "L7-implementation.md"
+    domain: "workflow"
+    description: "L7 / 実装スプリント、単体テスト実装→本体→3 点レビュー"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L7-implementation.md"
+  - id: "FR-WORKFLOW-009"
+    name: "L8-integration-test.md"
+    domain: "workflow"
+    description: "L8 / 結合テスト・依存関係解消 (L5 詳細設計↔結合テスト設計 pair)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L8-integration-test.md"
+  - id: "FR-WORKFLOW-010"
+    name: "L9-system-test.md"
+    domain: "workflow"
+    description: "L9 / 総合テスト・依存関係解消 (L4 基本設計↔総合テスト設計 pair)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L9-system-test.md"
+  - id: "FR-WORKFLOW-011"
+    name: "L10-ux-refinement.md"
+    domain: "workflow"
+    description: "L10 / フロント UX 磨き上げ・ビジュアル磨き・コピー磨き (L2↔L10 pair)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L10-ux-refinement.md"
+  - id: "FR-WORKFLOW-012"
+    name: "L11-final-review.md"
+    domain: "workflow"
+    description: "L11 / 総合レビュー・ユーザー検証・要件巻き取り・PO 検証・drift 解消"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L11-final-review.md"
+  - id: "FR-WORKFLOW-013"
+    name: "L12-deployment.md"
+    domain: "workflow"
+    description: "L12 / デプロイ・受入テスト・環境差異巻き取り (L3↔L12 pair)"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L12-deployment.md"
+  - id: "FR-WORKFLOW-014"
+    name: "L13-post-deployment-verification.md"
+    domain: "workflow"
+    description: "L13 / デプロイ後検証・smoke/canary・初期インシデント対応"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L13-post-deployment-verification.md"
+  - id: "FR-WORKFLOW-015"
+    name: "L14-operation-verification.md"
+    domain: "workflow"
+    description: "L14 / 運用検証・機能改善 (L1↔L14 pair execute → 次 L0 input)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/L14-operation-verification.md"
+  - id: "FR-WORKFLOW-016"
+    name: "HELIX-process-L0-L14.md"
+    domain: "workflow"
+    description: "Forward / V-model 本体 L0-L14 15 工程"
+    l1_fr:
+      - "FR-03"
+      - "FR-04"
+      - "FR-05"
+      - "FR-08"
+    l3_fr:
+      - "FR-TDD-01"
+      - "FR-9MODE-01"
+      - "FR-GATE-01"
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/HELIX-process-L0-L14.md"
+  - id: "FR-WORKFLOW-017"
+    name: "scrum-workflow.md"
+    domain: "workflow"
+    description: "Scrum / アジャイル反復・ユーザー要件すり合わせ"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/scrum-workflow.md"
+  - id: "FR-WORKFLOW-018"
+    name: "discovery-workflow.md"
+    domain: "workflow"
+    description: "Discovery / 仮説検証駆動 D0-D4、confirmed → L1 昇格"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/discovery-workflow.md"
+  - id: "FR-WORKFLOW-019"
+    name: "reverse-workflow.md"
+    domain: "workflow"
+    description: "Reverse / 既存コード逆引き R0-R4+RGC"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/reverse-workflow.md"
+  - id: "FR-WORKFLOW-020"
+    name: "incident-workflow.md"
+    domain: "workflow"
+    description: "Incident / 本番障害 hotfix、暫定収束→恒久対策 L1/L3/L4-L6"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/incident-workflow.md"
+  - id: "FR-WORKFLOW-021"
+    name: "add-feature-workflow.md"
+    domain: "workflow"
+    description: "Add-feature / 既存システムへの差分追補 L4-L7"
+    l1_fr:
+      - "FR-04"
+      - "FR-07"
+    l3_fr:
+      - "FR-9MODE-01"
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/add-feature-workflow.md"
+  - id: "FR-WORKFLOW-022"
+    name: "refactor-workflow.md"
+    domain: "workflow"
+    description: "Refactor / 振る舞い不変の構造改善 (dedicated CLI 未整備)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/refactor-workflow.md"
+  - id: "FR-WORKFLOW-023"
+    name: "retrofit-workflow.md"
+    domain: "workflow"
+    description: "Retrofit / 依存・基盤の段階改修・移行 (dedicated CLI 未整備)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/retrofit-workflow.md"
+  - id: "FR-WORKFLOW-024"
+    name: "research-workflow.md"
+    domain: "workflow"
+    description: "Research / 技術調査・意思決定 (helix research CLI あり)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/research-workflow.md"
+  - id: "FR-WORKFLOW-025"
+    name: "recovery-workflow.md"
+    domain: "workflow"
+    description: "Recovery / AI 暴走 guard + 収束 (dedicated CLI 未整備)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/recovery-workflow.md"
+  - id: "FR-WORKFLOW-026"
+    name: "screen-design-workflow.md"
+    domain: "workflow"
+    description: "工程専門 (L2) / 画面設計・UI/ワイヤーフレーム (L2 担当)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/screen-design-workflow.md"
+  - id: "FR-WORKFLOW-027"
+    name: "frontend-design-workflow.md"
+    domain: "workflow"
+    description: "工程専門 (L10) / フロントデザインワークフロー・UX/ビジュアル (L10 担当)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/frontend-design-workflow.md"
+  - id: "FR-WORKFLOW-028"
+    name: "two-stage-agent-design.md"
+    domain: "workflow"
+    description: "HELIX W (特殊) / 2 段 V 字合流型 Phase1+2+3、AI エージェントシステム構築時専用"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/two-stage-agent-design.md"
+  - id: "FR-WORKFLOW-029"
+    name: "README.md"
+    domain: "workflow"
+    description: "HELIX-workflows 索引、全 doc へのナビ"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/README.md"
+  - id: "FR-WORKFLOW-030"
+    name: "integration-map.md"
+    domain: "workflow"
+    description: "スキル・コマンドの穴と統合状況 INDEX・優先度付き roadmap"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/integration-map.md"
+  - id: "FR-WORKFLOW-031"
+    name: "automation-gate-map.md"
+    domain: "workflow"
+    description: "V-model 自動化・ゲートマップ"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/automation-gate-map.md"
+  - id: "FR-WORKFLOW-032"
+    name: "asset-mapping.md"
+    domain: "workflow"
+    description: "既存資産の整理と設計マッピング (BR-09/10/11/12 対応)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/asset-mapping.md"
+  - id: "FR-WORKFLOW-033"
+    name: "detection-routing.md"
+    domain: "workflow"
+    description: "検出シグナル→モード連携 (HELIX DB 検出)"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/detection-routing.md"
+  - id: "FR-WORKFLOW-034"
+    name: "deviation-plan-map.md"
+    domain: "workflow"
+    description: "V-model 逸脱と PLAN 起票マップ"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/deviation-plan-map.md"
+  - id: "FR-WORKFLOW-035"
+    name: "fe-detector-spec.md"
+    domain: "workflow"
+    description: "FE detector 判定仕様・動的検証組み込み"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/fe-detector-spec.md"
+  - id: "FR-WORKFLOW-036"
+    name: "observability-metrics.md"
+    domain: "workflow"
+    description: "HELIX 観測・計測機構 (NSM 等)"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/observability-metrics.md"
+  - id: "FR-WORKFLOW-037"
+    name: "infra-readiness.md"
+    domain: "workflow"
+    description: "検証・テスト・検出基盤の整備状況"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/infra-readiness.md"
+  - id: "FR-WORKFLOW-038"
+    name: "folder-structure-review.md"
+    domain: "workflow"
+    description: "フォルダ構成レビューと再構成"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/folder-structure-review.md"
+  - id: "FR-WORKFLOW-039"
+    name: "cross-cutting-mechanisms.md"
+    domain: "workflow"
+    description: "HELIX 横断機構"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/cross-cutting-mechanisms.md"
+  - id: "FR-WORKFLOW-040"
+    name: "cross-detection.md"
+    domain: "workflow"
+    description: "横断検出・依存漏れ・契約漏れ・デグレ回避"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/cross-detection.md"
+  - id: "FR-WORKFLOW-041"
+    name: "layer-context-injection.md"
+    domain: "workflow"
+    description: "L 単位文脈注入機構 (6field injection-set)"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/layer-context-injection.md"
+  - id: "FR-WORKFLOW-042"
+    name: "test-perspective-gate.md"
+    domain: "workflow"
+    description: "テスト観点ゲート (W 字補強)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/test-perspective-gate.md"
+  - id: "FR-WORKFLOW-043"
+    name: "db-auto-registration.md"
+    domain: "workflow"
+    description: "HELIX DB 自動登録機構"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/db-auto-registration.md"
+  - id: "FR-WORKFLOW-044"
+    name: "db-integration.md"
+    domain: "workflow"
+    description: "V-model 本線 DB への収束・接続"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/db-integration.md"
+  - id: "FR-WORKFLOW-045"
+    name: "learning-engine.md"
+    domain: "workflow"
+    description: "HELIX Learning Engine・ログ学習機構"
+    l1_fr:
+      - "FR-11"
+    l3_fr:
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/learning-engine.md"
+  - id: "FR-WORKFLOW-046"
+    name: "continuous-run-context-management.md"
+    domain: "workflow"
+    description: "自動走行とコンテキスト管理"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/continuous-run-context-management.md"
+  - id: "FR-WORKFLOW-047"
+    name: "ci-pr-workflow.md"
+    domain: "workflow"
+    description: "CI / GitHub 運用ワークフロー"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/ci-pr-workflow.md"
+  - id: "FR-WORKFLOW-048"
+    name: "review-stage-routing.md"
+    domain: "workflow"
+    description: "レビュー段階ルーティング (6 段階×ロール分業)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/review-stage-routing.md"
+  - id: "FR-WORKFLOW-049"
+    name: "v2-9mode-ecosystem.md"
+    domain: "workflow"
+    description: "HELIX-workflows V2 9 mode ecosystem アーキテクチャ概観"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/v2-9mode-ecosystem.md"
+  - id: "FR-TEMPLATE-001"
+    name: "AGENTS.md.template"
+    domain: "template"
+    description: "helix-init 配布: Codex AGENTS.md テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/AGENTS.md.template"
+  - id: "FR-TEMPLATE-002"
+    name: "CLAUDE.md.template"
+    domain: "template"
+    description: "helix-init 配布: Claude Code CLAUDE.md テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/CLAUDE.md.template"
+  - id: "FR-TEMPLATE-003"
+    name: "D-AGENT-EXEC.md"
+    domain: "template"
+    description: "エージェント実行設計 doc テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/D-AGENT-EXEC.md"
+  - id: "FR-TEMPLATE-004"
+    name: "D-AGENT-INFRA.md"
+    domain: "template"
+    description: "エージェントインフラ設計 doc テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/D-AGENT-INFRA.md"
+  - id: "FR-TEMPLATE-005"
+    name: "D-TECH-STACK.md"
+    domain: "template"
+    description: "技術スタック設計 doc テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/D-TECH-STACK.md"
+  - id: "FR-TEMPLATE-006"
+    name: "be-api.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/be-api.md"
+  - id: "FR-TEMPLATE-007"
+    name: "be-logic.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/be-logic.md"
+  - id: "FR-TEMPLATE-008"
+    name: "code-reviewer.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/code-reviewer.md"
+  - id: "FR-TEMPLATE-009"
+    name: "db-schema.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/db-schema.md"
+  - id: "FR-TEMPLATE-010"
+    name: "devops-deploy.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/devops-deploy.md"
+  - id: "FR-TEMPLATE-011"
+    name: "pdm-innovation-manager.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pdm-innovation-manager.md"
+  - id: "FR-TEMPLATE-012"
+    name: "pdm-marketing-innovation.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pdm-marketing-innovation.md"
+  - id: "FR-TEMPLATE-013"
+    name: "pdm-tech-innovation.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pdm-tech-innovation.md"
+  - id: "FR-TEMPLATE-014"
+    name: "pmo-haiku.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-haiku.md"
+  - id: "FR-TEMPLATE-015"
+    name: "pmo-helix-explorer.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-helix-explorer.md"
+  - id: "FR-TEMPLATE-016"
+    name: "pmo-helix-scout.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-helix-scout.md"
+  - id: "FR-TEMPLATE-017"
+    name: "pmo-project-explorer.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-project-explorer.md"
+  - id: "FR-TEMPLATE-018"
+    name: "pmo-project-scout.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-project-scout.md"
+  - id: "FR-TEMPLATE-019"
+    name: "pmo-sonnet.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-sonnet.md"
+  - id: "FR-TEMPLATE-020"
+    name: "pmo-tech-docs.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-tech-docs.md"
+  - id: "FR-TEMPLATE-021"
+    name: "pmo-tech-fork.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-tech-fork.md"
+  - id: "FR-TEMPLATE-022"
+    name: "pmo-tech-news.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/pmo-tech-news.md"
+  - id: "FR-TEMPLATE-023"
+    name: "qa-test.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/qa-test.md"
+  - id: "FR-TEMPLATE-024"
+    name: "security-audit.md"
+    domain: "template"
+    description: "helix-init 配布: 全 agent 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/agents/security-audit.md"
+  - id: "FR-TEMPLATE-025"
+    name: "banner.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/banner.md"
+  - id: "FR-TEMPLATE-026"
+    name: "bg.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/bg.md"
+  - id: "FR-TEMPLATE-027"
+    name: "card.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/card.md"
+  - id: "FR-TEMPLATE-028"
+    name: "hero.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/hero.md"
+  - id: "FR-TEMPLATE-029"
+    name: "icon.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/icon.md"
+  - id: "FR-TEMPLATE-030"
+    name: "logo.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/logo.md"
+  - id: "FR-TEMPLATE-031"
+    name: "thumb.md"
+    domain: "template"
+    description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/assets/thumb.md"
+  - id: "FR-TEMPLATE-032"
+    name: "action-types.yaml"
+    domain: "template"
+    description: "action type 定義 YAML"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/action-types.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-033"
+    name: "config.yaml"
+    domain: "template"
+    description: "helix-init 配布: プロジェクト設定テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/config.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-034"
+    name: "doc-map.yaml"
+    domain: "template"
+    description: "doc-map トリガー定義テンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/doc-map.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-035"
+    name: "framework.yaml"
+    domain: "template"
+    description: "HELIX framework 定義テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/framework.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-036"
+    name: "gate-checks.yaml"
+    domain: "template"
+    description: "gate check 定義 YAML テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/gate-checks.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-037"
+    name: "matrix.yaml"
+    domain: "template"
+    description: "drive × layer matrix YAML テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/matrix.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-038"
+    name: "patterns/pattern.yaml"
+    domain: "template"
+    description: "PLAN-006 固定ルール契約パターン YAML"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/patterns/pattern.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-039"
+    name: "phase.yaml"
+    domain: "template"
+    description: "phase 状態定義テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/phase.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-040"
+    name: "state-machine.yaml"
+    domain: "template"
+    description: "state machine 定義 YAML テンプレート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/state-machine.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-041"
+    name: "state/deliverables.json"
+    domain: "template"
+    description: "成果物 state JSON テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/state/deliverables.json"
+    doc_paths: []
+  - id: "FR-TEMPLATE-042"
+    name: "state/vmodel.json"
+    domain: "template"
+    description: "V-model state JSON テンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/state/vmodel.json"
+    doc_paths: []
+  - id: "FR-TEMPLATE-043"
+    name: "task-catalog.yaml"
+    domain: "template"
+    description: "task catalog YAML テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/task-catalog.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-044"
+    name: "docs/L1-requirements.md"
+    domain: "template"
+    description: "L1 要件定義 doc テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L1-requirements.md"
+  - id: "FR-TEMPLATE-045"
+    name: "docs/L2-design.md"
+    domain: "template"
+    description: "L2 画面設計 doc テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L2-design.md"
+  - id: "FR-TEMPLATE-046"
+    name: "docs/L3-detailed-design.md"
+    domain: "template"
+    description: "L3 詳細設計 doc テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L3-detailed-design.md"
+  - id: "FR-TEMPLATE-047"
+    name: "docs/L3-schedule-wbs.md"
+    domain: "template"
+    description: "L3 スケジュール WBS テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L3-schedule-wbs.md"
+  - id: "FR-TEMPLATE-048"
+    name: "docs/L4-agent-sprint-guide.md"
+    domain: "template"
+    description: "L4 agent drive sprint ガイドテンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L4-agent-sprint-guide.md"
+  - id: "FR-TEMPLATE-049"
+    name: "docs/L4-be-sprint-guide.md"
+    domain: "template"
+    description: "L4 BE sprint ガイドテンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L4-be-sprint-guide.md"
+  - id: "FR-TEMPLATE-050"
+    name: "docs/L4-db-sprint-guide.md"
+    domain: "template"
+    description: "L4 DB sprint ガイドテンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L4-db-sprint-guide.md"
+  - id: "FR-TEMPLATE-051"
+    name: "docs/L4-fe-sprint-guide.md"
+    domain: "template"
+    description: "L4 FE sprint ガイドテンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L4-fe-sprint-guide.md"
+  - id: "FR-TEMPLATE-052"
+    name: "docs/L4-fullstack-sprint-guide.md"
+    domain: "template"
+    description: "L4 fullstack sprint ガイドテンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L4-fullstack-sprint-guide.md"
+  - id: "FR-TEMPLATE-053"
+    name: "docs/L5-visual-design.md"
+    domain: "template"
+    description: "L5 UX 磨き上げ設計 doc テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/L5-visual-design.md"
+  - id: "FR-TEMPLATE-054"
+    name: "docs/PLAN.md.template"
+    domain: "template"
+    description: "PLAN.md 汎用テンプレート (frontmatter + 工程表)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/PLAN.md.template"
+  - id: "FR-TEMPLATE-055"
+    name: "docs/project-status.md.template"
+    domain: "template"
+    description: "project-status.md テンプレート"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/docs/project-status.md.template"
+  - id: "FR-TEMPLATE-056"
+    name: "plan/acceptance.yaml"
+    domain: "template"
+    description: "plan acceptance 条件 YAML テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/plan/acceptance.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-057"
+    name: "plan/add-design/template.md"
+    domain: "template"
+    description: "Add-design kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/add-design/template.md"
+  - id: "FR-TEMPLATE-058"
+    name: "plan/add-impl/template.md"
+    domain: "template"
+    description: "Add-impl kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/add-impl/template.md"
+  - id: "FR-TEMPLATE-059"
+    name: "plan/design-sprint.yaml.template"
+    domain: "template"
+    description: "Design sprint YAML テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/plan/design-sprint.yaml.template"
+    doc_paths: []
+  - id: "FR-TEMPLATE-060"
+    name: "plan/design/template.md"
+    domain: "template"
+    description: "Design kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/design/template.md"
+  - id: "FR-TEMPLATE-061"
+    name: "plan/functional-freeze-report.md.template"
+    domain: "template"
+    description: "機能凍結 report テンプレート (G3/G5 gate 証跡)"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/functional-freeze-report.md.template"
+  - id: "FR-TEMPLATE-062"
+    name: "plan/impl/template.md"
+    domain: "template"
+    description: "Impl kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/impl/template.md"
+  - id: "FR-TEMPLATE-063"
+    name: "plan/innovation-output.yaml.template"
+    domain: "template"
+    description: "PdM innovation 出力 YAML テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/plan/innovation-output.yaml.template"
+    doc_paths: []
+  - id: "FR-TEMPLATE-064"
+    name: "plan/pair-status-checklist.md.template"
+    domain: "template"
+    description: "V-model pair 凍結チェックリストテンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/pair-status-checklist.md.template"
+  - id: "FR-TEMPLATE-065"
+    name: "plan/poc/template.md"
+    domain: "template"
+    description: "PoC kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/poc/template.md"
+  - id: "FR-TEMPLATE-066"
+    name: "plan/recovery/postmortem-template.md"
+    domain: "template"
+    description: "Recovery postmortem テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/recovery/postmortem-template.md"
+  - id: "FR-TEMPLATE-067"
+    name: "plan/recovery/template.md"
+    domain: "template"
+    description: "Recovery kind PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/recovery/template.md"
+  - id: "FR-TEMPLATE-068"
+    name: "plan/refactor/template.md"
+    domain: "template"
+    description: "Refactor kind PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/refactor/template.md"
+  - id: "FR-TEMPLATE-069"
+    name: "plan/research/template.md"
+    domain: "template"
+    description: "Research kind PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/research/template.md"
+  - id: "FR-TEMPLATE-070"
+    name: "plan/retrofit/template.md"
+    domain: "template"
+    description: "Retrofit kind PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/retrofit/template.md"
+  - id: "FR-TEMPLATE-071"
+    name: "plan/reverse/template.md"
+    domain: "template"
+    description: "Reverse kind PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/reverse/template.md"
+  - id: "FR-TEMPLATE-072"
+    name: "plan/troubleshoot/template.md"
+    domain: "template"
+    description: "Troubleshoot kind PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/troubleshoot/template.md"
+  - id: "FR-TEMPLATE-073"
+    name: "plan/v2/L00-planning-template.md"
+    domain: "template"
+    description: "L0 企画書 PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L00-planning-template.md"
+  - id: "FR-TEMPLATE-074"
+    name: "plan/v2/L01-requirements-template.md"
+    domain: "template"
+    description: "L1 要件定義 PLAN テンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L01-requirements-template.md"
+  - id: "FR-TEMPLATE-075"
+    name: "plan/v2/L02-screen-design-template.md"
+    domain: "template"
+    description: "L2 画面設計 PLAN テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths: []
+  - id: "FR-TEMPLATE-076"
+    name: "plan/v2/L03-requirements-definition-template.md"
+    domain: "template"
+    description: "L3 要件定義 PLAN テンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L03-requirements-definition-template.md"
+  - id: "FR-TEMPLATE-077"
+    name: "plan/v2/L04-basic-design-template.md"
+    domain: "template"
+    description: "L4 基本設計 PLAN テンプレート"
+    l1_fr:
+      - "FR-05"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L04-basic-design-template.md"
+  - id: "FR-TEMPLATE-078"
+    name: "plan/v2/L05-detailed-design-template.md"
+    domain: "template"
+    description: "L5 詳細設計 PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L05-detailed-design-template.md"
+  - id: "FR-TEMPLATE-079"
+    name: "plan/v2/L06-functional-design-template.md"
+    domain: "template"
+    description: "L6 機能設計 PLAN テンプレート"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths: []
+  - id: "FR-TEMPLATE-080"
+    name: "plan/v2/L07-implementation-template.md"
+    domain: "template"
+    description: "L7 実装スプリント PLAN テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L07-implementation-template.md"
+  - id: "FR-TEMPLATE-081"
+    name: "plan/v2/L08-integration-test-template.md"
+    domain: "template"
+    description: "L8 結合テスト PLAN テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L08-integration-test-template.md"
+  - id: "FR-TEMPLATE-082"
+    name: "plan/v2/L09-system-test-template.md"
+    domain: "template"
+    description: "L9 総合テスト PLAN テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L09-system-test-template.md"
+  - id: "FR-TEMPLATE-083"
+    name: "plan/v2/L10-ux-refinement-template.md"
+    domain: "template"
+    description: "L10 UX 磨き上げ PLAN テンプレート"
+    l1_fr: []
+    l3_fr: []
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L10-ux-refinement-template.md"
+  - id: "FR-TEMPLATE-084"
+    name: "plan/v2/L11-final-review-template.md"
+    domain: "template"
+    description: "L11 総合レビュー PLAN テンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L11-final-review-template.md"
+  - id: "FR-TEMPLATE-085"
+    name: "plan/v2/L12-deployment-template.md"
+    domain: "template"
+    description: "L12 デプロイ PLAN テンプレート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L12-deployment-template.md"
+  - id: "FR-TEMPLATE-086"
+    name: "plan/v2/L13-post-deployment-template.md"
+    domain: "template"
+    description: "L13 デプロイ後検証 PLAN テンプレート"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L13-post-deployment-template.md"
+  - id: "FR-TEMPLATE-087"
+    name: "plan/v2/L14-operation-verification-template.md"
+    domain: "template"
+    description: "L14 運用検証 PLAN テンプレート"
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L14-operation-verification-template.md"
+  - id: "FR-TEMPLATE-088"
+    name: "plan/v2/README.md"
+    domain: "template"
+    description: "V2 PLAN テンプレート README"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/README.md"
+  - id: "FR-TEMPLATE-089"
+    name: "prompts/_skeleton.md"
+    domain: "template"
+    description: "プロンプトテンプレートスケルトン"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/_skeleton.md"
+  - id: "FR-TEMPLATE-090"
+    name: "prompts/code-search.md"
+    domain: "template"
+    description: "code 検索プロンプトテンプレート"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/code-search.md"
+  - id: "FR-TEMPLATE-091"
+    name: "prompts/codex-review.md"
+    domain: "template"
+    description: "Codex レビュープロンプトテンプレート"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/codex-review.md"
+  - id: "FR-TEMPLATE-092"
+    name: "prompts/effort-classify.md"
+    domain: "template"
+    description: "effort 分類プロンプトテンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/effort-classify.md"
+  - id: "FR-TEMPLATE-093"
+    name: "prompts/feedback.md"
+    domain: "template"
+    description: "gate feedback プロンプトテンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/feedback.md"
+  - id: "FR-TEMPLATE-094"
+    name: "prompts/pmo-base.md"
+    domain: "template"
+    description: "PMO base プロンプトテンプレート"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/pmo-base.md"
+  - id: "FR-TEMPLATE-095"
+    name: "prompts/skill-classify.md"
+    domain: "template"
+    description: "skill 分類プロンプトテンプレート"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/skill-classify.md"
+  - id: "FR-TEMPLATE-096"
+    name: "prompts/skill-search.md"
+    domain: "template"
+    description: "skill 検索プロンプトテンプレート (9 種 agent 決定マッピング含む)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/prompts/skill-search.md"
+  - id: "FR-TEMPLATE-097"
+    name: "retro.md.template"
+    domain: "template"
+    description: "ミニレトロ記録テンプレート"
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/retro.md.template"
+  - id: "FR-TEMPLATE-098"
+    name: "rules/common-defs.yaml"
+    domain: "template"
+    description: "共通定義ルール YAML"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/rules/common-defs.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-099"
+    name: "rules/deliverables.yaml"
+    domain: "template"
+    description: "成果物ルール YAML"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/rules/deliverables.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-100"
+    name: "rules/naming.yaml"
+    domain: "template"
+    description: "命名規則 YAML"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/rules/naming.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-101"
+    name: "rules/structure.yaml"
+    domain: "template"
+    description: "構造ルール YAML"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/rules/structure.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-102"
+    name: "scrum-backlog.yaml"
+    domain: "template"
+    description: "Scrum backlog YAML テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/scrum-backlog.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-103"
+    name: "scrum-handoff.md.template"
+    domain: "template"
+    description: "Scrum handoff md テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/scrum-handoff.md.template"
+  - id: "FR-TEMPLATE-104"
+    name: "scrum-sprint.yaml"
+    domain: "template"
+    description: "Scrum sprint YAML テンプレート"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/scrum-sprint.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-105"
+    name: "teams/implementation-team.yaml"
+    domain: "template"
+    description: "Implementation team 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/teams/implementation-team.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-106"
+    name: "teams/innovation-team.yaml"
+    domain: "template"
+    description: "Innovation team 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/teams/innovation-team.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-107"
+    name: "teams/review-team.yaml"
+    domain: "template"
+    description: "Review team 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/teams/review-team.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-108"
+    name: "teams/twin-sprint.yaml"
+    domain: "template"
+    description: "Twin sprint (BE∥FE) team 定義テンプレート"
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/teams/twin-sprint.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-109"
+    name: "hooks/commit-msg"
+    domain: "template"
+    description: "git hook: commit message lint テンプレート"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/hooks/commit-msg"
+    doc_paths: []
+  - id: "FR-TEMPLATE-110"
+    name: "hooks/post-merge"
+    domain: "template"
+    description: "git hook: post-merge 後処理テンプレート"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/hooks/post-merge"
+    doc_paths: []
+  - id: "FR-TEMPLATE-111"
+    name: "hooks/pre-commit"
+    domain: "template"
+    description: "git hook: pre-commit ガードテンプレート"
+    l1_fr:
+      - "FR-02"
+    l3_fr:
+      - "FR-GR-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/hooks/pre-commit"
+    doc_paths: []
+  - id: "FR-TEMPLATE-112"
+    name: "workspace/workspace.yaml"
+    domain: "template"
+    description: "workspace 設定 YAML テンプレート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/workspace/workspace.yaml"
+    doc_paths: []
+  - id: "FR-TEMPLATE-113"
+    name: "handover-current.json.template"
+    domain: "template"
+    description: "handover CURRENT.json テンプレート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths:
+      - "cli/templates/handover-current.json.template"
+    doc_paths: []
+  - id: "FR-TEMPLATE-114"
+    name: "handover-current.md.template"
+    domain: "template"
+    description: "handover CURRENT.md (人間可読) テンプレート"
+    l1_fr:
+      - "FR-07"
+    l3_fr:
+      - "FR-EVT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/handover-current.md.template"
