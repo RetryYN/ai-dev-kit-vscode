@@ -57,6 +57,12 @@ verification_layers:
 | FN-RDB-06 | `GatePolicy.promote(state, evidence)`（昇格状態機械） | GatePolicy | 現 `state` + 昇格 `evidence`（baseline_clean / full_audit_p0p1_zero / changed_files_ratchet / fp_zero_period / perf_within_nfr） | 次 state（`advisory→ratchet→fail_close`）を返す | 段階 skip 不可・evidence 5 条件を満たさない昇格は拒否（fail-close 既定） |
 | FN-RDB-07 | `DetectorReport.render(fmt)`（出力直列化） | DetectorReport | `fmt ∈ {text, json}` | 人間可読 / 機械可読出力を返す | 決定的順序（findings は `severity, entry_id` で安定ソート） |
 
+### 3.1 FN-RDC-* — registry_design_coverage detector（zero-omission B' 機械証明、Action4）
+
+| FN ID | 関数 / 役割 | モジュール | requires | ensures | invariant |
+|---|---|---|---|---|---|
+| FN-RDC-01 | `check_registry_design_coverage(registry_path, repo_root)`（全 active entry の設計層被覆検査） | registry_design_coverage_checks | `registry_path` 存在・yaml load 可 | active entry ごとに coverage_layer/design_ids/excluded_reason を検査し `DetectorReport`(mode=advisory) を返す。metrics に unknown/design_id_missing/wrong_layer/l6_design_pending を含む | coverage_layer 未設定/enum外は `unknown_coverage_layer`(P1)・部分黙殺しない／L6_required の空 design_ids は `l6_design_pending`(P3) で `design_id_missing` と区別／design_id は anchor∪実IDprefix で解決・未解決は `design_id_unresolved`／coverage_layer↔design_id prefix 不整合は `wrong_layer` |
+
 ## 4. 合格基準（G6 → L7 へ）
 
 - 7 つの FN-RDB-* が L7 の UT-RDB-* と 1:1（trace_symmetry: L6↔L7 coverage100% / orphan0 / missing-pair0 / balance1.0 を維持）。

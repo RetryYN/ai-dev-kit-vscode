@@ -1193,7 +1193,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-GUARD-03"
     code_paths:
       - "cli/lib/agent_policy_guard.py"
     doc_paths: []
@@ -1281,7 +1282,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-AUDIT-01"
     code_paths:
       - "cli/lib/audit_validator.py"
     doc_paths: []
@@ -1518,7 +1520,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-GUARD-01"
     code_paths:
       - "cli/lib/context_guard.py"
     doc_paths: []
@@ -1971,7 +1974,9 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-DB-01"
+      - "FN-DB-02"
     code_paths:
       - "cli/lib/helix_db.py"
     doc_paths: []
@@ -2103,7 +2108,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-GUARD-02"
     code_paths:
       - "cli/lib/llm_guard.py"
     doc_paths: []
@@ -2399,7 +2405,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-PLAN-01"
     code_paths:
       - "cli/lib/plan_validator.py"
     doc_paths: []
@@ -3017,7 +3024,14 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-RDB-01"
+      - "FN-RDB-02"
+      - "FN-RDB-03"
+      - "FN-RDB-04"
+      - "FN-RDB-05"
+      - "FN-RDB-06"
+      - "FN-RDB-07"
     code_paths:
       - "cli/lib/registry_checks.py"
     doc_paths: []
@@ -3031,7 +3045,10 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-FREG-01"
+      - "FN-FREG-02"
+      - "FN-FREG-03"
     code_paths:
       - "cli/lib/functional_registry_checks.py"
     doc_paths: []
@@ -3249,7 +3266,11 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-CRREG-01"
+      - "FN-CRREG-02"
+      - "FN-CRREG-03"
+      - "FN-CRREG-04"
     code_paths:
       - "cli/lib/coding_rule_checks.py"
     doc_paths: []
@@ -3279,7 +3300,12 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-DDD-01"
+      - "FN-DDD-02"
+      - "FN-DDD-03"
+      - "FN-DDD-04"
+      - "FN-DDD-05"
     code_paths:
       - "cli/lib/ddd_registry_checks.py"
     doc_paths: []
@@ -3309,7 +3335,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-RDC-01"
     code_paths:
       - "cli/lib/registry_design_coverage_checks.py"
     doc_paths: []

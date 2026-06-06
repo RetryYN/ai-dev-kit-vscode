@@ -39,6 +39,7 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 | UT-RDB-05 | FN-RDB-05 | advisory は findings 有でも exit0／ ratchet は baseline 比 新規違反のみ非0／ fail_close は P0/P1 で非0（ensures + advisory=exit0 invariant） | `cli/lib/tests/test_registry_checks.py` |
 | UT-RDB-06 | FN-RDB-06 | evidence 5 条件充足で advisory→ratchet→fail_close 昇格（ensures）／ 段階 skip 拒否・evidence 不足で昇格拒否（fail-close invariant） | `cli/lib/tests/test_registry_checks.py` |
 | UT-RDB-07 | FN-RDB-07 | text/json で人間・機械可読出力（ensures）／ findings が severity,entry_id で決定的順序（invariant） | `cli/lib/tests/test_registry_checks.py` |
+| UT-RDC-01 | FN-RDC-01 | clean registry で 0 findings／unknown_coverage_layer・enum外検出／L4 空 design_ids=`design_id_missing`／L6 空=`l6_design_pending`(区別)／excluded_reason 無効検出／design_id 未解決検出／coverage_layer↔prefix 不整合=`wrong_layer`／L6+FN-* は clean／非active skip（10 ケース、ensures+invariant 反証） | `cli/lib/tests/test_registry_design_coverage_checks.py` |
 
 ## 4. 合格基準（G7 単体）
 
