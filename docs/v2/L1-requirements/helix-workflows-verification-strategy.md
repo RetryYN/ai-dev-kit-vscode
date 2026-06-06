@@ -259,3 +259,39 @@ refreeze_decision:                 # Phase2 対象 3 pair（L1↔L14 / L3↔L12 
 ```
 
 **Phase2 見直し総括**: 3 pair とも design 変更不要（freeze 維持）。L5↔L8 / L4↔L9 は既存 deferred finding を独立再確認、L6↔L7 は新 finding（粒度 caveat + gap 同根クラスタ）を surface し freeze 文言を honest 化。**用語規律**: 「全 5 pair frozen」は正しいが「全 5 pair machine-green」は誤り（L4↔L9 は orphan_test=18 で machine-clean でなく semantic-pass）。今後は **machine-clean（coverage/uncovered/missing_pair/wrong_layer の 4 指標）と semantic-pass（orphan/balance の意味判定）を分離**して表現する。
+
+## 13. Action4 L6↔L7 whole-source coverage refreeze_decision（2026-06-07、§11.7 zero-omission B'）
+
+> `process-2026-06-07-whole-source-design-coverage-closure` Action4。L6_required 65 entry に FN-WSC-* + UT-WSC-* を 1:1 付与（11 既存FN接続 + 54 新規）し L6↔L7 を再凍結。forward-return-discipline 適用（design_or_contract_changed = FN universe 拡張、対 design 層 L6 を再凍結）。
+
+```yaml
+refreeze_decision:
+  pair: L6-L7
+  trigger: whole-source-design-coverage (AUDIT-WSDC-001, goal=zero-omission)
+  design_change_class: design_or_contract_changed   # FN universe 33→87 拡張 (pure_impl 不可)
+  detector:                          # machine-clean (全指標)
+    coverage_pct: 100.0
+    balance_ratio: 1.0
+    missing_pair: 0
+    duplicate_id: 0
+    orphan_test: 0
+    preflight: pass
+  registry_design_coverage:          # zero-omission 機械証明 (新 detector)
+    active_entries: 549
+    unknown_coverage_layer: 0
+    design_id_missing: 0
+    wrong_layer: 0
+    l6_design_pending: 0
+  semantic_gate:
+    owner: TL
+    verdict: pending                 # TL impl review 待ち (FN-WSC DbC 妥当性 + 分類 semantic)
+    note: "FN-WSC DbC は pmo-project-explorer が実コード精読で抽出。fail-close 方向は実コード確認済"
+  refreeze:
+    approvers: [PM]                  # TL approve 後に [TL, PM]
+    routing: {kind: defer, target: L7-sprint, findings: [WSC-TEST-IMPL]}
+    deferred_finding:
+      id: WSC-TEST-IMPL
+      detail: "FN/UT 設計は 54 件完備だが、テスト実装が未整備 = hooks E2E 6件 (FN-WSC-03/05/06/10/13/17) + uuid7_generator(FN-WSC-213) + zizmor_ignore_lint(FN-WSC-218)。設計の抜け漏れではなく test 実装 carry (machine-clean な design freeze は成立、test 実装は L7 sprint)。"
+```
+
+**Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0）+ L6↔L7 trace_symmetry balance1.0。**設計の抜け漏れ = 0**。残 carry は「設計済 FN/UT のうち 8 件のテスト実装」（design freeze と分離、machine-clean vs test-impl）。**zero-omission 宣言は detector_clean 成立、semantic_gate（TL impl review）approve をもって最終確定**。

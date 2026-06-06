@@ -1223,7 +1223,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-101"
     code_paths:
       - "cli/lib/allowed_files_estimator.py"
     doc_paths: []
@@ -1387,7 +1388,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-102"
     code_paths:
       - "cli/lib/code_recommender.py"
     doc_paths: []
@@ -1416,7 +1418,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-103"
     code_paths:
       - "cli/lib/codex_post_validation.py"
     doc_paths: []
@@ -1640,7 +1643,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-104"
     code_paths:
       - "cli/lib/demotion_checker.py"
     doc_paths: []
@@ -1684,7 +1688,8 @@ entries:
       - "FR-4ART-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-105"
     code_paths:
       - "cli/lib/doc_map_matcher.py"
     doc_paths: []
@@ -1698,7 +1703,8 @@ entries:
       - "FR-DOCTOR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-106"
     code_paths:
       - "cli/lib/doctor_plan_checks.py"
     doc_paths: []
@@ -1712,7 +1718,8 @@ entries:
       - "FR-DOCTOR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-107"
     code_paths:
       - "cli/lib/doctor_recovery_check.py"
     doc_paths: []
@@ -1741,7 +1748,8 @@ entries:
       - "FR-DRIFT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-108"
     code_paths:
       - "cli/lib/drift_db_diff.py"
     doc_paths: []
@@ -1755,7 +1763,8 @@ entries:
       - "FR-MIGR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-109"
     code_paths:
       - "cli/lib/dual_write_connection.py"
     doc_paths: []
@@ -1769,7 +1778,8 @@ entries:
       - "FR-MIGR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-110"
     code_paths:
       - "cli/lib/dual_write_mismatch.py"
     doc_paths: []
@@ -1783,7 +1793,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-111"
     code_paths:
       - "cli/lib/effort_classifier.py"
     doc_paths: []
@@ -1872,7 +1883,8 @@ entries:
       - "FR-GATE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-112"
     code_paths:
       - "cli/lib/freeze_checker.py"
     doc_paths: []
@@ -1886,7 +1898,8 @@ entries:
       - "FR-GATE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-113"
     code_paths:
       - "cli/lib/gate_check_generator.py"
     doc_paths: []
@@ -1915,7 +1928,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-114"
     code_paths:
       - "cli/lib/global_store.py"
     doc_paths: []
@@ -2050,7 +2064,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-115"
     code_paths:
       - "cli/lib/job_p0_guard.py"
     doc_paths: []
@@ -2094,7 +2109,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-116"
     code_paths:
       - "cli/lib/llm_classifier_base.py"
     doc_paths: []
@@ -2273,7 +2289,8 @@ entries:
       - "FR-GATE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-117"
     code_paths:
       - "cli/lib/phase_guard.py"
     doc_paths: []
@@ -2347,7 +2364,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-118"
     code_paths:
       - "cli/lib/plan_lint.py"
     doc_paths: []
@@ -2361,7 +2379,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-119"
     code_paths:
       - "cli/lib/plan_parser.py"
     doc_paths: []
@@ -2435,7 +2454,8 @@ entries:
       - "FR-GATE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-201"
     code_paths:
       - "cli/lib/push_gate.py"
     doc_paths: []
@@ -2464,7 +2484,8 @@ entries:
       - "FR-9MODE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-202"
     code_paths:
       - "cli/lib/recovery_plan_check.py"
     doc_paths: []
@@ -2523,7 +2544,8 @@ entries:
       - "FR-GATE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-203"
     code_paths:
       - "cli/lib/research_guard.py"
     doc_paths: []
@@ -2537,7 +2559,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-204"
     code_paths:
       - "cli/lib/research_tool_guard.py"
     doc_paths: []
@@ -2806,7 +2829,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-205"
     code_paths:
       - "cli/lib/skill_classifier.py"
     doc_paths: []
@@ -2850,7 +2874,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-206"
     code_paths:
       - "cli/lib/skill_frontmatter_lint.py"
     doc_paths: []
@@ -2894,7 +2919,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-207"
     code_paths:
       - "cli/lib/skill_recommender.py"
     doc_paths: []
@@ -2923,7 +2949,8 @@ entries:
       - "FR-4ART-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-208"
     code_paths:
       - "cli/lib/skip_annotation_linter.py"
     doc_paths: []
@@ -2937,7 +2964,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-209"
     code_paths:
       - "cli/lib/sprint_auto_check.py"
     doc_paths: []
@@ -2951,7 +2979,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-210"
     code_paths:
       - "cli/lib/sprint_lint.py"
     doc_paths: []
@@ -2980,7 +3009,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-211"
     code_paths:
       - "cli/lib/task_type_inference.py"
     doc_paths: []
@@ -3078,7 +3108,8 @@ entries:
       - "FR-CHANGEPROP-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-212"
     code_paths:
       - "cli/lib/trace_symmetry.py"
     doc_paths: []
@@ -3107,7 +3138,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-213"
     code_paths:
       - "cli/lib/uuid7_generator.py"
     doc_paths: []
@@ -3136,7 +3168,8 @@ entries:
       - "FR-4ART-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-214"
     code_paths:
       - "cli/lib/vmodel_lint.py"
     doc_paths: []
@@ -3165,7 +3198,8 @@ entries:
       - "FR-4ART-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-215"
     code_paths:
       - "cli/lib/vmodel_pair_freeze.py"
     doc_paths: []
@@ -3179,7 +3213,8 @@ entries:
       - "FR-9MODE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-216"
     code_paths:
       - "cli/lib/workflow_dsl_parser.py"
     doc_paths: []
@@ -3238,7 +3273,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-217"
     code_paths:
       - "cli/lib/yaml_parser.py"
     doc_paths: []
@@ -3252,7 +3288,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-218"
     code_paths:
       - "cli/lib/zizmor_ignore_lint.py"
     doc_paths: []
@@ -3350,7 +3387,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-01"
     code_paths:
       - ".claude/hooks/post-tool-use.sh"
     doc_paths: []
@@ -3364,7 +3402,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-02"
     code_paths:
       - ".claude/hooks/posttooluse-design-doc-web-search-revert.sh"
     doc_paths: []
@@ -3378,7 +3417,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-03"
     code_paths:
       - ".claude/hooks/posttooluse-helix-job-enqueue.sh"
     doc_paths: []
@@ -3392,7 +3432,8 @@ entries:
       - "FR-PLAN-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-04"
     code_paths:
       - ".claude/hooks/posttooluse-plan-auto-register.sh"
     doc_paths: []
@@ -3406,7 +3447,8 @@ entries:
       - "FR-INV-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-05"
     code_paths:
       - ".claude/hooks/posttooluse-skill-catalog-rebuild.sh"
     doc_paths: []
@@ -3420,7 +3462,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-06"
     code_paths:
       - ".claude/hooks/precompact-state-snapshot.sh"
     doc_paths: []
@@ -3434,7 +3477,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-07"
     code_paths:
       - ".claude/hooks/pretooluse-agent-fire.sh"
     doc_paths: []
@@ -3448,7 +3492,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-08"
     code_paths:
       - ".claude/hooks/pretooluse-agent-guard.sh"
     doc_paths: []
@@ -3462,7 +3507,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-09"
     code_paths:
       - ".claude/hooks/pretooluse-askuserquestion.sh"
     doc_paths: []
@@ -3476,7 +3522,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-10"
     code_paths:
       - ".claude/hooks/pretooluse-codex-slot-check.sh"
     doc_paths: []
@@ -3490,7 +3537,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-11"
     code_paths:
       - ".claude/hooks/pretooluse-design-doc-web-search-guard.sh"
     doc_paths: []
@@ -3504,7 +3552,8 @@ entries:
       - "FR-GR-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-12"
     code_paths:
       - ".claude/hooks/pretooluse-opus-repo-block.sh"
     doc_paths: []
@@ -3518,7 +3567,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-13"
     code_paths:
       - ".claude/hooks/sessionstart-harness-summary.sh"
     doc_paths: []
@@ -3532,7 +3582,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-14"
     code_paths:
       - ".claude/hooks/sessionstart-history-injection.sh"
     doc_paths: []
@@ -3546,7 +3597,8 @@ entries:
       - "FR-9MODE-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-15"
     code_paths:
       - ".claude/hooks/stop-recovery-update.sh"
     doc_paths: []
@@ -3560,7 +3612,8 @@ entries:
       - "FR-EVT-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-16"
     code_paths:
       - ".claude/hooks/stop.sh"
     doc_paths: []
@@ -3574,7 +3627,8 @@ entries:
       - "FR-CTX-01"
     status: "active"
     coverage_layer: "L6_required"
-    design_ids: []
+    design_ids:
+      - "FN-WSC-17"
     code_paths:
       - ".claude/hooks/userpromptsubmit-context-bundle.sh"
     doc_paths: []

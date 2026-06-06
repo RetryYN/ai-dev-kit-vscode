@@ -106,8 +106,21 @@ zero_omission = source ⊆ registry
 
 - [x] 徹底検証（AUDIT-WSDC-001、3 segment gap 定量化）
 - [x] TL 戦略諮問（B' 採用、Process 分解、detector 受領）
-- [ ] Action1 recognition
-- [ ] Action2 L3 registry closure
-- [ ] Action3 coverage classification + detector
-- [ ] Action4 layer refreeze
-- [ ] Process 収束（detector_clean AND semantic_gate_pass）
+- [x] Action1 recognition（verification-strategy §11.7 + L3 §1.6、commit 8fb53f5）
+- [x] Action2 L3 registry closure（未登録8 + invalid trace44 + 母数565、commit d615aba）
+- [x] Action3 coverage classification（unknown=0、290/105/65/89）+ registry_design_coverage detector（commit d5067e7）
+- [x] Action4a 既存FN接続11 + FN-RDC-01（commit b107bf8）
+- [x] Action4b 新規 FN-WSC 54 + UT-WSC 54、design_ids 全接続（l6_design_pending=0）+ L6↔L7 再凍結（refreeze_decision §13）
+- [~] Process 収束（detector_clean **成立** / semantic_gate = TL impl review **待ち**）
+
+## 7. 収束状態（2026-06-07）
+
+**zero-omission machine 証明 成立**:
+- source ⊆ registry: `check_functional_registry` unregistered=0
+- registry ⊆ 要件: invalid_fr_trace=0
+- registry ⊆ 設計層: `registry_design_coverage` unknown=0 / design_id_missing=0 / wrong_layer=0 / **l6_design_pending=0**
+- L6↔L7: `trace_symmetry` balance1.0 / coverage100% / missing0 / dup0 / orphan0
+- doctor: 30 pass / 0 fail / 107 warn（check_registry_design_coverage ✓ 昇格）
+
+**残 carry**（設計 freeze と分離）: `WSC-TEST-IMPL` = 設計済 FN/UT 54 のうち 8 件のテスト実装未整備（hooks E2E 6 + uuid7_generator + zizmor_ignore_lint）。設計の抜け漏れではない（machine-clean な design freeze 成立、test 実装は L7 sprint）。
+**最終確定**: TL impl review（FN-WSC DbC + 分類 semantic gate）approve → status=completed + gate-driven push。
