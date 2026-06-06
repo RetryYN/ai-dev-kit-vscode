@@ -62,6 +62,26 @@ audit_history:
 - **機械 enforcement**: `registry_design_coverage` detector (Action3 新設) が coverage_layer 充足 / design_id 実在 / coverage_layer↔design_id prefix 整合 (wrong_layer) を検査し、unknown / missing / wrong_layer を warn→ratchet→fail-close で検出する。
 - **DF-WCAUDIT-L6L7-001 supersede**: 「L6 を観測契約 14 に限定」は defer 不可となり、本要件で全 active entry の層分類 + L6_required の FN/UT 1:1 拡張へ巻き取る。
 
+### §1.6.1 代表 design anchor (design_ids 束ね ID の SSoT)
+
+> TL semantic gate (2026-06-07): L4/L5/excluded は entry 個別の design_id でなく **代表 anchor で束ねてよい** (L6_required のみ FN-* 1:1)。`registry_design_coverage` detector はこの anchor 集合 + 実 design ID prefix (FN-*/MOD-*/IT-*/NFR-*/IF-*/ST-*) で `design_ids` を解決する。
+
+| anchor | coverage_layer | 束ねる対象 |
+|---|---|---|
+| `DSN-CMD-FAMILY` | L4_required | cli command family (薄い entrypoint) |
+| `DSN-CMD-LOGIC` | L5_required | 実ロジックを持つ cli |
+| `DSN-AGENT-ROLE` | L4_required | subagent role 定義 |
+| `DSN-WORKFLOW-DOC` | L4_required | workflow / 工程定義 doc |
+| `DSN-SKILL-OPS` | L4_required | HELIX 運用 skill (workflow/automation/integration) |
+| `DSN-TEMPLATE-RUNTIME` | L4_required | runtime 出力規定 template |
+| `DSN-LIB-MODULE` | L5_required | lib module 境界/orchestration |
+| `EXCL-SKILL-REFDOC` | excluded_with_reason | 参照知識 skill (reference_doc) |
+| `EXCL-STATIC-TEMPLATE` | excluded_with_reason | static sample template (static_template) |
+| `EXCL-DATA-REGISTRY` | excluded_with_reason | detector 機械正本 registry .yaml (data_registry) |
+
+- `excluded_reason` enum: `reference_doc` / `static_template` / `data_registry` / `private_glue` / `generated`。
+- **L6_required は anchor 禁止** = 実 `FN-*` を Action4 で 1:1 付与する (空 = `l6_design_pending` warn)。
+
 ---
 
 ## §2. 全体 summary
@@ -69,13 +89,13 @@ audit_history:
 | 区分 | 件数 |
 |---|---|
 | CLI binaries (cli/helix-*) | 80 |
-| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 147 |
+| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 148 |
 | Hooks (.claude/hooks/*.sh) | 17 |
 | Subagents (.claude/agents/*.md) | 19 |
 | Skills (skills/**/SKILL.md) | 131 |
 | HELIX-workflows doc (helix-process/*.md + root) | 55 |
 | Templates (cli/templates/**) | 116 |
-| **総計** | **565** |
+| **総計** | **566** |
 
 > 件数 SSoT 是正 (2026-06-07, AUDIT-WSDC-001 / Action2): yaml registry の domain 別実数に同期。旧 548 は md prose 側 drift（registration cluster で yaml に追加された 4 件 + 本 Action の 8 件未反映）。`check_fr_sot_alignment` が md⇔yaml の name 集合 + 件数を機械照合する。
 
@@ -343,6 +363,7 @@ audit_history:
 | coding-rule-registry.yaml | coding rule detector の機械正本 registry (CLAUDE.md 14 rule registry) | FR-09 | FR-INV-01 |
 | ddd_registry_checks.py | concept.md §12/§14 の Glossary / BC 構造 coverage を warn-only で検出する DDD detector | FR-09 | FR-INV-01 |
 | ddd-registry.yaml | DDD detector の機械正本 registry (concept.md §12.1 19語 + §14.1 10 BC) | FR-09 | FR-INV-01 |
+| registry_design_coverage_checks.py | registry_design_coverage detector — zero-omission(B') 機械証明 (coverage_layer/design_ids 充足・wrong_layer 検出) | FR-09 | FR-INV-01 |
 
 ---
 

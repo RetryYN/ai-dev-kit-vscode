@@ -1564,6 +1564,58 @@ print(report.render("json"))
 PY
 }
 
+run_registry_design_coverage_helper() {
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - "$@" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+
+from registry_design_coverage_checks import check_registry_design_coverage  # noqa: E402
+
+args = [Path(arg) for arg in sys.argv[1:]]
+report = check_registry_design_coverage(args[0], args[1])
+print(report.render("json"))
+PY
+}
+
+check_registry_design_coverage_doctor() {
+  local registry_path="$PROJECT_ROOT/cli/config/functional-registry.yaml"
+  local report_json summary finding_count preview
+
+  if [[ ! -f "$registry_path" ]]; then
+    echo "  △ check_registry_design_coverage (skipped)"
+    echo "    registry yaml missing: cli/config/functional-registry.yaml"
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  if ! report_json="$(run_registry_design_coverage_helper "$registry_path" "$PROJECT_ROOT" 2>&1)"; then
+    echo "  △ check_registry_design_coverage"
+    { printf '%s\n' "$report_json" | head -5 | sed 's/^/    /'; } || true
+    WARN=$((WARN + 1))
+    return
+  fi
+
+  summary="$(summarize_functional_registry_report "$report_json")"
+  finding_count="$(printf '%s\n' "$summary" | sed -n '1p')"
+  preview="$(printf '%s\n' "$summary" | sed -n '2p')"
+
+  if [[ "$finding_count" == "0" ]]; then
+    echo "  ✓ check_registry_design_coverage"
+    PASS=$((PASS + 1))
+    return
+  fi
+
+  echo "  △ check_registry_design_coverage"
+  echo "    findings: $finding_count (warn-only: l6_design_pending は Action4 で FN/UT 1:1 解消)"
+  if [[ -n "$preview" ]]; then
+    echo "    $preview"
+  fi
+  WARN=$((WARN + 1))
+}
+
 run_coding_rule_helper() {
   local helper_name="$1"
   shift
@@ -2027,6 +2079,10 @@ echo ""
 echo "[coding rule registry]"
 check_coding_rule_sot_doctor
 check_coding_rule_alignment_doctor
+
+echo ""
+echo "[registry design coverage]"
+check_registry_design_coverage_doctor
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"

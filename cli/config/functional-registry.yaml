@@ -8,6 +8,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-add-feature"
     doc_paths: []
@@ -20,6 +23,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-agent"
     doc_paths: []
@@ -32,6 +38,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-asset"
     doc_paths: []
@@ -44,6 +53,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-audit"
     doc_paths: []
@@ -68,6 +80,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-bats-cleanup"
     doc_paths: []
@@ -80,6 +95,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-bench"
     doc_paths: []
@@ -92,6 +110,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-budget"
     doc_paths: []
@@ -104,6 +125,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-builder"
     doc_paths: []
@@ -126,6 +150,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-claude"
     doc_paths: []
@@ -138,6 +165,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-code"
     doc_paths: []
@@ -162,6 +192,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-commands"
     doc_paths: []
@@ -174,6 +207,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-context"
     doc_paths: []
@@ -186,6 +222,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-dashboard"
     doc_paths: []
@@ -198,6 +237,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-db"
     doc_paths: []
@@ -210,6 +252,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-debt"
     doc_paths: []
@@ -222,6 +267,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-debug"
     doc_paths: []
@@ -234,6 +282,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-detect"
     doc_paths: []
@@ -246,6 +297,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-discover"
     doc_paths: []
@@ -258,6 +312,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-discovery"
     doc_paths: []
@@ -282,6 +339,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-drift-check"
     doc_paths: []
@@ -294,6 +354,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-entry"
     doc_paths: []
@@ -340,6 +403,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-harness"
     doc_paths: []
@@ -374,6 +440,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-incident"
     doc_paths: []
@@ -398,6 +467,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-innovation"
     doc_paths: []
@@ -410,6 +482,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-interrupt"
     doc_paths: []
@@ -422,6 +497,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-job"
     doc_paths: []
@@ -434,6 +512,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-learn"
     doc_paths: []
@@ -446,6 +527,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-lock"
     doc_paths: []
@@ -458,6 +542,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-log"
     doc_paths: []
@@ -470,6 +557,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-matrix"
     doc_paths: []
@@ -482,6 +572,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-meta-phase"
     doc_paths: []
@@ -494,6 +587,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-migrate"
     doc_paths: []
@@ -506,6 +602,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-mode"
     doc_paths: []
@@ -518,6 +617,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-observe"
     doc_paths: []
@@ -542,6 +644,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-pr"
     doc_paths: []
@@ -554,6 +659,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-promote"
     doc_paths: []
@@ -578,6 +686,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-readiness"
     doc_paths: []
@@ -590,6 +701,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-recipe"
     doc_paths: []
@@ -602,6 +716,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-recover"
     doc_paths: []
@@ -614,6 +731,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-recovery"
     doc_paths: []
@@ -626,6 +746,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-refactor"
     doc_paths: []
@@ -638,6 +761,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-research"
     doc_paths: []
@@ -650,6 +776,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-retro"
     doc_paths: []
@@ -662,6 +791,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-retrofit"
     doc_paths: []
@@ -674,6 +806,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-reverse"
     doc_paths: []
@@ -686,6 +821,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-review"
     doc_paths: []
@@ -698,6 +836,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-route"
     doc_paths: []
@@ -710,6 +851,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-scheduler"
     doc_paths: []
@@ -732,6 +876,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-scrum-agile"
     doc_paths: []
@@ -754,6 +901,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-session-summary"
     doc_paths: []
@@ -766,6 +916,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-setup"
     doc_paths: []
@@ -814,6 +967,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-status"
     doc_paths: []
@@ -826,6 +982,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-statusline"
     doc_paths: []
@@ -838,6 +997,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-stop-hook"
     doc_paths: []
@@ -850,6 +1012,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-task"
     doc_paths: []
@@ -862,6 +1027,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-team"
     doc_paths: []
@@ -874,6 +1042,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-test"
     doc_paths: []
@@ -886,6 +1057,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-test-debug"
     doc_paths: []
@@ -898,6 +1072,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-test-design-scaffold"
     doc_paths: []
@@ -910,6 +1087,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-verify-agent"
     doc_paths: []
@@ -922,6 +1102,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-verify-all"
     doc_paths: []
@@ -934,6 +1117,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
     code_paths:
       - "cli/helix-vmodel"
     doc_paths: []
@@ -946,6 +1132,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-CMD-LOGIC"
     code_paths:
       - "cli/helix-workspace"
     doc_paths: []
@@ -958,6 +1147,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/add_feature_engine.py"
     doc_paths: []
@@ -970,6 +1162,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/agent_engine.py"
     doc_paths: []
@@ -982,6 +1177,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/agent_mandatory.py"
     doc_paths: []
@@ -994,6 +1192,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/agent_policy_guard.py"
     doc_paths: []
@@ -1006,6 +1206,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/agent_slots.py"
     doc_paths: []
@@ -1018,6 +1221,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/allowed_files_estimator.py"
     doc_paths: []
@@ -1030,6 +1235,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/audit_a1.py"
     doc_paths: []
@@ -1042,6 +1250,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/audit_hash.py"
     doc_paths: []
@@ -1054,6 +1265,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/audit_inventory.py"
     doc_paths: []
@@ -1066,6 +1280,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/audit_validator.py"
     doc_paths: []
@@ -1078,6 +1294,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/auto_run_engine.py"
     doc_paths: []
@@ -1090,6 +1309,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/budget.py"
     doc_paths: []
@@ -1102,6 +1324,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/budget_cli.py"
     doc_paths: []
@@ -1114,6 +1339,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/budget_forecast.py"
     doc_paths: []
@@ -1126,6 +1354,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/code_catalog.py"
     doc_paths: []
@@ -1138,6 +1369,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/code_edges.py"
     doc_paths: []
@@ -1150,6 +1384,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/code_recommender.py"
     doc_paths: []
@@ -1162,6 +1398,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/codex_post_hook.py"
     doc_paths: []
@@ -1174,6 +1413,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/codex_post_validation.py"
     doc_paths: []
@@ -1186,6 +1427,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/codex_thinking.py"
     doc_paths: []
@@ -1198,6 +1442,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/command_catalog.py"
     doc_paths: []
@@ -1210,6 +1457,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/command_mapper.py"
     doc_paths: []
@@ -1222,6 +1472,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/compaction_adapter.py"
     doc_paths: []
@@ -1234,6 +1487,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/compatibility_adapter.py"
     doc_paths: []
@@ -1246,6 +1502,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/concurrent_lock.py"
     doc_paths: []
@@ -1258,6 +1517,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/context_guard.py"
     doc_paths: []
@@ -1270,6 +1531,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/contract_registry.py"
     doc_paths: []
@@ -1282,6 +1546,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/correlation_context.py"
     doc_paths: []
@@ -1294,6 +1561,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/cutover_orchestrator.py"
     doc_paths: []
@@ -1306,6 +1576,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/db_cli.py"
     doc_paths: []
@@ -1318,6 +1591,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/defaults_loader.py"
     doc_paths: []
@@ -1330,6 +1606,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/deferred_findings.py"
     doc_paths: []
@@ -1342,6 +1621,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/deliverable_gate.py"
     doc_paths: []
@@ -1354,6 +1636,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/demotion_checker.py"
     doc_paths: []
@@ -1366,6 +1650,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/discovery_compat.py"
     doc_paths: []
@@ -1378,6 +1665,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/discovery_migrate.py"
     doc_paths: []
@@ -1390,6 +1680,8 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/doc_map_matcher.py"
     doc_paths: []
@@ -1402,6 +1694,8 @@ entries:
     l3_fr:
       - "FR-DOCTOR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/doctor_plan_checks.py"
     doc_paths: []
@@ -1414,6 +1708,8 @@ entries:
     l3_fr:
       - "FR-DOCTOR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/doctor_recovery_check.py"
     doc_paths: []
@@ -1426,6 +1722,9 @@ entries:
     l3_fr:
       - "FR-DOCTOR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/doctor_summary.py"
     doc_paths: []
@@ -1438,6 +1737,8 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/drift_db_diff.py"
     doc_paths: []
@@ -1450,6 +1751,8 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/dual_write_connection.py"
     doc_paths: []
@@ -1462,6 +1765,8 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/dual_write_mismatch.py"
     doc_paths: []
@@ -1474,6 +1779,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/effort_classifier.py"
     doc_paths: []
@@ -1486,6 +1793,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/entry_helper.py"
     doc_paths: []
@@ -1498,6 +1808,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/escalation_engine.py"
     doc_paths: []
@@ -1510,6 +1823,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/escalation_integration.py"
     doc_paths: []
@@ -1522,6 +1838,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/event_envelope.py"
     doc_paths: []
@@ -1534,6 +1853,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/feedback_hook.py"
     doc_paths: []
@@ -1546,6 +1868,8 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/freeze_checker.py"
     doc_paths: []
@@ -1558,6 +1882,8 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/gate_check_generator.py"
     doc_paths: []
@@ -1570,6 +1896,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/gate_policy_helper.py"
     doc_paths: []
@@ -1582,6 +1911,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/global_store.py"
     doc_paths: []
@@ -1594,6 +1925,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/handover.py"
     doc_paths: []
@@ -1606,6 +1940,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/handover_auto_dump.py"
     doc_paths: []
@@ -1618,6 +1955,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/harness_monitor.py"
     doc_paths: []
@@ -1630,6 +1970,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/helix_db.py"
     doc_paths: []
@@ -1642,6 +1984,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/hook_payload.py"
     doc_paths: []
@@ -1654,6 +1999,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/incident_engine.py"
     doc_paths: []
@@ -1666,6 +2014,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/init_helpers.py"
     doc_paths: []
@@ -1678,6 +2029,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/invocation_helper.py"
     doc_paths: []
@@ -1690,6 +2044,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/job_p0_guard.py"
     doc_paths: []
@@ -1702,6 +2058,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/job_queue_helper.py"
     doc_paths: []
@@ -1714,6 +2073,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/learning_engine.py"
     doc_paths: []
@@ -1726,6 +2088,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/llm_classifier_base.py"
     doc_paths: []
@@ -1738,6 +2102,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/llm_guard.py"
     doc_paths: []
@@ -1750,6 +2116,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/lock_helper.py"
     doc_paths: []
@@ -1762,6 +2131,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/matrix_advisor.py"
     doc_paths: []
@@ -1774,6 +2146,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/matrix_compiler.py"
     doc_paths: []
@@ -1786,6 +2161,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/merge_settings.py"
     doc_paths: []
@@ -1798,6 +2176,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/meta_phase.py"
     doc_paths: []
@@ -1810,6 +2191,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/migrate.py"
     doc_paths: []
@@ -1822,6 +2206,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/model_fallback.py"
     doc_paths: []
@@ -1834,6 +2221,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/model_registry.py"
     doc_paths: []
@@ -1846,6 +2236,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/observability_helper.py"
     doc_paths: []
@@ -1858,6 +2251,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/paths.py"
     doc_paths: []
@@ -1870,6 +2266,8 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/phase_guard.py"
     doc_paths: []
@@ -1882,6 +2280,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_dependencies.py"
     doc_paths: []
@@ -1894,6 +2295,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_deps_helper.py"
     doc_paths: []
@@ -1906,6 +2310,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_frontmatter.py"
     doc_paths: []
@@ -1918,6 +2325,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_health.py"
     doc_paths: []
@@ -1930,6 +2340,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/plan_lint.py"
     doc_paths: []
@@ -1942,6 +2354,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/plan_parser.py"
     doc_paths: []
@@ -1954,6 +2368,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_registry.py"
     doc_paths: []
@@ -1966,6 +2383,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/plan_schema.py"
     doc_paths: []
@@ -1978,6 +2398,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/plan_validator.py"
     doc_paths: []
@@ -1990,6 +2412,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/projector_lag.py"
     doc_paths: []
@@ -2002,6 +2427,8 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/push_gate.py"
     doc_paths: []
@@ -2014,6 +2441,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/recovery_engine.py"
     doc_paths: []
@@ -2026,6 +2456,8 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/recovery_plan_check.py"
     doc_paths: []
@@ -2038,6 +2470,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/recovery_workflow_engine.py"
     doc_paths: []
@@ -2050,6 +2485,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/redaction.py"
     doc_paths: []
@@ -2062,6 +2500,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/refactor_engine.py"
     doc_paths: []
@@ -2074,6 +2515,8 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/research_guard.py"
     doc_paths: []
@@ -2086,6 +2529,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/research_tool_guard.py"
     doc_paths: []
@@ -2098,6 +2543,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/retrofit_engine.py"
     doc_paths: []
@@ -2110,6 +2558,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/reverse_local.py"
     doc_paths: []
@@ -2122,6 +2573,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/review_output.py"
     doc_paths: []
@@ -2134,6 +2588,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/rollback_orchestrator.py"
     doc_paths: []
@@ -2146,6 +2603,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/route_engine.py"
     doc_paths: []
@@ -2158,6 +2618,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scheduler_helper.py"
     doc_paths: []
@@ -2170,6 +2633,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scrum_agile_engine.py"
     doc_paths: []
@@ -2182,6 +2648,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scrum_local.py"
     doc_paths: []
@@ -2194,6 +2663,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scrum_reverse_matrix.py"
     doc_paths: []
@@ -2206,6 +2678,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scrum_to_reverse_routing.py"
     doc_paths: []
@@ -2218,6 +2693,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/scrum_trigger.py"
     doc_paths: []
@@ -2230,6 +2708,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/session_cleaner.py"
     doc_paths: []
@@ -2242,6 +2723,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/session_helper.py"
     doc_paths: []
@@ -2254,6 +2738,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/session_start_helpers.py"
     doc_paths: []
@@ -2266,6 +2753,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/setup_helper.py"
     doc_paths: []
@@ -2278,6 +2768,9 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/shadow_replay.py"
     doc_paths: []
@@ -2290,6 +2783,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_catalog.py"
     doc_paths: []
@@ -2302,6 +2798,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/skill_classifier.py"
     doc_paths: []
@@ -2314,6 +2812,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_classify_runner.py"
     doc_paths: []
@@ -2326,6 +2827,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_dispatcher.py"
     doc_paths: []
@@ -2338,6 +2842,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/skill_frontmatter_lint.py"
     doc_paths: []
@@ -2350,6 +2856,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_helix_layer_audit.py"
     doc_paths: []
@@ -2362,6 +2871,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_jsonl_schema.py"
     doc_paths: []
@@ -2374,6 +2886,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/skill_recommender.py"
     doc_paths: []
@@ -2386,6 +2900,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/skill_review.py"
     doc_paths: []
@@ -2398,6 +2915,8 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/skip_annotation_linter.py"
     doc_paths: []
@@ -2410,6 +2929,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/sprint_auto_check.py"
     doc_paths: []
@@ -2422,6 +2943,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/sprint_lint.py"
     doc_paths: []
@@ -2434,6 +2957,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/task_dispatcher.py"
     doc_paths: []
@@ -2446,6 +2972,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/task_type_inference.py"
     doc_paths: []
@@ -2458,6 +2986,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/team_runner.py"
     doc_paths: []
@@ -2470,6 +3001,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/test_design_scaffold.py"
     doc_paths: []
@@ -2482,6 +3016,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/registry_checks.py"
     doc_paths: []
@@ -2494,6 +3030,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/functional_registry_checks.py"
     doc_paths: []
@@ -2506,6 +3044,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/functional_registry_seed.py"
     doc_paths: []
@@ -2519,6 +3060,8 @@ entries:
       - "FR-4ART-01"
       - "FR-CHANGEPROP-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/trace_symmetry.py"
     doc_paths: []
@@ -2531,6 +3074,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/transcript_summary.py"
     doc_paths: []
@@ -2543,6 +3089,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/uuid7_generator.py"
     doc_paths: []
@@ -2555,6 +3103,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/verify_agent.py"
     doc_paths: []
@@ -2567,6 +3118,8 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/vmodel_lint.py"
     doc_paths: []
@@ -2579,6 +3132,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/vmodel_loader.py"
     doc_paths: []
@@ -2591,6 +3147,8 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/vmodel_pair_freeze.py"
     doc_paths: []
@@ -2603,6 +3161,8 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/workflow_dsl_parser.py"
     doc_paths: []
@@ -2615,6 +3175,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/workspace_cli.py"
     doc_paths: []
@@ -2627,6 +3190,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/workspace_manager.py"
     doc_paths: []
@@ -2639,6 +3205,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L5_required"
+    design_ids:
+      - "DSN-LIB-MODULE"
     code_paths:
       - "cli/lib/workspace_snapshot.py"
     doc_paths: []
@@ -2651,6 +3220,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/yaml_parser.py"
     doc_paths: []
@@ -2663,6 +3234,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/zizmor_ignore_lint.py"
     doc_paths: []
@@ -2675,6 +3248,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/coding_rule_checks.py"
     doc_paths: []
@@ -2687,6 +3262,10 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-DATA-REGISTRY"
+    excluded_reason: "data_registry"
     code_paths:
       - "cli/config/coding-rule-registry.yaml"
     doc_paths: []
@@ -2699,6 +3278,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - "cli/lib/ddd_registry_checks.py"
     doc_paths: []
@@ -2711,8 +3292,26 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-DATA-REGISTRY"
+    excluded_reason: "data_registry"
     code_paths:
       - "cli/config/ddd-registry.yaml"
+    doc_paths: []
+  - id: "FR-LIB-148"
+    name: "registry_design_coverage_checks.py"
+    domain: "lib"
+    description: "registry_design_coverage detector — zero-omission(B') 機械証明 (coverage_layer/design_ids/excluded_reason 充足・wrong_layer 検出、§11.7/§1.6)"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
+    code_paths:
+      - "cli/lib/registry_design_coverage_checks.py"
     doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
@@ -2723,6 +3322,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/post-tool-use.sh"
     doc_paths: []
@@ -2735,6 +3336,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/posttooluse-design-doc-web-search-revert.sh"
     doc_paths: []
@@ -2747,6 +3350,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/posttooluse-helix-job-enqueue.sh"
     doc_paths: []
@@ -2759,6 +3364,8 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/posttooluse-plan-auto-register.sh"
     doc_paths: []
@@ -2771,6 +3378,8 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/posttooluse-skill-catalog-rebuild.sh"
     doc_paths: []
@@ -2783,6 +3392,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/precompact-state-snapshot.sh"
     doc_paths: []
@@ -2795,6 +3406,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-agent-fire.sh"
     doc_paths: []
@@ -2807,6 +3420,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-agent-guard.sh"
     doc_paths: []
@@ -2819,6 +3434,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-askuserquestion.sh"
     doc_paths: []
@@ -2831,6 +3448,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-codex-slot-check.sh"
     doc_paths: []
@@ -2843,6 +3462,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-design-doc-web-search-guard.sh"
     doc_paths: []
@@ -2855,6 +3476,8 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/pretooluse-opus-repo-block.sh"
     doc_paths: []
@@ -2867,6 +3490,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/sessionstart-harness-summary.sh"
     doc_paths: []
@@ -2879,6 +3504,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/sessionstart-history-injection.sh"
     doc_paths: []
@@ -2891,6 +3518,8 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/stop-recovery-update.sh"
     doc_paths: []
@@ -2903,6 +3532,8 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/stop.sh"
     doc_paths: []
@@ -2915,6 +3546,8 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L6_required"
+    design_ids: []
     code_paths:
       - ".claude/hooks/userpromptsubmit-context-bundle.sh"
     doc_paths: []
@@ -2927,6 +3560,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/be-api.md"
@@ -2939,6 +3575,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/be-logic.md"
@@ -2951,6 +3590,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/code-reviewer.md"
@@ -2963,6 +3605,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/db-schema.md"
@@ -2975,6 +3620,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/devops-deploy.md"
@@ -2987,6 +3635,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pdm-innovation-manager.md"
@@ -2999,6 +3650,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pdm-marketing-innovation.md"
@@ -3011,6 +3665,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pdm-tech-innovation.md"
@@ -3023,6 +3680,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-haiku.md"
@@ -3035,6 +3695,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-helix-explorer.md"
@@ -3047,6 +3710,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-helix-scout.md"
@@ -3059,6 +3725,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-project-explorer.md"
@@ -3071,6 +3740,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-project-scout.md"
@@ -3083,6 +3755,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-sonnet.md"
@@ -3095,6 +3770,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-tech-docs.md"
@@ -3107,6 +3785,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-tech-fork.md"
@@ -3119,6 +3800,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/pmo-tech-news.md"
@@ -3131,6 +3815,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/qa-test.md"
@@ -3143,6 +3830,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-AGENT-ROLE"
     code_paths: []
     doc_paths:
       - ".claude/agents/security-audit.md"
@@ -3155,6 +3845,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/adversarial-review/SKILL.md"
@@ -3167,6 +3860,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/api-contract/SKILL.md"
@@ -3179,6 +3875,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/compliance/SKILL.md"
@@ -3191,6 +3890,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/context-memory/SKILL.md"
@@ -3203,6 +3905,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/cross-detection/SKILL.md"
@@ -3215,6 +3920,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/debt-register/SKILL.md"
@@ -3227,6 +3935,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/dependency-map/SKILL.md"
@@ -3239,6 +3950,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/deploy/SKILL.md"
@@ -3251,6 +3965,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/design-doc/SKILL.md"
@@ -3263,6 +3980,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/detection-routing/SKILL.md"
@@ -3275,6 +3995,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/dev-policy/SKILL.md"
@@ -3287,6 +4010,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/dev-setup/SKILL.md"
@@ -3299,6 +4025,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/doc-review/SKILL.md"
@@ -3311,6 +4040,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/doc-system-architect/SKILL.md"
@@ -3323,6 +4055,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/estimation/SKILL.md"
@@ -3335,6 +4070,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/gate-planning/SKILL.md"
@@ -3347,6 +4085,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/incident/SKILL.md"
@@ -3359,6 +4100,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/layer-context-injection/SKILL.md"
@@ -3371,6 +4115,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/learning-engine/SKILL.md"
@@ -3383,6 +4130,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/observability-sre/SKILL.md"
@@ -3395,6 +4145,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/poc/SKILL.md"
@@ -3407,6 +4160,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/postmortem/SKILL.md"
@@ -3419,6 +4175,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/project-management/SKILL.md"
@@ -3431,6 +4190,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/quality-lv5/SKILL.md"
@@ -3443,6 +4205,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/requirements-deriver/SKILL.md"
@@ -3455,6 +4220,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/requirements-handover/SKILL.md"
@@ -3467,6 +4235,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/research/SKILL.md"
@@ -3479,6 +4250,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/retrofit/SKILL.md"
@@ -3491,6 +4265,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-analysis/SKILL.md"
@@ -3503,6 +4280,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-r0/SKILL.md"
@@ -3515,6 +4295,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-r1/SKILL.md"
@@ -3527,6 +4310,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-r2/SKILL.md"
@@ -3539,6 +4325,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-r3/SKILL.md"
@@ -3551,6 +4340,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-r4/SKILL.md"
@@ -3563,6 +4355,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/reverse-rgc/SKILL.md"
@@ -3575,6 +4370,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/review-stage-routing/SKILL.md"
@@ -3587,6 +4385,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/runbook/SKILL.md"
@@ -3599,6 +4400,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/schedule-wbs/SKILL.md"
@@ -3611,6 +4415,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/threat-model/SKILL.md"
@@ -3623,6 +4430,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/workflow/verification/SKILL.md"
@@ -3635,6 +4445,10 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/code-review/SKILL.md"
@@ -3647,6 +4461,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/coding/SKILL.md"
@@ -3659,6 +4477,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/design/SKILL.md"
@@ -3671,6 +4493,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/documentation/SKILL.md"
@@ -3683,6 +4509,10 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/error-fix/SKILL.md"
@@ -3695,6 +4525,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/git/SKILL.md"
@@ -3707,6 +4541,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/infrastructure/SKILL.md"
@@ -3719,6 +4557,10 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/performance/SKILL.md"
@@ -3731,6 +4573,10 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/refactoring/SKILL.md"
@@ -3743,6 +4589,10 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/security/SKILL.md"
@@ -3755,6 +4605,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/testing/SKILL.md"
@@ -3767,6 +4621,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/common/visual-design/SKILL.md"
@@ -3779,6 +4637,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/api/SKILL.md"
@@ -3791,6 +4653,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/db/SKILL.md"
@@ -3803,6 +4669,10 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-a11y/SKILL.md"
@@ -3815,6 +4685,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-component/SKILL.md"
@@ -3827,6 +4701,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-design/SKILL.md"
@@ -3839,6 +4717,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-style/SKILL.md"
@@ -3851,6 +4733,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-test/SKILL.md"
@@ -3863,6 +4749,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/01-taxonomy/SKILL.md"
@@ -3875,6 +4765,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/02-strategy-selection/SKILL.md"
@@ -3887,6 +4781,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/03-test-design/SKILL.md"
@@ -3899,6 +4797,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/04-tooling/SKILL.md"
@@ -3911,6 +4813,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/05-unit-logic/SKILL.md"
@@ -3923,6 +4829,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/06-interaction/SKILL.md"
@@ -3935,6 +4845,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/07-integration-msw/SKILL.md"
@@ -3947,6 +4861,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/08-visual-regression/SKILL.md"
@@ -3959,6 +4877,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/09-accessibility/SKILL.md"
@@ -3971,6 +4893,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/10-e2e/SKILL.md"
@@ -3983,6 +4909,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/fe-testing/11-ci-flake/SKILL.md"
@@ -3995,6 +4925,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/project/ui/SKILL.md"
@@ -4007,6 +4941,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/ai-integration/SKILL.md"
@@ -4019,6 +4957,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/external-api/SKILL.md"
@@ -4031,6 +4973,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/i18n/SKILL.md"
@@ -4043,6 +4989,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/innovation-mgr/SKILL.md"
@@ -4055,6 +5005,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/legacy/SKILL.md"
@@ -4067,6 +5021,10 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/marketing-innovation/SKILL.md"
@@ -4079,6 +5037,10 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/migration/SKILL.md"
@@ -4091,6 +5053,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/tech-innovation/SKILL.md"
@@ -4103,6 +5069,10 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/advanced/tech-selection/SKILL.md"
@@ -4115,6 +5085,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/tools/ai-coding/SKILL.md"
@@ -4127,6 +5101,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/tools/ai-search/SKILL.md"
@@ -4139,6 +5117,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/tools/ide-tools/SKILL.md"
@@ -4151,6 +5133,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/tools/web-search/SKILL.md"
@@ -4163,6 +5149,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/integration/agent-cost-design/SKILL.md"
@@ -4175,6 +5164,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/integration/agent-design/SKILL.md"
@@ -4187,6 +5179,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/integration/agent-teams/SKILL.md"
@@ -4199,6 +5194,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/writing/explain/SKILL.md"
@@ -4211,6 +5210,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/writing/god-writing/SKILL.md"
@@ -4223,6 +5226,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/writing/japanese/SKILL.md"
@@ -4235,6 +5242,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/writing/presentation/SKILL.md"
@@ -4247,6 +5258,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/writing/social/SKILL.md"
@@ -4259,6 +5274,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths: []
   - id: "FR-SKILL-094"
@@ -4270,6 +5289,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/character/SKILL.md"
@@ -4282,6 +5305,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/diagram/SKILL.md"
@@ -4294,6 +5321,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/gpt-image/SKILL.md"
@@ -4306,6 +5337,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/graphic/SKILL.md"
@@ -4318,6 +5353,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/pptx/SKILL.md"
@@ -4330,6 +5369,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/design-tools/web-system/SKILL.md"
@@ -4342,6 +5385,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/browser-script/SKILL.md"
@@ -4354,6 +5400,9 @@ entries:
     l3_fr:
       - "FR-IMPACT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/flow-optimize/SKILL.md"
@@ -4366,6 +5415,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/init-setup/SKILL.md"
@@ -4378,6 +5430,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/job-queue/SKILL.md"
@@ -4390,6 +5445,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/lock/SKILL.md"
@@ -4402,6 +5460,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/observability/SKILL.md"
@@ -4414,6 +5475,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/scheduler/SKILL.md"
@@ -4426,6 +5490,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-SKILL-OPS"
     code_paths: []
     doc_paths:
       - "skills/automation/site-mapping/SKILL.md"
@@ -4438,6 +5505,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/api-and-interface-design/SKILL.md"
@@ -4450,6 +5521,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/browser-testing-with-devtools/SKILL.md"
@@ -4462,6 +5537,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/ci-cd-and-automation/SKILL.md"
@@ -4474,6 +5553,10 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/code-review-and-quality/SKILL.md"
@@ -4486,6 +5569,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/context-engineering/SKILL.md"
@@ -4498,6 +5585,10 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/debugging-and-error-recovery/SKILL.md"
@@ -4510,6 +5601,10 @@ entries:
     l3_fr:
       - "FR-MIGR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/deprecation-and-migration/SKILL.md"
@@ -4522,6 +5617,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/documentation-and-adrs/SKILL.md"
@@ -4534,6 +5633,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/frontend-ui-engineering/SKILL.md"
@@ -4546,6 +5649,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/helix-discovery/SKILL.md"
@@ -4558,6 +5665,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/helix-scrum/SKILL.md"
@@ -4570,6 +5681,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/idea-refine/SKILL.md"
@@ -4582,6 +5697,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/incremental-implementation/SKILL.md"
@@ -4594,6 +5713,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/mock-driven-development/SKILL.md"
@@ -4606,6 +5729,10 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/performance-optimization/SKILL.md"
@@ -4618,6 +5745,10 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/planning-and-task-breakdown/SKILL.md"
@@ -4630,6 +5761,10 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/security-and-hardening/SKILL.md"
@@ -4642,6 +5777,10 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/shipping-and-launch/SKILL.md"
@@ -4654,6 +5793,10 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/source-driven-development/SKILL.md"
@@ -4666,6 +5809,10 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/spec-driven-development/SKILL.md"
@@ -4678,6 +5825,10 @@ entries:
     l3_fr:
       - "FR-IMPACT-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/system-design-sizing/SKILL.md"
@@ -4690,6 +5841,10 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/technical-writing/SKILL.md"
@@ -4702,6 +5857,10 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/test-driven-development/SKILL.md"
@@ -4714,6 +5873,10 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-SKILL-REFDOC"
+    excluded_reason: "reference_doc"
     code_paths: []
     doc_paths:
       - "skills/agent-skills/using-agent-skills/SKILL.md"
@@ -4726,6 +5889,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L0-concept.md"
@@ -4738,6 +5904,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L1-requirements.md"
@@ -4750,6 +5919,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L2-ui-design.md"
@@ -4762,6 +5934,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L3-requirements-definition.md"
@@ -4774,6 +5949,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L4-basic-design.md"
@@ -4786,6 +5964,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L5-detailed-design.md"
@@ -4798,6 +5979,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L6-functional-design.md"
@@ -4810,6 +5994,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L7-implementation.md"
@@ -4822,6 +6009,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L8-integration-test.md"
@@ -4834,6 +6024,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L9-system-test.md"
@@ -4846,6 +6039,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L10-ux-refinement.md"
@@ -4858,6 +6054,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L11-final-review.md"
@@ -4870,6 +6069,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L12-deployment.md"
@@ -4882,6 +6084,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L13-post-deployment-verification.md"
@@ -4894,6 +6099,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/L14-operation-verification.md"
@@ -4912,6 +6120,9 @@ entries:
       - "FR-GATE-01"
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/HELIX-process-L0-L14.md"
@@ -4924,6 +6135,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/scrum-workflow.md"
@@ -4936,6 +6150,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/discovery-workflow.md"
@@ -4948,6 +6165,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/reverse-workflow.md"
@@ -4960,6 +6180,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/incident-workflow.md"
@@ -4974,6 +6197,9 @@ entries:
       - "FR-9MODE-01"
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/add-feature-workflow.md"
@@ -4986,6 +6212,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/refactor-workflow.md"
@@ -4998,6 +6227,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/retrofit-workflow.md"
@@ -5010,6 +6242,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/research-workflow.md"
@@ -5022,6 +6257,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/recovery-workflow.md"
@@ -5034,6 +6272,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/screen-design-workflow.md"
@@ -5046,6 +6287,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/frontend-design-workflow.md"
@@ -5058,6 +6302,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/two-stage-agent-design.md"
@@ -5070,6 +6317,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/README.md"
@@ -5082,6 +6332,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/integration-map.md"
@@ -5094,6 +6347,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/automation-gate-map.md"
@@ -5106,6 +6362,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/asset-mapping.md"
@@ -5118,6 +6377,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/detection-routing.md"
@@ -5130,6 +6392,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/deviation-plan-map.md"
@@ -5142,6 +6407,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/fe-detector-spec.md"
@@ -5154,6 +6422,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/observability-metrics.md"
@@ -5166,6 +6437,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/infra-readiness.md"
@@ -5178,6 +6452,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/folder-structure-review.md"
@@ -5190,6 +6467,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/cross-cutting-mechanisms.md"
@@ -5202,6 +6482,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/cross-detection.md"
@@ -5214,6 +6497,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/layer-context-injection.md"
@@ -5226,6 +6512,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/test-perspective-gate.md"
@@ -5238,6 +6527,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/db-auto-registration.md"
@@ -5250,6 +6542,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/db-integration.md"
@@ -5262,6 +6557,9 @@ entries:
     l3_fr:
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/learning-engine.md"
@@ -5274,6 +6572,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/continuous-run-context-management.md"
@@ -5286,6 +6587,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/ci-pr-workflow.md"
@@ -5298,6 +6602,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/review-stage-routing.md"
@@ -5310,6 +6617,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/v2-9mode-ecosystem.md"
@@ -5322,6 +6632,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/document-topology.md"
@@ -5336,6 +6649,9 @@ entries:
       - "FR-EVT-01"
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/forward-return-discipline.md"
@@ -5350,6 +6666,9 @@ entries:
       - "FR-GATE-01"
       - "FR-DRIFT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/github-operations.md"
@@ -5364,6 +6683,9 @@ entries:
       - "FR-PLAN-01"
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/plan-model.md"
@@ -5378,6 +6700,9 @@ entries:
       - "FR-9MODE-01"
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/planning-to-requirements-transition.md"
@@ -5392,6 +6717,9 @@ entries:
       - "FR-DRIFT-01"
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-WORKFLOW-DOC"
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/workflow-self-evaluation.md"
@@ -5404,6 +6732,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/AGENTS.md.template"
@@ -5416,6 +6747,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/CLAUDE.md.template"
@@ -5428,6 +6762,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/D-AGENT-EXEC.md"
@@ -5440,6 +6777,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/D-AGENT-INFRA.md"
@@ -5452,6 +6792,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/D-TECH-STACK.md"
@@ -5464,6 +6807,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/be-api.md"
@@ -5476,6 +6822,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/be-logic.md"
@@ -5488,6 +6837,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/code-reviewer.md"
@@ -5500,6 +6852,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/db-schema.md"
@@ -5512,6 +6867,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/devops-deploy.md"
@@ -5524,6 +6882,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pdm-innovation-manager.md"
@@ -5536,6 +6897,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pdm-marketing-innovation.md"
@@ -5548,6 +6912,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pdm-tech-innovation.md"
@@ -5560,6 +6927,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-haiku.md"
@@ -5572,6 +6942,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-helix-explorer.md"
@@ -5584,6 +6957,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-helix-scout.md"
@@ -5596,6 +6972,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-project-explorer.md"
@@ -5608,6 +6987,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-project-scout.md"
@@ -5620,6 +7002,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-sonnet.md"
@@ -5632,6 +7017,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-tech-docs.md"
@@ -5644,6 +7032,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-tech-fork.md"
@@ -5656,6 +7047,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/pmo-tech-news.md"
@@ -5668,6 +7062,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/qa-test.md"
@@ -5680,6 +7077,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/agents/security-audit.md"
@@ -5692,6 +7092,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/banner.md"
@@ -5704,6 +7108,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/bg.md"
@@ -5716,6 +7124,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/card.md"
@@ -5728,6 +7140,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/hero.md"
@@ -5740,6 +7156,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/icon.md"
@@ -5752,6 +7172,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/logo.md"
@@ -5764,6 +7188,10 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-STATIC-TEMPLATE"
+    excluded_reason: "static_template"
     code_paths: []
     doc_paths:
       - "cli/templates/assets/thumb.md"
@@ -5776,6 +7204,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/action-types.yaml"
     doc_paths: []
@@ -5788,6 +7219,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/config.yaml"
     doc_paths: []
@@ -5800,6 +7234,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/doc-map.yaml"
     doc_paths: []
@@ -5812,6 +7249,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/framework.yaml"
     doc_paths: []
@@ -5824,6 +7264,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/gate-checks.yaml"
     doc_paths: []
@@ -5836,6 +7279,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/matrix.yaml"
     doc_paths: []
@@ -5848,6 +7294,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/patterns/pattern.yaml"
     doc_paths: []
@@ -5860,6 +7309,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/phase.yaml"
     doc_paths: []
@@ -5872,6 +7324,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/state-machine.yaml"
     doc_paths: []
@@ -5884,6 +7339,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/state/deliverables.json"
     doc_paths: []
@@ -5896,6 +7354,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/state/vmodel.json"
     doc_paths: []
@@ -5908,6 +7369,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/task-catalog.yaml"
     doc_paths: []
@@ -5920,6 +7384,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L1-requirements.md"
@@ -5932,6 +7399,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L2-design.md"
@@ -5944,6 +7414,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L3-detailed-design.md"
@@ -5956,6 +7429,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L3-schedule-wbs.md"
@@ -5968,6 +7444,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L4-agent-sprint-guide.md"
@@ -5980,6 +7459,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L4-be-sprint-guide.md"
@@ -5992,6 +7474,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L4-db-sprint-guide.md"
@@ -6004,6 +7489,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L4-fe-sprint-guide.md"
@@ -6016,6 +7504,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L4-fullstack-sprint-guide.md"
@@ -6028,6 +7519,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/L5-visual-design.md"
@@ -6040,6 +7534,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/PLAN.md.template"
@@ -6052,6 +7549,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/docs/project-status.md.template"
@@ -6064,6 +7564,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/plan/acceptance.yaml"
     doc_paths: []
@@ -6076,6 +7579,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/add-design/template.md"
@@ -6088,6 +7594,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/add-impl/template.md"
@@ -6100,6 +7609,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/plan/design-sprint.yaml.template"
     doc_paths: []
@@ -6112,6 +7624,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/design/template.md"
@@ -6124,6 +7639,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/functional-freeze-report.md.template"
@@ -6136,6 +7654,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/impl/template.md"
@@ -6148,6 +7669,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/plan/innovation-output.yaml.template"
     doc_paths: []
@@ -6160,6 +7684,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/pair-status-checklist.md.template"
@@ -6172,6 +7699,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/poc/template.md"
@@ -6184,6 +7714,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/recovery/postmortem-template.md"
@@ -6196,6 +7729,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/recovery/template.md"
@@ -6208,6 +7744,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/refactor/template.md"
@@ -6220,6 +7759,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/research/template.md"
@@ -6232,6 +7774,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/retrofit/template.md"
@@ -6244,6 +7789,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/reverse/template.md"
@@ -6256,6 +7804,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/troubleshoot/template.md"
@@ -6268,6 +7819,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L00-planning-template.md"
@@ -6280,6 +7834,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L01-requirements-template.md"
@@ -6292,6 +7849,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths: []
   - id: "FR-TEMPLATE-076"
@@ -6303,6 +7863,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L03-requirements-definition-template.md"
@@ -6315,6 +7878,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L04-basic-design-template.md"
@@ -6327,6 +7893,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L05-detailed-design-template.md"
@@ -6339,6 +7908,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths: []
   - id: "FR-TEMPLATE-080"
@@ -6350,6 +7922,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L07-implementation-template.md"
@@ -6362,6 +7937,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L08-integration-test-template.md"
@@ -6374,6 +7952,9 @@ entries:
     l3_fr:
       - "FR-TDD-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L09-system-test-template.md"
@@ -6386,6 +7967,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L10-ux-refinement-template.md"
@@ -6398,6 +7982,9 @@ entries:
     l3_fr:
       - "FR-4ART-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L11-final-review-template.md"
@@ -6410,6 +7997,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L12-deployment-template.md"
@@ -6422,6 +8012,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L13-post-deployment-template.md"
@@ -6434,6 +8027,9 @@ entries:
     l3_fr:
       - "FR-NSM-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L14-operation-verification-template.md"
@@ -6446,6 +8042,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/README.md"
@@ -6458,6 +8057,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/_skeleton.md"
@@ -6470,6 +8072,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/code-search.md"
@@ -6482,6 +8087,9 @@ entries:
     l3_fr:
       - "FR-DOCREVIEW-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/codex-review.md"
@@ -6494,6 +8102,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/effort-classify.md"
@@ -6506,6 +8117,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/feedback.md"
@@ -6518,6 +8132,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/pmo-base.md"
@@ -6530,6 +8147,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/skill-classify.md"
@@ -6542,6 +8162,9 @@ entries:
     l3_fr:
       - "FR-INV-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/prompts/skill-search.md"
@@ -6554,6 +8177,9 @@ entries:
     l3_fr:
       - "FR-GATE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/retro.md.template"
@@ -6566,6 +8192,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/rules/common-defs.yaml"
     doc_paths: []
@@ -6578,6 +8207,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/rules/deliverables.yaml"
     doc_paths: []
@@ -6590,6 +8222,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/rules/naming.yaml"
     doc_paths: []
@@ -6602,6 +8237,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/rules/structure.yaml"
     doc_paths: []
@@ -6614,6 +8252,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/scrum-backlog.yaml"
     doc_paths: []
@@ -6626,6 +8267,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/scrum-handoff.md.template"
@@ -6638,6 +8282,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/scrum-sprint.yaml"
     doc_paths: []
@@ -6650,6 +8297,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/teams/implementation-team.yaml"
     doc_paths: []
@@ -6662,6 +8312,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/teams/innovation-team.yaml"
     doc_paths: []
@@ -6674,6 +8327,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/teams/review-team.yaml"
     doc_paths: []
@@ -6686,6 +8342,9 @@ entries:
     l3_fr:
       - "FR-CTX-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/teams/twin-sprint.yaml"
     doc_paths: []
@@ -6698,6 +8357,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/hooks/commit-msg"
     doc_paths: []
@@ -6710,6 +8372,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/hooks/post-merge"
     doc_paths: []
@@ -6722,6 +8387,9 @@ entries:
     l3_fr:
       - "FR-GR-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/hooks/pre-commit"
     doc_paths: []
@@ -6734,6 +8402,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/workspace/workspace.yaml"
     doc_paths: []
@@ -6746,6 +8417,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths:
       - "cli/templates/handover-current.json.template"
     doc_paths: []
@@ -6758,6 +8432,9 @@ entries:
     l3_fr:
       - "FR-EVT-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/handover-current.md.template"
@@ -6771,6 +8448,9 @@ entries:
     l3_fr:
       - "FR-9MODE-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L02-ui-design-template.md"
@@ -6783,6 +8463,9 @@ entries:
     l3_fr:
       - "FR-PLAN-01"
     status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-TEMPLATE-RUNTIME"
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L06-function-design-template.md"
