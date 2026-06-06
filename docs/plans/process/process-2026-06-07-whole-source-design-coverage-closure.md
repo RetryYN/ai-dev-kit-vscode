@@ -6,8 +6,8 @@ workflow_chain: "Action1(Recovery: defer継続不可の認識訂正 + zero-omiss
 kind: planning
 layer: L3
 drive: reverse
-status: draft
-tl_review: pending  # 戦略諮問は完了(TL: B'採用/Process分解/detector受領)。PLAN doc 自体の review は起票後に取得
+status: completed
+tl_review: approve  # TL 戦略諮問(B'採用) + impl review changes_required → P1/P2 反映 → re-review passed (zero-omission approve, P0-P3 指摘なし、残=WSC-TEST-IMPL 12件 test実装carry)
 created: 2026-06-07
 owner: PM
 contains_action_plans:

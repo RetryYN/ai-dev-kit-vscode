@@ -285,7 +285,7 @@ refreeze_decision:
     proof_scope: "anchor/prefix 整合 + semantic review 補完 (実 doc ID 存在チェックではない=必要条件)。WSC ID の実 doc 存在は L6/L7 doc + trace_symmetry で別途担保"
   semantic_gate:
     owner: TL
-    verdict: changes_required_fixes_applied   # TL impl review = changes_required (P1 carry件数/P2 L7セル/P2 detector文言) → 反映済、re-review 待ち
+    verdict: approve                 # TL impl review changes_required → P1/P2 反映 → re-review passed (zero-omission approve, P0-P3 指摘なし)
     note: "TL 抜き取り検証で分類妥当・FN-WSC DbC faithful (agent guard deny / post-tool-use fail-open / push_gate execute・main guard / job enqueue advisory 実コード整合) を確認済。changes_required は証跡品質3点のみで、反映済。approve は re-review で確定"
   refreeze:
     approvers: [TL, PM]

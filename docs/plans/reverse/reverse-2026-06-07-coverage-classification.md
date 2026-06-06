@@ -7,7 +7,7 @@ workflow: reverse
 kind: reverse
 layer: L3
 drive: reverse
-status: draft
+status: completed
 created: 2026-06-07
 owner: PM
 agent_slots:
