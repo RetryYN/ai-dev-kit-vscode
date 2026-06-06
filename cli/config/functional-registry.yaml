@@ -63,8 +63,10 @@ entries:
     name: "helix-bats-cleanup"
     domain: "cli"
     description: "Bats テスト一時ファイル (/tmp/bats-run-*, /tmp/bats-test-*) クリーンアップ"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
     status: "active"
     code_paths:
       - "cli/helix-bats-cleanup"
@@ -215,8 +217,10 @@ entries:
     name: "helix-debug"
     domain: "cli"
     description: "HELIX デバッグツール (内部状態ダンプ / hook デバッグ)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
     status: "active"
     code_paths:
       - "cli/helix-debug"
@@ -865,8 +869,10 @@ entries:
     name: "helix-test"
     domain: "cli"
     description: "HELIX CLI 全ツールセルフテスト (bats + pytest 統合実行)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
     status: "active"
     code_paths:
       - "cli/helix-test"
@@ -875,8 +881,10 @@ entries:
     name: "helix-test-debug"
     domain: "cli"
     description: "debug-enabled セルフテスト wrapper"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-03"
+    l3_fr:
+      - "FR-TDD-01"
     status: "active"
     code_paths:
       - "cli/helix-test-debug"
@@ -3166,8 +3174,10 @@ entries:
     name: "workflow/compliance"
     domain: "skill"
     description: "法令遵守・ライセンス・規制対応"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3260,8 +3270,10 @@ entries:
     name: "workflow/dev-policy"
     domain: "skill"
     description: "開発方針・品質基準・完成の定義・チームルール雛形"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3270,8 +3282,10 @@ entries:
     name: "workflow/dev-setup"
     domain: "skill"
     description: "OS 別セットアップ・VSCode 設定・開発環境構築"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3304,8 +3318,10 @@ entries:
     name: "workflow/estimation"
     domain: "skill"
     description: "三点見積もり・リスク係数・スプリント計画見積もり"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3638,8 +3654,10 @@ entries:
     name: "common/design"
     domain: "skill"
     description: "UI/UX とコンポーネント設計、日本市場向けデザイン原則"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3684,8 +3702,10 @@ entries:
     name: "common/infrastructure"
     domain: "skill"
     description: "Docker・PostgreSQL・Redis・Nginx 本番構成と安全設定"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3742,8 +3762,10 @@ entries:
     name: "common/visual-design"
     domain: "skill"
     description: "ビジュアルデザイン基礎 (配色・タイポグラフィ・余白・視線誘導)、デザイン判断支援"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3776,8 +3798,10 @@ entries:
     name: "project/fe-a11y"
     domain: "skill"
     description: "axe-core 検証・WCAG 2.1 AA 準拠チェックリスト"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3786,8 +3810,10 @@ entries:
     name: "project/fe-component"
     domain: "skill"
     description: "Atomic Design コンポーネントツリー設計・TypeScript Props 型定義"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3796,8 +3822,10 @@ entries:
     name: "project/fe-design"
     domain: "skill"
     description: "FE 情報アーキテクチャ (D-IA) 設計、ページマップ・ナビゲーション階層"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3806,8 +3834,10 @@ entries:
     name: "project/fe-style"
     domain: "skill"
     description: "デザイントークン 3 層定義 (primitive/semantic/component)・CSS/Tailwind 実装方針"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3960,8 +3990,10 @@ entries:
     name: "project/ui"
     domain: "skill"
     description: "FE 設計知識群インデックス、情報設計・コンポーネント・スタイル・a11y・テストへ接続"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -3994,8 +4026,10 @@ entries:
     name: "advanced/i18n"
     domain: "skill"
     description: "多言語対応、Next.js/FastAPI i18n 実装パターン・Intl API 適用"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4028,8 +4062,10 @@ entries:
     name: "advanced/marketing-innovation"
     domain: "skill"
     description: "海外マーケティング思想 (Product-led/JTBD/NSM/Reforge/Bowling Alley) 翻案"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-01"
+    l3_fr:
+      - "FR-NSM-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4050,8 +4086,10 @@ entries:
     name: "advanced/tech-innovation"
     domain: "skill"
     description: "海外技術思想 (Spotify Squad/Stripe/Linear/DORA/SPACE) 日本版実装翻案"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4096,8 +4134,10 @@ entries:
     name: "tools/ide-tools"
     domain: "skill"
     description: "IDE・AI ツール選定・MCP 設定比較・セットアップ手順"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4106,8 +4146,10 @@ entries:
     name: "tools/web-search"
     domain: "skill"
     description: "ビルトイン WebSearch+WebFetch、一次情報収集・ドキュメント確認・競合調査"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-10"
+    l3_fr:
+      - "FR-CTX-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4164,8 +4206,10 @@ entries:
     name: "writing/god-writing"
     domain: "skill"
     description: "LP/SEO/コピー/UX 文章/セールスコピー統合ライティング (AIDA/PAS/BAB + 心理学 + UX writing + E-E-A-T)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4186,8 +4230,10 @@ entries:
     name: "writing/presentation"
     domain: "skill"
     description: "Marp CLI Markdown→PPTX/PDF スライド自動生成"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4196,8 +4242,10 @@ entries:
     name: "writing/social"
     domain: "skill"
     description: "リリースノート・技術ブログ→X/LinkedIn/Bluesky SNS 投稿案自動生成"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4206,8 +4254,10 @@ entries:
     name: "writing/story"
     domain: "skill"
     description: "ストーリーテリング"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
     status: "active"
     code_paths: []
     doc_paths: []
@@ -4215,8 +4265,10 @@ entries:
     name: "design-tools/character"
     domain: "skill"
     description: "AI 画像生成プロンプト設計でキャラクター・マスコット・アバターデザイン方針構造化"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4237,8 +4289,10 @@ entries:
     name: "design-tools/gpt-image"
     domain: "skill"
     description: "GPT Image 2 で SEO 記事アイキャッチ・図解・LP ヒーロー画像生成 ($imagegen built-in)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4247,8 +4301,10 @@ entries:
     name: "design-tools/graphic"
     domain: "skill"
     description: "Vercel Satori 等による SVG/OGP 画像動的生成、ブログ・リリースアイキャッチ自動作成"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4257,8 +4313,10 @@ entries:
     name: "design-tools/pptx"
     domain: "skill"
     description: "python-pptx テンプレートベース PPTX 自動生成、定型報告書・提案書スライドデータ駆動作成"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4267,8 +4325,10 @@ entries:
     name: "design-tools/web-system"
     domain: "skill"
     description: "shadcn/ui デザインシステム構築、コンポーネント選定・テーマ設定・トークン管理"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4289,8 +4349,10 @@ entries:
     name: "automation/flow-optimize"
     domain: "skill"
     description: "サイトマップ・Playwright 操作記録からユーザーフロー分析・ステップ数削減提案"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-06"
+    l3_fr:
+      - "FR-IMPACT-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4467,8 +4529,10 @@ entries:
     name: "agent-skills/frontend-ui-engineering"
     domain: "skill"
     description: "本番品質 UI 構築、コンポーネント・レイアウト・状態管理"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4501,8 +4565,10 @@ entries:
     name: "agent-skills/idea-refine"
     domain: "skill"
     description: "アイデア反復精錬、発散・収束思考"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4775,8 +4841,10 @@ entries:
     name: "L10-ux-refinement.md"
     domain: "workflow"
     description: "L10 / フロント UX 磨き上げ・ビジュアル磨き・コピー磨き (L2↔L10 pair)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -4973,8 +5041,10 @@ entries:
     name: "frontend-design-workflow.md"
     domain: "workflow"
     description: "工程専門 (L10) / フロントデザインワークフロー・UX/ビジュアル (L10 担当)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5103,8 +5173,10 @@ entries:
     name: "folder-structure-review.md"
     domain: "workflow"
     description: "フォルダ構成レビューと再構成"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5241,6 +5313,88 @@ entries:
     code_paths: []
     doc_paths:
       - "HELIX-workflows/helix-process/v2-9mode-ecosystem.md"
+  - id: "FR-WORKFLOW-050"
+    name: "document-topology.md"
+    domain: "workflow"
+    description: "ドキュメント配置・参照関係・常時注入/詳細注入判断・BC境界の正本 (G/P住所分離・移動policy)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/document-topology.md"
+  - id: "FR-WORKFLOW-051"
+    name: "forward-return-discipline.md"
+    domain: "workflow"
+    description: "全駆動 workflow の Forward V-model 引き戻し規律 SSoT (design_change_class / 再凍結 pair map / waiver)"
+    l1_fr:
+      - "FR-07"
+      - "FR-08"
+    l3_fr:
+      - "FR-EVT-01"
+      - "FR-4ART-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/forward-return-discipline.md"
+  - id: "FR-WORKFLOW-052"
+    name: "github-operations.md"
+    domain: "workflow"
+    description: "HELIX-native GitHub 運用 (Forward逸脱→Issue / CI↔gate紐づけ / gate-driven push 7gate / raw push guard)"
+    l1_fr:
+      - "FR-05"
+      - "FR-11"
+    l3_fr:
+      - "FR-GATE-01"
+      - "FR-DRIFT-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/github-operations.md"
+  - id: "FR-WORKFLOW-053"
+    name: "plan-model.md"
+    domain: "workflow"
+    description: "PLAN モデル Process⊃Action 親子構造・plan_scope分類・forward_return必須・reciprocal trace 規範正本"
+    l1_fr:
+      - "FR-12"
+      - "FR-13"
+    l3_fr:
+      - "FR-PLAN-01"
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/plan-model.md"
+  - id: "FR-WORKFLOW-054"
+    name: "planning-to-requirements-transition.md"
+    domain: "workflow"
+    description: "L0企画→L1要求 遷移規律 (PdM登場・PM/PO判定・handoff・G0.5 gate owner) の Forward工程正本"
+    l1_fr:
+      - "FR-04"
+      - "FR-05"
+    l3_fr:
+      - "FR-9MODE-01"
+      - "FR-GATE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/planning-to-requirements-transition.md"
+  - id: "FR-WORKFLOW-055"
+    name: "workflow-self-evaluation.md"
+    domain: "workflow"
+    description: "workflow 実行の自己評価・反芻機構 (skill発火率/agent-command評価/不足評価・closure規律組込)"
+    l1_fr:
+      - "FR-11"
+      - "FR-09"
+    l3_fr:
+      - "FR-DRIFT-01"
+      - "FR-INV-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "HELIX-workflows/helix-process/workflow-self-evaluation.md"
   - id: "FR-TEMPLATE-001"
     name: "AGENTS.md.template"
     domain: "template"
@@ -5533,8 +5687,10 @@ entries:
     name: "banner.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5543,8 +5699,10 @@ entries:
     name: "bg.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5553,8 +5711,10 @@ entries:
     name: "card.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5563,8 +5723,10 @@ entries:
     name: "hero.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5573,8 +5735,10 @@ entries:
     name: "icon.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5583,8 +5747,10 @@ entries:
     name: "logo.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -5593,8 +5759,10 @@ entries:
     name: "thumb.md"
     domain: "template"
     description: "LP / SEO 記事用画像生成プロンプトテンプレート (gpt-image 向け)"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -6213,8 +6381,10 @@ entries:
     name: "plan/v2/L10-ux-refinement-template.md"
     domain: "template"
     description: "L10 UX 磨き上げ PLAN テンプレート"
-    l1_fr: []
-    l3_fr: []
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
     status: "active"
     code_paths: []
     doc_paths:
@@ -6591,3 +6761,28 @@ entries:
     code_paths: []
     doc_paths:
       - "cli/templates/handover-current.md.template"
+
+  - id: "FR-TEMPLATE-115"
+    name: "plan/v2/L02-ui-design-template.md"
+    domain: "template"
+    description: "L2 UI設計 PLAN テンプレート (kind=ui-design / drive=fe|fullstack / L2 工程用)"
+    l1_fr:
+      - "FR-04"
+    l3_fr:
+      - "FR-9MODE-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L02-ui-design-template.md"
+  - id: "FR-TEMPLATE-116"
+    name: "plan/v2/L06-function-design-template.md"
+    domain: "template"
+    description: "L6 機能設計 PLAN テンプレート (kind=function-design / drive=be|fullstack / L6 工程用)"
+    l1_fr:
+      - "FR-12"
+    l3_fr:
+      - "FR-PLAN-01"
+    status: "active"
+    code_paths: []
+    doc_paths:
+      - "cli/templates/plan/v2/L06-function-design-template.md"

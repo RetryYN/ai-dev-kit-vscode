@@ -51,6 +51,17 @@ audit_history:
 - **機械 enforcement**: `helix doctor check_functional_registry`（L4 carry）が §3〜§9 の ID と実コード（cli/lib/hook/agent/skill/workflow/template）を突合し、**未登録資産を fail-close で検出**する。実装までは本 exit 条件を手続きで担保し、実装後は gate で担保する（Phase 検証で whole-coverage detector に統合）。
 - **駆動 workflow doc 側の参照**: add-feature / reverse / retrofit の各 workflow doc は本 §1.5 を exit 条件として参照する（規律の再定義はせず本 doc を SSoT とする）。
 
+## §1.6 coverage_layer 必須 — 設計層への全件被覆 (zero-omission, 2026-06-07)
+
+> goal「設計に既存ソースのすべてが含まれているか / 抜け漏れ一切禁止」への要件化。verification-strategy §11.7 (B' 定義) と `process-2026-06-07-whole-source-design-coverage-closure` の L3 側 SSoT。
+
+- **要件**: 本 registry の **全 active entry は `coverage_layer` を持つ** (`L6_required` / `L5_required` / `L4_required` / `excluded_with_reason`)。**unknown=0** を機能網羅カバレッジの完了条件とする。
+  - `L6_required` = public callable / 独立した振る舞い契約 / DbC 必要 → L6 機能設計 FN-* + L7 単体テスト UT-* を 1:1 で持つ。
+  - `L5_required` / `L4_required` = MOD-*/IT-* / NFR-*/IF-*/ST-* で被覆 (`design_ids` 必須)。
+  - `excluded_with_reason` = private glue / 生成物 / static template / 参照専用 doc → **上位設計 ID + 除外理由が必須** (orphan 禁止)。
+- **機械 enforcement**: `registry_design_coverage` detector (Action3 新設) が coverage_layer 充足 / design_id 実在 / coverage_layer↔design_id prefix 整合 (wrong_layer) を検査し、unknown / missing / wrong_layer を warn→ratchet→fail-close で検出する。
+- **DF-WCAUDIT-L6L7-001 supersede**: 「L6 を観測契約 14 に限定」は defer 不可となり、本要件で全 active entry の層分類 + L6_required の FN/UT 1:1 拡張へ巻き取る。
+
 ---
 
 ## §2. 全体 summary
@@ -58,13 +69,15 @@ audit_history:
 | 区分 | 件数 |
 |---|---|
 | CLI binaries (cli/helix-*) | 80 |
-| CLI lib modules (cli/lib/*.py) | 139 |
+| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 147 |
 | Hooks (.claude/hooks/*.sh) | 17 |
 | Subagents (.claude/agents/*.md) | 19 |
-| Skills (skills/**/SKILL.md) | 130 |
-| HELIX-workflows doc (helix-process/*.md + root) | 49 |
-| Templates (cli/templates/**) | 114 |
-| **総計** | **548** |
+| Skills (skills/**/SKILL.md) | 131 |
+| HELIX-workflows doc (helix-process/*.md + root) | 55 |
+| Templates (cli/templates/**) | 116 |
+| **総計** | **565** |
+
+> 件数 SSoT 是正 (2026-06-07, AUDIT-WSDC-001 / Action2): yaml registry の domain 別実数に同期。旧 548 は md prose 側 drift（registration cluster で yaml に追加された 4 件 + 本 Action の 8 件未反映）。`check_fr_sot_alignment` が md⇔yaml の name 集合 + 件数を機械照合する。
 
 ### FR mapping coverage
 
@@ -326,6 +339,10 @@ audit_history:
 | workspace_snapshot.py | HELIX workspace state snapshot generator (PLAN-156/ADR-040 D3) | FR-07 | FR-EVT-01 |
 | yaml_parser.py | Lightweight YAML parser (PyYAML 不要、frontmatter 用) | FR-10 | FR-CTX-01 |
 | zizmor_ignore_lint.py | PLAN-222 AC-5: zizmor:ignore コメント metadata 機械検査 | FR-02 | FR-GR-01 |
+| coding_rule_checks.py | CLAUDE.md の coding/commit/forbid 14 rule と enforcement path の warn-only 検出 | FR-09 | FR-INV-01 |
+| coding-rule-registry.yaml | coding rule detector の機械正本 registry (CLAUDE.md 14 rule registry) | FR-09 | FR-INV-01 |
+| ddd_registry_checks.py | concept.md §12/§14 の Glossary / BC 構造 coverage を warn-only で検出する DDD detector | FR-09 | FR-INV-01 |
+| ddd-registry.yaml | DDD detector の機械正本 registry (concept.md §12.1 19語 + §14.1 10 BC) | FR-09 | FR-INV-01 |
 
 ---
 
@@ -619,7 +636,7 @@ audit_history:
 | frontend-design-workflow.md | 工程専門 (L10) | フロントデザインワークフロー・UX/ビジュアル (L10 担当) | - | - |
 | two-stage-agent-design.md | HELIX W (特殊) | 2 段 V 字合流型 Phase1+2+3、AI エージェントシステム構築時専用 | FR-04 | FR-9MODE-01 |
 
-### §8.4 管理基盤 doc — 22 件
+### §8.4 管理基盤 doc — 28 件
 
 | doc | 役割 | 関連 L1 FR | 関連 L3 FR |
 |---|---|---|---|
@@ -645,6 +662,12 @@ audit_history:
 | review-stage-routing.md | レビュー段階ルーティング (6 段階×ロール分業) | FR-08 | FR-4ART-01 |
 | v2-9mode-ecosystem.md | HELIX-workflows V2 9 mode ecosystem アーキテクチャ概観 | FR-04 | FR-9MODE-01 |
 | two-stage-agent-design.md | ※§8.3 参照 (管理基盤 doc にも分類) | FR-04 | FR-9MODE-01 |
+| document-topology.md | ドキュメント配置・参照関係・常時注入/詳細注入判断・BC境界の正本 (G/P住所分離) | FR-12 | FR-PLAN-01 |
+| forward-return-discipline.md | 全駆動 workflow の Forward V-model 引き戻し規律 SSoT (design_change_class / 再凍結 pair) | FR-07 | FR-EVT-01 |
+| github-operations.md | HELIX-native GitHub 運用 (Forward逸脱→Issue / CI↔gate / gate-driven push 7gate) | FR-05 | FR-GATE-01 |
+| plan-model.md | PLAN Process⊃Action 親子構造・plan_scope分類・forward_return必須・reciprocal trace 規範 | FR-12 | FR-PLAN-01 |
+| planning-to-requirements-transition.md | L0企画→L1要求 遷移規律 (PdM登場・PM/PO判定・G0.5 gate owner) | FR-04 | FR-9MODE-01 |
+| workflow-self-evaluation.md | workflow 実行の自己評価・反芻機構 (skill発火率/agent-command評価) | FR-11 | FR-DRIFT-01 |
 
 ---
 
@@ -755,6 +778,8 @@ audit_history:
 | plan/v2/L13-post-deployment-template.md | L13 デプロイ後検証 PLAN テンプレート | FR-01 | FR-NSM-01 |
 | plan/v2/L14-operation-verification-template.md | L14 運用検証 PLAN テンプレート | FR-01 | FR-NSM-01 |
 | plan/v2/README.md | V2 PLAN テンプレート README | FR-12 | FR-PLAN-01 |
+| plan/v2/L02-ui-design-template.md | L2 UI設計 PLAN テンプレート (kind=ui-design / drive=fe\|fullstack) | FR-04 | FR-9MODE-01 |
+| plan/v2/L06-function-design-template.md | L6 機能設計 PLAN テンプレート (kind=function-design / drive=be\|fullstack) | FR-12 | FR-PLAN-01 |
 
 ### §9.9 prompts / rules / scrum / teams / hooks / workspace / retro テンプレート
 
