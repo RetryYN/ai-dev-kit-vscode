@@ -8,6 +8,7 @@ kind: recovery
 layer: L3
 drive: reverse
 status: completed
+tl_review: approve  # 親 Process の TL impl re-review approve に内包 (zero-omission gate)
 created: 2026-06-07
 owner: PM
 agent_slots:
