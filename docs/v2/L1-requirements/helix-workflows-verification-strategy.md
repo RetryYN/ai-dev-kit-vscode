@@ -173,12 +173,36 @@ refreeze_decision:
 - 現状: detector advisory（exit 0）。**Phase3 で fail-close gate 化**（`helix doctor check_pair_trace_symmetry` / automation-gate-map 接続、§9 carry）。
 - semantic gate は AI/人の判定であり機械化しない（§10）。detector はその必要条件を供給するに留める。
 
+### 11.7 whole-source ⊆ design coverage（zero-omission、2026-06-07）
+
+> ユーザー goal「設計に既存ソースのすべてが含まれているか徹底検証し、抜け漏れを一切禁止」への回答。§11 の whole-coverage audit は従来「pair が閉じているか」を測ったが、**「既存ソースのすべてが設計層に被覆されているか」** を測る軸を本節で追加する。evidence = [AUDIT-WSDC-001](../../audit/2026-06-07-whole-source-design-coverage-audit.md)、是正 Process = `process-2026-06-07-whole-source-design-coverage-closure`。
+
+**zero-omission の定義（B'、tl-advisor 2026-06-07 採用）**:
+```
+zero_omission = source ⊆ registry
+            AND registry → L1/L3 trace complete（l1_fr/l3_fr 非空・ID 実在）
+            AND 全 active registry entry が明示的 coverage_layer 分類を持つ（unknown=0）
+```
+
+**coverage_layer 分類基準**（functional-registry 各 entry に付与。「L6 逃げ」防止のため L4/L5 被覆でも design_id 必須・excluded は理由必須）:
+
+| coverage_layer | 線引き（判定基準） | 設計反映 |
+|---|---|---|
+| `L6_required` | **public callable / 独立した振る舞い契約 / DbC（requires/ensures/invariant）が必要**なもの（例: guard verdict, validator, db CRUD helper） | FN-* + UT-* を 1:1（関数粒度ペアリング厳守） |
+| `L5_required` | module 境界 / 結合 / data flow / 内部 process（例: engine, manager, routing） | MOD-* / IT-* で被覆（design_id 必須） |
+| `L4_required` | workflow / architecture / NFR / command family / system interaction（例: helix-* CLI family, workflow doc, template） | NFR-* / IF-* / ST-* で被覆（design_id 必須） |
+| `excluded_with_reason` | private glue / 生成物 / static template / 参照専用 doc | 新規 FN/UT 不要だが**上位設計 ID + 除外理由が必須**（orphan 禁止） |
+
+- **却下した解釈**: A（全 registry entry を FN/UT 化）= template/workflow doc まで単体テスト化する粒度誤り。C（registry+要件 trace のみ）= 設計層被覆を証明せず goal 未達。
+- **機械証明 detector**（§11.6 の機械化対象に追加）: `source_scan_vs_registry`（unregistered=0）/ `registry_trace_complete`（invalid=0）/ **`registry_design_coverage`（新設: coverage_layer + design_id 充足、unknown=0 / missing=0 / wrong_layer=0）** / `trace_symmetry`（L6_required は FN↔UT 1:1）。`check_functional_registry` は clean baseline 後 ratchet→fail-close 昇格。
+- **完了判定**: `detector_clean AND semantic_gate_pass`（§11.2 と同式、coverage 100% 単独 pass は禁止）。zero-omission 宣言は registry_design_coverage の unknown=0 と L6_required pair green の両成立後。
+
 ## 9. carry
 - **Phase2 完遂（2026-06-03）**: L1↔L14 / L3↔L12 / L4↔L9 / L5↔L8 / L6↔L7 全 5 pair frozen + detector cov100% / missing0 / wrong_layer0 / dup0。「見直し」を whole-coverage audit recipe（§11）として体系化（新駆動 workflow を作らず Forward 検証 activity 化、tl-advisor 諮問2回 passed）。
 - **deferred finding（TL P3、whole-coverage audit re-freeze 時の追跡対象）**:
   - `DF-WCAUDIT-L4L9-001`: detector が ST→TV→L4 推移 trace 未対応で orphan18（全 ST-*）を over-report。semantic 判定で excluded（L9 §7.1）。detector の推移 trace 解決は Phase3。
   - `DF-WCAUDIT-L5L8-001`: L5↔L8 gap = IT-MOD-06 / IT-DB-03 / IT-DB-05（結合テスト未実装、設計 gap でない。L8 doc 明示済）。
-  - `DF-WCAUDIT-L6L7-001`: L6↔L7 は観測済 public contract 14 に限定（全 139 lib 関数の約 10%、粒度爆発回避の意図的限定）。**gap クラスタ**: `FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計が未定義 = **`DF-WCAUDIT-L5L8-001`（IT-MOD-06/IT-DB-03/IT-DB-05）と同根**（2026-06-03 Phase2 総合見直し pmo Gap-1 で connective 確認）。universe 分類は L6 §5.1。将来 FR 拡張時に再評価。
+  - `DF-WCAUDIT-L6L7-001`: ~~L6↔L7 は観測済 public contract 14 に限定（全 139 lib 関数の約 10%、粒度爆発回避の意図的限定）~~ → **SUPERSEDED（2026-06-07）**: goal「抜け漏れ一切禁止」により defer 継続不可。`process-2026-06-07-whole-source-design-coverage-closure`（§11.7 B' / coverage_layer 分類）へ巻取り、全 active entry を L4/L5/L6/excluded に明示分類し L6_required のみ FN/UT 1:1 拡張する。以下は supersede 前の記録。**gap クラスタ**: `FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計が未定義 = **`DF-WCAUDIT-L5L8-001`（IT-MOD-06/IT-DB-03/IT-DB-05）と同根**（2026-06-03 Phase2 総合見直し pmo Gap-1 で connective 確認）。universe 分類は L6 §5.1。将来 FR 拡張時に再評価。
   - `DF-WCAUDIT-L6L7-002`（2026-06-03 Phase2 総合見直し tl-advisor P1 新規）: L6 `FN-*` は Reverse 由来の **観測契約 / 責務粒度**で、`FN-AGENT-01`(fire/release) `FN-CONTRACT-01`(登録/照合) `FN-DB-01`(接続/CRUD) `FN-HANDOVER-01`(resume/stale) 等が 1 FN に複数オペレーションを束ねており、厳密な「関数 1 個 = UT 1 個 / callable・入力型・例外型明示」より粗い（`FN-ROUTE-01` のみ単一関数）。1 FN↔1 UT で内部整合・detector green だが、厳密分割と callable/error contract 明示は Phase3 L7 実装（TDD sharpening）へ defer。L6 §5.2 記録。
 - **Phase3**: detector fail-close gate 化（automation-gate-map 接続、`helix doctor check_pair_trace_symmetry`）+ ST→TV→L4 推移 trace 解決 + whole-coverage audit recipe（§11）の CI 連動。
 - detector golden fixture（§6）の整備。
