@@ -1,7 +1,9 @@
-"""registry_design_coverage detector — zero-omission(B') の機械証明.
+"""registry_design_coverage detector — zero-omission(B') の機械証明 (必要条件).
 
 functional-registry の全 active entry が設計層へ被覆されているか
 (coverage_layer + design_ids + excluded_reason) を検査する。
+design_id は anchor ∪ 実ID prefix (FN-*/MOD-* 等) で解決する必要条件 detector であり、
+design_id の実 doc 存在は L6/L7 doc + trace_symmetry (FN↔UT 1:1) が担保する (本 detector は実在証明ではない)。
 
 正本: docs/v2/L1-requirements/helix-workflows-verification-strategy.md §11.7
       docs/v2/L3-requirements/helix-workflows-functional-registry.md §1.6

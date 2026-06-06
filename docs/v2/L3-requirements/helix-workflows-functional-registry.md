@@ -59,7 +59,7 @@ audit_history:
   - `L6_required` = public callable / 独立した振る舞い契約 / DbC 必要 → L6 機能設計 FN-* + L7 単体テスト UT-* を 1:1 で持つ。
   - `L5_required` / `L4_required` = MOD-*/IT-* / NFR-*/IF-*/ST-* で被覆 (`design_ids` 必須)。
   - `excluded_with_reason` = private glue / 生成物 / static template / 参照専用 doc → **上位設計 ID + 除外理由が必須** (orphan 禁止)。
-- **機械 enforcement**: `registry_design_coverage` detector (Action3 新設) が coverage_layer 充足 / design_id 実在 / coverage_layer↔design_id prefix 整合 (wrong_layer) を検査し、unknown / missing / wrong_layer を warn→ratchet→fail-close で検出する。
+- **機械 enforcement**: `registry_design_coverage` detector (Action3 新設) が coverage_layer 充足 / design_id 解決 (anchor∪実IDprefix での整合、**実 doc ID 存在チェックではない必要条件**) / coverage_layer↔design_id prefix 整合 (wrong_layer) を検査し、unknown / missing / wrong_layer を warn→ratchet→fail-close で検出する。design_id (FN-*/MOD-* 等) の**実 doc 存在**は L6/L7 doc + `trace_symmetry` (FN↔UT 1:1) が担保し、detector の必要条件を補完する。
 - **DF-WCAUDIT-L6L7-001 supersede**: 「L6 を観測契約 14 に限定」は defer 不可となり、本要件で全 active entry の層分類 + L6_required の FN/UT 1:1 拡張へ巻き取る。
 
 ### §1.6.1 代表 design anchor (design_ids 束ね ID の SSoT)

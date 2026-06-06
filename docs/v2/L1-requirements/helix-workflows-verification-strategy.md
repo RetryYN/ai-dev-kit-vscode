@@ -276,22 +276,24 @@ refreeze_decision:
     duplicate_id: 0
     orphan_test: 0
     preflight: pass
-  registry_design_coverage:          # zero-omission 機械証明 (新 detector)
+  registry_design_coverage:          # zero-omission 機械証明 (新 detector、necessary condition)
     active_entries: 549
     unknown_coverage_layer: 0
     design_id_missing: 0
     wrong_layer: 0
     l6_design_pending: 0
+    proof_scope: "anchor/prefix 整合 + semantic review 補完 (実 doc ID 存在チェックではない=必要条件)。WSC ID の実 doc 存在は L6/L7 doc + trace_symmetry で別途担保"
   semantic_gate:
     owner: TL
-    verdict: pending                 # TL impl review 待ち (FN-WSC DbC 妥当性 + 分類 semantic)
-    note: "FN-WSC DbC は pmo-project-explorer が実コード精読で抽出。fail-close 方向は実コード確認済"
+    verdict: changes_required_fixes_applied   # TL impl review = changes_required (P1 carry件数/P2 L7セル/P2 detector文言) → 反映済、re-review 待ち
+    note: "TL 抜き取り検証で分類妥当・FN-WSC DbC faithful (agent guard deny / post-tool-use fail-open / push_gate execute・main guard / job enqueue advisory 実コード整合) を確認済。changes_required は証跡品質3点のみで、反映済。approve は re-review で確定"
   refreeze:
-    approvers: [PM]                  # TL approve 後に [TL, PM]
+    approvers: [TL, PM]
     routing: {kind: defer, target: L7-sprint, findings: [WSC-TEST-IMPL]}
     deferred_finding:
       id: WSC-TEST-IMPL
-      detail: "FN/UT 設計は 54 件完備だが、テスト実装が未整備 = hooks E2E 6件 (FN-WSC-03/05/06/10/13/17) + uuid7_generator(FN-WSC-213) + zizmor_ignore_lint(FN-WSC-218)。設計の抜け漏れではなく test 実装 carry (machine-clean な design freeze は成立、test 実装は L7 sprint)。"
+      count: 12
+      detail: "FN/UT 設計は 54 件完備だが、テスト実装が weak = 12 件。①専用テスト無し 8 (hook 6: FN-WSC-03/05/06/10/13/17 + lib 2: FN-WSC-213 uuid7_generator / FN-WSC-218 zizmor_ignore_lint) ②Python pytest 済だが hook script E2E(bats) 未 4 (FN-WSC-02/04/12/15)。設計の抜け漏れではなく test 実装 carry (machine-clean な design freeze 成立、test 実装は L7 sprint)。L7 whole-source-coverage-単体テスト設計.md の carry 台帳と件数一致。"
 ```
 
-**Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0）+ L6↔L7 trace_symmetry balance1.0。**設計の抜け漏れ = 0**。残 carry は「設計済 FN/UT のうち 8 件のテスト実装」（design freeze と分離、machine-clean vs test-impl）。**zero-omission 宣言は detector_clean 成立、semantic_gate（TL impl review）approve をもって最終確定**。
+**Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0、**必要条件**）+ L6↔L7 trace_symmetry balance1.0 + semantic gate（TL impl review approve）。**設計の抜け漏れ = 0**。残 carry は「設計済 FN/UT のうち 12 件のテスト実装」（design freeze と分離、machine-clean vs test-impl、L7 台帳と一致）。`registry_design_coverage` は design_id を anchor/prefix で解決する**必要条件 detector**であり、「実 doc ID 存在証明」ではない（WSC ID の実在は L6/L7 doc + trace_symmetry が担保）。

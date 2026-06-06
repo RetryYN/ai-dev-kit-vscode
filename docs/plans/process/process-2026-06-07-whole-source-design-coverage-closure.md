@@ -122,5 +122,5 @@ zero_omission = source ⊆ registry
 - L6↔L7: `trace_symmetry` balance1.0 / coverage100% / missing0 / dup0 / orphan0
 - doctor: 30 pass / 0 fail / 107 warn（check_registry_design_coverage ✓ 昇格）
 
-**残 carry**（設計 freeze と分離）: `WSC-TEST-IMPL` = 設計済 FN/UT 54 のうち 8 件のテスト実装未整備（hooks E2E 6 + uuid7_generator + zizmor_ignore_lint）。設計の抜け漏れではない（machine-clean な design freeze 成立、test 実装は L7 sprint）。
-**最終確定**: TL impl review（FN-WSC DbC + 分類 semantic gate）approve → status=completed + gate-driven push。
+**残 carry**（設計 freeze と分離）: `WSC-TEST-IMPL` = 設計済 FN/UT 54 のうち **12 件**のテスト実装 weak（①専用テスト無し 8: hook FN-WSC-03/05/06/10/13/17 + lib FN-WSC-213/218、②Python pytest 済/hook E2E 未 4: FN-WSC-02/04/12/15）。設計の抜け漏れではない（machine-clean な design freeze 成立、test 実装は L7 sprint。L7 doc + verification-strategy §13 台帳と件数一致）。
+**最終確定**: TL impl review（2026-06-07 changes_required: P1 carry件数 / P2 L7セル / P2 detector文言 → 反映済）→ approve → status=completed + gate-driven push。`registry_design_coverage` は必要条件 detector（design_id は anchor/prefix 解決、実在は trace_symmetry 担保）。
