@@ -4,6 +4,7 @@ title: Vモデル自動化・ゲートマップ
 status: accepted
 accepted_date: 2026-05-24
 created: 2026-05-24
+updated: 2026-06-08
 owner: PM
 parent: ../HELIX-process-L0-L14.md
 integration_target:
@@ -15,11 +16,76 @@ integration_target:
 
 ## 概要
 
-新Vモデル（L0–L14）全体の自動化。各 layer（工程）に detector が自動紐づき、各ゲートは `gate-checks.yaml` の static シェルコマンドで決定論的に判定する。FE に限らず全工程が対象で、AI判断は中身の評価のみに使う。
+新Vモデル（L0–L14）の自動化・ゲート**配線正本**。検証はロードマップの Phase として常時目指すものでなく、**Forward V-model に内在する検証サイクル＝ゲート**として機能させる（各 L の凍結/前進は検証閉合をゲートで通す）。各 layer に detector が紐づき、各ゲートは決定論的 static + detector で判定する。AI判断は中身の評価のみ。
 
-## layer × detector（工程別の自動検証）
+> 本書 = **detector ↔ gate / push / CI の配線と enforcement phase**。役割分担: 原則・L/G 対応 → [HELIX-process-L0-L14](../HELIX-process-L0-L14.md)／判定式・evidence schema → [verification-strategy §14](../../docs/v2/L1-requirements/helix-workflows-verification-strategy.md)／readiness 正本 → [gate-policy](../../skills/tools/ai-coding/references/gate-policy.md)／static adapter（派生・正本でない）→ `gate-checks.yaml`／push 前 orchestration → `cli/lib/push_gate.py`。
 
-vmodel-semantics.yaml で、各 layer の design 側・test 側にそれぞれ detector が紐づく。
+## 0. ゲート体系と V-model L 対応（公開 ID 維持・L exit 整合）
+
+公開 gate ID `G0.5/G1〜G14`（+ sub-gate）は**維持**し、意味を「対応 L の exit gate」に固定する（番号を作り直すと既存 PLAN/handover/CI/利用者 docs が壊れる）。内部実装は安定 key（`VG-L0x-exit` / `VG-Lxx-pair-Lyy` / `VG-overview-pre-push`）を持つ。
+
+> **G0 の扱い（TL P2 反映）**: `G0` は独立した fail-close gate ID **ではなく** L0 企画の **entry marker**。最初の決定論ゲートは **G0.5（企画突合）**。gate-policy / gate-checks / 本書 §1 は G0.5 始まりで一致させる（§1 表の `L0 | G0 / G0.5` は「entry marker G0 + 突合ゲート G0.5」の意）。
+
+> **既知 drift（是正対象、2026-06-08 検出）**: [gate-policy.md](../../skills/tools/ai-coding/references/gate-policy.md) は G0-G14（+sub）full set を readiness table に持つが、実行される `gate-checks.yaml`（template）は **G0/G1/G1.5/G8/G11.5/G12/G13/G14 が欠落**。policy ↔ 実装の乖離。本書の補完対象 = 欠落ゲートの static + detector 配線。旧 `G6.5/G6.7/G6.9` は L 整合 ID への alias として deprecated 計画。
+
+## 1. Forward 全段階ゲート（G0–G14、L exit）
+
+| L（工程） | gate | 種別 | exit が要求する検証閉合 | 束ねる detector/check | 現 enforce | 目標 |
+|---|---|---|---|---|---|---|
+| L0 企画 | G0 / G0.5 | entry/突合 | 企画書・要件・受入条件の存在、TODO 残存なし | 企画突合 static | fail-close(G0.5) | 維持 |
+| L1 要求 | G1 | 左腕 freeze | L1 要求凍結 + **対 L14 運用テスト設計** + L1↔L14 trace(pre) | requirement_drift / trace_symmetry(L1-L14) | **未実装(欠落)** | ratchet→fc |
+| L2 画面 | G2 | 左腕 freeze | L2 画面/設計凍結 + **対 L10 UX/FE 検証設計** + L2↔L10 trace(pre) | FE detector(axis-15-19 未実装) / trace_symmetry(L2-L10 未) | advisory/skip | waiver schema |
+| L3 要件 | G3 | 左腕 freeze | L3 要件凍結 + **対 L12 受入テスト設計** + requirement_drift | trace_symmetry(L3-L12) / requirement_drift | proxy(grep) | detector 化 |
+| L4 基本設計 | G4 | 左腕 freeze | L4 凍結 + **対 L9 総合テスト設計** + L4↔L9 trace(pre) | trace_symmetry(L4-L9) | advisory | ratchet→fc |
+| L5 詳細設計 | G5 | 左腕 freeze | L5 凍結 + **対 L8 結合テスト設計** + L5↔L8 trace(pre) | trace_symmetry(L5-L8) | advisory | ratchet→fc |
+| L6 機能設計 | G6 | 左腕 freeze | L6 凍結 + **対 L7 単体テスト設計** + L6↔L7 trace(pre) | trace_symmetry(L6-L7) / registry_design_coverage | advisory | **MVP fail-close** |
+| L7 実装 | **G7** | 右腕 execution | **UT-ID test code anchor + test_execution_pass** + L6↔L7 trace(post) + semantic | UT anchor subcheck(新) / pytest・bats 実行 / trace_symmetry | proxy | **MVP fail-close** |
+| L8 結合 | G8 | 右腕 execution | 結合テスト anchor + 実行 pass + L5↔L8 trace(post) + semantic | IT anchor / 結合テスト実行 | **未実装(欠落)** | ratchet |
+| L9 総合 | G9 | 右腕 execution | 総合テスト anchor + 実行 pass + L4↔L9 trace(post) + semantic（orphan は semantic gate） | ST anchor / 総合テスト実行 | proxy | ratchet |
+| L10 UX | G10 | 右腕 execution | UX 検証実行 + L2↔L10 closure | FE visual/a11y(未) | advisory/skip | waiver |
+| L11 レビュー | G11 | 横断 | drift 解消 + RC 判定（要件巻取り・全 pair 俯瞰） | requirement_drift / VG-overview | proxy | fail-close |
+| L12 受入 | G12 | 右腕 execution | 受入テスト anchor + 実行 pass + L3↔L12 closure | AT anchor / 受入テスト実行 | **未実装(欠落)** | ratchet |
+| L13 運用検証 | G13 | 運用 | canary / smoke / 初期運用 gate | デプロイ後検証 | **未実装(欠落)** | 後続 |
+| L14 運用学習 | G14 | 右腕 execution | 運用検証 + L1↔L14 closure（運用テスト実施） | OT 実行 / 運用観測 | **未実装(欠落)** | 後続 |
+
+- **左腕 freeze gate（G1-G6）**: `design + test_design + trace_symmetry(pre-execution)` まで要求。
+- **右腕 execution gate（G7-G14 の対）**: `test_code_anchor + test_execution_pass + trace_symmetry(post-execution) + semantic_gate` まで要求。
+- coverage 100% 単独 pass は禁止（例: L4↔L9 は cov100% でも orphan18/balance0.67 → semantic gate 必須）。
+
+## 2. pair-closure ゲート（6 pair、検証実体）
+
+各 pair は `pair_closure = design + test_design + test_code_anchor + test_execution_pass + trace_symmetry + semantic_gate` の AND（判定式正本 = verification-strategy §14）。
+
+| pair | 左腕 freeze | 右腕 execution | detector | 現状 |
+|---|---|---|---|---|
+| L6↔L7 単体 | G6 | **G7** | trace_symmetry(L6-L7) + UT anchor + pytest/bats | 設計 balanced(FN88↔UT88)、検証実行 anchor 31/88（**MVP で閉じる**） |
+| L5↔L8 結合 | G5 | G8 | trace_symmetry(L5-L8) + IT 実行 | gap=IT-MOD-06/IT-DB-03/05（DF-WCAUDIT-L5L8-001） |
+| L4↔L9 総合 | G4 | G9 | trace_symmetry(L4-L9) + ST 実行 | cov100% だが orphan18/balance0.67 = semantic gate（DF-WCAUDIT-L4L9-001） |
+| L3↔L12 受入 | G3 | G12 | trace_symmetry(L3-L12) + AT 実行 | trace green、G12 実行 gate 未実装 |
+| L2↔L10 UX | G2 | G10 | FE detector(axis-15-19 未) | UI absent / 未実装 → `not_applicable`/`ui_absent` waiver schema 必須 |
+| L1↔L14 運用 | G1 | G14 | trace_symmetry(L1-L14) + OT 実行 | trace green、G1/G14 gate 未実装 |
+
+- **trace_symmetry の pair**: 現状 `PAIR_LAYERS` は L1-L14/L3-L12/L4-L9/L5-L8/L6-L7 の **5 pair**。**L2-L10 が欠落**（FE detector 未実装と連動）→ 補完対象（waiver schema で skip 野放しを防ぐ）。
+
+## 3. 横断ゲート（要件ずれ drift / 全体俯瞰 overview）
+
+段階ゲート・pair ゲートに加え、**横断で常時 fail-close 化する 2 ゲート**を新設する。
+
+### 3.1 要件ずれゲート（requirement_drift、新規 detector）
+- 責務 = ID 対称性（trace_symmetry の領域）でなく **縦・意味 trace**。よって `trace_symmetry` 拡張でなく**別 detector `cli/lib/requirement_drift.py`**。
+- 入力: L1/L3 requirement docs、L4-L6 design ID/frontmatter、functional-registry、code anchor/docstring/test anchor。
+- 出力: `missing_downstream` / `orphan_design` / `orphan_code` / `semantic_label_mismatch` / `stale_freeze` / `waived_with_reason`。
+- fail-close 対象 gate: G3 / G4 / G6 / G7 / G11 / pre-push。
+- 意義: 「L1 FR → L3 FR → L4-L6 設計 → L7 code → test」が時間でずれる（要件ずれ）のを止める経路（現状ゼロ）。
+
+### 3.2 全体俯瞰ゲート（VG-overview、新規 aggregator）
+- freeze 前・push 前に**必須**で通す横断ゲート（workflow でなく Forward gate activity）。
+- 判定: `registry_design_coverage clean`（whole-source⊆design）+ `source_scan_vs_registry clean` + `registry_trace_complete clean` + `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
+- 配線: `helix doctor --gate --profile pre-push` / `push_gate.py` から呼ぶ共通 runner。
+
+## 4. layer × detector（工程別の自動検証）
+
+`vmodel-semantics.yaml` で各 layer の design 側・test 側に detector が紐づく（現状 advisory、§5 で段階昇格）。
 
 | layer（対応工程） | design 側 detector | test 側 detector |
 |---|---|---|
@@ -30,27 +96,52 @@ vmodel-semantics.yaml で、各 layer の design 側・test 側にそれぞれ d
 | functional（L6） | axis-01 dead-code / axis-02 / axis-09 refactor | axis-02 |
 | FE（L2 / L10） | axis-15 mock-promotion / axis-19 state-transition-drift | axis-16 design-token / axis-17 a11y / axis-18 visual |
 
-axis-01〜14 は実装済み。axis-15〜19（FE）は未実装で、同じ枠に差し込む対象（fe-detector-spec.md 参照）。
+axis-01〜14 は実装済み（**いずれも advisory / push 未接続**）。axis-15〜19（FE）は未実装（fe-detector-spec.md）。verification 実体 detector（`trace_symmetry` / `registry_design_coverage` / `requirement_drift`(新) / `VG-overview`(新)）はこの軸群と別系統で、§2/§3 の pair/横断ゲートに紐づく。
 
-## ゲート（決定論的 static チェック）
+## 5. enforcement 段階（advisory → ratchet → fail-close）
 
-`gate-checks.yaml` の static はシェルコマンドで、exit 0 = pass の機械判定。
+- **advisory**（現状）: detector は計測・warn のみ、exit 0、push 非ブロック。
+- **ratchet**: 既存 findings は許容、**新規違反のみ block**（baseline 比較）。green 化途上の detector の段階。
+- **fail-close**: 昇格 set の violation で exit 1 / CI red / push block。**今 green な分のみ昇格**（CI 即 red 回避）。
+
+**MVP（ユーザー確定、TL P1 反映で 2 段順序を厳守）**:
+- **MVP-A（計測 + closure 先行、advisory のみ）**: G7 subcheck（UT-ID test code anchor + test_execution_pass）を**実装**し、L6↔L7 の anchor を **31/88 → 88/88 に closure**（trace_symmetry(L6-L7) clean / registry_design_coverage clean を維持）。この段階は **advisory（exit 0）専用**、fail-close も ratchet block もしない（ratchet は次段以降）。
+- **MVP-B（green 証跡確認後に fail-close flip）**: MVP-A で `helix doctor --gate`（G7 + VG-overview-pre-push）が**実走 exit 0（全 anchor 閉・全 detector green）**を証明してから、fail-close へ flip し push/CI に接続。
+- **着手前提**: anchor が 31/88 のまま G7 を fail-close 化すると CI 即 red（「今 green な分のみ昇格」原則に反する）。必ず A→B の順。
+
+**次段**: G8/G9/G12/G14 を ratchet → requirement_drift fail-close → 全 pair strict（L4-L9 orphan18 等の既知 gap 解消後、`--strict-vmodel-pair-freeze` 系）。
+
+**push 接続**: `cli/lib/push_gate.py` は個別 detector を持たず、共通 runner（`helix doctor --gate --profile pre-push`）を呼ぶ。default `helix doctor` の出力・exit code は不変（公開 API 非破壊）、`--gate`/`--profile` のみ exit semantics 変更。
+
+## 6. ゲート（決定論的 static チェック、派生 adapter）
+
+`gate-checks.yaml`（template + project）の static はシェルコマンド（exit 0 = pass）。**正本でなく `GatePolicy`/`DetectorReport` からの派生 adapter（matrix compile 生成物）として扱う**。巨大 shell を足し込まず、`helix-gate` / `helix doctor --gate` / `push_gate` が同一 runner を使う構造へ寄せる。
 
 | ゲート | static チェック例 |
 |---|---|
-| G2 | plan_schema.py g2-check |
+| G0.5 | 企画突合（企画書/D-REQ-F/D-ACC 存在・TODO 残存なし・解像度） |
+| G2 | plan_schema.py g2-check / 設計書 TODO / ADR 代替案 |
 | G4 | helix-gate-api-check |
-| G5 | visual-checks（desktop / tablet / mobile.png の存在） |
-| G3 / G6 / G7 / G9 | 各 static シェルコマンド群 |
+| G5 | visual-checks（desktop / tablet / mobile.png） |
+| G3 / G6 / G7 / G9 | 各 static シェルコマンド群（**proxy grep → §2/§3 detector へ移行**） |
 
 いずれも fail-close。`helix-gate --static-only` で AI を呼ばずに実行できる。
 
-## 機械 vs AI の境界
+## 7. 機械 vs AI の境界
 
 | 機械（static / detector） | AI（ai-only） |
 |---|---|
-| detector 判定、成果物存在、trace 整合 | 設計の良し悪し |
-| schema、命名、依存充足 | 要件の解釈・抽出 |
-| 数値品質（カバレッジ、コントラスト比、差分率） | レビュー判断・トレードオフ |
+| detector 判定、成果物存在、trace 整合、test 実行 pass | 設計の良し悪し |
+| schema、命名、依存充足、anchor 充足 | 要件の解釈・抽出 |
+| 数値品質（カバレッジ、コントラスト比、差分率） | semantic gate（orphan/excluded 妥当性）・レビュー判断 |
 
-Scrum を除く全モードは、入口分類（size / drive / kind）が決まれば、この機械側だけで工程を進行・検証できる。
+Scrum を除く全モードは、入口分類（size / drive / kind）が決まれば、機械側だけで工程を進行・検証できる。semantic gate のみ AI/人が担う（verification-strategy §11.2 / §14）。
+
+## 8. 退化防止
+
+ゲートは **Forward の通過条件**であって独立タスク台帳ではない。未完作業は新 Phase/ロードマップでなく「該当 L-pair の failed/pending gate evidence + deferred finding」に帰属させる。「常時目指すロードマップ」への再肥大化を構造的に防ぐ。
+
+実効化の static check 候補（TL P3、後続実装）:
+- `deprecated Process を新 Action の parent_process にしない`（plan_validator 拡張）。
+- `process-scope PLAN の新規起票時に既存 Forward L-pair gate evidence への帰属を要求`（roadmap 的 umbrella の再生成を block）。
+- `contains_action_plans が deprecated process を指さない`。

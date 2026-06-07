@@ -204,7 +204,9 @@ zero_omission = source ⊆ registry
   - `DF-WCAUDIT-L5L8-001`: L5↔L8 gap = IT-MOD-06 / IT-DB-03 / IT-DB-05（結合テスト未実装、設計 gap でない。L8 doc 明示済）。
   - `DF-WCAUDIT-L6L7-001`: ~~L6↔L7 は観測済 public contract 14 に限定（全 139 lib 関数の約 10%、粒度爆発回避の意図的限定）~~ → **SUPERSEDED（2026-06-07）**: goal「抜け漏れ一切禁止」により defer 継続不可。`process-2026-06-07-whole-source-design-coverage-closure`（§11.7 B' / coverage_layer 分類）へ巻取り、全 active entry を L4/L5/L6/excluded に明示分類し L6_required のみ FN/UT 1:1 拡張する。以下は supersede 前の記録。**gap クラスタ**: `FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計が未定義 = **`DF-WCAUDIT-L5L8-001`（IT-MOD-06/IT-DB-03/IT-DB-05）と同根**（2026-06-03 Phase2 総合見直し pmo Gap-1 で connective 確認）。universe 分類は L6 §5.1。将来 FR 拡張時に再評価。
   - `DF-WCAUDIT-L6L7-002`（2026-06-03 Phase2 総合見直し tl-advisor P1 新規）: L6 `FN-*` は Reverse 由来の **観測契約 / 責務粒度**で、`FN-AGENT-01`(fire/release) `FN-CONTRACT-01`(登録/照合) `FN-DB-01`(接続/CRUD) `FN-HANDOVER-01`(resume/stale) 等が 1 FN に複数オペレーションを束ねており、厳密な「関数 1 個 = UT 1 個 / callable・入力型・例外型明示」より粗い（`FN-ROUTE-01` のみ単一関数）。1 FN↔1 UT で内部整合・detector green だが、厳密分割と callable/error contract 明示は Phase3 L7 実装（TDD sharpening）へ defer。L6 §5.2 記録。
-- **Phase3**: detector fail-close gate 化（automation-gate-map 接続、`helix doctor check_pair_trace_symmetry`）+ ST→TV→L4 推移 trace 解決 + whole-coverage audit recipe（§11）の CI 連動。
+  - `DF-G7-MISSING-001`（2026-06-08、MVP-A G7 subcheck 実測）: L6↔L7 の **真の test 欠落 4 件 = UT-WSC-07 / UT-WSC-08 / UT-WSC-10 / UT-WSC-11**（実テストが存在しない＝tested-but-unanchored でなく未実装）。G7 subcheck 実測 anchored=84/88・exec_pass=84・missing=4・unanchored_but_exists=0。MVP-A 範囲外（新規テスト捏造禁止で missing 報告）。**別 Action で L7 単体テスト実装**（対象 FN-WSC を実コード精読し DbC 反証ケース実装）。これが解消すると G7 の MVP-B fail-close 化（anchored=88/88）が可能になる。
+- **検証=Forward ゲート（2026-06-08、ロードマップ廃止後）**: §14 の判定式正本 + automation-gate-map 配線。**MVP-A 完了**（G7 subcheck + VG-overview detector、advisory、anchor closure 31→84/88）。**残**: MVP-B（DF-G7-MISSING-001 解消 → fail-close flip + push 接続）、G8/G9/G12/G14 ratchet、requirement_drift 新規 detector、全 pair strict（既知 gap 解消後）、L2↔L10 pair + FE detector。
+- **Phase3（旧 roadmap 由来、検証ゲートへ統合）**: detector fail-close gate 化（automation-gate-map §5 enforcement 段階）+ ST→TV→L4 推移 trace 解決 + whole-coverage audit recipe（§11）の CI 連動。
 - detector golden fixture（§6）の整備。
 
 ## 12. Phase2 総合見直し refreeze_decision 証跡（2026-06-03、whole-coverage audit recipe §11 実行）
@@ -297,3 +299,65 @@ refreeze_decision:
 ```
 
 **Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0、**必要条件**）+ L6↔L7 trace_symmetry balance1.0 + semantic gate（TL impl review approve）。**設計の抜け漏れ = 0**。`WSC-TEST-IMPL` は 2026-06-07 に closure 済みで、verify-first 実測と L7 台帳が一致している。`registry_design_coverage` は design_id を anchor/prefix で解決する**必要条件 detector**であり、「実 doc ID 存在証明」ではない（WSC ID の実在は L6/L7 doc + trace_symmetry が担保）。
+
+## 14. 検証ゲート（pair_closure / 要件ずれ / 全体俯瞰）— Forward 内在ゲートの判定式正本（2026-06-08）
+
+> ユーザー方針（2026-06-08）「ロードマップ廃止、検証は Forward 内在の検証サイクル＝ゲートとして機能させる」。検証は Phase として常時目指すのでなく、各 L の凍結/前進を**ゲートで通す**。本節 = 判定式 + evidence schema の正本（配線 → [automation-gate-map](../../../HELIX-workflows/helix-process/automation-gate-map.md)、原則 → [HELIX-process-L0-L14](../../../HELIX-workflows/HELIX-process-L0-L14.md)）。TL comprehensive 設計（条件付き推奨、2026-06-08）反映。
+
+### 14.1 pair_closure 判定式
+
+```
+pair_closure(pair) =
+      design                # 設計層成果物 frozen
+  AND test_design           # 対の検証テスト設計 frozen（同時凍結）
+  AND test_code_anchor      # テストコードが設計/UT-ID に anchor されている（trace_symmetry だけでは見えない）
+  AND test_execution_pass   # 当該テストが実走して pass
+  AND trace_symmetry        # ID 双方向 trace 対称（§3/§4、cov/missing/balance/orphan）
+  AND semantic_gate         # TL/PM の意味判定（orphan/excluded 妥当性、§11.2）
+```
+- **左腕 freeze gate（G1-G6）**: `design + test_design + trace_symmetry(pre-execution)` まで要求（凍結時点）。
+- **右腕 execution gate（G7-G14 の対）**: `test_code_anchor + test_execution_pass + trace_symmetry(post-execution) + semantic_gate` まで要求（実走時点）。
+- **cov100% 単独 pass 禁止**（§11.2 と同原則。例: L4↔L9 cov100% でも orphan18/balance0.67 → semantic_gate 必須）。
+- **重要**: `trace_symmetry`（design↔test-design の ID 対称）は `test_code_anchor + test_execution_pass` を見ない。L7 の「設計済 UT がテストコードに anchor され実走 pass したか」は**別 subcheck（G7）**が担う（2026-06-08 実測: L6↔L7 設計 balanced だが anchor trace 31/88、残は tested-but-unanchored）。
+
+### 14.2 要件ずれゲート（requirement_drift）evidence schema
+新規 detector `cli/lib/requirement_drift.py`（trace_symmetry とは別責務 = 縦・意味 trace）。
+```yaml
+requirement_drift:
+  scope: L1_FR → L3_FR → L4-L6_design → L7_code → test
+  requirement_kind: [FR]            # MVP は FR 縦 trace。BR / 運用 NFR の L1→L14 drift は後続拡張（TL P3、G11/G14 前に kind 追加余地）
+  findings:
+    missing_downstream: []        # 上流要件に対応する下流（設計/code/test）が無い
+    orphan_design: []             # 上流要件に戻れない設計
+    orphan_code: []               # 設計/要件に戻れない code
+    semantic_label_mismatch: []   # ID は繋がるが意味ラベル不一致
+    stale_freeze: []              # frozen 後に上流が変わり下流未追随
+    waived_with_reason: []        # 明示 waiver（理由必須）
+  fail_close_gates: [G3, G4, G6, G7, G11, pre-push]
+```
+
+### 14.3 全体俯瞰ゲート（VG-overview）evidence schema
+freeze 前・push 前に必須の横断 aggregator。
+```yaml
+vg_overview:
+  required_clean:
+    - registry_design_coverage      # whole-source ⊆ design（unknown=0/pending=0/wrong_layer=0）
+    - source_scan_vs_registry       # unregistered=0
+    - registry_trace_complete       # invalid trace=0
+  pair_status:                       # 全 pair を一律 closed 要求しない（TL P2 反映）。各 pair に status を付与
+    L6-L7: applicable | not_applicable | approved_deferred
+    L5-L8: applicable | not_applicable | approved_deferred
+    L4-L9: applicable | not_applicable | approved_deferred
+    L3-L12: applicable | not_applicable | approved_deferred
+    L1-L14: applicable | not_applicable | approved_deferred
+    L2-L10: not_applicable(ui_absent) | applicable | approved_deferred   # FE detector 未実装は waiver 必須
+    # VG-overview pass 条件 = applicable な pair が全て clean or semantically-accepted。
+    # not_applicable / approved_deferred は理由必須（orphan/skip 野放し防止）。G8/G9/G12/G14 未実装 pair は approved_deferred で明示。
+  block_condition: 未承認 P0/P1 deferred finding > 0   # PM 承認なき限り block
+  wired: [freeze-pre, push-pre]      # helix doctor --gate --profile pre-push / push_gate
+```
+
+### 14.4 enforcement 段階（advisory → ratchet → fail-close）
+- advisory（計測のみ）→ ratchet（新規違反のみ block、baseline 比較）→ fail-close（昇格 set violation で exit1/CI red/push block、**今 green な分のみ昇格** = CI 即 red 回避）。
+- **MVP（2026-06-08 ユーザー確定、TL P1 反映で 2 段順序厳守）**: **MVP-A** = G7 subcheck（UT-ID anchor + test_execution_pass）実装 + L6↔L7 anchor 31/88→88/88 closure（**advisory のまま**、fail-close にしない）。**MVP-B** = `helix doctor --gate`（G7 + VG-overview-pre-push）が実走 exit 0（全 green）を証明後に fail-close flip + push/CI 接続。**anchor 31/88 のまま fail-close 化は CI 即 red = 禁止**（A→B 順）。次段 G8/G9/G12/G14 ratchet → requirement_drift fail-close → 全 pair strict（既知 gap 解消後）。
+- **golden fixture + semantic 証跡なしに fail-close 化しない**（§6 false-positive 教訓、detector 偽陽性リスク P1）。

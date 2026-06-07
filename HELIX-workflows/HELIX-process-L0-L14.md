@@ -59,6 +59,16 @@ Project profile により、一部工程は skip できる。HELIX-workflows 自
 
 粒度を粗く書くと設計とテストの対応が機械的に閉じず、片肺・カバレッジ薄化が起きる（特に L6）。各設計層の必須成果物・粒度・entry/exit 判定の詳細は `skills/workflow/doc-system-architect/references/design-coverage-baseline.md` を正本とする。
 
+## 検証ゲート（Forward 内在、原則）
+
+検証は別途追いかける「ロードマップ/Phase」ではなく、**各 L の exit を通すゲート**として Forward に内在させる（2026-06-08 確立）。各 L の `entry = 前段 exit + 必要入力 + freeze 有効` / `exit = 成果物 + readiness + 検証閉合（pair_closure / 横断ゲート）`。
+
+- **公開 gate ID `G0.5/G1〜G14`** は維持し、意味を「対応 L の exit gate」に固定する（番号を作り直さない）。
+- **pair_closure**（設計⇔検証ペアの閉合）= `design + test_design + test_code_anchor + test_execution_pass + trace_symmetry + semantic_gate`。左腕 freeze（G1-G6）は前半、右腕 execution（G7/G8/G9/G10/G12/G14）は後半まで要求。cov100% 単独 pass は禁止。
+- **横断ゲート**: 要件ずれ（requirement_drift = L1→L3→L4-6→code→test の縦 trace）と全体俯瞰（VG-overview = whole-source⊆design + **applicable な pair が clean/semantically-accepted**、not_applicable/approved_deferred は理由必須）を freeze 前・push 前に通す。
+- **退化防止**: ゲートは Forward の通過条件であって独立タスク台帳でない。未完は新 Phase でなく該当 L-pair の pending gate evidence に帰属。実効化は static check 候補（deprecated Process を新 Action の parent にしない 等）で担保する。
+- 判定式・evidence schema = [verification-strategy §14](../docs/v2/L1-requirements/helix-workflows-verification-strategy.md)、detector↔gate↔push 配線 = [automation-gate-map](helix-process/automation-gate-map.md)、readiness = [gate-policy](../skills/tools/ai-coding/references/gate-policy.md)。
+
 ## 進め方
 
 1. HELIX DB の現在地を確認する。
