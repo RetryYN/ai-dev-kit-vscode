@@ -289,11 +289,11 @@ refreeze_decision:
     note: "TL 抜き取り検証で分類妥当・FN-WSC DbC faithful (agent guard deny / post-tool-use fail-open / push_gate execute・main guard / job enqueue advisory 実コード整合) を確認済。changes_required は証跡品質3点のみで、反映済。approve は re-review で確定"
   refreeze:
     approvers: [TL, PM]
-    routing: {kind: defer, target: L7-sprint, findings: [WSC-TEST-IMPL]}
+    routing: {kind: closed, target: L7-sprint, findings: []}
     deferred_finding:
       id: WSC-TEST-IMPL
-      count: 12
-      detail: "FN/UT 設計は 54 件完備だが、テスト実装が weak = 12 件。①専用テスト無し 8 (hook 6: FN-WSC-03/05/06/10/13/17 + lib 2: FN-WSC-213 uuid7_generator / FN-WSC-218 zizmor_ignore_lint) ②Python pytest 済だが hook script E2E(bats) 未 4 (FN-WSC-02/04/12/15)。設計の抜け漏れではなく test 実装 carry (machine-clean な design freeze 成立、test 実装は L7 sprint)。L7 whole-source-coverage-単体テスト設計.md の carry 台帳と件数一致。"
+      count: 0
+      detail: "2026-06-07 verify-first closure 完了。既存充足 1 (FN-WSC-10 pretooluse-codex-slot-check)、新規/補助テスト実装 11 (FN-WSC-02/03/04/05/06/12/13/15/17/213 uuid7_generator/218)。設計の抜け漏れではなく test 実装 carry だったことを確認し、L7 whole-source-coverage-単体テスト設計.md / L7-wsc-test-impl-closureplan の実体と一致。"
 ```
 
-**Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0、**必要条件**）+ L6↔L7 trace_symmetry balance1.0 + semantic gate（TL impl review approve）。**設計の抜け漏れ = 0**。残 carry は「設計済 FN/UT のうち 12 件のテスト実装」（design freeze と分離、machine-clean vs test-impl、L7 台帳と一致）。`registry_design_coverage` は design_id を anchor/prefix で解決する**必要条件 detector**であり、「実 doc ID 存在証明」ではない（WSC ID の実在は L6/L7 doc + trace_symmetry が担保）。
+**Action4 総括**: zero-omission（B'）の machine 証明が成立 — source⊆registry（unregistered=0）⊆要件 trace（invalid=0）⊆設計層（registry_design_coverage: unknown=0 / pending=0 / wrong_layer=0、**必要条件**）+ L6↔L7 trace_symmetry balance1.0 + semantic gate（TL impl review approve）。**設計の抜け漏れ = 0**。`WSC-TEST-IMPL` は 2026-06-07 に closure 済みで、verify-first 実測と L7 台帳が一致している。`registry_design_coverage` は design_id を anchor/prefix で解決する**必要条件 detector**であり、「実 doc ID 存在証明」ではない（WSC ID の実在は L6/L7 doc + trace_symmetry が担保）。
