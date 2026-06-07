@@ -8,12 +8,13 @@ layer: L0
 drive: discovery
 status: deprecated
 deprecated_on: 2026-06-08
+tl_review: approve  # 廃止はユーザー指示(2026-06-08「ロードマップは廃止」)。置換=process-2026-06-08-verification-forward-gate（検証=Forward 内在ゲート）。TL は置換設計を comprehensive review 済。
 created: 2026-06-03
 owner: PM
 contains_action_plans:
   - docs/plans/reverse/reverse-2026-06-03-l1-l3-trace-hardening.md
   - docs/plans/discovery/poc-2026-06-03-trace-symmetry-detector.md
-  - docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md  # Phase3 ① 自動化（detector fail-close gate化 + CI連動）
+  # add-feature-2026-06-08-detector-failclose-ci-gate は廃止後 process-2026-06-08-verification-forward-gate へ再帰属（退化防止）
 forward_return: "Forward V モデル L0-L14 への全 pair 収束。Phase1-2 で L0-L9 の設計↔検証ペアを完全密度で確立、Phase3-4 で L7 実装+自動化+HELIX DB を実体化、Phase5-6 で L8-L14 を実走完走。最終=V モデル DB に全 L-pair freeze + trace/coverage closure が登録された状態。"
 agent_slots:
   - role: pm-advisor
