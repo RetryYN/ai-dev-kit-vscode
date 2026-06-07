@@ -84,3 +84,18 @@ class TestUuid7Generator:
         monkeypatch.setattr(uuid7_generator.uuid, "uuid7", lambda: uuid.UUID(expected))
 
         assert uuid7_generator.generate_event_id() == expected
+
+    def test_ut_wsc_213_raises_runtime_error_when_os_urandom_fails(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """DoD 検証: docs/v2/L7-test-design/whole-source-coverage-単体テスト設計.md UT-WSC-213"""
+
+        def raise_oserror(_size: int) -> bytes:
+            raise OSError("entropy unavailable")
+
+        monkeypatch.setattr(uuid7_generator, "_HAS_STDLIB_UUID7", False)
+        monkeypatch.setattr(uuid7_generator.os, "urandom", raise_oserror)
+
+        with pytest.raises(RuntimeError, match="UUID v7 generation failed"):
+            uuid7_generator.generate_event_id()
