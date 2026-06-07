@@ -1,0 +1,171 @@
+anchors:
+  UT-ROUTE-01:
+    - cli/lib/tests/test_route_engine.py
+  UT-PLAN-01:
+    - cli/lib/tests/test_plan_validator.py
+  UT-HANDOVER-01:
+    - cli/lib/tests/test_handover.py
+  UT-WS-01:
+    - cli/lib/tests/test_workspace_manager.py
+  UT-DB-01:
+    - cli/lib/tests/test_helix_db_v34_v35.py
+  UT-DB-02:
+    - cli/lib/tests/test_helix_db_v34_v35.py
+  UT-GUARD-01:
+    - cli/lib/tests/test_context_guard.py
+  UT-GUARD-02:
+    - cli/lib/tests/test_llm_guard.py
+  UT-GUARD-03:
+    - cli/lib/tests/test_agent_policy_guard.py
+  UT-HTTP-01:
+    - cli/lib/tests/test_http_api_routes_push_pr.py
+  UT-AUDIT-01:
+    - cli/lib/tests/test_audit_log.py
+    - cli/lib/tests/test_audit_validator.py
+  UT-CATALOG-01:
+    - cli/lib/tests/test_code_catalog.py
+  UT-CONTRACT-01:
+    - cli/lib/tests/test_contract_registry.py
+  UT-AGENT-01:
+    - cli/lib/tests/test_agent_slots_unit.py
+  UT-RDB-01:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-02:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-03:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-04:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-05:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-06:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDB-07:
+    - cli/lib/tests/test_registry_checks.py
+  UT-RDC-01:
+    - cli/lib/tests/test_registry_design_coverage_checks.py
+  UT-FREG-01:
+    - cli/lib/tests/test_functional_registry_checks.py
+  UT-FREG-02:
+    - cli/lib/tests/test_functional_registry_checks.py
+  UT-FREG-03:
+    - cli/lib/tests/test_functional_registry_checks.py
+  UT-DDD-01:
+    - cli/lib/tests/test_ddd_registry_checks.py
+  UT-DDD-02:
+    - cli/lib/tests/test_ddd_registry_checks.py
+  UT-DDD-03:
+    - cli/lib/tests/test_ddd_registry_checks.py
+  UT-DDD-04:
+    - cli/lib/tests/test_ddd_registry_checks.py
+  UT-DDD-05:
+    - cli/lib/tests/test_ddd_registry_checks.py
+  UT-CRREG-01:
+    - cli/lib/tests/test_coding_rule_checks.py
+  UT-CRREG-02:
+    - cli/lib/tests/test_coding_rule_checks.py
+  UT-CRREG-03:
+    - cli/lib/tests/test_coding_rule_checks.py
+  UT-CRREG-04:
+    - cli/lib/tests/test_coding_rule_checks.py
+  UT-WSC-01:
+    - cli/lib/tests/test_audit_log.py
+  UT-WSC-02:
+    - cli/tests/test-wsc-hook-posttooluse-design-doc-web-search-revert.bats
+  UT-WSC-03:
+    - cli/tests/test-wsc-hook-posttooluse-helix-job-enqueue.bats
+  UT-WSC-04:
+    - cli/tests/test-wsc-hook-posttooluse-plan-auto-register.bats
+  UT-WSC-05:
+    - cli/tests/test-wsc-hook-posttooluse-skill-catalog-rebuild.bats
+  UT-WSC-06:
+    - cli/tests/test-wsc-hook-precompact-state-snapshot.bats
+  UT-WSC-09:
+    - cli/lib/tests/test_pretooluse_askuserquestion.py
+  UT-WSC-12:
+    - cli/tests/test-wsc-hook-pretooluse-opus-repo-block.bats
+  UT-WSC-13:
+    - cli/tests/test-wsc-hook-sessionstart-harness-summary.bats
+  UT-WSC-14:
+    - cli/tests/test-layer-4-5-integration.bats
+  UT-WSC-15:
+    - cli/tests/test-wsc-hook-stop-recovery-update.bats
+  UT-WSC-16:
+    - cli/lib/tests/test_session_telemetry.py
+    - cli/tests/test-helix-stop-hook-wiring.bats
+  UT-WSC-17:
+    - cli/tests/test-wsc-hook-userpromptsubmit-context-bundle.bats
+  UT-WSC-101:
+    - cli/lib/tests/test_allowed_files_estimator.py
+  UT-WSC-102:
+    - cli/lib/tests/test_code_recommender.py
+  UT-WSC-103:
+    - cli/lib/tests/test_codex_post_validation.py
+  UT-WSC-104:
+    - cli/lib/tests/test_demotion_checker.py
+  UT-WSC-105:
+    - cli/lib/tests/test_doc_map_matcher.py
+  UT-WSC-106:
+    - cli/lib/tests/test_doctor_plan_checks.py
+  UT-WSC-107:
+    - cli/lib/tests/test_doctor_recovery_check.py
+  UT-WSC-108:
+    - cli/lib/tests/test_drift_db_diff.py
+  UT-WSC-109:
+    - cli/lib/tests/test_dual_write_connection_unit.py
+  UT-WSC-110:
+    - cli/lib/tests/test_dual_write_mismatch_unit.py
+  UT-WSC-111:
+    - cli/lib/tests/test_effort_classifier.py
+  UT-WSC-112:
+    - cli/lib/tests/test_freeze_checker.py
+  UT-WSC-113:
+    - cli/lib/tests/test_gate_check_generator.py
+  UT-WSC-114:
+    - cli/lib/tests/test_global_store.py
+  UT-WSC-115:
+    - cli/lib/tests/test_job_p0_guard.py
+  UT-WSC-116:
+    - cli/lib/tests/test_llm_classifier_base.py
+  UT-WSC-117:
+    - cli/lib/tests/test_phase_guard.py
+  UT-WSC-118:
+    - cli/lib/tests/test_plan_lint.py
+  UT-WSC-119:
+    - cli/lib/tests/test_plan_parser.py
+  UT-WSC-201:
+    - cli/lib/tests/test_push_gate.py
+  UT-WSC-202:
+    - cli/lib/tests/test_recovery_plan_check.py
+  UT-WSC-203:
+    - cli/lib/tests/test_research_guard.py
+  UT-WSC-204:
+    - cli/lib/tests/test_research_tool_guard.py
+  UT-WSC-205:
+    - cli/lib/tests/test_skill_classifier.py
+  UT-WSC-206:
+    - cli/lib/tests/test_skill_frontmatter_lint.py
+  UT-WSC-207:
+    - cli/lib/tests/test_skill_recommender.py
+  UT-WSC-208:
+    - cli/lib/tests/test_skip_annotation_linter.py
+  UT-WSC-209:
+    - cli/lib/tests/test_sprint_auto_check.py
+  UT-WSC-210:
+    - cli/lib/tests/test_sprint_lint.py
+  UT-WSC-211:
+    - cli/lib/tests/test_task_type_inference.py
+  UT-WSC-212:
+    - cli/lib/tests/test_trace_symmetry.py
+  UT-WSC-213:
+    - cli/lib/tests/test_uuid7_generator_unit.py
+  UT-WSC-214:
+    - cli/lib/tests/test_vmodel_lint.py
+  UT-WSC-215:
+    - cli/lib/tests/test_vmodel_pair_freeze.py
+  UT-WSC-216:
+    - cli/lib/tests/test_workflow_dsl_parser.py
+  UT-WSC-217:
+    - cli/lib/tests/test_yaml_parser.py
+  UT-WSC-218:
+    - cli/lib/tests/test_zizmor_ignore_lint_unit.py

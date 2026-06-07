@@ -3377,6 +3377,36 @@ entries:
     code_paths:
       - "cli/lib/registry_design_coverage_checks.py"
     doc_paths: []
+  - id: "FR-LIB-149"
+    name: "g7_subcheck.py"
+    domain: "lib"
+    description: "G7 subcheck detector — UT-ID anchor + test_execution_pass を実走確認し、L6↔L7 の missing / tested-but-unanchored を集計する advisory subcheck (verification-strategy §14.1/§14.4、2026-06-08 MVP-A)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-219"
+    code_paths:
+      - "cli/lib/g7_subcheck.py"
+    doc_paths: []
+  - id: "FR-LIB-150"
+    name: "vg_overview.py"
+    domain: "lib"
+    description: "VG-overview aggregator — registry_design_coverage/source_scan_vs_registry/registry_trace_complete + pair_status を横断集約する advisory gate (verification-strategy §14.3/§14.4、2026-06-08 MVP-A)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-220"
+    code_paths:
+      - "cli/lib/vg_overview.py"
+    doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"

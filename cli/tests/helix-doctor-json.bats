@@ -56,6 +56,22 @@ teardown() {
   [[ "$output" != *"結果:"* ]]
 }
 
+@test "helix-doctor check_g7_subcheck --json emits valid JSON" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g7_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"missing\" in d and \"exec_pass\" in d'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor check_vg_overview --json emits valid JSON" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor check_recovery_plan_freshness --json stays blocked" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_recovery_plan_freshness --json
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"--json はデフォルト doctor 出力でのみ使用できます"* ]]
+}
+
 @test "helix recover check shows C2 CLEAR when doctor json is clean" {
   STUB_HOME="$TMP_ROOT/stub-home"
   mkdir -p "$STUB_HOME/cli"

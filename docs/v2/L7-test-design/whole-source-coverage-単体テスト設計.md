@@ -12,11 +12,11 @@
 | UT-WSC-04 | FN-WSC-04 | posttooluse-plan-auto-register.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-05 | FN-WSC-05 | posttooluse-skill-catalog-rebuild.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-06 | FN-WSC-06 | precompact-state-snapshot.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
-| UT-WSC-07 | FN-WSC-07 | pretooluse-agent-fire.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
-| UT-WSC-08 | FN-WSC-08 | pretooluse-agent-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
+| UT-WSC-07 | FN-WSC-07 | pretooluse-agent-fire.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
+| UT-WSC-08 | FN-WSC-08 | pretooluse-agent-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
 | UT-WSC-09 | FN-WSC-09 | pretooluse-askuserquestion.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
-| UT-WSC-10 | FN-WSC-10 | pretooluse-codex-slot-check.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 (verify-first: 既存充足) |
-| UT-WSC-11 | FN-WSC-11 | pretooluse-design-doc-web-search-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
+| UT-WSC-10 | FN-WSC-10 | pretooluse-codex-slot-check.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
+| UT-WSC-11 | FN-WSC-11 | pretooluse-design-doc-web-search-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
 | UT-WSC-12 | FN-WSC-12 | pretooluse-opus-repo-block.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-13 | FN-WSC-13 | sessionstart-harness-summary.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-14 | FN-WSC-14 | sessionstart-history-injection.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |

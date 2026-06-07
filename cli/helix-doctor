@@ -1,11 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json] [--summary]
+# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json] [--summary]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
+SCRIPT_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -29,7 +30,7 @@ show_usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    check_recovery_plan_freshness)
+    check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview)
       if [[ -n "$SUBCOMMAND" ]]; then
         echo "エラー: サブコマンドは 1 つだけ指定できます: $1" >&2
         show_usage >&2
@@ -104,6 +105,8 @@ while [[ $# -gt 0 ]]; do
       echo "環境と .helix/ の整合性をチェックします。"
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
+      echo "check_g7_subcheck は L7 UT anchor/test pass を advisory 集計します。"
+      echo "check_vg_overview は registry/trace/G7 を advisory 集計します。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
@@ -196,33 +199,63 @@ render_doctor_summary() {
   printf '%s' "$doctor_output" | python3 "$(cd "$(dirname "$0")" && pwd)/lib/doctor_summary.py"
 }
 
+subcommand_supports_json() {
+  case "${1:-}" in
+    check_g7_subcheck|check_vg_overview)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+run_python_report_helper() {
+  local module_name="$1"
+  shift
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" HELIX_REPORT_MODULE="$module_name" python3 - "$@" <<'PY'
+import importlib
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
+
+module = importlib.import_module(os.environ["HELIX_REPORT_MODULE"])
+report = module.collect_g7_subcheck() if os.environ["HELIX_REPORT_MODULE"] == "g7_subcheck" else module.collect_vg_overview()
+print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+PY
+}
+
 if [[ "$JSON_OUTPUT" == true ]]; then
   if [[ -n "$SUBCOMMAND" ]]; then
-    echo "エラー: --json はデフォルト doctor 出力でのみ使用できます" >&2
-    exit 2
-  fi
+    if ! subcommand_supports_json "$SUBCOMMAND"; then
+      echo "エラー: --json はデフォルト doctor 出力でのみ使用できます" >&2
+      exit 2
+    fi
+  else
+    tmp_stderr="$(mktemp)"
+    set +e
+    doctor_output="$("$SELF_PATH" "${FORWARDED_ARGS[@]}" 2>"$tmp_stderr")"
+    doctor_rc=$?
+    set -e
+    doctor_stderr="$(cat "$tmp_stderr")"
+    rm -f "$tmp_stderr"
 
-  tmp_stderr="$(mktemp)"
-  set +e
-  doctor_output="$("$SELF_PATH" "${FORWARDED_ARGS[@]}" 2>"$tmp_stderr")"
-  doctor_rc=$?
-  set -e
-  doctor_stderr="$(cat "$tmp_stderr")"
-  rm -f "$tmp_stderr"
+    if [[ $doctor_rc -gt 1 ]]; then
+      [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+      exit "$doctor_rc"
+    fi
 
-  if [[ $doctor_rc -gt 1 ]]; then
-    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+    if ! json_output="$(render_doctor_json "$doctor_output")"; then
+      [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
+      echo "エラー: doctor text 出力の JSON 変換に失敗しました" >&2
+      exit 1
+    fi
+
+    printf '%s\n' "$json_output"
     exit "$doctor_rc"
   fi
-
-  if ! json_output="$(render_doctor_json "$doctor_output")"; then
-    [[ -n "$doctor_stderr" ]] && printf '%s\n' "$doctor_stderr" >&2
-    echo "エラー: doctor text 出力の JSON 変換に失敗しました" >&2
-    exit 1
-  fi
-
-  printf '%s\n' "$json_output"
-  exit "$doctor_rc"
 fi
 
 if [[ "$SUMMARY_OUTPUT" == true ]]; then
@@ -252,6 +285,58 @@ if [[ "$SUMMARY_OUTPUT" == true ]]; then
 
   printf '%s\n' "$summary_output"
   exit "$doctor_rc"
+fi
+
+if [[ "$SUBCOMMAND" == "check_g7_subcheck" ]]; then
+  report_json="$(run_python_report_helper g7_subcheck 2>&1)"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '%s\n' "$report_json"
+  else
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+print("G7 subcheck (advisory)")
+print(f"anchor_mechanism: {payload['anchor_mechanism']}")
+print(f"anchor_map: {payload['anchor_map']}")
+print(f"ut_total: {payload['ut_total']}")
+print(f"legacy_inline_anchors: {payload['legacy_inline_anchors']['count']}")
+print(f"anchored: {payload['anchored']['count']}")
+print(f"exec_pass: {payload['exec_pass']['count']}")
+print(f"missing: {payload['missing']['count']}")
+print(f"unanchored_but_exists: {payload['unanchored_but_exists']['count']}")
+if payload["missing"]["ids"]:
+    print("missing_ids: " + ", ".join(payload["missing"]["ids"]))
+if payload["unanchored_but_exists"]["ids"]:
+    print("unanchored_ids: " + ", ".join(payload["unanchored_but_exists"]["ids"]))
+PY
+  fi
+  exit 0
+fi
+
+if [[ "$SUBCOMMAND" == "check_vg_overview" ]]; then
+  report_json="$(run_python_report_helper vg_overview 2>&1)"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '%s\n' "$report_json"
+  else
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+vg = payload["vg_overview"]
+print("VG-overview (advisory)")
+print(f"overall_clean: {str(vg['overall_clean']).lower()}")
+for name, item in vg["required_clean"].items():
+    print(f"{name}: clean={str(item['clean']).lower()} findings={item['finding_count']}")
+for pair_name, item in vg["pair_status"].items():
+    print(
+        f"{pair_name}: status={item['status']} clean={str(item['clean']).lower()} reason={item['reason']}"
+    )
+PY
+  fi
+  exit 0
 fi
 
 echo "=== HELIX Doctor ==="
