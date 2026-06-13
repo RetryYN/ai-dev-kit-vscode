@@ -2,10 +2,10 @@
 name: review-stage-routing
 description: コードレビューを6段階 (Format/Lint/Style/Logic/Design/Architecture) に分け、各段階を「どのロール (PM/TL/SE/PE/QA/security) が見るか」に振り分ける分業境界スキル。観点 (何を見るか) は common/code-review の5軸 + Google eng-practices に委譲し、本スキルは段階×ロール割当と「AIが指摘しなかった箇所こそ上位ロールが見る」逆説ルールのみを担う。helix review / code-reviewer エージェント / adversarial-review の起動順と責任分界を決める時に使用する。
 metadata:
-  helix_layer: L4
+  helix_layer: L7
   triggers:
     - "自動: helix review (Sprint .2/.5) 実行時のレビュー段階ルーティング決定"
-    - "自動: G4 実装凍結ゲートでの段階別レビュー責任分界の確定時"
+    - "自動: G7 実装 closure ゲートでの段階別レビュー責任分界の確定時"
     - "任意: PR レビューで AI/人間/各ロールの分担を決める時"
     - "任意: AI レビューがゼロ指摘の diff を上位ロールに回す判断時 (逆説ルール)"
   verification:
@@ -43,7 +43,7 @@ compatibility:
 | 条件 | タイミング | 根拠 |
 |------|-----------|------|
 | helix review 実行 | Sprint .2/.5 完了時 | codex review に渡す段階観点と、後続の人間レビュー範囲を決める |
-| G4 実装凍結ゲート | L4 実装完了時 | Stage 4 Logic の責任分界を確定し fail-close 判定に乗せる |
+| G7 実装 closure ゲート | L7 実装完了時 | Stage 4 Logic の責任分界を確定し fail-close 判定に乗せる |
 
 ### 任意発火 (PM/TL 判断)
 
@@ -81,7 +81,7 @@ AI が降りていくのではなく、段ごとに問題の性質が変わる�
 | 1 Format | 自動 (pre-commit / lint) | PE (gpt-5.3-codex) | CI lint |
 | 2 Lint | 自動 (静的解析) | PE | CI lint |
 | 3 Style | PE / pmo-haiku | — | — (Nit 扱い) |
-| 4 Logic | SE (gpt-5.4, スコア4+) / PE (1-3) | QA (gpt-5.4) / security (gpt-5.4) | G4 実装凍結 |
+| 4 Logic | SE (gpt-5.4, スコア4+) / PE (1-3) | QA (gpt-5.4) / security (gpt-5.4) | G7 実装 closure |
 | 5 Design | TL (gpt-5.5) | adversarial-review (高リスク時) | G2 設計凍結 |
 | 6 Architecture | PM (Opus) | TL-advisor | L2 以前 / ADR |
 

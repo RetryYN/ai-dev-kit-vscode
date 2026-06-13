@@ -2,7 +2,7 @@
 name: agent-design
 description: LLM駆動 task / agent の設計判断を、判断詰まり時に開く HELIX 対応詳細参照マップ。要素・フレーム・骨格・前段・後段を軸に、LLM 出力の構造化判断を収束させる。
 metadata:
-  helix_layer: [L2, L3, L4]
+  helix_layer: [L2, L3, L6, L7]
   triggers:
     - LLM 出力構造を JSON Schema で固定するか自由文にするかで迷う
     - task を patch 化するか workflow 化するかで迷う
@@ -36,7 +36,7 @@ compatibility:
 - L1 要件で、LLM task の最小分解単位が不明確なとき
 - L2 ADR で出力骨格の方針を選べないとき
 - L3 契約化で schema / 制約を D-API / D-CONTRACT に落とし込むとき
-- L4 実装で前段 prompt / 後段処理責務を整理する前
+- L7 実装で前段 prompt / 後段処理責務を整理する前
 - G2/G3/G4 で adversarial-review 的に疑義を再点検するとき
 
 ## 既存中核（温存）
@@ -150,9 +150,9 @@ compatibility:
 | L1 要件 | 01 | LLM task の最小単位 (要素 + フレーム) を切り出す |
 | L2 ADR | 02, 03 | 出力骨格 / framework vs workflow を決める |
 | L3 D-API / D-CONTRACT | 04, 07, 08 | task 類型 / 機械可読 schema 導出 / 前段制約 (Structured Outputs / Tool Use) を契約に載せる |
-| L4 実装 (LLM 呼び出し側) | 05, 06 | 思考指定 / 出力指定の system prompt 設計 |
-| L4 実装 (後段コード) | 09 | 後段の責務を 3 つに限定 (schema validation / 外部整合 / 境界例救済) |
-| L4 仕上げ | 10, 11 | 縛り階層 / 効果配置の最終調整 |
+| L7 実装 (LLM 呼び出し側) | 05, 06 | 思考指定 / 出力指定の system prompt 設計 |
+| L7 実装 (後段コード) | 09 | 後段の責務を 3 つに限定 (schema validation / 外部整合 / 境界例救済) |
+| L7 仕上げ | 10, 11 | 縛り階層 / 効果配置の最終調整 |
 | G2/G3/G4 レビュー | 全 axis | adversarial-review 観点として使う |
 
 ## HELIX 用語写像

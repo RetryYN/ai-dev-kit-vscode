@@ -129,7 +129,7 @@ How を厚く書くと陳腐化して負債になりやすい。How は原則コ
 | L1 要件定義 | 受入ドキュメント種別の決定・体系設計 | workflow/requirements-handover |
 | L2 全体設計 | アーキテクチャ記述標準の選択（42010 / arc42 / C4）・ADR 方針決定 | workflow/design-doc |
 | L3 詳細設計 | D-API / D-DB / D-CONTRACT 粒度の確認 | workflow/design-doc |
-| L8 受入 | 受入 doc の種別・保持期間の最終確認 | workflow/verification |
+| L12 受入テスト | 受入 doc の種別・保持期間の最終確認 | workflow/verification |
 
 ---
 

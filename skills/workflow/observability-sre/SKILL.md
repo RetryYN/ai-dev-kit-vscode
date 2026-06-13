@@ -199,9 +199,9 @@ Level 4: デバッグ（オンコール向け）
 
 > 出典: docs/archive/v-model-reference-cycle-v2.md §運用ポリシー5。品質劣化の段階別定義と対応アクション。
 >
-> **L7 デプロイフェーズでの参照**: L7.3（本番安定性ゲート）はこの劣化レベル表を**唯一の合否基準**として使用する。
-> 15分の観測ウィンドウ（Canary は30分）で劣化レベル `none` を維持すれば L7.3 pass。
-> 詳細は `skills/tools/ai-coding/references/layer-interface.md §L7.3` を参照。
+> **L13 運用検証 / 運用テストでの参照**: リリース後の安定性確認はこの劣化レベル表を**唯一の合否基準**として使用する。
+> 15分の観測ウィンドウ（Canary は30分）で劣化レベル `none` を維持すれば運用検証 pass。
+> 詳細は `HELIX-workflows/helix-process/L13-post-deployment-verification.md` を参照。
 
 ### SLOメトリクス
 

@@ -2,11 +2,11 @@
 name: frontend-style-system
 description: FE スタイル実装スキル。デザイントークン 3 層定義 (primitive/semantic/component) と CSS/Tailwind の実装方針を担い、visual-design §⑤design の実装層として機能する
 metadata:
-  helix_layer: L4
+  helix_layer: [L7, L10]
   recommended_agent: pmo-sonnet
   triggers:
-    - "L4 スタイル実装時"
-    - "L5 Visual Refinement 実装時"
+    - "L7 スタイル実装時"
+    - "L10 フロントUX / 業務デザイン磨き上げ時"
     - "デザイントークン定義時"
     - "Tailwind / styled-components 設計時"
   verification:
@@ -145,9 +145,9 @@ theme: {
 
 ---
 
-## L5 Visual Refinement 時の対応
+## L10 フロントUX / 業務デザイン磨き上げ時の対応
 
-L5 入場後にスタイル修正が発生した場合の分類:
+L10 入場後にスタイル修正が発生した場合の分類:
 
 | 変更種別 | 定義 | 対応 |
 |---------|------|------|
@@ -167,7 +167,7 @@ L5 入場後にスタイル修正が発生した場合の分類:
 <div className="text-action-primary p-md">
 ```
 
-L5 レビュー時、以下を検出して修正依頼する:
+L10 レビュー時、以下を検出して修正依頼する:
 - `#` から始まるカラー値のハードコード
 - px 値の直書き（tailwind の任意値 `[16px]` 含む）
 - `style={}` によるインラインスタイル（動的変数の注入を除く）

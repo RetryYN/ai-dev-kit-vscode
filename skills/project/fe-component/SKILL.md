@@ -149,7 +149,7 @@ src/
 
 ## 実装順序
 
-L4 マイクロスプリントでの推奨順序:
+L7 実装スプリントでの推奨順序:
 
 1. Atoms（Button, Input, Icon 等）
 2. Molecules（FormField, Card 等）

@@ -238,7 +238,7 @@ helix size --type new-feature --api --db
 - confirmed 仮説を L1 要件の前提条件に変換する
 - 駆動タイプを `fe` / `be` / `fullstack` / `db` / `agent` のいずれかで再判定する
 - `helix plan draft` など通常の Forward HELIX の流れへ進む
-- `verify/*.sh` は L6 統合検証でも再利用できる学習資産として持ち込む
+- `verify/*.sh` は L9 総合テストでも再利用できる学習資産として持ち込む
 
 Forward へつなぐときに必要な整理:
 - confirmed した仮説
@@ -349,7 +349,7 @@ Scrum モードは、Forward HELIX の簡略版ではない。探索のための
 
 主な違い:
 
-- Forward HELIX の L1-L11 フェーズ進行は走らない
+- Forward HELIX の L0-L14 工程進行は走らない
 - `.helix/scrum/` と `verify/` を中心に独立管理する
 - ゲート判定ではなく、S4 の `decide` を主軸に進める
 - 正式要件ではなく、仮説 backlog を起点にする
@@ -364,7 +364,7 @@ Scrum モードは、Forward HELIX の簡略版ではない。探索のための
 | 検証方法 | verify/ スクリプトで実験 | フェーズ別レビューとテスト |
 | 裁定 | decide | gate |
 | 成果物 | confirmed 仮説 + 学習 | 実装可能な仕様と成果物 |
-| 終了条件 | Forward へ接続できる前提が固まる | L8 受入まで完了 |
+| 終了条件 | Forward へ接続できる前提が固まる | L12 受入テストまで完了 |
 
 ## Common Rationalizations
 
@@ -445,7 +445,7 @@ HELIX Scrum は、要件が不確実な案件に対する前段モードであ�
 1. Scrum で confirmed 仮説を得る
 2. confirmed 仮説を要求・制約・成功条件へ翻訳する
 3. Forward HELIX の L1/L2/L3 に引き渡す
-4. `verify/*.sh` を L6 統合検証でも再利用する
+4. `verify/*.sh` を L9 総合テストでも再利用する
 
 このスキルの終了条件は、PoC が終わることではない。
 Forward HELIX に安全に接続できるだけの、確定仮説と学習資産がそろうことである。

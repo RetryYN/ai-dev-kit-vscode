@@ -2,7 +2,7 @@
 
 > 目的: `design-md-format.md` の 9 セクション形式で書かれた DESIGN.md を、
 > shadcn/ui プロジェクトの globals.css / Tailwind config / コンポーネントへ変換する具体的手順を示す。
-> 適用フェーズ: L4（実装着手時）、L5 Visual Refinement（調整時）。
+> 適用フェーズ: L7（実装着手時）、L10 フロントUX / 業務デザイン磨き上げ（調整時）。
 > 駆動タイプ: fe / fullstack。
 >
 > 前提: `docs/DESIGN.md` が 9 セクション形式で存在すること。
@@ -288,7 +288,7 @@ UI生成時は以下の値を使用すること:
 
 ## D-VIS-ARCH への組み込み方
 
-L2 Visual 設計書（D-VIS-ARCH）に以下のセクションを追加する:
+L2 画面設計 / Visual 方針書（D-VIS-ARCH）に以下のセクションを追加する:
 
 ```markdown
 ## デザインシステム方針

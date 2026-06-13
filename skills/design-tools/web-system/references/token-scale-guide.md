@@ -2,7 +2,7 @@
 
 > 目的: カラー・タイポグラフィ・スペーシング・Elevation・Border Radius のスケールを体系化し、
 > globals.css と Tailwind theme の命名規則を統一する。
-> 適用フェーズ: L2 Visual 設計（トークン策定）、L5 Visual Refinement（既存値の正規化）。
+> 適用フェーズ: L2 画面設計 / Visual 方針（トークン策定）、L10 フロントUX / 業務デザイン磨き上げ（既存値の正規化）。
 > 駆動タイプ: fe / fullstack。
 
 ---

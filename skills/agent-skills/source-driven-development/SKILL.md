@@ -199,10 +199,10 @@ React 19 は手動の isPending/setIsPending パターンをこのフックに�
 
 ## HELIX 連携
 
-- 発火フェーズ: L2 設計 / L4 実装
+- 発火フェーズ: L2 設計 / L4-L6 設計 / L7 実装
 - 推奨 Codex ロール: research (一次情報調査) / tl (設計判断)
 - 関連スキル:
   - `spec-driven-development` (仕様定義時に公式根拠を引用)
   - `api-and-interface-design` (API 設計判断の根拠)
   - HELIX 本体 `tools/web-search` / `tools/ai-search` (一次情報取得手段)
-- L3 API 契約 / L7 リリースノート記載時の根拠 URL を本スキル経由で確保
+- L3 API 契約 / L13 リリース・運用検証記載時の根拠 URL を本スキル経由で確保

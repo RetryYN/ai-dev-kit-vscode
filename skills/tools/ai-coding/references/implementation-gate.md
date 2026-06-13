@@ -23,7 +23,7 @@
 - 仕様が「検証可能」になっている（受入条件/確認手順が最低1つある）
 - 影響範囲（変更対象ファイル/モジュール）が大まかに特定されている
 - L3 工程表 / `.helix/task-plan.yaml` / handover Next Action の該当行が確認済み
-- 該当行の `plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、担当 role が確認済み
+- 該当行の `plan_id`、`task_id` または `WBS ID`、`L7 Sprint`、依存、担当 role が確認済み
 - 計画・実装順・整理案をユーザーへ提示済みの場合、明示承認を得ている
 - 工程表に指定された HELIX command / delegation を使う方針、または使えない理由が明記されている
 
@@ -52,7 +52,7 @@
 
 **入力:**
 - 工程表タスク（task_id / task_description / reference_docs）
-- 工程表の該当行（plan_id / WBS ID / L4 Sprint / 担当 role / 依存 / 受入条件 / HELIX command）
+- 工程表の該当行（plan_id / WBS ID / L7 Sprint / 担当 role / 依存 / 受入条件 / HELIX command）
 - 関連コード（現状）
 
 **チェック（通過条件）:**

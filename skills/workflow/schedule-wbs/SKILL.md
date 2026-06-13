@@ -11,7 +11,7 @@ metadata:
   verification:
     - "工程表が docs/ または .helix/ に存在"
     - "各タスクに feature flag と rollback が記載 (不要な場合は N/A 明記)"
-    - "L4 Sprint 番号が割り当てられている"
+    - "L7 Sprint 番号が割り当てられている"
 compatibility:
   claude: true
   codex: true
@@ -95,7 +95,7 @@ CLI 配布テンプレートは `cli/templates/docs/L3-schedule-wbs.md`。`helix
 - 作成日: YYYY-MM-DD
 
 ## 1. WBS
-| WBS ID | タスク | 担当 | 依存 | 期間 | 環境 | L4 Sprint | feature flag | rollback |
+| WBS ID | タスク | 担当 | 依存 | 期間 | 環境 | L7 Sprint | feature flag | rollback |
 |--------|--------|------|------|------|------|-----------|--------------|----------|
 | WBS-01 | 例: API実装 | @se-a | WBS-00 | 1.0d | dev | .1b-.2 | ff_api_v2 | db migration down + flag off |
 | WBS-02 | 例: UI接続 | @fe-a | WBS-01 | 0.5d | dev/stg | .3 | ff_ui_v2 | route切替 + build rollback |
@@ -118,7 +118,7 @@ CLI 配布テンプレートは `cli/templates/docs/L3-schedule-wbs.md`。`helix
 テンプレート必須列:
 - `タスク` / `担当` / `依存` / `期間` / `環境`
 - `feature flag` / `rollback`
-- `L4 Sprint`
+- `L7 Sprint`
 
 ---
 
@@ -194,7 +194,7 @@ ff_<domain>_<feature>_<version>
 
 ## 5. マイクロスプリント (.1a〜.5) との紐付け
 
-| L4 Sprint | 目的 | WBSでの記載ルール |
+| L7 Sprint | 目的 | WBSでの記載ルール |
 |-----------|------|-------------------|
 | .1a | コード調査 | 影響範囲、既存テスト、依存調査タスクを明示 |
 | .1b | 変更計画 | 実装順、担当、前提条件、受入条件を明示 |
@@ -204,8 +204,8 @@ ff_<domain>_<feature>_<version>
 | .5 | 仕上げ | レビュー修正、ドキュメント同期、残課題管理を明示 |
 
 記載形式例:
-- `L4 Sprint: .1a-.2`
-- `L4 Sprint: .3`
+- `L7 Sprint: .1a-.2`
+- `L7 Sprint: .3`
 
 ---
 
@@ -215,7 +215,7 @@ ff_<domain>_<feature>_<version>
 □ 工程表ファイルが docs/ または .helix/ に存在
 □ 全タスクに担当・依存・期間・環境がある
 □ 全タスクに feature flag と rollback がある（不要時 N/A）
-□ L4 Sprint 番号が全タスクにある
+□ L7 Sprint 番号が全タスクにある
 □ API/Schema Freeze 日付が明記されている
 □ クリティカルパスと高リスク対策が記載されている
 ```
@@ -235,7 +235,7 @@ ff_<domain>_<feature>_<version>
 
 - WBS に feature flag/rollback 列が存在しない
 - 実装順はあるが依存関係が明示されていない
-- Sprint 番号が無く、L4 実装.1〜.5 への接続ができない
+- Sprint 番号が無く、L7 実装スプリント .1〜.5 への接続ができない
 - rollback が「必要時対応」など曖昧記述のみ
 
 上記がある場合、G3 は `failed` または `blocked` とする。

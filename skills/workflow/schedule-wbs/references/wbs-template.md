@@ -5,7 +5,7 @@
 ## 1. WBS 作成原則
 - 1タスクは0.5〜1.5日で分割
 - 依存関係はIDで明示
-- 各タスクに L4 Sprint を割り当て
+- 各タスクに L7 Sprint を割り当て
 - feature flag と rollback を必ず記載（不要なら N/A）
 
 ## 2. WBS テンプレート
@@ -18,7 +18,7 @@
 - Release:
 
 ## WBS
-| ID | タスク | 担当 | 依存 | 期間 | 環境 | L4 Sprint | feature flag | rollback |
+| ID | タスク | 担当 | 依存 | 期間 | 環境 | L7 Sprint | feature flag | rollback |
 |---|---|---|---|---|---|---|---|---|
 | WBS-01 | 影響調査 | @se | - | 0.5d | dev | .1a | N/A | N/A |
 | WBS-02 | 実装計画 | @se | WBS-01 | 0.5d | dev | .1b | N/A | N/A |

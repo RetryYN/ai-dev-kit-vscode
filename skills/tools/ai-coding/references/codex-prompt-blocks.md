@@ -38,7 +38,7 @@ Put the highest-value findings or decisions first.
 
 ### 3. `compact_output_contract`
 
-HELIXでの用途: TL/SE。短い調査報告、一次診断、差分要約（L4実装中間報告）。
+HELIXでの用途: TL/SE。短い調査報告、一次診断、差分要約（L7実装中間報告）。
 
 ```xml
 <compact_output_contract>
@@ -49,7 +49,7 @@ Do not include long scene-setting or repeated recap.
 
 ### 4. `default_follow_through_policy`
 
-HELIXでの用途: SE主導のL4実装で有効。軽微な不確実性を自己解決し、停止を減らす。
+HELIXでの用途: SE主導のL7実装で有効。軽微な不確実性を自己解決し、停止を減らす。
 
 ```xml
 <default_follow_through_policy>

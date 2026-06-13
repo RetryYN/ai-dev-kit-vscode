@@ -80,8 +80,8 @@ Phase R: リバース（既存コード→設計復元）   R0 → R1 → R2 →
 >
 > | 設計層 | ↔ | 検証層 |
 > |---|---|---|
-> | L1 要求定義 (運用テスト設計) | ↔ | L14 運用検証 |
-> | L2 画面設計 (UX 期待) | ↔ | L10 FE UX 磨き上げ |
+> | L1 要求定義 (運用テスト設計) | ↔ | L14 運用学習 / 運用改善 |
+> | L2 画面要求 / 画面設計 / フロントUI (UX 期待) | ↔ | L10 フロントUX / 業務デザイン磨き上げ |
 > | L3 要件定義 (受入テスト設計) | ↔ | L12 受入テスト |
 > | L4 基本設計 (総合テスト設計) | ↔ | L9 総合テスト |
 > | L5 詳細設計 (結合テスト設計) | ↔ | L8 結合テスト |
@@ -99,19 +99,19 @@ L1  要求定義 + 運用テスト設計 (機能要求 + IPA × ISO 25010 非機
   ↓ G1.5 PoC ゲート            [TL+PM]    条件付き
   ↓ G1R  事前調査ゲート         [TL]      条件付き
   ↓ → design-doc, visual-design (information / layout / ux)
-L2  画面設計 + フロント UI + ワイヤーモック (DESIGN.md / mock.html / state-events.md)
+L2  画面要求 / 画面設計 / フロントUI + ワイヤーモック (DESIGN.md / mock.html / state-events.md)
   ↓ G2   画面凍結ゲート         [TL+PM]    ★mock UX 承認 ★MOCK-* auto-enqueue
   ↓ → api-contract, requirements-deriver
 L3  要件定義 + 受入テスト設計 (FR/NFR 詳細 + ★受入テスト設計)
   ↓ G3   要件凍結ゲート         [PM+PO]   ★V-model L3↔L12 受入テスト pair freeze
   ↓ → design-doc, api-contract
-L4  基本設計 + 総合テスト設計 (アーキテクチャ + ADR + ★総合テスト設計)
+L4  基本設計 / 外部設計 + 総合テスト設計 (アーキテクチャ + ADR + ★総合テスト設計)
   ↓ G4   基本設計凍結ゲート     [TL+PM]   ★adversarial-review ★セキュリティ① ★V-model L4↔L9 pair freeze
   ↓ → design-doc, api-contract, dependency-map
-L5  詳細設計 + 結合テスト設計 (D-API / D-DB / 詳細フロー + ★結合テスト設計)
+L5  詳細設計 / 内部設計 + 結合テスト設計 (D-API / D-DB / 詳細フロー + ★結合テスト設計)
   ↓ G5   詳細設計凍結ゲート     [TL]      ★API/Schema Freeze ★V-model L5↔L8 pair freeze
   ↓ → design-doc, api-contract, schedule-wbs
-L6  機能設計 + 単体テスト設計 (関数 / endpoint schema + ★単体テスト設計)
+L6  機能設計 / 仕様書 + 単体テスト設計 (関数 / endpoint schema + ★単体テスト設計)
   ↓ G6   機能設計凍結ゲート     [TL]      ★V-model L6↔L7-test pair freeze ★parent_design 凍結
 
 【実装フェーズ (Phase 2、L7 = 機能 PLAN 上位概念。他工程 PLAN は §V2 完全移行 参照)】
@@ -122,7 +122,7 @@ L7  実装スプリント (kind=impl PLAN-NNN 起票、process_layer=L7)
     Step 4: 設計・テスト・実装 3 点レビュー
     Step 5: テストパターン追加 (QA 観点)
     Step 6: テスト実施 (回帰)
-    Step 7: 修正 / 実装完了
+    Step 7: カバレッジ確認 / closure / 修正 / 実装完了
   ↓ G7   実装完了ゲート         [TL+PM]   ★セキュリティ② ★ミニレトロ ★4 artifact trace
   ↓ → verification
 
@@ -132,20 +132,20 @@ L8  結合テスト + 依存関係解消 (L5 詳細設計↔結合テスト設�
 L9  総合テスト + 依存関係解消 (L4 基本設計↔総合テスト設計 pair execute)
   ↓ G9   総合検証ゲート         [TL+PM]   ★セキュリティ③ ★E2E/perf/security
   ↓ → visual-design, god-writing
-L10 フロント UX 磨き上げ (DESIGNER.md / ビジュアル磨き / コピー磨き) — L2↔L10 pair execute
+L10 フロントUX / 業務デザイン磨き上げ (DESIGNER.md / ビジュアル磨き / コピー磨き) — L2↔L10 pair execute
   ↓ G10  UX 磨き上げゲート      [TL+PM]   UI なし skip 可
 L11 総合レビュー + ユーザー検証 + 要件巻き取り (PO 検証 + 要件 drift 解消)
   ↓ G11  RC 判定ゲート          [PM+TL+PO]
   ↓ G11.5 Pre-Release 本番直前確認 [TL+PM]  ★rollback/monitoring/on-call
 
 【リリースフェーズ (Phase 4)】
-L12 デプロイ + 受入テスト + 環境差異巻き取り (L3 要件↔L12 受入 pair execute)
+L12 受入テスト (L3 要件↔L12 受入 pair execute)
   ↓ G12  デプロイ受入ゲート     [PM+PO]   ★セキュリティ④
   ↓ → observability-sre
-L13 デプロイ後検証 + 実環境運用 (smoke / canary / 初期インシデント対応)
+L13 運用検証 / 運用テスト (smoke / canary / 初期インシデント対応)
   ↓ G13  安定性ゲート           [自動/PM] fail-close
   ↓ → postmortem, innovation-mgr
-L14 運用検証 + 機能改善 (L1 運用テスト pair execute → 次イテレーション L0 input)
+L14 運用学習 / 運用改善 (L1 運用テスト pair execute → 次イテレーション L0 input)
   ↓ G14  運用学習完了ゲート     [PM]      fail-close
 ```
 
@@ -328,69 +328,73 @@ deferred-finding は accuracy_score に反映し、G1-G11 の評価算定に加�
 
 既存 CLI では明示 `--drive <type>` 指定が最優先。`db` / `agent` は明示指定のみ。
 
-### 旧分類別 L2〜L11
+### drive 別 L2〜L14
 
 | フェーズ | be | fe | db | fullstack | agent |
 |---------|----|----|----|-----------|----|
-| L2 設計 | API設計・アーキテクチャ・ADR | モック設計（方針+トークン+`mock.html`+`state-events.md`） | ER図・スキーマ設計 | BE方針+FE方針（mock含む）+接続契約方針（同時策定） | ツール定義・プロンプト設計 |
-| L3 詳細 | API契約+DB+工程表 | TL が `state-events.md` から **API契約導出**+DB+工程表 | マイグレーション+API契約+工程表 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+**mock**+工程表 | ツール契約+統合テスト設計+工程表 |
+| L2 画面要求 / 画面設計 | API利用画面がある場合の画面要求 | モック設計（方針+トークン+`mock.html`+`state-events.md`） | 管理画面がある場合の画面要求 | BE方針+FE方針（mock含む）+接続契約方針（同時策定） | 会話UI / ツール操作面の画面要求 |
+| L3 要件定義 | API要件+受入テスト設計 | TL が `state-events.md` から **API契約候補導出**+受入テスト設計 | データ要件+受入テスト設計 | D-CONTRACT 候補+**mock**+受入テスト設計 | ツール要件+受入テスト設計 |
+| L4 基本設計 | API設計・アーキテクチャ・ADR + 総合テスト設計 | UI 外部設計 + 総合テスト設計 | ER図・スキーマ方針 + 総合テスト設計 | BE/FE/Contract 三点セット + 総合テスト設計 | ツール定義・プロンプト設計 + 総合テスト設計 |
+| L5 詳細設計 | API契約+DB+結合テスト設計 | API契約導出+状態遷移+結合テスト設計 | マイグレーション+API契約+結合テスト設計 | D-API+D-UI+D-CONTRACT+D-DB+D-STATE+結合テスト設計 | ツール契約+統合テスト設計 |
 | L6 機能設計 | API実装詳細 + 単体テスト観点 | FE API契約導出 + イベント連携 + モック準備 | スキーマ変更影響 + 単体確認観点 | 接続/変換 API + FE 連携 | ツール入出力 + 状態遷移 |
-| L7 実装順 (旧 L4) | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 (旧 L4.5) | ツール→オーケストレーション→UI |
-| L5 重み | 薄い（表示確認） | 厚い（デザイン確認） | 薄い（管理画面確認） | 標準（結合後にVisual Refinement） | 会話UI/デモ確認 |
+| L7 実装順 | ロジック→API→FE | BE（契約ベース）∥ FE（**モック→本実装昇格**）→ 統合 | スキーマ→CRUD→API→FE | Phase A: BE Sprint ∥ FE Sprint（**mockを起点**）→ Phase B: L7-L8 結合 | ツール→オーケストレーション→UI |
 | L8 結合テスト | 依存関係解消 + 結合観点 | モック→本実装の接続検証 | 永続化を含む結合確認 | エンドポイント/画面連携の結合確認 | ツール呼び出しと外部連携の結合確認 |
-| L9 Run-1（デプロイ検証） | 標準 | 標準 | 薄い | 標準 | 薄い |
-| L10 Run-2（観測） | 薄い | 標準 | 薄い | 標準 | 薄い |
-| L11 Run-3（運用学習） | 標準 | 標準 | 薄い | 標準 | 標準 |
-| G2 凍結 | API設計凍結 | **モック凍結**（UX承認 + MOCK-* auto-enqueue 発火） | スキーマ凍結 | 接続契約方針凍結（BE+FE+Contract三点セット） + MOCK-* auto-enqueue | ツール定義凍結 |
-| G3 着手 | API/Schema Freeze | **モック+API/Schema Freeze** | Migration Freeze | API/Schema/UI/Contract全凍結 | Tool Contract Freeze |
-| G4 追加条件 | — | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | — | 同左（fe同等） | — |
-| G6 追加条件 | — | **MOCK-DERIVED-CONTRACT resolved 必須** | — | 同左（fe同等） | — |
+| L9 総合テスト | 標準 | 標準 | 薄い | 標準 | 薄い |
+| L10 フロントUX / 業務デザイン磨き上げ | 薄い | 標準 | 薄い | 標準 | 会話UI/デモ確認 |
+| L11 総合レビュー / ユーザー検証 | 標準 | 標準 | 薄い | 標準 | 標準 |
+| L12 受入テスト | 標準 | 標準 | 標準 | 標準 | 標準 |
+| L13 運用検証 / 運用テスト | 標準 | 標準 | 標準 | 標準 | 標準 |
+| L14 運用学習 / 運用改善 | 標準 | 標準 | 薄い | 標準 | 標準 |
+| G2 画面設計 | UI なし waiver | **モック凍結**（UX承認） | UI なし waiver または管理画面設計 | 接続契約方針 + mock | ツール操作面定義 |
+| G3 要件凍結 | API/業務要件 Freeze | **モック+API契約候補 Freeze** | データ要件 Freeze | API/Schema/UI/Contract 候補 Freeze | Tool Contract 候補 Freeze |
+| G4 基本設計追加条件 | 外部境界確定 | **MOCK-HARDCODE + MOCK-CODE-LEAK resolved 必須** | スキーマ方針確定 | 同左（fe同等） | ツール境界確定 |
+| G6 機能設計追加条件 | 単体テスト設計 pair | **MOCK-DERIVED-CONTRACT resolved 必須** | スキーマ変更影響 + 単体観点 | 同左（fe同等） | ツール入出力 + 単体観点 |
 
 auto-thinking は opt-in flag、default は role conf の `codex_thinking`。
 
 > **UI / fullstack の詳細フロー**（L2 ステップ内訳 / TL 契約導出手順 / モック由来 debt ライフサイクル / 責務分担表 / アンチパターン）→ `skills/project/ui/references` 配下を参照
 
-### L5 要否の判定
+### L10 磨き上げ要否の判定
 
-| 旧分類 | L5 必要条件 |
+| drive | L10 必要条件 |
 |-----------|------------|
 | be | `--ui` 有りのときのみ |
 | fe | **常に必要**（UI 品質確認の核心） |
 | db | `--ui` 有りのときのみ |
-| fullstack | **常に必要**（結合後の Visual Refinement） |
+| fullstack | **常に必要**（結合後のフロントUX / 業務デザイン磨き上げ） |
 | agent | **常に必要**（会話UI/デモ） |
 
 ## フェーズスキップ決定木
 
-既存 CLI 分類で L5 の要否が変わる（上記参照）。それ以外の判定ロジックは共通:
+既存 CLI 分類で L10 の要否が変わる（上記参照）。それ以外の判定ロジックは共通:
 
 ```
 ├─ S（小規模）
-│   ├─ バグ修正 / リファクタ / ドキュメント → L4 のみ
-│   ├─ 新規小機能 / 新モジュール → L1 → L2 → L3 → L4 → (L5) → L6
-│   └─ UI変更 → L2 → L3 → L4 → L5 → L6
+│   ├─ バグ修正 / リファクタ / ドキュメント → 影響層のみ（実装変更なら L7）
+│   ├─ 新規小機能 / 新モジュール → L1 → L2 → L3 → L4 → L5 → L6 → L7
+│   └─ UI変更 → L2 → L3 → L4 → L5 → L6 → L7 → L10
 │   ※ S案件の L1/L3 は最小版: 目的+受入条件+タスクリスト
 │   ※ 新機能は S でも L1（要件定義）を飛ばさない
 ├─ M（中規模）
 │   ├─ 新機能/新モジュール → L1 → フルフロー
-│   ├─ API/DB変更あり → L1 → L2 → L3 → L4 → (L5) → L6 → L7 → L8
-│   ├─ API/DB変更なし + L5要 → L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8
+│   ├─ API/DB変更あり → L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8
+│   ├─ API/DB変更なし + L10要 → L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8 → L10
 │   │   G1.5/G1R skip可、G3会議省略可
-│   └─ バグ修正/リファクタ → L2 → L3 → L4 → (L5) → L6 → L7 → L8
+│   └─ バグ修正/リファクタ → 影響層から再通過（通常は L6 → L7 → L8）
 └─ L（大規模）
-    ├─ L5要 → フルフロー
-    └─ L5不要 → フルフロー（L5/G5 skip）
+    ├─ L10要 → フルフロー
+    └─ L10不要 → L10/G10 skip を明示したフルフロー
 ```
 
-(L5) = 既存 CLI 分類の L5 要否判定に従う
+(L10) = 既存 CLI 分類の L10 要否判定に従う
 
-Run 工程（L9-L11）の適用可否:
-- 本番運用あり: G9-G11 を必須適用
-- PoC / 検証寄り: 本番影響がなければ Run は skip 可
+右腕工程（L8-L14）の適用可否:
+- 本番運用あり: G8-G14 を順に適用
+- PoC / 検証寄り: 本番影響がなければ L13-L14 は skip 可（証跡必須）
 
 fullstack 追加条件:
-- L7 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L7-L8 結合、旧 L4.5）
-- L5 は常に必要（結合後の Visual Refinement）
+- L7 は Phase A（BE Sprint ∥ FE Sprint）→ Phase B（L7-L8 結合）
+- L10 は常に必要（結合後のフロントUX / 業務デザイン磨き上げ）
 
 **セキュリティゲート強制条件** → `skills/tools/ai-coding/references/gate-policy.md §セキュリティゲート強制条件` 参照
 
@@ -449,14 +453,14 @@ fullstack 追加条件:
 
 | スキル | フェーズ | 役割 |
 |--------|---------|------|
-| `common/testing` | **L4** 実装時 | テストケース作成・テストテンプレート (unit/integration/E2E の書き方) |
-| `workflow/quality-lv5` | **L6** 統合検証 | テスト品質を Lv1-5 で評価・テストピラミッド比率・カバレッジ目標の判定 |
-| `workflow/verification` | **all** (L1〜L11 + R0-R4 + RGC) | Spec駆動検証・L8-L11 仕様/運用突合・Reverse RG0-RG3/RGC ゲート検証基盤 |
+| `common/testing` | **L7** 実装 / **L8-L9** 検証時 | テストケース作成・テストテンプレート (unit/integration/E2E の書き方) |
+| `workflow/quality-lv5` | **L7-L9** テスト品質確認 | テスト品質を Lv1-5 で評価・テストピラミッド比率・カバレッジ目標の判定 |
+| `workflow/verification` | **all** (L1〜L14 + R0-R4 + RGC) | Spec駆動検証・L8-L14 仕様/運用突合・Reverse RG0-RG3/RGC ゲート検証基盤 |
 
 使い分けルール:
 - **テストを書く**: `common/testing` のみ参照
 - **テスト品質の合否判定**: `workflow/quality-lv5` (G4/G6 ゲート時)
-- **成果物 ↔ 要件の突合検証**: `workflow/verification` (L1 受入条件 / L8 受入 / Reverse ゲート)
+- **成果物 ↔ 要件の突合検証**: `workflow/verification` (L1 受入条件 / L12 受入テスト / Reverse ゲート)
 
 ### 責務境界クリア化 (AIエージェント設計系の使い分け)
 
@@ -532,13 +536,13 @@ code-review は 4 系統で目的が分かれる (観点と分業を別軸で扱
 
 | スキル | 守備範囲 | 起動タイミング |
 |--------|---------|---------------|
-| `common/code-review` | HELIX L7 / G7 連携 (旧 L4/G4) の **base skill** (OWASP セキュリティ / パフォーマンス / 設計観点 / Critical/High 0 達成基準) + **Google eng-practices reviewer guide** (references/google-reviewer-guide.md、LGTM/Nit/Blocking ラベル、健全性ベース判定) | レビュアー視点で承認可否 (LGTM / LGTM with nits / Changes requested) を判定するとき。HELIX gate 連携時 (実装完了ゲート = G7) |
+| `common/code-review` | HELIX L7 / G7 連携の **base skill** (OWASP セキュリティ / パフォーマンス / 設計観点 / Critical/High 0 達成基準) + **Google eng-practices reviewer guide** (references/google-reviewer-guide.md、LGTM/Nit/Blocking ラベル、健全性ベース判定) | レビュアー視点で承認可否 (LGTM / LGTM with nits / Changes requested) を判定するとき。HELIX gate 連携時 (実装完了ゲート = G7) |
 | `workflow/review-stage-routing` | **6 段階 (Format/Lint/Style/Logic/Design/Architecture) × ロール (PM/TL/SE/PE/QA/security) 分業境界** + 逆説ルール (AI ゼロ指摘領域こそ上位ロールが見る) + ADR 降下 | helix review / code-reviewer agent / adversarial-review の起動順と責任分界を決めるとき。AI と人間の境界線確定時。観点・判定は common/code-review に委譲、本 skill は分業のみ (ai-code-review-kit/helix-integration/ 由来、2026-05-25 取り込み) |
 | `agent-skills/code-review-and-quality` | **5 軸 review** (Correctness / Readability / Architecture / Security / Performance) (addyosmani/agent-skills MIT 由来、英語) | 多次元評価が必要なとき。author / reviewer 区別なく汎用 review |
 | `workflow/adversarial-review` | G2/G4/G6 ゲート前の **adversarial check** (悪魔の代弁者役) | gate 通過前に意図的に反対意見を集めて穴を探すとき |
 
 使い分けルール:
-- **HELIX L7/G7 (旧 L4/G4) で承認可否判定** → `common/code-review` (Google reviewer guide 統合、実装完了ゲート連携)
+- **HELIX L7/G7 で承認可否判定** → `common/code-review` (Google reviewer guide 統合、実装完了ゲート連携)
 - **段階 × ロール 分業境界決定** → `workflow/review-stage-routing` (観点は common/code-review に委譲、分業のみ)
 - **5 軸で多次元評価** → `agent-skills/code-review-and-quality`
 - **ゲート前 adversarial check** → `workflow/adversarial-review`

@@ -209,16 +209,16 @@ export const KeyboardNavigation: Story = {
 ### Storybook 整備の優先順序
 
 ```
-L4 Sprint .1a（Atoms 実装と同時）:
+L7 Sprint .1a（Atoms 実装と同時）:
   Button / Input / Badge / Icon / Label の全 variant Story
 
-L4 Sprint .1b（Molecules 実装と同時）:
+L7 Sprint .1b（Molecules 実装と同時）:
   FormField / Card / ListItem の Story（play function で入力・インタラクション確認）
 
-L4 Sprint .2〜.3（Organisms 実装と同時）:
+L7 Sprint .2〜.3（Organisms 実装と同時）:
   LoginForm / Header / Modal 等の主要 Organism に play function を追加
 
-L5（Visual Refinement 後）:
+L10（フロントUX / 業務デザイン磨き上げ後）:
   デザインが固まったら VRT の baseline を登録する
 ```
 
@@ -295,7 +295,7 @@ test('ログイン成功 → ダッシュボードへリダイレクト', async 
 
 ## 5. VRT（Visual Regression Test）
 
-VRT は画面スクリーンショットを比較し、意図しない見た目の変化（デザイン回帰）を自動検出する。L5 Visual Refinement 後に baseline を登録し、以降のコード変更で差分が出たときに検出する。
+VRT は画面スクリーンショットを比較し、意図しない見た目の変化（デザイン回帰）を自動検出する。L10 フロントUX / 業務デザイン磨き上げ後に baseline を登録し、以降のコード変更で差分が出たときに検出する。
 
 ### ツールの選択
 
@@ -379,7 +379,7 @@ npx playwright test e2e/visual.spec.ts
 ### VRT 運用のポイント
 
 ```
-[ ] baseline は L5 Visual Refinement 完了後に main ブランチへ commit する
+[ ] baseline は L10 フロントUX / 業務デザイン磨き上げ完了後に main ブランチへ commit する
 [ ] デザイン変更は意図的な変更として --update-snapshots で baseline を更新する
 [ ] 動的コンテンツ（日時・ランダム要素）は mask オプションで除外する
 [ ] maxDiffPixelRatio を設定してアンチエイリアス差異による誤検知を減らす

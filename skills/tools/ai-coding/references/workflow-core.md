@@ -6,14 +6,14 @@
 
 ## モデル割当テーブル
 
-実装フェーズのタスク難易度スコアで担当モデルを決定。設計(L2-L3)は Codex 5.4 TL。L3 に API契約・テスト設計・工程表を含む。フロント設計は Opus、フロント実装は Sonnet。
+実装フェーズのタスク難易度スコアで担当モデルを決定。設計は現行 L0-L14 の L1-L6、特に L4 基本設計 / L5 詳細設計 / L6 機能設計では Codex TL/SE を使う。API契約・DB契約・テスト設計・工程表は L4-L6 の該当成果物として扱い、フロント設計は L2/L10、フロント実装は L7 で扱う。
 
 > **V-model 4 artifact 原則**: L2/L3 の「テスト設計」は ③ artifact として **別文書** (D-TEST-DESIGN-{SYS|INT|UNIT}) で作成し、① 設計（D-CONCEPT / D-API / D-DB / D-FUNC）と双方向 reference で trace する。同じ文書に統合してはいけない。詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`。
 
 | スコア | モデル | 実行モード |
 |--------|--------|-----------|
-| 0-3 | Codex 5.3 Spark PG | full-auto（L4） |
-| 4-7 | Codex 5.3 SE | full-auto（L4） |
+| 0-3 | Codex 5.3 Spark PG | full-auto（L7 実装） |
+| 4-7 | Codex 5.3 SE | full-auto（L7 実装） |
 | 8-10 | Codex 5.3 SE + 5.4 TL review | full-auto + mandatory review |
 | 11-14 | Codex 5.3 SE + Opus FE設計 + 5.4 TL review | full-auto + mandatory review |
 | FE実装 | Sonnet | sub-agent |
@@ -21,10 +21,11 @@
 
 > **full-auto**: `approval: never` + `sandbox: workspace-write` 前提で、コード・テスト・検証まで一括実行する委譲モード。
 > ただし以下のレビューゲートは full-auto でも省略不可:
-> - 実装.2（軽量 helix review: Critical/High のみ）
-> - 実装.5（フル helix review）
-> - G4（実装凍結ゲート）
-> - G5（デザイン凍結ゲート）
+> - L7 実装レビュー（軽量 helix review: Critical/High のみ）
+> - L7 実装完了前レビュー（フル helix review）
+> - G4（基本設計 / 外部設計凍結ゲート）
+> - G5（詳細設計 / 内部設計凍結ゲート）
+> - G6（機能設計 / 仕様書凍結ゲート）
 >
 > 以下の条件に該当する場合は TL/Security review を追加で強制:
 > - risk_flags: auth, payment, pii, external_api, data_migration, infra
@@ -130,8 +131,8 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 
 | 成果物 | コマンド | 用途 |
 |--------|---------|------|
-| コード差分 | `helix review --uncommitted` | L4 実装ゲート(.2/.5)、G4（実装凍結）、G5（デザイン凍結） |
-| 設計書・仕様書 | `helix codex --role tl --task "レビュー: [対象]"` | G2（設計凍結）、G3（実装着手 / API契約レビュー） |
+| コード差分 | `helix review --uncommitted` | L7 実装レビュー、G7 実装完了前の品質確認 |
+| 設計書・仕様書 | `helix codex --role tl --task "レビュー: [対象]"` | G2（画面凍結）、G3（要件凍結）、G4-G6（基本/詳細/機能設計凍結） |
 | プラン・方針 | `helix codex --role tl --task "TL壁打ち: [内容]"` | プランモード Phase 3 |
 
 ## Agent 並列実行ルール
@@ -182,8 +183,8 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 
 ### フェーズ（追加参照）
 
-- L3 詳細設計: **担当スキル** `api-contract`, `dependency-map`, `schedule-wbs`（工程表担当、2026-04-17 追加）, `testing`（③ 結合/単体テスト設計の作成補助、2026-05-17 追加）
-- L6 統合検証: **担当スキル** `verification`, `testing`, `quality-lv5`, `runbook`（運用手順担当、2026-04-17 追加）
+- L5 詳細設計 / 内部設計: **担当スキル** `api-contract`, `dependency-map`, `schedule-wbs`（工程表担当、2026-04-17 追加）, `testing`（結合/単体テスト設計の作成補助、2026-05-17 追加）
+- L8-L14 検証 / 運用側: **担当スキル** `verification`, `testing`, `quality-lv5`, `runbook`（運用手順担当、2026-04-17 追加）
 - R0 Evidence Acquisition: **担当スキル** `reverse-r0`（2026-04-17 追加）
 - R1 Observed Contracts: **担当スキル** `reverse-r1`（2026-04-17 追加）
 - R2 As-Is Design: **担当スキル** `reverse-r2`（2026-04-17 追加）
@@ -196,9 +197,9 @@ PM がユーザーへ技術提案を提示する前に、TL レビューを実�
 - G1.5 PoC: **担当スキル** `poc`, `gate-planning`（2026-04-17 追加）
 - G1R 事前調査: **担当スキル** `research`（2026-04-17 追加）
 - G2 設計凍結（脅威モデル必須時）: **担当スキル** `threat-model`（2026-04-17 追加）, `verification`（4 artifact 双方向 trace lint、2026-05-17 追加）
-- G3 実装着手: **担当スキル** `schedule-wbs`（2026-04-17 追加）, `verification`（4 artifact 双方向 trace lint、2026-05-17 追加）
-- G4 実装凍結: **担当スキル** `debt-register`（2026-04-17 追加）, `verification`（4 artifact 双方向 trace lint、2026-05-17 追加）
-- G6 RC 判定: **担当スキル** `runbook`（2026-04-17 追加）
+- G3 要件凍結: **担当スキル** `schedule-wbs`（2026-04-17 追加）, `verification`（4 artifact 双方向 trace lint、2026-05-17 追加）
+- G4 基本設計凍結: **担当スキル** `debt-register`（2026-04-17 追加）, `verification`（4 artifact 双方向 trace lint、2026-05-17 追加）
+- G6 機能設計凍結: **担当スキル** `runbook`（運用準備観点、2026-04-17 追加）
 - RG0 証拠網羅: **担当スキル** `reverse-r0`（2026-04-17 追加）
 - RG1 契約検証: **担当スキル** `reverse-r1`（2026-04-17 追加）
 - RG2 設計検証: **担当スキル** `reverse-r2`（2026-04-17 追加）

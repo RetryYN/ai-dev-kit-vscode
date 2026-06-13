@@ -202,7 +202,7 @@ distorted face, text, watermark, signature, nsfw, violent, hateful symbols
 
 ## 6. HELIX fe/agent 駆動の L5 連携
 
-- `fe` 駆動: L5 Visual Refinement で配色・余白・視認性を調整
+- `fe` 駆動: L10 フロントUX / 業務デザイン磨き上げで配色・余白・視認性を調整
 - `agent` 駆動: 会話UI/デモ画面でのトーン整合を確認
 - L2で定義したスタイルガイドをL5で検証し、差分をガイドへ還元する
 

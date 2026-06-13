@@ -81,7 +81,7 @@ paginate: true
 ### 2.2 報告用（L8受入）
 
 ```markdown
-# L8 受入報告
+# L12 受入テスト報告
 
 ## 要件との突合
 - 要件IDごとの達成状況
@@ -159,7 +159,7 @@ npx marp docs/slides/src/retro-g4.md --pptx -o docs/slides/dist/retro-g4.pptx
 npx marp docs/slides/src/retro-g4.md --pdf  -o docs/slides/dist/retro-g4.pdf
 ```
 
-### L8 受入報告時
+### L12 受入テスト報告時
 
 - `acceptance-report.md` から報告用スライドを自動生成
 - 要件ID・検証結果・残課題を最終ページに集約する

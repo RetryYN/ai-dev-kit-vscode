@@ -1,7 +1,7 @@
 # デザインシステム構築プロセス
 
 > 目的: shadcn/ui ベースのデザインシステムを計画的に立ち上げ・移行するための6ステップ工程を定義する。
-> 適用フェーズ: L2 Visual 設計（D-VIS-ARCH 策定時）、L5 Visual Refinement（既存プロジェクトの段階的整備時）。
+> 適用フェーズ: L2 画面設計 / Visual 方針（D-VIS-ARCH 策定時）、L10 フロントUX / 業務デザイン磨き上げ（既存プロジェクトの段階的整備時）。
 > 駆動タイプ: fe / fullstack。
 
 ---
@@ -161,7 +161,7 @@ npx shadcn@latest add card dialog form table tabs
 **作業**:
 - `docs/DESIGN.md` を `design-md-format.md` の 9 セクション形式で作成・更新
 - Storybook または README にコンポーネントごとの使用例を追加
-- D-VIS-ARCH（L2 Visual 設計書）に本ドキュメントを組み込む
+- D-VIS-ARCH（L2 画面設計 / Visual 方針書）に本ドキュメントを組み込む
 
 **完了基準**:
 - DESIGN.md の 9 セクションが全て埋まっている

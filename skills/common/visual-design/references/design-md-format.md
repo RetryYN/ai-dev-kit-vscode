@@ -2,7 +2,7 @@
 
 > **L2 ② 必読**（DESIGNER.md 作成手順書）
 > 目的: AI エージェント（Claude Code / Codex / Cursor など）が正確な UI を生成するための**構造化デザイン仕様書**のテンプレート。
-> 適用フェーズ: L2 Visual 方針策定時（設計前）、L5 Visual Refinement（実装後の調整）。
+> 適用フェーズ: L2 画面設計 / Visual 方針策定時（設計前）、L10 フロントUX / 業務デザイン磨き上げ（実装後の調整）。
 
 HELIX 9 は authoring lens（執筆視点）であり、公開 `docs/DESIGN.md` のトップレベル見出しは **公式 8 セクション**（Overview / Colors / Typography / Layout / Elevation / Shapes / Components / Do's & Don'ts）を順序どおり採用する。9 セクションの観点は失わず、公開契約の見出し体系だけを公式仕様に合わせる。
 
@@ -14,20 +14,20 @@ HELIX には2種類のデザイン文書がある。用途が異なるので使�
 
 | 文書 | 目的 | 作成タイミング | 粒度 |
 |------|------|---------------|------|
-| **DESIGNER.md**（既存） | **Why** — プロダクト戦略を言語化 | L5 の最初（実装後） | Role / Target / Pain / Solution / Concept / Anti-patterns |
-| **DESIGN.md**（本資料） | **How** — 視覚仕様を構造化 | L2 Visual 方針時（設計前） | 9セクション（配色・タイポ・コンポーネント等） |
+| **DESIGNER.md**（既存） | **Why** — プロダクト戦略を言語化 | L10 の最初（実装後） | Role / Target / Pain / Solution / Concept / Anti-patterns |
+| **DESIGN.md**（本資料） | **How** — 視覚仕様を構造化 | L2 画面設計 / Visual 方針時（設計前） | 9セクション（配色・タイポ・コンポーネント等） |
 
 連動フロー:
-1. L2 で DESIGNER.md の skeleton（Role / Target のみ）を作成し、L5 で完成（Why を確定）
-2. L2 Visual で DESIGN.md を作成（類似ブランドの `brands-jp/` or `brands-en/` を参照）
-3. L4 実装で DESIGN.md を実装の「ソース・オブ・トゥルース」として使う
-4. L5 Refinement で DESIGNER.md を完成させ、実装と DESIGN.md を突合
+1. L2 で DESIGNER.md の skeleton（Role / Target のみ）を作成し、L10 で完成（Why を確定）
+2. L2 画面設計 / Visual 方針で DESIGN.md を作成（類似ブランドの `brands-jp/` or `brands-en/` を参照）
+3. L7 実装で DESIGN.md を実装の「ソース・オブ・トゥルース」として使う
+4. L10 磨き上げで DESIGNER.md を完成させ、実装と DESIGN.md を突合
 
 ## 適用対象プロジェクト
 
 | 駆動タイプ | DESIGN.md 作成必要性 |
 |-----------|--------------------|
-| **fe**, **fullstack** | **強く推奨**（L2 Visual 方針策定時に作成） |
+| **fe**, **fullstack** | **強く推奨**（L2 画面設計 / Visual 方針策定時に作成） |
 | **agent**（AI/UI 付き） | 推奨（会話 UI がある場合） |
 | **be**, **db** | UI がある場合のみ（管理画面等） |
 
@@ -46,7 +46,7 @@ HELIX には2種類のデザイン文書がある。用途が異なるので使�
 SKILL_MAP.md の fe/fullstack 駆動の L2 成果物 D-VIS-ARCH に DESIGN.md を組み込む。
 
 ### Step 5: 実装者・レビュアーに共有
-DESIGN.md は L4 実装者の仕様書、L5 Refinement のチェックリストとして機能する。
+DESIGN.md は L7 実装者の仕様書、L10 磨き上げのチェックリストとして機能する。
 
 ---
 

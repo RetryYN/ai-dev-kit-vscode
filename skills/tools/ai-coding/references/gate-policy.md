@@ -21,7 +21,7 @@
 | task_status | `pending` / `in_progress` / `completed` / `blocked` / `partial` | 工程表タスク |
 | gate_status | `passed` / `failed` / `blocked` / `interrupted` / `invalidated` | ゲート単位。`invalidated` は freeze-break による無効化 |
 | verification_status | `pass` / `fail` | 検証レポート |
-| sprint_status | `active` / `interrupted` / `completed` | L4 スプリント状態 |
+| sprint_status | `active` / `interrupted` / `completed` | L7 スプリント状態 |
 | track_status | `active` / `completed` / `blocked` / `waiting` | Twin Track 状態（BE/FE 個別） |
 | deliverable_status | `pending` / `in_progress` / `done` / `waived` / `not_applicable` / `partial` | 成果物状態（ADR-001） |
 
@@ -33,22 +33,12 @@
 
 - 各フェーズ完了前に次フェーズに進まない
 - ゲート不合格 → ゲート内リトライ（3回）→ 層内ループ（5回）→ 上位層エスカレ → 人間
-- **freeze-break/change control**: 凍結後に API/Schema/権限境界/運用前提が変わったら、その層と下流ゲートを自動失効。G4 pass 後の要件修正は CC（§CC）で影響度を分類し返却先を決定
+- **freeze-break/change control**: 凍結後に API/Schema/権限境界/運用前提が変わったら、その層と下流ゲートを自動失効。G6 pass 後の要件修正は CC（§CC）で影響度を分類し返却先を決定
 - **自動通過 = 会議省略であり証跡省略ではない**。証跡がなければ常に fail
 
 ## ゲート一覧
 
-> **新 15 工程移行中の注意** (commit eeb0530): 本ファイル §G0.5〜§G11 までの detail section は **旧 L1-L11 体系下の表記** を保持中。**新 G0-G14 への正式 renumber は別 PLAN で実施**。当面は本節の readiness table を **新規定本** とし、各 detail section の `accuracy_weight` / `判定者` / `判定形式` / `Fail 時の差戻し先` は意味を維持して新ゲート番号で読み替える。
->
-> 旧 → 新 主要対応:
-> - 旧 G4 (実装凍結、sprint .1-.5) → 新 **G7** (実装完了、Sprint Step 1-7)
-> - 旧 G5 (デザイン凍結) → 新 **G10** (UX 磨き上げ)
-> - 旧 G6 (RC 判定) → 新 **G11** (RC 判定)
-> - 旧 G7 (安定性) → 新 **G13** (安定性)
-> - 旧 G9 (デプロイ安定性) → 新 **G13** (smoke/canary に統合)
-> - 旧 G10 (観測完了) → 新 **G13** (運用 watch に統合)
-> - 旧 G11 (運用学習) → 新 **G14** (運用学習)
-> - 新 **G8** (結合検証) / 新 **G12** (デプロイ受入) は旧体系の G6/G7 の中に潜在していたが、新 15 工程で明示化された
+> 本ファイルは現行 L0-L14 / G0-G14 を正本として記述する。互換ファイル名や CLI 内部名に古い番号が残る場合も、工程意味は本表の `mapped L` と `readiness exit` を優先する。
 
 ## readiness exit と gate AND 条件
 
@@ -58,7 +48,7 @@ PLAN-004 v5 / HELIX-V3-FOLLOWUP で確定した運用契約。
 
 各 L (L0-L14、新 15 工程 commit eeb0530) は entry/exit に readiness 条件を持ち、対応する G* ゲートの通過判定に AND 結合される。
 
-> **新 15 工程 ↔ 旧 L1-L11 体系の対応**: 新 L7 (実装スプリント) が旧 L4 実装に相当。旧 L5/L6/L7 (Visual/統合検証/デプロイ) は新 L10/L8-L9/L12 に分解された (docs/v2/process/README.md §既存資産との関係 参照)。本表は新 15 工程ベース。
+> 本表は現行 15 工程ベース。L1-L6 は設計と対応テスト設計を閉じ、L7 以降は実装・検証・運用側の実行工程として扱う。
 
 | gate | mapped L | readiness exit | V-model ペア |
 |---|---|---|---|
@@ -77,9 +67,9 @@ PLAN-004 v5 / HELIX-V3-FOLLOWUP で確定した運用契約。
 | G10  | L10 | UI/visual/a11y/copy 磨き上げ (L2↔L10 pair execute) | UI なし skip 可 |
 | G11  | L11 | 総合レビュー + PO 検証 + 要件 drift 解消 → RC 判定 | — |
 | G11.5 | L11 | rollback/monitoring/on-call 本番直前確認 | — |
-| G12  | L12 | デプロイ + 受入テスト + 環境差異解消 (L3↔L12 pair execute) | — |
-| G13  | L13 | smoke/canary/初期インシデント対応 (fail-close) | — |
-| G14  | L14 | 運用 KPI + 機能改善 pull-back (L1↔L14 pair execute、fail-close) | — |
+| G12  | L12 | 受入テスト + 環境差異解消 (L3↔L12 pair execute) | — |
+| G13  | L13 | 運用検証 / 運用テスト、smoke/canary、初期インシデント対応 (fail-close) | — |
+| G14  | L14 | 運用学習 / 運用改善 + 機能改善 pull-back (L1↔L14 pair execute、fail-close) | — |
 
 ### 判定式
 
@@ -183,17 +173,17 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 **担当スキル**:
 - research（事前調査、2026-04-17 追加）
 
-### G2 設計凍結ゲート（L2 出口）
+### G2 画面設計ゲート（L2 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 要件トレース 100%、ADR/データフロー/権限/エラー/運用方針確定、threat model 完了、adversarial-review 完了（該当時）、ミニレトロ記録。**V-model 4 artifact**: 総合テスト設計（③ D-TEST-DESIGN-SYS、別文書）作成済み、① 全体設計（D-CONCEPT）↔ ③ 総合テスト設計の双方向 reference 記載済み（詳細: `helix/HELIX_CORE.md §設計⇔テスト対応`）。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み。通過時に `MOCK-DERIVED-CONTRACT` / `MOCK-HARDCODE` / `MOCK-CODE-LEAK` の 3 項目が debt-register に auto-enqueue される |
+| 通過条件 | L1 要求とのトレース 100%、画面要求 / 画面設計 / フロント UI 方針 / ワイヤーモック完了、L10 検証観点との pair reference 記載、UI なしの場合は waiver 証跡完備。**fe/fullstack 追加条件**: モック（`.helix/mock/<feature>/mock.html` + `state-events.md`）完成、UX 承認済み |
 | accuracy_weight | 0.6 |
 | 根拠 | 設計凍結は方向性と主要技術判断を固定し、実装時の前提ブレを防ぐ。 |
 | 判定者 | PM（最終）、TL（必須）、PO（条件付き） |
 | 判定形式 | 明示 |
 | 中規模 skip | 不可 |
-| Fail | L2 差戻し、要件曖昧なら L1。ADR/境界変更が入ったら G3 以降無効 |
+| Fail | L2 差戻し、要求曖昧なら L1。画面構造や state/event 境界が変わったら G3 以降無効 |
 | レビュー | `helix codex --role tl --task "レビュー: ..."` |
 
 **担当スキル**:
@@ -201,155 +191,186 @@ after:  gate prereq + deliverable + static + AI + readiness_exit(L)   → pass
 - threat-model（脅威モデル、2026-04-17 追加）
 - security（セキュリティ設計）
 
-### G3 実装着手ゲート（L3 出口）
+### G3 要件凍結ゲート（L3 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 詳細設計完了、API/Schema Freeze、テスト設計完了（**③ 結合テスト設計 D-TEST-DESIGN-INT および ③ 単体テスト設計 D-TEST-DESIGN-UNIT が別文書として存在し、① 詳細設計（D-API / D-DB）↔ ③ テスト設計の双方向 reference 記載済み**）、WBS/担当/依存/環境/feature flag/migration/rollback 準備完了、reference_docs 空でない。**fe 追加条件**: TL が `state-events.md` から API 契約導出完了、モック凍結済み。fullstack 追加条件: D-CONTRACT 凍結、契約テスト設計完了、モック API 仕様確定、型生成手順固定 |
+| 通過条件 | FR/NFR/業務ルール/受入条件 100% 定義、受入テスト設計との pair reference 完了、L1/L2 との trace 完備、in/out scope 確定、未解決 blocker 0。**fe/fullstack 追加条件**: `state-events.md` から API 契約候補が導出済み、D-CONTRACT 着手条件が明確 |
 | accuracy_weight | 0.9 |
-| 根拠 | Schema/API Freeze が成立するため、実装前検証として高精度の一致判定を求める。 |
+| 根拠 | 要件凍結は後続の基本設計・詳細設計・機能設計の入力となるため、高精度の一致判定を求める。 |
 | 判定者 | TL（主）、PM（共同）、自動チェック補助 |
 | 判定形式 | ハイブリッド（API/DB 変更なしなら明示会議省略可） |
 | 中規模 skip | 会議省略可 |
-| Fail | L3 差戻し、設計矛盾なら L2。契約/スキーマ変更時は G4 以降無効 |
+| Fail | L3 差戻し、画面要求や業務フロー矛盾なら L2/L1。要件変更時は G4 以降無効 |
 | レビュー | `helix codex --role tl --task "レビュー: ..."` |
 
-`G3` の追加運用として、`helix gate G3 --subgate functional_freeze --plan-id <PLAN-NNN>` を利用可能とする。  
-このサブゲートは機能設計（`functional`）と単体テスト設計（`unit`）の `pair_status='paired'` を要求し、`pair_status` 欠落時は warning または fail-close となる。  
+`G3` は受入テスト設計の pair freeze を要求する。機能設計（`functional`）と単体テスト設計（`unit`）の pair freeze は G6 で扱う。
 
 **担当スキル**:
 - schedule-wbs（工程表/WBS、2026-04-17 追加）
 
-### G4 実装凍結ゲート（L4 出口）
+### G4 基本設計ゲート（L4 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | 全スプリント完了、実装.1-.5 通過、CI/回帰/スモーク green、Critical/High defect 0、セキュリティ閉塞完了、未解決 debt は台帳化、ミニレトロ記録。**V-model 4 artifact**: ② 実装コード（D-IMPL）が ① 設計への docstring reference（`契約: D-API §X.Y`）を保持、④ テストコード（D-TEST-CODE-{INT|UNIT}）が ③ テスト設計への docstring reference（`DoD 検証: PLAN-XXX-*-design.md U-XXX-001〜N`）を保持し、設計→実装、テスト設計→テストコードの双方向 trace が grep で検証可能。**fe/fullstack 追加条件**: `MOCK-HARDCODE`（モックのハードコード残存 grep）+ `MOCK-CODE-LEAK`（`.helix/mock/` の本実装 import 禁止）が resolved（`helix gate` が自動 fail-close）。fullstack 追加条件: BE Sprint .5 + FE Sprint .5 + Contract CI green + L4.5 結合テスト pass（片側完了のみは不通過） |
+| 通過条件 | 基本設計 / 外部設計、アーキテクチャ、ADR、外部契約境界、品質属性方針、総合テスト設計との pair reference 完了。D-API / D-DB / D-CONTRACT を詳細化する前提が明確で、重大な設計 blocker 0 |
 | accuracy_weight | 0.95 |
-| 根拠 | 実装凍結直前の最終合意点であり、実装品質を確実に担保するため精度を最重要とする。 |
-| 判定者 | TL（最終）、PM（確認）、自動 CI 必須 |
-| 判定形式 | ハイブリッド（M/L では実質明示） |
+| 根拠 | 基本設計は外部境界と品質属性を固定するため、後続の詳細設計と総合テスト設計の前提を高精度で揃える。 |
+| 判定者 | TL（最終）、PM（確認）、自動チェック補助 |
+| 判定形式 | ハイブリッド（M/L では明示） |
 | 中規模 skip | 不可 |
-| Fail | L4 差戻し、IIP P2/P3 なら L3/L2/L1 へ逆流。コード局所修正なら G4 再審、契約変更なら G3 から |
+| Fail | L4 差戻し、要件や画面要求の矛盾なら L3/L2/L1 へ逆流。契約境界変更なら G3 から再審 |
 | レビュー | `helix review --uncommitted` — Codex 5.4 |
 
 **担当スキル**:
 - debt-register（負債台帳、2026-04-17 追加）
 
-### G5 デザイン凍結ゲート（L5 出口）
+### G5 詳細設計ゲート（L5 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | V0/V1/V2 分類完了、契約変更なし、UI レビュー/アクセシビリティ/性能許容内 |
+| 通過条件 | 詳細設計 / 内部設計、D-API / D-DB / D-CONTRACT、状態遷移、エラー処理、結合テスト設計との pair reference 完了。migration / rollback / feature flag が必要な場合は設計証跡あり |
 | accuracy_weight | 0.7 |
-| 根拠 | デザイン凍結は UI 検証が主で、実装詳細の精度より体験妥当性の担保が中心。 |
-| 判定者 | TL + PM、PO は UX 期待変更時のみ |
-| 判定形式 | V0 のみなら自動、V1/V2 は明示 |
-| 中規模 skip | UI なしは skip 可 |
-| Fail | V0: L5 内修正 / V1: L4 差戻し / V2: L2 から再走（→L3→L4→L5） |
+| 根拠 | 詳細設計は内部契約と結合点を固定するため、実装前の構造的欠陥をここで閉じる。 |
+| 判定者 | TL + PM |
+| 判定形式 | ハイブリッド |
+| 中規模 skip | 不可 |
+| Fail | L5 差戻し、外部境界変更なら L4、要件変更なら L3/L1 へ逆流 |
 | レビュー | `helix review --uncommitted` — Codex 5.4 |
 
-### G6 RC 判定ゲート（L6 出口）
+### G6 機能設計ゲート（L6 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | E2E/性能/セキュリティ/運用準備 pass、migration rehearsal pass、rollback 実証済み、既知 Sev1/2 0、release note/runbook 完了。**fe/fullstack 追加条件**: `MOCK-DERIVED-CONTRACT`（モック由来 API 契約のドメイン整合性 TL レビュー）が resolved（`helix gate` が自動 fail-close） |
+| 通過条件 | 機能設計 / 仕様書、関数・CLI・イベント・検出器などの機能単位仕様、単体テスト設計との pair reference 完了。実装に入る前に入力/出力/副作用/異常系/観測項目が検証可能である |
 | accuracy_weight | 0.95 |
-| 根拠 | RC 判定は最終品質ゲートであり、重大欠陥を防ぐため高精度な判断が求められる。 |
-| 判定者 | PM（Go/No-Go）、TL（技術推奨）、PO（条件付き） |
-| 判定形式 | 明示 |
+| 根拠 | L6 は L1-L6 左腕の最終凍結点であり、L7 実装に入る前の仕様・単体テスト設計を閉じるため高精度な判断が求められる。 |
+| 判定者 | TL（最終）、PM（確認）、PO（条件付き） |
+| 判定形式 | 明示または証跡付き自動 |
 | 中規模 skip | 不可 |
-| Fail | L6 が基本、原因次第で L5/L4/L3/L2。成果物/設定が変わったら新 RC 振り直し |
+| Fail | L6 差戻し、原因次第で L5/L4/L3/L2。成果物/設定が変わったら該当ゲートから再審 |
 
 **担当スキル**:
 - runbook（運用手順、2026-04-17 追加）
 
-### G6.5 Pre-Release 静的検証
+### G11.5 Pre-Release 静的検証
 
 | 項目 | 内容 |
 |------|------|
 | 目的 | RC 後、リリース直前の静的整合を固めるための Pre-Release 検証。template/state-machine validation、smoke test、破壊変更チェックをまとめて確認する。 |
-| タイミング | G6 と G7 の間 |
+| タイミング | G11 と G12 の間 |
 | fail-close | state-machine / template の検証失敗、smoke test 失敗、破壊変更チェック未完了、未解決の差分 drift が 1 件でもある場合は passed 不可。 |
 | exit | `cli/templates/state-machine.yaml` / `.helix/state-machine.yaml` / gate-policy の参照整合が確認済み、smoke test pass、破壊変更なし、evidence 生成済み。 |
 | evidence | `.helix/audit/g6.5-pre-release-static.yaml` または phase.yaml に、検証対象、diff 要約、破壊変更判定、結果、担当者、タイムスタンプを記録。 |
 | 責任者 | TL（AI 判定可: `helix-codex --role tl`）、最終承認は人間 |
 
-### G6.7 Pre-Release 動的検証
+### G11.7 Pre-Release 動的検証
 
 | 項目 | 内容 |
 |------|------|
 | 目的 | staging 上での E2E、performance benchmark、security scan を通し、リリース候補の動的品質を確認する。 |
-| タイミング | G6.5 通過後、G7 前 |
+| タイミング | G11.5 通過後、G12 前 |
 | fail-close | staging E2E 失敗、性能ベンチ未達、security scan 失敗、重大な再現不良、証跡不足のいずれかで passed 不可。 |
 | exit | staging E2E pass、ベンチマークが閾値内、security scan pass、主要障害 0、evidence 完備。 |
 | evidence | `.helix/audit/g6.7-pre-release-dynamic.yaml` または phase.yaml に、実行環境、E2E 結果、性能指標、security scan 結果、再現性、担当者を記録。 |
 | 責任者 | TL（AI 判定可: `helix-codex --role tl`）、人間最終承認 |
 
-### G6.9 Pre-Release 本番直前確認
+### G11.9 Pre-Release 本番直前確認
 
 | 項目 | 内容 |
 |------|------|
 | 目的 | 本番投入直前に、rollback plan、monitoring alert、on-call 体制を整え、運用開始の最後の前提を確認する。 |
-| タイミング | G6.7 通過後、G7 前 |
+| タイミング | G11.7 通過後、G12 前 |
 | fail-close | rollback 手順未確認、監視アラート未整備、on-call 連絡線未確立、リリース手順の責任分界が曖昧、証跡未記録なら passed 不可。 |
 | exit | rollback plan 承認済み、monitoring alert 整備済み、on-call 体制確認済み、リリース窓の責任者明確、evidence 完備。 |
 | evidence | `.helix/audit/g6.9-pre-release-readiness.yaml` または phase.yaml に、rollback 内容、監視/通知設定、on-call 名簿、承認者、タイムスタンプを記録。 |
 | 責任者 | TL と PM。AI 判定は `helix-codex --role tl` で補助可、最終承認は人間 |
 
-### G7 安定性ゲート（L7 出口）
+### G7 実装完了ゲート（L7 出口）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | デプロイ成功、health/smoke pass、watch window 完了、SLO 逸脱なし or low 1件以下で owner+ETA あり、rollback 不要 |
-| accuracy_weight | 0.7 |
-| 根拠 | 安定性フェーズは運用監視中心であり、方向性より回帰防止の精度を重視。 |
-| 判定者 | 自動が基本、条件付き pass は PM/TL |
-| 判定形式 | 自動通過可（顧客向け/高リスクは watch skip 不可） |
+| 通過条件 | 実装 Step 1-7 全完遂、単体テスト実装・実施、カバレッジ確認、設計↔実装↔単体テスト設計↔テストコード trace 完了、Critical/High defect 0 |
+| accuracy_weight | 0.95 |
+| 根拠 | L7 は L6 仕様をコードと単体テストで閉じる工程であり、後続検証へ渡す前の品質を高精度で担保する。 |
+| 判定者 | TL（最終）、PM（確認）、自動 CI 補助 |
+| 判定形式 | ハイブリッド |
 | 中規模 skip | 不可 |
-| Fail | 即 rollback → 原因に応じ L6/L4/L3 差戻し。ビルド/設定/infra 変更なら G6 から |
-| 人間承認条件 | 初回デプロイ / 認証・決済・PII / 破壊的 DB マイグレ / 外部 API 変更 / エラーバジェット 75%超 / インフラ構成変更 |
+| Fail | L7 差戻し、仕様不整合なら L6、内部設計不整合なら L5、要件変更なら L3/L1 へ逆流 |
+| 人間承認条件 | 認証・決済・PII / 破壊的 DB マイグレ / 外部 API 変更 / インフラ構成変更 |
 
-## L8 受入 (no gate)
+### G8 結合テストゲート（L8 出口）
 
-L8 は受入 phase であり、独立 gate (G8) は存在しない。
-G7 (安定性ゲート) 通過後、PM/PO が L1 D-ACC (受入条件) との突合で受入承認を行い、
-L9 (デプロイ検証) へ移行する。L8 完了の機械的判定は無く、ユーザー承認が前提。
+L8 は結合テスト phase であり、L5 詳細設計 / 結合テスト設計との pair execute を行う。
+G8 は依存関係、API/DB/状態遷移、外部境界の結合不整合を fail-close で検出する。
 
-evidence: 受入承認の記録 (PM/PO の OK 判断、PR コメント、handover ESCALATION 等)
+evidence: 結合テスト結果、依存関係解消記録、未解決 defect 台帳、再実行コマンド。
 
-### G9 デプロイ安定性ゲート（L9 出口）
+### G9 総合テストゲート（L9 出口）
 
 | 項目 | 内容 |
 |------|------|
 | 発火条件 | L9 完了時 |
-| 通過条件 | L9（デプロイ検証）完了、ロールバック手順検証、smoke test pass |
+| 通過条件 | 総合テスト、E2E、性能、セキュリティ、業務フロー検証が L4 基本設計 / 総合テスト設計と整合 |
 | 判定者 | 自動/PM |
 | 判定形式 | 自動＋明示 |
-| Fail | 即 rollback、次 L 差戻し |
+| Fail | L9 差戻し、原因に応じ L7/L6/L5/L4 へ逆流 |
 | 人間承認条件 | 本番影響が高い場合は PM 最終確認 |
 | accuracy_weight | 0.9 |
 
-### G10 観測完了ゲート（L10 出口）
+### G10 フロントUX / 業務デザイン磨き上げゲート（L10 出口）
 
 | 項目 | 内容 |
 |------|------|
 | 発火条件 | L10 完了時 |
-| 通過条件 | SLO/SLI 監視結果レビュー、異常検知 0 件 or すべて解消 |
+| 通過条件 | UI/visual/a11y/copy/業務導線が L2 画面設計と整合。UI なしの場合は waiver 証跡がある |
 | 判定者 | PM |
 | 判定形式 | 明示 |
-| Fail | L10 再実行または差戻し |
+| Fail | L10 再実行、構造変更なら L2/L4 へ逆流 |
 | accuracy_weight | 0.8 |
 
-### G11 運用学習完了ゲート（L11 出口）
+### G11 総合レビュー / ユーザー検証ゲート（L11 出口）
 
 | 項目 | 内容 |
 |------|------|
 | 発火条件 | L11 完了時 |
-| 通過条件 | postmortem 作成、改善提案、次サイクル feedback 記載完了 |
-| 判定者 | PM |
+| 通過条件 | 総合レビュー、ユーザー検証、要件 drift 解消、RC 判定、rollback/monitoring/on-call 前提確認完了 |
+| 判定者 | PM + TL、PO は受入影響時 |
 | 判定形式 | 明示 |
-| Fail | L10 差戻し |
+| Fail | 原因に応じ L10/L9/L8/L7/L6/L3/L1 へ逆流 |
+| accuracy_weight | 0.8 |
+
+### G12 受入テストゲート（L12 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L12 完了時 |
+| 通過条件 | 受入テストが L3 受入テスト設計と整合し、残余リスクを PO が明示受容、運用引継ぎ完了 |
+| 判定者 | PO + PM |
+| 判定形式 | 明示 |
+| Fail | 不足のある層へ差戻し |
+| accuracy_weight | 0.9 |
+
+### G13 運用検証 / 運用テストゲート（L13 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L13 完了時 |
+| 通過条件 | 運用テスト、smoke/canary、SLO/SLI 初期監視、初期インシデント対応、runbook 実効性確認が完了 |
+| 判定者 | TL + DevOps/SRE + PM |
+| 判定形式 | 自動 + 明示 |
+| Fail | rollback または原因層へ差戻し |
+| accuracy_weight | 0.9 |
+
+### G14 運用学習 / 運用改善ゲート（L14 出口）
+
+| 項目 | 内容 |
+|------|------|
+| 発火条件 | L14 完了時 |
+| 通過条件 | 運用 KPI、postmortem、改善提案、次サイクル feedback が L1 要求 / 運用テスト設計へ pull-back されている |
+| 判定者 | PM + PO + TL |
+| 判定形式 | 明示 |
+| Fail | L14 再整理または L1/L3 へ改善起票 |
 | accuracy_weight | 0.6 |
 
 ## readiness exit と carry rule
@@ -361,7 +382,7 @@ PLAN-004 v5 連動:
 - P2: 次 L 開始まで or debt として `.helix/audit/deferred-findings.yaml` に carry
 - P3: 任意 carry
 
-readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding 数で accuracy_score を加減算する。  
+readiness exit は L0-L14 の entry/exit 条件に適用し、deferred-finding 数で accuracy_score を加減算する。  
 （deferred 1件につき accuracy_score から減点。減点式は共通設定を参照）
 
 ### deferred finding による accuracy_score 補正
@@ -380,11 +401,11 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 | accuracy_weight | 0.5 |
 | 根拠 | 方向性凍結を確認するレビューであるため、G3/G4 のような実装凍結精度は不要。 |
 
-### L8 受入（終端判定）
+### L12 受入テスト（終端判定）
 
 | 項目 | 内容 |
 |------|------|
-| 通過条件 | L1 受入条件 100% 充足、残余リスクを PO が明示受容、運用引継ぎ完了 |
+| 通過条件 | L3 受入テスト設計 100% 充足、残余リスクを PO が明示受容、運用引継ぎ完了 |
 | 判定者 | PO |
 | 判定形式 | 明示 |
 | skip | 不可 |
@@ -395,9 +416,9 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 | # | ゲート | 内容 |
 |---|--------|------|
 | ① | G2 | 脅威分析（threat model） |
-| ② | G4 | 実装閉塞確認（セキュリティ実装の完了） |
-| ③ | G6 | RC 時の攻撃/権限/負荷検証 |
-| ④ | G7 直前 | config/secret/vuln scan |
+| ② | G4 | 基本設計時の権限境界 / データフロー確認 |
+| ③ | G6 | 機能設計時の攻撃/権限/負荷検証観点固定 |
+| ④ | G7/G13 | 実装完了時と運用検証時の config/secret/vuln scan |
 
 ## セキュリティゲート強制条件
 
@@ -406,34 +427,36 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 | 条件 | 強制ゲート |
 |------|----------|
 | 外部 API 連携（新規/変更） | G1R 事前調査必須 + G3 API 契約レビュー必須 |
-| 認証・認可ロジックの変更 | G2 セキュリティ設計レビュー必須 + L4 実装.3 セキュリティチェック必須 |
-| 課金・決済関連 | G2 設計承認（PO）必須 + L4 実装.3 セキュリティチェック必須 |
+| 認証・認可ロジックの変更 | G4 セキュリティ設計レビュー必須 + L7 実装.3 セキュリティチェック必須 |
+| 課金・決済関連 | G4 設計承認（PO）必須 + L7 実装.3 セキュリティチェック必須 |
 | 個人情報の取り扱い変更 | G2 設計承認（PO）必須 |
 | 複数リポジトリ / チームに影響 | L3 接続設計必須 |
-| Phase 4 Run（L9-L11） | G6/G7 相当の監査要求（config/secret/権限/脆弱性）を満たすこと |
+| 運用検証 / 運用改善（L13-L14） | G13/G14 相当の監査要求（config/secret/権限/脆弱性/改善 feedback）を満たすこと |
 
 ## Codex レビュー義務化
 
 | 遷移 | 手段 | 担当 |
 |------|------|------|
-| G2（設計凍結） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
-| G3（実装着手） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
-| L4 実装.2（軽量） | `helix review --uncommitted` | Codex 5.4（Critical/High のみ） |
-| L4 実装.5（フル品質） | `helix review --uncommitted` | Codex 5.4（全 severity） |
-| G4（実装凍結） | `helix review --uncommitted` | Codex 5.4 |
-| G5（デザイン凍結） | `helix review --uncommitted` | Codex 5.4 |
+| G2（画面設計） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| G3（要件凍結） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| G4（基本設計） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| G5（詳細設計） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| G6（機能設計） | `helix codex --role tl --task "レビュー: ..."` | Codex TL |
+| L7 実装.2（軽量） | `helix review --uncommitted` | Codex 5.4（Critical/High のみ） |
+| L7 実装.5（フル品質） | `helix review --uncommitted` | Codex 5.4（全 severity） |
+| G7（実装完了） | `helix review --uncommitted` | Codex 5.4 |
 
 **5.4 ボトルネック緩和**: 低リスク案件（サイジング S + セキュリティゲート非該当）は Codex 5.3 SE が一次レビュー可。高リスク案件は 5.4 TL 必須。
 
-## L5 Visual Refinement 分岐
+## L10 フロントUX / 業務デザイン磨き上げ分岐
 
 | 分類 | 内容 | 差し戻し |
 |------|------|---------|
-| V0（見た目のみ） | 色・余白・タイポ・トークン変更 | L5 内で修正 → G5 へ |
-| V1（UI構造変更） | コンポーネント追加・レイアウト変更 | L4 に差し戻し → L5 再実行 |
-| V2（契約影響） | API/DB 変更を伴う UI 変更 | L2 から再走（→L3→L4→L5） |
+| V0（見た目のみ） | 色・余白・タイポ・トークン変更 | L10 内で修正 → G10 へ |
+| V1（UI構造変更） | コンポーネント追加・レイアウト変更 | L2/L4 に差し戻し → L10 再実行 |
+| V2（契約影響） | API/DB 変更を伴う UI 変更 | L2 から再走（→L3→L4→L5→L6→L7→L10） |
 
-詳細: `layer-interface.md §L5 Visual Refinement`
+詳細: `layer-interface.md §L10 フロントUX / 業務デザイン磨き上げ`
 
 ## 作業前コード調査（実装.1a 必須）
 
@@ -445,7 +468,7 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 
 ## IIP（実装内割り込みプロトコル）
 
-**適用範囲: L4 実装フェーズ内のみ。**
+**適用範囲: L7 実装フェーズ内のみ。**
 
 実装中の前提崩壊・想定外トラブル対応:
 
@@ -455,39 +478,39 @@ readiness exit は L1-L11 の entry/exit 条件に適用し、deferred-finding �
 
 ## CC（凍結後変更管理 — Change Control）
 
-**適用範囲: G4 pass 後〜L8 受入完了まで。**
+**適用範囲: G6 pass 後〜L12 受入テスト完了まで。**
 **発火条件: 凍結済み成果物に対して要件修正・仕様追加が発生した時。**
 
-IIP（L4 内の前提崩壊）や V 分類（L5 の visual 差戻し）とは異なり、**PO 起点の要件変更**を影響度で分類する。
+IIP（L7 内の前提崩壊）や V 分類（L10 の visual / 業務導線差戻し）とは異なり、**PO 起点の要件変更**を影響度で分類する。
 
 | 分類 | 影響 | 判定基準 | 返却先 | 再通過 | 承認 |
 |------|------|---------|--------|--------|------|
-| CC-S | 局所変更 | L1 受入条件・L2/L3 成果物・API/Schema/権限境界 すべて不変、**変更差分が** サイジング S 範囲 | L4 | G4 → 影響下流ゲートのみ | TL |
-| CC-M | 設計差分 | L1 scope/NFR 不変だが、画面構造・導線・詳細設計・テスト設計・内部契約に変更 | L3 | G3 → L4 → L5 → … | TL+PM |
+| CC-S | 局所変更 | L1 受入条件・L2/L3 成果物・API/Schema/権限境界 すべて不変、**変更差分が** サイジング S 範囲 | L6/L7 | G6/G7 → 影響下流ゲートのみ | TL |
+| CC-M | 設計差分 | L1 scope/NFR 不変だが、画面構造・導線・詳細設計・テスト設計・内部契約に変更 | L3/L4/L5/L6 | G3 → G4 → G5 → G6 → … | TL+PM |
 | CC-L | 要件変更 | L1 受入条件・scope・NFR・業務ルール・優先順位が変わる | L1 | フル再通過 | PO |
 
 **自動昇格（3段階）**:
-- CC-M で **API/Schema のみ**変更 → freeze-break により **L3** へ差戻し（G3 → L4 → … 再通過）。G3 が API/Schema Freeze の所有ゲート
-- CC-M で **権限境界/ADR/運用前提**に触れた場合 → freeze-break により **L2** へ差戻し（G2 → G3 → L4 → … 再通過）。G2 が設計凍結の所有ゲート
+- CC-M で **API/Schema のみ**変更 → freeze-break により **L5** へ差戻し（G5 → G6 → … 再通過）。G5 が内部契約 Freeze の所有ゲート
+- CC-M で **権限境界/ADR/運用前提**に触れた場合 → freeze-break により **L4** へ差戻し（G4 → G5 → G6 → … 再通過）。G4 が基本設計の所有ゲート
 - **L1 受入条件/scope/NFR** が変わる場合 → CC-L に昇格（L1 差戻し → フル再通過）
 
 **累積カウント**: CC 発動回数は LPR（R1/R2/R3）と合算。同一 `cause_id`（変更要因の識別子）で 2 回発動 → 上位エスカレ。
 
 ## LPR（後半差戻しプロトコル）
 
-**適用範囲: G5 pass 後（または G5 skip 決定後）〜 L8 受入完了まで。**
+**適用範囲: G7 pass 後〜 L14 運用改善完了まで。**
 **発火条件: 後続フェーズが pass 済み成果物の再工事を要求した時。**
 
 | 分類 | 原因 | 返却先 | 承認 |
 |------|------|--------|------|
 | R0 | Defect（不具合） | 該当実装 → 影響検証 | TL |
 | R1 | Assumption Gap（前提乖離） | CC-S/M/L に準じた返却先（CC 分類で深度決定） | TL + PM |
-| R2 | Quality Polish（体験品質） | L5 内で対応（**1回上限**） | TL |
+| R2 | Quality Polish（体験品質） | L10 内で対応（**1回上限**） | TL |
 | R3 | Scope Change（要件変更） | CC-L 相当（L1 差戻し → PO 承認） | PO |
 
 **R2 diff 制約**: CSS/文言/既存要素の順序/a11y 属性まで。状態遷移・条件分岐・ルーティング・API 呼び出し・権限判定・計測イベント変更が入ったら R1 or R3 に昇格。
 
-**L7 デプロイ後の再入**: 修正 → 再検証 → 再デプロイ → G7 再通過（watch リセット）→ PO 再承認。
+**運用検証後の再入**: 修正 → 再検証 → 再投入判断 → G13/G14 再通過 → PO 再承認。
 
 **累積カウント**: R1/R2/R3 全て加算、CC 発動回数も合算。同一 `cause_id` で 2 回発動 → 上位エスカレ。R0（Defect）は通常のバグ修正であり累積対象外（品質改善を萎縮させないため）。
 
@@ -496,24 +519,25 @@ IIP（L4 内の前提崩壊）や V 分類（L5 の visual 差戻し）とは異
 | プロトコル | 適用範囲 | 用途 |
 |-----------|---------|------|
 | 通常ゲート判定 | L1〜L3（凍結前） | ゲート fail → 差戻し。プロトコル不要 |
-| IIP（P0-P3） | L4 実装中 | 前提崩壊・想定外トラブルの割り込み |
-| CC（CC-S/M/L） | G4 pass 後〜L8 | 凍結後の要件修正（影響度で返却先を決定） |
-| V 分類（V0/V1/V2） | L5 フェーズ全体 | Visual Refinement の変更分類と差戻し判定 |
-| LPR（R0-R3） | G5 pass/skip 後〜L8 | 後半フェーズの差戻し分類（R1 は CC 深度参照） |
+| IIP（P0-P3） | L7 実装中 | 前提崩壊・想定外トラブルの割り込み |
+| CC（CC-S/M/L） | G6 pass 後〜L12 | 凍結後の要件修正（影響度で返却先を決定） |
+| V 分類（V0/V1/V2） | L10 フェーズ全体 | フロントUX / 業務デザイン磨き上げの変更分類と差戻し判定 |
+| LPR（R0-R3） | G7 pass 後〜L14 | 後半フェーズの差戻し分類（R1 は CC 深度参照） |
 
-**L4 実装中の PO 起点要件変更**: G3 凍結済み成果物が変わるため freeze-break に該当。freeze-break で下流ゲート（G3 以降）を自動失効させ、影響に応じて L3/L2/L1 へ差戻す。IIP ではなく通常の freeze-break ルートで処理する。
+**L7 実装中の PO 起点要件変更**: G6 凍結済み成果物が変わるため freeze-break に該当。freeze-break で下流ゲート（G6 以降）を自動失効させ、影響に応じて L6/L5/L4/L3/L2/L1 へ差戻す。IIP ではなく通常の freeze-break ルートで処理する。
 
-**CC と LPR の使い分け**: CC は「PO 起点の要件修正」、LPR は「開発側が発見した再工事要因」。G5 pass/skip 後に PO から要件修正が入った場合は CC で分類し、開発側の検証で前提乖離が判明した場合は LPR R1 を使う（返却深度は CC-S/M/L を参照）。
+**CC と LPR の使い分け**: CC は「PO 起点の要件修正」、LPR は「開発側が発見した再工事要因」。G7 pass 後に PO から要件修正が入った場合は CC で分類し、開発側の検証で前提乖離が判明した場合は LPR R1 を使う（返却深度は CC-S/M/L を参照）。
 
-**L5 フェーズ中の前提乖離**: visual 問題は V 分類（V0/V1/V2）で判定。V2（契約影響）は L2 差戻しとなるため CC-M 相当の扱い。L5 中に発見された非 visual 問題（defect, assumption gap 等）は CC で分類する（V 分類の対象外）。
+**L10 フェーズ中の前提乖離**: visual / 業務導線問題は V 分類（V0/V1/V2）で判定。V2（契約影響）は L2/L4/L5 差戻しとなるため CC-M 相当の扱い。L10 中に発見された非 visual 問題（defect, assumption gap 等）は CC で分類する（V 分類の対象外）。
 
 ## ミニレトロ（マイルストーン基準）
 
 | マイルストーン | 発火タイミング | 目的 |
 |--------------|--------------|------|
-| 設計凍結後 | G2 通過後 | 設計判断の妥当性振り返り |
-| 実装凍結後 | G4 通過後 | 実装の学び・工数乖離記録 |
-| 終端フェーズ後 | L8 受入完了後 / G7 でロールバック発生時 | プロジェクト全体振り返り |
+| 基本設計凍結後 | G4 通過後 | 設計判断の妥当性振り返り |
+| 機能設計凍結後 | G6 通過後 | 実装前の仕様粒度・単体テスト設計の妥当性振り返り |
+| 実装完了後 | G7 通過後 | 実装の学び・工数乖離記録 |
+| 終端フェーズ後 | L12 受入テスト完了後 / G13 で rollback 発生時 / L14 運用改善完了時 | プロジェクト全体振り返り |
 
 - Try は owner + due 必須（空文化防止）。重大リスク発見時のみ blocking Issue 化
 - Sonnet に委譲
@@ -536,19 +560,19 @@ IIP（L4 内の前提崩壊）や V 分類（L5 の visual 差戻し）とは異
 - **受入条件**: 1-3項目（何が満たされたら完了か）
 - **スコープ外**: 明示的に対象外とする事項（任意）
 
-これにより、L8 受入時に突合する対象が常に存在する。S案件で L8 自体をスキップする場合は、完了報告に受入条件の充足を含めることで代替する。
+これにより、L12 受入テスト時に突合する対象が常に存在する。S案件で L12 自体をスキップする場合は、完了報告に受入条件の充足を含めることで代替する。
 
 ## リファクタリング・共通化の実施タイミング
 
 | タイミング | 内容 | 制約 |
 |-----------|------|------|
-| L4 着手前（準備リファクタ） | 機能を安全に触るための小整理。S サイズ・挙動不変 → L4 のみフローに収める | テスト全通過必須。公開 API/契約は変えない |
-| G4 直後（台帳化のみ） | 実装せず負債を台帳化 + 優先度決定。G4 通過条件の debt 台帳化 + ミニレトロで洗い出す | この時点で共通化の実装着手は非推奨（実装凍結後のため下流ゲート無効化を招く） |
-| L8 後の次イテレーション | 独立タスクとして共通化・リファクタ実施。**再サイジング**して該当フローに従う（S なら L4 のみ、M/L なら通常フロー） | 挙動変更を伴う場合は必ず再サイジング |
+| L7 着手前（準備リファクタ） | 機能を安全に触るための小整理。S サイズ・挙動不変 → L7 の実装前作業に収める | テスト全通過必須。公開 API/契約は変えない |
+| G7 直後（台帳化のみ） | 実装せず負債を台帳化 + 優先度決定。G7 通過条件の debt 台帳化 + ミニレトロで洗い出す | この時点で共通化の実装着手は非推奨（実装完了後のため下流ゲート無効化を招く） |
+| L12/L14 後の次イテレーション | 独立タスクとして共通化・リファクタ実施。**再サイジング**して該当フローに従う | 挙動変更を伴う場合は必ず再サイジング |
 
 **負債蓄積の防止**:
 
-1. G4 で `debt_register` 必須（未解決 debt は台帳化が G4 通過条件）。保存先: `docs/debt/YYYY-MM-DD-debt-register.md`
+1. G7 で `debt_register` 必須（未解決 debt は台帳化が G7 通過条件）。保存先: `docs/debt/YYYY-MM-DD-debt-register.md`
 2. 毎イテレーション **20%** を改善枠に予約（ガイドライン。実績はミニレトロで振り返り）
 3. 重複コード **3 回** で共通化を**検討**（ヒューリスティック。dev-policy / refactoring スキル準拠）
 
@@ -618,7 +642,7 @@ R4（Gap & Routing）の出力は Forward HELIX の入力となる。R4 完了 =
 
 ### RGC Gap Closure（Reverse Gap Closure — Forward 完了後）
 
-> Forward の「G6 RC 判定ゲート」（RC = Release Candidate）とは別概念。RGC = Reverse Gap Closure。
+> Forward の「G11 RC 判定」とは別概念。RGC = Reverse Gap Closure。
 > ※ `helix reverse rgc` サブコマンドは実装済み。ただし現時点では集計表示補助であり、閉塞判定の完全自動化ではない。
 
 | 項目 | 内容 |

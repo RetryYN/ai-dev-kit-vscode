@@ -1,11 +1,11 @@
 ---
 name: runbook
-description: L6 Runbook (運用準備書) 生成スキル。G6 RC判定通過条件
+description: L13 Runbook (運用準備書) 生成スキル。G13 運用検証 / 運用テスト通過条件
 metadata:
-  helix_layer: L6
+  helix_layer: L13
   triggers:
-    - L6 運用準備書生成時
-    - G6 RC判定準備時
+    - L13 運用準備書生成時
+    - G13 運用検証 / 運用テスト準備時
     - Runbook 作成時
     - oncall 手順整備時
   verification:
@@ -22,21 +22,21 @@ compatibility:
 ## 適用タイミング
 
 このスキルは以下の場合に読み込む。
-- L6 で運用準備書を作成する時
-- G6 RC 判定前に運用証跡を整える時
+- L13 で運用準備書を作成する時
+- G13 運用検証 / 運用テスト前に運用証跡を整える時
 - On-call 体制を新規整備または更新する時
 
 ## 1. 目的とゴール
 
 - 目的: リリース後の運用・障害対応を再現可能な手順に落とし込む
-- ゴール: G6 の通過条件である `release note/runbook 完了` を満たす
+- ゴール: G13 の通過条件である `runbook 実効性確認` を満たす
 - 範囲: 通常運用、アラート対応、障害対応、復旧、連絡体制、エスカレーション
 
-### G6 との関係
+### G13 との関係
 
-- G6 通過には `E2E/性能/セキュリティ/運用準備 pass` が必要
+- G13 通過には `運用テスト / smoke / canary / runbook 実効性確認` が必要
 - Runbook は運用準備の中核成果物として扱う
-- Runbook 未整備は G6 fail の直接要因
+- Runbook 未整備は G13 fail の直接要因
 
 ## 2. 保存先と命名
 

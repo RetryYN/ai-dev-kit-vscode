@@ -66,7 +66,7 @@
 
 ## 4. フォーク前セキュリティチェックリスト
 
-各候補スキルごとに、以下を `G2 → G4 → G6 → G7` の順で確認する。
+各候補スキルごとに、以下を `G2 → G4 → G6 → G7 → G13` の順で確認する。
 
 ### 4.1 G2 脅威分析
 
@@ -90,7 +90,7 @@ rg -n "(API_KEY|TOKEN|SECRET|PASSWORD|PRIVATE_KEY)" <skill-dir>
 rg -n "(\\.\\./|^/|~\\/)" <skill-dir>
 ```
 
-### 4.2 G4 実装検証
+### 4.2 G4 基本設計検証
 
 | 項目 | 必須確認 | 証跡 | 失敗時 severity |
 |------|----------|------|-----------------|
@@ -109,7 +109,7 @@ pip-audit
 rg -n "(postinstall|prepare|preinstall|setup\\(|entry_points)" <skill-dir>
 ```
 
-### 4.3 G6 RC 検証
+### 4.3 G6 機能設計検証
 
 | 項目 | 必須確認 | 証跡 | 失敗時 severity |
 |------|----------|------|-----------------|
@@ -119,7 +119,7 @@ rg -n "(postinstall|prepare|preinstall|setup\\(|entry_points)" <skill-dir>
 | 回帰確認 | 既存 HELIX スキルと責務衝突しない | mapping review | Medium |
 | 運用準備 | フォーク理由、制限事項、更新方法、削除条件を明記 | release memo | Low |
 
-### 4.4 G7 vuln scan / 継続監視
+### 4.4 G7/G13 vuln scan / 継続監視
 
 | 項目 | 必須確認 | 証跡 | 失敗時 severity |
 |------|----------|------|-----------------|
@@ -148,9 +148,10 @@ audit:
   reviewer_role: "security"
   gates:
     G2: "passed|failed|blocked"
-    G4: "passed|failed|blocked"
-    G6: "passed|failed|blocked"
-    G7: "passed|failed|blocked"
+    G4_basic_design: "passed|failed|blocked"
+    G6_function_design: "passed|failed|blocked"
+    G7_implementation: "passed|failed|blocked"
+    G13_operational_verification: "passed|failed|blocked"
 findings:
   critical: []
   high: []

@@ -1,8 +1,8 @@
 ---
 name: deploy
-description: HELIX L7 デプロイ / L9 デプロイ検証 / G7 安定性ゲート / G9 デプロイ安定性ゲート連携の SKILL。Blue/Green デプロイ戦略・実行チェックリスト・ロールバック手順・smoke test・G6.9 Pre-Release 本番直前確認連携を提供
+description: HELIX L13 運用検証 / 運用テスト連携のリリース・デプロイ SKILL。Blue/Green デプロイ戦略・実行チェックリスト・ロールバック手順・smoke test・運用検証証跡を提供
 metadata:
-  helix_layer: L7
+  helix_layer: L13
   triggers:
     - デプロイ実行時
     - リリース準備時
@@ -27,11 +27,11 @@ compatibility:
 
 ## HELIX フェーズ位置づけ
 
-- **HELIX フェーズ**: L7 デプロイ
-- **ゲート定義**: `skills/tools/ai-coding/references/layer-interface.md §L7 内部ゲート` を参照（L7.1 準備 / L7.2 実行 / L7.3 安定性）
-- **I/O 仕様**: `skills/tools/ai-coding/references/orchestration-workflow.md §L7: デプロイ` を参照
+- **HELIX フェーズ**: L13 運用検証 / 運用テスト
+- **ゲート定義**: `HELIX-workflows/helix-process/L13-post-deployment-verification.md` を参照
+- **I/O 仕様**: `HELIX-workflows/HELIX-process-L0-L14.md` の L13 を参照
 - **SLO/パフォーマンス基準**: `observability-sre/SKILL.md §7 劣化レベル表`（唯一の閾値権威源。本スキル内で重複定義しない）
-- **前提**: L6 統合検証完了（V-L5 テスト検証 pass + V-L6 運用検証 pass）
+- **前提**: L12 受入テスト完了、または明示された運用検証対象のリリース候補がある
 
 ---
 
@@ -338,10 +338,10 @@ Phase 4: 旧カラム削除
 - Blue-Green: 切替失敗時に旧環境へ即時復帰する
 - Progressive Delivery: メトリクス監視と段階的トラフィック増加で安全に展開する
 
-### G7 安定性ゲートとの統合
+### G13 運用検証 / 運用テストゲートとの統合
 
 - watch window 中の SLO 逸脱を自動ロールバック判定に使用する
-- ロールバック実行時は G7 fail とし、L6/L4 へ差し戻して修正ループに戻す
+- ロールバック実行時は G13 fail とし、原因に応じて L7/L6/L5/L4 へ差し戻して修正ループに戻す
 
 ### DB マイグレーション修復
 

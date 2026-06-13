@@ -163,10 +163,10 @@ test.describe('アクセシビリティ検証', () => {
 
 ## L5 a11y 確認チェック
 
-L5 Visual Refinement 入場時、以下を追加で確認する:
+L10 フロントUX / 業務デザイン磨き上げ入場時、以下を追加で確認する:
 
 ```
-[ ] color-contrast: L5 で変更された配色のコントラスト比を再計測
+[ ] color-contrast: L10 で変更された配色のコントラスト比を再計測
 [ ] focus-visible: 新規追加コンポーネントのフォーカス表示を確認
 [ ] motion: prefers-reduced-motion で不要なアニメーションが止まるか
 ```

@@ -146,10 +146,10 @@ RGC は R4 出力を正本入力として扱う。
 
 ---
 
-## 8. L8 受入との紐付け
+## 8. L12 受入テストとの紐付け
 
-RGC は L8 受入結果と独立ではなく、次の関係を持つ:
-- L8 pass は Forward 受入の証拠
+RGC は L12 受入テスト結果と独立ではなく、次の関係を持つ:
+- L12 pass は Forward 受入の証拠
 - RGC pass は Reverse gap 閉塞の証拠
 
 紐付け方法:
@@ -185,7 +185,7 @@ open または partial が残る場合:
 ## 10. 運用シーケンス
 
 ```text
-Forward L6/L8 pass
+Forward L6/L12 pass
   -> R4 gap_register 読み込み
   -> Evidence Bundle 作成
   -> gap ごとに closed/partial/open 判定
@@ -201,7 +201,7 @@ RGC を `done` とする条件:
 - `docs/reverse/rgc/RGC-evidence-bundle.md` が存在
 - 全 gap に `closure_evidence` が記載
 - open_gap は次 routing と owner が設定済み
-- L8 受入参照が記録済み
+- L12 受入テスト参照が記録済み
 
 ## type 別 operational notes
 

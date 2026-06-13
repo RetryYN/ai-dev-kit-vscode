@@ -5,7 +5,7 @@ metadata:
   helix_layer: L5
   triggers:
     - UXレビュー時
-    - L5 Visual Refinement時
+    - L10 フロントUX / 業務デザイン磨き上げ時
     - ユーザビリティ改善検討時
   verification:
     - "現状フローと改善案のステップ数比較を記録"
@@ -21,7 +21,7 @@ compatibility:
 
 このスキルは以下の場合に読み込む：
 - UXレビュー時
-- L5 Visual Refinement時
+- L10 フロントUX / 業務デザイン磨き上げ時
 - ユーザビリティ改善検討時
 
 ---
