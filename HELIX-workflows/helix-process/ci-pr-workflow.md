@@ -20,7 +20,7 @@ HELIX のゲート・テストを GitHub の PR フローに接続する運用�
 ## 既存の GitHub 構成
 
 - workflows 7: ci（main の push/PR）、commitlint、security（zizmor）、ブランチ別4（feature / hotfix / poc / refactor）
-- helix-pr: push gate の6ゲート検証を実行してから PR 作成（`--gate` / `--require-gates` / `--auto-merge`）
+- helix-pr: push pre-gate 検証を実行してから PR 作成（`--gate` / `--require-gates` / `--auto-merge`）
 - pull_request_template.md / CODEOWNERS / dependabot.yml
 
 ## ブランチ × モード対応
@@ -38,7 +38,7 @@ Retrofit / Reverse / Research / Recovery は、性質に近いブランチ（fea
 
 | 層 | 実行内容 |
 |---|---|
-| ローカル（pre-push / helix-pr --gate） | HELIX 内部テスト212 ＋ 全ゲート（重い処理） |
+| ローカル（pre-push / helix-pr --gate） | HELIX 内部テスト + push pre-gate + 必要な Forward gate（重い処理） |
 | CI（GitHub Actions） | ゲート証跡（`.helix/phase.yaml`）の検証 ＋ commitlint ＋ security（zizmor）＋ 軽量 smoke |
 | branch protection | CI の軽量チェックを必須化し PR 許可をゲート |
 

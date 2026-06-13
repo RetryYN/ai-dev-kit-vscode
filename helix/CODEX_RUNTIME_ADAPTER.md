@@ -17,12 +17,13 @@ Codex は作業前に次を確認する。
 
 - `helix/HELIX_CORE.md`
 - `helix/HELIX_RUNTIME_RULES.md`
+- `skills/SKILL_MAP.md`
 - `HELIX-workflows/HELIX-process-L0-L14.md`
 - HELIX DB / handover / PLAN から渡された注入セット
 - `.helix/handover/CURRENT.md` / `.helix/task-plan.yaml` / 該当 PLAN の有無
 - 変更対象ファイル
 
-`skills/SKILL_MAP.md` は常時読込対象ではない。skill は DB の現在地、`vmodel-semantics`、`helix skill search` / recommender から必要分だけ注入する。
+`skills/SKILL_MAP.md` は工程・ゲート・スキル一覧の索引として Core Read に含める。個別 `SKILL.md` 本文は常時一括読込しない。skill は DB の現在地、`vmodel-semantics`、`helix skill search` / recommender、または trigger に該当したものだけを必要分だけ注入する。
 
 作業に入る前に、目的、現在の工程または workflow、Forward 接続先、合格基準・検証条件、作業正本、変更許可範囲を固定する。
 
@@ -57,6 +58,7 @@ Codex 実装委譲は原則 `helix codex` 経由にする。
 - `--consent auto`: 計画・整理・レビュー・調査系タスクを検出した場合、自動で plan-only guard をかける。
 - `--plan-id` / `--task-id` / `--wbs-id` / `--acceptance` / `--reference-doc` / `--allowed-files`: 工程表文脈をプロンプトへ注入する。
 - `HELIX_CODEX_REQUIRE_APPROVED=1`: write 実行に `--approved` を必須化する。
+- `HELIX_CODEX_DESIGN_WEB_EVIDENCE=<path[:path...]>`: 設計 doc（`docs/adr/ADR-*.md`）変更時の WebSearch / WebFetch 証跡を post-validation に渡す。対象 doc 変更に証跡が無い場合は fail-close する。
 - `cli/codex` shim: raw `codex exec` を捕捉し、`helix codex` へ誘導する。
 
 raw `codex exec` が必要な場合だけ、`HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...` を使い、理由を evidence に残す。

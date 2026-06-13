@@ -48,7 +48,7 @@ Codex CLI は独自 workflow mode ではない。HELIX Core と Runtime Rules �
 - Claude Code 委譲は原則 `helix claude --dry-run` で prompt / task-file を生成する。素の `claude` は HELIX discipline の強制注入が効かないため、PATH 上の `cli/claude` shim でブロックされる。
 - raw LLM CLI が必要な例外時だけ、Codex は `HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...`、Claude は `HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...` を使い、理由を evidence に残す。
 - 計画のみの Codex 呼び出しは `helix codex --plan-only`、実装承認済みの呼び出しは `helix codex --approved` を使う。
-- WBS 実装では `--plan-id`、`--wbs-id`、`--l4-sprint`、`--acceptance`、`--reference-doc`、必要に応じて `--allowed-files` を渡す。
+- WBS 実装では `--plan-id`、`--wbs-id`、`--l4-sprint`（互換 CLI flag。値は L7 Sprint）、`--acceptance`、`--reference-doc`、必要に応じて `--allowed-files` を渡す。
 
 ## Plan / Schedule Discipline
 
@@ -56,7 +56,7 @@ Codex CLI は独自 workflow mode ではない。HELIX Core と Runtime Rules �
 - 明示承認は `OK`、`進めて`、`実装して`、`それで`、`やって`、`apply`、`proceed` などの実行指示とする。
 - ユーザーの最新依頼が最初から明確な実装指示であれば、別途承認待ちにせず実装してよい。
 - 実装時は L3 工程表、`.helix/task-plan.yaml`、`.helix/handover/CURRENT.md` の Next Action の順で作業正本を確認する。
-- 工程表がある場合は、`plan_id`、`task_id` または `WBS ID`、`L7 Sprint` (旧 L4 Sprint)、依存、受入条件、reference_docs を特定してから実装する。
+- 工程表がある場合は、`plan_id`、`task_id` または `WBS ID`、`L7 Sprint`、依存、受入条件、reference_docs を特定してから実装する。
 - 工程表外の変更が必要になったら、先に工程表更新またはユーザー確認へ戻る。
 - 工程表が必要な規模なのに存在しない場合は、最小工程表または task-plan を作ってから実装する。
 

@@ -15,7 +15,7 @@ integration_target:
 
 ## 概要
 
-コードレビューを6段階（Format / Lint / Style / Logic / Design / Architecture）に分け、各段階を「どのロールが見るか」に振り分ける。これは観点（何を見るか）を定義する `skills/common/code-review` とは別の軸で、**分業境界（誰が見るか）**だけを補強する。モード追加ではなく、既存の helix review / G2 / G4 ゲートと code-reviewer エージェントへの被せレイヤ。
+コードレビューを6段階（Format / Lint / Style / Logic / Design / Architecture）に分け、各段階を「どのロールが見るか」に振り分ける。これは観点（何を見るか）を定義する `skills/common/code-review` とは別の軸で、**分業境界（誰が見るか）**だけを補強する。モード追加ではなく、既存の helix review / G4 / G6 / G7 ゲートと code-reviewer エージェントへの被せレイヤ。
 
 Vモデルの設計レベルに対応するレビュー責任を段階化することで、`test-perspective-gate`（W字補強）がテスト観点を上流参加させるのと対をなし、レビュー観点の分担抜け漏れを防ぐ。
 
@@ -23,10 +23,10 @@ Vモデルの設計レベルに対応するレビュー責任を段階化する�
 
 | 既存資産 | 役割 | 本ワークフローとの関係 |
 |---|---|---|
-| `skills/common/code-review` (L4/G4) | 観点5軸 + Google eng-practices、判定ラベル | 観点と判定の正本。本WFは参照のみ |
+| `skills/common/code-review` (L7/G7) | 観点5軸 + Google eng-practices、判定ラベル | 観点と判定の正本。本WFは参照のみ |
 | `.claude/agents/code-reviewer` | Correctness/Readability/Architecture/Security/Performance | Stage 3-5 の一次評価器として起動 |
 | `helix review` (codex review ラッパー) | Sprint .2/.5 の自動一次レビュー | Stage 1-4 の自動一次レビューを担う |
-| `skills/workflow/adversarial-review` (G2) | 高リスク設計の対立検証 | Stage 5/6 の高リスク時にエスカレーション |
+| `skills/workflow/adversarial-review` (G4/G6) | 高リスク設計の対立検証 | Stage 5/6 の高リスク時にエスカレーション |
 | `skills/workflow/security`/`threat-model` | 脆弱性・脅威の専門評価 | Stage 4 の security ゲート条件時に分岐 |
 | `skills/workflow/verification`/`quality-lv5` | 検証レイヤ・テスト品質 | Stage 4 の照合証跡を記録 |
 
@@ -41,8 +41,8 @@ Vモデルの設計レベルに対応するレビュー責任を段階化する�
 | 1 Format | 正解が一意 | 自動 (lint) | PE (gpt-5.3-codex) | CI lint |
 | 2 Lint | 正解が一意 | 自動 (静的解析) | PE | CI lint |
 | 3 Style | ほぼ一意 | PE / pmo-haiku | — | — (Nit) |
-| 4 Logic | 文脈依存 | SE (gpt-5.4) / PE | QA / security (gpt-5.4) | G4 実装凍結 |
-| 5 Design | 正解が複数 | TL (gpt-5.5) | adversarial-review | G2 設計凍結 |
+| 4 Logic | 文脈依存 | SE (gpt-5.4) / PE | QA / security (gpt-5.4) | G7 実装完了 |
+| 5 Design | 正解が複数 | TL (gpt-5.5) | adversarial-review | G4 基本設計 / G6 機能設計 |
 | 6 Architecture | 未来予想 | PM (Opus) | tl-advisor | L2 以前 / ADR |
 
 ## 運用導線
@@ -67,10 +67,10 @@ codex review の出力を Stage 1-4 の一次レビューとして受け取り�
 
 helix review が指摘を返さなかった領域を列挙し、対応する PLAN-NNN（`docs/plans/`）を開いて SE/QA が仕様照合する。AI 指摘ゼロを「安全」と判断しない。照合記録は verification の証跡として残す（fail-close）。
 
-### 4. G4 / G2 ゲート判定
+### 4. G7 / G4 / G6 ゲート判定
 
-- G4 実装凍結: Stage 4 で Critical 0 件、PLAN 照合済みを確認
-- G2 設計凍結: Stage 5 で TL レビュー済み、高リスクは adversarial-review 実施済みを確認
+- G7 実装完了: Stage 4 で Critical 0 件、PLAN / L6 仕様照合済みを確認
+- G4 基本設計 / G6 機能設計: Stage 5 で TL レビュー済み、高リスクは adversarial-review 実施済みを確認
 - 判定ラベルは common/code-review と同一（LGTM / LGTM with nits / Changes requested）
 
 ## ADR 降下

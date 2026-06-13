@@ -1,6 +1,6 @@
 ---
 doc_id: process-l14-operation-verification
-title: L14 運用検証・機能改善 — 工程定義
+title: L14 運用学習 / 運用改善 — 工程定義
 status: accepted
 accepted_date: 2026-05-24
 created: 2026-05-24
@@ -11,7 +11,7 @@ integration_target:
   category: L0-L14 工程
 ---
 
-# L14 運用検証・機能改善
+# L14 運用学習 / 運用改善
 
 ## 工程の位置づけ
 
@@ -26,11 +26,11 @@ integration_target:
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
-### `L14-運用検証plan`
-- 運用 KPI 検証
-- SLA 確認
+### `L14-運用学習plan`
+- 運用 KPI 学習
+- SLA / SLO 結果の学習
 
-### `L14-機能改善plan`
+### `L14-運用改善plan`
 - 改善要望の収集
 - 次サイクルへのフィードバック
 

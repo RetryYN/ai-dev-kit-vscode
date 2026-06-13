@@ -50,7 +50,7 @@ integration_target:
 
 - **左腕 freeze gate（G1-G6）**: `design + test_design + trace_symmetry(pre-execution)` まで要求。
 - **右腕 execution gate（G7-G14 の対）**: `test_code_anchor + test_execution_pass + trace_symmetry(post-execution) + semantic_gate` まで要求。
-- coverage 100% 単独 pass は禁止（例: L4↔L9 は cov100% でも orphan18/balance0.67 → semantic gate 必須）。
+- coverage 100% 単独 pass は禁止（例: L4↔L9 は cov100% でも ST→TV→L4 の `semantic_excluded_orphan=18` と balance0.67 を semantic gate evidence として確認する）。
 
 ## 2. pair-closure ゲート（6 pair、検証実体）
 
@@ -60,9 +60,9 @@ integration_target:
 |---|---|---|---|---|
 | L6↔L7 単体 | G6 | **G7** | trace_symmetry(L6-L7) + UT anchor + pytest/bats | 設計 balanced(FN88↔UT88)、検証実行 anchor 31/88（**MVP で閉じる**） |
 | L5↔L8 結合 | G5 | G8 | trace_symmetry(L5-L8) + IT 実行 | gap=IT-MOD-06/IT-DB-03/05（DF-WCAUDIT-L5L8-001） |
-| L4↔L9 総合 | G4 | G9 | trace_symmetry(L4-L9) + ST 実行 | cov100% だが orphan18/balance0.67 = semantic gate（DF-WCAUDIT-L4L9-001） |
+| L4↔L9 総合 | G4 | G9 | trace_symmetry(L4-L9) + ST 実行 | cov100% / missing0 / orphan0 / semantic_excluded_orphan18。DF-WCAUDIT-L4L9-001 の detector over-report は解消済み、残は G9 ST 実行 gate |
 | L3↔L12 受入 | G3 | G12 | trace_symmetry(L3-L12) + AT 実行 | trace green、G12 実行 gate 未実装 |
-| L2↔L10 UX | G2 | G10 | FE detector(axis-15-19 未) | UI absent / 未実装 → `not_applicable`/`ui_absent` waiver schema 必須 |
+| L2↔L10 UX | G2 | G10 | FE detector(axis-15-19 未) | UI absent / 未実装 → `not_applicable`/`ui_absent` waiver schema 必須。HELIX-workflows 自身は `docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md` |
 | L1↔L14 運用 | G1 | G14 | trace_symmetry(L1-L14) + OT 実行 | trace green、G1/G14 gate 未実装 |
 
 - **trace_symmetry の pair**: 現状 `PAIR_LAYERS` は L1-L14/L3-L12/L4-L9/L5-L8/L6-L7 の **5 pair**。**L2-L10 が欠落**（FE detector 未実装と連動）→ 補完対象（waiver schema で skip 野放しを防ぐ）。
@@ -81,7 +81,7 @@ integration_target:
 ### 3.2 全体俯瞰ゲート（VG-overview、新規 aggregator）
 - freeze 前・push 前に**必須**で通す横断ゲート（workflow でなく Forward gate activity）。
 - 判定: `registry_design_coverage clean`（whole-source⊆design）+ `source_scan_vs_registry clean` + `registry_trace_complete clean` + `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
-- 配線: `helix doctor --gate --profile pre-push` / `push_gate.py` から呼ぶ共通 runner。
+- 配線: `helix doctor --gate` / `push_gate.py` の `G-vg-overview` から呼ぶ共通 runner。
 
 ## 4. layer × detector（工程別の自動検証）
 
@@ -106,12 +106,12 @@ axis-01〜14 は実装済み（**いずれも advisory / push 未接続**）。a
 
 **MVP（ユーザー確定、TL P1 反映で 2 段順序を厳守）**:
 - **MVP-A（計測 + closure 先行、advisory のみ）**: G7 subcheck（UT-ID test code anchor + test_execution_pass）を**実装**し、L6↔L7 の anchor を **31/88 → 88/88 に closure**（trace_symmetry(L6-L7) clean / registry_design_coverage clean を維持）。この段階は **advisory（exit 0）専用**、fail-close も ratchet block もしない（ratchet は次段以降）。
-- **MVP-B（green 証跡確認後に fail-close flip）**: MVP-A で `helix doctor --gate`（G7 + VG-overview-pre-push）が**実走 exit 0（全 anchor 閉・全 detector green）**を証明してから、fail-close へ flip し push/CI に接続。
+- **MVP-B（green 証跡確認後に fail-close flip）**: MVP-A で `helix doctor --gate`（G7 + VG-overview-pre-push）が**実走 exit 0（全 anchor 閉・全 detector green）**を証明してから、fail-close へ flip。2026-06-09 Codex で `helix doctor --gate` と `helix push --gate` の `G-vg-overview` 接続は完了。L2-L10 は explicit `ui_absent` waiver を VG-overview が読む。CI 接続は carry。
 - **着手前提**: anchor が 31/88 のまま G7 を fail-close 化すると CI 即 red（「今 green な分のみ昇格」原則に反する）。必ず A→B の順。
 
-**次段**: G8/G9/G12/G14 を ratchet → requirement_drift fail-close → 全 pair strict（L4-L9 orphan18 等の既知 gap 解消後、`--strict-vmodel-pair-freeze` 系）。
+**次段**: G8/G9/G12/G14 を ratchet → requirement_drift fail-close → 全 pair strict（G9 ST 実行 gate、L5-L8 deferred 等の既知 gap 解消後、`--strict-vmodel-pair-freeze` 系）。
 
-**push 接続**: `cli/lib/push_gate.py` は個別 detector を持たず、共通 runner（`helix doctor --gate --profile pre-push`）を呼ぶ。default `helix doctor` の出力・exit code は不変（公開 API 非破壊）、`--gate`/`--profile` のみ exit semantics 変更。
+**push 接続**: `cli/lib/push_gate.py` は個別 detector を持たず、VG-overview 共通 runner を `G-vg-overview` として呼ぶ。default `helix doctor` の出力・exit code は不変（公開 API 非破壊）、`--gate` のみ VG-overview pre-push を fail-close 評価する。
 
 ## 6. ゲート（決定論的 static チェック、派生 adapter）
 
