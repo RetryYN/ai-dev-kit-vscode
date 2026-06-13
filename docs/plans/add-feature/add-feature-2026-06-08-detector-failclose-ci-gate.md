@@ -8,6 +8,7 @@ kind: impl
 layer: L7
 process_layer: L7
 parent_design: docs/v2/L6-functional-design/registry-detector-機能設計.md  # L6 正本(TL裁定): GatePolicy / DetectorReport 契約
+forward_return: "L6 registry-detector GatePolicy 再凍結 (contract_extension) -> approved L7 detector fail-close 昇格 + CI gate 実装 -> 単体実行 evidence -> automation-gate-map enforcement closure (L6↔L7 G6/G7 pending gate evidence に帰属)."
 drive: be
 status: finalized  # 設計 finalized(TL round1→round2 approve)。実行は PARKED(banner 参照)= 検証ゲート閉合後に automation-gate-map gate hardening として再開。
 current_task_scope: parked_feature_ticket_only

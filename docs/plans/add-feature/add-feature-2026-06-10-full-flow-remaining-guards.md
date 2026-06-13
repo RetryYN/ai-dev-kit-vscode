@@ -6,6 +6,7 @@ workflow: add-feature
 kind: add-impl
 layer: L8-L14
 process_layer: L8-L14
+forward_return: "L4-L6 right-arm gate design (re-freeze) -> approved L7 implementation -> right-arm execution evidence (G8:L5↔L8 / G9:L4↔L9 / G12:L3↔L12 / G14:L1↔L14) -> full-flow closure evidence (各右腕 pair の pending gate evidence に帰属)."
 drive: be
 status: draft
 tl_review: approve  # draft boundary ticket の push 承認のみ (TL L1-L6 review 2026-06-13: 境界妥当・prior L1-L6 evidence 有り・design_substitute=0)。L7 実装承認ではない (status=draft 維持、approval_required_before_* 参照)

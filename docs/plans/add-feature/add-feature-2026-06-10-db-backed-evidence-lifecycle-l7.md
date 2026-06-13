@@ -7,6 +7,7 @@ kind: add-impl
 layer: L7
 process_layer: L7
 parent_design: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+forward_return: "L6 DBEV-FN-01..08 design -> approved L7 test-first implementation (DBEV-UT-*) -> unit execution evidence -> DB evidence lifecycle closure evidence (L6↔L7 G6/G7 pending gate evidence に帰属)."
 drive: be
 status: draft
 tl_review: approve  # draft boundary ticket の push 承認のみ (TL L1-L6 review 2026-06-13: 境界妥当・prior L1-L6 evidence 有り・design_substitute=0)。L7 実装承認ではない (status=draft 維持、approval_required_before_* 参照)
