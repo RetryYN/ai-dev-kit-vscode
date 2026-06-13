@@ -179,7 +179,7 @@ while [[ $# -gt 0 ]]; do
     --help|-h)
       echo "使い方: helix gate <gate> [--static-only] [--ai-only] [--dry-run] [--skip-detectors] [--pair-check <layer>] [--subgate <name>] [--plan-id <PLAN-NNN>] [--drive <DRIVE>] [--undo] [--json] [--cross-sprint] [--readiness-mode <warning|enforce|skip>]"
       echo ""
-      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11"
+      echo "Gates: G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11, G12, G13, G14"
       echo ""
       echo "Options:"
       echo "  --pair-check <layer>"
@@ -218,12 +218,12 @@ if [[ "$JSON_OUTPUT" == true ]]; then
 fi
 
 if [[ -z "$GATE" ]]; then
-  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11）" >&2
+  echo "エラー: ゲート名が必要です（G0.5, G1, G1R, G1.5, G2, G3, G4, G5, G6, G6.5, G6.7, G6.9, G7, G9, G10, G11, G12, G13, G14）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
-if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|2|3|4|5|6|6\.[579]|7|9|10|11)$ ]]; then
-  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7, G6.5/G6.7/G6.9, G9-G11 を指定してください）" >&2
+if [[ ! "$GATE" =~ ^G(0\.5|1|1R|1\.5|2|3|4|5|6|6\.[579]|7|9|10|11|12|13|14)$ ]]; then
+  echo "エラー: 無効なゲートです: $GATE（G0.5, G1, G1R, G1.5, G2-G7, G6.5/G6.7/G6.9, G9-G14 を指定してください）" >&2
   exit "$EXIT_INPUT_ERROR"
 fi
 
@@ -2781,8 +2781,8 @@ PY
       G7)
         echo "次のアクション: helix pr で PR を作成してください"
         echo ""
-        echo "[helix-gate] L8 受入準備:"
-        echo "  受入条件（D-ACC）と実装の突合を実施してください"
+        echo "[helix-gate] L8 結合テスト準備:"
+        echo "  L5 結合テスト設計と実装の突合を実施してください"
         echo "  helix matrix status で全成果物の状態を確認"
         ;;
     esac

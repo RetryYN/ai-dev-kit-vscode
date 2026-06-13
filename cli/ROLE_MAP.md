@@ -12,9 +12,10 @@
 ## HELIX フェーズとロールの対応
 
 ```
-Phase 1 計画:  L1(要件)→PM  L2(設計)→TL  L3(詳細設計+工程表)→TL
-Phase 2 実装:  L4 → SE(スコア4+) / PE(スコア1-3)
-Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  L8(受入)→PM
+Phase 1 設計:  L1(要求定義)→PM  L2(画面要求/画面設計)→TL  L3(要件定義)→TL  L4(基本/外部設計)→TL  L5(詳細/内部設計)→TL  L6(機能設計/仕様書)→TL
+Phase 2 実装:  L7(実装+単体テスト+coverage closure)→SE/PE/QA
+Phase 3 検証:  L8(結合テスト)→QA  L9(総合テスト)→QA  L10(フロントUX/業務デザイン)→FE  L11(総合レビュー/ユーザー検証)→PM
+Phase 4 運用:  L12(受入テスト)→PM  L13(運用検証/運用テスト)→DevOps/QA  L14(運用学習/運用改善)→PM
 横断:          Security / DBA / Perf / Docs / Research / Legacy / PMO
 ```
 
@@ -24,14 +25,14 @@ Phase 3 仕上げ: L5(Visual)→PE  L6(検証)→QA  L7(デプロイ)→DevOps  
 
 | ロール | model | 担当フェーズ | 説明 |
 |--------|-------|-------------|------|
-| tl | gpt-5.5 | L2/L3/G2-G5 | 設計・レビュー・ゲート判定 |
-| se | gpt-5.4 | L4 | 上級実装・契約・リファクタリング |
-| pg | gpt-5.3-codex-spark / gpt-5.3-codex | L4/L5 | 単機能・速度重視実装 (team naming: PE) |
-| fe | gpt-5.4 | L5 | UI実装・スタイリング・アクセシビリティ対応 |
-| qa | gpt-5.4 | L6/G4/G6 | テスト・検証・品質ゲート |
+| tl | gpt-5.5 | L2-L6/G2-G6 | 設計・レビュー・ゲート判定 |
+| se | gpt-5.4 | L7 | 上級実装・契約・リファクタリング |
+| pg | gpt-5.3-codex-spark / gpt-5.3-codex | L7 | 単機能・速度重視実装 (team naming: PE) |
+| fe | gpt-5.4 | L7/L10 | UI実装・スタイリング・アクセシビリティ対応 |
+| qa | gpt-5.4 | L6-L9/G4/G6-G9 | テスト設計・検証・品質ゲート |
 | security | gpt-5.4 | G2/G4/G6/G7 | セキュリティ監査・脆弱性診断 |
 | dba | gpt-5.3-codex | L3/L4 | DB設計・マイグレーション・最適化 |
-| devops | gpt-5.3-codex | L7/G7 | デプロイ・インフラ・監視 |
+| devops | gpt-5.3-codex | L13/G13 | 運用検証・運用テスト・インフラ・監視 |
 | docs | gpt-5.3-codex-spark | L2-L8 | ドキュメント・API仕様書 |
 | research | gpt-5.4 | L1/G1R | 技術調査・先行事例・比較 |
 | legacy | gpt-5.4 | R0-R4 | レガシー分析・Reverse HELIX |

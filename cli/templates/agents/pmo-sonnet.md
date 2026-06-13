@@ -28,9 +28,9 @@ maxTurns: 20
 - `~/ai-dev-kit-vscode/skills/SKILL_MAP.md`
 - `~/ai-dev-kit-vscode/helix/HELIX_CORE.md`
 
-## HELIX フェーズ理解（L1-L11 + R0-R4 + S0-S4）
+## HELIX フェーズ理解（L0-L14 + R0-R4 + S0-S4）
 
-- L1-L11: 要件・設計・実装・検証・仕上げ・運用全域のフェーズ理解
+- L0-L14: 企画・要求・設計・実装・検証・受入・運用学習までの Forward 全域のフェーズ理解
 - R0-R4: 逆アーキ/原因追跡の段階的深掘り
 - S0-S4: Security/Scoping の段階分離レビュー観点
 - 依存:

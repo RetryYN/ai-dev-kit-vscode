@@ -124,3 +124,87 @@ def test_collect_g7_subcheck_ignores_out_of_scope_hook_tests_for_missing_classif
     assert report["anchored"]["count"] == 0
     assert report["unanchored_but_exists"]["count"] == 0
     assert report["missing"]["ids"] == ["UT-WSC-07"]
+
+
+def test_collect_g7_subcheck_ignores_planned_contract_ids(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "docs/v2/L7-test-design/requirement-drift-単体テスト設計.md",
+        "\n".join(
+            [
+                "| Planned Test ID | Name | Fixture | Expected |",
+                "| --- | --- | --- | --- |",
+                "| RD-UT-01 | clean vertical trace | fixture | clean=true |",
+                "| RD-UT-02 | missing downstream design | fixture | missing_downstream |",
+                "",
+            ]
+        ),
+    )
+    _write(
+        tmp_path / "docs/v2/L7-test-design/deferred-gate-adoption-単体テスト設計.md",
+        "\n".join(
+            [
+                "| Planned Test ID | Name | Fixture | Expected |",
+                "| --- | --- | --- | --- |",
+                "| DGA-UT-01 | default L6 focus | fixture | not complete |",
+                "| DGA-UT-10 | adoption handoff | fixture | non-destructive |",
+                "",
+            ]
+        ),
+    )
+    _write(
+        tmp_path / "docs/v2/L7-test-design/right-arm-execution-gates-単体テスト設計.md",
+        "\n".join(
+            [
+                "| Planned Test ID | Name | Fixture | Expected |",
+                "| --- | --- | --- | --- |",
+                "| EGA-UT-01 | strict full-flow starts deferred | fixture | deferred 4 |",
+                "| EGA-UT-08 | rollback returns deferred | fixture | approved_deferred |",
+                "",
+            ]
+        ),
+    )
+    _write(
+        tmp_path / "docs/v2/L7-test-design/whole-source-coverage-単体テスト設計.md",
+        "\n".join(
+            [
+                "| UT ID | 対象 FN | module | 検証観点 | テスト実装 |",
+                "| --- | --- | --- | --- | --- |",
+                "| UT-WSC-101 | FN-WSC-101 | alpha.py | covered | 実装済 |",
+                "",
+            ]
+        ),
+    )
+    _write(tmp_path / "cli/lib/tests/test_alpha.py", '"""DoD 検証: UT-WSC-101"""\n')
+    _write_anchor_map(
+        tmp_path / "docs/v2/L7-test-design/g7-test-anchor-map.yaml",
+        {"UT-WSC-101": ["cli/lib/tests/test_alpha.py"]},
+    )
+
+    report = g7_subcheck.collect_g7_subcheck(project_root=tmp_path, execute_tests=False)
+
+    assert report["ut_total"] == 1
+    assert report["anchored"]["ids"] == ["UT-WSC-101"]
+    assert report["missing"]["ids"] == []
+
+
+def test_execute_test_file_times_out_and_reports_failure(tmp_path: Path, monkeypatch) -> None:
+    test_path = tmp_path / "cli/lib/tests/test_sleepy.py"
+    _write(
+        test_path,
+        "\n".join(
+            [
+                "import time",
+                "",
+                "def test_sleepy():",
+                "    time.sleep(5)",
+                "",
+            ]
+        ),
+    )
+    monkeypatch.setenv("HELIX_G7_TEST_TIMEOUT_SECONDS", "0.2")
+
+    result = g7_subcheck.execute_test_file(tmp_path, "cli/lib/tests/test_sleepy.py")
+
+    assert result["returncode"] == 124
+    assert result["timed_out"] is True
+    assert "timed out" in result["stderr"].lower()

@@ -52,7 +52,7 @@ def _write_session_start_setup(tmp_path: Path, project_root: Path) -> dict[str, 
     claude_dir = home / ".claude"
     claude_dir.mkdir(parents=True)
     (claude_dir / "CLAUDE.md").write_text(
-        "@~/ai-dev-kit-vscode/skills/SKILL_MAP.md\n",
+        "@~/.helix/core/helix/HELIX_CORE.md\n",
         encoding="utf-8",
     )
     (claude_dir / "settings.json").write_text(

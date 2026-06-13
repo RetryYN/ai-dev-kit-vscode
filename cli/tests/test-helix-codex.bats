@@ -87,7 +87,7 @@ teardown() {
   [[ "$output" == *"Consent:   approved"* ]]
   [[ "$output" == *"Plan ID:   PLAN-017"* ]]
   [[ "$output" == *"WBS ID:    WBS-017-001"* ]]
-  [[ "$output" == *"L4 Sprint: .1a"* ]]
+  [[ "$output" == *"L7 Sprint: .1a"* ]]
   [[ "$output" == *"plan_id: PLAN-017"* ]]
   [[ "$output" == *"task_id: TASK-017"* ]]
   [[ "$output" == *"wbs_id: WBS-017-001"* ]]

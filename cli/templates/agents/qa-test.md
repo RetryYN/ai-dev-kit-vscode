@@ -1,6 +1,6 @@
 ---
 name: qa-test
-description: QAテスト設計・実行。テスト戦略・カバレッジ・E2E・パフォーマンス・セキュリティテスト。L6検証・G4/G6ゲート時に使う。
+description: QAテスト設計・実行。テスト戦略・カバレッジ・E2E・パフォーマンス・セキュリティテスト。L6単体テスト設計レビュー、G6、L8-L12検証時に使う。
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: claude-sonnet-4-6
 effort: medium

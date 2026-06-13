@@ -89,7 +89,7 @@ usage() {
 使い方: helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH]
 
 Options:
-  --gate           7 ゲート検証を実行
+  --gate           push 前ゲート検証を実行
   --execute        全ゲート PASS 時のみ git push を実行
   --plan-id PLAN   G-review 対象 PLAN を明示指定
   --allow-main     main への push を明示許可

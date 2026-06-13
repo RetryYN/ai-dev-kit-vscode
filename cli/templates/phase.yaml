@@ -7,12 +7,12 @@ project: ""
 current_mode: forward
 current_phase: L1
 
-# L6/L7 間フェーズ（デプロイ前追加）
-# L6: 統合検証
+# L6/L7 間フェーズ（機能設計 freeze → 実装 closure）
+# L6: 機能設計 / 仕様書 + 単体テスト設計
 # L6.5: Security
 # L6.7: Operations
 # L6.9: Visual Production
-# L7: デプロイ
+# L7: 実装 + 単体テスト実装/実施 + カバレッジ確認 / closure
 
 gates:
   G0.5: { status: pending }

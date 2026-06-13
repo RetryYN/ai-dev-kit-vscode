@@ -57,12 +57,48 @@ teardown() {
 }
 
 @test "helix-doctor check_g7_subcheck --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g7_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"missing\" in d and \"exec_pass\" in d'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g7_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"missing\" in d and \"exec_pass\" in d; all_ids = d[\"anchored\"][\"ids\"] + d[\"missing\"][\"ids\"] + d[\"unanchored_but_exists\"][\"ids\"]; assert d[\"ut_total\"] == 88; assert not any(item.startswith((\"RD-UT-\", \"DGA-UT-\", \"EGA-UT-\")) for item in all_ids), all_ids'"
   [ "$status" -eq 0 ]
 }
 
 @test "helix-doctor check_vg_overview --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor check_vg_overview --strict-full-flow exposes deferred execution gates" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --strict-full-flow --json | python3 -c 'import json,sys; d=json.load(sys.stdin); vg=d[\"vg_overview\"]; full=vg[\"full_flow_execution\"]; pairs={item[\"pair\"]: item[\"gate_id\"] for item in full[\"deferred_pairs\"]}; assert full[\"enforced\"] is True; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4; assert pairs == {\"L5-L8\":\"G8\", \"L4-L9\":\"G9\", \"L3-L12\":\"G12\", \"L1-L14\":\"G14\"}; assert vg[\"overall_clean\"] is False'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor --gate --json matches VG-overview pre-push cleanliness" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; clean=\$(\"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; print(str(json.load(sys.stdin)[\"vg_overview\"][\"overall_clean\"]).lower())'); export clean; (\"$HELIX_ROOT/cli/helix-doctor\" --gate --json || true) | python3 -c 'import json,os,sys; d=json.load(sys.stdin); clean=os.environ[\"clean\"] == \"true\"; names=[a[\"name\"] for a in d[\"advisories\"]]; has_vg=any(name == \"VG-overview pre-push\" for name in names); assert has_vg is (not clean), (clean, names); assert ((d[\"fail\"] == 0) if clean else (d[\"fail\"] > 0)), d'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor --gate --json reports phase_gate_progress when G6 passed but current_phase lags" {
+  cat > "$PROJECT_ROOT/.helix/phase.yaml" <<'EOF'
+current_mode: forward
+current_phase: L4
+gates:
+  G6:
+    status: passed
+EOF
+
+  run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "(\"$HELIX_ROOT/cli/helix-doctor\" --gate --json || true) | python3 -c 'import json,sys; d=json.load(sys.stdin); assert any(a.get(\"status\") == \"warning\" and \"phase_gate_progress: G6 passed\" in a.get(\"name\", \"\") for a in d[\"advisories\"]), d[\"advisories\"]'"
+  [ "$status" -eq 0 ]
+}
+
+@test "helix-doctor --gate --json accepts G6 passed when current_phase is L6" {
+  cat > "$PROJECT_ROOT/.helix/phase.yaml" <<'EOF'
+current_mode: forward
+current_phase: L6
+gates:
+  G6:
+    status: passed
+EOF
+
+  run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "(\"$HELIX_ROOT/cli/helix-doctor\" --gate --json || true) | python3 -c 'import json,sys; d=json.load(sys.stdin); names=[a.get(\"name\", \"\") for a in d[\"advisories\"]]; assert not any(\"phase_gate_progress\" in name for name in names), names'"
   [ "$status" -eq 0 ]
 }
 

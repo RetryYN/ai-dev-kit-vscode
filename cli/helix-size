@@ -646,7 +646,7 @@ if [[ -d "$DOC_TEMPLATES" ]]; then
         fi
         ;;
       L4)
-        # 駆動タイプ別 L4 スプリントガイドをコピー
+        # 駆動タイプ別スプリントガイドをコピー（ファイル名は互換維持）
         L4_GUIDE=""
         case "$DRIVE" in
           be)        L4_GUIDE="L4-be-sprint-guide.md" ;;
@@ -667,7 +667,7 @@ if [[ -d "$DOC_TEMPLATES" ]]; then
       L5)
         mkdir -p "$PROJECT_ROOT/docs/design"
         if [[ "$JSON_OUTPUT" != true ]]; then
-          cp -n "$DOC_TEMPLATES/L5-visual-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L5 Visual Design テンプレート: docs/design/L5-visual-design.md" || true
+          cp -n "$DOC_TEMPLATES/L5-visual-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null && echo "L10 フロントUX / 業務デザイン磨き上げテンプレート: docs/design/L5-visual-design.md" || true
         else
           cp -n "$DOC_TEMPLATES/L5-visual-design.md" "$PROJECT_ROOT/docs/design/" 2>/dev/null || true
         fi

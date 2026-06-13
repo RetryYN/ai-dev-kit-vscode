@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ import yaml
 UT_ROW_RE = re.compile(r"^\|\s*(UT-[A-Z0-9-]+)\s*\|")
 UT_SEARCH_RE = re.compile(r"\b(UT-[A-Z0-9-]+)\b")
 HOOK_HINT_RE = re.compile(r"\.sh$")
+DEFAULT_TEST_TIMEOUT_SECONDS = 120.0
 
 
 def _project_root(project_root: Path | None = None) -> Path:
@@ -169,22 +171,67 @@ def _runner_for_path(rel_path: str) -> list[str]:
     raise ValueError(f"unsupported test runner for {rel_path}")
 
 
+def _env_test_timeout_seconds() -> float | None:
+    raw = os.environ.get("HELIX_G7_TEST_TIMEOUT_SECONDS")
+    if raw is None:
+        return DEFAULT_TEST_TIMEOUT_SECONDS
+    try:
+        timeout = float(raw)
+    except ValueError:
+        return DEFAULT_TEST_TIMEOUT_SECONDS
+    return timeout if timeout > 0 else None
+
+
 def execute_test_file(project_root: Path, rel_path: str) -> dict[str, Any]:
     command = _runner_for_path(rel_path)
-    proc = subprocess.run(
+    timeout_seconds = _env_test_timeout_seconds()
+    proc = subprocess.Popen(
         command,
         cwd=project_root,
         text=True,
-        capture_output=True,
-        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
     )
-    return {
-        "runner": command[0],
-        "command": command,
-        "returncode": proc.returncode,
-        "stdout": proc.stdout,
-        "stderr": proc.stderr,
-    }
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout_seconds)
+        return {
+            "runner": command[0],
+            "command": command,
+            "returncode": proc.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "timed_out": False,
+            "timeout_seconds": timeout_seconds,
+        }
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            stdout, stderr = proc.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = proc.communicate()
+        timeout_message = f"G7 subcheck test timed out after {timeout_seconds}s: {rel_path}"
+        stderr = (stderr or "").rstrip()
+        if stderr:
+            stderr = f"{stderr}\n{timeout_message}\n"
+        else:
+            stderr = f"{timeout_message}\n"
+        return {
+            "runner": command[0],
+            "command": command,
+            "returncode": 124,
+            "stdout": stdout,
+            "stderr": stderr,
+            "timed_out": True,
+            "timeout_seconds": timeout_seconds,
+        }
 
 
 def _env_execute_tests_default() -> bool:

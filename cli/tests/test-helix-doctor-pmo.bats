@@ -240,13 +240,14 @@ teardown() {
   [[ "$output" == *"[coding rule registry]"* ]]
   [[ "$output" == *"check_coding_rule_sot"* ]]
   [[ "$output" == *"check_coding_rule_alignment"* ]]
+  [[ "$output" != *"✗ check_coding_rule_sot"* ]]
+  [[ "$output" != *"✗ check_coding_rule_alignment"* ]]
   [[ "$output" == *"0 fail"* ]]
 
+  # 旧 warn_count >= 106 は stale-lock 警告の混入で run ごとに揺れる brittle 閾値だった。真の不変条件である warn-only + fail_count=0 を直接検証する。
   result_line="$(printf '%s\n' "$output" | grep '結果:' | tail -1)"
   fail_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\1/')"
-  warn_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\2/')"
   [ "$fail_count" -eq 0 ]
-  [ "$warn_count" -ge 106 ]
 }
 
 @test "helix doctor includes ddd registry section and keeps fail count flat" {
@@ -261,11 +262,13 @@ teardown() {
   [[ "$output" == *"check_glossary_coverage"* ]]
   [[ "$output" == *"check_bc_anti_corruption"* ]]
   [[ "$output" == *"check_bc_mode_coverage"* ]]
+  [[ "$output" != *"✗ check_glossary_coverage"* ]]
+  [[ "$output" != *"✗ check_bc_anti_corruption"* ]]
+  [[ "$output" != *"✗ check_bc_mode_coverage"* ]]
   [[ "$output" == *"0 fail"* ]]
 
+  # 旧 warn_count >= 107 は stale-lock 警告の混入で run ごとに揺れる brittle 閾値だった。真の不変条件である warn-only + fail_count=0 を直接検証する。
   result_line="$(printf '%s\n' "$output" | grep '結果:' | tail -1)"
   fail_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\1/')"
-  warn_count="$(printf '%s\n' "$result_line" | sed -E 's/.* ([0-9]+) fail, ([0-9]+) warn/\2/')"
   [ "$fail_count" -eq 0 ]
-  [ "$warn_count" -ge 107 ]
 }

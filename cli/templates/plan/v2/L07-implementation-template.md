@@ -9,7 +9,7 @@ created: 2026-MM-DD
 owner: PM
 process_layer: L7             # ★必須: 工程番号 (HELIX-workflows 正本)
 parent_process: HELIX-workflows/helix-process/L7-implementation.md   # ★必須: 工程定義 doc
-parent_design: docs/v2/L6-function-design/<feature>.md  # ★必須 (L7 impl のみ): L6 機能設計 doc
+parent_design: docs/v2/L6-functional-design/<feature>.md  # ★必須 (L7 impl のみ): L6 機能設計 doc
 pairs_test_design:
   - docs/v2/L7-test-design/<feature>-unit-test-design.md       # 単体 (L6 とペア凍結済)
   - docs/v2/L8-test-design/<feature>-integration-test-design.md # 結合 (L5 とペア凍結済、L8 で実施)

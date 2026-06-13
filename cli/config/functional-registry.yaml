@@ -668,7 +668,7 @@ entries:
   - id: "FR-CLI-048"
     name: "helix-push"
     domain: "cli"
-    description: "git push ゲート (6 ゲート検証 + 全 PASS 時のみ push 実行)"
+    description: "git push ゲート (push pre-gate 検証 + 全 PASS 時のみ push 実行)"
     l1_fr:
       - "FR-03"
     l3_fr:
@@ -2447,7 +2447,7 @@ entries:
   - id: "FR-LIB-088"
     name: "push_gate.py"
     domain: "lib"
-    description: "git push 前の 6 ゲート検証 (push_gate)"
+    description: "git push 前の push pre-gate 検証 (push_gate)"
     l1_fr:
       - "FR-03"
     l3_fr:
@@ -3407,6 +3407,29 @@ entries:
     code_paths:
       - "cli/lib/vg_overview.py"
     doc_paths: []
+  - id: "FR-LIB-151"
+    name: "requirement_drift.py"
+    domain: "lib"
+    description: "requirement_drift detector — L1/L3 FR から L4-L6 design への縦 trace 欠落を検出し、VG-overview required_clean に接続する L6 detector"
+    l1_fr:
+      - "FR-11"
+      - "FR-08"
+    l3_fr:
+      - "FR-DRIFT-01"
+      - "FR-CHANGEPROP-01"
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-RD-01"
+      - "FN-RD-02"
+      - "FN-RD-03"
+      - "FN-RD-04"
+      - "FN-RD-05"
+    code_paths:
+      - "cli/lib/requirement_drift.py"
+    doc_paths:
+      - "docs/v2/L6-functional-design/requirement-drift-機能設計.md"
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"
@@ -3920,7 +3943,7 @@ entries:
   - id: "FR-AGENT-018"
     name: "qa-test.md"
     domain: "agent"
-    description: "claude-sonnet-4-6 / QA テスト設計・実行 (戦略・カバレッジ・E2E・perf・security test、L6 検証/G4/G6 gate)"
+    description: "claude-sonnet-4-6 / QA テスト設計・実行 (戦略・カバレッジ・E2E・perf・security test、L6単体テスト設計レビュー/G6/L8-L12検証)"
     l1_fr:
       - "FR-08"
     l3_fr:
@@ -4265,7 +4288,7 @@ entries:
   - id: "FR-SKILL-022"
     name: "workflow/postmortem"
     domain: "skill"
-    description: "5Whys 分析・再発防止アクション・L11 運用学習/G11 連携"
+    description: "5Whys 分析・再発防止アクション・L14 運用学習/G14 連携"
     l1_fr:
       - "FR-01"
     l3_fr:
@@ -4490,7 +4513,7 @@ entries:
   - id: "FR-SKILL-037"
     name: "workflow/runbook"
     domain: "skill"
-    description: "L6 Runbook (運用準備書) 生成スキル、G6 RC 判定通過条件"
+    description: "L13 Runbook (運用準備書) 生成スキル、G13 運用検証 / 運用テスト通過条件"
     l1_fr:
       - "FR-05"
     l3_fr:
@@ -5142,7 +5165,7 @@ entries:
   - id: "FR-SKILL-078"
     name: "advanced/migration"
     domain: "skill"
-    description: "ETL スクリプト・データ整合性検証・Strangler Fig・段階的移行計画 + G7 安定性ゲート"
+    description: "ETL スクリプト・データ整合性検証・Strangler Fig・段階的移行計画 + G13 運用検証ゲート"
     l1_fr:
       - "FR-07"
     l3_fr:
@@ -6174,7 +6197,7 @@ entries:
   - id: "FR-WORKFLOW-013"
     name: "L12-deployment.md"
     domain: "workflow"
-    description: "L12 / デプロイ・受入テスト・環境差異巻き取り (L3↔L12 pair)"
+    description: "L12 / 受入テスト・環境差異巻き取り (L3↔L12 pair)"
     l1_fr:
       - "FR-07"
     l3_fr:
@@ -8102,7 +8125,7 @@ entries:
   - id: "FR-TEMPLATE-085"
     name: "plan/v2/L12-deployment-template.md"
     domain: "template"
-    description: "L12 デプロイ PLAN テンプレート"
+    description: "L12 受入テスト PLAN テンプレート"
     l1_fr:
       - "FR-07"
     l3_fr:
@@ -8117,7 +8140,7 @@ entries:
   - id: "FR-TEMPLATE-086"
     name: "plan/v2/L13-post-deployment-template.md"
     domain: "template"
-    description: "L13 デプロイ後検証 PLAN テンプレート"
+    description: "L13 運用検証 / 運用テスト PLAN テンプレート"
     l1_fr:
       - "FR-01"
     l3_fr:
@@ -8132,7 +8155,7 @@ entries:
   - id: "FR-TEMPLATE-087"
     name: "plan/v2/L14-operation-verification-template.md"
     domain: "template"
-    description: "L14 運用検証 PLAN テンプレート"
+    description: "L14 運用学習 / 運用改善 PLAN テンプレート"
     l1_fr:
       - "FR-01"
     l3_fr:

@@ -135,7 +135,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --dry-run      PR を作成せずに実行（--gate 併用時は検証のみ）"
-      echo "  --gate         push gate の 6 ゲート検証を実行してから PR を作成"
+      echo "  --gate         push pre-gate 検証を実行してから PR を作成"
       echo "  --auto-merge   --gate 成功後に gh pr merge --squash を実行"
       echo "  --base     ベースブランチ (default: main)"
       echo "  --title    PR タイトル"

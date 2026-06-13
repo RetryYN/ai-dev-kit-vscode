@@ -850,6 +850,29 @@ check_write_expected_delta() {
     --summary-stdout "$stdout_file"
 }
 
+check_design_web_evidence_delta() {
+  local evidence_args=()
+  local raw_paths="${HELIX_CODEX_DESIGN_WEB_EVIDENCE:-${HELIX_TRANSCRIPT_PATH:-${CODEX_TRANSCRIPT_PATH:-}}}"
+  local raw_path=""
+
+  [[ "$SANDBOX" != "read-only" ]] || return 0
+  [[ -n "$DESIGN_DIFF_BEFORE" ]] || return 0
+
+  if [[ -n "$raw_paths" ]]; then
+    IFS=':' read -r -a evidence_items <<< "$raw_paths"
+    for raw_path in "${evidence_items[@]}"; do
+      [[ -n "$raw_path" ]] && evidence_args+=(--design-web-evidence "$raw_path")
+    done
+  fi
+
+  python3 "$SCRIPT_DIR/lib/codex_post_validation.py" \
+    --check-design-web-evidence \
+    --before "$DESIGN_DIFF_BEFORE" \
+    --after "$DESIGN_DIFF_AFTER" \
+    --untracked-after "$DESIGN_UNTRACKED_AFTER" \
+    "${evidence_args[@]}"
+}
+
 # models.yaml から role モデルと default_fallback を読み込む
 resolve_models_from_registry() {
   local role="$1"
@@ -1241,7 +1264,7 @@ Codex は工程表とユーザー承認を無視して実装してはいけな�
 
 2. Schedule/WBS First
    - 実装前に L3 工程表、.helix/task-plan.yaml、handover Next Action の該当行を確認する。
-   - plan_id / task_id / WBS ID / L4 Sprint / 依存 / 受入条件 / reference_docs がある場合は、それを作業正本として守る。
+   - plan_id / task_id / WBS ID / L7 Sprint / 依存 / 受入条件 / reference_docs がある場合は、それを作業正本として守る。
    - 工程表外の変更が必要になったら、編集を止めて interrupted / blocked として報告する。
 
 3. HELIX Commands / Delegation
@@ -1328,7 +1351,7 @@ if [[ "$DRY_RUN" == true ]]; then
   [[ -n "$PLAN_ID" ]] && echo "Plan ID:   $PLAN_ID"
   [[ -n "$TASK_ID" ]] && echo "Task ID:   $TASK_ID"
   [[ -n "$WBS_ID" ]] && echo "WBS ID:    $WBS_ID"
-  [[ -n "$L4_SPRINT" ]] && echo "L4 Sprint: $L4_SPRINT"
+  [[ -n "$L4_SPRINT" ]] && echo "L7 Sprint: $L4_SPRINT"
   echo "Fallback Provider: ${FALLBACK_PROVIDER:-none}"
   if [[ "$AUTO_ALLOWED_FILES" == true ]]; then
     echo "Auto Allowed Files: enabled"
@@ -1382,15 +1405,26 @@ fi
 DIFF_BEFORE=""
 DIFF_AFTER=""
 UNTRACKED_AFTER=""
+DESIGN_DIFF_BEFORE=""
+DESIGN_DIFF_AFTER=""
+DESIGN_UNTRACKED_AFTER=""
 BASELINE_DIR=""
-if [[ -n "$ALLOWED_FILES" && "$SANDBOX" != "read-only" ]]; then
+if [[ "$SANDBOX" != "read-only" ]]; then
   BASELINE_DIR="$PROJECT_ROOT/.helix/tmp"
-  mkdir -p "$BASELINE_DIR"
-  baseline_stamp="$(date +%s%N)"
-  DIFF_BEFORE="$BASELINE_DIR/codex-baseline-$$-$baseline_stamp.txt"
-  DIFF_AFTER=$(mktemp "$BASELINE_DIR/codex-after-$$.XXXXXX")
-  UNTRACKED_AFTER=$(mktemp "$BASELINE_DIR/codex-untracked-after-$$.XXXXXX")
-  write_git_change_snapshot "$DIFF_BEFORE"
+  if mkdir -p "$BASELINE_DIR" 2>/dev/null; then
+    baseline_stamp="$(date +%s%N)"
+    DESIGN_DIFF_BEFORE="$BASELINE_DIR/codex-design-baseline-$$-$baseline_stamp.txt"
+    DESIGN_DIFF_AFTER=$(mktemp "$BASELINE_DIR/codex-design-after-$$.XXXXXX")
+    DESIGN_UNTRACKED_AFTER=$(mktemp "$BASELINE_DIR/codex-design-untracked-after-$$.XXXXXX")
+    write_git_change_snapshot "$DESIGN_DIFF_BEFORE"
+
+    if [[ -n "$ALLOWED_FILES" ]]; then
+      DIFF_BEFORE="$BASELINE_DIR/codex-baseline-$$-$baseline_stamp.txt"
+      DIFF_AFTER=$(mktemp "$BASELINE_DIR/codex-after-$$.XXXXXX")
+      UNTRACKED_AFTER=$(mktemp "$BASELINE_DIR/codex-untracked-after-$$.XXXXXX")
+      write_git_change_snapshot "$DIFF_BEFORE"
+    fi
+  fi
 fi
 
 echo "[helix-codex] role=$ROLE model=$codex_model thinking=$THINKING sandbox=$SANDBOX full_auto=$FULL_AUTO skills=${LOADED_SKILLS[*]:-none} docs=${LOADED_DOCS[*]:-none}" >&2
@@ -1676,7 +1710,7 @@ run_codex_once() {
       -c 'shell_environment_policy.inherit=none' \
       -c 'shell_environment_policy.include=["HELIX_HOME","HOME","PATH","LANG","LC_ALL","PWD","OLDPWD","USER","SHELL","TERM","TMPDIR","PROJECT_ROOT","HELIX_PROJECT_ROOT","CODEX_SESSION_ID","HELIX_SESSION_ID","PYTHONIOENCODING"]' \
       ${FULL_AUTO:+$FULL_AUTO} \
-      < /dev/null > "$STDOUT_FILE"
+      < /dev/null > >(tee "$STDOUT_FILE")
   fi
   local rc=$?
   if [[ -n "$agent_slot_id" ]]; then
@@ -1873,6 +1907,15 @@ if [[ $codex_exit -ne 0 ]] && [[ "$FALLBACK_PROVIDER" == "claude-code" ]]; then
   else
     echo "[helix-codex] Claude Code fallback prompt generation failed" >&2
   fi
+fi
+
+if [[ -n "$DESIGN_DIFF_BEFORE" && -n "$DESIGN_DIFF_AFTER" && -n "$DESIGN_UNTRACKED_AFTER" ]]; then
+  write_git_change_snapshot "$DESIGN_DIFF_AFTER"
+  write_git_untracked_snapshot "$DESIGN_UNTRACKED_AFTER"
+  if ! check_design_web_evidence_delta; then
+    codex_exit=1
+  fi
+  rm -f "$DESIGN_DIFF_BEFORE" "$DESIGN_DIFF_AFTER" "$DESIGN_UNTRACKED_AFTER" 2>/dev/null || true
 fi
 
 if [[ -n "$DIFF_BEFORE" && -n "$DIFF_AFTER" && -n "$UNTRACKED_AFTER" ]]; then

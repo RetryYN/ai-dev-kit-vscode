@@ -735,6 +735,32 @@ def _coverage_summary(
     return uncovered, orphan_ids, coverage_pct, balance_ratio
 
 
+def _semantic_orphan_exclusions(
+    test_docs: list[Document],
+    orphan_ids: list[str],
+) -> dict[str, str]:
+    if not orphan_ids:
+        return {}
+
+    exclusions: dict[str, str] = {}
+    for doc in test_docs:
+        text = doc.path.read_text(encoding="utf-8")
+        normalized = text.replace("->", "→")
+        has_semantic_pass = "audit_verdict" in text and "pass" in text.lower()
+        has_transitive_trace = "ST→TV→L4" in normalized or "ST-* → TV-* → L4" in normalized
+        if not (has_semantic_pass and has_transitive_trace):
+            continue
+
+        doc_test_ids = {entry.entry_id for entry in _collect_test_definition_entries(doc)}
+        for orphan_id in orphan_ids:
+            if orphan_id in doc_test_ids:
+                exclusions[orphan_id] = (
+                    f"{doc.rel_path}: semantic_gate transitive trace accepted "
+                    "(ST→TV→L4, audit_verdict=pass)"
+                )
+    return exclusions
+
+
 def _definition_ids_by_doc(
     docs: list[Document],
     collector: Any,
@@ -909,12 +935,23 @@ def collect_trace_symmetry(project_root: Path | None = None) -> dict[str, Any]:
             test_definition_ids,
             mapped_test_ids,
         )
+        semantic_orphan_exclusions = _semantic_orphan_exclusions(test_docs, orphan)
+        effective_orphan = [
+            orphan_id for orphan_id in orphan if orphan_id not in semantic_orphan_exclusions
+        ]
 
         report["pairs"][pair_name] = {
             "design_layer": design_layer,
             "test_layer": test_layer,
             "uncovered_req": {"count": len(uncovered), "ids": uncovered},
-            "orphan_test": {"count": len(orphan), "ids": orphan},
+            "orphan_test": {"count": len(effective_orphan), "ids": effective_orphan},
+            "semantic_excluded_orphan": {
+                "count": len(semantic_orphan_exclusions),
+                "items": [
+                    {"id": orphan_id, "reason": reason}
+                    for orphan_id, reason in sorted(semantic_orphan_exclusions.items())
+                ],
+            },
             "coverage_pct": coverage_pct,
             "duplicate_id": {"count": len(duplicate_ids), "ids": duplicate_ids},
             "missing_pair_frontmatter": {

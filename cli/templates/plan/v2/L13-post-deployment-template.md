@@ -1,6 +1,6 @@
 ---
-plan_id: L13-デプロイ後検証plan
-title: "L13-デプロイ後検証plan: <タイトル placeholder>"
+plan_id: L13-運用検証plan
+title: "L13-運用検証plan: <タイトル placeholder>"
 kind: operation
 layer: L13
 drive: be              # be|fullstack
@@ -52,8 +52,8 @@ PLAN は **工程表 (作業手順 + 進捗) + 実装計画** の 2 要素を内
 
 ### この工程で起票する PLAN 群 (HELIX-workflows 正本)
 
-- `L13-デプロイ後検証plan`: デプロイ後検証
-- `L13-実環境運用plan`: 実環境運用
+- `L13-運用検証plan`: 実環境動作確認・初期監視
+- `L13-運用テストplan`: 運用手順の検証
 
 ### 各 PLAN の記載項目
 

@@ -75,3 +75,98 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" != *"WARNING:"* ]]
 }
+
+@test "design_doc_change_without_web_evidence_fails" {
+  cat > "$BIN_DIR/codex" <<'SH'
+#!/bin/sh
+set -eu
+mkdir -p "$HELIX_PROJECT_ROOT/docs/adr"
+printf '%s\n' '# ADR test' > "$HELIX_PROJECT_ROOT/docs/adr/ADR-999-test.md"
+printf '%s\n' '---SUMMARY_START---'
+printf '%s\n' 'decision: passed'
+printf '%s\n' 'files: docs/adr/ADR-999-test.md'
+printf '%s\n' 'diff_lines: 1'
+printf '%s\n' 'tests: fake'
+printf '%s\n' 'intermediate_errors: なし'
+printf '%s\n' 'remaining: なし'
+printf '%s\n' '---SUMMARY_END---'
+SH
+  chmod +x "$BIN_DIR/codex"
+
+  run env \
+    HELIX_DYNAMIC_SKILLS=0 \
+    "$HELIX_ROOT/cli/helix-codex" \
+    --role pg \
+    --task $'[タスク種別] 実装\ncreate ADR' \
+    --approved \
+    --max-retries 0
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"設計 doc 変更に WebSearch/WebFetch 証跡がありません"* ]]
+}
+
+@test "design_doc_change_with_web_evidence_passes" {
+  cat > "$BIN_DIR/codex" <<'SH'
+#!/bin/sh
+set -eu
+mkdir -p "$HELIX_PROJECT_ROOT/docs/adr"
+printf '%s\n' '# ADR test' > "$HELIX_PROJECT_ROOT/docs/adr/ADR-999-test.md"
+printf '%s\n' '---SUMMARY_START---'
+printf '%s\n' 'decision: passed'
+printf '%s\n' 'files: docs/adr/ADR-999-test.md'
+printf '%s\n' 'diff_lines: 1'
+printf '%s\n' 'tests: fake'
+printf '%s\n' 'intermediate_errors: なし'
+printf '%s\n' 'remaining: なし'
+printf '%s\n' '---SUMMARY_END---'
+SH
+  chmod +x "$BIN_DIR/codex"
+  mkdir -p "$PROJECT_ROOT/.helix/research"
+  printf '%s\n' '{"tool_name":"WebSearch","query":"design evidence"}' > "$PROJECT_ROOT/.helix/research/session.jsonl"
+
+  run env \
+    HELIX_DYNAMIC_SKILLS=0 \
+    HELIX_CODEX_DESIGN_WEB_EVIDENCE="$PROJECT_ROOT/.helix/research/session.jsonl" \
+    "$HELIX_ROOT/cli/helix-codex" \
+    --role pg \
+    --task $'[タスク種別] 実装\ncreate ADR' \
+    --approved \
+    --max-retries 0
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"---SUMMARY_START---"* ]]
+  [[ "$output" != *"設計 doc 変更に WebSearch/WebFetch 証跡がありません"* ]]
+}
+
+@test "design_doc_change_with_webfetch_evidence_passes" {
+  cat > "$BIN_DIR/codex" <<'SH'
+#!/bin/sh
+set -eu
+mkdir -p "$HELIX_PROJECT_ROOT/docs/adr"
+printf '%s\n' '# ADR test' > "$HELIX_PROJECT_ROOT/docs/adr/ADR-999-test.md"
+printf '%s\n' '---SUMMARY_START---'
+printf '%s\n' 'decision: passed'
+printf '%s\n' 'files: docs/adr/ADR-999-test.md'
+printf '%s\n' 'diff_lines: 1'
+printf '%s\n' 'tests: fake'
+printf '%s\n' 'intermediate_errors: なし'
+printf '%s\n' 'remaining: なし'
+printf '%s\n' '---SUMMARY_END---'
+SH
+  chmod +x "$BIN_DIR/codex"
+  mkdir -p "$PROJECT_ROOT/.helix/research"
+  printf '%s\n' '{"tool_name":"WebFetch","url":"https://www.iso.org/standard/72089.html"}' > "$PROJECT_ROOT/.helix/research/session.jsonl"
+
+  run env \
+    HELIX_DYNAMIC_SKILLS=0 \
+    HELIX_CODEX_DESIGN_WEB_EVIDENCE="$PROJECT_ROOT/.helix/research/session.jsonl" \
+    "$HELIX_ROOT/cli/helix-codex" \
+    --role pg \
+    --task $'[タスク種別] 実装\ncreate ADR' \
+    --approved \
+    --max-retries 0
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"---SUMMARY_START---"* ]]
+  [[ "$output" != *"設計 doc 変更に WebSearch/WebFetch 証跡がありません"* ]]
+}

@@ -67,28 +67,28 @@ triggers:
     on_write: gate_ready
     gate: G5
 
-  # === L6: テスト・検証 ===
+  # === L7: 実装 + 単体テスト実施 ===
   - pattern: "tests/**"
-    phase: L6
+    phase: L7
     on_write: coverage_check
 
   - pattern: "e2e/**"
-    phase: L6
+    phase: L7
     on_write: coverage_check
 
-  # === L7: デプロイ ===
+  # === L13: 運用検証 / 運用テスト ===
   - pattern: "Dockerfile"
-    phase: L7
+    phase: L13
     on_write: design_sync
     design_ref: "docs/design/L2-architecture.md"
 
   - pattern: "docker-compose*.yaml"
-    phase: L7
+    phase: L13
     on_write: design_sync
     design_ref: "docs/design/L2-architecture.md"
 
   - pattern: ".github/workflows/**"
-    phase: L7
+    phase: L13
     on_write: design_sync
     design_ref: "docs/design/L2-architecture.md"
 

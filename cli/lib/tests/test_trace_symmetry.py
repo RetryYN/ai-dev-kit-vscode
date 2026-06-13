@@ -360,6 +360,64 @@ def test_collect_trace_symmetry_reports_missing_pair_docs_and_ids(tmp_path: Path
     assert pair["missing_pair"]["items"][0]["ids"] == ["IT-IF-02"]
 
 
+def test_collect_trace_symmetry_accepts_semantic_transitive_orphan_exclusion(
+    tmp_path: Path,
+) -> None:
+    docs_root = tmp_path / "docs" / "v2"
+    _write_doc(
+        docs_root / "L4-basic-design" / "if.md",
+        [
+            "doc_id: if",
+            "status: frozen",
+            "process_layer: L4",
+            "pairs_test_design: docs/v2/L9-test-design/system.md",
+        ],
+        [
+            "# IF",
+            "",
+            "| IF-ID | 対象 | 詳細 |",
+            "| --- | --- | --- |",
+            "| IF-01 | cli | externally visible boundary |",
+        ],
+    )
+    _write_doc(
+        docs_root / "L9-test-design" / "system.md",
+        [
+            "doc_id: system",
+            "status: frozen",
+            "process_layer: L9",
+            "pairs_design: docs/v2/L4-basic-design/if.md",
+        ],
+        [
+            "# System tests",
+            "",
+            "| ST-ID | 対象観点 | シナリオ |",
+            "| --- | --- | --- |",
+            "| ST-SYS-01 | TV-SYS-01 | scenario traces via test viewpoint |",
+            "",
+            "## trace matrix",
+            "",
+            "| Trace ID | 対象設計ID | 検証観点 |",
+            "| --- | --- | --- |",
+            "| TR-IF-01 | IF-01 | TV-SYS-01 |",
+            "",
+            "## orphan semantic 判定",
+            "",
+            "ST→TV→L4 の推移 trace が成立するため direct ST backlink は不要。",
+            "audit_verdict = pass",
+        ],
+    )
+
+    report = trace_symmetry.collect_trace_symmetry(project_root=tmp_path)
+    pair = report["pairs"]["L4-L9"]
+
+    assert pair["coverage_pct"] == 100.0
+    assert pair["orphan_test"]["count"] == 0
+    assert pair["orphan_test"]["ids"] == []
+    assert pair["semantic_excluded_orphan"]["count"] == 1
+    assert pair["semantic_excluded_orphan"]["items"][0]["id"] == "ST-SYS-01"
+
+
 def test_collect_trace_symmetry_ignores_meta_docs_and_reference_tables(tmp_path: Path) -> None:
     docs_root = tmp_path / "docs" / "v2"
     _write_doc(

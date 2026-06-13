@@ -208,7 +208,7 @@ sequenceDiagram
 工程表の正本は `docs/design/L3-schedule-wbs.md` に分離する。
 
 - WBS / 担当 role / 依存 / 期間 / 環境
-- L4 Sprint 接続
+- L7 Sprint 接続
 - feature flag
 - rollback
 - クリティカルパス

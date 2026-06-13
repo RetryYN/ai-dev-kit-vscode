@@ -124,6 +124,24 @@ PY
   [ "$status" -eq 0 ]
 }
 
+@test "7b update --complete refreshes note for already completed file" {
+  handover_dump
+  "$HELIX_ROOT/cli/helix-handover" update --complete src/a.py --complete-note "done" >/dev/null
+
+  run "$HELIX_ROOT/cli/helix" handover update --complete src/a.py --complete-note "refreshed"
+  [ "$status" -eq 0 ]
+
+  run python3 - <<'PY'
+import json
+from pathlib import Path
+s = json.loads(Path('.helix/handover/CURRENT.json').read_text())
+matches = [x for x in s['files']['completed'] if x['path'] == 'src/a.py']
+assert len(matches) == 1, s
+assert matches[0]['note'] == 'refreshed', s
+PY
+  [ "$status" -eq 0 ]
+}
+
 @test "8 update --note appends timestamped event to CURRENT.md" {
   handover_dump
   run "$HELIX_ROOT/cli/helix-handover" update --note "memo"

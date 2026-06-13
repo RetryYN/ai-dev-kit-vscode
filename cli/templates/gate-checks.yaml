@@ -229,133 +229,132 @@ G4:
   ai:
     - role: tl
       task: |
-        G4 実装凍結ゲート検証:
-        設計文書（docs/design/）と実装（src/）を突合し、以下を検出せよ:
-        1. 書いただけで接続されていないコード（未使用 export, 呼ばれていない関数, 未使用コンポーネント）
-        2. ハードコード値（マジックナンバー, 埋め込みURL, 埋め込みキー, 埋め込み文字列）
-        3. 設計に記載があるが実装されていない機能
-        4. 実装されているが設計に記載がない機能（スコープクリープ）
-        5. エラーハンドリングの欠落
+        G4 基本設計凍結ゲート検証:
+        L4 基本設計 / 外部設計（docs/design/）を L1-L3 要求・要件と突合し、以下を検出せよ:
+        1. 上位要求から追跡できない基本設計項目
+        2. L4 に記載があるが L5 詳細設計へ分解されていない項目
+        3. L9 総合テスト設計へ接続していない設計判断
+        4. セキュリティ / 性能 / 運用の非機能観点の未反映
+        5. D-API / D-DB / D-CONTRACT へ差し戻すべき未確定事項
     - role: security
       task: |
-        G4 セキュリティ実装検証:
-        src/ を読み、OWASP Top 10 観点で脆弱性を検出せよ
+        G4 セキュリティ設計検証:
+        L4 基本設計 / 外部設計を読み、OWASP Top 10 観点で設計上の脆弱性・未定義リスクを検出せよ
 
 G5:
-  name: "デザイン凍結ゲート"
+  name: "詳細設計ゲート"
   static:
-    - name: "デザイントークン定義"
-      cmd: "find docs -path '*/L5-*' -exec grep -l 'トークン\\|token\\|--color\\|--space\\|--font' {} + | head -1 | grep -q ."
+    - name: "D-API / D-DB / D-CONTRACT 定義"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'D-API\\|D-DB\\|D-CONTRACT\\|状態遷移\\|結合テスト設計' {} + | head -1 | grep -q ."
       level: mandatory
-    - name: "アクセシビリティチェック"
-      cmd: "find docs -path '*/L5-*' -exec grep -l 'WCAG\\|アクセシビリティ\\|コントラスト' {} + | head -1 | grep -q ."
+    - name: "結合テスト設計 pair"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'L8\\|結合テスト設計\\|pairs_test_design\\|pairs_with' {} + | head -1 | grep -q ."
       level: mandatory
-    - name: "レスポンシブ対応"
-      cmd: "find docs -path '*/L5-*' -exec grep -l 'mobile\\|tablet\\|desktop\\|ブレークポイント' {} + | head -1 | grep -q ."
+    - name: "内部契約 / rollback / migration 方針"
+      cmd: "find docs -path '*/L5-*' -exec grep -l 'rollback\\|migration\\|feature flag\\|内部契約' {} + | head -1 | grep -q ."
       level: mandatory
-    - name: "UI目視確認 全件 approved"
-      cmd: "! grep -rl '判定: pending' .helix/visual-checks/*.md 2>/dev/null || test $(ls .helix/visual-checks/*.md 2>/dev/null | wc -l) -eq 0"
+    - name: "未確定詳細設計 blocker なし"
+      cmd: "! grep -R \"status: open\" docs/v2/L5-detailed-design 2>/dev/null | grep -E 'blocker|P0|P1' | head -1"
       level: advisory
-    - name: "スクリーンショット必須3枚"
-      cmd: "for d in .helix/visual-checks/*-screenshots/; do [ -d \"$d\" ] || continue; for f in desktop.png tablet.png mobile.png; do [ -f \"$d/$f\" ] || exit 1; done; done"
+    - name: "詳細設計証跡"
+      cmd: "find docs/v2/L5-detailed-design -type f 2>/dev/null | head -1 | grep -q ."
       level: advisory
   ai:
-    - role: fe
+    - role: tl
       task: |
-        G5 デザイン品質検証:
-        L5 仕様書（docs/design/L5-visual-design.md）と L2 設計のデザイン方針が一貫しているか、
-        デザイントークンが実装に適用されているか確認。
+        G5 詳細設計ゲート検証:
+        L5 詳細設計 / 内部設計を L4 基本設計・L8 結合テスト設計と突合せよ。
         具体的に:
-        1. 未適用のデザイン指示
-        2. デザイントークンを使わずハードコードされたスタイル値
-        3. レスポンシブ対応の欠落
-        4. アクセシビリティの欠落
-        5. L2 設計書のデザイン方針との一貫性
+        1. D-API / D-DB / D-CONTRACT の未確定
+        2. L4 基本設計から分解されていない内部設計項目
+        3. L8 結合テスト設計へ接続していない結合点
+        4. migration / rollback / feature flag の未定義
+        5. L6 機能設計へ差し戻すべき粒度不足
 
 G6:
-  name: "RC判定ゲート"
+  name: "機能設計ゲート"
   static:
-    - name: "全テスト通過"
-      cmd: "npm test 2>&1; test $? -eq 0"
+    - name: "機能仕様 / 単体テスト設計 pair"
+      cmd: "find docs/v2/L6-functional-design -type f -exec grep -l '単体テスト設計\\|pairs_test_design\\|input\\|output\\|異常系' {} + 2>/dev/null | head -1 | grep -q ."
       level: mandatory
-    - name: "E2E テスト"
-      cmd: "npx playwright test 2>&1; test $? -eq 0"
+    - name: "入力 / 出力 / 副作用 / 異常系"
+      cmd: "find docs/v2/L6-functional-design -type f -exec grep -l '入力\\|出力\\|副作用\\|異常系' {} + 2>/dev/null | head -1 | grep -q ."
       level: mandatory
-    - name: "Flaky テスト検出（3回実行で不安定なし）"
-      cmd: "echo 'SKIP: Flaky テスト検出は手動実行推奨（helix test を3回実行して比較）'"
+    - name: "L7 未実装境界"
+      cmd: "! find docs/v2/L6-functional-design -type f -exec grep -l '実装済み\\|テスト実施済み\\|coverage closure complete' {} + 2>/dev/null | head -1"
       level: advisory
-    - name: "テスト十分性の判断記録"
-      cmd: "echo 'advisory: テストカバレッジと mutation score を確認してください'"
+    - name: "単体テスト設計の十分性記録"
+      cmd: "echo 'advisory: L6 は単体テスト設計まで。L7 実装・実施・coverage closure は別 gate で扱う'"
       level: advisory
   ai:
     - role: qa
       task: |
-        G6 RC判定ゲート検証:
-        テストカバレッジとクリティカルパスの網羅性を検証せよ
+        G6 機能設計ゲート検証:
+        L6 機能設計 / 仕様書と単体テスト設計が、入力・出力・副作用・異常系を検証可能な粒度で閉じているか検証せよ
     - role: security
       task: |
-        G6 最終セキュリティチェック:
-        RC としてリリース可能か、脆弱性スキャン結果を評価せよ
+        G6 機能セキュリティチェック:
+        機能単位の認可・入力検証・ログ・秘密情報の扱いが L7 実装前に仕様化されているか評価せよ
 
-G6.5:
+G11.5:
   name: "セキュリティ監査ゲート"
   static:
-    - name: "G6.5 smoke"
-      cmd: "echo 'SKIP: G6.5 smoke (追加実装時は要確認)'"
+    - name: "G11.5 smoke"
+      cmd: "echo 'SKIP: G11.5 smoke (追加実装時は要確認)'"
       level: advisory
   ai:
     - role: security
       task: |
-        G6.5 監査:
+        G11.5 監査:
         1. Security/脅威モデル更新の有無を確認せよ
-        2. L6.5 チェックに基づくリスク是正アクションをレビューせよ
+        2. G11.5 チェックに基づくリスク是正アクションをレビューせよ
 
-G6.7:
+G11.7:
   name: "運用準備ゲート"
   static:
-    - name: "G6.7 smoke"
-      cmd: "echo 'SKIP: G6.7 smoke (追加実装時は要確認)'"
+    - name: "G11.7 smoke"
+      cmd: "echo 'SKIP: G11.7 smoke (追加実装時は要確認)'"
       level: advisory
   ai:
     - role: devops
       task: |
-        G6.7 運用準備:
+        G11.7 運用準備:
         1. cron / scheduler / 運用ログ / リソース管理 / 開発者向け運用画面の準備を確認せよ
         2. 運用移行時の欠落点がないことを評価せよ
 
-G6.9:
-  name: "Visual Productionゲート"
+G11.9:
+  name: "本番直前確認ゲート"
   static:
-    - name: "G6.9 smoke"
-      cmd: "echo 'SKIP: G6.9 smoke (追加実装時は要確認)'"
+    - name: "G11.9 smoke"
+      cmd: "echo 'SKIP: G11.9 smoke (追加実装時は要確認)'"
       level: advisory
   ai:
     - role: fe
       task: |
-        G6.9 Visual Production:
-        1. 配色・画像・アニメーションの最終実装反映を確認せよ
-        2. 受け入れ品質と UX ガイダンスとの乖離を確認せよ
+        G11.9 本番直前確認:
+        1. rollback / monitoring / on-call / リリース責任分界を確認せよ
+        2. L12 受入テストへ進める前提の不足を確認せよ
 
 G7:
-  name: "安定性ゲート"
+  name: "実装完了ゲート"
   static:
     - name: "Docker ビルド"
       cmd: "docker build -t test . 2>&1; test $? -eq 0"
       level: advisory
-    - name: "ロールバック手順の存在"
-      cmd: "find docs -path '*/D-DEPLOY/*' -name '*.md' -exec grep -l 'ロールバック\\|rollback' {} + 2>/dev/null | head -1 | grep -q . || echo 'SKIP: デプロイ文書なし'"
+    - name: "単体テスト実施証跡"
+      cmd: "find docs -path '*/L7-*' -o -path '*/L7-test-design/*' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: L7 実装証跡は別 feature scope'"
       level: mandatory
-    - name: "監視設定の存在"
-      cmd: "find docs -path '*/D-OBS/*' -name '*.md' 2>/dev/null | head -1 | grep -q . || echo 'SKIP: 監視文書なし'"
+    - name: "設計-実装-テスト trace"
+      cmd: "echo 'advisory: G7 では L6 機能設計、単体テスト設計、テストコード、実装コードの trace を確認する'"
       level: advisory
   ai:
     - role: devops
       task: |
-        G7 安定性ゲート検証:
-        デプロイ設定・環境変数・ヘルスチェック・ロールバック手順を検証せよ
+        G7 実装完了ゲート検証:
+        L6 機能設計と単体テスト設計に対して、実装・単体テスト実施・coverage closure が閉じているか検証せよ
 
 G9:
-  name: "デプロイ検証ゲート"
+  name: "総合テストゲート"
   static:
     - name: "リリースノート D-RELNOTE 存在確認"
       cmd: "find docs -path '*/D-RELNOTE/*' -name '*.md' 2>/dev/null | head -1 | grep -q ."

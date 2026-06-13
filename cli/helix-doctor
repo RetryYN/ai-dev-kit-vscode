@@ -1,19 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--json] [--summary]
+# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--json] [--summary]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
 SUBCOMMAND=""
 MAX_AGE_DAYS=30
+REQUIREMENT_DRIFT_FOCUS=L6
+REQUIREMENT_DRIFT_CHECK_STALE=false
+VG_OVERVIEW_STRICT_FULL_FLOW=false
 JSON_OUTPUT=false
 SUMMARY_OUTPUT=false
+GATE_MODE=false
 STRICT_VMODEL_PAIR_FREEZE=false
 VMODEL_PAIR_FREEZE_ACTIVE_ONLY=false
 VMODEL_PAIR_FREEZE_SINCE_DAYS=""
@@ -30,7 +34,7 @@ show_usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview)
+    check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift)
       if [[ -n "$SUBCOMMAND" ]]; then
         echo "エラー: サブコマンドは 1 つだけ指定できます: $1" >&2
         show_usage >&2
@@ -56,11 +60,32 @@ while [[ $# -gt 0 ]]; do
       MAX_AGE_DAYS="$1"
       FORWARDED_ARGS+=("--max-age-days" "$1")
       ;;
+    --focus)
+      shift
+      if [[ $# -eq 0 || ! "$1" =~ ^L[67]$ ]]; then
+        echo "エラー: --focus には L6 または L7 が必要です" >&2
+        exit 2
+      fi
+      REQUIREMENT_DRIFT_FOCUS="$1"
+      FORWARDED_ARGS+=("--focus" "$1")
+      ;;
+    --check-stale)
+      REQUIREMENT_DRIFT_CHECK_STALE=true
+      FORWARDED_ARGS+=("$1")
+      ;;
+    --strict-full-flow)
+      VG_OVERVIEW_STRICT_FULL_FLOW=true
+      FORWARDED_ARGS+=("$1")
+      ;;
     --json)
       JSON_OUTPUT=true
       ;;
     --summary)
       SUMMARY_OUTPUT=true
+      ;;
+    --gate)
+      GATE_MODE=true
+      FORWARDED_ARGS+=("$1")
       ;;
     --strict-vmodel-pair-freeze)
       STRICT_VMODEL_PAIR_FREEZE=true
@@ -106,7 +131,9 @@ while [[ $# -gt 0 ]]; do
       echo "--cleanup-stale-locks を付けると dead PID の lockfile を削除します。"
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
       echo "check_g7_subcheck は L7 UT anchor/test pass を advisory 集計します。"
-      echo "check_vg_overview は registry/trace/G7 を advisory 集計します。"
+      echo "check_vg_overview は registry/trace/G7 を advisory 集計します。--strict-full-flow 指定時は approved_deferred execution gate を full-flow 未完として扱います。"
+      echo "check_requirement_drift は L1/L3 FR から L4-L6 design までを advisory 集計します。--focus L7 指定時のみ code/test も見ます。--check-stale 指定時のみ mtime stale 候補も見ます。"
+      echo "--gate を付けると VG-overview pre-push 条件を fail-close 評価します。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
@@ -201,7 +228,7 @@ render_doctor_summary() {
 
 subcommand_supports_json() {
   case "${1:-}" in
-    check_g7_subcheck|check_vg_overview)
+    check_g7_subcheck|check_vg_overview|check_requirement_drift)
       return 0
       ;;
     *)
@@ -222,7 +249,20 @@ import sys
 sys.path.insert(0, os.environ["HELIX_SCRIPT_LIB"])
 
 module = importlib.import_module(os.environ["HELIX_REPORT_MODULE"])
-report = module.collect_g7_subcheck() if os.environ["HELIX_REPORT_MODULE"] == "g7_subcheck" else module.collect_vg_overview()
+module_name = os.environ["HELIX_REPORT_MODULE"]
+if module_name == "g7_subcheck":
+    report = module.collect_g7_subcheck()
+elif module_name == "vg_overview":
+    report = module.collect_vg_overview(
+        strict_full_flow=os.environ.get("HELIX_VG_OVERVIEW_STRICT_FULL_FLOW") == "1"
+    )
+elif module_name == "requirement_drift":
+    report = module.collect_requirement_drift(
+        focus=os.environ.get("HELIX_REQUIREMENT_DRIFT_FOCUS", "L6"),
+        check_stale=os.environ.get("HELIX_REQUIREMENT_DRIFT_CHECK_STALE") == "1",
+    )
+else:
+    raise SystemExit(f"unsupported report module: {module_name}")
 print(json.dumps(report, ensure_ascii=False, sort_keys=True))
 PY
 }
@@ -316,7 +356,11 @@ PY
 fi
 
 if [[ "$SUBCOMMAND" == "check_vg_overview" ]]; then
-  report_json="$(run_python_report_helper vg_overview 2>&1)"
+  strict_full_flow_env=0
+  if [[ "$VG_OVERVIEW_STRICT_FULL_FLOW" == true ]]; then
+    strict_full_flow_env=1
+  fi
+  report_json="$(HELIX_VG_OVERVIEW_STRICT_FULL_FLOW="$strict_full_flow_env" run_python_report_helper vg_overview 2>&1)"
   if [[ "$JSON_OUTPUT" == true ]]; then
     printf '%s\n' "$report_json"
   else
@@ -328,12 +372,57 @@ payload = json.loads(sys.argv[1])
 vg = payload["vg_overview"]
 print("VG-overview (advisory)")
 print(f"overall_clean: {str(vg['overall_clean']).lower()}")
+full = vg["full_flow_execution"]
+print(
+    "full_flow_execution: "
+    f"enforced={str(full['enforced']).lower()} "
+    f"clean={str(full['clean']).lower()} "
+    f"deferred={full['deferred_count']}"
+)
 for name, item in vg["required_clean"].items():
     print(f"{name}: clean={str(item['clean']).lower()} findings={item['finding_count']}")
 for pair_name, item in vg["pair_status"].items():
     print(
         f"{pair_name}: status={item['status']} clean={str(item['clean']).lower()} reason={item['reason']}"
     )
+PY
+  fi
+  exit 0
+fi
+
+if [[ "$SUBCOMMAND" == "check_requirement_drift" ]]; then
+  stale_env=0
+  if [[ "$REQUIREMENT_DRIFT_CHECK_STALE" == true ]]; then
+    stale_env=1
+  fi
+  report_json="$(HELIX_REQUIREMENT_DRIFT_FOCUS="$REQUIREMENT_DRIFT_FOCUS" HELIX_REQUIREMENT_DRIFT_CHECK_STALE="$stale_env" run_python_report_helper requirement_drift 2>&1)"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '%s\n' "$report_json"
+  else
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+print("requirement_drift (advisory)")
+print(f"clean: {str(payload['clean']).lower()}")
+print(f"focus: {payload.get('focus', 'L6')}")
+print(f"stale_check_enabled: {str(payload.get('stale_check_enabled', False)).lower()}")
+print(f"scope: {payload['scope']}")
+summary = payload["summary"]
+print(
+    "summary: "
+    f"requirements={summary['requirements']} "
+    f"design_links={summary['design_links']} "
+    f"code_links={summary['code_links']} "
+    f"test_links={summary['test_links']}"
+)
+for name, items in payload["findings"].items():
+    print(f"{name}: {len(items)}")
+if payload.get("advisory"):
+    print(f"advisory: {payload['advisory']}")
+if payload.get("parse_warnings"):
+    print(f"parse_warnings: {len(payload['parse_warnings'])}")
 PY
   fi
   exit 0
@@ -490,6 +579,63 @@ check_template_version() {
   else
     echo "  WARN: $label (v$project_version) が古い → テンプレート (v$template_version)。helix init --force で更新可"
     WARN=$((WARN + 1))
+  fi
+}
+
+check_vg_overview_gate() {
+  local report_json=""
+  local tmp_gate=""
+  if ! report_json="$(run_python_report_helper vg_overview 2>&1)"; then
+    echo "  ✗ VG-overview pre-push"
+    echo "    $report_json"
+    FAIL=$((FAIL + 1))
+    return
+  fi
+
+  tmp_gate="$(mktemp)"
+  HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json" >"$tmp_gate"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+vg = payload["vg_overview"]
+g7 = payload["g7_subcheck"]
+if vg["overall_clean"]:
+    print("pass")
+    print(
+        "overall_clean=true "
+        f"anchored={g7['anchored']}/{g7['ut_total']} "
+        f"exec_pass={g7['exec_pass']} "
+        f"missing={g7['missing']} "
+        f"unanchored={g7['unanchored_but_exists']}"
+    )
+else:
+    failing_required = [
+        f"{name}:{item['finding_count']}"
+        for name, item in vg["required_clean"].items()
+        if not item["clean"]
+    ]
+    failing_pairs = [
+        f"{name}:{item['reason']}"
+        for name, item in vg["pair_status"].items()
+        if item["status"] == "applicable" and not item["clean"]
+    ]
+    print("fail")
+    print("; ".join(failing_required + failing_pairs) or "overall_clean=false")
+PY
+
+  local gate_status gate_detail
+  gate_status="$(sed -n '1p' "$tmp_gate")"
+  gate_detail="$(sed -n '2,$p' "$tmp_gate")"
+  rm -f "$tmp_gate"
+  if [[ "$gate_status" == "pass" ]]; then
+    echo "  ✓ VG-overview pre-push"
+    [[ -n "$gate_detail" ]] && echo "    $gate_detail"
+    PASS=$((PASS + 1))
+  else
+    echo "  ✗ VG-overview pre-push"
+    [[ -n "$gate_detail" ]] && echo "    $gate_detail"
+    FAIL=$((FAIL + 1))
   fi
 }
 
@@ -755,8 +901,8 @@ check_mode_phase_consistency() {
 
   case "$current_mode" in
     forward)
-      if ! [[ "$current_phase" =~ ^L([1-9]|1[01])$ ]]; then
-        echo "  ⚠ phase_mode_consistency: mode=forward だが phase=$current_phase (L1-L11 期待)"
+      if ! [[ "$current_phase" =~ ^L([0-9]|1[0-4])$ ]]; then
+        echo "  ⚠ phase_mode_consistency: mode=forward だが phase=$current_phase (L0-L14 期待)"
         WARN=$((WARN + 1))
       else
         echo "  ✓ phase_mode_consistency: forward + $current_phase"
@@ -800,6 +946,45 @@ check_discovery_compat_warnings() {
     echo "  ✓ discovery_compat: discovery mode/drive"
     PASS=$((PASS + 1))
   fi
+}
+
+check_phase_gate_progress_consistency() {
+  local phase_yaml="$PROJECT_ROOT/.helix/phase.yaml"
+  if [[ ! -f "$phase_yaml" ]]; then
+    return 0
+  fi
+
+  local current_phase
+  current_phase=$(grep -E '^current_phase:' "$phase_yaml" | sed 's/^current_phase: *//' | tr -d "\"'" | tr -d ' ')
+  if [[ -z "$current_phase" || ! "$current_phase" =~ ^L([0-9]|1[0-4])$ ]]; then
+    return 0
+  fi
+
+  local gate gate_status highest_gate="" highest_layer=0 layer current_layer
+  for gate in G1 G2 G3 G4 G5 G6; do
+    gate_status=$(python3 "$YAML_PARSER" read "$phase_yaml" "gates.${gate}.status" 2>/dev/null || true)
+    if [[ "$gate_status" == "passed" ]]; then
+      layer="${gate#G}"
+      if (( layer > highest_layer )); then
+        highest_layer="$layer"
+        highest_gate="$gate"
+      fi
+    fi
+  done
+
+  if [[ -z "$highest_gate" ]]; then
+    echo "  ✓ phase_gate_progress: L1-L6 gate progress evidence not yet recorded"
+    return 0
+  fi
+
+  current_layer="${current_phase#L}"
+  if (( current_layer < highest_layer )); then
+    echo "  ⚠ phase_gate_progress: ${highest_gate} passed だが current_phase=${current_phase} (少なくとも L${highest_layer} 表示が期待)"
+    WARN=$((WARN + 1))
+    return 0
+  fi
+
+  echo "  ✓ phase_gate_progress: ${highest_gate} passed + current_phase=${current_phase}"
 }
 
 extract_declared_count() {
@@ -2103,6 +2288,7 @@ echo ""
 echo "[mode/phase 整合性]"
 check_mode_phase_consistency
 check_discovery_compat_warnings
+check_phase_gate_progress_consistency
 
 echo ""
 echo "[drift]"
@@ -2168,6 +2354,12 @@ check_coding_rule_alignment_doctor
 echo ""
 echo "[registry design coverage]"
 check_registry_design_coverage_doctor
+
+if [[ "$GATE_MODE" == true ]]; then
+  echo ""
+  echo "[VG-overview pre-push gate]"
+  check_vg_overview_gate
+fi
 
 echo ""
 echo "結果: $PASS pass, $FAIL fail, $WARN warn"

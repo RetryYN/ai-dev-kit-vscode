@@ -55,6 +55,7 @@ case "$CMD" in
   auto-run) exec "$SCRIPT_DIR/helix-auto-run" "$@" ;;
   workspace) exec "$SCRIPT_DIR/helix-workspace" "$@" ;;
   budget)    exec "$SCRIPT_DIR/helix-budget" "$@" ;;
+  harness)   exec "$SCRIPT_DIR/helix-harness" "$@" ;;
   scheduler) exec "$SCRIPT_DIR/helix-scheduler" "$@" ;;
   job)       exec "$SCRIPT_DIR/helix-job" "$@" ;;
   lock)      exec "$SCRIPT_DIR/helix-lock" "$@" ;;
@@ -128,10 +129,10 @@ HELIX プロジェクト管理:
   gate        ゲート自動検証
   gate-api-check API エンドポイント整合チェック
   vmodel      V-model semantics 表示・検証 (drive/layer/test/pair)
-  push        6 ゲート機械検証 + git push 自動許可
+  push        push pre-gate 機械検証 + git push 自動許可
   readiness   readiness exit 判定 / deferred-finding 操作
   innovation  PdM Tech/Marketing 翻案 + 統合 (G0.5 前後)
-  sprint      L4 マイクロスプリント
+  sprint      L7 実装スプリント
   task        タスクオペレーティングシステム
   interrupt   IIP/CC 中断・復帰管理
   refactor    Refactor mode の session 管理 (保護網確認・振る舞い不変 check)
@@ -144,7 +145,7 @@ HELIX プロジェクト管理:
   auto-run    指定時間 budget window と heartbeat による PLAN resume skeleton
   route       detect signal を Reverse/Refactor/Recovery/Incident へ提案ルーティング
   workspace   git worktree-based per-task workspace 管理 (PLAN-156)
-  pr          PR 自動生成 + 6 ゲート機械検証 (--gate / --auto-merge)
+  pr          PR 自動生成 + push pre-gate 機械検証 (--gate / --auto-merge)
   retro       レトロスペクティブ
   debt        技術負債管理
   bats-cleanup バッチ実行用一時ディレクトリ監査
@@ -157,6 +158,7 @@ Codex / Claude Code 管理 harness:
   review      Codex 自動レビュー
   skill       スキル検索・参照
   budget      Claude/Codex 予算管理・モデル推奨
+  harness     active slot / DB feedback-loop の監視
   agent       HELIX W drive=agent init/stage1/stage2/merge/route + agent slot/audit
   hook        PostToolUse hook
   check-claudemd PreToolUse hook

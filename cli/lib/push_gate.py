@@ -12,6 +12,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 import plan_validator
+from vg_overview import collect_vg_overview
 
 
 PYTEST_TESTS_CMD = ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]
@@ -444,6 +445,40 @@ def run_gate_nondestructive(remote: str = "origin", branch: str = "main") -> dic
     return _result("G-nondestructive", True, "no destructive pattern", "なし")
 
 
+def _is_approved_deferred_add_feature_boundary(frontmatter: dict[str, Any]) -> bool:
+    """Return True only for strictly guarded deferred add-feature boundary tickets.
+
+    `layer == "L7"` は条件に含めない。実データでは正当な境界チケット 11 件の layer が
+    L7 だけでなく L6 / L5-L6 / L8-L14 に分散しており、layer 固定にすると正当な
+    boundary ticket を誤って拒否する。一方で workflow/add-feature, draft+approve,
+    approval boundary 文言, YAML boolean の approval_required_before_*,
+    current_task_scope, unlock_conditions の AND で十分に狭く特定できる。
+    """
+
+    approval_boundary = frontmatter.get("approval_boundary")
+    unlock_conditions = frontmatter.get("unlock_conditions")
+    return (
+        # plan_scope は default 補完せず明示要求する。gate 本体の default("action") より厳格にし、未宣言 draft の誤 exempt を防ぐ。
+        frontmatter.get("plan_scope") == "action"
+        and frontmatter.get("workflow") == "add-feature"
+        and str(frontmatter.get("status", "")).strip() == "draft"
+        and str(frontmatter.get("tl_review", "")).strip() == "approve"
+        and isinstance(approval_boundary, str)
+        and approval_boundary.strip() != ""
+        and "approv" in approval_boundary.lower()
+        and any(
+            key.startswith("approval_required_before_") and value is True
+            for key, value in frontmatter.items()
+        )
+        and frontmatter.get("current_task_scope")
+        in {"feature_ticket_only", "L4_L6_design_closed_feature_ticketed"}
+        and (
+            (isinstance(unlock_conditions, str) and unlock_conditions.strip() != "")
+            or (isinstance(unlock_conditions, list) and len(unlock_conditions) > 0)
+        )
+    )
+
+
 def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
     root = Path(project_root).resolve()
     try:
@@ -465,6 +500,7 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             status = str(frontmatter.get("status", "")).strip()
             tl_review = str(frontmatter.get("tl_review", "")).strip()
             plan_scope = str(frontmatter.get("plan_scope", "action")).strip() or "action"
+            is_boundary = _is_approved_deferred_add_feature_boundary(frontmatter)
             reviewed.append(
                 f"{review_plan_id} scope={plan_scope} "
                 f"status={status or '<missing>'} tl_review={tl_review or '<missing>'}"
@@ -473,7 +509,7 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             # process-scope PLAN は長命の親 (全 Action の L7 完了で収束、plan-model)。
             # incremental Action landing 中は未完了が正常なため status 完了は要求しない
             # (TL 判定A 2026-06-05)。tl_review=approve のみで守る。action-scope は両方必須。
-            if plan_scope != "process" and status not in {"completed", "finalized"}:
+            if plan_scope != "process" and not is_boundary and status not in {"completed", "finalized"}:
                 missing_fields.append(f"status={status or '<missing>'}")
             if tl_review != "approve":
                 missing_fields.append(f"tl_review={tl_review or '<missing>'}")
@@ -492,7 +528,7 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             "G-review",
             False,
             f"review prerequisites missing: {'; '.join(violations)}",
-            "PLAN frontmatter の status∈{completed,finalized} と tl_review=approve を満たすこと",
+            "PLAN frontmatter の status∈{completed,finalized} と tl_review=approve を満たすこと。承認済み deferred add-feature 境界チケットのみ、厳格ガード充足時は status=draft を許容。",
         )
 
     detail = reviewed[0] if len(reviewed) == 1 else "; ".join(reviewed)
@@ -501,6 +537,74 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
         True,
         detail,
         "なし",
+    )
+
+
+def _has_vg_overview_assets(project_root: Path) -> bool:
+    return (
+        (project_root / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml").is_file()
+        and (project_root / "cli" / "config" / "functional-registry.yaml").is_file()
+    )
+
+
+def run_gate_vg_overview(project_root: str | Path) -> dict:
+    root = Path(project_root).resolve()
+    if not _has_vg_overview_assets(root):
+        return _result(
+            "G-vg-overview",
+            True,
+            "not applicable: VG-overview assets not present",
+            "なし",
+        )
+
+    previous_skip = os.environ.get("HELIX_DOCTOR_SKIP_EXEC_TESTS")
+    os.environ["HELIX_DOCTOR_SKIP_EXEC_TESTS"] = previous_skip if previous_skip is not None else "1"
+    try:
+        report = collect_vg_overview(root)
+    except Exception as exc:  # pragma: no cover - defensive boundary for push UX
+        return _result(
+            "G-vg-overview",
+            False,
+            f"VG-overview error: {exc}",
+            "helix doctor check_vg_overview --json で詳細確認",
+        )
+    finally:
+        if previous_skip is None:
+            os.environ.pop("HELIX_DOCTOR_SKIP_EXEC_TESTS", None)
+        else:
+            os.environ["HELIX_DOCTOR_SKIP_EXEC_TESTS"] = previous_skip
+
+    vg = report["vg_overview"]
+    g7 = report["g7_subcheck"]
+    if vg["overall_clean"]:
+        return _result(
+            "G-vg-overview",
+            True,
+            (
+                "overall_clean=true "
+                f"anchored={g7['anchored']}/{g7['ut_total']} "
+                f"exec_pass={g7['exec_pass']} "
+                f"missing={g7['missing']} "
+                f"unanchored={g7['unanchored_but_exists']}"
+            ),
+            "なし",
+        )
+
+    failing_required = [
+        f"{name}:{item['finding_count']}"
+        for name, item in vg["required_clean"].items()
+        if not item["clean"]
+    ]
+    failing_pairs = [
+        f"{name}:{item['reason']}"
+        for name, item in vg["pair_status"].items()
+        if item["status"] == "applicable" and not item["clean"]
+    ]
+    return _result(
+        "G-vg-overview",
+        False,
+        "; ".join(failing_required + failing_pairs) or "overall_clean=false",
+        "G7 anchor/test pass と registry/trace findings を解消",
     )
 
 
@@ -520,6 +624,7 @@ def run_all_gates(
         run_gate_attr(remote, branch),
         run_gate_nondestructive(remote, branch),
         run_gate_review(plan_id, repo_root),
+        run_gate_vg_overview(repo_root),
     ]
     failed = [gate for gate in gates if not gate["passed"]]
     result = {

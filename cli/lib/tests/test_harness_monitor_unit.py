@@ -145,6 +145,56 @@ def _insert_automation_run(
         return int(cursor.lastrowid)
 
 
+def _insert_hook_event(
+    db_path: Path,
+    *,
+    event_type: str,
+    file: str = "docs/v2/L3-detailed-design/D-DB/D-DB-SEP-draft.md",
+    result: str = "warn",
+    created_at: str | None = None,
+) -> int:
+    payload = {
+        "event_type": event_type,
+        "file": file,
+        "result": result,
+        "created_at": created_at or _sqlite_text(BASE_NOW - timedelta(minutes=5)),
+    }
+    columns = list(payload)
+    placeholders = ", ".join(["?"] * len(columns))
+    with _raw_conn(db_path) as conn:
+        cursor = conn.execute(
+            f"INSERT INTO hook_events ({', '.join(columns)}) VALUES ({placeholders})",
+            [payload[column] for column in columns],
+        )
+        return int(cursor.lastrowid)
+
+
+def _insert_feedback(
+    db_path: Path,
+    *,
+    feedback_type: str = "correction",
+    category: str = "quality",
+    description: str = "needs stronger verification",
+    impact: str = "high",
+) -> int:
+    payload = {
+        "task_run_id": None,
+        "feedback_type": feedback_type,
+        "category": category,
+        "description": description,
+        "impact": impact,
+        "resolution": "",
+    }
+    columns = list(payload)
+    placeholders = ", ".join(["?"] * len(columns))
+    with _raw_conn(db_path) as conn:
+        cursor = conn.execute(
+            f"INSERT INTO feedback ({', '.join(columns)}) VALUES ({placeholders})",
+            [payload[column] for column in columns],
+        )
+        return int(cursor.lastrowid)
+
+
 def _insert_agent_slot(
     db_path: Path,
     *,
@@ -242,6 +292,52 @@ def _fetch_events(db_path: Path) -> list[sqlite3.Row]:
     finally:
         conn.close()
     return rows
+
+
+def _fake_vg_overview_feedback() -> dict:
+    return {
+        "available": True,
+        "overall_clean": False,
+        "enforced": True,
+        "deferred_count": 4,
+        "deferred_pairs": [
+            {
+                "pair": "L5-L8",
+                "gate_id": "G8",
+                "target": "Phase5-G8",
+                "next_action": "implement G8 integration-test execution gate",
+            },
+            {
+                "pair": "L4-L9",
+                "gate_id": "G9",
+                "target": "G9",
+                "next_action": "implement G9 system-test execution gate",
+            },
+            {
+                "pair": "L3-L12",
+                "gate_id": "G12",
+                "target": "G12",
+                "next_action": "implement G12 acceptance-test execution gate",
+            },
+            {
+                "pair": "L1-L14",
+                "gate_id": "G14",
+                "target": "G14",
+                "next_action": "implement G14 operational-learning execution gate",
+            },
+        ],
+        "not_applicable_count": 1,
+        "not_applicable_pairs": [
+            {
+                "pair": "L2-L10",
+                "reason": "ui_absent waiver=docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md",
+                "waiver": {
+                    "reason": "ui_absent",
+                    "owner": "TL",
+                },
+            }
+        ],
+    }
 
 
 @pytest.fixture
@@ -510,3 +606,155 @@ class TestListRecentEvents:
         """DoD 検証: PLAN-080-unit-test-design.md U-HM-LIST-006 (severity 不正値は ValueError)"""
         with pytest.raises(ValueError, match="invalid severity"):
             harness_monitor.list_recent_events(days=1, severity="bad")
+
+
+class TestFeedbackLoopSnapshot:
+    def test_feedback_loop_snapshot_routes_running_and_drift_inputs(
+        self,
+        fresh_db: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(harness_monitor, "_collect_vg_overview_feedback", _fake_vg_overview_feedback)
+        _insert_automation_run(
+            fresh_db,
+            run_kind="push",
+            plan_id="PLAN-RUNNING",
+            started_at=_sqlite_text(BASE_NOW - timedelta(hours=3)),
+            status="running",
+            summary="long running push",
+        )
+        _insert_hook_event(fresh_db, event_type="drift_check_db_schema_drift", result="warn")
+        _insert_event(
+            fresh_db,
+            event_kind="push",
+            check_name="slot_count_warning",
+            severity="warning",
+            payload={"active": 7},
+        )
+
+        snapshot = harness_monitor.get_feedback_loop_snapshot(days=30)
+
+        assert snapshot["counts"]["automation_running"] == 1
+        assert snapshot["counts"]["hook_warn_fail"] == 1
+        assert snapshot["counts"]["harness_warning_critical"] == 1
+        signals = [item["signal"] for item in snapshot["route_candidates"]]
+        assert signals == ["long_running_task", "drift", "regression_dev"]
+        assert snapshot["route_candidates"][0]["route"]["mode"] == "auto_run"
+        assert snapshot["route_candidates"][1]["route"]["mode"] == "Reverse"
+        assert snapshot["route_candidates"][1]["route"]["drift_type"] == "schema"
+        assert any(item["kind"] == "detector_pattern" for item in snapshot["learning_candidates"])
+        assert snapshot["vg_overview"]["available"] is True
+        assert snapshot["vg_overview"]["enforced"] is True
+        assert snapshot["vg_overview"]["deferred_count"] == 4
+        assert snapshot["vg_overview"]["not_applicable_count"] == 1
+        assert any(
+            item["kind"] == "full_flow_deferred_execution_gate" and item["gate_id"] == "G8"
+            for item in snapshot["learning_candidates"]
+        )
+        assert any(
+            item["kind"] == "not_applicable_pair_waiver" and item["pair"] == "L2-L10"
+            for item in snapshot["learning_candidates"]
+        )
+        assert [item["candidate_type"] for item in snapshot["plan_candidates"]] == ["plan", "plan", "plan"]
+        assert snapshot["plan_candidates"][0]["handoff"]["owner_role"] == "tl"
+        assert snapshot["plan_candidates"][0]["proposal"]["non_goals"] == [
+            "detector 直接変更",
+            "gate 直接変更",
+            "schema migration",
+            "自動実行",
+        ]
+        assert any(item["candidate_type"] == "pr" for item in snapshot["pr_candidates"])
+
+    def test_feedback_loop_snapshot_reports_missing_feedback_inputs(self, fresh_db: Path) -> None:
+        snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
+
+        assert snapshot["counts"]["feedback"] == 0
+        assert snapshot["counts"]["events"] == 0
+        assert snapshot["counts"]["metrics"] == 0
+        assert snapshot["counts"]["verify_runs"] == 0
+        assert snapshot["route_candidates"] == []
+        kinds = {item["kind"] for item in snapshot["learning_candidates"]}
+        assert {"missing_feedback_input", "missing_observability_input", "missing_verify_input"} <= kinds
+        assert snapshot["plan_candidates"] == []
+        pr_keys = {item["source_pattern_key"] for item in snapshot["pr_candidates"]}
+        assert {
+            "feedback:missing_feedback_input",
+            "events/metrics:missing_observability_input",
+            "verify_runs:missing_verify_input",
+        } <= pr_keys
+
+    def test_feedback_loop_snapshot_uses_existing_feedback_as_learning_input(self, fresh_db: Path) -> None:
+        _insert_feedback(fresh_db, category="scope", description="scope drift should route to requirements")
+
+        snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
+
+        assert snapshot["counts"]["feedback"] == 1
+        assert any(item["kind"] == "feedback_pattern" for item in snapshot["learning_candidates"])
+        assert any(item["source_pattern_key"] == "feedback:feedback_pattern" for item in snapshot["pr_candidates"])
+
+    def test_feedback_loop_missing_feedback_records_feedback_once(self, fresh_db: Path) -> None:
+        snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
+
+        result = harness_monitor.record_feedback_loop_missing_feedback(snapshot)
+
+        assert result["recorded"] is True
+        assert result["reason"] == "missing_feedback_input"
+        with _raw_conn(fresh_db) as conn:
+            rows = conn.execute(
+                "SELECT feedback_type, category, description, impact, resolution FROM feedback"
+            ).fetchall()
+        assert len(rows) == 1
+        assert rows[0]["feedback_type"] == "suggestion"
+        assert rows[0]["category"] == "missing-action"
+        assert "feedback-loop snapshot detected empty feedback input" in rows[0]["description"]
+        assert rows[0]["impact"] == "medium"
+        assert rows[0]["resolution"] == "harness-feedback-loop-auto-registered"
+
+        next_snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
+        second = harness_monitor.record_feedback_loop_missing_feedback(next_snapshot)
+
+        assert second["recorded"] is False
+        assert second["reason"] == "feedback_already_exists"
+        with _raw_conn(fresh_db) as conn:
+            feedback_count = conn.execute("SELECT COUNT(*) FROM feedback").fetchone()[0]
+        assert feedback_count == 1
+
+    def test_feedback_loop_observability_records_events_and_metrics(
+        self,
+        fresh_db: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(harness_monitor, "_collect_vg_overview_feedback", _fake_vg_overview_feedback)
+        _insert_automation_run(fresh_db, status="running")
+        snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
+
+        result = harness_monitor.record_feedback_loop_observability(snapshot)
+
+        assert result["event_id"] > 0
+        assert result["severity"] == "warning"
+        with _raw_conn(fresh_db) as conn:
+            event = conn.execute(
+                "SELECT event_name, source, severity, data_json FROM events WHERE id = ?",
+                (result["event_id"],),
+            ).fetchone()
+            metrics = conn.execute(
+                "SELECT metric_name, value FROM metrics ORDER BY metric_name"
+            ).fetchall()
+        assert event is not None
+        assert event["event_name"] == "harness.feedback_loop.snapshot"
+        assert event["source"] == "helix-harness"
+        data = json.loads(event["data_json"])
+        assert data["route_candidates"] == len(snapshot["route_candidates"])
+        assert data["plan_candidates"] == len(snapshot["plan_candidates"])
+        assert data["vg_overview"]["deferred_count"] == 4
+        assert data["vg_overview"]["not_applicable_count"] == 1
+        metric_names = {row["metric_name"] for row in metrics}
+        assert {
+            "harness.feedback_loop.route_candidates",
+            "harness.feedback_loop.learning_candidates",
+            "harness.feedback_loop.plan_candidates",
+            "harness.feedback_loop.pr_candidates",
+            "harness.feedback_loop.missing_inputs",
+            "harness.feedback_loop.full_flow_deferred_gates",
+            "harness.feedback_loop.not_applicable_pairs",
+        } <= metric_names

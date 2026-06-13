@@ -19,6 +19,14 @@ _CONCURRENT_BASELINE_ERROR = (
     "concurrent baseline must be in PROJECT_ROOT/.helix/tmp/ and match "
     "codex-baseline-<pid>-<stamp>.txt format, got: {path}"
 )
+WEB_EVIDENCE_PATTERNS = (
+    '"tool_name":"WebSearch"',
+    '"tool_name": "WebSearch"',
+    '"tool_name":"WebFetch"',
+    '"tool_name": "WebFetch"',
+    "WebSearch(",
+    "WebFetch(",
+)
 
 
 def read_snapshot(path: Path) -> set[str]:
@@ -91,6 +99,50 @@ def get_git_diff_paths(repo_root: Path) -> set[str]:
         return set()
 
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+
+
+def is_target_design_doc(path: str) -> bool:
+    if not path:
+        return False
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("docs/templates/"):
+        return False
+    if normalized.startswith("docs/plans/"):
+        return False
+    if normalized == "docs/adr/index.md":
+        return False
+    if re.fullmatch(r"docs/adr/ADR-[^/]+\.md", normalized):
+        return True
+    return False
+
+
+def evidence_file_has_web_research(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return any(pattern in text for pattern in WEB_EVIDENCE_PATTERNS)
+
+
+def has_web_research_evidence(evidence_paths: list[Path]) -> bool:
+    return any(evidence_file_has_web_research(path) for path in evidence_paths)
+
+
+def find_design_doc_web_evidence_violations(
+    *,
+    before_paths: set[str],
+    after_paths: set[str],
+    untracked_after_paths: set[str],
+    git_diff_paths: set[str],
+    evidence_paths: list[Path],
+) -> list[str]:
+    changed_paths = (after_paths - before_paths) | untracked_after_paths | git_diff_paths
+    target_paths = sorted(path for path in changed_paths if is_target_design_doc(path))
+    if not target_paths:
+        return []
+    if has_web_research_evidence(evidence_paths):
+        return []
+    return target_paths
 
 
 def check_write_expected(
@@ -263,6 +315,8 @@ def main() -> int:
     parser.add_argument("--check-write-expected", action="store_true", default=False)
     parser.add_argument("--task-type", default="不明")
     parser.add_argument("--summary-stdout")
+    parser.add_argument("--check-design-web-evidence", action="store_true", default=False)
+    parser.add_argument("--design-web-evidence", action="append", default=[])
     args = parser.parse_args()
 
     before_path = Path(args.before)
@@ -292,6 +346,27 @@ def main() -> int:
             git_diff_paths=git_diff_paths,
         ):
             print(f"WARNING: {warning}", file=sys.stderr)
+
+    if args.check_design_web_evidence:
+        repo_root = _project_root()
+        git_diff_paths = get_git_diff_paths(repo_root)
+        evidence_paths = [
+            Path(raw_path).expanduser()
+            for raw_path in args.design_web_evidence
+            if str(raw_path).strip()
+        ]
+        violations = find_design_doc_web_evidence_violations(
+            before_paths=before_paths,
+            after_paths=after_paths,
+            untracked_after_paths=untracked_after_paths,
+            git_diff_paths=git_diff_paths,
+            evidence_paths=evidence_paths,
+        )
+        if violations:
+            print("エラー: 設計 doc 変更に WebSearch/WebFetch 証跡がありません")
+            for path in violations:
+                print(f"  - {path}")
+            return 1
 
     if not args.allowed_files:
         return 0

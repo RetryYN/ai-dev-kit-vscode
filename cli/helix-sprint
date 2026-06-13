@@ -6,7 +6,7 @@ if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
 fi
 set -euo pipefail
 
-# helix-sprint: L4 マイクロスプリント管理
+# helix-sprint: L7 実装スプリント管理
 # Usage: helix-sprint <status|next|complete|reset> [--track be|fe]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
@@ -537,7 +537,7 @@ refresh_fullstack_phase() {
 }
 
 print_standard_status() {
-  echo "=== L4 Sprint Status ==="
+  echo "=== L7 Sprint Status ==="
   echo ""
   local current status marker step
   current="$(get_sprint_step)"
@@ -573,7 +573,7 @@ print_fullstack_status() {
   fe_status="$(get_track_status fe)"
   contract_ci="$(get_contract_ci)"
 
-  echo "=== L4 Sprint Status ==="
+  echo "=== L7 Sprint Status ==="
   echo ""
   echo "  Drive: fullstack"
   echo "  Phase: ${phase:-A}"

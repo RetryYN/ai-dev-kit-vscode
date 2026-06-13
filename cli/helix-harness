@@ -12,10 +12,13 @@ Subcommands:
   recommend-compact   現セッション msg count から /compact 推奨可否を判定
   auto-dump           handover/CURRENT.json を機械抽出値で update
   status              active slot と警告イベントの現状を表示
+  feedback-loop       DB 入力から route / learning candidate を表示
 
 Options:
   --json              JSON 出力
   --threshold <float> compact 推奨 threshold (default: 0.70)
+  --days <int>        feedback-loop / status の参照 window (default: 7)
+  --limit <int>       feedback-loop の最大候補数 (default: 20)
 EOF
 }
 
@@ -114,6 +117,108 @@ else:
 
 print(f"\n[Peak Parallel Today]: {peak_parallel}")
 print(f"[8 並列遵守率]: {len(slots)}/8")
+PY
+)" "$@"
+    ;;
+  feedback-loop)
+    shift
+    exec python3 -c "$(cat <<'PY'
+import contextlib
+import io
+import json
+import sys
+
+from cli.lib import harness_monitor
+
+json_mode = False
+days = 7
+limit = 20
+args = sys.argv[1:]
+idx = 0
+while idx < len(args):
+    arg = args[idx]
+    if arg == "--json":
+        json_mode = True
+        idx += 1
+        continue
+    if arg == "--days" and idx + 1 < len(args):
+        days = int(args[idx + 1])
+        idx += 2
+        continue
+    if arg == "--limit" and idx + 1 < len(args):
+        limit = int(args[idx + 1])
+        idx += 2
+        continue
+    raise SystemExit(f"未知のオプション: {arg}")
+
+snapshot = harness_monitor.get_feedback_loop_snapshot(days=days, limit=limit)
+with contextlib.redirect_stderr(io.StringIO()):
+    try:
+        harness_monitor.record_feedback_loop_missing_feedback(snapshot)
+        harness_monitor.record_feedback_loop_observability(snapshot)
+    except Exception:
+        pass
+
+if json_mode:
+    print(json.dumps(snapshot, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+with contextlib.redirect_stderr(io.StringIO()):
+    try:
+        harness_monitor.record_event(
+            "pull",
+            "feedback_loop_viewed",
+            payload={
+                "days": days,
+                "route_candidates": len(snapshot.get("route_candidates", [])),
+                "learning_candidates": len(snapshot.get("learning_candidates", [])),
+            },
+        )
+    except Exception:
+        pass
+
+counts = snapshot.get("counts", {})
+print("[Feedback Loop]")
+print(
+    "counts "
+    + " ".join(f"{key}={value}" for key, value in sorted(counts.items()))
+)
+print("\n[Route Candidates]")
+route_candidates = snapshot.get("route_candidates", [])
+if route_candidates:
+    for item in route_candidates:
+        route = item.get("route") or {}
+        evidence = item.get("evidence") or {}
+        print(
+            f"{item.get('signal')} -> {route.get('mode')} "
+            f"{route.get('priority')} source={evidence.get('source')} id={evidence.get('id')}"
+        )
+else:
+    print("(none)")
+
+print("\n[Learning Candidates]")
+learning_candidates = snapshot.get("learning_candidates", [])
+if learning_candidates:
+    for item in learning_candidates:
+        print(f"{item.get('kind')} source={item.get('source')}: {item.get('summary')}")
+else:
+    print("(none)")
+
+print("\n[PLAN Draft Candidates]")
+plan_candidates = snapshot.get("plan_candidates", [])
+if plan_candidates:
+    for item in plan_candidates:
+        print(f"{item.get('title')} key={item.get('source_pattern_key')}")
+else:
+    print("(none)")
+
+print("\n[PR Candidates]")
+pr_candidates = snapshot.get("pr_candidates", [])
+if pr_candidates:
+    for item in pr_candidates:
+        print(f"{item.get('title')} key={item.get('source_pattern_key')}")
+else:
+    print("(none)")
 PY
 )" "$@"
     ;;

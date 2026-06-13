@@ -83,6 +83,78 @@ def test_find_allowed_files_violations_rejects_new_untracked_file() -> None:
     assert violations == ["rogue.txt"]
 
 
+def test_detects_design_doc_change_without_web_evidence() -> None:
+    findings = codex_post_validation.find_design_doc_web_evidence_violations(
+        before_paths=set(),
+        after_paths=set(),
+        untracked_after_paths={"docs/adr/ADR-999-new.md"},
+        git_diff_paths=set(),
+        evidence_paths=[],
+    )
+
+    assert findings == ["docs/adr/ADR-999-new.md"]
+
+
+def test_design_doc_change_passes_with_web_evidence(tmp_path: Path) -> None:
+    evidence = tmp_path / "transcript.jsonl"
+    evidence.write_text('{"tool_name":"WebSearch","query":"quality model"}\n', encoding="utf-8")
+
+    findings = codex_post_validation.find_design_doc_web_evidence_violations(
+        before_paths={"docs/adr/ADR-001-old.md"},
+        after_paths={"docs/adr/ADR-001-old.md", "docs/adr/ADR-999-new.md"},
+        untracked_after_paths=set(),
+        git_diff_paths={"docs/adr/ADR-001-old.md"},
+        evidence_paths=[evidence],
+    )
+
+    assert findings == []
+
+
+def test_design_doc_change_passes_with_webfetch_evidence(tmp_path: Path) -> None:
+    evidence = tmp_path / "transcript.jsonl"
+    evidence.write_text(
+        '{"tool_name":"WebFetch","url":"https://www.iso.org/standard/72089.html"}\n',
+        encoding="utf-8",
+    )
+
+    findings = codex_post_validation.find_design_doc_web_evidence_violations(
+        before_paths=set(),
+        after_paths={"docs/adr/ADR-999-new.md"},
+        untracked_after_paths=set(),
+        git_diff_paths={"docs/adr/ADR-999-new.md"},
+        evidence_paths=[evidence],
+    )
+
+    assert findings == []
+
+
+def test_design_doc_change_rejects_non_web_evidence(tmp_path: Path) -> None:
+    evidence = tmp_path / "transcript.jsonl"
+    evidence.write_text('{"tool_name":"Read","path":"docs/adr/ADR-999-new.md"}\n', encoding="utf-8")
+
+    findings = codex_post_validation.find_design_doc_web_evidence_violations(
+        before_paths=set(),
+        after_paths={"docs/adr/ADR-999-new.md"},
+        untracked_after_paths=set(),
+        git_diff_paths=set(),
+        evidence_paths=[evidence],
+    )
+
+    assert findings == ["docs/adr/ADR-999-new.md"]
+
+
+def test_plan_doc_is_not_design_doc_web_evidence_target() -> None:
+    findings = codex_post_validation.find_design_doc_web_evidence_violations(
+        before_paths=set(),
+        after_paths={"docs/plans/process/example.md"},
+        untracked_after_paths=set(),
+        git_diff_paths={"docs/plans/process/example.md"},
+        evidence_paths=[],
+    )
+
+    assert findings == []
+
+
 def test_load_newer_baselines_includes_recent_older_and_newer_baselines(tmp_path: Path) -> None:
     baseline_dir = tmp_path / ".helix" / "tmp"
     baseline_dir.mkdir(parents=True)

@@ -930,18 +930,30 @@ def cmd_update(args):
         if args.complete:
             pending = list(updated["files"].get("pending", []))
             completed = list(updated["files"].get("completed", []))
-            completed_paths = {entry.get("path") for entry in completed if isinstance(entry, dict)}
+            completed_by_path = {
+                entry.get("path"): entry
+                for entry in completed
+                if isinstance(entry, dict) and entry.get("path")
+            }
 
             for raw in args.complete:
                 path = raw.strip()
                 if not path:
                     continue
+                before_pending = len(pending)
                 pending = [p for p in pending if p != path]
-                if path not in completed_paths:
-                    completed.append({"path": path, "note": args.complete_note})
-                    completed_paths.add(path)
+                if len(pending) != before_pending:
+                    changed = True
+                if path not in completed_by_path:
+                    entry = {"path": path, "note": args.complete_note}
+                    completed.append(entry)
+                    completed_by_path[path] = entry
                     note = f"{path}" if not args.complete_note else f"{path} ({args.complete_note})"
                     events.append(("complete", note, None))
+                    changed = True
+                elif args.complete_note is not None and completed_by_path[path].get("note") != args.complete_note:
+                    completed_by_path[path]["note"] = args.complete_note
+                    events.append(("complete", f"{path} ({args.complete_note})", None))
                     changed = True
 
             updated["files"]["pending"] = pending

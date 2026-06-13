@@ -8,7 +8,7 @@
 | owner | |
 | source | |
 | created_at | YYYY-MM-DD |
-| target_phase | L1-L11 |
+| target_phase | L0-L14 |
 | drive | be / fe / db / fullstack / agent |
 
 ## 1. Summary

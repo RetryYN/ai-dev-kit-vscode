@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
+
+import pytest
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
@@ -19,6 +22,8 @@ def _write_plan(
     tl_review: str | None = "approve",
     subdir: str = "add-feature",
     plan_scope: str | None = None,
+    workflow: str = "add-feature",
+    extra_frontmatter: dict[str, object] | None = None,
 ) -> Path:
     plan_path = root / "docs" / "plans" / subdir / f"{plan_id}.md"
     plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -29,15 +34,59 @@ def _write_plan(
         "kind: add-impl",
         "layer: L4",
         "drive: be",
+        f"workflow: {workflow}",
         f"status: {status}",
     ]
     if plan_scope is not None:
         lines.append(f"plan_scope: {plan_scope}")
     if tl_review is not None:
         lines.append(f"tl_review: {tl_review}")
+    for key, value in (extra_frontmatter or {}).items():
+        if isinstance(value, bool):
+            lines.append(f"{key}: {'true' if value else 'false'}")
+        elif isinstance(value, list):
+            if value:
+                lines.append(f"{key}:")
+                lines.extend(f"  - {json.dumps(item)}" for item in value)
+            else:
+                lines.append(f"{key}: []")
+        else:
+            lines.append(f"{key}: {json.dumps(value)}")
     lines.extend(["---", "", "# body", ""])
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path
+
+
+def _write_approved_boundary_plan(
+    root: Path,
+    plan_id: str,
+    *,
+    status: str = "draft",
+    tl_review: str | None = "approve",
+    workflow: str = "add-feature",
+    plan_scope: str = "action",
+    extra_frontmatter: dict[str, object] | None = None,
+) -> Path:
+    boundary_frontmatter: dict[str, object] = {
+        "approval_boundary": "This PLAN is only a ticket and requires explicit approval before implementation.",
+        "approval_required_before_l7_work": True,
+        "current_task_scope": "feature_ticket_only",
+        "unlock_conditions": ["explicit approval"],
+    }
+    for key, value in (extra_frontmatter or {}).items():
+        if value is None:
+            boundary_frontmatter.pop(key, None)
+        else:
+            boundary_frontmatter[key] = value
+    return _write_plan(
+        root,
+        plan_id,
+        status=status,
+        tl_review=tl_review,
+        workflow=workflow,
+        plan_scope=plan_scope,
+        extra_frontmatter=boundary_frontmatter,
+    )
 
 
 def _stub_ahead(monkeypatch, plan_ids: list[str]) -> None:
@@ -84,6 +133,155 @@ def test_run_gate_review_action_scope_fails_with_draft_even_if_approved(tmp_path
     # action-scope は status 完了が必須 (gate を緩めていないことの回帰)
     plan_id = "add-feature-2026-06-05-registry-detector-base"
     _write_plan(tmp_path, plan_id, status="draft", plan_scope="action")
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+def test_run_gate_review_action_scope_boundary_passes_with_approved_deferred_add_feature(
+    tmp_path: Path,
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(tmp_path, plan_id)
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is True
+    assert result["detail"] == f"{plan_id} scope=action status=draft tl_review=approve"
+
+
+def test_run_gate_review_action_scope_boundary_fails_with_missing_plan_scope(
+    tmp_path: Path,
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(tmp_path, plan_id, plan_scope=None)
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert result["detail"] == f"review prerequisites missing: {plan_id} status=draft"
+
+
+@pytest.mark.parametrize("tl_review", [None, "changes_required"])
+def test_run_gate_review_action_scope_boundary_fails_without_approve_tl_review(
+    tmp_path: Path, tl_review: str | None
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(tmp_path, plan_id, tl_review=tl_review)
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "tl_review" in result["detail"]
+
+
+@pytest.mark.parametrize(
+    ("field_value", "expected_fragment"),
+    [
+        (None, "status=draft"),
+        ("", "status=draft"),
+        ("ticket only", "status=draft"),
+    ],
+)
+def test_run_gate_review_action_scope_boundary_fails_without_valid_approval_boundary(
+    tmp_path: Path, field_value: str | None, expected_fragment: str
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    extra_frontmatter = {"approval_boundary": field_value}
+    _write_approved_boundary_plan(tmp_path, plan_id, extra_frontmatter=extra_frontmatter)
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert expected_fragment in result["detail"]
+
+
+@pytest.mark.parametrize(
+    "extra_frontmatter",
+    [
+        {"approval_required_before_l7_work": False},
+        {"approval_required_before_l7_work": "true"},
+        {"approval_required_before_l7_work": False, "approval_required_before_ci": False},
+    ],
+)
+def test_run_gate_review_action_scope_boundary_fails_without_true_boolean_approval_required(
+    tmp_path: Path, extra_frontmatter: dict[str, object]
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(tmp_path, plan_id, extra_frontmatter=extra_frontmatter)
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+def test_run_gate_review_action_scope_boundary_fails_without_any_approval_required_key(
+    tmp_path: Path,
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(
+        tmp_path,
+        plan_id,
+        extra_frontmatter={
+            "approval_required_before_l7_work": None,
+            "approval_boundary": "This ticket still requires explicit approval.",
+            "current_task_scope": "feature_ticket_only",
+            "unlock_conditions": ["explicit approval"],
+        },
+    )
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+def test_run_gate_review_action_scope_boundary_fails_when_workflow_is_not_add_feature(
+    tmp_path: Path,
+) -> None:
+    plan_id = "process-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(tmp_path, plan_id, workflow="refactor")
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+@pytest.mark.parametrize("current_task_scope", ["parked_feature_ticket_only", "implementation"])
+def test_run_gate_review_action_scope_boundary_fails_with_disallowed_current_task_scope(
+    tmp_path: Path, current_task_scope: str
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    _write_approved_boundary_plan(
+        tmp_path,
+        plan_id,
+        extra_frontmatter={"current_task_scope": current_task_scope},
+    )
+
+    result = push_gate.run_gate_review(plan_id, tmp_path)
+
+    assert result["passed"] is False
+    assert "status=draft" in result["detail"]
+
+
+@pytest.mark.parametrize(
+    "unlock_conditions",
+    [
+        None,
+        "",
+        [],
+    ],
+)
+def test_run_gate_review_action_scope_boundary_fails_without_unlock_conditions(
+    tmp_path: Path, unlock_conditions: object
+) -> None:
+    plan_id = "add-feature-2026-06-13-l7-unit-closure"
+    extra_frontmatter = {"unlock_conditions": unlock_conditions}
+    _write_approved_boundary_plan(tmp_path, plan_id, extra_frontmatter=extra_frontmatter)
 
     result = push_gate.run_gate_review(plan_id, tmp_path)
 
@@ -277,6 +475,11 @@ def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:
         return push_gate._result("G-review", True, "ok", "なし")
 
     monkeypatch.setattr(push_gate, "run_gate_review", fake_review)
+    monkeypatch.setattr(
+        push_gate,
+        "run_gate_vg_overview",
+        lambda project_root: push_gate._result("G-vg-overview", True, "ok", "なし"),
+    )
     monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
 
     payload = push_gate.run_all_gates(
@@ -296,6 +499,7 @@ def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:
         "G-attr",
         "G-nondestructive",
         "G-review",
+        "G-vg-overview",
     ]
     assert payload["plan_id"] == "add-feature-2026-06-03-gate-driven-push"
     assert payload["allow_main"] is True
@@ -313,3 +517,124 @@ def test_gate_ids_match_contract_enum() -> None:
     )
 
     assert push_gate._contract_gate_ids(contract_path) == list(push_gate.GATE_IDS)
+
+
+def test_run_gate_vg_overview_skips_when_assets_are_absent(tmp_path: Path) -> None:
+    result = push_gate.run_gate_vg_overview(tmp_path)
+
+    assert result["passed"] is True
+    assert result["id"] == "G-vg-overview"
+    assert "not applicable" in result["detail"]
+
+
+def test_run_gate_vg_overview_passes_when_overall_clean(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "docs" / "v2" / "L7-test-design").mkdir(parents=True)
+    (tmp_path / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml").write_text(
+        "anchors: {}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "cli" / "config").mkdir(parents=True)
+    (tmp_path / "cli" / "config" / "functional-registry.yaml").write_text("entries: []\n", encoding="utf-8")
+    monkeypatch.setattr(
+        push_gate,
+        "collect_vg_overview",
+        lambda root: {
+            "vg_overview": {"overall_clean": True},
+            "g7_subcheck": {
+                "ut_total": 88,
+                "anchored": 88,
+                "exec_pass": 88,
+                "missing": 0,
+                "unanchored_but_exists": 0,
+            },
+        },
+    )
+
+    result = push_gate.run_gate_vg_overview(tmp_path)
+
+    assert result["passed"] is True
+    assert "overall_clean=true" in result["detail"]
+    assert "anchored=88/88" in result["detail"]
+
+
+def test_run_gate_vg_overview_fails_when_applicable_pair_is_dirty(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "docs" / "v2" / "L7-test-design").mkdir(parents=True)
+    (tmp_path / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml").write_text(
+        "anchors: {}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "cli" / "config").mkdir(parents=True)
+    (tmp_path / "cli" / "config" / "functional-registry.yaml").write_text("entries: []\n", encoding="utf-8")
+    monkeypatch.setattr(
+        push_gate,
+        "collect_vg_overview",
+        lambda root: {
+            "vg_overview": {
+                "overall_clean": False,
+                "required_clean": {
+                    "registry_design_coverage": {"clean": True, "finding_count": 0},
+                },
+                "pair_status": {
+                    "L6-L7": {
+                        "status": "applicable",
+                        "clean": False,
+                        "reason": "missing=1",
+                    },
+                    "L5-L8": {
+                        "status": "approved_deferred",
+                        "clean": False,
+                        "reason": "execution_gate_not_implemented",
+                    },
+                },
+            },
+            "g7_subcheck": {},
+        },
+    )
+
+    result = push_gate.run_gate_vg_overview(tmp_path)
+
+    assert result["passed"] is False
+    assert "L6-L7:missing=1" in result["detail"]
+    assert "L5-L8" not in result["detail"]
+
+
+def test_run_gate_vg_overview_fails_when_requirement_drift_is_dirty(
+    tmp_path: Path, monkeypatch
+) -> None:
+    (tmp_path / "docs" / "v2" / "L7-test-design").mkdir(parents=True)
+    (tmp_path / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml").write_text(
+        "anchors: {}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "cli" / "config").mkdir(parents=True)
+    (tmp_path / "cli" / "config" / "functional-registry.yaml").write_text("entries: []\n", encoding="utf-8")
+    monkeypatch.setattr(
+        push_gate,
+        "collect_vg_overview",
+        lambda root: {
+            "vg_overview": {
+                "overall_clean": False,
+                "required_clean": {
+                    "registry_design_coverage": {"clean": True, "finding_count": 0},
+                    "requirement_drift": {
+                        "clean": False,
+                        "finding_count": 2,
+                        "focus": "L6",
+                    },
+                },
+                "pair_status": {
+                    "L6-L7": {
+                        "status": "applicable",
+                        "clean": True,
+                        "reason": "missing=0",
+                    },
+                },
+            },
+            "g7_subcheck": {},
+        },
+    )
+
+    result = push_gate.run_gate_vg_overview(tmp_path)
+
+    assert result["passed"] is False
+    assert "requirement_drift:2" in result["detail"]

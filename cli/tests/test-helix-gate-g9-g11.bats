@@ -49,7 +49,7 @@ YAML
 
   run "$HELIX_ROOT/cli/helix" gate G9 --dry-run --readiness-mode skip
   [ "$status" -eq 0 ]
-  [[ "$output" == *"=== G9: デプロイ検証ゲート ==="* ]]
+  [[ "$output" == *"=== G9: 総合テストゲート ==="* ]]
   [[ "$output" != *"無効なゲート"* ]]
 }
 
