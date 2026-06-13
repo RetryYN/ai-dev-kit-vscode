@@ -67,6 +67,15 @@ artifact_type: design_doc
 | FN-CRREG-03 | `check_coding_rule_alignment(claude_md_path, registry_path)` | CLAUDE.md と registry path が存在 | total count と per-section count drift を `DetectorReport(mode=advisory)` で返す | read-only、3 見出し配下 bullet のみ数える |
 | FN-CRREG-04 | `build_coding_rule_baseline_payload(...)` / `write_coding_rule_baseline(...)` / `main(argv)` | registry / CLAUDE.md path が存在 | fingerprint 付き baseline JSON を deterministic に生成し、CLI は output path を stdout へ返す | 同一入力なら byte-stable、`--emit-baseline` 以外では書き込みを行わない |
 
+### 4.1 Finding vocabulary
+
+governance hardening map へ渡す finding type は以下に固定する。現在フェーズでは warn-only / advisory の設計語彙であり、fail-close 実装や L7 closure ではない。
+
+- `missing_rule`
+- `duplicate_rule`
+- `stale_rule_status`
+- `rule_source_missing`
+
 ## 5. 合格基準
 
 - 14 entry registry が `CLAUDE.md` の 5+5+4 rule と一致する。

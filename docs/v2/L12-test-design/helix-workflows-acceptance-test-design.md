@@ -19,7 +19,7 @@ related_requirements:
 
 ## §1 目的と境界
 
-L3 要件 (FR / BR / NFR 詳細) が L12 で受入可能かを、ユーザー / PO 視点の受入基準で検証する。本 doc は scaffold、受入基準、trace を固定し、実テストコード / 実行 / 環境差異の実吸収は L12 デプロイ受入フェーズで行う。
+L3 要件 (FR / BR / NFR 詳細) が L12 で受入可能かを、ユーザー / PO 視点の受入基準で検証する。本 doc は scaffold、受入基準、trace を固定し、実テストコード / 実行 / 環境差異の実吸収は L12 受入テストフェーズで行う。
 
 - source で確認した L3 実在 ID: `BR-01..12`、`FR-NSM-01`、`FR-GR-01`、`FR-TDD-01`、`FR-9MODE-01`、`FR-GATE-01`、`FR-IMPACT-01`、`FR-EVT-01`、`FR-4ART-01`、`FR-INV-01`、`FR-CTX-01`、`FR-DRIFT-01`、`FR-PLAN-01`、`FR-DOCTOR-01`、`FR-MIGR-01`、`FR-DOCREVIEW-01`、`FR-CHANGEPROP-01`、`FR-FNREG-01`、`FR-GLOSSARY-01`、`NFR-AV-01..03`、`NFR-PF-01..04`、`NFR-OP-01..08`、`NFR-MG-01..04`、`NFR-SC-01..05`、`NFR-SE-01..03`
 - source で確認した既存 AC 参照: `AC-BR-01..12`、`AC-FR-01..14`、`AC-NFR-OP-06`、`AC-NFR-OP-07`、`AC-NFR-OP-08`、`AC-NFR-MG-04`、`AC-NFR-SF-01`

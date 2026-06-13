@@ -56,8 +56,8 @@ HELIX-workflows V2 は CLI / フレームワーク寄りの `drive=be` 系であ
 | L7 | 実装 | `HELIX-workflows/helix-process/L7-implementation.md` |
 | L8 | 結合テスト | `HELIX-workflows/helix-process/L8-integration-test.md` |
 | L9 | 総合テスト | `HELIX-workflows/helix-process/L9-system-test.md` |
-| L12 | デプロイ・受入 | `HELIX-workflows/helix-process/L12-deployment.md` |
-| L14 | 運用検証 | `HELIX-workflows/helix-process/L14-operation-verification.md` |
+| L12 | 受入テスト | `HELIX-workflows/helix-process/L12-deployment.md` |
+| L14 | 運用学習 / 運用改善 | `HELIX-workflows/helix-process/L14-operation-verification.md` |
 
 ### 表2 成果物生成
 
@@ -75,7 +75,7 @@ HELIX-workflows V2 は CLI / フレームワーク寄りの `drive=be` 系であ
 | `docs/plans/L6/L6-helix-workflows-クラス設計plan.md` | `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開して作成される `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` |
 | `docs/plans/L6/L6-helix-workflows-エッジケースplan.md` | `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開して作成される `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` | `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` |
 
-L2 画面設計 plan は `N/A: L2最小・UI対象なし` と明示し、無言削除しない。
+L2 画面設計 plan は `N/A: L2最小・UI対象なし` と明示し、無言削除しない。HELIX-workflows 自身の N/A 証跡は `docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md` と `docs/plans/L2/L2-helix-workflows-ui-absent-waiverplan.md` を正本にする。
 L6 3 PLAN は `docs/v2/L6-functional-design/asset-manifest.yaml` を生成・展開する役割に限定し、548 資産を直書きしない。各 asset design は `docs/v2/L6-functional-design/assets/<asset_kind>/<asset_id>/asset-design.md` に配置し、L7 は対応する `docs/v2/L7-test-design/assets/<asset_kind>/<asset_id>/verification-design.md` を持つ。
 
 ### 表3 V-model pair

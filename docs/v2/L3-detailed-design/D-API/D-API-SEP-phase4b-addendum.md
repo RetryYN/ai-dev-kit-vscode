@@ -208,5 +208,4 @@ _CORRELATION_CONTEXT: contextvars.ContextVar[CorrelationContext | None] = contex
 
 - `docs/v2/L3-detailed-design/D-API/D-API-SEP-draft.md` に対し、A/B/C/D/E を本体実装契約として反映
 - `docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md` の P2 仕様（F）を `contextvars` ベースで更新
-- `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` と
-  `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` の該当 case と参照リンクを更新
+- L6/L5 のテスト設計観点、および承認後に作成する L7/L8 artifact の該当 case と参照リンクを更新

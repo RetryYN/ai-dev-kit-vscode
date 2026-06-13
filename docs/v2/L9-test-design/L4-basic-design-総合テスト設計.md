@@ -139,9 +139,9 @@ standard_basis:
 `trace_symmetry` detector の L4↔L9 実測: coverage 100% / missing_pair 0 / balance_ratio 0.67 / orphan_test 18（全 ST-*）。本節は [verification-strategy §11.5](../L1-requirements/helix-workflows-verification-strategy.md) の `semantic_gate.orphan_assessment` 証跡である。
 
 - **判定: orphan ではない（excluded_with_reason）**。ST-*（シナリオテスト、§5）は各々 TV-*（テスト観点、§4）を verify し、TV-* が本 §7 trace 表で L4 設計項目に紐づく。すなわち **ST-* → TV-* → L4 の 2 段（推移）trace** であり、ST-* は L4 への直接 backlink を持たない設計（シナリオは観点経由で設計に紐づく、というテスト設計の意図）。
-- detector は ST-* の L4 *直* backlink を探すため間接 trace を辿れず orphan 計上するが、これは真の片肺ではない（coverage 100% / missing_pair 0 が forward 完備を示す）。
+- 2026-06-09 Codex で `trace_symmetry` は本節の semantic evidence を読み、ST-* 18件を `semantic_excluded_orphan` として区別する。effective `orphan_test` は 0 であり、これは真の片肺ではない（coverage 100% / missing_pair 0 が forward 完備を示す）。
 - balance_ratio 0.67 はこの 2 段 trace 構造に由来する補助指標であり、verification-strategy §4 により **合否主判定にしない**（dashboard / warning のみ）。
-- **対応**: ST-* への L4 直 backlink は追加しない。detector の ST→TV→L4 推移 trace 解決は Phase3 の fail-close gate 化と同時に実装する（deferred finding DF-WCAUDIT-L4L9-001）。
+- **対応**: ST-* への L4 直 backlink は追加しない。detector の ST→TV→L4 推移 trace over-report は 2026-06-09 Codex で解消済み（DF-WCAUDIT-L4L9-001 detector 側 closure）。残 carry は G9 の ST anchor / 総合テスト実行 gate。
 - **audit_verdict = detector_clean（coverage100 / missing0 / preflight pass、必要条件）AND semantic_pass（orphan は正当な2段 trace、十分条件）= pass**。approvers: TL + PM（tl-advisor 諮問2回 passed）。
 
 ## 8. G4 / G9 合格基準

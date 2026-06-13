@@ -14,7 +14,7 @@ canonical_source: HELIX-workflows/helix-process/L3-requirements-definition.md
 ## 入力
 
 - L1 業務要求 (必須)
-- L2 画面設計 + state-events (UI 案件、必須)
+- L2 画面要求 / 画面設計 + state-events (UI 案件、必須)
 - skill: `workflow/requirements-deriver` / `workflow/api-contract` (方針) / `agent-skills/spec-driven-development`
 
 ## 進め方
@@ -40,7 +40,7 @@ canonical_source: HELIX-workflows/helix-process/L3-requirements-definition.md
 
 ## ペア凍結相手
 
-L12 デプロイ + 受入テスト
+L12 受入テスト
 
 ## ゲート
 
@@ -70,9 +70,9 @@ L12 デプロイ + 受入テスト
 | 項目 | 内容 |
 |---|---|
 | 区分 | V字 左腕（設計フェーズ） |
-| 入力 | L1 要求定義・L2 画面設計 |
+| 入力 | L1 要求定義・L2 画面要求 / 画面設計 |
 | 出力 | L4 基本設計 への入力 |
-| ペアとなるテスト設計 | 受け入れテスト設計（右腕 L12 受入テストで実行） |
+| ペアとなるテスト設計 | 受入テスト設計（右腕 L12 受入テストで実行） |
 
 ### この工程の PLAN (HELIX-workflows 正本)
 
@@ -95,4 +95,3 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

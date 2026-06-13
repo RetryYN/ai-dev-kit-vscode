@@ -630,16 +630,16 @@ Phase 4 実装で確定・実施する事項:
 | artifact | 本文書との関係 |
 |---|---|
 | **① 設計** (本文書) | D-API-SEP-draft-v0.1。L3 詳細設計 / 結合テスト設計レイヤー (L3 機能設計 → 単体テスト設計も含む) |
-| **② 実装コード** | `cli/lib/compatibility_adapter.py` (Phase 4.A 新規起票) |
-| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER-001〜015、Phase 3.4 起票済、commit ff04129) + `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §6 (I-SMOKE、top-level CLI smoke) |
-| **④ テストコード** | `cli/lib/tests/test_compatibility_adapter.py` (Phase 4.A) + `cli/tests/db_separation_smoke.bats` (Phase 4.A) |
+| **② 実装コード** | `cli/lib/compatibility_adapter.py` (L7 実装 carry) |
+| **③ テスト設計** | L6 単体テスト設計観点 / L5 結合テスト設計観点として保持。L7/L8 artifact は add-feature 承認後に作成 |
+| **④ テストコード** | `cli/lib/tests/test_compatibility_adapter.py` (L7) + `cli/tests/db_separation_smoke.bats` (L8) |
 
 **双方向 trace**:
 
-- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER-001〜015) + `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §6 (I-SMOKE-001〜006) (Phase 3.4 起票済、commit ff04129)
+- **本 doc → ③ テスト設計**: 現在フェーズでは L6/L5 のテスト設計観点として保持し、L7/L8 artifact は add-feature 承認後に作成する
 - **本 doc → ② 実装コード**: `cli/lib/dual_write_connection.py` (`_DualWriteConnection` 本体) + `cli/lib/compatibility_adapter.py` (write_connection routing)
-- **③ テスト設計 → 本 doc**: PLAN-084-unit-test-design.md frontmatter `related_designs` に「D-API-SEP-draft-v0.1」明示済
-- **④ テストコード → ③ テスト設計**: テスト docstring に「DoD 検証: PLAN-084-unit-test-design.md U-ADAPTER-XXX / PLAN-084-integration-test-design.md I-SMOKE-XXX」を明示 (Phase 4.A)
+- **③ テスト設計 → 本 doc**: L7/L8 artifact 作成時に frontmatter `related_designs` で「D-API-SEP-draft-v0.1」を明示する
+- **④ テストコード → ③ テスト設計**: L7/L8 着手時に test docstring へ DoD 検証 ID を明示する
 - **本 doc ⇔ D-DB-SEP-draft**: 本 doc §5 (ATTACH allowlist) は D-DB-SEP §5.2 と同期。scrum.db routing は D-DB-SEP §2.3 の entity ownership に準拠。backend.db routing は D-DB-SEP §2.5 に準拠
 
 ---

@@ -31,6 +31,16 @@ canonical_source: HELIX-workflows/helix-process/L6-functional-design.md
 - 業界 standard: IEEE 829 § TCS / ISO 29119-3 clause 9.2 TestCaseSpecification
 - case 構造: precondition / input / expected output / postcondition
 
+#### Current-scope boundary: L6 内の単体テスト設計観点
+
+L7 実装が明示承認されていない監査・設計補正では、L7 test-design artifact を新規作成しない。この場合、L6 仕様内に `*-UT-CAND-*` として単体テスト設計観点を固定し、L6 索引で集約する。
+
+- FR18 の L6 仕様: `docs/v2/L6-functional-design/FR-*/function-spec.md`
+- FR18 の L6 単体テスト設計観点索引: `docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml`
+- 現在値: FR18 全件、L6 単体テスト設計観点 128 件
+
+この索引は L6 の単体テスト設計観点を示す証跡であり、L7 の単体テスト設計成果物、単体テスト実装、単体テスト実施、カバレッジ確認 / closure ではない。L7 へ進む場合は add-feature 承認後に、対応する L7 test-design artifact とテスト実装を別途作成する。
+
 ### Step 3: 工程表 (WBS) 作成
 - L6 機能設計から L7 実装スプリントへの WBS を作る
 - 各 WBS item = 1 L7 PLAN に対応
@@ -42,7 +52,8 @@ canonical_source: HELIX-workflows/helix-process/L6-functional-design.md
 
 - **正本**: `docs/v2/L6-functional-design/FR-XXX/<feature>/<function>.md` (関数 / 機能単位)
 - **ペア artifact**: `docs/v2/L7-test-design/<feature>-unit-test-design.md`
-- **工程表**: `docs/v2/L6-function-design/schedule/<area>-wbs.md` or `.helix/task-plan.yaml`
+- **L6 内単体テスト設計観点索引**: `docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml` (L7 未承認範囲での `*-UT-CAND-*` 集約)
+- **工程表**: `docs/v2/L6-functional-design/schedule/<area>-wbs.md` or `.helix/task-plan.yaml`
 
 ## ペア凍結相手
 
@@ -62,6 +73,7 @@ L7 実装スプリント (本工程の単体テスト設計を L7 で実装 + �
 ## アンチパターン
 
 - ❌ 単体テスト設計のペア凍結を skip (V-model 違反、L7 で TDD 着手できない)
+- ❌ L6 内の `*-UT-CAND-*` 索引を L7 実装完了・coverage closure として扱う (証跡の階層違反)
 - ❌ WBS なしで L7 PLAN 起票に進む (Sprint 順序 / 並列衝突判定不能)
 - ❌ 関数 signature を曖昧にして L7 に渡す (L7 で 3 点レビューが機能しない)
 

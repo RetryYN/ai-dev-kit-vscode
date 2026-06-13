@@ -1,6 +1,6 @@
 ---
 doc_id: process-L10
-title: "L10 フロント UX・ビジネスデザイン磨き上げ"
+title: "L10 フロントUX / 業務デザイン磨き上げ"
 status: maintained
 created: 2026-05-24
 owner: PM
@@ -9,15 +9,15 @@ pairs_with: L2
 canonical_source: HELIX-workflows/helix-process/L10-ux-refinement.md
 ---
 
-# L10 フロント UX・ビジネスデザイン磨き上げ
+# L10 フロントUX / 業務デザイン磨き上げ
 
 ## 入力
 
-- L2 画面設計 + mock + state-events (必須、UI 案件)
+- L2 画面要求 / 画面設計 + mock + state-events (必須、UI 案件)
 - L9 総合テスト完遂物 (機能は動く前提)
 - L2 carry note (磨き上げ余地)
 - skill: `common/visual-design` / `design-tools/web-system` / `writing/god-writing` / `agent-skills/frontend-ui-engineering`
-- **工程専門 workflow (FE 弱点補強)**: [frontend-design-workflow.md](../../../HELIX-workflows/helix-process/frontend-design-workflow.md) — ビジュアル → デザインシステム/トークン → a11y → ビジュアル回帰 → UX 磨き → ビジネスデザイン磨き。補強する FE detector = `design-token-drift` / `a11y-regression` / `visual-regression`
+- **工程専門 workflow (FE 弱点補強)**: [frontend-design-workflow.md](../../../HELIX-workflows/helix-process/frontend-design-workflow.md) — ビジュアル → デザインシステム/トークン → a11y → ビジュアル回帰 → UX 磨き → 業務デザイン磨き。補強する FE detector = `design-token-drift` / `a11y-regression` / `visual-regression`
 
 ## 進め方
 
@@ -25,7 +25,7 @@ canonical_source: HELIX-workflows/helix-process/L10-ux-refinement.md
 - L2 mock と実装後 UI を比較、UX gap を抽出
 - DESIGNER.md 9 セクション (情報 / レイアウト / UX / モーション / a11y / データ viz / 等) で評価
 
-### Step 2: コピー磨き + ビジネスデザイン
+### Step 2: コピー磨き + 業務デザイン
 - LP / オンボーディング / エラーメッセージのコピー磨き上げ (skill: `writing/god-writing`)
 - 心理 trigger (emotional / social proof / urgency / trust) を意識
 
@@ -42,7 +42,7 @@ canonical_source: HELIX-workflows/helix-process/L10-ux-refinement.md
 
 ## ペア凍結相手 (上流対応)
 
-L2 画面設計
+L2 画面要求 / 画面設計
 
 ## ゲート
 
@@ -75,9 +75,9 @@ L2 画面設計
 | 項目 | 内容 |
 |---|---|
 | 区分 | V字 右腕（検証フェーズ） |
-| 入力 | L9 総合テスト・L2 画面設計 |
+| 入力 | L9 総合テスト・L2 画面要求 / 画面設計 |
 | 出力 | L11 への入力 |
-| 対応する設計 | L2 画面設計・フロントUI / ワイヤーモック |
+| 対応する設計 | L2 画面要求 / 画面設計 / フロントUI / ワイヤーモック |
 
 ### この工程の PLAN (HELIX-workflows 正本)
 
@@ -87,8 +87,8 @@ PLAN は機能（ドキュメント）単位で起票し、工程表（作成手
 - UI / UX 改善
 - 操作性向上
 
-### `L10-ビジネスデザインplan`
-- ビジネス価値の磨き上げ
+### `L10-業務デザインplan`
+- 業務価値の磨き上げ
 
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗

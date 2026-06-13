@@ -188,7 +188,7 @@ ADR-018 の「event log は保持、新 projection は drop」は本 module で�
 本文書は既存 `PLAN-084-integration-test-design.md` §2.5 `I-MIGRATION-012` と接続する。
 
 - 本文書 → ③ テスト設計:
-  `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §2.5 `I-MIGRATION-012`
+  現在フェーズでは L5 結合テスト設計観点として保持し、L8 artifact は add-feature 承認後に作成する
 - ④ テストコード:
   本 sprint は unit のみ実装し、integration / runbook は Phase 4.C.4 carry
 

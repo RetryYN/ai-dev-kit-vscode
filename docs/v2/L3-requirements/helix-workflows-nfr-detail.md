@@ -17,7 +17,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 
 > **本 doc の位置づけ**: L1 [`helix-workflows-nfr.md`](../L1-requirements/helix-workflows-nfr.md) の NFR-AV/PF/OP/MG/SC/SE 計 23 件 + **L3 拡張 4 件** (BR-09〜12 由来: NFR-OP-06/07/08 + NFR-MG-04、2026-05-26 追加) = **計 27 件** を、L3 で **IPA 非機能要求グレード値 (レベル 0-5)** と数値 target まで固定した正本。L12 受入テスト設計の NFR 系 AC-NFR-* と V-model **L3↔L12 pair freeze** を成立させる。
 >
-> **確定ルール**: 本 doc の「レベル」は HELIX-workflows 用に採用する L3 の確定値であり、L4 ではその達成方法 (監視・実装方式・集計経路) を凍結する。L12 は初期受入、L13 は安定性、L14 は運用検証を担当する。
+> **確定ルール**: 本 doc の「レベル」は HELIX-workflows 用に採用する L3 の確定値であり、L4 ではその達成方法 (監視・実装方式・集計経路) を凍結する。L12 は初期受入、L13 は運用検証 / 運用テスト、L14 は運用学習 / 運用改善を担当する。
 
 > **SSoT 参照** (2026-05-26 doc-system-architect retrofit): ユビキタス言語 = [L0 §12 Glossary](../L0-helix-workflows/concept.md) / 業界標準整合 = §13 / Bounded Context = §14。本 doc は L0 §12-§14 を parent_doc reference とし、用語独自定義は行わない (anti-corruption layer)。
 
@@ -123,7 +123,7 @@ pair_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 | 循環 | L7-L9 carry | cross-mode / cross-PLAN knowledge 流通は未凍結 | event / trace 実装 |
 | 消化 | L7-L9 carry | 外部 OSS → 体内化 pipeline は未凍結 | intake flow / integration test |
 | 性差 | L7-L9 carry | multi-model 組換え戦略は role routing carry | L7 routing / L9 compatibility |
-| 多細胞化 | L13-L14 carry | team scaling は運用段階で扱う | L13 安定性 / L14 運用検証 |
+| 多細胞化 | L13-L14 carry | team scaling は運用段階で扱う | L13 運用安定性 / L14 運用学習・運用改善 |
 | 神経変性 | L13-L14 carry | AI 役 / hook 劣化検知は運用監視で扱う | degradation detection / runbook |
 
 ## §9 関連 doc

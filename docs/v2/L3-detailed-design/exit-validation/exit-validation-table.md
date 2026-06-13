@@ -3,6 +3,11 @@ doc_id: exit-validation-table-v0.1
 plan_id: PLAN-070
 sprint: SprintD / .4
 status: draft
+legacy_reference: true
+current_l0_l14_scope: PLAN-070 historical exit validation only; not current L1-L6 gate terminology source
+superseded_by:
+  - HELIX-workflows/HELIX-process-L0-L14.md
+  - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
 created: 2026-05-16
 cross_check_targets:
   - docs/v2/L3-detailed-design/D-API/D-API-draft.md
@@ -19,6 +24,8 @@ cross_check_targets:
 ---
 
 # PLAN-070 SprintD / .4 必須 exit 集約検証表
+
+> **LEGACY REFERENCE**: 本書は PLAN-070 当時の exit validation 履歴資料であり、現行 L0-L14 の工程語・gate 判断の正本ではない。本文中の `L4 implementation` / `L4 Sprint` などの旧語は履歴上の carry 先を示すために残す。現行の L1-L6 判断は L0-L14 正本と 2026-06-12 L1-L6 監査 bundle を参照する。
 
 ## §1 目的とスコープ
 

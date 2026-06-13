@@ -468,7 +468,7 @@ def _create_append_only_trigger(
 ## §9 carry / open questions
 
 - `session_telemetry` に `cost_currency` を追加するかは別途検討
-- `cli/lib/helix_db.py` への migration 実装は L4 実装で扱う
+- `cli/lib/helix_db.py` への migration 実装は L7 実装で扱う（現在フェーズでは設計上の carry として保持）
 - `v_automation_recent_runs` の LIMIT 付き派生 view は実装時に調整する
 - 統合判断 ADR 起票は SprintD で確定する
 
@@ -600,9 +600,9 @@ running ──┬─→ completed (正常終了、exit_code=0)
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
 | ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §10 agent_slots |
-| ② 実装コード | L4 実装 | `cli/lib/agent_slots.py` + `cli/helix-agent` + `cli/helix-codex` 統合 |
-| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-078-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-078-integration-test-design.md` |
-| ④ テストコード | L4 実装 | `cli/lib/tests/test_agent_slots*.py` |
+| ② 実装コード | L7 実装 | `cli/lib/agent_slots.py` + `cli/helix-agent` + `cli/helix-codex` 統合 |
+| ③ テスト設計 | L6 機能設計 / 単体テスト設計観点 | L7 artifact は add-feature 承認後に作成。本稿では L6 観点までを保持 |
+| ④ テストコード | L7 実装 | `cli/lib/tests/test_agent_slots*.py` |
 
 ### 10.9 migration 手順
 
@@ -675,7 +675,7 @@ migration ID は v28 → v29 であり、`agent_slots` の次段として追加�
 ```sql
 CREATE TABLE IF NOT EXISTS scrum_local_loops (
     loop_id              TEXT PRIMARY KEY,           -- H-LOCAL-XXX
-    forward_layer        TEXT NOT NULL,              -- L1-L11
+    forward_layer        TEXT NOT NULL,              -- L0-L14
     forward_plan_id      TEXT,                       -- 親 Forward PLAN
     hypothesis           TEXT NOT NULL,
     acceptance           TEXT NOT NULL,
@@ -768,9 +768,9 @@ S0 (init) ─→ S1 (poc) ─→ S2 (verify) ─→ S3 (decide)
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
 | ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §11 scrum_local_loops |
-| ② 実装コード | L4 実装 | `cli/lib/scrum_local.py` + `cli/helix-scrum` (local subcommand 追加) |
-| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-079-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-079-integration-test-design.md` |
-| ④ テストコード | L4 実装 | `cli/lib/tests/test_scrum_local*.py` + `tests/helix-scrum-local.bats` |
+| ② 実装コード | L7 実装 | `cli/lib/scrum_local.py` + `cli/helix-scrum` (local subcommand 追加) |
+| ③ テスト設計 | L6 機能設計 / 単体テスト設計観点 | L7 artifact は add-feature 承認後に作成。本稿では L6 観点までを保持 |
+| ④ テストコード | L7 実装 | `cli/lib/tests/test_scrum_local*.py` + `tests/helix-scrum-local.bats` |
 
 ## §12 reverse_local_loops テーブル定義（v29）
 
@@ -869,9 +869,9 @@ R0 (init) ─→ R1 (evidence) ─→ R2 (contracts) ─→ R3 (design) ─→ R
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
 | ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §12 reverse_local_loops |
-| ② 実装コード | L4 実装 | `cli/lib/reverse_local.py` + `cli/helix-reverse` (from-scrum / local subcommand 追加) |
-| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-079-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-079-integration-test-design.md` |
-| ④ テストコード | L4 実装 | `cli/lib/tests/test_reverse_local*.py` |
+| ② 実装コード | L7 実装 | `cli/lib/reverse_local.py` + `cli/helix-reverse` (from-scrum / local subcommand 追加) |
+| ③ テスト設計 | L6 機能設計 / 単体テスト設計観点 | L7 artifact は add-feature 承認後に作成。本稿では L6 観点までを保持 |
+| ④ テストコード | L7 実装 | `cli/lib/tests/test_reverse_local*.py` |
 
 ## §13 harness_check_events テーブル定義（v30）
 
@@ -982,6 +982,6 @@ event record (pull/push/audit) ─→ append-only persist ─→ severity 分類
 | Artifact | 担当層 | 想定パス |
 |---|---|---|
 | ① 設計 | L3 詳細設計 | `docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md` §13 harness_check_events |
-| ② 実装コード | L4 実装 | `cli/lib/harness_monitor.py` + `cli/helix-harness` (status subcommand 追加) + `.claude/hooks/pretooluse-codex-slot-check.sh` + `.claude/hooks/sessionstart-harness-summary.sh` |
-| ③ テスト設計 | L4 設計 | `docs/v2/L4-test-design/PLAN-080-unit-test-design.md` / `docs/v2/L4-test-design/PLAN-080-integration-test-design.md` |
-| ④ テストコード | L4 実装 | `cli/lib/tests/test_harness_monitor*.py` + `tests/harness-hooks.bats` |
+| ② 実装コード | L7 実装 | `cli/lib/harness_monitor.py` + `cli/helix-harness` (status subcommand 追加) + `.claude/hooks/pretooluse-codex-slot-check.sh` + `.claude/hooks/sessionstart-harness-summary.sh` |
+| ③ テスト設計 | L6 機能設計 / 単体テスト設計観点 | L7 artifact は add-feature 承認後に作成。本稿では L6 観点までを保持 |
+| ④ テストコード | L7 実装 | `cli/lib/tests/test_harness_monitor*.py` + `tests/harness-hooks.bats` |

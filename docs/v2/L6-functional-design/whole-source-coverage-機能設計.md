@@ -77,6 +77,8 @@
 
 ## §D. 合格基準（G6 → L7）
 
+この章は whole-source coverage の L6↔L7 ペア条件を記録するものであり、現在の L1-L6 監査で新規 L7 作業を許可するものではない。新規 L7 実装、単体テスト設計成果物、単体テスト実施、coverage closure へ進む場合は、別途承認済み add-feature / PLAN を入口にする。
+
 - 54 FN-WSC-* が L7 UT-WSC-* と 1:1（trace_symmetry L6↔L7 balance≥1.0 / coverage100% / orphan0 / missing0 維持）。
 - 各 FN の invariant（特に hook の fail-close/fail-open 方向、lib guard の fail-close）が UT で反証されること。
 - 実装は既存 module（実体あり=Reverse 由来）。テスト未整備 module は L7 §未整備一覧で carry（FN/UT 設計は完備）。

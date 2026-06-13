@@ -1,6 +1,6 @@
 ---
 doc_id: process-overview
-title: "HELIX V2 工程定義 — L0 企画 → L14 運用検証 (15 工程)"
+title: "HELIX V2 工程定義 — L0 企画 → L14 運用学習 / 運用改善 (15 工程)"
 status: maintained
 created: 2026-05-24
 updated: 2026-05-24
@@ -24,15 +24,15 @@ note: "正本は repo root の HELIX-workflows/ ディレクトリ。本 doc は
                                                        L0 企画書
                                                           │
 [左腕：設計＋テスト設計ペア凍結]              [右腕：検証・運用]
-  L1 要求定義 / 運用テスト設計  ───────────────  L14 運用検証 / 機能改善
-   L2 画面設計・フロントUI / ワイヤーモック作成 ──  L10 フロントUX・ビジネスデザイン磨き上げ
-    L3 要件定義 / 受け入れテスト設計 ────────────  L12 デプロイ / 受入テスト / 環境差異巻き取り
+  L1 要求定義 / 運用テスト設計  ───────────────  L14 運用学習 / 運用改善
+   L2 画面要求 / 画面設計 / フロントUI / ワイヤーモック作成 ──  L10 フロントUX / 業務デザイン磨き上げ
+    L3 要件定義 / 受入テスト設計 ────────────  L12 受入テスト
      L4 基本設計 / 総合テスト設計 ──────────────  L9 総合テスト / 依存関係解消
       L5 詳細設計 / 結合テスト設計 ─────────────  L8 結合テスト / 依存関係解消
        L6 機能設計 / 単体テスト設計 ───────────  （単体テストは L7 内で実施）
                           \                    /
                        [谷] L7 テスト実装 → 本体実装 → 3点レビュー
-                            → テストパターン追加 → テスト実施 → 修正 / 実装完了
+                            → テストパターン追加 → テスト実施 → カバレッジ確認 / closure → 修正 / 実装完了
 ```
 
 ## 工程一覧 (L0-L14) + V-model ペア対応
@@ -41,19 +41,19 @@ note: "正本は repo root の HELIX-workflows/ ディレクトリ。本 doc は
 |---|---|---|---|---|
 | **L0** | 起点 | 企画書 | — | (L11 最終突合) |
 | **L1** | 左腕 | 要求定義 | 運用テスト設計 | **↔ L14** |
-| **L2** | 左腕 | 画面設計・フロントUI | ワイヤーモック作成 | **↔ L10** |
-| **L3** | 左腕 | 要件定義 | 受け入れテスト設計 | **↔ L12** |
-| **L4** | 左腕 | 基本設計 (外部設計) | 総合テスト設計 | **↔ L9** |
-| **L5** | 左腕 | 詳細設計 (内部設計) | 結合テスト設計 | **↔ L8** |
-| **L6** | 左腕 | 機能設計 | 単体テスト設計 | **↔ L7 内 単体テスト** |
-| **L7** | 谷 | テスト実装 → 本体実装 → 3 点レビュー → テスト追加 → テスト実施 → 修正/完了 | (単体テスト実行を内包) | (上位概念) |
+| **L2** | 左腕 | 画面要求 / 画面設計 / フロントUI | ワイヤーモック作成 | **↔ L10** |
+| **L3** | 左腕 | 要件定義 | 受入テスト設計 | **↔ L12** |
+| **L4** | 左腕 | 基本設計 / 外部設計 | 総合テスト設計 | **↔ L9** |
+| **L5** | 左腕 | 詳細設計 / 内部設計 | 結合テスト設計 | **↔ L8** |
+| **L6** | 左腕 | 機能設計 / 仕様書 | 単体テスト設計 | **↔ L7 内 単体テスト** |
+| **L7** | 谷 | テスト実装 → 本体実装 → 3 点レビュー → テスト追加 → テスト実施 → カバレッジ確認 / closure → 修正/完了 | (単体テスト実行を内包) | (上位概念) |
 | **L8** | 右腕 | 結合テスト | 依存関係解消 | (L5 設計を実行) |
 | **L9** | 右腕 | 総合テスト | 依存関係解消 | (L4 設計を実行) |
-| **L10** | 右腕 | フロントデザインUX・ビジネスデザイン磨き上げ | — | (L2 ワイヤーモック磨き) |
+| **L10** | 右腕 | フロントUX / 業務デザイン磨き上げ | — | (L2 ワイヤーモック磨き) |
 | **L11** | 右腕 | 総合レビュー | ユーザー検証 / 要件巻き取り | (L1/L3 最終突合) |
-| **L12** | 右腕 | デプロイ | 受入テスト / 環境差異巻き取り | (L3 設計を実行) |
-| **L13** | 右腕 | デプロイ後検証 | 実環境運用 | — |
-| **L14** | 右腕 | 運用検証 | 機能改善 | (L1 設計を実行、次サイクル L0 フィードバック) |
+| **L12** | 右腕 | 受入テスト | L3 の検証 | (L3 設計を実行) |
+| **L13** | 右腕 | 運用検証 | 運用テスト | — |
+| **L14** | 右腕 | 運用学習 | 運用改善 | (L1 設計を実行、次サイクル L0 フィードバック) |
 
 ## PLAN の位置づけ (重要訂正、2026-05-24)
 
@@ -129,9 +129,9 @@ docs/plans/
 | **L9** | `L9-総合テストplan` / `L9-依存関係解消plan` |
 | **L10** | `L10-UX磨き上げplan` / `L10-ビジネスデザインplan` |
 | **L11** | `L11-総合レビューplan` / `L11-ユーザー検証plan` / `L11-要件巻き取りplan` |
-| **L12** | `L12-デプロイplan` / `L12-受入テストplan` / `L12-環境差異plan` |
-| **L13** | `L13-デプロイ後検証plan` / `L13-実環境運用plan` |
-| **L14** | `L14-運用検証plan` / `L14-機能改善plan` |
+| **L12** | `L12-受入テストplan` |
+| **L13** | `L13-運用検証plan` / `L13-運用テストplan` |
+| **L14** | `L14-運用学習plan` / `L14-運用改善plan` |
 
 各 PLAN の記載項目は HELIX-workflows 配下の工程別 doc を正本とする (本 doc の §工程ごとの process doc を参照)。
 
@@ -167,9 +167,15 @@ PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 
 | L9 総合テスト | [L09-system-testing.md](L09-system-testing.md) | [L9-system-test.md](../../../HELIX-workflows/helix-process/L9-system-test.md) | L4 |
 | L10 フロント UX 磨き上げ | [L10-frontend-ux-polish.md](L10-frontend-ux-polish.md) | [L10-ux-refinement.md](../../../HELIX-workflows/helix-process/L10-ux-refinement.md) | L2 |
 | L11 総合レビュー + ユーザー検証 | [L11-review-and-user-validation.md](L11-review-and-user-validation.md) | [L11-final-review.md](../../../HELIX-workflows/helix-process/L11-final-review.md) | L1/L3 最終突合 |
-| L12 デプロイ + 受入テスト | [L12-deployment-and-acceptance-test.md](L12-deployment-and-acceptance-test.md) | [L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md) | L3 |
-| L13 デプロイ後検証 + 実環境運用 | [L13-post-deployment-verification.md](L13-post-deployment-verification.md) | [L13-post-deployment-verification.md](../../../HELIX-workflows/helix-process/L13-post-deployment-verification.md) | — |
-| L14 運用検証 + 機能改善 | [L14-operations-and-improvement.md](L14-operations-and-improvement.md) | [L14-operation-verification.md](../../../HELIX-workflows/helix-process/L14-operation-verification.md) | L1 |
+| L12 受入テスト | [L12-deployment-and-acceptance-test.md](L12-deployment-and-acceptance-test.md) | [L12-deployment.md](../../../HELIX-workflows/helix-process/L12-deployment.md) | L3 |
+| L13 運用検証 / 運用テスト | [L13-post-deployment-verification.md](L13-post-deployment-verification.md) | [L13-post-deployment-verification.md](../../../HELIX-workflows/helix-process/L13-post-deployment-verification.md) | — |
+| L14 運用学習 / 運用改善 | [L14-operations-and-improvement.md](L14-operations-and-improvement.md) | [L14-operation-verification.md](../../../HELIX-workflows/helix-process/L14-operation-verification.md) | L1 |
+
+### L6 current-scope index
+
+L7 実装が未承認の監査・設計補正では、L6 の `*-UT-CAND-*` 単体テスト設計観点を [fr18-unit-test-design-index.yaml](../L6-functional-design/fr18-unit-test-design-index.yaml) に集約する。現在値は FR18 全件、L6 単体テスト設計観点 128 件である。
+
+この索引は L6 の設計証跡であり、L7 単体テスト設計成果物、単体テスト実装、単体テスト実施、カバレッジ確認 / closure ではない。
 
 ## 既存資産との関係 (移行)
 
@@ -180,14 +186,14 @@ PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 
 | L1 要件定義 | **L1** 要求定義 + **L3** 要件定義 に分割 | 業務要求 ↔ システム要件で 2 段階 |
 | L2 全体設計 | **L4** 基本設計 | (L2 は画面設計に再割当) |
 | L3 詳細設計 | **L5** 詳細設計 + **L6** 機能設計 に分割 | 詳細 ↔ 機能で 2 段階 |
-| L4 実装 | **L7** 実装スプリント | 3 点レビュー (設計⇔テスト⇔実装) 構造を追加 |
-| L5 Visual Refinement | **L2** 画面設計 (前段) + **L10** UX 磨き (後段) | 画面設計を上流に、磨きを下流に分割 |
-| L6 統合検証 | **L8** 結合テスト + **L9** 総合テスト + **L11** レビュー に分割 | 検証粒度で 3 段階 |
-| L7 デプロイ | **L12** デプロイ | — |
-| L8 受入 | **L12** 受入テスト | (L12 でデプロイと統合) |
-| L9 デプロイ検証 | **L13** デプロイ後検証 | — |
-| L10 観測 | **L13/L14** に統合 | — |
-| L11 運用学習 | **L14** 運用検証 + 機能改善 | — |
+| 旧 L4 (Build) | **L7** 実装スプリント | 3 点レビュー (設計⇔テスト⇔実装) 構造を追加 |
+| 旧 L5 (Visual) | **L2** 画面設計 (前段) + **L10** フロントUX / 業務デザイン磨き上げ (後段) | 画面設計を上流に、磨きを下流に分割 |
+| 旧 L6 (Integration) | **L8** 結合テスト + **L9** 総合テスト + **L11** レビュー に分割 | 検証粒度で 3 段階 |
+| 旧 L7 (Release) | **L12** 受入テスト + **L13** 運用検証 / 運用テスト | 受入判定と運用検証を分離 |
+| 旧 L8 (Acceptance) | **L12** 受入テスト | L3 要件定義と pair |
+| 旧 L9 (Post-release verification) | **L13** 運用検証 / 運用テスト | — |
+| 旧 L10 (Observation) | **L13/L14** に統合 | — |
+| 旧 L11 (Operations learning) | **L14** 運用学習 / 運用改善 | — |
 
 ### 既存設計 doc / PLAN の扱い — 参考扱いで隔離、書き直しで V2 製本
 
@@ -195,7 +201,7 @@ PLAN.md 本文は **工程表 (作業手順 + 進捗) + 実装計画**。背景 
 
 - `docs/v2/L1-REQUIREMENTS.md` → 参考保持。製本したい部分は新 `docs/v2/L1-requirements/` + 新 `docs/v2/L3-requirements-definition/` で書き直し (carry)
 - `docs/v2/L2-MASTER.md` → 参考保持。製本したい部分は新 `docs/v2/L4-basic-design/` で書き直し (carry)
-- `docs/v2/L3-detailed-design/{D-API,D-DB,D-CONTRACT}/` → 参考保持。製本は新 `docs/v2/L5-detailed-design/` + 新 `docs/v2/L6-function-design/` で書き直し (carry)
+- `docs/v2/L3-detailed-design/{D-API,D-DB,D-CONTRACT}/` → 参考保持。製本は新 `docs/v2/L5-detailed-design/` + 新 `docs/v2/L6-functional-design/` で書き直し (carry)
 - `docs/v2/L4-test-design/` → 参考保持。製本は新 `docs/v2/L<NN>-test-design/` (NN=7,8,9,12,14) に分散書き直し (carry)
 - 既存 PLAN-001〜PLAN-225 → **参考扱い、製本にしない**。`docs/plans/legacy/` 隔離 or `is_reference: true` marking (carry)
 

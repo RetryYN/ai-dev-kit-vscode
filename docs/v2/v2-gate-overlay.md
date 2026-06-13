@@ -1,8 +1,23 @@
+---
+doc_id: V2-GATE-OVERLAY
+status: deprecated_reference
+legacy_reference: true
+created: 2026-05-14
+deprecated_on: 2026-06-13
+superseded_by:
+  - HELIX-workflows/HELIX-process-L0-L14.md
+  - HELIX-workflows/helix-process/automation-gate-map.md
+  - skills/tools/ai-coding/references/gate-policy.md
+current_l0_l14_scope: historical_overlay_only_not_current_gate_contract
+---
+
 # V2 Gate Overlay（docs-integrity P1 対応）
+
+> **LEGACY REFERENCE**: 本書は旧 V1/V2 gate overlay の履歴資料であり、現行 L0-L14 の工程・gate 正本ではない。本文中の `G4 実装凍結` などの旧工程語は履歴引用としてのみ残す。現行判断は `HELIX-workflows/HELIX-process-L0-L14.md`、`HELIX-workflows/helix-process/automation-gate-map.md`、`skills/tools/ai-coding/references/gate-policy.md` を正とする。
 
 作成日: 2026-05-14  
 対象: docs/v2/L1-REQUIREMENTS.md §3.8 / skills/tools/ai-coding/references/gate-policy.md / skills/SKILL_MAP.md / docs/v2/A-audit/docs-integrity-audit.md  
-ステータス: 起票専用（既存正本は変更しない）
+ステータス: deprecated reference（現行正本ではない）
 
 ## 0. 目的と適用範囲
 

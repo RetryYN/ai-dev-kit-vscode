@@ -1,6 +1,6 @@
 ---
 doc_id: process-L14
-title: "L14 運用検証 + 機能改善"
+title: "L14 運用学習 / 運用改善"
 status: maintained
 created: 2026-05-24
 owner: PM
@@ -9,11 +9,11 @@ pairs_with: L1
 canonical_source: HELIX-workflows/helix-process/L14-operation-verification.md
 ---
 
-# L14 運用検証 + 機能改善
+# L14 運用学習 / 運用改善
 
 ## 入力
 
-- L13 デプロイ後検証完遂物
+- L13 運用検証 / 運用テスト完遂物
 - L1 業務要求 + L14 運用テスト設計 (L1 でペア凍結済)
 - 運用 KPI (SLO / SLI / 業務指標)
 - skill: `workflow/observability-sre` / `workflow/postmortem` / `advanced/innovation-mgr`
@@ -28,7 +28,7 @@ canonical_source: HELIX-workflows/helix-process/L14-operation-verification.md
 - SLO / SLI / 業務指標を継続観測
 - 想定 KPI と実測の gap を分析
 
-### Step 3: 機能改善 (次イテレーション input)
+### Step 3: 運用改善 (次イテレーション input)
 - 運用フィードバック → L1 業務要求の追加 / 修正
 - 次イテレーションの L0 企画書 input になる
 
@@ -41,7 +41,7 @@ canonical_source: HELIX-workflows/helix-process/L14-operation-verification.md
 
 - **運用テスト結果**: `docs/v2/L14-test-results/<area>-operational-test-result.md`
 - **運用 KPI 記録**: `docs/v2/L14-operations/<area>-kpi-log.md`
-- **機能改善 pull-back**: L1 業務要求 追記 / 次イテレーション L0 企画書 input
+- **運用改善 pull-back**: L1 業務要求 追記 / 次イテレーション L0 企画書 input
 - **postmortem アーカイブ**: `docs/v2/L14-postmortems/`
 
 ## ペア凍結相手 (上流対応)
@@ -87,15 +87,14 @@ L1 要求定義 (L1 でペア凍結された運用テストを本工程で実施
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
-### `L14-運用検証plan`
-- 運用 KPI 検証
-- SLA 確認
+### `L14-運用学習plan`
+- 運用 KPI 学習
+- SLA / SLO 結果の学習
 
-### `L14-機能改善plan`
+### `L14-運用改善plan`
 - 改善要望の収集
 - 次サイクルへのフィードバック
 
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

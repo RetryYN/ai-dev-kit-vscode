@@ -13,7 +13,7 @@ canonical_source: HELIX-workflows/helix-process/L7-implementation.md
 
 ## 入力 (必須)
 
-- L6 機能設計 doc (`docs/v2/L6-function-design/<feature>/<function>.md`)
+- L6 機能設計 doc (`docs/v2/L6-functional-design/<feature>/<function>.md`)
 - L7 単体テスト設計 doc (`docs/v2/L7-test-design/<feature>-unit-test-design.md`、L6 でペア凍結済)
 - 工程表 / WBS
 - skill: `common/coding` / `common/testing` / `common/code-review` / `agent-skills/test-driven-development` / `agent-skills/incremental-implementation` / `tools/ai-coding`
@@ -26,7 +26,7 @@ canonical_source: HELIX-workflows/helix-process/L7-implementation.md
 - frontmatter 必須:
   ```yaml
   process_layer: L7
-  parent_design: docs/v2/L6-function-design/<feature>/<function>.md
+  parent_design: docs/v2/L6-functional-design/<feature>/<function>.md
   pairs_test_design:
     - docs/v2/L7-test-design/<feature>-unit-test-design.md
     - docs/v2/L8-test-design/<feature>-integration-test-design.md   # L8 で実施されるテスト設計を参照

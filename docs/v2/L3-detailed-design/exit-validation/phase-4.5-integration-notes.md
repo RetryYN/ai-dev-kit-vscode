@@ -4,6 +4,11 @@ plan_id: PLAN-070
 phase: Phase 4.5
 created: 2026-05-16
 status: ready_for_l4
+legacy_reference: true
+current_l0_l14_scope: PLAN-070 historical integration notes only; not current L1-L6 gate terminology source
+superseded_by:
+  - HELIX-workflows/HELIX-process-L0-L14.md
+  - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
 related:
   - docs/plans/PLAN-070-l3-schema-and-contract-design.md (frozen)
   - docs/plans/PLAN-071-carry-capability-detailing.md (draft)
@@ -20,6 +25,8 @@ input_reports:
 ---
 
 # Phase 4.5: 既存ソース活用余地 integration notes
+
+> **LEGACY REFERENCE**: 本書は PLAN-070 当時の Phase 4.5 / L4 着手前メモであり、現行 L0-L14 の工程語・gate 判断の正本ではない。本文中の `L4 実装` は履歴上の実装開始点を示す旧語として残す。現行判断は `HELIX-workflows/HELIX-process-L0-L14.md` と 2026-06-12 L1-L6 監査 bundle を正とする。
 
 ## TL;DR (5 行以内)
 

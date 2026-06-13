@@ -661,9 +661,9 @@ def step_shadow_replay(legacy_conn, orchestration_conn, replay_limit=1000):
 
 ---
 
-## §7 carry to Phase 4
+## §7 carry to L7 実装
 
-L4 実装時に確定する事項:
+L7 実装時に確定する事項（現在フェーズでは設計 carry として保持）:
 
 | # | carry 項目 | 確定 phase | 担当 |
 |---|---|---|---|
@@ -692,16 +692,16 @@ carry 項目の優先度:
 | artifact | 本文書との関係 |
 |---|---|
 | **① 設計** (本文書) | D-DB-SEP-draft-v0.1。L3 詳細設計 / 結合テスト設計レイヤー |
-| **② 実装コード** | `cli/lib/migrations/v31_db_separation.py` + `cli/lib/projectors/*.py` (Phase 4.A/4.B 起票) |
-| **③ テスト設計** | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §2 (I-MIGRATION) + §3 (I-DUALWRITE) + §4 (I-REPLAY) (Phase 3.4 起票済、commit ff04129) + `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §2 (U-ADAPTER)
-| **④ テストコード** | `cli/lib/tests/test_db_separation_integration.py` (Phase 4.B) + `cli/lib/tests/test_shadow_replay.py` (Phase 4.C) |
+| **② 実装コード** | `cli/lib/migrations/v31_db_separation.py` + `cli/lib/projectors/*.py` (L7 実装起票) |
+| **③ テスト設計** | L6 機能設計 / 単体テスト設計観点として保持。L7 test-design artifact は add-feature 承認後に作成 |
+| **④ テストコード** | `cli/lib/tests/test_db_separation_integration.py` + `cli/lib/tests/test_shadow_replay.py` (L7 実装) |
 
 双方向 trace:
 
-- **本 doc → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §2 (I-MIGRATION) + §3 (I-DUALWRITE) + §4 (I-REPLAY) + `PLAN-084-unit-test-design.md` §2 (U-ADAPTER) (Phase 3.4 起票済、commit ff04129)
-- **本 doc → ② 実装コード**: `cli/lib/migrations/v31_db_separation.py` (Phase 4.A)
-- **③ テスト設計 → 本 doc**: PLAN-084-unit-test-design.md / PLAN-084-integration-test-design.md frontmatter `related_designs` に「D-DB-SEP-draft-v0.1」明示済 (Phase 3.4 反映済)
-- **④ テストコード → ③ テスト設計**: Phase 4.B 着手時に test 実装 docstring に「DoD 検証: PLAN-084-integration-test-design.md I-MIGRATION-XXX / I-DUALWRITE-XXX / I-REPLAY-XXX」を記載 (Phase 4.B carry)
+- **本 doc → ③ テスト設計**: 現在フェーズでは L6 単体テスト設計観点として保持し、L7 artifact は add-feature 承認後に作成する
+- **本 doc → ② 実装コード**: `cli/lib/migrations/v31_db_separation.py` (L7 実装)
+- **③ テスト設計 → 本 doc**: L7 artifact 作成時に `related_designs` で「D-DB-SEP-draft-v0.1」を明示する
+- **④ テストコード → ③ テスト設計**: L7 着手時に test 実装 docstring へ DoD 検証 ID を記載する
 
 ---
 

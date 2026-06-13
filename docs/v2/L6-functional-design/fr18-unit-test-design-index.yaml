@@ -1,0 +1,114 @@
+schema_version: fr18_l6_unit_test_design_index_v1
+owner: TL
+status: current_scope_l6_unit_test_design_index
+updated: 2026-06-12
+scope: L6
+purpose: >
+  Index the L6 unit-test-design viewpoints embedded in the FR18 function
+  specifications without creating FR-level L7 test-design artifacts.
+boundary:
+  l6_unit_test_design_viewpoints_indexed: true
+  l7_unit_test_design_artifacts_created: false
+  l7_implementation_done: false
+  unit_test_code_done: false
+  coverage_closure_done: false
+  goal_complete_allowed: false
+source_audits:
+  - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+  - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+l7_feature_entry_points:
+  fr_registry_glossary: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+  full_flow_remaining_guards: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+coverage_summary:
+  fr_count: 18
+  specs_current_scope_l6_closed: 18
+  specs_with_l6_unit_test_design_viewpoints: 18
+  total_ut_candidates: 128
+  specs_with_draft_status: []
+  missing_l6_unit_test_design_viewpoint_specs: []
+  created_l7_fr_test_design_artifacts: []
+fr_specs:
+  - fr_id: FR-4ART-01
+    spec: docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+    ut_candidate_prefix: ART4-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-9MODE-01
+    spec: docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+    ut_candidate_prefix: MODE9-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-CHANGEPROP-01
+    spec: docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+    ut_candidate_prefix: CHPROP-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-CTX-01
+    spec: docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+    ut_candidate_prefix: CTX-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-DOCREVIEW-01
+    spec: docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+    ut_candidate_prefix: DOCREV-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-DOCTOR-01
+    spec: docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+    ut_candidate_prefix: DOCTOR-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-DRIFT-01
+    spec: docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+    ut_candidate_prefix: DRIFT-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-EVT-01
+    spec: docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+    ut_candidate_prefix: EVT-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-FNREG-01
+    spec: docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+    ut_candidate_prefix: FNREG-UT-CAND
+    ut_candidate_count: 8
+  - fr_id: FR-GATE-01
+    spec: docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+    ut_candidate_prefix: GATE-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-GLOSSARY-01
+    spec: docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    ut_candidate_prefix: GLOSS-UT-CAND
+    ut_candidate_count: 8
+  - fr_id: FR-GR-01
+    spec: docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+    ut_candidate_prefix: GR-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-IMPACT-01
+    spec: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    ut_candidate_prefix: IMPACT-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-INV-01
+    spec: docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+    ut_candidate_prefix: INV-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-MIGR-01
+    spec: docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+    ut_candidate_prefix: MIGR-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-NSM-01
+    spec: docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+    ut_candidate_prefix: NSM-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-PLAN-01
+    spec: docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+    ut_candidate_prefix: PLAN-UT-CAND
+    ut_candidate_count: 7
+  - fr_id: FR-TDD-01
+    spec: docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    ut_candidate_prefix: TDD-UT-CAND
+    ut_candidate_count: 7
+completion_denial:
+  reason: >
+    This index proves L6 unit-test-design viewpoints only. It is not L7
+    unit-test-design, unit-test implementation, unit-test execution, or coverage
+    closure evidence.
+  missing_before_l7_completion:
+    - approved L7 feature scope
+    - FR-level L7 unit-test-design artifacts where approved
+    - failing tests before implementation
+    - implementation code
+    - unit-test execution evidence
+    - coverage closure evidence

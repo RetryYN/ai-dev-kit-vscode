@@ -130,7 +130,7 @@ related_br: docs/v2/L1-requirements/helix-workflows-business-requirements.md
 - **PLAN**: [docs/plans/L1/L1-helix-workflows-非機能要求plan.md](../../plans/L1/L1-helix-workflows-%E9%9D%9E%E6%A9%9F%E8%83%BD%E8%A6%81%E6%B1%82plan.md)
 - **HELIX-workflows 正本**: [HELIX-workflows/helix-process/L1-requirements.md](../../../HELIX-workflows/helix-process/L1-requirements.md)
 - **L1 工程 doc**: [docs/v2/process/L01-requirements-and-operational-test-design.md](../process/L01-requirements-and-operational-test-design.md)
-- **L4/L9/L13/L14 接続方針**: NFR 自体の pair freeze は L4 基本設計 ↔ L9 総合テストで固定し、L13 安定性と L14 運用検証で運用値を継続観測する
+- **L4/L9/L13/L14 接続方針**: NFR 自体の pair freeze は L4 基本設計 ↔ L9 総合テストで固定し、L13 運用検証 / 運用テストで運用値を観測し、L14 運用学習 / 運用改善で次サイクルへ戻す
 - **carry**: `pairs_test_design: []` は L1 では許容し、L4 基本設計起票時に L9/L13/L14 の検証設計 artifact を追加する
 - **`L1-IN-15` carry**: 逆引き audit 11 穴は §3 運用・保守性、§4 移行性、§5 セキュリティで段階的に吸収し、未実装分は L3/L4 設計で明示的に差分化する
 - **L3 接続規約 (2026-05-26 tl-advisor G1 P1 #2/#3 反映、4 L1 doc 共通)**: L3 3 PLAN (業務要件 / 機能要件 / 非機能要件) は L1 4 PLAN 全件 (業務 / 機能 / 技術 / 非機能) を `dependencies.requires` に列挙し、`docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md` を pair artifact として同時起票して L3 非機能要件 (IPA グレード値) と L12 受入テスト設計の NFR 系 AC-* を pair freeze する (詳細は業務要求 doc §7 参照、L4↔L9 + L13 + L14 は更に下流の多層検証)

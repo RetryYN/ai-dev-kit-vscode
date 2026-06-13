@@ -503,7 +503,7 @@ PLAN-071 Sprint .1/.2 により C-01〜C-11 の endpoint contract を §3.4〜§
 残 carry は以下のみ（次 PLAN での対応を推奨）:
 
 - state-events（D-CONTRACT 連携対象）: PLAN-072 Phase B 結合時に接続確認
-- C-10 budget guard: `cli/lib/cost_guard.py` 未実装部分は L4 実装 PLAN で確定
+- C-10 budget guard: `cli/lib/cost_guard.py` 未実装部分は L7 実装 PLAN で確定
 
 旧 carry（すべて解消済）:
 - ~~skill 推挙 / skill chain~~ → §3.6 詳細化済

@@ -1,6 +1,6 @@
 ---
 doc_id: process-L13
-title: "L13 デプロイ後検証 + 実環境運用"
+title: "L13 運用検証 / 運用テスト"
 status: maintained
 created: 2026-05-24
 owner: PM
@@ -9,11 +9,11 @@ pairs_with: null
 canonical_source: HELIX-workflows/helix-process/L13-post-deployment-verification.md
 ---
 
-# L13 デプロイ後検証 + 実環境運用
+# L13 運用検証 / 運用テスト
 
 ## 入力
 
-- L12 デプロイ完遂物
+- L12 受入テスト完遂物
 - skill: `workflow/observability-sre` / `workflow/incident` / `automation/observability`
 
 ## 進め方
@@ -71,7 +71,7 @@ canonical_source: HELIX-workflows/helix-process/L13-post-deployment-verification
 | 項目 | 内容 |
 |---|---|
 | 区分 | V字 右腕（運用フェーズ） |
-| 入力 | L12 デプロイ |
+| 入力 | L12 受入テスト |
 | 出力 | L14 への入力 |
 | 対応する設計 | — |
 
@@ -79,15 +79,14 @@ canonical_source: HELIX-workflows/helix-process/L13-post-deployment-verification
 
 PLAN は機能（ドキュメント）単位で起票し、工程表（作成手順＋進捗）と実装計画を内蔵する。
 
-### `L13-デプロイ後検証plan`
-- 本番動作確認
+### `L13-運用検証plan`
+- 実環境動作確認
 - 初期監視
 
-### `L13-実環境運用plan`
-- 運用開始
-- 運用手順
+### `L13-運用テストplan`
+- 運用手順の検証
+- smoke / canary / 初期インシデント対応
 
 > **PLAN が内蔵するもの** (HELIX-workflows 共通):
 > - **工程表**: そのドキュメントを完成させる手順 (例: 参考調査 Web 検索 → 既存資料整理 → ドラフト → TL レビュー → 確定) と各手順の進捗
 > - **実装計画**: 記載項目をどう埋めるかの計画
-

@@ -74,7 +74,7 @@ Sprint A §2.0 の primitive を再利用し、新規 primitive は追加しな�
 - **実装ファイル**: `cli/lib/http_api/routes/push_pr.py`
 - **test ファイル**: `cli/lib/tests/test_http_api_push_pr.py` (5 cases)
 - **担当 WBS**: PLAN-074 / WBS-074-L4-003 / Sprint .2 (commit 95cb7be)
-- **テスト設計ファイル (③ D-TEST-DESIGN)**: 結合 `docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.1`、単体 `docs/v2/L4-test-design/PLAN-074-unit-test-design.md §2.7` (V-model 4 artifact 双方向 trace、PLAN-075)
+- **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 
 **`run_all_gates()` シグネチャ (実測値)**:
 - 引数: `execute: bool = False, remote: str = "origin", branch: str = "main"` (全オプション)
@@ -164,7 +164,7 @@ response_schema:
 - **実装ファイル**: `cli/lib/http_api/routes/push_pr.py` (push と同一モジュール)
 - **test ファイル**: `cli/lib/tests/test_http_api_push_pr.py` (5 cases、push と共有)
 - **担当 WBS**: PLAN-074 / WBS-074-L4-003 / Sprint .2 (commit 95cb7be)
-- **テスト設計ファイル (③ D-TEST-DESIGN)**: 結合 `docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.2`、単体 `docs/v2/L4-test-design/PLAN-074-unit-test-design.md §2.7` (push_pr 単体 module、PLAN-075)
+- **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 
 ```yaml
 path_schema:
@@ -236,7 +236,7 @@ response_schema:
 ```
 
 - pr trigger は query の `force` / `dry_run` / `auto_merge` と request body の `execute` / `remote` に分離し、`G8` は本 draft では扱わない。
-- `gate_results[].id` は push trigger と同一の 6-gate 体系 (G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive) である。
+- `gate_results[].id` は push trigger と同一の push pre-gate check set (G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive) である。
 - error_codes: 400 / 401 / 404 / 409 / 500
 
 ### 3.3 hook callback endpoint
@@ -247,7 +247,7 @@ response_schema:
 - **実装ファイル**: `cli/lib/http_api/routes/hooks.py`
 - **test ファイル**: `cli/lib/tests/test_http_api_hooks.py` (5 cases)
 - **担当 WBS**: PLAN-074 / WBS-074-L4-004 / Sprint .3 (commit a387f9c)
-- **テスト設計ファイル (③ D-TEST-DESIGN)**: 結合 `docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.3`、単体 `docs/v2/L4-test-design/PLAN-074-unit-test-design.md §2.6` (PLAN-075)
+- **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 
 ```yaml
 path_schema:
@@ -298,7 +298,7 @@ response_schema:
 - **実装ファイル**: `cli/lib/http_api/routes/audit.py`
 - **test ファイル**: `cli/lib/tests/test_http_api_audit.py` (5 cases)
 - **担当 WBS**: PLAN-074 / WBS-074-L4-005 / Sprint .4 (commit 2505c4a)
-- **テスト設計ファイル (③ D-TEST-DESIGN)**: 結合 `docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.4`、単体 `docs/v2/L4-test-design/PLAN-074-unit-test-design.md §2.4 / §2.5` (audit + routes/audit、PLAN-075)
+- **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 - **audit_kind enum drift 解決**: HTTP 側 kind (footer/summary/diff_lines/security_scan/qa_check) は `payload.http_audit_kind` に退避し、`helix_db.insert_audit_log` には `endpoint_call` 固定で記録
 
 ```yaml
@@ -349,7 +349,7 @@ response_schema:
 - **実装ファイル**: `cli/lib/http_api/routes/telemetry.py`
 - **test ファイル**: `cli/lib/tests/test_http_api_telemetry.py` (5 cases)
 - **担当 WBS**: PLAN-074 / WBS-074-L4-006 / Sprint .5 (commit 1633202)
-- **テスト設計ファイル (③ D-TEST-DESIGN)**: 結合 `docs/v2/L4-test-design/PLAN-074-integration-test-design.md §3.5`、単体 `docs/v2/L4-test-design/PLAN-074-unit-test-design.md §2.5` (telemetry 単体 module、PLAN-075)
+- **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 - **UPSERT 動作**: session_id UNIQUE 制約による idempotent UPSERT (v27 schema、tool_uses_count / tokens_total / cost_usd 累積)
 
 ```yaml

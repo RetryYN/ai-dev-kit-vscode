@@ -65,6 +65,8 @@ verification_layers:
 
 ## 4. 合格基準（G6 → L7 へ）
 
+この章は `add-feature-2026-06-05-registry-detector-base` で完了済みの L6↔L7 ペア凍結条件を記録するものであり、現在の L1-L6 監査で新規 L7 作業を許可するものではない。新規 L7 実装、単体テスト設計成果物、単体テスト実施、coverage closure へ進む場合は、別途承認済み add-feature / PLAN を入口にする。
+
 - 7 つの FN-RDB-* が L7 の UT-RDB-* と 1:1（trace_symmetry: L6↔L7 coverage100% / orphan0 / missing-pair0 / balance1.0 を維持）。
 - 各 FN の invariant（特に FN-RDB-01 fail-close / FN-RDB-05 advisory=exit0 / FN-RDB-06 段階 skip 不可）が UT で反証されること。
 - 実装（`cli/lib/registry_checks.py`）は TDD（UT 先行）で起こす。
@@ -75,6 +77,8 @@ verification_layers:
 - FN-RDB-06（promote）は **契約のみ凍結**し、実運用の昇格（ratchet/fail_close への遷移）は Action1 スコープ外（warn-only で完了）。状態機械の存在を先に固定することで、後続 Action が state を flip するだけで済む構造にする。
 
 ## 6. L7 への引き継ぎ
+
+以下は完了済み feature の historical pair reference であり、現在監査の completion evidence や新規 L7 実施許可として扱わない。
 
 - 対の単体テスト設計: [registry-detector-単体テスト設計.md](../L7-test-design/registry-detector-単体テスト設計.md)。
 - 実装ファイル（L7 で TDD 起こし）: `cli/lib/registry_checks.py` / `cli/lib/tests/test_registry_checks.py`。

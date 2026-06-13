@@ -65,12 +65,16 @@ verification_layers:
 
 ## 5. 合格基準（G6 → L7）
 
+この章は完了済みの functional-registry detector ペア凍結条件を記録するものであり、現在の L1-L6 監査で新規 L7 作業を許可するものではない。新規 L7 実装、単体テスト設計成果物、単体テスト実施、coverage closure、doctor 接続変更へ進む場合は、別途承認済み add-feature / PLAN を入口にする。
+
 - FN-FREG-01〜03 が L7 UT-FREG-01〜03 と 1:1（trace_symmetry L6↔L7 balance 維持）。
 - 逆方向漏れ（④）と重複 id（②）の検出が UT で反証される（= 劣化検出の核）。
 - 検出器は `registry_checks` の `Finding/GatePolicy/DetectorReport` を再利用し warn-only。
 - 実装は TDD（UT 先行）。
 
 ## 6. L7 / doctor への引き継ぎ
+
+以下は historical pair reference であり、現在監査の completion evidence や新規 L7 / doctor 接続の実施許可として扱わない。
 
 - 対の単体テスト設計: [functional-registry-detector-単体テスト設計.md](../L7-test-design/functional-registry-detector-単体テスト設計.md)。
 - 実装: `cli/lib/functional_registry_checks.py` / `cli/lib/tests/test_functional_registry_checks.py`。

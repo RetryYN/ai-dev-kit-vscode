@@ -147,10 +147,11 @@ HELIX という命名は **DNA 二重らせん構造** に由来する
 ```
 artifact strand                       record strand
 ──────────────────────────            ──────────────────────────
-L1 要件 / 受入テスト設計               orchestration.db
-L2 全体設計 / 総合テスト設計     ◇◇◇  vmodel.db
-L3 詳細設計 / 結合テスト設計     塩基対  scrum.db
-L4 実装コード / 単体テストコード  ◇◇◇  plan.db
+L1 要求定義 / 運用テスト設計             orchestration.db
+L4 基本設計 / 総合テスト設計       ◇◇◇  vmodel.db
+L5 詳細設計 / 結合テスト設計       塩基対  scrum.db
+L6 機能設計 / 単体テスト設計       ◇◇◇  plan.db
+L7 実装コード / 単体テストコード          backend.db
 Sprint commit chain                   backend.db
 docs/v2 docs hierarchy                frontend.db
 ──────────────────────────            ──────────────────────────
@@ -167,11 +168,11 @@ docs/v2 docs hierarchy                frontend.db
 
 | artifact strand (V-model 成果物累積) | record strand (6 db event log / state) |
 |---|---|
-| docs/v2/L1-REQUIREMENTS.md (要件 + 受入テスト設計) | orchestration.db — phase / gate / sprint 遷移 event |
-| docs/v2/L2-MASTER.md + ADR-* (全体設計 + 総合テスト設計) | vmodel.db — artifact / test_design / review event |
-| D-API / D-DB / D-CONTRACT (詳細設計 + 結合テスト設計) | scrum.db — hypothesis / poc / verify / decide event |
-| cli/lib/*.py + cli/helix-* (実装コード + 単体テストコード) | plan.db — PLAN doc 進行 state snapshot + change log |
-| docs/v2/L4-test-design/*.md + cli/lib/tests/test_*.py | backend.db — be coverage / drive 切替 state |
+| docs/v2/L1-REQUIREMENTS.md (要求定義 + 運用テスト設計) | orchestration.db — phase / gate / sprint 遷移 event |
+| docs/v2/L4-basic-design/*.md + ADR-* (基本設計 + 総合テスト設計) | vmodel.db — artifact / test_design / review event |
+| docs/v2/L5-detailed-design/*.md + D-API / D-DB / D-CONTRACT (詳細設計 + 結合テスト設計) | scrum.db — hypothesis / poc / verify / decide event |
+| docs/v2/L6-functional-design/*.md (機能設計 + 単体テスト設計観点) | plan.db — PLAN doc 進行 state snapshot + change log |
+| cli/lib/*.py + cli/helix-* + cli/lib/tests/test_*.py (L7 実装コード + 単体テストコード) | backend.db — be coverage / drive 切替 state |
 | .claude/agents/*.md + cli/templates/agents/*.md | frontend.db — visual mock / FE 成果物 state |
 
 **塩基対 (binding)**:
@@ -310,7 +311,7 @@ Phase D の中核として **「設計と対応テスト設計を同一スプリ
 | 基本設計スプリント | L2 単独 (テスト設計は L3 後追い) | 基本設計 ∥ システム統合テスト設計 (ペア凍結) |
 | 詳細設計スプリント | L3 設計 + テスト設計まとめて | 詳細設計 ∥ 結合テスト設計 (ペア凍結) |
 | 機能設計スプリント | (なし、L3/L4 に埋没) | 機能設計 ∥ 単体テスト設計 (ペア凍結) |
-| 実装スプリント | L4 マイクロスプリント (.1〜.5) | 実装 ∥ テスト実行 ∥ レビュー (三位一体) |
+| 実装スプリント | L7 Sprint (.1〜.5) | 実装 ∥ テスト実行 ∥ レビュー (三位一体) |
 
 設計判断 (TL 助言反映):
 - **粒度は PLAN 規模 (S/M/L) で可変** (固定 4 sprint 強制は不採用)

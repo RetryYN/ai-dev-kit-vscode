@@ -11,7 +11,7 @@ implementation_files:
 references:
   - docs/v2/L3-detailed-design/D-API/D-API-SEP-phase4b-addendum.md
   - docs/adr/ADR-018-db-separation-and-event-sourcing.md
-  - docs/v2/L4-test-design/PLAN-084-integration-test-design.md
+  - L5 結合テスト設計観点（L8 artifact は add-feature 承認後に作成）
 ---
 
 # PLAN-084 Phase 4.C.2: cutover orchestrator + gate 5 設計
@@ -143,4 +143,4 @@ token ルール:
 ## 8. Formalization Carry
 
 - `ADR-020` 起票時に本書の gate 5/6 手順を正式採用する
-- 必要なら `docs/v2/L4-test-design/` 配下へ cutover orchestrator 専用 case を昇格する
+- 必要なら承認後の L8 artifact へ cutover orchestrator 専用 case を昇格する

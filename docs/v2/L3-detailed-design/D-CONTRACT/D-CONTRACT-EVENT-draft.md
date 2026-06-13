@@ -735,19 +735,19 @@ occurred_at: str = datetime.now(timezone.utc).isoformat()
 | Artifact | 文書 / ファイル | 状態 |
 |---|---|---|
 | ① 設計 (本文書) | `docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md` | Phase 3 draft |
-| ② 実装コード | `cli/lib/event_envelope.py` / `cli/lib/correlation_context.py` | Phase 4.B 実装 (carry) |
-| ③ 単体テスト設計 | `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT-001〜010) + §4 (U-UUID-001〜005) + §5 (U-CORR-001〜005) | Phase 3.4 起票済 (commit ff04129) |
-| ③ 結合テスト設計 | `docs/v2/L4-test-design/PLAN-084-integration-test-design.md` §5 (I-CORR-001〜006) | Phase 3.4 起票済 (commit ff04129) |
-| ④ 単体テストコード | `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` | Phase 4.B 起票 (carry) |
-| ④ 結合テストコード | `cli/lib/tests/test_correlation_integration.py` | Phase 4.B 起票 (carry) |
-| ④ テストコード | 上記テストファイルの実装 | Phase 4.B 実装 (carry) |
+| ② 実装コード | `cli/lib/event_envelope.py` / `cli/lib/correlation_context.py` | L7 実装 carry |
+| ③ 単体テスト設計 | L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成 | current-scope |
+| ③ 結合テスト設計 | L5 結合テスト設計観点として保持。右腕検証 artifact は後続承認後に作成 | current-scope |
+| ④ 単体テストコード | `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` | L7 実装 carry |
+| ④ 結合テストコード | `cli/lib/tests/test_correlation_integration.py` | L8 実装 carry |
+| ④ テストコード | 上記テストファイルの実装 | L7/L8 carry |
 
 ### 双方向 trace 宣言
 
 - **本文書 → ② 実装コード**: 本文書 §2.2 の dataclass 定義が `cli/lib/event_envelope.py` の実装根拠。実装時に `# 対応設計: D-CONTRACT-EVENT-draft-v0.1 §2.2` を docstring に記載する
-- **本文書 → ③ テスト設計**: `docs/v2/L4-test-design/PLAN-084-unit-test-design.md` §3 (U-EVT) + §4 (U-UUID) + §5 (U-CORR) + `PLAN-084-integration-test-design.md` §5 (I-CORR) (Phase 3.4 起票済、commit ff04129、frontmatter `related_designs` で双方向 trace 完備)
-- **本文書 → ④ テストコード**: Phase 4.B 着手時に `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` / `test_correlation_integration.py` に `# DoD 検証: PLAN-084-unit-test-design.md U-EVT-XXX / U-UUID-XXX / U-CORR-XXX` を記載する (Phase 4.B carry)
-- **③ テスト設計 → 本文書**: `PLAN-084-unit-test-design.md` / `PLAN-084-integration-test-design.md` frontmatter `related_designs` に「D-CONTRACT-EVENT-draft-v0.1」明示済 (Phase 3.4 反映済)
+- **本文書 → ③ テスト設計**: 現在フェーズでは L6/L5 のテスト設計観点として保持し、L7/L8 artifact は add-feature 承認後に作成する
+- **本文書 → ④ テストコード**: L7/L8 着手時に `cli/lib/tests/test_event_envelope_unit.py` / `test_uuid7_generator_unit.py` / `test_correlation_context_unit.py` / `test_correlation_integration.py` に DoD 検証 ID を記載する
+- **③ テスト設計 → 本文書**: L7/L8 artifact 作成時に frontmatter `related_designs` で「D-CONTRACT-EVENT-draft-v0.1」を明示する
 - **② 実装 → D-DB-SEP-draft §3**: `to_sqlite_row` / `from_sqlite_row` の column 順序は D-DB-SEP-draft §3 の event_envelope table 定義に準拠することを docstring に記載する
 
 Phase 4.B 着手前に 4 artifact 全件 + 双方向 trace の存在を確認すること (G4 チェック条件)。

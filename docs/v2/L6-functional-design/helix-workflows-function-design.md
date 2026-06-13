@@ -2,7 +2,7 @@
 doc_id: L6-functional-design-helix-workflows
 title: HELIX-workflows V2 機能設計（関数仕様 / DbC）
 status: frozen
-freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): FN-* 14 を DbC (requires/ensures/invariant) で定義し L7 UT-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/wrong_layer_pair0/balance1.0、tl-advisor adversarial check (P1 wrong_layer_pair=parent_design→upstream_design 修正済 / P2 FN-CONTRACT invariant 補完済)、Reverse 源泉 unit テスト実在確認 / 2026-06-03 Phase2 総合見直し (whole-coverage audit, tl-advisor changes_required[P1×2]+pmo 事実監査): 観測契約 subset freeze と確認し universe 分類(§5.1)+粒度 caveat(§5.2 DF-WCAUDIT-L6L7-002)を明示して freeze 範囲を honest 化、実設計 expansion は Phase3 L7 へ defer (re-freeze=範囲宣言の明確化のみ、FN-*/UT-*/DbC の design 変更なし・detector green 不変)"
+freeze_evidence: "2026-06-03 V-model pair-freeze (L6↔L7): FN-* 14 を DbC (requires/ensures/invariant) で定義し L7 UT-* と 1:1、trace_symmetry detector で coverage100%/uncovered0/orphan0/missing-pair0/wrong_layer_pair0/balance1.0、tl-advisor adversarial check (P1 wrong_layer_pair=parent_design→upstream_design 修正済 / P2 FN-CONTRACT invariant 補完済)、Reverse 源泉 unit テスト実在確認 / 2026-06-03 Phase2 総合見直し (whole-coverage audit, tl-advisor changes_required[P1×2]+pmo 事実監査): 観測契約 subset freeze と確認し universe 分類(§5.1)+粒度 caveat(§5.2 DF-WCAUDIT-L6L7-002)を明示して freeze 範囲を honest 化。2026-06-12 L1-L6 監査で FR18 追補を L6 仕様 + UT-CAND 索引として分割展開済み。L7 実装・単体テスト設計成果物・実行・coverage closure は未承認であり、進める場合は add-feature 承認を必要とする。"
 owner: SE
 process_layer: L6
 pairs_test_design: docs/v2/L7-test-design/helix-workflows-unit-test-design.md
@@ -21,7 +21,7 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 ## 1. 目的と範囲
 
 - **目的**: 主要 public 関数 / API の入出力契約と不変条件を固定し、単体テスト（L7）の合格基準を与える。
-- **範囲**: 観測済 public contract（既存 pytest が対象とする関数 / handler）。private helper の細分化や全 139 lib 関数の網羅は行わず、未観測は gap として残す（粒度爆発回避）。
+- **範囲**: 観測済 public contract（既存 pytest が対象とする関数 / handler）と、2026-06-12 L1-L6 監査で L6_required と判定した FR18 追補仕様。private helper の細分化や全 139 lib 関数の無差別網羅は行わず、対象外は理由付き除外、L6_required は FR18 `function-spec.md` と `UT-CAND` へ展開済みとする。
 - **対ペア**: L7 単体テスト設計 doc（`pairs_test_design` で相互宣言）。上位は L5 `MOD-*` / `IP-*`。
 
 ## 2. DbC 表記
@@ -56,26 +56,43 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 - 各 `FN-*` が `requires/ensures/invariant` を持ち、L7 の `UT-*` と 1:1 で対になる（trace_symmetry detector で L6↔L7 coverage 100% / uncovered 0 / orphan 0 / missing-pair 0）。
 - DbC は実装と既存 unit テストから推定可能なもののみ固定し、不明な intent は L7 側で仮説として扱う。
 
-## 5. カバレッジ universe と gap（観測契約 subset freeze の明示）
+## 5. カバレッジ universe と FR18 追補（旧 gap の閉塞）
 
-> 本書は **観測済 public contract subset の freeze** であり「HELIX 全機能（≈139 lib 関数）の機能設計 freeze」ではない。2026-06-03 Phase2 総合見直し（whole-coverage audit、tl-advisor + pmo 二重 audit）の P1 指摘を受け、universe を明示分類して freeze 範囲を honest にする（covered / excluded_with_reason / gap）。
+> 本書の初期 freeze は **観測済 public contract subset** だった。2026-06-03 Phase2 総合見直し（whole-coverage audit、tl-advisor + pmo 二重 audit）の P1 指摘で、universe を covered / excluded_with_reason / gap に分けた。その後、2026-06-12 L1-L6 監査で L6_required と判定した gap は FR18 の L6 `function-spec.md` と `UT-CAND` 索引へ追補済みである。現在の L1-L6 スコープでは、未閉塞の L6_required 設計 gap は残さない。
 
 ### 5.1 universe 分類
 | 区分 | 内容 | 件数 / 根拠 |
 |---|---|---|
 | **covered** | §3 の `FN-*` 14（L7 `UT-*` と 1:1、DbC 固定） | 14 |
 | **excluded_with_reason** | private helper / 例外型の完全列挙 / option 単位 validation（粒度爆発回避）。builder / curator / dashboard 系の未観測 public（観測テスト不在で契約を起こせない） | 観測契約なし=対象外 |
-| **gap（設計未定義・要追補）** | `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` の内部実装設計。`FN-CATALOG-01` / `FN-CONTRACT-01` は公開契約を起こしたが背後モジュール群の内部設計は未定義。**L8 の `IT-MOD-06` / `IT-DB-03` / `IT-DB-05` 結合テスト gap と同根クラスタ**（[DF-WCAUDIT-L6L7-001](../L1-requirements/helix-workflows-verification-strategy.md)） | 4 module |
+| **superseded_gap_closed_by_FR18** | `code_catalog` / `contract_registry` / `doc_map_matcher` / `deliverable_gate` 由来の旧未定義クラスタ。2026-06-12 L1-L6 監査で L6_required 分を FR18 の `function-spec.md` と `UT-CAND` へ分割展開済み。旧 DF-WCAUDIT-L6L7-001 は L1-L6 設計漏れではなく、L7 実装・実行・coverage closure が必要な場合だけ add-feature 承認後に扱う。 | 旧 4 module -> L6_required は FR18 追補で閉塞 |
 
 ### 5.2 粒度 caveat（DF-WCAUDIT-L6L7-002）
 - `FN-*` は Reverse 由来の **観測済公開契約 / 責務粒度**で起こしており、`FN-AGENT-01`（fire / release）`FN-CONTRACT-01`（登録 / 照合）`FN-DB-01`（接続 / CRUD）`FN-HANDOVER-01`（resume / stale）等は **1 FN に複数オペレーションを束ねている**。HELIX 粒度ペアリング原則の厳密形（関数 1 個 = UT 1 個 / callable・入力型・例外型を明示）から見ると粗い（`FN-ROUTE-01` のみ単一関数 `RouteEngine.evaluate()`）。
-- 現状は「1 FN ↔ 1 UT」で内部整合し detector green だが、**厳密な単一関数分割と callable / error contract の明示は後続拡張（Phase3 L7 実装時に TDD で sharpening）へ defer**する。
-- 後続拡張は FR 単位で `docs/v2/L6-functional-design/<FR>/` へ分割展開する。
+- 現状は「1 FN ↔ 1 UT」で内部整合し detector green だが、**厳密な単一関数分割と callable / error contract の明示は、2026-06-12 L1-L6 監査で FR 単位の L6 仕様追補へ分割展開した**。
+- L7 実装、FR 別 L7 単体テスト設計成果物、単体テスト実装、単体テスト実施、coverage closure へ進む場合は、承認済み add-feature を入口にする。
+
+### 5.3 FR18 追補と L6 単体テスト設計観点索引（2026-06-12）
+
+2026-06-12 の L1-L6 監査で、§5.2 の後続拡張を L7 実装ではなく **L6 仕様の分割追補**として実施した。FR18 の各仕様は `docs/v2/L6-functional-design/FR-*/function-spec.md` に置き、各仕様内で `*-FN-*` と `*-UT-CAND-*` を対応させる。
+
+`*-UT-CAND-*` は L6 の「単体テスト設計観点」であり、L7 の単体テスト設計成果物、単体テスト実装、単体テスト実施、coverage closure ではない。L7 へ進める場合は add-feature 承認後に、該当 FR の L7 test-design artifact とテスト実装を別途作成する。
+
+| 追補 | 正本 |
+|---|---|
+| FR18 L6 仕様 | `docs/v2/L6-functional-design/FR-*/function-spec.md` |
+| FR18 L6 単体テスト設計観点索引 | `docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml` |
+| L1-L6 粒度監査 | `docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md` |
+| 目的カバレッジ監査 | `docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml` |
+
+索引の現在値は FR18 全件、L6 単体テスト設計観点 128 件である。`FR-FNREG-01` / `FR-GLOSSARY-01` を含む registry-only FR も L6 仕様化済みだが、対応する L7 成果物は現在タスクでは作成しない。
 
 ## 6. 自己検証チェックリスト
 
-- [ ] 全 `FN-*` が `requires/ensures/invariant` を持つ。
-- [ ] 全 `FN-*` が L7 `UT-*` と 1:1 対応（detector で uncovered 0 / orphan 0）。
-- [ ] `所属 MOD` が L5 モジュール分割設計の実在 ID を指す。
-- [ ] §5.1 universe（covered / excluded_with_reason / gap）が宣言され、freeze 範囲が観測契約 subset であることが明示されている。
-- [ ] §5.2 粒度 caveat（責務粒度・複数オペレーション束ね）と厳密分割の defer 先（Phase3）が記録されている。
+- [x] 既存 frozen 範囲の `FN-*` は `requires/ensures/invariant` を持つ。
+- [x] 既存 frozen 範囲の `FN-*` は既存 L7 `UT-*` と 1:1 対応し、detector で uncovered 0 / orphan 0 を維持している。
+- [x] `所属 MOD` が L5 モジュール分割設計の実在 ID を指す。
+- [x] §5.1 universe（covered / excluded_with_reason / superseded_gap_closed_by_FR18）が宣言され、旧 gap は FR18 L6 追補で閉塞済みであることが明示されている。
+- [x] §5.2 粒度 caveat（責務粒度・複数オペレーション束ね）と厳密分割の defer 先が記録されている。
+- [x] §5.3 FR18 追補と `fr18-unit-test-design-index.yaml` が L6 の単体テスト設計観点 128 件を示し、L7 成果物と混同されない。
+- [x] FR18 追補は `*-FN-*` と `*-UT-CAND-*` の対応を L6 内で示すだけで、L7 単体テスト設計成果物、単体テスト実装、単体テスト実施、coverage closure の証跡として扱わない。

@@ -83,6 +83,15 @@ artifact_type: design_doc
 | FN-DDD-04 | `check_bc_mode_coverage(registry_path, repo_root, concept_md_path)` | BC section と concept §14.1 が読める | Forward 1 + derived 9 の coverage 不足 / 余剰を `DetectorReport(mode=advisory)` で返す | read-only、Forward は別枠で数える |
 | FN-DDD-05 | `build_ddd_registry_baseline_payload(...)` / `write_ddd_registry_baseline(...)` / `main(argv)` | registry / concept path が存在 | fingerprint 付き baseline JSON を deterministic に生成し、CLI は output path を stdout へ返す | 同一入力なら byte-stable、`--emit-baseline` 以外では書き込みを行わない |
 
+### 4.1 Finding vocabulary
+
+governance hardening map へ渡す finding type は以下に固定する。現在フェーズでは warn-only / advisory の設計語彙であり、fail-close 実装や L7 closure ではない。
+
+- `undefined_term`
+- `bounded_context_drift`
+- `anti_corruption_violation`
+- `registry_mirror_drift`
+
 ## 5. 合格基準
 
 - 19 用語 + 10 BC が `concept.md` と `ddd-registry.yaml` の間で機械比較できる。

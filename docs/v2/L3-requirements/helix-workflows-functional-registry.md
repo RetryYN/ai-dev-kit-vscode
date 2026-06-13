@@ -89,15 +89,16 @@ audit_history:
 | 区分 | 件数 |
 |---|---|
 | CLI binaries (cli/helix-*) | 80 |
-| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 148 |
+| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 151 |
 | Hooks (.claude/hooks/*.sh) | 17 |
 | Subagents (.claude/agents/*.md) | 19 |
 | Skills (skills/**/SKILL.md) | 131 |
 | HELIX-workflows doc (helix-process/*.md + root) | 55 |
 | Templates (cli/templates/**) | 116 |
-| **総計** | **566** |
+| **総計** | **569** |
 
-> 件数 SSoT 是正 (2026-06-07, AUDIT-WSDC-001 / Action2): yaml registry の domain 別実数に同期。旧 548 は md prose 側 drift（registration cluster で yaml に追加された 4 件 + 本 Action の 8 件未反映）。`check_fr_sot_alignment` が md⇔yaml の name 集合 + 件数を機械照合する。
+> 件数 SSoT 是正の経緯 (2026-06-07, AUDIT-WSDC-001 / Action2): yaml registry の domain 別実数に同期。旧 548 は md prose 側 drift（registration cluster で yaml に追加された 4 件 + 当時の Action の 8 件未反映）。`check_fr_sot_alignment` が md⇔yaml の name 集合 + 件数を機械照合する。
+> **現状 (2026-06-14): md=569 / yaml=569 で同期済 (`check_fr_sot_alignment` clean, findings=0)**。L7 検証検出器 3 件 (g7_subcheck.py / vg_overview.py / requirement_drift.py) を §4 + 本 summary に反映済。上の「旧 548」は履歴記録であり現在の不整合ではない。
 
 ### FR mapping coverage
 
@@ -174,7 +175,7 @@ audit_history:
 | helix-plan | 設計提案の下書き/レビュー/確定管理 (draft/review/finalize/lint/list/status) | FR-06 | FR-PLAN-01 | mandatory |
 | helix-pr | ゲート結果から PR テンプレート自動生成 | FR-03 | FR-GATE-01 | active |
 | helix-promote | Builder registry 型登録 (promote サブコマンド) | FR-09 | FR-INV-01 | active |
-| helix-push | git push ゲート (6 ゲート検証 + 全 PASS 時のみ push 実行) | FR-03 | FR-GATE-01 | mandatory |
+| helix-push | git push ゲート (push pre-gate 検証 + 全 PASS 時のみ push 実行) | FR-03 | FR-GATE-01 | mandatory |
 | helix-readiness | HELIX readiness exit 判定 / deferred-finding 操作 | FR-03 | FR-GATE-01 | active |
 | helix-recipe | 成功パターン学習系コマンド統合ディスパッチャ (learn/promote/discover) | FR-07 | FR-EVT-01 | active |
 | helix-recover | Recovery mode CLI (recovery_engine.py 委譲、AI 暴走収束) | FR-04 | FR-9MODE-01 | active |
@@ -303,7 +304,7 @@ audit_history:
 | plan_schema.py | PLAN.yaml schema helpers (gate/plan tooling 用) | FR-12 | FR-PLAN-01 |
 | plan_validator.py | 新 15 工程 (L0-L14) PLAN frontmatter 検証 (VALID_KINDS 22 種) | FR-12 | FR-PLAN-01 |
 | projector_lag.py | Projector lag helper (handover/review 遅延検出) | FR-07 | FR-EVT-01 |
-| push_gate.py | git push 前の 6 ゲート検証 (push_gate) | FR-03 | FR-GATE-01 |
+| push_gate.py | git push 前の push pre-gate 検証 (push_gate) | FR-03 | FR-GATE-01 |
 | recovery_engine.py | Recovery mode CLI backend | FR-04 | FR-9MODE-01 |
 | recovery_plan_check.py | PLAN-098 §5/6/9 recovery plan check | FR-04 | FR-9MODE-01 |
 | recovery_workflow_engine.py | Recovery workflow CLI backend | FR-04 | FR-9MODE-01 |
@@ -364,6 +365,9 @@ audit_history:
 | ddd_registry_checks.py | concept.md §12/§14 の Glossary / BC 構造 coverage を warn-only で検出する DDD detector | FR-09 | FR-INV-01 |
 | ddd-registry.yaml | DDD detector の機械正本 registry (concept.md §12.1 19語 + §14.1 10 BC) | FR-09 | FR-INV-01 |
 | registry_design_coverage_checks.py | registry_design_coverage detector — zero-omission(B') 機械証明 (coverage_layer/design_ids 充足・wrong_layer 検出) | FR-09 | FR-INV-01 |
+| g7_subcheck.py | G7 subcheck detector — UT-ID anchor + test_execution_pass を実走確認し L6↔L7 の missing / tested-but-unanchored を集計する advisory subcheck (verification-strategy §14.1/§14.4、2026-06-08 MVP-A) | FR-08 | FR-4ART-01 |
+| vg_overview.py | VG-overview aggregator — registry_design_coverage / source_scan_vs_registry / registry_trace_complete + pair_status を横断集約する advisory gate (verification-strategy §14.3/§14.4、2026-06-08 MVP-A) | FR-08 | FR-4ART-01 |
+| requirement_drift.py | requirement_drift detector — L1/L3 FR から L4-L6 design への縦 trace 欠落を検出し VG-overview required_clean に接続する L6 detector | FR-08 / FR-11 | FR-DRIFT-01 |
 
 ---
 
@@ -416,8 +420,8 @@ audit_history:
 | pmo-tech-docs.md | claude-sonnet-4-6 | Tech Document Manager (設計手法・アーキテクチャ外部 doc 精読 + HELIX 適用案) | FR-09 | FR-INV-01 |
 | pmo-tech-fork.md | claude-sonnet-4-6 | Tech Fork Manager (OSS/plugin GitHub 探索・license/maintenance 評価・転用可能性 report) | FR-09 | FR-INV-01 |
 | pmo-tech-news.md | claude-sonnet-4-6 | Tech News Advisor (AI/Dev tools/security/cloud 最新動向 sweep、週次 watch) | FR-09 | FR-INV-01 |
-| qa-test.md | claude-sonnet-4-6 | QA テスト設計・実行 (戦略・カバレッジ・E2E・perf・security test、L6 検証/G4/G6 gate) | FR-08 | FR-4ART-01 |
-| security-audit.md | claude-sonnet-4-6 | セキュリティ監査 (OWASP Top 10・認証認可・脆弱性・依存管理、G2/G4/G6/G7 gate) | FR-02 | FR-GR-01 |
+| qa-test.md | claude-sonnet-4-6 | QA テスト設計・実行 (戦略・カバレッジ・E2E・perf・security test、L6 単体テスト設計レビュー/G6/L8-L12 検証) | FR-08 | FR-4ART-01 |
+| security-audit.md | claude-sonnet-4-6 | セキュリティ監査 (OWASP Top 10・認証認可・脆弱性・依存管理、G2/G6/G7/L8-L12 gate) | FR-02 | FR-GR-01 |
 
 ---
 
@@ -450,7 +454,7 @@ audit_history:
 | workflow/learning-engine | 検出結果・recovery-log 学習、再発パターン整理、次サイクル改善候補接続 | FR-11 | FR-DRIFT-01 |
 | workflow/observability-sre | SLO/SLI 設計・アラート・ダッシュボード・リアルタイム監視設計 | FR-01 | FR-NSM-01 |
 | workflow/poc | G1.5 PoC ゲート専用、kill criteria 伴う最小検証、実装着手可否判定 | FR-05 | FR-GATE-01 |
-| workflow/postmortem | 5Whys 分析・再発防止アクション・L11 運用学習/G11 連携 | FR-01 | FR-NSM-01 |
+| workflow/postmortem | 5Whys 分析・再発防止アクション・L14 運用学習/G14 連携 | FR-01 | FR-NSM-01 |
 | workflow/project-management | ダッシュボード・カンバンテンプレート・計画・進捗・報告運用 | FR-12 | FR-PLAN-01 |
 | workflow/quality-lv5 | テスト品質 Lv1-5 評価、テストピラミッド比率・カバレッジ目標検証 | FR-03 | FR-TDD-01 |
 | workflow/requirements-deriver | 機能要件→非機能要件導出、R1-R14 シグナル、IPA×ISO 25010 二軸展開 | FR-08 | FR-4ART-01 |
@@ -465,7 +469,7 @@ audit_history:
 | workflow/reverse-r4 | R4 Gap & Routing、R3 Intent と As-Is 差分 → Forward HELIX 振り分け | FR-04 | FR-9MODE-01 |
 | workflow/reverse-rgc | Reverse Gap Closure、L6/L8 pass 後に Reverse gap 閉塞検証 | FR-04 | FR-9MODE-01 |
 | workflow/review-stage-routing | レビュー 6 段階×ロール分業境界、AI 逆説ルール、ADR 降下 | FR-08 | FR-4ART-01 |
-| workflow/runbook | L6 Runbook (運用準備書) 生成スキル、G6 RC 判定通過条件 | FR-05 | FR-GATE-01 |
+| workflow/runbook | L13 Runbook (運用準備書) 生成スキル、G13 運用検証 / 運用テスト通過条件 | FR-05 | FR-GATE-01 |
 | workflow/schedule-wbs | L3 工程表 (WBS+feature flag+rollback) 生成、G3 通過条件充足 | FR-12 | FR-PLAN-01 |
 | workflow/threat-model | G2 通過条件の脅威モデル書生成、STRIDE/DREAD + common/security 連携 | FR-02 | FR-GR-01 |
 | workflow/verification | L1〜V-L6 各検証レイヤー、Spec 駆動検証、L8 仕様突合、Reverse RG0-RGC | FR-03 | FR-TDD-01 |
@@ -521,7 +525,7 @@ audit_history:
 | advanced/innovation-mgr | PdM Tech/Marketing 出力統合 + 新方向性策定 + L1 接続、意思決定 phase | FR-04 | FR-9MODE-01 |
 | advanced/legacy | レガシーコード改修、特性テスト・Strangler Fig パターン・段階的リファクタリング | FR-04 | FR-9MODE-01 |
 | advanced/marketing-innovation | 海外マーケティング思想 (Product-led/JTBD/NSM/Reforge/Bowling Alley) 翻案 | - | - |
-| advanced/migration | ETL スクリプト・データ整合性検証・Strangler Fig・段階的移行計画 + G7 安定性ゲート | FR-07 | FR-MIGR-01 |
+| advanced/migration | ETL スクリプト・データ整合性検証・Strangler Fig・段階的移行計画 + G13 運用検証ゲート | FR-07 | FR-MIGR-01 |
 | advanced/tech-innovation | 海外技術思想 (Spotify Squad/Stripe/Linear/DORA/SPACE) 日本版実装翻案 | - | - |
 | advanced/tech-selection | 技術選定評価マトリクス・SWOT 分析・ADR テンプレート・選定プロセス | FR-05 | FR-GATE-01 |
 
@@ -630,7 +634,7 @@ audit_history:
 | L9-system-test.md | L9 | 総合テスト・依存関係解消 (L4 基本設計↔総合テスト設計 pair) | FR-03 | FR-TDD-01 |
 | L10-ux-refinement.md | L10 | フロント UX 磨き上げ・ビジュアル磨き・コピー磨き (L2↔L10 pair) | - | - |
 | L11-final-review.md | L11 | 総合レビュー・ユーザー検証・要件巻き取り・PO 検証・drift 解消 | FR-08 | FR-4ART-01 |
-| L12-deployment.md | L12 | デプロイ・受入テスト・環境差異巻き取り (L3↔L12 pair) | FR-07 | FR-EVT-01 |
+| L12-deployment.md | L12 | 受入テスト・環境差異巻き取り (L3↔L12 pair) | FR-07 | FR-EVT-01 |
 | L13-post-deployment-verification.md | L13 | デプロイ後検証・smoke/canary・初期インシデント対応 | FR-01 | FR-NSM-01 |
 | L14-operation-verification.md | L14 | 運用検証・機能改善 (L1↔L14 pair execute → 次 L0 input) | FR-01 | FR-NSM-01 |
 
@@ -795,9 +799,9 @@ audit_history:
 | plan/v2/L09-system-test-template.md | L9 総合テスト PLAN テンプレート | FR-03 | FR-TDD-01 |
 | plan/v2/L10-ux-refinement-template.md | L10 UX 磨き上げ PLAN テンプレート | - | - |
 | plan/v2/L11-final-review-template.md | L11 総合レビュー PLAN テンプレート | FR-08 | FR-4ART-01 |
-| plan/v2/L12-deployment-template.md | L12 デプロイ PLAN テンプレート | FR-07 | FR-EVT-01 |
-| plan/v2/L13-post-deployment-template.md | L13 デプロイ後検証 PLAN テンプレート | FR-01 | FR-NSM-01 |
-| plan/v2/L14-operation-verification-template.md | L14 運用検証 PLAN テンプレート | FR-01 | FR-NSM-01 |
+| plan/v2/L12-deployment-template.md | L12 受入テスト PLAN テンプレート | FR-07 | FR-EVT-01 |
+| plan/v2/L13-post-deployment-template.md | L13 運用検証 / 運用テスト PLAN テンプレート | FR-01 | FR-NSM-01 |
+| plan/v2/L14-operation-verification-template.md | L14 運用学習 / 運用改善 PLAN テンプレート | FR-01 | FR-NSM-01 |
 | plan/v2/README.md | V2 PLAN テンプレート README | FR-12 | FR-PLAN-01 |
 | plan/v2/L02-ui-design-template.md | L2 UI設計 PLAN テンプレート (kind=ui-design / drive=fe\|fullstack) | FR-04 | FR-9MODE-01 |
 | plan/v2/L06-function-design-template.md | L6 機能設計 PLAN テンプレート (kind=function-design / drive=be\|fullstack) | FR-12 | FR-PLAN-01 |

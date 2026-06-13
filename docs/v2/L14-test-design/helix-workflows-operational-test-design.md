@@ -18,15 +18,15 @@ related_requirements:
 
 ## §1 目的と境界
 
-本書は、L1 業務要求 `BR-01`〜`BR-12` と、運用で継続観測する対象 NFR (`NFR-OP-01`〜`05`, `NFR-AV-01`〜`03`) を、L14 で実行可能な運用テストシナリオへ固定するための設計書である。目的は、HELIX-workflows V2 dogfooding の運用品質を「観測可能な閾値」「fail-close 条件」「定点監視」に落とし込み、L1↔L14 pair freeze の片肺を解消することにある。
+本書は、L1 業務要求 `BR-01`〜`BR-12` と、運用で継続観測する対象 NFR (`NFR-OP-01`〜`05`, `NFR-AV-01`〜`03`) を、L13 運用検証 / 運用テストで観測し、L14 運用学習 / 運用改善で次サイクルへ戻す運用テストシナリオへ固定するための設計書である。目的は、HELIX-workflows V2 dogfooding の運用品質を「観測可能な閾値」「fail-close 条件」「定点監視」に落とし込み、L1↔L14 pair freeze の片肺を解消することにある。
 
-L14 は運用検証と運用学習の層であり、本書は実装コードや監視定義そのものを置く場所ではない。実テストコード、計測ジョブ、CLI 実装、DB query、監視 rule の実体化は L7 以降と運用フェーズへ送る。本書では、運用テストの scaffold、受入基準、trace、carry を固定し、後続工程が同じ観測点を再利用できる状態を作る。
+L14 は L13 の運用検証 / 運用テスト結果を受けた運用学習 / 運用改善の層であり、本書は実装コードや監視定義そのものを置く場所ではない。実テストコード、計測ジョブ、CLI 実装、DB query、監視 rule の実体化は L7 以降と運用フェーズへ送る。本書では、運用テストの scaffold、受入基準、trace、carry を固定し、後続工程が同じ観測点を再利用できる状態を作る。
 
 ## §2 運用テストシナリオ
 
 | OT-ID | 対応要件ID | シナリオ概要 | 前提条件 | 受入基準(合否判定可能な閾値・観測点) | 検証方式 |
 |---|---|---|---|---|---|
-| OT-01 | BR-01 | HELIX 自身の dogfooding 開発が 13 工程主線で継続運転されていることを月次確認する | 当月分の PLAN / gate / handover / run 証跡が参照可能 | 月次 `completed` 扱いの V-model 整合 PLAN 数が `>= 50`、かつ L0/L1/L3-L9/L11-L14 の欠落工程 0 件 | 監視 |
+| OT-01 | BR-01 | HELIX 自身の dogfooding 開発が L0-L14 工程主線で継続運転されていることを月次確認する | 当月分の PLAN / gate / handover / run 証跡が参照可能 | 月次 `completed` 扱いの V-model 整合 PLAN 数が `>= 50`、かつ L0/L1/L3-L9/L11-L14 の欠落工程 0 件 | 監視 |
 | OT-02 | BR-02 | 4 artifact retrofit の進捗を `helix doctor` warn 推移で監視する | retrofit 対象 PLAN 群と doctor 出力履歴がある | 月末 warn 件数が `<= 20`、または前月比で warn 純増 `<= 0` を維持 | 自動+監視 |
 | OT-03 | BR-03 | workflow / CLI / skill / DB schema drift の新規発生を週次検知する | drift detector の週次実行ログがある | 週次の新規 drift 件数 `= 0`、未解消 drift の翌週持ち越し P0 件数 `= 0` | 自動+監視 |
 | OT-04 | BR-04 | 9 mode 入口判定から Forward 復帰までの event 登録を追跡する | mode 実行履歴と closure event がある | mode 入口判定された実行の `forward_return` 記録率 `= 100%`、mode_transition event 欠落 0 件 | 自動 |
