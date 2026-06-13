@@ -3,6 +3,7 @@
 > L6 `whole-source-coverage-機能設計.md` の FN-WSC-* と 1:1 の単体テスト設計（DbC 反証観点）。
 > 詳細な requires/ensures/invariant は対の L6 FN-WSC-* 行を正本とする（本表は反証観点 + テスト実装 status）。
 > 「テスト実装」列: 実装済 = 既存 test が DbC をカバー / 未整備・部分 = carry `WSC-TEST-IMPL`（設計は完備、実装が L7 sprint）。
+> L7 は実装工程の谷であり、単体テストコード実装・本体実装・単体テスト実施を含む。L8 は L5 に対応する結合テスト工程であり、本表の対象外。
 
 | UT ID | 対象 FN | module | 検証観点（DbC 反証） | テスト実装 |
 |---|---|---|---|---|
@@ -12,11 +13,11 @@
 | UT-WSC-04 | FN-WSC-04 | posttooluse-plan-auto-register.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-05 | FN-WSC-05 | posttooluse-skill-catalog-rebuild.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-06 | FN-WSC-06 | precompact-state-snapshot.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
-| UT-WSC-07 | FN-WSC-07 | pretooluse-agent-fire.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
-| UT-WSC-08 | FN-WSC-08 | pretooluse-agent-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
+| UT-WSC-07 | FN-WSC-07 | pretooluse-agent-fire.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
+| UT-WSC-08 | FN-WSC-08 | pretooluse-agent-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-09 | FN-WSC-09 | pretooluse-askuserquestion.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
-| UT-WSC-10 | FN-WSC-10 | pretooluse-codex-slot-check.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
-| UT-WSC-11 | FN-WSC-11 | pretooluse-design-doc-web-search-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 未実装(G7 missing、DF-G7-MISSING-001) |
+| UT-WSC-10 | FN-WSC-10 | pretooluse-codex-slot-check.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
+| UT-WSC-11 | FN-WSC-11 | pretooluse-design-doc-web-search-guard.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-12 | FN-WSC-12 | pretooluse-opus-repo-block.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-13 | FN-WSC-13 | sessionstart-harness-summary.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
 | UT-WSC-14 | FN-WSC-14 | sessionstart-history-injection.sh | hook の fail-close/fail-open 方向 + ensures(verdict/副作用) を反証 | 実装済 |
@@ -69,6 +70,7 @@
 |---|---|---|
 | verify-first 既存充足 | 10 | 1 |
 | 今回新規/補助テスト実装 | 02, 03, 04, 05, 06, 12, 13, 15, 17, 213(uuid7_generator), 218(zizmor_ignore_lint) | 11 |
+| DF-G7-MISSING-001 closure | 07, 08, 10, 11 | 4 |
 | **残 carry** | — | **0** |
 
 ## 合格基準（G7 単体）

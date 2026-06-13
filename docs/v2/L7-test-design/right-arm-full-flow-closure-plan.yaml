@@ -1,0 +1,129 @@
+schema_version: right_arm_full_flow_closure_plan_v1
+owner: TL
+status: ready_for_scope_expansion
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_handover_request: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+source_adoption_manifest: docs/v2/L7-test-design/right-arm-execution-gates-adoption.yaml
+purpose: >
+  Define the implementation-ready closure sequence for the remaining
+  strict-full-flow gates without expanding the current handover scope.
+activation_policy:
+  current_handover_scope_sufficient: false
+  requires_explicit_scope_expansion: true
+  self_expand_current_handover: false
+  activation_evidence_required:
+    - handover Next Action lists every requested implementation file for the selected gate.
+    - PLAN or task-plan includes allowed_files, acceptance, rollback, and verification commands.
+    - strict full-flow command remains the exit gate.
+global_exit_gate:
+  command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+  required:
+    overall_clean: true
+    deferred_count: 0
+    deferred_gates: []
+implementation_sequence:
+  - order: 1
+    gate_id: G8
+    pair: L5-L8
+    objective: Close integration-test execution evidence before later right-arm gates.
+    rationale: L5-L8 is the nearest right-arm pair after L6-L7 and validates the integration layer before system and acceptance closure.
+    requested_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/tests/helix-doctor-json.bats
+      - docs/v2/L8-test-design/
+    local_exit_evidence:
+      - G8 absent from strict full-flow deferred_pairs.
+      - L5-L8 integration test execution evidence is present.
+      - L5-L8 trace closure remains coverage=100 with orphan=0.
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+      - bats cli/tests/helix-doctor-json.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    rollback_boundary: Revert only G8 detector/docs/test additions if G8 evidence cannot be proven without changing L5 or L8 contracts.
+  - order: 2
+    gate_id: G9
+    pair: L4-L9
+    objective: Close system-test execution evidence while preserving the existing semantic orphan justification.
+    rationale: L4-L9 depends on system-level trace semantics and must not hide semantic_excluded_orphan evidence by weakening trace rules.
+    requested_files:
+      - cli/lib/vg_overview.py
+      - cli/lib/trace_symmetry.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/lib/tests/test_trace_symmetry.py
+      - docs/v2/L9-test-design/
+    local_exit_evidence:
+      - G9 absent from strict full-flow deferred_pairs.
+      - L4-L9 system test execution evidence is present.
+      - semantic_excluded_orphan=18 remains justified unless L4/L9 evidence is updated together.
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_trace_symmetry.py -q
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    rollback_boundary: Revert only G9 detector/docs/test additions if semantic trace closure cannot be proven without reinterpreting L4/L9 contracts.
+  - order: 3
+    gate_id: G12
+    pair: L3-L12
+    objective: Close acceptance-test execution evidence against frozen L3 requirements.
+    rationale: Acceptance closure must validate L3 criteria without changing requirement meaning during gate implementation.
+    requested_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/tests/helix-doctor-json.bats
+      - docs/v2/L12-test-design/
+    local_exit_evidence:
+      - G12 absent from strict full-flow deferred_pairs.
+      - L3-L12 acceptance test execution evidence is present.
+      - L3 requirement IDs and acceptance criteria are not reinterpreted without interrupt.
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+      - bats cli/tests/helix-doctor-json.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    rollback_boundary: Revert only G12 detector/docs/test additions if acceptance evidence requires L3 requirement reinterpretation.
+  - order: 4
+    gate_id: G14
+    pair: L1-L14
+    objective: Close operational-learning execution evidence and feedback adoption loop.
+    rationale: G14 is last because it depends on feedback evidence that should observe earlier gate adoption outcomes.
+    requested_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-harness
+      - cli/lib/harness_monitor.py
+      - cli/lib/tests/test_vg_overview.py
+      - cli/lib/tests/test_harness_monitor_unit.py
+      - cli/tests/test-helix-harness-feedback-loop.bats
+      - docs/v2/L14-test-design/
+    local_exit_evidence:
+      - G14 absent from strict full-flow deferred_pairs.
+      - operational learning evidence is recorded in HELIX DB events/metrics/feedback.
+      - feedback_closed evidence connects candidate adoption back to recurrence detection.
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_harness_monitor_unit.py -q
+      - bats cli/tests/test-helix-harness-feedback-loop.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    rollback_boundary: Revert only G14 detector/harness/docs/test additions if feedback_closed evidence cannot be proven without DB migration.
+safety:
+  schema_migration: false
+  destructive_data_operation: false
+  auth_or_pii_change: false
+  external_api_or_infrastructure_change: false
+  auto_apply_feedback_candidates: false
+  escalation_required_if:
+    - D-API / D-DB / D-CONTRACT change is required.
+    - schema migration or rollback design is required.
+    - acceptance criteria must be reinterpreted.
+    - implementation needs files not listed in requested_files.
+completion_boundary:
+  plan_materialized_is_goal_completion: false
+  scope_expansion_is_goal_completion: false
+  per_gate_local_pass_is_full_goal_completion: false
+  all_gates_and_feedback_and_ci_required: true
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - closure plan keeps G8/G9/G12/G14 order and requested files aligned with handover request
+      - plan materialization remains distinct from full goal completion

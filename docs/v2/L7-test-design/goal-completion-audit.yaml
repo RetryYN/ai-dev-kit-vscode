@@ -1,0 +1,261 @@
+schema_version: goal_completion_audit_v1
+owner: TL
+status: active_not_complete
+updated: 2026-06-12
+objective_scope: user_requested_l0_l14_full_alignment
+source_objective_summary: >
+  Existing assets must be audited for requirement gaps, passed through L6,
+  balanced across L1-L6 design and test design, aligned for Codex/Claude guard
+  parity, connected to automation and HELIX DB feedback loops, supported by Web
+  evidence, and fully compatible with the user-confirmed L0-L14 flow.
+source_objective_evidence_matrix: docs/v2/L7-test-design/objective-evidence-matrix.yaml
+completion_policy:
+  goal_complete_allowed: false
+  blocked: false
+  reason: strict full-flow still has deferred right-arm execution gates.
+  required_before_complete:
+    - strict_full_flow_overall_clean_true
+    - G8_G9_G12_G14_gate_implemented_and_passed
+    - CI_or_equivalent_gate_surface_connected
+    - feedback_candidates_adopted_back_to_PLAN_PR_gate_evidence
+    - additional_improvement_candidates_adopted_if_selected
+    - HARNESS_external_tools_approved_and_connected_if_selected
+    - L2_L10_ui_absent_waiver_revalidated_or_unskipped_when_UI_exists
+focus_status:
+  focus: L6
+  result: clean
+  evidence:
+    requirement_drift:
+      command: helix doctor check_requirement_drift --json
+      requirements: 31
+      design_links: 31
+      blocking_findings: 0
+      advisory_findings: 0
+      waived_findings: 0
+    vg_overview_default:
+      command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
+      overall_clean: true
+      interpretation: L6 focus clean only; not full L0-L14 completion.
+    g7_subcheck:
+      anchored: 88
+      exec_pass: 88
+      missing: 0
+      unanchored_but_exists: 0
+strict_full_flow_status:
+  command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+  overall_clean: false
+  deferred_count: 4
+  deferred_gates:
+    - gate_id: G8
+      pair: L5-L8
+      required_next: implement G8 integration-test execution gate
+    - gate_id: G9
+      pair: L4-L9
+      required_next: implement G9 system-test execution gate
+    - gate_id: G12
+      pair: L3-L12
+      required_next: implement G12 acceptance-test execution gate
+    - gate_id: G14
+      pair: L1-L14
+      required_next: implement G14 operational-learning execution gate
+current_handover_scope:
+  sufficient_for_full_goal_completion: false
+  expansion_request: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+  closure_plan: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+  activation_ledger: docs/v2/L7-test-design/full-flow-activation-ledger.yaml
+  allowed_now:
+    - docs/v2/L7-test-design/
+    - cli/lib/tests/
+    - cli/tests/
+    - docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md
+  out_of_scope_for_current_handover:
+    - cli/lib/vg_overview.py
+    - cli/helix-doctor
+    - cli/lib/trace_symmetry.py
+    - cli/helix-harness
+    - cli/lib/harness_monitor.py
+    - docs/v2/L8-test-design/
+    - docs/v2/L9-test-design/
+    - docs/v2/L12-test-design/
+    - docs/v2/L14-test-design/
+requirements:
+  - id: REQ-L0-L14-FLOW
+    requirement: User-confirmed L0-L14 flow terms are fully represented.
+    status: partial
+    evidence:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - skills/SKILL_MAP.md
+      - docs/v2/L7-test-design/full-flow-activation-ledger.yaml
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      - docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
+      - cli/lib/tests/test_helix_l0_l14_flow_contract.py
+    remaining:
+      - strict full-flow execution gates must pass before full-flow completion.
+  - id: REQ-L1-L6-REQUIREMENT-GAP-AUDIT
+    requirement: Existing assets are audited for requirement definition gaps through L6.
+    status: achieved_local
+    evidence:
+      - requirement_drift requirements=31 design_links=31 findings=0 focus=L6
+      - registry_design_coverage findings=0
+      - source_scan_vs_registry findings=0
+    remaining:
+      - keep ISO 29148 revision watch as advisory evidence.
+  - id: REQ-L1-L6-GRANULARITY-BALANCE
+    requirement: L1-L6 design and corresponding test design granularity are balanced.
+    status: achieved_local
+    evidence:
+      - trace_symmetry L1-L14/L3-L12/L5-L8/L6-L7 coverage=100 missing_pair=0 orphan=0
+      - trace_symmetry L4-L9 semantic_excluded_orphan=18 with orphan_test=0
+    remaining:
+      - G9 execution gate must validate system-test evidence for full closure.
+  - id: REQ-L6-TO-L7-UNIT-CLOSURE
+    requirement: L6 functional design and unit-test design pass into L7 implementation and unit execution.
+    status: achieved_local
+    evidence:
+      - G7 subcheck anchored=88 exec_pass=88 missing=0 unanchored=0
+      - DF-G7-MISSING-001 closed
+    remaining:
+      - none for L6 focus; full-flow still needs right-arm gates.
+  - id: REQ-CODEX-CLAUDE-GUARD-PARITY
+    requirement: Guards that work in ClaudeCode also work for Codex where relevant.
+    status: achieved_local
+    evidence:
+      - Codex design doc Web evidence post-validation
+      - cli/tests/test-helix-codex-write-audit.bats
+      - cli/lib/tests/test_codex_post_validation.py
+    remaining:
+      - monitor for new Claude hooks without Codex equivalents.
+  - id: REQ-DDD-TDD-AUTO-GOVERNANCE
+    requirement: Coding-rule registry, DDD document registry, strict TDD order, dependency/impact visibility, and bottleneck feedback are designed through L6.
+    status: partial
+    design_gap_status: L6_code16_specs_closed_current_phase_no_l7_artifacts
+    evidence:
+      - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+      - docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - cli/config/coding-rule-registry.yaml
+      - cli/config/ddd-registry.yaml
+      - cli/config/functional-registry.yaml
+    remaining:
+      - TDD order guard implementation/gate/CI connection remains outside current scope.
+      - impact query CLI, dependency graph execution, and 5 second SLA verification remain outside current scope.
+      - Forward return event writer, mode closure DB schema, and hook connection remain outside current scope.
+      - Gate verdict body, doctor / push / CI gate connections, and right-arm execution gate implementation remain outside current scope.
+      - Drift routing execution, four artifact trace auditor execution, and change propagation ratchet execution remain outside current scope.
+      - Guardrail enforcement, doctor aggregation dispatcher, 9-mode route CLI, and context injection enforcement remain outside current scope.
+      - NSM score view, migration/retrofit execution, and doc-review coverage enforcement remain outside current scope.
+      - asset inventory execution, PLAN auto-registration execution, and DB upsert verification remain outside current scope.
+      - registry findings and external tool findings must not count as closure until PLAN/PR/gate evidence exists.
+  - id: REQ-WORKFLOW-AUTOMATION-REVIEW
+    requirement: Workflow and automation basis is reviewed and improved.
+    status: partial
+    evidence:
+      - docs/v2/L7-test-design/ci-gate-surface-audit.yaml
+      - docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+      - docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+      - docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
+      - VG-overview strict/default split
+      - G-vg-overview push/doctor gate surface
+      - right-arm execution gate adoption manifest
+    remaining:
+      - CI or equivalent required surface for strict/full-flow carry must be connected.
+  - id: REQ-HARNESS-EXTERNAL-TOOLS
+    requirement: Research and expand HARNESS-installable MCP servers, plugins, and external tools.
+    status: partial
+    design_gap_status: L4_L6_closed_L7_feature_ticketed
+    evidence:
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/audit/2026-06-10-harness-external-tools-impact-scope-audit.md
+      - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      - docs/v2/L7-test-design/additional-improvement-discovery.yaml
+      - docs/v2/L7-test-design/web-evidence-source-map.yaml
+      - MCP official specification
+      - GitHub MCP Server official documentation
+      - Semgrep CE official documentation
+      - GitHub CodeQL official documentation
+    remaining:
+      - selected tool installation requires explicit approval and HARNESS allowlist implementation.
+      - auth, credential, license, network, and CI boundaries must be recorded before execution.
+  - id: REQ-HELIX-DB-FEEDBACK-LOOP
+    requirement: HELIX DB auto-registration, trouble detection, and improvement feedback loop are available.
+    status: partial
+    evidence:
+      - DB-backed evidence lifecycle L4-L6 design gap closed in current phase
+      - L7 DB-backed evidence lifecycle unit-test design and implementation connection ticketed as add-feature-2026-06-10-db-backed-evidence-lifecycle-l7
+      - docs/v2/L7-test-design/feedback-loop-adoption-audit.yaml
+      - docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+      - helix harness feedback-loop emits route, learning, PLAN, and PR candidates
+      - events/metrics/feedback append-light behavior without schema migration
+    remaining:
+      - candidate adoption must be traced back to PLAN/PR/gate evidence.
+      - detector/gate body changes need separate PLAN and TL confirmation.
+  - id: REQ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+    requirement: Find feasible improvements not originally defined.
+    status: partial
+    discovery_status: achieved_local
+    adoption_status: not_adopted
+    evidence:
+      - docs/v2/L7-test-design/additional-improvement-discovery.yaml
+      - route adapter backlog
+      - L2-L10 ui_absent waiver revalidation backlog
+      - feedback candidate adoption materialization backlog
+      - CI gate surface hardening backlog
+      - schema-backed detector history backlog
+    remaining:
+      - discovered candidates must be accepted and implemented via separate PLANs before they count as closure.
+  - id: REQ-WEB-EVIDENCE
+    requirement: Use Web search and official evidence.
+    status: achieved_local
+    evidence:
+      - ISO/IEC/IEEE 12207:2026 official ISO page
+      - ISO/IEC/IEEE 29148:2018 official ISO page with revision watch
+      - IEEE P1012 official IEEE page
+      - NIST SP 800-218 official NIST page
+      - OWASP SAMM official model page
+      - SLSA v1.2 official specification page
+      - OpenTelemetry official signals page
+      - OpenSSF Scorecard official page
+      - MCP official specification
+      - GitHub MCP Server official documentation
+      - Semgrep CE official documentation
+      - GitHub CodeQL official documentation
+    remaining:
+      - refresh watch evidence when standards status changes.
+  - id: REQ-GOAL-COMPLETION
+    requirement: Full objective is genuinely complete.
+    status: incomplete
+    evidence:
+      - strict full-flow overall_clean=false
+      - deferred_count=4
+      - G8/G9/G12/G14 implemented=false passed=false
+    remaining:
+      - implement and pass all right-arm execution gates.
+      - close CI and feedback adoption completion guards.
+allowed_statuses:
+  - achieved_local
+  - partial
+  - incomplete
+forbidden_completion_shortcuts:
+  - Do not treat default VG-overview overall_clean=true as full L0-L14 completion.
+  - Do not treat plan_candidates or pr_candidates as adopted improvements.
+  - Do not treat right-arm PLAN materialization as gate pass evidence.
+  - Do not edit out-of-scope implementation files under the current handover.

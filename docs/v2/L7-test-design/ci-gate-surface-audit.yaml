@@ -1,0 +1,75 @@
+schema_version: ci_gate_surface_audit_v1
+owner: TL
+status: partial_local_gate_surface_only
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_right_arm_request: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+source_ci_equivalent_readiness: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+purpose: >
+  Keep local L6 focus gate evidence separate from strict full-flow carry and
+  prevent local doctor/push gate success from being treated as CI or full-flow
+  completion.
+local_gate_surface:
+  doctor_gate:
+    command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json
+    pass: 33
+    fail: 0
+    warn: 103
+    interpretation: Local gate surface has no fail, but warnings remain advisory.
+  vg_overview_default:
+    command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
+    overall_clean: true
+    focus: L6
+    interpretation: L6 focus clean only.
+  strict_full_flow:
+    command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    overall_clean: false
+    deferred_count: 4
+    deferred_gates:
+      - G8
+      - G9
+      - G12
+      - G14
+    interpretation: Full-flow completion is not achieved.
+  push_gate_surface:
+    documented: true
+    command: helix push --gate
+    gate_id: G-vg-overview
+    evidence:
+      - docs/commands/push.md
+      - docs/commands/pr.md
+      - cli/lib/tests/test_push_gate.py
+      - cli/tests/helix-doctor-json.bats
+ci_surface:
+  required_for_goal_completion: true
+  ci_or_equivalent_connected: false
+  reason: No CI or equivalent required surface evidence is recorded for enforcing the remaining full-flow carry.
+  required_next:
+    - Connect the CI or equivalent local required gate surface defined in docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml.
+    - Keep L6 focus gate green without hiding strict full-flow deferred gates.
+    - Require strict full-flow overall_clean=true after G8/G9/G12/G14 pass.
+    - Record CI/equivalent run evidence in PLAN/PR/gate evidence and HELIX DB feedback loop.
+completion_boundary:
+  local_doctor_gate_pass_is_goal_completion: false
+  push_gate_documentation_is_ci_completion: false
+  strict_full_flow_required_before_completion: true
+  right_arm_deferred_gates_must_close: true
+safety:
+  schema_migration: false
+  auto_apply: false
+  writes_detector_or_gate: false
+  infrastructure_change: false
+  requires_human_confirmation_for_ci_change: true
+verification_contracts:
+  - surface: doctor_json_bats
+    command: bats cli/tests/helix-doctor-json.bats
+    proves:
+      - helix-doctor --gate --json reports VG-overview pre-push consistently with default VG-overview cleanliness.
+  - surface: push_gate_pytest
+    command: python3 -m pytest cli/lib/tests/test_push_gate.py -q
+    proves:
+      - G-vg-overview blocks dirty required-clean findings.
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - local gate surface does not count as CI or full-flow completion.

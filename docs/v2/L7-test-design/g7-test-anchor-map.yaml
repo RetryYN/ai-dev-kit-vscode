@@ -80,8 +80,16 @@ anchors:
     - cli/tests/test-wsc-hook-posttooluse-skill-catalog-rebuild.bats
   UT-WSC-06:
     - cli/tests/test-wsc-hook-precompact-state-snapshot.bats
+  UT-WSC-07:
+    - cli/tests/test-wsc-hooks-pretooluse-agent-and-design-guards.bats
+  UT-WSC-08:
+    - cli/tests/test-wsc-hooks-pretooluse-agent-and-design-guards.bats
   UT-WSC-09:
     - cli/lib/tests/test_pretooluse_askuserquestion.py
+  UT-WSC-10:
+    - cli/tests/test-wsc-hooks-pretooluse-agent-and-design-guards.bats
+  UT-WSC-11:
+    - cli/tests/test-wsc-hooks-pretooluse-agent-and-design-guards.bats
   UT-WSC-12:
     - cli/tests/test-wsc-hook-pretooluse-opus-repo-block.bats
   UT-WSC-13:

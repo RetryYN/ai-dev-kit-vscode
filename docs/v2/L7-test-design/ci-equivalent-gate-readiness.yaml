@@ -1,0 +1,98 @@
+schema_version: ci_equivalent_gate_readiness_v1
+owner: TL
+status: ready_to_connect_not_connected
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_ci_gate_surface_audit: docs/v2/L7-test-design/ci-gate-surface-audit.yaml
+source_closure_plan: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+purpose: >
+  Define the minimum CI or equivalent required gate surface that must exist
+  before full L0-L14 completion can be claimed, while keeping the current
+  handover from changing CI or infrastructure files.
+readiness_boundary:
+  equivalent_surface_defined: true
+  ci_or_equivalent_connected: false
+  required_run_aggregation_implemented: false
+  strict_full_flow_clean: false
+  goal_complete_allowed: false
+  reason: The required command set and evidence contract are defined, but no CI or equivalent required runner has adopted and recorded the bundle.
+required_gate_bundle:
+  name: helix-full-flow-required-gate
+  trigger_policy:
+    local_equivalent: allowed
+    ci_required: allowed_after_human_confirmation
+    current_scope_connects_ci: false
+  commands:
+    - id: requirement_drift_l6
+      command: helix doctor check_requirement_drift --json
+      required_assertions:
+        - clean=true
+        - focus=L6
+        - blocking_findings=0
+    - id: l0_l14_contract_pytest
+      command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+      required_assertions:
+        - all tests pass
+        - manifest boundaries remain machine-readable
+    - id: l0_l14_contract_bats
+      command: bats cli/tests/test-helix-l0-l14-flow-contract.bats
+      required_assertions:
+        - all tests pass
+        - Bats surface matches pytest contract
+    - id: feedback_loop_bats
+      command: bats cli/tests/test-helix-harness-feedback-loop.bats
+      required_assertions:
+        - isolated HELIX DB events/metrics/feedback append succeeds
+        - deferred gate candidates remain tied to right-arm manifest
+    - id: strict_full_flow
+      command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+      required_assertions:
+        - overall_clean=true
+        - deferred_count=0
+        - deferred_gates=[]
+evidence_contract:
+  required_record_fields:
+    - run_id
+    - runner_type
+    - command_id
+    - command
+    - exit_code
+    - started_at
+    - completed_at
+    - artifact_or_log_path
+    - parsed_assertions
+    - helix_db_event_id
+  adoption_locations:
+    - PLAN evidence
+    - PR or local review evidence
+    - HELIX DB events/metrics/feedback
+    - goal completion audit
+connection_acceptance:
+  - required gate bundle runs as one required CI job or one documented local equivalent runner.
+  - every command_id records pass/fail and parsed assertions.
+  - strict_full_flow reports overall_clean=true and deferred_count=0 after G8/G9/G12/G14 close.
+  - HELIX DB feedback-loop records the run result and recurrence detection state.
+  - goal-completion-audit flips CI_or_equivalent_gate_surface_connected only after evidence exists.
+safety:
+  schema_migration: false
+  infrastructure_change: false
+  ci_workflow_change: false
+  external_api_or_credentials: false
+  destructive_data_operation: false
+  requires_human_confirmation_for_ci_workflow_change: true
+non_goals_under_current_handover:
+  - editing GitHub Actions or other CI workflow files
+  - adding credentials, secrets, or external service tokens
+  - changing HELIX DB schema
+  - treating this readiness definition as connected evidence
+completion_boundary:
+  readiness_manifest_is_goal_completion: false
+  local_command_pass_without_aggregation_is_ci_completion: false
+  ci_or_equivalent_connected: false
+  all_right_arm_gates_must_pass_first: true
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - CI/equivalent readiness remains defined but not connected
+      - required command bundle includes L6 drift, L0-L14 contracts, feedback loop, and strict full-flow

@@ -1,0 +1,117 @@
+schema_version: full_flow_activation_ledger_v1
+owner: TL
+status: current_scope_ready_for_expansion
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+sources:
+  objective_evidence_matrix: docs/v2/L7-test-design/objective-evidence-matrix.yaml
+  right_arm_closure_plan: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+  right_arm_handover_request: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+  ci_equivalent_readiness: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+  feedback_closure_readiness: docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+  ui_absent_revalidation: docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
+  additional_improvement_discovery: docs/v2/L7-test-design/additional-improvement-discovery.yaml
+  remaining_guard_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+  harness_external_tools_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+purpose: >
+  Aggregate the current-scope completion evidence and show exactly what remains
+  before the user-requested L0-L14 full-flow objective can be completed.
+current_scope_summary:
+  l6_focus_clean: true
+  requirement_drift_clean: true
+  g7_subcheck_closed: true
+  web_evidence_recorded: true
+  codex_claude_guard_parity_recorded: true
+  right_arm_readiness_defined: true
+  ci_equivalent_readiness_defined: true
+  feedback_adoption_readiness_defined: true
+  remaining_guard_feature_plan_defined: true
+  ui_absent_revalidation_defined: true
+  objective_evidence_matrix_defined: true
+  harness_external_tools_feature_plan_defined: true
+  full_goal_complete_allowed: false
+remaining_completion_guards:
+  - id: strict_full_flow_overall_clean_true
+    current_status: incomplete
+    current_evidence: strict full-flow overall_clean=false
+    required_next: Implement and pass G8/G9/G12/G14 execution gates.
+    readiness_source: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+  - id: G8_G9_G12_G14_gate_implemented_and_passed
+    current_status: incomplete
+    current_evidence: deferred_count=4
+    required_next: Expand handover scope to requested implementation files and close each deferred pair.
+    readiness_source: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+  - id: CI_or_equivalent_gate_surface_connected
+    current_status: defined_not_connected
+    current_evidence: ci_or_equivalent_connected=false
+    required_next: Adopt helix-full-flow-required-gate as CI job or documented local equivalent runner.
+    readiness_source: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+  - id: feedback_candidates_adopted_back_to_PLAN_PR_gate_evidence
+    current_status: defined_not_closed
+    current_evidence: candidates generated and DB snapshot registered, but plan_or_pr_adopted=false
+    required_next: Promote candidate through PLAN/PR/local review, gate evidence, CI/equivalent run, HELIX DB event, and recurrence closure.
+    readiness_source: docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+  - id: additional_improvement_candidates_adopted_if_selected
+    current_status: discovered_not_adopted
+    current_evidence: Web-backed improvement candidates recorded, but plan_or_pr_adopted=false
+    required_next: Promote selected candidates through approved PLAN, implementation, gate evidence, and HELIX DB feedback.
+    readiness_source: docs/v2/L7-test-design/additional-improvement-discovery.yaml
+  - id: HARNESS_external_tools_approved_and_connected_if_selected
+    current_status: feature_ticketed_not_installed
+    current_evidence: MCP/GitHub MCP/Semgrep CE/CodeQL candidates researched and feature-ticketed; external_tool_installation_allowed_now=false
+    required_next: Approve selected tools, implement HARNESS registry/allowlist/run evidence, and record HELIX DB feedback.
+    readiness_source: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  - id: L2_L10_ui_absent_waiver_revalidated_or_unskipped_when_UI_exists
+    current_status: revalidated_currently_not_applicable
+    current_evidence: L2-L10 not_applicable reason=ui_absent with explicit unskip triggers
+    required_next: Reopen L2/L10 if official docs site, UI, TUI, visual mock, dashboard, or downstream product screens exist.
+    readiness_source: docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
+activation_sequence_after_scope_expansion:
+  - order: 1
+    action: Activate right-arm execution gate implementation scope.
+    source: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+    exit: G8/G9/G12/G14 absent from strict full-flow deferred_pairs.
+  - order: 2
+    action: Connect CI or equivalent required gate bundle.
+    source: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+    exit: helix-full-flow-required-gate records all command assertions with run evidence.
+  - order: 3
+    action: Close feedback adoption evidence.
+    source: docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+    exit: feedback_closed evidence references candidate ID, PLAN/PR, gate evidence, CI/equivalent run, HELIX DB event, and recurrence status.
+  - order: 4
+    action: Adopt selected additional improvement candidates.
+    source: docs/v2/L7-test-design/additional-improvement-discovery.yaml
+    exit: selected candidates have approved PLAN, implementation, gate evidence, and HELIX DB feedback records.
+  - order: 5
+    action: Connect approved HARNESS external tools.
+    source: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    exit: approved tools have registry entries, allowlist status, run evidence, and no unapproved credential/network execution.
+  - order: 6
+    action: Revalidate L2-L10 ui_absent waiver or unskip if UI exists.
+    source: docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
+    exit: waiver remains valid or L2/L10 artifacts are created and traced.
+  - order: 7
+    action: Run final completion audit.
+    source: docs/v2/L7-test-design/goal-completion-audit.yaml
+    exit: every requirement status is achieved with direct evidence and no deferred guard remains.
+current_scope_non_completion_boundary:
+  readiness_manifests_are_goal_completion: false
+  scope_expansion_request_is_goal_completion: false
+  candidate_generation_is_goal_completion: false
+  local_l6_focus_clean_is_full_flow_completion: false
+  completion_requires_external_or_expanded_scope: true
+safety:
+  schema_migration: false
+  destructive_data_operation: false
+  auth_or_pii_change: false
+  external_api_or_infrastructure_change: false
+  auto_apply_feedback_candidates: false
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - activation ledger references every remaining completion guard
+      - current scope is ready for expansion but not complete
+      - objective evidence matrix is connected to the completion guard ledger
+      - activation sequence is ordered and grounded in machine-readable readiness sources

@@ -1,0 +1,121 @@
+schema_version: feedback_loop_adoption_audit_v1
+owner: TL
+status: partial_candidate_generated
+updated: 2026-06-10
+source_test_design: docs/v2/L7-test-design/deferred-gate-adoption-単体テスト設計.md
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_feedback_closure_readiness: docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+command_surfaces:
+  json_snapshot: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix harness feedback-loop --json --days 30
+  text_snapshot: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix harness feedback-loop --days 1
+  isolated_bats: bats cli/tests/test-helix-harness-feedback-loop.bats
+current_capabilities:
+  top_level_harness_routed: true
+  json_schema: helix_harness_feedback_loop_snapshot_v1
+  emits_route_candidates: true
+  emits_learning_candidates: true
+  emits_plan_candidates: true
+  emits_pr_candidates: true
+  appends_events_metrics_feedback: true
+  registers_missing_feedback_input: true
+  reads_strict_vg_overview: true
+  strict_vg_deferred_count: 4
+  strict_vg_deferred_gates:
+    - G8
+    - G9
+    - G12
+    - G14
+  not_applicable_pair_waivers:
+    - L2-L10
+captured_snapshot:
+  captured_on: 2026-06-10
+  command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix harness feedback-loop --json --days 30
+  schema_version: helix_harness_feedback_loop_snapshot_v1
+  window_days: 30
+  counts:
+    automation_running: 1
+    hook_warn_fail: 150
+    harness_warning_critical: 0
+    feedback: 1
+    events: 151
+    metrics: 1043
+    verify_runs: 1
+  candidate_counts:
+    route_candidates: 20
+    learning_candidates: 8
+    plan_candidates: 20
+    pr_candidates: 8
+  vg_overview:
+    available: true
+    overall_clean: false
+    enforced: true
+    deferred_count: 4
+    deferred_gates:
+      - G8
+      - G9
+      - G12
+      - G14
+    not_applicable_count: 1
+  pr_candidate_source_pattern_keys:
+    - feedback:feedback_pattern
+    - hook_events:detector_pattern
+    - automation_runs:automation_running_pattern
+    - vg_overview:full_flow_deferred_execution_gate
+    - vg_overview:not_applicable_pair_waiver
+  safety:
+    schema_migration: false
+    auto_apply: false
+    writes_detector_or_gate: false
+source_categories_required:
+  - automation_runs:automation_running_pattern
+  - events/metrics:missing_observability_input
+  - feedback:missing_feedback_input
+  - harness_check_events:harness_warning_pattern
+  - hook_events:detector_pattern
+  - verify_runs:missing_verify_input
+  - vg_overview:full_flow_deferred_execution_gate
+  - vg_overview:not_applicable_pair_waiver
+safety:
+  schema_migration: false
+  auto_apply: false
+  writes_detector_or_gate: false
+  destructive_data_operation: false
+  external_api_or_infrastructure_change: false
+adoption_boundary:
+  candidate_generated: true
+  db_snapshot_registered: true
+  plan_or_pr_adopted: false
+  gate_evidence_closed: false
+  feedback_closed: false
+  goal_complete_allowed: false
+  reason: plan_candidates and pr_candidates are adoption proposals, not accepted closure evidence.
+completion_requirements:
+  - adoption chain follows docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml.
+  - candidate is promoted to PLAN with owner, allowed_files, acceptance, rollback, and evidence.
+  - PR or local change implements the approved PLAN without auto-apply.
+  - gate evidence proves the corresponding deferred pair disappeared.
+  - HELIX DB events/metrics/feedback record adoption result and recurrence-detection closure.
+  - strict full-flow command reports overall_clean=true.
+non_goals_under_current_handover:
+  - gate or detector body edits
+  - DB schema migration
+  - automatic application of plan_candidates or pr_candidates
+  - destructive DB/data operation
+verification_contracts:
+  - surface: pytest
+    command: python3 -m pytest cli/lib/tests/test_harness_monitor_unit.py -q
+    proves:
+      - snapshot schema and candidate categories
+      - missing feedback auto-registration behavior
+      - event/metric payload shape
+  - surface: bats
+    command: bats cli/tests/test-helix-harness-feedback-loop.bats
+    proves:
+      - top-level command routing
+      - isolated DB events/metrics/feedback append
+      - strict VG deferred pairs match right-arm adoption manifest
+      - safety flags remain false
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - feedback-loop adoption audit remains partial until accepted evidence exists

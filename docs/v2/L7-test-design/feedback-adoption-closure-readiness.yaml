@@ -1,0 +1,109 @@
+schema_version: feedback_adoption_closure_readiness_v1
+owner: TL
+status: ready_to_adopt_not_closed
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_feedback_loop_audit: docs/v2/L7-test-design/feedback-loop-adoption-audit.yaml
+source_ci_equivalent_readiness: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+purpose: >
+  Define the evidence chain required before HELIX DB feedback-loop candidates
+  can count as adopted improvements and full-flow closure evidence.
+readiness_boundary:
+  candidates_generated: true
+  db_snapshot_registered: true
+  adoption_chain_defined: true
+  plan_or_pr_adopted: false
+  gate_evidence_closed: false
+  feedback_closed: false
+  goal_complete_allowed: false
+  reason: Candidate generation and DB snapshot registration exist, but no candidate has been promoted through PLAN/PR/gate evidence and recurrence closure.
+adoption_chain:
+  - order: 1
+    state: candidate_generated
+    evidence_required:
+      - feedback-loop snapshot includes route_candidates, learning_candidates, plan_candidates, or pr_candidates.
+      - candidate source category maps to a detector, gate, or workflow signal.
+    completion_value: proposal_only
+  - order: 2
+    state: plan_materialized
+    evidence_required:
+      - PLAN or task-plan records owner, allowed_files, acceptance, rollback, and verification commands.
+      - candidate source IDs are copied into PLAN evidence.
+      - no auto-apply is used.
+    completion_value: not_closure
+  - order: 3
+    state: implementation_adopted
+    evidence_required:
+      - approved files are changed under active handover scope.
+      - tests for changed detector, gate, harness, or docs contract pass.
+      - out-of-scope files are not changed without a new handover or interrupt.
+    completion_value: implementation_evidence_only
+  - order: 4
+    state: gate_evidence_closed
+    evidence_required:
+      - relevant gate output proves the original finding is absent or changed to a closed status.
+      - strict full-flow evidence reflects the adopted change when applicable.
+      - CI or equivalent run records parsed assertions for the adopted change.
+    completion_value: gate_closure_evidence
+  - order: 5
+    state: feedback_closed
+    evidence_required:
+      - HELIX DB events/metrics/feedback record candidate ID, adopted PLAN/PR reference, gate evidence, and recurrence status.
+      - recurrence detection marks the same signal closed or monitored with an owner.
+      - goal-completion-audit records the adopted evidence only after the previous states pass.
+    completion_value: closure_candidate
+required_record_fields:
+  - candidate_id
+  - source_category
+  - source_signal_id
+  - plan_id
+  - owner
+  - allowed_files
+  - acceptance
+  - rollback
+  - implementation_ref
+  - verification_commands
+  - gate_evidence_ref
+  - ci_or_equivalent_run_id
+  - helix_db_event_id
+  - recurrence_status
+  - closed_at
+candidate_sources_in_scope:
+  - vg_overview:full_flow_deferred_execution_gate
+  - vg_overview:not_applicable_pair_waiver
+  - feedback:missing_feedback_input
+  - events/metrics:missing_observability_input
+  - harness_check_events:harness_warning_pattern
+  - hook_events:detector_pattern
+  - verify_runs:missing_verify_input
+completion_acceptance:
+  - feedback-loop output references the adopted candidate ID and source category.
+  - PLAN/PR/local review evidence references the same candidate ID.
+  - gate output proves the finding closed or moved to monitored status with owner.
+  - CI or equivalent required gate records the adopted evidence.
+  - HELIX DB feedback record stores recurrence_status=closed or monitored_with_owner.
+safety:
+  schema_migration: false
+  destructive_data_operation: false
+  auto_apply_feedback_candidates: false
+  detector_or_gate_body_change: false
+  external_api_or_infrastructure_change: false
+  auth_or_pii_change: false
+non_goals_under_current_handover:
+  - editing detector, gate, harness, or database code
+  - changing HELIX DB schema
+  - auto-applying plan_candidates or pr_candidates
+  - marking feedback_closed without PLAN/PR/gate evidence
+completion_boundary:
+  candidate_generated_is_goal_completion: false
+  db_snapshot_registered_is_goal_completion: false
+  plan_materialized_is_goal_completion: false
+  feedback_closed_requires_gate_and_ci_evidence: true
+  goal_complete_allowed: false
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - adoption chain is ordered from candidate generation to feedback closure
+      - candidate generation remains distinct from closure
+      - required record fields include PLAN, gate, CI/equivalent, HELIX DB, and recurrence evidence

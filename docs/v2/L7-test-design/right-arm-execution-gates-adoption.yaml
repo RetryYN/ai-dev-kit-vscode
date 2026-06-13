@@ -1,0 +1,188 @@
+schema_version: right_arm_execution_gate_adoption_v1
+owner: TL
+status: plan_materialized
+source_test_design: docs/v2/L7-test-design/right-arm-execution-gates-単体テスト設計.md
+source_roadmap: docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md
+completion_guard:
+  strict_full_flow_required: true
+  required_clean_command: helix doctor check_vg_overview --strict-full-flow --json
+  required_overall_clean: true
+  current_overall_clean: false
+  current_deferred_count: 4
+  goal_complete_allowed: false
+safety:
+  schema_migration: false
+  auto_apply: false
+  writes_detector_or_gate: false
+  requires_tl_confirmation_for_gate_implementation: true
+external_standard_evidence:
+  - source_id: ISO-12207-2026
+    source_name: ISO/IEC/IEEE 12207:2026
+    official_url: https://www.iso.org/standard/90219.html
+    confirmed_version: Edition 2
+    confirmed_status: Published; publication date 2026-04; stage 60.60
+    control_relevance: full_lifecycle_and_process_improvement
+    helix_mapping: L0-L14 full lifecycle, including operation, support, retirement, and improvement.
+  - source_id: ISO-29148-2018
+    source_name: ISO/IEC/IEEE 29148:2018
+    official_url: https://www.iso.org/standard/72089.html
+    confirmed_version: Edition 2
+    confirmed_status: Published 2018-11; stage 90.92 to be revised as of 2026-02-16.
+    control_relevance: requirements_engineering_information_items
+    helix_mapping: L1-L6 requirements-to-design trace, required information items, and requirement_drift closure.
+  - source_id: IEEE-P1012
+    source_name: IEEE 1012 / P1012 V&V
+    official_url: https://standards.ieee.org/ieee/1012/12536/
+    confirmed_version: Active PAR
+    confirmed_status: Standard for System, Software, and Hardware Verification and Validation.
+    control_relevance: paired_verification_and_validation
+    helix_mapping: L6-L7 through L1-L14 pair gates must close with execution evidence, not design-only evidence.
+  - source_id: NIST-SP-800-218
+    source_name: NIST SP 800-218 SSDF v1.1
+    official_url: https://csrc.nist.gov/pubs/sp/800/218/final
+    confirmed_version: Version 1.1
+    confirmed_status: Final; date published 2022-02.
+    control_relevance: secure_software_development_practices
+    helix_mapping: Security requirements and unit/integration/acceptance/operational gates must keep vulnerability prevention and recurrence feedback in scope.
+current_handover_scope:
+  sufficient_for_gate_implementation: false
+  allowed_now:
+    - docs/v2/L7-test-design/
+    - cli/lib/tests/
+    - cli/tests/
+  reason: gate implementation files are outside current handover Next Action
+adoption_states:
+  - candidate_generated
+  - plan_materialized
+  - gate_implemented
+  - gate_passed
+  - ci_enforced
+  - feedback_closed
+gates:
+  - gate_id: G8
+    pair: L5-L8
+    source_layer: L5
+    target_layer: L8
+    plan_id: PLAN-G8-INTEGRATION-EXECUTION-GATE
+    handover_scope_sufficient: false
+    handover_required_expansion:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - docs/v2/L8-test-design/
+    allowed_implementation_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/tests/helix-doctor-json.bats
+      - docs/v2/L8-test-design/
+    current_state: plan_materialized
+    implemented: false
+    passed: false
+    deferred_reason: execution_gate_not_implemented
+    must_disappear: L5-L8 execution_gate_not_implemented
+    evidence_required:
+      - integration test execution evidence
+      - L5-L8 trace closure
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+      - bats cli/tests/helix-doctor-json.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    acceptance_exit_condition: G8 removed from strict full-flow deferred_pairs
+    rollback_state: approved_deferred
+  - gate_id: G9
+    pair: L4-L9
+    source_layer: L4
+    target_layer: L9
+    plan_id: PLAN-G9-SYSTEM-EXECUTION-GATE
+    handover_scope_sufficient: false
+    handover_required_expansion:
+      - cli/lib/vg_overview.py
+      - cli/lib/trace_symmetry.py
+      - cli/helix-doctor
+      - docs/v2/L9-test-design/
+    allowed_implementation_files:
+      - cli/lib/vg_overview.py
+      - cli/lib/trace_symmetry.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/lib/tests/test_trace_symmetry.py
+      - docs/v2/L9-test-design/
+    current_state: plan_materialized
+    implemented: false
+    passed: false
+    deferred_reason: execution_gate_not_implemented
+    semantic_evidence_required: semantic_excluded_orphan=18
+    must_disappear: L4-L9 execution_gate_not_implemented
+    evidence_required:
+      - system test execution evidence
+      - L4-L9 trace closure
+      - semantic_excluded_orphan=18 remains justified
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_trace_symmetry.py -q
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    acceptance_exit_condition: G9 removed from strict full-flow deferred_pairs while semantic_excluded_orphan=18 remains justified
+    rollback_state: approved_deferred
+  - gate_id: G12
+    pair: L3-L12
+    source_layer: L3
+    target_layer: L12
+    plan_id: PLAN-G12-ACCEPTANCE-EXECUTION-GATE
+    handover_scope_sufficient: false
+    handover_required_expansion:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - docs/v2/L12-test-design/
+    allowed_implementation_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-doctor
+      - cli/lib/tests/test_vg_overview.py
+      - cli/tests/helix-doctor-json.bats
+      - docs/v2/L12-test-design/
+    current_state: plan_materialized
+    implemented: false
+    passed: false
+    deferred_reason: execution_gate_not_implemented
+    must_disappear: L3-L12 execution_gate_not_implemented
+    evidence_required:
+      - acceptance test execution evidence
+      - L3-L12 trace closure
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+      - bats cli/tests/helix-doctor-json.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    acceptance_exit_condition: G12 removed from strict full-flow deferred_pairs
+    rollback_state: approved_deferred
+  - gate_id: G14
+    pair: L1-L14
+    source_layer: L1
+    target_layer: L14
+    plan_id: PLAN-G14-OPERATIONAL-LEARNING-GATE
+    handover_scope_sufficient: false
+    handover_required_expansion:
+      - cli/lib/vg_overview.py
+      - cli/helix-harness
+      - cli/lib/harness_monitor.py
+      - docs/v2/L14-test-design/
+    allowed_implementation_files:
+      - cli/lib/vg_overview.py
+      - cli/helix-harness
+      - cli/lib/harness_monitor.py
+      - cli/lib/tests/test_vg_overview.py
+      - cli/lib/tests/test_harness_monitor_unit.py
+      - cli/tests/test-helix-harness-feedback-loop.bats
+      - docs/v2/L14-test-design/
+    current_state: plan_materialized
+    implemented: false
+    passed: false
+    deferred_reason: execution_gate_not_implemented
+    must_disappear: L1-L14 execution_gate_not_implemented
+    evidence_required:
+      - operational test execution evidence
+      - operational learning evidence
+      - HELIX DB events metrics feedback adoption result
+    verification_commands:
+      - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_harness_monitor_unit.py -q
+      - bats cli/tests/test-helix-harness-feedback-loop.bats
+      - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    acceptance_exit_condition: G14 removed from strict full-flow deferred_pairs and feedback_closed evidence recorded
+    rollback_state: approved_deferred

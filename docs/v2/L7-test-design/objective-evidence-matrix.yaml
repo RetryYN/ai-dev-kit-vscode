@@ -1,0 +1,230 @@
+schema_version: objective_evidence_matrix_v1
+owner: TL
+status: current_scope_audited_not_complete
+updated: 2026-06-12
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_activation_ledger: docs/v2/L7-test-design/full-flow-activation-ledger.yaml
+source_web_evidence_map: docs/v2/L7-test-design/web-evidence-source-map.yaml
+purpose: >
+  Map each explicit user objective clause to direct current-state evidence,
+  completion status, and remaining proof needed before the overall goal can be
+  marked complete.
+objective_items:
+  - id: OBJ-REQ-GAP-L6
+    user_clause: audit existing assets for requirement definition gaps through L6
+    status: achieved_local
+    proof_level: command_backed
+    evidence:
+      - command: helix doctor check_requirement_drift --json
+        expected:
+          clean: true
+          focus: L6
+          requirements: 31
+          design_links: 31
+          blocking_findings: 0
+          advisory_findings: 0
+      - command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
+        expected:
+          overall_clean: true
+          interpretation: L6 focus only
+    remaining_for_full_goal:
+      - Keep strict full-flow completion separate from L6 focus evidence.
+  - id: OBJ-GRANULARITY-L1-L6
+    user_clause: balance design and test-design granularity from L1 through L6
+    status: achieved_local
+    proof_level: trace_backed
+    evidence:
+      - command: trace_symmetry.collect_trace_symmetry(REPO_ROOT)
+        expected:
+          coverage_pct: 100.0
+          missing_pair: 0
+          orphan_test: 0
+          checked_pairs:
+            - L1-L14
+            - L3-L12
+            - L4-L9
+            - L5-L8
+            - L6-L7
+      - artifact: docs/v2/L7-test-design/goal-completion-audit.yaml
+        expected:
+          requirement_id: REQ-L1-L6-GRANULARITY-BALANCE
+          status: achieved_local
+    remaining_for_full_goal:
+      - G9 must still prove system-test execution before full closure.
+  - id: OBJ-CODEX-CLAUDE-GUARD-PARITY
+    user_clause: fix guards that work in ClaudeCode but not Codex
+    status: achieved_local
+    proof_level: test_backed
+    evidence:
+      - artifact: cli/lib/tests/test_codex_post_validation.py
+      - artifact: cli/tests/test-helix-codex-write-audit.bats
+      - artifact: helix/CODEX_RUNTIME_ADAPTER.md
+    remaining_for_full_goal:
+      - Continue monitoring future Claude hooks for Codex equivalents.
+  - id: OBJ-DDD-TDD-AUTO-GOVERNANCE
+    user_clause: >
+      register coding rules and DDD documents mechanically, strict TDD order,
+      automatic trouble/regression detection, dependency visibility, impact
+      analysis, and development bottleneck correction.
+    status: partial
+    proof_level: design_and_registry_backed
+    design_gap_status: L6_code16_specs_closed_current_phase_no_l7_artifacts
+    evidence:
+      - artifact: docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+      - artifact: docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+      - artifact: docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - artifact: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - artifact: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - artifact: cli/config/coding-rule-registry.yaml
+      - artifact: cli/config/ddd-registry.yaml
+      - artifact: cli/config/functional-registry.yaml
+    remaining_for_full_goal:
+      - TDD order guard must be connected to implementation/gate/CI evidence under an approved L7 or later scope.
+      - Impact query CLI and dependency graph execution must be connected under an approved L7 or later scope.
+      - Forward return event writer / mode closure DB schema must be connected under an approved L7 or later scope.
+      - Gate verdict body and doctor / push / CI gate connections must be connected under an approved L7 or later scope.
+      - Drift routing, 4 artifact trace audit, and change propagation ratchet execution must be connected under an approved L7 or later scope.
+      - Guardrail enforcement, doctor aggregation, 9-mode routing, and context bundle injection must be connected under an approved L7 or later scope.
+      - NSM score view, migration/retrofit control execution, and doc-review coverage enforcement must be connected under an approved L7 or later scope.
+      - Asset inventory and PLAN auto-registration execution must be connected under an approved L7 or later scope.
+      - Registry and external tool findings must be adopted through PLAN/PR/gate evidence before closure.
+  - id: OBJ-WORKFLOW-AUTOMATION
+    user_clause: review workflows and improve automation basis
+    status: partial
+    proof_level: manifest_backed
+    evidence:
+      - artifact: docs/v2/L7-test-design/ci-gate-surface-audit.yaml
+      - artifact: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml
+      - artifact: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+      - artifact: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
+    remaining_for_full_goal:
+      - Connect CI or equivalent required gate surface.
+      - Implement and pass G8/G9/G12/G14 execution gates under expanded scope.
+  - id: OBJ-HARNESS-EXTERNAL-TOOLS
+    user_clause: research and expand what MCP servers, plugins, and external tools can do when installed through HARNESS
+    status: partial
+    proof_level: web_and_plan_backed
+    design_gap_status: L4_L6_closed_L7_feature_ticketed
+    evidence:
+      - artifact: docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - artifact: docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - artifact: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - artifact: docs/v2/audit/2026-06-10-harness-external-tools-impact-scope-audit.md
+      - artifact: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      - official_source: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+      - official_source: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+      - official_source: https://docs.semgrep.dev/deployment/oss-deployment
+      - official_source: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    remaining_for_full_goal:
+      - Approve selected tools with license/auth/credential/network boundaries.
+      - Implement HARNESS registry, allowlist, run evidence, and HELIX DB feedback ingestion.
+      - Keep external tool candidates advisory until PLAN/implementation/gate evidence exists.
+  - id: OBJ-HELIX-DB-FEEDBACK
+    user_clause: ensure HELIX DB auto-registration, trouble detection, and improvement feedback loop
+    status: partial
+    proof_level: runtime_and_manifest_backed
+    design_gap_status: L4_L6_closed_L7_feature_ticketed
+    evidence:
+      - artifact: docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - artifact: docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - artifact: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - artifact: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - command: helix harness feedback-loop --json --days 30
+        expected:
+          emits_route_candidates: true
+          emits_learning_candidates: true
+          emits_plan_candidates: true
+          emits_pr_candidates: true
+          appends_events_metrics_feedback: true
+      - artifact: docs/v2/L7-test-design/feedback-loop-adoption-audit.yaml
+      - artifact: docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml
+    remaining_for_full_goal:
+      - Promote candidates through PLAN/PR, gate evidence, CI/equivalent run, HELIX DB event, and recurrence closure.
+  - id: OBJ-WEB-EVIDENCE
+    user_clause: use Web search and official evidence
+    status: achieved_local
+    proof_level: web_evidence_backed
+    evidence:
+      - artifact: docs/v2/L7-test-design/web-evidence-source-map.yaml
+      - official_source: https://www.iso.org/standard/90219.html
+      - official_source: https://www.iso.org/standard/72089.html
+      - official_source: https://standards.ieee.org/ieee/1012/12536/
+      - official_source: https://csrc.nist.gov/pubs/sp/800/218/final
+      - official_source: https://owaspsamm.org/model/
+      - official_source: https://slsa.dev/spec/v1.2/
+      - official_source: https://opentelemetry.io/docs/concepts/signals/
+      - official_source: https://openssf.org/scorecard/
+      - official_source: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+      - official_source: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+      - official_source: https://docs.semgrep.dev/deployment/oss-deployment
+      - official_source: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    remaining_for_full_goal:
+      - Refresh watch evidence when standards status changes.
+  - id: OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+    user_clause: find feasible improvements not in the original definition
+    status: achieved_local
+    proof_level: web_evidence_backed
+    discovery_status: discovered_not_adopted
+    adoption_status: not_adopted
+    evidence:
+      - artifact: docs/v2/L7-test-design/additional-improvement-discovery.yaml
+      - candidate: IMP-SEC-MATURITY-SAMM-MAP
+      - candidate: IMP-SUPPLY-CHAIN-SLSA-PROVENANCE
+      - candidate: IMP-OBSERVABILITY-SIGNAL-TAXONOMY
+      - candidate: IMP-REPO-SECURITY-SCORECARD
+      - candidate: IMP-HARNESS-MCP-ADMISSION-GATE
+      - candidate: IMP-HARNESS-SEMGREP-CE-SAST
+      - candidate: IMP-HARNESS-CODEQL-IMPACT
+    remaining_for_full_goal:
+      - Adopt selected candidates through separate PLANs before counting them as closure.
+  - id: OBJ-L0-L14-FLOW
+    user_clause: fully support the user-confirmed L0-L14 flow
+    status: partial
+    proof_level: contract_backed
+    evidence:
+      - artifact: HELIX-workflows/HELIX-process-L0-L14.md
+      - artifact: skills/SKILL_MAP.md
+      - command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+      - command: bats cli/tests/test-helix-l0-l14-flow-contract.bats
+    remaining_for_full_goal:
+      - strict full-flow overall_clean=true
+      - deferred_count=0
+      - G8/G9/G12/G14 removed from deferred_pairs
+      - CI/equivalent gate surface connected
+      - feedback adoption closed
+completion_boundary:
+  matrix_is_goal_completion: false
+  achieved_local_items_are_full_goal_completion: false
+  partial_items_require_remaining_evidence: true
+  strict_full_flow_required: true
+  goal_complete_allowed: false
+required_before_complete:
+  - strict_full_flow_overall_clean_true
+  - G8_G9_G12_G14_gate_implemented_and_passed
+  - CI_or_equivalent_gate_surface_connected
+  - feedback_candidates_adopted_back_to_PLAN_PR_gate_evidence
+  - additional_improvement_candidates_adopted_if_selected
+  - HARNESS_external_tools_approved_and_connected_if_selected
+  - L2_L10_ui_absent_waiver_revalidated_or_unskipped_when_UI_exists
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - every objective item has a status and direct evidence
+      - partial items still map to remaining completion guards
+      - matrix cannot mark the overall goal complete

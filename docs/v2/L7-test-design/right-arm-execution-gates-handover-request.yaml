@@ -1,0 +1,113 @@
+schema_version: right_arm_execution_gate_handover_request_v1
+owner: TL
+status: needs_handover_expansion
+updated: 2026-06-09
+source_adoption_manifest: docs/v2/L7-test-design/right-arm-execution-gates-adoption.yaml
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_closure_plan: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
+current_scope:
+  sufficient_for_gate_implementation: false
+  allowed_now:
+    - docs/v2/L7-test-design/
+    - cli/lib/tests/
+    - cli/tests/
+    - docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md
+  rule: Do not edit implementation files outside current handover Next Action.
+activation_policy:
+  requires_explicit_handover_update: true
+  self_expand_current_handover: false
+  allowed_after_activation_only: true
+  activation_evidence_required:
+    - handover Next Action includes requested implementation files.
+    - task-plan or PLAN frontmatter includes allowed_files and acceptance evidence.
+    - strict full-flow command is the exit gate.
+requested_next_action:
+  summary: Expand handover scope to implement and pass G8/G9/G12/G14 right-arm execution gates.
+  completion_exit_gate: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+  required_overall_clean: true
+  gates:
+    - gate_id: G8
+      pair: L5-L8
+      plan_id: PLAN-G8-INTEGRATION-EXECUTION-GATE
+      requested_files:
+        - cli/lib/vg_overview.py
+        - cli/helix-doctor
+        - cli/lib/tests/test_vg_overview.py
+        - cli/tests/helix-doctor-json.bats
+        - docs/v2/L8-test-design/
+      acceptance:
+        - G8 removed from strict full-flow deferred_pairs.
+        - L5-L8 integration test execution evidence is present.
+        - L5-L8 trace closure remains coverage=100 with orphan=0.
+      acceptance_exit_condition: G8 removed from strict full-flow deferred_pairs
+      verification_commands:
+        - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+        - bats cli/tests/helix-doctor-json.bats
+        - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    - gate_id: G9
+      pair: L4-L9
+      plan_id: PLAN-G9-SYSTEM-EXECUTION-GATE
+      requested_files:
+        - cli/lib/vg_overview.py
+        - cli/lib/trace_symmetry.py
+        - cli/helix-doctor
+        - cli/lib/tests/test_vg_overview.py
+        - cli/lib/tests/test_trace_symmetry.py
+        - docs/v2/L9-test-design/
+      acceptance:
+        - G9 removed from strict full-flow deferred_pairs.
+        - L4-L9 system test execution evidence is present.
+        - semantic_excluded_orphan=18 remains justified unless L4/L9 evidence is updated together.
+      acceptance_exit_condition: G9 removed from strict full-flow deferred_pairs while semantic_excluded_orphan=18 remains justified
+      verification_commands:
+        - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_trace_symmetry.py -q
+        - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    - gate_id: G12
+      pair: L3-L12
+      plan_id: PLAN-G12-ACCEPTANCE-EXECUTION-GATE
+      requested_files:
+        - cli/lib/vg_overview.py
+        - cli/helix-doctor
+        - cli/lib/tests/test_vg_overview.py
+        - cli/tests/helix-doctor-json.bats
+        - docs/v2/L12-test-design/
+      acceptance:
+        - G12 removed from strict full-flow deferred_pairs.
+        - L3-L12 acceptance test execution evidence is present.
+        - L3 requirement IDs and acceptance criteria are not reinterpreted without interrupt.
+      acceptance_exit_condition: G12 removed from strict full-flow deferred_pairs
+      verification_commands:
+        - python3 -m pytest cli/lib/tests/test_vg_overview.py -q
+        - bats cli/tests/helix-doctor-json.bats
+        - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    - gate_id: G14
+      pair: L1-L14
+      plan_id: PLAN-G14-OPERATIONAL-LEARNING-GATE
+      requested_files:
+        - cli/lib/vg_overview.py
+        - cli/helix-harness
+        - cli/lib/harness_monitor.py
+        - cli/lib/tests/test_vg_overview.py
+        - cli/lib/tests/test_harness_monitor_unit.py
+        - cli/tests/test-helix-harness-feedback-loop.bats
+        - docs/v2/L14-test-design/
+      acceptance:
+        - G14 removed from strict full-flow deferred_pairs.
+        - operational learning evidence is recorded in HELIX DB events/metrics/feedback.
+        - feedback_closed evidence connects candidate adoption back to recurrence detection.
+      acceptance_exit_condition: G14 removed from strict full-flow deferred_pairs and feedback_closed evidence recorded
+      verification_commands:
+        - python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_harness_monitor_unit.py -q
+        - bats cli/tests/test-helix-harness-feedback-loop.bats
+        - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+safety:
+  schema_migration: false
+  destructive_data_operation: false
+  auth_or_pii_change: false
+  external_api_or_infrastructure_change: false
+  auto_apply_feedback_candidates: false
+  escalation_required_if:
+    - D-API / D-DB / D-CONTRACT change is required.
+    - schema migration or rollback design is required.
+    - acceptance criteria must be reinterpreted.
+    - implementation needs files not listed in requested_files.

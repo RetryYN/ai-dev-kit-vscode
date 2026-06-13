@@ -1,0 +1,240 @@
+schema_version: web_evidence_source_map_v1
+owner: TL
+status: verified_current_scope_not_adopted
+updated: 2026-06-10
+source_objective_matrix: docs/v2/L7-test-design/objective-evidence-matrix.yaml
+source_additional_improvement_discovery: docs/v2/L7-test-design/additional-improvement-discovery.yaml
+purpose: >
+  Record official Web evidence used for the user-requested audit and map each
+  source to the objective item or improvement candidate it supports.
+sources:
+  - source_id: ISO-12207-2026
+    source_type: official
+    official_url: https://www.iso.org/standard/90219.html
+    verified_on: 2026-06-10
+    confirmed:
+      reference: ISO/IEC/IEEE 12207:2026
+      status: Published
+      edition: 2
+      publication_date: 2026-04
+      stage: "60.60"
+      focus: software life cycle processes
+    supports_objective_items:
+      - OBJ-L0-L14-FLOW
+      - OBJ-WORKFLOW-AUTOMATION
+    supports_candidates: []
+    current_scope_action: evidence only
+  - source_id: ISO-29148-2018
+    source_type: official
+    official_url: https://www.iso.org/standard/72089.html
+    verified_on: 2026-06-10
+    confirmed:
+      reference: ISO/IEC/IEEE 29148:2018
+      status: Published
+      reviewed_current_in: 2024
+      stage: "90.92"
+      stage_meaning: to be revised
+      focus: requirements engineering processes and information items
+    supports_objective_items:
+      - OBJ-REQ-GAP-L6
+      - OBJ-GRANULARITY-L1-L6
+    supports_candidates: []
+    current_scope_action: advisory watch evidence only
+  - source_id: IEEE-P1012
+    source_type: official
+    official_url: https://standards.ieee.org/ieee/1012/12536/
+    verified_on: 2026-06-10
+    confirmed:
+      reference: P1012
+      status: Active PAR
+      par_approval: 2026-03-26
+      focus: system software and hardware verification and validation
+    supports_objective_items:
+      - OBJ-GRANULARITY-L1-L6
+      - OBJ-L0-L14-FLOW
+    supports_candidates: []
+    current_scope_action: evidence only
+  - source_id: NIST-SP-800-218
+    source_type: official
+    official_url: https://csrc.nist.gov/pubs/sp/800/218/final
+    verified_on: 2026-06-10
+    confirmed:
+      reference: NIST SP 800-218
+      version: "1.1"
+      date_published: 2022-02
+      focus: secure software development practices and recurrence reduction
+    supports_objective_items:
+      - OBJ-CODEX-CLAUDE-GUARD-PARITY
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-HELIX-DB-FEEDBACK
+    supports_candidates: []
+    current_scope_action: evidence only
+  - source_id: OWASP-SAMM
+    source_type: official
+    official_url: https://owaspsamm.org/model/
+    verified_on: 2026-06-10
+    confirmed:
+      functions:
+        - Governance
+        - Design
+        - Implementation
+        - Verification
+        - Operations
+      focus: software assurance maturity across the software lifecycle
+    supports_objective_items:
+      - OBJ-WEB-EVIDENCE
+      - OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+    supports_candidates:
+      - IMP-SEC-MATURITY-SAMM-MAP
+    current_scope_action: candidate evidence only
+  - source_id: SLSA-1.2
+    source_type: official
+    official_url: https://slsa.dev/spec/v1.2/
+    verified_on: 2026-06-10
+    confirmed:
+      version: "1.2"
+      status: Approved
+      focus:
+        - supply chain security
+        - provenance
+        - build track
+        - source track
+        - attestation formats
+    supports_objective_items:
+      - OBJ-WEB-EVIDENCE
+      - OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+      - OBJ-WORKFLOW-AUTOMATION
+    supports_candidates:
+      - IMP-SUPPLY-CHAIN-SLSA-PROVENANCE
+    current_scope_action: candidate evidence only
+  - source_id: OPENTELEMETRY-SIGNALS
+    source_type: official
+    official_url: https://opentelemetry.io/docs/concepts/signals/
+    verified_on: 2026-06-10
+    confirmed:
+      last_modified: 2026-03-10
+      signals:
+        - Traces
+        - Metrics
+        - Logs
+        - Baggage
+        - Events
+        - Profiles
+      focus: observability signal taxonomy
+    supports_objective_items:
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-WEB-EVIDENCE
+      - OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+    supports_candidates:
+      - IMP-OBSERVABILITY-SIGNAL-TAXONOMY
+    current_scope_action: candidate evidence only
+  - source_id: OPENSSF-SCORECARD
+    source_type: official
+    official_url: https://openssf.org/scorecard/
+    verified_on: 2026-06-10
+    confirmed:
+      focus:
+        - auto-generating security score
+        - trust risk and security posture
+        - OSS security initiative
+    supports_objective_items:
+      - OBJ-WEB-EVIDENCE
+      - OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+      - OBJ-WORKFLOW-AUTOMATION
+    supports_candidates:
+      - IMP-REPO-SECURITY-SCORECARD
+    current_scope_action: candidate evidence only
+  - source_id: MCP-SPEC-2025-06-18
+    source_type: official
+    official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+    verified_on: 2026-06-10
+    confirmed:
+      protocol: MCP
+      base: JSON-RPC 2.0
+      components:
+        - lifecycle management
+        - authorization
+        - resources
+        - prompts
+        - tools
+      focus: tool and data source integration protocol for AI systems
+    supports_objective_items:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-ADDITIONAL-IMPROVEMENT-DISCOVERY
+    supports_candidates:
+      - IMP-HARNESS-MCP-ADMISSION-GATE
+    current_scope_action: candidate evidence only
+  - source_id: GITHUB-MCP-SERVER
+    source_type: official
+    official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+    verified_on: 2026-06-10
+    confirmed:
+      provider: GitHub
+      kind: MCP server
+      configuration:
+        - remote
+        - local
+      prerequisites:
+        - GitHub account
+        - host policy enabled where required
+        - OAuth or PAT scope review
+      focus: GitHub context and tool access for MCP hosts
+    supports_objective_items:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+    supports_candidates:
+      - IMP-HARNESS-MCP-ADMISSION-GATE
+    current_scope_action: candidate evidence only
+  - source_id: SEMGREP-CE
+    source_type: official
+    official_url: https://docs.semgrep.dev/deployment/oss-deployment
+    verified_on: 2026-06-10
+    confirmed:
+      product: Semgrep Community Edition
+      command: semgrep scan
+      setup: CI with open source components
+      license_watch: rule metadata license must be checked
+      focus: SAST findings as advisory evidence
+    supports_objective_items:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-CODEX-CLAUDE-GUARD-PARITY
+      - OBJ-WORKFLOW-AUTOMATION
+    supports_candidates:
+      - IMP-HARNESS-SEMGREP-CE-SAST
+    current_scope_action: candidate evidence only
+  - source_id: GITHUB-CODEQL
+    source_type: official
+    official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    verified_on: 2026-06-10
+    confirmed:
+      product: CodeQL
+      surfaces:
+        - default setup
+        - advanced setup
+        - external CI
+      outputs:
+        - code scanning alerts
+        - CodeQL database
+        - query results
+      focus: vulnerabilities and errors in code
+    supports_objective_items:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-HELIX-DB-FEEDBACK
+    supports_candidates:
+      - IMP-HARNESS-CODEQL-IMPACT
+    current_scope_action: candidate evidence only
+completion_boundary:
+  web_sources_verified: true
+  refreshed_on: 2026-06-10
+  source_map_is_goal_completion: false
+  candidate_evidence_is_adoption: false
+  infrastructure_affecting_candidates_require_confirmation: true
+  goal_complete_allowed: false
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - every Web source maps to at least one objective item
+      - every discovered improvement candidate has a supporting official Web source
+      - Web evidence remains separate from adoption and full goal completion

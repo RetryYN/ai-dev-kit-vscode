@@ -1,0 +1,71 @@
+schema_version: ui_absent_waiver_revalidation_v1
+owner: TL
+status: revalidation_defined_currently_not_applicable
+updated: 2026-06-09
+source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
+source_waiver: docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+purpose: >
+  Define when the L2-L10 ui_absent waiver remains valid and when HELIX must
+  unskip screen design, wire mock, frontend UI, and frontend/business UX polish.
+current_state:
+  pair: L2-L10
+  applicability: not_applicable
+  reason: ui_absent
+  waiver_owner: TL
+  waiver_status: frozen
+  revalidated_for_current_scope: true
+  goal_complete_allowed_by_this_waiver: false
+revalidation_sources:
+  - path: docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+    proves:
+      - explicit waiver exists
+      - owner is TL
+      - unskip conditions are listed
+  - path: HELIX-workflows/helix-process/automation-gate-map.md
+    proves:
+      - VG-overview can treat L2-L10 as not_applicable only through explicit waiver evidence
+  - path: docs/v2/audit/2026-06-09-l0-l6-focus-audit.md
+    proves:
+      - strict full-flow currently reports not_applicable_count=1 for L2-L10
+unskip_triggers:
+  - id: official_docs_site_or_web_ui
+    description: HELIX publishes an official docs site or other web UI.
+    required_action: Create or update L2 screen requirement/design and L10 frontend UX/business design evidence.
+  - id: interactive_ui_tui_visual_mock_or_dashboard
+    description: HELIX ships an interactive UI, TUI, visual mock, or dashboard.
+    required_action: Reopen L2/L10 pair and remove ui_absent not_applicable status.
+  - id: downstream_product_screens
+    description: A downstream project applies HELIX to a product with screens.
+    required_action: Treat downstream screen artifacts as project-specific L2/L10 scope, not as a framework waiver.
+non_unskip_examples:
+  - CLI help text
+  - man-page style documentation
+  - command output formatting
+  - static markdown process documentation without interactive UI
+completion_acceptance:
+  - current repository scan or documented scope review finds no official docs site, product screen, TUI, visual mock, or dashboard.
+  - strict full-flow output reports L2-L10 as not_applicable with reason ui_absent and waiver path.
+  - if any unskip trigger is true, the waiver is no longer valid and L2/L10 artifacts must be created before completion.
+  - goal-completion-audit records this revalidation only as a waiver condition, not as full-flow completion.
+safety:
+  schema_migration: false
+  detector_or_gate_body_change: false
+  frontend_artifact_creation: false
+  infrastructure_change: false
+  auth_or_pii_change: false
+non_goals_under_current_handover:
+  - editing the L2 waiver source document
+  - implementing a UI detector
+  - creating frontend UI or wire mock artifacts
+  - changing VG-overview waiver logic
+completion_boundary:
+  waiver_revalidated_is_goal_completion: false
+  waiver_invalid_requires_unskip: true
+  ui_artifact_exists_requires_L2_L10_scope: true
+  goal_complete_allowed: false
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - ui_absent waiver has explicit revalidation triggers
+      - waiver revalidation does not count as full goal completion
