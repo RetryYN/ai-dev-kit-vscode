@@ -21,6 +21,7 @@ HELIX は Codex と Claude Code を直接 API 統合として扱わず、契約�
 | レビュー | `helix review` | Codex による差分レビュー |
 | スキル | `helix skill` | HELIX skill の検索・参照 |
 | 予算・難度 | `helix budget` | Claude/Codex の消費状況とモデル推奨 |
+| Harness 監視 | `helix harness` | active slot、harness warning、DB feedback-loop candidate の確認 |
 | Hook | `helix hook` / `helix check-claudemd` / `cli/libexec/helix-post-tool-use` | Claude Code tool hook |
 | Context guard | `helix context check` / `helix context bundle` | AGENTS / CLAUDE / hook / memory の強制導線を検査し、短い注入 context を生成 |
 | セッション | `helix session-start` / `helix session-summary` | Claude Code session hook |
@@ -35,7 +36,7 @@ helix plan review --id PLAN-001
 helix plan finalize --id PLAN-001
 
 # 2) Codex に実装委譲
-helix codex --role se --task "PLAN-001 の L4 実装"
+helix codex --role se --task "PLAN-001 の L7 実装"
 
 # 3) Claude Code 用 prompt を生成
 helix claude --role pg --plan-id PLAN-001 --task "PLAN-001 の通常実装を継続" --dry-run
@@ -75,12 +76,40 @@ helix codex --role se --task "WBS-003 を実装" \
   --allowed-files 'cli/helix-codex,cli/helix-test'
 ```
 
+Codex 側の post-validation は、設計 doc（例: `docs/adr/ADR-*.md`）の新規作成 / 変更に WebSearch / WebFetch 証跡を要求する。証跡は `HELIX_CODEX_DESIGN_WEB_EVIDENCE` に transcript / evidence path を `:` 区切りで渡す。未指定のまま対象設計 doc を変更した場合は fail-close する。
+
+```bash
+HELIX_CODEX_DESIGN_WEB_EVIDENCE=.helix/research/session.jsonl \
+  helix codex --role se --task "ADR を更新" --approved
+```
+
+DB feedback-loop の現状は `helix harness feedback-loop` で確認する。既存 `harness_check_events` / `hook_events` / `automation_runs` / `feedback` / `events` / `metrics` / `verify_runs` と `VG-overview` の strict full-flow summary を読み、route candidate / learning candidate / PLAN draft candidate / PR candidate を返す。実行時は snapshot 要約を既存 `events` / `metrics` に append し、`feedback` が空なら missing feedback input を既存 `feedback` table に自動登録する。schema migration、自動実行、gate / detector 変更は行わない。
+
+```bash
+helix harness feedback-loop --json
+```
+
+G7 subcheck の full execution は anchor 先の pytest / Bats を起動する。構造確認だけなら `--no-exec` または `HELIX_DOCTOR_SKIP_EXEC_TESTS=1` を使う。full execution では各 test file に `HELIX_G7_TEST_TIMEOUT_SECONDS`（既定 120 秒）の timeout を適用し、timeout 時はプロセスグループを停止して `returncode=124` / `timed_out=true` を記録する。
+
+```bash
+HELIX_G7_TEST_TIMEOUT_SECONDS=30 python3 -m cli.lib.g7_subcheck --json
+HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
+HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json
+```
+
+`helix doctor --gate` は VG-overview pre-push を fail-close 評価する。`helix push --gate` では `G-vg-overview` として同じ overview を接続し、既存の full pytest / Bats 後に structural G7 anchor / registry / trace / L6 requirement drift を確認する。`required_clean.requirement_drift.clean=false` の場合、L6 設計への閉塞または reason 付き waiver が必要。
+
+`--strict-full-flow` は L6 focus の完了確認ではなく、L0-L14 完全対応監査用である。`approved_deferred` execution gate が残る場合、`vg_overview.full_flow_execution.deferred_pairs[]` に `pair` / `gate_id` / `target` / `next_action` を列挙し、`overall_clean=false` として返す。`not_applicable` pair は `not_applicable_pairs[]` に waiver object として残し、L2-L10 の `ui_absent` のような skip が owner / reason / unskip 条件つきで追跡できるようにする。
+
+`helix harness feedback-loop` は上記 strict full-flow summary を `vg_overview` として snapshot に含め、`full_flow_deferred_execution_gate` / `not_applicable_pair_waiver` learning candidate を生成する。観測系には `harness.feedback_loop.full_flow_deferred_gates` と `harness.feedback_loop.not_applicable_pairs` の metrics を append するため、L6 focus の clean と L8/L9/L12/L14 実行ゲート残を同時に追跡できる。
+
 ## TL discipline
 
 Codex / Claude Code は、計画を作ったあとに工程表を無視して実装へ進まない。
 
 - 実装前に L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を確認する
-- `plan_id`、`task_id` または `WBS ID`、`L4 Sprint`、依存、受入条件、reference_docs を委譲 prompt に含める
+- `plan_id`、`task_id` または `WBS ID`、`L7 Sprint`、依存、受入条件、reference_docs を委譲 prompt に含める
 - ユーザーへ計画・実装順・整理案を提示した場合、明示承認があるまで編集へ進まない
 - 工程表の role に応じて `helix codex`、`helix claude --dry-run`、`helix team` を使う
 - `.2` と `.5` では `helix review --uncommitted` を実行する
@@ -117,6 +146,8 @@ helix claude --role pg --task-file .helix/tasks/WBS-003.md --dry-run
 Claude Code の PostToolUse は `Edit|Write|MultiEdit` を対象にし、settings からは `cli/libexec/helix-post-tool-use` を呼ぶ。wrapper が Claude Code の hook payload から安全な変更ファイルパスだけを抽出し、ファイルごとに `helix hook` の doc-map / freeze / drift advisory を実行する。
 
 Claude Code の PreToolUse は `Write` で `helix check-claudemd`、`Bash` で `cli/libexec/helix-pre-bash`、`WebSearch|WebFetch` で `cli/libexec/helix-pre-research` を呼ぶ。`helix-pre-bash` は raw `codex exec` / `npx codex exec` と raw `claude` をブロックし、`helix codex` または `helix claude --dry-run` 経由へ寄せる。G1R の調査証跡は `research_guard.py` が gate 時に fail-close で検査する。例外的に raw CLI が必要な場合は、同じ Bash command に対象別の証跡 env を含め、final / evidence に代替不能性を残す。
+
+Codex は Claude Code の PreToolUse と同じタイミングでは止められないため、`helix codex` 終了後の post-validation で同等条件を fail-close する。
 
 ```bash
 # Codex 例外

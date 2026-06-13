@@ -83,7 +83,7 @@ HELIX フェーズの進行制御を担当する。
 |---------|------|
 | `helix gate` | ゲート自動検証（fail-close）。mandatory/advisory/AI チェックの実行と判定 |
 | `helix size` | タスクサイジング（S/M/L の 3 軸判定 + フェーズスキップ決定） |
-| `helix sprint` | L4 マイクロスプリントの進行管理（.1a → .1b → .2 → .3 → .4 → .5） |
+| `helix sprint` | L7 実装スプリントの進行管理（.1a → .1b → .2 → .3 → .4 → .5） |
 | `helix plan` | 設計計画の作成・レビュー・凍結（draft → review → finalize） |
 | `helix reverse` | Reverse HELIX パイプライン（R0 → R4）の実行 |
 | `helix scrum` | 検証駆動開発（PoC スプリント: init → backlog → plan → poc → verify → decide → review） |

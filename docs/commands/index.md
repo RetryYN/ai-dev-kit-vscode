@@ -30,11 +30,11 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix research` | L2 / L3 設計向けの調査テーマ生成と dry-run |
 | `helix meta-phase` | PLAN-006 L1 メタ工程の pattern 契約検証 |
 | `helix matrix` | 成果物対照表と gate-checks の生成 |
-| `helix gate` | G0.5-G11 のゲート検証 |
+| `helix gate` | G0.5-G14 のゲート検証（実装済み通常ゲート + workflow/gate 正本） |
 | `helix gate-api-check` | D-API と実装 endpoint の整合検証 |
 | `helix vmodel` | V-model semantics 表示・検証 (`show --injection-only` 対応) |
 | `helix readiness` | readiness exit と deferred finding 管理 |
-| `helix sprint` | L4 マイクロスプリント |
+| `helix sprint` | L7 実装スプリント |
 | `helix task` | タスク OS |
 | `helix interrupt` | IIP / CC の開始・適用・再開・履歴集計 |
 | `helix refactor` | Refactor mode の session 管理 (保護網確認・振る舞い不変 check) |
@@ -47,12 +47,12 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix auto-run` | 指定時間 budget window・heartbeat 判定・PLAN resume skeleton の状態管理 |
 | `helix route` | detect signal を Reverse / Refactor / Retrofit / Recovery / Incident へ提案ルーティング (drift_type 7 種分岐、ADR-041 SoT) |
 | `helix workspace` | git worktree-based per-task workspace 管理 |
-| `helix pr` | PR 自動生成 + 6 ゲート機械検証 (`--gate` / `--auto-merge`) |
+| `helix pr` | PR 自動生成 + push pre-gate 機械検証 (`--gate` / `--auto-merge`) |
 | `helix retro` | ミニレトロ |
 | `helix debt` | 技術負債管理 |
 | `helix drift-check` | D-API / D-CONTRACT / D-DB drift 検知 |
 | `helix bats-cleanup` | bats 由来 /tmp 残存 dir の監査・削除 (HELIX marker file 必須) |
-| `helix push` | 6 ゲート機械検証 + git push 自動許可 (停滞防止) |
+| `helix push` | push pre-gate 機械検証 + git push 自動許可 (停滞防止) |
 
 ### workspace
 
@@ -78,6 +78,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | `helix review` | Codex レビュー |
 | `helix skill` | スキル検索・参照 |
 | `helix budget` | Claude/Codex の消費・モデル推奨 |
+| `helix harness` | active slot と DB feedback-loop candidate の監視 |
 | `helix agent` | HELIX W drive=agent の `init/stage1/stage2/merge/route` と agent slot/audit を扱う |
 | `helix hook` | PostToolUse hook |
 | `helix check-claudemd` | PreToolUse hook |

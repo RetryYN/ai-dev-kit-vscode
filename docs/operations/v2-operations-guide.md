@@ -19,7 +19,7 @@
 ### 1.2 停滞防止（V2.2）
 
 - CLAUDE.md に codex 側の `Ask` フロー制約を追加
-- `helix push --gate` / `helix pr --gate` の 6 ゲート自動検証を実装運用化
+- `helix push --gate` / `helix pr --gate` の push pre-gate 自動検証を実装運用化
 - PreToolUse hook による AskUserQuestion ガード（TL 承認の有無）
 
 ### 1.3 PdM Innovation
@@ -80,14 +80,14 @@
 - 新規企画の意思決定を `技術/マーケ / 事業施策` で切り分ける
 - G0.5 で trace が未完成な状態を防ぐ
 - L1 に渡す FR / NFR / AC の粒度を担保する
-- 停滞ポイントを `helix push/pr` の 6 ゲート前に潰す
+- 停滞ポイントを `helix push/pr` の push pre-gate 前に潰す
 
 ### 3.2 完了条件
 
 1. `innovation-output` が YAML スキーマに沿う
 2. G0.5 mapping の trace が 100% カバー
 3. `functional_freeze` が主要 drive で pass
-4. 6 ゲート前提条件に対する destructive / secret / catalog リスクが解消
+4. push pre-gate 前提条件に対する destructive / secret / catalog リスクが解消
 
 ## 4. 主要コマンド早見
 
@@ -127,7 +127,7 @@ AskUserQuestion
 
 ```text
 PR / Push
-  ├─ gate 機械検証 6 件
+  ├─ push pre-gate 機械検証
   └─ 結果 PASS 後のみ実行
 ```
 
@@ -138,9 +138,9 @@ PR / Push
   └─ pdm-manager 統合
 ```
 
-## 6. 6 ゲート運用導線（停滞防止）
+## 6. push pre-gate 運用導線（停滞防止）
 
-`helix push / pr` の gate は以下 6 種を対象にします。
+`helix push / pr` の gate は以下の pre-gate subcheck を対象にします。
 
 1. G-tests
 2. G-catalog

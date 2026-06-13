@@ -2,7 +2,7 @@
 
 ## 概要
 
-`helix push` は、push 前に 7 つの機械ゲートをまとめて検証し、
+`helix push` は、push 前に機械ゲートをまとめて検証し、
 条件を満たしたときだけ `git push` を実行するための補助 CLI です。
 全 gate PASS = authorized push（毎回の手動承認は不要）。policy SSoT は
 [github-operations.md §3.5](../../HELIX-workflows/helix-process/github-operations.md)。
@@ -37,7 +37,7 @@ helix push --gate --execute --remote origin --branch main
 
 | オプション | 説明 |
 | --- | --- |
-| `--gate` | 7 ゲート検証を有効化。現状は必須 |
+| `--gate` | push 前ゲート検証を有効化。現状は必須 |
 | `--execute` | 全ゲート PASS 時のみ `git push <remote> <branch>` を実行（`--gate` 必須） |
 | `--remote REMOTE` | 検証対象と push 対象の remote。既定は `origin` |
 | `--branch BRANCH` | 検証対象と push 対象の branch。既定は **current branch** |
@@ -46,7 +46,7 @@ helix push --gate --execute --remote origin --branch main
 | `--reason TEXT` | `--allow-main` 時の理由（commit/evidence へ） |
 | `--help` | ヘルプを表示 |
 
-## 7 ゲート
+## push 前ゲート
 
 | ID | 名前 | 検証内容 | fail 時メッセージ |
 | --- | --- | --- | --- |
@@ -57,6 +57,7 @@ helix push --gate --execute --remote origin --branch main
 | `G-attr` | Co-Authored-By | `git rev-list --count <remote>/<branch>..HEAD` と `git log <remote>/<branch>..HEAD --grep "Co-Authored-By"` を比較 | commit 修正必要 (amend or rebase -i) |
 | `G-nondestructive` | destructive diff | `git diff <remote>/<branch>..HEAD` の追加行から `DROP TABLE` / `git branch -D` / `rm -rf` / `--force` / `--no-verify` を検出 | destructive operation 検出、manual-confirm 必要 |
 | `G-review` | PLAN レビュー（`plan_scope` 別 lifecycle） | 単一/複数 ahead PLAN（複数は `--plan-id` で代表明示）を対象に、各 PLAN の `plan_scope` 別に検査: **action** = `status ∈ {completed, finalized}` + `tl_review == approve`／**process**（長命の親）= `tl_review == approve` のみ（`status` 完了不問）。0/不一致は fail-close | action PLAN を completed/finalized + `tl_review: approve` にする。process PLAN は `tl_review: approve`（status は draft/in_progress のままで可）。複数 ahead PLAN では `--plan-id` を指定 |
+| `G-vg-overview` | VG-overview pre-push | G7 anchor / registry / trace overview / L6 requirement drift の applicable pair と required clean が clean であることを確認。該当資産がないプロジェクトでは not applicable | G7 anchor/test pass、registry/trace findings、L6 requirement drift findings を解消または reason 付き waiver 化 |
 
 ## 出力形式
 
@@ -70,6 +71,8 @@ dry-run 成功時:
 ✓ G-ff             (origin/main fast-forward OK)
 ✓ G-attr           (10 commits / 10 with Co-Authored-By)
 ✓ G-nondestructive (no destructive pattern)
+✓ G-review         (PLAN scope=action status=completed tl_review=approve)
+✓ G-vg-overview    (overall_clean=true anchored=88/88 exec_pass=88 missing=0 unanchored=0)
 
 [helix push] all gates PASS
 ```
@@ -84,6 +87,8 @@ dry-run 成功時:
 ✓ G-ff             (origin/main fast-forward OK)
 ✓ G-attr           (10 commits / 10 with Co-Authored-By)
 ✓ G-nondestructive (no destructive pattern)
+✓ G-review         (PLAN scope=action status=completed tl_review=approve)
+✓ G-vg-overview    (overall_clean=true anchored=88/88 exec_pass=88 missing=0 unanchored=0)
 
 [helix push] all gates PASS -> executing git push origin main
 ```
@@ -115,7 +120,7 @@ dry-run 成功時:
   - `--execute` / `--remote` / `--branch` の引数解釈
   - Python helper への委譲
 - `cli/lib/push_gate.py`
-  - 7 ゲートの実処理
+  - push 前ゲートの実処理
   - ゲート結果の集計
   - `--execute` 時の `git push`
   - CLI 向けの整形出力
@@ -129,6 +134,7 @@ shell 側は薄く保ち、判定ロジックの正本は helper に寄せてい
 - `git fetch` / `git diff` / `git log` / `pre-commit` は検証目的でのみ使用します
 - destructive diff は追加行ベースで検出し、危険な変更候補を fail-close で止めます
 - `Co-Authored-By` は ahead commits 数と grep hit 数を比較して抜け漏れを検知します
+- VG-overview は G7 anchor / registry / trace の applicable pair が clean でない場合に fail-close します
 
 ## テスト
 

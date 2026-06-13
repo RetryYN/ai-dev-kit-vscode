@@ -331,7 +331,7 @@ T8 は T7 の入力契約を決めるため T7 より先行 or 同時に進め�
 |----|------|
 | `common/security` | phase 跨ぎ（L2, L4, L6）・agent=security の代表 |
 | `common/visual-design` | agent=tl、フロント設計領域の代表 |
-| `common/error-fix` | 頻度高い、L4 実装系 |
+| `common/error-fix` | 頻度高い、L7 実装系 |
 | `workflow/design-doc` | L2 専用、文書系 |
 | `tools/ai-coding` | 横断スキル、triggers 広範 |
 

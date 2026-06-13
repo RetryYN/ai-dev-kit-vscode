@@ -41,7 +41,7 @@ Vモデルの設計レベルに対応するレビュー責任を段階化する�
 | 1 Format | 正解が一意 | 自動 (lint) | PE (gpt-5.3-codex) | CI lint |
 | 2 Lint | 正解が一意 | 自動 (静的解析) | PE | CI lint |
 | 3 Style | ほぼ一意 | PE / pmo-haiku | — | — (Nit) |
-| 4 Logic | 文脈依存 | SE (gpt-5.4) / PE | QA / security (gpt-5.4) | G4 実装凍結 |
+| 4 Logic | 文脈依存 | SE (gpt-5.4) / PE | QA / security (gpt-5.4) | G7 実装 closure |
 | 5 Design | 正解が複数 | TL (gpt-5.5) | adversarial-review | G2 設計凍結 |
 | 6 Architecture | 未来予想 | PM (Opus) | tl-advisor | L2 以前 / ADR |
 
@@ -67,9 +67,9 @@ codex review の出力を Stage 1-4 の一次レビューとして受け取り�
 
 helix review が指摘を返さなかった領域を列挙し、対応する PLAN-NNN（`docs/plans/`）を開いて SE/QA が仕様照合する。AI 指摘ゼロを「安全」と判断しない。照合記録は verification の証跡として残す（fail-close）。
 
-### 4. G4 / G2 ゲート判定
+### 4. G7 / G2 ゲート判定
 
-- G4 実装凍結: Stage 4 で Critical 0 件、PLAN 照合済みを確認
+- G7 実装 closure: Stage 4 で Critical 0 件、PLAN 照合済みを確認
 - G2 設計凍結: Stage 5 で TL レビュー済み、高リスクは adversarial-review 実施済みを確認
 - 判定ラベルは common/code-review と同一（LGTM / LGTM with nits / Changes requested）
 

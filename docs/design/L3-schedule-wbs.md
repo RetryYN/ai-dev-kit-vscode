@@ -1,6 +1,6 @@
-# L3 実装工程表
+# L3 工程表 / L7 実装スプリント接続
 
-> G3 通過条件を満たすための WBS / 依存 / feature flag / rollback / L4 Sprint 接続を固定する。
+> G3 通過条件を満たすための WBS / 依存 / feature flag / rollback / L7 実装スプリント接続を固定する。
 
 ## 0. 前提
 
@@ -28,7 +28,7 @@
 
 ## 2. WBS
 
-| WBS ID | タスク | 担当 role | 依存 | 期間 | 環境 | L4 Sprint | feature flag | rollback | 受入条件 |
+| WBS ID | タスク | 担当 role | 依存 | 期間 | 環境 | L7 Sprint | feature flag | rollback | 受入条件 |
 |--------|--------|-----------|------|------|------|-----------|--------------|----------|----------|
 | WBS-001 | 影響範囲調査 | tl | N/A | 0.5d | local | .1a | N/A | N/A | 影響ファイルと既存テストが列挙済み |
 | WBS-002 | 変更計画固定 | tl/se | WBS-001 | 0.5d | local | .1b | N/A | N/A | 実装順・依存・テスト方針が確定 |
@@ -37,7 +37,7 @@
 | WBS-005 | 検証固定 | qa | WBS-004 | 0.5d | local/ci | .4 | N/A | test baseline restore | unit/integration が通る |
 | WBS-006 | 仕上げ・docs sync | docs/tl | WBS-005 | 0.5d | local | .5 | N/A | revert docs patch | docs と gate evidence が同期済み |
 
-## 3. L4 Sprint 接続
+## 3. L7 実装スプリント接続
 
 | Sprint | 目的 | 対象 WBS | 完了条件 |
 |--------|------|----------|----------|
@@ -96,7 +96,7 @@ flag 不要の場合も、WBS の `feature flag` 列に `N/A` を明記する。
 ## 8. G3 チェック
 
 - [ ] 全 WBS に担当 role、依存、期間、環境がある。
-- [ ] 全 WBS に L4 Sprint がある。
+- [ ] 全 WBS に L7 Sprint がある。
 - [ ] 全 WBS に feature flag または `N/A` がある。
 - [ ] 全 WBS に rollback または `N/A` がある。
 - [ ] API / Schema Freeze の状態が明記されている。

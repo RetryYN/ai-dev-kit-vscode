@@ -23,13 +23,13 @@ MIT ライセンス。Upstream: addyosmani/agent-skills (MIT)
 
 | 作業内容 | コマンド | 原則 | HELIX フェーズ |
 |----------|---------|------|---------------|
-| 仕様を定める | `/spec` | Spec before code | L1 要件定義 |
-| 計画を立てる | `/plan` | Small, atomic tasks | L3 詳細設計 |
-| 実装 | `/build` | One slice at a time | L4 マイクロスプリント |
-| テスト | `/test` | Tests are proof | L4.3 / L6 |
-| レビュー | `/review` | Improve code health | G4 実装凍結 |
+| 仕様を定める | `/spec` | Spec before code | L1 要求定義 / L3 要件定義 |
+| 計画を立てる | `/plan` | Small, atomic tasks | L4-L6 設計計画 |
+| 実装 | `/build` | One slice at a time | L7 実装スプリント |
+| テスト | `/test` | Tests are proof | L6 単体テスト設計 / L7-L9 検証実行 |
+| レビュー | `/review` | Improve code health | G7 実装完了 / L11 総合レビュー |
 | 簡素化 | `/code-simplify` | Clarity over cleverness | L6 |
-| 出荷 | `/ship` | Faster is safer | L7 デプロイ |
+| 出荷 | `/ship` | Faster is safer | L12 受入 / L13 運用検証 |
 
 実行内容に応じた自動発火にも対応しています。たとえば API 設計では `api-and-interface-design`、UI 実装では `frontend-ui-engineering` が有効化されます。
 
@@ -145,7 +145,7 @@ HELIX 独自スキル (4 本):
 |-------|--------------|----------|
 | [planning-and-task-breakdown](skills/planning-and-task-breakdown/SKILL.md) | 仕様を受入条件付きの小さな検証可能タスクへ分解し、依存順序を整理する | 仕様はあるが、実装可能な作業単位に落とし込みたいとき |
 
-### Build (L4 実装) — コードを書く
+### Build (L7 実装) — コードを書く
 
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
@@ -157,7 +157,7 @@ HELIX 独自スキル (4 本):
 | [api-and-interface-design](skills/api-and-interface-design/SKILL.md) | Contract-first 設計、Hyrum's Law、One-Version Rule、エラー意味論、境界バリデーションを適用する | API、モジュール境界、公開インターフェースを設計するとき |
 | [system-design-sizing](skills/system-design-sizing/SKILL.md) **★HELIX 独自** | 容量計画・CAP トレードオフ・ボトルネック識別でシステム設計規模を見積もる (donnemartin/system-design-primer ベース) | 1M users / 10k QPS / 99.9% 可用性など数量要件が絡む L1-L2 設計時 |
 
-### Verify (L6 検証) — 動作を証明
+### Verify (L8-L12 検証) — 動作を証明
 
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
@@ -172,7 +172,7 @@ HELIX 独自スキル (4 本):
 | [security-and-hardening](skills/security-and-hardening/SKILL.md) | OWASP Top 10 対策、認証パターン、秘密情報管理、依存監査、三層境界モデルを適用する | 入力処理、認証、データ保存、外部連携を扱うとき |
 | [performance-optimization](skills/performance-optimization/SKILL.md) | 計測先行で Core Web Vitals 目標、プロファイリング、バンドル分析、アンチパターン検知を行う | 性能要件がある、または性能劣化が疑われるとき |
 
-### Ship (L7 出荷) — 安全にデプロイ
+### Ship (L12-L13 出荷 / 運用検証) — 安全にデプロイ
 
 | Skill | What It Does | Use When |
 |-------|--------------|----------|
@@ -270,13 +270,13 @@ agent-skills/
 │   ├── idea-refine/                   #   L1 要件定義
 │   ├── spec-driven-development/       #   L1 要件定義
 │   ├── planning-and-task-breakdown/   #   L2-L3 設計
-│   ├── mock-driven-development/       #   ★HELIX 独自 FE 駆動 L2-L4
-│   ├── incremental-implementation/    #   L4 実装
-│   ├── context-engineering/           #   L4 実装
-│   ├── source-driven-development/     #   L4 実装
-│   ├── frontend-ui-engineering/       #   L4 実装
-│   ├── test-driven-development/       #   L4 実装
-│   ├── api-and-interface-design/      #   L4 実装
+│   ├── mock-driven-development/       #   ★HELIX 独自 FE 駆動 L2-L7
+│   ├── incremental-implementation/    #   L7 実装
+│   ├── context-engineering/           #   L7 実装
+│   ├── source-driven-development/     #   L7 実装
+│   ├── frontend-ui-engineering/       #   L7 実装
+│   ├── test-driven-development/       #   L7 実装
+│   ├── api-and-interface-design/      #   L7 実装
 │   ├── system-design-sizing/          #   ★HELIX 独自 L1-L2 規模見積もり
 │   ├── browser-testing-with-devtools/ #   L6 検証
 │   ├── debugging-and-error-recovery/  #   L6 検証

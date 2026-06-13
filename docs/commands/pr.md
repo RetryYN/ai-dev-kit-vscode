@@ -8,7 +8,7 @@
 用途は 2 系統あります。
 
 - 既存モード: `phase.yaml` の gate 状態を確認しつつ、PR 本文 preview または PR 作成を行う
-- gate モード: `cli/lib/push_gate.py` の 6 ゲート検証を実行し、PASS 時のみ PR 作成や auto-merge を進める
+- gate モード: `cli/lib/push_gate.py` の push 前ゲート検証を実行し、PASS 時のみ PR 作成や auto-merge を進める
 
 `gh` が利用可能な環境では PR 作成まで実行でき、`--dry-run` では書き込みなしで確認できます。
 
@@ -34,7 +34,7 @@ helix pr --body "## Summary\nManual body"
 | オプション | 説明 |
 | --- | --- |
 | `--dry-run` | PR を作成せずに実行する。`--gate` なしでは PR preview、`--gate` ありでは gate 検証のみ |
-| `--gate` | `cli/lib/push_gate.py` の 6 ゲート検証を実行してから PR 作成へ進む |
+| `--gate` | `cli/lib/push_gate.py` の push 前ゲート検証を実行してから PR 作成へ進む |
 | `--auto-merge` | `--gate` 成功後に `gh pr merge --squash` を実行する。単独指定は入力エラー |
 | `--base BASE` | PR の base branch。既定は `main` |
 | `--title TITLE` | PR タイトルを明示指定する。未指定時は current branch 名を使う |
@@ -63,7 +63,7 @@ helix pr --body "## Summary\nManual body"
 
 `--gate` を付けると `cli/lib/push_gate.py` の `run_all_gates()` を再利用します。
 
-- 6 ゲートを実行する
+- push pre-gate 検証を実行する
 - すべて PASS した場合だけ PR 作成へ進む
 - `--dry-run` を併用した場合は gate 検証だけ行い、PR は作らない
 - `--auto-merge` を併用した場合は PR 作成後に `gh pr merge --squash` を実行する
@@ -71,9 +71,9 @@ helix pr --body "## Summary\nManual body"
 `push_gate.py` が見つからない、または import に失敗した場合は警告を出して gate 検証を skip します。
 これは関連 task の実装順差異を吸収するための互換動作です。
 
-## 6 ゲート
+## push pre-gate 検証
 
-`helix pr --gate` が利用する 6 ゲートは `helix push --gate` と同一です。
+`helix pr --gate` が利用する pre-gate 検証は `helix push --gate` と同一です。
 
 | ID | 名前 | 検証内容 | fail 時メッセージ |
 | --- | --- | --- | --- |

@@ -73,7 +73,7 @@ HELIX は以下の 2 strand をそれぞれ対応させる。
 | D-DB 拡張 draft | SprintF (L3 D-DB 拡張) | schema |
 | PLAN.md | PLAN 起票時 | plan |
 | test baseline | QA baseline 確定時 | test |
-| code implementation | L4 Sprint 実装完了時 | code |
+| code implementation | L7 Sprint 実装完了時 | code |
 
 ### 2.3 6 軸メタデータ
 
@@ -267,7 +267,7 @@ HELIX は「穴を埋めていくシステム」である。
 2. **対策を 3 種検討** (scan 仕組み / 既存ツール組込 / 構造的設計変更)
 3. **L1/L2 に組込** (要件・設計レベルで仕組み化)
 4. **即時 PoC** (scrum mode / verify スクリプト)
-5. **V2 Phase で本格統合** (L4 実装 → L6 統合検証)
+5. **V2 Phase で本格統合** (L7 実装 → L8-L12 検証)
 
 ### 6.2 らせん式自己組織化のサイクル
 

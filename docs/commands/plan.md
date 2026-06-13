@@ -52,7 +52,7 @@ Codex / Claude Code が計画、実装順、整理案をユーザーへ提示し
 
 > 上表の `cli/templates/docs/PLAN.md.template` → `docs/plans/PLAN-XXX-*.md` は **V1 legacy 形式**。新規 PLAN は上記「PLAN の種別と住所」と [plan-model.md](../../HELIX-workflows/helix-process/plan-model.md) に従い、`docs/plans/L<NN>/` ・ `docs/plans/process/` ・ `docs/plans/<workflow>/` 配下へ置く。
 
-工程表には `WBS ID`、担当 role、依存、`L4 Sprint`、`HELIX command / delegation`、受入条件を必ず入れる。実装担当は該当 WBS 行を正として、工程表外の変更が必要になったら先に工程表更新またはユーザー確認へ戻る。
+工程表には `WBS ID`、担当 role、依存、`L7 Sprint`、`HELIX command / delegation`、受入条件を必ず入れる。実装担当は該当 WBS 行を正として、工程表外の変更が必要になったら先に工程表更新またはユーザー確認へ戻る。
 
 ## TL レビューの意味
 

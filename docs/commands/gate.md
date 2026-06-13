@@ -2,7 +2,7 @@
 
 ## 概要
 
-`helix gate` は段階ゲート判定（G0.5 / G1 / ... / G11）を実行するコマンドです。
+`helix gate` は Forward の段階ゲート判定（正本: G0.5 / G1 / ... / G14）に接続するコマンドです。CLI の通常ゲート実装範囲と、G12-G14 を含む workflow/gate 正本の定義は分けて扱います。
 
 本ドキュメントは `--subgate functional_freeze` と `--drive` 指定の挙動を定義します。
 `helix vmodel` の設計セマンティクス（`docs/v2/B-design/vmodel-semantics-spec.md`）と
@@ -143,7 +143,7 @@ severity: fail
   - `promotion` と `horizontal_rule` による設計順序
 - `design_sprint_artifact_links`: 関連 artifact を監査する際に参照される補助情報
 
-## G0.5〜G11 との比較
+## G0.5〜G14 との比較
 
 本サブゲートは、通常の `G3` フロー中で `subgate` の追加判定を担います。\n
 - G0.5: 方針/開始判定（事前定義）\n

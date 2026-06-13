@@ -154,7 +154,7 @@ bash setup.sh
 
 ### 停滞防止システム
 
-- `helix push --gate` (6 ゲート機械検証 + auto-push)
+- `helix push --gate` (push pre-gate 機械検証 + auto-push)
 - `helix pr --gate --auto-merge`
 - 詳細: [docs/operations/stop-prevention.md](docs/operations/stop-prevention.md)
 
@@ -194,8 +194,8 @@ bash setup.sh
 | `helix plan` | 設計計画の draft / review / finalize |
 | `helix codex` | Codex 委譲 (TL / SE / PE / security / research など) |
 | `helix claude` | Claude Code 委譲 (PMO Sonnet / Haiku) |
-| `helix gate G1..G11` | フェーズゲート判定 |
-| `helix sprint` | L4 マイクロスプリント管理 |
+| `helix gate G0.5..G14` | フェーズゲート判定（G12-G14 は workflow/gate 正本を参照） |
+| `helix sprint` | L7 実装スプリント管理 |
 | `helix scrum` | 仮説検証フロー |
 | `helix reverse R0-R4` | Reverse HELIX |
 | `helix research --layer L1-L3` | レイヤ単位の調査起票 |
@@ -230,7 +230,7 @@ helix size --files 10 --lines 300 --api --drive be
 helix plan draft --title "認証 API"
 helix plan review --id PLAN-001
 helix plan finalize --id PLAN-001
-helix codex --role se --task "PLAN-001 の L4 実装" --approved
+helix codex --role se --task "PLAN-001 の L7 実装" --approved
 helix review --uncommitted
 ```
 

@@ -21,9 +21,9 @@ V2.2 では CLAUDE.md に、以下を明示的に追加している。
    - 例外許容は明示的な事前合意のみ
    - PreToolUse hook と連動し、未通過時は warning を出し実行前確認
 
-2. **Push/PR/Merge 6 ゲート (v2.2)**
+2. **Push/PR/Merge pre-gate (v2.2)**
 
-   - `helix push/pr --gate` 実行時は以下 6 ゲートを機械検証
+   - `helix push/pr --gate` 実行時は push pre-gate subcheck を機械検証
    - 一部ゲートは手動補足（manual-confirm）必須
    - `auto-allow` は「自動実行できる安全領域」のみ付与
 
@@ -46,7 +46,7 @@ V2.2 では CLAUDE.md に、以下を明示的に追加している。
 - 結果:
   - 乱発を抑え、ask-based な詰まりを可視化
 
-## 3. 6 ゲート詳細
+## 3. push pre-gate subcheck 詳細
 
 | ゲート名 | 目的 | 典型 fail ケース | 対処 |
 |---|---|---|---|
@@ -165,4 +165,3 @@ $ helix pr --gate --auto-merge
 2. warn のみで止まるケースは、再現手順・実行根拠を明文化
 3. TL 相談は例外なく記録し、運用ログとして残す
 4. Ask は不要に増えやすい箇所ほど、先に `--gate` 実行可能性を確認
-

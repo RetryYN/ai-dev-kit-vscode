@@ -112,3 +112,22 @@ assert payload["overall"] == "fail", payload
 assert payload["checks"]["py_compile"]["status"] == "fail", payload
 PY
 }
+
+@test "I-CLI-004: helix-session-start treats canonical core import as setup complete" {
+  mkdir -p "$HOME_DIR/.claude"
+  cat > "$HOME_DIR/.claude/CLAUDE.md" <<'EOF'
+@~/.helix/core/helix/HELIX_CORE.md
+EOF
+  cat > "$HOME_DIR/.claude/settings.json" <<'EOF'
+{"hooks":{"SessionStart":[{"hooks":[{"command":"helix-session-start"}]}]}}
+EOF
+  cat > "$HOME_DIR/.bashrc" <<'EOF'
+export PATH="$HOME/ai-dev-kit-vscode/cli:$PATH"
+EOF
+
+  run "$HELIX_ROOT/cli/libexec/helix-session-start"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"HELIX フレームワーク稼働中"* ]]
+  [[ "$output" != *"HELIX セットアップ未完了"* ]]
+}

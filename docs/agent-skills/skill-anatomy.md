@@ -3,7 +3,7 @@
 本ドキュメントは `helix-agent-skills` の SKILL.md の構造とフォーマットを定義する。新規スキル作成時や既存スキル理解時の指針として参照すること。
 
 > **Upstream**: [addyosmani/agent-skills/docs/skill-anatomy.md](https://github.com/addyosmani/agent-skills/blob/main/docs/skill-anatomy.md) (MIT)
-> 本フォークでは日本語化 + HELIX frontmatter 拡張仕様 + HELIX L1-L11 連携を追加。
+> 本フォークでは日本語化 + HELIX frontmatter 拡張仕様 + HELIX L0-L14 連携を追加。
 
 ---
 
@@ -42,8 +42,8 @@ upstream: addyosmani/agent-skills        # フォーク元 (任意)
 |-----------|------|-----|------|
 | `name` | ✅ | kebab-case | ディレクトリ名と一致させる |
 | `description` | ✅ | 最大 1024 字 | 「何を」「いつ使うか」を日本語で。手順はここには書かない |
-| `helix_layer` | ✅ | `[L1-L11]` / `[R0-R4]` / `[S0-S4]` | 配列で複数指定可 |
-| `helix_gate` | — | `[G0.5, G1, G1.5, G1R, G2-G11, RG0-RG3]` | 関連ゲート |
+| `helix_layer` | ✅ | `[L0-L14]` / `[R0-R4]` / `[S0-S4]` | 配列で複数指定可 |
+| `helix_gate` | — | `[G0.5, G1, G1.5, G1R, G2-G14, RG0-RG3]` | 関連ゲート |
 | `codex_role` | ✅ | `tl/se/pg/fe/qa/security/dba/devops/docs/research/legacy/perf` | `cli/ROLE_MAP.md` 参照 |
 | `tier` | ✅ | `1` / `2` / `3` | 1=HELIX 強化に即効、2=中、3=既存 HELIX と重複 |
 | `upstream` | — | `<org>/<repo>` | フォーク元を示す (本家スキルのみ) |
