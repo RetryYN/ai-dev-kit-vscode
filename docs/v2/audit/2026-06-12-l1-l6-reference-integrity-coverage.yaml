@@ -1,0 +1,137 @@
+schema_version: l1_l6_reference_integrity_coverage_v1
+owner: TL
+status: current_scope_l1_l6_reference_integrity_clean
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that the current L1-L6 audit bundle references resolvable local
+  artifacts or valid glob patterns, without using L7 test-design artifacts as
+  current-scope evidence.
+sources:
+  audit_bundle:
+    - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  reference_integrity_map_is_implementation_evidence: false
+  current_scope_uses_l7_as_completion_evidence: false
+  l7_artifacts_created_by_this_audit: 0
+  external_tool_executed: false
+  schema_migration_done: false
+  goal_complete_allowed: false
+summary:
+  audit_files_checked: 25
+  path_like_refs_checked: 1376
+  direct_file_refs_checked: 1367
+  glob_patterns_checked: 9
+  missing_direct_file_refs: 0
+  empty_glob_patterns: 0
+  blocking_findings_current_scope: 0
+glob_patterns:
+  - pattern: docs/v2/L6-functional-design/**/function-spec.md
+    match_count: 18
+  - pattern: docs/v2/L6-functional-design/**/*function-spec.md
+    match_count: 18
+  - pattern: docs/v2/L1-requirements/**/*.md
+    match_count: 5
+  - pattern: docs/v2/L3-requirements/**/*.md
+    match_count: 4
+  - pattern: docs/v2/L4*/**/*.md
+    match_count: 6
+  - pattern: docs/v2/L5*/**/*.md
+    match_count: 6
+  - pattern: docs/v2/L6*/**/*.md
+    match_count: 27
+  - pattern: docs/v2/audit/2026-06-12-*.yaml
+    match_count: 21
+  - pattern: docs/plans/add-feature/add-feature-*.md
+    match_count: 16
+reference_policy:
+  direct_paths_must_exist: true
+  glob_patterns_must_expand_non_empty: true
+  command_strings_are_not_file_refs:
+    - cli/lib/tests/test_helix_l0_l14_flow_contract.py
+    - cli/tests/test-helix-l0-l14-flow-contract.bats
+  l7_boundary:
+    allowed_as_boundary_metadata: true
+    allowed_as_current_scope_completion_evidence: false
+bundle_alignment_contract:
+  ratification_index: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  ratification_sources_considered:
+    - objective_audit
+    - core_audit_bundle
+    - integrity_audits
+  reference_bundle_policy: yaml_audit_bundle_only
+  required_in_reference_not_ratification:
+    - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  allowed_in_ratification_not_reference:
+    - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    - docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+  reason: >
+    Reference integrity scans the YAML audit bundle and includes the
+    ratification index as an audited target. The ratification index also lists
+    the markdown grain audit and this reference-integrity file as read-path
+    evidence, but those are intentionally outside the structured YAML bundle
+    counted by this map.
+bundle_completeness_contract:
+  glob_pattern: docs/v2/audit/2026-06-12-*.yaml
+  glob_match_count: 21
+  explicit_current_scope_audits:
+    - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+  policy: every_current_date_yaml_audit_and_explicit_current_scope_audit_is_indexed_or_self_reference_integrity
+  allowed_not_in_audit_bundle:
+    - docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+  orphan_yaml_audits: []
+markdown_read_path_contract:
+  grain_balance_audit: docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+  extracted_path_refs: 43
+  direct_path_refs: 37
+  glob_path_refs: 6
+  missing_direct_file_refs: 0
+  empty_glob_patterns: 0
+  glob_patterns:
+    docs/v2/L1-requirements/*.md: 5
+    docs/v2/L3-requirements/*.md: 4
+    docs/v2/L4-basic-design/*.md: 6
+    docs/v2/L5-detailed-design/*.md: 6
+    docs/v2/L6-functional-design/*.md: 9
+    docs/v2/L6-functional-design/FR-*/function-spec.md: 18
+  l7_terms_allowed_only_as_boundary: true
+  required_l7_boundary_phrases:
+    - 本監査は L7 実装を開始しない
+    - FR 別 L7 成果物の作成、単体テスト実装、本体実装、coverage closure は本監査の範囲外
+    - FR 別 L7 成果物は未作成
+    - L7 へ進める場合の入口
+completion_denial:
+  reason: >
+    This audit proves reference integrity for the current L1-L6 audit bundle
+    only. It does not prove L7 implementation, test execution, CI/equivalent
+    wiring, DB write adoption, external tool execution, or full goal completion.

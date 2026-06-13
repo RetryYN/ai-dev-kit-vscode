@@ -1,0 +1,239 @@
+schema_version: l1_l6_deferred_design_obligation_proof_v1
+owner: TL
+status: current_scope_l1_l6_design_obligations_proven_before_defer
+updated: 2026-06-13
+scope: L1-L6
+purpose: >
+  Prove that draft add-feature tickets are not being used to hide L1-L6
+  design debt. Every deferred route must have current L1-L6 design evidence
+  before it can be treated as a later-phase implementation, DB, CI, external
+  tool, or contract-edit boundary.
+sources:
+  deferred_feature_coverage: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  full_objective_gap_status: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  ratification_index: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  objective_coverage: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  governance_hardening: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+  workflow_automation: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+  db_registration_readiness: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+  dependency_impact_readiness: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+  bottleneck_remediation_readiness: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+  harness_external_tools: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+  harness_pre_adoption_requirements: docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  audit_is_l7_work: false
+  audit_is_implementation_evidence: false
+  l7_test_design_created_by_this_audit: false
+  l7_implementation_done: false
+  unit_test_execution_done: false
+  coverage_closure_done: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  contract_edit_performed: false
+  goal_complete_allowed: false
+summary:
+  feature_tickets_checked: 11
+  feature_tickets_with_prior_l1_l6_design_evidence: 11
+  feature_tickets_using_ticket_as_design_substitute: 0
+  design_gap_reopen_rules_defined: 11
+  escalation_bound_design_tickets_checked: 2
+  implementation_or_execution_tickets_checked: 9
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+design_obligation_policy:
+  current_scope_action: prove_prior_l1_l6_design_evidence_before_defer
+  deferred_feature_tickets_are_not_design_substitute: true
+  l1_l6_design_assets_required_before_ticket: true
+  missing_design_evidence_reopens_l1_l6: true
+  add_feature_ticket_allowed_only_for:
+    - unapproved_l7_implementation
+    - unapproved_unit_execution_or_coverage_closure
+    - unapproved_db_write_or_schema_change
+    - unapproved_external_tool_install_or_execution
+    - unapproved_ci_or_equivalent_connection
+    - escalation_bound_contract_edit
+  ticket_is_completion_evidence: false
+  l7_or_external_execution_allowed_now: false
+  required_row_fields:
+    - ticket_id
+    - ticket_path
+    - deferred_work_class
+    - prior_l1_l6_design_evidence
+    - remaining_after_l1_l6
+    - design_gap_reopen_condition
+    - current_scope_verdict
+design_obligation_rows:
+  - ticket_id: full_flow_remaining_guards
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    deferred_work_class: right_arm_execution_and_ci
+    prior_l1_l6_design_evidence:
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    remaining_after_l1_l6:
+      - G8_G9_G12_G14_execution_evidence
+      - CI_or_equivalent_connection_evidence
+    design_gap_reopen_condition: missing_l0_l14_flow_or_g1_g6_exit_design
+    current_scope_verdict: prior_design_present_defer_execution
+  - ticket_id: db_evidence_lifecycle
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    deferred_work_class: db_write_and_feedback_lifecycle_adoption
+    prior_l1_l6_design_evidence:
+      - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    remaining_after_l1_l6:
+      - approved_db_write_adoption
+      - recurrence_closure_evidence
+    design_gap_reopen_condition: missing_l4_l5_l6_db_lifecycle_design
+    current_scope_verdict: prior_design_present_defer_db_write
+  - ticket_id: harness_external_tools
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    deferred_work_class: external_tool_adoption_and_ingestion
+    prior_l1_l6_design_evidence:
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+      - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+    remaining_after_l1_l6:
+      - approved_feature_ticket
+      - fresh_official_source_recheck
+      - install_or_execution_evidence_if_selected
+      - output_ingestion_evidence_if_selected
+    design_gap_reopen_condition: missing_l4_l5_l6_tool_admission_or_ingestion_design
+    current_scope_verdict: prior_design_present_defer_external_adoption
+  - ticket_id: codex_claude_guard_parity
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    deferred_work_class: runtime_guard_parity_enforcement
+    prior_l1_l6_design_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - docs/v2/L6-functional-design/whole-source-coverage-機能設計.md
+    remaining_after_l1_l6:
+      - codex_runtime_or_harness_enforcement
+      - parity_regression_tests
+    design_gap_reopen_condition: missing_guard_surface_route_or_l6_parity_design
+    current_scope_verdict: prior_design_present_defer_runtime_enforcement
+  - ticket_id: fr_registry_glossary
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    deferred_work_class: registry_and_glossary_runtime_projection
+    prior_l1_l6_design_evidence:
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    remaining_after_l1_l6:
+      - approved_registry_projection_implementation
+      - HELIX_DB_or_registry_write_evidence
+    design_gap_reopen_condition: missing_function_registry_or_glossary_l6_spec
+    current_scope_verdict: prior_design_present_defer_registry_write
+  - ticket_id: plan_registry_add_feature_import
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    deferred_work_class: plan_registry_import_implementation
+    prior_l1_l6_design_evidence:
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    remaining_after_l1_l6:
+      - approved_plan_registry_import_change
+      - add_feature_ticket_ingestion_evidence
+    design_gap_reopen_condition: missing_plan_graph_or_import_gap_contract
+    current_scope_verdict: prior_design_present_defer_plan_registry_change
+  - ticket_id: dependency_impact_query
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    deferred_work_class: dependency_impact_query_implementation
+    prior_l1_l6_design_evidence:
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    remaining_after_l1_l6:
+      - approved_impact_query_cli
+      - dependency_edge_projection_evidence
+    design_gap_reopen_condition: missing_impact_scope_or_dependency_edge_contract
+    current_scope_verdict: prior_design_present_defer_query_implementation
+  - ticket_id: bottleneck_routing
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    deferred_work_class: bottleneck_routing_and_recurrence_closure
+    prior_l1_l6_design_evidence:
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    remaining_after_l1_l6:
+      - approved_routing_execution
+      - recurrence_observation_and_closure
+    design_gap_reopen_condition: missing_bottleneck_signal_or_cross_axis_contract
+    current_scope_verdict: prior_design_present_defer_routing_execution
+  - ticket_id: l7_unit_closure
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    deferred_work_class: unit_test_implementation_execution_and_coverage
+    prior_l1_l6_design_evidence:
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    remaining_after_l1_l6:
+      - approved_unit_test_implementation
+      - unit_test_execution_evidence
+      - coverage_closure_evidence
+    design_gap_reopen_condition: missing_l6_unit_test_design_index_or_pair_balance
+    current_scope_verdict: prior_design_present_defer_l7_unit_closure
+  - ticket_id: phase_enum_l0_l14_runtime_retrofit
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    deferred_work_class: runtime_phase_metadata_retrofit
+    prior_l1_l6_design_evidence:
+      - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+      - .helix/handover/CURRENT.md
+    remaining_after_l1_l6:
+      - approved_runtime_metadata_retitle_or_validator_change
+      - stale_handover_prevention_evidence
+    design_gap_reopen_condition: missing_legacy_runtime_gap_classification
+    current_scope_verdict: prior_design_present_defer_runtime_retrofit
+  - ticket_id: contract_design_phase_label_retrofit
+    ticket_path: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    deferred_work_class: escalation_bound_contract_design_edit
+    prior_l1_l6_design_evidence:
+      - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+      - docs/v2/L3-detailed-design/D-API/D-API-draft.md
+      - docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md
+      - docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md
+    remaining_after_l1_l6:
+      - approved_contract_edit
+      - contract_semantics_preservation_evidence
+    design_gap_reopen_condition: missing_contract_label_gap_classification_or_approval_boundary
+    current_scope_verdict: prior_design_present_defer_contract_edit
+validation_contract:
+  ticket_set_source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml#feature_ticket_integrity
+  row_ticket_ids_must_equal_deferred_feature_ticket_ids: true
+  every_prior_l1_l6_design_evidence_path_must_exist: true
+  every_ticket_path_must_exist: true
+  current_scope_verdict_allowed:
+    - prior_design_present_defer_execution
+    - prior_design_present_defer_db_write
+    - prior_design_present_defer_external_adoption
+    - prior_design_present_defer_runtime_enforcement
+    - prior_design_present_defer_registry_write
+    - prior_design_present_defer_plan_registry_change
+    - prior_design_present_defer_query_implementation
+    - prior_design_present_defer_routing_execution
+    - prior_design_present_defer_l7_unit_closure
+    - prior_design_present_defer_runtime_retrofit
+    - prior_design_present_defer_contract_edit
+completion_denial:
+  reason: >
+    This audit proves that current draft add-feature routes have prior L1-L6
+    design evidence and are not design-debt escape hatches. It does not prove
+    L7 implementation, L7 unit-test implementation/execution, coverage
+    closure, HELIX DB write adoption, external tool adoption, CI/equivalent
+    connection, contract edit completion, recurrence closure, or full-goal
+    completion.

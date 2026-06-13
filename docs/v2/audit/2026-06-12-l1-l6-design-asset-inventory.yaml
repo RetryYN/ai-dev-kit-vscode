@@ -1,0 +1,192 @@
+schema_version: l1_l6_design_asset_inventory_v1
+owner: TL
+status: current_scope_l1_l6_inventory_not_l7
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Inventory the existing L1-L6 design and paired test-design assets used by
+  the current requirement-gap and granularity audit. This inventory prevents
+  the L1-L6 audit from relying only on selected proof files. It records
+  pre-existing L7 pair references as boundary metadata only; it does not
+  authorize or perform L7 work.
+source_commands:
+  asset_listing: "find docs/v2/L{1,2,3,4,5,6}-* -type f"
+  requirement_drift: "helix doctor check_requirement_drift --json"
+  trace_balance: "python3 -m cli.lib.trace_symmetry --json"
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  inventory_uses_l7_as_execution_evidence: false
+  l7_implementation_done: false
+  l7_test_design_created_by_this_inventory: false
+  goal_complete_allowed: false
+asset_counts:
+  l1_requirement_files: 5
+  l2_screen_design_files: 1
+  l3_requirement_files: 4
+  l4_basic_design_files: 6
+  l5_detailed_design_files: 6
+  l6_functional_design_files: 28
+  total_l1_l6_files: 50
+layer_assets:
+  L1:
+    grain: requirement / operational-test-design seed
+    count: 5
+    files:
+      - docs/v2/L1-requirements/helix-workflows-business-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-functional-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-nfr.md
+      - docs/v2/L1-requirements/helix-workflows-technical-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-verification-strategy.md
+  L2:
+    grain: screen requirement / UI absence waiver
+    count: 1
+    files:
+      - docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+  L3:
+    grain: detailed requirement / acceptance-test-design seed
+    count: 4
+    files:
+      - docs/v2/L3-requirements/helix-workflows-business-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-functional-registry.md
+      - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+  L4:
+    grain: basic / external design plus system-test-design pair
+    count: 6
+    files:
+      - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - docs/v2/L4-basic-design/データ設計.md
+      - docs/v2/L4-basic-design/外部IF設計.md
+      - docs/v2/L4-basic-design/方式設計.md
+      - docs/v2/L4-basic-design/機能構成設計.md
+  L5:
+    grain: detailed / internal design plus integration-test-design pair
+    count: 6
+    files:
+      - docs/v2/L5-detailed-design/IF詳細設計.md
+      - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - docs/v2/L5-detailed-design/モジュール分割設計.md
+      - docs/v2/L5-detailed-design/内部処理設計.md
+      - docs/v2/L5-detailed-design/物理データ設計.md
+  L6:
+    grain: function / specification plus unit-test-design viewpoints
+    count: 28
+    files:
+      - docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+      - docs/v2/L6-functional-design/functional-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/helix-workflows-function-design.md
+      - docs/v2/L6-functional-design/registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/requirement-drift-機能設計.md
+      - docs/v2/L6-functional-design/whole-source-coverage-機能設計.md
+l6_design_clusters:
+  partition_policy:
+    all_l6_assets_partitioned: true
+    overlap_allowed: false
+    fr_specs_source_index: docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    rule: >
+      FR specs from the index, detector/governance specs, and deferred
+      extension specs must cover the L6 asset list exactly.
+  fr_function_specs:
+    count: 18
+    evidence: docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    status: L6 unit-test-design viewpoints indexed; not L7 artifacts
+  detector_and_governance_specs:
+    count: 7
+    files:
+      - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+      - docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/functional-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/requirement-drift-機能設計.md
+      - docs/v2/L6-functional-design/whole-source-coverage-機能設計.md
+      - docs/v2/L6-functional-design/helix-workflows-function-design.md
+  deferred_extension_specs:
+    count: 3
+    files:
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+preexisting_l7_pair_references:
+  policy: >
+    Existing L6 documents may name their paired L7 test-design artifact because
+    HELIX pair-freeze uses L6-L7 pairing. In this current user-requested scope,
+    those references are inventory metadata only and cannot be used as approval
+    to create or execute L7 work.
+  must_route_new_l7_work_to:
+    - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+l6_l7_reference_boundary:
+  l6_docs_with_l7_refs: 24
+  l7_ref_occurrences_in_l6_docs: 29
+  unique_l7_ref_targets: 24
+  existing_pair_artifact_targets: 6
+  future_placeholder_targets: 18
+  existing_pair_policy: >
+    Existing pair artifacts are historical / pre-existing evidence only. This
+    inventory does not use them as current-scope completion evidence.
+  future_placeholder_policy: >
+    Missing FR-scoped pair targets are allowed only when the L6 source states
+    that the L7 test-design artifact is not created in the current task.
+  current_audit_created_l7_pair_artifacts: false
+  current_scope_uses_l7_refs_as_completion_evidence: false
+future_pair_reference_resolution_contract:
+  current_scope_action: classify_only_no_l7_creation
+  future_refs_are_design_placeholders: false
+  future_refs_are_unapproved_pair_targets: true
+  future_refs_are_completion_evidence: false
+  l7_artifact_creation_allowed_now: false
+  required_source_statement: 現在タスクでは作成しない
+  required_resolution_routes:
+    - approved_add_feature_ticket
+    - approved_l7_plan
+  unlock_conditions:
+    - user_explicitly_requests_l7_work
+    - approved_feature_ticket_names_the_l7_target
+    - acceptance_criteria_include_unit_test_design_artifact
+  route_policy: >
+    FR-scoped L7 pair references found in L6 sources are retained as HELIX
+    pair metadata only. If the referenced artifact does not exist, it must
+    remain a non-completion boundary until an approved add-feature ticket or
+    approved L7 plan names that target.
+coverage_evidence:
+  requirement_drift:
+    clean: true
+    focus: L6
+    requirements: 31
+    design_links: 31
+    blocking_findings: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+  grain_balance:
+    source: docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    l1_l6_current_scope_status: pass
+completion_denial:
+  reason: >
+    This inventory proves the L1-L6 asset universe considered by the audit. It
+    does not prove L7 execution, unit-test implementation, coverage closure,
+    CI/equivalent connection, or external tool adoption.

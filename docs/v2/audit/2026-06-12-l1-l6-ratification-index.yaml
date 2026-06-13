@@ -1,0 +1,807 @@
+schema_version: l1_l6_ratification_index_v1
+owner: TL
+status: ratified_l1_l6_current_scope_not_full_goal
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Provide the single read path for the current L1-L6 ratification bundle.
+  This index consolidates the audit files, verification commands, pass
+  criteria, and explicit no-L7 boundary so the L1-L6 current-scope result
+  cannot be mistaken for L7 implementation or full L0-L14 completion.
+sources:
+  objective_audit:
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  core_audit_bundle:
+    - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  integrity_audits:
+    - docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+  functional_design_index:
+    - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+  l0_l14_definition_sources:
+    - HELIX-workflows/HELIX-process-L0-L14.md
+    - helix/HELIX_CORE.md
+    - helix/HELIX_RUNTIME_RULES.md
+    - skills/SKILL_MAP.md
+    - skills/workflow/verification/SKILL.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  ratification_index_is_l7_work: false
+  ratification_index_is_implementation_evidence: false
+  l7_test_design_created_by_this_index: false
+  l7_implementation_done: false
+  l7_unit_test_execution_done: false
+  coverage_closure_done: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  full_goal_complete: false
+  goal_complete_allowed: false
+ratification_summary:
+  current_scope_verdict: pass_l1_l6_only
+  full_goal_verdict: active_not_complete
+  objective_audit_files_indexed: 1
+  core_audit_bundle_files_indexed: 23
+  integrity_audits_indexed: 2
+  double_check_quantitative_checks_total: 21
+  double_check_quantitative_checks_pass: 21
+  double_check_qualitative_checks_total: 36
+  double_check_qualitative_checks_pass: 36
+  double_check_blocking_findings_current_scope: 0
+  evidence_boundary_scan_evidence_like_keys_checked: 11
+  evidence_boundary_scan_boundary_context_refs: 276
+  evidence_boundary_scan_negative_boundary_check_refs: 1
+  evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence: 0
+  evidence_boundary_scan_current_scope_proof_allows_add_feature: false
+  evidence_boundary_scan_current_scope_proof_allows_l7_test_design: false
+  l0_problem_axes_checked: 10
+  l0_problem_axes_with_l1_l6_design_evidence: 10
+  l0_problem_axis_rows_with_mapped_requirements: 10
+  l0_problem_axis_rows_with_l4_l6_design_evidence: 10
+  l0_problem_axis_rows_with_audit_evidence: 10
+  l0_target_areas_checked: 10
+  l0_target_areas_with_l1_l6_design_evidence: 10
+  l0_target_area_rows_with_current_scope_evidence: 10
+  l0_rows_with_current_scope_result: 20
+  l1_l6_audit_sources_declared: 13
+  row_audit_refs_checked: 32
+  unique_row_audit_refs_checked: 11
+  undeclared_row_audit_refs: 0
+  fr31_requirement_count: 31
+  fr31_all_requirements_have_design_link: true
+  fr31_all_design_definition_ids_present: true
+  fr31_missing_downstream_count: 0
+  fr31_orphan_design_count: 0
+  fr31_blocking_findings: 0
+  legacy_reference_files_checked: 4
+  legacy_reference_files_marked_or_already_marked: 4
+  legacy_runtime_retrofit_required_items: 1
+  legacy_runtime_files_with_old_enum_ticketed: 2
+  legacy_runtime_metadata_gap_ticketed: true
+  legacy_runtime_feature_ticket_metadata_match_required: true
+  legacy_runtime_next_action_supersedes_current_json_metadata: true
+  legacy_runtime_safe_task_retitle_command_available_now: false
+  legacy_handover_metadata_boundary_items_checked: 1
+  legacy_handover_current_json_l7_label_authorizes_work: false
+  legacy_handover_ready_for_review_status_not_completion: true
+  legacy_handover_next_action_is_authoritative: true
+  legacy_contract_design_retrofit_required_items: 1
+  legacy_contract_design_files_with_old_phase_labels_classified: 3
+  legacy_contract_design_feature_tickets_created: 1
+  legacy_current_sources_of_truth_checked: 5
+  legacy_blocking_findings_current_l1_l6_scope: 0
+  legacy_l7_artifacts_created_by_this_audit: 0
+  guard_surfaces_checked: 8
+  guard_parity_status_policies_checked: 5
+  guard_parity_gap_routes_checked: 8
+  guard_parity_route_required_fields_checked: 7
+  parity_finding_normalization_contracts_checked: 8
+  guard_parity_normalization_required_fields_checked: 8
+  parity_closure_requirements_checked: 8
+  guard_parity_closure_required_fields_checked: 6
+  guard_parity_accountability_current_scope_proves_checked: 4
+  guard_parity_accountability_current_scope_does_not_prove_checked: 4
+  guard_parity_classification_rules_checked: 4
+  guard_parity_adoption_requirements_checked: 4
+  guard_codex_runtime_evidence_surfaces_checked: 3
+  guard_l6_design_only_surfaces_checked: 3
+  guard_future_plan_required_surfaces_checked: 1
+  guard_blocking_findings_current_scope: 0
+  harness_external_tool_adoption_recheck_controls_checked: 3
+  harness_external_tool_pre_adoption_requirement_contracts_checked: 5
+  harness_external_tool_current_session_web_fetch_sources_checked: 5
+  harness_external_tool_latest_core_rechecked_sources_checked: 5
+  harness_external_tool_all_candidate_sources_checked: 33
+  harness_external_tool_spot_recheck_sources_checked: 8
+  harness_external_tool_spot_recheck_subset_of_canonical: true
+  harness_external_tool_spot_recheck_not_full_candidate_recheck: true
+  harness_external_tool_scope_contract_l7_artifact_allowed: false
+  harness_external_tool_tool_candidates_checked: 33
+  harness_external_tool_intake_contracts_checked: 33
+  harness_external_tool_tool_intake_required_fields_checked: 9
+  harness_external_tool_tool_intake_forbidden_common_rules_checked: 7
+  harness_external_tool_admission_gate_contracts_checked: 5
+  harness_external_tool_admission_gate_required_fields_checked: 7
+  harness_external_tool_admission_owner_roles_checked: 3
+  harness_external_tool_output_ingestion_contracts_checked: 33
+  harness_external_tool_tool_output_required_fields_checked: 8
+  harness_external_tool_tool_output_detector_signals_checked: 5
+  harness_external_tool_design_layers_checked: 3
+  harness_external_tool_l6_functions_defined: 10
+  harness_external_tool_l6_unit_test_viewpoints_defined: 10
+  harness_external_tool_deferred_feature_entry_points_checked: 1
+  harness_external_tool_blocking_findings_current_scope: 0
+  harness_external_tool_l7_artifacts_created_by_this_audit: 0
+  harness_external_tool_accountability_indexed: true
+  harness_external_tool_current_session_web_fetch_refs_checked: 10
+  harness_external_tool_accountability_current_scope_proves_checked: 5
+  harness_external_tool_accountability_current_scope_does_not_prove_checked: 8
+  harness_external_tool_web_evidence_is_design_basis_not_adoption: true
+  harness_external_tool_current_scope_must_keep_install_execution_ci_db_false: true
+  harness_external_tool_l7_work_requires_feature_ticket: true
+  harness_external_tool_adoption_or_execution_allowed_now: false
+  harness_external_tool_db_write_allowed_now: false
+  harness_external_tool_ci_or_equivalent_connection_allowed_now: false
+  web_evidence_sources_verified: true
+  web_evidence_official_sources_checked: 33
+  web_evidence_latest_core_rechecked_sources_checked: 5
+  web_evidence_all_sources_not_adopted_current_scope: true
+  web_evidence_l7_or_adoption_evidence_allowed: false
+  reference_integrity_path_like_refs_checked: 1376
+  reference_integrity_direct_file_refs_checked: 1367
+  reference_integrity_audit_files_checked: 25
+  reference_integrity_glob_patterns_checked: 9
+  reference_integrity_missing_direct_file_refs: 0
+  reference_integrity_empty_glob_patterns: 0
+  design_asset_total_l1_l6_files: 50
+  design_asset_l1_requirement_files: 5
+  design_asset_l2_screen_design_files: 1
+  design_asset_l3_requirement_files: 4
+  design_asset_l4_basic_design_files: 6
+  design_asset_l5_detailed_design_files: 6
+  design_asset_l6_functional_design_files: 28
+  design_asset_l6_assets_partitioned: true
+  design_asset_l6_partition_clusters: 3
+  design_asset_l6_l7_ref_occurrences: 29
+  design_asset_future_placeholder_targets: 18
+  design_asset_inventory_uses_l7_as_execution_evidence: false
+  design_asset_l7_artifacts_created_by_this_inventory: false
+  grain_balance_current_scope_status: pass
+  l1_l6_design_layers_ratified: 6
+  l1_l6_pair_layers_ratified: 6
+  pair_contract_matrix_layers_checked: 6
+  pair_l1_l6_layers_checked: 6
+  pair_layers_pass: 6
+  pair_layers_with_waiver: 1
+  pair_blocking_findings: 0
+  paired_artifacts_checked: 6
+  expected_design_refs_checked: 8
+  expected_design_refs_backed_by_design_assets: 8
+  expected_design_refs_missing_from_design_assets: 0
+  pair_l6_unit_test_design_viewpoint_count: 128
+  fr18_specs_current_scope_l6_closed: 18
+  fr18_specs_with_draft_status: 0
+  pair_notes_indexed: 3
+  improvement_candidates_indexed: 35
+  improvement_candidates_design_only: 2
+  improvement_candidates_feature_ticket_only: 33
+  improvement_candidates_adopted: false
+  workflow_surfaces_checked: 6
+  automation_surfaces_checked: 9
+  automation_trigger_contracts_checked: 9
+  workflow_db_registry_targets_mapped: 9
+  workflow_detector_gate_routes_mapped: 7
+  workflow_cross_audit_convergence_rows_checked: 6
+  workflow_deferred_feature_entry_points_checked: 7
+  workflow_parked_feature_entry_points_checked: 1
+  workflow_blocking_findings_current_scope: 0
+  workflow_l7_artifacts_created_by_this_audit: 0
+  governance_surfaces_checked: 8
+  governance_l6_design_docs_checked: 8
+  governance_l6_function_contracts_checked: 53
+  governance_l6_ut_candidate_viewpoints: 44
+  governance_finding_normalization_contracts_checked: 6
+  governance_normalization_required_fields_checked: 7
+  governance_documentation_readiness_gap_patterns_checked: 7
+  governance_controls_checked: 6
+  governance_detection_required_route_fields_checked: 7
+  governance_detection_routes_checked: 6
+  governance_control_trace_rows_checked: 6
+  governance_control_closure_rows_checked: 6
+  governance_preexisting_l7_pair_refs: 2
+  governance_preexisting_completed_feature_entry_points_checked: 3
+  governance_deferred_feature_entry_points_checked: 4
+  governance_blocking_findings_current_scope: 0
+  governance_l7_artifacts_created_by_this_audit: 0
+  db_feedback_design_layers_checked: 3
+  db_feedback_physical_db_design_checked: 1
+  db_feedback_lifecycle_states_defined: 8
+  db_feedback_closure_rules_defined: 4
+  db_feedback_l6_functions_defined: 8
+  db_feedback_existing_storage_groups_mapped: 6
+  db_feedback_existing_tables_required_for_lifecycle_checked: 9
+  db_feedback_forbidden_current_scope_rules_checked: 4
+  db_feedback_deferred_feature_entry_points_checked: 1
+  db_feedback_blocking_findings_current_scope: 0
+  db_feedback_l7_artifacts_created_by_this_audit: 0
+  db_feedback_accountability_indexed: true
+  db_feedback_feature_ticket_is_not_design_substitute: true
+  db_feedback_db_write_requires_explicit_approval: true
+  db_feedback_current_scope_must_keep_db_write_false: true
+  db_feedback_recurrence_closure_requires_later_execution_evidence: true
+  db_feedback_schema_migration_done: false
+  db_feedback_db_write_connection_done: false
+  dependency_impact_surfaces_checked: 7
+  dependency_impact_l6_function_specs_checked: 6
+  dependency_impact_current_code_surfaces_checked_read_only: 5
+  dependency_impact_required_output_sections: 9
+  dependency_impact_db_projection_contracts_checked: 5
+  dependency_impact_dependency_edge_relations_checked: 7
+  dependency_impact_scope_route_contracts_checked: 3
+  dependency_impact_unknown_scope_resolution_rules_checked: 6
+  dependency_impact_visibility_rows_checked: 9
+  dependency_impact_output_trace_rows_checked: 9
+  dependency_impact_deferred_feature_entry_points_checked: 4
+  dependency_impact_blocking_findings_current_scope: 0
+  dependency_impact_l7_artifacts_created_by_this_audit: 0
+  db_registration_events_checked: 6
+  db_registration_event_contracts_checked: 6
+  db_registration_document_projection_contracts_checked: 5
+  db_registration_lifecycle_route_contracts_checked: 6
+  db_registration_existing_implementation_surfaces_checked: 8
+  db_registration_l1_l6_design_surfaces_checked: 3
+  db_registration_readiness_rows: 6
+  db_registration_event_route_closure_rows_checked: 6
+  db_registration_add_feature_import_targets_checked: 11
+  db_registration_blocking_findings_current_scope: 0
+  db_registration_l7_feature_tickets_created: 1
+  db_registration_l7_artifacts_created_by_this_audit: 0
+  db_registration_accountability_indexed: true
+  db_registration_feature_ticket_is_not_design_substitute: true
+  db_registration_db_write_requires_explicit_approval: true
+  db_registration_current_scope_must_keep_db_write_false: true
+  db_registration_plan_registry_changed_by_this_audit: false
+  db_registration_helix_db_write_performed: false
+  db_registration_schema_migration_done: false
+  bottleneck_signal_sources_checked: 7
+  bottleneck_l6_function_specs_checked: 5
+  bottleneck_remediation_flow_states_defined: 7
+  bottleneck_forbidden_current_scope_states_checked: 2
+  bottleneck_required_signal_fields_checked: 8
+  bottleneck_cross_axis_aggregation_contracts_checked: 4
+  bottleneck_signal_route_contracts_checked: 7
+  bottleneck_current_code_surfaces_checked_read_only: 5
+  bottleneck_deferred_feature_entry_points_checked: 4
+  bottleneck_deferred_feature_boundaries_checked: 4
+  bottleneck_required_output_sections: 8
+  bottleneck_blocking_findings_current_scope: 0
+  bottleneck_l7_artifacts_created_by_this_audit: 0
+  exit_layers_checked: 6
+  exit_layers_pass: 6
+  exit_layers_with_waiver: 1
+  exit_gate_ids_checked: 6
+  exit_blocking_findings_current_scope: 0
+  exit_l7_artifacts_created_by_this_map: 0
+  deferred_objective_clauses_checked: 9
+  deferred_entry_points_checked: 11
+  deferred_feature_tickets_checked: 11
+  deferred_feature_tickets_indexed: 11
+  deferred_feature_tickets_draft: 11
+  deferred_feature_tickets_with_approval_boundary: 11
+  deferred_feature_unlock_conditions_checked: 11
+  deferred_repository_add_feature_files_discovered: 16
+  deferred_current_objective_deferred_feature_tickets: 11
+  deferred_out_of_current_objective_add_feature_files: 5
+  deferred_out_of_current_objective_completed_add_features: 4
+  deferred_out_of_current_objective_parked_feature_tickets: 1
+  deferred_full_flow_later_phase_approval_boundary: true
+  deferred_clauses_without_deferred_work: 1
+  deferred_clauses_mapped_to_feature_ticket: 8
+  deferred_unmapped_deferred_boundaries: 0
+  deferred_l7_artifacts_created_by_this_audit: 0
+  deferred_blocking_findings_current_scope: 0
+  deferred_design_obligation_rows_checked: 11
+  deferred_design_obligation_rows_with_prior_l1_l6_design_evidence: 11
+  deferred_design_obligation_escape_findings: 0
+  deferred_design_gap_reopen_rules_defined: 11
+  deferred_escalation_bound_design_tickets_checked: 2
+  deferred_implementation_or_execution_tickets_checked: 9
+  harness_pre_adoption_representative_sources_rechecked: 5
+  harness_pre_adoption_requirement_contracts_checked: 5
+  harness_pre_adoption_l1_l3_requirement_surfaces_reused: 6
+  harness_pre_adoption_acceptance_design_obligations_defined: 5
+  harness_pre_adoption_blocking_findings_current_scope: 0
+  harness_pre_adoption_l7_artifacts_created_by_this_audit: 0
+  nfr_derivation_requirements_deriver_signals_checked: 9
+  nfr_derivation_requirements_deriver_signals_with_l1_or_l3_coverage: 9
+  nfr_derivation_iso_25010_characteristics_checked: 9
+  nfr_derivation_iso_25010_characteristics_covered: 9
+  nfr_derivation_l1_nfr_count: 23
+  nfr_derivation_l3_nfr_count: 27
+  nfr_derivation_l3_extension_count: 4
+  nfr_derivation_l3_rederived_characteristics: 3
+  nfr_derivation_current_scope_blocking_findings: 0
+  nfr_derivation_l7_artifacts_created_by_this_audit: 0
+  reference_integrity_blocking_findings_current_scope: 0
+  full_goal_unlock_evidence_classes_indexed: 8
+  full_goal_unlock_required_feature_tickets_resolved: 8
+  right_arm_execution_gates_deferred: 4
+  blocking_findings_current_l1_l6_scope: 0
+  l7_artifacts_created_by_this_index: 0
+  full_objective_objective_items_checked: 10
+  full_objective_current_scope_items_pass_l1_l6: 9
+  full_objective_items_requiring_later_phase_before_full_completion: 8
+  full_objective_feature_tickets_available: 11
+  full_objective_repository_add_feature_files_discovered: 16
+  full_objective_current_objective_deferred_feature_tickets: 11
+  full_objective_out_of_current_objective_add_feature_files: 5
+  full_objective_out_of_current_objective_completed_add_features: 4
+  full_objective_out_of_current_objective_parked_feature_tickets: 1
+  full_objective_right_arm_execution_gates_deferred: 4
+  full_objective_blocking_findings_current_l1_l6_scope: 0
+  full_objective_blocking_findings_full_goal: 8
+  full_objective_current_scope_verdict: pass_l1_l6_only
+  full_objective_full_goal_verdict: active_not_complete
+summary_coverage_index:
+  current_scope_action: prove_source_audit_summary_keys_are_indexed
+  coverage_index_is_l7_work: false
+  coverage_index_is_implementation_evidence: false
+  l7_work_requested_by_user: false
+  source_summary_maps_checked: 19
+  source_summary_keys_checked: 219
+  sources_with_unmapped_summary_keys: 0
+  unmapped_summary_keys: []
+  key_mapping_policy:
+    default_transform: identity
+    already_prefixed_source_key_uses_identity: true
+    supported_transforms:
+      - identity
+      - length
+    rules:
+      - source_id: bottleneck
+        ratification_key_prefix: bottleneck_
+      - source_id: guard
+        ratification_key_prefix: guard_
+        key_overrides:
+          guard_surfaces: guard_surfaces_checked
+          codex_runtime_evidence_surfaces: guard_codex_runtime_evidence_surfaces_checked
+          l6_design_only_surfaces: guard_l6_design_only_surfaces_checked
+          future_plan_required_surfaces: guard_future_plan_required_surfaces_checked
+          parity_finding_normalization_contracts_checked: parity_finding_normalization_contracts_checked
+          parity_closure_requirements_checked: parity_closure_requirements_checked
+      - source_id: db_feedback
+        ratification_key_prefix: db_feedback_
+      - source_id: db_registration
+        ratification_key_prefix: db_registration_
+        key_overrides:
+          registration_events_checked: db_registration_events_checked
+          registration_event_contracts_checked: db_registration_event_contracts_checked
+      - source_id: deferred
+        ratification_key_prefix: deferred_
+        key_overrides:
+          feature_tickets_with_unlock_conditions: deferred_feature_unlock_conditions_checked
+      - source_id: dependency_impact
+        ratification_key_prefix: dependency_impact_
+        key_overrides:
+          impact_scope_route_contracts_checked: dependency_impact_scope_route_contracts_checked
+          impact_visibility_rows_checked: dependency_impact_visibility_rows_checked
+          impact_output_trace_rows_checked: dependency_impact_output_trace_rows_checked
+      - source_id: double_check
+        ratification_key_prefix: double_check_
+        key_overrides:
+          quantitative_checks: double_check_quantitative_checks_total
+          qualitative_checks: double_check_qualitative_checks_total
+          current_scope_verdict: current_scope_verdict
+      - source_id: exit
+        ratification_key_prefix: exit_
+        key_overrides:
+          gate_ids_checked: exit_gate_ids_checked
+        value_transforms:
+          gate_ids_checked: length
+      - source_id: fr31
+        ratification_key_prefix: fr31_
+        key_overrides:
+          requirement_count: fr31_requirement_count
+          all_requirements_have_design_link: fr31_all_requirements_have_design_link
+          all_design_definition_ids_present: fr31_all_design_definition_ids_present
+          missing_downstream: fr31_missing_downstream_count
+          orphan_design: fr31_orphan_design_count
+        value_transforms:
+          missing_downstream: length
+          orphan_design: length
+      - source_id: governance
+        ratification_key_prefix: governance_
+        key_overrides:
+          current_scope_l6_ut_candidate_viewpoints: governance_l6_ut_candidate_viewpoints
+          documentation_readiness_gap_patterns_checked: governance_documentation_readiness_gap_patterns_checked
+      - source_id: harness_external_tool
+        ratification_key_prefix: harness_external_tool_
+        key_overrides:
+          official_sources_checked: web_evidence_official_sources_checked
+          tool_intake_contracts_checked: harness_external_tool_intake_contracts_checked
+          tool_output_ingestion_contracts_checked: harness_external_tool_output_ingestion_contracts_checked
+      - source_id: pair
+        ratification_key_prefix: pair_
+        key_overrides:
+          paired_artifacts_checked: paired_artifacts_checked
+          expected_design_refs_checked: expected_design_refs_checked
+          expected_design_refs_backed_by_design_assets: expected_design_refs_backed_by_design_assets
+          expected_design_refs_missing_from_design_assets: expected_design_refs_missing_from_design_assets
+          notes: pair_notes_indexed
+        value_transforms:
+          notes: length
+      - source_id: reference_integrity
+        ratification_key_prefix: reference_integrity_
+      - source_id: workflow
+        ratification_key_prefix: workflow_
+        key_overrides:
+          automation_surfaces_checked: automation_surfaces_checked
+          automation_trigger_contracts_checked: automation_trigger_contracts_checked
+      - source_id: deferred_design_obligation
+        ratification_key_prefix: deferred_
+        key_overrides:
+          feature_tickets_checked: deferred_design_obligation_rows_checked
+          feature_tickets_with_prior_l1_l6_design_evidence: deferred_design_obligation_rows_with_prior_l1_l6_design_evidence
+          feature_tickets_using_ticket_as_design_substitute: deferred_design_obligation_escape_findings
+      - source_id: harness_pre_adoption
+        ratification_key_prefix: harness_pre_adoption_
+        key_overrides:
+          pre_adoption_requirement_contracts_checked: harness_pre_adoption_requirement_contracts_checked
+      - source_id: nfr_derivation
+        ratification_key_prefix: nfr_derivation_
+      - source_id: legacy
+        ratification_key_prefix: legacy_
+        key_overrides:
+          runtime_retrofit_required_items: legacy_runtime_retrofit_required_items
+          runtime_files_with_old_enum_ticketed: legacy_runtime_files_with_old_enum_ticketed
+          handover_metadata_boundary_items_checked: legacy_handover_metadata_boundary_items_checked
+          handover_current_json_l7_label_authorizes_work: legacy_handover_current_json_l7_label_authorizes_work
+          handover_ready_for_review_status_not_completion: legacy_handover_ready_for_review_status_not_completion
+          handover_next_action_is_authoritative: legacy_handover_next_action_is_authoritative
+          contract_design_retrofit_required_items: legacy_contract_design_retrofit_required_items
+          contract_design_files_with_old_phase_labels_classified: legacy_contract_design_files_with_old_phase_labels_classified
+          contract_design_feature_tickets_created: legacy_contract_design_feature_tickets_created
+          current_sources_of_truth_checked: legacy_current_sources_of_truth_checked
+          blocking_findings_current_l1_l6_scope: legacy_blocking_findings_current_l1_l6_scope
+          l7_artifacts_created_by_this_audit: legacy_l7_artifacts_created_by_this_audit
+      - source_id: full_objective
+        ratification_key_prefix: full_objective_
+  coverage_rows:
+    - source_id: bottleneck
+      source: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+      summary_keys_checked: 13
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: guard
+      source: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+      summary_keys_checked: 16
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: db_feedback
+      source: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+      summary_keys_checked: 11
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: db_registration
+      source: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+      summary_keys_checked: 12
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: deferred
+      source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+      summary_keys_checked: 16
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: dependency_impact
+      source: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+      summary_keys_checked: 13
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: double_check
+      source: docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+      summary_keys_checked: 6
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: exit
+      source: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+      summary_keys_checked: 6
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: fr31
+      source: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+      summary_keys_checked: 6
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: governance
+      source: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+      summary_keys_checked: 17
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: harness_external_tool
+      source: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+      summary_keys_checked: 23
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: pair
+      source: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      summary_keys_checked: 11
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: reference_integrity
+      source: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+      summary_keys_checked: 7
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: workflow
+      source: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      summary_keys_checked: 10
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: deferred_design_obligation
+      source: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+      summary_keys_checked: 8
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: harness_pre_adoption
+      source: docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+      summary_keys_checked: 6
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: nfr_derivation
+      source: docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+      summary_keys_checked: 10
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: legacy
+      source: docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      summary_keys_checked: 14
+      coverage_status: pass
+      unmapped_summary_keys: []
+    - source_id: full_objective
+      source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+      summary_keys_checked: 14
+      coverage_status: pass
+      unmapped_summary_keys: []
+ratified_l1_l6_items:
+  - id: RAT-L0-L14-FLOW
+    status: pass_l1_l6_definition
+    evidence:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - skills/SKILL_MAP.md
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+      - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+      - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  - id: RAT-REQ-GAP
+    status: pass
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+      - helix doctor check_requirement_drift --json
+  - id: RAT-GRAIN-BALANCE
+    status: pass_l1_l6
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+  - id: RAT-EXIT-CRITERIA
+    status: pass_g1_g6_current_scope
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  - id: RAT-DDD-TDD-GOVERNANCE
+    status: design_pass_implementation_deferred
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+  - id: RAT-DB-FEEDBACK
+    status: design_pass_write_adoption_deferred
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+  - id: RAT-HARNESS-EXTERNAL-TOOLS
+    status: research_and_design_pass_adoption_deferred
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+  - id: RAT-WORKFLOW-AUTOMATION
+    status: design_readiness_pass_implementation_deferred
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  - id: RAT-BOTTLENECK-REMEDIATION
+    status: readiness_pass_adoption_deferred
+    evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+verification_commands:
+  - command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    expected: 87 passed
+  - command: bats cli/tests/test-helix-l0-l14-flow-contract.bats
+    expected: 56 tests passed
+  - command: helix doctor check_requirement_drift --json
+    expected:
+      clean: true
+      focus: L6
+      requirements: 31
+      design_links: 31
+      blocking_findings: 0
+      advisory_findings: 0
+  - command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    expected:
+      exit_status: 0
+      overall_clean: false
+      deferred_execution_gates:
+        - G8
+        - G9
+        - G12
+        - G14
+verification_command_contract:
+  current_scope_only: true
+  commands_must_not_execute_l7_db_ci_external: true
+  expected_results_are_machine_readable: true
+  pytest_l0_l14_flow_contract:
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    expected_passed_count: 86
+    expected_output_contains: 87 passed
+    proves_l7_work: false
+  bats_l0_l14_flow_contract:
+    command: bats cli/tests/test-helix-l0-l14-flow-contract.bats
+    expected_test_count: 55
+    expected_tap_plan: 1..55
+    proves_l7_work: false
+  requirement_drift_l6_focus:
+    command: helix doctor check_requirement_drift --json
+    expected_json_subset:
+      clean: true
+      focus: L6
+      requirements: 31
+      design_links: 31
+      blocking_findings: 0
+      advisory_findings: 0
+    proves_l7_work: false
+  strict_full_flow_skip_exec:
+    command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+    execution_guard_env: HELIX_DOCTOR_SKIP_EXEC_TESTS
+    expected_json_subset:
+      overall_clean: false
+      deferred_execution_gates:
+        - G8
+        - G9
+        - G12
+        - G14
+    proves_full_goal_completion: false
+full_goal_unlock_evidence_index:
+  source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  source_contract: full_goal_completion_unlock_evidence_contract
+  current_scope_action: index_unlock_evidence_only
+  evidence_namespace: full_goal_unlock_required_evidence_not_current_scope_proof
+  required_evidence_count: 8
+  required_evidence_is_current_scope_proof: false
+  required_evidence_is_completion_evidence_now: false
+  required_feature_tickets_resolved: 8
+  required_feature_ticket_is_completion_evidence: false
+  may_satisfy_completion_only_after_approval_and_execution: true
+  feature_ticket_resolution_source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  feature_ticket_resolution_contract: full_goal_completion_unlock_evidence_contract.feature_ticket_resolution_contract
+  indexed_evidence_ids:
+    - L7-UNIT-CLOSURE
+    - RIGHT-ARM-EXECUTION-GATES
+    - HELIX-DB-WRITE-ADOPTION
+    - RECURRENCE-CLOSURE
+    - EXTERNAL-TOOL-ADOPTION
+    - RUNTIME-GUARD-PARITY
+    - DEPENDENCY-IMPACT-QUERY
+    - BOTTLENECK-ROUTING
+  source_feature_tickets_must_exist_in_index: true
+  index_is_completion_evidence: false
+  l7_db_ci_external_execution_allowed_by_index: false
+l1_l6_design_obligation_index:
+  source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  proof_source: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+  source_contract: l1_l6_design_obligation_contract
+  current_scope_action: prove_l1_l6_design_obligation_before_deferring_l7_execution
+  l1_l6_design_obligation_is_current_scope: true
+  deferred_feature_tickets_are_not_design_substitute: true
+  feature_ticket_allowed_only_for_unapproved_l7_or_escalation_bound_execution: true
+  l1_l6_design_assets_required_before_ticket: true
+  design_gap_reopened_if_l1_l6_evidence_missing: true
+  no_feature_escape_for_design_debt: true
+  l7_or_external_execution_requires_approved_feature_ticket: true
+  feature_tickets_checked: 11
+  feature_tickets_with_prior_l1_l6_design_evidence: 11
+  feature_tickets_using_ticket_as_design_substitute: 0
+  covered_current_scope_surfaces:
+    - requirement_gap_detection
+    - ddd_tdd_governance_design
+    - helix_db_registration_design
+    - dependency_impact_design
+    - bottleneck_detection_design
+    - codex_claude_guard_parity_design
+  index_is_completion_evidence: false
+feature_ticket_boundaries:
+  - id: full_flow_remaining_guards
+    path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    current_status: draft
+    unlocks: right_arm_execution_gates_and_ci_or_equivalent
+  - id: l7_unit_closure
+    path: docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    current_status: draft
+    unlocks: l7_unit_implementation_execution_and_coverage_closure
+  - id: db_evidence_lifecycle
+    path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    current_status: draft
+    unlocks: db_write_document_auto_registration_feedback_loop_and_recurrence_closure
+  - id: harness_external_tools
+    path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    current_status: draft
+    unlocks: approved_external_tool_adoption_recheck_install_and_ingestion
+  - id: codex_claude_guard_parity
+    path: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    current_status: draft
+    unlocks: remaining_runtime_guard_parity_implementation
+  - id: fr_registry_glossary
+    path: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    current_status: draft
+    unlocks: registry_and_glossary_execution_evidence
+  - id: plan_registry_add_feature_import
+    path: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    current_status: draft
+    unlocks: plan_registry_and_plan_registry_import_for_add_feature_tickets
+  - id: dependency_impact_query
+    path: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    current_status: draft
+    unlocks: dependency_impact_query_and_edge_visibility
+  - id: bottleneck_routing
+    path: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    current_status: draft
+    unlocks: bottleneck_candidate_routing_and_recurrence_closure
+  - id: phase_enum_l0_l14_runtime_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    current_status: draft
+    unlocks: runtime_phase_enum_l0_l14_handover_validation
+  - id: contract_design_phase_label_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    current_status: draft
+    unlocks: contract_design_phase_label_retirement_and_contract_semantics_preserved
+non_completion_reasons:
+  - L7 implementation is not requested in the current scope.
+  - L7 unit-test implementation, execution, and coverage closure are not done.
+  - G8/G9/G12/G14 right-arm execution gates remain deferred.
+  - HELIX DB write adoption, schema migration, and recurrence closure are not done.
+  - External tool installation and execution require explicit approval.
+  - CI or equivalent full-flow evidence connection is not done.
+invariants:
+  - This file is an index and ratification ledger only; it cannot be used as L7 implementation evidence.
+  - Any later-phase work must be approved through an add-feature ticket before artifacts or implementation are created.
+  - L1-L6 current-scope pass must not be rewritten as full L0-L14 completion.
+completion_denial:
+  reason: >
+    This index ratifies the current L1-L6 audit bundle only. The full objective
+    remains active because L7 implementation, unit-test execution, coverage
+    closure, right-arm execution gates, HELIX DB write adoption, CI/equivalent
+    evidence, and approved external tool execution are not complete.

@@ -1,0 +1,3639 @@
+schema_version: l1_l6_harness_external_tools_coverage_v1
+owner: TL
+status: current_scope_l1_l6_external_tool_design_covered
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that MCP / plugin / SAST / code-scanning / repository-security /
+  GitHub-Actions-workflow-security /
+  github-actions-workflow-lint /
+  dependency-intelligence / vulnerability-scanning / SBOM-generation /
+  source-dependency-graph / shell-static-analysis / markdown-static-analysis /
+  link-reference-check /
+  prose-style-analysis / natural-language-lint /
+  python-mutation-testing / python-property-based-testing /
+  python-coverage-measurement / python-test-runner /
+  python-impacted-test-selection /
+  python-diff-coverage-quality /
+  python-environment-orchestration / python-session-automation /
+  python-architecture-contracts /
+  document-schema-validation /
+  api-contract-lint /
+  sql-schema-lint /
+  python-lint-format / python-type-checking / python-dependency-audit candidates
+  have official Web evidence and L4-L6 HARNESS design coverage, without claiming installation,
+  execution, credential configuration, CI connection, HELIX DB write adoption,
+  or full-flow completion.
+sources:
+  web_evidence:
+    - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  l4_basic_design:
+    - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+  l5_detailed_design:
+    - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+  l6_functional_design:
+    - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+  pre_adoption_requirements_acceptance:
+    - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+boundary:
+  web_sources_verified: true
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  external_tool_installed: false
+  mcp_server_enabled: false
+  plugin_installed: false
+  semgrep_or_codeql_executed: false
+  scorecard_executed: false
+  credential_or_secret_change: false
+  external_network_execution: false
+  ci_or_equivalent_connected: false
+  helix_db_write_connected: false
+  goal_complete_allowed: false
+official_source_policy:
+  source_type_required: official
+  https_required: true
+  web_fetch_confirmed_required: true
+  adoption_decision_required: not_adopted_current_scope
+  recheck_required_before_install_or_execution: true
+  l7_test_design_allowed_as_source: false
+  current_scope_action_required: design_evidence_only
+  credential_or_secret_change_allowed: false
+  ci_or_equivalent_connection_allowed: false
+web_evidence_freshness_contract:
+  rechecked_on: 2026-06-12
+  latest_core_rechecked_on: 2026-06-13
+  latest_core_rechecked_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+  canonical_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+    - ZIZMOR-GHA-SECURITY
+    - ACTIONLINT-GHA-WORKFLOW-LINT
+    - OPENSSF-SCORECARD
+    - DEPSDEV-API
+    - OSV-SCANNER
+    - SYFT-SBOM
+    - GRIMP-PYTHON-IMPORT-GRAPH
+    - DEPENDENCY-CRUISER
+    - SHELLCHECK-SHELL-STATIC
+    - MARKDOWNLINT-CLI2
+    - LYCHEE-LINK-CHECKER
+    - VALE-PROSE-LINT
+    - TEXTLINT-NATURAL-LANGUAGE-LINT
+    - MUTMUT-PY-MUTATION-TESTING
+    - HYPOTHESIS-PY-PBT
+    - COVERAGE-PY-COVERAGE
+    - DIFF-COVER-DIFF-COVERAGE
+    - PYTEST-PY-TEST-RUNNER
+    - PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    - TOX-PY-ENV-ORCHESTRATION
+    - NOX-PY-SESSION-AUTOMATION
+    - IMPORT-LINTER-PY-ARCH-CONTRACTS
+    - CHECK-JSONSCHEMA-DOC-SCHEMA
+    - SPECTRAL-API-CONTRACT-LINT
+    - SQLFLUFF-SQL-LINT
+    - RUFF-PY-LINT-FORMAT
+    - MYPY-PY-TYPE-CHECK
+    - PIP-AUDIT-PY-VULN
+  official_sources_expected: 33
+  source_id_url_and_recheck_date_must_match_web_evidence_map: true
+  latest_core_recheck_must_match_web_evidence_map: true
+  all_sources_must_be_https_official_and_web_fetch_confirmed: true
+  all_sources_must_remain_not_adopted_current_scope: true
+  install_execution_or_ci_connection_requires_new_recheck: true
+  current_scope_revalidation_is_design_evidence_only: true
+  l7_or_adoption_evidence_allowed: false
+adoption_recheck_control_contract:
+  current_scope_action: define_pre_adoption_recheck_controls_only
+  controls_checked: 3
+  controls_apply_before:
+    - install
+    - enable_mcp_server
+    - plugin_adoption
+    - external_execution
+    - ci_or_equivalent_connection
+    - helix_db_ingestion
+  all_controls_require_new_recheck_before_adoption: true
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+  sources:
+    - source_id: MCP-SPEC-2025-06-18
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18
+      rechecked_on: 2026-06-13
+      controls:
+        - explicit_user_consent_for_data_access_and_tool_calls
+        - authorization_and_access_control_review
+        - untrusted_tool_description_review
+        - timeout_and_audit_log_policy
+    - source_id: GITHUB-MCP-SERVER
+      official_url: https://github.com/github/github-mcp-server
+      rechecked_on: 2026-06-13
+      controls:
+        - oauth_or_pat_scope_review
+        - organization_policy_review
+        - toolset_and_individual_tool_allowlist_review
+        - read_only_mode_precedence_review
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      official_url: https://developers.openai.com/apps-sdk/reference
+      rechecked_on: 2026-06-13
+      controls:
+        - security_schemes_review
+        - output_schema_and_structured_content_validation
+        - component_meta_visibility_review
+        - ui_resource_and_file_parameter_policy
+adoption_recheck_scope_contract:
+  current_scope_action: clarify_recheck_scope_vs_candidate_gate_coverage_only
+  adoption_recheck_controls_checked: 3
+  latest_core_rechecked_sources_checked: 5
+  all_candidate_sources_checked: 33
+  spot_recheck_sources_checked: 8
+  adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+  adoption_control_sources_are_subset_of_spot_recheck_sources: true
+  latest_core_rechecked_sources_must_match_freshness_contract: true
+  latest_core_rechecked_sources_are_subset_of_spot_recheck_sources: true
+  all_candidate_source_ids_must_match_canonical_source_ids: true
+  spot_recheck_sources_must_match_spot_recheck_section: true
+  spot_recheck_sources_are_subset_of_canonical_source_ids: true
+  spot_recheck_is_not_full_candidate_recheck: true
+  non_adoption_control_core_sources_remain_admission_gated: true
+  all_candidates_remain_gated_by_admission_gate_contracts: true
+  all_candidates_remain_gated_by_tool_intake_contract: true
+  all_candidates_remain_gated_by_tool_output_ingestion_policy: true
+  non_core_candidates_require_new_recheck_before_adoption: true
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+harness_tool_accountability_contract:
+  current_scope_action: prove_external_tool_research_is_not_adoption_or_install
+  feature_ticket_is_not_design_substitute: true
+  web_evidence_is_design_basis_not_adoption: true
+  all_candidates_require_admission_gate_before_install_or_execution: true
+  mcp_plugin_install_requires_explicit_approval: true
+  output_ingestion_requires_explicit_db_ingestion_approval: true
+  current_scope_must_keep_install_execution_ci_db_false: true
+  l7_work_requires_feature_ticket: true
+  current_scope_proves:
+    - official Web evidence exists for all 33 candidates
+    - each candidate has intake and output ingestion contracts
+    - each candidate remains not_adopted_current_scope
+    - adoption recheck controls are defined for representative MCP/App sources
+    - pre-adoption requirements bridge maps rechecked risks to L1/L3 requirements and acceptance obligations
+  current_scope_does_not_prove:
+    - MCP server enablement
+    - plugin installation
+    - external tool execution
+    - credential or secret configuration
+    - CI/equivalent connection
+    - HELIX DB ingestion
+    - L7 implementation or unit test execution
+    - full-flow completion
+web_recheck_design_links:
+  source_map: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  fetched_on: 2026-06-12
+  current_scope_action: design_evidence_only
+  adoption_or_install_evidence: false
+  admission_gate_impact:
+    MCP-SPEC-2025-06-18:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-NETWORK-EXECUTION
+      reason: protocol, lifecycle, authorization, and tool exposure require host-side admission before execution
+    GITHUB-MCP-SERVER:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-NETWORK-EXECUTION
+      reason: OAuth/PAT, organization policy, data access, write scope, toolset allowlist, individual tool allowlist, read-only mode precedence, and invalid-tool startup failure policy must be approved before enablement
+    OPENAI-APPS-SDK-MCP-DESCRIPTOR:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Apps SDK MCP descriptors add outputSchema, UI resource URI, model/app visibility, invocation status text, and file parameter handling that must be modeled before any HARNESS plugin/App adoption
+    SEMGREP-CE:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-CI-GATE
+      reason: JSON/SARIF output can be normalized, but rule license and local/CI failure mode remain approval gates
+    GITHUB-CODEQL:
+      gates:
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: default/advanced/external CI routes and alert/SARIF/DB outputs require security and ingestion design approval
+    ZIZMOR-GHA-SECURITY:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: GitHub Actions workflow/action scope, offline/online mode, GitHub token permissions, SARIF/JSON/GitHub annotation output, persona and fix policy, CI/pre-commit surface, and HELIX DB workflow-security mapping require admission before execution or ingestion; zizmor execution and CI wiring remain approved feature-ticket work
+    ACTIONLINT-GHA-WORKFLOW-LINT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: GitHub Actions workflow file scope, syntax/expression/reusable-workflow checks, shellcheck/pyflakes integration, script-injection and hard-coded-credential signals, output normalization, local/pre-commit/CI execution surface, and HELIX DB workflow-lint finding mapping require admission before execution or ingestion; actionlint execution remains approved feature-ticket work
+    SQLFLUFF-SQL-LINT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: SQL source scope, dialect policy including SQLite, templater policy, lint/fix mode boundary, CLI/pre-commit/GitHub Actions surfaces, output normalization, and HELIX DB SQL/schema finding mapping require admission before execution or ingestion; SQLFluff execution remains approved feature-ticket work
+    OPENSSF-SCORECARD:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Action/API/CLI routes, PAT/GitHub App auth, score/check outputs, and REST API data license require admission before execution or ingestion
+    DEPSDEV-API:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-DB-INGESTION
+      reason: package ecosystem scope, HTTP/gRPC/BigQuery route, license/advisory ingestion, terms/rate-limit review, and dependency graph mapping require admission before execution or ingestion
+    OSV-SCANNER:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: dependency artifact scope, vulnerability database route, output format, CI/pre-commit route, license policy, and guided-remediation risk require admission before execution or ingestion
+    SYFT-SBOM:
+      gates:
+        - HEXT-ADMIT-AUTH-SCOPE
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: SBOM source scope, registry/private source access, package cataloger selection, output format, license handling, attestation policy, and dependency graph mapping require admission before execution or ingestion
+    GRIMP-PYTHON-IMPORT-GRAPH:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python package scope, optional external package inclusion, import graph edge normalization, package installation route, CI/equivalent failure mode, and dependency edge DB mapping require admission before execution or ingestion
+    DEPENDENCY-CRUISER:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: JS/TS source scope, dependency rule policy, package manager execution route, graph output normalization, circular/orphan/package-manifest policy, CI/equivalent failure mode, and dependency edge DB mapping require admission before execution or ingestion
+    SHELLCHECK-SHELL-STATIC:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: shell script scope, shell dialect policy, severity policy, output normalization, local/pre-commit/CI execution surface, and shell finding DB mapping require admission before execution or ingestion
+    MARKDOWNLINT-CLI2:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Markdown source scope, rule scope, config file policy, fix mode, output normalization, local/pre-commit/CI execution surface, and documentation finding DB mapping require admission before execution or ingestion
+    VALE-PROSE-LINT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: prose source scope, style-rule scope, vocabulary/glossary mapping, package sync, output normalization, local/pre-commit/CI execution surface, and documentation finding DB mapping require admission before execution or ingestion
+    TEXTLINT-NATURAL-LANGUAGE-LINT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: textlint natural-language source scope, Markdown/plain-text scope, rule/preset/plugin policy, Japanese document rule policy, fix/dry-run behavior, formatter output, optional MCP server mode, local/pre-commit/CI execution surface, and HELIX DB document-lint mapping require admission before execution or ingestion; textlint execution and MCP enablement remain approved feature-ticket work
+    MUTMUT-PY-MUTATION-TESTING:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python source scope, mutation operator scope, pytest command policy, coverage/type-checker filtering, dependency-change policy, timeout/parallelism controls, mutant-apply write risk, output normalization, local/pre-commit/CI execution surface, and HELIX DB mutation finding mapping require admission before execution or ingestion
+    HYPOTHESIS-PY-PBT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python test scope, property invariant scope, strategy design, max_examples/replay DB/flaky failure/stateful testing, local/pre-commit/CI execution surface, and HELIX DB property-test finding mapping require admission before execution or ingestion
+    COVERAGE-PY-COVERAGE:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python source scope, test runner scope, branch coverage policy, include/omit policy, fail-under thresholds, coverage data-file handling, output normalization, local/pre-commit/CI execution surface, and HELIX DB coverage finding mapping require admission before execution or ingestion; coverage closure remains approved feature-ticket work
+    DIFF-COVER-DIFF-COVERAGE:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: git diff scope, compare-branch policy, coverage report format, diff-quality checker policy, fail-under threshold, changed-line reporting, output normalization, local/pre-commit/CI execution surface, and HELIX DB diff-coverage mapping require admission before execution or ingestion; diff coverage enforcement remains approved feature-ticket work
+    LYCHEE-LINK-CHECKER:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Markdown/HTML/reStructuredText source scope, URL/mail target scope, network policy, auth/header policy, exclude/include and accepted status policy, output normalization, pre-commit/GitHub Action/CI execution surface, and HELIX DB doc-connection-gap mapping require admission before execution or ingestion
+    PYTEST-PY-TEST-RUNNER:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python test scope, discovery/selection/marker/fixture/plugin policies, JUnit XML output, exit-code handling, output normalization, local/pre-commit/CI execution surface, and HELIX DB test-run finding mapping require admission before execution or ingestion; test execution remains approved feature-ticket work
+    PYTEST-TESTMON-IMPACTED-TEST-SELECTION:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python test scope, affected-test selection policy, dependency database handling, Coverage.py dependency collection, local storage, CI/pre-commit surface, hidden dependency exposure, and HELIX DB test-impact mapping require admission before execution or ingestion; test selection/execution remains approved feature-ticket work
+    TOX-PY-ENV-ORCHESTRATION:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: tox configuration scope, environment matrix, Python interpreter scope, dependency install behavior, command allowlist, package build behavior, missing-interpreter behavior, provisioning, workdir/tempdir handling, output normalization, local/pre-commit/CI execution surface, and HELIX DB environment-run finding mapping require admission before execution or ingestion; tox execution remains approved feature-ticket work
+    NOX-PY-SESSION-AUTOMATION:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: noxfile Python-code scope, session selection, parametrization/tags, interpreter scope, dependency install behavior, command allowlist, venv backend/reuse/download behavior, output normalization, local/pre-commit/CI execution surface, and HELIX DB session-run finding mapping require admission before execution or ingestion; Nox execution remains approved feature-ticket work
+    IMPORT-LINTER-PY-ARCH-CONTRACTS:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Import Linter configuration scope, root package graph scope, contract type policy, layer order, forbidden dependency rules, independence boundaries, acyclic sibling depth, ignored import policy, external package handling, type-checking import handling, graph output, output normalization, local/pre-commit/CI execution surface, and HELIX DB architecture-contract finding mapping require admission before execution or ingestion; Import Linter execution remains approved feature-ticket work
+    CHECK-JSONSCHEMA-DOC-SCHEMA:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: check-jsonschema schemafile scope, builtin schema policy, metaschema usage, instance file scope, YAML/JSON filetype policy, remote schema and cache policy, output format, format validation behavior, local/pre-commit/CI execution surface, and HELIX DB payload schema mapping require admission before execution or ingestion; schema validation execution remains approved feature-ticket work
+    SPECTRAL-API-CONTRACT-LINT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Spectral API spec file scope, ruleset source policy, OpenAPI/AsyncAPI/Arazzo scope, custom-rule policy, API style guide policy, output normalization, editor/hook/CI execution surface, and HELIX DB API-contract finding mapping require admission before execution or ingestion; Spectral lint execution remains approved feature-ticket work
+    RUFF-PY-LINT-FORMAT:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python source scope, rule selection, config policy, fix/unsafe-fix write risk, suppression policy, output normalization, local/pre-commit/CI execution surface, and HELIX DB coding-rule finding mapping require admission before execution or ingestion
+    MYPY-PY-TYPE-CHECK:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python source scope, type annotation scope, strictness policy, import discovery, error-code policy, output normalization, local/pre-commit/CI execution surface, and HELIX DB type finding mapping require admission before execution or ingestion
+    PIP-AUDIT-PY-VULN:
+      gates:
+        - HEXT-ADMIT-LICENSE-RULES
+        - HEXT-ADMIT-NETWORK-EXECUTION
+        - HEXT-ADMIT-CI-GATE
+        - HEXT-ADMIT-DB-INGESTION
+      reason: Python dependency scope, requirements/lockfile scope, vulnerability service policy, JSON/CycloneDX output, fix-mode write risk, local/pre-commit/CI execution surface, and HELIX DB vulnerability finding mapping require admission before execution or ingestion
+summary:
+  official_sources_checked: 33
+  tool_candidates_checked: 33
+  tool_intake_contracts_checked: 33
+  tool_intake_required_fields_checked: 9
+  tool_intake_forbidden_common_rules_checked: 7
+  admission_gate_contracts_checked: 5
+  admission_gate_required_fields_checked: 7
+  admission_owner_roles_checked: 3
+  tool_output_ingestion_contracts_checked: 33
+  tool_output_required_fields_checked: 8
+  tool_output_detector_signals_checked: 5
+  design_layers_checked: 3
+  l6_functions_defined: 10
+  l6_unit_test_viewpoints_defined: 10
+  adoption_recheck_controls_checked: 3
+  pre_adoption_requirement_contracts_checked: 5
+  current_session_web_fetch_sources_checked: 5
+  current_session_web_fetch_refs_checked: 10
+  accountability_current_scope_proves_checked: 5
+  accountability_current_scope_does_not_prove_checked: 8
+  deferred_feature_entry_points_checked: 1
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+pre_adoption_requirements_acceptance_bridge:
+  source: docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+  current_scope_action: map_web_rechecked_tool_risks_to_existing_l1_l3_requirements_and_acceptance_obligations
+  representative_sources_rechecked: 5
+  pre_adoption_requirement_contracts_checked: 5
+  all_contracts_reuse_existing_l3_requirements: true
+  new_l3_fr_required_now: false
+  acceptance_design_update_required_now: false
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+spot_recheck_2026_06_13:
+  source_map: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  source_map_section: spot_recheck_2026_06_13
+  checked_on: 2026-06-13
+  source_count: 8
+  sources:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+    - ZIZMOR-GHA-SECURITY
+    - ACTIONLINT-GHA-WORKFLOW-LINT
+    - LYCHEE-LINK-CHECKER
+  current_scope_action: design_evidence_only
+  admission_effect: keep_existing_gates
+  adoption_or_install_evidence: false
+  external_tool_executed: false
+  mcp_server_enabled: false
+  ci_or_equivalent_connected: false
+  helix_db_write_connected: false
+  l7_or_execution_evidence_allowed: false
+current_session_web_fetch_recheck_2026_06_13:
+  current_scope_action: confirm_existing_l1_l6_design_basis_only
+  checked_on: 2026-06-13
+  official_sources_checked: 5
+  web_fetch_confirmed: true
+  sources:
+    - source_id: MCP-SPEC-2025-06-18
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+      web_refs:
+        - turn1view0:L90-L95
+        - turn1view0:L209-L216
+        - turn1view0:L309-L312
+        - turn1view0:L415-L426
+      confirmed_design_basis:
+        - base_protocol_json_rpc
+        - lifecycle_and_capability_negotiation
+        - authorization_framework_for_http_transport
+        - schema_source_of_truth
+    - source_id: GITHUB-MCP-SERVER
+      official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+      web_refs:
+        - turn2view2:L662-L664
+      confirmed_design_basis:
+        - remote_github_mcp_server
+        - compatible_host_requirement
+        - oauth_or_pat_configuration_boundary
+        - organization_policy_review_required
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      official_url: https://developers.openai.com/apps-sdk/reference
+      web_refs:
+        - turn2view4:L690-L705
+        - turn2view4:L790-L795
+      confirmed_design_basis:
+        - output_schema_for_structured_content
+        - security_schemes_descriptor_metadata
+        - ui_resource_uri_and_visibility_controls
+        - file_parameter_policy
+    - source_id: SEMGREP-CE
+      official_url: https://docs.semgrep.dev/deployment/oss-deployment
+      web_refs:
+        - turn2view6:L300-L306
+      confirmed_design_basis:
+        - community_edition_sast_in_ci
+        - preferred_semgrep_scan_command
+        - open_source_rule_license_review
+        - ci_permission_boundary
+    - source_id: GITHUB-CODEQL
+      official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+      web_refs:
+        - turn2view8:L564-L566
+        - turn2view8:L608-L612
+      confirmed_design_basis:
+        - codeql_database_and_query_flow
+        - code_scanning_alert_output
+        - default_advanced_or_external_ci_setup
+        - supported_language_boundary
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  l7_artifact_allowed_now: false
+  result: no_change_to_candidate_gate_status
+official_web_sources:
+  - source_id: MCP-SPEC-2025-06-18
+    official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - JSON-RPC 2.0 base protocol
+      - lifecycle management
+      - authorization framework
+      - resources / prompts / tools
+    design_controls:
+      - host_support
+      - tool_invocation_consent_required
+      - tool_poisoning_review_required
+      - auth_method
+      - input_schema_required
+      - output_schema_validation
+      - structured_content_validation
+      - tool_result_error_semantics
+      - audit_log_required
+      - timeout_policy_required
+    current_scope_action: design_evidence_only
+  - source_id: GITHUB-MCP-SERVER
+    official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - remote and local GitHub MCP configuration
+      - OAuth default path
+      - PAT alternative path
+      - scope and organization policy constraints
+    design_controls:
+      - credential_scope
+      - secret_storage_policy
+      - data_access_scope
+      - write_capability
+      - toolset_allowlist
+      - individual_tool_allowlist
+      - read_only_mode_precedence
+      - startup_fail_on_invalid_tool_name
+    current_scope_action: design_evidence_only
+  - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    official_url: https://developers.openai.com/apps-sdk/reference
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - MCP tool descriptor compatibility
+      - outputSchema for structuredContent
+      - _meta UI resource URI
+      - model/app visibility controls
+      - file parameter descriptor handling
+    design_controls:
+      - output_schema_required_for_structured_content
+      - ui_resource_uri_policy
+      - model_vs_app_visibility_policy
+      - invocation_status_text_policy
+      - file_param_policy
+    current_scope_action: design_evidence_only
+  - source_id: SEMGREP-CE
+    official_url: https://docs.semgrep.dev/deployment/oss-deployment
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Semgrep CE SAST in CI
+      - preferred semgrep scan command
+      - JSON output
+      - SARIF output
+    design_controls:
+      - license_review_required
+      - output_format
+      - sarif_supported
+      - ci_surface
+    current_scope_action: design_evidence_only
+  - source_id: GITHUB-CODEQL
+    official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - CodeQL database
+      - CodeQL query execution
+      - code scanning alerts
+      - default setup / advanced setup / external CI
+    design_controls:
+      - output_format
+      - sarif_supported
+      - ci_surface
+      - failure_mode
+    current_scope_action: design_evidence_only
+  - source_id: ZIZMOR-GHA-SECURITY
+    official_url: https://docs.zizmor.sh/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - static analysis for GitHub Actions
+      - workflow and action definition auditing
+      - offline / online / online-sans-audits operating modes
+      - plain / JSON / SARIF / GitHub annotation outputs
+      - template-injection / excessive-permissions / dangerous-triggers / unpinned-uses / secrets handling audit focus
+      - GitHub Actions integration and SARIF upload route
+    design_controls:
+      - github_actions_workflow_scope
+      - action_definition_scope
+      - offline_mode_required_until_approved
+      - github_token_scope_policy
+      - sarif_output_policy
+      - github_annotation_limit_policy
+      - persona_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_manual_review_required
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_workflow_security_mapping
+    current_scope_action: design_evidence_only
+  - source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+    official_url: https://github.com/rhysd/actionlint
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - static checker for GitHub Actions workflow files
+      - workflow syntax validation
+      - expression type and semantic checks
+      - reusable workflow input / output / secret checks
+      - ShellCheck and Pyflakes integrations for run scripts
+      - script injection and hard-coded credential checks
+    design_controls:
+      - github_actions_workflow_scope
+      - workflow_syntax_policy
+      - expression_semantics_policy
+      - reusable_workflow_contract_policy
+      - shellcheck_pyflakes_integration_policy
+      - script_injection_policy
+      - credential_literal_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_workflow_lint_mapping
+    current_scope_action: design_evidence_only
+  - source_id: SQLFLUFF-SQL-LINT
+    official_url: https://docs.sqlfluff.com/en/stable/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - SQL linter designed to catch errors and bad SQL before database execution
+      - sqlfluff lint CLI surface
+      - dialect reference including SQLite
+      - templater, rule configuration, pre-commit, and GitHub Actions usage surfaces
+    design_controls:
+      - sql_source_scope
+      - sql_dialect_policy
+      - sqlite_dialect_policy
+      - templater_policy
+      - rule_selection_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_sql_schema_lint_mapping
+    current_scope_action: design_evidence_only
+  - source_id: OPENSSF-SCORECARD
+    official_url: https://github.com/ossf/scorecard
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - automated security health checks
+      - GitHub Action / REST API / badge / CLI routes
+      - PAT or GitHub App authentication boundary
+      - aggregate and per-check scores
+    design_controls:
+      - credential_scope
+      - repository_scope
+      - output_normalization
+      - license_review_required
+      - ci_surface
+    current_scope_action: design_evidence_only
+  - source_id: DEPSDEV-API
+    official_url: https://docs.deps.dev/api/v3/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - dependency graph and package insight
+      - package version, license, requirement, dependency, project, and advisory lookups
+      - JSON over HTTP / gRPC / BigQuery dataset
+      - Cargo / Go / Maven / npm / NuGet / PyPI / RubyGems ecosystem coverage
+    design_controls:
+      - package_ecosystem_scope
+      - dependency_graph_scope
+      - license_review_required
+      - advisory_ingestion_scope
+      - api_rate_or_terms_review_required
+      - output_normalization
+    current_scope_action: design_evidence_only
+  - source_id: OSV-SCANNER
+    official_url: https://google.github.io/osv-scanner/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - dependency vulnerability scanning
+      - package extraction and vulnerability matching
+      - source / container image / lockfile / manifest / SBOM / license scanning
+      - CLI / Go library / GitHub Action / pre-commit hook routes
+      - JSON / SARIF / SPDX / CycloneDX outputs
+    design_controls:
+      - dependency_artifact_scope
+      - vulnerability_database_scope
+      - license_review_required
+      - output_normalization
+      - ci_surface
+      - offline_database_policy
+      - guided_remediation_disabled_until_approved
+    current_scope_action: design_evidence_only
+  - source_id: SYFT-SBOM
+    official_url: https://github.com/anchore/syft
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Software Bill of Materials generation
+      - package inventory extraction for dependency visibility
+      - container image / filesystem / directory / file / archive / registry sources
+      - Syft JSON / CycloneDX / SPDX / GitHub dependency snapshot outputs
+      - SBOM input for vulnerability scanners and dependency graph construction
+    design_controls:
+      - sbom_source_scope
+      - package_cataloger_scope
+      - registry_access_policy
+      - output_normalization
+      - license_review_required
+      - sbom_attestation_policy
+    current_scope_action: design_evidence_only
+  - source_id: GRIMP-PYTHON-IMPORT-GRAPH
+    official_url: https://github.com/python-grimp/grimp
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - queryable Python import graph
+      - children / descendants / directly imported / upstream module queries
+      - shortest chain and import detail lookup
+      - optional external package inclusion
+    design_controls:
+      - python_package_scope
+      - import_graph_scope
+      - external_package_inclusion_policy
+      - output_normalization
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: DEPENDENCY-CRUISER
+    official_url: https://github.com/sverweij/dependency-cruiser
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - JavaScript / TypeScript dependency validation and visualization
+      - rule violation reporting
+      - dependency graph outputs including dot / json / csv / html / mermaid
+      - circular dependency / orphan / package manifest consistency signals
+    design_controls:
+      - js_ts_source_scope
+      - dependency_rule_scope
+      - graph_output_format
+      - circular_dependency_policy
+      - package_manifest_consistency_policy
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: SHELLCHECK-SHELL-STATIC
+    official_url: https://github.com/koalaman/shellcheck
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - shell script static analysis
+      - bash / sh warning and suggestion surface
+      - syntax issue / semantic problem / pitfall detection
+      - JSON / CheckStyle XML / GCC-compatible warning / text outputs
+    design_controls:
+      - shell_script_scope
+      - shell_dialect_policy
+      - output_normalization
+      - severity_policy
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: MARKDOWNLINT-CLI2
+    official_url: https://github.com/DavidAnson/markdownlint-cli2
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Markdown and CommonMark linting
+      - config-based documentation rule checking
+      - Markdown source glob / file scope
+      - JSON / JUnit XML / SARIF / GitLab Code Quality / summary outputs
+      - fix mode exists and must stay disabled until approved
+    design_controls:
+      - markdown_source_scope
+      - markdown_rule_scope
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: VALE-PROSE-LINT
+    official_url: https://vale.sh/docs
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - code-like linting for prose
+      - customizable YAML style rules
+      - vocabulary accept / reject terminology management
+      - markup-aware linting for Markdown / AsciiDoc / MDX / HTML / reStructuredText / XML / Org / DITA
+      - JSON output, output templates, package sync, and lint/runtime exit codes
+    design_controls:
+      - prose_source_scope
+      - style_rule_scope
+      - vocabulary_policy
+      - glossary_mapping_policy
+      - config_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - package_sync_disabled_until_approved
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+    official_url: https://textlint.org/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - pluggable linting tool for natural language
+      - Markdown and plain text support by default
+      - rule / preset / plugin based document checks
+      - JSON / JUnit / GitHub formatter outputs
+      - fixable rules with dry-run preview
+      - optional Model Context Protocol server mode
+    design_controls:
+      - natural_language_source_scope
+      - markdown_plain_text_scope
+      - textlint_rule_policy
+      - textlint_preset_plugin_policy
+      - japanese_document_rule_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - dry_run_required_for_fix_preview
+      - output_format_policy
+      - mcp_server_disabled_until_approved
+      - helix_db_document_lint_mapping
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: MUTMUT-PY-MUTATION-TESTING
+    official_url: https://mutmut.readthedocs.io/en/latest/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python mutation testing
+      - pytest-oriented mutation run workflow
+      - coverage.py filtering of lines to mutate
+      - mypy / pyrefly type-checker filtering
+      - dependency and config change detection
+      - mutant browse / apply workflow
+    design_controls:
+      - python_source_scope
+      - mutation_operator_scope
+      - pytest_command_scope
+      - coverage_filter_policy
+      - type_checker_filter_policy
+      - dependency_change_policy
+      - timeout_and_parallelism_policy
+      - mutant_apply_disabled_until_approved
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: HYPOTHESIS-PY-PBT
+    official_url: https://hypothesis.readthedocs.io/en/latest/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python property-based testing library
+      - "@given and strategies generate test inputs"
+      - edge-case exploration and falsifying examples
+      - pytest / unittest integration
+      - settings profiles, max_examples, and replay database behavior
+      - stateful tests for generated operation sequences
+    design_controls:
+      - python_test_scope
+      - property_invariant_scope
+      - strategy_design_policy
+      - max_examples_policy
+      - stateful_testing_policy
+      - flaky_failure_policy
+      - replay_database_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: COVERAGE-PY-COVERAGE
+    official_url: https://coverage.readthedocs.io/en/latest/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python code coverage measurement
+      - test effectiveness visibility
+      - branch coverage measurement
+      - text / HTML / XML / LCOV / JSON reports
+      - SQLite coverage data
+      - coverage run with pytest / unittest-compatible test runners
+    design_controls:
+      - python_source_scope
+      - test_runner_scope
+      - branch_coverage_policy
+      - source_include_omit_policy
+      - fail_under_policy
+      - coverage_data_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: DIFF-COVER-DIFF-COVERAGE
+    official_url: https://github.com/Bachmann1234/diff_cover
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - diff coverage reports for new or modified lines covered by tests
+      - compares XML or LCov coverage reports with git diff output
+      - diff-quality reports for changed-line quality violations
+      - HTML / JSON / Markdown report output
+      - compare-branch / diff-file / fail-under / show-uncovered controls
+    design_controls:
+      - git_diff_scope
+      - compare_branch_policy
+      - coverage_report_format_policy
+      - lcov_or_xml_report_policy
+      - diff_quality_checker_policy
+      - fail_under_policy
+      - changed_line_reporting_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_diff_coverage_mapping
+    current_scope_action: design_evidence_only
+  - source_id: LYCHEE-LINK-CHECKER
+    official_url: https://github.com/lycheeverse/lychee
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - fast async stream-based link checker written in Rust
+      - finds broken hyperlinks and mail addresses in Markdown, HTML, reStructuredText, websites, and other file formats
+      - available as command-line utility, library, and GitHub Action
+      - supports file globbing, include and exclude patterns, config file, and JSON output
+      - supports pre-commit usage and package manager or pre-built binary installation surfaces
+    design_controls:
+      - document_source_scope
+      - link_target_scope
+      - network_access_policy
+      - auth_header_policy
+      - accepted_status_policy
+      - include_exclude_policy
+      - config_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_doc_connection_gap_mapping
+    current_scope_action: design_evidence_only
+  - source_id: PYTEST-PY-TEST-RUNNER
+    official_url: https://docs.pytest.org/en/stable/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python test runner
+      - readable tests and complex functional testing
+      - assertion introspection and short failure summaries
+      - auto-discovery of test modules/functions
+      - keyword / marker / collection selection
+      - fixtures, parametrization, plugins, and JUnit XML output
+    design_controls:
+      - python_test_scope
+      - test_discovery_policy
+      - test_selection_policy
+      - marker_policy
+      - fixture_scope_policy
+      - plugin_policy
+      - junitxml_output_policy
+      - exit_code_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    official_url: https://www.testmon.org/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - pytest plugin that selects tests affected by changed files and methods
+      - dependency collection between tests and executed code using Coverage.py
+      - .testmondata dependency database and pytest --testmon CLI surface
+      - --testmon-noselect / --testmon-nocollect / --testmon-forceselect options
+      - hidden test dependency detection and CI usage surface
+    design_controls:
+      - python_test_scope
+      - affected_test_selection_policy
+      - dependency_database_policy
+      - coverage_dependency_collection_policy
+      - noselect_policy
+      - nocollect_policy
+      - forceselect_policy
+      - hidden_test_dependency_policy
+      - environment_variant_policy
+      - local_storage_policy
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_test_impact_mapping
+    current_scope_action: design_evidence_only
+  - source_id: TOX-PY-ENV-ORCHESTRATION
+    official_url: https://tox.wiki/en/latest/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python virtual environment management and test command line tool
+      - package build and install checks across different environments
+      - test runner, linter, formatter, documentation, build, and publishing tool orchestration
+      - tox.ini / setup.cfg / pyproject.toml / tox.toml configuration discovery
+      - environment lists, generated matrices, provisioning, workdir/tempdir, and missing-interpreter policy
+      - CLI run, run-parallel, config, list, and schema surfaces
+    design_controls:
+      - tox_config_scope
+      - environment_matrix_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - package_build_policy
+      - skip_missing_interpreters_policy
+      - provision_environment_policy
+      - workdir_tempdir_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: NOX-PY-SESSION-AUTOMATION
+    official_url: https://nox.thea.codes/en/stable/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python command-line automation for testing in multiple environments
+      - noxfile.py standard Python configuration
+      - "@nox.session functions with dependency installation and ordered command execution"
+      - virtualenv creation per session and backend selection
+      - interpreter lists, parametrized sessions, selected sessions, and tags
+      - session list / usage / command output and exit-code surfaces
+    design_controls:
+      - noxfile_scope
+      - python_code_review_policy
+      - session_selection_policy
+      - session_parametrize_policy
+      - session_tag_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - venv_backend_policy
+      - reuse_venv_policy
+      - download_python_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+    official_url: https://import-linter.readthedocs.io/en/stable/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python import architecture constraints
+      - forbidden / protected / layers / independence / acyclic_siblings contracts
+      - setup.cfg / .importlinter / pyproject.toml configuration
+      - lint-imports contract checking
+      - interactive architecture exploration and DOT graph output
+      - ignore_imports, external package, and type-checking import policy surfaces
+    design_controls:
+      - importlinter_config_scope
+      - root_package_scope
+      - contract_type_policy
+      - layer_order_policy
+      - forbidden_dependency_policy
+      - independence_boundary_policy
+      - acyclic_siblings_depth_policy
+      - ignore_imports_policy
+      - unmatched_ignore_imports_policy
+      - external_package_scope
+      - type_checking_import_policy
+      - graph_output_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+    official_url: https://check-jsonschema.readthedocs.io/en/latest/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - JSON Schema CLI and pre-commit hook
+      - JSON or YAML validation against local schema files
+      - JSON or YAML validation against remote HTTP(S) schema files
+      - JSON diagnostic output
+      - builtin schemas and metaschema validation
+      - filetype controls, remote schema caching, and format validation options
+    design_controls:
+      - schemafile_scope
+      - builtin_schema_policy
+      - metaschema_policy
+      - instance_file_scope
+      - yaml_json_filetype_policy
+      - remote_schema_policy
+      - cache_policy
+      - output_format_policy
+      - format_validation_policy
+      - precommit_surface
+      - helix_db_payload_schema_mapping
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: SPECTRAL-API-CONTRACT-LINT
+    official_url: https://github.com/stoplightio/spectral
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - JSON and YAML linting with custom rulesets
+      - ready-to-use OpenAPI v2 and v3.x rulesets
+      - ready-to-use AsyncAPI and Arazzo rulesets
+      - API style guide enforcement
+      - command-line linting with custom ruleset selection
+      - editor, Git hook, CI, and GitHub Action workflow options
+    design_controls:
+      - api_spec_file_scope
+      - ruleset_source_policy
+      - openapi_asyncapi_arazzo_scope
+      - custom_rule_policy
+      - api_style_guide_policy
+      - output_format_policy
+      - editor_hook_ci_surface
+      - helix_db_api_contract_mapping
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: RUFF-PY-LINT-FORMAT
+    official_url: https://docs.astral.sh/ruff/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python linter and code formatter
+      - pyproject.toml support
+      - over 900 built-in rules
+      - ruff check file / directory linting
+      - rule selection via select / ignore / extend-select
+      - fix safety and unsafe-fix controls
+      - JSON output with fix applicability
+    design_controls:
+      - python_source_scope
+      - rule_selection_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_disabled_until_approved
+      - suppression_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: MYPY-PY-TYPE-CHECK
+    official_url: https://mypy.readthedocs.io/en/stable/
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python static type checker
+      - type hints and PEP 484 checking
+      - bug detection without running Python programs
+      - gradual typing and stricter options
+      - command-line and configuration surfaces
+      - error codes, import discovery, installed package typing, and report generation
+    design_controls:
+      - python_source_scope
+      - type_annotation_scope
+      - strictness_policy
+      - config_file_policy
+      - import_discovery_policy
+      - error_code_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+  - source_id: PIP-AUDIT-PY-VULN
+    official_url: https://github.com/pypa/pip-audit
+    rechecked_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed_focus:
+      - Python environment vulnerability auditing
+      - requirements file and dependency tree auditing
+      - PyPI and OSV vulnerability service input
+      - JSON and CycloneDX output
+      - GitHub Action and pre-commit routes
+      - automatic fix mode requires explicit approval
+    design_controls:
+      - python_dependency_scope
+      - requirements_lockfile_scope
+      - vulnerability_service_policy
+      - output_normalization
+      - fix_mode_disabled_until_approved
+      - ci_or_precommit_surface
+      - license_review_required
+    current_scope_action: design_evidence_only
+tool_intake_contract:
+  current_scope_action: feature_ticket_only_preflight_contract
+  deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  required_candidate_fields:
+    - candidate_id
+    - source_id
+    - kind
+    - admission_status
+    - official_url
+    - required_before_execution
+    - required_source_focus
+    - forbidden_current_scope
+    - deferred_feature_plan
+  forbidden_current_scope_common:
+    - install_or_enable_tool
+    - configure_oauth_pat_secret_or_env
+    - execute_external_network_or_scanner
+    - connect_ci_or_equivalent_gate
+    - write_helix_db_or_schema
+    - create_l7_test_design_or_implementation
+    - count_candidate_as_completion
+  candidates:
+    - candidate_id: HEXT-CAND-MCP-PROTOCOL
+      source_id: MCP-SPEC-2025-06-18
+      kind: mcp_protocol_admission
+      admission_status: candidate
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+      required_source_focus:
+        - JSON-RPC 2.0 base protocol
+        - lifecycle management
+        - authorization framework
+        - resources / prompts / tools
+      required_before_execution:
+        - host_support
+        - auth_method
+        - tool_invocation_consent_required
+        - tool_poisoning_review_required
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-GITHUB-MCP
+      source_id: GITHUB-MCP-SERVER
+      kind: mcp_server
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+      required_source_focus:
+        - remote and local GitHub MCP configuration
+        - OAuth default path
+        - PAT alternative path
+        - scope and organization policy constraints
+      required_before_execution:
+        - OAuth_or_PAT_approval
+        - credential_scope
+        - organization_policy
+        - write_capability_boundary
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-OPENAI-APPS-MCP-DESCRIPTOR
+      source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      kind: app_tool_descriptor
+      admission_status: candidate_requires_confirmation
+      official_url: https://developers.openai.com/apps-sdk/reference
+      required_source_focus:
+        - MCP tool descriptor compatibility
+        - outputSchema for structuredContent
+        - _meta UI resource URI
+        - model/app visibility controls
+        - file parameter descriptor handling
+      required_before_execution:
+        - output_schema_policy
+        - ui_resource_visibility_policy
+        - file_param_policy
+        - invocation_status_metadata_policy
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-SEMGREP-CE
+      source_id: SEMGREP-CE
+      kind: sast
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.semgrep.dev/deployment/oss-deployment
+      required_source_focus:
+        - Semgrep CE SAST in CI
+        - preferred semgrep scan command
+        - JSON output
+        - SARIF output
+      required_before_execution:
+        - rule_license_review
+        - local_or_ci_execution_surface
+        - output_normalization
+        - failure_mode
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-CODEQL
+      source_id: GITHUB-CODEQL
+      kind: code_scanning
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+      required_source_focus:
+        - CodeQL database
+        - CodeQL query execution
+        - code scanning alerts
+        - default setup / advanced setup / external CI
+      required_before_execution:
+        - GitHub_security_or_CI_route
+        - CodeQL_database_handling
+        - SARIF_or_alert_ingestion
+        - HELIX_DB_feedback_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-ZIZMOR-GHA
+      source_id: ZIZMOR-GHA-SECURITY
+      kind: github_actions_workflow_security
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.zizmor.sh/
+      required_source_focus:
+        - static analysis for GitHub Actions
+        - workflow and action definition auditing
+        - offline / online / online-sans-audits operating modes
+        - plain / JSON / SARIF / GitHub annotation outputs
+        - template-injection / excessive-permissions / dangerous-triggers / unpinned-uses / secrets handling audit focus
+        - GitHub Actions integration and SARIF upload route
+      required_before_execution:
+        - github_actions_workflow_scope
+        - action_definition_scope
+        - offline_mode_required_until_approved
+        - github_token_scope_policy
+        - output_format_and_normalization
+        - sarif_upload_policy
+        - github_annotation_limit_policy
+        - persona_policy
+        - fix_mode_disabled_until_approved
+        - unsafe_fix_manual_review_required
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_workflow_security_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-ACTIONLINT-GHA
+      source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+      kind: github_actions_workflow_lint
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/rhysd/actionlint
+      required_source_focus:
+        - static checker for GitHub Actions workflow files
+        - workflow syntax validation
+        - expression type and semantic checks
+        - reusable workflow input / output / secret checks
+        - ShellCheck and Pyflakes integrations for run scripts
+        - script injection and hard-coded credential checks
+      required_before_execution:
+        - github_actions_workflow_scope
+        - workflow_syntax_policy
+        - expression_semantics_policy
+        - reusable_workflow_contract_policy
+        - shellcheck_pyflakes_integration_policy
+        - script_injection_policy
+        - credential_literal_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_workflow_lint_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-OPENSSF-SCORECARD
+      source_id: OPENSSF-SCORECARD
+      kind: repository_security_score
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/ossf/scorecard
+      required_source_focus:
+        - automated security health checks
+        - GitHub Action / REST API / badge / CLI routes
+        - PAT or GitHub App authentication boundary
+        - aggregate and per-check scores
+      required_before_execution:
+        - GitHub_Action_or_CLI_or_API_route
+        - PAT_or_GitHub_App_scope_approval
+        - repository_scope
+        - score_and_check_output_normalization
+        - REST_API_data_license_review
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-DEPSDEV-API
+      source_id: DEPSDEV-API
+      kind: dependency_intelligence
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.deps.dev/api/v3/
+      required_source_focus:
+        - dependency graph and package insight
+        - package version, license, requirement, dependency, project, and advisory lookups
+        - JSON over HTTP / gRPC / BigQuery dataset
+        - Cargo / Go / Maven / npm / NuGet / PyPI / RubyGems ecosystem coverage
+      required_before_execution:
+        - HTTP_or_gRPC_or_BigQuery_route
+        - package_ecosystem_scope
+        - dependency_graph_output_normalization
+        - license_and_advisory_ingestion_scope
+        - API_terms_rate_limit_review
+        - HELIX_DB_dependency_graph_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-OSV-SCANNER
+      source_id: OSV-SCANNER
+      kind: vulnerability_scanning
+      admission_status: candidate_requires_confirmation
+      official_url: https://google.github.io/osv-scanner/
+      required_source_focus:
+        - dependency vulnerability scanning
+        - package extraction and vulnerability matching
+        - source / container image / lockfile / manifest / SBOM / license scanning
+        - CLI / Go library / GitHub Action / pre-commit hook routes
+        - JSON / SARIF / SPDX / CycloneDX outputs
+      required_before_execution:
+        - dependency_artifact_scope
+        - vulnerability_database_route
+        - output_format_and_normalization
+        - license_policy
+        - CI_or_precommit_surface
+        - offline_database_policy
+        - guided_remediation_disabled_until_approved
+        - HELIX_DB_vulnerability_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-SYFT-SBOM
+      source_id: SYFT-SBOM
+      kind: sbom_generation
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/anchore/syft
+      required_source_focus:
+        - Software Bill of Materials generation
+        - package inventory extraction for dependency visibility
+        - container image / filesystem / directory / file / archive / registry sources
+        - Syft JSON / CycloneDX / SPDX / GitHub dependency snapshot outputs
+        - SBOM input for vulnerability scanners and dependency graph construction
+      required_before_execution:
+        - sbom_source_scope
+        - package_cataloger_scope
+        - registry_or_private_source_access_approval
+        - output_format_and_normalization
+        - license_policy
+        - sbom_attestation_policy
+        - HELIX_DB_dependency_graph_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-GRIMP-PY-IMPORT
+      source_id: GRIMP-PYTHON-IMPORT-GRAPH
+      kind: source_dependency_graph
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/python-grimp/grimp
+      required_source_focus:
+        - queryable Python import graph
+        - children / descendants / directly imported / upstream module queries
+        - shortest chain and import detail lookup
+        - optional external package inclusion
+      required_before_execution:
+        - python_package_scope
+        - import_graph_scope
+        - external_package_inclusion_policy
+        - output_format_and_normalization
+        - license_policy
+        - HELIX_DB_dependency_edge_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-DEPENDENCY-CRUISER
+      source_id: DEPENDENCY-CRUISER
+      kind: source_dependency_graph
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/sverweij/dependency-cruiser
+      required_source_focus:
+        - JavaScript / TypeScript dependency validation and visualization
+        - rule violation reporting
+        - dependency graph outputs including dot / json / csv / html / mermaid
+        - circular dependency / orphan / package manifest consistency signals
+      required_before_execution:
+        - js_ts_source_scope
+        - dependency_rule_scope
+        - graph_output_format
+        - circular_dependency_policy
+        - package_manifest_consistency_policy
+        - license_policy
+        - HELIX_DB_dependency_edge_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-SHELLCHECK
+      source_id: SHELLCHECK-SHELL-STATIC
+      kind: shell_static_analysis
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/koalaman/shellcheck
+      required_source_focus:
+        - shell script static analysis
+        - bash / sh warning and suggestion surface
+        - syntax issue / semantic problem / pitfall detection
+        - JSON / CheckStyle XML / GCC-compatible warning / text outputs
+      required_before_execution:
+        - shell_script_scope
+        - shell_dialect_policy
+        - output_format_and_normalization
+        - severity_policy
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_shell_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-MARKDOWNLINT-CLI2
+      source_id: MARKDOWNLINT-CLI2
+      kind: markdown_static_analysis
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/DavidAnson/markdownlint-cli2
+      required_source_focus:
+        - Markdown and CommonMark linting
+        - config-based documentation rule checking
+        - Markdown source glob / file scope
+        - JSON / JUnit XML / SARIF / GitLab Code Quality / summary outputs
+        - fix mode exists and must stay disabled until approved
+      required_before_execution:
+        - markdown_source_scope
+        - markdown_rule_scope
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_markdown_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-VALE-PROSE-LINT
+      source_id: VALE-PROSE-LINT
+      kind: prose_style_analysis
+      admission_status: candidate_requires_confirmation
+      official_url: https://vale.sh/docs
+      required_source_focus:
+        - code-like linting for prose
+        - customizable YAML style rules
+        - vocabulary accept / reject terminology management
+        - markup-aware linting for Markdown / AsciiDoc / MDX / HTML / reStructuredText / XML / Org / DITA
+        - JSON output, output templates, package sync, and lint/runtime exit codes
+      required_before_execution:
+        - prose_source_scope
+        - style_rule_scope
+        - vocabulary_policy
+        - glossary_mapping_policy
+        - config_file_policy
+        - package_sync_disabled_until_approved
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_prose_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-TEXTLINT
+      source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+      kind: natural_language_lint
+      admission_status: candidate_requires_confirmation
+      official_url: https://textlint.org/
+      required_source_focus:
+        - pluggable linting tool for natural language
+        - Markdown and plain text support by default
+        - rule / preset / plugin based document checks
+        - JSON / JUnit / GitHub formatter outputs
+        - fixable rules with dry-run preview
+        - optional Model Context Protocol server mode
+      required_before_execution:
+        - natural_language_source_scope
+        - markdown_plain_text_scope
+        - textlint_rule_policy
+        - textlint_preset_plugin_policy
+        - japanese_document_rule_policy
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - dry_run_required_for_fix_preview
+        - output_format_and_normalization
+        - MCP_server_policy
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_document_lint_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-MUTMUT-PY-MUTATION
+      source_id: MUTMUT-PY-MUTATION-TESTING
+      kind: python_mutation_testing
+      admission_status: candidate_requires_confirmation
+      official_url: https://mutmut.readthedocs.io/en/latest/
+      required_source_focus:
+        - Python mutation testing
+        - pytest-oriented mutation run workflow
+        - coverage.py filtering of lines to mutate
+        - mypy / pyrefly type-checker filtering
+        - dependency and config change detection
+        - mutant browse / apply workflow
+      required_before_execution:
+        - python_source_scope
+        - mutation_operator_scope
+        - pytest_command_scope
+        - coverage_filter_policy
+        - type_checker_filter_policy
+        - dependency_change_policy
+        - timeout_and_parallelism_policy
+        - mutant_apply_disabled_until_approved
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_mutation_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-HYPOTHESIS
+      source_id: HYPOTHESIS-PY-PBT
+      kind: python_property_based_testing
+      admission_status: candidate_requires_confirmation
+      official_url: https://hypothesis.readthedocs.io/en/latest/
+      required_source_focus:
+        - Python property-based testing library
+        - "@given and strategies generate test inputs"
+        - edge-case exploration and falsifying examples
+        - pytest / unittest integration
+        - settings profiles, max_examples, and replay database behavior
+        - stateful tests for generated operation sequences
+      required_before_execution:
+        - python_test_scope
+        - property_invariant_scope
+        - strategy_design_policy
+        - max_examples_policy
+        - stateful_testing_policy
+        - flaky_failure_policy
+        - replay_database_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_property_test_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-COVERAGE-PY
+      source_id: COVERAGE-PY-COVERAGE
+      kind: python_coverage_measurement
+      admission_status: candidate_requires_confirmation
+      official_url: https://coverage.readthedocs.io/en/latest/
+      required_source_focus:
+        - Python code coverage measurement
+        - test effectiveness visibility
+        - branch coverage measurement
+        - text / HTML / XML / LCOV / JSON reports
+        - SQLite coverage data
+        - coverage run with pytest / unittest-compatible test runners
+      required_before_execution:
+        - python_source_scope
+        - test_runner_scope
+        - branch_coverage_policy
+        - source_include_omit_policy
+        - fail_under_policy
+        - coverage_data_file_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_coverage_finding_mapping
+        - L7_coverage_closure_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-DIFF-COVER
+      source_id: DIFF-COVER-DIFF-COVERAGE
+      kind: python_diff_coverage_quality
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/Bachmann1234/diff_cover
+      required_source_focus:
+        - diff coverage reports for new or modified lines covered by tests
+        - compares XML or LCov coverage reports with git diff output
+        - diff-quality reports for changed-line quality violations
+        - HTML / JSON / Markdown report output
+        - compare-branch / diff-file / fail-under / show-uncovered controls
+      required_before_execution:
+        - git_diff_scope
+        - compare_branch_policy
+        - coverage_report_format_policy
+        - lcov_or_xml_report_policy
+        - diff_quality_checker_policy
+        - fail_under_policy
+        - changed_line_reporting_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_diff_coverage_finding_mapping
+        - approved_feature_diff_coverage_gate_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-LYCHEE
+      source_id: LYCHEE-LINK-CHECKER
+      kind: link_reference_check
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/lycheeverse/lychee
+      required_source_focus:
+        - fast async stream-based link checker written in Rust
+        - finds broken hyperlinks and mail addresses in Markdown, HTML, reStructuredText, websites, and other file formats
+        - available as command-line utility, library, and GitHub Action
+        - supports file globbing, include and exclude patterns, config file, and JSON output
+        - supports pre-commit usage and package manager or pre-built binary installation surfaces
+      required_before_execution:
+        - document_source_scope
+        - link_target_scope
+        - network_access_policy
+        - auth_header_policy
+        - accepted_status_policy
+        - include_exclude_policy
+        - config_file_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_doc_connection_gap_mapping
+        - approved_feature_link_check_gate_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-PYTEST
+      source_id: PYTEST-PY-TEST-RUNNER
+      kind: python_test_runner
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.pytest.org/en/stable/
+      required_source_focus:
+        - Python test runner
+        - readable tests and complex functional testing
+        - assertion introspection and short failure summaries
+        - auto-discovery of test modules/functions
+        - keyword / marker / collection selection
+        - fixtures, parametrization, plugins, and JUnit XML output
+      required_before_execution:
+        - python_test_scope
+        - test_discovery_policy
+        - test_selection_policy
+        - marker_policy
+        - fixture_scope_policy
+        - plugin_policy
+        - junitxml_output_policy
+        - exit_code_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_test_run_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-PYTEST-TESTMON
+      source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+      kind: python_impacted_test_selection
+      admission_status: candidate_requires_confirmation
+      official_url: https://www.testmon.org/
+      required_source_focus:
+        - pytest plugin that selects tests affected by changed files and methods
+        - dependency collection between tests and executed code using Coverage.py
+        - .testmondata dependency database and pytest --testmon CLI surface
+        - --testmon-noselect / --testmon-nocollect / --testmon-forceselect options
+        - hidden test dependency detection and CI usage surface
+      required_before_execution:
+        - python_test_scope
+        - affected_test_selection_policy
+        - dependency_database_policy
+        - coverage_dependency_collection_policy
+        - noselect_policy
+        - nocollect_policy
+        - forceselect_policy
+        - hidden_test_dependency_policy
+        - environment_variant_policy
+        - local_storage_policy
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_test_impact_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-TOX
+      source_id: TOX-PY-ENV-ORCHESTRATION
+      kind: python_environment_orchestration
+      admission_status: candidate_requires_confirmation
+      official_url: https://tox.wiki/en/latest/
+      required_source_focus:
+        - Python virtual environment management and test command line tool
+        - package build and install checks across different environments
+        - test runner, linter, formatter, documentation, build, and publishing tool orchestration
+        - tox.ini / setup.cfg / pyproject.toml / tox.toml configuration discovery
+        - environment lists, generated matrices, provisioning, workdir/tempdir, and missing-interpreter policy
+        - CLI run, run-parallel, config, list, and schema surfaces
+      required_before_execution:
+        - tox_config_scope
+        - environment_matrix_policy
+        - python_interpreter_scope
+        - dependency_install_policy
+        - command_allowlist_policy
+        - package_build_policy
+        - skip_missing_interpreters_policy
+        - provision_environment_policy
+        - workdir_tempdir_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_environment_run_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-NOX
+      source_id: NOX-PY-SESSION-AUTOMATION
+      kind: python_session_automation
+      admission_status: candidate_requires_confirmation
+      official_url: https://nox.thea.codes/en/stable/
+      required_source_focus:
+        - Python command-line automation for testing in multiple environments
+        - noxfile.py standard Python configuration
+        - "@nox.session functions with dependency installation and ordered command execution"
+        - virtualenv creation per session and backend selection
+        - interpreter lists, parametrized sessions, selected sessions, and tags
+        - session list / usage / command output and exit-code surfaces
+      required_before_execution:
+        - noxfile_scope
+        - python_code_review_policy
+        - session_selection_policy
+        - session_parametrize_policy
+        - session_tag_policy
+        - python_interpreter_scope
+        - dependency_install_policy
+        - command_allowlist_policy
+        - venv_backend_policy
+        - reuse_venv_policy
+        - download_python_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_session_run_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-IMPORT-LINTER
+      source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+      kind: python_architecture_contracts
+      admission_status: candidate_requires_confirmation
+      official_url: https://import-linter.readthedocs.io/en/stable/
+      required_source_focus:
+        - Python import architecture constraints
+        - forbidden / protected / layers / independence / acyclic_siblings contracts
+        - setup.cfg / .importlinter / pyproject.toml configuration
+        - lint-imports contract checking
+        - interactive architecture exploration and DOT graph output
+        - ignore_imports, external package, and type-checking import policy surfaces
+      required_before_execution:
+        - importlinter_config_scope
+        - root_package_scope
+        - contract_type_policy
+        - layer_order_policy
+        - forbidden_dependency_policy
+        - independence_boundary_policy
+        - acyclic_siblings_depth_policy
+        - ignore_imports_policy
+        - unmatched_ignore_imports_policy
+        - external_package_scope
+        - type_checking_import_policy
+        - graph_output_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_architecture_contract_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-CHECK-JSONSCHEMA
+      source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+      kind: document_schema_validation
+      admission_status: candidate_requires_confirmation
+      official_url: https://check-jsonschema.readthedocs.io/en/latest/
+      required_source_focus:
+        - JSON Schema CLI and pre-commit hook
+        - JSON or YAML validation against local schema files
+        - JSON or YAML validation against remote HTTP(S) schema files
+        - JSON diagnostic output
+        - builtin schemas and metaschema validation
+        - filetype controls, remote schema caching, and format validation options
+      required_before_execution:
+        - schemafile_scope
+        - builtin_schema_policy
+        - metaschema_policy
+        - instance_file_scope
+        - yaml_json_filetype_policy
+        - remote_schema_policy
+        - cache_policy
+        - output_format_policy
+        - format_validation_policy
+        - precommit_surface
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_payload_schema_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-SPECTRAL
+      source_id: SPECTRAL-API-CONTRACT-LINT
+      kind: api_contract_lint
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/stoplightio/spectral
+      required_source_focus:
+        - JSON and YAML linting with custom rulesets
+        - ready-to-use OpenAPI v2 and v3.x rulesets
+        - ready-to-use AsyncAPI and Arazzo rulesets
+        - API style guide enforcement
+        - command-line linting with custom ruleset selection
+        - editor, Git hook, CI, and GitHub Action workflow options
+      required_before_execution:
+        - api_spec_file_scope
+        - ruleset_source_policy
+        - openapi_asyncapi_arazzo_scope
+        - custom_rule_policy
+        - api_style_guide_policy
+        - output_format_policy
+        - editor_hook_ci_surface
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_api_contract_finding_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-SQLFLUFF
+      source_id: SQLFLUFF-SQL-LINT
+      kind: sql_schema_lint
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.sqlfluff.com/en/stable/
+      required_source_focus:
+        - SQL linter designed to catch errors and bad SQL before database execution
+        - sqlfluff lint CLI surface
+        - dialect reference including SQLite
+        - templater, rule configuration, pre-commit, and GitHub Actions usage surfaces
+      required_before_execution:
+        - sql_source_scope
+        - sql_dialect_policy
+        - sqlite_dialect_policy
+        - templater_policy
+        - rule_selection_policy
+        - fix_mode_disabled_until_approved
+        - output_format_and_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_sql_schema_lint_mapping
+        - L7_test_execution_plan
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-RUFF-PY-LINT-FORMAT
+      source_id: RUFF-PY-LINT-FORMAT
+      kind: python_lint_format
+      admission_status: candidate_requires_confirmation
+      official_url: https://docs.astral.sh/ruff/
+      required_source_focus:
+        - Python linter and code formatter
+        - pyproject.toml support
+        - over 900 built-in rules
+        - ruff check file / directory linting
+        - rule selection via select / ignore / extend-select
+        - fix safety and unsafe-fix controls
+        - JSON output with fix applicability
+      required_before_execution:
+        - python_source_scope
+        - rule_selection_policy
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - unsafe_fix_disabled_until_approved
+        - suppression_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_coding_rule_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-MYPY
+      source_id: MYPY-PY-TYPE-CHECK
+      kind: python_type_checking
+      admission_status: candidate_requires_confirmation
+      official_url: https://mypy.readthedocs.io/en/stable/
+      required_source_focus:
+        - Python static type checker
+        - type hints and PEP 484 checking
+        - bug detection without running Python programs
+        - gradual typing and stricter options
+        - command-line and configuration surfaces
+        - error codes, import discovery, installed package typing, and report generation
+      required_before_execution:
+        - python_source_scope
+        - type_annotation_scope
+        - strictness_policy
+        - config_file_policy
+        - import_discovery_policy
+        - error_code_policy
+        - output_format_and_normalization
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_type_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - candidate_id: HEXT-CAND-PIP-AUDIT
+      source_id: PIP-AUDIT-PY-VULN
+      kind: python_dependency_audit
+      admission_status: candidate_requires_confirmation
+      official_url: https://github.com/pypa/pip-audit
+      required_source_focus:
+        - Python environment vulnerability auditing
+        - requirements file and dependency tree auditing
+        - PyPI and OSV vulnerability service input
+        - JSON and CycloneDX output
+        - GitHub Action and pre-commit routes
+        - automatic fix mode requires explicit approval
+      required_before_execution:
+        - python_dependency_scope
+        - requirements_lockfile_scope
+        - vulnerability_service_policy
+        - output_format_and_normalization
+        - fix_mode_disabled_until_approved
+        - CI_or_precommit_surface
+        - license_policy
+        - HELIX_DB_vulnerability_finding_mapping
+      forbidden_current_scope:
+        - install_or_enable_tool
+        - configure_oauth_pat_secret_or_env
+        - execute_external_network_or_scanner
+        - connect_ci_or_equivalent_gate
+        - write_helix_db_or_schema
+        - create_l7_test_design_or_implementation
+        - count_candidate_as_completion
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+tool_candidate_coverage:
+  - candidate_id: HEXT-CAND-MCP-PROTOCOL
+    source_id: MCP-SPEC-2025-06-18
+    kind: mcp_protocol_admission
+    admission_status: candidate
+    required_before_execution:
+      - host_support
+      - auth_method
+      - tool_invocation_consent_required
+      - tool_poisoning_review_required
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-GITHUB-MCP
+    source_id: GITHUB-MCP-SERVER
+    kind: mcp_server
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - OAuth_or_PAT_approval
+      - credential_scope
+      - organization_policy
+      - write_capability_boundary
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-SEMGREP-CE
+    source_id: SEMGREP-CE
+    kind: sast
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - rule_license_review
+      - local_or_ci_execution_surface
+      - output_normalization
+      - failure_mode
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-CODEQL
+    source_id: GITHUB-CODEQL
+    kind: code_scanning
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - GitHub_security_or_CI_route
+      - CodeQL_database_handling
+      - SARIF_or_alert_ingestion
+      - HELIX_DB_feedback_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-ZIZMOR-GHA
+    source_id: ZIZMOR-GHA-SECURITY
+    kind: github_actions_workflow_security
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - github_actions_workflow_scope
+      - action_definition_scope
+      - offline_mode_required_until_approved
+      - github_token_scope_policy
+      - output_format_and_normalization
+      - sarif_upload_policy
+      - github_annotation_limit_policy
+      - persona_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_manual_review_required
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_workflow_security_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-ACTIONLINT-GHA
+    source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+    kind: github_actions_workflow_lint
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - github_actions_workflow_scope
+      - workflow_syntax_policy
+      - expression_semantics_policy
+      - reusable_workflow_contract_policy
+      - shellcheck_pyflakes_integration_policy
+      - script_injection_policy
+      - credential_literal_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_workflow_lint_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-OPENSSF-SCORECARD
+    source_id: OPENSSF-SCORECARD
+    kind: repository_security_score
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - GitHub_Action_or_CLI_or_API_route
+      - PAT_or_GitHub_App_scope_approval
+      - repository_scope
+      - score_and_check_output_normalization
+      - REST_API_data_license_review
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-DEPSDEV-API
+    source_id: DEPSDEV-API
+    kind: dependency_intelligence
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - HTTP_or_gRPC_or_BigQuery_route
+      - package_ecosystem_scope
+      - dependency_graph_output_normalization
+      - license_and_advisory_ingestion_scope
+      - API_terms_rate_limit_review
+      - HELIX_DB_dependency_graph_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-OSV-SCANNER
+    source_id: OSV-SCANNER
+    kind: vulnerability_scanning
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - dependency_artifact_scope
+      - vulnerability_database_route
+      - output_format_and_normalization
+      - license_policy
+      - CI_or_precommit_surface
+      - offline_database_policy
+      - guided_remediation_disabled_until_approved
+      - HELIX_DB_vulnerability_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-SYFT-SBOM
+    source_id: SYFT-SBOM
+    kind: sbom_generation
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - sbom_source_scope
+      - package_cataloger_scope
+      - registry_or_private_source_access_approval
+      - output_format_and_normalization
+      - license_policy
+      - sbom_attestation_policy
+      - HELIX_DB_dependency_graph_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-GRIMP-PY-IMPORT
+    source_id: GRIMP-PYTHON-IMPORT-GRAPH
+    kind: source_dependency_graph
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_package_scope
+      - import_graph_scope
+      - external_package_inclusion_policy
+      - output_format_and_normalization
+      - license_policy
+      - HELIX_DB_dependency_edge_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-DEPENDENCY-CRUISER
+    source_id: DEPENDENCY-CRUISER
+    kind: source_dependency_graph
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - js_ts_source_scope
+      - dependency_rule_scope
+      - graph_output_format
+      - circular_dependency_policy
+      - package_manifest_consistency_policy
+      - license_policy
+      - HELIX_DB_dependency_edge_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-SHELLCHECK
+    source_id: SHELLCHECK-SHELL-STATIC
+    kind: shell_static_analysis
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - shell_script_scope
+      - shell_dialect_policy
+      - output_format_and_normalization
+      - severity_policy
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_shell_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-MARKDOWNLINT-CLI2
+    source_id: MARKDOWNLINT-CLI2
+    kind: markdown_static_analysis
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - markdown_source_scope
+      - markdown_rule_scope
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_markdown_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-VALE-PROSE-LINT
+    source_id: VALE-PROSE-LINT
+    kind: prose_style_analysis
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - prose_source_scope
+      - style_rule_scope
+      - vocabulary_policy
+      - glossary_mapping_policy
+      - config_file_policy
+      - package_sync_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_prose_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-TEXTLINT
+    source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+    kind: natural_language_lint
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - natural_language_source_scope
+      - markdown_plain_text_scope
+      - textlint_rule_policy
+      - textlint_preset_plugin_policy
+      - japanese_document_rule_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - dry_run_required_for_fix_preview
+      - output_format_and_normalization
+      - MCP_server_policy
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_document_lint_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-MUTMUT-PY-MUTATION
+    source_id: MUTMUT-PY-MUTATION-TESTING
+    kind: python_mutation_testing
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_source_scope
+      - mutation_operator_scope
+      - pytest_command_scope
+      - coverage_filter_policy
+      - type_checker_filter_policy
+      - dependency_change_policy
+      - timeout_and_parallelism_policy
+      - mutant_apply_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_mutation_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-HYPOTHESIS
+    source_id: HYPOTHESIS-PY-PBT
+    kind: python_property_based_testing
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_test_scope
+      - property_invariant_scope
+      - strategy_design_policy
+      - max_examples_policy
+      - stateful_testing_policy
+      - flaky_failure_policy
+      - replay_database_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_property_test_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-COVERAGE-PY
+    source_id: COVERAGE-PY-COVERAGE
+    kind: python_coverage_measurement
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_source_scope
+      - test_runner_scope
+      - branch_coverage_policy
+      - source_include_omit_policy
+      - fail_under_policy
+      - coverage_data_file_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_coverage_finding_mapping
+      - L7_coverage_closure_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-DIFF-COVER
+    source_id: DIFF-COVER-DIFF-COVERAGE
+    kind: python_diff_coverage_quality
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - git_diff_scope
+      - compare_branch_policy
+      - coverage_report_format_policy
+      - lcov_or_xml_report_policy
+      - diff_quality_checker_policy
+      - fail_under_policy
+      - changed_line_reporting_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_diff_coverage_finding_mapping
+      - approved_feature_diff_coverage_gate_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-LYCHEE
+    source_id: LYCHEE-LINK-CHECKER
+    kind: link_reference_check
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - document_source_scope
+      - link_target_scope
+      - network_access_policy
+      - auth_header_policy
+      - accepted_status_policy
+      - include_exclude_policy
+      - config_file_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_doc_connection_gap_mapping
+      - approved_feature_link_check_gate_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-PYTEST
+    source_id: PYTEST-PY-TEST-RUNNER
+    kind: python_test_runner
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_test_scope
+      - test_discovery_policy
+      - test_selection_policy
+      - marker_policy
+      - fixture_scope_policy
+      - plugin_policy
+      - junitxml_output_policy
+      - exit_code_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_test_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-PYTEST-TESTMON
+    source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    kind: python_impacted_test_selection
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_test_scope
+      - affected_test_selection_policy
+      - dependency_database_policy
+      - coverage_dependency_collection_policy
+      - noselect_policy
+      - nocollect_policy
+      - forceselect_policy
+      - hidden_test_dependency_policy
+      - environment_variant_policy
+      - local_storage_policy
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_test_impact_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-TOX
+    source_id: TOX-PY-ENV-ORCHESTRATION
+    kind: python_environment_orchestration
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - tox_config_scope
+      - environment_matrix_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - package_build_policy
+      - skip_missing_interpreters_policy
+      - provision_environment_policy
+      - workdir_tempdir_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_environment_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-NOX
+    source_id: NOX-PY-SESSION-AUTOMATION
+    kind: python_session_automation
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - noxfile_scope
+      - python_code_review_policy
+      - session_selection_policy
+      - session_parametrize_policy
+      - session_tag_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - venv_backend_policy
+      - reuse_venv_policy
+      - download_python_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_session_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-IMPORT-LINTER
+    source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+    kind: python_architecture_contracts
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - importlinter_config_scope
+      - root_package_scope
+      - contract_type_policy
+      - layer_order_policy
+      - forbidden_dependency_policy
+      - independence_boundary_policy
+      - acyclic_siblings_depth_policy
+      - ignore_imports_policy
+      - unmatched_ignore_imports_policy
+      - external_package_scope
+      - type_checking_import_policy
+      - graph_output_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_architecture_contract_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-CHECK-JSONSCHEMA
+    source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+    kind: document_schema_validation
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - schemafile_scope
+      - builtin_schema_policy
+      - metaschema_policy
+      - instance_file_scope
+      - yaml_json_filetype_policy
+      - remote_schema_policy
+      - cache_policy
+      - output_format_policy
+      - format_validation_policy
+      - precommit_surface
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_payload_schema_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-SPECTRAL
+    source_id: SPECTRAL-API-CONTRACT-LINT
+    kind: api_contract_lint
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - api_spec_file_scope
+      - ruleset_source_policy
+      - openapi_asyncapi_arazzo_scope
+      - custom_rule_policy
+      - api_style_guide_policy
+      - output_format_policy
+      - editor_hook_ci_surface
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_api_contract_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-SQLFLUFF
+    source_id: SQLFLUFF-SQL-LINT
+    kind: sql_schema_lint
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - sql_source_scope
+      - sql_dialect_policy
+      - sqlite_dialect_policy
+      - templater_policy
+      - rule_selection_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_sql_schema_lint_mapping
+      - L7_test_execution_plan
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-RUFF-PY-LINT-FORMAT
+    source_id: RUFF-PY-LINT-FORMAT
+    kind: python_lint_format
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_source_scope
+      - rule_selection_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_disabled_until_approved
+      - suppression_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_coding_rule_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-MYPY
+    source_id: MYPY-PY-TYPE-CHECK
+    kind: python_type_checking
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_source_scope
+      - type_annotation_scope
+      - strictness_policy
+      - config_file_policy
+      - import_discovery_policy
+      - error_code_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_type_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-PIP-AUDIT
+    source_id: PIP-AUDIT-PY-VULN
+    kind: python_dependency_audit
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - python_dependency_scope
+      - requirements_lockfile_scope
+      - vulnerability_service_policy
+      - output_format_and_normalization
+      - fix_mode_disabled_until_approved
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_vulnerability_finding_mapping
+    current_scope_action: feature_ticket_only
+  - candidate_id: HEXT-CAND-OPENAI-APPS-MCP-DESCRIPTOR
+    source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    kind: app_tool_descriptor
+    admission_status: candidate_requires_confirmation
+    required_before_execution:
+      - output_schema_policy
+      - ui_resource_visibility_policy
+      - file_param_policy
+      - invocation_status_metadata_policy
+    current_scope_action: feature_ticket_only
+admission_gate_policy:
+  current_scope_action: define_admission_gate_contract_only
+  install_allowed_now: false
+  credential_or_secret_change_allowed_now: false
+  external_network_execution_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  helix_db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+  allowed_owner_roles:
+    - TL
+    - Security
+    - DevOps
+  required_gate_fields:
+    - gate_id
+    - applies_to_candidate_kinds
+    - required_decision
+    - blocking_when_missing
+    - owner_role
+    - escalation_condition
+    - completion_guard
+admission_gate_contracts:
+  - gate_id: HEXT-ADMIT-AUTH-SCOPE
+    applies_to_candidate_kinds:
+      - mcp_protocol_admission
+      - mcp_server
+      - repository_security_score
+      - sbom_generation
+    required_decision: auth_method_and_credential_scope_approved
+    blocking_when_missing: true
+    owner_role: Security
+    escalation_condition: OAuth_PAT_secret_or_org_policy_change_required
+    completion_guard: admission_gate_pass_is_not_installation
+  - gate_id: HEXT-ADMIT-LICENSE-RULES
+    applies_to_candidate_kinds:
+      - sast
+      - code_scanning
+      - repository_security_score
+      - dependency_intelligence
+      - vulnerability_scanning
+      - sbom_generation
+      - source_dependency_graph
+      - shell_static_analysis
+      - markdown_static_analysis
+      - prose_style_analysis
+      - python_mutation_testing
+      - python_property_based_testing
+      - python_coverage_measurement
+      - python_test_runner
+      - python_environment_orchestration
+      - python_session_automation
+      - python_architecture_contracts
+      - document_schema_validation
+      - python_lint_format
+      - python_type_checking
+      - python_dependency_audit
+    required_decision: license_rule_source_and_usage_approved
+    blocking_when_missing: true
+    owner_role: Security
+    escalation_condition: new_rule_license_or_dependency_license_decision_required
+    completion_guard: admission_gate_pass_is_not_execution
+  - gate_id: HEXT-ADMIT-NETWORK-EXECUTION
+    applies_to_candidate_kinds:
+      - mcp_protocol_admission
+      - mcp_server
+      - sast
+      - code_scanning
+      - repository_security_score
+      - dependency_intelligence
+      - vulnerability_scanning
+      - sbom_generation
+      - source_dependency_graph
+      - shell_static_analysis
+      - markdown_static_analysis
+      - prose_style_analysis
+      - python_mutation_testing
+      - python_property_based_testing
+      - python_coverage_measurement
+      - python_test_runner
+      - python_environment_orchestration
+      - python_session_automation
+      - python_architecture_contracts
+      - document_schema_validation
+      - python_lint_format
+      - python_type_checking
+      - python_dependency_audit
+    required_decision: local_or_remote_execution_surface_approved
+    blocking_when_missing: true
+    owner_role: TL
+    escalation_condition: external_network_or_scanner_execution_required
+    completion_guard: admission_gate_pass_is_not_execution
+  - gate_id: HEXT-ADMIT-CI-GATE
+    applies_to_candidate_kinds:
+      - sast
+      - code_scanning
+      - repository_security_score
+      - vulnerability_scanning
+      - sbom_generation
+      - source_dependency_graph
+      - shell_static_analysis
+      - markdown_static_analysis
+      - prose_style_analysis
+      - python_mutation_testing
+      - python_property_based_testing
+      - python_coverage_measurement
+      - python_test_runner
+      - python_environment_orchestration
+      - python_session_automation
+      - python_architecture_contracts
+      - document_schema_validation
+      - python_lint_format
+      - python_type_checking
+      - python_dependency_audit
+    required_decision: ci_or_equivalent_failure_mode_approved
+    blocking_when_missing: true
+    owner_role: DevOps
+    escalation_condition: CI_workflow_or_equivalent_gate_change_required
+    completion_guard: admission_gate_pass_is_not_ci_connection
+  - gate_id: HEXT-ADMIT-DB-INGESTION
+    applies_to_candidate_kinds:
+      - mcp_protocol_admission
+      - mcp_server
+      - sast
+      - code_scanning
+      - repository_security_score
+      - dependency_intelligence
+      - vulnerability_scanning
+      - sbom_generation
+      - source_dependency_graph
+      - shell_static_analysis
+      - markdown_static_analysis
+      - prose_style_analysis
+      - python_mutation_testing
+      - python_property_based_testing
+      - python_coverage_measurement
+      - python_test_runner
+      - python_environment_orchestration
+      - python_session_automation
+      - python_architecture_contracts
+      - document_schema_validation
+      - python_lint_format
+      - python_type_checking
+      - python_dependency_audit
+    required_decision: output_normalization_and_db_target_approved
+    blocking_when_missing: true
+    owner_role: TL
+    escalation_condition: helix_db_schema_write_or_feedback_mapping_change_required
+    completion_guard: admission_gate_pass_is_not_db_write
+tool_output_ingestion_policy:
+  current_scope_action: normalize_output_contract_only
+  execution_allowed_now: false
+  helix_db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  required_contract_fields:
+    - candidate_id
+    - output_surface
+    - normalized_artifact
+    - db_target
+    - detector_signal
+    - feedback_route
+    - required_before_ingestion
+    - current_scope_action
+  allowed_detector_signals:
+    - drift
+    - debt_degradation
+    - regression_dev
+    - unknown_design
+    - doc_connection_gap
+tool_output_ingestion_contracts:
+  - candidate_id: HEXT-CAND-MCP-PROTOCOL
+    output_surface: mcp_tool_call_trace
+    normalized_artifact: mcp_tool_invocation_evidence
+    db_target: external_tool_candidate
+    detector_signal: unknown_design
+    feedback_route: harness_tool_admission_candidate
+    required_before_ingestion:
+      - host_support
+      - auth_method
+      - tool_invocation_consent_required
+      - tool_poisoning_review_required
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-GITHUB-MCP
+    output_surface: github_mcp_tool_call_trace
+    normalized_artifact: github_mcp_scope_and_action_evidence
+    db_target: external_tool_candidate
+    detector_signal: doc_connection_gap
+    feedback_route: credential_scope_review_candidate
+    required_before_ingestion:
+      - OAuth_or_PAT_approval
+      - credential_scope
+      - organization_policy
+      - write_capability_boundary
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-OPENAI-APPS-MCP-DESCRIPTOR
+    output_surface: apps_sdk_tool_descriptor
+    normalized_artifact: app_tool_descriptor_admission_evidence
+    db_target: external_tool_candidate
+    detector_signal: unknown_design
+    feedback_route: harness_plugin_descriptor_candidate
+    required_before_ingestion:
+      - output_schema_policy
+      - ui_resource_visibility_policy
+      - file_param_policy
+      - invocation_status_metadata_policy
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-SEMGREP-CE
+    output_surface: semgrep_json_or_sarif
+    normalized_artifact: sast_finding_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: refactor_or_rule_tuning_candidate
+    required_before_ingestion:
+      - rule_license_review
+      - local_or_ci_execution_surface
+      - output_normalization
+      - failure_mode
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-CODEQL
+    output_surface: codeql_database_sarif_or_alert
+    normalized_artifact: code_scanning_impact_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: impact_analysis_or_security_review_candidate
+    required_before_ingestion:
+      - GitHub_security_or_CI_route
+      - CodeQL_database_handling
+      - SARIF_or_alert_ingestion
+      - HELIX_DB_feedback_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-ZIZMOR-GHA
+    output_surface: zizmor_plain_json_sarif_github_annotations_or_exit_code
+    normalized_artifact: github_actions_workflow_security_finding_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: workflow_security_hardening_or_ci_policy_candidate
+    required_before_ingestion:
+      - github_actions_workflow_scope
+      - action_definition_scope
+      - offline_mode_required_until_approved
+      - github_token_scope_policy
+      - output_format_and_normalization
+      - sarif_upload_policy
+      - github_annotation_limit_policy
+      - persona_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_manual_review_required
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_workflow_security_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-ACTIONLINT-GHA
+    output_surface: actionlint_diagnostics_problem_matcher_or_exit_code
+    normalized_artifact: github_actions_workflow_lint_finding_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: workflow_lint_or_ci_maintainability_candidate
+    required_before_ingestion:
+      - github_actions_workflow_scope
+      - workflow_syntax_policy
+      - expression_semantics_policy
+      - reusable_workflow_contract_policy
+      - shellcheck_pyflakes_integration_policy
+      - script_injection_policy
+      - credential_literal_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_workflow_lint_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-OPENSSF-SCORECARD
+    output_surface: scorecard_score_check_detail_or_api_result
+    normalized_artifact: repository_security_score_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: security_posture_or_dependency_risk_candidate
+    required_before_ingestion:
+      - GitHub_Action_or_CLI_or_API_route
+      - PAT_or_GitHub_App_scope_approval
+      - repository_scope
+      - score_and_check_output_normalization
+      - REST_API_data_license_review
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-DEPSDEV-API
+    output_surface: depsdev_package_version_dependency_advisory_json
+    normalized_artifact: dependency_intelligence_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: dependency_impact_or_license_advisory_candidate
+    required_before_ingestion:
+      - HTTP_or_gRPC_or_BigQuery_route
+      - package_ecosystem_scope
+      - dependency_graph_output_normalization
+      - license_and_advisory_ingestion_scope
+      - API_terms_rate_limit_review
+      - HELIX_DB_dependency_graph_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-OSV-SCANNER
+    output_surface: osv_scanner_json_sarif_spdx_or_cyclonedx
+    normalized_artifact: dependency_vulnerability_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: dependency_vulnerability_or_license_candidate
+    required_before_ingestion:
+      - dependency_artifact_scope
+      - vulnerability_database_route
+      - output_format_and_normalization
+      - license_policy
+      - CI_or_precommit_surface
+      - offline_database_policy
+      - guided_remediation_disabled_until_approved
+      - HELIX_DB_vulnerability_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-SYFT-SBOM
+    output_surface: syft_json_cyclonedx_spdx_or_github_dependency_snapshot
+    normalized_artifact: sbom_dependency_inventory_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: dependency_inventory_or_sbom_mapping_candidate
+    required_before_ingestion:
+      - sbom_source_scope
+      - package_cataloger_scope
+      - registry_or_private_source_access_approval
+      - output_format_and_normalization
+      - license_policy
+      - sbom_attestation_policy
+      - HELIX_DB_dependency_graph_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-GRIMP-PY-IMPORT
+    output_surface: grimp_import_graph_query_result
+    normalized_artifact: python_import_dependency_edge_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: dependency_impact_or_import_graph_candidate
+    required_before_ingestion:
+      - python_package_scope
+      - import_graph_scope
+      - external_package_inclusion_policy
+      - output_format_and_normalization
+      - license_policy
+      - HELIX_DB_dependency_edge_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-DEPENDENCY-CRUISER
+    output_surface: dependency_cruiser_json_dot_csv_html_mermaid_or_text
+    normalized_artifact: js_ts_dependency_rule_and_graph_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: dependency_impact_or_js_ts_graph_candidate
+    required_before_ingestion:
+      - js_ts_source_scope
+      - dependency_rule_scope
+      - graph_output_format
+      - circular_dependency_policy
+      - package_manifest_consistency_policy
+      - license_policy
+      - HELIX_DB_dependency_edge_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-SHELLCHECK
+    output_surface: shellcheck_json_checkstyle_gcc_or_text
+    normalized_artifact: shell_static_analysis_finding_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: shell_rule_or_cli_hardening_candidate
+    required_before_ingestion:
+      - shell_script_scope
+      - shell_dialect_policy
+      - output_format_and_normalization
+      - severity_policy
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_shell_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-MARKDOWNLINT-CLI2
+    output_surface: markdownlint_cli2_issue_json_junit_sarif_codequality_or_summary
+    normalized_artifact: markdown_static_analysis_finding_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: doc_quality_or_markdown_rule_candidate
+    required_before_ingestion:
+      - markdown_source_scope
+      - markdown_rule_scope
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_markdown_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-VALE-PROSE-LINT
+    output_surface: vale_json_template_metrics_or_exit_code
+    normalized_artifact: prose_style_and_terminology_finding_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: doc_quality_or_glossary_rule_candidate
+    required_before_ingestion:
+      - prose_source_scope
+      - style_rule_scope
+      - vocabulary_policy
+      - glossary_mapping_policy
+      - config_file_policy
+      - package_sync_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_prose_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-TEXTLINT
+    output_surface: textlint_json_junit_github_unix_or_fix_dry_run_diff
+    normalized_artifact: natural_language_document_lint_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: doc_quality_glossary_or_japanese_style_rule_candidate
+    required_before_ingestion:
+      - natural_language_source_scope
+      - markdown_plain_text_scope
+      - textlint_rule_policy
+      - textlint_preset_plugin_policy
+      - japanese_document_rule_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - dry_run_required_for_fix_preview
+      - output_format_and_normalization
+      - MCP_server_policy
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_document_lint_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-MUTMUT-PY-MUTATION
+    output_surface: mutmut_mutation_result_surviving_mutant_dependency_warning_or_browse_state
+    normalized_artifact: python_mutation_testing_finding_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: tdd_strengthening_or_unit_test_gap_candidate
+    required_before_ingestion:
+      - python_source_scope
+      - mutation_operator_scope
+      - pytest_command_scope
+      - coverage_filter_policy
+      - type_checker_filter_policy
+      - dependency_change_policy
+      - timeout_and_parallelism_policy
+      - mutant_apply_disabled_until_approved
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_mutation_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-HYPOTHESIS
+    output_surface: hypothesis_falsifying_example_settings_profile_or_pytest_failure
+    normalized_artifact: python_property_test_finding_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: property_invariant_or_strategy_design_candidate
+    required_before_ingestion:
+      - python_test_scope
+      - property_invariant_scope
+      - strategy_design_policy
+      - max_examples_policy
+      - stateful_testing_policy
+      - flaky_failure_policy
+      - replay_database_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_property_test_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-COVERAGE-PY
+    output_surface: coverage_py_text_json_xml_lcov_html_or_sqlite_data
+    normalized_artifact: python_coverage_measurement_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: coverage_gap_or_branch_gap_candidate
+    required_before_ingestion:
+      - python_source_scope
+      - test_runner_scope
+      - branch_coverage_policy
+      - source_include_omit_policy
+      - fail_under_policy
+      - coverage_data_file_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_coverage_finding_mapping
+      - L7_coverage_closure_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-DIFF-COVER
+    output_surface: diff_cover_console_html_json_markdown_or_diff_quality_report
+    normalized_artifact: diff_coverage_quality_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: changed_line_coverage_or_quality_gap_candidate
+    required_before_ingestion:
+      - git_diff_scope
+      - compare_branch_policy
+      - coverage_report_format_policy
+      - lcov_or_xml_report_policy
+      - diff_quality_checker_policy
+      - fail_under_policy
+      - changed_line_reporting_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_diff_coverage_finding_mapping
+      - approved_feature_diff_coverage_gate_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-LYCHEE
+    output_surface: lychee_console_json_github_action_or_precommit_report
+    normalized_artifact: link_reference_check_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: broken_link_or_reference_rot_candidate
+    required_before_ingestion:
+      - document_source_scope
+      - link_target_scope
+      - network_access_policy
+      - auth_header_policy
+      - accepted_status_policy
+      - include_exclude_policy
+      - config_file_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_doc_connection_gap_mapping
+      - approved_feature_link_check_gate_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-PYTEST
+    output_surface: pytest_terminal_summary_junitxml_exit_code_or_failure_report
+    normalized_artifact: python_test_run_result_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: unit_test_failure_or_test_selection_candidate
+    required_before_ingestion:
+      - python_test_scope
+      - test_discovery_policy
+      - test_selection_policy
+      - marker_policy
+      - fixture_scope_policy
+      - plugin_policy
+      - junitxml_output_policy
+      - exit_code_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_test_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-PYTEST-TESTMON
+    output_surface: pytest_testmon_selection_summary_testmondata_dependency_db_or_exit_code
+    normalized_artifact: python_impacted_test_selection_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: test_impact_or_hidden_dependency_candidate
+    required_before_ingestion:
+      - python_test_scope
+      - affected_test_selection_policy
+      - dependency_database_policy
+      - coverage_dependency_collection_policy
+      - noselect_policy
+      - nocollect_policy
+      - forceselect_policy
+      - hidden_test_dependency_policy
+      - environment_variant_policy
+      - local_storage_policy
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_test_impact_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-TOX
+    output_surface: tox_environment_result_config_report_or_exit_code
+    normalized_artifact: python_environment_orchestration_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: test_matrix_or_environment_drift_candidate
+    required_before_ingestion:
+      - tox_config_scope
+      - environment_matrix_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - package_build_policy
+      - skip_missing_interpreters_policy
+      - provision_environment_policy
+      - workdir_tempdir_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_environment_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-NOX
+    output_surface: nox_session_list_usage_result_stdout_stderr_or_exit_code
+    normalized_artifact: python_session_automation_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: nox_session_or_test_matrix_candidate
+    required_before_ingestion:
+      - noxfile_scope
+      - python_code_review_policy
+      - session_selection_policy
+      - session_parametrize_policy
+      - session_tag_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - venv_backend_policy
+      - reuse_venv_policy
+      - download_python_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_session_run_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-IMPORT-LINTER
+    output_surface: lint_imports_contract_result_broken_contract_diagnostics_or_dot_graph
+    normalized_artifact: python_architecture_contract_evidence
+    db_target: detector_report
+    detector_signal: drift
+    feedback_route: ddd_boundary_or_dependency_contract_candidate
+    required_before_ingestion:
+      - importlinter_config_scope
+      - root_package_scope
+      - contract_type_policy
+      - layer_order_policy
+      - forbidden_dependency_policy
+      - independence_boundary_policy
+      - acyclic_siblings_depth_policy
+      - ignore_imports_policy
+      - unmatched_ignore_imports_policy
+      - external_package_scope
+      - type_checking_import_policy
+      - graph_output_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_architecture_contract_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-CHECK-JSONSCHEMA
+    output_surface: check_jsonschema_text_json_diagnostics_or_exit_code
+    normalized_artifact: document_schema_validation_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: document_schema_or_db_payload_candidate
+    required_before_ingestion:
+      - schemafile_scope
+      - builtin_schema_policy
+      - metaschema_policy
+      - instance_file_scope
+      - yaml_json_filetype_policy
+      - remote_schema_policy
+      - cache_policy
+      - output_format_policy
+      - format_validation_policy
+      - precommit_surface
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_payload_schema_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-SPECTRAL
+    output_surface: spectral_lint_diagnostics_ruleset_violation_or_exit_code
+    normalized_artifact: api_contract_lint_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: api_contract_or_style_guide_candidate
+    required_before_ingestion:
+      - api_spec_file_scope
+      - ruleset_source_policy
+      - openapi_asyncapi_arazzo_scope
+      - custom_rule_policy
+      - api_style_guide_policy
+      - output_format_policy
+      - editor_hook_ci_surface
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_api_contract_finding_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-SQLFLUFF
+    output_surface: sqlfluff_lint_diagnostics_json_github_annotation_or_exit_code
+    normalized_artifact: sql_schema_lint_finding_evidence
+    db_target: detector_report
+    detector_signal: doc_connection_gap
+    feedback_route: sql_schema_or_migration_lint_candidate
+    required_before_ingestion:
+      - sql_source_scope
+      - sql_dialect_policy
+      - sqlite_dialect_policy
+      - templater_policy
+      - rule_selection_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_sql_schema_lint_mapping
+      - L7_test_execution_plan
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-RUFF-PY-LINT-FORMAT
+    output_surface: ruff_diagnostic_json_sarif_junit_github_gitlab_or_text
+    normalized_artifact: python_lint_format_finding_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: coding_rule_or_style_hardening_candidate
+    required_before_ingestion:
+      - python_source_scope
+      - rule_selection_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_disabled_until_approved
+      - suppression_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_coding_rule_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-MYPY
+    output_surface: mypy_type_check_diagnostics_error_codes_reports_or_exit_code
+    normalized_artifact: python_type_check_finding_evidence
+    db_target: detector_report
+    detector_signal: regression_dev
+    feedback_route: type_contract_or_python_annotation_candidate
+    required_before_ingestion:
+      - python_source_scope
+      - type_annotation_scope
+      - strictness_policy
+      - config_file_policy
+      - import_discovery_policy
+      - error_code_policy
+      - output_format_and_normalization
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_type_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+  - candidate_id: HEXT-CAND-PIP-AUDIT
+    output_surface: pip_audit_json_markdown_cyclonedx_or_columns
+    normalized_artifact: python_dependency_vulnerability_finding_evidence
+    db_target: detector_report
+    detector_signal: debt_degradation
+    feedback_route: dependency_vulnerability_or_python_package_candidate
+    required_before_ingestion:
+      - python_dependency_scope
+      - requirements_lockfile_scope
+      - vulnerability_service_policy
+      - output_format_and_normalization
+      - fix_mode_disabled_until_approved
+      - CI_or_precommit_surface
+      - license_policy
+      - HELIX_DB_vulnerability_finding_mapping
+    current_scope_action: contract_only_no_execution_no_db_write
+layer_coverage:
+  - layer: L4
+    artifact: docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+    coverage:
+      - external tool admission lifecycle
+      - dependency / impact range model
+      - Web-backed candidate controls
+      - installation / credential / network / schema / auto-apply safety boundary
+    current_scope_status: design_covered
+  - layer: L5
+    artifact: docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+    coverage:
+      - registry schema fields
+      - admission decision table
+      - candidate-specific required fields
+      - impact graph record
+      - existing DB / manifest mapping
+      - failure handling and non-goals
+    current_scope_status: design_covered
+  - layer: L6
+    artifact: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    coverage:
+      - HEXT-FN-01 register_tool_candidate
+      - HEXT-FN-02 evaluate_admission_boundary
+      - HEXT-FN-03 enforce_harness_allowlist
+      - HEXT-FN-04 normalize_tool_output
+      - HEXT-FN-05 build_dependency_impact_graph
+      - HEXT-FN-06 append_feedback_evidence
+      - HEXT-FN-07 route_bottleneck_candidate
+      - HEXT-FN-08 emit_external_tool_guard_summary
+      - HEXT-FN-09 verify_web_evidence_freshness
+      - HEXT-FN-10 evaluate_tool_execution_risk
+    current_scope_status: function_design_covered
+l6_unit_test_viewpoints:
+  count: 10
+  prefix: HEXT-UT-CAND
+  current_scope_status: l6_viewpoint_only_not_l7_artifact
+deferred_feature_plan:
+  path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  status: draft
+  approval_required_before_install: true
+  external_tool_installation_allowed_now: false
+completion_denial:
+  reason: >
+    This audit proves L1-L6 HARNESS external-tool research and design coverage
+    only. It does not prove installation, MCP enablement, external execution,
+    credential configuration, CI/equivalent connection, HELIX DB write adoption,
+    recurrence closure, or full goal completion.

@@ -1,0 +1,255 @@
+schema_version: l1_l6_pair_balance_map_v1
+owner: TL
+status: current_scope_l1_l6_pair_balance_not_l7_execution
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Make the L1-L6 design/test-design balance claim inspectable per layer. The
+  map records the paired test-design evidence for L1-L5 and the current-scope
+  L6 unit-test-design viewpoint index. Existing HELIX L6-L7 trace metrics are
+  recorded only as framework pair metrics; they are not approval to add or
+  execute L7 work.
+source_commands:
+  trace_symmetry: "python3 -m cli.lib.trace_symmetry --json"
+  vg_overview: "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json"
+boundary:
+  current_scope: L1-L6 design and test-design balance
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  uses_l7_artifact_as_current_scope_evidence: false
+  l7_implementation_done: false
+  unit_test_implementation_done: false
+  coverage_closure_done: false
+  strict_full_flow_complete: false
+  goal_complete_allowed: false
+summary:
+  l1_l6_layers_checked: 6
+  layers_pass: 6
+  layers_with_waiver: 1
+  blocking_findings: 0
+  pair_contract_matrix_layers_checked: 6
+  paired_artifacts_checked: 6
+  expected_design_refs_checked: 8
+  expected_design_refs_backed_by_design_assets: 8
+  expected_design_refs_missing_from_design_assets: 0
+  l6_unit_test_design_viewpoint_count: 128
+  notes:
+    - L2-L10 is not applicable because HELIX-workflows has no UI surface under the current scope.
+    - L4-L9 uses semantic ST-to-TV-to-L4 transitive trace; raw balance remains monitored.
+    - L6 current-scope evidence is the L6 unit-test-design viewpoint index, not new L7 artifacts.
+pair_contract_policy:
+  current_scope_action: validate_l1_l6_design_to_test_design_pair_contract_only
+  l7_work_requested_by_user: false
+  l7_artifact_required_for_current_scope: false
+  l7_artifact_creation_allowed_without_feature_ticket: false
+  waiver_allowed_layers:
+    - L2
+  required_pair_fields:
+    - layer
+    - design_stage
+    - paired_test_design_stage
+    - design_process_layer
+    - expected_pair
+    - paired_artifact
+    - current_scope_status
+  pair_contract_matrix_layers_must_equal_pairs_layers: true
+  paired_artifacts_must_exist: true
+  expected_design_refs_must_be_backed_by_pair_design_assets: true
+  expected_design_refs_missing_from_design_assets_allowed: 0
+  completion_boundary: >
+    The matrix validates L1-L6 design/test-design pairing only. L7
+    implementation, L7 unit-test-design artifact creation, unit-test execution,
+    and coverage closure remain out of scope and require an approved feature
+    ticket before work starts.
+pair_contract_matrix:
+  - layer: L1
+    design_stage: 要求定義
+    paired_test_design_stage: 運用テスト設計
+    design_process_layer: L1
+    expected_pair: L1-L14
+    paired_artifact: docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+    expected_test_process_layer: L14
+    expected_pairs_with: L1
+    current_scope_status: pair_contract_present
+  - layer: L2
+    design_stage: 画面要求 / 画面設計 / フロントUI
+    paired_test_design_stage: ワイヤーモック
+    design_process_layer: L2
+    expected_pair: L2-L10
+    paired_artifact: docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+    expected_test_process_layer: not_applicable
+    expected_pairs_with: L10
+    current_scope_status: waiver_present
+  - layer: L3
+    design_stage: 要件定義
+    paired_test_design_stage: 受入テスト設計
+    design_process_layer: L3
+    expected_pair: L3-L12
+    paired_artifact: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+    expected_test_process_layer: L12
+    expected_pairs_with: L3
+    current_scope_status: pair_contract_present
+  - layer: L4
+    design_stage: 基本設計（外部設計）
+    paired_test_design_stage: 総合テスト設計
+    design_process_layer: L4
+    expected_pair: L4-L9
+    paired_artifact: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    expected_test_process_layer: L9
+    expected_design_refs:
+      - docs/v2/L4-basic-design/方式設計.md
+      - docs/v2/L4-basic-design/機能構成設計.md
+      - docs/v2/L4-basic-design/データ設計.md
+      - docs/v2/L4-basic-design/外部IF設計.md
+    current_scope_status: pair_contract_present
+  - layer: L5
+    design_stage: 詳細設計（内部設計）
+    paired_test_design_stage: 結合テスト設計
+    design_process_layer: L5
+    expected_pair: L5-L8
+    paired_artifact: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
+    expected_test_process_layer: L8
+    expected_design_refs:
+      - docs/v2/L5-detailed-design/モジュール分割設計.md
+      - docs/v2/L5-detailed-design/IF詳細設計.md
+      - docs/v2/L5-detailed-design/内部処理設計.md
+      - docs/v2/L5-detailed-design/物理データ設計.md
+    current_scope_status: pair_contract_present
+  - layer: L6
+    design_stage: 機能設計（仕様書）
+    paired_test_design_stage: 単体テスト設計観点
+    design_process_layer: L6
+    expected_pair: L6-L7
+    paired_artifact: docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    expected_test_process_layer: L6
+    expected_scope: L6
+    current_scope_status: l6_unit_test_design_viewpoints_only_not_l7_artifact
+pairs:
+  - layer: L1
+    design_grain: requirement / operational-test-design seed
+    design_assets:
+      - docs/v2/L1-requirements/helix-workflows-business-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-functional-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-nfr.md
+      - docs/v2/L1-requirements/helix-workflows-technical-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-verification-strategy.md
+    paired_test_design_assets:
+      - docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+    trace_pair: L1-L14
+    metrics:
+      coverage_pct: 100.0
+      balance_ratio: 1.0
+      missing_pair_count: 0
+      orphan_test_count: 0
+      excluded_with_reason_count: 36
+    verdict: pass
+  - layer: L2
+    design_grain: screen requirement / wire mock / UI waiver
+    design_assets:
+      - docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+    paired_test_design_assets: []
+    trace_pair: L2-L10
+    metrics:
+      applicability: not_applicable
+      waiver_reason: ui_absent
+      missing_pair_count: 0
+    waiver:
+      path: docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+      unskip_required_when:
+        - official docs site or web UI is added
+        - interactive UI/TUI/visual mock/dashboard is added
+        - downstream product screens are introduced
+    verdict: pass_with_waiver
+  - layer: L3
+    design_grain: detailed requirements / acceptance-test-design
+    design_assets:
+      - docs/v2/L3-requirements/helix-workflows-business-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-functional-registry.md
+      - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+    paired_test_design_assets:
+      - docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+    trace_pair: L3-L12
+    metrics:
+      coverage_pct: 100.0
+      balance_ratio: 1.0
+      missing_pair_count: 0
+      orphan_test_count: 0
+    verdict: pass
+  - layer: L4
+    design_grain: basic / external design plus system-test-design
+    design_assets:
+      - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - docs/v2/L4-basic-design/データ設計.md
+      - docs/v2/L4-basic-design/外部IF設計.md
+      - docs/v2/L4-basic-design/方式設計.md
+      - docs/v2/L4-basic-design/機能構成設計.md
+    paired_test_design_assets:
+      - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    trace_pair: L4-L9
+    metrics:
+      coverage_pct: 100.0
+      balance_ratio: 0.67
+      missing_pair_count: 0
+      orphan_test_count: 0
+      semantic_excluded_orphan_count: 18
+    monitoring_reason: semantic ST-to-TV-to-L4 transitive trace accepted
+    verdict: pass_with_monitoring
+  - layer: L5
+    design_grain: detailed / internal design plus integration-test-design
+    design_assets:
+      - docs/v2/L5-detailed-design/IF詳細設計.md
+      - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - docs/v2/L5-detailed-design/モジュール分割設計.md
+      - docs/v2/L5-detailed-design/内部処理設計.md
+      - docs/v2/L5-detailed-design/物理データ設計.md
+    paired_test_design_assets:
+      - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
+    trace_pair: L5-L8
+    metrics:
+      coverage_pct: 100.0
+      balance_ratio: 1.0
+      missing_pair_count: 0
+      orphan_test_count: 0
+    verdict: pass
+  - layer: L6
+    design_grain: function / specification plus unit-test-design viewpoints
+    design_assets:
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+      - docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    paired_test_design_assets:
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    trace_pair: L6-L7
+    metrics:
+      framework_trace_coverage_pct: 100.0
+      framework_trace_balance_ratio: 1.0
+      framework_missing_pair_count: 0
+      l6_fr_count: 18
+      l6_unit_test_design_viewpoint_count: 128
+      l7_artifacts_created_by_current_scope: 0
+    current_scope_pairing: L6 function specs to L6 unit-test-design viewpoints
+    verdict: pass
+completion_denial:
+  reason: >
+    This map proves L1-L6 design/test-design balance only. It does not prove
+    L7 implementation, unit-test implementation, unit-test execution, coverage
+    closure, CI/equivalent connection, or full-flow completion.

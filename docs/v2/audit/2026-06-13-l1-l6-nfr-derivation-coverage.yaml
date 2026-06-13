@@ -1,0 +1,214 @@
+schema_version: l1_l6_nfr_derivation_coverage_v1
+owner: TL
+status: current_scope_l1_l6_nfr_derivation_covered
+updated: 2026-06-13
+scope: L1-L6
+purpose: >
+  Prove that requirements-deriver obligations are covered by existing L1/L3
+  requirement assets and downstream L4-L6 audit evidence. This audit checks
+  functional-requirement signals, derived non-functional requirements, ISO/IEC
+  25010:2023 9-characteristic coverage, and later-phase boundaries without
+  adding L7 implementation, DB writes, external-tool adoption, or CI wiring.
+sources:
+  requirements_deriver_skill: skills/workflow/requirements-deriver/SKILL.md
+  l1_nfr: docs/v2/L1-requirements/helix-workflows-nfr.md
+  l3_nfr_detail: docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+  l1_business_requirements: docs/v2/L1-requirements/helix-workflows-business-requirements.md
+  l1_technical_requirements: docs/v2/L1-requirements/helix-workflows-technical-requirements.md
+  l3_functional_requirements: docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+  objective_l1_l6_coverage: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  deferred_design_obligation_proof: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  audit_is_l7_work: false
+  audit_is_implementation_evidence: false
+  l7_test_design_created_by_this_audit: false
+  l7_implementation_done: false
+  unit_test_execution_done: false
+  coverage_closure_done: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+summary:
+  requirements_deriver_signals_checked: 9
+  requirements_deriver_signals_with_l1_or_l3_coverage: 9
+  iso_25010_characteristics_checked: 9
+  iso_25010_characteristics_covered: 9
+  l1_nfr_count: 23
+  l3_nfr_count: 27
+  l3_extension_count: 4
+  l3_rederived_characteristics: 3
+  current_scope_blocking_findings: 0
+  l7_artifacts_created_by_this_audit: 0
+requirements_deriver_policy:
+  current_scope_action: prove_nfr_derivation_and_boundary_only
+  l1_l3_nfr_assets_required: true
+  iso_25010_2023_nine_characteristics_required: true
+  missing_signal_reopens_l1_or_l3: true
+  l7_execution_allowed_now: false
+  external_tool_adoption_allowed_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+signal_coverage_rows:
+  - signal_id: R4
+    signal: money_or_billing
+    status: boundary_only_not_domain_present
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SC-05
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SC-05
+    current_scope_result: high_risk_human_approval_boundary_defined
+  - signal_id: R5
+    signal: pii_or_sensitive_information
+    status: boundary_only_not_domain_present
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SC-05
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SC-05
+    current_scope_result: high_risk_human_approval_boundary_defined
+  - signal_id: R6
+    signal: always_available_or_recovery_required
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-AV-01
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-AV-02
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-AV-03
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-AV-01
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-AV-02
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-AV-03
+    current_scope_result: availability_and_recovery_targets_defined
+  - signal_id: R8
+    signal: high_volume_parallel_or_spike
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-PF-01
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-PF-02
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-PF-03
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-PF-01
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-PF-02
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-PF-03
+    current_scope_result: performance_and_parallel_codex_targets_defined
+  - signal_id: R9
+    signal: external_system_or_tool_integration
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SC-03
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SE-02
+      - docs/v2/audit/2026-06-13-l1-l6-harness-pre-adoption-requirements-acceptance.yaml
+    current_scope_result: external_tool_admission_and_acceptance_obligations_defined
+  - signal_id: R11
+    signal: multi_os_multi_runtime
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SE-01
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SE-02
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SE-03
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SE-01
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SE-02
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SE-03
+    current_scope_result: os_runtime_and_codex_claude_compatibility_defined
+  - signal_id: R12
+    signal: migration_or_existing_asset_import
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-MG-01
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-MG-02
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-MG-03
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-MG-04
+    current_scope_result: retrofit_migration_and_package_migration_targets_defined
+  - signal_id: R13
+    signal: audit_trace_or_regulated_operation
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-OP-01
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-OP-02
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-OP-05
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-OP-06
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-OP-07
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-OP-08
+    current_scope_result: audit_trace_doc_review_and_ratchet_targets_defined
+  - signal_id: R14
+    signal: metered_or_rate_limited_external_resource
+    status: covered
+    l1_l3_coverage:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-PF-04
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-PF-04
+    current_scope_result: plan_generation_resource_and_cost_boundary_defined
+iso_25010_coverage:
+  - characteristic: Functional Suitability
+    japanese_label: 機能適合性
+    coverage: L3 rederived
+    evidence:
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#§7
+      - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+    current_scope_result: covered_by_fr_ac_balance_and_contract_drift_fail_close
+  - characteristic: Performance Efficiency
+    japanese_label: 性能効率性
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-PF
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-PF
+    current_scope_result: covered_by_performance_and_parallelism_targets
+  - characteristic: Compatibility
+    japanese_label: 互換性
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SE
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SE
+    current_scope_result: covered_by_os_runtime_and_claude_codex_compatibility
+  - characteristic: Interaction Capability
+    japanese_label: 相互作用能力
+    coverage: L3 rederived
+    evidence:
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#§7.2
+    current_scope_result: covered_by_cli_usability_rederivation_and_l2_unskip_condition
+  - characteristic: Reliability
+    japanese_label: 信頼性
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-AV
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-AV
+    current_scope_result: covered_by_availability_and_recovery_targets
+  - characteristic: Security
+    japanese_label: セキュリティ
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-SC
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-SC
+    current_scope_result: covered_by_secret_tool_guard_and_high_risk_approval_targets
+  - characteristic: Maintainability
+    japanese_label: 保守性
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-OP
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-OP
+    current_scope_result: covered_by_audit_lineage_doc_review_and_ratchet_targets
+  - characteristic: Flexibility
+    japanese_label: 柔軟性
+    coverage: covered
+    evidence:
+      - docs/v2/L1-requirements/helix-workflows-nfr.md#NFR-MG
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#NFR-MG
+    current_scope_result: covered_by_retrofit_migration_and_portable_package_targets
+  - characteristic: Safety
+    japanese_label: 安全性
+    coverage: L3 rederived
+    evidence:
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md#§7.2
+    current_scope_result: covered_by_destructive_operation_fail_safe_reversibility_and_risk_identification
+validation_contract:
+  signal_rows_must_match_summary_count: true
+  iso_rows_must_match_summary_count: true
+  every_signal_row_has_l1_or_l3_coverage: true
+  every_iso_characteristic_has_evidence: true
+  all_boundaries_must_remain_false: true
+  l7_artifacts_allowed: false
+completion_denial:
+  reason: >
+    This audit proves L1/L3 NFR derivation coverage and L1-L6 boundary
+    alignment only. It does not prove L7 implementation, unit-test execution,
+    coverage closure, HELIX DB write adoption, external tool adoption,
+    CI/equivalent connection, operational recurrence closure, or full-goal
+    completion.

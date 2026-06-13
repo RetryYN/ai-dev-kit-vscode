@@ -1,0 +1,459 @@
+schema_version: l1_l6_dependency_impact_readiness_coverage_v1
+owner: TL
+status: current_scope_l1_l6_dependency_impact_readiness_mapped
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that dependency visibility and change-impact query requirements have
+  L1-L6 design coverage, while separating current design evidence from L7
+  implementation, HELIX DB write adoption, external tool execution, CI wiring,
+  and completion claims.
+sources:
+  l6_function_specs:
+    - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+    - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+  upstream_design:
+    - docs/v2/L4-basic-design/機能構成設計.md
+    - docs/v2/L5-detailed-design/内部処理設計.md
+    - HELIX-workflows/helix-process/db-auto-registration.md
+    - HELIX-workflows/helix-process/db-integration.md
+  current_code_surfaces_read_only:
+    - cli/lib/code_catalog.py
+    - cli/lib/plan_registry.py
+    - cli/lib/contract_registry.py
+    - cli/lib/helix_db.py
+    - cli/lib/harness_monitor.py
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  dependency_impact_map_is_implementation_evidence: false
+  impact_query_cli_implemented: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  l7_test_design_created_by_this_audit: false
+  goal_complete_allowed: false
+summary:
+  dependency_impact_surfaces_checked: 7
+  l6_function_specs_checked: 6
+  current_code_surfaces_checked_read_only: 5
+  deferred_feature_entry_points_checked: 4
+  required_output_sections: 9
+  db_projection_contracts_checked: 5
+  dependency_edge_relations_checked: 7
+  impact_scope_route_contracts_checked: 3
+  unknown_scope_resolution_rules_checked: 6
+  impact_visibility_rows_checked: 9
+  impact_output_trace_rows_checked: 9
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+coverage_surfaces:
+  - id: DEPIMP-IMPACT-QUERY
+    artifact: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - IMPACT-FN-01 normalize_impact_seed
+      - IMPACT-FN-02 collect_trace_neighbors
+      - IMPACT-FN-03 collect_dependency_edges
+      - IMPACT-FN-04 rank_impact_scope
+      - IMPACT-FN-05 render_impact_query_result
+      - IMPACT-FN-06 append_impact_feedback
+      - IMPACT-FN-07 emit_impact_guard_summary
+    current_scope_result: L6 function contract and UT-CAND viewpoints only.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+  - id: DEPIMP-ASSET-INVENTORY
+    artifact: docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - INV-FN-01 collect_asset_inventory
+      - INV-FN-02 normalize_asset_record
+      - INV-FN-03 map_asset_to_layer
+      - INV-FN-04 detect_unregistered_assets
+      - INV-FN-05 compute_density_by_layer
+      - INV-FN-06 append_inventory_feedback
+      - INV-FN-07 emit_inventory_guard_summary
+    current_scope_result: Inventory and density visibility designed; execution remains deferred.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  - id: DEPIMP-PLAN-GRAPH
+    artifact: docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - PLAN dependency / generates / allowed_files graph extraction
+      - dependency cycle detection
+      - generated artifact trace preservation
+    current_scope_result: PLAN graph rules defined; add-feature ticket import remains deferred.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+  - id: DEPIMP-CHANGE-PROPAGATION
+    artifact: docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - resolve_downstream_obligations
+      - affected layer / pair / gate preservation
+      - baseline regression separation
+    current_scope_result: Change propagation obligations are designed; no detector promotion in current scope.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  - id: DEPIMP-HARNESS-TOOLS
+    artifact: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - HEXT-FN-04 normalize_tool_output
+      - HEXT-FN-05 build_dependency_impact_graph
+      - HEXT-FN-06 append_feedback_evidence
+      - HEXT-FN-07 route_bottleneck_candidate
+    current_scope_result: External tool findings can feed impact graph after approved HARNESS execution.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  - id: DEPIMP-SOURCE-DEPENDENCY-GRAPH
+    artifact: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - HEXT-FN-04 normalize_tool_output
+      - HEXT-FN-05 build_dependency_impact_graph
+      - HEXT-FN-06 append_feedback_evidence
+    current_scope_result: >
+      Grimp and dependency-cruiser can become approved source-level dependency
+      edge inputs for Python and JS/TS impact analysis; execution and DB
+      ingestion remain deferred.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  - id: DEPIMP-DB-FEEDBACK
+    artifact: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+    design_status: current_scope_l6_design
+    covered_functions:
+      - candidate_generated
+      - plan_materialized
+      - verification_recorded
+      - gate_projected
+      - recurrence_closed
+    current_scope_result: Evidence lifecycle states are designed; DB write adoption and recurrence closure remain deferred.
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+required_output_contract:
+  seed: required
+  affected_plans: required
+  affected_design_docs: required
+  affected_test_design_docs: required
+  affected_code_paths: required
+  affected_gates: required
+  dependency_edges: required
+  feedback_refs: required
+  completion_boundary: required
+db_projection_contract:
+  current_scope_action: define_projection_contract_only
+  db_write_done: false
+  schema_migration_done: false
+  query_cli_done: false
+  projection_is_completion_evidence: false
+  projections:
+    - projection_id: impact_seed
+      source_output_section: seed
+      db_target: detector_report
+      key_fields:
+        - seed.kind
+        - seed.value
+      purpose: Keep the user-entered or detector-provided impact starting point traceable.
+    - projection_id: impact_affected_artifacts
+      source_output_section:
+        - affected_plans
+        - affected_design_docs
+        - affected_test_design_docs
+        - affected_code_paths
+      db_target: gate_projection
+      key_fields:
+        - artifact.path
+        - artifact.kind
+        - process_layer
+      purpose: Separate affected PLAN/design/test/code assets before gate routing.
+    - projection_id: impact_dependency_edges
+      source_output_section: dependency_edges
+      db_target: dependency_edges
+      key_fields:
+        - source
+        - target
+        - relation
+        - confidence
+      purpose: Make dependency direction and confidence visible for impact review.
+    - projection_id: impact_gate_refs
+      source_output_section: affected_gates
+      db_target: gate_projection
+      key_fields:
+        - gate_id
+        - pair
+        - status
+      purpose: Keep required gates separate from affected artifacts and prevent false closure.
+    - projection_id: impact_feedback_refs
+      source_output_section: feedback_refs
+      db_target: feedback_event
+      key_fields:
+        - feedback_id
+        - event_type
+        - recurrence_state
+      purpose: Connect impact findings to feedback candidates without auto-applying them.
+dependency_edge_contract:
+  required_edge_fields:
+    - source
+    - target
+    - relation
+    - confidence
+  allowed_relations:
+    - trace
+    - dependency
+    - generates
+    - parent
+    - blocks
+    - evidence
+    - tool_finding
+  allowed_confidence:
+    - high
+    - medium
+    - low
+  direction_required: true
+  unknown_scope_policy: unknown_must_route_to_manual_review
+  closure_policy: edge_presence_is_not_closure
+impact_scope_route_policy:
+  current_scope_action: define_scope_route_contract_only
+  query_cli_done: false
+  db_write_done: false
+  route_auto_execute_allowed_now: false
+  l7_artifact_allowed_now: false
+  allowed_verdicts:
+    - local
+    - broad
+    - unknown
+  allowed_modes:
+    - add-feature
+    - refactor
+    - retrofit
+    - reverse
+    - manual_review
+  allowed_owner_roles:
+    - TL
+    - QA
+    - DevOps
+    - Security
+  allowed_priority_floor:
+    - P1
+    - P2
+    - P3
+  required_contract_fields:
+    - verdict
+    - trigger_condition
+    - owner_role
+    - priority_floor
+    - next_route
+    - required_evidence_before_execution
+    - completion_boundary
+impact_scope_route_contracts:
+  - verdict: local
+    trigger_condition: bounded_artifacts_and_known_gates
+    owner_role: TL
+    priority_floor: P3
+    next_route: route_to_existing_plan_or_refactor_candidate
+    required_evidence_before_execution:
+      - affected_artifacts_list
+      - affected_gates_list
+      - dependency_edges
+    completion_boundary: ranked_scope_is_not_closure
+  - verdict: broad
+    trigger_condition: cross_layer_or_contract_or_deferred_gate_boundary
+    owner_role: TL
+    priority_floor: P1
+    next_route: route_to_add_feature_or_retrofit_candidate
+    required_evidence_before_execution:
+      - affected_layer_or_pair
+      - deferred_gate_status
+      - dependency_edges
+      - feature_ticket_or_plan
+    completion_boundary: route_candidate_is_not_execution
+  - verdict: unknown
+    trigger_condition: insufficient_or_conflicting_dependency_evidence
+    owner_role: TL
+    priority_floor: P1
+    next_route: route_to_manual_review_or_reverse
+    required_evidence_before_execution:
+      - unresolved_seed
+      - missing_dependency_edges
+      - manual_review_owner
+    completion_boundary: manual_review_required_not_closure
+unknown_scope_resolution_contract:
+  current_scope_action: define_unknown_resolution_only
+  unknown_is_current_scope_blocker: false
+  unknown_is_completion_evidence: false
+  unknown_can_be_silently_local: false
+  query_cli_done: false
+  db_write_done: false
+  l7_artifact_allowed_now: false
+  resolution_rules:
+    - rule: preserve_unknown_verdict
+      requirement: unknown verdict must remain distinct from local or broad.
+      evidence_source: impact_scope_route_contracts.verdict
+    - rule: require_manual_owner
+      requirement: unknown verdict requires manual_review_owner evidence before execution.
+      evidence_source: impact_scope_route_contracts.required_evidence_before_execution
+    - rule: expose_missing_edges
+      requirement: missing_dependency_edges must be visible instead of inferred.
+      evidence_source: impact_visibility_closure_contract.route_evidence_aliases
+    - rule: deny_auto_execution
+      requirement: route_auto_execute_allowed_now must remain false in L1-L6 scope.
+      evidence_source: impact_scope_route_policy.route_auto_execute_allowed_now
+    - rule: separate_review_from_closure
+      requirement: manual review routing is not closure.
+      evidence_source: impact_scope_route_contracts.completion_boundary
+    - rule: route_implementation_to_feature
+      requirement: dependency impact query implementation requires approved add-feature work.
+      evidence_source: sources.deferred_feature_entry_points
+impact_visibility_closure_contract:
+  current_scope_action: prove_output_projection_route_alignment_only
+  output_sections_checked: 9
+  db_write_done: false
+  query_cli_done: false
+  route_auto_execute_allowed_now: false
+  l7_or_adoption_evidence_allowed: false
+  alignment_rules:
+    every_required_output_section_has_row: true
+    every_projection_source_section_has_row: true
+    every_route_required_evidence_links_to_output_sections: true
+    completion_boundary_is_guard_only: true
+  route_evidence_aliases:
+    affected_artifacts_list:
+      - affected_plans
+      - affected_design_docs
+      - affected_test_design_docs
+      - affected_code_paths
+    affected_gates_list:
+      - affected_gates
+    dependency_edges:
+      - dependency_edges
+    affected_layer_or_pair:
+      - affected_design_docs
+      - affected_gates
+    deferred_gate_status:
+      - affected_gates
+    feature_ticket_or_plan:
+      - affected_plans
+    unresolved_seed:
+      - seed
+    missing_dependency_edges:
+      - dependency_edges
+    manual_review_owner:
+      - completion_boundary
+  rows:
+    - output_section: seed
+      projection_ids:
+        - impact_seed
+      route_verdicts:
+        - local
+        - broad
+        - unknown
+      visibility_purpose: Preserve the origin of the impact query or detector seed.
+    - output_section: affected_plans
+      projection_ids:
+        - impact_affected_artifacts
+      route_verdicts:
+        - local
+        - broad
+      visibility_purpose: Show affected PLAN / add-feature candidates before execution.
+    - output_section: affected_design_docs
+      projection_ids:
+        - impact_affected_artifacts
+      route_verdicts:
+        - local
+        - broad
+      visibility_purpose: Show affected L1-L6 design contracts and review obligations.
+    - output_section: affected_test_design_docs
+      projection_ids:
+        - impact_affected_artifacts
+      route_verdicts:
+        - local
+        - broad
+      visibility_purpose: Show affected paired test-design obligations without creating L7 artifacts.
+    - output_section: affected_code_paths
+      projection_ids:
+        - impact_affected_artifacts
+      route_verdicts:
+        - local
+      visibility_purpose: Show read-only code surface candidates for later approved implementation.
+    - output_section: affected_gates
+      projection_ids:
+        - impact_gate_refs
+      route_verdicts:
+        - local
+        - broad
+      visibility_purpose: Keep required gates separate from affected artifacts and prevent false closure.
+    - output_section: dependency_edges
+      projection_ids:
+        - impact_dependency_edges
+      route_verdicts:
+        - local
+        - broad
+        - unknown
+      visibility_purpose: Make source / target / relation / confidence visible for impact review.
+    - output_section: feedback_refs
+      projection_ids:
+        - impact_feedback_refs
+      route_verdicts:
+        - broad
+        - unknown
+      visibility_purpose: Connect impact findings to feedback candidates without auto-applying them.
+    - output_section: completion_boundary
+      projection_ids: []
+      route_verdicts:
+        - local
+        - broad
+        - unknown
+      visibility_purpose: Guard against treating ranked impact scope, edge presence, or route candidates as closure.
+impact_query_output_contract_trace:
+  - required_output_section: seed
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.seed
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: affected_plans
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.plans
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: affected_design_docs
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.design_docs
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: affected_test_design_docs
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.test_design_docs
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: affected_code_paths
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.code_paths
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: affected_gates
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.gates
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: dependency_edges
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.dependency_edges
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: feedback_refs
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.affected.feedback_refs
+    current_scope_status: l6_design_only_not_cli
+  - required_output_section: completion_boundary
+    l6_spec_ref: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l6_output_path: impact_query_result.completion
+    current_scope_status: l6_design_only_not_cli
+invariants:
+  - Unknown impact scope must not be rendered as local.
+  - Dependency edges must keep source, target, relation, and confidence.
+  - Affected artifacts and required gates must be separated in output.
+  - Impact graph or inventory snapshot alone is not closure evidence.
+  - Draft feature ticket registration is not implementation completion.
+completion_denial:
+  reason: >
+    This audit proves L1-L6 dependency and impact readiness only. It does not
+    prove impact-query implementation, HELIX DB write adoption, external tool
+    execution, CI/equivalent wiring, L7 test design, or full goal completion.

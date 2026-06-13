@@ -1,0 +1,928 @@
+schema_version: l1_l6_improvement_candidate_map_v1
+owner: TL
+status: current_scope_l1_l6_candidates_not_adopted
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Capture feasible improvement candidates found while auditing the current
+  L1-L6 design scope, without using L7 test-design artifacts as the source of
+  truth. The candidates are discovery/design evidence only. Adoption,
+  installation, implementation, CI connection, DB write connection, and closure
+  require an approved feature or later-layer PLAN.
+sources:
+  web_evidence:
+    - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  l6_design:
+    - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+    - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+boundary:
+  uses_l7_test_design_as_source: false
+  candidates_discovered: true
+  candidates_adopted: false
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  external_tool_installed: false
+  helix_db_write_connected: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+candidate_discovery_policy:
+  intake_triggers:
+    - l6_design_gap
+    - web_backed_tool_opportunity
+    - db_feedback_or_workflow_automation_gap
+    - runtime_guard_parity_gap
+    - bottleneck_signal_routing_gap
+  required_candidate_fields:
+    - id
+    - title
+    - objective_mapping
+    - source_refs
+    - l1_l6_design_status
+    - current_scope_action
+    - deferred_feature_plan
+    - why_it_matters
+    - safety
+  allowed_current_scope_actions:
+    - design_only
+    - feature_ticket_only
+  allowed_source_groups:
+    - web_evidence
+    - l6_design
+    - deferred_feature_entry_points
+  safety_fields_required:
+    - schema_migration
+    - infrastructure_change
+    - auth_or_pii_change
+  disallowed_evidence:
+    - docs/v2/L7-test-design/
+    - runtime execution without approval
+    - helix db write proof
+    - external tool install proof
+  promotion_policy:
+    design_only: >
+      May close L1-L6 design readiness only; execution, DB writes, external
+      tool runs, and closure still require approved later-layer work.
+    feature_ticket_only: >
+      Must stay draft/approval-boundary and cannot count as adoption,
+      installation, implementation, gate pass, or recurrence closure.
+  closure_rule: >
+    Candidate discovery is not closure. A candidate becomes closure evidence
+    only after approved implementation, verification, gate evidence, and
+    feedback/recurrence status exist.
+candidate_summary:
+  total_candidates: 35
+  current_scope_actions:
+    design_only: 2
+    feature_ticket_only: 33
+  candidates_requiring_confirmation: 33
+candidates:
+  - id: L1L6-IMP-DOC-AUTO-REGISTRY
+    title: Auto-register feature list and glossary findings from documents.
+    candidate_class: document_auto_registration
+    intake_trigger: l6_design_gap
+    objective_mapping:
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-REQ-GAP-L6
+    source_refs:
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed
+    current_scope_action: design_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    why_it_matters: >
+      Prevents feature-list and ubiquitous-language drift from being hidden in
+      prose-only documents.
+    safety:
+      schema_migration: false
+      infrastructure_change: false
+      auth_or_pii_change: false
+  - id: L1L6-IMP-DB-EVIDENCE-LIFECYCLE
+    title: Normalize detector output into candidate / adoption / recurrence lifecycle evidence.
+    candidate_class: db_feedback_lifecycle
+    intake_trigger: db_feedback_or_workflow_automation_gap
+    objective_mapping:
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-WORKFLOW-AUTOMATION
+    source_refs:
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed
+    current_scope_action: design_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    why_it_matters: >
+      Separates candidate generation from closure so feedback-loop output is
+      useful without falsely completing gates.
+    safety:
+      schema_migration: false
+      infrastructure_change: false
+      auth_or_pii_change: false
+  - id: L1L6-IMP-MCP-ADMISSION
+    title: HARNESS MCP server admission gate.
+    candidate_class: harness_external_tool_admission
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#MCP-SPEC-2025-06-18
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#GITHUB-MCP-SERVER
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Blocks unreviewed MCP servers/tools until protocol, auth, credential,
+      data access, and write capability are explicit.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: true
+  - id: L1L6-IMP-SEMGREP-SAST
+    title: Semgrep CE advisory SAST input for coding-rule and TDD hardening.
+    candidate_class: advisory_static_analysis
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#SEMGREP-CE
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds static findings as advisory evidence for regressions and coding rule
+      drift while keeping rule licensing and execution surface explicit.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-CODEQL-IMPACT
+    title: CodeQL/code-scanning evidence for impact and security feedback.
+    candidate_class: code_scanning_feedback
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#GITHUB-CODEQL
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Connects code scanning alerts to impact analysis and security regression
+      feedback without treating CI/security setup as already approved.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-ZIZMOR-GHA-SECURITY
+    title: zizmor GitHub Actions workflow security findings for workflow hardening.
+    candidate_class: github_actions_workflow_security
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#ZIZMOR-GHA-SECURITY
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - skills/common/security/references/gha-security.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      GitHub Actions workflows are part of the automation surface. Static
+      workflow-security findings can expose template injection, excessive
+      permissions, dangerous triggers, unpinned action refs, and secret handling
+      drift before CI policy changes are implemented.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: true
+  - id: L1L6-IMP-ACTIONLINT-GHA-WORKFLOW-LINT
+    title: actionlint GitHub Actions workflow lint findings for automation reliability.
+    candidate_class: github_actions_workflow_lint
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#ACTIONLINT-GHA-WORKFLOW-LINT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - skills/common/security/references/gha-security.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds GitHub Actions workflow syntax, expression semantic, reusable
+      workflow contract, script-injection, and credential-literal findings as
+      candidate inputs for automation reliability and CI maintenance
+      bottlenecks without running actionlint or wiring CI.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: true
+  - id: L1L6-IMP-OPENSSF-SCORECARD
+    title: OpenSSF Scorecard advisory repository security posture input.
+    candidate_class: repository_security_score
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#OPENSSF-SCORECARD
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds repository security posture and dependency-risk signals that can
+      expose recurring development bottlenecks such as weak branch protection,
+      missing SAST, token-permission gaps, stale maintenance, or vulnerability
+      hygiene issues without treating the scan itself as closure.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: true
+  - id: L1L6-IMP-DEPSDEV-DEPENDENCY-INTEL
+    title: deps.dev dependency intelligence input for package graph and advisory impact.
+    candidate_class: dependency_intelligence
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#DEPSDEV-API
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds package/version/dependency/license/advisory intelligence that can
+      populate HELIX dependency graph candidates and make change impact or
+      vulnerable dependency blast radius visible before implementation.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-OSV-VULNERABILITY-SCANNING
+    title: OSV-Scanner dependency vulnerability input for regression and remediation routing.
+    candidate_class: vulnerability_scanning
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#OSV-SCANNER
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds machine-readable dependency vulnerability evidence from lockfiles,
+      manifests, SBOMs, and container artifacts so HELIX can route vulnerable
+      dependencies to impact review, security hardening, or remediation
+      candidates after approval.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-SYFT-SBOM-GENERATION
+    title: Syft SBOM generation input for dependency inventory and graph mapping.
+    candidate_class: sbom_generation
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#SYFT-SBOM
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds SBOM generation as a dedicated dependency inventory input so HELIX
+      can normalize packages from source trees, filesystems, archives, images,
+      or registries before building dependency graphs or vulnerability routes.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-GRIMP-PYTHON-IMPORT-GRAPH
+    title: Grimp Python import graph input for source-level dependency impact.
+    candidate_class: source_dependency_graph
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#GRIMP-PYTHON-IMPORT-GRAPH
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds source-level Python import edges, upstream modules, shortest chains,
+      and import details so HELIX can map symbol/code changes to affected
+      modules before implementation.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-DEPENDENCY-CRUISER-JS-TS-GRAPH
+    title: dependency-cruiser JS/TS graph input for source-level dependency impact.
+    candidate_class: source_dependency_graph
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#DEPENDENCY-CRUISER
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds JS/TS dependency graph and rule-violation evidence such as circular
+      dependencies, orphans, missing package declarations, and dev dependency
+      leakage so frontend/tooling impact can be routed instead of guessed.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-SHELLCHECK-SHELL-STATIC
+    title: ShellCheck shell static analysis input for CLI and script hardening.
+    candidate_class: shell_static_analysis
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#SHELLCHECK-SHELL-STATIC
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds shell script static analysis evidence for CLI, harness, scripts,
+      and Bats-adjacent shell surfaces so syntax, semantic, severity, and
+      portability findings can be routed before they become repeated workflow
+      bottlenecks.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-MARKDOWNLINT-CLI2-DOC-LINT
+    title: markdownlint-cli2 Markdown static analysis input for documentation hardening.
+    candidate_class: markdown_static_analysis
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#MARKDOWNLINT-CLI2
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds Markdown documentation lint findings for README, ADR, and technical
+      docs so doc-review quality, DDD language drift, and coding-rule SSoT
+      gaps can be routed before documentation decay becomes a recurring
+      bottleneck.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-VALE-PROSE-LINT-DDD-GLOSSARY
+    title: Vale prose lint input for DDD glossary and documentation style enforcement.
+    candidate_class: prose_style_analysis
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#VALE-PROSE-LINT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds prose linting, vocabulary accept/reject lists, and YAML style rules
+      as a candidate input for DDD ubiquitous-language drift, glossary
+      inconsistency, doc-review quality findings, and repeated documentation
+      bottlenecks.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-TEXTLINT-NATURAL-LANGUAGE
+    title: textlint input for Japanese / Markdown natural-language document linting.
+    candidate_class: natural_language_lint
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#TEXTLINT-NATURAL-LANGUAGE-LINT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds Japanese / Markdown natural-language linting, rule/preset/plugin
+      governance, formatter outputs, fix dry-run review, and optional MCP
+      routing as candidate evidence for DDD glossary drift, unclear prose,
+      stale TODOs, and repeated documentation bottlenecks without installing
+      textlint, enabling MCP, applying fixes, connecting CI, writing HELIX DB,
+      or claiming L7 execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-MUTMUT-PY-TDD-STRENGTH
+    title: mutmut mutation testing input for Python TDD strength detection.
+    candidate_class: python_mutation_testing
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#MUTMUT-PY-MUTATION-TESTING
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds surviving-mutant evidence as a candidate signal for weak tests that
+      line coverage alone cannot expose, improving TDD strictness without
+      claiming L7 execution, coverage closure, or gate completion.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-HYPOTHESIS-PY-PBT
+    title: Hypothesis input for Python property-based unit-test design.
+    candidate_class: python_property_based_testing
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#HYPOTHESIS-PY-PBT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Strengthens L6 unit-test design by deriving property invariants,
+      strategies, edge-case exploration, and falsifying example feedback
+      without running Hypothesis or connecting pytest / CI.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-COVERAGE-PY-COVERAGE
+    title: coverage.py input for Python coverage and branch-gap feedback.
+    candidate_class: python_coverage_measurement
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#COVERAGE-PY-COVERAGE
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds line and branch coverage reports as candidate feedback for weak
+      unit-test design, missing branch scenarios, and recurring coverage
+      bottlenecks without running coverage.py, enforcing fail-under, connecting
+      CI, or claiming L7 coverage closure.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-DIFF-COVER-DIFF-COVERAGE
+    title: diff-cover input for changed-line coverage and diff-quality feedback.
+    candidate_class: python_diff_coverage_quality
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#DIFF-COVER-DIFF-COVERAGE
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds changed-line coverage and diff-quality signals so TDD strictness can
+      focus on the code touched by a change, without installing diff-cover,
+      running coverage gates, connecting CI, writing HELIX DB, or claiming L7
+      coverage closure.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-LYCHEE-LINK-CHECKER
+    title: lychee input for documentation link and reference rot feedback.
+    candidate_class: link_reference_check
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#LYCHEE-LINK-CHECKER
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds link and reference rot detection as candidate feedback for document
+      auto-registration, glossary/registry references, and external evidence
+      freshness without installing lychee, running network checks, connecting
+      CI, writing HELIX DB, or claiming L7 closure.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-PYTEST-PY-RUNNER
+    title: pytest input for Python unit-test runner and failure feedback.
+    candidate_class: python_test_runner
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#PYTEST-PY-TEST-RUNNER
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds test discovery and selection, assertion failure reports, JUnit XML,
+      and exit-code feedback as candidate input for TDD strictness and
+      regression detection without running pytest, connecting CI, or claiming
+      L7 test execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    title: pytest-testmon impacted-test selection for change-impact and hidden dependency feedback.
+    candidate_class: python_impacted_test_selection
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-DEPENDENCY-IMPACT-VISIBILITY
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds affected-test selection and hidden dependency signals so change
+      impact can prioritize the right unit-test surface and bottleneck
+      feedback without installing pytest-testmon, running tests, connecting CI,
+      writing HELIX DB, or claiming L7 execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-TOX-PY-ENV-ORCHESTRATION
+    title: tox input for Python environment matrix and HARNESS command orchestration.
+    candidate_class: python_environment_orchestration
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#TOX-PY-ENV-ORCHESTRATION
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds environment matrix, interpreter, dependency install, and command
+      allowlist controls as candidate input for reproducible TDD/HARNESS
+      execution and bottleneck detection without installing tox, running
+      environments, connecting CI, or claiming L7 test execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-NOX-PY-SESSION-AUTOMATION
+    title: Nox input for Python-coded session automation and test matrix feedback.
+    candidate_class: python_session_automation
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#NOX-PY-SESSION-AUTOMATION
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds Python-coded session definitions, parametrized sessions, tags,
+      backend policy, and command allowlist controls as candidate input for
+      reproducible HARNESS/TDD execution without installing Nox, running
+      sessions, connecting CI, or claiming L7 test execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-IMPORT-LINTER-PY-ARCH-CONTRACTS
+    title: Import Linter input for DDD boundary and architecture dependency contracts.
+    candidate_class: python_architecture_contracts
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#IMPORT-LINTER-PY-ARCH-CONTRACTS
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds explicit Python import architecture contracts for DDD boundaries,
+      layer direction, forbidden dependencies, independence between bounded
+      contexts, and sibling cycle detection without installing Import Linter,
+      running lint-imports, connecting CI, writing HELIX DB, or claiming L7
+      execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-CHECK-JSONSCHEMA-DOC-SCHEMA
+    title: check-jsonschema input for document schema validation before HELIX DB registration.
+    candidate_class: document_schema_validation
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-REQ-GAP-L6
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#CHECK-JSONSCHEMA-DOC-SCHEMA
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds JSON/YAML schema validation as a candidate preflight for document
+      auto-registration, missing required fields, malformed audit records,
+      and HELIX DB payload readiness without installing check-jsonschema,
+      running validation, connecting CI, writing HELIX DB, or claiming L7
+      execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-SPECTRAL-API-CONTRACT-LINT
+    title: Spectral input for API contract linting and style-guide drift detection.
+    candidate_class: api_contract_lint
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-REQ-GAP-L6
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#SPECTRAL-API-CONTRACT-LINT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds OpenAPI / AsyncAPI / Arazzo lint findings and API style-guide drift
+      as candidate evidence before API contract registration, without
+      installing Spectral, running lint, connecting CI, writing HELIX DB, or
+      claiming L7 execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-SQLFLUFF-SQL-LINT
+    title: SQLFluff SQL schema and migration lint findings for HELIX DB design safety.
+    candidate_class: sql_schema_lint
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#SQLFLUFF-SQL-LINT
+      - docs/v2/L5-detailed-design/物理データ設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds SQL/schema/migration lint signals to catch DB design drift and
+      bad SQL before any schema or database operation is approved, without
+      installing SQLFluff, running lint, connecting CI, writing HELIX DB, or
+      claiming L7 execution.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-RUFF-PY-CODING-RULES
+    title: Ruff lint / format input for Python coding-rule hardening.
+    candidate_class: python_lint_format
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#RUFF-PY-LINT-FORMAT
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds fast Python lint / format findings as a candidate input for
+      coding-rule drift, import-order violations, unsafe fix policy, and
+      recurring review bottlenecks without executing Ruff or applying fixes.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-MYPY-PY-TYPE-CHECK
+    title: mypy input for Python function contract and type drift feedback.
+    candidate_class: python_type_checking
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-DDD-TDD-AUTO-GOVERNANCE
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#MYPY-PY-TYPE-CHECK
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds Python type-check findings as a candidate input for function
+      signature drift, annotation coverage, strictness regressions, import
+      typing gaps, and L6 specification feedback without running mypy or
+      connecting CI.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-PIP-AUDIT-PY-VULN
+    title: pip-audit input for Python dependency vulnerability feedback.
+    candidate_class: python_dependency_audit
+    intake_trigger: web_backed_tool_opportunity
+    objective_mapping:
+      - OBJ-HARNESS-EXTERNAL-TOOLS
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-BOTTLENECK-REMEDIATION
+    source_refs:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml#PIP-AUDIT-PY-VULN
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    why_it_matters: >
+      Adds Python dependency vulnerability findings from environments,
+      requirements, projects, or lock files as advisory feedback for package
+      risk and recurring dependency bottlenecks without running pip-audit,
+      enabling CI, or applying automatic fixes.
+    safety:
+      schema_migration: false
+      infrastructure_change: true
+      auth_or_pii_change: false
+  - id: L1L6-IMP-DEPENDENCY-IMPACT-QUERY
+    title: HELIX DB dependency impact query for change scope visibility.
+    candidate_class: dependency_impact_query
+    intake_trigger: db_feedback_or_workflow_automation_gap
+    objective_mapping:
+      - OBJ-HELIX-DB-FEEDBACK
+      - OBJ-WORKFLOW-AUTOMATION
+    source_refs:
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    why_it_matters: >
+      Makes affected plans, design docs, test-design docs, code paths, gates,
+      dependency edges, and feedback refs visible before implementation.
+    safety:
+      schema_migration: false
+      infrastructure_change: false
+      auth_or_pii_change: false
+  - id: L1L6-IMP-BOTTLENECK-ROUTING
+    title: Route recurring bottlenecks from detector findings to PLAN / PR candidates.
+    candidate_class: bottleneck_routing
+    intake_trigger: bottleneck_signal_routing_gap
+    objective_mapping:
+      - OBJ-WORKFLOW-AUTOMATION
+      - OBJ-HELIX-DB-FEEDBACK
+    source_refs:
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+    l1_l6_design_status: designed_candidate
+    current_scope_action: feature_ticket_only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    why_it_matters: >
+      Turns repeated detector findings into auditable improvement candidates
+      while preserving the rule that candidates are not closure.
+    safety:
+      schema_migration: false
+      infrastructure_change: false
+      auth_or_pii_change: false
+adoption_requirements:
+  - Candidate must be promoted to an approved PLAN or add-feature ticket with owner, scope, allowed_files, acceptance, rollback, and verification commands.
+  - External tools require explicit approval for auth, credential scope, network execution, license, and CI/security surface.
+  - HELIX DB write connection or schema migration requires separate human approval.
+  - Candidate generation alone must remain non-closure until gate evidence and recurrence status are recorded.
+completion_denial:
+  reason: >
+    This map proves L1-L6 candidate discovery and design routing only. It does
+    not prove implementation, external tool adoption, HELIX DB write connection,
+    CI/equivalent gate connection, recurrence closure, or full goal completion.

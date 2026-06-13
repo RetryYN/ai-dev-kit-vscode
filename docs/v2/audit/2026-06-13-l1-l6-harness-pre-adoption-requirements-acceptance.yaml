@@ -1,0 +1,228 @@
+schema_version: l1_l6_harness_pre_adoption_requirements_acceptance_v1
+owner: TL
+status: current_scope_l1_l6_requirements_acceptance_bridge_closed
+updated: 2026-06-13
+scope: L1-L6
+purpose: >
+  Prove that the HARNESS external-tool discovery work is not only an L4-L6
+  design note: every adoption-risk class observed in the current Web recheck is
+  routed back to existing L1/L3 requirement surfaces and acceptance-test design
+  obligations without adding a new frozen L3 FR, installing a tool, executing a
+  scan, writing HELIX DB records, or creating L7 artifacts.
+sources:
+  l1_verification_strategy: docs/v2/L1-requirements/helix-workflows-verification-strategy.md
+  l3_functional_requirements: docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+  l4_basic_design: docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+  l5_detailed_design: docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+  l6_functional_design: docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+  l12_acceptance_test_design: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+  web_evidence_map: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  harness_coverage: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  l3_frozen_fr_added_by_this_audit: false
+  l12_acceptance_test_design_modified_by_this_audit: false
+  external_tool_installed: false
+  external_tool_executed: false
+  mcp_server_enabled: false
+  oauth_pat_secret_configured: false
+  semgrep_or_codeql_executed: false
+  ci_or_equivalent_connected: false
+  helix_db_write_performed: false
+  l7_artifacts_created_by_this_audit: 0
+  goal_complete_allowed: false
+summary:
+  representative_sources_rechecked: 5
+  pre_adoption_requirement_contracts_checked: 5
+  l1_l3_requirement_surfaces_reused: 6
+  acceptance_design_obligations_defined: 5
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+web_recheck_basis:
+  checked_on: 2026-06-13
+  current_scope_action: requirements_acceptance_bridge_only
+  adoption_or_install_evidence: false
+  l7_or_execution_evidence_allowed: false
+  official_sources:
+    - source_id: MCP-SPEC-2025-06-18
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18
+      observed_focus:
+        - explicit user consent and control
+        - authorization and access controls
+        - tools as arbitrary code execution surfaces
+        - untrusted tool descriptions / annotations
+      source_refs:
+        - turn1view0:L125-L160
+    - source_id: GITHUB-MCP-SERVER
+      official_url: https://github.com/github/github-mcp-server
+      observed_focus:
+        - OAuth or PAT configuration
+        - toolset allowlist
+        - individual tool allowlist
+        - read-only mode precedence over write tools
+      source_refs:
+        - turn1view1:L333-L376
+        - turn2view4:L630-L664
+        - turn2view4:L1484-L1495
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      official_url: https://developers.openai.com/apps-sdk/reference/
+      observed_focus:
+        - descriptor securitySchemes and auth scope visibility
+        - tool annotations for read-only, destructive, open-world, and idempotent behavior
+        - tool-result _meta visibility hidden from the model transcript
+        - UI resource CSP allowlists and dedicated component domain
+      source_refs:
+        - turn2view3:L706-L734
+        - turn2view3:L760-L795
+    - source_id: SEMGREP-CE
+      official_url: https://docs.semgrep.dev/deployment/oss-deployment
+      observed_focus:
+        - semgrep scan execution surface
+        - CI / local execution boundary
+        - static-analysis findings as advisory evidence
+        - JSON or SARIF normalization candidate
+      source_refs:
+        - turn1view2
+    - source_id: GITHUB-CODEQL
+      official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+      observed_focus:
+        - CodeQL database lifecycle
+        - query results / code scanning alerts
+        - Actions or external CI route
+        - SARIF / alert ingestion candidate
+      source_refs:
+        - turn1view3
+        - turn2view3:L348-L364
+requirement_bridge_policy:
+  current_scope_action: map_to_existing_l1_l3_requirements_only
+  new_l3_fr_required_now: false
+  reason_new_fr_not_added: >
+    Existing FR-IMPACT-01, FR-INV-01, FR-PLAN-01, FR-CHANGEPROP-01,
+    FR-DOCTOR-01, and FR-DRIFT-01 already cover impact, inventory,
+    plan/dependency trace, change propagation, audit aggregation, and routing.
+    Adding a new frozen L3 FR here would break L3-L12 pair freeze and is not
+    required for current L1-L6 design closure.
+  acceptance_design_update_required_now: false
+  reason_acceptance_design_not_modified: >
+    Current scope records the acceptance obligations as machine-readable audit
+    evidence. L12 execution or acceptance-test-design edits require a separate
+    approved workflow because they are outside the current L1-L6 design cleanup.
+pre_adoption_requirement_contracts:
+  - id: HEXT-REQ-MCP-CONSENT-AUTH
+    source_id: MCP-SPEC-2025-06-18
+    l1_obligation: >
+      External tool access must be explicit, consented, authorized, and
+      reviewable before HARNESS execution.
+    reused_l3_requirements:
+      - FR-GR-01
+      - FR-DRIFT-01
+      - FR-DOCTOR-01
+    l4_l6_design_controls:
+      - HEXT-ADMIT-AUTH-SCOPE
+      - HEXT-FN-02
+      - HEXT-FN-10
+    acceptance_obligation: >
+      An MCP candidate without consent, auth scope, owner, and tool-poisoning
+      review remains candidate or blocked and cannot produce closure evidence.
+    current_scope_result: requirements_acceptance_bridge_only
+  - id: HEXT-REQ-GITHUB-MCP-ALLOWLIST-READONLY
+    source_id: GITHUB-MCP-SERVER
+    l1_obligation: >
+      GitHub-context tools must keep write capability, token scope, toolsets,
+      individual tools, and read-only precedence visible before enablement.
+    reused_l3_requirements:
+      - FR-INV-01
+      - FR-PLAN-01
+      - FR-IMPACT-01
+      - FR-DRIFT-01
+    l4_l6_design_controls:
+      - HEXT-ADMIT-AUTH-SCOPE
+      - HEXT-ADMIT-NETWORK-EXECUTION
+      - HEXT-FN-01
+      - HEXT-FN-03
+    acceptance_obligation: >
+      A GitHub MCP candidate with write tools, missing read-only policy, or
+      missing tool allowlist remains blocked until approval evidence exists.
+    current_scope_result: requirements_acceptance_bridge_only
+  - id: HEXT-REQ-OPENAI-APPS-DESCRIPTOR-META-CSP
+    source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    l1_obligation: >
+      OpenAI Apps SDK / MCP app candidates must expose descriptor auth,
+      security schemes, tool behavior annotations, UI resource metadata, model
+      visibility boundaries, and CSP / external-domain policy before adoption.
+    reused_l3_requirements:
+      - FR-GR-01
+      - FR-IMPACT-01
+      - FR-CHANGEPROP-01
+      - FR-DOCTOR-01
+    l4_l6_design_controls:
+      - HEXT-ADMIT-AUTH-SCOPE
+      - HEXT-ADMIT-NETWORK-EXECUTION
+      - HEXT-FN-04
+      - HEXT-FN-08
+      - HEXT-FN-10
+    acceptance_obligation: >
+      An Apps SDK / MCP app candidate with missing auth or securitySchemes,
+      unsafe tool annotations, misunderstood component _meta transcript
+      visibility, or unallowlisted connect/resource/frame/redirect domains
+      remains blocked and cannot produce closure evidence.
+    current_scope_result: requirements_acceptance_bridge_only
+  - id: HEXT-REQ-SEMGREP-SAST-ADVISORY
+    source_id: SEMGREP-CE
+    l1_obligation: >
+      Static-analysis findings may harden coding-rule / TDD governance only
+      after execution surface, rule source/license, output format, and failure
+      mode are defined.
+    reused_l3_requirements:
+      - FR-TDD-01
+      - FR-CHANGEPROP-01
+      - FR-DOCTOR-01
+    l4_l6_design_controls:
+      - HEXT-ADMIT-LICENSE-RULES
+      - HEXT-ADMIT-CI-GATE
+      - HEXT-FN-04
+      - HEXT-FN-06
+    acceptance_obligation: >
+      Semgrep output remains advisory normalized finding evidence, not a
+      fail-close gate or closure proof, until an approved PLAN defines route,
+      threshold, rollback, and verification commands.
+    current_scope_result: requirements_acceptance_bridge_only
+  - id: HEXT-REQ-CODEQL-IMPACT-INGESTION
+    source_id: GITHUB-CODEQL
+    l1_obligation: >
+      Code scanning / CodeQL evidence must map alerts, database/query outputs,
+      affected artifacts, and gates before it can feed impact analysis or HELIX
+      DB feedback.
+    reused_l3_requirements:
+      - FR-IMPACT-01
+      - FR-INV-01
+      - FR-CHANGEPROP-01
+      - FR-DOCTOR-01
+    l4_l6_design_controls:
+      - HEXT-ADMIT-CI-GATE
+      - HEXT-ADMIT-DB-INGESTION
+      - HEXT-FN-04
+      - HEXT-FN-05
+      - HEXT-FN-06
+    acceptance_obligation: >
+      CodeQL findings cannot count as adopted until SARIF / alert ingestion,
+      affected artifact mapping, gate projection, and feedback lifecycle state
+      are verified under an approved feature scope.
+    current_scope_result: requirements_acceptance_bridge_only
+acceptance_bridge_invariants:
+  all_contracts_have_source_id: true
+  all_contracts_reuse_existing_l3_requirements: true
+  all_contracts_define_l4_l6_design_controls: true
+  all_contracts_define_acceptance_obligation: true
+  all_contracts_current_scope_result: requirements_acceptance_bridge_only
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+completion_denial:
+  reason: >
+    This audit proves only that representative HARNESS external-tool adoption
+    risks are bridged back to existing L1/L3 requirements and acceptance
+    obligations. It does not prove L7 implementation, L7 unit-test design,
+    external tool installation or execution, CI/equivalent connection, HELIX DB
+    write adoption, recurrence closure, or full-goal completion.

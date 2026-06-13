@@ -1,0 +1,1433 @@
+schema_version: objective_l1_l6_coverage_audit_v1
+owner: TL
+status: current_scope_l1_l6_closed_not_full_goal
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove the current L1-L6 portion of the user objective without claiming L7
+  implementation, external tool adoption, CI connection, or full-flow closure.
+source_grain_audit: docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+source_asset_inventory: docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+source_improvement_candidate_map: docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+source_pair_balance_map: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+source_guard_parity_map: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+source_deferred_feature_coverage_map: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+source_db_feedback_lifecycle_coverage_map: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+source_harness_external_tools_coverage_map: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+source_governance_hardening_coverage_map: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+source_workflow_automation_coverage_map: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+source_db_registration_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+source_dependency_impact_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+source_bottleneck_remediation_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+source_full_objective_gap_status: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+source_ratification_index: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+source_exit_criteria_map: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+source_reference_integrity_coverage_map: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+source_double_check_coverage_map: docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+source_fr31_trace_map: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+source_l6_unit_test_design_index: docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+source_objective_matrix: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+source_l1_l6_web_evidence_map: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+source_l0_l14_flow_surface_coverage: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+source_l0_planning_derivation_coverage: docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+source_legacy_reference_classification: docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+source_deferred_design_obligation_proof: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+source_nfr_derivation_coverage: docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+scope_boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  current_audit_uses_l7_test_design_as_source: false
+  l7_implementation_done: false
+  l7_test_design_created_for_registry_only_frs: false
+  schema_migration_done: false
+  external_tool_installed: false
+  ci_or_equivalent_connected: false
+  strict_full_flow_complete: false
+  goal_complete_allowed: false
+objective_clause_trace_policy:
+  objective_clauses_must_have_proof: true
+  file_path_proofs_must_exist: true
+  l7_test_design_allowed_as_proof: false
+  later_phase_boundary_required_for_deferred_status: true
+  add_feature_plan_allowed_as_current_scope_proof: false
+  add_feature_plan_allowed_as_later_phase_boundary: true
+  command_proof_must_be_read_only: true
+  full_goal_completion_claim_allowed: false
+  objective_clause_to_full_status_map_required: true
+current_l1_l6_evidence:
+  asset_inventory:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    expected:
+      total_l1_l6_files: 50
+      l6_functional_design_files: 28
+      l6_assets_partitioned: true
+      l6_partition_overlap_allowed: false
+      l6_partition_clusters: 3
+      inventory_uses_l7_as_execution_evidence: false
+  improvement_candidates:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    expected:
+      total_candidates: 35
+      uses_l7_test_design_as_source: false
+      candidates_adopted: false
+  pair_balance:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    expected:
+      l1_l6_layers_checked: 6
+      layers_pass: 6
+      blocking_findings: 0
+      pair_contract_matrix_layers_checked: 6
+      paired_artifacts_checked: 6
+      expected_design_refs_checked: 8
+      expected_design_refs_backed_by_design_assets: 8
+      expected_design_refs_missing_from_design_assets: 0
+      uses_l7_artifact_as_current_scope_evidence: false
+  guard_parity:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    expected:
+      guard_surfaces: 8
+      parity_status_policies_checked: 5
+      parity_gap_routes_checked: 8
+      parity_route_required_fields_checked: 7
+      parity_finding_normalization_contracts_checked: 8
+      parity_normalization_required_fields_checked: 8
+      parity_closure_requirements_checked: 8
+      parity_closure_required_fields_checked: 6
+      parity_accountability_current_scope_proves_checked: 4
+      parity_accountability_current_scope_does_not_prove_checked: 4
+      parity_classification_rules_checked: 4
+      parity_adoption_requirements_checked: 4
+      codex_runtime_evidence_surfaces: 3
+      l6_design_only_surfaces: 3
+      parity_map_is_closure: false
+  deferred_feature_coverage:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    expected:
+      objective_clauses_checked: 9
+      deferred_entry_points_checked: 11
+      feature_tickets_checked: 11
+      feature_tickets_draft: 11
+      feature_tickets_with_approval_boundary: 11
+      feature_tickets_with_unlock_conditions: 11
+      repository_add_feature_files_discovered: 16
+      current_objective_deferred_feature_tickets: 11
+      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_completed_add_features: 4
+      out_of_current_objective_parked_feature_tickets: 1
+      full_flow_later_phase_approval_boundary: true
+      unmapped_deferred_boundaries: 0
+      l7_artifacts_created_by_this_audit: 0
+      l5_l6_add_design_feature_tickets_checked: 1
+      contract_design_phase_label_retrofit:
+        kind: add-design
+        layer: L5-L6
+        approval_required_before_contract_edit: true
+        current_scope_action: record_boundary_only_no_contract_edit
+        contract_edit_performed: false
+        schema_migration_done: false
+        l7_work_performed: false
+  deferred_design_obligation_proof:
+    artifact: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    expected:
+      feature_tickets_checked: 11
+      feature_tickets_with_prior_l1_l6_design_evidence: 11
+      feature_tickets_using_ticket_as_design_substitute: 0
+      design_gap_reopen_rules_defined: 11
+      escalation_bound_design_tickets_checked: 2
+      implementation_or_execution_tickets_checked: 9
+      blocking_findings_current_scope: 0
+      l7_artifacts_created_by_this_audit: 0
+  nfr_derivation_coverage:
+    artifact: docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+    expected:
+      requirements_deriver_signals_checked: 9
+      requirements_deriver_signals_with_l1_or_l3_coverage: 9
+      iso_25010_characteristics_checked: 9
+      iso_25010_characteristics_covered: 9
+      l1_nfr_count: 23
+      l3_nfr_count: 27
+      l3_extension_count: 4
+      l3_rederived_characteristics: 3
+      current_scope_blocking_findings: 0
+      l7_artifacts_created_by_this_audit: 0
+  db_feedback_lifecycle:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    expected:
+      design_layers_checked: 3
+      physical_db_design_checked: 1
+      lifecycle_states_defined: 8
+      closure_rules_defined: 4
+      l6_functions_defined: 8
+      existing_tables_required_for_lifecycle_checked: 9
+      forbidden_current_scope_rules_checked: 4
+      schema_migration_done: false
+      db_write_connection_done: false
+      feedback_lifecycle_accountability_contract_present: true
+      feature_ticket_is_not_design_substitute: true
+      db_write_requires_explicit_approval: true
+      current_scope_must_keep_db_write_false: true
+      recurrence_closure_requires_later_execution_evidence: true
+  harness_external_tools:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    expected:
+      official_sources_checked: 33
+      tool_candidates_checked: 33
+      tool_intake_contracts_checked: 33
+      tool_intake_required_fields_checked: 9
+      tool_intake_forbidden_common_rules_checked: 7
+      admission_gate_contracts_checked: 5
+      admission_gate_required_fields_checked: 7
+      admission_owner_roles_checked: 3
+      tool_output_ingestion_contracts_checked: 33
+      tool_output_required_fields_checked: 8
+      tool_output_detector_signals_checked: 5
+      l6_functions_defined: 10
+      l6_unit_test_viewpoints_defined: 10
+      adoption_recheck_controls_checked: 3
+      pre_adoption_requirement_contracts_checked: 5
+      current_session_web_fetch_sources_checked: 5
+      current_session_web_fetch_refs_checked: 10
+      latest_core_rechecked_sources_checked: 5
+      all_candidate_sources_checked: 33
+      spot_recheck_sources_checked: 8
+      adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+      adoption_control_sources_are_subset_of_spot_recheck_sources: true
+      all_candidate_source_ids_must_match_canonical_source_ids: true
+      spot_recheck_sources_are_subset_of_canonical_source_ids: true
+      spot_recheck_is_not_full_candidate_recheck: true
+      harness_tool_accountability_contract_present: true
+      accountability_current_scope_proves_checked: 5
+      accountability_current_scope_does_not_prove_checked: 8
+      web_evidence_is_design_basis_not_adoption: true
+      current_scope_must_keep_install_execution_ci_db_false: true
+      l7_work_requires_feature_ticket: true
+      external_tool_installed: false
+  governance_hardening:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    expected:
+      governance_surfaces_checked: 8
+      l6_function_contracts_checked: 53
+      current_scope_l6_ut_candidate_viewpoints: 44
+      governance_finding_normalization_contracts_checked: 6
+      governance_normalization_required_fields_checked: 7
+      documentation_readiness_gap_patterns_checked: 7
+      governance_controls_checked: 6
+      governance_detection_required_route_fields_checked: 7
+      governance_detection_routes_checked: 6
+      governance_control_trace_rows_checked: 6
+      governance_control_closure_rows_checked: 6
+      preexisting_completed_feature_entry_points_checked: 3
+      deferred_feature_entry_points_checked: 4
+      new_l7_implementation_done: false
+      fail_close_promotion_done: false
+  workflow_automation:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    expected:
+      workflow_surfaces_checked: 6
+      automation_surfaces_checked: 9
+      automation_trigger_contracts_checked: 9
+      db_registry_targets_mapped: 9
+      detector_gate_routes_mapped: 7
+      cross_audit_convergence_rows_checked: 6
+      deferred_feature_entry_points_checked: 7
+      parked_feature_entry_points_checked: 1
+      right_arm_execution_gate_implementation_done: false
+      ci_or_equivalent_connected: false
+  db_registration_readiness:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    expected:
+      registration_events_checked: 6
+      registration_event_contracts_checked: 6
+      document_projection_contracts_checked: 5
+      lifecycle_route_contracts_checked: 6
+      existing_implementation_surfaces_checked: 8
+      l1_l6_design_surfaces_checked: 3
+      add_feature_import_targets_checked: 11
+      event_route_closure_rows_checked: 6
+      l7_feature_tickets_created: 1
+      plan_registry_changed_by_this_audit: false
+      helix_db_write_performed: false
+      registration_accountability_contract_present: true
+      feature_ticket_is_not_design_substitute: true
+      db_write_requires_explicit_approval: true
+      current_scope_must_keep_db_write_false: true
+  dependency_impact_readiness:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    expected:
+      dependency_impact_surfaces_checked: 7
+      l6_function_specs_checked: 6
+      current_code_surfaces_checked_read_only: 5
+      deferred_feature_entry_points_checked: 4
+      required_output_sections: 9
+      db_projection_contracts_checked: 5
+      dependency_edge_relations_checked: 7
+      impact_scope_route_contracts_checked: 3
+      unknown_scope_resolution_rules_checked: 6
+      impact_visibility_rows_checked: 9
+      impact_output_trace_rows_checked: 9
+      impact_query_cli_implemented: false
+      helix_db_write_performed: false
+  bottleneck_remediation_readiness:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    expected:
+      bottleneck_signal_sources_checked: 7
+      l6_function_specs_checked: 5
+      remediation_flow_states_defined: 7
+      forbidden_current_scope_states_checked: 2
+      required_signal_fields_checked: 8
+      cross_axis_aggregation_contracts_checked: 4
+      signal_route_contracts_checked: 7
+      current_code_surfaces_checked_read_only: 5
+      deferred_feature_entry_points_checked: 4
+      deferred_feature_boundaries_checked: 4
+      required_output_sections: 8
+      bottleneck_detector_implemented_by_this_audit: false
+      remediation_auto_apply_done: false
+  full_objective_gap_status:
+    artifact: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      objective_items_checked: 10
+      current_scope_items_pass_l1_l6: 9
+      items_requiring_later_phase_before_full_completion: 8
+      feature_tickets_available: 11
+      repository_add_feature_files_discovered: 16
+      current_objective_deferred_feature_tickets: 11
+      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_completed_add_features: 4
+      out_of_current_objective_parked_feature_tickets: 1
+      right_arm_execution_gates_deferred: 4
+      current_scope_verdict: pass_l1_l6_only
+      full_goal_verdict: active_not_complete
+      full_goal_complete: false
+      harness_external_tool_accountability_indexed: true
+      unlock_evidence_namespace: full_goal_unlock_required_evidence_not_current_scope_proof
+      required_evidence_is_current_scope_proof: false
+      required_evidence_is_completion_evidence_now: false
+      required_feature_ticket_is_completion_evidence: false
+      may_satisfy_completion_only_after_approval_and_execution: true
+      l1_l6_design_obligation_is_current_scope: true
+      deferred_feature_tickets_are_not_design_substitute: true
+      feature_ticket_allowed_only_for_unapproved_l7_or_escalation_bound_execution: true
+      no_feature_escape_for_design_debt: true
+      db_feedback_accountability_indexed: true
+      db_registration_accountability_indexed: true
+      repository_add_feature_inventory_indexed: true
+      repository_add_feature_inventory_allows_l7_work: false
+  ratification_index:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    expected:
+      current_scope_verdict: pass_l1_l6_only
+      full_goal_verdict: active_not_complete
+      core_audit_bundle_files_indexed: 23
+      integrity_audits_indexed: 2
+      double_check_quantitative_checks_pass: 21
+      double_check_qualitative_checks_pass: 36
+      evidence_boundary_scan_evidence_like_keys_checked: 11
+      evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence: 0
+      evidence_boundary_scan_current_scope_proof_allows_add_feature: false
+      evidence_boundary_scan_current_scope_proof_allows_l7_test_design: false
+      l0_problem_axes_checked: 10
+      l0_problem_axes_with_l1_l6_design_evidence: 10
+      l0_problem_axis_rows_with_mapped_requirements: 10
+      l0_problem_axis_rows_with_l4_l6_design_evidence: 10
+      l0_problem_axis_rows_with_audit_evidence: 10
+      l0_target_areas_checked: 10
+      l0_target_areas_with_l1_l6_design_evidence: 10
+      l0_target_area_rows_with_current_scope_evidence: 10
+      l0_rows_with_current_scope_result: 20
+      guard_parity_gap_routes_checked: 8
+      guard_parity_route_required_fields_checked: 7
+      parity_finding_normalization_contracts_checked: 8
+      guard_parity_normalization_required_fields_checked: 8
+      parity_closure_requirements_checked: 8
+      guard_parity_closure_required_fields_checked: 6
+      harness_external_tool_adoption_recheck_controls_checked: 3
+      harness_external_tool_pre_adoption_requirement_contracts_checked: 5
+      harness_external_tool_current_session_web_fetch_sources_checked: 5
+      harness_external_tool_current_session_web_fetch_refs_checked: 10
+      harness_external_tool_latest_core_rechecked_sources_checked: 5
+      harness_external_tool_all_candidate_sources_checked: 33
+      harness_external_tool_spot_recheck_sources_checked: 8
+      harness_external_tool_spot_recheck_subset_of_canonical: true
+      harness_external_tool_spot_recheck_not_full_candidate_recheck: true
+      harness_external_tool_scope_contract_l7_artifact_allowed: false
+      harness_external_tool_tool_candidates_checked: 33
+      harness_external_tool_intake_contracts_checked: 33
+      harness_external_tool_tool_intake_required_fields_checked: 9
+      harness_external_tool_tool_intake_forbidden_common_rules_checked: 7
+      harness_external_tool_admission_gate_contracts_checked: 5
+      harness_external_tool_admission_gate_required_fields_checked: 7
+      harness_external_tool_admission_owner_roles_checked: 3
+      harness_external_tool_output_ingestion_contracts_checked: 33
+      harness_external_tool_tool_output_required_fields_checked: 8
+      harness_external_tool_tool_output_detector_signals_checked: 5
+      harness_external_tool_accountability_indexed: true
+      harness_external_tool_accountability_current_scope_proves_checked: 5
+      harness_external_tool_accountability_current_scope_does_not_prove_checked: 8
+      harness_external_tool_web_evidence_is_design_basis_not_adoption: true
+      harness_external_tool_current_scope_must_keep_install_execution_ci_db_false: true
+      harness_external_tool_l7_work_requires_feature_ticket: true
+      harness_external_tool_adoption_or_execution_allowed_now: false
+      harness_external_tool_db_write_allowed_now: false
+      harness_external_tool_ci_or_equivalent_connection_allowed_now: false
+      l1_l6_design_layers_ratified: 6
+      l1_l6_pair_layers_ratified: 6
+      deferred_feature_tickets_indexed: 11
+      deferred_feature_unlock_conditions_checked: 11
+      deferred_design_obligation_rows_checked: 11
+      deferred_design_obligation_escape_findings: 0
+      legacy_runtime_retrofit_required_items: 1
+      legacy_runtime_metadata_gap_ticketed: true
+      legacy_runtime_feature_ticket_metadata_match_required: true
+      legacy_runtime_next_action_supersedes_current_json_metadata: true
+      legacy_runtime_safe_task_retitle_command_available_now: false
+      legacy_handover_metadata_boundary_items_checked: 1
+      legacy_handover_current_json_l7_label_authorizes_work: false
+      legacy_handover_ready_for_review_status_not_completion: true
+      legacy_handover_next_action_is_authoritative: true
+      full_goal_unlock_evidence_classes_indexed: 8
+      full_goal_unlock_required_feature_tickets_resolved: 8
+      right_arm_execution_gates_deferred: 4
+      l1_l6_design_obligation_is_current_scope: true
+      deferred_feature_tickets_are_not_design_substitute: true
+      no_feature_escape_for_design_debt: true
+      dependency_impact_db_projection_contracts_checked: 5
+      dependency_impact_dependency_edge_relations_checked: 7
+      dependency_impact_visibility_rows_checked: 9
+      dependency_impact_output_trace_rows_checked: 9
+      deferred_repository_add_feature_files_discovered: 16
+      deferred_current_objective_deferred_feature_tickets: 11
+      deferred_out_of_current_objective_add_feature_files: 5
+      deferred_out_of_current_objective_completed_add_features: 4
+      deferred_out_of_current_objective_parked_feature_tickets: 1
+      db_feedback_accountability_indexed: true
+      db_feedback_feature_ticket_is_not_design_substitute: true
+      db_feedback_db_write_requires_explicit_approval: true
+      db_feedback_current_scope_must_keep_db_write_false: true
+      db_feedback_recurrence_closure_requires_later_execution_evidence: true
+      db_feedback_closure_rules_defined: 4
+      db_feedback_existing_tables_required_for_lifecycle_checked: 9
+      db_feedback_forbidden_current_scope_rules_checked: 4
+      db_feedback_schema_migration_done: false
+      db_feedback_db_write_connection_done: false
+      db_registration_accountability_indexed: true
+      db_registration_feature_ticket_is_not_design_substitute: true
+      db_registration_db_write_requires_explicit_approval: true
+      db_registration_current_scope_must_keep_db_write_false: true
+      db_registration_plan_registry_changed_by_this_audit: false
+      db_registration_helix_db_write_performed: false
+      db_registration_schema_migration_done: false
+      l7_artifacts_created_by_this_index: 0
+      full_objective_objective_items_checked: 10
+      full_objective_current_scope_items_pass_l1_l6: 9
+      full_objective_items_requiring_later_phase_before_full_completion: 8
+      full_objective_feature_tickets_available: 11
+      full_objective_repository_add_feature_files_discovered: 16
+      full_objective_current_objective_deferred_feature_tickets: 11
+      full_objective_out_of_current_objective_add_feature_files: 5
+      full_objective_out_of_current_objective_completed_add_features: 4
+      full_objective_out_of_current_objective_parked_feature_tickets: 1
+      full_objective_right_arm_execution_gates_deferred: 4
+      full_objective_blocking_findings_current_l1_l6_scope: 0
+      full_objective_blocking_findings_full_goal: 8
+      full_objective_current_scope_verdict: pass_l1_l6_only
+      full_objective_full_goal_verdict: active_not_complete
+  exit_criteria:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    expected:
+      exit_layers_checked: 6
+      exit_layers_pass: 6
+      exit_layers_with_waiver: 1
+      gate_ids_checked:
+        - G1
+        - G2
+        - G3
+        - G4
+        - G5
+        - G6
+      blocking_findings_current_scope: 0
+      l7_artifacts_created_by_this_map: 0
+  reference_integrity:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    expected:
+      audit_files_checked: 25
+      path_like_refs_checked: 1376
+      direct_file_refs_checked: 1367
+      glob_patterns_checked: 9
+      missing_direct_file_refs: 0
+      empty_glob_patterns: 0
+      current_scope_uses_l7_as_completion_evidence: false
+  double_check:
+    artifact: docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+    expected:
+      quantitative_checks: 21
+      quantitative_checks_pass: 21
+      qualitative_checks: 36
+      qualitative_checks_pass: 36
+      evidence_boundary_scan_evidence_like_keys_checked: 11
+      evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence: 0
+      evidence_boundary_scan_current_scope_proof_allows_add_feature: false
+      evidence_boundary_scan_current_scope_proof_allows_l7_test_design: false
+      current_scope_verdict: pass_l1_l6_only
+  requirement_drift:
+    command: helix doctor check_requirement_drift --json
+    trace_map: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    expected:
+      clean: true
+      focus: L6
+      requirements: 31
+      design_links: 31
+      blocking_findings: 0
+      advisory_findings: 0
+  l0_l14_contract:
+    pytest: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    pytest_expected: 87 passed
+    bats: bats cli/tests/test-helix-l0-l14-flow-contract.bats
+    bats_expected: 56 tests passed
+  l0_l14_flow_surface:
+    artifact: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    expected:
+      layers_checked: 15
+      left_arm_design_layers_checked: 6
+      current_surfaces_checked: 90
+      banned_legacy_terms_found_current_surfaces: 0
+      l7_implementation_done: false
+      goal_complete_allowed: false
+  l0_planning_derivation:
+    artifact: docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    expected:
+      l0_problem_axes_checked: 10
+      l0_problem_axes_with_l1_l6_design_evidence: 10
+      problem_axis_rows_with_mapped_requirements: 10
+      problem_axis_rows_with_l4_l6_design_evidence: 10
+      problem_axis_rows_with_audit_evidence: 10
+      l0_target_areas_checked: 10
+      l0_target_areas_with_l1_l6_design_evidence: 10
+      target_area_rows_with_current_scope_evidence: 10
+      rows_with_current_scope_result: 20
+      l0_to_l1_l6_derivation_gaps: 0
+      l1_l6_audit_sources_declared: 13
+      row_audit_refs_checked: 32
+      unique_row_audit_refs_checked: 11
+      undeclared_row_audit_refs: 0
+      l7_artifacts_created_by_this_audit: 0
+  l7_non_execution_check:
+    command: find docs/v2/L7-test-design \( -path '*/FR-FNREG-01/*' -o -path '*/FR-GLOSSARY-01/*' \) -print
+    expected_stdout: ""
+    evidence_kind: negative_boundary_check
+    proves_l7_execution: false
+    proves_l7_test_design_creation: false
+    counts_as_current_scope_completion_proof: false
+  l6_unit_test_design_viewpoints:
+    artifact: docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    expected:
+      fr_count: 18
+      specs_current_scope_l6_closed: 18
+      specs_with_l6_unit_test_design_viewpoints: 18
+      total_ut_candidates: 128
+      specs_with_draft_status: []
+      l7_unit_test_design_artifacts_created: false
+objective_clause_to_full_status_contract:
+  required_fields:
+    - objective_clause_id
+    - full_objective_status_ids
+    - mapping_reason
+    - current_scope_boundary
+  objective_clauses_mapped: 9
+  full_status_items_checked: 10
+  full_status_items_without_objective_clause:
+    - REQ-FULL-GOAL-COMPLETION
+  full_status_without_clause_reason: full_goal_completion_is_a_denial_item_not_a_current_scope_objective_clause
+  mapping_is_completion_evidence: false
+  l7_artifact_allowed_as_mapping_proof: false
+objective_clause_to_full_status_map:
+  - objective_clause_id: OBJ-REQ-GAP-L6
+    full_objective_status_ids:
+      - REQ-ASSET-REQ-GAP-L6
+    mapping_reason: requirement gap audit through L6
+    current_scope_boundary: l1_l6_gap_audit_only
+  - objective_clause_id: OBJ-GRANULARITY-L1-L6
+    full_objective_status_ids:
+      - REQ-GRAIN-BALANCE-L1-L6
+      - REQ-L0-L14-FLOW
+    mapping_reason: L1-L6 design and test-design granularity balance plus full-flow deferred gate boundary
+    current_scope_boundary: L7 execution and coverage closure remain deferred
+  - objective_clause_id: OBJ-CODEX-CLAUDE-GUARD-PARITY
+    full_objective_status_ids:
+      - REQ-CODEX-CLAUDE-PARITY
+    mapping_reason: ClaudeCode/Codex guard parity current surface
+    current_scope_boundary: remaining runtime parity stays add-feature
+  - objective_clause_id: OBJ-DDD-TDD-AUTO-GOVERNANCE
+    full_objective_status_ids:
+      - REQ-DDD-TDD-AUTO-DETECTION
+      - REQ-DEPENDENCY-IMPACT-VISIBILITY
+    mapping_reason: DDD/TDD governance includes auto-detection and dependency/impact visibility design
+    current_scope_boundary: implementation, DB write adoption, and query execution remain deferred
+  - objective_clause_id: OBJ-WORKFLOW-AUTOMATION
+    full_objective_status_ids:
+      - REQ-WORKFLOW-AUTOMATION-DB
+      - REQ-L0-L14-FLOW
+      - REQ-DEPENDENCY-IMPACT-VISIBILITY
+      - REQ-BOTTLENECK-REMEDIATION
+    mapping_reason: workflow automation depends on the user-confirmed L0-L14 flow, DB feedback design, dependency impact visibility, and bottleneck routing
+    current_scope_boundary: G8/G9/G12/G14 execution gates remain deferred
+  - objective_clause_id: OBJ-ADDITIONAL-IMPROVEMENT-L1-L6
+    full_objective_status_ids:
+      - REQ-DDD-TDD-AUTO-DETECTION
+      - REQ-WORKFLOW-AUTOMATION-DB
+      - REQ-HARNESS-EXTERNAL-TOOLS-WEB
+      - REQ-DEPENDENCY-IMPACT-VISIBILITY
+      - REQ-BOTTLENECK-REMEDIATION
+    mapping_reason: out-of-definition improvement discovery feeds DDD/TDD governance, workflow automation, HARNESS candidate adoption, dependency impact visibility, and bottleneck remediation candidates
+    current_scope_boundary: candidate discovery is not adoption or recurrence closure
+  - objective_clause_id: OBJ-HELIX-DB-FEEDBACK
+    full_objective_status_ids:
+      - REQ-WORKFLOW-AUTOMATION-DB
+      - REQ-DEPENDENCY-IMPACT-VISIBILITY
+      - REQ-BOTTLENECK-REMEDIATION
+    mapping_reason: HELIX DB auto-registration and feedback loops drive workflow automation, dependency impact readiness, and bottleneck recurrence routing
+    current_scope_boundary: HELIX DB write adoption and impact query implementation remain deferred
+  - objective_clause_id: OBJ-HARNESS-EXTERNAL-TOOLS
+    full_objective_status_ids:
+      - REQ-HARNESS-EXTERNAL-TOOLS-WEB
+    mapping_reason: Web-backed HARNESS external tool candidate discovery
+    current_scope_boundary: install, auth, license, network execution, and CI connection require approval
+  - objective_clause_id: OBJ-L0-L14-FLOW
+    full_objective_status_ids:
+      - REQ-L0-L14-FLOW
+    mapping_reason: user-confirmed L0-L14 flow terminology and pair mapping
+    current_scope_boundary: strict full-flow remains active_not_complete
+objective_clauses:
+  - id: OBJ-REQ-GAP-L6
+    clause: audit existing assets for requirement definition gaps through L6
+    l1_l6_status: closed
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+      - docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+      - helix doctor check_requirement_drift --json
+    later_phase_boundary: none_for_l1_l6_gap_audit
+  - id: OBJ-GRANULARITY-L1-L6
+    clause: balance design and test-design granularity from L1 through L6
+    l1_l6_status: closed_with_l4_l9_monitoring
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+      - python3 -m cli.lib.trace_symmetry --json
+    later_phase_boundary: G8/G9/G12/G14 execution gates remain deferred
+  - id: OBJ-CODEX-CLAUDE-GUARD-PARITY
+    clause: fix guards that work in ClaudeCode but not Codex
+    l1_l6_status: closed_for_current_guard_surface
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+      - helix/CODEX_RUNTIME_ADAPTER.md
+      - cli/lib/tests/test_codex_post_validation.py
+      - cli/tests/test-helix-codex-write-audit.bats
+    later_phase_boundary: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+  - id: OBJ-DDD-TDD-AUTO-GOVERNANCE
+    clause: coding rules, DDD docs, strict TDD, auto-registration, regression detection, dependency and impact visibility
+    l1_l6_status: design_closed_implementation_deferred
+    proof:
+      - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+      - docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    later_phase_boundary:
+      - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+  - id: OBJ-WORKFLOW-AUTOMATION
+    clause: workflow review and automation basis
+    l1_l6_status: design_and_readiness_defined
+    proof:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - skills/SKILL_MAP.md
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    later_phase_boundary:
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      - strict full-flow gates G8/G9/G12/G14 are not implemented
+  - id: OBJ-ADDITIONAL-IMPROVEMENT-L1-L6
+    clause: discover feasible improvements not explicitly included in the definition without treating discovery as adoption
+    l1_l6_status: candidate_map_created_not_adopted
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    later_phase_boundary: adoption, installation, HELIX DB write connection, and CI/equivalent evidence remain deferred
+  - id: OBJ-HELIX-DB-FEEDBACK
+    clause: HELIX DB auto-registration, trouble detection, and improvement feedback loop
+    l1_l6_status: design_closed_implementation_deferred
+    proof:
+      - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    later_phase_boundary:
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+  - id: OBJ-HARNESS-EXTERNAL-TOOLS
+    clause: research MCP servers, plugins, and external tools for HARNESS expansion using web search
+    l1_l6_status: design_and_candidate_discovery_closed
+    proof:
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    later_phase_boundary:
+      - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      - installation, auth, license acceptance, network execution, and CI connection require approval
+  - id: OBJ-L0-L14-FLOW
+    clause: support the user-confirmed L0-L14 flow
+    l1_l6_status: terminology_and_contract_aligned
+    proof:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - docs/v2/process/README.md
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+      - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+      - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      - cli/lib/tests/test_helix_l0_l14_flow_contract.py
+      - cli/tests/test-helix-l0-l14-flow-contract.bats
+    later_phase_boundary: strict full-flow still reports deferred G8/G9/G12/G14
+web_evidence_rechecked_2026_06_12:
+  - source_id: MCP-SPEC-2025-06-18
+    official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+    confirmed:
+      - base protocol uses JSON-RPC 2.0 message types
+      - lifecycle management and authorization are explicit base protocol components
+      - servers expose resources, prompts, and tools
+      - tool invocation requires consent / authorization controls before execution
+    l1_l6_mapping: HARNESS external tool admission must record protocol, lifecycle, auth, and tool-scope checks before execution.
+    design_controls:
+      - host_support
+      - tool_invocation_consent_required
+      - tool_poisoning_review_required
+      - auth_method
+      - input_schema_required
+      - output_schema_validation
+      - structured_content_validation
+      - tool_result_error_semantics
+      - audit_log_required
+      - timeout_policy_required
+  - source_id: GITHUB-MCP-SERVER
+    official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+    confirmed:
+      - remote server supports OAuth by default
+      - PAT configuration is also possible
+      - OAuth access is limited by approved scopes and organization policies
+      - GitHub repo / issue / PR / workflow context may imply read or write capability depending on enabled tools
+    l1_l6_mapping: HARNESS cannot install or enable GitHub MCP without auth, token scope, and org policy approval.
+    design_controls:
+      - credential_scope
+      - secret_storage_policy
+      - data_access_scope
+      - write_capability
+      - toolset_allowlist
+      - individual_tool_allowlist
+      - read_only_mode_precedence
+      - startup_fail_on_invalid_tool_name
+  - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    official_url: https://developers.openai.com/apps-sdk/reference
+    confirmed:
+      - Apps SDK tool descriptors align with MCP descriptor fields
+      - outputSchema supports structuredContent validation
+      - tool descriptor _meta can link UI resource templates
+      - descriptor metadata controls model/app visibility, invocation status, and file parameters
+    l1_l6_mapping: HARNESS App or plugin adoption must define descriptor schema, output schema, UI visibility, file parameter, and invocation metadata policy before any L7 execution.
+    design_controls:
+      - output_schema_required_for_structured_content
+      - ui_resource_uri_policy
+      - model_vs_app_visibility_policy
+      - invocation_status_text_policy
+      - file_param_policy
+  - source_id: SEMGREP-CE
+    official_url: https://docs.semgrep.dev/deployment/oss-deployment
+    confirmed:
+      - Community Edition CI setup uses the Semgrep CLI
+      - rule licenses must be checked through metadata
+      - local or CI execution surface must be selected before HARNESS execution
+    l1_l6_mapping: Semgrep remains an advisory candidate until rule license and execution surface are approved.
+    design_controls:
+      - license_review_required
+      - output_format
+      - sarif_supported
+      - ci_surface
+  - source_id: GITHUB-CODEQL
+    official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    confirmed:
+      - CodeQL identifies vulnerabilities and errors as code scanning alerts
+      - CodeQL uses a database and queries
+      - execution can use default setup, advanced setup, or external CI
+      - code scanning and SARIF-compatible ingestion routes require CI/security route approval
+    l1_l6_mapping: CodeQL remains an advisory candidate until Actions/external CI and output ingestion are approved.
+    design_controls:
+      - output_format
+      - sarif_supported
+      - ci_surface
+      - failure_mode
+  - source_id: ZIZMOR-GHA-SECURITY
+    official_url: https://docs.zizmor.sh/
+    confirmed:
+      - zizmor is a static analysis tool for GitHub Actions
+      - it audits workflow and action definitions and can collect local files, local repositories, remote repositories, or standard input
+      - operating modes separate offline, online, and online-sans-audits behavior
+      - output formats include plain diagnostics, JSON, SARIF, and GitHub annotations
+      - audit rules include template-injection, excessive-permissions, dangerous-triggers, unpinned-uses, and secrets-handling risks
+      - GitHub Actions integration can use SARIF upload, which requires explicit CI and permission approval
+    l1_l6_mapping: zizmor remains an advisory candidate until GitHub Actions workflow/action scope, offline/online mode, token permission policy, output normalization, persona and fix policy, CI/pre-commit surface, license review, and HELIX DB workflow-security finding mapping are approved. zizmor execution, auto-fix, SARIF upload, and CI wiring remain approved feature-ticket work and are not current-scope evidence.
+    design_controls:
+      - github_actions_workflow_scope
+      - action_definition_scope
+      - offline_mode_required_until_approved
+      - github_token_scope_policy
+      - sarif_output_policy
+      - github_annotation_limit_policy
+      - persona_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_manual_review_required
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_workflow_security_mapping
+  - source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+    official_url: https://github.com/rhysd/actionlint
+    confirmed:
+      - actionlint is a static checker for GitHub Actions workflow files
+      - it checks workflow syntax, expression typing, action input/output usage, and reusable workflow contracts
+      - ShellCheck and Pyflakes integrations can inspect scripts in run steps
+      - security checks include script injection by untrusted inputs and hard-coded credentials
+    l1_l6_mapping: actionlint remains an advisory candidate until GitHub Actions workflow scope, syntax/expression/reusable-workflow policy, ShellCheck/Pyflakes integration scope, output normalization, license review, and HELIX DB workflow-lint mapping are approved. actionlint execution and CI wiring remain approved feature-ticket work and are not current-scope evidence.
+    design_controls:
+      - github_actions_workflow_scope
+      - workflow_syntax_policy
+      - expression_semantics_policy
+      - reusable_workflow_contract_policy
+      - shellcheck_pyflakes_integration_policy
+      - script_injection_policy
+      - credential_literal_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_workflow_lint_mapping
+  - source_id: OPENSSF-SCORECARD
+    official_url: https://github.com/ossf/scorecard
+    confirmed:
+      - Scorecard assesses repository security health through automated checks
+      - Scorecard can run through GitHub Action, REST API, badge, or CLI routes
+      - CLI/API use requires GitHub PAT or GitHub App authentication for rate-limit boundaries
+      - aggregate and per-check outputs can become advisory security posture signals
+    l1_l6_mapping: OpenSSF Scorecard remains an advisory candidate until auth scope, repo scope, output normalization, REST/API data license, and CI/CLI execution surface are approved.
+    design_controls:
+      - credential_scope
+      - repository_scope
+      - output_normalization
+      - license_review_required
+      - ci_surface
+  - source_id: DEPSDEV-API
+    official_url: https://docs.deps.dev/api/v3/
+    confirmed:
+      - deps.dev provides package, version, requirements, dependencies, project, advisory, and query APIs
+      - data can be accessed as JSON over HTTP or gRPC, with a BigQuery dataset for larger analysis
+      - supported ecosystems include Cargo, Go, Maven, npm, NuGet, PyPI, and RubyGems
+      - package license and advisory fields can become dependency impact inputs
+    l1_l6_mapping: deps.dev remains an advisory candidate until ecosystem scope, API route, license/advisory ingestion, output normalization, and HELIX DB dependency graph mapping are approved.
+    design_controls:
+      - package_ecosystem_scope
+      - dependency_graph_scope
+      - license_review_required
+      - advisory_ingestion_scope
+      - api_rate_or_terms_review_required
+      - output_normalization
+  - source_id: OSV-SCANNER
+    official_url: https://google.github.io/osv-scanner/
+    confirmed:
+      - OSV-Scanner connects project dependencies with OSV vulnerabilities through package extraction and vulnerability matching
+      - source, container image, lockfile, manifest, SBOM, license, pre-commit, and GitHub Action routes exist
+      - output formats include JSON, SARIF, SPDX, and CycloneDX
+      - guided remediation can be risky and must remain disabled until approved
+    l1_l6_mapping: OSV-Scanner remains an advisory candidate until artifact scope, vulnerability database route, output normalization, license policy, CI/pre-commit route, guided remediation risk, and HELIX DB vulnerability finding mapping are approved.
+    design_controls:
+      - dependency_artifact_scope
+      - vulnerability_database_scope
+      - license_review_required
+      - output_normalization
+      - ci_surface
+      - offline_database_policy
+      - guided_remediation_disabled_until_approved
+  - source_id: SYFT-SBOM
+    official_url: https://github.com/anchore/syft
+    confirmed:
+      - Syft generates SBOMs from container images and filesystems
+      - supported sources include directories, files, archives, and registries
+      - output formats include Syft JSON, CycloneDX, SPDX, and GitHub dependency snapshot JSON
+      - Syft output can become dependency inventory input before vulnerability scanning or graph construction
+    l1_l6_mapping: Syft remains an advisory candidate until source scope, registry/private source access, package cataloger selection, SBOM output format, license handling, attestation policy, and HELIX DB dependency graph mapping are approved.
+    design_controls:
+      - sbom_source_scope
+      - package_cataloger_scope
+      - registry_access_policy
+      - output_normalization
+      - license_review_required
+      - sbom_attestation_policy
+  - source_id: GRIMP-PYTHON-IMPORT-GRAPH
+    official_url: https://github.com/python-grimp/grimp
+    confirmed:
+      - Grimp builds queryable import graphs for Python packages
+      - graph queries include children, descendants, directly imported modules, upstream modules, shortest chain, and import details
+      - optional external package inclusion can become dependency visibility input
+      - Python import edges can feed source-level impact analysis after approval
+    l1_l6_mapping: Grimp remains an advisory candidate until Python package scope, external package inclusion, import edge normalization, license review, and HELIX DB dependency edge mapping are approved.
+    design_controls:
+      - python_package_scope
+      - import_graph_scope
+      - external_package_inclusion_policy
+      - output_normalization
+      - license_review_required
+  - source_id: DEPENDENCY-CRUISER
+    official_url: https://github.com/sverweij/dependency-cruiser
+    confirmed:
+      - dependency-cruiser validates and visualizes dependencies for JavaScript, TypeScript, CoffeeScript, ES6, CommonJS, and AMD
+      - it reports dependency rule violations and can produce dependency graph outputs
+      - graph/report formats include dot, json, csv, html, mermaid, and text-like outputs
+      - rule evidence can include circular dependencies, orphan modules, missing package declarations, and dev dependency leakage
+    l1_l6_mapping: dependency-cruiser remains an advisory candidate until JS/TS source scope, rule policy, graph output normalization, circular/orphan/package-manifest policy, license review, and HELIX DB dependency edge mapping are approved.
+    design_controls:
+      - js_ts_source_scope
+      - dependency_rule_scope
+      - graph_output_format
+      - circular_dependency_policy
+      - package_manifest_consistency_policy
+      - license_review_required
+  - source_id: SHELLCHECK-SHELL-STATIC
+    official_url: https://github.com/koalaman/shellcheck
+    confirmed:
+      - ShellCheck provides static analysis for shell scripts including bash and sh
+      - it targets syntax issues, semantic problems, caveats, corner cases, and pitfalls
+      - output formats include JSON, CheckStyle XML, GCC-compatible warnings, and human-readable text
+      - shell findings can feed CLI and harness hardening after approval
+    l1_l6_mapping: ShellCheck remains an advisory candidate until shell script scope, shell dialect policy, severity handling, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB shell finding mapping are approved.
+    design_controls:
+      - shell_script_scope
+      - shell_dialect_policy
+      - output_normalization
+      - severity_policy
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: MARKDOWNLINT-CLI2
+    official_url: https://github.com/DavidAnson/markdownlint-cli2
+    confirmed:
+      - markdownlint-cli2 lints Markdown and CommonMark documents through a config-based CLI
+      - it accepts Markdown source globs and files and supports markdownlint configuration files
+      - output formats include JSON, JUnit XML, SARIF, GitLab Code Quality, summary, and templated CI command output
+      - fix mode exists and must remain disabled until explicitly approved
+    l1_l6_mapping: markdownlint-cli2 remains an advisory candidate until Markdown source scope, rule scope, config file policy, fix-mode prohibition, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB documentation finding mapping are approved.
+    design_controls:
+      - markdown_source_scope
+      - markdown_rule_scope
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: VALE-PROSE-LINT
+    official_url: https://vale.sh/docs
+    confirmed:
+      - Vale brings code-like linting to prose and focuses on style consistency
+      - styles use YAML rules and vocabularies provide accept / reject terminology lists
+      - supported formats include Markdown, AsciiDoc, MDX, HTML, reStructuredText, XML, Org, and DITA
+      - CLI options include JSON output, output templates, package sync, glob targeting, and lint/runtime exit codes
+    l1_l6_mapping: Vale remains an advisory candidate until prose source scope, style-rule scope, vocabulary and Glossary mapping, .vale.ini policy, package sync, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB prose finding mapping are approved.
+    design_controls:
+      - prose_source_scope
+      - style_rule_scope
+      - vocabulary_policy
+      - glossary_mapping_policy
+      - config_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - package_sync_disabled_until_approved
+      - license_review_required
+  - source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+    official_url: https://textlint.org/
+    confirmed:
+      - textlint is a pluggable linting tool for natural language
+      - Markdown and plain text are supported by default
+      - it uses rule, preset, and plugin based document checks
+      - it supports JSON, JUnit, GitHub, and other formatter outputs
+      - fixable rules can be previewed with dry-run output
+      - textlint can be started as an MCP server
+    l1_l6_mapping: textlint remains an advisory candidate until natural-language source scope, Markdown/plain-text scope, rule / preset / plugin policy, Japanese document rule selection, configuration policy, fix-mode prohibition, dry-run preview policy, output normalization, MCP server approval, CI/pre-commit or local execution surface, license review, and HELIX DB document-lint finding mapping are approved. textlint execution and MCP server enablement remain approved feature-ticket work and are not current-scope evidence.
+    design_controls:
+      - natural_language_source_scope
+      - markdown_plain_text_scope
+      - textlint_rule_policy
+      - textlint_preset_plugin_policy
+      - japanese_document_rule_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - dry_run_required_for_fix_preview
+      - output_format_policy
+      - mcp_server_disabled_until_approved
+      - helix_db_document_lint_mapping
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: MUTMUT-PY-MUTATION-TESTING
+    official_url: https://mutmut.readthedocs.io/en/latest/
+    confirmed:
+      - mutmut is a mutation testing system for Python
+      - it runs a pytest-oriented mutation workflow and supports incremental reruns
+      - it can use coverage.py filtering and mypy / pyrefly type-checker filtering
+      - it detects dependency and config changes that can invalidate cached mutation results
+      - mutant apply is a write operation and must stay disabled until approved
+    l1_l6_mapping: mutmut remains an advisory candidate until Python source scope, mutation operator scope, pytest command policy, coverage/type-checker filtering, dependency-change policy, timeout/parallelism controls, mutant apply prohibition, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB mutation finding mapping are approved.
+    design_controls:
+      - python_source_scope
+      - mutation_operator_scope
+      - pytest_command_scope
+      - coverage_filter_policy
+      - type_checker_filter_policy
+      - dependency_change_policy
+      - timeout_and_parallelism_policy
+      - mutant_apply_disabled_until_approved
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: HYPOTHESIS-PY-PBT
+    official_url: https://hypothesis.readthedocs.io/en/latest/
+    confirmed:
+      - Hypothesis is a property-based testing library for Python
+      - "@given and strategies generate test inputs"
+      - pytest / unittest can pick up Hypothesis tests as regular Python tests
+      - failed properties produce falsifying examples
+      - settings profiles, max_examples, and replay database behavior control execution policy
+    l1_l6_mapping: Hypothesis remains an advisory candidate until Python test scope, property invariant scope, strategy design, max_examples policy, stateful testing policy, flaky-failure policy, replay database policy, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB property-test finding mapping are approved.
+    design_controls:
+      - python_test_scope
+      - property_invariant_scope
+      - strategy_design_policy
+      - max_examples_policy
+      - stateful_testing_policy
+      - flaky_failure_policy
+      - replay_database_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: COVERAGE-PY-COVERAGE
+    official_url: https://coverage.readthedocs.io/en/latest/
+    confirmed:
+      - coverage.py measures code coverage for Python programs
+      - coverage measurement is used to gauge test effectiveness
+      - coverage.py supports branch coverage measurement
+      - coverage.py can produce text, HTML, XML, LCOV, and JSON reports
+      - result data is available in a SQLite database
+    l1_l6_mapping: coverage.py remains an advisory candidate until Python source scope, test-runner scope, branch coverage policy, include/omit policy, fail-under thresholds, coverage data-file handling, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB coverage finding mapping are approved. Coverage closure remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - python_source_scope
+      - test_runner_scope
+      - branch_coverage_policy
+      - source_include_omit_policy
+      - fail_under_policy
+      - coverage_data_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: PYTEST-PY-TEST-RUNNER
+    official_url: https://docs.pytest.org/en/stable/
+    confirmed:
+      - pytest is a Python test runner for small readable tests and complex functional testing
+      - pytest auto-discovers test_*.py / *_test.py tests and supports keyword / marker selection
+      - pytest provides assertion introspection and short failure summaries
+      - pytest can generate JUnit XML output for CI-compatible reporting
+      - exit-code behavior and output normalization require policy before adoption
+    l1_l6_mapping: pytest remains an advisory candidate until Python test scope, test discovery and selection policy, marker policy, fixture and plugin policy, JUnit XML output policy, exit-code handling, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB test-run finding mapping are approved. Test execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - python_test_scope
+      - test_discovery_policy
+      - test_selection_policy
+      - marker_policy
+      - fixture_scope_policy
+      - plugin_policy
+      - junitxml_output_policy
+      - exit_code_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: DIFF-COVER-DIFF-COVERAGE
+    official_url: https://github.com/Bachmann1234/diff_cover
+    confirmed:
+      - diff-cover reports coverage for new or modified lines covered by tests
+      - it compares XML or LCov coverage reports with git diff output
+      - it provides diff-quality reports for changed-line quality violations
+      - it supports HTML / JSON / Markdown outputs
+      - it documents compare-branch / diff-file / fail-under / show-uncovered controls
+    l1_l6_mapping: diff-cover remains an advisory candidate until git diff scope, compare-branch or diff-file policy, coverage report format, diff-quality checker policy, fail-under threshold, changed-line reporting, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB diff-coverage mapping are approved. Diff coverage enforcement remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - git_diff_scope
+      - compare_branch_policy
+      - coverage_report_format_policy
+      - lcov_or_xml_report_policy
+      - diff_quality_checker_policy
+      - fail_under_policy
+      - changed_line_reporting_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_diff_coverage_mapping
+  - source_id: LYCHEE-LINK-CHECKER
+    official_url: https://github.com/lycheeverse/lychee
+    confirmed:
+      - lychee is a fast async stream-based link checker written in Rust
+      - it finds broken hyperlinks and mail addresses in Markdown, HTML, reStructuredText, websites, and other file formats
+      - it is available as a command-line utility, library, and GitHub Action
+      - it supports file globbing, include and exclude patterns, config file, and JSON output
+      - it supports pre-commit usage and package manager or pre-built binary installation surfaces
+    l1_l6_mapping: lychee remains an advisory candidate until document source scope, local/external link target scope, network access policy, auth/header policy, accepted status policy, include/exclude and config policy, output normalization, CI/pre-commit or GitHub Action surface, license review, and HELIX DB doc-connection-gap mapping are approved. Link checking execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - document_source_scope
+      - link_target_scope
+      - network_access_policy
+      - auth_header_policy
+      - accepted_status_policy
+      - include_exclude_policy
+      - config_file_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_doc_connection_gap_mapping
+  - source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    official_url: https://www.testmon.org/
+    confirmed:
+      - pytest-testmon selects tests affected by changed files and methods
+      - it collects dependencies between tests and executed code using Coverage.py
+      - it uses .testmondata and pytest --testmon CLI surface
+      - it documents --testmon-noselect / --testmon-nocollect / --testmon-forceselect options
+      - it can expose hidden test dependencies and has CI usage surfaces
+    l1_l6_mapping: pytest-testmon remains an advisory candidate until Python test scope, affected-test selection policy, dependency database handling, Coverage.py dependency collection, selection/no-collection/force-selection modes, hidden dependency handling, environment variant policy, local storage, CI/pre-commit or local execution surface, license review, and HELIX DB test-impact mapping are approved. Test selection and execution remain approved feature-ticket work and are not current-scope evidence.
+    design_controls:
+      - python_test_scope
+      - affected_test_selection_policy
+      - dependency_database_policy
+      - coverage_dependency_collection_policy
+      - noselect_policy
+      - nocollect_policy
+      - forceselect_policy
+      - hidden_test_dependency_policy
+      - environment_variant_policy
+      - local_storage_policy
+      - ci_or_precommit_surface
+      - license_review_required
+      - helix_db_test_impact_mapping
+  - source_id: TOX-PY-ENV-ORCHESTRATION
+    official_url: https://tox.wiki/en/latest/
+    confirmed:
+      - tox is a generic virtual environment management and test command line tool
+      - tox checks package builds and installs under different environments
+      - tox runs tests with the tool of choice in each environment
+      - tox can orchestrate test runners, linters, formatters, documentation tools, build tools, and publishing tools
+      - tox supports tox.ini, setup.cfg, pyproject.toml, and tox.toml configuration surfaces
+    l1_l6_mapping: tox remains an advisory candidate until configuration scope, environment matrix, interpreter scope, dependency install behavior, command allowlist, package build policy, missing-interpreter behavior, provisioning, workdir/tempdir handling, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB environment-run finding mapping are approved. tox execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - tox_config_scope
+      - environment_matrix_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - package_build_policy
+      - skip_missing_interpreters_policy
+      - provision_environment_policy
+      - workdir_tempdir_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: NOX-PY-SESSION-AUTOMATION
+    official_url: https://nox.thea.codes/en/stable/
+    confirmed:
+      - Nox automates testing in multiple Python environments
+      - Nox uses standard Python file noxfile.py configuration
+      - "@nox.session functions can install dependencies and run commands"
+      - Nox supports virtualenv creation per session
+      - Nox supports interpreter lists, parametrized sessions, tags, and backend selection
+    l1_l6_mapping: Nox remains an advisory candidate until noxfile scope, Python-code review policy, session selection, parametrization, tags, interpreter scope, dependency install behavior, command allowlist, venv backend/reuse/download behavior, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB session-run finding mapping are approved. Nox session execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - noxfile_scope
+      - python_code_review_policy
+      - session_selection_policy
+      - session_parametrize_policy
+      - session_tag_policy
+      - python_interpreter_scope
+      - dependency_install_policy
+      - command_allowlist_policy
+      - venv_backend_policy
+      - reuse_venv_policy
+      - download_python_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+    official_url: https://import-linter.readthedocs.io/en/stable/
+    confirmed:
+      - Import Linter imposes constraints on imports between Python modules
+      - it supports forbidden, protected, layers, independence, and acyclic_siblings contracts
+      - it uses setup.cfg, .importlinter, or pyproject.toml configuration
+      - lint-imports checks configured contracts
+      - import-linter explore and drawgraph expose architecture graph data
+    l1_l6_mapping: Import Linter remains an advisory candidate until configuration scope, package graph scope, contract type policy, layer order, forbidden dependency rules, independence boundaries, acyclic sibling depth, ignored import policy, external package handling, type-checking import handling, graph output, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB architecture-contract finding mapping are approved. Import Linter execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - importlinter_config_scope
+      - root_package_scope
+      - contract_type_policy
+      - layer_order_policy
+      - forbidden_dependency_policy
+      - independence_boundary_policy
+      - acyclic_siblings_depth_policy
+      - ignore_imports_policy
+      - unmatched_ignore_imports_policy
+      - external_package_scope
+      - type_checking_import_policy
+      - graph_output_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+    official_url: https://check-jsonschema.readthedocs.io/en/latest/
+    confirmed:
+      - check-jsonschema is a JSON Schema CLI and pre-commit hook
+      - it validates JSON or YAML instance files against local schema files
+      - it validates JSON or YAML instance files against remote HTTP(S) schema files
+      - it supports JSON diagnostic output
+      - it supports builtin schemas and metaschema validation
+    l1_l6_mapping: check-jsonschema remains an advisory candidate until schemafile scope, builtin schema policy, metaschema usage, instance file scope, YAML/JSON filetype policy, remote schema and cache policy, output format, format validation behavior, pre-commit or CI surface, license review, and HELIX DB payload schema mapping are approved. Schema validation execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - schemafile_scope
+      - builtin_schema_policy
+      - metaschema_policy
+      - instance_file_scope
+      - yaml_json_filetype_policy
+      - remote_schema_policy
+      - cache_policy
+      - output_format_policy
+      - format_validation_policy
+      - precommit_surface
+      - helix_db_payload_schema_mapping
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: SPECTRAL-API-CONTRACT-LINT
+    official_url: https://github.com/stoplightio/spectral
+    confirmed:
+      - Spectral is a JSON/YAML linter with custom rulesets
+      - it has ready-to-use OpenAPI v2 and v3.x rulesets
+      - it has ready-to-use AsyncAPI and Arazzo rulesets
+      - it supports API style guide enforcement
+      - spectral lint can use local or explicitly selected ruleset files
+      - editor, Git hook, CI, and GitHub Action workflow options are documented adoption surfaces
+    l1_l6_mapping: Spectral remains an advisory candidate until API specification file scope, ruleset source policy, OpenAPI / AsyncAPI / Arazzo scope, custom-rule policy, API style guide policy, output normalization, editor / hook / CI surface, license review, and HELIX DB API-contract mapping are approved. Spectral lint execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - api_spec_file_scope
+      - ruleset_source_policy
+      - openapi_asyncapi_arazzo_scope
+      - custom_rule_policy
+      - api_style_guide_policy
+      - output_format_policy
+      - editor_hook_ci_surface
+      - helix_db_api_contract_mapping
+      - license_review_required
+  - source_id: SQLFLUFF-SQL-LINT
+    official_url: https://docs.sqlfluff.com/en/stable/
+    confirmed:
+      - SQLFluff is a SQL linter designed to catch errors and bad SQL before database execution
+      - sqlfluff lint provides a CLI linting surface
+      - SQLFluff documents a dialect reference including SQLite
+      - templater, rule configuration, pre-commit, and GitHub Actions usage surfaces are documented
+    l1_l6_mapping: SQLFluff remains an advisory candidate until SQL source scope, SQL dialect policy, SQLite dialect policy, templater policy, rule selection, fix-mode prohibition, output normalization, CI/pre-commit surface, license review, and HELIX DB SQL-schema lint mapping are approved. SQL lint execution remains approved feature-ticket work and is not current-scope evidence.
+    design_controls:
+      - sql_source_scope
+      - sql_dialect_policy
+      - sqlite_dialect_policy
+      - templater_policy
+      - rule_selection_policy
+      - fix_mode_disabled_until_approved
+      - output_format_and_normalization
+      - ci_or_precommit_surface
+      - helix_db_sql_schema_lint_mapping
+      - license_review_required
+  - source_id: RUFF-PY-LINT-FORMAT
+    official_url: https://docs.astral.sh/ruff/
+    confirmed:
+      - Ruff is an extremely fast Python linter and code formatter
+      - it supports pyproject.toml and over 900 built-in rules
+      - ruff check lints files/directories and can optionally fix fixable errors
+      - rule selection is controlled through select / ignore / extend-select
+      - JSON output includes fix applicability and safe / unsafe fix distinctions require policy
+    l1_l6_mapping: Ruff remains an advisory candidate until Python source scope, rule selection, config file policy, fix/unsafe-fix prohibition, suppression handling, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB coding-rule finding mapping are approved.
+    design_controls:
+      - python_source_scope
+      - rule_selection_policy
+      - config_file_policy
+      - fix_mode_disabled_until_approved
+      - unsafe_fix_disabled_until_approved
+      - suppression_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: MYPY-PY-TYPE-CHECK
+    official_url: https://mypy.readthedocs.io/en/stable/
+    confirmed:
+      - mypy is a static type checker for Python
+      - it checks type hints and warns about incorrect type usage before runtime
+      - it supports gradual typing and progressively stricter options
+      - it documents command-line, configuration, import discovery, error code, and report generation surfaces
+    l1_l6_mapping: mypy remains an advisory candidate until Python source scope, type annotation scope, strictness profile, config file policy, import discovery, error-code policy, output normalization, CI/pre-commit or local execution surface, license review, and HELIX DB type finding mapping are approved.
+    design_controls:
+      - python_source_scope
+      - type_annotation_scope
+      - strictness_policy
+      - config_file_policy
+      - import_discovery_policy
+      - error_code_policy
+      - output_normalization
+      - ci_or_precommit_surface
+      - license_review_required
+  - source_id: PIP-AUDIT-PY-VULN
+    official_url: https://github.com/pypa/pip-audit
+    confirmed:
+      - pip-audit audits Python environments, requirements files, and dependency trees for known vulnerabilities
+      - it uses the Python Packaging Advisory Database through the PyPI JSON API
+      - it supports PyPI and OSV vulnerability services
+      - it can emit JSON, Markdown, column output, and CycloneDX JSON/XML SBOM formats
+      - fix mode is available and must stay disabled until approved
+    l1_l6_mapping: pip-audit remains an advisory candidate until Python dependency scope, requirements or lockfile scope, vulnerability service policy, output normalization, fix-mode prohibition, CI/pre-commit or local execution surface, license review, and HELIX DB vulnerability finding mapping are approved.
+    design_controls:
+      - python_dependency_scope
+      - requirements_lockfile_scope
+      - vulnerability_service_policy
+      - output_normalization
+      - fix_mode_disabled_until_approved
+      - ci_or_precommit_surface
+      - license_review_required
+web_evidence_freshness_contract:
+  rechecked_on: 2026-06-12
+  latest_core_rechecked_on: 2026-06-13
+  latest_core_rechecked_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+  canonical_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+    - ZIZMOR-GHA-SECURITY
+    - ACTIONLINT-GHA-WORKFLOW-LINT
+    - OPENSSF-SCORECARD
+    - DEPSDEV-API
+    - OSV-SCANNER
+    - SYFT-SBOM
+    - GRIMP-PYTHON-IMPORT-GRAPH
+    - DEPENDENCY-CRUISER
+    - SHELLCHECK-SHELL-STATIC
+    - MARKDOWNLINT-CLI2
+    - LYCHEE-LINK-CHECKER
+    - VALE-PROSE-LINT
+    - TEXTLINT-NATURAL-LANGUAGE-LINT
+    - MUTMUT-PY-MUTATION-TESTING
+    - HYPOTHESIS-PY-PBT
+    - COVERAGE-PY-COVERAGE
+    - DIFF-COVER-DIFF-COVERAGE
+    - PYTEST-PY-TEST-RUNNER
+    - PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    - TOX-PY-ENV-ORCHESTRATION
+    - NOX-PY-SESSION-AUTOMATION
+    - IMPORT-LINTER-PY-ARCH-CONTRACTS
+    - CHECK-JSONSCHEMA-DOC-SCHEMA
+    - SPECTRAL-API-CONTRACT-LINT
+    - SQLFLUFF-SQL-LINT
+    - RUFF-PY-LINT-FORMAT
+    - MYPY-PY-TYPE-CHECK
+    - PIP-AUDIT-PY-VULN
+  official_sources_expected: 33
+  must_match_sources:
+    - web_evidence_rechecked_2026_06_12
+    - source_l1_l6_web_evidence_map.sources
+    - source_harness_external_tools_coverage_map.official_web_sources
+  source_id_url_and_recheck_date_must_match: true
+  latest_core_recheck_must_match_supporting_evidence: true
+  all_sources_must_be_official_https_and_web_fetch_confirmed: true
+  all_sources_must_remain_not_adopted_current_scope: true
+  current_scope_revalidation_is_design_evidence_only: true
+  install_execution_or_ci_connection_requires_new_recheck: true
+  l7_or_adoption_evidence_allowed: false
+l1_l6_supporting_evidence:
+  asset_inventory: docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+  improvement_candidate_map: docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+  pair_balance_map: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+  guard_parity_map: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+  deferred_feature_coverage_map: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  db_feedback_lifecycle_coverage_map: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+  harness_external_tools_coverage_map: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+  governance_hardening_coverage_map: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+  workflow_automation_coverage_map: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+  db_registration_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+  dependency_impact_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+  bottleneck_remediation_readiness_coverage_map: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+  full_objective_gap_status: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+  ratification_index: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  exit_criteria_map: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+  reference_integrity_coverage_map: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+  double_check_coverage_map: docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+  l1_l6_web_evidence_map: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+  fr31_trace_map: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+deferred_feature_entry_points_contract:
+  source: source_deferred_feature_coverage_map
+  source_collection: feature_ticket_integrity
+  source_key_field: id
+  source_path_field: path
+  expected_count: 11
+  exact_match_required: true
+  entries_are_boundary_metadata_only: true
+  entries_are_completion_evidence: false
+  l7_execution_allowed_by_entries: false
+deferred_feature_entry_points:
+  fr_registry_glossary: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+  codex_claude_guard_parity: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+  db_evidence_lifecycle: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  harness_external_tools: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  full_flow_remaining_guards: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+  plan_registry_add_feature_import: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+  dependency_impact_query: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+  bottleneck_routing: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+  l7_unit_closure: docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+  phase_enum_l0_l14_runtime_retrofit: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+  contract_design_phase_label_retrofit: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+completion_denial:
+  reason: Current evidence proves L1-L6 design coverage and candidate discovery only.
+  missing:
+    - approved L7 implementation where needed
+    - G8/G9/G12/G14 execution gate implementation and pass evidence
+    - CI or equivalent gate connection
+    - feedback adoption closure
+    - external tool approval and HARNESS run evidence for selected tools
+    - full objective gap ledger remains active_not_complete

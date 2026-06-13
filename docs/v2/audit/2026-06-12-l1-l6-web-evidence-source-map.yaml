@@ -1,0 +1,1936 @@
+schema_version: l1_l6_web_evidence_source_map_v1
+owner: TL
+status: verified_l1_l6_design_evidence_not_adoption
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Record official Web evidence used by the current L1-L6 audit and HARNESS
+  external tool design without relying on L7 test-design manifests as the
+  current-scope evidence source. This map proves research-backed design inputs
+  only; it does not prove installation, adoption, execution, CI connection, or
+  recurrence closure.
+source_objective_l1_l6_coverage_audit: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+source_harness_external_tools_scope_audit: docs/v2/audit/2026-06-10-harness-external-tools-impact-scope-audit.md
+sources:
+  - source_id: MCP-SPEC-2025-06-18
+    source_type: official
+    official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+    verified_on: 2026-06-12
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      protocol: MCP
+      base: JSON-RPC 2.0
+      components:
+        - lifecycle management
+        - authorization
+        - resources
+        - prompts
+        - tools
+      design_controls:
+        - host_support
+        - tool_invocation_consent_required
+        - tool_poisoning_review_required
+        - auth_method
+        - input_schema_required
+        - output_schema_validation
+        - structured_content_validation
+        - tool_result_error_semantics
+        - audit_log_required
+        - timeout_policy_required
+      l1_l6_mapping: >
+        HARNESS MCP admission must keep protocol, lifecycle, authorization,
+        tool-scope, consent, and tool-poisoning review as pre-execution design
+        controls.
+      2026_06_13_official_recheck:
+        official_url: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
+        confirmed:
+          - MCP tools expose JSON Schema inputSchema and optional outputSchema.
+          - StructuredContent output should be schema validated by clients.
+          - Sensitive tool calls require user-visible confirmation controls.
+          - Clients should show tool inputs, validate results, implement timeouts, and log tool usage.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: GITHUB-MCP-SERVER
+    source_type: official
+    official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+    verified_on: 2026-06-12
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      provider: GitHub
+      kind: MCP server
+      configuration:
+        - remote
+        - local
+      prerequisites:
+        - GitHub account
+        - host policy enabled where required
+        - OAuth or PAT scope review
+      design_controls:
+        - credential_scope
+        - secret_storage_policy
+        - data_access_scope
+        - write_capability
+        - toolset_allowlist
+        - individual_tool_allowlist
+        - read_only_mode_precedence
+        - startup_fail_on_invalid_tool_name
+      l1_l6_mapping: >
+        GitHub MCP remains a candidate until OAuth/PAT, organization policy,
+        token scope, host support, data access, and write capability boundaries
+        are approved.
+      2026_06_13_official_recheck:
+        official_url: https://github.com/github/github-mcp-server
+        confirmed:
+          - GitHub MCP supports toolsets and individual tool allowlists.
+          - Read-only mode takes priority and skips write tools.
+          - Invalid tool names fail server startup.
+          - Local setup can use GITHUB_PERSONAL_ACCESS_TOKEN and stdio, so HARNESS admission must cover secret handling.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    source_type: official
+    official_url: https://developers.openai.com/apps-sdk/reference
+    verified_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: OpenAI Apps SDK
+      mcp_alignment:
+        - tool descriptions follow MCP tool descriptor fields
+        - outputSchema should be declared for structuredContent
+        - tool descriptor _meta can link UI resource templates
+      design_controls:
+        - output_schema_required_for_structured_content
+        - ui_resource_uri_policy
+        - model_vs_app_visibility_policy
+        - invocation_status_text_policy
+        - file_param_policy
+      l1_l6_mapping: >
+        ChatGPT/App tool descriptors remain design evidence only. Any HARNESS
+        plugin/App surface must model output schemas, UI resource visibility,
+        file parameter handling, and invocation status metadata before L7
+        adoption or external execution.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: SEMGREP-CE
+    source_type: official
+    official_url: https://docs.semgrep.dev/deployment/oss-deployment
+    verified_on: 2026-06-12
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Semgrep Community Edition
+      command: semgrep scan
+      execution_surfaces:
+        - local
+        - CI
+      license_watch: rule metadata license must be checked
+      design_controls:
+        - license_review_required
+        - output_format
+        - sarif_supported
+        - ci_surface
+      l1_l6_mapping: >
+        Semgrep remains advisory until rule source/license, local-or-CI
+        execution surface, output normalization, and failure behavior are
+        approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: GITHUB-CODEQL
+    source_type: official
+    official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+    verified_on: 2026-06-12
+    rechecked_on: 2026-06-13
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: CodeQL
+      surfaces:
+        - default setup
+        - advanced setup
+        - external CI
+      outputs:
+        - code scanning alerts
+        - CodeQL database
+        - query results
+      design_controls:
+        - output_format
+        - sarif_supported
+        - ci_surface
+        - failure_mode
+      l1_l6_mapping: >
+        CodeQL remains advisory until Actions/external CI, code scanning alert
+        or SARIF ingestion, output normalization, and HELIX DB feedback mapping
+        are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: ZIZMOR-GHA-SECURITY
+    source_type: official
+    official_url: https://docs.zizmor.sh/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: zizmor
+      purpose:
+        - static analysis for GitHub Actions
+        - common CI/CD security issue detection
+        - workflow and action definition auditing
+      input_sources:
+        - workflow and action files
+        - local repositories
+        - remote repositories
+        - standard input
+      operating_modes:
+        - offline
+        - online
+        - online sans audits
+      outputs:
+        - plain diagnostics
+        - JSON
+        - SARIF
+        - GitHub annotations
+      audit_focus:
+        - template injection
+        - excessive permissions
+        - dangerous triggers
+        - unpinned uses
+        - secrets handling
+      design_controls:
+        - github_actions_workflow_scope
+        - action_definition_scope
+        - offline_mode_required_until_approved
+        - github_token_scope_policy
+        - sarif_output_policy
+        - github_annotation_limit_policy
+        - persona_policy
+        - fix_mode_disabled_until_approved
+        - unsafe_fix_manual_review_required
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_workflow_security_mapping
+      l1_l6_mapping: >
+        zizmor remains advisory until GitHub Actions workflow/action scope,
+        offline/online mode, GitHub token permissions, SARIF/JSON/GitHub
+        annotation output normalization, persona selection, fix/unsafe-fix
+        policy, CI/pre-commit surface, license review, and HELIX DB workflow
+        security finding mapping are approved. Execution, auto-fix, SARIF
+        upload, and CI wiring remain approved feature-ticket work.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+    source_type: official
+    official_url: https://github.com/rhysd/actionlint
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: actionlint
+      purpose:
+        - static checker for GitHub Actions workflow files
+        - workflow syntax validation
+        - expression type and semantic checks
+        - reusable workflow input / output / secret checks
+      integrations:
+        - ShellCheck for run scripts
+        - Pyflakes for Python run scripts
+      security_checks:
+        - script injection by untrusted inputs
+        - hard-coded credentials
+      design_controls:
+        - github_actions_workflow_scope
+        - workflow_syntax_policy
+        - expression_semantics_policy
+        - reusable_workflow_contract_policy
+        - shellcheck_pyflakes_integration_policy
+        - script_injection_policy
+        - credential_literal_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_workflow_lint_mapping
+      l1_l6_mapping: >
+        actionlint remains advisory until GitHub Actions workflow scope,
+        syntax/expression/reusable-workflow rule policy, ShellCheck/Pyflakes
+        integration scope, script-injection and credential finding mapping,
+        output normalization, CI/pre-commit surface, license review, and HELIX
+        DB workflow-lint mapping are approved. Execution and CI wiring remain
+        approved feature-ticket work.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: OPENSSF-SCORECARD
+    source_type: official
+    official_url: https://github.com/ossf/scorecard
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: OpenSSF Scorecard
+      purpose:
+        - automated security health checks
+        - dependency risk assessment
+        - security posture improvement signals
+      surfaces:
+        - GitHub Action
+        - REST API
+        - badge
+        - CLI
+      auth_controls:
+        - GitHub PAT or GitHub App authentication for rate limits
+        - public_repo scope recommendation for PAT
+      outputs:
+        - aggregate score
+        - per-check scores
+        - detailed check results
+        - REST API data
+      design_controls:
+        - credential_scope
+        - repository_scope
+        - output_normalization
+        - license_review_required
+        - ci_surface
+      l1_l6_mapping: >
+        OpenSSF Scorecard remains advisory until PAT/GitHub App scope,
+        repository scope, REST/API data license, CI/CLI execution surface, and
+        HELIX DB feedback mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: DEPSDEV-API
+    source_type: official
+    official_url: https://docs.deps.dev/api/v3/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: deps.dev API / Open Source Insights
+      provider: Google
+      purpose:
+        - dependency graph and package insight
+        - package version, license, requirement, dependency, project, and advisory lookups
+        - impact analysis inputs for dependency changes
+      surfaces:
+        - JSON over HTTP
+        - gRPC
+        - BigQuery public dataset
+      ecosystems:
+        - Cargo
+        - Go
+        - Maven
+        - npm
+        - NuGet
+        - PyPI
+        - RubyGems
+      design_controls:
+        - package_ecosystem_scope
+        - dependency_graph_scope
+        - license_review_required
+        - advisory_ingestion_scope
+        - api_rate_or_terms_review_required
+        - output_normalization
+      l1_l6_mapping: >
+        deps.dev remains advisory until package ecosystem scope, HTTP/gRPC/API
+        route, license/advisory ingestion scope, terms/rate-limit review, and
+        HELIX DB dependency graph mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: OSV-SCANNER
+    source_type: official
+    official_url: https://google.github.io/osv-scanner/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: OSV-Scanner
+      provider: Google
+      purpose:
+        - dependency vulnerability scanning
+        - package extraction and vulnerability matching
+        - source, container image, lockfile, manifest, SBOM, and license scanning inputs
+      surfaces:
+        - CLI
+        - Go library
+        - GitHub Action
+        - pre-commit hook
+      outputs:
+        - table
+        - markdown
+        - vertical
+        - HTML
+        - JSON
+        - SARIF
+        - SPDX
+        - CycloneDX
+      design_controls:
+        - dependency_artifact_scope
+        - vulnerability_database_scope
+        - license_review_required
+        - output_normalization
+        - ci_surface
+        - offline_database_policy
+        - guided_remediation_disabled_until_approved
+      l1_l6_mapping: >
+        OSV-Scanner remains advisory until artifact scope, output format,
+        license policy, offline/online database route, CI/pre-commit route,
+        guided-remediation risk, and HELIX DB finding mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: SYFT-SBOM
+    source_type: official
+    official_url: https://github.com/anchore/syft
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Syft
+      provider: Anchore
+      purpose:
+        - Software Bill of Materials generation
+        - package inventory extraction for dependency visibility
+        - SBOM input for vulnerability scanners and dependency graph construction
+      surfaces:
+        - CLI
+        - Go library
+      source_targets:
+        - container images
+        - filesystems
+        - directories
+        - files
+        - archives
+        - registries
+      outputs:
+        - Syft JSON
+        - CycloneDX JSON
+        - CycloneDX XML
+        - SPDX JSON
+        - SPDX tag-value
+        - GitHub dependency snapshot JSON
+      design_controls:
+        - sbom_source_scope
+        - package_cataloger_scope
+        - registry_access_policy
+        - output_normalization
+        - license_review_required
+        - sbom_attestation_policy
+      l1_l6_mapping: >
+        Syft remains advisory until source scope, registry/private source access,
+        package cataloger selection, SBOM output format, license handling,
+        attestation policy, and HELIX DB dependency graph mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: GRIMP-PYTHON-IMPORT-GRAPH
+    source_type: official
+    official_url: https://github.com/python-grimp/grimp
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Grimp
+      ecosystem: Python
+      purpose:
+        - queryable import graph for Python package internal dependencies
+        - upstream, descendant, child, shortest-chain, and import detail lookup
+        - optional external package inclusion for dependency visibility
+      source_targets:
+        - installed Python packages
+        - multiple root packages
+        - namespace packages
+      outputs:
+        - queryable graph object
+        - importer / imported module relation
+        - import line number and line contents
+      design_controls:
+        - python_package_scope
+        - import_graph_scope
+        - external_package_inclusion_policy
+        - output_normalization
+        - license_review_required
+      l1_l6_mapping: >
+        Grimp remains advisory until Python package scope, external package
+        inclusion, import edge normalization, license review, and HELIX DB
+        dependency edge mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: DEPENDENCY-CRUISER
+    source_type: official
+    official_url: https://github.com/sverweij/dependency-cruiser
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: dependency-cruiser
+      ecosystem: JavaScript / TypeScript
+      purpose:
+        - validate and visualize dependencies
+        - rule-based dependency violation reporting
+        - dependency graph generation for JS / TS / CoffeeScript / ES6 / CommonJS / AMD
+      source_targets:
+        - JavaScript
+        - TypeScript
+        - CoffeeScript
+        - ES6
+        - CommonJS
+        - AMD
+      outputs:
+        - text / eslint-like reports
+        - dot graph
+        - json
+        - csv
+        - html
+        - mermaid
+      design_controls:
+        - js_ts_source_scope
+        - dependency_rule_scope
+        - graph_output_format
+        - circular_dependency_policy
+        - package_manifest_consistency_policy
+        - license_review_required
+      l1_l6_mapping: >
+        dependency-cruiser remains advisory until JS/TS source scope,
+        dependency rule scope, graph output normalization, circular/orphan/
+        package-manifest policy, license review, and HELIX DB dependency edge
+        mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: SHELLCHECK-SHELL-STATIC
+    source_type: official
+    official_url: https://github.com/koalaman/shellcheck
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: ShellCheck
+      ecosystem: shell / bash / sh
+      purpose:
+        - static analysis for shell scripts
+        - syntax issue detection
+        - semantic problem and caveat / pitfall detection
+      source_targets:
+        - shell scripts
+        - bash scripts
+        - sh scripts
+        - build and test suite shell surfaces
+      outputs:
+        - JSON
+        - CheckStyle XML
+        - GCC-compatible warnings
+        - human-readable text
+      design_controls:
+        - shell_script_scope
+        - shell_dialect_policy
+        - output_normalization
+        - severity_policy
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        ShellCheck remains advisory until shell script scope, shell dialect
+        policy, severity handling, output normalization, CI/pre-commit or local
+        execution surface, license review, and HELIX DB finding mapping are
+        approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: MARKDOWNLINT-CLI2
+    source_type: official
+    official_url: https://github.com/DavidAnson/markdownlint-cli2
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: markdownlint-cli2
+      ecosystem: Markdown / CommonMark
+      purpose:
+        - Markdown and CommonMark linting
+        - config-based documentation rule checking
+        - documentation style and structural finding detection
+      source_targets:
+        - Markdown files
+        - CommonMark documents
+        - README / ADR / technical documentation
+      outputs:
+        - default issue list
+        - JSON
+        - JUnit XML
+        - SARIF
+        - GitLab Code Quality
+        - summary
+        - Azure Pipelines or GitHub Actions command templates
+      design_controls:
+        - markdown_source_scope
+        - markdown_rule_scope
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        markdownlint-cli2 remains advisory until Markdown source scope, rule
+        scope, config file policy, fix-mode prohibition, output normalization,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        documentation finding mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: VALE-PROSE-LINT
+    source_type: official
+    official_url: https://vale.sh/docs
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Vale CLI
+      ecosystem: prose / documentation
+      purpose:
+        - code-like linting for prose
+        - customizable style-guide enforcement
+        - terminology and vocabulary management
+        - markup-aware documentation linting
+      source_targets:
+        - Markdown
+        - AsciiDoc
+        - MDX
+        - HTML
+        - reStructuredText
+        - XML
+        - Org
+        - DITA
+      outputs:
+        - JSON
+        - configured output templates
+        - lint exit codes
+        - rule / metric output
+      design_controls:
+        - prose_source_scope
+        - style_rule_scope
+        - vocabulary_policy
+        - glossary_mapping_policy
+        - config_file_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - package_sync_disabled_until_approved
+        - license_review_required
+      l1_l6_mapping: >
+        Vale remains advisory until prose source scope, style-rule scope,
+        vocabulary and glossary mapping, .vale.ini policy, package sync,
+        output normalization, CI/pre-commit or local execution surface, license
+        review, and HELIX DB documentation finding mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+    source_type: official
+    official_url: https://textlint.org/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: textlint
+      ecosystem: Node.js / natural language documentation
+      purpose:
+        - pluggable linting tool for natural language
+        - Markdown and plain text linting by default
+        - rule / preset / plugin based document quality checks
+        - custom formatters for CI and report output
+        - fixable rule dry-run support
+        - optional Model Context Protocol server mode
+      source_targets:
+        - Markdown documents
+        - plain text documents
+        - .textlintrc JSON / YAML / JS configuration
+        - textlint rule packages
+        - textlint presets and plugins
+        - HELIX DDD / glossary / design documentation candidates
+      outputs:
+        - lint diagnostics
+        - JSON formatter output
+        - JUnit formatter output
+        - GitHub formatter output
+        - fix dry-run diff output
+        - exit codes
+      design_controls:
+        - natural_language_source_scope
+        - markdown_plain_text_scope
+        - textlint_rule_policy
+        - textlint_preset_plugin_policy
+        - japanese_document_rule_policy
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - dry_run_required_for_fix_preview
+        - output_format_policy
+        - mcp_server_disabled_until_approved
+        - helix_db_document_lint_mapping
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        textlint remains advisory until natural-language source scope,
+        Markdown/plain-text scope, rule / preset / plugin policy, Japanese
+        document rule selection, configuration policy, fix-mode prohibition,
+        dry-run preview policy, output normalization, MCP server approval,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        document-lint finding mapping are approved. textlint execution and MCP
+        server enablement remain approved feature-ticket work and are not current-scope
+        evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: MUTMUT-PY-MUTATION-TESTING
+    source_type: official
+    official_url: https://mutmut.readthedocs.io/en/latest/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: mutmut
+      ecosystem: Python / pytest
+      purpose:
+        - Python mutation testing
+        - test-suite strength assessment beyond line coverage
+        - targeted mutant rerun workflow
+        - TDD weakness detection for surviving mutants
+      source_targets:
+        - Python source paths
+        - pytest test suites
+        - coverage.py called-line filtering
+        - mypy / pyrefly type-check filtered mutants
+        - dependency and config change detection inputs
+      outputs:
+        - mutation run results
+        - mutant browse / apply workflow
+        - surviving mutant evidence
+        - dependency-change warning signals
+      design_controls:
+        - python_source_scope
+        - mutation_operator_scope
+        - pytest_command_scope
+        - coverage_filter_policy
+        - type_checker_filter_policy
+        - dependency_change_policy
+        - timeout_and_parallelism_policy
+        - mutant_apply_disabled_until_approved
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        mutmut remains advisory until Python source scope, mutation operator
+        scope, pytest command policy, coverage/type-checker filtering,
+        dependency-change handling, timeout/parallelism controls, mutant apply
+        prohibition, output normalization, CI/pre-commit or local execution
+        surface, license review, and HELIX DB mutation finding mapping are
+        approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: HYPOTHESIS-PY-PBT
+    source_type: official
+    official_url: https://hypothesis.readthedocs.io/en/latest/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Hypothesis
+      ecosystem: Python
+      purpose:
+        - Python property-based testing
+        - generated input strategies
+        - edge-case exploration
+        - falsifying example discovery
+        - stateful test modeling
+      source_targets:
+        - Python unit-test functions
+        - Hypothesis strategies
+        - invariants and properties derived from L6 specifications
+        - pytest or unittest test-suite surfaces
+      outputs:
+        - falsifying examples
+        - pytest-compatible failures
+        - generated example counts and settings profiles
+        - replay database behavior
+      design_controls:
+        - python_test_scope
+        - property_invariant_scope
+        - strategy_design_policy
+        - max_examples_policy
+        - stateful_testing_policy
+        - flaky_failure_policy
+        - replay_database_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        Hypothesis remains advisory until Python test scope, invariant
+        selection, strategy design, max_examples, stateful testing,
+        flaky-failure handling, replay database behavior, output normalization,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        property-test finding mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: COVERAGE-PY-COVERAGE
+    source_type: official
+    official_url: https://coverage.readthedocs.io/en/latest/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: coverage.py
+      ecosystem: Python
+      purpose:
+        - Python code coverage measurement
+        - test effectiveness visibility
+        - branch coverage measurement
+        - missing-line and missing-branch feedback
+      source_targets:
+        - Python programs and modules
+        - pytest / unittest test-suite execution surfaces
+        - configured source / include / omit scopes
+        - coverage configuration files
+      outputs:
+        - text coverage reports
+        - HTML reports
+        - XML reports
+        - LCOV reports
+        - JSON reports
+        - SQLite coverage data
+      design_controls:
+        - python_source_scope
+        - test_runner_scope
+        - branch_coverage_policy
+        - source_include_omit_policy
+        - fail_under_policy
+        - coverage_data_file_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        coverage.py remains advisory until Python source scope, test-runner
+        scope, branch coverage policy, include/omit policy, fail-under
+        thresholds, coverage data-file handling, output normalization,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        coverage finding mapping are approved. Coverage closure remains approved feature-ticket work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: PYTEST-PY-TEST-RUNNER
+    source_type: official
+    official_url: https://docs.pytest.org/en/stable/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: pytest
+      ecosystem: Python
+      purpose:
+        - Python test runner
+        - small readable tests and complex functional testing
+        - assertion introspection
+        - test discovery and selection
+        - fixture and parametrization support
+        - JUnit XML reporting for CI-compatible output
+      source_targets:
+        - Python test files and directories
+        - test_*.py / *_test.py discovery surfaces
+        - keyword and marker selection expressions
+        - pytest configuration files
+        - plugins and hooks
+      outputs:
+        - pass / fail / error / skip test session results
+        - detailed assertion failure reports
+        - short summary info
+        - JUnit XML output
+        - exit codes
+      design_controls:
+        - python_test_scope
+        - test_discovery_policy
+        - test_selection_policy
+        - marker_policy
+        - fixture_scope_policy
+        - plugin_policy
+        - junitxml_output_policy
+        - exit_code_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        pytest remains advisory until Python test scope,
+        discovery/selection/marker/fixture/plugin policies, JUnit XML output,
+        exit-code handling, output normalization, CI/pre-commit or local
+        execution surface, license review, and HELIX DB test-run finding
+        mapping are approved. Test execution remains approved feature-ticket work and is
+        not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: DIFF-COVER-DIFF-COVERAGE
+    source_type: official
+    official_url: https://github.com/Bachmann1234/diff_cover
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: diff-cover
+      ecosystem: Python / git / coverage reports
+      purpose:
+        - report coverage percentage for new or modified lines
+        - compare XML or LCov coverage reports with git diff output
+        - produce diff-quality reports for changed-line quality violations
+        - provide code-review standard for touched-line coverage
+        - support fail-under thresholds after approval
+      source_targets:
+        - git diff output
+        - compare branch or explicit diff file
+        - Cobertura / Clover / JaCoCo XML coverage reports
+        - LCov coverage reports
+        - quality checker reports such as pycodestyle / pyflakes / flake8 / pylint / ruff.check / clang
+      outputs:
+        - console diff coverage report
+        - HTML / JSON / Markdown report files
+        - changed uncovered line findings
+        - diff-quality violation findings
+        - non-zero exit code when fail-under threshold is missed
+      design_controls:
+        - git_diff_scope
+        - compare_branch_policy
+        - coverage_report_format_policy
+        - lcov_or_xml_report_policy
+        - diff_quality_checker_policy
+        - fail_under_policy
+        - changed_line_reporting_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_diff_coverage_mapping
+      l1_l6_mapping: >
+        diff-cover remains advisory until git diff scope, compare-branch or
+        diff-file policy, coverage report format, diff-quality checker policy,
+        fail-under threshold, changed-line reporting, output normalization,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        diff-coverage mapping are approved. Diff coverage enforcement remains
+        approved feature-ticket work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: LYCHEE-LINK-CHECKER
+    source_type: official
+    official_url: https://github.com/lycheeverse/lychee
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: lychee
+      ecosystem: Rust / CLI / GitHub Actions / pre-commit
+      purpose:
+        - find broken hyperlinks and mail addresses
+        - check Markdown, HTML, reStructuredText, websites, and other file formats
+        - validate documentation links before HELIX DB registration adoption
+        - expose stale external references as document connection gaps
+        - support JSON output after approval
+      source_targets:
+        - Markdown documentation
+        - HTML and reStructuredText documents
+        - websites and URL lists
+        - email address references
+        - local and external links
+      outputs:
+        - console link-check summary
+        - JSON output
+        - GitHub Action result
+        - pre-commit hook result
+        - broken URL or mail address findings
+      design_controls:
+        - document_source_scope
+        - link_target_scope
+        - network_access_policy
+        - auth_header_policy
+        - accepted_status_policy
+        - include_exclude_policy
+        - config_file_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_doc_connection_gap_mapping
+      l1_l6_mapping: >
+        lychee remains advisory until document source scope, local/external
+        link target scope, network access policy, auth/header policy, accepted
+        status policy, include/exclude and config policy, output normalization,
+        CI/pre-commit or GitHub Action surface, license review, and HELIX DB
+        doc-connection-gap mapping are approved. Link checking execution
+        remains approved feature-ticket work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    source_type: official
+    official_url: https://www.testmon.org/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: pytest-testmon
+      ecosystem: Python / pytest
+      purpose:
+        - select tests affected by changed files and methods
+        - collect dependencies between tests and executed code using Coverage.py
+        - compare dependency data against source changes
+        - expose hidden test dependencies as a suite-quality signal
+        - reduce local or CI feedback-loop time after approval
+      source_targets:
+        - Python source files covered by pytest tests
+        - pytest test files and collected test nodes
+        - .testmondata dependency database
+        - environment variants and third-party package versions
+      outputs:
+        - affected test selection / deselection summary
+        - prioritized test order with --testmon-noselect
+        - dependency database update evidence
+        - hidden test dependency findings
+        - pytest exit codes
+      design_controls:
+        - python_test_scope
+        - affected_test_selection_policy
+        - dependency_database_policy
+        - coverage_dependency_collection_policy
+        - noselect_policy
+        - nocollect_policy
+        - forceselect_policy
+        - hidden_test_dependency_policy
+        - environment_variant_policy
+        - local_storage_policy
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_test_impact_mapping
+      l1_l6_mapping: >
+        pytest-testmon remains advisory until Python test scope, affected-test
+        selection policy, dependency database handling, Coverage.py dependency
+        collection, selection/no-collection/force-selection modes, hidden
+        dependency handling, environment variant policy, local storage,
+        CI/pre-commit or local execution surface, license review, and HELIX DB
+        test-impact mapping are approved. Test selection and execution remain
+        approved feature-ticket work and are not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: TOX-PY-ENV-ORCHESTRATION
+    source_type: official
+    official_url: https://tox.wiki/en/latest/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: tox
+      ecosystem: Python
+      purpose:
+        - virtual environment management and test command line tool
+        - package build and install checks under multiple environments
+        - running tests with the tool of choice in each environment
+        - CI frontend and shell-based testing standardization
+        - environment orchestration for test runners, linters, formatters, documentation, build, and publishing tools
+      source_targets:
+        - tox.ini / setup.cfg / pyproject.toml / tox.toml configuration files
+        - environment lists and generated environment matrices
+        - selected tox environments
+        - dependency install and package build surfaces
+        - command execution surfaces
+      outputs:
+        - environment setup and command results
+        - configuration inspection output
+        - environment list output
+        - exit codes
+        - run / run-parallel reports
+      design_controls:
+        - tox_config_scope
+        - environment_matrix_policy
+        - python_interpreter_scope
+        - dependency_install_policy
+        - command_allowlist_policy
+        - package_build_policy
+        - skip_missing_interpreters_policy
+        - provision_environment_policy
+        - workdir_tempdir_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        tox remains advisory until configuration scope, environment matrix,
+        interpreter scope, dependency install behavior, command allowlist,
+        package build policy, missing interpreter behavior, provisioning,
+        workdir/tempdir handling, output normalization, CI/pre-commit or local
+        execution surface, license review, and HELIX DB environment-run finding
+        mapping are approved. tox environment execution remains approved feature-ticket work
+        work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: NOX-PY-SESSION-AUTOMATION
+    source_type: official
+    official_url: https://nox.thea.codes/en/stable/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Nox
+      ecosystem: Python
+      purpose:
+        - command-line automation for testing in multiple Python environments
+        - standard Python file noxfile.py configuration
+        - virtualenv creation per session
+        - dependency installation and ordered command execution
+        - parametrized sessions and tags for test matrix selection
+      source_targets:
+        - noxfile.py
+        - decorated @nox.session functions
+        - session.install and session.run command surfaces
+        - Python interpreter lists and parametrized sessions
+        - session tags and CLI selected sessions
+        - virtualenv backend configuration
+      outputs:
+        - session list and usage output
+        - session execution results
+        - virtualenv backend and reuse behavior
+        - command stdout / stderr
+        - exit codes
+      design_controls:
+        - noxfile_scope
+        - python_code_review_policy
+        - session_selection_policy
+        - session_parametrize_policy
+        - session_tag_policy
+        - python_interpreter_scope
+        - dependency_install_policy
+        - command_allowlist_policy
+        - venv_backend_policy
+        - reuse_venv_policy
+        - download_python_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        Nox remains advisory until noxfile scope, Python-code review policy,
+        session selection, parametrization, tags, interpreter scope,
+        dependency install behavior, command allowlist, backend/reuse/download
+        behavior, output normalization, CI/pre-commit or local execution
+        surface, license review, and HELIX DB session-run finding mapping are
+        approved. Nox session execution remains approved feature-ticket work and is not
+        current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+    source_type: official
+    official_url: https://import-linter.readthedocs.io/en/stable/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Import Linter
+      ecosystem: Python
+      purpose:
+        - impose constraints on imports between Python modules
+        - architecture contracts for forbidden dependencies
+        - layered architecture enforcement
+        - independence checks between modules
+        - dependency cycle detection between siblings
+        - local architecture graph exploration and DOT graph output
+      source_targets:
+        - Python packages and modules
+        - setup.cfg / .importlinter / pyproject.toml configuration
+        - root_package and root_packages graph scope
+        - forbidden / protected / layers / independence / acyclic_siblings contracts
+        - ignore_imports and unmatched_ignore_imports_alerting policy
+      outputs:
+        - lint-imports contract result
+        - broken contract diagnostics
+        - import graph exploration output
+        - DOT dependency graph output
+        - command stdout / stderr
+        - exit codes
+      design_controls:
+        - importlinter_config_scope
+        - root_package_scope
+        - contract_type_policy
+        - layer_order_policy
+        - forbidden_dependency_policy
+        - independence_boundary_policy
+        - acyclic_siblings_depth_policy
+        - ignore_imports_policy
+        - unmatched_ignore_imports_policy
+        - external_package_scope
+        - type_checking_import_policy
+        - graph_output_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        Import Linter remains advisory until configuration scope, package graph
+        scope, contract type policy, layer order, forbidden dependency rules,
+        independence boundaries, acyclic sibling depth, ignored import policy,
+        external package handling, type-checking import handling, graph output,
+        output normalization, CI/pre-commit or local execution surface, license
+        review, and HELIX DB architecture-contract finding mapping are approved.
+        Import Linter execution remains approved feature-ticket work and is not
+        current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+    source_type: official
+    official_url: https://check-jsonschema.readthedocs.io/en/latest/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: check-jsonschema
+      ecosystem: Python / JSON Schema
+      purpose:
+        - JSON Schema CLI and pre-commit hook
+        - validate JSON or YAML files against local schema files
+        - validate JSON or YAML files against remote HTTP(S) schema files
+        - JSON output format for diagnostics
+        - builtin schemas for common CI and repository configuration files
+        - metaschema validation for JSON Schema files
+      source_targets:
+        - JSON / YAML audit and registry files
+        - local schema files
+        - remote HTTP(S) schema files
+        - SchemaStore-backed builtin schemas
+        - pre-commit hook file patterns
+        - HELIX DB import payload candidates
+      outputs:
+        - schema validation pass/fail
+        - JSON diagnostics
+        - text diagnostics
+        - remote schema cache behavior
+        - format validation behavior
+        - exit codes
+      design_controls:
+        - schemafile_scope
+        - builtin_schema_policy
+        - metaschema_policy
+        - instance_file_scope
+        - yaml_json_filetype_policy
+        - remote_schema_policy
+        - cache_policy
+        - output_format_policy
+        - format_validation_policy
+        - precommit_surface
+        - helix_db_payload_schema_mapping
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        check-jsonschema remains advisory until schemafile scope, builtin schema
+        policy, metaschema usage, instance file scope, YAML/JSON filetype
+        policy, remote schema and cache policy, output format, format
+        validation behavior, pre-commit or CI surface, license review, and
+        HELIX DB payload schema mapping are approved. Schema validation
+        execution remains approved feature-ticket work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: SPECTRAL-API-CONTRACT-LINT
+    source_type: official
+    official_url: https://github.com/stoplightio/spectral
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Spectral
+      ecosystem: Node.js / API specifications
+      purpose:
+        - JSON and YAML linting with custom rulesets
+        - ready-to-use OpenAPI v2 and v3.x rulesets
+        - ready-to-use AsyncAPI and Arazzo rulesets
+        - API style guide enforcement
+        - command-line linting with custom ruleset selection
+        - editor, Git hook, CI, and GitHub Action workflow options
+      source_targets:
+        - OpenAPI / AsyncAPI / Arazzo documents
+        - JSON / YAML API contract files
+        - .spectral.yaml ruleset files
+        - API style guide rulesets
+        - HELIX D-API / D-CONTRACT payload candidates
+      outputs:
+        - lint diagnostics
+        - ruleset violation findings
+        - API style guide findings
+        - CLI stdout / stderr
+        - exit codes
+      design_controls:
+        - api_spec_file_scope
+        - ruleset_source_policy
+        - openapi_asyncapi_arazzo_scope
+        - custom_rule_policy
+        - api_style_guide_policy
+        - output_format_policy
+        - editor_hook_ci_surface
+        - helix_db_api_contract_mapping
+        - license_review_required
+      l1_l6_mapping: >
+        Spectral remains advisory until API specification file scope, ruleset
+        source policy, OpenAPI / AsyncAPI / Arazzo scope, custom-rule policy,
+        API style guide policy, output normalization, editor / hook / CI
+        surface, license review, and HELIX DB API-contract mapping are
+        approved. Spectral lint execution remains approved feature-ticket work and is not
+        current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: SQLFLUFF-SQL-LINT
+    source_type: official
+    official_url: https://docs.sqlfluff.com/en/stable/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: SQLFluff
+      ecosystem: SQL / database schema and migration files
+      purpose:
+        - SQL linter designed to catch errors and bad SQL before database execution
+        - sqlfluff lint CLI diagnostics
+        - dialect reference including SQLite
+        - templater and rule configuration
+        - pre-commit and GitHub Actions usage surfaces
+      source_targets:
+        - SQL files
+        - SQLite dialect SQL
+        - migration or schema SQL snippets
+        - templated SQL files
+        - SQLFluff configuration files
+      outputs:
+        - lint diagnostics
+        - rule violation findings
+        - CLI stdout / stderr
+        - exit codes
+      design_controls:
+        - sql_source_scope
+        - sql_dialect_policy
+        - sqlite_dialect_policy
+        - templater_policy
+        - rule_selection_policy
+        - fix_mode_disabled_until_approved
+        - output_format_and_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+        - helix_db_sql_schema_lint_mapping
+      l1_l6_mapping: >
+        SQLFluff remains advisory until SQL source scope, dialect policy,
+        SQLite dialect coverage, templater policy, rule selection, fix-mode
+        boundary, output normalization, CI/pre-commit surface, license review,
+        and HELIX DB SQL/schema lint finding mapping are approved. SQLFluff
+        execution remains approved feature-ticket work and is not current-scope evidence.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: RUFF-PY-LINT-FORMAT
+    source_type: official
+    official_url: https://docs.astral.sh/ruff/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: Ruff
+      ecosystem: Python
+      purpose:
+        - Python linting
+        - Python code formatting
+        - coding-rule and import-order enforcement
+        - fixable error detection with fix-safety metadata
+      source_targets:
+        - Python files and directories
+        - pyproject.toml / ruff.toml configuration
+        - rule selection via select / ignore / extend-select
+        - noqa and suppression comments
+      outputs:
+        - lint diagnostics
+        - JSON output with fix applicability
+        - SARIF / JUnit / GitHub / GitLab output surfaces
+        - exit codes for lint and runtime states
+      design_controls:
+        - python_source_scope
+        - rule_selection_policy
+        - config_file_policy
+        - fix_mode_disabled_until_approved
+        - unsafe_fix_disabled_until_approved
+        - suppression_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        Ruff remains advisory until Python source scope, rule selection,
+        config file policy, fix/unsafe-fix prohibition, suppression handling,
+        output normalization, CI/pre-commit or local execution surface, license
+        review, and HELIX DB coding-rule finding mapping are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: MYPY-PY-TYPE-CHECK
+    source_type: official
+    official_url: https://mypy.readthedocs.io/en/stable/
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: mypy
+      ecosystem: Python
+      purpose:
+        - Python static type checking
+        - type hint and PEP 484 checking
+        - bug detection without running Python programs
+        - gradual typing and strictness hardening
+      source_targets:
+        - Python files and modules
+        - type hints and annotations
+        - mypy configuration files
+        - import and installed package typing surfaces
+      outputs:
+        - type-check diagnostics
+        - error codes
+        - report generation surfaces
+        - exit codes for type-check and runtime states
+      design_controls:
+        - python_source_scope
+        - type_annotation_scope
+        - strictness_policy
+        - config_file_policy
+        - import_discovery_policy
+        - error_code_policy
+        - output_normalization
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        mypy remains advisory until Python source scope, type annotation
+        scope, strictness profile, config file policy, import discovery,
+        error-code policy, output normalization, CI/pre-commit or local
+        execution surface, license review, and HELIX DB type finding mapping
+        are approved.
+    current_scope_action: L4-L6 design evidence only
+  - source_id: PIP-AUDIT-PY-VULN
+    source_type: official
+    official_url: https://github.com/pypa/pip-audit
+    verified_on: 2026-06-12
+    web_fetch_confirmed: true
+    adoption_decision: not_adopted_current_scope
+    confirmed:
+      product: pip-audit
+      ecosystem: Python
+      purpose:
+        - Python environment vulnerability auditing
+        - requirements file and dependency tree auditing
+        - PyPI and OSV vulnerability service input
+        - CycloneDX SBOM output
+      source_targets:
+        - local Python environments
+        - requirements files
+        - local Python projects
+        - lock files
+      outputs:
+        - columns
+        - markdown
+        - JSON
+        - cyclonedx-json
+        - cyclonedx-xml
+      design_controls:
+        - python_dependency_scope
+        - requirements_lockfile_scope
+        - vulnerability_service_policy
+        - output_normalization
+        - fix_mode_disabled_until_approved
+        - ci_or_precommit_surface
+        - license_review_required
+      l1_l6_mapping: >
+        pip-audit remains advisory until Python dependency scope,
+        requirements/lockfile scope, vulnerability service policy, output
+        normalization, fix-mode prohibition, CI/pre-commit or local execution
+        surface, license review, and HELIX DB vulnerability finding mapping are
+        approved.
+    current_scope_action: L4-L6 design evidence only
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  web_sources_verified: true
+  source_map_is_l7_artifact: false
+  candidate_evidence_is_adoption: false
+  external_tool_installed: false
+  mcp_server_enabled: false
+  semgrep_or_codeql_executed: false
+  scorecard_executed: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+official_source_policy:
+  source_type_required: official
+  https_required: true
+  web_fetch_confirmed_required: true
+  adoption_decision_required: not_adopted_current_scope
+  recheck_required_before_install_or_execution: true
+  l7_test_design_allowed_as_source: false
+  current_scope_action_required: design_evidence_only
+  credential_or_secret_change_allowed: false
+  ci_or_equivalent_connection_allowed: false
+web_evidence_freshness_contract:
+  rechecked_on: 2026-06-12
+  latest_core_rechecked_on: 2026-06-13
+  latest_core_rechecked_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+  canonical_source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+    - ZIZMOR-GHA-SECURITY
+    - ACTIONLINT-GHA-WORKFLOW-LINT
+    - OPENSSF-SCORECARD
+    - DEPSDEV-API
+    - OSV-SCANNER
+    - SYFT-SBOM
+    - GRIMP-PYTHON-IMPORT-GRAPH
+    - DEPENDENCY-CRUISER
+    - SHELLCHECK-SHELL-STATIC
+    - MARKDOWNLINT-CLI2
+    - LYCHEE-LINK-CHECKER
+    - VALE-PROSE-LINT
+    - TEXTLINT-NATURAL-LANGUAGE-LINT
+    - MUTMUT-PY-MUTATION-TESTING
+    - HYPOTHESIS-PY-PBT
+    - COVERAGE-PY-COVERAGE
+    - DIFF-COVER-DIFF-COVERAGE
+    - PYTEST-PY-TEST-RUNNER
+    - PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+    - TOX-PY-ENV-ORCHESTRATION
+    - NOX-PY-SESSION-AUTOMATION
+    - IMPORT-LINTER-PY-ARCH-CONTRACTS
+    - CHECK-JSONSCHEMA-DOC-SCHEMA
+    - SPECTRAL-API-CONTRACT-LINT
+    - SQLFLUFF-SQL-LINT
+    - RUFF-PY-LINT-FORMAT
+    - MYPY-PY-TYPE-CHECK
+    - PIP-AUDIT-PY-VULN
+  official_sources_expected: 33
+  source_id_url_and_recheck_date_must_match_harness_coverage: true
+  latest_core_recheck_must_match_harness_coverage: true
+  all_sources_must_be_https_official_and_web_fetch_confirmed: true
+  all_sources_must_remain_not_adopted_current_scope: true
+  install_execution_or_ci_connection_requires_new_recheck: true
+  current_scope_revalidation_is_design_evidence_only: true
+  l7_or_adoption_evidence_allowed: false
+adoption_recheck_control_contract:
+  current_scope_action: define_pre_adoption_recheck_controls_only
+  controls_checked: 3
+  controls_apply_before:
+    - install
+    - enable_mcp_server
+    - plugin_adoption
+    - external_execution
+    - ci_or_equivalent_connection
+    - helix_db_ingestion
+  all_controls_require_new_recheck_before_adoption: true
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+  sources:
+    - source_id: MCP-SPEC-2025-06-18
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18
+      rechecked_on: 2026-06-13
+      controls:
+        - explicit_user_consent_for_data_access_and_tool_calls
+        - authorization_and_access_control_review
+        - untrusted_tool_description_review
+        - timeout_and_audit_log_policy
+    - source_id: GITHUB-MCP-SERVER
+      official_url: https://github.com/github/github-mcp-server
+      rechecked_on: 2026-06-13
+      controls:
+        - oauth_or_pat_scope_review
+        - organization_policy_review
+        - toolset_and_individual_tool_allowlist_review
+        - read_only_mode_precedence_review
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      official_url: https://developers.openai.com/apps-sdk/reference
+      rechecked_on: 2026-06-13
+      controls:
+        - security_schemes_review
+        - output_schema_and_structured_content_validation
+        - component_meta_visibility_review
+        - ui_resource_and_file_parameter_policy
+adoption_recheck_scope_contract:
+  current_scope_action: clarify_recheck_scope_vs_candidate_gate_coverage_only
+  adoption_recheck_controls_checked: 3
+  latest_core_rechecked_sources_checked: 5
+  all_candidate_sources_checked: 33
+  spot_recheck_sources_checked: 8
+  adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+  adoption_control_sources_are_subset_of_spot_recheck_sources: true
+  latest_core_rechecked_sources_must_match_freshness_contract: true
+  latest_core_rechecked_sources_are_subset_of_spot_recheck_sources: true
+  all_candidate_source_ids_must_match_canonical_source_ids: true
+  spot_recheck_sources_must_match_spot_recheck_section: true
+  spot_recheck_sources_are_subset_of_canonical_source_ids: true
+  spot_recheck_is_not_full_candidate_recheck: true
+  non_adoption_control_core_sources_remain_admission_gated: true
+  all_candidates_remain_gated_by_admission_gate_contracts: true
+  all_candidates_remain_gated_by_tool_intake_contract: true
+  all_candidates_remain_gated_by_tool_output_ingestion_policy: true
+  non_core_candidates_require_new_recheck_before_adoption: true
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+current_session_web_fetch_recheck_2026_06_13:
+  current_scope_action: confirm_existing_l1_l6_design_basis_only
+  checked_on: 2026-06-13
+  official_sources_checked: 5
+  source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+  web_fetch_confirmed: true
+  confirmed_controls:
+    mcp_protocol:
+      - base_protocol_json_rpc
+      - lifecycle_and_capability_negotiation
+      - authorization_framework_for_http_transport
+      - security_consent_privacy_tool_safety_controls
+    github_mcp_server:
+      - remote_or_local_server_configuration
+      - compatible_host_requirement
+      - oauth_or_pat_configuration_boundary
+      - organization_policy_review_required
+    openai_apps_sdk_descriptor:
+      - output_schema_for_structured_content
+      - security_schemes_descriptor_metadata
+      - ui_resource_uri_and_visibility_controls
+      - file_parameter_policy
+    semgrep_ce:
+      - community_edition_sast_in_ci
+      - preferred_semgrep_scan_command
+      - open_source_rule_license_review
+      - ci_permission_boundary
+    github_codeql:
+      - codeql_database_and_query_flow
+      - code_scanning_alert_output
+      - default_advanced_or_external_ci_setup
+      - supported_language_boundary
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  l7_artifact_allowed_now: false
+  result: no_change_to_candidate_gate_status
+contract_design_reference_sources:
+  current_scope_action: official_reference_basis_only_no_contract_edit
+  linked_ticket_id: contract_design_phase_label_retrofit
+  linked_ticket_status: draft
+  sources_are_harness_tool_candidates: false
+  sources_are_completion_evidence: false
+  contract_edit_performed: false
+  schema_migration_done: false
+  l7_work_performed: false
+  references:
+    - source_id: OPENAPI-SPEC-3-2-0
+      source_type: official_spec
+      official_url: https://spec.openapis.org/oas/latest.html
+      checked_on: 2026-06-13
+      web_fetch_confirmed: true
+      applies_to:
+        - D-API
+      confirmed:
+        version: 3.2.0
+        publication_date: 2025-09-19
+        design_boundary: API description and contract-shape preservation
+    - source_id: JSON-SCHEMA-VALIDATION-2020-12
+      source_type: official_spec
+      official_url: https://json-schema.org/draft/2020-12/json-schema-validation
+      checked_on: 2026-06-13
+      web_fetch_confirmed: true
+      applies_to:
+        - D-CONTRACT
+      confirmed:
+        dialect: draft_2020_12
+        design_boundary: event/schema validation semantics preservation
+    - source_id: POSTGRESQL-ALTER-TABLE-CURRENT
+      source_type: official_docs
+      official_url: https://www.postgresql.org/docs/current/sql-altertable.html
+      checked_on: 2026-06-13
+      web_fetch_confirmed: true
+      applies_to:
+        - D-DB
+      confirmed:
+        documentation: current
+        design_boundary: table-shape and migration-impact approval boundary
+web_recheck_observations:
+  fetched_on: 2026-06-12
+  current_scope_action: design_evidence_only
+  observations_are_adoption_evidence: false
+  sources:
+    - source_id: MCP-SPEC-2025-06-18
+      observed:
+        - base protocol and lifecycle are mandatory implementation concerns
+        - HTTP authorization and stdio credential handling must be separated
+        - tool/resource/prompt exposure requires host-side admission controls
+      l1_l6_design_effect:
+        - keep host support, auth method, tool consent, and tool-poisoning review as pre-execution gates
+    - source_id: GITHUB-MCP-SERVER
+      observed:
+        - remote setup uses OAuth by default and PAT is an alternative
+        - approved scopes and organization policy can restrict access
+        - remote/local configuration implies credential and write-capability boundaries
+        - toolsets, individual tools, and read-only precedence define allowlist controls
+      l1_l6_design_effect:
+        - require explicit approval for OAuth/PAT, org policy, data scope, and write capability before enablement
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      observed:
+        - Apps SDK tool descriptors align with MCP descriptor fields
+        - outputSchema is required for structuredContent validation
+        - _meta UI resource URI, model/app visibility, invocation status text, and file parameters are descriptor controls
+      l1_l6_design_effect:
+        - require explicit schema, visibility, file parameter, and invocation metadata policy before HARNESS plugin/App adoption
+    - source_id: SEMGREP-CE
+      observed:
+        - semgrep scan is the candidate command surface
+        - JSON and SARIF outputs are available for finding normalization
+        - rule/source/license review and failure behavior remain admission decisions
+      l1_l6_design_effect:
+        - keep output normalization, license review, CI/local surface, and failure mode as admission gates
+    - source_id: GITHUB-CODEQL
+      observed:
+        - default setup, advanced setup, and external CI are distinct execution routes
+        - CodeQL database, query results, alerts, and SARIF ingestion require separate mapping
+        - security/CI route approval is required before HELIX DB feedback ingestion
+      l1_l6_design_effect:
+        - keep output surface, CI route, SARIF/alert ingestion, and failure mode as admission gates
+    - source_id: OPENSSF-SCORECARD
+      observed:
+        - Scorecard can run through GitHub Action, REST API, badge, or CLI routes
+        - CLI/API use introduces PAT or GitHub App authentication and rate-limit boundaries
+        - aggregate and per-check results can become advisory security posture and dependency-risk signals
+      l1_l6_design_effect:
+        - keep credential scope, repository scope, output normalization, license review, and CI/CLI surface as admission gates
+    - source_id: DEPSDEV-API
+      observed:
+        - deps.dev provides package, version, requirements, dependencies, project, advisory, and query APIs
+        - data can be accessed as JSON over HTTP or gRPC, with a BigQuery dataset for larger analysis
+        - supported ecosystems include Cargo, Go, Maven, npm, NuGet, PyPI, and RubyGems
+      l1_l6_design_effect:
+        - keep ecosystem scope, dependency graph output normalization, license/advisory ingestion, API route, and HELIX DB mapping as admission gates
+    - source_id: OSV-SCANNER
+      observed:
+        - OSV-Scanner connects dependency lists to OSV vulnerabilities through package extraction and vulnerability matching
+        - source, image, lockfile/manifest, SBOM, license, pre-commit, and GitHub Action routes exist
+        - output formats include JSON, SARIF, SPDX, and CycloneDX, which can be normalized into advisory findings
+      l1_l6_design_effect:
+        - keep dependency artifact scope, vulnerability database route, license policy, output normalization, CI/pre-commit surface, and guided remediation risk as admission gates
+    - source_id: SYFT-SBOM
+      observed:
+        - Syft generates SBOMs from container images, filesystems, directories, files, archives, and registries
+        - output formats include Syft JSON, CycloneDX, SPDX, and GitHub dependency snapshot JSON
+        - registry or private source access and SBOM attestation must be separated from design-only evidence
+      l1_l6_design_effect:
+        - keep SBOM source scope, package cataloger scope, registry access policy, output normalization, license review, attestation policy, and HELIX DB mapping as admission gates
+    - source_id: GRIMP-PYTHON-IMPORT-GRAPH
+      observed:
+        - Grimp builds a queryable graph of imports within Python packages
+        - graph queries include children, descendants, directly imported modules, upstream modules, shortest chain, and import details
+        - external package inclusion is optional and must be explicit before dependency graph ingestion
+      l1_l6_design_effect:
+        - keep Python package scope, external inclusion policy, import edge normalization, license review, and HELIX DB dependency edge mapping as admission gates
+    - source_id: DEPENDENCY-CRUISER
+      observed:
+        - dependency-cruiser validates and visualizes dependencies for JavaScript, TypeScript, CoffeeScript, ES6, CommonJS, and AMD
+        - it reports rule violations and can generate dependency graphs in dot, json, csv, html, mermaid, and text-like formats
+        - built-in rule examples include circular dependencies, missing package.json declarations, orphan modules, and production code using dev or optional dependencies
+      l1_l6_design_effect:
+        - keep JS/TS source scope, rule scope, graph output normalization, circular/orphan/package-manifest policy, license review, and HELIX DB dependency edge mapping as admission gates
+    - source_id: SHELLCHECK-SHELL-STATIC
+      observed:
+        - ShellCheck is a shell script static analysis tool for bash and sh warning and suggestion surfaces
+        - it targets syntax issues, semantic problems, caveats, corner cases, and pitfalls
+        - it can be added to build/test suites and emits JSON, CheckStyle XML, GCC-compatible warning, and human-readable output formats
+      l1_l6_design_effect:
+        - keep shell script scope, shell dialect policy, output normalization, severity policy, CI/pre-commit surface, license review, and HELIX DB finding mapping as admission gates
+    - source_id: MARKDOWNLINT-CLI2
+      observed:
+        - markdownlint-cli2 is a config-based CLI for linting Markdown and CommonMark files
+        - configuration files include markdownlint-cli2 and markdownlint config variants
+        - output formats include default issue output, JSON, JUnit XML, SARIF, GitLab Code Quality, summary, and templated CI command output
+      l1_l6_design_effect:
+        - keep Markdown source scope, rule scope, config policy, fix-mode prohibition, output normalization, CI/pre-commit surface, license review, and HELIX DB documentation finding mapping as admission gates
+    - source_id: VALE-PROSE-LINT
+      observed:
+        - Vale is a cross-platform CLI that brings code-like linting to prose and focuses on style consistency
+        - Vale styles are YAML rules and vocabularies provide accept / reject terminology lists with built-in Terms and Avoid rules
+        - CLI controls include .vale.ini override, glob targeting, JSON output, no-exit mode, package sync, and exit codes for lint and runtime errors
+      l1_l6_design_effect:
+        - keep prose source scope, style-rule scope, vocabulary and glossary mapping, config policy, package-sync prohibition, output normalization, CI/pre-commit surface, license review, and HELIX DB documentation finding mapping as admission gates
+    - source_id: TEXTLINT-NATURAL-LANGUAGE-LINT
+      observed:
+        - textlint is a pluggable linting tool for natural language and is similar to ESLint for prose
+        - Markdown and plain text are supported by default, with rules, presets, plugins, custom formatters, and JSON/JUnit/GitHub outputs available
+        - textlint supports fixable rules with dry-run output and can also be started as an MCP server
+      l1_l6_design_effect:
+        - keep natural-language source scope, Markdown/plain-text scope, rule/preset/plugin policy, Japanese document rule selection, fix-mode prohibition, dry-run preview, output normalization, MCP server approval, CI/pre-commit surface, license review, and HELIX DB document-lint mapping as admission gates; textlint execution and MCP enablement remain approved feature-ticket work
+    - source_id: ZIZMOR-GHA-SECURITY
+      observed:
+        - zizmor is a static analysis tool for GitHub Actions that finds and can fix common CI/CD security issues
+        - input collection covers workflow/action files, local repositories, remote repository slugs, and standard input
+        - operating modes separate offline, online, and online-without-online-audits behavior; remote/private scans may require GitHub token scope review
+        - outputs include plain diagnostics, JSON, SARIF, and GitHub annotations; audit rules cover template-injection, excessive-permissions, dangerous-triggers, unpinned-uses, secrets handling, and related workflow risks
+      l1_l6_design_effect:
+        - keep GitHub Actions workflow/action scope, offline/online mode, token permissions, SARIF/JSON/GitHub annotation normalization, persona policy, safe/unsafe fix policy, CI/pre-commit surface, license review, and HELIX DB workflow-security mapping as admission gates; zizmor execution, auto-fix, SARIF upload, and CI wiring remain approved feature-ticket work
+    - source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+      observed:
+        - actionlint is a static checker for GitHub Actions workflow files
+        - checks include workflow syntax, expression typing and semantic validation, action input/output usage, and reusable workflow contracts
+        - ShellCheck and Pyflakes integrations can inspect scripts in run steps, and security checks include untrusted-input script injection and hard-coded credentials
+      l1_l6_design_effect:
+        - keep GitHub Actions workflow scope, syntax/expression/reusable-workflow rule policy, ShellCheck/Pyflakes integration scope, script-injection and credential finding mapping, output normalization, CI/pre-commit surface, license review, and HELIX DB workflow-lint mapping as admission gates; actionlint execution and CI wiring remain approved feature-ticket work
+    - source_id: MUTMUT-PY-MUTATION-TESTING
+      observed:
+        - mutmut is a mutation testing system for Python with pytest-oriented execution and incremental rerun workflow
+        - mutmut can use coverage.py filtering, mypy / pyrefly type-checker filtering, and source / test path configuration
+        - mutmut detects dependency and config changes that can invalidate cached mutation results, and mutant apply is a write operation that requires explicit approval
+      l1_l6_design_effect:
+        - keep Python source scope, mutation operator scope, pytest command policy, coverage/type-checker filtering, dependency-change policy, timeout/parallelism controls, mutant-apply prohibition, output normalization, CI/pre-commit surface, license review, and HELIX DB mutation finding mapping as admission gates
+    - source_id: HYPOTHESIS-PY-PBT
+      observed:
+        - Hypothesis is the property-based testing library for Python and generates inputs from declared strategies
+        - Hypothesis tests are regular Python functions that pytest or unittest can run in normal test suites
+        - failed properties produce falsifying examples, and settings can control examples, replay database behavior, verbosity, and deterministic profiles
+      l1_l6_design_effect:
+        - keep Python test scope, property invariant scope, strategy design policy, max_examples, stateful testing, flaky failure, replay database behavior, output normalization, CI/pre-commit surface, license review, and HELIX DB property-test finding mapping as admission gates
+    - source_id: COVERAGE-PY-COVERAGE
+      observed:
+        - coverage.py measures which parts of Python programs are executed and is commonly used to gauge test effectiveness
+        - coverage.py supports branch coverage and reports missing branch destinations separately from statement coverage
+        - coverage.py can produce text, HTML, XML, LCOV, and JSON reports, with result data available in SQLite
+      l1_l6_design_effect:
+        - keep Python source scope, test runner scope, branch coverage policy, include/omit policy, fail-under policy, coverage data-file handling, output normalization, CI/pre-commit surface, license review, and HELIX DB coverage finding mapping as admission gates; coverage closure remains approved feature-ticket work
+    - source_id: PYTEST-PY-TEST-RUNNER
+      observed:
+        - pytest supports small readable tests and complex functional tests
+        - pytest auto-discovers test_*.py / *_test.py tests and supports command-line selection
+        - pytest output includes assertion introspection, short summaries, exit-code behavior, and JUnit XML reporting
+      l1_l6_design_effect:
+        - keep Python test scope, discovery and selection policy, marker and fixture policy, plugin policy, JUnit XML output, exit-code handling, output normalization, CI/pre-commit surface, license review, and HELIX DB test-run finding mapping as admission gates; test execution remains approved feature-ticket work
+    - source_id: TOX-PY-ENV-ORCHESTRATION
+      observed:
+        - tox manages virtual environments and runs command tools across selected environments
+        - tox can run pytest, ruff, formatters, documentation tools, build tools, and publishing tools through configured environment commands
+        - tox configuration supports tox.ini, setup.cfg, pyproject.toml, and tox.toml, plus environment lists, provisioning, workdir/tempdir, and missing-interpreter behavior
+      l1_l6_design_effect:
+        - keep tox configuration scope, environment matrix policy, interpreter scope, dependency install policy, command allowlist, package build policy, missing-interpreter behavior, provisioning, workdir/tempdir handling, output normalization, CI/pre-commit surface, license review, and HELIX DB environment-run finding mapping as admission gates; tox execution remains approved feature-ticket work
+    - source_id: NOX-PY-SESSION-AUTOMATION
+      observed:
+        - Nox automates testing in multiple Python environments and uses noxfile.py as standard Python configuration
+        - Nox creates virtualenvs per session, installs declared dependencies, and runs session commands in order
+        - Nox sessions support interpreter lists, parametrization, tags, backend selection, venv reuse, and selected session execution
+      l1_l6_design_effect:
+        - keep noxfile scope, Python-code review, session selection, parametrization and tags, interpreter scope, dependency install, command allowlist, backend/reuse/download policy, output normalization, CI/pre-commit surface, license review, and HELIX DB session-run finding mapping as admission gates; Nox execution remains approved feature-ticket work
+    - source_id: IMPORT-LINTER-PY-ARCH-CONTRACTS
+      observed:
+        - Import Linter imposes constraints on imports between Python modules
+        - Import Linter supports forbidden, protected, layers, independence, and acyclic_siblings contract types
+        - lint-imports checks configured contracts, while import-linter explore/drawgraph can expose architecture graph data
+      l1_l6_design_effect:
+        - keep configuration scope, root package graph scope, contract type policy, layer order, forbidden dependency rules, independence boundaries, acyclic sibling depth, ignored import policy, external package handling, type-checking import handling, graph output, output normalization, CI/pre-commit surface, license review, and HELIX DB architecture-contract finding mapping as admission gates; Import Linter execution remains approved feature-ticket work
+    - source_id: CHECK-JSONSCHEMA-DOC-SCHEMA
+      observed:
+        - check-jsonschema validates JSON or YAML instance files against a JSON Schema
+        - schemas can be local files or remote HTTP(S) files, and remote schemas are downloaded and cached when possible
+        - the CLI supports JSON output, builtin schemas, metaschema checks, pre-commit hooks, filetype controls, and format validation options
+      l1_l6_design_effect:
+        - keep schemafile scope, builtin schema policy, metaschema usage, instance file scope, YAML/JSON filetype policy, remote schema and cache policy, output format, format validation behavior, pre-commit/CI surface, license review, and HELIX DB payload schema mapping as admission gates; schema validation execution remains approved feature-ticket work
+    - source_id: SPECTRAL-API-CONTRACT-LINT
+      observed:
+        - Spectral is a JSON/YAML linter with custom rulesets and ready-to-use OpenAPI, AsyncAPI, and Arazzo rulesets
+        - Spectral CLI can lint API files with local or explicitly selected rulesets
+        - Spectral documents API style guides plus editor, Git hook, CI, and GitHub Action workflow adoption surfaces
+      l1_l6_design_effect:
+        - keep API spec file scope, ruleset source policy, OpenAPI/AsyncAPI/Arazzo scope, custom-rule policy, API style guide policy, output normalization, editor/hook/CI surface, license review, and HELIX DB API-contract finding mapping as admission gates; Spectral execution remains approved feature-ticket work
+    - source_id: SQLFLUFF-SQL-LINT
+      observed:
+        - SQLFluff is documented as a SQL linter that catches SQL errors before database execution
+        - SQLFluff documents sqlfluff lint CLI usage and a dialect reference including SQLite
+        - SQLFluff documents templater/rule configuration plus pre-commit and GitHub Actions usage surfaces
+      l1_l6_design_effect:
+        - keep SQL source scope, dialect/SQLite policy, templater policy, rule selection, fix-mode boundary, output normalization, CI/pre-commit surface, license review, and HELIX DB SQL/schema lint mapping as admission gates; SQLFluff execution remains approved feature-ticket work
+    - source_id: DIFF-COVER-DIFF-COVERAGE
+      observed:
+        - diff-cover is documented as producing diff coverage reports for new or modified lines covered by tests
+        - diff-cover compares XML or LCov coverage reports with git diff output and supports HTML / JSON / Markdown reports
+        - diff-cover documents diff-quality, compare-branch / diff-file, fail-under, and show-uncovered controls
+      l1_l6_design_effect:
+        - keep git diff scope, compare-branch/diff-file policy, coverage report format, diff-quality checker policy, fail-under threshold, changed-line reporting, output normalization, CI/pre-commit surface, license review, and HELIX DB diff-coverage mapping as admission gates; diff-cover execution and enforcement remain approved feature-ticket work
+    - source_id: LYCHEE-LINK-CHECKER
+      observed:
+        - lychee is documented as a fast async stream-based link checker written in Rust
+        - lychee finds broken hyperlinks and mail addresses in Markdown, HTML, reStructuredText, websites, and other file formats
+        - lychee is available as a command-line utility, library, GitHub Action, and pre-commit hook surface with JSON output support
+      l1_l6_design_effect:
+        - keep document source scope, local/external link target scope, network/auth/header policy, accepted status policy, include/exclude and config policy, output normalization, CI/pre-commit/GitHub Action surface, license review, and HELIX DB doc-connection-gap mapping as admission gates; lychee execution remains approved feature-ticket work
+    - source_id: PYTEST-TESTMON-IMPACTED-TEST-SELECTION
+      observed:
+        - pytest-testmon is documented as a pytest plugin that selects and executes tests affected by changes
+        - testmon collects dependencies between tests and executed code using Coverage.py and stores data in .testmondata
+        - testmon documents --testmon, --testmon-noselect, --testmon-nocollect, --testmon-forceselect, CI usage, and hidden dependency concerns
+      l1_l6_design_effect:
+        - keep Python test scope, affected-test selection policy, dependency database policy, Coverage.py dependency collection, selection mode policies, hidden dependency policy, environment variant policy, local storage policy, CI/pre-commit surface, license review, and HELIX DB test-impact mapping as admission gates; pytest-testmon execution remains approved feature-ticket work
+    - source_id: RUFF-PY-LINT-FORMAT
+      observed:
+        - Ruff is an extremely fast Python linter and code formatter with pyproject.toml support and over 900 built-in rules
+        - ruff check lints files/directories, supports rule selection, and can optionally fix fixable errors
+        - Ruff distinguishes safe and unsafe fixes, exposes fix applicability in JSON output, and supports suppression controls such as noqa
+      l1_l6_design_effect:
+        - keep Python source scope, rule selection policy, config policy, fix/unsafe-fix prohibition, suppression policy, output normalization, CI/pre-commit surface, license review, and HELIX DB coding-rule finding mapping as admission gates
+    - source_id: MYPY-PY-TYPE-CHECK
+      observed:
+        - mypy is a static type checker for Python and checks type hints before runtime execution
+        - existing codebase guidance includes consistent runs, regression prevention, and progressively stricter options
+        - command-line and configuration surfaces include error codes, import discovery, installed package handling, and report generation
+      l1_l6_design_effect:
+        - keep Python source scope, type annotation scope, strictness policy, import discovery policy, error-code policy, output normalization, CI/pre-commit surface, license review, and HELIX DB type finding mapping as admission gates
+    - source_id: PIP-AUDIT-PY-VULN
+      observed:
+        - pip-audit audits Python environments, requirements files, local projects, and lock files for known vulnerabilities
+        - output formats include JSON, Markdown, CycloneDX JSON, and CycloneDX XML
+        - GitHub Action and pre-commit routes exist, and automatic fixing is available but must remain disabled until approved
+      l1_l6_design_effect:
+        - keep Python dependency scope, requirements/lockfile scope, vulnerability service policy, output normalization, fix-mode prohibition, CI/pre-commit surface, license review, and HELIX DB vulnerability finding mapping as admission gates
+spot_recheck_2026_06_13:
+  purpose: >
+    Reconfirm high-impact MCP / SAST / code scanning / GitHub Actions
+    workflow-security / workflow-lint / link-reference candidates
+    against official sources after the L7 boundary was restated. This spot
+    recheck is L1-L6 design evidence only and does not update the 33-source
+    batch recheck contract.
+  checked_on: 2026-06-13
+  source_count: 8
+  current_scope_action: design_evidence_only
+  adoption_or_install_evidence: false
+  l7_or_execution_evidence_allowed: false
+  sources:
+    - source_id: MCP-SPEC-2025-06-18
+      official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
+      reconfirmed:
+        - Version 2025-06-18 remains the referenced MCP base protocol page.
+        - JSON-RPC 2.0, lifecycle management, authorization, resources, prompts, and tools remain the relevant HARNESS admission surfaces.
+        - HTTP authorization and stdio credential handling remain separate pre-execution design controls.
+      l1_l6_design_effect: keep MCP host support, authorization, tool consent, and tool-poisoning review as admission gates.
+    - source_id: GITHUB-MCP-SERVER
+      official_url: https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server
+      reconfirmed:
+        - Remote GitHub MCP setup still exposes OAuth and PAT authentication paths.
+        - Approved scopes and organization policy can restrict access.
+        - Credential, data-scope, and write-capability review remains mandatory before enablement.
+      l1_l6_design_effect: keep OAuth/PAT, org policy, data scope, and write capability outside current scope until approved.
+    - source_id: OPENAI-APPS-SDK-MCP-DESCRIPTOR
+      official_url: https://developers.openai.com/apps-sdk/reference
+      reconfirmed:
+        - Apps SDK tool descriptors align with MCP tool descriptor fields.
+        - outputSchema should be declared for structuredContent so clients can validate tool results.
+        - UI resource URI, model/app visibility, invocation status, and file parameters are descriptor-level controls.
+      l1_l6_design_effect: keep Apps SDK descriptor schema, visibility, file parameter, and invocation metadata as admission gates.
+    - source_id: SEMGREP-CE
+      official_url: https://docs.semgrep.dev/deployment/oss-deployment
+      reconfirmed:
+        - Semgrep CE remains a CI SAST candidate.
+        - The preferred CE command surface remains semgrep scan.
+        - Rule source/license, output normalization, CI/local surface, and failure mode remain admission gates.
+      l1_l6_design_effect: keep Semgrep execution and CI wiring as approved feature-ticket work only.
+    - source_id: GITHUB-CODEQL
+      official_url: https://docs.github.com/en/code-security/concepts/code-scanning/codeql/codeql-code-scanning
+      reconfirmed:
+        - CodeQL still uses a database plus queries to identify problems.
+        - Query results surface as code scanning alerts when used with GitHub code scanning.
+        - Database generation, SARIF/alert ingestion, and CI route selection remain separate design decisions.
+      l1_l6_design_effect: keep CodeQL database, alert/SARIF ingestion, and CI route admission outside current scope.
+    - source_id: ZIZMOR-GHA-SECURITY
+      official_url: https://docs.zizmor.sh/
+      reconfirmed:
+        - zizmor remains a static analysis tool for GitHub Actions.
+        - It targets workflow security issues including template injection, credential persistence or leakage, excessive permissions, dangerous triggers, and reference confusion.
+        - Installation, rule selection, output normalization, and failure mode remain separate admission decisions.
+      l1_l6_design_effect: keep zizmor execution and GitHub Actions security finding ingestion as approved feature-ticket work only.
+    - source_id: ACTIONLINT-GHA-WORKFLOW-LINT
+      official_url: https://github.com/rhysd/actionlint
+      reconfirmed:
+        - actionlint remains a static checker for GitHub Actions workflow files.
+        - It checks workflow syntax, expression typing, action usage, reusable workflow contracts, shellcheck/pyflakes integrations, and security-related issues.
+        - Local, pre-commit, CI, and reviewdog/problem-matcher integrations remain admission decisions before execution.
+      l1_l6_design_effect: keep actionlint execution and workflow-lint output ingestion as approved feature-ticket work only.
+    - source_id: LYCHEE-LINK-CHECKER
+      official_url: https://github.com/lycheeverse/lychee
+      reconfirmed:
+        - lychee remains a link checker for Markdown, HTML, reStructuredText, websites, and related file formats.
+        - CLI output supports machine-readable formats including json and junit.
+        - External link/network, auth/header, accepted status, and output normalization policies remain admission gates.
+      l1_l6_design_effect: keep lychee execution and HELIX DB doc-connection-gap ingestion as approved feature-ticket work only.
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - L1-L6 Web evidence is available outside docs/v2/L7-test-design
+      - each official source maps to concrete L4-L6 design controls
+      - evidence remains separate from adoption and full goal completion
+completion_denial:
+  reason: >
+    This source map proves official Web-backed L1-L6 design evidence only. It
+    does not prove external tool installation, MCP/plugin enablement, scanner
+    execution, CI/equivalent wiring, HELIX DB write adoption, L7 implementation,
+    or full goal completion.

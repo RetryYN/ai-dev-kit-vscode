@@ -1,0 +1,595 @@
+schema_version: l1_l6_governance_hardening_coverage_v1
+owner: TL
+status: current_scope_l1_l6_governance_design_covered
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that coding rules, DDD documentation, strict TDD, automatic
+  registration, dependency inventory, and impact visibility have L1-L6 design
+  coverage without claiming new L7 implementation, test execution, CI
+  connection, fail-close promotion, DB migration, or full-flow completion.
+sources:
+  l6_governance_designs:
+    - docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+    - docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+    - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+  supporting_lifecycle_designs:
+    - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+    - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+  preexisting_completed_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-05-registry-detector-base.md
+    - docs/plans/add-feature/add-feature-2026-06-05-coding-rule-ssot.md
+    - docs/plans/add-feature/add-feature-2026-06-05-ddd-registry-coverage.md
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  governance_map_is_implementation_evidence: false
+  new_l7_test_design_created: false
+  new_l7_implementation_done: false
+  fail_close_promotion_done: false
+  ci_or_equivalent_connected: false
+  schema_migration_done: false
+  external_tool_executed: false
+  goal_complete_allowed: false
+summary:
+  governance_surfaces_checked: 8
+  l6_design_docs_checked: 8
+  l6_function_contracts_checked: 53
+  current_scope_l6_ut_candidate_viewpoints: 44
+  governance_finding_normalization_contracts_checked: 6
+  governance_normalization_required_fields_checked: 7
+  documentation_readiness_gap_patterns_checked: 7
+  governance_controls_checked: 6
+  governance_detection_required_route_fields_checked: 7
+  governance_detection_routes_checked: 6
+  governance_control_trace_rows_checked: 6
+  governance_control_closure_rows_checked: 6
+  preexisting_l7_pair_refs: 2
+  preexisting_completed_feature_entry_points_checked: 3
+  deferred_feature_entry_points_checked: 4
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+governance_surfaces:
+  - id: GOV-CODING-RULE
+    artifact: docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+    design_status: frozen_existing_pair
+    function_ids:
+      - FN-CRREG-01
+      - FN-CRREG-02
+      - FN-CRREG-03
+      - FN-CRREG-04
+    scope_result: L6 design and preexisting pair evidence only
+    completed_feature_plan: docs/plans/add-feature/add-feature-2026-06-05-coding-rule-ssot.md
+  - id: GOV-DDD-REGISTRY
+    artifact: docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+    design_status: frozen_existing_pair
+    function_ids:
+      - FN-DDD-01
+      - FN-DDD-02
+      - FN-DDD-03
+      - FN-DDD-04
+      - FN-DDD-05
+    scope_result: L6 design and preexisting pair evidence only
+    completed_feature_plan: docs/plans/add-feature/add-feature-2026-06-05-ddd-registry-coverage.md
+  - id: GOV-TDD-ORDER
+    artifact: docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - TDD-FN-01
+      - TDD-FN-02
+      - TDD-FN-03
+      - TDD-FN-04
+      - TDD-FN-05
+      - TDD-FN-06
+      - TDD-FN-07
+    l6_ut_candidate_count: 7
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  - id: GOV-FUNCTION-REGISTRY
+    artifact: docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - FNREG-FN-01
+      - FNREG-FN-02
+      - FNREG-FN-03
+      - FNREG-FN-04
+      - FNREG-FN-05
+      - FNREG-FN-06
+      - FNREG-FN-07
+      - FNREG-FN-08
+    l6_ut_candidate_count: 8
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+  - id: GOV-GLOSSARY
+    artifact: docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - GLOSS-FN-01
+      - GLOSS-FN-02
+      - GLOSS-FN-03
+      - GLOSS-FN-04
+      - GLOSS-FN-05
+      - GLOSS-FN-06
+      - GLOSS-FN-07
+      - GLOSS-FN-08
+    l6_ut_candidate_count: 8
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+  - id: GOV-INVENTORY
+    artifact: docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - INV-FN-01
+      - INV-FN-02
+      - INV-FN-03
+      - INV-FN-04
+      - INV-FN-05
+      - INV-FN-06
+      - INV-FN-07
+    l6_ut_candidate_count: 7
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  - id: GOV-IMPACT
+    artifact: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - IMPACT-FN-01
+      - IMPACT-FN-02
+      - IMPACT-FN-03
+      - IMPACT-FN-04
+      - IMPACT-FN-05
+      - IMPACT-FN-06
+      - IMPACT-FN-07
+    l6_ut_candidate_count: 7
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+  - id: GOV-DOC-REVIEW
+    artifact: docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+    design_status: current_scope_l6_design
+    function_ids:
+      - DOCREV-FN-01
+      - DOCREV-FN-02
+      - DOCREV-FN-03
+      - DOCREV-FN-04
+      - DOCREV-FN-05
+      - DOCREV-FN-06
+      - DOCREV-FN-07
+    l6_ut_candidate_count: 7
+    scope_result: L6 function contract and unit-test-design viewpoints only
+    deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+coverage_controls:
+  coding_rule_registry:
+    expected_registry_entries: 14
+    status: designed_or_preexisting_warn_only
+  ddd_registry:
+    expected_glossary_terms_min: 19
+    expected_bounded_contexts: 10
+    status: designed_or_preexisting_warn_only
+  tdd_order:
+    forbidden_transitions_defined: true
+    failing_test_required_before_implementation: true
+    closure_denied_without_test_pass: true
+  auto_registration:
+    functional_registry_required: true
+    glossary_registry_required: true
+    db_feedback_append_only: true
+    add_feature_ticket_import_deferred_plan: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    ticket_registration_is_completion_evidence: false
+  impact_visibility:
+    dependency_edges_required: true
+    affected_artifacts_and_gates_separated: true
+    unknown_scope_not_treated_as_local: true
+  doc_review_quality:
+    four_viewpoints_required: true
+    blocked_result_not_advisory: true
+    review_evidence_is_completion: false
+    reviewer_read_only_required: true
+documentation_readiness_detection_matrix:
+  current_scope_action: map_user_doc_governance_request_to_existing_l1_l6_controls
+  matrix_is_l7_work: false
+  detector_execution_added_now: false
+  fail_close_promotion_added_now: false
+  db_write_added_now: false
+  rows_checked: 7
+  rows:
+    - gap_pattern: missing_function_registry_entry
+      detecting_control: auto_registration
+      primary_governance_surface: GOV-FUNCTION-REGISTRY
+      finding_types:
+        - undefined_fr
+        - duplicate_fr
+        - registry_drift
+        - missing_asset
+        - reverse_leak
+        - status_mismatch
+      feedback_route: append_fnreg_feedback
+      completion_boundary: L6_design_only_l7_cli_db_ci_deferred
+    - gap_pattern: missing_document_review_or_quality_scope
+      detecting_control: doc_review_quality
+      primary_governance_surface: GOV-DOC-REVIEW
+      finding_types:
+        - missing_doc_review_scope
+        - p0_downgraded_to_conditional
+        - missing_four_viewpoint_findings
+        - missing_vmodel_quantity_closure
+        - read_only_boundary_missing
+      feedback_route: append_doc_review_feedback
+      completion_boundary: L6_design_only_reviewer_runtime_deferred
+    - gap_pattern: missing_ddd_or_glossary_registry_coverage
+      detecting_control: ddd_registry
+      primary_governance_surface: GOV-DDD-REGISTRY
+      secondary_governance_surface: GOV-GLOSSARY
+      finding_types:
+        - undefined_term
+        - bounded_context_drift
+        - anti_corruption_violation
+        - registry_mirror_drift
+        - missing_reference
+      feedback_route: append_glossary_feedback
+      completion_boundary: L6_design_only_glossary_cli_db_deferred
+    - gap_pattern: missing_coding_rule_or_enforcement_metadata
+      detecting_control: coding_rule_registry
+      primary_governance_surface: GOV-CODING-RULE
+      finding_types:
+        - missing_rule
+        - duplicate_rule
+        - stale_rule_status
+        - rule_source_missing
+      feedback_route: coding_rule_detector_report
+      completion_boundary: L6_design_only_fail_close_deferred
+    - gap_pattern: tdd_order_violation_or_test_after_implementation
+      detecting_control: tdd_order
+      primary_governance_surface: GOV-TDD-ORDER
+      finding_types:
+        - missing_test_design_or_stub
+        - missing_failing_test_observation
+        - implementation_before_test
+        - closure_without_test_pass
+      feedback_route: append_tdd_feedback
+      completion_boundary: L6_design_only_unit_execution_deferred
+    - gap_pattern: missing_dependency_or_impact_edge
+      detecting_control: impact_visibility
+      primary_governance_surface: GOV-IMPACT
+      finding_types:
+        - missing_dependency_edge
+        - unknown_scope
+        - missing_affected_artifact
+        - missing_required_gate
+      feedback_route: append_impact_feedback
+      completion_boundary: L6_design_only_impact_query_runtime_deferred
+    - gap_pattern: missing_asset_inventory_or_document_projection_metadata
+      detecting_control: auto_registration
+      primary_governance_surface: GOV-INVENTORY
+      finding_types:
+        - missing_document_projection
+        - missing_process_layer
+        - missing_pairs_with
+        - missing_implementation_status
+      feedback_route: append_inventory_feedback
+      completion_boundary: L6_design_only_document_projection_write_deferred
+governance_detection_policy:
+  current_scope_action: define_l6_detection_contract_only
+  detector_execution_added_now: false
+  fail_close_promotion_added_now: false
+  db_write_added_now: false
+  route_to_gate_input: true
+  route_to_feedback_candidate: true
+  candidate_is_not_closure: true
+  allowed_severities:
+    - P0
+    - P1
+    - P2
+    - P3
+  required_route_fields:
+    - control_id
+    - finding_types
+    - severity_floor
+    - source_artifact
+    - gate_inputs
+    - feedback_behavior
+    - completion_boundary
+  completion_boundary_rule: >
+    Governance findings can become gate inputs and feedback candidates in the
+    design contract, but they cannot prove implementation, DB persistence,
+    CI/equivalent enforcement, recurrence closure, or full-goal completion.
+governance_finding_normalization_policy:
+  current_scope_action: define_normalized_finding_contract_only
+  db_write_allowed_now: false
+  detector_execution_allowed_now: false
+  fail_close_allowed_now: false
+  required_fields:
+    - control_id
+    - source_category
+    - normalized_finding_type
+    - db_target
+    - lifecycle_state
+    - feedback_route
+    - completion_guard
+  allowed_db_targets:
+    - detector_report
+    - feedback_event
+    - contract_registry
+  allowed_lifecycle_states:
+    - detected
+    - registered
+    - candidate_generated
+  allowed_completion_guards:
+    - candidate_generated_is_not_closure
+    - plan_materialized_is_not_closure
+governance_finding_normalization_contracts:
+  - control_id: coding_rule_registry
+    source_category: coding_rule
+    normalized_finding_type: coding_rule_registry_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    feedback_route: coding_rule_ssot_candidate
+    completion_guard: candidate_generated_is_not_closure
+  - control_id: ddd_registry
+    source_category: ddd_registry
+    normalized_finding_type: ubiquitous_language_or_bc_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    feedback_route: ddd_registry_coverage_candidate
+    completion_guard: candidate_generated_is_not_closure
+  - control_id: tdd_order
+    source_category: tdd_order
+    normalized_finding_type: tdd_order_violation
+    db_target: feedback_event
+    lifecycle_state: candidate_generated
+    feedback_route: strict_tdd_enforcement_candidate
+    completion_guard: plan_materialized_is_not_closure
+  - control_id: auto_registration
+    source_category: document_auto_registration
+    normalized_finding_type: registry_projection_gap
+    db_target: contract_registry
+    lifecycle_state: registered
+    feedback_route: registry_glossary_projection_candidate
+    completion_guard: candidate_generated_is_not_closure
+  - control_id: impact_visibility
+    source_category: dependency_impact
+    normalized_finding_type: dependency_or_impact_visibility_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    feedback_route: impact_analysis_candidate
+    completion_guard: candidate_generated_is_not_closure
+  - control_id: doc_review_quality
+    source_category: doc_review
+    normalized_finding_type: doc_quality_or_vmodel_review_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    feedback_route: doc_review_quality_candidate
+    completion_guard: candidate_generated_is_not_closure
+control_detection_routes:
+  - control_id: coding_rule_registry
+    finding_types:
+      - missing_rule
+      - duplicate_rule
+      - stale_rule_status
+      - rule_source_missing
+    severity_floor: P2
+    source_artifact: docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_or_preexisting_pair_not_new_l7
+  - control_id: ddd_registry
+    finding_types:
+      - undefined_term
+      - bounded_context_drift
+      - anti_corruption_violation
+      - registry_mirror_drift
+    severity_floor: P2
+    source_artifact: docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_or_preexisting_pair_not_new_l7
+  - control_id: tdd_order
+    finding_types:
+      - missing_test_design_or_stub
+      - missing_failing_test_observation
+      - implementation_before_test
+      - closure_without_test_pass
+    severity_floor: P1
+    source_artifact: docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_only_not_l7_execution
+  - control_id: auto_registration
+    finding_types:
+      - undefined_fr
+      - duplicate_fr
+      - registry_drift
+      - missing_asset
+      - reverse_leak
+      - undefined_term
+      - term_variant
+      - anti_corruption_violation
+    severity_floor: P1
+    source_artifact: docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+    companion_artifact: docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_only_not_db_write
+  - control_id: impact_visibility
+    finding_types:
+      - missing_dependency_edge
+      - unknown_scope
+      - affected_gate_missing
+      - feedback_ref_missing
+    severity_floor: P2
+    source_artifact: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_only_not_cli
+  - control_id: doc_review_quality
+    finding_types:
+      - missing_doc_review_scope
+      - p0_downgraded_to_conditional
+      - missing_four_viewpoint_findings
+      - missing_vmodel_quantity_closure
+      - read_only_boundary_missing
+    severity_floor: P1
+    source_artifact: docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+    gate_inputs:
+      - G6
+      - pre-push
+    feedback_behavior: append_candidate_only
+    completion_boundary: l6_design_only_not_reviewer_execution
+governance_control_closure_contract:
+  current_scope_action: prove_governance_detection_to_feedback_alignment_only
+  source_collections:
+    - coverage_controls
+    - governance_finding_normalization_contracts
+    - control_detection_routes
+    - governance_control_trace
+  control_identity_field: control_id
+  controls_checked: 6
+  db_write_allowed_now: false
+  detector_execution_allowed_now: false
+  fail_close_allowed_now: false
+  l7_or_adoption_evidence_allowed: false
+  rows:
+    - control_id: coding_rule_registry
+      normalized_finding_type: coding_rule_registry_gap
+      source_category: coding_rule
+      db_target: detector_report
+      lifecycle_state: detected
+      feedback_route: coding_rule_ssot_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P2
+      completion_boundary: l6_design_or_preexisting_pair_not_new_l7
+    - control_id: ddd_registry
+      normalized_finding_type: ubiquitous_language_or_bc_gap
+      source_category: ddd_registry
+      db_target: detector_report
+      lifecycle_state: detected
+      feedback_route: ddd_registry_coverage_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P2
+      completion_boundary: l6_design_or_preexisting_pair_not_new_l7
+    - control_id: tdd_order
+      normalized_finding_type: tdd_order_violation
+      source_category: tdd_order
+      db_target: feedback_event
+      lifecycle_state: candidate_generated
+      feedback_route: strict_tdd_enforcement_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P1
+      completion_boundary: l6_design_only_not_l7_execution
+    - control_id: auto_registration
+      normalized_finding_type: registry_projection_gap
+      source_category: document_auto_registration
+      db_target: contract_registry
+      lifecycle_state: registered
+      feedback_route: registry_glossary_projection_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P1
+      completion_boundary: l6_design_only_not_db_write
+    - control_id: impact_visibility
+      normalized_finding_type: dependency_or_impact_visibility_gap
+      source_category: dependency_impact
+      db_target: detector_report
+      lifecycle_state: detected
+      feedback_route: impact_analysis_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P2
+      completion_boundary: l6_design_only_not_cli
+    - control_id: doc_review_quality
+      normalized_finding_type: doc_quality_or_vmodel_review_gap
+      source_category: doc_review
+      db_target: detector_report
+      lifecycle_state: detected
+      feedback_route: doc_review_quality_candidate
+      gate_inputs:
+        - G6
+        - pre-push
+      severity_floor: P1
+      completion_boundary: l6_design_only_not_reviewer_execution
+governance_control_trace:
+  - control_id: coding_rule_registry
+    source_artifact: docs/v2/L6-functional-design/coding-rule-detector-機能設計.md
+    required_terms:
+      - coding-rule
+      - registry
+      - FN-CRREG
+    current_scope_status: l6_design_or_preexisting_pair_not_new_l7
+  - control_id: ddd_registry
+    source_artifact: docs/v2/L6-functional-design/ddd-registry-detector-機能設計.md
+    required_terms:
+      - DDD
+      - bounded_context
+      - FN-DDD
+    current_scope_status: l6_design_or_preexisting_pair_not_new_l7
+  - control_id: tdd_order
+    source_artifact: docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    required_terms:
+      - failing_test_observed
+      - "full_goal_completion_allowed: false"
+      - テスト設計またはテスト stub なしで実装 step
+      - feedback append は closure に昇格しない
+    current_scope_status: l6_design_only_not_l7_execution
+  - control_id: auto_registration
+    source_artifact: docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+    required_terms:
+      - plan_trace_record
+      - dependency / generates
+      - "closure_allowed: false"
+      - auto-register 成功だけでは closure 不可
+    current_scope_status: l6_design_only_not_db_write
+  - control_id: impact_visibility
+    source_artifact: docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+    required_terms:
+      - dependency_edges
+      - source -> target -> relation -> confidence
+      - PLAN / design / test-design / code / gate / feedback
+      - unknown を local と偽装しない
+    current_scope_status: l6_design_only_not_cli
+  - control_id: doc_review_quality
+    source_artifact: docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+    required_terms:
+      - Correctness / Completeness / Consistency / Clarity
+      - approve / conditional_approve / blocked
+      - P0 を conditional に降格しない
+      - review evidence は closure ではない
+    current_scope_status: l6_design_only_not_reviewer_execution
+preexisting_pair_policy:
+  preexisting_l7_pair_refs:
+    - docs/v2/L7-test-design/coding-rule-detector-単体テスト設計.md
+    - docs/v2/L7-test-design/ddd-registry-detector-単体テスト設計.md
+  current_audit_created_these_l7_artifacts: false
+  current_scope_uses_l7_as_completion_evidence: false
+completion_denial:
+  reason: >
+    This audit proves L1-L6 governance hardening design coverage only. It does
+    not prove new L7 implementation, test execution, fail-close promotion,
+    CI/equivalent connection, DB migration, external tool execution, or full
+    goal completion.

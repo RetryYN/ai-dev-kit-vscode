@@ -1,0 +1,436 @@
+schema_version: l1_l6_deferred_feature_coverage_v1
+owner: TL
+status: current_scope_l1_l6_deferred_boundaries_mapped
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Ensure every L1-L6 objective clause that still needs later-phase approved
+  feature-ticket work is mapped to an explicit add-feature entry point or an
+  explicit non-applicable boundary. This audit is not implementation evidence.
+sources:
+  objective_audit:
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  candidate_maps:
+    - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    - docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    - docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  coverage_map_is_implementation_evidence: false
+  l7_test_design_created_by_this_audit: false
+  l7_implementation_done: false
+  schema_migration_done: false
+  external_tool_installed: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+latest_user_boundary:
+  l7_requested_now: false
+  l7_route: add_feature_ticket_only
+  current_allowed_work: L1-L6 audit/design/evidence cleanup and feature-ticket boundary mapping
+  forbidden_now:
+    - L7 implementation
+    - L7 test-design artifact creation
+    - unit-test implementation or execution
+    - coverage closure
+    - HELIX DB write adoption
+    - external tool installation or execution
+    - CI/equivalent connection
+summary:
+  objective_clauses_checked: 9
+  deferred_entry_points_checked: 11
+  feature_tickets_checked: 11
+  feature_tickets_draft: 11
+  feature_tickets_with_approval_boundary: 11
+  feature_tickets_with_unlock_conditions: 11
+  repository_add_feature_files_discovered: 16
+  current_objective_deferred_feature_tickets: 11
+  out_of_current_objective_add_feature_files: 5
+  out_of_current_objective_completed_add_features: 4
+  out_of_current_objective_parked_feature_tickets: 1
+  full_flow_later_phase_approval_boundary: true
+  clauses_without_deferred_work: 1
+  clauses_mapped_to_feature_ticket: 8
+  unmapped_deferred_boundaries: 0
+  l7_artifacts_created_by_this_audit: 0
+repository_add_feature_inventory:
+  inventory_scope: docs/plans/add-feature
+  current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
+  all_repository_add_feature_files_checked: 16
+  current_objective_deferred_feature_tickets_checked: 11
+  excluded_from_current_objective_deferred_count: 5
+  exclusion_is_completion_evidence_for_current_objective: false
+  exclusion_may_hide_current_l1_l6_design_debt: false
+  l7_work_allowed_by_inventory: false
+  current_objective_ticket_ids:
+    - full_flow_remaining_guards
+    - l7_unit_closure
+    - db_evidence_lifecycle
+    - harness_external_tools
+    - codex_claude_guard_parity
+    - fr_registry_glossary
+    - plan_registry_add_feature_import
+    - dependency_impact_query
+    - bottleneck_routing
+    - phase_enum_l0_l14_runtime_retrofit
+    - contract_design_phase_label_retrofit
+  excluded_from_current_objective:
+    - id: gate_driven_push
+      path: docs/plans/add-feature/add-feature-2026-06-03-gate-driven-push.md
+      observed_status: completed
+      classification: historical_completed_feature
+      reason: >
+        Completed push-gate action predates this L1-L6 objective boundary and is
+        not an unapproved current L7/DB/CI/external-tool remainder.
+    - id: registry_detector_base
+      path: docs/plans/add-feature/add-feature-2026-06-05-registry-detector-base.md
+      observed_status: completed
+      classification: historical_completed_feature
+      reason: >
+        Completed registry detector base is prior implementation evidence for
+        detector infrastructure, not a current deferred boundary.
+    - id: coding_rule_ssot
+      path: docs/plans/add-feature/add-feature-2026-06-05-coding-rule-ssot.md
+      observed_status: completed
+      classification: historical_completed_feature
+      reason: >
+        Completed coding-rule SSoT detector action is prior work; current
+        remaining coding-rule governance work is represented by the L1-L6
+        design evidence and later feature boundaries.
+    - id: ddd_registry_coverage
+      path: docs/plans/add-feature/add-feature-2026-06-05-ddd-registry-coverage.md
+      observed_status: completed
+      classification: historical_completed_feature
+      reason: >
+        Completed DDD registry coverage action is prior detector work; current
+        remaining DDD/registry projection gaps are covered by the 11 active
+        deferred boundary tickets.
+    - id: detector_failclose_ci_gate
+      path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md
+      observed_status: finalized
+      classification: parked_feature_ticket_outside_current_objective_set
+      reason: >
+        Parked detector fail-close/CI gate work remains approval-bound and
+        outside the current L1-L6 objective proof. It does not authorize CI
+        wiring, fail-close promotion, or L7 work in this scope.
+feature_ticket_unlock_condition_contract:
+  source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
+  current_scope_action: verify_unlock_condition_metadata_only
+  unlock_conditions_are_completion_evidence: false
+  l7_execution_allowed_by_unlock_conditions: false
+  required_feature_ticket_ids:
+    - full_flow_remaining_guards
+    - l7_unit_closure
+    - db_evidence_lifecycle
+    - harness_external_tools
+    - codex_claude_guard_parity
+    - fr_registry_glossary
+    - plan_registry_add_feature_import
+    - dependency_impact_query
+    - bottleneck_routing
+    - phase_enum_l0_l14_runtime_retrofit
+    - contract_design_phase_label_retrofit
+  required_unlock_condition_tokens_by_ticket:
+    full_flow_remaining_guards:
+      - right_arm_execution_gates
+      - ci_or_equivalent
+    l7_unit_closure:
+      - l7_unit
+      - coverage_closure
+    db_evidence_lifecycle:
+      - db_write
+      - document_auto_registration
+      - feedback_loop
+      - recurrence_closure
+    harness_external_tools:
+      - external_tool
+      - adoption_recheck
+      - ingestion
+    codex_claude_guard_parity:
+      - runtime_guard_parity
+    fr_registry_glossary:
+      - registry
+      - glossary
+    plan_registry_add_feature_import:
+      - plan_registry
+      - plan_registry_import
+      - add_feature
+    dependency_impact_query:
+      - dependency_impact
+      - edge_visibility
+    bottleneck_routing:
+      - bottleneck_candidate_routing
+      - recurrence_closure
+    phase_enum_l0_l14_runtime_retrofit:
+      - runtime_phase_enum
+      - handover_validation
+    contract_design_phase_label_retrofit:
+      - contract_design_phase_label_retirement
+      - contract_semantics_preserved
+feature_ticket_integrity:
+  - id: full_flow_remaining_guards
+    path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L8-L14
+    status: draft
+    approval_required_before_later_phase_work: true
+    approval_required_before_implementation: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - right_arm_execution_gates
+      - ci_or_equivalent
+  - id: db_evidence_lifecycle
+    path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - db_write
+      - document_auto_registration
+      - feedback_loop
+      - recurrence_closure
+  - id: harness_external_tools
+    path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    workflow: add-feature
+    kind: add-design
+    layer: L6
+    status: draft
+    approval_required_before_l7_work: true
+    approval_required_before_install: true
+    external_tool_installation_allowed_now: false
+    current_task_scope: L4_L6_design_closed_feature_ticketed
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - external_tool
+      - adoption_recheck
+      - ingestion
+  - id: codex_claude_guard_parity
+    path: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    approval_boundary_required: true
+    ticket_is_completion_evidence: false
+    unlock_conditions:
+      - runtime_guard_parity
+  - id: fr_registry_glossary
+    path: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    approval_boundary_required: true
+    ticket_is_completion_evidence: false
+    unlock_conditions:
+      - registry
+      - glossary
+  - id: plan_registry_add_feature_import
+    path: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - plan_registry
+      - plan_registry_import
+      - add_feature
+  - id: dependency_impact_query
+    path: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - dependency_impact
+      - edge_visibility
+  - id: bottleneck_routing
+    path: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - bottleneck_candidate_routing
+      - recurrence_closure
+  - id: l7_unit_closure
+    path: docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    approval_required_before_implementation: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - l7_unit
+      - coverage_closure
+  - id: phase_enum_l0_l14_runtime_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    workflow: add-feature
+    kind: add-impl
+    layer: L7
+    status: draft
+    approval_required_before_l7_work: true
+    approval_required_before_implementation: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - runtime_phase_enum
+      - handover_validation
+  - id: contract_design_phase_label_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    workflow: add-feature
+    kind: add-design
+    layer: L5-L6
+    status: draft
+    approval_required_before_contract_edit: true
+    approval_required_before_l7_work: true
+    approval_required_before_implementation: true
+    current_task_scope: feature_ticket_only
+    ticket_is_completion_evidence: false
+    approval_boundary_required: true
+    unlock_conditions:
+      - contract_design_phase_label_retirement
+      - contract_semantics_preserved
+design_escalation_boundary:
+  l5_l6_add_design_feature_tickets_checked: 1
+  ticket_ids:
+    - contract_design_phase_label_retrofit
+  escalation_required_for:
+    - D-API
+    - D-DB
+    - D-CONTRACT
+  reason: >
+    Contract-design phase-label retrofit is L5-L6 design work, but direct
+    D-API/D-DB/D-CONTRACT edits can change contract semantics, schema-like
+    snippets, migration behavior, or event envelopes. Current scope records
+    the boundary and requires explicit approval before contract edits.
+  current_scope_action: record_boundary_only_no_contract_edit
+  approval_required_before_contract_edit: true
+  contract_edit_performed: false
+  schema_migration_done: false
+  l7_work_performed: false
+objective_boundary_coverage:
+  - objective_id: OBJ-REQ-GAP-L6
+    l1_l6_status: closed
+    boundary_type: no_later_work_for_current_l1_l6_gap_audit
+    feature_entry_points: []
+    current_scope_note: Requirement drift and FR31 trace are clean through L6.
+  - objective_id: OBJ-GRANULARITY-L1-L6
+    l1_l6_status: closed_with_l4_l9_monitoring
+    boundary_type: later_execution_gates
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      - docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    current_scope_note: L1-L6 pair balance is mapped; G8/G9/G12/G14 execution remains later work.
+  - objective_id: OBJ-CODEX-CLAUDE-GUARD-PARITY
+    l1_l6_status: closed_for_current_guard_surface
+    boundary_type: l7_feature_ticket_required
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    current_scope_note: Codex runtime evidence and L6 design-only gaps are separated; additional parity enforcement is not current-scope L7 work.
+  - objective_id: OBJ-DDD-TDD-AUTO-GOVERNANCE
+    l1_l6_status: design_closed_implementation_deferred
+    boundary_type: l7_feature_ticket_required
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    current_scope_note: DDD/TDD/registry design is present; detector implementation and DB write closure require approved add-feature work.
+  - objective_id: OBJ-WORKFLOW-AUTOMATION
+    l1_l6_status: design_and_readiness_defined
+    boundary_type: later_execution_gates
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+      - docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    current_scope_note: Workflow definitions and readiness are mapped; strict full-flow automation is later work.
+  - objective_id: OBJ-ADDITIONAL-IMPROVEMENT-L1-L6
+    l1_l6_status: candidate_map_created_not_adopted
+    boundary_type: candidate_to_feature_ticket_only
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    current_scope_note: Candidate discovery is complete for L1-L6; adoption, installation, DB write, and CI remain unapproved.
+  - objective_id: OBJ-HELIX-DB-FEEDBACK
+    l1_l6_status: design_closed_implementation_deferred
+    boundary_type: l7_feature_ticket_required
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    current_scope_note: DB feedback lifecycle design exists; write connection, recurrence closure, and migration decisions remain outside current scope.
+  - objective_id: OBJ-HARNESS-EXTERNAL-TOOLS
+    l1_l6_status: design_and_candidate_discovery_closed
+    boundary_type: approval_required_external_tool_feature
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    current_scope_note: Web-backed tool candidates are documented; auth, license, network execution, and CI/security surface require approval.
+  - objective_id: OBJ-L0-L14-FLOW
+    l1_l6_status: terminology_and_contract_aligned
+    boundary_type: later_execution_gates
+    feature_entry_points:
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+      - docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    current_scope_note: User-confirmed L0-L14 wording is aligned; full-flow completion still waits for right-arm execution gates.
+invariants:
+  - Every objective clause in docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml appears exactly once in objective_boundary_coverage.
+  - Every feature_entry_points path exists.
+  - No entry in this audit is a L7 test-design artifact or implementation artifact.
+  - The map may support planning and handover only; it cannot count as closure evidence.
+completion_denial:
+  reason: >
+    This audit proves deferred boundary coverage only. It does not prove L7
+    implementation, test execution, coverage closure, external tool adoption,
+    HELIX DB write connection, CI/equivalent connection, or full goal completion.

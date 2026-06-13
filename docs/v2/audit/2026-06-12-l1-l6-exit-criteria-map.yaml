@@ -1,0 +1,183 @@
+schema_version: l1_l6_exit_criteria_map_v1
+owner: TL
+status: current_scope_l1_l6_exit_criteria_ratified
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Make "passed through L6" inspectable as G1-G6 exit criteria, not as a
+  narrative claim. This map records the required L1-L6 design artifacts,
+  paired test-design artifacts, machine evidence, and boundaries that prevent
+  L7 implementation or full-goal completion from being inferred.
+sources:
+  process_definition:
+    - HELIX-workflows/HELIX-process-L0-L14.md
+    - skills/SKILL_MAP.md
+    - skills/workflow/verification/SKILL.md
+  current_audits:
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  exit_criteria_map_is_l7_work: false
+  exit_criteria_map_is_implementation_evidence: false
+  l7_test_design_created_by_this_map: false
+  l7_implementation_done: false
+  helix_db_write_performed: false
+  external_tool_installed: false
+  external_tool_executed: false
+  full_goal_complete: false
+  goal_complete_allowed: false
+summary:
+  exit_layers_checked: 6
+  exit_layers_pass: 6
+  exit_layers_with_waiver: 1
+  gate_ids_checked:
+    - G1
+    - G2
+    - G3
+    - G4
+    - G5
+    - G6
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_map: 0
+exit_criteria:
+  - layer: L1
+    exit_gate: G1
+    design_scope: requirements and operational-test-design seed
+    required_artifacts:
+      - docs/v2/L1-requirements/helix-workflows-business-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-functional-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-nfr.md
+      - docs/v2/L1-requirements/helix-workflows-technical-requirements.md
+      - docs/v2/L1-requirements/helix-workflows-verification-strategy.md
+    paired_test_design_artifacts:
+      - docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    pass_conditions:
+      - requirement scope is explicit
+      - operational-test-design perspective exists
+      - L1-L14 pair has no missing pair for current scope
+    verdict: pass
+  - layer: L2
+    exit_gate: G2
+    design_scope: screen requirement / wire mock / UI waiver
+    required_artifacts:
+      - docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+    paired_test_design_artifacts: []
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    pass_conditions:
+      - UI absent waiver is explicit
+      - unskip conditions are recorded
+      - L2-L10 is not treated as missing work while UI is absent
+    waiver:
+      reason: ui_absent
+      path: docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md
+    verdict: pass_with_waiver
+  - layer: L3
+    exit_gate: G3
+    design_scope: detailed requirements and acceptance-test-design
+    required_artifacts:
+      - docs/v2/L3-requirements/helix-workflows-business-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-functional-registry.md
+      - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
+      - docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+    paired_test_design_artifacts:
+      - docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    pass_conditions:
+      - FR31 trace reaches downstream design definitions
+      - acceptance-test-design exists
+      - L3-L12 pair has no missing pair for current scope
+    verdict: pass
+  - layer: L4
+    exit_gate: G4
+    design_scope: basic / external design and system-test-design
+    required_artifacts:
+      - docs/v2/L4-basic-design/機能構成設計.md
+      - docs/v2/L4-basic-design/方式設計.md
+      - docs/v2/L4-basic-design/外部IF設計.md
+      - docs/v2/L4-basic-design/データ設計.md
+      - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+      - docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md
+    paired_test_design_artifacts:
+      - docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    pass_conditions:
+      - system / component grain is explicit
+      - system-test-design exists
+      - semantic ST-to-TV-to-L4 transitive trace is accepted and monitored
+    verdict: pass_with_monitoring
+  - layer: L5
+    exit_gate: G5
+    design_scope: detailed / internal design and integration-test-design
+    required_artifacts:
+      - docs/v2/L5-detailed-design/IF詳細設計.md
+      - docs/v2/L5-detailed-design/モジュール分割設計.md
+      - docs/v2/L5-detailed-design/内部処理設計.md
+      - docs/v2/L5-detailed-design/物理データ設計.md
+      - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+      - docs/v2/L5-detailed-design/harness-external-tools-impact-詳細設計.md
+    paired_test_design_artifacts:
+      - docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    pass_conditions:
+      - module / integration grain is explicit
+      - integration-test-design exists
+      - L5-L8 pair has no missing pair for current scope
+    verdict: pass
+  - layer: L6
+    exit_gate: G6
+    design_scope: function design / specification and unit-test-design viewpoints
+    required_artifacts:
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+      - docs/v2/L6-functional-design/FR-4ART-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-9MODE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CHANGEPROP-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCREVIEW-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DOCTOR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-DRIFT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-EVT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GATE-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-MIGR-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-NSM-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+    paired_test_design_artifacts:
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    machine_evidence:
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+    pass_conditions:
+      - function / unit-test grain is explicit
+      - FR18 function specs exist
+      - FR18 unit-test-design viewpoints exist in L6
+      - no new FR-specific L7 artifact is created by this map
+    verdict: pass
+invariants:
+  - Every required_artifacts path must exist.
+  - Every paired_test_design_artifacts path must exist unless the layer has an explicit waiver.
+  - This map is exit-criteria evidence only; it cannot be used as L7 implementation or execution evidence.
+  - Later-phase work must stay behind add-feature approval.
+completion_denial:
+  reason: >
+    This map proves G1-G6 exit criteria for the current L1-L6 design scope
+    only. It does not prove L7 implementation, unit-test execution, coverage
+    closure, HELIX DB write adoption, external tool execution, or full
+    objective completion.

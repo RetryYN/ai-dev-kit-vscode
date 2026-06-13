@@ -1,0 +1,157 @@
+schema_version: l1_l6_db_feedback_lifecycle_coverage_v1
+owner: TL
+status: current_scope_l1_l6_db_feedback_design_covered
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that the HELIX DB feedback-loop concern has L4-L6 design coverage and
+  an explicit L7 feature entry point, without claiming schema migration,
+  database writes, recurrence closure, or full-flow completion.
+sources:
+  l4_basic_design:
+    - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+  l5_detailed_design:
+    - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+  l5_physical_data_design:
+    - docs/v2/L5-detailed-design/物理データ設計.md
+  l6_functional_design:
+    - docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  objective_audit:
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  db_design_exists: true
+  schema_migration_done: false
+  db_write_connection_done: false
+  recurrence_closure_done: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+summary:
+  design_layers_checked: 3
+  physical_db_design_checked: 1
+  lifecycle_states_defined: 8
+  closure_rules_defined: 4
+  l6_functions_defined: 8
+  existing_storage_groups_mapped: 6
+  existing_tables_required_for_lifecycle_checked: 9
+  forbidden_current_scope_rules_checked: 4
+  deferred_feature_entry_points_checked: 1
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+feedback_lifecycle_accountability_contract:
+  current_scope_action: prove_feedback_lifecycle_design_is_not_db_write_adoption
+  feature_ticket_is_not_design_substitute: true
+  lifecycle_design_requires_l4_l5_l6_evidence: true
+  state_machine_requires_non_closure_rules: true
+  db_write_requires_explicit_approval: true
+  recurrence_closure_requires_later_execution_evidence: true
+  current_scope_must_keep_db_write_false: true
+  current_scope_proves:
+    - L4 external lifecycle from detector signal to recurrence state is designed
+    - L5 state machine and physical DB domain mapping are designed
+    - L6 DBEV functions and completion guard summary are designed
+    - candidate and plan materialization states are not closure
+  current_scope_does_not_prove:
+    - schema migration
+    - database write connection
+    - recurrence closure
+    - auto-apply of feedback candidates
+    - full-flow completion
+layer_coverage:
+  - layer: L4
+    artifact: docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
+    coverage:
+      - external lifecycle from detector signal to recurrence closed / monitored
+      - existing HELIX DB / registry mapping without schema migration
+      - gate projection policy separating L6 focus pass from full-flow completion
+      - safety boundary for schema, destructive data, auto-apply, auth/PII, external infrastructure
+    current_scope_status: design_covered
+  - layer: L5
+    artifact: docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
+    supporting_artifact: docs/v2/L5-detailed-design/物理データ設計.md
+    coverage:
+      - state machine from detected through recurrence_closed
+      - idempotency keys for candidate_id and evidence_id
+      - physical DB domains DB-01..DB-05 with plan_registry, events, metrics, feedback, verify_runs, gate_runs, entries, and links surfaces
+      - failure handling for registration, candidate-only state, scope expansion, verification, gate projection, recurrence
+      - quantitative and qualitative double-check policy
+    current_scope_status: design_covered
+  - layer: L6
+    artifact: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+    coverage:
+      - DBEV-FN-01 normalize_detector_signal
+      - DBEV-FN-02 register_evidence_event
+      - DBEV-FN-03 generate_adoption_candidate
+      - DBEV-FN-04 materialize_plan_reference
+      - DBEV-FN-05 record_verification_evidence
+      - DBEV-FN-06 project_gate_status
+      - DBEV-FN-07 close_recurrence
+      - DBEV-FN-08 emit_completion_guard_summary
+    current_scope_status: function_design_covered
+state_machine:
+  expected_states:
+    - detected
+    - registered
+    - candidate_generated
+    - plan_materialized
+    - implementation_adopted
+    - verification_recorded
+    - gate_projected
+    - recurrence_closed
+  closure_rules:
+    - candidate_generated_is_not_closure
+    - plan_materialized_is_not_closure
+    - verification_recorded_requires_gate_projection
+    - recurrence_closed_or_monitored_with_owner_required_before_completion
+storage_mapping_policy:
+  mode: existing_db_surfaces_only
+  mapped_groups:
+    - signal_source
+    - normalized_evidence
+    - plan_adoption
+    - implementation_evidence
+    - verification_evidence
+    - recurrence_tracking
+  forbidden_current_scope:
+    - schema_migration
+    - destructive_data_operation
+    - auto_apply_feedback_candidates
+    - production_db_operation
+physical_db_design_evidence:
+  artifact: docs/v2/L5-detailed-design/物理データ設計.md
+  current_scope_action: read_only_schema_design_evidence
+  db_domains_checked:
+    - DB-01 Plan Governance
+    - DB-02 Execution / Audit
+    - DB-03 Trace Catalog
+    - DB-04 Workspace / Continuity
+    - DB-05 Requirements / Quality
+  existing_tables_required_for_lifecycle:
+    - plan_registry
+    - automation_runs
+    - audit_log
+    - gate_runs
+    - code_index
+    - entries
+    - links
+    - test_design_entries
+    - verify_runs
+  schema_change_required_current_scope: false
+  schema_design_is_db_write_evidence: false
+deferred_feature_plan:
+  path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  status: draft
+  approval_required_before_l7_work: true
+  expected_after_approval:
+    - L7 DBEV-UT unit-test-design artifact
+    - test-first implementation connection
+    - evidence that DBEV-UT does not pollute existing UT inventory
+    - requirement_drift remains clean
+completion_denial:
+  reason: >
+    This audit proves L1-L6 DB feedback lifecycle design coverage only. It does
+    not prove L7 implementation, schema migration, database write connection,
+    recurrence closure, CI/equivalent connection, or full goal completion.

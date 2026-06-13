@@ -1,0 +1,267 @@
+schema_version: l0_l14_flow_surface_coverage_v1
+owner: TL
+status: current_l0_l14_flow_terms_pinned_l1_l6_scope
+updated: 2026-06-12
+scope: L0-L14 definition surface with current L1-L6 audit boundary
+purpose: >
+  Pin the user-confirmed HELIX L0-L14 flow as a machine-readable audit source.
+  This prevents the L1-L6 ratification bundle from depending only on grep-based
+  old-term absence, and gives contract tests a positive source for each layer's
+  current name and paired test-design / verification role.
+sources:
+  primary_definition:
+    - HELIX-workflows/HELIX-process-L0-L14.md
+    - helix/HELIX_CORE.md
+    - skills/SKILL_MAP.md
+    - skills/workflow/verification/SKILL.md
+  current_surfaces_checked:
+    - AGENTS.md
+    - HELIX-workflows/helix-process/L1-requirements.md
+    - HELIX-workflows/helix-process/review-stage-routing.md
+    - HELIX-workflows/helix-process/ci-pr-workflow.md
+    - HELIX-workflows/helix-process/incident-workflow.md
+    - HELIX-workflows/helix-process/recovery-workflow.md
+    - cli/helix
+    - cli/helix-doctor
+    - cli/helix-gate
+    - cli/helix-pr
+    - cli/helix-size
+    - cli/helix-test
+    - cli/helix-codex
+    - cli/helix-sprint
+    - cli/config/functional-registry.yaml
+    - cli/config/workflows/l4-sprint-workflow.yaml
+    - cli/libexec/helix-session-start
+    - cli/roles/security.conf
+    - cli/templates/agents/pmo-sonnet.md
+    - cli/templates/agents/qa-test.md
+    - cli/templates/docs/L4-fe-sprint-guide.md
+    - cli/templates/docs/L5-visual-design.md
+    - cli/templates/docs/PLAN.md.template
+    - cli/templates/docs/project-status.md.template
+    - cli/templates/gate-checks.yaml
+    - cli/templates/plan/impl/template.md
+    - cli/templates/patterns/pattern.yaml
+    - cli/tests/test-helix-codex.bats
+    - docs/commands/ai-harness.md
+    - docs/commands/gate.md
+    - docs/commands/index.md
+    - docs/commands/plan.md
+    - docs/commands/pr.md
+    - docs/design/D-STATE-SPEC.md
+    - docs/design/L2-cli-architecture.md
+    - docs/design/L3-detailed-design.md
+    - docs/design/L3-schedule-wbs.md
+    - docs/design/skill-catalog-jsonl.md
+    - docs/operations/stop-prevention.md
+    - docs/operations/v2-operations-guide.md
+    - docs/agent-skills/README.md
+    - docs/agent-skills/skill-anatomy.md
+    - README.md
+    - skills/SKILL_MAP.md
+    - skills/tools/ai-coding/references/workflow-core.md
+    - skills/tools/ai-coding/references/layer-interface.md
+    - skills/tools/ai-coding/references/gate-policy.md
+    - skills/tools/ai-coding/references/implementation-gate.md
+    - skills/tools/ai-coding/references/codex-prompt-antipatterns.md
+    - skills/tools/ai-coding/references/codex-prompt-blocks.md
+    - skills/tools/ai-coding/references/fork-security-policy.md
+    - skills/workflow/deploy/SKILL.md
+    - skills/workflow/runbook/SKILL.md
+    - skills/project/fe-component/SKILL.md
+    - skills/project/fe-design/references/fe-drive-flow.md
+    - skills/project/fe-test/references/test-pyramid-and-vrt.md
+    - skills/common/visual-design/references/design-md-format.md
+    - skills/common/visual-design/references/brands-en/INDEX.md
+    - skills/common/visual-design/references/brands-jp/INDEX.md
+    - skills/design-tools/web-system/references/design-md-usage.md
+    - skills/design-tools/web-system/references/design-system-process.md
+    - skills/design-tools/web-system/references/token-scale-guide.md
+    - skills/agent-skills/context-engineering/SKILL.md
+    - skills/agent-skills/helix-scrum/SKILL.md
+    - skills/workflow/learning-engine/SKILL.md
+    - skills/workflow/doc-system-architect/references/design-coverage-baseline.md
+    - docs/v2/L0-helix-workflows/concept.md
+    - docs/v2/L1-requirements/helix-workflows-business-requirements.md
+    - docs/v2/L1-requirements/helix-workflows-nfr.md
+    - docs/v2/process/L01-requirements-and-operational-test-design.md
+    - docs/v2/CONCEPT.md
+    - docs/operator/helix-spiral-operations.md
+    - docs/v2/document-system-definition.md
+    - docs/v2/L3-requirements/helix-workflows-nfr-detail.md
+    - docs/v2/L3-requirements/helix-workflows-functional-registry.md
+    - docs/v2/L3-detailed-design/D-API/D-API-draft.md
+    - docs/v2/L3-detailed-design/D-API/D-API-EXTENDED-draft.md
+    - docs/v2/L3-detailed-design/D-API/D-API-SEP-draft.md
+    - docs/v2/L3-detailed-design/D-API/D-API-SEP-rollback-gate6.md
+    - docs/v2/L3-detailed-design/D-API/D-API-SEP-phase4b-addendum.md
+    - docs/v2/L3-detailed-design/D-API/D-API-SEP-cutover-gate5.md
+    - docs/v2/L3-detailed-design/D-DB/D-DB-EXTENDED-draft.md
+    - docs/v2/L3-detailed-design/D-DB/D-DB-SEP-draft.md
+    - docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md
+    - docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
+    - docs/v2/L14-test-design/helix-workflows-operational-test-design.md
+    - docs/v2/process/README.md
+    - docs/v2/process/L12-deployment-and-acceptance-test.md
+    - ai-code-review-kit/helix-integration/skills/workflow/review-stage-routing/SKILL.md
+    - ai-code-review-kit/helix-integration/HELIX-workflows/helix-process/review-stage-routing.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  flow_surface_audit_is_l7_work: false
+  flow_surface_audit_is_implementation_evidence: false
+  l7_implementation_done: false
+  l7_test_design_created_by_this_audit: false
+  helix_db_write_performed: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  full_goal_complete: false
+  goal_complete_allowed: false
+summary:
+  layers_checked: 15
+  left_arm_design_layers_checked: 6
+  right_arm_execution_or_verification_layers_checked: 7
+  ui_absent_layer_count: 1
+  current_surfaces_checked: 90
+  banned_legacy_terms_found_current_surfaces: 0
+  blocking_findings_current_scope: 0
+current_flow:
+  - layer: L0
+    stage: 企画
+    test_design_or_verification: "-"
+    pair_target: null
+    current_scope_l1_l6_status: context_only
+  - layer: L1
+    stage: 要求定義
+    test_design_or_verification: 運用テスト設計
+    pair_target: L14
+    current_scope_l1_l6_status: pass
+  - layer: L2
+    stage: 画面要求 / 画面設計 / フロントUI
+    test_design_or_verification: ワイヤーモック
+    pair_target: L10
+    current_scope_l1_l6_status: pass_with_ui_absent_waiver
+  - layer: L3
+    stage: 要件定義
+    test_design_or_verification: 受入テスト設計
+    pair_target: L12
+    current_scope_l1_l6_status: pass
+  - layer: L4
+    stage: 基本設計 / 外部設計
+    test_design_or_verification: 総合テスト設計
+    pair_target: L9
+    current_scope_l1_l6_status: pass_with_semantic_monitoring
+  - layer: L5
+    stage: 詳細設計 / 内部設計
+    test_design_or_verification: 結合テスト設計
+    pair_target: L8
+    current_scope_l1_l6_status: pass
+  - layer: L6
+    stage: 機能設計 / 仕様書
+    test_design_or_verification: 単体テスト設計
+    pair_target: L7
+    current_scope_l1_l6_status: pass_l6_design_only_not_l7
+  - layer: L7
+    stage: 実装
+    test_design_or_verification: 単体テスト実装 / 単体テスト実施 / カバレッジ確認 / closure
+    pair_target: L6
+    current_scope_l1_l6_status: out_of_current_scope_requires_feature_ticket
+  - layer: L8
+    stage: 結合テスト
+    test_design_or_verification: L5 の検証
+    pair_target: L5
+    current_scope_l1_l6_status: deferred_right_arm_execution_gate
+  - layer: L9
+    stage: 総合テスト
+    test_design_or_verification: L4 の検証
+    pair_target: L4
+    current_scope_l1_l6_status: deferred_right_arm_execution_gate
+  - layer: L10
+    stage: フロントUX / 業務デザイン磨き上げ
+    test_design_or_verification: L2 の検証
+    pair_target: L2
+    current_scope_l1_l6_status: not_applicable_ui_absent_waiver
+  - layer: L11
+    stage: 総合レビュー / ユーザー検証 / 要件巻き取り
+    test_design_or_verification: L1 / L3 の最終突合
+    pair_target: L1/L3
+    current_scope_l1_l6_status: deferred_review_execution
+  - layer: L12
+    stage: 受入テスト
+    test_design_or_verification: L3 の検証
+    pair_target: L3
+    current_scope_l1_l6_status: deferred_right_arm_execution_gate
+  - layer: L13
+    stage: 運用検証 / 運用テスト
+    test_design_or_verification: 実環境検証
+    pair_target: null
+    current_scope_l1_l6_status: deferred_operational_verification
+  - layer: L14
+    stage: 運用学習 / 運用改善
+    test_design_or_verification: L1 の検証
+    pair_target: L1
+    current_scope_l1_l6_status: deferred_right_arm_execution_gate
+pair_map:
+  - design_layer: L1
+    test_design: 運用テスト設計
+    execution_layer: L14
+    execution_name: 運用学習 / 運用改善
+  - design_layer: L2
+    test_design: ワイヤーモック
+    execution_layer: L10
+    execution_name: フロントUX / 業務デザイン磨き上げ
+  - design_layer: L3
+    test_design: 受入テスト設計
+    execution_layer: L12
+    execution_name: 受入テスト
+  - design_layer: L4
+    test_design: 総合テスト設計
+    execution_layer: L9
+    execution_name: 総合テスト
+  - design_layer: L5
+    test_design: 結合テスト設計
+    execution_layer: L8
+    execution_name: 結合テスト
+  - design_layer: L6
+    test_design: 単体テスト設計
+    execution_layer: L7
+    execution_name: 実装 / 単体テスト closure
+legacy_term_policy:
+  current_surfaces_must_not_contain:
+    - L4 Sprint
+    - L4 マイクロスプリント
+    - G1..G11
+    - G0.5-G11
+    - G0.5〜G11
+    - 6 ゲート機械検証
+    - PLAN-001 の L4 実装
+    - L12 デプロイ受入
+    - L12 | デプロイ
+    - デプロイ・受入
+    - "| L14 | 運用検証 |"
+    - L14 運用検証
+    - 13 工程主線
+    - 13工程主線
+    - G4 実装凍結
+    - G6 RC
+    - G7 安定性
+    - L5 Visual Refinement
+    - L6 統合検証
+    - L7 デプロイ
+    - L8 受入
+    - L9 デプロイ検証
+    - L10 観測
+    - L11 運用学習
+  exception_policy: >
+    Historical archives and explicitly marked legacy reference material may
+    preserve old terms, but current command surfaces, workflow definitions,
+    gate templates, registries, and L1-L6 audit sources must use the current
+    L0-L14 vocabulary.
+completion_denial:
+  reason: >
+    This audit proves that the current L0-L14 flow vocabulary and pair mapping
+    are pinned for the L1-L6 ratification bundle. It does not prove L7
+    implementation, unit-test execution, coverage closure, right-arm execution
+    gates, HELIX DB write adoption, external tool execution, or full objective
+    completion.

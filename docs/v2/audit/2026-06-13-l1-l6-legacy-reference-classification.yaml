@@ -1,0 +1,167 @@
+schema_version: l1_l6_legacy_reference_classification_v1
+owner: TL
+status: current_scope_legacy_references_classified
+updated: 2026-06-13
+scope: L1-L6 current-scope terminology and evidence boundary
+purpose: >
+  Classify old V1/V2 assets that still contain legacy phase/gate words so they
+  cannot be mistaken for current L0-L14 requirements, design, gate, or
+  implementation evidence. This is documentation governance only and does not
+  perform L7 implementation or create L7 test-design artifacts.
+current_sources_of_truth:
+  - HELIX-workflows/HELIX-process-L0-L14.md
+  - HELIX-workflows/helix-process/automation-gate-map.md
+  - skills/SKILL_MAP.md
+  - skills/tools/ai-coding/references/gate-policy.md
+  - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+classified_legacy_references:
+  - path: docs/v2/CONCEPT.md
+    existing_status: deprecated
+    reason: Old V2 concept document with historical strand mapping and L1-L4 wording.
+    action: already_marked_deprecated
+    current_decision_source: docs/v2/L0-helix-workflows/concept.md
+  - path: docs/v2/v2-gate-overlay.md
+    existing_status: deprecated_reference
+    reason: Old V1/V2 gate overlay with legacy G4/G6/G7 labels.
+    action: marked_legacy_reference
+    current_decision_source: skills/tools/ai-coding/references/gate-policy.md
+  - path: docs/v2/L3-detailed-design/exit-validation/exit-validation-table.md
+    existing_status: draft_legacy_reference
+    reason: PLAN-070 historical exit validation table with old L4 implementation carry labels.
+    action: marked_legacy_reference
+    current_decision_source: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+  - path: docs/v2/L3-detailed-design/exit-validation/phase-4.5-integration-notes.md
+    existing_status: ready_for_l4_legacy_reference
+    reason: PLAN-070 historical integration notes with old L4 implementation start checklist.
+    action: marked_legacy_reference
+    current_decision_source: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+runtime_retrofit_required:
+  - id: phase_enum_l0_l14_runtime_retrofit
+    observed_files:
+      - cli/lib/handover.py
+      - cli/tests/test-handover.bats
+    observed_legacy_terms:
+      - L1-L11
+      - L1〜L11
+    current_design_sources:
+      - docs/design/D-STATE-SPEC.md
+      - cli/templates/patterns/pattern.yaml
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    feature_ticket: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    current_scope_action: ticketed_only_no_runtime_edit
+    observed_metadata_gap:
+      current_json_legacy_task_title_possible: true
+      current_json_legacy_phase_label_possible: true
+      safe_task_retitle_command_available_now: false
+      next_action_supersedes_current_json_task_metadata: true
+      force_dump_without_approval_allowed: false
+    feature_ticket_metadata_must_match_observed_gap: true
+    required_future_controls:
+      - validate L0-L14 phase vocabulary in handover runtime
+      - keep CURRENT.md Next Action authoritative over legacy CURRENT.json task title
+      - provide safe task retitle or documented state refresh path
+      - preserve no-L7 authorization when metadata still names L7
+    reason: >
+      Handover runtime validation still carries the old phase enum wording.
+      Updating runtime validation and tests is implementation work and remains
+      outside the current L1-L6 audit scope until the feature ticket is approved.
+      The same ticket also covers safe correction of legacy CURRENT.json task
+      metadata so stale L7 labels cannot be mistaken for permission to perform
+      L7 work.
+handover_metadata_boundary:
+  - id: current_json_l7_label_not_authorization
+    machine_state_file: .helix/handover/CURRENT.json
+    human_boundary_file: .helix/handover/CURRENT.md
+    observed_machine_state:
+      task_id_contains_l7: true
+      task_title_contains_l7: true
+      pending_entries_include_l7_path: true
+      status_ready_for_review_is_not_current_scope_completion: true
+    authoritative_boundary:
+      source: .helix/handover/CURRENT.md#next-action-codex-向け
+      next_action_supersedes_current_json_task_metadata: true
+      l7_work_requested_by_user: false
+      l7_work_requires_feature_ticket: true
+      l1_l6_audit_design_evidence_only: true
+    forbidden_in_current_scope:
+      - l7_implementation
+      - l7_test_design_artifact_creation
+      - unit_test_implementation_or_execution
+      - coverage_closure
+      - helix_db_write_adoption
+      - external_tool_install_or_execution
+      - ci_or_equivalent_connection
+      - fail_close_gate_promotion
+    current_scope_action: classify_handover_metadata_only_no_runtime_edit
+    reopen_condition: >
+      If a future handover omits the CURRENT.md Next Action boundary while
+      CURRENT.json still names L7, current-scope work must stop until the
+      handover is refreshed or a feature ticket explicitly authorizes L7+ work.
+contract_design_retrofit_required:
+  - id: db_separation_contract_phase_label_retrofit
+    observed_files:
+      - docs/v2/L3-detailed-design/D-API/D-API-SEP-draft.md
+      - docs/v2/L3-detailed-design/D-DB/D-DB-SEP-draft.md
+      - docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-EVENT-draft.md
+    observed_legacy_terms:
+      - Phase 4.A
+      - Phase 4.B
+      - Phase 4.C
+      - G1-G11 gate enum examples
+      - G4 gate references in legacy PLAN-084 context
+    current_design_sources:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    current_scope_action: classified_only_no_contract_edit
+    feature_ticket: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    approval_boundary: >
+      These files are D-API / D-DB / D-CONTRACT design surfaces. Renaming
+      their remaining PLAN-084 Phase 4 carry structure, gate enum examples,
+      or schema-like contract snippets may change design contracts and requires
+      explicit approval before editing. Current L1-L6 work only records the
+      drift candidate and keeps it out of completion evidence.
+    reason: >
+      The documents still contain old PLAN-084 "Phase 4" implementation carry
+      labels and old gate examples even though the current Forward flow uses
+      L7 for implementation and G7 for implementation completion. Because the
+      content is contract/design-adjacent, this audit does not rewrite it in
+      place without approval.
+    design_debt_accountability:
+      design_debt_is_current_l1_l6_scope: true
+      feature_ticket_is_not_design_substitute: true
+      approval_blocker_is_contract_surface_risk_not_l7_boundary: true
+      current_scope_has_recorded_gap_and_reopen_rule: true
+      contract_edit_requires_explicit_approval_before_change: true
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  classification_is_current_l1_l6_evidence: true
+  classification_is_l7_work: false
+  l7_test_design_created_by_this_audit: false
+  l7_implementation_done: false
+  helix_db_write_performed: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+summary:
+  legacy_reference_files_checked: 4
+  legacy_reference_files_marked_or_already_marked: 4
+  runtime_retrofit_required_items: 1
+  runtime_files_with_old_enum_ticketed: 2
+  handover_metadata_boundary_items_checked: 1
+  handover_current_json_l7_label_authorizes_work: false
+  handover_ready_for_review_status_not_completion: true
+  handover_next_action_is_authoritative: true
+  contract_design_retrofit_required_items: 1
+  contract_design_files_with_old_phase_labels_classified: 3
+  contract_design_feature_tickets_created: 1
+  current_sources_of_truth_checked: 5
+  blocking_findings_current_l1_l6_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+completion_denial:
+  reason: >
+    This classification only prevents historical V1/V2 assets from being used
+    as current L0-L14 evidence. It does not prove L7 implementation,
+    unit-test execution, coverage closure, DB write adoption, external tool
+    execution, CI/equivalent connection, or full objective completion.

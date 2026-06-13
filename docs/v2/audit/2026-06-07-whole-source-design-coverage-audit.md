@@ -4,6 +4,8 @@
 > goal「設計に既存ソースのすべてが含まれているか徹底検証し、なければ追加設計をする Recovery を回す。抜け漏れの一切の禁止」。
 > 本書は検証 evidence の正本。是正は `process-2026-06-07-whole-source-design-coverage-closure` Process で実行する。
 
+> **Current status (2026-06-13)**: 本書は historical audit evidence であり、現在の L1-L6 完了判定や L7 実施許可ではない。`DF-WCAUDIT-L6L7-001` の旧 defer は `docs/v2/L6-functional-design/helix-workflows-function-design.md` §5.3、`docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml`、`docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md`、`docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml` により、L6 仕様 + UT-CAND 索引として current-scope 側へ巻き取り済み。L7 実装、FR 別 L7 単体テスト設計成果物、単体テスト実施、coverage closure は承認済み add-feature / PLAN を入口にする。
+
 | 項目 | 値 |
 |---|---|
 | audit_id | AUDIT-WSDC-001 |
@@ -59,7 +61,7 @@
 
 ### Segment 3: registry/要件 → L6 機能設計（最大の穴）— **約 524 entry が設計未定義**
 - registry 557 entry に対し L6 FN-* は **33 件のみ**（active540 基準でも約 94% が L6 機能設計を持たない）。
-- これは既知 deferred finding `DF-WCAUDIT-L6L7-001`（「lib 関数の約 10% のみ freeze、残は設計未定義」）を Phase3 defer していたもの。**本 goal はこの defer の解消を要求**。
+- これは既知 deferred finding `DF-WCAUDIT-L6L7-001`（「lib 関数の約 10% のみ freeze、残は設計未定義」）を旧 Phase3 境界へ defer していた当時の記録。**本 goal はこの defer の解消を要求**し、2026-06-12 L1-L6 監査で FR18 の L6 仕様 + UT-CAND 索引として巻き取り済み。L7 実装・実行・coverage closure はこの historical audit からは許可されない。
 
 ## 3. semantic 判定（十分条件）
 

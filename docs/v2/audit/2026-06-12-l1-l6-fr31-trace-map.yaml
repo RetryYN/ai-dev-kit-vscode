@@ -1,0 +1,211 @@
+schema_version: l1_l6_fr31_trace_map_v1
+owner: TL
+status: current_scope_l1_l6_trace_clean_not_l7
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Make the `helix doctor check_requirement_drift --json` L6 clean claim
+  inspectable by listing every upstream FR definition and the L4-L6 design
+  definition IDs that satisfy it. This map proves L1/L3 FR to L4-L6 design
+  trace only; it does not prove L7 implementation, unit-test implementation,
+  coverage closure, CI, or full-flow completion.
+source_detector: cli/lib/requirement_drift.py
+detector_command: helix doctor check_requirement_drift --json
+detector_expected:
+  focus: L6
+  clean: true
+  requirements: 31
+  design_links: 31
+  parent_child_links: 17
+  blocking_findings: 0
+  advisory_findings: 0
+upstream_patterns:
+  - docs/v2/L1-requirements/**/*.md
+  - docs/v2/L3-requirements/**/*.md
+design_patterns:
+  - docs/v2/L4*/**/*.md
+  - docs/v2/L5*/**/*.md
+  - docs/v2/L6*/**/*.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  l7_implementation_done: false
+  l7_unit_test_implementation_done: false
+  coverage_closure_done: false
+  goal_complete_allowed: false
+summary:
+  requirement_count: 31
+  all_requirements_have_design_link: true
+  all_design_definition_ids_present: true
+  missing_downstream: []
+  orphan_design: []
+  blocking_findings: 0
+requirements:
+  - requirement_id: FR-01
+    label: NSM 計測機能
+    downstream_ids: [FR-01, FR-NSM-01]
+    design_definition_ids: [FR-NSM-01]
+    design_anchor_count: 9
+  - requirement_id: FR-02
+    label: Guardrail 3 軸 fail-close 機能
+    downstream_ids: [FR-02, FR-GR-01]
+    design_definition_ids: [FR-GR-01]
+    design_anchor_count: 17
+  - requirement_id: FR-03
+    label: TDD 順序 fail-close 機能
+    downstream_ids: [FR-03, FR-TDD-01]
+    design_definition_ids: [FR-TDD-01]
+    design_anchor_count: 17
+  - requirement_id: FR-04
+    label: 9 mode 入口判定機能
+    downstream_ids: [FR-04, FR-9MODE-01]
+    design_definition_ids: [FR-9MODE-01]
+    design_anchor_count: 15
+  - requirement_id: FR-05
+    label: gate 機械判定機能
+    downstream_ids: [FR-05, FR-GATE-01]
+    design_definition_ids: [FR-GATE-01]
+    design_anchor_count: 28
+  - requirement_id: FR-06
+    label: 影響範囲 query 機能
+    downstream_ids: [FR-06, FR-IMPACT-01]
+    design_definition_ids: [FR-IMPACT-01]
+    design_anchor_count: 18
+  - requirement_id: FR-07
+    label: Forward 復帰 event 機能
+    downstream_ids: [FR-07, FR-EVT-01]
+    design_definition_ids: [FR-EVT-01]
+    design_anchor_count: 25
+  - requirement_id: FR-08
+    label: 4 artifact / pair freeze 監査機能
+    downstream_ids: [FR-08, FR-4ART-01, FR-DOCTOR-01]
+    design_definition_ids: [FR-4ART-01, FR-DOCTOR-01]
+    design_anchor_count: 43
+  - requirement_id: FR-09
+    label: 資産 inventory / density 可視化機能
+    downstream_ids: [FR-09, FR-INV-01]
+    design_definition_ids: [FR-INV-01]
+    design_anchor_count: 26
+  - requirement_id: FR-10
+    label: layer context injection 機能
+    downstream_ids: [FR-10, FR-CTX-01]
+    design_definition_ids: [FR-CTX-01]
+    design_anchor_count: 13
+  - requirement_id: FR-11
+    label: discrepancy routing 機能
+    downstream_ids: [FR-11, FR-DOCTOR-01, FR-DRIFT-01]
+    design_definition_ids: [FR-DOCTOR-01, FR-DRIFT-01]
+    design_anchor_count: 48
+  - requirement_id: FR-12
+    label: PLAN dependency / generates trace 機能
+    downstream_ids: [FR-12, FR-PLAN-01]
+    design_definition_ids: [FR-PLAN-01]
+    design_anchor_count: 28
+  - requirement_id: FR-13
+    label: PLAN 起票レビュー機能
+    downstream_ids: [FR-13, FR-CTX-01, FR-GATE-01, FR-PLAN-01]
+    design_definition_ids: [FR-CTX-01, FR-GATE-01, FR-PLAN-01]
+    design_anchor_count: 67
+  - requirement_id: FR-4ART-01
+    label: 4 artifact / pair freeze 監査機能
+    downstream_ids: [FR-4ART-01]
+    design_definition_ids: [FR-4ART-01]
+    design_anchor_count: 15
+  - requirement_id: FR-9MODE-01
+    label: 9 mode 入口判定機能
+    downstream_ids: [FR-9MODE-01]
+    design_definition_ids: [FR-9MODE-01]
+    design_anchor_count: 15
+  - requirement_id: FR-CHANGEPROP-01
+    label: 変更追跡 + デグレ禁止 ratchet 機能
+    downstream_ids: [FR-CHANGEPROP-01]
+    design_definition_ids: [FR-CHANGEPROP-01]
+    design_anchor_count: 16
+  - requirement_id: FR-CTX-01
+    label: layer context injection 機能
+    downstream_ids: [FR-CTX-01]
+    design_definition_ids: [FR-CTX-01]
+    design_anchor_count: 13
+  - requirement_id: FR-DOCREVIEW-01
+    label: ドキュメント品質レビュー機能
+    downstream_ids: [FR-DOCREVIEW-01]
+    design_definition_ids: [FR-DOCREVIEW-01]
+    design_anchor_count: 11
+  - requirement_id: FR-DOCTOR-01
+    label: doctor 総合監査機能
+    downstream_ids: [FR-DOCTOR-01]
+    design_definition_ids: [FR-DOCTOR-01]
+    design_anchor_count: 27
+  - requirement_id: FR-DRIFT-01
+    label: discrepancy routing 機能
+    downstream_ids: [FR-DRIFT-01]
+    design_definition_ids: [FR-DRIFT-01]
+    design_anchor_count: 20
+  - requirement_id: FR-EVT-01
+    label: Forward 復帰 event 機能
+    downstream_ids: [FR-EVT-01]
+    design_definition_ids: [FR-EVT-01]
+    design_anchor_count: 24
+  - requirement_id: FR-FNREG-01
+    label: 機能一覧 SSoT + 自動チェック機能
+    downstream_ids: [FR-FNREG-01]
+    design_definition_ids: [FR-FNREG-01]
+    design_anchor_count: 13
+  - requirement_id: FR-GATE-01
+    label: gate 合成判定機能
+    downstream_ids: [FR-GATE-01]
+    design_definition_ids: [FR-GATE-01]
+    design_anchor_count: 27
+  - requirement_id: FR-GLOSSARY-01
+    label: ドメイン用語 SSoT + 自動チェック機能
+    downstream_ids: [FR-GLOSSARY-01]
+    design_definition_ids: [FR-GLOSSARY-01]
+    design_anchor_count: 14
+  - requirement_id: FR-GR-01
+    label: Guardrail fail-close 機能
+    downstream_ids: [FR-GR-01]
+    design_definition_ids: [FR-GR-01]
+    design_anchor_count: 17
+  - requirement_id: FR-IMPACT-01
+    label: 影響範囲 query 機能
+    downstream_ids: [FR-IMPACT-01]
+    design_definition_ids: [FR-IMPACT-01]
+    design_anchor_count: 18
+  - requirement_id: FR-INV-01
+    label: 資産 inventory / density 可視化機能
+    downstream_ids: [FR-INV-01]
+    design_definition_ids: [FR-INV-01]
+    design_anchor_count: 24
+  - requirement_id: FR-MIGR-01
+    label: schema migration / retrofit 機能
+    downstream_ids: [FR-MIGR-01]
+    design_definition_ids: [FR-MIGR-01]
+    design_anchor_count: 12
+  - requirement_id: FR-NSM-01
+    label: NSM 計測・整合スコア機能
+    downstream_ids: [FR-NSM-01]
+    design_definition_ids: [FR-NSM-01]
+    design_anchor_count: 9
+  - requirement_id: FR-PLAN-01
+    label: PLAN dependency / generates trace 機能
+    downstream_ids: [FR-PLAN-01]
+    design_definition_ids: [FR-PLAN-01]
+    design_anchor_count: 27
+  - requirement_id: FR-TDD-01
+    label: TDD 順序強制機能
+    downstream_ids: [FR-TDD-01]
+    design_definition_ids: [FR-TDD-01]
+    design_anchor_count: 16
+verification_contracts:
+  - surface: l0_l14_contract
+    command: python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q
+    proves:
+      - FR31 requirement trace map stays aligned with requirement_drift summary
+      - every upstream FR has at least one L4-L6 design definition ID
+      - L1-L6 trace evidence remains separate from L7 implementation completion
+completion_denial:
+  reason: >
+    This trace map proves current L1-L6 FR-to-design coverage only. It does
+    not prove L7 implementation, unit-test implementation, coverage closure,
+    CI/equivalent wiring, HELIX DB write adoption, external tool execution, or
+    full goal completion.

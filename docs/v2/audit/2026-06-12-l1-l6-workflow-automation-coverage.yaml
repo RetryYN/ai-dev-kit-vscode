@@ -1,0 +1,466 @@
+schema_version: l1_l6_workflow_automation_coverage_v1
+owner: TL
+status: current_scope_l1_l6_workflow_automation_design_covered
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Prove that the HELIX workflow automation basis is covered as L1-L6 design
+  evidence, while keeping L7 implementation, CI/equivalent wiring, DB write
+  adoption, right-arm execution gates, and external tool execution feature-
+  ticketed and unclaimed.
+sources:
+  workflow_contracts:
+    - HELIX-workflows/HELIX-process-L0-L14.md
+    - HELIX-workflows/helix-process/db-integration.md
+    - HELIX-workflows/helix-process/automation-gate-map.md
+    - helix/HELIX_CORE.md
+    - helix/HELIX_RUNTIME_RULES.md
+    - helix/CODEX_RUNTIME_ADAPTER.md
+  current_scope_audits:
+    - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    - docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+  parked_or_finalized_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  workflow_map_is_implementation_evidence: false
+  right_arm_execution_gate_implementation_done: false
+  ci_or_equivalent_connected: false
+  helix_db_write_adoption_done: false
+  schema_migration_done: false
+  external_tool_executed: false
+  external_tool_installed: false
+  goal_complete_allowed: false
+summary:
+  workflow_surfaces_checked: 6
+  automation_surfaces_checked: 9
+  automation_trigger_contracts_checked: 9
+  db_registry_targets_mapped: 9
+  detector_gate_routes_mapped: 7
+  cross_audit_convergence_rows_checked: 6
+  deferred_feature_entry_points_checked: 7
+  parked_feature_entry_points_checked: 1
+  blocking_findings_current_scope: 0
+  l7_artifacts_created_by_this_audit: 0
+workflow_surfaces:
+  - id: WF-FORWARD-L0-L14
+    source: HELIX-workflows/HELIX-process-L0-L14.md
+    l1_l6_role: Defines L0-L6 left-arm flow and test-design pair expectations.
+    automation_connection:
+      - plan_registry
+      - transition_history
+      - gate_pass
+      - vmodel_semantics
+    current_scope_status: design_contract_present
+  - id: WF-PAIR-FREEZE-L1-L6
+    source: HELIX-workflows/HELIX-process-L0-L14.md
+    l1_l6_role: Requires design plus paired test-design before left-arm freeze.
+    automation_connection:
+      - trace_symmetry_pre_execution
+      - pair_balance_map
+      - vg_overview_pre_push
+    current_scope_status: audit_evidence_present
+  - id: WF-REQUIREMENT-DRIFT
+    source: HELIX-workflows/helix-process/automation-gate-map.md
+    l1_l6_role: Tracks vertical meaning drift from L1/L3 through L4-L6.
+    automation_connection:
+      - helix_doctor_check_requirement_drift
+      - l1_l6_fr31_trace_map
+    current_scope_status: detector_evidence_present
+  - id: WF-VG-OVERVIEW
+    source: HELIX-workflows/helix-process/automation-gate-map.md
+    l1_l6_role: Aggregates registry, trace, pair, waiver, and deferred evidence.
+    automation_connection:
+      - helix_doctor_check_vg_overview
+      - strict_full_flow_deferred_gate_summary
+    current_scope_status: l6_focus_available_full_flow_deferred
+  - id: WF-DB-FEEDBACK
+    source: HELIX-workflows/helix-process/db-integration.md
+    l1_l6_role: Defines DB convergence from signal to plan and feedback evidence.
+    automation_connection:
+      - db_feedback_lifecycle_coverage
+      - feedback_loop_snapshot_candidate
+    current_scope_status: design_covered_implementation_deferred
+  - id: WF-HARNESS-TOOL-ADMISSION
+    source: helix/CODEX_RUNTIME_ADAPTER.md
+    l1_l6_role: Bounds Codex/HARNESS execution, web-evidence guard, and tool admission.
+    automation_connection:
+      - codex_guard_parity_map
+      - harness_external_tools_coverage
+      - web_evidence_source_map
+    current_scope_status: design_and_candidate_evidence_present
+automation_surfaces:
+  - id: AUTO-PLAN-REGISTRY
+    db_target: plan_registry
+    required_input: PLAN kind, layer, generates, requires, forward_return
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    status: contract_defined_add_feature_import_deferred
+  - id: AUTO-TRANSITION-HISTORY
+    db_target: transition_history
+    required_input: L transition or workflow return event
+    current_l1_l6_evidence: HELIX-workflows/HELIX-process-L0-L14.md
+    status: contract_defined
+  - id: AUTO-GATE-PASS
+    db_target: gate_pass
+    required_input: gate verdict plus evidence bundle
+    current_l1_l6_evidence: HELIX-workflows/helix-process/automation-gate-map.md
+    status: contract_defined
+  - id: AUTO-DRIFT-DETECTOR
+    db_target: detector_report
+    required_input: requirement_drift JSON
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    status: current_scope_clean
+  - id: AUTO-VG-OVERVIEW
+    db_target: gate_projection
+    required_input: VG overview summary with deferred/waiver classification
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    status: l6_focus_clean_full_flow_deferred
+  - id: AUTO-FEEDBACK-SNAPSHOT
+    db_target: feedback_event
+    required_input: normalized detector signal and candidate materialization
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    status: design_covered_implementation_deferred
+  - id: AUTO-DOCUMENT-PROJECTION
+    db_target: contract_registry
+    required_input: document path, process layer, requirement refs, pairs_with, implementation_status
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    status: design_covered_registry_mutation_deferred
+  - id: AUTO-TOOL-ADMISSION
+    db_target: external_tool_candidate
+    required_input: source URL, auth boundary, license boundary, output format, risk verdict
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    status: design_and_candidate_evidence_only
+  - id: AUTO-HANDOVER-BOUNDARY
+    db_target: handover_state
+    required_input: CURRENT.md Next Action, CURRENT.json task metadata, user scope boundary
+    current_l1_l6_evidence: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    status: design_covered_runtime_metadata_refresh_deferred
+automation_trigger_policy:
+  current_scope_action: define_trigger_contract_only
+  trigger_execution_added_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  external_tool_execution_allowed_now: false
+  l7_artifact_allowed_now: false
+  required_contract_fields:
+    - automation_id
+    - trigger_source
+    - required_input
+    - normalized_output
+    - db_target
+    - detector_or_gate_route
+    - deferred_feature_ticket_id
+    - forbidden_current_scope
+    - completion_guard
+automation_trigger_contracts:
+  - automation_id: AUTO-PLAN-REGISTRY
+    trigger_source: plan_or_add_feature_ticket_created
+    required_input: PLAN kind, layer, generates, requires, forward_return
+    normalized_output: plan_registry_candidate
+    db_target: plan_registry
+    detector_or_gate_route: missing_plan_metadata_or_add_feature_import_gap
+    deferred_feature_ticket_id: plan_registry_add_feature_import
+    forbidden_current_scope:
+      - plan_registry_import
+      - db_write
+      - l7_implementation
+    completion_guard: trigger_contract_is_not_plan_registry_import
+  - automation_id: AUTO-TRANSITION-HISTORY
+    trigger_source: layer_transition_or_workflow_return
+    required_input: L transition or workflow return event
+    normalized_output: transition_history_candidate
+    db_target: transition_history
+    detector_or_gate_route: transition_gap_or_forward_return_gap
+    deferred_feature_ticket_id: full_flow_remaining_guards
+    forbidden_current_scope:
+      - transition_history_write
+      - gate_promotion
+      - l7_implementation
+    completion_guard: trigger_contract_is_not_transition_write
+  - automation_id: AUTO-GATE-PASS
+    trigger_source: gate_verdict_recorded
+    required_input: gate verdict plus evidence bundle
+    normalized_output: gate_pass_projection_candidate
+    db_target: gate_pass
+    detector_or_gate_route: gate_or_detector_regression_candidate
+    deferred_feature_ticket_id: full_flow_remaining_guards
+    forbidden_current_scope:
+      - gate_pass_write
+      - fail_close_promotion
+      - ci_required_status_connection
+    completion_guard: trigger_contract_is_not_gate_pass_write
+  - automation_id: AUTO-DRIFT-DETECTOR
+    trigger_source: requirement_drift_detector_result
+    required_input: requirement_drift JSON
+    normalized_output: detector_report_candidate
+    db_target: detector_report
+    detector_or_gate_route: requirement_drift_route_candidate
+    deferred_feature_ticket_id: full_flow_remaining_guards
+    forbidden_current_scope:
+      - detector_auto_execution
+      - detector_report_write
+      - pre_push_fail_close_change
+    completion_guard: trigger_contract_is_not_detector_execution
+  - automation_id: AUTO-VG-OVERVIEW
+    trigger_source: vg_overview_summary_generated
+    required_input: VG overview summary with deferred/waiver classification
+    normalized_output: gate_projection_candidate
+    db_target: gate_projection
+    detector_or_gate_route: strict_full_flow_deferred_gate_summary
+    deferred_feature_ticket_id: full_flow_remaining_guards
+    forbidden_current_scope:
+      - right_arm_gate_execution
+      - full_flow_completion_claim
+      - ci_or_equivalent_connection
+    completion_guard: trigger_contract_is_not_full_flow_gate_execution
+  - automation_id: AUTO-FEEDBACK-SNAPSHOT
+    trigger_source: feedback_loop_snapshot_or_candidate_materialization
+    required_input: normalized detector signal and candidate materialization
+    normalized_output: feedback_event_candidate
+    db_target: feedback_event
+    detector_or_gate_route: feedback_lifecycle_candidate
+    deferred_feature_ticket_id: db_evidence_lifecycle
+    forbidden_current_scope:
+      - feedback_event_write_adoption
+      - recurrence_closure
+      - auto_apply
+    completion_guard: trigger_contract_is_not_feedback_closure
+  - automation_id: AUTO-DOCUMENT-PROJECTION
+    trigger_source: l1_l6_document_updated
+    required_input: document path, process layer, requirement refs, pairs_with, implementation_status
+    normalized_output: document_registry_projection_candidate
+    db_target: contract_registry
+    detector_or_gate_route: missing_doc_contract_or_reference_drift
+    deferred_feature_ticket_id: fr_registry_glossary
+    forbidden_current_scope:
+      - contract_registry_write
+      - registry_mutation
+      - l7_implementation
+    completion_guard: trigger_contract_is_not_document_registry_write
+  - automation_id: AUTO-TOOL-ADMISSION
+    trigger_source: harness_external_tool_candidate_created
+    required_input: source URL, auth boundary, license boundary, output format, risk verdict
+    normalized_output: external_tool_candidate
+    db_target: external_tool_candidate
+    detector_or_gate_route: harness_tool_admission_candidate
+    deferred_feature_ticket_id: harness_external_tools
+    forbidden_current_scope:
+      - external_tool_install
+      - external_tool_execution
+      - normalized_output_ingestion
+    completion_guard: trigger_contract_is_not_external_tool_execution
+  - automation_id: AUTO-HANDOVER-BOUNDARY
+    trigger_source: handover_status_or_session_resume
+    required_input: CURRENT.md Next Action, CURRENT.json task metadata, user scope boundary
+    normalized_output: handover_boundary_candidate
+    db_target: handover_state
+    detector_or_gate_route: handover_legacy_metadata_misread_gap
+    deferred_feature_ticket_id: phase_enum_l0_l14_runtime_retrofit
+    forbidden_current_scope:
+      - handover_metadata_write
+      - runtime_phase_enum_retitle
+      - l7_implementation
+    completion_guard: trigger_contract_is_not_handover_metadata_write
+db_convergence_policy:
+  current_scope_action: design_map_only
+  writes_allowed_now: false
+  schema_migration_allowed_now: false
+  plan_registry_import_done: false
+  append_only_feedback_until_approved_l7: true
+  candidate_is_not_closure: true
+  forward_vmodel_return_required_before_completion: true
+cross_audit_convergence_contract:
+  current_scope_action: prove_db_feedback_dependency_workflow_alignment_only
+  sources_checked:
+    - db_registration_readiness
+    - db_feedback_lifecycle
+    - dependency_impact_readiness
+    - workflow_automation
+  rows_checked: 6
+  db_write_done: false
+  schema_migration_done: false
+  query_cli_done: false
+  trigger_execution_added_now: false
+  feedback_auto_apply_done: false
+  l7_or_external_execution_allowed_now: false
+  required_alignment_fields:
+    - db_target
+    - registration_or_projection_source
+    - workflow_automation_id
+    - dependency_projection_or_output
+    - feedback_lifecycle_state
+    - detector_or_route
+    - completion_guard
+  rows:
+    - db_target: plan_registry
+      registration_or_projection_source: PLAN 起票
+      workflow_automation_id: AUTO-PLAN-REGISTRY
+      dependency_projection_or_output: affected_plans
+      feedback_lifecycle_state: plan_materialized
+      detector_or_route: missing_plan_metadata_or_add_feature_import_gap
+      completion_guard: plan_materialized_is_not_closure
+    - db_target: detector_report
+      registration_or_projection_source: audit_manifest
+      workflow_automation_id: AUTO-DRIFT-DETECTOR
+      dependency_projection_or_output: impact_seed
+      feedback_lifecycle_state: candidate_generated
+      detector_or_route: requirement_drift_route_candidate
+      completion_guard: trigger_contract_is_not_detector_execution
+    - db_target: gate_projection
+      registration_or_projection_source: affected gate projection
+      workflow_automation_id: AUTO-VG-OVERVIEW
+      dependency_projection_or_output: affected_gates
+      feedback_lifecycle_state: gate_projected
+      detector_or_route: strict_full_flow_deferred_gate_summary
+      completion_guard: trigger_contract_is_not_full_flow_gate_execution
+    - db_target: feedback_event
+      registration_or_projection_source: ゲート通過後
+      workflow_automation_id: AUTO-FEEDBACK-SNAPSHOT
+      dependency_projection_or_output: feedback_refs
+      feedback_lifecycle_state: recurrence_closed
+      detector_or_route: feedback_lifecycle_candidate
+      completion_guard: trigger_contract_is_not_feedback_closure
+    - db_target: contract_registry
+      registration_or_projection_source: ドキュメント更新
+      workflow_automation_id: AUTO-DOCUMENT-PROJECTION
+      dependency_projection_or_output: affected_design_docs
+      feedback_lifecycle_state: plan_materialized
+      detector_or_route: missing_doc_contract_or_reference_drift
+      completion_guard: projection_contract_is_not_db_write
+    - db_target: handover_state
+      registration_or_projection_source: セッション再開
+      workflow_automation_id: AUTO-HANDOVER-BOUNDARY
+      dependency_projection_or_output: resume_state_candidate
+      feedback_lifecycle_state: candidate_generated
+      detector_or_route: handover_legacy_metadata_misread_gap
+      completion_guard: trigger_contract_is_not_handover_metadata_write
+route_policy:
+  current_scope_action: map_detector_to_gate_only
+  gate_execution_done: false
+  gate_promotion_done: false
+  feedback_auto_apply_done: false
+  route_mapping_is_not_completion_evidence: true
+  evidence_must_not_use_l7_test_design: true
+detector_gate_routes:
+  - route_id: ROUTE-L1-L6-REQUIREMENT-DRIFT
+    detector: requirement_drift
+    gates:
+      - G3
+      - G4
+      - G6
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+  - route_id: ROUTE-L1-L6-PAIR-BALANCE
+    detector: trace_symmetry
+    gates:
+      - G1
+      - G2
+      - G3
+      - G4
+      - G5
+      - G6
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+  - route_id: ROUTE-L1-L6-GOVERNANCE
+    detector: governance_registry_detectors
+    gates:
+      - G6
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+  - route_id: ROUTE-L1-L6-DB-FEEDBACK
+    detector: feedback_loop_candidate_projection
+    gates:
+      - G6
+      - G11
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+  - route_id: ROUTE-L1-L6-HARNESS-TOOLS
+    detector: harness_tool_admission
+    gates:
+      - G6
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+  - route_id: ROUTE-L1-L6-CODEX-CLAUDE-GUARD-PARITY
+    detector: runtime_guard_parity
+    gates:
+      - G6
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+  - route_id: ROUTE-L1-L6-HANDOVER-BOUNDARY
+    detector: handover_legacy_metadata_misread
+    gates:
+      - session-start
+      - G6
+      - pre-push
+    current_scope_evidence: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+deferred_feature_policy:
+  implementation_required_before_fail_close: true
+  feature_tickets:
+    - id: full_flow_remaining_guards
+      path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      unlocks:
+        - G8/G9/G12/G14 execution-gate implementation
+        - CI or local equivalent full-flow gate evidence
+        - feedback adoption closure evidence
+    - id: db_evidence_lifecycle
+      path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      unlocks:
+        - DB write connection
+        - document auto-registration projection
+        - feedback loop candidate persistence
+        - recurrence closure implementation
+    - id: harness_external_tools
+      path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      unlocks:
+        - MCP/plugin/SAST execution through HARNESS
+        - normalized external tool output ingestion
+    - id: codex_claude_guard_parity
+      path: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+      unlocks:
+        - remaining runtime guard parity implementation
+    - id: fr_registry_glossary
+      path: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+      unlocks:
+        - registry/glossary execution evidence
+    - id: plan_registry_add_feature_import
+      path: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      unlocks:
+        - add-feature ticket import through plan_registry
+        - draft ticket registration without treating registration as completion
+    - id: phase_enum_l0_l14_runtime_retrofit
+      path: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+      unlocks:
+        - safe task retitle / metadata refresh command
+        - runtime phase enum metadata validation
+        - handover legacy L7 label regression guard
+  parked_feature_tickets:
+    - id: detector_failclose_ci_gate
+      path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md
+      status: finalized_parked
+      current_task_scope: parked_feature_ticket_only
+      approval_required_before_l7_work: true
+      approval_required_before_ci_or_fail_close: true
+      ticket_is_completion_evidence: false
+      unlocks:
+        - detector fail-close promotion
+        - CI gate connection
+        - automation-gate hardening
+completion_denial:
+  reason: >
+    This audit proves only L1-L6 workflow automation design coverage and route
+    mapping. It does not prove L7 implementation, right-arm gate execution,
+    CI/equivalent wiring, DB write adoption, external tool execution, or full
+    goal completion.

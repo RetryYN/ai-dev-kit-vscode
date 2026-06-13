@@ -1,0 +1,507 @@
+schema_version: l1_l6_codex_claude_guard_parity_map_v1
+owner: TL
+status: current_scope_l1_l6_guard_parity_defined
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Make the "works in ClaudeCode but not Codex" guard surface inspectable for
+  the current L1-L6 audit. This map records which controls already have Codex
+  runtime evidence, which are L6 design contracts only, and which must remain
+  future feature/PLAN work before they can count as parity closure.
+sources:
+  runtime_rules:
+    - AGENTS.md
+    - helix/HELIX_RUNTIME_RULES.md
+    - helix/CODEX_RUNTIME_ADAPTER.md
+    - skills/SKILL_MAP.md
+    - skills/tools/ai-coding/references/gate-policy.md
+    - skills/tools/ai-coding/references/implementation-gate.md
+    - skills/tools/ai-coding/references/codex-prompt-antipatterns.md
+    - skills/tools/ai-coding/references/fork-security-policy.md
+  codex_runtime_evidence:
+    - cli/lib/codex_post_validation.py
+    - cli/lib/tests/test_codex_post_validation.py
+    - cli/tests/test-helix-codex-write-audit.bats
+  l6_design_contracts:
+    - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+    - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+    - docs/v2/L6-functional-design/whole-source-coverage-機能設計.md
+  handover_boundary_evidence:
+    - .helix/handover/CURRENT.md
+    - .helix/handover/CURRENT.json
+    - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  parity_map_is_closure: false
+  new_hook_implementation_done: false
+  new_codex_runtime_enforcement_done: false
+  goal_complete_allowed: false
+summary:
+  guard_surfaces: 8
+  parity_status_policies_checked: 5
+  parity_gap_routes_checked: 8
+  parity_route_required_fields_checked: 7
+  parity_finding_normalization_contracts_checked: 8
+  parity_normalization_required_fields_checked: 8
+  parity_closure_requirements_checked: 8
+  parity_closure_required_fields_checked: 6
+  parity_accountability_current_scope_proves_checked: 4
+  parity_accountability_current_scope_does_not_prove_checked: 4
+  parity_classification_rules_checked: 4
+  parity_adoption_requirements_checked: 4
+  codex_runtime_evidence_surfaces: 3
+  l6_design_only_surfaces: 3
+  future_plan_required_surfaces: 1
+  blocking_findings_current_scope: 0
+deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+parity_status_policy:
+  defined_common_policy:
+    counts_as_codex_runtime_evidence: false
+    counts_as_l6_design_only: false
+    counts_as_closure: false
+    required_evidence:
+      - runtime_rules
+  codex_runtime_defined:
+    counts_as_codex_runtime_evidence: true
+    counts_as_l6_design_only: false
+    counts_as_closure: false
+    required_evidence:
+      - codex_runtime_policy_doc
+  codex_runtime_tested:
+    counts_as_codex_runtime_evidence: true
+    counts_as_l6_design_only: false
+    counts_as_closure: false
+    required_evidence:
+      - codex_runtime_source
+      - codex_runtime_test
+  l6_design_only:
+    counts_as_codex_runtime_evidence: false
+    counts_as_l6_design_only: true
+    counts_as_closure: false
+    required_evidence:
+      - l6_function_design
+  future_plan_required:
+    counts_as_codex_runtime_evidence: false
+    counts_as_l6_design_only: true
+    counts_as_closure: false
+    required_evidence:
+      - l6_inventory_or_design
+      - deferred_feature_plan
+classification_rules:
+  - ClaudeCode hook-only behavior cannot count as parity closure.
+  - Codex parity closure requires Codex runtime, harness, doctor, or post-validation evidence.
+  - L6 design-only parity closes design gaps but does not install hooks or enforce runtime behavior.
+  - Future-plan-required parity must stay in add-feature until explicitly approved.
+parity_accountability_contract:
+  current_scope_action: prove_guard_parity_is_not_feature_escape
+  claude_hook_only_behavior_counts_as_gap: true
+  feature_ticket_is_not_design_substitute: true
+  l6_design_gap_closed_only_when_surface_has_route_normalization_and_closure_requirement: true
+  runtime_enforcement_requires_explicit_approval: true
+  codex_parity_closure_requires_codex_evidence: true
+  current_scope_must_keep_closure_false: true
+  current_scope_proves:
+    - each guard surface has a detector or feedback route
+    - each guard surface has a normalized finding contract
+    - each guard surface has a closure requirement with missing evidence
+    - ClaudeCode-only guard behavior cannot be treated as Codex parity
+  current_scope_does_not_prove:
+    - new Codex runtime enforcement
+    - hook parity closure
+    - fail-close promotion
+    - CI or gate connection
+parity_closure_requirement_policy:
+  current_scope_action: define_closure_requirements_only
+  closure_allowed_now: false
+  db_write_allowed_now: false
+  hook_change_allowed_now: false
+  runtime_enforcement_change_allowed_now: false
+  ci_or_gate_connection_allowed_now: false
+  l7_artifact_allowed_now: false
+  required_fields:
+    - surface_id
+    - parity_status
+    - current_evidence_class
+    - missing_before_closure
+    - allowed_closure_evidence
+    - current_scope_result
+parity_closure_requirements:
+  - surface_id: GPAR-COMMON-RUNTIME-RULES
+    parity_status: defined_common_policy
+    current_evidence_class: policy_definition
+    missing_before_closure:
+      - codex_runtime_or_harness_enforcement
+      - detector_or_doctor_execution_evidence
+    allowed_closure_evidence:
+      - policy_drift_detector_pass
+      - codex_runtime_guard_test
+    current_scope_result: policy_defined_not_closure
+  - surface_id: GPAR-CODEX-HARNESS-CONSENT
+    parity_status: codex_runtime_defined
+    current_evidence_class: codex_policy_document
+    missing_before_closure:
+      - write_path_enforcement_test
+      - raw_codex_escape_detection
+    allowed_closure_evidence:
+      - codex_harness_runtime_test
+      - doctor_guard_surface_pass
+    current_scope_result: runtime_policy_documented_not_full_enforcement
+  - surface_id: GPAR-HANDOVER-METADATA-BOUNDARY
+    parity_status: defined_common_policy
+    current_evidence_class: handover_next_action_policy
+    missing_before_closure:
+      - handover_metadata_detector_or_runtime_validator
+      - legacy_json_l7_label_regression_test
+    allowed_closure_evidence:
+      - handover_boundary_detector_pass
+      - codex_handover_guard_test
+    current_scope_result: policy_defined_not_closure
+  - surface_id: GPAR-CODEX-DESIGN-WEB-EVIDENCE
+    parity_status: codex_runtime_tested
+    current_evidence_class: codex_post_validation_test
+    missing_before_closure:
+      - no_missing_current_surface
+    allowed_closure_evidence:
+      - codex_post_validation_test
+      - wrapper_bats_guard_test
+    current_scope_result: current_surface_tested_not_global_parity_closure
+  - surface_id: GPAR-CODEX-ALLOWED-FILES-BASELINE
+    parity_status: codex_runtime_tested
+    current_evidence_class: codex_post_validation_test
+    missing_before_closure:
+      - no_missing_current_surface
+    allowed_closure_evidence:
+      - codex_post_validation_test
+      - allowed_files_scope_test
+    current_scope_result: current_surface_tested_not_hook_parity_closure
+  - surface_id: GPAR-CONTEXT-INJECTION-PARITY
+    parity_status: l6_design_only
+    current_evidence_class: l6_function_design
+    missing_before_closure:
+      - codex_context_bundle_generation
+      - parity_finding_execution_evidence
+    allowed_closure_evidence:
+      - l7_test_first_implementation
+      - doctor_parity_finding_pass
+    current_scope_result: design_closed_implementation_deferred
+  - surface_id: GPAR-GUARDRAIL-PARITY-AXIS
+    parity_status: l6_design_only
+    current_evidence_class: l6_function_design
+    missing_before_closure:
+      - guardrail_axis_execution
+      - gate_or_doctor_surface_connection
+    allowed_closure_evidence:
+      - l7_test_first_implementation
+      - guardrail_detector_pass
+    current_scope_result: design_closed_gate_connection_deferred
+  - surface_id: GPAR-WSC-HOOK-PARITY-CARRY
+    parity_status: future_plan_required
+    current_evidence_class: inventory_and_design_only
+    missing_before_closure:
+      - approved_feature_ticket
+      - codex_hook_or_library_enforcement
+      - parity_regression_tests
+    allowed_closure_evidence:
+      - approved_l7_feature_execution
+      - codex_runtime_guard_test
+      - no_l7_inventory_pollution_evidence
+    current_scope_result: future_plan_required_no_l7_artifact
+parity_gap_route_policy:
+  current_scope_action: route_parity_surface_to_detection_and_feedback_only
+  db_write_allowed_now: false
+  hook_change_allowed_now: false
+  fail_close_promotion_allowed_now: false
+  l7_artifact_allowed_now: false
+  required_route_fields:
+    - surface_id
+    - parity_status
+    - detector_route
+    - feedback_target
+    - owner_role
+    - next_action
+    - current_scope_boundary
+parity_finding_normalization_policy:
+  current_scope_action: define_parity_finding_contract_only
+  db_write_allowed_now: false
+  hook_change_allowed_now: false
+  runtime_enforcement_change_allowed_now: false
+  l7_artifact_allowed_now: false
+  counts_as_closure: false
+  allowed_db_targets:
+    - detector_report
+    - feedback_event
+  allowed_lifecycle_states:
+    - detected
+    - candidate_generated
+  allowed_severity_floors:
+    - P1
+    - P2
+    - P3
+  allowed_completion_guards:
+    - candidate_generated_is_not_closure
+    - plan_materialized_is_not_closure
+  required_contract_fields:
+    - surface_id
+    - parity_status
+    - normalized_finding_type
+    - db_target
+    - lifecycle_state
+    - severity_floor
+    - feedback_route
+    - completion_guard
+parity_gap_routes:
+  - surface_id: GPAR-COMMON-RUNTIME-RULES
+    parity_status: defined_common_policy
+    detector_route: runtime_policy_drift
+    feedback_target: detector_report
+    owner_role: TL
+    next_action: monitor_policy_drift
+    current_scope_boundary: policy_definition_only_not_closure
+  - surface_id: GPAR-CODEX-HARNESS-CONSENT
+    parity_status: codex_runtime_defined
+    detector_route: codex_harness_consent_policy_check
+    feedback_target: detector_report
+    owner_role: TL
+    next_action: keep_runtime_policy_documented_until_l7_expansion
+    current_scope_boundary: policy_documented_not_full_runtime_enforcement
+  - surface_id: GPAR-HANDOVER-METADATA-BOUNDARY
+    parity_status: defined_common_policy
+    detector_route: handover_legacy_metadata_misread_gap
+    feedback_target: detector_report
+    owner_role: TL
+    next_action: maintain_next_action_as_authoritative_boundary
+    current_scope_boundary: current_markdown_next_action_supersedes_legacy_json_l7_labels
+  - surface_id: GPAR-CODEX-DESIGN-WEB-EVIDENCE
+    parity_status: codex_runtime_tested
+    detector_route: codex_post_validation_evidence_check
+    feedback_target: detector_report
+    owner_role: TL
+    next_action: maintain_existing_codex_runtime_tests
+    current_scope_boundary: current_surface_tested_not_full_parity_closure
+  - surface_id: GPAR-CODEX-ALLOWED-FILES-BASELINE
+    parity_status: codex_runtime_tested
+    detector_route: codex_allowed_files_baseline_check
+    feedback_target: detector_report
+    owner_role: TL
+    next_action: maintain_existing_codex_runtime_tests
+    current_scope_boundary: current_surface_tested_not_hook_parity_closure
+  - surface_id: GPAR-CONTEXT-INJECTION-PARITY
+    parity_status: l6_design_only
+    detector_route: context_injection_parity_gap
+    feedback_target: feedback_event
+    owner_role: TL
+    next_action: keep_as_l7_feature_ticket_candidate
+    current_scope_boundary: l6_design_only_no_runtime_enforcement
+  - surface_id: GPAR-GUARDRAIL-PARITY-AXIS
+    parity_status: l6_design_only
+    detector_route: guardrail_parity_axis_gap
+    feedback_target: feedback_event
+    owner_role: TL
+    next_action: keep_as_l7_feature_ticket_candidate
+    current_scope_boundary: l6_design_only_no_gate_or_ci_block
+  - surface_id: GPAR-WSC-HOOK-PARITY-CARRY
+    parity_status: future_plan_required
+    detector_route: whole_source_hook_parity_gap
+    feedback_target: feedback_event
+    owner_role: TL
+    next_action: route_to_deferred_feature_plan
+    current_scope_boundary: future_plan_required_no_l7_artifact
+parity_finding_normalization_contracts:
+  - surface_id: GPAR-COMMON-RUNTIME-RULES
+    parity_status: defined_common_policy
+    normalized_finding_type: runtime_policy_drift
+    db_target: detector_report
+    lifecycle_state: detected
+    severity_floor: P2
+    feedback_route: monitor_policy_drift
+    completion_guard: candidate_generated_is_not_closure
+  - surface_id: GPAR-CODEX-HARNESS-CONSENT
+    parity_status: codex_runtime_defined
+    normalized_finding_type: codex_harness_consent_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    severity_floor: P2
+    feedback_route: keep_runtime_policy_documented_until_l7_expansion
+    completion_guard: candidate_generated_is_not_closure
+  - surface_id: GPAR-HANDOVER-METADATA-BOUNDARY
+    parity_status: defined_common_policy
+    normalized_finding_type: handover_legacy_l7_metadata_misread_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    severity_floor: P1
+    feedback_route: maintain_next_action_as_authoritative_boundary
+    completion_guard: candidate_generated_is_not_closure
+  - surface_id: GPAR-CODEX-DESIGN-WEB-EVIDENCE
+    parity_status: codex_runtime_tested
+    normalized_finding_type: codex_design_web_evidence_guard_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    severity_floor: P3
+    feedback_route: maintain_existing_codex_runtime_tests
+    completion_guard: candidate_generated_is_not_closure
+  - surface_id: GPAR-CODEX-ALLOWED-FILES-BASELINE
+    parity_status: codex_runtime_tested
+    normalized_finding_type: codex_allowed_files_baseline_gap
+    db_target: detector_report
+    lifecycle_state: detected
+    severity_floor: P3
+    feedback_route: maintain_existing_codex_runtime_tests
+    completion_guard: candidate_generated_is_not_closure
+  - surface_id: GPAR-CONTEXT-INJECTION-PARITY
+    parity_status: l6_design_only
+    normalized_finding_type: context_injection_parity_gap
+    db_target: feedback_event
+    lifecycle_state: candidate_generated
+    severity_floor: P2
+    feedback_route: keep_as_l7_feature_ticket_candidate
+    completion_guard: plan_materialized_is_not_closure
+  - surface_id: GPAR-GUARDRAIL-PARITY-AXIS
+    parity_status: l6_design_only
+    normalized_finding_type: guardrail_parity_axis_gap
+    db_target: feedback_event
+    lifecycle_state: candidate_generated
+    severity_floor: P1
+    feedback_route: keep_as_l7_feature_ticket_candidate
+    completion_guard: plan_materialized_is_not_closure
+  - surface_id: GPAR-WSC-HOOK-PARITY-CARRY
+    parity_status: future_plan_required
+    normalized_finding_type: whole_source_hook_parity_gap
+    db_target: feedback_event
+    lifecycle_state: candidate_generated
+    severity_floor: P1
+    feedback_route: route_to_deferred_feature_plan
+    completion_guard: plan_materialized_is_not_closure
+guard_surfaces:
+  - id: GPAR-COMMON-RUNTIME-RULES
+    title: Common HELIX runtime rules apply to ClaudeCode and Codex.
+    parity_status: defined_common_policy
+    current_scope_status: L1-L6 evidence
+    source_refs:
+      - AGENTS.md
+      - helix/HELIX_RUNTIME_RULES.md
+      - helix/CODEX_RUNTIME_ADAPTER.md
+      - skills/SKILL_MAP.md
+      - skills/tools/ai-coding/references/gate-policy.md
+      - skills/tools/ai-coding/references/implementation-gate.md
+      - skills/tools/ai-coding/references/codex-prompt-antipatterns.md
+      - skills/tools/ai-coding/references/fork-security-policy.md
+    codex_control:
+      - Codex is not an independent workflow.
+      - Codex must follow HELIX Core, Runtime Rules, handover, PLAN, and gate evidence.
+      - Codex must read SKILL_MAP as the workflow/gate/skill index while loading individual SKILL.md files only when triggered.
+      - AGENTS.md carries Codex-specific schedule discipline, handover discipline, and compatibility flag boundaries.
+      - ai-coding references carry shared gate policy, implementation gate, prompt anti-pattern, and external fork security controls.
+    claude_control:
+      - Claude Code is also governed by HELIX Runtime Rules.
+    current_gap: none_for_policy_definition
+  - id: GPAR-CODEX-HARNESS-CONSENT
+    title: Codex write execution must go through helix codex guard surfaces.
+    parity_status: codex_runtime_defined
+    current_scope_status: L1-L6 evidence
+    source_refs:
+      - helix/CODEX_RUNTIME_ADAPTER.md
+    codex_control:
+      - "--plan-only for planning / investigation tasks"
+      - "--approved for write execution"
+      - "--consent auto for plan-only guard"
+      - "HELIX_CODEX_REQUIRE_APPROVED=1 for required approval"
+      - "raw codex requires HELIX_ALLOW_RAW_CODEX and reason"
+    claude_control:
+      - "Claude prompt generation uses helix claude --dry-run; raw claude requires reason."
+    current_gap: runtime policy documented; broader enforcement remains outside this L1-L6 audit
+  - id: GPAR-HANDOVER-METADATA-BOUNDARY
+    title: Handover Next Action must override stale legacy metadata when Codex resumes.
+    parity_status: defined_common_policy
+    current_scope_status: L1-L6 evidence
+    source_refs:
+      - .helix/handover/CURRENT.md
+      - .helix/handover/CURRENT.json
+      - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+      - docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    codex_control:
+      - CURRENT.md Next Action is authoritative for current scope.
+      - Legacy CURRENT.json L7 task title and pending entries cannot authorize L7 work.
+      - Safe task retitle / metadata refresh remains future retrofit and cannot be self-applied.
+    claude_control:
+      - Claude/PM handover metadata can provide context, but current Next Action and explicit user boundary decide scope.
+    current_gap: runtime metadata validator and safe retitle command remain future retrofit work
+  - id: GPAR-CODEX-DESIGN-WEB-EVIDENCE
+    title: Codex design-document Web evidence post-validation.
+    parity_status: codex_runtime_tested
+    current_scope_status: L1-L6 evidence
+    source_refs:
+      - helix/CODEX_RUNTIME_ADAPTER.md
+      - cli/lib/codex_post_validation.py
+      - cli/lib/tests/test_codex_post_validation.py
+      - cli/tests/test-helix-codex-write-audit.bats
+    codex_control:
+      - HELIX_CODEX_DESIGN_WEB_EVIDENCE is checked by post-validation.
+      - ADR design doc changes without WebSearch/WebFetch evidence fail.
+      - WebSearch and WebFetch evidence both pass.
+    claude_control:
+      - Claude hook design-doc WebSearch guard exists in whole-source coverage design.
+    current_gap: none_for_current_design_doc_web_evidence_surface
+  - id: GPAR-CODEX-ALLOWED-FILES-BASELINE
+    title: Codex post-validation catches out-of-scope writes and unsafe concurrent baselines.
+    parity_status: codex_runtime_tested
+    current_scope_status: L1-L6 evidence
+    source_refs:
+      - cli/lib/codex_post_validation.py
+      - cli/lib/tests/test_codex_post_validation.py
+    codex_control:
+      - allowed_files violations are detected for untracked writes.
+      - concurrent baseline files must live under PROJECT_ROOT/.helix/tmp.
+      - symlink and invalid baseline paths are rejected.
+    claude_control:
+      - ClaudeCode hook surface is separate; this map records Codex parity coverage for the same scope-boundary intent.
+    current_gap: no L7 change; broader hook parity remains feature/PLAN work
+  - id: GPAR-CONTEXT-INJECTION-PARITY
+    title: Layer context injection must emit parity findings when only ClaudeCode receives a constraint.
+    parity_status: l6_design_only
+    current_scope_status: design_closed_implementation_deferred
+    source_refs:
+      - docs/v2/L6-functional-design/FR-CTX-01/function-spec.md
+    codex_control:
+      - CTX-FN-05 emits guardrail / doctor input for Codex/Claude parity gaps.
+      - CTX-UT-CAND-05 defines the unit-test-design viewpoint.
+    claude_control:
+      - ClaudeCode hook-only injection must not silently count as HELIX parity.
+    current_gap: context bundle implementation, hook/harness connection, and mandatory-agent enforcement require later approved work
+  - id: GPAR-GUARDRAIL-PARITY-AXIS
+    title: Guardrail evaluation includes Codex / Claude parity as an axis.
+    parity_status: l6_design_only
+    current_scope_status: design_closed_implementation_deferred
+    source_refs:
+      - docs/v2/L6-functional-design/FR-GR-01/function-spec.md
+    codex_control:
+      - Guardrail contract includes codex_claude_parity verdict.
+      - Claude-only guard coverage becomes warn or block finding.
+    claude_control:
+      - Claude-only hook behavior is not allowed to be invisible to gate inputs.
+    current_gap: guardrail implementation, doctor/gate/CI connection require later approved work
+  - id: GPAR-WSC-HOOK-PARITY-CARRY
+    title: Whole-source coverage lists Claude hooks and Codex library guards with known implementation surfaces.
+    parity_status: future_plan_required
+    current_scope_status: inventory_and_design_only
+    source_refs:
+      - docs/v2/L6-functional-design/whole-source-coverage-機能設計.md
+    codex_control:
+      - codex_post_validation is a Codex-side library guard with tests.
+      - pretooluse-codex-slot-check is currently warning-only.
+    claude_control:
+      - ClaudeCode has direct PreToolUse/PostToolUse hook surfaces for several controls.
+    current_gap: full hook-to-Codex enforcement parity is not complete and must remain future PLAN work
+adoption_requirements:
+  - Any new Codex runtime enforcement must be approved as feature/PLAN work with allowed_files and verification commands.
+  - Claude hook behavior cannot be counted as Codex parity unless a Codex runtime, harness, doctor, or post-validation evidence path exists.
+  - L6 design contracts can close design gaps only; implementation, runtime enforcement, CI/gate connection, and closure remain separate.
+  - The deferred feature entry point for L7 implementation is docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md.
+completion_denial:
+  reason: >
+    This map proves current L1-L6 guard parity design and Codex runtime evidence
+    surfaces only. It does not prove full hook parity, new runtime enforcement,
+    L7 implementation, CI/gate closure, or full goal completion.

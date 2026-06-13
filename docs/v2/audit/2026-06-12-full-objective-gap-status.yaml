@@ -1,0 +1,973 @@
+schema_version: full_objective_gap_status_v1
+owner: TL
+status: active_goal_l1_l6_current_scope_pass_later_phase_deferred
+updated: 2026-06-12
+scope: full_objective_status_with_current_l1_l6_boundary
+purpose: >
+  Keep the user's full objective intact while separating what is proven through
+  L1-L6 from the later-phase work that must not start without an add-feature
+  approval. This is a status and gap ledger, not implementation evidence.
+source_audits:
+  l0_l14_flow_surface: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+  l0_planning_derivation: docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+  objective_l1_l6_coverage: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  double_check: docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+  reference_integrity: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+  deferred_feature_coverage: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  deferred_design_obligation_proof: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+  dependency_impact_readiness: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+  bottleneck_remediation_readiness: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+  ratification_index: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+  exit_criteria: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+  workflow_automation: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+  db_registration_readiness: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+  governance_hardening: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+  codex_claude_guard_parity: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+  harness_external_tools: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+  nfr_derivation: docs/v2/audit/2026-06-13-l1-l6-nfr-derivation-coverage.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  this_ledger_is_l7_work: false
+  this_ledger_is_implementation_evidence: false
+  l7_implementation_done: false
+  l7_test_design_created_by_this_ledger: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  external_tool_installed: false
+  external_tool_executed: false
+  ci_or_equivalent_connected: false
+  full_goal_complete: false
+  goal_complete_allowed: false
+latest_user_boundary:
+  l7_requested_now: false
+  l7_route: add_feature_ticket_only
+  current_allowed_work: L1-L6 audit/design/evidence cleanup and feature-ticket boundary mapping
+  forbidden_now:
+    - L7 implementation
+    - L7 test-design artifact creation
+    - unit-test implementation or execution
+    - coverage closure
+    - HELIX DB write adoption
+    - external tool installation or execution
+    - CI/equivalent connection
+summary:
+  objective_items_checked: 10
+  current_scope_items_pass_l1_l6: 9
+  items_requiring_later_phase_before_full_completion: 8
+  feature_tickets_available: 11
+  repository_add_feature_files_discovered: 16
+  current_objective_deferred_feature_tickets: 11
+  out_of_current_objective_add_feature_files: 5
+  out_of_current_objective_completed_add_features: 4
+  out_of_current_objective_parked_feature_tickets: 1
+  right_arm_execution_gates_deferred: 4
+  blocking_findings_current_l1_l6_scope: 0
+  blocking_findings_full_goal: 8
+  current_scope_verdict: pass_l1_l6_only
+  full_goal_verdict: active_not_complete
+summary_contract:
+  objective_items_checked_source: objective_status_count
+  current_scope_items_pass_l1_l6_rule: objective_status_count_minus_non_completion_status_count
+  items_requiring_later_phase_rule: objective_status_count_minus_empty_remaining_allowed_count_minus_non_completion_status_count
+  blocking_findings_full_goal_rule: same_as_items_requiring_later_phase_before_full_completion
+  feature_tickets_available_source: feature_ticket_boundaries_count
+  repository_add_feature_inventory_source: deferred_feature_coverage.repository_add_feature_inventory
+  current_objective_deferred_feature_tickets_rule: same_as_feature_tickets_available
+  out_of_current_objective_add_feature_files_rule: repository_inventory_excluded_from_current_objective_deferred_count
+  inventory_exclusion_is_completion_evidence: false
+  inventory_exclusion_allows_l7_work: false
+  right_arm_execution_gates_deferred_source: right_arm_execution_boundaries.deferred_gates_count
+  current_l1_l6_blocking_findings_rule: zero_when_all_objective_status_proofs_exist_and_no_forbidden_l7_proofs
+  full_goal_verdict_rule: active_not_complete_until_l7_db_auto_registration_feedback_loop_ci_external_tool_adoption_recheck_and_right_arm_gates_close
+  summary_is_completion_evidence: false
+source_audit_contract:
+  required_source_audit_keys:
+    - l0_l14_flow_surface
+    - l0_planning_derivation
+    - objective_l1_l6_coverage
+    - double_check
+    - reference_integrity
+    - deferred_feature_coverage
+    - deferred_design_obligation_proof
+    - dependency_impact_readiness
+    - bottleneck_remediation_readiness
+    - ratification_index
+    - exit_criteria
+    - workflow_automation
+    - db_registration_readiness
+    - governance_hardening
+    - codex_claude_guard_parity
+    - harness_external_tools
+    - nfr_derivation
+  source_path_class_required: l1_l6_audit_doc
+  source_files_must_exist: true
+  source_files_must_be_current_scope_audits: true
+  source_files_must_not_be_l7_artifacts: true
+  source_files_must_not_be_add_feature_plans: true
+  source_audits_are_completion_evidence: false
+source_audit_bundle_alignment_contract:
+  reference_integrity_source_audit_key: reference_integrity
+  source_audit_paths_must_be_in_reference_integrity_bundle_or_self_reference_integrity: true
+  self_reference_integrity_source_path_allowed_outside_bundle: true
+  outside_bundle_source_audits_allowed_count: 1
+  source_audit_paths_outside_bundle_must_equal_reference_integrity_source: true
+  bundle_alignment_is_completion_evidence: false
+  l7_or_add_feature_source_alignment_allowed: false
+source_audit_usage_contract:
+  source_collection: source_audits
+  usage_surfaces:
+    - completion_audit_matrix.authoritative_evidence_keys
+    - objective_clause_mapping_contract.source_audit_key
+    - feature_boundary_contract.source_audit_key
+    - l1_l6_design_obligation_contract.source_audit_key
+    - harness_external_tool_adoption_recheck_scope_contract.source_audit_key
+    - harness_external_tool_current_session_web_fetch_recheck.source_audit_key
+    - harness_external_tool_accountability_contract.source_audit_key
+  all_source_audit_keys_must_be_used: true
+  unused_source_audit_keys: []
+  source_audit_usage_is_completion_evidence: false
+  l7_or_add_feature_source_usage_allowed: false
+completion_audit_policy:
+  preserve_full_objective_scope: true
+  current_scope_is_l1_l6_only: true
+  weak_or_indirect_evidence_counts_as_complete: false
+  l1_l6_pass_may_not_be_rewritten_as_full_goal_complete: true
+  later_phase_work_requires_feature_ticket: true
+  add_feature_tickets_are_boundaries_not_proof: true
+  source_audit_keys_must_exist: true
+harness_external_tool_adoption_recheck_scope_contract:
+  source_audit_key: harness_external_tools
+  source_contract: adoption_recheck_scope_contract
+  current_scope_action: index_later_phase_adoption_recheck_gap_only
+  adoption_recheck_controls_checked: 3
+  latest_core_rechecked_sources_checked: 5
+  all_candidate_sources_checked: 33
+  spot_recheck_sources_checked: 8
+  adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+  adoption_control_sources_are_subset_of_spot_recheck_sources: true
+  all_candidate_source_ids_must_match_canonical_source_ids: true
+  spot_recheck_sources_are_subset_of_canonical_source_ids: true
+  spot_recheck_is_not_full_candidate_recheck: true
+  all_candidates_remain_gated_by_admission_gate_contracts: true
+  non_core_candidates_require_new_recheck_before_adoption: true
+  required_before_full_goal_completion:
+    - approved_feature_ticket
+    - fresh_official_source_recheck
+    - auth_license_network_ci_db_ingestion_approval
+    - install_or_execution_evidence_if_selected
+    - output_ingestion_and_feedback_evidence_if_selected
+  current_scope_is_completion_evidence: false
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  l7_artifact_allowed_now: false
+harness_external_tool_current_session_web_fetch_recheck:
+  source_audit_key: harness_external_tools
+  source_contract: current_session_web_fetch_recheck_2026_06_13
+  current_scope_action: index_l1_l6_design_basis_recheck_only
+  official_sources_checked: 5
+  web_fetch_confirmed: true
+  source_ids:
+    - MCP-SPEC-2025-06-18
+    - GITHUB-MCP-SERVER
+    - OPENAI-APPS-SDK-MCP-DESCRIPTOR
+    - SEMGREP-CE
+    - GITHUB-CODEQL
+  current_scope_is_completion_evidence: false
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  l7_artifact_allowed_now: false
+  result: no_change_to_candidate_gate_status
+harness_external_tool_accountability_contract:
+  source_audit_key: harness_external_tools
+  source_contract: harness_tool_accountability_contract
+  current_scope_action: index_external_tool_research_as_design_basis_only
+  feature_ticket_is_not_design_substitute: true
+  web_evidence_is_design_basis_not_adoption: true
+  all_candidates_require_admission_gate_before_install_or_execution: true
+  mcp_plugin_install_requires_explicit_approval: true
+  output_ingestion_requires_explicit_db_ingestion_approval: true
+  current_scope_must_keep_install_execution_ci_db_false: true
+  l7_work_requires_feature_ticket: true
+  current_scope_is_completion_evidence: false
+  adoption_or_execution_allowed_now: false
+  db_write_allowed_now: false
+  ci_or_equivalent_connection_allowed_now: false
+  l7_artifact_allowed_now: false
+authoritative_evidence_contract:
+  source_collection: completion_audit_matrix
+  evidence_key_field: authoritative_evidence_keys
+  evidence_keys_must_resolve_to_source_audits: true
+  resolved_source_paths_must_exist: true
+  resolved_source_paths_must_be_l1_l6_audit_docs: true
+  resolved_source_paths_must_not_be_l7_artifacts: true
+  resolved_source_paths_must_not_be_add_feature_plans: true
+  authoritative_evidence_keys_are_completion_evidence: false
+  l7_execution_allowed_by_authoritative_keys: false
+completion_audit_matrix:
+  - id: REQ-L0-L14-FLOW
+    current_l1_l6_verdict: proven_current_scope
+    proof_strength: direct_contract_and_surface_audit
+    authoritative_evidence_keys:
+      - l0_l14_flow_surface
+      - l0_planning_derivation
+      - objective_l1_l6_coverage
+    remaining_class: right_arm_execution_deferred
+    feature_ticket_ids:
+      - full_flow_remaining_guards
+      - phase_enum_l0_l14_runtime_retrofit
+      - contract_design_phase_label_retrofit
+    full_goal_blocker: true
+  - id: REQ-ASSET-REQ-GAP-L6
+    current_l1_l6_verdict: proven_current_scope
+    proof_strength: direct_trace_and_doctor_evidence
+    authoritative_evidence_keys:
+      - l0_planning_derivation
+      - objective_l1_l6_coverage
+      - nfr_derivation
+      - exit_criteria
+      - reference_integrity
+    remaining_class: none_for_l1_l6_gap_audit
+    feature_ticket_ids: []
+    full_goal_blocker: false
+  - id: REQ-GRAIN-BALANCE-L1-L6
+    current_l1_l6_verdict: proven_current_scope
+    proof_strength: direct_balance_and_double_check_evidence
+    authoritative_evidence_keys:
+      - objective_l1_l6_coverage
+      - double_check
+      - ratification_index
+    remaining_class: l7_unit_execution_and_coverage_deferred
+    feature_ticket_ids:
+      - l7_unit_closure
+    full_goal_blocker: true
+  - id: REQ-CODEX-CLAUDE-PARITY
+    current_l1_l6_verdict: proven_current_surface_only
+    proof_strength: current_guard_surface_plus_deferred_routes
+    authoritative_evidence_keys:
+      - codex_claude_guard_parity
+      - governance_hardening
+      - objective_l1_l6_coverage
+    remaining_class: runtime_parity_implementation_deferred
+    feature_ticket_ids:
+      - codex_claude_guard_parity
+    full_goal_blocker: true
+  - id: REQ-DDD-TDD-AUTO-DETECTION
+    current_l1_l6_verdict: design_proven_implementation_deferred
+    proof_strength: l6_contracts_and_governance_routing
+    authoritative_evidence_keys:
+      - governance_hardening
+      - db_registration_readiness
+      - dependency_impact_readiness
+    remaining_class: detector_execution_and_db_write_deferred
+    feature_ticket_ids:
+      - fr_registry_glossary
+      - plan_registry_add_feature_import
+      - db_evidence_lifecycle
+    full_goal_blocker: true
+  - id: REQ-WORKFLOW-AUTOMATION-DB
+    current_l1_l6_verdict: design_proven_implementation_deferred
+    proof_strength: automation_contracts_and_db_lifecycle_design
+    authoritative_evidence_keys:
+      - workflow_automation
+      - db_registration_readiness
+      - objective_l1_l6_coverage
+    remaining_class: db_write_and_gate_implementation_deferred
+    feature_ticket_ids:
+      - db_evidence_lifecycle
+      - plan_registry_add_feature_import
+      - full_flow_remaining_guards
+      - phase_enum_l0_l14_runtime_retrofit
+      - contract_design_phase_label_retrofit
+    full_goal_blocker: true
+  - id: REQ-HARNESS-EXTERNAL-TOOLS-WEB
+    current_l1_l6_verdict: research_and_design_proven_adoption_deferred
+    proof_strength: official_web_sources_and_admission_gate_mapping
+    authoritative_evidence_keys:
+      - harness_external_tools
+      - objective_l1_l6_coverage
+    remaining_class: approval_recheck_install_execution_and_ci_deferred
+    feature_ticket_ids:
+      - harness_external_tools
+    full_goal_blocker: true
+  - id: REQ-DEPENDENCY-IMPACT-VISIBILITY
+    current_l1_l6_verdict: design_proven_query_implementation_deferred
+    proof_strength: dependency_contract_and_impact_scope_routing
+    authoritative_evidence_keys:
+      - dependency_impact_readiness
+      - db_registration_readiness
+      - objective_l1_l6_coverage
+    remaining_class: impact_query_and_db_projection_deferred
+    feature_ticket_ids:
+      - dependency_impact_query
+      - db_evidence_lifecycle
+      - harness_external_tools
+    full_goal_blocker: true
+  - id: REQ-BOTTLENECK-REMEDIATION
+    current_l1_l6_verdict: candidate_discovery_proven_adoption_deferred
+    proof_strength: bottleneck_signal_and_remediation_state_design
+    authoritative_evidence_keys:
+      - bottleneck_remediation_readiness
+      - dependency_impact_readiness
+      - ratification_index
+    remaining_class: routing_execution_and_recurrence_closure_deferred
+    feature_ticket_ids:
+      - bottleneck_routing
+      - db_evidence_lifecycle
+    full_goal_blocker: true
+  - id: REQ-FULL-GOAL-COMPLETION
+    current_l1_l6_verdict: denied_not_current_scope
+    proof_strength: explicit_non_completion_ledger
+    authoritative_evidence_keys:
+      - ratification_index
+      - double_check
+      - objective_l1_l6_coverage
+    remaining_class: denial_item_not_counted_as_work_blocker
+    feature_ticket_ids:
+      - l7_unit_closure
+      - full_flow_remaining_guards
+      - db_evidence_lifecycle
+      - harness_external_tools
+      - phase_enum_l0_l14_runtime_retrofit
+      - contract_design_phase_label_retrofit
+    full_goal_blocker: false
+objective_clause_mapping_contract:
+  source_audit_key: objective_l1_l6_coverage
+  source_collection: objective_clause_to_full_status_map
+  local_collection: objective_status
+  source_id_field: objective_clause_id
+  source_target_field: full_objective_status_ids
+  local_id_field: id
+  local_status_items_without_objective_clause:
+    - REQ-FULL-GOAL-COMPLETION
+  local_without_clause_reason: full_goal_completion_is_a_denial_item_not_a_current_scope_objective_clause
+  every_non_completion_local_status_must_be_mapped: true
+  mapped_status_ids_must_exist_locally: true
+  source_mapping_boundaries_must_not_be_l7_artifact_paths: true
+  mapping_is_completion_evidence: false
+feature_boundary_contract:
+  source_audit_key: deferred_feature_coverage
+  source_collection: feature_ticket_integrity
+  local_collection: feature_ticket_boundaries
+  identity_fields:
+    - id
+    - path
+  source_status_required: draft
+  source_approval_boundary_required: true
+  source_ticket_completion_evidence_allowed: false
+  source_current_task_scope_allowed:
+    - feature_ticket_only
+    - L4_L6_design_closed_feature_ticketed
+  local_ticket_set_must_equal_source_ticket_set: true
+  local_paths_must_exist: true
+  local_paths_must_be_add_feature_plans: true
+  l7_artifacts_allowed_as_boundary_sources: false
+  contract_is_completion_evidence: false
+feature_ticket_file_contract:
+  frontmatter_required: true
+  workflow_required: add-feature
+  status_required: draft
+  current_task_scope_allowed:
+    - feature_ticket_only
+    - L4_L6_design_closed_feature_ticketed
+  approval_boundary_text_required: true
+  approval_boundary_must_contain:
+    - approv
+  approval_gate_fields_any_required:
+    - approval_required_before_l7_work
+    - approval_required_before_implementation
+    - approval_required_before_install
+    - approval_required_before_contract_edit
+  ticket_must_not_claim_completion: true
+  ticket_is_completion_evidence: false
+  current_scope_may_parse_ticket_metadata_only: true
+remaining_feature_ticket_mapping_contract:
+  source_collection: objective_status
+  audit_collection: completion_audit_matrix
+  feature_collection: feature_ticket_boundaries
+  remaining_add_feature_paths_must_map_to_feature_ticket_ids: true
+  feature_ticket_ids_must_map_to_existing_ticket_paths: true
+  every_feature_ticket_boundary_must_be_referenced_by_completion_audit: true
+  unused_feature_ticket_boundary_ids: []
+  text_only_remaining_items_allowed_when_not_add_feature_paths: true
+  mapping_is_completion_evidence: false
+  l7_execution_allowed_by_mapping: false
+feature_ticket_unlock_contract:
+  feature_collection: feature_ticket_boundaries
+  audit_collection: completion_audit_matrix
+  unlock_field: unlocks
+  routed_from_field: feature_ticket_ids
+  remaining_class_field: remaining_class
+  every_feature_ticket_must_have_unlock_target: true
+  unlock_targets_must_match_completion_audit_routes: true
+  unlock_targets_must_cover_routed_remaining_classes: true
+  unlock_targets_are_completion_evidence: false
+  l7_execution_allowed_by_unlock_targets: false
+  targets:
+    full_flow_remaining_guards:
+      routed_from_completion_audit_ids:
+        - REQ-L0-L14-FLOW
+        - REQ-WORKFLOW-AUTOMATION-DB
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - right_arm_execution_deferred
+        - db_write_and_gate_implementation_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - right_arm_execution_gates
+        - ci_or_equivalent
+    l7_unit_closure:
+      routed_from_completion_audit_ids:
+        - REQ-GRAIN-BALANCE-L1-L6
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - l7_unit_execution_and_coverage_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - l7_unit
+        - coverage_closure
+    db_evidence_lifecycle:
+      routed_from_completion_audit_ids:
+        - REQ-DDD-TDD-AUTO-DETECTION
+        - REQ-WORKFLOW-AUTOMATION-DB
+        - REQ-DEPENDENCY-IMPACT-VISIBILITY
+        - REQ-BOTTLENECK-REMEDIATION
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - detector_execution_and_db_write_deferred
+        - db_write_and_gate_implementation_deferred
+        - impact_query_and_db_projection_deferred
+        - routing_execution_and_recurrence_closure_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - db_write
+        - document_auto_registration
+        - feedback_loop
+        - recurrence_closure
+    harness_external_tools:
+      routed_from_completion_audit_ids:
+        - REQ-HARNESS-EXTERNAL-TOOLS-WEB
+        - REQ-DEPENDENCY-IMPACT-VISIBILITY
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - approval_recheck_install_execution_and_ci_deferred
+        - impact_query_and_db_projection_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - external_tool
+        - adoption_recheck
+        - ingestion
+    codex_claude_guard_parity:
+      routed_from_completion_audit_ids:
+        - REQ-CODEX-CLAUDE-PARITY
+      routed_remaining_classes:
+        - runtime_parity_implementation_deferred
+      required_unlock_tokens:
+        - runtime_guard_parity
+    fr_registry_glossary:
+      routed_from_completion_audit_ids:
+        - REQ-DDD-TDD-AUTO-DETECTION
+      routed_remaining_classes:
+        - detector_execution_and_db_write_deferred
+      required_unlock_tokens:
+        - registry
+        - glossary
+    plan_registry_add_feature_import:
+      routed_from_completion_audit_ids:
+        - REQ-DDD-TDD-AUTO-DETECTION
+        - REQ-WORKFLOW-AUTOMATION-DB
+      routed_remaining_classes:
+        - detector_execution_and_db_write_deferred
+        - db_write_and_gate_implementation_deferred
+      required_unlock_tokens:
+        - plan_registry
+        - plan_registry_import
+        - add_feature
+    dependency_impact_query:
+      routed_from_completion_audit_ids:
+        - REQ-DEPENDENCY-IMPACT-VISIBILITY
+      routed_remaining_classes:
+        - impact_query_and_db_projection_deferred
+      required_unlock_tokens:
+        - dependency_impact
+        - edge_visibility
+    bottleneck_routing:
+      routed_from_completion_audit_ids:
+        - REQ-BOTTLENECK-REMEDIATION
+      routed_remaining_classes:
+        - routing_execution_and_recurrence_closure_deferred
+      required_unlock_tokens:
+        - bottleneck_candidate_routing
+        - recurrence_closure
+    phase_enum_l0_l14_runtime_retrofit:
+      routed_from_completion_audit_ids:
+        - REQ-L0-L14-FLOW
+        - REQ-WORKFLOW-AUTOMATION-DB
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - right_arm_execution_deferred
+        - db_write_and_gate_implementation_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - runtime_phase_enum
+        - handover_validation
+    contract_design_phase_label_retrofit:
+      routed_from_completion_audit_ids:
+        - REQ-L0-L14-FLOW
+        - REQ-WORKFLOW-AUTOMATION-DB
+        - REQ-FULL-GOAL-COMPLETION
+      routed_remaining_classes:
+        - right_arm_execution_deferred
+        - db_write_and_gate_implementation_deferred
+        - denial_item_not_counted_as_work_blocker
+      required_unlock_tokens:
+        - contract_design_phase_label_retirement
+        - contract_semantics_preserved
+l1_l6_design_obligation_contract:
+  source_audit_key: deferred_design_obligation_proof
+  source_contract: design_obligation_rows
+  current_scope_action: prove_l1_l6_design_obligation_before_deferring_l7_execution
+  l1_l6_design_obligation_is_current_scope: true
+  deferred_feature_tickets_are_not_design_substitute: true
+  feature_ticket_allowed_only_for_unapproved_l7_or_escalation_bound_execution: true
+  l1_l6_design_assets_required_before_ticket: true
+  design_gap_reopened_if_l1_l6_evidence_missing: true
+  no_feature_escape_for_design_debt: true
+  l7_or_external_execution_requires_approved_feature_ticket: true
+  covered_current_scope_surfaces:
+    - requirement_gap_detection
+    - ddd_tdd_governance_design
+    - helix_db_registration_design
+    - dependency_impact_design
+    - bottleneck_detection_design
+    - codex_claude_guard_parity_design
+full_goal_completion_unlock_evidence_contract:
+  current_scope_action: define_unlock_evidence_only
+  evidence_namespace: full_goal_unlock_required_evidence_not_current_scope_proof
+  full_goal_completion_claim_allowed_now: false
+  l1_l6_current_scope_pass_is_sufficient_for_full_goal: false
+  required_evidence_is_current_scope_proof: false
+  required_evidence_is_completion_evidence_now: false
+  feature_tickets_are_required_routes_not_evidence: true
+  required_feature_ticket_is_completion_evidence: false
+  may_satisfy_completion_only_after_approval_and_execution: true
+  required_evidence_count: 8
+  feature_ticket_resolution_contract:
+    feature_boundary_collection: feature_ticket_boundaries
+    source_feature_collection: deferred_feature_coverage.feature_ticket_integrity
+    required_feature_ticket_field: required_feature_ticket
+    required_feature_ticket_ids_must_exist: true
+    required_feature_ticket_status_field: status
+    required_feature_ticket_status: draft
+    feature_tickets_are_routes_not_evidence: true
+    l7_execution_allowed_by_resolution: false
+    unresolved_required_feature_tickets: []
+  required_evidence:
+    - id: L7-UNIT-CLOSURE
+      required_feature_ticket: l7_unit_closure
+      required_unlock_tokens:
+        - l7_unit
+        - coverage_closure
+      current_status: deferred
+    - id: RIGHT-ARM-EXECUTION-GATES
+      required_feature_ticket: full_flow_remaining_guards
+      required_gates:
+        - G8
+        - G9
+        - G12
+        - G14
+      required_unlock_tokens:
+        - right_arm_execution_gates
+        - ci_or_equivalent
+      current_status: deferred
+    - id: HELIX-DB-WRITE-ADOPTION
+      required_feature_ticket: db_evidence_lifecycle
+      required_unlock_tokens:
+        - db_write
+        - document_auto_registration
+        - feedback_loop
+      current_status: deferred
+    - id: RECURRENCE-CLOSURE
+      required_feature_ticket: db_evidence_lifecycle
+      required_unlock_tokens:
+        - recurrence_closure
+      current_status: deferred
+    - id: EXTERNAL-TOOL-ADOPTION
+      required_feature_ticket: harness_external_tools
+      required_unlock_tokens:
+        - external_tool
+        - adoption_recheck
+        - ingestion
+      current_status: deferred
+    - id: RUNTIME-GUARD-PARITY
+      required_feature_ticket: codex_claude_guard_parity
+      required_unlock_tokens:
+        - runtime_guard_parity
+      current_status: deferred
+    - id: DEPENDENCY-IMPACT-QUERY
+      required_feature_ticket: dependency_impact_query
+      required_unlock_tokens:
+        - dependency_impact
+        - edge_visibility
+      current_status: deferred
+    - id: BOTTLENECK-ROUTING
+      required_feature_ticket: bottleneck_routing
+      required_unlock_tokens:
+        - bottleneck_candidate_routing
+        - recurrence_closure
+      current_status: deferred
+contract_design_escalation_boundary:
+  source_boundary_map: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  current_scope_status: l5_l6_design_debt_identified_contract_edit_approval_required
+  ticket_id: contract_design_phase_label_retrofit
+  ticket_kind: add-design
+  ticket_layer: L5-L6
+  not_feature_escape: true
+  reason: >
+    Contract-design phase-label retrofit is a current L5-L6 design-debt
+    finding. It is tracked as a draft add-feature route only because direct
+    D-API/D-DB/D-CONTRACT edits can change contract semantics, schema-like
+    snippets, migration behavior, or event envelopes and therefore require
+    explicit approval before editing contract files.
+  design_debt_accountability:
+    design_debt_is_current_l1_l6_scope: true
+    feature_ticket_is_not_design_substitute: true
+    approval_blocker_is_contract_surface_risk_not_l7_boundary: true
+    current_scope_has_recorded_gap_and_reopen_rule: true
+    contract_edit_requires_explicit_approval_before_change: true
+  escalation_required_for:
+    - D-API
+    - D-DB
+    - D-CONTRACT
+  current_scope_action: record_boundary_only_no_contract_edit
+  approval_required_before_contract_edit: true
+  contract_edit_performed: false
+  schema_migration_done: false
+  l7_work_performed: false
+  ticket_is_completion_evidence: false
+  full_goal_completion_effect: active_not_complete
+handover_boundary_contract:
+  handover_current_markdown: .helix/handover/CURRENT.md
+  handover_current_json: .helix/handover/CURRENT.json
+  next_action_heading_required: "## Next Action (Codex 向け)"
+  required_current_user_boundary_contains:
+    - L7 is not requested
+    - Do not perform L7 implementation
+    - create L7 test-design artifacts
+    - unit-test implementation or execution
+    - L1-L6 audit/design/evidence cleanup
+    - add-feature ticket
+  latest_user_boundary_must_match_handover_next_action: true
+  latest_user_boundary_forbidden_items_must_be_reflected_in_handover: true
+  latest_user_boundary_forbidden_handover_terms:
+    - Do not perform L7 implementation
+    - create L7 test-design artifacts
+    - unit-test implementation or execution
+    - coverage closure
+    - write/adopt HELIX DB state
+    - install/execute external tools
+    - wire CI/equivalent gates
+  latest_user_boundary_l7_route_must_be_reflected_in_handover: true
+  latest_user_boundary_allowed_work_must_be_reflected_in_handover: true
+  handover_task_title_may_be_legacy: true
+  handover_pending_entries_may_be_legacy: true
+  handover_next_action_supersedes_legacy_task_title: true
+  handover_next_action_supersedes_legacy_pending_entries: true
+  legacy_task_title_must_not_authorize_l7: true
+  legacy_pending_entries_must_not_authorize_l7: true
+  legacy_handover_suppression_terms:
+    - legacy CURRENT.json task title/pending entries do not authorize L7 work
+    - this Next Action supersedes them
+  handover_is_completion_evidence: false
+  l7_work_allowed_from_handover: false
+objective_status_contract:
+  required_fields:
+    - id
+    - requested
+    - l1_l6_status
+    - proof
+    - remaining_for_full_goal
+  proof_policy:
+    proof_must_be_non_empty: true
+    local_file_proofs_must_exist: true
+    command_proofs_allowed: true
+    l7_test_design_proof_allowed: false
+    later_phase_artifact_proof_allowed_for_current_scope: false
+    add_feature_plan_proof_allowed_for_current_scope: false
+    add_feature_plan_allowed_as_remaining_boundary: true
+  command_proof_policy:
+    allowed_commands:
+      - helix doctor check_requirement_drift --json
+    command_proofs_must_be_read_only: true
+    command_proofs_must_not_execute_l7_db_ci_external: true
+    command_proofs_are_completion_evidence: false
+    forbidden_command_fragments:
+      - docs/v2/L7-test-design
+      - docs/plans/add-feature
+      - helix handover update
+      - helix codex
+      - helix harness
+      - helix db
+      - npm
+      - pytest
+      - bats
+      - coverage
+      - ci
+  l1_l6_pass_statuses:
+    - pass
+    - pass_for_current_guard_surface
+    - design_pass_implementation_deferred
+    - design_and_research_pass_adoption_deferred
+    - design_pass_query_implementation_deferred
+    - candidate_discovery_pass_adoption_deferred
+  non_completion_statuses:
+    - not_applicable_as_completion_claim
+  completion_claim_statuses_forbidden:
+    - complete
+    - done
+    - full_goal_complete
+  remaining_policy:
+    empty_remaining_allowed_only_for:
+      - REQ-ASSET-REQ-GAP-L6
+    later_phase_remaining_required_when_status_contains:
+      - deferred
+      - not_applicable_as_completion_claim
+    full_goal_completion_item_must_have_remaining: true
+  current_scope_boundary:
+    l7_work_requested_by_user: false
+    l7_work_requires_feature_ticket: true
+    helix_db_write_performed: false
+    external_tool_installed: false
+    full_goal_complete: false
+objective_status:
+  - id: REQ-L0-L14-FLOW
+    requested: User-confirmed L0-L14 flow and pair mapping.
+    l1_l6_status: pass
+    proof:
+      - HELIX-workflows/HELIX-process-L0-L14.md
+      - skills/SKILL_MAP.md
+      - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+      - cli/lib/tests/test_helix_l0_l14_flow_contract.py
+      - cli/tests/test-helix-l0-l14-flow-contract.bats
+    remaining_for_full_goal:
+      - G8/G9/G12/G14 execution gates must be implemented and passed before full-flow completion.
+  - id: REQ-ASSET-REQ-GAP-L6
+    requested: Existing assets are audited for requirement definition gaps through L6.
+    l1_l6_status: pass
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+      - helix doctor check_requirement_drift --json
+    remaining_for_full_goal: []
+  - id: REQ-GRAIN-BALANCE-L1-L6
+    requested: Design and test-design granularity are balanced from L1 through L6.
+    l1_l6_status: pass
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+      - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+      - docs/v2/L6-functional-design/fr18-unit-test-design-index.yaml
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+      - L7 unit test implementation, execution, and coverage closure remain outside current scope.
+  - id: REQ-CODEX-CLAUDE-PARITY
+    requested: Identify and close guard behavior that works in ClaudeCode but not Codex.
+    l1_l6_status: pass_for_current_guard_surface
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+      - helix/CODEX_RUNTIME_ADAPTER.md
+      - cli/lib/tests/test_codex_post_validation.py
+      - cli/tests/test-helix-codex-write-audit.bats
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+  - id: REQ-DDD-TDD-AUTO-DETECTION
+    requested: Coding rules, DDD documentation, strict TDD, auto-registration, error and regression detection.
+    l1_l6_status: design_pass_implementation_deferred
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+      - docs/v2/L6-functional-design/FR-TDD-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+  - id: REQ-WORKFLOW-AUTOMATION-DB
+    requested: Review workflow automation and include HELIX DB auto-registration / trouble detection / feedback loop.
+    l1_l6_status: design_pass_implementation_deferred
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+  - id: REQ-HARNESS-EXTERNAL-TOOLS-WEB
+    requested: Use Web search to research MCP servers, plugins, and external tools for HARNESS installation candidates.
+    l1_l6_status: design_and_research_pass_adoption_deferred
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+      - Auth, license, credential, network execution, and CI/security approvals are required before any install or run.
+  - id: REQ-DEPENDENCY-IMPACT-VISIBILITY
+    requested: Make dependencies visible from HELIX DB and make change-impact scope immediately understandable.
+    l1_l6_status: design_pass_query_implementation_deferred
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+      - docs/v2/L6-functional-design/FR-IMPACT-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-PLAN-01/function-spec.md
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+      - HELIX DB write adoption for dependency edges and feedback refs.
+      - Approved external tool output ingestion where selected.
+  - id: REQ-BOTTLENECK-REMEDIATION
+    requested: Thoroughly correct development-operation bottlenecks.
+    l1_l6_status: candidate_discovery_pass_adoption_deferred
+    proof:
+      - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+      - docs/v2/L6-functional-design/harness-external-tools-impact-機能設計.md
+      - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    remaining_for_full_goal:
+      - docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+      - Implement route_bottleneck_candidate and recurrence feedback closure only after approval.
+  - id: REQ-FULL-GOAL-COMPLETION
+    requested: The entire original objective is complete.
+    l1_l6_status: not_applicable_as_completion_claim
+    proof:
+      - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+      - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    remaining_for_full_goal:
+      - L7 implementation / unit-test implementation / unit-test execution / coverage closure where approved.
+      - G8/G9/G12/G14 right-arm execution gate implementation and pass evidence.
+      - CI or equivalent full-flow evidence connection.
+      - HELIX DB write adoption and recurrence closure.
+      - External tool installation/execution only after approval.
+      - Runtime phase enum retrofit for old L1-L11 handover validation after approval.
+feature_ticket_boundaries:
+  - id: full_flow_remaining_guards
+    path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+    unlocks: right_arm_execution_gates_and_ci_or_equivalent
+  - id: l7_unit_closure
+    path: docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
+    unlocks: l7_unit_implementation_execution_and_coverage_closure
+  - id: db_evidence_lifecycle
+    path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+    unlocks: db_write_document_auto_registration_feedback_loop_and_recurrence_closure
+  - id: harness_external_tools
+    path: docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
+    unlocks: approved_external_tool_adoption_recheck_install_and_ingestion
+  - id: codex_claude_guard_parity
+    path: docs/plans/add-feature/add-feature-2026-06-12-codex-claude-guard-parity-l7.md
+    unlocks: remaining_runtime_guard_parity_implementation
+  - id: fr_registry_glossary
+    path: docs/plans/add-feature/add-feature-2026-06-12-fr-registry-glossary-l7-entry.md
+    unlocks: registry_and_glossary_execution_evidence
+  - id: plan_registry_add_feature_import
+    path: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+    unlocks: plan_registry_and_plan_registry_import_for_add_feature_tickets
+  - id: dependency_impact_query
+    path: docs/plans/add-feature/add-feature-2026-06-12-dependency-impact-query-l7.md
+    unlocks: dependency_impact_query_and_edge_visibility
+  - id: bottleneck_routing
+    path: docs/plans/add-feature/add-feature-2026-06-12-bottleneck-routing-l7.md
+    unlocks: bottleneck_candidate_routing_and_recurrence_closure
+  - id: phase_enum_l0_l14_runtime_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-phase-enum-l0-l14-runtime-retrofit.md
+    unlocks: runtime_phase_enum_l0_l14_handover_validation
+  - id: contract_design_phase_label_retrofit
+    path: docs/plans/add-feature/add-feature-2026-06-13-contract-design-phase-label-retrofit.md
+    unlocks: contract_design_phase_label_retirement_and_contract_semantics_preserved
+repository_add_feature_inventory_contract:
+  source_audit_key: deferred_feature_coverage
+  source_contract: repository_add_feature_inventory
+  current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
+  all_repository_add_feature_files_checked: 16
+  current_objective_deferred_feature_tickets_checked: 11
+  excluded_from_current_objective_deferred_count: 5
+  historical_completed_feature_count: 4
+  parked_feature_ticket_outside_current_objective_count: 1
+  exclusion_is_completion_evidence_for_current_objective: false
+  exclusion_may_hide_current_l1_l6_design_debt: false
+  l7_work_allowed_by_inventory: false
+right_arm_execution_boundaries:
+  strict_full_flow_current_overall_clean: false
+  strict_full_flow_command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
+  strict_full_flow_command_is_read_only: true
+  deferred_gate_contract:
+    deferred_gate_ids_must_equal:
+      - G8
+      - G9
+      - G12
+      - G14
+    deferred_gate_count: 4
+    status_required: approved_deferred
+    clean_required: true
+    reason_must_contain:
+      - execution_gate_not_implemented
+    next_action_must_start_with: implement
+    reference_required: HELIX-workflows/helix-process/automation-gate-map.md
+    gate_details_are_completion_evidence: false
+    l7_or_right_arm_execution_allowed_by_contract: false
+  deferred_gates:
+    - gate_id: G8
+      pair: L5-L8
+      source_layer: L5
+      target_layer: L8
+      target: Phase5-G8
+      required_before_full_goal: integration_test_execution_gate_pass
+      status: approved_deferred
+      clean: true
+      reason: execution_gate_not_implemented coverage=100.0 uncovered=0 orphan=0
+      next_action: implement G8 integration-test execution gate
+      reference: HELIX-workflows/helix-process/automation-gate-map.md
+    - gate_id: G9
+      pair: L4-L9
+      source_layer: L4
+      target_layer: L9
+      target: G9
+      required_before_full_goal: system_test_execution_gate_pass
+      status: approved_deferred
+      clean: true
+      reason: execution_gate_not_implemented; semantic_gate_required coverage=100.0 uncovered=0 orphan=0
+      next_action: implement G9 system-test execution gate
+      reference: HELIX-workflows/helix-process/automation-gate-map.md
+    - gate_id: G12
+      pair: L3-L12
+      source_layer: L3
+      target_layer: L12
+      target: G12
+      required_before_full_goal: acceptance_test_execution_gate_pass
+      status: approved_deferred
+      clean: true
+      reason: execution_gate_not_implemented coverage=100.0 uncovered=0 orphan=0
+      next_action: implement G12 acceptance-test execution gate
+      reference: HELIX-workflows/helix-process/automation-gate-map.md
+    - gate_id: G14
+      pair: L1-L14
+      source_layer: L1
+      target_layer: L14
+      target: G14
+      required_before_full_goal: operational_learning_gate_pass
+      status: approved_deferred
+      clean: true
+      reason: execution_gate_not_implemented coverage=100.0 uncovered=0 orphan=0
+      next_action: implement G14 operational-learning execution gate
+      reference: HELIX-workflows/helix-process/automation-gate-map.md
+invariants:
+  - This ledger must never be used as L7 implementation, test execution, coverage closure, DB write, or external tool execution evidence.
+  - Every feature_ticket_boundaries.path must exist and remain draft/approval-boundary until the user approves later-phase work.
+  - L1-L6 pass may not be rewritten as full L0-L14 completion.
+completion_denial:
+  reason: >
+    L1-L6 current-scope evidence is pass, but the full objective remains active
+    because L7 implementation, unit-test execution, coverage closure, right-arm
+    execution gates, DB write adoption, CI/equivalent evidence, and approved
+    external tool execution are not complete.

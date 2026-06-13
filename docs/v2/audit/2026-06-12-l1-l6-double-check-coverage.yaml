@@ -1,0 +1,770 @@
+schema_version: l1_l6_double_check_coverage_v1
+owner: TL
+status: current_scope_l1_l6_quantitative_and_qualitative_check_pass
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Aggregate the current L1-L6 objective evidence into quantitative checks
+  and qualitative boundary checks so the current-scope pass is not based on
+  counts alone and does not claim L7 implementation or full-flow completion.
+sources:
+  objective_audit:
+    - docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+  quantitative_sources:
+    - docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    - docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    - docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+  qualitative_sources:
+    - docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    - docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    - docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  double_check_map_is_implementation_evidence: false
+  quantitative_pass_is_full_completion: false
+  qualitative_pass_is_full_completion: false
+  l7_implementation_done: false
+  external_tool_installed: false
+  schema_migration_done: false
+  ci_or_equivalent_connected: false
+  goal_complete_allowed: false
+summary:
+  quantitative_checks: 21
+  quantitative_checks_pass: 21
+  qualitative_checks: 36
+  qualitative_checks_pass: 36
+  blocking_findings_current_scope: 0
+  current_scope_verdict: pass_l1_l6_only
+quantitative_checks:
+  - id: Q-L0-L14-FLOW-SURFACE
+    metric: current_l0_l14_flow_surface
+    expected:
+      layers_checked: 15
+      left_arm_design_layers_checked: 6
+      right_arm_execution_or_verification_layers_checked: 7
+      current_surfaces_checked: 90
+      banned_legacy_terms_found_current_surfaces: 0
+      l7_implementation_done: false
+      goal_complete_allowed: false
+    source: docs/v2/audit/2026-06-12-l0-l14-flow-surface-coverage.yaml
+    verdict: pass
+  - id: Q-L0-PLANNING-DERIVATION
+    metric: l0_planning_input_to_l1_l6_design_evidence
+    expected:
+      l0_problem_axes_checked: 10
+      l0_problem_axes_with_l1_l6_design_evidence: 10
+      problem_axis_rows_with_mapped_requirements: 10
+      problem_axis_rows_with_l4_l6_design_evidence: 10
+      problem_axis_rows_with_audit_evidence: 10
+      l0_target_areas_checked: 10
+      l0_target_areas_with_l1_l6_design_evidence: 10
+      target_area_rows_with_current_scope_evidence: 10
+      rows_with_current_scope_result: 20
+      l0_to_l1_l6_derivation_gaps: 0
+      l1_l6_audit_sources_declared: 13
+      row_audit_refs_checked: 32
+      unique_row_audit_refs_checked: 11
+      undeclared_row_audit_refs: 0
+      l7_artifacts_created_by_this_audit: 0
+    source: docs/v2/audit/2026-06-13-l0-planning-to-l1-l6-derivation-coverage.yaml
+    verdict: pass
+  - id: Q-REQ-TRACE
+    metric: requirement_drift
+    expected:
+      requirements: 31
+      design_links: 31
+      blocking_findings: 0
+      advisory_findings: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-fr31-trace-map.yaml
+    verdict: pass
+  - id: Q-ASSET-INVENTORY
+    metric: l1_l6_asset_count
+    expected:
+      total_l1_l6_files: 50
+      l6_functional_design_files: 28
+    source: docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    verdict: pass
+  - id: Q-L6-ASSET-PARTITION
+    metric: l6_asset_partition_integrity
+    expected:
+      l6_assets_partitioned: true
+      l6_partition_overlap_allowed: false
+      l6_partition_clusters: 3
+      fr_function_specs: 18
+      detector_and_governance_specs: 7
+      deferred_extension_specs: 3
+    source: docs/v2/audit/2026-06-12-l1-l6-design-asset-inventory.yaml
+    verdict: pass
+  - id: Q-PAIR-BALANCE
+    metric: l1_l6_pair_balance
+    expected:
+      l1_l6_layers_checked: 6
+      layers_pass: 6
+      blocking_findings: 0
+      pair_contract_matrix_layers_checked: 6
+      paired_artifacts_checked: 6
+      expected_design_refs_checked: 8
+      expected_design_refs_backed_by_design_assets: 8
+      expected_design_refs_missing_from_design_assets: 0
+      l6_unit_test_design_viewpoint_count: 128
+    source: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    verdict: pass
+  - id: Q-DEFERRED-FEATURES
+    metric: deferred_feature_boundary
+    expected:
+      objective_clauses_checked: 9
+      deferred_entry_points_checked: 11
+      feature_tickets_draft: 11
+      repository_add_feature_files_discovered: 16
+      current_objective_deferred_feature_tickets: 11
+      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_completed_add_features: 4
+      out_of_current_objective_parked_feature_tickets: 1
+      full_flow_later_phase_approval_boundary: true
+      unmapped_deferred_boundaries: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    verdict: pass
+  - id: Q-DEFERRED-DESIGN-OBLIGATION
+    metric: deferred_design_obligation_proof
+    expected:
+      feature_tickets_checked: 11
+      feature_tickets_with_prior_l1_l6_design_evidence: 11
+      feature_tickets_using_ticket_as_design_substitute: 0
+      design_gap_reopen_rules_defined: 11
+      blocking_findings_current_scope: 0
+    source: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    verdict: pass
+  - id: Q-DB-FEEDBACK
+    metric: db_feedback_lifecycle_design
+    expected:
+      design_layers_checked: 3
+      lifecycle_states_defined: 8
+      closure_rules_defined: 4
+      l6_functions_defined: 8
+      existing_tables_required_for_lifecycle_checked: 9
+      forbidden_current_scope_rules_checked: 4
+    source: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    verdict: pass
+  - id: Q-HARNESS-TOOLS
+    metric: harness_external_tool_design
+    expected:
+      official_sources_checked: 33
+      tool_candidates_checked: 33
+      tool_intake_contracts_checked: 33
+      tool_intake_required_fields_checked: 9
+      tool_intake_forbidden_common_rules_checked: 7
+      admission_gate_contracts_checked: 5
+      admission_gate_required_fields_checked: 7
+      admission_owner_roles_checked: 3
+      tool_output_ingestion_contracts_checked: 33
+      tool_output_required_fields_checked: 8
+      tool_output_detector_signals_checked: 5
+      l6_functions_defined: 10
+      l6_unit_test_viewpoints_defined: 10
+      adoption_recheck_controls_checked: 3
+      pre_adoption_requirement_contracts_checked: 5
+      current_session_web_fetch_sources_checked: 5
+      current_session_web_fetch_refs_checked: 10
+      latest_core_rechecked_sources_checked: 5
+      all_candidate_sources_checked: 33
+      spot_recheck_sources_checked: 8
+      adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+      adoption_control_sources_are_subset_of_spot_recheck_sources: true
+      all_candidate_source_ids_must_match_canonical_source_ids: true
+      spot_recheck_sources_are_subset_of_canonical_source_ids: true
+      spot_recheck_is_not_full_candidate_recheck: true
+    source: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    verdict: pass
+  - id: Q-GOVERNANCE
+    metric: governance_hardening_design
+    expected:
+      governance_surfaces_checked: 8
+      l6_function_contracts_checked: 53
+      current_scope_l6_ut_candidate_viewpoints: 44
+      governance_finding_normalization_contracts_checked: 6
+      governance_normalization_required_fields_checked: 7
+      governance_controls_checked: 6
+      governance_detection_required_route_fields_checked: 7
+      governance_detection_routes_checked: 6
+      governance_control_trace_rows_checked: 6
+      governance_control_closure_rows_checked: 6
+      preexisting_completed_feature_entry_points_checked: 3
+      deferred_feature_entry_points_checked: 4
+    source: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    verdict: pass
+  - id: Q-WORKFLOW-AUTOMATION
+    metric: workflow_automation_design
+    expected:
+      workflow_surfaces_checked: 6
+      automation_surfaces_checked: 9
+      automation_trigger_contracts_checked: 9
+      db_registry_targets_mapped: 9
+      detector_gate_routes_mapped: 7
+      cross_audit_convergence_rows_checked: 6
+      deferred_feature_entry_points_checked: 7
+      parked_feature_entry_points_checked: 1
+    source: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
+    verdict: pass
+  - id: Q-DB-REGISTRATION-READINESS
+    metric: db_registration_readiness
+    expected:
+      registration_events_checked: 6
+      registration_event_contracts_checked: 6
+      document_projection_contracts_checked: 5
+      lifecycle_route_contracts_checked: 6
+      existing_implementation_surfaces_checked: 8
+      event_route_closure_rows_checked: 6
+      l7_feature_tickets_created: 1
+      plan_registry_changed_by_this_audit: false
+      helix_db_write_performed: false
+    source: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    verdict: pass
+  - id: Q-DEPENDENCY-IMPACT-READINESS
+    metric: dependency_impact_readiness
+    expected:
+      dependency_impact_surfaces_checked: 7
+      l6_function_specs_checked: 6
+      current_code_surfaces_checked_read_only: 5
+      deferred_feature_entry_points_checked: 4
+      required_output_sections: 9
+      db_projection_contracts_checked: 5
+      dependency_edge_relations_checked: 7
+      impact_scope_route_contracts_checked: 3
+      unknown_scope_resolution_rules_checked: 6
+      impact_visibility_rows_checked: 9
+      impact_output_trace_rows_checked: 9
+      impact_query_cli_implemented: false
+      helix_db_write_performed: false
+    source: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    verdict: pass
+  - id: Q-BOTTLENECK-REMEDIATION-READINESS
+    metric: bottleneck_remediation_readiness
+    expected:
+      bottleneck_signal_sources_checked: 7
+      l6_function_specs_checked: 5
+      remediation_flow_states_defined: 7
+      forbidden_current_scope_states_checked: 2
+      required_signal_fields_checked: 8
+      cross_axis_aggregation_contracts_checked: 4
+      signal_route_contracts_checked: 7
+      current_code_surfaces_checked_read_only: 5
+      deferred_feature_entry_points_checked: 4
+      deferred_feature_boundaries_checked: 4
+      required_output_sections: 8
+      bottleneck_detector_implemented_by_this_audit: false
+      remediation_auto_apply_done: false
+    source: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    verdict: pass
+  - id: Q-FULL-OBJECTIVE-GAP-STATUS
+    metric: full_objective_gap_status
+    expected:
+      objective_items_checked: 10
+      current_scope_items_pass_l1_l6: 9
+      items_requiring_later_phase_before_full_completion: 8
+      feature_tickets_available: 11
+      repository_add_feature_files_discovered: 16
+      current_objective_deferred_feature_tickets: 11
+      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_completed_add_features: 4
+      out_of_current_objective_parked_feature_tickets: 1
+      right_arm_execution_gates_deferred: 4
+      full_goal_verdict: active_not_complete
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    verdict: pass
+  - id: Q-RATIFICATION-INDEX
+    metric: l1_l6_ratification_index
+    expected:
+      current_scope_verdict: pass_l1_l6_only
+      full_goal_verdict: active_not_complete
+      core_audit_bundle_files_indexed: 23
+      integrity_audits_indexed: 2
+      l0_problem_axes_checked: 10
+      l0_target_areas_checked: 10
+      deferred_feature_tickets_indexed: 11
+      deferred_design_obligation_rows_checked: 11
+      deferred_design_obligation_escape_findings: 0
+      right_arm_execution_gates_deferred: 4
+      l7_artifacts_created_by_this_index: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    verdict: pass
+  - id: Q-EXIT-CRITERIA
+    metric: l1_l6_exit_criteria
+    expected:
+      exit_layers_checked: 6
+      exit_layers_pass: 6
+      exit_layers_with_waiver: 1
+      gate_ids_checked:
+        - G1
+        - G2
+        - G3
+        - G4
+        - G5
+        - G6
+      blocking_findings_current_scope: 0
+      l7_artifacts_created_by_this_map: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    verdict: pass
+  - id: Q-REFERENCE-INTEGRITY
+    metric: audit_reference_integrity
+    expected:
+      audit_files_checked: 25
+      path_like_refs_checked: 1376
+      direct_file_refs_checked: 1367
+      glob_patterns_checked: 9
+      missing_direct_file_refs: 0
+      empty_glob_patterns: 0
+    source: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    verdict: pass
+  - id: Q-IMPROVEMENT-CANDIDATES
+    metric: additional_improvement_candidate_discovery
+    expected:
+      total_candidates: 35
+      candidates_adopted: false
+    source: docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    verdict: pass
+  - id: Q-CONTRACT-TESTS
+    metric: local_contract_tests
+    expected:
+      pytest_expected: 87 passed
+      bats_expected: 56 tests passed
+    source: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+    verdict: pass
+qualitative_checks:
+  - id: L-BOUNDARY-L7
+    check: L7 work is not current scope and requires feature ticket approval.
+    source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    verdict: pass
+  - id: L-NO-COMPLETION-CLAIM
+    check: Current maps explicitly deny full goal completion and right-arm closure.
+    source: docs/v2/audit/2026-06-12-objective-l1-l6-coverage.yaml
+    verdict: pass
+  - id: L-PAIR-SEMANTIC
+    check: L4-L9 raw imbalance is accepted only with semantic transitive trace and monitoring.
+    source: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    verdict: pass
+  - id: L-DOC-REVIEW-4C-GRAIN
+    check: L1-L6 grain balance has doc-review 4C coverage for correctness, completeness, consistency, and clarity without treating the review as L7 or full-flow completion evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-grain-balance-audit.md
+    expected:
+      correctness: pass
+      completeness: pass
+      consistency: pass
+      clarity: pass
+      l7_completion_evidence: false
+    verdict: pass
+  - id: L-UI-WAIVER
+    check: L2-L10 is not_applicable only through explicit ui_absent waiver.
+    source: docs/v2/audit/2026-06-12-l1-l6-pair-balance-map.yaml
+    verdict: pass
+  - id: L-CANDIDATE-NOT-ADOPTION
+    check: Improvement discovery and external tool candidates are not treated as adoption.
+    source: docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    verdict: pass
+  - id: L-WEB-EVIDENCE-ONLY
+    check: Web evidence supports design controls only, not installation or execution.
+    source: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    verdict: pass
+  - id: L-WEB-EVIDENCE-FRESHNESS
+    check: Web evidence source IDs, URLs, and recheck date are synchronized across objective audit, web evidence map, and HARNESS coverage before any install/execution/CI use.
+    source: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    expected:
+      canonical_source_ids_checked: 33
+      source_id_url_and_recheck_date_match: true
+      install_execution_or_ci_connection_requires_new_recheck: true
+      current_scope_revalidation_is_design_evidence_only: true
+    verdict: pass
+  - id: L-CONTRACT-DESIGN-WEB-EVIDENCE-SEPARATION
+    check: Contract-design official references are available for D-API/D-DB/D-CONTRACT semantics preservation, but remain separate from HARNESS tool candidates and cannot count as adoption or completion evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-web-evidence-source-map.yaml
+    expected:
+      linked_ticket_id: contract_design_phase_label_retrofit
+      reference_sources_checked: 3
+      expected_source_ids:
+        - OPENAPI-SPEC-3-2-0
+        - JSON-SCHEMA-VALIDATION-2020-12
+        - POSTGRESQL-ALTER-TABLE-CURRENT
+      applies_to:
+        - D-API
+        - D-CONTRACT
+        - D-DB
+      sources_are_harness_tool_candidates: false
+      sources_are_completion_evidence: false
+      contract_edit_performed: false
+      schema_migration_done: false
+      l7_work_performed: false
+    verdict: pass
+  - id: L-CODEX-CLAUDE-PARITY
+    check: ClaudeCode-only guard behavior cannot count as Codex closure without Codex runtime evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    verdict: pass
+  - id: L-CODEX-CLAUDE-PARITY-ROUTES
+    check: Codex/Claude parity gaps have detector, feedback, and closure-requirement routes for all eight guard surfaces without DB write, hook change, fail-close promotion, or L7 artifact creation.
+    source: docs/v2/audit/2026-06-12-l1-l6-codex-claude-guard-parity-map.yaml
+    expected:
+      parity_gap_routes_checked: 8
+      parity_route_required_fields_checked: 7
+      parity_finding_normalization_contracts_checked: 8
+      parity_normalization_required_fields_checked: 8
+      parity_closure_requirements_checked: 8
+      parity_closure_required_fields_checked: 6
+      parity_accountability_current_scope_proves_checked: 4
+      parity_accountability_current_scope_does_not_prove_checked: 4
+      db_write_allowed_now: false
+      hook_change_allowed_now: false
+      fail_close_promotion_allowed_now: false
+      l7_artifact_allowed_now: false
+    verdict: pass
+  - id: L-DB-SAFETY
+    check: DB feedback lifecycle is append-only design and forbids schema migration / destructive operation in current scope.
+    source: docs/v2/audit/2026-06-12-l1-l6-db-feedback-lifecycle-coverage.yaml
+    verdict: pass
+  - id: L-HARNESS-SAFETY
+    check: HARNESS tool candidates require auth/license/network/CI approval before execution.
+    source: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    verdict: pass
+  - id: L-HARNESS-ADOPTION-RECHECK
+    check: MCP / GitHub MCP / OpenAI Apps SDK candidates require fresh official-source recheck of consent, authorization, allowlist, schema, metadata visibility, and DB ingestion controls before install, enablement, plugin adoption, external execution, CI connection, or HELIX DB ingestion.
+    source: docs/v2/audit/2026-06-12-l1-l6-harness-external-tools-coverage.yaml
+    expected:
+      controls_checked: 3
+      controls_apply_before:
+        - install
+        - enable_mcp_server
+        - plugin_adoption
+        - external_execution
+        - ci_or_equivalent_connection
+        - helix_db_ingestion
+      all_controls_require_new_recheck_before_adoption: true
+      latest_core_rechecked_sources_checked: 5
+      all_candidate_sources_checked: 33
+      spot_recheck_sources_checked: 8
+      adoption_control_sources_are_subset_of_latest_core_rechecked_sources: true
+      adoption_control_sources_are_subset_of_spot_recheck_sources: true
+      all_candidate_source_ids_must_match_canonical_source_ids: true
+      spot_recheck_sources_are_subset_of_canonical_source_ids: true
+      spot_recheck_is_not_full_candidate_recheck: true
+      non_core_candidates_require_new_recheck_before_adoption: true
+      all_candidates_remain_gated_by_admission_gate_contracts: true
+      adoption_or_execution_allowed_now: false
+      db_write_allowed_now: false
+      l7_artifact_allowed_now: false
+    verdict: pass
+  - id: L-GOVERNANCE-SAFETY
+    check: Governance hardening proves L6 design coverage only, not fail-close promotion.
+    source: docs/v2/audit/2026-06-12-l1-l6-governance-hardening-coverage.yaml
+    verdict: pass
+  - id: L-PLAN-REGISTRY-ADD-FEATURE-GAP
+    check: Add-feature ticket creation is not DB import closure until plan_registry support is approved and implemented.
+    source: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    verdict: pass
+  - id: L-AUDIT-MANIFEST-PROJECTION
+    check: Audit YAML manifests have a detector_report projection contract with completion_denial required, while projection remains design-only and is not a DB write.
+    source: docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
+    expected:
+      doc_kind: audit_manifest
+      db_target: detector_report
+      required_key: completion_denial
+      missing_completion_denial: []
+      completion_guard: projection_contract_is_not_db_write
+      helix_db_write_performed: false
+    verdict: pass
+  - id: L-DEPENDENCY-IMPACT-NOT-CLOSURE
+    check: Dependency and impact graph readiness is not query implementation, DB write adoption, or closure evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-dependency-impact-readiness-coverage.yaml
+    verdict: pass
+  - id: L-BOTTLENECK-REMEDIATION-NOT-CLOSURE
+    check: Bottleneck remediation readiness is not detector implementation, auto-apply, DB write adoption, or recurrence closure.
+    source: docs/v2/audit/2026-06-12-l1-l6-bottleneck-remediation-readiness-coverage.yaml
+    verdict: pass
+  - id: L-FULL-OBJECTIVE-ACTIVE
+    check: Full objective remains active and not complete even though the L1-L6 current-scope evidence passes.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    verdict: pass
+  - id: L-FEATURE-TICKET-FRONTMATTER
+    check: Full objective add-feature ticket boundaries parse ticket frontmatter only and require draft status, approval boundary, and non-completion semantics.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      feature_tickets_checked: 11
+      workflow_required: add-feature
+      status_required: draft
+      ticket_is_completion_evidence: false
+      current_scope_may_parse_ticket_metadata_only: true
+      feature_unlock_routes_checked: 10
+      feature_unlock_targets_are_completion_evidence: false
+      latest_user_boundary:
+        l7_requested_now: false
+        l7_route: add_feature_ticket_only
+        forbidden_now_count: 7
+        forbidden_now:
+          - L7 implementation
+          - L7 test-design artifact creation
+          - unit-test implementation or execution
+          - coverage closure
+          - HELIX DB write adoption
+          - external tool installation or execution
+          - CI/equivalent connection
+    verdict: pass
+  - id: L-FEATURE-TICKET-UNLOCK-CONDITIONS
+    check: Deferred feature coverage indexes unlock_conditions for every full-objective feature boundary while keeping those conditions non-completion evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    expected:
+      feature_tickets_with_unlock_conditions: 11
+      required_feature_ticket_ids:
+        - full_flow_remaining_guards
+        - l7_unit_closure
+        - db_evidence_lifecycle
+        - harness_external_tools
+        - codex_claude_guard_parity
+        - fr_registry_glossary
+        - plan_registry_add_feature_import
+        - dependency_impact_query
+        - bottleneck_routing
+        - phase_enum_l0_l14_runtime_retrofit
+        - contract_design_phase_label_retrofit
+      full_flow_remaining_guards_unlock_conditions:
+        - right_arm_execution_gates
+        - ci_or_equivalent
+      l7_unit_closure_unlock_conditions:
+        - l7_unit
+        - coverage_closure
+      db_evidence_lifecycle_unlock_conditions:
+        - db_write
+        - document_auto_registration
+        - feedback_loop
+        - recurrence_closure
+      harness_external_tools_unlock_conditions:
+        - external_tool
+        - adoption_recheck
+        - ingestion
+      codex_claude_guard_parity_unlock_conditions:
+        - runtime_guard_parity
+      fr_registry_glossary_unlock_conditions:
+        - registry
+        - glossary
+      plan_registry_add_feature_import_unlock_conditions:
+        - plan_registry
+        - plan_registry_import
+        - add_feature
+      dependency_impact_query_unlock_conditions:
+        - dependency_impact
+        - edge_visibility
+      bottleneck_routing_unlock_conditions:
+        - bottleneck_candidate_routing
+        - recurrence_closure
+      phase_enum_l0_l14_runtime_retrofit_unlock_conditions:
+        - runtime_phase_enum
+        - handover_validation
+      contract_design_phase_label_retrofit_unlock_conditions:
+        - contract_design_phase_label_retirement
+        - contract_semantics_preserved
+      unlock_conditions_are_completion_evidence: false
+      l7_execution_allowed_by_unlock_conditions: false
+    verdict: pass
+  - id: L-CONTRACT-DESIGN-ESCALATION-BOUNDARY
+    check: L5-L6 contract-design phase-label retrofit is current-scope design debt, but direct D-API/D-DB/D-CONTRACT edits require explicit approval before contract files are changed.
+    source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+    expected:
+      ticket_id: contract_design_phase_label_retrofit
+      ticket_kind: add-design
+      ticket_layer: L5-L6
+      escalation_required_for:
+        - D-API
+        - D-DB
+        - D-CONTRACT
+      current_scope_action: record_boundary_only_no_contract_edit
+      approval_required_before_contract_edit: true
+      contract_edit_performed: false
+      schema_migration_done: false
+      l7_work_performed: false
+      ticket_is_completion_evidence: false
+    verdict: pass
+  - id: L-HANDOVER-BOUNDARY
+    check: Handover CURRENT.md Next Action supersedes legacy task title and keeps current work to L1-L6 audit/design/evidence cleanup until add-feature approval exists for L7.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      handover_current_markdown: .helix/handover/CURRENT.md
+      handover_current_json: .helix/handover/CURRENT.json
+      handover_next_action_supersedes_legacy_task_title: true
+      handover_next_action_supersedes_legacy_pending_entries: true
+      legacy_task_title_must_not_authorize_l7: true
+      legacy_pending_entries_must_not_authorize_l7: true
+      l7_work_allowed_from_handover: false
+      required_current_user_boundary_tokens: 5
+      legacy_handover_suppression_tokens: 2
+    verdict: pass
+  - id: L-HARNESS-CURRENT-SESSION-WEBFETCH-NOT-CLOSURE
+    check: Current-session official WebFetch recheck for HARNESS external-tool candidates is L1-L6 design-basis evidence only, not adoption, execution, DB write, CI connection, L7 artifact, or full-goal completion evidence.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      source_contract: current_session_web_fetch_recheck_2026_06_13
+      official_sources_checked: 5
+      web_fetch_confirmed: true
+      current_scope_is_completion_evidence: false
+      adoption_or_execution_allowed_now: false
+      db_write_allowed_now: false
+      ci_or_equivalent_connection_allowed_now: false
+      l7_artifact_allowed_now: false
+      result: no_change_to_candidate_gate_status
+    verdict: pass
+  - id: L-RATIFICATION-NOT-CLOSURE
+    check: Ratification index is a read path and cannot be treated as L7 implementation, DB write, external-tool execution, or full-goal closure.
+    source: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    verdict: pass
+  - id: L-FULL-GOAL-UNLOCK-EVIDENCE-INDEX
+    check: Ratification index exposes the eight full-goal unlock evidence classes from the full-objective gap status while keeping them deferred and non-completion evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    expected:
+      full_goal_unlock_evidence_classes_indexed: 8
+      source_contract: full_goal_completion_unlock_evidence_contract
+      index_is_completion_evidence: false
+      l7_db_ci_external_execution_allowed_by_index: false
+    verdict: pass
+  - id: L-FULL-GOAL-UNLOCK-FEATURE-TICKET-RESOLUTION
+    check: Ratification index resolves all eight full-goal unlock evidence classes to draft add-feature routes through deferred feature coverage, without treating the tickets as completion evidence.
+    source: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
+    expected:
+      full_goal_unlock_required_feature_tickets_resolved: 8
+      feature_ticket_resolution_source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+      feature_ticket_resolution_contract: full_goal_completion_unlock_evidence_contract.feature_ticket_resolution_contract
+      feature_tickets_are_routes_not_evidence: true
+      l7_execution_allowed_by_resolution: false
+    verdict: pass
+  - id: L-FULL-GOAL-UNLOCK-NAMESPACE-NOT-PROOF
+    check: Full-goal unlock evidence uses an explicit namespace that cannot be interpreted as current-scope proof or completion evidence before approval and execution.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      evidence_namespace: full_goal_unlock_required_evidence_not_current_scope_proof
+      required_evidence_is_current_scope_proof: false
+      required_evidence_is_completion_evidence_now: false
+      required_feature_ticket_is_completion_evidence: false
+      may_satisfy_completion_only_after_approval_and_execution: true
+    verdict: pass
+  - id: L-L1-L6-DESIGN-OBLIGATION-NOT-FEATURE-ESCAPE
+    check: L1-L6 design obligations remain current-scope work; draft add-feature tickets only route unapproved L7/execution/escalation-bound work and cannot substitute for missing design evidence.
+    source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
+    expected:
+      current_scope_action: prove_l1_l6_design_obligation_before_deferring_l7_execution
+      l1_l6_design_obligation_is_current_scope: true
+      deferred_feature_tickets_are_not_design_substitute: true
+      feature_ticket_allowed_only_for_unapproved_l7_or_escalation_bound_execution: true
+      l1_l6_design_assets_required_before_ticket: true
+      design_gap_reopened_if_l1_l6_evidence_missing: true
+      no_feature_escape_for_design_debt: true
+      l7_or_external_execution_requires_approved_feature_ticket: true
+      covered_current_scope_surfaces: 6
+    verdict: pass
+  - id: L-DEFERRED-DESIGN-OBLIGATION-PROOF
+    check: Every deferred add-feature route has prior L1-L6 design evidence; tickets cannot substitute for missing L1-L6 design and missing evidence reopens the L1-L6 design gap.
+    source: docs/v2/audit/2026-06-13-l1-l6-deferred-design-obligation-proof.yaml
+    expected:
+      current_scope_action: prove_prior_l1_l6_design_evidence_before_defer
+      deferred_feature_tickets_are_not_design_substitute: true
+      l1_l6_design_assets_required_before_ticket: true
+      missing_design_evidence_reopens_l1_l6: true
+      ticket_is_completion_evidence: false
+      l7_or_external_execution_allowed_now: false
+      rows_checked: 11
+      ticket_paths_existing: 11
+      prior_design_evidence_paths_existing: true
+    verdict: pass
+  - id: L-EXIT-CRITERIA-NOT-CLOSURE
+    check: G1-G6 exit criteria ratification is not L7 implementation, unit-test execution, coverage closure, DB write, or full-goal completion.
+    source: docs/v2/audit/2026-06-12-l1-l6-exit-criteria-map.yaml
+    verdict: pass
+  - id: L-LEGACY-REFERENCE-CLASSIFICATION
+    check: Historical V1/V2 assets with legacy phase or gate wording are explicitly classified as legacy references and cannot be used as current L0-L14 evidence.
+    source: docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
+    expected:
+      legacy_reference_files_checked: 4
+      legacy_reference_files_marked_or_already_marked: 4
+      runtime_retrofit_required_items: 1
+      runtime_metadata_gap_ticketed: true
+      handover_metadata_boundary_items_checked: 1
+      handover_current_json_l7_label_authorizes_work: false
+      handover_ready_for_review_status_not_completion: true
+      handover_next_action_is_authoritative: true
+      next_action_supersedes_current_json_task_metadata: true
+      safe_task_retitle_command_available_now: false
+      force_dump_without_approval_allowed: false
+      feature_ticket_metadata_matches_classification: true
+      required_future_controls_checked: 4
+      blocking_findings_current_l1_l6_scope: 0
+      l7_artifacts_created_by_this_audit: 0
+    verdict: pass
+  - id: L-EVIDENCE-BOUNDARY-SCAN
+    check: add-feature and L7-test-design references across the L1-L6 audit bundle appear only as boundary metadata, not as proof/evidence fields or known evidence-like key paths.
+    source: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    expected:
+      evidence_key_match_policy: exact_key_or_known_evidence_like_key
+      evidence_like_keys_checked:
+        - authoritative_evidence_keys
+        - evidence_refs
+        - evidence_paths
+        - evidence_files
+        - proof_source
+        - proof_sources
+        - proof_refs
+        - proof_paths
+        - proof_files
+        - evidence_source
+        - evidence_sources
+      boundary_context_refs: 276
+      negative_boundary_check_refs: 1
+      evidence_context_refs: 0
+      add_feature_or_l7_refs_in_proof_or_evidence: 0
+      current_scope_proof_allows_add_feature: false
+      current_scope_proof_allows_l7_test_design: false
+    verdict: pass
+  - id: L-AUDIT-BOUNDARY-FLAGS
+    check: Every current L1-L6 audit YAML exposes boundary or scope_boundary metadata, and dangerous completion/adoption flags remain false or zero.
+    source: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    expected:
+      yaml_audits_checked: 25
+      audit_selection_policy: reference_integrity_audit_bundle
+      required_common_boundary_keys:
+        - l7_work_requested_by_user
+        - l7_work_requires_feature_ticket
+        - goal_complete_allowed
+      missing_boundary_or_scope_boundary: []
+      missing_common_boundary_keys: []
+      dangerous_boundary_flags_true: []
+      true_boundary_flags_allowed:
+        - l7_work_requires_feature_ticket
+        - web_sources_verified
+    verdict: pass
+  - id: L-AUDIT-YAML-DUPLICATE-KEYS
+    check: Every current L1-L6 audit YAML is parsed structurally to reject duplicate mapping keys before safe_load can silently overwrite boundary metadata.
+    source: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
+    expected:
+      yaml_audits_checked: 25
+      audit_selection_policy: reference_integrity_audit_bundle
+      duplicate_yaml_keys: []
+      parser: yaml.compose
+    verdict: pass
+completion_denial:
+  reason: >
+    This audit proves a quantitative and qualitative L1-L6 current-scope pass
+    only. It does not prove L7 implementation, test execution, coverage
+    closure, CI/equivalent wiring, HELIX DB write adoption, external tool
+    execution, or full goal completion.

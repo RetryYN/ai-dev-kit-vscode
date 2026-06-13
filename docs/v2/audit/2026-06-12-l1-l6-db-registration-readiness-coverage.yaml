@@ -1,0 +1,479 @@
+schema_version: l1_l6_db_registration_readiness_coverage_v1
+owner: TL
+status: current_scope_l1_l6_db_registration_readiness_mapped
+updated: 2026-06-12
+scope: L1-L6
+purpose: >
+  Map the current DB auto-registration design and implementation surfaces
+  without changing HELIX DB, hooks, plan_registry, or L7 test-design artifacts.
+  The audit separates existing readiness from L7 implementation work.
+sources:
+  workflow_design:
+    - HELIX-workflows/helix-process/db-auto-registration.md
+    - HELIX-workflows/helix-process/db-integration.md
+    - HELIX-workflows/helix-process/add-feature-workflow.md
+  implementation_surfaces_read_only:
+    - cli/lib/plan_registry.py
+    - cli/lib/helix_db.py
+    - cli/lib/code_catalog.py
+    - cli/lib/command_catalog.py
+    - cli/lib/contract_registry.py
+    - cli/lib/skill_catalog.py
+    - cli/lib/feedback_hook.py
+    - cli/lib/harness_monitor.py
+  deferred_feature_entry_points:
+    - docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+  add_feature_import_targets:
+    - docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+boundary:
+  l7_work_requested_by_user: false
+  l7_work_requires_feature_ticket: true
+  db_registration_map_is_implementation_evidence: false
+  plan_registry_changed_by_this_audit: false
+  helix_db_write_performed: false
+  schema_migration_done: false
+  hook_changed_by_this_audit: false
+  l7_test_design_created_by_this_audit: false
+  goal_complete_allowed: false
+summary:
+  registration_events_checked: 6
+  registration_event_contracts_checked: 6
+  document_projection_contracts_checked: 5
+  lifecycle_route_contracts_checked: 6
+  existing_implementation_surfaces_checked: 8
+  l1_l6_design_surfaces_checked: 3
+  readiness_rows: 6
+  event_route_closure_rows_checked: 6
+  add_feature_import_targets_checked: 11
+  blocking_findings_current_scope: 0
+  l7_feature_tickets_created: 1
+  l7_artifacts_created_by_this_audit: 0
+registration_accountability_contract:
+  current_scope_action: prove_registration_design_is_not_feature_escape
+  feature_ticket_is_not_design_substitute: true
+  registration_event_requires_contract_and_lifecycle_route: true
+  document_projection_requires_missing_detection_and_feedback_route: true
+  db_write_requires_explicit_approval: true
+  current_scope_must_keep_db_write_false: true
+  current_scope_proves:
+    - each registration event has a db target and required fields
+    - each registration event has a trouble detection route
+    - each registration event has an improvement feedback route
+    - each registration event maps to lifecycle and closure guards
+    - document projection can detect missing function registry, glossary, trace, test-design viewpoint, and audit manifest metadata
+  current_scope_does_not_prove:
+    - plan_registry add-feature import implementation
+    - HELIX DB write adoption
+    - registry mutation
+    - hook changes
+    - detector auto-execution
+registration_event_readiness:
+  - event: PLAN 起票
+    workflow_hook: plan_registry.bulk_import
+    registration_target: PLAN / ADR / add-feature ticket metadata
+    current_surface: cli/lib/plan_registry.py
+    current_readiness: partial
+    evidence:
+      - HELIX-workflows/helix-process/db-auto-registration.md
+      - cli/lib/plan_registry.py
+    gap:
+      id: DBREG-GAP-ADD-FEATURE-BULK-IMPORT-PATTERN
+      description: >
+        _iter_plan_files currently yields PLAN-*.md and ADR-*.md only. Current
+        deferred implementation entry points use docs/plans/add-feature/
+        add-feature-*.md, so ticket creation alone is not sufficient evidence
+        that plan_registry bulk import will ingest those tickets.
+      current_scope_action: feature_ticket_only
+      deferred_feature_plan: docs/plans/add-feature/add-feature-2026-06-12-plan-registry-add-feature-import-l7.md
+      gap_is_current_completion_blocker: false
+      ticket_is_completion_evidence: false
+  - event: コード変更
+    workflow_hook: code_catalog
+    registration_target: AST / FTS5 code index
+    current_surface: cli/lib/code_catalog.py
+    current_readiness: design_surface_present_not_exercised
+    evidence:
+      - HELIX-workflows/helix-process/db-auto-registration.md
+      - cli/lib/code_catalog.py
+    current_scope_action: no_write_no_index_rebuild
+  - event: ドキュメント更新
+    workflow_hook: document_registry_projection
+    registration_target: functional registry / glossary / design trace / test-design viewpoint metadata
+    current_surface: cli/lib/contract_registry.py
+    current_readiness: l1_l6_design_contract_present_write_deferred
+    evidence:
+      - docs/v2/L6-functional-design/FR-FNREG-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+      - docs/v2/L6-functional-design/FR-INV-01/function-spec.md
+      - cli/lib/contract_registry.py
+    current_scope_action: no_db_write_no_registry_mutation
+  - event: Codex 実行後
+    workflow_hook: codex_post_hook
+    registration_target: accuracy dimensions / post-validation evidence
+    current_surface: cli/lib/codex_post_validation.py
+    current_readiness: runtime_guard_surface_present
+    evidence:
+      - helix/CODEX_RUNTIME_ADAPTER.md
+      - cli/lib/codex_post_validation.py
+    current_scope_action: no_new_runtime_guard
+  - event: ゲート通過後
+    workflow_hook: feedback_hook
+    registration_target: five-axis feedback / route candidates
+    current_surface: cli/lib/feedback_hook.py
+    current_readiness: design_and_append_surface_present
+    evidence:
+      - cli/lib/feedback_hook.py
+      - cli/lib/harness_monitor.py
+    current_scope_action: no_feedback_auto_apply_no_gate_promotion
+  - event: セッション停止
+    workflow_hook: stop-hook / handover
+    registration_target: handover dump / resume state
+    current_surface: .helix/handover/CURRENT.md
+    current_readiness: active
+    evidence:
+      - .helix/handover/CURRENT.md
+      - .helix/handover/CURRENT.json
+    current_scope_action: maintain_boundary_only
+registration_event_contract_policy:
+  current_scope_action: map_event_contracts_only
+  db_write_allowed_now: false
+  schema_migration_allowed_now: false
+  hook_change_allowed_now: false
+  auto_apply_allowed_now: false
+  l7_artifact_allowed_now: false
+  required_contract_fields:
+    - event
+    - db_target
+    - required_fields
+    - trouble_detection_route
+    - improvement_feedback_route
+    - current_scope_action
+registration_event_contracts:
+  - event: PLAN 起票
+    db_target: plan_registry
+    required_fields:
+      - plan_id
+      - workflow
+      - kind
+      - layer
+      - status
+      - generates
+      - approval_boundary
+    trouble_detection_route: missing_plan_metadata_or_add_feature_import_gap
+    improvement_feedback_route: feature_ticket_gap_candidate
+    current_scope_action: feature_ticket_only_no_plan_registry_change
+  - event: コード変更
+    db_target: code_index
+    required_fields:
+      - file_path
+      - symbol_or_entry_id
+      - language
+      - owning_layer
+      - trace_refs
+    trouble_detection_route: orphan_code_or_unindexed_change_candidate
+    improvement_feedback_route: code_catalog_refresh_candidate
+    current_scope_action: no_write_no_index_rebuild
+  - event: ドキュメント更新
+    db_target: contract_registry
+    required_fields:
+      - doc_path
+      - doc_id
+      - process_layer
+      - pairs_with
+      - requirement_refs
+      - implementation_status
+    trouble_detection_route: missing_doc_contract_or_reference_drift
+    improvement_feedback_route: document_registry_projection_candidate
+    current_scope_action: no_db_write_no_registry_mutation
+  - event: Codex 実行後
+    db_target: session_validation_event
+    required_fields:
+      - session_id
+      - role
+      - command_or_harness
+      - validation_result
+      - evidence_refs
+      - guard_surface
+    trouble_detection_route: codex_claude_guard_parity_gap
+    improvement_feedback_route: runtime_guard_feature_ticket_candidate
+    current_scope_action: no_new_runtime_guard
+  - event: ゲート通過後
+    db_target: feedback_event
+    required_fields:
+      - gate_id
+      - verdict
+      - evidence_bundle
+      - detector_summary
+      - candidate_route
+      - non_closure_reason
+    trouble_detection_route: gate_or_detector_regression_candidate
+    improvement_feedback_route: append_candidate_only
+    current_scope_action: no_feedback_auto_apply_no_gate_promotion
+  - event: セッション停止
+    db_target: handover_state
+    required_fields:
+      - handover_id
+      - owner
+      - status
+      - next_action
+      - completed_paths
+      - stale_reasons
+    trouble_detection_route: stale_or_missing_handover_candidate
+    improvement_feedback_route: resume_state_candidate
+    current_scope_action: maintain_boundary_only
+document_projection_policy:
+  current_scope_action: define_document_projection_contract_only
+  db_write_allowed_now: false
+  registry_mutation_allowed_now: false
+  detector_auto_execute_allowed_now: false
+  l7_artifact_allowed_now: false
+  allowed_doc_kinds:
+    - l6_function_spec
+    - glossary_registry
+    - design_trace
+    - unit_test_design_viewpoint
+    - audit_manifest
+  allowed_db_targets:
+    - functional_registry
+    - glossary_registry
+    - contract_registry
+    - test_design_viewpoint_registry
+    - detector_report
+  required_contract_fields:
+    - doc_kind
+    - source_pattern
+    - db_target
+    - required_keys
+    - missing_detection_route
+    - feedback_route
+    - completion_guard
+document_projection_contracts:
+  - doc_kind: l6_function_spec
+    source_pattern: docs/v2/L6-functional-design/**/function-spec.md
+    db_target: functional_registry
+    required_keys:
+      - doc_id
+      - layer
+      - process_layer
+      - parent_requirements
+      - implementation_status
+      - Function ID
+    missing_detection_route: missing_function_contract_or_parent_requirement
+    feedback_route: registry_glossary_projection_candidate
+    completion_guard: projection_contract_is_not_db_write
+  - doc_kind: glossary_registry
+    source_pattern: docs/v2/L6-functional-design/FR-GLOSSARY-01/function-spec.md
+    db_target: glossary_registry
+    required_keys:
+      - doc_id
+      - term
+      - canonical_name
+      - bounded_context
+      - variant_policy
+    missing_detection_route: missing_glossary_term_or_variant_policy
+    feedback_route: glossary_registry_projection_candidate
+    completion_guard: projection_contract_is_not_db_write
+  - doc_kind: design_trace
+    source_pattern: docs/v2/L1-requirements/** + docs/v2/L3-requirements/** + docs/v2/L4-basic-design/** + docs/v2/L5-detailed-design/**
+    db_target: contract_registry
+    required_keys:
+      - doc_path
+      - process_layer
+      - requirement_refs
+      - downstream_design_refs
+      - pairs_with
+    missing_detection_route: missing_trace_link_or_reference_drift
+    feedback_route: document_registry_projection_candidate
+    completion_guard: projection_contract_is_not_db_write
+  - doc_kind: unit_test_design_viewpoint
+    source_pattern: docs/v2/L6-functional-design/**/*function-spec.md
+    db_target: test_design_viewpoint_registry
+    required_keys:
+      - UT viewpoint
+      - target_function
+      - expectation
+      - current_scope_boundary
+    missing_detection_route: missing_l6_ut_viewpoint_or_boundary
+    feedback_route: unit_test_design_viewpoint_candidate
+    completion_guard: projection_contract_is_not_l7_test_design
+  - doc_kind: audit_manifest
+    source_pattern: docs/v2/audit/2026-06-12-*.yaml
+    db_target: detector_report
+    required_keys:
+      - schema_version
+      - status
+      - scope
+      - boundary
+      - summary
+      - completion_denial
+    missing_detection_route: missing_audit_manifest_contract_or_completion_boundary
+    feedback_route: audit_manifest_projection_candidate
+    completion_guard: projection_contract_is_not_db_write
+lifecycle_route_contract_policy:
+  current_scope_action: map_event_to_lifecycle_and_route_only
+  lifecycle_write_allowed_now: false
+  detector_route_auto_execute_allowed_now: false
+  allowed_signals:
+    - drift
+    - debt_degradation
+    - regression_dev
+    - runaway
+    - unknown_design
+    - doc_connection_gap
+    - runaway_feedback_loop
+  allowed_modes:
+    - Reverse
+    - Refactor
+    - Recovery
+  required_contract_fields:
+    - event
+    - entry_state
+    - persisted_state
+    - candidate_state
+    - trouble_detection_signal
+    - routed_mode
+    - improvement_feedback_state
+    - completion_guard
+registration_lifecycle_route_contracts:
+  - event: PLAN 起票
+    entry_state: detected
+    persisted_state: registered
+    candidate_state: candidate_generated
+    trouble_detection_signal: unknown_design
+    routed_mode: Reverse
+    improvement_feedback_state: plan_materialized
+    completion_guard: plan_materialized_is_not_closure
+  - event: コード変更
+    entry_state: detected
+    persisted_state: registered
+    candidate_state: candidate_generated
+    trouble_detection_signal: drift
+    routed_mode: Reverse
+    improvement_feedback_state: candidate_generated
+    completion_guard: candidate_generated_is_not_closure
+  - event: ドキュメント更新
+    entry_state: detected
+    persisted_state: registered
+    candidate_state: candidate_generated
+    trouble_detection_signal: doc_connection_gap
+    routed_mode: Reverse
+    improvement_feedback_state: plan_materialized
+    completion_guard: plan_materialized_is_not_closure
+  - event: Codex 実行後
+    entry_state: detected
+    persisted_state: registered
+    candidate_state: candidate_generated
+    trouble_detection_signal: runaway_feedback_loop
+    routed_mode: Recovery
+    improvement_feedback_state: verification_recorded
+    completion_guard: verification_recorded_requires_gate_projection
+  - event: ゲート通過後
+    entry_state: verification_recorded
+    persisted_state: gate_projected
+    candidate_state: candidate_generated
+    trouble_detection_signal: regression_dev
+    routed_mode: Recovery
+    improvement_feedback_state: recurrence_closed
+    completion_guard: recurrence_closed_or_monitored_with_owner_required_before_completion
+  - event: セッション停止
+    entry_state: detected
+    persisted_state: registered
+    candidate_state: candidate_generated
+    trouble_detection_signal: unknown_design
+    routed_mode: Reverse
+    improvement_feedback_state: plan_materialized
+    completion_guard: plan_materialized_is_not_closure
+event_route_closure_contract:
+  current_scope_action: prove_event_to_route_closure_only
+  source_collections:
+    - registration_event_contracts
+    - registration_lifecycle_route_contracts
+  event_identity_field: event
+  events_checked: 6
+  rows_checked: 6
+  db_write_allowed_now: false
+  detector_route_auto_execute_allowed_now: false
+  feedback_auto_apply_allowed_now: false
+  l7_or_adoption_evidence_allowed: false
+  rows:
+    - event: PLAN 起票
+      db_target: plan_registry
+      trouble_detection_route: missing_plan_metadata_or_add_feature_import_gap
+      trouble_detection_signal: unknown_design
+      routed_mode: Reverse
+      improvement_feedback_route: feature_ticket_gap_candidate
+      improvement_feedback_state: plan_materialized
+      completion_guard: plan_materialized_is_not_closure
+    - event: コード変更
+      db_target: code_index
+      trouble_detection_route: orphan_code_or_unindexed_change_candidate
+      trouble_detection_signal: drift
+      routed_mode: Reverse
+      improvement_feedback_route: code_catalog_refresh_candidate
+      improvement_feedback_state: candidate_generated
+      completion_guard: candidate_generated_is_not_closure
+    - event: ドキュメント更新
+      db_target: contract_registry
+      trouble_detection_route: missing_doc_contract_or_reference_drift
+      trouble_detection_signal: doc_connection_gap
+      routed_mode: Reverse
+      improvement_feedback_route: document_registry_projection_candidate
+      improvement_feedback_state: plan_materialized
+      completion_guard: plan_materialized_is_not_closure
+    - event: Codex 実行後
+      db_target: session_validation_event
+      trouble_detection_route: codex_claude_guard_parity_gap
+      trouble_detection_signal: runaway_feedback_loop
+      routed_mode: Recovery
+      improvement_feedback_route: runtime_guard_feature_ticket_candidate
+      improvement_feedback_state: verification_recorded
+      completion_guard: verification_recorded_requires_gate_projection
+    - event: ゲート通過後
+      db_target: feedback_event
+      trouble_detection_route: gate_or_detector_regression_candidate
+      trouble_detection_signal: regression_dev
+      routed_mode: Recovery
+      improvement_feedback_route: append_candidate_only
+      improvement_feedback_state: recurrence_closed
+      completion_guard: recurrence_closed_or_monitored_with_owner_required_before_completion
+    - event: セッション停止
+      db_target: handover_state
+      trouble_detection_route: stale_or_missing_handover_candidate
+      trouble_detection_signal: unknown_design
+      routed_mode: Reverse
+      improvement_feedback_route: resume_state_candidate
+      improvement_feedback_state: plan_materialized
+      completion_guard: plan_materialized_is_not_closure
+add_feature_import_target_contract:
+  source_audit: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
+  source_collection: feature_ticket_integrity
+  import_glob_after_approval: docs/plans/add-feature/add-feature-*.md
+  target_db: plan_registry
+  target_status_now: draft_boundary_only
+  targets_checked: 11
+  required_target_ids:
+    - full_flow_remaining_guards
+    - l7_unit_closure
+    - db_evidence_lifecycle
+    - harness_external_tools
+    - codex_claude_guard_parity
+    - fr_registry_glossary
+    - plan_registry_add_feature_import
+    - dependency_impact_query
+    - bottleneck_routing
+    - phase_enum_l0_l14_runtime_retrofit
+    - contract_design_phase_label_retrofit
+  import_implemented_now: false
+  db_write_allowed_now: false
+  ticket_is_completion_evidence: false
+  current_scope_action: map_import_targets_only
+invariants:
+  - This audit does not change cli/lib/plan_registry.py.
+  - This audit does not write to .helix/helix.db.
+  - Draft add-feature tickets are not implementation evidence.
+  - Add-feature import behavior requires approved L7 TDD implementation.
+completion_denial:
+  reason: >
+    This audit proves DB registration readiness mapping only. It does not prove
+    add-feature ticket import implementation, HELIX DB write adoption, schema
+    migration, hook execution, CI/equivalent wiring, or full goal completion.
