@@ -10,6 +10,10 @@ process_layer: L7
 parent_design: docs/v2/L6-functional-design/registry-detector-機能設計.md  # L6 正本(TL裁定): GatePolicy / DetectorReport 契約
 drive: be
 status: finalized  # 設計 finalized(TL round1→round2 approve)。実行は PARKED(banner 参照)= 検証ゲート閉合後に automation-gate-map gate hardening として再開。
+current_task_scope: parked_feature_ticket_only
+approval_required_before_l7_work: true
+approval_required_before_ci_or_fail_close: true
+ticket_is_completion_evidence: false
 tl_review: approve  # round1 changes_required(P1×2/P2×3/P3×1)→反映→round2 changes_required(残P2=roadmap同期漏れ1件のみ)→verbatim同期適用で解消。TL round2 確認: doctor rc=0/昇格6件全✓・strict rc=1でpair除外妥当・parent_design妥当・テスト十分・plan lint PASS
 created: 2026-06-08
 owner: PM
