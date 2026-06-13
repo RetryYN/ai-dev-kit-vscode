@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 import sys
 
 import pytest
@@ -446,6 +447,56 @@ def test_run_gate_review_uses_single_ahead_plan_for_backward_compatibility(
 
     assert result["passed"] is True
     assert result["detail"] == f"{plan_id} scope=action status=completed tl_review=approve"
+
+
+def test_run_gate_nondestructive_ignores_cli_helix_test_tmpdir_cleanup(monkeypatch) -> None:
+    diff_output = "\n".join(
+        [
+            "diff --git a/cli/helix-test b/cli/helix-test",
+            "--- a/cli/helix-test",
+            "+++ b/cli/helix-test",
+            '@@ -10,0 +11 @@',
+            '+rm -rf "$tmp"',
+        ]
+    )
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate,
+        "_run_command",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 0, diff_output, ""),
+    )
+
+    result = push_gate.run_gate_nondestructive()
+
+    assert result == {
+        "id": "G-nondestructive",
+        "passed": True,
+        "detail": "no destructive pattern",
+        "fix": "なし",
+    }
+
+
+def test_run_gate_nondestructive_still_blocks_nonexcluded_cli_script(monkeypatch) -> None:
+    diff_output = "\n".join(
+        [
+            "diff --git a/cli/helix-foo b/cli/helix-foo",
+            "--- a/cli/helix-foo",
+            "+++ b/cli/helix-foo",
+            '@@ -10,0 +11 @@',
+            '+rm -rf "$tmp"',
+        ]
+    )
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate,
+        "_run_command",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 0, diff_output, ""),
+    )
+
+    result = push_gate.run_gate_nondestructive()
+
+    assert result["passed"] is False
+    assert result["detail"] == 'destructive pattern: rm -rf in cli/helix-foo'
 
 
 def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:

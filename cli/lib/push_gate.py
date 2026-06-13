@@ -28,6 +28,8 @@ DESTRUCTIVE_PATTERNS = [
 DESTRUCTIVE_EXCLUDED_PREFIXES = (
     "cli/lib/tests/",
     "cli/tests/",
+    # cli/helix-test is the bats-lite runner and cleans mktemp tmpdirs like cli/tests/ test infra.
+    "cli/helix-test",
     "tests/",
     "docs/",
 )
