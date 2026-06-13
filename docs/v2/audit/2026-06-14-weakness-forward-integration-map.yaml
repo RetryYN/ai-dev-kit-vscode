@@ -1,0 +1,249 @@
+schema_version: weakness_forward_integration_map_v1
+owner: PM
+status: current_scope_l1_l6_forward_attribution
+updated: 2026-06-14
+scope: L1-L6 (Forward 帰属のみ。L7 実装は PARKED)
+purpose: >
+  ハーネス完成度評価で表面化した「弱い部分」を Forward V-model へ取り込む
+  (ユーザー指示 2026-06-14「弱い部分の強化もフォワードに含めてくれよ」)。
+  HELIX 絶対原則 §0: すべての成果は Forward 上で正本化され、off-V の floating debt に
+  してはならない。本マップは各弱点を (a) Forward 要件 FR、(b) L4-L6 設計、
+  (c) deferred ticket + forward_return、(d) 帰属させる L-pair pending gate evidence
+  へ機械可読に結びつける SSoT。新たな standing roadmap は作らない (roadmap 廃止原則):
+  弱点は「該当 L-pair の pending gate evidence」に帰属させ、強化作業はその pending を
+  閉じる Forward 前進として扱う。
+boundary:
+  l7_implementation: PARKED (not in current scope)
+  fail_close_promotion: PARKED
+  ci_wiring: PARKED
+  db_schema_creation: PARKED
+  external_tool_execution: PARKED
+  this_map_is_completion_proof: false
+sources:
+  audit_workflow: wf_821eb0a9-0fc (weakness-forward-integration-audit, 2026-06-14, 7 agents)
+  related:
+    - docs/v2/audit/2026-06-12-l1-l6-improvement-candidate-map.yaml
+    - docs/v2/L1-requirements/helix-workflows-verification-strategy.md  # §14.4 (pending evidence)
+    - HELIX-workflows/helix-process/automation-gate-map.md
+    - docs/v2/L7-test-design/goal-completion-audit.yaml  # deferred non-proof (L7)
+
+# --- 帰属の凡例 ---
+# forward_requirement.status: present(明示FR) | indirect(既存FRに内包、追補推奨) | missing(FR無し)
+# forward_design.status: present | partial | missing
+# deferred_ticket.forward_return: present | added_2026_06_14 | body_only | none
+# lpair_gate_evidence: 弱点を帰属させる Forward L-pair (pending gate evidence)
+# in_scope_action_done: 本セッション(L1-L6)で実施した接続作業
+# pending_forward_action: TL review / unpark 時に行う Forward 前進 (L7 含む)
+
+weaknesses:
+  - id: W1-detector-failclose
+    title: advisory detector (requirement_drift / vg_overview / g7_subcheck) の fail-close 昇格
+    forward_requirement:
+      status: indirect
+      ids: [FR-08, FR-DOCTOR-01, FR-MIGR-01, FR-4ART-01, FR-DRIFT-01]
+      note: 三検出器を名指しした専用 FR は無く FR-08/FR-DOCTOR-01 §vmodel + FR-MIGR-01 Strangler 表で間接捕捉。
+    forward_design:
+      status: present
+      location: docs/v2/L6-functional-design/registry-detector-機能設計.md (FN-RDB-06 GatePolicy.promote 契約 frozen), requirement-drift-機能設計.md (FN-RD-03)
+      note: 契約は frozen、実運用昇格(state flip)は PARKED。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md
+      status: finalized (design) / execution PARKED
+      forward_return: added_2026_06_14
+    lpair_gate_evidence: L6↔L7 (G6 設計freeze + G7 UT anchor/exec_pass)
+    in_scope_action_done: ticket frontmatter に forward_return 追加 (L6↔L7 帰属明示)。
+    pending_forward_action: >
+      FR-08(L1)/FR-DOCTOR-01(L3) へ三検出器名指しの advisory→fail-close 昇格 AC 追補 (doc, TL諮問)。
+      requirement_drift の GATE_MODE 配線 = L7 (W13 と同根、PARKED)。
+
+  - id: W2-right-arm-gates
+    title: 右腕 L8/L9/L12/L14 実行ゲート (G8/G9/G12/G14) 未配線
+    forward_requirement:
+      status: indirect
+      ids: [FR-05, FR-GATE-01, FR-08, FR-4ART-01]
+      note: verification-strategy §14 が pair_closure の右腕実行ゲート条件を prose 定義。専用 FR-ID 無し。
+    forward_design:
+      status: partial
+      location: L4/L5/L6 で「required だが deferred」と言及のみ。具体設計 (component/algorithm) 無し。
+      note: automation-gate-map は G8/G12/G14=not implemented, G9=proxy と記録。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
+      status: draft (approve=push境界のみ)
+      forward_return: added_2026_06_14
+    lpair_gate_evidence: "G8→L5↔L8 / G9→L4↔L9 / G12→L3↔L12 / G14→L1↔L14 (各 pending; VG-overview strict full-flow で approved_deferred=4)"
+    in_scope_action_done: ticket に forward_return (各右腕 pair 帰属) 追加。VG-overview strict が deferred=4 を既に surface。
+    pending_forward_action: >
+      FR-GATE-01 AC に G8/G9/G12/G14 ratchet を明示 (doc)。L4-L6 に実行ゲート detector の設計 (re-freeze, R1-R5)。
+      標準 PLAN-G8/G9/G12/G14 ファイル化 (TL review 後)。L7 実装は PARKED。
+
+  - id: W3-helix-db-convergence
+    title: HELIX DB 収束が部分的にファイル/suggest ベース (closure 配線・route_engine suggest 止まり)
+    forward_requirement:
+      status: present
+      ids: [FR-07, FR-EVT-01]
+      note: FR-07/FR-EVT-01 が closure event 記録と target_forward_layer を要求。route_engine が PLAN.forward_return を読む要件は曖昧。
+    forward_design:
+      status: present
+      location: docs/v2/{L4-basic-design,L5-detailed-design,L6-functional-design}/db-backed-evidence-lifecycle-*.md (draft, design_gap_closed_current_phase)
+      note: route_engine forward_return 読取と DB write closure は明示 deferred。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
+      status: draft
+      forward_return: added_2026_06_14  # 監査時 none → 本セッションで追加
+    lpair_gate_evidence: L6↔L7 (G6/G7; DBEV-FN-01..08 design は frozen, L7 test_code_anchor 未)
+    in_scope_action_done: ticket に forward_return 追加 (監査で完全欠落と判明した最重要ギャップ解消)。
+    pending_forward_action: >
+      FR-EVT-01(L3) に「route_engine は PLAN.forward_return を binding signal として読む」を明示 (doc)。
+      mode_transition / closure_event テーブルは W11 (L4 schema設計 → L7 実装, PARKED)。
+
+  - id: W4-ci-enforcement
+    title: CI enforce 未配線 (detector green-only → CI Required check 昇格未)
+    forward_requirement:
+      status: indirect
+      ids: [FR-GATE-01, FR-DOCTOR-01, FR-4ART-01, FR-CHANGEPROP-01]
+      note: CI 接続は FR-DOCTOR-01/FR-CHANGEPROP-01 本文に内包。専用 atomic FR-ID 無し。
+    forward_design:
+      status: missing
+      location: L6 FR-GATE-01/function-spec.md は CI 接続を明示除外 (current_scope_l6_closed)。CI 配線層の設計空白。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md (W1 と共有)
+      status: finalized (design) / execution PARKED
+      forward_return: added_2026_06_14
+    lpair_gate_evidence: "L6↔L7 (G7 exit の CI 配線サブチェック); automation-gate-map §5 次段=CI 接続 pending"
+    in_scope_action_done: forward_return 追加 (W1 ticket 共有)。本マップで CI 設計空白を可視化。
+    pending_forward_action: >
+      FR-DOCTOR-01(L3) に「detector allowlist → CI Required check (detector-gate job)」AC 追補 (doc)。
+      .github/workflows/ci.yml の detector-gate job は L7 実装成果物 (PARKED)。
+
+  - id: W5-gate-precision
+    title: gate 粒度/blind-spot (G-nondestructive 除外リストの精度)
+    forward_requirement:
+      status: missing
+      ids: [FR-GATE-01]
+      note: G-nondestructive false-positive 抑制を要件化した FR が無い (gate-driven-push §8 carry の body-only)。
+    forward_design:
+      status: missing
+      location: FR-GATE-01 function-spec に DESTRUCTIVE_EXCLUDED_PREFIXES / 除外精度の設計記述無し。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-03-gate-driven-push.md §8 carry (body-only, standalone ticket 無し)
+      status: completed (親) / carry は未起票
+      forward_return: none
+    lpair_gate_evidence: L4↔L9 (除外パス方針=L4 設計判断, 検証=L9)
+    in_scope_action_done: >
+      本セッションで cli/helix-test を DESTRUCTIVE_EXCLUDED_PREFIXES に追加 (commit fix(cli), 回帰テスト付)。
+      監査で verify/ と scripts/git-hooks/ も未除外 (rm -rf trap / --no-verify text) と判明 → 本マップで顕在化。
+    pending_forward_action: >
+      FR-GATE-01(L3) に除外パス基準 + false-positive 抑制契約を AC 追補 (doc)。
+      verify/ + scripts/git-hooks/ の除外追加は L7 実装 (TL review + standalone ticket 起票後, PARKED)。
+
+  - id: W6-forward-return-closure
+    title: 駆動 workflow → Forward 収束が一部 recommend 止まり (route_engine suggest, closure 閉ループ未)
+    forward_requirement:
+      status: present
+      ids: [FR-07, FR-EVT-01]
+      note: UC-06 が「駆動完了 → Forward 復帰 event → 次工程 auto-promote」を明示。
+    forward_design:
+      status: partial
+      location: L6 FR-EVT-01/function-spec.md (EVT-FN-01..07 frozen), FR-9MODE-01 (MODE9-FN-05); L5 に EVT 専用節欠落 (薄い L5↔L8)。
+      note: route_candidate_is_closure=false は L6 設計上 intentional (suggest-only 境界)。
+    deferred_ticket:
+      path: docs/plans/discovery/poc-2026-06-01-recovery-closureplan.md (H-CLOSURE-01, park 2026-06-02)
+      status: park
+      forward_return: present (Reverse -> Forward L4 closure design)
+    lpair_gate_evidence: L6↔L7 (FR-EVT-01/FR-9MODE-01 の UT anchor 未) + L4 schema設計 (W11)
+    in_scope_action_done: 本マップで L5 設計薄化と closure engine 不在を Forward pending として明示帰属。
+    pending_forward_action: >
+      L4 basic design PLAN (mode_transition central closure schema) 起票 = poc の forward_return 先 (未作成)。
+      L5 内部処理設計に EVT-FN-01..07 節追加 (doc)。L7 実装 (closure engine) は L4 schema 承認後 (PARKED)。
+
+  # --- critic が追加検出 (W7-W14) ---
+  - id: W7-forward-return-discipline-enforcement
+    title: forward-return-discipline の lint/機械強制が Phase A (文書) 止まり
+    forward_requirement: {status: indirect, ids: [FR-4ART-01, FR-MIGR-01], note: discipline Phase B-D は plan_validator/lint 拡張に対応}
+    forward_design: {status: partial, location: forward-return-discipline.md §7 Phase B-D; FR-PLAN-01 L6 lint 関数定義}
+    deferred_ticket: {path: "DF-FRD-001 (PLAN-081 stop-hook L6 DbC 再凍結 deferred finding, open)", status: open, forward_return: none}
+    lpair_gate_evidence: L6↔L7 (plan_validator/plan_lint = FR-PLAN-01 L6 設計, Phase D=G6 相当 exit)
+    in_scope_action_done: 本マップで Phase B-D carry を pending gate evidence に帰属。
+    pending_forward_action: forward-return-discipline §7 の carry を automation-gate-map deferred evidence へ明記。FR-PLAN-01 L6 に check_forward_return_extended_fields() 定義追補 (doc)。L7 lint 実装は PARKED。
+
+  - id: W8-axis-detectors-push-disconnect
+    title: axis-01..14 detector が advisory のまま push/gate 未接続
+    forward_requirement: {status: indirect, ids: [FR-DOCTOR-01, FR-MIGR-01], note: FR-DOCTOR-01 fail-close 候補に axis 群、check 追加=L4 carry}
+    forward_design: {status: partial, location: FR-DOCTOR-01/function-spec.md advisory→ratchet→fail_close ラダー (axis 個別の昇格 sequence 未記載)}
+    deferred_ticket: {path: "(なし — automation-gate-map に advisory/push未接続と記録のみ)", status: unticketed, forward_return: none}
+    lpair_gate_evidence: L6↔L7 (FR-DOCTOR-01 L6 設計 + L7 配線)
+    in_scope_action_done: 本マップで axis 群を FR-MIGR-01 Phase α allowlist 候補として Forward 帰属。
+    pending_forward_action: FR-DOCTOR-01 L6 に axis-01..14 の advisory_level/ratchet_trigger 追補 + automation-gate-map §2 に明示エントリ (doc)。push 接続は L7 (PARKED)。
+
+  - id: W9-gate-checks-template-missing-gates
+    title: gate-checks.yaml template に G0/G1/G1.5/G8/G12/G13/G14 欠落 (policy↔実装 drift)
+    forward_requirement: {status: indirect, ids: [FR-GATE-01, FR-05], note: gate-policy.md は full set, template が欠落}
+    forward_design: {status: partial, location: FR-GATE-01/function-spec.md (左腕 freeze 用 static check 未定義の gate あり)}
+    deferred_ticket: {path: "W2 (right-arm) と共有: full-flow-remaining-guards / automation-gate-map §0 是正対象", status: draft, forward_return: present_via_W2}
+    lpair_gate_evidence: "G0→L0 / G1→L1↔L14 / G8→L5↔L8 / G12→L3↔L12 / G14→L1↔L14 (W2 と一部重複)"
+    in_scope_action_done: 本マップで template gap を W2 deferred evidence + 各 L-pair に帰属。
+    pending_forward_action: 欠落ゲートの static check を L6 FR-GATE-01 に設計 (doc)。template 補完は L7 (PARKED)。
+
+  - id: W10-nfr-op01-auto-deprecation
+    title: NFR-OP-01 auto-deprecation 機構が未実装 (check_deprecated_registry 不在, L6 spec 無し)
+    forward_requirement: {status: present, ids: [NFR-OP-01], note: L1 NFR で老化判定・自動 archive を定義}
+    forward_design: {status: missing, location: "docs/v2/L6-functional-design/ に NFR-OP-01 専用 spec 無し (片肺 G6)"}
+    deferred_ticket: {path: "HO-04 (deprecated shim 4件廃止 milestone, open)", status: open, forward_return: none}
+    lpair_gate_evidence: L6↔L7 (G6 片肺 = L6 spec 作成が Forward 接続起点)
+    in_scope_action_done: 本マップで NFR-OP-01 を L6 設計欠落 (G6 片肺) として Forward pending に帰属。
+    pending_forward_action: docs/v2/L6-functional-design/NFR-OP-01/function-spec.md 新設 (check_deprecated_registry/shim DbC, doc)。HO-04 を automation-gate-map 帰属。L7 実装 PARKED。
+
+  - id: W11-mode-transition-db-unmaterialized
+    title: FR-EVT-01 mode_transition / closure_event テーブルが DB 未実体化
+    forward_requirement: {status: present, ids: [FR-EVT-01, FR-07], note: helix mode close で mode_transition row 追加を定義}
+    forward_design: {status: present, location: FR-EVT-01/function-spec.md (design_gap_closed_current_phase, L7 PARKED)}
+    deferred_ticket: {path: "W6 poc + W3 db-backed-evidence (隣接だが central closure engine は未カバー)", status: park/draft, forward_return: present_via_W3_W6}
+    lpair_gate_evidence: L6↔L7 (G7); L4 schema 設計 (mode_transition/closure_event/transition_history) が前提
+    in_scope_action_done: 本マップで mode_transition/transition_history テーブル不在を W3/W6 と統合し Forward pending に帰属。
+    pending_forward_action: verification-strategy §14 に具体的 pending evidence 追補 (doc)。L4 schema 設計 → L7 実装は PARKED。
+
+  - id: W12-l4-carry-doctor-checks-cluster
+    title: L4-carry doctor check 7件が advisory/未実装で pending gate evidence 未帰属
+    forward_requirement: {status: present, ids: [FR-DOCTOR-01, FR-CHANGEPROP-01, FR-MIGR-01, FR-GLOSSARY-01, FR-FNREG-01]}
+    forward_design: {status: partial, location: "各 L6 function-spec (design_gap_closed_current_phase); check 4件は実装も spec も未"}
+    deferred_ticket: {path: "(個別起票なし — L3 functional-registry §13 に L4 carry と記録)", status: unticketed, forward_return: none}
+    lpair_gate_evidence: L6↔L7 (G7 pending; 7 check の昇格は FR-MIGR-01 Phase α allowlist)
+    in_scope_action_done: 本マップで 7 check (check_fr_sot_alignment/glossary_coverage/coding_rule_alignment[実装済advisory] + upstream_downstream_alignment/balance_ratio_regression/migration_pending/deprecated_shim_milestone[未実装]) を Forward 帰属。
+    pending_forward_action: automation-gate-map §3 検出器表 + verification-strategy §14.4 に 7 check の pending list 追補 (doc)。実装/昇格は L7 (PARKED)。
+
+  - id: W13-requirement-drift-gate-unwired
+    title: requirement_drift が check_vg_overview_gate に未統合 (GATE_MODE 時も advisory)
+    forward_requirement: {status: present, ids: [FR-DRIFT-01, FR-08]}
+    forward_design: {status: present, location: requirement-drift-機能設計.md (implemented-mvp); GATE_MODE 配線が L7 PARKED で exec_pass 片肺}
+    deferred_ticket: {path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md (W1 共有), status: finalized/PARKED, forward_return: added_2026_06_14}
+    lpair_gate_evidence: L6↔L7 (G7 exec_pass 片肺)
+    in_scope_action_done: 本マップで requirement_drift の GATE_MODE 未配線を W1 と分離し独立 pending として帰属。
+    pending_forward_action: helix-doctor GATE_MODE ブロックへ requirement_drift 専用 check 追加 = L7 (PARKED)。
+
+  - id: W14-trace-symmetry-l2-l10-missing
+    title: trace_symmetry.py PAIR_LAYERS に L2-L10 欠落 (FE detector 未実装連動)
+    forward_requirement: {status: indirect, ids: [FR-05, FR-08], note: L2↔L10 は ui_absent waiver で approved_deferred (正規) だが trace_symmetry に not_applicable 経路未登録}
+    forward_design: {status: partial, location: fe-detector-spec.md (axis-15..19 定義) / cli/lib/detectors に未実装}
+    deferred_ticket: {path: docs/plans/L2/L2-helix-workflows-ui-absent-waiverplan.md (waiver), status: completed, forward_return: none}
+    lpair_gate_evidence: L2↔L10 (G2/G10; ui_absent waiver で approved_deferred)
+    in_scope_action_done: 本マップで L2↔L10 を waiver 経路として明示帰属 (「単に欠落」と区別)。
+    pending_forward_action: trace_symmetry PAIR_LAYERS に L2-L10 を not_applicable 経路で static 登録 = L7 (PARKED)。FE detector は別途。
+
+# --- 集計 ---
+summary:
+  total_weaknesses: 14
+  forward_requirement: {present: 6, indirect: 7, missing: 1}
+  forward_design: {present: 5, partial: 6, missing: 3}
+  deferred_ticket_forward_return:
+    added_2026_06_14: 4   # W1/W3 (=W4/W13 共有), W2, harness は別 (合計 ticket 4本に追加)
+    present_prior: 2
+    none_or_unticketed: 8
+  in_scope_done_2026_06_14:
+    - "4 deferred ticket に forward_return frontmatter 追加 (detector-failclose / db-backed-evidence / full-flow-remaining-guards / harness-external-tools)"
+    - "本 Forward 帰属マップ新設 (全14弱点を FR + L4-L6設計 + L-pair pending gate evidence へ機械可読に接続)"
+    - "W5: cli/helix-test を G-nondestructive 除外へ (commit fix(cli)) + verify//scripts/ blind-spot 顕在化"
+  anti_regression_note: >
+    本マップは standing roadmap ではない (roadmap 廃止原則 2026-06-08)。各弱点は該当 L-pair の
+    pending gate evidence に帰属し、強化は「その pending を閉じる Forward 前進」として進める。
+    deprecated Process を新 Action の parent にしない。L7 実装・fail-close 昇格・CI 配線・DB schema は
+    すべて承認待ち (PARKED) であり本マップは completion proof ではない。
