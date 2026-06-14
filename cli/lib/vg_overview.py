@@ -8,7 +8,10 @@ from typing import Any
 
 import yaml
 
+from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
+from design_id_existence_checks import check_design_id_existence
 from functional_registry_checks import check_functional_registry
+from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
 from registry_design_coverage_checks import check_registry_design_coverage
 from requirement_drift import collect_requirement_drift
@@ -178,6 +181,20 @@ def collect_vg_overview(
     registry_path = root / "cli" / "config" / "functional-registry.yaml"
 
     registry_design = check_registry_design_coverage(registry_path, root)
+    design_id_existence = check_design_id_existence(
+        registry_path,
+        "docs/v2/L6-functional-design/*.md",
+        root,
+    )
+    fn_ut_pair = check_fn_ut_pair_coverage(
+        registry_path,
+        root / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml",
+        root,
+    )
+    ddd_bc_reports = (
+        check_bc_anti_corruption(root / "cli" / "config" / "ddd-registry.yaml", root),
+        check_bc_mode_coverage(root / "cli" / "config" / "ddd-registry.yaml", root),
+    )
     functional_registry = check_functional_registry(registry_path, root)
     trace = collect_trace_symmetry(root)
     g7 = collect_g7_subcheck(root, execute_tests=execute_g7_tests)
@@ -228,6 +245,18 @@ def collect_vg_overview(
         "registry_design_coverage": {
             "clean": len(registry_design.findings) == 0,
             "finding_count": len(registry_design.findings),
+        },
+        "design_id_existence": {
+            "clean": len(design_id_existence.findings) == 0,
+            "finding_count": len(design_id_existence.findings),
+        },
+        "fn_ut_pair_coverage": {
+            "clean": len(fn_ut_pair.findings) == 0,
+            "finding_count": len(fn_ut_pair.findings),
+        },
+        "ddd_bc_coverage": {
+            "clean": sum(len(report.findings) for report in ddd_bc_reports) == 0,
+            "finding_count": sum(len(report.findings) for report in ddd_bc_reports),
         },
         "source_scan_vs_registry": {
             "clean": len(source_scan_findings) == 0,

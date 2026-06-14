@@ -1195,6 +1195,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-GUARD-03"
+    test_design_ids:
+      - "UT-GUARD-03"
     code_paths:
       - "cli/lib/agent_policy_guard.py"
     doc_paths: []
@@ -1225,6 +1227,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-101"
+    test_design_ids:
+      - "UT-WSC-101"
     code_paths:
       - "cli/lib/allowed_files_estimator.py"
     doc_paths: []
@@ -1285,6 +1289,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-AUDIT-01"
+    test_design_ids:
+      - "UT-AUDIT-01"
     code_paths:
       - "cli/lib/audit_validator.py"
     doc_paths: []
@@ -1390,6 +1396,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-102"
+    test_design_ids:
+      - "UT-WSC-102"
     code_paths:
       - "cli/lib/code_recommender.py"
     doc_paths: []
@@ -1420,6 +1428,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-103"
+    test_design_ids:
+      - "UT-WSC-103"
     code_paths:
       - "cli/lib/codex_post_validation.py"
     doc_paths: []
@@ -1525,6 +1535,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-GUARD-01"
+    test_design_ids:
+      - "UT-GUARD-01"
     code_paths:
       - "cli/lib/context_guard.py"
     doc_paths: []
@@ -1645,6 +1657,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-104"
+    test_design_ids:
+      - "UT-WSC-104"
     code_paths:
       - "cli/lib/demotion_checker.py"
     doc_paths: []
@@ -1690,6 +1704,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-105"
+    test_design_ids:
+      - "UT-WSC-105"
     code_paths:
       - "cli/lib/doc_map_matcher.py"
     doc_paths: []
@@ -1705,6 +1721,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-106"
+    test_design_ids:
+      - "UT-WSC-106"
     code_paths:
       - "cli/lib/doctor_plan_checks.py"
     doc_paths: []
@@ -1720,6 +1738,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-107"
+    test_design_ids:
+      - "UT-WSC-107"
     code_paths:
       - "cli/lib/doctor_recovery_check.py"
     doc_paths: []
@@ -1750,6 +1770,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-108"
+    test_design_ids:
+      - "UT-WSC-108"
     code_paths:
       - "cli/lib/drift_db_diff.py"
     doc_paths: []
@@ -1765,6 +1787,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-109"
+    test_design_ids:
+      - "UT-WSC-109"
     code_paths:
       - "cli/lib/dual_write_connection.py"
     doc_paths: []
@@ -1780,6 +1804,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-110"
+    test_design_ids:
+      - "UT-WSC-110"
     code_paths:
       - "cli/lib/dual_write_mismatch.py"
     doc_paths: []
@@ -1795,6 +1821,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-111"
+    test_design_ids:
+      - "UT-WSC-111"
     code_paths:
       - "cli/lib/effort_classifier.py"
     doc_paths: []
@@ -1885,6 +1913,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-112"
+    test_design_ids:
+      - "UT-WSC-112"
     code_paths:
       - "cli/lib/freeze_checker.py"
     doc_paths: []
@@ -1900,6 +1930,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-113"
+    test_design_ids:
+      - "UT-WSC-113"
     code_paths:
       - "cli/lib/gate_check_generator.py"
     doc_paths: []
@@ -1930,6 +1962,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-114"
+    test_design_ids:
+      - "UT-WSC-114"
     code_paths:
       - "cli/lib/global_store.py"
     doc_paths: []
@@ -1991,6 +2025,9 @@ entries:
     design_ids:
       - "FN-DB-01"
       - "FN-DB-02"
+    test_design_ids:
+      - "UT-DB-01"
+      - "UT-DB-02"
     code_paths:
       - "cli/lib/helix_db.py"
     doc_paths: []
@@ -2066,6 +2103,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-115"
+    test_design_ids:
+      - "UT-WSC-115"
     code_paths:
       - "cli/lib/job_p0_guard.py"
     doc_paths: []
@@ -2111,6 +2150,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-116"
+    test_design_ids:
+      - "UT-WSC-116"
     code_paths:
       - "cli/lib/llm_classifier_base.py"
     doc_paths: []
@@ -2126,6 +2167,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-GUARD-02"
+    test_design_ids:
+      - "UT-GUARD-02"
     code_paths:
       - "cli/lib/llm_guard.py"
     doc_paths: []
@@ -2291,6 +2334,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-117"
+    test_design_ids:
+      - "UT-WSC-117"
     code_paths:
       - "cli/lib/phase_guard.py"
     doc_paths: []
@@ -2366,6 +2411,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-118"
+    test_design_ids:
+      - "UT-WSC-118"
     code_paths:
       - "cli/lib/plan_lint.py"
     doc_paths: []
@@ -2381,6 +2428,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-119"
+    test_design_ids:
+      - "UT-WSC-119"
     code_paths:
       - "cli/lib/plan_parser.py"
     doc_paths: []
@@ -2426,6 +2475,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-PLAN-01"
+    test_design_ids:
+      - "UT-PLAN-01"
     code_paths:
       - "cli/lib/plan_validator.py"
     doc_paths: []
@@ -2456,6 +2507,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-201"
+    test_design_ids:
+      - "UT-WSC-201"
     code_paths:
       - "cli/lib/push_gate.py"
     doc_paths: []
@@ -2486,6 +2539,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-202"
+    test_design_ids:
+      - "UT-WSC-202"
     code_paths:
       - "cli/lib/recovery_plan_check.py"
     doc_paths: []
@@ -2546,6 +2601,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-203"
+    test_design_ids:
+      - "UT-WSC-203"
     code_paths:
       - "cli/lib/research_guard.py"
     doc_paths: []
@@ -2561,6 +2618,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-204"
+    test_design_ids:
+      - "UT-WSC-204"
     code_paths:
       - "cli/lib/research_tool_guard.py"
     doc_paths: []
@@ -2831,6 +2890,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-205"
+    test_design_ids:
+      - "UT-WSC-205"
     code_paths:
       - "cli/lib/skill_classifier.py"
     doc_paths: []
@@ -2876,6 +2937,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-206"
+    test_design_ids:
+      - "UT-WSC-206"
     code_paths:
       - "cli/lib/skill_frontmatter_lint.py"
     doc_paths: []
@@ -2921,6 +2984,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-207"
+    test_design_ids:
+      - "UT-WSC-207"
     code_paths:
       - "cli/lib/skill_recommender.py"
     doc_paths: []
@@ -2951,6 +3016,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-208"
+    test_design_ids:
+      - "UT-WSC-208"
     code_paths:
       - "cli/lib/skip_annotation_linter.py"
     doc_paths: []
@@ -2966,6 +3033,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-209"
+    test_design_ids:
+      - "UT-WSC-209"
     code_paths:
       - "cli/lib/sprint_auto_check.py"
     doc_paths: []
@@ -2981,6 +3050,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-210"
+    test_design_ids:
+      - "UT-WSC-210"
     code_paths:
       - "cli/lib/sprint_lint.py"
     doc_paths: []
@@ -3011,6 +3082,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-211"
+    test_design_ids:
+      - "UT-WSC-211"
     code_paths:
       - "cli/lib/task_type_inference.py"
     doc_paths: []
@@ -3062,6 +3135,14 @@ entries:
       - "FN-RDB-05"
       - "FN-RDB-06"
       - "FN-RDB-07"
+    test_design_ids:
+      - "UT-RDB-01"
+      - "UT-RDB-02"
+      - "UT-RDB-03"
+      - "UT-RDB-04"
+      - "UT-RDB-05"
+      - "UT-RDB-06"
+      - "UT-RDB-07"
     code_paths:
       - "cli/lib/registry_checks.py"
     doc_paths: []
@@ -3079,6 +3160,10 @@ entries:
       - "FN-FREG-01"
       - "FN-FREG-02"
       - "FN-FREG-03"
+    test_design_ids:
+      - "UT-FREG-01"
+      - "UT-FREG-02"
+      - "UT-FREG-03"
     code_paths:
       - "cli/lib/functional_registry_checks.py"
     doc_paths: []
@@ -3110,6 +3195,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-212"
+    test_design_ids:
+      - "UT-WSC-212"
     code_paths:
       - "cli/lib/trace_symmetry.py"
     doc_paths: []
@@ -3140,6 +3227,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-213"
+    test_design_ids:
+      - "UT-WSC-213"
     code_paths:
       - "cli/lib/uuid7_generator.py"
     doc_paths: []
@@ -3170,6 +3259,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-214"
+    test_design_ids:
+      - "UT-WSC-214"
     code_paths:
       - "cli/lib/vmodel_lint.py"
     doc_paths: []
@@ -3200,6 +3291,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-215"
+    test_design_ids:
+      - "UT-WSC-215"
     code_paths:
       - "cli/lib/vmodel_pair_freeze.py"
     doc_paths: []
@@ -3215,6 +3308,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-216"
+    test_design_ids:
+      - "UT-WSC-216"
     code_paths:
       - "cli/lib/workflow_dsl_parser.py"
     doc_paths: []
@@ -3275,6 +3370,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-217"
+    test_design_ids:
+      - "UT-WSC-217"
     code_paths:
       - "cli/lib/yaml_parser.py"
     doc_paths: []
@@ -3290,6 +3387,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-218"
+    test_design_ids:
+      - "UT-WSC-218"
     code_paths:
       - "cli/lib/zizmor_ignore_lint.py"
     doc_paths: []
@@ -3308,6 +3407,11 @@ entries:
       - "FN-CRREG-02"
       - "FN-CRREG-03"
       - "FN-CRREG-04"
+    test_design_ids:
+      - "UT-CRREG-01"
+      - "UT-CRREG-02"
+      - "UT-CRREG-03"
+      - "UT-CRREG-04"
     code_paths:
       - "cli/lib/coding_rule_checks.py"
     doc_paths: []
@@ -3343,6 +3447,12 @@ entries:
       - "FN-DDD-03"
       - "FN-DDD-04"
       - "FN-DDD-05"
+    test_design_ids:
+      - "UT-DDD-01"
+      - "UT-DDD-02"
+      - "UT-DDD-03"
+      - "UT-DDD-04"
+      - "UT-DDD-05"
     code_paths:
       - "cli/lib/ddd_registry_checks.py"
     doc_paths: []
@@ -3374,6 +3484,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-RDC-01"
+    test_design_ids:
+      - "UT-RDC-01"
     code_paths:
       - "cli/lib/registry_design_coverage_checks.py"
     doc_paths: []
@@ -3389,6 +3501,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-219"
+    test_design_ids:
+      - "UT-WSC-219"
     code_paths:
       - "cli/lib/g7_subcheck.py"
     doc_paths: []
@@ -3404,6 +3518,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-220"
+    test_design_ids:
+      - "UT-WSC-220"
     code_paths:
       - "cli/lib/vg_overview.py"
     doc_paths: []
@@ -3426,10 +3542,67 @@ entries:
       - "FN-RD-03"
       - "FN-RD-04"
       - "FN-RD-05"
+    test_design_ids:
+      - "RD-UT-01"
+      - "RD-UT-02"
+      - "RD-UT-03"
+      - "RD-UT-04"
+      - "RD-UT-05"
     code_paths:
       - "cli/lib/requirement_drift.py"
     doc_paths:
       - "docs/v2/L6-functional-design/requirement-drift-機能設計.md"
+  - id: "FR-LIB-152"
+    name: "fn_ut_pair_coverage_checks.py"
+    domain: "lib"
+    description: "fn_ut_pair_coverage detector — functional-registry 上で L6 FN-* ↔ L7 UT-* / RD-UT-* の 1:1 対応と anchor 整合を検査し、VG-overview required_clean に接続する L6 detector"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-221"
+    test_design_ids:
+      - "UT-WSC-221"
+    code_paths:
+      - "cli/lib/fn_ut_pair_coverage_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-153"
+    name: "design_id_existence_checks.py"
+    domain: "lib"
+    description: "design_id_existence detector — functional-registry の L6_required FN-* が L6 設計 doc 群に実在するかを検査し、VG-overview required_clean に接続する L6 detector"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-222"
+    test_design_ids:
+      - "UT-WSC-222"
+    code_paths:
+      - "cli/lib/design_id_existence_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-154"
+    name: "l7_worklist.py"
+    domain: "lib"
+    description: "L7 worklist checker — functional-registry 由来で FN ごとの L7 実装状況を ut_anchored/waived/missing_ut に分類する read-only worklist view"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-223"
+    test_design_ids:
+      - "UT-WSC-223"
+    code_paths:
+      - "cli/lib/l7_worklist.py"
+    doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"
@@ -3442,6 +3615,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-01"
+    test_design_ids:
+      - "UT-WSC-01"
     code_paths:
       - ".claude/hooks/post-tool-use.sh"
     doc_paths: []
@@ -3457,6 +3632,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-02"
+    test_design_ids:
+      - "UT-WSC-02"
     code_paths:
       - ".claude/hooks/posttooluse-design-doc-web-search-revert.sh"
     doc_paths: []
@@ -3472,6 +3649,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-03"
+    test_design_ids:
+      - "UT-WSC-03"
     code_paths:
       - ".claude/hooks/posttooluse-helix-job-enqueue.sh"
     doc_paths: []
@@ -3487,6 +3666,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-04"
+    test_design_ids:
+      - "UT-WSC-04"
     code_paths:
       - ".claude/hooks/posttooluse-plan-auto-register.sh"
     doc_paths: []
@@ -3502,6 +3683,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-05"
+    test_design_ids:
+      - "UT-WSC-05"
     code_paths:
       - ".claude/hooks/posttooluse-skill-catalog-rebuild.sh"
     doc_paths: []
@@ -3517,6 +3700,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-06"
+    test_design_ids:
+      - "UT-WSC-06"
     code_paths:
       - ".claude/hooks/precompact-state-snapshot.sh"
     doc_paths: []
@@ -3532,6 +3717,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-07"
+    test_design_ids:
+      - "UT-WSC-07"
     code_paths:
       - ".claude/hooks/pretooluse-agent-fire.sh"
     doc_paths: []
@@ -3547,6 +3734,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-08"
+    test_design_ids:
+      - "UT-WSC-08"
     code_paths:
       - ".claude/hooks/pretooluse-agent-guard.sh"
     doc_paths: []
@@ -3562,6 +3751,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-09"
+    test_design_ids:
+      - "UT-WSC-09"
     code_paths:
       - ".claude/hooks/pretooluse-askuserquestion.sh"
     doc_paths: []
@@ -3577,6 +3768,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-10"
+    test_design_ids:
+      - "UT-WSC-10"
     code_paths:
       - ".claude/hooks/pretooluse-codex-slot-check.sh"
     doc_paths: []
@@ -3592,6 +3785,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-11"
+    test_design_ids:
+      - "UT-WSC-11"
     code_paths:
       - ".claude/hooks/pretooluse-design-doc-web-search-guard.sh"
     doc_paths: []
@@ -3607,6 +3802,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-12"
+    test_design_ids:
+      - "UT-WSC-12"
     code_paths:
       - ".claude/hooks/pretooluse-opus-repo-block.sh"
     doc_paths: []
@@ -3622,6 +3819,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-13"
+    test_design_ids:
+      - "UT-WSC-13"
     code_paths:
       - ".claude/hooks/sessionstart-harness-summary.sh"
     doc_paths: []
@@ -3637,6 +3836,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-14"
+    test_design_ids:
+      - "UT-WSC-14"
     code_paths:
       - ".claude/hooks/sessionstart-history-injection.sh"
     doc_paths: []
@@ -3652,6 +3853,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-15"
+    test_design_ids:
+      - "UT-WSC-15"
     code_paths:
       - ".claude/hooks/stop-recovery-update.sh"
     doc_paths: []
@@ -3667,6 +3870,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-16"
+    test_design_ids:
+      - "UT-WSC-16"
     code_paths:
       - ".claude/hooks/stop.sh"
     doc_paths: []
@@ -3682,6 +3887,8 @@ entries:
     coverage_layer: "L6_required"
     design_ids:
       - "FN-WSC-17"
+    test_design_ids:
+      - "UT-WSC-17"
     code_paths:
       - ".claude/hooks/userpromptsubmit-context-bundle.sh"
     doc_paths: []
@@ -8603,3 +8810,33 @@ entries:
     code_paths: []
     doc_paths:
       - "cli/templates/plan/v2/L06-function-design-template.md"
+
+fn_ut_pair_waivers:
+  - fn: "FN-AGENT-01"
+    ut: "UT-AGENT-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-CATALOG-01"
+    ut: "UT-CATALOG-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-CONTRACT-01"
+    ut: "UT-CONTRACT-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-HANDOVER-01"
+    ut: "UT-HANDOVER-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-HTTP-01"
+    ut: "UT-HTTP-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-ROUTE-01"
+    ut: "UT-ROUTE-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"
+  - fn: "FN-WS-01"
+    ut: "UT-WS-01"
+    reason: "workflow-core FN registry linkage deferred"
+    owner: "TL"

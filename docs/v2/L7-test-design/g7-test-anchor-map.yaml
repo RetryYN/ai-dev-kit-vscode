@@ -177,3 +177,13 @@ anchors:
     - cli/lib/tests/test_yaml_parser.py
   UT-WSC-218:
     - cli/lib/tests/test_zizmor_ignore_lint_unit.py
+  UT-WSC-219:
+    - cli/lib/tests/test_g7_subcheck.py
+  UT-WSC-220:
+    - cli/lib/tests/test_vg_overview.py
+  UT-WSC-221:
+    - cli/lib/tests/test_fn_ut_pair_coverage_checks.py
+  UT-WSC-222:
+    - cli/lib/tests/test_design_id_existence_checks.py
+  UT-WSC-223:
+    - cli/lib/tests/test_l7_worklist.py

@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--json] [--summary]
+# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--json] [--summary]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -34,7 +34,7 @@ show_usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift)
+    check_recovery_plan_freshness|check_g7_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist)
       if [[ -n "$SUBCOMMAND" ]]; then
         echo "エラー: サブコマンドは 1 つだけ指定できます: $1" >&2
         show_usage >&2
@@ -132,6 +132,7 @@ while [[ $# -gt 0 ]]; do
       echo "check_recovery_plan_freshness は docs/plans/PLAN-*-recovery-*.md を走査し、鮮度警告を表示します。"
       echo "check_g7_subcheck は L7 UT anchor/test pass を advisory 集計します。"
       echo "check_vg_overview は registry/trace/G7 を advisory 集計します。--strict-full-flow 指定時は approved_deferred execution gate を full-flow 未完として扱います。"
+      echo "check_l7_worklist は functional-registry 由来の L7 worklist summary を advisory 表示します。"
       echo "check_requirement_drift は L1/L3 FR から L4-L6 design までを advisory 集計します。--focus L7 指定時のみ code/test も見ます。--check-stale 指定時のみ mtime stale 候補も見ます。"
       echo "--gate を付けると VG-overview pre-push 条件を fail-close 評価します。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
@@ -228,7 +229,7 @@ render_doctor_summary() {
 
 subcommand_supports_json() {
   case "${1:-}" in
-    check_g7_subcheck|check_vg_overview|check_requirement_drift)
+    check_g7_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist)
       return 0
       ;;
     *)
@@ -260,6 +261,12 @@ elif module_name == "requirement_drift":
     report = module.collect_requirement_drift(
         focus=os.environ.get("HELIX_REQUIREMENT_DRIFT_FOCUS", "L6"),
         check_stale=os.environ.get("HELIX_REQUIREMENT_DRIFT_CHECK_STALE") == "1",
+    )
+elif module_name == "l7_worklist":
+    report = module.collect_l7_worklist(
+        "cli/config/functional-registry.yaml",
+        "docs/v2/L7-test-design/g7-test-anchor-map.yaml",
+        ".",
     )
 else:
     raise SystemExit(f"unsupported report module: {module_name}")
@@ -423,6 +430,35 @@ if payload.get("advisory"):
     print(f"advisory: {payload['advisory']}")
 if payload.get("parse_warnings"):
     print(f"parse_warnings: {len(payload['parse_warnings'])}")
+PY
+  fi
+  exit 0
+fi
+
+if [[ "$SUBCOMMAND" == "check_l7_worklist" ]]; then
+  report_json="$(run_python_report_helper l7_worklist 2>&1)"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '%s\n' "$report_json"
+  else
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+summary = payload["summary"]
+print("L7 worklist (advisory)")
+print(
+    "summary: "
+    f"total={summary['total']} "
+    f"anchored={summary['anchored']} "
+    f"waived={summary['waived']} "
+    f"missing={summary['missing']}"
+)
+for item in payload["worklist"]:
+    detail = f"{item['fn']} -> {item.get('ut') or '<missing>'} [{item['status']}]"
+    if item.get("code_path"):
+        detail += f" {item['code_path']}"
+    print(detail)
 PY
   fi
   exit 0
