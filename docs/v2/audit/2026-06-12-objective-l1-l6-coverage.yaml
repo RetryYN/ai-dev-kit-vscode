@@ -109,9 +109,9 @@ current_l1_l6_evidence:
       feature_tickets_draft: 11
       feature_tickets_with_approval_boundary: 11
       feature_tickets_with_unlock_conditions: 11
-      repository_add_feature_files_discovered: 16
+      repository_add_feature_files_discovered: 17
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_add_feature_files: 6
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 1
       full_flow_later_phase_approval_boundary: true
@@ -290,9 +290,9 @@ current_l1_l6_evidence:
       current_scope_items_pass_l1_l6: 9
       items_requiring_later_phase_before_full_completion: 8
       feature_tickets_available: 11
-      repository_add_feature_files_discovered: 16
+      repository_add_feature_files_discovered: 17
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_add_feature_files: 6
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 1
       right_arm_execution_gates_deferred: 4
@@ -395,9 +395,9 @@ current_l1_l6_evidence:
       dependency_impact_dependency_edge_relations_checked: 7
       dependency_impact_visibility_rows_checked: 9
       dependency_impact_output_trace_rows_checked: 9
-      deferred_repository_add_feature_files_discovered: 16
+      deferred_repository_add_feature_files_discovered: 17
       deferred_current_objective_deferred_feature_tickets: 11
-      deferred_out_of_current_objective_add_feature_files: 5
+      deferred_out_of_current_objective_add_feature_files: 6
       deferred_out_of_current_objective_completed_add_features: 4
       deferred_out_of_current_objective_parked_feature_tickets: 1
       db_feedback_accountability_indexed: true
@@ -422,9 +422,9 @@ current_l1_l6_evidence:
       full_objective_current_scope_items_pass_l1_l6: 9
       full_objective_items_requiring_later_phase_before_full_completion: 8
       full_objective_feature_tickets_available: 11
-      full_objective_repository_add_feature_files_discovered: 16
+      full_objective_repository_add_feature_files_discovered: 17
       full_objective_current_objective_deferred_feature_tickets: 11
-      full_objective_out_of_current_objective_add_feature_files: 5
+      full_objective_out_of_current_objective_add_feature_files: 6
       full_objective_out_of_current_objective_completed_add_features: 4
       full_objective_out_of_current_objective_parked_feature_tickets: 1
       full_objective_right_arm_execution_gates_deferred: 4
@@ -451,8 +451,8 @@ current_l1_l6_evidence:
     artifact: docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml
     expected:
       audit_files_checked: 25
-      path_like_refs_checked: 1376
-      direct_file_refs_checked: 1367
+      path_like_refs_checked: 1377
+      direct_file_refs_checked: 1368
       glob_patterns_checked: 9
       missing_direct_file_refs: 0
       empty_glob_patterns: 0

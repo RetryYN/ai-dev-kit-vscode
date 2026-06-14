@@ -136,9 +136,9 @@ quantitative_checks:
       objective_clauses_checked: 9
       deferred_entry_points_checked: 11
       feature_tickets_draft: 11
-      repository_add_feature_files_discovered: 16
+      repository_add_feature_files_discovered: 17
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_add_feature_files: 6
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 1
       full_flow_later_phase_approval_boundary: true
@@ -283,9 +283,9 @@ quantitative_checks:
       current_scope_items_pass_l1_l6: 9
       items_requiring_later_phase_before_full_completion: 8
       feature_tickets_available: 11
-      repository_add_feature_files_discovered: 16
+      repository_add_feature_files_discovered: 17
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 5
+      out_of_current_objective_add_feature_files: 6
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 1
       right_arm_execution_gates_deferred: 4
@@ -329,8 +329,8 @@ quantitative_checks:
     metric: audit_reference_integrity
     expected:
       audit_files_checked: 25
-      path_like_refs_checked: 1376
-      direct_file_refs_checked: 1367
+      path_like_refs_checked: 1377
+      direct_file_refs_checked: 1368
       glob_patterns_checked: 9
       missing_direct_file_refs: 0
       empty_glob_patterns: 0
@@ -515,15 +515,14 @@ qualitative_checks:
       latest_user_boundary:
         l7_requested_now: false
         l7_route: add_feature_ticket_only
-        forbidden_now_count: 7
+        forbidden_now_count: 6
         forbidden_now:
-          - L7 implementation
-          - L7 test-design artifact creation
-          - unit-test implementation or execution
-          - coverage closure
-          - HELIX DB write adoption
-          - external tool installation or execution
-          - CI/equivalent connection
+          - L7 product feature implementation
+          - L7 product coverage closure
+          - write/adopt HELIX DB state
+          - install/execute external tools
+          - wire CI/equivalent gates
+          - broad advisory→fail-close flip of W1 detectors
     verdict: pass
   - id: L-FEATURE-TICKET-UNLOCK-CONDITIONS
     check: Deferred feature coverage indexes unlock_conditions for every full-objective feature boundary while keeping those conditions non-completion evidence.
@@ -610,7 +609,7 @@ qualitative_checks:
       legacy_task_title_must_not_authorize_l7: true
       legacy_pending_entries_must_not_authorize_l7: true
       l7_work_allowed_from_handover: false
-      required_current_user_boundary_tokens: 5
+      required_current_user_boundary_tokens: 4
       legacy_handover_suppression_tokens: 2
     verdict: pass
   - id: L-HARNESS-CURRENT-SESSION-WEBFETCH-NOT-CLOSURE
@@ -729,7 +728,7 @@ qualitative_checks:
         - proof_files
         - evidence_source
         - evidence_sources
-      boundary_context_refs: 276
+      boundary_context_refs: 277
       negative_boundary_check_refs: 1
       evidence_context_refs: 0
       add_feature_or_l7_refs_in_proof_or_evidence: 0

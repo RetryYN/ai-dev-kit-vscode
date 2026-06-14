@@ -38,15 +38,14 @@ boundary:
 latest_user_boundary:
   l7_requested_now: false
   l7_route: add_feature_ticket_only
-  current_allowed_work: L1-L6 audit/design/evidence cleanup and feature-ticket boundary mapping
+  current_allowed_work: L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, and add-feature ticket boundary mapping
   forbidden_now:
-    - L7 implementation
-    - L7 test-design artifact creation
-    - unit-test implementation or execution
-    - coverage closure
-    - HELIX DB write adoption
-    - external tool installation or execution
-    - CI/equivalent connection
+    - L7 product feature implementation
+    - L7 product coverage closure
+    - write/adopt HELIX DB state
+    - install/execute external tools
+    - wire CI/equivalent gates
+    - broad advisory→fail-close flip of W1 detectors
 summary:
   objective_clauses_checked: 9
   deferred_entry_points_checked: 11
@@ -54,9 +53,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 16
+  repository_add_feature_files_discovered: 17
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 5
+  out_of_current_objective_add_feature_files: 6
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 1
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +66,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 16
+  all_repository_add_feature_files_checked: 17
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 5
+  excluded_from_current_objective_deferred_count: 6
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -124,6 +123,14 @@ repository_add_feature_inventory:
         Parked detector fail-close/CI gate work remains approval-bound and
         outside the current L1-L6 objective proof. It does not authorize CI
         wiring, fail-close promotion, or L7 work in this scope.
+    - id: pre_l7_gate_hardening
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md
+      observed_status: draft
+      classification: current_scope_authorized_pre_l7_gate_hardening
+      reason: >
+        This add-feature action is user-approved current-scope pre-L7
+        gate-hardening work. It is not a later-phase deferred L7 product, CI,
+        DB, or external-tool boundary ticket.
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

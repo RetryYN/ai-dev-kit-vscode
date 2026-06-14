@@ -48,9 +48,9 @@ assert payload["boundary"]["full_goal_complete"] is False
 assert payload["summary"]["objective_items_checked"] == 10
 assert payload["summary"]["current_scope_items_pass_l1_l6"] == 9
 assert payload["summary"]["feature_tickets_available"] == 11
-assert payload["summary"]["repository_add_feature_files_discovered"] == 16
+assert payload["summary"]["repository_add_feature_files_discovered"] == 17
 assert payload["summary"]["current_objective_deferred_feature_tickets"] == 11
-assert payload["summary"]["out_of_current_objective_add_feature_files"] == 5
+assert payload["summary"]["out_of_current_objective_add_feature_files"] == 6
 assert payload["summary"]["out_of_current_objective_completed_add_features"] == 4
 assert payload["summary"]["out_of_current_objective_parked_feature_tickets"] == 1
 assert payload["summary"]["right_arm_execution_gates_deferred"] == 4
@@ -78,9 +78,9 @@ assert payload["repository_add_feature_inventory_contract"] == {
     "source_audit_key": "deferred_feature_coverage",
     "source_contract": "repository_add_feature_inventory",
     "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-    "all_repository_add_feature_files_checked": 16,
+    "all_repository_add_feature_files_checked": 17,
     "current_objective_deferred_feature_tickets_checked": 11,
-    "excluded_from_current_objective_deferred_count": 5,
+    "excluded_from_current_objective_deferred_count": 6,
     "historical_completed_feature_count": 4,
     "parked_feature_ticket_outside_current_objective_count": 1,
     "exclusion_is_completion_evidence_for_current_objective": False,
@@ -470,23 +470,20 @@ assert handover_boundary_contract == {
     "handover_current_json": ".helix/handover/CURRENT.json",
     "next_action_heading_required": "## Next Action (Codex 向け)",
     "required_current_user_boundary_contains": [
-        "L7 is not requested",
-        "Do not perform L7 implementation",
-        "create L7 test-design artifacts",
-        "unit-test implementation or execution",
+        "pre-L7 gate-hardening authorized",
+        "L7 product feature implementation is not requested",
         "L1-L6 audit/design/evidence cleanup",
         "add-feature ticket",
     ],
     "latest_user_boundary_must_match_handover_next_action": True,
     "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": True,
     "latest_user_boundary_forbidden_handover_terms": [
-        "Do not perform L7 implementation",
-        "create L7 test-design artifacts",
-        "unit-test implementation or execution",
-        "coverage closure",
+        "L7 product feature implementation",
+        "L7 product coverage closure",
         "write/adopt HELIX DB state",
         "install/execute external tools",
         "wire CI/equivalent gates",
+        "broad advisory→fail-close flip of W1 detectors",
     ],
     "latest_user_boundary_l7_route_must_be_reflected_in_handover": True,
     "latest_user_boundary_allowed_work_must_be_reflected_in_handover": True,
@@ -1346,8 +1343,8 @@ assert payload["ratification_summary"]["web_evidence_official_sources_checked"] 
 assert payload["ratification_summary"]["web_evidence_latest_core_rechecked_sources_checked"] == len(web_evidence["web_evidence_freshness_contract"]["latest_core_rechecked_source_ids"])
 assert payload["ratification_summary"]["web_evidence_all_sources_not_adopted_current_scope"] == web_evidence["web_evidence_freshness_contract"]["all_sources_must_remain_not_adopted_current_scope"]
 assert payload["ratification_summary"]["web_evidence_l7_or_adoption_evidence_allowed"] == web_evidence["web_evidence_freshness_contract"]["l7_or_adoption_evidence_allowed"]
-assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == 1376
-assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == 1367
+assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == 1377
+assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == 1368
 assert payload["ratification_summary"]["reference_integrity_audit_files_checked"] == reference_integrity["summary"]["audit_files_checked"]
 assert payload["ratification_summary"]["reference_integrity_glob_patterns_checked"] == reference_integrity["summary"]["glob_patterns_checked"]
 assert payload["ratification_summary"]["reference_integrity_missing_direct_file_refs"] == reference_integrity["summary"]["missing_direct_file_refs"]
@@ -2342,9 +2339,9 @@ assert payload["current_l1_l6_evidence"]["deferred_feature_coverage"]["expected"
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 16,
+    "repository_add_feature_files_discovered": 17,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 5,
+    "out_of_current_objective_add_feature_files": 6,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 1,
     "full_flow_later_phase_approval_boundary": True,
@@ -2793,9 +2790,9 @@ assert payload["current_l1_l6_evidence"]["full_objective_gap_status"]["expected"
     "current_scope_items_pass_l1_l6": 9,
     "items_requiring_later_phase_before_full_completion": 8,
     "feature_tickets_available": 11,
-    "repository_add_feature_files_discovered": 16,
+    "repository_add_feature_files_discovered": 17,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 5,
+    "out_of_current_objective_add_feature_files": 6,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 1,
     "right_arm_execution_gates_deferred": 4,
@@ -2879,9 +2876,9 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "l1_l6_pair_layers_ratified": 6,
     "deferred_feature_tickets_indexed": 11,
     "deferred_feature_unlock_conditions_checked": 11,
-    "deferred_repository_add_feature_files_discovered": 16,
+    "deferred_repository_add_feature_files_discovered": 17,
     "deferred_current_objective_deferred_feature_tickets": 11,
-    "deferred_out_of_current_objective_add_feature_files": 5,
+    "deferred_out_of_current_objective_add_feature_files": 6,
     "deferred_out_of_current_objective_completed_add_features": 4,
     "deferred_out_of_current_objective_parked_feature_tickets": 1,
     "deferred_design_obligation_rows_checked": 11,
@@ -2927,9 +2924,9 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "full_objective_current_scope_items_pass_l1_l6": 9,
     "full_objective_items_requiring_later_phase_before_full_completion": 8,
     "full_objective_feature_tickets_available": 11,
-    "full_objective_repository_add_feature_files_discovered": 16,
+    "full_objective_repository_add_feature_files_discovered": 17,
     "full_objective_current_objective_deferred_feature_tickets": 11,
-    "full_objective_out_of_current_objective_add_feature_files": 5,
+    "full_objective_out_of_current_objective_add_feature_files": 6,
     "full_objective_out_of_current_objective_completed_add_features": 4,
     "full_objective_out_of_current_objective_parked_feature_tickets": 1,
     "full_objective_right_arm_execution_gates_deferred": 4,
@@ -3015,8 +3012,8 @@ assert payload["current_l1_l6_evidence"]["exit_criteria"]["expected"] == {
 }
 assert payload["current_l1_l6_evidence"]["reference_integrity"]["expected"] == {
     "audit_files_checked": 25,
-    "path_like_refs_checked": 1376,
-    "direct_file_refs_checked": 1367,
+    "path_like_refs_checked": 1377,
+    "direct_file_refs_checked": 1368,
     "glob_patterns_checked": 9,
     "missing_direct_file_refs": 0,
     "empty_glob_patterns": 0,
@@ -3354,7 +3351,7 @@ assert resolution["unlock_conditions"] == [
     "acceptance_criteria_include_unit_test_design_artifact",
 ]
 assert "pair metadata only" in resolution["route_policy"]
-assert len(existing_pair_refs) == 6
+assert len(existing_pair_refs) == 8
 assert len(future_placeholder_refs) == 18
 assert all("/FR-" in ref and ref.endswith("/unit-test-design.md") for ref in future_placeholder_refs)
 for source_doc, refs in l6_l7_refs.items():
@@ -4077,9 +4074,9 @@ assert deferred_coverage["summary"] == {
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 16,
+    "repository_add_feature_files_discovered": 17,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 5,
+    "out_of_current_objective_add_feature_files": 6,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 1,
     "full_flow_later_phase_approval_boundary": True,
@@ -6225,8 +6222,8 @@ assert reference_integrity["boundary"]["current_scope_uses_l7_as_completion_evid
 assert reference_integrity["boundary"]["goal_complete_allowed"] is False
 assert reference_integrity["summary"] == {
     "audit_files_checked": 25,
-    "path_like_refs_checked": 1376,
-    "direct_file_refs_checked": 1367,
+    "path_like_refs_checked": 1377,
+    "direct_file_refs_checked": 1368,
     "glob_patterns_checked": 9,
     "missing_direct_file_refs": 0,
     "empty_glob_patterns": 0,
@@ -6245,7 +6242,7 @@ assert glob_patterns == {
     "docs/v2/L5*/**/*.md": 6,
     "docs/v2/L6*/**/*.md": 27,
     "docs/v2/audit/2026-06-12-*.yaml": 21,
-    "docs/plans/add-feature/add-feature-*.md": 16,
+    "docs/plans/add-feature/add-feature-*.md": 17,
 }
 bundle_alignment = reference_integrity["bundle_alignment_contract"]
 ratification = yaml.safe_load((root / bundle_alignment["ratification_index"]).read_text(encoding="utf-8"))
@@ -6837,15 +6834,14 @@ assert qualitative["L-FEATURE-TICKET-FRONTMATTER"]["expected"] == {
     "latest_user_boundary": {
         "l7_requested_now": False,
         "l7_route": "add_feature_ticket_only",
-        "forbidden_now_count": 7,
+        "forbidden_now_count": 6,
         "forbidden_now": [
-            "L7 implementation",
-            "L7 test-design artifact creation",
-            "unit-test implementation or execution",
-            "coverage closure",
-            "HELIX DB write adoption",
-            "external tool installation or execution",
-            "CI/equivalent connection",
+            "L7 product feature implementation",
+            "L7 product coverage closure",
+            "write/adopt HELIX DB state",
+            "install/execute external tools",
+            "wire CI/equivalent gates",
+            "broad advisory→fail-close flip of W1 detectors",
         ],
     },
 }
@@ -6887,15 +6883,14 @@ full_objective_gap_status = yaml.safe_load((root / "docs/v2/audit/2026-06-12-ful
 assert full_objective_gap_status["latest_user_boundary"] == {
     "l7_requested_now": False,
     "l7_route": "add_feature_ticket_only",
-    "current_allowed_work": "L1-L6 audit/design/evidence cleanup and feature-ticket boundary mapping",
+    "current_allowed_work": "L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, and add-feature ticket boundary mapping",
     "forbidden_now": [
-        "L7 implementation",
-        "L7 test-design artifact creation",
-        "unit-test implementation or execution",
-        "coverage closure",
-        "HELIX DB write adoption",
-        "external tool installation or execution",
-        "CI/equivalent connection",
+        "L7 product feature implementation",
+        "L7 product coverage closure",
+        "write/adopt HELIX DB state",
+        "install/execute external tools",
+        "wire CI/equivalent gates",
+        "broad advisory→fail-close flip of W1 detectors",
     ],
 }
 assert deferred_feature_coverage["latest_user_boundary"] == full_objective_gap_status[
@@ -6924,7 +6919,7 @@ assert qualitative["L-HANDOVER-BOUNDARY"]["expected"] == {
     "legacy_task_title_must_not_authorize_l7": True,
     "legacy_pending_entries_must_not_authorize_l7": True,
     "l7_work_allowed_from_handover": False,
-    "required_current_user_boundary_tokens": 5,
+    "required_current_user_boundary_tokens": 4,
     "legacy_handover_suppression_tokens": 2,
 }
 assert all(item["verdict"] == "pass" for item in quantitative.values())

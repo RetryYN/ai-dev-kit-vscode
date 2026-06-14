@@ -14,11 +14,24 @@ purpose: >
   閉じる Forward 前進として扱う。
 boundary:
   l7_implementation: PARKED (not in current scope)
-  fail_close_promotion: PARKED
+  fail_close_promotion: PARKED  # 既存 advisory detector の state flip (W1=requirement_drift/vg_overview/g7_subcheck の broad 昇格) は PARKED 維持
   ci_wiring: PARKED
   db_schema_creation: PARKED
   external_tool_execution: PARKED
   this_map_is_completion_proof: false
+authorized_unpark_2026_06_14:
+  directive: >
+    ユーザー追加指示 (2026-06-14, /goal)「TDD と DDD の弱手を是正する。L7 工程表/機能一覧対応/PLAN 起票/実装漏れ是正の
+    仕組みを確認し弱点があれば是正。L7 に行く前に弱点を徹底的に潰してくれ」。warn-only/未配線そのものが弱点であるため、
+    pre-L7 ゲート硬化スコープに限り fail_close_promotion を unpark した (PM 解釈 + TL 諮問 changes_required で承認された P0)。
+  scope_unparked:
+    - "新 detector (fn_ut_pair_coverage / design_id_existence) を既存 fail-close gate G-vg-overview の required_clean に新規追加 (新 gate ID は作らない)"
+    - "DDD の clean かつ低 FP な bc_anti_corruption / bc_mode_coverage を fail-close 昇格 (D1)"
+    - "既存 L7 実装債は approved_deferred waiver で吸収し『新規デグレのみ block』= 非回帰 (CI red 化しない)"
+  still_parked:
+    - "W1 broad advisory→fail-close state flip (requirement_drift GATE_MODE 等), CI 配線 (W4), DB schema (W11), 569 feature 実装, glossary_coverage 昇格 (7 P3 implementation_gap 解消後)"
+  plan: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md
+  parent_process: docs/plans/process/process-2026-06-08-verification-forward-gate.md
 sources:
   audit_workflow: wf_821eb0a9-0fc (weakness-forward-integration-audit, 2026-06-14, 7 agents)
   related:
@@ -229,19 +242,77 @@ weaknesses:
     in_scope_action_done: 本マップで L2↔L10 を waiver 経路として明示帰属 (「単に欠落」と区別)。
     pending_forward_action: trace_symmetry PAIR_LAYERS に L2-L10 を not_applicable 経路で static 登録 = L7 (PARKED)。FE detector は別途。
 
+  # --- 2026-06-14 (後続 /goal) で新規検出 + 是正実施 (W15) ---
+  - id: W15-fn-ut-pair-not-in-registry
+    title: L6↔L7 の核心「機能設計 FN ↔ 単体テスト UT 1:1」が機能一覧に未表現 + FN→UT 網羅 detector 不在 (実装漏れ素通り)
+    forward_requirement:
+      status: present
+      ids: [FR-FNREG-01, FR-08, FR-GATE-01]
+      note: >
+        機能一覧 SSoT (FR-FNREG-01) は登録を要求するが、design_ids(FN-*) に対する test_design_ids(UT-*) の
+        1:1 対応を要求する AC は未明文。粒度ペアリング原則 (L6=単体テスト粒度) の機械化が欠落していた。
+    forward_design:
+      status: present
+      location: >
+        docs/v2/L6-functional-design/registry-detector-機能設計.md (DetectorReport/GatePolicy 契約に新 detector を追記),
+        functional-registry.yaml に test_design_ids field + fn_ut_pair_waivers/design_id_existence_waivers section。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md
+      status: in_progress (本 /goal で実装中)
+      forward_return: present  # L6↔L7 pair_closure.test_design 層を閉じ G-vg-overview required_clean に接続
+    lpair_gate_evidence: L6↔L7 (G6 設計freeze + G7; pair_closure = design + test_design[本件] + anchor + exec_pass)
+    in_scope_action_done: >
+      (1) functional-registry.yaml L6_required 68 entry に test_design_ids(UT-*) を追加 (design_ids は FN 専用維持)。
+      (2) 新 detector fn_ut_pair_coverage_checks.py (missing_test_design/unanchored_ut/orphan_ut/duplicate を検査、
+          RD-UT-* requirement_drift inventory は anchor 要求から除外) → VG-overview required_clean に fail-close 接続。
+      (3) 新 detector design_id_existence_checks.py (FN-* の L6 doc 実在検査) + l7_worklist.py (registry 由来 L7 工程表 view, read-only)。
+      (4) 全新 detector を自己登録 (FR-LIB-149/150/152.., FN/UT, anchor) = dogfooding closure。
+      (5) authorized_unpark_2026_06_14 に基づき pre-L7 ゲート硬化 fail-close を実施 (既存債は waiver で非回帰)。
+    pending_forward_action: >
+      FR-FNREG-01(L3) に「L6_required は design_ids↔test_design_ids 1:1 を必須」AC を追補 (doc)。
+      DF-PREL7-ORPHAN (下記) と DF-PREL7-G7UNIV (下記) の解消。
+
+# --- 2026-06-14 後続 /goal の deferred finding (floating debt 化させない = §0) ---
+deferred_findings_pre_l7_gate_hardening:
+  - id: DF-PREL7-ORPHAN
+    title: workflow-core FN 7件 (FN-ROUTE/HANDOVER/WS/HTTP/AGENT/CATALOG/CONTRACT-01) が機能一覧 L6_required に未リンク
+    detail: >
+      これらの module は registry に L5_required (DSN-LIB-MODULE 粒度) として登録済みだが、helix-workflows コア設計
+      (helix-workflows-function-design.md) では L6 関数粒度 FN-*-01 + anchored UT を持つ。L5 モジュール分類と L6 workflow-core
+      関数設計の二重トラック。fn_ut_pair_coverage では fn_ut_pair_waivers で approved_deferred (reason: workflow-core FN registry linkage deferred)。
+    attribution: L6↔L7 / registry coverage classification (whole-source ⊆ design)
+    pending: L5(DSN)分類 ↔ L6(FN)workflow-core 設計の調整 = どちらの粒度で正本化するか TL 裁定 → registry linkage (doc, PARKED L7)
+  - id: DF-PREL7-G7UNIV
+    title: g7_subcheck canonical UT universe (88) < anchor map (91) → RESOLVED
+    status: resolved_2026_06_14
+    detail: >
+      検出時: 新 detector 自己テスト UT (UT-WSC-219..223) が anchor map にあるが g7 の 88-UT canonical inventory に未登録で非対称。
+      解消: 5 detector を whole-source-coverage docs に FN-WSC-219..223 ↔ UT-WSC-219..223 として正規登録 (L6 機能設計 + L7 単体テスト設計)。
+      g7 の universe は L7 test-design doc の UT-WSC-* から導出されるため、doc 登録で ut_total=93 / anchored=93 / missing=0 / unanchored=0 に整合。
+      trace_symmetry L6-L7 も coverage_pct=100.0 / uncovered_req=0。VG-overview overall_clean=true。
+    attribution: L6↔L7 (G7 exec_pass の inventory source)
+    resolution: whole-source-coverage docs への正規 FN/UT 登録で g7 universe ⇔ anchor map ⇔ L7 doc が一致 (88→93)
+
 # --- 集計 ---
 summary:
-  total_weaknesses: 14
-  forward_requirement: {present: 6, indirect: 7, missing: 1}
-  forward_design: {present: 5, partial: 6, missing: 3}
+  total_weaknesses: 15   # W1-W14 (前段監査) + W15 (後続 /goal で新規検出 + 是正実施)
+  forward_requirement: {present: 7, indirect: 7, missing: 1}
+  forward_design: {present: 6, partial: 6, missing: 3}
   deferred_ticket_forward_return:
     added_2026_06_14: 4   # W1/W3 (=W4/W13 共有), W2, harness は別 (合計 ticket 4本に追加)
     present_prior: 2
     none_or_unticketed: 8
+    in_progress_w15: 1    # add-feature-2026-06-14-pre-l7-gate-hardening (本 /goal で実装中)
   in_scope_done_2026_06_14:
     - "4 deferred ticket に forward_return frontmatter 追加 (detector-failclose / db-backed-evidence / full-flow-remaining-guards / harness-external-tools)"
     - "本 Forward 帰属マップ新設 (全14弱点を FR + L4-L6設計 + L-pair pending gate evidence へ機械可読に接続)"
     - "W5: cli/helix-test を G-nondestructive 除外へ (commit fix(cli)) + verify//scripts/ blind-spot 顕在化"
+  in_scope_done_2026_06_14_followup_goal:
+    - "W15 新規検出 + 是正: FN↔UT 1:1 を機能一覧 (test_design_ids) に表現 + fn_ut_pair_coverage detector で網羅 fail-close 検査"
+    - "design_id_existence detector (FN-* の L6 doc 実在) + l7_worklist checker (registry 由来工程表 view, read-only) 実装"
+    - "DDD bc-2-check (bc_anti_corruption/bc_mode_coverage, clean) を fail-close 昇格 (D1); D2 row mismatch は detector 実測で非問題と確認"
+    - "authorized_unpark_2026_06_14: pre-L7 ゲート硬化 fail-close を user 指示で unpark (既存債は waiver で非回帰、broad flip/CI/DB は PARKED 維持)"
+    - "DF-PREL7-ORPHAN / DF-PREL7-G7UNIV / over-build 棄却分 (T3/D3/W3) を deferred finding として floating debt 化回避"
   anti_regression_note: >
     本マップは standing roadmap ではない (roadmap 廃止原則 2026-06-08)。各弱点は該当 L-pair の
     pending gate evidence に帰属し、強化は「その pending を閉じる Forward 前進」として進める。

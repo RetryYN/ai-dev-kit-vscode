@@ -42,23 +42,22 @@ boundary:
 latest_user_boundary:
   l7_requested_now: false
   l7_route: add_feature_ticket_only
-  current_allowed_work: L1-L6 audit/design/evidence cleanup and feature-ticket boundary mapping
+  current_allowed_work: L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, and add-feature ticket boundary mapping
   forbidden_now:
-    - L7 implementation
-    - L7 test-design artifact creation
-    - unit-test implementation or execution
-    - coverage closure
-    - HELIX DB write adoption
-    - external tool installation or execution
-    - CI/equivalent connection
+    - L7 product feature implementation
+    - L7 product coverage closure
+    - write/adopt HELIX DB state
+    - install/execute external tools
+    - wire CI/equivalent gates
+    - broad advisory→fail-close flip of W1 detectors
 summary:
   objective_items_checked: 10
   current_scope_items_pass_l1_l6: 9
   items_requiring_later_phase_before_full_completion: 8
   feature_tickets_available: 11
-  repository_add_feature_files_discovered: 16
+  repository_add_feature_files_discovered: 17
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 5
+  out_of_current_objective_add_feature_files: 6
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 1
   right_arm_execution_gates_deferred: 4
@@ -652,22 +651,19 @@ handover_boundary_contract:
   handover_current_json: .helix/handover/CURRENT.json
   next_action_heading_required: "## Next Action (Codex 向け)"
   required_current_user_boundary_contains:
-    - L7 is not requested
-    - Do not perform L7 implementation
-    - create L7 test-design artifacts
-    - unit-test implementation or execution
+    - pre-L7 gate-hardening authorized
+    - L7 product feature implementation is not requested
     - L1-L6 audit/design/evidence cleanup
     - add-feature ticket
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: true
   latest_user_boundary_forbidden_handover_terms:
-    - Do not perform L7 implementation
-    - create L7 test-design artifacts
-    - unit-test implementation or execution
-    - coverage closure
+    - L7 product feature implementation
+    - L7 product coverage closure
     - write/adopt HELIX DB state
     - install/execute external tools
     - wire CI/equivalent gates
+    - broad advisory→fail-close flip of W1 detectors
   latest_user_boundary_l7_route_must_be_reflected_in_handover: true
   latest_user_boundary_allowed_work_must_be_reflected_in_handover: true
   handover_task_title_may_be_legacy: true
@@ -889,9 +885,9 @@ repository_add_feature_inventory_contract:
   source_audit_key: deferred_feature_coverage
   source_contract: repository_add_feature_inventory
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 16
+  all_repository_add_feature_files_checked: 17
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 5
+  excluded_from_current_objective_deferred_count: 6
   historical_completed_feature_count: 4
   parked_feature_ticket_outside_current_objective_count: 1
   exclusion_is_completion_evidence_for_current_objective: false

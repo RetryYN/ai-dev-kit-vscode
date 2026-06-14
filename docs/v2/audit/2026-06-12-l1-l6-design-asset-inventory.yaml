@@ -142,10 +142,10 @@ preexisting_l7_pair_references:
     - docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md
     - docs/plans/add-feature/add-feature-2026-06-10-harness-external-tools-ddd-tdd-impact.md
 l6_l7_reference_boundary:
-  l6_docs_with_l7_refs: 24
-  l7_ref_occurrences_in_l6_docs: 29
-  unique_l7_ref_targets: 24
-  existing_pair_artifact_targets: 6
+  l6_docs_with_l7_refs: 25
+  l7_ref_occurrences_in_l6_docs: 31
+  unique_l7_ref_targets: 26
+  existing_pair_artifact_targets: 8
   future_placeholder_targets: 18
   existing_pair_policy: >
     Existing pair artifacts are historical / pre-existing evidence only. This
