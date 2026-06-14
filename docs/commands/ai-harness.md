@@ -108,6 +108,8 @@ HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json
 
 Codex / Claude Code は、計画を作ったあとに工程表を無視して実装へ進まない。
 
+> **用語注意**: ここでの「工程表」は **L3 工程表 (`.helix/task-plan.yaml` / WBS)** を指す。これは、L7 着手前に機能設計↔単体テスト (FN↔UT) の充足を見る **L7 worklist** とは別概念である。L7 worklist は機能一覧 (functional-registry) 由来の read-only view (`helix doctor check_l7_worklist` / `helix sprint status` で surfacing、FN↔UT 充足ビュー) で、`missing_ut` を sprint backlog / PLAN へ手動反映する起点に使う (自動起票はしない)。
+
 - 実装前に L3 工程表、`.helix/task-plan.yaml`、handover Next Action の該当行を確認する
 - `plan_id`、`task_id` または `WBS ID`、`L7 Sprint`、依存、受入条件、reference_docs を委譲 prompt に含める
 - ユーザーへ計画・実装順・整理案を提示した場合、明示承認があるまで編集へ進まない

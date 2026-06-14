@@ -33,6 +33,7 @@
 - **退化防止（最重要）**: ゲートは **Forward の通過条件**であり独立タスク台帳ではない。未完作業は新 Phase でなく「該当 L-pair の failed/pending gate evidence + deferred finding」に帰属させ、ロードマップへ再肥大化させない（deprecated Process を新 Action の parent にしない）。
 - **スコープ**: 機能要件は既存の全洗い出しを漏れなく内包（`cli/helix-*`・hooks・`cli/lib` Python・SQLite・**549 機能実態**、coverage_layer = L4 290 / L5 105 / L6 65 / excluded 89 / unknown 0）。各実作業の編集範囲は Action Plan / allowed_files / handover に従う（広域スコープは個別 allowed_files を弱めない）。
 - **Python 化 / DB 拡張**: Python 化は機能修正＝L6 視座（独立 redesign に昇格させない）。DB 拡張は検証ゲートが回り永続化要求が観測されてから schema 確定（推測 schema を避ける）。
+- **L7 worklist（工程表）運用導線**: L7 sprint 起票前に PM が `helix doctor check_l7_worklist`（または `helix sprint status` の surfacing）で機能一覧由来の L6_required FN の充足（anchored / waived / RD / **missing_ut**）を確認し、`missing_ut` を sprint backlog / PLAN へ**手動**反映する（自動起票はしない＝over-build 回避）。これは L3 工程表（`.helix/task-plan.yaml` / WBS）とは**別概念**（L7 worklist = FN↔UT 充足の read-only view）。surfacing 実体 = [cli/lib/l7_worklist.py](cli/lib/l7_worklist.py) / [cli/helix-sprint](cli/helix-sprint)、機械強制 = fn_ut_pair_coverage（Phase1、FN↔UT 1:1 fail-close）。
 
 ## 概要
 HELIX は、AI エージェントを `plan` / `task` / `role` / `gate` / `handover` で制御する開発フロー・CLI・スキル群のリポジトリ。他プロジェクトはこれをハーネスとして取り込む。

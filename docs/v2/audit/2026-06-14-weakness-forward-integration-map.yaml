@@ -272,6 +272,76 @@ weaknesses:
       FR-FNREG-01(L3) に「L6_required は design_ids↔test_design_ids 1:1 を必須」AC を追補 (doc)。
       DF-PREL7-ORPHAN (下記) と DF-PREL7-G7UNIV (下記) の解消。
 
+  # --- 2026-06-14 後続 /goal Phase2 (full) で検出 + 是正実施 (ユーザー C: フル是正選択) ---
+  - id: W16-l7-worklist-usage-flow
+    title: 工程表 l7_worklist の使い方フロー未明文 + sprint 未接続 + L3 工程表との用語衝突
+    forward_requirement:
+      status: present
+      ids: [FR-FNREG-01, FR-GATE-01]
+      note: 機能一覧→工程表→PLAN 起票 pipeline の運用導線 (誰が・いつ・missing_ut をどう backlog/PLAN へ) が未明文だった。
+    forward_design:
+      status: present
+      location: >
+        CLAUDE.md §V2 (L7 worklist 運用導線 bullet), docs/commands/ai-harness.md (L3 工程表 vs L7 worklist 用語注意),
+        cli/helix-sprint (status/.1a で read-only surfacing), cli/lib/l7_worklist.py (summary helper)。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md
+      status: completed
+      forward_return: present  # L6↔L7 運用導線を閉じ、機械強制は fn_ut_pair_coverage (Phase1)
+    lpair_gate_evidence: L6↔L7 (工程表 view = registry 由来、強制は fn_ut_pair_coverage の missing_ut)
+    in_scope_action_done: >
+      (1) helix-sprint に L7 worklist read-only surfacing (negative test で no-write 保証、自動 backlog 生成しない=over-build 回避)。
+      (2) CLAUDE.md/ai-harness に運用フロー + L3 工程表(WBS) との別概念明示。
+    pending_forward_action: なし (運用導線 doc + surfacing 完了。自動起票は over-build として恒久的にやらない)
+  - id: W17-coding-rule-machine-enforcement
+    title: コーディングルール registry が linter 未接続 (全 linter_tool=null) + check が warn-only (実コード機械強制ゼロ)
+    forward_requirement:
+      status: present
+      ids: [FR-FNREG-01, FR-GATE-01]
+      note: coding-rule-registry 14 entry は台帳のみで、bash -n/py_compile/ruff/shellcheck への配線がなかった。
+    forward_design:
+      status: present
+      location: >
+        cli/lib/coding_rule_lint.py (linter ラッパ+baseline+ratchet), cli/lib/changed_files.py (ratchet 共通 source),
+        cli/config/coding-rule-registry.yaml (linter_tool 補完), cli/config/coding-rule-registry-baseline.json,
+        cli/lib/vg_overview.py (required_clean ratchet 配線), FR-LIB-155/156。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md
+      status: completed
+      forward_return: present  # coding_rule_lint を G-vg-overview required_clean (changed-files ratchet) に接続
+    lpair_gate_evidence: L6↔L7 + CI (changed-files ratchet で新規違反のみ fail-close)
+    in_scope_action_done: >
+      (1) coding_rule_lint (bash -n/py_compile 常時、ruff/shellcheck 存在時のみ graceful skip、install しない)。
+      (2) changed-files ratchet (baseline 外 + changed のみ fail、available_empty=clean、unavailable=skip)。
+      (3) registry linter_tool 補完 (CR-CODE-01→bash_n/shellcheck, CR-CODE-05→py_compile/ruff、enforcement 退行なし)。
+    pending_forward_action: >
+      DF-P2-RUFF-CI (ruff/shellcheck の CI required=full fail-close 化) は baseline 安定後、PARKED。
+  - id: W18-dependency-leak-detection
+    title: 依存関係漏れ未検出 (plan dependency gate 未組込 + import 循環検出ゼロ + FR 間 uses 横依存未検出)
+    forward_requirement:
+      status: present
+      ids: [FR-FNREG-01, FR-GATE-01, FR-08]
+      note: 縦 trace (requirement_drift) は fail-close 済だが、横方向 (plan 依存/import 循環/FR uses) は無検出だった。
+    forward_design:
+      status: present
+      location: >
+        cli/lib/plan_dependency_gate.py (plan_validator wrapper+waiver+ratchet),
+        cli/lib/dependency_cycle_checks.py (import 循環+baseline), cli/lib/fr_uses_checks.py (FR uses 片方向正本),
+        functional-registry uses field (FR-LIB-156/157/158→155), cli/lib/vg_overview.py (3 detector ratchet 配線),
+        FR-LIB-157/158/159。
+    deferred_ticket:
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md
+      status: completed
+      forward_return: present  # 3 依存 detector を G-vg-overview required_clean (changed-files ratchet) に接続
+    lpair_gate_evidence: L4↔L9 + L6↔L7 (依存 = システム/モジュール粒度の整合)
+    in_scope_action_done: >
+      (1) plan_dependency_gate (既存 WARN baseline 化、changed-plan の新規 real cycle/missing reciprocal のみ fail)。
+      (2) dependency_cycle_checks (既存 5 循環 baseline waive、新規循環のみ fail)。
+      (3) fr_uses_checks (uses 先実在 fail-close、逆参照 derived warning)。
+    pending_forward_action: >
+      DF-P2-DEPGATE-FULL (plan-dep full required) / DF-P2-IMPORTCYCLE-PROMOTE / DF-P2-FRUSES-PROMOTE (逆参照必須化)
+      は baseline clean 後の昇格、PARKED。既存 5 import 循環 (DF-P2-EXISTING-CYCLES) は技術的負債として記録。
+
 # --- 2026-06-14 後続 /goal の deferred finding (floating debt 化させない = §0) ---
 deferred_findings_pre_l7_gate_hardening:
   - id: DF-PREL7-ORPHAN
@@ -295,7 +365,7 @@ deferred_findings_pre_l7_gate_hardening:
 
 # --- 集計 ---
 summary:
-  total_weaknesses: 15   # W1-W14 (前段監査) + W15 (後続 /goal で新規検出 + 是正実施)
+  total_weaknesses: 18   # W1-W14 (前段監査) + W15 (後続 /goal) + W16-W18 (後続 Phase2 full 是正)
   forward_requirement: {present: 7, indirect: 7, missing: 1}
   forward_design: {present: 6, partial: 6, missing: 3}
   deferred_ticket_forward_return:
@@ -313,6 +383,25 @@ summary:
     - "DDD bc-2-check (bc_anti_corruption/bc_mode_coverage, clean) を fail-close 昇格 (D1); D2 row mismatch は detector 実測で非問題と確認"
     - "authorized_unpark_2026_06_14: pre-L7 ゲート硬化 fail-close を user 指示で unpark (既存債は waiver で非回帰、broad flip/CI/DB は PARKED 維持)"
     - "DF-PREL7-ORPHAN / DF-PREL7-G7UNIV / over-build 棄却分 (T3/D3/W3) を deferred finding として floating debt 化回避"
+  in_scope_done_2026_06_14_followup_phase2_full:
+    - "W16: 工程表 l7_worklist 運用導線 doc 化 (CLAUDE.md/ai-harness) + helix-sprint read-only surfacing (no-write negative test) + L3工程表との用語分離"
+    - "W17: coding_rule_lint (bash -n/py_compile 常時 + ruff/shellcheck graceful skip) + changed_files ratchet + registry linter_tool 補完 → G-vg-overview 接続"
+    - "W18: plan_dependency_gate + dependency_cycle_checks + fr_uses_checks (FR uses 片方向正本) → G-vg-overview 接続。FR-LIB-155..159 自己登録 + FN/UT-WSC-224..228 (g7 universe 93→98)"
+    - "TL PLAN review 2周 (P1×5/P2×6/P3 反映) + 実 changed-files(16) 注入で vg_overview overall_clean=true / 4 ratchet clean / cascade なし を PM 独立検証"
+    - "残骸 cli/lib/{alpha,beta}.py (Codex red-phase debris) を PM 削除 + import-cycle baseline 再生成 (偽 6→実 5)"
+  deferred_findings_phase2:
+    - id: DF-P2-RUFF-CI
+      detail: ruff/shellcheck の CI required (full fail-close) 化。外部ツール依存 + 既存違反顕在化で CI red リスク。baseline 安定 + changed-files ratchet 安定後。PARKED。
+    - id: DF-P2-DEPGATE-FULL
+      detail: plan_dependency_gate の full required_clean 化 (changed-files 限定でなく全 PLAN)。waiver baseline clean 後。PARKED。
+    - id: DF-P2-IMPORTCYCLE-PROMOTE
+      detail: import 循環 detector の required_clean 昇格 (現 ratchet=新規のみ fail)。PARKED。
+    - id: DF-P2-FRUSES-PROMOTE
+      detail: FR 間 uses の逆参照整合 (B 側逆リンク) を derived warning → required 化。PARKED。
+    - id: DF-P2-EXISTING-CYCLES
+      detail: >
+        既存 import 循環 5件 (agent_policy_guard↔team_runner, http_api/routes/{audit,hooks,push_pr,telemetry}↔server) を
+        baseline waive 中。これは技術的負債であり、隠蔽でなく ratchet の出発点 (新規循環を止める)。解消は Refactor で別途、PARKED。
   anti_regression_note: >
     本マップは standing roadmap ではない (roadmap 廃止原則 2026-06-08)。各弱点は該当 L-pair の
     pending gate evidence に帰属し、強化は「その pending を閉じる Forward 前進」として進める。

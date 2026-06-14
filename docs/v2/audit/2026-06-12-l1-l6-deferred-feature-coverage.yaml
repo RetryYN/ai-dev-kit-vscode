@@ -53,9 +53,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 17
+  repository_add_feature_files_discovered: 18
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 6
+  out_of_current_objective_add_feature_files: 7
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 1
   full_flow_later_phase_approval_boundary: true
@@ -66,9 +66,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 17
+  all_repository_add_feature_files_checked: 18
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 6
+  excluded_from_current_objective_deferred_count: 7
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -131,6 +131,14 @@ repository_add_feature_inventory:
         This add-feature action is user-approved current-scope pre-L7
         gate-hardening work. It is not a later-phase deferred L7 product, CI,
         DB, or external-tool boundary ticket.
+    - id: pre_l7_gate_hardening_phase2
+      path: docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md
+      observed_status: draft
+      classification: current_scope_authorized_pre_l7_gate_hardening
+      reason: >
+        This add-feature action is user-approved current-scope pre-L7
+        gate-hardening follow-up work. It is not a later-phase deferred L7
+        product, CI, DB, or external-tool boundary ticket.
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

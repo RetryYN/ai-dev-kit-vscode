@@ -41,7 +41,8 @@ generates:
 dependencies:
   parent: docs/plans/process/process-2026-06-08-verification-forward-gate.md
   requires: []
-  blocks: []
+  blocks:
+    - docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md
 related_docs:
   - docs/plans/process/process-2026-06-08-verification-forward-gate.md
   - docs/v2/L1-requirements/helix-workflows-verification-strategy.md
