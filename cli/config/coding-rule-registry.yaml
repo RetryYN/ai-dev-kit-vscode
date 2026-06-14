@@ -2,6 +2,9 @@ entries:
   - id: "CR-CODE-01"
     rule: "既存 CLI の Bash/Python 分担に合わせ、CLI glue は Bash、構造化処理は Python helper に寄せる"
     sot_section: "コーディング規約"
+    linter_tool:
+      - "bash_n"
+      - "shellcheck"
     enforcement:
       kind: "manual"
       paths: []
@@ -9,6 +12,7 @@ entries:
   - id: "CR-CODE-02"
     rule: "実装前に対象ファイルを Read して既存パターンへ合わせる"
     sot_section: "コーディング規約"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -16,6 +20,7 @@ entries:
   - id: "CR-CODE-03"
     rule: "変更範囲を要件に必要なファイルへ限定し、runtime state や未コミット変更を巻き戻さない"
     sot_section: "コーディング規約"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -23,6 +28,7 @@ entries:
   - id: "CR-CODE-04"
     rule: "Codex / Claude Code は raw CLI 直叩きを避け、HELIX の CLI shim と hook 管理前提で扱う"
     sot_section: "コーディング規約"
+    linter_tool: null
     enforcement:
       kind: "hook"
       paths:
@@ -32,6 +38,9 @@ entries:
   - id: "CR-CODE-05"
     rule: "テストなしで完了宣言せず、Bash は bash -n、Python は py_compile、CLI は Bats/pytest で必要範囲を検証する"
     sot_section: "コーディング規約"
+    linter_tool:
+      - "py_compile"
+      - "ruff"
     enforcement:
       kind: "ci_gate"
       paths:
@@ -43,6 +52,7 @@ entries:
   - id: "CR-COMMIT-01"
     rule: "1 commit = 1 PLAN または 1 トピックに保ち、独立責務を混ぜない"
     sot_section: "コミット規約"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -50,6 +60,7 @@ entries:
   - id: "CR-COMMIT-02"
     rule: "大型 commit は責務単位で分割し、まとめる場合は理由を body に明記する"
     sot_section: "コミット規約"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -57,6 +68,7 @@ entries:
   - id: "CR-COMMIT-03"
     rule: "scope は 1 つのドメイン名に絞り、複数 scope の列挙を避ける"
     sot_section: "コミット規約"
+    linter_tool: null
     enforcement:
       kind: "commitlint"
       paths:
@@ -66,6 +78,7 @@ entries:
   - id: "CR-COMMIT-04"
     rule: "prefix は feat/fix/chore/docs/test/refactor を使い、PLAN doc 更新は docs(plan-NNN) を使う"
     sot_section: "コミット規約"
+    linter_tool: null
     enforcement:
       kind: "commitlint"
       paths:
@@ -76,6 +89,7 @@ entries:
   - id: "CR-COMMIT-05"
     rule: "自動生成物は手動 commit に取り込まず、.gitignore か明示的な git add で除外する"
     sot_section: "コミット規約"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths:
@@ -84,6 +98,7 @@ entries:
   - id: "CR-FORBID-01"
     rule: "API key / secret / PII / credential を CLAUDE.md・AGENTS.md・skill・docs に書かない"
     sot_section: "禁止事項"
+    linter_tool: null
     enforcement:
       kind: "hook"
       paths:
@@ -93,6 +108,7 @@ entries:
   - id: "CR-FORBID-02"
     rule: "認証・認可・決済・PII・ライセンス・本番影響・destructive data operation は人間確認なしに仕様確定しない"
     sot_section: "禁止事項"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -100,6 +116,7 @@ entries:
   - id: "CR-FORBID-03"
     rule: "外部 provider SDK や認証情報前提の fallback を HELIX の通常導線として追加しない"
     sot_section: "禁止事項"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths: []
@@ -107,6 +124,7 @@ entries:
   - id: "CR-FORBID-04"
     rule: ".helix や settings.local.json、.codex などのローカル副産物をドキュメント目的で追跡対象にしない"
     sot_section: "禁止事項"
+    linter_tool: null
     enforcement:
       kind: "manual"
       paths:

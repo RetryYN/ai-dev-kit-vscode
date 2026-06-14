@@ -536,6 +536,45 @@ refresh_fullstack_phase() {
   fi
 }
 
+print_l7_worklist_summary() {
+  local summary_text
+  summary_text="$(
+    python3 - <<'PY' "$SCRIPT_DIR/lib" "$PROJECT_ROOT" 2>/dev/null || true
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+lib_dir = Path(sys.argv[1])
+project_root = Path(sys.argv[2]).resolve()
+registry_path = project_root / "cli/config/functional-registry.yaml"
+anchor_map_path = project_root / "docs/v2/L7-test-design/g7-test-anchor-map.yaml"
+
+if not registry_path.exists() or not anchor_map_path.exists():
+    raise SystemExit(0)
+
+if str(lib_dir) not in sys.path:
+    sys.path.insert(0, str(lib_dir))
+
+from l7_worklist import collect_l7_worklist, summary_counts
+
+counts = summary_counts(collect_l7_worklist(registry_path, anchor_map_path, project_root))
+print("L7 worklist (FN↔UT 充足ビュー)")
+print(
+    "  summary: "
+    f"total={counts['total']} anchored={counts['anchored']} "
+    f"waived={counts['waived']} separate_inventory={counts['separate_inventory']} "
+    f"missing_ut={counts['missing_ut']}"
+)
+if counts["missing_ut"] > 0:
+    print("  hint: missing_ut を L7 sprint 起票前に backlog/PLAN へ手動反映してください")
+PY
+  )"
+  [[ -n "$summary_text" ]] || return 0
+  echo ""
+  printf '%s\n' "$summary_text"
+}
+
 print_standard_status() {
   echo "=== L7 Sprint Status ==="
   echo ""
@@ -560,6 +599,7 @@ print_standard_status() {
   else
     echo "現在: $current — ${STEP_NAMES[$current]}"
   fi
+  print_l7_worklist_summary
 }
 
 print_fullstack_status() {
@@ -601,6 +641,7 @@ print_fullstack_status() {
     echo ""
     echo "Phase B 昇格条件: be.stage=.5 && fe.stage=.5 && contract.ci=pass"
   fi
+  print_l7_worklist_summary
 }
 
 command_status() {
@@ -786,6 +827,7 @@ command_next() {
       set_track_status "$track" "active"
       echo "[helix-sprint] ${track^^} Track 開始: .1a — ${STEP_NAMES[.1a]}"
       print_recommended_action ".1a"
+      print_l7_worklist_summary
       refresh_fullstack_phase
       return
     fi
@@ -835,6 +877,7 @@ command_next() {
     set_sprint_step ".1a"
     echo "[helix-sprint] Sprint 開始: .1a — ${STEP_NAMES[.1a]}"
     print_recommended_action ".1a"
+    print_l7_worklist_summary
   elif [[ "$current" == "completed" ]]; then
     echo "[helix-sprint] Sprint は既に完了しています"
   else

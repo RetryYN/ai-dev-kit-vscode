@@ -126,6 +126,17 @@ def collect_l7_worklist(
     }
 
 
+def summary_counts(report: dict[str, Any]) -> dict[str, int]:
+    summary = report.get("summary") or {}
+    return {
+        "total": int(summary.get("total", 0)),
+        "anchored": int(summary.get("anchored", 0)),
+        "waived": int(summary.get("waived", 0)),
+        "separate_inventory": int(summary.get("separate_inventory", 0)),
+        "missing_ut": int(summary.get("missing", 0)),
+    }
+
+
 def render_text(report: dict[str, Any]) -> str:
     summary = report["summary"]
     lines = [

@@ -8,11 +8,15 @@ from typing import Any
 
 import yaml
 
+from coding_rule_lint import collect_coding_rule_lint_gate_summary
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
+from dependency_cycle_checks import collect_dependency_cycle_gate_summary
 from design_id_existence_checks import check_design_id_existence
+from fr_uses_checks import collect_fr_uses_gate_summary
 from functional_registry_checks import check_functional_registry
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
+from plan_dependency_gate import collect_plan_dependency_gate_summary
 from registry_design_coverage_checks import check_registry_design_coverage
 from requirement_drift import collect_requirement_drift
 from trace_symmetry import collect_trace_symmetry
@@ -171,6 +175,20 @@ def _requirement_drift_required_clean(root: Path) -> dict[str, Any]:
     }
 
 
+def _ratchet_required_clean(summary: dict[str, Any]) -> dict[str, Any]:
+    source_status = str(summary.get("source_status", "not_applicable"))
+    skipped_reason = summary.get("skipped_reason")
+    entry = {
+        "clean": bool(summary.get("clean", False)),
+        "finding_count": int(summary.get("finding_count", 0)),
+        "source_status": source_status,
+        "skipped_reason": skipped_reason,
+    }
+    if source_status == "unavailable":
+        entry["clean"] = True
+    return entry
+
+
 def collect_vg_overview(
     project_root: Path | None = None,
     *,
@@ -195,6 +213,10 @@ def collect_vg_overview(
         check_bc_anti_corruption(root / "cli" / "config" / "ddd-registry.yaml", root),
         check_bc_mode_coverage(root / "cli" / "config" / "ddd-registry.yaml", root),
     )
+    coding_rule_lint = collect_coding_rule_lint_gate_summary(repo_root=root)
+    dependency_cycle = collect_dependency_cycle_gate_summary(repo_root=root)
+    plan_dependency = collect_plan_dependency_gate_summary(repo_root=root)
+    fr_uses = collect_fr_uses_gate_summary(repo_root=root)
     functional_registry = check_functional_registry(registry_path, root)
     trace = collect_trace_symmetry(root)
     g7 = collect_g7_subcheck(root, execute_tests=execute_g7_tests)
@@ -258,6 +280,10 @@ def collect_vg_overview(
             "clean": sum(len(report.findings) for report in ddd_bc_reports) == 0,
             "finding_count": sum(len(report.findings) for report in ddd_bc_reports),
         },
+        "coding_rule_lint": _ratchet_required_clean(coding_rule_lint),
+        "dependency_cycle_checks": _ratchet_required_clean(dependency_cycle),
+        "plan_dependency_gate": _ratchet_required_clean(plan_dependency),
+        "fr_uses_checks": _ratchet_required_clean(fr_uses),
         "source_scan_vs_registry": {
             "clean": len(source_scan_findings) == 0,
             "finding_count": len(source_scan_findings),
@@ -340,7 +366,14 @@ def render_text(report: dict[str, Any]) -> str:
         f"deferred={vg['full_flow_execution']['deferred_count']}",
     ]
     for name, payload in vg["required_clean"].items():
-        lines.append(f"{name}: clean={str(payload['clean']).lower()} findings={payload['finding_count']}")
+        suffix = ""
+        if "source_status" in payload:
+            suffix += f" source_status={payload['source_status']}"
+        if payload.get("skipped_reason"):
+            suffix += f" skipped_reason={payload['skipped_reason']}"
+        lines.append(
+            f"{name}: clean={str(payload['clean']).lower()} findings={payload['finding_count']}{suffix}"
+        )
     for pair_name, payload in vg["pair_status"].items():
         lines.append(
             f"{pair_name}: status={payload['status']} clean={str(payload['clean']).lower()} reason={payload['reason']}"

@@ -62,9 +62,48 @@ def _stub_clean_ddd_bc_checks(monkeypatch) -> None:
     monkeypatch.setattr(vg_overview, "check_bc_mode_coverage", lambda *args, **kwargs: _report())
 
 
+def _gate_summary(
+    *,
+    clean: bool = True,
+    finding_count: int = 0,
+    source_status: str = "available_empty",
+    skipped_reason: str | None = None,
+) -> dict[str, object]:
+    return {
+        "clean": clean,
+        "finding_count": finding_count,
+        "source_status": source_status,
+        "skipped_reason": skipped_reason,
+    }
+
+
+def _stub_clean_ratchet_gate_summaries(monkeypatch) -> None:
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_coding_rule_lint_gate_summary",
+        lambda *args, **kwargs: _gate_summary(),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_dependency_cycle_gate_summary",
+        lambda *args, **kwargs: _gate_summary(),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_plan_dependency_gate_summary",
+        lambda *args, **kwargs: _gate_summary(),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_fr_uses_gate_summary",
+        lambda *args, **kwargs: _gate_summary(),
+    )
+
+
 def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypatch, tmp_path: Path) -> None:
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -165,6 +204,10 @@ def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypat
     assert vg["required_clean"]["registry_design_coverage"]["clean"] is True
     assert vg["required_clean"]["design_id_existence"]["clean"] is True
     assert vg["required_clean"]["fn_ut_pair_coverage"]["clean"] is True
+    assert vg["required_clean"]["coding_rule_lint"]["clean"] is True
+    assert vg["required_clean"]["dependency_cycle_checks"]["clean"] is True
+    assert vg["required_clean"]["plan_dependency_gate"]["clean"] is True
+    assert vg["required_clean"]["fr_uses_checks"]["clean"] is True
     assert vg["required_clean"]["source_scan_vs_registry"]["clean"] is False
     assert vg["required_clean"]["requirement_drift"]["clean"] is True
     assert vg["required_clean"]["requirement_drift"]["finding_count"] == 0
@@ -194,6 +237,7 @@ def test_collect_vg_overview_strict_full_flow_fails_approved_deferred_pairs(
 ) -> None:
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -316,6 +360,7 @@ def test_collect_vg_overview_fails_required_clean_when_requirement_drift_is_dirt
 ) -> None:
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -391,6 +436,7 @@ def test_collect_vg_overview_keeps_overall_clean_when_ddd_bc_checks_are_clean(
 ) -> None:
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -445,4 +491,101 @@ def test_collect_vg_overview_keeps_overall_clean_when_ddd_bc_checks_are_clean(
     ddd_bc = report["vg_overview"]["required_clean"]["ddd_bc_coverage"]
 
     assert ddd_bc == {"clean": True, "finding_count": 0}
+    assert report["vg_overview"]["overall_clean"] is True
+
+
+def test_collect_vg_overview_treats_unavailable_ratchet_detectors_as_skipped_clean(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _write_l2_waiver(tmp_path)
+    _stub_clean_ddd_bc_checks(monkeypatch)
+    monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_coding_rule_lint_gate_summary",
+        lambda *args, **kwargs: _gate_summary(
+            clean=False,
+            finding_count=0,
+            source_status="unavailable",
+            skipped_reason="changed-files unavailable",
+        ),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_dependency_cycle_gate_summary",
+        lambda *args, **kwargs: _gate_summary(
+            clean=False,
+            finding_count=0,
+            source_status="unavailable",
+            skipped_reason="changed-files unavailable",
+        ),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_plan_dependency_gate_summary",
+        lambda *args, **kwargs: _gate_summary(),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_fr_uses_gate_summary",
+        lambda *args, **kwargs: _gate_summary(clean=True, finding_count=3),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_requirement_drift",
+        lambda *args, **kwargs: {
+            "focus": "L6",
+            "clean": True,
+            "blocking_clean": True,
+            "findings": {"waived_with_reason": []},
+            "summary": {
+                "requirements": 1,
+                "design_links": 1,
+                "blocking_findings": 0,
+                "advisory_findings": 0,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_trace_symmetry",
+        lambda *args, **kwargs: {
+            "pairs": {
+                name: {
+                    "coverage_pct": 100.0,
+                    "uncovered_req": {"count": 0},
+                    "orphan_test": {"count": 0},
+                    "duplicate_id": {"count": 0},
+                    "missing_pair_frontmatter": {"count": 0},
+                    "missing_pair": {"count": 0},
+                    "wrong_layer_pair": {"count": 0},
+                }
+                for name in vg_overview.PAIR_NAMES
+            }
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g7_subcheck",
+        lambda *args, **kwargs: {
+            "ut_total": 88,
+            "anchored": {"count": 88},
+            "exec_pass": {"count": 88},
+            "missing": {"count": 0},
+            "unanchored_but_exists": {"count": 0},
+        },
+    )
+
+    report = vg_overview.collect_vg_overview(tmp_path)
+    required = report["vg_overview"]["required_clean"]
+
+    assert required["coding_rule_lint"]["clean"] is True
+    assert required["coding_rule_lint"]["source_status"] == "unavailable"
+    assert required["coding_rule_lint"]["skipped_reason"] == "changed-files unavailable"
+    assert required["dependency_cycle_checks"]["clean"] is True
+    assert required["fr_uses_checks"]["clean"] is True
+    assert required["fr_uses_checks"]["finding_count"] == 3
     assert report["vg_overview"]["overall_clean"] is True

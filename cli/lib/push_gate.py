@@ -200,6 +200,129 @@ def _git_upstream_ref(project_root: Path) -> str | None:
     return upstream or None
 
 
+def _git_ref_exists(project_root: Path, ref: str) -> bool:
+    proc = _run_command(["git", "rev-parse", "--verify", "--quiet", ref], cwd=project_root)
+    return proc.returncode == 0
+
+
+def _remote_default_branch_refs(project_root: Path, remote: str) -> list[str]:
+    candidates: list[str] = []
+    head_proc = _run_command(
+        ["git", "symbolic-ref", "--quiet", f"refs/remotes/{remote}/HEAD"],
+        cwd=project_root,
+    )
+    if head_proc.returncode == 0:
+        head_ref = (head_proc.stdout or "").strip()
+        if head_ref.startswith("refs/remotes/"):
+            candidates.append(head_ref.removeprefix("refs/remotes/"))
+    candidates.extend([f"{remote}/main", f"{remote}/master"])
+
+    unique: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            unique.append(candidate)
+    return unique
+
+
+def _collect_vg_overview_changed_files_context(
+    project_root: Path,
+    *,
+    remote: str,
+    branch: str,
+) -> dict[str, Any]:
+    upstream_ref = f"{remote}/{branch}" if remote and branch else ""
+    diff_range: str | None = None
+    source = "upstream"
+    base_ref: str | None = upstream_ref or None
+    reason_parts: list[str] = []
+
+    if upstream_ref and _git_ref_exists(project_root, upstream_ref):
+        diff_range = f"{upstream_ref}..HEAD"
+    else:
+        if upstream_ref:
+            reason_parts.append(f"upstream {upstream_ref} missing")
+        else:
+            reason_parts.append("upstream unresolved")
+
+        source = "merge-base"
+        base_ref = None
+        merge_base_ref: str | None = None
+        for candidate in _remote_default_branch_refs(project_root, remote):
+            if not _git_ref_exists(project_root, candidate):
+                continue
+            merge_base_proc = _run_command(["git", "merge-base", "HEAD", candidate], cwd=project_root)
+            merge_base = (merge_base_proc.stdout or "").strip()
+            if merge_base_proc.returncode != 0 or not merge_base:
+                continue
+            merge_base_ref = candidate
+            base_ref = candidate
+            diff_range = f"{merge_base}..HEAD"
+            break
+
+        if diff_range is None:
+            default_refs = _remote_default_branch_refs(project_root, remote)
+            if default_refs:
+                reason_parts.append(
+                    f"merge-base with {default_refs[0]} unavailable"
+                )
+            else:
+                reason_parts.append(f"default branch for {remote} unresolved")
+            return {
+                "status": "unavailable",
+                "source": "unresolved",
+                "base_ref": None,
+                "files": [],
+                "env_value": None,
+                "reason": "changed-files unavailable: " + "; ".join(reason_parts),
+            }
+
+    diff_proc = _run_command(["git", "diff", "--name-only", diff_range], cwd=project_root)
+    if diff_proc.returncode != 0:
+        detail = _format_failure(diff_proc)
+        return {
+            "status": "unavailable",
+            "source": source,
+            "base_ref": base_ref,
+            "files": [],
+            "env_value": None,
+            "reason": f"changed-files unavailable: git diff failed for {diff_range} ({detail})",
+        }
+
+    untracked_proc = _run_command(["git", "ls-files", "--others", "--exclude-standard"], cwd=project_root)
+    if untracked_proc.returncode != 0:
+        detail = _format_failure(untracked_proc)
+        return {
+            "status": "unavailable",
+            "source": source,
+            "base_ref": base_ref,
+            "files": [],
+            "env_value": None,
+            "reason": f"changed-files unavailable: git ls-files failed ({detail})",
+        }
+
+    files: list[str] = []
+    seen: set[str] = set()
+    for raw_path in [
+        *(line.strip() for line in diff_proc.stdout.splitlines()),
+        *(line.strip() for line in untracked_proc.stdout.splitlines()),
+    ]:
+        if not raw_path or raw_path in seen:
+            continue
+        seen.add(raw_path)
+        files.append(raw_path)
+
+    return {
+        "status": "available",
+        "source": source,
+        "base_ref": base_ref,
+        "files": files,
+        "env_value": "\n".join(files),
+        "reason": None,
+    }
+
+
 def _ahead_commit_plan_ids(project_root: Path) -> list[str]:
     upstream = _git_upstream_ref(project_root)
     if not upstream:
@@ -549,7 +672,50 @@ def _has_vg_overview_assets(project_root: Path) -> bool:
     )
 
 
-def run_gate_vg_overview(project_root: str | Path) -> dict:
+def _format_vg_required_detail(
+    name: str,
+    item: dict[str, Any],
+    *,
+    changed_files_reason: str | None = None,
+) -> str:
+    suffix_parts: list[str] = []
+    source_status = str(item.get("source_status", "")).strip()
+    skipped_reason = str(item.get("skipped_reason", "")).strip()
+    if source_status:
+        suffix_parts.append(f"source_status={source_status}")
+    if skipped_reason:
+        suffix_parts.append(f"reason={skipped_reason}")
+    if source_status == "unavailable" and changed_files_reason:
+        suffix_parts.append(changed_files_reason)
+    suffix = f" ({'; '.join(suffix_parts)})" if suffix_parts else ""
+    return f"{name}:{item.get('finding_count', 0)}{suffix}"
+
+
+def _collect_vg_skipped_required_details(
+    required_clean: dict[str, Any],
+    *,
+    changed_files_reason: str | None = None,
+) -> list[str]:
+    details: list[str] = []
+    for name, item in required_clean.items():
+        if str(item.get("source_status", "")).strip() != "unavailable":
+            continue
+        details.append(
+            _format_vg_required_detail(
+                name,
+                item,
+                changed_files_reason=changed_files_reason,
+            )
+        )
+    return details
+
+
+def run_gate_vg_overview(
+    project_root: str | Path,
+    *,
+    remote: str = "origin",
+    branch: str = "main",
+) -> dict:
     root = Path(project_root).resolve()
     if not _has_vg_overview_assets(root):
         return _result(
@@ -560,7 +726,11 @@ def run_gate_vg_overview(project_root: str | Path) -> dict:
         )
 
     previous_skip = os.environ.get("HELIX_DOCTOR_SKIP_EXEC_TESTS")
+    previous_changed_files = os.environ.get("HELIX_CHANGED_FILES")
+    changed_files_context = _collect_vg_overview_changed_files_context(root, remote=remote, branch=branch)
     os.environ["HELIX_DOCTOR_SKIP_EXEC_TESTS"] = previous_skip if previous_skip is not None else "1"
+    if changed_files_context["status"] == "available":
+        os.environ["HELIX_CHANGED_FILES"] = str(changed_files_context["env_value"])
     try:
         report = collect_vg_overview(root)
     except Exception as exc:  # pragma: no cover - defensive boundary for push UX
@@ -575,25 +745,40 @@ def run_gate_vg_overview(project_root: str | Path) -> dict:
             os.environ.pop("HELIX_DOCTOR_SKIP_EXEC_TESTS", None)
         else:
             os.environ["HELIX_DOCTOR_SKIP_EXEC_TESTS"] = previous_skip
+        if previous_changed_files is None:
+            os.environ.pop("HELIX_CHANGED_FILES", None)
+        else:
+            os.environ["HELIX_CHANGED_FILES"] = previous_changed_files
 
     vg = report["vg_overview"]
     g7 = report["g7_subcheck"]
+    skipped_required = _collect_vg_skipped_required_details(
+        vg.get("required_clean", {}),
+        changed_files_reason=changed_files_context.get("reason"),
+    )
     if vg["overall_clean"]:
+        detail = (
+            "overall_clean=true "
+            f"anchored={g7['anchored']}/{g7['ut_total']} "
+            f"exec_pass={g7['exec_pass']} "
+            f"missing={g7['missing']} "
+            f"unanchored={g7['unanchored_but_exists']}"
+        )
+        if skipped_required:
+            detail += " skipped_required_clean=" + "; ".join(skipped_required)
         return _result(
             "G-vg-overview",
             True,
-            (
-                "overall_clean=true "
-                f"anchored={g7['anchored']}/{g7['ut_total']} "
-                f"exec_pass={g7['exec_pass']} "
-                f"missing={g7['missing']} "
-                f"unanchored={g7['unanchored_but_exists']}"
-            ),
+            detail,
             "なし",
         )
 
     failing_required = [
-        f"{name}:{item['finding_count']}"
+        _format_vg_required_detail(
+            name,
+            item,
+            changed_files_reason=changed_files_context.get("reason"),
+        )
         for name, item in vg["required_clean"].items()
         if not item["clean"]
     ]
@@ -626,7 +811,7 @@ def run_all_gates(
         run_gate_attr(remote, branch),
         run_gate_nondestructive(remote, branch),
         run_gate_review(plan_id, repo_root),
-        run_gate_vg_overview(repo_root),
+        run_gate_vg_overview(repo_root, remote=remote, branch=branch),
     ]
     failed = [gate for gate in gates if not gate["passed"]]
     result = {

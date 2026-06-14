@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -13,6 +14,7 @@ if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import push_gate
+import coding_rule_lint
 
 
 def _write_plan(
@@ -92,6 +94,87 @@ def _write_approved_boundary_plan(
 
 def _stub_ahead(monkeypatch, plan_ids: list[str]) -> None:
     monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: plan_ids)
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Codex",
+        "GIT_AUTHOR_EMAIL": "codex@example.com",
+        "GIT_COMMITTER_NAME": "Codex",
+        "GIT_COMMITTER_EMAIL": "codex@example.com",
+    }
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr or proc.stdout
+    return proc
+
+
+def _write_push_gate_vg_assets(repo: Path) -> None:
+    anchor_path = repo / "docs" / "v2" / "L7-test-design" / "g7-test-anchor-map.yaml"
+    anchor_path.parent.mkdir(parents=True, exist_ok=True)
+    anchor_path.write_text("anchors: {}\n", encoding="utf-8")
+
+    config_dir = repo / "cli" / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "functional-registry.yaml").write_text("entries: []\n", encoding="utf-8")
+    (config_dir / "coding-rule-registry.yaml").write_text(
+        "\n".join(
+            [
+                "entries:",
+                "  - id: CR-CODE-PY",
+                "    rule: python scripts stay mechanically linted",
+                "    sot_section: コーディング規約",
+                "    linter_tool:",
+                "      - py_compile",
+                "    enforcement:",
+                "      kind: ci_gate",
+                "      paths: []",
+                "      status: partial",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (config_dir / "coding-rule-registry-baseline.json").write_text(
+        json.dumps(
+            {
+                "intentional_baseline": True,
+                "owner": "codex",
+                "created": "2026-06-14",
+                "expiry": "2026-09-12",
+                "generated_by": "test",
+                "reports": [
+                    {
+                        "check_name": "check_coding_rule_lint",
+                        "mode": "advisory",
+                        "findings": [],
+                        "metrics": {"finding_count": 0},
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _init_repo_with_bare_origin(tmp_path: Path, *, branch: str) -> tuple[Path, Path]:
+    origin = tmp_path / "origin.git"
+    repo = tmp_path / "repo"
+    origin.mkdir(parents=True, exist_ok=True)
+    _git(tmp_path, "init", "--bare", origin.as_posix())
+    _git(tmp_path, "init", "--initial-branch", branch, repo.as_posix())
+    _git(repo, "remote", "add", "origin", origin.as_posix())
+    return repo, origin
 
 
 def test_run_gate_review_passes_with_explicit_plan_id(tmp_path: Path) -> None:
@@ -449,6 +532,136 @@ def test_run_gate_review_uses_single_ahead_plan_for_backward_compatibility(
     assert result["detail"] == f"{plan_id} scope=action status=completed tl_review=approve"
 
 
+def test_collect_vg_overview_changed_files_context_falls_back_to_default_branch_merge_base(
+    tmp_path: Path,
+) -> None:
+    repo, _origin = _init_repo_with_bare_origin(tmp_path, branch="main")
+    tracked = repo / "tracked.py"
+    tracked.write_text("print('base')\n", encoding="utf-8")
+    _git(repo, "add", "tracked.py")
+    _git(repo, "commit", "-m", "base")
+    _git(repo, "push", "-u", "origin", "main")
+    _git(repo, "checkout", "-b", "feature/no-upstream")
+
+    tracked.write_text("print('feature change')\n", encoding="utf-8")
+    _git(repo, "add", "tracked.py")
+    _git(repo, "commit", "-m", "feature change")
+    (repo / "scratch.py").write_text("print('untracked')\n", encoding="utf-8")
+
+    payload = push_gate._collect_vg_overview_changed_files_context(
+        repo,
+        remote="origin",
+        branch="feature/no-upstream",
+    )
+
+    assert payload["status"] == "available"
+    assert payload["source"] == "merge-base"
+    assert payload["base_ref"] == "origin/main"
+    assert payload["files"] == ["tracked.py", "scratch.py"]
+    assert payload["env_value"] == "tracked.py\nscratch.py"
+
+
+def test_run_gate_vg_overview_injects_changed_files_context_and_restores_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo, _origin = _init_repo_with_bare_origin(tmp_path, branch="dogfood")
+    _write_push_gate_vg_assets(repo)
+    (repo / "stable.py").write_text("print('stable')\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "base")
+    _git(repo, "push", "-u", "origin", "dogfood")
+
+    (repo / "new_bad.py").write_text("def broken(\n    return 1\n", encoding="utf-8")
+    _git(repo, "add", "new_bad.py")
+    _git(repo, "commit", "-m", "new violation")
+    (repo / "scratch.py").write_text("print('scratch')\n", encoding="utf-8")
+
+    captured: dict[str, object] = {}
+
+    def _fake_collect(root: Path) -> dict[str, object]:
+        captured["env_value"] = os.environ.get("HELIX_CHANGED_FILES")
+        summary = coding_rule_lint.collect_coding_rule_lint_gate_summary(
+            repo_root=root,
+            registry_path=Path(root) / "cli/config/coding-rule-registry.yaml",
+            baseline_path=Path(root) / "cli/config/coding-rule-registry-baseline.json",
+        )
+        captured["summary"] = summary
+        return {
+            "vg_overview": {
+                "overall_clean": False,
+                "required_clean": {"coding_rule_lint": summary},
+                "pair_status": {},
+            },
+            "g7_subcheck": {},
+        }
+
+    monkeypatch.setattr(push_gate, "collect_vg_overview", _fake_collect)
+    monkeypatch.setenv("HELIX_CHANGED_FILES", "keep-me")
+
+    result = push_gate.run_gate_vg_overview(repo, remote="origin", branch="dogfood")
+
+    assert result["passed"] is False
+    assert captured["env_value"] == "new_bad.py\nscratch.py"
+    assert captured["summary"] == {
+        "clean": False,
+        "finding_count": 1,
+        "source_status": "available_nonempty",
+        "skipped_reason": None,
+    }
+    assert os.environ["HELIX_CHANGED_FILES"] == "keep-me"
+
+
+def test_run_gate_vg_overview_reports_unavailable_changed_files_reason(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _write_push_gate_vg_assets(tmp_path)
+    monkeypatch.setattr(
+        push_gate,
+        "_collect_vg_overview_changed_files_context",
+        lambda project_root, remote, branch: {
+            "status": "unavailable",
+            "source": "unresolved",
+            "base_ref": None,
+            "files": [],
+            "env_value": None,
+            "reason": "changed-files unavailable: upstream origin/topic missing; merge-base with origin/main unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        push_gate,
+        "collect_vg_overview",
+        lambda root: {
+            "vg_overview": {
+                "overall_clean": True,
+                "required_clean": {
+                    "coding_rule_lint": {
+                        "clean": True,
+                        "finding_count": 0,
+                        "source_status": "unavailable",
+                        "skipped_reason": "changed-files unavailable",
+                    }
+                },
+                "pair_status": {},
+            },
+            "g7_subcheck": {
+                "ut_total": 88,
+                "anchored": 88,
+                "exec_pass": 88,
+                "missing": 0,
+                "unanchored_but_exists": 0,
+            },
+        },
+    )
+
+    result = push_gate.run_gate_vg_overview(tmp_path, remote="origin", branch="topic")
+
+    assert result["passed"] is True
+    assert "changed-files unavailable" in result["detail"]
+    assert "origin/topic missing" in result["detail"]
+
+
 def test_run_gate_nondestructive_ignores_cli_helix_test_tmpdir_cleanup(monkeypatch) -> None:
     diff_output = "\n".join(
         [
@@ -529,7 +742,12 @@ def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:
     monkeypatch.setattr(
         push_gate,
         "run_gate_vg_overview",
-        lambda project_root: push_gate._result("G-vg-overview", True, "ok", "なし"),
+        lambda project_root, remote, branch: push_gate._result(
+            "G-vg-overview",
+            True,
+            f"{remote}/{branch}",
+            "なし",
+        ),
     )
     monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
 

@@ -1,144 +1,16 @@
 {
-  "created": "2026-06-06",
-  "expiry": "2026-09-04",
-  "generated_by": "coding_rule_checks.py --emit-baseline",
+  "created": "2026-06-14",
+  "expiry": "2026-09-12",
+  "generated_by": "coding_rule_lint.py --write-baseline",
   "intentional_baseline": true,
   "owner": "codex",
   "reports": [
     {
-      "baseline": [],
-      "check_name": "check_coding_rule_sot",
-      "domain": "coding_rule_registry",
-      "exit_policy": 0,
-      "findings": [
-        {
-          "entry_id": "CR-CODE-01",
-          "fingerprint": "0aed5745cb84090a1a4d6eb7fb4c2f6d851db0a16be9dcb4fc38540ccd725967",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-CODE-02",
-          "fingerprint": "a0fd076469a96f16beeebaa1fa4ae33ba7d9850e66b8893f5d9f1a9c3c772454",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-CODE-03",
-          "fingerprint": "77c6d1f4973fc39b3e3eddcf33949310e1fab4084a11235401a90e6168e70e7d",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-CODE-04",
-          "fingerprint": "7c217d868a1bad45ad2f3da7fa4d6b90b01653f327c9dfc6a7d108b27708f58e",
-          "kind": "enforcement_gap",
-          "message": "partial enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-CODE-05",
-          "fingerprint": "817b59ec6ca93482dcbb8a5a517db952e60dc6987bd09444112544fa939b65ad",
-          "kind": "enforcement_gap",
-          "message": "partial enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-COMMIT-01",
-          "fingerprint": "22ba08b67ba1c8f9c18d6ea0b33ce3d3cb824f4a312197f045f34f05ca19a6b4",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-COMMIT-02",
-          "fingerprint": "ad175e55709033bb2b821b284286aee399520bc83ec752f13764e3610c85b032",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-COMMIT-05",
-          "fingerprint": "fcdc17007cc474491a02045c5b582167d9c2f02b5294afa128cdf15e75d87cfd",
-          "kind": "enforcement_gap",
-          "message": "partial enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-FORBID-02",
-          "fingerprint": "7dc353c4cebeb6c560242c1e3037640afa8f44c96af60ac4335a8b80f7ee86ea",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-FORBID-03",
-          "fingerprint": "f9679cd8198f5a791744c6291e52d8be46c3857ab7993f9a51f8a021d4c76121",
-          "kind": "enforcement_gap",
-          "message": "manual enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        },
-        {
-          "entry_id": "CR-FORBID-04",
-          "fingerprint": "5bd38670c764863735cfba5028dd0eb59cc2cb406a7bd9770aa0bbc65ae0b487",
-          "kind": "enforcement_gap",
-          "message": "partial enforcement leaves this rule outside full mechanical coverage",
-          "path": "cli/config/coding-rule-registry.yaml",
-          "remediation": "implement the enforcement or keep the gap explicit until a later Action closes it",
-          "severity": "P3"
-        }
-      ],
-      "metrics": {
-        "entries": 14,
-        "gap_entries": 11,
-        "missing_enforcement_paths": 0,
-        "status_path_mismatches": 0,
-        "unregistered_self_assets": 0
-      },
-      "mode": "advisory"
-    },
-    {
-      "baseline": [],
-      "check_name": "check_coding_rule_alignment",
-      "domain": "coding_rule_registry",
-      "exit_policy": 0,
+      "check_name": "check_coding_rule_lint",
       "findings": [],
       "metrics": {
-        "claude_rule_count": 14,
-        "claude_section_counts": {
-          "コミット規約": 5,
-          "コーディング規約": 5,
-          "禁止事項": 4
-        },
-        "registry_rule_count": 14,
-        "registry_section_counts": {
-          "コミット規約": 5,
-          "コーディング規約": 5,
-          "禁止事項": 4
-        }
+        "finding_count": 0,
+        "tools": []
       },
       "mode": "advisory"
     }

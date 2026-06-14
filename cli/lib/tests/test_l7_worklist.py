@@ -11,7 +11,7 @@ LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
-from l7_worklist import collect_l7_worklist  # noqa: E402
+from l7_worklist import collect_l7_worklist, summary_counts  # noqa: E402
 
 
 def _write_registry(
@@ -112,4 +112,28 @@ def test_collect_l7_worklist_treats_requirement_drift_inventory_as_separate(tmp_
         "waived": 0,
         "separate_inventory": 1,
         "missing": 1,
+    }
+
+
+def test_summary_counts_exposes_missing_ut_alias(tmp_path: Path) -> None:
+    registry_path = _write_registry(
+        tmp_path,
+        [
+            _entry("FR-A", "FN-WSC-221", "UT-WSC-221"),
+            _entry("FR-B", "FN-WSC-223", "UT-WSC-223"),
+        ],
+    )
+    anchor_map_path = _write_anchor_map(
+        tmp_path,
+        {"UT-WSC-221": ["cli/lib/tests/test_fn_ut_pair_coverage_checks.py"]},
+    )
+
+    report = collect_l7_worklist(registry_path, anchor_map_path, tmp_path)
+
+    assert summary_counts(report) == {
+        "total": 2,
+        "anchored": 1,
+        "waived": 0,
+        "separate_inventory": 0,
+        "missing_ut": 1,
     }

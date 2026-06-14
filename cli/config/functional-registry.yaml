@@ -3603,6 +3603,97 @@ entries:
     code_paths:
       - "cli/lib/l7_worklist.py"
     doc_paths: []
+  - id: "FR-LIB-155"
+    name: "changed_files.py"
+    domain: "lib"
+    description: "changed-files source helper — HELIX_CHANGED_FILES または git diff から files/source_status を返す"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-224"
+    test_design_ids:
+      - "UT-WSC-224"
+    code_paths:
+      - "cli/lib/changed_files.py"
+    doc_paths: []
+  - id: "FR-LIB-156"
+    name: "coding_rule_lint.py"
+    domain: "lib"
+    description: "coding-rule mechanical lint wrapper — baseline と changed-files ratchet で新規違反だけを gate 化する"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-225"
+    test_design_ids:
+      - "UT-WSC-225"
+    uses:
+      - "FR-LIB-155"
+    code_paths:
+      - "cli/lib/coding_rule_lint.py"
+    doc_paths: []
+  - id: "FR-LIB-157"
+    name: "dependency_cycle_checks.py"
+    domain: "lib"
+    description: "dependency cycle detector — Python/Bash import/source cycle を baseline + changed-files ratchet で検出する"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-226"
+    test_design_ids:
+      - "UT-WSC-226"
+    uses:
+      - "FR-LIB-155"
+    code_paths:
+      - "cli/lib/dependency_cycle_checks.py"
+    doc_paths: []
+  - id: "FR-LIB-158"
+    name: "plan_dependency_gate.py"
+    domain: "lib"
+    description: "plan dependency gate wrapper — baseline warning と changed-files 新規 cycle / reciprocal 漏れを分離する"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-227"
+    test_design_ids:
+      - "UT-WSC-227"
+    uses:
+      - "FR-LIB-155"
+    code_paths:
+      - "cli/lib/plan_dependency_gate.py"
+    doc_paths: []
+  - id: "FR-LIB-159"
+    name: "fr_uses_checks.py"
+    domain: "lib"
+    description: "functional-registry uses detector — target 実在を block、reverse reference 欠落を warning として集約する"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-228"
+    test_design_ids:
+      - "UT-WSC-228"
+    code_paths:
+      - "cli/lib/fr_uses_checks.py"
+    doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"
