@@ -37,6 +37,12 @@ assert "PATH=\"$PWD/cli:$PATH\"" in run_scripts
 assert any(step.get("if") == "github.event_name == 'pull_request'" for step in steps)
 checkout = next(step for step in steps if str(step.get("uses", "")).startswith("actions/checkout"))
 assert checkout.get("with", {}).get("fetch-depth") == 0
+push_steps = [step for step in steps if step.get("if") == "github.event_name == 'push'" and "run" in step]
+assert push_steps, "detector-gate must export HELIX_CHANGED_FILES on push events (DF-FCCI-CI-RATCHET-PUSH)."
+push_scripts = "\n".join(step["run"] for step in push_steps)
+assert "HELIX_CHANGED_FILES" in push_scripts
+assert "${{ github.event.before }}" in push_scripts
+assert "${{ github.sha }}" in push_scripts
 PY
   [ "$status" -eq 0 ]
 }

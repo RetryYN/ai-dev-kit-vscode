@@ -124,6 +124,24 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_ENV"
 
+      # DF-FCCI-CI-RATCHET-PUSH: push event でも changed-files を注入する。これを欠くと
+      # HELIX_CHANGED_FILES が未設定 → changed_files() が detached HEAD で source_status=
+      # unavailable → ratchet が clean override = vacuous clean (fail-OPEN) になる。
+      # fetch-depth: 0 で event.before が到達可能なので event.before..sha の diff range を
+      # HELIX_CHANGED_FILES へ注入する。新ブランチ/force-push 等で before が全0/未到達なら
+      # `|| true` で空文字 export → source_status=available_empty (changed-file 0 件として
+      # clean。git diff 失敗を「変更なし」扱いにする稀な edge = P2 残リスク。force-push は
+      # branch protection が抑止、PR path + `helix push --gate` が依然 authoritative)。
+      - name: Export push changed files for ratchet detectors
+        if: github.event_name == 'push'
+        run: |
+          changed_files="$(git diff --name-only ${{ github.event.before }}..${{ github.sha }} 2>/dev/null || true)"
+          {
+            echo "HELIX_CHANGED_FILES<<EOF"
+            echo "$changed_files"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
       # VG-overview pre-push gate のみを isolated に fail-close 評価する。
       # `helix doctor --gate` (全体) は .helix/ project-state に依存し fresh checkout で
       # 常時 red になるため使わない。check_vg_overview --gate は overall_clean のみに依存する。
