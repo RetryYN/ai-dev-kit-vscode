@@ -65,11 +65,24 @@ related_docs:
 | 2026-06-09 | **L6 phase display alignment**。G6/G7 gate evidence に対して `.helix/phase.yaml` が `current_mode=scrum` / `current_phase=L4` のまま残り、`doctor --gate` に phase/mode warning が出ていたため、active phase display を `current_mode=forward` / `current_phase=L6` に更新。検証: `HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json` は `pass=33` / `fail=0` / `warn=103` で phase/mode warning 0、`python3 -m pytest cli/lib/tests/test_helix_doctor_phase_mode.py -q` は 9 passed。handover の `phase=L4` は引継ぎタスク metadata として残る。 | Codex |
 | 2026-06-09 | **strict full-flow execution visibility**。L6 focus の `overall_clean=true` と L0-L14 完全対応の未完を混同しないため、`VG-overview.full_flow_execution` と `--strict-full-flow` を追加。通常 `helix doctor check_vg_overview --json` は L6 focus / applicable pair clean を維持し、`--strict-full-flow` 指定時は `approved_deferred` execution gate が残る限り `overall_clean=false`。実リポジトリ evidence は `full_flow_execution.deferred_count=4`（L5-L8→G8、L4-L9→G9、L3-L12→G12、L1-L14→G14）で、各 item は `gate_id` / `target` / `next_action` / `reference` を持つ。L2-L10 は `not_applicable_count=1` として `ui_absent` waiver object（path / owner / process_layer / pairs_with / unskip_required_when）を返す。検証: `python3 -m pytest cli/lib/tests/test_vg_overview.py cli/lib/tests/test_push_gate.py -q` 26 passed、`bats cli/tests/helix-doctor-json.bats` 12 passed。 | Codex |
 | 2026-06-09 | **strict full-flow feedback-loop 接続**。`helix harness feedback-loop` が `VG-overview` を `strict_full_flow=True` / `execute_g7_tests=False` で読み、snapshot の `vg_overview`、learning candidate の `full_flow_deferred_execution_gate` / `not_applicable_pair_waiver`、metrics の `harness.feedback_loop.full_flow_deferred_gates` / `harness.feedback_loop.not_applicable_pairs` として出力するように接続。L6 focus の clean と L8/L9/L12/L14 実行ゲート残を DB feedback-loop で同時に追跡可能にした。検証: `python3 -m py_compile cli/lib/harness_monitor.py cli/lib/vg_overview.py`、`python3 -m pytest cli/lib/tests/test_harness_monitor_unit.py::TestFeedbackLoopSnapshot cli/lib/tests/test_vg_overview.py -q`、`bats cli/tests/test-helix-harness-feedback-loop.bats`。 | Codex |
+| 2026-06-15 | **DF-FCCI-CI-RATCHET-PUSH 解消 LANDED**（commit `ceff67e`、全8 gate green pytest2598+bats791、別 add-feature Action = detector-failclose-ci-gate follow-up）。併せて**後続 Forward 着手順を確定（自動化→HELIX DB、ユーザー方針 + TL tl-advisor passed/条件付き推奨）**。standing roadmap を再生産せず、本 Process 配下の個別 add-feature Action として着手時に起票する方針を §4 に pending gate evidence 着手順として記録（実装着手はユーザー指示「計画確定のみ」により次回以降）。 | PM (Opus) + tl-advisor |
 
 ## 4. 残（後続）
 - **MVP-B 残**: DF-G7-MISSING-001 の真 missing UT 4、G7 timeout guard、VG-overview fail-close、push 接続は解消済み。残りは CI 接続。
 - G8/G9/G12/G14 ratchet（右腕 execution gate）/ 全 pair strict（G9 ST 実行 gate、L5-L8 deferred 等の右腕実行 gap 解消後）/ L2↔L10 FE detector 本実装。右腕 execution gate の deferred は `helix doctor check_vg_overview --strict-full-flow --json` の `full_flow_execution.deferred_pairs[]`、L2-L10 waiver は `not_applicable_pairs[]` で machine-visible。
 - 退化防止 static check 実装（deprecated Process を新 Action parent にしない 等）。
+
+### 4.1 後続 Forward 着手順（確定 2026-06-15、自動化→HELIX DB）
+> standing roadmap ではない。各項は **pending gate evidence を閉じる Forward 前進**であり、着手時に本 Process 配下の個別 add-feature Action として起票する（事前一括起票は over-build = しない）。順序は依存・baseline 債・CI red リスク・`forbidden_now` 解禁順に基づく（TL tl-advisor 諮問 2026-06-15 passed/条件付き推奨）。
+
+**自動化（先）** — 各々 `forbidden_now` 解禁が必要なものは entry にユーザー明示承認:
+1. **W1 狭い fail-close 昇格**（L6↔L7）: 既に green な detector surface（requirement_drift / vg_overview / g7_subcheck）のみ fail-close 化。**broad flip はしない**（`forbidden_now: broad advisory→fail-close flip of W1 detectors` 抵触＝明示承認 entry）。
+2. **ruff/shellcheck advisory**（L6↔L7）: install するなら `continue-on-error` advisory のみ、required 化しない（`forbidden_now: install·execute external tools` 抵触＝明示承認 entry）。
+3. **W17/W18 ratchet full-required**（W17=L6↔L7 / W18=L4↔L9 + L6↔L7）: baseline 債（import循環5 / plan-dep49 / fr_uses3 / coding_rule linter未install）を **detector 単位**で解消し `changed-files ratchet → detector 単位 full-required`。一括 full は CI red（P1）。
+4. **W2 右腕 execution gate**（G8=L5↔L8 / G9=L4↔L9 / G12=L3↔L12 / G14=L1↔L14）: **左腕設計/検証設計の再凍結を先行**してから L7 配線・CI required。L7/CI から始めると片肺化（P1）。最長工程。
+
+**HELIX DB（後）** — W3/W6/W11 / db_backed_evidence_lifecycle（L4 schema → L5 → L6 → L7）:
+- entry 条件 = **観測された永続化要求**から逆算（推測 schema を作らない＝CLAUDE.md DB 方針）。判定 = `candidate_generated` / `plan_materialized` / `verification_recorded` / `gate_projected` / `recurrence_closed` の状態差分が file/suggest で追跡不能、route_engine suggestion と actual closure の差が監査上必要、forward_return/closure evidence/feedback candidate が複数 Action で再利用され append-only evidence では不足、のいずれかが反復観測された段階。`forbidden_now: write/adopt HELIX DB state` 抵触＝明示承認 entry。
 
 ## 5. forward_return
 frontmatter `forward_return` の通り、Forward V-model 各 L exit の検証ゲート内在化へ収束。本 Process は bounded（MVP-A/B + 段階拡大で完了）であり、永続ロードマップ化させない（automation-gate-map §8 退化防止）。
