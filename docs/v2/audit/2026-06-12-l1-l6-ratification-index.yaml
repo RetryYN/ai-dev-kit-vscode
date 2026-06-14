@@ -218,7 +218,7 @@ ratification_summary:
   workflow_detector_gate_routes_mapped: 7
   workflow_cross_audit_convergence_rows_checked: 6
   workflow_deferred_feature_entry_points_checked: 7
-  workflow_parked_feature_entry_points_checked: 1
+  workflow_parked_feature_entry_points_checked: 0
   workflow_blocking_findings_current_scope: 0
   workflow_l7_artifacts_created_by_this_audit: 0
   governance_surfaces_checked: 8
@@ -318,7 +318,7 @@ ratification_summary:
   deferred_current_objective_deferred_feature_tickets: 11
   deferred_out_of_current_objective_add_feature_files: 7
   deferred_out_of_current_objective_completed_add_features: 4
-  deferred_out_of_current_objective_parked_feature_tickets: 1
+  deferred_out_of_current_objective_parked_feature_tickets: 0
   deferred_full_flow_later_phase_approval_boundary: true
   deferred_clauses_without_deferred_work: 1
   deferred_clauses_mapped_to_feature_ticket: 8
@@ -361,7 +361,7 @@ ratification_summary:
   full_objective_current_objective_deferred_feature_tickets: 11
   full_objective_out_of_current_objective_add_feature_files: 7
   full_objective_out_of_current_objective_completed_add_features: 4
-  full_objective_out_of_current_objective_parked_feature_tickets: 1
+  full_objective_out_of_current_objective_parked_feature_tickets: 0
   full_objective_right_arm_execution_gates_deferred: 4
   full_objective_blocking_findings_current_l1_l6_scope: 0
   full_objective_blocking_findings_full_goal: 8

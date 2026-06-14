@@ -53,7 +53,7 @@ summary:
   detector_gate_routes_mapped: 7
   cross_audit_convergence_rows_checked: 6
   deferred_feature_entry_points_checked: 7
-  parked_feature_entry_points_checked: 1
+  parked_feature_entry_points_checked: 0
   blocking_findings_current_scope: 0
   l7_artifacts_created_by_this_audit: 0
 workflow_surfaces:
@@ -446,18 +446,18 @@ deferred_feature_policy:
         - safe task retitle / metadata refresh command
         - runtime phase enum metadata validation
         - handover legacy L7 label regression guard
-  parked_feature_tickets:
+  parked_feature_tickets: []
+  current_scope_authorized_feature_tickets:
     - id: detector_failclose_ci_gate
       path: docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md
-      status: finalized_parked
-      current_task_scope: parked_feature_ticket_only
-      approval_required_before_l7_work: true
-      approval_required_before_ci_or_fail_close: true
+      status: active_ci_enforcement
+      current_task_scope: ci_enforcement_and_boundary_unpark
       ticket_is_completion_evidence: false
       unlocks:
-        - detector fail-close promotion
         - CI gate connection
         - automation-gate hardening
+      still_parked:
+        - detector fail-close promotion
 completion_denial:
   reason: >
     This audit proves only L1-L6 workflow automation design coverage and route

@@ -89,3 +89,45 @@ jobs:
             echo "--- $file ---"
             bash cli/helix-drift-check "$file" || true
           done
+
+  detector-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # PR の merge-base 到達性を確保し、ratchet detector の changed-files が
+          # available_empty に degrade して vacuous clean になるのを防ぐ (F4)
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # helix-doctor は system python3 ではなく実行系の python3 を使うため、
+      # vg_overview が import する PyYAML を clean な setup-python 環境へ明示 install する
+      - name: Install dev requirements
+        if: ${{ hashFiles('requirements-dev.txt') != '' }}
+        run: python3 -m pip install --quiet -r requirements-dev.txt
+
+      - name: Export PR changed files for ratchet detectors
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          changed_files="$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || true)"
+          {
+            echo "HELIX_CHANGED_FILES<<EOF"
+            echo "$changed_files"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      # VG-overview pre-push gate のみを isolated に fail-close 評価する。
+      # `helix doctor --gate` (全体) は .helix/ project-state に依存し fresh checkout で
+      # 常時 red になるため使わない。check_vg_overview --gate は overall_clean のみに依存する。
+      - name: Run detector gate (VG-overview)
+        run: |
+          export PATH="$PWD/cli:$PATH"
+          HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json

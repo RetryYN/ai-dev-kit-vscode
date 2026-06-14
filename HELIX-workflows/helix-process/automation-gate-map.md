@@ -122,7 +122,7 @@ axis-01〜14 は実装済み（**いずれも advisory / push 未接続**）。a
 
 **MVP（ユーザー確定、TL P1 反映で 2 段順序を厳守）**:
 - **MVP-A（計測 + closure 先行、advisory のみ）**: G7 subcheck（UT-ID test code anchor + test_execution_pass）を**実装**し、L6↔L7 の anchor を **31/88 → 88/88 に closure**（trace_symmetry(L6-L7) clean / registry_design_coverage clean を維持）。この段階は **advisory（exit 0）専用**、fail-close も ratchet block もしない（ratchet は次段以降）。
-- **MVP-B（green 証跡確認後に fail-close flip）**: MVP-A で `helix doctor --gate`（G7 + VG-overview-pre-push）が**実走 exit 0（全 anchor 閉・全 detector green）**を証明してから、fail-close へ flip。2026-06-09 Codex で `helix doctor --gate` と `helix push --gate` の `G-vg-overview` 接続は完了。L2-L10 は explicit `ui_absent` waiver を VG-overview が読む。CI 接続は carry。
+- **MVP-B（green 証跡確認後に fail-close flip）**: MVP-A で `helix doctor --gate`（G7 + VG-overview-pre-push）が**実走 exit 0（全 anchor 閉・全 detector green）**を証明してから、fail-close へ flip。2026-06-09 Codex で `helix doctor --gate` と `helix push --gate` の `G-vg-overview` 接続は完了し、2026-06-14 に `.github/workflows/ci.yml` の `detector-gate` job から `HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json` を Required check 向け surface として配線した（全体 `helix doctor --gate` は `.helix/` project-state に依存し fresh checkout で常時 red になるため、CI は vg_overview.overall_clean のみを fail-close 評価する subcommand 形式を使う）。L2-L10 は explicit `ui_absent` waiver を VG-overview が読む。strict full-flow / right-arm gate は carry。
 - **着手前提**: anchor が 31/88 のまま G7 を fail-close 化すると CI 即 red（「今 green な分のみ昇格」原則に反する）。必ず A→B の順。
 
 **次段**: G8/G9/G12/G14 を ratchet → requirement_drift fail-close → 全 pair strict（G9 ST 実行 gate、L5-L8 deferred 等の既知 gap 解消後、`--strict-vmodel-pair-freeze` 系）。

@@ -113,7 +113,7 @@ current_l1_l6_evidence:
       current_objective_deferred_feature_tickets: 11
       out_of_current_objective_add_feature_files: 7
       out_of_current_objective_completed_add_features: 4
-      out_of_current_objective_parked_feature_tickets: 1
+      out_of_current_objective_parked_feature_tickets: 0
       full_flow_later_phase_approval_boundary: true
       unmapped_deferred_boundaries: 0
       l7_artifacts_created_by_this_audit: 0
@@ -230,7 +230,7 @@ current_l1_l6_evidence:
       detector_gate_routes_mapped: 7
       cross_audit_convergence_rows_checked: 6
       deferred_feature_entry_points_checked: 7
-      parked_feature_entry_points_checked: 1
+      parked_feature_entry_points_checked: 0
       right_arm_execution_gate_implementation_done: false
       ci_or_equivalent_connected: false
   db_registration_readiness:
@@ -294,7 +294,7 @@ current_l1_l6_evidence:
       current_objective_deferred_feature_tickets: 11
       out_of_current_objective_add_feature_files: 7
       out_of_current_objective_completed_add_features: 4
-      out_of_current_objective_parked_feature_tickets: 1
+      out_of_current_objective_parked_feature_tickets: 0
       right_arm_execution_gates_deferred: 4
       current_scope_verdict: pass_l1_l6_only
       full_goal_verdict: active_not_complete
@@ -399,7 +399,7 @@ current_l1_l6_evidence:
       deferred_current_objective_deferred_feature_tickets: 11
       deferred_out_of_current_objective_add_feature_files: 7
       deferred_out_of_current_objective_completed_add_features: 4
-      deferred_out_of_current_objective_parked_feature_tickets: 1
+      deferred_out_of_current_objective_parked_feature_tickets: 0
       db_feedback_accountability_indexed: true
       db_feedback_feature_ticket_is_not_design_substitute: true
       db_feedback_db_write_requires_explicit_approval: true
@@ -426,7 +426,7 @@ current_l1_l6_evidence:
       full_objective_current_objective_deferred_feature_tickets: 11
       full_objective_out_of_current_objective_add_feature_files: 7
       full_objective_out_of_current_objective_completed_add_features: 4
-      full_objective_out_of_current_objective_parked_feature_tickets: 1
+      full_objective_out_of_current_objective_parked_feature_tickets: 0
       full_objective_right_arm_execution_gates_deferred: 4
       full_objective_blocking_findings_current_l1_l6_scope: 0
       full_objective_blocking_findings_full_goal: 8

@@ -1,6 +1,6 @@
 schema_version: ci_gate_surface_audit_v1
 owner: TL
-status: partial_local_gate_surface_only
+status: ci_detector_gate_connected_full_flow_still_deferred
 updated: 2026-06-09
 source_goal_audit: docs/v2/L7-test-design/goal-completion-audit.yaml
 source_right_arm_request: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
@@ -14,8 +14,8 @@ local_gate_surface:
     command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json
     pass: 33
     fail: 0
-    warn: 103
-    interpretation: Local gate surface has no fail, but warnings remain advisory.
+    warn: 104
+    interpretation: Local developer full-doctor surface; pass/warn are advisory snapshots and the contracted judgment is fail=0. Not used as the CI Required check (project-state dependent; see ci_surface).
   vg_overview_default:
     command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
     overall_clean: true
@@ -42,12 +42,17 @@ local_gate_surface:
       - cli/tests/helix-doctor-json.bats
 ci_surface:
   required_for_goal_completion: true
-  ci_or_equivalent_connected: false
-  reason: No CI or equivalent required surface evidence is recorded for enforcing the remaining full-flow carry.
+  ci_or_equivalent_connected: true
+  reason: detector-gate runs helix doctor check_vg_overview --gate --json in CI (project-state independent), while strict full-flow carry remains deferred.
+  ci_detector_gate:
+    command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json
+    gate_basis: vg_overview.overall_clean
+    project_state_independent: true
+    exit_0_when_clean: true
   required_next:
-    - Connect the CI or equivalent local required gate surface defined in docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml.
     - Keep L6 focus gate green without hiding strict full-flow deferred gates.
     - Require strict full-flow overall_clean=true after G8/G9/G12/G14 pass.
+    - Register detector-gate as a GitHub Required check in branch protection.
     - Record CI/equivalent run evidence in PLAN/PR/gate evidence and HELIX DB feedback loop.
 completion_boundary:
   local_doctor_gate_pass_is_goal_completion: false

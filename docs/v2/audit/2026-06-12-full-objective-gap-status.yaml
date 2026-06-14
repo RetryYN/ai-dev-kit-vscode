@@ -42,13 +42,14 @@ boundary:
 latest_user_boundary:
   l7_requested_now: false
   l7_route: add_feature_ticket_only
-  current_allowed_work: L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, and add-feature ticket boundary mapping
+  current_allowed_work: >
+    L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, current-scope CI
+    enforcement, and add-feature ticket boundary mapping
   forbidden_now:
     - L7 product feature implementation
     - L7 product coverage closure
     - write/adopt HELIX DB state
     - install/execute external tools
-    - wire CI/equivalent gates
     - broad advisory→fail-close flip of W1 detectors
 summary:
   objective_items_checked: 10
@@ -59,7 +60,7 @@ summary:
   current_objective_deferred_feature_tickets: 11
   out_of_current_objective_add_feature_files: 7
   out_of_current_objective_completed_add_features: 4
-  out_of_current_objective_parked_feature_tickets: 1
+  out_of_current_objective_parked_feature_tickets: 0
   right_arm_execution_gates_deferred: 4
   blocking_findings_current_l1_l6_scope: 0
   blocking_findings_full_goal: 8
@@ -662,7 +663,6 @@ handover_boundary_contract:
     - L7 product coverage closure
     - write/adopt HELIX DB state
     - install/execute external tools
-    - wire CI/equivalent gates
     - broad advisory→fail-close flip of W1 detectors
   latest_user_boundary_l7_route_must_be_reflected_in_handover: true
   latest_user_boundary_allowed_work_must_be_reflected_in_handover: true
@@ -889,7 +889,7 @@ repository_add_feature_inventory_contract:
   current_objective_deferred_feature_tickets_checked: 11
   excluded_from_current_objective_deferred_count: 7
   historical_completed_feature_count: 4
-  parked_feature_ticket_outside_current_objective_count: 1
+  parked_feature_ticket_outside_current_objective_count: 0
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false

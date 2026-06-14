@@ -423,6 +423,25 @@ for pair_name, item in vg["pair_status"].items():
     )
 PY
   fi
+  # --gate: VG-overview pre-push 条件を fail-close 評価する (help 記載の契約を実体化)。
+  # vg_overview.overall_clean のみに依存し、.helix/ project-state には依存しない
+  # ため、CI fresh checkout の Required check として安全に使える。
+  if [[ "$GATE_MODE" == true ]]; then
+    gate_verdict="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+try:
+    payload = json.loads(sys.argv[1])
+    print("clean" if payload["vg_overview"]["overall_clean"] else "dirty")
+except Exception:
+    print("error")
+PY
+)"
+    if [[ "$gate_verdict" != "clean" ]]; then
+      exit 1
+    fi
+  fi
   exit 0
 fi
 

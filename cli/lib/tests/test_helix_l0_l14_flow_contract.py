@@ -37,6 +37,7 @@ VERIFICATION_SKILL_DOC = REPO_ROOT / "skills/workflow/verification/SKILL.md"
 PROCESS_ROADMAP = REPO_ROOT / "docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md"
 AI_HARNESS_DOC = REPO_ROOT / "docs/commands/ai-harness.md"
 PUSH_DOC = REPO_ROOT / "docs/commands/push.md"
+CI_WORKFLOW = REPO_ROOT / ".github/workflows/ci.yml"
 L6_HELIX_FUNCTION_DESIGN_DOC = (
     REPO_ROOT / "docs/v2/L6-functional-design/helix-workflows-function-design.md"
 )
@@ -1907,7 +1908,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_objective_deferred_feature_tickets": 11,
         "out_of_current_objective_add_feature_files": 7,
         "out_of_current_objective_completed_add_features": 4,
-        "out_of_current_objective_parked_feature_tickets": 1,
+        "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
         "unmapped_deferred_boundaries": 0,
         "l7_artifacts_created_by_this_audit": 0,
@@ -2068,7 +2069,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "detector_gate_routes_mapped": 7,
         "cross_audit_convergence_rows_checked": 6,
         "deferred_feature_entry_points_checked": 7,
-        "parked_feature_entry_points_checked": 1,
+        "parked_feature_entry_points_checked": 0,
         "right_arm_execution_gate_implementation_done": False,
         "ci_or_equivalent_connected": False,
     }
@@ -2160,7 +2161,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_objective_deferred_feature_tickets": 11,
         "out_of_current_objective_add_feature_files": 7,
         "out_of_current_objective_completed_add_features": 4,
-        "out_of_current_objective_parked_feature_tickets": 1,
+        "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
         "current_scope_verdict": "pass_l1_l6_only",
         "full_goal_verdict": "active_not_complete",
@@ -2248,7 +2249,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "deferred_current_objective_deferred_feature_tickets": 11,
         "deferred_out_of_current_objective_add_feature_files": 7,
         "deferred_out_of_current_objective_completed_add_features": 4,
-        "deferred_out_of_current_objective_parked_feature_tickets": 1,
+        "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_design_obligation_rows_checked": 11,
         "deferred_design_obligation_escape_findings": 0,
         "legacy_runtime_retrofit_required_items": 1,
@@ -2296,7 +2297,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
             "full_objective_current_objective_deferred_feature_tickets": 11,
             "full_objective_out_of_current_objective_add_feature_files": 7,
             "full_objective_out_of_current_objective_completed_add_features": 4,
-            "full_objective_out_of_current_objective_parked_feature_tickets": 1,
+            "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,
             "full_objective_blocking_findings_current_l1_l6_scope": 0,
             "full_objective_blocking_findings_full_goal": 8,
@@ -4322,7 +4323,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_objective_deferred_feature_tickets": 11,
         "out_of_current_objective_add_feature_files": 7,
         "out_of_current_objective_completed_add_features": 4,
-        "out_of_current_objective_parked_feature_tickets": 1,
+        "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
         "clauses_without_deferred_work": 1,
         "clauses_mapped_to_feature_ticket": 8,
@@ -4443,10 +4444,10 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
     }
     assert excluded_inventory["detector_failclose_ci_gate"][
         "classification"
-    ] == "parked_feature_ticket_outside_current_objective_set"
+    ] == "current_scope_authorized_ci_enforcement"
     assert excluded_inventory["detector_failclose_ci_gate"][
         "observed_status"
-    ] == "finalized"
+    ] == "completed"
     assert all((REPO_ROOT / item["path"]).exists() for item in excluded_inventory.values())
     assert deferred_coverage["feature_ticket_unlock_condition_contract"] == {
         "source_contract": (
@@ -7698,7 +7699,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_objective_deferred_feature_tickets": 11,
         "out_of_current_objective_add_feature_files": 7,
         "out_of_current_objective_completed_add_features": 4,
-        "out_of_current_objective_parked_feature_tickets": 1,
+        "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
         "blocking_findings_current_l1_l6_scope": 0,
         "blocking_findings_full_goal": 8,
@@ -7731,7 +7732,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_objective_deferred_feature_tickets_checked": 11,
         "excluded_from_current_objective_deferred_count": 7,
         "historical_completed_feature_count": 4,
-        "parked_feature_ticket_outside_current_objective_count": 1,
+        "parked_feature_ticket_outside_current_objective_count": 0,
         "exclusion_is_completion_evidence_for_current_objective": False,
         "exclusion_may_hide_current_l1_l6_design_debt": False,
         "l7_work_allowed_by_inventory": False,
@@ -8258,7 +8259,6 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
                 "L7 product coverage closure",
                 "write/adopt HELIX DB state",
                 "install/execute external tools",
-                "wire CI/equivalent gates",
                 "broad advisory→fail-close flip of W1 detectors",
         ],
         "latest_user_boundary_l7_route_must_be_reflected_in_handover": True,
@@ -9165,7 +9165,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "workflow_detector_gate_routes_mapped": 7,
         "workflow_cross_audit_convergence_rows_checked": 6,
         "workflow_deferred_feature_entry_points_checked": 7,
-        "workflow_parked_feature_entry_points_checked": 1,
+        "workflow_parked_feature_entry_points_checked": 0,
         "workflow_blocking_findings_current_scope": 0,
         "workflow_l7_artifacts_created_by_this_audit": 0,
         "governance_surfaces_checked": 8,
@@ -9265,7 +9265,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "deferred_current_objective_deferred_feature_tickets": 11,
         "deferred_out_of_current_objective_add_feature_files": 7,
         "deferred_out_of_current_objective_completed_add_features": 4,
-        "deferred_out_of_current_objective_parked_feature_tickets": 1,
+        "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_full_flow_later_phase_approval_boundary": True,
         "deferred_clauses_without_deferred_work": 1,
         "deferred_clauses_mapped_to_feature_ticket": 8,
@@ -9308,7 +9308,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "full_objective_current_objective_deferred_feature_tickets": 11,
             "full_objective_out_of_current_objective_add_feature_files": 7,
             "full_objective_out_of_current_objective_completed_add_features": 4,
-            "full_objective_out_of_current_objective_parked_feature_tickets": 1,
+            "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,
             "full_objective_blocking_findings_current_l1_l6_scope": 0,
             "full_objective_blocking_findings_full_goal": 8,
@@ -11647,13 +11647,12 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "latest_user_boundary": {
             "l7_requested_now": False,
             "l7_route": "add_feature_ticket_only",
-            "forbidden_now_count": 6,
+            "forbidden_now_count": 5,
             "forbidden_now": [
                 "L7 product feature implementation",
                 "L7 product coverage closure",
                 "write/adopt HELIX DB state",
                 "install/execute external tools",
-                "wire CI/equivalent gates",
                 "broad advisory→fail-close flip of W1 detectors",
             ],
         },
@@ -11697,14 +11696,13 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "l7_requested_now": False,
         "l7_route": "add_feature_ticket_only",
         "current_allowed_work": (
-            "L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, and add-feature ticket boundary mapping"
+            "L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, current-scope CI enforcement, and add-feature ticket boundary mapping\n"
         ),
         "forbidden_now": [
             "L7 product feature implementation",
             "L7 product coverage closure",
             "write/adopt HELIX DB state",
             "install/execute external tools",
-            "wire CI/equivalent gates",
             "broad advisory→fail-close flip of W1 detectors",
         ],
     }
@@ -11776,7 +11774,7 @@ def test_workflow_automation_coverage_map_keeps_l7_feature_ticketed() -> None:
         "detector_gate_routes_mapped": 7,
         "cross_audit_convergence_rows_checked": 6,
         "deferred_feature_entry_points_checked": 7,
-        "parked_feature_entry_points_checked": 1,
+        "parked_feature_entry_points_checked": 0,
         "blocking_findings_current_scope": 0,
         "l7_artifacts_created_by_this_audit": 0,
     }
@@ -12006,17 +12004,26 @@ def test_workflow_automation_coverage_map_keeps_l7_feature_ticketed() -> None:
     parked_feature_tickets = {
         item["id"]: item for item in feature_policy["parked_feature_tickets"]
     }
-    assert set(parked_feature_tickets) == {"detector_failclose_ci_gate"}
-    detector_gate_ticket = parked_feature_tickets["detector_failclose_ci_gate"]
-    assert detector_gate_ticket["status"] == "finalized_parked"
-    assert detector_gate_ticket["current_task_scope"] == "parked_feature_ticket_only"
-    assert detector_gate_ticket["approval_required_before_l7_work"] is True
-    assert detector_gate_ticket["approval_required_before_ci_or_fail_close"] is True
-    assert detector_gate_ticket["ticket_is_completion_evidence"] is False
-    assert (
-        payload["summary"]["parked_feature_entry_points_checked"]
-        == len(parked_feature_tickets)
+    assert parked_feature_tickets == {}
+    current_scope_authorized_tickets = {
+        item["id"]: item
+        for item in feature_policy["current_scope_authorized_feature_tickets"]
+    }
+    assert set(current_scope_authorized_tickets) == {"detector_failclose_ci_gate"}
+    detector_gate_ticket = current_scope_authorized_tickets["detector_failclose_ci_gate"]
+    assert detector_gate_ticket["status"] == "active_ci_enforcement"
+    assert detector_gate_ticket["current_task_scope"] == (
+        "ci_enforcement_and_boundary_unpark"
     )
+    assert detector_gate_ticket["ticket_is_completion_evidence"] is False
+    assert detector_gate_ticket["unlocks"] == [
+        "CI gate connection",
+        "automation-gate hardening",
+    ]
+    assert detector_gate_ticket["still_parked"] == [
+        "detector fail-close promotion",
+    ]
+    assert payload["summary"]["parked_feature_entry_points_checked"] == 0
 
     for refs in payload["sources"].values():
         for ref in refs:
@@ -13776,7 +13783,7 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
     goal_audit = yaml.safe_load(_read(GOAL_COMPLETION_AUDIT_MANIFEST))
 
     assert payload["schema_version"] == "ci_gate_surface_audit_v1"
-    assert payload["status"] == "partial_local_gate_surface_only"
+    assert payload["status"] == "ci_detector_gate_connected_full_flow_still_deferred"
     assert payload["source_goal_audit"] == (
         "docs/v2/L7-test-design/goal-completion-audit.yaml"
     )
@@ -13790,8 +13797,8 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
         "command": "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor --gate --json",
         "pass": 33,
         "fail": 0,
-        "warn": 103,
-        "interpretation": "Local gate surface has no fail, but warnings remain advisory.",
+        "warn": 104,
+        "interpretation": "Local developer full-doctor surface; pass/warn are advisory snapshots and the contracted judgment is fail=0. Not used as the CI Required check (project-state dependent; see ci_surface).",
     }
     assert payload["local_gate_surface"]["vg_overview_default"]["overall_clean"] is True
     assert payload["local_gate_surface"]["vg_overview_default"]["focus"] == "L6"
@@ -13805,12 +13812,18 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
     assert payload["local_gate_surface"]["push_gate_surface"]["gate_id"] == "G-vg-overview"
     assert payload["ci_surface"] == {
         "required_for_goal_completion": True,
-        "ci_or_equivalent_connected": False,
-        "reason": "No CI or equivalent required surface evidence is recorded for enforcing the remaining full-flow carry.",
+        "ci_or_equivalent_connected": True,
+        "reason": "detector-gate runs helix doctor check_vg_overview --gate --json in CI (project-state independent), while strict full-flow carry remains deferred.",
+        "ci_detector_gate": {
+            "command": "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json",
+            "gate_basis": "vg_overview.overall_clean",
+            "project_state_independent": True,
+            "exit_0_when_clean": True,
+        },
         "required_next": [
-            "Connect the CI or equivalent local required gate surface defined in docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml.",
             "Keep L6 focus gate green without hiding strict full-flow deferred gates.",
             "Require strict full-flow overall_clean=true after G8/G9/G12/G14 pass.",
+            "Register detector-gate as a GitHub Required check in branch protection.",
             "Record CI/equivalent run evidence in PLAN/PR/gate evidence and HELIX DB feedback loop.",
         ],
     }
@@ -13834,6 +13847,40 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
     assert "docs/v2/L7-test-design/ci-gate-surface-audit.yaml" in requirement[
         "evidence"
     ]
+
+
+def test_ci_workflow_pins_detector_gate_contract() -> None:
+    payload = yaml.safe_load(_read(CI_WORKFLOW))
+    jobs = payload["jobs"]
+
+    assert "detector-gate" in jobs
+    detector_gate = jobs["detector-gate"]
+    assert detector_gate["permissions"] == {"contents": "read"}
+
+    steps = detector_gate["steps"]
+    run_steps = [step for step in steps if "run" in step]
+    run_scripts = "\n".join(step["run"] for step in run_steps)
+
+    # CI gate は VG-overview のみを isolated に fail-close 評価する subcommand 形式を使う。
+    # `helix doctor --gate` (全体) は .helix/ project-state に依存し fresh checkout で常時 red
+    # になるため使わない (P0)。
+    assert "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json" in run_scripts
+    assert "helix doctor --gate --json" not in run_scripts
+    assert "--strict-full-flow" not in run_scripts
+    assert "--strict-vmodel-pair-freeze" not in run_scripts
+    # PyYAML 等 vg_overview の依存を clean な setup-python 環境へ明示 install する (P1)。
+    assert "pip install" in run_scripts
+    assert "requirements-dev.txt" in run_scripts
+    assert "HELIX_CHANGED_FILES" in run_scripts
+    assert "git fetch origin ${{ github.base_ref }}" in run_scripts
+    assert "PATH=\"$PWD/cli:$PATH\"" in run_scripts
+    assert any(step.get("if") == "github.event_name == 'pull_request'" for step in steps)
+    # PR の merge-base 到達性を確保し ratchet detector が available_empty に degrade しない
+    # ようにする (F4: changed-files が空だと ratchet が vacuous clean になる)。
+    checkout = next(
+        step for step in steps if str(step.get("uses", "")).startswith("actions/checkout")
+    )
+    assert checkout.get("with", {}).get("fetch-depth") == 0
 
 
 def test_ci_equivalent_gate_readiness_defines_bundle_without_connecting_completion() -> None:

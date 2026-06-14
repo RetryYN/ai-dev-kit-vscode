@@ -123,10 +123,14 @@ weaknesses:
       status: finalized (design) / execution PARKED
       forward_return: added_2026_06_14
     lpair_gate_evidence: "L6↔L7 (G7 exit の CI 配線サブチェック); automation-gate-map §5 次段=CI 接続 pending"
-    in_scope_action_done: forward_return 追加 (W1 ticket 共有)。本マップで CI 設計空白を可視化。
+    in_scope_action_done: >
+      forward_return 追加 (W1 ticket 共有) に加え、`detector-gate` CI 配線を
+      landed。`helix doctor --gate --json` を Required check 向け job として
+      固定し、PR changed-files も `HELIX_CHANGED_FILES` で注入する。
     pending_forward_action: >
-      FR-DOCTOR-01(L3) に「detector allowlist → CI Required check (detector-gate job)」AC 追補 (doc)。
-      .github/workflows/ci.yml の detector-gate job は L7 実装成果物 (PARKED)。
+      full-required detector promotion / strict pair / branch protection 登録は
+      deferred のまま。W17/W18 baseline clean 後の full-required 昇格と、
+      GitHub branch protection への Required check 登録は別 Action。
 
   - id: W5-gate-precision
     title: gate 粒度/blind-spot (G-nondestructive 除外リストの精度)

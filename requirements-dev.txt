@@ -2,3 +2,4 @@ pytest>=7.0
 pytest-xdist>=3.0  # PLAN-102: -n auto 並列実行用 (default serial、--parallel で opt-in)
 coverage>=7.0
 flask>=3.0.0
+PyYAML>=6.0  # registry/vg_overview/doctor が import yaml する明示依存 (CI detector-gate / setup-python clean 環境で ModuleNotFoundError を防ぐ)。BSD-like (MIT) license

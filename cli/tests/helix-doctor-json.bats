@@ -126,3 +126,37 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" == *"C2 工程逸脱: CLEAR"* ]]
 }
+
+# --- check_vg_overview --gate exit semantics (CI Required check が依存する契約) ---
+
+@test "check_vg_overview --gate --json exits 0 when overall_clean" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_vg_overview --gate --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_vg_overview --json (no --gate) stays advisory exit 0" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_vg_overview --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_vg_overview --gate --strict-full-flow --json fails closed (exit 1) when overall_clean false" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_vg_overview --gate --strict-full-flow --json
+  [ "$status" -eq 1 ]
+}
+
+@test "check_vg_overview --strict-full-flow --json (no --gate) stays advisory exit 0" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_vg_overview --strict-full-flow --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_vg_overview --gate is project-state independent (passes in fresh checkout without .helix)" {
+  FRESH="$TMP_ROOT/fresh-checkout"
+  mkdir -p "$FRESH"
+  git -C "$HELIX_ROOT" archive HEAD | tar -x -C "$FRESH"
+  # uncommitted な helix-doctor / vg_overview を反映 (CI と同じ fresh tree + 検証対象の実装)
+  cp "$HELIX_ROOT/cli/helix-doctor" "$FRESH/cli/helix-doctor"
+  cp "$HELIX_ROOT/cli/lib/vg_overview.py" "$FRESH/cli/lib/vg_overview.py"
+  [ ! -d "$FRESH/.helix" ]
+  run env HELIX_HOME="$FRESH" HELIX_PROJECT_ROOT="$FRESH" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$FRESH/cli/helix-doctor" check_vg_overview --gate --json
+  [ "$status" -eq 0 ]
+}

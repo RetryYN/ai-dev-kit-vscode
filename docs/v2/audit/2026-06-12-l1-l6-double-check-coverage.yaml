@@ -140,7 +140,7 @@ quantitative_checks:
       current_objective_deferred_feature_tickets: 11
       out_of_current_objective_add_feature_files: 7
       out_of_current_objective_completed_add_features: 4
-      out_of_current_objective_parked_feature_tickets: 1
+      out_of_current_objective_parked_feature_tickets: 0
       full_flow_later_phase_approval_boundary: true
       unmapped_deferred_boundaries: 0
     source: docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml
@@ -223,7 +223,7 @@ quantitative_checks:
       detector_gate_routes_mapped: 7
       cross_audit_convergence_rows_checked: 6
       deferred_feature_entry_points_checked: 7
-      parked_feature_entry_points_checked: 1
+      parked_feature_entry_points_checked: 0
     source: docs/v2/audit/2026-06-12-l1-l6-workflow-automation-coverage.yaml
     verdict: pass
   - id: Q-DB-REGISTRATION-READINESS
@@ -287,7 +287,7 @@ quantitative_checks:
       current_objective_deferred_feature_tickets: 11
       out_of_current_objective_add_feature_files: 7
       out_of_current_objective_completed_add_features: 4
-      out_of_current_objective_parked_feature_tickets: 1
+      out_of_current_objective_parked_feature_tickets: 0
       right_arm_execution_gates_deferred: 4
       full_goal_verdict: active_not_complete
     source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
@@ -515,13 +515,12 @@ qualitative_checks:
       latest_user_boundary:
         l7_requested_now: false
         l7_route: add_feature_ticket_only
-        forbidden_now_count: 6
+        forbidden_now_count: 5
         forbidden_now:
           - L7 product feature implementation
           - L7 product coverage closure
           - write/adopt HELIX DB state
           - install/execute external tools
-          - wire CI/equivalent gates
           - broad advisory→fail-close flip of W1 detectors
     verdict: pass
   - id: L-FEATURE-TICKET-UNLOCK-CONDITIONS
