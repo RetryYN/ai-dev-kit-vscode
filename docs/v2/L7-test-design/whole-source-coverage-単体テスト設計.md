@@ -61,6 +61,11 @@
 | UT-WSC-216 | FN-WSC-216 | workflow_dsl_parser.py | 主関数の invariant(エラー時/fail-close) + ensures(戻り値/出力) を反証 | 実装済 |
 | UT-WSC-217 | FN-WSC-217 | yaml_parser.py | 主関数の invariant(エラー時/fail-close) + ensures(戻り値/出力) を反証 | 実装済 |
 | UT-WSC-218 | FN-WSC-218 | zizmor_ignore_lint.py | 主関数の invariant(エラー時/fail-close) + ensures(戻り値/出力) を反証 | 実装済 |
+| UT-WSC-219 | FN-WSC-219 | g7_subcheck.py | anchored/exec_pass 集計の ensures + missing/unanchored 部分黙殺しない invariant を反証 | 実装済 |
+| UT-WSC-220 | FN-WSC-220 | vg_overview.py | required_clean 集約 + overall_clean 判定(1項目 false→false) の invariant を反証 | 実装済 |
+| UT-WSC-221 | FN-WSC-221 | fn_ut_pair_coverage_checks.py | missing_test_design/unanchored_ut(RD-UT除外)/orphan_ut/duplicate 検出 + waiver 抑制を反証 | 実装済 |
+| UT-WSC-222 | FN-WSC-222 | design_id_existence_checks.py | missing_design_section 検出 + 実 doc 出現要求 + waiver 抑制を反証 | 実装済 |
+| UT-WSC-223 | FN-WSC-223 | l7_worklist.py | anchored/waived/separate_inventory(RD-UT)/missing_ut 分類 + read-only(fail-close しない)を反証 | 実装済 |
 
 ## carry: WSC-TEST-IMPL（2026-06-07 closure、残 0 件）
 

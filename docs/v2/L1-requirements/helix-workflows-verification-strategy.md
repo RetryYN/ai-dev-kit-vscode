@@ -320,6 +320,7 @@ pair_closure(pair) =
 - **右腕 execution gate（G7-G14 の対）**: `test_code_anchor + test_execution_pass + trace_symmetry(post-execution) + semantic_gate` まで要求（実走時点）。
 - **cov100% 単独 pass 禁止**（§11.2 と同原則。例: L4↔L9 cov100% でも `semantic_excluded_orphan=18` / balance0.67 → semantic_gate evidence 必須）。
 - **重要**: `trace_symmetry`（design↔test-design の ID 対称）は `test_code_anchor + test_execution_pass` を見ない。L7 の「設計済 UT がテストコードに anchor され実走 pass したか」は**別 subcheck（G7）**が担う（2026-06-08 実測: L6↔L7 設計 balanced だが anchor trace 31/88、残は tested-but-unanchored）。
+- **`test_design` 層の機械化（pre-L7 ゲート硬化、2026-06-14）**: `test_design` の成立 = 「機能設計 FN ↔ 単体テスト設計 UT の 1:1 が機能一覧に表現され、FN が L6 doc に実在する」を機械検証する。`fn_ut_pair_coverage`（FN↔UT 1:1 網羅: missing/orphan/unanchored/duplicate）+ `design_id_existence`（FN-* の L6 doc 実在）を VG-overview `required_clean` で **fail-close**。既知 L7 実装債は approved_deferred waiver で吸収し**新規デグレのみ block**（既存債で CI red 化しない）。registry 由来の L7 工程表は `l7_worklist`（read-only view）。正本 = [automation-gate-map §3.3](../../../HELIX-workflows/helix-process/automation-gate-map.md) / [functional-registry §1.7](../L3-requirements/helix-workflows-functional-registry.md)。
 
 ### 14.2 要件ずれゲート（requirement_drift）evidence schema
 新規 detector `cli/lib/requirement_drift.py`（trace_symmetry とは別責務 = 縦・意味 trace）。

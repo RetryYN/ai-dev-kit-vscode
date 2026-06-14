@@ -82,6 +82,20 @@ audit_history:
 - `excluded_reason` enum: `reference_doc` / `static_template` / `data_registry` / `private_glue` / `generated`。
 - **L6_required は anchor 禁止** = 実 `FN-*` を Action4 で 1:1 付与する (空 = `l6_design_pending` warn)。
 
+### §1.7 test_design_ids 必須 — FN↔UT 1:1 の機能一覧表現 (pre-L7 ゲート硬化, 2026-06-14)
+
+> ユーザー指示 (2026-06-14)「TDD/DDD の弱手是正・実装漏れ是正・L7 に行く前に弱点を徹底的に潰す」への要件化。`process-2026-06-08-verification-forward-gate` の `pair_closure.test_design` 層を機能一覧で機械的に閉じる。SSoT = `add-feature-2026-06-14-pre-l7-gate-hardening`。
+
+- **要件 (FR-FNREG-01 追補)**: **L6_required entry は `design_ids`(FN-*) に対応する `test_design_ids`(UT-*) を 1:1 で持つ**。`design_ids` は FN 専用に保ち UT を混ぜない (detector 責務の分離)。これにより「機能設計 (L6) ↔ 単体テスト設計 (L7) 粒度」の対が機能一覧上で機械検証可能になる。
+- **field semantics**:
+  - `design_ids`: `FN-*` (L6 機能設計 ID)。
+  - `test_design_ids`: `UT-*` (L7 単体テスト設計 ID)。requirement_drift は `RD-UT-*` (専用 inventory、g7 anchor 対象外)。
+- **機械 enforcement (fail-close, G-vg-overview `required_clean` 経由)**:
+  - `fn_ut_pair_coverage` (FN-WSC-221): `design_ids`↔`test_design_ids` 1:1 を g7-anchor-map と突合し `missing_test_design` / `unanchored_ut` / `orphan_ut` / `duplicate_test_design` を検出。既知債は `fn_ut_pair_waivers` (approved_deferred) で吸収し**新規デグレのみ block**。
+  - `design_id_existence` (FN-WSC-222): `design_ids`(FN-*) が `docs/v2/L6-functional-design/*.md` に実 section として存在するか検査 (§1.6 の「prefix 整合 = 必要条件」を実 doc 出現まで強化)。
+  - `l7_worklist` (FN-WSC-223, **read-only 工程表 view**): L6_required FN を `anchored`/`waived`/`separate_inventory`(RD-UT-*)/`missing_ut` に分類し registry 由来の L7 工程表を決定論的に生成 (DB 拡張・PLAN 自動起票はしない = 過剰実装回避)。
+- L6 設計契約 = [registry-detector-機能設計.md §3.2](../L6-functional-design/registry-detector-機能設計.md)。
+
 ---
 
 ## §2. 全体 summary

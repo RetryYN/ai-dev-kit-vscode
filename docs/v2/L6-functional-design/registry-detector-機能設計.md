@@ -63,6 +63,16 @@ verification_layers:
 |---|---|---|---|---|---|
 | FN-RDC-01 | `check_registry_design_coverage(registry_path, repo_root)`（全 active entry の設計層被覆検査） | registry_design_coverage_checks | `registry_path` 存在・yaml load 可 | active entry ごとに coverage_layer/design_ids/excluded_reason を検査し `DetectorReport`(mode=advisory) を返す。metrics に unknown/design_id_missing/wrong_layer/l6_design_pending を含む | coverage_layer 未設定/enum外は `unknown_coverage_layer`(P1)・部分黙殺しない／L6_required の空 design_ids は `l6_design_pending`(P3) で `design_id_missing` と区別／design_id は anchor∪実IDprefix で解決・未解決は `design_id_unresolved`／coverage_layer↔design_id prefix 不整合は `wrong_layer` |
 
+### 3.2 pre-L7 ゲート硬化 detector（Action: `add-feature-2026-06-14-pre-l7-gate-hardening`）
+
+> L6↔L7 `pair_closure` の **test_design 層**（機能設計↔単体テスト 1:1）と **design_id 実在**・**L7 worklist（工程表 view）** を機械化する detector 群。これらは whole-source module でもあるため、関数粒度の DbC（requires/ensures/invariant）と対の単体テスト設計は **whole-source-coverage docs（FN-WSC / UT-WSC 系列）** を正本とする（本 §3.2 では prefix/track 混在と trace 二重計上を避けるため ID を再宣言しない）。RD-UT-* は requirement_drift 専用 inventory として anchor 要求・worklist `missing` 判定から除外する（`process-2026-06-08-verification-forward-gate` 規約）。
+>
+> - `fn_ut_pair_coverage`: design_ids(FN)↔test_design_ids(UT) 1:1 を anchor map と突合し missing_test_design / unanchored_ut / orphan_ut / duplicate を検出 → VG-overview `required_clean` で fail-close。既知債は `fn_ut_pair_waivers`（approved_deferred）。
+> - `design_id_existence`: FN-* が `docs/v2/L6-functional-design/*.md` に実 section として存在するか検査（§1.6 の prefix 整合 = 必要条件を実 doc 出現まで強化）。
+> - `l7_worklist`（**read-only 工程表 view**）: L6_required を anchored/waived/separate_inventory/missing_ut に分類し registry 由来の L7 工程表を決定論生成（DB 拡張・PLAN 自動起票なし＝過剰実装回避）。
+>
+> 機械正本（関数 DbC + 単体テスト設計）: [whole-source-coverage-機能設計.md](whole-source-coverage-機能設計.md) / [whole-source-coverage-単体テスト設計.md](../L7-test-design/whole-source-coverage-単体テスト設計.md)。L3 schema = [functional-registry §1.7](../L3-requirements/helix-workflows-functional-registry.md)。
+
 ## 4. 合格基準（G6 → L7 へ）
 
 この章は `add-feature-2026-06-05-registry-detector-base` で完了済みの L6↔L7 ペア凍結条件を記録するものであり、現在の L1-L6 監査で新規 L7 作業を許可するものではない。新規 L7 実装、単体テスト設計成果物、単体テスト実施、coverage closure へ進む場合は、別途承認済み add-feature / PLAN を入口にする。

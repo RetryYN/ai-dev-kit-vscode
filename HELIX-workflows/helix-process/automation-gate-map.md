@@ -38,7 +38,7 @@ integration_target:
 | L3 要件 | G3 | 左腕 freeze | L3 要件凍結 + **対 L12 受入テスト設計** + requirement_drift | trace_symmetry(L3-L12) / requirement_drift | proxy(grep) | detector 化 |
 | L4 基本設計 | G4 | 左腕 freeze | L4 凍結 + **対 L9 総合テスト設計** + L4↔L9 trace(pre) | trace_symmetry(L4-L9) | advisory | ratchet→fc |
 | L5 詳細設計 | G5 | 左腕 freeze | L5 凍結 + **対 L8 結合テスト設計** + L5↔L8 trace(pre) | trace_symmetry(L5-L8) | advisory | ratchet→fc |
-| L6 機能設計 | G6 | 左腕 freeze | L6 凍結 + **対 L7 単体テスト設計** + L6↔L7 trace(pre) | trace_symmetry(L6-L7) / registry_design_coverage | advisory | **MVP fail-close** |
+| L6 機能設計 | G6 | 左腕 freeze | L6 凍結 + **対 L7 単体テスト設計** + L6↔L7 trace(pre) + FN↔UT 1:1 + FN-* 実 doc 実在 | trace_symmetry(L6-L7) / registry_design_coverage / **fn_ut_pair_coverage** / **design_id_existence** | fn_ut_pair/design_id=**fail-close** / 他 advisory | **MVP fail-close** |
 | L7 実装 | **G7** | 右腕 execution | **UT-ID test code anchor + test_execution_pass** + L6↔L7 trace(post) + semantic | UT anchor subcheck(新) / pytest・bats 実行 / trace_symmetry | proxy | **MVP fail-close** |
 | L8 結合 | G8 | 右腕 execution | 結合テスト anchor + 実行 pass + L5↔L8 trace(post) + semantic | IT anchor / 結合テスト実行 | **未実装(欠落)** | ratchet |
 | L9 総合 | G9 | 右腕 execution | 総合テスト anchor + 実行 pass + L4↔L9 trace(post) + semantic（orphan は semantic gate） | ST anchor / 総合テスト実行 | proxy | ratchet |
@@ -80,8 +80,15 @@ integration_target:
 
 ### 3.2 全体俯瞰ゲート（VG-overview、新規 aggregator）
 - freeze 前・push 前に**必須**で通す横断ゲート（workflow でなく Forward gate activity）。
-- 判定: `registry_design_coverage clean`（whole-source⊆design）+ `source_scan_vs_registry clean` + `registry_trace_complete clean` + `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
+- 判定 (`required_clean` 全 clean): `registry_design_coverage`（whole-source⊆design）+ `source_scan_vs_registry` + `registry_trace_complete` + `requirement_drift` + **`fn_ut_pair_coverage`**（FN↔UT 1:1 網羅）+ **`design_id_existence`**（FN-* の L6 doc 実在）+ **`ddd_bc_coverage`**（DDD bc 2 check）+ `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
 - 配線: `helix doctor --gate` / `push_gate.py` の `G-vg-overview` から呼ぶ共通 runner。
+
+### 3.3 test_design 層 detector（pre-L7 ゲート硬化、2026-06-14）
+- `pair_closure = design + test_design + test_code_anchor + test_execution_pass + ...` のうち **test_design 層（機能設計 FN ↔ 単体テスト UT 1:1）** を機械化（従来 g7_subcheck の anchor/exec_pass より手前の層）。
+- `fn_ut_pair_coverage`（FN-WSC-221）/ `design_id_existence`（FN-WSC-222）: `required_clean` 経由で **fail-close**。既知債は `fn_ut_pair_waivers` / `design_id_existence_waivers`（approved_deferred）で吸収し**新規デグレのみ block**（既存 L7 実装債で CI red 化しない）。
+- `l7_worklist`（FN-WSC-223）: **read-only 工程表 view**（fail-close にしない）。registry 由来で「L7 で何を実装すべきか」を決定論生成。`helix doctor check_l7_worklist --json`。RD-UT-* は `separate_inventory`。
+- DDD ratchet（`ddd_bc_coverage`）の昇格詳細は §5 enforcement phase を正本とする（本節では再宣言しない）。
+- 正本: [add-feature-2026-06-14-pre-l7-gate-hardening](../../docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md) / L3 schema [functional-registry §1.7](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md) / L6 [registry-detector §3.2](../../docs/v2/L6-functional-design/registry-detector-機能設計.md)。
 
 ## 4. layer × detector（工程別の自動検証）
 
@@ -110,6 +117,9 @@ axis-01〜14 は実装済み（**いずれも advisory / push 未接続**）。a
 - **着手前提**: anchor が 31/88 のまま G7 を fail-close 化すると CI 即 red（「今 green な分のみ昇格」原則に反する）。必ず A→B の順。
 
 **次段**: G8/G9/G12/G14 を ratchet → requirement_drift fail-close → 全 pair strict（G9 ST 実行 gate、L5-L8 deferred 等の既知 gap 解消後、`--strict-vmodel-pair-freeze` 系）。
+
+DDD ratchet は `check_bc_anti_corruption` / `check_bc_mode_coverage` の 2 check を `G-vg-overview` の `required_clean.ddd_bc_coverage` に接続し、green の間は fail-close とする。
+`glossary_coverage` は implementation_gap 7 件が残るため warn-only を維持し、`required_clean` へは接続しない。
 
 **push 接続**: `cli/lib/push_gate.py` は個別 detector を持たず、VG-overview 共通 runner を `G-vg-overview` として呼ぶ。default `helix doctor` の出力・exit code は不変（公開 API 非破壊）、`--gate` のみ VG-overview pre-push を fail-close 評価する。
 
