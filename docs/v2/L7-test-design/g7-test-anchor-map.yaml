@@ -187,3 +187,13 @@ anchors:
     - cli/lib/tests/test_design_id_existence_checks.py
   UT-WSC-223:
     - cli/lib/tests/test_l7_worklist.py
+  UT-WSC-224:
+    - cli/lib/tests/test_changed_files.py
+  UT-WSC-225:
+    - cli/lib/tests/test_coding_rule_lint.py
+  UT-WSC-226:
+    - cli/lib/tests/test_dependency_cycle_checks.py
+  UT-WSC-227:
+    - cli/lib/tests/test_plan_dependency_gate.py
+  UT-WSC-228:
+    - cli/lib/tests/test_fr_uses_checks.py

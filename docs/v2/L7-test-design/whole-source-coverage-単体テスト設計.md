@@ -62,14 +62,19 @@
 | UT-WSC-217 | FN-WSC-217 | yaml_parser.py | 主関数の invariant(エラー時/fail-close) + ensures(戻り値/出力) を反証 | 実装済 |
 | UT-WSC-218 | FN-WSC-218 | zizmor_ignore_lint.py | 主関数の invariant(エラー時/fail-close) + ensures(戻り値/出力) を反証 | 実装済 |
 | UT-WSC-219 | FN-WSC-219 | g7_subcheck.py | anchored/exec_pass 集計の ensures + missing/unanchored 部分黙殺しない invariant を反証 | 実装済 |
-| UT-WSC-220 | FN-WSC-220 | vg_overview.py | required_clean 集約 + overall_clean 判定(1項目 false→false) の invariant を反証 | 実装済 |
+| UT-WSC-220 | FN-WSC-220 | vg_overview.py | required_clean 集約 + ratchet detector の skip/clean 反映 + overall_clean 判定(1項目 false→false) の invariant を反証 | 実装済 |
 | UT-WSC-221 | FN-WSC-221 | fn_ut_pair_coverage_checks.py | missing_test_design/unanchored_ut(RD-UT除外)/orphan_ut/duplicate 検出 + waiver 抑制を反証 | 実装済 |
 | UT-WSC-222 | FN-WSC-222 | design_id_existence_checks.py | missing_design_section 検出 + 実 doc 出現要求 + waiver 抑制を反証 | 実装済 |
 | UT-WSC-223 | FN-WSC-223 | l7_worklist.py | anchored/waived/separate_inventory(RD-UT)/missing_ut 分類 + read-only(fail-close しない)を反証 | 実装済 |
+| UT-WSC-224 | FN-WSC-224 | changed_files.py | env override 優先 + git diff fallback + `available_empty`/`unavailable` 分離を反証 | 実装済 |
+| UT-WSC-225 | FN-WSC-225 | coding_rule_lint.py | baseline 内違反 pass / changed-files 新規違反 fail / optional linter 不在時 graceful skip を反証 | 実装済 |
+| UT-WSC-226 | FN-WSC-226 | dependency_cycle_checks.py | baseline 内循環 pass / changed-files 新規循環 fail / `available_empty`/`unavailable` 境界を反証 | 実装済 |
+| UT-WSC-227 | FN-WSC-227 | plan_dependency_gate.py | baseline 内 warning pass / new cycle・missing reciprocal fail / `available_empty`/`unavailable` 境界を反証 | 実装済 |
+| UT-WSC-228 | FN-WSC-228 | fr_uses_checks.py | missing target fail-close / reverse reference warning-only / `available_empty`/`unavailable` 境界を反証 | 実装済 |
 
 ## carry: WSC-TEST-IMPL（2026-06-07 closure、残 0 件）
 
-> **設計の抜け漏れではない**。FN-WSC/UT-WSC 54 の設計は完備（trace_symmetry L6↔L7 green）。`WSC-TEST-IMPL` は verify-first で閉塞し、既存充足 1 件と新規/補助テスト 11 件へ実体是正した。
+> **設計の抜け漏れではない**。FN-WSC/UT-WSC 59 の設計は完備（trace_symmetry L6↔L7 green）。`WSC-TEST-IMPL` は verify-first で閉塞し、既存充足 1 件と新規/補助テスト 11 件へ実体是正した。
 
 | 区分 | FN-WSC | 件数 |
 |---|---|---|

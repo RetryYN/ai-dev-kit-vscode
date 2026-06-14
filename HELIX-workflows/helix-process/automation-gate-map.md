@@ -80,7 +80,7 @@ integration_target:
 
 ### 3.2 全体俯瞰ゲート（VG-overview、新規 aggregator）
 - freeze 前・push 前に**必須**で通す横断ゲート（workflow でなく Forward gate activity）。
-- 判定 (`required_clean` 全 clean): `registry_design_coverage`（whole-source⊆design）+ `source_scan_vs_registry` + `registry_trace_complete` + `requirement_drift` + **`fn_ut_pair_coverage`**（FN↔UT 1:1 網羅）+ **`design_id_existence`**（FN-* の L6 doc 実在）+ **`ddd_bc_coverage`**（DDD bc 2 check）+ `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
+- 判定 (`required_clean` 全 clean): `registry_design_coverage`（whole-source⊆design）+ `source_scan_vs_registry` + `registry_trace_complete` + `requirement_drift` + **`fn_ut_pair_coverage`**（FN↔UT 1:1 網羅）+ **`design_id_existence`**（FN-* の L6 doc 実在）+ **`ddd_bc_coverage`**（DDD bc 2 check）+ **`coding_rule_lint`** / **`dependency_cycle_checks`** / **`plan_dependency_gate`** / **`fr_uses_checks`**（pre-L7 Phase2、changed-files ratchet）+ `trace_symmetry all applicable pairs clean/semantically-accepted` + `未承認 P0/P1 deferred finding = 0`（PM 承認なき限り）。
 - 配線: `helix doctor --gate` / `push_gate.py` の `G-vg-overview` から呼ぶ共通 runner。
 
 ### 3.3 test_design 層 detector（pre-L7 ゲート硬化、2026-06-14）
@@ -89,6 +89,15 @@ integration_target:
 - `l7_worklist`（FN-WSC-223）: **read-only 工程表 view**（fail-close にしない）。registry 由来で「L7 で何を実装すべきか」を決定論生成。`helix doctor check_l7_worklist --json`。RD-UT-* は `separate_inventory`。
 - DDD ratchet（`ddd_bc_coverage`）の昇格詳細は §5 enforcement phase を正本とする（本節では再宣言しない）。
 - 正本: [add-feature-2026-06-14-pre-l7-gate-hardening](../../docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md) / L3 schema [functional-registry §1.7](../../docs/v2/L3-requirements/helix-workflows-functional-registry.md) / L6 [registry-detector §3.2](../../docs/v2/L6-functional-design/registry-detector-機能設計.md)。
+
+### 3.4 コードルール / 依存関係 ratchet detector（pre-L7 ゲート硬化 Phase2、2026-06-14）
+- **共通入力**: `changed_files(upstream)`（FR-LIB-155）が `source_status = available_nonempty | available_empty | unavailable` を返す。ratchet は `available_nonempty` の changed files 上の baseline 外（新規）違反のみ block。`available_empty`=clean、`unavailable`=skip（block しない。push/CI では `HELIX_CHANGED_FILES` / base ref を明示し unavailable を起こさない運用）。
+- `coding_rule_lint`（FR-LIB-156 / FN-WSC-225）: bash -n / py_compile を常時、ruff / shellcheck は存在時のみ（install しない graceful skip）。baseline = `coding-rule-registry-baseline.json`。`required_clean` で changed-files ratchet fail-close。registry の `linter_tool` と対応（CR-CODE-01→bash_n/shellcheck, CR-CODE-05→py_compile/ruff）。
+- `dependency_cycle_checks`（FR-LIB-157 / FN-WSC-226）: cli/lib import 循環。既存 5 循環は `import-cycle-baseline.json` で waive、新規循環のみ fail-close（既存債は隠蔽でなく ratchet 起点。解消は Refactor で別途）。
+- `plan_dependency_gate`（FR-LIB-158 / FN-WSC-227）: `plan_validator` の dependency 検証（型/self-edge/reciprocal/cycle）の ratchet wrapper。`accepted_dependency_warning` を `plan-dependency-baseline.json` で waive、changed-plan の新規 real cycle / missing reciprocal のみ fail-close。
+- `fr_uses_checks`（FR-LIB-159 / FN-WSC-228）: functional-registry `uses` field（片方向正本）の uses 先実在を fail-close。逆参照欠落は derived warning（将来 required、§5）。
+- 段階: いずれも **changed-files ratchet（新規違反のみ block）**。full required（全件 fail-close）/ CI required 化 / 逆参照必須化は deferred（weakness-map DF-P2-*）。CI は ruff/shellcheck を `continue-on-error`（advisory）で追加し install しない。
+- 正本: [add-feature-2026-06-14-pre-l7-gate-hardening-phase2](../../docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md)。
 
 ## 4. layer × detector（工程別の自動検証）
 

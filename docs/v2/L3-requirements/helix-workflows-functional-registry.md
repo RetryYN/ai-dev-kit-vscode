@@ -90,6 +90,7 @@ audit_history:
 - **field semantics**:
   - `design_ids`: `FN-*` (L6 機能設計 ID)。
   - `test_design_ids`: `UT-*` (L7 単体テスト設計 ID)。requirement_drift は `RD-UT-*` (専用 inventory、g7 anchor 対象外)。
+  - `uses`: `FR-*` target の片方向宣言。entry が直接 import/use する registry 先を表し、target 不在は blocking、逆参照欠落は derived warning として扱う。
 - **機械 enforcement (fail-close, G-vg-overview `required_clean` 経由)**:
   - `fn_ut_pair_coverage` (FN-WSC-221): `design_ids`↔`test_design_ids` 1:1 を g7-anchor-map と突合し `missing_test_design` / `unanchored_ut` / `orphan_ut` / `duplicate_test_design` を検出。既知債は `fn_ut_pair_waivers` (approved_deferred) で吸収し**新規デグレのみ block**。
   - `design_id_existence` (FN-WSC-222): `design_ids`(FN-*) が `docs/v2/L6-functional-design/*.md` に実 section として存在するか検査 (§1.6 の「prefix 整合 = 必要条件」を実 doc 出現まで強化)。
@@ -103,23 +104,23 @@ audit_history:
 | 区分 | 件数 |
 |---|---|
 | CLI binaries (cli/helix-*) | 80 |
-| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 151 |
+| CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 156 |
 | Hooks (.claude/hooks/*.sh) | 17 |
 | Subagents (.claude/agents/*.md) | 19 |
 | Skills (skills/**/SKILL.md) | 131 |
 | HELIX-workflows doc (helix-process/*.md + root) | 55 |
 | Templates (cli/templates/**) | 116 |
-| **総計** | **569** |
+| **総計** | **574** |
 
 > 件数 SSoT 是正の経緯 (2026-06-07, AUDIT-WSDC-001 / Action2): yaml registry の domain 別実数に同期。旧 548 は md prose 側 drift（registration cluster で yaml に追加された 4 件 + 当時の Action の 8 件未反映）。`check_fr_sot_alignment` が md⇔yaml の name 集合 + 件数を機械照合する。
-> **現状 (2026-06-14): md=569 / yaml=569 で同期済 (`check_fr_sot_alignment` clean, findings=0)**。L7 検証検出器 3 件 (g7_subcheck.py / vg_overview.py / requirement_drift.py) を §4 + 本 summary に反映済。上の「旧 548」は履歴記録であり現在の不整合ではない。
+> **現状 (2026-06-14): md=574 / yaml=574 で同期済 (`check_fr_sot_alignment` clean, findings=0)**。L7 検証/ratchet 系 module 群を §4 + 本 summary に反映済。上の「旧 548」は履歴記録であり現在の不整合ではない。
 
 ### FR mapping coverage
 
 | 対象 | L1 FR | L3 FR | coverage |
 |---|---|---|---|
 | CLI (80) | FR-01〜FR-13 全13件 に1件以上対応 | FR-NSM-01〜FR-MIGR-01 全18件 に1件以上対応 | 100% |
-| lib (139) | 全13件 | 全18件 | 100% |
+| lib (144) | 全13件 | 全18件 | 100% |
 | hook (17) | 全13件 | 全18件 | 100% |
 | agent (19) | 全13件 | 全18件 | 100% |
 | skill (130) | 全13件 | FR-FNREG-01 / FR-GLOSSARY-01 = 間接のみ | 16/18 (89%) |
@@ -227,7 +228,7 @@ audit_history:
 
 ## §4. CLI lib modules (cli/lib/*.py)
 
-全 140 件。
+全 145 件。
 
 | Module | 責務 | 関連 L1 FR | 関連 L3 FR |
 |---|---|---|---|
@@ -375,9 +376,14 @@ audit_history:
 | yaml_parser.py | Lightweight YAML parser (PyYAML 不要、frontmatter 用) | FR-10 | FR-CTX-01 |
 | zizmor_ignore_lint.py | PLAN-222 AC-5: zizmor:ignore コメント metadata 機械検査 | FR-02 | FR-GR-01 |
 | coding_rule_checks.py | CLAUDE.md の coding/commit/forbid 14 rule と enforcement path の warn-only 検出 | FR-09 | FR-INV-01 |
+| changed_files.py | changed-files source helper (`HELIX_CHANGED_FILES` / git diff) | FR-08 | FR-4ART-01 |
+| coding_rule_lint.py | coding-rule mechanical lint wrapper (baseline + changed-files ratchet) | FR-08 | FR-4ART-01 |
 | coding-rule-registry.yaml | coding rule detector の機械正本 registry (CLAUDE.md 14 rule registry) | FR-09 | FR-INV-01 |
 | ddd_registry_checks.py | concept.md §12/§14 の Glossary / BC 構造 coverage を warn-only で検出する DDD detector | FR-09 | FR-INV-01 |
 | ddd-registry.yaml | DDD detector の機械正本 registry (concept.md §12.1 19語 + §14.1 10 BC) | FR-09 | FR-INV-01 |
+| dependency_cycle_checks.py | Python/Bash import/source cycle detector (baseline + changed-files ratchet) | FR-08 | FR-4ART-01 |
+| fr_uses_checks.py | functional-registry `uses` target / reverse reference detector | FR-08 | FR-4ART-01 |
+| plan_dependency_gate.py | plan dependency warning/cycle gate wrapper (baseline + changed-files ratchet) | FR-08 | FR-4ART-01 |
 | registry_design_coverage_checks.py | registry_design_coverage detector — zero-omission(B') 機械証明 (coverage_layer/design_ids 充足・wrong_layer 検出) | FR-09 | FR-INV-01 |
 | g7_subcheck.py | G7 subcheck detector — UT-ID anchor + test_execution_pass を実走確認し L6↔L7 の missing / tested-but-unanchored を集計する advisory subcheck (verification-strategy §14.1/§14.4、2026-06-08 MVP-A) | FR-08 | FR-4ART-01 |
 | vg_overview.py | VG-overview aggregator — registry_design_coverage / source_scan_vs_registry / registry_trace_complete + pair_status を横断集約する advisory gate (verification-strategy §14.3/§14.4、2026-06-08 MVP-A) | FR-08 | FR-4ART-01 |
