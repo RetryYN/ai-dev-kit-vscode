@@ -2,8 +2,11 @@ from __future__ import annotations
 
 """Functional-registry `uses` detector with changed-files gate support.
 
-`cli/lib/vg_overview.py` already consumes
-`collect_fr_uses_gate_summary()` via `required_clean`.
+`cli/lib/vg_overview.py` consumes `collect_fr_uses_full_required_summary()`
+via `required_clean` (C-3a: forward uses-target existence は full-scan
+full-required, `clean = blocking_finding_count == 0`)。`collect_fr_uses_gate_summary()`
+は changed-files ratchet 用に残し、既存 test の monkeypatch surface として使う。
+逆参照(reverse)の required 化は別 Action (DF-P2-FRUSES-PROMOTE)。
 """
 
 import argparse
@@ -216,6 +219,29 @@ def collect_fr_uses_gate_summary(
         "finding_count": report["finding_count"],
         "source_status": report["source_status"],
         "skipped_reason": report["skipped_reason"],
+    }
+
+
+def collect_fr_uses_full_required_summary(
+    *,
+    repo_root: str | Path | None = None,
+    registry_path: str | Path = DEFAULT_REGISTRY_PATH,
+) -> dict[str, Any]:
+    report = check_fr_uses(
+        repo_root=repo_root,
+        registry_path=registry_path,
+        gate=False,
+    )
+    blocking_finding_count = int(report["blocking_finding_count"])
+    warning_count = int(report["warning_count"])
+    return {
+        "clean": blocking_finding_count == 0,
+        "finding_count": int(report["finding_count"]),
+        "blocking_finding_count": blocking_finding_count,
+        "warning_count": warning_count,
+        "source_status": "full_required",
+        "skipped_reason": None,
+        "mode": "full_required",
     }
 
 

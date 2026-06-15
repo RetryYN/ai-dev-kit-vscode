@@ -178,9 +178,12 @@ EOF
   FRESH="$TMP_ROOT/fresh-checkout"
   mkdir -p "$FRESH"
   git -C "$HELIX_ROOT" archive HEAD | tar -x -C "$FRESH"
-  # uncommitted な helix-doctor / vg_overview を反映 (CI と同じ fresh tree + 検証対象の実装)
+  # uncommitted な helix-doctor / vg_overview / fr_uses_checks を反映 (CI と同じ fresh tree + 検証対象の実装)
+  # C-3a: vg_overview は fr_uses_checks.collect_fr_uses_full_required_summary を import するため
+  # 検証対象として fr_uses_checks.py も copy する (committed のみの fresh tree では ImportError になる)。
   cp "$HELIX_ROOT/cli/helix-doctor" "$FRESH/cli/helix-doctor"
   cp "$HELIX_ROOT/cli/lib/vg_overview.py" "$FRESH/cli/lib/vg_overview.py"
+  cp "$HELIX_ROOT/cli/lib/fr_uses_checks.py" "$FRESH/cli/lib/fr_uses_checks.py"
   [ ! -d "$FRESH/.helix" ]
   run env HELIX_HOME="$FRESH" HELIX_PROJECT_ROOT="$FRESH" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$FRESH/cli/helix-doctor" check_vg_overview --gate --json
   [ "$status" -eq 0 ]

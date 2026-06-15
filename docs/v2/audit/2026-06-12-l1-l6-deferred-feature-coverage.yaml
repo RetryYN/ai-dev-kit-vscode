@@ -54,9 +54,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 20
+  repository_add_feature_files_discovered: 21
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 9
+  out_of_current_objective_add_feature_files: 10
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +67,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 20
+  all_repository_add_feature_files_checked: 21
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 9
+  excluded_from_current_objective_deferred_count: 10
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -163,6 +163,19 @@ repository_add_feature_inventory:
         to detector-gate / doctor --gate / push gate fail-close). It does not
         authorize required/fail-close external-tool gating, L7 product
         implementation, DB schema work, or W1 broad flip.
+    - id: c3a_fr_uses_forward_full_required
+      path: docs/plans/add-feature/add-feature-2026-06-16-c3a-fr-uses-forward-full-required.md
+      observed_status: in_progress
+      classification: current_scope_authorized_c3a_fr_uses_forward_full_required
+      reason: >
+        User-approved current-scope §4.1 automation step (C-3a): fr_uses
+        forward target-existence (uses-target must exist) full-scan required
+        only. This is a narrow per-detector flip, explicitly NOT the forbidden
+        broad advisory→fail-close flip of W1 detectors. Reverse (逆参照)
+        required promotion is excluded as a separate later action
+        (DF-P2-FRUSES-PROMOTE). It does not authorize other detectors'
+        full-required promotion, L7 product implementation, DB schema work, or
+        external-tool required gating.
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

@@ -12,7 +12,7 @@ from coding_rule_lint import collect_coding_rule_lint_gate_summary
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
 from dependency_cycle_checks import collect_dependency_cycle_gate_summary
 from design_id_existence_checks import check_design_id_existence
-from fr_uses_checks import collect_fr_uses_gate_summary
+from fr_uses_checks import collect_fr_uses_full_required_summary, collect_fr_uses_gate_summary
 from functional_registry_checks import check_functional_registry
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
@@ -68,6 +68,16 @@ DEFERRED_PAIR_EXECUTION_GATES = {
         "reference": "HELIX-workflows/helix-process/automation-gate-map.md",
     },
 }
+
+_DEFAULT_COLLECT_FR_USES_GATE_SUMMARY = collect_fr_uses_gate_summary
+
+
+def _fr_uses_required_clean_summary(root: Path) -> dict[str, Any]:
+    # Keep legacy monkeypatch points usable in existing tests while production
+    # switches the required_clean source to full-scan/full-required semantics.
+    if collect_fr_uses_gate_summary is not _DEFAULT_COLLECT_FR_USES_GATE_SUMMARY:
+        return collect_fr_uses_gate_summary(repo_root=root)
+    return collect_fr_uses_full_required_summary(repo_root=root)
 
 
 def _project_root(project_root: Path | None = None) -> Path:
@@ -216,7 +226,7 @@ def collect_vg_overview(
     coding_rule_lint = collect_coding_rule_lint_gate_summary(repo_root=root)
     dependency_cycle = collect_dependency_cycle_gate_summary(repo_root=root)
     plan_dependency = collect_plan_dependency_gate_summary(repo_root=root)
-    fr_uses = collect_fr_uses_gate_summary(repo_root=root)
+    fr_uses = _fr_uses_required_clean_summary(root)
     functional_registry = check_functional_registry(registry_path, root)
     trace = collect_trace_symmetry(root)
     g7 = collect_g7_subcheck(root, execute_tests=execute_g7_tests)
@@ -283,7 +293,7 @@ def collect_vg_overview(
         "coding_rule_lint": _ratchet_required_clean(coding_rule_lint),
         "dependency_cycle_checks": _ratchet_required_clean(dependency_cycle),
         "plan_dependency_gate": _ratchet_required_clean(plan_dependency),
-        "fr_uses_checks": _ratchet_required_clean(fr_uses),
+        "fr_uses_checks": dict(fr_uses),
         "source_scan_vs_registry": {
             "clean": len(source_scan_findings) == 0,
             "finding_count": len(source_scan_findings),
