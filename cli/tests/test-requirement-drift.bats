@@ -16,7 +16,7 @@ teardown() {
 @test "requirement_drift pytest suite passes" {
   run python3 -m pytest "$HELIX_ROOT/cli/lib/tests/test_requirement_drift.py" -q
   [ "$status" -eq 0 ]
-  [[ "$output" == *"17 passed"* ]]
+  [[ "$output" == *"19 passed"* ]]
 }
 
 @test "helix-doctor check_requirement_drift --json emits clean JSON" {

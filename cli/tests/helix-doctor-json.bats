@@ -61,6 +61,31 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "check_g7_subcheck --gate --json exits 0 when clean" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_g7_subcheck --gate --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_g7_subcheck --json (no --gate) stays advisory exit 0" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_g7_subcheck --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_requirement_drift --gate --json exits 0 when blocking_clean" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --gate --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_requirement_drift --json (no --gate) stays advisory exit 0" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --json
+  [ "$status" -eq 0 ]
+}
+
+@test "check_g7_subcheck --gate with HELIX_DOCTOR_SKIP_EXEC_TESTS=1 stays clean exit 0" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_g7_subcheck --gate --json
+  [ "$status" -eq 0 ]
+}
+
 @test "helix-doctor check_vg_overview --json emits valid JSON" {
   run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4'"
   [ "$status" -eq 0 ]

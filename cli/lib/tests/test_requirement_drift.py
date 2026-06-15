@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -11,6 +12,7 @@ from cli.lib.requirement_drift import collect_requirement_drift
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+DOCTOR = REPO_ROOT / "cli/helix-doctor"
 
 
 def _write(path: Path, text: str) -> None:
@@ -30,6 +32,18 @@ def _project(tmp_path: Path) -> Path:
     _write(tmp_path / "cli/lib/reports.py", "# FR-001 Export reports\n")
     _write(tmp_path / "cli/lib/tests/test_reports.py", "# FR-001 Export reports\n")
     return tmp_path
+
+
+def _run_doctor(project_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "HELIX_PROJECT_ROOT": str(project_root)}
+    return subprocess.run(
+        [str(DOCTOR), *args],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def test_collect_requirement_drift_clean_vertical_trace(tmp_path: Path) -> None:
@@ -300,3 +314,25 @@ def test_requirement_drift_cli_check_stale_json(tmp_path: Path) -> None:
     payload = yaml.safe_load(result.stdout)
     assert payload["stale_check_enabled"] is True
     assert payload["findings"]["stale_freeze"][0]["requirement_id"] == "FR-001"
+
+
+def test_requirement_drift_gate_fails_closed_on_blocking_findings(tmp_path: Path) -> None:
+    _write(tmp_path / "docs/v2/L3-requirements/fr.md", "| ID | Name |\n| FR-002 | Import CSV |\n")
+
+    result = _run_doctor(tmp_path, "check_requirement_drift", "--gate", "--json")
+
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["blocking_clean"] is False
+
+
+def test_requirement_drift_gate_keeps_advisory_only_findings_non_blocking(tmp_path: Path) -> None:
+    _write(tmp_path / "docs/v2/L3-requirements/fr.md", "| ID | Name |\n| FR-004 | Export reports |\n")
+    _write(tmp_path / "docs/v2/L6-functional-design/spec.md", "| ID | Name |\n| FR-004 | Delete users |\n")
+
+    result = _run_doctor(tmp_path, "check_requirement_drift", "--gate", "--json")
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["clean"] is False
+    assert payload["blocking_clean"] is True

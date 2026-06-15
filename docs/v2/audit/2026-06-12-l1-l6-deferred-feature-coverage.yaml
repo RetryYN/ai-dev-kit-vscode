@@ -54,9 +54,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 18
+  repository_add_feature_files_discovered: 19
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 7
+  out_of_current_objective_add_feature_files: 8
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +67,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 18
+  all_repository_add_feature_files_checked: 19
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 7
+  excluded_from_current_objective_deferred_count: 8
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -141,6 +141,17 @@ repository_add_feature_inventory:
         This add-feature action is user-approved current-scope pre-L7
         gate-hardening follow-up work. It is not a later-phase deferred L7
         product, CI, DB, or external-tool boundary ticket.
+    - id: w1_narrow_failclose_promotion
+      path: docs/plans/add-feature/add-feature-2026-06-15-w1-narrow-failclose-promotion.md
+      observed_status: in_progress
+      classification: current_scope_authorized_w1_narrow_failclose_promotion
+      reason: >
+        User-approved current-scope §4.1 automation step (W1 narrow fail-close
+        promotion of standalone check_requirement_drift / check_g7_subcheck
+        --gate). This is a narrow flip, explicitly not the forbidden broad
+        advisory→fail-close flip of W1 detectors, and does not authorize L7
+        product implementation, DB schema work, external-tool install, or
+        strict/full-required detector promotion.
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

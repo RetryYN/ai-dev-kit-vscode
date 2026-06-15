@@ -13,7 +13,8 @@ created: 2026-06-08
 owner: PM
 forward_return: "Forward V-model L0-L14 の各 L exit を検証ゲートで通す状態に収束（ロードマップの Phase として追いかけず Forward 内在化）。pair_closure = design + test_design + test_code_anchor + test_execution_pass + trace_symmetry + semantic_gate。最終 = 各 L-pair が applicable な範囲で gate green、横断（要件ずれ/全体俯瞰）が push 前 fail-close。これは廃止した 6-phase 永続ロードマップとは別物（bounded・forward_return 明示・退化防止規律つき）。"
 contains_action_plans:
-  - docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md  # parked（registry-detector fail-close、検証ゲート閉合後に automation-gate-map gate hardening として再開）
+  - docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md  # completed（registry-detector aggregate fail-close + CI 配線 + 境界 unpark、§4.1 着手順の前段）
+  - docs/plans/add-feature/add-feature-2026-06-15-w1-narrow-failclose-promotion.md  # §4.1 ①自動化=W1 狭い fail-close 昇格（standalone detector --gate）
 agent_slots:
   - role: se
     slot_label: "SE — detector/gate/runner 実装（Codex、MVP-A/B・requirement_drift）"

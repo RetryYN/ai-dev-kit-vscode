@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,6 +16,10 @@ if str(LIB_DIR) not in sys.path:
 import g7_subcheck
 
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DOCTOR = REPO_ROOT / "cli/helix-doctor"
+
+
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -20,6 +27,20 @@ def _write(path: Path, content: str) -> None:
 
 def _write_anchor_map(path: Path, anchors: dict[str, list[str]]) -> None:
     _write(path, yaml.safe_dump({"anchors": anchors}, allow_unicode=True, sort_keys=True))
+
+
+def _run_doctor(project_root: Path, *args: str, skip_exec: bool = True) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "HELIX_PROJECT_ROOT": str(project_root)}
+    if skip_exec:
+        env["HELIX_DOCTOR_SKIP_EXEC_TESTS"] = "1"
+    return subprocess.run(
+        [str(DOCTOR), *args],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def test_collect_g7_subcheck_classifies_anchored_unanchored_and_missing(tmp_path: Path) -> None:
@@ -208,3 +229,47 @@ def test_execute_test_file_times_out_and_reports_failure(tmp_path: Path, monkeyp
     assert result["returncode"] == 124
     assert result["timed_out"] is True
     assert "timed out" in result["stderr"].lower()
+
+
+def test_g7_subcheck_gate_fails_closed_on_missing_inventory(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "docs/v2/L7-test-design/whole-source-coverage-単体テスト設計.md",
+        "| UT ID | 対象 FN | module | 検証観点 | テスト実装 |\n| --- | --- | --- | --- | --- |\n| UT-WSC-103 | FN-WSC-103 | gamma.py | truly missing | 実装済 |\n",
+    )
+    _write_anchor_map(tmp_path / "docs/v2/L7-test-design/g7-test-anchor-map.yaml", {})
+
+    result = _run_doctor(tmp_path, "check_g7_subcheck", "--gate", "--json")
+
+    assert result.returncode == 1
+    assert json.loads(result.stdout)["missing"]["count"] == 1
+
+
+def test_g7_subcheck_gate_fails_closed_on_unanchored_candidate(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "docs/v2/L7-test-design/whole-source-coverage-単体テスト設計.md",
+        "| UT ID | 対象 FN | module | 検証観点 | テスト実装 |\n| --- | --- | --- | --- | --- |\n| UT-WSC-102 | FN-WSC-102 | beta.py | exists but unanchored | 実装済 |\n",
+    )
+    _write(tmp_path / "cli/lib/tests/test_beta.py", "def test_beta():\n    assert True\n")
+    _write_anchor_map(tmp_path / "docs/v2/L7-test-design/g7-test-anchor-map.yaml", {})
+
+    result = _run_doctor(tmp_path, "check_g7_subcheck", "--gate", "--json")
+
+    assert result.returncode == 1
+    assert json.loads(result.stdout)["unanchored_but_exists"]["count"] == 1
+
+
+def test_g7_subcheck_gate_passes_when_all_inventory_is_anchored(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "docs/v2/L7-test-design/whole-source-coverage-単体テスト設計.md",
+        "| UT ID | 対象 FN | module | 検証観点 | テスト実装 |\n| --- | --- | --- | --- | --- |\n| UT-WSC-101 | FN-WSC-101 | alpha.py | covered | 実装済 |\n",
+    )
+    _write(tmp_path / "cli/lib/tests/test_alpha.py", '"""DoD 検証: UT-WSC-101"""\n')
+    _write_anchor_map(
+        tmp_path / "docs/v2/L7-test-design/g7-test-anchor-map.yaml",
+        {"UT-WSC-101": ["cli/lib/tests/test_alpha.py"]},
+    )
+
+    result = _run_doctor(tmp_path, "check_g7_subcheck", "--gate", "--json")
+
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["exec_pass"]["count"] == 1

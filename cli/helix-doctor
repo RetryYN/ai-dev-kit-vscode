@@ -138,7 +138,7 @@ while [[ $# -gt 0 ]]; do
       echo "check_import_cycle は cli/lib の Python import と cli/ の Bash source 依存の循環を advisory または changed-files gate で集計します。"
       echo "check_plan_dependency_gate は PLAN dependency warning を baseline + changed-files gate で集計します。"
       echo "check_fr_uses は functional-registry の uses 実在/逆参照 warning を advisory または changed-files gate で集計します。"
-      echo "--gate を付けると VG-overview pre-push 条件を fail-close 評価します。"
+      echo "--gate を付けると、全体実行では VG-overview pre-push 条件を、個別 detector 実行 (check_vg_overview / check_requirement_drift / check_g7_subcheck) では各 standalone gate 条件を fail-close 評価します (exit 1)。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
@@ -388,6 +388,27 @@ if payload["unanchored_but_exists"]["ids"]:
     print("unanchored_ids: " + ", ".join(payload["unanchored_but_exists"]["ids"]))
 PY
   fi
+  if [[ "$GATE_MODE" == true ]]; then
+    gate_verdict="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+try:
+    payload = json.loads(sys.argv[1])
+    dirty = (
+        payload["missing"]["count"] > 0
+        or payload["unanchored_but_exists"]["count"] > 0
+        or payload["exec_pass"]["count"] < payload["anchored"]["count"]
+    )
+    print("dirty" if dirty else "clean")
+except Exception:
+    print("error")
+PY
+)"
+    if [[ "$gate_verdict" != "clean" ]]; then
+      exit 1
+    fi
+  fi
   exit 0
 fi
 
@@ -479,6 +500,22 @@ if payload.get("advisory"):
 if payload.get("parse_warnings"):
     print(f"parse_warnings: {len(payload['parse_warnings'])}")
 PY
+  fi
+  if [[ "$GATE_MODE" == true ]]; then
+    gate_verdict="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+try:
+    payload = json.loads(sys.argv[1])
+    print("clean" if payload["blocking_clean"] else "dirty")
+except Exception:
+    print("error")
+PY
+)"
+    if [[ "$gate_verdict" != "clean" ]]; then
+      exit 1
+    fi
   fi
   exit 0
 fi
