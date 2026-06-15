@@ -15,6 +15,7 @@ forward_return: "Forward V-model L0-L14 の各 L exit を検証ゲートで通�
 contains_action_plans:
   - docs/plans/add-feature/add-feature-2026-06-08-detector-failclose-ci-gate.md  # completed（registry-detector aggregate fail-close + CI 配線 + 境界 unpark、§4.1 着手順の前段）
   - docs/plans/add-feature/add-feature-2026-06-15-w1-narrow-failclose-promotion.md  # §4.1 ①自動化=W1 狭い fail-close 昇格（standalone detector --gate）
+  - docs/plans/add-feature/add-feature-2026-06-15-c2-ruff-shellcheck-advisory.md  # §4.1 ②自動化=ruff/shellcheck advisory CI job（continue-on-error, not required）
 agent_slots:
   - role: se
     slot_label: "SE — detector/gate/runner 実装（Codex、MVP-A/B・requirement_drift）"

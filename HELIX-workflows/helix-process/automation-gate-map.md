@@ -97,7 +97,8 @@ integration_target:
 - `dependency_cycle_checks`（FR-LIB-157 / FN-WSC-226）: cli/lib import 循環。既存 5 循環は `import-cycle-baseline.json` で waive、新規循環のみ fail-close（既存債は隠蔽でなく ratchet 起点。解消は Refactor で別途）。
 - `plan_dependency_gate`（FR-LIB-158 / FN-WSC-227）: `plan_validator` の dependency 検証（型/self-edge/reciprocal/cycle）の ratchet wrapper。`accepted_dependency_warning` を `plan-dependency-baseline.json` で waive、changed-plan の新規 real cycle / missing reciprocal のみ fail-close。
 - `fr_uses_checks`（FR-LIB-159 / FN-WSC-228）: functional-registry `uses` field（片方向正本）の uses 先実在を fail-close。逆参照欠落は derived warning（将来 required、§5）。
-- 段階: いずれも **changed-files ratchet（新規違反のみ block）**。full required（全件 fail-close）/ CI required 化 / 逆参照必須化は deferred（weakness-map DF-P2-*）。CI は ruff/shellcheck を `continue-on-error`（advisory）で追加し install しない。
+- 段階: いずれも **changed-files ratchet（新規違反のみ block）**。full required（全件 fail-close）/ CI required 化 / 逆参照必須化は deferred（weakness-map DF-P2-*）。
+- **ruff/shellcheck の CI 実行（C-2、§4.1 ②、2026-06-15、ユーザー承認の advisory-only 外部 tool 実行）**: 専用 job `ruff-shellcheck-advisory`（`continue-on-error: true`、Required 非対象、`needs:` なし、`helix doctor check_coding_rule_lint --json` 経由）で CI 実行する。ruff = job 内 `pip install` / shellcheck = job 内 `apt install`、**`requirements-dev.txt` には ruff を入れない**（test/detector-gate の dev install へ波及して advisory 境界が崩れるのを防ぐ）。`--gate` を付けず detector-gate / doctor --gate / push gate へ fail-close 接続しない。**required 化 / fail-close 化は依然 forbidden_now**（明示承認 entry）。境界契約 `latest_user_boundary.forbidden_now` #4 は「install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate」に精緻化済。正本 = [add-feature-2026-06-15-c2-ruff-shellcheck-advisory](../../docs/plans/add-feature/add-feature-2026-06-15-c2-ruff-shellcheck-advisory.md)。
 - 正本: [add-feature-2026-06-14-pre-l7-gate-hardening-phase2](../../docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md)。
 
 ## 4. layer × detector（工程別の自動検証）

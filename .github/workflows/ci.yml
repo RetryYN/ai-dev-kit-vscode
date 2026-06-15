@@ -149,3 +149,43 @@ jobs:
         run: |
           export PATH="$PWD/cli:$PATH"
           HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --gate --json
+
+  # Process §4.1 ② / C-2 (add-feature-2026-06-15-c2-ruff-shellcheck-advisory):
+  # ruff/shellcheck を CI で install/execute する advisory-only job。ユーザー明示承認で
+  # forbidden_now「install/execute external tools」を advisory-only に限定解禁したもの。
+  # continue-on-error: true で PR/CI を落とさない (Required 非対象、needs なし、detector-gate /
+  # doctor --gate / push gate へ fail-close 接続しない、--gate を付けない)。required 化は
+  # 依然 forbidden_now (別 Action / 明示承認)。ruff は requirements-dev.txt に入れず本 job 内
+  # でのみ install する (test/detector-gate へ波及して advisory 境界が崩れるのを防ぐ)。
+  ruff-shellcheck-advisory:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # PyYAML 等 (coding_rule_lint が registry を import yaml する) のため requirements-dev を
+      # install する。ruff は含めない (requirements-dev には足さない)。
+      - name: Install dev requirements (PyYAML etc., not ruff)
+        if: ${{ hashFiles('requirements-dev.txt') != '' }}
+        run: python3 -m pip install --quiet -r requirements-dev.txt
+
+      - name: Install ruff (advisory job only, not in requirements-dev.txt)
+        run: python3 -m pip install --quiet ruff
+
+      - name: Install shellcheck (advisory job only)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run coding-rule lint (advisory, no --gate, continue-on-error)
+        run: |
+          export PATH="$PWD/cli:$PATH"
+          helix doctor check_coding_rule_lint --json
