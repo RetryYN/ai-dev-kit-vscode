@@ -623,13 +623,24 @@ class TestFeedbackLoopSnapshot:
             status="running",
             summary="long running push",
         )
-        _insert_hook_event(fresh_db, event_type="drift_check_db_schema_drift", result="warn")
+        # hook_warn_fail / harness_warning_critical counts use the production
+        # real-time window (datetime('now','-N days')). Insert these date-windowed
+        # events relative to real now so the assertions never rot once real time
+        # advances past BASE_NOW + window (DF-DATEROT-BASENOW; systemic fix deferred).
+        recent_within_window = _sqlite_text(datetime.now() - timedelta(days=1))
+        _insert_hook_event(
+            fresh_db,
+            event_type="drift_check_db_schema_drift",
+            result="warn",
+            created_at=recent_within_window,
+        )
         _insert_event(
             fresh_db,
             event_kind="push",
             check_name="slot_count_warning",
             severity="warning",
             payload={"active": 7},
+            triggered_at=recent_within_window,
         )
 
         snapshot = harness_monitor.get_feedback_loop_snapshot(days=30)
