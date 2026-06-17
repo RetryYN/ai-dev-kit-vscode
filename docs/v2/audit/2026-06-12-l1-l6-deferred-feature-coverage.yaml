@@ -54,9 +54,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 21
+  repository_add_feature_files_discovered: 22
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 10
+  out_of_current_objective_add_feature_files: 11
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +67,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 21
+  all_repository_add_feature_files_checked: 22
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 10
+  excluded_from_current_objective_deferred_count: 11
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -176,6 +176,18 @@ repository_add_feature_inventory:
         (DF-P2-FRUSES-PROMOTE). It does not authorize other detectors'
         full-required promotion, L7 product implementation, DB schema work, or
         external-tool required gating.
+    - id: c3b_fr_uses_reverse_derived_full_required
+      path: docs/plans/add-feature/add-feature-2026-06-18-fruses-reverse-derived-promotion.md
+      observed_status: in_progress
+      classification: current_scope_authorized_c3b_fr_uses_reverse_derived_full_required
+      reason: >
+        User-approved current-scope §4.1 automation step (C-3b): fr_uses
+        reverse を forward uses からの derived index に切り替え、used_by
+        drift のみ full-required で fail-close にする narrow per-detector
+        flip。broad advisory→fail-close flip of W1 detectors は依然 forbidden
+        now のまま。他 detector の full-required promotion、L7 product
+        implementation、DB schema work、external-tool required gating は
+        authorize しない。
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

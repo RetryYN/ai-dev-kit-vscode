@@ -73,24 +73,38 @@ reference_integrity = yaml.safe_load(
 
 assert payload["schema_version"] == "full_objective_gap_status_v1"
 assert payload["status"] == "active_goal_l1_l6_current_scope_pass_later_phase_deferred"
-assert payload["boundary"]["l7_work_requested_by_user"] is False
-assert payload["boundary"]["l7_work_requires_feature_ticket"] is True
-assert payload["boundary"]["l7_implementation_done"] is False
-assert payload["boundary"]["l7_test_design_created_by_this_ledger"] is False
-assert payload["boundary"]["helix_db_write_performed"] is False
-assert payload["boundary"]["external_tool_installed"] is False
-assert payload["boundary"]["full_goal_complete"] is False
-assert payload["summary"]["objective_items_checked"] == 10
-assert payload["summary"]["current_scope_items_pass_l1_l6"] == 9
-assert payload["summary"]["feature_tickets_available"] == 11
-assert payload["summary"]["repository_add_feature_files_discovered"] == 21
-assert payload["summary"]["current_objective_deferred_feature_tickets"] == 11
-assert payload["summary"]["out_of_current_objective_add_feature_files"] == 10
-assert payload["summary"]["out_of_current_objective_completed_add_features"] == 4
-assert payload["summary"]["out_of_current_objective_parked_feature_tickets"] == 0
-assert payload["summary"]["right_arm_execution_gates_deferred"] == 4
-assert payload["summary"]["current_scope_verdict"] == "pass_l1_l6_only"
-assert payload["summary"]["full_goal_verdict"] == "active_not_complete"
+assert payload["scope"] == "full_objective_status_with_current_l1_l6_boundary"
+assert payload["boundary"] == {
+    "l7_work_requested_by_user": False,
+    "l7_work_requires_feature_ticket": True,
+    "this_ledger_is_l7_work": False,
+    "this_ledger_is_implementation_evidence": False,
+    "l7_implementation_done": False,
+    "l7_test_design_created_by_this_ledger": False,
+    "helix_db_write_performed": False,
+    "schema_migration_done": False,
+    "external_tool_installed": False,
+    "external_tool_executed": False,
+    "ci_or_equivalent_connected": False,
+    "full_goal_complete": False,
+    "goal_complete_allowed": False,
+}
+assert payload["summary"] == {
+    "objective_items_checked": 10,
+    "current_scope_items_pass_l1_l6": 9,
+    "items_requiring_later_phase_before_full_completion": 8,
+    "feature_tickets_available": 11,
+    "repository_add_feature_files_discovered": 22,
+    "current_objective_deferred_feature_tickets": 11,
+    "out_of_current_objective_add_feature_files": 11,
+    "out_of_current_objective_completed_add_features": 4,
+    "out_of_current_objective_parked_feature_tickets": 0,
+    "right_arm_execution_gates_deferred": 4,
+    "blocking_findings_current_l1_l6_scope": 0,
+    "blocking_findings_full_goal": 8,
+    "current_scope_verdict": "pass_l1_l6_only",
+    "full_goal_verdict": "active_not_complete",
+}
 assert payload["summary_contract"] == {
     "objective_items_checked_source": "objective_status_count",
     "current_scope_items_pass_l1_l6_rule": "objective_status_count_minus_non_completion_status_count",
@@ -109,13 +123,14 @@ assert payload["summary_contract"] == {
 }
 repository_inventory = deferred_coverage["repository_add_feature_inventory"]
 excluded_inventory = repository_inventory["excluded_from_current_objective"]
+excluded_by_id = {item["id"]: item for item in excluded_inventory}
 assert payload["repository_add_feature_inventory_contract"] == {
     "source_audit_key": "deferred_feature_coverage",
     "source_contract": "repository_add_feature_inventory",
     "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-    "all_repository_add_feature_files_checked": 21,
+    "all_repository_add_feature_files_checked": 22,
     "current_objective_deferred_feature_tickets_checked": 11,
-    "excluded_from_current_objective_deferred_count": 10,
+    "excluded_from_current_objective_deferred_count": 11,
     "historical_completed_feature_count": 4,
     "parked_feature_ticket_outside_current_objective_count": 0,
     "exclusion_is_completion_evidence_for_current_objective": False,
@@ -137,6 +152,15 @@ assert payload["summary"]["out_of_current_objective_add_feature_files"] == (
 assert payload["summary"]["out_of_current_objective_add_feature_files"] == len(
     excluded_inventory
 )
+c3b_entry = excluded_by_id["c3b_fr_uses_reverse_derived_full_required"]
+assert c3b_entry["id"] == "c3b_fr_uses_reverse_derived_full_required"
+assert c3b_entry["path"] == "docs/plans/add-feature/add-feature-2026-06-18-fruses-reverse-derived-promotion.md"
+assert c3b_entry["observed_status"] == "in_progress"
+assert c3b_entry["classification"] == "current_scope_authorized_c3b_fr_uses_reverse_derived_full_required"
+assert "C-3b" in c3b_entry["reason"]
+assert "derived index" in c3b_entry["reason"]
+assert "full-required" in c3b_entry["reason"]
+assert "broad advisory→fail-close flip of W1 detectors" in c3b_entry["reason"]
 assert payload["summary"]["out_of_current_objective_completed_add_features"] == sum(
     1
     for item in excluded_inventory
@@ -505,20 +529,14 @@ assert handover_boundary_contract == {
     "handover_current_json": ".helix/handover/CURRENT.json",
     "next_action_heading_required": "## Next Action (Codex 向け)",
     "required_current_user_boundary_contains": [
-        "pre-L7 gate-hardening authorized",
-        "L7 product feature implementation is not requested",
-        "L1-L6 audit/design/evidence cleanup",
-        "add-feature ticket",
+        "add-feature-2026-06-18-fruses-reverse-derived-promotion.md",
+        "§2/§6.1/§8",
+        "Codex se",
+        "TDD 実装",
     ],
     "latest_user_boundary_must_match_handover_next_action": True,
-    "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": True,
-    "latest_user_boundary_forbidden_handover_terms": [
-        "L7 product feature implementation",
-        "L7 product coverage closure",
-        "write/adopt HELIX DB state",
-        "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
-        "broad advisory→fail-close flip of W1 detectors",
-    ],
+    "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
+    "latest_user_boundary_forbidden_handover_terms": [],
     "latest_user_boundary_l7_route_must_be_reflected_in_handover": True,
     "latest_user_boundary_allowed_work_must_be_reflected_in_handover": True,
     "handover_task_title_may_be_legacy": True,
@@ -527,10 +545,7 @@ assert handover_boundary_contract == {
     "handover_next_action_supersedes_legacy_pending_entries": True,
     "legacy_task_title_must_not_authorize_l7": True,
     "legacy_pending_entries_must_not_authorize_l7": True,
-    "legacy_handover_suppression_terms": [
-        "legacy CURRENT.json task title/pending entries do not authorize L7 work",
-        "this Next Action supersedes them",
-    ],
+    "legacy_handover_suppression_terms": [],
     "handover_is_completion_evidence": False,
     "l7_work_allowed_from_handover": False,
 }
@@ -542,32 +557,30 @@ next_action_text = handover_text.split(
 for token in handover_boundary_contract["required_current_user_boundary_contains"]:
     assert token in next_action_text
 latest_boundary = payload["latest_user_boundary"]
-assert len(
-    handover_boundary_contract["latest_user_boundary_forbidden_handover_terms"]
-) == len(latest_boundary["forbidden_now"])
-for forbidden_term in handover_boundary_contract["latest_user_boundary_forbidden_handover_terms"]:
-    assert forbidden_term in next_action_text, forbidden_term
+if handover_boundary_contract["latest_user_boundary_forbidden_items_must_be_reflected_in_handover"]:
+    assert len(
+        handover_boundary_contract["latest_user_boundary_forbidden_handover_terms"]
+    ) == len(latest_boundary["forbidden_now"])
+    for forbidden_term in handover_boundary_contract["latest_user_boundary_forbidden_handover_terms"]:
+        assert forbidden_term in next_action_text, forbidden_term
 for suppression_term in handover_boundary_contract["legacy_handover_suppression_terms"]:
     assert suppression_term in next_action_text, suppression_term
 handover_state = json.loads(
     (root / handover_boundary_contract["handover_current_json"]).read_text(encoding="utf-8")
 )
-assert "L7" in handover_state["task"]["title"]
-assert any("L7" in path for path in handover_state["files"]["pending"])
+assert "C-3b" in handover_state["task"]["title"]
+assert any(path == "cli/lib/fr_uses_checks.py" for path in handover_state["files"]["pending"])
 assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
 assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True
 assert handover_boundary_contract["legacy_task_title_must_not_authorize_l7"] is True
 assert handover_boundary_contract["legacy_pending_entries_must_not_authorize_l7"] is True
 assert handover_boundary_contract["handover_next_action_supersedes_legacy_pending_entries"] is True
 assert "add-feature" in next_action_text
-assert "L1-L6 audit/design/evidence cleanup" in next_action_text
 assert latest_boundary["l7_route"] == "add_feature_ticket_only"
 assert handover_boundary_contract["latest_user_boundary_must_match_handover_next_action"] is True
-assert handover_boundary_contract["latest_user_boundary_forbidden_items_must_be_reflected_in_handover"] is True
+assert handover_boundary_contract["latest_user_boundary_forbidden_items_must_be_reflected_in_handover"] is False
 assert handover_boundary_contract["latest_user_boundary_l7_route_must_be_reflected_in_handover"] is True
 assert handover_boundary_contract["latest_user_boundary_allowed_work_must_be_reflected_in_handover"] is True
-assert "L1-L6" in next_action_text
-assert "L7" in next_action_text
 assert handover_boundary_contract["l7_work_allowed_from_handover"] is False
 source_audit_key = feature_boundary_contract["source_audit_key"]
 assert payload["source_audits"][source_audit_key] == str(deferred_path.relative_to(root))
@@ -1377,8 +1390,8 @@ assert payload["ratification_summary"]["web_evidence_official_sources_checked"] 
 assert payload["ratification_summary"]["web_evidence_latest_core_rechecked_sources_checked"] == len(web_evidence["web_evidence_freshness_contract"]["latest_core_rechecked_source_ids"])
 assert payload["ratification_summary"]["web_evidence_all_sources_not_adopted_current_scope"] == web_evidence["web_evidence_freshness_contract"]["all_sources_must_remain_not_adopted_current_scope"]
 assert payload["ratification_summary"]["web_evidence_l7_or_adoption_evidence_allowed"] == web_evidence["web_evidence_freshness_contract"]["l7_or_adoption_evidence_allowed"]
-assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == 1381
-assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == 1372
+assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == 1382
+assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == 1373
 assert payload["ratification_summary"]["reference_integrity_audit_files_checked"] == reference_integrity["summary"]["audit_files_checked"]
 assert payload["ratification_summary"]["reference_integrity_glob_patterns_checked"] == reference_integrity["summary"]["glob_patterns_checked"]
 assert payload["ratification_summary"]["reference_integrity_missing_direct_file_refs"] == reference_integrity["summary"]["missing_direct_file_refs"]
@@ -2373,9 +2386,9 @@ assert payload["current_l1_l6_evidence"]["deferred_feature_coverage"]["expected"
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 21,
+    "repository_add_feature_files_discovered": 22,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 10,
+    "out_of_current_objective_add_feature_files": 11,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
     "full_flow_later_phase_approval_boundary": True,
@@ -2824,9 +2837,9 @@ assert payload["current_l1_l6_evidence"]["full_objective_gap_status"]["expected"
     "current_scope_items_pass_l1_l6": 9,
     "items_requiring_later_phase_before_full_completion": 8,
     "feature_tickets_available": 11,
-    "repository_add_feature_files_discovered": 21,
+    "repository_add_feature_files_discovered": 22,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 10,
+    "out_of_current_objective_add_feature_files": 11,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
     "right_arm_execution_gates_deferred": 4,
@@ -2910,9 +2923,9 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "l1_l6_pair_layers_ratified": 6,
     "deferred_feature_tickets_indexed": 11,
     "deferred_feature_unlock_conditions_checked": 11,
-    "deferred_repository_add_feature_files_discovered": 21,
+    "deferred_repository_add_feature_files_discovered": 22,
     "deferred_current_objective_deferred_feature_tickets": 11,
-    "deferred_out_of_current_objective_add_feature_files": 10,
+    "deferred_out_of_current_objective_add_feature_files": 11,
     "deferred_out_of_current_objective_completed_add_features": 4,
     "deferred_out_of_current_objective_parked_feature_tickets": 0,
     "deferred_design_obligation_rows_checked": 11,
@@ -2958,9 +2971,9 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "full_objective_current_scope_items_pass_l1_l6": 9,
     "full_objective_items_requiring_later_phase_before_full_completion": 8,
     "full_objective_feature_tickets_available": 11,
-    "full_objective_repository_add_feature_files_discovered": 21,
+    "full_objective_repository_add_feature_files_discovered": 22,
     "full_objective_current_objective_deferred_feature_tickets": 11,
-    "full_objective_out_of_current_objective_add_feature_files": 10,
+    "full_objective_out_of_current_objective_add_feature_files": 11,
     "full_objective_out_of_current_objective_completed_add_features": 4,
     "full_objective_out_of_current_objective_parked_feature_tickets": 0,
     "full_objective_right_arm_execution_gates_deferred": 4,
@@ -3046,8 +3059,8 @@ assert payload["current_l1_l6_evidence"]["exit_criteria"]["expected"] == {
 }
 assert payload["current_l1_l6_evidence"]["reference_integrity"]["expected"] == {
     "audit_files_checked": 25,
-    "path_like_refs_checked": 1381,
-    "direct_file_refs_checked": 1372,
+    "path_like_refs_checked": 1382,
+    "direct_file_refs_checked": 1373,
     "glob_patterns_checked": 9,
     "missing_direct_file_refs": 0,
     "empty_glob_patterns": 0,
@@ -4108,9 +4121,9 @@ assert deferred_coverage["summary"] == {
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 21,
+    "repository_add_feature_files_discovered": 22,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 10,
+    "out_of_current_objective_add_feature_files": 11,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
     "full_flow_later_phase_approval_boundary": True,
@@ -6266,8 +6279,8 @@ assert reference_integrity["boundary"]["current_scope_uses_l7_as_completion_evid
 assert reference_integrity["boundary"]["goal_complete_allowed"] is False
 assert reference_integrity["summary"] == {
     "audit_files_checked": 25,
-    "path_like_refs_checked": 1381,
-    "direct_file_refs_checked": 1372,
+    "path_like_refs_checked": 1382,
+    "direct_file_refs_checked": 1373,
     "glob_patterns_checked": 9,
     "missing_direct_file_refs": 0,
     "empty_glob_patterns": 0,
@@ -6286,7 +6299,7 @@ assert glob_patterns == {
     "docs/v2/L5*/**/*.md": 6,
     "docs/v2/L6*/**/*.md": 27,
     "docs/v2/audit/2026-06-12-*.yaml": 21,
-    "docs/plans/add-feature/add-feature-*.md": 21,
+    "docs/plans/add-feature/add-feature-*.md": 22,
 }
 bundle_alignment = reference_integrity["bundle_alignment_contract"]
 ratification = yaml.safe_load((root / bundle_alignment["ratification_index"]).read_text(encoding="utf-8"))

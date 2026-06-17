@@ -87,7 +87,7 @@ teardown() {
 }
 
 @test "helix-doctor check_vg_overview --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; fr=vg[\"required_clean\"][\"fr_uses_checks\"]; assert fr[\"source_status\"] == \"full_required\"; assert fr[\"warning_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4'"
   [ "$status" -eq 0 ]
 }
 

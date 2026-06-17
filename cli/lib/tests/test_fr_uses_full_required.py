@@ -91,22 +91,22 @@ def test_full_required_summary_fails_when_full_scan_has_missing_target(tmp_path:
     assert summary["source_status"] == "full_required"
 
 
-def test_full_required_summary_keeps_repo_clean_when_only_reverse_warnings_exist() -> None:
-    """DoD 検証: C-3a reverse warning のみなら clean を維持する。"""
+def test_full_required_summary_keeps_repo_clean_when_reverse_is_derived() -> None:
+    """DoD 検証: C-3b reverse が derived なら warning 0 で clean。"""
 
     repo_root = Path(__file__).resolve().parents[3]
 
     summary = fr_uses_checks.collect_fr_uses_full_required_summary(repo_root=repo_root)
 
     assert summary["clean"] is True
-    assert summary["finding_count"] == 3
+    assert summary["finding_count"] == 0
     assert summary["blocking_finding_count"] == 0
-    assert summary["warning_count"] == 3
+    assert summary["warning_count"] == 0
     assert summary["source_status"] == "full_required"
 
 
 def test_full_required_summary_does_not_depend_on_changed_files_availability(tmp_path: Path, monkeypatch) -> None:
-    """DoD 検証: C-3a full-required は changed-files unavailable に依存しない。"""
+    """DoD 検証: C-3b full-required は changed-files unavailable に依存しない。"""
 
     registry_path = _write_registry(
         tmp_path / "cli/config/functional-registry.yaml",
@@ -134,9 +134,9 @@ def test_full_required_summary_does_not_depend_on_changed_files_availability(tmp
     )
 
     assert summary["clean"] is True
-    assert summary["finding_count"] == 1
+    assert summary["finding_count"] == 0
     assert summary["blocking_finding_count"] == 0
-    assert summary["warning_count"] == 1
+    assert summary["warning_count"] == 0
     assert summary["source_status"] == "full_required"
 
 
@@ -185,9 +185,9 @@ def test_collect_vg_overview_uses_full_required_fr_uses_summary(monkeypatch, tmp
         "collect_fr_uses_full_required_summary",
         lambda *args, **kwargs: {
             "clean": True,
-            "finding_count": 3,
+            "finding_count": 0,
             "blocking_finding_count": 0,
-            "warning_count": 3,
+            "warning_count": 0,
             "source_status": "full_required",
             "skipped_reason": None,
             "mode": "full_required",
@@ -231,9 +231,9 @@ def test_collect_vg_overview_uses_full_required_fr_uses_summary(monkeypatch, tmp
     required = report["vg_overview"]["required_clean"]["fr_uses_checks"]
 
     assert required["clean"] is True
-    assert required["finding_count"] == 3
+    assert required["finding_count"] == 0
     assert required["blocking_finding_count"] == 0
-    assert required["warning_count"] == 3
+    assert required["warning_count"] == 0
     assert required["source_status"] == "full_required"
     assert required["mode"] == "full_required"
     assert report["vg_overview"]["overall_clean"] is True

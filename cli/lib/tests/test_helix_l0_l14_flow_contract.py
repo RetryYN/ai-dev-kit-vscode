@@ -1904,9 +1904,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 21,
+        "repository_add_feature_files_discovered": 22,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 10,
+        "out_of_current_objective_add_feature_files": 11,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -2157,9 +2157,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 21,
+        "repository_add_feature_files_discovered": 22,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 10,
+        "out_of_current_objective_add_feature_files": 11,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
@@ -2245,9 +2245,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "l1_l6_pair_layers_ratified": 6,
         "deferred_feature_tickets_indexed": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 21,
+        "deferred_repository_add_feature_files_discovered": 22,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 10,
+        "deferred_out_of_current_objective_add_feature_files": 11,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_design_obligation_rows_checked": 11,
@@ -2293,9 +2293,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 21,
+            "full_objective_repository_add_feature_files_discovered": 22,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 10,
+            "full_objective_out_of_current_objective_add_feature_files": 11,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,
@@ -2400,8 +2400,8 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
     )
     assert evidence["reference_integrity"]["expected"] == {
         "audit_files_checked": 25,
-        "path_like_refs_checked": 1381,
-        "direct_file_refs_checked": 1372,
+        "path_like_refs_checked": 1382,
+        "direct_file_refs_checked": 1373,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -4319,9 +4319,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 21,
+        "repository_add_feature_files_discovered": 22,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 10,
+        "out_of_current_objective_add_feature_files": 11,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -7459,8 +7459,8 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     }
     assert payload["summary"] == {
         "audit_files_checked": 25,
-                "path_like_refs_checked": 1381,
-                "direct_file_refs_checked": 1372,
+                "path_like_refs_checked": 1382,
+                "direct_file_refs_checked": 1373,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -7476,7 +7476,7 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
             "docs/v2/L5*/**/*.md": 6,
             "docs/v2/L6*/**/*.md": 27,
             "docs/v2/audit/2026-06-12-*.yaml": 21,
-                    "docs/plans/add-feature/add-feature-*.md": 21,
+                    "docs/plans/add-feature/add-feature-*.md": 22,
         }
     assert payload["reference_policy"]["direct_paths_must_exist"] is True
     assert payload["reference_policy"]["glob_patterns_must_expand_non_empty"] is True
@@ -7695,9 +7695,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 21,
+        "repository_add_feature_files_discovered": 22,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 10,
+        "out_of_current_objective_add_feature_files": 11,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
@@ -7724,13 +7724,14 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     }
     repository_inventory = deferred_coverage["repository_add_feature_inventory"]
     excluded_inventory = repository_inventory["excluded_from_current_objective"]
+    excluded_by_id = {item["id"]: item for item in excluded_inventory}
     assert payload["repository_add_feature_inventory_contract"] == {
         "source_audit_key": "deferred_feature_coverage",
         "source_contract": "repository_add_feature_inventory",
         "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-        "all_repository_add_feature_files_checked": 21,
+        "all_repository_add_feature_files_checked": 22,
         "current_objective_deferred_feature_tickets_checked": 11,
-        "excluded_from_current_objective_deferred_count": 10,
+        "excluded_from_current_objective_deferred_count": 11,
         "historical_completed_feature_count": 4,
         "parked_feature_ticket_outside_current_objective_count": 0,
         "exclusion_is_completion_evidence_for_current_objective": False,
@@ -7752,6 +7753,19 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     assert payload["summary"]["out_of_current_objective_add_feature_files"] == len(
         excluded_inventory
     )
+    c3b_entry = excluded_by_id["c3b_fr_uses_reverse_derived_full_required"]
+    assert c3b_entry["id"] == "c3b_fr_uses_reverse_derived_full_required"
+    assert c3b_entry["path"] == (
+        "docs/plans/add-feature/add-feature-2026-06-18-fruses-reverse-derived-promotion.md"
+    )
+    assert c3b_entry["observed_status"] == "in_progress"
+    assert c3b_entry["classification"] == (
+        "current_scope_authorized_c3b_fr_uses_reverse_derived_full_required"
+    )
+    assert "C-3b" in c3b_entry["reason"]
+    assert "derived index" in c3b_entry["reason"]
+    assert "full-required" in c3b_entry["reason"]
+    assert "broad advisory→fail-close flip of W1 detectors" in c3b_entry["reason"]
     assert payload["summary"]["out_of_current_objective_completed_add_features"] == sum(
         1
         for item in excluded_inventory
@@ -8246,21 +8260,15 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "handover_current_markdown": ".helix/handover/CURRENT.md",
         "handover_current_json": ".helix/handover/CURRENT.json",
         "next_action_heading_required": "## Next Action (Codex 向け)",
-            "required_current_user_boundary_contains": [
-                "pre-L7 gate-hardening authorized",
-                "L7 product feature implementation is not requested",
-            "L1-L6 audit/design/evidence cleanup",
-            "add-feature ticket",
-        ],
+                "required_current_user_boundary_contains": [
+                    "add-feature-2026-06-18-fruses-reverse-derived-promotion.md",
+                    "§2/§6.1/§8",
+                    "Codex se",
+                    "TDD 実装",
+                ],
         "latest_user_boundary_must_match_handover_next_action": True,
-        "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": True,
-            "latest_user_boundary_forbidden_handover_terms": [
-                "L7 product feature implementation",
-                "L7 product coverage closure",
-                "write/adopt HELIX DB state",
-                "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
-                "broad advisory→fail-close flip of W1 detectors",
-        ],
+            "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
+            "latest_user_boundary_forbidden_handover_terms": [],
         "latest_user_boundary_l7_route_must_be_reflected_in_handover": True,
         "latest_user_boundary_allowed_work_must_be_reflected_in_handover": True,
         "handover_task_title_may_be_legacy": True,
@@ -8269,10 +8277,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "handover_next_action_supersedes_legacy_pending_entries": True,
         "legacy_task_title_must_not_authorize_l7": True,
         "legacy_pending_entries_must_not_authorize_l7": True,
-        "legacy_handover_suppression_terms": [
-            "legacy CURRENT.json task title/pending entries do not authorize L7 work",
-            "this Next Action supersedes them",
-        ],
+            "legacy_handover_suppression_terms": [],
         "handover_is_completion_evidence": False,
         "l7_work_allowed_from_handover": False,
     }
@@ -8289,13 +8294,18 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     ]:
         assert token in next_action_text
     latest_boundary = payload["latest_user_boundary"]
-    assert len(
-        handover_boundary_contract["latest_user_boundary_forbidden_handover_terms"]
-    ) == len(latest_boundary["forbidden_now"])
-    for forbidden_term in handover_boundary_contract[
-        "latest_user_boundary_forbidden_handover_terms"
+    if handover_boundary_contract[
+        "latest_user_boundary_forbidden_items_must_be_reflected_in_handover"
     ]:
-        assert forbidden_term in next_action_text, forbidden_term
+        assert len(
+            handover_boundary_contract[
+                "latest_user_boundary_forbidden_handover_terms"
+            ]
+        ) == len(latest_boundary["forbidden_now"])
+        for forbidden_term in handover_boundary_contract[
+            "latest_user_boundary_forbidden_handover_terms"
+        ]:
+            assert forbidden_term in next_action_text, forbidden_term
     for suppression_term in handover_boundary_contract[
         "legacy_handover_suppression_terms"
     ]:
@@ -8305,8 +8315,11 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "L7" in handover_state["task"]["title"]
-    assert any("L7" in path for path in handover_state["files"]["pending"])
+    assert "C-3b" in handover_state["task"]["title"]
+    assert any(
+        path == "cli/lib/fr_uses_checks.py"
+        for path in handover_state["files"]["pending"]
+    )
     assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
     assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True
     assert handover_boundary_contract["legacy_task_title_must_not_authorize_l7"] is True
@@ -8318,22 +8331,22 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         is True
     )
     assert "add-feature" in next_action_text
-    assert "L1-L6 audit/design/evidence cleanup" in next_action_text
     assert latest_boundary["l7_route"] == "add_feature_ticket_only"
     assert handover_boundary_contract[
         "latest_user_boundary_must_match_handover_next_action"
     ] is True
-    assert handover_boundary_contract[
-        "latest_user_boundary_forbidden_items_must_be_reflected_in_handover"
-    ] is True
+    assert (
+        handover_boundary_contract[
+            "latest_user_boundary_forbidden_items_must_be_reflected_in_handover"
+        ]
+        is False
+    )
     assert handover_boundary_contract[
         "latest_user_boundary_l7_route_must_be_reflected_in_handover"
     ] is True
     assert handover_boundary_contract[
         "latest_user_boundary_allowed_work_must_be_reflected_in_handover"
     ] is True
-    assert "L1-L6" in next_action_text
-    assert "L7" in next_action_text
     assert handover_boundary_contract["l7_work_allowed_from_handover"] is False
     source_audit_key = feature_boundary_contract["source_audit_key"]
     assert payload["source_audits"][source_audit_key] == str(
@@ -9021,7 +9034,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "double_check_qualitative_checks_pass": 36,
         "double_check_blocking_findings_current_scope": 0,
         "evidence_boundary_scan_evidence_like_keys_checked": 11,
-        "evidence_boundary_scan_boundary_context_refs": 281,
+        "evidence_boundary_scan_boundary_context_refs": 282,
         "evidence_boundary_scan_negative_boundary_check_refs": 1,
         "evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence": 0,
         "evidence_boundary_scan_current_scope_proof_allows_add_feature": False,
@@ -9119,8 +9132,8 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "web_evidence_latest_core_rechecked_sources_checked": 5,
             "web_evidence_all_sources_not_adopted_current_scope": True,
             "web_evidence_l7_or_adoption_evidence_allowed": False,
-            "reference_integrity_path_like_refs_checked": 1381,
-            "reference_integrity_direct_file_refs_checked": 1372,
+            "reference_integrity_path_like_refs_checked": 1382,
+            "reference_integrity_direct_file_refs_checked": 1373,
             "reference_integrity_audit_files_checked": 25,
             "reference_integrity_glob_patterns_checked": 9,
             "reference_integrity_missing_direct_file_refs": 0,
@@ -9261,9 +9274,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "deferred_feature_tickets_draft": 11,
         "deferred_feature_tickets_with_approval_boundary": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 21,
+        "deferred_repository_add_feature_files_discovered": 22,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 10,
+        "deferred_out_of_current_objective_add_feature_files": 11,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_full_flow_later_phase_approval_boundary": True,
@@ -9304,9 +9317,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 21,
+            "full_objective_repository_add_feature_files_discovered": 22,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 10,
+            "full_objective_out_of_current_objective_add_feature_files": 11,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,

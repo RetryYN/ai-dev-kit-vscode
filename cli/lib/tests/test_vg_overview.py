@@ -98,6 +98,19 @@ def _stub_clean_ratchet_gate_summaries(monkeypatch) -> None:
         "collect_fr_uses_gate_summary",
         lambda *args, **kwargs: _gate_summary(),
     )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_fr_uses_full_required_summary",
+        lambda *args, **kwargs: {
+            "clean": True,
+            "finding_count": 0,
+            "blocking_finding_count": 0,
+            "warning_count": 0,
+            "source_status": "full_required",
+            "skipped_reason": None,
+            "mode": "full_required",
+        },
+    )
 
 
 def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypatch, tmp_path: Path) -> None:
