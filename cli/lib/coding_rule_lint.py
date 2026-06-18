@@ -23,6 +23,7 @@ from registry_checks import _coerce_entry_rows, _load_yaml_payload
 
 DEFAULT_REGISTRY_PATH = "cli/config/coding-rule-registry.yaml"
 DEFAULT_BASELINE_PATH = "cli/config/coding-rule-registry-baseline.json"
+CORE_REQUIRED_TOOLS = frozenset({"bash_n", "py_compile"})
 
 
 def _resolve_project_root(repo_root: str | Path | None = None) -> Path:
@@ -397,6 +398,27 @@ def collect_coding_rule_lint_gate_summary(
         "finding_count": report["finding_count"],
         "source_status": report["source_status"],
         "skipped_reason": report["skipped_reason"],
+    }
+
+
+def collect_coding_rule_lint_full_required_summary(
+    *,
+    repo_root: str | Path | None = None,
+    registry_path: str | Path = DEFAULT_REGISTRY_PATH,
+) -> dict[str, Any]:
+    findings = collect_violations(repo_root=repo_root, registry_path=registry_path)
+    blocking_findings = [
+        finding for finding in findings if str(finding.get("tool", "")) in CORE_REQUIRED_TOOLS
+    ]
+    warning_count = len(findings) - len(blocking_findings)
+    return {
+        "clean": len(blocking_findings) == 0,
+        "finding_count": len(findings),
+        "blocking_finding_count": len(blocking_findings),
+        "warning_count": warning_count,
+        "source_status": "full_required",
+        "skipped_reason": None,
+        "mode": "core_full_required",
     }
 
 

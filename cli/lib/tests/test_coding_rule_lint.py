@@ -265,3 +265,126 @@ def test_gate_skips_without_failing_when_changed_files_is_unavailable(
     assert report["clean"] is False
     assert report["skipped_reason"] == "changed-files unavailable"
     assert report["source_status"] == "unavailable"
+
+
+def test_full_required_summary_blocks_core_bash_n_and_py_compile_violations(
+    tmp_path: Path,
+) -> None:
+    """DoD 検証: C-3c core(bash_n/py_compile) 違反は full-required で block する。"""
+
+    registry_path = _write_registry(tmp_path / "cli/config/coding-rule-registry.yaml")
+    _write_file(
+        tmp_path / "bad.sh",
+        """
+        #!/usr/bin/env bash
+        if then
+          echo broken
+        fi
+        """,
+    )
+    _write_file(
+        tmp_path / "bad.py",
+        """
+        def broken(
+            return 1
+        """,
+    )
+
+    summary = coding_rule_lint.collect_coding_rule_lint_full_required_summary(
+        repo_root=tmp_path,
+        registry_path=registry_path,
+    )
+
+    assert summary["clean"] is False
+    assert summary["blocking_finding_count"] == 2
+    assert summary["warning_count"] == 0
+    assert summary["source_status"] == "full_required"
+    assert summary["mode"] == "core_full_required"
+
+
+def test_full_required_summary_does_not_block_on_optional_ruff_shellcheck_findings(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3c ruff/shellcheck 相当は advisory で blocking に算入しない。"""
+
+    registry_path = _write_registry(tmp_path / "cli/config/coding-rule-registry.yaml")
+    _write_file(tmp_path / "good.py", "print('ok')\n")
+    _write_file(tmp_path / "good.sh", "#!/usr/bin/env bash\necho ok\n")
+
+    monkeypatch.setattr(
+        coding_rule_lint,
+        "collect_violations",
+        lambda **kwargs: [
+            {
+                "rule_id": "CR-CODE-PY",
+                "file": "good.py",
+                "line": 1,
+                "tool": "ruff",
+                "message": "ruff violation",
+                "fingerprint": "ruff-1",
+            },
+            {
+                "rule_id": "CR-CODE-BASH",
+                "file": "good.sh",
+                "line": 1,
+                "tool": "shellcheck",
+                "message": "shellcheck violation",
+                "fingerprint": "shellcheck-1",
+            },
+        ],
+    )
+
+    summary = coding_rule_lint.collect_coding_rule_lint_full_required_summary(
+        repo_root=tmp_path,
+        registry_path=registry_path,
+    )
+
+    assert summary["clean"] is True
+    assert summary["finding_count"] == 2
+    assert summary["blocking_finding_count"] == 0
+    assert summary["warning_count"] == 2
+    assert summary["mode"] == "core_full_required"
+
+
+def test_full_required_summary_does_not_depend_on_changed_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3c full-required は changed-files 非依存。"""
+
+    registry_path = _write_registry(tmp_path / "cli/config/coding-rule-registry.yaml")
+    _write_file(tmp_path / "good.py", "print('ok')\n")
+    _write_file(tmp_path / "good.sh", "#!/usr/bin/env bash\necho ok\n")
+
+    def _should_not_run(*args, **kwargs):
+        raise AssertionError("changed_files should not be called in full-required mode")
+
+    monkeypatch.setattr(coding_rule_lint, "changed_files", _should_not_run)
+
+    summary = coding_rule_lint.collect_coding_rule_lint_full_required_summary(
+        repo_root=tmp_path,
+        registry_path=registry_path,
+    )
+
+    assert summary["clean"] is True
+    assert summary["blocking_finding_count"] == 0
+    assert summary["source_status"] == "full_required"
+
+
+def test_full_required_summary_is_clean_when_blocking_finding_count_is_zero(
+    tmp_path: Path,
+) -> None:
+    """DoD 検証: C-3c clean 判定は blocking_finding_count == 0。"""
+
+    registry_path = _write_registry(tmp_path / "cli/config/coding-rule-registry.yaml")
+    _write_file(tmp_path / "good.py", "print('ok')\n")
+    _write_file(tmp_path / "good.sh", "#!/usr/bin/env bash\necho ok\n")
+
+    summary = coding_rule_lint.collect_coding_rule_lint_full_required_summary(
+        repo_root=tmp_path,
+        registry_path=registry_path,
+    )
+
+    assert summary["blocking_finding_count"] == 0
+    assert summary["clean"] is True

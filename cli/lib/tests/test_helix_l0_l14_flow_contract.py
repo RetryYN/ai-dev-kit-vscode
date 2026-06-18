@@ -1904,9 +1904,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 23,
+        "repository_add_feature_files_discovered": 24,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 12,
+        "out_of_current_objective_add_feature_files": 13,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -2157,9 +2157,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 23,
+        "repository_add_feature_files_discovered": 24,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 12,
+        "out_of_current_objective_add_feature_files": 13,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
@@ -2245,9 +2245,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "l1_l6_pair_layers_ratified": 6,
         "deferred_feature_tickets_indexed": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 23,
+        "deferred_repository_add_feature_files_discovered": 24,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 12,
+        "deferred_out_of_current_objective_add_feature_files": 13,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_design_obligation_rows_checked": 11,
@@ -2293,9 +2293,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 23,
+            "full_objective_repository_add_feature_files_discovered": 24,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 12,
+            "full_objective_out_of_current_objective_add_feature_files": 13,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,
@@ -2400,8 +2400,8 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
     )
     assert evidence["reference_integrity"]["expected"] == {
         "audit_files_checked": 25,
-        "path_like_refs_checked": 1383,
-        "direct_file_refs_checked": 1374,
+        "path_like_refs_checked": 1384,
+        "direct_file_refs_checked": 1375,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -4319,9 +4319,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 23,
+        "repository_add_feature_files_discovered": 24,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 12,
+        "out_of_current_objective_add_feature_files": 13,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -7459,8 +7459,8 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     }
     assert payload["summary"] == {
         "audit_files_checked": 25,
-                "path_like_refs_checked": 1383,
-                "direct_file_refs_checked": 1374,
+                "path_like_refs_checked": 1384,
+                "direct_file_refs_checked": 1375,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -7476,7 +7476,7 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
             "docs/v2/L5*/**/*.md": 6,
             "docs/v2/L6*/**/*.md": 27,
             "docs/v2/audit/2026-06-12-*.yaml": 21,
-                    "docs/plans/add-feature/add-feature-*.md": 23,
+                    "docs/plans/add-feature/add-feature-*.md": 24,
         }
     assert payload["reference_policy"]["direct_paths_must_exist"] is True
     assert payload["reference_policy"]["glob_patterns_must_expand_non_empty"] is True
@@ -7695,9 +7695,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 23,
+        "repository_add_feature_files_discovered": 24,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 12,
+        "out_of_current_objective_add_feature_files": 13,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 4,
@@ -7729,9 +7729,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "source_audit_key": "deferred_feature_coverage",
         "source_contract": "repository_add_feature_inventory",
         "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-        "all_repository_add_feature_files_checked": 23,
+        "all_repository_add_feature_files_checked": 24,
         "current_objective_deferred_feature_tickets_checked": 11,
-        "excluded_from_current_objective_deferred_count": 12,
+        "excluded_from_current_objective_deferred_count": 13,
         "historical_completed_feature_count": 4,
         "parked_feature_ticket_outside_current_objective_count": 0,
         "exclusion_is_completion_evidence_for_current_objective": False,
@@ -7766,6 +7766,19 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     assert "derived index" in c3b_entry["reason"]
     assert "full-required" in c3b_entry["reason"]
     assert "broad advisory→fail-close flip of W1 detectors" in c3b_entry["reason"]
+    c3c_entry = excluded_by_id["c3c_coding_rule_core_full_required"]
+    assert c3c_entry["id"] == "c3c_coding_rule_core_full_required"
+    assert c3c_entry["path"] == (
+        "docs/plans/add-feature/add-feature-2026-06-18-coding-rule-core-full-required.md"
+    )
+    assert c3c_entry["observed_status"] == "draft"
+    assert c3c_entry["classification"] == (
+        "current_scope_authorized_c3c_coding_rule_core_full_required"
+    )
+    assert "C-3c" in c3c_entry["reason"]
+    assert "bash-n/py_compile" in c3c_entry["reason"]
+    assert "full-scan required" in c3c_entry["reason"]
+    assert "ruff/shellcheck" in c3c_entry["reason"]
     push_gate_entry = excluded_by_id["push_gate_test_tiering"]
     assert push_gate_entry["id"] == "push_gate_test_tiering"
     assert push_gate_entry["path"] == (
@@ -8271,8 +8284,8 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "handover_current_json": ".helix/handover/CURRENT.json",
         "next_action_heading_required": "## Next Action (Codex 向け)",
                 "required_current_user_boundary_contains": [
-                    "add-feature-2026-06-18-push-gate-test-tiering.md",
-                    "§2/§6.1",
+                    "add-feature-2026-06-18-coding-rule-core-full-required.md",
+                    "PLAN",
                     "Codex se",
                     "TDD 実装",
                 ],
@@ -8325,9 +8338,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "push-gate G-tests" in handover_state["task"]["title"]
+    assert "coding_rule_lint core(bash-n/py_compile)" in handover_state["task"]["title"]
     assert any(
-        path == "cli/lib/push_gate.py"
+        path == "cli/lib/coding_rule_lint.py"
         for path in handover_state["files"]["pending"]
     )
     assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
@@ -9044,7 +9057,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "double_check_qualitative_checks_pass": 36,
         "double_check_blocking_findings_current_scope": 0,
         "evidence_boundary_scan_evidence_like_keys_checked": 11,
-        "evidence_boundary_scan_boundary_context_refs": 283,
+        "evidence_boundary_scan_boundary_context_refs": 284,
         "evidence_boundary_scan_negative_boundary_check_refs": 1,
         "evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence": 0,
         "evidence_boundary_scan_current_scope_proof_allows_add_feature": False,
@@ -9142,8 +9155,8 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "web_evidence_latest_core_rechecked_sources_checked": 5,
             "web_evidence_all_sources_not_adopted_current_scope": True,
             "web_evidence_l7_or_adoption_evidence_allowed": False,
-            "reference_integrity_path_like_refs_checked": 1383,
-            "reference_integrity_direct_file_refs_checked": 1374,
+            "reference_integrity_path_like_refs_checked": 1384,
+            "reference_integrity_direct_file_refs_checked": 1375,
             "reference_integrity_audit_files_checked": 25,
             "reference_integrity_glob_patterns_checked": 9,
             "reference_integrity_missing_direct_file_refs": 0,
@@ -9284,9 +9297,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "deferred_feature_tickets_draft": 11,
         "deferred_feature_tickets_with_approval_boundary": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 23,
+        "deferred_repository_add_feature_files_discovered": 24,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 12,
+        "deferred_out_of_current_objective_add_feature_files": 13,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_full_flow_later_phase_approval_boundary": True,
@@ -9327,9 +9340,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 23,
+            "full_objective_repository_add_feature_files_discovered": 24,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 12,
+            "full_objective_out_of_current_objective_add_feature_files": 13,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 4,

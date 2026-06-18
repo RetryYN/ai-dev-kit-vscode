@@ -8,7 +8,10 @@ from typing import Any
 
 import yaml
 
-from coding_rule_lint import collect_coding_rule_lint_gate_summary
+from coding_rule_lint import (
+    collect_coding_rule_lint_full_required_summary,
+    collect_coding_rule_lint_gate_summary,
+)
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
 from dependency_cycle_checks import collect_dependency_cycle_gate_summary
 from design_id_existence_checks import check_design_id_existence
@@ -70,6 +73,15 @@ DEFERRED_PAIR_EXECUTION_GATES = {
 }
 
 _DEFAULT_COLLECT_FR_USES_GATE_SUMMARY = collect_fr_uses_gate_summary
+_DEFAULT_COLLECT_CODING_RULE_LINT_GATE_SUMMARY = collect_coding_rule_lint_gate_summary
+
+
+def _coding_rule_lint_required_clean_summary(root: Path) -> dict[str, Any]:
+    # Keep legacy monkeypatch points usable in existing tests while production
+    # switches the required_clean source to core-only full-required semantics.
+    if collect_coding_rule_lint_gate_summary is not _DEFAULT_COLLECT_CODING_RULE_LINT_GATE_SUMMARY:
+        return _ratchet_required_clean(collect_coding_rule_lint_gate_summary(repo_root=root))
+    return collect_coding_rule_lint_full_required_summary(repo_root=root)
 
 
 def _fr_uses_required_clean_summary(root: Path) -> dict[str, Any]:
@@ -223,7 +235,7 @@ def collect_vg_overview(
         check_bc_anti_corruption(root / "cli" / "config" / "ddd-registry.yaml", root),
         check_bc_mode_coverage(root / "cli" / "config" / "ddd-registry.yaml", root),
     )
-    coding_rule_lint = collect_coding_rule_lint_gate_summary(repo_root=root)
+    coding_rule_lint = _coding_rule_lint_required_clean_summary(root)
     dependency_cycle = collect_dependency_cycle_gate_summary(repo_root=root)
     plan_dependency = collect_plan_dependency_gate_summary(repo_root=root)
     fr_uses = _fr_uses_required_clean_summary(root)
@@ -290,7 +302,7 @@ def collect_vg_overview(
             "clean": sum(len(report.findings) for report in ddd_bc_reports) == 0,
             "finding_count": sum(len(report.findings) for report in ddd_bc_reports),
         },
-        "coding_rule_lint": _ratchet_required_clean(coding_rule_lint),
+        "coding_rule_lint": dict(coding_rule_lint),
         "dependency_cycle_checks": _ratchet_required_clean(dependency_cycle),
         "plan_dependency_gate": _ratchet_required_clean(plan_dependency),
         "fr_uses_checks": dict(fr_uses),
