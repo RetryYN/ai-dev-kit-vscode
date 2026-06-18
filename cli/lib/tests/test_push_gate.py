@@ -715,7 +715,11 @@ def test_run_gate_nondestructive_still_blocks_nonexcluded_cli_script(monkeypatch
 def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:
     calls: list[tuple[str, object]] = []
 
-    monkeypatch.setattr(push_gate, "run_gate_tests", lambda: push_gate._result("G-tests", True, "ok", "なし"))
+    monkeypatch.setattr(
+        push_gate,
+        "run_gate_tests",
+        lambda **kwargs: push_gate._result("G-tests", True, "ok", "なし"),
+    )
     monkeypatch.setattr(push_gate, "run_gate_catalog", lambda: push_gate._result("G-catalog", True, "ok", "なし"))
     monkeypatch.setattr(push_gate, "run_gate_secret", lambda: push_gate._result("G-secret", True, "ok", "なし"))
     monkeypatch.setattr(
@@ -773,6 +777,421 @@ def test_run_all_gates_accepts_plan_id_and_allow_main(monkeypatch) -> None:
     assert payload["plan_id"] == "add-feature-2026-06-03-gate-driven-push"
     assert payload["allow_main"] is True
     assert calls == [("add-feature-2026-06-03-gate-driven-push", Path("/tmp/repo"))]
+
+
+def test_decide_test_tier_returns_full_for_explicit_full_request() -> None:
+    selector = {
+        "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/push_gate.py"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": True, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+@pytest.mark.parametrize("branch", ["main", "release/2026.06"])
+def test_decide_test_tier_returns_full_for_protected_branches(branch: str) -> None:
+    selector = {
+        "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/push_gate.py"], "source_status": "available_nonempty"},
+        branch,
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_when_allow_main_is_set() -> None:
+    selector = {
+        "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/push_gate.py"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": True},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_when_changed_files_are_unavailable() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": [], "source_status": "unavailable"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_when_source_status_is_missing() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["docs/commands/push.md"]},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+@pytest.mark.parametrize("source_status", ["", "weird", " AVAILABLE_NONEMPTY "])
+def test_decide_test_tier_returns_full_for_unknown_source_status(source_status: str) -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["docs/commands/push.md"], "source_status": source_status},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_when_payload_is_not_a_dict() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(  # type: ignore[arg-type]
+        ["docs/commands/push.md"],
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+@pytest.mark.parametrize("files_value", [None, "cli/lib/push_gate.py", {"path": "cli/lib/push_gate.py"}])
+def test_decide_test_tier_returns_full_when_files_payload_is_malformed(files_value: object) -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": files_value, "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+@pytest.mark.parametrize(
+    "selector",
+    [
+        [],
+        {"pytest_targets": "cli/lib/tests/test_push_gate.py", "bats_targets": [], "has_code_changes": True, "unmapped_code_files": []},
+        {"pytest_targets": [], "bats_targets": [], "has_code_changes": "false", "unmapped_code_files": []},
+    ],
+)
+def test_decide_test_tier_returns_full_when_selector_payload_is_malformed(selector: object) -> None:
+    tier = push_gate.decide_test_tier(
+        {"files": ["docs/commands/push.md"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,  # type: ignore[arg-type]
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_for_full_trigger_paths() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {
+            "files": ["docs/v2/L3-detailed-design/D-CONTRACT/D-CONTRACT-draft.md"],
+            "source_status": "available_nonempty",
+        },
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_auto_for_docs_only_known_good_payload() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {
+            "files": ["docs/plans/add-feature/sample.md"],
+            "source_status": "available_nonempty",
+        },
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "auto"
+
+
+def test_decide_test_tier_returns_full_when_selector_is_empty_for_code_changes() -> None:
+    selector = {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/some_module.py"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_full_when_test_files_were_deleted_or_renamed() -> None:
+    selector = {
+        "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/tests/test_push_gate.py"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+        has_deleted_or_renamed_tests=True,
+    )
+
+    assert tier == "full"
+
+
+def test_decide_test_tier_returns_auto_for_localized_changes() -> None:
+    selector = {
+        "pytest_targets": ["cli/lib/tests/test_coding_rule_lint.py"],
+        "bats_targets": ["cli/tests/helix-push.bats"],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+    tier = push_gate.decide_test_tier(
+        {"files": ["cli/lib/coding_rule_lint.py", "cli/helix-push"], "source_status": "available_nonempty"},
+        "dogfood",
+        {"full": False, "test_tier": "auto", "allow_main": False},
+        selector=selector,
+    )
+
+    assert tier == "auto"
+
+
+def test_run_gate_tests_uses_selected_targets_and_reports_auto_tier(monkeypatch) -> None:
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "changed_files",
+        lambda upstream=None: {
+            "files": ["cli/lib/coding_rule_lint.py", "cli/helix-push"],
+            "source_status": "available_nonempty",
+        },
+    )
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "select_test_targets",
+        lambda files, repo_root=None: {
+            "pytest_targets": ["cli/lib/tests/test_coding_rule_lint.py"],
+            "bats_targets": ["cli/tests/helix-push.bats"],
+            "has_code_changes": True,
+            "unmapped_code_files": [],
+        },
+    )
+    monkeypatch.setattr(
+        push_gate,
+        "_has_deleted_or_renamed_tests",
+        lambda project_root, upstream: False,
+    )
+
+    def _fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
+        commands.append(command)
+        if command[:3] == ["python3", "-m", "pytest"]:
+            return subprocess.CompletedProcess(command, 0, stdout="1 passed\n", stderr="")
+        if command[0] == "bats":
+            return subprocess.CompletedProcess(command, 0, stdout="1..1\nok 1 sample\n", stderr="")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(push_gate, "_run_command", _fake_run)
+
+    result = push_gate.run_gate_tests(remote="origin", branch="dogfood", test_tier="auto")
+
+    assert result == {
+        "id": "G-tests",
+        "passed": True,
+        "detail": "tier=auto, pytest 1 + bats 1",
+        "fix": "なし",
+    }
+    assert commands == [
+        ["python3", "-m", "pytest", "cli/lib/tests/test_coding_rule_lint.py", "-q"],
+        ["bats", "cli/tests/helix-push.bats"],
+    ]
+
+
+def test_run_gate_tests_falls_back_to_full_when_selector_is_unmapped(monkeypatch) -> None:
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "changed_files",
+        lambda upstream=None: {
+            "files": ["cli/lib/unknown_module.py"],
+            "source_status": "available_nonempty",
+        },
+    )
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "select_test_targets",
+        lambda files, repo_root=None: {
+            "pytest_targets": [],
+            "bats_targets": [],
+            "has_code_changes": True,
+            "unmapped_code_files": ["cli/lib/unknown_module.py"],
+        },
+    )
+    monkeypatch.setattr(
+        push_gate,
+        "_has_deleted_or_renamed_tests",
+        lambda project_root, upstream: False,
+    )
+
+    def _fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
+        commands.append(command)
+        if command == ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]:
+            return subprocess.CompletedProcess(command, 0, stdout="7 passed\n", stderr="")
+        if command[:1] == ["bats"]:
+            return subprocess.CompletedProcess(command, 0, stdout="1..2\nok 1 a\nok 2 b\n", stderr="")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(push_gate, "_run_command", _fake_run)
+    monkeypatch.setattr(
+        Path,
+        "glob",
+        lambda self, pattern: [Path("/tmp/repo/cli/tests/a.bats"), Path("/tmp/repo/cli/tests/b.bats")]
+        if self == Path("/tmp/repo/cli/tests")
+        else [],
+    )
+
+    result = push_gate.run_gate_tests(remote="origin", branch="dogfood", test_tier="auto")
+
+    assert result == {
+        "id": "G-tests",
+        "passed": True,
+        "detail": "tier=full, pytest 7 + bats 2",
+        "fix": "なし",
+    }
+
+
+def test_run_gate_tests_keeps_docs_only_changes_in_auto_without_running_tests(monkeypatch) -> None:
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(push_gate, "_repo_root", lambda: Path("/tmp/repo"))
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "changed_files",
+        lambda upstream=None: {
+            "files": ["docs/plans/add-feature/sample.md"],
+            "source_status": "available_nonempty",
+        },
+    )
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "select_test_targets",
+        lambda files, repo_root=None: {
+            "pytest_targets": [],
+            "bats_targets": [],
+            "has_code_changes": False,
+            "unmapped_code_files": [],
+        },
+    )
+    monkeypatch.setattr(
+        push_gate,
+        "_has_deleted_or_renamed_tests",
+        lambda project_root, upstream: False,
+    )
+
+    def _fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
+        commands.append(command)
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(push_gate, "_run_command", _fake_run)
+
+    result = push_gate.run_gate_tests(remote="origin", branch="dogfood", test_tier="auto")
+
+    assert result == {
+        "id": "G-tests",
+        "passed": True,
+        "detail": "tier=auto, pytest 0 + bats 0",
+        "fix": "なし",
+    }
+    assert commands == []
 
 
 def test_gate_ids_match_contract_enum() -> None:

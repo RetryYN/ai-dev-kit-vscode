@@ -12,6 +12,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 import plan_validator
+import changed_files as changed_files_module
 from vg_overview import collect_vg_overview
 
 
@@ -35,7 +36,7 @@ DESTRUCTIVE_EXCLUDED_PREFIXES = (
 )
 DESTRUCTIVE_ROLLBACK_PREFIX = "cli/migrations/rollback/"
 DESTRUCTIVE_DIFF_HEADER = re.compile(r"^diff --git a/(.+) b/(.+)$")
-CONTRACT_GATE_ENUM_RE = re.compile(r"enum:\s*\[([^\]]+)\]")
+CONTRACT_GATE_ENUM_RE = re.compile(r"id:\s*\{[^}]*enum:\s*\[([^\]]+)\]")
 GATE_IDS = (
     "G-tests",
     "G-catalog",
@@ -44,8 +45,65 @@ GATE_IDS = (
     "G-attr",
     "G-nondestructive",
     "G-review",
+    "G-vg-overview",
 )
 MAIN_BRANCH = "main"
+AUTO_TEST_TIER = "auto"
+FULL_TEST_TIER = "full"
+FULL_TRIGGER_GLOBS = (
+    "pyproject.toml",
+    "requirements*.txt",
+    ".github/workflows/*",
+    "cli/lib/tests/conftest.py",
+    "cli/helix-test",
+    "cli/tests/_helix-bats-helper.bash",
+    "cli/tests/test-bats-lite-runner.bats",
+    "cli/lib/push_gate.py",
+    "cli/lib/changed_files.py",
+    "cli/lib/vg_overview.py",
+    "cli/lib/helix_db.py",
+    "cli/lib/plan_validator.py",
+    "docs/v2/L3-detailed-design/D-CONTRACT/*",
+    "HELIX-workflows/helix-process/github-operations.md",
+    "docs/commands/push.md",
+    "cli/config/functional-registry.yaml",
+    "HELIX-workflows/helix-process/automation-gate-map.md",
+    "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
+    "cli/tests/test-helix-l0-l14-flow-contract.bats",
+)
+
+
+def _is_nonempty_string_list(value: Any) -> bool:
+    return isinstance(value, list) and all(
+        isinstance(item, str) and item.strip() for item in value
+    )
+
+
+def _normalized_string_list(value: Any) -> list[str] | None:
+    if not isinstance(value, list):
+        return None
+    normalized: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            return None
+        stripped = item.strip()
+        if not stripped:
+            return None
+        normalized.append(stripped)
+    return normalized
+
+
+def _selector_payload_is_valid(selector_payload: Any) -> bool:
+    if not isinstance(selector_payload, dict):
+        return False
+    if not isinstance(selector_payload.get("has_code_changes"), bool):
+        return False
+    for key in ("pytest_targets", "bats_targets", "unmapped_code_files"):
+        if not isinstance(selector_payload.get(key), list):
+            return False
+        if not _normalized_string_list(selector_payload.get(key, [])) and selector_payload.get(key):
+            return False
+    return True
 
 
 def _repo_root() -> Path:
@@ -387,39 +445,180 @@ def _contract_gate_ids(contract_path: Path) -> list[str]:
     return [item.strip() for item in match.group(1).split(",") if item.strip()]
 
 
-def run_gate_tests() -> dict:
+def _matches_full_trigger(path: str) -> bool:
+    pure_path = PurePosixPath(path)
+    path_text = pure_path.as_posix()
+    return any(path_text == pattern or pure_path.match(pattern) for pattern in FULL_TRIGGER_GLOBS)
+
+
+def _is_test_path(path: str) -> bool:
+    pure_path = PurePosixPath(path)
+    path_text = pure_path.as_posix()
+    return (
+        path_text.startswith("cli/lib/tests/")
+        or path_text.startswith("cli/tests/")
+        or path_text == "cli/helix-test"
+    )
+
+
+def _has_deleted_or_renamed_tests(project_root: Path, upstream: str | None) -> bool:
+    if not upstream:
+        return False
+    proc = _run_command(["git", "diff", "--name-status", f"{upstream}..HEAD"], cwd=project_root)
+    if proc.returncode != 0:
+        return False
+    for line in proc.stdout.splitlines():
+        parts = [item for item in line.split("\t") if item]
+        if not parts:
+            continue
+        status = parts[0]
+        if not status.startswith(("D", "R")):
+            continue
+        for path in parts[1:]:
+            if _is_test_path(path):
+                return True
+    return False
+
+
+def decide_test_tier(
+    changed_payload: dict[str, Any],
+    branch: str,
+    flags: dict[str, Any],
+    *,
+    selector: dict[str, Any] | None = None,
+    has_deleted_or_renamed_tests: bool = False,
+) -> str:
+    requested_tier = str(flags.get("test_tier", AUTO_TEST_TIER)).strip().lower() or AUTO_TEST_TIER
+    if flags.get("full") or requested_tier == FULL_TEST_TIER:
+        return FULL_TEST_TIER
+    if flags.get("allow_main"):
+        return FULL_TEST_TIER
+    if branch == MAIN_BRANCH or branch.startswith("release/"):
+        return FULL_TEST_TIER
+    if not isinstance(changed_payload, dict):
+        return FULL_TEST_TIER
+    source_status_raw = changed_payload.get("source_status")
+    if not isinstance(source_status_raw, str):
+        return FULL_TEST_TIER
+    source_status = source_status_raw.strip()
+    if source_status not in changed_files_module.KNOWN_SOURCE_STATUSES:
+        return FULL_TEST_TIER
+    if source_status == "unavailable":
+        return FULL_TEST_TIER
+    files = _normalized_string_list(changed_payload.get("files"))
+    if files is None:
+        return FULL_TEST_TIER
+    if source_status == "available_nonempty" and not files:
+        return FULL_TEST_TIER
+    if source_status == "available_empty" and files:
+        return FULL_TEST_TIER
+
+    if has_deleted_or_renamed_tests or any(_matches_full_trigger(path) for path in files):
+        return FULL_TEST_TIER
+
+    selector_payload = selector if selector is not None else changed_files_module.select_test_targets(files)
+    if not _selector_payload_is_valid(selector_payload):
+        return FULL_TEST_TIER
+    if selector_payload.get("unmapped_code_files"):
+        return FULL_TEST_TIER
+    has_selected_tests = bool(selector_payload.get("pytest_targets") or selector_payload.get("bats_targets"))
+    if selector_payload.get("has_code_changes") and not has_selected_tests:
+        return FULL_TEST_TIER
+    return AUTO_TEST_TIER
+
+
+def _run_test_commands(
+    repo_root: Path,
+    test_env: dict[str, str],
+    *,
+    tier: str,
+    pytest_command: list[str] | None,
+    bats_command: list[str] | None,
+) -> dict:
+    pytest_count = "0"
+    bats_count = "0"
+
+    if pytest_command:
+        pytest_proc = _run_command(pytest_command, cwd=repo_root, env=test_env)
+        if pytest_proc.returncode != 0:
+            return _result(
+                "G-tests",
+                False,
+                f"pytest FAIL: {_format_failure(pytest_proc)}",
+                "テスト fail を修正してから再実行",
+            )
+        pytest_count = _parse_pytest_count(pytest_proc.stdout, pytest_proc.stderr) or "pytest PASS"
+
+    if bats_command:
+        bats_proc = _run_command(bats_command, cwd=repo_root, env=test_env)
+        if bats_proc.returncode != 0:
+            return _result(
+                "G-tests",
+                False,
+                f"bats FAIL: {_format_failure(bats_proc)}",
+                "テスト fail を修正してから再実行",
+            )
+        bats_count = _parse_bats_count(bats_proc.stdout, bats_proc.stderr) or "bats PASS"
+
+    return _result("G-tests", True, f"tier={tier}, pytest {pytest_count} + bats {bats_count}", "なし")
+
+
+def run_gate_tests(
+    *,
+    remote: str = "origin",
+    branch: str = "main",
+    test_tier: str = AUTO_TEST_TIER,
+    allow_main: bool = False,
+) -> dict:
     repo_root = _repo_root()
     test_env = _hermetic_test_env()
-    pytest_proc = _run_command(PYTEST_TESTS_CMD, cwd=repo_root, env=test_env)
-    if pytest_proc.returncode != 0:
-        return _result(
-            "G-tests",
-            False,
-            f"pytest FAIL: {_format_failure(pytest_proc)}",
-            "テスト fail を修正してから再実行",
+    upstream = f"{remote}/{branch}" if remote and branch else None
+    changed_payload = changed_files_module.changed_files(upstream=upstream)
+    selector = changed_files_module.select_test_targets(
+        [str(item) for item in changed_payload.get("files", []) if isinstance(item, str)],
+        repo_root=repo_root,
+    )
+    tier = decide_test_tier(
+        changed_payload,
+        branch,
+        {
+            "full": test_tier == FULL_TEST_TIER,
+            "test_tier": test_tier,
+            "allow_main": allow_main,
+        },
+        selector=selector,
+        has_deleted_or_renamed_tests=_has_deleted_or_renamed_tests(repo_root, upstream),
+    )
+
+    if tier == FULL_TEST_TIER:
+        bats_files = sorted(
+            str(path.relative_to(repo_root))
+            for path in (repo_root / "cli" / "tests").glob("*.bats")
+        )
+        if not bats_files:
+            return _result(
+                "G-tests",
+                False,
+                "bats FAIL: no .bats files found under cli/tests",
+                "テスト fail を修正してから再実行",
+            )
+        return _run_test_commands(
+            repo_root,
+            test_env,
+            tier=tier,
+            pytest_command=PYTEST_TESTS_CMD,
+            bats_command=["bats", *bats_files],
         )
 
-    bats_files = sorted(str(path.relative_to(repo_root)) for path in (repo_root / "cli" / "tests").glob("*.bats"))
-    if not bats_files:
-        return _result(
-            "G-tests",
-            False,
-            "bats FAIL: no .bats files found under cli/tests",
-            "テスト fail を修正してから再実行",
-        )
-
-    bats_proc = _run_command(["bats", *bats_files], cwd=repo_root, env=test_env)
-    if bats_proc.returncode != 0:
-        return _result(
-            "G-tests",
-            False,
-            f"bats FAIL: {_format_failure(bats_proc)}",
-            "テスト fail を修正してから再実行",
-        )
-
-    pytest_count = _parse_pytest_count(pytest_proc.stdout, pytest_proc.stderr) or "pytest PASS"
-    bats_count = _parse_bats_count(bats_proc.stdout, bats_proc.stderr) or "bats PASS"
-    return _result("G-tests", True, f"pytest {pytest_count} + bats {bats_count}", "なし")
+    return _run_test_commands(
+        repo_root,
+        test_env,
+        tier=tier,
+        pytest_command=["python3", "-m", "pytest", *selector["pytest_targets"], "-q"]
+        if selector["pytest_targets"]
+        else None,
+        bats_command=["bats", *selector["bats_targets"]] if selector["bats_targets"] else None,
+    )
 
 
 def run_gate_catalog() -> dict:
@@ -801,10 +1000,16 @@ def run_all_gates(
     branch: str = "main",
     plan_id: str | None = None,
     allow_main: bool = False,
+    test_tier: str = AUTO_TEST_TIER,
 ) -> dict:
     repo_root = _repo_root()
     gates = [
-        run_gate_tests(),
+        run_gate_tests(
+            remote=remote,
+            branch=branch,
+            test_tier=test_tier,
+            allow_main=allow_main,
+        ),
         run_gate_catalog(),
         run_gate_secret(),
         run_gate_ff(remote, branch),
@@ -823,6 +1028,7 @@ def run_all_gates(
         "branch": branch,
         "plan_id": plan_id,
         "allow_main": allow_main,
+        "test_tier": test_tier,
         "push": {
             "attempted": False,
             "ok": False,
@@ -878,6 +1084,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--branch", default="main")
     parser.add_argument("--plan-id", default=None)
     parser.add_argument("--allow-main", action="store_true")
+    parser.add_argument("--full", action="store_true")
+    parser.add_argument("--test-tier", choices=(AUTO_TEST_TIER, FULL_TEST_TIER), default=AUTO_TEST_TIER)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--help", "-h", action="store_true")
     return parser
@@ -899,6 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
         branch=args.branch,
         plan_id=args.plan_id,
         allow_main=args.allow_main,
+        test_tier=FULL_TEST_TIER if args.full else args.test_tier,
     )
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))

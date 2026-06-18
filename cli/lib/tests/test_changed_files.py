@@ -109,3 +109,105 @@ def test_changed_files_returns_unavailable_on_subprocess_exception(monkeypatch: 
         "files": [],
         "source_status": "unavailable",
     }
+
+
+def test_select_test_targets_maps_cli_lib_module_to_matching_pytests(tmp_path: Path) -> None:
+    """DoD 検証: WI-B selector は cli/lib/<mod>.py を対応 pytest glob へ写像する。"""
+
+    tests_dir = tmp_path / "cli" / "lib" / "tests"
+    tests_dir.mkdir(parents=True)
+    (tests_dir / "test_push_gate.py").write_text("", encoding="utf-8")
+    (tests_dir / "test_push_gate_contract.py").write_text("", encoding="utf-8")
+
+    selector = changed_files_module.select_test_targets(
+        ["cli/lib/push_gate.py"],
+        repo_root=tmp_path,
+    )
+
+    assert selector == {
+        "pytest_targets": [
+            "cli/lib/tests/test_push_gate.py",
+            "cli/lib/tests/test_push_gate_contract.py",
+        ],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+
+def test_select_test_targets_maps_direct_test_files(tmp_path: Path) -> None:
+    """DoD 検証: WI-B selector は pytest/bats の直接変更を自分自身へ写像する。"""
+
+    selector = changed_files_module.select_test_targets(
+        [
+            "cli/lib/tests/test_push_gate.py",
+            "cli/tests/helix-push.bats",
+        ],
+        repo_root=tmp_path,
+    )
+
+    assert selector == {
+        "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+        "bats_targets": ["cli/tests/helix-push.bats"],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+
+def test_select_test_targets_maps_cli_script_to_matching_bats(tmp_path: Path) -> None:
+    """DoD 検証: WI-B selector は cli script を対応 bats へ best-effort で写像する。"""
+
+    tests_dir = tmp_path / "cli" / "tests"
+    tests_dir.mkdir(parents=True)
+    (tests_dir / "helix-push.bats").write_text("", encoding="utf-8")
+    (tests_dir / "test-helix-push-smoke.bats").write_text("", encoding="utf-8")
+
+    selector = changed_files_module.select_test_targets(
+        ["cli/helix-push"],
+        repo_root=tmp_path,
+    )
+
+    assert selector == {
+        "pytest_targets": [],
+        "bats_targets": [
+            "cli/tests/helix-push.bats",
+            "cli/tests/test-helix-push-smoke.bats",
+        ],
+        "has_code_changes": True,
+        "unmapped_code_files": [],
+    }
+
+
+def test_select_test_targets_flags_unmapped_code_for_full_fallback(tmp_path: Path) -> None:
+    """DoD 検証: WI-B selector はマップ不能 code 変更を skip せず full fallback 用に返す。"""
+
+    selector = changed_files_module.select_test_targets(
+        ["cli/lib/unknown_module.py"],
+        repo_root=tmp_path,
+    )
+
+    assert selector == {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": True,
+        "unmapped_code_files": ["cli/lib/unknown_module.py"],
+    }
+
+
+def test_select_test_targets_keeps_non_code_docs_light(tmp_path: Path) -> None:
+    """DoD 検証: WI-B selector は docs/plans/audit のみ変更時を non-code 扱いにする。"""
+
+    selector = changed_files_module.select_test_targets(
+        [
+            "docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md",
+            "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
+        ],
+        repo_root=tmp_path,
+    )
+
+    assert selector == {
+        "pytest_targets": [],
+        "bats_targets": [],
+        "has_code_changes": False,
+        "unmapped_code_files": [],
+    }

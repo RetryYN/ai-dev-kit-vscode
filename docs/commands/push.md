@@ -30,6 +30,8 @@ helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLA
 ```bash
 helix push --gate
 helix push --gate --execute
+helix push --gate --test-tier auto
+helix push --gate --full
 helix push --gate --execute --remote origin --branch main
 ```
 
@@ -43,6 +45,8 @@ helix push --gate --execute --remote origin --branch main
 | `--branch BRANCH` | 検証対象と push 対象の branch。既定は **current branch** |
 | `--plan-id PLAN` | G-review 対象の代表 PLAN を明示指定。単一 ahead PLAN は未指定でも可。複数 ahead PLAN では必須で、指定 PLAN が ahead に含まれることを確認したうえで ahead 全 PLAN を検査する（0/不一致は fail-close） |
 | `--allow-main` | `main` への push を許可（`--reason` 必須）。未指定で branch=main は fail-close |
+| `--full` | G-tests を従来どおり full pytest + 全 bats で実行する escape hatch。`--test-tier full` と同義 |
+| `--test-tier {auto,full}` | G-tests の tier。既定 `auto` は changed-files selector により局所 pytest/bats のみを実行し、fail-close 条件では自動で `full` に倒す |
 | `--reason TEXT` | `--allow-main` 時の理由（commit/evidence へ） |
 | `--help` | ヘルプを表示 |
 
@@ -50,7 +54,7 @@ helix push --gate --execute --remote origin --branch main
 
 | ID | 名前 | 検証内容 | fail 時メッセージ |
 | --- | --- | --- | --- |
-| `G-tests` | pytest / bats | `python3 -m pytest cli/lib/tests/ -q` と `bats cli/tests/*.bats` 相当 | テスト fail を修正してから再実行 |
+| `G-tests` | pytest / bats | 既定 `auto`。changed-files selector で局所 pytest/bats のみを実行し、full trigger では `tier=full` に fail-close。`--full` / `--test-tier full` は従来の `python3 -m pytest cli/lib/tests/ -q` + `bats cli/tests/*.bats` を完全再現 | テスト fail を修正してから再実行 |
 | `G-catalog` | command catalog | `python3 -m pytest cli/lib/tests/test_command_catalog.py -q` | help/docs 同期不足、`helix commands` 確認 |
 | `G-secret` | secret scan | `pre-commit run --all-files` | secret detected、staged change を確認 |
 | `G-ff` | fast-forward | `git fetch <remote> <branch>` 後に `git merge-base --is-ancestor <remote>/<branch> HEAD` | rebase 必要、`git pull --rebase origin main` |
@@ -59,13 +63,21 @@ helix push --gate --execute --remote origin --branch main
 | `G-review` | PLAN レビュー（`plan_scope` 別 lifecycle） | 単一/複数 ahead PLAN（複数は `--plan-id` で代表明示）を対象に、各 PLAN の `plan_scope` 別に検査: **action** = `status ∈ {completed, finalized}` + `tl_review == approve`／**process**（長命の親）= `tl_review == approve` のみ（`status` 完了不問）。0/不一致は fail-close | action PLAN を completed/finalized + `tl_review: approve` にする。process PLAN は `tl_review: approve`（status は draft/in_progress のままで可）。複数 ahead PLAN では `--plan-id` を指定 |
 | `G-vg-overview` | VG-overview pre-push | G7 anchor / registry / trace overview / L6 requirement drift の applicable pair と required clean が clean であることを確認。該当資産がないプロジェクトでは not applicable | G7 anchor/test pass、registry/trace findings、L6 requirement drift findings を解消または reason 付き waiver 化 |
 
+## G-tests tier
+
+- 既定は `auto`
+- `tier=auto` では `cli/lib/<mod>.py -> cli/lib/tests/test_<mod>*.py`、`cli/<script> -> cli/tests/*<script>*.bats` の保守 bucket selector を使う
+- 次の条件では `tier=full` に倒す: `--full` / `--test-tier full`、`main` / `release/*` / `--allow-main`、changed-files source unavailable、selector 空だが code 変更あり、FULL_TRIGGER（shared core / D-CONTRACT / workflow / push policy docs / contract mirror / test delete or rename）
+- docs/plans/audit など non-code のみ変更時は `tier=auto` のまま `pytest 0 + bats 0` になりうる
+- `dogfood` と `feature/**` の push は CI でも full pytest + 全 bats が backstop として走る
+
 ## 出力形式
 
 dry-run 成功時:
 
 ```text
 [helix push] gate verification...
-✓ G-tests          (pytest 1147 + bats 452)
+✓ G-tests          (tier=auto, pytest 1147 + bats 452)
 ✓ G-catalog        (4 PASS)
 ✓ G-secret         (pre-commit PASS)
 ✓ G-ff             (origin/main fast-forward OK)
@@ -81,7 +93,7 @@ dry-run 成功時:
 
 ```text
 [helix push] gate verification...
-✓ G-tests          (pytest 1147 + bats 452)
+✓ G-tests          (tier=full, pytest 1147 + bats 452)
 ✓ G-catalog        (4 PASS)
 ✓ G-secret         (pre-commit PASS)
 ✓ G-ff             (origin/main fast-forward OK)
@@ -97,7 +109,7 @@ dry-run 成功時:
 
 ```text
 [helix push] gate verification...
-✓ G-tests          (pytest 1147 + bats 452)
+✓ G-tests          (tier=auto, pytest 1147 + bats 452)
 ✗ G-catalog        (test_command_catalog FAIL: missing routed command 'X')
   Fix: help/docs 同期不足、`helix commands` 確認
 

@@ -77,9 +77,9 @@ Sprint A §2.0 の primitive を再利用し、新規 primitive は追加しな�
 - **テスト設計 (③ D-TEST-DESIGN)**: 現在フェーズでは L6 単体テスト設計観点として保持。L7 artifact は add-feature 承認後に作成
 
 **`run_all_gates()` シグネチャ (実測値)**:
-- 引数: `execute: bool = False, remote: str = "origin", branch: str = "main"` (全オプション)
-- 戻り値: `dict` — キー `ok / failed_count / gates / execute_requested / remote / branch / push`
-- `gates`: `list[{id: str, passed: bool, detail: str, fix: str}]` — id は `G-tests / G-catalog / G-secret / G-ff / G-attr / G-nondestructive`
+- 引数: `execute: bool = False, remote: str = "origin", branch: str = "main", plan_id: str | None = None, allow_main: bool = False, test_tier: str = "auto"`
+- 戻り値: `dict` — キー `ok / failed_count / gates / execute_requested / remote / branch / plan_id / allow_main / test_tier / push`
+- `gates`: `list[{id: str, passed: bool, detail: str, fix: str}]` — id は `G-tests / G-catalog / G-secret / G-ff / G-attr / G-nondestructive / G-review / G-vg-overview`
 - `push`: `{attempted: bool, ok: bool, detail: str}`
 - side effect: `execute=True` + 全 gate PASS 時のみ `git push` を実行。helix.db 書き込みなし
 
@@ -112,6 +112,8 @@ request_schema:
     trigger_actor: { type: string, minLength: 1, maxLength: 128 }
     execute: { type: boolean, default: false }
     remote: { type: string, default: "origin" }
+    allow_main: { type: boolean, default: false }
+    test_tier: { type: string, enum: [auto, full], default: auto }
     promotion_hook: { $ref: '#/components/schemas/PromotionHookRef' }
   additionalProperties: false
 response_schema:
@@ -121,7 +123,7 @@ response_schema:
       properties:
         data:
           type: object
-          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, push, pair_transition]
+          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, allow_main, test_tier, push, pair_transition]
           properties:
             run_id: { type: integer }
             ok: { type: boolean }
@@ -129,14 +131,16 @@ response_schema:
             execute_requested: { type: boolean }
             remote: { type: string }
             branch: { type: string }
+            allow_main: { type: boolean }
+            test_tier: { type: string, enum: [auto, full] }
             gate_results:
               type: array
-              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive"
+              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive/G-review/G-vg-overview"
               items:
                 type: object
                 required: [id, passed, detail, fix]
                 properties:
-                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive, G-review, G-vg-overview] }
                   passed: { type: boolean }
                   detail: { type: string }
                   fix: { type: string }
@@ -152,7 +156,7 @@ response_schema:
 ```
 
 - `pair_transition` は push 実行で常時返却し、pair / gate 遷移を response data に明示する。
-- `gate_results[].id` は `run_all_gates()` 戻り値の `gates[].id` と 1:1 対応する。HELIX フェーズゲート (G2/G3...) とは別体系であることに注意。
+- `gate_results[].id` は `run_all_gates()` 戻り値の `gates[].id` と 1:1 対応する。`G-tests` は `test_tier` (`auto` / `full`) を detail に含み、HELIX フェーズゲート (G2/G3...) とは別体系であることに注意。
 - error_codes: 400 / 401 / 404 / 409 / 500
 
 ### 3.2 pr trigger endpoint
@@ -196,6 +200,8 @@ request_schema:
     trigger_actor: { type: string, minLength: 1, maxLength: 128 }
     execute: { type: boolean, default: false }
     remote: { type: string, default: "origin" }
+    allow_main: { type: boolean, default: false }
+    test_tier: { type: string, enum: [auto, full], default: auto }
     promotion_hook: { $ref: '#/components/schemas/PromotionHookRef' }
     pair_transition: { $ref: '#/components/schemas/PairStatusTransition' }
   additionalProperties: false
@@ -206,7 +212,7 @@ response_schema:
       properties:
         data:
           type: object
-          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, push]
+          required: [run_id, ok, failed_count, gate_results, execute_requested, remote, branch, allow_main, test_tier, push]
           properties:
             run_id: { type: integer }
             ok: { type: boolean }
@@ -214,14 +220,16 @@ response_schema:
             execute_requested: { type: boolean }
             remote: { type: string }
             branch: { type: string }
+            allow_main: { type: boolean }
+            test_tier: { type: string, enum: [auto, full] }
             gate_results:
               type: array
-              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive"
+              description: "run_all_gates() gates キーの直接マッピング。id は G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive/G-review/G-vg-overview"
               items:
                 type: object
                 required: [id, passed, detail, fix]
                 properties:
-                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive] }
+                  id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive, G-review, G-vg-overview] }
                   passed: { type: boolean }
                   detail: { type: string }
                   fix: { type: string }
@@ -236,7 +244,7 @@ response_schema:
 ```
 
 - pr trigger は query の `force` / `dry_run` / `auto_merge` と request body の `execute` / `remote` に分離し、`G8` は本 draft では扱わない。
-- `gate_results[].id` は push trigger と同一の push pre-gate check set (G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive) である。
+- `gate_results[].id` は push trigger と同一の push pre-gate check set (G-tests/G-catalog/G-secret/G-ff/G-attr/G-nondestructive/G-review/G-vg-overview) である。
 - error_codes: 400 / 401 / 404 / 409 / 500
 
 ### 3.3 hook callback endpoint

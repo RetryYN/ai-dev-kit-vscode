@@ -517,6 +517,11 @@ push_gate_run_all_gates:
       type: boolean
       default: false
       description: "main への push を許可（gate-driven auto-push は dogfood/feature/hotfix のみ。main は本フラグ + 人間判断が必須）"
+    test_tier:
+      type: string
+      enum: [auto, full]
+      default: auto
+      description: "G-tests の実行 tier。既定 auto は changed-files selector で局所 pytest/bats のみを実行し、full trigger / unavailable / selector 空(code 変更あり) / protected branch では fail-close で full に倒す。`--full` は `test_tier=full` の sugar で従来 full pytest + 全 bats を完全再現する。"
   return_type: dict
   return_keys:
     ok: { type: boolean, description: "全 gate PASS かつ push 成功 (execute=true 時)" }
@@ -527,13 +532,16 @@ push_gate_run_all_gates:
         type: object
         required: [id, passed, detail, fix]
         properties:
-          id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive, G-review] }
+          id: { type: string, enum: [G-tests, G-catalog, G-secret, G-ff, G-attr, G-nondestructive, G-review, G-vg-overview] }
           passed: { type: boolean }
           detail: { type: string }
           fix: { type: string }
     execute_requested: { type: boolean }
     remote: { type: string }
     branch: { type: string }
+    plan_id: { type: [string, "null"], description: "G-review 代表 PLAN (未指定時 null)" }
+    allow_main: { type: boolean, description: "main 直 push 許可フラグ。true 時 G-tests は full に倒す" }
+    test_tier: { type: string, enum: [auto, full] }
     push:
       type: object
       required: [attempted, ok, detail]
@@ -547,14 +555,50 @@ push_gate_run_all_gates:
     stdout: "main() 経由の _print_report() のみ。run_all_gates() 直接呼び出しでは stdout 出力なし"
 ```
 
+```yaml
+g_tests_tier_policy:
+  default_mode: auto
+  detail_format: "tier=auto|full, pytest N + bats M"
+  full_reproduces_legacy_behavior: true
+  full_triggers:
+    - "explicit --full or --test-tier full"
+    - "branch == main"
+    - "branch startswith release/"
+    - "--allow-main"
+    - "changed-files source unavailable"
+    - "selector empty while code changes exist"
+    - "FULL_TRIGGER path changed"
+    - "test delete or rename detected"
+  full_trigger_examples:
+    - pyproject.toml
+    - requirements*.txt
+    - .github/workflows/*
+    - cli/lib/tests/conftest.py
+    - cli/helix-test
+    - cli/tests/_helix-bats-helper.bash
+    - cli/tests/test-bats-lite-runner.bats
+    - cli/lib/push_gate.py
+    - cli/lib/changed_files.py
+    - cli/lib/vg_overview.py
+    - cli/lib/helix_db.py
+    - cli/lib/plan_validator.py
+    - docs/v2/L3-detailed-design/D-CONTRACT/*
+    - HELIX-workflows/helix-process/github-operations.md
+    - docs/commands/push.md
+    - cli/config/functional-registry.yaml
+    - HELIX-workflows/helix-process/automation-gate-map.md
+    - cli/lib/tests/test_helix_l0_l14_flow_contract.py
+    - cli/tests/test-helix-l0-l14-flow-contract.bats
+```
+
 ### 4.5.2 既存 CLI 呼び出し pattern (caller signature)
 
 ```yaml
 existing_cli_callers:
   helix_push:
     file: cli/helix-push
-    pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLAN] [--allow-main]"
-    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper。helix-push の default branch=current、main は --allow-main + --reason 必須。G-review は単一 ahead PLAN ではその 1 件、複数 ahead PLAN では `--plan-id` で代表を明示したうえで ahead 全 PLAN について frontmatter の status∈{completed,finalized} + tl_review=approve を検査する（gate-driven push 政策の SSoT は github-operations.md）"
+    pattern: "python3 push_gate.py [--execute] [--remote REMOTE] [--branch BRANCH] [--plan-id PLAN] [--allow-main] [--full | --test-tier {auto,full}]"
+    note: "subprocess 経由。run_all_gates() を直接呼ばず CLI として起動する thin wrapper。helix-push の default branch=current、main は --allow-main + --reason 必須。G-review は単一 ahead PLAN ではその 1 件、複数 ahead PLAN では `--plan-id` で代表を明示したうえで ahead 全 PLAN について frontmatter の status∈{completed,finalized} + tl_review=approve を検査する（gate-driven push 政策の SSoT は github-operations.md）。G-tests は既定 auto、`--full`/`--test-tier full` で従来 full pytest + 全 bats を完全再現する。"
   helix_pr:
     file: cli/helix-pr
     pattern: "inspect.signature(run_all_gates).parameters で動的キーワード確認後に呼び出し (L147-153)"

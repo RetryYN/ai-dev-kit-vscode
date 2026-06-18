@@ -30,11 +30,34 @@ def test_run_gate_tests_returns_pass_when_pytest_succeeds(monkeypatch) -> None:
     monkeypatch.setattr(push_gate, "_repo_root", lambda: repo_root)
     monkeypatch.setattr(push_gate, "_run_command", fake_run)
     monkeypatch.setattr(push_gate.Path, "glob", lambda self, pattern: [tests_dir / "sample.bats"])
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "changed_files",
+        lambda upstream=None: {
+            "files": ["cli/lib/push_gate.py"],
+            "source_status": "available_nonempty",
+        },
+    )
+    monkeypatch.setattr(
+        push_gate.changed_files_module,
+        "select_test_targets",
+        lambda files, repo_root=None: {
+            "pytest_targets": ["cli/lib/tests/test_push_gate.py"],
+            "bats_targets": [],
+            "has_code_changes": True,
+            "unmapped_code_files": [],
+        },
+    )
+    monkeypatch.setattr(
+        push_gate,
+        "_has_deleted_or_renamed_tests",
+        lambda project_root, upstream: False,
+    )
 
-    result = push_gate.run_gate_tests()
+    result = push_gate.run_gate_tests(remote="origin", branch="dogfood", test_tier="full")
 
     assert result["passed"] is True
-    assert result["detail"] == "pytest 1147 + bats 452"
+    assert result["detail"] == "tier=full, pytest 1147 + bats 452"
     assert calls == [push_gate.PYTEST_TESTS_CMD, ["bats", "cli/tests/sample.bats"]]
 
 

@@ -54,9 +54,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 22
+  repository_add_feature_files_discovered: 23
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 11
+  out_of_current_objective_add_feature_files: 12
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +67,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 22
+  all_repository_add_feature_files_checked: 23
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 11
+  excluded_from_current_objective_deferred_count: 12
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -188,6 +188,17 @@ repository_add_feature_inventory:
         now のまま。他 detector の full-required promotion、L7 product
         implementation、DB schema work、external-tool required gating は
         authorize しない。
+    - id: push_gate_test_tiering
+      path: docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md
+      observed_status: draft
+      classification: current_scope_authorized_push_gate_test_tiering
+      reason: >
+        User-approved current-scope shared-core push gate hardening action:
+        G-tests tier auto/full 判定、dogfood/feature CI full backstop、
+        D-CONTRACT gate enum drift 修正。`--full`/`--test-tier full` による
+        従来 full pytest+bats は維持し、selector 不明時は fail-close で full
+        に倒す。L7 product completion、DB schema work、external-tool required
+        gating、scope 外の設計変更は authorize しない。
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

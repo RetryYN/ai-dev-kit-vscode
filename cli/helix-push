@@ -86,11 +86,13 @@ PY
 
 usage() {
   cat <<'USAGE'
-使い方: helix push --gate [--execute] [--remote REMOTE] [--branch BRANCH]
+使い方: helix push --gate [--execute] [--full | --test-tier <auto|full>] [--remote REMOTE] [--branch BRANCH]
 
 Options:
   --gate           push 前ゲート検証を実行
   --execute        全ゲート PASS 時のみ git push を実行
+  --full           G-tests を full tier で実行
+  --test-tier TIER G-tests の tier (`auto` or `full`、default: auto)
   --plan-id PLAN   G-review 対象 PLAN を明示指定
   --allow-main     main への push を明示許可
   --reason TEXT    main への push を許可する理由
@@ -117,6 +119,8 @@ main() {
   local plan_id=""
   local allow_main="false"
   local reason=""
+  local full="false"
+  local test_tier="auto"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -127,6 +131,23 @@ main() {
       --execute)
         execute="true"
         shift
+        ;;
+      --full)
+        full="true"
+        shift
+        ;;
+      --test-tier)
+        [[ $# -ge 2 ]] || { echo "エラー: --test-tier には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
+        case "$2" in
+          auto|full)
+            test_tier="$2"
+            ;;
+          *)
+            echo "エラー: --test-tier は auto か full を指定してください" >&2
+            return "$EXIT_INPUT_ERROR"
+            ;;
+        esac
+        shift 2
         ;;
       --remote)
         [[ $# -ge 2 ]] || { echo "エラー: --remote には値が必要です" >&2; return "$EXIT_INPUT_ERROR"; }
@@ -192,6 +213,8 @@ main() {
     HELIX_AUTOMATION_PLAN_ID="$plan_id" \
     HELIX_AUTOMATION_ALLOW_MAIN="$allow_main" \
     HELIX_AUTOMATION_REASON="$reason" \
+    HELIX_AUTOMATION_FULL="$full" \
+    HELIX_AUTOMATION_TEST_TIER="$test_tier" \
     python3 - <<'PY'
 import json
 import os
@@ -203,6 +226,8 @@ print(json.dumps({
     "plan_id": os.environ["HELIX_AUTOMATION_PLAN_ID"] or None,
     "allow_main": os.environ["HELIX_AUTOMATION_ALLOW_MAIN"] == "true",
     "reason": os.environ["HELIX_AUTOMATION_REASON"] or None,
+    "full": os.environ["HELIX_AUTOMATION_FULL"] == "true",
+    "test_tier": os.environ["HELIX_AUTOMATION_TEST_TIER"],
 }, ensure_ascii=False, sort_keys=True))
 PY
   )"
@@ -216,6 +241,11 @@ PY
       helper_cmd=("$HELPER" --execute --remote "$remote" --branch "$branch")
     else
       helper_cmd=("$HELPER" --remote "$remote" --branch "$branch")
+    fi
+    if [[ "$full" == "true" ]]; then
+      helper_cmd+=(--full)
+    else
+      helper_cmd+=(--test-tier "$test_tier")
     fi
     if [[ -n "$plan_id" ]]; then
       helper_cmd+=(--plan-id "$plan_id")
