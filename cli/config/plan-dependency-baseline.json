@@ -322,38 +322,6 @@
     },
     {
       "field": "dependencies.blocks",
-      "fingerprint": "03bd0ee0ec901d57d1961f150fd873735377e47e1ebe73d0431ec12a36849de3",
-      "kind": "other",
-      "path": "docs/plans/L7/L7-test-failures-triageplan.md",
-      "plan_id": "L7-test-failures-triageplan",
-      "reason": "docs/plans/L7/L7-codex-allowed-files-regression-fixplan.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "f79b2d858e20f04d401af2a4eb1a22069d2eda6abb37432198e95c6fb1c5d321",
-      "kind": "other",
-      "path": "docs/plans/L7/L7-test-failures-triageplan.md",
-      "plan_id": "L7-test-failures-triageplan",
-      "reason": "docs/plans/L7/L7-route-list-signals-regression-fixplan.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "fa384e0ee183aeb88539991c283b25de6f8735ded991b2eaf4b2f5b570f8d9d6",
-      "kind": "other",
-      "path": "docs/plans/L7/L7-test-failures-triageplan.md",
-      "plan_id": "L7-test-failures-triageplan",
-      "reason": "docs/plans/L7/L7-size-discovery-alias-test-fixplan.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "1211e40398f0173d1727bda3209eeee91635ea4911314f3c3e507e2999aa86f7",
-      "kind": "other",
-      "path": "docs/plans/L7/L7-test-failures-triageplan.md",
-      "plan_id": "L7-test-failures-triageplan",
-      "reason": "docs/plans/L7/L7-skill-chain-evidence-fixplan.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
       "fingerprint": "ef1a2dffe099c40bbe76a94f8361f58fd811edf27a98a1eb516b2ad6be108399",
       "kind": "other",
       "path": "docs/plans/L7/L7-wsc-test-impl-closureplan.md",
@@ -367,35 +335,11 @@
       "path": "docs/plans/L7/L7-wsc-test-impl-closureplan.md",
       "plan_id": "L7-wsc-test-impl-closureplan",
       "reason": "expected list[string]"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "d303d20c6bf40ba128ff2367ac7d20cb6b8b77ac2cea84c7aae8aa25a1c94b75",
-      "kind": "other",
-      "path": "docs/plans/recovery/recovery-2026-06-07-design-coverage-recognition.md",
-      "plan_id": "recovery-2026-06-07-design-coverage-recognition",
-      "reason": "docs/plans/reverse/reverse-2026-06-07-coverage-classification.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "4f866cf2765fed57edc97796e5b4c2ff11a009cb8b727a4a84d715413e464285",
-      "kind": "other",
-      "path": "docs/plans/reverse/reverse-2026-06-07-coverage-classification.md",
-      "plan_id": "reverse-2026-06-07-coverage-classification",
-      "reason": "docs/plans/reverse/reverse-2026-06-07-layer-refreeze.md does not exist (referenced in blocks)"
-    },
-    {
-      "field": "dependencies.blocks",
-      "fingerprint": "d90cc8f7d1348defb73a0428f006d215673095d3d903fddb10409aa0ed6cbc41",
-      "kind": "other",
-      "path": "docs/plans/reverse/reverse-2026-06-07-l3-registry-closure.md",
-      "plan_id": "reverse-2026-06-07-l3-registry-closure",
-      "reason": "docs/plans/reverse/reverse-2026-06-07-coverage-classification.md does not exist (referenced in blocks)"
     }
   ],
   "created": "2026-06-14",
   "expiry": "2026-09-12",
-  "generated_by": "codex WI-C baseline generation",
+  "generated_by": "plan_dependency_gate.py --write-baseline",
   "intentional_baseline": true,
   "owner": "codex"
 }

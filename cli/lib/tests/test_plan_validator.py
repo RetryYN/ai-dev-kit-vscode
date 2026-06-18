@@ -500,6 +500,17 @@ def test_reciprocal_blocks_nonexistent(tmp_path: Path) -> None:
     _assert_warn_contains(result.stderr, "PLAN-999-never-exist does not exist (referenced in blocks)")
 
 
+def test_locate_plan_file_accepts_repo_relative_path_reference() -> None:
+    current_plan = REPO_ROOT / "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md"
+    target_ref = "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md"
+
+    match = plan_validator.locate_plan_file(current_plan, target_ref)
+
+    assert match == (
+        REPO_ROOT / "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md"
+    )
+
+
 def test_p2_exit_zero_with_warnings(tmp_path: Path) -> None:
     created_at = datetime.now(timezone.utc).date().isoformat()
     plan_a = _base_frontmatter(created_at)

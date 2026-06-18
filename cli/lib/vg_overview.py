@@ -13,13 +13,19 @@ from coding_rule_lint import (
     collect_coding_rule_lint_gate_summary,
 )
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
-from dependency_cycle_checks import collect_dependency_cycle_gate_summary
+from dependency_cycle_checks import (
+    collect_dependency_cycle_gate_summary,
+    collect_import_cycle_baseline_required_summary,
+)
 from design_id_existence_checks import check_design_id_existence
 from fr_uses_checks import collect_fr_uses_full_required_summary, collect_fr_uses_gate_summary
 from functional_registry_checks import check_functional_registry
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
-from plan_dependency_gate import collect_plan_dependency_gate_summary
+from plan_dependency_gate import (
+    collect_plan_dependency_baseline_required_summary,
+    collect_plan_dependency_gate_summary,
+)
 from registry_design_coverage_checks import check_registry_design_coverage
 from requirement_drift import collect_requirement_drift
 from trace_symmetry import collect_trace_symmetry
@@ -74,6 +80,8 @@ DEFERRED_PAIR_EXECUTION_GATES = {
 
 _DEFAULT_COLLECT_FR_USES_GATE_SUMMARY = collect_fr_uses_gate_summary
 _DEFAULT_COLLECT_CODING_RULE_LINT_GATE_SUMMARY = collect_coding_rule_lint_gate_summary
+_DEFAULT_COLLECT_DEPENDENCY_CYCLE_GATE_SUMMARY = collect_dependency_cycle_gate_summary
+_DEFAULT_COLLECT_PLAN_DEPENDENCY_GATE_SUMMARY = collect_plan_dependency_gate_summary
 
 
 def _coding_rule_lint_required_clean_summary(root: Path) -> dict[str, Any]:
@@ -90,6 +98,22 @@ def _fr_uses_required_clean_summary(root: Path) -> dict[str, Any]:
     if collect_fr_uses_gate_summary is not _DEFAULT_COLLECT_FR_USES_GATE_SUMMARY:
         return collect_fr_uses_gate_summary(repo_root=root)
     return collect_fr_uses_full_required_summary(repo_root=root)
+
+
+def _dependency_cycle_required_clean_summary(root: Path) -> dict[str, Any]:
+    # Keep legacy monkeypatch points usable in existing tests while production
+    # switches the required_clean source to baseline-required semantics.
+    if collect_dependency_cycle_gate_summary is not _DEFAULT_COLLECT_DEPENDENCY_CYCLE_GATE_SUMMARY:
+        return _ratchet_required_clean(collect_dependency_cycle_gate_summary(repo_root=root))
+    return collect_import_cycle_baseline_required_summary(repo_root=root)
+
+
+def _plan_dependency_required_clean_summary(root: Path) -> dict[str, Any]:
+    # Keep legacy monkeypatch points usable in existing tests while production
+    # switches the required_clean source to baseline-required semantics.
+    if collect_plan_dependency_gate_summary is not _DEFAULT_COLLECT_PLAN_DEPENDENCY_GATE_SUMMARY:
+        return _ratchet_required_clean(collect_plan_dependency_gate_summary(repo_root=root))
+    return collect_plan_dependency_baseline_required_summary(repo_root=root)
 
 
 def _project_root(project_root: Path | None = None) -> Path:
@@ -236,8 +260,8 @@ def collect_vg_overview(
         check_bc_mode_coverage(root / "cli" / "config" / "ddd-registry.yaml", root),
     )
     coding_rule_lint = _coding_rule_lint_required_clean_summary(root)
-    dependency_cycle = collect_dependency_cycle_gate_summary(repo_root=root)
-    plan_dependency = collect_plan_dependency_gate_summary(repo_root=root)
+    dependency_cycle = _dependency_cycle_required_clean_summary(root)
+    plan_dependency = _plan_dependency_required_clean_summary(root)
     fr_uses = _fr_uses_required_clean_summary(root)
     functional_registry = check_functional_registry(registry_path, root)
     trace = collect_trace_symmetry(root)
@@ -303,8 +327,8 @@ def collect_vg_overview(
             "finding_count": sum(len(report.findings) for report in ddd_bc_reports),
         },
         "coding_rule_lint": dict(coding_rule_lint),
-        "dependency_cycle_checks": _ratchet_required_clean(dependency_cycle),
-        "plan_dependency_gate": _ratchet_required_clean(plan_dependency),
+        "dependency_cycle_checks": dict(dependency_cycle),
+        "plan_dependency_gate": dict(plan_dependency),
         "fr_uses_checks": dict(fr_uses),
         "source_scan_vs_registry": {
             "clean": len(source_scan_findings) == 0,

@@ -74,7 +74,7 @@ ratification_summary:
   double_check_qualitative_checks_pass: 36
   double_check_blocking_findings_current_scope: 0
   evidence_boundary_scan_evidence_like_keys_checked: 11
-  evidence_boundary_scan_boundary_context_refs: 284
+  evidence_boundary_scan_boundary_context_refs: 285
   evidence_boundary_scan_negative_boundary_check_refs: 1
   evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence: 0
   evidence_boundary_scan_current_scope_proof_allows_add_feature: false
@@ -172,8 +172,8 @@ ratification_summary:
   web_evidence_latest_core_rechecked_sources_checked: 5
   web_evidence_all_sources_not_adopted_current_scope: true
   web_evidence_l7_or_adoption_evidence_allowed: false
-  reference_integrity_path_like_refs_checked: 1384
-  reference_integrity_direct_file_refs_checked: 1375
+  reference_integrity_path_like_refs_checked: 1385
+  reference_integrity_direct_file_refs_checked: 1376
   reference_integrity_audit_files_checked: 25
   reference_integrity_glob_patterns_checked: 9
   reference_integrity_missing_direct_file_refs: 0
@@ -314,9 +314,9 @@ ratification_summary:
   deferred_feature_tickets_draft: 11
   deferred_feature_tickets_with_approval_boundary: 11
   deferred_feature_unlock_conditions_checked: 11
-  deferred_repository_add_feature_files_discovered: 24
+  deferred_repository_add_feature_files_discovered: 25
   deferred_current_objective_deferred_feature_tickets: 11
-  deferred_out_of_current_objective_add_feature_files: 13
+  deferred_out_of_current_objective_add_feature_files: 14
   deferred_out_of_current_objective_completed_add_features: 4
   deferred_out_of_current_objective_parked_feature_tickets: 0
   deferred_full_flow_later_phase_approval_boundary: true
@@ -357,9 +357,9 @@ ratification_summary:
   full_objective_current_scope_items_pass_l1_l6: 9
   full_objective_items_requiring_later_phase_before_full_completion: 8
   full_objective_feature_tickets_available: 11
-  full_objective_repository_add_feature_files_discovered: 24
+  full_objective_repository_add_feature_files_discovered: 25
   full_objective_current_objective_deferred_feature_tickets: 11
-  full_objective_out_of_current_objective_add_feature_files: 13
+  full_objective_out_of_current_objective_add_feature_files: 14
   full_objective_out_of_current_objective_completed_add_features: 4
   full_objective_out_of_current_objective_parked_feature_tickets: 0
   full_objective_right_arm_execution_gates_deferred: 4

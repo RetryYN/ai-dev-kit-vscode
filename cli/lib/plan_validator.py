@@ -283,6 +283,15 @@ def warn(plan_ref: str, field: str, reason: str, warnings: list[str]) -> None:
 
 
 def locate_plan_file(current_plan_path: Path, target_plan_id: str) -> Path | None:
+    candidate = Path(target_plan_id)
+    if target_plan_id.endswith(".md") or "/" in target_plan_id or candidate.is_absolute():
+        resolved = _resolve_plan_pointer(target_plan_id)
+        if not resolved.exists():
+            return None
+        if resolved.resolve() != current_plan_path.resolve():
+            return resolved.resolve()
+        return None
+
     directories = _plan_search_directories(current_plan_path)
 
     patterns = (f"{target_plan_id}.md", f"{target_plan_id}-*.md")
@@ -630,6 +639,28 @@ def _resolve_plan_pointer(plan_ref: str) -> Path:
     return Path(__file__).resolve().parents[2] / candidate
 
 
+def _dependency_ref_matches_plan(ref: str, plan_id: str, plan_path: Path) -> bool:
+    if ref == plan_id:
+        return True
+    candidate = Path(ref)
+    if not (ref.endswith(".md") or "/" in ref or candidate.is_absolute()):
+        return False
+    resolved = _resolve_plan_pointer(ref)
+    return resolved.exists() and resolved.resolve() == plan_path.resolve()
+
+
+def _canonicalize_dependency_reference(plan_file: Path, dependency: str) -> tuple[str, Path | None]:
+    dependency_path = locate_plan_file(plan_file, dependency)
+    if dependency_path is None:
+        return dependency, None
+    try:
+        dependency_payload = load_frontmatter(dependency_path)
+        dependency_frontmatter = parse_frontmatter(dependency_payload)
+        return dependency_frontmatter.plan_id or dependency_path.stem, dependency_path
+    except (OSError, ValueError, yaml.YAMLError):
+        return dependency_path.stem, dependency_path
+
+
 def validate_agent_slots(
     plan_ref: str,
     agent_slots: Any,
@@ -695,7 +726,7 @@ def validate_dependencies(path: Path, frontmatter: PlanFrontmatter, warnings: li
         warn(plan_ref, "dependencies.requires", "expected list[string]", warnings)
     requires = dependencies.get("requires")
     if isinstance(frontmatter.plan_id, str) and isinstance(requires, list):
-        if frontmatter.plan_id in requires:
+        if any(_dependency_ref_matches_plan(ref, frontmatter.plan_id, path) for ref in requires):
             warn(plan_ref, "dependencies.requires", "self-edge in requires forbidden", warnings)
 
     blocks = dependencies.get("blocks")
@@ -719,7 +750,7 @@ def _validate_reciprocal_blocks(
     warnings: list[str],
 ) -> None:
     for blocked_plan_id in blocks:
-        if blocked_plan_id == plan_id:
+        if _dependency_ref_matches_plan(blocked_plan_id, plan_id, path):
             warn(plan_id, "dependencies.blocks", "self-edge in blocks forbidden", warnings)
             continue
 
@@ -755,7 +786,7 @@ def _validate_reciprocal_blocks(
                 warnings,
             )
             continue
-        if plan_id not in blocked_requires:
+        if not any(_dependency_ref_matches_plan(ref, plan_id, path) for ref in blocked_requires):
             warn(
                 plan_id,
                 "dependencies.blocks",
@@ -813,14 +844,20 @@ def _build_dependency_graph(path: Path, root_plan_id: str) -> dict[str, list[str
 
         frontmatter = parse_frontmatter(payload)
         node_id = frontmatter.plan_id or current_plan_id
-        edges = [edge for edge in _dependency_edges(frontmatter) if edge != node_id]
+        resolved_dependency_paths: dict[str, Path] = {}
+        edges: list[str] = []
+        for dependency in _dependency_edges(frontmatter):
+            canonical_dependency, dependency_path = _canonicalize_dependency_reference(plan_file, dependency)
+            if canonical_dependency == node_id or canonical_dependency in edges:
+                continue
+            edges.append(canonical_dependency)
+            if dependency_path is not None:
+                resolved_dependency_paths[canonical_dependency] = dependency_path
         adjacency[node_id] = edges
 
         for dependency in edges:
-            if dependency == node_id:
-                continue
             adjacency.setdefault(dependency, [])
-            dependency_path = locate_plan_file(plan_file, dependency)
+            dependency_path = resolved_dependency_paths.get(dependency)
             if dependency_path is not None:
                 visit(dependency_path, dependency)
 

@@ -223,3 +223,51 @@ def test_collect_cycles_ignores_clean_graph(clean_project: dict[str, Path]) -> N
     assert report["exit_code"] == 0
     assert report["clean"] is True
     assert report["finding_count"] == 0
+
+
+def test_collect_import_cycle_baseline_required_summary_is_clean_for_existing_cycles(
+    baseline_cycle_project: dict[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3e baseline 内既存循環だけなら full-scan clean。"""
+
+    def _unexpected_changed_files(*args, **kwargs):
+        raise AssertionError("changed_files should not be used by baseline-required summary")
+
+    monkeypatch.setattr(dependency_cycle_checks, "changed_files", _unexpected_changed_files)
+
+    report = dependency_cycle_checks.collect_import_cycle_baseline_required_summary(
+        repo_root=baseline_cycle_project["project_root"],
+        baseline_path=baseline_cycle_project["baseline_path"],
+    )
+
+    assert report["clean"] is True
+    assert report["finding_count"] == 1
+    assert report["blocking_finding_count"] == 0
+    assert report["warning_count"] == 1
+    assert report["source_status"] == "baseline_required"
+    assert report["mode"] == "baseline_required"
+
+
+def test_collect_import_cycle_baseline_required_summary_blocks_new_cycles(
+    python_cycle_project: dict[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3e baseline 超の新循環は changed-files 非依存で blocking。"""
+
+    def _unexpected_changed_files(*args, **kwargs):
+        raise AssertionError("changed_files should not be used by baseline-required summary")
+
+    monkeypatch.setattr(dependency_cycle_checks, "changed_files", _unexpected_changed_files)
+
+    report = dependency_cycle_checks.collect_import_cycle_baseline_required_summary(
+        repo_root=python_cycle_project["project_root"],
+        baseline_path=python_cycle_project["baseline_path"],
+    )
+
+    assert report["clean"] is False
+    assert report["finding_count"] == 1
+    assert report["blocking_finding_count"] == 1
+    assert report["warning_count"] == 0
+    assert report["source_status"] == "baseline_required"
+    assert report["mode"] == "baseline_required"

@@ -181,6 +181,51 @@ def missing_reciprocal_project(tmp_path: Path) -> dict[str, Path]:
     return {"project_root": tmp_path, "baseline_path": baseline_path, "changed_plan": plan_a}
 
 
+@pytest.fixture()
+def path_reference_project(tmp_path: Path) -> dict[str, Path]:
+    phase2_path = tmp_path / "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md"
+    missing_path = tmp_path / "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-missing.md"
+    _write_plan(
+        tmp_path,
+        "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening.md",
+        f"""
+        plan_id: add-feature-2026-06-14-pre-l7-gate-hardening
+        title: Phase1
+        plan_scope: action
+        kind: impl
+        layer: L7
+        drive: be
+        status: draft
+        dependencies:
+          parent: null
+          requires: []
+          blocks:
+            - {phase2_path.as_posix()}
+            - {missing_path.as_posix()}
+        """,
+    )
+    _write_plan(
+        tmp_path,
+        "docs/plans/add-feature/add-feature-2026-06-14-pre-l7-gate-hardening-phase2.md",
+        """
+        plan_id: add-feature-2026-06-14-pre-l7-gate-hardening-phase2
+        title: Phase2
+        plan_scope: action
+        kind: impl
+        layer: L7
+        drive: be
+        status: draft
+        dependencies:
+          parent: null
+          requires:
+            - add-feature-2026-06-14-pre-l7-gate-hardening
+          blocks: []
+        """,
+    )
+    baseline_path = _write_baseline(tmp_path / "cli/config/plan-dependency-baseline.json", [])
+    return {"project_root": tmp_path, "baseline_path": baseline_path}
+
+
 def test_gate_passes_when_warning_is_already_waived_in_baseline(
     baseline_warning_project: dict[str, Path],
     monkeypatch: pytest.MonkeyPatch,
@@ -307,3 +352,69 @@ def test_gate_skips_without_failing_when_changed_files_is_unavailable(
     assert report["clean"] is False
     assert report["source_status"] == "unavailable"
     assert report["skipped_reason"] == "changed-files unavailable"
+
+
+def test_collect_baseline_required_summary_is_clean_for_existing_baseline_debt(
+    baseline_warning_project: dict[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3d baseline 内既存債だけなら full-scan clean。"""
+
+    def _unexpected_changed_files(*args, **kwargs):
+        raise AssertionError("changed_files should not be used by baseline-required summary")
+
+    monkeypatch.setattr(plan_dependency_gate, "changed_files", _unexpected_changed_files)
+
+    report = plan_dependency_gate.collect_plan_dependency_baseline_required_summary(
+        repo_root=baseline_warning_project["project_root"],
+        baseline_path=baseline_warning_project["baseline_path"],
+    )
+
+    assert report["clean"] is True
+    assert report["finding_count"] == 1
+    assert report["blocking_finding_count"] == 0
+    assert report["warning_count"] == 1
+    assert report["source_status"] == "baseline_required"
+    assert report["mode"] == "baseline_required"
+
+
+def test_collect_baseline_required_summary_blocks_new_findings_without_changed_files(
+    path_reference_project: dict[str, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DoD 検証: C-3d baseline 超の新債は kind に関係なく full-scan blocking。"""
+
+    def _unexpected_changed_files(*args, **kwargs):
+        raise AssertionError("changed_files should not be used by baseline-required summary")
+
+    monkeypatch.setattr(plan_dependency_gate, "changed_files", _unexpected_changed_files)
+
+    report = plan_dependency_gate.collect_plan_dependency_baseline_required_summary(
+        repo_root=path_reference_project["project_root"],
+        baseline_path=path_reference_project["baseline_path"],
+    )
+
+    assert report["clean"] is False
+    assert report["finding_count"] == 1
+    assert report["blocking_finding_count"] == 1
+    assert report["warning_count"] == 0
+    assert report["source_status"] == "baseline_required"
+    assert report["mode"] == "baseline_required"
+
+
+def test_collect_baseline_required_summary_ignores_existing_path_reference_false_positive(
+    path_reference_project: dict[str, Path],
+) -> None:
+    """DoD 検証: C-3d 実在 phase2 path 参照は missing 扱いしない。"""
+
+    report = plan_dependency_gate.collect_plan_dependency_baseline_required_summary(
+        repo_root=path_reference_project["project_root"],
+        baseline_path=path_reference_project["baseline_path"],
+    )
+
+    reasons = [str(finding["reason"]) for finding in plan_dependency_gate.collect_plan_dependency_findings(
+        repo_root=path_reference_project["project_root"]
+    )]
+    assert any("pre-l7-gate-hardening-missing.md does not exist" in reason for reason in reasons)
+    assert all("pre-l7-gate-hardening-phase2.md does not exist" not in reason for reason in reasons)
+    assert report["clean"] is False

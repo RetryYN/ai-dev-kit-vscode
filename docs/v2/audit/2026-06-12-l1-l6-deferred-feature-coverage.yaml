@@ -54,9 +54,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 24
+  repository_add_feature_files_discovered: 25
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 13
+  out_of_current_objective_add_feature_files: 14
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +67,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 24
+  all_repository_add_feature_files_checked: 25
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 13
+  excluded_from_current_objective_deferred_count: 14
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -200,6 +200,19 @@ repository_add_feature_inventory:
         flip of W1 detectors、他 detector の full-required promotion、L7
         product implementation、DB schema work、external-tool required gating
         は authorize しない。
+    - id: c3de_plandep_depcycle_baseline_required
+      path: docs/plans/add-feature/add-feature-2026-06-19-plandep-depcycle-baseline-required.md
+      observed_status: draft
+      classification: current_scope_authorized_c3de_plandep_depcycle_baseline_required
+      reason: >
+        User-approved current-scope §4.1 automation step (C-3d/e):
+        plan_dependency_gate と dependency_cycle_checks を
+        baseline-required に昇格し、既存 baseline=floor のまま
+        baseline 超の新債だけを fail-close にする narrow per-detector
+        flip。これは full-required ではなく、broad advisory→fail-close
+        flip of W1 detectors も依然 forbidden now のまま。他 detector の
+        full-required promotion、L7 product implementation、DB schema work、
+        external-tool required gating は authorize しない。
     - id: push_gate_test_tiering
       path: docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md
       observed_status: draft

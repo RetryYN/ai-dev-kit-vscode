@@ -261,6 +261,29 @@ def collect_plan_dependency_gate_summary(
     }
 
 
+def collect_plan_dependency_baseline_required_summary(
+    *,
+    repo_root: str | Path | None = None,
+    baseline_path: str | Path = DEFAULT_BASELINE_PATH,
+) -> dict[str, object]:
+    repo_root_path = _resolve_project_root(repo_root)
+    findings = collect_plan_dependency_findings(repo_root=repo_root_path)
+    baseline_fingerprints = _load_baseline_fingerprints(baseline_path, repo_root_path)
+    blocking_findings = [
+        finding for finding in findings if finding["fingerprint"] not in baseline_fingerprints
+    ]
+    warning_count = len(findings) - len(blocking_findings)
+    return {
+        "clean": len(blocking_findings) == 0,
+        "finding_count": len(findings),
+        "blocking_finding_count": len(blocking_findings),
+        "warning_count": warning_count,
+        "source_status": "baseline_required",
+        "skipped_reason": None,
+        "mode": "baseline_required",
+    }
+
+
 def build_plan_dependency_baseline_payload(
     *,
     repo_root: str | Path | None = None,
