@@ -103,6 +103,8 @@ def _query_row(db_path: Path, sql: str, params: tuple[object, ...]) -> sqlite3.R
 
 
 class TestHarnessMonitorIntegration:
+    # IT-MOD-07
+    # IT-IF-02
     def test_i_pull_001_get_active_status_filters_session_and_collects_events(
         self,
         tmp_path: Path,

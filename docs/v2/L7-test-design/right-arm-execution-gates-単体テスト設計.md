@@ -15,6 +15,7 @@ created: 2026-06-09
 ## 1. 目的
 
 本書は、L6 focus clean 後に strict full-flow で残る G8 / G9 / G12 / G14 execution gate の実装受入条件を固定する。
+current live strict contract では G8 closure 後の deferred は G9 / G12 / G14 の 3件であり、4件は pre-G8 baseline としてのみ扱う。
 
 現 handover では gate / detector 本体を実装しない。ここでは `plan_materialized` 後に `gate_implemented` / `gate_passed` / `ci_enforced` / `feedback_closed` へ進めるための test contract だけを定義する。
 
@@ -33,12 +34,12 @@ created: 2026-06-09
 
 | Planned Test ID | Name | Fixture / command | Expected |
 |---|---|---|---|
-| EGA-UT-01 | strict full-flow starts with four deferred gates | `HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json` | `overall_clean=false`, deferred pairs are `L5-L8:G8`, `L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14` |
+| EGA-UT-01 | strict full-flow starts with four (`pre-G8 baseline`), now three after G8 closure | `HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json` | `overall_clean=false`, current deferred pairs are `L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14`; `pre-G8 baseline` also included `L5-L8:G8` |
 | EGA-UT-02 | G8 closure requires integration execution evidence | simulated G8 implemented fixture | G8 disappears only when L5-L8 integration execution evidence and trace closure are both present |
 | EGA-UT-03 | G9 closure preserves semantic system-test trace | simulated G9 implemented fixture | G9 disappears only when L4-L9 execution evidence exists and `semantic_excluded_orphan=18` remains justified |
 | EGA-UT-04 | G12 closure requires acceptance execution evidence | simulated G12 implemented fixture | G12 disappears only when L3-L12 acceptance execution evidence exists |
 | EGA-UT-05 | G14 closure writes feedback loop evidence | isolated HELIX DB fixture | G14 disappears only when events / metrics / feedback contain adoption result and operational-learning evidence |
-| EGA-UT-06 | partial right-arm adoption stays fail-close | one or more gates still deferred | strict full-flow keeps `overall_clean=false` until all G8/G9/G12/G14 pass |
+| EGA-UT-06 | partial right-arm adoption stays fail-close | one or more gates still deferred | strict full-flow keeps `overall_clean=false` until the remaining G9/G12/G14 pass while preserving G8 closure |
 | EGA-UT-07 | CI surface separates L6 focus from full-flow strictness | `helix doctor --gate --json` and strict VG-overview | L6 focus can remain clean while strict full-flow reports remaining right-arm carry |
 | EGA-UT-08 | rollback returns implemented gate to deferred state | regression fixture after rollback | failed or reverted gate returns to `approved_deferred` with original next_action and does not hide carry |
 
@@ -62,6 +63,6 @@ HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow
 ## 6. Non-goals
 
 - G8 / G9 / G12 / G14 gate 本体の実装は行わない。
-- strict full-flow の deferred 4件をこの文書だけで closure 扱いしない。
+- strict full-flow の current deferred 3件 (`pre-G8 baseline: 4件`) をこの文書だけで closure 扱いしない。
 - DB schema migration は行わない。
 - `ui_absent` waiver の L2-L10 判定は本書の対象外とする。

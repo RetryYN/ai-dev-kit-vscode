@@ -25,9 +25,9 @@ created: 2026-06-09
 | Scope | 対象 | 判定 |
 |---|---|---|
 | VG-overview default | L6 focus clean | `overall_clean=true` だが `full_flow_execution.clean=false` を維持 |
-| VG-overview strict | L0-L14 full-flow audit | `overall_clean=false`, deferred 4件 |
+| VG-overview strict | L0-L14 full-flow audit | `overall_clean=false`, deferred 3件 (`pre-G8 baseline: 4件`) |
 | feedback-loop JSON | route / learning / PLAN / PR candidate | candidate を生成し、`schema_migration=false`, `auto_apply=false`, `writes_detector_or_gate=false` |
-| feedback-loop text | human-readable output | G8/G9/G12/G14 と L2-L10 waiver を表示 |
+| feedback-loop text | human-readable output | G9/G12/G14 と L2-L10 waiver を表示し、G8 は pre-G8 baseline / closed record としてのみ扱う |
 | HELIX DB observability | events / metrics / feedback | snapshot payload, metric counts, missing feedback auto-register を append |
 | adoption boundary | PLAN / PR / gate evidence | candidate 生成だけでは goal complete にしない |
 
@@ -44,15 +44,15 @@ created: 2026-06-09
 
 | Planned Test ID | Name | Fixture / command | Expected |
 |---|---|---|---|
-| DGA-UT-01 | default L6 focus is not full-flow completion | `helix doctor check_vg_overview --json` | `overall_clean=true`, `full_flow_execution.enforced=false`, deferred 4件 |
-| DGA-UT-02 | strict full-flow keeps right-arm carry | `helix doctor check_vg_overview --strict-full-flow --json` | `overall_clean=false`, `enforced=true`, pairs=`L5-L8:G8`, `L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14` |
-| DGA-UT-03 | feedback-loop JSON surfaces adoption candidates | `helix harness feedback-loop --json --days 30` | `vg_overview.deferred_count=4`, learning kind `full_flow_deferred_execution_gate`, PR source `vg_overview:full_flow_deferred_execution_gate` |
-| DGA-UT-04 | feedback-loop text is operator-readable | `helix harness feedback-loop --days 1` | G8/G9/G12/G14 next_action と L2-L10 `ui_absent` waiver を表示 |
-| DGA-UT-05 | HELIX DB snapshot preserves carry evidence | isolated DB feedback-loop run | `events.data_json.vg_overview.deferred_pairs` と metrics `full_flow_deferred_gates=4` を append |
+| DGA-UT-01 | default L6 focus is not full-flow completion | `helix doctor check_vg_overview --json` | `overall_clean=true`, `full_flow_execution.enforced=false`, deferred 3件 (`pre-G8 baseline: 4件`) |
+| DGA-UT-02 | strict full-flow keeps right-arm carry | `helix doctor check_vg_overview --strict-full-flow --json` | `overall_clean=false`, `enforced=true`, pairs=`L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14` (`pre-G8 baseline` also included `L5-L8:G8`) |
+| DGA-UT-03 | feedback-loop JSON surfaces adoption candidates | `helix harness feedback-loop --json --days 30` | `vg_overview.deferred_count=3` (`pre-G8 baseline: 4`), learning kind `full_flow_deferred_execution_gate`, PR source `vg_overview:full_flow_deferred_execution_gate` |
+| DGA-UT-04 | feedback-loop text is operator-readable | `helix harness feedback-loop --days 1` | G9/G12/G14 next_action と L2-L10 `ui_absent` waiver を表示し、G8 は closed record として扱う |
+| DGA-UT-05 | HELIX DB snapshot preserves carry evidence | isolated DB feedback-loop run | `events.data_json.vg_overview.deferred_pairs` と metrics `full_flow_deferred_gates=3` を append (`pre-G8 baseline: 4`) |
 | DGA-UT-06 | safety flags prevent auto-adoption | feedback-loop JSON and DB snapshot | `schema_migration=false`, `auto_apply=false`, `writes_detector_or_gate=false` |
 | DGA-UT-07 | source categories cannot silently disappear | feedback-loop JSON | PR source keys include automation, feedback, observability, verify, hook, harness, VG deferred, and VG waiver categories |
 | DGA-UT-08 | adoption readiness is explicit | test-design / roadmap contract | candidate, PLAN materialization, gate implementation, CI enforcement, and feedback closure are separate states |
-| DGA-UT-09 | deferred pairs cannot be counted as closed gates | strict VG-overview / completion guard | G8/G9/G12/G14 remain adoption_required until execution gate implementation and pass evidence exist |
+| DGA-UT-09 | deferred pairs cannot be counted as closed gates | strict VG-overview / completion guard | G9/G12/G14 remain adoption_required until execution gate implementation and pass evidence exist; G8 stays recorded in the four-gate ledger but no longer counts toward current deferred_count |
 | DGA-UT-10 | adoption handoff remains non-destructive | feedback-loop JSON / DB snapshot | readiness evidence can be registered, but detector/gate files and DB schema are not modified automatically |
 
 ## 5. Acceptance Surfaces
@@ -60,7 +60,7 @@ created: 2026-06-09
 | Surface | Acceptance |
 |---|---|
 | pytest contract | `cli/lib/tests/test_helix_l0_l14_flow_contract.py` pins L6 focus boundary, strict full-flow deferred pairs, roadmap backlog, and Web evidence |
-| doctor Bats | `cli/tests/helix-doctor-json.bats` pins requirement_drift exact counts and deferred G8/G9/G12/G14 pairs |
+| doctor Bats | `cli/tests/helix-doctor-json.bats` pins requirement_drift exact counts and current deferred G9/G12/G14 pairs |
 | feedback-loop Bats | `cli/tests/test-helix-harness-feedback-loop.bats` pins JSON, text, DB payload, metrics, source keys, and safety flags |
 | roadmap | `docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md` keeps deferred gate adoption queue and additional discovered improvement backlog as採用待ち evidence |
 

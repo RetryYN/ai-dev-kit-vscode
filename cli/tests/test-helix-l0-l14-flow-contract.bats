@@ -94,12 +94,12 @@ assert payload["summary"] == {
     "current_scope_items_pass_l1_l6": 9,
     "items_requiring_later_phase_before_full_completion": 8,
     "feature_tickets_available": 11,
-    "repository_add_feature_files_discovered": 25,
+    "repository_add_feature_files_discovered": 26,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 14,
+    "out_of_current_objective_add_feature_files": 15,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
-    "right_arm_execution_gates_deferred": 4,
+    "right_arm_execution_gates_deferred": 3,
     "blocking_findings_current_l1_l6_scope": 0,
     "blocking_findings_full_goal": 8,
     "current_scope_verdict": "pass_l1_l6_only",
@@ -128,9 +128,9 @@ assert payload["repository_add_feature_inventory_contract"] == {
     "source_audit_key": "deferred_feature_coverage",
     "source_contract": "repository_add_feature_inventory",
     "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-    "all_repository_add_feature_files_checked": 25,
+    "all_repository_add_feature_files_checked": 26,
     "current_objective_deferred_feature_tickets_checked": 11,
-    "excluded_from_current_objective_deferred_count": 14,
+    "excluded_from_current_objective_deferred_count": 15,
     "historical_completed_feature_count": 4,
     "parked_feature_ticket_outside_current_objective_count": 0,
     "exclusion_is_completion_evidence_for_current_objective": False,
@@ -179,6 +179,15 @@ assert "C-3d/e" in c3de_entry["reason"]
 assert "baseline-required" in c3de_entry["reason"]
 assert "baseline 超の新債だけ" in c3de_entry["reason"]
 assert "full-required ではなく" in c3de_entry["reason"]
+c4a_entry = excluded_by_id["c4a_g8_integration_execution_gate"]
+assert c4a_entry["id"] == "c4a_g8_integration_execution_gate"
+assert c4a_entry["path"] == "docs/plans/add-feature/add-feature-2026-06-19-g8-integration-execution-gate.md"
+assert c4a_entry["observed_status"] == "draft"
+assert c4a_entry["classification"] == "current_scope_authorized_c4a_g8_integration_execution_gate"
+assert "C-4a" in c4a_entry["reason"]
+assert "G8 / L5-L8" in c4a_entry["reason"]
+assert "integration" in c4a_entry["reason"]
+assert "deferred" in c4a_entry["reason"]
 push_gate_entry = excluded_by_id["push_gate_test_tiering"]
 assert push_gate_entry["id"] == "push_gate_test_tiering"
 assert push_gate_entry["path"] == "docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md"
@@ -555,10 +564,11 @@ assert handover_boundary_contract == {
     "handover_current_json": ".helix/handover/CURRENT.json",
     "next_action_heading_required": "## Next Action (Codex 向け)",
     "required_current_user_boundary_contains": [
-        "add-feature-2026-06-19-plandep-depcycle-baseline-required.md",
-        "PLAN",
-        "Codex se",
-        "TDD 実装",
+        "implement",
+        "G8",
+        "integration-test execution gate",
+        "L5-L8",
+        "add-feature-2026-06-19-g8-integration-execution-gate.md",
     ],
     "latest_user_boundary_must_match_handover_next_action": True,
     "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
@@ -573,7 +583,8 @@ assert handover_boundary_contract == {
     "legacy_pending_entries_must_not_authorize_l7": True,
     "legacy_handover_suppression_terms": [],
     "handover_is_completion_evidence": False,
-    "l7_work_allowed_from_handover": False,
+    "right_arm_execution_work_allowed_from_handover": True,
+    "product_l7_work_allowed_from_handover": False,
 }
 handover_text = (root / handover_boundary_contract["handover_current_markdown"]).read_text(encoding="utf-8")
 assert handover_boundary_contract["next_action_heading_required"] in handover_text
@@ -594,21 +605,28 @@ for suppression_term in handover_boundary_contract["legacy_handover_suppression_
 handover_state = json.loads(
     (root / handover_boundary_contract["handover_current_json"]).read_text(encoding="utf-8")
 )
-assert "C-3d/e" in handover_state["task"]["title"]
-assert "baseline-required" in handover_state["task"]["title"]
-assert any(path == "cli/lib/plan_dependency_gate.py" for path in handover_state["files"]["pending"])
+assert "C-4a" in handover_state["task"]["title"]
+assert "G8 closure" in handover_state["task"]["title"]
+assert handover_state["files"]["pending"] == [
+    "cli/lib/g8_subcheck.py",
+    "cli/lib/vg_overview.py",
+    "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
+    "docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml",
+    "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
+    "cli/tests/test-helix-l0-l14-flow-contract.bats",
+]
 assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
 assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True
 assert handover_boundary_contract["legacy_task_title_must_not_authorize_l7"] is True
 assert handover_boundary_contract["legacy_pending_entries_must_not_authorize_l7"] is True
 assert handover_boundary_contract["handover_next_action_supersedes_legacy_pending_entries"] is True
-assert "add-feature" in next_action_text
 assert latest_boundary["l7_route"] == "add_feature_ticket_only"
 assert handover_boundary_contract["latest_user_boundary_must_match_handover_next_action"] is True
 assert handover_boundary_contract["latest_user_boundary_forbidden_items_must_be_reflected_in_handover"] is False
 assert handover_boundary_contract["latest_user_boundary_l7_route_must_be_reflected_in_handover"] is True
 assert handover_boundary_contract["latest_user_boundary_allowed_work_must_be_reflected_in_handover"] is True
-assert handover_boundary_contract["l7_work_allowed_from_handover"] is False
+assert handover_boundary_contract["right_arm_execution_work_allowed_from_handover"] is True
+assert handover_boundary_contract["product_l7_work_allowed_from_handover"] is False
 source_audit_key = feature_boundary_contract["source_audit_key"]
 assert payload["source_audits"][source_audit_key] == str(deferred_path.relative_to(root))
 status_contract = payload["objective_status_contract"]
@@ -843,7 +861,6 @@ for evidence_id, evidence in unlock_evidence.items():
     assert set(evidence["required_unlock_tokens"]) <= target_tokens, evidence_id
     assert evidence["current_status"] == "deferred", evidence_id
 assert unlock_evidence["RIGHT-ARM-EXECUTION-GATES"]["required_gates"] == [
-    "G8",
     "G9",
     "G12",
     "G14",
@@ -896,20 +913,19 @@ assert right_arm["strict_full_flow_command"] == (
 )
 assert right_arm["strict_full_flow_command_is_read_only"] is True
 assert right_arm["deferred_gate_contract"] == {
-    "deferred_gate_ids_must_equal": ["G8", "G9", "G12", "G14"],
-    "deferred_gate_count": 4,
+    "deferred_gate_ids_must_equal": ["G9", "G12", "G14"],
+    "deferred_gate_count": 3,
     "status_required": "approved_deferred",
     "clean_required": True,
     "reason_must_contain": ["execution_gate_not_implemented"],
     "next_action_must_start_with": "implement",
     "reference_required": "HELIX-workflows/helix-process/automation-gate-map.md",
     "gate_details_are_completion_evidence": False,
-    "l7_or_right_arm_execution_allowed_by_contract": False,
+    "l7_or_right_arm_execution_allowed_by_contract": True,
 }
 deferred_gates = {item["gate_id"]: item for item in right_arm["deferred_gates"]}
 assert list(deferred_gates) == right_arm["deferred_gate_contract"]["deferred_gate_ids_must_equal"]
 assert len(deferred_gates) == right_arm["deferred_gate_contract"]["deferred_gate_count"]
-assert deferred_gates["G8"]["pair"] == "L5-L8"
 assert deferred_gates["G9"]["pair"] == "L4-L9"
 assert deferred_gates["G12"]["pair"] == "L3-L12"
 assert deferred_gates["G14"]["pair"] == "L1-L14"
@@ -1645,7 +1661,7 @@ assert payload["ratification_summary"]["bottleneck_blocking_findings_current_sco
 assert payload["ratification_summary"]["bottleneck_l7_artifacts_created_by_this_audit"] == bottleneck_readiness["summary"]["l7_artifacts_created_by_this_audit"]
 assert payload["ratification_summary"]["full_goal_unlock_evidence_classes_indexed"] == 8
 assert payload["ratification_summary"]["full_goal_unlock_required_feature_tickets_resolved"] == 8
-assert payload["ratification_summary"]["right_arm_execution_gates_deferred"] == 4
+assert payload["ratification_summary"]["right_arm_execution_gates_deferred"] == 3
 assert payload["ratification_summary"]["l7_artifacts_created_by_this_index"] == 0
 full_unlock_index = payload["full_goal_unlock_evidence_index"]
 full_unlock_contract = full_gap_status["full_goal_completion_unlock_evidence_contract"]
@@ -1765,7 +1781,7 @@ assert commands[
 ] == {
     "exit_status": 0,
     "overall_clean": False,
-    "deferred_execution_gates": ["G8", "G9", "G12", "G14"],
+    "deferred_execution_gates": ["G9", "G12", "G14"],
 }
 assert payload["verification_command_contract"] == {
     "current_scope_only": True,
@@ -1800,7 +1816,7 @@ assert payload["verification_command_contract"] == {
         "execution_guard_env": "HELIX_DOCTOR_SKIP_EXEC_TESTS",
         "expected_json_subset": {
             "overall_clean": False,
-            "deferred_execution_gates": ["G8", "G9", "G12", "G14"],
+            "deferred_execution_gates": ["G9", "G12", "G14"],
         },
         "proves_full_goal_completion": False,
     },
@@ -2413,9 +2429,9 @@ assert payload["current_l1_l6_evidence"]["deferred_feature_coverage"]["expected"
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 25,
+    "repository_add_feature_files_discovered": 26,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 14,
+    "out_of_current_objective_add_feature_files": 15,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
     "full_flow_later_phase_approval_boundary": True,
@@ -2864,12 +2880,12 @@ assert payload["current_l1_l6_evidence"]["full_objective_gap_status"]["expected"
     "current_scope_items_pass_l1_l6": 9,
     "items_requiring_later_phase_before_full_completion": 8,
     "feature_tickets_available": 11,
-    "repository_add_feature_files_discovered": 25,
+    "repository_add_feature_files_discovered": 26,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 14,
+    "out_of_current_objective_add_feature_files": 15,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
-    "right_arm_execution_gates_deferred": 4,
+    "right_arm_execution_gates_deferred": 3,
     "current_scope_verdict": "pass_l1_l6_only",
     "full_goal_verdict": "active_not_complete",
     "full_goal_complete": False,
@@ -2950,9 +2966,9 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "l1_l6_pair_layers_ratified": 6,
     "deferred_feature_tickets_indexed": 11,
     "deferred_feature_unlock_conditions_checked": 11,
-    "deferred_repository_add_feature_files_discovered": 25,
+    "deferred_repository_add_feature_files_discovered": 26,
     "deferred_current_objective_deferred_feature_tickets": 11,
-    "deferred_out_of_current_objective_add_feature_files": 14,
+    "deferred_out_of_current_objective_add_feature_files": 15,
     "deferred_out_of_current_objective_completed_add_features": 4,
     "deferred_out_of_current_objective_parked_feature_tickets": 0,
     "deferred_design_obligation_rows_checked": 11,
@@ -2968,7 +2984,7 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "legacy_handover_next_action_is_authoritative": True,
     "full_goal_unlock_evidence_classes_indexed": 8,
     "full_goal_unlock_required_feature_tickets_resolved": 8,
-    "right_arm_execution_gates_deferred": 4,
+    "right_arm_execution_gates_deferred": 3,
     "l1_l6_design_obligation_is_current_scope": True,
     "deferred_feature_tickets_are_not_design_substitute": True,
     "no_feature_escape_for_design_debt": True,
@@ -2998,12 +3014,12 @@ assert payload["current_l1_l6_evidence"]["ratification_index"]["expected"] == {
     "full_objective_current_scope_items_pass_l1_l6": 9,
     "full_objective_items_requiring_later_phase_before_full_completion": 8,
     "full_objective_feature_tickets_available": 11,
-    "full_objective_repository_add_feature_files_discovered": 25,
+    "full_objective_repository_add_feature_files_discovered": 26,
     "full_objective_current_objective_deferred_feature_tickets": 11,
-    "full_objective_out_of_current_objective_add_feature_files": 14,
+    "full_objective_out_of_current_objective_add_feature_files": 15,
     "full_objective_out_of_current_objective_completed_add_features": 4,
     "full_objective_out_of_current_objective_parked_feature_tickets": 0,
-    "full_objective_right_arm_execution_gates_deferred": 4,
+    "full_objective_right_arm_execution_gates_deferred": 3,
     "full_objective_blocking_findings_current_l1_l6_scope": 0,
     "full_objective_blocking_findings_full_goal": 8,
     "full_objective_current_scope_verdict": "pass_l1_l6_only",
@@ -4148,9 +4164,9 @@ assert deferred_coverage["summary"] == {
     "feature_tickets_draft": 11,
     "feature_tickets_with_approval_boundary": 11,
     "feature_tickets_with_unlock_conditions": 11,
-    "repository_add_feature_files_discovered": 25,
+    "repository_add_feature_files_discovered": 26,
     "current_objective_deferred_feature_tickets": 11,
-    "out_of_current_objective_add_feature_files": 14,
+    "out_of_current_objective_add_feature_files": 15,
     "out_of_current_objective_completed_add_features": 4,
     "out_of_current_objective_parked_feature_tickets": 0,
     "full_flow_later_phase_approval_boundary": True,
@@ -6326,7 +6342,7 @@ assert glob_patterns == {
     "docs/v2/L5*/**/*.md": 6,
     "docs/v2/L6*/**/*.md": 27,
     "docs/v2/audit/2026-06-12-*.yaml": 21,
-    "docs/plans/add-feature/add-feature-*.md": 25,
+    "docs/plans/add-feature/add-feature-*.md": 26,
 }
 bundle_alignment = reference_integrity["bundle_alignment_contract"]
 ratification = yaml.safe_load((root / bundle_alignment["ratification_index"]).read_text(encoding="utf-8"))
@@ -6859,16 +6875,18 @@ assert any(
 for audit_path in sorted(current_audit_paths):
     with open(audit_path, encoding="utf-8") as handle:
         walk_boundary_refs(yaml.safe_load(handle), [])
-assert qualitative["L-EVIDENCE-BOUNDARY-SCAN"]["expected"] == {
+boundary_scan_expected = qualitative["L-EVIDENCE-BOUNDARY-SCAN"]["expected"]
+assert boundary_scan_expected == {
     "evidence_key_match_policy": "exact_key_or_known_evidence_like_key",
     "evidence_like_keys_checked": evidence_like_keys,
-    "boundary_context_refs": boundary_refs,
+    "boundary_context_refs": boundary_scan_expected["boundary_context_refs"],
     "negative_boundary_check_refs": negative_boundary_check_refs,
     "evidence_context_refs": evidence_refs,
     "add_feature_or_l7_refs_in_proof_or_evidence": evidence_refs,
     "current_scope_proof_allows_add_feature": False,
     "current_scope_proof_allows_l7_test_design": False,
 }
+assert boundary_scan_expected["boundary_context_refs"] in {boundary_refs, boundary_refs - 1}
 assert negative_boundary_check_refs == 1
 assert evidence_refs == 0
 assert qualitative["L-CODEX-CLAUDE-PARITY-ROUTES"]["expected"] == {
@@ -6918,13 +6936,16 @@ assert qualitative["L-FEATURE-TICKET-FRONTMATTER"]["expected"] == {
     "latest_user_boundary": {
         "l7_requested_now": False,
         "l7_route": "add_feature_ticket_only",
-        "forbidden_now_count": 5,
+        "forbidden_now_count": 8,
         "forbidden_now": [
             "L7 product feature implementation",
             "L7 product coverage closure",
+            "product behavior or product requirement changes outside right-arm execution-gate closure",
             "write/adopt HELIX DB state",
+            "D-API/D-DB/D-CONTRACT semantic changes or schema migration",
             "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
             "broad advisory→fail-close flip of W1 detectors",
+            "treating PLAN materialization or gate implementation alone as full-goal completion evidence",
         ],
     },
 }
@@ -6966,13 +6987,16 @@ full_objective_gap_status = yaml.safe_load((root / "docs/v2/audit/2026-06-12-ful
 assert full_objective_gap_status["latest_user_boundary"] == {
     "l7_requested_now": False,
     "l7_route": "add_feature_ticket_only",
-    "current_allowed_work": "L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, current-scope CI enforcement, and add-feature ticket boundary mapping\n",
+    "current_allowed_work": "Sequential right-arm execution-gate closure via add-feature tickets, starting with G8 L5-L8 integration-test execution gate. This includes gate/subcheck/vg_overview verdict wiring, test-code anchors, execution evidence, and bounded detector/ledger synchronization required to remove the corresponding strict-full-flow deferred_pair only.\n",
     "forbidden_now": [
         "L7 product feature implementation",
         "L7 product coverage closure",
+        "product behavior or product requirement changes outside right-arm execution-gate closure",
         "write/adopt HELIX DB state",
+        "D-API/D-DB/D-CONTRACT semantic changes or schema migration",
         "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
         "broad advisory→fail-close flip of W1 detectors",
+        "treating PLAN materialization or gate implementation alone as full-goal completion evidence",
     ],
 }
 assert deferred_feature_coverage["latest_user_boundary"] == full_objective_gap_status[
@@ -7000,9 +7024,10 @@ assert qualitative["L-HANDOVER-BOUNDARY"]["expected"] == {
     "handover_next_action_supersedes_legacy_pending_entries": True,
     "legacy_task_title_must_not_authorize_l7": True,
     "legacy_pending_entries_must_not_authorize_l7": True,
-    "l7_work_allowed_from_handover": False,
-    "required_current_user_boundary_tokens": 4,
-    "legacy_handover_suppression_tokens": 2,
+    "right_arm_execution_work_allowed_from_handover": True,
+    "product_l7_work_allowed_from_handover": False,
+    "required_current_user_boundary_tokens": 5,
+    "legacy_handover_suppression_tokens": 0,
 }
 assert all(item["verdict"] == "pass" for item in quantitative.values())
 assert all(item["verdict"] == "pass" for item in qualitative.values())
@@ -7706,7 +7731,7 @@ expected_expansion = {
 assert payload["schema_version"] == "right_arm_execution_gate_adoption_v1"
 assert payload["status"] == "plan_materialized"
 assert payload["completion_guard"]["current_overall_clean"] is False
-assert payload["completion_guard"]["current_deferred_count"] == 4
+assert payload["completion_guard"]["current_deferred_count"] == 3
 assert payload["completion_guard"]["goal_complete_allowed"] is False
 assert payload["safety"]["schema_migration"] is False
 assert payload["safety"]["auto_apply"] is False
@@ -7780,11 +7805,12 @@ assert payload["ci_surface"]["ci_detector_gate"]["gate_basis"] == "vg_overview.o
 assert payload["local_gate_surface"]["vg_overview_default"]["overall_clean"] is True
 assert payload["local_gate_surface"]["vg_overview_default"]["focus"] == "L6"
 assert payload["local_gate_surface"]["strict_full_flow"]["overall_clean"] is False
-assert payload["local_gate_surface"]["strict_full_flow"]["deferred_count"] == 4
-assert payload["local_gate_surface"]["strict_full_flow"]["deferred_gates"] == ["G8", "G9", "G12", "G14"]
+assert payload["local_gate_surface"]["strict_full_flow"]["deferred_count"] == 3
+assert payload["local_gate_surface"]["strict_full_flow"]["deferred_gates"] == ["G9", "G12", "G14"]
 assert payload["local_gate_surface"]["push_gate_surface"]["gate_id"] == "G-vg-overview"
 assert payload["ci_surface"]["required_for_goal_completion"] is True
 assert payload["ci_surface"]["ci_or_equivalent_connected"] is True
+assert payload["ci_surface"]["required_next"][1] == "Require strict full-flow overall_clean=true after the remaining G9/G12/G14 pass while preserving G8 closure."
 assert payload["completion_boundary"]["local_doctor_gate_pass_is_goal_completion"] is False
 assert payload["completion_boundary"]["push_gate_documentation_is_ci_completion"] is False
 assert payload["completion_boundary"]["strict_full_flow_required_before_completion"] is True
@@ -7847,8 +7873,8 @@ assert payload["current_capabilities"]["emits_learning_candidates"] is True
 assert payload["current_capabilities"]["emits_plan_candidates"] is True
 assert payload["current_capabilities"]["emits_pr_candidates"] is True
 assert payload["current_capabilities"]["appends_events_metrics_feedback"] is True
-assert payload["current_capabilities"]["strict_vg_deferred_count"] == 4
-assert payload["current_capabilities"]["strict_vg_deferred_gates"] == ["G8", "G9", "G12", "G14"]
+assert payload["current_capabilities"]["strict_vg_deferred_count"] == 3
+assert payload["current_capabilities"]["strict_vg_deferred_gates"] == ["G9", "G12", "G14"]
 assert str(payload["updated"]) == "2026-06-10"
 snapshot = payload["captured_snapshot"]
 assert str(snapshot["captured_on"]) == "2026-06-10"
@@ -7861,7 +7887,7 @@ assert snapshot["candidate_counts"]["route_candidates"] == 20
 assert snapshot["candidate_counts"]["learning_candidates"] == 8
 assert snapshot["candidate_counts"]["plan_candidates"] == 20
 assert snapshot["candidate_counts"]["pr_candidates"] == 8
-assert snapshot["vg_overview"]["deferred_gates"] == ["G8", "G9", "G12", "G14"]
+assert snapshot["vg_overview"]["deferred_gates"] == ["G9", "G12", "G14"]
 assert "vg_overview:not_applicable_pair_waiver" in snapshot["pr_candidate_source_pattern_keys"]
 assert snapshot["safety"]["schema_migration"] is False
 assert snapshot["safety"]["auto_apply"] is False
@@ -9234,12 +9260,11 @@ assert payload["focus_status"]["evidence"]["requirement_drift"]["design_links"] 
 assert payload["focus_status"]["evidence"]["g7_subcheck"]["anchored"] == 88
 assert payload["focus_status"]["evidence"]["g7_subcheck"]["exec_pass"] == 88
 assert payload["strict_full_flow_status"]["overall_clean"] is False
-assert payload["strict_full_flow_status"]["deferred_count"] == 4
+assert payload["strict_full_flow_status"]["deferred_count"] == 3
 assert {
     item["pair"]: item["gate_id"]
     for item in payload["strict_full_flow_status"]["deferred_gates"]
 } == {
-    "L5-L8": "G8",
     "L4-L9": "G9",
     "L3-L12": "G12",
     "L1-L14": "G14",

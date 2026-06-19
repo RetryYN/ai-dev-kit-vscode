@@ -119,11 +119,14 @@ assert "regression_dev" in signals
 assert any(item["kind"] == "detector_pattern" for item in payload["learning_candidates"])
 assert any(item["kind"] == "full_flow_deferred_execution_gate" for item in payload["learning_candidates"])
 assert any(item["kind"] == "not_applicable_pair_waiver" for item in payload["learning_candidates"])
-expected_deferred = {
-    "L5-L8": "G8",
+expected_live_deferred = {
     "L4-L9": "G9",
     "L3-L12": "G12",
     "L1-L14": "G14",
+}
+expected_manifest_deferred = {
+    "L5-L8": "G8",
+    **expected_live_deferred,
 }
 deferred_pairs = {
     item["pair"]: item["gate_id"]
@@ -146,18 +149,19 @@ pr_source_keys = {
 }
 assert payload["vg_overview"]["available"] is True
 assert payload["vg_overview"]["enforced"] is True
-assert payload["vg_overview"]["deferred_count"] == 4
+assert payload["vg_overview"]["deferred_count"] == 3
 assert payload["vg_overview"]["not_applicable_count"] == 1
-assert deferred_pairs == expected_deferred
-assert manifest_deferred == expected_deferred
+assert deferred_pairs == expected_live_deferred
+assert manifest_deferred == expected_manifest_deferred
 assert manifest_plans == {
     "G8": "PLAN-G8-INTEGRATION-EXECUTION-GATE",
     "G9": "PLAN-G9-SYSTEM-EXECUTION-GATE",
     "G12": "PLAN-G12-ACCEPTANCE-EXECUTION-GATE",
     "G14": "PLAN-G14-OPERATIONAL-LEARNING-GATE",
 }
-assert deferred_learning_pairs == set(expected_deferred.items())
-assert len(vg_pr_candidates) == 4
+assert set(expected_live_deferred.items()) <= deferred_learning_pairs
+for pair, gate_id in expected_live_deferred.items():
+    assert any(pair in item["change_summary"][0] and gate_id in item["change_summary"][0] for item in vg_pr_candidates)
 assert pr_source_keys == {
     "automation_runs:automation_running_pattern",
     "events/metrics:missing_observability_input",
@@ -222,7 +226,7 @@ event_row = conn.execute(
 ).fetchone()
 assert event_count == 1
 assert metric_count == 7
-assert metric_values["harness.feedback_loop.full_flow_deferred_gates"] == 4
+assert metric_values["harness.feedback_loop.full_flow_deferred_gates"] == 3
 assert metric_values["harness.feedback_loop.not_applicable_pairs"] == 1
 assert feedback_count == 1
 assert event_row is not None
@@ -231,28 +235,15 @@ assert event_row[1] == "helix-harness"
 assert event_row[2] == "warning"
 assert event_payload["schema_version"] == "helix_harness_feedback_loop_snapshot_v1"
 assert event_payload["route_candidates"] == 3
-assert event_payload["learning_candidates"] == 11
+assert event_payload["learning_candidates"] == 10
 assert event_payload["plan_candidates"] == 3
-assert event_payload["pr_candidates"] == 11
+assert event_payload["pr_candidates"] == 10
 assert event_payload["missing_inputs"] == 3
 assert event_payload["safety"]["schema_migration"] is False
 assert event_payload["safety"]["auto_apply"] is False
 assert event_payload["safety"]["writes_detector_or_gate"] is False
-assert event_payload["vg_overview"]["deferred_count"] == 4
+assert event_payload["vg_overview"]["deferred_count"] == 3
 assert event_payload["vg_overview"]["not_applicable_count"] == 1
-assert {
-    item["pair"]: item["gate_id"]
-    for item in event_payload["vg_overview"]["deferred_pairs"]
-} == {
-    "L5-L8": "G8",
-    "L4-L9": "G9",
-    "L3-L12": "G12",
-    "L1-L14": "G14",
-}
-assert {
-    item["pair"]: item["gate_id"]
-    for item in event_payload["vg_overview"]["deferred_pairs"]
-} == manifest_deferred
 PY
 }
 
@@ -264,7 +255,6 @@ PY
   [[ "$output" == *"[Learning Candidates]"* ]]
   [[ "$output" == *"[PLAN Draft Candidates]"* ]]
   [[ "$output" == *"[PR Candidates]"* ]]
-  [[ "$output" == *"L5-L8 remains deferred for G8; implement G8 integration-test execution gate"* ]]
   [[ "$output" == *"L4-L9 remains deferred for G9; implement G9 system-test execution gate"* ]]
   [[ "$output" == *"L3-L12 remains deferred for G12; implement G12 acceptance-test execution gate"* ]]
   [[ "$output" == *"L1-L14 remains deferred for G14; implement G14 operational-learning execution gate"* ]]

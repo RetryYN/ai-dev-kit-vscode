@@ -34,12 +34,12 @@ remaining_completion_guards:
   - id: strict_full_flow_overall_clean_true
     current_status: incomplete
     current_evidence: strict full-flow overall_clean=false
-    required_next: Implement and pass G8/G9/G12/G14 execution gates.
+    required_next: Keep G8 closed and pass the remaining G9/G12/G14 execution gates.
     readiness_source: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
   - id: G8_G9_G12_G14_gate_implemented_and_passed
     current_status: incomplete
-    current_evidence: deferred_count=4
-    required_next: Expand handover scope to requested implementation files and close each deferred pair.
+    current_evidence: deferred_count=3
+    required_next: Expand handover scope to requested implementation files and close the remaining deferred pairs.
     readiness_source: docs/v2/L7-test-design/right-arm-execution-gates-handover-request.yaml
   - id: CI_or_equivalent_gate_surface_connected
     current_status: defined_not_connected
@@ -68,9 +68,9 @@ remaining_completion_guards:
     readiness_source: docs/v2/L7-test-design/ui-absent-waiver-revalidation.yaml
 activation_sequence_after_scope_expansion:
   - order: 1
-    action: Activate right-arm execution gate implementation scope.
+    action: Activate the remaining right-arm execution gate implementation scope after the recorded G8 closure.
     source: docs/v2/L7-test-design/right-arm-full-flow-closure-plan.yaml
-    exit: G8/G9/G12/G14 absent from strict full-flow deferred_pairs.
+    exit: G9/G12/G14 absent from strict full-flow deferred_pairs while G8 remains recorded as already closed.
   - order: 2
     action: Connect CI or equivalent required gate bundle.
     source: docs/v2/L7-test-design/ci-equivalent-gate-readiness.yaml

@@ -8,7 +8,7 @@ completion_guard:
   required_clean_command: helix doctor check_vg_overview --strict-full-flow --json
   required_overall_clean: true
   current_overall_clean: false
-  current_deferred_count: 4
+  current_deferred_count: 3
   goal_complete_allowed: false
 safety:
   schema_migration: false

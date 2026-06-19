@@ -299,14 +299,8 @@ def _fake_vg_overview_feedback() -> dict:
         "available": True,
         "overall_clean": False,
         "enforced": True,
-        "deferred_count": 4,
+        "deferred_count": 3,
         "deferred_pairs": [
-            {
-                "pair": "L5-L8",
-                "gate_id": "G8",
-                "target": "Phase5-G8",
-                "next_action": "implement G8 integration-test execution gate",
-            },
             {
                 "pair": "L4-L9",
                 "gate_id": "G9",
@@ -656,10 +650,14 @@ class TestFeedbackLoopSnapshot:
         assert any(item["kind"] == "detector_pattern" for item in snapshot["learning_candidates"])
         assert snapshot["vg_overview"]["available"] is True
         assert snapshot["vg_overview"]["enforced"] is True
-        assert snapshot["vg_overview"]["deferred_count"] == 4
+        assert snapshot["vg_overview"]["deferred_count"] == 3
         assert snapshot["vg_overview"]["not_applicable_count"] == 1
-        assert any(
+        assert not any(
             item["kind"] == "full_flow_deferred_execution_gate" and item["gate_id"] == "G8"
+            for item in snapshot["learning_candidates"]
+        )
+        assert any(
+            item["kind"] == "full_flow_deferred_execution_gate" and item["gate_id"] == "G9"
             for item in snapshot["learning_candidates"]
         )
         assert any(
@@ -757,7 +755,7 @@ class TestFeedbackLoopSnapshot:
         data = json.loads(event["data_json"])
         assert data["route_candidates"] == len(snapshot["route_candidates"])
         assert data["plan_candidates"] == len(snapshot["plan_candidates"])
-        assert data["vg_overview"]["deferred_count"] == 4
+        assert data["vg_overview"]["deferred_count"] == 3
         assert data["vg_overview"]["not_applicable_count"] == 1
         metric_names = {row["metric_name"] for row in metrics}
         assert {

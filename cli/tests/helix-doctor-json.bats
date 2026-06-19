@@ -61,6 +61,16 @@ teardown() {
   [ "$status" -eq 0 ]
 }
 
+@test "helix-doctor check_g8_subcheck --json emits valid JSON" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g8_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert d[\"it_total\"] == 21; assert d[\"anchored\"][\"count\"] == 21; assert d[\"missing\"][\"count\"] == 0; assert d[\"unanchored_but_exists\"][\"count\"] == 0; all_ids = d[\"anchored\"][\"ids\"] + d[\"missing\"][\"ids\"] + d[\"unanchored_but_exists\"][\"ids\"]; assert all(item.startswith(\"IT-\") for item in all_ids)'"
+  [ "$status" -eq 0 ]
+}
+
+@test "check_g8_subcheck --gate --json exits 0 when clean" {
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_g8_subcheck --gate --json
+  [ "$status" -eq 0 ]
+}
+
 @test "check_g7_subcheck --gate --json exits 0 when clean" {
   run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$HELIX_ROOT/cli/helix-doctor" check_g7_subcheck --gate --json
   [ "$status" -eq 0 ]
@@ -87,12 +97,12 @@ teardown() {
 }
 
 @test "helix-doctor check_vg_overview --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; fr=vg[\"required_clean\"][\"fr_uses_checks\"]; assert fr[\"source_status\"] == \"full_required\"; assert fr[\"warning_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d and \"g8_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; fr=vg[\"required_clean\"][\"fr_uses_checks\"]; assert fr[\"source_status\"] == \"full_required\"; assert fr[\"warning_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 3'"
   [ "$status" -eq 0 ]
 }
 
 @test "helix-doctor check_vg_overview --strict-full-flow exposes deferred execution gates" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --strict-full-flow --json | python3 -c 'import json,sys; d=json.load(sys.stdin); vg=d[\"vg_overview\"]; full=vg[\"full_flow_execution\"]; pairs={item[\"pair\"]: item[\"gate_id\"] for item in full[\"deferred_pairs\"]}; assert full[\"enforced\"] is True; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 4; assert pairs == {\"L5-L8\":\"G8\", \"L4-L9\":\"G9\", \"L3-L12\":\"G12\", \"L1-L14\":\"G14\"}; assert vg[\"overall_clean\"] is False'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --strict-full-flow --json | python3 -c 'import json,sys; d=json.load(sys.stdin); vg=d[\"vg_overview\"]; full=vg[\"full_flow_execution\"]; pairs={item[\"pair\"]: item[\"gate_id\"] for item in full[\"deferred_pairs\"]}; assert full[\"enforced\"] is True; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 3; assert pairs == {\"L4-L9\":\"G9\", \"L3-L12\":\"G12\", \"L1-L14\":\"G14\"}; assert vg[\"overall_clean\"] is False'"
   [ "$status" -eq 0 ]
 }
 
@@ -183,6 +193,7 @@ EOF
   # 検証対象として fr_uses_checks.py も copy する (committed のみの fresh tree では ImportError になる)。
   cp "$HELIX_ROOT/cli/helix-doctor" "$FRESH/cli/helix-doctor"
   cp "$HELIX_ROOT/cli/lib/vg_overview.py" "$FRESH/cli/lib/vg_overview.py"
+  cp "$HELIX_ROOT/cli/lib/g8_subcheck.py" "$FRESH/cli/lib/g8_subcheck.py"
   cp "$HELIX_ROOT/cli/lib/fr_uses_checks.py" "$FRESH/cli/lib/fr_uses_checks.py"
   [ ! -d "$FRESH/.helix" ]
   run env HELIX_HOME="$FRESH" HELIX_PROJECT_ROOT="$FRESH" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$FRESH/cli/helix-doctor" check_vg_overview --gate --json

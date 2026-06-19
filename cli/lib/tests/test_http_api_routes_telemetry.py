@@ -154,6 +154,7 @@ def test_require_timestamp_string_raises_on_none():
         telemetry_module._require_timestamp_string(None, "ts")
 
 
+# IT-DB-02
 def test_session_telemetry_handler_success_persists_payload(client, monkeypatch: pytest.MonkeyPatch):
     """DoD 検証: PLAN-074-unit-test-design.md U-TEL-001 (normal body -> 200 + UPSERT)
     対象実装: cli/lib/http_api/routes/telemetry.py::session_telemetry
@@ -183,6 +184,7 @@ def test_session_telemetry_handler_success_persists_payload(client, monkeypatch:
     assert payload["related_plan_id"] == "PLAN-075"
 
 
+# IT-IF-03
 def test_session_telemetry_handler_missing_fields_returns_400(client, monkeypatch: pytest.MonkeyPatch):
     """DoD 検証: PLAN-074-unit-test-design.md U-TEL-002 (required field missing -> 400)
     対象実装: cli/lib/http_api/routes/telemetry.py::session_telemetry

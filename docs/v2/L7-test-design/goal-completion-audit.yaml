@@ -44,11 +44,8 @@ focus_status:
 strict_full_flow_status:
   command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   overall_clean: false
-  deferred_count: 4
+  deferred_count: 3
   deferred_gates:
-    - gate_id: G8
-      pair: L5-L8
-      required_next: implement G8 integration-test execution gate
     - gate_id: G9
       pair: L4-L9
       required_next: implement G9 system-test execution gate
@@ -245,10 +242,10 @@ requirements:
     status: incomplete
     evidence:
       - strict full-flow overall_clean=false
-      - deferred_count=4
-      - G8/G9/G12/G14 implemented=false passed=false
+      - deferred_count=3
+      - G8 recorded as closed in the four-gate ledger; G9/G12/G14 implemented=false passed=false
     remaining:
-      - implement and pass all right-arm execution gates.
+      - keep G8 closure recorded and implement/pass the remaining right-arm execution gates.
       - close CI and feedback adoption completion guards.
 allowed_statuses:
   - achieved_local

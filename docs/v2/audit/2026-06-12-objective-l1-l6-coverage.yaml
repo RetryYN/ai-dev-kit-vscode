@@ -109,9 +109,9 @@ current_l1_l6_evidence:
       feature_tickets_draft: 11
       feature_tickets_with_approval_boundary: 11
       feature_tickets_with_unlock_conditions: 11
-      repository_add_feature_files_discovered: 25
+      repository_add_feature_files_discovered: 26
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 14
+      out_of_current_objective_add_feature_files: 15
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
       full_flow_later_phase_approval_boundary: true
@@ -290,12 +290,12 @@ current_l1_l6_evidence:
       current_scope_items_pass_l1_l6: 9
       items_requiring_later_phase_before_full_completion: 8
       feature_tickets_available: 11
-      repository_add_feature_files_discovered: 25
+      repository_add_feature_files_discovered: 26
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 14
+      out_of_current_objective_add_feature_files: 15
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
-      right_arm_execution_gates_deferred: 4
+      right_arm_execution_gates_deferred: 3
       current_scope_verdict: pass_l1_l6_only
       full_goal_verdict: active_not_complete
       full_goal_complete: false
@@ -387,7 +387,7 @@ current_l1_l6_evidence:
       legacy_handover_next_action_is_authoritative: true
       full_goal_unlock_evidence_classes_indexed: 8
       full_goal_unlock_required_feature_tickets_resolved: 8
-      right_arm_execution_gates_deferred: 4
+      right_arm_execution_gates_deferred: 3
       l1_l6_design_obligation_is_current_scope: true
       deferred_feature_tickets_are_not_design_substitute: true
       no_feature_escape_for_design_debt: true
@@ -395,9 +395,9 @@ current_l1_l6_evidence:
       dependency_impact_dependency_edge_relations_checked: 7
       dependency_impact_visibility_rows_checked: 9
       dependency_impact_output_trace_rows_checked: 9
-      deferred_repository_add_feature_files_discovered: 25
+      deferred_repository_add_feature_files_discovered: 26
       deferred_current_objective_deferred_feature_tickets: 11
-      deferred_out_of_current_objective_add_feature_files: 14
+      deferred_out_of_current_objective_add_feature_files: 15
       deferred_out_of_current_objective_completed_add_features: 4
       deferred_out_of_current_objective_parked_feature_tickets: 0
       db_feedback_accountability_indexed: true
@@ -422,12 +422,12 @@ current_l1_l6_evidence:
       full_objective_current_scope_items_pass_l1_l6: 9
       full_objective_items_requiring_later_phase_before_full_completion: 8
       full_objective_feature_tickets_available: 11
-      full_objective_repository_add_feature_files_discovered: 25
+      full_objective_repository_add_feature_files_discovered: 26
       full_objective_current_objective_deferred_feature_tickets: 11
-      full_objective_out_of_current_objective_add_feature_files: 14
+      full_objective_out_of_current_objective_add_feature_files: 15
       full_objective_out_of_current_objective_completed_add_features: 4
       full_objective_out_of_current_objective_parked_feature_tickets: 0
-      full_objective_right_arm_execution_gates_deferred: 4
+      full_objective_right_arm_execution_gates_deferred: 3
       full_objective_blocking_findings_current_l1_l6_scope: 0
       full_objective_blocking_findings_full_goal: 8
       full_objective_current_scope_verdict: pass_l1_l6_only
@@ -570,7 +570,7 @@ objective_clause_to_full_status_map:
       - REQ-DEPENDENCY-IMPACT-VISIBILITY
       - REQ-BOTTLENECK-REMEDIATION
     mapping_reason: workflow automation depends on the user-confirmed L0-L14 flow, DB feedback design, dependency impact visibility, and bottleneck routing
-    current_scope_boundary: G8/G9/G12/G14 execution gates remain deferred
+    current_scope_boundary: G9/G12/G14 execution gates remain deferred after G8 closure
   - objective_clause_id: OBJ-ADDITIONAL-IMPROVEMENT-L1-L6
     full_objective_status_ids:
       - REQ-DDD-TDD-AUTO-DETECTION
@@ -617,7 +617,7 @@ objective_clauses:
       - docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml
       - docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
       - python3 -m cli.lib.trace_symmetry --json
-    later_phase_boundary: G8/G9/G12/G14 execution gates remain deferred
+    later_phase_boundary: G9/G12/G14 execution gates remain deferred
   - id: OBJ-CODEX-CLAUDE-GUARD-PARITY
     clause: fix guards that work in ClaudeCode but not Codex
     l1_l6_status: closed_for_current_guard_surface
@@ -656,7 +656,7 @@ objective_clauses:
       - docs/v2/audit/2026-06-12-l1-l6-db-registration-readiness-coverage.yaml
     later_phase_boundary:
       - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
-      - strict full-flow gates G8/G9/G12/G14 are not implemented
+      - strict full-flow gates G9/G12/G14 remain deferred
   - id: OBJ-ADDITIONAL-IMPROVEMENT-L1-L6
     clause: discover feasible improvements not explicitly included in the definition without treating discovery as adoption
     l1_l6_status: candidate_map_created_not_adopted
@@ -710,7 +710,7 @@ objective_clauses:
       - docs/v2/audit/2026-06-13-l1-l6-legacy-reference-classification.yaml
       - cli/lib/tests/test_helix_l0_l14_flow_contract.py
       - cli/tests/test-helix-l0-l14-flow-contract.bats
-    later_phase_boundary: strict full-flow still reports deferred G8/G9/G12/G14
+    later_phase_boundary: strict full-flow still reports deferred G9/G12/G14
 web_evidence_rechecked_2026_06_12:
   - source_id: MCP-SPEC-2025-06-18
     official_url: https://modelcontextprotocol.io/specification/2025-06-18/basic/index
@@ -1426,7 +1426,7 @@ completion_denial:
   reason: Current evidence proves L1-L6 design coverage and candidate discovery only.
   missing:
     - approved L7 implementation where needed
-    - G8/G9/G12/G14 execution gate implementation and pass evidence
+    - G9/G12/G14 execution gate implementation and pass evidence
     - CI or equivalent gate connection
     - feedback adoption closure
     - external tool approval and HARNESS run evidence for selected tools

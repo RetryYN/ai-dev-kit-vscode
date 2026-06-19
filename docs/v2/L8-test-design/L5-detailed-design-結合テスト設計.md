@@ -64,7 +64,7 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 | IT-MOD-03 | MOD-03 | Guard/Policy が禁止操作・context 不整合・raw CLI を block | `tests/harness-hooks.bats` — observed |
 | IT-MOD-04 | MOD-04 | Persistence の base schema + additive migration 整合 | `cli/lib/tests/test_helix_db_v34_v35.py` — observed |
 | IT-MOD-05 | MOD-05 | HTTP Automation route↔`helix_db` の連携 | `cli/lib/tests/test_http_api_routes_push_pr.py` ほか — observed |
-| IT-MOD-06 | MOD-06 | Catalog/Trace（code_catalog/contract_registry/doc_map_matcher）の索引整合 | gap（専用結合テスト未整備、L8 実装で追加） |
+| IT-MOD-06 | MOD-06 | Catalog/Trace（code_catalog/contract_registry/doc_map_matcher）の索引整合 | `cli/lib/tests/test_integration_l45.py` — observed |
 | IT-MOD-07 | MOD-07 | Hook/Harness の event 連携と wrapper 強制 | `tests/harness-hooks.bats` — observed |
 | IT-IF-01 | IF-CLI-01 | CLI IF: subcommand dispatch + 終了コード契約（exit 0 / 不明 command exit 1） | `tests/harness-hooks.bats` — observed |
 | IT-IF-02 | IF-HARNESS-01 | Harness IF: codex/claude/hook guard の role/task 注入・summary 収集 | `tests/harness-hooks.bats` — observed（部分） |
@@ -77,26 +77,26 @@ related_decision: docs/adr/ADR-044-helix-workflows-v2-architecture-snapshot.md
 | IT-IP-05 | IP-05 | HTTP automation flow: trigger→`automation_runs` INSERT→gate→`audit_log` の一連 | `cli/lib/tests/test_http_api_routes_push_pr.py`, `test_integration_l45.py` — observed |
 | IT-DB-01 | DB-01 | Plan Governance: `plan_registry`/`plan_dependencies`/`plan_generates` の整合 | `cli/lib/tests/test_integration_l45.py` — observed（部分） |
 | IT-DB-02 | DB-02 | Execution/Audit: `automation_runs`/`audit_log`/`session_telemetry` の状態遷移・UPSERT | `cli/lib/tests/test_http_api_routes_telemetry.py`, `test_integration_l45.py` — observed |
-| IT-DB-03 | DB-03 | Trace Catalog: `code_index`/`entries`/`links`/`contract_entries`/`test_design_entries` の関係整合 | gap（専用結合テスト未整備、L8 実装で追加） |
+| IT-DB-03 | DB-03 | Trace Catalog: `code_index`/`entries`/`links`/`contract_entries`/`test_design_entries` の関係整合 | `cli/lib/tests/test_integration_l45.py` — observed |
 | IT-DB-04 | DB-04 | Workspace/Continuity: `workspace_registry`/`sessions`/`locks`/`jobs` の継続・排他 | `cli/lib/tests/test_workspace_manager.py` — observed |
-| IT-DB-05 | DB-05 | Requirements/Quality: `requirements`/`req_impl_map`/`req_test_map`/`verify_runs` の trace 整合 | gap（専用結合テスト未整備、L8 実装で追加） |
+| IT-DB-05 | DB-05 | Requirements/Quality: `requirements`/`req_impl_map`/`req_test_map`/`verify_runs` の trace 整合 | `cli/lib/tests/test_integration_l45.py` — observed |
 
 ## 6. 合格基準（G8）
 
 - L5 設計 ID（`MOD/IF/IP/DB` 計 21）が **全て 1 つ以上の `IT-*` で trace される**（trace_symmetry detector で L5↔L8 coverage 100% / uncovered 0 / missing-pair 0）。
 - `observed` の IT は既存テストが green を維持する。
-- `gap` の IT（IT-MOD-06 / IT-DB-03 / IT-DB-05）は L8 実装フェーズで結合テストを追加し、`observed` へ昇格する（§7 リスク参照）。
+- 旧 gap だった IT-MOD-06 / IT-DB-03 / IT-DB-05 は `cli/lib/tests/test_integration_l45.py` で observed 化済み。
 - L5↔L8 の双方向 frontmatter（L5 `pairs_test_design` ↔ 本書 `parent_design`/`pairs_design`）が解決する。
 
-> **gate evidence の注記**: 本 coverage 100% は **設計 coverage**（21 の L5 設計 ID が `IT-*` で trace される）であり、**実装済テスト coverage ではない**。`gap`（IT-MOD-06 / IT-DB-03 / IT-DB-05）は L8 実装で結合テストを追加して `observed` へ昇格する（実装 coverage は反芻機構で別途追跡）。
+> **gate evidence の注記**: 本 coverage 100% は **設計 coverage**（21 の L5 設計 ID が `IT-*` で trace される）であり、実装側は `cli/lib/tests/test_integration_l45.py` を含む observed test 群で execution gate を別途担保する。
 
 ## 7. 未検出リスク（gap）
 
 | gap | 内容 | 暫定対応 |
 |---|---|---|
-| IT-MOD-06 | Catalog/Trace 系（code_catalog/contract_registry）の結合テスト未整備 | L8 実装で `helix code`/`helix entry` 経路の結合テストを追加 |
-| IT-DB-03 | Trace Catalog テーブル群の関係整合テスト未整備 | code_index↔links↔contract_entries の結合検証を追加 |
-| IT-DB-05 | Requirements/Quality（req_*_map/verify_runs）の結合テスト未整備 | requirements↔trace の結合検証を追加 |
+| IT-MOD-06 | resolved | `cli/lib/tests/test_integration_l45.py` で `helix code`/`helix entry` 経路の索引整合を observed 化 |
+| IT-DB-03 | resolved | `cli/lib/tests/test_integration_l45.py` で code_index↔links↔contract_entries↔test_design_entries を observed 化 |
+| IT-DB-05 | resolved | `cli/lib/tests/test_integration_l45.py` で requirements↔req_*_map↔verify_runs の trace 整合を observed 化 |
 
 > gap は「設計はしたが観測テスト未整備」を意味し、L8 設計 coverage（21/21）には含むが**実装 coverage は部分的**である。この区別を反芻機構で追跡する。
 

@@ -164,6 +164,7 @@ def _run_handover_worker(
     )
 
 
+# IT-MOD-02
 def test_dump_update_and_clear_completed_e2e(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -330,6 +331,7 @@ def test_escalate_generates_markdown_and_sets_status(
     assert "TASK-002 Investigate blocker" in escalation
 
 
+# IT-IP-03
 def test_resume_creates_md(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     repo = _init_repo(tmp_path)
     handover_dir = _dump_handover(repo, capsys)

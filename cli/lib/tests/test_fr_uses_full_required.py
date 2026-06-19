@@ -193,6 +193,18 @@ def test_collect_vg_overview_uses_full_required_fr_uses_summary(monkeypatch, tmp
             "mode": "full_required",
         },
     )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g8_subcheck",
+        lambda *args, **kwargs: {
+            "clean": True,
+            "it_total": 21,
+            "anchored": {"count": 21, "ids": []},
+            "exec_pass": {"count": 21, "ids": []},
+            "missing": {"count": 0, "ids": []},
+            "unanchored_but_exists": {"count": 0, "ids": []},
+        },
+    )
     monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _clean_report())
     monkeypatch.setattr(
         vg_overview,

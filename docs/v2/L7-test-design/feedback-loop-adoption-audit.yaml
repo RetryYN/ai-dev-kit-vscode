@@ -19,9 +19,8 @@ current_capabilities:
   appends_events_metrics_feedback: true
   registers_missing_feedback_input: true
   reads_strict_vg_overview: true
-  strict_vg_deferred_count: 4
+  strict_vg_deferred_count: 3
   strict_vg_deferred_gates:
-    - G8
     - G9
     - G12
     - G14
@@ -49,9 +48,8 @@ captured_snapshot:
     available: true
     overall_clean: false
     enforced: true
-    deferred_count: 4
+    deferred_count: 3
     deferred_gates:
-      - G8
       - G9
       - G12
       - G14

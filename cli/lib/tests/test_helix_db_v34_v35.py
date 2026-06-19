@@ -63,6 +63,7 @@ def test_v34_creates_todo_entries_table(tmp_path: Path) -> None:
     assert versions[-4:] == [31, 32, 33, 34]
 
 
+# IT-IF-04
 def test_v35_creates_10_tables(tmp_path: Path) -> None:
     """DoD 検証: PLAN-100-WAVE-3AB-V2 T-V35-001 (v34→v35 で 10 table が作成される)"""
     conn = _build_v33_db(tmp_path / "legacy-v34.db")
@@ -81,6 +82,7 @@ def test_v35_creates_10_tables(tmp_path: Path) -> None:
     assert versions[-5:] == [31, 32, 33, 34, 35]
 
 
+# IT-MOD-04
 def test_full_chain_to_latest(tmp_path: Path) -> None:
     """DoD 検証: PLAN-100-WAVE-3AB-V2 T-CHAIN-001 (fresh DB を migrate すると最新 (=CURRENT_SCHEMA_VERSION) まで到達する)
 
@@ -108,6 +110,7 @@ def test_full_chain_to_latest(tmp_path: Path) -> None:
     assert set(v35_plan_registry.V35_TABLE_NAMES) <= created_tables
 
 
+# IT-IP-04
 def test_idempotent(tmp_path: Path) -> None:
     """DoD 検証: PLAN-100-WAVE-3AB-V2 T-CHAIN-002 (migrate の再実行で schema_version は重複しない)"""
     conn = _build_v33_db(tmp_path / "v35-idempotent.db")

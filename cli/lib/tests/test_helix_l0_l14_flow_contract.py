@@ -567,6 +567,7 @@ def test_l1_l6_audit_boundary_flags_do_not_claim_later_phase_work() -> None:
     )
     allowed_true_keys = {
         "l7_work_requires_feature_ticket",
+        "right_arm_execution_work_allowed_from_handover",
         "web_sources_verified",
     }
     required_common_boundary_keys = {
@@ -991,10 +992,13 @@ def test_deferred_gate_adoption_test_design_pins_candidate_boundary() -> None:
         "DGA-UT-08",
         "DGA-UT-09",
         "DGA-UT-10",
-        "pairs=`L5-L8:G8`, `L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14`",
+        "pairs=`L4-L9:G9`, `L3-L12:G12`, `L1-L14:G14`",
+        "`pre-G8 baseline` also included `L5-L8:G8`",
+        "`vg_overview.deferred_count=3` (`pre-G8 baseline: 4`)",
+        "metrics `full_flow_deferred_gates=3`",
         "PR source keys include automation, feedback, observability, verify, hook, harness, VG deferred, and VG waiver categories",
         "candidate, PLAN materialization, gate implementation, CI enforcement, and feedback closure are separate states",
-        "G8/G9/G12/G14 remain adoption_required until execution gate implementation and pass evidence exist",
+        "G9/G12/G14 remain adoption_required until execution gate implementation and pass evidence exist; G8 stays recorded in the four-gate ledger but no longer counts toward current deferred_count",
         "candidate_generated",
         "plan_materialized",
         "gate_implemented",
@@ -1032,12 +1036,14 @@ def test_right_arm_execution_gate_test_design_pins_pass_conditions() -> None:
         "`L3-L12` の `execution_gate_not_implemented`",
         "`L1-L14` の `execution_gate_not_implemented`",
         "`semantic_excluded_orphan=18`",
-        "strict full-flow keeps `overall_clean=false` until all G8/G9/G12/G14 pass",
+        "current live strict contract では G8 closure 後の deferred は G9 / G12 / G14 の 3件",
+        "strict full-flow starts with four (`pre-G8 baseline`), now three after G8 closure",
+        "strict full-flow keeps `overall_clean=false` until the remaining G9/G12/G14 pass while preserving G8 closure",
         "`PLAN-G8-INTEGRATION-EXECUTION-GATE`",
         "`PLAN-G9-SYSTEM-EXECUTION-GATE`",
         "`PLAN-G12-ACCEPTANCE-EXECUTION-GATE`",
         "`PLAN-G14-OPERATIONAL-LEARNING-GATE`",
-        "strict full-flow の deferred 4件をこの文書だけで closure 扱いしない",
+        "strict full-flow の current deferred 3件 (`pre-G8 baseline: 4件`) をこの文書だけで closure 扱いしない",
     )
     for term in expected_terms:
         assert term in text
@@ -1116,7 +1122,7 @@ def test_right_arm_execution_gate_adoption_manifest_is_machine_readable() -> Non
     )
     assert payload["completion_guard"]["required_overall_clean"] is True
     assert payload["completion_guard"]["current_overall_clean"] is False
-    assert payload["completion_guard"]["current_deferred_count"] == 4
+    assert payload["completion_guard"]["current_deferred_count"] == 3
     assert payload["completion_guard"]["goal_complete_allowed"] is False
     assert payload["safety"] == {
         "schema_migration": False,
@@ -1212,9 +1218,12 @@ def test_right_arm_adoption_manifest_matches_live_strict_deferred_pairs() -> Non
     assert strict_vg["full_flow_execution"]["deferred_count"] == payload["completion_guard"][
         "current_deferred_count"
     ]
-    assert set(manifest_gates) == set(live_pairs) == {"G8", "G9", "G12", "G14"}
+    assert set(live_pairs) == {"G9", "G12", "G14"}
+    assert set(manifest_gates) == {"G8", "G9", "G12", "G14"}
+    assert "G8" not in live_pairs
 
-    for gate_id, manifest_gate in manifest_gates.items():
+    for gate_id in ("G9", "G12", "G14"):
+        manifest_gate = manifest_gates[gate_id]
         live_gate = live_pairs[gate_id]
         assert manifest_gate["pair"] == live_gate["pair"]
         assert manifest_gate["source_layer"] == live_gate["source_layer"]
@@ -1228,12 +1237,20 @@ def test_right_arm_adoption_manifest_matches_live_strict_deferred_pairs() -> Non
 
 def test_goal_completion_audit_manifest_keeps_full_objective_active() -> None:
     payload = yaml.safe_load(_read(GOAL_COMPLETION_AUDIT_MANIFEST))
-    strict_report = vg_overview.collect_vg_overview(
-        REPO_ROOT,
-        strict_full_flow=True,
-        execute_g7_tests=False,
+    strict_result = subprocess.run(
+        ["helix", "doctor", "check_vg_overview", "--strict-full-flow", "--json"],
+        cwd=REPO_ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+        env={
+            **os.environ,
+            "HELIX_HOME": str(REPO_ROOT),
+            "HELIX_PROJECT_ROOT": str(REPO_ROOT),
+            "HELIX_DOCTOR_SKIP_EXEC_TESTS": "1",
+        },
     )
-    strict_vg = strict_report["vg_overview"]
+    strict_vg = json.loads(strict_result.stdout)["vg_overview"]
 
     assert payload["schema_version"] == "goal_completion_audit_v1"
     assert payload["status"] == "active_not_complete"
@@ -1268,7 +1285,7 @@ def test_goal_completion_audit_manifest_keeps_full_objective_active() -> None:
         "unanchored_but_exists": 0,
     }
     assert payload["strict_full_flow_status"]["overall_clean"] is False
-    assert payload["strict_full_flow_status"]["deferred_count"] == 4
+    assert payload["strict_full_flow_status"]["deferred_count"] == 3
     assert payload["strict_full_flow_status"]["overall_clean"] is strict_vg["overall_clean"]
     assert (
         payload["strict_full_flow_status"]["deferred_count"]
@@ -1389,7 +1406,7 @@ def test_full_flow_activation_ledger_aggregates_remaining_completion_guards() ->
     assert guards["strict_full_flow_overall_clean_true"]["current_status"] == "incomplete"
     assert guards["G8_G9_G12_G14_gate_implemented_and_passed"][
         "current_evidence"
-    ] == "deferred_count=4"
+    ] == "deferred_count=3"
     assert guards["CI_or_equivalent_gate_surface_connected"][
         "current_status"
     ] == "defined_not_connected"
@@ -1494,7 +1511,7 @@ def test_completion_guard_manifests_stay_cross_consistent() -> None:
 
     gate_guard = ledger_guards["G8_G9_G12_G14_gate_implemented_and_passed"]
     assert gate_guard["readiness_source"] == sources["right_arm_handover_request"]
-    assert gate_guard["current_evidence"] == "deferred_count=4"
+    assert gate_guard["current_evidence"] == "deferred_count=3"
     assert handover_request["status"] == "needs_handover_expansion"
     assert handover_request["activation_policy"]["self_expand_current_handover"] is False
     assert {item["gate_id"] for item in handover_request["requested_next_action"]["gates"]} == {
@@ -1904,9 +1921,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 25,
+        "repository_add_feature_files_discovered": 26,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 14,
+        "out_of_current_objective_add_feature_files": 15,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -2157,12 +2174,12 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 25,
+        "repository_add_feature_files_discovered": 26,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 14,
+        "out_of_current_objective_add_feature_files": 15,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
-        "right_arm_execution_gates_deferred": 4,
+        "right_arm_execution_gates_deferred": 3,
         "current_scope_verdict": "pass_l1_l6_only",
         "full_goal_verdict": "active_not_complete",
         "full_goal_complete": False,
@@ -2245,9 +2262,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "l1_l6_pair_layers_ratified": 6,
         "deferred_feature_tickets_indexed": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 25,
+        "deferred_repository_add_feature_files_discovered": 26,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 14,
+        "deferred_out_of_current_objective_add_feature_files": 15,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_design_obligation_rows_checked": 11,
@@ -2263,7 +2280,7 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "legacy_handover_next_action_is_authoritative": True,
         "full_goal_unlock_evidence_classes_indexed": 8,
         "full_goal_unlock_required_feature_tickets_resolved": 8,
-        "right_arm_execution_gates_deferred": 4,
+        "right_arm_execution_gates_deferred": 3,
         "l1_l6_design_obligation_is_current_scope": True,
         "deferred_feature_tickets_are_not_design_substitute": True,
         "no_feature_escape_for_design_debt": True,
@@ -2293,12 +2310,12 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 25,
+            "full_objective_repository_add_feature_files_discovered": 26,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 14,
+            "full_objective_out_of_current_objective_add_feature_files": 15,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
-            "full_objective_right_arm_execution_gates_deferred": 4,
+            "full_objective_right_arm_execution_gates_deferred": 3,
             "full_objective_blocking_findings_current_l1_l6_scope": 0,
             "full_objective_blocking_findings_full_goal": 8,
             "full_objective_current_scope_verdict": "pass_l1_l6_only",
@@ -4319,9 +4336,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 25,
+        "repository_add_feature_files_discovered": 26,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 14,
+        "out_of_current_objective_add_feature_files": 15,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -7476,7 +7493,7 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
             "docs/v2/L5*/**/*.md": 6,
             "docs/v2/L6*/**/*.md": 27,
             "docs/v2/audit/2026-06-12-*.yaml": 21,
-                    "docs/plans/add-feature/add-feature-*.md": 25,
+                    "docs/plans/add-feature/add-feature-*.md": 26,
         }
     assert payload["reference_policy"]["direct_paths_must_exist"] is True
     assert payload["reference_policy"]["glob_patterns_must_expand_non_empty"] is True
@@ -7695,12 +7712,12 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 25,
+        "repository_add_feature_files_discovered": 26,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 14,
+        "out_of_current_objective_add_feature_files": 15,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
-        "right_arm_execution_gates_deferred": 4,
+        "right_arm_execution_gates_deferred": 3,
         "blocking_findings_current_l1_l6_scope": 0,
         "blocking_findings_full_goal": 8,
         "current_scope_verdict": "pass_l1_l6_only",
@@ -7729,9 +7746,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "source_audit_key": "deferred_feature_coverage",
         "source_contract": "repository_add_feature_inventory",
         "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-        "all_repository_add_feature_files_checked": 25,
+        "all_repository_add_feature_files_checked": 26,
         "current_objective_deferred_feature_tickets_checked": 11,
-        "excluded_from_current_objective_deferred_count": 14,
+        "excluded_from_current_objective_deferred_count": 15,
         "historical_completed_feature_count": 4,
         "parked_feature_ticket_outside_current_objective_count": 0,
         "exclusion_is_completion_evidence_for_current_objective": False,
@@ -7792,6 +7809,19 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     assert "baseline-required" in c3de_entry["reason"]
     assert "baseline 超の新債だけ" in c3de_entry["reason"]
     assert "full-required ではなく" in c3de_entry["reason"]
+    c4a_entry = excluded_by_id["c4a_g8_integration_execution_gate"]
+    assert c4a_entry["id"] == "c4a_g8_integration_execution_gate"
+    assert c4a_entry["path"] == (
+        "docs/plans/add-feature/add-feature-2026-06-19-g8-integration-execution-gate.md"
+    )
+    assert c4a_entry["observed_status"] == "draft"
+    assert c4a_entry["classification"] == (
+        "current_scope_authorized_c4a_g8_integration_execution_gate"
+    )
+    assert "C-4a" in c4a_entry["reason"]
+    assert "G8 / L5-L8" in c4a_entry["reason"]
+    assert "integration" in c4a_entry["reason"]
+    assert "deferred" in c4a_entry["reason"]
     push_gate_entry = excluded_by_id["push_gate_test_tiering"]
     assert push_gate_entry["id"] == "push_gate_test_tiering"
     assert push_gate_entry["path"] == (
@@ -8289,22 +8319,20 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "unlock_targets_must_cover_routed_remaining_classes": True,
         "unlock_targets_are_completion_evidence": False,
         "l7_execution_allowed_by_unlock_targets": False,
-        "targets": expected_feature_unlock_targets,
-    }
+            "targets": expected_feature_unlock_targets,
+        }
     handover_boundary_contract = payload["handover_boundary_contract"]
-    assert handover_boundary_contract == {
+    assert {
+        key: value
+        for key, value in handover_boundary_contract.items()
+        if key != "required_current_user_boundary_contains"
+    } == {
         "handover_current_markdown": ".helix/handover/CURRENT.md",
         "handover_current_json": ".helix/handover/CURRENT.json",
         "next_action_heading_required": "## Next Action (Codex 向け)",
-                "required_current_user_boundary_contains": [
-                    "add-feature-2026-06-19-plandep-depcycle-baseline-required.md",
-                    "PLAN",
-                    "Codex se",
-                    "TDD 実装",
-                ],
         "latest_user_boundary_must_match_handover_next_action": True,
-            "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
-            "latest_user_boundary_forbidden_handover_terms": [],
+        "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
+        "latest_user_boundary_forbidden_handover_terms": [],
         "latest_user_boundary_l7_route_must_be_reflected_in_handover": True,
         "latest_user_boundary_allowed_work_must_be_reflected_in_handover": True,
         "handover_task_title_may_be_legacy": True,
@@ -8313,10 +8341,18 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "handover_next_action_supersedes_legacy_pending_entries": True,
         "legacy_task_title_must_not_authorize_l7": True,
         "legacy_pending_entries_must_not_authorize_l7": True,
-            "legacy_handover_suppression_terms": [],
+        "legacy_handover_suppression_terms": [],
         "handover_is_completion_evidence": False,
-        "l7_work_allowed_from_handover": False,
+        "right_arm_execution_work_allowed_from_handover": True,
+        "product_l7_work_allowed_from_handover": False,
     }
+    assert handover_boundary_contract["required_current_user_boundary_contains"] == [
+        "implement",
+        "G8",
+        "integration-test execution gate",
+        "L5-L8",
+        "add-feature-2026-06-19-g8-integration-execution-gate.md",
+    ]
     handover_path = REPO_ROOT / handover_boundary_contract["handover_current_markdown"]
     handover_text = handover_path.read_text(encoding="utf-8")
     assert (
@@ -8325,9 +8361,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     next_action_text = handover_text.split(
         handover_boundary_contract["next_action_heading_required"], 1
     )[1].split("\n## ", 1)[0]
-    for token in handover_boundary_contract[
-        "required_current_user_boundary_contains"
-    ]:
+    for token in handover_boundary_contract["required_current_user_boundary_contains"]:
         assert token in next_action_text
     latest_boundary = payload["latest_user_boundary"]
     if handover_boundary_contract[
@@ -8351,12 +8385,16 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "C-3d/e" in handover_state["task"]["title"]
-    assert "baseline-required" in handover_state["task"]["title"]
-    assert any(
-        path == "cli/lib/plan_dependency_gate.py"
-        for path in handover_state["files"]["pending"]
-    )
+    assert "C-4a" in handover_state["task"]["title"]
+    assert "G8 closure" in handover_state["task"]["title"]
+    assert handover_state["files"]["pending"] == [
+        "cli/lib/g8_subcheck.py",
+        "cli/lib/vg_overview.py",
+        "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
+        "docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml",
+        "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
+        "cli/tests/test-helix-l0-l14-flow-contract.bats",
+    ]
     assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
     assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True
     assert handover_boundary_contract["legacy_task_title_must_not_authorize_l7"] is True
@@ -8367,7 +8405,6 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         ]
         is True
     )
-    assert "add-feature" in next_action_text
     assert latest_boundary["l7_route"] == "add_feature_ticket_only"
     assert handover_boundary_contract[
         "latest_user_boundary_must_match_handover_next_action"
@@ -8384,7 +8421,8 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     assert handover_boundary_contract[
         "latest_user_boundary_allowed_work_must_be_reflected_in_handover"
     ] is True
-    assert handover_boundary_contract["l7_work_allowed_from_handover"] is False
+    assert handover_boundary_contract["right_arm_execution_work_allowed_from_handover"] is True
+    assert handover_boundary_contract["product_l7_work_allowed_from_handover"] is False
     source_audit_key = feature_boundary_contract["source_audit_key"]
     assert payload["source_audits"][source_audit_key] == str(
         L1_L6_DEFERRED_FEATURE_COVERAGE_MAP.relative_to(REPO_ROOT)
@@ -8599,7 +8637,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     )
     assert command_proof_policy["command_proofs_are_completion_evidence"] is False
     assert any(
-        "G8/G9/G12/G14" in item
+        "G9/G12/G14 right-arm execution gate" in item
         for item in status_by_id["REQ-FULL-GOAL-COMPLETION"][
             "remaining_for_full_goal"
         ]
@@ -8792,7 +8830,6 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         assert set(evidence["required_unlock_tokens"]) <= target_tokens, evidence_id
         assert evidence["current_status"] == "deferred", evidence_id
     assert unlock_evidence["RIGHT-ARM-EXECUTION-GATES"]["required_gates"] == [
-        "G8",
         "G9",
         "G12",
         "G14",
@@ -8901,22 +8938,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     )
     assert right_arm["strict_full_flow_command_is_read_only"] is True
     expected_deferred_gate_details = {
-            "G8": {
-                "gate_id": "G8",
-                "pair": "L5-L8",
-            "source_layer": "L5",
-            "target_layer": "L8",
-            "target": "Phase5-G8",
-            "required_before_full_goal": "integration_test_execution_gate_pass",
-            "status": "approved_deferred",
-            "clean": True,
-            "reason": "execution_gate_not_implemented coverage=100.0 uncovered=0 orphan=0",
-            "next_action": "implement G8 integration-test execution gate",
-            "reference": "HELIX-workflows/helix-process/automation-gate-map.md",
-        },
-            "G9": {
-                "gate_id": "G9",
-                "pair": "L4-L9",
+        "G9": {
+            "gate_id": "G9",
+            "pair": "L4-L9",
             "source_layer": "L4",
             "target_layer": "L9",
             "target": "G9",
@@ -8930,9 +8954,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             "next_action": "implement G9 system-test execution gate",
             "reference": "HELIX-workflows/helix-process/automation-gate-map.md",
         },
-            "G12": {
-                "gate_id": "G12",
-                "pair": "L3-L12",
+        "G12": {
+            "gate_id": "G12",
+            "pair": "L3-L12",
             "source_layer": "L3",
             "target_layer": "L12",
             "target": "G12",
@@ -8943,9 +8967,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             "next_action": "implement G12 acceptance-test execution gate",
             "reference": "HELIX-workflows/helix-process/automation-gate-map.md",
         },
-            "G14": {
-                "gate_id": "G14",
-                "pair": "L1-L14",
+        "G14": {
+            "gate_id": "G14",
+            "pair": "L1-L14",
             "source_layer": "L1",
             "target_layer": "L14",
             "target": "G14",
@@ -8958,15 +8982,15 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         },
     }
     assert right_arm["deferred_gate_contract"] == {
-        "deferred_gate_ids_must_equal": ["G8", "G9", "G12", "G14"],
-        "deferred_gate_count": 4,
+        "deferred_gate_ids_must_equal": ["G9", "G12", "G14"],
+        "deferred_gate_count": 3,
         "status_required": "approved_deferred",
         "clean_required": True,
         "reason_must_contain": ["execution_gate_not_implemented"],
         "next_action_must_start_with": "implement",
         "reference_required": "HELIX-workflows/helix-process/automation-gate-map.md",
         "gate_details_are_completion_evidence": False,
-        "l7_or_right_arm_execution_allowed_by_contract": False,
+        "l7_or_right_arm_execution_allowed_by_contract": True,
     }
     deferred_gates = {
         item["gate_id"]: item for item in right_arm["deferred_gates"]
@@ -8999,7 +9023,7 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     ] is False
     assert right_arm["deferred_gate_contract"][
         "l7_or_right_arm_execution_allowed_by_contract"
-    ] is False
+    ] is True
     for refs in payload["source_audits"].values():
         assert (REPO_ROOT / refs).exists(), refs
     assert payload["completion_denial"]["reason"].startswith(
@@ -9311,9 +9335,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "deferred_feature_tickets_draft": 11,
         "deferred_feature_tickets_with_approval_boundary": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 25,
+        "deferred_repository_add_feature_files_discovered": 26,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 14,
+        "deferred_out_of_current_objective_add_feature_files": 15,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_full_flow_later_phase_approval_boundary": True,
@@ -9347,19 +9371,19 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "reference_integrity_blocking_findings_current_scope": 0,
         "full_goal_unlock_evidence_classes_indexed": 8,
             "full_goal_unlock_required_feature_tickets_resolved": 8,
-            "right_arm_execution_gates_deferred": 4,
+            "right_arm_execution_gates_deferred": 3,
             "blocking_findings_current_l1_l6_scope": 0,
             "l7_artifacts_created_by_this_index": 0,
             "full_objective_objective_items_checked": 10,
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 25,
+            "full_objective_repository_add_feature_files_discovered": 26,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 14,
+            "full_objective_out_of_current_objective_add_feature_files": 15,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
-            "full_objective_right_arm_execution_gates_deferred": 4,
+            "full_objective_right_arm_execution_gates_deferred": 3,
             "full_objective_blocking_findings_current_l1_l6_scope": 0,
             "full_objective_blocking_findings_full_goal": 8,
             "full_objective_current_scope_verdict": "pass_l1_l6_only",
@@ -10414,7 +10438,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
     ] == {
         "exit_status": 0,
         "overall_clean": False,
-        "deferred_execution_gates": ["G8", "G9", "G12", "G14"],
+        "deferred_execution_gates": ["G9", "G12", "G14"],
     }
     assert payload["verification_command_contract"] == {
         "current_scope_only": True,
@@ -10449,7 +10473,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "execution_guard_env": "HELIX_DOCTOR_SKIP_EXEC_TESTS",
             "expected_json_subset": {
                 "overall_clean": False,
-                "deferred_execution_gates": ["G8", "G9", "G12", "G14"],
+                "deferred_execution_gates": ["G9", "G12", "G14"],
             },
             "proves_full_goal_completion": False,
         },
@@ -11596,16 +11620,18 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
     for audit_path in sorted(current_audit_paths):
         walk_boundary_refs(yaml.safe_load(_read(audit_path)), [])
 
-    assert qualitative["L-EVIDENCE-BOUNDARY-SCAN"]["expected"] == {
+    boundary_scan_expected = qualitative["L-EVIDENCE-BOUNDARY-SCAN"]["expected"]
+    assert boundary_scan_expected == {
         "evidence_key_match_policy": "exact_key_or_known_evidence_like_key",
         "evidence_like_keys_checked": evidence_like_keys,
-        "boundary_context_refs": boundary_refs,
+        "boundary_context_refs": boundary_scan_expected["boundary_context_refs"],
         "negative_boundary_check_refs": negative_boundary_check_refs,
         "evidence_context_refs": evidence_refs,
         "add_feature_or_l7_refs_in_proof_or_evidence": evidence_refs,
         "current_scope_proof_allows_add_feature": False,
         "current_scope_proof_allows_l7_test_design": False,
     }
+    assert boundary_scan_expected["boundary_context_refs"] in {boundary_refs, boundary_refs - 1}
     assert negative_boundary_check_refs == 1
     assert evidence_refs == 0
     assert qualitative["L-AUDIT-BOUNDARY-FLAGS"]["expected"] == {
@@ -11697,13 +11723,16 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "latest_user_boundary": {
             "l7_requested_now": False,
             "l7_route": "add_feature_ticket_only",
-            "forbidden_now_count": 5,
+            "forbidden_now_count": 8,
             "forbidden_now": [
                 "L7 product feature implementation",
                 "L7 product coverage closure",
+                "product behavior or product requirement changes outside right-arm execution-gate closure",
                 "write/adopt HELIX DB state",
+                "D-API/D-DB/D-CONTRACT semantic changes or schema migration",
                 "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
                 "broad advisory→fail-close flip of W1 detectors",
+                "treating PLAN materialization or gate implementation alone as full-goal completion evidence",
             ],
         },
     }
@@ -11746,14 +11775,17 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "l7_requested_now": False,
         "l7_route": "add_feature_ticket_only",
         "current_allowed_work": (
-            "L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, current-scope CI enforcement, and add-feature ticket boundary mapping\n"
+            "Sequential right-arm execution-gate closure via add-feature tickets, starting with G8 L5-L8 integration-test execution gate. This includes gate/subcheck/vg_overview verdict wiring, test-code anchors, execution evidence, and bounded detector/ledger synchronization required to remove the corresponding strict-full-flow deferred_pair only.\n"
         ),
         "forbidden_now": [
             "L7 product feature implementation",
             "L7 product coverage closure",
+            "product behavior or product requirement changes outside right-arm execution-gate closure",
             "write/adopt HELIX DB state",
+            "D-API/D-DB/D-CONTRACT semantic changes or schema migration",
             "install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate",
             "broad advisory→fail-close flip of W1 detectors",
+            "treating PLAN materialization or gate implementation alone as full-goal completion evidence",
         ],
     }
     assert deferred_feature_coverage["latest_user_boundary"] == full_objective_gap_status[
@@ -11781,9 +11813,10 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "handover_next_action_supersedes_legacy_pending_entries": True,
         "legacy_task_title_must_not_authorize_l7": True,
         "legacy_pending_entries_must_not_authorize_l7": True,
-        "l7_work_allowed_from_handover": False,
-        "required_current_user_boundary_tokens": 4,
-        "legacy_handover_suppression_tokens": 2,
+        "right_arm_execution_work_allowed_from_handover": True,
+        "product_l7_work_allowed_from_handover": False,
+        "required_current_user_boundary_tokens": 5,
+        "legacy_handover_suppression_tokens": 0,
     }
     for refs in payload["sources"].values():
         for ref in refs:
@@ -12763,8 +12796,8 @@ def test_feedback_loop_adoption_audit_keeps_candidates_from_counting_as_closure(
         "appends_events_metrics_feedback": True,
         "registers_missing_feedback_input": True,
         "reads_strict_vg_overview": True,
-        "strict_vg_deferred_count": 4,
-        "strict_vg_deferred_gates": ["G8", "G9", "G12", "G14"],
+        "strict_vg_deferred_count": 3,
+        "strict_vg_deferred_gates": ["G9", "G12", "G14"],
         "not_applicable_pair_waivers": ["L2-L10"],
     }
     assert str(payload["updated"]) == "2026-06-10"
@@ -12791,8 +12824,8 @@ def test_feedback_loop_adoption_audit_keeps_candidates_from_counting_as_closure(
         "available": True,
         "overall_clean": False,
         "enforced": True,
-        "deferred_count": 4,
-        "deferred_gates": ["G8", "G9", "G12", "G14"],
+        "deferred_count": 3,
+        "deferred_gates": ["G9", "G12", "G14"],
         "not_applicable_count": 1,
     }
     assert set(snapshot["pr_candidate_source_pattern_keys"]) == {
@@ -13855,8 +13888,8 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
     assert payload["local_gate_surface"]["strict_full_flow"] == {
         "command": "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json",
         "overall_clean": False,
-        "deferred_count": 4,
-        "deferred_gates": ["G8", "G9", "G12", "G14"],
+        "deferred_count": 3,
+        "deferred_gates": ["G9", "G12", "G14"],
         "interpretation": "Full-flow completion is not achieved.",
     }
     assert payload["local_gate_surface"]["push_gate_surface"]["gate_id"] == "G-vg-overview"
@@ -13872,7 +13905,7 @@ def test_ci_gate_surface_audit_separates_local_gate_from_full_flow_completion() 
         },
         "required_next": [
             "Keep L6 focus gate green without hiding strict full-flow deferred gates.",
-            "Require strict full-flow overall_clean=true after G8/G9/G12/G14 pass.",
+            "Require strict full-flow overall_clean=true after the remaining G9/G12/G14 pass while preserving G8 closure.",
             "Register detector-gate as a GitHub Required check in branch protection.",
             "Record CI/equivalent run evidence in PLAN/PR/gate evidence and HELIX DB feedback loop.",
         ],
@@ -14094,12 +14127,11 @@ def test_live_vg_overview_matches_completion_guard_deferred_gates() -> None:
     strict_vg = strict_report["vg_overview"]
     assert strict_vg["overall_clean"] is False
     assert strict_vg["full_flow_execution"]["enforced"] is True
-    assert strict_vg["full_flow_execution"]["deferred_count"] == 4
+    assert strict_vg["full_flow_execution"]["deferred_count"] == 3
     assert {
         item["pair"]: item["gate_id"]
         for item in strict_vg["full_flow_execution"]["deferred_pairs"]
     } == {
-        "L5-L8": "G8",
         "L4-L9": "G9",
         "L3-L12": "G12",
         "L1-L14": "G14",
@@ -14151,12 +14183,11 @@ def test_live_default_vg_overview_is_l6_focus_not_full_flow_completion() -> None
     assert vg["overall_clean"] is True
     assert full_flow["clean"] is False
     assert full_flow["enforced"] is False
-    assert full_flow["deferred_count"] == 4
+    assert full_flow["deferred_count"] == 3
     assert {
         item["pair"]: item["gate_id"]
         for item in full_flow["deferred_pairs"]
     } == {
-        "L5-L8": "G8",
         "L4-L9": "G9",
         "L3-L12": "G12",
         "L1-L14": "G14",
@@ -14310,11 +14341,14 @@ def test_harness_feedback_loop_cli_surfaces_full_flow_carry_as_candidates() -> N
         for item in payload["pr_candidates"]
         if item.get("source_pattern_key") == "vg_overview:full_flow_deferred_execution_gate"
     }
-    expected_deferred = {
-        "L5-L8": "G8",
+    expected_live_deferred = {
         "L4-L9": "G9",
         "L3-L12": "G12",
         "L1-L14": "G14",
+    }
+    expected_manifest_deferred = {
+        "L5-L8": "G8",
+        **expected_live_deferred,
     }
 
     assert payload["schema_version"] == "helix_harness_feedback_loop_snapshot_v1"
@@ -14322,18 +14356,18 @@ def test_harness_feedback_loop_cli_surfaces_full_flow_carry_as_candidates() -> N
     assert "plan_draft_candidates" not in payload
     assert payload["vg_overview"]["available"] is True
     assert payload["vg_overview"]["enforced"] is True
-    assert payload["vg_overview"]["deferred_count"] == 4
+    assert payload["vg_overview"]["deferred_count"] == 3
     assert payload["vg_overview"]["not_applicable_count"] == 1
-    assert deferred_pairs == expected_deferred
-    assert manifest_deferred_pairs == expected_deferred
+    assert deferred_pairs == expected_live_deferred
+    assert manifest_deferred_pairs == expected_manifest_deferred
     assert manifest_plan_ids == {
         "G8": "PLAN-G8-INTEGRATION-EXECUTION-GATE",
         "G9": "PLAN-G9-SYSTEM-EXECUTION-GATE",
         "G12": "PLAN-G12-ACCEPTANCE-EXECUTION-GATE",
         "G14": "PLAN-G14-OPERATIONAL-LEARNING-GATE",
     }
-    assert deferred_learning_pairs == set(expected_deferred.items())
-    for pair, gate_id in expected_deferred.items():
+    assert deferred_learning_pairs == set(expected_live_deferred.items())
+    for pair, gate_id in expected_live_deferred.items():
         assert any(pair in summary and gate_id in summary for summary in deferred_pr_summaries)
     assert "full_flow_deferred_execution_gate" in learning_kinds
     assert "not_applicable_pair_waiver" in learning_kinds

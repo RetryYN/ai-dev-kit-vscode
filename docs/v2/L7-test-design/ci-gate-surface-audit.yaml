@@ -24,9 +24,8 @@ local_gate_surface:
   strict_full_flow:
     command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
     overall_clean: false
-    deferred_count: 4
+    deferred_count: 3
     deferred_gates:
-      - G8
       - G9
       - G12
       - G14
@@ -51,7 +50,7 @@ ci_surface:
     exit_0_when_clean: true
   required_next:
     - Keep L6 focus gate green without hiding strict full-flow deferred gates.
-    - Require strict full-flow overall_clean=true after G8/G9/G12/G14 pass.
+    - Require strict full-flow overall_clean=true after the remaining G9/G12/G14 pass while preserving G8 closure.
     - Register detector-gate as a GitHub Required check in branch protection.
     - Record CI/equivalent run evidence in PLAN/PR/gate evidence and HELIX DB feedback loop.
 completion_boundary:

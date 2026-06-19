@@ -136,9 +136,9 @@ quantitative_checks:
       objective_clauses_checked: 9
       deferred_entry_points_checked: 11
       feature_tickets_draft: 11
-      repository_add_feature_files_discovered: 25
+      repository_add_feature_files_discovered: 26
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 14
+      out_of_current_objective_add_feature_files: 15
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
       full_flow_later_phase_approval_boundary: true
@@ -283,12 +283,12 @@ quantitative_checks:
       current_scope_items_pass_l1_l6: 9
       items_requiring_later_phase_before_full_completion: 8
       feature_tickets_available: 11
-      repository_add_feature_files_discovered: 25
+      repository_add_feature_files_discovered: 26
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 14
+      out_of_current_objective_add_feature_files: 15
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
-      right_arm_execution_gates_deferred: 4
+      right_arm_execution_gates_deferred: 3
       full_goal_verdict: active_not_complete
     source: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml
     verdict: pass
@@ -304,7 +304,7 @@ quantitative_checks:
       deferred_feature_tickets_indexed: 11
       deferred_design_obligation_rows_checked: 11
       deferred_design_obligation_escape_findings: 0
-      right_arm_execution_gates_deferred: 4
+      right_arm_execution_gates_deferred: 3
       l7_artifacts_created_by_this_index: 0
     source: docs/v2/audit/2026-06-12-l1-l6-ratification-index.yaml
     verdict: pass
@@ -515,13 +515,16 @@ qualitative_checks:
       latest_user_boundary:
         l7_requested_now: false
         l7_route: add_feature_ticket_only
-        forbidden_now_count: 5
+        forbidden_now_count: 8
         forbidden_now:
           - L7 product feature implementation
           - L7 product coverage closure
+          - product behavior or product requirement changes outside right-arm execution-gate closure
           - write/adopt HELIX DB state
+          - D-API/D-DB/D-CONTRACT semantic changes or schema migration
           - install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate
           - broad advisory→fail-close flip of W1 detectors
+          - treating PLAN materialization or gate implementation alone as full-goal completion evidence
     verdict: pass
   - id: L-FEATURE-TICKET-UNLOCK-CONDITIONS
     check: Deferred feature coverage indexes unlock_conditions for every full-objective feature boundary while keeping those conditions non-completion evidence.
@@ -607,9 +610,10 @@ qualitative_checks:
       handover_next_action_supersedes_legacy_pending_entries: true
       legacy_task_title_must_not_authorize_l7: true
       legacy_pending_entries_must_not_authorize_l7: true
-      l7_work_allowed_from_handover: false
-      required_current_user_boundary_tokens: 4
-      legacy_handover_suppression_tokens: 2
+      right_arm_execution_work_allowed_from_handover: true
+      product_l7_work_allowed_from_handover: false
+      required_current_user_boundary_tokens: 5
+      legacy_handover_suppression_tokens: 0
     verdict: pass
   - id: L-HARNESS-CURRENT-SESSION-WEBFETCH-NOT-CLOSURE
     check: Current-session official WebFetch recheck for HARNESS external-tool candidates is L1-L6 design-basis evidence only, not adoption, execution, DB write, CI connection, L7 artifact, or full-goal completion evidence.

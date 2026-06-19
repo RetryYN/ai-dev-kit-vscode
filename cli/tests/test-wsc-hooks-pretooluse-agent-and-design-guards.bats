@@ -99,6 +99,7 @@ write_transcript() {
   [ "$(agent_slot_count)" = "0" ]
 }
 
+# IT-MOD-03
 @test "UT-WSC-08: Agent guard は subagent_type 未指定を block する" {
   run run_hook "pretooluse-agent-guard.sh" \
     '{"tool_name":"Agent","tool_input":{}}'
@@ -141,6 +142,7 @@ write_transcript() {
   [[ "$output" == *"WebSearch / WebFetch"* ]]
 }
 
+# IT-IP-02
 @test "UT-WSC-11: ADR 新規作成は transcript に WebSearch 証跡があれば pass する" {
   local project_root="$TMP_ROOT/project"
   mkdir -p "$project_root/docs/adr"

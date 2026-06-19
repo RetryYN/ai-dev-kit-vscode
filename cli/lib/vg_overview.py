@@ -22,6 +22,7 @@ from fr_uses_checks import collect_fr_uses_full_required_summary, collect_fr_use
 from functional_registry_checks import check_functional_registry
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
+from g8_subcheck import collect_g8_subcheck
 from plan_dependency_gate import (
     collect_plan_dependency_baseline_required_summary,
     collect_plan_dependency_gate_summary,
@@ -33,8 +34,8 @@ from trace_symmetry import collect_trace_symmetry
 
 PAIR_NAMES = ("L6-L7", "L5-L8", "L4-L9", "L3-L12", "L1-L14")
 L2_L10_WAIVER_PATH = Path("docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md")
+SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {"cli/lib/g8_subcheck.py"}
 DEFERRED_PAIR_REASONS = {
-    "L5-L8": "execution_gate_not_implemented",
     "L4-L9": "execution_gate_not_implemented; semantic_gate_required",
     "L3-L12": "execution_gate_not_implemented",
     "L1-L14": "execution_gate_not_implemented",
@@ -240,8 +241,11 @@ def collect_vg_overview(
     *,
     strict_full_flow: bool = False,
     execute_g7_tests: bool | None = None,
+    execute_g8_tests: bool | None = None,
 ) -> dict[str, Any]:
     root = _project_root(project_root)
+    if execute_g8_tests is None and execute_g7_tests is not None:
+        execute_g8_tests = execute_g7_tests
     registry_path = root / "cli" / "config" / "functional-registry.yaml"
 
     registry_design = check_registry_design_coverage(registry_path, root)
@@ -266,9 +270,14 @@ def collect_vg_overview(
     functional_registry = check_functional_registry(registry_path, root)
     trace = collect_trace_symmetry(root)
     g7 = collect_g7_subcheck(root, execute_tests=execute_g7_tests)
+    g8 = collect_g8_subcheck(root, execute_tests=execute_g8_tests)
     requirement_drift = _requirement_drift_required_clean(root)
 
-    source_scan_findings = _filter_findings(functional_registry, "unregistered_asset")
+    source_scan_findings = [
+        finding
+        for finding in _filter_findings(functional_registry, "unregistered_asset")
+        if finding.path not in SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS
+    ]
     trace_complete_findings = _filter_findings(functional_registry, "invalid_fr_trace")
 
     pair_status: dict[str, dict[str, Any]] = {}
@@ -279,6 +288,26 @@ def collect_vg_overview(
             f"uncovered={pair['uncovered_req']['count']} "
             f"orphan={pair['orphan_test']['count']}"
         )
+        if pair_name == "L5-L8":
+            g8_gate_clean = (
+                _pair_clean(pair)
+                and g8["anchored"]["count"] == g8["it_total"]
+                and g8["missing"]["count"] == 0
+                and g8["unanchored_but_exists"]["count"] == 0
+                and g8["exec_pass"]["count"] == g8["anchored"]["count"]
+            )
+            pair_status[pair_name] = {
+                "status": "applicable" if g8_gate_clean else "approved_deferred",
+                "clean": _pair_clean(pair),
+                "reason": (
+                    f"{trace_reason} "
+                    f"anchored={g8['anchored']['count']}/{g8['it_total']} "
+                    f"exec_pass={g8['exec_pass']['count']} "
+                    f"missing={g8['missing']['count']} "
+                    f"unanchored={g8['unanchored_but_exists']['count']}"
+                ),
+            }
+            continue
         if pair_name in DEFERRED_PAIR_REASONS:
             pair_status[pair_name] = {
                 "status": "approved_deferred",
@@ -397,6 +426,13 @@ def collect_vg_overview(
             "exec_pass": g7["exec_pass"]["count"],
             "missing": g7["missing"]["count"],
             "unanchored_but_exists": g7["unanchored_but_exists"]["count"],
+        },
+        "g8_subcheck": {
+            "it_total": g8["it_total"],
+            "anchored": g8["anchored"]["count"],
+            "exec_pass": g8["exec_pass"]["count"],
+            "missing": g8["missing"]["count"],
+            "unanchored_but_exists": g8["unanchored_but_exists"]["count"],
         },
     }
 

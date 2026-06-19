@@ -74,6 +74,7 @@ harness_monitor.record_event(
 PY
 }
 
+# IT-MOD-07
 @test "UT-WSC-13: stale slot があれば release 推奨を出す" {
   local stale_at
   stale_at="$(python3 - <<'PY'
@@ -89,6 +90,7 @@ PY
   [[ "$output" != *"critical event"* ]]
 }
 
+# IT-IF-02
 @test "UT-WSC-13: critical event のみでも要約を出す" {
   seed_critical_event
 

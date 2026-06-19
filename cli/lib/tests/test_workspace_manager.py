@@ -165,6 +165,7 @@ def _seed_plan_registry_db(repo: Path) -> None:
         )
 
 
+# IT-MOD-02
 def test_create_creates_worktree_and_workspace_manifest(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)
@@ -239,6 +240,7 @@ def test_filtered_copy_skips_db_wal_glob(tmp_path: Path) -> None:
     assert stats["skipped_count"] >= 1
 
 
+# IT-DB-04
 def test_list_workspaces_filters_active_entries(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)
@@ -448,6 +450,7 @@ def test_generate_snapshot_minimal_schema_version_one(tmp_path: Path) -> None:
     assert snapshot["task_id"] == "PLAN-SNAPSHOT"
 
 
+# IT-DB-01
 def test_generate_snapshot_extracts_plan_registry(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)
@@ -470,6 +473,7 @@ def test_generate_snapshot_extracts_plan_registry(tmp_path: Path) -> None:
     assert payload["plan_registry"][0]["parent"] == "PLAN-PARENT"
 
 
+# IT-IP-03
 def test_generate_snapshot_extracts_handover_snapshot(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)

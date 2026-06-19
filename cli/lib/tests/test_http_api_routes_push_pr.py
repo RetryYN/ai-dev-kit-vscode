@@ -92,6 +92,8 @@ def client_with_token(app_with_token):
     return app.test_client()
 
 
+# IT-MOD-05
+# IT-IP-05
 def test_push_trigger_gate_pass_returns_run_id(client_with_token, project_root):
     """DoD 検証: PLAN-074-unit-test-design.md U-PUSH-001 (execute=False, gate PASS → 200 + run_id)
     対象実装: cli/lib/http_api/routes/push_pr.py::push_trigger
@@ -179,6 +181,7 @@ def test_push_trigger_gate_fail_returns_failed_run(client_with_token, project_ro
     assert summary["execute"] is False
 
 
+# IT-IF-03
 def test_push_trigger_missing_fields_return_400(client_with_token, project_root):
     """DoD 検証: PLAN-074-unit-test-design.md U-PUSH-003 (必須欠落 → 400)
     対象実装: cli/lib/http_api/routes/push_pr.py::push_trigger

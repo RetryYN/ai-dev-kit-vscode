@@ -39,14 +39,20 @@ latest_user_boundary:
   l7_requested_now: false
   l7_route: add_feature_ticket_only
   current_allowed_work: >
-    L1-L6 audit/design/evidence cleanup, pre-L7 gate-hardening, current-scope CI
-    enforcement, and add-feature ticket boundary mapping
+    Sequential right-arm execution-gate closure via add-feature tickets,
+    starting with G8 L5-L8 integration-test execution gate. This includes
+    gate/subcheck/vg_overview verdict wiring, test-code anchors, execution
+    evidence, and bounded detector/ledger synchronization required to remove the
+    corresponding strict-full-flow deferred_pair only.
   forbidden_now:
     - L7 product feature implementation
     - L7 product coverage closure
+    - product behavior or product requirement changes outside right-arm execution-gate closure
     - write/adopt HELIX DB state
+    - D-API/D-DB/D-CONTRACT semantic changes or schema migration
     - install/execute external tools outside approved C-2 ruff/shellcheck advisory CI job or as required/fail-close gate
     - broad advisory→fail-close flip of W1 detectors
+    - treating PLAN materialization or gate implementation alone as full-goal completion evidence
 summary:
   objective_clauses_checked: 9
   deferred_entry_points_checked: 11
@@ -54,9 +60,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 25
+  repository_add_feature_files_discovered: 26
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 14
+  out_of_current_objective_add_feature_files: 15
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -67,9 +73,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 25
+  all_repository_add_feature_files_checked: 26
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 14
+  excluded_from_current_objective_deferred_count: 15
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -213,6 +219,16 @@ repository_add_feature_inventory:
         flip of W1 detectors も依然 forbidden now のまま。他 detector の
         full-required promotion、L7 product implementation、DB schema work、
         external-tool required gating は authorize しない。
+    - id: c4a_g8_integration_execution_gate
+      path: docs/plans/add-feature/add-feature-2026-06-19-g8-integration-execution-gate.md
+      observed_status: draft
+      classification: current_scope_authorized_c4a_g8_integration_execution_gate
+      reason: >
+        User-approved current-scope right-arm closure step (C-4a): G8 / L5-L8
+        integration execution gate only. This authorizes integration-test
+        anchor/execution closure and deferred removal for L5-L8 only, while
+        keeping G9/G12/G14 deferred, strict-full-flow default-off, and L5
+        detailed-design body / DB schema semantics unchanged.
     - id: push_gate_test_tiering
       path: docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md
       observed_status: draft
@@ -462,7 +478,7 @@ objective_boundary_coverage:
     feature_entry_points:
       - docs/plans/add-feature/add-feature-2026-06-10-full-flow-remaining-guards.md
       - docs/plans/add-feature/add-feature-2026-06-13-l7-unit-closure.md
-    current_scope_note: L1-L6 pair balance is mapped; G8/G9/G12/G14 execution remains later work.
+    current_scope_note: L1-L6 pair balance is mapped; G9/G12/G14 execution remains later work after G8 closure.
   - objective_id: OBJ-CODEX-CLAUDE-GUARD-PARITY
     l1_l6_status: closed_for_current_guard_surface
     boundary_type: l7_feature_ticket_required
