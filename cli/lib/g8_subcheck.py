@@ -131,7 +131,7 @@ def _existing_anchor_paths(project_root: Path, specs: list[str]) -> list[str]:
         if not needle:
             return []
         text = path.read_text(encoding="utf-8", errors="ignore")
-        if needle not in text:
+        if re.search(r"\b" + re.escape(needle) + r"\b", text) is None:
             return []
         normalized.append(rel_path)
     return [item for item in dict.fromkeys(normalized)]

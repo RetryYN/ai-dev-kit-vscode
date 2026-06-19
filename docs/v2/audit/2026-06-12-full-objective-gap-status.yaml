@@ -658,10 +658,10 @@ handover_boundary_contract:
   next_action_heading_required: "## Next Action (Codex 向け)"
   required_current_user_boundary_contains:
     - implement
-    - DF-P2-DEFERRED-COUNT-DERIVE
-    - refactor-2026-06-20-deferred-count-derive.md
-    - live SSoT helper
-    - docs/test mirror
+    - DF-P2-G8-ANCHOR-WORDBOUNDARY
+    - g8_subcheck
+    - _existing_anchor_paths
+    - word-boundary
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: false
   latest_user_boundary_forbidden_handover_terms: []

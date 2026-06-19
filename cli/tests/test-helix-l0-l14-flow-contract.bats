@@ -568,10 +568,10 @@ assert handover_boundary_contract == {
     "next_action_heading_required": "## Next Action (Codex 向け)",
     "required_current_user_boundary_contains": [
         "implement",
-        "DF-P2-DEFERRED-COUNT-DERIVE",
-        "refactor-2026-06-20-deferred-count-derive.md",
-        "live SSoT helper",
-        "docs/test mirror",
+        "DF-P2-G8-ANCHOR-WORDBOUNDARY",
+        "g8_subcheck",
+        "_existing_anchor_paths",
+        "word-boundary",
     ],
     "latest_user_boundary_must_match_handover_next_action": True,
     "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
@@ -608,14 +608,14 @@ for suppression_term in handover_boundary_contract["legacy_handover_suppression_
 handover_state = json.loads(
     (root / handover_boundary_contract["handover_current_json"]).read_text(encoding="utf-8")
 )
-assert "deferred_count/deferred_gates" in handover_state["task"]["title"]
-assert "live VG derive" in handover_state["task"]["title"]
+assert "g8_subcheck" in handover_state["task"]["title"]
+assert "word-boundary" in handover_state["task"]["title"]
 assert handover_state["files"]["pending"] == [
-    "cli/lib/vg_overview.py",
+    "cli/lib/g8_subcheck.py",
+    "cli/lib/tests/test_g8_subcheck.py",
+    "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
     "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
     "cli/tests/test-helix-l0-l14-flow-contract.bats",
-    "docs/v2/L7-test-design/goal-completion-audit.yaml",
-    "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
 ]
 assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
 assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True

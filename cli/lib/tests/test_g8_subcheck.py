@@ -90,6 +90,28 @@ def test_collect_g8_subcheck_accepts_marker_backed_anchor() -> None:
     ) == ["cli/lib/tests/test_integration_l45.py"]
 
 
+def test_existing_anchor_paths_rejects_substring_only_match(tmp_path: Path) -> None:
+    test_file = tmp_path / "cli/lib/tests/test_anchor_fixture.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("anchor candidate: IT-DB-030\n", encoding="utf-8")
+
+    assert g8_subcheck._existing_anchor_paths(
+        tmp_path,
+        ["cli/lib/tests/test_anchor_fixture.py::IT-DB-03"],
+    ) == []
+
+
+def test_existing_anchor_paths_accepts_word_boundary_match(tmp_path: Path) -> None:
+    test_file = tmp_path / "cli/lib/tests/test_anchor_fixture.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("anchor candidate: IT-DB-03 |\n", encoding="utf-8")
+
+    assert g8_subcheck._existing_anchor_paths(
+        tmp_path,
+        ["cli/lib/tests/test_anchor_fixture.py::IT-DB-03"],
+    ) == ["cli/lib/tests/test_anchor_fixture.py"]
+
+
 def test_check_g8_subcheck_gate_passes_with_structural_skip_exec() -> None:
     result = _run_doctor(REPO_ROOT, "check_g8_subcheck", "--gate", "--json")
 
