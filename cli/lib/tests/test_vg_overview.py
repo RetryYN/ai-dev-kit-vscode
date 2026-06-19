@@ -1009,3 +1009,32 @@ def test_collect_vg_overview_reuses_g7_execute_flag_for_g8_when_not_overridden(
 
     assert seen == {"g7": False, "g8": False}
     assert report["vg_overview"]["pair_status"]["L5-L8"]["status"] == "applicable"
+
+
+def test_live_strict_deferred_pairs_sorts_gate_ids_and_skips_g7_exec(monkeypatch, tmp_path: Path) -> None:
+    seen: dict[str, object] = {}
+
+    def _collect(project_root, **kwargs):
+        seen["project_root"] = project_root
+        seen["kwargs"] = kwargs
+        return {
+            "vg_overview": {
+                "full_flow_execution": {
+                    "deferred_pairs": [
+                        {"gate_id": "G14", "pair": "L1-L14"},
+                        {"gate_id": "G9", "pair": "L4-L9"},
+                        {"gate_id": "G12", "pair": "L3-L12"},
+                    ]
+                }
+            }
+        }
+
+    monkeypatch.setattr(vg_overview, "collect_vg_overview", _collect)
+
+    deferred_pairs = vg_overview.live_strict_deferred_pairs(tmp_path)
+
+    assert seen == {
+        "project_root": tmp_path.resolve(),
+        "kwargs": {"strict_full_flow": True, "execute_g7_tests": False},
+    }
+    assert [item["gate_id"] for item in deferred_pairs] == ["G9", "G12", "G14"]

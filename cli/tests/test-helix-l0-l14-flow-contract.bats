@@ -64,12 +64,15 @@ path = Path(sys.argv[1])
 objective_coverage_path = Path(sys.argv[2])
 deferred_path = Path(sys.argv[3])
 root = path.resolve().parents[3]
+sys.path.insert(0, str(root / "cli/lib"))
+import vg_overview
 payload = yaml.safe_load(path.read_text(encoding="utf-8"))
 objective_coverage = yaml.safe_load(objective_coverage_path.read_text(encoding="utf-8"))
 deferred_coverage = yaml.safe_load(deferred_path.read_text(encoding="utf-8"))
 reference_integrity = yaml.safe_load(
     (root / "docs/v2/audit/2026-06-12-l1-l6-reference-integrity-coverage.yaml").read_text(encoding="utf-8")
 )
+live_deferred_pairs = vg_overview.live_strict_deferred_pairs(root)
 
 assert payload["schema_version"] == "full_objective_gap_status_v1"
 assert payload["status"] == "active_goal_l1_l6_current_scope_pass_later_phase_deferred"
@@ -565,10 +568,10 @@ assert handover_boundary_contract == {
     "next_action_heading_required": "## Next Action (Codex 向け)",
     "required_current_user_boundary_contains": [
         "implement",
-        "G8",
-        "integration-test execution gate",
-        "L5-L8",
-        "add-feature-2026-06-19-g8-integration-execution-gate.md",
+        "DF-P2-DEFERRED-COUNT-DERIVE",
+        "refactor-2026-06-20-deferred-count-derive.md",
+        "live SSoT helper",
+        "docs/test mirror",
     ],
     "latest_user_boundary_must_match_handover_next_action": True,
     "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
@@ -605,15 +608,14 @@ for suppression_term in handover_boundary_contract["legacy_handover_suppression_
 handover_state = json.loads(
     (root / handover_boundary_contract["handover_current_json"]).read_text(encoding="utf-8")
 )
-assert "C-4a" in handover_state["task"]["title"]
-assert "G8 closure" in handover_state["task"]["title"]
+assert "deferred_count/deferred_gates" in handover_state["task"]["title"]
+assert "live VG derive" in handover_state["task"]["title"]
 assert handover_state["files"]["pending"] == [
-    "cli/lib/g8_subcheck.py",
     "cli/lib/vg_overview.py",
-    "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
-    "docs/v2/audit/2026-06-12-l1-l6-double-check-coverage.yaml",
     "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
     "cli/tests/test-helix-l0-l14-flow-contract.bats",
+    "docs/v2/L7-test-design/goal-completion-audit.yaml",
+    "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
 ]
 assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
 assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True
@@ -906,6 +908,8 @@ for item in feature_tickets.values():
     if source_item.get("layer") == "L7":
         assert source_item.get("approval_required_before_l7_work") is True, item["id"]
 right_arm = payload["right_arm_execution_boundaries"]
+assert right_arm["strict_full_flow_current_derived_from"] == "strict_vg_overview"
+assert right_arm["strict_full_flow_current_last_verified_command"] == vg_overview.STRICT_FULL_FLOW_VERIFY_COMMAND
 assert right_arm["strict_full_flow_current_overall_clean"] is False
 assert right_arm["strict_full_flow_command"] == (
     "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview "
@@ -926,9 +930,15 @@ assert right_arm["deferred_gate_contract"] == {
 deferred_gates = {item["gate_id"]: item for item in right_arm["deferred_gates"]}
 assert list(deferred_gates) == right_arm["deferred_gate_contract"]["deferred_gate_ids_must_equal"]
 assert len(deferred_gates) == right_arm["deferred_gate_contract"]["deferred_gate_count"]
+assert len(live_deferred_pairs) == right_arm["deferred_gate_contract"]["deferred_gate_count"]
 assert deferred_gates["G9"]["pair"] == "L4-L9"
 assert deferred_gates["G12"]["pair"] == "L3-L12"
 assert deferred_gates["G14"]["pair"] == "L1-L14"
+assert {
+    item["pair"]: item["gate_id"] for item in live_deferred_pairs
+} == {
+    item["pair"]: item["gate_id"] for item in right_arm["deferred_gates"]
+}
 for gate_id, gate in deferred_gates.items():
     assert gate["status"] == right_arm["deferred_gate_contract"]["status_required"], gate_id
     assert gate["clean"] is right_arm["deferred_gate_contract"]["clean_required"], gate_id
@@ -7787,11 +7797,17 @@ PY
 @test "ci gate surface audit keeps local gate separate from full-flow completion" {
   run python3 - "$HELIX_ROOT/docs/v2/L7-test-design/ci-gate-surface-audit.yaml" <<'PY'
 import sys
+from pathlib import Path
 import yaml
 
 path = sys.argv[1]
 with open(path, encoding="utf-8") as handle:
     payload = yaml.safe_load(handle)
+root = Path(path).resolve().parents[3]
+sys.path.insert(0, str(root / "cli/lib"))
+import vg_overview
+live_deferred_pairs = vg_overview.live_strict_deferred_pairs(root)
+live_gate_ids = [item["gate_id"] for item in live_deferred_pairs]
 
 assert payload["schema_version"] == "ci_gate_surface_audit_v1"
 assert payload["status"] == "ci_detector_gate_connected_full_flow_still_deferred"
@@ -7804,9 +7820,11 @@ assert payload["ci_surface"]["ci_detector_gate"]["project_state_independent"] is
 assert payload["ci_surface"]["ci_detector_gate"]["gate_basis"] == "vg_overview.overall_clean"
 assert payload["local_gate_surface"]["vg_overview_default"]["overall_clean"] is True
 assert payload["local_gate_surface"]["vg_overview_default"]["focus"] == "L6"
+assert payload["local_gate_surface"]["strict_full_flow"]["derived_from"] == "strict_vg_overview"
+assert payload["local_gate_surface"]["strict_full_flow"]["last_verified_command"] == vg_overview.STRICT_FULL_FLOW_VERIFY_COMMAND
 assert payload["local_gate_surface"]["strict_full_flow"]["overall_clean"] is False
-assert payload["local_gate_surface"]["strict_full_flow"]["deferred_count"] == 3
-assert payload["local_gate_surface"]["strict_full_flow"]["deferred_gates"] == ["G9", "G12", "G14"]
+assert payload["local_gate_surface"]["strict_full_flow"]["deferred_count"] == len(live_deferred_pairs)
+assert payload["local_gate_surface"]["strict_full_flow"]["deferred_gates"] == live_gate_ids
 assert payload["local_gate_surface"]["push_gate_surface"]["gate_id"] == "G-vg-overview"
 assert payload["ci_surface"]["required_for_goal_completion"] is True
 assert payload["ci_surface"]["ci_or_equivalent_connected"] is True
@@ -7858,23 +7876,31 @@ PY
 @test "feedback-loop adoption audit keeps candidates from counting as closure" {
   run python3 - "$HELIX_ROOT/docs/v2/L7-test-design/feedback-loop-adoption-audit.yaml" <<'PY'
 import sys
+from pathlib import Path
 import yaml
 
 path = sys.argv[1]
 with open(path, encoding="utf-8") as handle:
     payload = yaml.safe_load(handle)
+root = Path(path).resolve().parents[3]
+sys.path.insert(0, str(root / "cli/lib"))
+import vg_overview
+live_deferred_pairs = vg_overview.live_strict_deferred_pairs(root)
+live_gate_ids = [item["gate_id"] for item in live_deferred_pairs]
 
 assert payload["schema_version"] == "feedback_loop_adoption_audit_v1"
 assert payload["status"] == "partial_candidate_generated"
 assert payload["source_feedback_closure_readiness"] == "docs/v2/L7-test-design/feedback-adoption-closure-readiness.yaml"
+assert payload["current_capabilities"]["derived_from"] == "strict_vg_overview"
+assert payload["current_capabilities"]["last_verified_command"] == vg_overview.STRICT_FULL_FLOW_VERIFY_COMMAND
 assert payload["current_capabilities"]["json_schema"] == "helix_harness_feedback_loop_snapshot_v1"
 assert payload["current_capabilities"]["emits_route_candidates"] is True
 assert payload["current_capabilities"]["emits_learning_candidates"] is True
 assert payload["current_capabilities"]["emits_plan_candidates"] is True
 assert payload["current_capabilities"]["emits_pr_candidates"] is True
 assert payload["current_capabilities"]["appends_events_metrics_feedback"] is True
-assert payload["current_capabilities"]["strict_vg_deferred_count"] == 3
-assert payload["current_capabilities"]["strict_vg_deferred_gates"] == ["G9", "G12", "G14"]
+assert payload["current_capabilities"]["strict_vg_deferred_count"] == len(live_deferred_pairs)
+assert payload["current_capabilities"]["strict_vg_deferred_gates"] == live_gate_ids
 assert str(payload["updated"]) == "2026-06-10"
 snapshot = payload["captured_snapshot"]
 assert str(snapshot["captured_on"]) == "2026-06-10"
@@ -9243,11 +9269,16 @@ PY
 @test "goal completion audit manifest keeps full objective active" {
   run python3 - "$HELIX_ROOT/docs/v2/L7-test-design/goal-completion-audit.yaml" <<'PY'
 import sys
+from pathlib import Path
 import yaml
 
 path = sys.argv[1]
 with open(path, encoding="utf-8") as handle:
     payload = yaml.safe_load(handle)
+root = Path(path).resolve().parents[3]
+sys.path.insert(0, str(root / "cli/lib"))
+import vg_overview
+live_deferred_pairs = vg_overview.live_strict_deferred_pairs(root)
 
 assert payload["schema_version"] == "goal_completion_audit_v1"
 assert payload["status"] == "active_not_complete"
@@ -9259,16 +9290,14 @@ assert payload["focus_status"]["evidence"]["requirement_drift"]["requirements"] 
 assert payload["focus_status"]["evidence"]["requirement_drift"]["design_links"] == 31
 assert payload["focus_status"]["evidence"]["g7_subcheck"]["anchored"] == 88
 assert payload["focus_status"]["evidence"]["g7_subcheck"]["exec_pass"] == 88
+assert payload["strict_full_flow_status"]["derived_from"] == "strict_vg_overview"
+assert payload["strict_full_flow_status"]["last_verified_command"] == vg_overview.STRICT_FULL_FLOW_VERIFY_COMMAND
 assert payload["strict_full_flow_status"]["overall_clean"] is False
-assert payload["strict_full_flow_status"]["deferred_count"] == 3
+assert payload["strict_full_flow_status"]["deferred_count"] == len(live_deferred_pairs)
 assert {
     item["pair"]: item["gate_id"]
     for item in payload["strict_full_flow_status"]["deferred_gates"]
-} == {
-    "L4-L9": "G9",
-    "L3-L12": "G12",
-    "L1-L14": "G14",
-}
+} == {item["pair"]: item["gate_id"] for item in live_deferred_pairs}
 requirements = {item["id"]: item for item in payload["requirements"]}
 assert requirements["REQ-L1-L6-REQUIREMENT-GAP-AUDIT"]["status"] == "achieved_local"
 assert requirements["REQ-L1-L6-GRANULARITY-BALANCE"]["status"] == "achieved_local"

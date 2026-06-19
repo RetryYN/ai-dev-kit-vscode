@@ -10,6 +10,8 @@ command_surfaces:
   text_snapshot: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix harness feedback-loop --days 1
   isolated_bats: bats cli/tests/test-helix-harness-feedback-loop.bats
 current_capabilities:
+  derived_from: strict_vg_overview
+  last_verified_command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   top_level_harness_routed: true
   json_schema: helix_harness_feedback_loop_snapshot_v1
   emits_route_candidates: true

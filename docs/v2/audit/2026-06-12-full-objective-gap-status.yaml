@@ -658,10 +658,10 @@ handover_boundary_contract:
   next_action_heading_required: "## Next Action (Codex 向け)"
   required_current_user_boundary_contains:
     - implement
-    - G8
-    - integration-test execution gate
-    - L5-L8
-    - add-feature-2026-06-19-g8-integration-execution-gate.md
+    - DF-P2-DEFERRED-COUNT-DERIVE
+    - refactor-2026-06-20-deferred-count-derive.md
+    - live SSoT helper
+    - docs/test mirror
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: false
   latest_user_boundary_forbidden_handover_terms: []
@@ -894,6 +894,8 @@ repository_add_feature_inventory_contract:
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
 right_arm_execution_boundaries:
+  strict_full_flow_current_derived_from: strict_vg_overview
+  strict_full_flow_current_last_verified_command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   strict_full_flow_current_overall_clean: false
   strict_full_flow_command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   strict_full_flow_command_is_read_only: true

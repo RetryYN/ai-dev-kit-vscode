@@ -42,6 +42,8 @@ focus_status:
       missing: 0
       unanchored_but_exists: 0
 strict_full_flow_status:
+  derived_from: strict_vg_overview
+  last_verified_command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   command: HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json
   overall_clean: false
   deferred_count: 3

@@ -40,6 +40,9 @@ DEFERRED_PAIR_REASONS = {
     "L3-L12": "execution_gate_not_implemented",
     "L1-L14": "execution_gate_not_implemented",
 }
+STRICT_FULL_FLOW_VERIFY_COMMAND = (
+    "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json"
+)
 DEFERRED_PAIR_EXECUTION_GATES = {
     "L5-L8": {
         "gate_id": "G8",
@@ -234,6 +237,16 @@ def _ratchet_required_clean(summary: dict[str, Any]) -> dict[str, Any]:
     if source_status == "unavailable":
         entry["clean"] = True
     return entry
+
+
+def live_strict_deferred_pairs(project_root: Path | None = None) -> list[dict[str, Any]]:
+    root = _project_root(project_root)
+    report = collect_vg_overview(root, strict_full_flow=True, execute_g7_tests=False)
+    deferred_pairs = report["vg_overview"]["full_flow_execution"]["deferred_pairs"]
+    return sorted(
+        (dict(item) for item in deferred_pairs),
+        key=lambda item: int(str(item["gate_id"])[1:]),
+    )
 
 
 def collect_vg_overview(
