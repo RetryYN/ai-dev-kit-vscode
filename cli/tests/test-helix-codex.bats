@@ -58,6 +58,7 @@ teardown() {
   [[ "$output" == *"無効な --role 値"* ]]
 }
 
+## ST-SYS-03
 @test "helix-codex plan-only dry-run forces read-only and disables full-auto" {
   run "$HELIX_ROOT/cli/helix-codex" --role docs --task "計画を整理して" --plan-only --dry-run
   [ "$status" -eq 0 ]
@@ -70,6 +71,7 @@ teardown() {
   [[ "$output" == *"sandbox: read-only"* ]]
 }
 
+## ST-SYS-03
 @test "helix-codex dry-run injects HELIX execution context" {
   run "$HELIX_ROOT/cli/helix-codex" \
     --role docs \
@@ -158,6 +160,7 @@ teardown() {
   [[ "$output" == *"Skills:    common/coding common/testing common/git"* ]]
 }
 
+## ST-SYS-03
 @test "helix-codex require-approved blocks write execution without consent" {
   HELIX_CODEX_REQUIRE_APPROVED=1 run "$HELIX_ROOT/cli/helix-codex" --role docs --task "実装して"
   [ "$status" -ne 0 ]

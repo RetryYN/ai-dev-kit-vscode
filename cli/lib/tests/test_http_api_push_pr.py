@@ -81,6 +81,7 @@ def client(env_setup):
     yield app.test_client()
 
 
+## ST-IF-01
 def test_push_trigger_success_records_run_and_audit(client, env_setup):
     _write_plan(env_setup["project_root"], "PLAN-100")
 
@@ -130,6 +131,7 @@ def test_push_trigger_success_records_run_and_audit(client, env_setup):
     assert payload["trigger_source"] == "helix-http-push"
 
 
+## ST-IF-01
 def test_pr_trigger_success_records_pr_actor(client, env_setup):
     _write_plan(env_setup["project_root"], "PLAN-101")
 

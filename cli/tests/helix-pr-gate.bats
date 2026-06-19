@@ -98,6 +98,7 @@ EOF
   [[ "$output" == *"--auto-merge requires --gate"* ]]
 }
 
+## ST-IF-03
 @test "test_pr_gate_blocks_on_test_fail" {
   write_push_gate_module 1
 

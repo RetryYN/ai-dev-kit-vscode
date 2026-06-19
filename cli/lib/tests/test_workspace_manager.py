@@ -345,6 +345,7 @@ def test_preflight_detects_main_dirty(tmp_path: Path) -> None:
     assert issues["main_dirty"]["severity"] == "warn"
 
 
+## ST-IF-03
 def test_preflight_detects_orphan_worktree(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
     _seed_helix(repo)

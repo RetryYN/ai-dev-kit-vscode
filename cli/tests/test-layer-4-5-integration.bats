@@ -78,6 +78,7 @@ EOF
   chmod +x "$bin_dir/helix"
 }
 
+## ST-IF-02
 @test "Layer 4 SessionStart cleared は bundle を注入し secret を redact する" {
   local transcript="$TMP_ROOT/transcript.jsonl"
   cat >"$transcript" <<'EOF'

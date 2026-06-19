@@ -43,6 +43,8 @@ PY
 # IT-MOD-01
 # IT-IF-01
 # IT-IP-01
+# ST-SYS-01
+# ST-IF-01
 @test "documented compatibility commands are routed" {
   export HELIX_SUPPRESS_LEGACY_WARN=1
 

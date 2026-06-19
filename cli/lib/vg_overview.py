@@ -23,6 +23,7 @@ from functional_registry_checks import check_functional_registry
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
 from g8_subcheck import collect_g8_subcheck
+from g9_subcheck import collect_g9_subcheck
 from plan_dependency_gate import (
     collect_plan_dependency_baseline_required_summary,
     collect_plan_dependency_gate_summary,
@@ -34,9 +35,8 @@ from trace_symmetry import collect_trace_symmetry
 
 PAIR_NAMES = ("L6-L7", "L5-L8", "L4-L9", "L3-L12", "L1-L14")
 L2_L10_WAIVER_PATH = Path("docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md")
-SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {"cli/lib/g8_subcheck.py"}
+SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {"cli/lib/g8_subcheck.py", "cli/lib/g9_subcheck.py"}
 DEFERRED_PAIR_REASONS = {
-    "L4-L9": "execution_gate_not_implemented; semantic_gate_required",
     "L3-L12": "execution_gate_not_implemented",
     "L1-L14": "execution_gate_not_implemented",
 }
@@ -284,6 +284,7 @@ def collect_vg_overview(
     trace = collect_trace_symmetry(root)
     g7 = collect_g7_subcheck(root, execute_tests=execute_g7_tests)
     g8 = collect_g8_subcheck(root, execute_tests=execute_g8_tests)
+    g9 = collect_g9_subcheck(root, execute_g7_tests=execute_g7_tests)
     requirement_drift = _requirement_drift_required_clean(root)
 
     source_scan_findings = [
@@ -318,6 +319,47 @@ def collect_vg_overview(
                     f"exec_pass={g8['exec_pass']['count']} "
                     f"missing={g8['missing']['count']} "
                     f"unanchored={g8['unanchored_but_exists']['count']}"
+                ),
+            }
+            continue
+        if pair_name == "L4-L9":
+            semantic_payload = pair.get("semantic_excluded_orphan", {"count": 0, "items": []})
+            semantic_items = semantic_payload["items"]
+            semantic_ids = {item["id"] for item in semantic_items}
+            inventory_ids = set(
+                g9["anchored"]["ids"] + g9["missing"]["ids"] + g9["unanchored_but_exists"]["ids"]
+            )
+            semantic_ok = (
+                pair["coverage_pct"] == 100.0
+                and semantic_payload["count"] == g9["st_total"]
+                and semantic_ids == inventory_ids
+                and all("semantic_gate" in item["reason"] for item in semantic_items)
+            )
+            g8_status = pair_status["L5-L8"]["status"]
+            l4_l9_gate_clean = (
+                _pair_clean(pair)
+                and pair["coverage_pct"] == 100.0
+                and semantic_ok
+                and g8_status == "applicable"
+                and g9["passed"] is True
+            )
+            pair_status[pair_name] = {
+                "status": "applicable" if l4_l9_gate_clean else "approved_deferred",
+                "clean": _pair_clean(pair),
+                "reason": (
+                    f"{trace_reason} "
+                    f"semantic={semantic_payload['count']}/{g9['st_total']} "
+                    f"g8_status={g8_status} "
+                    f"g9_implemented={str(g9['implemented']).lower()} "
+                    f"g9_passed={str(g9['passed']).lower()} "
+                    f"anchored={g9['anchored']['count']}/{g9['st_total']} "
+                    f"missing={g9['missing']['count']} "
+                    f"unanchored={g9['unanchored_but_exists']['count']} "
+                    f"gap={g9['gap_count']}"
+                ),
+                "deferred_reason": (
+                    "execution_gate_not_implemented; semantic_gate_required "
+                    f"{trace_reason}"
                 ),
             }
             continue
@@ -386,7 +428,7 @@ def collect_vg_overview(
     deferred_pairs = [
         {
             "pair": pair_name,
-            "reason": payload["reason"],
+            "reason": payload.get("deferred_reason", payload["reason"]),
             **DEFERRED_PAIR_EXECUTION_GATES.get(pair_name, {}),
         }
         for pair_name, payload in pair_status.items()
@@ -447,6 +489,7 @@ def collect_vg_overview(
             "missing": g8["missing"]["count"],
             "unanchored_but_exists": g8["unanchored_but_exists"]["count"],
         },
+        "g9_subcheck": g9,
     }
 
 

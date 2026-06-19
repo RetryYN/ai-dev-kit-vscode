@@ -11,6 +11,27 @@ if str(LIB_DIR) not in sys.path:
 import vg_overview
 from registry_checks import DetectorReport, Finding
 
+ST_IDS = [
+    "ST-SYS-01",
+    "ST-SYS-02",
+    "ST-SYS-03",
+    "ST-FR-01",
+    "ST-FR-02",
+    "ST-FR-03",
+    "ST-FR-04",
+    "ST-DATA-01",
+    "ST-DATA-02",
+    "ST-IF-01",
+    "ST-IF-02",
+    "ST-IF-03",
+    "ST-NFR-01",
+    "ST-NFR-02",
+    "ST-NFR-03",
+    "ST-IF-04",
+    "ST-NEG-01",
+    "ST-NEG-02",
+]
+
 
 def _report(kind: str | None = None) -> DetectorReport:
     findings = []
@@ -128,11 +149,35 @@ def _stub_clean_g8_subcheck(monkeypatch) -> None:
     )
 
 
+def _stub_clean_g9_subcheck(monkeypatch) -> None:
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g9_subcheck",
+        lambda *args, **kwargs: {
+            "implemented": True,
+            "passed": False,
+            "st_total": 18,
+            "gap_count": 13,
+            "anchored": {
+                "count": 5,
+                "ids": ["ST-IF-01", "ST-IF-02", "ST-IF-03", "ST-SYS-01", "ST-SYS-03"],
+            },
+            "exec_pass": {
+                "count": 5,
+                "ids": ["ST-IF-01", "ST-IF-02", "ST-IF-03", "ST-SYS-01", "ST-SYS-03"],
+            },
+            "missing": {"count": 13, "ids": [item for item in ST_IDS if item not in {"ST-IF-01", "ST-IF-02", "ST-IF-03", "ST-SYS-01", "ST-SYS-03"}]},
+            "unanchored_but_exists": {"count": 0, "ids": [], "candidates": {}},
+        },
+    )
+
+
 def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypatch, tmp_path: Path) -> None:
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_ratchet_gate_summaries(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -254,6 +299,11 @@ def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypat
     assert vg["pair_status"]["L5-L8"]["status"] == "applicable"
     assert vg["pair_status"]["L5-L8"]["clean"] is True
     assert "anchored=21/21" in vg["pair_status"]["L5-L8"]["reason"]
+    assert vg["pair_status"]["L4-L9"]["status"] == "approved_deferred"
+    assert vg["pair_status"]["L4-L9"]["clean"] is True
+    assert "g9_implemented=true" in vg["pair_status"]["L4-L9"]["reason"]
+    assert "anchored=5/18" in vg["pair_status"]["L4-L9"]["reason"]
+    assert "gap=13" in vg["pair_status"]["L4-L9"]["reason"]
     assert vg["pair_status"]["L2-L10"]["status"] == "not_applicable"
     assert "ui_absent waiver=" in vg["pair_status"]["L2-L10"]["reason"]
     assert vg["pair_status"]["L2-L10"]["waiver"]["owner"] == "TL"
@@ -269,6 +319,7 @@ def test_collect_vg_overview_strict_full_flow_fails_approved_deferred_pairs(
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_ratchet_gate_summaries(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -391,6 +442,7 @@ def test_collect_vg_overview_fails_required_clean_when_requirement_drift_is_dirt
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_ratchet_gate_summaries(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -468,6 +520,7 @@ def test_collect_vg_overview_keeps_overall_clean_when_ddd_bc_checks_are_clean(
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_ratchet_gate_summaries(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -531,6 +584,7 @@ def test_collect_vg_overview_treats_unavailable_ratchet_detectors_as_skipped_cle
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -631,6 +685,7 @@ def test_collect_vg_overview_uses_full_required_coding_rule_lint_summary(
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -737,6 +792,7 @@ def test_collect_vg_overview_uses_baseline_required_dependency_summaries(
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -857,6 +913,7 @@ def test_collect_vg_overview_keeps_l5_l8_deferred_when_g8_execution_is_incomplet
     _write_l2_waiver(tmp_path)
     _stub_clean_ddd_bc_checks(monkeypatch)
     _stub_clean_ratchet_gate_summaries(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
     monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
     monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
@@ -1002,13 +1059,138 @@ def test_collect_vg_overview_reuses_g7_execute_flag_for_g8_when_not_overridden(
             "clean": True,
         }
 
+    def _g9(*args, **kwargs):
+        seen["g9"] = kwargs.get("execute_g7_tests")
+        return {
+            "implemented": True,
+            "passed": False,
+            "st_total": 18,
+            "gap_count": 13,
+            "anchored": {
+                "count": 5,
+                "ids": ["ST-IF-01", "ST-IF-02", "ST-IF-03", "ST-SYS-01", "ST-SYS-03"],
+            },
+            "exec_pass": {
+                "count": 5,
+                "ids": ["ST-IF-01", "ST-IF-02", "ST-IF-03", "ST-SYS-01", "ST-SYS-03"],
+            },
+            "missing": {
+                "count": 13,
+                "ids": [
+                    "ST-DATA-01",
+                    "ST-DATA-02",
+                    "ST-FR-01",
+                    "ST-FR-02",
+                    "ST-FR-03",
+                    "ST-FR-04",
+                    "ST-IF-04",
+                    "ST-NEG-01",
+                    "ST-NEG-02",
+                    "ST-NFR-01",
+                    "ST-NFR-02",
+                    "ST-NFR-03",
+                    "ST-SYS-02",
+                ],
+            },
+            "unanchored_but_exists": {"count": 0, "ids": [], "candidates": {}},
+        }
+
     monkeypatch.setattr(vg_overview, "collect_g7_subcheck", _g7)
     monkeypatch.setattr(vg_overview, "collect_g8_subcheck", _g8)
+    monkeypatch.setattr(vg_overview, "collect_g9_subcheck", _g9)
 
     report = vg_overview.collect_vg_overview(tmp_path, strict_full_flow=True, execute_g7_tests=False)
 
-    assert seen == {"g7": False, "g8": False}
+    assert seen == {"g7": False, "g8": False, "g9": False}
     assert report["vg_overview"]["pair_status"]["L5-L8"]["status"] == "applicable"
+
+
+def test_collect_vg_overview_marks_l4_l9_applicable_when_g9_closes(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _write_l2_waiver(tmp_path)
+    _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
+    _stub_clean_g8_subcheck(monkeypatch)
+    monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_requirement_drift",
+        lambda *args, **kwargs: {
+            "focus": "L6",
+            "clean": True,
+            "blocking_clean": True,
+            "findings": {"waived_with_reason": []},
+            "summary": {
+                "requirements": 1,
+                "design_links": 1,
+                "blocking_findings": 0,
+                "advisory_findings": 0,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_trace_symmetry",
+        lambda *args, **kwargs: {
+            "pairs": {
+                name: {
+                    "coverage_pct": 100.0,
+                    "uncovered_req": {"count": 0},
+                    "orphan_test": {"count": 0},
+                    "duplicate_id": {"count": 0},
+                    "missing_pair_frontmatter": {"count": 0},
+                    "missing_pair": {"count": 0},
+                    "wrong_layer_pair": {"count": 0},
+                    "semantic_excluded_orphan": (
+                        {
+                            "count": 18,
+                            "items": [
+                                {"id": st_id, "reason": "semantic_gate ok"}
+                                for st_id in ST_IDS
+                            ],
+                        }
+                        if name == "L4-L9"
+                        else {"count": 0, "items": []}
+                    ),
+                }
+                for name in vg_overview.PAIR_NAMES
+            }
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g7_subcheck",
+        lambda *args, **kwargs: {
+            "ut_total": 88,
+            "anchored": {"count": 88},
+            "exec_pass": {"count": 88},
+            "missing": {"count": 0},
+            "unanchored_but_exists": {"count": 0},
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g9_subcheck",
+        lambda *args, **kwargs: {
+            "implemented": True,
+            "passed": True,
+            "st_total": 18,
+            "gap_count": 0,
+            "anchored": {"count": 18, "ids": list(ST_IDS)},
+            "exec_pass": {"count": 18, "ids": list(ST_IDS)},
+            "missing": {"count": 0, "ids": []},
+            "unanchored_but_exists": {"count": 0, "ids": [], "candidates": {}},
+        },
+    )
+
+    report = vg_overview.collect_vg_overview(tmp_path)
+
+    assert report["vg_overview"]["pair_status"]["L4-L9"]["status"] == "applicable"
+    assert "g9_passed=true" in report["vg_overview"]["pair_status"]["L4-L9"]["reason"]
 
 
 def test_live_strict_deferred_pairs_sorts_gate_ids_and_skips_g7_exec(monkeypatch, tmp_path: Path) -> None:

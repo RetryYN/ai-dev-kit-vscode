@@ -62,9 +62,9 @@ summary:
   current_scope_items_pass_l1_l6: 9
   items_requiring_later_phase_before_full_completion: 8
   feature_tickets_available: 11
-  repository_add_feature_files_discovered: 26
+  repository_add_feature_files_discovered: 27
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 15
+  out_of_current_objective_add_feature_files: 16
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   right_arm_execution_gates_deferred: 3
@@ -658,10 +658,10 @@ handover_boundary_contract:
   next_action_heading_required: "## Next Action (Codex 向け)"
   required_current_user_boundary_contains:
     - implement
-    - DF-P2-G8-ANCHOR-WORDBOUNDARY
-    - g8_subcheck
-    - _existing_anchor_paths
-    - word-boundary
+    - g9_subcheck
+    - G9
+    - L4-L9
+    - system-test execution gate
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: false
   latest_user_boundary_forbidden_handover_terms: []
@@ -885,9 +885,9 @@ repository_add_feature_inventory_contract:
   source_audit_key: deferred_feature_coverage
   source_contract: repository_add_feature_inventory
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 26
+  all_repository_add_feature_files_checked: 27
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 15
+  excluded_from_current_objective_deferred_count: 16
   historical_completed_feature_count: 4
   parked_feature_ticket_outside_current_objective_count: 0
   exclusion_is_completion_evidence_for_current_objective: false

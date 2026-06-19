@@ -161,6 +161,8 @@ run_runtime_case() {
   [[ "$output" == *"## 出力フォーマット (helix-codex 自動付加、上書き禁止)"* ]]
 }
 
+## ST-SYS-03
+## ST-IF-03
 @test "marker 付き summary block のみを parent stdout に出す" {
   run_runtime_case "summary marker runtime" \
     HELIX_TEST_STDOUT_1=$'progress line\n---SUMMARY_START---\ndecision: passed\nfiles:\n- cli/helix-codex\ntests: bats\nintermediate_errors: none\nremaining: none\n---SUMMARY_END---\n' \

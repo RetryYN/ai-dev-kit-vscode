@@ -205,6 +205,20 @@ def test_collect_vg_overview_uses_full_required_fr_uses_summary(monkeypatch, tmp
             "unanchored_but_exists": {"count": 0, "ids": []},
         },
     )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g9_subcheck",
+        lambda *args, **kwargs: {
+            "implemented": True,
+            "passed": False,
+            "st_total": 18,
+            "anchored": {"count": 5, "ids": []},
+            "exec_pass": {"count": 5, "ids": []},
+            "missing": {"count": 13, "ids": []},
+            "unanchored_but_exists": {"count": 0, "ids": []},
+            "gap_count": 13,
+        },
+    )
     monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _clean_report())
     monkeypatch.setattr(
         vg_overview,

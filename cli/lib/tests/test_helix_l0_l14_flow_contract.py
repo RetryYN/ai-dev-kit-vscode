@@ -1190,10 +1190,17 @@ def test_right_arm_execution_gate_adoption_manifest_is_machine_readable() -> Non
         assert gate["handover_scope_sufficient"] is False
         assert gate["handover_required_expansion"] == expected_handover_expansion[gate_id]
         assert gate["allowed_implementation_files"] == expected_allowed_files[gate_id]
-        assert gate["current_state"] == "plan_materialized"
-        assert gate["implemented"] is False
+        expected_state = "gate_implemented" if gate_id == "G9" else "plan_materialized"
+        expected_implemented = gate_id == "G9"
+        expected_reason = (
+            "g9_implemented=true g9_passed=false anchored=5/18 missing=13"
+            if gate_id == "G9"
+            else "execution_gate_not_implemented"
+        )
+        assert gate["current_state"] == expected_state
+        assert gate["implemented"] is expected_implemented
         assert gate["passed"] is False
-        assert gate["deferred_reason"] == "execution_gate_not_implemented"
+        assert gate["deferred_reason"] == expected_reason
         assert "execution_gate_not_implemented" in gate["must_disappear"]
         assert gate["rollback_state"] == "approved_deferred"
         assert gate["evidence_required"]
@@ -1240,10 +1247,15 @@ def test_right_arm_adoption_manifest_matches_live_strict_deferred_pairs() -> Non
         assert manifest_gate["pair"] == live_gate["pair"]
         assert manifest_gate["source_layer"] == live_gate["source_layer"]
         assert manifest_gate["target_layer"] == live_gate["target_layer"]
-        assert manifest_gate["deferred_reason"] in live_gate["reason"]
-        assert manifest_gate["implemented"] is False
+        if gate_id == "G9":
+            assert manifest_gate["deferred_reason"] in strict_vg["pair_status"]["L4-L9"]["reason"]
+        else:
+            assert manifest_gate["deferred_reason"] in live_gate["reason"]
+        assert manifest_gate["implemented"] is (gate_id == "G9")
         assert manifest_gate["passed"] is False
-        assert manifest_gate["current_state"] == "plan_materialized"
+        assert manifest_gate["current_state"] == (
+            "gate_implemented" if gate_id == "G9" else "plan_materialized"
+        )
         assert live_gate["next_action"].startswith(f"implement {gate_id} ")
 
 
@@ -1919,9 +1931,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 26,
+        "repository_add_feature_files_discovered": 27,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 15,
+        "out_of_current_objective_add_feature_files": 16,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -2172,9 +2184,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 26,
+        "repository_add_feature_files_discovered": 27,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 15,
+        "out_of_current_objective_add_feature_files": 16,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 3,
@@ -2260,9 +2272,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "l1_l6_pair_layers_ratified": 6,
         "deferred_feature_tickets_indexed": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 26,
+        "deferred_repository_add_feature_files_discovered": 27,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 15,
+        "deferred_out_of_current_objective_add_feature_files": 16,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_design_obligation_rows_checked": 11,
@@ -2308,9 +2320,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 26,
+            "full_objective_repository_add_feature_files_discovered": 27,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 15,
+            "full_objective_out_of_current_objective_add_feature_files": 16,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 3,
@@ -2415,8 +2427,8 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
     )
     assert evidence["reference_integrity"]["expected"] == {
         "audit_files_checked": 25,
-        "path_like_refs_checked": 1385,
-        "direct_file_refs_checked": 1376,
+        "path_like_refs_checked": 1386,
+        "direct_file_refs_checked": 1377,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -4334,9 +4346,9 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
         "feature_tickets_draft": 11,
         "feature_tickets_with_approval_boundary": 11,
         "feature_tickets_with_unlock_conditions": 11,
-        "repository_add_feature_files_discovered": 26,
+        "repository_add_feature_files_discovered": 27,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 15,
+        "out_of_current_objective_add_feature_files": 16,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "full_flow_later_phase_approval_boundary": True,
@@ -7474,8 +7486,8 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     }
     assert payload["summary"] == {
         "audit_files_checked": 25,
-                "path_like_refs_checked": 1385,
-                "direct_file_refs_checked": 1376,
+                "path_like_refs_checked": 1386,
+                "direct_file_refs_checked": 1377,
         "glob_patterns_checked": 9,
         "missing_direct_file_refs": 0,
         "empty_glob_patterns": 0,
@@ -7491,7 +7503,7 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
             "docs/v2/L5*/**/*.md": 6,
             "docs/v2/L6*/**/*.md": 27,
             "docs/v2/audit/2026-06-12-*.yaml": 21,
-                    "docs/plans/add-feature/add-feature-*.md": 26,
+                    "docs/plans/add-feature/add-feature-*.md": 27,
         }
     assert payload["reference_policy"]["direct_paths_must_exist"] is True
     assert payload["reference_policy"]["glob_patterns_must_expand_non_empty"] is True
@@ -7710,9 +7722,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "current_scope_items_pass_l1_l6": 9,
         "items_requiring_later_phase_before_full_completion": 8,
         "feature_tickets_available": 11,
-        "repository_add_feature_files_discovered": 26,
+        "repository_add_feature_files_discovered": 27,
         "current_objective_deferred_feature_tickets": 11,
-        "out_of_current_objective_add_feature_files": 15,
+        "out_of_current_objective_add_feature_files": 16,
         "out_of_current_objective_completed_add_features": 4,
         "out_of_current_objective_parked_feature_tickets": 0,
         "right_arm_execution_gates_deferred": 3,
@@ -7744,9 +7756,9 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "source_audit_key": "deferred_feature_coverage",
         "source_contract": "repository_add_feature_inventory",
         "current_scope_action": "classify_all_add_feature_files_without_expanding_l7_scope",
-        "all_repository_add_feature_files_checked": 26,
+        "all_repository_add_feature_files_checked": 27,
         "current_objective_deferred_feature_tickets_checked": 11,
-        "excluded_from_current_objective_deferred_count": 15,
+        "excluded_from_current_objective_deferred_count": 16,
         "historical_completed_feature_count": 4,
         "parked_feature_ticket_outside_current_objective_count": 0,
         "exclusion_is_completion_evidence_for_current_objective": False,
@@ -7820,6 +7832,21 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     assert "G8 / L5-L8" in c4a_entry["reason"]
     assert "integration" in c4a_entry["reason"]
     assert "deferred" in c4a_entry["reason"]
+    c4b_entry = excluded_by_id["c4b_g9_system_execution_gate"]
+    assert c4b_entry["id"] == "c4b_g9_system_execution_gate"
+    assert c4b_entry["path"] == (
+        "docs/plans/add-feature/add-feature-2026-06-20-g9-system-execution-gate.md"
+    )
+    assert c4b_entry["observed_status"] == "draft"
+    assert c4b_entry["classification"] == (
+        "current_scope_authorized_c4b_g9_system_execution_gate"
+    )
+    assert "C-4b" in c4b_entry["reason"]
+    assert "G9 / L4-L9" in c4b_entry["reason"]
+    assert "g9_subcheck" in c4b_entry["reason"]
+    assert "anchored 5/18" in c4b_entry["reason"]
+    assert "approved_deferred" in c4b_entry["reason"]
+    assert "G12/G14 deferred" in c4b_entry["reason"]
     push_gate_entry = excluded_by_id["push_gate_test_tiering"]
     assert push_gate_entry["id"] == "push_gate_test_tiering"
     assert push_gate_entry["path"] == (
@@ -8346,10 +8373,10 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
     }
     assert handover_boundary_contract["required_current_user_boundary_contains"] == [
         "implement",
-        "DF-P2-G8-ANCHOR-WORDBOUNDARY",
-        "g8_subcheck",
-        "_existing_anchor_paths",
-        "word-boundary",
+        "g9_subcheck",
+        "G9",
+        "L4-L9",
+        "system-test execution gate",
     ]
     handover_path = REPO_ROOT / handover_boundary_contract["handover_current_markdown"]
     handover_text = handover_path.read_text(encoding="utf-8")
@@ -8383,12 +8410,14 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "g8_subcheck" in handover_state["task"]["title"]
-    assert "word-boundary" in handover_state["task"]["title"]
+    assert "g9_subcheck" in handover_state["task"]["title"]
+    assert "G9" in handover_state["task"]["title"]
     assert handover_state["files"]["pending"] == [
-        "cli/lib/g8_subcheck.py",
-        "cli/lib/tests/test_g8_subcheck.py",
-        "docs/v2/audit/2026-06-12-full-objective-gap-status.yaml",
+        "cli/lib/g9_subcheck.py",
+        "cli/lib/tests/test_g9_subcheck.py",
+        "cli/lib/vg_overview.py",
+        "cli/lib/tests/test_vg_overview.py",
+        "docs/v2/L7-test-design/right-arm-execution-gates-adoption.yaml",
         "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
         "cli/tests/test-helix-l0-l14-flow-contract.bats",
     ]
@@ -9092,7 +9121,7 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "double_check_qualitative_checks_pass": 36,
         "double_check_blocking_findings_current_scope": 0,
         "evidence_boundary_scan_evidence_like_keys_checked": 11,
-        "evidence_boundary_scan_boundary_context_refs": 285,
+        "evidence_boundary_scan_boundary_context_refs": 286,
         "evidence_boundary_scan_negative_boundary_check_refs": 1,
         "evidence_boundary_scan_add_feature_or_l7_refs_in_proof_or_evidence": 0,
         "evidence_boundary_scan_current_scope_proof_allows_add_feature": False,
@@ -9190,8 +9219,8 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "web_evidence_latest_core_rechecked_sources_checked": 5,
             "web_evidence_all_sources_not_adopted_current_scope": True,
             "web_evidence_l7_or_adoption_evidence_allowed": False,
-            "reference_integrity_path_like_refs_checked": 1385,
-            "reference_integrity_direct_file_refs_checked": 1376,
+            "reference_integrity_path_like_refs_checked": 1386,
+            "reference_integrity_direct_file_refs_checked": 1377,
             "reference_integrity_audit_files_checked": 25,
             "reference_integrity_glob_patterns_checked": 9,
             "reference_integrity_missing_direct_file_refs": 0,
@@ -9332,9 +9361,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
         "deferred_feature_tickets_draft": 11,
         "deferred_feature_tickets_with_approval_boundary": 11,
         "deferred_feature_unlock_conditions_checked": 11,
-        "deferred_repository_add_feature_files_discovered": 26,
+        "deferred_repository_add_feature_files_discovered": 27,
         "deferred_current_objective_deferred_feature_tickets": 11,
-        "deferred_out_of_current_objective_add_feature_files": 15,
+        "deferred_out_of_current_objective_add_feature_files": 16,
         "deferred_out_of_current_objective_completed_add_features": 4,
         "deferred_out_of_current_objective_parked_feature_tickets": 0,
         "deferred_full_flow_later_phase_approval_boundary": True,
@@ -9375,9 +9404,9 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "full_objective_current_scope_items_pass_l1_l6": 9,
             "full_objective_items_requiring_later_phase_before_full_completion": 8,
             "full_objective_feature_tickets_available": 11,
-            "full_objective_repository_add_feature_files_discovered": 26,
+            "full_objective_repository_add_feature_files_discovered": 27,
             "full_objective_current_objective_deferred_feature_tickets": 11,
-            "full_objective_out_of_current_objective_add_feature_files": 15,
+            "full_objective_out_of_current_objective_add_feature_files": 16,
             "full_objective_out_of_current_objective_completed_add_features": 4,
             "full_objective_out_of_current_objective_parked_feature_tickets": 0,
             "full_objective_right_arm_execution_gates_deferred": 3,

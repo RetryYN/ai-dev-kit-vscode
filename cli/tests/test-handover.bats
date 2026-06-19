@@ -280,6 +280,7 @@ YAML
   [ "$status" -eq 2 ]
 }
 
+## ST-IF-02
 @test "21 stale branch mismatch" {
   handover_dump
   git checkout -q -b other

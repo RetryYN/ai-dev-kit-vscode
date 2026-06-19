@@ -143,6 +143,7 @@ write_transcript() {
 }
 
 # IT-IP-02
+# ST-IF-02
 @test "UT-WSC-11: ADR 新規作成は transcript に WebSearch 証跡があれば pass する" {
   local project_root="$TMP_ROOT/project"
   mkdir -p "$project_root/docs/adr"

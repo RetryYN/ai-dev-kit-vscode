@@ -107,10 +107,10 @@ gates:
       - cli/lib/tests/test_vg_overview.py
       - cli/lib/tests/test_trace_symmetry.py
       - docs/v2/L9-test-design/
-    current_state: plan_materialized
-    implemented: false
+    current_state: gate_implemented
+    implemented: true
     passed: false
-    deferred_reason: execution_gate_not_implemented
+    deferred_reason: g9_implemented=true g9_passed=false anchored=5/18 missing=13
     semantic_evidence_required: semantic_excluded_orphan=18
     must_disappear: L4-L9 execution_gate_not_implemented
     evidence_required:
