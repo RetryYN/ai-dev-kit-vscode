@@ -44,6 +44,7 @@ handover_dump() {
     --tests "pytest tests/test_a.py -q"
 }
 
+# OT-20
 @test "1 dump creates CURRENT.json and CURRENT.md" {
   run handover_dump
   [ "$status" -eq 0 ]

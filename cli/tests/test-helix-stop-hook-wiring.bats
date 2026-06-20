@@ -67,6 +67,7 @@ PY
   assert_status_zero
 }
 
+# OT-20
 @test "helix-stop-hook updates CURRENT.json git head and revision" {
   init_fixture_repo
   dump_fixture_handover

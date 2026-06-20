@@ -136,9 +136,9 @@ quantitative_checks:
       objective_clauses_checked: 9
       deferred_entry_points_checked: 11
       feature_tickets_draft: 11
-      repository_add_feature_files_discovered: 28
+      repository_add_feature_files_discovered: 29
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 17
+      out_of_current_objective_add_feature_files: 18
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
       full_flow_later_phase_approval_boundary: true
@@ -283,9 +283,9 @@ quantitative_checks:
       current_scope_items_pass_l1_l6: 9
       items_requiring_later_phase_before_full_completion: 8
       feature_tickets_available: 11
-      repository_add_feature_files_discovered: 28
+      repository_add_feature_files_discovered: 29
       current_objective_deferred_feature_tickets: 11
-      out_of_current_objective_add_feature_files: 17
+      out_of_current_objective_add_feature_files: 18
       out_of_current_objective_completed_add_features: 4
       out_of_current_objective_parked_feature_tickets: 0
       right_arm_execution_gates_deferred: 3
@@ -329,8 +329,8 @@ quantitative_checks:
     metric: audit_reference_integrity
     expected:
       audit_files_checked: 25
-      path_like_refs_checked: 1387
-      direct_file_refs_checked: 1378
+      path_like_refs_checked: 1388
+      direct_file_refs_checked: 1379
       glob_patterns_checked: 9
       missing_direct_file_refs: 0
       empty_glob_patterns: 0

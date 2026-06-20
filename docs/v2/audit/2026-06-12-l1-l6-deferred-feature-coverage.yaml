@@ -60,9 +60,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 28
+  repository_add_feature_files_discovered: 29
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 17
+  out_of_current_objective_add_feature_files: 18
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -73,9 +73,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 28
+  all_repository_add_feature_files_checked: 29
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 17
+  excluded_from_current_objective_deferred_count: 18
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -251,6 +251,18 @@ repository_add_feature_inventory:
         (anchored 5/57) surfaced and L3-L12 stays approved_deferred (no false
         closure). Keeps G14 deferred, strict-full-flow default-off, L3
         requirements / L12 §2 AT set / DB schema unchanged.
+    - id: c4d_g14_operational_learning_gate
+      path: docs/plans/add-feature/add-feature-2026-06-20-g14-operational-learning-gate.md
+      observed_status: draft
+      classification: current_scope_authorized_c4d_g14_operational_learning_gate
+      reason: >
+        User-approved current-scope right-arm closure step (C-4d, option A
+        honest mechanism, 右腕4 gate 最終): G14 / L1-L14
+        operational-learning execution gate. Builds g14_subcheck and anchors
+        only genuinely-executing existing tests; gap surfaced and L1-L14 stays
+        approved_deferred (no false closure). Feedback-loop closure stays a
+        separate deferred concern. strict-full-flow default-off, L1
+        requirements / L14 OT set / DB schema unchanged.
     - id: push_gate_test_tiering
       path: docs/plans/add-feature/add-feature-2026-06-18-push-gate-test-tiering.md
       observed_status: draft

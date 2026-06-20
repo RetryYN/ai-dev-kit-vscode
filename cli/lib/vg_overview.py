@@ -21,6 +21,7 @@ from design_id_existence_checks import check_design_id_existence
 from fr_uses_checks import collect_fr_uses_full_required_summary, collect_fr_uses_gate_summary
 from functional_registry_checks import check_functional_registry
 from g12_subcheck import collect_g12_subcheck
+from g14_subcheck import collect_g14_subcheck
 from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
 from g8_subcheck import collect_g8_subcheck
@@ -40,10 +41,9 @@ SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {
     "cli/lib/g8_subcheck.py",
     "cli/lib/g9_subcheck.py",
     "cli/lib/g12_subcheck.py",
+    "cli/lib/g14_subcheck.py",
 }
-DEFERRED_PAIR_REASONS = {
-    "L1-L14": "execution_gate_not_implemented",
-}
+DEFERRED_PAIR_REASONS: dict[str, str] = {}
 STRICT_FULL_FLOW_VERIFY_COMMAND = (
     "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json"
 )
@@ -290,6 +290,7 @@ def collect_vg_overview(
     g8 = collect_g8_subcheck(root, execute_tests=execute_g8_tests)
     g9 = collect_g9_subcheck(root, execute_g7_tests=execute_g7_tests)
     g12 = collect_g12_subcheck(root, execute_g7_tests=execute_g7_tests)
+    g14 = collect_g14_subcheck(root, execute_g7_tests=execute_g7_tests)
     requirement_drift = _requirement_drift_required_clean(root)
 
     source_scan_findings = [
@@ -385,6 +386,27 @@ def collect_vg_overview(
                     f"missing={g12['missing']['count']} "
                     f"unanchored={g12['unanchored_but_exists']['count']} "
                     f"gap={g12['gap_count']}"
+                ),
+                "deferred_reason": f"execution_gate_not_implemented {trace_reason}",
+            }
+            continue
+        if pair_name == "L1-L14":
+            l1_l14_gate_clean = (
+                _pair_clean(pair)
+                and pair["coverage_pct"] == 100.0
+                and g14["passed"] is True
+            )
+            pair_status[pair_name] = {
+                "status": "applicable" if l1_l14_gate_clean else "approved_deferred",
+                "clean": _pair_clean(pair),
+                "reason": (
+                    f"{trace_reason} "
+                    f"g14_implemented={str(g14['implemented']).lower()} "
+                    f"g14_passed={str(g14['passed']).lower()} "
+                    f"anchored={g14['anchored']['count']}/{g14['ot_total']} "
+                    f"missing={g14['missing']['count']} "
+                    f"unanchored={g14['unanchored_but_exists']['count']} "
+                    f"gap={g14['gap_count']}"
                 ),
                 "deferred_reason": f"execution_gate_not_implemented {trace_reason}",
             }
@@ -517,6 +539,7 @@ def collect_vg_overview(
         },
         "g9_subcheck": g9,
         "g12_subcheck": g12,
+        "g14_subcheck": g14,
     }
 
 

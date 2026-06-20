@@ -171,10 +171,10 @@ gates:
       - cli/lib/tests/test_harness_monitor_unit.py
       - cli/tests/test-helix-harness-feedback-loop.bats
       - docs/v2/L14-test-design/
-    current_state: plan_materialized
-    implemented: false
+    current_state: gate_implemented
+    implemented: true
     passed: false
-    deferred_reason: execution_gate_not_implemented
+    deferred_reason: g14_implemented=true g14_passed=false anchored=1/20 missing=19
     must_disappear: L1-L14 execution_gate_not_implemented
     evidence_required:
       - operational test execution evidence
