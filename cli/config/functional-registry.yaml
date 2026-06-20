@@ -3100,6 +3100,7 @@ entries:
     design_ids:
       - "DSN-LIB-MODULE"
     code_paths:
+      - "cli/lib/team_definition.py"
       - "cli/lib/team_runner.py"
     doc_paths: []
   - id: "FR-LIB-127"

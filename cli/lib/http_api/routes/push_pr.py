@@ -20,98 +20,6 @@ from inspect import signature
 from pathlib import Path
 from typing import Any
 
-try:
-    from flask import Blueprint, request
-    _HAS_FLASK = True
-except ModuleNotFoundError:  # pragma: no cover - exercised in the current sandbox
-    _HAS_FLASK = False
-    from ..server import request
-
-    class Blueprint:  # type: ignore[override]
-        def __init__(self, name: str, import_name: str) -> None:
-            self.name = name
-            self.import_name = import_name
-            self._routes: dict[tuple[str, str], Any] = {}
-
-        def route(self, path: str, methods=None):
-            method_list = methods or ["GET"]
-
-            def decorator(func):
-                for method in method_list:
-                    self._routes[(path, method.upper())] = func
-                return func
-
-            return decorator
-
-    from .. import server as server_module
-
-    def _extract_route_args(pattern: str, path: str) -> list[str] | None:
-        pattern_parts = pattern.strip("/").split("/")
-        path_parts = path.strip("/").split("/")
-        if len(pattern_parts) != len(path_parts):
-            return None
-        route_args: list[str] = []
-        for pattern_part, path_part in zip(pattern_parts, path_parts):
-            if pattern_part.startswith("<") and pattern_part.endswith(">"):
-                if not path_part:
-                    return None
-                route_args.append(path_part)
-                continue
-            if pattern_part != path_part:
-                return None
-        return route_args
-
-    if not getattr(server_module.Flask, "_helix_blueprint_routes_patched", False):
-        def _register_blueprint(self, blueprint):  # type: ignore[override]
-            self._routes.update(getattr(blueprint, "_routes", {}))
-            return None
-
-        server_module.Flask.register_blueprint = _register_blueprint
-        server_module.Flask._helix_blueprint_routes_patched = True
-
-    if not hasattr(server_module._CompatClient, "post"):
-        def _post(self, path: str, headers=None, environ_base=None, json=None, query_string=None):  # type: ignore[override]
-            request.path = path
-            request.method = "POST"
-            request.remote_addr = (environ_base or {}).get("REMOTE_ADDR", "127.0.0.1")
-            request.headers = dict(headers or {})
-            request.args = dict(query_string or {})
-            request._json_payload = json
-
-            def _get_json(silent: bool = True):
-                return getattr(request, "_json_payload", None)
-
-            request.get_json = _get_json  # type: ignore[attr-defined]
-
-            if self.app._before_request is not None:
-                gate_result = self.app._before_request()
-                if gate_result is not None:
-                    normalize = getattr(server_module, "_normalize_response", None)
-                    return normalize(gate_result) if normalize is not None else gate_result
-
-            route = self.app._routes.get((path, "POST"))
-            route_args: list[str] = []
-            if route is None:
-                for (route_path, method), candidate in self.app._routes.items():
-                    if method != "POST":
-                        continue
-                    matched_args = _extract_route_args(route_path, path)
-                    if matched_args is not None:
-                        route = candidate
-                        route_args = matched_args
-                        break
-            if route is None:
-                handler = self.app._errorhandlers.get(404)
-                result = handler(None) if handler is not None else ("not found", 404)
-                normalize = getattr(server_module, "_normalize_response", None)
-                return normalize(result) if normalize is not None else result
-
-            result = route(*route_args)
-            normalize = getattr(server_module, "_normalize_response", None)
-            return normalize(result) if normalize is not None else result
-
-        server_module._CompatClient.post = _post
-
 import helix_db
 import push_gate
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -120,6 +28,7 @@ if str(REPO_ROOT) not in sys.path:
 from cli.lib import compatibility_adapter
 compatibility_adapter.helix_db = helix_db
 
+from ..compat import Blueprint, request
 from ..envelope import error_response, success_response
 
 

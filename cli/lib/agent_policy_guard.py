@@ -11,6 +11,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from team_definition import parse_team_yaml
+
 
 ALLOWED_ROLES = {
     "tl",
@@ -152,12 +154,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.definition:
-        lib_dir = Path(__file__).resolve().parent
-        if str(lib_dir) not in sys.path:
-            sys.path.insert(0, str(lib_dir))
-        import team_runner  # pylint: disable=import-outside-toplevel
-
-        definition = team_runner._parse_team_yaml(Path(args.definition).read_text(encoding="utf-8"))
+        definition = parse_team_yaml(Path(args.definition).read_text(encoding="utf-8"))
         payload = check_team_definition(definition)
     elif args.role:
         payload = check_member(args.role, args.engine, args.task, args.model)

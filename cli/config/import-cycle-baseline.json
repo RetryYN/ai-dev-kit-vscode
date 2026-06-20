@@ -7,58 +7,10 @@
   "reports": [
     {
       "check_name": "check_import_cycle",
-      "findings": [
-        {
-          "cycle": [
-            "cli/lib/agent_policy_guard.py",
-            "cli/lib/team_runner.py",
-            "cli/lib/agent_policy_guard.py"
-          ],
-          "fingerprint": "16dd5a7f5c89df293b7b5c6ad1731019cffdd7851ec984690f12f3d758b11031",
-          "language": "python"
-        },
-        {
-          "cycle": [
-            "cli/lib/http_api/routes/audit.py",
-            "cli/lib/http_api/server.py",
-            "cli/lib/http_api/routes/audit.py"
-          ],
-          "fingerprint": "ab36272fc4b21163816069d0cadd14b3233ae4517a485906ea8482d9824ce5ab",
-          "language": "python"
-        },
-        {
-          "cycle": [
-            "cli/lib/http_api/routes/hooks.py",
-            "cli/lib/http_api/server.py",
-            "cli/lib/http_api/routes/hooks.py"
-          ],
-          "fingerprint": "13a3f45e839f1678cf529715f2182d17a93acfc4867d7b2b1e4e0c06b9d6e99b",
-          "language": "python"
-        },
-        {
-          "cycle": [
-            "cli/lib/http_api/routes/push_pr.py",
-            "cli/lib/http_api/server.py",
-            "cli/lib/http_api/routes/push_pr.py"
-          ],
-          "fingerprint": "e47f582805de0c4dcb6a6a35e596d1b274fb9e0c0276b6b9dd5f0a9f6049db55",
-          "language": "python"
-        },
-        {
-          "cycle": [
-            "cli/lib/http_api/routes/telemetry.py",
-            "cli/lib/http_api/server.py",
-            "cli/lib/http_api/routes/telemetry.py"
-          ],
-          "fingerprint": "f1164fb76473937bd439da9e521660eeecb4b435f7b6e085de9beaf73c507874",
-          "language": "python"
-        }
-      ],
+      "findings": [],
       "metrics": {
-        "cycle_count": 5,
-        "languages": [
-          "python"
-        ]
+        "cycle_count": 0,
+        "languages": []
       },
       "mode": "advisory"
     }

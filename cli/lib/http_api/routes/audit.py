@@ -23,37 +23,6 @@ from inspect import signature
 from pathlib import Path
 from typing import Any
 
-try:
-    from flask import Blueprint, request
-except ModuleNotFoundError:  # pragma: no cover - exercised in the current sandbox
-    from ..server import request
-
-    class Blueprint:  # type: ignore[override]
-        def __init__(self, name: str, import_name: str) -> None:
-            self.name = name
-            self.import_name = import_name
-            self._routes: dict[tuple[str, str], Any] = {}
-
-        def route(self, path: str, methods=None):
-            method_list = methods or ["GET"]
-
-            def decorator(func):
-                for method in method_list:
-                    self._routes[(path, method.upper())] = func
-                return func
-
-            return decorator
-
-    from .. import server as server_module
-
-    if not getattr(server_module.Flask, "_helix_blueprint_routes_patched", False):
-        def _register_blueprint(self, blueprint):  # type: ignore[override]
-            self._routes.update(getattr(blueprint, "_routes", {}))
-            return None
-
-        server_module.Flask.register_blueprint = _register_blueprint
-        server_module.Flask._helix_blueprint_routes_patched = True
-
 import sqlite3
 
 import helix_db
@@ -63,6 +32,7 @@ if str(REPO_ROOT) not in sys.path:
 from cli.lib import compatibility_adapter
 compatibility_adapter.helix_db = helix_db
 
+from ..compat import Blueprint, request
 from ..envelope import error_response, success_response
 
 bp = Blueprint("audit", __name__)
