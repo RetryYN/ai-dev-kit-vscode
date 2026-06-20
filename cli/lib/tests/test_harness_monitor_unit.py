@@ -6,6 +6,7 @@ DoD 検証: docs/v2/L4-test-design/PLAN-080-unit-test-design.md U-HM-EVENT-001�
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sqlite3
@@ -61,13 +62,20 @@ def _apply_sqlite_now(base_now: datetime, *args: object) -> str:
 
 def _patch_sqlite_now(monkeypatch: pytest.MonkeyPatch, base_now: datetime) -> None:
     original_connect = helix_db._connect
+    original_get_connection = helix_db.get_connection
 
     def _connect_with_fixed_now(db_path: str | Path):
         conn = original_connect(db_path)
         conn.create_function("datetime", -1, lambda *args: _apply_sqlite_now(base_now, *args))
         return conn
 
+    def _get_connection_with_fixed_now(db_path: str | Path | None = None, timeout: float = helix_db.DEFAULT_SQLITE_TIMEOUT_SEC):
+        conn = original_get_connection(db_path=db_path, timeout=timeout)
+        conn.create_function("datetime", -1, lambda *args: _apply_sqlite_now(base_now, *args))
+        return conn
+
     monkeypatch.setattr(helix_db, "_connect", _connect_with_fixed_now)
+    monkeypatch.setattr(helix_db, "get_connection", _get_connection_with_fixed_now)
 
 
 def _patch_write_connection(monkeypatch: pytest.MonkeyPatch, base_now: datetime) -> None:
@@ -334,15 +342,78 @@ def _fake_vg_overview_feedback() -> dict:
     }
 
 
+def _prepare_fresh_db(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    base_now: datetime,
+    db_name: str = "test_helix.db",
+) -> Path:
+    db_path = tmp_path / db_name
+    monkeypatch.setenv("HELIX_DB_PATH", str(db_path))
+    _seed_fresh_db(db_path)
+    _patch_sqlite_now(monkeypatch, base_now)
+    _patch_write_connection(monkeypatch, base_now)
+    return db_path
+
+
+def _build_feedback_loop_snapshot_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    base_now: datetime,
+    db_name: str,
+) -> dict:
+    with monkeypatch.context() as fixture_patch:
+        db_path = _prepare_fresh_db(tmp_path, fixture_patch, base_now=base_now, db_name=db_name)
+        fixture_patch.setattr(harness_monitor, "_collect_vg_overview_feedback", _fake_vg_overview_feedback)
+        _insert_automation_run(
+            db_path,
+            run_kind="push",
+            plan_id="PLAN-RUNNING",
+            started_at=_sqlite_text(base_now - timedelta(hours=3)),
+            status="running",
+            summary="long running push",
+        )
+        recent_within_window = _sqlite_text(base_now - timedelta(days=1))
+        _insert_hook_event(
+            db_path,
+            event_type="drift_check_db_schema_drift",
+            result="warn",
+            created_at=recent_within_window,
+        )
+        _insert_event(
+            db_path,
+            event_kind="push",
+            check_name="slot_count_warning",
+            severity="warning",
+            payload={"active": 7},
+            triggered_at=recent_within_window,
+        )
+        return harness_monitor.get_feedback_loop_snapshot(days=30)
+
+
+def _feedback_loop_snapshot_signature(snapshot: dict) -> dict:
+    return {
+        "counts": {
+            "automation_running": snapshot["counts"]["automation_running"],
+            "hook_warn_fail": snapshot["counts"]["hook_warn_fail"],
+            "harness_warning_critical": snapshot["counts"]["harness_warning_critical"],
+        },
+        "signals": [item["signal"] for item in snapshot["route_candidates"]],
+        "vg_overview": {
+            "available": snapshot["vg_overview"]["available"],
+            "enforced": snapshot["vg_overview"]["enforced"],
+            "deferred_count": snapshot["vg_overview"]["deferred_count"],
+            "not_applicable_count": snapshot["vg_overview"]["not_applicable_count"],
+        },
+    }
+
+
 @pytest.fixture
 def fresh_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """fresh SQLite を作成し、HELIX_DB_PATH を temp DB に固定する。"""
-    db_path = tmp_path / "test_helix.db"
-    monkeypatch.setenv("HELIX_DB_PATH", str(db_path))
-    _seed_fresh_db(db_path)
-    _patch_sqlite_now(monkeypatch, BASE_NOW)
-    _patch_write_connection(monkeypatch, BASE_NOW)
-    return db_path
+    return _prepare_fresh_db(tmp_path, monkeypatch, base_now=BASE_NOW)
 
 
 class TestRecordEvent:
@@ -603,41 +674,37 @@ class TestListRecentEvents:
 
 
 class TestFeedbackLoopSnapshot:
-    def test_feedback_loop_snapshot_routes_running_and_drift_inputs(
+    def test_feedback_loop_snapshot_is_invariant_to_base_now(
         self,
-        fresh_db: Path,
+        tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        monkeypatch.setattr(harness_monitor, "_collect_vg_overview_feedback", _fake_vg_overview_feedback)
-        _insert_automation_run(
-            fresh_db,
-            run_kind="push",
-            plan_id="PLAN-RUNNING",
-            started_at=_sqlite_text(BASE_NOW - timedelta(hours=3)),
-            status="running",
-            summary="long running push",
+        baseline = _build_feedback_loop_snapshot_fixture(
+            tmp_path,
+            monkeypatch,
+            base_now=BASE_NOW,
+            db_name="feedback-loop-base.db",
         )
-        # hook_warn_fail / harness_warning_critical counts use the production
-        # real-time window (datetime('now','-N days')). Insert these date-windowed
-        # events relative to real now so the assertions never rot once real time
-        # advances past BASE_NOW + window (DF-DATEROT-BASENOW; systemic fix deferred).
-        recent_within_window = _sqlite_text(datetime.now() - timedelta(days=1))
-        _insert_hook_event(
-            fresh_db,
-            event_type="drift_check_db_schema_drift",
-            result="warn",
-            created_at=recent_within_window,
-        )
-        _insert_event(
-            fresh_db,
-            event_kind="push",
-            check_name="slot_count_warning",
-            severity="warning",
-            payload={"active": 7},
-            triggered_at=recent_within_window,
+        shifted = _build_feedback_loop_snapshot_fixture(
+            tmp_path,
+            monkeypatch,
+            base_now=BASE_NOW + timedelta(days=400),
+            db_name="feedback-loop-shifted.db",
         )
 
-        snapshot = harness_monitor.get_feedback_loop_snapshot(days=30)
+        assert _feedback_loop_snapshot_signature(shifted) == _feedback_loop_snapshot_signature(baseline)
+
+    def test_feedback_loop_snapshot_routes_running_and_drift_inputs(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        snapshot = _build_feedback_loop_snapshot_fixture(
+            tmp_path,
+            monkeypatch,
+            base_now=BASE_NOW,
+            db_name="feedback-loop-default.db",
+        )
 
         assert snapshot["counts"]["automation_running"] == 1
         assert snapshot["counts"]["hook_warn_fail"] == 1
@@ -673,6 +740,23 @@ class TestFeedbackLoopSnapshot:
             "自動実行",
         ]
         assert any(item["candidate_type"] == "pr" for item in snapshot["pr_candidates"])
+
+    def test_feedback_loop_snapshot_rejects_wall_clock_calls_in_fixture(self) -> None:
+        source = Path(__file__).read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        violations: list[tuple[int, str]] = []
+        forbidden = {("datetime", "now"), ("datetime", "utcnow"), ("date", "today")}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            owner = node.func.value
+            if not isinstance(owner, ast.Name):
+                continue
+            pair = (owner.id, node.func.attr)
+            if pair in forbidden:
+                violations.append((node.lineno, ".".join(pair)))
+
+        assert violations == []
 
     def test_feedback_loop_snapshot_reports_missing_feedback_inputs(self, fresh_db: Path) -> None:
         snapshot = harness_monitor.get_feedback_loop_snapshot(days=7)
