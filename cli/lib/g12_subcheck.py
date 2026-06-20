@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 try:
+    from .anchor_quality import evaluate_anchor_specs
     from .g7_subcheck import execute_test_file
 except ImportError:  # pragma: no cover - direct script execution fallback
+    from anchor_quality import evaluate_anchor_specs
     from g7_subcheck import execute_test_file
 
 
@@ -152,11 +154,13 @@ def collect_g12_subcheck(
     missing_ids: list[str] = []
     unanchored_ids: list[str] = []
     unanchored_candidates: dict[str, list[str]] = {}
+    weak_anchor_items: dict[str, list[dict[str, Any]]] = {}
     execution_cache: dict[str, dict[str, Any]] = {}
 
     for at_id in sorted(inventory):
         specs = G12_ANCHOR_MAP.get(at_id, [])
-        mapped_paths = _existing_anchor_paths(root, specs)
+        evaluation = evaluate_anchor_specs(root, specs)
+        mapped_paths = evaluation["genuine_paths"]
         if mapped_paths:
             anchored_ids.append(at_id)
             file_results: list[dict[str, Any]] = []
@@ -171,10 +175,20 @@ def collect_g12_subcheck(
                 exec_pass_ids.append(at_id)
             continue
 
-        candidates = _candidate_anchor_paths(root, specs)
+        candidates = evaluation["candidate_paths"]
         if candidates:
             unanchored_ids.append(at_id)
             unanchored_candidates[at_id] = candidates
+            if evaluation["weak_details"]:
+                weak_anchor_items[at_id] = [
+                    {
+                        "spec": item["spec"],
+                        "path": item["path"],
+                        "needle": item["needle"],
+                        "reason": item["reason"],
+                    }
+                    for item in evaluation["weak_details"]
+                ]
         else:
             missing_ids.append(at_id)
 
@@ -200,6 +214,11 @@ def collect_g12_subcheck(
             "ids": unanchored_ids,
             "candidates": unanchored_candidates,
         },
+        "weak_anchors": {
+            "count": len(weak_anchor_items),
+            "ids": sorted(weak_anchor_items),
+            "items": weak_anchor_items,
+        },
         "missing": {"count": len(missing_ids), "ids": missing_ids},
         "test_results": execution_cache,
     }
@@ -217,12 +236,15 @@ def render_text(report: dict[str, Any]) -> str:
         f"exec_pass: {report['exec_pass']['count']}",
         f"missing: {report['missing']['count']}",
         f"unanchored_but_exists: {report['unanchored_but_exists']['count']}",
+        f"weak_anchors: {report['weak_anchors']['count']}",
         f"gap_count: {report['gap_count']}",
     ]
     if report["missing"]["ids"]:
         lines.append("missing_ids: " + ", ".join(report["missing"]["ids"]))
     if report["unanchored_but_exists"]["ids"]:
         lines.append("unanchored_ids: " + ", ".join(report["unanchored_but_exists"]["ids"]))
+    if report["weak_anchors"]["ids"]:
+        lines.append("weak_anchor_ids: " + ", ".join(report["weak_anchors"]["ids"]))
     return "\n".join(lines)
 
 

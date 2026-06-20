@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 
 LIB_DIR = Path(__file__).resolve().parents[1]
 if str(LIB_DIR) not in sys.path:
@@ -99,6 +101,30 @@ def _gate_summary(
         "source_status": source_status,
         "skipped_reason": skipped_reason,
     }
+
+
+def _anchor_quality_report(*, passed: bool = True, weak_anchor_count: int = 0) -> dict[str, object]:
+    return {
+        "passed": passed,
+        "weak_anchor_count": weak_anchor_count,
+        "severity_counts": {
+            "P0": weak_anchor_count if not passed else 0,
+            "P1": 0,
+        },
+        "findings": [],
+        "per_gate": {},
+    }
+
+
+@pytest.fixture(autouse=True)
+def _stub_anchor_quality_for_tmp_repo(monkeypatch, request) -> None:
+    if "tmp_path" not in request.fixturenames:
+        return
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_anchor_quality",
+        lambda *args, **kwargs: _anchor_quality_report(),
+    )
 
 
 def _stub_clean_ratchet_gate_summaries(monkeypatch) -> None:
@@ -227,6 +253,11 @@ def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypat
     monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _report("unregistered_asset"))
     monkeypatch.setattr(
         vg_overview,
+        "collect_anchor_quality",
+        lambda *args, **kwargs: _anchor_quality_report(),
+    )
+    monkeypatch.setattr(
+        vg_overview,
         "collect_requirement_drift",
         lambda *args, **kwargs: {
             "focus": "L6",
@@ -324,6 +355,20 @@ def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypat
     assert report["g14_subcheck"]["implemented"] is True
     assert report["g14_subcheck"]["anchored"]["count"] == 1
     assert report["g14_subcheck"]["missing"]["count"] == 19
+    assert set(vg["required_clean"]) == {
+        "registry_design_coverage",
+        "design_id_existence",
+        "fn_ut_pair_coverage",
+        "ddd_bc_coverage",
+        "coding_rule_lint",
+        "dependency_cycle_checks",
+        "plan_dependency_gate",
+        "fr_uses_checks",
+        "source_scan_vs_registry",
+        "registry_trace_complete",
+        "anchor_quality",
+        "requirement_drift",
+    }
     assert vg["required_clean"]["registry_design_coverage"]["clean"] is True
     assert vg["required_clean"]["design_id_existence"]["clean"] is True
     assert vg["required_clean"]["fn_ut_pair_coverage"]["clean"] is True
@@ -332,6 +377,7 @@ def test_collect_vg_overview_aggregates_required_clean_and_pair_status(monkeypat
     assert vg["required_clean"]["plan_dependency_gate"]["clean"] is True
     assert vg["required_clean"]["fr_uses_checks"]["clean"] is True
     assert vg["required_clean"]["source_scan_vs_registry"]["clean"] is False
+    assert vg["required_clean"]["anchor_quality"] == {"clean": True, "finding_count": 0}
     assert vg["required_clean"]["requirement_drift"]["clean"] is True
     assert vg["required_clean"]["requirement_drift"]["finding_count"] == 0
     assert vg["required_clean"]["requirement_drift"]["focus"] == "L6"
@@ -572,6 +618,77 @@ def test_collect_vg_overview_fails_required_clean_when_requirement_drift_is_dirt
     assert requirement["focus"] == "L6"
     assert requirement["requirements"] == 1
     assert requirement["design_links"] == 0
+
+
+def test_collect_vg_overview_fails_required_clean_when_anchor_quality_is_dirty(
+    monkeypatch, tmp_path: Path
+) -> None:
+    _write_l2_waiver(tmp_path)
+    _stub_clean_ddd_bc_checks(monkeypatch)
+    _stub_clean_ratchet_gate_summaries(monkeypatch)
+    _stub_clean_g8_subcheck(monkeypatch)
+    _stub_clean_g9_subcheck(monkeypatch)
+    _stub_clean_g12_subcheck(monkeypatch)
+    monkeypatch.setattr(vg_overview, "check_registry_design_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_design_id_existence", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_fn_ut_pair_coverage", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(vg_overview, "check_functional_registry", lambda *args, **kwargs: _report())
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_anchor_quality",
+        lambda *args, **kwargs: _anchor_quality_report(passed=False, weak_anchor_count=1),
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_requirement_drift",
+        lambda *args, **kwargs: {
+            "focus": "L6",
+            "clean": True,
+            "blocking_clean": True,
+            "findings": {"waived_with_reason": []},
+            "summary": {
+                "requirements": 1,
+                "design_links": 1,
+                "blocking_findings": 0,
+                "advisory_findings": 0,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_trace_symmetry",
+        lambda *args, **kwargs: {
+            "pairs": {
+                name: {
+                    "coverage_pct": 100.0,
+                    "uncovered_req": {"count": 0},
+                    "orphan_test": {"count": 0},
+                    "duplicate_id": {"count": 0},
+                    "missing_pair_frontmatter": {"count": 0},
+                    "missing_pair": {"count": 0},
+                    "wrong_layer_pair": {"count": 0},
+                }
+                for name in vg_overview.PAIR_NAMES
+            }
+        },
+    )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_g7_subcheck",
+        lambda *args, **kwargs: {
+            "ut_total": 88,
+            "anchored": {"count": 88},
+            "exec_pass": {"count": 88},
+            "missing": {"count": 0},
+            "unanchored_but_exists": {"count": 0},
+        },
+    )
+
+    report = vg_overview.collect_vg_overview(tmp_path)
+    anchor_quality = report["vg_overview"]["required_clean"]["anchor_quality"]
+
+    assert anchor_quality == {"clean": False, "finding_count": 1}
+    assert report["vg_overview"]["overall_clean"] is False
 
 
 def test_collect_vg_overview_keeps_overall_clean_when_ddd_bc_checks_are_clean(

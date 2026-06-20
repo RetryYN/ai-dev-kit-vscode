@@ -12,6 +12,7 @@ from coding_rule_lint import (
     collect_coding_rule_lint_full_required_summary,
     collect_coding_rule_lint_gate_summary,
 )
+from anchor_quality import collect_anchor_quality
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
 from dependency_cycle_checks import (
     collect_dependency_cycle_gate_summary,
@@ -38,6 +39,9 @@ from trace_symmetry import collect_trace_symmetry
 PAIR_NAMES = ("L6-L7", "L5-L8", "L4-L9", "L3-L12", "L1-L14")
 L2_L10_WAIVER_PATH = Path("docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md")
 SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {
+    # gate-mechanism family: sibling subchecks and anchor_quality stay
+    # temporarily allowlisted until registry registration is handled in one action.
+    "cli/lib/anchor_quality.py",
     "cli/lib/g8_subcheck.py",
     "cli/lib/g9_subcheck.py",
     "cli/lib/g12_subcheck.py",
@@ -291,6 +295,7 @@ def collect_vg_overview(
     g9 = collect_g9_subcheck(root, execute_g7_tests=execute_g7_tests)
     g12 = collect_g12_subcheck(root, execute_g7_tests=execute_g7_tests)
     g14 = collect_g14_subcheck(root, execute_g7_tests=execute_g7_tests)
+    anchor_quality = collect_anchor_quality(root)
     requirement_drift = _requirement_drift_required_clean(root)
 
     source_scan_findings = [
@@ -469,6 +474,10 @@ def collect_vg_overview(
         "registry_trace_complete": {
             "clean": len(trace_complete_findings) == 0,
             "finding_count": len(trace_complete_findings),
+        },
+        "anchor_quality": {
+            "clean": bool(anchor_quality["passed"]),
+            "finding_count": int(anchor_quality["weak_anchor_count"]),
         },
         "requirement_drift": requirement_drift,
     }
