@@ -1,4 +1,4 @@
-from .compat import Flask, _CompatClient, _CompatNormalizedResponse, _normalize_response, request
+from .compat import Flask, request
 
 
 from .auth import require_localhost_and_bearer
