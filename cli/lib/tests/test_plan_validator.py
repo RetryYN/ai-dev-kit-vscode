@@ -511,6 +511,23 @@ def test_locate_plan_file_accepts_repo_relative_path_reference() -> None:
     )
 
 
+def test_locate_plan_file_resolves_plan_id_across_plan_subdirectories() -> None:
+    current_plan = REPO_ROOT / "docs/plans/L0/L0-helix-workflows-conceptplan.md"
+    target_ref = "L1-helix-workflows-業務要求plan"
+
+    match = plan_validator.locate_plan_file(current_plan, target_ref)
+
+    assert match == REPO_ROOT / "docs/plans/L1/L1-helix-workflows-業務要求plan.md"
+
+
+def test_locate_plan_file_returns_none_for_missing_plan_id_reference() -> None:
+    current_plan = REPO_ROOT / "docs/plans/L0/L0-helix-workflows-conceptplan.md"
+
+    match = plan_validator.locate_plan_file(current_plan, "PLAN-999-never-exist")
+
+    assert match is None
+
+
 def test_p2_exit_zero_with_warnings(tmp_path: Path) -> None:
     created_at = datetime.now(timezone.utc).date().isoformat()
     plan_a = _base_frontmatter(created_at)

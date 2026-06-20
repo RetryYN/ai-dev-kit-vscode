@@ -26,6 +26,7 @@ dependencies:
   requires:
     - L0-helix-workflows-conceptplan
     - L1-helix-workflows-業務要求plan
+    - L1-helix-workflows-要求定義移行plan
   blocks:
     - L3-helix-workflows-機能要件plan
 related_docs:

@@ -9,7 +9,9 @@ tl_review: approve  # tl-advisor impl review changes_required(P1×2/P2×2/P3×1)
 process_layer: L7
 parent_process: HELIX-workflows/helix-process/L7-implementation.md
 parent_design: "docs/v2/L6-functional-design/whole-source-coverage-機能設計.md"
-dependencies: {}
+dependencies:
+  requires: []
+  blocks: []
 pairs_test_design:
   - cli/tests/test-wsc-hook-posttooluse-design-doc-web-search-revert.bats
   - cli/tests/test-wsc-hook-posttooluse-helix-job-enqueue.bats

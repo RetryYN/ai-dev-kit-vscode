@@ -30,6 +30,7 @@ dependencies:
     - L6-helix-workflows-関数仕様plan
     - L6-helix-workflows-クラス設計plan
     - L6-helix-workflows-エッジケースplan
+  blocks: []
 related_docs:
   - HELIX-workflows/helix-process/L6-functional-design.md
   - HELIX-workflows/helix-process/L7-implementation.md

@@ -77,7 +77,8 @@ dependencies:
     - L5-helix-workflows-データ詳細設計plan
     - L5-helix-workflows-外部IF詳細設計plan
     - L6-helix-workflows-関数仕様plan
-
+    - L6-helix-workflows-クラス設計plan
+  blocks: []
 related_docs:
   - HELIX-workflows/helix-process/L6-functional-design.md
   - HELIX-workflows/helix-process/L7-implementation.md

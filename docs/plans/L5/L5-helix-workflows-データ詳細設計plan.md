@@ -32,6 +32,7 @@ dependencies:
     - L4-helix-workflows-方式設計plan
     - L4-helix-workflows-機能構成設計plan
     - L4-helix-workflows-データ設計plan
+    - L4-helix-workflows-外部IF設計plan
     - L5-helix-workflows-内部処理設計plan
     - L5-helix-workflows-モジュール分割設計plan
   blocks:

@@ -293,13 +293,17 @@ def locate_plan_file(current_plan_path: Path, target_plan_id: str) -> Path | Non
         return None
 
     directories = _plan_search_directories(current_plan_path)
-
     patterns = (f"{target_plan_id}.md", f"{target_plan_id}-*.md")
-    for directory in directories:
+    seen_matches: set[Path] = set()
+    for index, directory in enumerate(directories):
+        search = directory.glob if index == 0 else directory.rglob
         for pattern in patterns:
-            for match in sorted(directory.glob(pattern)):
-                if match.resolve() != current_plan_path.resolve():
-                    return match
+            for match in sorted(search(pattern)):
+                resolved = match.resolve()
+                if resolved == current_plan_path.resolve() or resolved in seen_matches:
+                    continue
+                seen_matches.add(resolved)
+                return resolved
     return None
 
 

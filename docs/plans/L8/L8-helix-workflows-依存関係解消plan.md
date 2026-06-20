@@ -28,6 +28,7 @@ dependencies:
   requires:
     - L5-helix-workflows-モジュール分割設計plan
     - L5-helix-workflows-内部処理設計plan
+    - L5-helix-workflows-外部IF詳細設計plan
     - L8-helix-workflows-結合テストplan
   blocks: []
 related_docs:

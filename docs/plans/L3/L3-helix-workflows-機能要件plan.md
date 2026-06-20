@@ -31,6 +31,7 @@ dependencies:
     - L1-helix-workflows-技術要求plan
     - L1-helix-workflows-非機能要求plan
     - L3-helix-workflows-業務要件plan
+    - L3-helix-workflows-要件定義移行plan
   blocks:
     - L4-helix-workflows-方式設計plan
 related_docs:

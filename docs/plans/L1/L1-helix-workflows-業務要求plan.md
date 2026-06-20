@@ -26,6 +26,7 @@ dependencies:
   parent: L0-helix-workflows-conceptplan
   requires:
     - L0-helix-workflows-conceptplan
+    - L1-helix-workflows-要求定義移行plan
   blocks:
     - L1-helix-workflows-機能要求plan
     - L1-helix-workflows-技術要求plan
