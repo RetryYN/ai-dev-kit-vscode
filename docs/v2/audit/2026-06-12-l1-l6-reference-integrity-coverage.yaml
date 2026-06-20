@@ -45,8 +45,8 @@ boundary:
   goal_complete_allowed: false
 summary:
   audit_files_checked: 25
-  path_like_refs_checked: 1388
-  direct_file_refs_checked: 1379
+  path_like_refs_checked: 1394
+  direct_file_refs_checked: 1385
   glob_patterns_checked: 9
   missing_direct_file_refs: 0
   empty_glob_patterns: 0
@@ -69,7 +69,7 @@ glob_patterns:
   - pattern: docs/v2/audit/2026-06-12-*.yaml
     match_count: 21
   - pattern: docs/plans/add-feature/add-feature-*.md
-    match_count: 29
+    match_count: 35
 reference_policy:
   direct_paths_must_exist: true
   glob_patterns_must_expand_non_empty: true

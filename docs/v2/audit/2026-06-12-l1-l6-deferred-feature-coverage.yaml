@@ -61,9 +61,9 @@ summary:
   feature_tickets_draft: 11
   feature_tickets_with_approval_boundary: 11
   feature_tickets_with_unlock_conditions: 11
-  repository_add_feature_files_discovered: 29
+  repository_add_feature_files_discovered: 35
   current_objective_deferred_feature_tickets: 11
-  out_of_current_objective_add_feature_files: 18
+  out_of_current_objective_add_feature_files: 24
   out_of_current_objective_completed_add_features: 4
   out_of_current_objective_parked_feature_tickets: 0
   full_flow_later_phase_approval_boundary: true
@@ -74,9 +74,9 @@ summary:
 repository_add_feature_inventory:
   inventory_scope: docs/plans/add-feature
   current_scope_action: classify_all_add_feature_files_without_expanding_l7_scope
-  all_repository_add_feature_files_checked: 29
+  all_repository_add_feature_files_checked: 35
   current_objective_deferred_feature_tickets_checked: 11
-  excluded_from_current_objective_deferred_count: 18
+  excluded_from_current_objective_deferred_count: 24
   exclusion_is_completion_evidence_for_current_objective: false
   exclusion_may_hide_current_l1_l6_design_debt: false
   l7_work_allowed_by_inventory: false
@@ -275,6 +275,60 @@ repository_add_feature_inventory:
         従来 full pytest+bats は維持し、selector 不明時は fail-close で full
         に倒す。L7 product completion、DB schema work、external-tool required
         gating、scope 外の設計変更は authorize しない。
+    - id: context_budget_injection_profile
+      path: docs/plans/add-feature/add-feature-2026-06-21-context-budget-injection-profile.md
+      observed_status: completed
+      classification: current_scope_authorized_context_budget_injection_profile
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
+    - id: context_budget_threshold_derive
+      path: docs/plans/add-feature/add-feature-2026-06-21-context-budget-threshold-derive.md
+      observed_status: draft
+      classification: current_scope_authorized_context_budget_threshold_derive
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
+    - id: anchor_quality_lint
+      path: docs/plans/add-feature/add-feature-2026-06-21-anchor-quality-lint.md
+      observed_status: draft
+      classification: current_scope_authorized_w0_anchor_quality_lint
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
+    - id: g9_system_test_fullclose
+      path: docs/plans/add-feature/add-feature-2026-06-21-g9-system-test-fullclose.md
+      observed_status: draft
+      classification: current_scope_authorized_w1_g9_system_test_fullclose
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
+    - id: g12_acceptance_test_fullclose
+      path: docs/plans/add-feature/add-feature-2026-06-21-g12-acceptance-test-fullclose.md
+      observed_status: draft
+      classification: current_scope_authorized_w2_g12_acceptance_test_fullclose
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
+    - id: g14_operational_test_fullclose
+      path: docs/plans/add-feature/add-feature-2026-06-21-g14-operational-test-fullclose.md
+      observed_status: draft
+      classification: current_scope_authorized_w3_g14_operational_test_fullclose
+      reason: >
+        User-authorized 2026-06-21 right-arm full-close / context-budget work.
+        This current-scope authorized action stays outside the L1-L6 objective
+        boundary, so it is indexed as excluded inventory only and does not add
+        to current-objective deferred tickets or completion evidence.
 feature_ticket_unlock_condition_contract:
   source_contract: docs/v2/audit/2026-06-12-full-objective-gap-status.yaml#feature_ticket_unlock_contract
   current_scope_action: verify_unlock_condition_metadata_only

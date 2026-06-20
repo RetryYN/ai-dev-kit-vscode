@@ -23,11 +23,17 @@ PYTHON_CONTRACT_MIRROR = (
     REPO_ROOT / "cli/lib/tests/test_helix_l0_l14_flow_contract.py"
 )
 BATS_CONTRACT_MIRROR = REPO_ROOT / "cli/tests/test-helix-l0-l14-flow-contract.bats"
-PIN_KEYS = {
+DISCOVERED_PIN_KEYS = {
     "repository_add_feature_files_discovered",
     "deferred_repository_add_feature_files_discovered",
     "full_objective_repository_add_feature_files_discovered",
     "all_repository_add_feature_files_checked",
+}
+EXCLUDED_PIN_KEYS = {
+    "out_of_current_objective_add_feature_files",
+    "deferred_out_of_current_objective_add_feature_files",
+    "full_objective_out_of_current_objective_add_feature_files",
+    "excluded_from_current_objective_deferred_count",
 }
 
 
@@ -40,6 +46,18 @@ class CountRecord:
 
 def _ground_truth_count() -> int:
     return len(sorted((REPO_ROOT / "docs/plans/add-feature").glob("add-feature-*.md")))
+
+
+def _ground_truth_excluded_count() -> int:
+    payload = yaml.safe_load(
+        (
+            REPO_ROOT
+            / "docs/v2/audit/2026-06-12-l1-l6-deferred-feature-coverage.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    return len(
+        payload["repository_add_feature_inventory"]["excluded_from_current_objective"]
+    )
 
 
 def _walk_scalars(payload, prefix: str = "") -> list[tuple[str, object]]:
@@ -63,7 +81,7 @@ def _yaml_count_records(path: Path) -> list[CountRecord]:
     records: list[CountRecord] = []
     for label, value in _walk_scalars(payload):
         key = label.rsplit(".", 1)[-1]
-        if key in PIN_KEYS and isinstance(value, int):
+        if key in DISCOVERED_PIN_KEYS | EXCLUDED_PIN_KEYS and isinstance(value, int):
             records.append(CountRecord(path.name, label, value))
 
     glob_patterns = payload.get("glob_patterns", []) if isinstance(payload, dict) else []
@@ -82,7 +100,7 @@ def _yaml_count_records(path: Path) -> list[CountRecord]:
 def _text_count_records(path: Path) -> list[CountRecord]:
     text = path.read_text(encoding="utf-8")
     records: list[CountRecord] = []
-    for key in sorted(PIN_KEYS):
+    for key in sorted(DISCOVERED_PIN_KEYS | EXCLUDED_PIN_KEYS):
         pattern = re.compile(rf'["\']{re.escape(key)}["\']\s*[:=]\s*(\d+)')
         for index, match in enumerate(pattern.finditer(text), start=1):
             records.append(
@@ -121,11 +139,20 @@ def _assert_all_counts_match(records: list[CountRecord], expected_count: int) ->
         )
 
 
+def _is_excluded_record(record: CountRecord) -> bool:
+    key = record.label.rsplit(".", 1)[-1].split("#", 1)[0]
+    return key in EXCLUDED_PIN_KEYS
+
+
 def test_boundary_count_pins_match_add_feature_plan_ground_truth() -> None:
     """DoD 検証: TL P2-2 add-feature count pin は全 mirror で実数と一致する。"""
 
-    expected_count = _ground_truth_count()
-    _assert_all_counts_match(_collect_count_records(), expected_count)
+    records = _collect_count_records()
+    discovered_records = [record for record in records if not _is_excluded_record(record)]
+    excluded_records = [record for record in records if _is_excluded_record(record)]
+
+    _assert_all_counts_match(discovered_records, _ground_truth_count())
+    _assert_all_counts_match(excluded_records, _ground_truth_excluded_count())
 
 
 def test_boundary_count_guard_detects_single_site_drift(monkeypatch: pytest.MonkeyPatch) -> None:
