@@ -42,6 +42,7 @@ def test_blocks_direct_claude_cli() -> None:
 
 ## ST-SYS-03
 ## ST-IF-02
+## AT-53
 def test_blocks_raw_git_push() -> None:
     result = llm_guard.inspect_command("git push origin dogfood")
 

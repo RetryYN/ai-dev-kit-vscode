@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 # helix-doctor: 環境チェック
-# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--json] [--summary]
+# Usage: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_g12_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--json] [--summary]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 SELF_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SELF_PATH")" && pwd)"
-USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
+USAGE_TEXT="使い方: helix doctor [check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_g12_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses] [--gate] [--fix] [--cleanup-stale-locks] [--max-age-days N] [--focus L6|L7] [--check-stale] [--strict-full-flow] [--strict-vmodel-pair-freeze] [--vmodel-pair-freeze-active-only] [--vmodel-pair-freeze-since-days N] [--suggest-revisions] [--apply-stale-revisions] [--apply-patches] [--rollback-stale-revisions] [--apply] [--json] [--summary]"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 FIX=false
 CLEANUP_STALE_LOCKS=false
@@ -34,7 +34,7 @@ show_usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses)
+    check_recovery_plan_freshness|check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_g12_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses)
       if [[ -n "$SUBCOMMAND" ]]; then
         echo "エラー: サブコマンドは 1 つだけ指定できます: $1" >&2
         show_usage >&2
@@ -133,14 +133,15 @@ while [[ $# -gt 0 ]]; do
       echo "check_g7_subcheck は L7 UT anchor/test pass を advisory 集計します。"
       echo "check_g8_subcheck は L8 IT anchor/test pass を advisory 集計します。"
       echo "check_g9_subcheck は L9 ST anchor/test pass を advisory 集計します。"
-      echo "check_vg_overview は registry/trace/G7/G8/G9 を advisory 集計します。--strict-full-flow 指定時は approved_deferred execution gate を full-flow 未完として扱います。"
+      echo "check_g12_subcheck は L12 AT anchor/test pass を advisory 集計します。"
+      echo "check_vg_overview は registry/trace/G7/G8/G9/G12 を advisory 集計します。--strict-full-flow 指定時は approved_deferred execution gate を full-flow 未完として扱います。"
       echo "check_l7_worklist は functional-registry 由来の L7 worklist summary を advisory 表示します。"
       echo "check_requirement_drift は L1/L3 FR から L4-L6 design までを advisory 集計します。--focus L7 指定時のみ code/test も見ます。--check-stale 指定時のみ mtime stale 候補も見ます。"
       echo "check_coding_rule_lint は bash -n / py_compile / ruff / shellcheck を advisory または changed-files gate で集計します。"
       echo "check_import_cycle は cli/lib の Python import と cli/ の Bash source 依存の循環を advisory または changed-files gate で集計します。"
       echo "check_plan_dependency_gate は PLAN dependency warning を baseline + changed-files gate で集計します。"
       echo "check_fr_uses は functional-registry の uses 実在/逆参照 warning を advisory または changed-files gate で集計します。"
-      echo "--gate を付けると、全体実行では VG-overview pre-push 条件を、個別 detector 実行 (check_vg_overview / check_requirement_drift / check_g7_subcheck / check_g8_subcheck / check_g9_subcheck) では各 standalone gate 条件を fail-close 評価します (exit 1)。"
+      echo "--gate を付けると、全体実行では VG-overview pre-push 条件を、個別 detector 実行 (check_vg_overview / check_requirement_drift / check_g7_subcheck / check_g8_subcheck / check_g9_subcheck / check_g12_subcheck) では各 standalone gate 条件を fail-close 評価します (exit 1)。"
       echo "--strict-vmodel-pair-freeze を付けると critical missing pair docs がある場合に exit 1 で失敗します。"
       echo "--vmodel-pair-freeze-active-only を付けると status=draft|in_progress の pair PLAN のみ集計します。"
       echo "--vmodel-pair-freeze-since-days N を付けると N 日以内に revised/created された pair PLAN のみ集計します。"
@@ -235,7 +236,7 @@ render_doctor_summary() {
 
 subcommand_supports_json() {
   case "${1:-}" in
-    check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses)
+    check_g7_subcheck|check_g8_subcheck|check_g9_subcheck|check_g12_subcheck|check_vg_overview|check_requirement_drift|check_l7_worklist|check_coding_rule_lint|check_import_cycle|check_plan_dependency_gate|check_fr_uses)
       return 0
       ;;
     *)
@@ -263,6 +264,8 @@ elif module_name == "g8_subcheck":
     report = module.collect_g8_subcheck()
 elif module_name == "g9_subcheck":
     report = module.collect_g9_subcheck()
+elif module_name == "g12_subcheck":
+    report = module.collect_g12_subcheck()
 elif module_name == "vg_overview":
     report = module.collect_vg_overview(
         strict_full_flow=os.environ.get("HELIX_VG_OVERVIEW_STRICT_FULL_FLOW") == "1"
@@ -479,6 +482,53 @@ print(f"anchor_map: {payload['anchor_map']}")
 print(f"implemented: {str(payload['implemented']).lower()}")
 print(f"passed: {str(payload['passed']).lower()}")
 print(f"st_total: {payload['st_total']}")
+print(f"legacy_inline_anchors: {payload['legacy_inline_anchors']['count']}")
+print(f"anchored: {payload['anchored']['count']}")
+print(f"exec_pass: {payload['exec_pass']['count']}")
+print(f"missing: {payload['missing']['count']}")
+print(f"unanchored_but_exists: {payload['unanchored_but_exists']['count']}")
+print(f"gap_count: {payload['gap_count']}")
+if payload["missing"]["ids"]:
+    print("missing_ids: " + ", ".join(payload["missing"]["ids"]))
+if payload["unanchored_but_exists"]["ids"]:
+    print("unanchored_ids: " + ", ".join(payload["unanchored_but_exists"]["ids"]))
+PY
+  fi
+  if [[ "$GATE_MODE" == true ]]; then
+    gate_verdict="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+try:
+    payload = json.loads(sys.argv[1])
+    print("clean" if payload["passed"] else "dirty")
+except Exception:
+    print("error")
+PY
+)"
+    if [[ "$gate_verdict" != "clean" ]]; then
+      exit 1
+    fi
+  fi
+  exit 0
+fi
+
+if [[ "$SUBCOMMAND" == "check_g12_subcheck" ]]; then
+  report_json="$(run_python_report_helper g12_subcheck 2>&1)"
+  if [[ "$JSON_OUTPUT" == true ]]; then
+    printf '%s\n' "$report_json"
+  else
+    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
+import json
+import sys
+
+payload = json.loads(sys.argv[1])
+print("G12 subcheck (advisory)")
+print(f"anchor_mechanism: {payload['anchor_mechanism']}")
+print(f"anchor_map: {payload['anchor_map']}")
+print(f"implemented: {str(payload['implemented']).lower()}")
+print(f"passed: {str(payload['passed']).lower()}")
+print(f"at_total: {payload['at_total']}")
 print(f"legacy_inline_anchors: {payload['legacy_inline_anchors']['count']}")
 print(f"anchored: {payload['anchored']['count']}")
 print(f"exec_pass: {payload['exec_pass']['count']}")

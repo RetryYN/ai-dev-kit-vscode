@@ -214,6 +214,7 @@ def test_load_ddd_registry_normalizes_sections_and_fails_closed(tmp_path: Path) 
         load_ddd_registry(invalid_kind_path)
 
 
+## AT-30
 def test_check_glossary_coverage_reports_drift_duplicates_missing_columns_and_status_gap(tmp_path: Path) -> None:
     """DoD 検証: ddd-registry-detector-単体テスト設計.md UT-DDD-02"""
     concept_path = _write_concept_md(tmp_path / "concept.md", GLOSSARY_ROWS, BC_ROWS)

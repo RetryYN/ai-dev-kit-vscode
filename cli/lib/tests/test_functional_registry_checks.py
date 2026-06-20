@@ -95,6 +95,7 @@ def test_load_functional_registry_normalizes_entries_and_fails_closed(tmp_path: 
         load_functional_registry(invalid_domain_path)
 
 
+## AT-29
 def test_check_functional_registry_reports_four_finding_classes_and_stays_advisory(tmp_path: Path) -> None:
     """DoD 検証: functional-registry-detector-単体テスト設計.md UT-FREG-01"""
     _write_file(tmp_path / "cli/helix-alpha", "#!/bin/sh\n")

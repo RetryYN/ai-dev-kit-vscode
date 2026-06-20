@@ -138,10 +138,10 @@ gates:
       - cli/lib/tests/test_vg_overview.py
       - cli/tests/helix-doctor-json.bats
       - docs/v2/L12-test-design/
-    current_state: plan_materialized
-    implemented: false
+    current_state: gate_implemented
+    implemented: true
     passed: false
-    deferred_reason: execution_gate_not_implemented
+    deferred_reason: g12_implemented=true g12_passed=false anchored=5/57 missing=52
     must_disappear: L3-L12 execution_gate_not_implemented
     evidence_required:
       - acceptance test execution evidence

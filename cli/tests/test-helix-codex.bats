@@ -161,6 +161,7 @@ teardown() {
 }
 
 ## ST-SYS-03
+## AT-53
 @test "helix-codex require-approved blocks write execution without consent" {
   HELIX_CODEX_REQUIRE_APPROVED=1 run "$HELIX_ROOT/cli/helix-codex" --role docs --task "実装して"
   [ "$status" -ne 0 ]

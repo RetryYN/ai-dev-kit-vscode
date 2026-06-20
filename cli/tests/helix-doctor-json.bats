@@ -97,7 +97,7 @@ teardown() {
 }
 
 @test "helix-doctor check_vg_overview --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d and \"g8_subcheck\" in d; vg=d[\"vg_overview\"]; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; fr=vg[\"required_clean\"][\"fr_uses_checks\"]; assert fr[\"source_status\"] == \"full_required\"; assert fr[\"warning_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 3'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_vg_overview --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"vg_overview\" in d and \"g7_subcheck\" in d and \"g8_subcheck\" in d and \"g12_subcheck\" in d; vg=d[\"vg_overview\"]; g12=d[\"g12_subcheck\"]; assert g12[\"implemented\"] is True; assert g12[\"anchored\"][\"count\"] == 5; assert g12[\"missing\"][\"count\"] == 52; rd=vg[\"required_clean\"].get(\"requirement_drift\"); assert rd and rd[\"focus\"] == \"L6\"; assert rd[\"requirements\"] == 31; assert rd[\"design_links\"] == 31; assert rd[\"finding_count\"] == 0; fr=vg[\"required_clean\"][\"fr_uses_checks\"]; assert fr[\"source_status\"] == \"full_required\"; assert fr[\"warning_count\"] == 0; full=vg[\"full_flow_execution\"]; assert full[\"enforced\"] is False; assert full[\"clean\"] is False; assert full[\"deferred_count\"] == 3'"
   [ "$status" -eq 0 ]
 }
 
@@ -194,6 +194,7 @@ EOF
   cp "$HELIX_ROOT/cli/helix-doctor" "$FRESH/cli/helix-doctor"
   cp "$HELIX_ROOT/cli/lib/vg_overview.py" "$FRESH/cli/lib/vg_overview.py"
   cp "$HELIX_ROOT/cli/lib/g8_subcheck.py" "$FRESH/cli/lib/g8_subcheck.py"
+  cp "$HELIX_ROOT/cli/lib/g12_subcheck.py" "$FRESH/cli/lib/g12_subcheck.py"
   cp "$HELIX_ROOT/cli/lib/fr_uses_checks.py" "$FRESH/cli/lib/fr_uses_checks.py"
   [ ! -d "$FRESH/.helix" ]
   run env HELIX_HOME="$FRESH" HELIX_PROJECT_ROOT="$FRESH" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 "$FRESH/cli/helix-doctor" check_vg_overview --gate --json

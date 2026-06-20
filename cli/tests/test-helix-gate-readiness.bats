@@ -72,6 +72,7 @@ PY
   [[ "$output" != *"readiness exit not satisfied"* ]]
 }
 
+## AT-17
 @test "helix gate G2 default warning runs readiness check without changing gate result" {
   run "$HELIX_ROOT/cli/helix" gate G2 --static-only
   [ "$status" -eq 0 ]
