@@ -212,7 +212,7 @@ CREATE TABLE hook_events (
 | doc-map.yaml スキーマ検証 | 実装済み。不正な `on_write` / 必須キー欠落 / 完全重複は warning 出力 | — |
 | 並列 hook 発火時の競合 | 同一ファイル編集が高速連続発火した場合の動作未検証 | P3 |
 | raw LLM CLI 直叩き | PreToolUse(Bash) と PATH shim で `helix codex` / `helix claude --dry-run` へ誘導 | — |
-| context budget 超過 | `helix context check` で AGENTS / CLAUDE / hook docs の肥大化を検出 | — |
+| context budget 超過 | `helix context check` で context budget / profile を表示し、常時注入・動的注入・除外対象を確認 | — |
 
 ---
 

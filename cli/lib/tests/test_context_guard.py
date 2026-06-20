@@ -245,6 +245,20 @@ def test_context_bundle_is_compact(tmp_path: Path) -> None:
 
     assert "HELIX Context Guard" in text
     assert "- ok:" in text
+    assert "HELIX Context Budget" in text
+    assert "- profile: task" in text
+
+
+def test_check_context_reports_context_budget(tmp_path: Path) -> None:
+    _write_required_files(tmp_path)
+    _write_settings(tmp_path)
+
+    payload = context_guard.check_context(tmp_path)
+
+    assert payload["context_budget"]["max_total_tokens"] == 150000
+    assert payload["context_budget"]["fresh_session_threshold_pct"] == 0.7
+    assert payload["context_profile"]["profile"] == "task"
+    assert "current PLAN / handover" in payload["context_profile"]["dynamic_load"]
 
 
 def test_main_defaults_to_check_without_subcommand(monkeypatch, capsys, tmp_path: Path) -> None:

@@ -23,6 +23,18 @@ integration_target:
 
 セッション単位で止まり、対話を続けるとコンテキストが溜まる。コンテキストが実際に減る契機は /compact・/clear・セッション terminate→fresh・auto-compact（満杯任せ）の4つだけ。handover を書くこと（メモ）はコンテキストを減らさない。Claude は自分の履歴を消して走り続けられないため、必ず外部刺激（別プロセスによる再起動、または /compact 送信）が要る。
 
+## context hygiene baseline
+
+自動走行は、長時間継続よりも tool call 安定性を優先する。注入量は `helix context check --json` の `context_budget` を正とし、初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct=0.70` とする。
+
+運用ルール:
+
+1. `fresh_session_threshold_pct` 到達前に handover を書き、fresh session へ移る。
+2. handover には「判断・未完了・次アクション・検証結果」を残し、raw transcript や長大な tool 出力は残さない。
+3. hook / harness の出力は、Claude が読む要約を短く保つ。詳細ログはファイル path と evidence id で参照する。
+4. malformed tool call が出たら、同じ巨大 context 内で再試行を重ねない。失敗した tool 名、意図、短い原因仮説だけを recovery profile に残し、fresh session で再開する。
+5. `/compact` はフォールバックであり、標準経路は handover + fresh session とする。
+
 ## 本命: Claude オーケストレーション ＋ Codex セッションクリーナー（kind=poc）
 
 役割を固定する。Claude は自分を再起動できないが、Codex が外から対話セッションを起こす。

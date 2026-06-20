@@ -34,6 +34,36 @@ FRAMEWORK_GUARD_FILES = [
     "cli/lib/agent_policy_guard.py",
 ]
 
+CONTEXT_BUDGET = {
+    "max_total_tokens": 150000,
+    "output_reserve_min": 50000,
+    "fresh_session_threshold_pct": 0.70,
+    "always_on_target_tokens": 12000,
+    "dynamic_task_target_tokens": 30000,
+    "focused_reference_target_tokens": 60000,
+    "history_summary_target_tokens": 48000,
+}
+
+CONTEXT_PROFILE = {
+    "profile": "task",
+    "always_on": [
+        "runtime invariants",
+        "guardrail contracts",
+        "current role adapter",
+    ],
+    "dynamic_load": [
+        "current PLAN / handover",
+        "active L workflow",
+        "selected skills",
+        "allowed files and focused references",
+    ],
+    "exclude": [
+        "raw transcript history",
+        "full tool outputs",
+        "unselected skills and references",
+    ],
+}
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -185,6 +215,34 @@ def _settings_error_message(error_code: str) -> str:
 
 def _settings_error_code(error_code: str) -> str:
     return error_code or "missing_project_settings"
+
+
+def _context_budget_report(root: Path, framework_root: Path) -> dict[str, Any]:
+    core_manifest = framework_root / "helix" / "core-manifest.tsv"
+    core_entries: list[str] = []
+    if core_manifest.is_file():
+        for line in core_manifest.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            core_entries.append(line)
+
+    handover_path = root / ".helix" / "handover" / "CURRENT.json"
+    handover_status, handover_payload = _read_json_status(handover_path)
+    task_payload = handover_payload.get("task") if isinstance(handover_payload.get("task"), dict) else {}
+
+    profile = dict(CONTEXT_PROFILE)
+    profile["core_manifest_entries"] = core_entries
+    profile["handover"] = {
+        "status": handover_status,
+        "task_id": str(task_payload.get("id") or ""),
+        "task_status": str(task_payload.get("status") or handover_payload.get("status") or ""),
+    }
+
+    return {
+        "context_budget": dict(CONTEXT_BUDGET),
+        "context_profile": profile,
+    }
 
 
 def check_context(root: Path) -> dict[str, Any]:
@@ -351,6 +409,7 @@ def check_context(root: Path) -> dict[str, Any]:
         "warnings": [asdict(item) for item in warnings],
         "infos": [asdict(item) for item in infos],
         "summary": {"error": len(errors), "warning": len(warnings), "info": len(infos)},
+        **_context_budget_report(root, framework_root),
     }
 
 
@@ -372,6 +431,21 @@ def context_bundle(root: Path) -> str:
         lines.append(f"- WARN {finding['code']}: {finding['message']}")
     for finding in payload["infos"][:5]:
         lines.append(f"- INFO {finding['code']}: {finding['message']}")
+    budget = payload["context_budget"]
+    profile = payload["context_profile"]
+    lines.extend(
+        [
+            "",
+            "## HELIX Context Budget",
+            f"- profile: {profile['profile']}",
+            f"- max_total_tokens: {budget['max_total_tokens']}",
+            f"- output_reserve_min: {budget['output_reserve_min']}",
+            f"- fresh_session_threshold_pct: {budget['fresh_session_threshold_pct']}",
+            f"- always_on: {', '.join(profile['always_on'])}",
+            f"- dynamic_load: {', '.join(profile['dynamic_load'])}",
+            f"- exclude: {', '.join(profile['exclude'])}",
+        ]
+    )
     return "\n".join(lines)
 
 

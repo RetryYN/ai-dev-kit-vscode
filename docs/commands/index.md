@@ -82,7 +82,7 @@ git worktree-based per-task workspace isolation (PLAN-156, ADR-040).
 | `helix agent` | HELIX W drive=agent の `init/stage1/stage2/merge/route` と agent slot/audit を扱う |
 | `helix hook` | PostToolUse hook |
 | `helix check-claudemd` | PreToolUse hook |
-| `helix context` | AGENTS / CLAUDE / hook / memory の強制導線検査と context bundle 生成 |
+| `helix context` | AGENTS / CLAUDE / hook / memory の強制導線検査、context budget 表示、短い context bundle 生成 |
 | `helix session-start` | SessionStart hook |
 | `helix session-summary` | Stop hook |
 

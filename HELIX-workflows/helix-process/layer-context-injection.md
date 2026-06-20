@@ -31,6 +31,26 @@ integration_target:
 
 注入は helix-context が担い、L 別の責任は vmodel-semantics の owner_role が定義する。
 
+## 注入プロファイルと予算
+
+L 単位注入は「必要なものを増やす」だけではなく、「常時注入しないものを決める」機構でもある。Claude Code / Codex の tool call 安定性を守るため、セッション開始時に読む context は以下の profile に分ける。
+
+| profile | 用途 | 常時注入 | 動的注入 | 除外 |
+|---|---|---|---|---|
+| kernel | セッション開始・hook | HELIX 不変ルール、runtime adapter、guardrail 契約 | なし | L0-L14 全文、全 skill、過去 transcript |
+| task | 通常作業 | kernel + 現在 role | current PLAN / handover、active L workflow、選択 skill | 未選択 skill、全文ログ |
+| implementation | 実装委譲 | task の要約 | allowed_files、acceptance、対象テスト、焦点 reference | 関係ない設計書、長大な tool 出力 |
+| recovery | エラー収束 | kernel + 現在 blocker | 直近の失敗要約、再現手順、差分 | raw transcript、試行錯誤ログ全文 |
+
+標準予算は `helix context check --json` の `context_budget` を正とする。初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct=0.70`。この閾値を超える見込みなら、追加注入ではなく handover 要約 + fresh session を優先する。
+
+重要な制約:
+
+- `core-manifest.tsv` は kernel の候補一覧であり、常に全文展開する契約ではない。
+- L0-L14 / workflow / skill は、active L と task 種別で選んだものだけを読む。
+- tool 出力や transcript は再注入しない。必要な事実だけ handover / evidence / memory に圧縮してから読む。
+- malformed tool call が出たセッションでは、直前の raw assistant content を次セッションへ持ち込まず、失敗パターンと再試行方針だけを recovery profile に残す。
+
 ## AI の判断の迷いを消す原理
 
 ```

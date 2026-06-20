@@ -23,7 +23,7 @@ HELIX は Codex と Claude Code を直接 API 統合として扱わず、契約�
 | 予算・難度 | `helix budget` | Claude/Codex の消費状況とモデル推奨 |
 | Harness 監視 | `helix harness` | active slot、harness warning、DB feedback-loop candidate の確認 |
 | Hook | `helix hook` / `helix check-claudemd` / `cli/libexec/helix-post-tool-use` | Claude Code tool hook |
-| Context guard | `helix context check` / `helix context bundle` | AGENTS / CLAUDE / hook / memory の強制導線を検査し、短い注入 context を生成 |
+| Context guard | `helix context check` / `helix context bundle` | AGENTS / CLAUDE / hook / memory の強制導線を検査し、context budget と短い注入 context を生成 |
 | セッション | `helix session-start` / `helix session-summary` | Claude Code session hook |
 | 引継ぎ | `helix handover` | Opus / Codex のファイル経由 handover |
 
@@ -159,7 +159,7 @@ HELIX_ALLOW_RAW_CODEX=1 HELIX_RAW_CODEX_REASON=<理由> codex exec ...
 HELIX_ALLOW_RAW_CLAUDE=1 HELIX_RAW_CLAUDE_REASON=<理由> claude ...
 ```
 
-Context / memory 側の drift は `helix context check` で検査する。SessionStart など短い注入文が必要な場面では `helix context bundle` を使う。
+Context / memory 側の drift は `helix context check` で検査する。SessionStart など短い注入文が必要な場面では `helix context bundle` を使う。bundle には `context_budget` と `context_profile` の要約が含まれ、常時注入・動的注入・除外対象を確認できる。
 
 ```bash
 helix claude --role pg --task "バグ修正" --dry-run
