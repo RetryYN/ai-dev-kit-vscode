@@ -280,6 +280,11 @@ def test_collect_vg_overview_uses_full_required_fr_uses_summary(monkeypatch, tmp
             "unanchored_but_exists": {"count": 0},
         },
     )
+    monkeypatch.setattr(
+        vg_overview,
+        "collect_anchor_quality",
+        lambda *args, **kwargs: {"passed": True, "weak_anchor_count": 0},
+    )
 
     report = vg_overview.collect_vg_overview(tmp_path)
     required = report["vg_overview"]["required_clean"]["fr_uses_checks"]
