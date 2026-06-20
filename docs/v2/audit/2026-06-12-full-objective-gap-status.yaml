@@ -43,11 +43,12 @@ latest_user_boundary:
   l7_requested_now: false
   l7_route: add_feature_ticket_only
   current_allowed_work: >
-    Sequential right-arm execution-gate closure via add-feature tickets,
-    starting with G8 L5-L8 integration-test execution gate. This includes
-    gate/subcheck/vg_overview verdict wiring, test-code anchors, execution
-    evidence, and bounded detector/ledger synchronization required to remove the
-    corresponding strict-full-flow deferred_pair only.
+    Goal A/B/C completion authorized by user /goal. Phases A and B are current and
+    cover deferred-debt resolution across plan_dependency locate resolution, BASE_NOW
+    date-rot test fixtures, and import-cycle refactor, plus plan, test, baseline, and
+    ledger synchronization with behavior-preserving import-topology refactor only. Phase
+    C right-arm G9 G12 G14 execution-gate full-close is authorized by the same goal and
+    unlocked separately before C begins.
   forbidden_now:
     - L7 product feature implementation
     - L7 product coverage closure
@@ -657,11 +658,11 @@ handover_boundary_contract:
   handover_current_json: .helix/handover/CURRENT.json
   next_action_heading_required: "## Next Action (Codex 向け)"
   required_current_user_boundary_contains:
-    - implement
-    - g14_subcheck
-    - G14
-    - L1-L14
-    - operational-learning execution gate
+    - DF-P2-PLANDEP
+    - plan_dependency
+    - locate_plan_file
+    - false-positive
+    - baseline
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: false
   latest_user_boundary_forbidden_handover_terms: []

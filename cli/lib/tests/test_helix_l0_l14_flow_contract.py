@@ -8408,11 +8408,11 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "product_l7_work_allowed_from_handover": False,
     }
     assert handover_boundary_contract["required_current_user_boundary_contains"] == [
-        "implement",
-        "g14_subcheck",
-        "G14",
-        "L1-L14",
-        "operational-learning execution gate",
+        "DF-P2-PLANDEP",
+        "plan_dependency",
+        "locate_plan_file",
+        "false-positive",
+        "baseline",
     ]
     handover_path = REPO_ROOT / handover_boundary_contract["handover_current_markdown"]
     handover_text = handover_path.read_text(encoding="utf-8")
@@ -8446,14 +8446,19 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "g14_subcheck" in handover_state["task"]["title"]
-    assert "G14" in handover_state["task"]["title"]
+    assert "DF-P2-PLANDEP" in handover_state["task"]["title"]
+    assert "plan_dependency" in handover_state["task"]["title"]
     assert handover_state["files"]["pending"] == [
-        "cli/lib/g14_subcheck.py",
-        "cli/lib/tests/test_g14_subcheck.py",
-        "cli/lib/vg_overview.py",
-        "cli/lib/tests/test_vg_overview.py",
-        "docs/v2/L7-test-design/right-arm-execution-gates-adoption.yaml",
+        "cli/lib/plan_validator.py",
+        "cli/config/plan-dependency-baseline.json",
+        "cli/lib/tests/test_plan_validator.py",
+        "docs/plans/L1/L1-helix-workflows-業務要求plan.md",
+        "docs/plans/L1/L1-helix-workflows-要求定義移行plan.md",
+        "docs/plans/L3/L3-helix-workflows-要件定義移行plan.md",
+        "docs/plans/L6/L6-helix-workflows-クラス設計plan.md",
+        "docs/plans/L6/L6-helix-workflows-エッジケースplan.md",
+        "docs/plans/L7/L7-helix-workflows-単体テストplan.md",
+        "docs/plans/L7/L7-wsc-test-impl-closureplan.md",
         "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
         "cli/tests/test-helix-l0-l14-flow-contract.bats",
     ]
@@ -11837,7 +11842,7 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "l7_requested_now": False,
         "l7_route": "add_feature_ticket_only",
         "current_allowed_work": (
-            "Sequential right-arm execution-gate closure via add-feature tickets, starting with G8 L5-L8 integration-test execution gate. This includes gate/subcheck/vg_overview verdict wiring, test-code anchors, execution evidence, and bounded detector/ledger synchronization required to remove the corresponding strict-full-flow deferred_pair only.\n"
+            "Goal A/B/C completion authorized by user /goal. Phases A and B are current and cover deferred-debt resolution across plan_dependency locate resolution, BASE_NOW date-rot test fixtures, and import-cycle refactor, plus plan, test, baseline, and ledger synchronization with behavior-preserving import-topology refactor only. Phase C right-arm G9 G12 G14 execution-gate full-close is authorized by the same goal and unlocked separately before C begins.\n"
         ),
         "forbidden_now": [
             "L7 product feature implementation",
