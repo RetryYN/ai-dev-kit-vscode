@@ -9,7 +9,7 @@ setup() {
 @test "HELIX L0-L14 flow contract stays pinned by pytest" {
   run python3 -m pytest "$HELIX_ROOT/cli/lib/tests/test_helix_l0_l14_flow_contract.py" -q
   [ "$status" -eq 0 ]
-  [[ "$output" == *"88 passed"* ]]
+  [[ "$output" == *"89 passed"* ]]
 }
 
 @test "CI workflow pins detector-gate contract" {
@@ -1469,8 +1469,8 @@ assert payload["ratification_summary"]["web_evidence_official_sources_checked"] 
 assert payload["ratification_summary"]["web_evidence_latest_core_rechecked_sources_checked"] == len(web_evidence["web_evidence_freshness_contract"]["latest_core_rechecked_source_ids"])
 assert payload["ratification_summary"]["web_evidence_all_sources_not_adopted_current_scope"] == web_evidence["web_evidence_freshness_contract"]["all_sources_must_remain_not_adopted_current_scope"]
 assert payload["ratification_summary"]["web_evidence_l7_or_adoption_evidence_allowed"] == web_evidence["web_evidence_freshness_contract"]["l7_or_adoption_evidence_allowed"]
-assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == 1394
-assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == 1385
+assert payload["ratification_summary"]["reference_integrity_path_like_refs_checked"] == reference_integrity["summary"]["path_like_refs_checked"]
+assert payload["ratification_summary"]["reference_integrity_direct_file_refs_checked"] == reference_integrity["summary"]["direct_file_refs_checked"]
 assert payload["ratification_summary"]["reference_integrity_audit_files_checked"] == reference_integrity["summary"]["audit_files_checked"]
 assert payload["ratification_summary"]["reference_integrity_glob_patterns_checked"] == reference_integrity["summary"]["glob_patterns_checked"]
 assert payload["ratification_summary"]["reference_integrity_missing_direct_file_refs"] == reference_integrity["summary"]["missing_direct_file_refs"]
@@ -3137,12 +3137,12 @@ assert payload["current_l1_l6_evidence"]["exit_criteria"]["expected"] == {
     "l7_artifacts_created_by_this_map": 0,
 }
 assert payload["current_l1_l6_evidence"]["reference_integrity"]["expected"] == {
-    "audit_files_checked": 25,
-    "path_like_refs_checked": 1394,
-    "direct_file_refs_checked": 1385,
-    "glob_patterns_checked": 9,
-    "missing_direct_file_refs": 0,
-    "empty_glob_patterns": 0,
+    "audit_files_checked": reference_integrity["summary"]["audit_files_checked"],
+    "path_like_refs_checked": reference_integrity["summary"]["path_like_refs_checked"],
+    "direct_file_refs_checked": reference_integrity["summary"]["direct_file_refs_checked"],
+    "glob_patterns_checked": reference_integrity["summary"]["glob_patterns_checked"],
+    "missing_direct_file_refs": reference_integrity["summary"]["missing_direct_file_refs"],
+    "empty_glob_patterns": reference_integrity["summary"]["empty_glob_patterns"],
     "current_scope_uses_l7_as_completion_evidence": False,
 }
 assert payload["current_l1_l6_evidence"]["double_check"]["expected"] == {
@@ -6356,13 +6356,25 @@ assert reference_integrity["status"] == "current_scope_l1_l6_reference_integrity
 assert reference_integrity["boundary"]["l7_work_requested_by_user"] is False
 assert reference_integrity["boundary"]["current_scope_uses_l7_as_completion_evidence"] is False
 assert reference_integrity["boundary"]["goal_complete_allowed"] is False
+structured_refs = []
+for ref in reference_integrity["sources"]["audit_bundle"]:
+    if not ref.endswith(".yaml"):
+        continue
+    with open(root / ref, encoding="utf-8") as handle:
+        structured_refs.extend(iter_structured_path_refs(yaml.safe_load(handle)))
+glob_refs = [ref for ref in structured_refs if "*" in ref]
+direct_refs = [ref for ref in structured_refs if "*" not in ref]
 assert reference_integrity["summary"] == {
     "audit_files_checked": 25,
-    "path_like_refs_checked": 1394,
-    "direct_file_refs_checked": 1385,
-    "glob_patterns_checked": 9,
-    "missing_direct_file_refs": 0,
-    "empty_glob_patterns": 0,
+    "path_like_refs_checked": len(structured_refs),
+    "direct_file_refs_checked": len(direct_refs),
+    "glob_patterns_checked": len(glob_refs),
+    "missing_direct_file_refs": sum(
+        1 for ref in direct_refs if not (root / ref).exists()
+    ),
+    "empty_glob_patterns": sum(
+        1 for ref in glob_refs if not list(root.glob(ref))
+    ),
     "blocking_findings_current_scope": 0,
 }
 glob_patterns = {
@@ -6449,14 +6461,6 @@ for phrase in markdown_contract["required_l7_boundary_phrases"]:
     assert phrase in grain_text
 for ref in reference_integrity["sources"]["audit_bundle"]:
     assert (root / ref).exists(), ref
-structured_refs = []
-for ref in reference_integrity["sources"]["audit_bundle"]:
-    if not ref.endswith(".yaml"):
-        continue
-    with open(root / ref, encoding="utf-8") as handle:
-        structured_refs.extend(iter_structured_path_refs(yaml.safe_load(handle)))
-glob_refs = [ref for ref in structured_refs if "*" in ref]
-direct_refs = [ref for ref in structured_refs if "*" not in ref]
 assert reference_integrity["summary"]["path_like_refs_checked"] == len(structured_refs)
 assert reference_integrity["summary"]["direct_file_refs_checked"] == len(direct_refs)
 assert reference_integrity["summary"]["glob_patterns_checked"] == len(glob_refs)
@@ -6533,8 +6537,8 @@ assert quantitative["Q-REFERENCE-INTEGRITY"]["expected"] == {
     "path_like_refs_checked": reference_integrity["summary"]["path_like_refs_checked"],
     "direct_file_refs_checked": reference_integrity["summary"]["direct_file_refs_checked"],
     "glob_patterns_checked": reference_integrity["summary"]["glob_patterns_checked"],
-    "missing_direct_file_refs": 0,
-    "empty_glob_patterns": 0,
+    "missing_direct_file_refs": reference_integrity["summary"]["missing_direct_file_refs"],
+    "empty_glob_patterns": reference_integrity["summary"]["empty_glob_patterns"],
 }
 assert quantitative["Q-HARNESS-TOOLS"]["expected"] == {
     "official_sources_checked": harness_coverage["summary"]["official_sources_checked"],

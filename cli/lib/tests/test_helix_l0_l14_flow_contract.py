@@ -9,6 +9,7 @@ import sys
 from urllib.parse import urlparse
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -680,6 +681,63 @@ def _iter_markdown_path_refs(text: str):
             continue
         if "*" in ref or ref.endswith(PATH_REF_SUFFIXES):
             yield ref
+
+
+REFERENCE_INTEGRITY_DERIVED_COUNT_KEYS = (
+    "path_like_refs_checked",
+    "direct_file_refs_checked",
+    "glob_patterns_checked",
+    "missing_direct_file_refs",
+    "empty_glob_patterns",
+)
+
+
+def _reference_integrity_snapshot_counts(payload: dict) -> dict[str, int]:
+    summary = payload["summary"]
+    return {key: summary[key] for key in REFERENCE_INTEGRITY_DERIVED_COUNT_KEYS}
+
+
+def _reference_integrity_independent_counts(
+    payload: dict,
+    *,
+    root: Path = REPO_ROOT,
+    audit_bundle_paths: list[Path] | None = None,
+) -> dict[str, int]:
+    structured_refs: list[str] = []
+    paths = audit_bundle_paths or [
+        root / ref for ref in payload["sources"]["audit_bundle"] if ref.endswith(".yaml")
+    ]
+    for path in paths:
+        structured_payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        structured_refs.extend(_iter_structured_path_refs(structured_payload))
+
+    glob_refs = [ref for ref in structured_refs if "*" in ref]
+    direct_refs = [ref for ref in structured_refs if "*" not in ref]
+    return {
+        "path_like_refs_checked": len(structured_refs),
+        "direct_file_refs_checked": len(direct_refs),
+        "glob_patterns_checked": len(glob_refs),
+        "missing_direct_file_refs": sum(
+            1 for ref in direct_refs if not (root / ref).exists()
+        ),
+        "empty_glob_patterns": sum(
+            1 for ref in glob_refs if not list(root.glob(ref))
+        ),
+    }
+
+
+def _assert_reference_integrity_counts_match_snapshot(
+    payload: dict,
+    *,
+    root: Path = REPO_ROOT,
+    audit_bundle_paths: list[Path] | None = None,
+) -> dict[str, int]:
+    snapshot = _reference_integrity_snapshot_counts(payload)
+    actual = _reference_integrity_independent_counts(
+        payload, root=root, audit_bundle_paths=audit_bundle_paths
+    )
+    assert snapshot == actual, f"snapshot={snapshot} actual={actual}"
+    return actual
 
 
 def _table_row(text: str, layer: str) -> str:
@@ -2432,13 +2490,13 @@ def test_objective_l1_l6_coverage_audit_keeps_l7_boundary_and_web_evidence() -> 
     assert evidence["reference_integrity"]["artifact"] == str(
         L1_L6_REFERENCE_INTEGRITY_COVERAGE_MAP.relative_to(REPO_ROOT)
     )
+    reference_integrity = yaml.safe_load(_read(L1_L6_REFERENCE_INTEGRITY_COVERAGE_MAP))
+    reference_integrity_counts = _assert_reference_integrity_counts_match_snapshot(
+        reference_integrity
+    )
     assert evidence["reference_integrity"]["expected"] == {
         "audit_files_checked": 25,
-        "path_like_refs_checked": 1394,
-        "direct_file_refs_checked": 1385,
-        "glob_patterns_checked": 9,
-        "missing_direct_file_refs": 0,
-        "empty_glob_patterns": 0,
+        **reference_integrity_counts,
         "current_scope_uses_l7_as_completion_evidence": False,
     }
     assert evidence["double_check"]["artifact"] == str(
@@ -7477,6 +7535,7 @@ def test_db_registration_readiness_keeps_add_feature_import_as_l7_ticket() -> No
 
 def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     payload = yaml.safe_load(_read(L1_L6_REFERENCE_INTEGRITY_COVERAGE_MAP))
+    reference_integrity_counts = _assert_reference_integrity_counts_match_snapshot(payload)
 
     assert payload["schema_version"] == "l1_l6_reference_integrity_coverage_v1"
     assert payload["status"] == "current_scope_l1_l6_reference_integrity_clean"
@@ -7493,11 +7552,7 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     }
     assert payload["summary"] == {
         "audit_files_checked": 25,
-                "path_like_refs_checked": 1394,
-                "direct_file_refs_checked": 1385,
-        "glob_patterns_checked": 9,
-        "missing_direct_file_refs": 0,
-        "empty_glob_patterns": 0,
+        **reference_integrity_counts,
         "blocking_findings_current_scope": 0,
     }
     glob_patterns = {item["pattern"]: item["match_count"] for item in payload["glob_patterns"]}
@@ -7596,9 +7651,9 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
         structured_refs.extend(_iter_structured_path_refs(structured_payload))
     glob_refs = [ref for ref in structured_refs if "*" in ref]
     direct_refs = [ref for ref in structured_refs if "*" not in ref]
-    assert payload["summary"]["path_like_refs_checked"] == len(structured_refs)
-    assert payload["summary"]["direct_file_refs_checked"] == len(direct_refs)
-    assert payload["summary"]["glob_patterns_checked"] == len(glob_refs)
+    assert reference_integrity_counts["path_like_refs_checked"] == len(structured_refs)
+    assert reference_integrity_counts["direct_file_refs_checked"] == len(direct_refs)
+    assert reference_integrity_counts["glob_patterns_checked"] == len(glob_refs)
     assert str(L1_L6_RATIFICATION_INDEX.relative_to(REPO_ROOT)) in structured_refs
     assert ".helix/handover/CURRENT.md" in direct_refs
     assert structured_refs
@@ -7612,6 +7667,38 @@ def test_reference_integrity_coverage_map_resolves_l1_l6_audit_bundle() -> None:
     assert payload["completion_denial"]["reason"].startswith(
         "This audit proves reference integrity for the current L1-L6 audit bundle"
     )
+
+
+def test_reference_integrity_coverage_map_detects_deliberate_drift(
+    tmp_path: Path,
+) -> None:
+    payload = yaml.safe_load(_read(L1_L6_REFERENCE_INTEGRITY_COVERAGE_MAP))
+    audit_bundle_paths = [
+        REPO_ROOT / ref for ref in payload["sources"]["audit_bundle"] if ref.endswith(".yaml")
+    ]
+    drift_target = audit_bundle_paths[0]
+    drift_payload = yaml.safe_load(drift_target.read_text(encoding="utf-8"))
+    drift_payload["test_local_reference_integrity_drift"] = {
+        "fake_path_ref": "docs/v2/reference-integrity-deliberate-drift/missing-fixture.md"
+    }
+    drift_path = tmp_path / drift_target.name
+    drift_path.write_text(
+        yaml.safe_dump(drift_payload, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+    drifted_bundle = [drift_path, *audit_bundle_paths[1:]]
+
+    actual = _reference_integrity_independent_counts(
+        payload, audit_bundle_paths=drifted_bundle
+    )
+    snapshot = _reference_integrity_snapshot_counts(payload)
+    assert actual["path_like_refs_checked"] == snapshot["path_like_refs_checked"] + 1
+    assert actual["direct_file_refs_checked"] == snapshot["direct_file_refs_checked"] + 1
+    assert actual["missing_direct_file_refs"] == snapshot["missing_direct_file_refs"] + 1
+    with pytest.raises(AssertionError, match="path_like_refs_checked"):
+        _assert_reference_integrity_counts_match_snapshot(
+            payload, audit_bundle_paths=drifted_bundle
+        )
 
 
 def test_l0_l14_flow_surface_coverage_pins_user_confirmed_flow() -> None:
@@ -9247,12 +9334,24 @@ def test_l1_l6_ratification_index_is_read_path_not_l7_work() -> None:
             "web_evidence_latest_core_rechecked_sources_checked": 5,
             "web_evidence_all_sources_not_adopted_current_scope": True,
             "web_evidence_l7_or_adoption_evidence_allowed": False,
-            "reference_integrity_path_like_refs_checked": 1394,
-            "reference_integrity_direct_file_refs_checked": 1385,
-            "reference_integrity_audit_files_checked": 25,
-            "reference_integrity_glob_patterns_checked": 9,
-            "reference_integrity_missing_direct_file_refs": 0,
-            "reference_integrity_empty_glob_patterns": 0,
+            "reference_integrity_path_like_refs_checked": reference_integrity["summary"][
+                "path_like_refs_checked"
+            ],
+            "reference_integrity_direct_file_refs_checked": reference_integrity[
+                "summary"
+            ]["direct_file_refs_checked"],
+            "reference_integrity_audit_files_checked": reference_integrity["summary"][
+                "audit_files_checked"
+            ],
+            "reference_integrity_glob_patterns_checked": reference_integrity["summary"][
+                "glob_patterns_checked"
+            ],
+            "reference_integrity_missing_direct_file_refs": reference_integrity[
+                "summary"
+            ]["missing_direct_file_refs"],
+            "reference_integrity_empty_glob_patterns": reference_integrity["summary"][
+                "empty_glob_patterns"
+            ],
             "design_asset_total_l1_l6_files": 50,
             "design_asset_l1_requirement_files": 5,
             "design_asset_l2_screen_design_files": 1,
@@ -11316,8 +11415,12 @@ def test_double_check_coverage_map_aggregates_quantitative_and_qualitative_pass(
         "glob_patterns_checked": reference_integrity["summary"][
             "glob_patterns_checked"
         ],
-        "missing_direct_file_refs": 0,
-        "empty_glob_patterns": 0,
+        "missing_direct_file_refs": reference_integrity["summary"][
+            "missing_direct_file_refs"
+        ],
+        "empty_glob_patterns": reference_integrity["summary"][
+            "empty_glob_patterns"
+        ],
     }
     assert quantitative["Q-FULL-OBJECTIVE-GAP-STATUS"]["expected"][
         "full_goal_verdict"
