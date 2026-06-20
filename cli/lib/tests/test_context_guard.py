@@ -1,5 +1,7 @@
 import json
+import math
 import py_compile
+import re
 import sys
 from pathlib import Path
 
@@ -7,13 +9,43 @@ import pytest
 
 
 LIB_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+STOP_HOOK_PATH = REPO_ROOT / "cli" / "helix-stop-hook"
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
 import context_guard
+from cli.lib import handover_auto_dump
 
 
 MODULE_PATH = LIB_DIR / "context_guard.py"
+THRESHOLD_DENYLIST = (
+    re.compile(r"(?<![\d.])0\.70(?!\d)"),
+    re.compile(r"(?<![\d.])0\.7(?!\d)"),
+    re.compile(r"(?<!\d)70%(?!\d)"),
+)
+THRESHOLD_CONTRACT_SITES = {
+    "cli/helix-stop-hook": (
+        'CONTEXT_BUDGET["fresh_session_threshold_pct"]',
+        "echo 0.6666",
+        'os.environ.get("THRESHOLD", "0.6666")',
+    ),
+    "cli/helix-harness": (
+        "0.6666",
+        "context_guard SSoT",
+    ),
+    "cli/lib/handover_auto_dump.py": (
+        'DEFAULT_THRESHOLD = CONTEXT_BUDGET["fresh_session_threshold_pct"]',
+    ),
+    "HELIX-workflows/helix-process/continuous-run-context-management.md": (
+        "fresh_session_threshold_pct",
+        "0.6666",
+    ),
+    "HELIX-workflows/helix-process/layer-context-injection.md": (
+        "fresh_session_threshold_pct",
+        "0.6666",
+    ),
+}
 
 
 def test_module_py_compile() -> None:
@@ -254,11 +286,40 @@ def test_check_context_reports_context_budget(tmp_path: Path) -> None:
     _write_settings(tmp_path)
 
     payload = context_guard.check_context(tmp_path)
+    budget = payload["context_budget"]
+    derived_threshold = math.floor(
+        (1 - budget["output_reserve_min"] / budget["max_total_tokens"]) * 10000
+    ) / 10000
+    exact_threshold = 1 - budget["output_reserve_min"] / budget["max_total_tokens"]
 
-    assert payload["context_budget"]["max_total_tokens"] == 150000
-    assert payload["context_budget"]["fresh_session_threshold_pct"] == 0.7
+    assert budget["max_total_tokens"] == 150000
+    assert budget["fresh_session_threshold_pct"] == derived_threshold
+    assert budget["fresh_session_threshold_pct"] <= exact_threshold
     assert payload["context_profile"]["profile"] == "task"
     assert "current PLAN / handover" in payload["context_profile"]["dynamic_load"]
+
+
+def test_context_budget_threshold_contract_sites_stay_in_sync() -> None:
+    budget = context_guard.CONTEXT_BUDGET
+    derived_threshold = math.floor(
+        (1 - budget["output_reserve_min"] / budget["max_total_tokens"]) * 10000
+    ) / 10000
+    exact_threshold = 1 - budget["output_reserve_min"] / budget["max_total_tokens"]
+
+    assert budget["fresh_session_threshold_pct"] == derived_threshold
+    assert budget["fresh_session_threshold_pct"] <= exact_threshold
+    assert handover_auto_dump.DEFAULT_THRESHOLD == derived_threshold
+    for rel_path, required_fragments in THRESHOLD_CONTRACT_SITES.items():
+        text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+        for pattern in THRESHOLD_DENYLIST:
+            assert pattern.search(text) is None, (
+                f"{rel_path} still contains forbidden threshold literal: {pattern.pattern}"
+            )
+        for fragment in required_fragments:
+            assert fragment in text, f"{rel_path} missing threshold contract fragment: {fragment}"
+
+    stop_hook = STOP_HOOK_PATH.read_text(encoding="utf-8")
+    assert 'threshold_pct = "66%"' in stop_hook
 
 
 def test_main_defaults_to_check_without_subcommand(monkeypatch, capsys, tmp_path: Path) -> None:

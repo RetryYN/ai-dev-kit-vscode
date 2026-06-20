@@ -16,7 +16,7 @@ Subcommands:
 
 Options:
   --json              JSON 出力
-  --threshold <float> compact 推奨 threshold (default: 0.70)
+  --threshold <float> compact 推奨 threshold (default: 0.6666, context_guard SSoT 由来)
   --days <int>        feedback-loop / status の参照 window (default: 7)
   --limit <int>       feedback-loop の最大候補数 (default: 20)
 EOF

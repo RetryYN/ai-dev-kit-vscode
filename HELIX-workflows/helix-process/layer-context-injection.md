@@ -42,7 +42,7 @@ L 単位注入は「必要なものを増やす」だけではなく、「常時
 | implementation | 実装委譲 | task の要約 | allowed_files、acceptance、対象テスト、焦点 reference | 関係ない設計書、長大な tool 出力 |
 | recovery | エラー収束 | kernel + 現在 blocker | 直近の失敗要約、再現手順、差分 | raw transcript、試行錯誤ログ全文 |
 
-標準予算は `helix context check --json` の `context_budget` を正とする。初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct=0.70`。この閾値を超える見込みなら、追加注入ではなく handover 要約 + fresh session を優先する。
+標準予算は `helix context check --json` の `context_budget` を正とする。初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct = floor((1 - output_reserve_min/max_total_tokens)×10^4)/10^4 (reserve 厳守の上限率、現値 0.6666)`。この閾値を超える見込みなら、追加注入ではなく handover 要約 + fresh session を優先する。
 
 重要な制約:
 

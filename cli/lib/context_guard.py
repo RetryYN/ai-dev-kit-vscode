@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -37,12 +38,18 @@ FRAMEWORK_GUARD_FILES = [
 CONTEXT_BUDGET = {
     "max_total_tokens": 150000,
     "output_reserve_min": 50000,
-    "fresh_session_threshold_pct": 0.70,
     "always_on_target_tokens": 12000,
     "dynamic_task_target_tokens": 30000,
     "focused_reference_target_tokens": 60000,
     "history_summary_target_tokens": 48000,
 }
+CONTEXT_BUDGET["fresh_session_threshold_pct"] = math.floor(
+    (
+        1
+        - CONTEXT_BUDGET["output_reserve_min"] / CONTEXT_BUDGET["max_total_tokens"]
+    )
+    * 10000
+) / 10000
 
 CONTEXT_PROFILE = {
     "profile": "task",

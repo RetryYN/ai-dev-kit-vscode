@@ -25,7 +25,7 @@ integration_target:
 
 ## context hygiene baseline
 
-自動走行は、長時間継続よりも tool call 安定性を優先する。注入量は `helix context check --json` の `context_budget` を正とし、初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct=0.70` とする。
+自動走行は、長時間継続よりも tool call 安定性を優先する。注入量は `helix context check --json` の `context_budget` を正とし、初期値は `max_total_tokens=150000`、`output_reserve_min=50000`、`fresh_session_threshold_pct=floor((1 - output_reserve_min/max_total_tokens)×10^4)/10^4 = 0.6666`（reserve 厳守の上限率、context_guard が SSoT）とする。
 
 運用ルール:
 
@@ -47,7 +47,7 @@ integration_target:
 仕組み:
 
 ```
-Claude（対話）作業 → context 0.70 到達 → handover 記録
+Claude（対話）作業 → context 0.6666（fresh_session_threshold_pct）到達 → handover 記録
    → Codex が新 Claude セッションを起動（tmux new-session 'claude'）← fresh・サブスク内
    → 新 Claude が handover を読んで再開 → Codex が旧 Claude を終了
 ```
@@ -74,7 +74,7 @@ Claude（対話）作業 → context 0.70 到達 → handover 記録
 tmux new-session -d -s helix 'claude'
 while true; do
   pct="$(python3 -m cli.lib.handover_auto_dump context-pct --json 2>/dev/null | jq -r '.context_pct_estimate // 0')"
-  awk "BEGIN{exit !($pct >= 0.70)}" && tmux send-keys -t helix '/compact' Enter
+  awk "BEGIN{exit !($pct >= 0.6666)}" && tmux send-keys -t helix '/compact' Enter
   sleep 60
 done
 ```

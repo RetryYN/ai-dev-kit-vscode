@@ -17,8 +17,9 @@ if str(SCRIPT_DIR) not in sys.path:
 from cli.lib import handover as handover_core
 from cli.lib import session_helper
 from cli.lib import agent_slots
+from cli.lib.context_guard import CONTEXT_BUDGET
 
-DEFAULT_THRESHOLD = 0.70
+DEFAULT_THRESHOLD = CONTEXT_BUDGET["fresh_session_threshold_pct"]
 DEFAULT_MESSAGE_LIMIT = 2000
 
 
