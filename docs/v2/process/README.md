@@ -104,14 +104,14 @@ docs/plans/
 └── L8/ ... L14/
 ```
 
-### 既存 PLAN (V1) の扱い — 参考扱い、製本にしない (2026-05-24 確立)
+### 既存 PLAN (旧形式 PLAN) の扱い — 参考扱い、製本にしない (2026-05-24 確立)
 
-> **完全 V2 移行ポリシー**: 既存 V1 PLAN (`PLAN-NNN-slug`) は **参考プラン**として保持するのみ。**製本 (HELIX V2 の正本) にはしない**。製本したい場合は **新命名規則 `L<NN>-○○○plan` で新規書き直し**する。
+> **完全移行ポリシー**: 既存の旧形式 PLAN (`PLAN-NNN-slug`) は **参考プラン**として保持するのみ。**製本 (HELIX の正本) にはしない**。製本したい場合は **新命名規則 `L<NN>-○○○plan` で新規書き直し**する。
 >
-> - **既存 V1 PLAN 223 件**: `docs/plans/legacy/` に隔離 (or frontmatter に `is_reference: true` / `status: legacy` で marking)
-> - **retrofit (rename / 内容更新) は行わない**: V1 → V2 の機械 rename は前提が違うため意味がない。書き直す
-> - **plan_validator / helix doctor の対象は V2 形式のみ**: V1 形式は legacy として skip
-> - **新規 PLAN は V2 形式必須**: `docs/plans/L<NN>/L<NN>-○○○plan.md` + 新 frontmatter
+> - **既存の旧形式 PLAN(PLAN-NNN) 223 件**: `docs/plans/legacy/` に隔離 (or frontmatter に `is_reference: true` / `status: legacy` で marking)
+> - **retrofit (rename / 内容更新) は行わない**: 旧形式から新命名規則への機械 rename は前提が違うため意味がない。書き直す
+> - **plan_validator / helix doctor の対象は新形式のみ**: 旧形式 PLAN(PLAN-NNN) は legacy として skip
+> - **新規 PLAN は新形式必須**: `docs/plans/L<NN>/L<NN>-○○○plan.md` + 新 frontmatter
 
 ## 各工程の PLAN 一覧 (HELIX-workflows 正本)
 
@@ -197,7 +197,7 @@ L7 実装が未承認の監査・設計補正では、L6 の `*-UT-CAND-*` 単�
 
 ### 既存設計 doc / PLAN の扱い — 参考扱いで隔離、書き直しで V2 製本
 
-> **完全 V2 移行ポリシー (2026-05-24)**: 既存 V1 資産は参考扱い、製本は V2 で書き直す。
+> **完全移行ポリシー (2026-05-24)**: 既存の旧資産(旧形式 PLAN 等)は参考扱い、製本は新命名規則で書き直す。
 
 - `docs/v2/L1-REQUIREMENTS.md` → 参考保持。製本したい部分は新 `docs/v2/L1-requirements/` + 新 `docs/v2/L3-requirements-definition/` で書き直し (carry)
 - `docs/v2/L2-MASTER.md` → 参考保持。製本したい部分は新 `docs/v2/L4-basic-design/` で書き直し (carry)
