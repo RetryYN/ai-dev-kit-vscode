@@ -10,8 +10,12 @@ related_l3_fr:
   - FR-FNREG-01
   - FR-INV-01
 generates: []
-pairs_test_design: []
+pairs_test_design:
+  - docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
 implementation_status: in_progress
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
+f1_registration_ssot: HELIX-workflows/helix-process/db-auto-registration.md  # F1-2 SSoT一本化の設計正本(G)。本docは派生view(再宣言しない)
 created: 2026-05-29
 audit_history:
   - 2026-05-29: pmo-sonnet (Wave C draft) — Wave A/B inventory 統合
@@ -50,6 +54,7 @@ audit_history:
 - **登録単位の必須項目**: 機能名 / 一行説明 / L1 FR trace / L3 FR trace / status（active 等）。§2 summary の件数も同期する。
 - **機械 enforcement**: `helix doctor check_functional_registry`（L4 carry）が §3〜§9 の ID と実コード（cli/lib/hook/agent/skill/workflow/template）を突合し、**未登録資産を fail-close で検出**する。実装までは本 exit 条件を手続きで担保し、実装後は gate で担保する（Phase 検証で whole-coverage detector に統合）。
 - **駆動 workflow doc 側の参照**: add-feature / reverse / retrofit の各 workflow doc は本 §1.5 を exit 条件として参照する（規律の再定義はせず本 doc を SSoT とする）。
+- **F1 登録自動化との関係（trace、再宣言しない）**: 本 registry が「md 手編集 + `cli/config/functional-registry.yaml` 手 seed の二重手動」である現状（`check_fr_sot_alignment` で md⇔yaml を機械照合）を、自動登録（code/doc/test 作成 → 増分登録）と SSoT 一本化（yaml 正本・md は生成 view）で解消する設計は **G 正本 [db-auto-registration.md §F1-1〜F1-3](../../../HELIX-workflows/helix-process/db-auto-registration.md)** が持つ。本 doc はその G-tier 機構を**再宣言せず参照のみ**（G-P drift 回避）。実装は F1 駆動（Reverse→Add-feature）で GOAL-C 着地後。帰属 = [設計クローズ ledger](../audit/2026-06-21-l1-l6-design-closure-ledger.yaml) `closed_via_g_reference: F1`。
 
 ## §1.6 coverage_layer 必須 — 設計層への全件被覆 (zero-omission, 2026-06-07)
 

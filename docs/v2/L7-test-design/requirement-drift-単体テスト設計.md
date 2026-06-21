@@ -6,6 +6,9 @@ layer: L7
 pairs_design: docs/v2/L6-functional-design/requirement-drift-機能設計.md
 pairs_with: L6-functional-design
 implementation_status: implemented-mvp
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+test_execution_evidence: "24 passed (test_requirement_drift.py + test_requirement_drift_test_design.py, 2026-06-21)"
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-09
 ---

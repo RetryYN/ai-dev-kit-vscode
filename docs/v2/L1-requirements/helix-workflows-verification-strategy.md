@@ -7,6 +7,9 @@ owner: PM
 process_layer: L1
 doc_kind: verification-strategy
 scope: cross-cutting
+pairs_with: L14
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 governs:
   - docs/v2/L14-test-design/helix-workflows-operational-test-design.md
   - docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md
@@ -87,7 +90,7 @@ L1 要求 doc は `pairs_with: L14`（構造ペア）を持つが、要求種別
 - **TR** → L4/L9, L5/L8, L7。
 - **NFR-MG/PF/SC/SE** → L12/L9/専用 security・perf。
 
-→ L1 functional/technical/nfr doc に `verification_layers` frontmatter を追加し、detector が「pair_layer=L14 ≠ 検証層」を機械識別できるようにする（frozen doc 改変につき G1 再凍結を伴う、実施可否は Phase1/Phase2 で判断）。
+→ L1 functional/technical/nfr doc に `verification_layers` frontmatter を追加し、detector が「pair_layer=L14 ≠ 検証層」を機械識別できるようにする。**【実施済・確定 2026-06-21】** `verification_layers` は L1 全 doc（business / functional / nfr / technical / 本 strategy）へ追加済で、`cli/lib/trace_symmetry.py` が消費している（frozen doc は再凍結済）。当初の「Phase1/Phase2 で判断」は 2026-06-08 のロードマップ廃止（検証＝Forward 内在ゲート）に伴い廃案＝この §7 契約は **resolved**。
 
 ## 8. 各 pair の検証層マッピング（現状）
 | pair | 検証層の意味 | 2026-06-03 状態（Phase2 完遂後） |

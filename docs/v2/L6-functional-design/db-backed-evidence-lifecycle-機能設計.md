@@ -9,6 +9,9 @@ parent_design:
   - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
   - docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md
 implementation_status: design_gap_closed_current_phase
+l7_test_design_status: feature_ticketed_deferred  # 機械契約 L4_L6_closed_L7_feature_ticketed (test_helix_l0_l14_flow_contract)。L7 test design は add-feature 境界=作らない
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # L4-L6 design closed (TL approve P0/P1=0)。L7 pair は feature-ticketed deferred 維持
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-10
 ---
@@ -60,6 +63,22 @@ created: 2026-06-10
 - **ensures**: `sha256(実体) == artifact_sha256` ∧ `exit_code == 0` のときのみ true。
 - **invariant**: field 不在 / sha256 不一致 / 別 commit 由来は false（fail-close。未実行・改ざんを genuine 扱いしない）。
 
+### 3.2 定性レビュー genuine 判定の DbC（F3 — review_evidence の in-place 相乗り）
+
+定性レビュー健全性（F3）は、独立 doc を増やさず（G-P drift / count-pin cascade 回避、TL ruling 2026-06-21）、本 evidence lifecycle に「review evidence」種別として相乗りさせる。実体 detector は実装済（`cli/lib/review_evidence_checks.py` + 7 UT、commit 6a1bce3）であり、本節はその関数粒度 DbC を設計として固定する。F3 の pair（test 実装）は **既存 `cli/lib/tests/test_review_evidence_checks.py` の 7 UT が満たす**（L7 test design doc は新設しない＝F2 と同じ add-feature 境界規律。F3 は detector + 7 UT が実在するため pair は closed）。
+
+**`check_review_evidence(review_record) -> verdict`（DbC）**
+
+- **requires**: review_record が `review_id`・`review_kind`・`reviewer_role`・`reviewer_model`・`worker_model`・`reviewed_commit`・`review_output_path`・`review_output_sha256`・`tests_green_at`・`reviewed_at`・`verdict` を持つ（schema = no_leak_foundation_review §6.3）。
+- **ensures**: `genuine=true` は次の AND を全て満たすときのみ。
+  - `reviewer_model != worker_model`（自己レビュー禁止 = reviewer≠worker）。
+  - `sha256(review_output 実体) == review_output_sha256`（改ざん検知）。
+  - `verdict が指す commit == reviewed_commit`（古いレビュー流用禁止）。
+  - `tests_green_at <= reviewed_at`（green 前レビューを genuine にしない）。
+- **invariant**: いずれか不成立 / field 不在は `genuine=false`（fail-close）。`tl_review=="approve"` の **文字列一致のみ**で gate を通さない（脆い text match を genuine 判定の根拠にしない）。
+
+`exec_status` と同様、`review_genuine=false` の record は pair_closure の `semantic_gate` 充足に算入しない（定性レビューの偽装・改ざん・skip を pass に数えない）。
+
 ## 4. Output Contract
 
 ```yaml
@@ -104,6 +123,10 @@ db_backed_evidence_lifecycle:
 | recurrence_status が `closed` / `monitored_with_owner` 以外 | closure 不可 |
 | strict full-flow `deferred_count > 0` | full goal completion 不可 |
 
-## 6. L7 起票
+## 6. L7 起票（test 設計は add-feature 境界＝explicit deferred）
 
 本タスクでは L7 単体テスト設計を作成しない。L7 で `DBEV-UT-*` を定義し、既存 `UT-*` inventory へ混入させない契約を固定する作業は `docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md` で feature 起票する。
+
+- **設計クローズ上の位置づけ（2026-06-21）**: 機械契約（`test_helix_l0_l14_flow_contract`）が `design_gap_status = L4_L6_closed_L7_feature_ticketed` を pin している。すなわち **L4-L6 の設計は closed、L7 単体テスト設計は add-feature 境界で explicit deferred**（hollow freeze ではなく documented boundary）。本クローズはこの契約を尊重し、L7 test design doc を作成しない（`db-backed-evidence-lifecycle-単体テスト設計.md` は存在させない）。
+- **F3 分は例外的に closed**: `DBEV-UT-R*`（F3 review_evidence、§3.2）は detector `cli/lib/review_evidence_checks.py` + 既存 7 UT が pair を満たすため、L7 add-feature を待たずに closed。
+- 帰属: [設計クローズ ledger](../audit/2026-06-21-l1-l6-design-closure-ledger.yaml) `closed_items: F2-L4/L5/L6 + F3`、`explicitly_deferred: F2-L7-pair（feature-ticketed）`。

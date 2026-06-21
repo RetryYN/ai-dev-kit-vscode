@@ -9,6 +9,8 @@ parent_design:
   - docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md
   - docs/v2/L5-detailed-design/物理データ設計.md
 implementation_status: design_gap_closed_current_phase
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-10
 ---
@@ -111,6 +113,14 @@ exec_evidence_id = sha256(run_id + commit_sha + target_pair + gate_id)
 ### 6.4 gate 参照（再実行しない）
 
 gate は変更 pair の exec_evidence を**参照のみ**で判定する（L4 §7 F2-2）。artifact が無い / genuine でなければ fail-close。gate 内で test を再実行しない（速度維持）。
+
+### 6.5 定性レビュー証跡の詳細（F3 — L4 §F3-1 の L5 詳細化）
+
+F3 `review_evidence`（L4 §F3-1 / L6 §3.2）を既存 DB 上の内部表現として詳細化する。新規 schema は追加しない。
+
+- **保存**: review record を既存 `events` / `audit_log` の payload（JSON）に `review_id` と紐付けて格納。`review_output_sha256` はレビュー出力実体（tl-advisor / code-review JSON）を正規化した content hash。
+- **冪等 key**: `review_evidence_id = sha256(review_id + reviewed_commit + review_output_sha256)`。同一レビューの重複登録を排し、別 commit のレビュー流用を弾く（F2 の `exec_evidence_id` と同型）。
+- **検証**: detector（`review_evidence_checks.py`、実装済）が reviewer≠worker / sha256 一致 / commit 一致 / `tests_green_at <= reviewed_at` を判定。いずれか不成立は `review_genuine=false`（fail-close）。`tl_review=="approve"` の文字列一致のみでは genuine としない。
 
 ## 7. Non-goals
 

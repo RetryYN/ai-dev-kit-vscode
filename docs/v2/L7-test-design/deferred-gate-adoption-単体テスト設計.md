@@ -3,9 +3,12 @@ doc_id: L7-TEST-DESIGN-DEFERRED-GATE-ADOPTION
 title: "deferred gate adoption queue 単体テスト設計"
 status: draft
 layer: L7
-pairs_design: docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md
-pairs_with: process-roadmap
+pairs_design: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md
+pairs_with: L6-functional-design
+pairs_design_note: "DBEV-FN-08 emit_completion_guard_summary (L6 focus clean != full-flow completion) の test design pair。旧 pairs_design=process-2026-06-03-v2-implementation-roadmap.md は 2026-06-08 廃止ロードマップ (deprecated, history) のため設計 doc へ付け替え (2026-06-21 closure)。"
 implementation_status: implemented-contract
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-09
 ---
@@ -54,6 +57,8 @@ created: 2026-06-09
 | DGA-UT-08 | adoption readiness is explicit | test-design / roadmap contract | candidate, PLAN materialization, gate implementation, CI enforcement, and feedback closure are separate states |
 | DGA-UT-09 | deferred pairs cannot be counted as closed gates | strict VG-overview / completion guard | G9/G12/G14 remain adoption_required until execution gate implementation and pass evidence exist; G8 stays recorded in the four-gate ledger but no longer counts toward current deferred_count |
 | DGA-UT-10 | adoption handoff remains non-destructive | feedback-loop JSON / DB snapshot | readiness evidence can be registered, but detector/gate files and DB schema are not modified automatically |
+
+> **`HELIX_DOCTOR_SKIP_EXEC_TESTS` の適用範囲（§4 fixture と §7 commands の整合）**: DGA-UT-01（L6 focus 既定）は exec gate を起動しないため `SKIP_EXEC_TESTS` 有無に依存しない（fixture は bare `check_vg_overview --json` のままで正しい）。DGA-UT-02/09（strict full-flow, 右腕 G8/G9/G12/G14）は exec 検証に触れるため、§7 の `HELIX_DOCTOR_SKIP_EXEC_TESTS=1` 経路で検証する。**F2 契約（db-backed-evidence-lifecycle §3.1 / L4 §7）に従い、skip 時は `exec_skipped` であって pass に算入しない**（adoption_required のまま、deferred_count に反映）。§7 commands と §4 fixture の差はこの適用範囲差であり、不整合ではない。
 
 ## 5. Acceptance Surfaces
 

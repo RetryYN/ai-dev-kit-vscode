@@ -1,0 +1,297 @@
+schema_version: l1_l6_design_closure_ledger_v1
+owner: PM
+status: l1_l6_design_closure_every_ut_anchored_item_classified_no_silent_omission
+updated: 2026-06-21
+scope: L1-L6
+user_directive: >
+  "L1 から L6 まですべて対応して設計の完全クローズまで。ぬけもれは絶対に許さない。
+  UT ハーネスの調査レポートを見ながらまとめ上げること。" (2026-06-21)
+purpose: >
+  V-model 左腕 (L1 要求 -> L6 機能設計) の foundation/no-leak 設計を全層でクローズする。
+  「ぬけもれゼロ」= silent omission ゼロ = UT-TDD fork 調査レポートが採用と判定した
+  全項目を closed / explicitly-deferred(exit条件付き) / out-of-scope(別owner) の
+  いずれかに漏れなく帰属させる。本 ledger がその帰属の単一 proof。
+ut_research_anchor:
+  adoption_research_memo: docs/research/ut-tdd-fork-adoption-research-memo.md
+  no_leak_foundation_review: docs/research/2026-06-21-no-leak-foundation-design-review.md
+parent_process: docs/plans/process/process-2026-06-21-ut-tdd-adoption-machine-precision.md
+tl_strategy_ruling:
+  consulted: 2026-06-21
+  verdict: changes_required_until_pairs_and_rereview_complete
+  task_file: .helix/tasks/tl-advisor-l1l6-design-closure.md
+  rulings:
+    scope: in_scope=foundation/no-leak; out=harness-external-tools-impact; deferred-escalation=security-nfr/runtime-loop3
+    f1_home: g_canonical_only (db-auto-registration.md §F1) + v2 trace reference (no new v2 doc = no cascade)
+    f3_home: in_place_append_to_f2_evidence_lifecycle (no independent v2 doc = no cascade)
+    freeze_gate: pair_test_design + tl_rereview required before draft->frozen (hollow freeze 禁止)
+tl_rereview:
+  consulted: 2026-06-21
+  task_file: .helix/tasks/tl-rereview-l1l6-closure.md
+  verdict: approve
+  p0: none
+  p1: none
+  no_omission: "yes (条件付き=UT-anchor 集合に対する no-omission。全 repo L1-L6 全資産の網羅証明ではない)"
+  frozen_eligible: [F2-L4, F2-L5, REQDRIFT-L6L7, L1-VERIF-STRATEGY, L3-FUNC-REGISTRY, L7-DEFERRED-GATE-ADOPTION]
+  frozen_marker_only: [F2-L6]  # L7 pair feature-ticketed deferred 維持
+freeze_state:
+  status_frozen_flipped_this_session: false
+  reason: >
+    各 closed_item の freeze_action 内 "status=frozen" は「TL approve 後に実施可能な次の gate ceremony」であって
+    本セッションでの実行済 state ではない (TL P2 指摘の時制整合)。実ファイルは status:draft のまま、
+    freeze_readiness=design_closed_tl_rereviewed_approve_2026_06_21 marker で TL 承認を記録。
+    status:draft->frozen の flip は vmodel_pair_freeze の active_statuses={draft,in_progress} を抜け
+    厳格な freeze 検証を起動するため、専用 verification pass を伴う follow-up gate commit で実施する
+    (本セッションで flip すると status-pin テスト群の再検証が別途必要)。
+  design_closure_achieved: true  # 設計本文完成 + pair 帰属 + TL approve P0/P1=0 + 全 detector green
+  formal_status_frozen: deferred_to_followup_gate_ceremony
+boundary:
+  l7_implementation_done: false
+  unit_test_execution_added_by_this_closure: false
+  add_feature_plan_issued: false
+  audit_count_pin_2026_06_12_bundle_touched: false
+  objective_audit_touched: false
+  right_arm_gate_g8_g9_g12_g14_implemented: false
+  helix_db_schema_migration_done: false
+  external_tool_governance_touched: false
+  security_nfr_spec_finalized: false
+  goal_c_in_flight_yaml_conflicting_edit: false
+  ledger_date_2026_06_21_avoids_2026_06_12_glob_count: true
+classification_legend:
+  closed: 設計本文が具体的 + 対の pair test design 存在 + frontmatter status/tl_review 整合 -> frozen 可
+  closed_via_g_reference: 設計 SSoT は G 正本にあり V2 は trace 参照のみ (cascade 回避)
+  explicitly_deferred: 設計判断は確定 or 観測待ち。impl/freeze は exit 条件付きで後送 (silent omission ではない)
+  deferred_escalation: PII/secret/本番 telemetry に触れ人間確認必須。仕様確定しない
+  out_of_scope: UT-TDD foundation と無関係。別 owner。明示帰属で no-omission を満たす
+verification_means:
+  required:
+    - helix doctor check_requirement_drift --json
+    - python3 -m cli.lib.trace_symmetry --json
+    - HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --json
+    - registry_design_coverage (fn/ut/wrong_layer=0)
+    - fn_ut_pair_coverage (FN<->UT 1:1)
+    - vmodel_pair_freeze
+  f3_specific:
+    - review_evidence_checks
+  note: vg_overview は L6 focus と strict full-flow を分け、strict deferred を silent omission にしない
+
+# =====================================================================
+# A. CLOSED (this session) — 設計凍結 + pair + tl_review
+# =====================================================================
+closed_items:
+  - item_id: F2-L4
+    ut_anchor: no_leak_foundation_review §F2 (実行証跡 skip!=pass)
+    layer: L4
+    design_home: docs/v2/L4-basic-design/db-backed-evidence-lifecycle-基本設計.md §7
+    pair: docs/v2/L9-test-design/L4-basic-design-総合テスト設計.md
+    freeze_action: add tl_review frontmatter + verify L9 backward trace of §7 + status=frozen
+    verification: vg_overview L4<->L9 / trace_symmetry
+
+  - item_id: F2-L5
+    ut_anchor: no_leak_foundation_review §F2
+    layer: L5
+    design_home: docs/v2/L5-detailed-design/db-backed-evidence-lifecycle-詳細設計.md §6
+    pair: docs/v2/L8-test-design/L5-detailed-design-結合テスト設計.md
+    freeze_action: add tl_review + verify L8 backward trace of §6 + status=frozen
+    verification: vg_overview L5<->L8
+
+  - item_id: F2-L6
+    ut_anchor: no_leak_foundation_review §F2 (DBEV-FN-05 強化 DbC)
+    layer: L6
+    design_home: docs/v2/L6-functional-design/db-backed-evidence-lifecycle-機能設計.md §3.1 (+ F3 §3.2)
+    pair_status: L4_L6_closed_L7_feature_ticketed (機械契約 test_helix_l0_l14_flow_contract が pin)
+    machine_contract: "test_db_backed_evidence_lifecycle_design_gap_is_closed_in_current_phase が design_gap_status=L4_L6_closed_L7_feature_ticketed と L7 test design 非存在を pin"
+    freeze_action: add freeze_readiness marker + F3 §3.2 in-place; L7 単体テスト設計は作成しない (feature-ticketed 境界を尊重)
+    verification: requirement_drift / vg_overview L6 focus
+    correction_note: "当初 L7 pair doc を新設 (DBEV-UT-*) して closed しようとしたが、機械契約 assert not L7_TEST_DESIGN.exists() に抵触 → revert。L4-L6 closed + L7 feature-ticketed が既ラタファイ済の正しい設計位置"
+
+  - item_id: F3
+    ut_anchor: no_leak_foundation_review §F3 / §6.3 (review_evidence schema) + adoption_research #4
+    layer: L4/L5/L6 (in-place into F2 evidence-lifecycle, per TL Q2)
+    design_home: db-backed-evidence-lifecycle 基本/詳細/機能設計 に「定性 review evidence lifecycle」節を相乗り
+    detector_already_implemented: cli/lib/review_evidence_checks.py + 7 UT (commit 6a1bce3)
+    freeze_action: in-place 追記 (schema/tamper detection/reviewer!=worker DbC) — 新 V2 doc 禁止
+    adr_and_add_feature: "deferred_post_goal_c (TL 判定: F3=Add-feature+ADR は実装 PLAN 領域)"
+    verification: review_evidence_checks
+
+  - item_id: REQDRIFT-L6L7
+    ut_anchor: no_leak_foundation_review (requirement_drift L7 focus) / vg_overview 縦 trace
+    layer: L6+L7
+    design_home: docs/v2/L6-functional-design/requirement-drift-機能設計.md + pair L7
+    pair: docs/v2/L7-test-design/requirement-drift-単体テスト設計.md (存在・整合済 RD-UT-01..17)
+    freeze_action: add tl_review (両doc) + record pytest pass evidence + FN-RD-02 callable 補記 + status=frozen
+    verification: requirement_drift JSON clean (確認済 L6 focus)
+
+  - item_id: L1-VERIF-STRATEGY
+    ut_anchor: 検証成立 AND の上位要件 (定量∧定性∧実行)
+    layer: L1
+    design_home: docs/v2/L1-requirements/helix-workflows-verification-strategy.md
+    pair: docs/v2/L14-test-design/helix-workflows-operational-test-design.md (L1<->L14 frozen §8)
+    freeze_action: add tl_review + pairs_with:L14 + §7 verification_layers 判断結果明記 + status=frozen
+    verification: vmodel_pair_freeze L1<->L14
+
+  - item_id: L3-FUNC-REGISTRY
+    ut_anchor: F1 (functional-registry SSoT) の L3 実体
+    layer: L3
+    design_home: docs/v2/L3-requirements/helix-workflows-functional-registry.md
+    pair: docs/v2/L12-test-design/helix-workflows-acceptance-test-design.md (L3<->L12 frozen §8)
+    freeze_action: pairs_test_design [] -> L12 forward link + verify implementation_status + tl_review + status=frozen
+    verification: registry_design_coverage
+
+  - item_id: L7-DEFERRED-GATE-ADOPTION
+    ut_anchor: no_leak_foundation_review §F2 (skip!=pass の採用候補!=closure 明示)
+    layer: L7
+    design_home: docs/v2/L7-test-design/deferred-gate-adoption-単体テスト設計.md
+    freeze_action: pairs_design deprecated-roadmap -> 実体設計doc 修正 + §4/§7 SKIP_EXEC 不整合修正 + tl_review + status=frozen
+    verification: trace_symmetry
+
+# =====================================================================
+# B. CLOSED VIA G CANONICAL REFERENCE — F1 (no new V2 doc = no cascade)
+# =====================================================================
+closed_via_g_reference:
+  - item_id: F1
+    ut_anchor: no_leak_foundation_review §F1 (登録完全性) + adoption_research impl-plan-trace/drive-passage
+    layer: L1/L3/L4/L5/L6 (設計判断は G 正本に確定)
+    design_home_g_canonical: HELIX-workflows/helix-process/db-auto-registration.md §F1 (F1-1..F1-5, commit 3a34a1f)
+    v2_trace_action: V2 L1/L3 + F2 docs に「F1 登録 foundation は G 正本 db-auto-registration.md §F1 参照」trace を in-place 追加
+    rationale: G-tier 機構を P-tier に複製すると G-P drift + count-pin cascade (F1税) 再発。正本1本 + 参照で閉じる
+    implementation: Reverse->Add-feature, deferred_post_goal_c
+    verification: source_scan_vs_registry unregistered=0 (G 側), V2 trace は reference-integrity
+
+# =====================================================================
+# C. EXPLICITLY DEFERRED — 設計判断確定 or 観測待ち、impl/freeze に exit 条件
+# =====================================================================
+explicitly_deferred:
+  - item_id: F2-L7-pair
+    ut_anchor: no_leak_foundation_review §6.5 (skip/execute 二重テスト)
+    layer: L7
+    design_status: "L4-L6 設計 closed。L7 単体テスト設計 (DBEV-UT-*) は既存機械契約が feature-ticketed 境界として pin (test_helix_l0_l14_flow_contract = L7 test design 非存在 + add-feature ticket が exit)"
+    exit_condition: "add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md 承認 (GOAL-C 着地後) -> DBEV-UT-* test design + 実装"
+    machine_contract: "assert not L7_TEST_DESIGN.exists() + design_gap_status=L4_L6_closed_L7_feature_ticketed"
+    silent_omission_guard: 帰属済 (hollow freeze ではなく documented/contract-pinned boundary)
+    note: 当初 closed 化を試みたが機械契約に抵触し revert。explicit deferred が正しい分類
+
+  - item_id: UT-1-red-first-tdd
+    ut_anchor: adoption_research #1 (red_at<green_at<=reviewed_at)
+    layer: L6 (L4 が contract policy)
+    design_status: frontmatter 契約案は research-memo §2 #1 で確定。detector 未実装
+    exit_condition: GOAL-C 着地後に add-feature PLAN 起票 (count-pin 同期) -> L6 機能設計 + L7 pair
+    silent_omission_guard: 本 ledger 行で帰属済
+
+  - item_id: UT-3-descent-provenance
+    ut_anchor: adoption_research #3 (範囲展開 vs focused 引用区別)
+    layer: L5/L6
+    design_status: advisory+baseline 先行と判定。ADR/adversarial-review 前置が必要
+    exit_condition: ADR 起票 (post-goal-c) -> advisory detector -> baseline -> L5/L6 設計
+    silent_omission_guard: 帰属済
+
+  - item_id: UT-6-header-count-drift
+    ut_anchor: adoption_research #6 (header 宣言件数 vs 実数, 汎化)
+    layer: L6 (P2)
+    design_status: boundary_count_drift は add-feature 限定。marker 限定 header lint は未設計
+    exit_condition: GOAL-C 着地後 add-feature PLAN -> L6 (日本語誤爆回避条件含む)
+    silent_omission_guard: 帰属済
+
+  - item_id: UT-7-review-guard
+    ut_anchor: adoption_research #7 (read-only reviewer working-tree 増分検出)
+    layer: L6
+    design_status: tl-advisor 副作用の実害根拠あり。detector 未実装
+    exit_condition: GOAL-C 着地後 add-feature PLAN -> L6 機能設計 (before/after path 増分) + L7 pair
+    silent_omission_guard: 帰属済
+
+  - item_id: UT-9-change-set-transitive-and-ast-dependency
+    ut_anchor: adoption_research #9 (推移回帰 + コード AST dependency-drift)
+    layer: L5/L6
+    design_status: PLAN 粒度依存のみ・import グラフ無し。dependency-direction map 未設計
+    exit_condition: ADR-002 auto-map 確定 -> L5 map + L6 detector
+    silent_omission_guard: 帰属済
+
+  - item_id: UT-5-F4-rule-drift-ubiquitous-language
+    ut_anchor: adoption_research #5 (cross-doc 用語整合 / adapter marker 一致)
+    layer: L5/L6
+    design_status: check_ubiquitous_language は spec-only (grep_pattern dead code, foundation-review C-1)。未着手
+    exit_condition: F1 foundation landing 後 -> L5/L6 設計 (ddd-registry grep_pattern 接続)
+    silent_omission_guard: 帰属済
+
+  - item_id: RIGHT-ARM-EXECUTION-GATES-L7
+    ut_anchor: no_leak_foundation_review §F2 (右腕 G8/G9/G12/G14 genuineness)
+    layer: L7
+    design_home: docs/v2/L7-test-design/right-arm-execution-gates-単体テスト設計.md (draft, planned-contract)
+    design_status: EGA-UT-02..04 simulated fixture は G8/G9/G12/G14 本体未実装で作れない (hollow freeze 不可)
+    exit_condition: GOAL-C-RIGHTARM-FULLCLOSE 着地 (right-arm gate 実装) -> simulated fixture 確定 -> freeze
+    blocked_by: GOAL-C (owner=codex, 実態 parked, PM PLAN + user go 待ち)
+    silent_omission_guard: 帰属済 (freeze 対象から外し deferred 明示)
+
+deferred_escalation:
+  - item_id: SECURITY-NFR
+    ut_anchor: no_leak_foundation_review §1.16 gap④ / Process §1.17 P1-5
+    layer: L1/L3
+    reason: prompt injection / supply chain / secret / PII に触れる。人間確認なしに仕様確定しない
+    exit_condition: 人間確認 + 別 PLAN で L1 NFR 追補 + L3 受入 + security review
+    silent_omission_guard: 帰属済
+
+  - item_id: RUNTIME-LOOP3-OBSERVABILITY
+    ut_anchor: Process §1.14 / §1.16 gap② / P1-5
+    layer: L1/L3
+    reason: 本番 telemetry / 外部観測 / PII。escalation 領域
+    exit_condition: 人間確認 + 別 PLAN (L1 NFR + L13/L14 + observability 設計内在)
+    silent_omission_guard: 帰属済
+
+  - item_id: REVIEWER-CALIBRATION-EXTERNAL-GROUNDING
+    ut_anchor: Process §1.17 P1-2
+    layer: L5
+    reason: seeded benchmark / incident replay / inter-rater agreement の外部接地契約が未確定。LLM で LLM を無限に測らない
+    exit_condition: 外部接地契約確定 (design-review) 後に L5 詳細設計
+    silent_omission_guard: 帰属済
+
+  - item_id: CONCURRENCY-LOGICAL-RESOURCE-CONTRACT
+    ut_anchor: Process §1.17 P1-3
+    layer: L5
+    reason: 件数pin/registry/DB projection の同時更新 = 論理 resource 衝突。resource_id+version/ETag+single-writer 契約が未設計
+    exit_condition: 論理 resource contract 確定後に L5 詳細設計
+    silent_omission_guard: 帰属済
+
+  - item_id: TELEMETRY-CLOSURE-SCHEMA
+    ut_anchor: Process §1.13/§1.14/§1.15 (DB 能動脊椎 / 自己改善ループ schema)
+    layer: L4
+    reason: 推測 schema 回避 (CLAUDE.md「DB拡張は永続化要求観測後に schema確定」)。観測前に確定不可
+    exit_condition: §1.9-§1.14 enforcement/telemetry が流れた後に段階的 schema 化
+    silent_omission_guard: 帰属済
+
+# =====================================================================
+# D. OUT OF SCOPE — 別 owner、明示帰属で no-omission を満たす
+# =====================================================================
+out_of_scope:
+  - item_id: HARNESS-EXTERNAL-TOOLS-IMPACT
+    layer: L4/L5/L6 (draft)
+    design_home: docs/v2/L4-basic-design/harness-external-tools-impact-基本設計.md (+ L5/L6)
+    reason: MCP/SAST/plugin/dependency 統治。auth/credential/license/network/write capability を含む別件
+    owner: TL
+    exit_condition: 別 PLAN で G4-G6 再審 (UT-TDD foundation closure とは独立)
+    not_ut_tdd_anchored: true
+    not_ut_tdd_anchored_evidence: "pmo-sonnet + TL 両者確認 = db-backed-evidence-lifecycle は related_design 参照方向のみ"
+    silent_omission_guard: 帰属済 (out-of-scope 明示)
+
+# =====================================================================
+# CLOSURE COMPLETENESS PROOF
+# =====================================================================
+completeness_proof:
+  count_method: 実 row 数 (python yaml.safe_load で機械計数、宣言値と一致させる)
+  closed: 8
+  closed_via_g_reference: 1
+  explicitly_deferred: 8
+  deferred_escalation: 5
+  out_of_scope: 1
+  total_classified: 23
+  reconcile_note: >
+    closed(8)+closed_via_g_reference(1)+explicitly_deferred(8)+deferred_escalation(5)+out_of_scope(1)=23 行 (実 row 数と一致)。
+    F2 は L4/L5/L6 (closed=3 行) + L7-pair (explicitly_deferred=feature-ticketed=1 行) の 4 行で 1 機構 (no_leak F2) を表すため item 数 > 機構数。
+    UT 採用機構の母数 (F1/F2/F3 + #1/#3/#5/#6/#7/#9 + right-arm + security/loop3/calibration/concurrency/telemetry + external-tools) = 全数本 ledger に帰属、silent omission ゼロ。
+  no_silent_omission: true
+  hollow_freeze_avoided: true
+  hollow_freeze_avoidance_method: >
+    F2-L6 は機械契約 (test_helix_l0_l14_flow_contract: L4_L6_closed_L7_feature_ticketed) を尊重し、
+    L7 単体テスト設計を新設せず feature-ticketed 境界として explicit deferred。
+    L7 doc 新設は assert not L7_TEST_DESIGN.exists() に抵触するため不可 (当初試行→revert)。
+    F3 は detector + 既存 7 UT が pair を満たすため genuine closed。
+  tl_rereview_required_before_frozen: true
+  baseline_test_verification: "stash baseline 比較で『私の編集が壊した4テスト』を特定→L7 doc revert で4/4回復 (flow contract green)"

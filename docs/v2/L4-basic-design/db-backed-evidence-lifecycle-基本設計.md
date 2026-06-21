@@ -13,6 +13,8 @@ related_design:
   - HELIX-workflows/helix-process/db-auto-registration.md
   - docs/v2/L4-basic-design/データ設計.md
 implementation_status: design_gap_closed_current_phase
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-10
 ---
@@ -129,6 +131,23 @@ skip / 未実行は `verification_recorded` へ**遷移できない**（F2-3 で
 
 - 既存テーブル（§4: `gate_runs` / `verify_runs` / `automation_runs`）へ写像し schema migration しない。physical schema は実行証跡の永続化要求が detector で観測されてから確定。
 - gate は artifact を **read-only 参照**で判定し、実行を再現しない（`auto_apply=false` 維持）。
+
+### F3-1 定性レビュー証跡コントラクト（F3 — review_evidence、本 lifecycle へ相乗り）
+
+実行証跡（F2）と同じ lifecycle に、定性レビュー健全性（F3）の証跡を相乗りさせる（独立 doc を作らない＝G-P drift / count-pin cascade 回避、TL ruling 2026-06-21）。これにより [no-leak foundation design-review](../../research/2026-06-21-no-leak-foundation-design-review.md) の **F3（tl_review=="approve" の文字列一致のみで gate を通す穴、push_gate.py:825-839 / trace_symmetry.py:749-750）** を設計レベルで塞ぐ。実体 detector は実装済（`cli/lib/review_evidence_checks.py` + 7 UT、commit 6a1bce3）。
+
+`review_evidence` artifact の genuine 最小集合（schema = design-review §6.3）：
+
+| field | 意味 | genuine 条件 |
+|---|---|---|
+| `review_id` / `review_kind` | レビューの一意 ID と種別 | 実在 |
+| `reviewer_model` / `worker_model` | レビュアと被レビュア（実装者）のモデル | `reviewer_model != worker_model`（自己レビュー禁止） |
+| `reviewed_commit` | レビュー対象 commit | verdict が指す commit と一致（古いレビュー流用禁止） |
+| `review_output_path` / `review_output_sha256` | レビュー出力実体と content hash | 実体と一致（改ざん検知） |
+| `tests_green_at` / `reviewed_at` | green 観測時刻 / レビュー時刻 | `tests_green_at <= reviewed_at`（green 前レビューを genuine にしない） |
+| `verdict` | approve / changes_required 等 | 上記 AND 成立時のみ genuine |
+
+`review_genuine=false`（いずれか不成立 / field 不在）は pair_closure の `semantic_gate` 充足に**算入しない**（F2 の skip≠pass と同型の fail-close）。L5 詳細 = §6 と同じ既存テーブル写像、L6 関数粒度 DbC = [L6 §3.2](../L6-functional-design/db-backed-evidence-lifecycle-機能設計.md)。
 
 ## 8. L5 / L6 / L7 への引き継ぎ
 

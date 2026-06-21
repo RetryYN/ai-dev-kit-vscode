@@ -8,6 +8,9 @@ pairs_test_design: docs/v2/L7-test-design/requirement-drift-単体テスト設�
 parent_requirements:
   - docs/v2/L3-requirements/helix-workflows-functional-requirements-detail.md
 implementation_status: implemented-mvp
+freeze_readiness: design_closed_tl_rereviewed_approve_2026_06_21  # TL re-review approve (P0/P1=0)。status frozen flip は次の gate ceremony
+test_execution_evidence: "cli/lib/tests/test_requirement_drift.py + test_requirement_drift_test_design.py = 24 passed (2026-06-21)"
+closure_ledger: docs/v2/audit/2026-06-21-l1-l6-design-closure-ledger.yaml
 owner: TL
 created: 2026-06-09
 ---
@@ -32,7 +35,7 @@ created: 2026-06-09
 | FN-ID | 関数 / surface | 入力 | 出力 | 判定 |
 |---|---|---|---|---|
 | FN-RD-01 | `collect_requirement_drift(project_root, focus="L6", check_stale=false)` | project root、focus、check_stale | JSON 互換 dict | L1/L3 FR 定義、L3 parent-child mapping、L4-L6 design link を集計 |
-| FN-RD-02 | parent-child mapping | L3 requirement table | `parent_id -> child_ids` | L1 数字式 FR が L3 名前ベース FR に詳細化されていれば downstream とみなす |
+| FN-RD-02 | `_downstream_ids` / `_has_downstream`（`collect_requirement_drift` 内部 helper、`child_links` 構築） | L3 requirement table | `parent_id -> child_ids` | L1 数字式 FR が L3 名前ベース FR に詳細化されていれば downstream とみなす |
 | FN-RD-03 | blocking/advisory 分離 | findings | `blocking_clean`, `summary.blocking_findings` | `missing_downstream` / `orphan_design` / `orphan_code` のみ fail-close 対象 |
 | FN-RD-04 | waiver validation | `.helix/requirement-drift-waivers.yaml` | `waived_with_reason` | reason / owner / expires を持つ waiver のみ有効 |
 | FN-RD-05 | CLI / doctor surface | `python3 -m cli.lib.requirement_drift`, `helix doctor check_requirement_drift` | JSON / text | 既定 `focus=L6`、`--focus L7` 明示時のみ code/test を集計。mtime stale は `--check-stale` 明示時のみ集計 |
