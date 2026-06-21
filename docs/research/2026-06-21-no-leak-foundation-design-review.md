@@ -100,6 +100,7 @@ Process PLAN §1.7 の現状評価を実機構に合わせて訂正する（楽�
 
 **第0層（foundation、最優先 — 全機構が依存）**
 - **F1 登録自動化 + 設計定義登録**（A-1〜A-4）: ①code/doc/test を PostToolUse hook で code_catalog へ増分自動登録（SKILL.md rebuild hook と同型）②functional-registry を**実ファイル + 設計 doc scan から derive**（手動 markdown 依存を排す）③設計**定義（DbC requires/ensures/invariant・FN spec）を設計 doc から抽出し構造化登録** → registry_design_coverage を「ID prefix」から「定義実在」へ。
+  - **設計確定 LANDED（2026-06-21）**: F1 の設計判断を正本 [`db-auto-registration.md` §F1 設計確定](../../HELIX-workflows/helix-process/db-auto-registration.md)（F1-1 トリガ契約 / F1-2 SSoT 一本化 / F1-3 設計定義登録 / F1-4 generates 反映 / F1-5 検証）に確定。G-tier 機構のため設計 SSoT は同 doc に置き V2 L4-L6 は参照（G-P drift 回避＝V2 への重複 doc 起票は撤回）。実装は未（Reverse→Add-feature）、物理 schema は登録要求観測後（推測 schema 回避）。**F1 税の実証**: この F1 設計 doc を当初 V2 L4 に起票した際、設計 asset inventory + reference-integrity + ratification の **count-pin が audit lattice 全体（8 YAML）へ波及** → 正本 1 本へ集約して回避（= F1 が機械化すべき税の現物）。
 - **F2 gate 時 実行証跡**（B-1/D-2）: 「実際に green」を検証する場所を設計で確定。`HELIX_DOCTOR_SKIP_EXEC_TESTS=1` の CI/push skip を、変更 pair について **実行証跡 artifact（run id + green + timestamp）の gate チェック**へ置換（CI 速度と実行保証の両立設計）。
 - **F3 review-evidence 健全性**（D-1）: `tl_review=approve` を **review-evidence schema（worker≠reviewer + review_kind=cross_agent + tests_green_at≤reviewed_at + 実レビュー出力への link）**へ。改ざん検知を機械化（§1.17 Sequencing① の review_evidence ADR と同一）。
 
