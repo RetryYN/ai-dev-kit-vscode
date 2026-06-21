@@ -9,6 +9,18 @@ superseded_by:
   - HELIX-workflows/helix-process/automation-gate-map.md
   - skills/tools/ai-coding/references/gate-policy.md
 current_l0_l14_scope: historical_overlay_only_not_current_gate_contract
+absorption_verified:
+  on: 2026-06-21
+  by: docs/research/2026-06-21-no-leak-foundation-design-review.md §8.2
+  verdict: all_6_section1_v2_additions_absorbed_into_current_l0_l14
+  mapping:
+    - "§1① G2 architecture+system_integration pair -> L4↔L9 pair (G9)"
+    - "§1② G3 detailed+integration pair -> L5↔L8 pair (G8)"
+    - "§1③ G3.functional_freeze (functional+unit) -> L6↔L7 (G7) + fn_ut_pair_coverage_checks.py (FN↔UT 1:1 fail-close, strengthened)"
+    - "§1④ G4 impl+test+review -> L7 (テスト実装→本体→3点レビュー)"
+    - "§1⑤ RG/FR-VS07 V-model接続 -> forward-return-discipline.md + reverse-workflow.md (forward_return)"
+    - "§1⑥ pair_status 遷移ガード -> vmodel_pair_freeze.py + vg_overview.py"
+  archive_decision: keep_in_place_no_move  # inbound pin (frozen L2-MASTER / D-CONTRACT-draft / exit-validation-table / PLAN-070 / classification audit); 物理移動は無益にリンクを壊す
 ---
 
 # V2 Gate Overlay（docs-integrity P1 対応）

@@ -184,3 +184,35 @@ tl-advisor 諮問（read-only）の結果。**方向性 approve（foundation 3�
 - detector + test を **commit で landing**（cli/lib/review_evidence_checks.py + 7 UT）。source_scan の `SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS`（vg_overview.py、g8/g9/g12/g14_subcheck + anchor_quality と同 family）へ登録 → **vg_overview overall_clean 回復**（2 live vg_overview test + objective test pass、計 10 passed）。
 - **deferred は formal counted add-feature PLAN の「紙」のみ**（count pin ×16 + objective audit 分類）。これは objective-collision（GOAL-C 単一 objective audit）+ F1 自動登録不在の税であり、F1 修正後 or GOAL-C objective close 後に起票。
 - → **F3 機械実装は committed + registered + verified で landing**。allowlist 登録自体が「F1 が消すべき税」の実例（B-5）として残る。
+
+## §8 V1→V2 統合の最終判定（2026-06-21、ユーザー指示「V1該当内容をV2へ完全移行・参照撤去」）
+
+ユーザー指示「V1 に該当する内容は V2 設計に完全に移して参照はなくす（V2 だけ見ればいいように）」を受け、残 V1 参照を全数分類した。結論は **統合は実質完了済であり、残参照の大半は撤去すると害になる**。
+
+### §8.1 残「V1」参照の分類（撤去可否）
+
+| 種別 | 代表 | 件数感 | 判定 | 根拠 |
+|---|---|---|---|---|
+| **移行要件の正当な主語** | BR-10 / NFR-MG-01 / BR-RULE-10（V1資産の Strangler Fig 段階移行）| ~10 | **保持** | V1 はドメイン主語（移行対象の実体）。撤去 = 要件破壊 |
+| **frozen doc 内部の比較** | L2-MASTER（V1旧方式 vs V2 pair 凍結）| ~4 | **保持** | `status: frozen` (G2_approved)。化粧目的の再凍結は不当 |
+| **deprecated banner 済（移動不可）** | CONCEPT.md / L1-REQUIREMENTS.md / v2-gate-overlay.md | ~49 | **保持** | 既に `status: deprecated` + `superseded_by` + TL 分類 `2026-06-13-l1-l6-legacy-reference-classification.yaml`。かつ **test/config pin**（CONCEPT.md = `test_helix_l0_l14_flow_contract.py:117`、L1-REQ = `vmodel-semantics.yaml` が "master source of truth" 参照）で**物理 archive は破壊的** |
+| **版進化の歴史記録** | V5-plan-outlines（V1→V5 確立過程）| ~6 | **保持** | 履歴の事実。書換えは記録改竄 |
+| **比較ラベル（active concept）** | concept.md / process README | — | **言い換え済** | commit 30f3681（旧形式/新形式へ） |
+| **旧形式 PLAN 全体** | PLAN-NNN ×224 | — | **`is_reference: true` 100%** | commit 021e22a |
+
+→ 「V2 だけ見ればいい」は **deprecated banner + superseded_by + TL 分類 audit + active concept の言い換え** で既に成立。deprecated 3 本の物理 archive は inbound pin（test/config/frozen doc/PLAN）を無益に壊すため**実施しない**（inbound 参照検証で回避＝当初の archive 案は誤りだった）。
+
+### §8.2 v2-gate-overlay §1 の gate 制約 吸収検証（owed verification、完了）
+
+deprecated 化の前提＝「overlay の V2 追加 gate 制約が現行 L0-L14 に吸収済」を grep で実証した。
+
+| v2-gate-overlay §1 V2 追加 | 現行 L0-L14 吸収先 | 判定 |
+|---|---|---|
+| ① G2 architecture + system_integration pair | L4↔L9 pair（G9, 総合テスト設計）= HELIX-process-L0-L14 + verification-strategy | ✅ 吸収 |
+| ② G3 detailed + integration pair | L5↔L8 pair（G8, 結合テスト設計）| ✅ 吸収 |
+| ③ G3.functional_freeze（functional + unit）| L6↔L7（G7）+ **`fn_ut_pair_coverage_checks.py`**（FN↔UT 1:1 fail-close）| ✅ 吸収＋**機械強化**（subgate→機械 fail-close）|
+| ④ G4 実装 + テスト + レビュー | L7「テスト実装→本体実装→3点レビュー」（L0-L14:28）| ✅ 吸収 |
+| ⑤ RG / FR-VS07 V-model 接続 | `forward-return-discipline.md` + `reverse-workflow.md`（forward_return 機構）| ✅ 吸収（FR-VS07 ラベルのみ legacy 残存）|
+| ⑥ pair_status 遷移ガード | `vmodel_pair_freeze.py` + `vg_overview.py`（paired/design_only/test_only/waived）| ✅ 吸収 |
+
+**6/6 吸収済（③は機械 fail-close へ強化）= gate 制約の損失なし**。これにより v2-gate-overlay は「制約は現行へ全吸収済・本書は履歴」と確定。frontmatter に `absorption_verified` を付与（archive はせず banner 維持）。
