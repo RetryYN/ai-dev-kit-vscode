@@ -93,10 +93,47 @@ flowchart LR
 - candidate を自動で PLAN / PR / gate pass へ昇格しない。
 - L6 focus clean を full-flow completion として扱わない。
 
-## 7. L5 / L6 / L7 への引き継ぎ
+## 7. 実行証跡コントラクト（F2 design-review 補正 — gate 時 green theater の封じ）
+
+> 本節は [no-leak foundation design-review](../../research/2026-06-21-no-leak-foundation-design-review.md) の **F2（gate 時 実行証跡）** を設計確定する。§3 の `verification_recorded` 状態 / §4 の `verification evidence`（gate_runs / verify_runs / automation_runs）が **genuine** である条件を固定し、`HELIX_DOCTOR_SKIP_EXEC_TESTS=1` による gate/push/CI skip が exec_pass を詐称する穴（g7_subcheck の skip-time exec_pass 計上、design-review B-1/D-2）を**設計レベルで塞ぐ**。物理 schema は §4 の既存テーブルへ写像し migration しない（CLAUDE.md「推測 schema 回避」）。
+
+### F2-1 実行証跡 artifact のコントラクト（`verification_recorded` を genuine にする最小集合）
+
+`detected → … → verification_recorded` の遷移には、対象 pair の検証実行が次を**すべて**伴う：
+
+| field | 意味 | genuine 条件 |
+|---|---|---|
+| `run_id` | 実行の一意 ID（`automation_runs` と紐付け） | 実在し automation_runs に対応 |
+| `commit_sha` | 実行時の HEAD commit | 検証対象 commit と一致 |
+| `target_pair` | 対象 L-pair / UT-ID | 変更 pair を被覆 |
+| `exit_code` | 実行プロセス終了コード | 0（green） |
+| `tests_green_at` | green 観測時刻 | gate 判定時刻との順序整合（F3 review-evidence と同型の時刻 invariant） |
+| `artifact_sha256` | 実行出力（ログ / JUnit 等）の content hash | 出力実体と一致（改ざん検知） |
+
+skip / 未実行は `verification_recorded` へ**遷移できない**（F2-3 で status を分離）。
+
+### F2-2 gate verification の置換（skip → evidence-check、CI 速度と実行保証の両立）
+
+- 現状: push gate / CI は `HELIX_DOCTOR_SKIP_EXEC_TESTS=1` で実テストを skip し、skip 時に exec_pass を計上する（green theater）。
+- 設計: gate は「skip を信頼する」のでなく「**変更 pair について F2-1 artifact の存在と genuine 性を確認する**」。
+  - 速い経路（CI 並列 / 別 job）が artifact を生成 → gate はその artifact を**参照して**判定する（gate 内で再実行しない＝速度維持、実行は保証）。
+  - 変更 pair に対応する genuine artifact が無ければ **fail-close**（skip を pass にしない）。
+  - これにより design-review §3 F2 要件「CI 速度と実行保証の両立」を満たす。
+
+### F2-3 skip ≠ pass の status 分離（exec_pass-on-skip の封じ）
+
+- 穴: 実行 skip 時に `exec_pass` を計上する（g7_subcheck の skip-time 計上、design-review F2 の核）。
+- 設計: 実行結果 status を **`exec_pass` / `exec_fail` / `exec_skipped` / `exec_missing_evidence`** に分離。`exec_skipped` と `exec_missing_evidence` は **pass に算入しない**。pair_closure の `test_execution_pass` は **genuine artifact（F2-1）に裏付けられた `exec_pass` のみ**で成立する。
+
+### F2-4 安全境界（追加）
+
+- 既存テーブル（§4: `gate_runs` / `verify_runs` / `automation_runs`）へ写像し schema migration しない。physical schema は実行証跡の永続化要求が detector で観測されてから確定。
+- gate は artifact を **read-only 参照**で判定し、実行を再現しない（`auto_apply=false` 維持）。
+
+## 8. L5 / L6 / L7 への引き継ぎ
 
 | 下位層 | 引き継ぐ内容 |
 |---|---|
-| L5 詳細設計 | state machine、既存テーブル写像、冪等 key、失敗時 rollback |
-| L6 機能設計 | DBEV-FN-* 関数 / surface 単位の入出力と判定 |
-| L7 add-feature | `docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md` で単体テスト設計と実装接続を別起票 |
+| L5 詳細設計 | state machine、既存テーブル写像、冪等 key、失敗時 rollback。**F2: 実行証跡 artifact の冪等 key（run_id + commit_sha + target_pair）、artifact_sha256 の算出/検証手順、exec status enum の遷移** |
+| L6 機能設計 | DBEV-FN-* 関数 / surface 単位の入出力と判定。**F2: artifact genuine 判定関数（exec_pass を genuine artifact 限定にする）と exec status 分離の DbC（requires/ensures/invariant）** |
+| L7 add-feature | `docs/plans/add-feature/add-feature-2026-06-10-db-backed-evidence-lifecycle-l7.md` で単体テスト設計と実装接続を別起票。**F2 の gate verification 置換（skip→evidence-check）と g7_subcheck skip-time exec_pass 修正もこの実装に含める** |
