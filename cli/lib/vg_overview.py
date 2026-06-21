@@ -46,6 +46,9 @@ SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {
     "cli/lib/g9_subcheck.py",
     "cli/lib/g12_subcheck.py",
     "cli/lib/g14_subcheck.py",
+    # review_evidence detector (F3 foundation, no-leak design-review §7): same
+    # gate-mechanism family. allowlist は F1(自動登録)が解消すべき税の一部。
+    "cli/lib/review_evidence_checks.py",
 }
 DEFERRED_PAIR_REASONS: dict[str, str] = {}
 STRICT_FULL_FLOW_VERIFY_COMMAND = (

@@ -180,4 +180,7 @@ tl-advisor 諮問（read-only）の結果。**方向性 approve（foundation 3�
 - 段階導入: advisory(現状) → gate_profile ADR 後に required。
 - 起票時の税（F1 未修正なら手動）: count pin ×16（discovered×3/checked/glob、audit 6 + py/bats mirror）+ deferred-coverage 分類 + objective audit reconcile。**F1 修正後はこの税が自動化される** = F1 の価値の定量的根拠。
 
-→ tree に detector + test を staged 保持（uncommitted）。formal counted add-feature 起票は GOAL-C objective close + F1（または objective-collision を解く最小 shared-state contract）後。
+**landing 結果（2026-06-21、ユーザー指示「整備して進めろ」で GOAL-C 停止下に実行）:**
+- detector + test を **commit で landing**（cli/lib/review_evidence_checks.py + 7 UT）。source_scan の `SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS`（vg_overview.py、g8/g9/g12/g14_subcheck + anchor_quality と同 family）へ登録 → **vg_overview overall_clean 回復**（2 live vg_overview test + objective test pass、計 10 passed）。
+- **deferred は formal counted add-feature PLAN の「紙」のみ**（count pin ×16 + objective audit 分類）。これは objective-collision（GOAL-C 単一 objective audit）+ F1 自動登録不在の税であり、F1 修正後 or GOAL-C objective close 後に起票。
+- → **F3 機械実装は committed + registered + verified で landing**。allowlist 登録自体が「F1 が消すべき税」の実例（B-5）として残る。
