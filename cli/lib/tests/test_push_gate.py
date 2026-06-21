@@ -1092,6 +1092,7 @@ def test_run_gate_tests_uses_selected_targets_and_reports_auto_tier(monkeypatch)
         ["python3", "-m", "pytest", "cli/lib/tests/test_coding_rule_lint.py", "-q"],
         ["bats", "cli/tests/helix-push.bats"],
     ]
+    assert "-n" not in commands[0]
 
 
 def test_run_gate_tests_falls_back_to_full_when_selector_is_unmapped(monkeypatch) -> None:
@@ -1124,7 +1125,7 @@ def test_run_gate_tests_falls_back_to_full_when_selector_is_unmapped(monkeypatch
 
     def _fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
         commands.append(command)
-        if command == ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]:
+        if command == push_gate.PYTEST_FULL_TESTS_CMD:
             return subprocess.CompletedProcess(command, 0, stdout="7 passed\n", stderr="")
         if command[:1] == ["bats"]:
             return subprocess.CompletedProcess(command, 0, stdout="1..2\nok 1 a\nok 2 b\n", stderr="")
@@ -1147,6 +1148,8 @@ def test_run_gate_tests_falls_back_to_full_when_selector_is_unmapped(monkeypatch
         "detail": "tier=full, pytest 7 + bats 2",
         "fix": "なし",
     }
+    assert commands[0] == push_gate.PYTEST_FULL_TESTS_CMD
+    assert commands[0][-2:] == ["-n", "auto"]
 
 
 def test_run_gate_tests_keeps_docs_only_changes_in_auto_without_running_tests(monkeypatch) -> None:

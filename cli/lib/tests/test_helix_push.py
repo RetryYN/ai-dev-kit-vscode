@@ -58,7 +58,19 @@ def test_run_gate_tests_returns_pass_when_pytest_succeeds(monkeypatch) -> None:
 
     assert result["passed"] is True
     assert result["detail"] == "tier=full, pytest 1147 + bats 452"
-    assert calls == [push_gate.PYTEST_TESTS_CMD, ["bats", "cli/tests/sample.bats"]]
+    assert push_gate.PYTEST_FULL_TESTS_CMD == ["python3", "-m", "pytest", "cli/lib/tests/", "-q", "-n", "auto"]
+    assert calls == [push_gate.PYTEST_FULL_TESTS_CMD, ["bats", "cli/tests/sample.bats"]]
+
+
+def test_pytest_catalog_command_remains_serial() -> None:
+    assert push_gate.PYTEST_CATALOG_CMD == [
+        "python3",
+        "-m",
+        "pytest",
+        "cli/lib/tests/test_command_catalog.py",
+        "-q",
+    ]
+    assert "-n" not in push_gate.PYTEST_CATALOG_CMD
 
 
 def test_run_gate_attr_detects_missing_coauthor(monkeypatch) -> None:

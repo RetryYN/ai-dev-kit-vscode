@@ -17,6 +17,7 @@ from vg_overview import collect_vg_overview
 
 
 PYTEST_TESTS_CMD = ["python3", "-m", "pytest", "cli/lib/tests/", "-q"]
+PYTEST_FULL_TESTS_CMD = [*PYTEST_TESTS_CMD, "-n", "auto"]
 PYTEST_CATALOG_CMD = ["python3", "-m", "pytest", "cli/lib/tests/test_command_catalog.py", "-q"]
 SECRET_CMD = ["pre-commit", "run", "--all-files"]
 DESTRUCTIVE_PATTERNS = [
@@ -606,7 +607,7 @@ def run_gate_tests(
             repo_root,
             test_env,
             tier=tier,
-            pytest_command=PYTEST_TESTS_CMD,
+            pytest_command=PYTEST_FULL_TESTS_CMD,
             bats_command=["bats", *bats_files],
         )
 
