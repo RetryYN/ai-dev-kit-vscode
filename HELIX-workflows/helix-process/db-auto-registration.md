@@ -2,6 +2,8 @@
 doc_id: db-auto-registration
 title: HELIX DB 自動登録機構
 status: accepted
+implementation_status: partial  # 2026-06-21 design-review: 設計意図(target)は accepted、実装は部分。下記「実装状態」節 + known_gap 参照。status:accepted は設計受理であって全イベント実装完了ではない。
+design_review: ../../docs/research/2026-06-21-no-leak-foundation-design-review.md  # §1 cluster A で現状確認、planned_closure=F1
 accepted_date: 2026-05-24
 created: 2026-05-24
 owner: PM
@@ -28,6 +30,21 @@ PLAN・成果物・コード・テスト・スコアを、イベント駆動で 
 | Codex 実行後 | codex_post_hook | 精度スコア（accuracy dimensions） |
 | ゲート通過後 | feedback_hook | 5軸フィードバック（Lv1–5） |
 | セッション停止 | stop-hook | handover dump（状態保全） |
+
+## 実装状態（2026-06-21 design-review honest-mark）
+
+> 本 doc は設計意図（target）であり、実装は**部分**。design-review（[no-leak foundation](../../docs/research/2026-06-21-no-leak-foundation-design-review.md) §1 cluster A）で確認した現状を honest に記す。**`status: accepted` は設計意図の受理**であって全イベントの実装完了を意味しない（誤読防止）。
+
+| イベント（上表） | 実装状態 | known_gap |
+|---|---|---|
+| PLAN 起票 → plan_registry | **実装済** | `posttooluse-plan-auto-register.sh` → plan_parser upsert（5 テーブル） |
+| コード変更 → code_catalog | **未実装（自動 trigger 不在）** | `helix code rebuild` の手動実行のみ。.py/.sh/test を書いても code_index は更新されない（`code_catalog.py:912`）。SKILL.md だけは PostToolUse hook が rebuild |
+| Codex 実行後 → 精度スコア | **条件付き実装**（`helix codex` 経由のみ） | raw CLI 経由では発火しない |
+| ゲート通過後 → feedback | **条件付き実装**（`helix gate` 経由のみ） | gate コマンド非経由では発火しない |
+| セッション停止 → handover dump | **未配線** | `handover_auto_dump.py` 実装はあるが `stop.sh` から未呼出 |
+| generates 宣言 → 自動反映（設計方針） | **未実装** | `plan_generates` に登録 + 存在チェック advisory はあるが、生成→code_catalog/doc 自動反映は無い |
+
+**planned_closure**: F1（登録自動化 + 設計定義の構造化登録）。駆動 = **Reverse（設計-実装乖離の記録）→ Add-feature（実装）**（TL 推奨）。GOAL-C-RIGHTARM-FULLCLOSE 着地後に起票（add-feature count-pin 回避）。closure までは本 doc を target spec として扱い、各イベントを implemented と誤読しない。
 
 ## 自動登録フロー
 
