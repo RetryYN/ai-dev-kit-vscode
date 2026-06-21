@@ -4,6 +4,7 @@ title: "PLAN-225: L1 非機能要件標準の ISO/IEC 25010:2023 移行 retrofit
 layer: cross
 kind: retrofit
 status: completed
+is_reference: true  # 旧 V1 形式 PLAN(PLAN-NNN) 参考扱い、V2 製本にしない (2026-06-21 V1→V2 統合: 旧形式 PLAN is_reference 100% 化の最後の 2 件)
 size: S
 drive: be
 created: 2026-05-30

@@ -4,6 +4,7 @@ title: "PLAN-226: HELIX-workflows V2 dogfooding L0-L14 NFR 成果物の ISO/IEC 
 layer: cross
 kind: retrofit
 status: completed
+is_reference: true  # 旧 V1 形式 PLAN(PLAN-NNN) 参考扱い、V2 製本にしない (2026-06-21 V1→V2 統合: 旧形式 PLAN is_reference 100% 化の最後の 2 件)
 size: M
 drive: be
 created: 2026-05-30
