@@ -465,9 +465,20 @@ class TestListActiveSlots:
 
 
 class TestListStaleSlots:
-    def test_u_stale_001_under_five_minutes_is_not_stale(self, fresh_db: Path) -> None:
-        """DoD 検証: PLAN-078-unit-test-design.md U-STALE-001 (4 分台は stale でない)"""
-        _seed_slot(fresh_db, agent_kind="codex", role="tl", fired_at=_shifted_iso(minutes=4, seconds=59))
+    def test_u_stale_001_under_five_minutes_is_not_stale(self, fresh_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """DoD 検証: PLAN-078-unit-test-design.md U-STALE-001 (4 分台は stale でない)
+
+        時刻を凍結する (test_002 と同型)。`_shifted_iso` の実 now 基準だと seed→list_stale_slots
+        間に >=1s 遅延で 4:59→5:00 へ跨ぎ stale 判定になる 1 秒マージン flake (並列実行で露出) を排す。
+        """
+        frozen_now = datetime(2026, 6, 4, 12, 0, 0, tzinfo=timezone.utc)
+        _freeze_agent_slots_now(monkeypatch, frozen_now)
+        _seed_slot(
+            fresh_db,
+            agent_kind="codex",
+            role="tl",
+            fired_at=_iso_utc(frozen_now - timedelta(minutes=4, seconds=59)),
+        )
 
         assert agent_slots.list_stale_slots() == []
 
