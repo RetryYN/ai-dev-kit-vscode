@@ -62,6 +62,8 @@ Draft only. This is a feature ticket only and not completion evidence for L7 imp
 - `candidate_generated`、`plan_materialized`、`verification_recorded`、`gate_projected`、`recurrence_closed` の状態遷移をテストで固定する。
 - candidate 生成を closure と誤認しない契約を pytest / Bats で固定する。
 - L6 focus clean と full-flow completion を分離する契約を固定する。
+- **F2 実行証跡（2026-06-21 design-review 補正、L4 §7 / L5 §6 / L6 §3.1 で設計確定）**: `exec_status`（`exec_pass`/`exec_fail`/`exec_skipped`/`exec_missing_evidence`）の分離と、`exec_skipped`/`exec_missing_evidence` を pass に算入しない契約を pytest / Bats で固定する。`is_genuine_exec_evidence`（`artifact_sha256` 実体一致 ∧ `exit_code=0`）の判定を実装する。
+- **F2 gate verification 置換**: push gate / CI の `HELIX_DOCTOR_SKIP_EXEC_TESTS=1` skip を、変更 pair の genuine artifact 参照判定へ置換し、`g7_subcheck` の skip-time exec_pass 計上を修正する（skip ≠ pass）。CI 速度は別 job で artifact を生成して維持する。
 
 ### Out
 
@@ -88,6 +90,7 @@ These unlock conditions are routes for later work. They are not satisfied by thi
 - `DBEV-UT-*` は既存 `UT-*` inventory へ混入しない。
 - The implementation distinguishes `candidate_generated`, `plan_materialized`, `verification_recorded`, `gate_projected`, and `recurrence_closed`.
 - No candidate, projection, or draft ticket is counted as full-goal completion evidence before closure criteria are met.
+- **F2**: `exec_skipped` / `exec_missing_evidence` は `verification_recorded` へ遷移せず pass に算入されない。`test_execution_pass` は genuine `exec_pass`（`artifact_sha256` 一致 ∧ `exit_code=0`）のみで真。`g7_subcheck` の skip-time exec_pass 計上が修正され、`SKIP_EXEC_TESTS` 時に exec_pass を詐称しない。
 - `python3 -m pytest cli/lib/tests/test_helix_l0_l14_flow_contract.py -q` が pass。
 - `bats cli/tests/test-helix-l0-l14-flow-contract.bats` が pass。
 - `helix doctor check_requirement_drift --json` が L6 focus clean を維持する。
