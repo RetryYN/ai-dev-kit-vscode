@@ -69,7 +69,50 @@ evidence_id = sha256(candidate_id + state + evidence_ref)
 | 定性 | L4/L5/L6 設計書、L7 add-feature 起票、objective evidence matrix、goal audit | 設計漏れと completion boundary を確認する |
 | 後半実走 | G8/G9/G12/G14、CI/equivalent、recurrence closure | DB evidence chain が揃った後に閉じる |
 
-## 6. Non-goals
+## 6. 実行証跡の詳細（F2 — L4 §7 実行証跡コントラクトの L5 詳細化）
+
+L4 §7（F2-1〜F2-3）を、既存 `verify_runs` / `gate_runs` / `automation_runs` 上の内部表現として詳細化する。新規 schema は追加しない（物理データ設計の既存列 + JSON payload を使う）。
+
+### 6.1 exec status enum と遷移
+
+`verification_recorded` への遷移を実行結果 status で分岐する（§2 の同状態を status 粒度で厳密化）。
+
+| exec status | 意味 | `verification_recorded` 遷移 | pass 算入 |
+|---|---|---|---|
+| `exec_pass` | genuine artifact 裏付けの green | 可（6.3 の genuine 条件成立時のみ） | ○ |
+| `exec_fail` | exit_code ≠ 0 | 不可（`implementation_adopted` へ差し戻し） | × |
+| `exec_skipped` | `SKIP_EXEC_TESTS` 等で実行せず | **不可** | × |
+| `exec_missing_evidence` | 実行主張はあるが artifact 不在 / 不整合 | **不可（fail-close）** | × |
+
+`exec_skipped` / `exec_missing_evidence` は `verification_recorded` へ**遷移しない** = §4「検証未実行 → `verification_recorded` へ進めない」を status 粒度で厳密化（skip を pass に数えない）。
+
+### 6.2 実行証跡の冪等 key
+
+§3 の `candidate_id` / `evidence_id` に加え、実行証跡固有の key を作る：
+
+```text
+exec_evidence_id = sha256(run_id + commit_sha + target_pair + gate_id)
+```
+
+| Key | 用途 |
+|---|---|
+| `run_id` | `automation_runs` の実行 ID |
+| `commit_sha` | 実行時 HEAD commit |
+| `target_pair` | 検証対象 L-pair / UT-ID |
+
+同一 `(run_id, commit_sha, target_pair)` の重複登録を排し、**別 commit の green を流用させない**。
+
+### 6.3 artifact_sha256 の算出 / 検証
+
+- **算出**: 実行出力（pytest / Bats stdout、JUnit XML 等）を正規化し sha256。
+- **保存**: `automation_runs` / `verify_runs` の payload に `run_id` と紐付けて格納（既存列 + JSON、新規 schema なし）。
+- **検証（genuine 条件）**: gate は `exec_evidence_id` で artifact を引き、`artifact_sha256` が実体と一致し かつ `exit_code=0` のときのみ `exec_pass` を genuine と判定（改ざん検知）。不一致 / 不在 = `exec_missing_evidence`。
+
+### 6.4 gate 参照（再実行しない）
+
+gate は変更 pair の exec_evidence を**参照のみ**で判定する（L4 §7 F2-2）。artifact が無い / genuine でなければ fail-close。gate 内で test を再実行しない（速度維持）。
+
+## 7. Non-goals
 
 - `schema_migration=false`
 - schema migration は行わない。

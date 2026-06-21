@@ -44,6 +44,22 @@ created: 2026-06-10
 | DBEV-FN-07 | close_recurrence | candidate_id, gate evidence, recurrence observation | recurrence status | `closed` または `monitored_with_owner` のみ closure 候補 |
 | DBEV-FN-08 | emit_completion_guard_summary | lifecycle states, strict full-flow status | goal audit summary | L6 focus clean と full-flow completion を混同しない |
 
+### 3.1 実行証跡 genuine 判定の DbC（F2 — L4 §7 / L5 §6 の機能化）
+
+`DBEV-FN-05 record_verification_evidence` を「skip を pass に数えない」genuine 判定として固定する。新規 FN-ID は増やさず（UT は L7 add-feature で deferred のため）、本関数の契約を強化する。
+
+**DBEV-FN-05 record_verification_evidence（契約強化、F2-1〜F2-3）**
+
+- **requires**: command / gate result が `run_id`・`commit_sha`・`target_pair`・`exit_code`・`artifact_sha256` を伴う（L4 §7 F2-1 / L5 §6.2）。
+- **ensures**: 返す `exec_status` は `exec_pass | exec_fail | exec_skipped | exec_missing_evidence` のいずれか。`exec_pass` は **`exit_code=0` かつ `artifact_sha256` が実体一致**のときのみ（L5 §6.3 の genuine 条件）。
+- **invariant**: `exec_skipped` / `exec_missing_evidence` のとき `verification_recorded` へ遷移させない。pair_closure の `test_execution_pass` は **genuine な `exec_pass` のみ**で真（skip / 未実行を pass に算入しない）。
+
+**判定補助 surface `is_genuine_exec_evidence(artifact) -> bool`**
+
+- **requires**: artifact が F2-1 の全 field を持つ。
+- **ensures**: `sha256(実体) == artifact_sha256` ∧ `exit_code == 0` のときのみ true。
+- **invariant**: field 不在 / sha256 不一致 / 別 commit 由来は false（fail-close。未実行・改ざんを genuine 扱いしない）。
+
 ## 4. Output Contract
 
 ```yaml
@@ -55,6 +71,14 @@ db_backed_evidence_lifecycle:
   pair: string
   gate_id: string
   state: detected | registered | candidate_generated | plan_materialized | implementation_adopted | verification_recorded | gate_projected | recurrence_closed
+  exec_status: exec_pass | exec_fail | exec_skipped | exec_missing_evidence   # F2: skip/missing は pass 非算入
+  exec_evidence:                                                              # F2-1 実行証跡 artifact (genuine 条件)
+    run_id: string
+    commit_sha: string
+    target_pair: string
+    exit_code: int
+    artifact_sha256: string
+    genuine: bool   # is_genuine_exec_evidence の結果 (sha256 一致 ∧ exit_code=0)
   evidence_refs: []
   safety:
     schema_migration: false
@@ -74,6 +98,8 @@ db_backed_evidence_lifecycle:
 | DB snapshot のみ | `goal_complete_allowed=false` |
 | PLAN materialized のみ | `goal_complete_allowed=false` |
 | verification なし | `gate_projected` へ進めない |
+| `exec_status` が `exec_skipped` / `exec_missing_evidence`（F2） | `verification_recorded` へ進めない（skip を pass に数えない） |
+| `exec_evidence.genuine=false`（F2） | `test_execution_pass=false`、gate fail-close |
 | gate projection なし | `recurrence_closed` へ進めない |
 | recurrence_status が `closed` / `monitored_with_owner` 以外 | closure 不可 |
 | strict full-flow `deferred_count > 0` | full goal completion 不可 |
