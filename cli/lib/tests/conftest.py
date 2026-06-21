@@ -30,11 +30,20 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 def _scrub_gate_context_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """gate/automation 実行由来の ambient env を test から隔離する。"""
+    """gate/automation 実行由来の ambient env を test から隔離する。
+
+    HELIX_DB_CUTOVER / HELIX_DB_DISCOVERY は db_cli の preflight 既定 (CUTOVER="1")
+    が gate/push 経由で漏れると、compatibility_adapter の split-DB routing が有効化し、
+    explicit legacy seed と routed SUT の DB が分裂して cross-DB FK 不一致で hermetic
+    test が間欠 fail する。明示 cutover/discovery test は body 内で monkeypatch.setenv
+    し直すため、この autouse scrub 後に再設定され壊れない (HELIX_DB_PATH は温存)。
+    """
     for key in tuple(os.environ):
         if key.startswith("HELIX_AUTOMATION_"):
             monkeypatch.delenv(key, raising=False)
     monkeypatch.delenv("HELIX_ASKUSERQUESTION_NOW", raising=False)
+    monkeypatch.delenv("HELIX_DB_CUTOVER", raising=False)
+    monkeypatch.delenv("HELIX_DB_DISCOVERY", raising=False)
 
 
 @pytest.fixture(scope="session", autouse=True)

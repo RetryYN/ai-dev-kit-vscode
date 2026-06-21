@@ -142,11 +142,17 @@ def _hermetic_test_env() -> dict[str, str]:
     ambient に設定する。これを pytest/bats が継承すると、tmp DB に存在しない run_id を
     参照して FK 違反/automation 記録汚染を起こし hermetic test が間欠 fail する
     (pytest 側 conftest scrub と同じ隔離を runner 側でも適用し bats もカバーする)。
+
+    同様に HELIX_DB_CUTOVER / HELIX_DB_DISCOVERY (db_cli preflight 既定 CUTOVER="1")
+    が pytest/bats に漏れると compatibility_adapter の split-DB routing が有効化し、
+    explicit legacy seed と routed SUT の DB 分裂で cross-DB FK 不一致を起こすため除去する。
+    HELIX_DB_PATH (test isolation の DB path) は温存する。
     """
+    scrub_keys = {"HELIX_ASKUSERQUESTION_NOW", "HELIX_DB_CUTOVER", "HELIX_DB_DISCOVERY"}
     return {
         key: value
         for key, value in os.environ.items()
-        if not key.startswith("HELIX_AUTOMATION_") and key != "HELIX_ASKUSERQUESTION_NOW"
+        if not key.startswith("HELIX_AUTOMATION_") and key not in scrub_keys
     }
 
 
