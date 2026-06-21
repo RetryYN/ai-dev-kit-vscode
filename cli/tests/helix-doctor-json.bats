@@ -57,7 +57,7 @@ teardown() {
 }
 
 @test "helix-doctor check_g7_subcheck --json emits valid JSON" {
-  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g7_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"missing\" in d and \"exec_pass\" in d; all_ids = d[\"anchored\"][\"ids\"] + d[\"missing\"][\"ids\"] + d[\"unanchored_but_exists\"][\"ids\"]; assert d[\"ut_total\"] == 98; assert not any(item.startswith((\"RD-UT-\", \"DGA-UT-\", \"EGA-UT-\")) for item in all_ids), all_ids'"
+  run env HELIX_PROJECT_ROOT="$HELIX_ROOT" HELIX_DOCTOR_SKIP_EXEC_TESTS=1 bash -lc "set -o pipefail; \"$HELIX_ROOT/cli/helix-doctor\" check_g7_subcheck --json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d[\"exit_code\"] == 0; assert \"missing\" in d and \"exec_pass\" in d; all_ids = d[\"anchored\"][\"ids\"] + d[\"missing\"][\"ids\"] + d[\"unanchored_but_exists\"][\"ids\"]; assert d[\"ut_total\"] == 104; assert not any(item.startswith((\"RD-UT-\", \"DGA-UT-\", \"EGA-UT-\")) for item in all_ids), all_ids'"
   [ "$status" -eq 0 ]
 }
 

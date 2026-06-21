@@ -197,3 +197,15 @@ anchors:
     - cli/lib/tests/test_plan_dependency_gate.py
   UT-WSC-228:
     - cli/lib/tests/test_fr_uses_checks.py
+  UT-WSC-229:
+    - cli/lib/tests/test_anchor_quality.py
+  UT-WSC-230:
+    - cli/lib/tests/test_g8_subcheck.py
+  UT-WSC-231:
+    - cli/lib/tests/test_g9_subcheck.py
+  UT-WSC-232:
+    - cli/lib/tests/test_g12_subcheck.py
+  UT-WSC-233:
+    - cli/lib/tests/test_g14_subcheck.py
+  UT-WSC-234:
+    - cli/lib/tests/test_review_evidence_checks.py

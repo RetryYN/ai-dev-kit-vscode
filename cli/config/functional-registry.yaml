@@ -3695,6 +3695,108 @@ entries:
     code_paths:
       - "cli/lib/fr_uses_checks.py"
     doc_paths: []
+  - id: "FR-LIB-160"
+    name: "anchor_quality.py"
+    domain: "lib"
+    description: "anchor-quality detector — G7/G8/G9/G12/G14 anchor spec が genuine assert を持つかを検査し、weak anchor を P0/P1 で集約する advisory detector"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-229"
+    test_design_ids:
+      - "UT-WSC-229"
+    code_paths:
+      - "cli/lib/anchor_quality.py"
+    doc_paths: []
+  - id: "FR-LIB-161"
+    name: "g8_subcheck.py"
+    domain: "lib"
+    description: "G8 subcheck detector — IT-ID anchor + test_execution_pass を実走確認し、L5↔L8 の missing / markerless anchor を集計する advisory subcheck"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-230"
+    test_design_ids:
+      - "UT-WSC-230"
+    code_paths:
+      - "cli/lib/g8_subcheck.py"
+    doc_paths: []
+  - id: "FR-LIB-162"
+    name: "g9_subcheck.py"
+    domain: "lib"
+    description: "G9 subcheck detector — ST-ID anchor genuine 判定 + test_execution_pass を集計し、L4↔L9 の deferred gap を可視化する advisory subcheck"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-231"
+    test_design_ids:
+      - "UT-WSC-231"
+    code_paths:
+      - "cli/lib/g9_subcheck.py"
+    doc_paths: []
+  - id: "FR-LIB-163"
+    name: "g12_subcheck.py"
+    domain: "lib"
+    description: "G12 subcheck detector — AT-ID anchor genuine 判定 + test_execution_pass を集計し、L3↔L12 の deferred gap を可視化する advisory subcheck"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-232"
+    test_design_ids:
+      - "UT-WSC-232"
+    code_paths:
+      - "cli/lib/g12_subcheck.py"
+    doc_paths: []
+  - id: "FR-LIB-164"
+    name: "g14_subcheck.py"
+    domain: "lib"
+    description: "G14 subcheck detector — OT-ID anchor genuine 判定 + test_execution_pass を集計し、L1↔L14 の deferred gap を可視化する advisory subcheck"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-233"
+    test_design_ids:
+      - "UT-WSC-233"
+    code_paths:
+      - "cli/lib/g14_subcheck.py"
+    doc_paths: []
+  - id: "FR-LIB-165"
+    name: "review_evidence_checks.py"
+    domain: "lib"
+    description: "review-evidence detector — PLAN frontmatter の review_evidence に対し reviewer≠worker / tests_green_at<=reviewed_at / output sha256 一致を検査する advisory detector"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-DOCREVIEW-01"
+    status: "active"
+    coverage_layer: "L6_required"
+    design_ids:
+      - "FN-WSC-234"
+    test_design_ids:
+      - "UT-WSC-234"
+    code_paths:
+      - "cli/lib/review_evidence_checks.py"
+    doc_paths: []
   - id: "FR-HOOK-001"
     name: "post-tool-use.sh"
     domain: "hook"

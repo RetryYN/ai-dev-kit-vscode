@@ -71,6 +71,12 @@
 | UT-WSC-226 | FN-WSC-226 | dependency_cycle_checks.py | baseline 内循環 pass / changed-files 新規循環 fail / `available_empty`/`unavailable` 境界を反証 | 実装済 |
 | UT-WSC-227 | FN-WSC-227 | plan_dependency_gate.py | baseline 内 warning pass / new cycle・missing reciprocal fail / `available_empty`/`unavailable` 境界を反証 | 実装済 |
 | UT-WSC-228 | FN-WSC-228 | fr_uses_checks.py | missing target fail-close / reverse reference warning-only / `available_empty`/`unavailable` 境界を反証 | 実装済 |
+| UT-WSC-229 | FN-WSC-229 | anchor_quality.py | non-trivial assert / `pytest.raises` / Bats assertion だけを genuine anchor とし、trivial/skip/marker-only/run-only を weak 判定する invariant を反証 | 実装済 |
+| UT-WSC-230 | FN-WSC-230 | g8_subcheck.py | IT inventory 限定集計 + markerless/needleless anchor reject + skip-exec 時 `anchored==exec_pass` の invariant を反証 | 実装済 |
+| UT-WSC-231 | FN-WSC-231 | g9_subcheck.py | ST inventory 18 件のうち genuine 5 件だけを count し、markerless anchor を `unanchored_but_exists`、deferred gap を `missing/gap_count` に残す invariant を反証 | 実装済 |
+| UT-WSC-232 | FN-WSC-232 | g12_subcheck.py | AT inventory 57 件のうち genuine 5 件だけを count し、markerless anchor を `unanchored_but_exists`、deferred gap を `missing/gap_count` に残す invariant を反証 | 実装済 |
+| UT-WSC-233 | FN-WSC-233 | g14_subcheck.py | OT inventory 20 件のうち genuine 1 件だけを count し、markerless anchor を `unanchored_but_exists`、deferred gap を `missing/gap_count` に残す invariant を反証 | 実装済 |
+| UT-WSC-234 | FN-WSC-234 | review_evidence_checks.py | clean payload no-findings / 必須 field 欠落 / reviewer=worker / review-before-tests / output tamper を正しく分岐し、`review_evidence` 不在を not-applicable に留める invariant を反証 | 実装済 |
 
 ## carry: WSC-TEST-IMPL（2026-06-07 closure、残 0 件）
 

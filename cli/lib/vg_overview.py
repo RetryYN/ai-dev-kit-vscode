@@ -38,18 +38,9 @@ from trace_symmetry import collect_trace_symmetry
 
 PAIR_NAMES = ("L6-L7", "L5-L8", "L4-L9", "L3-L12", "L1-L14")
 L2_L10_WAIVER_PATH = Path("docs/v2/L2-screen-design/helix-workflows-ui-absent-waiver.md")
-SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = {
-    # gate-mechanism family: sibling subchecks and anchor_quality stay
-    # temporarily allowlisted until registry registration is handled in one action.
-    "cli/lib/anchor_quality.py",
-    "cli/lib/g8_subcheck.py",
-    "cli/lib/g9_subcheck.py",
-    "cli/lib/g12_subcheck.py",
-    "cli/lib/g14_subcheck.py",
-    # review_evidence detector (F3 foundation, no-leak design-review §7): same
-    # gate-mechanism family. allowlist は F1(自動登録)が解消すべき税の一部。
-    "cli/lib/review_evidence_checks.py",
-}
+# source-scan allowlist backlog is closed. Unregistered detector paths now
+# fail-close until they are added to the functional-registry.
+SOURCE_SCAN_ALLOWED_UNREGISTERED_PATHS = set()
 DEFERRED_PAIR_REASONS: dict[str, str] = {}
 STRICT_FULL_FLOW_VERIFY_COMMAND = (
     "HELIX_DOCTOR_SKIP_EXEC_TESTS=1 helix doctor check_vg_overview --strict-full-flow --json"
