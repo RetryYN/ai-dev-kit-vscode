@@ -73,6 +73,17 @@ def test_post_tool_use_settings_sanitize_file_path() -> None:
     assert "python3 -c" not in command
 
 
+def test_post_tool_use_settings_include_code_catalog_register_hook() -> None:
+    payload = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+    commands = [
+        hook["command"]
+        for entry in payload["hooks"]["PostToolUse"]
+        for hook in entry.get("hooks", [])
+    ]
+
+    assert "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-code-catalog-register.sh" in commands
+
+
 def test_session_start_settings_include_history_injection_hook() -> None:
     payload = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
     session_start = payload["hooks"]["SessionStart"]

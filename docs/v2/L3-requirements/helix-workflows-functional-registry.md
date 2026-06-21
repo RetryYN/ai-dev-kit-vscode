@@ -110,7 +110,7 @@ audit_history:
 |---|---|
 | CLI binaries (cli/helix-*) | 80 |
 | CLI lib modules (cli/lib/*.py + 検出器 registry .yaml) | 156 |
-| Hooks (.claude/hooks/*.sh) | 17 |
+| Hooks (.claude/hooks/*.sh) | 18 |
 | Subagents (.claude/agents/*.md) | 19 |
 | Skills (skills/**/SKILL.md) | 131 |
 | HELIX-workflows doc (helix-process/*.md + root) | 55 |
@@ -126,7 +126,7 @@ audit_history:
 |---|---|---|---|
 | CLI (80) | FR-01〜FR-13 全13件 に1件以上対応 | FR-NSM-01〜FR-MIGR-01 全18件 に1件以上対応 | 100% |
 | lib (144) | 全13件 | 全18件 | 100% |
-| hook (17) | 全13件 | 全18件 | 100% |
+| hook (18) | 全13件 | 全18件 | 100% |
 | agent (19) | 全13件 | 全18件 | 100% |
 | skill (130) | 全13件 | FR-FNREG-01 / FR-GLOSSARY-01 = 間接のみ | 16/18 (89%) |
 | workflow doc (49) | 全13件 | FR-FNREG-01 / FR-GLOSSARY-01 = 間接のみ | 16/18 (89%) |
@@ -398,7 +398,7 @@ audit_history:
 
 ## §5. Hooks (.claude/hooks/*.sh)
 
-全 17 件。
+全 18 件。
 
 | Hook | event | 機能 | 関連 L1 FR | 関連 L3 FR |
 |---|---|---|---|---|
@@ -406,6 +406,7 @@ audit_history:
 | posttooluse-design-doc-web-search-revert.sh | PostToolUse | Edit/Write/MultiEdit 後、設計 doc の WebSearch 不要 revert チェック (PLAN-087 guard) | FR-02 | FR-GR-01 |
 | posttooluse-helix-job-enqueue.sh | PostToolUse | ツール完了後 job P0 guard 確認 + advisory enqueue | FR-07 | FR-EVT-01 |
 | posttooluse-plan-auto-register.sh | PostToolUse | PLAN.md Write/Edit 時に helix.db に PLAN 自動登録 (PLAN-092 PostToolUse hook) | FR-12 | FR-PLAN-01 |
+| posttooluse-code-catalog-register.sh | PostToolUse | cli/**/*.py Write/Edit 時に code_catalog を更新し、functional-registry 未登録を advisory warning で surface | FR-09 | FR-INV-01 |
 | posttooluse-skill-catalog-rebuild.sh | PostToolUse | SKILL.md Write/Edit 時に skill catalog を debounce 付きで自動 rebuild | FR-09 | FR-INV-01 |
 | precompact-state-snapshot.sh | PreCompact | /compact 前の state snapshot (blocked_sessions 記録 + state 永続化) | FR-07 | FR-EVT-01 |
 | pretooluse-agent-fire.sh | PreToolUse | PLAN-083 Phase 2: Agent tool 呼び出し自動 fire (agent_slots 記録) | FR-10 | FR-CTX-01 |

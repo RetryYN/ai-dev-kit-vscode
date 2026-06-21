@@ -4086,6 +4086,22 @@ entries:
     code_paths:
       - ".claude/hooks/userpromptsubmit-context-bundle.sh"
     doc_paths: []
+  - id: "FR-HOOK-018"
+    name: "posttooluse-code-catalog-register.sh"
+    domain: "hook"
+    description: "PostToolUse / cli/**/*.py Write/Edit 時に code_catalog を更新し、functional-registry 未登録を advisory warning で surface"
+    l1_fr:
+      - "FR-09"
+    l3_fr:
+      - "FR-INV-01"
+    status: "active"
+    coverage_layer: "excluded_with_reason"
+    design_ids:
+      - "EXCL-OTHER"
+    excluded_reason: "private_glue"
+    code_paths:
+      - ".claude/hooks/posttooluse-code-catalog-register.sh"
+    doc_paths: []
   - id: "FR-AGENT-001"
     name: "be-api.md"
     domain: "agent"

@@ -586,6 +586,35 @@ def _load_catalog_entries(repo_root: Path, eligible_files: list[Path]) -> list[d
     return entries
 
 
+def _read_jsonl_entries(jsonl_path: Path) -> list[dict[str, Any]]:
+    if not jsonl_path.is_file():
+        return []
+
+    entries: list[dict[str, Any]] = []
+    for line in jsonl_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        raw = json.loads(line)
+        if isinstance(raw, dict):
+            entries.append(raw)
+    return entries
+
+
+def _scan_catalog_entries_for_paths(repo_root: Path, relative_paths: list[str]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for rel_path_str in relative_paths:
+        rel_path = Path(rel_path_str)
+        full_path = repo_root / rel_path
+        if not full_path.is_file() or not _is_eligible_path(rel_path):
+            continue
+        for raw in scan_file(full_path):
+            raw["path"] = rel_path.as_posix()
+            flattened = _flatten_catalog_entry(raw, repo_root)
+            if flattened is not None:
+                entries.append(flattened)
+    return entries
+
+
 def _summary_for_items(items: list[dict[str, Any]], coverage_summary: dict[str, Any]) -> dict[str, Any]:
     bucket_counts = {bucket: 0 for bucket in _BUCKETS}
     seed_candidate_count = 0
@@ -897,6 +926,92 @@ def sync_to_db(entries: list[dict], db_path: Path) -> None:
         conn.close()
 
 
+def sync_paths_to_db(entries: list[dict[str, Any]], db_path: Path, target_paths: list[str]) -> None:
+    normalized_paths = sorted({Path(path).as_posix() for path in target_paths if path})
+    if not normalized_paths:
+        return
+
+    helix_db._prepare_db_path(str(db_path))
+    conn = helix_db._connect(str(db_path))
+    helix_db._ensure_schema(conn)
+    try:
+        placeholders = ", ".join("?" for _ in normalized_paths)
+        with conn:
+            conn.execute(
+                f"DELETE FROM code_index WHERE path IN ({placeholders})",
+                normalized_paths,
+            )
+            conn.execute(
+                f"DELETE FROM entries WHERE axis = 'code' AND ref IN ({placeholders})",
+                normalized_paths,
+            )
+            if entries:
+                conn.executemany(
+                    """
+                    INSERT OR REPLACE INTO code_index
+                        (
+                            id, domain, summary, path, line_no, symbol_line, since, related,
+                            source_hash, bucket, updated_at, axis, stack, lifecycle,
+                            parent_entry_id, sprint_id, agent_actor
+                        )
+                    VALUES
+                        (
+                            :id, :domain, :summary, :path, :line_no, :symbol_line, :since, :related,
+                            :source_hash, :bucket, :updated_at, :axis, :stack, :lifecycle,
+                            :parent_entry_id, :sprint_id, :agent_actor
+                        )
+                    """,
+                    [
+                        {
+                            "id": entry["id"],
+                            "domain": entry["domain"],
+                            "summary": entry["summary"],
+                            "path": entry["path"],
+                            "line_no": entry["line_no"],
+                            "symbol_line": entry.get("symbol_line") or entry["line_no"],
+                            "since": entry.get("since"),
+                            "related": json.dumps(entry.get("related", []), ensure_ascii=False),
+                            "source_hash": entry.get("source_hash"),
+                            "bucket": entry.get("bucket", "coverage_eligible"),
+                            "updated_at": entry.get("updated_at"),
+                            "axis": entry.get("axis"),
+                            "stack": entry.get("stack"),
+                            "lifecycle": entry.get("lifecycle"),
+                            "parent_entry_id": entry.get("parent"),
+                            "sprint_id": entry.get("sprint"),
+                            "agent_actor": entry.get("agent"),
+                        }
+                        for entry in entries
+                    ],
+                )
+                conn.executemany(
+                    """
+                    INSERT OR REPLACE INTO entries
+                        (id, axis, stack, lifecycle, ref, agent_actor, sprint_id, metadata, updated_at)
+                    VALUES
+                        (
+                            :id, 'code', :stack, COALESCE(:lifecycle, 'initial'), :ref,
+                            :agent_actor, :sprint_id, :metadata, :updated_at
+                        )
+                    """,
+                    [
+                        {
+                            "id": entry["id"],
+                            "stack": entry.get("stack"),
+                            "lifecycle": entry.get("lifecycle"),
+                            "ref": entry["path"],
+                            "agent_actor": entry.get("agent"),
+                            "sprint_id": entry.get("sprint"),
+                            "metadata": _entries_metadata_default(),
+                            "updated_at": entry.get("updated_at"),
+                        }
+                        for entry in entries
+                    ],
+                )
+    finally:
+        conn.close()
+
+
 def _validate_unique_ids(entries: list[dict]) -> None:
     counts: dict[str, int] = {}
     for entry in entries:
@@ -924,6 +1039,39 @@ def rebuild_catalog(repo_root: Path, jsonl_path: Path, db_path: Path) -> dict[st
 
     return {
         "entry_count": len(entries),
+        "jsonl_path": jsonl_path.as_posix(),
+        "db_path": db_path.as_posix(),
+        "updated_at": _now_iso(),
+    }
+
+
+def upsert_catalog_paths(
+    repo_root: Path,
+    target_paths: list[str],
+    jsonl_path: Path,
+    db_path: Path,
+) -> dict[str, Any]:
+    normalized_paths = sorted({Path(path).as_posix() for path in target_paths if path})
+    existing_entries = _read_jsonl_entries(jsonl_path)
+    preserved_entries = [
+        entry for entry in existing_entries if Path(str(entry.get("path", ""))).as_posix() not in normalized_paths
+    ]
+    replacement_entries = _scan_catalog_entries_for_paths(repo_root, normalized_paths)
+    next_entries = preserved_entries + replacement_entries
+    _validate_unique_ids(next_entries)
+    write_jsonl(next_entries, jsonl_path)
+
+    try:
+        sync_paths_to_db(replacement_entries, db_path, normalized_paths)
+    except Exception:
+        prev_path = jsonl_path.with_suffix(jsonl_path.suffix + ".prev")
+        if prev_path.exists():
+            os.replace(prev_path, jsonl_path)
+        raise
+
+    return {
+        "entry_count": len(replacement_entries),
+        "path_count": len(normalized_paths),
         "jsonl_path": jsonl_path.as_posix(),
         "db_path": db_path.as_posix(),
         "updated_at": _now_iso(),

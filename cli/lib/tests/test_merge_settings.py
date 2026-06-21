@@ -25,6 +25,14 @@ def _hook_commands(entry: dict) -> list[str]:
     return [hook["command"] for hook in entry.get("hooks", [])]
 
 
+def _post_tool_entry(entries: list[dict], command_suffix: str) -> dict:
+    for entry in entries:
+        commands = _hook_commands(entry)
+        if any(command.endswith(command_suffix) for command in commands):
+            return entry
+    raise AssertionError(f"PostToolUse entry not found: {command_suffix}")
+
+
 def test_module_py_compile() -> None:
     py_compile.compile(str(MODULE_PATH), doraise=True)
 
@@ -128,6 +136,22 @@ def test_post_tool_use_hook_preserves_fail_close_behavior(
     assert hook["blockOnFailure"] is True
 
 
+def test_post_tool_use_code_catalog_register_hook_is_registered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HELIX_HOME", raising=False)
+    entry = merge_settings.HELIX_HOOKS["PostToolUse"][1]
+    hook = entry["hooks"][0]
+
+    assert entry["matcher"] == "Edit|Write|MultiEdit"
+    assert entry["continueOnBlock"] is True
+    assert hook["command"] == str(
+        Path(merge_settings._resolve_helix_home()) / ".claude" / "hooks" / "posttooluse-code-catalog-register.sh"
+    )
+    assert hook["blockOnFailure"] is False
+    assert hook["timeout"] == 10
+
+
 def test_pre_tool_use_bash_guard_is_registered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -218,6 +242,7 @@ def test_merge_replaces_stale_helix_hook_with_canonical() -> None:
     assert settings["hooks"]["PostToolUse"] == [
         {"hooks": [{"command": "custom-post"}]},
         merge_settings.HELIX_HOOKS["PostToolUse"][0],
+        merge_settings.HELIX_HOOKS["PostToolUse"][1],
     ]
 
 
@@ -365,6 +390,10 @@ def test_merge_preserves_design_doc_web_search_revert_first() -> None:
     assert settings["hooks"]["PostToolUse"][0]["hooks"][1]["command"] == (
         merge_settings.HELIX_HOOKS["PostToolUse"][0]["hooks"][0]["command"]
     )
+    assert _post_tool_entry(
+        settings["hooks"]["PostToolUse"],
+        "/.claude/hooks/posttooluse-code-catalog-register.sh",
+    ) == merge_settings.HELIX_HOOKS["PostToolUse"][1]
 
 
 def test_remove_only_helix_hook_preserves_custom() -> None:

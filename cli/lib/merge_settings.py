@@ -90,6 +90,19 @@ def _build_hooks():
                         "blockOnFailure": True,
                     }
                 ]
+            },
+            {
+                "matcher": "Edit|Write|MultiEdit",
+                "continueOnBlock": True,
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": _hook_command(helix_home, ".claude/hooks/posttooluse-code-catalog-register.sh"),
+                        "timeout": 10,
+                        "statusMessage": "Syncing code catalog...",
+                        "blockOnFailure": False,
+                    }
+                ]
             }
         ],
         "Stop": [

@@ -171,6 +171,19 @@
         ]
       },
       {
+        "matcher": "Edit|Write|MultiEdit",
+        "continueOnBlock": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/posttooluse-code-catalog-register.sh",
+            "timeout": 10,
+            "statusMessage": "Syncing code catalog...",
+            "blockOnFailure": false
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
