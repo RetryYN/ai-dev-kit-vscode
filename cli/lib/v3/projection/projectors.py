@@ -594,11 +594,65 @@ def project_code(ctx: ProjectionContext) -> None:
         _safe_upsert_projection_row(ctx, table_name=artifact_table.name, source=source, row=row)
 
 
+def project_test_files(ctx: ProjectionContext) -> None:
+    """Phase 7.3: 実 .py/.bats test ファイルを test_cases へ(test_file/test_name/status=discovered、本文非保存=C-5)。"""
+    import ast as _ast
+    import re as _re
+
+    case_table = registry.TABLE_BY_NAME["test_cases"]
+    for source in ctx.sources:
+        if source.parse_error is not None:
+            continue
+        path = source.path
+        base = path.rsplit("/", 1)[-1]
+        names: list[str] = []
+        if path.endswith(".py") and (base.startswith("test_") or base.endswith("_test.py")):
+            try:
+                tree = _ast.parse(source.text)
+            except SyntaxError:
+                continue
+            names = [
+                node.name
+                for node in _ast.walk(tree)
+                if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef))
+                and node.name.startswith("test")
+            ]
+            kind = "unit"
+        elif path.endswith(".bats"):
+            names = _re.findall(r"@test\s+['\"](.+?)['\"]", source.text)
+            kind = "bats"
+        else:
+            continue
+        for test_name in names:
+            row = _filter_row(
+                case_table.name,
+                {
+                    "test_case_id": stable_id(case_table.name, f"{path}::{test_name}"),
+                    "test_run_id": "",
+                    "test_file": path,
+                    "test_name": test_name,
+                    "plan_id": "",
+                    "fr_id": "",
+                    "artifact_id": "",
+                    "kind": kind,
+                    "oracle_id": "",
+                    "name": test_name,
+                    "first_seen_at": "",
+                    "last_seen_at": "",
+                    "status": "discovered",
+                    "duration_ms": 0.0,
+                    "evidence_path": path,
+                },
+            )
+            _safe_upsert_projection_row(ctx, table_name=case_table.name, source=source, row=row)
+
+
 PROJECTORS = (
     project_plans,
     project_artifacts,
     project_code,
     project_trace_edges,
     project_test_evidence,
+    project_test_files,
     project_gate_runs,
 )
