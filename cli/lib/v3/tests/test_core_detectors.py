@@ -310,7 +310,10 @@ def test_ut_p8_10_run_doctor_uses_and_semantics_without_short_circuit(migrated_d
     result = run_doctor(migrated_db, CORE_DETECTORS)
 
     assert result.ok is False
-    assert [finding.id for finding in result.findings] == ["FN-DET-01", "FN-DET-02", "FN-DET-03"]
+    finding_ids = {finding.id for finding in result.findings}
+    # 短絡なし: 先に fail する FN-DET-01 の後でも FN-DET-02/03 が実行され finding を出す
+    # (CORE_DETECTORS に detector を足しても壊れない subset 検証)
+    assert {"FN-DET-01", "FN-DET-02", "FN-DET-03"} <= finding_ids
 
 
 @dataclass(frozen=True)

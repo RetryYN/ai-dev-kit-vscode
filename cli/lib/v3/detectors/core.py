@@ -315,6 +315,85 @@ def trace_symmetry_messages(result: TraceSymmetryResult) -> list[Finding]:
     ]
 
 
+FN_DET_11 = "FN-DET-11"
+FN_DET_12 = "FN-DET-12"
+
+KEY_PROJECTION_TABLES = ("plan_registry", "artifact_registry", "test_cases", "trace_edges")
+
+
+@dataclass(frozen=True)
+class DbProjectionCoverageInput:
+    table_counts: tuple[tuple[str, int], ...]
+
+
+@dataclass(frozen=True)
+class DbProjectionCoverageResult:
+    ok: bool
+    empty_tables: tuple[str, ...]
+
+
+def load_db_projection_coverage_input(db: sqlite3.Connection) -> DbProjectionCoverageInput:
+    counts: list[tuple[str, int]] = []
+    for table_name in KEY_PROJECTION_TABLES:
+        # table_name は固定 allowlist 由来（injection なし）。registry 実在も確認。
+        _ensure_table_columns(table_name, ())
+        count = db.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        counts.append((table_name, int(count)))
+    return DbProjectionCoverageInput(table_counts=tuple(counts))
+
+
+def analyze_db_projection_coverage(input_data: DbProjectionCoverageInput) -> DbProjectionCoverageResult:
+    # absence=ok=false: key projection table が空（0 行）= もれ
+    empty = tuple(table for table, count in input_data.table_counts if count == 0)
+    return DbProjectionCoverageResult(ok=not empty, empty_tables=empty)
+
+
+def db_projection_coverage_messages(result: DbProjectionCoverageResult) -> list[Finding]:
+    return [
+        Finding(id=FN_DET_11, severity=HARD, subject="db-projection-coverage", missing=(table,))
+        for table in result.empty_tables
+    ]
+
+
+@dataclass(frozen=True)
+class SchemaSsotInput:
+    db_tables: frozenset[str]
+    registry_tables: frozenset[str]
+
+
+@dataclass(frozen=True)
+class SchemaSsotResult:
+    ok: bool
+    rogue_tables: tuple[str, ...]
+    missing_tables: tuple[str, ...]
+
+
+def load_schema_ssot_input(db: sqlite3.Connection) -> SchemaSsotInput:
+    db_tables = frozenset(
+        row[0]
+        for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        if row[0] and not row[0].startswith("sqlite_")
+    )
+    registry_tables = frozenset(table.name for table in registry.TABLES)
+    return SchemaSsotInput(db_tables=db_tables, registry_tables=registry_tables)
+
+
+def analyze_schema_ssot(input_data: SchemaSsotInput) -> SchemaSsotResult:
+    # registry 外 table（rogue）/ registry にあるが DB 未作成（missing）= 違反。absence(db 空)も missing で ok=false。
+    rogue = tuple(sorted(input_data.db_tables - input_data.registry_tables))
+    missing = tuple(sorted(input_data.registry_tables - input_data.db_tables))
+    return SchemaSsotResult(ok=not rogue and not missing, rogue_tables=rogue, missing_tables=missing)
+
+
+def schema_ssot_messages(result: SchemaSsotResult) -> list[Finding]:
+    findings: list[Finding] = []
+    for table in result.rogue_tables:
+        findings.append(Finding(id=FN_DET_12, severity=HARD, subject="schema-ssot.rogue-table", missing=(table,)))
+    for table in result.missing_tables:
+        findings.append(Finding(id=FN_DET_12, severity=HARD, subject="schema-ssot.missing-table", missing=(table,)))
+    return findings
+
+
 CORE_DETECTORS = (
     DetectorSpec(
         detector_id=FN_DET_01,
@@ -323,6 +402,22 @@ CORE_DETECTORS = (
         load=load_plan_artifact_existence_input,
         analyze=analyze_plan_artifact_existence,
         messages=plan_artifact_existence_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_11,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_db_projection_coverage_input,
+        analyze=analyze_db_projection_coverage,
+        messages=db_projection_coverage_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_12,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_schema_ssot_input,
+        analyze=analyze_schema_ssot,
+        messages=schema_ssot_messages,
     ),
     DetectorSpec(
         detector_id=FN_DET_02,
