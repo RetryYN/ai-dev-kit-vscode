@@ -10,7 +10,8 @@ parent_process: HELIX-workflows/helix-process/L7-implementation.md
 parent_design: "docs/v3/engine/schema-registry.md"
 dependencies:
   requires: []
-  blocks: []
+  blocks:
+    - L7-v3-engine-c2-projection-writerplan
 pairs_test_design:
   - cli/lib/v3/tests/test_schema_registry.py
 is_reference: false
