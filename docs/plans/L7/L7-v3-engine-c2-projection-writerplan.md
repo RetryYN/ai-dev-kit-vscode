@@ -11,7 +11,8 @@ parent_design: "docs/v3/engine/projection-writer.md"
 dependencies:
   requires:
     - L7-v3-engine-c1-schema-registryplan
-  blocks: []
+  blocks:
+    - L7-v3-engine-cutover-gateplan
 pairs_test_design:
   - cli/lib/v3/tests/test_projection_writer.py
 is_reference: false

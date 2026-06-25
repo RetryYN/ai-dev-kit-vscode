@@ -12,6 +12,7 @@ dependencies:
   requires: []
   blocks:
     - L7-v3-engine-c2-projection-writerplan
+    - L7-v3-engine-cutover-gateplan
 pairs_test_design:
   - cli/lib/v3/tests/test_schema_registry.py
 is_reference: false
