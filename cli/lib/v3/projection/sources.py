@@ -27,8 +27,9 @@ def _is_source_candidate(path: str) -> bool:
         return False
     if "/__pycache__/" in path or path.endswith("/__pycache__"):
         return False
-    # .md = doc/PLAN (frontmatter parsed); .py/.bats = code/test artifacts (frontmatter={}, text+hash only)
-    return path.endswith((".md", ".py", ".bats"))
+    # .md = doc/PLAN (frontmatter parsed); .py/.bats = code/test; .yaml = config/registry (FR 等)
+    # 非 .md は frontmatter parse せず text+hash のみ(load_sources)
+    return path.endswith((".md", ".py", ".bats", ".yaml"))
 
 
 def _walk_source_files(root: str) -> list[str]:
@@ -133,6 +134,12 @@ def load_sources(root: os.PathLike[str] | str) -> list[SourceRecord]:
             text = handle.read()
         digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
         relative = os.path.relpath(path, root).replace(os.sep, "/")
+        # frontmatter parse は .md のみ(.py/.bats/.yaml は text-only、YAML doc marker '---' の誤 parse を回避)
+        if not relative.endswith(".md"):
+            records.append(
+                SourceRecord(path=relative, text=text, body=text, frontmatter={}, content_hash=digest)
+            )
+            continue
         try:
             frontmatter, body = _parse_frontmatter(text)
             records.append(

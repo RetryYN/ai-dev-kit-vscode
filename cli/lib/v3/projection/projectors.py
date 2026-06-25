@@ -647,6 +647,37 @@ def project_test_files(ctx: ProjectionContext) -> None:
             _safe_upsert_projection_row(ctx, table_name=case_table.name, source=source, row=row)
 
 
+def project_functional_registry(ctx: ProjectionContext) -> None:
+    """Phase 7.4: cli/config/functional-registry.yaml の FR entries → functional_registry。"""
+    import yaml as _yaml
+
+    fr_table = registry.TABLE_BY_NAME["functional_registry"]
+    for source in ctx.sources:
+        if not source.path.endswith("functional-registry.yaml"):
+            continue
+        try:
+            data = _yaml.safe_load(source.text) or {}
+        except _yaml.YAMLError:
+            continue
+        entries = data.get("entries") if isinstance(data, dict) else None
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict) or not entry.get("id"):
+                continue
+            row = _filter_row(
+                fr_table.name,
+                {
+                    "fn_id": str(entry.get("id")),
+                    "fr_id": str(entry.get("l3_fr") or entry.get("l1_fr") or ""),
+                    "layer": str(entry.get("coverage_layer") or ""),
+                    "maps_to": str(entry.get("l1_fr") or ""),
+                    "registry_hash": source.content_hash,
+                },
+            )
+            _safe_upsert_projection_row(ctx, table_name=fr_table.name, source=source, row=row)
+
+
 PROJECTORS = (
     project_plans,
     project_artifacts,
@@ -654,5 +685,6 @@ PROJECTORS = (
     project_trace_edges,
     project_test_evidence,
     project_test_files,
+    project_functional_registry,
     project_gate_runs,
 )
