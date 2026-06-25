@@ -85,7 +85,7 @@ V3 engine keystone **C2 = 単一 projection-writer**（`rebuild_projection` ⊥ 
 
 - **stdlib のみ**（`sqlite3` + `hashlib` + `re` + `subprocess`(git) + `os.walk`(fallback)）。
 - `rebuild_projection(db, sources)` = `BEGIN IMMEDIATE → truncate_projection_tables(db)(kind==projection のみ DELETE) → for project_fn in PROJECTORS → COMMIT`（失敗時 ROLLBACK）。
-- C1 の `TABLE_BY_NAME[name].kind` / `.logical_key` を参照（C1 と契約結合、再実装しない）。
+- C1 の実 API を参照（再実装しない）: `from v3.schema import registry, ddl`。`registry.TABLE_BY_NAME[name].kind`(projection/append_event/config) / `.logical_keys`(冪等 upsert キー列の list) / `.columns`(ColumnDef.{name, sql_type, nullable, primary_key, references}) / `ddl.migrate(db)`。**delete_scope は kind から導出**（projection=rebuild で消す / append_event・config=残す）。**stale_key は projector が対象 table の content/source hash 列で判定**（C2 内ロジック。C1 TableDef に stale_key は持たせない＝観測前の推測回避）。
 - projector は本 unit では**最小セット**（`project_plans` / `project_artifacts` / `project_trace_edges` / `project_test_evidence` / `project_gate_runs`）で DbC を満たす範囲。残り ~30 projector は後続 unit（推測実装しない）。
 - secret guard の SECRET_PATTERN は projection-writer.md の契約に従う（PK・`*_id` は除外）。
 
