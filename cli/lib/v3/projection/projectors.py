@@ -3,10 +3,11 @@ from __future__ import annotations
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Any
 
 from cli.lib.v3.schema import registry
 
-from .secret_guard import assert_no_sensitive_payload
+from .secret_guard import SensitivePayloadError, assert_no_sensitive_payload
 from .sources import SourceRecord
 from .upsert import stable_id, upsert_row
 
@@ -68,12 +69,115 @@ def record_parse_failures(ctx: ProjectionContext) -> None:
         )
 
 
+def _source_kind(source: SourceRecord) -> str:
+    value = source.frontmatter.get("source_kind")
+    return value if isinstance(value, str) else ""
+
+
 def _matching_sources(ctx: ProjectionContext, kind: str) -> list[SourceRecord]:
-    return [
-        source
-        for source in ctx.sources
-        if source.parse_error is None and source.frontmatter.get("source_kind") == kind
-    ]
+    return [source for source in ctx.sources if source.parse_error is None and _source_kind(source) == kind]
+
+
+def _is_plan_source(source: SourceRecord) -> bool:
+    if source.parse_error is not None:
+        return False
+    if _source_kind(source) == "plan":
+        return True
+    return all(source.frontmatter.get(field) for field in ("plan_id", "kind", "layer", "drive", "status"))
+
+
+def _is_inferred_plan_source(source: SourceRecord) -> bool:
+    return _is_plan_source(source) and not _source_kind(source)
+
+
+def _is_inferred_design_doc(source: SourceRecord) -> bool:
+    return source.parse_error is None and not _source_kind(source) and source.path.startswith("docs/v3/")
+
+
+def _table_column_names(table_name: str) -> set[str]:
+    return {column.name for column in registry.TABLE_BY_NAME[table_name].columns}
+
+
+def _filter_row(table_name: str, row: dict[str, object]) -> dict[str, object]:
+    columns = _table_column_names(table_name)
+    return {key: value for key, value in row.items() if key in columns}
+
+
+def _stringify(value: object, *, default: str = "") -> str:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _first_non_empty(*values: object) -> str:
+    for value in values:
+        candidate = _stringify(value).strip()
+        if candidate:
+            return candidate
+    return ""
+
+
+def _as_list(value: object) -> list[object]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _path_list(value: object, *, self_path: str | None = None) -> list[str]:
+    paths: list[str] = []
+    for item in _as_list(value):
+        candidate = _stringify(item).strip()
+        if not candidate:
+            continue
+        if candidate == "self" and self_path is not None:
+            paths.append(self_path)
+            continue
+        paths.append(candidate)
+    return paths
+
+
+def _updated_at(source: SourceRecord) -> str:
+    return _first_non_empty(
+        source.frontmatter.get("updated_at"),
+        source.frontmatter.get("revised"),
+        source.frontmatter.get("created"),
+    )
+
+
+def _plan_parent(source: SourceRecord) -> str:
+    dependencies = source.frontmatter.get("dependencies")
+    dependency_parent = dependencies.get("parent") if isinstance(dependencies, dict) else None
+    return _first_non_empty(source.frontmatter.get("parent"), dependency_parent, source.frontmatter.get("parent_process"))
+
+
+def _safe_upsert_projection_row(
+    ctx: ProjectionContext,
+    *,
+    table_name: str,
+    source: SourceRecord,
+    row: dict[str, object],
+) -> bool:
+    table = registry.TABLE_BY_NAME[table_name]
+    try:
+        assert_no_sensitive_payload(row, table)
+    except SensitivePayloadError as exc:
+        _record_finding(
+            ctx,
+            kind="secret-guard-blocked",
+            severity="warning",
+            subject_id=source.path,
+            source=str(exc),
+            status="warn",
+            evidence_path=source.path,
+        )
+        return False
+    upsert_row(ctx.db, table, row)
+    _record_count(ctx, table.name)
+    return True
 
 
 def _require_fields(ctx: ProjectionContext, source: SourceRecord, fields: tuple[str, ...]) -> bool:
@@ -94,41 +198,74 @@ def _require_fields(ctx: ProjectionContext, source: SourceRecord, fields: tuple[
 
 def project_plans(ctx: ProjectionContext) -> None:
     table = registry.TABLE_BY_NAME["plan_registry"]
-    for source in _matching_sources(ctx, "plan"):
-        if not _require_fields(ctx, source, ("plan_id", "kind", "layer", "drive", "status", "updated_at")):
+    for source in ctx.sources:
+        if not _is_plan_source(source):
             continue
-        row = {
-            "plan_id": source.frontmatter["plan_id"],
-            "kind": source.frontmatter["kind"],
-            "layer": source.frontmatter["layer"],
-            "sub_doc": source.frontmatter.get("sub_doc", ""),
-            "drive": source.frontmatter["drive"],
-            "status": source.frontmatter["status"],
-            "parent": source.frontmatter.get("parent", ""),
-            "updated_at": source.frontmatter["updated_at"],
-            "decision_outcome": source.frontmatter.get("decision_outcome", ""),
-            "source_hash": source.content_hash,
-        }
-        assert_no_sensitive_payload(row, table)
-        upsert_row(ctx.db, table, row)
-        _record_count(ctx, table.name)
+        if not _require_fields(ctx, source, ("plan_id", "kind", "layer", "drive", "status")):
+            continue
+        updated_at = _updated_at(source)
+        if not updated_at:
+            _record_finding(
+                ctx,
+                kind="contract-violation",
+                severity="warning",
+                subject_id=source.path,
+                source="updated_at",
+                status="warn",
+                evidence_path=source.path,
+            )
+            continue
+        row = _filter_row(
+            table.name,
+            {
+                "plan_id": _stringify(source.frontmatter.get("plan_id")),
+                "kind": _stringify(source.frontmatter.get("kind")),
+                "layer": _stringify(source.frontmatter.get("layer")),
+                "sub_doc": _stringify(source.frontmatter.get("sub_doc")),
+                "drive": _stringify(source.frontmatter.get("drive")),
+                "status": _stringify(source.frontmatter.get("status")),
+                "parent": _plan_parent(source),
+                "updated_at": updated_at,
+                "decision_outcome": _stringify(source.frontmatter.get("decision_outcome")),
+                "source_hash": source.content_hash,
+            },
+        )
+        _safe_upsert_projection_row(ctx, table_name=table.name, source=source, row=row)
 
 
 def project_artifacts(ctx: ProjectionContext) -> None:
     artifact_table = registry.TABLE_BY_NAME["artifact_registry"]
     for source in _matching_sources(ctx, "artifact"):
-        if not _require_fields(ctx, source, ("artifact_type", "path", "status", "updated_at")):
+        if not _require_fields(ctx, source, ("artifact_type", "path", "status")):
             continue
-        row = {
-            "artifact_type": source.frontmatter["artifact_type"],
-            "path": source.frontmatter["path"],
-            "pair_artifact": source.frontmatter.get("pair_artifact", ""),
-            "status": source.frontmatter["status"],
-            "updated_at": source.frontmatter["updated_at"],
-        }
-        assert_no_sensitive_payload(row, artifact_table)
-        upsert_row(ctx.db, artifact_table, row)
-        _record_count(ctx, artifact_table.name)
+        row = _filter_row(
+            artifact_table.name,
+            {
+                "artifact_type": _stringify(source.frontmatter.get("artifact_type")),
+                "path": _stringify(source.frontmatter.get("path")),
+                "pair_artifact": _stringify(source.frontmatter.get("pair_artifact")),
+                "status": _stringify(source.frontmatter.get("status")),
+                "updated_at": _updated_at(source),
+            },
+        )
+        _safe_upsert_projection_row(ctx, table_name=artifact_table.name, source=source, row=row)
+
+    for source in ctx.sources:
+        if not (_is_inferred_plan_source(source) or _is_inferred_design_doc(source)):
+            continue
+        pair_candidates = _path_list(source.frontmatter.get("pairs_test_design"), self_path=source.path)
+        pair_candidates.extend(_path_list(source.frontmatter.get("pair_artifact"), self_path=source.path))
+        row = _filter_row(
+            artifact_table.name,
+            {
+                "artifact_type": "plan" if _is_inferred_plan_source(source) else _first_non_empty(source.frontmatter.get("artifact_type"), "design_doc"),
+                "path": source.path,
+                "pair_artifact": pair_candidates[0] if pair_candidates else "",
+                "status": _first_non_empty(source.frontmatter.get("status"), "draft"),
+                "updated_at": _updated_at(source),
+            },
+        )
+        _safe_upsert_projection_row(ctx, table_name=artifact_table.name, source=source, row=row)
 
     export_table = registry.TABLE_BY_NAME["document_export_artifacts"]
     grouped: dict[str, list[SourceRecord]] = defaultdict(list)
@@ -166,7 +303,6 @@ def project_artifacts(ctx: ProjectionContext) -> None:
 
 
 def project_trace_edges(ctx: ProjectionContext) -> None:
-    table = registry.TABLE_BY_NAME["trace_edges"]
     known_artifacts = {
         row[0]
         for row in ctx.db.execute("SELECT path FROM artifact_registry").fetchall()
@@ -175,29 +311,39 @@ def project_trace_edges(ctx: ProjectionContext) -> None:
         row[0]
         for row in ctx.db.execute("SELECT plan_id FROM plan_registry").fetchall()
     }
-    for source in _matching_sources(ctx, "trace_edge"):
-        if not _require_fields(ctx, source, ("from_artifact", "to_artifact", "edge_kind", "plan_id", "status")):
-            continue
-        unresolved = [
-            reference
-            for reference in (
-                source.frontmatter["from_artifact"],
-                source.frontmatter["to_artifact"],
-            )
-            if reference not in known_artifacts
-        ]
-        if source.frontmatter["plan_id"] not in known_plans:
-            unresolved.append(source.frontmatter["plan_id"])
-        row = {
-            "from_artifact": source.frontmatter["from_artifact"],
-            "to_artifact": source.frontmatter["to_artifact"],
-            "edge_kind": source.frontmatter["edge_kind"],
-            "plan_id": source.frontmatter["plan_id"],
-            "status": source.frontmatter["status"],
-        }
-        assert_no_sensitive_payload(row, table)
-        upsert_row(ctx.db, table, row)
-        _record_count(ctx, table.name)
+    plan_paths = {
+        _stringify(source.frontmatter.get("plan_id")): source.path
+        for source in ctx.sources
+        if _is_plan_source(source) and source.frontmatter.get("plan_id")
+    }
+
+    def record_edge(
+        source: SourceRecord,
+        *,
+        from_artifact: str,
+        to_artifact: str,
+        edge_kind: str,
+        plan_id: str,
+        status: str,
+    ) -> None:
+        table = registry.TABLE_BY_NAME["trace_edges"]
+        row = _filter_row(
+            table.name,
+            {
+                "from_artifact": from_artifact,
+                "to_artifact": to_artifact,
+                "edge_kind": edge_kind,
+                "plan_id": plan_id,
+                "status": status,
+            },
+        )
+        inserted = _safe_upsert_projection_row(ctx, table_name=table.name, source=source, row=row)
+        if not inserted:
+            return
+
+        unresolved = [reference for reference in (from_artifact, to_artifact) if reference not in known_artifacts]
+        if plan_id and plan_id not in known_plans:
+            unresolved.append(plan_id)
         if unresolved:
             _record_finding(
                 ctx,
@@ -208,6 +354,115 @@ def project_trace_edges(ctx: ProjectionContext) -> None:
                 status="warn",
                 evidence_path=source.path,
             )
+
+    for source in _matching_sources(ctx, "trace_edge"):
+        if not _require_fields(ctx, source, ("from_artifact", "to_artifact", "edge_kind", "plan_id", "status")):
+            continue
+        record_edge(
+            source,
+            from_artifact=_stringify(source.frontmatter.get("from_artifact")),
+            to_artifact=_stringify(source.frontmatter.get("to_artifact")),
+            edge_kind=_stringify(source.frontmatter.get("edge_kind")),
+            plan_id=_stringify(source.frontmatter.get("plan_id")),
+            status=_stringify(source.frontmatter.get("status")),
+        )
+
+    for source in ctx.sources:
+        if not _is_plan_source(source):
+            continue
+        plan_id = _stringify(source.frontmatter.get("plan_id"))
+        status = _first_non_empty(source.frontmatter.get("status"), "active")
+
+        for pair_path in _path_list(source.frontmatter.get("pairs_test_design"), self_path=source.path):
+            record_edge(
+                source,
+                from_artifact=source.path,
+                to_artifact=pair_path,
+                edge_kind="pairs_with",
+                plan_id=plan_id,
+                status=status,
+            )
+            if pair_path != source.path:
+                record_edge(
+                    source,
+                    from_artifact=pair_path,
+                    to_artifact=source.path,
+                    edge_kind="pairs_with",
+                    plan_id=plan_id,
+                    status=status,
+                )
+
+        for generated in _as_list(source.frontmatter.get("generates")):
+            if isinstance(generated, dict):
+                artifact_path = _first_non_empty(generated.get("artifact_path"), generated.get("path"))
+            else:
+                artifact_path = _stringify(generated).strip()
+            if not artifact_path:
+                continue
+            record_edge(
+                source,
+                from_artifact=source.path,
+                to_artifact=artifact_path,
+                edge_kind="generates",
+                plan_id=plan_id,
+                status=status,
+            )
+            record_edge(
+                source,
+                from_artifact=artifact_path,
+                to_artifact=source.path,
+                edge_kind="generated_by",
+                plan_id=plan_id,
+                status=status,
+            )
+
+        dependencies = source.frontmatter.get("dependencies")
+        requires = dependencies.get("requires") if isinstance(dependencies, dict) else []
+        for required in _as_list(requires):
+            required_plan_id = _stringify(required).strip()
+            if not required_plan_id:
+                continue
+            required_path = plan_paths.get(required_plan_id, required_plan_id)
+            record_edge(
+                source,
+                from_artifact=source.path,
+                to_artifact=required_path,
+                edge_kind="requires",
+                plan_id=plan_id,
+                status=status,
+            )
+            record_edge(
+                source,
+                from_artifact=required_path,
+                to_artifact=source.path,
+                edge_kind="required_by",
+                plan_id=plan_id,
+                status=status,
+            )
+
+    for source in ctx.sources:
+        if source.parse_error is not None or _source_kind(source) or not source.frontmatter.get("pair_artifact"):
+            continue
+        for pair_path in _path_list(source.frontmatter.get("pair_artifact"), self_path=source.path):
+            plan_id = _stringify(source.frontmatter.get("plan_id"))
+            status = _first_non_empty(source.frontmatter.get("status"), "active")
+            record_edge(
+                source,
+                from_artifact=source.path,
+                to_artifact=pair_path,
+                edge_kind="pairs_with",
+                plan_id=plan_id,
+                status=status,
+            )
+            if pair_path != source.path:
+                record_edge(
+                    source,
+                    from_artifact=pair_path,
+                    to_artifact=source.path,
+                    edge_kind="pairs_with",
+                    plan_id=plan_id,
+                    status=status,
+                )
 
 
 def project_test_evidence(ctx: ProjectionContext) -> None:

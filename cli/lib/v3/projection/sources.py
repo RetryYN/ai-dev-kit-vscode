@@ -5,6 +5,8 @@ import os
 import subprocess
 from dataclasses import dataclass
 
+import yaml
+
 
 class SourceEnumerationError(RuntimeError):
     """Raised when filesystem fallback appears to have narrowed the source set."""
@@ -15,7 +17,7 @@ class SourceRecord:
     path: str
     text: str
     body: str
-    frontmatter: dict[str, str]
+    frontmatter: dict[str, object]
     content_hash: str
     parse_error: str | None = None
 
@@ -93,30 +95,41 @@ def enumerate_source_files(root: os.PathLike[str] | str) -> list[str]:
         return walked
 
 
-def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
-    if not text.startswith("---\n"):
-        raise ValueError("missing frontmatter start")
-    lines = text.splitlines()
-    frontmatter: dict[str, str] = {}
+def _parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = normalized.split("\n")
+    start_index = 0
+    while start_index < len(lines) and not lines[start_index].strip():
+        start_index += 1
+    if start_index >= len(lines) or lines[start_index].strip() != "---":
+        return {}, normalized.strip()
+
     end_index = None
-    for index, line in enumerate(lines[1:], start=1):
-        if line == "---":
+    for index in range(start_index + 1, len(lines)):
+        if lines[index].strip() == "---":
             end_index = index
             break
-        if ":" not in line:
-            raise ValueError(f"invalid frontmatter line: {line}")
-        key, value = line.split(":", 1)
-        frontmatter[key.strip()] = value.strip()
     if end_index is None:
-        raise ValueError("missing frontmatter end")
+        return {}, normalized.strip()
+
+    frontmatter_block = "\n".join(lines[start_index + 1 : end_index]).strip()
+    try:
+        loaded = yaml.safe_load(frontmatter_block) if frontmatter_block else {}
+    except yaml.YAMLError as exc:
+        raise ValueError(str(exc)) from exc
+    if loaded is None:
+        loaded = {}
+    if not isinstance(loaded, dict):
+        raise ValueError("frontmatter must be a mapping")
     body = "\n".join(lines[end_index + 1 :]).strip()
-    return frontmatter, body
+    return loaded, body
 
 
 def load_sources(root: os.PathLike[str] | str) -> list[SourceRecord]:
     records: list[SourceRecord] = []
     for path in enumerate_source_files(root):
-        text = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
         digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
         relative = os.path.relpath(path, root).replace(os.sep, "/")
         try:
