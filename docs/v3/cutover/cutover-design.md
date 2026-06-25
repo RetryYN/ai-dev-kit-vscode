@@ -33,7 +33,7 @@ clean harness 実行順（capture §10）= Phase 6 engine（C1→C2 = **完了�
 | 4 | **rebuild_dry_run** | V3 engine が sources から throwaway DB へ **C1 migrate + C2 rebuild_projection を実行成功**（cutover 前に V3 の rebuild 能力を実証） | hybrid（DB throwaway + file sources） | 例外なく rebuild 完了 |
 
 - **detector deferred** は §0 policy に従い `accepted_gap` finding（hard fail でなく、policy 3 要素欠落で fail-close）。
-- pin_inventory の退役 inventory = [FR-V3-CUT-01] の 107 pytest + 49 bats + config の**実体パス列挙**（L7 で確定・凍結）。
+- **退役 inventory は config（数値 hardcode しない）**: gate は「cutover commit が退役した file 集合 == 凍結 inventory」を突合する（数値非依存）。**⚠ FR-V3-CUT-01 の「107 pytest + 49 bats」は harness-era 推定で本 V2 repo と不一致**（repo 実測 = **270 pytest + 117 bats**）。退役 set は「V3 が置換する V2 engine 部分の tests/config」を **cutover scope から L7 で導出・凍結**する（全 387 test の blanket 退役でなく、engine 置換に対応する subset。L1 FR-V3-CUT-01 は L7 で実数へ訂正）。
 
 ## 3. rollback（可逆性の機械保証）
 

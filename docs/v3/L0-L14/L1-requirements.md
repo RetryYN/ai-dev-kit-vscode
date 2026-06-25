@@ -54,7 +54,7 @@
 |---|---|
 | FR-V3-PORT-01 | harness の TS/zod 実装を **Python/pydantic/stdlib sqlite3** へ再構築（設計意図のみ盗用、契約は独自テストで固定） |
 | FR-V3-API-01 | 公開 API（`@~/.helix/core/<path>` / gate ID `G0.5-G14` / VALID_SUB_DOCS slug / rule 型 id）を据え置き |
-| FR-V3-CUT-01 | cutover gate（pin inventory / dangling detector / rollback）を備え、V2 + pin する 107 pytest+49 bats+config を同 commit 退役 |
+| FR-V3-CUT-01 | cutover gate（pin inventory / dangling / rollback_preflight / rebuild_dry_run の 4 hard check）を備え、V2 engine + pin する退役 inventory（tests/config）を同 commit 退役（**「107 pytest+49 bats」は harness-era 推定で本 repo（実測 270 pytest+117 bats）と不一致 → 退役 subset を cutover scope から L7 で導出・凍結**。[cutover 設計](../cutover/cutover-design.md)） |
 | FR-V3-CFG-01 | HELIX 設定を harness の workflow 契約形式へ差し替え（FR-ENG-08 に合わせる） |
 
 ## 3. 非機能要求（NFR — harness nfr-grade 採用、IPA グレード × ISO 25010）
