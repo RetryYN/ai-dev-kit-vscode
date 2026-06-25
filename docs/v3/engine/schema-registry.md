@@ -49,31 +49,44 @@ def assert_sql_identifier(name: str) -> None:
 
 `schema/__init__.py` の import 時に**全 table 名・column 名・index 名を検証**（harness module load 時 `harness-db.ts:79-87`）。不正識別子で import 例外。DDL は builder + `assert_sql_identifier` 経由でのみ生成、値は parameterized query（`?`）。
 
-## 5. table 分類（TL C-1 — projection ⊥ append_event）
+## 5. table 分類 SSoT（TL C-1 — projection ⊥ append_event ⊥ config）
 
-各 `TableDef` に `kind: "projection" | "append_event" | "config"` を必須属性で持たせる。
+**本節が V3 全 table の唯一の分類 SSoT。** L5/L6/C2 は本表を参照し、再分類しない（C1 = 単一 table SSoT、TL P1）。各 `TableDef` に `kind ∈ {projection, append_event, config}` を必須属性で持つ。
 
-- **projection**: rebuild で全消し再投影。現在状態 = 最新 rebuild 結果。`rebuild_projection` の TRUNCATE 対象。
-- **append_event**: 冪等追記。rebuild で消えない（truncate 対象外）。時系列監査の証跡（red→green 履歴 / hook / bypass / guardrail decision）。
-- **config**: 静的設定（impact_rules / mcp_server_profiles 等）。rebuild 非対象 or seed のみ。
+- **projection**: rebuild で全消し再投影。現在状態 = 最新 rebuild 結果。`rebuild_projection` の TRUNCATE 対象。**default**。
+- **append_event**: 冪等追記。rebuild で消えない（truncate 対象外）。**rebuild が破壊する＝current source から再導出不能な監査履歴のみ**（capture §1/§103: red-first / review-guard / hook-bypass）。
+- **config**: 静的設定（seed のみ、runtime 由来でない）。rebuild 非対象。
 
-> clean harness は全 table を `rebuild_projection` で TRUNCATE する **projection-only** 実態（`test_result_events` 不在）。**V3 は append_event を独自差分で追加**（TL: 監査/red-first 履歴は時系列が証跡で projection-only では満たせない）。
+> **分類原則**: clean harness は全 table を `rebuild_projection` で TRUNCATE する **projection-only** 実態。V3 は「rebuild で復元不能な監査証跡」だけを append_event へ昇格する（最小 delta）。再導出可能な `*_events` 名 table（`model_runs` / `impact_results` / `artifact_progress_events` / `retry_events` / `trouble_events` / `test_flake_events` / `mcp_server_runs` 等）は **projection のまま**（"event" は harness の命名であって append 意味論ではない）。
 
-### 56 table inventory（kind 付与は V3 確定、列/PK 完全仕様は capture §B3 を正本）
+### V3 table inventory（58 = harness 56 + V3 追加 2）
 
-**core(27)**: `plan_registry`(proj) `artifact_registry`(proj) `model_runs`(event) `trace_edges`(proj) `coverage`(proj) `findings`(event) `gate_runs`(event) `drive_runs`(event) `hook_events`(event) `skill_invocations`(event) `skill_recommendations`(event) `feedback_events`(event) `quality_signals`(proj) `test_runs`(event) `test_cases`(proj) `test_results`(proj) **`test_result_events`(event, V3 新設)** `test_artifact_edges`(proj) `test_flake_events`(event) `search_index`(proj) `workflow_runs`(proj) `guardrail_decisions`(event) `issue_queue`(event) `trouble_events`(event) `retry_events`(event) `improvement_log`(event) `automation_assets`(proj)
+harness = **56**（core 26 + evaluation 10 + graph 20、`SCHEMA_VERSION=18`、index 41）。V3 は次の 2 table を明示追加し **58** とする（推測増設はしない）:
 
-**evaluation(10, 全 projection)**: `skill_evaluations` `poc_evaluations` `model_evaluations`(opt-in) `roadmap_rollups` `roadmap_band_coverage` `roadmap_gate_progress` `review_evidence_registry` `descent_obligations` `screens` `screen_trace`
+- `test_result_events`（**append_event**, V3 新設）: red→green 履歴。`test_results`(current projection) と用途分離。
+- `functional_registry`（**projection**, V3-core）: 機能一覧 SSoT（fn_id↔ut_id の FN↔UT 1:1 供給、FR-FNREG）。harness は FR を artifact 側で表現 → V3 は queryable table へ昇格（C1 登録 = SSoT 準拠）。
 
-**graph(20)**: `graph_nodes`(proj) `dependency_edges`(proj) `impact_rules`(config) `impact_results`(event) `artifact_progress`(proj) `artifact_progress_events`(event) `tool_runs`(event) `diagram_artifacts`(proj) `graph_snapshots`(proj) `mcp_server_profiles`(config) `mcp_profile_triggers`(config) `verification_profiles`(config) `verification_recommendations`(event) `mcp_server_runs`(event) `external_tool_findings`(event) `document_export_profiles`(config) `document_export_runs`(event) `document_export_datasets`(event) `document_export_artifacts`(proj) `document_export_triggers`(config)
+分類別の全件（58）:
 
-> index = 41（capture §B3 一覧）。
+- **append_event(3)**: `test_result_events` / `guardrail_decisions` / `hook_events`
+- **config(6)**: `impact_rules` / `mcp_server_profiles` / `mcp_profile_triggers` / `verification_profiles` / `document_export_profiles` / `document_export_triggers`
+- **projection(49)**: 下記の append_event/config を除く全 table
 
-## 6. enum SSoT（capture §B3 全列挙 → Python Enum）
+module 別（kind は上の 3 分類が正、ここは配置）:
+
+**core(28)**: `plan_registry` `artifact_registry` **`functional_registry`(V3)** `trace_edges` `coverage` `findings` `gate_runs` `drive_runs` `model_runs` `skill_invocations` `skill_recommendations` `feedback_events` `quality_signals` `test_runs` `test_cases` `test_results` **`test_result_events`(V3, append)** `test_artifact_edges` `test_flake_events` `search_index` `workflow_runs` `guardrail_decisions`(append) `hook_events`(append) `issue_queue` `trouble_events` `retry_events` `improvement_log` `automation_assets` — projection 25 + append 3
+
+**evaluation(10, 全 projection)**: `skill_evaluations` `poc_evaluations` `model_evaluations` `roadmap_rollups` `roadmap_band_coverage` `roadmap_gate_progress` `review_evidence_registry` `descent_obligations` `screens` `screen_trace`
+
+**graph(20)**: `graph_nodes` `dependency_edges` `impact_rules`(config) `impact_results` `artifact_progress` `artifact_progress_events` `tool_runs` `diagram_artifacts` `graph_snapshots` `mcp_server_profiles`(config) `mcp_profile_triggers`(config) `verification_profiles`(config) `verification_recommendations` `mcp_server_runs` `external_tool_findings` `document_export_profiles`(config) `document_export_runs` `document_export_datasets` `document_export_artifacts` `document_export_triggers`(config) — projection 14 + config 6
+
+> 列/PK 完全仕様は **L7 で確定**（推測 schema を避ける＝CLAUDE.md「永続化要求が観測されてから schema 確定」）。harness 実体 = capture §1 / `src/schema/harness-db-tables-{core,evaluation,graph}.ts`。index = 41（harness `harness-db-indexes.ts`）。
+
+## 6. enum SSoT（capture §1 全列挙 → Python Enum）
 
 `enums.py` を **enum 単一正本**にする（harness `src/schema/index.ts` = zod 相当）。drift を型 + 実行時検証で根絶。
 
-- `Kind`(12): charter/impl/design/poc/reverse/add-design/add-impl/refactor/retrofit/recovery/troubleshoot/research
+- `PlanKind`(11): impl/design/poc/reverse/add-design/add-impl/refactor/retrofit/recovery/troubleshoot/research（C6 PLAN kind と一致。**`charter` は PLAN でなく top-level doc artifact = `ArtifactType` 側**。`PlanKind` と `ArtifactType` を混同しない）
 - `Layer`(16): L0-L14 + cross ／ `V_MODEL_PAIRS`(6): L1↔L14 / L2↔L10 / L3↔L12 / L4↔L9 / L5↔L8 / L6↔L7
 - `VALID_SUB_DOCS`（層別 slug、L1:5/L2:4/L3:4/L4:9/L5:5/L6:4。FE slug = screen/screen-list/screen-flow/ui-element/wireframe/screen-functional/ui-standard/ui-detail/screen-spec）
 - `Drive`(5) be/fe/fullstack/db/agent ／ `Status`(4) draft/confirmed/completed/archived ／ `Role`(7) po/tl/qa/aim/uiux/se/docs

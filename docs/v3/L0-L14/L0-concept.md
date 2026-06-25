@@ -1,7 +1,7 @@
 # HELIX V3 — L0 企画書（clean harness base 再構築）
 
 > **status: 再構築中**（[新 base capture](../audit/2026-06-26-new-base-comprehensive-capture.md) を base に作り直し / 物理削除は cutover まで一切しない）
-> 起点: [V3-CHARTER.md](../V3-CHARTER.md)（メタ・アンカー）/ base SSoT = capture doc / harness concept v3.1（capture §B1）。
+> 起点: [V3-CHARTER.md](../V3-CHARTER.md)（メタ・アンカー）/ base SSoT = capture doc / harness concept v3.1（capture §5）。
 > 本書は HELIX **V3 harness** という *プロダクト* の企画書（L0）。「どう作るか」= charter、「何を作るか」= 本書。
 
 ## 0. 位置づけ
@@ -36,7 +36,7 @@ doc と workflow を機械パース可能な契約（frontmatter/ID/必須セク
 **in（V3 で作る）**:
 - engine keystone C1-C6（schema 単一 registry SSoT / projection-writer rebuild⊥append_event / pure-function detector + source_kind / lint-wiring / baseline ratchet / ルール化 doc/workflow 契約 + auto-enroll rule engine）。
 - V-model corpus L0-L14（FR-L1 registry 51 / 粒度ペアリング / HELIX W）を Python で再構築。
-- **13-14 駆動モデル**（Forward + reverse/discovery/scrum/incident/recovery/refactor/retrofit/add-feature/research + screen-design/frontend-design/**design-bottomup**）。
+- **13 駆動モデル**（`DRIVE_TDD_FITS`: design/add-feature/discovery/reverse/recovery/incident/refactor/retrofit/scrum/research + screen-design/frontend-design/**design-bottomup**。Forward backbone は駆動 mode に数えない）。
 - **FE/UI 設計ガバナンス**（§1c per-layer / frontend-design-coverage / screen-impl-pair-freeze / tokens SSoT / design-bottomup）— **harness から盗む**（実 UI 描画 src/web のみ greenfield）。
 - 配布（@~/.helix/core / setup / 4-provider 住所モデル）— 公開 API 据え置き。
 - AI 規律 harness（agent-guard / tier-router / work-guard / review-guard / attempt-escalation / worker≠reviewer）。
@@ -44,9 +44,9 @@ doc と workflow を機械パース可能な契約（frontmatter/ID/必須セク
 
 **out（やらない）**: TypeScript/Bun 化（Python 維持）/ 公開 API パス破壊 / harness ファイルの転用（設計を盗み新規構築）。
 
-## 4. 駆動モデル ecosystem（concept v3.1 §2.5 — 13-14 mode）
+## 4. 駆動モデル ecosystem（concept v3.1 §2.5 — 13 mode）
 
-Forward(spine) を背骨に、9 駆動 + 2 工程専門（screen-design/frontend-design）+ design-bottomup。出口は必ず Forward L0-L14 合流。signal→mode auto-routing（4 象限 priority: Incident>Recovery>Reverse>Refactor）、mode→command 機械契約、layer-context 注入 + orchestration_mode 5 値、横断検出 5 機構。実行モード 4 種（claude-only/codex-only/hybrid/standalone）。2 MUST 原則 = ①ルール同一性（Claude/Codex 同一判定・同一 exit code）②hybrid 機能分散（frontier-reviewer ≠ worker runtime）。
+Forward(spine) を背骨に、13 駆動 mode（`DRIVE_TDD_FITS` = design 含む 10 駆動 + 工程専門 screen-design/frontend-design + design-bottomup。capture §1）。出口は必ず Forward L0-L14 合流。signal→mode auto-routing（4 象限 priority: Incident>Recovery>Reverse>Refactor）、mode→command 機械契約、layer-context 注入 + orchestration_mode 5 値、横断検出 5 機構。実行モード 4 種（claude-only/codex-only/hybrid/standalone）。2 MUST 原則 = ①ルール同一性（Claude/Codex 同一判定・同一 exit code）②hybrid 機能分散（frontier-reviewer ≠ worker runtime）。
 
 ## 5. W-model（concept v3.1 §2.3.3）
 

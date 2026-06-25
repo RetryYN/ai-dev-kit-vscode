@@ -44,7 +44,7 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
                                               [ 実行口: helix doctor / push gate / CI ]
 ```
 
-要点: detector（C3）は file を見ず **DB（C1 が定義し C2 が満たす）を query** する。これが「DB が *あるべき集合* を持つから検出が成立する」の機械的実体。
+要点: detector（C3）の **primary source は DB projection**（C1 が定義し C2 が満たす *あるべき集合*）。これが「DB があるべき集合を持つから検出が成立する」の機械的実体。ただし detector は `source_kind`（db_projection / file_snapshot / hybrid）を宣言し、DB で表せない事実（例: review-guard の git working-tree 状態）は loader 隔離した file_snapshot を併用する（DB-only ではない＝D-05）。core は pure function、I/O は loader、absence=ok=false。
 
 ## 3. 外部インタフェース
 
@@ -65,19 +65,19 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
 | D-04 | **fail-close は baseline ratchet 経由**で段階昇格（初手 advisory） | count-pin ripple / debt 移行の安全弁（NFR-V3-03） |
 | D-05 | **detector は source_kind 宣言**（db_projection/file_snapshot/hybrid）、core は pure function・I/O は loader 隔離・absence=ok=false | clean harness は file/DB 混在が実態。「DB-only」でなく source 宣言 + pure + ok=AND で厳格性担保（TL C-3） |
 | D-06 | **FE 設計ガバナンスを harness から盗む**（§1c per-layer / frontend-design-coverage / screen-impl-pair-freeze）、実 UI 描画のみ greenfield | charter D7 訂正（FE は HELIX 独自優位でなく harness 保有） |
-| D-07 | **doc/workflow は機械契約 + 13-14 駆動 mode + auto-enroll rule engine** | 機械登録の前提（FR-ENG-08） |
+| D-07 | **doc/workflow は機械契約 + 13 駆動 mode + auto-enroll rule engine** | 機械登録の前提（FR-ENG-08） |
 
 > D-01〜D-06 のうち不可逆な大局判断（D-01 スタック / D-02 FK 方針）は ADR 起票候補。
 
 ## 5. capture で確定済の inventory（L5/L6 で詳細降下）
 
-clean harness の網羅 capture（[capture §B3](../audit/2026-06-26-new-base-comprehensive-capture.md)）で実体が確定済。L5/L6 はこれを Python へ降ろす:
+clean harness の網羅 capture（[capture §1](../audit/2026-06-26-new-base-comprehensive-capture.md)）で実体が確定済。L5/L6 はこれを Python へ降ろす:
 
-- **テーブル inventory**: **56 table**（core 27 / evaluation 10 / graph 20）+ 41 index、各 table は projection/append_event/config 分類 → C1/L5。
+- **テーブル inventory**: harness **56 table**（core 26 / evaluation 10 / graph 20）+ 41 index。V3 は 2 table 追加（`test_result_events`=append / `functional_registry`=projection）= **58**。分類 SSoT = [C1 §5](../engine/schema-registry.md)（projection 49 / append_event 3 / config 6）→ L5。
 - **projection rule 表**: artifact 種別 → table と logical_key/stale_key/delete_scope → C2/L5。
 - **detector inventory**: **~60 detector**（FE/descent/trace/graph/verification/plan/gate/governance）を pure-function 3 層 + source_kind で分類 → C3/L6（FN-* + DbC）。
-- **enum SSoT**: 全 enum（Kind 12/Layer 16/V_MODEL_PAIRS 6/VALID_SUB_DOCS/Drive 5/...）→ C1 enums.py。
-- **workflow 契約 schema**: frontmatter / 必須セクション / forward_routing / 13-14 mode → C6/L5。
+- **enum SSoT**: 全 enum（**PlanKind 11**/ArtifactType 19（charter 含む）/Layer 16/V_MODEL_PAIRS 6/VALID_SUB_DOCS/Drive 5/...、語は [C1 §6](../engine/schema-registry.md) に一致）→ C1 enums.py。
+- **workflow 契約 schema**: frontmatter / 必須セクション / forward_routing / 13 駆動 mode → C6/L5。
 
 ## 6. 総合テスト設計（L4 ↔ L9 pair・対の検証）
 

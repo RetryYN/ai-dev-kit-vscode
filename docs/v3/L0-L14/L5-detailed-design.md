@@ -10,7 +10,7 @@
 
 ## 0. 方針
 
-clean harness の **56-table registry を忠実に採用**する（[capture §B3](../audit/2026-06-26-new-base-comprehensive-capture.md) が全 56 table の name+column+PK 正本 / [C1 schema-registry](../engine/schema-registry.md) が projection⊥append_event 分類）。その上に HELIX 独自追加（`functional_registry` の機能一覧、`baseline_registry`、駆動 workflow の `forward_routing`）を一級 table で加える。§1 は detector が query する **V3-core**（あるべき集合の供給源）を示し、全 56 は capture §B3。
+clean harness の **56-table registry を忠実に採用**する（[capture §1](../audit/2026-06-26-new-base-comprehensive-capture.md) が harness 実体 / [C1 schema-registry §5](../engine/schema-registry.md) が **table 分類の唯一の SSoT** = projection⊥append_event⊥config）。V3 は harness 56 に 2 table を明示追加 = **58**（`test_result_events`=append 監査 / `functional_registry`=projection 機能一覧 SSoT。後者は harness が FR を artifact 側表現 → V3 が queryable table へ昇格、C1 登録済）。**`baseline_registry` は table でなく C5 baseline frozenset（code 定数、harness 同様）**。駆動 workflow の `forward_routing` は `drive_runs` 列。§1 は detector が query する V3-core（あるべき集合の供給源）の主要 table を抜粋し、全 58 の分類は C1 §5 を参照する（本書では再分類しない）。
 
 ## 1. C1 テーブル inventory（V3 core, 確定）
 
@@ -18,7 +18,7 @@ clean harness の **56-table registry を忠実に採用**する（[capture §B3
 |---|---|---|---|
 | `plan_registry` | 登録 PLAN 全件 | id, kind, status, layer, drive, forward_return | plan_registry |
 | `artifact_registry` | doc/設計/code/test の実在 | path, kind, layer, stale_status, content_hash | artifact_registry |
-| `functional_registry` | 機能一覧（HELIX 独自、L4/L5/L6 分類） | fn_id, fr_id, layer, maps_to | （fork は FR を artifact 側で表現） |
+| `functional_registry` | 機能一覧（V3-core, C1 §5 登録, projection） | fn_id, fr_id, layer, maps_to | （fork は FR を artifact 側で表現 → V3 が table 昇格） |
 | `trace_edges` | 縦断 trace（req→plan→design→test→source→db） | from_id, to_id, edge_kind | trace_edges |
 | `coverage` | design/test カバレッジ | subject_id, kind, covered_by | coverage |
 | `test_cases` | UT/IT/ST/AT 全件 | ut_id, layer, oracle, anchor_path | test_cases |
@@ -29,7 +29,6 @@ clean harness の **56-table registry を忠実に採用**する（[capture §B3
 | `findings` | detector 出力 | detector_id, severity, subject, missing | findings |
 | `review_evidence_registry` | 定性 review 証跡 | plan_id, reviewer, verdict, evidence_hash | review_evidence_registry |
 | `screens` / `screen_trace` | FE 画面と trace | screen_id, category / screen_id, trace | screens/screen_trace |
-| `baseline_registry` | detector ごと既知 debt | detector_id, violation_id | （fork は lint module 内定数） |
 
 > 確定: 物理 FK は同一 DB 内のみ（trace_edges.from_id 等は logical reference、consistency は detector）。**冪等キー・stale 判定・削除スコープ・projector は §1.5 で凍結**（L5↔L8 結合テストが書ける粒度）。物理 column の型・補助列の細部だけ L7 実装へ残す（推測 schema を避ける＝CLAUDE.md「永続化要求が観測されてから schema 確定」）。
 
@@ -52,7 +51,6 @@ projection-writer（C2）の idempotent / deletion / stale は **row identity �
 | findings | (detector_id, subject) | —（毎 run 再生成） | detector run 全消し | C3 detector-runner |
 | review_evidence_registry | (plan_id, reviewer, run_id) | evidence_hash | run_id | project_review |
 | screens / screen_trace | screen_id | — | screen_id | project_screen |
-| baseline_registry | (detector_id, violation_id) | — | detector_id | project_baseline |
 
 - **deletion = source 消失** → rebuild 全消し再投影で当該 logical_key の行が再投影されず**消える**（行を残さない）。
 - **stale = source は在るが stale_key（content_hash/digest）が前世代と不一致、または superseded（古い参照）** → `stale_status=stale` で**行は残す**。
@@ -60,21 +58,20 @@ projection-writer（C2）の idempotent / deletion / stale は **row identity �
 
 ## 1.6 Phase 2 拡張 table（FE / harness / HELIX W、凍結）
 
-FE（[fe](../fe/fe-ui-design.md)）/ harness（[harness](../harness/harness-design.md)）/ HELIX W（[helix-w](../helix-w-design.md)）関連 table を §1 V3-core と同じ契約粒度（logical_key / stale_key / delete_scope / projection⊥append_event）で凍結する。これらは **56-table registry（[capture §B3](../audit/2026-06-26-new-base-comprehensive-capture.md) / [C1](../engine/schema-registry.md)）の一部**であり、SSoT 外に置かない。
+FE（[fe](../fe/fe-ui-design.md)）/ harness（[harness](../harness/harness-design.md)）/ HELIX W（[helix-w](../helix-w-design.md)）関連 table を §1 V3-core と同じ契約粒度（logical_key / stale_key / delete_scope / projection⊥append_event）で凍結する。これらは **58-table registry（[C1 §5](../engine/schema-registry.md) が分類 SSoT）の一部**であり、SSoT 外に置かない。
 
 | table | logical_key | stale_key | delete_scope | projector_owner | 区分 |
 |---|---|---|---|---|---|
-| state_events | (screen_id, from_state, to_state, event) | source hash | screen_id | project_screen | rebuild |
-| review_evidence_registry | (plan_id, reviewer, run_id) | evidence_hash | run_id | project_review | rebuild |
-| hook_events | (hook_name, run_id, seq) | — | run_id | project_hook_events | event(append) |
-| guardrail_decisions | (guardrail, run_id, seq) | — | run_id | project_guardrail | event(append) |
-| test_result_events | (ut_id, run_id, seq) | — | run_id | project_test_result_events | event(append) |
-| impact_rules | rule_id | rule hash | rule_id | project_impact | rebuild |
-| impact_results | (rule_id, run_id) | — | run_id | project_impact | event(append) |
+| review_evidence_registry | (plan_id, reviewer, run_id) | evidence_hash | run_id | project_review | projection |
+| hook_events | (hook_name, run_id, seq) | — | run_id | project_hook_events | append_event |
+| guardrail_decisions | (guardrail, run_id, seq) | — | run_id | project_guardrail | append_event |
+| test_result_events | (ut_id, run_id, seq) | — | run_id | project_test_result_events | append_event |
+| impact_rules | rule_id | rule hash | rule_id | project_impact | config |
+| impact_results | (rule_id, run_id) | — | run_id | project_impact | projection |
 
-- **rebuild 区分** = §1.5 と同じ全消し再投影（idempotent/deletion/stale）。
-- **event(append) 区分**（P1-4）= immutable event table。rebuild 全消しの**対象外**（red→green 証跡・hook 判定・bypass 履歴・影響走査は履歴自体が証跡）。projection-writer は append のみ。delete_scope=run 単位の retention（保持期間は C5 ADR）。
-- **`test_results`（core 14, rebuild=最新/current）と `test_result_events`（本節, event=red→green 履歴）は別 table・別用途**（P2 表記揺れ解消）: 「現在 green か」は `test_results` を query（current 判定）、red-first / green-command-digest は `test_result_events`（履歴）を query。
+- **projection(49) 区分** = §1.5 と同じ全消し再投影（rebuild で TRUNCATE → idempotent/deletion/stale）。**`config`(6) は rebuild 非対象**＝ seed/migrate/init 管理で truncate されず rebuild 後も残存（[C1 §5](../engine/schema-registry.md)。config を truncate すると seed state 消失 = 禁止）。
+- **append_event 区分**（C1 §5 = 3 件のみ: `test_result_events` / `hook_events` / `guardrail_decisions`）= immutable event table。rebuild 全消しの**対象外**（red→green 証跡・hook/bypass 判定・review-guard 決定は current source から再導出不能）。projection-writer は append のみ。delete_scope=run 単位の retention（保持期間は C5 ADR）。`impact_results` 等の `*_events` 名 table は projection（再導出可能）。
+- **`test_results`（projection=最新/current）と `test_result_events`（append=red→green 履歴）は別 table・別用途**（P2 表記揺れ解消）: 「現在 green か」は `test_results` を query（current 判定）、red-first / green-command-digest は `test_result_events`（履歴）を query。
 - **phase 次元（HELIX W、P1-5 確定）**: `plan_registry` / `artifact_registry` / `trace_edges` に `phase ∈ {general, agent}` を**属性列**で持つ（`phase_join` table は立てない＝1 DB・列方式）。default=`general`、single-V（agent system でない）は全行 general の degenerate。logical_key には含めない（plan は 1 phase 所属）。L10 合流 gate は C3 が「agent 行が存在するとき両 phase の pair_closure AND」を要求。
 
 ## 2. C2 projection rule（artifact 種別 → table, 確定）
@@ -89,12 +86,12 @@ FE（[fe](../fe/fe-ui-design.md)）/ harness（[harness](../harness/harness-desi
 | workflow 定義 | workflow doc / 設定 | workflow_runs, drive_runs | drive+plan |
 | gate 結果 | gate 実行 | gate_runs | gate_id+plan |
 | review 証跡 | review 出力 | review_evidence_registry | plan_id+reviewer |
-| FE 画面 | screen 設計 / state-events | screens, screen_trace, state_events | screen_id |
-| harness event | test 実行 / hook capture / bypass / 影響走査 | test_result_events, hook_events, guardrail_decisions, impact_results | run_id |
+| FE 画面 | screen 設計 / 状態遷移 trace | screens, screen_trace | screen_id |
+| harness append_event | test 実行(red→green) / hook capture / bypass / review-guard | test_result_events, hook_events, guardrail_decisions | run_id |
 
 - **rebuild 方式**: テーブルごと全消し → 上表の rule で全 artifact を再投影（idempotent/deletion を同時担保）。
 - **stale**: content_hash 不一致 or superseded（古い参照）で `stale_status=stale`（行は残す）。**source path 消失 = deletion（rebuild で行消失、stale ではない）**。§1.5 の deletion/stale 排他に従う。
-- **projection 対象 = 56-table registry（capture §B3）全件**（§1 V3-core + §1.6 の FE/harness/W table を含む）。各 table は projection / append_event / config を C1 で分類（projection のみ rebuild TRUNCATE）。`artifact_progress` は capture では独立 table（harness 実態）だが純関数 `derive_artifact_progress_decision` で color 導出。test↔artifact trace は `trace_edges` + `test_artifact_edges`。
+- **3 経路を混同しない（[C1 §5](../engine/schema-registry.md) が分類 SSoT、本書で再分類しない）**: ①**rebuild TRUNCATE 対象 = projection 49 のみ**（上表「PLAN〜FE 画面」行 = projection write）／②**config 6 = seed/migrate/init 管理**（truncate 対象外・rebuild 残存）／③**append_event 3 = append path**（上表「harness append_event」行のみ。truncate 対象外、`append_event(db,event)` 経由）。`rebuild_projection` は ① のみ全消し再投影する。`artifact_progress` は capture では独立 table（harness 実態）だが純関数 `derive_artifact_progress_decision` で color 導出。test↔artifact trace は `trace_edges` + `test_artifact_edges`。
 
 ## 3. C6 workflow/doc 契約 schema（frontmatter, 確定）
 

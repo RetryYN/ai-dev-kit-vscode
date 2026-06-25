@@ -23,7 +23,7 @@ append_event(db, event) -> EventRowRef
 ```
 
 - **rebuild_projection**: projection table のみ全消し再投影。差分更新しない（idempotent/deletion の原理保証）。harness `rebuildHarnessDb` = `BEGIN IMMEDIATE → truncateProjectionTables → project* → COMMIT`。
-- **append_event**: append_event table（`test_result_events`/`hook_events`/`guardrail_decisions`/`impact_results`/`artifact_progress_events`/`model_runs` 等）へ冪等追記。**rebuild の TRUNCATE 対象外**で履歴保持（red→green 遷移・hook 判定・bypass が証跡）。retention は run 単位（C5）。
+- **append_event**: append_event table（**`test_result_events` / `hook_events` / `guardrail_decisions` の 3 件のみ** = [C1 §5 分類 SSoT](schema-registry.md)）へ冪等追記。**rebuild の TRUNCATE 対象外**で履歴保持（red→green 遷移・hook/bypass 判定・review-guard 決定が証跡）。`model_runs` / `impact_results` / `artifact_progress_events` 等は名が `*_events` でも **projection**（current source から再導出可能）。retention は run 単位（C5）。
 
 ## 3. 契約（DbC）
 
@@ -43,6 +43,7 @@ append_event(db, event) -> EventRowRef
 
 - **artifact_progress color**: red = `dependency_checked=0` or `open_dependency_impacts>0` / yellow = impl あり test 証跡なし / green = `passed_test_run_count>0 ∧ dependency_checked=1 ∧ open_dependency_impacts=0`（純関数 `derive_artifact_progress_decision`、DB I/O 非含有）。
 - **refactor-candidate**（harness net-new）: `analyze_refactor_candidates` が split-module/extract-helper/deduplicate-function/externalize-literal/externalize-policy を静的検出 → `quality_signals`(confidence=high 上位 20 = warn) → `feedback_events` → doctor surface。閾値は policy 分離。
+- **source 列挙の完全性（fork bug #3 予防）**: `sources` の file 集合は git（`git ls-files --cached --others --exclude-standard`）→ **失敗時 filesystem-walk fallback** の二段で**完全列挙**する（`.git` 不在＝zip/tarball 展開でも縮小しない）。artifact_registry が不完全だと db_projection detector が一斉に盲目化するため、**列挙縮小は fail-close**（[detector-wiring §3 source-completeness](detector-wiring.md)）。
 
 ## 5. row identity / upsert 基盤
 
@@ -65,4 +66,4 @@ def upsert_row(db, table, row):   # idempotent 基盤プリミティブ（全投
 
 ## 7. 呼び出し
 
-`rebuild_projection` は automation（Phase 6 hook / CI / `helix doctor`）から呼ばれ、detector（C3）は rebuild 済 DB を query する。`append_event` は hook（PostToolUse / SubagentStop）/ test runner / gate 実行から都度呼ばれる。物理 column 型は [L5 physical-data / capture §B3](../L0-L14/L5-detailed-design.md) を正本。
+`rebuild_projection` は automation（Phase 6 hook / CI / `helix doctor`）から呼ばれ、detector（C3）は rebuild 済 DB を query する。`append_event` は hook（PostToolUse / SubagentStop）/ test runner / gate 実行から都度呼ばれる。table 分類・logical_key は [C1 §5](schema-registry.md) / [L5 §1.5](../L0-L14/L5-detailed-design.md)、物理 column 型は L7 で確定。

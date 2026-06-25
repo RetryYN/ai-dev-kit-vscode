@@ -28,7 +28,7 @@ plan: docs/plans/PLAN-...      # 起票 PLAN への back-link
 - **review_evidence**（機械着地）: `reviewer/review_kind/reviewed_at/tests_green_at/verdict/worker_model/reviewer_model`。`tests_green_at ≤ reviewed_at` を機械強制（test-before-review）、cross_agent は `worker_model ≠ reviewer_model`（cross-review）。
 - **駆動専用**: `forward_routing`(L1/L3/L4/L5/gap-only = Forward 戻し先) / `confirmed_reverse_type`(5) / `promotion_strategy`(reuse-as-is/with-hardening/redesign/discard) / `decision_outcome`(confirmed/rejected/pivot)。親子 = `dependencies.parent` 1 段 + master-hub PLAN。
 
-## 4. 駆動モデル契約（capture §3 — 13-14 mode、`DRIVE_TDD_FITS` + routing）
+## 4. 駆動モデル契約（capture §3 — 13 mode、`DRIVE_TDD_FITS` + routing）
 
 各 mode に **red_triggers / green_requirements / forward_return / approval 要否** を機械契約として持つ。出口は必ず Forward L0-L14 合流。
 

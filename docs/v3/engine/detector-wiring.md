@@ -29,7 +29,8 @@ def <x>_messages(result: XResult) -> list[Finding]: # ok/violation を機械可�
 - **file_snapshot**: `load_*` が doc/source を読み **snapshot 化**（例: `descent-obligation` / `screen-impl-pair-freeze` / `frontend-design-coverage` / `oracle-test-trace` / 大半の `plan-*`）。
 - **hybrid**: 両方。
 - **absence は ok=false**: source（DB row / file）不在・空でも `ok=false`（scope-0 silent OK 禁止）。「読めなかったから skip」「requirements=0 で空振り pass」「弱い fallback へ無音降格」は全て禁止（absence-blindness 防止）。
-- **方針**: cutover 後の hard gate は可能なものから db_projection source へ昇格（file scan を漸減）。
+- **source-completeness（loader 不完全 = fail-close。upstream bug #3 予防）**: `file_snapshot` loader は**意図する file 集合を完全に**列挙する。単一供給源（`git ls-files`）が使えない環境（zip/tarball 展開・`.git` 不在）で**対象が縮小したら silent narrow-OK は禁止＝fail-close**。供給は二段 = ①git（`git ls-files --cached --others --exclude-standard`）→ ②**失敗時 filesystem-walk fallback**（同一 filter で `src/`・`.claude/hooks/`・`scripts/`・config を走査）。loader が完全集合を保証できなければ `ok=false`。これは upstream `runtime-portability` lint が `.git` 不在で対象を `package.json`/`tsconfig.json` のみに縮小し `src/`/`scripts/` を**無音で検査漏れ**した穴を、absence-blindness の具体 failure-mode として契約で塞ぐもの。
+- **方針**: cutover 後の hard gate は可能なものから db_projection source へ昇格（file scan を漸減）。db_projection 側も C2 の artifact 列挙が git 非依存で完全であることに依存する（[projection-writer §4](projection-writer.md)）。
 
 ### 4. 契約（DbC）
 
@@ -74,4 +75,6 @@ lint-wiring（C4）実装前に **`helix doctor` 経路を CLI entrypoint regist
 - AT-V3-06: DB/file から「あるべき」1 件を抜く → detector がもれ検出（source_kind 別 loader）。
 - AT-V3-07: 1 detector を fail → doctor 全体 fail（ok=AND）。
 - AT-V3-08: 配線していない detector を追加 → lint-wiring fail。新 detector に source_kind 宣言なし → 登録 fail。
-- 単体: 各 detector の `analyze_*` を pure に呼ぶ / loader failure・missing source・empty requirements が全て ok=false（absence-blindness）。
+- AT-V3-09（source-completeness、bug #3 予防）: `.git` を外した展開状態で `file_snapshot` detector が scope 縮小せず（filesystem-walk fallback で）同一 finding を返す / fallback でも完全集合を保証できなければ fail-close（silent pass しない）。
+- **L7 精緻化（TL re-review #3 2026-06-26 P2、freeze block でない）**: fallback の走査 root catalog（`src/` / `.claude/hooks/` / `scripts/` / config 等）を **detector 別に明示**し、`docs/plans` 系など file_snapshot の対象集合の解釈余地を消す（loader ごとに intended root を凍結）。
+- 単体: 各 detector の `analyze_*` を pure に呼ぶ / loader failure・missing source・empty requirements が全て ok=false（absence-blindness）/ git 不在で loader が fs-walk fallback し対象集合が縮小しない。

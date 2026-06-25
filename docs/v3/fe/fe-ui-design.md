@@ -39,7 +39,7 @@ L1 screen-requirements → L2 screen設計(screen-list/flow/ui-element/wireframe
 
 ## 4. C1/C2/C3 への FE 増分
 
-- **C1 table**: `screens`(screen_id, category, url, l1_ref, status, implemented) / `screen_trace`(screen_id, requirement_id, requirement_kind, relation) は L5 §1 / capture §B3 で確定（projection）。
+- **C1 table**: `screens`(screen_id, category, url, l1_ref, status, implemented) / `screen_trace`(screen_id, requirement_id, requirement_kind, relation) は L5 §1 / [C1 §5](../engine/schema-registry.md)（ともに projection）で確定。
 - **C2 projection**: screen 設計 → `screens`/`screen_trace`（logical_key=screen_id、deletion/stale は §1.5 共通則）。PLAN-L7-96 screen-db-projection 相当。
 - **C3 detector**: `frontend-design-coverage`（source_kind=file_snapshot、§1c×schema×実ファイル 3 者 AND）/ `screen-impl-pair-freeze`（source_kind=file_snapshot、next_pair_freeze 段階順）。FN-DET-13 = screen↔trace 片肺（drive-gated）。
 
@@ -63,4 +63,4 @@ harness の FE ガバナンスを base にした上で、HELIX が追加でき�
 
 ## 8. 未確定（L6/L7）
 
-- `screen_trace` / `screens` 物理 column 型（capture §B3 が出発点）。a11y/visual 閾値（C5 ADR）。src/web 実装（HELIX 独自強化フェーズ、中央 UI = ADR-005）。
+- `screen_trace` / `screens` 物理 column 型（[C1 §5](../engine/schema-registry.md) / L7 で確定）。a11y/visual 閾値（C5 ADR）。src/web 実装（HELIX 独自強化フェーズ、中央 UI = ADR-005）。

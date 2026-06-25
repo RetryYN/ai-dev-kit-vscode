@@ -1,6 +1,6 @@
 # HELIX V3 — HELIX W 設計（2 段 V 合流・agent system 向け）
 
-> **status: 再構築中**（[capture §B1 concept v3.1 §2.3.3](audit/2026-06-26-new-base-comprehensive-capture.md) 整合: harness 自身は単一 V、製品が agent system のとき W を提供）
+> **status: 再構築中**（[capture §5 concept v3.1 §2.3.3](audit/2026-06-26-new-base-comprehensive-capture.md) 整合: harness 自身は単一 V、製品が agent system のとき W を提供）
 > 出自: HELIX W（2 段 V モデル）。**V3 が作る対象 = AI エージェントハーネス自身**なので、W モデルは consumer の agent system 製造への提供物として不可欠。harness concept §2.3.3 = 「harness 自身は外殻既存のため単一 V」。
 > canonical（G-tier、重複させず参照）: `HELIX_CORE.md §1`（W モデル定義）/ `HELIX-workflows/helix-process/two-stage-agent-design.md`
 > 接続: [L0 概念](L0-L14/L0-concept.md) / [L4 §1 C1-C6](L0-L14/L4-basic-design.md) / [harness 設計](harness/harness-design.md)

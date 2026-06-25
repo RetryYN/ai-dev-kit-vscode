@@ -33,7 +33,7 @@ invariant: analyze は純関数（I/O は loader 隔離）/ source_kind 宣言 /
 | FN-DET-03 | trace-symmetry | trace_edges | req↔plan↔design↔test の片方向 edge（双方向非対称 orphan） | hard | g1-trace/propagation/backfill-pairing | UT-DET-03 |
 | FN-DET-04 | descent-obligation | descent_obligations, test_cases | L6 active で L7 impl(test_cases) 未登録 traceKey | hard | descent-obligation | UT-DET-04 |
 | FN-DET-05 | fn-ut-pair | functional_registry, test_cases | fn_id に対応する ut_id 不在（FN↔UT 1:1 違反） | hard | l6-fr-coverage/entity-coverage | UT-DET-05 |
-| FN-DET-06 | oracle-test-trace | test_cases, trace_edges, baseline_registry | oracle 未 trace のうち baseline 外のみ | hard(ratchet) | oracle-test-trace(+baseline) | UT-DET-06 |
+| FN-DET-06 | oracle-test-trace | test_cases, trace_edges, baseline(C5 frozenset) | oracle 未 trace のうち baseline 外のみ | hard(ratchet) | oracle-test-trace(+baseline) | UT-DET-06 |
 | FN-DET-07 | gate-confirm | gate_runs, plan_registry | PLAN の必須 gate 未通過 | hard | gate-confirm/right-arm-gate-planning | UT-DET-07 |
 | FN-DET-08 | drive-passage | drive_runs, plan_registry | 駆動 workflow の forward_return 欠落/未通過 | hard | drive-model-passage/scrum-reverse | UT-DET-08 |
 | FN-DET-09 | review-evidence | review_evidence_registry | 改ざん/未 anchor の定性 review（hash 不一致） | hard | review-evidence | UT-DET-09 |
@@ -79,7 +79,7 @@ UT-DET-10: 未配線 detector 追加 → dead に1件。DEFERRED 明示 → 0。
 
 ### FN-DET-06 oracle-test-trace（ratchet 連動）
 ```
-requires:  test_cases, trace_edges, baseline_registry[oracle] が投影済
+requires:  test_cases, trace_edges が投影済 + oracle baseline frozenset（C5, code 定数 = lint module 内、harness 同様）を import
 ensures:   missing = {未 trace oracle}、findings = missing − baseline（新規のみ hard）
 invariant: baseline は縮小のみ（C5 ratchet）/ baseline 内は advisory surface
 UT-DET-06: baseline 外 missing → hard fail。baseline 内 missing → advisory（ok 維持）。

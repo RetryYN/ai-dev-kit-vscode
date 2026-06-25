@@ -17,7 +17,7 @@ V3 は「**ルール化 doc/workflow 契約 → 単一 registry SSoT(schema) →
 
 | keystone | 中身（capture §で実証） | HELIX 現状との差 |
 |---|---|---|
-| **C1 schema 単一 registry SSoT** | DDL を単一 registry から生成（**SCHEMA_VERSION=18 / 実 56 table**、catalog + tables-{core,evaluation,graph} + indexes）。識別子 fail-close（import 時 `assertSqlIdentifier`）。**table を projection ⊥ append_event に分類**（TL C-1） | plan_lint/validator 二重管理 drift・schema 分散 → 根絶 |
+| **C1 schema 単一 registry SSoT** | DDL を単一 registry から生成（**SCHEMA_VERSION=18 / harness 56 table → V3 58**（+`test_result_events` append / +`functional_registry` projection）、catalog + tables-{core,evaluation,graph} + indexes）。識別子 fail-close（import 時 `assertSqlIdentifier`）。**table を projection ⊥ append_event ⊥ config に分類**（TL C-1、分類 SSoT = [C1 §5](engine/schema-registry.md)） | plan_lint/validator 二重管理 drift・schema 分散 → 根絶 |
 | **C2 単一 projection-writer** | `rebuild_projection`= projection table のみ TRUNCATE+再投影（原子・冪等 upsert・stableId 決定的 PK）。`append_event`= append table へ冪等追記（rebuild で消えない）。secret/PII/raw transcript 非保存（TL C-5） | file scan・DB 24件 vs disk 354件の乖離 → DB を正本化 |
 | **C3 detector** | **pure-function 3 層**（`analyze`/`load`/`messages`）+ 各 detector に `source_kind: db_projection\|file_snapshot\|hybrid` 明示（TL C-3）。「あるべき − 実在 = もれ」を ok=AND・absence-blindness 防止（scope-0 silent OK 禁止）で検出 | HELIX detector は毎回 glob scan・無音 fallback → 契約化 |
 | **C4 lint-wiring メタゲート** | 配線されない死蔵 detector を BFS 到達性で禁止（harness: DEFERRED 理由付き 1 件 + stale 申告も violation） | HELIX に相当なし（死蔵 detector 放置）→ 新設 |
@@ -30,9 +30,9 @@ V3 は「**ルール化 doc/workflow 契約 → 単一 registry SSoT(schema) →
 
 | 次元 | clean harness 実態 | V3 での扱い |
 |---|---|---|
-| **D1 DB/projection・D3 schema** | 56-table clean registry / projection⊥append_event | **Python で忠実に再構築**（C1/C2、TL C-1/C-2 凍結） |
+| **D1 DB/projection・D3 schema** | harness 56-table clean registry → V3 58 / projection⊥append_event⊥config | **Python で忠実に再構築**（C1/C2、TL C-1/C-2 凍結） |
 | **D2 detector・lint アーキ** | pure-function 3 層・source_kind 混在・lint-wiring・baseline ratchet | **Python 再構築**（C3/C4/C5、TL C-3） |
-| **D4 workflow 契約・駆動モデル** | **13-14 mode**（+screen-design/frontend-design/**design-bottomup**）・routing・auto-enroll | **Python 再構築**（C6） |
+| **D4 workflow 契約・駆動モデル** | **13 mode**（design 含む 10 駆動 + screen-design/frontend-design/**design-bottomup**）・routing・auto-enroll | **Python 再構築**（C6） |
 | **D5 V-model L0-L14 + 粒度ペアリング** | document-system-map §1 master / V-pair 6 組 / L6=単体粒度 DbC / FR-L1 registry 51 | **新規再構築**（L0-L6 corpus） |
 | **D6 FE/UI** | **FE ガバナンス機械契約済**（§1c per-layer / frontend-design-coverage / screen-impl-pair-freeze / tokens.yaml / screens table / design-bottomup） | **harness から盗む**（旧 charter「HELIX 独自優位」は誤り＝§9-4）。**実 UI 描画(src/web)だけ greenfield** |
 | **D7 agent/role harness** | agent-guard(14 allowlist)・tier-router(T0-T2)・work-guard・review-guard・attempt-escalation・worker≠reviewer | **Python 再構築**（D8 harness）+ HELIX 既存 hook 規律を後乗せ |
@@ -65,10 +65,10 @@ freeze 前に固定する。engine 実装前の最小不変条件（詳細 = cap
 docs/v3/
   V3-CHARTER.md          ← 本書（設計アンカー、capture §に従属）
   audit/
-    2026-06-26-new-base-comprehensive-capture.md  ← base SSoT（全 keystone・56 table・enum・FR registry）
+    2026-06-26-new-base-comprehensive-capture.md  ← base SSoT（全 keystone・harness 56 table・enum・FR registry）
     2026-06-25-foundation-tl-review-disposition.md
   engine/                ← keystone 設計（clean harness 由来・Python build）
-    schema-registry.md       C1: 56-table 単一 registry / projection⊥append_event / enum SSoT / 識別子 fail-close
+    schema-registry.md       C1: 58-table（harness 56+2）単一 registry / projection⊥append_event⊥config 分類 SSoT / enum / 識別子 fail-close
     projection-writer.md     C2: rebuild_projection ⊥ append_event / 冪等 upsert / stableId / secret guard
     detector-wiring.md       C3/C4: pure-function 3 層 + source_kind + ok=AND + lint-wiring
     baseline-ratchet.md      C5: shrink-only baseline
@@ -78,7 +78,7 @@ docs/v3/
     L1-requirements.md       FR-L1 registry 51 / BR / NFR(IPA×ISO 25010)
     L3-requirements-spec.md  L3 FR/AC-FR / screen-functional
     L4-basic-design.md       architecture(依存方向 ADR-002)/data(5 集約)/function(C1-C12)/external-if
-    L5-detailed-design.md    module 分解 / physical-data(56 table)/ if-detail(D-CONTRACT)/ DbC freeze
+    L5-detailed-design.md    module 分解 / physical-data(58 table)/ if-detail(D-CONTRACT)/ DbC freeze
     L6-functional-design.md  関数単位 DbC + U-* oracle / descent-obligation / gate-confirm
   fe/fe-ui-design.md     ← FE 設計（harness governance を盗む。§1c per-layer / tokens SSoT / screen-impl-pair / design-bottomup / 描画 greenfield）
   distribution/distribution-design.md ← 配布（ADR-005 GitHub-pull / 中央 UI / 公開 API 据え置き / 4-provider 住所）
