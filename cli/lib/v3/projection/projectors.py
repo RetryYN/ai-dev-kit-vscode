@@ -678,6 +678,39 @@ def project_functional_registry(ctx: ProjectionContext) -> None:
             _safe_upsert_projection_row(ctx, table_name=fr_table.name, source=source, row=row)
 
 
+def project_drive_runs(ctx: ProjectionContext) -> None:
+    """Phase 7.4b: 駆動 kind の PLAN frontmatter → drive_runs。"""
+    driving_kinds = {
+        "reverse", "discovery", "recovery", "incident", "refactor",
+        "retrofit", "add-design", "add-impl", "research", "troubleshoot", "scrum",
+    }
+    table = registry.TABLE_BY_NAME["drive_runs"]
+    for source in ctx.sources:
+        if source.parse_error is not None:
+            continue
+        frontmatter = source.frontmatter
+        kind = str(frontmatter.get("kind") or "")
+        plan_id = str(frontmatter.get("plan_id") or "")
+        if kind not in driving_kinds or not plan_id:
+            continue
+        row = _filter_row(
+            table.name,
+            {
+                "drive_run_id": stable_id(table.name, plan_id),
+                "plan_id": plan_id,
+                "session_id": "",
+                "drive": str(frontmatter.get("drive") or ""),
+                "mode": kind,
+                "layer": str(frontmatter.get("layer") or ""),
+                "kind": kind,
+                "started_at": "",
+                "completed_at": "",
+                "status": str(frontmatter.get("status") or ""),
+            },
+        )
+        _safe_upsert_projection_row(ctx, table_name=table.name, source=source, row=row)
+
+
 PROJECTORS = (
     project_plans,
     project_artifacts,
@@ -686,5 +719,6 @@ PROJECTORS = (
     project_test_evidence,
     project_test_files,
     project_functional_registry,
+    project_drive_runs,
     project_gate_runs,
 )
