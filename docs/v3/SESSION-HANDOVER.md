@@ -52,6 +52,10 @@ C-1 table 分類(projection⊥append_event) / C-2 row identity(logical_key/stale
 - **方式 = unitized L5-L7 descent**（[C6 §4.5](engine/doc-workflow-rules.md)、ユーザー提案+TL refine を本 build に初適用）。engine を C1/C2/cutover-gate という unit に分解、各 unit L5/L6 frozen → L7 test-first。
 - **code 住所 = `cli/lib/v3/`**（V2 と別名前空間、V2 不変 = rollback 保全。cutover で promote）。
 - **proposals 取り込み済**（commit f866104）: proposal1 unitized L5-L7 descent（C6 §4.5）/ proposal2 内部 query contract pattern（helix-w §3.5、MCP table 流用禁止・既存経路投影・enhancement phase 実装）。
-- **PLAN 起票済**: C1 [L7-v3-engine-c1-schema-registryplan](../../plans/L7/L7-v3-engine-c1-schema-registryplan.md)（commit a0de8e9）/ C2 [L7-v3-engine-c2-projection-writerplan](../../plans/L7/L7-v3-engine-c2-projection-writerplan.md)（e6d6439、requires C1）。両 plan_lint clean。
-- **進行中**: C1 を Codex se が test-first 実装中（UT-C1-01..11 red→green）。**次 = C1 actual output 検証（pytest/py_compile/ls、summary 信用しない [[feedback_codex_completion_vs_actual_output]]）→ C2 委譲 → cutover-gate 設計+PLAN → cutover(escalation/破壊) → Phase 7-8 → 独自強化（内部 query 含む）**。
-- **cutover は破壊的**（V2 DB 破棄/物理削除）= escalation・人間確認必須。engine が rebuild 可能 + cutover-gate green まで実行しない（現状 未着手）。
+- **実装完了（Opus 独立検証済、全 `cli/lib/v3/`・V2 不変）**:
+  - **C1 schema-registry**（`b3f35a6`）: 58 table faithful(552 col)+41 idx、sqlite materialize 成功、16 UT。API=`from v3.schema import registry, ddl`。
+  - **C2 projection-writer**（`58f8a81`）: rebuild⊥append、truncate-scope/secret-guard/2x bit-identical 実証、14 UT。5 projector（残り Phase 7）。
+  - **cutover-gate**（実装済・未コミット→本 commit）: 4 hard check(pin_inventory/dangling/rollback_preflight/rebuild_dry_run)、ok=AND、read-only、7 UT。**dangling が実 broken link 2 件捕捉(SESSION-HANDOVER §6 自己リンク)→修正済**、rebuild_dry_run=ok(engine 稼働確認)。
+  - **cutover 設計**（`83682b6`/`6c3f602`）: staged、4 hard check、retirement inventory=270/117(FR-V3-CUT-01「107/49」訂正)、escalation 個別承認。
+- **次 = Phase 7（projector ~30 完成 + 実 V2-source parse + DB 構築）→ Phase 8（~60 detector + lint-wiring + baseline）→ cutover（parity 到達 + 人間 go、破壊的）→ 独自強化（内部 query）**。
+- **⚠ cutover EXECUTION は Phase 7-8 downstream**: V3 現 ~30 UT vs V2 387 test、projector 5/30、detector 0。parity 前の V2 退役は巨大 regression。cutover-gate green + 人間 go まで実行しない。
