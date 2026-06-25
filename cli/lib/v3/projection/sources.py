@@ -27,7 +27,8 @@ def _is_source_candidate(path: str) -> bool:
         return False
     if "/__pycache__/" in path or path.endswith("/__pycache__"):
         return False
-    return path.endswith(".md")
+    # .md = doc/PLAN (frontmatter parsed); .py/.bats = code/test artifacts (frontmatter={}, text+hash only)
+    return path.endswith((".md", ".py", ".bats"))
 
 
 def _walk_source_files(root: str) -> list[str]:

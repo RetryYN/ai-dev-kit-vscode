@@ -569,9 +569,35 @@ def project_gate_runs(ctx: ProjectionContext) -> None:
             )
 
 
+def project_code(ctx: ProjectionContext) -> None:
+    """Phase 7.2: code/test ファイル(.py/.bats)を artifact_registry へ。本文は保存せず path のみ(C-5)。"""
+    artifact_table = registry.TABLE_BY_NAME["artifact_registry"]
+    for source in ctx.sources:
+        if source.parse_error is not None:
+            continue
+        if source.path.endswith(".py"):
+            artifact_type = "python_module"
+        elif source.path.endswith(".bats"):
+            artifact_type = "script"
+        else:
+            continue
+        row = _filter_row(
+            artifact_table.name,
+            {
+                "artifact_type": artifact_type,
+                "path": source.path,
+                "pair_artifact": "",
+                "status": "active",
+                "updated_at": _updated_at(source),
+            },
+        )
+        _safe_upsert_projection_row(ctx, table_name=artifact_table.name, source=source, row=row)
+
+
 PROJECTORS = (
     project_plans,
     project_artifacts,
+    project_code,
     project_trace_edges,
     project_test_evidence,
     project_gate_runs,
