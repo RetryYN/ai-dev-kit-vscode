@@ -394,6 +394,67 @@ def schema_ssot_messages(result: SchemaSsotResult) -> list[Finding]:
     return findings
 
 
+FN_DET_10 = "FN-DET-10"
+FILE_SNAPSHOT = "file_snapshot"
+VALID_SOURCE_KINDS = frozenset({DB_PROJECTION, FILE_SNAPSHOT, "hybrid"})
+VALID_SEVERITIES = frozenset({HARD, "advisory", "soft"})
+
+
+@dataclass(frozen=True)
+class LintWiringInput:
+    detector_ids: tuple[str, ...]
+    source_kinds: tuple[str, ...]
+    severities: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class LintWiringResult:
+    ok: bool
+    duplicate_ids: tuple[str, ...]
+    invalid_source_kinds: tuple[str, ...]
+    invalid_severities: tuple[str, ...]
+
+
+def load_lint_wiring_input(db: sqlite3.Connection) -> LintWiringInput:
+    # CORE_DETECTORS = 本 module の detector registry。C4 死蔵防止メタゲート(registry の形式健全性)。
+    specs = CORE_DETECTORS
+    return LintWiringInput(
+        detector_ids=tuple(spec.detector_id for spec in specs),
+        source_kinds=tuple(spec.source_kind for spec in specs),
+        severities=tuple(spec.severity for spec in specs),
+    )
+
+
+def analyze_lint_wiring(input_data: LintWiringInput) -> LintWiringResult:
+    if not input_data.detector_ids:  # absence=ok=false: 空 registry
+        return LintWiringResult(
+            ok=False, duplicate_ids=(), invalid_source_kinds=("<empty-registry>",), invalid_severities=()
+        )
+    counts: dict[str, int] = {}
+    for detector_id in input_data.detector_ids:
+        counts[detector_id] = counts.get(detector_id, 0) + 1
+    duplicate = tuple(sorted(d for d, n in counts.items() if n > 1))
+    invalid_sk = tuple(sorted({sk for sk in input_data.source_kinds if sk not in VALID_SOURCE_KINDS}))
+    invalid_sev = tuple(sorted({sv for sv in input_data.severities if sv not in VALID_SEVERITIES}))
+    return LintWiringResult(
+        ok=not duplicate and not invalid_sk and not invalid_sev,
+        duplicate_ids=duplicate,
+        invalid_source_kinds=invalid_sk,
+        invalid_severities=invalid_sev,
+    )
+
+
+def lint_wiring_messages(result: LintWiringResult) -> list[Finding]:
+    findings: list[Finding] = []
+    for detector_id in result.duplicate_ids:
+        findings.append(Finding(id=FN_DET_10, severity=HARD, subject="lint-wiring.duplicate-id", missing=(detector_id,)))
+    for source_kind in result.invalid_source_kinds:
+        findings.append(Finding(id=FN_DET_10, severity=HARD, subject="lint-wiring.invalid-source-kind", missing=(source_kind,)))
+    for severity in result.invalid_severities:
+        findings.append(Finding(id=FN_DET_10, severity=HARD, subject="lint-wiring.invalid-severity", missing=(severity,)))
+    return findings
+
+
 CORE_DETECTORS = (
     DetectorSpec(
         detector_id=FN_DET_01,
@@ -434,5 +495,13 @@ CORE_DETECTORS = (
         load=load_trace_symmetry_input,
         analyze=analyze_trace_symmetry,
         messages=trace_symmetry_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_10,
+        source_kind=FILE_SNAPSHOT,
+        severity=HARD,
+        load=load_lint_wiring_input,
+        analyze=analyze_lint_wiring,
+        messages=lint_wiring_messages,
     ),
 )
