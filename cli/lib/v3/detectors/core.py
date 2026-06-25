@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import dataclass
 
@@ -455,6 +456,81 @@ def lint_wiring_messages(result: LintWiringResult) -> list[Finding]:
     return findings
 
 
+FN_DET_14 = "FN-DET-14"
+VALID_MANIFEST_SCOPES = frozenset({"common", "claude", "codex"})
+# core.py = cli/lib/v3/detectors/core.py → repo root は dirname×5。
+_REPO_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+)
+
+
+@dataclass(frozen=True)
+class ManifestRow:
+    scope: str
+    import_path: str
+    raw: str
+
+
+@dataclass(frozen=True)
+class DistApiInput:
+    manifest_present: bool
+    rows: tuple[ManifestRow, ...]
+
+
+@dataclass(frozen=True)
+class DistApiResult:
+    ok: bool
+    missing_manifest: bool
+    invalid_rows: tuple[str, ...]
+
+
+def load_dist_api_input(db: sqlite3.Connection) -> DistApiInput:
+    # source_kind=file_snapshot: loader が core-manifest.tsv の読取を隔離(analyze は pure)。
+    manifest_path = os.path.join(_REPO_ROOT, "helix", "core-manifest.tsv")
+    if not os.path.isfile(manifest_path):
+        return DistApiInput(manifest_present=False, rows=())
+    rows: list[ManifestRow] = []
+    with open(manifest_path, encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.rstrip("\n")
+            if not stripped.strip() or stripped.lstrip().startswith("#"):
+                continue
+            parts = stripped.split("\t")
+            rows.append(
+                ManifestRow(
+                    scope=parts[0].strip() if parts else "",
+                    import_path=parts[1].strip() if len(parts) > 1 else "",
+                    raw=stripped,
+                )
+            )
+    return DistApiInput(manifest_present=True, rows=tuple(rows))
+
+
+def analyze_dist_api(input_data: DistApiInput) -> DistApiResult:
+    if not input_data.manifest_present:  # absence=ok=false
+        return DistApiResult(ok=False, missing_manifest=True, invalid_rows=())
+    if not input_data.rows:
+        return DistApiResult(ok=False, missing_manifest=False, invalid_rows=("<empty-manifest>",))
+    invalid = tuple(
+        row.raw
+        for row in input_data.rows
+        if row.scope not in VALID_MANIFEST_SCOPES
+        or not row.import_path.startswith("@~/.helix/core/")
+    )
+    return DistApiResult(ok=not invalid, missing_manifest=False, invalid_rows=invalid)
+
+
+def dist_api_messages(result: DistApiResult) -> list[Finding]:
+    findings: list[Finding] = []
+    if result.missing_manifest:
+        findings.append(
+            Finding(id=FN_DET_14, severity=HARD, subject="dist-api.manifest-missing", missing=("helix/core-manifest.tsv",))
+        )
+    for raw in result.invalid_rows:
+        findings.append(Finding(id=FN_DET_14, severity=HARD, subject="dist-api.invalid-row", missing=(raw,)))
+    return findings
+
+
 CORE_DETECTORS = (
     DetectorSpec(
         detector_id=FN_DET_01,
@@ -503,5 +579,13 @@ CORE_DETECTORS = (
         load=load_lint_wiring_input,
         analyze=analyze_lint_wiring,
         messages=lint_wiring_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_14,
+        source_kind=FILE_SNAPSHOT,
+        severity=HARD,
+        load=load_dist_api_input,
+        analyze=analyze_dist_api,
+        messages=dist_api_messages,
     ),
 )
