@@ -76,6 +76,8 @@ V3 engine keystone **C1 = schema 単一 registry SSoT** を Python で実装す�
 8. 物理 `FOREIGN KEY` は同一 DB 内 table のみ（cross-DB FK 宣言で schema check fail = invariant-3）。
 9. `PlanKind` は 11 メンバー（impl/design/poc/reverse/add-design/add-impl/refactor/retrofit/recovery/troubleshoot/research）、`charter` を含まない（`charter` は `ArtifactType` 側）。
 10. `TABLE_BY_NAME` が 58 table を全網羅、`migrate(db)` は冪等（`CREATE TABLE/INDEX IF NOT EXISTS` + `user_version` set）。
+11. `INDEXES` 件数 == **41**、全 index 名が valid identifier、`index_ddl(i)` が `CREATE INDEX` 生成、各 index の参照 column が対象 table に実在。
+12. **DDL 妥当性**: `migrate(db)` を実 in-memory sqlite に適用 → 全 58 `CREATE TABLE` + 41 `CREATE INDEX` がエラーなく成功（faithful column port により index 参照 column が実在することの検証）。
 
 ## 2. 工程（test-first / verify-first）
 
@@ -88,7 +90,8 @@ V3 engine keystone **C1 = schema 単一 registry SSoT** を Python で実装す�
 
 - **stdlib のみ**（`dataclasses` + `enum` + `re` + `sqlite3`）。pydantic は C1 では不要（`ColumnDef/TableDef/IndexDef` は dataclass、enum は `enum.Enum`）。後続で validation 強化が必要なら別 unit。
 - module 構成は [schema-registry.md §2](../../v3/engine/schema-registry.md) に従う。`col()/pk()` builder で `TableDef` を宣言、`tables_{core,evaluation,graph}.py` に機能群別配置 → `registry.py` が結合。
-- 58-table の name/kind は [C1 §5 inventory](../../v3/engine/schema-registry.md) を正本に列挙（column/PK の完全仕様は本 unit では最小限 = UT が要求する範囲。物理 column 詳細は後続で追補可、推測 schema を避ける）。
+- **harness 56 table は full column を faithful port**（harness `src/schema/harness-db-tables-{core,evaluation,graph}.ts` = 物理 schema SSoT。`col()/pk()` で全 column 宣言。**faithful 複製は「推測 schema」でない** — 推測回避の caveat は harness 不在の table のみに適用）。**V3-new 2 table（functional_registry / test_result_events）だけ最小 column**（harness 不在＝観測要求ベース）。kind は [§5 inventory](../../v3/engine/schema-registry.md) 正本。
+- **41 index を faithful port**（harness `harness-db-indexes.ts`）。各 `IndexDef{name, table, columns}` を宣言、`index_ddl` が `CREATE INDEX name ON table(columns)` 生成。
 - enum は [C1 §6](../../v3/engine/schema-registry.md) を正本に `enums.py` へ全列挙（PlanKind/ArtifactType/Layer/Drive/Status/Role/WorkflowPhase/ForwardRouting/PromotionStrategy/OrchestrationMode/V_MODEL_PAIRS/VALID_SUB_DOCS）。
 
 ## 4. allowed_files（scope）
