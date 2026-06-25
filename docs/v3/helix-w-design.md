@@ -42,6 +42,18 @@ HELIX W は新しい table 種別を要求しない。**既存 C1 table に `pha
 - V3 corpus 自体（このハーネスを作る作業）は HELIX W で運営しうるが、**Phase 1-8 の段取りは Forward V モデルを正本**とする（charter §6）。W は「製品が agent system のとき V を 2 回」の構造定義であり、V3 の段取りを W で置き換えるものではない。
 - **consumer プロジェクトが agent system を作る場合**、V3 harness が W モデル（phase 次元 + 合流 gate）を提供する。これが V3 の HELIX W 優位（fork は単一 V のみ、2 段合流の機械化を持たない）。
 
+## 3.5 内部 query contract pattern（Phase 2 agent 昇華・ユーザー提案 2026-06-26 + TL refine）
+
+agent system（W Phase 2）で、**unit 境界をまたぐ問い合わせ**（agent↔agent / agent↔tool）を **型付き request/response contract** として設計する。エージェント内部通信を、他の全てと同じ「契約 + DB + detector」規律に載せる（HELIX カラーの均質性）。
+
+- **MCP "風" の contract 形状**（discoverable / typed / versioned）だが **重量 RPC ではない**: in-process は型付き dispatch、跨プロセス/跨エージェントのみ実 MCP server。
+- **既存 MCP table（`mcp_server_*`）は流用しない（TL P1）**: あれは外部 MCP server の config/projection。内部 query audit を混ぜると C1 table 分類 + C2 rebuild/append 分離を壊す。**C1-C6 core schema は不変**（freeze 維持）。
+- **投影は既存経路のみ**: query contract 定義 → `artifact_registry`（contract artifact）+ `trace_edges`（unit 境界接続）、定性証跡 → `review_evidence_registry`。**実行ログは payload 非保存 = digest/evidence 化**（secret/PII/raw transcript 非保存 = C-5）。必要時のみ既存 `tool_runs`/`model_runs`/`guardrail_decisions` の意味に合う範囲へ限定。
+- **scope guardrail（TL P2）**: 全関数を契約化しない。**有意な unit 境界（[C6 §4.5 unitized L5-L7 descent](engine/doc-workflow-rules.md) の unit 境界）をまたぐ query のみ**。unit 内部関数は L6 DbC で足りる（契約化は過剰分割）。→ **proposal 1 の unit 分解粒度 = query 契約境界が一致**（相互補強）。
+- **AI 規律が境界に効く**: worker≠reviewer / tier-router / work-guard が query 境界で発火（[harness §1](harness/harness-design.md)）。handler registry が contract↔実装を解決。
+- **detector（C3、source_kind=hybrid: contract=db_projection / handler=file_snapshot loader）**: `unresolved-query`（contract から handler 解決不能）/ `contract-drift`（request/response schema hash ≠ handler signature）/ `query-without-handler`（handler registry に対応 contract なし）。
+- **実装フェーズ**: engine/cutover 後の **HELIX 独自強化**（agent system 向け提供物）。検証 = contract-without-handler / handler-signature-drift / valid-handler-clean / 外部 MCP profile と内部 query の非干渉 / payload·secret 非保存 / unit 境界 query が `trace_edges` 接続 & unit pair_closure と query detector 同時 green。
+
 ## 4. 検証（V-model pair）
 
 - L4↔L9（総合）: 両 Phase の L9 が独立に閉じ、L10 合流で両 Phase 分の pair_closure が揃うこと（合流もれ = detector violation）。

@@ -96,6 +96,8 @@ harness の AI 規律を base に、HELIX 既存の fail-close hook を上乗せ
 
 これらは harness の agent-guard/tier-router/work-guard と整合させ二重化を避ける（同一判定を 1 本化）。
 
+- **内部 query contract pattern（agent system 向け、enhancement phase）**: consumer の agent system で unit 境界をまたぐ query を型付き契約にすると、その境界が **worker≠reviewer / tier-router / work-guard の発火点**になる（query = 監査可能な一級 artifact）。MCP table 流用せず既存経路（artifact_registry/trace_edges/review_evidence_registry）へ payload 非保存で投影。detector `unresolved-query`/`contract-drift`/`query-without-handler`（source_kind=hybrid）。設計正本 = [helix-w §3.5](../helix-w-design.md)。
+
 ## 7. 検証 / 未確定
 
 - 受入（L3↔L12）: AT-HRN-01 cross_agent で reviewer_model 未設定 → FN-DET-09 fail-close / AT-HRN-02 red 行なし直 green → FN-HRN-02 / AT-HRN-03 read-only role が Edit → FN-HRN-01 / **AT-HRN-04 dry-run が state/外部に write → FN-HRN-07** / **AT-HRN-05 `--execute --json` が実行せず `dry_run:false` → FN-HRN-08** / **AT-HRN-06 永続 foreign-edit marker 残置 → FN-HRN-06 hard**。

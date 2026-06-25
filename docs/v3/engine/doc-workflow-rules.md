@@ -52,6 +52,20 @@ plan: docs/plans/PLAN-...      # 起票 PLAN への back-link
 - **design-bottomup**（harness net-new）: 確立 backend（data_entity/projection/cli_command）→ FE 要件 derive（各画面×L3/L5/L6 slot）→ gap 検出（has_body=false を SLOT_SIGNAL、coverage≠substance）→ Discovery(entry=design_uncertain)へ合成 → Forward 降下。新 mode を作らず既存 routing に乗る。
 - **forward_return**: 駆動 PLAN は forward_return を**機械契約**として持つ（散文依存をやめる）。欠落 = violation（`drive-model-passage` 相当）。
 
+## 4.5 unit decomposition（L4 確定後の unitized L5-L7 descent — 大規模実装の分解規律）
+
+> ユーザー提案（2026-06-26）+ TL refine。**Forward 内の規律**であって駆動 workflow ではない。「micro-Forward」と呼ばず **`unitized L5-L7 descent`** とする（Process 多段ネストの誤認を避ける）。
+
+大規模 SaaS / 複雑設計で上流詳細設計が爆発するのを防ぐ V-model の分解規律。**L4（基本設計）まではシステムを一貫 Forward で凍結**し、L4 で component/集約に分解。**実装サイズが大きい unit のみ**、個別に L5（詳細）→L6（機能）→L7（実装）の descent を刻む（small unit は通常 descent のまま）。
+
+- **Scrum と別概念**: 既存 Scrum（`user_feedback_iteration` → Reverse fullback → Forward 昇華 = 要件反復）とは異なる。**L4 freeze 後の実装分解は Forward 内規律**であり、Scrum/Discovery の入口判定に混ぜない（混ぜると駆動 routing が曖昧化＝TL P1）。
+- **必須 frontmatter（unit PLAN）**: `unit_id` / `parent_l4_component`（L4 のどの component の分解か）/ `trace_edges`（unit → L4 component への上流接続）。欠落 = violation（孤立 unit 禁止）。
+- **closure invalidation**: L4（parent component）が変更されたら、該当 unit の L5/L6/L7 closure を **invalidated** にする（unit が古い L4 を実装し続ける片肺を防ぐ）。
+- **Process ネスト禁止**: unit は独立 Process 化しない。**L4/L7 PLAN 配下の unit action**（`dependencies.parent` 1 段）として扱う（駆動 Process ⊃ Action の親子と同型、深いネストを作らない）。
+- **unit 単位 closure**: 各 unit は自分の pair_closure（L6↔L7 / large unit は L5↔L8 も）を閉じる。**unit closure 欠落 → macro（L4↔L9）closure fail**（descent-obligation FN-DET-04 + trace-symmetry FN-DET-03 を unit_id-aware に評価）。
+- **粒度判定**: split するか否かは `helix size`（task-sizing）に接続（小さい unit を過剰分割しない）。
+- **適用例**: この V3 engine build 自体が初適用 — L4 確定済の engine を C1/C2/cutover-gate という unit に割り、各 unit を unitized L5-L7 descent（L5/L6 frozen → L7 test-first）で刻む。
+
 ## 5. gate 契約（capture §6 — G0.5-G14）
 
 - **静的 gate**（`evaluate_static_gate`、決定論・AI 不使用）: G1-G7。G7 = pair-freeze + impl-plan-trace + oracle-test-trace + coverage≥80% の AND。

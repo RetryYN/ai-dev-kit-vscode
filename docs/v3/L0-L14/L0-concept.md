@@ -48,6 +48,8 @@ doc と workflow を機械パース可能な契約（frontmatter/ID/必須セク
 
 Forward(spine) を背骨に、13 駆動 mode（`DRIVE_TDD_FITS` = design 含む 10 駆動 + 工程専門 screen-design/frontend-design + design-bottomup。capture §1）。出口は必ず Forward L0-L14 合流。signal→mode auto-routing（4 象限 priority: Incident>Recovery>Reverse>Refactor）、mode→command 機械契約、layer-context 注入 + orchestration_mode 5 値、横断検出 5 機構。実行モード 4 種（claude-only/codex-only/hybrid/standalone）。2 MUST 原則 = ①ルール同一性（Claude/Codex 同一判定・同一 exit code）②hybrid 機能分散（frontier-reviewer ≠ worker runtime）。
 
+- **unitized L5-L7 descent**（大規模実装の分解規律、Forward 内・駆動 workflow ではない）: L4 まで一貫 Forward → large unit のみ L5→L6→L7 を unit 単位で刻む。Scrum（要件反復）と別概念。詳細・guardrail = [C6 §4.5](../engine/doc-workflow-rules.md)。
+
 ## 5. W-model（concept v3.1 §2.3.3）
 
 製品が AI エージェントシステムを作る場合に **UT-TDD W（2 段 V）**: Phase 1（一般システム L1-L9）+ Phase 2（エージェント昇華 L1-L9）→ L10 合流。harness 自身は外殻（VSCode/Claude Code）が既存のため**単一 V** で進める。V3 は製品が harness（=agent system）のため自己適用を [helix-w-design](../helix-w-design.md) で扱う。
