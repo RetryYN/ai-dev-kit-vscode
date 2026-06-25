@@ -44,3 +44,14 @@ C-1 table 分類(projection⊥append_event) / C-2 row identity(logical_key/stale
 - **tl-advisor 出力は SUMMARY tail のみ** → 完全版は rollout JSONL（`~/.codex/sessions/<date>/rollout-*.jsonl`）の最新 assistant text を python で抽出（[[feedback_rollout_jsonl_bypass_pattern]]）。
 - **製造元 repo**: 設計 doc は Opus 直接編集可、Python 実装は Codex 委譲。委譲 Codex は commit/push しない。push は `helix push --gate`（8 gate）。
 - §11 未読（capture）: concept §3.5 アンカー本文 / requirements_v1.2 §5-§10 / L7-unit-test §349 以降 / skill 本文多数。engine 実装で必要になったら都度補完。
+
+## 6. engine build phase（2026-06-26 goal、進行中）
+
+> goal: cutover gate → engine 実装先行(C1→C2) → cutover → HELIX 独自強化。完遂。handover = `GOAL-V3-ENGINE`（GOAL-C-RIGHTARM は archive 済）。
+
+- **方式 = unitized L5-L7 descent**（[C6 §4.5](engine/doc-workflow-rules.md)、ユーザー提案+TL refine を本 build に初適用）。engine を C1/C2/cutover-gate という unit に分解、各 unit L5/L6 frozen → L7 test-first。
+- **code 住所 = `cli/lib/v3/`**（V2 と別名前空間、V2 不変 = rollback 保全。cutover で promote）。
+- **proposals 取り込み済**（commit f866104）: proposal1 unitized L5-L7 descent（C6 §4.5）/ proposal2 内部 query contract pattern（helix-w §3.5、MCP table 流用禁止・既存経路投影・enhancement phase 実装）。
+- **PLAN 起票済**: C1 [L7-v3-engine-c1-schema-registryplan](../../plans/L7/L7-v3-engine-c1-schema-registryplan.md)（commit a0de8e9）/ C2 [L7-v3-engine-c2-projection-writerplan](../../plans/L7/L7-v3-engine-c2-projection-writerplan.md)（e6d6439、requires C1）。両 plan_lint clean。
+- **進行中**: C1 を Codex se が test-first 実装中（UT-C1-01..11 red→green）。**次 = C1 actual output 検証（pytest/py_compile/ls、summary 信用しない [[feedback_codex_completion_vs_actual_output]]）→ C2 委譲 → cutover-gate 設計+PLAN → cutover(escalation/破壊) → Phase 7-8 → 独自強化（内部 query 含む）**。
+- **cutover は破壊的**（V2 DB 破棄/物理削除）= escalation・人間確認必須。engine が rebuild 可能 + cutover-gate green まで実行しない（現状 未着手）。
