@@ -44,7 +44,15 @@ V3 detector がカバー済の V2 check のみ**。未カバー検出（穴に�
 - vg_overview の pre-push gate 配線を V3 ok=AND にどう繋ぐか（CI 配線）。
 - △ 部分カバーの check を委譲対象に含めるか（安全側＝当面 V2 維持を推奨）。
 
+## 実行記録
+
+- **2026-06-27**: 人間 §10 go（「GO、ただし GitHub でアーカイブにすること」）受領。
+  - **archive 完了**: tag `v2-archive-pre-cutover-20260627` + origin/dogfood を GitHub に push（V2 完全保持の recovery point）。
+  - **stage② 実行完了**（commit `90db9a8`）: check_requirement_drift→FN-DET-04 / check_import_cycle→FN-DET-17 /
+    check_plan_dependency_gate→FN-DET-18 を V2 doctor で no-op 化（単一 guard・reversible・検証済）。検出正本が V3 engine へ移行。
+  - **stage③（物理削除）は未実行**（別 §10 go）。V2 コード本体は archive + 残置で recoverable。
+
 ## 実行規律
 
-- **段階 2/3 の実行は §10 destructive。本 PLAN 承認≠実行承認**。各段で人間 go を取る。
-- 設計（本 PLAN）は自走で用意済み。実行は go 待ち。wholesale 破壊は行わない。
+- **段階 3 の実行は §10 destructive（不可逆・物理削除）。別途人間 go を取る**。
+- stage② は reversible（`HELIX_V3_DELEGATED_CHECKS=""` で全 V2 check 復活）。wholesale 破壊は行わない。
