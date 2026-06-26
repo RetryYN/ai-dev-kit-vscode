@@ -578,6 +578,53 @@ def drive_passage_messages(result: DrivePassageResult) -> list[Finding]:
     ]
 
 
+FN_DET_05 = "FN-DET-05"
+
+
+@dataclass(frozen=True)
+class FnUtPairInput:
+    l6_required_fns: tuple[str, ...]
+    covered_fns: frozenset[str]
+
+
+@dataclass(frozen=True)
+class FnUtPairResult:
+    ok: bool
+    unpaired_fns: tuple[str, ...]
+
+
+def load_fn_ut_pair_input(db: sqlite3.Connection) -> FnUtPairInput:
+    _ensure_table_columns("functional_registry", ("fn_id", "layer"))
+    _ensure_table_columns("test_cases", ("fr_id",))
+    l6_required = tuple(
+        row[0]
+        for row in db.execute(
+            "SELECT fn_id FROM functional_registry WHERE layer = 'L6_required' ORDER BY fn_id"
+        ).fetchall()
+        if row[0]
+    )
+    covered = frozenset(
+        row[0]
+        for row in db.execute("SELECT DISTINCT fr_id FROM test_cases WHERE fr_id != ''").fetchall()
+        if row[0]
+    )
+    return FnUtPairInput(l6_required_fns=l6_required, covered_fns=covered)
+
+
+def analyze_fn_ut_pair(input_data: FnUtPairInput) -> FnUtPairResult:
+    # L6_required FR は covering UT(test が @covers で fr_id 宣言)必須。covered でない = unpaired。
+    # L6_required が 0 件なら ok(should-be 集合を正しく空と判定)。waiver(FN-*/FR-* scheme 不一致)は follow-up。
+    unpaired = tuple(fn for fn in input_data.l6_required_fns if fn not in input_data.covered_fns)
+    return FnUtPairResult(ok=not unpaired, unpaired_fns=unpaired)
+
+
+def fn_ut_pair_messages(result: FnUtPairResult) -> list[Finding]:
+    return [
+        Finding(id=FN_DET_05, severity=HARD, subject=fn, missing=("no covering UT (declare @covers in test)",))
+        for fn in result.unpaired_fns
+    ]
+
+
 CORE_DETECTORS = (
     DetectorSpec(
         detector_id=FN_DET_01,
@@ -642,5 +689,13 @@ CORE_DETECTORS = (
         load=load_drive_passage_input,
         analyze=analyze_drive_passage,
         messages=drive_passage_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_05,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_fn_ut_pair_input,
+        analyze=analyze_fn_ut_pair,
+        messages=fn_ut_pair_messages,
     ),
 )

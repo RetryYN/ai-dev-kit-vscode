@@ -605,6 +605,9 @@ def project_test_files(ctx: ProjectionContext) -> None:
             continue
         path = source.path
         base = path.rsplit("/", 1)[-1]
+        # 連結規約: test が `@covers FR-X-NNN` を宣言すると test_cases.fr_id に投影(FN↔UT 連結)。
+        covers_match = _re.search(r"@covers\s+(FR-[A-Z0-9]+-\d+)", source.text)
+        covers_fr = covers_match.group(1) if covers_match else ""
         names: list[str] = []
         if path.endswith(".py") and (base.startswith("test_") or base.endswith("_test.py")):
             try:
@@ -632,7 +635,7 @@ def project_test_files(ctx: ProjectionContext) -> None:
                     "test_file": path,
                     "test_name": test_name,
                     "plan_id": "",
-                    "fr_id": "",
+                    "fr_id": covers_fr,
                     "artifact_id": "",
                     "kind": kind,
                     "oracle_id": "",
