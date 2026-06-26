@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 from dataclasses import dataclass
 
 try:
     from v3.schema import registry
+    from v3.projection.sources import _parse_frontmatter
 except ImportError:  # pragma: no cover - repo-local fallback until top-level v3 package is wired.
     from cli.lib.v3.schema import registry
+    from cli.lib.v3.projection.sources import _parse_frontmatter
 
 from .runner import DetectorSpec, Finding
 
@@ -552,6 +555,7 @@ def lint_wiring_messages(result: LintWiringResult) -> list[Finding]:
 
 FN_DET_14 = "FN-DET-14"
 VALID_MANIFEST_SCOPES = frozenset({"common", "claude", "codex"})
+PLAN_ID_PATTERN = re.compile(r"^PLAN-(?:L[1-7]|DISCOVERY|REVERSE|RECOVERY|M)-\d{2}-[a-z0-9][a-z0-9-]*$")
 # core.py = cli/lib/v3/detectors/core.py → repo root は dirname×5。
 _REPO_ROOT = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -623,6 +627,126 @@ def dist_api_messages(result: DistApiResult) -> list[Finding]:
     for raw in result.invalid_rows:
         findings.append(Finding(id=FN_DET_14, severity=HARD, subject="dist-api.invalid-row", missing=(raw,)))
     return findings
+
+
+FN_DET_15 = "FN-DET-15"
+PLAN_SECTION_MARKERS = tuple(f"§{index}" for index in range(8))
+
+
+@dataclass(frozen=True)
+class DocContractArtifact:
+    path: str
+    artifact_type: str
+    frontmatter: dict[str, object]
+    text: str
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class DocContractInput:
+    artifacts: tuple[DocContractArtifact, ...]
+
+
+@dataclass(frozen=True)
+class DocContractViolation:
+    subject: str
+    missing: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class DocContractResult:
+    ok: bool
+    violations: tuple[DocContractViolation, ...]
+
+
+def _doc_kind(path: str, artifact_type: str) -> str:
+    if artifact_type == "plan" or path.startswith("docs/plans/"):
+        return "plan"
+    return "design_doc"
+
+
+def _resolve_artifact_path(path: str) -> str:
+    return path if os.path.isabs(path) else os.path.join(_REPO_ROOT, path)
+
+
+def load_doc_contract_input(db: sqlite3.Connection) -> DocContractInput:
+    _ensure_table_columns("artifact_registry", ("path", "artifact_type"))
+    artifacts: list[DocContractArtifact] = []
+    rows = db.execute("SELECT path, artifact_type FROM artifact_registry WHERE path LIKE '%.md' ORDER BY path").fetchall()
+    for path, artifact_type in rows:
+        if not path:
+            continue
+        resolved = _resolve_artifact_path(path)
+        try:
+            with open(resolved, encoding="utf-8") as handle:
+                text = handle.read()
+        except OSError as exc:
+            artifacts.append(DocContractArtifact(path=path, artifact_type=artifact_type or "", frontmatter={}, text="", error=str(exc)))
+            continue
+        try:
+            frontmatter, _body = _parse_frontmatter(text)
+            artifacts.append(DocContractArtifact(path=path, artifact_type=artifact_type or "", frontmatter=frontmatter, text=text))
+        except ValueError as exc:
+            artifacts.append(DocContractArtifact(path=path, artifact_type=artifact_type or "", frontmatter={}, text=text, error=f"frontmatter parse error: {exc}"))
+    return DocContractInput(artifacts=tuple(artifacts))
+
+
+def _missing_frontmatter(frontmatter: dict[str, object], required: tuple[str, ...]) -> tuple[str, ...]:
+    missing: list[str] = []
+    for key in required:
+        if key not in frontmatter:
+            missing.append(f"frontmatter missing: {key}")
+            continue
+        value = frontmatter[key]
+        if value is None:
+            missing.append(f"frontmatter missing: {key}")
+        elif isinstance(value, str) and not value.strip():
+            missing.append(f"frontmatter missing: {key}")
+    return tuple(missing)
+
+
+def _missing_plan_sections(text: str) -> tuple[str, ...]:
+    missing: list[str] = []
+    for marker in PLAN_SECTION_MARKERS:
+        if not re.search(rf"(?m)^\s*#{{1,6}}\s+{re.escape(marker)}(?:\b|\s)", text):
+            missing.append(f"missing section: {marker}")
+    return tuple(missing)
+
+
+def analyze_doc_contract(input_data: DocContractInput) -> DocContractResult:
+    if not input_data.artifacts:
+        return DocContractResult(ok=True, violations=())
+
+    violations: list[DocContractViolation] = []
+    for artifact in input_data.artifacts:
+        if artifact.error is not None:
+            violations.append(DocContractViolation(subject=artifact.path, missing=(artifact.error,)))
+            continue
+        if _doc_kind(artifact.path, artifact.artifact_type) == "plan":
+            missing = _missing_frontmatter(
+                artifact.frontmatter,
+                ("plan_id", "kind", "layer", "drive", "status", "agent_slots", "generates", "dependencies", "review_evidence"),
+            )
+            if missing:
+                violations.append(DocContractViolation(subject=artifact.path, missing=missing))
+            plan_id = artifact.frontmatter.get("plan_id")
+            if isinstance(plan_id, str) and plan_id and not PLAN_ID_PATTERN.match(plan_id):
+                violations.append(DocContractViolation(subject=artifact.path, missing=(f"invalid plan_id: {plan_id}",)))
+            missing_sections = _missing_plan_sections(artifact.text)
+            if missing_sections:
+                violations.append(DocContractViolation(subject=artifact.path, missing=missing_sections))
+            continue
+        missing = _missing_frontmatter(
+            artifact.frontmatter,
+            ("layer", "status", "pair_artifact", "sub_doc", "next_pair_freeze", "plan"),
+        )
+        if missing:
+            violations.append(DocContractViolation(subject=artifact.path, missing=missing))
+    return DocContractResult(ok=not violations, violations=tuple(violations))
+
+
+def doc_contract_messages(result: DocContractResult) -> list[Finding]:
+    return [Finding(id=FN_DET_15, severity=HARD, subject=violation.subject, missing=violation.missing) for violation in result.violations]
 
 
 FN_DET_08 = "FN-DET-08"
@@ -783,6 +907,14 @@ CORE_DETECTORS = (
         load=load_dist_api_input,
         analyze=analyze_dist_api,
         messages=dist_api_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_15,
+        source_kind=FILE_SNAPSHOT,
+        severity=HARD,
+        load=load_doc_contract_input,
+        analyze=analyze_doc_contract,
+        messages=doc_contract_messages,
     ),
     DetectorSpec(
         detector_id=FN_DET_08,
