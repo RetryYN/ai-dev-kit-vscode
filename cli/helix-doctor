@@ -378,6 +378,17 @@ if [[ "$SUMMARY_OUTPUT" == true ]]; then
   exit "$doctor_rc"
 fi
 
+# === V3 cutover stage② : V3 engine へ委譲済みの検出は V2 doctor で no-op（reversible）===
+# 委譲: check_requirement_drift→FN-DET-04 / check_import_cycle→FN-DET-17 / check_plan_dependency_gate→FN-DET-18
+# 検出の正本は V3 engine (helix v3-doctor)。V2 standalone check は委譲済みとして no-op（exit 0）。
+# 復帰: HELIX_V3_DELEGATED_CHECKS="" で全 V2 check を復活。archive=v2-archive-pre-cutover-20260627
+HELIX_V3_DELEGATED_CHECKS="${HELIX_V3_DELEGATED_CHECKS-check_requirement_drift check_import_cycle check_plan_dependency_gate}"
+if [[ -n "$SUBCOMMAND" && " $HELIX_V3_DELEGATED_CHECKS " == *" $SUBCOMMAND "* ]]; then
+  echo "  ⊘ $SUBCOMMAND は V3 engine へ委譲済み（helix v3-doctor / FN-DET-04/17/18）。V2 では no-op。"
+  echo "    delegated_to_v3=true reversible=HELIX_V3_DELEGATED_CHECKS"
+  exit 0
+fi
+
 if [[ "$SUBCOMMAND" == "check_g7_subcheck" ]]; then
   report_json="$(run_python_report_helper g7_subcheck 2>&1)"
   if [[ "$JSON_OUTPUT" == true ]]; then
