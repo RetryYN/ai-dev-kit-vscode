@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import os
 import re
 import sqlite3
 from dataclasses import dataclass
+from pathlib import Path
 
 try:
     from v3.schema import registry
@@ -629,6 +631,351 @@ def dist_api_messages(result: DistApiResult) -> list[Finding]:
     return findings
 
 
+FN_DET_17 = "FN-DET-17"
+_ASSIGNMENT_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.+)$")
+_SOURCE_RE = re.compile(r"^(?:source|\.)\s+(.+?)(?:\s+#.*)?$")
+
+
+@dataclass(frozen=True)
+class ImportCycleInput:
+    scanned: bool
+    python_files: tuple[str, ...]
+    bash_files: tuple[str, ...]
+    adjacency: tuple[tuple[str, tuple[str, ...]], ...]
+    missing_sources: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ImportCycleResult:
+    ok: bool
+    missing_sources: tuple[str, ...]
+    cycles: tuple[tuple[str, ...], ...]
+
+
+def _normalize_repo_path(path: Path, repo_root: Path) -> str:
+    return path.resolve().relative_to(repo_root.resolve()).as_posix()
+
+
+def _python_files(lib_root: Path) -> list[Path]:
+    files: list[Path] = []
+    if not lib_root.is_dir():
+        return files
+    for path in lib_root.rglob("*.py"):
+        relative = path.relative_to(lib_root)
+        if any(part in {"tests", "__pycache__"} for part in relative.parts):
+            continue
+        files.append(path.resolve())
+    return sorted(files)
+
+
+def _python_alias_map(lib_root: Path, paths: list[Path]) -> tuple[dict[str, Path], dict[Path, str]]:
+    alias_map: dict[str, Path] = {}
+    package_map: dict[Path, str] = {}
+    for path in paths:
+        relative = path.relative_to(lib_root)
+        parts = list(relative.parts)
+        parent_parts = parts[:-1]
+        package_suffix = ".".join(parent_parts)
+        package_map[path] = "cli.lib" + (f".{package_suffix}" if package_suffix else "")
+
+        module_parts = parent_parts if path.stem == "__init__" else [*parent_parts, path.stem]
+        if not module_parts:
+            continue
+        dotted = ".".join(module_parts)
+        for alias in {dotted, f"cli.lib.{dotted}"}:
+            alias_map[alias] = path
+    return alias_map, package_map
+
+
+def _resolve_python_targets(
+    node: ast.ImportFrom,
+    *,
+    current_package: str,
+    alias_map: dict[str, Path],
+) -> set[Path]:
+    if node.level > 0:
+        package_parts = current_package.split(".")
+        strip_count = max(0, node.level - 1)
+        if strip_count >= len(package_parts):
+            return set()
+        base = ".".join(package_parts[: len(package_parts) - strip_count])
+        resolved_module = f"{base}.{node.module}" if node.module else base
+    else:
+        resolved_module = node.module or ""
+
+    targets: set[Path] = set()
+    if not node.module:
+        for alias in node.names:
+            candidate = f"{resolved_module}.{alias.name}" if resolved_module else alias.name
+            target = alias_map.get(candidate)
+            if target is not None:
+                targets.add(target)
+        return targets
+
+    submodule_targets: list[Path] = []
+    for alias in node.names:
+        candidate = f"{resolved_module}.{alias.name}" if resolved_module else alias.name
+        target = alias_map.get(candidate)
+        if target is not None:
+            submodule_targets.append(target)
+    if submodule_targets:
+        targets.update(submodule_targets)
+        return targets
+
+    base_target = alias_map.get(resolved_module)
+    if base_target is not None:
+        targets.add(base_target)
+    return targets
+
+
+def _python_adjacency(repo_root: Path) -> tuple[tuple[str, ...], dict[str, set[str]]]:
+    lib_root = repo_root / "cli" / "lib"
+    paths = _python_files(lib_root)
+    alias_map, package_map = _python_alias_map(lib_root, paths)
+    adjacency = {_normalize_repo_path(path, repo_root): set() for path in paths}
+
+    for path in paths:
+        node_key = _normalize_repo_path(path, repo_root)
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=path.as_posix())
+        except (OSError, SyntaxError):
+            continue
+        for node in ast.walk(tree):
+            targets: set[Path] = set()
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    target = alias_map.get(alias.name)
+                    if target is not None:
+                        targets.add(target)
+            elif isinstance(node, ast.ImportFrom):
+                targets = _resolve_python_targets(
+                    node,
+                    current_package=package_map[path],
+                    alias_map=alias_map,
+                )
+            if not targets:
+                continue
+            for target in targets:
+                target_key = _normalize_repo_path(target, repo_root)
+                if target_key != node_key:
+                    adjacency[node_key].add(target_key)
+    return tuple(sorted(adjacency)), adjacency
+
+
+def _is_shell_script(path: Path) -> bool:
+    if path.suffix == ".sh":
+        return True
+    try:
+        first_line = path.read_text(encoding="utf-8", errors="ignore").splitlines()[0]
+    except (IndexError, OSError):
+        return False
+    return first_line.startswith("#!") and ("bash" in first_line or first_line.endswith("/sh"))
+
+
+def _bash_files(cli_root: Path) -> list[Path]:
+    files: list[Path] = []
+    if not cli_root.is_dir():
+        return files
+    for path in cli_root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(cli_root)
+        if any(part in {"tests", "__pycache__"} for part in relative.parts):
+            continue
+        if path.parent == cli_root / "lib":
+            continue
+        if _is_shell_script(path):
+            files.append(path.resolve())
+    return sorted(files)
+
+
+def _substitute_bash_vars(value: str, variables: dict[str, str]) -> str:
+    resolved = value
+    for key, replacement in variables.items():
+        resolved = resolved.replace(f"${{{key}}}", replacement)
+        resolved = resolved.replace(f"${key}", replacement)
+    return resolved
+
+
+def _resolve_bash_expression(expr: str, *, path: Path, variables: dict[str, str]) -> Path | None:
+    value = expr.strip()
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        value = value[1:-1]
+
+    script_dir = path.parent.resolve()
+    replacements = {
+        '$(cd "$(dirname "$0")" && pwd)': script_dir.as_posix(),
+        '$(cd "$(dirname "$0")/.." && pwd)': script_dir.parent.resolve().as_posix(),
+        '$(dirname "$0")': script_dir.as_posix(),
+    }
+    for needle, replacement in replacements.items():
+        value = value.replace(needle, replacement)
+    value = _substitute_bash_vars(value, variables)
+    if "$(" in value or re.search(r"\$[{A-Za-z_]", value):
+        return None
+    if "/" not in value and not value.startswith("."):
+        return None
+
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = (script_dir / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+    try:
+        return candidate if candidate.is_file() else None
+    except OSError:
+        return None
+
+
+def _bash_adjacency(repo_root: Path) -> tuple[tuple[str, ...], dict[str, set[str]]]:
+    cli_root = repo_root / "cli"
+    paths = _bash_files(cli_root)
+    known = {path.resolve() for path in paths}
+    adjacency = {_normalize_repo_path(path, repo_root): set() for path in paths}
+
+    for path in paths:
+        variables = {"SCRIPT_DIR": path.parent.resolve().as_posix()}
+        node_key = _normalize_repo_path(path, repo_root)
+        try:
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            continue
+
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            assignment_match = _ASSIGNMENT_RE.match(line)
+            if assignment_match and not line.startswith(("source ", ". ")):
+                resolved_value = _resolve_bash_expression(
+                    assignment_match.group(2),
+                    path=path,
+                    variables=variables,
+                )
+                if resolved_value is not None:
+                    variables[assignment_match.group(1)] = resolved_value.as_posix()
+                    continue
+                value = assignment_match.group(2).strip().strip('"').strip("'")
+                variables[assignment_match.group(1)] = _substitute_bash_vars(value, variables)
+                continue
+
+            source_match = _SOURCE_RE.match(line)
+            if not source_match:
+                continue
+            resolved_path = _resolve_bash_expression(
+                source_match.group(1),
+                path=path,
+                variables=variables,
+            )
+            if resolved_path is None or resolved_path not in known:
+                continue
+            target_key = _normalize_repo_path(resolved_path, repo_root)
+            if target_key != node_key:
+                adjacency[node_key].add(target_key)
+    return tuple(sorted(adjacency)), adjacency
+
+
+def load_import_cycle_input(db: sqlite3.Connection) -> ImportCycleInput:
+    del db
+    repo_root = Path(_REPO_ROOT)
+    if not repo_root.is_dir():
+        return ImportCycleInput(scanned=False, python_files=(), bash_files=(), adjacency=(), missing_sources=("repo-root-unreadable",))
+
+    try:
+        python_files, python_adjacency = _python_adjacency(repo_root)
+        bash_files, bash_adjacency = _bash_adjacency(repo_root)
+    except OSError:
+        return ImportCycleInput(scanned=False, python_files=(), bash_files=(), adjacency=(), missing_sources=("repo-root-unreadable",))
+
+    merged: dict[str, tuple[str, ...]] = {}
+    for node, dependencies in {**python_adjacency, **bash_adjacency}.items():
+        merged[node] = tuple(sorted(dependencies))
+    adjacency = tuple((node, merged[node]) for node in sorted(merged))
+    return ImportCycleInput(
+        scanned=True,
+        python_files=python_files,
+        bash_files=bash_files,
+        adjacency=adjacency,
+    )
+
+
+def _canonicalize_cycle(cycle: list[str]) -> tuple[str, ...]:
+    nodes = list(cycle)
+    if len(nodes) > 1 and nodes[0] == nodes[-1]:
+        nodes = nodes[:-1]
+    if not nodes:
+        return ()
+
+    candidates: list[tuple[str, ...]] = []
+    for variant in (nodes, list(reversed(nodes))):
+        for index in range(len(variant)):
+            rotated = tuple(variant[index:] + variant[:index])
+            candidates.append(rotated)
+    best = min(candidates)
+    return (*best, best[0])
+
+
+def _find_cycles(adjacency: dict[str, tuple[str, ...]]) -> tuple[tuple[str, ...], ...]:
+    discovered: dict[tuple[str, ...], tuple[str, ...]] = {}
+    visited: set[str] = set()
+    stack: list[str] = []
+    stack_lookup: set[str] = set()
+
+    def dfs(node: str) -> None:
+        visited.add(node)
+        stack.append(node)
+        stack_lookup.add(node)
+        for dependency in adjacency.get(node, ()):
+            if dependency in stack_lookup:
+                start_index = stack.index(dependency)
+                cycle = _canonicalize_cycle(stack[start_index:] + [dependency])
+                discovered[cycle] = cycle
+                continue
+            if dependency not in visited:
+                dfs(dependency)
+        stack_lookup.remove(node)
+        stack.pop()
+
+    for node in sorted(adjacency):
+        if node not in visited:
+            dfs(node)
+    return tuple(sorted(discovered))
+
+
+def analyze_import_cycle(input_data: ImportCycleInput) -> ImportCycleResult:
+    if not input_data.scanned:
+        return ImportCycleResult(
+            ok=False,
+            missing_sources=input_data.missing_sources or ("repo-root-unreadable",),
+            cycles=(),
+        )
+
+    if not input_data.python_files and not input_data.bash_files:
+        return ImportCycleResult(ok=True, missing_sources=(), cycles=())
+
+    adjacency = {node: dependencies for node, dependencies in input_data.adjacency}
+    cycles = _find_cycles(adjacency)
+    return ImportCycleResult(
+        ok=not cycles,
+        missing_sources=(),
+        cycles=cycles,
+    )
+
+
+def import_cycle_messages(result: ImportCycleResult) -> list[Finding]:
+    if result.missing_sources:
+        return [Finding(id=FN_DET_17, severity=HARD, subject="import-cycle", missing=result.missing_sources)]
+    return [
+        Finding(
+            id=FN_DET_17,
+            severity=HARD,
+            subject=" -> ".join(cycle),
+            missing=(),
+        )
+        for cycle in result.cycles
+    ]
+
+
 FN_DET_15 = "FN-DET-15"
 PLAN_SECTION_MARKERS = tuple(f"§{index}" for index in range(8))
 
@@ -982,6 +1329,14 @@ CORE_DETECTORS = (
         load=load_dist_api_input,
         analyze=analyze_dist_api,
         messages=dist_api_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_17,
+        source_kind=FILE_SNAPSHOT,
+        severity=HARD,
+        load=load_import_cycle_input,
+        analyze=analyze_import_cycle,
+        messages=import_cycle_messages,
     ),
     DetectorSpec(
         detector_id=FN_DET_15,
