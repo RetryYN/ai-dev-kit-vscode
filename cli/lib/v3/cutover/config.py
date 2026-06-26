@@ -36,13 +36,17 @@ def _probe_restore_round_trip() -> bool:
 def build_cutover_config(repo_root: str, *, retire: Sequence[str] = ()) -> dict[str, object]:
     archive_dir = os.path.join(repo_root, ".helix", "v3-cutover-archive")
     os.makedirs(archive_dir, exist_ok=True)
+    retire_list = list(retire)
     return {
-        "survive_surface": ["helix/core-manifest.tsv", "cli/helix"],
-        "retirement_inventory": list(retire),  # 空 = 何も退役しない(非破壊)
+        # gate.py が読む正式キー名に合わせる(surviving_surface / retired_inventory / retired_actual)
+        "surviving_surface": ["helix/core-manifest.tsv", "cli/helix"],
+        "retired_inventory": retire_list,  # 空 = 何も退役しない(非破壊)
+        "retired_actual": retire_list,  # commit が退役する実集合(= inventory と一致が pin の前提)
         "v2_path_inventory": [],
         "promote_reverse": "import-switch",  # V3 昇格の逆手順(config 契約)
         "window_expiry": "2026-07-31",
         "archive_dir": archive_dir,
         "restore_dry_run": _probe_restore_round_trip,  # rollback 機構を wire(callable)
-        "detector_gap": {"expiry": "2026-07-31", "owner": "helix", "bridge": "v2-detectors"},
+        # accepted_gap が要求する正式キー: deadline / owner / bridge
+        "detector_gap_policy": {"deadline": "2026-07-31", "owner": "helix", "bridge": "v2-detectors"},
     }

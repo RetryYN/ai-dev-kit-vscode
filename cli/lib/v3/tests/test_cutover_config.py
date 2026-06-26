@@ -21,6 +21,6 @@ def test_build_cutover_config_satisfies_rollback_preflight_fields(tmp_path):
 def test_build_cutover_config_is_nondestructive_by_default(tmp_path):
     # 既定は retire=() = 何も退役しない(非破壊)。破壊的退役は明示が必要。
     cfg = build_cutover_config(str(tmp_path))
-    assert cfg["retirement_inventory"] == []
+    assert cfg["retired_inventory"] == []
     cfg2 = build_cutover_config(str(tmp_path), retire=["cli/tests/old.bats"])
-    assert cfg2["retirement_inventory"] == ["cli/tests/old.bats"]
+    assert cfg2["retired_inventory"] == ["cli/tests/old.bats"]

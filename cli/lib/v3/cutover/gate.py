@@ -65,6 +65,7 @@ class CutoverInput:
     rebuild_exception: str | None
     detector_gap_policy: dict[str, str] | None
     enabled_checks: tuple[str, ...]
+    parity_attested: bool = False
 
 
 @dataclass(frozen=True)
@@ -367,6 +368,13 @@ def load_cutover_input(
 
     surviving_surface = _normalize_list(config.get("surviving_surface"))
     retired_inventory = _normalize_list(config.get("retired_inventory"))
+    # survive surface は .md/.py scan 外の実ファイル(public API / helix CLI / core-manifest.tsv 等)も
+    # 含むため、filesystem 存在で existing を補完する(削除されていれば survive 検査が落ちる = 正)。
+    existing_for_survive = existing_paths + tuple(
+        path
+        for path in surviving_surface
+        if path not in existing_path_set and os.path.exists(os.path.join(repo_root, path))
+    )
     retired_actual = _normalize_list(config.get("retired_actual") or retired_inventory)
     v2_path_inventory = _normalize_list(config.get("v2_path_inventory"))
     current_v2_paths = _normalize_list(config.get("current_v2_paths") or v2_path_inventory)
@@ -375,7 +383,7 @@ def load_cutover_input(
     detector_gap_policy = None if raw_gap_policy is None else {str(key): str(value) for key, value in dict(raw_gap_policy).items()}
 
     return CutoverInput(
-        existing_paths=existing_paths,
+        existing_paths=existing_for_survive,
         surviving_surface=surviving_surface,
         retired_inventory=retired_inventory,
         retired_actual=retired_actual,
@@ -390,6 +398,7 @@ def load_cutover_input(
         rebuild_exception=rebuild_exception,
         detector_gap_policy=detector_gap_policy,
         enabled_checks=enabled_checks,
+        parity_attested=bool(config.get("parity_attested")),
     )
 
 
@@ -405,6 +414,11 @@ def _analyze_pin_inventory(cutover_input: CutoverInput) -> CheckResult:
         missing.append(f"missing_retired:{path}")
     for path in sorted(actual_retired - expected_retired):
         missing.append(f"unexpected_retired:{path}")
+
+    # parity floor: 退役(破壊)を伴う cutover は V3 が退役対象を cover している明示 attestation を要求。
+    # 緑 gate ≠ 破壊安全 の gap を是正(readiness assessment 条件②)。retire 空(非破壊)は不要。
+    if expected_retired and not cutover_input.parity_attested:
+        missing.append("parity-not-attested:retire-requires-explicit-parity-verification")
 
     return _make_check_result(
         "pin_inventory",

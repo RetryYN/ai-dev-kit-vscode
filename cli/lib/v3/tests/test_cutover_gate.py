@@ -114,6 +114,7 @@ def _passing_config(repo_root: Path) -> dict[str, object]:
         ],
         "retired_inventory": ["legacy/a.py", "legacy/b.py"],
         "retired_actual": ["legacy/a.py", "legacy/b.py"],
+        "parity_attested": True,  # 退役(破壊)を伴う完全準備済 config は parity 明示 attestation を持つ
         "archive_dir": str(archive_dir),
         "v2_path_inventory": ["legacy/config.toml", "legacy/engine.py"],
         "current_v2_paths": ["legacy/config.toml", "legacy/engine.py"],
@@ -230,3 +231,24 @@ def test_ut_cut_07_findings_are_machine_readable(repo_root: Path) -> None:
         finding = by_id[check_id]
         assert set(finding) == {"id", "severity", "subject", "missing"}
         assert isinstance(finding["missing"], list)
+
+
+def test_parity_floor_blocks_destructive_retire_without_attestation(repo_root: Path) -> None:
+    """parity floor: 退役(破壊)ありで parity_attested 無し → pin_inventory + gate が赤。"""
+    config = _passing_config(repo_root)
+    config["parity_attested"] = False
+    result = analyze_cutover(load_cutover_input(repo_root, None, config))
+    pin = result.checks["pin_inventory"]
+    assert pin.ok is False
+    assert any("parity-not-attested" in message for message in pin.missing)
+    assert result.ok is False
+
+
+def test_parity_floor_not_required_for_nondestructive_cutover(repo_root: Path) -> None:
+    """retire 空(非破壊)なら parity attestation 不要。"""
+    config = _passing_config(repo_root)
+    config["retired_inventory"] = []
+    config["retired_actual"] = []
+    config["parity_attested"] = False
+    pin = analyze_cutover(load_cutover_input(repo_root, None, config)).checks["pin_inventory"]
+    assert pin.ok is True
