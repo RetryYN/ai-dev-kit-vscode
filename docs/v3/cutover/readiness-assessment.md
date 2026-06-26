@@ -3,6 +3,14 @@
 > 2026-06-26 / 目的: **phase 3 cutover（破壊的 V2→V3 切替）の go/no-go を人間が判断するための資料**。
 > cutover EXECUTION は破壊的・不可逆（HELIX rule §10）。本書は判断材料であって、実行ではない。
 
+## 実行記録: 検出 parity build 完成（2026-06-27）
+
+repo-applicable な検出 detector を全実装し、**検出 parity を達成**:
+- **13 detector 実装**（FN-DET-01/02/03/04/05/08/10/11/12/14/15/17/18）。corpus 16→18 拡張（import-cycle/plan-dependency 追加、vg_overview は ok=AND 集約で既カバー）。
+- **5 deferred/N-A**: 06 oracle(@oracle 規約待ち) / 07 gate-confirm・09 review-evidence・13 fe-screen・16 rule-drift（source 空: gate_runs/review_evidence/screens/rules=0）。
+- **130 UT green**、operational doctor は **green-with-baseline**（3437 既知 debt grandfather・regression 赤）。V2 不変。
+- 残 cutover = C subset + 17/18 を V2 doctor から no-op 化する**段階退役 PLAN**（§10 人間 go 必須、wholesale 破壊は category error で不要）。
+
 ## 実行記録: 非破壊 promote 実施済（`eefeeee`、2026-06-26）
 
 人間の明示 go（「OK。慎重に実施を」）を受け、cutover phase 3 を**安全・可逆な非破壊形で実施**:
