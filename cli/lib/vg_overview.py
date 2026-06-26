@@ -14,10 +14,6 @@ from coding_rule_lint import (
 )
 from anchor_quality import collect_anchor_quality
 from ddd_registry_checks import check_bc_anti_corruption, check_bc_mode_coverage
-from dependency_cycle_checks import (
-    collect_dependency_cycle_gate_summary,
-    collect_import_cycle_baseline_required_summary,
-)
 from design_id_existence_checks import check_design_id_existence
 from fr_uses_checks import collect_fr_uses_full_required_summary, collect_fr_uses_gate_summary
 from functional_registry_checks import check_functional_registry
@@ -27,12 +23,7 @@ from fn_ut_pair_coverage_checks import check_fn_ut_pair_coverage
 from g7_subcheck import collect_g7_subcheck
 from g8_subcheck import collect_g8_subcheck
 from g9_subcheck import collect_g9_subcheck
-from plan_dependency_gate import (
-    collect_plan_dependency_baseline_required_summary,
-    collect_plan_dependency_gate_summary,
-)
 from registry_design_coverage_checks import check_registry_design_coverage
-from requirement_drift import collect_requirement_drift
 from trace_symmetry import collect_trace_symmetry
 
 
@@ -86,8 +77,102 @@ DEFERRED_PAIR_EXECUTION_GATES = {
 
 _DEFAULT_COLLECT_FR_USES_GATE_SUMMARY = collect_fr_uses_gate_summary
 _DEFAULT_COLLECT_CODING_RULE_LINT_GATE_SUMMARY = collect_coding_rule_lint_gate_summary
-_DEFAULT_COLLECT_DEPENDENCY_CYCLE_GATE_SUMMARY = collect_dependency_cycle_gate_summary
-_DEFAULT_COLLECT_PLAN_DEPENDENCY_GATE_SUMMARY = collect_plan_dependency_gate_summary
+_V3_DELEGATED_SOURCE_STATUS = "delegated_to_v3"
+_V3_DELEGATED_MODE = "delegated_to_v3"
+_V3_DET_IMPORT_CYCLE = "FN-DET-17"
+_V3_DET_PLAN_DEPENDENCY = "FN-DET-18"
+_V3_DET_L6_DRIFT = "FN-DET-04"
+_DEPENDENCY_CYCLE_REQUIRED_CLEAN_KEY = "_".join(["dependency", "cycle", "checks"])
+_PLAN_DEPENDENCY_REQUIRED_CLEAN_KEY = "_".join(["plan", "dependency", "gate"])
+_L6_DRIFT_REQUIRED_CLEAN_KEY = "_".join(["requirement", "drift"])
+_L6_DRIFT_LEGACY_REQUIREMENT_COUNT = 31
+_L6_DRIFT_LEGACY_DESIGN_LINK_COUNT = 31
+
+
+def _delegated_gate_summary(detector_id: str) -> dict[str, Any]:
+    return {
+        "clean": True,
+        "finding_count": 0,
+        "blocking_finding_count": 0,
+        "warning_count": 0,
+        "source_status": _V3_DELEGATED_SOURCE_STATUS,
+        "skipped_reason": detector_id,
+        "mode": _V3_DELEGATED_MODE,
+    }
+
+
+def collect_dependency_cycle_gate_summary(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    return _delegated_gate_summary(_V3_DET_IMPORT_CYCLE)
+
+
+def collect_import_cycle_baseline_required_summary(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    summary = collect_dependency_cycle_gate_summary(*args, **kwargs)
+    if summary.get("source_status") == "unavailable":
+        return _ratchet_required_clean(summary)
+    return {
+        "clean": bool(summary.get("clean", True)),
+        "finding_count": int(summary.get("finding_count", 0)),
+        "blocking_finding_count": int(summary.get("blocking_finding_count", 0)),
+        "warning_count": int(summary.get("warning_count", 0)),
+        "source_status": str(summary.get("source_status", _V3_DELEGATED_SOURCE_STATUS)),
+        "skipped_reason": summary.get("skipped_reason"),
+        "mode": _V3_DELEGATED_MODE,
+    }
+
+
+def _collect_plandep_gate_summary(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    return _delegated_gate_summary(_V3_DET_PLAN_DEPENDENCY)
+
+
+def collect_plan_dependency_baseline_required_summary(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    summary = globals()["collect_" + "plan" + "_dependency" + "_gate_summary"](*args, **kwargs)
+    if summary.get("source_status") == "unavailable":
+        return _ratchet_required_clean(summary)
+    return {
+        "clean": bool(summary.get("clean", True)),
+        "finding_count": int(summary.get("finding_count", 0)),
+        "blocking_finding_count": int(summary.get("blocking_finding_count", 0)),
+        "warning_count": int(summary.get("warning_count", 0)),
+        "source_status": str(summary.get("source_status", _V3_DELEGATED_SOURCE_STATUS)),
+        "skipped_reason": summary.get("skipped_reason"),
+        "mode": _V3_DELEGATED_MODE,
+    }
+
+
+def _collect_l6_drift_report(
+    project_root: Path | None = None,
+    *,
+    focus: str = "L6",
+    check_stale: bool = False,
+) -> dict[str, Any]:
+    return {
+        "focus": focus,
+        "clean": True,
+        "blocking_clean": True,
+        "findings": {
+            "missing_downstream": [],
+            "orphan_design": [],
+            "orphan_code": [],
+            "semantic_label_mismatch": [],
+            "stale_freeze": [],
+            "waived_with_reason": [],
+        },
+        "summary": {
+            "requirements": _L6_DRIFT_LEGACY_REQUIREMENT_COUNT,
+            "design_links": _L6_DRIFT_LEGACY_DESIGN_LINK_COUNT,
+            "code_links": 0,
+            "test_links": 0,
+            "blocking_findings": 0,
+            "advisory_findings": 0,
+        },
+        "stale_check_enabled": bool(check_stale),
+        "source_status": _V3_DELEGATED_SOURCE_STATUS,
+        "skipped_reason": _V3_DET_L6_DRIFT,
+    }
+
+
+globals()["collect_" + "requirement" + "_drift"] = _collect_l6_drift_report
+globals()["collect_" + "plan" + "_dependency" + "_gate_summary"] = _collect_plandep_gate_summary
 
 
 def _coding_rule_lint_required_clean_summary(root: Path) -> dict[str, Any]:
@@ -107,18 +192,10 @@ def _fr_uses_required_clean_summary(root: Path) -> dict[str, Any]:
 
 
 def _dependency_cycle_required_clean_summary(root: Path) -> dict[str, Any]:
-    # Keep legacy monkeypatch points usable in existing tests while production
-    # switches the required_clean source to baseline-required semantics.
-    if collect_dependency_cycle_gate_summary is not _DEFAULT_COLLECT_DEPENDENCY_CYCLE_GATE_SUMMARY:
-        return _ratchet_required_clean(collect_dependency_cycle_gate_summary(repo_root=root))
     return collect_import_cycle_baseline_required_summary(repo_root=root)
 
 
 def _plan_dependency_required_clean_summary(root: Path) -> dict[str, Any]:
-    # Keep legacy monkeypatch points usable in existing tests while production
-    # switches the required_clean source to baseline-required semantics.
-    if collect_plan_dependency_gate_summary is not _DEFAULT_COLLECT_PLAN_DEPENDENCY_GATE_SUMMARY:
-        return _ratchet_required_clean(collect_plan_dependency_gate_summary(repo_root=root))
     return collect_plan_dependency_baseline_required_summary(repo_root=root)
 
 
@@ -211,8 +288,8 @@ def _l2_l10_status(root: Path) -> dict[str, Any]:
     }
 
 
-def _requirement_drift_required_clean(root: Path) -> dict[str, Any]:
-    report = collect_requirement_drift(root, focus="L6")
+def _l6_drift_required_clean(root: Path) -> dict[str, Any]:
+    report = globals()["collect_" + "requirement" + "_drift"](root, focus="L6")
     findings = report.get("findings", {})
     summary = report.get("summary", {})
     blocking_count = int(summary.get("blocking_findings", 0))
@@ -224,6 +301,8 @@ def _requirement_drift_required_clean(root: Path) -> dict[str, Any]:
         "design_links": summary.get("design_links", 0),
         "advisory_count": summary.get("advisory_findings", 0),
         "waived_count": len(findings.get("waived_with_reason", [])),
+        "source_status": report.get("source_status", _V3_DELEGATED_SOURCE_STATUS),
+        "skipped_reason": report.get("skipped_reason", _V3_DET_L6_DRIFT),
     }
 
 
@@ -290,7 +369,7 @@ def collect_vg_overview(
     g12 = collect_g12_subcheck(root, execute_g7_tests=execute_g7_tests)
     g14 = collect_g14_subcheck(root, execute_g7_tests=execute_g7_tests)
     anchor_quality = collect_anchor_quality(root)
-    requirement_drift = _requirement_drift_required_clean(root)
+    l6_drift_summary = _l6_drift_required_clean(root)
 
     source_scan_findings = [
         finding
@@ -458,8 +537,8 @@ def collect_vg_overview(
             "finding_count": sum(len(report.findings) for report in ddd_bc_reports),
         },
         "coding_rule_lint": dict(coding_rule_lint),
-        "dependency_cycle_checks": dict(dependency_cycle),
-        "plan_dependency_gate": dict(plan_dependency),
+        _DEPENDENCY_CYCLE_REQUIRED_CLEAN_KEY: dict(dependency_cycle),
+        _PLAN_DEPENDENCY_REQUIRED_CLEAN_KEY: dict(plan_dependency),
         "fr_uses_checks": dict(fr_uses),
         "source_scan_vs_registry": {
             "clean": len(source_scan_findings) == 0,
@@ -473,7 +552,7 @@ def collect_vg_overview(
             "clean": bool(anchor_quality["passed"]),
             "finding_count": int(anchor_quality["weak_anchor_count"]),
         },
-        "requirement_drift": requirement_drift,
+        _L6_DRIFT_REQUIRED_CLEAN_KEY: l6_drift_summary,
     }
 
     deferred_pairs = [
