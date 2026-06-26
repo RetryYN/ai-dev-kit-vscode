@@ -723,60 +723,6 @@ PY
   exit 0
 fi
 
-if [[ "$SUBCOMMAND" == "check_requirement_drift" ]]; then
-  stale_env=0
-  if [[ "$REQUIREMENT_DRIFT_CHECK_STALE" == true ]]; then
-    stale_env=1
-  fi
-  report_json="$(HELIX_REQUIREMENT_DRIFT_FOCUS="$REQUIREMENT_DRIFT_FOCUS" HELIX_REQUIREMENT_DRIFT_CHECK_STALE="$stale_env" run_python_report_helper requirement_drift 2>&1)"
-  if [[ "$JSON_OUTPUT" == true ]]; then
-    printf '%s\n' "$report_json"
-  else
-    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
-import json
-import sys
-
-payload = json.loads(sys.argv[1])
-print("requirement_drift (advisory)")
-print(f"clean: {str(payload['clean']).lower()}")
-print(f"focus: {payload.get('focus', 'L6')}")
-print(f"stale_check_enabled: {str(payload.get('stale_check_enabled', False)).lower()}")
-print(f"scope: {payload['scope']}")
-summary = payload["summary"]
-print(
-    "summary: "
-    f"requirements={summary['requirements']} "
-    f"design_links={summary['design_links']} "
-    f"code_links={summary['code_links']} "
-    f"test_links={summary['test_links']}"
-)
-for name, items in payload["findings"].items():
-    print(f"{name}: {len(items)}")
-if payload.get("advisory"):
-    print(f"advisory: {payload['advisory']}")
-if payload.get("parse_warnings"):
-    print(f"parse_warnings: {len(payload['parse_warnings'])}")
-PY
-  fi
-  if [[ "$GATE_MODE" == true ]]; then
-    gate_verdict="$(HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
-import json
-import sys
-
-try:
-    payload = json.loads(sys.argv[1])
-    print("clean" if payload["blocking_clean"] else "dirty")
-except Exception:
-    print("error")
-PY
-)"
-    if [[ "$gate_verdict" != "clean" ]]; then
-      exit 1
-    fi
-  fi
-  exit 0
-fi
-
 if [[ "$SUBCOMMAND" == "check_l7_worklist" ]]; then
   report_json="$(run_python_report_helper l7_worklist 2>&1)"
   if [[ "$JSON_OUTPUT" == true ]]; then
@@ -833,75 +779,6 @@ if payload["new_findings"]:
         "preview: "
         f"{preview['tool']} {preview['file']}:{preview['line']} {preview['message']}"
     )
-PY
-  fi
-  exit "$(python3 - <<'PY' "$report_json"
-import json
-import sys
-print(json.loads(sys.argv[1])["exit_code"])
-PY
-)"
-fi
-
-if [[ "$SUBCOMMAND" == "check_import_cycle" ]]; then
-  import_cycle_gate_env=0
-  if [[ "$GATE_MODE" == true ]]; then
-    import_cycle_gate_env=1
-  fi
-  report_json="$(HELIX_IMPORT_CYCLE_GATE="$import_cycle_gate_env" run_python_report_helper dependency_cycle_checks 2>&1)"
-  if [[ "$JSON_OUTPUT" == true ]]; then
-    printf '%s\n' "$report_json"
-  else
-    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
-import json
-import sys
-
-payload = json.loads(sys.argv[1])
-print("import_cycle (gate)" if payload["mode"] == "gate" else "import_cycle (advisory)")
-print(f"clean: {str(payload['clean']).lower()}")
-print(f"source_status: {payload['source_status']}")
-print(f"findings: {payload['finding_count']}")
-print(f"new_findings={payload['new_finding_count']}")
-if payload.get("skipped_reason"):
-    print(f"skipped_reason: {payload['skipped_reason']}")
-if payload["new_findings"]:
-    preview = payload["new_findings"][0]
-    print(f"preview: {preview['language']} {' -> '.join(preview['cycle'])}")
-PY
-  fi
-  exit "$(python3 - <<'PY' "$report_json"
-import json
-import sys
-print(json.loads(sys.argv[1])["exit_code"])
-PY
-)"
-fi
-
-if [[ "$SUBCOMMAND" == "check_plan_dependency_gate" ]]; then
-  plan_dependency_gate_env=0
-  if [[ "$GATE_MODE" == true ]]; then
-    plan_dependency_gate_env=1
-  fi
-  report_json="$(HELIX_PLAN_DEPENDENCY_GATE="$plan_dependency_gate_env" run_python_report_helper plan_dependency_gate 2>&1)"
-  if [[ "$JSON_OUTPUT" == true ]]; then
-    printf '%s\n' "$report_json"
-  else
-    HELIX_SCRIPT_LIB="$SCRIPT_DIR/lib" python3 - <<'PY' "$report_json"
-import json
-import sys
-
-payload = json.loads(sys.argv[1])
-print("plan_dependency_gate (gate)" if payload["mode"] == "gate" else "plan_dependency_gate (advisory)")
-print(f"clean: {str(payload['clean']).lower()}")
-print(f"source_status: {payload['source_status']}")
-print(f"findings: {payload['finding_count']}")
-print(f"new_findings={payload['new_finding_count']}")
-print(f"blocking_findings={payload['blocking_finding_count']}")
-if payload.get("skipped_reason"):
-    print(f"skipped_reason: {payload['skipped_reason']}")
-if payload["blocking_findings"]:
-    preview = payload["blocking_findings"][0]
-    print(f"preview: {preview['plan_id']} {preview['kind']} {preview['reason']}")
 PY
   fi
   exit "$(python3 - <<'PY' "$report_json"
