@@ -316,6 +316,100 @@ def trace_symmetry_messages(result: TraceSymmetryResult) -> list[Finding]:
     ]
 
 
+FN_DET_04 = "FN-DET-04"
+
+
+@dataclass(frozen=True)
+class RequirementDescentInput:
+    fr_ids: tuple[str, ...]
+    design_reachable_fr_ids: frozenset[str]
+    tested_fr_ids: frozenset[str]
+
+
+@dataclass(frozen=True)
+class RequirementDescentResult:
+    ok: bool
+    missing_design_fr_ids: tuple[str, ...]
+    missing_test_fr_ids: tuple[str, ...]
+
+
+def load_requirement_descent_input(db: sqlite3.Connection) -> RequirementDescentInput:
+    _ensure_table_columns("functional_registry", ("fn_id",))
+    _ensure_table_columns("artifact_registry", ("path", "artifact_type"))
+    _ensure_table_columns("trace_edges", ("from_artifact", "to_artifact"))
+    _ensure_table_columns("test_cases", ("fr_id",))
+
+    fr_ids = tuple(
+        row[0]
+        for row in db.execute(
+            "SELECT fn_id FROM functional_registry WHERE fn_id LIKE 'FR-%' ORDER BY fn_id"
+        ).fetchall()
+        if row[0]
+    )
+    design_reachable_fr_ids = frozenset(
+        row[0]
+        for row in db.execute(
+            "SELECT DISTINCT e.from_artifact "
+            "FROM trace_edges AS e "
+            "JOIN artifact_registry AS a ON a.path = e.to_artifact "
+            "WHERE e.from_artifact LIKE 'FR-%' "
+            "AND a.artifact_type NOT IN ('python_module', 'script')"
+        ).fetchall()
+        if row[0]
+    )
+    tested_fr_ids = frozenset(
+        row[0]
+        for row in db.execute(
+            "SELECT DISTINCT fr_id FROM test_cases WHERE fr_id LIKE 'FR-%' ORDER BY fr_id"
+        ).fetchall()
+        if row[0]
+    )
+    return RequirementDescentInput(
+        fr_ids=fr_ids,
+        design_reachable_fr_ids=design_reachable_fr_ids,
+        tested_fr_ids=tested_fr_ids,
+    )
+
+
+def analyze_requirement_descent(input_data: RequirementDescentInput) -> RequirementDescentResult:
+    # FR should-be 集合が空なら not-applicable として ok=true。source unreadable は loader 例外で fail-close。
+    missing_design = tuple(
+        fr_id for fr_id in input_data.fr_ids if fr_id not in input_data.design_reachable_fr_ids
+    )
+    missing_test = tuple(
+        fr_id
+        for fr_id in input_data.fr_ids
+        if fr_id in input_data.design_reachable_fr_ids and fr_id not in input_data.tested_fr_ids
+    )
+    return RequirementDescentResult(
+        ok=not missing_design and not missing_test,
+        missing_design_fr_ids=missing_design,
+        missing_test_fr_ids=missing_test,
+    )
+
+
+def requirement_descent_messages(result: RequirementDescentResult) -> list[Finding]:
+    findings = [
+        Finding(
+            id=FN_DET_04,
+            severity=HARD,
+            subject=fr_id,
+            missing=("no reachable design artifact via trace_edges",),
+        )
+        for fr_id in result.missing_design_fr_ids
+    ]
+    findings.extend(
+        Finding(
+            id=FN_DET_04,
+            severity=HARD,
+            subject=fr_id,
+            missing=("design reachable but no downstream test_cases",),
+        )
+        for fr_id in result.missing_test_fr_ids
+    )
+    return findings
+
+
 FN_DET_11 = "FN-DET-11"
 FN_DET_12 = "FN-DET-12"
 
@@ -665,6 +759,14 @@ CORE_DETECTORS = (
         load=load_trace_symmetry_input,
         analyze=analyze_trace_symmetry,
         messages=trace_symmetry_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_04,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_requirement_descent_input,
+        analyze=analyze_requirement_descent,
+        messages=requirement_descent_messages,
     ),
     DetectorSpec(
         detector_id=FN_DET_10,
