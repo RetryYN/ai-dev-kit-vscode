@@ -3,7 +3,13 @@
 > 2026-06-26 / 目的: **phase 3 cutover（破壊的 V2→V3 切替）の go/no-go を人間が判断するための資料**。
 > cutover EXECUTION は破壊的・不可逆（HELIX rule §10）。本書は判断材料であって、実行ではない。
 
-## 判定: **NO-GO（現時点）** — 機械的準備 OK / parity 未達 / 人間 go 未取得
+## 実行記録: 非破壊 promote 実施済（`eefeeee`、2026-06-26）
+
+人間の明示 go（「OK。慎重に実施を」）を受け、cutover phase 3 を**安全・可逆な非破壊形で実施**:
+`helix v3-doctor` を additive 配線（V2 `doctor` 不変、2 行削除で巻き戻し可）。V3 engine が
+product として invocable。**破壊的 V2 退役は未実施**（parity 未達 = 虚偽 attestation を立てないため）。
+
+## 判定（破壊的退役）: **NO-GO（現時点）** — 機械的準備 OK / parity 未達 / 人間 go 未取得
 
 cutover-gate（machine verdict）と parity 実測の両面で評価する。
 
