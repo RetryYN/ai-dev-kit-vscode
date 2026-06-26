@@ -63,7 +63,12 @@ def _coerce_detectors(detectors: Iterable[DetectorSpec] | None) -> tuple[Detecto
 def run_doctor(
     db: sqlite3.Connection,
     detectors: Iterable[DetectorSpec] | None = None,
+    baselines: dict[str, frozenset[str]] | None = None,
 ) -> DoctorResult:
+    """全 detector を ok=AND で実行。baselines(C5)が与えられた detector は、baseline に含まれる
+    finding を grandfather し、**baseline 外の新規 finding のみ**で ok を落とす(既知 debt は緑のまま、
+    regression のみ赤)。baselines 無しは従来通り(absence=ok=false)。"""
+    baselines = baselines or {}
     findings: list[Finding] = []
     overall_ok = True
 
@@ -71,8 +76,16 @@ def run_doctor(
         try:
             loaded = detector.load(db)
             result = detector.analyze(loaded)
-            findings.extend(detector.messages(result))
-            if detector.severity == "hard" and not bool(getattr(result, "ok", False)):
+            messages = detector.messages(result)
+            findings.extend(messages)
+            if detector.severity != "hard":
+                continue
+            baseline = baselines.get(detector.detector_id)
+            if baseline is not None:
+                # C5 ratchet: baseline 外 subject の新規 finding のみ fail
+                if any(message.subject not in baseline for message in messages):
+                    overall_ok = False
+            elif not bool(getattr(result, "ok", False)):
                 overall_ok = False
         except Exception as exc:
             overall_ok = False
