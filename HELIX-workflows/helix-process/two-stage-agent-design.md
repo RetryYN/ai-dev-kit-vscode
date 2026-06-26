@@ -72,6 +72,25 @@ Phase 1 と Phase 2 をそれぞれ L9 まで検証してから L10 で合流す
 - Phase 2 の昇華先資産: agent-skills（23）、agents/（サブエージェント定義）、tool / MCP 定義。
 - 不足: drive=agent が未定義（be / fe / db / fullstack のみ）。vmodel-semantics への agent drive 追加と、Phase 合流（L9 → L10 再接続）を制御する仕組みが必要。integration-map.md の穴に含む。
 
+## エージェント機能の internal-MCP 風 query 契約（Phase 2 L6 設計）
+
+Phase 2（エージェント昇華）で各機能を設計するとき、機能間・機能内の問い合わせを ad-hoc 呼び出しでなく
+**宣言された query 契約（内部 MCP server の tool schema 風 = typed request/response）**として設計する。
+
+- **DbC 直結**: query 契約 = requires（入力前提）/ ensures（出力保証）= L6 機能設計（関数粒度の契約）。
+  設計と検証が契約で機械的に閉じる（粒度ペアリング L6↔L7、[HELIX-process-L0-L14](../HELIX-process-L0-L14.md) 粒度ペアリング原則）。
+- **検証単位 = 契約**: query 契約が各エージェント機能の単体テスト面になる（FN↔UT ペアリングと一致）。
+  Phase 2 L8/L9 の「tool 契約・MCP スキーマ整合」検証は、この query 契約の充足検査に帰着する。
+- **pure-function 形が seed**: `Input（typed request）→ analyze（pure）→ Result（typed response）+ messages` という形で
+  各機能を表す。これは V3 engine の detector（`load_X_input → analyze_X → X_messages`）で実証済みの形を
+  エージェント機能一般へ一般化したもの。V3 の INTQ（internal-query）detector がこの seed。
+- **「内部 MCP server」の解釈**: 第一段階は**比喩**（typed 契約 + schema 宣言）に留め、実 MCP プロトコル実装は
+  必要が観測されてから（推測実装を避ける）。契約の正本表現（JSON Schema / dataclass / DbC アノテーション）は
+  L5 詳細設計で選ぶ。
+
+> 詳細・未確定の設計問題は [docs/design/D-SCRUM-UNITIZED-FORWARD.md](../../docs/design/D-SCRUM-UNITIZED-FORWARD.md) §② を正とする。
+> 本節は実証済みコア（pure-function query 契約 = DbC = 検証単位）を Phase 2 L6 設計指針として正式化する。
+
 ## 効果
 
 一般システムを L9 まで完成（Phase 1）、エージェント昇華を L9 まで完成（Phase 2）させ、L10 で合流して一度だけ仕上げ・本番化・運用する。機能の正しさとエージェント利用性を各 Phase で分離検証でき、かつ仕上げ・デプロイ・運用の二重化を避けられる。一般システムを作る通常開発では、この Phase 分けは発生しない。
