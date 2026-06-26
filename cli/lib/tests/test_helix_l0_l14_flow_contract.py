@@ -14437,6 +14437,10 @@ def test_doctor_requirement_drift_cli_matches_vg_overview_l6_focus() -> None:
         "HELIX_HOME": str(REPO_ROOT),
         "HELIX_PROJECT_ROOT": str(REPO_ROOT),
     }
+    # cutover stage②/③（90db9a8/fcc9e4f）以降、check_requirement_drift の検出正本は
+    # V3 engine（FN-DET-04）へ委譲済み。V2 doctor 側は guard で no-op 化され、JSON ではなく
+    # 委譲マーカーを返す。本 contract test は「委譲が成立し、vg_overview 軸も V3 委譲を反映する」
+    # ことを検証する（旧 contract = V2 doctor が drift JSON を返す、は退役）。
     drift_result = subprocess.run(
         ["helix", "doctor", "check_requirement_drift", "--json"],
         cwd=REPO_ROOT,
@@ -14454,20 +14458,25 @@ def test_doctor_requirement_drift_cli_matches_vg_overview_l6_focus() -> None:
         env={**cli_env, "HELIX_DOCTOR_SKIP_EXEC_TESTS": "1"},
     )
 
-    drift = json.loads(drift_result.stdout)
+    # V2 doctor は委譲 no-op（exit 0・JSON ではなく delegated_to_v3 マーカー）
+    assert "delegated_to_v3=true" in drift_result.stdout
+    assert "FN-DET-04" in drift_result.stdout
+
     vg_required = json.loads(vg_result.stdout)["vg_overview"]["required_clean"][
         "requirement_drift"
     ]
 
-    assert drift["clean"] is True
-    assert drift["blocking_clean"] is True
-    assert drift["focus"] == "L6"
-    assert drift["stale_check_enabled"] is False
-    assert drift["summary"]["requirements"] == vg_required["requirements"] == 31
-    assert drift["summary"]["design_links"] == vg_required["design_links"] == 31
-    assert drift["summary"]["blocking_findings"] == vg_required["finding_count"] == 0
-    assert drift["summary"]["advisory_findings"] == vg_required["advisory_count"] == 0
-    assert len(drift["findings"]["waived_with_reason"]) == vg_required["waived_count"] == 0
+    # vg_overview 軸は V3 委譲を反映（source_status=delegated_to_v3 / skipped_reason=FN-DET-04）し、
+    # clean を維持する
+    assert vg_required["source_status"] == "delegated_to_v3"
+    assert vg_required["skipped_reason"] == "FN-DET-04"
+    assert vg_required["clean"] is True
+    assert vg_required["focus"] == "L6"
+    assert vg_required["requirements"] == 31
+    assert vg_required["design_links"] == 31
+    assert vg_required["finding_count"] == 0
+    assert vg_required["advisory_count"] == 0
+    assert vg_required["waived_count"] == 0
 
 
 def test_harness_feedback_loop_cli_surfaces_full_flow_carry_as_candidates() -> None:
