@@ -20,6 +20,16 @@
   - **実装コード**（`cli/**` の Python / Bash）→ 役割表どおり Codex（se/pe）へ委譲する。
 - `opus-repo-block` 等の「Opus 直接編集 block」は**消費側プロジェクト向けの規律**。製造元である本プロジェクトはプロジェクト名で除外し、内部改修を可能にする（hook 側の整合は別途）。
 
+### AI 主導・安全自走の原則（HELIX の前提）
+
+HELIX は、工程制御を**人間チームでなく AI 自身がオーケストレーションして自走する**ことを前提に設計する（チーム駆動の UT-TDD harness と対比）。判断は gate / DB / V モデル収束に**機械化**されているため、AI はその機械的ガードレールの内側で人間の逐次承認を待たずに安全に自走する——**ガードレールが安全を保持し、AI が前進を担う**。正本 = [helix/HELIX_CORE.md §6](helix/HELIX_CORE.md)（@import 済。ここでは再宣言せず要点のみ）。
+
+- **前進は AI が主導**: 実装・検証・委譲・並列投入・次工程選択を、人間に逐一「進めてよいか」を問わず gate / DB / V モデルの現在地から駆動する。
+- **停止は機械が定める**: ガードレール（gate 赤 / detector 検出 / V モデル逸脱 / 絶対原則違反）に当たったときのみ止まり、Reverse / Recovery / Incident 等へルーティングする。緑である限り止まらない。
+- **人間承認は不可逆・破壊的境界にのみ留保**: runtime rules §10（本番影響 / 認証 / 認可 / 決済 / PII / secret / license / schema migration / destructive data operation / 外部 API・infra 変更 / handover・PLAN 矛盾）だけは AI が自走で確定せず escalate する。
+- **ガードレールを弱めて自走させること（gate 迂回・検証省略・破壊境界の自己承認）は原則の悪用であり禁止**。
+- 製造元差分: Opus=PM は枠組み・policy・doc を直接編集して自走するが、実装コード（`cli/**`）は委譲のまま。自走（実行の主導）と判断の機械化（品質の主語を AI に移さない）は両立する。
+
 ## V2 開発の進め方: 検証は Forward ゲート（ロードマップ廃止）
 
 > 旧「6-phase V2 実装ロードマップを常時目指す」進め方は **2026-06-08 廃止**（ユーザー指示。常時目指す目標を台帳化するアンチパターン）。旧正本 = [V2 実装計画 Process（deprecated・history）](docs/plans/process/process-2026-06-03-v2-implementation-roadmap.md)。

@@ -34,6 +34,15 @@ Codex CLI は独自 workflow mode ではない。HELIX Core と Runtime Rules �
 - ゲート判定は順番固定で行い、結果を final で簡潔に示す。
 - 不明点、本番影響、認証、認可、決済、PII、ライセンス、外部 API / infrastructure / env 変更は人間に確認する。
 
+## AI 主導・安全自走の原則（HELIX の前提）
+
+HELIX は、工程制御を**人間チームでなく AI 自身がオーケストレーションして自走する**ことを前提に設計する（チーム駆動の UT-TDD harness と対比）。判断は gate / DB / V モデル収束に**機械化**されているため、Codex も機械的ガードレールの内側で、PM の逐次承認を待たずに割り当てられた工程を安全に自走する——**ガードレールが安全を保持し、AI が前進を担う**。正本 = `helix/HELIX_CORE.md §6`（Core Reads で Read 済。ここでは再宣言せず Codex 視点の要点のみ）。
+
+- **前進は AI が主導**: 割り当てられた PLAN / 工程表 / handover Next Action の範囲で、実装・検証・ゲート判定を「進めてよいか」を都度問わず gate / DB / V モデルの現在地から駆動する（line 32「PM への報告待ちは前提にしない」の根拠）。
+- **停止は機械が定める**: ガードレール（gate 赤 / detector 検出 / V モデル逸脱 / 絶対原則違反 / 工程表外の変更必要）に当たったときのみ止まり、`interrupted` / `blocked` として呼び出し元へ戻す。緑かつ scope 内である限り止まらない。
+- **人間承認は不可逆・破壊的境界にのみ留保**: runtime rules §10（本番影響 / 認証 / 認可 / 決済 / PII / secret / license / schema migration / destructive data operation / 外部 API・infra / env 変更 / handover・PLAN 矛盾）だけは自走で確定せず escalate する。
+- **ガードレールを弱めて自走させること（gate 迂回・検証省略・破壊境界の自己承認・委譲先の無断 commit）は原則の悪用であり禁止**。委譲 Codex は前進を担うが commit / push はしない（呼び出し元 = PM が成果物検証後に判断、§Codex Non-Negotiables）。
+
 ## Codex Non-Negotiables
 
 これは Codex 固有の強制ルール。Claude Code 側の運用は `CLAUDE.md` / `.claude/CLAUDE.md` / hooks を正とする。
