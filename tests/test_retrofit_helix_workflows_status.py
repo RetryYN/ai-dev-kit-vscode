@@ -193,11 +193,12 @@ def test_newline_style_is_preserved(tmp_path: Path, newline: str, marker: str) -
         assert "\r\n" not in content
 
 
-def test_real_directory_scan_includes_readme_and_46_files() -> None:
+def test_real_directory_scan_includes_readme_and_54_files() -> None:
     module = _load_module()
     paths = module.collect_target_paths(
         PROJECT_ROOT / "HELIX-workflows" / "helix-process"
     )
 
-    assert len(paths) == 46
+    # count-pin: helix-process は process doc 追加で増える。現状 54（旧 pin 46 は drift）。
+    assert len(paths) == 54
     assert any(path.name == "README.md" for path in paths)
