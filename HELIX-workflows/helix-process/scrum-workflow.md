@@ -43,6 +43,31 @@ Scrum は、ユーザーと要件をすり合わせながら反復的に開発�
    ↺ 次スプリントへ反復
 ```
 
+## 大規模実装の unitized Forward（L4 統一 → per-unit micro-Forward）
+
+大規模サース・複雑設計で、実装サイズが大きい increment は一枚岩で L5–L7 を通すと unit が粗くなる。
+**基本設計（L4）までは統一して Forward で降ろし、実装が大きいときは unit 単位に分割して
+詳細設計（L5）⇒機能設計（L6）⇒実装（L7）の micro-Forward を細かく刻む**。
+
+```
+L4（基本設計：統一・単一で凍結）
+  ├─ unit A: L5 ⇒ L6 ⇒ L7（micro-Forward・pair_closure で閉じる）─┐
+  ├─ unit B: L5 ⇒ L6 ⇒ L7 ────────────────────────────────────┤→ 単一 V-model DB へ rejoin（L8/L9 統合）
+  └─ unit C: L5 ⇒ L6 ⇒ L7 ────────────────────────────────────┘
+```
+
+- **L4 統一**: 境界・コンポーネント分割・契約は L4 で単一凍結し、unit はこの分割から導出する。
+- **per-unit micro-Forward**: 各 unit = 縦スライス1本。自分の L5⇒L6⇒L7 と対の検証（L7 単体 / L8 結合）を持ち、
+  unit ごとに独立検証してから次へ。
+- **収束（絶対原則）**: 各 unit の L7 closure は統一 L4 設計へ rejoin し、単一 V-model DB に収束する。
+  unit-Forward は枝であって代替でない（HELIX_CORE §0/§1）。
+- **共有状態は直列化**: 共有ファイル・共有スキーマを touch する unit は直列、独立 unit は並列
+  （並列規律は CLAUDE_RUNTIME_ADAPTER §2「並列8・衝突判定」と地続き）。
+
+> 設計詳細・未確定の設計問題（unit 境界の正式定義 / unit 間依存の Forward 表現 / discovery 駆動 scrum との
+> ステージ関係）は [docs/design/D-SCRUM-UNITIZED-FORWARD.md](../../docs/design/D-SCRUM-UNITIZED-FORWARD.md)（draft）に置く。
+> 本節は実証済みコアのみを正式化し、未確定点は seed doc 側で confirm してから追補する。
+
 ## ロール・イベント・作成物
 
 | 区分 | 要素 |
