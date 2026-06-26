@@ -13,6 +13,19 @@
 - `docs/commands/index.md` — CLI 機能マップ
 - `docs/commands/ai-harness.md` — Codex / Claude Code 管理 harness
 
+## V3 再構築ライン（現行・方針書）
+
+HELIX は現在 **V3 engine への再構築ライン**が進行中（最新 clean harness を base に Python 化 +
+HELIX 独自強化を後乗せ → V2 検出 subset を段階 cutover）。V3 関連タスクを受けたら、まず方針書を Read する:
+
+- **方針書（憲章・正本）**: [docs/v3/V3-CHARTER.md](docs/v3/V3-CHARTER.md) — V3 の背骨（C1 schema registry → C2 projection-writer → C3 detector → C4 lint-wiring → C5 baseline ratchet → C6 doc/workflow 契約）と取り込みマップ・TL 確定契約。
+- **現在地・resume**: [docs/v3/SESSION-HANDOVER.md](docs/v3/SESSION-HANDOVER.md) — いまどこ / 確定事項（再 litigate しない）。
+- **engine 設計**: [docs/v3/engine/](docs/v3/engine/)（schema-registry / projection-writer / detector-wiring / baseline-ratchet）。実装 = `cli/lib/v3/`（V2 不変・並走）。診断 = `helix v3-doctor`。
+- **cutover（段階退役・破壊境界）**: [docs/v3/cutover/](docs/v3/cutover/)（readiness-assessment / v2-detection-to-v3-mapping / staged-retirement-plan）。**物理削除・DB 破棄・注入トリムは cutover の §10 人間 go まで一切しない**。archive = git tag `v2-archive-pre-cutover-20260627`。
+- 設計 corpus: [docs/v3/L0-L14/](docs/v3/L0-L14/) / FE [docs/v3/fe/](docs/v3/fe/) / harness [docs/v3/harness/](docs/v3/harness/) / 配布 [docs/v3/distribution/](docs/v3/distribution/)。
+
+> V3 base SSoT = [audit/2026-06-26-new-base-comprehensive-capture.md](docs/v3/audit/2026-06-26-new-base-comprehensive-capture.md)（衝突時 capture が charter を上書き）。
+
 ## Session Start
 
 1. `helix/HELIX_CORE.md` が存在するか確認する。

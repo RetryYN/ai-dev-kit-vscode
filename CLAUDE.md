@@ -45,6 +45,16 @@ HELIX は、工程制御を**人間チームでなく AI 自身がオーケス�
 - **Python 化 / DB 拡張**: Python 化は機能修正＝L6 視座（独立 redesign に昇格させない）。DB 拡張は検証ゲートが回り永続化要求が観測されてから schema 確定（推測 schema を避ける）。
 - **L7 worklist（工程表）運用導線**: L7 sprint 起票前に PM が `helix doctor check_l7_worklist`（または `helix sprint status` の surfacing）で機能一覧由来の L6_required FN の充足（anchored / waived / RD / **missing_ut**）を確認し、`missing_ut` を sprint backlog / PLAN へ**手動**反映する（自動起票はしない＝over-build 回避）。これは L3 工程表（`.helix/task-plan.yaml` / WBS）とは**別概念**（L7 worklist = FN↔UT 充足の read-only view）。surfacing 実体 = [cli/lib/l7_worklist.py](cli/lib/l7_worklist.py) / [cli/helix-sprint](cli/helix-sprint)、機械強制 = fn_ut_pair_coverage（Phase1、FN↔UT 1:1 fail-close）。
 
+## V3 再構築ライン（現行・方針書）
+
+2026-06 以降の現行ラインは **V3 engine への再構築**（最新 clean harness を base に Python 化 + HELIX 独自強化を後乗せ → V2 検出 subset を段階 cutover）。V3 関連タスクではまず方針書を Read する（Codex も AGENTS.md 経由で同じ導線を持つ）:
+
+- **方針書（憲章・正本）**: [docs/v3/V3-CHARTER.md](docs/v3/V3-CHARTER.md) — 背骨（C1 schema registry → C2 projection-writer → C3 detector → C4 lint-wiring → C5 baseline ratchet → C6 doc/workflow 契約）・取り込みマップ・TL 確定契約。
+- **現在地・resume**: [docs/v3/SESSION-HANDOVER.md](docs/v3/SESSION-HANDOVER.md)。base SSoT = [audit/2026-06-26 capture](docs/v3/audit/2026-06-26-new-base-comprehensive-capture.md)（衝突時 capture が charter を上書き）。
+- **engine 実装**: `cli/lib/v3/`（V2 不変・並走）。診断 = `helix v3-doctor`。設計 = [docs/v3/engine/](docs/v3/engine/)。
+- **cutover（破壊境界）**: [docs/v3/cutover/](docs/v3/cutover/)。**物理削除・DB 破棄・注入トリムは §10 人間 go まで一切しない**。archive = git tag `v2-archive-pre-cutover-20260627`。
+- 設計 corpus: [docs/v3/L0-L14/](docs/v3/L0-L14/) / FE / harness / distribution。進捗の要約は memory（`project_2026_06_26_*` / MEMORY.md §V3 再構築）。
+
 ## 概要
 HELIX は、AI エージェントを `plan` / `task` / `role` / `gate` / `handover` で制御する開発フロー・CLI・スキル群のリポジトリ。他プロジェクトはこれをハーネスとして取り込む。
 
