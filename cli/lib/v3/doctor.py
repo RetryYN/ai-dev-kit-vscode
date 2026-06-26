@@ -41,13 +41,36 @@ class V3DoctorReport:
     total_findings: int
 
 
-def run_v3_doctor(repo_root: str, db_path: str | None = None) -> V3DoctorReport:
-    """repo_root を rebuild → 全 core detector を ok=AND で実行 → 構造化 report。"""
+def build_current_baseline(repo_root: str, db_path: str | None = None) -> dict[str, frozenset[str]]:
+    """現状の全 finding を detector 別に集約し C5 baseline 化(既知 debt の snapshot)。
+
+    これを run_v3_doctor(baselines=...) に渡すと doctor は『現状で緑・退行で赤』になる。
+    """
     db = sqlite3.connect(db_path or ":memory:")
     try:
         ddl.migrate(db)
         writer.rebuild_projection(db, repo_root)
         result = runner.run_doctor(db, core.CORE_DETECTORS)
+        grouped: dict[str, set[str]] = {}
+        for finding in result.findings:
+            grouped.setdefault(finding.id, set()).add(finding.subject)
+        return {detector_id: frozenset(subjects) for detector_id, subjects in grouped.items()}
+    finally:
+        db.close()
+
+
+def run_v3_doctor(
+    repo_root: str,
+    db_path: str | None = None,
+    baselines: dict[str, frozenset[str]] | None = None,
+) -> V3DoctorReport:
+    """repo_root を rebuild → 全 core detector を ok=AND で実行 → 構造化 report。
+    baselines を渡すと既知 debt を grandfather し regression のみ ok を落とす(C5)。"""
+    db = sqlite3.connect(db_path or ":memory:")
+    try:
+        ddl.migrate(db)
+        writer.rebuild_projection(db, repo_root)
+        result = runner.run_doctor(db, core.CORE_DETECTORS, baselines=baselines)
         counts = {
             table: db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             for table in KEY_TABLES  # 固定 allowlist（injection なし）
