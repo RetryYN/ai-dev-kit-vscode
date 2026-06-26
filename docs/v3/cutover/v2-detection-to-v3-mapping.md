@@ -57,3 +57,20 @@
 
 > 次アクション: A-gap の design-intent（16 枠への畳み込み可否）を V3 charter / L6-functional-design と突合して確定。
 > 確定後、C subset の段階退役 scope（どの V2 check を no-op 化し V3 に委譲するか）を PLAN 化。破壊（退役）は §10 人間 go まで実行しない。
+
+## A-gap design-intent 確定（2026-06-27、実装前 V2 精読で解決）
+
+V2 各 check の実装を精読し、A-gap 6 軸を再分類（憶測でなく実装根拠）:
+
+| A-gap 軸 | V2 実装の実態 | 判定 |
+|---|---|---|
+| **vg_overview** | registry/trace/G7-G14 pair-closure を集約する **overall_clean ゲート**（単一検出でなく aggregate） | **既カバー**: V3 `run_doctor` の **ok=AND 集約**が構造的に等価。新 detector 不要 |
+| **import_cycle** | cli/lib import + bash source の循環依存（file scan） | **真の gap → 新規 FN-DET-17 import-cycle** |
+| **plan_dependency** | PLAN requires/blocks の相互性・存在（plan frontmatter） | **真の gap → 新規 FN-DET-18 plan-dependency** |
+| skill_frontmatter / layer_audit | skill 契約 lint | **V2 残置**（FN-DET-15 doc-contract は doc/plan 対象。skill は別軸、当面 V2） |
+| ddd（glossary/bc） | DDD 用語・境界 coverage | **V2 残置**（governance 寄り、V3 検出 scope 外と判断） |
+| anchor_quality | UT anchor 品質 | **FN-DET-05 拡張で将来吸収**（当面 V2 残置） |
+
+**決定（可逆な設計拡張、PM/architect 直接判断）**: V3 detector corpus を **16→18 に拡張**（import-cycle / plan-dependency を追加）。vg_overview は ok=AND 集約で既カバーと記録。skill/ddd/anchor は当面 V2 残置（恒久排除でなく deferred、source/需要が立てば再検討）。
+
+> これで repo-applicable な検出軸は **C（既カバー）+ FN-DET-17/18 + ok=AND 集約** で実質充足。残る cutover 作業は「C subset + 17/18 を V2 doctor から no-op 化する段階退役 PLAN（§10 人間 go 必須）」。
