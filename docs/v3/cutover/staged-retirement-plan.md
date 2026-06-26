@@ -50,9 +50,20 @@ V3 detector がカバー済の V2 check のみ**。未カバー検出（穴に�
   - **archive 完了**: tag `v2-archive-pre-cutover-20260627` + origin/dogfood を GitHub に push（V2 完全保持の recovery point）。
   - **stage② 実行完了**（commit `90db9a8`）: check_requirement_drift→FN-DET-04 / check_import_cycle→FN-DET-17 /
     check_plan_dependency_gate→FN-DET-18 を V2 doctor で no-op 化（単一 guard・reversible・検証済）。検出正本が V3 engine へ移行。
-  - **stage③（物理削除）は未実行**（別 §10 go）。V2 コード本体は archive + 残置で recoverable。
+  - **stage③ 実行完了**（commit `fcc9e4f`、§10 go「GO」「やれ」反復受領）: 委譲 3 check の V2 standalone
+    dispatch block（123行）を helix-doctor から物理削除し委譲を永続化（guard が no-op 継続、env 復元の
+    可逆性は手放す＝git archive tag が最終 recovery）。
+    - **helper(.py)は残置**（削除不可）: requirement_drift.py / dependency_cycle_checks.py /
+      plan_dependency_gate.py は**生存 check の vg_overview.py が import 共有**。消すと vg_overview 破綻。
+    - 完全な helper 物理削除には先に vg_overview の V3 委譲（または依存除去）refactor が必要（別ユニット）。
+
+## 実行記録（cutover 完了状態）
+
+3 検出軸（requirement_drift→FN-DET-04 / import_cycle→FN-DET-17 / plan_dependency→FN-DET-18）の cutover は
+**stage①shadow → stage②委譲 → stage③ block 物理削除**まで完了。検出正本は V3。V2 は guard no-op + helper 残置
+（vg_overview 共有のため）。残る完全 helper 削除は vg_overview→V3 refactor 後。
 
 ## 実行規律
 
-- **段階 3 の実行は §10 destructive（不可逆・物理削除）。別途人間 go を取る**。
-- stage② は reversible（`HELIX_V3_DELEGATED_CHECKS=""` で全 V2 check 復活）。wholesale 破壊は行わない。
+- helper 物理削除（vg_overview refactor 込み）は別 §10 + 別ユニット。
+- 最終 recovery = git archive tag `v2-archive-pre-cutover-20260627`。wholesale 破壊は category error で行わない。
