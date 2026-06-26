@@ -531,6 +531,53 @@ def dist_api_messages(result: DistApiResult) -> list[Finding]:
     return findings
 
 
+FN_DET_08 = "FN-DET-08"
+
+
+@dataclass(frozen=True)
+class DrivePassageInput:
+    drive_plan_ids: tuple[str, ...]
+    forward_return_plan_ids: frozenset[str]
+
+
+@dataclass(frozen=True)
+class DrivePassageResult:
+    ok: bool
+    missing_forward_return: tuple[str, ...]
+
+
+def load_drive_passage_input(db: sqlite3.Connection) -> DrivePassageInput:
+    _ensure_table_columns("drive_runs", ("plan_id",))
+    _ensure_table_columns("trace_edges", ("from_artifact", "edge_kind"))
+    drive_plans = tuple(
+        row[0] for row in db.execute("SELECT plan_id FROM drive_runs ORDER BY plan_id").fetchall() if row[0]
+    )
+    forward_return_plans = frozenset(
+        row[0]
+        for row in db.execute(
+            "SELECT from_artifact FROM trace_edges WHERE edge_kind = 'forward_return'"
+        ).fetchall()
+        if row[0]
+    )
+    return DrivePassageInput(drive_plan_ids=drive_plans, forward_return_plan_ids=forward_return_plans)
+
+
+def analyze_drive_passage(input_data: DrivePassageInput) -> DrivePassageResult:
+    # 駆動 workflow は forward_return(戻し先)必須。drive_run に forward_return edge 不在 = violation。
+    # 駆動 PLAN が 0 件なら検査対象なし = ok(absence-blindness でない: should-be 集合を正しく 0 と判定)。
+    missing = tuple(
+        plan_id for plan_id in input_data.drive_plan_ids if plan_id not in input_data.forward_return_plan_ids
+    )
+    return DrivePassageResult(ok=not missing, missing_forward_return=missing)
+
+
+def drive_passage_messages(result: DrivePassageResult) -> list[Finding]:
+    return [
+        Finding(id=FN_DET_08, severity=HARD, subject=plan_id, missing=("forward_return absent",))
+        for plan_id in result.missing_forward_return
+    ]
+
+
 CORE_DETECTORS = (
     DetectorSpec(
         detector_id=FN_DET_01,
@@ -587,5 +634,13 @@ CORE_DETECTORS = (
         load=load_dist_api_input,
         analyze=analyze_dist_api,
         messages=dist_api_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_08,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_drive_passage_input,
+        analyze=analyze_drive_passage,
+        messages=drive_passage_messages,
     ),
 )

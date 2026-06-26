@@ -710,6 +710,23 @@ def project_drive_runs(ctx: ProjectionContext) -> None:
         )
         _safe_upsert_projection_row(ctx, table_name=table.name, source=source, row=row)
 
+        # forward_return(戻し先)を持つ駆動 PLAN は forward_return edge を投影 → FN-DET-08 が
+        # 「戻し先を持たない workflow」(edge 不在の drive_run)を検出できる。
+        if str(frontmatter.get("forward_return") or "").strip():
+            trace_table = registry.TABLE_BY_NAME["trace_edges"]
+            edge = _filter_row(
+                trace_table.name,
+                {
+                    "edge_id": stable_id(trace_table.name, f"{plan_id}:forward_return"),
+                    "from_artifact": plan_id,
+                    "to_artifact": "forward_return",
+                    "edge_kind": "forward_return",
+                    "plan_id": plan_id,
+                    "status": "active",
+                },
+            )
+            _safe_upsert_projection_row(ctx, table_name=trace_table.name, source=source, row=edge)
+
 
 PROJECTORS = (
     project_plans,
