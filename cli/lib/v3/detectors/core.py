@@ -750,6 +750,7 @@ def doc_contract_messages(result: DocContractResult) -> list[Finding]:
 
 
 FN_DET_08 = "FN-DET-08"
+FN_DET_18 = "FN-DET-18"
 
 
 @dataclass(frozen=True)
@@ -793,6 +794,80 @@ def drive_passage_messages(result: DrivePassageResult) -> list[Finding]:
     return [
         Finding(id=FN_DET_08, severity=HARD, subject=plan_id, missing=("forward_return absent",))
         for plan_id in result.missing_forward_return
+    ]
+
+
+@dataclass(frozen=True)
+class PlanDependencyEdge:
+    from_artifact: str
+    to_artifact: str
+
+
+@dataclass(frozen=True)
+class PlanDependencyInput:
+    requires_edges: tuple[PlanDependencyEdge, ...]
+    existing_plan_ids: frozenset[str]
+
+
+@dataclass(frozen=True)
+class PlanDependencyViolation:
+    from_artifact: str
+    to_artifact: str
+
+
+@dataclass(frozen=True)
+class PlanDependencyResult:
+    ok: bool
+    missing_sources: tuple[str, ...]
+    violations: tuple[PlanDependencyViolation, ...]
+
+
+def load_plan_dependency_input(db: sqlite3.Connection) -> PlanDependencyInput:
+    _ensure_table_columns("trace_edges", ("from_artifact", "to_artifact", "edge_kind"))
+    _ensure_table_columns("plan_registry", ("plan_id",))
+    requires_edges = tuple(
+        PlanDependencyEdge(from_artifact=row[0], to_artifact=row[1])
+        for row in db.execute(
+            "SELECT from_artifact, to_artifact "
+            "FROM trace_edges WHERE edge_kind = 'requires' "
+            "ORDER BY from_artifact, to_artifact"
+        ).fetchall()
+        if row[0] and row[1]
+    )
+    existing_plan_ids = frozenset(
+        row[0] for row in db.execute("SELECT plan_id FROM plan_registry").fetchall() if row[0]
+    )
+    return PlanDependencyInput(
+        requires_edges=requires_edges,
+        existing_plan_ids=existing_plan_ids,
+    )
+
+
+def analyze_plan_dependency(input_data: PlanDependencyInput) -> PlanDependencyResult:
+    # requires edge が 0 件なら検査対象なし = ok。source unreadable は loader 例外で fail-close。
+    violations = tuple(
+        PlanDependencyViolation(from_artifact=edge.from_artifact, to_artifact=edge.to_artifact)
+        for edge in input_data.requires_edges
+        if edge.to_artifact not in input_data.existing_plan_ids
+    )
+    return PlanDependencyResult(
+        ok=not violations,
+        missing_sources=(),
+        violations=violations,
+    )
+
+
+def plan_dependency_messages(result: PlanDependencyResult) -> list[Finding]:
+    if result.missing_sources:
+        return [_absence_finding(FN_DET_18, "plan-dependency", result.missing_sources)]
+    return [
+        Finding(
+            id=FN_DET_18,
+            severity=HARD,
+            subject=f"{violation.from_artifact} requires {violation.to_artifact}",
+            missing=(f"missing plan_registry.plan_id: {violation.to_artifact}",),
+        )
+        for violation in result.violations
     ]
 
 
@@ -923,6 +998,14 @@ CORE_DETECTORS = (
         load=load_drive_passage_input,
         analyze=analyze_drive_passage,
         messages=drive_passage_messages,
+    ),
+    DetectorSpec(
+        detector_id=FN_DET_18,
+        source_kind=DB_PROJECTION,
+        severity=HARD,
+        load=load_plan_dependency_input,
+        analyze=analyze_plan_dependency,
+        messages=plan_dependency_messages,
     ),
     DetectorSpec(
         detector_id=FN_DET_05,
