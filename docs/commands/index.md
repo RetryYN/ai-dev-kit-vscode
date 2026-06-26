@@ -12,6 +12,7 @@ HELIX CLI は「全体管理」「プロジェクト管理」「AI 管理 harnes
 | `helix dashboard` | 静的な読み取り専用 snapshot を表示（Dashboard 構想管理の対象外） |
 | `helix mode` | forward / reverse / discovery (検証駆動、旧 scrum) の mode 切替。9 mode 詳細は [HELIX-workflows/HELIX-process-L0-L14.md §他モード](../../HELIX-workflows/HELIX-process-L0-L14.md) 参照 |
 | `helix doctor` | 環境診断・修復 (`--json` 対応) |
+| `helix v3-doctor` | V3 engine 診断 (additive・実験的・V2 doctor 不変)。projection + detection を実行 |
 | `helix migrate` | `.helix/` テンプレート追従 |
 | `helix db` | helix.db migration / rollback / dev-sandbox 試演 (PLAN-086) |
 | `helix commands` | route / help / docs と主要 workflow 連携契約の同期検証 |

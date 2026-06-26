@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+# helix-v3-doctor: V3 engine 診断 (additive・実験的・V2 doctor 不変)
+# V3 検出 engine (projection + detection) を product として実行する。
+# Usage: helix v3-doctor [--repo-root DIR] [--db PATH]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec python3 "$SCRIPT_DIR/lib/v3/doctor.py" "$@"
