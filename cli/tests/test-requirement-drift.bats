@@ -1,85 +1,27 @@
 #!/usr/bin/env bats
+#
+# Retired V2 tombstone — requirement_drift 検出は V3 engine (FN-DET-04) へ委譲済み。
+# V2 helper の検出実体は cutover で retire 済み。検出正本 = V3 detector (FN-DET-04) +
+# その UT (cli/lib/v3/tests/)。本 bats は旧 V2 CLI 挙動 (JSON drift scan: --json /
+# --focus L7 / --check-stale) の回帰用だったが、V3 委譲 (delegated_to_v3=true, V2 no-op)
+# を反映した tombstone へ更新した。対応 pytest tombstone = cli/lib/tests/test_requirement_drift.py。
+# 委譲は HELIX_V3_DELEGATED_CHECKS で reversible (V2 path は削除でなく no-op 化)。
 
 setup() {
   HELIX_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
   export HELIX_HOME="$HELIX_ROOT"
   export PYTHONPATH="$HELIX_ROOT${PYTHONPATH:+:$PYTHONPATH}"
-  TMP_ROOT="$(mktemp -d)"
-  PROJECT_ROOT="$TMP_ROOT/project"
-  mkdir -p "$PROJECT_ROOT/docs/v2/L3-requirements" "$PROJECT_ROOT/docs/v2/L6-functional-design" "$PROJECT_ROOT/cli/lib/tests"
 }
 
-teardown() {
-  rm -rf "$TMP_ROOT" 2>/dev/null || true
-}
-
-@test "requirement_drift pytest suite passes" {
+@test "requirement_drift pytest tombstone passes (V3 委譲済み)" {
   run python3 -m pytest "$HELIX_ROOT/cli/lib/tests/test_requirement_drift.py" -q
   [ "$status" -eq 0 ]
-  [[ "$output" == *"19 passed"* ]]
+  [[ "$output" == *"1 passed"* ]]
 }
 
-@test "helix-doctor check_requirement_drift --json emits clean JSON" {
-  cat > "$PROJECT_ROOT/docs/v2/L3-requirements/fr.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  cat > "$PROJECT_ROOT/docs/v2/L6-functional-design/spec.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  cat > "$PROJECT_ROOT/cli/lib/reports.py" <<'EOF'
-# FR-001 Export reports
-EOF
-  cat > "$PROJECT_ROOT/cli/lib/tests/test_reports.py" <<'EOF'
-# FR-001 Export reports
-EOF
-
-  run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --json
+@test "helix-doctor check_requirement_drift は V3 engine へ委譲 (V2 no-op)" {
+  run "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --check-stale
   [ "$status" -eq 0 ]
-  printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["clean"] is True; assert d["focus"] == "L6"; assert d["stale_check_enabled"] is False; assert d["scope"] == "L1_FR -> L3_FR -> L4-L6_design"; assert d["summary"]["requirements"] == 1; assert d["summary"]["code_links"] == 0'
-}
-
-@test "helix-doctor check_requirement_drift --focus L7 scans code/test links" {
-  cat > "$PROJECT_ROOT/docs/v2/L3-requirements/fr.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  cat > "$PROJECT_ROOT/docs/v2/L6-functional-design/spec.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  cat > "$PROJECT_ROOT/cli/lib/reports.py" <<'EOF'
-# FR-001 Export reports
-EOF
-  cat > "$PROJECT_ROOT/cli/lib/tests/test_reports.py" <<'EOF'
-# FR-001 Export reports
-EOF
-
-  run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --focus L7 --json
-  [ "$status" -eq 0 ]
-  printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["clean"] is True; assert d["focus"] == "L7"; assert d["summary"]["code_links"] == 1; assert d["summary"]["test_links"] == 1'
-}
-
-@test "helix-doctor check_requirement_drift --check-stale enables stale advisory" {
-  cat > "$PROJECT_ROOT/docs/v2/L3-requirements/fr.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  cat > "$PROJECT_ROOT/docs/v2/L6-functional-design/spec.md" <<'EOF'
-| ID | Name |
-|---|---|
-| FR-001 | Export reports |
-EOF
-  touch -t 200001010000 "$PROJECT_ROOT/docs/v2/L6-functional-design/spec.md"
-  touch -t 200001010001 "$PROJECT_ROOT/docs/v2/L3-requirements/fr.md"
-
-  run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" "$HELIX_ROOT/cli/helix-doctor" check_requirement_drift --check-stale --json
-  [ "$status" -eq 0 ]
-  printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["blocking_clean"] is True; assert d["stale_check_enabled"] is True; assert d["findings"]["stale_freeze"][0]["requirement_id"] == "FR-001"'
+  [[ "$output" == *"delegated_to_v3=true"* ]]
+  [[ "$output" == *"V3 engine"* ]]
 }

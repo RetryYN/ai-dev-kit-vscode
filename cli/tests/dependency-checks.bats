@@ -65,7 +65,9 @@ EOF
   [[ "$output" == *"import_cycle"* ]]
 }
 
-@test "helix doctor check_import_cycle --gate fails on new changed-file cycle" {
+# check_import_cycle は V3 engine (FN-DET-17) へ委譲済み (V2 no-op、reversible)。
+# cycle gate-fail の検出正本は V3 detector + その UT (cli/lib/v3/tests/) へ移行。
+@test "helix doctor check_import_cycle --gate は V3 委譲済み (no-op)" {
   cat > "$PROJECT_ROOT/cli/lib/alpha.py" <<'EOF'
 import beta
 EOF
@@ -74,9 +76,8 @@ import alpha
 EOF
 
   run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" HELIX_CHANGED_FILES="cli/lib/alpha.py" "$HELIX_ROOT/cli/helix-doctor" check_import_cycle --gate
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"import_cycle"* ]]
-  [[ "$output" == *"new_findings=1"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"delegated_to_v3=true"* ]]
 }
 
 @test "helix doctor check_plan_dependency_gate stays advisory by default" {
@@ -118,7 +119,8 @@ EOF
   [[ "$output" == *"plan_dependency_gate"* ]]
 }
 
-@test "helix doctor check_plan_dependency_gate --gate fails on new changed-plan cycle" {
+# check_plan_dependency_gate は V3 engine (FN-DET-18) へ委譲済み (V2 no-op、reversible)。
+@test "helix doctor check_plan_dependency_gate --gate は V3 委譲済み (no-op)" {
   cat > "$PROJECT_ROOT/docs/plans/L7/L7-701-alpha-plan.md" <<'EOF'
 ---
 plan_id: L7-701-alpha-plan
@@ -153,9 +155,8 @@ dependencies:
 EOF
 
   run env HELIX_PROJECT_ROOT="$PROJECT_ROOT" HELIX_CHANGED_FILES="docs/plans/L7/L7-701-alpha-plan.md" "$HELIX_ROOT/cli/helix-doctor" check_plan_dependency_gate --gate
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"plan_dependency_gate"* ]]
-  [[ "$output" == *"blocking_findings=1"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"delegated_to_v3=true"* ]]
 }
 
 @test "helix doctor check_fr_uses stays advisory by default" {
