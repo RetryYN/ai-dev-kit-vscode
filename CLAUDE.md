@@ -108,12 +108,12 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 
 | 区分 | 意味 | top エントリ |
 |---|---|---|
-| **G** | harness 配布物（全 project に効く / 消費側へ install） | `helix/` `HELIX-workflows/` `cli/`（含 `cli/templates/`） `skills/` `harness/` `workflows/` `ai-code-review-kit/` `.claude/{agents,hooks,commands}` `setup.sh` `AGENTS.md` `README.md` `.claude/CLAUDE.md`(loader) |
+| **G** | harness 配布物（全 project に効く / 消費側へ install） | `helix/` `HELIX-workflows/` `cli/`（含 `cli/templates/`） `skills/` `ai-code-review-kit/` `.claude/{agents,hooks,commands}` `.claude-plugin/`（marketplace/plugin 配布） `setup.sh` `AGENTS.md` `README.md` `.claude/CLAUDE.md`(loader) |
 | **P** | project 専用（この repo の dogfooding、配布しない） | `CLAUDE.md`（本 project context） `docs/plans/` `docs/v2/` `docs/adr` `docs/research` `src/`（feature scaffold） |
-| **S** | runtime / local（生成物・機械固有、gitignored） | `.helix/` `.claude/{memory,agent-memory}` `settings.local.json` `public/` / root 直下 draft `.md` |
+| **S** | runtime / local（生成物・機械固有、gitignored） | `.helix/` `.claude/agent-memory` `settings.local.json` `public/` / root 直下 draft `.md` |
 | **B** | build / test | `tests/` `verify/` `scripts/` `pyproject.toml` `package.json` `requirements-dev.txt` `.commitlintrc.json` |
 
-- **混在 dir（要注意）**: `docs/`（G=`docs/commands` 利用導線 ／ P=plans・v2・adr・research）、`.claude/`（G=agents/hooks/commands ／ S=memory・local）。
+- **混在 dir（要注意）**: `docs/`（G=`docs/commands` 利用導線 ／ P=plans・v2・adr・research）、`.claude/`（G=agents/hooks/commands ／ **P=memory**（tracked 正本＝この repo の dogfooding memory、document-topology が参照）／ S=agent-memory・local）。`.claude/memory` は S-tier runtime ではなく tracked の framework/project 正本である点に注意（agent-memory のみ S）。
 - G のうち `~/.helix/core` 経由で**常時注入**されるのは保存先ルールの core セットのみ。他 G は詳細注入か CLI 実体。
 
 ## コーディング規約
@@ -163,7 +163,7 @@ HELIX 成果物・状態の保存先を固定する。repo 名・clone 先パス
 
 ### gitignore / 追跡対象
 
-- S tier (runtime/local: `.helix/`・`.claude/{memory,agent-memory}`・`settings.local.json`・生成物) は git 追跡しない。
+- S tier (runtime/local: `.helix/`・`.claude/agent-memory`・`settings.local.json`・生成物) は git 追跡しない。`.claude/memory` は tracked の framework/project 正本（document-topology 参照）であり S-tier 除外対象ではない。
 - secret / API key / PII / credential を commit しない (`## 禁止事項` 参照)。
 - 自動生成物 (session 記録・Codex local state) は手動 commit に混ぜない。
 
