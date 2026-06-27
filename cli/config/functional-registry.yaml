@@ -1138,6 +1138,21 @@ entries:
     code_paths:
       - "cli/helix-workspace"
     doc_paths: []
+  - id: "FR-CLI-081"
+    name: "helix-v3-doctor"
+    domain: "cli"
+    description: "V3 engine 診断 dispatcher (projection + detection を product 実行、additive・実験的・V2 doctor 不変、cli/lib/v3/doctor.py へ委譲)"
+    l1_fr:
+      - "FR-08"
+    l3_fr:
+      - "FR-4ART-01"
+    status: "active"
+    coverage_layer: "L4_required"
+    design_ids:
+      - "DSN-CMD-FAMILY"
+    code_paths:
+      - "cli/helix-v3-doctor"
+    doc_paths: []
   - id: "FR-LIB-001"
     name: "add_feature_engine.py"
     domain: "lib"

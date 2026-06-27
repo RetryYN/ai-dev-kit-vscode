@@ -34,5 +34,6 @@
     "completed": __COMPLETED__,
     "pending": __PENDING__
   },
-  "tests": __TESTS__
+  "tests": __TESTS__,
+  "review": __REVIEW__
 }

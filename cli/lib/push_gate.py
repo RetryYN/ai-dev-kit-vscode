@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
 import os
 import re
@@ -72,6 +73,10 @@ FULL_TRIGGER_GLOBS = (
     "cli/lib/tests/test_helix_l0_l14_flow_contract.py",
     "cli/tests/test-helix-l0-l14-flow-contract.bats",
 )
+COMPLETED_REVIEW_STATUSES = {"completed", "finalized"}
+HANDOVER_PLAN_ID_ABSENT = "absent"
+HANDOVER_PLAN_ID_SINGLE = "single"
+HANDOVER_PLAN_ID_AMBIGUOUS = "ambiguous"
 
 
 def _is_nonempty_string_list(value: Any) -> bool:
@@ -222,19 +227,28 @@ def _resolve_plan_path(project_root: Path, plan_id: str) -> Path:
     raise ValueError(f"multiple plan markdown files found: {plan_id}")
 
 
-def _load_handover_plan_id(project_root: Path) -> str | None:
+def _resolve_handover_plan_id_state(project_root: Path) -> tuple[str, str | None]:
     handover_path = project_root / ".helix" / "handover" / "CURRENT.json"
     if not handover_path.is_file():
-        return None
+        return HANDOVER_PLAN_ID_ABSENT, None
     try:
         payload = json.loads(handover_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return None
+        return HANDOVER_PLAN_ID_AMBIGUOUS, None
     candidates = _collect_plan_ids(payload)
     unique = sorted({candidate for candidate in candidates if candidate})
-    if len(unique) != 1:
-        return None
-    return unique[0]
+    if not unique:
+        return HANDOVER_PLAN_ID_ABSENT, None
+    if len(unique) == 1:
+        return HANDOVER_PLAN_ID_SINGLE, unique[0]
+    return HANDOVER_PLAN_ID_AMBIGUOUS, None
+
+
+def _load_handover_plan_id(project_root: Path) -> str | None:
+    state, plan_id = _resolve_handover_plan_id_state(project_root)
+    if state == HANDOVER_PLAN_ID_SINGLE:
+        return plan_id
+    return None
 
 
 def _collect_plan_ids(value: Any) -> list[str]:
@@ -408,8 +422,11 @@ def _ahead_commit_plan_ids(project_root: Path) -> list[str]:
 
 def _resolve_review_plan_id(plan_id: str | None, project_root: Path) -> str:
     explicit = plan_id.strip() if isinstance(plan_id, str) and plan_id.strip() else None
-    handover = _load_handover_plan_id(project_root)
+    handover_state, handover = _resolve_handover_plan_id_state(project_root)
     ahead = _ahead_commit_plan_ids(project_root)
+
+    if handover_state == HANDOVER_PLAN_ID_AMBIGUOUS:
+        raise ValueError("handover plan_id is ambiguous")
 
     if explicit and handover and explicit != handover:
         raise ValueError(f"plan_id mismatch: explicit={explicit} handover={handover}")
@@ -442,6 +459,82 @@ def _all_review_plan_ids(plan_id: str | None, project_root: Path) -> list[str]:
     if len(ahead) == 1:
         return ahead
     return [resolved_plan_id]
+
+
+def _review_fallback_allowed(plan_id: str | None, project_root: Path) -> bool:
+    explicit = plan_id.strip() if isinstance(plan_id, str) and plan_id.strip() else None
+    if explicit:
+        return False
+    handover_state, _handover_plan_id = _resolve_handover_plan_id_state(project_root)
+    if handover_state != HANDOVER_PLAN_ID_ABSENT:
+        return False
+    return len(_ahead_commit_plan_ids(project_root)) == 0
+
+
+def _load_handover_review_record(project_root: Path) -> dict[str, str] | None:
+    handover_path = project_root / ".helix" / "handover" / "CURRENT.json"
+    if not handover_path.is_file():
+        return None
+    try:
+        payload = json.loads(handover_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    task = payload.get("task") if isinstance(payload.get("task"), dict) else {}
+    review = payload.get("review") if isinstance(payload.get("review"), dict) else {}
+    task_id = str(task.get("id", "")).strip()
+    if not task_id:
+        return None
+
+    return {
+        "kind": "handover_task",
+        "id": task_id,
+        "status": str(task.get("status", "")).strip(),
+        "tl_review": str(review.get("tl_review", "")).strip(),
+        "review_status": str(review.get("review_status", "")).strip(),
+        "reviewed_at": str(review.get("reviewed_at", "")).strip(),
+        "reviewed_by": str(review.get("reviewed_by", "")).strip(),
+    }
+
+
+def _is_valid_iso8601_datetime(value: str) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized = value.strip()
+    if not normalized:
+        return False
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    try:
+        datetime.fromisoformat(normalized)
+    except ValueError:
+        return False
+    return True
+
+
+def _handover_review_missing_fields(record: dict[str, Any]) -> list[str]:
+    missing_fields: list[str] = []
+    status = str(record.get("status", "")).strip()
+    review_status = str(record.get("review_status", "")).strip()
+    tl_review = str(record.get("tl_review", "")).strip()
+    reviewed_at = str(record.get("reviewed_at", "")).strip()
+    reviewed_by = str(record.get("reviewed_by", "")).strip()
+
+    if status not in COMPLETED_REVIEW_STATUSES:
+        missing_fields.append(f"status={status or '<missing>'}")
+    if review_status not in COMPLETED_REVIEW_STATUSES:
+        missing_fields.append(f"review_status={review_status or '<missing>'}")
+    if tl_review != "approve":
+        missing_fields.append(f"tl_review={tl_review or '<missing>'}")
+    if not _is_valid_iso8601_datetime(reviewed_at):
+        missing_fields.append(f"reviewed_at={reviewed_at or '<missing>'}")
+    if not reviewed_by:
+        missing_fields.append("reviewed_by=<missing>")
+    return missing_fields
+
+
+def is_handover_review_approved(state: dict[str, Any]) -> bool:
+    return not _handover_review_missing_fields(state)
 
 
 def _contract_gate_ids(contract_path: Path) -> list[str]:
@@ -810,11 +903,57 @@ def _is_approved_deferred_add_feature_boundary(frontmatter: dict[str, Any]) -> b
     )
 
 
+def _review_record_missing_fields(record: dict[str, Any]) -> list[str]:
+    missing_fields: list[str] = []
+    status = str(record.get("status", "")).strip()
+    tl_review = str(record.get("tl_review", "")).strip()
+    record_kind = str(record.get("kind", "")).strip()
+
+    requires_completed_status = True
+    if record_kind == "plan":
+        requires_completed_status = (
+            str(record.get("plan_scope", "action")).strip() != "process"
+            and not bool(record.get("is_boundary"))
+        )
+
+    if requires_completed_status and status not in COMPLETED_REVIEW_STATUSES:
+        missing_fields.append(f"status={status or '<missing>'}")
+    if tl_review != "approve":
+        missing_fields.append(f"tl_review={tl_review or '<missing>'}")
+    return missing_fields
+
+
 def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
     root = Path(project_root).resolve()
     try:
         review_plan_ids = _all_review_plan_ids(plan_id, root)
     except ValueError as exc:
+        if _review_fallback_allowed(plan_id, root):
+            record = _load_handover_review_record(root)
+            if record is None:
+                return _result(
+                    "G-review",
+                    False,
+                    str(exc),
+                    "PLAN 特定 (--plan-id / handover / ahead commit) と docs/plans frontmatter を確認",
+                )
+
+            detail = (
+                f"{record['id']} kind=handover_task "
+                f"status={record['status'] or '<missing>'} "
+                f"tl_review={record['tl_review'] or '<missing>'} "
+                f"review_status={record['review_status'] or '<missing>'}"
+            )
+            if not is_handover_review_approved(record):
+                missing_fields = _handover_review_missing_fields(record)
+                return _result(
+                    "G-review",
+                    False,
+                    f"review prerequisites missing: {record['id']} {' '.join(missing_fields)}",
+                    "handover review block の tl_review=approve と task.status∈{completed,finalized} を満たすこと。ready_for_review は未レビュー扱い。",
+                )
+            return _result("G-review", True, detail, "なし")
+
         return _result(
             "G-review",
             False,
@@ -832,18 +971,20 @@ def run_gate_review(plan_id: str | None, project_root: str | Path) -> dict:
             tl_review = str(frontmatter.get("tl_review", "")).strip()
             plan_scope = str(frontmatter.get("plan_scope", "action")).strip() or "action"
             is_boundary = _is_approved_deferred_add_feature_boundary(frontmatter)
+            record = {
+                "kind": "plan",
+                "id": review_plan_id,
+                "status": status,
+                "tl_review": tl_review,
+                "review_status": status,
+                "plan_scope": plan_scope,
+                "is_boundary": is_boundary,
+            }
             reviewed.append(
                 f"{review_plan_id} scope={plan_scope} "
                 f"status={status or '<missing>'} tl_review={tl_review or '<missing>'}"
             )
-            missing_fields: list[str] = []
-            # process-scope PLAN は長命の親 (全 Action の L7 完了で収束、plan-model)。
-            # incremental Action landing 中は未完了が正常なため status 完了は要求しない
-            # (TL 判定A 2026-06-05)。tl_review=approve のみで守る。action-scope は両方必須。
-            if plan_scope != "process" and not is_boundary and status not in {"completed", "finalized"}:
-                missing_fields.append(f"status={status or '<missing>'}")
-            if tl_review != "approve":
-                missing_fields.append(f"tl_review={tl_review or '<missing>'}")
+            missing_fields = _review_record_missing_fields(record)
             if missing_fields:
                 violations.append(f"{review_plan_id} {' '.join(missing_fields)}")
     except ValueError as exc:

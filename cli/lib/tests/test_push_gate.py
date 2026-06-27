@@ -92,6 +92,44 @@ def _write_approved_boundary_plan(
     )
 
 
+def _write_handover_review_state(
+    root: Path,
+    *,
+    task_id: str = "GOAL-V3-PERSONAL-L0-L6",
+    task_status: str = "completed",
+    tl_review: str | None = "approve",
+    review_status: str | None = "completed",
+    reviewed_at: str | None = "2026-06-27T21:22:14+09:00",
+    reviewed_by: str | None = "tl",
+    extra_payload: dict[str, object] | None = None,
+) -> None:
+    handover_dir = root / ".helix" / "handover"
+    handover_dir.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] = {
+        "task": {
+            "id": task_id,
+            "status": task_status,
+        }
+    }
+    review: dict[str, object] = {}
+    if tl_review is not None:
+        review["tl_review"] = tl_review
+    if review_status is not None:
+        review["review_status"] = review_status
+    if reviewed_at is not None:
+        review["reviewed_at"] = reviewed_at
+    if reviewed_by is not None:
+        review["reviewed_by"] = reviewed_by
+    if review:
+        payload["review"] = review
+    if extra_payload:
+        payload.update(extra_payload)
+    (handover_dir / "CURRENT.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _stub_ahead(monkeypatch, plan_ids: list[str]) -> None:
     monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: plan_ids)
 
@@ -425,8 +463,136 @@ def test_run_gate_review_uses_handover_active_plan_id(tmp_path: Path) -> None:
     assert plan_id in result["detail"]
 
 
+def test_run_gate_review_falls_back_to_handover_review_when_no_plan_candidates(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path)
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is True
+    assert result["detail"] == (
+        "GOAL-V3-PERSONAL-L0-L6 kind=handover_task "
+        "status=completed tl_review=approve review_status=completed"
+    )
+
+
+def test_run_gate_review_handover_fails_closed_when_handover_plan_id_is_ambiguous(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(
+        tmp_path,
+        extra_payload={
+            "plan_id": "add-feature-2026-06-03-gate-driven-push",
+            "related": [{"plan_id": "add-feature-2026-06-03-gate-driven-push-docs"}],
+        },
+    )
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert "plan_id" in result["detail"]
+
+
+def test_run_gate_review_handover_fails_closed_when_review_status_is_changes_required(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, review_status="changes_required")
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert "review_status=changes_required" in result["detail"]
+
+
+def test_run_gate_review_handover_fails_closed_when_review_status_is_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, review_status=None)
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert "review_status=<missing>" in result["detail"]
+
+
+def test_run_gate_review_handover_fails_closed_when_reviewed_at_is_invalid(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, reviewed_at="invalid-iso-datetime")
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert "reviewed_at=invalid-iso-datetime" in result["detail"]
+
+
+def test_run_gate_review_handover_fails_closed_when_reviewed_by_is_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, reviewed_by=None)
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert "reviewed_by=<missing>" in result["detail"]
+
+
+def test_run_gate_review_handover_passes_with_completed_review_cross_fields(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, review_status="finalized")
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is True
+    assert result["detail"] == (
+        "GOAL-V3-PERSONAL-L0-L6 kind=handover_task "
+        "status=completed tl_review=approve review_status=finalized"
+    )
+
+
+def test_run_gate_review_handover_fails_closed_when_tl_review_is_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(tmp_path, tl_review=None)
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert result["detail"] == (
+        "review prerequisites missing: GOAL-V3-PERSONAL-L0-L6 tl_review=<missing>"
+    )
+
+
+def test_run_gate_review_handover_fails_closed_when_status_is_ready_for_review(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_handover_review_state(
+        tmp_path,
+        task_status="ready_for_review",
+        tl_review="approve",
+        review_status="completed",
+    )
+    monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
+
+    result = push_gate.run_gate_review(None, tmp_path)
+
+    assert result["passed"] is False
+    assert result["detail"] == (
+        "review prerequisites missing: GOAL-V3-PERSONAL-L0-L6 status=ready_for_review"
+    )
+
+
 def test_run_gate_review_fails_when_plan_id_cannot_be_resolved(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     monkeypatch.setattr(push_gate, "_ahead_commit_plan_ids", lambda project_root: [])
 
     result = push_gate.run_gate_review(None, tmp_path)
@@ -438,7 +604,6 @@ def test_run_gate_review_fails_when_plan_id_cannot_be_resolved(tmp_path: Path, m
 def test_run_gate_review_fails_when_ahead_commit_has_multiple_plan_candidates(
     tmp_path: Path, monkeypatch
 ) -> None:
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     monkeypatch.setattr(
         push_gate,
         "_ahead_commit_plan_ids",
@@ -458,7 +623,6 @@ def test_run_gate_review_passes_when_all_ahead_plans_are_approved(
     sibling = "add-feature-2026-06-03-gate-driven-push-docs"
     _write_plan(tmp_path, representative)
     _write_plan(tmp_path, sibling, status="finalized")
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     _stub_ahead(monkeypatch, [representative, sibling])
 
     result = push_gate.run_gate_review(representative, tmp_path)
@@ -475,7 +639,6 @@ def test_run_gate_review_fails_when_any_ahead_plan_is_missing_tl_review(
     missing_review = "add-feature-2026-06-03-gate-driven-push-docs"
     _write_plan(tmp_path, representative)
     _write_plan(tmp_path, missing_review, tl_review=None)
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     _stub_ahead(monkeypatch, [representative, missing_review])
 
     result = push_gate.run_gate_review(representative, tmp_path)
@@ -492,7 +655,6 @@ def test_run_gate_review_fails_when_any_ahead_plan_status_is_not_completed_or_fi
     incomplete = "add-feature-2026-06-03-gate-driven-push-docs"
     _write_plan(tmp_path, representative)
     _write_plan(tmp_path, incomplete, status="in_progress")
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     _stub_ahead(monkeypatch, [representative, incomplete])
 
     result = push_gate.run_gate_review(representative, tmp_path)
@@ -509,7 +671,6 @@ def test_run_gate_review_fails_when_explicit_plan_id_is_not_in_ahead_candidates(
     sibling = "add-feature-2026-06-03-gate-driven-push-docs"
     _write_plan(tmp_path, representative)
     _write_plan(tmp_path, sibling)
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     _stub_ahead(monkeypatch, [representative, sibling])
 
     result = push_gate.run_gate_review("add-feature-2026-06-03-outside-scope", tmp_path)
@@ -523,7 +684,6 @@ def test_run_gate_review_uses_single_ahead_plan_for_backward_compatibility(
 ) -> None:
     plan_id = "add-feature-2026-06-03-gate-driven-push"
     _write_plan(tmp_path, plan_id)
-    monkeypatch.setattr(push_gate, "_load_handover_plan_id", lambda project_root: None)
     _stub_ahead(monkeypatch, [plan_id])
 
     result = push_gate.run_gate_review(None, tmp_path)

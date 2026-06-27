@@ -5,8 +5,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+_PR_GATE_SCRUB_ENV_KEYS = (
+    "HELIX_ASKUSERQUESTION_NOW",
+    "HELIX_DB_CUTOVER",
+    "HELIX_DB_DISCOVERY",
+)
 
 
 def _copy_tool_cli(tmp_path: Path) -> Path:
@@ -40,14 +47,18 @@ def _write_mock_gh(bin_dir: Path, log_path: Path) -> None:
     (bin_dir / "gh").chmod(0o755)
 
 
-def _run_pr(
+def _isolated_pr_env(
     tool_root: Path,
     project_root: Path,
     bin_dir: Path,
-    *args: str,
     extra_env: dict[str, str] | None = None,
-) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
+) -> dict[str, str]:
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("HELIX_AUTOMATION_")
+        and key not in _PR_GATE_SCRUB_ENV_KEYS
+    }
     env["HELIX_HOME"] = str(tool_root)
     env["HELIX_PROJECT_ROOT"] = str(project_root)
     env["HOME"] = str(project_root / "home")
@@ -55,6 +66,17 @@ def _run_pr(
     env["PATH"] = f"{bin_dir}:{Path('/usr/bin')}:{Path('/bin')}"
     if extra_env:
         env.update(extra_env)
+    return env
+
+
+def _run_pr(
+    tool_root: Path,
+    project_root: Path,
+    bin_dir: Path,
+    *args: str,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    env = _isolated_pr_env(tool_root, project_root, bin_dir, extra_env)
     (project_root / "home").mkdir(exist_ok=True)
     return subprocess.run(
         [str(tool_root / "cli" / "helix-pr"), *args],
@@ -116,6 +138,50 @@ def test_pr_auto_merge_flag_parses(tmp_path: Path) -> None:
         "    return {'ok': True, 'execute_requested': execute, 'remote': remote, 'branch': branch}\n",
         encoding="utf-8",
     )
+
+    completed = _run_pr(tool_root, project_root, bin_dir, "--gate", "--auto-merge")
+
+    output = completed.stdout + completed.stderr
+    assert completed.returncode == 0, output
+    commands = gh_log.read_text(encoding="utf-8")
+    assert "pr create" in commands
+    assert "pr merge --squash" in commands
+
+
+def test_pr_gate_subprocess_scrubs_gate_context_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tool_root = _copy_tool_cli(tmp_path)
+    project_root = tmp_path / "project"
+    bin_dir = tmp_path / "bin"
+    project_root.mkdir()
+    bin_dir.mkdir()
+    _init_git_repo(project_root)
+
+    gh_log = tmp_path / "gh.log"
+    _write_mock_gh(bin_dir, gh_log)
+    (tool_root / "cli" / "lib" / "push_gate.py").write_text(
+        "import os\n\n"
+        "def run_all_gates(execute=False, remote='origin', branch='main'):\n"
+        "    leaked = [\n"
+        "        key for key in (\n"
+        "            'HELIX_ASKUSERQUESTION_NOW',\n"
+        "            'HELIX_DB_CUTOVER',\n"
+        "            'HELIX_DB_DISCOVERY',\n"
+        "        ) if key in os.environ\n"
+        "    ]\n"
+        "    if leaked:\n"
+        "        raise RuntimeError(f'leaked env: {leaked}')\n"
+        "    if os.environ.get('HELIX_AUTOMATION_RUN_ID') == '999999':\n"
+        "        raise RuntimeError('ambient automation run id leaked')\n"
+        "    return {'ok': True, 'execute_requested': execute, 'remote': remote, 'branch': branch}\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HELIX_AUTOMATION_RUN_ID", "999999")
+    monkeypatch.setenv("HELIX_ASKUSERQUESTION_NOW", "2026-06-27T00:00:00+09:00")
+    monkeypatch.setenv("HELIX_DB_CUTOVER", "1")
+    monkeypatch.setenv("HELIX_DB_DISCOVERY", "1")
 
     completed = _run_pr(tool_root, project_root, bin_dir, "--gate", "--auto-merge")
 

@@ -657,12 +657,13 @@ handover_boundary_contract:
   handover_current_markdown: .helix/handover/CURRENT.md
   handover_current_json: .helix/handover/CURRENT.json
   next_action_heading_required: "## Next Action (Codex 向け)"
+  current_user_boundary_reconcile_note: "2026-06-25 V3 line supersede reconciled these boundary tokens to the live CURRENT.md Next Action without rewriting the 2026-06-12 audit verdict."
   required_current_user_boundary_contains:
-    - GOAL-C-RIGHTARM-FULLCLOSE
-    - full-close
-    - anchor-quality
-    - honest deferred
-    - "2026-06-21"
+    - G0.5
+    - runtime implementation
+    - explicitly requested
+    - L0-L6 redesign evidence
+    - 26/26
   latest_user_boundary_must_match_handover_next_action: true
   latest_user_boundary_forbidden_items_must_be_reflected_in_handover: false
   latest_user_boundary_forbidden_handover_terms: []

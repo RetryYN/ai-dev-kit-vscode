@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # helix-handover: Claude Code(Opus) <-> Codex CLI の非同期 handover 管理
-# Usage: helix handover <dump|status|stale|update|clear|escalate|resume|compaction-sync> [options]
+# Usage: helix handover <dump|status|stale|update|review|clear|escalate|resume|compaction-sync> [options]
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/helix-common.sh"
 
@@ -19,6 +19,7 @@ Subcommands:
   status    handover 状態を表示
   stale     time-based stale 判定のみを表示
   update    handover 状態を更新
+  review    TL review を記録
   clear     handover を archive に移動
   escalate  ESCALATION.md を生成して status=escalated に遷移
   resume    Codex→Opus 復帰支援 (RESUME.md 生成)
@@ -29,6 +30,7 @@ Examples:
   helix handover status --json
   helix handover stale --threshold-hours 48 --json
   helix handover update --owner codex --note "作業再開"
+  helix handover review --approve --by tl
   helix handover resume --note "Opus review restart"
   helix handover escalate --reason "仕様判断が必要" --context "..."
   helix handover compaction-sync --json
@@ -229,6 +231,10 @@ case "$SUBCOMMAND" in
   update)
     ensure_helix_ready
     run_handover_py update "$@"
+    ;;
+  review)
+    ensure_helix_ready
+    run_handover_py review "$@"
     ;;
   clear)
     ensure_helix_ready

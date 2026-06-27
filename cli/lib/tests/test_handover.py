@@ -251,6 +251,12 @@ def test_dump_update_and_clear_completed_e2e(
     current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
     assert current["revision"] == 3
     assert current["files"]["completed"] == [{"path": "cli/lib/handover.py", "note": "done"}]
+    assert current["review"] == {
+        "tl_review": "none",
+        "review_status": "none",
+        "reviewed_at": None,
+        "reviewed_by": None,
+    }
     md_text = (handover_dir / "CURRENT.md").read_text(encoding="utf-8")
     assert "owner_change" in md_text
     assert "status_change" in md_text
@@ -274,6 +280,67 @@ def test_dump_update_and_clear_completed_e2e(
     assert len(archives) == 1
     assert (archives[0] / "CURRENT.json").exists()
     assert (archives[0] / "CURRENT.md").exists()
+
+
+def test_review_approve_marks_handover_completed(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    _update_ready_for_review(repo, capsys)
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "review",
+            "--approve",
+            "--by",
+            "tl",
+        ]
+    )
+    capsys.readouterr()
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    assert current["task"]["status"] == "completed"
+    assert current["review"]["tl_review"] == "approve"
+    assert current["review"]["review_status"] == "completed"
+    assert current["review"]["reviewed_by"] == "tl"
+    assert current["review"]["reviewed_at"]
+    assert "review" in (_handover_dir(repo) / "CURRENT.md").read_text(encoding="utf-8")
+
+
+def test_review_changes_required_reopens_handover_in_progress(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo = _init_repo(tmp_path)
+    handover_dir = _dump_handover(repo, capsys)
+    _update_ready_for_review(repo, capsys)
+
+    handover.main(
+        [
+            "--handover-dir",
+            str(handover_dir),
+            "--project-root",
+            str(repo),
+            "review",
+            "--changes-required",
+            "--by",
+            "tl",
+        ]
+    )
+    capsys.readouterr()
+
+    current = json.loads(_current_json(repo).read_text(encoding="utf-8"))
+    assert current["task"]["status"] == "in_progress"
+    assert current["review"]["tl_review"] == "changes_required"
+    assert current["review"]["review_status"] == "changes_required"
+    assert current["review"]["reviewed_by"] == "tl"
+    assert current["review"]["reviewed_at"]
 
 
 def test_escalate_generates_markdown_and_sets_status(

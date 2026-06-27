@@ -8478,6 +8478,11 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "handover_current_markdown": ".helix/handover/CURRENT.md",
         "handover_current_json": ".helix/handover/CURRENT.json",
         "next_action_heading_required": "## Next Action (Codex 向け)",
+        "current_user_boundary_reconcile_note": (
+            "2026-06-25 V3 line supersede reconciled these boundary tokens to the "
+            "live CURRENT.md Next Action without rewriting the 2026-06-12 audit "
+            "verdict."
+        ),
         "latest_user_boundary_must_match_handover_next_action": True,
         "latest_user_boundary_forbidden_items_must_be_reflected_in_handover": False,
         "latest_user_boundary_forbidden_handover_terms": [],
@@ -8495,11 +8500,11 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
         "product_l7_work_allowed_from_handover": False,
     }
     assert handover_boundary_contract["required_current_user_boundary_contains"] == [
-        "GOAL-C-RIGHTARM-FULLCLOSE",
-        "full-close",
-        "anchor-quality",
-        "honest deferred",
-        "2026-06-21",
+        "G0.5",
+        "runtime implementation",
+        "explicitly requested",
+        "L0-L6 redesign evidence",
+        "26/26",
     ]
     handover_path = REPO_ROOT / handover_boundary_contract["handover_current_markdown"]
     handover_text = handover_path.read_text(encoding="utf-8")
@@ -8533,8 +8538,8 @@ def test_full_objective_gap_status_keeps_l7_and_full_flow_unclaimed() -> None:
             encoding="utf-8"
         )
     )
-    assert "GOAL-C-RIGHTARM-FULLCLOSE" in handover_state["task"]["title"]
-    assert "full-close" in handover_state["task"]["title"]
+    assert "HELIX V3 personal edition" in handover_state["task"]["title"]
+    assert "L0-L6 redesign evidence closure" in handover_state["task"]["title"]
     assert handover_state["files"]["pending"] == []
     assert handover_boundary_contract["handover_task_title_may_be_legacy"] is True
     assert handover_boundary_contract["handover_pending_entries_may_be_legacy"] is True

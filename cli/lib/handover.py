@@ -35,8 +35,11 @@ ALLOWED_MODE = {
 }
 ALLOWED_PHASE = {f"L{i}" for i in range(1, 12)}
 ALLOWED_SPRINT = {".1a", ".1b", ".2", ".3", ".4", ".5"}
-ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "escalated"}
+ALLOWED_STATUS = {"in_progress", "blocked", "ready_for_review", "completed", "finalized", "escalated"}
 ALLOWED_STATUS_UPDATE = {"in_progress", "blocked", "ready_for_review"}
+ALLOWED_REVIEW = {"approve", "changes_required", "none"}
+ALLOWED_REVIEW_STATUS = {"completed", "finalized", "changes_required", "none"}
+HANDOVER_REVIEWABLE_STATUS = {"ready_for_review", "completed", "finalized"}
 SHA40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 HANDOVER_LOCK_NAME = "handover-current"
 EVENT_TIMESTAMP_RE = re.compile(r"^### \[([^\]]+)\]")
@@ -174,6 +177,42 @@ def parse_tests(raw_values):
             if cmd:
                 tests.append(cmd)
     return tests
+
+
+def normalized_review_block(raw_review):
+    review = raw_review if isinstance(raw_review, dict) else {}
+
+    def _normalized_string(value):
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
+    tl_review = _normalized_string(review.get("tl_review"))
+    review_status = _normalized_string(review.get("review_status"))
+    reviewed_at = _normalized_string(review.get("reviewed_at"))
+    reviewed_by = _normalized_string(review.get("reviewed_by"))
+
+    if tl_review is not None and tl_review not in ALLOWED_REVIEW:
+        raise HandoverError(
+            f"review.tl_review は {sorted(ALLOWED_REVIEW)} のいずれかである必要があります: {tl_review}",
+            EXIT_INPUT_ERROR,
+        )
+    if review_status is not None and review_status not in ALLOWED_REVIEW_STATUS:
+        raise HandoverError(
+            "review.review_status は "
+            f"{sorted(ALLOWED_REVIEW_STATUS)} のいずれかである必要があります: {review_status}",
+            EXIT_INPUT_ERROR,
+        )
+    if reviewed_at is not None and _parse_iso_datetime(reviewed_at) is None:
+        raise HandoverError("review.reviewed_at は ISO-8601 datetime 形式が必要です", EXIT_INPUT_ERROR)
+
+    return {
+        "tl_review": tl_review,
+        "review_status": review_status,
+        "reviewed_at": reviewed_at,
+        "reviewed_by": reviewed_by,
+    }
 
 
 def run_git(project_root, args, strict=True):
@@ -432,6 +471,8 @@ def validate_state(state):
     if status not in ALLOWED_STATUS:
         raise HandoverError(f"task.status が不正です: {status}", EXIT_INPUT_ERROR)
 
+    state["review"] = normalized_review_block(state.get("review"))
+
     git_info = state.get("git", {})
     sha = git_info.get("head_sha", "")
     if not isinstance(sha, str) or not SHA40_RE.fullmatch(sha):
@@ -489,6 +530,7 @@ def render_json_template(state):
         "COMPLETED": json.dumps(state["files"]["completed"], ensure_ascii=False),
         "PENDING": json.dumps(state["files"]["pending"], ensure_ascii=False),
         "TESTS": json.dumps(state["tests"], ensure_ascii=False),
+        "REVIEW": json.dumps(normalized_review_block(state.get("review")), ensure_ascii=False),
     }
     rendered = tmpl
     for key, value in mapping.items():
@@ -764,6 +806,12 @@ def build_dump_state(args):
             "pending": pending_files,
         },
         "tests": parse_tests(args.tests),
+        "review": {
+            "tl_review": "none",
+            "review_status": "none",
+            "reviewed_at": None,
+            "reviewed_by": None,
+        },
     }
     validate_state(state)
     rendered = render_json_template(state)
@@ -818,6 +866,7 @@ def build_status_payload(state, args, stale, stale_reasons):
             "completed": files.get("completed", []),
             "pending": files.get("pending", []),
         },
+        "review": normalized_review_block(state.get("review")),
     }
 
 
@@ -1034,8 +1083,11 @@ def cmd_clear(args):
         validate_state(state)
         status = state["task"]["status"]
 
-        if args.reason == "completed" and status != "ready_for_review":
-            raise HandoverError("clear --reason completed は status=ready_for_review のみ許可", EXIT_CHECK_FAILED)
+        if args.reason == "completed" and status not in {"ready_for_review", "completed", "finalized"}:
+            raise HandoverError(
+                "clear --reason completed は status=ready_for_review/completed/finalized のみ許可",
+                EXIT_CHECK_FAILED,
+            )
         if args.reason == "escalated" and status != "escalated":
             raise HandoverError("clear --reason escalated は status=escalated のみ許可", EXIT_CHECK_FAILED)
         if args.reason == "abandoned" and not args.force:
@@ -1096,6 +1148,81 @@ def cmd_escalate(args):
         write_text(paths["escalation"], escalation)
 
     print("handover escalated")
+
+
+def cmd_review(args):
+    review_decision = "approve" if args.approve else "changes_required"
+    reviewer = (args.by or "").strip()
+    if not reviewer:
+        raise HandoverError("--by は必須です", EXIT_INPUT_ERROR)
+
+    paths = current_paths(args.handover_dir)
+    with lock_open(args.project_root):
+        if not paths["json"].exists():
+            raise HandoverError("CURRENT.json が存在しません", EXIT_PREREQ_ERROR)
+
+        state = load_json(paths["json"])
+        validate_state(state)
+        current_status = state["task"]["status"]
+        if current_status not in HANDOVER_REVIEWABLE_STATUS:
+            raise HandoverError(
+                "review は ready_for_review/completed/finalized 状態でのみ実行できます",
+                EXIT_CHECK_FAILED,
+            )
+
+        expected_revision = state["revision"]
+        updated = json.loads(json.dumps(state, ensure_ascii=False))
+        updated["review"] = normalized_review_block(updated.get("review"))
+
+        reviewed_at = now_iso()
+        if review_decision == "approve":
+            next_status = "finalized" if args.finalize else "completed"
+            updated["task"]["status"] = next_status
+            updated["review"].update(
+                {
+                    "tl_review": "approve",
+                    "review_status": next_status,
+                    "reviewed_at": reviewed_at,
+                    "reviewed_by": reviewer,
+                }
+            )
+            event_status = next_status
+        else:
+            updated["task"]["status"] = "in_progress"
+            updated["review"].update(
+                {
+                    "tl_review": "changes_required",
+                    "review_status": "changes_required",
+                    "reviewed_at": reviewed_at,
+                    "reviewed_by": reviewer,
+                }
+            )
+            event_status = "in_progress"
+
+        updated["git"] = refresh_git_snapshot(updated, args.project_root, preserve_previous_head=True)
+        updated["updated_at"] = reviewed_at
+        updated["revision"] = expected_revision + 1
+        validate_state(updated)
+        atomic_write_json_with_revision(paths["json"], updated, expected_revision)
+
+        ensure_md_exists(paths["md"], updated)
+        append_event(
+            paths["md"],
+            "review",
+            updated["owner"],
+            "\n".join(
+                [
+                    f"decision: {review_decision}",
+                    f"review_status: {updated['review']['review_status']}",
+                    f"reviewed_by: {reviewer}",
+                    f"before_status: {current_status}",
+                    f"after_status: {updated['task']['status']}",
+                ]
+            ),
+            status=event_status,
+        )
+
+    print("handover review completed")
 
 
 def render_resume_md(
@@ -1335,6 +1462,13 @@ def parse_args(argv):
     update_p.add_argument("--owner", choices=sorted(ALLOWED_OWNER), default=None)
     update_p.add_argument("--update-next-action", default=None)
 
+    review_p = sub.add_parser("review", help="TL review を記録")
+    review_group = review_p.add_mutually_exclusive_group(required=True)
+    review_group.add_argument("--approve", action="store_true")
+    review_group.add_argument("--changes-required", action="store_true")
+    review_p.add_argument("--by", required=True, help="reviewer role / name")
+    review_p.add_argument("--finalize", action="store_true", help="approve 時に task.status=finalized へ遷移")
+
     clear_p = sub.add_parser("clear", help="archive 移動")
     clear_p.add_argument("--reason", required=True, choices=["completed", "abandoned", "escalated"])
     clear_p.add_argument("--force", action="store_true")
@@ -1370,6 +1504,8 @@ def main(argv=None):
         cmd_clear(args)
     elif args.subcommand == "escalate":
         cmd_escalate(args)
+    elif args.subcommand == "review":
+        cmd_review(args)
     elif args.subcommand == "resume":
         cmd_resume(args)
     else:
