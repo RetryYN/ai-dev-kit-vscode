@@ -79,3 +79,6 @@ yarn-debug.log*
 .vscode/
 .idea/
 *.iml
+
+# 外部 harness DL アーカイブ（調査用・配布物でない、commit しない）
+UT-TDD_AGENT-HARNESS-main*.zip

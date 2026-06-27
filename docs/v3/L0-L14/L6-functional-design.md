@@ -44,6 +44,11 @@ invariant: analyze は純関数（I/O は loader 隔離）/ source_kind 宣言 /
 | FN-DET-14 | dist-api-consistency | artifact_registry（manifest/loader） | core-manifest⇔setup.sh⇔loader 不一致（公開 API 回帰） | hard | runtime-portability/tracked-canonical | UT-DET-14 |
 | FN-DET-15 | doc-contract | artifact_registry, findings | frontmatter/必須セクション/ID 規約違反 | hard | doc-consistency/sub-doc-section-structure | UT-DET-15 |
 | FN-DET-16 | rule-drift | （rule registry） | coding/ddd rule registry と実態の drift | advisory | coding-rules/ddd-tdd-rules/rule-drift | UT-DET-16 |
+| FN-DET-17 | design-template-coverage | template_catalog, doc_coverage, artifact_registry | layer/doc_kind/pair_test_kind の required coverage gap | hard | proposal-document-coverage 拡張 | UT-DET-17 |
+| FN-DET-18 | review-loop-closure | review_evidence_registry, findings, test_results | 観点別 critical/high 未解決、worker=reviewer、tests_green_at>reviewed_at | hard | review-guard 拡張 | UT-DET-18 |
+| FN-DET-19 | prompt-interpretation-risk | prompt_interpretations, findings | escalation/risk/test/doc viewpoint の conflict 未解消 | hard | agent-guard 拡張 | UT-DET-19 |
+| FN-DET-20 | learning-forward-return | learning_candidates | candidate に forward_return も discard_reason も無い | hard | learning-engine 拡張 | UT-DET-20 |
+| FN-DET-21 | upgrade-assist-contract | drive_runs, plan_registry | upgrade-assist PLAN の version_delta/rollback/staged_gate/forward_return 欠落 | hard | retrofit/cutover 拡張 | UT-DET-21 |
 
 > fork の残り lint（telemetry-closure / improvement-backlog / feedback-log / change-impact / module-drift / asset-drift / proposal-document-coverage / verification-profile / readability 等）は V3 の observability / advisory 層として **Phase 8（検出系強化）で段階追加**（baseline ratchet で advisory→hard 昇格）。core 16 を先に閉じる。
 
@@ -85,9 +90,49 @@ invariant: baseline は縮小のみ（C5 ratchet）/ baseline 内は advisory su
 UT-DET-06: baseline 外 missing → hard fail。baseline 内 missing → advisory（ok 維持）。
 ```
 
+### FN-DET-17 design-template-coverage
+```
+requires:  template_catalog, doc_coverage, artifact_registry が C2 投影済。template required_sections は normalized form。
+ensures:   {required(layer, doc_kind, pair_test_kind) − actual(artifact_registry/doc_coverage)} を findings に全件。
+invariant: 外部テンプレート本文を読まない。normalized_sections と provenance_hash のみで判定 / license_review_required は hard finding。
+UT-DET-17: L3 subject に受入テスト設計 doc_kind 欠落 → 1 finding。doc_coverage 追加 → 0。
+```
+
+### FN-DET-18 review-loop-closure
+```
+requires:  review_evidence_registry, findings, test_results が投影済。
+ensures:   unresolved critical/high finding、worker_model=reviewer_model、tests_green_at>reviewed_at を全件 findings 化。
+invariant: 観点別（architecture/security/test/doc/perf/ux/ops）に独立判定。security critical は他観点 pass で相殺しない。
+UT-DET-18: QA pass + security critical open → fail。security closure evidence 追加 → pass。
+```
+
+### FN-DET-19 prompt-interpretation-risk
+```
+requires:  prompt_interpretations が scope/acceptance/risk/test/doc/escalation viewpoint を持つ。
+ensures:   escalation signal、viewpoint 間 conflict、acceptance/test/doc coverage 欠落を findings 化。
+invariant: prompt の単一解釈を正としない。複数視点差分を PLAN 前段 evidence として残す。
+UT-DET-19: prompt に PII + prod deploy を含める → escalation finding。approval evidence 追加まで auto-run block。
+```
+
+### FN-DET-20 learning-forward-return
+```
+requires:  learning_candidates が source_event と candidate_kind を持つ。
+ensures:   forward_return も discard_reason も無い candidate を findings 化。
+invariant: 自動改善は V-model へ戻るか、根拠付きで捨てる。孤立 backlog 化しない。
+UT-DET-20: candidate_kind=rule で forward_return 欠落 → fail。L4 追補 PLAN candidate を付与 → pass。
+```
+
+### FN-DET-21 upgrade-assist-contract
+```
+requires:  drive_runs/plan_registry に upgrade-assist PLAN が登録済。
+ensures:   version_delta, impact_scope, rollback_condition, staged_gate, forward_return 欠落を findings 化。
+invariant: upgrade-assist は retrofit の代替ではなく、将来差分評価の補助駆動。最後は Forward DB に集約。
+UT-DET-21: rollback_condition 欠落 → fail。staged_gate + rollback + forward_return 追加 → pass。
+```
+
 ## 4. 単体テスト設計（L6 ↔ L7 pair・対の検証）
 
-- 各 FN-DET-NN に **UT-DET-NN を 1:1 対**で置く（粒度ペアリング原則: 関数 1 = UT 1）。
+- 各 FN-DET-NN に **UT-DET-NN を 1:1 対**で置く（粒度ペアリング原則: 関数 1 = UT 1）。core 16 に加え、HELIX 個人開発版拡張の FN-DET-17〜21 も同じ粒度で L7 red-first 実装する。
 - UT は **DB fixture（in-memory SQLite に C1 schema + 既知行を投入）** で「あるべき集合 − 実在集合」の境界を突く（positive: もれ有→finding / negative: 充足→0 finding / boundary: baseline 境界）。
 - L7 実装時に UT-DET-NN をテストコードに anchor（UT-ID をテストに紐付け + 実行 pass）。trace_symmetry だけで閉じない（exec_pass 必須＝pair_closure）。
 

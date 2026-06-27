@@ -23,6 +23,10 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
 | **C4** | lint-wiring | 実行口から BFS 到達不能な detector を死蔵として禁止。DEFERRED 明示 | `check_wiring(registry, entrypoints) -> WiringResult` | REQ-WIR-01/02 |
 | **C5** | baseline-ratchet | advisory→fail-close を非後退（縮小のみ）で昇格 | `ratchet(current, baseline) -> {regressed, allowed}` | REQ-RAT-01/02 |
 | **C6** | doc/workflow contract parser | frontmatter/ID/必須セクション/forward_return を機械パース | `parse(path) -> Contract` / `validate(Contract) -> [Violation]` | REQ-DOC-01/02/03 |
+| **C7** | template-coverage engine | 外部・社内 template catalog を layer/doc_kind/test_kind へ正規化し、doc coverage gap を算出 | `project_template(...)` / `evaluate_doc_coverage(db) -> CoverageResult` | REQ-TPL-01/02/03 |
+| **C8** | review-loop engine | 観点別 review evidence / finding closure / worker≠reviewer を検証 | `evaluate_review_gate(db, plan_id) -> ReviewGateResult` | REQ-REV-01 |
+| **C9** | prompt-loop engine | prompt を scope/acceptance/risk/test/doc/escalation へ複数解釈し、PLAN 前段 finding を生成 | `interpret_prompt(prompt, context) -> InterpretationSet` | REQ-PRM-01 |
+| **C10** | learning-maintenance engine | finding / review / test / postmortem を learning candidate 化し Forward return へ接続 | `promote_learning_candidate(...)` | REQ-LRN-01 |
 
 > C1-C6 各々の入出力契約・不変条件（DbC）は `docs/v3/engine/{schema-registry,projection-writer,detector-wiring,baseline-ratchet,doc-workflow-rules}.md` を正本とする（本書はインタフェース署名まで）。
 
@@ -42,6 +46,8 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
                                                                           │ exit code
                                                                           ▼
                                               [ 実行口: helix doctor / push gate / CI ]
+
+[ external templates / review / prompt / postmortem ] ─▶ [ C7/C8/C9/C10 ] ─▶ [ C2 projection ] ─▶ [ Forward DB ]
 ```
 
 要点: detector（C3）の **primary source は DB projection**（C1 が定義し C2 が満たす *あるべき集合*）。これが「DB があるべき集合を持つから検出が成立する」の機械的実体。ただし detector は `source_kind`（db_projection / file_snapshot / hybrid）を宣言し、DB で表せない事実（例: review-guard の git working-tree 状態）は loader 隔離した file_snapshot を併用する（DB-only ではない＝D-05）。core は pure function、I/O は loader、absence=ok=false。
@@ -66,6 +72,10 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
 | D-05 | **detector は source_kind 宣言**（db_projection/file_snapshot/hybrid）、core は pure function・I/O は loader 隔離・absence=ok=false | clean harness は file/DB 混在が実態。「DB-only」でなく source 宣言 + pure + ok=AND で厳格性担保（TL C-3） |
 | D-06 | **FE 設計ガバナンスを harness から盗む**（§1c per-layer / frontend-design-coverage / screen-impl-pair-freeze）、実 UI 描画のみ greenfield | charter D7 訂正（FE は HELIX 独自優位でなく harness 保有） |
 | D-07 | **doc/workflow は機械契約 + 13 駆動 mode + auto-enroll rule engine** | 機械登録の前提（FR-ENG-08） |
+| D-08 | **設計書テンプレートは catalog 化し、本文コピーではなく項目構造・粒度・検証観点へ正規化する** | 外部テンプレートを大量導入しても著作権・陳腐化・表記揺れを DB 契約で制御するため |
+| D-09 | **複数観点 review は evidence table で分離し、critical/high 未解決を gate fail にする** | AI 自走で人間監視を常時前提にしない代わりに、観点漏れを機械 gate 化するため |
+| D-10 | **prompt interpretation loop を PLAN 前段に置く** | ユーザー指示の複数視点解釈で scope/test/doc/escalation のズレを先に検出し、手戻りを減らすため |
+| D-11 | **learning-maintenance は Forward return 必須** | 自動改善が独立 backlog 化して V-model から外れることを防ぐため |
 
 > D-01〜D-06 のうち不可逆な大局判断（D-01 スタック / D-02 FK 方針）は ADR 起票候補。
 
@@ -73,7 +83,7 @@ V3 engine は L0 §2 の閉ループ doctrine を 6 コンポーネントで実�
 
 clean harness の網羅 capture（[capture §1](../audit/2026-06-26-new-base-comprehensive-capture.md)）で実体が確定済。L5/L6 はこれを Python へ降ろす:
 
-- **テーブル inventory**: harness **56 table**（core 26 / evaluation 10 / graph 20）+ 41 index。V3 は 2 table 追加（`test_result_events`=append / `functional_registry`=projection）= **58**。分類 SSoT = [C1 §5](../engine/schema-registry.md)（projection 49 / append_event 3 / config 6）→ L5。
+- **テーブル inventory**: harness **56 table**（core 26 / evaluation 10 / graph 20）+ 41 index。V3 base は 2 table 追加（`test_result_events`=append / `functional_registry`=projection）、HELIX personal extension は 4 projection table 追加（`template_catalog` / `doc_coverage` / `prompt_interpretations` / `learning_candidates`）= **62**。分類 SSoT = [C1 §5](../engine/schema-registry.md)（projection 53 / append_event 3 / config 6）→ L5。
 - **projection rule 表**: artifact 種別 → table と logical_key/stale_key/delete_scope → C2/L5。
 - **detector inventory**: **~60 detector**（FE/descent/trace/graph/verification/plan/gate/governance）を pure-function 3 層 + source_kind で分類 → C3/L6（FN-* + DbC）。
 - **enum SSoT**: 全 enum（**PlanKind 11**/ArtifactType 19（charter 含む）/Layer 16/V_MODEL_PAIRS 6/VALID_SUB_DOCS/Drive 5/...、語は [C1 §6](../engine/schema-registry.md) に一致）→ C1 enums.py。
@@ -92,6 +102,10 @@ system レベルの end-to-end シナリオ（コンポーネント結合）:
 | ST-V3-05 | baseline を増やす → C5 が reject、減らす → 通る | C5 |
 | ST-V3-06 | 公開 API パス参照（消費側 loader 模擬）→ 解決成功（回帰なし） | REQ-DST-01 |
 | ST-V3-07 | rebuild 2 回 → DB diff 空（idempotent） | REQ-PRJ-02 |
+| ST-V3-08 | 外部テンプレート catalog 登録 → C7 が required_sections を正規化 → C2 が template/doc_coverage を投影 → C3 が不足 doc kind を finding 化 | REQ-TPL-01/02 |
+| ST-V3-09 | prompt interpretation で PII/prod/auth signal を検出 → C9 finding → auto-run 停止 → approval evidence 追加後に再開 | REQ-AUTO-02/REQ-PRM-01 |
+| ST-V3-10 | review loop で QA pass / security critical 未解決 → C8 gate fail。security closure evidence 追加 → pass | REQ-REV-01 |
+| ST-V3-11 | detector finding → C10 learning candidate → Forward L3/L4 PLAN draft candidate へ昇格。forward_return 欠落なら reject | REQ-LRN-01 |
 
 ## 7. 次工程
 

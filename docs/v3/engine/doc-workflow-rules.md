@@ -47,10 +47,13 @@ plan: docs/plans/PLAN-...      # 起票 PLAN への back-link
 | screen-design | screen_requirement_gap/wireframe_missing | L2 | — |
 | frontend-design | a11y/visual/token_drift/ux_feedback | L10 | — |
 | **design-bottomup** | screen_addition_to_backend/backend_derived_screen | L3-L6（Discovery 合成経由） | — |
+| **upgrade-assist** | dependency_upgrade/model_upgrade/provider_upgrade/helix_version_delta/platform_delta | L4-L9（必要時 L1/L3） | rollback/cutover で要 |
 
 - **routing**（`route_signal_to_mode`）: signal→mode、最長一致優先。`evaluate_route_command` が route-config 違反（legacy-db/personal-path）block、escalation 13 語（auth/payment/pii/prod/migration 等）で approval 強制、`helix` 以外の command 名を排除。
 - **design-bottomup**（harness net-new）: 確立 backend（data_entity/projection/cli_command）→ FE 要件 derive（各画面×L3/L5/L6 slot）→ gap 検出（has_body=false を SLOT_SIGNAL、coverage≠substance）→ Discovery(entry=design_uncertain)へ合成 → Forward 降下。新 mode を作らず既存 routing に乗る。
 - **forward_return**: 駆動 PLAN は forward_return を**機械契約**として持つ（散文依存をやめる）。欠落 = violation（`drive-model-passage` 相当）。
+- **upgrade-assist**: retrofit が「既存構成を現行正本へ合わせる」入口であるのに対し、upgrade-assist は「将来差分を安全に評価・段階導入する」補助駆動。必須 field は `version_delta` / `impact_scope` / `rollback_condition` / `staged_gate` / `forward_return`。物理削除・schema/env/外部 API 変更は runtime rules §10 として人間承認。
+- 個人開発版の review / prompt interpretation / learning-maintenance / upgrade-assist workflow と全 drive の Forward 収束表は [personal-edition-workflows](personal-edition-workflows.md) を正本にする。
 
 ## 4.5 unit decomposition（L4 確定後の unitized L5-L7 descent — 大規模実装の分解規律）
 
@@ -85,6 +88,15 @@ plan: docs/plans/PLAN-...      # 起票 PLAN への back-link
 ```
 
 **11 rule 型**: `pair-exists` / `ref-resolves` / `trace-bidir` / `upstream-coverage`(孤児0) / `count-matches` / `id-format` / `dup-id` / `glossary-delta`(L0 §10 用語へ back-merge) / `dependency-drift`(実 import グラフ vs 期待 = ADR-002) / `asset-drift` / `backlog-format`。共通 signature `(registry: DocRegistry, params: RuleParams) -> RuleResult`（pure）。
+
+V3 個人開発版では次の rule 型を追加する（すべて pure、DB projection 入力のみ）:
+- `template-coverage`: template_catalog.required_sections と artifact_registry/doc_coverage を突合し、layer/doc_kind/pair_test_kind 欠落を検出。
+- `review-loop-closure`: 観点別 review evidence、tests_green_at、worker/reviewer 分離、unresolved finding を検査。
+- `prompt-interpretation-risk`: prompt の scope/acceptance/risk/test/doc/escalation viewpoint を突合し、矛盾や §10 escalation を検出。
+- `learning-forward-return`: learning candidate が Forward L に戻るか、discard reason を持つかを検査。
+- `upgrade-assist-contract`: upgrade-assist PLAN の delta/impact/rollback/staged gate/forward_return を検査。
+
+G1/G3/G4/G5/G6 への配置、source_kind、failure fixture は [personal-edition-gate-wiring](personal-edition-gate-wiring.md) を正本にする。
 
 ## 7. 契約（DbC）/ config 差し替え
 

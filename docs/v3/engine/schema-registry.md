@@ -59,28 +59,32 @@ def assert_sql_identifier(name: str) -> None:
 
 > **分類原則**: clean harness は全 table を `rebuild_projection` で TRUNCATE する **projection-only** 実態。V3 は「rebuild で復元不能な監査証跡」だけを append_event へ昇格する（最小 delta）。再導出可能な `*_events` 名 table（`model_runs` / `impact_results` / `artifact_progress_events` / `retry_events` / `trouble_events` / `test_flake_events` / `mcp_server_runs` 等）は **projection のまま**（"event" は harness の命名であって append 意味論ではない）。
 
-### V3 table inventory（58 = harness 56 + V3 追加 2）
+### V3 table inventory（62 = harness 56 + V3 base 2 + HELIX personal 4）
 
-harness = **56**（core 26 + evaluation 10 + graph 20、`SCHEMA_VERSION=18`、index 41）。V3 は次の 2 table を明示追加し **58** とする（推測増設はしない）:
+harness base = **56**（core 26 + evaluation 10 + graph 20、harness `SCHEMA_VERSION=18`、index 41）。V3 base は次の 2 table を明示追加し、HELIX 個人開発版は AI 自走・設計資産化のための 4 projection table を追加して **62** とする。実装時は V3 registry の `SCHEMA_VERSION` を bump し、harness base の 18 と混同しない:
 
 - `test_result_events`（**append_event**, V3 新設）: red→green 履歴。`test_results`(current projection) と用途分離。
 - `functional_registry`（**projection**, V3-core）: 機能一覧 SSoT（fn_id↔ut_id の FN↔UT 1:1 供給、FR-FNREG）。harness は FR を artifact 側で表現 → V3 は queryable table へ昇格（C1 登録 = SSoT 準拠）。
+- `template_catalog`（**projection**, HELIX personal）: 外部・社内テンプレートの normalized required sections / provenance / freshness / license note。
+- `doc_coverage`（**projection**, HELIX personal）: template catalog と artifact registry から導出した layer/doc_kind/pair_test_kind coverage。
+- `prompt_interpretations`（**projection**, HELIX personal）: prompt を scope/acceptance/risk/test/doc/escalation 視点へ分解した解釈証跡。
+- `learning_candidates`（**projection**, HELIX personal）: findings/review/test/postmortem 由来の PLAN/rule/template_gap/debt 昇格候補。
 
-分類別の全件（58）:
+分類別の全件（62）:
 
 - **append_event(3)**: `test_result_events` / `guardrail_decisions` / `hook_events`
 - **config(6)**: `impact_rules` / `mcp_server_profiles` / `mcp_profile_triggers` / `verification_profiles` / `document_export_profiles` / `document_export_triggers`
-- **projection(49)**: 下記の append_event/config を除く全 table
+- **projection(53)**: 下記の append_event/config を除く全 table
 
 module 別（kind は上の 3 分類が正、ここは配置）:
 
-**core(28)**: `plan_registry` `artifact_registry` **`functional_registry`(V3)** `trace_edges` `coverage` `findings` `gate_runs` `drive_runs` `model_runs` `skill_invocations` `skill_recommendations` `feedback_events` `quality_signals` `test_runs` `test_cases` `test_results` **`test_result_events`(V3, append)** `test_artifact_edges` `test_flake_events` `search_index` `workflow_runs` `guardrail_decisions`(append) `hook_events`(append) `issue_queue` `trouble_events` `retry_events` `improvement_log` `automation_assets` — projection 25 + append 3
+**core(32)**: `plan_registry` `artifact_registry` **`functional_registry`(V3)** `trace_edges` `coverage` `findings` `gate_runs` `drive_runs` `model_runs` `skill_invocations` `skill_recommendations` `feedback_events` `quality_signals` `test_runs` `test_cases` `test_results` **`test_result_events`(V3, append)** `test_artifact_edges` `test_flake_events` `search_index` `workflow_runs` `guardrail_decisions`(append) `hook_events`(append) `issue_queue` `trouble_events` `retry_events` `improvement_log` `automation_assets` **`template_catalog`** **`doc_coverage`** **`prompt_interpretations`** **`learning_candidates`** — projection 29 + append 3
 
 **evaluation(10, 全 projection)**: `skill_evaluations` `poc_evaluations` `model_evaluations` `roadmap_rollups` `roadmap_band_coverage` `roadmap_gate_progress` `review_evidence_registry` `descent_obligations` `screens` `screen_trace`
 
 **graph(20)**: `graph_nodes` `dependency_edges` `impact_rules`(config) `impact_results` `artifact_progress` `artifact_progress_events` `tool_runs` `diagram_artifacts` `graph_snapshots` `mcp_server_profiles`(config) `mcp_profile_triggers`(config) `verification_profiles`(config) `verification_recommendations` `mcp_server_runs` `external_tool_findings` `document_export_profiles`(config) `document_export_runs` `document_export_datasets` `document_export_artifacts` `document_export_triggers`(config) — projection 14 + config 6
 
-> 列/PK 完全仕様は **L7 で確定**（推測 schema を避ける＝CLAUDE.md「永続化要求が観測されてから schema 確定」）。harness 実体 = capture §1 / `src/schema/harness-db-tables-{core,evaluation,graph}.ts`。index = 41（harness `harness-db-indexes.ts`）。
+> harness base の列/PK 完全仕様は **L7 で確定**（推測 schema を避ける＝CLAUDE.md「永続化要求が観測されてから schema 確定」）。HELIX personal 4 table は L0-L6 設計要求から永続化要求が観測済みのため、列/PK/identity 契約を [personal-edition-schema-contract](personal-edition-schema-contract.md) で先行 freeze する。runtime 実装は L7 で registry append + `SCHEMA_VERSION` bump + tests により反映する。harness 実体 = capture §1 / `src/schema/harness-db-tables-{core,evaluation,graph}.ts`。index = 41（harness `harness-db-indexes.ts`）。
 
 ## 6. enum SSoT（capture §1 全列挙 → Python Enum）
 

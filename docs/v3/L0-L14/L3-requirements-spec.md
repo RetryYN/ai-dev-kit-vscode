@@ -71,6 +71,20 @@ V3 harness の要件を「機械で合否判定できる」形に固める。for
 | REQ-DST-01 | 公開 API `@~/.helix/core/<path>` が**不変**（消費側 loader が読める）。core-manifest ⇔ setup.sh ⇔ loader の一致を検証。 |
 | REQ-HRN-01 | agent/role guard + hook が AI 規律を fail-close で機械強制し、worker≠reviewer を分離する。 |
 
+### 1.8 AI 自走・設計テンプレート coverage・改善 loop（← FR-AUTO/TPL/REV/PRM/LRN/UPG）
+
+| REQ | 受入条件（AC） |
+|---|---|
+| REQ-AUTO-01 | AI 自走 step は `planned/executed/verified/reviewed/learned` の event または projection を残す。未登録 step がある成果は完了扱いにならない。 |
+| REQ-AUTO-02 | runtime rules §10 の escalation signal（prod/auth/payment/pii/secret/license/schema/env/external API 等）を検出した場合、auto-run は停止し human approval を要求する。 |
+| REQ-TPL-01 | `template_catalog` に source_url / source_kind / doc_kind / layer / required_sections / pair_test_kind / provenance_hash / freshness_status が登録される。 |
+| REQ-TPL-02 | `doc_coverage` は template_catalog と artifact_registry から「必要 doc kind − 実在 doc kind」を算出し、coverage gap を detector に渡せる。 |
+| REQ-TPL-03 | 外部テンプレート本文の長文複製は保存せず、項目構造・粒度・検証観点へ正規化する。license/permission 判断が必要な template は `requires_human_license_review=true` で gate に上げる。 |
+| REQ-REV-01 | review evidence は観点別（architecture/security/test/doc/perf/ux/ops）に保存され、同一観点の unresolved critical/high finding がある場合は gate fail。 |
+| REQ-PRM-01 | prompt interpretation は複数視点の解釈（scope/acceptance/risk/test/doc/escalation）を生成し、矛盾・曖昧さ・不足を PLAN 前段 finding にする。 |
+| REQ-LRN-01 | detector finding / review finding / postmortem / test_result_event は learning candidate へ正規化され、Forward return か explicit discard reason を持つ。 |
+| REQ-UPG-01 | upgrade-assist 駆動 PLAN は version_delta / impact_scope / rollback_condition / staged_gate / forward_return を必須にする。欠落は doc-contract violation。 |
+
 ## 2. 受入テスト設計（L3 ↔ L12 pair・対の検証）
 
 | AT-ID | 受入シナリオ | 対応 REQ |
@@ -88,6 +102,12 @@ V3 harness の要件を「機械で合否判定できる」形に固める。for
 | AT-V3-11 | forward_return 欠落の駆動 PLAN → 検出 | REQ-DOC-02 |
 | AT-V3-12 | UI-absent profile → FE detector が core gate を阻害しない | REQ-FE-01 |
 | AT-V3-13 | `@~/.helix/core` パス参照 → 解決できる（公開 API 回帰なし） | REQ-DST-01 |
+| AT-V3-14 | template_catalog に要求定義/基本設計/詳細設計/DB/画面/テスト仕様の template を登録 → doc_coverage が layer 別 gap を返す | REQ-TPL-01/02 |
+| AT-V3-15 | 外部テンプレートに license_note 不明を登録 → human license review flag が立ち、自動採用を block | REQ-TPL-03 |
+| AT-V3-16 | security review finding critical 未解決 → gate が fail。解決 evidence 追加 → pass | REQ-REV-01 |
+| AT-V3-17 | prompt に認証/PII/本番影響を含める → interpretation loop が escalation finding を生成し auto-run 停止 | REQ-AUTO-02, REQ-PRM-01 |
+| AT-V3-18 | finding を learning candidate 化するが forward_return 欠落 → reject。Forward L に戻すと登録 | REQ-LRN-01 |
+| AT-V3-19 | upgrade-assist PLAN から rollback_condition を抜く → doc-contract detector が fail | REQ-UPG-01 |
 
 ## 3. トレース（FR → REQ → AT）
 
@@ -102,6 +122,12 @@ V3 harness の要件を「機械で合否判定できる」形に固める。for
 | FR-FE-01 | REQ-FE-01 | AT-12 |
 | FR-DST-01 | REQ-DST-01 | AT-13 |
 | FR-HRN-01 | REQ-HRN-01 | （L4 で結合観点へ） |
+| FR-AUTO-01/02 | REQ-AUTO-01/02 | AT-17 |
+| FR-TPL-01/02/03 | REQ-TPL-01/02/03 | AT-14/15 |
+| FR-REV-01 | REQ-REV-01 | AT-16 |
+| FR-PRM-01 | REQ-PRM-01 | AT-17 |
+| FR-LRN-01 | REQ-LRN-01 | AT-18 |
+| FR-UPG-01 | REQ-UPG-01 | AT-19 |
 
 ## 4. 次工程
 

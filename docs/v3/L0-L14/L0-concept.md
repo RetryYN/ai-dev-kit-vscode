@@ -6,7 +6,11 @@
 
 ## 0. 位置づけ
 
-V3 は HELIX harness の **clean 再立ち上げ**。最新 clean UT-TDD Agent Harness（HELIX の TS/Bun フォーク、閉ループを実運用実証 + refactoring で構造 clean 化 + FE/design-bottomup/refactor-candidate を net-new 追加）を **忠実に capture し Python/SQLite で再構築**する。harness のコードは取り込まず設計意図を盗む。HELIX 独自強化（FE 実描画 / 配布 / 既存 AI 規律）は capture 後の別フェーズ。
+V3 は HELIX harness の **clean 再立ち上げ**。最新 clean UT-TDD Agent Harness（HELIX の TS/Bun フォーク、閉ループを実運用実証 + refactoring で構造 clean 化 + FE/design-bottomup/refactor-candidate を net-new 追加）を **忠実に capture し Python/SQLite で再構築**する。harness のコードは取り込まず設計意図を盗む。
+
+ただし、V3 の最終形は UT-TDD Agent Harness の単純な移植ではない。UT-TDD harness は「人間が AI を安全に使い、漏れなく実装させる」ためのチーム駆動 harness である。HELIX 個人開発版はそこから一段進め、**AI 自身が gate / workflow / DB / detector の機械的ガードレール内で安全にシステム開発を自走する仕組み**にする。人間は常時監視者ではなく、runtime rules §10 の不可逆・破壊的境界だけを承認する。
+
+HELIX 独自強化（AI 自走 orchestration、FE 実描画、配布、既存 AI 規律、設計書 template catalog、自動改善・自動保守）は capture 後の上乗せフェーズで行うが、L0-L6 の要求・設計には最初から **自走システムとして閉じるための機械契約**を埋め込む。
 
 ## 1. 背景・課題（concept v3.1 §1 の 4 問題 + HELIX 現状）
 
@@ -41,6 +45,11 @@ doc と workflow を機械パース可能な契約（frontmatter/ID/必須セク
 - 配布（@~/.helix/core / setup / 4-provider 住所モデル）— 公開 API 据え置き。
 - AI 規律 harness（agent-guard / tier-router / work-guard / review-guard / attempt-escalation / worker≠reviewer）。
 - automation → DB 自動登録 → 検証 → 検出系強化。
+- **設計書 template catalog**（外部・社内テンプレートを source provenance 付きで登録し、L0-L6/L8-L14 の doc coverage と gate 入力へ変換）。テンプレートは見本で終わらせず、frontmatter / required_sections / pair_test_design / trace_edges として DB へ投影する。
+- **自動改善・自動保守 loop**（detector findings / review evidence / postmortem / test_result_events を learning candidate に変換し、PLAN draft / rule candidate / template gap として Forward DB に戻す）。
+- **複数観点 review loop**（PM/TL/SE/QA/security/docs/perf/UX 観点を role-separated evidence として保存し、worker≠reviewer と tests_green_before_review を機械強制）。
+- **prompt interpretation loop**（ユーザー指示を複数視点で解釈し、plan→execute→verify の前に scope / risk / test / doc coverage の解釈差分を検出する）。
+- **upgrade-assist 補助駆動モデル**（将来の HELIX / dependency / platform upgrade を、retrofit とは別に readiness / delta capture / staged cutover / rollback evidence へ分解する）。
 
 **out（やらない）**: TypeScript/Bun 化（Python 維持）/ 公開 API パス破壊 / harness ファイルの転用（設計を盗み新規構築）。
 
@@ -49,6 +58,7 @@ doc と workflow を機械パース可能な契約（frontmatter/ID/必須セク
 Forward(spine) を背骨に、13 駆動 mode（`DRIVE_TDD_FITS` = design 含む 10 駆動 + 工程専門 screen-design/frontend-design + design-bottomup。capture §1）。出口は必ず Forward L0-L14 合流。signal→mode auto-routing（4 象限 priority: Incident>Recovery>Reverse>Refactor）、mode→command 機械契約、layer-context 注入 + orchestration_mode 5 値、横断検出 5 機構。実行モード 4 種（claude-only/codex-only/hybrid/standalone）。2 MUST 原則 = ①ルール同一性（Claude/Codex 同一判定・同一 exit code）②hybrid 機能分散（frontier-reviewer ≠ worker runtime）。
 
 - **unitized L5-L7 descent**（大規模実装の分解規律、Forward 内・駆動 workflow ではない）: L4 まで一貫 Forward → large unit のみ L5→L6→L7 を unit 単位で刻む。Scrum（要件反復）と別概念。詳細・guardrail = [C6 §4.5](../engine/doc-workflow-rules.md)。
+- **upgrade-assist**（補助駆動、C6 で契約化）: dependency / provider / model / HELIX version の将来 upgrade を、現行 Forward 成果物へ逆流させずに delta capture → impact projection → staged retirement/cutover → Forward return で閉じる。retrofit が「既存構成を現行正本へ合わせる」入口であるのに対し、upgrade-assist は「将来差分を安全に評価して取り込む」入口。
 
 ## 5. W-model（concept v3.1 §2.3.3）
 
@@ -64,6 +74,54 @@ Forward(spine) を背骨に、13 駆動 mode（`DRIVE_TDD_FITS` = design 含む 
 | G-4 | doc/workflow が機械登録 | workflow/PLAN/設計が projection-writer で DB 行・auto-enroll rule 適用 |
 | G-5 | FE ガバナンス維持 | §1c per-layer FE 設計 coverage が frontend-design-coverage で fail-close |
 | G-6 | 公開 API 無破壊・Python 維持 | `@~/.helix/core` パス不変、スタック Python/SQLite |
+| G-7 | AI 自走が機械ガードレール内で成立 | plan→execute→verify→review→learn が DB/gate で閉じ、§10 境界だけ人間承認 |
+| G-8 | 設計書群が資産化される | template catalog / doc coverage / trace_edges / pair_test_design が DB projection され、抜け漏れを detector が発見 |
+| G-9 | Vモデルが同一粒度で閉じる | L1↔L14, L2↔L10, L3↔L12, L4↔L9, L5↔L8, L6↔L7 の設計 doc coverage とテスト設計 coverage が同じ粒度で gate 判定 |
+
+## 6.5 L0 workflow（今回の起点として実行する）
+
+L0 は企画書を置くだけの工程ではない。HELIX 個人開発版では、**AI 自走開発システムとして何を作るか**を固定し、以降の L1-L6 が同じ目的へ降下しているかを機械的に検査できる状態にする。
+
+| Step | 作業 | 出力 | 検査 |
+|---|---|---|---|
+| L0-0 | 入力固定 | user objective / handover / V3 charter / base capture / 外部 template evidence | 入力が artifact_registry へ登録可能 |
+| L0-1 | 問題定義 | UT harness との差分（人間駆動→AI 自走） | BR-V3-08 へ trace |
+| L0-2 | 価値定義 | AI 自走 / 設計資産化 / 自動改善 / review loop / prompt loop / upgrade-assist | G-7〜G-9 へ trace |
+| L0-3 | 駆動モデル定義 | Forward spine + 既存 13 mode + upgrade-assist 補助駆動 | C6 drive contract へ trace |
+| L0-4 | 設計資産化方針 | template catalog / doc coverage / pair_test_design / provenance | FR-TPL / REQ-TPL へ trace |
+| L0-5 | 検証条件化 | L1/L3/L4/L5/L6 で要求・受入・設計・DB・detector へ降下 | trace_edges + doc_coverage gap 0 |
+
+**初期 external template seed**:
+- CREX「設計書テンプレート集」(https://crexgroup.com/ja/development/project/design-document-templates/): 要求定義 / 基本設計 / 詳細設計 / DB設計 / 画面設計 / バッチ設計 / テスト仕様書を工程別 template として扱う。品質観点は「誰が読んでも理解できる」「5W1H」「図表活用」「構造化」「一貫性」「バージョン管理」「レビュー」を template quality rule に正規化する。
+- HELIX では本文を複製せず、`source_url` / `doc_kind` / `layer` / `required_sections` / `pair_test_kind` / `provenance_hash` / `freshness_status` へ正規化し、`template_catalog` と `doc_coverage` に投影する。
+- seed catalog の第一バッチは [template-catalog-seeds](../engine/template-catalog-seeds.md) に置く。外部 source は HELIX canonical term へ直結せず、[domain-glossary](../engine/domain-glossary.md) の anti-corruption mapping を通す。
+- review / prompt interpretation / learning-maintenance / upgrade-assist の個人開発版 workflow と全 drive model の Forward DB 収束は [personal-edition-workflows](../engine/personal-edition-workflows.md) を正本にする。
+
+**G0.5 企画突合ゲート**（判定証跡: [G0.5-l0-to-l1-handoff](../gates/G0.5-l0-to-l1-handoff.md)）:
+- L0 が `AI safe autonomous development system` を主語にしている。
+- UT harness との差分が BR/FR に落ちている。
+- すべての追加価値が Forward L1-L6 のどこで検証されるか決まっている。
+- 外部テンプレートは本文コピーではなく normalized template catalog として扱う方針になっている。
+- §10 escalation 境界（prod/auth/payment/PII/secret/license/schema/env/external API）は AI 自走から除外されている。
+
+**今回の workflow 体感から得る改善観点**:
+- L0 で目的語が曖昧なまま L1 へ進むと、UT harness の人間駆動前提が残る。差分を BR-V3-08 として明示する。
+- L0 で template catalog を入れないと、L3 以降の設計書 coverage が「人間の記憶」依存になる。L0 で資産化方針を入れる。
+- L0 で補助駆動を定義しないと、将来 upgrade が retrofit / recovery / cutover に散らばる。upgrade-assist を L0 で設計対象に入れる。
+
+## 6.6 L0→L1 handoff（G0.5 出力）
+
+`HELIX-workflows/helix-process/planning-to-requirements-transition.md` に従い、G0.5 通過時は次を L1 へ渡す。今回は L0 から開始するため、この handoff を満たさない限り L1 以降を freeze しない。
+
+| Handoff | 内容 | L1 受理先 |
+|---|---|---|
+| L1-IN-VISION | HELIX 個人開発版 = AI が機械ガードレール内で安全に自走する開発システム | BR-V3-08 / FR-AUTO |
+| L1-IN-SCOPE | V3 Python/SQLite engine + doc/workflow contract + template catalog + review/prompt/learning loop + upgrade-assist | L1 §2 FR 群 |
+| L1-IN-NON-GOAL | TypeScript/Bun 移植、公開 API 破壊、外部 template 本文の無断複製、§10 境界の自己承認はしない | NFR / escalation |
+| L1-IN-VALIDATION | L1 で運用テスト設計、L3 で受入テスト設計、L4-L6 で総合/結合/単体テスト設計へ降下する | L1 §4 / L3 §2 / L4-L6 test design |
+| L1-IN-DECISIONS | 採択: AI 自走、template catalog、review loop、prompt loop、learning loop、upgrade-assist。保留: 実装 table 物理列と UI 実描画。見送り: L4 からの直行開始 | L1/L3/L4-L6 |
+
+**禁止事項**: L0/G0.5 handoff を満たさずに L4 基本設計から開始しない。L4-L6 の記述は、L0→L1→L3 の trace がある項目だけを詳細化する。
 
 ## 7. 制約 / リスク
 
